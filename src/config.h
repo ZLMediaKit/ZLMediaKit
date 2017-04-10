@@ -38,10 +38,20 @@ namespace Config {
 ////////////广播名称///////////
 namespace Broadcast {
 extern const char kBroadcastRtspSessionPlay[];
+#define BroadcastRtspSessionPlayArgs const char *app,const char *stream
+
 extern const char kBroadcastRtspSrcRegisted[];
+#define BroadcastRtspSrcRegistedArgs const char *app,const char *stream
+
 extern const char kBroadcastRtmpSrcRegisted[];
+#define BroadcastRtmpSrcRegistedArgs const char *app,const char *stream
+
 extern const char kBroadcastRecordMP4[];
+#define BroadcastRecordMP4Args const Mp4Info &info
+
 extern const char kBroadcastHttpRequest[];
+#define BroadcastHttpRequestArgs const Parser &parser,HttpSession::HttpResponseInvoker &invoker
+
 } //namespace Broadcast
 
 //代理失败最大重试次数

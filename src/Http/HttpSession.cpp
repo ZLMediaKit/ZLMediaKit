@@ -106,14 +106,14 @@ void HttpSession::onRecv(const Socket::Buffer::Ptr&pBuf) {
 		onePkt = m_strRcvBuf.substr(0, index + 4);
 		m_strRcvBuf.erase(0, index + 4);
 		switch (parserHttpReq(onePkt)) {
-		case 0:
+		case Http_failed:
 			//失败
 			shutdown();
 			return;
-		case 1:
+		case Http_success:
 			//成功
 			break;
-		case 2:
+		case Http_moreData:
 			//需要更多数据,恢复数据并退出
 			m_strRcvBuf = onePkt + m_strRcvBuf;
 			m_parser.Clear();
@@ -122,14 +122,14 @@ void HttpSession::onRecv(const Socket::Buffer::Ptr&pBuf) {
 	}
 	m_parser.Clear();
 }
-inline int HttpSession::parserHttpReq(const string &str) {
+inline HttpSession::HttpCode HttpSession::parserHttpReq(const string &str) {
 	m_parser.Parse(str.data());
 	string cmd = m_parser.Method();
 	auto it = g_mapCmdIndex.find(cmd);
 	if (it == g_mapCmdIndex.end()) {
 		WarnL << cmd;
 		sendResponse("403 Forbidden", makeHttpHeader(true), "");
-		return false;
+		return Http_failed;
 	}
 	auto fun = it->second;
 	return (this->*fun)();
@@ -147,34 +147,35 @@ void HttpSession::onManager() {
 	}
 }
 
-inline int HttpSession::Handle_Req_GET() {
+inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	string strUrl = strCoding::UrlUTF8Decode(m_parser.Url());
 	string strFile = m_strPath + strUrl;
 	string strConType = m_parser["Connection"];
 	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
 	bool bClose = (strcasecmp(strConType.data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
+	HttpCode eHttpCode = bClose ? Http_failed : Http_success;
 	if (strFile.back() == '/') {
 		//index the folder
 		string strMeun;
 		if (!makeMeun(strFile, strMeun)) {
 			sendNotFound(bClose);
-			return !bClose;
+			return eHttpCode;
 		}
 		sendResponse("200 OK", makeHttpHeader(bClose,strMeun.size() ), strMeun);
-		return !bClose;
+		return eHttpCode;
 	}
 	//download the file
 	struct stat tFileStat;
 	if (0 != stat(strFile.data(), &tFileStat)) {
 		sendNotFound(bClose);
-		return !bClose;
+		return eHttpCode;
 	}
 
 	TimeTicker();
 	FILE *pFile = fopen(strFile.data(), "rb");
 	if (pFile == NULL) {
 		sendNotFound(bClose);
-		return !bClose;
+		return eHttpCode;
 	}
 
 	auto &strRange = m_parser["Range"];
@@ -200,7 +201,7 @@ inline int HttpSession::Handle_Req_GET() {
 	sendResponse(pcHttpResult, httpHeader, "");
 	if (iRangeEnd - iRangeStart < 0) {
 		//file is empty!
-		return !bClose;
+		return eHttpCode;
 	}
 
 	//send the file
@@ -251,7 +252,7 @@ inline int HttpSession::Handle_Req_GET() {
 	};
 	onFlush();
 	sock->setOnFlush(onFlush);
-	return true;
+	return Http_success;
 }
 
 inline bool HttpSession::makeMeun(const string &strFullPath, string &strRet) {
@@ -365,45 +366,63 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
 	}
 	return headerOut;
 }
-inline int HttpSession::Handle_Req_POST() {
+inline HttpSession::HttpCode HttpSession::Handle_Req_POST() {
 	int iContentLen = atoi(m_parser["Content-Length"].data());
 	if (!iContentLen) {
-		return false;
+		return Http_failed;
 	}
 	if ((int) m_strRcvBuf.size() < iContentLen) {
-		return 2; //需要更多数据
+		return Http_moreData; //需要更多数据
 	}
 	auto strContent = m_strRcvBuf.substr(0, iContentLen);
 	m_strRcvBuf.erase(0, iContentLen);
 
 	string strUrl = strCoding::UrlUTF8Decode(m_parser.Url());
 	string strConType = m_parser["Connection"];
-	static string charSet = mINI::Instance()[Config::Http::kCharSet];
 	static uint32_t reqCnt = mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
-
 	bool bClose = (strcasecmp(strConType.data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
 	m_parser.setUrl(strUrl);
 	m_parser.setContent(strContent);
-	auto headerOut=makeHttpHeader(bClose);
 
-	static string notFound =  mINI::Instance()[Config::Http::kNotFound];
-	string strContentOut = notFound;
-	string strCodeOut = "404 Not Found";
-	NoticeCenter::Instance().emitEvent(
-			Config::Broadcast::kBroadcastHttpRequest,
-			m_parser,strCodeOut,headerOut,strContentOut);
-
-	if(strContentOut.size()){
-		headerOut.emplace("Content-Type",StrPrinter<<"text/json; charset=" << charSet <<endl);
-		headerOut.emplace("Content-Length",StrPrinter<<strContentOut.size()<<endl);
+	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+	HttpResponseInvoker invoker = [weakSelf,bClose](const string &codeOut,
+													const KeyValue &headerOut,
+													const string &contentOut){
+		auto strongSelf = weakSelf.lock();
+		if(!strongSelf) {
+			return;
+		}
+		strongSelf->async([weakSelf,bClose,codeOut,headerOut,contentOut]() {
+			auto strongSelf = weakSelf.lock();
+			if(!strongSelf) {
+				return;
+			}
+			strongSelf->responseDelay(bClose,
+					const_cast<string &>(codeOut),
+					const_cast<KeyValue &>(headerOut),
+					const_cast<string &>(contentOut));
+			if(bClose){
+				strongSelf->shutdown();
+			}
+		});
+	};
+	if(!NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastHttpRequest,m_parser,invoker)){
+		invoker("404 Not Found",KeyValue(),"");
 	}
-	sendResponse(strCodeOut.data(), headerOut, strContentOut);
-	return !bClose;
+	return Http_success;
 }
-
+void HttpSession::responseDelay(bool bClose,string &codeOut,KeyValue &headerOut, string &contentOut){
+	if(codeOut.empty()){
+		sendNotFound(bClose);
+		return;
+	}
+	auto headerOther=makeHttpHeader(bClose,contentOut.size(),"text/json");
+	headerOut.insert(headerOther.begin(), headerOther.end());
+	sendResponse(codeOut.data(), headerOut, contentOut);
+}
 inline void HttpSession::sendNotFound(bool bClose) {
 	static string notFound =  mINI::Instance()[Config::Http::kNotFound];
-	sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound.data());
+	sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
 }
 
 } /* namespace Http */
