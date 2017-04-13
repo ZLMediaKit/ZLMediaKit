@@ -77,6 +77,12 @@ const char kRootPath[] = HTTP_FIELD"rootPath";
 		"</html>"
 const char kNotFound[] = HTTP_FIELD"notFound";
 
+//HTTP访问url前缀
+#define HTTP_PREFIX (StrPrinter << "http://" \
+						<< SockUtil::get_local_ip() \
+						<< ":" << HTTP_PORT << endl)
+const char kHttpPrefix[] = HTTP_FIELD"httpPrefix";
+
 onceToken token([](){
 	mINI::Instance()[kPort] = HTTP_PORT;
 	mINI::Instance()[kSendBufSize] = HTTP_SEND_BUF_SIZE;
@@ -87,6 +93,7 @@ onceToken token([](){
 	mINI::Instance()[kServerName] = HTTP_SERVER_NAME;
 	mINI::Instance()[kRootPath] = HTTP_ROOT_PATH;
 	mINI::Instance()[kNotFound] = HTTP_NOT_FOUND;
+	mINI::Instance()[kHttpPrefix] = HTTP_PREFIX;
 },nullptr);
 
 }//namespace Http
@@ -254,12 +261,6 @@ const char kSegmentNum[] = HLS_FIELD"segNum";
 #define HLS_FILE_BUF_SIZE (64 * 1024)
 const char kFileBufSize[] = HLS_FIELD"fileBufSize";
 
-//HTTP访问url前缀
-#define HLS_HTTP_PREFIX (StrPrinter << "http://" \
-						<< SockUtil::get_local_ip() \
-						<< ":" << HTTP_PORT << endl)
-const char kHttpPrefix[] = HLS_FIELD"httpPrefix";
-
 //录制文件路径
 #define HLS_FILE_PATH (HTTP_ROOT_PATH)
 const char kFilePath[] = HLS_FIELD"filePath";
@@ -268,7 +269,6 @@ onceToken token([](){
 	mINI::Instance()[kSegmentDuration] = HLS_SEGMENT_DURATION;
 	mINI::Instance()[kSegmentNum] = HLS_SEGMENT_NUM;
 	mINI::Instance()[kFileBufSize] = HLS_FILE_BUF_SIZE;
-	mINI::Instance()[kHttpPrefix] = HLS_HTTP_PREFIX;
 	mINI::Instance()[kFilePath] = HLS_FILE_PATH;
 },nullptr);
 

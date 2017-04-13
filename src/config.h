@@ -79,6 +79,8 @@ extern const char kServerName[];
 extern const char kRootPath[];
 //http 404错误提示内容
 extern const char kNotFound[];
+//HTTP访问url前缀
+extern const char kHttpPrefix[];
 }//namespace Http
 
 ////////////SHELL配置///////////
@@ -151,8 +153,6 @@ extern const char kSegmentDuration[];
 extern const char kSegmentNum[];
 //HLS文件写缓存大小
 extern const char kFileBufSize[];
-//HTTP访问url前缀
-extern const char kHttpPrefix[];
 //录制文件路径
 extern const char kFilePath[];
 } //namespace Hls

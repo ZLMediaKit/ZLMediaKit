@@ -21,7 +21,7 @@ namespace MediaFile {
 
 MediaRecorder::MediaRecorder(const string &strApp,const string &strId,const std::shared_ptr<PlayerBase> &pPlayer) {
 #ifdef ENABLE_MEDIAFILE
-	static string hlsPrefix = mINI::Instance()[Config::Hls::kHttpPrefix];
+	static string hlsPrefix = mINI::Instance()[Config::Http::kHttpPrefix];
 	static string hlsPath = mINI::Instance()[Config::Hls::kFilePath];
 	static uint32_t hlsBufSize = mINI::Instance()[Config::Hls::kFileBufSize].as<uint32_t>();
 	static uint32_t hlsDuration = mINI::Instance()[Config::Hls::kSegmentDuration].as<uint32_t>();
