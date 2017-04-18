@@ -95,7 +95,7 @@ void HttpSession::onRecv(const Socket::Buffer::Ptr&pBuf) {
 	static uint32_t reqSize =  mINI::Instance()[Config::Http::kMaxReqSize].as<uint32_t>();
 	m_ticker.resetTime();
 	if (m_strRcvBuf.size() + pBuf->size() >= reqSize) {
-		WarnL << "接收缓冲区溢出!";
+		WarnL << "接收缓冲区溢出:" << m_strRcvBuf.size() + pBuf->size() << "," << reqSize;
 		shutdown();
 		return;
 	}
