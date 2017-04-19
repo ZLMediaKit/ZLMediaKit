@@ -37,6 +37,9 @@ namespace Http {
 #define HTTP_PORT 80
 const char kPort[] = HTTP_FIELD"port";
 
+#define HTTPS_PORT 443
+extern const char kSSLPort[] = HTTP_FIELD"sslport";
+
 //http 文件发送缓存大小
 #define HTTP_SEND_BUF_SIZE (64 * 1024)
 const char kSendBufSize[] = HTTP_FIELD"sendBufSize";
@@ -85,6 +88,7 @@ const char kHttpPrefix[] = HTTP_FIELD"httpPrefix";
 
 onceToken token([](){
 	mINI::Instance()[kPort] = HTTP_PORT;
+	mINI::Instance()[kSSLPort] = HTTPS_PORT;
 	mINI::Instance()[kSendBufSize] = HTTP_SEND_BUF_SIZE;
 	mINI::Instance()[kMaxReqSize] = HTTP_MAX_REQ_SIZE;
 	mINI::Instance()[kKeepAliveSecond] = HTTP_KEEP_ALIVE_SECOND;

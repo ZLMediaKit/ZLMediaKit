@@ -31,9 +31,11 @@ public:
 	HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock);
 	virtual ~HttpSession();
 
-	void onRecv(const Socket::Buffer::Ptr &) override;
-	void onError(const SockException &err) override;
-	void onManager() override;
+	virtual void onRecv(const Socket::Buffer::Ptr &) override;
+	virtual void onError(const SockException &err) override;
+	virtual void onManager() override;
+protected:
+	void onRecv(const char *data,int size);
 private:
 	typedef enum
 	{

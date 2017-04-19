@@ -84,6 +84,7 @@ HttpSession::HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::P
 	static onceToken token([]() {
 		g_mapCmdIndex.emplace("GET",&HttpSession::Handle_Req_GET);
 		g_mapCmdIndex.emplace("POST",&HttpSession::Handle_Req_POST);
+		g_mapCmdIndex.emplace("OPTIONS",&HttpSession::Handle_Req_POST);
 	}, nullptr);
 }
 
@@ -91,15 +92,18 @@ HttpSession::~HttpSession() {
 	//DebugL;
 }
 
-void HttpSession::onRecv(const Socket::Buffer::Ptr&pBuf) {
+void HttpSession::onRecv(const Socket::Buffer::Ptr &pBuf) {
+	onRecv(pBuf->data(),pBuf->size());
+}
+void HttpSession::onRecv(const char *data,int size){
 	static uint32_t reqSize =  mINI::Instance()[Config::Http::kMaxReqSize].as<uint32_t>();
 	m_ticker.resetTime();
-	if (m_strRcvBuf.size() + pBuf->size() >= reqSize) {
-		WarnL << "接收缓冲区溢出:" << m_strRcvBuf.size() + pBuf->size() << "," << reqSize;
+	if (m_strRcvBuf.size() + size >= reqSize) {
+		WarnL << "接收缓冲区溢出:" << m_strRcvBuf.size() + size << "," << reqSize;
 		shutdown();
 		return;
 	}
-	m_strRcvBuf.append(pBuf->data(), pBuf->size());
+	m_strRcvBuf.append(data, size);
 	size_t index;
 	string onePkt;
 	while ((index = m_strRcvBuf.find("\r\n\r\n")) != std::string::npos) {

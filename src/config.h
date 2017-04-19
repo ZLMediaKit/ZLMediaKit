@@ -63,6 +63,7 @@ extern const char kReplayCount[];
 ////////////HTTP配置///////////
 namespace Http {
 extern const char kPort[];
+extern const char kSSLPort[];
 //http 文件发送缓存大小
 extern const char kSendBufSize[];
 //http 最大请求字节数
