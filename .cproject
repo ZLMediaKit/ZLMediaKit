@@ -7,10 +7,13 @@
 					<externalSetting>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/streamPusher"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/SMServer"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/ZLMediaKit"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/streamPusher/ARM"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/SMServer/ARM"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/ZLMediaKit/ARM"/>
 						<entry flags="RESOLVED" kind="libraryFile" name="streamPusher" srcPrefixMapping="" srcRootPath=""/>
 						<entry flags="RESOLVED" kind="libraryFile" name="SMServer" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="RESOLVED" kind="libraryFile" name="ZLMediaKit" srcPrefixMapping="" srcRootPath=""/>
 					</externalSetting>
 				</externalSettings>
 				<extensions>
@@ -77,12 +80,15 @@
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/streamPusher"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/SMServer"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/ZLMeidaKit"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/ZLMediaKit"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/streamPusher/Debug"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/SMServer/X64"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/ZLMeidaKit/X64"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/ZLMediaKit/X64"/>
 						<entry flags="RESOLVED" kind="libraryFile" name="streamPusher" srcPrefixMapping="" srcRootPath=""/>
 						<entry flags="RESOLVED" kind="libraryFile" name="SMServer" srcPrefixMapping="" srcRootPath=""/>
 						<entry flags="RESOLVED" kind="libraryFile" name="ZLMeidaKit" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="RESOLVED" kind="libraryFile" name="ZLMediaKit" srcPrefixMapping="" srcRootPath=""/>
 					</externalSetting>
 				</externalSettings>
 				<extensions>
@@ -155,10 +161,13 @@
 					<externalSetting>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/streamPusher"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/SMServer"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/ZLMediaKit"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/streamPusher/Debug"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/SMServer/WIN32"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/ZLMediaKit/WIN32"/>
 						<entry flags="RESOLVED" kind="libraryFile" name="streamPusher" srcPrefixMapping="" srcRootPath=""/>
 						<entry flags="RESOLVED" kind="libraryFile" name="SMServer" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="RESOLVED" kind="libraryFile" name="ZLMediaKit" srcPrefixMapping="" srcRootPath=""/>
 					</externalSetting>
 				</externalSettings>
 				<extensions>

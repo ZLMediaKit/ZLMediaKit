@@ -20,6 +20,9 @@
 #include "Http/HttpSession.h"
 #include "Http/HttpsSession.h"
 #include "Util/SSLBox.h"
+#ifdef ENABLE_HKDEVICE
+#include "test/DeviceHK.h"
+#endif //ENABLE_HKDEVICE
 
 using namespace std;
 using namespace ZL::Util;
@@ -37,6 +40,16 @@ int main(int argc,char *argv[]){
 
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
 	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
+
+#ifdef ENABLE_HKDEVICE
+		DeviceHK::Ptr dev(new DeviceHK());
+		dev->connectDevice( connectInfo("192.168.0.211", 8000, "admin", "password"), [dev](bool success,const connectResult &result) {
+			if(success) {
+				dev->addAllChannel();
+			}
+		});
+#endif //ENABLE_HKDEVICE
+
 	SSL_Initor::Instance().loadServerPem((exeDir() + ".HttpServer.pem").data());
 
 	TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
