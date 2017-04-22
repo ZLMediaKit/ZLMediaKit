@@ -35,7 +35,25 @@
   - Ubuntu16.04 64 bit + gcc5.4(最低gcc4.7)
   - [eclipse for c++](https://www.eclipse.org/downloads/download.php?file=/oomph/epp/neon/R3/eclipse-inst-mac64.tar.gz)
 - 依赖
-  - 本项目依赖我的另一个项目[ZLToolKit](https://git.oschina.net/xiahcu/ZLToolKit)；编译时，请把两个工程放在同一目录下。
+  - [ZLToolKit](https://git.oschina.net/xiahcu/ZLToolKit)
+    
+    本项目依赖我的另一个项目([ZLToolKit](https://git.oschina.net/xiahcu/ZLToolKit))，编译时，请把两个工程放在同一目录下。
+  - libfaac
+    ```
+    #ubuntu下安装faac库
+    sudo apt-get install libfaac-dev
+    ```
+  - libx264
+    ```
+    #ubuntu下安装x264库
+    sudo apt-get install libx264-dev
+    ```
+  - libmp4v2
+    ```
+    #ubuntu下安装x264库
+    sudo apt-get install libmp4v2-dev
+    ```
+
 - 使用eclipse编译(Linux)
   - 1、点击菜单：File->Import->Git(Projects from git)-> Clone URI 
   - 2、输入git地址点击 Next 然后选择 master 分支然后一路点击 Next 直至导入项目。
@@ -56,3 +74,4 @@
 
 ## 联系方式
 - QQ群：542509000
+
