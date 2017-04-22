@@ -39,16 +39,19 @@
     
     本项目依赖我的另一个项目([ZLToolKit](https://git.oschina.net/xiahcu/ZLToolKit))，编译时，请把两个工程放在同一目录下。
   - libfaac
+  
     ```
     #ubuntu下安装faac库
     sudo apt-get install libfaac-dev
     ```
   - libx264
+  
     ```
     #ubuntu下安装x264库
     sudo apt-get install libx264-dev
     ```
   - libmp4v2
+  
     ```
     #ubuntu下安装x264库
     sudo apt-get install libmp4v2-dev
