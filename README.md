@@ -18,12 +18,12 @@
   - RTMP 推流客户端。
 
 - HLS
- - 支持HLS文件生成，自带HTTP文件服务器。
+  - 支持HLS文件生成，自带HTTP文件服务器。
 
 - 其他
- - 支持输入YUV+PCM自动生成RTSP/RTMP/HLS/MP4.
- - 支持简单的telnet调试。
- - 支持H264的解析，支持B帧的POC计算排序。
+  - 支持输入YUV+PCM自动生成RTSP/RTMP/HLS/MP4.
+  - 支持简单的telnet调试。
+  - 支持H264的解析，支持B帧的POC计算排序。
  
 ## 后续任务
 - 提供cmake编译方式
