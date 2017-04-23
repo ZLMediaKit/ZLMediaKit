@@ -53,7 +53,7 @@
   - libmp4v2
   
     ```
-    #ubuntu下安装x264库
+    #ubuntu下安装mp4v2库
     sudo apt-get install libmp4v2-dev
     ```
 
