@@ -6,9 +6,9 @@
  */
 
 #include <netinet/in.h>
-#include "RtpMakerAAC.h"
 #include "config.h"
-#include "Util/mini.hpp"
+#include "RtpMakerAAC.h"
+#include "Util/mini.h"
 
 using namespace ZL::Util;
 

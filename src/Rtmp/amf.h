@@ -1,10 +1,11 @@
 #ifndef __amf_h
 #define __amf_h
 
-#include <string>
-#include <unordered_map>
 #include <assert.h>
+#include <string>
 #include <vector>
+#include <unordered_map>
+
 enum AMFType {
 	AMF_NUMBER,
 	AMF_INTEGER,

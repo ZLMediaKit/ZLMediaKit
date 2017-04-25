@@ -5,8 +5,8 @@
  *      Author: xzl
  */
 
-#include "strCoding.h"
 #include <string.h>
+#include "strCoding.h"
 
 namespace ZL {
 namespace Http {

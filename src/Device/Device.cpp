@@ -5,14 +5,14 @@
  *      Author: xzl
  */
 
+#include <stdio.h>
+#include <stdio.h>
+#include "base64.h"
 #include "Device.h"
 #include "Util/logger.h"
-#include <stdio.h>
 #include "Util/util.h"
-#include <cstdio>
-#include "base64.h"
-
 #include "Util/TimeTicker.h"
+
 using namespace ZL::Util;
 
 namespace ZL {

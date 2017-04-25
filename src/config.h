@@ -9,11 +9,10 @@
 #ifndef appConfig_h
 #define appConfig_h
 
-#include "Util/mini.hpp"
+#include "Util/mini.h"
 using namespace ZL::Util;
 
 namespace Config {
-
 ////////////TCP最大连接数///////////
 #ifdef __x86_64__
 #define MAX_TCP_SESSION 512

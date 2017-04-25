@@ -11,10 +11,6 @@
 #include <iostream>
 #include <string>
 
-#ifdef _WINDOWS
-#include <windows.h>
-#endif
-
 using namespace std;
 
 namespace ZL {

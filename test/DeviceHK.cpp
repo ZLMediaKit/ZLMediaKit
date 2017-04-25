@@ -6,8 +6,8 @@
  */
 #ifdef ENABLE_HKDEVICE
 #include "DeviceHK.h"
-#include "Util/TimeTicker.h"
 #include "Util/MD5.h"
+#include "Util/TimeTicker.h"
 namespace ZL {
 namespace DEV {
 

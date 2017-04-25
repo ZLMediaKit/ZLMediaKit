@@ -8,12 +8,12 @@
 #ifndef SRC_PLAYER_MEDIAPLAYER_H_
 #define SRC_PLAYER_MEDIAPLAYER_H_
 
+#include <memory>
+#include <string>
 #include "Player.h"
 #include "PlayerBase.h"
-#include <string>
-#include <memory>
-using namespace std;
 
+using namespace std;
 
 namespace ZL {
 namespace Player {

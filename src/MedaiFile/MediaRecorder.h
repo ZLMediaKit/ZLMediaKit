@@ -8,8 +8,8 @@
 #ifndef SRC_MEDAIFILE_MEDIARECORDER_H_
 #define SRC_MEDAIFILE_MEDIARECORDER_H_
 
-#include "Player/PlayerBase.h"
 #include <memory>
+#include "Player/PlayerBase.h"
 #ifdef  ENABLE_MEDIAFILE
 #include "Mp4Maker.h"
 #include "HLSMaker.h"

@@ -1,5 +1,5 @@
 //
-//  H264Parser.hpp
+//  H264Parser.h
 //  MediaPlayer
 //
 //  Created by xzl on 2017/1/16.
@@ -11,8 +11,8 @@
 
 #include <stdio.h>
 #include <string>
-#include "h264_parser.h"
 #include "h264_poc.h"
+#include "h264_parser.h"
 
 using namespace std;
 

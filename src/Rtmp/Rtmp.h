@@ -2,22 +2,18 @@
 #define __rtmp_h
 
 #include <netinet/in.h>
-#include "Util/util.h"
-#include <string>
 #include <memory>
+#include <string>
+#include "Util/util.h"
 #include "Util/logger.h"
+
 using namespace std;
 using namespace ZL::Util;
 
-
 #define PORT	1935
-
 #define DEFAULT_CHUNK_LEN	128
-
 #define PACKED	__attribute__((packed))
-
 #define HANDSHAKE_PLAINTEXT	0x03
-
 #define RANDOM_LEN		(1536 - 8)
 
 #define MSG_SET_CHUNK		1 	/*Set Chunk Size (1)*/
@@ -36,7 +32,6 @@ using namespace ZL::Util;
 #define MSG_OBJECT			19	/*Shared Object Message (19, 16) AMF0*/
 #define MSG_AGGREGATE		22	/*Aggregate Message (22)*/
 
-
 #define CONTROL_STREAM_BEGIN		0
 #define CONTROL_STREAM_EOF			1
 #define CONTROL_STREAM_DRY			2
@@ -44,7 +39,6 @@ using namespace ZL::Util;
 #define CONTROL_STREAM_ISRECORDED	4
 #define CONTROL_PING_REQUEST		6
 #define CONTROL_PING_RESPONSE		7
-
 
 #define STREAM_CONTROL				0
 #define STREAM_MEDIA				1

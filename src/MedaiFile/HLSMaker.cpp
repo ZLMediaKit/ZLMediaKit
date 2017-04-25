@@ -5,8 +5,8 @@
  *      Author: root
  */
 
-#include "HLSMaker.h"
 #include <sys/time.h>
+#include "HLSMaker.h"
 
 namespace ZL {
 namespace MediaFile {

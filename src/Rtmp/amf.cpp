@@ -1,10 +1,11 @@
+#include <string.h>
+#include <stdexcept>
+#include <arpa/inet.h>
 #include "amf.h"
 #include "utils.h"
-#include <stdexcept>
-#include <string.h>
-#include <arpa/inet.h>
 #include "Util/logger.h"
 #include "Util/util.h"
+
 using namespace ZL::Util;
 
 /////////////////////AMFValue/////////////////////////////

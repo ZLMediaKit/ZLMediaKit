@@ -8,7 +8,6 @@
 #ifndef CODEC_AACENCODER_H_
 #define CODEC_AACENCODER_H_
 
-
 namespace ZL {
 namespace Codec {
 

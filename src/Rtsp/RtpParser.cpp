@@ -5,12 +5,14 @@
  *      Author: xzl
  */
 
+#include <cctype>
+#include <algorithm>
 #include "RtpParser.h"
 #include "Device/base64.h"
 #include "H264/SPSParser.h"
-#include <algorithm>
-#include <cctype>
+
 using namespace std;
+
 namespace ZL {
 namespace Rtsp {
 

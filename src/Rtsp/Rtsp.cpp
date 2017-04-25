@@ -5,8 +5,9 @@
  *      Author: xzl
  */
 
-#include "Rtsp.h"
 #include <stdlib.h>
+#include "Rtsp.h"
+
 string FindField(const char* buf, const char* start, const char *end ,int bufSize) {
 	if(bufSize <=0 ){
 		bufSize = strlen(buf);

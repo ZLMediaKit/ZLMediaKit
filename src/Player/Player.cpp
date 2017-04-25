@@ -5,12 +5,12 @@
  *      Author: xzl
  */
 
+#include <cstring>
 #include "Player.h"
 #include "H264/SPSParser.h"
-#include <cstring>
 #include "Util/logger.h"
-using namespace ZL::Util;
 
+using namespace ZL::Util;
 
 static unsigned const samplingFrequencyTable[16] = { 96000, 88200,
 					64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025,

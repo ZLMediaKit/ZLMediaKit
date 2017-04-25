@@ -5,12 +5,12 @@
  *      Author: xzl
  */
 
+#include "config.h"
 #include "PlayerProxy.h"
-#include "Thread/AsyncTaskThread.h"
+#include "Util/mini.h"
 #include "Util/MD5.h"
 #include "Util/logger.h"
-#include "config.h"
-#include "Util/mini.hpp"
+#include "Thread/AsyncTaskThread.h"
 
 using namespace ZL::Util;
 using namespace ZL::Thread;

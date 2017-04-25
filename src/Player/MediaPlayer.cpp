@@ -5,10 +5,10 @@
  *      Author: xzl
  */
 
+#include <algorithm>
+#include "MediaPlayer.h"
 #include "Rtmp/RtmpPlayerImp.h"
 #include "Rtsp/RtspPlayerImp.h"
-#include "MediaPlayer.h"
-#include <algorithm>
 
 using namespace ZL::Rtmp;
 using namespace ZL::Rtsp;

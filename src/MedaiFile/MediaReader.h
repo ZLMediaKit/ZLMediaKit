@@ -8,9 +8,9 @@
 #ifndef SRC_MEDAIFILE_MEDIAREADER_H_
 #define SRC_MEDAIFILE_MEDIAREADER_H_
 
+#include "Device/Device.h"
 #include "Rtsp/RtspMediaSource.h"
 #include "Rtmp/RtmpMediaSource.h"
-#include "Device/Device.h"
 
 #ifdef ENABLE_MEDIAFILE
 #include <mp4v2/mp4v2.h>

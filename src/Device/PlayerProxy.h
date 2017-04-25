@@ -8,8 +8,8 @@
 #ifndef SRC_DEVICE_PLAYERPROXY_H_
 #define SRC_DEVICE_PLAYERPROXY_H_
 
-#include "Device.h"
 #include <memory>
+#include "Device.h"
 #include "Player/MediaPlayer.h"
 #include "Util/TimeTicker.h"
 

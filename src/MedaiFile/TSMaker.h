@@ -8,16 +8,16 @@
 #ifndef TSMAKER_H_
 #define TSMAKER_H_
 
-#include "CRC/crc32.h"
-#include <string>
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
 #include <string.h>
+#include <string>
+#include <iostream>
+#include "CRC/crc32.h"
 #include "Util/File.h"
+
 using namespace std;
 using namespace ZL::Util;
-
 
 #define TS_PACKET_SIZE                 188
 #define TS_PACKET_HEADER               4

@@ -8,13 +8,13 @@
 #ifndef SRC_RTMP_RTMPPLAYERIMP_H_
 #define SRC_RTMP_RTMPPLAYERIMP_H_
 
-#include <functional>
 #include <memory>
+#include <functional>
+#include "config.h"
 #include "RtmpPlayer.h"
 #include "RtmpParser.h"
-#include "config.h"
+#include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
-#include "Poller/Timer.hpp"
 
 using namespace std;
 using namespace ZL::Util;

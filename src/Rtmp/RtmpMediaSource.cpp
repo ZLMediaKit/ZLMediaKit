@@ -7,8 +7,8 @@
 
 #include "RtmpMediaSource.h"
 #include "MedaiFile/MediaReader.h"
-using namespace ZL::MediaFile;
 
+using namespace ZL::MediaFile;
 
 namespace ZL {
 namespace Rtmp {

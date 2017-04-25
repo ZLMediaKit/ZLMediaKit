@@ -9,8 +9,8 @@
 #define DEVICE_DEVICEHK_H_
 
 #include <sys/time.h>
-#include "HCNetSDK.h"
 #include "PlayM4.h"
+#include "HCNetSDK.h"
 #include "Device/Device.h"
 #include "Util/onceToken.h"
 #include "Util/logger.h"

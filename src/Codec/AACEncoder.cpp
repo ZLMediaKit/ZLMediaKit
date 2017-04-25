@@ -5,16 +5,15 @@
  *      Author: xzl
  */
 #ifdef ENABLE_FAAC
+
+#include <cstdlib>
 #include "AACEncoder.h"
 #include "Util/logger.h"
-#include <cstdlib>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 #include <faac.h>
-
 #ifdef __cplusplus
 }
 #endif

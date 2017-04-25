@@ -5,9 +5,9 @@
  *      Author: root
  */
 
+#include <sys/time.h>
 #include "TSMaker.h"
 #include "Util/logger.h"
-#include <sys/time.h>
 
 using namespace ZL::Util;
 

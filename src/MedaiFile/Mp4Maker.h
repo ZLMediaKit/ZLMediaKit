@@ -11,17 +11,17 @@
 #ifdef ENABLE_MEDIAFILE
 
 #include <mutex>
-#include "Player/PlayerBase.h"
 #include <memory>
-#include "Util/logger.h"
-#include "Util/util.h"
-#include "Util/TimeTicker.h"
 #include <mp4v2/mp4v2.h>
+#include "Player/PlayerBase.h"
+#include "Util/util.h"
+#include "Util/logger.h"
+#include "Util/TimeTicker.h"
 #include "Util/TimeTicker.h"
 
 using namespace std;
-using namespace ZL::Player;
 using namespace ZL::Util;
+using namespace ZL::Player;
 
 namespace ZL {
 namespace MediaFile {

@@ -7,17 +7,15 @@
 
 #ifndef CODEC_H264ENCODER_H_
 #define CODEC_H264ENCODER_H_
+
 #include <cstdint>
 
 #ifdef __cplusplus
 extern "C" {
 #endif //__cplusplus
-
 #include <x264.h>
-
 #ifdef __cplusplus
 }
-
 #endif //__cplusplus
 
 namespace ZL {

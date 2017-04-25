@@ -9,11 +9,11 @@
 #define RTP_RTPMAKER_H_
 
 #include "Rtsp/RtspMediaSource.h"
-#include "Util/ResourcePool.h"
 #include "Util/logger.h"
-#include "Util/RingBuffer.hpp"
+#include "Util/RingBuffer.h"
 #include "Util/TimeTicker.h"
-#include "Thread/ThreadPool.hpp"
+#include "Util/ResourcePool.h"
+#include "Thread/ThreadPool.h"
 
 using namespace ZL::Util;
 using namespace ZL::Thread;

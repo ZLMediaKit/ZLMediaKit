@@ -7,7 +7,8 @@
 
 #ifndef SRC_MEDIASENDER_H_
 #define SRC_MEDIASENDER_H_
-#include "Thread/ThreadPool.hpp"
+
+#include "Thread/ThreadPool.h"
 using namespace ZL::Thread;
 
 class MediaSender {

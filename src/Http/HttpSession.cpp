@@ -17,7 +17,7 @@
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Util/onceToken.h"
-#include "Util/mini.hpp"
+#include "Util/mini.h"
 #include "Util/NoticeCenter.h"
 
 using namespace ZL::Util;

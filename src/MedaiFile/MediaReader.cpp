@@ -5,10 +5,10 @@
  *      Author: xzl
  */
 
-#include "MediaReader.h"
-#include "Http/HttpSession.h"
 #include "config.h"
-#include "Util/mini.hpp"
+#include "MediaReader.h"
+#include "Util/mini.h"
+#include "Http/HttpSession.h"
 
 using namespace ZL::Util;
 

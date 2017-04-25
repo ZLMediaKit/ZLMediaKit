@@ -8,17 +8,17 @@
 #ifndef SRC_PLAYER_PLAYERBASE_H_
 #define SRC_PLAYER_PLAYERBASE_H_
 
-#include "Player.h"
-#include "Network/Socket.hpp"
-#include <functional>
 #include <memory>
 #include <string>
+#include <functional>
+#include "Player.h"
+#include "Network/Socket.h"
+
 using namespace std;
 using namespace ZL::Network;
 
 namespace ZL {
 namespace Player {
-
 
 class PlayerBase{
 public:

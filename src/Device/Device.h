@@ -7,14 +7,16 @@
 
 #ifndef DEVICE_DEVICE_H_
 #define DEVICE_DEVICE_H_
+
 #include <sys/time.h>
+#include <memory>
 #include <string>
 #include <functional>
-#include <memory>
 #include "Util/util.h"
 #include "RTP/RtpMakerAAC.h"
 #include "RTP/RtpMakerH264.h"
 #include "Rtsp/RtspToRtmpMediaSource.h"
+
 using namespace std;
 using namespace ZL::Rtsp;
 using namespace ZL::Util;
@@ -29,7 +31,6 @@ using namespace ZL::Codec;
 using namespace ZL::Codec;
 #endif //ENABLE_X264
 
-using namespace ZL::Rtsp;
 namespace ZL {
 namespace DEV {
 
@@ -45,7 +46,6 @@ public:
 	int iSampleBit;
 	int iSampleRate;
 };
-
 
 class DevChannel {
 public:

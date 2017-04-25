@@ -6,9 +6,9 @@
  */
 
 #include <netinet/in.h>
-#include "RtpMakerH264.h"
 #include "config.h"
-#include "Util/mini.hpp"
+#include "RtpMakerH264.h"
+#include "Util/mini.h"
 
 using namespace ZL::Util;
 
