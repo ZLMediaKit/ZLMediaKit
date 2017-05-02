@@ -1,5 +1,8 @@
 # 一个基于C++11简单易用的轻量级流媒体库
-## 项目优势
+平台|编译状态
+----|-------
+Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
+
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
 - 打包多种流媒体协议(RTSP/RTMP/HLS），支持协议间的互相转换，提供一站式的服务。
 - 使用epoll+线程池+异步网络IO模式开发，并发性能优越。
@@ -26,55 +29,78 @@
   - 支持H264的解析，支持B帧的POC计算排序。
  
 ## 后续任务
-- 提供cmake编译方式
 - 提供更多的示例代码
 - 提供ios工程
 
 ## 编译(Linux)
 - 我的编译环境
   - Ubuntu16.04 64 bit + gcc5.4(最低gcc4.7)
-  - [eclipse for c++](https://www.eclipse.org/downloads/download.php?file=/oomph/epp/neon/R3/eclipse-inst-mac64.tar.gz)
+  - cmake 3.5.1
 - 依赖
-  - [ZLToolKit](https://git.oschina.net/xiahcu/ZLToolKit)
-    
-    本项目依赖我的另一个项目([ZLToolKit](https://git.oschina.net/xiahcu/ZLToolKit))，编译时，请把两个工程放在同一目录下。
-  - libfaac
-  
+  - cmake：
+	
     ```
-    #ubuntu下安装faac库
+    # 安装cmake
+    sudo apt-get insatll cmake
+    ```
+     
+  - libmysqlclient（使能ENABLE_MYSQL宏，非必备项）
+
+    ```
+    # 安装mysql客户端开发套件
+    sudo apt-get install libmysqlclient-dev
+    ```
+
+  - libssl（使能ENABLE_OPENSSL宏，非必备项）
+
+    ```
+    # 安装openssl开发套件
+    sudo apt-get install openssl
+    sudo apt-get install libssl-dev
+    ```
+ - [ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
+    ```
+    git clone --depth=50 https://github.com/xiongziliang/ZLToolKit.git,
+    cd ZLToolKit,
+    mkdir -p build,
+    cd build,
+    cmake ..,
+    make,
+    sudo make install
+    ```
+    
+  - libfaac（使能ENABLE_FAAC宏，非必备项）
+
+    ```
+    # 安装faac开发套件
     sudo apt-get install libfaac-dev
     ```
-  - libx264
-  
+    
+  - libx264（使能ENABLE_X264宏，非必备项）
+
     ```
-    #ubuntu下安装x264库
+    # 安装x264开发套件
     sudo apt-get install libx264-dev
     ```
-  - libmp4v2
-  
+    
+ - libmp4v2（使能ENABLE_MP4V2宏，非必备项）
+
     ```
-    #ubuntu下安装mp4v2库
+    # 安装mp4v2开发套件
     sudo apt-get install libmp4v2-dev
     ```
-
-- 使用eclipse编译
-  - 1、点击菜单：File->Import->Git(Projects from git)-> Clone URI 
-  - 2、输入git地址点击 Next 然后选择 master 分支然后一路点击 Next 直至导入项目。
-  - 3、选中 ZLToolKit项目，点击鼠标右键在下拉菜单中点击 Build Configurations-> Set Active -> X64，选择编译X64版本目标文件。
-  - 4、在ZLMediaKit项目右键菜单中点击 Clean Project 清理项目。
-  - 5、在ZLMediaKit项目右键菜单中点击 Build Project 编译项目。
- 
-- 使用make编译
-
-    如果没有安装eclipse可以使用已经生成的Makefile文件直接编译：
-
-    ```
-    # 根据makefile编译
-    cd ZLMediaKit/X64
-    make clean
-    make
-    ```
+- 编译
+  
+  ```
+  cd ZLMediaKit
+  mkdir -p build
+  cd build
+  cmake ..
+  make
+  make install
+  ```  
 
 ## 联系方式
+- 邮箱：<771730766@qq.com>
 - QQ群：542509000
 
