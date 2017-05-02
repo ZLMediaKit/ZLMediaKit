@@ -8,7 +8,7 @@
 #ifndef MP4MAKER_H_
 #define MP4MAKER_H_
 
-#ifdef ENABLE_MEDIAFILE
+#ifdef ENABLE_MP4V2
 
 #include <mutex>
 #include <memory>
@@ -77,6 +77,6 @@ private:
 } /* namespace MediaFile */
 } /* namespace ZL */
 
-#endif ///ENABLE_MEDIAFILE
+#endif ///ENABLE_MP4V2
 
 #endif /* MP4MAKER_H_ */

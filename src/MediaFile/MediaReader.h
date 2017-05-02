@@ -12,9 +12,9 @@
 #include "Rtsp/RtspMediaSource.h"
 #include "Rtmp/RtmpMediaSource.h"
 
-#ifdef ENABLE_MEDIAFILE
+#ifdef ENABLE_MP4V2
 #include <mp4v2/mp4v2.h>
-#endif //ENABLE_MEDIAFILE
+#endif //ENABLE_MP4V2
 
 using namespace ZL::DEV;
 using namespace ZL::Rtsp;
@@ -32,7 +32,7 @@ public:
 	static RtmpMediaSource::Ptr onMakeRtmp(const string &strApp, const string &strId);
 private:
 
-#ifdef ENABLE_MEDIAFILE
+#ifdef ENABLE_MP4V2
 	MP4FileHandle m_hMP4File = MP4_INVALID_FILE_HANDLE;
 	MP4TrackId m_video_trId = MP4_INVALID_TRACK_ID;
 	uint32_t m_video_ms = 0;
@@ -76,7 +76,7 @@ private:
 	inline bool readAudioSample(int iTimeInc = 0);
 	inline void writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp);
 	inline void writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp);
-#endif
+#endif //ENABLE_MP4V2
 };
 
 } /* namespace MediaFile */

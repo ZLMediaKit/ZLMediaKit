@@ -1,5 +1,5 @@
 
-#ifdef ENABLE_MEDIAFILE
+#ifdef ENABLE_MP4V2
 
 #include <netinet/in.h>
 #include <sys/stat.h>
@@ -187,4 +187,4 @@ void Mp4Maker::closeFile() {
 } /* namespace ZL */
 
 
-#endif //ENABLE_MEDIAFILE
+#endif //ENABLE_MP4V2

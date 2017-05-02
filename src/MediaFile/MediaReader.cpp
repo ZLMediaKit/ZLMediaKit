@@ -16,7 +16,7 @@ using namespace ZL::Util;
 namespace ZL {
 namespace MediaFile {
 
-#ifdef ENABLE_MEDIAFILE
+#ifdef ENABLE_MP4V2
 MediaReader::MediaReader(const string &strApp, const string &strId) {
 	static string recordPath = mINI::Instance()[Config::Record::kFilePath];
 	auto strFileName = recordPath + "/" + strApp + "/" + strId;
@@ -301,10 +301,10 @@ void MediaReader::seek(int iSeekTime,bool bReStart){
 	}
 }
 
-#endif //ENABLE_MEDIAFILE
+#endif //ENABLE_MP4V2
 
 RtspMediaSource::Ptr MediaReader::onMakeRtsp(const string &strApp, const string &strId) {
-#ifdef ENABLE_MEDIAFILE
+#ifdef ENABLE_MP4V2
 	static string appName = mINI::Instance()[Config::Record::kAppName];
 	if (strApp != appName) {
 		return nullptr;
@@ -319,12 +319,12 @@ RtspMediaSource::Ptr MediaReader::onMakeRtsp(const string &strApp, const string 
 	}
 #else
 	return nullptr;
-#endif //ENABLE_MEDIAFILE
+#endif //ENABLE_MP4V2
 
 }
 
 RtmpMediaSource::Ptr MediaReader::onMakeRtmp(const string &strApp, const string &strId) {
-#ifdef ENABLE_MEDIAFILE
+#ifdef ENABLE_MP4V2
 	static string appName = mINI::Instance()[Config::Record::kAppName];
 	if (strApp != appName) {
 		return nullptr;
@@ -339,7 +339,7 @@ RtmpMediaSource::Ptr MediaReader::onMakeRtmp(const string &strApp, const string 
 	}
 #else
 	return nullptr;
-#endif //ENABLE_MEDIAFILE
+#endif //ENABLE_MP4V2
 
 }
 

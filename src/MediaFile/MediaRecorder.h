@@ -10,10 +10,14 @@
 
 #include <memory>
 #include "Player/PlayerBase.h"
-#ifdef  ENABLE_MEDIAFILE
+
+#ifdef  ENABLE_MP4V2
 #include "Mp4Maker.h"
+#endif //ENABLE_MP4V2
+
+#ifdef  ENABLE_HLS
 #include "HLSMaker.h"
-#endif //ENABLE_MEDIAFILE
+#endif //ENABLE_HLS
 
 using namespace std;
 using namespace ZL::Player;
@@ -37,10 +41,14 @@ public:
 					uint32_t ui32Length,
 					uint32_t ui32TimeStamp);
 private:
-#ifdef  ENABLE_MEDIAFILE
+
+#ifdef  ENABLE_HLS
 	std::shared_ptr<HLSMaker> m_hlsMaker;
+#endif //ENABLE_HLS
+
+#ifdef  ENABLE_MP4V2
 	std::shared_ptr<Mp4Maker> m_mp4Maker;
-#endif //ENABLE_MEDIAFILE
+#endif //ENABLE_MP4V2
 
 };
 

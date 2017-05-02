@@ -124,10 +124,11 @@
 									<listOptionValue builtIn="false" value="../../ZLToolKit/src"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.863813077" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="ENABLE_FAAC"/>
 									<listOptionValue builtIn="false" value="ENABLE_RTSP2RTMP"/>
 									<listOptionValue builtIn="false" value="ENABLE_RTMP2RTSP"/>
-									<listOptionValue builtIn="false" value="ENABLE_MEDIAFILE"/>
+									<listOptionValue builtIn="false" value="ENABLE_HLS"/>
+									<listOptionValue builtIn="false" value="ENABLE_MP4V2"/>
+									<listOptionValue builtIn="false" value="ENABLE_FAAC"/>
 									<listOptionValue builtIn="false" value="ENABLE_X264"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.other.pic.198751626" name="Position Independent Code (-fPIC)" superClass="gnu.cpp.compiler.option.other.pic" useByScannerDiscovery="false" value="true" valueType="boolean"/>
