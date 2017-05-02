@@ -78,9 +78,7 @@ add_definitions(-DENABLE_RTMP2RTSP -DENABLE_RTSP2RTMP -DENABLE_HLS)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 #使能c++11
-if(CMAKE_COMPILER_IS_GNUCXX)
-    add_compile_options(-std=c++11)  
-endif(CMAKE_COMPILER_IS_GNUCXX)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 #关闭过期接口警告
 add_compile_options(-Wno-deprecated-declarations)
