@@ -8,8 +8,8 @@
 #ifndef HLSMAKER_H_
 #define HLSMAKER_H_
 
-#include "config.h"
 #include "TSMaker.h"
+#include "config.h"
 #include "Util/TimeTicker.h"
 #include "Util/File.h"
 #include "Util/util.h"

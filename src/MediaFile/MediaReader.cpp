@@ -5,8 +5,8 @@
  *      Author: xzl
  */
 
-#include "config.h"
 #include "MediaReader.h"
+#include "config.h"
 #include "Util/mini.h"
 #include "Http/HttpSession.h"
 

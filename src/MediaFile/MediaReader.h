@@ -5,8 +5,8 @@
  *      Author: xzl
  */
 
-#ifndef SRC_MEDAIFILE_MEDIAREADER_H_
-#define SRC_MEDAIFILE_MEDIAREADER_H_
+#ifndef SRC_MEDIAFILE_MEDIAREADER_H_
+#define SRC_MEDIAFILE_MEDIAREADER_H_
 
 #include "Device/Device.h"
 #include "Rtsp/RtspMediaSource.h"
@@ -82,4 +82,4 @@ private:
 } /* namespace MediaFile */
 } /* namespace ZL */
 
-#endif /* SRC_MEDAIFILE_MEDIAREADER_H_ */
+#endif /* SRC_MEDIAFILE_MEDIAREADER_H_ */

@@ -12,7 +12,7 @@
 #include "RtspMediaSource.h"
 #include "Rtmp/amf.h"
 #include "Rtmp/RtmpMediaSource.h"
-#include "MedaiFile/MediaRecorder.h"
+#include "MediaFile/MediaRecorder.h"
 
 using namespace ZL::Rtmp;
 using namespace ZL::MediaFile;

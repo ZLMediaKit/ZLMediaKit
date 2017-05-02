@@ -5,8 +5,8 @@
  *      Author: xzl
  */
 
-#ifndef SRC_MEDAIFILE_MEDIARECORDER_H_
-#define SRC_MEDAIFILE_MEDIARECORDER_H_
+#ifndef SRC_MEDIAFILE_MEDIARECORDER_H_
+#define SRC_MEDIAFILE_MEDIARECORDER_H_
 
 #include <memory>
 #include "Player/PlayerBase.h"
@@ -47,4 +47,4 @@ private:
 } /* namespace MediaFile */
 } /* namespace ZL */
 
-#endif /* SRC_MEDAIFILE_MEDIARECORDER_H_ */
+#endif /* SRC_MEDIAFILE_MEDIARECORDER_H_ */

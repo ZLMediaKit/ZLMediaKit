@@ -6,7 +6,7 @@
  */
 
 #include "RtmpMediaSource.h"
-#include "MedaiFile/MediaReader.h"
+#include "MediaFile/MediaReader.h"
 
 using namespace ZL::MediaFile;
 

@@ -8,12 +8,12 @@
 #ifndef TSMAKER_H_
 #define TSMAKER_H_
 
+#include "crc32.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
 #include <iostream>
-#include "CRC/crc32.h"
 #include "Util/File.h"
 
 using namespace std;

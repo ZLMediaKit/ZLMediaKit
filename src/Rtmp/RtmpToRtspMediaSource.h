@@ -21,9 +21,9 @@
 #include "RTP/RtpMakerAAC.h"
 #include "Rtsp/RtpParser.h"
 #include "Rtsp/RtspMediaSource.h"
-#include "MedaiFile/MediaRecorder.h"
 #include "Util/util.h"
 #include "Util/logger.h"
+#include "MediaFile/MediaRecorder.h"
 
 using namespace std;
 using namespace ZL::Util;
