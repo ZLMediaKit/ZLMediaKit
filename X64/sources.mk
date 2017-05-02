@@ -27,8 +27,7 @@ src/Codec \
 src/Device \
 src/H264 \
 src/Http \
-src/MedaiFile/CRC \
-src/MedaiFile \
+src/MediaFile \
 src/Player \
 src/RTP \
 src/Rtmp \

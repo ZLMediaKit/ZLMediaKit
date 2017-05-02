@@ -14,8 +14,7 @@ RM := rm -rf
 -include src/Rtmp/subdir.mk
 -include src/RTP/subdir.mk
 -include src/Player/subdir.mk
--include src/MedaiFile/CRC/subdir.mk
--include src/MedaiFile/subdir.mk
+-include src/MediaFile/subdir.mk
 -include src/Http/subdir.mk
 -include src/H264/subdir.mk
 -include src/Device/subdir.mk
