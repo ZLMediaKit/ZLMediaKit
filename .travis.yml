@@ -8,7 +8,21 @@ os:
 before_install:
 - sudo apt-get install libssl-dev
 - sudo apt-get install libmysqlclient-dev
+- sudo apt-get install libx264-dev
+- sudo apt-get install libfaac-dev
+- sudo apt-get install libmp4v2-dev
+env:
+  global:
+  - GIT_REPO=https://github.com/xiongziliang/ZLToolKit.git
 script:
+- git clone --depth=50 $GIT_REPO
+- cd ZLToolKit
+- mkdir -p build
+- cd build
+- cmake ..
+- make
+- sudo make install
+- cd ../../
 - mkdir -p build
 - cd build
 - cmake ..
