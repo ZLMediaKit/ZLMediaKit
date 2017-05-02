@@ -3,6 +3,7 @@
 *.lo
 *.o
 *.obj
+*.d
 
 # Precompiled Headers
 *.gch
@@ -27,4 +28,6 @@
 *.exe
 *.out
 *.app
-/X64/
+
+# Other
+.DS_Store
