@@ -18,8 +18,8 @@ RM := rm -rf
 -include src/Http/subdir.mk
 -include src/H264/subdir.mk
 -include src/Device/subdir.mk
+-include src/Common/subdir.mk
 -include src/Codec/subdir.mk
--include src/subdir.mk
 -include subdir.mk
 -include objects.mk
 

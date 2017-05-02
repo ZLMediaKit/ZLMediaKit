@@ -6,7 +6,7 @@
  */
 
 #include "MediaRecorder.h"
-#include "config.h"
+#include "Common/config.h"
 #include "Http/HttpSession.h"
 #include "Util/util.h"
 #include "Util/mini.h"

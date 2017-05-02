@@ -3,7 +3,7 @@
 
 #include <netinet/in.h>
 #include <sys/stat.h>
-#include "config.h"
+#include "Common/config.h"
 #include "Mp4Maker.h"
 #include "MediaRecorder.h"
 #include "Util/File.h"

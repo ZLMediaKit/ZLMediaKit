@@ -10,7 +10,7 @@
 
 #include <memory>
 #include <functional>
-#include "config.h"
+#include "Common/config.h"
 #include "RtmpPlayer.h"
 #include "RtmpParser.h"
 #include "Poller/Timer.h"

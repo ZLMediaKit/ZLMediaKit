@@ -24,6 +24,7 @@ CPP_DEPS :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 src/Codec \
+src/Common \
 src/Device \
 src/H264 \
 src/Http \
@@ -33,6 +34,5 @@ src/RTP \
 src/Rtmp \
 src/Rtsp \
 src/Shell \
-src \
 test \
 

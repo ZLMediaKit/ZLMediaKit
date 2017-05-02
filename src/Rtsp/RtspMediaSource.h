@@ -13,9 +13,9 @@
 #include <memory>
 #include <functional>
 #include <unordered_map>
-#include "config.h"
 #include "Rtsp.h"
-#include "MediaSender.h"
+#include "Common/config.h"
+#include "Common/MediaSender.h"
 #include "Util/logger.h"
 #include "Util/RingBuffer.h"
 #include "Util/TimeTicker.h"

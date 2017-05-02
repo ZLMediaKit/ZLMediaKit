@@ -9,7 +9,7 @@
 #define SRC_HTTP_HTTPSESSION_H_
 
 #include <functional>
-#include "config.h"
+#include "Common/config.h"
 #include "Rtsp/Rtsp.h"
 #include "Network/TcpLimitedSession.h"
 

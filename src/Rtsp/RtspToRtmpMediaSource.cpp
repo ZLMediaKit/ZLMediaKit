@@ -12,7 +12,7 @@
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include "config.h"
+#include "Common/config.h"
 #include "Rtmp/Rtmp.h"
 #include "RtspToRtmpMediaSource.h"
 #include "Util/util.h"

@@ -9,7 +9,7 @@
 #define HLSMAKER_H_
 
 #include "TSMaker.h"
-#include "config.h"
+#include "Common/config.h"
 #include "Util/TimeTicker.h"
 #include "Util/File.h"
 #include "Util/util.h"

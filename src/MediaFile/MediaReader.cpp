@@ -6,7 +6,7 @@
  */
 
 #include "MediaReader.h"
-#include "config.h"
+#include "Common/config.h"
 #include "Util/mini.h"
 #include "Http/HttpSession.h"
 

@@ -5,7 +5,7 @@
  *      Author: xzl
  */
 
-#include "config.h"
+#include "Common/config.h"
 #include "RtmpToRtspMediaSource.h"
 #include "Util/util.h"
 #include "Device/base64.h"

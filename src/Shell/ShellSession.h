@@ -10,7 +10,7 @@
 
 #include <functional>
 #include "CMD.h"
-#include "config.h"
+#include "Common/config.h"
 #include "Util/TimeTicker.h"
 #include "Network/TcpLimitedSession.h"
 

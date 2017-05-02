@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <arpa/inet.h>
 
-#include "config.h"
+#include "Common/config.h"
 #include "RtspPlayer.h"
 #include "Device/base64.h"
 #include "H264/SPSParser.h"

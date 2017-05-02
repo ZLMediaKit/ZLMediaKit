@@ -6,7 +6,7 @@
  */
 
 #include <netinet/in.h>
-#include "config.h"
+#include "Common/config.h"
 #include "RtpMakerAAC.h"
 #include "Util/mini.h"
 

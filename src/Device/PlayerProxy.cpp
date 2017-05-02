@@ -5,7 +5,7 @@
  *      Author: xzl
  */
 
-#include "config.h"
+#include "Common/config.h"
 #include "PlayerProxy.h"
 #include "Util/mini.h"
 #include "Util/MD5.h"

@@ -5,7 +5,7 @@
  *      Author: xzl
  */
 
-#include "config.h"
+#include "Common/config.h"
 #include "ShellSession.h"
 #include "Util/logger.h"
 #include "Util/util.h"

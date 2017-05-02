@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <dirent.h>
 
-#include "config.h"
+#include "Common/config.h"
 #include "strCoding.h"
 #include "HttpSession.h"
 #include "Util/File.h"

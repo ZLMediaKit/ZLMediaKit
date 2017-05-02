@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <atomic>
-#include "config.h"
+#include "Common/config.h"
 #include "UDPServer.h"
 #include "RtspSession.h"
 #include "Device/base64.h"

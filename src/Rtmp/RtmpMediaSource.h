@@ -16,8 +16,8 @@
 #include <unordered_map>
 #include "amf.h"
 #include "Rtmp.h"
-#include "config.h"
-#include "MediaSender.h"
+#include "Common/config.h"
+#include "Common/MediaSender.h"
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Util/RingBuffer.h"

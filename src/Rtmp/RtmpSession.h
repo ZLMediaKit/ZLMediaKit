@@ -13,7 +13,7 @@
 #include "amf.h"
 #include "Rtmp.h"
 #include "utils.h"
-#include "config.h"
+#include "Common/config.h"
 #include "RtmpProtocol.h"
 #include "RtmpToRtspMediaSource.h"
 #include "Util/util.h"
