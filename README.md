@@ -58,32 +58,33 @@ Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branc
     sudo apt-get install openssl
     sudo apt-get install libssl-dev
     ```
- - [ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
+  
+  - [ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
     ```
-    git clone --depth=50 https://github.com/xiongziliang/ZLToolKit.git,
-    cd ZLToolKit,
-    mkdir -p build,
-    cd build,
-    cmake ..,
-    make,
+    git clone --depth=50 https://github.com/xiongziliang/ZLToolKit.git
+    cd ZLToolKit
+    mkdir -p build
+    cd build
+    cmake ..
+    make
     sudo make install
     ```
     
-  - libfaac（使能ENABLE_FAAC宏，非必备项）
+   - libfaac（使能ENABLE_FAAC宏，非必备项）
 
     ```
     # 安装faac开发套件
     sudo apt-get install libfaac-dev
     ```
     
-  - libx264（使能ENABLE_X264宏，非必备项）
+   - libx264（使能ENABLE_X264宏，非必备项）
 
     ```
     # 安装x264开发套件
     sudo apt-get install libx264-dev
     ```
     
- - libmp4v2（使能ENABLE_MP4V2宏，非必备项）
+  - libmp4v2（使能ENABLE_MP4V2宏，非必备项）
 
     ```
     # 安装mp4v2开发套件
