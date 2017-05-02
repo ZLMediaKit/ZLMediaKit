@@ -2,7 +2,7 @@ project(ZLMediaKit)
 cmake_minimum_required(VERSION 2.8)
 
 #加载自定义模块
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 #设置库文件路径
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #设置可执行程序路径
@@ -83,14 +83,14 @@ add_compile_options(-Wno-deprecated-declarations)
 #关闭__FUNCTION__宏在函数外警告
 add_compile_options(-Wno-predefined-identifier-outside-function)
 
-#编译静态库
+#编译动态库
 if(NOT IOS)
 add_library(${CMAKE_PROJECT_NAME}_shared SHARED ${SRC_LIST})
 set_target_properties(${CMAKE_PROJECT_NAME}_shared PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
 install(TARGETS ${CMAKE_PROJECT_NAME}_shared LIBRARY DESTINATION lib)
 endif(NOT IOS)
 
-#编译动态库
+#编译静态库
 add_library(${CMAKE_PROJECT_NAME}_static STATIC ${SRC_LIST})
 set_target_properties(${CMAKE_PROJECT_NAME}_static PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
 install(TARGETS ${CMAKE_PROJECT_NAME}_static ARCHIVE DESTINATION lib)
@@ -100,7 +100,7 @@ install(DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_PROJECT_NAME} DESTINATIO
 
 #测试程序
 if(NOT IOS)
-#add_subdirectory(tests)
+add_subdirectory(tests)
 endif(NOT IOS)
 
 
