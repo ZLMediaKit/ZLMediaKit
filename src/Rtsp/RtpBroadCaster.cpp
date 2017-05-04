@@ -58,6 +58,8 @@ void RtpBroadCaster::setDetachCB(void* listener, const onDetach& cb) {
 	}
 }
 RtpBroadCaster::~RtpBroadCaster() {
+	m_pReader->setReadCB(nullptr);
+	m_pReader->setDetachCB(nullptr);
 	DebugL;
 }
 RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strApp,const string &strStream) {
@@ -93,15 +95,13 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strApp,con
 		pSock->sendTo((char *) pkt->payload + 4, pkt->length - 4,(struct sockaddr *)(&peerAddr));
 	});
 	m_pReader->setDetachCB([this](){
-		lock_guard<recursive_mutex> lck(m_mtx);
-		list<onDetach> lst;
-		for(auto &pr : m_mapDetach){
-			lst.emplace_back(pr.second);
+		unordered_map<void * , onDetach > m_mapDetach_copy;
+		{
+			lock_guard<recursive_mutex> lck(m_mtx);
+			m_mapDetach_copy.swap(m_mapDetach);
 		}
-		m_mapDetach.clear();
-
-		for(auto &cb : lst){
-			cb();
+		for(auto &pr : m_mapDetach_copy){
+			pr.second();
 		}
 	});
 	DebugL << MultiCastAddressMaker::toString(*m_multiAddr) << " "
