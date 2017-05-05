@@ -161,6 +161,7 @@ inline void ShellSession::sendHead() {
 inline bool ShellSession::authUser(const string& user, const string& pwd) {
 	auto it = g_mapUser.find(user);
 	if (it == g_mapUser.end()) {
+		//WarnL << user << " " << pwd;
 		return false;
 	}
 	return it->second == pwd;

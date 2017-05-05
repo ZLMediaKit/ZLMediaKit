@@ -28,7 +28,9 @@ public:
 	void onRecv(const Socket::Buffer::Ptr &) override;
 	void onError(const SockException &err) override;
 	void onManager() override;
-
+	static void addUser(const string &userName,const string &userPwd){
+		g_mapUser[userName] = userPwd;
+	}
 private:
 	friend class CMD_help;
 	inline bool onProcessLine(const string &);
