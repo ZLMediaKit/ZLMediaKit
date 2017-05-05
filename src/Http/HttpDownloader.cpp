@@ -34,6 +34,11 @@ void HttpDownloader::startDownload(const string& url, const string& filePath,boo
 	}
 	if(bAppend){
 		auto currentLen = ftell(_saveFile);
+		if(currentLen){
+			//最少续传一个字节，怕遇到http 416的错误
+			currentLen -= 1;
+			fseek(_saveFile,-1,SEEK_CUR);
+		}
 		addHeader("Range", StrPrinter << "bytes=" << currentLen << "-" << endl);
 	}
 	setMethod("GET");
