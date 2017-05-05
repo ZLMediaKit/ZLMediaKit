@@ -6,8 +6,10 @@
 #include <memory>
 #include <unordered_map>
 #include "Common/config.h"
+#include "Util/util.h"
 
 using namespace std;
+using namespace ZL::Util;
 
 typedef enum {
 	TrackVideo = 0, TrackAudio
@@ -50,6 +52,14 @@ public:
 
 string FindField(const char* buf, const char* start, const char *end,int bufSize = 0 );
 int parserSDP(const string& sdp, RtspTrack Track[2]);
+
+
+struct StrCaseCompare
+{
+    bool operator()(const string& __x, const string& __y) const
+    {return strcasecmp(__x.data(), __y.data()) < 0 ;}
+};
+typedef map<string,string,StrCaseCompare> StrCaseMap;
 
 class Parser {
 public:
@@ -125,7 +135,7 @@ public:
 		this->m_strContent = content;
 	}
 
-	const map<string, string>& getValues() const {
+	const StrCaseMap& getValues() const {
 		return m_mapValues;
 	}
 
@@ -135,7 +145,7 @@ private:
 	string m_strTail;
 	string m_strContent;
 	string m_strNull;
-	map<string, string> m_mapValues;
+	StrCaseMap m_mapValues;
 
 };
 
