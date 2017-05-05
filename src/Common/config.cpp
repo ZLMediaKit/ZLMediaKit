@@ -7,6 +7,14 @@ using namespace ZL::Network;
 
 namespace Config {
 
+void loaIniConfig(){
+	auto &ini = ZL::Util::mINI::Instance();
+	try{
+		ini.parseFile(exePath() + ".ini");
+	}catch (std::exception &ex) {
+		ini.dumpFile(exePath() + ".ini");
+	}
+}
 ////////////广播名称///////////
 namespace Broadcast {
 const char kBroadcastRtspSessionPlay[] = "kBroadcastRtspSessionPlay";

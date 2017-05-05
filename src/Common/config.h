@@ -13,6 +13,8 @@
 using namespace ZL::Util;
 
 namespace Config {
+
+void loaIniConfig();
 ////////////TCP最大连接数///////////
 #ifdef __x86_64__
 #define MAX_TCP_SESSION 512
