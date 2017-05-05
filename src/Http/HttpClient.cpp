@@ -50,8 +50,7 @@ void HttpClient::sendRequest(const string &strUrl){
     _header.emplace(string("Host"),host);
     _header.emplace(string("Tools"),"ZLMediaKit");
     _header.emplace(string("Connection"),"keep-alive");
-    _header.emplace(string("Accept"),"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-    _header.emplace(string("Accept-Encoding"),"gzip, deflate, sdch, br");
+    _header.emplace(string("Accept"),"*/*");
     _header.emplace(string("Accept-Language"),"zh-CN,zh;q=0.8");
     _header.emplace(string("User-Agent"),"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36");
     
@@ -117,7 +116,11 @@ void HttpClient::onRecvBytes(const char* data, int size) {
 		_recvedBodySize = _recvedResponse.size() - pos - 4;
 		if(_totalBodySize < _recvedBodySize){
 			//http body 比声明的大 这个不可能的
-			FatalL;
+			_StrPrinter printer;
+			for(auto &pr: _parser.getValues()){
+				printer << pr.first << ":" << pr.second << "\r\n";
+			}
+			FatalL << _totalBodySize << ":" << _recvedBodySize << "\r\n" << (printer << endl);
 			shutdown();
 			return;
 		}
@@ -142,7 +145,11 @@ void HttpClient::onRecvBytes(const char* data, int size) {
 		return;
 	}
 	//http body 比声明的大 这个不可能的
-	FatalL;
+	_StrPrinter printer;
+	for(auto &pr: _parser.getValues()){
+		printer << pr.first << ":" << pr.second << "\r\n";
+	}
+	FatalL << _totalBodySize << ":" << _recvedBodySize << "\r\n" << (printer << endl);
 	shutdown();
 }
     
