@@ -15,7 +15,6 @@
 
 using namespace std;
 using namespace ZL::Network;
-using namespace ZL::Network;
 
 namespace ZL {
 namespace Http {
@@ -23,7 +22,7 @@ namespace Http {
 
 class HttpSession: public TcpLimitedSession<MAX_TCP_SESSION> {
 public:
-	typedef map<string,string> KeyValue;
+	typedef StrCaseMap KeyValue;
 	typedef std::function<void(const string &codeOut,
 							   const KeyValue &headerOut,
 							   const string &contentOut)>  HttpResponseInvoker;
