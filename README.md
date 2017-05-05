@@ -3,6 +3,7 @@
 ----|-------
 Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
+## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
 - 打包多种流媒体协议(RTSP/RTMP/HLS），支持协议间的互相转换，提供一站式的服务。
 - 使用epoll+线程池+异步网络IO模式开发，并发性能优越。
@@ -22,6 +23,10 @@ Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branc
 
 - HLS
   - 支持HLS文件生成，自带HTTP文件服务器。
+  
+- HTTP[S]
+  - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`。
+  - 客户端提供`文件下载器(支持断点续传)`,`接口请求器`。
 
 - 其他
   - 支持输入YUV+PCM自动生成RTSP/RTMP/HLS/MP4.
