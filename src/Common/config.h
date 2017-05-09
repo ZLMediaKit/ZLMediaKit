@@ -17,7 +17,7 @@ namespace Config {
 void loaIniConfig();
 ////////////TCP最大连接数///////////
 #ifdef __x86_64__
-#define MAX_TCP_SESSION 512
+#define MAX_TCP_SESSION 100000
 #else
 #define MAX_TCP_SESSION 128
 #endif
