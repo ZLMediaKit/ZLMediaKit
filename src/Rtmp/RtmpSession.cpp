@@ -112,6 +112,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
 	if (!ok) {
 		throw std::runtime_error( StrPrinter << "Already publishing:" << m_strApp << "/" << m_strId << endl);
 	}
+	m_bPublisherSrcRegisted = false;
 	m_pPublisherSrc.reset(new RtmpToRtspMediaSource(m_strApp,m_strId));
 }
 
@@ -244,7 +245,6 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
 		throw std::runtime_error("can only set metadata");
 	}
 	m_pPublisherSrc->onGetMetaData(dec.load<AMFValue>());
-	m_pPublisherSrc->regist();
 }
 
 void RtmpSession::onProcessCmd(AMFDecoder &dec) {
@@ -284,6 +284,10 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 			throw std::runtime_error("Not a rtmp publisher!");
 		}
 		m_pPublisherSrc->onGetMedia(chunkData);
+		if(!m_bPublisherSrcRegisted && m_pPublisherSrc->ready()){
+			m_bPublisherSrcRegisted = true;
+			m_pPublisherSrc->regist();
+		}
 	}
 		break;
 	default:

@@ -44,6 +44,7 @@ private:
 
 	RingBuffer<RtmpPacket>::RingReader::Ptr m_pRingReader;
 	std::shared_ptr<RtmpMediaSource> m_pPublisherSrc;
+	bool m_bPublisherSrcRegisted = false;
     std::weak_ptr<RtmpMediaSource> m_pPlayerSrc;
 
 	void onProcessCmd(AMFDecoder &dec);
