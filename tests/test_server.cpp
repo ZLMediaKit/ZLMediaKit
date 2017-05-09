@@ -26,6 +26,7 @@
 #include "Thread/WorkThreadPool.h"
 #include "Device/PlayerProxy.h"
 #include "Shell/ShellSession.h"
+#include "Common/config.h"
 #include <map>
 using namespace std;
 using namespace ZL::Util;
@@ -43,7 +44,7 @@ void programExit(int arg) {
 int main(int argc,char *argv[]){
 	signal(SIGINT, programExit);
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
-
+	Config::loaIniConfig();
 	//support rtmp and rtsp url
 	//just support H264+AAC
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
