@@ -11,3 +11,4 @@ mkdir -p build
 cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/iOS.cmake -DIOS_PLATFORM=OS
 make -j4
+sudo make install
