@@ -6,9 +6,9 @@ sudo chmod +x ./toolkit_build.sh
 sudo apt-get install libx264-dev
 sudo apt-get install libfaac-dev
 sudo apt-get install libmp4v2-dev
-sudo apt-get install libsdl-dev
-sudo apt-get install libavcodec-dev
-sudo apt-get install libavutil-dev
+#sudo apt-get install libsdl-dev
+#sudo apt-get install libavcodec-dev
+#sudo apt-get install libavutil-dev
 cd $path
 cd ..
 git clone --depth=50 https://github.com/xiongziliang/ZLMediaKit.git
