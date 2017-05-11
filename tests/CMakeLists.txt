@@ -39,37 +39,37 @@ target_link_libraries(${TEST_EXE_NAME} ${CMAKE_PROJECT_NAME}_shared pthread)
 
 #查找mp4v2是否安装
 if(MP4V2_FOUND)
-target_link_libraries(${TEST_EXE_NAME} mp4v2)
+target_link_libraries(${TEST_EXE_NAME} ${MP4V2_LIBRARY})
 endif(MP4V2_FOUND)
 
 #查找x264是否安装
 if(X264_FOUND)
-target_link_libraries(${TEST_EXE_NAME} x264)
+target_link_libraries(${TEST_EXE_NAME} ${X264_LIBRARIES})
 endif(X264_FOUND)
 
 #查找faac是否安装
 if(FAAC_FOUND)
-target_link_libraries(${TEST_EXE_NAME} faac)
+target_link_libraries(${TEST_EXE_NAME} ${FAAC_LIBRARY})
 endif(FAAC_FOUND)
 
 #查找ZLToolKit是否安装
 if(ZLTOOLKIT_FOUND)
-target_link_libraries(${TEST_EXE_NAME} ZLToolKit)
+target_link_libraries(${TEST_EXE_NAME} ${ZLTOOLKIT_LIBRARY})
 endif(ZLTOOLKIT_FOUND)
 
 #查找openssl是否安装
 if(OPENSSL_FOUND)
-target_link_libraries(${TEST_EXE_NAME} ssl)
+target_link_libraries(${TEST_EXE_NAME} ${OPENSSL_LIBRARYS})
 endif(OPENSSL_FOUND)
 
 #查找mysql是否安装
 if(MYSQL_FOUND)
-target_link_libraries(${TEST_EXE_NAME} mysqlclient)
+target_link_libraries(${TEST_EXE_NAME} ${MYSQL_LIBRARYS})
 endif(MYSQL_FOUND)
 
 #link test_player
 if(TEST_EXE_NAME STREQUAL test_player)
-target_link_libraries(${TEST_EXE_NAME} SDL avcodec avutil)
+target_link_libraries(${TEST_EXE_NAME} ${SDL_LIBRARY} ${AVCODEC_LIBRARIES} ${AVUTIL_LIBRARIES})
 endif(TEST_EXE_NAME STREQUAL test_player)
 
 endforeach(TEST_SRC ${TEST_SRC_LIST})

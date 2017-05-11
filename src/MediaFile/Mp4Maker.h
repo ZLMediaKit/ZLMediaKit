@@ -31,7 +31,7 @@ class Mp4Info
 public:
 	time_t ui64StartedTime; //GMT标准时间，单位秒
 	time_t ui64TimeLen;//录像长度，单位秒
-	__off_t ui64FileSize;//文件大小，单位BYTE
+	off_t ui64FileSize;//文件大小，单位BYTE
 	string strFilePath;//文件路径
 	string strFileName;//文件名称
 	string strFolder;//文件夹路径

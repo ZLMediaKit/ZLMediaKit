@@ -23,7 +23,7 @@ endforeach(SUB_DIR ${SUB_DIR_LIST})
 
 
 #查找openssl是否安装
-find_package(OpenSSL QUIET)
+find_package(OPENSSL QUIET)
 if(OPENSSL_FOUND)
 message(STATUS "找到openssl库:\"${OPENSSL_INCLUDE_DIR}\",ENABLE_OPENSSL宏已打开")
 include_directories(${OPENSSL_INCLUDE_DIR})
@@ -90,6 +90,37 @@ if(NOT IOS)
 add_library(${CMAKE_PROJECT_NAME}_shared SHARED ${SRC_LIST})
 set_target_properties(${CMAKE_PROJECT_NAME}_shared PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
 install(TARGETS ${CMAKE_PROJECT_NAME}_shared LIBRARY DESTINATION lib)
+
+#查找mp4v2是否安装
+if(MP4V2_FOUND)
+target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${MP4V2_LIBRARY})
+endif(MP4V2_FOUND)
+
+#查找x264是否安装
+if(X264_FOUND)
+target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${X264_LIBRARIES})
+endif(X264_FOUND)
+
+#查找faac是否安装
+if(FAAC_FOUND)
+target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${FAAC_LIBRARY})
+endif(FAAC_FOUND)
+
+#查找ZLToolKit是否安装
+if(ZLTOOLKIT_FOUND)
+target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${ZLTOOLKIT_LIBRARY})
+endif(ZLTOOLKIT_FOUND)
+
+#查找openssl是否安装
+if(OPENSSL_FOUND)
+target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${OPENSSL_LIBRARYS})
+endif(OPENSSL_FOUND)
+
+#查找mysql是否安装
+if(MYSQL_FOUND)
+target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${MYSQL_LIBRARYS})
+endif(MYSQL_FOUND)
+
 endif(NOT IOS)
 
 #编译静态库

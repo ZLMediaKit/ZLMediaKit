@@ -30,7 +30,7 @@ class H264Decoder
 public:
 	H264Decoder(void){
 		avcodec_register_all();
-		AVCodec *pCodec = avcodec_find_decoder(CODEC_ID_H264);
+		AVCodec *pCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
 		if (!pCodec) {
 			throw std::runtime_error("未找到H264解码器");
 		}

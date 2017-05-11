@@ -42,6 +42,7 @@ void programExit(int arg) {
 	EventPoller::Instance().shutdown();
 }
 int main(int argc,char *argv[]){
+    setExePath(argv[0]);
 	signal(SIGINT, programExit);
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
 	Config::loaIniConfig();
