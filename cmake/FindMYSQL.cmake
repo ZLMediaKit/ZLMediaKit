@@ -17,7 +17,7 @@
 include(CheckCXXSourceCompiles)
 
 if(WIN32)
-   find_path(MYSQL_INCLUDE_DIR mysql.h
+   find_path(MYSQL_INCLUDE_DIR mysql/mysql.h
       PATHS
       $ENV{MYSQL_INCLUDE_DIR}
       $ENV{MYSQL_DIR}/include
@@ -26,7 +26,7 @@ if(WIN32)
       $ENV{ProgramW6432}/MySQL/*/include
    )
 else(WIN32)
-   find_path(MYSQL_INCLUDE_DIR mysql.h
+   find_path(MYSQL_INCLUDE_DIR mysql/mysql.h
       PATHS
       $ENV{MYSQL_INCLUDE_DIR}
       $ENV{MYSQL_DIR}/include
