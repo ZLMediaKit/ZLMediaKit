@@ -1,6 +1,6 @@
 #!/bin/bash
 path=`pwd`
-wget https://github.com/xiongziliang/ZLToolKit/blob/master/build_for_linux.sh -o ./toolkit_build.sh
+wget https://raw.githubusercontent.com/xiongziliang/ZLToolKit/master/build_for_linux.sh -o ./toolkit_build.sh
 sudo chmod +x ./toolkit_build.sh
 ./toolkit_build.sh
 sudo apt-get install libx264-dev
