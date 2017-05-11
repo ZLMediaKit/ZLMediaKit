@@ -2,6 +2,8 @@
 平台|编译状态
 ----|-------
 Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
+macOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac)
+iOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios)
 
 ## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
@@ -35,78 +37,47 @@ Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branc
  
 ## 后续任务
 - 提供更多的示例代码
-- 提供ios工程
 
 ## 编译(Linux)
 - 我的编译环境
   - Ubuntu16.04 64 bit + gcc5.4(最低gcc4.7)
   - cmake 3.5.1
-- 依赖
-  - cmake：
-  
-    ```
-    # 安装cmake
-    sudo apt-get insatll cmake
-    ```
-     
-  - libmysqlclient（使能ENABLE_MYSQL宏，非必备项）
-  
-    ```
-    # 安装mysql客户端开发套件
-    sudo apt-get install libmysqlclient-dev
-    ```
-
-  - libssl（使能ENABLE_OPENSSL宏，非必备项）
-  
-    ```
-    # 安装openssl开发套件
-    sudo apt-get install openssl
-    sudo apt-get install libssl-dev
-    ```
-  
-  - [ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
-  
-    ```
-    git clone --depth=50 https://github.com/xiongziliang/ZLToolKit.git
-    cd ZLToolKit
-    mkdir -p build
-    cd build
-    cmake ..
-    make
-    sudo make install
-    ```
-    
-   - libfaac（使能ENABLE_FAAC宏，非必备项）
-   
-     ```
-     # 安装faac开发套件
-     sudo apt-get install libfaac-dev
-     ```
-    
-   - libx264（使能ENABLE_X264宏，非必备项）
-   
-     ```
-     # 安装x264开发套件
-     sudo apt-get install libx264-dev
-     ```
-    
-  - libmp4v2（使能ENABLE_MP4V2宏，非必备项）
-  
-    ```
-    # 安装mp4v2开发套件
-    sudo apt-get install libmp4v2-dev
-    ```
-    
 - 编译
   
   ```
   cd ZLMediaKit
+  ./build_for_ios.sh
+  ```  
+    
+## 编译(macOS)
+- 我的编译环境
+  - macOS Sierra(10.12.1) + xcode8.3.1
+  - Homebrew 1.1.3
+  - cmake 3.8.0
+- 编译
+  
+  ```
+  cd ZLMediaKit
+  ./build_for_mac.sh
+  ```
+	 
+## 编译(iOS)
+- 编译环境:`请参考macOS的编译指导。`
+- 编译
+  
+  ```
+  cd ZLMediaKit
+  ./build_for_ios.sh
+  ```
+- 你也可以生成Xcode工程再编译：
+
+  ```
+  cd ZLMediaKit
   mkdir -p build
   cd build
-  cmake ..
-  make
-  make install
-  ```  
+  # 生成Xcode工程，工程文件在build目录下
+  cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/iOS.cmake -DIOS_PLATFORM=SIMULATOR64 -G "Xcode"
+  ```
 
 ## 联系方式
 - 邮箱：<771730766@qq.com>
