@@ -37,9 +37,13 @@ void RtmpPlayer::teardown() {
 		m_strApp.clear();
 		m_strStream.clear();
 		m_strTcUrl.clear();
-		m_mapOnResultCB.clear();
+
+		{
+			lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
+			m_mapOnResultCB.clear();
+		}
         {
-            lock_guard<recursive_mutex> lck(m_mtxDeque);
+            lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
             m_dqOnStatusCB.clear();
         }
 		m_pBeatTimer.reset();
@@ -211,6 +215,7 @@ inline void RtmpPlayer::send_pause(bool bPause) {
 
 void RtmpPlayer::onCmd_result(AMFDecoder &dec){
 	auto iReqId = dec.load<int>();
+	lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
 	auto it = m_mapOnResultCB.find(iReqId);
 	if(it != m_mapOnResultCB.end()){
 		it->second(dec);
@@ -231,7 +236,7 @@ void RtmpPlayer::onCmd_onStatus(AMFDecoder &dec) {
 		throw std::runtime_error("onStatus: 未找到结果对象");
 	}
     
-    lock_guard<recursive_mutex> lck(m_mtxDeque);
+    lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
 	if(m_dqOnStatusCB.size()){
 		m_dqOnStatusCB.front()(val);
 		m_dqOnStatusCB.pop_front();

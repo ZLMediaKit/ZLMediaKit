@@ -31,6 +31,7 @@ RtmpSession::~RtmpSession() {
 }
 
 void RtmpSession::onError(const SockException& err) {
+	DebugL << err.what();
 	if (m_pPublisherSrc) {
 		m_pPublisherSrc.reset();
 	}
