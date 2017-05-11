@@ -9,7 +9,7 @@ find_library(FAAC_LIBRARY
 )
 
 set(FAAC_INCLUDE_DIRS ${FAAC_INCLUDE_DIR})
-set(MP4V2_LIBRARIES ${FAAC_LIBRARY})
+set(FAAC_LIBRARIES ${FAAC_LIBRARY})
 
 include(FindPackageHandleStandardArgs)
 

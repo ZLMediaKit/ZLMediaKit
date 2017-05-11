@@ -2,6 +2,7 @@
 find_package(SDL QUIET)
 if(SDL_FOUND)
 include_directories(${SDL_INCLUDE_DIR})
+list(APPEND  LINK_LIB_LIST ${SDL_LIBRARY})
 message(STATUS "找到SDL")
 endif(SDL_FOUND)
 
@@ -9,6 +10,7 @@ endif(SDL_FOUND)
 find_package(AVUTIL QUIET)
 if(AVUTIL_FOUND)
 include_directories(${AVUTIL_INCLUDE_DIR})
+list(APPEND  LINK_LIB_LIST ${AVUTIL_LIBRARIES})
 message(STATUS "找到libutil")
 endif(AVUTIL_FOUND)
 
@@ -16,12 +18,11 @@ endif(AVUTIL_FOUND)
 find_package(AVCODEC QUIET)
 if(AVCODEC_FOUND)
 include_directories(${AVCODEC_INCLUDE_DIR})
+list(APPEND  LINK_LIB_LIST ${AVCODEC_LIBRARIES})
 message(STATUS "找到libavcodec")
 endif(AVCODEC_FOUND)
 
-
 aux_source_directory(. TEST_SRC_LIST)
-
 #如果ffmpeg/libavcodec ffmpeg/libavcodec SDL 都安装了则编译 test_player
 if(SDL_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND)
 message(STATUS "test_player被编译")
@@ -35,43 +36,7 @@ STRING(REGEX REPLACE ".cpp" "" TEST_EXE_NAME ${TEST_SRC})
 STRING(REGEX REPLACE "./" "" TEST_EXE_NAME ${TEST_EXE_NAME})
 message(STATUS "add test program:${TEST_EXE_NAME}")
 add_executable(${TEST_EXE_NAME} ${TEST_SRC})
-target_link_libraries(${TEST_EXE_NAME} ${CMAKE_PROJECT_NAME}_shared pthread)
-
-#查找mp4v2是否安装
-if(MP4V2_FOUND)
-target_link_libraries(${TEST_EXE_NAME} ${MP4V2_LIBRARY})
-endif(MP4V2_FOUND)
-
-#查找x264是否安装
-if(X264_FOUND)
-target_link_libraries(${TEST_EXE_NAME} ${X264_LIBRARIES})
-endif(X264_FOUND)
-
-#查找faac是否安装
-if(FAAC_FOUND)
-target_link_libraries(${TEST_EXE_NAME} ${FAAC_LIBRARY})
-endif(FAAC_FOUND)
-
-#查找ZLToolKit是否安装
-if(ZLTOOLKIT_FOUND)
-target_link_libraries(${TEST_EXE_NAME} ${ZLTOOLKIT_LIBRARY})
-endif(ZLTOOLKIT_FOUND)
-
-#查找openssl是否安装
-if(OPENSSL_FOUND)
-target_link_libraries(${TEST_EXE_NAME} ${OPENSSL_LIBRARYS})
-endif(OPENSSL_FOUND)
-
-#查找mysql是否安装
-if(MYSQL_FOUND)
-target_link_libraries(${TEST_EXE_NAME} ${MYSQL_LIBRARYS})
-endif(MYSQL_FOUND)
-
-#link test_player
-if(TEST_EXE_NAME STREQUAL test_player)
-target_link_libraries(${TEST_EXE_NAME} ${SDL_LIBRARY} ${AVCODEC_LIBRARIES} ${AVUTIL_LIBRARIES})
-endif(TEST_EXE_NAME STREQUAL test_player)
-
+target_link_libraries(${TEST_EXE_NAME} ${CMAKE_PROJECT_NAME}_shared ${LINK_LIB_LIST} pthread) 
 endforeach(TEST_SRC ${TEST_SRC_LIST})
 
 
