@@ -20,9 +20,6 @@ MediaPlayer::MediaPlayer() {
 }
 
 MediaPlayer::~MediaPlayer() {
-	if(!EventPoller::Instance().isMainThread()){
-		FatalL << "未在主线程释放";
-	}
 	teardown();
 }
 
