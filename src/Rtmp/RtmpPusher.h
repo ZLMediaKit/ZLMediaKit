@@ -53,11 +53,12 @@ private:
 
 	template<typename FUN>
 	inline void addOnResultCB(const FUN &fun) {
+		lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
 		m_mapOnResultCB.emplace(m_iReqID, fun);
 	}
 	template<typename FUN>
 	inline void addOnStatusCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(m_mtxDeque);
+		lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
 		m_dqOnStatusCB.emplace_back(fun);
 	}
 
@@ -75,8 +76,9 @@ private:
 	string m_strTcUrl;
 
 	unordered_map<int, function<void(AMFDecoder &dec)> > m_mapOnResultCB;
+	recursive_mutex m_mtxOnResultCB;
 	deque<function<void(AMFValue &dec)> > m_dqOnStatusCB;
-	recursive_mutex m_mtxDeque;
+	recursive_mutex m_mtxOnStatusCB;
 
 	typedef void (RtmpPusher::*rtmpCMDHandle)(AMFDecoder &dec);
 	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
