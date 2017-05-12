@@ -21,13 +21,18 @@ namespace Player {
 
 PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 	string prefix = FindField(strUrl, NULL, "://");
+	auto onDestory = [](PlayerBase *ptr){
+		EventPoller::Instance().async([ptr](){
+			delete ptr;
+		});
+	};
 	if (strcasecmp("rtsp",prefix.data()) == 0) {
-		return PlayerBase::Ptr(new RtspPlayerImp());
+		return PlayerBase::Ptr(new RtspPlayerImp(),onDestory);
 	}
 	if (strcasecmp("rtmp",prefix.data()) == 0) {
-		return PlayerBase::Ptr(new RtmpPlayerImp());
+		return PlayerBase::Ptr(new RtmpPlayerImp(),onDestory);
 	}
-	return PlayerBase::Ptr(new RtspPlayerImp());
+	return PlayerBase::Ptr(new RtspPlayerImp(),onDestory);
 }
 
 } /* namespace Player */
