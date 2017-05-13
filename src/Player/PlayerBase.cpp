@@ -22,7 +22,7 @@ namespace Player {
 PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 	string prefix = FindField(strUrl, NULL, "://");
 	auto onDestory = [](PlayerBase *ptr){
-		EventPoller::Instance().async([ptr](){
+		ASYNC_TRACE([ptr](){
 			delete ptr;
 		});
 	};
