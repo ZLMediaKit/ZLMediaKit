@@ -61,6 +61,9 @@ protected:
 protected:
 	int m_iReqID = 0;
 	uint32_t m_ui32StreamId = STREAM_CONTROL;
+	int m_iNowStreamID = 0;
+	int m_iNowChunkID = 0;
+	bool m_bDataStarted = false;
 private:
 	void handle_S0S1S2(const function<void()> &cb);
 	void handle_C0C1();
@@ -80,8 +83,6 @@ private:
 	uint8_t m_ui8LimitType = 2;
 	////////////Chunk////////////
 	unordered_map<int, RtmpPacket> m_mapChunkData;
-	int m_iNowStreamID = 0;
-	int m_iNowChunkID = 0;
 	//////////Rtmp parser//////////
 	string m_strRcvBuf;
 	function<void()> m_nextHandle;

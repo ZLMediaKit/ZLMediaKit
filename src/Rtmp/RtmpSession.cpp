@@ -65,30 +65,40 @@ void RtmpSession::onRecv(const Socket::Buffer::Ptr &pBuf) {
 
 void RtmpSession::onCmd_connect(AMFDecoder &dec) {
 	auto params = dec.load<AMFValue>();
+	double amfVer = 0;
+	AMFValue objectEncoding = params["objectEncoding"];
+	if(objectEncoding){
+		amfVer = objectEncoding.as_number();
+	}
+	///////////set chunk size////////////////
+	sendChunkSize(4096);
+	////////////window Acknowledgement size/////
+	sendAcknowledgementSize(5000000);
+	///////////set peerBandwidth////////////////
+	sendPeerBandwidth(5000000);
+
 	m_strApp = params["app"].as_string();
 	bool ok = true; //(app == APP_NAME);
 	AMFValue version(AMF_OBJECT);
-	version.set("fmsVer", "FMS/3,5,3,888");
-	version.set("capabilities", 127.0);
+	version.set("fmsVer", "ZLMediaKit");
+	version.set("capabilities", 255.0);
 	version.set("mode", 1.0);
 	AMFValue status(AMF_OBJECT);
 	status.set("level", ok ? "status" : "error");
 	status.set("code", ok ? "NetConnection.Connect.Success" : "NetConnection.Connect.InvalidApp");
 	status.set("description", ok ? "Connection succeeded." : "InvalidApp.");
-	status.set("objectEncoding", (double) (dec.getVersion()));
+	status.set("objectEncoding", amfVer);
+	AMFValue data(AMF_ECMA_ARRAY);
+	data.set("version","0.0.0.1");
+	status.set("data", data);
 	sendReply(ok ? "_result" : "_error", version, status);
 	if (!ok) {
 		throw std::runtime_error("Unsupported application: " + m_strApp);
 	}
 
-	////////////window Acknowledgement size/////
-	sendAcknowledgementSize(2500000);
-	///////////set peerBandwidth////////////////
-	sendPeerBandwidth(2500000);
-	///////////set chunk size////////////////
-#ifndef _DEBUG
-	sendChunkSize(60000);
-#endif
+	AMFEncoder invoke;
+	invoke << "onBWDone" << 0.0 << nullptr;
+	sendResponse(MSG_CMD, invoke.data());
 }
 
 void RtmpSession::onCmd_createStream(AMFDecoder &dec) {
@@ -108,7 +118,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
 	status.set("level", ok ? "status" : "error");
 	status.set("code", ok ? "NetStream.Publish.Start" : "NetStream.Publish.BadName");
 	status.set("description", ok ? "Started publishing stream." : "Already publishing.");
-	status.set("clientid", "ASAICiss");
+	status.set("clientid", "0");
 	sendReply("onStatus", nullptr, status);
 	if (!ok) {
 		throw std::runtime_error( StrPrinter << "Already publishing:" << m_strApp << "/" << m_strId << endl);
@@ -136,33 +146,51 @@ void RtmpSession::onCmd_play(AMFDecoder &dec) {
 	auto src = RtmpMediaSource::find(m_strApp,m_strId,true);
 	bool ok = (src.operator bool());
 	ok = ok && src->ready();
+
+	//stream begin
+	sendUserControl(CONTROL_STREAM_BEGIN, STREAM_MEDIA);
+
 // onStatus(NetStream.Play.Reset)
 	AMFValue status(AMF_OBJECT);
-
 	status.set("level", ok ? "status" : "error");
 	status.set("code", ok ? "NetStream.Play.Reset" : "NetStream.Play.StreamNotFound");
-	status.set("description", ok ? "Resetting and playing stream." : "No such stream.");
-	status.set("details", "stream");
-	status.set("clientid", "ASAICiss");
+	status.set("description", ok ? "Resetting and playing." : "No such stream.");
+	status.set("details", m_strId);
+	status.set("clientid", "0");
 	sendReply("onStatus", nullptr, status);
 	if (!ok) {
 		throw std::runtime_error( StrPrinter << "No such stream:" << m_strApp << " " << m_strId << endl);
 	}
-//stream begin
-	sendUserControl(CONTROL_STREAM_BEGIN, STREAM_MEDIA);
+
 // onStatus(NetStream.Play.Start)
 	status.clear();
 	status.set("level", "status");
 	status.set("code", "NetStream.Play.Start");
-	status.set("description", "Started playing stream.");
-	status.set("details", "stream");
-	status.set("clientid", "ASAICiss");
-	sendReply("onStatus", AMFValue(), status);
+	status.set("description", "Started playing.");
+	status.set("details", m_strId);
+	status.set("clientid", "0");
+	sendReply("onStatus", nullptr, status);
 
 // |RtmpSampleAccess(true, true)
 	AMFEncoder invoke;
 	invoke << "|RtmpSampleAccess" << true << true;
 	sendResponse(MSG_DATA, invoke.data());
+
+	//onStatus(NetStream.Data.Start)
+	invoke.clear();
+	AMFValue obj(AMF_OBJECT);
+	obj.set("code","NetStream.Data.Start");
+	invoke << "onStatus" << obj;
+	sendResponse(MSG_DATA, invoke.data());
+
+	//onStatus(NetStream.Play.PublishNotify)
+	status.clear();
+	status.set("level", "status");
+	status.set("code", "NetStream.Play.PublishNotify");
+	status.set("description", "Now published.");
+	status.set("details", m_strId);
+	status.set("clientid", "0");
+	sendReply("onStatus", nullptr, status);
 
 // onMetaData
 	invoke.clear();
@@ -264,14 +292,14 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 	switch (chunkData.typeId) {
 	case MSG_CMD:
 	case MSG_CMD3: {
-		AMFDecoder dec(chunkData.strBuf, 0);
+		AMFDecoder dec(chunkData.strBuf, chunkData.typeId == MSG_CMD3 ? 1 : 0);
 		onProcessCmd(dec);
 	}
 		break;
 
 	case MSG_DATA:
 	case MSG_DATA3: {
-		AMFDecoder dec(chunkData.strBuf, 0);
+		AMFDecoder dec(chunkData.strBuf, chunkData.typeId == MSG_CMD3 ? 1 : 0);
 		std::string type = dec.load<std::string>();
 		TraceL << "notify:" << type;
 		if (type == "@setDataFrame") {

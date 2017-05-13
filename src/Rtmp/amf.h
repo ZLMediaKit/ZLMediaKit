@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-
+#include <map>
 enum AMFType {
 	AMF_NUMBER,
 	AMF_INTEGER,
@@ -102,11 +102,11 @@ public:
 		}
 	}
 
-	const AMFValue &operator[](const std::string &s) const {
+	const AMFValue &operator[](const char *str) const {
 		if (m_type != AMF_OBJECT && m_type != AMF_ECMA_ARRAY) {
 			throw std::runtime_error("AMF not a object");
 		}
-		auto i = m_value.object->find(s);
+		auto i = m_value.object->find(str);
 		if (i == m_value.object->end()) {
 			static AMFValue val(AMF_NULL);
 			return val;
@@ -123,7 +123,7 @@ public:
 		}
 	}
 
-	bool operator()() const {
+	operator bool() const{
 		return m_type != AMF_NULL;
 	}
 	void set(const std::string &s, const AMFValue &val) {
@@ -141,7 +141,7 @@ public:
 	}
 
 private:
-	typedef std::unordered_map<std::string, AMFValue> mapType;
+	typedef std::map<std::string, AMFValue> mapType;
 	typedef std::vector<AMFValue> arrayType;
 
 	AMFType m_type;

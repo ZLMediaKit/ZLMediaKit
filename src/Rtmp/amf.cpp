@@ -99,7 +99,7 @@ AMFValue::AMFValue(const AMFValue &from) :
 }
 
 AMFValue::AMFValue(AMFValue &&from) {
-	*this = from;
+	*this = std::forward<AMFValue>(from);
 }
 
 AMFValue& AMFValue::operator =(const AMFValue &from) {

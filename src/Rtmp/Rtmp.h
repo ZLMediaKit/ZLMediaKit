@@ -46,6 +46,7 @@ using namespace ZL::Util;
 #define CHUNK_SERVER_REQUEST			2 /*服务器像客户端发出请求时的chunkID*/
 #define CHUNK_CLIENT_REQUEST_BEFORE		3 /*客户端在createStream前,向服务器发出请求的chunkID*/
 #define CHUNK_CLIENT_REQUEST_AFTER		4 /*客户端在createStream后,向服务器发出请求的chunkID*/
+#define CHUNK_MEDIA						6 /*媒体chunkID*/
 
 #define FLV_KEY_FRAME				1
 #define FLV_INTER_FRAME				2
@@ -62,7 +63,7 @@ public:
         }
     }
     uint8_t timeStamp[4];
-    uint8_t zero[4] = { 0 };
+    uint8_t zero[4] = {0};
     uint8_t random[RANDOM_LEN];
 private:
     void random_generate(char* bytes, int size) {

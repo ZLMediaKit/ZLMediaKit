@@ -115,7 +115,10 @@ void RtmpProtocol::sendUserControl(uint16_t ui16EventType,
 }
 
 void RtmpProtocol::sendResponse(int iType, const string& str) {
-	sendRtmp(iType, m_iNowStreamID, str, 0, m_iNowChunkID);
+	if(!m_bDataStarted && (iType == MSG_DATA)){
+		m_bDataStarted =  true;
+	}
+	sendRtmp(iType, m_iNowStreamID, str, 0, m_bDataStarted ? CHUNK_CLIENT_REQUEST_AFTER : CHUNK_CLIENT_REQUEST_BEFORE);
 }
 
 void RtmpProtocol::sendInvoke(const string& strCmd, const AMFValue& val) {
@@ -218,11 +221,12 @@ void RtmpProtocol::handle_C0C1() {
 		throw std::runtime_error("only plaintext[0x03] handshake supported");
 	}
 	char handshake_head = HANDSHAKE_PLAINTEXT;
+	//发送S0
 	onSendRawData(&handshake_head, 1);
-	//发送S2
+	//发送S1
 	RtmpHandshake s2(0);
 	onSendRawData((char *) &s2, sizeof(RtmpHandshake));
-	//发送S0S1
+	//发送S2
 	onSendRawData(m_strRcvBuf.c_str() + 1, sizeof(RtmpHandshake));
 	m_strRcvBuf.erase(0, 1 + sizeof(RtmpHandshake));
 	//等待C2
