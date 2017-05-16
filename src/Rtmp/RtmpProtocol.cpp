@@ -273,6 +273,7 @@ void RtmpProtocol::handle_C1_simple(){
 		handle_C2();
 	};
 }
+#ifdef ENABLE_OPENSSL
 void RtmpProtocol::handle_C1_complex(){
 	//参考自：http://blog.csdn.net/win_lin/article/details/13006803
 	//skip c0,time,version
@@ -426,6 +427,7 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
 		handle_C2();
 	};
 }
+#endif //ENABLE_OPENSSL
 void RtmpProtocol::handle_C2() {
 	if (m_strRcvBuf.size() < C1_HANDSHARK_SIZE) {
 		//need more data!
