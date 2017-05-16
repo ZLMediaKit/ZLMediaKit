@@ -46,7 +46,7 @@ iOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_i
   
   ```
   cd ZLMediaKit
-  ./build_for_ios.sh
+  ./build_for_linux.sh
   ```  
     
 ## 编译(macOS)
