@@ -84,6 +84,8 @@ private:
 	RtmpMediaSource::Ptr m_pRtmpSrc;
 	RtmpPacket m_rtmpPkt;
 	uint8_t m_ui8AudioFlags = 0;
+	//首次时间戳，m_aui32FirstStamp[0]:视频，m_aui32FirstStamp[1]:音频
+	uint32_t m_aui32FirstStamp[2] = {0,0};
 	MediaRecorder::Ptr m_pRecorder;
 	bool m_bEnableFile = true;
 	void onGetH264(const H264Frame &frame);

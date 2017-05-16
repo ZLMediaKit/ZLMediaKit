@@ -47,40 +47,7 @@ void RtspToRtmpMediaSource::unregist() {
 		m_pRtmpSrc->unregist();
 	}
 }
-void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
-	if(m_pRecorder){
-		m_pRecorder->inputH264((char *) frame.data.data(), frame.data.size(), frame.timeStamp, frame.type);
-	}
-	uint8_t nal_type = frame.data[4] & 0x1F;
-	int8_t flags = 7; //h.264
-	bool is_config = false;
-	switch (nal_type) {
-	case 7:
-	case 8:
-		return;
-	case 5:
-		flags |= (FLV_KEY_FRAME << 4);
-		break;
-	default:
-		flags |= (FLV_INTER_FRAME << 4);
-		break;
-	}
-	m_rtmpPkt.strBuf.clear();
-	m_rtmpPkt.strBuf.push_back(flags);
-	m_rtmpPkt.strBuf.push_back(!is_config);
-	m_rtmpPkt.strBuf.append("\x0\x0\x0", 3);
-	uint32_t size = frame.data.size() - 4;
-	size = htonl(size);
-	m_rtmpPkt.strBuf.append((char *) &size, 4);
-	m_rtmpPkt.strBuf.append(&frame.data[4], frame.data.size() - 4);
 
-	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
-	m_rtmpPkt.chunkId = CHUNK_MEDIA;
-	m_rtmpPkt.streamId = STREAM_MEDIA;
-	m_rtmpPkt.timeStamp = frame.timeStamp;
-	m_rtmpPkt.typeId = MSG_VIDEO;
-	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
-}
 void RtspToRtmpMediaSource::makeVideoConfigPkt() {
 	int8_t flags = 7; //h.264
 	flags |= (FLV_KEY_FRAME << 4);
@@ -121,7 +88,53 @@ void RtspToRtmpMediaSource::makeVideoConfigPkt() {
 	m_rtmpPkt.typeId = MSG_VIDEO;
 	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
 }
+void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
+	if(m_pRecorder){
+		m_pRecorder->inputH264((char *) frame.data.data(), frame.data.size(), frame.timeStamp, frame.type);
+	}
+	uint8_t nal_type = frame.data[4] & 0x1F;
+	int8_t flags = 7; //h.264
+	bool is_config = false;
+	switch (nal_type) {
+	case 7:
+	case 8:
+		return;
+	case 5:
+		flags |= (FLV_KEY_FRAME << 4);
+		break;
+	default:
+		flags |= (FLV_INTER_FRAME << 4);
+		break;
+	}
+	m_rtmpPkt.strBuf.clear();
+	m_rtmpPkt.strBuf.push_back(flags);
+	m_rtmpPkt.strBuf.push_back(!is_config);
+	m_rtmpPkt.strBuf.append("\x0\x0\x0", 3);
+	uint32_t size = frame.data.size() - 4;
+	size = htonl(size);
+	m_rtmpPkt.strBuf.append((char *) &size, 4);
+	m_rtmpPkt.strBuf.append(&frame.data[4], frame.data.size() - 4);
 
+	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
+	m_rtmpPkt.chunkId = CHUNK_MEDIA;
+	m_rtmpPkt.streamId = STREAM_MEDIA;
+
+	if(!m_aui32FirstStamp[0]){
+		//记录首次时间戳
+		m_aui32FirstStamp[0] = frame.timeStamp;
+	}
+	if(frame.timeStamp >= m_aui32FirstStamp[0]){
+		//计算时间戳增量
+		m_rtmpPkt.timeStamp = frame.timeStamp - m_aui32FirstStamp[0];
+	}else{
+		//发生回环，重新计算时间戳增量
+		CLEAR_ARR(m_aui32FirstStamp);
+		m_rtmpPkt.timeStamp = 0;
+	}
+
+	m_rtmpPkt.typeId = MSG_VIDEO;
+	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
+}
 void RtspToRtmpMediaSource::onGetAdts(const AdtsFrame& frame) {
 	if(m_pRecorder){
 		m_pRecorder->inputAAC((char *) frame.data, frame.aac_frame_length, frame.timeStamp);
@@ -137,7 +150,20 @@ void RtspToRtmpMediaSource::onGetAdts(const AdtsFrame& frame) {
 	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
 	m_rtmpPkt.chunkId = CHUNK_MEDIA;
 	m_rtmpPkt.streamId = STREAM_MEDIA;
-	m_rtmpPkt.timeStamp = frame.timeStamp;
+
+	if(!m_aui32FirstStamp[1]){
+		//记录首次时间戳
+		m_aui32FirstStamp[1] = frame.timeStamp;
+	}
+	if(frame.timeStamp >= m_aui32FirstStamp[1]){
+		//计算时间戳增量
+		m_rtmpPkt.timeStamp = frame.timeStamp - m_aui32FirstStamp[1];
+	}else{
+		//发生回环，重新计算时间戳增量
+		CLEAR_ARR(m_aui32FirstStamp);
+		m_rtmpPkt.timeStamp = 0;
+	}
+
 	m_rtmpPkt.typeId = MSG_AUDIO;
 	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
 }
