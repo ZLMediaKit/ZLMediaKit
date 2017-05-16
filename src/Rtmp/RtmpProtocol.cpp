@@ -11,8 +11,33 @@
 #include "Util/util.h"
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
-
 using namespace ZL::Util;
+
+#ifdef ENABLE_OPENSSL
+#include <openssl/hmac.h>
+static string openssl_HMACsha256(const void *key,unsigned int key_len,
+								 const void *data,unsigned int data_len){
+	char out[48];
+	unsigned int out_len;
+	HMAC_CTX ctx;
+	HMAC_CTX_init(&ctx);
+	HMAC_Init_ex(&ctx, key, key_len, EVP_sha256(), NULL);
+	HMAC_Update(&ctx, (unsigned char*)data, data_len);
+	HMAC_Final(&ctx, (unsigned char *)out, &out_len);
+	HMAC_CTX_cleanup(&ctx);
+	return string(out,out_len);
+}
+#endif //ENABLE_OPENSSL
+
+
+#define C1_DIGEST_SIZE 32
+#define C1_KEY_SIZE 128
+#define C1_SCHEMA_SIZE 764
+#define C1_HANDSHARK_SIZE (RANDOM_LEN + 8)
+#define C1_FPKEY_SIZE 30
+#define S1_FMS_KEY_SIZE 36
+#define S2_FMS_KEY_SIZE 68
+#define C1_OFFSET_SIZE 4
 
 namespace ZL {
 namespace Rtmp {
@@ -146,7 +171,7 @@ void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
 	set_be24(header.bodySize, strBuf.size());
 	set_le32(header.streamId, ui32StreamId);
 	std::string strSend;
-	strSend.append((char *) &header, sizeof header);
+	strSend.append((char *) &header, sizeof(header));
 	char acExtStamp[4];
 	if (bExtStamp) {
 		//扩展时间戳
@@ -185,15 +210,15 @@ void RtmpProtocol::startClientSession(const function<void()> &callBack) {
 	//发送 C0C1
 	char handshake_head = HANDSHAKE_PLAINTEXT;
 	onSendRawData(&handshake_head, 1);
-	RtmpHandshake c0c1(::time(NULL));
-	onSendRawData((char *) (&c0c1), sizeof(RtmpHandshake));
+	RtmpHandshake c1(::time(NULL));
+	onSendRawData((char *) (&c1), sizeof(c1));
 	m_nextHandle = [this,callBack]() {
 		//等待 S0+S1+S2
 		handle_S0S1S2(callBack);
 	};
 }
 void RtmpProtocol::handle_S0S1S2(const function<void()> &callBack) {
-	if (m_strRcvBuf.size() < 1 + 2 * sizeof(RtmpHandshake)) {
+	if (m_strRcvBuf.size() < 1 + 2 * C1_HANDSHARK_SIZE) {
 		//数据不够
 		return;
 	}
@@ -202,8 +227,8 @@ void RtmpProtocol::handle_S0S1S2(const function<void()> &callBack) {
 	}
 	//发送 C2
 	const char *pcC2 = m_strRcvBuf.data() + 1;
-	onSendRawData(pcC2, sizeof(RtmpHandshake));
-	m_strRcvBuf.erase(0, 1 + 2 * sizeof(RtmpHandshake));
+	onSendRawData(pcC2, C1_HANDSHARK_SIZE);
+	m_strRcvBuf.erase(0, 1 + 2 * C1_HANDSHARK_SIZE);
 	//握手结束
 	m_nextHandle = [this]() {
 		//握手结束并且开始进入解析命令模式
@@ -213,34 +238,200 @@ void RtmpProtocol::handle_S0S1S2(const function<void()> &callBack) {
 }
 ////for server ////
 void RtmpProtocol::handle_C0C1() {
-	if (m_strRcvBuf.size() < 1 + sizeof(RtmpHandshake)) {
+	if (m_strRcvBuf.size() < 1 + C1_HANDSHARK_SIZE) {
 		//need more data!
 		return;
 	}
 	if (m_strRcvBuf[0] != HANDSHAKE_PLAINTEXT) {
 		throw std::runtime_error("only plaintext[0x03] handshake supported");
 	}
-	char handshake_head = HANDSHAKE_PLAINTEXT;
+	if(memcmp(m_strRcvBuf.c_str() + 5,"\x00\x00\x00\x00",4) ==0 ){
+		//simple handsharke
+		handle_C1_simple();
+	}else{
+#ifdef ENABLE_OPENSSL
+		//complex handsharke
+		handle_C1_complex();
+#else
+		WarnL << "未打开ENABLE_OPENSSL宏，复杂握手采用简单方式处理！";
+		handle_C1_simple();
+#endif//ENABLE_OPENSSL
+	}
+	m_strRcvBuf.erase(0, 1 + C1_HANDSHARK_SIZE);
+}
+void RtmpProtocol::handle_C1_simple(){
 	//发送S0
+	char handshake_head = HANDSHAKE_PLAINTEXT;
 	onSendRawData(&handshake_head, 1);
 	//发送S1
-	RtmpHandshake s2(0);
-	onSendRawData((char *) &s2, sizeof(RtmpHandshake));
+	RtmpHandshake s1(0);
+	onSendRawData((char *) &s1, C1_HANDSHARK_SIZE);
 	//发送S2
-	onSendRawData(m_strRcvBuf.c_str() + 1, sizeof(RtmpHandshake));
-	m_strRcvBuf.erase(0, 1 + sizeof(RtmpHandshake));
+	onSendRawData(m_strRcvBuf.c_str() + 1, C1_HANDSHARK_SIZE);
 	//等待C2
 	m_nextHandle = [this]() {
 		handle_C2();
 	};
 }
+void RtmpProtocol::handle_C1_complex(){
+	//参考自：http://blog.csdn.net/win_lin/article/details/13006803
+	//skip c0,time,version
+	const char *c1_start = m_strRcvBuf.data() + 1;
+	const char *schema_start = c1_start + 8;
+	char *digest_start;
+	try{
+		/* c1s1 schema0
+		time: 4bytes
+		version: 4bytes
+		key: 764bytes
+		digest: 764bytes
+		 */
+		auto digest = get_C1_digest((uint8_t *)schema_start + C1_SCHEMA_SIZE,&digest_start);
+		string c1_joined(c1_start,C1_HANDSHARK_SIZE);
+		c1_joined.erase(digest_start - c1_start , C1_DIGEST_SIZE );
+		check_C1_Digest(digest,c1_joined);
 
+		send_complex_S0S1S2(0,digest);
+		InfoL << "schema0";
+	}catch(std::exception &ex){
+		//貌似flash从来都不用schema1
+		WarnL << "try rtmp complex schema0 failed:" <<  ex.what();
+		try{
+			/* c1s1 schema1
+			time: 4bytes
+			version: 4bytes
+			digest: 764bytes
+			key: 764bytes
+			 */
+			auto digest = get_C1_digest((uint8_t *)schema_start,&digest_start);
+			string c1_joined(c1_start,C1_HANDSHARK_SIZE);
+			c1_joined.erase(digest_start - c1_start , C1_DIGEST_SIZE );
+			check_C1_Digest(digest,c1_joined);
+
+			send_complex_S0S1S2(1,digest);
+			InfoL << "schema1";
+		}catch(std::exception &ex){
+			WarnL << "try rtmp complex schema1 failed:" <<  ex.what();
+			handle_C1_simple();
+		}
+	}
+}
+
+
+static u_int8_t FMSKey[] = {
+    0x47, 0x65, 0x6e, 0x75, 0x69, 0x6e, 0x65, 0x20,
+    0x41, 0x64, 0x6f, 0x62, 0x65, 0x20, 0x46, 0x6c,
+    0x61, 0x73, 0x68, 0x20, 0x4d, 0x65, 0x64, 0x69,
+    0x61, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,
+    0x20, 0x30, 0x30, 0x31, // Genuine Adobe Flash Media Server 001
+    0xf0, 0xee, 0xc2, 0x4a, 0x80, 0x68, 0xbe, 0xe8,
+    0x2e, 0x00, 0xd0, 0xd1, 0x02, 0x9e, 0x7e, 0x57,
+    0x6e, 0xec, 0x5d, 0x2d, 0x29, 0x80, 0x6f, 0xab,
+    0x93, 0xb8, 0xe6, 0x36, 0xcf, 0xeb, 0x31, 0xae
+}; // 68
+
+static u_int8_t FPKey[] = {
+    0x47, 0x65, 0x6E, 0x75, 0x69, 0x6E, 0x65, 0x20,
+    0x41, 0x64, 0x6F, 0x62, 0x65, 0x20, 0x46, 0x6C,
+    0x61, 0x73, 0x68, 0x20, 0x50, 0x6C, 0x61, 0x79,
+    0x65, 0x72, 0x20, 0x30, 0x30, 0x31, // Genuine Adobe Flash Player 001
+    0xF0, 0xEE, 0xC2, 0x4A, 0x80, 0x68, 0xBE, 0xE8,
+    0x2E, 0x00, 0xD0, 0xD1, 0x02, 0x9E, 0x7E, 0x57,
+    0x6E, 0xEC, 0x5D, 0x2D, 0x29, 0x80, 0x6F, 0xAB,
+    0x93, 0xB8, 0xE6, 0x36, 0xCF, 0xEB, 0x31, 0xAE
+}; // 62
+void RtmpProtocol::check_C1_Digest(const string &digest,const string &data){
+	auto sha256 = openssl_HMACsha256(FPKey,C1_FPKEY_SIZE,data.data(),data.size());
+	if(sha256 != digest){
+		throw std::runtime_error("digest不匹配");
+	}else{
+		InfoL << "check rtmp complex handshark success!";
+	}
+}
+string RtmpProtocol::get_C1_digest(const uint8_t *ptr,char **digestPos){
+	/* 764bytes digest结构
+	offset: 4bytes
+	random-data: (offset)bytes
+	digest-data: 32bytes
+	random-data: (764-4-offset-32)bytes
+	 */
+	int offset = 0;
+	for(int i=0;i<C1_OFFSET_SIZE;++i){
+		offset += ptr[i];
+	}
+	offset %= (C1_SCHEMA_SIZE - C1_DIGEST_SIZE - C1_OFFSET_SIZE);
+	*digestPos = (char *)ptr + C1_OFFSET_SIZE + offset;
+	string digest(*digestPos,C1_DIGEST_SIZE);
+	//DebugL << "digest offset:" << offset << ",digest:" << hexdump(digest.data(),digest.size());
+	return digest;
+}
+string RtmpProtocol::get_C1_key(const uint8_t *ptr){
+	/* 764bytes key结构
+	random-data: (offset)bytes
+	key-data: 128bytes
+	random-data: (764-offset-128-4)bytes
+	offset: 4bytes
+	 */
+	int offset = 0;
+	for(int i = C1_SCHEMA_SIZE - C1_OFFSET_SIZE;i< C1_SCHEMA_SIZE;++i){
+		offset += ptr[i];
+	}
+	offset %= (C1_SCHEMA_SIZE - C1_KEY_SIZE - C1_OFFSET_SIZE);
+	string key((char *)ptr + offset,C1_KEY_SIZE);
+	//DebugL << "key offset:" << offset << ",key:" << hexdump(key.data(),key.size());
+	return key;
+}
+void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
+	//S1S2计算参考自：https://github.com/hitYangfei/golang/blob/master/rtmpserver.go
+	//发送S0
+	char handshake_head = HANDSHAKE_PLAINTEXT;
+	onSendRawData(&handshake_head, 1);
+	//S1
+	RtmpHandshake s1(time(NULL));
+	memcpy(s1.zero,"\x04\x05\x00\x01",4);
+	char *digestPos;
+	if(schemeType == 0){
+		/* c1s1 schema0
+		time: 4bytes
+		version: 4bytes
+		key: 764bytes
+		digest: 764bytes
+		 */
+		get_C1_digest(s1.random + C1_SCHEMA_SIZE,&digestPos);
+	}else{
+		/* c1s1 schema1
+		time: 4bytes
+		version: 4bytes
+		digest: 764bytes
+		key: 764bytes
+		 */
+		get_C1_digest(s1.random,&digestPos);
+	}
+	char *s1_start = (char *)&s1;
+	string s1_joined(s1_start,sizeof(s1));
+	s1_joined.erase(digestPos - s1_start,C1_DIGEST_SIZE);
+	string s1_digest = openssl_HMACsha256(FMSKey,S1_FMS_KEY_SIZE,s1_joined.data(),s1_joined.size());
+	memcpy(digestPos,s1_digest.data(),s1_digest.size());
+	onSendRawData((char *) &s1, sizeof(s1));
+
+	//S2
+	string s2_key = openssl_HMACsha256(FMSKey,S2_FMS_KEY_SIZE,digest.data(),digest.size());
+	RtmpHandshake s2(0);
+	s2.random_generate((char *)&s2,8);
+	string s2_digest = openssl_HMACsha256(s2_key.data(),s2_key.size(),&s2,sizeof(s2) - C1_DIGEST_SIZE);
+	memcpy((char *)&s2 + C1_HANDSHARK_SIZE - C1_DIGEST_SIZE,s2_digest.data(),C1_DIGEST_SIZE);
+	onSendRawData((char *)&s2, sizeof(s2));
+	//等待C2
+	m_nextHandle = [this]() {
+		handle_C2();
+	};
+}
 void RtmpProtocol::handle_C2() {
-	if (m_strRcvBuf.size() < sizeof(RtmpHandshake)) {
+	if (m_strRcvBuf.size() < C1_HANDSHARK_SIZE) {
 		//need more data!
 		return;
 	}
-	m_strRcvBuf.erase(0, sizeof(RtmpHandshake));
+	m_strRcvBuf.erase(0, C1_HANDSHARK_SIZE);
 	//握手结束，进入命令模式
 	if (!m_strRcvBuf.empty()) {
 		handle_rtmp();

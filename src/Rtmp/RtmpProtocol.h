@@ -67,6 +67,14 @@ protected:
 private:
 	void handle_S0S1S2(const function<void()> &cb);
 	void handle_C0C1();
+
+	void handle_C1_simple();
+	void handle_C1_complex();
+	string get_C1_digest(const uint8_t *ptr,char **digestPos);
+	string get_C1_key(const uint8_t *ptr);
+	void check_C1_Digest(const string &digest,const string &data);
+	void send_complex_S0S1S2(int schemeType,const string &digest);
+
 	void handle_C2();
 	void handle_rtmp();
 	void handle_rtmpChunk(RtmpPacket &chunkData);
