@@ -509,7 +509,7 @@ void RtmpProtocol::handle_rtmp() {
 			iOffset += 4;
 		}
 
-		if (chunkData.bodySize == 0 || chunkData.bodySize < chunkData.strBuf.size()) {
+		if (chunkData.bodySize < chunkData.strBuf.size()) {
 			throw std::runtime_error("非法的bodySize");
 		}
 
