@@ -342,7 +342,20 @@ void RtmpSession::onCmd_seek(AMFDecoder &dec) {
 }
 
 void RtmpSession::onSendMedia(const RtmpPacket& pkt) {
-	sendRtmp(pkt.typeId, pkt.streamId, pkt.strBuf, pkt.timeStamp, pkt.chunkId);
+	auto modifiedStamp = pkt.timeStamp;
+	auto &firstStamp = m_aui32FirstStamp[pkt.typeId % 2];
+	if(!firstStamp){
+		firstStamp = modifiedStamp;
+	}
+	if(modifiedStamp >= firstStamp){
+		//计算时间戳增量
+		modifiedStamp -= firstStamp;
+	}else{
+		//发生回环，重新计算时间戳增量
+		CLEAR_ARR(m_aui32FirstStamp);
+		modifiedStamp = 0;
+	}
+	sendRtmp(pkt.typeId, pkt.streamId, pkt.strBuf, modifiedStamp, pkt.chunkId);
 }
 
 } /* namespace Rtmp */

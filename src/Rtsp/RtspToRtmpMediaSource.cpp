@@ -118,20 +118,7 @@ void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
 	m_rtmpPkt.chunkId = CHUNK_MEDIA;
 	m_rtmpPkt.streamId = STREAM_MEDIA;
-
-	if(!m_aui32FirstStamp[0]){
-		//记录首次时间戳
-		m_aui32FirstStamp[0] = frame.timeStamp;
-	}
-	if(frame.timeStamp >= m_aui32FirstStamp[0]){
-		//计算时间戳增量
-		m_rtmpPkt.timeStamp = frame.timeStamp - m_aui32FirstStamp[0];
-	}else{
-		//发生回环，重新计算时间戳增量
-		CLEAR_ARR(m_aui32FirstStamp);
-		m_rtmpPkt.timeStamp = 0;
-	}
-
+	m_rtmpPkt.timeStamp = frame.timeStamp;
 	m_rtmpPkt.typeId = MSG_VIDEO;
 	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
 }
@@ -150,20 +137,7 @@ void RtspToRtmpMediaSource::onGetAdts(const AdtsFrame& frame) {
 	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
 	m_rtmpPkt.chunkId = CHUNK_MEDIA;
 	m_rtmpPkt.streamId = STREAM_MEDIA;
-
-	if(!m_aui32FirstStamp[1]){
-		//记录首次时间戳
-		m_aui32FirstStamp[1] = frame.timeStamp;
-	}
-	if(frame.timeStamp >= m_aui32FirstStamp[1]){
-		//计算时间戳增量
-		m_rtmpPkt.timeStamp = frame.timeStamp - m_aui32FirstStamp[1];
-	}else{
-		//发生回环，重新计算时间戳增量
-		CLEAR_ARR(m_aui32FirstStamp);
-		m_rtmpPkt.timeStamp = 0;
-	}
-
+	m_rtmpPkt.timeStamp = frame.timeStamp;
 	m_rtmpPkt.typeId = MSG_AUDIO;
 	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
 }

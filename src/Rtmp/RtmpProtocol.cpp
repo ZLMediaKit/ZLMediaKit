@@ -210,7 +210,7 @@ void RtmpProtocol::startClientSession(const function<void()> &callBack) {
 	//发送 C0C1
 	char handshake_head = HANDSHAKE_PLAINTEXT;
 	onSendRawData(&handshake_head, 1);
-	RtmpHandshake c1(::time(NULL));
+	RtmpHandshake c1(0);
 	onSendRawData((char *) (&c1), sizeof(c1));
 	m_nextHandle = [this,callBack]() {
 		//等待 S0+S1+S2
@@ -388,7 +388,7 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
 	char handshake_head = HANDSHAKE_PLAINTEXT;
 	onSendRawData(&handshake_head, 1);
 	//S1
-	RtmpHandshake s1(time(NULL));
+	RtmpHandshake s1(0);
 	memcpy(s1.zero,"\x04\x05\x00\x01",4);
 	char *digestPos;
 	if(schemeType == 0){

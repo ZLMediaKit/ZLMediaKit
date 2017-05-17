@@ -46,6 +46,7 @@ private:
 	std::shared_ptr<RtmpMediaSource> m_pPublisherSrc;
 	bool m_bPublisherSrcRegisted = false;
     std::weak_ptr<RtmpMediaSource> m_pPlayerSrc;
+    uint32_t m_aui32FirstStamp[2] = {0};
 
 	void onProcessCmd(AMFDecoder &dec);
 	void onCmd_connect(AMFDecoder &dec);
