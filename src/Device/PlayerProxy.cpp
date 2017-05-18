@@ -31,7 +31,6 @@ void PlayerProxy::play(const char* strUrl, const char *strUser,
 	string strPwdTmp(strPwd);
 
 	m_pPlayer.reset(new MediaPlayer());
-	m_pPlayer->play(strUrl, strUser, strPwd, eType);
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 	m_pPlayer->setOnVideoCB( [weakSelf,strUrlTmp](const H264Frame &data ) {
 		auto strongSelf = weakSelf.lock();
@@ -92,6 +91,7 @@ void PlayerProxy::play(const char* strUrl, const char *strUser,
 			strongSelf->expired();
 		}
 	});
+	m_pPlayer->play(strUrl, strUser, strPwd, eType);
 }
 
 PlayerProxy::~PlayerProxy() {
