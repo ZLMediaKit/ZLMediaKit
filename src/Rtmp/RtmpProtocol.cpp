@@ -522,7 +522,9 @@ void RtmpProtocol::handle_rtmp() {
 		m_strRcvBuf.erase(0, iHeaderLen + iOffset + iMore);
 		if (chunkData.strBuf.size() == chunkData.bodySize) {
 			m_iNowStreamID = chunkData.streamId;
-			handle_rtmpChunk(chunkData);
+			if(chunkData.bodySize){
+				handle_rtmpChunk(chunkData);
+			}
 			chunkData.strBuf.clear();
 		}
 	}
