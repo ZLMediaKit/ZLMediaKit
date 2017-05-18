@@ -56,6 +56,8 @@ private:
 	void onCmd_deleteStream(AMFDecoder &dec);
 
 	void onCmd_play(AMFDecoder &dec);
+	void onCmd_play2(AMFDecoder &dec);
+	void doPlay();
 	void onCmd_seek(AMFDecoder &dec);
 	void onCmd_pause(AMFDecoder &dec);
 	void setMetaData(AMFDecoder &dec);

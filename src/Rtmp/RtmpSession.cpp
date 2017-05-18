@@ -21,6 +21,7 @@ RtmpSession::RtmpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::P
 		g_mapCmd.emplace("publish",&RtmpSession::onCmd_publish);
 		g_mapCmd.emplace("deleteStream",&RtmpSession::onCmd_deleteStream);
 		g_mapCmd.emplace("play",&RtmpSession::onCmd_play);
+		g_mapCmd.emplace("play2",&RtmpSession::onCmd_play2);
 		g_mapCmd.emplace("seek",&RtmpSession::onCmd_seek);
 		g_mapCmd.emplace("pause",&RtmpSession::onCmd_pause);}, []() {});
 	DebugL << getPeerIp();
@@ -136,13 +137,7 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
 	throw std::runtime_error(StrPrinter << "Stop publishing." << endl);
 }
 
-void RtmpSession::onCmd_play(AMFDecoder &dec) {
-	dec.load<AMFValue>();/* NULL */
-	m_strId = dec.load<std::string>();
-	auto iPos = m_strId.find('?');
-	if (iPos != string::npos) {
-		m_strId.erase(iPos);
-	}
+void  RtmpSession::doPlay(){
 	auto src = RtmpMediaSource::find(m_strApp,m_strId,true);
 	bool ok = (src.operator bool());
 	ok = ok && src->ready();
@@ -150,7 +145,7 @@ void RtmpSession::onCmd_play(AMFDecoder &dec) {
 	//stream begin
 	sendUserControl(CONTROL_STREAM_BEGIN, STREAM_MEDIA);
 
-// onStatus(NetStream.Play.Reset)
+	// onStatus(NetStream.Play.Reset)
 	AMFValue status(AMF_OBJECT);
 	status.set("level", ok ? "status" : "error");
 	status.set("code", ok ? "NetStream.Play.Reset" : "NetStream.Play.StreamNotFound");
@@ -162,7 +157,7 @@ void RtmpSession::onCmd_play(AMFDecoder &dec) {
 		throw std::runtime_error( StrPrinter << "No such stream:" << m_strApp << " " << m_strId << endl);
 	}
 
-// onStatus(NetStream.Play.Start)
+	// onStatus(NetStream.Play.Start)
 	status.clear();
 	status.set("level", "status");
 	status.set("code", "NetStream.Play.Start");
@@ -171,7 +166,7 @@ void RtmpSession::onCmd_play(AMFDecoder &dec) {
 	status.set("clientid", "0");
 	sendReply("onStatus", nullptr, status);
 
-// |RtmpSampleAccess(true, true)
+	// |RtmpSampleAccess(true, true)
 	AMFEncoder invoke;
 	invoke << "|RtmpSampleAccess" << true << true;
 	sendResponse(MSG_DATA, invoke.data());
@@ -192,15 +187,15 @@ void RtmpSession::onCmd_play(AMFDecoder &dec) {
 	status.set("clientid", "0");
 	sendReply("onStatus", nullptr, status);
 
-// onMetaData
+	// onMetaData
 	invoke.clear();
 	invoke << "onMetaData" << src->getMetaData();
 	sendResponse(MSG_DATA, invoke.data());
 
 	src->getConfigFrame([&](const RtmpPacket &pkt) {
 		//DebugL<<"send initial frame";
-        onSendMedia(pkt);
-    });
+		onSendMedia(pkt);
+	});
 
 	m_pRingReader = src->getRing()->attach();
 	weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
@@ -224,10 +219,22 @@ void RtmpSession::onCmd_play(AMFDecoder &dec) {
 		}
 		strongSelf->safeShutdown();
 	});
-    m_pPlayerSrc = src;
-    if(src->getRing()->readerCount() == 1){
-        src->seekTo(0);
-    }
+	m_pPlayerSrc = src;
+	if(src->getRing()->readerCount() == 1){
+		src->seekTo(0);
+	}
+}
+void RtmpSession::onCmd_play2(AMFDecoder &dec) {
+	doPlay();
+}
+void RtmpSession::onCmd_play(AMFDecoder &dec) {
+	dec.load<AMFValue>();/* NULL */
+	m_strId = dec.load<std::string>();
+	auto iPos = m_strId.find('?');
+	if (iPos != string::npos) {
+		m_strId.erase(iPos);
+	}
+	doPlay();
 }
 
 void RtmpSession::onCmd_pause(AMFDecoder &dec) {
