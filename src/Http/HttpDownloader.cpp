@@ -25,7 +25,7 @@ HttpDownloader::~HttpDownloader() {
 void HttpDownloader::startDownload(const string& url, const string& filePath,bool bAppend) {
 	_filePath = filePath;
 	if(_filePath.empty()){
-		_filePath = exeDir() + "/HttpDownloader/" + MD5(url).hexdigest();
+		_filePath = exeDir() + "HttpDownloader/" + MD5(url).hexdigest();
 	}
 	_saveFile = File::createfile_file(_filePath.data(),bAppend ? "ab" : "wb");
 	if(!_saveFile){
