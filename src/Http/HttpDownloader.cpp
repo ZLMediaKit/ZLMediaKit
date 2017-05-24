@@ -65,9 +65,20 @@ void HttpDownloader::onResponseBody(const char* buf, size_t size, size_t recvedS
 		fwrite(buf,size,1,_saveFile);
 	}
 }
-
+//string getMd5Sum(const string &filePath){
+//	auto fp = File::createfile_file(filePath.data(),"rb");
+//	fseek(fp,0,SEEK_END);
+//	auto sz = ftell(fp);
+//	char tmp[sz];
+//	fseek(fp,0,SEEK_SET);
+//	auto rd = fread(tmp,1,sz,fp);
+//	InfoL << sz << " " << rd;
+//	fclose(fp);
+//	return MD5(string(tmp,sz)).hexdigest();
+//}
 void HttpDownloader::onResponseCompleted() {
 	closeFile();
+	//InfoL << "md5Sum:" << getMd5Sum(_filePath);
 	_bDownloadSuccess = true;
 	if(_onResult){
 		_onResult(Err_success,"success",_filePath.data());
@@ -88,6 +99,7 @@ void HttpDownloader::onDisconnect(const SockException &ex) {
 
 void HttpDownloader::closeFile() {
 	if(_saveFile){
+		fflush(_saveFile);
 		fclose(_saveFile);
 		_saveFile = nullptr;
 	}

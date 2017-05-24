@@ -20,7 +20,7 @@ public:
 	HttpDownloader();
 	virtual ~HttpDownloader();
 	//开始下载文件,默认断点续传方式下载
-	void startDownload(const string &url,const string &filePath = "",bool bAppend = true);
+	void startDownload(const string &url,const string &filePath = "",bool bAppend = false);
 	void startDownload(const string &url,const onDownloadResult &cb){
 		setOnResult(cb);
 		startDownload(url);
