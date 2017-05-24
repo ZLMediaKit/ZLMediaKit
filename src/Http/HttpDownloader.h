@@ -38,6 +38,7 @@ private:
 	FILE *_saveFile = nullptr;
 	string _filePath;
 	onDownloadResult _onResult;
+	bool _bDownloadSuccess = false;
 };
 
 } /* namespace Http */

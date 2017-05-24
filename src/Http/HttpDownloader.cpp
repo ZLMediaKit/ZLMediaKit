@@ -32,6 +32,7 @@ void HttpDownloader::startDownload(const string& url, const string& filePath,boo
 		auto strErr = StrPrinter << "打开文件失败:" << filePath << endl;
 		throw std::runtime_error(strErr);
 	}
+	_bDownloadSuccess = false;
 	if(bAppend){
 		auto currentLen = ftell(_saveFile);
 		if(currentLen){
@@ -67,6 +68,7 @@ void HttpDownloader::onResponseBody(const char* buf, size_t size, size_t recvedS
 
 void HttpDownloader::onResponseCompleted() {
 	closeFile();
+	_bDownloadSuccess = true;
 	if(_onResult){
 		_onResult(Err_success,"success",_filePath.data());
 		_onResult = nullptr;
@@ -75,6 +77,9 @@ void HttpDownloader::onResponseCompleted() {
 
 void HttpDownloader::onDisconnect(const SockException &ex) {
 	closeFile();
+	if(!_bDownloadSuccess){
+		File::delete_file(_filePath.data());
+	}
 	if(_onResult){
 		_onResult(ex.getErrCode(),ex.what(),_filePath.data());
 		_onResult = nullptr;
