@@ -27,10 +27,19 @@ void HttpClientImp::sendRequest(const string& url) {
 #else
 		_sslBox.reset(new SSL_Box(false));
 		_sslBox->setOnDecData([this](const char *data, uint32_t len){
+#ifdef ANDROID
+			public_onRecvBytes(data,len);
+#else//ANDROID
 			HttpClient::onRecvBytes(data,len);
+#endif//ANDROID
 		});
 		_sslBox->setOnEncData([this](const char *data, uint32_t len){
+
+#ifdef ANDROID
+			public_send(data,len);
+#else//ANDROID
 			HttpClient::send(data,len);
+#endif//ANDROID
 		});
 #endif //ENABLE_OPENSSL
 

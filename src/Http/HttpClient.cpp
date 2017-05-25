@@ -55,7 +55,7 @@ void HttpClient::sendRequest(const string &strUrl){
     _header.emplace(string("User-Agent"),"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36");
     
     if(!_body.empty()){
-        _header.emplace(string("Content-Length"),std::to_string(_body.size()));
+        _header.emplace(string("Content-Length"),to_string(_body.size()));
         _header.emplace(string("Content-Type"),"application/x-www-form-urlencoded; charset=UTF-8");
     }
 
