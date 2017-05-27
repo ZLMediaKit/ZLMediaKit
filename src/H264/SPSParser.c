@@ -634,7 +634,7 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
         if (ptSps->iNumReorderFrames > 16U
             /* max_dec_frame_buffering || max_dec_frame_buffering > 16 */)
         {
-			RPT(RPT_ERR, "Clipping illegal iNumReorderFrames %d\n",
+			RPT(RPT_DBG, "Clipping illegal iNumReorderFrames %d\n",
                    ptSps->iNumReorderFrames);
             ptSps->iNumReorderFrames = 16;
             return -1;
