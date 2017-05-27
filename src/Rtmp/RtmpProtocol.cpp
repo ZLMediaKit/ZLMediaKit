@@ -487,6 +487,7 @@ void RtmpProtocol::handle_rtmp() {
 		chunkData.chunkId = m_iNowChunkID;
 		switch (iHeaderLen) {
 		case 12:
+            chunkData.hasAbsStamp = true;
 			chunkData.streamId = load_le32(header.streamId);
 		case 8:
 			chunkData.bodySize = load_be24(header.bodySize);
@@ -519,7 +520,8 @@ void RtmpProtocol::handle_rtmp() {
         
 		if (chunkData.strBuf.size() == chunkData.bodySize) {
             //frame is ready
-            chunkData.timeStamp = chunkData.deltaStamp + (iHeaderLen == 12 ? 0 : chunkData.timeStamp);
+            chunkData.timeStamp = chunkData.deltaStamp + (chunkData.hasAbsStamp ? 0 : chunkData.timeStamp);
+            chunkData.hasAbsStamp = false;
 			m_iNowStreamID = chunkData.streamId;
 			if(chunkData.bodySize){
 				handle_rtmpChunk(chunkData);
