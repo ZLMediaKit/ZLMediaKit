@@ -82,7 +82,7 @@ void RtspToRtmpMediaSource::makeVideoConfigPkt() {
 	m_rtmpPkt.strBuf.append(m_pps);
 
 	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
-	m_rtmpPkt.chunkId = CHUNK_MEDIA;
+	m_rtmpPkt.chunkId = CHUNK_VIDEO;
 	m_rtmpPkt.streamId = STREAM_MEDIA;
 	m_rtmpPkt.timeStamp = 0;
 	m_rtmpPkt.typeId = MSG_VIDEO;
@@ -116,7 +116,7 @@ void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 	m_rtmpPkt.strBuf.append(&frame.data[4], frame.data.size() - 4);
 
 	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
-	m_rtmpPkt.chunkId = CHUNK_MEDIA;
+	m_rtmpPkt.chunkId = CHUNK_VIDEO;
 	m_rtmpPkt.streamId = STREAM_MEDIA;
 	m_rtmpPkt.timeStamp = frame.timeStamp;
 	m_rtmpPkt.typeId = MSG_VIDEO;
@@ -135,7 +135,7 @@ void RtspToRtmpMediaSource::onGetAdts(const AdtsFrame& frame) {
 	m_rtmpPkt.strBuf.append((char *) frame.data + 7, frame.aac_frame_length - 7);
 
 	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
-	m_rtmpPkt.chunkId = CHUNK_MEDIA;
+	m_rtmpPkt.chunkId = CHUNK_AUDIO;
 	m_rtmpPkt.streamId = STREAM_MEDIA;
 	m_rtmpPkt.timeStamp = frame.timeStamp;
 	m_rtmpPkt.typeId = MSG_AUDIO;
@@ -175,7 +175,7 @@ void RtspToRtmpMediaSource::makeAudioConfigPkt() {
 	m_rtmpPkt.strBuf.append(m_pParser->getAudioCfg());
 
 	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
-	m_rtmpPkt.chunkId = CHUNK_MEDIA;
+	m_rtmpPkt.chunkId = CHUNK_AUDIO;
 	m_rtmpPkt.streamId = STREAM_MEDIA;
 	m_rtmpPkt.timeStamp = 0;
 	m_rtmpPkt.typeId = MSG_AUDIO;

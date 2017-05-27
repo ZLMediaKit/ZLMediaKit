@@ -126,13 +126,16 @@ inline void RtmpPlayer::send_connect() {
 	AMFValue obj(AMF_OBJECT);
 	obj.set("app", m_strApp);
 	obj.set("tcUrl", m_strTcUrl);
+	//未使用代理
 	obj.set("fpad", false);
+	//参考librtmp,什么作用?
 	obj.set("capabilities", 15);
+	//SUPPORT_VID_CLIENT_SEEK 支持seek
 	obj.set("videoFunction", 1);
     //只支持aac
-    obj.set("audioCodecs", 3191);
+    obj.set("audioCodecs", (double)(0x0400));
     //只支持H264
-    obj.set("videoCodecs", 252);
+    obj.set("videoCodecs", (double)(0x0080));
 	sendInvoke("connect", obj);
 	addOnResultCB([this](AMFDecoder &dec){
 		//TraceL << "connect result";

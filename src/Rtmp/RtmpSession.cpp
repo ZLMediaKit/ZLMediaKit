@@ -81,17 +81,13 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
 	m_strApp = params["app"].as_string();
 	bool ok = true; //(app == APP_NAME);
 	AMFValue version(AMF_OBJECT);
-	version.set("fmsVer", "ZLMediaKit");
-	version.set("capabilities", 255.0);
-	version.set("mode", 1.0);
+	version.set("fmsVer", "FMS/3,0,1,123");
+	version.set("capabilities", 31.0);
 	AMFValue status(AMF_OBJECT);
 	status.set("level", ok ? "status" : "error");
 	status.set("code", ok ? "NetConnection.Connect.Success" : "NetConnection.Connect.InvalidApp");
 	status.set("description", ok ? "Connection succeeded." : "InvalidApp.");
 	status.set("objectEncoding", amfVer);
-	AMFValue data(AMF_ECMA_ARRAY);
-	data.set("version","0.0.0.1");
-	status.set("data", data);
 	sendReply(ok ? "_result" : "_error", version, status);
 	if (!ok) {
 		throw std::runtime_error("Unsupported application: " + m_strApp);
