@@ -17,15 +17,15 @@ using namespace ZL::Util;
 #include <openssl/hmac.h>
 static string openssl_HMACsha256(const void *key,unsigned int key_len,
 								 const void *data,unsigned int data_len){
-	char out[48];
+	std::shared_ptr<char> out(new char[32],[](char *ptr){delete [] ptr;});
 	unsigned int out_len;
 	HMAC_CTX ctx;
 	HMAC_CTX_init(&ctx);
 	HMAC_Init_ex(&ctx, key, key_len, EVP_sha256(), NULL);
 	HMAC_Update(&ctx, (unsigned char*)data, data_len);
-	HMAC_Final(&ctx, (unsigned char *)out, &out_len);
+	HMAC_Final(&ctx, (unsigned char *)out.get(), &out_len);
 	HMAC_CTX_cleanup(&ctx);
-	return string(out,out_len);
+	return string(out.get(),out_len);
 }
 #endif //ENABLE_OPENSSL
 
