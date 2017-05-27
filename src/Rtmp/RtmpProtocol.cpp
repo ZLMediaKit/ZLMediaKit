@@ -450,6 +450,10 @@ void RtmpProtocol::handle_rtmp() {
 		static const size_t HEADER_LENGTH[] = { 12, 8, 4, 1 };
 		size_t iHeaderLen = HEADER_LENGTH[flags >> 6];
 		m_iNowChunkID = flags & 0x3f;
+        if(m_iNowChunkID >10){
+            int i=0;
+            i++;
+        }
 		switch (m_iNowChunkID) {
 		case 0: {
 			//0 值表示二字节形式，并且 ID 范围 64 - 319
@@ -494,14 +498,15 @@ void RtmpProtocol::handle_rtmp() {
 			chunkData.typeId = header.typeId;
 		case 4:
 			chunkData.deltaStamp = load_be24(header.timeStamp);
+            chunkData.hasExtStamp = chunkData.deltaStamp == 0xFFFFFF;
 		}
 		
-        if (chunkData.deltaStamp == 0xFFFFFF) {
+        if (chunkData.hasExtStamp) {
 			if (m_strRcvBuf.size() < iHeaderLen + iOffset + 4) {
 				//need more data
 				return;
 			}
-			chunkData.deltaStamp = load_be32( m_strRcvBuf.data() + iOffset + iHeaderLen);
+            chunkData.deltaStamp = load_be32(m_strRcvBuf.data() + iOffset + iHeaderLen);
 			iOffset += 4;
 		}
 		
@@ -520,13 +525,16 @@ void RtmpProtocol::handle_rtmp() {
         
 		if (chunkData.strBuf.size() == chunkData.bodySize) {
             //frame is ready
+            m_iNowStreamID = chunkData.streamId;
             chunkData.timeStamp = chunkData.deltaStamp + (chunkData.hasAbsStamp ? 0 : chunkData.timeStamp);
-            chunkData.hasAbsStamp = false;
-			m_iNowStreamID = chunkData.streamId;
+            
 			if(chunkData.bodySize){
 				handle_rtmpChunk(chunkData);
 			}
 			chunkData.strBuf.clear();
+            chunkData.hasAbsStamp = false;
+            chunkData.hasExtStamp = false;
+            chunkData.deltaStamp = 0;
 		}
 	}
 }

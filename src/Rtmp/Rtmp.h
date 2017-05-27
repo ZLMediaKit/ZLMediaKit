@@ -95,6 +95,7 @@ public:
     uint32_t bodySize = 0;
     uint32_t timeStamp = 0;
     bool hasAbsStamp = false;
+    bool hasExtStamp = false;
     uint32_t deltaStamp = 0;
     uint32_t streamId;
     uint32_t chunkId;
