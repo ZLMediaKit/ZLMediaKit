@@ -492,35 +492,34 @@ void RtmpProtocol::handle_rtmp() {
 			chunkData.bodySize = load_be24(header.bodySize);
 			chunkData.typeId = header.typeId;
 		case 4:
-			uint32_t ts = load_be24(header.timeStamp);
-			if (ts == 0xFFFFFF) {
-				chunkData.extStamp = true;
-			}else{
-				chunkData.extStamp = false;
-				chunkData.timeStamp = ts + ((iHeaderLen == 12) ? 0 : chunkData.timeStamp);
-			}
+			chunkData.deltaStamp = load_be24(header.timeStamp);
 		}
-		if (chunkData.extStamp) {
+		
+        if (chunkData.deltaStamp == 0xFFFFFF) {
 			if (m_strRcvBuf.size() < iHeaderLen + iOffset + 4) {
 				//need more data
 				return;
 			}
-			chunkData.timeStamp = load_be32( m_strRcvBuf.data() + iOffset + iHeaderLen);
+			chunkData.deltaStamp = load_be32( m_strRcvBuf.data() + iOffset + iHeaderLen);
 			iOffset += 4;
 		}
-
-		if (chunkData.bodySize < chunkData.strBuf.size()) {
+		
+        if (chunkData.bodySize < chunkData.strBuf.size()) {
 			throw std::runtime_error("非法的bodySize");
 		}
-
+        
 		auto iMore = min(m_iChunkLenIn, chunkData.bodySize - chunkData.strBuf.size());
 		if (m_strRcvBuf.size() < iHeaderLen + iOffset + iMore) {
 			//need more data
 			return;
 		}
-		chunkData.strBuf.append(m_strRcvBuf, iHeaderLen + iOffset, iMore);
+		
+        chunkData.strBuf.append(m_strRcvBuf, iHeaderLen + iOffset, iMore);
 		m_strRcvBuf.erase(0, iHeaderLen + iOffset + iMore);
+        
 		if (chunkData.strBuf.size() == chunkData.bodySize) {
+            //frame is ready
+            chunkData.timeStamp = chunkData.deltaStamp + (iHeaderLen == 12 ? 0 : chunkData.timeStamp);
 			m_iNowStreamID = chunkData.streamId;
 			if(chunkData.bodySize){
 				handle_rtmpChunk(chunkData);

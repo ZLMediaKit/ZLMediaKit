@@ -93,7 +93,7 @@ public:
     uint8_t typeId;
     uint32_t bodySize = 0;
     uint32_t timeStamp = 0;
-    bool extStamp = false;
+    uint32_t deltaStamp = 0;
     uint32_t streamId;
     uint32_t chunkId;
     std::string strBuf;
