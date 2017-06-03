@@ -3,6 +3,10 @@
 #include "Util/onceToken.h"
 #include "Network/sockutil.h"
 
+#ifndef UINT64_MAX
+#define UINT64_MAX 0xFFFFFFFFFFFFFFFF
+#endif//UINT64_MAX
+
 using namespace ZL::Network;
 
 namespace Config {

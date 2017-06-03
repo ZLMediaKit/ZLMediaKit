@@ -94,12 +94,12 @@ add_compile_options(-Wno-deprecated-declarations)
 add_compile_options(-Wno-predefined-identifier-outside-function)
 
 #编译动态库
-if(NOT IOS)
+if(NOT IOS AND NOT ANDROID)
 add_library(${CMAKE_PROJECT_NAME}_shared SHARED ${SRC_LIST})
 set_target_properties(${CMAKE_PROJECT_NAME}_shared PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
 install(TARGETS ${CMAKE_PROJECT_NAME}_shared LIBRARY DESTINATION lib)
 target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${LINK_LIB_LIST})
-endif(NOT IOS)
+endif()
 
 #编译静态库
 add_library(${CMAKE_PROJECT_NAME}_static STATIC ${SRC_LIST})

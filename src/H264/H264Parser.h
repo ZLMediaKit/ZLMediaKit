@@ -13,9 +13,11 @@
 #include <string>
 #include "h264_poc.h"
 #include "h264_parser.h"
-
 using namespace std;
 
+#ifndef INT32_MAX
+#define INT32_MAX 0x7FFFFFFF
+#endif//INT32_MAX
 
 class H264Parser{
 public:

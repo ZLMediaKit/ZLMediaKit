@@ -62,7 +62,7 @@ int main(int argc,char *argv[]){
 		 //http://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 		 //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 		 //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
-		 PlayerProxy::Ptr player(new PlayerProxy("live",std::to_string(i++).data()));
+		 PlayerProxy::Ptr player(new PlayerProxy("live",to_string(i++).data()));
 		 player->play(url);
 		 proxyMap.emplace(string(url),player);
 	 }
