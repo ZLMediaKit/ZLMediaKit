@@ -133,22 +133,22 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 	//just support H264+AAC
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
 			"rtsp://184.72.239.149/vod/mp4://BigBuckBunny_175k.mov"};
-	 map<string , PlayerProxy::Ptr> proxyMap;
-	 int i=0;
-	 for(auto url : urlList){
-		 //PlayerProxy构造函数前两个参数分别为应用名（app）,流id（streamId）
-		 //比如说应用为live，流id为0，那么直播地址为：
-		 //http://127.0.0.1/live/0/hls.m3u8
-		 //rtsp://127.0.0.1/live/0
-		 //rtmp://127.0.0.1/live/0
-		 //录像地址为：
-		 //http://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
-		 //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
-		 //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
-		 PlayerProxy::Ptr player(new PlayerProxy("live",to_string(i++).data()));
-		 player->play(url);
-		 proxyMap.emplace(string(url),player);
-	 }
+	map<string , PlayerProxy::Ptr> proxyMap;
+	int i=0;
+	for(auto url : urlList){
+		//PlayerProxy构造函数前两个参数分别为应用名（app）,流id（streamId）
+		//比如说应用为live，流id为0，那么直播地址为：
+		//http://127.0.0.1/live/0/hls.m3u8
+		//rtsp://127.0.0.1/live/0
+		//rtmp://127.0.0.1/live/0
+		//录像地址为：
+		//http://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
+		//rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
+		//rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
+		PlayerProxy::Ptr player(new PlayerProxy("live",to_string(i++).data()));
+		player->play(url);
+		proxyMap.emplace(string(url),player);
+	}
 	```
 ## QA
 - 为什么VLC播放一段时间就停止了？
@@ -167,7 +167,7 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 				m_bListenPeerUdpPort = false;
 			}
 		}
-       		/*if (m_rtpType != PlayerBase::RTP_TCP && m_ticker.elapsedTime() > 15 * 1000) {
+		/*if (m_rtpType != PlayerBase::RTP_TCP && m_ticker.elapsedTime() > 15 * 1000) {
 			WarnL << "RTSP会话超时:" << getPeerIp();
 			shutdown();
 			return;
