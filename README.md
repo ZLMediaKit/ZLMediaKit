@@ -117,10 +117,10 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 	player->setOnShutdown([](const SockException &ex) {
 		ErrorL << "OnShutdown:" << ex.what();
 	});
-        player->setOnVideoCB([&](const H264Frame &frame){
+	player->setOnVideoCB([&](const H264Frame &frame){
 		//在这里解码H264并显示
 	});
-        player->setOnAudioCB([&](const AdtsFrame &frame){
+	player->setOnAudioCB([&](const AdtsFrame &frame){
 		//在这里解码AAC并播放
 	});
 	//支持rtmp、rtsp
@@ -182,9 +182,9 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 	cd ZLToolKit
 	mkdir -p build
 	cd build -DENABLE_ASNC_TCP_CLIENT
-    	cmake ..
-    	make -j4
-    	sudo make install
+	cmake ..
+	make -j4
+	sudo make install
 	```
 
 - github下载太慢了，有其他下载方式吗？
