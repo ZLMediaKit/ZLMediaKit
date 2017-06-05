@@ -95,7 +95,7 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
   ```
 ## 使用方法
 - 作为服务器：
-```
+	```
 	TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
 	TcpServer<RtmpSession>::Ptr rtmpSrv(new TcpServer<RtmpSession>());
 	TcpServer<HttpSession>::Ptr httpSrv(new TcpServer<HttpSession>());
@@ -105,12 +105,12 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 	rtmpSrv->start(mINI::Instance()[Config::Rtmp::kPort]);
 	httpSrv->start(mINI::Instance()[Config::Http::kPort]);
         httpsSrv->start(mINI::Instance()[Config::Http::kSSLPort]);
-        EventPoller::Instance().runLoop();
-```
+	EventPoller::Instance().runLoop();
+	```
 
 - 作为播放器：
-```
-        MediaPlayer::Ptr player(new MediaPlayer());
+	```
+	MediaPlayer::Ptr player(new MediaPlayer());
 	player->setOnPlayResult([](const SockException &ex) {
 		InfoL << "OnPlayResult:" << ex.what();
 	});
@@ -123,13 +123,13 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
         player->setOnAudioCB([&](const AdtsFrame &frame){
 		//在这里解码AAC并播放
 	});
-        //支持rtmp、rtsp
+	//支持rtmp、rtsp
 	player->play("rtsp://192.168.0.122/","admin","123456",PlayerBase::RTP_TCP);
 	EventPoller::Instance().runLoop();
-```
+	```
 - 作为代理服务器：
-```
-        //support rtmp and rtsp url
+	```
+	//support rtmp and rtsp url
 	//just support H264+AAC
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
 			"rtsp://184.72.239.149/vod/mp4://BigBuckBunny_175k.mov"};
@@ -149,13 +149,12 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 		 player->play(url);
 		 proxyMap.emplace(string(url),player);
 	 }
-```
+	```
 ## QA
 - 为什么VLC播放一段时间就停止了？
     
     由于ZLMediaKit在实现RTSP协议时，采用OPTIONS命令作为心跳包（在RTP over UDP时有效），如果播放器不持续发送OPTIONS指令，那么ZLMediaKit会断开连接。如果你要用第三方播放器测试，你可以改RTP over TCP方式或者修改ZLMediaKit的源码，修改位置位置为src/Rtsp/RtspSession.cpp RtspSession::onManager函数,修改成如下所示：
-
-```
+	```
   	void RtspSession::onManager() {
 		if (m_ticker.createdTime() > 10 * 1000) {
 			if (m_strSession.size() == 0) {
@@ -174,20 +173,19 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 			return;
  		/*}
   	}
-```
+	```
 - 怎么测试服务器性能？
     
     ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。由于ZLToolKit默认关闭了tcp客户端多线程的支持，如果需要提高测试并发量，需要在编译ZLToolKit时启用ENABLE_ASNC_TCP_CLIENT宏，具体操作如下：
-	
-```
-    #编译ZLToolKit
-    cd ZLToolKit
-    mkdir -p build
-    cd build -DENABLE_ASNC_TCP_CLIENT
-    cmake ..
-    make -j4
-    sudo make install
-```
+	```
+	#编译ZLToolKit
+	cd ZLToolKit
+	mkdir -p build
+	cd build -DENABLE_ASNC_TCP_CLIENT
+    	cmake ..
+    	make -j4
+    	sudo make install
+	```
 
 - github下载太慢了，有其他下载方式吗？
     
