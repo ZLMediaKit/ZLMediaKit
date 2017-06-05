@@ -150,8 +150,8 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 		 proxyMap.emplace(string(url),player);
 	 }
 ```
-## 为什么VLC播放一段时间就停止了？
-
+## QA
+- 为什么VLC播放一段时间就停止了？
 由于ZLMediaKit在实现RTSP协议时，采用OPTIONS命令作为心跳包（在RTP over UDP时有效），如果播放器不持续发送OPTIONS指令，那么ZLMediaKit会断开连接。如果你要用第三方播放器测试，你可以改RTP over TCP方式或者修改ZLMediaKit的源码，修改位置位置为src/Rtsp/RtspSession.cpp RtspSession::onManager函数,修改成如下所示：
 
 ```
@@ -174,7 +174,7 @@ void RtspSession::onManager() {
  	/*}
 }
 ```
-## 怎么测试服务器性能？
+- 怎么测试服务器性能？
 
 ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。由于ZLToolKit默认关闭了tcp客户端多线程的支持，如果需要提高测试并发量，需要在编译ZLToolKit时启用ENABLE_ASNC_TCP_CLIENT宏，具体操作如下：
 	
@@ -188,7 +188,7 @@ ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。�
     sudo make install
 ```
 
-## github下载太慢了，有其他下载方式吗？
+- github下载太慢了，有其他下载方式吗？
 
   你可以在通过开源中国获取最新的代码，地址为：
   
