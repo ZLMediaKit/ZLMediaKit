@@ -93,7 +93,110 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
   export ANDROID_NDK_ROOT=/path/to/ndk
   ./build_for_android.sh
   ```
+## 使用方法
+- 作为服务器：
+```
+	TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
+	TcpServer<RtmpSession>::Ptr rtmpSrv(new TcpServer<RtmpSession>());
+	TcpServer<HttpSession>::Ptr httpSrv(new TcpServer<HttpSession>());
+        TcpServer<HttpsSession>::Ptr httpsSrv(new TcpServer<HttpsSession>());
+	
+	rtspSrv->start(mINI::Instance()[Config::Rtsp::kPort]);
+	rtmpSrv->start(mINI::Instance()[Config::Rtmp::kPort]);
+	httpSrv->start(mINI::Instance()[Config::Http::kPort]);
+        httpsSrv->start(mINI::Instance()[Config::Http::kSSLPort]);
+        EventPoller::Instance().runLoop();
+```
+
+- 作为播放器：
+```
+        MediaPlayer::Ptr player(new MediaPlayer());
+	player->setOnPlayResult([](const SockException &ex) {
+		InfoL << "OnPlayResult:" << ex.what();
+	});
+	player->setOnShutdown([](const SockException &ex) {
+		ErrorL << "OnShutdown:" << ex.what();
+	});
+        player->setOnVideoCB([&](const H264Frame &frame){
+		//在这里解码H264并显示
+	});
+        player->setOnAudioCB([&](const AdtsFrame &frame){
+		//在这里解码AAC并播放
+	});
+        //支持rtmp、rtsp
+	player->play("rtsp://192.168.0.122/","admin","123456",(PlayerBase::eRtpType)atoi(argv[4]));
+	EventPoller::Instance().runLoop();
+```
+- 作为代理服务器：
+```
+        //support rtmp and rtsp url
+	//just support H264+AAC
+	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
+			"rtsp://184.72.239.149/vod/mp4://BigBuckBunny_175k.mov"};
+	 map<string , PlayerProxy::Ptr> proxyMap;
+	 int i=0;
+	 for(auto url : urlList){
+		 //PlayerProxy构造函数前两个参数分别为应用名（app）,流id（streamId）
+		 //比如说应用为live，流id为0，那么直播地址为：
+		 //http://127.0.0.1/live/0/hls.m3u8
+		 //rtsp://127.0.0.1/live/0
+		 //rtmp://127.0.0.1/live/0
+		 //录像地址为：
+		 //http://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
+		 //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
+		 //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
+		 PlayerProxy::Ptr player(new PlayerProxy("live",to_string(i++).data()));
+		 player->play(url);
+		 proxyMap.emplace(string(url),player);
+	 }
+```
+## 为什么VLC播放一段时间就停止了？
+
+由于ZLMediaKit在实现RTSP协议时，采用OPTIONS命令作为心跳包（在RTP over UDP时有效），如果播放器不持续发送OPTIONS指令，那么ZLMediaKit    会断开连接。如果你要用第三方播放器测试，你可以改RTP over TCP方式或者修改ZLMediaKit的源码，修改位置位置为src/Rtsp/RtspSession.cpp RtspSession::onManager函数,修改成如下所示：
+
+```
+void RtspSession::onManager() {
+	if (m_ticker.createdTime() > 10 * 1000) {
+		if (m_strSession.size() == 0) {
+			WarnL << "非法链接:" << getPeerIp();
+			shutdown();
+			return;
+		}
+		if (m_bListenPeerUdpPort) {
+			UDPServer::Instance().stopListenPeer(getPeerIp().data(), this);
+			m_bListenPeerUdpPort = false;
+		}
+	}
+       /*if (m_rtpType != PlayerBase::RTP_TCP && m_ticker.elapsedTime() > 15 * 1000) {
+		WarnL << "RTSP会话超时:" << getPeerIp();
+		shutdown();
+		return;
+ 	/*}
+}
+```
+## 怎么测试服务器性能？
+
+ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。由于ZLTookKit默认关闭了tcp客户端多线程的支持，如果需要提高测试并发量，需要在编译ZLToolKit时启用ENABLE_ASNC_TCP_CLIENT宏，具体操作如下：
+	
+```
+    #编译ZLToolKit
+    cd ZLToolKit
+    mkdir -p build
+    cd build -DENABLE_ASNC_TCP_CLIENT
+    cmake ..
+    make -j4
+    sudo make install
+```
+
+## github下载太慢了，有其他下载方式吗？
+
+  你可以在通过开源中国获取最新的代码，地址为：
   
+  [ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
+  
+  [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
+
+
 ## 联系方式
 - 邮箱：<771730766@qq.com>
 - QQ群：542509000
