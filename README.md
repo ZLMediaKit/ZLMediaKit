@@ -152,31 +152,32 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 ```
 ## QA
 - 为什么VLC播放一段时间就停止了？
-由于ZLMediaKit在实现RTSP协议时，采用OPTIONS命令作为心跳包（在RTP over UDP时有效），如果播放器不持续发送OPTIONS指令，那么ZLMediaKit会断开连接。如果你要用第三方播放器测试，你可以改RTP over TCP方式或者修改ZLMediaKit的源码，修改位置位置为src/Rtsp/RtspSession.cpp RtspSession::onManager函数,修改成如下所示：
+    
+    由于ZLMediaKit在实现RTSP协议时，采用OPTIONS命令作为心跳包（在RTP over UDP时有效），如果播放器不持续发送OPTIONS指令，那么ZLMediaKit会断开连接。如果你要用第三方播放器测试，你可以改RTP over TCP方式或者修改ZLMediaKit的源码，修改位置位置为src/Rtsp/RtspSession.cpp RtspSession::onManager函数,修改成如下所示：
 
 ```
-void RtspSession::onManager() {
-	if (m_ticker.createdTime() > 10 * 1000) {
-		if (m_strSession.size() == 0) {
-			WarnL << "非法链接:" << getPeerIp();
+  	void RtspSession::onManager() {
+		if (m_ticker.createdTime() > 10 * 1000) {
+			if (m_strSession.size() == 0) {
+				WarnL << "非法链接:" << getPeerIp();
+				shutdown();
+				return;
+			}
+			if (m_bListenPeerUdpPort) {
+				UDPServer::Instance().stopListenPeer(getPeerIp().data(), this);
+				m_bListenPeerUdpPort = false;
+			}
+		}
+       		/*if (m_rtpType != PlayerBase::RTP_TCP && m_ticker.elapsedTime() > 15 * 1000) {
+			WarnL << "RTSP会话超时:" << getPeerIp();
 			shutdown();
 			return;
-		}
-		if (m_bListenPeerUdpPort) {
-			UDPServer::Instance().stopListenPeer(getPeerIp().data(), this);
-			m_bListenPeerUdpPort = false;
-		}
-	}
-       /*if (m_rtpType != PlayerBase::RTP_TCP && m_ticker.elapsedTime() > 15 * 1000) {
-		WarnL << "RTSP会话超时:" << getPeerIp();
-		shutdown();
-		return;
- 	/*}
-}
+ 		/*}
+  	}
 ```
 - 怎么测试服务器性能？
-
-ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。由于ZLToolKit默认关闭了tcp客户端多线程的支持，如果需要提高测试并发量，需要在编译ZLToolKit时启用ENABLE_ASNC_TCP_CLIENT宏，具体操作如下：
+    
+    ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。由于ZLToolKit默认关闭了tcp客户端多线程的支持，如果需要提高测试并发量，需要在编译ZLToolKit时启用ENABLE_ASNC_TCP_CLIENT宏，具体操作如下：
 	
 ```
     #编译ZLToolKit
@@ -189,12 +190,12 @@ ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。�
 ```
 
 - github下载太慢了，有其他下载方式吗？
-
-  你可以在通过开源中国获取最新的代码，地址为：
+    
+    你可以在通过开源中国获取最新的代码，地址为：
+ 
+    [ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
   
-  [ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
-  
-  [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
+    [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
 
 
 ## 联系方式
