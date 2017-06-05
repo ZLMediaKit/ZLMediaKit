@@ -124,7 +124,7 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 		//在这里解码AAC并播放
 	});
         //支持rtmp、rtsp
-	player->play("rtsp://192.168.0.122/","admin","123456",(PlayerBase::eRtpType)atoi(argv[4]));
+	player->play("rtsp://192.168.0.122/","admin","123456",PlayerBase::RTP_TCP);
 	EventPoller::Instance().runLoop();
 ```
 - 作为代理服务器：
