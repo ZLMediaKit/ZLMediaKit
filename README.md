@@ -150,6 +150,28 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 		proxyMap.emplace(string(url),player);
 	}
 	```
+	
+- 作为推流客户端器：
+	```
+	PlayerProxy::Ptr player(new PlayerProxy("app","stream"));
+	//拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
+	//你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请研读MediaReader代码）
+	player->play("rtmp://live.hkstv.hk.lxdns.com/live/hks");
+
+	RtmpPusher::Ptr pusher;
+	//监听RtmpMediaSource注册事件,在PlayerProxy播放成功后触发。
+	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastRtmpSrcRegisted,
+			[&pusher](BroadcastRtmpSrcRegistedArgs){
+		//媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
+		const_cast<RtmpPusher::Ptr &>(pusher).reset(new RtmpPusher(app,stream));
+
+		//推流地址，请改成你自己的服务器。
+		//这个范例地址（也是基于mediakit）是可用的，但是带宽只有1mb，访问可能很卡顿。
+		pusher->publish("rtmp://jizan.iok.la/live/test");
+	});
+
+	EventPoller::Instance().runLoop();
+	```
 ## QA
 - 为什么VLC播放一段时间就停止了？
     
