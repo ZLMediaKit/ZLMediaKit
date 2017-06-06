@@ -18,11 +18,20 @@ namespace Rtmp {
 class RtmpPusher: public RtmpProtocol , public TcpClient{
 public:
 	typedef std::shared_ptr<RtmpPusher> Ptr;
+	typedef std::function<void(const SockException &ex)> Event;
 	RtmpPusher(const char *strApp,const char *strStream);
 	virtual ~RtmpPusher();
 
 	void publish(const char* strUrl);
 	void teardown();
+
+	void setOnPublished(Event onPublished) {
+		m_onPublished = onPublished;
+	}
+
+	void setOnShutdown(Event onShutdown) {
+		m_onShutdown = onShutdown;
+	}
 
 protected:
 
@@ -36,19 +45,18 @@ protected:
 	void onSendRawData(const char *pcRawData, int iSize) override {
 		send(pcRawData, iSize);
 	}
-
-	virtual void onShutdown(const SockException &ex){}
-	virtual void onPlayResult(const SockException &ex) {}
 private:
-	void _onShutdown(const SockException &ex) {
-		WarnL << ex.getErrCode() << " " << ex.what();
-		m_pPlayTimer.reset();
-		onShutdown(ex);
+	void onShutdown(const SockException &ex) {
+		m_pPublishTimer.reset();
+		if(m_onShutdown){
+			m_onShutdown(ex);
+		}
 	}
-	void _onPlayResult(const SockException &ex) {
-		WarnL << ex.getErrCode() << " " << ex.what();
-		m_pPlayTimer.reset();
-		onPlayResult(ex);
+	void onPublishResult(const SockException &ex) {
+		m_pPublishTimer.reset();
+		if(m_onPublished){
+			m_onPublished(ex);
+		}
 	}
 
 	template<typename FUN>
@@ -84,11 +92,14 @@ private:
 	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
 
 	//超时功能实现
-	std::shared_ptr<Timer> m_pPlayTimer;
+	std::shared_ptr<Timer> m_pPublishTimer;
     
     //源
     std::weak_ptr<RtmpMediaSource> m_pMediaSrc;
     RtmpMediaSource::RingType::RingReader::Ptr m_pRtmpReader;
+    //事件监听
+    Event m_onShutdown;
+    Event m_onPublished;
 };
 
 } /* namespace Rtmp */

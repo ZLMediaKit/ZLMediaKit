@@ -49,7 +49,7 @@ void RtmpPusher::teardown() {
             lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
             m_dqOnStatusCB.clear();
         }
-		m_pPlayTimer.reset();
+		m_pPublishTimer.reset();
         clear();
         shutdown();
 	}
@@ -63,7 +63,7 @@ void RtmpPusher::publish(const char* strUrl)  {
     m_strTcUrl = string("rtmp://") + strHost + "/" + m_strApp;
 
     if (!m_strApp.size() || !m_strStream.size()) {
-        _onPlayResult(SockException(Err_other,"rtmp url非法"));
+        onPublishResult(SockException(Err_other,"rtmp url非法"));
         return;
     }
 	DebugL << strHost << " " << m_strApp << " " << m_strStream;
@@ -80,20 +80,20 @@ void RtmpPusher::publish(const char* strUrl)  {
 }
 
 void RtmpPusher::onErr(const SockException &ex){
-	_onShutdown(ex);
+	onShutdown(ex);
 }
 void RtmpPusher::onConnect(const SockException &err){
 	if(err.getErrCode()!=Err_success) {
-		_onPlayResult(err);
+		onPublishResult(err);
 		return;
 	}
 	weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
-	m_pPlayTimer.reset( new Timer(10,  [weakSelf]() {
+	m_pPublishTimer.reset( new Timer(10,  [weakSelf]() {
 		auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
 			return false;
 		}
-		strongSelf->_onPlayResult(SockException(Err_timeout,"publish rtmp timeout"));
+		strongSelf->onPublishResult(SockException(Err_timeout,"publish rtmp timeout"));
 		strongSelf->teardown();
 		return false;
 	}));
@@ -111,8 +111,8 @@ void RtmpPusher::onRecv(const Socket::Buffer::Ptr &pBuf){
 		onParseRtmp(pBuf->data(), pBuf->size());
 	} catch (exception &e) {
 		SockException ex(Err_other, e.what());
-		_onPlayResult(ex);
-		_onShutdown(ex);
+		onPublishResult(ex);
+		onShutdown(ex);
 		teardown();
 	}
 }
@@ -193,11 +193,11 @@ inline void RtmpPusher::send_metaData(){
     m_pRtmpReader->setDetachCB([weakSelf](){
         auto strongSelf = weakSelf.lock();
         if(strongSelf){
-            strongSelf->_onShutdown(SockException(Err_other,"媒体源被释放"));
+            strongSelf->onShutdown(SockException(Err_other,"媒体源被释放"));
             strongSelf->teardown();
         }
     });
-    _onPlayResult(SockException(Err_success,"success"));
+    onPublishResult(SockException(Err_success,"success"));
 }
 void RtmpPusher::onCmd_result(AMFDecoder &dec){
 	auto iReqId = dec.load<int>();
