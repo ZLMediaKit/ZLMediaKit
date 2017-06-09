@@ -22,7 +22,7 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Http {
 
-class HttpArgs : public map<string,string>
+class HttpArgs : public StrCaseMap
 {
 public:
     HttpArgs(){}
@@ -62,7 +62,7 @@ public:
         _method = method;
     }
     void setHeader(const HttpHeader &header){
-        _header = _header;
+        _header = header;
     }
     void addHeader(const string &key,const string &val){
         _header.emplace(key,val);
