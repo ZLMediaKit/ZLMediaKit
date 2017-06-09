@@ -2,7 +2,7 @@ language: cpp
 sudo: required
 dist: trusty
 compiler:
-- clang
+- gcc
 os:
 - linux
 script:
