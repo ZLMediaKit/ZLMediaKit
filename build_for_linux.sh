@@ -13,8 +13,8 @@ cd $path
 cd ..
 git clone --depth=50 https://github.com/xiongziliang/ZLMediaKit.git
 cd ZLMediaKit
-mkdir -p build
-cd build
+mkdir -p linux_build
+cd linux_build
 cmake ..
 make -j4
 sudo make install
