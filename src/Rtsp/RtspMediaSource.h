@@ -40,7 +40,7 @@ public:
 	RtspMediaSource(const string &strApp, const string &strId) :
 			m_strApp(strApp),
 			m_strId(strId),
-			m_pRing(new RingBuffer<RtpPacket::Ptr>(1)),
+			m_pRing(new RingBuffer<RtpPacket::Ptr>()),
 			m_thPool(MediaSender::sendThread()) {
 	}
 	virtual ~RtspMediaSource() {
@@ -114,7 +114,7 @@ public:
 		//派生类设置该媒体源媒体描述信息
 		this->m_strSdp = sdp;
 	}
-	virtual void onGetRTP(const RtpPacket::Ptr &rtppt, bool keyPos = true) {
+	virtual void onGetRTP(const RtpPacket::Ptr &rtppt, bool keyPos) {
 		auto &trackRef = m_mapTracks[rtppt->interleaved / 2];
 		trackRef.seq = rtppt->sequence;
 		trackRef.timeStamp = rtppt->timeStamp;
@@ -122,7 +122,7 @@ public:
 		trackRef.type = rtppt->type;
 		auto _outRing = m_pRing;
 		m_thPool.async([_outRing,rtppt,keyPos]() {
-			_outRing->write(rtppt);
+			_outRing->write(rtppt,keyPos);
 		});
 	}
 	bool seekTo(uint32_t ui32Stamp) {

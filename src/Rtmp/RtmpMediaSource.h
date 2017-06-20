@@ -41,7 +41,7 @@ public:
 	RtmpMediaSource(const string &strApp, const string &strId) :
 			m_strApp(strApp),
 			m_strId(strId),
-			m_pRing( new RingBuffer<RtmpPacket>(1)),
+			m_pRing(new RingBuffer<RtmpPacket>()),
 			m_thPool( MediaSender::sendThread()) {
 	}
 	virtual ~RtmpMediaSource() {
@@ -120,7 +120,7 @@ public:
 		}
 		auto _ring = m_pRing;
 		m_thPool.async([_ring,pkt]() {
-			_ring->write(pkt);
+			_ring->write(pkt,pkt.isVideoKeyFrame());
 		});
 	}
 	bool seekTo(uint32_t ui32Stamp) {

@@ -40,7 +40,7 @@ public:
 		}
 		RtspMediaSource::onGetSDP(strSdp);
 	}
-	virtual void onGetRTP(const RtpPacket::Ptr &pRtppkt, bool bKeyPos = true) override{
+	virtual void onGetRTP(const RtpPacket::Ptr &pRtppkt, bool bKeyPos) override{
 		if (m_pParser) {
 			bKeyPos = m_pParser->inputRtp(*pRtppkt);
 		}
