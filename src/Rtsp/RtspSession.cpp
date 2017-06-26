@@ -56,7 +56,7 @@ RtspSession::RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::P
 #ifndef __x86_64__
 	SockUtil::setSendBuf(pSock->rawFD(), 32*1024);
 	SockUtil::setCloseWait(pSock->rawFD(), 0);
-	pSock->setTcpBufSize(32*1024);
+	pSock->setSendPktSize(32);
 #endif//__x86_64__
 
 	DebugL <<  getPeerIp();
