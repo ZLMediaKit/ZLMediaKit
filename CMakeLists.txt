@@ -10,6 +10,9 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 #设置子目录
 set(SUB_DIR_LIST "Codec" "Common" "Device" "H264" "Http" "MediaFile" "Player" "Rtmp" "RTP" "Rtsp" "Shell" )
 
+#使能GOP缓存
+add_definitions(-DENABLE_RING_USEBUF)
+
 foreach(SUB_DIR ${SUB_DIR_LIST})
     #遍历源文件
     aux_source_directory(src/${SUB_DIR} SRC_LIST)
