@@ -96,7 +96,7 @@ namespace media {
         // original loop went too far.
         while ((i + 1) < ranges_.size() &&
                ranges_[i + 1].first <= ranges_[i].second) {
-            ranges_[i].second = std::max(ranges_[i].second, ranges_[i + 1].second);
+            ranges_[i].second = max(ranges_[i].second, ranges_[i + 1].second);
             ranges_.erase(ranges_.begin() + i + 1);
         }
         
@@ -133,8 +133,8 @@ namespace media {
         size_t j = 0;
         
         while (i < size() && j < other.size()) {
-            T max_start = std::max(start(i), other.start(j));
-            T min_end = std::min(end(i), other.end(j));
+            T max_start = max(start(i), other.start(j));
+            T min_end = min(end(i), other.end(j));
             
             // Add an intersection range to the result if the ranges overlap.
             if (max_start < min_end)
