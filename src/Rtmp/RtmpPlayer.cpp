@@ -52,12 +52,12 @@ void RtmpPlayer::teardown() {
         m_fSeekTo = 0;
         CLEAR_ARR(m_adFistStamp);
         CLEAR_ARR(m_adNowStamp);
-        clear();
+        reset();
         shutdown();
 	}
 }
 
-void RtmpPlayer::play(const char* strUrl, const char * , const char *, eRtpType)  {
+void RtmpPlayer::play(const char* strUrl)  {
 	teardown();
 	string strHost = FindField(strUrl, "://", "/");
 	m_strApp = 	FindField(strUrl, (strHost + "/").data(), "/");

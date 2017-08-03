@@ -19,17 +19,20 @@ using namespace ZL::Player;
 namespace ZL {
 namespace DEV {
 
-class PlayerProxy : public std::enable_shared_from_this<PlayerProxy>{
+class PlayerProxy :public MediaPlayer, public std::enable_shared_from_this<PlayerProxy>{
 public:
 	typedef std::shared_ptr<PlayerProxy> Ptr;
+	//设置代理时间，0为永久，其他为代理秒数
+	//设置方法：proxy[PlayerProxy::kAliveSecond] = 100;
+	static const char kAliveSecond[];
+
 	PlayerProxy(const char *strApp, const char *strSrc);
-	void play(const char* strUrl, const char *strUser = "", const char *strPwd = "",PlayerBase::eRtpType eType = PlayerBase::RTP_TCP,uint32_t iSecond = 0);
 	virtual ~PlayerProxy();
+	void play(const char* strUrl) override;
 	void setOnExpired(const function<void()> &cb){
 		onExpired = cb;
 	}
 private :
-	MediaPlayer::Ptr m_pPlayer;
 	DevChannel::Ptr m_pChn;
 	Ticker m_aliveTicker;
 	uint32_t m_aliveSecond = 0;
@@ -37,7 +40,7 @@ private :
 	string m_strApp;
 	string m_strSrc;
 	void initMedia();
-	void rePlay(const string &strUrl, const string &strUser, const string &strPwd, PlayerBase::eRtpType eType,uint64_t iFailedCnt);
+	void rePlay(const string &strUrl,uint64_t iFailedCnt);
 	void checkExpired();
 	void expired();
 };

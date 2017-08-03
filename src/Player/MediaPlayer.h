@@ -12,8 +12,12 @@
 #include <string>
 #include "Player.h"
 #include "PlayerBase.h"
+#include "Rtsp/RtspPlayer.h"
+#include "Rtmp/RtmpPlayer.h"
 
 using namespace std;
+using namespace ZL::Rtsp;
+using namespace ZL::Rtmp;
 
 namespace ZL {
 namespace Player {
@@ -24,8 +28,7 @@ public:
 
 	MediaPlayer();
 	virtual ~MediaPlayer();
-
-	void play(const char* strUrl, const char *strUser = "", const char *strPwd = "", eRtpType eType = RTP_TCP) override;
+	void play(const char* strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
 private:

@@ -36,8 +36,7 @@ public:
 	RtmpPlayer();
 	virtual ~RtmpPlayer();
 
-	void play(const char* strUrl, const char *strUser, const char *strPwd,
-			eRtpType eType) override;
+	void play(const char* strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
 protected:

@@ -22,8 +22,7 @@ MediaPlayer::MediaPlayer() {
 MediaPlayer::~MediaPlayer() {
 	teardown();
 }
-
-void MediaPlayer::play(const char* strUrl, const char* strUser, const char* strPwd, eRtpType eType) {
+void MediaPlayer::play(const char* strUrl) {
 	string strPrefix = FindField(strUrl, NULL, "://");
 	if ((strcasecmp(m_strPrefix.data(),strPrefix.data()) != 0) || strPrefix.empty()) {
 		//协议切换
@@ -34,8 +33,10 @@ void MediaPlayer::play(const char* strUrl, const char* strUser, const char* strP
 		m_parser->setOnAudioCB(m_onGetAudioCB);
 	}
 	m_parser->setOnPlayResult(m_playResultCB);
-	m_parser->play(strUrl, strUser, strPwd, eType);
+	m_parser->mINI::operator=(*this);
+	m_parser->play(strUrl);
 }
+
 
 void MediaPlayer::pause(bool bPause) {
 	if (m_parser) {

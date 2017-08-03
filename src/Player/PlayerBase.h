@@ -8,19 +8,22 @@
 #ifndef SRC_PLAYER_PLAYERBASE_H_
 #define SRC_PLAYER_PLAYERBASE_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <functional>
 #include "Player.h"
 #include "Network/Socket.h"
+#include "Util/mini.h"
 
 using namespace std;
+using namespace ZL::Util;
 using namespace ZL::Network;
 
 namespace ZL {
 namespace Player {
 
-class PlayerBase{
+class PlayerBase : public mINI{
 public:
 	typedef std::shared_ptr<PlayerBase> Ptr;
 	typedef enum {
@@ -32,8 +35,7 @@ public:
     
 	PlayerBase(){};
 	virtual ~PlayerBase(){};
-
-	virtual void play(const char* strUrl, const char *strUser = "", const char *strPwd = "", eRtpType eType = RTP_TCP) {};
+	virtual void play(const char* strUrl) {};
 	virtual void pause(bool bPause) {};
 	virtual void teardown() {};
 

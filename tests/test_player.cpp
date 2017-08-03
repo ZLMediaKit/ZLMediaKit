@@ -5,8 +5,8 @@
 #include <iostream>
 #include "Poller/EventPoller.h"
 #include "Rtsp/UDPServer.h"
+#include "Player/MediaPlayer.h"
 #include "Util/onceToken.h"
-#include "Device/PlayerProxy.h"
 #include "H264Decoder.h"
 #include "YuvDisplayer.h"
 #include "Network/sockutil.h"
@@ -18,7 +18,7 @@ using namespace ZL::Util;
 using namespace ZL::Thread;
 using namespace ZL::Network;
 using namespace ZL::Rtsp;
-using namespace ZL::DEV;
+using namespace ZL::Player;
 
 void programExit(int arg) {
 	EventPoller::Instance().shutdown();
@@ -30,9 +30,9 @@ int main(int argc, char *argv[]){
 	//Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 	signal(SIGINT, programExit);
 
-	if(argc != 5){
-		FatalL << "\r\n测试方法：./test_player rtxp_url rtsp_user rtsp_pwd rtp_type\r\n"
-		       << "例如：./test_player rtsp://127.0.0.1/live/0 admin 123456 0\r\n"
+	if(argc != 3){
+		FatalL << "\r\n测试方法：./test_player rtxp_url rtp_type\r\n"
+		       << "例如：./test_player rtsp://admin:123456@127.0.0.1/live/0 0\r\n"
 		       <<endl;
 		Logger::Destory();
 		return 0;
@@ -46,9 +46,8 @@ int main(int argc, char *argv[]){
 	player->setOnShutdown([](const SockException &ex) {
 		ErrorL << "OnShutdown:" << ex.what();
 	});
-
-	//DebugL << argv[1] << " " << argv[2] << " " << argv[3] << " " << argv[4] << endl;
-	player->play(argv[1],argv[2],argv[3],(PlayerBase::eRtpType)atoi(argv[4]));
+	(*player)[RtspPlayer::kRtpType] = atoi(argv[2]);
+	player->play(argv[1]);
 
 	H264Decoder decoder;
 	YuvDisplayer displayer;

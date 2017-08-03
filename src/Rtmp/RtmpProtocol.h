@@ -33,7 +33,7 @@ public:
 	//作为客户端发送c0c1，等待s0s1s2并且回调
 	void startClientSession(const function<void()> &cb);
 	void onParseRtmp(const char *pcRawData,int iSize);
-	void clear();
+	void reset();
 protected:
 	virtual void onSendRawData(const char *pcRawData,int iSize) = 0;
 	virtual void onRtmpChunk(RtmpPacket &chunkData) = 0;

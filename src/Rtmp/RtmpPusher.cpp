@@ -50,7 +50,7 @@ void RtmpPusher::teardown() {
             m_dqOnStatusCB.clear();
         }
 		m_pPublishTimer.reset();
-        clear();
+        reset();
         shutdown();
 	}
 }

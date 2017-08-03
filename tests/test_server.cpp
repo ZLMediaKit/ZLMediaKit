@@ -49,7 +49,7 @@ int main(int argc,char *argv[]){
 	//support rtmp and rtsp url
 	//just support H264+AAC
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
-					"rtsp://184.72.239.149/vod/mp4://BigBuckBunny_175k.mov"};
+					"rtsp://admin:jzan123456@192.168.0.122/"};
 	 map<string , PlayerProxy::Ptr> proxyMap;
 	 int i=0;
 	 for(auto url : urlList){
@@ -63,6 +63,7 @@ int main(int argc,char *argv[]){
 		 //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 		 //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 		 PlayerProxy::Ptr player(new PlayerProxy("live",to_string(i++).data()));
+		 (*player)[PlayerProxy::kAliveSecond] = 10;//录制10秒
 		 player->play(url);
 		 proxyMap.emplace(string(url),player);
 	 }

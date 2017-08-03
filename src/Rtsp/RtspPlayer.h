@@ -36,9 +36,13 @@ namespace Rtsp {
 class RtspPlayer: public PlayerBase,public TcpClient {
 public:
 	typedef std::shared_ptr<RtspPlayer> Ptr;
+	//设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
+	//设置方法：player[RtspPlayer::kRtpType] = 0/1/2;
+	static const char kRtpType[];
+
 	RtspPlayer();
 	virtual ~RtspPlayer(void);
-	void play(const char* strUrl, const char *strUser, const char *strPwd,  eRtpType eType) override;
+	void play(const char* strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
 	float getRtpLossRate(int iTrackId) const override;
@@ -84,6 +88,7 @@ private:
 		onPlayResult(ex);
 	}
 
+	void play(const char* strUrl, const char *strUser, const char *strPwd,  eRtpType eType);
 	void onConnect(const SockException &err) override;
 	void onRecv(const Socket::Buffer::Ptr &pBuf) override;
 	void onErr(const SockException &ex) override;

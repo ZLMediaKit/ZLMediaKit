@@ -48,9 +48,9 @@ RtmpProtocol::RtmpProtocol() {
 	};
 }
 RtmpProtocol::~RtmpProtocol() {
-	clear();
+	reset();
 }
-void RtmpProtocol::clear() {
+void RtmpProtocol::reset() {
 	////////////ChunkSize////////////
 	m_iChunkLenIn = DEFAULT_CHUNK_LEN;
 	m_iChunkLenOut = DEFAULT_CHUNK_LEN;

@@ -22,6 +22,8 @@ namespace Rtsp {
 		_onRecvRTP(it->second, trackidx); \
 		m_amapRtpSort[trackidx].erase(it);
 
+const char RtspPlayer::kRtpType[] = "rtp_type";
+
 RtspPlayer::RtspPlayer(void){
 }
 RtspPlayer::~RtspPlayer(void) {
@@ -67,13 +69,34 @@ void RtspPlayer::teardown(){
 		shutdown();
 	}
 }
+
+void RtspPlayer::play(const char* strUrl){
+	auto userAndPwd = FindField(strUrl,"://","@");
+	eRtpType eType = (eRtpType)(int)(*this)[kRtpType];
+	if(userAndPwd.empty()){
+		play(strUrl,nullptr,nullptr,eType);
+		return;
+	}
+	auto suffix = FindField(strUrl,"@",nullptr);
+	auto url = StrPrinter << "rtsp://" << suffix << endl;
+	if(userAndPwd.find(":") == string::npos){
+		play(url.data(),userAndPwd.data(),nullptr,eType);
+		return;
+	}
+	auto user = FindField(userAndPwd.data(),nullptr,":");
+	auto pwd = FindField(userAndPwd.data(),":",nullptr);
+	play(url.data(),user.data(),pwd.data(),eType);
+}
 //播放，指定是否走rtp over tcp
 void RtspPlayer::play(const char* strUrl, const char *strUser, const char *strPwd,  eRtpType eType ) {
-	InfoL <<strUrl <<" "<< eType;
+	DebugL   << strUrl << " "
+			<< (strUser ? strUser : "null") << " "
+			<< (strPwd ? strPwd:"null") << " "
+			<< eType;
 	teardown();
-    if(strUser && strPwd){
+    if(strUser){
         char _authorization[30];
-        string tmp = StrPrinter << strUser << ":" << strPwd << endl;
+        string tmp = StrPrinter << strUser << ":" << (strPwd ? strPwd : "") << endl;
         av_base64_encode(_authorization, sizeof(_authorization), (const unsigned char *) tmp.c_str(), tmp.size());
         m_strAuthorization = _authorization;
     }
