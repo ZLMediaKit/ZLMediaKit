@@ -1,8 +1,10 @@
 find_path(ZLTOOLKIT_INCLUDE_DIR
-  NAMES ZLToolKit/Network/Socket.h)
+  NAMES ZLToolKit/Network/Socket.h
+  PATHS $ENV{HOME}/ZLToolKit/include)
 
 find_library(ZLTOOLKIT_LIBRARY
-  NAMES ZLToolKit)
+  NAMES ZLToolKit
+  PATHS $ENV{HOME}/ZLToolKit/lib)
 
 set(ZLTOOLKIT_LIBRARIES ${ZLTOOLKIT_LIBRARY})
 set(ZLTOOLKIT_INCLUDE_DIRS ${ZLTOOLKIT_INCLUDE_DIR})

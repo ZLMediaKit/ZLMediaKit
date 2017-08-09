@@ -4,8 +4,7 @@
  *  Created on: 2016年8月12日
  *      Author: xzl
  */
-#include <arpa/inet.h>
-#include <netinet/in.h>
+
 #include <atomic>
 #include "Common/config.h"
 #include "UDPServer.h"
@@ -106,7 +105,7 @@ void RtspSession::onError(const SockException& err) {
 		lock_guard<recursive_mutex> lock(g_mtxPostter);
 		//为了保证脱离TCPServer后还能正常运作,需要保持本对象的强引用
 		g_mapPostter.emplace(this, dynamic_pointer_cast<RtspSession>(shared_from_this()));
-		TraceL << "quickTime已经不再发送请求";
+		TraceL << "quickTime will not send request any more!";
 	}
 }
 

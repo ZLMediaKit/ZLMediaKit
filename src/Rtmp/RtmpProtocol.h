@@ -8,7 +8,6 @@
 #ifndef SRC_RTMP_RTMPPROTOCOL_H_
 #define SRC_RTMP_RTMPPROTOCOL_H_
 
-#include <netinet/in.h>
 #include <memory>
 #include <string>
 #include <functional>

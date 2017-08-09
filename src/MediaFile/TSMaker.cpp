@@ -6,7 +6,6 @@
  */
 
 #include "TSMaker.h"
-#include <sys/time.h>
 #include "Util/logger.h"
 
 using namespace ZL::Util;

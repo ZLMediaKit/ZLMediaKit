@@ -1,6 +1,5 @@
 #include <string.h>
 #include <stdexcept>
-#include <arpa/inet.h>
 #include "amf.h"
 #include "utils.h"
 #include "Util/logger.h"

@@ -173,7 +173,7 @@ return kInvalidStream;                                         \
             start += subsamples[i].clear_bytes;
             
             const uint8_t* end =
-            std::min(start + subsamples[i].cypher_bytes, stream_end);
+            min(start + subsamples[i].cypher_bytes, stream_end);
             encrypted_ranges_.Add(start, end);
             start = end;
         }
@@ -311,7 +311,7 @@ return kInvalidStream;                                         \
                 // The start code is inside an encrypted section so we need to scan
                 // for another start code.
                 *start_code_size = 0;
-                start += std::min(*offset + 1, bytes_left);
+                start += min(*offset + 1, bytes_left);
             }
         } while (*start_code_size == 0);
         

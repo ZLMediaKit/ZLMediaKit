@@ -6,7 +6,6 @@
 
 
 #include <signal.h>
-#include <unistd.h>
 #include <iostream>
 #include "Util/logger.h"
 #include "Util/onceToken.h"
@@ -44,14 +43,14 @@ int main(int argc,char *argv[]){
 		const_cast<RtmpPusher::Ptr &>(pusher).reset(new RtmpPusher(app,stream));
 
 		pusher->setOnShutdown([](const SockException &ex){
-			WarnL << "已断开与服务器连接：" << ex.getErrCode() << " " << ex.what();
+			WarnL << "已断开与服务器连接:" << ex.getErrCode() << " " << ex.what();
 		});
 
 		pusher->setOnPublished([](const SockException &ex){
 			if(ex){
-				WarnL << "发布失败：" << ex.getErrCode() << " "<< ex.what();
+				WarnL << "发布失败:" << ex.getErrCode() << " "<< ex.what();
 			}else{
-				InfoL << "发布成功，请用播放器打开：rtmp://jizan.iok.la/live/test";
+				InfoL << "发布成功，请用播放器打开:rtmp://jizan.iok.la/live/test";
 			}
 		});
 

@@ -39,9 +39,11 @@ add_executable(${TEST_EXE_NAME} ${TEST_SRC})
 
 if(ANDROID)
 target_link_libraries(${TEST_EXE_NAME} ${CMAKE_PROJECT_NAME}_static ${LINK_LIB_LIST})
-else(ANDROID)
-target_link_libraries(${TEST_EXE_NAME} ${CMAKE_PROJECT_NAME}_shared ${LINK_LIB_LIST} pthread) 
-endif(ANDROID)
+elseif(WIN32)
+target_link_libraries(${TEST_EXE_NAME} ${CMAKE_PROJECT_NAME}_shared ${LINK_LIB_LIST})
+else()
+target_link_libraries(${TEST_EXE_NAME} ${CMAKE_PROJECT_NAME}_shared ${LINK_LIB_LIST} pthread)
+endif()
 
 endforeach(TEST_SRC ${TEST_SRC_LIST})
 

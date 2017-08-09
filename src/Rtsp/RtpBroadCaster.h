@@ -8,8 +8,7 @@
 #ifndef SRC_RTSP_RTPBROADCASTER_H_
 #define SRC_RTSP_RTPBROADCASTER_H_
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
+
 #include <mutex>
 #include <memory>
 #include <unordered_set>

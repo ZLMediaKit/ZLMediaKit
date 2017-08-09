@@ -26,7 +26,7 @@ RtmpPusher::RtmpPusher(const char *strApp,const char *strStream) {
 		}, []() {});
     auto src = RtmpMediaSource::find(strApp,strStream);
     if (!src) {
-        auto strErr = StrPrinter << "媒体源：" << strApp << "/" << strStream << "不存在" << endl;
+        auto strErr = StrPrinter << "media source:" << strApp << "/" << strStream << "not found!" << endl;
         throw std::runtime_error(strErr);
     }
     m_pMediaSrc = src;
@@ -132,7 +132,7 @@ inline void RtmpPusher::send_connect() {
 		auto level = val["level"].as_string();
 		auto code = val["code"].as_string();
 		if(level != "status"){
-			throw std::runtime_error(StrPrinter <<"connect 失败：" << level << " " << code << endl);
+			throw std::runtime_error(StrPrinter <<"connect 失败:" << level << " " << code << endl);
 		}
 		send_createStream();
 	});
@@ -157,7 +157,7 @@ inline void RtmpPusher::send_publish() {
 		auto level = val["level"].as_string();
 		auto code = val["code"].as_string();
 		if(level != "status") {
-			throw std::runtime_error(StrPrinter <<"publish 失败：" << level << " " << code << endl);
+			throw std::runtime_error(StrPrinter <<"publish 失败:" << level << " " << code << endl);
 		}
 		//start send media
 		send_metaData();
@@ -167,10 +167,10 @@ inline void RtmpPusher::send_publish() {
 inline void RtmpPusher::send_metaData(){
     auto src = m_pMediaSrc.lock();
     if (!src) {
-        throw std::runtime_error("媒体源已被释放");
+        throw std::runtime_error("the media source was released");
     }
     if (!src->ready()) {
-        throw std::runtime_error("媒体源尚未准备就绪");
+        throw std::runtime_error("the media source is not ready");
     }
     
     AMFEncoder enc;
@@ -219,7 +219,7 @@ void RtmpPusher::onCmd_onStatus(AMFDecoder &dec) {
 		}
 	}
 	if(val.type() != AMF_OBJECT){
-		throw std::runtime_error("onStatus: 未找到结果对象");
+		throw std::runtime_error("onStatus:the result object was not found");
 	}
 
     lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);

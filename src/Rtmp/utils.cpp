@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <arpa/inet.h>
+#include "Util/util.h"
+
+using namespace ZL::Util;
 
 /*
  * Used to do unaligned loads on archs that don't support them. GCC can mostly

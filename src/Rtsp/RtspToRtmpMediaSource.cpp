@@ -5,13 +5,7 @@
  *      Author: xzl
  */
 
-#include <unistd.h>
 #include <string.h>
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
 #include "Common/config.h"
 #include "Rtmp/Rtmp.h"
 #include "RtspToRtmpMediaSource.h"

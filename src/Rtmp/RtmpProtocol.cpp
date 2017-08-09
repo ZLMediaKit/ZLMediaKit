@@ -14,17 +14,29 @@
 using namespace ZL::Util;
 
 #ifdef ENABLE_OPENSSL
+#include "Util/SSLBox.h"
 #include <openssl/hmac.h>
 static string openssl_HMACsha256(const void *key,unsigned int key_len,
 								 const void *data,unsigned int data_len){
 	std::shared_ptr<char> out(new char[32],[](char *ptr){delete [] ptr;});
 	unsigned int out_len;
+
+#if defined(WIN32)
+	HMAC_CTX *ctx = HMAC_CTX_new();
+	HMAC_CTX_reset(ctx);
+	HMAC_Init_ex(ctx, key, key_len, EVP_sha256(), NULL);
+	HMAC_Update(ctx, (unsigned char*)data, data_len);
+	HMAC_Final(ctx, (unsigned char *)out.get(), &out_len);
+	HMAC_CTX_reset(ctx);
+	HMAC_CTX_free(ctx);
+#else
 	HMAC_CTX ctx;
 	HMAC_CTX_init(&ctx);
 	HMAC_Init_ex(&ctx, key, key_len, EVP_sha256(), NULL);
 	HMAC_Update(&ctx, (unsigned char*)data, data_len);
 	HMAC_Final(&ctx, (unsigned char *)out.get(), &out_len);
 	HMAC_CTX_cleanup(&ctx);
+#endif // defined(WIN32)
 	return string(out.get(),out_len);
 }
 #endif //ENABLE_OPENSSL
@@ -159,7 +171,7 @@ void RtmpProtocol::sendRequest(int iCmd, const string& str) {
 void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
 		const std::string& strBuf, uint32_t ui32TimeStamp, int iChunkId) {
 	if (iChunkId < 2 || iChunkId > 63) {
-		auto strErr = StrPrinter << "不支持发送该类型的块流 ID：" << iChunkId << endl;
+		auto strErr = StrPrinter << "不支持发送该类型的块流 ID:" << iChunkId << endl;
 		throw std::runtime_error(strErr);
 	}
 
@@ -275,7 +287,7 @@ void RtmpProtocol::handle_C1_simple(){
 }
 #ifdef ENABLE_OPENSSL
 void RtmpProtocol::handle_C1_complex(){
-	//参考自：http://blog.csdn.net/win_lin/article/details/13006803
+	//参考自:http://blog.csdn.net/win_lin/article/details/13006803
 	//skip c0,time,version
 	const char *c1_start = m_strRcvBuf.data() + 1;
 	const char *schema_start = c1_start + 8;
@@ -318,6 +330,9 @@ void RtmpProtocol::handle_C1_complex(){
 	}
 }
 
+#if !defined(u_int8_t)
+#define u_int8_t unsigned char
+#endif // !defined(u_int8_t)
 
 static u_int8_t FMSKey[] = {
     0x47, 0x65, 0x6e, 0x75, 0x69, 0x6e, 0x65, 0x20,
@@ -344,7 +359,7 @@ static u_int8_t FPKey[] = {
 void RtmpProtocol::check_C1_Digest(const string &digest,const string &data){
 	auto sha256 = openssl_HMACsha256(FPKey,C1_FPKEY_SIZE,data.data(),data.size());
 	if(sha256 != digest){
-		throw std::runtime_error("digest不匹配");
+		throw std::runtime_error("digest mismatched");
 	}else{
 		InfoL << "check rtmp complex handshark success!";
 	}
@@ -383,7 +398,7 @@ string RtmpProtocol::get_C1_key(const uint8_t *ptr){
 	return key;
 }
 void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
-	//S1S2计算参考自：https://github.com/hitYangfei/golang/blob/master/rtmpserver.go
+	//S1S2计算参考自:https://github.com/hitYangfei/golang/blob/master/rtmpserver.go
 	//发送S0
 	char handshake_head = HANDSHAKE_PLAINTEXT;
 	onSendRawData(&handshake_head, 1);

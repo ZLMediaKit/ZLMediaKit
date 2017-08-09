@@ -2,13 +2,13 @@
 #include <cmath>
 #include <stdarg.h>
 #include <algorithm>
-#include <arpa/inet.h>
 
 #include "Common/config.h"
 #include "RtspPlayer.h"
 #include "Device/base64.h"
 #include "H264/SPSParser.h"
 #include "Util/mini.h"
+#include "Util/util.h"
 #include "Network/sockutil.h"
 
 using namespace ZL::Util;
@@ -127,7 +127,7 @@ void RtspPlayer::onConnect(const SockException &err){
 		teardown();
 		return;
 	}
-	//发送DESCRIBE命令后处理函数：HandleResDESCRIBE
+	//发送DESCRIBE命令后处理函数:HandleResDESCRIBE
 	m_onHandshake = std::bind(&RtspPlayer::HandleResDESCRIBE,this, placeholders::_1);
 	write("DESCRIBE %s RTSP/1.0\r\n"
 		  "CSeq: %d\r\n"
@@ -345,9 +345,7 @@ void RtspPlayer::HandleResSETUP(const Parser& parser, unsigned int uiTrackIndex)
 				return;
 			}
 			if(((struct sockaddr_in *)addr)->sin_addr.s_addr != srcIP) {
-				char strAddr[32] = {0};
-				inet_ntop(addr->sa_family,(&((struct sockaddr_in *) addr)->sin_addr),strAddr,sizeof(strAddr));
-				WarnL << "收到请他地址的UDP数据:" << strAddr;
+				WarnL << "收到请他地址的UDP数据:" << inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
 				return;
 			}
 			strongSelf->HandleOneRtp(i,(unsigned char *)buf->data(),buf->size());
@@ -404,7 +402,7 @@ void RtspPlayer::pause(bool bPause) {
     sendPause(bPause,getProgressTime());
 }
 
-//注意：当字符串为空时，也会返回一个空字符串
+//注意:当字符串为空时，也会返回一个空字符串
 static void split(const string& s, const char *delim, vector<string> &ret) {
     size_t last = 0;
     size_t index = s.find_first_of(delim, last);
@@ -573,7 +571,7 @@ inline bool RtspPlayer::HandleOneRtp(int iTrackidx, unsigned char *pucData, unsi
 		WarnL << "ssrc错误";
 		if (m_aui32SsrcErrorCnt[iTrackidx]++ > 10) {
 			track.ssrc = rtppt.ssrc;
-			WarnL << "ssrc更换！";
+			WarnL << "ssrc更换!";
 		}
 		return false;
 	}

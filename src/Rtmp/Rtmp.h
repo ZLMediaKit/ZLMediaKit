@@ -1,7 +1,6 @@
 #ifndef __rtmp_h
 #define __rtmp_h
 
-#include <netinet/in.h>
 #include <memory>
 #include <string>
 #include "Util/util.h"
@@ -12,7 +11,14 @@ using namespace ZL::Util;
 
 #define PORT	1935
 #define DEFAULT_CHUNK_LEN	128
+
+#if !defined(_WIN32)
 #define PACKED	__attribute__((packed))
+#else
+#define PACKED
+#endif //!defined(_WIN32)
+
+
 #define HANDSHAKE_PLAINTEXT	0x03
 #define RANDOM_LEN		(1536 - 8)
 
@@ -52,6 +58,11 @@ using namespace ZL::Util;
 #define FLV_KEY_FRAME				1
 #define FLV_INTER_FRAME				2
 
+
+#if defined(_WIN32)
+#pragma pack(push, 1)
+#endif // defined(_WIN32)
+
 class RtmpHandshake {
 public:
     RtmpHandshake(uint32_t _time, uint8_t *_random = nullptr) {
@@ -87,6 +98,9 @@ public:
     uint8_t streamId[4]; /* Note, this is little-endian while others are BE */
 }PACKED;
 
+#if defined(_WIN32)
+#pragma pack(pop)
+#endif // defined(_WIN32)
 
 class RtmpPacket {
 public:

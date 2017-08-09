@@ -23,7 +23,7 @@ MediaReader::MediaReader(const string &strApp, const string &strId) {
 
 	m_hMP4File = MP4Read(strFileName.data());
 	if(m_hMP4File == MP4_INVALID_FILE_HANDLE){
-		throw runtime_error(StrPrinter << "打开MP4文件失败：" << strFileName << endl);
+		throw runtime_error(StrPrinter << "打开MP4文件失败:" << strFileName << endl);
 	}
 	m_video_trId = MP4FindTrackId(m_hMP4File, 0, MP4_VIDEO_TRACK_TYPE, 0);
 	if(m_video_trId != MP4_INVALID_TRACK_ID){
@@ -106,7 +106,7 @@ MediaReader::MediaReader(const string &strApp, const string &strId) {
 	if(m_audio_trId == MP4_INVALID_TRACK_ID && m_video_trId == MP4_INVALID_TRACK_ID){
 		MP4Close(m_hMP4File);
 		m_hMP4File = MP4_INVALID_FILE_HANDLE;
-		throw runtime_error(StrPrinter << "该MP4文件音视频格式不支持：" << strFileName << endl);
+		throw runtime_error(StrPrinter << "该MP4文件音视频格式不支持:" << strFileName << endl);
 	}
 
 	m_iDuration	= MAX(m_video_ms,m_audio_ms);

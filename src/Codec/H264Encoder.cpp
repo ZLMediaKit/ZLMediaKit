@@ -57,20 +57,20 @@ Vui参数集视频可用性信息视频标准化选项
   int i_sar_height;
   int i_sar_width;  设置长宽比
 
-  int i_overscan;  0=undef, 1=no overscan, 2=overscan 过扫描线，默认"undef"(不设置)，可选项：show(观看)/crop(去除)
+  int i_overscan;  0=undef, 1=no overscan, 2=overscan 过扫描线，默认"undef"(不设置)，可选项:show(观看)/crop(去除)
 
   见以下的值h264附件E
   Int i_vidformat; 视频格式，默认"undef"，component/pal/ntsc/secam/mac/undef
-  int b_fullrange; Specify full range samples setting，默认"off"，可选项：off/on
-  int i_colorprim; 原始色度格式，默认"undef"，可选项：undef/bt709/bt470m/bt470bg，smpte170m/smpte240m/film
-  int i_transfer; 转换方式，默认"undef"，可选项：undef/bt709/bt470m/bt470bg/linear,log100/log316/smpte170m/smpte240m
+  int b_fullrange; Specify full range samples setting，默认"off"，可选项:off/on
+  int i_colorprim; 原始色度格式，默认"undef"，可选项:undef/bt709/bt470m/bt470bg，smpte170m/smpte240m/film
+  int i_transfer; 转换方式，默认"undef"，可选项:undef/bt709/bt470m/bt470bg/linear,log100/log316/smpte170m/smpte240m
   int i_colmatrix; 色度矩阵设置，默认"undef",undef/bt709/fcc/bt470bg,smpte170m/smpte240m/GBR/YCgCo
   int i_chroma_loc;  both top & bottom色度样本指定，范围0~5，默认0
   } vui;
 
   int i_fps_num;
   int i_fps_den;
-这两个参数是由fps帧率确定的，赋值的过程见下：
+这两个参数是由fps帧率确定的，赋值的过程见下:
 { float fps;
 if( sscanf( value, "%d/%d", &p->i_fps_num, &p->i_fps_den ) == 2 )
   ;
@@ -137,7 +137,7 @@ Value的值就是fps。
   int i_subpel_refine;  亚像素运动估计质量
   int b_chroma_me;  亚像素色度运动估计和P帧的模式选择
   int b_mixed_references; 允许每个宏块的分区在P帧有它自己的参考号
-  int i_trellis;  Trellis量化，对每个8x8的块寻找合适的量化值，需要CABAC，默认0 0：关闭1：只在最后编码时使用2：一直使用
+  int i_trellis;  Trellis量化，对每个8x8的块寻找合适的量化值，需要CABAC，默认0 0:关闭1:只在最后编码时使用2:一直使用
   int b_fast_pskip; 快速P帧跳过检测
   int b_dct_decimate;  在P-frames转换参数域
   int i_noise_reduction; 自适应伪盲区
@@ -249,13 +249,13 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
 	 这个GOP就称为open-GOP。
 	 有些解码器不能完全支持open-GOP码流，
 	 例如蓝光解码器，因此在x264里面open-GOP是默认关闭的。
-	 对于解码端，接收到的码流如果如下：I0 B0 B1 P0 B2 B3...这就是一个open-GOP码流（I帧后面紧跟B帧）。
+	 对于解码端，接收到的码流如果如下:I0 B0 B1 P0 B2 B3...这就是一个open-GOP码流（I帧后面紧跟B帧）。
 	 因此B0 B1的解码需要用到I0前面一个GOP的数据，B0 B1的dts是小于I0的。
-	 如果码流如下： I0 P0 B0 B1 P1 B2 B3...这就是一个close-GOP码流，
+	 如果码流如下: I0 P0 B0 B1 P1 B2 B3...这就是一个close-GOP码流，
 	 I0后面所有帧的解码不依赖于I0前面的帧，I0后面所有帧的dts都比I0的大。
 	 如果码流是IDR0 B0 B1 P0 B2 B3...那个这个GOP是close-GOP，B0,B1虽然dst比IDR0小，
 	 但编解码端都刷新了参考缓冲，B0,B1参考不到前向GOP帧。
-	 对于编码端，如果编码帧类型决定如下： ...P0 B1 B2 P3 B4 B5 I6这就会输出open-Gop码流 （P0 P3 B1 B2 I6 B4 B5...），
+	 对于编码端，如果编码帧类型决定如下: ...P0 B1 B2 P3 B4 B5 I6这就会输出open-Gop码流 （P0 P3 B1 B2 I6 B4 B5...），
 	 B4 B5的解码依赖P3。
 	 如果编码帧类型决定如下...P0 B1 B2 P3 B4 P5 I6这样就不会输出open-GOP码流（P0 P3 B1 B2 P5 B4 I6...）。
 	 两者区别在于I6前面的第5帧是设置为B帧还是P帧，

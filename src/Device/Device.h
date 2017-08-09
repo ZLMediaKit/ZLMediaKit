@@ -8,7 +8,6 @@
 #ifndef DEVICE_DEVICE_H_
 #define DEVICE_DEVICE_H_
 
-#include <sys/time.h>
 #include <memory>
 #include <string>
 #include <functional>

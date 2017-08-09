@@ -5,7 +5,6 @@
  *      Author: xzl
  */
 
-#include <arpa/inet.h>
 #include <list>
 #include "RtpBroadCaster.h"
 #include "Util/util.h"
@@ -65,7 +64,7 @@ RtpBroadCaster::~RtpBroadCaster() {
 RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strApp,const string &strStream) {
 	auto src = RtspMediaSource::find(strApp, strStream);
 	if(!src){
-		auto strErr = StrPrinter << "未找到媒体源：" << strApp << " " << strStream << endl;
+		auto strErr = StrPrinter << "未找到媒体源:" << strApp << " " << strStream << endl;
 		throw std::runtime_error(strErr);
 	}
 	m_multiAddr = MultiCastAddressMaker::Instance().obtain();

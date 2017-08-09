@@ -8,7 +8,6 @@
 #ifndef SRC_RTSPPLAYER_RTSPPLAYER_H_TXT_
 #define SRC_RTSPPLAYER_RTSPPLAYER_H_TXT_
 
-#include <netinet/in.h>
 #include <string>
 #include <memory>
 #include "Rtsp.h"
@@ -37,7 +36,7 @@ class RtspPlayer: public PlayerBase,public TcpClient {
 public:
 	typedef std::shared_ptr<RtspPlayer> Ptr;
 	//设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
-	//设置方法：player[RtspPlayer::kRtpType] = 0/1/2;
+	//设置方法:player[RtspPlayer::kRtpType] = 0/1/2;
 	static const char kRtpType[];
 
 	RtspPlayer();

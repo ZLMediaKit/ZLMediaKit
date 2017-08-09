@@ -8,7 +8,6 @@
 #ifndef SRC_RTMP_RTMPMEDIASOURCE_H_
 #define SRC_RTMP_RTMPMEDIASOURCE_H_
 
-#include <netinet/in.h>
 #include <mutex>
 #include <memory>
 #include <string>

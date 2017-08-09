@@ -35,7 +35,7 @@ RtpParser::RtpParser(const string& sdp) {
 	RtspTrack tmp[2];
 	int cnt = parserSDP(sdp, tmp);
 	if (0 == cnt) {
-		throw std::runtime_error("解析SDP失败！");
+		throw std::runtime_error("parse sdp failed");
 	}
 
 	for (int i = 0; i < cnt; i++) {
@@ -129,7 +129,7 @@ inline bool RtpParser::inputVideo(const RtpPacket& rtppack,
 
 		if (rtppack.sequence != (uint16_t)(m_h264frame.sequence + 1)) {
 			m_h264frame.data.clear();
-			WarnL << "丢包,帧废弃：" << rtppack.sequence << "," << m_h264frame.sequence;
+			WarnL << "丢包,帧废弃:" << rtppack.sequence << "," << m_h264frame.sequence;
 			return false;
 		}
 		m_h264frame.sequence = rtppack.sequence;
@@ -204,7 +204,7 @@ inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
 
 	string strTmp((char *)SPS_BUF, SPS_LEN);
 	if (!getAVCInfo(strTmp, m_iVideoWidth, m_iVideoHeight, m_fVideoFps)) {
-		throw std::runtime_error("解析SPS失败！");
+		throw std::runtime_error("parse sdp failed");
 	}
 }
 

@@ -5,7 +5,6 @@
 //============================================================================
 
 #include <signal.h>
-#include <unistd.h>
 #include <iostream>
 #include "Http/HttpDownloader.h"
 #include "Http/HttpRequester.h"

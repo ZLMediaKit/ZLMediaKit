@@ -8,7 +8,6 @@
 #ifndef SRC_RTMP_RTMPSESSION_H_
 #define SRC_RTMP_RTMPSESSION_H_
 
-#include <netinet/in.h>
 #include <unordered_map>
 #include "amf.h"
 #include "Rtmp.h"

@@ -8,7 +8,6 @@
 #ifndef SESSION_RTSPSESSION_H_
 #define SESSION_RTSPSESSION_H_
 
-#include <netinet/in.h>
 #include <set>
 #include <vector>
 #include <unordered_map>

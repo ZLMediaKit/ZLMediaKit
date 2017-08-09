@@ -6,7 +6,10 @@
  */
 
 #include "HLSMaker.h"
-#include <sys/time.h>
+#include "Util/File.h"
+#include "Util/uv_errno.h"
+
+using namespace ZL::Util;
 
 namespace ZL {
 namespace MediaFile {
@@ -126,7 +129,7 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp,
 			m_Timer.resetTime();
 			removets();
 			if (write_index_file(m_ui64TsCnt - m_ui32NumSegments, m_ui64TsCnt, 0) == -1) {
-				WarnL << "write_index_file error :" << strerror(errno);
+				WarnL << "write_index_file error :" << get_uv_errmsg();
 			}
 		}
 	case 1: //P

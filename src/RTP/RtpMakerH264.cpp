@@ -5,7 +5,6 @@
  *      Author: xzl
  */
 
-#include <netinet/in.h>
 #include "Common/config.h"
 #include "RtpMakerH264.h"
 #include "Util/mini.h"

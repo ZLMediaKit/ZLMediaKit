@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h> /* for uint32_t, etc */
-#include <pthread.h>
-
 #include "SPSParser.h"
 
 /********************************************

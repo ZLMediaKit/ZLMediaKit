@@ -144,7 +144,7 @@ inline void RtmpPlayer::send_connect() {
 		auto level = val["level"].as_string();
 		auto code = val["code"].as_string();
 		if(level != "status"){
-			throw std::runtime_error(StrPrinter <<"connect 失败：" << level << " " << code << endl);
+			throw std::runtime_error(StrPrinter <<"connect 失败:" << level << " " << code << endl);
 		}
 		send_createStream();
 	});
@@ -170,7 +170,7 @@ inline void RtmpPlayer::send_play() {
 		auto level = val["level"].as_string();
 		auto code = val["code"].as_string();
 		if(level != "status"){
-			throw std::runtime_error(StrPrinter <<"play 失败：" << level << " " << code << endl);
+			throw std::runtime_error(StrPrinter <<"play 失败:" << level << " " << code << endl);
 		}
 	};
 	addOnStatusCB(fun);
@@ -187,7 +187,7 @@ inline void RtmpPlayer::send_pause(bool bPause) {
         auto code = val["code"].as_string();
         if(level != "status") {
             if(!bPause){
-                throw std::runtime_error(StrPrinter <<"pause 恢复播放失败：" << level << " " << code << endl);
+                throw std::runtime_error(StrPrinter <<"pause 恢复播放失败:" << level << " " << code << endl);
             }
         }else{
             m_bPaused = bPause;
@@ -236,7 +236,7 @@ void RtmpPlayer::onCmd_onStatus(AMFDecoder &dec) {
 		}
 	}
 	if(val.type() != AMF_OBJECT){
-		throw std::runtime_error("onStatus: 未找到结果对象");
+		throw std::runtime_error("onStatus:the result object was not found");
 	}
     
     lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);

@@ -27,7 +27,7 @@ void HttpClient::sendRequest(const string &strUrl){
         defaultPort = 443;
         isHttps = true;
     }else{
-        auto strErr = StrPrinter << "非法的协议：" << protocol << endl;
+        auto strErr = StrPrinter << "非法的协议:" << protocol << endl;
         throw std::invalid_argument(strErr);
     }
     

@@ -8,20 +8,31 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #设置可执行程序路径
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 #设置子目录
-set(SUB_DIR_LIST "Codec" "Common" "Device" "H264" "Http" "MediaFile" "Player" "Rtmp" "RTP" "Rtsp" "Shell" )
+set(SUB_DIR_LIST "Codec" "Common" "Device" "H264" "Http" "MediaFile" "Player" "Rtmp" "RTP" "Rtsp" )
+
+if(NOT WIN32)
+list(APPEND SUB_DIR_LIST "Shell")
+endif()
 
 #使能GOP缓存
 add_definitions(-DENABLE_RING_USEBUF)
 
+
+#安装目录
+if(WIN32)
+set(INSTALL_PATH_LIB $ENV{HOME}/${CMAKE_PROJECT_NAME}/lib)
+set(INSTALL_PATH_INCLUDE $ENV{HOME}/${CMAKE_PROJECT_NAME}/include)
+else()
+set(INSTALL_PATH_LIB lib)
+set(INSTALL_PATH_INCLUDE include)
+endif()
+
+
 foreach(SUB_DIR ${SUB_DIR_LIST})
     #遍历源文件
     aux_source_directory(src/${SUB_DIR} SRC_LIST)
-    #创建头文件安装文件夹
-    execute_process(COMMAND mkdir -p ${PROJECT_BINARY_DIR}/include/${CMAKE_PROJECT_NAME}/${SUB_DIR}/ )
-    #遍历头文件
-    file(GLOB_RECURSE HEADER_FILES "${PROJECT_SOURCE_DIR}/src/${SUB_DIR}/*.h")
-    #拷贝头文件至安装文件夹
-    execute_process(COMMAND cp ${HEADER_FILES} ${PROJECT_BINARY_DIR}/include/${CMAKE_PROJECT_NAME}/${SUB_DIR}/ )
+    #安装头文件至系统目录
+	install(DIRECTORY src/${SUB_DIR} DESTINATION ${INSTALL_PATH_INCLUDE}/${CMAKE_PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
 endforeach(SUB_DIR ${SUB_DIR_LIST})
 
 set(LINK_LIB_LIST)
@@ -91,32 +102,29 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 #使能c++11
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
+if(NOT WIN32)
 #关闭过期接口警告
 add_compile_options(-Wno-deprecated-declarations)
 #关闭__FUNCTION__宏在函数外警告
 add_compile_options(-Wno-predefined-identifier-outside-function)
+endif(NOT WIN32)
 
 #编译动态库
 if(NOT IOS AND NOT ANDROID)
 add_library(${CMAKE_PROJECT_NAME}_shared SHARED ${SRC_LIST})
 set_target_properties(${CMAKE_PROJECT_NAME}_shared PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
-install(TARGETS ${CMAKE_PROJECT_NAME}_shared LIBRARY DESTINATION lib)
+install(TARGETS ${CMAKE_PROJECT_NAME}_shared  ARCHIVE DESTINATION ${INSTALL_PATH_LIB} LIBRARY DESTINATION ${INSTALL_PATH_LIB})
 target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${LINK_LIB_LIST})
 endif()
 
 #编译静态库
 add_library(${CMAKE_PROJECT_NAME}_static STATIC ${SRC_LIST})
 set_target_properties(${CMAKE_PROJECT_NAME}_static PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
-install(TARGETS ${CMAKE_PROJECT_NAME}_static ARCHIVE DESTINATION lib)
-
-#安装头文件至系统目录
-install(DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_PROJECT_NAME} DESTINATION include)
+install(TARGETS ${CMAKE_PROJECT_NAME}_static ARCHIVE DESTINATION ${INSTALL_PATH_LIB})
 
 #测试程序
 if(NOT IOS)
 add_subdirectory(tests)
-else(NOT IOS)
-include_directories(${PROJECT_SOURCE_DIR}/../ZLToolKit/src)
 endif(NOT IOS)
 
 

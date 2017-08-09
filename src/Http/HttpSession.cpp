@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <algorithm>
-#include <dirent.h>
 
 #include "Common/config.h"
 #include "strCoding.h"
@@ -146,7 +145,7 @@ void HttpSession::onManager() {
 	static uint32_t keepAliveSec =  mINI::Instance()[Config::Http::kKeepAliveSecond].as<uint32_t>();
 	if(m_ticker.elapsedTime() > keepAliveSec * 1000){
 		//1分钟超时
-		WarnL<<"HttpSession超时断开！";
+		WarnL<<"HttpSession timeouted!";
 		shutdown();
 	}
 }
@@ -226,7 +225,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 			int64_t iReq = MIN(sendBufSize,*piLeft);
 			int64_t iRead = fread(pacSendBuf.get(), 1, iReq, pFilePtr.get());
 			*piLeft -= iRead;
-			//InfoL << "Send file ：" << iReq << " " << *piLeft;
+			//InfoL << "Send file :" << iReq << " " << *piLeft;
 			if (iRead < iReq || !*piLeft) {
 				//send completed!
 				//FatalL << "send completed!";
@@ -280,13 +279,13 @@ inline bool HttpSession::makeMeun(const string &strFullPath, string &strRet) {
 		strRet += "<li><a href=\"";
 		strRet += "/";
 		strRet += "\">";
-		strRet += "根目录";
+		strRet += "root directory";
 		strRet += "</a></li>\r\n";
 
 		strRet += "<li><a href=\"";
 		strRet += "../";
 		strRet += "\">";
-		strRet += "上一级目录";
+		strRet += "parent directory";
 		strRet += "</a></li>\r\n";
 	}
 

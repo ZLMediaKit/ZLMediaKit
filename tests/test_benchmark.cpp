@@ -1,6 +1,5 @@
 
 #include <signal.h>
-#include <unistd.h>
 #include <atomic>
 #include <iostream>
 #include <list>
@@ -29,8 +28,8 @@ int main(int argc, char *argv[]){
 	signal(SIGINT, programExit);
 
 	if(argc != 5){
-		FatalL << "\r\n测试方法：./test_benchmark player_count play_interval rtxp_url rtp_type\r\n"
-			   << "例如你想每隔50毫秒启动共计100个播放器（tcp方式播放rtsp://127.0.0.1/live/0 ）可以输入以下命令：\r\n"
+		FatalL << "\r\n测试方法:./test_benchmark player_count play_interval rtxp_url rtp_type\r\n"
+			   << "例如你想每隔50毫秒启动共计100个播放器（tcp方式播放rtsp://127.0.0.1/live/0 ）可以输入以下命令:\r\n"
 		       << "./test_benchmark 100 50 rtsp://127.0.0.1/live/0 0\r\n"
 		       <<endl;
 		Logger::Destory();
@@ -59,7 +58,7 @@ int main(int argc, char *argv[]){
 	});
 
 	AsyncTaskThread::Instance().DoTaskDelay(0, 1000, [&](){
-		InfoL << "存活播放器个数：" << alivePlayerCnt.load();
+		InfoL << "存活播放器个数:" << alivePlayerCnt.load();
 		return true;
 	});
 	EventPoller::Instance().runLoop();

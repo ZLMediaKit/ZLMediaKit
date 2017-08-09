@@ -19,14 +19,14 @@ RtmpParser::RtmpParser(const AMFValue &val) {
             //264
             m_bHaveVideo = true;
         } else {
-            InfoL << "不支持RTMP视频格式：" << videoCodec.as_string();
+            InfoL << "不支持RTMP视频格式:" << videoCodec.as_string();
         }
     }else if (videoCodec.type() != AMF_NULL){
         if (videoCodec.as_integer() == 7) {
             //264
             m_bHaveVideo = true;
         } else {
-            InfoL << "不支持RTMP视频格式：" << videoCodec.as_integer();
+            InfoL << "不支持RTMP视频格式:" << videoCodec.as_integer();
         }
     }
     
@@ -36,14 +36,14 @@ RtmpParser::RtmpParser(const AMFValue &val) {
 			//aac
 			m_bHaveAudio = true;
 		} else {
-			InfoL << "不支持RTMP音频格式：" << audioCodec.as_string();
+			InfoL << "不支持RTMP音频格式:" << audioCodec.as_string();
 		}
     }else if (audioCodec.type() != AMF_NULL) {
         if (audioCodec.as_integer() == 10) {
             //aac
             m_bHaveAudio = true;
         } else {
-            InfoL << "不支持RTMP音频格式：" << audioCodec.as_integer();
+            InfoL << "不支持RTMP音频格式:" << audioCodec.as_integer();
         }
     }
     

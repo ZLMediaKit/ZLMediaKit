@@ -8,7 +8,6 @@
 #ifndef SRC_SHELL_CMD_H_
 #define SRC_SHELL_CMD_H_
 
-#include <getopt.h>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -69,7 +68,7 @@ public:
 	typedef function< void(OutStream *stream, const unordered_multimap<char, string> &)> OptionCompleted;
 	OptionParser(const OptionCompleted &_cb) {
 		onCompleted = _cb;
-		helper = Option('h', "help", Option::ArgNone, "获取此帮助", [this](OutStream *stream,const char *arg)->bool {
+		helper = Option('h', "help", Option::ArgNone, "print this help", [this](OutStream *stream,const char *arg)->bool {
 			_StrPrinter printer;
 			for (auto &pr : options) {
 				printer<<"\t-"<<pr.first<<"\t--"<<pr.second.longOpt<<"\t"<<pr.second.des<<"\r\n";
