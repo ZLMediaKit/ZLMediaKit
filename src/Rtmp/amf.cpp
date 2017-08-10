@@ -2,10 +2,12 @@
 #include <stdexcept>
 #include "amf.h"
 #include "utils.h"
-#include "Util/logger.h"
 #include "Util/util.h"
+#include "Util/logger.h"
+#include "Network/sockutil.h"
 
 using namespace ZL::Util;
+using namespace ZL::Network;
 
 /////////////////////AMFValue/////////////////////////////
 inline void AMFValue::destroy() {

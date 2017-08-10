@@ -4,8 +4,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include "Util/util.h"
+#include "Network/sockutil.h"
 
 using namespace ZL::Util;
+using namespace ZL::Network;
 
 /*
  * Used to do unaligned loads on archs that don't support them. GCC can mostly
