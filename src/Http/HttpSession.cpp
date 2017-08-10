@@ -5,6 +5,10 @@
  *      Author: xzl
  */
 
+#if !defined(_WIN32)
+#include <dirent.h>
+#endif //!defined(_WIN32)
+
 #include <stdio.h>
 #include <sys/stat.h>
 #include <algorithm>
@@ -18,6 +22,7 @@
 #include "Util/onceToken.h"
 #include "Util/mini.h"
 #include "Util/NoticeCenter.h"
+
 
 using namespace ZL::Util;
 

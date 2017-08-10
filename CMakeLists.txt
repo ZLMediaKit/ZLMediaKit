@@ -68,7 +68,7 @@ endif(MP4V2_FOUND)
 #查找x264是否安装
 find_package(X264 QUIET)
 if(X264_FOUND)
-message(STATUS "找到x264库:\"${X264_INCLUDE_DIR}\",ENABLE_X264宏已打开")
+message(STATUS "找到x264库:\"${X264_INCLUDE_DIRS}\",ENABLE_X264宏已打开")
 include_directories(${X264_INCLUDE_DIRS})
 add_definitions(-DENABLE_X264)
 list(APPEND LINK_LIB_LIST ${X264_LIBRARIES})

@@ -8,6 +8,10 @@
 #ifndef SRC_SHELL_CMD_H_
 #define SRC_SHELL_CMD_H_
 
+#if !defined(_WIN32)
+#include <getopt.h>
+#endif //!defined(_WIN32)
+
 #include <string>
 #include <vector>
 #include <iostream>
