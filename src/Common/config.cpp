@@ -9,17 +9,6 @@
 
 using namespace ZL::Network;
 
-
-#if defined(_WIN32)
-static onceToken g_token([]() {
-	WORD wVersionRequested = MAKEWORD(2, 2);
-	WSADATA wsaData;
-	WSAStartup(wVersionRequested, &wsaData);
-}, []() {
-	WSACleanup();
-});
-#endif // defined(_WIN32)
-
 namespace Config {
 
 void loaIniConfig(){
