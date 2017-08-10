@@ -5,9 +5,11 @@
 #include <string>
 #include "Util/util.h"
 #include "Util/logger.h"
+#include "Network/sockutil.h"
 
 using namespace std;
 using namespace ZL::Util;
+using namespace ZL::Network;
 
 #define PORT	1935
 #define DEFAULT_CHUNK_LEN	128
