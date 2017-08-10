@@ -112,8 +112,7 @@ inline bool ShellSession::onProcessLine(const string& line) {
 	string cmd = argv[0];
 	auto it = g_mapCmd.find(cmd);
 	if (it == g_mapCmd.end()) {
-		auto sendStr = StrPrinter << "\t未识别的命令\"" << cmd
-				<< "\",请输入\"help\"获取帮助.\r\n" << endl;
+		auto sendStr = StrPrinter << "\tUnrecognized option:\"" << cmd << "\",Enter \"help\" to get help.\r\n" << endl;
 		send(sendStr);
 		sendHead();
 		return true;

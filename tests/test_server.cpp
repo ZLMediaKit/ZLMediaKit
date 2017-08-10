@@ -13,6 +13,7 @@
 #include "Rtsp/RtspSession.h"
 #include "Rtmp/RtmpSession.h"
 #include "Http/HttpSession.h"
+#include "Shell/ShellSession.h"
 
 #ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
@@ -27,16 +28,12 @@
 #include "Thread/WorkThreadPool.h"
 #include "Device/PlayerProxy.h"
 
-#if !defined(_WIN32)
-#include "Shell/ShellSession.h"
-using namespace ZL::Shell;
-#endif // !defined(_WIN32)
-
 using namespace std;
 using namespace ZL::Util;
 using namespace ZL::Http;
 using namespace ZL::Rtsp;
 using namespace ZL::Rtmp;
+using namespace ZL::Shell;
 using namespace ZL::Thread;
 using namespace ZL::Network;
 using namespace ZL::DEV;
@@ -45,7 +42,7 @@ void programExit(int arg) {
 	EventPoller::Instance().shutdown();
 }
 int main(int argc,char *argv[]){
-   // setExePath(argv[0]);
+    setExePath(argv[0]);
 	signal(SIGINT, programExit);
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
 	Config::loaIniConfig();
@@ -82,23 +79,19 @@ int main(int argc,char *argv[]){
 	}
 #endif //ENABLE_OPENSSL
 
-	TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
-	TcpServer<RtmpSession>::Ptr rtmpSrv(new TcpServer<RtmpSession>());
-	TcpServer<HttpSession>::Ptr httpSrv(new TcpServer<HttpSession>());
-	
-
-	rtspSrv->start(mINI::Instance()[Config::Rtsp::kPort]);
-	rtmpSrv->start(mINI::Instance()[Config::Rtmp::kPort]);
-	httpSrv->start(mINI::Instance()[Config::Http::kPort]);
-
-#if !defined(_WIN32)
 	//简单的telnet服务器，可用于服务器调试，但是不能使用23端口
 	//测试方法:telnet 127.0.0.1 8023
 	//输入用户名和密码登录(user:test,pwd:123456)，输入help命令查看帮助
 	TcpServer<ShellSession>::Ptr shellSrv(new TcpServer<ShellSession>());
-	ShellSession::addUser("test","123456");
+	TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
+	TcpServer<RtmpSession>::Ptr rtmpSrv(new TcpServer<RtmpSession>());
+	TcpServer<HttpSession>::Ptr httpSrv(new TcpServer<HttpSession>());
+	
+	ShellSession::addUser("test", "123456");
 	shellSrv->start(8023);
-#endif // !defined(_WIN32)
+	rtspSrv->start(mINI::Instance()[Config::Rtsp::kPort]);
+	rtmpSrv->start(mINI::Instance()[Config::Rtmp::kPort]);
+	httpSrv->start(mINI::Instance()[Config::Http::kPort]);
 
 #ifdef ENABLE_OPENSSL
 	TcpServer<HttpsSession>::Ptr httpsSrv(new TcpServer<HttpsSession>());
@@ -107,13 +100,10 @@ int main(int argc,char *argv[]){
 
 	EventPoller::Instance().runLoop();
 	proxyMap.clear();
+	shellSrv.reset();
 	rtspSrv.reset();
 	rtmpSrv.reset();
 	httpSrv.reset();
-
-#if !defined(_WIN32)
-	shellSrv.reset();
-#endif // !defined(_WIN32)
 
 #ifdef ENABLE_OPENSSL
 	httpsSrv.reset();

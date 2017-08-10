@@ -26,7 +26,7 @@ CMD::~CMD() {
 
 CMD_help::CMD_help() {
 	parser.reset( new OptionParser(nullptr));
-	(*parser) << Option('c', "cmd", Option::ArgNone, "列出所有命令", [](OutStream *stream,const char *arg) {
+	(*parser) << Option('c', "cmd", Option::ArgNone, "list all command", [](OutStream *stream,const char *arg) {
 		_StrPrinter printer;
 		for (auto &pr : ShellSession::g_mapCmd) {
 			printer << "\t" << pr.first << ":" << pr.second.description() << "\r\n";
@@ -38,7 +38,7 @@ CMD_help::CMD_help() {
 
 CMD_rtsp::CMD_rtsp() {
 	parser.reset(new OptionParser(nullptr));
-	(*parser) << Option('l', "list", Option::ArgNone, "列出所有媒体列表", [](OutStream *stream,const char *arg) {
+	(*parser) << Option('l', "list", Option::ArgNone, "list all media source of rtsp", [](OutStream *stream,const char *arg) {
 		_StrPrinter printer;
 		auto mediaSet = RtspMediaSource::getMediaSet();
 		for (auto &src : mediaSet) {
@@ -51,7 +51,7 @@ CMD_rtsp::CMD_rtsp() {
 
 CMD_rtmp::CMD_rtmp() {
 	parser.reset(new OptionParser(nullptr));
-	(*parser) << Option('l', "list", Option::ArgNone, "列出所有媒体列表", [](OutStream *stream,const char *arg) {
+	(*parser) << Option('l', "list", Option::ArgNone, "list all media source of rtmp", [](OutStream *stream,const char *arg) {
 		_StrPrinter printer;
 		auto mediaSet = RtmpMediaSource::getMediaSet();
 		for (auto &src : mediaSet) {

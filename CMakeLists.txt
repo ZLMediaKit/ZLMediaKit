@@ -8,10 +8,10 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #设置可执行程序路径
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 #设置子目录
-set(SUB_DIR_LIST "Codec" "Common" "Device" "H264" "Http" "MediaFile" "Player" "Rtmp" "RTP" "Rtsp" )
+set(SUB_DIR_LIST "Codec" "Common" "Device" "H264" "Http" "MediaFile" "Player" "Rtmp" "RTP" "Rtsp" "Shell")
 
-if(NOT WIN32)
-list(APPEND SUB_DIR_LIST "Shell")
+if(WIN32)
+list(APPEND SUB_DIR_LIST "win32")
 endif()
 
 #使能GOP缓存

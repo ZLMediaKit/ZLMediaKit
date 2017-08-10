@@ -8,9 +8,11 @@
 #ifndef SRC_SHELL_CMD_H_
 #define SRC_SHELL_CMD_H_
 
-#if !defined(_WIN32)
+#if defined(_WIN32)
+#include "win32/getopt.h"
+#else
 #include <getopt.h>
-#endif //!defined(_WIN32)
+#endif //defined(_WIN32)
 
 #include <string>
 #include <vector>
@@ -72,7 +74,7 @@ public:
 	typedef function< void(OutStream *stream, const unordered_multimap<char, string> &)> OptionCompleted;
 	OptionParser(const OptionCompleted &_cb) {
 		onCompleted = _cb;
-		helper = Option('h', "help", Option::ArgNone, "print this help", [this](OutStream *stream,const char *arg)->bool {
+		helper = Option('h', "help", Option::ArgNone, "print this message", [this](OutStream *stream,const char *arg)->bool {
 			_StrPrinter printer;
 			for (auto &pr : options) {
 				printer<<"\t-"<<pr.first<<"\t--"<<pr.second.longOpt<<"\t"<<pr.second.des<<"\r\n";
@@ -95,7 +97,7 @@ public:
 		struct option tmp;
 		for (auto &pr : options) {
 			//long opt
-			tmp.name = pr.second.longOpt.data();
+			tmp.name = (char *)pr.second.longOpt.data();
 			tmp.has_arg = pr.second.argType;
 			tmp.flag = NULL;
 			tmp.val = pr.first;
@@ -128,7 +130,7 @@ public:
 		while ((opt = getopt_long(argc, argv, &str_shortOpt[0], &vec_longOpt[0],NULL)) != -1) {
 			auto it = options.find(opt);
 			if (it == options.end()) {
-				string sendStr = StrPrinter << "\t无法识别的选项,请输入\"-h\"获取帮助.\r\n" << endl;
+				string sendStr = StrPrinter << "\tUnrecognized option. Enter \"-h\" to get help.\r\n" << endl;
 				stream->response(sendStr);
 				return true;
 			}
