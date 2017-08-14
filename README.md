@@ -5,6 +5,7 @@ Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branc
 macOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac)
 iOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios)
 Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android)
+Windows | 已经完成移植
 
 ## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
@@ -93,6 +94,20 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
   export ANDROID_NDK_ROOT=/path/to/ndk
   ./build_for_android.sh
   ```
+## 编译(Windows)
+- 我的编译环境
+  - windows 10
+  - visual studio 2017
+  - [ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
+  
+- 编译
+```
+   1 请先编译[ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
+   2 使用vs2017打开ZLMediaKit源码根目录文件夹,然后自动生成工程文件，工程文件路径请查看cmake输出.
+   3 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
+   4 编译 ALL_BUILD 项目.
+   5 找到目标文件并运行测试用例.
+```
 ## 使用方法
 - 作为服务器：
 	```
