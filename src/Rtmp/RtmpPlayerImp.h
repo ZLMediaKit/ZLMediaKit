@@ -27,11 +27,11 @@ public:
     typedef std::shared_ptr<RtmpPlayerImp> Ptr;
     RtmpPlayerImp();
     virtual ~RtmpPlayerImp();
-    float getProgresss() const override{
+    float getProgress() const override{
         if(getDuration() > 0){
             return getProgressTime() / getDuration();
         }
-        return PlayerBase::getProgresss();
+        return PlayerBase::getProgress();
     };
     void seekTo(float fProgress) override{
         fProgress = MAX(float(0),MIN(fProgress,float(1.0)));

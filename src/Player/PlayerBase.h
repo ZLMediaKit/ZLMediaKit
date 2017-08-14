@@ -58,7 +58,7 @@ public:
     virtual bool containVideo() const { return false; };
     virtual bool isInited() const { return true; };
     virtual float getDuration() const { return 0;};
-    virtual float getProgresss() const { return 0;};
+    virtual float getProgress() const { return 0;};
     virtual void seekTo(float fProgress) {};
     
 
@@ -184,11 +184,11 @@ public:
 		}
 		return PlayerBase::getDuration();
 	}
-    float getProgresss() const override{
+    float getProgress() const override{
         if (m_parser) {
-            return m_parser->getProgresss();
+            return m_parser->getProgress();
         }
-        return PlayerBase::getProgresss();
+        return PlayerBase::getProgress();
     };
     void seekTo(float fProgress) override{
         if (m_parser) {

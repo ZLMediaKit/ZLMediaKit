@@ -29,11 +29,11 @@ public:
 	typedef std::shared_ptr<RtspPlayerImp> Ptr;
 	RtspPlayerImp();
 	virtual ~RtspPlayerImp();
-    float getProgresss() const override{
+    float getProgress() const override{
         if(getDuration() > 0){
             return getProgressTime() / getDuration();
         }
-        return PlayerBase::getProgresss();
+        return PlayerBase::getProgress();
         
     };
     void seekTo(float fProgress) override{
