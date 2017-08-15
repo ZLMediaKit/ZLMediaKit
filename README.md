@@ -139,7 +139,8 @@ Windows | 已经完成移植
 		//在这里解码AAC并播放
 	});
 	//支持rtmp、rtsp
-	player->play("rtsp://192.168.0.122/","admin","123456",PlayerBase::RTP_TCP);
+	(*player)[RtspPlayer::kRtpType] = PlayerBase::RTP_TCP;
+	player->play("rtsp://admin:jzan123456@192.168.0.122/");
 	EventPoller::Instance().runLoop();
 	```
 - 作为代理服务器：
