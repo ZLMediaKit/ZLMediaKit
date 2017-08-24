@@ -59,7 +59,8 @@ public:
 	void inputPCM(char *pcData, int iDataLen, uint32_t uiStamp);
 
 	void inputH264(char *pcData, int iDataLen, uint32_t uiStamp);
-	void inputAAC(char *pcData, int iDataLen, uint32_t uiStamp);
+	void inputAAC(char *pcDataWithAdts, int iDataLen, uint32_t uiStamp);
+	void inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,char *pcAdtsHeader);
 #ifdef ENABLE_RTSP2RTMP
 	int readerCount() {
 		return m_mediaSrc ? m_mediaSrc->readerCount() : 0;

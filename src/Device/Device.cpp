@@ -108,6 +108,9 @@ void DevChannel::inputH264(char* pcData, int iDataLen, uint32_t uiStamp) {
 }
 
 void DevChannel::inputAAC(char* pcData, int iDataLen, uint32_t uiStamp) {
+	inputAAC(pcData+7,iDataLen-7,uiStamp,pcData);
+}
+void DevChannel::inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,char *pcAdtsHeader){
 	if (!m_pRtpMaker_aac) {
 		uint32_t ssrc;
 		memcpy(&ssrc, makeRandStr(8, false).data() + 4, 4);
@@ -118,10 +121,9 @@ void DevChannel::inputAAC(char* pcData, int iDataLen, uint32_t uiStamp) {
 		m_pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc, audioMtu,m_audio->iSampleRate));
 	}
 	if (!m_bSdp_gotAAC && m_audio) {
-		makeSDP_AAC((unsigned char*) pcData, iDataLen);
+		makeSDP_AAC((unsigned char*) pcAdtsHeader, iDataLen);
 	}
-	m_pRtpMaker_aac->makeRtp(pcData + 7, iDataLen - 7, uiStamp);
-
+	m_pRtpMaker_aac->makeRtp(pcDataWithoutAdts, iDataLen, uiStamp);
 }
 
 inline void DevChannel::makeSDP_264(unsigned char *pcData, int iDataLen) {
