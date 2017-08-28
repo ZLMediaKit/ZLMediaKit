@@ -219,8 +219,8 @@ Windows | 已经完成移植
 	#编译ZLToolKit
 	cd ZLToolKit
 	mkdir -p build
-	cd build -DENABLE_ASNC_TCP_CLIENT
-	cmake ..
+	cd build 
+	cmake .. -DENABLE_ASNC_TCP_CLIENT
 	make -j4
 	sudo make install
 	```
