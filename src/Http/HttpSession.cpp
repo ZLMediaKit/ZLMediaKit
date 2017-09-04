@@ -376,9 +376,9 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
 }
 inline HttpSession::HttpCode HttpSession::Handle_Req_POST() {
 	int iContentLen = atoi(m_parser["Content-Length"].data());
-	if (!iContentLen) {
+	/*if (!iContentLen) {
 		return Http_failed;
-	}
+	}*/
 	if ((int) m_strRcvBuf.size() < iContentLen) {
 		return Http_moreData; //需要更多数据
 	}
