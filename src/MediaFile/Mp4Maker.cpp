@@ -54,7 +54,12 @@ void Mp4Maker::inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStam
 	case 1: //P
 	case 5: { //IDR
 		if (m_strLastVideo.size()) {
-			_inputH264((char *) m_strLastVideo.data(), m_strLastVideo.size(), ui32TimeStamp - m_ui32LastVideoTime, m_iLastVideoType);
+			int64_t iTimeInc = (int64_t)ui32TimeStamp - (int64_t)m_ui32LastVideoTime;
+			iTimeInc = MAX(0,MIN(iTimeInc,500));
+			if(iTimeInc == 0 ||  iTimeInc == 500){
+				WarnL << "abnormal time stamp increment:" << ui32TimeStamp << " " << m_ui32LastVideoTime;
+			}
+			_inputH264((char *) m_strLastVideo.data(), m_strLastVideo.size(), iTimeInc, m_iLastVideoType);
 		}
 		//m_strLastVideo.assign(("\x0\x0\x0\x2\x9\xf0"), 6);
 		uint32_t *p = (uint32_t *) pData;
@@ -72,7 +77,12 @@ void Mp4Maker::inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStam
 }
 void Mp4Maker::inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp){
 	if (m_strLastAudio.size()) {
-		_inputAAC((char *)m_strLastAudio.data(), m_strLastAudio.size(), ui32TimeStamp - m_ui32LastAudioTime);
+		int64_t iTimeInc = (int64_t)ui32TimeStamp - (int64_t)m_ui32LastAudioTime;
+		iTimeInc = MAX(0,MIN(iTimeInc,500));
+		if(iTimeInc == 0 ||  iTimeInc == 500){
+			WarnL << "abnormal time stamp increment:" << ui32TimeStamp << " " << m_ui32LastAudioTime;
+		}
+		_inputAAC((char *)m_strLastAudio.data(), m_strLastAudio.size(), iTimeInc);
 	}
 	m_strLastAudio.assign((char *)pData, ui32Length);
 	m_ui32LastAudioTime = ui32TimeStamp;
