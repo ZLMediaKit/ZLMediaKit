@@ -99,7 +99,7 @@ Windows | 已经完成移植
   - windows 10
   - visual studio 2017
   - [ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
-  - [字符转换工具](http://www.cr173.com/soft/96995.html)
+  - [字符转换工具](http://xz.mqego.com/soft1/gb2utf8.zip)
   
 - 编译
 ```
