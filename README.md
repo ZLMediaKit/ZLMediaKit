@@ -99,14 +99,16 @@ Windows | 已经完成移植
   - windows 10
   - visual studio 2017
   - [ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
+  - [字符转换工具](http://www.cr173.com/soft/96995.html)
   
 - 编译
 ```
    1 请先编译[ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
-   2 使用vs2017打开ZLMediaKit源码根目录文件夹,然后自动生成工程文件，工程文件路径请查看cmake输出.
-   3 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
-   4 编译 ALL_BUILD 项目.
-   5 找到目标文件并运行测试用例.
+   2 使用字符转换工具把代码(UTF8)转换层GBK(过滤器添加*.cpp|*h|*.c)
+   3 使用vs2017打开ZLMediaKit源码根目录文件夹,然后自动生成工程文件，工程文件路径请查看cmake输出.
+   4 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
+   5 编译 ALL_BUILD 项目.
+   6 找到目标文件并运行测试用例.
 ```
 ## 使用方法
 - 作为服务器：
