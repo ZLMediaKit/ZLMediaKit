@@ -51,7 +51,9 @@ private:
         }
     }
     void onMediaData(RtmpPacket &chunkData) override {
-        m_parser->inputRtmp(chunkData);
+    	if(m_parser){
+    		m_parser->inputRtmp(chunkData);
+    	}
     }
 };
                     

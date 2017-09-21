@@ -31,9 +31,15 @@ string FindField(const char* buf, const char* start, const char *end ,int bufSiz
 	return string(msg_start, msg_end);
 }
 int parserSDP(const string& sdp, RtspTrack Track[2]) {
-	string track_str = "track";
+	string track_str;
 	if (sdp.find("trackID=") != string::npos) {
 		track_str = "trackID=";
+	}else if (sdp.find("track") != string::npos) {
+		track_str = "track";
+	}else if (sdp.find("streamid=") != string::npos) {
+		track_str = "streamid=";
+	}else if (sdp.find("stream") != string::npos) {
+		track_str = "stream";
 	}
 	int track_cnt = 0;
 	string::size_type pos_head = sdp.find("m=");

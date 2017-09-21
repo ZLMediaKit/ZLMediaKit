@@ -182,6 +182,9 @@ inline void RtpParser::onGetAudioTrack(const RtspTrack& audio) {
 	m_strAudioCfg.push_back(cfg2);
 	makeAdtsHeader(m_strAudioCfg,m_adts);
 	getAACInfo(m_adts, m_iSampleRate, m_iChannel);
+	if(m_adts.profile >= 3){
+		throw std::runtime_error("不支持该profile的AAC");
+	}
 }
 
 inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
