@@ -194,7 +194,9 @@ inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
 	string sps_pps = FindField(video.trackSdp.c_str(), "sprop-parameter-sets=", "\r\n");
 	string base64_SPS = FindField(sps_pps.c_str(), NULL, ",");
 	string base64_PPS = FindField(sps_pps.c_str(), ",", NULL);
-
+	if(base64_PPS.back() == ';'){
+		base64_PPS.pop_back();
+	}
 	uint8_t SPS_BUF[256], PPS_BUF[256];
 	int SPS_LEN = av_base64_decode(SPS_BUF, base64_SPS.c_str(), sizeof(SPS_BUF));
 	int PPS_LEN = av_base64_decode(PPS_BUF, base64_PPS.c_str(), sizeof(PPS_BUF));
