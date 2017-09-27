@@ -11,7 +11,7 @@ using namespace ZL::Network;
 
 namespace Config {
 
-void loaIniConfig(){
+void loadIniConfig(){
 	auto &ini = ZL::Util::mINI::Instance();
 	try{
 		ini.parseFile(exePath() + ".ini");

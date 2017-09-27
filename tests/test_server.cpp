@@ -45,7 +45,7 @@ int main(int argc,char *argv[]){
     setExePath(argv[0]);
 	signal(SIGINT, programExit);
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
-	Config::loaIniConfig();
+	Config::loadIniConfig();
 	DebugL << exePath();
 	//support rtmp and rtsp url
 	//just support H264+AAC
