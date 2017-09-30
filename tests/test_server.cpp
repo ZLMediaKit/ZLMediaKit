@@ -48,6 +48,7 @@
 #include "Device/PlayerProxy.h"
 
 using namespace std;
+using namespace ZL::DEV;
 using namespace ZL::Util;
 using namespace ZL::Http;
 using namespace ZL::Rtsp;
@@ -55,37 +56,39 @@ using namespace ZL::Rtmp;
 using namespace ZL::Shell;
 using namespace ZL::Thread;
 using namespace ZL::Network;
-using namespace ZL::DEV;
 
-void programExit(int arg) {
-	EventPoller::Instance().shutdown();
-}
 int main(int argc,char *argv[]){
-    setExePath(argv[0]);
-	signal(SIGINT, programExit);
+	//设置退出信号处理函数
+	signal(SIGINT, [](int){EventPoller::Instance().shutdown();});
+	//设置日志
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
+    Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
+	//加载配置文件，如果配置文件不存在就创建一个
 	Config::loadIniConfig();
-	DebugL << exePath();
-	//support rtmp and rtsp url
-	//just support H264+AAC
+	//这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
+	//如果是其他不识别的音视频将会被忽略(譬如说h264+adpcm转发后会去除音频)
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
+					//rtsp链接支持输入用户名密码
 					"rtsp://admin:jzan123456@192.168.0.122/"};
 	 map<string , PlayerProxy::Ptr> proxyMap;
 	 int i=0;
-	 for(auto url : urlList){
+	 for(auto &url : urlList){
 		 //PlayerProxy构造函数前两个参数分别为应用名（app）,流id（streamId）
 		 //比如说应用为live，流id为0，那么直播地址为:
 		 //http://127.0.0.1/live/0/hls.m3u8
 		 //rtsp://127.0.0.1/live/0
 		 //rtmp://127.0.0.1/live/0
-		 //录像地址为:
+		 //录像地址为(当然vlc不支持这么多级的rtmp url，可以用test_player测试rtmp点播):
 		 //http://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 		 //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 		 //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 		 PlayerProxy::Ptr player(new PlayerProxy("live",to_string(i++).data()));
-		 (*player)[PlayerProxy::kAliveSecond] = 10;//录制10秒
+		 //指定RTP over TCP(播放rtsp时有效)
+		 (*player)[RtspPlayer::kRtpType] = PlayerBase::RTP_TCP;
+		 //开始播放，如果播放失败或者播放中止，将会自动重试若干次，重试次数在配置文件中配置，默认一直重试
 		 player->play(url);
-		 proxyMap.emplace(string(url),player);
+		 //需要保存PlayerProxy，否则作用域结束就会销毁该对象
+		 proxyMap.emplace(url,player);
 	 }
 
 #ifdef ENABLE_OPENSSL
@@ -94,31 +97,35 @@ int main(int argc,char *argv[]){
 		SSL_Initor::Instance().loadServerPem((exePath() + ".pem").data());
 	}catch(...){
 		FatalL << "请把证书:" << (exeName() + ".pem") << "放置在本程序可执行程序同目录下:" << exeDir() << endl;
+		proxyMap.clear();
 		return 0;
 	}
 #endif //ENABLE_OPENSSL
 
-	//简单的telnet服务器，可用于服务器调试，但是不能使用23端口
+	//简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
 	//测试方法:telnet 127.0.0.1 8023
 	//输入用户名和密码登录(user:test,pwd:123456)，输入help命令查看帮助
 	TcpServer<ShellSession>::Ptr shellSrv(new TcpServer<ShellSession>());
+	ShellSession::addUser("test", "123456");
+	shellSrv->start(8023);
+	//开启rtsp/rtmp/http服务器
 	TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
 	TcpServer<RtmpSession>::Ptr rtmpSrv(new TcpServer<RtmpSession>());
 	TcpServer<HttpSession>::Ptr httpSrv(new TcpServer<HttpSession>());
-	
-	ShellSession::addUser("test", "123456");
-	shellSrv->start(8023);
-	rtspSrv->start(mINI::Instance()[Config::Rtsp::kPort]);
-	rtmpSrv->start(mINI::Instance()[Config::Rtmp::kPort]);
-	httpSrv->start(mINI::Instance()[Config::Http::kPort]);
+	rtspSrv->start(mINI::Instance()[Config::Rtsp::kPort]);//默认554
+	rtmpSrv->start(mINI::Instance()[Config::Rtmp::kPort]);//默认1935
+	httpSrv->start(mINI::Instance()[Config::Http::kPort]);//默认80
 
 #ifdef ENABLE_OPENSSL
+    //如果支持ssl，还可以开启https服务器
 	TcpServer<HttpsSession>::Ptr httpsSrv(new TcpServer<HttpsSession>());
-	httpsSrv->start(mINI::Instance()[Config::Http::kSSLPort]);
+	httpsSrv->start(mINI::Instance()[Config::Http::kSSLPort]);//默认443
 #endif //ENABLE_OPENSSL
 
 	EventPoller::Instance().runLoop();
+	//销毁拉流客户端
 	proxyMap.clear();
+	//销毁服务器
 	shellSrv.reset();
 	rtspSrv.reset();
 	rtmpSrv.reset();
@@ -128,7 +135,9 @@ int main(int argc,char *argv[]){
 	httpsSrv.reset();
 #endif //ENABLE_OPENSSL
 
+	//rtsp服务器用到udp端口分配器了
 	UDPServer::Destory();
+	//TcpServer用到了WorkThreadPool
 	WorkThreadPool::Destory();
 	EventPoller::Destory();
 	Logger::Destory();

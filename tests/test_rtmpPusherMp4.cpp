@@ -27,7 +27,6 @@
 #include <signal.h>
 #include <iostream>
 #include "Util/logger.h"
-#include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
 #include "Poller/EventPoller.h"
 #include "Device/PlayerProxy.h"
@@ -42,53 +41,98 @@ using namespace ZL::Thread;
 using namespace ZL::Network;
 using namespace ZL::DEV;
 
-void programExit(int arg) {
-	EventPoller::Instance().shutdown();
-}
-int main(int argc,char *argv[]){
-    setExePath(argv[0]);
-	signal(SIGINT, programExit);
-	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
+//推流器，保持强引用
+RtmpPusher::Ptr pusher;
 
-	RtmpPusher::Ptr pusher;
-	//监听RtmpMediaSource注册事件,在流媒体化MP4文件后触发。
-	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastRtmpSrcRegisted,
-			[&pusher](BroadcastRtmpSrcRegistedArgs){
-		//媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
-		const_cast<RtmpPusher::Ptr &>(pusher).reset(new RtmpPusher(app,stream));
+//声明函数
+void rePushDelay(const string &app,const string &stream,const string &url);
+void createPusher(const string &app,const string &stream,const string &url);
 
-		pusher->setOnShutdown([](const SockException &ex){
-			WarnL << "已断开与服务器连接:" << ex.getErrCode() << " " << ex.what();
-		});
 
-		pusher->setOnPublished([](const SockException &ex){
-			if(ex){
-				WarnL << "发布失败:" << ex.getErrCode() << " "<< ex.what();
-			}else{
-				InfoL << "发布成功，请用播放器打开:rtmp://jizan.iok.la/live/test";
-			}
-		});
+//创建推流器并开始推流
+void createPusher(const string &app,const string &stream,const string &url){
+    auto rtmpSrc = MediaReader::onMakeRtmp(app,stream);
+    if(!rtmpSrc){
+        //文件不存在
+        WarnL << "MP4 file not exited!";
+        return;
+    }
 
-		//推流地址，请改成你自己的服务器。
-		//这个范例地址（也是基于mediakit）是可用的，但是带宽只有1mb，访问可能很卡顿。
-		InfoL << "start publish rtmp!";
-		pusher->publish("rtmp://jizan.iok.la/live/test");
+    //创建推流器并绑定一个RtmpMediaSource
+    pusher.reset(new RtmpPusher(rtmpSrc));
+	//设置推流中断处理逻辑
+	pusher->setOnShutdown([app,stream, url](const SockException &ex) {
+		WarnL << "Server connection is closed:" << ex.getErrCode() << " " << ex.what();
+        //重新推流
+        rePushDelay(app, stream, url);
 	});
+	//设置发布结果处理逻辑
+	pusher->setOnPublished([app,stream, url](const SockException &ex) {
+		if (ex) {
+			WarnL << "Publish fail:" << ex.getErrCode() << " " << ex.what();
+			//如果发布失败，就重试
+            rePushDelay(app,stream, url);
+		}else {
+			InfoL << "Publish success,Please play with player:" << url;
+		}
+	});
+	pusher->publish(url.data());
+}
 
+//推流失败或断开延迟2秒后重试推流
+void rePushDelay(const string &app,const string &stream,const string &url){
+	//上次延时两秒的任务可能还没执行，所以我们要先取消上次任务
+	AsyncTaskThread::Instance().CancelTask(0);
+	//2秒后执行重新推流的任务
+	AsyncTaskThread::Instance().DoTaskDelay(0, 2000, [app, stream,url]() {
+		InfoL << "Re-Publishing...";
+		//重新推流
+		createPusher(app,stream,url);
+		//此任务不重复
+		return false;
+	});
+}
 
-	//流媒体化MP4文件，该文件需要放置在 httpRoot/record目录下
-	//app必须为“record”，stream为相对于httpRoot/record的路径
-	MediaReader::onMakeRtmp("record","live/0/2017-08-22/10-08-44.mp4");
+//这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了
+int domain(int argc,const char *argv[]){
+	//设置退出信号处理函数
+	signal(SIGINT, [](int){EventPoller::Instance().shutdown();});
+	//设置日志
+	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
+	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
+    //filePath同时也是流id
+    string filePath = argv[1];
+    //推流地址
+    string pushUrl = argv[2];
+
+    //录像应用名称默认为record
+    string appName = mINI::Instance()[Config::Record::kAppName];
+    //app必须record，filePath(流id)为相对于httpRoot/record的路径，否则MediaReader会找到不该文件
+    //限制app为record是为了防止服务器上的文件被肆意访问
+    createPusher(appName,filePath,pushUrl);
+
+	//开始事件轮询
 	EventPoller::Instance().runLoop();
+	//删除事件监听
 	NoticeCenter::Instance().delListener(nullptr);
+	//销毁推流器
 	pusher.reset();
 
+	//程序清理
 	EventPoller::Destory();
 	Logger::Destory();
 	return 0;
 }
 
+
+
+int main(int argc,char *argv[]){
+    //MP4文件需要放置在 httpRoot/record目录下,文件负载必须为h264+aac
+    //可以使用test_server生成的mp4文件
+    const char *argList[] = {argv[0],"app/stream/2017-09-30/12-55-38.mp4","rtmp://jizan.iok.la/live/test"};
+    return domain(3,argList);
+}
 
 
 

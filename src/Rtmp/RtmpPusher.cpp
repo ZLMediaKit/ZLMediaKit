@@ -37,17 +37,24 @@ namespace Rtmp {
 
 unordered_map<string, RtmpPusher::rtmpCMDHandle> RtmpPusher::g_mapCmd;
 RtmpPusher::RtmpPusher(const char *strApp,const char *strStream) {
-	static onceToken token([]() {
-		g_mapCmd.emplace("_error",&RtmpPusher::onCmd_result);
-		g_mapCmd.emplace("_result",&RtmpPusher::onCmd_result);
-		g_mapCmd.emplace("onStatus",&RtmpPusher::onCmd_onStatus);
-		}, []() {});
     auto src = RtmpMediaSource::find(strApp,strStream);
     if (!src) {
         auto strErr = StrPrinter << "media source:" << strApp << "/" << strStream << "not found!" << endl;
         throw std::runtime_error(strErr);
     }
-    m_pMediaSrc = src;
+    init(src);
+}
+RtmpPusher::RtmpPusher(const RtmpMediaSource::Ptr &src){
+    init(src);
+}
+
+void RtmpPusher::init(const RtmpMediaSource::Ptr  &src){
+    static onceToken token([]() {
+        g_mapCmd.emplace("_error",&RtmpPusher::onCmd_result);
+        g_mapCmd.emplace("_result",&RtmpPusher::onCmd_result);
+        g_mapCmd.emplace("onStatus",&RtmpPusher::onCmd_onStatus);
+    }, []() {});
+    m_pMediaSrc=src;
 }
 
 RtmpPusher::~RtmpPusher() {

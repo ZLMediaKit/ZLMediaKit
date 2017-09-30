@@ -44,15 +44,12 @@ using namespace ZL::Network;
 using namespace ZL::Rtsp;
 using namespace ZL::Player;
 
-void programExit(int arg) {
-	EventPoller::Instance().shutdown();
-}
-
 int main(int argc, char *argv[]){
-	
+	//设置退出信号处理函数
+	signal(SIGINT, [](int){EventPoller::Instance().shutdown();});
+	//设置日志
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
-	//Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
-	signal(SIGINT, programExit);
+	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
 	if(argc != 3){
 		FatalL << "\r\n测试方法：./test_player rtxp_url rtp_type\r\n"

@@ -39,6 +39,7 @@ public:
 	typedef std::shared_ptr<RtmpPusher> Ptr;
 	typedef std::function<void(const SockException &ex)> Event;
 	RtmpPusher(const char *strApp,const char *strStream);
+	RtmpPusher(const RtmpMediaSource::Ptr  &src);
 	virtual ~RtmpPusher();
 
 	void publish(const char* strUrl);
@@ -65,6 +66,7 @@ protected:
 		send(pcRawData, iSize);
 	}
 private:
+    void init(const RtmpMediaSource::Ptr  &src);
 	void onShutdown(const SockException &ex) {
 		m_pPublishTimer.reset();
 		if(m_onShutdown){
