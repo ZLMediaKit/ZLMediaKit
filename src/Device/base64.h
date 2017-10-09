@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2006 Ryan Martell. (rdm4@martellventures.com)
  *
  * This file is part of FFmpeg.

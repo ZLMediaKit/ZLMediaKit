@@ -1,4 +1,4 @@
-#include "crc32.h"
+﻿#include "crc32.h"
 
 #define BSWAP16C(x) (((x) << 8 & 0xff00)  | ((x) >> 8 & 0x00ff))
 #define BSWAP32C(x) (BSWAP16C(x) << 16 | BSWAP16C((x) >> 16))

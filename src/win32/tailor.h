@@ -1,4 +1,4 @@
-/* tailor.h -- target dependent definitions
+﻿/* tailor.h -- target dependent definitions
  * Copyright (C) 1992-1993 Jean-loup Gailly.
  * This is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, see the file COPYING.

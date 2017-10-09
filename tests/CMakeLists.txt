@@ -1,4 +1,4 @@
-#查找SDL是否安装
+﻿#查找SDL是否安装
 find_package(SDL QUIET)
 if(SDL_FOUND)
 include_directories(${SDL_INCLUDE_DIR})

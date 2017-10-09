@@ -1,4 +1,4 @@
-#ifndef CRC32_H_
+﻿#ifndef CRC32_H_
 #define CRC32_H_
 
 unsigned int  calc_crc32 (unsigned char *data, unsigned int datalen);
