@@ -106,7 +106,7 @@ Windows | 已经完成移植
 ```
    1 请先编译安装ZLToolKit
    2 使用字符转换工具把代码(UTF8)转换成GBK(过滤器添加|*.cpp|*h|*.c)
-   3 使用cmake-gui打开工程并生成vs工程文件.
+   3 使用cmake-gui打开工程并生成vs工程文件(配置时可能需要指定ZLTookKit的路径).
    4 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
    5 选择编译Release 版本.
    6 依次编译 ZLMediaKit_static、ZLMediaKit_shared、ALL_BUILD、INSTALL.
