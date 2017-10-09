@@ -95,7 +95,11 @@ const char kKeepAliveSecond[] = HTTP_FIELD"keepAliveSecond";
 const char kMaxReqCount[] = HTTP_FIELD"maxReqCount";
 
 //http 字符编码
+#if defined(_WIN32)
+#define HTTP_CHAR_SET "gb2312"
+#else
 #define HTTP_CHAR_SET "utf-8"
+#endif
 const char kCharSet[] = HTTP_FIELD"charSet";
 
 //http 服务器名称

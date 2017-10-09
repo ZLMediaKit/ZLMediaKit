@@ -175,6 +175,12 @@ void HttpSession::onManager() {
 
 inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	string strUrl = strCoding::UrlUTF8Decode(m_parser.Url());
+#ifdef _WIN32
+	static bool isGb2312 = !strcasecmp(mINI::Instance()[Config::Http::kCharSet].data(), "gb2312");
+	if (isGb2312) {
+		strUrl = strCoding::UTF8ToGB2312(strUrl);
+	}
+#endif // _WIN32
 	string strFile = m_strPath + strUrl;
 	string strConType = m_parser["Connection"];
 	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
@@ -302,13 +308,13 @@ inline bool HttpSession::makeMeun(const string &strFullPath, string &strRet) {
 		strRet += "<li><a href=\"";
 		strRet += "/";
 		strRet += "\">";
-		strRet += "root directory";
+		strRet += "根目录";
 		strRet += "</a></li>\r\n";
 
 		strRet += "<li><a href=\"";
 		strRet += "../";
 		strRet += "\">";
-		strRet += "parent directory";
+		strRet += "上级目录";
 		strRet += "</a></li>\r\n";
 	}
 
@@ -404,6 +410,13 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_POST() {
 	m_strRcvBuf.erase(0, iContentLen);
 
 	string strUrl = strCoding::UrlUTF8Decode(m_parser.Url());
+#ifdef _WIN32
+	static bool isGb2312 = !strcasecmp(mINI::Instance()[Config::Http::kCharSet].data(), "gb2312");
+	if (isGb2312) {
+		strUrl = strCoding::UTF8ToGB2312(strUrl);
+	}
+#endif // _WIN32
+
 	string strConType = m_parser["Connection"];
 	static uint32_t reqCnt = mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
 	bool bClose = (strcasecmp(strConType.data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
