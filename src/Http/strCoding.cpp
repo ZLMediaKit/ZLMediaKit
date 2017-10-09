@@ -35,14 +35,14 @@ namespace ZL {
 namespace Http {
 
 //////////////////////////通用///////////////////////
-void UTF8ToUnicode(WCHAR* pOut, const char *pText)
+void UTF8ToUnicode(wchar_t* pOut, const char *pText)
 {
 	char* uchar = (char *)pOut;
 	uchar[1] = ((pText[0] & 0x0F) << 4) + ((pText[1] >> 2) & 0x0F);
 	uchar[0] = ((pText[1] & 0x03) << 6) + (pText[2] & 0x3F);
 	return;
 }
-void UnicodeToUTF8(char* pOut, const WCHAR* pText)
+void UnicodeToUTF8(char* pOut, const wchar_t* pText)
 {
 	// 注意 WCHAR高低字的顺序,低字节在前，高字节在后 
 	const char* pchar = (const char *)pText;
