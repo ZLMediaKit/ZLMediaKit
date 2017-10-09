@@ -25,9 +25,11 @@
  */
 
 #include <list>
+#include <type_traits>
 #include "RtpBroadCaster.h"
 #include "Util/util.h"
 #include "Network/sockutil.h"
+using namespace std;
 
 namespace ZL {
 namespace Rtsp {
@@ -116,7 +118,7 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strApp,con
 		unordered_map<void * , onDetach > m_mapDetach_copy;
 		{
 			lock_guard<recursive_mutex> lck(m_mtx);
-			m_mapDetach_copy.swap(m_mapDetach);
+			m_mapDetach_copy = std::move(m_mapDetach);
 		}
 		for(auto &pr : m_mapDetach_copy){
 			pr.second();
