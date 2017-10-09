@@ -99,19 +99,17 @@ Windows | 已经完成移植
   - windows 10
   - visual studio 2017
   - [ZLToolKit](https://github.com/xiongziliang/ZLToolKit)
-  - [字符转换工具](http://xz.mqego.com/soft1/gb2utf8.zip)
   - [cmake-gui](https://cmake.org/files/v3.10/cmake-3.10.0-rc1-win32-x86.msi)
   
 - 编译
 ```
    1 请先编译安装ZLToolKit
-   2 使用字符转换工具把代码(UTF8)转换成GBK(过滤器添加|*.cpp|*h|*.c)
-   3 使用cmake-gui打开工程并生成vs工程文件(配置时可能需要指定ZLTookKit的路径).
-   4 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
-   5 选择编译Release 版本.
-   6 依次编译 ZLMediaKit_static、ZLMediaKit_shared、ALL_BUILD、INSTALL.
-   7 找到目标文件并运行测试用例.
-   8 找到安装的头文件及库文件(在源码所在分区根目录).
+   2 使用cmake-gui打开工程并生成vs工程文件(配置时可能需要指定ZLTookKit的路径).
+   3 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
+   4 选择编译Release 版本.
+   5 依次编译 ZLMediaKit_static、ZLMediaKit_shared、ALL_BUILD、INSTALL.
+   6 找到目标文件并运行测试用例.
+   7 找到安装的头文件及库文件(在源码所在分区根目录).
 ```
 ## 使用方法
 - 作为服务器：
