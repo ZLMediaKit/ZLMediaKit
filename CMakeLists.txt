@@ -87,7 +87,7 @@ endif(FAAC_FOUND)
 find_package(ZLTOOLKIT QUIET)
 if(ZLTOOLKIT_FOUND)
 message(STATUS "找到ZLToolKit库:\"${ZLTOOLKIT_INCLUDE_DIR}\"")
-include_directories(${ZLTOOLKIT_INCLUDE_DIR}/ZLToolKit)
+include_directories(${ZLTOOLKIT_INCLUDE_DIR})
 list(APPEND LINK_LIB_LIST ${ZLTOOLKIT_LIBRARIES})
 endif(ZLTOOLKIT_FOUND)
 
