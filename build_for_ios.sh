@@ -8,6 +8,8 @@ cd ..
 git clone --depth=50 https://github.com/xiongziliang/ZLMediaKit.git
 cd ZLMediaKit
 mkdir -p ios_build
+rm -rf ./build
+ln -s ./ios_build build
 cd ios_build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/iOS.cmake -DIOS_PLATFORM=OS
 make -j4
