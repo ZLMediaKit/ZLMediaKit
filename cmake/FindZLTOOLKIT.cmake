@@ -1,8 +1,8 @@
 find_path(ZLTOOLKIT_INCLUDE_DIR
   NAMES Network/Socket.h
   PATHS 
-  ${PROJECT_SOURCE_DIR}/../ZLToolKit/build/include
-  $ENV{HOME}/ZLToolKit/include/ZLToolKit)
+  ${PROJECT_SOURCE_DIR}/../ZLToolKit/src
+  $ENV{HOME}/ZLToolKit/include)
 
 message(STATUS "${ZLTOOLKIT_INCLUDE_DIR}")
 
