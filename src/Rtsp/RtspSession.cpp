@@ -693,7 +693,7 @@ inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Socket::Buffer::P
 	}else{
 		//这是rtcp心跳包，说明播放器还存活
 		m_ticker.resetTime();
-		TraceL << "rtcp:" << (iTrackIdx-1)/2 ;
+		//TraceL << "rtcp:" << (iTrackIdx-1)/2 ;
 	}
 }
 
