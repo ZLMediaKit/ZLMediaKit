@@ -54,7 +54,7 @@ public:
 	static void Destory() {
 		delete &UDPServer::Instance();
 	}
-	Socket::Ptr getSock(const char *strLocalIp, int iTrackIndex);
+	Socket::Ptr getSock(const char *strLocalIp, int iTrackIndex,uint16_t iLocalPort = 0);
 	void listenPeer(const char *strPeerIp, void *pSelf, const onRecvData &cb);
 	void stopListenPeer(const char *strPeerIp, void *pSelf);
 private:

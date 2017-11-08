@@ -107,10 +107,10 @@ void RtspSession::shutdown(){
 
 void RtspSession::onError(const SockException& err) {
 	TraceL << err.getErrCode() << " " << err.what();
-	if (m_bListenPeerUdpPort) {
-		//取消UDP断口监听
+	if (m_bListenPeerUdpData) {
+		//取消UDP端口监听
 		UDPServer::Instance().stopListenPeer(getPeerIp().data(), this);
-		m_bListenPeerUdpPort = false;
+		m_bListenPeerUdpData = false;
 	}
 	if (!m_bBase64need && m_strSessionCookie.size() != 0) {
 		//quickTime http getter
@@ -134,10 +134,6 @@ void RtspSession::onManager() {
 			WarnL << "非法链接:" << getPeerIp();
 			shutdown();
 			return;
-		}
-		if (m_bListenPeerUdpPort) {
-			UDPServer::Instance().stopListenPeer(getPeerIp().data(), this);
-			m_bListenPeerUdpPort = false;
 		}
 	}
 	if (m_rtpType != PlayerBase::RTP_TCP && m_ticker.elapsedTime() > 15 * 1000) {
@@ -330,15 +326,23 @@ bool RtspSession::handleReq_Setup() {
 	}
 		break;
 	case PlayerBase::RTP_UDP: {
-		auto pSock = UDPServer::Instance().getSock(getLocalIp().data(),trackIdx);
-		if (!pSock) {
+		//我们用trackIdx区分rtp和rtcp包
+		auto pSockRtp = UDPServer::Instance().getSock(getLocalIp().data(),2*trackIdx);
+		if (!pSockRtp) {
 			//分配端口失败
-			WarnL << "分配端口失败";
+			WarnL << "分配rtp端口失败";
 			send_NotAcceptable();
 			return false;
 		}
-		m_apUdpSock[trackIdx] = pSock;
-		int iSrvPort = pSock->get_local_port();
+		auto pSockRtcp = UDPServer::Instance().getSock(getLocalIp().data(),2*trackIdx + 1 ,pSockRtp->get_local_port() + 1);
+		if (!pSockRtcp) {
+			//分配端口失败
+			WarnL << "分配rtcp端口失败";
+			send_NotAcceptable();
+			return false;
+		}
+		m_apUdpSock[trackIdx] = pSockRtp;
+		//设置客户端内网端口信息
 		string strClientPort = FindField(m_parser["Transport"].data(), "client_port=", NULL);
 		uint16_t ui16PeerPort = atoi( FindField(strClientPort.data(), NULL, "-").data());
 		struct sockaddr_in peerAddr;
@@ -347,7 +351,8 @@ bool RtspSession::handleReq_Setup() {
 		peerAddr.sin_addr.s_addr = inet_addr(getPeerIp().data());
 		bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
 		m_apPeerUdpAddr[trackIdx].reset((struct sockaddr *) (new struct sockaddr_in(peerAddr)));
-		tryGetPeerUdpPort();
+		//尝试获取客户端nat映射地址
+		startListenPeerUdpData();
 		//InfoL << "分配端口:" << srv_port;
 		int n = sprintf(m_pcBuf, "RTSP/1.0 200 OK\r\n"
 				"CSeq: %d\r\n"
@@ -359,7 +364,7 @@ bool RtspSession::handleReq_Setup() {
 				m_iCseq, g_serverName.data(),
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), strClientPort.data(),
-				iSrvPort, iSrvPort + 1,
+				pSockRtp->get_local_port(), pSockRtcp->get_local_port(),
 				printSSRC(trackRef.ssrc).data(),
 				m_strSession.data());
 		send(m_pcBuf, n);
@@ -382,6 +387,15 @@ bool RtspSession::handleReq_Setup() {
 			});
 		}
 		int iSrvPort = m_pBrdcaster->getPort(trackid);
+		//我们用trackIdx区分rtp和rtcp包
+		auto pSockRtcp = UDPServer::Instance().getSock(getLocalIp().data(),2*trackIdx + 1,iSrvPort + 1);
+		if (!pSockRtcp) {
+			//分配端口失败
+			WarnL << "分配rtcp端口失败";
+			send_NotAcceptable();
+			return false;
+		}
+		startListenPeerUdpData();
 		static uint32_t udpTTL = mINI::Instance()[MultiCast::kUdpTTL].as<uint32_t>();
 		int n = sprintf(m_pcBuf, "RTSP/1.0 200 OK\r\n"
 				"CSeq: %d\r\n"
@@ -393,7 +407,7 @@ bool RtspSession::handleReq_Setup() {
 				m_iCseq, g_serverName.data(),
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), m_pBrdcaster->getIP().data(),
-				getLocalIp().data(), iSrvPort, iSrvPort + 1,
+				getLocalIp().data(), iSrvPort, pSockRtcp->get_local_port(),
 				udpTTL,printSSRC(trackRef.ssrc).data(),
 				m_strSession.data());
 		send(m_pcBuf, n);
@@ -581,11 +595,11 @@ inline void RtspSession::send_NotAcceptable() {
 }
 
 inline bool RtspSession::findStream() {
-    
+
     string strHost = FindField(m_strUrl.data(), "://", "/");
     m_strApp = FindField(m_strUrl.data(), (strHost + "/").data(), "/");
     m_strStream = FindField(m_strUrl.data(), (strHost + "/" + m_strApp + "/").data(), NULL);
-    
+
 	auto iPos = m_strStream.find('?');
 	if(iPos != string::npos ){
 		m_strStream.erase(iPos);
@@ -655,30 +669,37 @@ inline void RtspSession::sendRtpPacket(const RtpPacket& pkt) {
 }
 
 inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Socket::Buffer::Ptr &pBuf, const struct sockaddr& addr) {
-	m_apPeerUdpAddr[iTrackIdx].reset(new struct sockaddr(addr));
-	m_abGotPeerUdp[iTrackIdx] = true;
-	bool bGotAllPeerUdp = true;
-	for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-		if (!m_abGotPeerUdp[i]) {
-			bGotAllPeerUdp = false;
-			break;
+	if(iTrackIdx % 2 == 0){
+		//这是rtp探测包
+		if(!m_bGotAllPeerUdp){
+			//还没有获取完整的rtp探测包
+			if(SockUtil::in_same_lan(getLocalIp().data(),getPeerIp().data())){
+				//在内网中，客户端上报的端口号是真实的，所以我们忽略udp打洞包
+				m_bGotAllPeerUdp = true;
+				return;
+			}
+			//设置真实的客户端nat映射端口号
+			m_apPeerUdpAddr[iTrackIdx / 2].reset(new struct sockaddr(addr));
+			m_abGotPeerUdp[iTrackIdx / 2] = true;
+			m_bGotAllPeerUdp = true;//先假设获取到完整的rtp探测包
+			for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
+				if (!m_abGotPeerUdp[i]) {
+					//还有track没获取到rtp探测包
+					m_bGotAllPeerUdp = false;
+					break;
+				}
+			}
 		}
-	}
-	if (bGotAllPeerUdp) {
-		if (m_bListenPeerUdpPort) {
-			UDPServer::Instance().stopListenPeer(getPeerIp().data(), this);
-			m_bListenPeerUdpPort = false;
-			InfoL << "获取到客户端端口";
-		}
+	}else{
+		//这是rtcp心跳包，说明播放器还存活
+		m_ticker.resetTime();
+		TraceL << "rtcp:" << (iTrackIdx-1)/2 ;
 	}
 }
 
 
-inline void RtspSession::tryGetPeerUdpPort() {
-	if(SockUtil::in_same_lan(getLocalIp().data(),getPeerIp().data())){
-		return;
-	}
-	m_bListenPeerUdpPort = true;
+inline void RtspSession::startListenPeerUdpData() {
+	m_bListenPeerUdpData = true;
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
 	UDPServer::Instance().listenPeer(getPeerIp().data(), this,
 			[weakSelf](int iTrackIdx,const Socket::Buffer::Ptr &pBuf,struct sockaddr *pPeerAddr)->bool {

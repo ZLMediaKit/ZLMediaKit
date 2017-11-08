@@ -102,7 +102,7 @@ private:
 		return -1;
 	}
 	inline void onRcvPeerUdpData(int iTrackIdx, const Socket::Buffer::Ptr &pBuf, const struct sockaddr &addr);
-	inline void tryGetPeerUdpPort();
+	inline void startListenPeerUdpData();
 
 	char *m_pcBuf = nullptr;
 	Ticker m_ticker;
@@ -125,6 +125,7 @@ private:
 	int m_iCseq = 0;
 	unsigned int m_uiTrackCnt = 0; //媒体track个数
 	RtspTrack m_aTrackInfo[2]; //媒体track信息,trackid idx 为数组下标
+	bool m_bGotAllPeerUdp = false;
 
 #ifdef RTSP_SEND_RTCP
 	RtcpCounter m_aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
@@ -136,7 +137,7 @@ private:
 	bool m_abGotPeerUdp[2] = { false, false }; //获取客户端udp端口计数
 	weak_ptr<Socket> m_apUdpSock[2]; //发送RTP的UDP端口,trackid idx 为数组下标
 	std::shared_ptr<struct sockaddr> m_apPeerUdpAddr[2]; //播放器接收RTP的地址,trackid idx 为数组下标
-	bool m_bListenPeerUdpPort = false;
+	bool m_bListenPeerUdpData = false;
 	RtpBroadCaster::Ptr m_pBrdcaster;
 
 	//RTSP over HTTP

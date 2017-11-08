@@ -39,15 +39,15 @@ UDPServer::~UDPServer() {
 	InfoL;
 }
 
-Socket::Ptr UDPServer::getSock(const char* strLocalIp, int iTrackIndex) {
+Socket::Ptr UDPServer::getSock(const char* strLocalIp, int iTrackIndex,uint16_t iLocalPort) {
 	lock_guard<mutex> lck(m_mtxUpdSock);
 	string strKey = StrPrinter << strLocalIp << ":" << iTrackIndex << endl;
 	auto it = m_mapUpdSock.find(strKey);
 	if (it == m_mapUpdSock.end()) {
 		Socket::Ptr pSock(new Socket());
 		//InfoL<<localIp;
-		if (!pSock->bindUdpSock(0, strLocalIp)) {
-			//系统随机分配端口
+		if (!pSock->bindUdpSock(iLocalPort, strLocalIp)) {
+			//分配失败
 			return nullptr;
 		}
 
