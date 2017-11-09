@@ -33,6 +33,7 @@
 #include "Util/File.h"
 #include "Util/util.h"
 #include "Util/logger.h"
+#include <deque>
 
 using namespace ZL::Util;
 
@@ -65,15 +66,15 @@ private:
 	string m_strHttpUrl;
 	string m_strFileName;
 	string m_strOutputPrefix;
-	string m_strTmpFileName;
 	uint32_t m_ui32SegmentDuration;
 	uint32_t m_ui32NumSegments;
 	uint64_t m_ui64TsCnt;
 	uint32_t m_ui32BufSize;
 	Ticker m_Timer;
+	std::deque<int> m_iDurations;
 
-	int write_index_file(int iFirstSegment, unsigned int uiLastSegment, int iEnd);
-	void removets();
+	bool write_index_file(int iFirstSegment, unsigned int uiLastSegment, int iEnd);
+	bool removets();
 };
 
 } /* namespace MediaFile */

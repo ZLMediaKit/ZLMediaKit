@@ -38,14 +38,14 @@ HLSMaker::HLSMaker(const string& strM3u8File, const string& strHttpUrl,
 	if (ui32BufSize < 16 * 1024) {
 		ui32BufSize = 16 * 1024;
 	}
-	m_ui32BufSize = ui32BufSize;
-	if (ui32Duration < 5) {
-		ui32Duration = 5;
-	}
-	if (ui32Num < 2) {
-		ui32Num = 2;
-	}
 
+    if(ui32Duration < 0){
+        ui32Duration = 0;
+    }
+    if(ui32Num < 1){
+        ui32Num = 1;
+    }
+	m_ui32BufSize = ui32BufSize;
 	m_ui64TsCnt = 0;
 	m_strM3u8File = strM3u8File;
 	m_strHttpUrl = strHttpUrl.substr(0, strHttpUrl.find_last_of('/') + 1);
@@ -54,8 +54,7 @@ HLSMaker::HLSMaker(const string& strM3u8File, const string& strHttpUrl,
 
 	m_strOutputPrefix = strM3u8File.substr(0, strM3u8File.find_last_of('.'));
 	m_strFileName = m_strOutputPrefix.substr(m_strOutputPrefix.find_last_of('/') + 1);
-	m_strTmpFileName = m_strOutputPrefix + "-0.ts";
-	m_ts.init(m_strTmpFileName, m_ui32BufSize);
+	m_ts.init(m_strOutputPrefix + "-0.ts", m_ui32BufSize);
 }
 
 
@@ -65,91 +64,90 @@ HLSMaker::~HLSMaker() {
 	File::delete_file(strDir.data());
 }
 
-int HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment,
-		int iEnd) {
-	FILE *pIndexFp;
-	char *pcWriteBuf;
-	const char *pcTmpM3u8File = (m_strM3u8File).c_str();
-	pIndexFp = File::createfile_file(pcTmpM3u8File, "w");
-	if (pIndexFp == NULL) {
-		return -1;
+bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, int iEnd) {
+	char acWriteBuf[1024];
+    std::shared_ptr<FILE> pM3u8File(File::createfile_file(m_strM3u8File.data(), "w"),[](FILE *fp){
+        fclose(fp);
+    });
+	if (!pM3u8File) {
+		WarnL << "Could not open temporary m3u8 index file (" << m_strM3u8File << "), no index file will be created";
+		return false;
 	}
-	if (iFirstSegment < 0) {
-		iFirstSegment = 0;
-	}
-	if (!pIndexFp) {
-		WarnL << "Could not open temporary m3u8 index file (" << pcTmpM3u8File
-				<< "), no index file will be created";
-		return -1;
-	}
+    if (iFirstSegment < 0) {
+        iFirstSegment = 0;
+    }
 
-	pcWriteBuf = (char *) malloc(sizeof(char) * 1024);
-	if (!pcWriteBuf) {
-		WarnL << "Could not allocate write buffer for index file, index file will be invalid";
-		fclose(pIndexFp);
-		return -1;
-	}
-
+    //最少1秒
+    int maxSegmentDuration = 1;
+    for (auto dur : m_iDurations) {
+        dur /=1000;
+        if(dur > maxSegmentDuration){
+            maxSegmentDuration = dur;
+        }
+    }
 	if (m_ui32NumSegments) {
-		snprintf(pcWriteBuf, 1024,
-				"#EXTM3U\n#EXT-X-TARGETDURATION:%u\n#EXT-X-MEDIA-SEQUENCE:%u\n",
-				m_ui32SegmentDuration, iFirstSegment);
+        snprintf(acWriteBuf,
+                 sizeof(acWriteBuf),
+                 "#EXTM3U\n"
+                 "#EXT-X-TARGETDURATION:%u\n"
+                 "#EXT-X-MEDIA-SEQUENCE:%u\n",
+                 maxSegmentDuration,
+                 iFirstSegment);
 	} else {
-		snprintf(pcWriteBuf, 1024, "#EXTM3U\n#EXT-X-TARGETDURATION:%u\n",
-				m_ui32SegmentDuration);
+		snprintf(acWriteBuf,
+                 sizeof(acWriteBuf),
+                 "#EXTM3U\n"
+                 "#EXT-X-TARGETDURATION:%u\n",
+                 maxSegmentDuration);
 	}
-	if (fwrite(pcWriteBuf, strlen(pcWriteBuf), 1, pIndexFp) != 1) {
+	if (fwrite(acWriteBuf, strlen(acWriteBuf), 1, pM3u8File.get()) != 1) {
 		WarnL << "Could not write to m3u8 index file, will not continue writing to index file";
-		free(pcWriteBuf);
-		fclose(pIndexFp);
-		return -1;
+        return false;
 	}
 
 	for (unsigned int i = iFirstSegment; i < uiLastSegment; i++) {
-		snprintf(pcWriteBuf, 1024, "#EXTINF:%u,\n%s%s-%u.ts\n",
-				m_ui32SegmentDuration, m_strHttpUrl.c_str(),
-				m_strFileName.c_str(), i);
-		//printf(options.output_prefix);
-		if (fwrite(pcWriteBuf, strlen(pcWriteBuf), 1, pIndexFp) != 1) {
+		snprintf(acWriteBuf,
+                 sizeof(acWriteBuf),
+                 "#EXTINF:%.3f,\n%s%s-%u.ts\n",
+                 m_iDurations[i-iFirstSegment]/1000.0,
+                 m_strHttpUrl.c_str(),
+				 m_strFileName.c_str(),
+                 i);
+		if (fwrite(acWriteBuf, strlen(acWriteBuf), 1, pM3u8File.get()) != 1) {
 			WarnL << "Could not write to m3u8 index file, will not continue writing to index file";
-			free(pcWriteBuf);
-			fclose(pIndexFp);
-			return -1;
+            return false;
 		}
 	}
 
 	if (iEnd) {
-		snprintf(pcWriteBuf, 1024, "#EXT-X-ENDLIST\n");
-		if (fwrite(pcWriteBuf, strlen(pcWriteBuf), 1, pIndexFp) != 1) {
+		snprintf(acWriteBuf, sizeof(acWriteBuf), "#EXT-X-ENDLIST\n");
+		if (fwrite(acWriteBuf, strlen(acWriteBuf), 1, pM3u8File.get()) != 1) {
 			WarnL << "Could not write last file and endlist tag to m3u8 index file";
-			free(pcWriteBuf);
-			fclose(pIndexFp);
-			return -1;
+            return false;
 		}
 	}
-
-	free(pcWriteBuf);
-	fclose(pIndexFp);
-
-	return 1;
+	return true;
 }
 
-void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp,
-		int type) {
+void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp, int type) {
 	switch (type) {
 	case 7: //SPS
 		if (m_Timer.elapsedTime() >= m_ui32SegmentDuration * 1000) {
+            //关闭文件
 			m_ts.clear();
-			m_strTmpFileName = StrPrinter << m_strOutputPrefix << '-' << (++m_ui64TsCnt) << ".ts" << endl;
-			if (!m_ts.init(m_strTmpFileName, m_ui32BufSize)) {
+			auto strTmpFileName = StrPrinter << m_strOutputPrefix << '-' << (++m_ui64TsCnt) << ".ts" << endl;
+			if (!m_ts.init(strTmpFileName, m_ui32BufSize)) {
 				//创建文件失败
 				return;
 			}
-			m_Timer.resetTime();
-			removets();
-			if (write_index_file(m_ui64TsCnt - m_ui32NumSegments, m_ui64TsCnt, 0) == -1) {
-				WarnL << "write_index_file error :" << get_uv_errmsg();
-			}
+            //记录切片时间
+            m_iDurations.push_back(m_Timer.elapsedTime());
+            m_Timer.resetTime();
+			if(removets()){
+                //删除老的时间戳
+                m_iDurations.pop_front();
+            }
+			write_index_file(m_ui64TsCnt - m_ui32NumSegments, m_ui64TsCnt, 0);
 		}
 	case 1: //P
 			//insert aud frame before p and SPS frame
@@ -167,13 +165,14 @@ void HLSMaker::inputAAC(void *data, uint32_t length, uint32_t timeStamp) {
 	m_ts.inputAAC((char *) data, length, timeStamp);
 }
 
-void HLSMaker::removets() {
+bool HLSMaker::removets() {
 	if (m_ui64TsCnt <= m_ui32NumSegments) {
-		return;
+		return false;
 	}
-	File::delete_file( (StrPrinter << m_strOutputPrefix << "-"
-						<< m_ui64TsCnt - m_ui32NumSegments - 1
-						<< ".ts" << endl).data());
+	File::delete_file((StrPrinter << m_strOutputPrefix << "-"
+                                  << m_ui64TsCnt - m_ui32NumSegments - 1
+                                  << ".ts" << endl).data());
+    return true;
 }
 
 } /* namespace MediaFile */
