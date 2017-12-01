@@ -24,12 +24,10 @@
  * SOFTWARE.
  */
 
-#include "Common/config.h"
 #include "ShellSession.h"
-#include "Util/logger.h"
-#include "Util/util.h"
+#include "Common/config.h"
+#include "Util/CMD.h"
 #include "Util/onceToken.h"
-#include "Util/mini.h"
 
 using namespace ZL::Util;
 
@@ -37,20 +35,16 @@ namespace ZL {
 namespace Shell {
 
 unordered_map<string, string> ShellSession::g_mapUser;
-map<string, CMD &> ShellSession::g_mapCmd;
 string ShellSession::g_serverName;
 
-#define SHELL_REG_CMD(cmd) g_mapCmd.emplace(#cmd,CMDInstance<CMD_##cmd>::Instance())
 ShellSession::ShellSession(const std::shared_ptr<ThreadPool> &_th,
-		const Socket::Ptr &_sock) :
-		TcpLimitedSession(_th, _sock) {
-	static onceToken token([]() {
-		SHELL_REG_CMD(rtmp);
-		SHELL_REG_CMD(rtsp);
-		SHELL_REG_CMD(help);
-		g_serverName = mINI::Instance()[Config::Shell::kServerName];
-	}, nullptr);
-	requestLogin();
+                           const Socket::Ptr &_sock) :
+        TcpLimitedSession(_th, _sock) {
+
+    static onceToken token([]() {
+        g_serverName = mINI::Instance()[Config::Shell::kServerName];
+    }, nullptr);
+    pleaseInputUser();
 }
 
 ShellSession::~ShellSession() {
@@ -77,14 +71,11 @@ void ShellSession::onRecv(const Socket::Buffer::Ptr&buf) {
 	while ((index = m_strRecvBuf.find("\r\n")) != std::string::npos) {
 		line = m_strRecvBuf.substr(0, index);
 		m_strRecvBuf.erase(0, index + 2);
-		if (!onProcessLine(line)) {
+		if (!onCommandLine(line)) {
 			shutdown();
 			return;
 		}
 	}
-}
-
-void ShellSession::onError(const SockException& err) {
 }
 
 void ShellSession::onManager() {
@@ -94,66 +85,39 @@ void ShellSession::onManager() {
 		return;
 	}
 }
-static int getArgs(char *buf, char *argv[], int max_argc = 16) {
-	int argc = 0;
-	bool start = false;
-	int len = strlen(buf);
-	for (int i = 0; i < len; i++) {
-		if (argc == max_argc) {
-			break;
-		}
-		if (buf[i] != ' ' && buf[i] != '\t' && buf[i] != '\r'
-				&& buf[i] != '\n') {
-			if (!start) {
-				start = true;
-				argv[argc++] = buf + i;
-			}
-		} else {
-			buf[i] = '\0';
-			start = false;
-		}
 
-	}
-	return argc;
-}
-inline bool ShellSession::onProcessLine(const string& line) {
+inline bool ShellSession::onCommandLine(const string& line) {
 	if (m_requestCB) {
 		bool ret = m_requestCB(line);
 		return ret;
 	}
-	//cmd process
-	char *argv[16];
-	int argc = getArgs((char *) line.data(), argv, sizeof(argv));
-	if (argc == 0) {
-		sendHead();
-		return true;
-	}
-	string cmd = argv[0];
-	auto it = g_mapCmd.find(cmd);
-	if (it == g_mapCmd.end()) {
-		auto sendStr = StrPrinter << "\tUnrecognized option:\"" << cmd << "\",Enter \"help\" to get help.\r\n" << endl;
-		send(sendStr);
-		sendHead();
-		return true;
-	}
-	bool ret = it->second(this, argc, argv);
-	sendHead();
-	return ret;
+    try {
+        std::shared_ptr<stringstream> ss(new stringstream);
+        CMDRegister::Instance()(line,ss);
+        send(ss->str());
+    }catch(ExitException &ex){
+        return false;
+    }catch(std::exception &ex){
+        send(ex.what());
+        send("\r\n");
+    }
+    printShellPrefix();
+	return true;
 }
 
-inline void ShellSession::requestLogin() {
+inline void ShellSession::pleaseInputUser() {
 	send("\033[0m");
 	send(StrPrinter << g_serverName << " login: " << endl);
 	m_requestCB = [this](const string &line) {
 		m_strUserName=line;
-		requestPasswd();
+        pleaseInputPasswd();
 		return true;
 	};
 }
-inline void ShellSession::requestPasswd() {
+inline void ShellSession::pleaseInputPasswd() {
 	send("Password: \033[8m");
 	m_requestCB = [this](const string &passwd) {
-		if(!authUser(m_strUserName,passwd)) {
+		if(!onAuth(m_strUserName, passwd)) {
 			send(StrPrinter
 					<<"\033[0mPermission denied,"
 					<<" please try again.\r\n"
@@ -166,17 +130,17 @@ inline void ShellSession::requestPasswd() {
 		send("-----------------------------------------\r\n");
 		send(StrPrinter<<"欢迎来到"<<g_serverName<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
 		send("-----------------------------------------\r\n");
-		sendHead();
+        printShellPrefix();
 		m_requestCB=nullptr;
 		return true;
 	};
 }
 
-inline void ShellSession::sendHead() {
-	send(StrPrinter << m_strUserName << "@" << g_serverName << ":" << endl);
+inline void ShellSession::printShellPrefix() {
+	send(StrPrinter << m_strUserName << "@" << g_serverName << "# " << endl);
 }
 
-inline bool ShellSession::authUser(const string& user, const string& pwd) {
+inline bool ShellSession::onAuth(const string &user, const string &pwd) {
 	auto it = g_mapUser.find(user);
 	if (it == g_mapUser.end()) {
 		//WarnL << user << " " << pwd;
@@ -185,6 +149,5 @@ inline bool ShellSession::authUser(const string& user, const string& pwd) {
 	return it->second == pwd;
 }
 
-}
-/* namespace Shell */
+}/* namespace Shell */
 } /* namespace ZL */
