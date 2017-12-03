@@ -204,6 +204,7 @@ Windows | 已经完成移植
 	make -j4
 	sudo make install
 	```
+	这里是测试报告：[benchmark.md](https://github.com/xiongziliang/ZLMediaKit/blob/master/benchmark.md)
 
 - github下载太慢了，有其他下载方式吗？
     
