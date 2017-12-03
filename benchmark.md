@@ -15,7 +15,7 @@ ZLMeidaKit自带测试服务器test_server,支持RTSP/RTMP/HLS服务器；多线
 # 测试媒体流
 使用test_server拉取的rtmp流`rtmp://live.hkstv.hk.lxdns.com/live/hks`;然后通过test_server转发代理。
 
-# 测试方法
+# 测试结果
 
 | 播放器个数(rtmp) | CPU(最大400%) | 内存(VIRT/RES) | 带宽(平均) | 丢包 |
 | --- | --- | --- | --- | --- |
