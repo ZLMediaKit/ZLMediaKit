@@ -66,40 +66,40 @@ void RtspToRtmpMediaSource::makeVideoConfigPkt() {
 	flags |= (FLV_KEY_FRAME << 4);
 	bool is_config = true;
 
-	m_rtmpPkt.strBuf.clear();
+	RtmpPacket::Ptr rtmpPkt(new RtmpPacket);
 //////////header
-	m_rtmpPkt.strBuf.push_back(flags);
-	m_rtmpPkt.strBuf.push_back(!is_config);
-	m_rtmpPkt.strBuf.append("\x0\x0\x0", 3);
+	rtmpPkt->strBuf.push_back(flags);
+	rtmpPkt->strBuf.push_back(!is_config);
+	rtmpPkt->strBuf.append("\x0\x0\x0", 3);
 
 ////////////sps
-	m_rtmpPkt.strBuf.push_back(1); // version
+	rtmpPkt->strBuf.push_back(1); // version
 	string m_sps = m_pParser->getSps().substr(4);
 	string m_pps = m_pParser->getPps().substr(4);
 	//DebugL<<hexdump(m_sps.data(), m_sps.size());
-	m_rtmpPkt.strBuf.push_back(m_sps[1]); // profile
-	m_rtmpPkt.strBuf.push_back(m_sps[2]); // compat
-	m_rtmpPkt.strBuf.push_back(m_sps[3]); // level
-	m_rtmpPkt.strBuf.push_back(0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
-	m_rtmpPkt.strBuf.push_back(0xe1); // 3 bits reserved + 5 bits number of sps (00001)
+	rtmpPkt->strBuf.push_back(m_sps[1]); // profile
+	rtmpPkt->strBuf.push_back(m_sps[2]); // compat
+	rtmpPkt->strBuf.push_back(m_sps[3]); // level
+	rtmpPkt->strBuf.push_back(0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
+	rtmpPkt->strBuf.push_back(0xe1); // 3 bits reserved + 5 bits number of sps (00001)
 	uint16_t size = m_sps.size();
 	size = htons(size);
-	m_rtmpPkt.strBuf.append((char *) &size, 2);
-	m_rtmpPkt.strBuf.append(m_sps);
+	rtmpPkt->strBuf.append((char *) &size, 2);
+	rtmpPkt->strBuf.append(m_sps);
 
 /////////////pps
-	m_rtmpPkt.strBuf.push_back(1); // version
+	rtmpPkt->strBuf.push_back(1); // version
 	size = m_pps.size();
 	size = htons(size);
-	m_rtmpPkt.strBuf.append((char *) &size, 2);
-	m_rtmpPkt.strBuf.append(m_pps);
+	rtmpPkt->strBuf.append((char *) &size, 2);
+	rtmpPkt->strBuf.append(m_pps);
 
-	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
-	m_rtmpPkt.chunkId = CHUNK_VIDEO;
-	m_rtmpPkt.streamId = STREAM_MEDIA;
-	m_rtmpPkt.timeStamp = 0;
-	m_rtmpPkt.typeId = MSG_VIDEO;
-	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
+	rtmpPkt->bodySize = rtmpPkt->strBuf.size();
+	rtmpPkt->chunkId = CHUNK_VIDEO;
+	rtmpPkt->streamId = STREAM_MEDIA;
+	rtmpPkt->timeStamp = 0;
+	rtmpPkt->typeId = MSG_VIDEO;
+	m_pRtmpSrc->onGetMedia(rtmpPkt);
 }
 void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 	if(m_pRecorder){
@@ -119,40 +119,40 @@ void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 		flags |= (FLV_INTER_FRAME << 4);
 		break;
 	}
-	m_rtmpPkt.strBuf.clear();
-	m_rtmpPkt.strBuf.push_back(flags);
-	m_rtmpPkt.strBuf.push_back(!is_config);
-	m_rtmpPkt.strBuf.append("\x0\x0\x0", 3);
+	RtmpPacket::Ptr rtmpPkt(new RtmpPacket);
+	rtmpPkt->strBuf.push_back(flags);
+	rtmpPkt->strBuf.push_back(!is_config);
+	rtmpPkt->strBuf.append("\x0\x0\x0", 3);
 	uint32_t size = frame.data.size() - 4;
 	size = htonl(size);
-	m_rtmpPkt.strBuf.append((char *) &size, 4);
-	m_rtmpPkt.strBuf.append(&frame.data[4], frame.data.size() - 4);
+	rtmpPkt->strBuf.append((char *) &size, 4);
+	rtmpPkt->strBuf.append(&frame.data[4], frame.data.size() - 4);
 
-	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
-	m_rtmpPkt.chunkId = CHUNK_VIDEO;
-	m_rtmpPkt.streamId = STREAM_MEDIA;
-	m_rtmpPkt.timeStamp = frame.timeStamp;
-	m_rtmpPkt.typeId = MSG_VIDEO;
-	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
+	rtmpPkt->bodySize = rtmpPkt->strBuf.size();
+	rtmpPkt->chunkId = CHUNK_VIDEO;
+	rtmpPkt->streamId = STREAM_MEDIA;
+	rtmpPkt->timeStamp = frame.timeStamp;
+	rtmpPkt->typeId = MSG_VIDEO;
+	m_pRtmpSrc->onGetMedia(rtmpPkt);
 }
 void RtspToRtmpMediaSource::onGetAdts(const AdtsFrame& frame) {
 	if(m_pRecorder){
 		m_pRecorder->inputAAC((char *) frame.data, frame.aac_frame_length, frame.timeStamp);
 	}
 
-	m_rtmpPkt.strBuf.clear();
+	RtmpPacket::Ptr rtmpPkt(new RtmpPacket);
 //////////header
 	uint8_t is_config = false;
-	m_rtmpPkt.strBuf.push_back(m_ui8AudioFlags);
-	m_rtmpPkt.strBuf.push_back(!is_config);
-	m_rtmpPkt.strBuf.append((char *) frame.data + 7, frame.aac_frame_length - 7);
+	rtmpPkt->strBuf.push_back(m_ui8AudioFlags);
+	rtmpPkt->strBuf.push_back(!is_config);
+	rtmpPkt->strBuf.append((char *) frame.data + 7, frame.aac_frame_length - 7);
 
-	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
-	m_rtmpPkt.chunkId = CHUNK_AUDIO;
-	m_rtmpPkt.streamId = STREAM_MEDIA;
-	m_rtmpPkt.timeStamp = frame.timeStamp;
-	m_rtmpPkt.typeId = MSG_AUDIO;
-	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
+	rtmpPkt->bodySize = rtmpPkt->strBuf.size();
+	rtmpPkt->chunkId = CHUNK_AUDIO;
+	rtmpPkt->streamId = STREAM_MEDIA;
+	rtmpPkt->timeStamp = frame.timeStamp;
+	rtmpPkt->typeId = MSG_AUDIO;
+	m_pRtmpSrc->onGetMedia(rtmpPkt);
 }
 
 void RtspToRtmpMediaSource::makeAudioConfigPkt() {
@@ -180,19 +180,19 @@ void RtspToRtmpMediaSource::makeAudioConfigPkt() {
 
 	m_ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
 
-	m_rtmpPkt.strBuf.clear();
+	RtmpPacket::Ptr rtmpPkt(new RtmpPacket);
 //////////header
 	uint8_t is_config = true;
-	m_rtmpPkt.strBuf.push_back(m_ui8AudioFlags);
-	m_rtmpPkt.strBuf.push_back(!is_config);
-	m_rtmpPkt.strBuf.append(m_pParser->getAudioCfg());
+	rtmpPkt->strBuf.push_back(m_ui8AudioFlags);
+	rtmpPkt->strBuf.push_back(!is_config);
+	rtmpPkt->strBuf.append(m_pParser->getAudioCfg());
 
-	m_rtmpPkt.bodySize = m_rtmpPkt.strBuf.size();
-	m_rtmpPkt.chunkId = CHUNK_AUDIO;
-	m_rtmpPkt.streamId = STREAM_MEDIA;
-	m_rtmpPkt.timeStamp = 0;
-	m_rtmpPkt.typeId = MSG_AUDIO;
-	m_pRtmpSrc->onGetMedia(m_rtmpPkt);
+	rtmpPkt->bodySize = rtmpPkt->strBuf.size();
+	rtmpPkt->chunkId = CHUNK_AUDIO;
+	rtmpPkt->streamId = STREAM_MEDIA;
+	rtmpPkt->timeStamp = 0;
+	rtmpPkt->typeId = MSG_AUDIO;
+	m_pRtmpSrc->onGetMedia(rtmpPkt);
 }
 
 void RtspToRtmpMediaSource::makeMetaData() {

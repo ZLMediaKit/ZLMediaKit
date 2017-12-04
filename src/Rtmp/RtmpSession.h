@@ -60,7 +60,7 @@ private:
 	typedef void (RtmpSession::*rtmpCMDHandle)(AMFDecoder &dec);
 	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
 
-	RingBuffer<RtmpPacket>::RingReader::Ptr m_pRingReader;
+	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
 	std::shared_ptr<RtmpMediaSource> m_pPublisherSrc;
 	bool m_bPublisherSrcRegisted = false;
     std::weak_ptr<RtmpMediaSource> m_pPlayerSrc;
@@ -80,9 +80,12 @@ private:
 	void onCmd_pause(AMFDecoder &dec);
 	void setMetaData(AMFDecoder &dec);
 
-	void onSendMedia(const RtmpPacket &pkt);
+	void onSendMedia(const RtmpPacket::Ptr &pkt);
 	void onSendRawData(const char *pcRawData,int iSize) override{
 		send(pcRawData, iSize);
+	}
+	void onSendRawData(string &&strData) override{
+		send(std::move(strData));
 	}
 	void onRtmpChunk(RtmpPacket &chunkData) override;
 

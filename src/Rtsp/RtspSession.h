@@ -62,6 +62,9 @@ private:
 	int send(const string &strBuf) override {
 		return m_pSender->send(strBuf);
 	}
+	int send(string &&strBuf) override {
+		return m_pSender->send(std::move(strBuf));
+	}
 	int send(const char *pcBuf, int iSize) override {
 		return m_pSender->send(pcBuf, iSize);
 	}

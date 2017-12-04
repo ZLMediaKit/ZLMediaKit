@@ -55,11 +55,11 @@ namespace Rtmp {
 class RtmpMediaSource: public enable_shared_from_this<RtmpMediaSource> {
 public:
 	typedef std::shared_ptr<RtmpMediaSource> Ptr;
-	typedef RingBuffer<RtmpPacket> RingType;
+	typedef RingBuffer<RtmpPacket::Ptr> RingType;
 	RtmpMediaSource(const string &strApp, const string &strId) :
 			m_strApp(strApp),
 			m_strId(strId),
-			m_pRing(new RingBuffer<RtmpPacket>()),
+			m_pRing(new RingBuffer<RtmpPacket::Ptr>()),
 			m_thPool( MediaSender::sendThread()) {
 	}
 	virtual ~RtmpMediaSource() {
@@ -130,15 +130,14 @@ public:
 	virtual void onGetMetaData(const AMFValue &_metadata) {
 		m_metadata = _metadata;
 	}
-	virtual void onGetMedia(const RtmpPacket &_pkt) {
-		RtmpPacket & pkt = const_cast<RtmpPacket &>(_pkt);
-		if (pkt.isCfgFrame()) {
+	virtual void onGetMedia(const RtmpPacket::Ptr &pkt) {
+		if (pkt->isCfgFrame()) {
 			lock_guard<recursive_mutex> lock(m_mtxMap);
-			m_mapCfgFrame.emplace(pkt.typeId, pkt);
+			m_mapCfgFrame.emplace(pkt->typeId, pkt);
 		}
 		auto _ring = m_pRing;
 		m_thPool.async([_ring,pkt]() {
-			_ring->write(pkt,pkt.isVideoKeyFrame());
+			_ring->write(pkt,pkt->isVideoKeyFrame());
 		});
 	}
 	bool seekTo(uint32_t ui32Stamp) {
@@ -164,11 +163,11 @@ protected:
 	function<uint32_t()> m_onStamp;
 private:
 	AMFValue m_metadata;
-	unordered_map<int, RtmpPacket> m_mapCfgFrame;
+	unordered_map<int, RtmpPacket::Ptr> m_mapCfgFrame;
 	mutable recursive_mutex m_mtxMap;
 	string m_strApp; //媒体app
 	string m_strId; //媒体id
-	RingBuffer<RtmpPacket>::Ptr m_pRing; //rtp环形缓冲
+	RingBuffer<RtmpPacket::Ptr>::Ptr m_pRing; //rtp环形缓冲
 	ThreadPool &m_thPool;
 	static unordered_map<string, unordered_map<string,weak_ptr<RtmpMediaSource> > > g_mapMediaSrc; //静态的媒体源表
 	static recursive_mutex g_mtxMediaSrc; ///访问静态的媒体源表的互斥锁

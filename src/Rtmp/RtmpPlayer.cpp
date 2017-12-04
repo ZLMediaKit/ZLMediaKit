@@ -312,7 +312,7 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
             if (m_aNowStampTicker[idx].elapsedTime() > 500) {
                 m_adNowStamp[idx] = chunkData.timeStamp;
             }
-			_onMediaData(chunkData);
+			_onMediaData(std::make_shared<RtmpPacket>(chunkData));
 		}
 			break;
 		default:

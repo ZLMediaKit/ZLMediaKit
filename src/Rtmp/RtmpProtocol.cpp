@@ -221,7 +221,7 @@ void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
 		strSend.append(strBuf, pos, chunk);
 		pos += chunk;
 	}
-	onSendRawData(strSend.data(),strSend.size());
+	onSendRawData(std::move(strSend));
 	m_ui32ByteSent += strSend.size();
 	if (m_ui32WinSize > 0 && m_ui32ByteSent - m_ui32LastSent >= m_ui32WinSize) {
 		m_ui32LastSent = m_ui32ByteSent;

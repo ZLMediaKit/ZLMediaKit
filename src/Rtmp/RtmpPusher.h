@@ -65,6 +65,9 @@ protected:
 	void onSendRawData(const char *pcRawData, int iSize) override {
 		send(pcRawData, iSize);
 	}
+	void onSendRawData(string &&strData) override {
+		send(std::move(strData));
+	}
 private:
     void init(const RtmpMediaSource::Ptr  &src);
 	void onShutdown(const SockException &ex) {

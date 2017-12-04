@@ -48,7 +48,7 @@ public:
 	RtmpParser(const AMFValue &val);
 	virtual ~RtmpParser();
 
-	bool inputRtmp(const RtmpPacket &pkt);
+	bool inputRtmp(const RtmpPacket::Ptr &pkt);
 
 	void setOnVideoCB(const function<void(const H264Frame &frame)> &cb) override{
 		lock_guard<recursive_mutex> lck(m_mtxCB);
@@ -116,8 +116,8 @@ private:
 	inline void onCheckMedia(const AMFValue &obj);
 
 	//返回值：true 代表是i帧第一个rtp包
-	inline bool inputVideo(const RtmpPacket &pkt);
-	inline bool inputAudio(const RtmpPacket &pkt);
+	inline bool inputVideo(const RtmpPacket::Ptr &pkt);
+	inline bool inputAudio(const RtmpPacket::Ptr &pkt);
 	inline void _onGetH264(const char *pcData, int iLen, uint32_t ui32TimeStamp);
 	inline void onGetH264(const char *pcData, int iLen, uint32_t ui32TimeStamp);
 	inline void onGetAAC(const char *pcData, int iLen, uint32_t ui32TimeStamp);

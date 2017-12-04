@@ -54,6 +54,10 @@ public:
 	void reset();
 protected:
 	virtual void onSendRawData(const char *pcRawData,int iSize) = 0;
+	virtual void onSendRawData(string &&strData) {
+		onSendRawData(strData.data(),strData.size());
+	};
+
 	virtual void onRtmpChunk(RtmpPacket &chunkData) = 0;
 
 	virtual void onStreamBegin(uint32_t ui32StreamId){

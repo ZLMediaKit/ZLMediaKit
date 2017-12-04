@@ -69,7 +69,7 @@ private:
             return false;
         }
     }
-    void onMediaData(RtmpPacket &chunkData) override {
+    void onMediaData(const RtmpPacket::Ptr &chunkData) override {
     	if(m_parser){
     		m_parser->inputRtmp(chunkData);
     	}

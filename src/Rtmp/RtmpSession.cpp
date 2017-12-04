@@ -207,14 +207,14 @@ void  RtmpSession::doPlay(){
 	invoke << "onMetaData" << src->getMetaData();
 	sendResponse(MSG_DATA, invoke.data());
 
-	src->getConfigFrame([&](const RtmpPacket &pkt) {
+	src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
 		//DebugL<<"send initial frame";
 		onSendMedia(pkt);
 	});
 
 	m_pRingReader = src->getRing()->attach();
 	weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-	m_pRingReader->setReadCB([weakSelf](const RtmpPacket& pkt){
+	m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf) {
 			return;
@@ -271,7 +271,7 @@ void RtmpSession::onCmd_pause(AMFDecoder &dec) {
 		m_pRingReader->setReadCB(nullptr);
 	} else {
 		weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-		m_pRingReader->setReadCB([weakSelf](const RtmpPacket& pkt) {
+		m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
 			auto strongSelf = weakSelf.lock();
 			if(!strongSelf) {
 				return;
@@ -334,7 +334,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 		if (!m_pPublisherSrc) {
 			throw std::runtime_error("Not a rtmp publisher!");
 		}
-		m_pPublisherSrc->onGetMedia(chunkData);
+		m_pPublisherSrc->onGetMedia(std::make_shared<RtmpPacket>(chunkData));
 		if(!m_bPublisherSrcRegisted && m_pPublisherSrc->ready()){
 			m_bPublisherSrcRegisted = true;
 			m_pPublisherSrc->regist();
@@ -363,9 +363,9 @@ void RtmpSession::onCmd_seek(AMFDecoder &dec) {
 	sendReply("onStatus", nullptr, status);
 }
 
-void RtmpSession::onSendMedia(const RtmpPacket& pkt) {
-	auto modifiedStamp = pkt.timeStamp;
-	auto &firstStamp = m_aui32FirstStamp[pkt.typeId % 2];
+void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
+	auto modifiedStamp = pkt->timeStamp;
+	auto &firstStamp = m_aui32FirstStamp[pkt->typeId % 2];
 	if(!firstStamp){
 		firstStamp = modifiedStamp;
 	}
@@ -377,7 +377,7 @@ void RtmpSession::onSendMedia(const RtmpPacket& pkt) {
 		CLEAR_ARR(m_aui32FirstStamp);
 		modifiedStamp = 0;
 	}
-	sendRtmp(pkt.typeId, pkt.streamId, pkt.strBuf, modifiedStamp, pkt.chunkId);
+	sendRtmp(pkt->typeId, pkt->streamId, pkt->strBuf, modifiedStamp, pkt->chunkId);
 }
 
 } /* namespace Rtmp */

@@ -59,7 +59,7 @@ public:
 	void teardown() override;
 protected:
 	virtual bool onCheckMeta(AMFValue &val) =0;
-	virtual void onMediaData(RtmpPacket &chunkData) =0;
+	virtual void onMediaData(const RtmpPacket::Ptr &chunkData) =0;
 	float getProgressTime() const;
 	void seekToTime(float fTime);
 private:
@@ -70,7 +70,7 @@ private:
 		m_pBeatTimer.reset();
 		onShutdown(ex);
 	}
-	void _onMediaData(RtmpPacket &chunkData) {
+	void _onMediaData(const RtmpPacket::Ptr &chunkData) {
 		m_mediaTicker.resetTime();
 		onMediaData(chunkData);
 	}
@@ -108,6 +108,10 @@ private:
 	void onSendRawData(const char *pcRawData, int iSize) override {
 		send(pcRawData, iSize);
 	}
+	void onSendRawData(string &&strData) override {
+		send(std::move(strData));
+	}
+
 
 	template<typename FUN>
 	inline void addOnResultCB(const FUN &fun) {

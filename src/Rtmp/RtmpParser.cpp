@@ -78,8 +78,8 @@ RtmpParser::~RtmpParser() {
 	// TODO Auto-generated destructor stub
 }
 
-bool RtmpParser::inputRtmp(const RtmpPacket &pkt) {
-	switch (pkt.typeId) {
+bool RtmpParser::inputRtmp(const RtmpPacket::Ptr &pkt) {
+	switch (pkt->typeId) {
 	case MSG_VIDEO:
 		if (m_bHaveVideo) {
 			return inputVideo(pkt);
@@ -95,38 +95,38 @@ bool RtmpParser::inputRtmp(const RtmpPacket &pkt) {
 	}
 }
 
-inline bool RtmpParser::inputVideo(const RtmpPacket& pkt) {
-	if (pkt.isCfgFrame()) {
+inline bool RtmpParser::inputVideo(const RtmpPacket::Ptr &pkt) {
+	if (pkt->isCfgFrame()) {
 		//WarnL << " got h264 cfg";
 		if (m_strSPS.size()) {
 			return false;
 		}
 		m_strSPS.assign("\x00\x00\x00\x01", 4);
-		m_strSPS.append(pkt.getH264SPS());
+		m_strSPS.append(pkt->getH264SPS());
 
 		m_strPPS.assign("\x00\x00\x00\x01", 4);
-		m_strPPS.append(pkt.getH264PPS());
+		m_strPPS.append(pkt->getH264PPS());
 
-		getAVCInfo(pkt.getH264SPS(), m_iVideoWidth, m_iVideoHeight, m_fVideoFps);
+		getAVCInfo(pkt->getH264SPS(), m_iVideoWidth, m_iVideoHeight, m_fVideoFps);
 		return false;
 	}
 
 	if (m_strSPS.size()) {
-		uint32_t iTotalLen = pkt.strBuf.size();
+		uint32_t iTotalLen = pkt->strBuf.size();
 		uint32_t iOffset = 5;
 		while(iOffset + 4 < iTotalLen){
             uint32_t iFrameLen;
-            memcpy(&iFrameLen, pkt.strBuf.data() + iOffset, 4);
+            memcpy(&iFrameLen, pkt->strBuf.data() + iOffset, 4);
             iFrameLen = ntohl(iFrameLen);
 			iOffset += 4;
 			if(iFrameLen + iOffset > iTotalLen){
 				break;
 			}
-			_onGetH264(pkt.strBuf.data() + iOffset, iFrameLen, pkt.timeStamp);
+			_onGetH264(pkt->strBuf.data() + iOffset, iFrameLen, pkt->timeStamp);
 			iOffset += iFrameLen;
 		}
 	}
-	return  pkt.isVideoKeyFrame();
+	return  pkt->isVideoKeyFrame();
 }
 inline void RtmpParser::_onGetH264(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
 	switch (pcData[0] & 0x1F) {
@@ -157,19 +157,19 @@ inline void RtmpParser::onGetH264(const char* pcData, int iLen, uint32_t ui32Tim
 	m_h264frame.data.clear();
 }
 
-inline bool RtmpParser::inputAudio(const RtmpPacket& pkt) {
-	if (pkt.isCfgFrame()) {
+inline bool RtmpParser::inputAudio(const RtmpPacket::Ptr &pkt) {
+	if (pkt->isCfgFrame()) {
 		if (m_strAudioCfg.size()) {
 			return false;
 		}
-		m_strAudioCfg = pkt.getAacCfg();
-		m_iSampleBit = pkt.getAudioSampleBit();
+		m_strAudioCfg = pkt->getAacCfg();
+		m_iSampleBit = pkt->getAudioSampleBit();
 		makeAdtsHeader(m_strAudioCfg,m_adts);
 		getAACInfo(m_adts, m_iSampleRate, m_iChannel);
 		return false;
 	}
 	if (m_strAudioCfg.size()) {
-		onGetAAC(pkt.strBuf.data() + 2, pkt.strBuf.size() - 2, pkt.timeStamp);
+		onGetAAC(pkt->strBuf.data() + 2, pkt->strBuf.size() - 2, pkt->timeStamp);
 	}
 	return false;
 }

@@ -73,7 +73,7 @@ public:
 		RtmpMediaSource::onGetMetaData(_metadata);
 	}
 
-	virtual void onGetMedia(const RtmpPacket &pkt) override {
+	virtual void onGetMedia(const RtmpPacket::Ptr &pkt) override {
 		if (m_pParser) {
 			if (!m_pRtspSrc && m_pParser->isInited()) {
 				makeSDP();

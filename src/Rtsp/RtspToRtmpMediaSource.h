@@ -101,7 +101,6 @@ public:
 private:
 	RtpParser::Ptr m_pParser;
 	RtmpMediaSource::Ptr m_pRtmpSrc;
-	RtmpPacket m_rtmpPkt;
 	uint8_t m_ui8AudioFlags = 0;
 	MediaRecorder::Ptr m_pRecorder;
 	bool m_bEnableFile = true;
