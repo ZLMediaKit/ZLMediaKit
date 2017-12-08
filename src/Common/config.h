@@ -70,7 +70,7 @@ extern const char kBroadcastRecordMP4[];
 #define BroadcastRecordMP4Args const Mp4Info &info
 
 extern const char kBroadcastHttpRequest[];
-#define BroadcastHttpRequestArgs const Parser &parser,HttpSession::HttpResponseInvoker &invoker
+#define BroadcastHttpRequestArgs const Parser &parser,HttpSession::HttpResponseInvoker &invoker,bool &consumed
 
 } //namespace Broadcast
 

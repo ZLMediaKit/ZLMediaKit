@@ -106,7 +106,6 @@ HttpSession::HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::P
 	static onceToken token([]() {
 		g_mapCmdIndex.emplace("GET",&HttpSession::Handle_Req_GET);
 		g_mapCmdIndex.emplace("POST",&HttpSession::Handle_Req_POST);
-		g_mapCmdIndex.emplace("OPTIONS",&HttpSession::Handle_Req_POST);
 	}, nullptr);
 }
 
@@ -150,6 +149,7 @@ void HttpSession::onRecv(const char *data,int size){
 }
 inline HttpSession::HttpCode HttpSession::parserHttpReq(const string &str) {
 	m_parser.Parse(str.data());
+	urlDecode(m_parser);
 	string cmd = m_parser.Method();
 	auto it = g_mapCmdIndex.find(cmd);
 	if (it == g_mapCmdIndex.end()) {
@@ -174,42 +174,43 @@ void HttpSession::onManager() {
 }
 
 inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
-	string strUrl = strCoding::UrlUTF8Decode(m_parser.Url());
-#ifdef _WIN32
-	static bool isGb2312 = !strcasecmp(mINI::Instance()[Config::Http::kCharSet].data(), "gb2312");
-	if (isGb2312) {
-		strUrl = strCoding::UTF8ToGB2312(strUrl);
+	//先看看该http事件是否被拦截
+	if(emitHttpEvent(false)){
+		return Http_success;
 	}
-#endif // _WIN32
-	string strFile = m_strPath + strUrl;
-	string strConType = m_parser["Connection"];
+	//事件未被拦截，则认为是http下载请求
+
+	string strFile = m_strPath + m_parser.Url();
+	/////////////HTTP连接是否需要被关闭////////////////
 	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
-	bool bClose = (strcasecmp(strConType.data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
+	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
 	HttpCode eHttpCode = bClose ? Http_failed : Http_success;
+	//访问的是文件夹
 	if (strFile.back() == '/') {
-		//index the folder
+		//生成文件夹菜单索引
 		string strMeun;
 		if (!makeMeun(strFile, strMeun)) {
+			//文件夹不存在
 			sendNotFound(bClose);
 			return eHttpCode;
 		}
 		sendResponse("200 OK", makeHttpHeader(bClose,strMeun.size() ), strMeun);
 		return eHttpCode;
 	}
-	//download the file
+	//访问的是文件
 	struct stat tFileStat;
 	if (0 != stat(strFile.data(), &tFileStat)) {
+		//文件不存在
 		sendNotFound(bClose);
 		return eHttpCode;
 	}
-
-	TimeTicker();
 	FILE *pFile = fopen(strFile.data(), "rb");
 	if (pFile == NULL) {
+		//打开文件失败
 		sendNotFound(bClose);
 		return eHttpCode;
 	}
-
+	//判断是不是分节下载
 	auto &strRange = m_parser["Range"];
 	int64_t iRangeStart = 0, iRangeEnd = 0;
 	iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
@@ -219,24 +220,25 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	}
 	const char *pcHttpResult = NULL;
 	if (strRange.size() == 0) {
+		//全部下载
 		pcHttpResult = "200 OK";
 	} else {
+		//分节下载
 		pcHttpResult = "206 Partial Content";
 		fseek(pFile, iRangeStart, SEEK_SET);
 	}
-
-	auto httpHeader=makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strUrl.data()));
+	auto httpHeader=makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strFile.data()));
 	if (strRange.size() != 0) {
+		//分节下载返回Content-Range头
 		httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
 	}
-
+	//先回复HTTP头部分
 	sendResponse(pcHttpResult, httpHeader, "");
 	if (iRangeEnd - iRangeStart < 0) {
-		//file is empty!
+		//文件时空的!
 		return eHttpCode;
 	}
-
-	//send the file
+	//回复Content部分
 	std::shared_ptr<int64_t> piLeft(new int64_t(iRangeEnd - iRangeStart + 1));
 	std::shared_ptr<FILE> pFilePtr(pFile, [](FILE *pFp) {
 		fclose(pFp);
@@ -398,35 +400,32 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
 	}
 	return headerOut;
 }
-inline HttpSession::HttpCode HttpSession::Handle_Req_POST() {
-	int iContentLen = atoi(m_parser["Content-Length"].data());
-	/*if (!iContentLen) {
-		return Http_failed;
-	}*/
-	if ((int) m_strRcvBuf.size() < iContentLen) {
-		return Http_moreData; //需要更多数据
-	}
-	auto strContent = m_strRcvBuf.substr(0, iContentLen);
-	m_strRcvBuf.erase(0, iContentLen);
 
-	string strUrl = strCoding::UrlUTF8Decode(m_parser.Url());
+string HttpSession::urlDecode(const string &str){
+	auto ret = strCoding::UrlUTF8Decode(str);
 #ifdef _WIN32
 	static bool isGb2312 = !strcasecmp(mINI::Instance()[Config::Http::kCharSet].data(), "gb2312");
 	if (isGb2312) {
-		strUrl = strCoding::UTF8ToGB2312(strUrl);
+		ret = strCoding::UTF8ToGB2312(ret);
 	}
 #endif // _WIN32
+    return ret;
+}
 
-	string strConType = m_parser["Connection"];
+inline void HttpSession::urlDecode(Parser &parser){
+	parser.setUrl(urlDecode(parser.Url()));
+	for(auto &pr : m_parser.getUrlArgs()){
+		const_cast<string &>(pr.second) = urlDecode(pr.second);
+	}
+}
+
+inline bool HttpSession::emitHttpEvent(bool doInvoke){
+	///////////////////是否断开本链接///////////////////////
 	static uint32_t reqCnt = mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
-	bool bClose = (strcasecmp(strConType.data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
-	m_parser.setUrl(strUrl);
-	m_parser.setContent(strContent);
-
+	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
+	/////////////////////异步回复Invoker///////////////////////////////
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-	HttpResponseInvoker invoker = [weakSelf,bClose](const string &codeOut,
-													const KeyValue &headerOut,
-													const string &contentOut){
+	HttpResponseInvoker invoker = [weakSelf,bClose](const string &codeOut, const KeyValue &headerOut, const string &contentOut){
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf) {
 			return;
@@ -436,27 +435,40 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_POST() {
 			if(!strongSelf) {
 				return;
 			}
-			strongSelf->responseDelay(bClose,
-					const_cast<string &>(codeOut),
-					const_cast<KeyValue &>(headerOut),
-					const_cast<string &>(contentOut));
+			strongSelf->responseDelay(bClose,codeOut,headerOut,contentOut);
 			if(bClose){
 				strongSelf->shutdown();
 			}
 		});
 	};
-	if(!NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastHttpRequest,m_parser,invoker)){
+	///////////////////广播HTTP事件///////////////////////////
+	bool consumed = false;//该事件是否被消费
+	NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastHttpRequest,m_parser,invoker,(bool &)consumed);
+	if(!consumed && doInvoke){
+		//该事件无人消费，所以返回404
 		invoker("404 Not Found",KeyValue(),"");
 	}
+	return consumed;
+}
+inline HttpSession::HttpCode HttpSession::Handle_Req_POST() {
+	//////////////获取HTTP POST Content/////////////
+	int iContentLen = atoi(m_parser["Content-Length"].data());
+	if ((int) m_strRcvBuf.size() < iContentLen) {
+		return Http_moreData; //需要更多数据
+	}
+	m_parser.setContent(m_strRcvBuf.substr(0, iContentLen));
+	m_strRcvBuf.erase(0, iContentLen);
+	//广播事件
+	emitHttpEvent(true);
 	return Http_success;
 }
-void HttpSession::responseDelay(bool bClose,string &codeOut,KeyValue &headerOut, string &contentOut){
+void HttpSession::responseDelay(bool bClose,const string &codeOut,const KeyValue &headerOut, const string &contentOut){
 	if(codeOut.empty()){
 		sendNotFound(bClose);
 		return;
 	}
-	auto headerOther=makeHttpHeader(bClose,contentOut.size(),"text/json");
-	headerOut.insert(headerOther.begin(), headerOther.end());
+	auto headerOther=makeHttpHeader(bClose,contentOut.size(),"text/plain");
+	const_cast<KeyValue &>(headerOut).insert(headerOther.begin(), headerOther.end());
 	sendResponse(codeOut.data(), headerOut, contentOut);
 }
 inline void HttpSession::sendNotFound(bool bClose) {

@@ -88,29 +88,31 @@ typedef map<string,string,StrCaseCompare> StrCaseMap;
 
 class Parser {
 public:
-	Parser() {
-	}
-	virtual ~Parser() {
-	}
+	Parser() {}
+	virtual ~Parser() {}
 	void Parse(const char *buf) {
 		//解析
 		const char *start = buf;
-		string line;
-		string field;
-		string value;
 		Clear();
 		while (true) {
-			line = FindField(start, NULL, "\r\n");
+			auto line = FindField(start, NULL, "\r\n");
 			if (line.size() == 0) {
 				break;
 			}
 			if (start == buf) {
 				m_strMethod = FindField(line.c_str(), NULL, " ");
-				m_strUrl = FindField(line.c_str(), " ", " ");
-				m_strTail = FindField(line.c_str(), (m_strUrl + " ").c_str(), NULL);
+				auto full_url = FindField(line.c_str(), " ", " ");
+				auto args_pos =  full_url.find('?');
+				if(args_pos != string::npos){
+					m_strUrl = full_url.substr(0,args_pos);
+					m_mapUrlArgs = parseArgs(full_url.substr(args_pos + 1 ));
+				}else{
+					m_strUrl = full_url;
+				}
+				m_strTail = FindField(line.c_str(), (full_url + " ").c_str(), NULL);
 			} else {
-				field = FindField(line.c_str(), NULL, ": ");
-				value = FindField(line.c_str(), ": ", NULL);
+				auto field = FindField(line.c_str(), NULL, ": ");
+				auto value = FindField(line.c_str(), ": ", NULL);
 				if (field.size() != 0) {
 					m_mapValues[field] = value;
 				}
@@ -151,6 +153,7 @@ public:
 		m_strTail.clear();
 		m_strContent.clear();
 		m_mapValues.clear();
+		m_mapUrlArgs.clear();
 	}
 
 	void setUrl(const string& url) {
@@ -163,7 +166,40 @@ public:
 	const StrCaseMap& getValues() const {
 		return m_mapValues;
 	}
+	const StrCaseMap& getUrlArgs() const {
+		return m_mapUrlArgs;
+	}
 
+	//注意:当字符串为空时，也会返回一个空字符串
+	static vector<string> split(const string& s, const char *delim) {
+		size_t last = 0;
+		size_t index = s.find_first_of(delim, last);
+		vector<string> ret;
+		while (index != string::npos) {
+			ret.push_back(s.substr(last, index - last));
+			last = index + 1;
+			index = s.find_first_of(delim, last);
+		}
+		if (index - last > 0) {
+			ret.push_back(s.substr(last, index - last));
+		}
+		return ret;
+	}
+
+	static StrCaseMap parseArgs(const string &str){
+		StrCaseMap ret;
+		auto arg_vec = split(str, "&");
+		for (string &key_val : arg_vec) {
+			if (!key_val.size()) {
+				continue;
+			}
+			auto key_val_vec = split(key_val, "=");
+			if (key_val_vec.size() >= 2) {
+				ret[key_val_vec[0]] = key_val_vec[1];
+			}
+		}
+		return ret;
+	}
 private:
 	string m_strMethod;
 	string m_strUrl;
@@ -171,7 +207,7 @@ private:
 	string m_strContent;
 	string m_strNull;
 	StrCaseMap m_mapValues;
-
+	StrCaseMap m_mapUrlArgs;
 };
 
 typedef struct {

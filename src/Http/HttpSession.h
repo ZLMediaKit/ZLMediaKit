@@ -51,6 +51,8 @@ public:
 	virtual void onRecv(const Socket::Buffer::Ptr &) override;
 	virtual void onError(const SockException &err) override;
 	virtual void onManager() override;
+
+	static string urlDecode(const string &str);
 protected:
 	void onRecv(const char *data,int size);
 private:
@@ -73,11 +75,13 @@ private:
 	inline HttpCode parserHttpReq(const string &);
 	inline HttpCode Handle_Req_GET();
 	inline HttpCode Handle_Req_POST();
+	inline bool emitHttpEvent(bool doInvoke);
+	inline void urlDecode(Parser &parser);
 	inline bool makeMeun(const string &strFullPath, string &strRet);
 	inline void sendNotFound(bool bClose);
 	inline void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
 	inline static KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
-	void responseDelay(bool bClose,string &codeOut,KeyValue &headerOut, string &contentOut);
+	void responseDelay(bool bClose,const string &codeOut,const KeyValue &headerOut, const string &contentOut);
 };
 
 } /* namespace Http */
