@@ -10,8 +10,8 @@
 *.pch
 
 # Compiled Dynamic libraries
-*.dylib
-*.dll
+#*.dylib
+#*.dll
 
 # Fortran module files
 *.mod
@@ -27,3 +27,6 @@
 *.out
 *.app
 /X64/
+
+
+*.DS_Store
