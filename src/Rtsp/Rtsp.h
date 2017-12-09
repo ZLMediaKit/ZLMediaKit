@@ -186,20 +186,21 @@ public:
 		return ret;
 	}
 
-	static StrCaseMap parseArgs(const string &str){
+	static StrCaseMap parseArgs(const string &str,const char *pair_delim = "&", const char *key_delim = "="){
 		StrCaseMap ret;
-		auto arg_vec = split(str, "&");
+		auto arg_vec = split(str, pair_delim);
 		for (string &key_val : arg_vec) {
 			if (!key_val.size()) {
 				continue;
 			}
-			auto key_val_vec = split(key_val, "=");
+			auto key_val_vec = split(key_val, key_delim);
 			if (key_val_vec.size() >= 2) {
 				ret[key_val_vec[0]] = key_val_vec[1];
 			}
 		}
 		return ret;
 	}
+
 private:
 	string m_strMethod;
 	string m_strUrl;

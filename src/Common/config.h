@@ -72,6 +72,15 @@ extern const char kBroadcastRecordMP4[];
 extern const char kBroadcastHttpRequest[];
 #define BroadcastHttpRequestArgs const Parser &parser,HttpSession::HttpResponseInvoker &invoker,bool &consumed
 
+//该流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm.如果该事件不监听则不认证
+extern const char kBroadcastOnGetRtspRealm[];
+#define BroadcastOnGetRtspRealmArgs const char *app,const char *stream,const RtspSession::onGetRealm &invoker
+
+//请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
+//获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码
+extern const char kBroadcastOnRtspAuth[];
+#define BroadcastOnRtspAuthArgs const char *user_name,bool must_no_encrypt,const RtspSession::onAuth &invoker
+
 } //namespace Broadcast
 
 //代理失败最大重试次数
@@ -118,6 +127,8 @@ namespace Rtsp {
 
 extern const char kServerName[];
 extern const char kPort[];
+//是否优先base64方式认证？默认Md5方式认证
+extern const char kAuthBasic[];
 } //namespace Rtsp
 
 ////////////RTMP服务器配置///////////

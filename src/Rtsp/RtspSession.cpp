@@ -30,6 +30,7 @@
 #include "RtspSession.h"
 #include "Device/base64.h"
 #include "Util/mini.h"
+#include "Util/MD5.h"
 #include "Util/onceToken.h"
 #include "Util/TimeTicker.h"
 #include "Util/NoticeCenter.h"
@@ -192,33 +193,255 @@ bool RtspSession::handleReq_Options() {
 
 bool RtspSession::handleReq_Describe() {
 	m_strUrl = m_parser.Url();
-	if (m_strSession.size() != 0) {
-		//会话id这时还没生成，这个逻辑可以注释以提高响应速度
-		return false;
-	}
 	if (!findStream()) {
 		//未找到相应的MediaSource
 		send_StreamNotFound();
 		return false;
 	}
-//回复sdp
-	int n = sprintf(m_pcBuf, "RTSP/1.0 200 OK\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"x-Accept-Retransmit: our-retransmit\r\n"
-			"x-Accept-Dynamic-Rate: 1\r\n"
-			"Content-Base: %s/\r\n"
-			"Content-Type: application/sdp\r\n"
-			"Content-Length: %d\r\n\r\n%s",
-			m_iCseq, g_serverName.data(),
-			RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data(), m_strUrl.data(),
-			(int) m_strSdp.length(), m_strSdp.data());
-	send(m_pcBuf, n);
-	return true;
+
+    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    //该请求中的认证信息
+    auto authorization = m_parser["Authorization"];
+    onGetRealm invoker = [weakSelf,authorization](const string &realm){
+        if(realm.empty()){
+            //无需认证,回复sdp
+            onAuthSuccess(weakSelf);
+            return;
+        }
+        //该流需要认证
+        onAuthUser(weakSelf,realm,authorization);
+    };
+
+    //广播是否需要认证事件
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,m_strApp.data(),m_strStream.data(),invoker)){
+        //无人监听此事件，说明无需认证
+        invoker("");
+    }
+    return true;
+}
+void RtspSession::onAuthSuccess(const weak_ptr<RtspSession> &weakSelf) {
+    auto strongSelf = weakSelf.lock();
+    if(!strongSelf){
+        //本对象已销毁
+        return;
+    }
+    strongSelf->async([weakSelf](){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            //本对象已销毁
+            return;
+        }
+        char response[2 * 1024];
+        int n = sprintf(response,
+                        "RTSP/1.0 200 OK\r\n"
+                        "CSeq: %d\r\n"
+                        "Server: %s-%0.2f(build in %s)\r\n"
+                        "%s"
+                        "x-Accept-Retransmit: our-retransmit\r\n"
+                        "x-Accept-Dynamic-Rate: 1\r\n"
+                        "Content-Base: %s/\r\n"
+                        "Content-Type: application/sdp\r\n"
+                        "Content-Length: %d\r\n\r\n%s",
+                        strongSelf->m_iCseq, strongSelf->g_serverName.data(),
+                        RTSP_VERSION, RTSP_BUILDTIME,
+                        dateHeader().data(), strongSelf->m_strUrl.data(),
+                        (int) strongSelf->m_strSdp.length(), strongSelf->m_strSdp.data());
+        strongSelf->send(response, n);
+    });
+}
+void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const string &realm) {
+    auto strongSelf = weakSelf.lock();
+    if(!strongSelf){
+        //本对象已销毁
+        return;
+    }
+    strongSelf->async([weakSelf,realm]() {
+        auto strongSelf = weakSelf.lock();
+        if (!strongSelf) {
+            //本对象已销毁
+            return;
+        }
+
+        int n;
+        char response[2 * 1024];
+        static bool authBasic = mINI::Instance()[Config::Rtsp::kAuthBasic];
+        if (!authBasic) {
+            //我们需要客户端优先以md5方式认证
+            strongSelf->m_strNonce = makeRandStr(32);
+            n = sprintf(response,
+                        "RTSP/1.0 401 Unauthorized\r\n"
+                        "CSeq: %d\r\n"
+                        "Server: %s-%0.2f(build in %s)\r\n"
+                        "%s"
+                        "WWW-Authenticate:Digest realm=\"%s\",nonce=\"%s\"\r\n\r\n",
+                        strongSelf->m_iCseq, strongSelf->g_serverName.data(),
+                        RTSP_VERSION, RTSP_BUILDTIME,
+                        dateHeader().data(), realm.data(), strongSelf->m_strNonce.data());
+        }else {
+            //当然我们也支持base64认证,但是我们不建议这样做
+            n = sprintf(response,
+                        "RTSP/1.0 401 Unauthorized\r\n"
+                        "CSeq: %d\r\n"
+                        "Server: %s-%0.2f(build in %s)\r\n"
+                        "%s"
+                        "WWW-Authenticate:Basic realm=\"%s\"\r\n\r\n",
+                        strongSelf->m_iCseq, strongSelf->g_serverName.data(),
+                        RTSP_VERSION, RTSP_BUILDTIME,
+                        dateHeader().data(), realm.data());
+        }
+        strongSelf->send(response, n);
+    });
 }
 
+void RtspSession::onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strBase64){
+    //base64认证
+    char user_pwd_buf[512];
+    av_base64_decode((uint8_t *)user_pwd_buf,strBase64.data(),strBase64.size());
+    auto user_pwd_vec = Parser::split(user_pwd_buf,":");
+    if(user_pwd_vec.size() < 2){
+        //认证信息格式不合法，回复401 Unauthorized
+        onAuthFailed(weakSelf,realm);
+        return;
+    }
+    auto user = user_pwd_vec[0];
+    auto pwd = user_pwd_vec[1];
+    onAuth invoker = [pwd,realm,weakSelf](bool encrypted,const string &good_pwd){
+        if(!encrypted && pwd == good_pwd){
+            //提供的是明文密码且匹配正确
+            onAuthSuccess(weakSelf);
+        }else{
+            //密码错误
+            onAuthFailed(weakSelf,realm);
+        }
+    };
+    //此时必须提供明文密码
+    bool must_no_encrypt = true;
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,user.data(),must_no_encrypt,invoker)){
+        //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
+        WarnL << "请监听kBroadcastOnRtspAuth事件！";
+        //但是我们还是忽略认证以便完成播放
+        //我们输入的密码是明文
+        invoker(false,pwd);
+    }
+}
+static string trim(string str){
+    while(!str.empty()){
+        if(str.front()==' ' || str.front()=='"'){
+            str.erase(0,1);
+            continue;
+        }
+        break;
+    }
+    while(!str.empty()){
+        if(str.back()==' ' || str.back()=='"'){
+            str.pop_back();
+            continue;
+        }
+        break;
+    }
+    return str;
+}
+void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strMd5){
+    auto strongSelf = weakSelf.lock();
+    if(!strongSelf){
+        return;
+    }
+
+	DebugL << strMd5;
+    auto mapTmp = Parser::parseArgs(strMd5,",","=");
+    decltype(mapTmp) map;
+    for(auto &pr : mapTmp){
+        map[trim(pr.first)] = trim(pr.second);
+    }
+    //check realm
+    if(realm != map["realm"]){
+        TraceL << "realm not mached:" << realm << "," << map["realm"];
+        onAuthFailed(weakSelf,realm);
+        return ;
+    }
+    //check nonce
+    auto nonce = map["nonce"];
+    if(strongSelf->m_strNonce != nonce){
+        TraceL << "nonce not mached:" << nonce << "," << strongSelf->m_strNonce;
+        onAuthFailed(weakSelf,realm);
+        return ;
+    }
+    //check username and uri
+    auto username = map["username"];
+    auto uri = map["uri"];
+    auto response = map["response"];
+    if(username.empty() || uri.empty() || response.empty()){
+        TraceL << "username/uri/response empty:" << username << "," << uri << "," << response;
+        onAuthFailed(weakSelf,realm);
+        return ;
+    }
+
+    auto realInvoker = [weakSelf,realm,nonce,uri,username,response](bool ignoreAuth,bool encrypted,const string &good_pwd){
+        if(ignoreAuth){
+            //忽略认证
+            onAuthSuccess(weakSelf);
+            TraceL << "auth ignored";
+            return;
+        }
+        /*
+        response计算方法如下：
+        RTSP客户端应该使用username + password并计算response如下:
+        (1)当password为MD5编码,则
+            response = md5( password:nonce:md5(public_method:url)  );
+        (2)当password为ANSI字符串,则
+            response= md5( md5(username:realm:password):nonce:md5(public_method:url) );
+         */
+        auto encrypted_pwd = good_pwd;
+        if(!encrypted){
+            //提供的是明文密码
+            encrypted_pwd = MD5(username+ ":" + realm + ":" + good_pwd).hexdigest();
+        }
+
+        auto good_response = MD5( encrypted_pwd + ":" + nonce + ":" + MD5(string("DESCRIBE") + ":" + uri).hexdigest()).hexdigest();
+        if(strcasecmp(good_response.data(),response.data()) == 0){
+            //认证成功！md5不区分大小写
+            onAuthSuccess(weakSelf);
+            TraceL << "onAuthSuccess";
+        }else{
+            //认证失败！
+            onAuthFailed(weakSelf,realm);
+            TraceL << "onAuthFailed";
+        }
+    };
+    onAuth invoker = [realInvoker](bool encrypted,const string &good_pwd){
+        realInvoker(false,encrypted,good_pwd);
+    };
+
+    //此时可以提供明文或md5加密的密码
+    bool must_no_encrypt = false;
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,username.data(),must_no_encrypt,invoker)){
+        //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
+        WarnL << "请监听kBroadcastOnRtspAuth事件！";
+        //但是我们还是忽略认证以便完成播放
+        realInvoker(true,true,"");
+    }
+}
+
+void RtspSession::onAuthUser(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &authorization){
+    //请求中包含认证信息
+    auto authType = FindField(authorization.data(),NULL," ");
+	auto authStr = FindField(authorization.data()," ",NULL);
+    if(authType.empty() || authStr.empty()){
+        //认证信息格式不合法，回复401 Unauthorized
+        onAuthFailed(weakSelf,realm);
+        return;
+    }
+    if(authType == "Basic"){
+        //base64认证，需要明文密码
+        onAuthBasic(weakSelf,realm,authStr);
+    }else if(authType == "Digest"){
+        //md5认证
+        onAuthDigest(weakSelf,realm,authStr);
+    }else{
+        //其他认证方式？不支持！
+        onAuthFailed(weakSelf,realm);
+    }
+}
 inline void RtspSession::send_StreamNotFound() {
 	int n = sprintf(m_pcBuf, "RTSP/1.0 404 Stream Not Found\r\n"
 			"CSeq: %d\r\n"
@@ -593,17 +816,13 @@ inline void RtspSession::send_NotAcceptable() {
 	send(m_pcBuf, n);
 
 }
-
+void RtspSession::splitRtspUrl(const string &url,string &app,string &stream){
+	string strHost = FindField(url.data(), "://", "/");
+	app = FindField(url.data(), (strHost + "/").data(), "/");
+	stream = FindField(url.data(), (strHost + "/" + app + "/").data(), NULL);
+}
 inline bool RtspSession::findStream() {
-
-    string strHost = FindField(m_strUrl.data(), "://", "/");
-    m_strApp = FindField(m_strUrl.data(), (strHost + "/").data(), "/");
-    m_strStream = FindField(m_strUrl.data(), (strHost + "/" + m_strApp + "/").data(), NULL);
-
-	auto iPos = m_strStream.find('?');
-	if(iPos != string::npos ){
-		m_strStream.erase(iPos);
-	}
+	splitRtspUrl(m_strUrl,m_strApp,m_strStream);
 	RtspMediaSource::Ptr pMediaSrc = RtspMediaSource::find(m_strApp,m_strStream);
 	if (!pMediaSrc) {
 		WarnL << "No such stream:" << m_strApp << " " << m_strStream;

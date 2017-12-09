@@ -52,6 +52,11 @@ class RtspSession;
 class RtspSession: public TcpLimitedSession<MAX_TCP_SESSION> {
 public:
 	typedef std::shared_ptr<RtspSession> Ptr;
+	typedef std::function<void(const string &realm)> onGetRealm;
+    //encrypted为true是则表明是md5加密的密码，否则是明文密码
+    //在请求明文密码时如果提供md5密码者则会导致认证失败
+	typedef std::function<void(bool encrypted,const string &pwd_or_md5)> onAuth;
+
 	RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock);
 	virtual ~RtspSession();
 	void onRecv(const Socket::Buffer::Ptr &pBuf) override;
@@ -83,6 +88,7 @@ private:
 	void inline send_UnsupportedTransport(); //不支持的传输模式
 	void inline send_SessionNotFound(); //会话id错误
 	void inline send_NotAcceptable(); //rtsp同时播放数限制
+	void splitRtspUrl(const string &url,string &app,string &stream);
 	inline bool findStream(); //根据rtsp url查找 MediaSource实例
 
 	inline void initSender(const std::shared_ptr<RtspSession> &pSession); //处理rtsp over http，quicktime使用的
@@ -106,6 +112,13 @@ private:
 	}
 	inline void onRcvPeerUdpData(int iTrackIdx, const Socket::Buffer::Ptr &pBuf, const struct sockaddr &addr);
 	inline void startListenPeerUdpData();
+
+    //认证相关
+    static void onAuthSuccess(const weak_ptr<RtspSession> &weakSelf);
+    static void onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const string &realm);
+    static void onAuthUser(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &authorization);
+    static void onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strBase64);
+    static void onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strMd5);
 
 	char *m_pcBuf = nullptr;
 	Ticker m_ticker;
@@ -142,6 +155,9 @@ private:
 	std::shared_ptr<struct sockaddr> m_apPeerUdpAddr[2]; //播放器接收RTP的地址,trackid idx 为数组下标
 	bool m_bListenPeerUdpData = false;
 	RtpBroadCaster::Ptr m_pBrdcaster;
+
+	//登录认证
+    string m_strNonce;
 
 	//RTSP over HTTP
 	function<void(void)> m_onDestory;

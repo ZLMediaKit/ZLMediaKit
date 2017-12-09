@@ -52,6 +52,9 @@ const char kBroadcastRtspSrcRegisted[] = "kBroadcastRtspSrcRegisted";
 const char kBroadcastRtmpSrcRegisted[] = "kBroadcastRtmpSrcRegisted";
 const char kBroadcastRecordMP4[] = "kBroadcastRecordMP4";
 const char kBroadcastHttpRequest[] = "kBroadcastHttpRequest";
+const char kBroadcastOnGetRtspRealm[] = "kBroadcastOnGetRtspRealm";
+const char kBroadcastOnRtspAuth[] = "kBroadcastOnRtspAuth";
+
 } //namespace Broadcast
 
 //代理失败最大重试次数
@@ -174,9 +177,13 @@ const char kPort[] = RTSP_FIELD"port";
 #define RTSP_SERVER_NAME "ZLServer"
 const char kServerName[] = RTSP_FIELD"serverName";
 
+const char kAuthBasic[] = RTSP_FIELD"authBasic";
+
 onceToken token([](){
 	mINI::Instance()[kPort] = RTSP_PORT;
 	mINI::Instance()[kServerName] = RTSP_SERVER_NAME;
+	//默认Md5方式认证
+	mINI::Instance()[kAuthBasic] = 0;
 },nullptr);
 
 } //namespace Rtsp
