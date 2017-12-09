@@ -33,6 +33,7 @@
 #include "Rtmp/RtmpSession.h"
 #include "Http/HttpSession.h"
 #include "Shell/ShellSession.h"
+#include "Util/MD5.h"
 
 #ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
@@ -57,6 +58,57 @@ using namespace ZL::Shell;
 using namespace ZL::Thread;
 using namespace ZL::Network;
 
+
+#define REALM "realm_zlmedaikit"
+
+static onceToken s_token([](){
+	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastOnGetRtspRealm,[](BroadcastOnGetRtspRealmArgs){
+		if(string("1") == stream ){
+			// live/1需要认证
+			EventPoller::Instance().async([invoker](){
+				//该流需要认证，并且设置realm
+				invoker(REALM);
+			});
+		}else{
+			//我们异步执行invoker。
+			//有时我们要查询redis或数据库来判断该流是否需要认证，通过invoker的方式可以做到完全异步
+			EventPoller::Instance().async([invoker](){
+				//该流我们不需要认证
+				invoker("");
+			});
+		}
+	});
+
+	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastOnRtspAuth,[](BroadcastOnRtspAuthArgs){
+		InfoL << "用户：" << user_name <<  (must_no_encrypt ?  " Base64" : " MD5" )<< " 方式登录";
+		string user = user_name;
+		//假设我们异步读取数据库
+		EventPoller::Instance().async([must_no_encrypt,invoker,user](){
+			if(user == "test0"){
+				//假设数据库保存的是明文
+				invoker(false,"pwd0");
+				return;
+			}
+
+			if(user == "test1"){
+				//假设数据库保存的是密文
+				auto encrypted_pwd = MD5(user + ":" + REALM + ":" + "pwd1").hexdigest();
+				invoker(true,encrypted_pwd);
+				return;
+			}
+			if(user == "test2" && must_no_encrypt){
+				//假设登录的是test2,并且以base64方式登录，此时我们提供加密密码，那么会导致认证失败
+				//可以通过这个方式屏蔽base64这种不安全的加密方式
+				invoker(true,"pwd2");
+				return;
+			}
+
+			//其他用户密码跟用户名一致
+			invoker(false,user);
+		});
+	});
+}, nullptr);
+
 int main(int argc,char *argv[]){
 	//设置退出信号处理函数
 	signal(SIGINT, [](int){EventPoller::Instance().shutdown();});
@@ -68,8 +120,9 @@ int main(int argc,char *argv[]){
 	//这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
 	//如果是其他不识别的音视频将会被忽略(譬如说h264+adpcm转发后会去除音频)
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
+					"rtmp://live.hkstv.hk.lxdns.com/live/hks"
 					//rtsp链接支持输入用户名密码
-					"rtsp://admin:jzan123456@192.168.0.122/"};
+					/*"rtsp://admin:jzan123456@192.168.0.122/"*/};
 	 map<string , PlayerProxy::Ptr> proxyMap;
 	 int i=0;
 	 for(auto &url : urlList){
@@ -82,13 +135,14 @@ int main(int argc,char *argv[]){
 		 //http://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 		 //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 		 //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
-		 PlayerProxy::Ptr player(new PlayerProxy("live",to_string(i++).data()));
+		 PlayerProxy::Ptr player(new PlayerProxy("live",to_string(i).data()));
 		 //指定RTP over TCP(播放rtsp时有效)
 		 (*player)[RtspPlayer::kRtpType] = PlayerBase::RTP_TCP;
 		 //开始播放，如果播放失败或者播放中止，将会自动重试若干次，重试次数在配置文件中配置，默认一直重试
 		 player->play(url);
 		 //需要保存PlayerProxy，否则作用域结束就会销毁该对象
-		 proxyMap.emplace(url,player);
+		 proxyMap.emplace(to_string(i),player);
+		 ++i;
 	 }
 
 #ifdef ENABLE_OPENSSL
