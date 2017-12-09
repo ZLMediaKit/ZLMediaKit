@@ -18,6 +18,7 @@ Windows | 已经完成移植
   - RTSP 服务器，支持RTMP/MP4转RTSP。
   - RTSP 播放器，支持RTSP代理。
   - 支持 `rtp over udp` `rtp over tcp` `rtp over http` `rtp组播`  四种RTP传输方式 。
+  - 完整支持Basic/Digest方式的登录鉴权，全异步的鉴权接口
 
 - RTMP
   - RTMP 播放服务器，支持RTSP/MP4转RTMP。
@@ -31,6 +32,8 @@ Windows | 已经完成移植
 - HTTP[S]
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`。
   - 客户端提供`文件下载器(支持断点续传)`,`接口请求器`。
+  - 完整HTTP API服务器，可以作为web后台开发框架
+  - 支持跨域访问
 
 - 其他
   - 支持输入YUV+PCM自动生成RTSP/RTMP/HLS/MP4.
