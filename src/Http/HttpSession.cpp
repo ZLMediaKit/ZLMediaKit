@@ -389,9 +389,10 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
 	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
 
 	headerOut.emplace("Server", serverName);
-	headerOut.emplace("Connection", bClose ? "close" :
-			StrPrinter << "keep-alive: timeout=" << keepAliveSec
-			<< ", max=" << reqCnt << endl);
+	headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
+    if(!bClose){
+        headerOut.emplace("Keep-Alive",StrPrinter << "timeout=" << keepAliveSec << ", max=" << reqCnt << endl);
+    }
 	headerOut.emplace("Date", dateStr());
 	if(iContentSize >=0 && pcContentType !=nullptr){
 		auto strContentType = StrPrinter << pcContentType << "; charset=" << charSet << endl;
