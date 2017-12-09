@@ -424,19 +424,20 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	///////////////////是否断开本链接///////////////////////
 	static uint32_t reqCnt = mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
 	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
+	auto Origin = m_parser["Origin"];
 	/////////////////////异步回复Invoker///////////////////////////////
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-	HttpResponseInvoker invoker = [weakSelf,bClose](const string &codeOut, const KeyValue &headerOut, const string &contentOut){
+	HttpResponseInvoker invoker = [weakSelf,bClose,Origin](const string &codeOut, const KeyValue &headerOut, const string &contentOut){
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf) {
 			return;
 		}
-		strongSelf->async([weakSelf,bClose,codeOut,headerOut,contentOut]() {
+		strongSelf->async([weakSelf,bClose,codeOut,headerOut,contentOut,Origin]() {
 			auto strongSelf = weakSelf.lock();
 			if(!strongSelf) {
 				return;
 			}
-			strongSelf->responseDelay(bClose,codeOut,headerOut,contentOut);
+			strongSelf->responseDelay(Origin,bClose,codeOut,headerOut,contentOut);
 			if(bClose){
 				strongSelf->shutdown();
 			}
@@ -463,12 +464,18 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_POST() {
 	emitHttpEvent(true);
 	return Http_success;
 }
-void HttpSession::responseDelay(bool bClose,const string &codeOut,const KeyValue &headerOut, const string &contentOut){
+void HttpSession::responseDelay(const string &Origin,bool bClose,
+								const string &codeOut,const KeyValue &headerOut,
+								const string &contentOut){
 	if(codeOut.empty()){
 		sendNotFound(bClose);
 		return;
 	}
 	auto headerOther=makeHttpHeader(bClose,contentOut.size(),"text/plain");
+	if(!Origin.empty()){
+		headerOther["Access-Control-Allow-Origin"] = Origin;
+		headerOther["Access-Control-Allow-Credentials"] = "true";
+	}
 	const_cast<KeyValue &>(headerOut).insert(headerOther.begin(), headerOther.end());
 	sendResponse(codeOut.data(), headerOut, contentOut);
 }

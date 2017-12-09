@@ -81,7 +81,9 @@ private:
 	inline void sendNotFound(bool bClose);
 	inline void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
 	inline static KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
-	void responseDelay(bool bClose,const string &codeOut,const KeyValue &headerOut, const string &contentOut);
+	void responseDelay(const string &Origin,bool bClose,
+					   const string &codeOut,const KeyValue &headerOut,
+					   const string &contentOut);
 };
 
 } /* namespace Http */
