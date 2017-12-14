@@ -51,7 +51,7 @@ Windows | 已经完成移植
 
 ## 编译(Linux)
 - 我的编译环境
-  - Ubuntu16.04 64 bit + gcc5.4(最低gcc4.7)
+  - Ubuntu16.04 64 bit + gcc5.4
   - cmake 3.5.1
 - 编译
   
