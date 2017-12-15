@@ -76,6 +76,11 @@ private:
 		m_sslBox.onSend(buf.data(), buf.size());
 		return buf.size();
 	}
+	virtual int send(string &&buf) override{
+		TimeTicker();
+		m_sslBox.onSend(buf.data(), buf.size());
+		return buf.size();
+	}
 	virtual int send(const char *buf, int size) override{
 		TimeTicker();
 		m_sslBox.onSend(buf, size);

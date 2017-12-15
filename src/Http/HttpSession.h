@@ -30,8 +30,10 @@
 #include "Common/config.h"
 #include "Rtsp/Rtsp.h"
 #include "Network/TcpLimitedSession.h"
+#include "Rtmp/RtmpMediaSource.h"
 
 using namespace std;
+using namespace ZL::Rtmp;
 using namespace ZL::Network;
 
 namespace ZL {
@@ -71,10 +73,17 @@ private:
 	Ticker m_ticker;
 	uint32_t m_iReqCnt = 0;
 
+	//flv over http
+	uint32_t m_aui32FirstStamp[2] = {0};
+	uint32_t m_previousTagSize = 0;
+	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
+	void onSendMedia(const RtmpPacket::Ptr &pkt);
+	void sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp);
 
 	inline HttpCode parserHttpReq(const string &);
 	inline HttpCode Handle_Req_GET();
 	inline HttpCode Handle_Req_POST();
+	inline bool checkLiveFlvStream();
 	inline bool emitHttpEvent(bool doInvoke);
 	inline void urlDecode(Parser &parser);
 	inline bool makeMeun(const string &strFullPath, string &strRet);

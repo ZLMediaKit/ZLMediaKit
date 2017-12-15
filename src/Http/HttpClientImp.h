@@ -55,6 +55,7 @@ private:
 #ifdef ENABLE_OPENSSL
 	virtual void onRecvBytes(const char *data,int size) override;
 	virtual int send(const string &str) override;
+	virtual int send(string &&str) override;
 	virtual int send(const char *str, int len) override;
 	std::shared_ptr<SSL_Box> _sslBox;
 #endif //ENABLE_OPENSSL
