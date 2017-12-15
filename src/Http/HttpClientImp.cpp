@@ -85,6 +85,13 @@ int HttpClientImp::send(const string& str) {
 	}
 	return HttpClient::send(str);
 }
+int HttpClientImp::send(string &&str){
+	if(_sslBox){
+		_sslBox->onSend(str.data(),str.size());
+		return str.size();
+	}
+	return HttpClient::send(std::move(str));
+}
 
 int HttpClientImp::send(const char* str, int len) {
 	if(_sslBox){
