@@ -25,6 +25,8 @@ Windows | 已经完成移植
   - RTMP 发布服务器，支持录制发布流。
   - RTMP 播放器，支持RTMP代理。
   - RTMP 推流客户端。
+  - 支持http-flv直播。
+  - 支持https-flv直播。
 
 - HLS
   - 支持HLS文件生成，自带HTTP文件服务器。
@@ -41,7 +43,6 @@ Windows | 已经完成移植
   - 支持H264的解析，支持B帧的POC计算排序。
  
 ## 后续任务
-- 添加http flv直播功能
 - 添加rtmp鉴权功能
 - 添加rtsp推流功能
 
