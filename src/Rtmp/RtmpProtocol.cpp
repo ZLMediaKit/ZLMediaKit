@@ -39,7 +39,7 @@ static string openssl_HMACsha256(const void *key,unsigned int key_len,
 	std::shared_ptr<char> out(new char[32],[](char *ptr){delete [] ptr;});
 	unsigned int out_len;
 
-#if defined(WIN32)
+#if defined(WIN32) || defined(ANDROID)
 	HMAC_CTX *ctx = HMAC_CTX_new();
 	HMAC_CTX_reset(ctx);
 	HMAC_Init_ex(ctx, key, key_len, EVP_sha256(), NULL);
@@ -54,7 +54,7 @@ static string openssl_HMACsha256(const void *key,unsigned int key_len,
 	HMAC_Update(&ctx, (unsigned char*)data, data_len);
 	HMAC_Final(&ctx, (unsigned char *)out.get(), &out_len);
 	HMAC_CTX_cleanup(&ctx);
-#endif // defined(WIN32)
+#endif // defined(WIN32) || defined(ANDROID)
 	return string(out.get(),out_len);
 }
 #endif //ENABLE_OPENSSL
