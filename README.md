@@ -45,9 +45,13 @@ Windows | 已经完成移植
 - 添加rtmp鉴权功能
 - 添加rtsp推流功能
 
+## 编译要求
+- 编译器支持C++11，GCC4.8/Clang3.3/VC2015或以上
+- cmake3.2或以上
+
 ## 编译(Linux)
 - 我的编译环境
-  - Ubuntu16.04 64 bit + gcc5.4(最低gcc4.7)
+  - Ubuntu16.04 64 bit + gcc5.4
   - cmake 3.5.1
 - 编译
   
