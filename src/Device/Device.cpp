@@ -138,10 +138,12 @@ void DevChannel::inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp
 		static uint32_t audioMtu = mINI::Instance()[Config::Rtp::kAudioMtuSize].as<uint32_t>();
 		m_pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc, audioMtu,m_audio->iSampleRate));
 	}
-	if (!m_bSdp_gotAAC && m_audio) {
-		makeSDP_AAC((unsigned char*) pcAdtsHeader, iDataLen);
+	if (!m_bSdp_gotAAC && m_audio && pcAdtsHeader) {
+		makeSDP_AAC((unsigned char*) pcAdtsHeader);
 	}
-	m_pRtpMaker_aac->makeRtp(pcDataWithoutAdts, iDataLen, uiStamp);
+    if(pcDataWithoutAdts && iDataLen){
+        m_pRtpMaker_aac->makeRtp(pcDataWithoutAdts, iDataLen, uiStamp);
+    }
 }
 
 inline void DevChannel::makeSDP_264(unsigned char *pcData, int iDataLen) {
@@ -226,7 +228,7 @@ inline void DevChannel::makeSDP_264(unsigned char *pcData, int iDataLen) {
 	}
 }
 
-inline void DevChannel::makeSDP_AAC(unsigned char *fixedHeader, int dataLen) {
+inline void DevChannel::makeSDP_AAC(unsigned char *fixedHeader) {
 	auto audioSpecificConfig = makeAdtsConfig(fixedHeader);
 	if (audioSpecificConfig.size() != 2) {
 		return;

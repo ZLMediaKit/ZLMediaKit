@@ -36,10 +36,10 @@
 		#define API_EXPORT __declspec(dllimport)
 	#endif
 
-	#define CALLTYPE __cdecl
+	#define API_CALL __cdecl
 #else
 #define API_EXPORT
-#define CALLTYPE
+#define API_CALL
 #endif
 
 
@@ -50,62 +50,63 @@ extern "C" {
 
 
 /////////////////////////environment init////////////////////////////////
-API_EXPORT void CALLTYPE onAppStart();
-API_EXPORT void CALLTYPE onAppExit();
+API_EXPORT void API_CALL onAppStart();
+API_EXPORT void API_CALL onAppExit();
+API_EXPORT void API_CALL setGlobalOptionString(const char *key,const char *val);
 
 /*
  * 描述:创建Http服务器
  * 参数:port:htt监听端口，推荐80
  * 返回值:0:成功;-1:失败
  */
-API_EXPORT int CALLTYPE initHttpServer(unsigned short port);
+API_EXPORT int API_CALL initHttpServer(unsigned short port);
 
 /*
  * 描述:创建RTSP服务器
  * 参数:port:rtsp监听端口，推荐554
  * 返回值:0:成功;-1:失败
  */
-API_EXPORT int CALLTYPE initRtspServer(unsigned short port);
+API_EXPORT int API_CALL initRtspServer(unsigned short port);
 
 /*
  * 描述:创建RTMP服务器
  * 参数:port:rtmp监听端口，推荐1935
  * 返回值:0:成功;-1:失败
  */
-API_EXPORT int CALLTYPE initRtmpServer(unsigned short port);
+API_EXPORT int API_CALL initRtmpServer(unsigned short port);
 
 /*
  * 描述:播放事件回调函数定义
  * 参数:userData:用户数据指针strApp:应用名,strStream:流名称
  */
-typedef void (CALLTYPE *onEventPlay)(void *userData,const char *strApp,const char *strStream);
+typedef void (API_CALL *onEventPlay)(void *userData,const char *strApp,const char *strStream);
 
 /*
  * 描述:监听事件
  * 参数:cb:回调函数指针,userData:用户数据指针
  * 返回值:无
  */
-API_EXPORT void CALLTYPE listenEvent_onPlay(onEventPlay cb,void *userData);
+API_EXPORT void API_CALL listenEvent_onPlay(onEventPlay cb,void *userData);
 
 /*
  * 描述:注册RTSP事件
  * 参数:userData:用户数据指针strApp:应用名,strStream:流名称
  */
-typedef void (CALLTYPE *onEventRegistMediaSrc)(void *userData,const char *strApp,const char *strStream);
+typedef void (API_CALL *onEventRegistMediaSrc)(void *userData,const char *strApp,const char *strStream);
 
 /*
  * 描述:监听事件
  * 参数:cb:回调函数指针,userData:用户数据指针
  * 返回值:无
  */
-API_EXPORT void CALLTYPE listenEvent_onRegistRtsp(onEventRegistMediaSrc cb,void *userData);
+API_EXPORT void API_CALL listenEvent_onRegistRtsp(onEventRegistMediaSrc cb,void *userData);
 
 /*
  * 描述:监听事件
  * 参数:cb:回调函数指针,userData:用户数据指针
  * 返回值:无
  */
-API_EXPORT void CALLTYPE listenEvent_onRegistRtmp(onEventRegistMediaSrc cb,void *userData);
+API_EXPORT void API_CALL listenEvent_onRegistRtmp(onEventRegistMediaSrc cb,void *userData);
 
 
 /////////////////////////日志////////////////////////////////
@@ -115,28 +116,28 @@ typedef enum {
             LogTrace = 0, LogDebug, LogInfo, LogWarn, LogError, LogFatal,
 } LogType;
 
-typedef void(CALLTYPE *onLogOut)(const char *strLog, int iLogLen);
+typedef void(API_CALL *onLogOut)(const char *strLog, int iLogLen);
 
 /*
  * 描述:设置Log输出回调
  * 参数:onLogOut：回调函数
  * 返回值:无
  */
-API_EXPORT void CALLTYPE log_setOnLogOut(onLogOut);
+API_EXPORT void API_CALL log_setOnLogOut(onLogOut);
 
 /*
  * 描述:设在日志显示级别
  * 参数:level:日志级别
  * 返回值:无
  */
-API_EXPORT void CALLTYPE log_setLevel(LogType level);
+API_EXPORT void API_CALL log_setLevel(LogType level);
 
 /*
  * 描述:打印日志
  * 参数:level:日志级别；file:文件名称,function：函数名称，line：所在行数，fmt：格式化字符串
  * 返回值:无
  */
-API_EXPORT void CALLTYPE log_printf(LogType level, const char* file, const char* function, int line, const char *fmt, ...);
+API_EXPORT void API_CALL log_printf(LogType level, const char* file, const char* function, int line, const char *fmt, ...);
 
 
 #define log_trace(fmt,...) log_printf(LogTrace,__FILE__,__FUNCTION__,__LINE__,fmt,__VA_ARGS__)

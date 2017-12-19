@@ -35,11 +35,11 @@ extern "C" {
 
 ////////////////////////////////////////Httpdownloader/////////////////////////////////////////////////
 typedef void * HttpDownloaderContex;
-typedef void(CALLTYPE *downloader_onResult)(void *userData,int code,const char *errMsg,const char *filePath);
+typedef void(API_CALL *downloader_onResult)(void *userData,int code,const char *errMsg,const char *filePath);
 
-API_EXPORT HttpDownloaderContex CALLTYPE createDownloader();
-API_EXPORT void CALLTYPE downloader_startDownload(HttpDownloaderContex ctx,const char *url,downloader_onResult cb,void *userData);
-API_EXPORT void CALLTYPE releaseDownloader(HttpDownloaderContex ctx);
+API_EXPORT HttpDownloaderContex API_CALL createDownloader();
+API_EXPORT void API_CALL downloader_startDownload(HttpDownloaderContex ctx,const char *url,downloader_onResult cb,void *userData);
+API_EXPORT void API_CALL releaseDownloader(HttpDownloaderContex ctx);
 
 
 #ifdef __cplusplus

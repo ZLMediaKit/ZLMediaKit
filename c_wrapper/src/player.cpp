@@ -63,7 +63,7 @@ static onceToken s_token([](){
 				player = it->second;\
 			}\
 		}
-API_EXPORT PlayerContext CALLTYPE createPlayer() {
+API_EXPORT PlayerContext API_CALL createPlayer() {
 	lock_guard<recursive_mutex> lck(s_mtxMapPlayer);
 	MediaPlayer::Ptr ret(new MediaPlayer());
 	s_mapPlayer.emplace(ret.get(), ret);
@@ -72,7 +72,7 @@ API_EXPORT PlayerContext CALLTYPE createPlayer() {
 	}
 	return ret.get();
 }
-API_EXPORT void CALLTYPE releasePlayer(PlayerContext ctx) {
+API_EXPORT void API_CALL releasePlayer(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return;
@@ -90,7 +90,7 @@ API_EXPORT void CALLTYPE releasePlayer(PlayerContext ctx) {
 	});
 }
 
-API_EXPORT void CALLTYPE player_setOptionInt(PlayerContext ctx,const char* key,int val){
+API_EXPORT void API_CALL player_setOptionInt(PlayerContext ctx,const char* key,int val){
 	string keyTmp(key);
 	ASYNC_TRACE([ctx,keyTmp,val](){
 		getPlayer(ctx);
@@ -100,7 +100,7 @@ API_EXPORT void CALLTYPE player_setOptionInt(PlayerContext ctx,const char* key,i
 		(*player)[keyTmp] = val;
 	});
 }
-API_EXPORT void CALLTYPE player_setOptionString(PlayerContext ctx,const char* key,const char *val){
+API_EXPORT void API_CALL player_setOptionString(PlayerContext ctx,const char* key,const char *val){
 	string keyTmp(key);
 	string valTmp(val);
 	ASYNC_TRACE([ctx,keyTmp,valTmp](){
@@ -111,7 +111,7 @@ API_EXPORT void CALLTYPE player_setOptionString(PlayerContext ctx,const char* ke
 		(*player)[keyTmp] = valTmp;
 	});
 }
-API_EXPORT void CALLTYPE player_play(PlayerContext ctx, const char* url) {
+API_EXPORT void API_CALL player_play(PlayerContext ctx, const char* url) {
 	string urlTmp(url);
 	ASYNC_TRACE([ctx,urlTmp](){
 		getPlayer(ctx);
@@ -122,7 +122,7 @@ API_EXPORT void CALLTYPE player_play(PlayerContext ctx, const char* url) {
 	});
 }
 
-API_EXPORT void CALLTYPE player_pause(PlayerContext ctx, int pause) {
+API_EXPORT void API_CALL player_pause(PlayerContext ctx, int pause) {
 	ASYNC_TRACE([ctx,pause](){
 		getPlayer(ctx);
 		if (!player) {
@@ -132,7 +132,7 @@ API_EXPORT void CALLTYPE player_pause(PlayerContext ctx, int pause) {
 	});
 }
 
-API_EXPORT void CALLTYPE player_seekTo(PlayerContext ctx, float fProgress) {
+API_EXPORT void API_CALL player_seekTo(PlayerContext ctx, float fProgress) {
 	ASYNC_TRACE([ctx,fProgress]() {
 		getPlayer(ctx);
 		if (!player) {
@@ -141,7 +141,7 @@ API_EXPORT void CALLTYPE player_seekTo(PlayerContext ctx, float fProgress) {
 		return player->seekTo(fProgress);
 	});
 }
-API_EXPORT void CALLTYPE player_setOnShutdown(PlayerContext ctx, player_onResult cb, void *userData) {
+API_EXPORT void API_CALL player_setOnShutdown(PlayerContext ctx, player_onResult cb, void *userData) {
 	getPlayer(ctx);
 	if (!player) {
 		return;
@@ -159,7 +159,7 @@ API_EXPORT void CALLTYPE player_setOnShutdown(PlayerContext ctx, player_onResult
 	}
 }
 
-API_EXPORT void CALLTYPE player_setOnPlayResult(PlayerContext ctx, player_onResult cb, void *userData) {
+API_EXPORT void API_CALL player_setOnPlayResult(PlayerContext ctx, player_onResult cb, void *userData) {
 	getPlayer(ctx);
 	if (!player) {
 		return;
@@ -177,7 +177,7 @@ API_EXPORT void CALLTYPE player_setOnPlayResult(PlayerContext ctx, player_onResu
 	}
 }
 
-API_EXPORT void CALLTYPE player_setOnGetVideo(PlayerContext ctx, player_onGetH264 cb,
+API_EXPORT void API_CALL player_setOnGetVideo(PlayerContext ctx, player_onGetH264 cb,
 		void *userData) {
 	getPlayer(ctx);
 	if (!player) {
@@ -198,7 +198,7 @@ API_EXPORT void CALLTYPE player_setOnGetVideo(PlayerContext ctx, player_onGetH26
 	}
 }
 
-API_EXPORT void CALLTYPE player_setOnGetAudio(PlayerContext ctx, player_onGetAAC cb,
+API_EXPORT void API_CALL player_setOnGetAudio(PlayerContext ctx, player_onGetAAC cb,
 		void *userData) {
 	getPlayer(ctx);
 	if (!player) {
@@ -217,7 +217,7 @@ API_EXPORT void CALLTYPE player_setOnGetAudio(PlayerContext ctx, player_onGetAAC
 	}
 }
 
-API_EXPORT int CALLTYPE player_getVideoWidth(PlayerContext ctx) {
+API_EXPORT int API_CALL player_getVideoWidth(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -225,7 +225,7 @@ API_EXPORT int CALLTYPE player_getVideoWidth(PlayerContext ctx) {
 	return player->getVideoWidth();
 }
 
-API_EXPORT int CALLTYPE player_getVideoHeight(PlayerContext ctx) {
+API_EXPORT int API_CALL player_getVideoHeight(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -233,7 +233,7 @@ API_EXPORT int CALLTYPE player_getVideoHeight(PlayerContext ctx) {
 	return player->getVideoHeight();
 }
 
-API_EXPORT int CALLTYPE player_getVideoFps(PlayerContext ctx) {
+API_EXPORT int API_CALL player_getVideoFps(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -241,7 +241,7 @@ API_EXPORT int CALLTYPE player_getVideoFps(PlayerContext ctx) {
 	return player->getVideoFps();
 }
 
-API_EXPORT int CALLTYPE player_getAudioSampleRate(PlayerContext ctx) {
+API_EXPORT int API_CALL player_getAudioSampleRate(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -249,7 +249,7 @@ API_EXPORT int CALLTYPE player_getAudioSampleRate(PlayerContext ctx) {
 	return player->getAudioSampleRate();
 }
 
-API_EXPORT int CALLTYPE player_getAudioSampleBit(PlayerContext ctx) {
+API_EXPORT int API_CALL player_getAudioSampleBit(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -257,7 +257,7 @@ API_EXPORT int CALLTYPE player_getAudioSampleBit(PlayerContext ctx) {
 	return player->getAudioSampleBit();
 }
 
-API_EXPORT int CALLTYPE player_getAudioChannel(PlayerContext ctx) {
+API_EXPORT int API_CALL player_getAudioChannel(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -265,7 +265,7 @@ API_EXPORT int CALLTYPE player_getAudioChannel(PlayerContext ctx) {
 	return player->getAudioChannel();
 }
 
-API_EXPORT int CALLTYPE player_getH264PPS(PlayerContext ctx, char *buf, int bufsize) {
+API_EXPORT int API_CALL player_getH264PPS(PlayerContext ctx, char *buf, int bufsize) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -276,7 +276,7 @@ API_EXPORT int CALLTYPE player_getH264PPS(PlayerContext ctx, char *buf, int bufs
 	memcpy(buf, player->getPps().data(), player->getPps().size());
 	return player->getPps().size();
 }
-API_EXPORT int CALLTYPE player_getH264SPS(PlayerContext ctx, char *buf, int bufsize) {
+API_EXPORT int API_CALL player_getH264SPS(PlayerContext ctx, char *buf, int bufsize) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -288,7 +288,7 @@ API_EXPORT int CALLTYPE player_getH264SPS(PlayerContext ctx, char *buf, int bufs
 	return player->getSps().size();
 }
 
-API_EXPORT int CALLTYPE player_getAacCfg(PlayerContext ctx, char *buf, int bufsize) {
+API_EXPORT int API_CALL player_getAacCfg(PlayerContext ctx, char *buf, int bufsize) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -300,7 +300,7 @@ API_EXPORT int CALLTYPE player_getAacCfg(PlayerContext ctx, char *buf, int bufsi
 	return player->getAudioCfg().size();
 }
 
-API_EXPORT int CALLTYPE player_containAudio(PlayerContext ctx) {
+API_EXPORT int API_CALL player_containAudio(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -308,7 +308,7 @@ API_EXPORT int CALLTYPE player_containAudio(PlayerContext ctx) {
 	return player->containAudio();
 
 }
-API_EXPORT int CALLTYPE player_containVideo(PlayerContext ctx) {
+API_EXPORT int API_CALL player_containVideo(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -316,14 +316,14 @@ API_EXPORT int CALLTYPE player_containVideo(PlayerContext ctx) {
 	return player->containVideo();
 }
 
-API_EXPORT int CALLTYPE player_isInited(PlayerContext ctx) {
+API_EXPORT int API_CALL player_isInited(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
 	}
 	return player->isInited();
 }
-API_EXPORT float CALLTYPE player_getDuration(PlayerContext ctx) {
+API_EXPORT float API_CALL player_getDuration(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -331,7 +331,7 @@ API_EXPORT float CALLTYPE player_getDuration(PlayerContext ctx) {
 	return player->getDuration();
 }
 
-API_EXPORT float CALLTYPE player_getProgress(PlayerContext ctx) {
+API_EXPORT float API_CALL player_getProgress(PlayerContext ctx) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
@@ -339,7 +339,7 @@ API_EXPORT float CALLTYPE player_getProgress(PlayerContext ctx) {
 	return player->getProgress();
 }
 
-API_EXPORT float CALLTYPE player_getLossRate(PlayerContext ctx, int trackId) {
+API_EXPORT float API_CALL player_getLossRate(PlayerContext ctx, int trackId) {
 	getPlayer(ctx);
 	if (!player) {
 		return -1;
