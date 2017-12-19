@@ -42,14 +42,14 @@ typedef void* ProxyPlayerContext;
  *     rtp_type:如果播放的是rtsp连接则通过该参数配置设置rtp传输方式:RTP_TCP = 0, RTP_UDP = 1, RTP_MULTICAST = 2
  * 返回值:代理播放器句柄
  */
-API_EXPORT ProxyPlayerContext CALLTYPE createProxyPlayer(const char *app,const char *stream,int rtp_type);
+API_EXPORT ProxyPlayerContext API_CALL createProxyPlayer(const char *app,const char *stream,int rtp_type);
 
 /*
  * 描述:销毁代理播放器
  * 参数:ctx:代理播放器句柄
  * 返回值:无
  */
-API_EXPORT void CALLTYPE releaseProxyPlayer(ProxyPlayerContext ctx);
+API_EXPORT void API_CALL releaseProxyPlayer(ProxyPlayerContext ctx);
 
 
 /*
@@ -57,7 +57,7 @@ API_EXPORT void CALLTYPE releaseProxyPlayer(ProxyPlayerContext ctx);
  * 参数:url:rtsp/rtmp连接
  * 返回值:无
  */
-API_EXPORT void CALLTYPE proxyPlayer_play(ProxyPlayerContext ctx,const char *url);
+API_EXPORT void API_CALL proxyPlayer_play(ProxyPlayerContext ctx,const char *url);
 
 
 #ifdef __cplusplus

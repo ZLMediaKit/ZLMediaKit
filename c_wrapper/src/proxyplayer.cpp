@@ -42,7 +42,7 @@ static onceToken s_token([](){
     });
 },nullptr);
 
-API_EXPORT ProxyPlayerContext CALLTYPE createProxyPlayer(const char *app,const char *stream,int rtp_type){
+API_EXPORT ProxyPlayerContext API_CALL createProxyPlayer(const char *app,const char *stream,int rtp_type){
     PlayerProxy::Ptr ret(new PlayerProxy(app,stream));
     (*ret)[RtspPlayer::kRtpType] = rtp_type;
 
@@ -50,11 +50,11 @@ API_EXPORT ProxyPlayerContext CALLTYPE createProxyPlayer(const char *app,const c
     s_mapProxyPlayer.emplace(ret.get(),ret);
     return ret.get();
 }
-API_EXPORT void CALLTYPE releaseProxyPlayer(ProxyPlayerContext ctx){
+API_EXPORT void API_CALL releaseProxyPlayer(ProxyPlayerContext ctx){
     lock_guard<recursive_mutex> lck(s_mtxMapProxyPlayer);
     s_mapProxyPlayer.erase(ctx);
 }
-API_EXPORT void CALLTYPE proxyPlayer_play(ProxyPlayerContext ctx,const char *url){
+API_EXPORT void API_CALL proxyPlayer_play(ProxyPlayerContext ctx,const char *url){
     PlayerProxy *ptr = (PlayerProxy *)ctx;
     ptr->play(url);
 }

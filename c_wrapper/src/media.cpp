@@ -49,18 +49,18 @@ static onceToken s_token([](){
 
 
 //////////////////////////Rtsp media///////////////////////////
-API_EXPORT MediaContext CALLTYPE createMedia(const char *appName,const char *mediaName) {
+API_EXPORT MediaContext API_CALL createMedia(const char *appName,const char *mediaName) {
 	DevChannel::Ptr ret(new DevChannel(appName,mediaName));
 	lock_guard<recursive_mutex> lck(s_mtxMapMedia);
 	s_mapMedia.emplace((void *) (ret.get()), ret);
 	return ret.get();
 }
-API_EXPORT void CALLTYPE releaseMedia(MediaContext ctx) {
+API_EXPORT void API_CALL releaseMedia(MediaContext ctx) {
 	lock_guard<recursive_mutex> lck(s_mtxMapMedia);
 	s_mapMedia.erase(ctx);
 }
 
-API_EXPORT void CALLTYPE media_initVideo(MediaContext ctx, int width, int height, int frameRate) {
+API_EXPORT void API_CALL media_initVideo(MediaContext ctx, int width, int height, int frameRate) {
 	DevChannel *ptr = (DevChannel *) ctx;
 	VideoInfo info;
 	info.iFrameRate = frameRate;
@@ -68,7 +68,7 @@ API_EXPORT void CALLTYPE media_initVideo(MediaContext ctx, int width, int height
 	info.iHeight = height;
 	ptr->initVideo(info);
 }
-API_EXPORT void CALLTYPE media_initAudio(MediaContext ctx, int channel, int sampleBit, int sampleRate) {
+API_EXPORT void API_CALL media_initAudio(MediaContext ctx, int channel, int sampleBit, int sampleRate) {
 	DevChannel *ptr = (DevChannel *) ctx;
 	AudioInfo info;
 	info.iSampleRate = sampleRate;
@@ -76,15 +76,30 @@ API_EXPORT void CALLTYPE media_initAudio(MediaContext ctx, int channel, int samp
 	info.iSampleBit = sampleBit;
 	ptr->initAudio(info);
 }
-API_EXPORT void CALLTYPE media_inputH264(MediaContext ctx, void *data, int len, unsigned long stamp) {
+API_EXPORT void API_CALL media_inputH264(MediaContext ctx, void *data, int len, unsigned long stamp) {
 	//TimeTicker();
 	DevChannel *ptr = (DevChannel *) ctx;
 	ptr->inputH264((char *) data, len, stamp);
 }
-API_EXPORT void CALLTYPE media_inputAAC(MediaContext ctx, void *data, int len,unsigned long stamp) {
+API_EXPORT void API_CALL media_inputAAC(MediaContext ctx, void *data, int len,unsigned long stamp) {
 	//TimeTicker();
 	DevChannel *ptr = (DevChannel *) ctx;
 	ptr->inputAAC((char *) data, len, stamp);
 }
+
+API_EXPORT void API_CALL media_inputAAC1(MediaContext ctx, void *data, int len, unsigned long stamp,void *adts){
+    DevChannel *ptr = (DevChannel *) ctx;
+    ptr->inputAAC((char *) data, len, stamp,(char *)adts);
+}
+
+API_EXPORT void API_CALL media_inputAAC2(MediaContext ctx, void *data, int len, unsigned long stamp,void *aac_cfg){
+    DevChannel *ptr = (DevChannel *) ctx;
+    AdtsFrame frame;
+    makeAdtsHeader((char*)aac_cfg, frame);
+    char adts[8];
+    writeAdtsHeader(frame, (uint8_t*)adts);
+    ptr->inputAAC((char *) data, len, stamp,(char *)adts);
+}
+
 
 

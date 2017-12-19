@@ -50,7 +50,7 @@ static TcpServer<HttpSession>::Ptr s_pHttpSrv;
 
 //////////////////////////environment init///////////////////////////
 
-API_EXPORT void CALLTYPE onAppStart(){
+API_EXPORT void API_CALL onAppStart(){
 	static onceToken s_token([](){
 		Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
 		EventPoller::Instance(true);
@@ -70,11 +70,13 @@ API_EXPORT void CALLTYPE onAppStart(){
 }
 
 
-API_EXPORT void CALLTYPE onAppExit(){
+API_EXPORT void API_CALL onAppExit(){
 	cleaner::Destory();
 }
-
-API_EXPORT int CALLTYPE initHttpServer(unsigned short port){
+API_EXPORT void API_CALL setGlobalOptionString(const char *key,const char *val){
+    mINI::Instance()[key] = val;
+}
+API_EXPORT int API_CALL initHttpServer(unsigned short port){
 	s_pHttpSrv.reset(new TcpServer<HttpSession>());
 	try {
 		s_pHttpSrv->start(port);
@@ -85,7 +87,7 @@ API_EXPORT int CALLTYPE initHttpServer(unsigned short port){
 		return -1;
 	}
 }
-API_EXPORT int CALLTYPE initRtspServer(unsigned short port) {
+API_EXPORT int API_CALL initRtspServer(unsigned short port) {
 	s_pRtspSrv.reset(new TcpServer<RtspSession>());
 	try {
 		s_pRtspSrv->start(port);
@@ -97,7 +99,7 @@ API_EXPORT int CALLTYPE initRtspServer(unsigned short port) {
 	}
 }
 
-API_EXPORT int CALLTYPE initRtmpServer(unsigned short port) {
+API_EXPORT int API_CALL initRtmpServer(unsigned short port) {
 	s_pRtmpSrv.reset(new TcpServer<RtmpSession>());
 	try {
 		s_pRtmpSrv->start(port);
@@ -109,7 +111,7 @@ API_EXPORT int CALLTYPE initRtmpServer(unsigned short port) {
 	}
 }
 
-API_EXPORT void CALLTYPE listenEvent_onPlay(onEventPlay cb,void *userData){
+API_EXPORT void API_CALL listenEvent_onPlay(onEventPlay cb,void *userData){
 	NoticeCenter::Instance().addListener((void *)(cb),Config::Broadcast::kBroadcastRtspSessionPlay,
 			[cb,userData](BroadcastRtspSessionPlayArgs){
 		static unordered_map<string, void *> s_timerKeyMap;
@@ -132,14 +134,14 @@ API_EXPORT void CALLTYPE listenEvent_onPlay(onEventPlay cb,void *userData){
 	});
 }
 
-API_EXPORT void CALLTYPE listenEvent_onRegistRtsp(onEventRegistMediaSrc cb,void *userData){
+API_EXPORT void API_CALL listenEvent_onRegistRtsp(onEventRegistMediaSrc cb,void *userData){
 	NoticeCenter::Instance().addListener((void *)(cb),Config::Broadcast::kBroadcastRtspSrcRegisted,
 			[cb,userData](BroadcastRtspSrcRegistedArgs){
 			cb(userData,app,stream);
 	});
 }
 
-API_EXPORT void CALLTYPE listenEvent_onRegistRtmp(onEventRegistMediaSrc cb,void *userData){
+API_EXPORT void API_CALL listenEvent_onRegistRtmp(onEventRegistMediaSrc cb,void *userData){
 	NoticeCenter::Instance().addListener((void *)(cb),Config::Broadcast::kBroadcastRtmpSrcRegisted,
 			[cb,userData](BroadcastRtmpSrcRegistedArgs){
 		cb(userData,app,stream);
@@ -147,7 +149,7 @@ API_EXPORT void CALLTYPE listenEvent_onRegistRtmp(onEventRegistMediaSrc cb,void 
 }
 
 
-API_EXPORT void CALLTYPE log_printf(LogType level,const char* file, const char* function, int line,const char *fmt,...){
+API_EXPORT void API_CALL log_printf(LogType level,const char* file, const char* function, int line,const char *fmt,...){
 	LogInfoMaker info((LogLevel)level,file,function,line);
 	va_list pArg;
 	va_start(pArg, fmt);
@@ -157,7 +159,7 @@ API_EXPORT void CALLTYPE log_printf(LogType level,const char* file, const char* 
 	va_end(pArg);
 	info << buf;
 }
-API_EXPORT void CALLTYPE log_setLevel(LogType level){
+API_EXPORT void API_CALL log_setLevel(LogType level){
 	Logger::Instance().setLevel((LogLevel)level);
 }
 
@@ -183,7 +185,7 @@ private:
 	onLogOut _cb = nullptr;
 };
 
-API_EXPORT void CALLTYPE log_setOnLogOut(onLogOut cb){
+API_EXPORT void API_CALL log_setOnLogOut(onLogOut cb){
 	std::shared_ptr<LogoutChannel> chn(new LogoutChannel("LogoutChannel",cb,LTrace));
 	Logger::Instance().add(chn);
 }

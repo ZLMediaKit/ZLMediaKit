@@ -36,22 +36,22 @@ extern "C" {
 
 ////////////////////////////////////////RTSP Player/////////////////////////////////////////////////
 typedef void* PlayerContext;
-typedef void(CALLTYPE *player_onResult)(void *userData,int errCode,const char *errMsg);
-typedef void(CALLTYPE *player_onGetAAC)(void *userData,void *data,int len,unsigned long timeStamp);
-typedef void(CALLTYPE *player_onGetH264)(void *userData,void *data,int len,unsigned long dts,unsigned long pts);
+typedef void(API_CALL *player_onResult)(void *userData,int errCode,const char *errMsg);
+typedef void(API_CALL *player_onGetAAC)(void *userData,void *data,int len,unsigned long timeStamp);
+typedef void(API_CALL *player_onGetH264)(void *userData,void *data,int len,unsigned long dts,unsigned long pts);
 /*
  * 描述:创建一个Rtsp播放器
  * 参数:无
  * 返回值:Rtsp播放器句柄
  */
-API_EXPORT PlayerContext CALLTYPE createPlayer();
+API_EXPORT PlayerContext API_CALL createPlayer();
 
 /*
  * 描述:销毁一个播放器
  * 参数:ctx:播放器句柄
  * 返回值:无
  */
-API_EXPORT void CALLTYPE releasePlayer(PlayerContext ctx);
+API_EXPORT void API_CALL releasePlayer(PlayerContext ctx);
 
 
 /*
@@ -61,8 +61,8 @@ API_EXPORT void CALLTYPE releasePlayer(PlayerContext ctx);
  *		val:值,例如　//设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
  * 返回值:无
  */
-API_EXPORT void CALLTYPE player_setOptionInt(PlayerContext ctx,const char* key,int val);
-API_EXPORT void CALLTYPE player_setOptionString(PlayerContext ctx,const char* key,const char *val);
+API_EXPORT void API_CALL player_setOptionInt(PlayerContext ctx,const char* key,int val);
+API_EXPORT void API_CALL player_setOptionString(PlayerContext ctx,const char* key,const char *val);
 
 
 /*
@@ -71,35 +71,35 @@ API_EXPORT void CALLTYPE player_setOptionString(PlayerContext ctx,const char* ke
  *		url:rtsp链接
  * 返回值:无
  */
-API_EXPORT void CALLTYPE player_play(PlayerContext ctx,const char* url);
+API_EXPORT void API_CALL player_play(PlayerContext ctx,const char* url);
 
 /*
  * 描述:暂停播放RTSP
  * 参数:ctx:播放器句柄；pause:1:暂停播放，0：恢复播放
  * 返回值:无
  */
-API_EXPORT void CALLTYPE player_pause(PlayerContext ctx,int pause);
+API_EXPORT void API_CALL player_pause(PlayerContext ctx,int pause);
 
 /*
  * 描述:设置播放器异常停止回调函数
  * 参数:ctx:播放器句柄;cb:回调函数指针;userData:用户数据指针
  * 返回值:无
  */
-API_EXPORT void CALLTYPE player_setOnShutdown(PlayerContext ctx,player_onResult cb,void *userData);
+API_EXPORT void API_CALL player_setOnShutdown(PlayerContext ctx,player_onResult cb,void *userData);
 
 /*
  * 描述:设置播放器播放结果回调函数
  * 参数:ctx:播放器句柄,cb:回调函数指针;userData:用户数据指针
  * 返回值:无
  */
-API_EXPORT void CALLTYPE player_setOnPlayResult(PlayerContext ctx,player_onResult cb,void *userData);
+API_EXPORT void API_CALL player_setOnPlayResult(PlayerContext ctx,player_onResult cb,void *userData);
 
 /*
  * 描述:设置播放器收到视频帧回调,I帧前为SPS，PPS帧；每帧包含00 00 00 01的帧头
  * 参数:ctx:播放器句柄,cb:回调函数指针;userData:用户数据指针
  * 返回值:无
  */
-API_EXPORT void CALLTYPE player_setOnGetVideo(PlayerContext ctx,player_onGetH264 cb,void *userData);
+API_EXPORT void API_CALL player_setOnGetVideo(PlayerContext ctx,player_onGetH264 cb,void *userData);
 
 
 /*
@@ -107,49 +107,49 @@ API_EXPORT void CALLTYPE player_setOnGetVideo(PlayerContext ctx,player_onGetH264
  * 参数:ctx:播放器句柄,cb:回调函数指针;userData:用户数据指针
  * 返回值:无
  */
-API_EXPORT void CALLTYPE player_setOnGetAudio(PlayerContext ctx,player_onGetAAC cb,void *userData);
+API_EXPORT void API_CALL player_setOnGetAudio(PlayerContext ctx,player_onGetAAC cb,void *userData);
 
 /*
  * 描述:获取视频宽度
  * 参数:ctx:播放器句柄
  * 返回值:视频宽度
  */
-API_EXPORT int CALLTYPE player_getVideoWidth(PlayerContext ctx);
+API_EXPORT int API_CALL player_getVideoWidth(PlayerContext ctx);
 
 /*
  * 描述:获取视频高度
  * 参数:ctx:播放器句柄
  * 返回值:视频高度
  */
-API_EXPORT int CALLTYPE CALLTYPE player_getVideoHeight(PlayerContext ctx);
+API_EXPORT int API_CALL API_CALL player_getVideoHeight(PlayerContext ctx);
 
 /*
  * 描述:获取视频帧率
  * 参数:ctx:播放器句柄
  * 返回值:视频帧率
  */
-API_EXPORT int CALLTYPE player_getVideoFps(PlayerContext ctx);
+API_EXPORT int API_CALL player_getVideoFps(PlayerContext ctx);
 
 /*
  * 描述:获取音频采样率
  * 参数:ctx:播放器句柄
  * 返回值:音频采样率
  */
-API_EXPORT int CALLTYPE player_getAudioSampleRate(PlayerContext ctx);
+API_EXPORT int API_CALL player_getAudioSampleRate(PlayerContext ctx);
 
 /*
  * 描述:获取音频采样位数（8bit或16bit）
  * 参数:ctx:播放器句柄
  * 返回值:音频采样位数
  */
-API_EXPORT int CALLTYPE player_getAudioSampleBit(PlayerContext ctx);
+API_EXPORT int API_CALL player_getAudioSampleBit(PlayerContext ctx);
 
 /*
  * 描述:获取音频通道数（单声道1，双声道2）
  * 参数:ctx:播放器句柄
  * 返回值:音频通道数
  */
-API_EXPORT int CALLTYPE player_getAudioChannel(PlayerContext ctx);
+API_EXPORT int API_CALL player_getAudioChannel(PlayerContext ctx);
 
 
 /*
@@ -157,7 +157,7 @@ API_EXPORT int CALLTYPE player_getAudioChannel(PlayerContext ctx);
  * 参数:ctx:播放器句柄，buf:存放PPS数据的缓存；bufsize：缓存大小
  * 返回值:帧数据长度
  */
-API_EXPORT int CALLTYPE player_getH264PPS(PlayerContext ctx,char *buf,int bufsize);
+API_EXPORT int API_CALL player_getH264PPS(PlayerContext ctx,char *buf,int bufsize);
 
 
 /*
@@ -165,7 +165,7 @@ API_EXPORT int CALLTYPE player_getH264PPS(PlayerContext ctx,char *buf,int bufsiz
  * 参数:ctx:播放器句柄，buf:存放SPS数据的缓存；bufsize：缓存大小
  * 返回值:帧数据长度
  */
-API_EXPORT int CALLTYPE player_getH264SPS(PlayerContext ctx,char *buf,int bufsize);
+API_EXPORT int API_CALL player_getH264SPS(PlayerContext ctx,char *buf,int bufsize);
 
 
 /*
@@ -173,7 +173,7 @@ API_EXPORT int CALLTYPE player_getH264SPS(PlayerContext ctx,char *buf,int bufsiz
  * 参数:ctx:播放器句柄；buf:存放CFG数据的缓存；bufsize：缓存大小
  * 返回值:CFG数据长度
  */
-API_EXPORT int CALLTYPE player_getAacCfg(PlayerContext ctx,char *buf,int bufsize);
+API_EXPORT int API_CALL player_getAacCfg(PlayerContext ctx,char *buf,int bufsize);
 
 
 /*
@@ -181,7 +181,7 @@ API_EXPORT int CALLTYPE player_getAacCfg(PlayerContext ctx,char *buf,int bufsize
  * 参数:ctx:播放器句柄
  * 返回值:1：包含，0：不包含
  */
-API_EXPORT int CALLTYPE player_containAudio(PlayerContext ctx);
+API_EXPORT int API_CALL player_containAudio(PlayerContext ctx);
 
 
 /*
@@ -189,7 +189,7 @@ API_EXPORT int CALLTYPE player_containAudio(PlayerContext ctx);
  * 参数:ctx:播放器句柄
  * 返回值:1：包含，0：不包含
  */
-API_EXPORT int CALLTYPE player_containVideo(PlayerContext ctx);
+API_EXPORT int API_CALL player_containVideo(PlayerContext ctx);
 
 
 /*
@@ -197,35 +197,35 @@ API_EXPORT int CALLTYPE player_containVideo(PlayerContext ctx);
  * 参数:ctx:播放器句柄
  * 返回值:1：初始化完成，0：未完成
  */
-API_EXPORT int CALLTYPE player_isInited(PlayerContext ctx);
+API_EXPORT int API_CALL player_isInited(PlayerContext ctx);
 
 /*
  * 描述:获取点播的时间长度，单位为秒（小于等于0，说明是直播，否则为点播）
  * 参数:ctx:播放器句柄
  * 返回值:点播的时间长度，单位秒
  */
-API_EXPORT float CALLTYPE player_getDuration(PlayerContext ctx);
+API_EXPORT float API_CALL player_getDuration(PlayerContext ctx);
 
 /*
  * 描述:获取点播播放进度
  * 参数:ctx:播放器句柄
  * 返回值:点播播放进度，取值范围未 0.0～1.0
  */
-API_EXPORT float CALLTYPE player_getProgress(PlayerContext ctx);
+API_EXPORT float API_CALL player_getProgress(PlayerContext ctx);
 
 /*
  * 描述:设置点播播放进度
  * 参数:ctx:播放器句柄；fProgress：播放进度，取值范围未 0.0～1.0
  * 返回值:无
  */
-API_EXPORT void CALLTYPE player_seekTo(PlayerContext ctx, float fProgress);
+API_EXPORT void API_CALL player_seekTo(PlayerContext ctx, float fProgress);
 
 /*
  * 描述:获取丢包率
  * 参数:ctx:播放器句柄；trackId:如果是-1,则返回总丢包率，否则返回视频或者音频的丢包率
  * 返回值:丢包率
  */
-API_EXPORT float CALLTYPE player_getLossRate(PlayerContext ctx,int trackId);
+API_EXPORT float API_CALL player_getLossRate(PlayerContext ctx,int trackId);
 
 
 #ifdef __cplusplus

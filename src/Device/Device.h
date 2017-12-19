@@ -96,7 +96,7 @@ public:
 	}
 private:
 	inline void makeSDP_264(unsigned char *pucData, int iDataLen);
-	inline void makeSDP_AAC(unsigned char *pucData, int iDataLen);
+	inline void makeSDP_AAC(unsigned char *pucData);
 	inline void makeSDP(const string& strSdp);
 #ifdef ENABLE_X264
 	std::shared_ptr<H264Encoder> m_pH264Enc;

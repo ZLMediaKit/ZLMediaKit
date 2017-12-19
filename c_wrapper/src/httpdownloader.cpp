@@ -50,13 +50,13 @@ static onceToken s_token([](){
 
 
 
-API_EXPORT HttpDownloaderContex CALLTYPE createDownloader(){
+API_EXPORT HttpDownloaderContex API_CALL createDownloader(){
 	HttpDownloader::Ptr ret(new HttpDownloader());
 	lock_guard<recursive_mutex> lck(s_mtxMapDownloader);
 	s_mapDownloader.emplace(ret.get(),ret);
 	return ret.get();
 }
-API_EXPORT void CALLTYPE downloader_startDownload(HttpDownloaderContex ctx,const char *url,downloader_onResult cb,void *userData){
+API_EXPORT void API_CALL downloader_startDownload(HttpDownloaderContex ctx,const char *url,downloader_onResult cb,void *userData){
 	HttpDownloader *ptr = (HttpDownloader *)ctx;
 	string urlTmp(url);
 	ptr->startDownload(url, [cb,userData,urlTmp](int code,const char *errMsg,const char *filePath){
@@ -66,7 +66,7 @@ API_EXPORT void CALLTYPE downloader_startDownload(HttpDownloaderContex ctx,const
 		}
 	});
 }
-API_EXPORT void CALLTYPE releaseDownloader(HttpDownloaderContex ctx){
+API_EXPORT void API_CALL releaseDownloader(HttpDownloaderContex ctx){
 	lock_guard<recursive_mutex> lck(s_mtxMapDownloader);
 	s_mapDownloader.erase(ctx);
 }
