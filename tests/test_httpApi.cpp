@@ -28,7 +28,7 @@
 #include <signal.h>
 #include <iostream>
 #include "Common/config.h"
-
+#include "Http/HttpSession.h"
 #ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
 #include "Http/HttpsSession.h"
