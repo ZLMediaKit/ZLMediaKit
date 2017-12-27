@@ -224,7 +224,10 @@ Windows | 已经完成移植
   
     [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
 
-
+## 参考案例
+ - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
+ - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xiongziliang/ZLMediaPlayer)
+ 
 ## 联系方式
 - 邮箱：<771730766@qq.com>
 - QQ群：542509000
