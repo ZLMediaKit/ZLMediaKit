@@ -597,6 +597,10 @@ void HttpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 	sendRtmp(pkt->typeId, pkt->strBuf, modifiedStamp);
 }
 
+#if defined(_WIN32)
+#pragma pack(push, 1)
+#endif // defined(_WIN32)
+
 class RtmpTagHeader {
 public:
 	uint8_t type = 0;
@@ -605,6 +609,10 @@ public:
 	uint8_t timestamp_ex = 0;
 	uint8_t streamid[3] = {0}; /* Always 0. */
 }PACKED;
+
+#if defined(_WIN32)
+#pragma pack(pop)
+#endif // defined(_WIN32)
 
 void HttpSession::sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp) {
 	auto size = htonl(m_previousTagSize);
