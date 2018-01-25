@@ -194,6 +194,7 @@ int main(int argc,char *argv[]){
 	UDPServer::Destory();
 	//TcpServer用到了WorkThreadPool
 	WorkThreadPool::Destory();
+    AsyncTaskThread::Destory();
 	EventPoller::Destory();
 	Logger::Destory();
 	return 0;
