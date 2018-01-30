@@ -49,6 +49,24 @@ namespace ZL {
 namespace Rtsp {
 
 class RtspSession;
+
+class BufferRtp : public Socket::Buffer{
+public:
+    typedef std::shared_ptr<BufferRtp> Ptr;
+    BufferRtp(const RtpPacket::Ptr & pkt,uint32_t offset = 0 ):_rtp(pkt),_offset(offset){}
+    virtual ~BufferRtp(){}
+
+    char *data() override {
+        return (char *)_rtp->payload + _offset;
+    }
+    uint32_t size() const override {
+        return _rtp->length - _offset;
+    }
+private:
+    RtpPacket::Ptr _rtp;
+    uint32_t _offset;
+};
+
 class RtspSession: public TcpLimitedSession<MAX_TCP_SESSION> {
 public:
 	typedef std::shared_ptr<RtspSession> Ptr;
@@ -73,6 +91,9 @@ private:
 	int send(const char *pcBuf, int iSize) override {
 		return m_pSender->send(pcBuf, iSize);
 	}
+	int send(const Socket::Buffer::Ptr &pkt){
+		return m_pSender->send(pkt);
+	}
 	void shutdown() override;
 	bool handleReq_Options(); //处理options方法
 	bool handleReq_Describe(); //处理describe方法
@@ -92,7 +113,7 @@ private:
 	inline bool findStream(); //根据rtsp url查找 MediaSource实例
 
 	inline void initSender(const std::shared_ptr<RtspSession> &pSession); //处理rtsp over http，quicktime使用的
-	inline void sendRtpPacket(const RtpPacket &pkt);
+	inline void sendRtpPacket(const RtpPacket::Ptr &pkt);
 	inline string printSSRC(uint32_t ui32Ssrc) {
 		char tmp[9] = { 0 };
 		ui32Ssrc = htonl(ui32Ssrc);

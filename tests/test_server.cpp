@@ -162,7 +162,7 @@ int main(int argc,char *argv[]){
 	//输入用户名和密码登录(user:test,pwd:123456)，输入help命令查看帮助
 	TcpServer<ShellSession>::Ptr shellSrv(new TcpServer<ShellSession>());
 	ShellSession::addUser("test", "123456");
-	shellSrv->start(8023);
+	shellSrv->start(mINI::Instance()[Config::Shell::kPort]);
 	//开启rtsp/rtmp/http服务器
 	TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
 	TcpServer<RtmpSession>::Ptr rtmpSrv(new TcpServer<RtmpSession>());

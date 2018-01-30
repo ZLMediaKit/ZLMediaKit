@@ -664,7 +664,7 @@ bool RtspSession::handleReq_Play() {
 				if(!strongSelf) {
 					return;
 				}
-				strongSelf->sendRtpPacket(*pack);
+				strongSelf->sendRtpPacket(pack);
 			});
 
 		});
@@ -848,11 +848,13 @@ inline bool RtspSession::findStream() {
 	return true;
 }
 
-inline void RtspSession::sendRtpPacket(const RtpPacket& pkt) {
+
+inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 	//InfoL<<(int)pkt.Interleaved;
 	switch (m_rtpType) {
 	case PlayerBase::RTP_TCP: {
-		send((char *) pkt.payload, pkt.length);
+        BufferRtp::Ptr buffer(new BufferRtp(pkt));
+		send(buffer);
 #ifdef RTSP_SEND_RTCP
 		int iTrackIndex = getTrackIndexByTrackId(pkt.interleaved / 2);
 		RtcpCounter &counter = m_aRtcpCnt[iTrackIndex];
@@ -869,7 +871,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket& pkt) {
 	}
 		break;
 	case PlayerBase::RTP_UDP: {
-		int iTrackIndex = getTrackIndexByTrackId(pkt.interleaved / 2);
+		int iTrackIndex = getTrackIndexByTrackId(pkt->interleaved / 2);
 		auto pSock = m_apUdpSock[iTrackIndex].lock();
 		if (!pSock) {
 			shutdown();
@@ -879,7 +881,8 @@ inline void RtspSession::sendRtpPacket(const RtpPacket& pkt) {
 		if (!peerAddr) {
 			return;
 		}
-		pSock->sendTo((char *) pkt.payload + 4, pkt.length - 4, peerAddr.get());
+        BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
+        pSock->send(buffer,SOCKET_DEFAULE_FLAGS, peerAddr.get());
 	}
 		break;
 	default:
