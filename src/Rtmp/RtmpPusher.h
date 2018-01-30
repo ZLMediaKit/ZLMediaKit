@@ -65,8 +65,8 @@ protected:
 	void onSendRawData(const char *pcRawData, int iSize) override {
 		send(pcRawData, iSize);
 	}
-	void onSendRawData(string &&strData) override {
-		send(std::move(strData));
+	void onSendRawData(const Socket::Buffer::Ptr &buffer,int flags) override{
+		m_pSock->send(buffer,flags);
 	}
 private:
     void init(const RtmpMediaSource::Ptr  &src);
