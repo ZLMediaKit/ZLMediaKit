@@ -202,7 +202,7 @@ void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
 	set_le32(header.streamId, ui32StreamId);
 
 	//估算rtmp包数据大小
-	uint32_t capacity = ((bExtStamp ? 5 : 1) * ((strBuf.size() / m_iChunkLenOut))) + strBuf.size() + sizeof(header) + 32;
+	uint32_t capacity = ((bExtStamp ? 5 : 1) * (1 + (strBuf.size() / m_iChunkLenOut))) + strBuf.size() + sizeof(header);
 	uint32_t totalSize = 0;
 	Socket::BufferRaw::Ptr buffer = m_bufferPool.obtain();
 	buffer->setCapacity(capacity);
