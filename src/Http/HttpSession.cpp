@@ -355,7 +355,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 				//send completed!
 				//FatalL << "send completed!";
 				if(iRead>0) {
-					strongSelf->send(pacSendBuf.get(), iRead);
+					strongSelf->sock->send(pacSendBuf.get(), iRead,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 				}
 				if(bClose) {
 					strongSelf->shutdown();
@@ -363,7 +363,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 				return false;
 			}
 
-			int iSent=strongSelf->send(pacSendBuf.get(), iRead);
+			int iSent = strongSelf->sock->send(pacSendBuf.get(), iRead,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 			if(iSent == -1) {
 				//send error
 				//FatalL << "send error";
@@ -378,6 +378,8 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 		}
 		return false;
 	};
+	//关闭tcp_nodelay ,优化性能
+	SockUtil::setNoDelay(sock->rawFD(),false);
 	onFlush();
 	sock->setOnFlush(onFlush);
 	return Http_success;
@@ -594,7 +596,7 @@ void HttpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 		CLEAR_ARR(m_aui32FirstStamp);
 		modifiedStamp = 0;
 	}
-	sendRtmp(pkt->typeId, pkt->strBuf, modifiedStamp);
+	sendRtmp(pkt, modifiedStamp);
 }
 
 #if defined(_WIN32)
@@ -614,21 +616,48 @@ public:
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-void HttpSession::sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp) {
+class BufferRtmp : public Socket::Buffer{
+public:
+    typedef std::shared_ptr<BufferRtmp> Ptr;
+    BufferRtmp(const RtmpPacket::Ptr & pkt):_rtmp(pkt){}
+    virtual ~BufferRtmp(){}
+
+    char *data() override {
+        return (char *)_rtmp->strBuf.data();
+    }
+    uint32_t size() const override {
+        return _rtmp->strBuf.size();
+    }
+private:
+    RtmpPacket::Ptr _rtmp;
+};
+
+void HttpSession::sendRtmp(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp) {
 	auto size = htonl(m_previousTagSize);
 	send((char *)&size,4);//send PreviousTagSize
-
 	RtmpTagHeader header;
-	header.type = ui8Type;
-	set_be24(header.data_size, strBuf.size());
-
+	header.type = pkt->typeId;
+	set_be24(header.data_size, pkt->strBuf.size());
 	header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
 	set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
-
 	send((char *)&header, sizeof(header));//send tag header
-	send(strBuf);//send tag data
-	m_previousTagSize += (strBuf.size() + sizeof(header) + 4);
+	send(std::make_shared<BufferRtmp>(pkt));//send tag data
+	m_previousTagSize += (pkt->strBuf.size() + sizeof(header) + 4);
 	m_ticker.resetTime();
+}
+
+void HttpSession::sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp) {
+    auto size = htonl(m_previousTagSize);
+    send((char *)&size,4);//send PreviousTagSize
+    RtmpTagHeader header;
+    header.type = ui8Type;
+    set_be24(header.data_size, strBuf.size());
+    header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
+    set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
+    send((char *)&header, sizeof(header));//send tag header
+    send(strBuf);//send tag data
+    m_previousTagSize += (strBuf.size() + sizeof(header) + 4);
+    m_ticker.resetTime();
 }
 
 } /* namespace Http */
