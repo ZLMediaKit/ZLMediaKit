@@ -87,7 +87,7 @@ if(ZLTOOLKIT_FOUND)
     list(APPEND LINK_LIB_LIST ${ZLTOOLKIT_LIBRARIES})
 endif()
 
-#查找ZLToolKit是否安装
+#查找JEMALLOC是否安装
 find_package(JEMALLOC QUIET)
 if(JEMALLOC_FOUND)
     message(STATUS "找到JEMALLOC库:\"${JEMALLOC_INCLUDE_DIR}\"")
