@@ -78,6 +78,7 @@ private:
 	uint32_t m_previousTagSize = 0;
 	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
 	void onSendMedia(const RtmpPacket::Ptr &pkt);
+	void sendRtmp(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp);
 	void sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp);
 
 	inline HttpCode parserHttpReq(const string &);

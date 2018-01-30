@@ -121,7 +121,7 @@ int domain(int argc, const char *argv[]) {
 
 
 int main(int argc,char *argv[]){
-	const char *argList[] = {argv[0],"rtmp://live.hkstv.hk.lxdns.com/live/hks","rtmp://jizan.iok.la/live/test"};
+	const char *argList[] = {argv[0],"rtmp://live.hkstv.hk.lxdns.com/live/hks",argv[1]};
 	return domain(3,argList);
 }
 
