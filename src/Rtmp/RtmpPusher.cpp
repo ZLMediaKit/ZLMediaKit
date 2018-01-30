@@ -203,7 +203,7 @@ inline void RtmpPusher::send_metaData(){
     sendRequest(MSG_DATA, enc.data());
     
     src->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-        sendRtmp(pkt->typeId, m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId);
+        sendRtmp(pkt->typeId, m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId , true);
     });
     
     m_pRtmpReader = src->getRing()->attach();
@@ -213,7 +213,7 @@ inline void RtmpPusher::send_metaData(){
     	if(!strongSelf) {
     		return;
     	}
-    	strongSelf->sendRtmp(pkt->typeId, strongSelf->m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId);
+    	strongSelf->sendRtmp(pkt->typeId, strongSelf->m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId , true);
     });
     m_pRtmpReader->setDetachCB([weakSelf](){
         auto strongSelf = weakSelf.lock();

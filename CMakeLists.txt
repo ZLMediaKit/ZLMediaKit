@@ -87,6 +87,14 @@ if(ZLTOOLKIT_FOUND)
     list(APPEND LINK_LIB_LIST ${ZLTOOLKIT_LIBRARIES})
 endif()
 
+#查找ZLToolKit是否安装
+find_package(JEMALLOC QUIET)
+if(JEMALLOC_FOUND)
+    message(STATUS "找到JEMALLOC库:\"${JEMALLOC_INCLUDE_DIR}\"")
+    include_directories(${JEMALLOC_INCLUDE_DIR})
+    list(APPEND LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
+endif()
+
 #打印库文件
 message(STATUS "将链接依赖库:${LINK_LIB_LIST}")
 #开启RTSP/RTMP之间的互相转换,开启HLS

@@ -84,8 +84,8 @@ private:
 	void onSendRawData(const char *pcRawData,int iSize) override{
 		send(pcRawData, iSize);
 	}
-	void onSendRawData(string &&strData) override{
-		send(std::move(strData));
+	void onSendRawData(const Socket::Buffer::Ptr &buffer,int flags) override{
+		sock->send(buffer,flags);
 	}
 	void onRtmpChunk(RtmpPacket &chunkData) override;
 

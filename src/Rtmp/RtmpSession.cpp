@@ -91,7 +91,7 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
 		amfVer = objectEncoding.as_number();
 	}
 	///////////set chunk size////////////////
-	sendChunkSize(4096);
+	sendChunkSize(60000);
 	////////////window Acknowledgement size/////
 	sendAcknowledgementSize(5000000);
 	///////////set peerBandwidth////////////////
@@ -214,7 +214,8 @@ void  RtmpSession::doPlay(){
 
 	m_pRingReader = src->getRing()->attach();
 	weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-	m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
+    SockUtil::setNoDelay(sock->rawFD(), false);
+    m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf) {
 			return;
@@ -377,7 +378,7 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 		CLEAR_ARR(m_aui32FirstStamp);
 		modifiedStamp = 0;
 	}
-	sendRtmp(pkt->typeId, pkt->streamId, pkt->strBuf, modifiedStamp, pkt->chunkId);
+	sendRtmp(pkt->typeId, pkt->streamId, pkt->strBuf, modifiedStamp, pkt->chunkId , true);
 }
 
 } /* namespace Rtmp */
