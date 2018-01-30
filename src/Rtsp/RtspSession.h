@@ -91,7 +91,7 @@ private:
 	int send(const char *pcBuf, int iSize) override {
 		return m_pSender->send(pcBuf, iSize);
 	}
-	int send(const Socket::Buffer::Ptr &pkt){
+	int send(const Socket::Buffer::Ptr &pkt) override{
 		return m_pSender->send(pkt,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 	}
 	void shutdown() override;
