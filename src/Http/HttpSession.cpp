@@ -326,6 +326,11 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 		//分节下载返回Content-Range头
 		httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
 	}
+	auto Origin = m_parser["Origin"];
+	if(!Origin.empty()){
+		httpHeader["Access-Control-Allow-Origin"] = Origin;
+		httpHeader["Access-Control-Allow-Credentials"] = "true";
+	}
 	//先回复HTTP头部分
 	sendResponse(pcHttpResult, httpHeader, "");
 	if (iRangeEnd - iRangeStart < 0) {
