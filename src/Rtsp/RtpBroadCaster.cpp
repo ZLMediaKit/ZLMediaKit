@@ -29,6 +29,8 @@
 #include "RtpBroadCaster.h"
 #include "Util/util.h"
 #include "Network/sockutil.h"
+#include "RtspSession.h"
+
 using namespace std;
 
 namespace ZL {
@@ -112,7 +114,8 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strApp,con
 		int i = (pkt->interleaved/2)%2;
 		auto &pSock = m_apUdpSock[i];
 		auto &peerAddr = m_aPeerUdpAddr[i];
-		pSock->sendTo((char *) pkt->payload + 4, pkt->length - 4,(struct sockaddr *)(&peerAddr));
+        BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
+		pSock->send(buffer,SOCKET_DEFAULE_FLAGS,(struct sockaddr *)(&peerAddr));
 	});
 	m_pReader->setDetachCB([this](){
 		unordered_map<void * , onDetach > m_mapDetach_copy;
