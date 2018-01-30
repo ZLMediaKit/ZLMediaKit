@@ -654,6 +654,7 @@ bool RtspSession::handleReq_Play() {
 
 	if(m_pRtpReader){
 		weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+        SockUtil::setNoDelay(m_pSender->rawFD(), false);
 		m_pRtpReader->setReadCB([weakSelf](const RtpPacket::Ptr &pack) {
 			auto strongSelf = weakSelf.lock();
 			if(!strongSelf) {

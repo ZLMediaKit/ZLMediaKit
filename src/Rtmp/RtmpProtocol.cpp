@@ -187,7 +187,7 @@ void RtmpProtocol::sendRequest(int iCmd, const string& str) {
 }
 
 void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
-		const std::string& strBuf, uint32_t ui32TimeStamp, int iChunkId) {
+		const std::string& strBuf, uint32_t ui32TimeStamp, int iChunkId , bool msg_more) {
 	if (iChunkId < 2 || iChunkId > 63) {
 		auto strErr = StrPrinter << "不支持发送该类型的块流 ID:" << iChunkId << endl;
 		throw std::runtime_error(strErr);
@@ -200,8 +200,15 @@ void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
 	set_be24(header.timeStamp, bExtStamp ? 0xFFFFFF : ui32TimeStamp);
 	set_be24(header.bodySize, strBuf.size());
 	set_le32(header.streamId, ui32StreamId);
-	std::string strSend;
-	strSend.append((char *) &header, sizeof(header));
+
+	//估算rtmp包数据大小
+	uint32_t capacity = ((bExtStamp ? 5 : 1) * ((strBuf.size() / m_iChunkLenOut))) + strBuf.size() + sizeof(header) + 32;
+	uint32_t totalSize = 0;
+	Socket::BufferRaw::Ptr buffer = m_bufferPool.obtain();
+	buffer->setCapacity(capacity);
+	memcpy(buffer->data() + totalSize,(char *) &header, sizeof(header));
+	totalSize += sizeof(header);
+
 	char acExtStamp[4];
 	if (bExtStamp) {
 		//扩展时间戳
@@ -211,18 +218,22 @@ void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
 	while (pos < strBuf.size()) {
 		if (pos) {
 			uint8_t flags = (iChunkId & 0x3f) | (3 << 6);
-			strSend += char(flags);
+			memcpy(buffer->data() + totalSize,&flags, 1);
+			totalSize += 1;
 		}
 		if (bExtStamp) {
 			//扩展时间戳
-			strSend.append(acExtStamp, 4);
+			memcpy(buffer->data() + totalSize,acExtStamp, 4);
+			totalSize += 4;
 		}
 		size_t chunk = min(m_iChunkLenOut, strBuf.size() - pos);
-		strSend.append(strBuf, pos, chunk);
+		memcpy(buffer->data() + totalSize,strBuf.data() + pos, chunk);
+		totalSize += chunk;
 		pos += chunk;
 	}
-	onSendRawData(std::move(strSend));
-	m_ui32ByteSent += strSend.size();
+    buffer->setSize(totalSize);
+	onSendRawData(buffer,msg_more ? SOCKET_DEFAULE_FLAGS : (SOCKET_DEFAULE_FLAGS | FLAG_MORE));
+	m_ui32ByteSent += totalSize;
 	if (m_ui32WinSize > 0 && m_ui32ByteSent - m_ui32LastSent >= m_ui32WinSize) {
 		m_ui32LastSent = m_ui32ByteSent;
 		sendAcknowledgement(m_ui32ByteSent);

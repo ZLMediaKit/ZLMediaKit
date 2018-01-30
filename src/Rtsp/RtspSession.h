@@ -92,7 +92,7 @@ private:
 		return m_pSender->send(pcBuf, iSize);
 	}
 	int send(const Socket::Buffer::Ptr &pkt){
-		return m_pSender->send(pkt);
+		return m_pSender->send(pkt,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 	}
 	void shutdown() override;
 	bool handleReq_Options(); //处理options方法
