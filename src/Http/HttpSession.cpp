@@ -343,7 +343,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 		fclose(pFp);
 	});
 	static uint32_t sendBufSize =  mINI::Instance()[Config::Http::kSendBufSize].as<uint32_t>();
-
+	sock->setShouldDropPacket(false);
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
 	auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
 		TimeTicker();
