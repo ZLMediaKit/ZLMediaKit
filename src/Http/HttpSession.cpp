@@ -343,40 +343,44 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 		fclose(pFp);
 	});
 	static uint32_t sendBufSize =  mINI::Instance()[Config::Http::kSendBufSize].as<uint32_t>();
-	std::shared_ptr<char> pacSendBuf(new char[sendBufSize],[](char *ptr){
-		delete [] ptr;
-	});
+
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-	auto onFlush = [pFilePtr,bClose,weakSelf,piLeft,pacSendBuf]() {
+	auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
 		TimeTicker();
 		auto strongSelf = weakSelf.lock();
 		while(*piLeft && strongSelf){
-			strongSelf->m_ticker.resetTime();
+            //更新超时定时器
+            strongSelf->m_ticker.resetTime();
+            //从循环池获取一个内存片
+            auto sendBuf = strongSelf->sock->obtainBuffer();
+            sendBuf->setCapacity(sendBufSize);
+            //本次需要读取文件字节数
 			int64_t iReq = MIN(sendBufSize,*piLeft);
-			int64_t iRead = fread(pacSendBuf.get(), 1, iReq, pFilePtr.get());
+            //读文件
+			int64_t iRead = fread(sendBuf->data(), 1, iReq, pFilePtr.get());
+            //文件剩余字节数
 			*piLeft -= iRead;
-			//InfoL << "Send file :" << iReq << " " << *piLeft;
+
 			if (iRead < iReq || !*piLeft) {
-				//send completed!
-				//FatalL << "send completed!";
+                //文件读完
 				if(iRead>0) {
-					strongSelf->sock->send(pacSendBuf.get(), iRead,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+                    sendBuf->setSize(iRead);
+					strongSelf->sock->send(sendBuf,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 				}
 				if(bClose) {
 					strongSelf->shutdown();
 				}
 				return false;
 			}
-
-			int iSent = strongSelf->sock->send(pacSendBuf.get(), iRead,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+            //文件还未读完
+            sendBuf->setSize(iRead);
+            int iSent = strongSelf->sock->send(sendBuf,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 			if(iSent == -1) {
 				//send error
-				//FatalL << "send error";
 				return false;
 			}
 			if(iSent < iRead) {
 				//send wait
-				//FatalL << "send wait";
 				return true;
 			}
 			//send success
