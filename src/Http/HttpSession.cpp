@@ -343,7 +343,10 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 		fclose(pFp);
 	});
 	static uint32_t sendBufSize =  mINI::Instance()[Config::Http::kSendBufSize].as<uint32_t>();
+	//不允许主动丢包
 	sock->setShouldDropPacket(false);
+	//缓存大小为两个包,太大可能导致发送时间太长从而超时
+	sock->setSendPktSize(2);
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
 	auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
 		TimeTicker();
@@ -356,15 +359,21 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
             sendBuf->setCapacity(sendBufSize);
             //本次需要读取文件字节数
 			int64_t iReq = MIN(sendBufSize,*piLeft);
-            //读文件
-			int64_t iRead = fread(sendBuf->data(), 1, iReq, pFilePtr.get());
+            //读文件	
+			int iRead;
+			do{
+				 iRead = fread(sendBuf->data(), 1, iReq, pFilePtr.get());
+			}while(-1 == iRead && UV_EINTR == get_uv_error(false));
             //文件剩余字节数
+			
 			*piLeft -= iRead;
 
 			if (iRead < iReq || !*piLeft) {
                 //文件读完
+				//InfoL << "send complete!" << iRead << " " << iReq << " " << *piLeft;
 				if(iRead>0) {
-                    sendBuf->setSize(iRead);
+                    			sendBuf->setSize(iRead);
+					strongSelf->sock->setSendPktSize(3);//强制写入socket缓存
 					strongSelf->sock->send(sendBuf,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 				}
 				if(bClose) {
@@ -377,13 +386,19 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
             int iSent = strongSelf->sock->send(sendBuf,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 			if(iSent == -1) {
 				//send error
+				//InfoL << "send error";
 				return false;
 			}
 			if(iSent < iRead) {
 				//send wait
+				//InfoL << "send wait";
+				//数据回滚
+				fseek(pFilePtr.get(), -iRead, SEEK_CUR);
+				*piLeft += iRead;
 				return true;
 			}
 			//send success
+			//InfoL << "send success";
 		}
 		return false;
 	};
