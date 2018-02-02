@@ -64,7 +64,6 @@ private:
 	string m_strUserName;
 
 	static unordered_map<string, string> g_mapUser;
-	static string g_serverName;
 };
 
 } /* namespace Shell */

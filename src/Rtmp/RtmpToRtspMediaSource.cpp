@@ -36,25 +36,23 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Rtmp {
 
-#ifdef ENABLE_RTMP2RTSP
-RtmpToRtspMediaSource::RtmpToRtspMediaSource(const string &_app, const string &_id) :
-		RtmpMediaSource(_app,_id) {
+RtmpToRtspMediaSource::RtmpToRtspMediaSource(const string &vhost,const string &app, const string &id) :
+		RtmpMediaSource(vhost,app,id) {
 }
-RtmpToRtspMediaSource::~RtmpToRtspMediaSource() {
-}
+RtmpToRtspMediaSource::~RtmpToRtspMediaSource() {}
 
-void RtmpToRtspMediaSource::regist() {
-	RtmpMediaSource::regist();
+bool RtmpToRtspMediaSource::regist() {
 	if (m_pRtspSrc) {
 		m_pRtspSrc->regist();
 	}
+	return MediaSource::regist();
 }
 
-void RtmpToRtspMediaSource::unregist() {
-	RtmpMediaSource::unregist();
+bool RtmpToRtspMediaSource::unregist() {
 	if(m_pRtspSrc){
 		m_pRtspSrc->unregist();
 	}
+	return MediaSource::unregist();
 }
 
 void RtmpToRtspMediaSource::onGetH264(const H264Frame &frame) {
@@ -156,14 +154,12 @@ void RtmpToRtspMediaSource::makeSDP() {
 				<< "\r\n" << endl;
 	}
 
-	m_pRtspSrc.reset(new RtspMediaSource(getApp(),getId()));
-	m_pRtspSrc->setOnSeek(m_onSeek);
-	m_pRtspSrc->setOnStamp(m_onStamp);
+	m_pRtspSrc.reset(new RtspMediaSource(getVhost(),getApp(),getId()));
+	m_pRtspSrc->setListener(m_listener);
 	m_pRtspSrc->onGetSDP(strSDP);
 	m_pRtspSrc->regist();
 }
 
-#endif // ENABLE_RTMP2RTSP
 
 } /* namespace Rtmp */
 } /* namespace ZL */

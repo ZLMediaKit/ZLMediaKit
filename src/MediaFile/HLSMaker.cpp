@@ -38,10 +38,6 @@ HLSMaker::HLSMaker(const string& strM3u8File, const string& strHttpUrl,
 	if (ui32BufSize < 16 * 1024) {
 		ui32BufSize = 16 * 1024;
 	}
-
-    if(ui32Duration < 0){
-        ui32Duration = 0;
-    }
     if(ui32Num < 1){
         ui32Num = 1;
     }

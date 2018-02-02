@@ -25,8 +25,8 @@
  */
 
 
-#ifndef appConfig_h
-#define appConfig_h
+#ifndef COMMON_CONFIG_H
+#define COMMON_CONFIG_H
 
 #include "Util/mini.h"
 using namespace ZL::Util;
@@ -35,12 +35,7 @@ namespace Config {
 
 void loadIniConfig();
 ////////////TCP最大连接数///////////
-#ifdef __x86_64__
 #define MAX_TCP_SESSION 100000
-#else
-#define MAX_TCP_SESSION 128
-#endif
-
 ////////////其他宏定义///////////
 #ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b) )
@@ -54,17 +49,21 @@ void loadIniConfig();
 #define CLEAR_ARR(arr) for(auto &item : arr){ item = 0;}
 #endif //CLEAR_ARR
 
+#define SERVER_NAME "ZLMediaKit"
+#define VHOST_KEY "vhost"
+#define RTSP_SCHEMA "rtsp"
+#define RTMP_SCHEMA "rtmp"
+#define DEFAULT_VHOST "__defaultVhost__"
+#define RTSP_VERSION 1.30
+#define RTSP_BUILDTIME __DATE__" CST"
 
 ////////////广播名称///////////
 namespace Broadcast {
-extern const char kBroadcastRtspSessionPlay[];
-#define BroadcastRtspSessionPlayArgs const char *app,const char *stream
+extern const char kBroadcastMediaPlayed[];
+#define BroadcastMediaPlayedArgs const char *schema,const char *vhost,const char *app,const char *stream
 
-extern const char kBroadcastRtspSrcRegisted[];
-#define BroadcastRtspSrcRegistedArgs const char *app,const char *stream
-
-extern const char kBroadcastRtmpSrcRegisted[];
-#define BroadcastRtmpSrcRegistedArgs const char *app,const char *stream
+extern const char kBroadcastMediaChanged[];
+#define BroadcastMediaChangedArgs bool bRegist, const char *schema,const char *vhost,const char *app,const char *stream
 
 extern const char kBroadcastRecordMP4[];
 #define BroadcastRecordMP4Args const Mp4Info &info
@@ -103,29 +102,22 @@ extern const char kKeepAliveSecond[];
 extern const char kMaxReqCount[];
 //http 字符编码
 extern const char kCharSet[];
-//http 服务器名称
-extern const char kServerName[];
 //http 服务器根目录
 extern const char kRootPath[];
 //http 404错误提示内容
 extern const char kNotFound[];
-//HTTP访问url前缀
-extern const char kHttpPrefix[];
+
 }//namespace Http
 
 ////////////SHELL配置///////////
 namespace Shell {
-extern const char kServerName[];
 extern const char kMaxReqSize[];
 extern const char kPort[];
 } //namespace Shell
 
 ////////////RTSP服务器配置///////////
 namespace Rtsp {
-#define RTSP_VERSION 1.30
-#define RTSP_BUILDTIME __DATE__" CST"
 
-extern const char kServerName[];
 extern const char kPort[];
 //是否优先base64方式认证？默认Md5方式认证
 extern const char kAuthBasic[];
@@ -171,8 +163,6 @@ extern const char kAppName[];
 extern const char kSampleMS[];
 //MP4文件录制大小,不能太大,否则MP4Close函数执行事件太长
 extern const char kFileSecond[];
-//Rtsp访问url前缀
-extern const char kRtspPrefix[];
 //录制文件路径
 extern const char kFilePath[];
 } //namespace Record
@@ -187,8 +177,12 @@ extern const char kSegmentNum[];
 extern const char kFileBufSize[];
 //录制文件路径
 extern const char kFilePath[];
+//HTTP访问url前缀
+extern const char kHttpPrefix[];
+//HTTP默认vhost访问url前缀
+extern const char kHttpPrefixDefaultVhost[];
 } //namespace Hls
 
 }  // namespace Config
 
-#endif /* appConfig_h */
+#endif /* COMMON_CONFIG_H */

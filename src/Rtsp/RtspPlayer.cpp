@@ -427,19 +427,6 @@ void RtspPlayer::pause(bool bPause) {
     sendPause(bPause,getProgressTime());
 }
 
-//注意:当字符串为空时，也会返回一个空字符串
-static void split(const string& s, const char *delim, vector<string> &ret) {
-    size_t last = 0;
-    size_t index = s.find_first_of(delim, last);
-    while (index != string::npos) {
-        ret.push_back(s.substr(last, index - last));
-        last = index + 1;
-        index = s.find_first_of(delim, last);
-    }
-    if (index - last > 0) {
-        ret.push_back(s.substr(last, index - last));
-    }
-}
 void RtspPlayer::HandleResPAUSE(const Parser& parser, bool bPause) {
 	if (parser.Url() != "200") {
 		WarnL <<(bPause ? "Pause" : "Play") << " failed:" << parser.Url() << " " << parser.Tail() << endl;
@@ -461,18 +448,15 @@ void RtspPlayer::HandleResPAUSE(const Parser& parser, bool bPause) {
         auto strRtpInfo =  parser["RTP-Info"];
         if (strRtpInfo.size()) {
             strRtpInfo.append(",");
-            vector<string> vec;
-            split(strRtpInfo, ",", vec);
+            vector<string> vec = split(strRtpInfo, ",");
             for(auto &strTrack : vec){
-                if (strTrack.size()) {
-                    strTrack.append(";");
-                    auto strTrackId = FindField(strTrack.data(), m_aTrackInfo[0].trackStyle.data(), ";");
-                    auto strRtpTime = FindField(strTrack.data(), "rtptime=", ";");
-                    auto iIdx = getTrackIndex(atoi(strTrackId.data()));
-                    m_adFistStamp[iIdx] = atoll(strRtpTime.data());
-                    m_adNowStamp[iIdx] = m_adFistStamp[iIdx];
-                    DebugL << "rtptime:" << strTrackId <<" " << strRtpTime;
-                }
+                strTrack.append(";");
+                auto strTrackId = FindField(strTrack.data(), m_aTrackInfo[0].trackStyle.data(), ";");
+                auto strRtpTime = FindField(strTrack.data(), "rtptime=", ";");
+                auto iIdx = getTrackIndex(atoi(strTrackId.data()));
+                m_adFistStamp[iIdx] = atoll(strRtpTime.data());
+                m_adNowStamp[iIdx] = m_adFistStamp[iIdx];
+                DebugL << "rtptime:" << strTrackId <<" " << strRtpTime;
             }
         }
 		_onPlayResult(SockException(Err_success, "rtsp play success"));

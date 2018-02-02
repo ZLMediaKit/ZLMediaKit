@@ -36,10 +36,10 @@ namespace ZL {
 namespace Rtmp {
 
 unordered_map<string, RtmpPusher::rtmpCMDHandle> RtmpPusher::g_mapCmd;
-RtmpPusher::RtmpPusher(const char *strApp,const char *strStream) {
-    auto src = RtmpMediaSource::find(strApp,strStream);
+RtmpPusher::RtmpPusher(const char *strVhost,const char *strApp,const char *strStream) {
+    auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,strVhost,strApp,strStream));
     if (!src) {
-        auto strErr = StrPrinter << "media source:" << strApp << "/" << strStream << "not found!" << endl;
+        auto strErr = StrPrinter << "media source:"  << strVhost << "/" << strApp << "/" << strStream << "not found!" << endl;
         throw std::runtime_error(strErr);
     }
     init(src);

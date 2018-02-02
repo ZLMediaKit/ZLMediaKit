@@ -34,7 +34,7 @@ using namespace ZL::Thread;
 class MediaSender {
 public:
 	static ThreadPool & sendThread() {
-		static ThreadPool pool(1);
+		static ThreadPool pool(1,ThreadPool::PRIORITY_HIGHEST);
 		return pool;
 	}
 private:

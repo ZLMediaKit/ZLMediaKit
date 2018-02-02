@@ -49,6 +49,7 @@ using namespace ZL::Codec;
 using namespace ZL::Codec;
 #endif //ENABLE_X264
 
+
 namespace ZL {
 namespace DEV {
 
@@ -65,10 +66,10 @@ public:
 	int iSampleRate;
 };
 
-class DevChannel {
+class DevChannel  : public RtspToRtmpMediaSource{
 public:
 	typedef std::shared_ptr<DevChannel> Ptr;
-	DevChannel(const char *strApp, const char *strId,float fDuration = 0,bool bLiveStream = true);
+	DevChannel(const char *strVhost,const char *strApp, const char *strId,float fDuration = 0,bool bLiveStream = true);
 	virtual ~DevChannel();
 
 	void initVideo(const VideoInfo &info);
@@ -80,20 +81,6 @@ public:
 	void inputH264(char *pcData, int iDataLen, uint32_t uiStamp);
 	void inputAAC(char *pcDataWithAdts, int iDataLen, uint32_t uiStamp);
 	void inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,char *pcAdtsHeader);
-#ifdef ENABLE_RTSP2RTMP
-	int readerCount() {
-		return m_mediaSrc ? m_mediaSrc->readerCount() : 0;
-	}
-	void updateTimeStamp(uint32_t uiStamp){
-		m_mediaSrc->updateTimeStamp(uiStamp);
-	}
-#endif //ENABLE_RTSP2RTMP
-	void setOnSeek(const function<bool(uint32_t)> &onSeek){
-		m_mediaSrc->setOnSeek(onSeek);
-	}
-	void setOnStamp(const function<uint32_t()> &cb) {
-		m_mediaSrc->setOnStamp(cb);
-	}
 private:
 	inline void makeSDP_264(unsigned char *pucData, int iDataLen);
 	inline void makeSDP_AAC(unsigned char *pucData);
@@ -107,8 +94,6 @@ private:
 #endif //ENABLE_FAAC
 	RtpMaker_AAC::Ptr m_pRtpMaker_aac;
 	RtpMaker_H264::Ptr m_pRtpMaker_h264;
-	RtspToRtmpMediaSource::Ptr m_mediaSrc;
-	string m_strSDP;
 	bool m_bSdp_gotH264 = false;
 	bool m_bSdp_gotAAC = false;
 
