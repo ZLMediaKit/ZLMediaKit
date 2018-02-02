@@ -57,11 +57,16 @@ public:
 	string strUrl;//播放路径
 	string strAppName;//应用名称
 	string strStreamId;//流ID
+	string strVhost;//vhost
 };
 class Mp4Maker {
 public:
 	typedef std::shared_ptr<Mp4Maker> Ptr;
-	Mp4Maker(const string &strPath,const string &strApp,const string &strStreamId, const PlayerBase::Ptr &pPlayer);
+	Mp4Maker(const string &strPath,
+			 const string &strVhost ,
+			 const string &strApp,
+			 const string &strStreamId,
+			 const PlayerBase::Ptr &pPlayer);
 	virtual ~Mp4Maker();
 	//时间戳：参考频率1000
 	void inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp, int iType);

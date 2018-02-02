@@ -53,8 +53,8 @@ public:
 	void onError(const SockException &err) override;
 	void onManager() override;
 private:
-	std::string m_strApp;
-	std::string m_strId;
+    std::string m_strTcUrl;
+    MediaInfo m_mediaInfo;
 	double m_dNowReqID = 0;
 	Ticker m_ticker;//数据接收时间
 	typedef void (RtmpSession::*rtmpCMDHandle)(AMFDecoder &dec);
@@ -75,7 +75,7 @@ private:
 
 	void onCmd_play(AMFDecoder &dec);
 	void onCmd_play2(AMFDecoder &dec);
-	void doPlay();
+	void doPlay(AMFDecoder &dec);
 	void onCmd_seek(AMFDecoder &dec);
 	void onCmd_pause(AMFDecoder &dec);
 	void setMetaData(AMFDecoder &dec);

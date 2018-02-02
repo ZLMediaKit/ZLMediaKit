@@ -74,14 +74,14 @@ public:
 	typedef std::shared_ptr<RtpBroadCaster> Ptr;
 	typedef function<void()> onDetach;
 	virtual ~RtpBroadCaster();
-	static Ptr get(const string &strLocalIp,const string &strApp,const string &strStream);
+	static Ptr get(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
 	void setDetachCB(void *listener,const onDetach &cb);
 	uint16_t getPort(int iTrackId);
 	string getIP();
 private:
 	static recursive_mutex g_mtx;
 	static unordered_map<string , weak_ptr<RtpBroadCaster> > g_mapBroadCaster;
-	static Ptr make(const string &strLocalIp,const string &strApp,const string &strStream);
+	static Ptr make(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
 
 	std::shared_ptr<uint32_t> m_multiAddr;
 	recursive_mutex m_mtx;
@@ -90,7 +90,7 @@ private:
 	Socket::Ptr m_apUdpSock[2];
 	struct sockaddr_in m_aPeerUdpAddr[2];
 
-	RtpBroadCaster(const string &strLocalIp,const string &strApp,const string &strStream);
+	RtpBroadCaster(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
 
 };
 

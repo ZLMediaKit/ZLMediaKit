@@ -37,28 +37,27 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Rtsp {
 
-#ifdef ENABLE_RTSP2RTMP
 
-RtspToRtmpMediaSource::RtspToRtmpMediaSource(const string &_app,const string &_id,bool bEnableFile) :
-		RtspMediaSource(_app,_id),m_bEnableFile(bEnableFile) {
+RtspToRtmpMediaSource::RtspToRtmpMediaSource(const string &vhost,const string &app,const string &id,bool bEnableFile) :
+		RtspMediaSource(vhost,app,id),m_bEnableFile(bEnableFile) {
 }
 
 RtspToRtmpMediaSource::~RtspToRtmpMediaSource() {
 
 }
 
-void RtspToRtmpMediaSource::regist() {
-	RtspMediaSource::regist();
+bool RtspToRtmpMediaSource::regist() {
 	if (m_pRtmpSrc) {
 		m_pRtmpSrc->regist();
 	}
+	return MediaSource::regist();
 }
 
-void RtspToRtmpMediaSource::unregist() {
-	RtspMediaSource::unregist();
+bool RtspToRtmpMediaSource::unregist() {
 	if (m_pRtmpSrc) {
 		m_pRtmpSrc->unregist();
 	}
+	return MediaSource::unregist();
 }
 
 void RtspToRtmpMediaSource::makeVideoConfigPkt() {
@@ -196,9 +195,8 @@ void RtspToRtmpMediaSource::makeAudioConfigPkt() {
 }
 
 void RtspToRtmpMediaSource::makeMetaData() {
-	m_pRtmpSrc.reset(new RtmpMediaSource(getApp(),getId()));
-	m_pRtmpSrc->setOnSeek(m_onSeek);
-	m_pRtmpSrc->setOnStamp(m_onStamp);
+	m_pRtmpSrc.reset(new RtmpMediaSource(getVhost(),getApp(),getId()));
+	m_pRtmpSrc->setListener(m_listener);
 	AMFValue metaData(AMF_OBJECT);
 	metaData.set("duration", m_pParser->getDuration());
 	metaData.set("fileSize", 0);
@@ -222,6 +220,5 @@ void RtspToRtmpMediaSource::makeMetaData() {
 
 	m_pRtmpSrc->onGetMetaData(metaData);
 }
-#endif //ENABLE_RTSP2RTMP
 } /* namespace Rtsp */
 } /* namespace ZL */

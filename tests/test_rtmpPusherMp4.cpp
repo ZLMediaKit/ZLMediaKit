@@ -51,7 +51,7 @@ void createPusher(const string &app,const string &stream,const string &url);
 
 //创建推流器并开始推流
 void createPusher(const string &app,const string &stream,const string &url){
-    auto rtmpSrc = MediaReader::onMakeRtmp(app,stream);
+    auto rtmpSrc = dynamic_pointer_cast<RtmpMediaSource>(MediaReader::onMakeMediaSource(RTMP_SCHEMA,DEFAULT_VHOST,app,stream));
     if(!rtmpSrc){
         //文件不存在
         WarnL << "MP4 file not exited!";

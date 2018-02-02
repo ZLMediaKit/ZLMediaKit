@@ -42,13 +42,15 @@ using namespace ZL::Rtmp;
 namespace ZL {
 namespace MediaFile {
 
-class MediaReader : public std::enable_shared_from_this<MediaReader>{
+class MediaReader : public std::enable_shared_from_this<MediaReader> ,public MediaSourceEvent{
 public:
 	typedef std::shared_ptr<MediaReader> Ptr;
-	MediaReader(const string &strApp, const string &strId);
+	MediaReader(const string &strVhost,const string &strApp, const string &strId);
 	virtual ~MediaReader();
-	static RtspMediaSource::Ptr onMakeRtsp(const string &strApp, const string &strId);
-	static RtmpMediaSource::Ptr onMakeRtmp(const string &strApp, const string &strId);
+	static MediaSource::Ptr onMakeMediaSource(const string &strSchema,const string &strVhost,const string &strApp, const string &strId);
+public:
+	bool seekTo(uint32_t ui32Stamp) override;
+	uint32_t getStamp() override;
 private:
 
 #ifdef ENABLE_MP4V2
@@ -95,6 +97,8 @@ private:
 	inline bool readAudioSample(int iTimeInc = 0);
 	inline void writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp);
 	inline void writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp);
+
+
 #endif //ENABLE_MP4V2
 };
 

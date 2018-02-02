@@ -47,9 +47,8 @@ void loadIniConfig(){
 }
 ////////////广播名称///////////
 namespace Broadcast {
-const char kBroadcastRtspSessionPlay[] = "kBroadcastRtspSessionPlay";
-const char kBroadcastRtspSrcRegisted[] = "kBroadcastRtspSrcRegisted";
-const char kBroadcastRtmpSrcRegisted[] = "kBroadcastRtmpSrcRegisted";
+const char kBroadcastMediaPlayed[] = "kBroadcastMediaPlayed";
+const char kBroadcastMediaChanged[] = "kBroadcastMediaChanged";
 const char kBroadcastRecordMP4[] = "kBroadcastRecordMP4";
 const char kBroadcastHttpRequest[] = "kBroadcastHttpRequest";
 const char kBroadcastOnGetRtspRealm[] = "kBroadcastOnGetRtspRealm";
@@ -105,10 +104,6 @@ const char kMaxReqCount[] = HTTP_FIELD"maxReqCount";
 #endif
 const char kCharSet[] = HTTP_FIELD"charSet";
 
-//http 服务器名称
-#define HTTP_SERVER_NAME "ZLServer"
-const char kServerName[] = HTTP_FIELD"serverName";
-
 //http 服务器根目录
 #define HTTP_ROOT_PATH (exeDir() + "httpRoot")
 const char kRootPath[] = HTTP_FIELD"rootPath";
@@ -119,17 +114,12 @@ const char kRootPath[] = HTTP_FIELD"rootPath";
 		"<body bgcolor=\"white\">"\
 		"<center><h1>您访问的资源不存在！</h1></center>"\
 		"<hr><center>"\
-		 HTTP_SERVER_NAME\
+		 SERVER_NAME\
 		"</center>"\
 		"</body>"\
 		"</html>"
 const char kNotFound[] = HTTP_FIELD"notFound";
 
-//HTTP访问url前缀
-#define HTTP_PREFIX (StrPrinter << "http://" \
-						<< SockUtil::get_local_ip() \
-						<< ":" << HTTP_PORT << endl)
-const char kHttpPrefix[] = HTTP_FIELD"httpPrefix";
 
 onceToken token([](){
 	mINI::Instance()[kPort] = HTTP_PORT;
@@ -139,10 +129,8 @@ onceToken token([](){
 	mINI::Instance()[kKeepAliveSecond] = HTTP_KEEP_ALIVE_SECOND;
 	mINI::Instance()[kMaxReqCount] = HTTP_MAX_REQ_CNT;
 	mINI::Instance()[kCharSet] = HTTP_CHAR_SET;
-	mINI::Instance()[kServerName] = HTTP_SERVER_NAME;
 	mINI::Instance()[kRootPath] = HTTP_ROOT_PATH;
 	mINI::Instance()[kNotFound] = HTTP_NOT_FOUND;
-	mINI::Instance()[kHttpPrefix] = HTTP_PREFIX;
 },nullptr);
 
 }//namespace Http
@@ -154,15 +142,11 @@ namespace Shell {
 #define SHELL_PORT 9000
 const char kPort[] = SHELL_FIELD"port";
 
-#define SHELL_SERVER_NAME "ZLServer"
-const char kServerName[] = SHELL_FIELD"serverName";
-
 #define SHELL_MAX_REQ_SIZE 1024
 const char kMaxReqSize[] = SHELL_FIELD"maxReqSize";
 
 onceToken token([](){
 	mINI::Instance()[kPort] = SHELL_PORT;
-	mINI::Instance()[kServerName] = SHELL_SERVER_NAME;
 	mINI::Instance()[kMaxReqSize] = SHELL_MAX_REQ_SIZE;
 },nullptr);
 } //namespace Shell
@@ -174,14 +158,10 @@ namespace Rtsp {
 #define RTSP_PORT 554
 const char kPort[] = RTSP_FIELD"port";
 
-#define RTSP_SERVER_NAME "ZLServer"
-const char kServerName[] = RTSP_FIELD"serverName";
-
 const char kAuthBasic[] = RTSP_FIELD"authBasic";
 
 onceToken token([](){
 	mINI::Instance()[kPort] = RTSP_PORT;
-	mINI::Instance()[kServerName] = RTSP_SERVER_NAME;
 	//默认Md5方式认证
 	mINI::Instance()[kAuthBasic] = 0;
 },nullptr);
@@ -278,12 +258,6 @@ const char kSampleMS[] = RECORD_FIELD"sampleMS";
 #define RECORD_FILE_SECOND (10*60)
 const char kFileSecond[] = RECORD_FIELD"fileSecond";
 
-//Rtsp访问url前缀
-#define RECORD_RTSP_PREFIX (StrPrinter << "rtsp://" \
-							<< SockUtil::get_local_ip() \
-							<< ":" << RTSP_PORT << endl)
-const char kRtspPrefix[] = RECORD_FIELD"rtspPrefix";
-
 //录制文件路径
 #define RECORD_FILE_PATH HTTP_ROOT_PATH
 const char kFilePath[] = RECORD_FIELD"filePath";
@@ -293,7 +267,6 @@ onceToken token([](){
 	mINI::Instance()[kSampleMS] = RECORD_SAMPLE_MS;
 	mINI::Instance()[kFileSecond] = RECORD_FILE_SECOND;
 	mINI::Instance()[kFilePath] = RECORD_FILE_PATH;
-	mINI::Instance()[kRtspPrefix] = RECORD_RTSP_PREFIX;
 },nullptr);
 
 } //namespace Record
@@ -318,11 +291,21 @@ const char kFileBufSize[] = HLS_FIELD"fileBufSize";
 #define HLS_FILE_PATH (HTTP_ROOT_PATH)
 const char kFilePath[] = HLS_FIELD"filePath";
 
+//HTTP访问url前缀
+#define HTTP_PREFIX (StrPrinter << "http://${" << VHOST_KEY << "}:" << HTTP_PORT << endl)
+const char kHttpPrefix[] = HLS_FIELD"httpPrefix";
+
+#define HTTP_PREFIX_DEFAULT_VHOST (StrPrinter << "http://" << SockUtil::get_local_ip() << ":" << HTTP_PORT << endl)
+const char kHttpPrefixDefaultVhost[] = HLS_FIELD"httpPrefixDefaultVhost";
+
 onceToken token([](){
 	mINI::Instance()[kSegmentDuration] = HLS_SEGMENT_DURATION;
 	mINI::Instance()[kSegmentNum] = HLS_SEGMENT_NUM;
 	mINI::Instance()[kFileBufSize] = HLS_FILE_BUF_SIZE;
 	mINI::Instance()[kFilePath] = HLS_FILE_PATH;
+	mINI::Instance()[kHttpPrefix] = HTTP_PREFIX;
+	mINI::Instance()[kHttpPrefixDefaultVhost] = HTTP_PREFIX_DEFAULT_VHOST;
+
 },nullptr);
 
 } //namespace Hls

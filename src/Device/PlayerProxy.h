@@ -45,7 +45,7 @@ public:
 	//设置方法：proxy[PlayerProxy::kAliveSecond] = 100;
 	static const char kAliveSecond[];
 
-	PlayerProxy(const char *strApp, const char *strSrc);
+	PlayerProxy(const char *strVhost, const char *strApp, const char *strSrc);
 	virtual ~PlayerProxy();
 	void play(const char* strUrl) override;
 	void setOnExpired(const function<void()> &cb){
@@ -56,6 +56,7 @@ private :
 	Ticker m_aliveTicker;
 	uint32_t m_aliveSecond = 0;
 	function<void()> onExpired;
+	string m_strVhost;
 	string m_strApp;
 	string m_strSrc;
 	void initMedia();

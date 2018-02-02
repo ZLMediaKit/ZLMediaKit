@@ -109,7 +109,6 @@ private:
 	void inline send_UnsupportedTransport(); //不支持的传输模式
 	void inline send_SessionNotFound(); //会话id错误
 	void inline send_NotAcceptable(); //rtsp同时播放数限制
-	void splitRtspUrl(const string &url,string &app,string &stream);
 	inline bool findStream(); //根据rtsp url查找 MediaSource实例
 
 	inline void initSender(const std::shared_ptr<RtspSession> &pSession); //处理rtsp over http，quicktime使用的
@@ -148,8 +147,7 @@ private:
 	string m_strSdp;
 	string m_strSession;
 	bool m_bFirstPlay = true;
-	string m_strApp;
-	string m_strStream;
+    MediaInfo m_mediaInfo;
 	std::weak_ptr<RtspMediaSource> m_pMediaSrc;
 	static unordered_map<string, rtspCMDHandle> g_mapCmd;
 
@@ -191,7 +189,6 @@ private:
 	static recursive_mutex g_mtxPostter; //对quicktime上锁保护
 	static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
 	static unordered_map<void *, std::shared_ptr<RtspSession> > g_mapPostter;
-	static string g_serverName;
 
 };
 
