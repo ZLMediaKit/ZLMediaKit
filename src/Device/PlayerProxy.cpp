@@ -39,7 +39,8 @@ namespace DEV {
 
 const char PlayerProxy::kAliveSecond[] = "alive_second";
 
-PlayerProxy::PlayerProxy(const char *strApp,const char *strSrc){
+PlayerProxy::PlayerProxy(const char *strVhost,const char *strApp,const char *strSrc){
+	m_strVhost = strVhost;
 	m_strApp = strApp;
 	m_strSrc = strSrc;
 }
@@ -133,7 +134,7 @@ void PlayerProxy::initMedia() {
 	if (!isInited()) {
 		return;
 	}
-	m_pChn.reset(new DevChannel(m_strApp.data(),m_strSrc.data(),getDuration()));
+	m_pChn.reset(new DevChannel(m_strVhost.data(),m_strApp.data(),m_strSrc.data(),getDuration()));
 	if (containVideo()) {
 		VideoInfo info;
 		info.iFrameRate = getVideoFps();

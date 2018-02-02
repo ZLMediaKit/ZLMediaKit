@@ -111,43 +111,6 @@ API_EXPORT int API_CALL initRtmpServer(unsigned short port) {
 	}
 }
 
-API_EXPORT void API_CALL listenEvent_onPlay(onEventPlay cb,void *userData){
-	NoticeCenter::Instance().addListener((void *)(cb),Config::Broadcast::kBroadcastRtspSessionPlay,
-			[cb,userData](BroadcastRtspSessionPlayArgs){
-		static unordered_map<string, void *> s_timerKeyMap;
-		static mutex s_mtx;
-		uint64_t tag;
-		{
-			lock_guard<mutex> lck(s_mtx);
-			//每个stream随机分配一个内存地址并且不重复
-			tag = (uint64_t)&s_timerKeyMap[stream];
-		}
-		string appTmp(app);
-		string streamTmp(stream);
-		AsyncTaskThread::Instance().CancelTask(tag);
-		int i = 2;
-		AsyncTaskThread::Instance().DoTaskDelay(tag,50,[cb,userData,appTmp,streamTmp,i](){
-			InfoL << "listenEvent_onPlay:" << appTmp << " " <<  streamTmp << " " << i;
-			cb(userData,appTmp.data(),streamTmp.data());
-			return (--const_cast<int &>(i)) > 0;
-		});
-	});
-}
-
-API_EXPORT void API_CALL listenEvent_onRegistRtsp(onEventRegistMediaSrc cb,void *userData){
-	NoticeCenter::Instance().addListener((void *)(cb),Config::Broadcast::kBroadcastRtspSrcRegisted,
-			[cb,userData](BroadcastRtspSrcRegistedArgs){
-			cb(userData,app,stream);
-	});
-}
-
-API_EXPORT void API_CALL listenEvent_onRegistRtmp(onEventRegistMediaSrc cb,void *userData){
-	NoticeCenter::Instance().addListener((void *)(cb),Config::Broadcast::kBroadcastRtmpSrcRegisted,
-			[cb,userData](BroadcastRtmpSrcRegistedArgs){
-		cb(userData,app,stream);
-	});
-}
-
 
 API_EXPORT void API_CALL log_printf(LogType level,const char* file, const char* function, int line,const char *fmt,...){
 	LogInfoMaker info((LogLevel)level,file,function,line);

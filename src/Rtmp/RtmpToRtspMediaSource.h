@@ -52,19 +52,20 @@ using namespace ZL::MediaFile;
 namespace ZL {
 namespace Rtmp {
 
-#ifdef ENABLE_RTMP2RTSP
 class RtmpToRtspMediaSource: public RtmpMediaSource {
 public:
 	typedef std::shared_ptr<RtmpToRtspMediaSource> Ptr;
-	RtmpToRtspMediaSource(const string &_app, const string &_id);
-	virtual ~RtmpToRtspMediaSource();
-	virtual void regist() override;
-	virtual void unregist() override;
 
-	virtual void onGetMetaData(const AMFValue &_metadata) override {
+	RtmpToRtspMediaSource(const string &vhost,const string &app, const string &id);
+	virtual ~RtmpToRtspMediaSource();
+
+	bool regist() override;
+	bool unregist() override;
+
+	void onGetMetaData(const AMFValue &_metadata) override {
 		try {
 			m_pParser.reset(new RtmpParser(_metadata));
-			m_pRecorder.reset(new MediaRecorder(getApp(),getId(),m_pParser));
+			m_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),m_pParser));
 			m_pParser->setOnAudioCB(std::bind(&RtmpToRtspMediaSource::onGetAdts, this, placeholders::_1));
 			m_pParser->setOnVideoCB(std::bind(&RtmpToRtspMediaSource::onGetH264, this, placeholders::_1));
 		} catch (exception &ex) {
@@ -73,7 +74,7 @@ public:
 		RtmpMediaSource::onGetMetaData(_metadata);
 	}
 
-	virtual void onGetMedia(const RtmpPacket::Ptr &pkt) override {
+	void onGetMedia(const RtmpPacket::Ptr &pkt) override {
 		if (m_pParser) {
 			if (!m_pRtspSrc && m_pParser->isInited()) {
 				makeSDP();
@@ -82,18 +83,7 @@ public:
 		}
 		RtmpMediaSource::onGetMedia(pkt);
 	}
-	void setOnSeek(const function<bool(uint32_t)> &cb) override {
-		RtmpMediaSource::setOnSeek(cb);
-		if (m_pRtspSrc) {
-			m_pRtspSrc->setOnSeek(cb);
-		}
-	}
-	void setOnStamp(const function<uint32_t()> &cb)  override{
-		RtmpMediaSource::setOnStamp(cb);
-		if (m_pRtspSrc) {
-			m_pRtspSrc->setOnStamp(cb);
-		}
-	}
+
 private:
 	RtmpParser::Ptr m_pParser;
 	RtspMediaSource::Ptr m_pRtspSrc;
@@ -105,9 +95,6 @@ private:
 	void onGetAdts(const AdtsFrame &frame);
 	void makeSDP();
 };
-#else
-	typedef RtmpMediaSource RtmpToRtspMediaSource;
-#endif //ENABLE_RTMP2RTSP
 
 } /* namespace Rtmp */
 } /* namespace ZL */

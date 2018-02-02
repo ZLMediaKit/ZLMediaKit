@@ -48,7 +48,7 @@ void rePushDelay(const string &app,const string &stream,const string &url);
 //创建推流器并开始推流
 void createPusher(const string &app,const string &stream,const string &url){
     //创建推流器并绑定一个RtmpMediaSource
-    pusher.reset(new RtmpPusher(app.data(), stream.data()));
+    pusher.reset(new RtmpPusher(DEFAULT_VHOST,app.data(), stream.data()));
     //设置推流中断处理逻辑
     pusher->setOnShutdown([app,stream, url](const SockException &ex) {
         WarnL << "Server connection is closed:" << ex.getErrCode() << " " << ex.what();
@@ -95,11 +95,11 @@ int domain(int argc, const char *argv[]) {
 
     //拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
     //你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请查看test_rtmpPusherMp4.cpp代码）
-    PlayerProxy::Ptr player(new PlayerProxy("app", "stream"));
+    PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST,"app", "stream"));
     player->play(playUrl.data());
 
 	//监听RtmpMediaSource注册事件,在PlayerProxy播放成功后触发
-	NoticeCenter::Instance().addListener(nullptr, Config::Broadcast::kBroadcastRtmpSrcRegisted, [pushUrl](BroadcastRtmpSrcRegistedArgs) {
+	NoticeCenter::Instance().addListener(nullptr, Config::Broadcast::kBroadcastMediaChanged, [pushUrl](BroadcastMediaChangedArgs) {
 		//媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
         createPusher(app,stream,pushUrl);
 	});

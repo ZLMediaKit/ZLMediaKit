@@ -97,7 +97,12 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
 	///////////set peerBandwidth////////////////
 	sendPeerBandwidth(5000000);
 
-	m_strApp = params["app"].as_string();
+    m_mediaInfo.m_app = params["app"].as_string();
+    m_strTcUrl = params["tcUrl"].as_string();
+    if(m_strTcUrl.empty()){
+        //defaultVhost:默认vhost
+        m_strTcUrl = "rtmp://127.0.0.1/" + m_mediaInfo.m_app;
+    }
 	bool ok = true; //(app == APP_NAME);
 	AMFValue version(AMF_OBJECT);
 	version.set("fmsVer", "FMS/3,0,1,123");
@@ -109,7 +114,7 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
 	status.set("objectEncoding", amfVer);
 	sendReply(ok ? "_result" : "_error", version, status);
 	if (!ok) {
-		throw std::runtime_error("Unsupported application: " + m_strApp);
+		throw std::runtime_error("Unsupported application: " + m_mediaInfo.m_app);
 	}
 
 	AMFEncoder invoke;
@@ -123,12 +128,12 @@ void RtmpSession::onCmd_createStream(AMFDecoder &dec) {
 
 void RtmpSession::onCmd_publish(AMFDecoder &dec) {
 	dec.load<AMFValue>();/* NULL */
-	m_strId = dec.load<std::string>();
-	auto iPos = m_strId.find('?');
-	if (iPos != string::npos) {
-		m_strId.erase(iPos);
-	}
-	auto src = RtmpMediaSource::find(m_strApp,m_strId,false);
+    m_mediaInfo.parse(m_strTcUrl + "/" + dec.load<std::string>());
+	auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
+                                                                       m_mediaInfo.m_vhost,
+                                                                       m_mediaInfo.m_app,
+                                                                       m_mediaInfo.m_streamid,
+                                                                       false));
 	bool ok = (!src && !m_pPublisherSrc);
 	AMFValue status(AMF_OBJECT);
 	status.set("level", ok ? "status" : "error");
@@ -137,10 +142,13 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
 	status.set("clientid", "0");
 	sendReply("onStatus", nullptr, status);
 	if (!ok) {
-		throw std::runtime_error( StrPrinter << "Already publishing:" << m_strApp << "/" << m_strId << endl);
+		throw std::runtime_error( StrPrinter << "Already publishing:"
+                                             << m_mediaInfo.m_vhost << " "
+                                             << m_mediaInfo.m_app << " "
+                                             << m_mediaInfo.m_streamid << endl);
 	}
 	m_bPublisherSrcRegisted = false;
-	m_pPublisherSrc.reset(new RtmpToRtspMediaSource(m_strApp,m_strId));
+	m_pPublisherSrc.reset(new RtmpToRtspMediaSource(m_mediaInfo.m_vhost,m_mediaInfo.m_app,m_mediaInfo.m_streamid));
 }
 
 void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
@@ -152,11 +160,15 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
 	throw std::runtime_error(StrPrinter << "Stop publishing." << endl);
 }
 
-void  RtmpSession::doPlay(){
-	auto src = RtmpMediaSource::find(m_strApp,m_strId,true);
+void  RtmpSession::doPlay(AMFDecoder &dec){
+    m_mediaInfo.parse(m_strTcUrl + "/" + dec.load<std::string>());
+    auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
+                                                                       m_mediaInfo.m_vhost,
+                                                                       m_mediaInfo.m_app,
+                                                                       m_mediaInfo.m_streamid,
+                                                                       true));
 	bool ok = (src.operator bool());
 	ok = ok && src->ready();
-
 	//stream begin
 	sendUserControl(CONTROL_STREAM_BEGIN, STREAM_MEDIA);
 
@@ -165,11 +177,15 @@ void  RtmpSession::doPlay(){
 	status.set("level", ok ? "status" : "error");
 	status.set("code", ok ? "NetStream.Play.Reset" : "NetStream.Play.StreamNotFound");
 	status.set("description", ok ? "Resetting and playing." : "No such stream.");
-	status.set("details", m_strId);
+	status.set("details", m_mediaInfo.m_streamid);
 	status.set("clientid", "0");
 	sendReply("onStatus", nullptr, status);
 	if (!ok) {
-		throw std::runtime_error( StrPrinter << "No such stream:" << m_strApp << " " << m_strId << endl);
+		throw std::runtime_error( StrPrinter << "No such stream:"
+                                             << m_mediaInfo.m_vhost << " "
+                                             << m_mediaInfo.m_app << " "
+                                             << m_mediaInfo.m_streamid
+                                             << endl);
 	}
 
 	// onStatus(NetStream.Play.Start)
@@ -177,7 +193,7 @@ void  RtmpSession::doPlay(){
 	status.set("level", "status");
 	status.set("code", "NetStream.Play.Start");
 	status.set("description", "Started playing.");
-	status.set("details", m_strId);
+	status.set("details", m_mediaInfo.m_streamid);
 	status.set("clientid", "0");
 	sendReply("onStatus", nullptr, status);
 
@@ -198,7 +214,7 @@ void  RtmpSession::doPlay(){
 	status.set("level", "status");
 	status.set("code", "NetStream.Play.PublishNotify");
 	status.set("description", "Now published.");
-	status.set("details", m_strId);
+	status.set("details", m_mediaInfo.m_streamid);
 	status.set("clientid", "0");
 	sendReply("onStatus", nullptr, status);
 
@@ -239,18 +255,19 @@ void  RtmpSession::doPlay(){
 	if(src->getRing()->readerCount() == 1){
 		src->seekTo(0);
 	}
+
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,
+                                       RTMP_SCHEMA,
+                                       m_mediaInfo.m_vhost.data(),
+                                       m_mediaInfo.m_app.data(),
+                                       m_mediaInfo.m_streamid.data());
 }
 void RtmpSession::onCmd_play2(AMFDecoder &dec) {
-	doPlay();
+	doPlay(dec);
 }
 void RtmpSession::onCmd_play(AMFDecoder &dec) {
 	dec.load<AMFValue>();/* NULL */
-	m_strId = dec.load<std::string>();
-	auto iPos = m_strId.find('?');
-	if (iPos != string::npos) {
-		m_strId.erase(iPos);
-	}
-	doPlay();
+	doPlay(dec);
 }
 
 void RtmpSession::onCmd_pause(AMFDecoder &dec) {

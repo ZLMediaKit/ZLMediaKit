@@ -55,7 +55,6 @@ unordered_map<void *, std::shared_ptr<RtspSession> > RtspSession::g_mapPostter;
 recursive_mutex RtspSession::g_mtxGetter; //对quicktime上锁保护
 recursive_mutex RtspSession::g_mtxPostter; //对quicktime上锁保护
 unordered_map<string, RtspSession::rtspCMDHandle> RtspSession::g_mapCmd;
-string RtspSession::g_serverName;
 RtspSession::RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
 		TcpLimitedSession(pTh, pSock), m_pSender(pSock) {
 	static onceToken token( []() {
@@ -69,7 +68,6 @@ RtspSession::RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::P
 		g_mapCmd.emplace("POST",&RtspSession::handleReq_Post);
 		g_mapCmd.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
 		g_mapCmd.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
-		g_serverName = mINI::Instance()[Config::Rtsp::kServerName];
 	}, []() {});
 
 #ifndef __x86_64__
@@ -184,7 +182,7 @@ bool RtspSession::handleReq_Options() {
 			"%s"
 			"Public: OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY,"
 			" PAUSE, SET_PARAMETER, GET_PARAMETER\r\n\r\n",
-			m_iCseq, g_serverName.data(),
+			m_iCseq, SERVER_NAME,
 			RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
 	send(m_pcBuf, n);
@@ -192,7 +190,15 @@ bool RtspSession::handleReq_Options() {
 }
 
 bool RtspSession::handleReq_Describe() {
-	m_strUrl = m_parser.Url();
+    {
+        //解析url获取媒体名称
+        m_strUrl = m_parser.Url();
+        m_mediaInfo.parse(m_strUrl);
+        if(!m_parser.getUrlArgs()[VHOST_KEY].empty()){
+            m_mediaInfo.m_vhost = m_parser.getUrlArgs()[VHOST_KEY];
+        }
+    }
+
 	if (!findStream()) {
 		//未找到相应的MediaSource
 		send_StreamNotFound();
@@ -213,7 +219,10 @@ bool RtspSession::handleReq_Describe() {
     };
 
     //广播是否需要认证事件
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,m_strApp.data(),m_strStream.data(),invoker)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
+                                           m_mediaInfo.m_app.data(),
+                                           m_mediaInfo.m_streamid.data(),
+                                           invoker)){
         //无人监听此事件，说明无需认证
         invoker("");
     }
@@ -242,7 +251,7 @@ void RtspSession::onAuthSuccess(const weak_ptr<RtspSession> &weakSelf) {
                         "Content-Base: %s/\r\n"
                         "Content-Type: application/sdp\r\n"
                         "Content-Length: %d\r\n\r\n%s",
-                        strongSelf->m_iCseq, strongSelf->g_serverName.data(),
+                        strongSelf->m_iCseq, SERVER_NAME,
                         RTSP_VERSION, RTSP_BUILDTIME,
                         dateHeader().data(), strongSelf->m_strUrl.data(),
                         (int) strongSelf->m_strSdp.length(), strongSelf->m_strSdp.data());
@@ -274,7 +283,7 @@ void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const strin
                         "Server: %s-%0.2f(build in %s)\r\n"
                         "%s"
                         "WWW-Authenticate:Digest realm=\"%s\",nonce=\"%s\"\r\n\r\n",
-                        strongSelf->m_iCseq, strongSelf->g_serverName.data(),
+                        strongSelf->m_iCseq, SERVER_NAME,
                         RTSP_VERSION, RTSP_BUILDTIME,
                         dateHeader().data(), realm.data(), strongSelf->m_strNonce.data());
         }else {
@@ -285,7 +294,7 @@ void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const strin
                         "Server: %s-%0.2f(build in %s)\r\n"
                         "%s"
                         "WWW-Authenticate:Basic realm=\"%s\"\r\n\r\n",
-                        strongSelf->m_iCseq, strongSelf->g_serverName.data(),
+                        strongSelf->m_iCseq, SERVER_NAME,
                         RTSP_VERSION, RTSP_BUILDTIME,
                         dateHeader().data(), realm.data());
         }
@@ -297,7 +306,7 @@ void RtspSession::onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string
     //base64认证
     char user_pwd_buf[512];
     av_base64_decode((uint8_t *)user_pwd_buf,strBase64.data(),strBase64.size());
-    auto user_pwd_vec = Parser::split(user_pwd_buf,":");
+    auto user_pwd_vec = split(user_pwd_buf,":");
     if(user_pwd_vec.size() < 2){
         //认证信息格式不合法，回复401 Unauthorized
         onAuthFailed(weakSelf,realm);
@@ -324,23 +333,7 @@ void RtspSession::onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string
         invoker(false,pwd);
     }
 }
-static string trim(string str){
-    while(!str.empty()){
-        if(str.front()==' ' || str.front()=='"'){
-            str.erase(0,1);
-            continue;
-        }
-        break;
-    }
-    while(!str.empty()){
-        if(str.back()==' ' || str.back()=='"'){
-            str.pop_back();
-            continue;
-        }
-        break;
-    }
-    return str;
-}
+
 void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strMd5){
     auto strongSelf = weakSelf.lock();
     if(!strongSelf){
@@ -351,7 +344,7 @@ void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const strin
     auto mapTmp = Parser::parseArgs(strMd5,",","=");
     decltype(mapTmp) map;
     for(auto &pr : mapTmp){
-        map[trim(pr.first)] = trim(pr.second);
+        map[trim(string(pr.first)," \"")] = trim(pr.second," \"");
     }
     //check realm
     if(realm != map["realm"]){
@@ -448,7 +441,7 @@ inline void RtspSession::send_StreamNotFound() {
 			"Server: %s-%0.2f(build in %s)\r\n"
 			"%s"
 			"Connection: Close\r\n\r\n",
-			m_iCseq, g_serverName.data(),
+			m_iCseq, SERVER_NAME,
 			RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
 	send(m_pcBuf, n);
@@ -459,7 +452,7 @@ inline void RtspSession::send_UnsupportedTransport() {
 			"Server: %s-%0.2f(build in %s)\r\n"
 			"%s"
 			"Connection: Close\r\n\r\n",
-			m_iCseq, g_serverName.data(),
+			m_iCseq, SERVER_NAME,
 			RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
 	send(m_pcBuf, n);
@@ -471,7 +464,7 @@ inline void RtspSession::send_SessionNotFound() {
 			"Server: %s-%0.2f(build in %s)\r\n"
 			"%s"
 			"Connection: Close\r\n\r\n",
-			m_iCseq, g_serverName.data(),
+			m_iCseq, SERVER_NAME,
 			RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
 	send(m_pcBuf, n);
@@ -539,7 +532,7 @@ bool RtspSession::handleReq_Setup() {
 				"Session: %s\r\n"
 				"x-Transport-Options: late-tolerance=1.400000\r\n"
 				"x-Dynamic-Rate: 1\r\n\r\n",
-				m_iCseq, g_serverName.data(),
+				m_iCseq, SERVER_NAME,
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), trackid * 2,
 				trackid * 2 + 1,
@@ -584,7 +577,7 @@ bool RtspSession::handleReq_Setup() {
 				"Transport: RTP/AVP/UDP;unicast;"
 				"client_port=%s;server_port=%d-%d;ssrc=%s;mode=play\r\n"
 				"Session: %s\r\n\r\n",
-				m_iCseq, g_serverName.data(),
+				m_iCseq, SERVER_NAME,
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), strClientPort.data(),
 				pSockRtp->get_local_port(), pSockRtcp->get_local_port(),
@@ -595,7 +588,7 @@ bool RtspSession::handleReq_Setup() {
 		break;
 	case PlayerBase::RTP_MULTICAST: {
 		if(!m_pBrdcaster){
-			m_pBrdcaster = RtpBroadCaster::get(getLocalIp(), m_strApp, m_strStream);
+			m_pBrdcaster = RtpBroadCaster::get(getLocalIp(),m_mediaInfo.m_vhost, m_mediaInfo.m_app, m_mediaInfo.m_streamid);
 			if (!m_pBrdcaster) {
 				send_NotAcceptable();
 				return false;
@@ -627,7 +620,7 @@ bool RtspSession::handleReq_Setup() {
 				"Transport: RTP/AVP;multicast;destination=%s;"
 				"source=%s;port=%d-%d;ttl=%d;ssrc=%s\r\n"
 				"Session: %s\r\n\r\n",
-				m_iCseq, g_serverName.data(),
+				m_iCseq, SERVER_NAME,
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), m_pBrdcaster->getIP().data(),
 				getLocalIp().data(), iSrvPort, pSockRtcp->get_local_port(),
@@ -705,7 +698,7 @@ bool RtspSession::handleReq_Play() {
 			"%s"
 			"Session: %s\r\n"
 			"Range: npt=%.2f-\r\n"
-			"RTP-Info: ", m_iCseq, g_serverName.data(), RTSP_VERSION, RTSP_BUILDTIME,
+			"RTP-Info: ", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data(), m_strSession.data(),iStamp/1000.0);
 
 	for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
@@ -722,7 +715,11 @@ bool RtspSession::handleReq_Play() {
 	(m_pcBuf)[iLen] = '\0';
 	iLen += sprintf(m_pcBuf + iLen, "\r\n\r\n");
 	send(m_pcBuf, iLen);
-	NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRtspSessionPlay, m_strApp.data(),m_strStream.data());
+	NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,
+                                       RTSP_SCHEMA,
+                                       m_mediaInfo.m_vhost.data(),
+                                       m_mediaInfo.m_app.data(),
+                                       m_mediaInfo.m_streamid.data());
 	return true;
 }
 
@@ -735,7 +732,7 @@ bool RtspSession::handleReq_Pause() {
 			"CSeq: %d\r\n"
 			"Server: %s-%0.2f(build in %s)\r\n"
 			"%s"
-			"Session: %s\r\n\r\n", m_iCseq, g_serverName.data(), RTSP_VERSION, RTSP_BUILDTIME,
+			"Session: %s\r\n\r\n", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data(), m_strSession.data());
 	send(m_pcBuf, n);
 	if(m_pRtpReader){
@@ -750,7 +747,7 @@ bool RtspSession::handleReq_Teardown() {
 			"CSeq: %d\r\n"
 			"Server: %s-%0.2f(build in %s)\r\n"
 			"%s"
-			"Session: %s\r\n\r\n", m_iCseq, g_serverName.data(), RTSP_VERSION, RTSP_BUILDTIME,
+			"Session: %s\r\n\r\n", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data(), m_strSession.data());
 
 	send(m_pcBuf, n);
@@ -801,7 +798,7 @@ bool RtspSession::handleReq_SET_PARAMETER() {
 			"CSeq: %d\r\n"
 			"Server: %s-%0.2f(build in %s)\r\n"
 			"%s"
-			"Session: %s\r\n\r\n", m_iCseq, g_serverName.data(), RTSP_VERSION, RTSP_BUILDTIME,
+			"Session: %s\r\n\r\n", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data(), m_strSession.data());
 	send(m_pcBuf, n);
 	return true;
@@ -812,21 +809,17 @@ inline void RtspSession::send_NotAcceptable() {
 			"CSeq: %d\r\n"
 			"Server: %s-%0.2f(build in %s)\r\n"
 			"%s"
-			"Connection: Close\r\n\r\n", m_iCseq, g_serverName.data(), RTSP_VERSION, RTSP_BUILDTIME,
+			"Connection: Close\r\n\r\n", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
 	send(m_pcBuf, n);
 
 }
-void RtspSession::splitRtspUrl(const string &url,string &app,string &stream){
-	string strHost = FindField(url.data(), "://", "/");
-	app = FindField(url.data(), (strHost + "/").data(), "/");
-	stream = FindField(url.data(), (strHost + "/" + app + "/").data(), NULL);
-}
+
 inline bool RtspSession::findStream() {
-	splitRtspUrl(m_strUrl,m_strApp,m_strStream);
-	RtspMediaSource::Ptr pMediaSrc = RtspMediaSource::find(m_strApp,m_strStream);
+	RtspMediaSource::Ptr pMediaSrc =
+    dynamic_pointer_cast<RtspMediaSource>( MediaSource::find(RTSP_SCHEMA,m_mediaInfo.m_vhost, m_mediaInfo.m_app,m_mediaInfo.m_streamid) );
 	if (!pMediaSrc) {
-		WarnL << "No such stream:" << m_strApp << " " << m_strStream;
+		WarnL << "No such stream:" <<  m_mediaInfo.m_vhost << " " <<  m_mediaInfo.m_app << " " << m_mediaInfo.m_streamid;
 		return false;
 	}
 	m_strSdp = pMediaSrc->getSdp();

@@ -75,39 +75,6 @@ API_EXPORT int API_CALL initRtspServer(unsigned short port);
  */
 API_EXPORT int API_CALL initRtmpServer(unsigned short port);
 
-/*
- * 描述:播放事件回调函数定义
- * 参数:userData:用户数据指针strApp:应用名,strStream:流名称
- */
-typedef void (API_CALL *onEventPlay)(void *userData,const char *strApp,const char *strStream);
-
-/*
- * 描述:监听事件
- * 参数:cb:回调函数指针,userData:用户数据指针
- * 返回值:无
- */
-API_EXPORT void API_CALL listenEvent_onPlay(onEventPlay cb,void *userData);
-
-/*
- * 描述:注册RTSP事件
- * 参数:userData:用户数据指针strApp:应用名,strStream:流名称
- */
-typedef void (API_CALL *onEventRegistMediaSrc)(void *userData,const char *strApp,const char *strStream);
-
-/*
- * 描述:监听事件
- * 参数:cb:回调函数指针,userData:用户数据指针
- * 返回值:无
- */
-API_EXPORT void API_CALL listenEvent_onRegistRtsp(onEventRegistMediaSrc cb,void *userData);
-
-/*
- * 描述:监听事件
- * 参数:cb:回调函数指针,userData:用户数据指针
- * 返回值:无
- */
-API_EXPORT void API_CALL listenEvent_onRegistRtmp(onEventRegistMediaSrc cb,void *userData);
-
 
 /////////////////////////日志////////////////////////////////
 

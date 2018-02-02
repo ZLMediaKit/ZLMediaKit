@@ -19,10 +19,10 @@ public:
         _parser.reset(new OptionParser(nullptr));
         (*_parser) << Option('l', "list", Option::ArgNone, nullptr,false, "list all media source of rtsp",
                              [](const std::shared_ptr<ostream> &stream, const string &arg) {
-                                 auto mediaSet = RtspMediaSource::getMediaSet();
-                                 for (auto &src : mediaSet) {
-                                     (*stream) << "\t" << src << "\r\n";
-                                 }
+//                                 auto mediaSet = RtspMediaSource::getMediaSet();
+//                                 for (auto &src : mediaSet) {
+//                                     (*stream) << "\t" << src << "\r\n";
+//                                 }
                                  return false;
                              });
     }
@@ -37,10 +37,10 @@ public:
         _parser.reset(new OptionParser(nullptr));
         (*_parser) << Option('l', "list", Option::ArgNone,nullptr,false, "list all media source of rtmp",
                              [](const std::shared_ptr<ostream> &stream, const string &arg) {
-                                 auto mediaSet = RtmpMediaSource::getMediaSet();
-                                 for (auto &src : mediaSet) {
-                                     (*stream) << "\t" << src << "\r\n";
-                                 }
+//                                 auto mediaSet = RtmpMediaSource::getMediaSet();
+//                                 for (auto &src : mediaSet) {
+//                                     (*stream) << "\t" << src << "\r\n";
+//                                 }
                                  return false;
                              });
     }

@@ -43,7 +43,7 @@ static onceToken s_token([](){
 },nullptr);
 
 API_EXPORT ProxyPlayerContext API_CALL createProxyPlayer(const char *app,const char *stream,int rtp_type){
-    PlayerProxy::Ptr ret(new PlayerProxy(app,stream));
+    PlayerProxy::Ptr ret(new PlayerProxy(DEFAULT_VHOST,app,stream));
     (*ret)[RtspPlayer::kRtpType] = rtp_type;
 
     lock_guard<recursive_mutex> lck(s_mtxMapProxyPlayer);

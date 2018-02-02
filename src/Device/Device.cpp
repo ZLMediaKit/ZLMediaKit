@@ -36,28 +36,22 @@ using namespace ZL::Util;
 namespace ZL {
 namespace DEV {
 
+DevChannel::DevChannel(const char *strVhost,const char *strApp, const char *strId,float fDuration,bool bLiveStream ) :
+		 RtspToRtmpMediaSource(strVhost,strApp,strId , bLiveStream) {
 
-/////////////////////////////////////////////////////////////////////////////////
-#ifdef ENABLE_RTSP2RTMP
-DevChannel::DevChannel(const char *strApp, const char *strId,float fDuration,bool bLiveStream ) :
-		m_mediaSrc(new RtspToRtmpMediaSource(strApp,strId , bLiveStream)) {
-#else
-DevChannel::DevChannel(const char *strApp, const char *strId,float fDuration,bool bLiveStream ) :
-		m_mediaSrc(new RtspToRtmpMediaSource(strApp,strId )) {
-#endif //ENABLE_RTSP2RTMP
-	m_strSDP = "v=0\r\n";
-	m_strSDP += "o=- 1383190487994921 1 IN IP4 0.0.0.0\r\n";
-	m_strSDP += "s=RTSP Session, streamed by the ZL\r\n";
-	m_strSDP += "i=ZL Live Stream\r\n";
-	m_strSDP += "c=IN IP4 0.0.0.0\r\n";
-	m_strSDP += "t=0 0\r\n";
+	m_strSdp = "v=0\r\n";
+	m_strSdp += "o=- 1383190487994921 1 IN IP4 0.0.0.0\r\n";
+	m_strSdp += "s=RTSP Session, streamed by the ZL\r\n";
+	m_strSdp += "i=ZL Live Stream\r\n";
+	m_strSdp += "c=IN IP4 0.0.0.0\r\n";
+	m_strSdp += "t=0 0\r\n";
 	//直播，时间长度永远
 	if(fDuration <= 0 || bLiveStream){
-		m_strSDP += "a=range:npt=0-\r\n";
+		m_strSdp += "a=range:npt=0-\r\n";
 	}else{
-		m_strSDP += StrPrinter <<"a=range:npt=0-" << fDuration  << "\r\n" << endl;
+		m_strSdp += StrPrinter <<"a=range:npt=0-" << fDuration  << "\r\n" << endl;
 	}
-	m_strSDP += "a=control:*\r\n";
+	m_strSdp += "a=control:*\r\n";
 }
 DevChannel::~DevChannel() {
 }
@@ -110,7 +104,7 @@ void DevChannel::inputH264(char* pcData, int iDataLen, uint32_t uiStamp) {
 		uint32_t ui32Ssrc;
 		memcpy(&ui32Ssrc, makeRandStr(4, false).data(), 4);
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
-			m_mediaSrc->onGetRTP(pkt,bKeyPos);
+			onGetRTP(pkt,bKeyPos);
 		};
 		static uint32_t videoMtu = mINI::Instance()[Config::Rtp::kVideoMtuSize].as<uint32_t>();
 		m_pRtpMaker_h264.reset(new RtpMaker_H264(lam, ui32Ssrc,videoMtu));
@@ -133,7 +127,7 @@ void DevChannel::inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp
 		uint32_t ssrc;
 		memcpy(&ssrc, makeRandStr(8, false).data() + 4, 4);
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool keyPos) {
-			m_mediaSrc->onGetRTP(pkt,keyPos);
+			onGetRTP(pkt,keyPos);
 		};
 		static uint32_t audioMtu = mINI::Instance()[Config::Rtp::kAudioMtuSize].as<uint32_t>();
 		m_pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc, audioMtu,m_audio->iSampleRate));
@@ -184,47 +178,47 @@ inline void DevChannel::makeSDP_264(unsigned char *pcData, int iDataLen) {
 	}
 
 	//视频通道
-	m_strSDP += StrPrinter << "m=video 0 RTP/AVP "
+	m_strSdp += StrPrinter << "m=video 0 RTP/AVP "
 			<< m_pRtpMaker_h264->getPlayloadType() << "\r\n" << endl;
-	m_strSDP += "b=AS:5100\r\n";
-	m_strSDP += StrPrinter << "a=rtpmap:" << m_pRtpMaker_h264->getPlayloadType()
+	m_strSdp += "b=AS:5100\r\n";
+	m_strSdp += StrPrinter << "a=rtpmap:" << m_pRtpMaker_h264->getPlayloadType()
 			<< " H264/" << m_pRtpMaker_h264->getSampleRate() << "\r\n" << endl;
-	m_strSDP += StrPrinter << "a=fmtp:" << m_pRtpMaker_h264->getPlayloadType()
+	m_strSdp += StrPrinter << "a=fmtp:" << m_pRtpMaker_h264->getPlayloadType()
 			<< " packetization-mode=1;profile-level-id=" << endl;
 
 	memset(acTmp, 0, sizeof(acTmp));
 	sprintf(acTmp, "%06X", profile_level_id);
-	m_strSDP += acTmp;
-	m_strSDP += ";sprop-parameter-sets=";
+	m_strSdp += acTmp;
+	m_strSdp += ";sprop-parameter-sets=";
 	memset(acTmp, 0, sizeof(acTmp));
 	av_base64_encode(acTmp, sizeof(acTmp), (uint8_t *) m_aucSPS, m_uiSPSLen);
 	//WarnL<<"SPS base64:"<<strTemp;
 	//WarnL<<"SPS hexdump:"<<hexdump(SPS_BUF, SPS_LEN);
-	m_strSDP += acTmp;
-	m_strSDP += ",";
+	m_strSdp += acTmp;
+	m_strSdp += ",";
 	memset(acTmp, 0, sizeof(acTmp));
 	av_base64_encode(acTmp, sizeof(acTmp), (uint8_t *) m_aucPPS, m_uiPPSLen);
-	m_strSDP += acTmp;
-	m_strSDP += "\r\n";
+	m_strSdp += acTmp;
+	m_strSdp += "\r\n";
 	if (m_video->iFrameRate > 0 && m_video->iHeight > 0 && m_video->iWidth > 0) {
-		m_strSDP += "a=framerate:";
-		m_strSDP += StrPrinter << m_video->iFrameRate << endl;
-		m_strSDP += StrPrinter << "\r\na=framesize:"
+		m_strSdp += "a=framerate:";
+		m_strSdp += StrPrinter << m_video->iFrameRate << endl;
+		m_strSdp += StrPrinter << "\r\na=framesize:"
 				<< m_pRtpMaker_h264->getPlayloadType() << " " << endl;
-		m_strSDP += StrPrinter << m_video->iWidth << endl;
-		m_strSDP += "-";
-		m_strSDP += StrPrinter << m_video->iHeight << endl;
-		m_strSDP += "\r\n";
+		m_strSdp += StrPrinter << m_video->iWidth << endl;
+		m_strSdp += "-";
+		m_strSdp += StrPrinter << m_video->iHeight << endl;
+		m_strSdp += "\r\n";
 	}
-	m_strSDP += StrPrinter << "a=control:trackID="
+	m_strSdp += StrPrinter << "a=control:trackID="
 			<< m_pRtpMaker_h264->getInterleaved() / 2 << "\r\n" << endl;
 	m_bSdp_gotH264 = true;
 	if (m_audio) {
 		if (m_bSdp_gotAAC) {
-			makeSDP(m_strSDP);
+			makeSDP(m_strSdp);
 		}
 	} else {
-		makeSDP(m_strSDP);
+		makeSDP(m_strSdp);
 	}
 }
 
@@ -237,33 +231,33 @@ inline void DevChannel::makeSDP_AAC(unsigned char *fixedHeader) {
 	char fConfigStr[5] = { 0 };
 	sprintf(fConfigStr, "%02X%02x", (uint8_t)audioSpecificConfig[0],(uint8_t)audioSpecificConfig[1]);
 
-	m_strSDP += StrPrinter << "m=audio 0 RTP/AVP "
+	m_strSdp += StrPrinter << "m=audio 0 RTP/AVP "
 			<< m_pRtpMaker_aac->getPlayloadType() << "\r\n" << endl;
-	m_strSDP += "b=AS:96\r\n";
-	m_strSDP += StrPrinter << "a=rtpmap:" << m_pRtpMaker_aac->getPlayloadType()
+	m_strSdp += "b=AS:96\r\n";
+	m_strSdp += StrPrinter << "a=rtpmap:" << m_pRtpMaker_aac->getPlayloadType()
 			<< " MPEG4-GENERIC/" << m_pRtpMaker_aac->getSampleRate() << "\r\n"
 			<< endl;
-	m_strSDP += StrPrinter << "a=fmtp:" << m_pRtpMaker_aac->getPlayloadType()
+	m_strSdp += StrPrinter << "a=fmtp:" << m_pRtpMaker_aac->getPlayloadType()
 				<< " streamtype=5;profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3;config="
 				<< endl;
-	m_strSDP += fConfigStr;
-	m_strSDP += "\r\n";
-	m_strSDP += StrPrinter << "a=control:trackID="
+	m_strSdp += fConfigStr;
+	m_strSdp += "\r\n";
+	m_strSdp += StrPrinter << "a=control:trackID="
 			<< m_pRtpMaker_aac->getInterleaved() / 2 << "\r\n" << endl;
 
 	m_bSdp_gotAAC = true;
 	if (m_video) {
 		if (m_bSdp_gotH264) {
-			makeSDP(m_strSDP);
+			makeSDP(m_strSdp);
 		}
 	} else {
-		makeSDP(m_strSDP);
+		makeSDP(m_strSdp);
 	}
 }
 
 void DevChannel::makeSDP(const string& strSdp) {
-	m_mediaSrc->onGetSDP(strSdp);
-	m_mediaSrc->regist();
+	onGetSDP(strSdp);
+	regist();
 }
 
 void DevChannel::initVideo(const VideoInfo& info) {

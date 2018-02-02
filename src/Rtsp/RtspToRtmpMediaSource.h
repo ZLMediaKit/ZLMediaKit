@@ -38,18 +38,17 @@ using namespace ZL::MediaFile;
 
 namespace ZL {
 namespace Rtsp {
-#ifdef ENABLE_RTSP2RTMP
 class RtspToRtmpMediaSource: public RtspMediaSource {
 public:
 	typedef std::shared_ptr<RtspToRtmpMediaSource> Ptr;
-	RtspToRtmpMediaSource(const string &_app,const string &_id,bool bEnableFile = true);
+	RtspToRtmpMediaSource(const string &vhost,const string &app,const string &id,bool bEnableFile = true);
 	virtual ~RtspToRtmpMediaSource();
 
 	virtual void onGetSDP(const string& strSdp) override{
 		try {
 			m_pParser.reset(new RtpParser(strSdp));
 			if(m_bEnableFile){
-				m_pRecorder.reset(new MediaRecorder(getApp(),getId(),m_pParser));
+				m_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),m_pParser));
 			}
 			m_pParser->setOnAudioCB( std::bind(&RtspToRtmpMediaSource::onGetAdts, this, placeholders::_1));
 			m_pParser->setOnVideoCB( std::bind(&RtspToRtmpMediaSource::onGetH264, this, placeholders::_1));
@@ -65,23 +64,13 @@ public:
 		}
 		RtspMediaSource::onGetRTP(pRtppkt, bKeyPos);
 	}
-	virtual void regist() override ;
-	virtual void unregist() override;
+	virtual bool regist() override ;
+	virtual bool unregist() override;
+
 	int readerCount(){
 		return getRing()->readerCount() + (m_pRtmpSrc ? m_pRtmpSrc->getRing()->readerCount() : 0);
 	}
-	void setOnSeek(const function<bool(uint32_t)> &cb) override{
-		RtspMediaSource::setOnSeek(cb);
-		if(m_pRtmpSrc){
-			m_pRtmpSrc->setOnSeek(cb);
-		}
-	}
-	void setOnStamp(const function<uint32_t()> &cb) override{
-		RtspMediaSource::setOnStamp(cb);
-		if (m_pRtmpSrc) {
-			m_pRtmpSrc->setOnStamp(cb);
-		}
-	}
+
 	void updateTimeStamp(uint32_t uiStamp) {
 		for (auto &pr : m_mapTracks) {
 			switch (pr.second.type) {
@@ -111,9 +100,6 @@ private:
 	void makeMetaData();
 };
 
-#else
-typedef RtspMediaSource RtspToRtmpMediaSource;
-#endif //ENABLE_RTSP2RTMP
 } /* namespace Rtsp */
 } /* namespace ZL */
 

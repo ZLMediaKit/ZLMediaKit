@@ -182,14 +182,13 @@ inline bool HttpSession::checkLiveFlvStream(){
 		//未找到".flv"后缀
 		return false;
 	}
-	auto app = FindField(m_parser.Url().data(),"/","/");
-	auto stream = FindField(m_parser.Url().data(),(string("/") + app + "/").data(),".");
-	if(app.empty() || stream.empty()){
-		//不能拆分成2级url
-		return false;
+    auto fullUrl = string("http://") + m_parser["Host"] + FindField(m_parser.Url().data(),NULL,pos);
+    MediaInfo info(fullUrl);
+	if(!m_parser.getUrlArgs()[VHOST_KEY].empty()){
+		info.m_vhost = m_parser.getUrlArgs()[VHOST_KEY];
 	}
-	//TO-DO
-	auto mediaSrc = RtmpMediaSource::find(app,stream);
+
+	auto mediaSrc = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,info.m_vhost,info.m_app,info.m_streamid));
 	if(!mediaSrc){
 		//该rtmp源不存在
 		return false;
@@ -274,7 +273,13 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 		return Http_success;
 	}
 	//事件未被拦截，则认为是http下载请求
-	string strFile = m_strPath + m_parser.Url();
+
+	auto fullUrl = string("http://") + m_parser["Host"] + m_parser.Url();
+	MediaInfo info(fullUrl);
+	if(!m_parser.getUrlArgs()[VHOST_KEY].empty()){
+		info.m_vhost = m_parser.getUrlArgs()[VHOST_KEY];
+	}
+	string strFile = m_strPath + "/" + info.m_vhost + m_parser.Url();
 	/////////////HTTP连接是否需要被关闭////////////////
 	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
 	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
@@ -283,7 +288,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	if (strFile.back() == '/') {
 		//生成文件夹菜单索引
 		string strMeun;
-		if (!makeMeun(strFile, strMeun)) {
+		if (!makeMeun(strFile,info.m_vhost, strMeun)) {
 			//文件夹不存在
 			sendNotFound(bClose);
 			return eHttpCode;
@@ -372,7 +377,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
                 //文件读完
 				//InfoL << "send complete!" << iRead << " " << iReq << " " << *piLeft;
 				if(iRead>0) {
-                    			sendBuf->setSize(iRead);
+					sendBuf->setSize(iRead);
 					strongSelf->sock->setSendPktSize(3);//强制写入socket缓存
 					strongSelf->sock->send(sendBuf,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 				}
@@ -409,7 +414,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	return Http_success;
 }
 
-inline bool HttpSession::makeMeun(const string &strFullPath, string &strRet) {
+inline bool HttpSession::makeMeun(const string &strFullPath,const string &vhost, string &strRet) {
 	string strPathPrefix(strFullPath);
 	strPathPrefix = strPathPrefix.substr(0, strPathPrefix.length() - 1);
 	if (!File::is_dir(strPathPrefix.data())) {
@@ -423,7 +428,7 @@ inline bool HttpSession::makeMeun(const string &strFullPath, string &strRet) {
 			"<h1>文件索引:";
 
 	string strPath = strFullPath;
-	strPath = strPath.substr(m_strPath.length(), strFullPath.length() - m_strPath.length());
+	strPath = strPath.substr(m_strPath.length() + vhost.length() + 1);
 	strRet += strPath;
 	strRet += "</h1>\r\n";
 	if (strPath != "/") {
@@ -503,13 +508,12 @@ inline void HttpSession::sendResponse(const char* pcStatus, const KeyValue& head
 }
 inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iContentSize,const char* pcContentType) {
 	KeyValue headerOut;
-	static string serverName =  mINI::Instance()[Config::Http::kServerName];
 	static string charSet =  mINI::Instance()[Config::Http::kCharSet];
 	static uint32_t keepAliveSec =  mINI::Instance()[Config::Http::kKeepAliveSecond].as<uint32_t>();
 	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
 
 	headerOut.emplace("Date", dateStr());
-	headerOut.emplace("Server", serverName);
+	headerOut.emplace("Server", SERVER_NAME);
 	headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
 	if(!bClose){
 		headerOut.emplace("Keep-Alive",StrPrinter << "timeout=" << keepAliveSec << ", max=" << reqCnt << endl);

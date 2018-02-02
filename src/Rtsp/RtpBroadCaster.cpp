@@ -84,10 +84,10 @@ RtpBroadCaster::~RtpBroadCaster() {
 	m_pReader->setDetachCB(nullptr);
 	DebugL;
 }
-RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strApp,const string &strStream) {
-	auto src = RtspMediaSource::find(strApp, strStream);
+RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
+	auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA,strVhost,strApp, strStream));
 	if(!src){
-		auto strErr = StrPrinter << "未找到媒体源:" << strApp << " " << strStream << endl;
+		auto strErr = StrPrinter << "未找到媒体源:" << strVhost << " " << strApp << " " << strStream << endl;
 		throw std::runtime_error(strErr);
 	}
 	m_multiAddr = MultiCastAddressMaker::Instance().obtain();
@@ -130,6 +130,7 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strApp,con
 	DebugL << MultiCastAddressMaker::toString(*m_multiAddr) << " "
 			<< m_apUdpSock[0]->get_local_port() << " "
 			<< m_apUdpSock[1]->get_local_port() << " "
+            << strVhost << " "
 			<< strApp << " " << strStream;
 }
 uint16_t RtpBroadCaster::getPort(int iTrackId){
@@ -139,11 +140,11 @@ uint16_t RtpBroadCaster::getPort(int iTrackId){
 string RtpBroadCaster::getIP(){
 	return inet_ntoa(m_aPeerUdpAddr[0].sin_addr);
 }
-RtpBroadCaster::Ptr RtpBroadCaster::make(const string &strLocalIp,const string &strApp,const string &strStream){
+RtpBroadCaster::Ptr RtpBroadCaster::make(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream){
 	try{
-		auto ret = Ptr(new RtpBroadCaster(strLocalIp,strApp,strStream));
+		auto ret = Ptr(new RtpBroadCaster(strLocalIp,strVhost,strApp,strStream));
 		lock_guard<recursive_mutex> lck(g_mtx);
-		string strKey = StrPrinter << strLocalIp << " " << strApp << " " << strStream << endl;
+		string strKey = StrPrinter << strLocalIp << " "  << strVhost << " " << strApp << " " << strStream << endl;
 		weak_ptr<RtpBroadCaster> weakPtr = ret;
 		g_mapBroadCaster.emplace(strKey,weakPtr);
 		return ret;
@@ -153,17 +154,17 @@ RtpBroadCaster::Ptr RtpBroadCaster::make(const string &strLocalIp,const string &
 	}
 }
 
-RtpBroadCaster::Ptr RtpBroadCaster::get(const string &strLocalIp,const string& strApp, const string& strStream) {
-	string strKey = StrPrinter << strLocalIp << " " << strApp << " " << strStream << endl;
+RtpBroadCaster::Ptr RtpBroadCaster::get(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
+	string strKey = StrPrinter << strLocalIp << " " << strVhost << " " << strApp << " " << strStream << endl;
 	lock_guard<recursive_mutex> lck(g_mtx);
 	auto it = g_mapBroadCaster.find(strKey);
 	if (it == g_mapBroadCaster.end()) {
-		return make(strLocalIp,strApp, strStream);
+		return make(strLocalIp,strVhost,strApp, strStream);
 	}
 	auto ret = it->second.lock();
 	if (!ret) {
 		g_mapBroadCaster.erase(it);
-		return make(strLocalIp,strApp, strStream);
+		return make(strLocalIp,strVhost,strApp, strStream);
 	}
 	return ret;
 }

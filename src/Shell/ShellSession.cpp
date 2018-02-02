@@ -35,15 +35,10 @@ namespace ZL {
 namespace Shell {
 
 unordered_map<string, string> ShellSession::g_mapUser;
-string ShellSession::g_serverName;
 
 ShellSession::ShellSession(const std::shared_ptr<ThreadPool> &_th,
                            const Socket::Ptr &_sock) :
         TcpLimitedSession(_th, _sock) {
-
-    static onceToken token([]() {
-        g_serverName = mINI::Instance()[Config::Shell::kServerName];
-    }, nullptr);
     pleaseInputUser();
 }
 
@@ -107,7 +102,7 @@ inline bool ShellSession::onCommandLine(const string& line) {
 
 inline void ShellSession::pleaseInputUser() {
 	send("\033[0m");
-	send(StrPrinter << g_serverName << " login: " << endl);
+	send(StrPrinter << SERVER_NAME << " login: " << endl);
 	m_requestCB = [this](const string &line) {
 		m_strUserName=line;
         pleaseInputPasswd();
@@ -121,14 +116,14 @@ inline void ShellSession::pleaseInputPasswd() {
 			send(StrPrinter
 					<<"\033[0mPermission denied,"
 					<<" please try again.\r\n"
-					<<m_strUserName<<"@"<<g_serverName
+					<<m_strUserName<<"@"<<SERVER_NAME
 					<<"'s password: \033[8m"
 					<<endl);
 			return true;
 		}
 		send("\033[0m");
 		send("-----------------------------------------\r\n");
-		send(StrPrinter<<"欢迎来到"<<g_serverName<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
+		send(StrPrinter<<"欢迎来到"<<SERVER_NAME<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
 		send("-----------------------------------------\r\n");
         printShellPrefix();
 		m_requestCB=nullptr;
@@ -137,7 +132,7 @@ inline void ShellSession::pleaseInputPasswd() {
 }
 
 inline void ShellSession::printShellPrefix() {
-	send(StrPrinter << m_strUserName << "@" << g_serverName << "# " << endl);
+	send(StrPrinter << m_strUserName << "@" << SERVER_NAME << "# " << endl);
 }
 
 inline bool ShellSession::onAuth(const string &user, const string &pwd) {

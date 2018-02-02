@@ -163,36 +163,18 @@ public:
 		this->m_strContent = content;
 	}
 
-	const StrCaseMap& getValues() const {
+	StrCaseMap& getValues() const {
 		return m_mapValues;
 	}
-	const StrCaseMap& getUrlArgs() const {
+	StrCaseMap& getUrlArgs() const {
 		return m_mapUrlArgs;
 	}
 
-	//注意:当字符串为空时，也会返回一个空字符串
-	static vector<string> split(const string& s, const char *delim) {
-		size_t last = 0;
-		size_t index = s.find_first_of(delim, last);
-		vector<string> ret;
-		while (index != string::npos) {
-			ret.push_back(s.substr(last, index - last));
-			last = index + 1;
-			index = s.find_first_of(delim, last);
-		}
-		if (index - last > 0) {
-			ret.push_back(s.substr(last, index - last));
-		}
-		return ret;
-	}
 
 	static StrCaseMap parseArgs(const string &str,const char *pair_delim = "&", const char *key_delim = "="){
 		StrCaseMap ret;
 		auto arg_vec = split(str, pair_delim);
 		for (string &key_val : arg_vec) {
-			if (!key_val.size()) {
-				continue;
-			}
 			auto key_val_vec = split(key_val, key_delim);
 			if (key_val_vec.size() >= 2) {
 				ret[key_val_vec[0]] = key_val_vec[1];
@@ -207,8 +189,8 @@ private:
 	string m_strTail;
 	string m_strContent;
 	string m_strNull;
-	StrCaseMap m_mapValues;
-	StrCaseMap m_mapUrlArgs;
+	mutable StrCaseMap m_mapValues;
+	mutable StrCaseMap m_mapUrlArgs;
 };
 
 typedef struct {

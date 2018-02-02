@@ -50,7 +50,7 @@ static onceToken s_token([](){
 
 //////////////////////////Rtsp media///////////////////////////
 API_EXPORT MediaContext API_CALL createMedia(const char *appName,const char *mediaName) {
-	DevChannel::Ptr ret(new DevChannel(appName,mediaName));
+	DevChannel::Ptr ret(new DevChannel(DEFAULT_VHOST,appName,mediaName));
 	lock_guard<recursive_mutex> lck(s_mtxMapMedia);
 	s_mapMedia.emplace((void *) (ret.get()), ret);
 	return ret.get();

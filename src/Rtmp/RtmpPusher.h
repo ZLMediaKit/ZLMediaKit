@@ -38,7 +38,7 @@ class RtmpPusher: public RtmpProtocol , public TcpClient{
 public:
 	typedef std::shared_ptr<RtmpPusher> Ptr;
 	typedef std::function<void(const SockException &ex)> Event;
-	RtmpPusher(const char *strApp,const char *strStream);
+	RtmpPusher(const char *strVhost,const char *strApp,const char *strStream);
 	RtmpPusher(const RtmpMediaSource::Ptr  &src);
 	virtual ~RtmpPusher();
 

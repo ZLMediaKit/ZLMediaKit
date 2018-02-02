@@ -36,9 +36,9 @@ namespace ZL {
 namespace MediaFile {
 
 #ifdef ENABLE_MP4V2
-MediaReader::MediaReader(const string &strApp, const string &strId) {
+MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId) {
 	static string recordPath = mINI::Instance()[Config::Record::kFilePath];
-	auto strFileName = recordPath + "/" + strApp + "/" + strId;
+	auto strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
 
 	m_hMP4File = MP4Read(strFileName.data());
 	if(m_hMP4File == MP4_INVALID_FILE_HANDLE){
@@ -129,7 +129,7 @@ MediaReader::MediaReader(const string &strApp, const string &strId) {
 	}
 
 	m_iDuration	= MAX(m_video_ms,m_audio_ms);
-	m_pChn.reset(new DevChannel(strApp.data(),strId.data(),m_iDuration/1000.0,false));
+	m_pChn.reset(new DevChannel(strVhost.data(),strApp.data(),strId.data(),m_iDuration/1000.0,false));
 	if (m_audio_trId != MP4_INVALID_TRACK_ID) {
 		AudioInfo info;
 		info.iChannel = m_audio_num_channels;
@@ -169,26 +169,17 @@ MediaReader::~MediaReader() {
 void MediaReader::startReadMP4() {
 	auto strongSelf = shared_from_this();
 	static uint32_t sampleMS = mINI::Instance()[Config::Record::kSampleMS].as<uint32_t>();
-
 	AsyncTaskThread::Instance().DoTaskDelay(reinterpret_cast<uint64_t>(this), sampleMS, [strongSelf](){
 		return strongSelf->readSample();
 	});
-	weak_ptr<MediaReader> weakSelf = strongSelf;
-	m_pChn->setOnSeek([weakSelf](uint32_t ui32Stamp){
-		auto strongSelf = weakSelf.lock();
-		if(!strongSelf){
-			return false;
-		}
-		strongSelf->seek(ui32Stamp);
-		return true;
-	});
-	m_pChn->setOnStamp([weakSelf]() -> uint32_t {
-		auto strongSelf = weakSelf.lock();
-		if(!strongSelf) {
-			return 0;
-		}
-		return strongSelf-> m_iSeekTime + strongSelf->m_ticker.elapsedTime();
-	});
+	m_pChn->setListener(strongSelf);
+}
+ bool MediaReader::seekTo(uint32_t ui32Stamp){
+	 seek(ui32Stamp);
+	 return true;
+}
+uint32_t MediaReader::getStamp() {
+	 return m_iSeekTime + m_ticker.elapsedTime();
 }
 
 bool MediaReader::readSample(int iTimeInc) {
@@ -322,36 +313,18 @@ void MediaReader::seek(int iSeekTime,bool bReStart){
 
 #endif //ENABLE_MP4V2
 
-RtspMediaSource::Ptr MediaReader::onMakeRtsp(const string &strApp, const string &strId) {
-#ifdef ENABLE_MP4V2
-	static string appName = mINI::Instance()[Config::Record::kAppName];
-	if (strApp != appName) {
-		return nullptr;
-	}
-	try{
-		MediaReader::Ptr pReader(new MediaReader(strApp,strId));
-		pReader->startReadMP4();
-		return RtspMediaSource::find(strApp, strId, false);
-	}catch (std::exception &ex) {
-		WarnL << ex.what();
-		return nullptr;
-	}
-#else
-	return nullptr;
-#endif //ENABLE_MP4V2
 
-}
 
-RtmpMediaSource::Ptr MediaReader::onMakeRtmp(const string &strApp, const string &strId) {
+MediaSource::Ptr MediaReader::onMakeMediaSource(const string &strSchema,const string &strVhost,const string &strApp, const string &strId){
 #ifdef ENABLE_MP4V2
 	static string appName = mINI::Instance()[Config::Record::kAppName];
 	if (strApp != appName) {
 		return nullptr;
 	}
 	try {
-		MediaReader::Ptr pReader(new MediaReader(strApp, strId));
+		MediaReader::Ptr pReader(new MediaReader(strVhost,strApp, strId));
 		pReader->startReadMP4();
-		return RtmpMediaSource::find(strApp, strId, false);
+		return MediaSource::find(strSchema,strVhost,strApp, strId, false);
 	} catch (std::exception &ex) {
 		WarnL << ex.what();
 		return nullptr;
@@ -359,7 +332,6 @@ RtmpMediaSource::Ptr MediaReader::onMakeRtmp(const string &strApp, const string 
 #else
 	return nullptr;
 #endif //ENABLE_MP4V2
-
 }
 
 

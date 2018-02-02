@@ -59,7 +59,11 @@ string timeStr(const char *fmt) {
 #endif
 }
 
-Mp4Maker::Mp4Maker(const string& strPath,const string &strApp,const string &strStreamId, const PlayerBase::Ptr &pPlayer) {
+Mp4Maker::Mp4Maker(const string& strPath,
+				   const string &strVhost,
+				   const string &strApp,
+				   const string &strStreamId,
+				   const PlayerBase::Ptr &pPlayer) {
 	DebugL << strPath;
 	m_pPlayer = pPlayer;
 	m_strPath = strPath;
@@ -67,6 +71,7 @@ Mp4Maker::Mp4Maker(const string& strPath,const string &strApp,const string &strS
 	/////record 业务逻辑//////
 	m_info.strAppName = strApp;
 	m_info.strStreamId = strStreamId;
+	m_info.strVhost = strVhost;
 	m_info.strFolder = strPath;
 	//----record 业务逻辑----//
 }
@@ -144,7 +149,6 @@ void Mp4Maker::createFile() {
 	}
 	closeFile();
 
-
 	auto strDate = timeStr("%Y-%m-%d");
 	auto strTime = timeStr("%H-%M-%S");
 	auto strFileTmp = m_strPath + strDate + "/." + strTime + ".mp4";
@@ -155,7 +159,8 @@ void Mp4Maker::createFile() {
 	m_info.strFileName = strTime + ".mp4";
 	m_info.strFilePath = strFile;
 	static string appName = mINI::Instance()[Config::Record::kAppName];
-	m_info.strUrl = appName + "/"
+	m_info.strUrl = m_info.strVhost + "/"
+					+ appName + "/"
 					+ m_info.strAppName + "/"
 					+ m_info.strStreamId + "/"
 					+ strDate + "/"
