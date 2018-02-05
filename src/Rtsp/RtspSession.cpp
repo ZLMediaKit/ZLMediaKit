@@ -641,7 +641,7 @@ bool RtspSession::handleReq_Play() {
 		send_SessionNotFound();
 		return false;
 	}
-    auto onRes = [this](bool authSuccess){
+    auto onRes = [this](bool authSuccess,const string &err){
         char response[2 * 1024];
         m_pcBuf = response;
         if(!authSuccess && m_bFirstPlay){
@@ -650,8 +650,12 @@ bool RtspSession::handleReq_Play() {
                             "RTSP/1.0 401 Unauthorized\r\n"
                             "CSeq: %d\r\n"
                             "Server: %s-%0.2f(build in %s)\r\n"
-                            "%s\r\n",
-                            m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME, dateHeader().data());
+                            "%s"
+                            "Content-Type: text/plain\r\n"
+                            "Content-Length: %d\r\n\r\n%s",
+                            m_iCseq, SERVER_NAME,
+                            RTSP_VERSION, RTSP_BUILDTIME,
+                            dateHeader().data(),(int)err.size(),err.data());
             send(m_pcBuf,n);
             shutdown();
             return;
@@ -730,23 +734,23 @@ bool RtspSession::handleReq_Play() {
     };
 
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool authSuccess){
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool authSuccess,const string &err){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,onRes,authSuccess](){
+        strongSelf->async([weakSelf,onRes,authSuccess,err](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            onRes(authSuccess);
+            onRes(authSuccess,err);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
     if(!flag){
         //该事件无人监听,默认不鉴权
-        onRes(true);
+        onRes(true,"");
     }
 	return true;
 }

@@ -112,14 +112,16 @@ static onceToken s_token([](){
 	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastRtmpPublish,[](BroadcastRtmpPublishArgs){
         InfoL << args.m_vhost << " " << args.m_app << " " << args.m_streamid << " " << args.m_param_strs ;
         EventPoller::Instance().async([invoker](){
-            invoker(true);
+            //invoker(true,"");//鉴权成功
+            invoker(false,"this is auth failed message");//鉴权失败
         });
     });
 
     NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastMediaPlayed,[](BroadcastMediaPlayedArgs){
         InfoL << args.m_schema << " " << args.m_vhost << " " << args.m_app << " " << args.m_streamid << " " << args.m_param_strs ;
         EventPoller::Instance().async([invoker](){
-            invoker(true);
+            //invoker(true,"");//鉴权成功
+            invoker(false,"this is auth failed message");//鉴权失败
         });
     });
 
