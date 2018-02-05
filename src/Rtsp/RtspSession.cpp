@@ -193,10 +193,7 @@ bool RtspSession::handleReq_Describe() {
     {
         //解析url获取媒体名称
         m_strUrl = m_parser.Url();
-        m_mediaInfo.parse(m_strUrl);
-        if(!m_parser.getUrlArgs()[VHOST_KEY].empty()){
-            m_mediaInfo.m_vhost = m_parser.getUrlArgs()[VHOST_KEY];
-        }
+        m_mediaInfo.parse(m_parser.FullUrl());
     }
 
 	if (!findStream()) {
@@ -644,82 +641,113 @@ bool RtspSession::handleReq_Play() {
 		send_SessionNotFound();
 		return false;
 	}
-
-	if(m_pRtpReader){
-		weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-        SockUtil::setNoDelay(m_pSender->rawFD(), false);
-		m_pRtpReader->setReadCB([weakSelf](const RtpPacket::Ptr &pack) {
-			auto strongSelf = weakSelf.lock();
-			if(!strongSelf) {
-				return;
-			}
-			strongSelf->async([weakSelf,pack](){
-				auto strongSelf = weakSelf.lock();
-				if(!strongSelf) {
-					return;
-				}
-				strongSelf->sendRtpPacket(pack);
-			});
-
-		});
-	}
-
-	auto pMediaSrc = m_pMediaSrc.lock();
-	uint32_t iStamp = 0;
-	if(pMediaSrc){
-        auto strRange = m_parser["Range"];
-		if (strRange.size() && !m_bFirstPlay) {
-			auto strStart = FindField(strRange.data(), "npt=", "-");
-			if (strStart == "now") {
-				strStart = "0";
-			}
-			auto iStartTime = atof(strStart.data());
-			InfoL << "rtsp seekTo:" << iStartTime;
-			pMediaSrc->seekTo(iStartTime * 1000);
-            iStamp = pMediaSrc->getStamp();
-		}else if(pMediaSrc->getRing()->readerCount() == 1){
-			//第一个消费者
-			pMediaSrc->seekTo(0);
-			iStamp = 0;
-        }else{
-            iStamp = pMediaSrc->getStamp();
+    auto onRes = [this](bool authSuccess){
+        char response[2 * 1024];
+        m_pcBuf = response;
+        if(!authSuccess && m_bFirstPlay){
+            //第一次play是播放，否则是恢复播放。只对播放鉴权
+            int n = sprintf(m_pcBuf,
+                            "RTSP/1.0 401 Unauthorized\r\n"
+                            "CSeq: %d\r\n"
+                            "Server: %s-%0.2f(build in %s)\r\n"
+                            "%s\r\n",
+                            m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME, dateHeader().data());
+            send(m_pcBuf,n);
+            shutdown();
+            return;
         }
-		for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-			auto &track = m_aTrackInfo[i];
-			track.ssrc = pMediaSrc->getSsrc(track.trackId);
-			track.seq = pMediaSrc->getSeqence(track.trackId);
-			track.timeStamp = pMediaSrc->getTimestamp(track.trackId);
-		}
-	}
-	m_bFirstPlay = false;
-	int iLen = sprintf(m_pcBuf, "RTSP/1.0 200 OK\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"Session: %s\r\n"
-			"Range: npt=%.2f-\r\n"
-			"RTP-Info: ", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data(), m_strSession.data(),iStamp/1000.0);
+        if(m_pRtpReader){
+            weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+            SockUtil::setNoDelay(m_pSender->rawFD(), false);
+            m_pRtpReader->setReadCB([weakSelf](const RtpPacket::Ptr &pack) {
+                auto strongSelf = weakSelf.lock();
+                if(!strongSelf) {
+                    return;
+                }
+                strongSelf->async([weakSelf,pack](){
+                    auto strongSelf = weakSelf.lock();
+                    if(!strongSelf) {
+                        return;
+                    }
+                    strongSelf->sendRtpPacket(pack);
+                });
 
-	for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-		auto &track = m_aTrackInfo[i];
-		if (track.inited == false) {
-			//还有track没有setup
-			return false;
-		}
-		iLen += sprintf(m_pcBuf + iLen, "url=%s/%s%d;seq=%d;rtptime=%u,",
-                        m_strUrl.data(), track.trackStyle.data(),
-                        track.trackId, track.seq,track.timeStamp);
-	}
-	iLen -= 1;
-	(m_pcBuf)[iLen] = '\0';
-	iLen += sprintf(m_pcBuf + iLen, "\r\n\r\n");
-	send(m_pcBuf, iLen);
-	NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,
-                                       RTSP_SCHEMA,
-                                       m_mediaInfo.m_vhost.data(),
-                                       m_mediaInfo.m_app.data(),
-                                       m_mediaInfo.m_streamid.data());
+            });
+        }
+
+        auto pMediaSrc = m_pMediaSrc.lock();
+        uint32_t iStamp = 0;
+        if(pMediaSrc){
+            auto strRange = m_parser["Range"];
+            if (strRange.size() && !m_bFirstPlay) {
+                auto strStart = FindField(strRange.data(), "npt=", "-");
+                if (strStart == "now") {
+                    strStart = "0";
+                }
+                auto iStartTime = atof(strStart.data());
+                InfoL << "rtsp seekTo:" << iStartTime;
+                pMediaSrc->seekTo(iStartTime * 1000);
+                iStamp = pMediaSrc->getStamp();
+            }else if(pMediaSrc->getRing()->readerCount() == 1){
+                //第一个消费者
+                pMediaSrc->seekTo(0);
+                iStamp = 0;
+            }else{
+                iStamp = pMediaSrc->getStamp();
+            }
+            for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
+                auto &track = m_aTrackInfo[i];
+                track.ssrc = pMediaSrc->getSsrc(track.trackId);
+                track.seq = pMediaSrc->getSeqence(track.trackId);
+                track.timeStamp = pMediaSrc->getTimestamp(track.trackId);
+            }
+        }
+        m_bFirstPlay = false;
+        int iLen = sprintf(m_pcBuf, "RTSP/1.0 200 OK\r\n"
+                                   "CSeq: %d\r\n"
+                                   "Server: %s-%0.2f(build in %s)\r\n"
+                                   "%s"
+                                   "Session: %s\r\n"
+                                   "Range: npt=%.2f-\r\n"
+                                   "RTP-Info: ", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
+                           dateHeader().data(), m_strSession.data(),iStamp/1000.0);
+
+        for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
+            auto &track = m_aTrackInfo[i];
+            if (track.inited == false) {
+                //还有track没有setup
+                shutdown();
+                return;
+            }
+            iLen += sprintf(m_pcBuf + iLen, "url=%s/%s%d;seq=%d;rtptime=%u,",
+                            m_strUrl.data(), track.trackStyle.data(),
+                            track.trackId, track.seq,track.timeStamp);
+        }
+        iLen -= 1;
+        (m_pcBuf)[iLen] = '\0';
+        iLen += sprintf(m_pcBuf + iLen, "\r\n\r\n");
+        send(m_pcBuf, iLen);
+    };
+
+    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool authSuccess){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            return;
+        }
+        strongSelf->async([weakSelf,onRes,authSuccess](){
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf){
+                return;
+            }
+            onRes(authSuccess);
+        });
+    };
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
+    if(!flag){
+        //该事件无人监听,默认不鉴权
+        onRes(true);
+    }
 	return true;
 }
 

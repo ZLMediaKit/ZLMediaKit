@@ -83,6 +83,8 @@ public:
     string m_app;
     string m_streamid;
     StrCaseMap m_params;
+    string m_param_strs;
+
 };
 
 

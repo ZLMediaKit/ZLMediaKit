@@ -51,6 +51,7 @@ void loadIniConfig();
 
 #define SERVER_NAME "ZLMediaKit"
 #define VHOST_KEY "vhost"
+#define HTTP_SCHEMA "http"
 #define RTSP_SCHEMA "rtsp"
 #define RTMP_SCHEMA "rtmp"
 #define DEFAULT_VHOST "__defaultVhost__"
@@ -59,15 +60,16 @@ void loadIniConfig();
 
 ////////////广播名称///////////
 namespace Broadcast {
-extern const char kBroadcastMediaPlayed[];
-#define BroadcastMediaPlayedArgs const char *schema,const char *vhost,const char *app,const char *stream
 
+//注册或反注册MediaSource事件广播
 extern const char kBroadcastMediaChanged[];
 #define BroadcastMediaChangedArgs bool bRegist, const char *schema,const char *vhost,const char *app,const char *stream
 
+//录制mp4文件成功后广播
 extern const char kBroadcastRecordMP4[];
 #define BroadcastRecordMP4Args const Mp4Info &info
 
+//收到http api请求广播
 extern const char kBroadcastHttpRequest[];
 #define BroadcastHttpRequestArgs const Parser &parser,HttpSession::HttpResponseInvoker &invoker,bool &consumed
 
@@ -79,6 +81,18 @@ extern const char kBroadcastOnGetRtspRealm[];
 //获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码
 extern const char kBroadcastOnRtspAuth[];
 #define BroadcastOnRtspAuthArgs const char *user_name,bool must_no_encrypt,const RtspSession::onAuth &invoker
+
+
+//鉴权结果回调对象
+typedef std::function<void(bool success)> AuthInvoker;
+
+//收到rtmp推流事件广播，通过该事件控制推流鉴权
+extern const char kBroadcastRtmpPublish[];
+#define BroadcastRtmpPublishArgs MediaInfo &args,Broadcast::AuthInvoker &invoker
+
+//播放rtsp或rtmp事件广播，通过该事件控制播放鉴权
+extern const char kBroadcastMediaPlayed[];
+#define BroadcastMediaPlayedArgs MediaInfo &args,Broadcast::AuthInvoker &invoker
 
 } //namespace Broadcast
 
