@@ -29,6 +29,8 @@
 #define COMMON_CONFIG_H
 
 #include "Util/mini.h"
+#include <functional>
+using namespace std;
 using namespace ZL::Util;
 
 namespace Config {
