@@ -101,15 +101,15 @@ public:
 			}
 			if (start == buf) {
 				m_strMethod = FindField(line.c_str(), NULL, " ");
-				auto full_url = FindField(line.c_str(), " ", " ");
-				auto args_pos =  full_url.find('?');
+                m_strFullUrl = FindField(line.c_str(), " ", " ");
+				auto args_pos =  m_strFullUrl.find('?');
 				if(args_pos != string::npos){
-					m_strUrl = full_url.substr(0,args_pos);
-					m_mapUrlArgs = parseArgs(full_url.substr(args_pos + 1 ));
+					m_strUrl = m_strFullUrl.substr(0,args_pos);
+					m_mapUrlArgs = parseArgs(m_strFullUrl.substr(args_pos + 1 ));
 				}else{
-					m_strUrl = full_url;
+					m_strUrl = m_strFullUrl;
 				}
-				m_strTail = FindField(line.c_str(), (full_url + " ").c_str(), NULL);
+				m_strTail = FindField(line.c_str(), (m_strFullUrl + " ").c_str(), NULL);
 			} else {
 				auto field = FindField(line.c_str(), NULL, ": ");
 				auto value = FindField(line.c_str(), ": ", NULL);
@@ -132,6 +132,10 @@ public:
 		//rtsp url
 		return m_strUrl;
 	}
+    const string& FullUrl() const {
+        //rtsp url with args
+        return m_strFullUrl;
+    }
 	const string& Tail() const {
 		//RTSP/1.0
 		return m_strTail;
@@ -150,6 +154,7 @@ public:
 	void Clear() {
 		m_strMethod.clear();
 		m_strUrl.clear();
+        m_strFullUrl.clear();
 		m_strTail.clear();
 		m_strContent.clear();
 		m_mapValues.clear();
@@ -189,6 +194,7 @@ private:
 	string m_strTail;
 	string m_strContent;
 	string m_strNull;
+    string m_strFullUrl;
 	mutable StrCaseMap m_mapValues;
 	mutable StrCaseMap m_mapUrlArgs;
 };

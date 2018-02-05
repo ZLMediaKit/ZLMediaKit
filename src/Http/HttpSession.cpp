@@ -171,7 +171,8 @@ void HttpSession::onManager() {
 		shutdown();
 	}
 }
-
+//http-flv 链接格式:http://vhost-url:port/app/streamid.flv?key1=value1&key2=value2
+//如果url(除去?以及后面的参数)后缀是.flv,那么表明该url是一个http-flv直播。
 inline bool HttpSession::checkLiveFlvStream(){
 	auto pos = strrchr(m_parser.Url().data(),'.');
 	if(!pos){
@@ -182,87 +183,118 @@ inline bool HttpSession::checkLiveFlvStream(){
 		//未找到".flv"后缀
 		return false;
 	}
-    auto fullUrl = string("http://") + m_parser["Host"] + FindField(m_parser.Url().data(),NULL,pos);
+    //拼接成完整url
+    auto fullUrl = string(HTTP_SCHEMA) + "://" + m_parser["Host"] + m_parser.FullUrl();
     MediaInfo info(fullUrl);
-	if(!m_parser.getUrlArgs()[VHOST_KEY].empty()){
-		info.m_vhost = m_parser.getUrlArgs()[VHOST_KEY];
-	}
+    info.m_streamid.erase(info.m_streamid.size() - 4);//去除.flv后缀
 
 	auto mediaSrc = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,info.m_vhost,info.m_app,info.m_streamid));
 	if(!mediaSrc){
 		//该rtmp源不存在
-		return false;
+        sendNotFound(true);
+        shutdown();
+		return true;
 	}
 	if(!mediaSrc->ready()){
 		//未准备好
-		return false;
+        sendNotFound(true);
+        shutdown();
+		return true;
 	}
-	//找到rtmp源，发送http头，负载后续发送
-	sendResponse("200 OK", makeHttpHeader(false,0,get_mime_type(m_parser.Url().data())), "");
-	//发送flv文件头
-	char flv_file_header[] = "FLV\x1\x5\x0\x0\x0\x9"; // have audio and have video
-	bool is_have_audio = false,is_have_video = false;
 
-	mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-		if(pkt->typeId == MSG_VIDEO){
-			is_have_video = true;
-		}
-		if(pkt->typeId == MSG_AUDIO){
-			is_have_audio = true;
-		}
-	});
+    auto onRes = [this,mediaSrc](bool authSuccess){
+        if(!authSuccess){
+            string status = "401 Unauthorized";
+            sendResponse(status.data(), makeHttpHeader(true,status.size()),status);
+            shutdown();
+            return ;
+        }
+        //找到rtmp源，发送http头，负载后续发送
+        sendResponse("200 OK", makeHttpHeader(false,0,get_mime_type(".flv")), "");
+        //发送flv文件头
+        char flv_file_header[] = "FLV\x1\x5\x0\x0\x0\x9"; // have audio and have video
+        bool is_have_audio = false,is_have_video = false;
 
-	if (is_have_audio && is_have_video) {
-		flv_file_header[4] = 0x05;
-	} else if (is_have_audio && !is_have_video) {
-		flv_file_header[4] = 0x04;
-	} else if (!is_have_audio && is_have_video) {
-		flv_file_header[4] = 0x01;
-	} else {
-		flv_file_header[4] = 0x00;
-	}
-	//send flv header
-	send(flv_file_header, sizeof(flv_file_header) - 1);
-	//send metadata
-	AMFEncoder invoke;
-	invoke << "onMetaData" << mediaSrc->getMetaData();
-	sendRtmp(MSG_DATA, invoke.data(), 0);
-	//send config frame
-	mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-		onSendMedia(pkt);
-	});
+        mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
+            if(pkt->typeId == MSG_VIDEO){
+                is_have_video = true;
+            }
+            if(pkt->typeId == MSG_AUDIO){
+                is_have_audio = true;
+            }
+        });
 
-	//开始发送rtmp负载
-	m_pRingReader = mediaSrc->getRing()->attach();
-	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-	m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
-		auto strongSelf = weakSelf.lock();
-		if(!strongSelf) {
-			return;
-		}
-		strongSelf->async([pkt,weakSelf](){
-			auto strongSelf = weakSelf.lock();
-			if(!strongSelf) {
-				return;
-			}
-			strongSelf->onSendMedia(pkt);
-		});
-	});
-	m_pRingReader->setDetachCB([weakSelf](){
-		auto strongSelf = weakSelf.lock();
-		if(!strongSelf) {
-			return;
-		}
-		strongSelf->async_first([weakSelf](){
-			auto strongSelf = weakSelf.lock();
-			if(!strongSelf) {
-				return;
-			}
-			strongSelf->shutdown();
-		});
-	});
-	return true;
+        if (is_have_audio && is_have_video) {
+            flv_file_header[4] = 0x05;
+        } else if (is_have_audio && !is_have_video) {
+            flv_file_header[4] = 0x04;
+        } else if (!is_have_audio && is_have_video) {
+            flv_file_header[4] = 0x01;
+        } else {
+            flv_file_header[4] = 0x00;
+        }
+        //send flv header
+        send(flv_file_header, sizeof(flv_file_header) - 1);
+        //send metadata
+        AMFEncoder invoke;
+        invoke << "onMetaData" << mediaSrc->getMetaData();
+        sendRtmp(MSG_DATA, invoke.data(), 0);
+        //send config frame
+        mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
+            onSendMedia(pkt);
+        });
 
+        //开始发送rtmp负载
+        m_pRingReader = mediaSrc->getRing()->attach();
+        weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+        m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf) {
+                return;
+            }
+            strongSelf->async([pkt,weakSelf](){
+                auto strongSelf = weakSelf.lock();
+                if(!strongSelf) {
+                    return;
+                }
+                strongSelf->onSendMedia(pkt);
+            });
+        });
+        m_pRingReader->setDetachCB([weakSelf](){
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf) {
+                return;
+            }
+            strongSelf->async_first([weakSelf](){
+                auto strongSelf = weakSelf.lock();
+                if(!strongSelf) {
+                    return;
+                }
+                strongSelf->shutdown();
+            });
+        });
+    };
+
+    weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool authSuccess){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            return;
+        }
+        strongSelf->async([weakSelf,onRes,authSuccess](){
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf){
+                return;
+            }
+            onRes(authSuccess);
+        });
+    };
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,info,invoker);
+    if(!flag){
+        //该事件无人监听,默认不鉴权
+        onRes(true);
+    }
+    return true;
 }
 inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	//先看看该http事件是否被拦截
@@ -274,11 +306,9 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	}
 	//事件未被拦截，则认为是http下载请求
 
-	auto fullUrl = string("http://") + m_parser["Host"] + m_parser.Url();
+	auto fullUrl = string(HTTP_SCHEMA) + "://" + m_parser["Host"] + m_parser.FullUrl();
 	MediaInfo info(fullUrl);
-	if(!m_parser.getUrlArgs()[VHOST_KEY].empty()){
-		info.m_vhost = m_parser.getUrlArgs()[VHOST_KEY];
-	}
+
 	string strFile = m_strPath + "/" + info.m_vhost + m_parser.Url();
 	/////////////HTTP连接是否需要被关闭////////////////
 	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
