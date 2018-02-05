@@ -47,13 +47,13 @@ void loadIniConfig(){
 }
 ////////////广播名称///////////
 namespace Broadcast {
-const char kBroadcastMediaPlayed[] = "kBroadcastMediaPlayed";
 const char kBroadcastMediaChanged[] = "kBroadcastMediaChanged";
 const char kBroadcastRecordMP4[] = "kBroadcastRecordMP4";
 const char kBroadcastHttpRequest[] = "kBroadcastHttpRequest";
 const char kBroadcastOnGetRtspRealm[] = "kBroadcastOnGetRtspRealm";
 const char kBroadcastOnRtspAuth[] = "kBroadcastOnRtspAuth";
-
+const char kBroadcastMediaPlayed[] = "kBroadcastMediaPlayed";
+const char kBroadcastRtmpPublish[] = "kBroadcastRtmpPublish";
 } //namespace Broadcast
 
 //代理失败最大重试次数

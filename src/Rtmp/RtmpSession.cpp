@@ -101,7 +101,7 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
     m_strTcUrl = params["tcUrl"].as_string();
     if(m_strTcUrl.empty()){
         //defaultVhost:默认vhost
-        m_strTcUrl = "rtmp://127.0.0.1/" + m_mediaInfo.m_app;
+        m_strTcUrl = string(RTMP_SCHEMA) + "://" + DEFAULT_VHOST + "/" + m_mediaInfo.m_app;
     }
 	bool ok = true; //(app == APP_NAME);
 	AMFValue version(AMF_OBJECT);
@@ -129,26 +129,54 @@ void RtmpSession::onCmd_createStream(AMFDecoder &dec) {
 void RtmpSession::onCmd_publish(AMFDecoder &dec) {
 	dec.load<AMFValue>();/* NULL */
     m_mediaInfo.parse(m_strTcUrl + "/" + dec.load<std::string>());
-	auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
-                                                                       m_mediaInfo.m_vhost,
-                                                                       m_mediaInfo.m_app,
-                                                                       m_mediaInfo.m_streamid,
-                                                                       false));
-	bool ok = (!src && !m_pPublisherSrc);
-	AMFValue status(AMF_OBJECT);
-	status.set("level", ok ? "status" : "error");
-	status.set("code", ok ? "NetStream.Publish.Start" : "NetStream.Publish.BadName");
-	status.set("description", ok ? "Started publishing stream." : "Already publishing.");
-	status.set("clientid", "0");
-	sendReply("onStatus", nullptr, status);
-	if (!ok) {
-		throw std::runtime_error( StrPrinter << "Already publishing:"
-                                             << m_mediaInfo.m_vhost << " "
-                                             << m_mediaInfo.m_app << " "
-                                             << m_mediaInfo.m_streamid << endl);
-	}
-	m_bPublisherSrcRegisted = false;
-	m_pPublisherSrc.reset(new RtmpToRtspMediaSource(m_mediaInfo.m_vhost,m_mediaInfo.m_app,m_mediaInfo.m_streamid));
+
+    auto onRes = [this](bool authSuccess){
+        auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
+                                                                           m_mediaInfo.m_vhost,
+                                                                           m_mediaInfo.m_app,
+                                                                           m_mediaInfo.m_streamid,
+                                                                           false));
+        bool ok = (!src && !m_pPublisherSrc && authSuccess);
+        AMFValue status(AMF_OBJECT);
+        status.set("level", ok ? "status" : "error");
+        status.set("code", ok ? "NetStream.Publish.Start" : (authSuccess ? "NetStream.Publish.BadName" : "NetStream.Publish.BadAuth"));
+        status.set("description", ok ? "Started publishing stream." : (authSuccess ? "Already publishing." : "Auth failed"));
+        status.set("clientid", "0");
+        sendReply("onStatus", nullptr, status);
+        if (!ok) {
+            WarnL << "onPublish:"
+                  << (authSuccess ? "Already publishing:" : "Auth failed:")
+                  << m_mediaInfo.m_vhost << " "
+                  << m_mediaInfo.m_app << " "
+                  << m_mediaInfo.m_streamid << endl;
+            shutdown();
+            return;
+        }
+        m_bPublisherSrcRegisted = false;
+        m_pPublisherSrc.reset(new RtmpToRtspMediaSource(m_mediaInfo.m_vhost,m_mediaInfo.m_app,m_mediaInfo.m_streamid));
+    };
+
+    weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool success){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            return;
+        }
+        strongSelf->async([weakSelf,onRes,success](){
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf){
+                return;
+            }
+            onRes(success);
+        });
+    };
+    auto flag = NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastRtmpPublish,
+                                                   m_mediaInfo,
+                                                   invoker);
+    if(!flag){
+        //该事件无人监听，默认鉴权成功
+        onRes(true);
+    }
 }
 
 void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
@@ -161,112 +189,134 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
 }
 
 void  RtmpSession::doPlay(AMFDecoder &dec){
-    m_mediaInfo.parse(m_strTcUrl + "/" + dec.load<std::string>());
-    auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
-                                                                       m_mediaInfo.m_vhost,
-                                                                       m_mediaInfo.m_app,
-                                                                       m_mediaInfo.m_streamid,
-                                                                       true));
-	bool ok = (src.operator bool());
-	ok = ok && src->ready();
-	//stream begin
-	sendUserControl(CONTROL_STREAM_BEGIN, STREAM_MEDIA);
+    auto onRes = [this](bool authSuccess) {
+        auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
+                                                                           m_mediaInfo.m_vhost,
+                                                                           m_mediaInfo.m_app,
+                                                                           m_mediaInfo.m_streamid,
+                                                                           true));
+        bool ok = (src.operator bool() && authSuccess);
+        if(ok){
+            ok = ok && src->ready();
+        }
+        if (ok) {
+            //stream begin
+           sendUserControl(CONTROL_STREAM_BEGIN, STREAM_MEDIA);
+        }
+        // onStatus(NetStream.Play.Reset)
+        AMFValue status(AMF_OBJECT);
+        status.set("level", ok ? "status" : "error");
+        status.set("code", ok ? "NetStream.Play.Reset" : (authSuccess ? "NetStream.Play.StreamNotFound" : "NetStream.Play.BadAuth"));
+        status.set("description", ok ? "Resetting and playing." : (authSuccess ? "No such stream." : "Auth failed"));
+        status.set("details", m_mediaInfo.m_streamid);
+        status.set("clientid", "0");
+        sendReply("onStatus", nullptr, status);
+        if (!ok) {
+            WarnL << "onPlayed:"
+                  << (authSuccess ? "No such stream:" : "Auth failed:")
+                  << m_mediaInfo.m_vhost << " "
+                  << m_mediaInfo.m_app << " "
+                  << m_mediaInfo.m_streamid
+                  << endl;
+            shutdown();
+            return;
+        }
 
-	// onStatus(NetStream.Play.Reset)
-	AMFValue status(AMF_OBJECT);
-	status.set("level", ok ? "status" : "error");
-	status.set("code", ok ? "NetStream.Play.Reset" : "NetStream.Play.StreamNotFound");
-	status.set("description", ok ? "Resetting and playing." : "No such stream.");
-	status.set("details", m_mediaInfo.m_streamid);
-	status.set("clientid", "0");
-	sendReply("onStatus", nullptr, status);
-	if (!ok) {
-		throw std::runtime_error( StrPrinter << "No such stream:"
-                                             << m_mediaInfo.m_vhost << " "
-                                             << m_mediaInfo.m_app << " "
-                                             << m_mediaInfo.m_streamid
-                                             << endl);
-	}
+        // onStatus(NetStream.Play.Start)
+        status.clear();
+        status.set("level", "status");
+        status.set("code", "NetStream.Play.Start");
+        status.set("description", "Started playing.");
+        status.set("details", m_mediaInfo.m_streamid);
+        status.set("clientid", "0");
+        sendReply("onStatus", nullptr, status);
 
-	// onStatus(NetStream.Play.Start)
-	status.clear();
-	status.set("level", "status");
-	status.set("code", "NetStream.Play.Start");
-	status.set("description", "Started playing.");
-	status.set("details", m_mediaInfo.m_streamid);
-	status.set("clientid", "0");
-	sendReply("onStatus", nullptr, status);
+        // |RtmpSampleAccess(true, true)
+        AMFEncoder invoke;
+        invoke << "|RtmpSampleAccess" << true << true;
+        sendResponse(MSG_DATA, invoke.data());
 
-	// |RtmpSampleAccess(true, true)
-	AMFEncoder invoke;
-	invoke << "|RtmpSampleAccess" << true << true;
-	sendResponse(MSG_DATA, invoke.data());
+        //onStatus(NetStream.Data.Start)
+        invoke.clear();
+        AMFValue obj(AMF_OBJECT);
+        obj.set("code", "NetStream.Data.Start");
+        invoke << "onStatus" << obj;
+        sendResponse(MSG_DATA, invoke.data());
 
-	//onStatus(NetStream.Data.Start)
-	invoke.clear();
-	AMFValue obj(AMF_OBJECT);
-	obj.set("code","NetStream.Data.Start");
-	invoke << "onStatus" << obj;
-	sendResponse(MSG_DATA, invoke.data());
+        //onStatus(NetStream.Play.PublishNotify)
+        status.clear();
+        status.set("level", "status");
+        status.set("code", "NetStream.Play.PublishNotify");
+        status.set("description", "Now published.");
+        status.set("details", m_mediaInfo.m_streamid);
+        status.set("clientid", "0");
+        sendReply("onStatus", nullptr, status);
 
-	//onStatus(NetStream.Play.PublishNotify)
-	status.clear();
-	status.set("level", "status");
-	status.set("code", "NetStream.Play.PublishNotify");
-	status.set("description", "Now published.");
-	status.set("details", m_mediaInfo.m_streamid);
-	status.set("clientid", "0");
-	sendReply("onStatus", nullptr, status);
+        // onMetaData
+        invoke.clear();
+        invoke << "onMetaData" << src->getMetaData();
+        sendResponse(MSG_DATA, invoke.data());
 
-	// onMetaData
-	invoke.clear();
-	invoke << "onMetaData" << src->getMetaData();
-	sendResponse(MSG_DATA, invoke.data());
+        src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
+            //DebugL<<"send initial frame";
+            onSendMedia(pkt);
+        });
 
-	src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
-		//DebugL<<"send initial frame";
-		onSendMedia(pkt);
-	});
+        m_pRingReader = src->getRing()->attach();
+        weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+        SockUtil::setNoDelay(sock->rawFD(), false);
+        m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
+            auto strongSelf = weakSelf.lock();
+            if (!strongSelf) {
+                return;
+            }
+            strongSelf->async([weakSelf, pkt]() {
+                auto strongSelf = weakSelf.lock();
+                if (!strongSelf) {
+                    return;
+                }
+                strongSelf->onSendMedia(pkt);
+            });
+        });
+        m_pRingReader->setDetachCB([weakSelf]() {
+            auto strongSelf = weakSelf.lock();
+            if (!strongSelf) {
+                return;
+            }
+            strongSelf->safeShutdown();
+        });
+        m_pPlayerSrc = src;
+        if (src->getRing()->readerCount() == 1) {
+            src->seekTo(0);
+        }
+    };
 
-	m_pRingReader = src->getRing()->attach();
-	weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    SockUtil::setNoDelay(sock->rawFD(), false);
-    m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
-		auto strongSelf = weakSelf.lock();
-		if(!strongSelf) {
-			return;
-		}
-		strongSelf->async([weakSelf,pkt]() {
-			auto strongSelf = weakSelf.lock();
-			if(!strongSelf) {
-				return;
-			}
-			strongSelf->onSendMedia(pkt);
-		});
-	});
-	m_pRingReader->setDetachCB([weakSelf]() {
-		auto strongSelf = weakSelf.lock();
-		if(!strongSelf) {
-			return;
-		}
-		strongSelf->safeShutdown();
-	});
-	m_pPlayerSrc = src;
-	if(src->getRing()->readerCount() == 1){
-		src->seekTo(0);
-	}
-
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,
-                                       RTMP_SCHEMA,
-                                       m_mediaInfo.m_vhost.data(),
-                                       m_mediaInfo.m_app.data(),
-                                       m_mediaInfo.m_streamid.data());
+    weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool authSuccess){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            return;
+        }
+        strongSelf->async([weakSelf,onRes,authSuccess](){
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf){
+                return;
+            }
+            onRes(authSuccess);
+        });
+    };
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
+    if(!flag){
+        //该事件无人监听,默认不鉴权
+        onRes(true);
+    }
 }
 void RtmpSession::onCmd_play2(AMFDecoder &dec) {
 	doPlay(dec);
 }
 void RtmpSession::onCmd_play(AMFDecoder &dec) {
 	dec.load<AMFValue>();/* NULL */
+    m_mediaInfo.parse(m_strTcUrl + "/" + dec.load<std::string>());
 	doPlay(dec);
 }
 
