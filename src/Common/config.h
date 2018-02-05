@@ -86,7 +86,7 @@ extern const char kBroadcastOnRtspAuth[];
 
 
 //鉴权结果回调对象
-typedef std::function<void(bool success)> AuthInvoker;
+typedef std::function<void(bool success, const string &errMessage)> AuthInvoker;
 
 //收到rtmp推流事件广播，通过该事件控制推流鉴权
 extern const char kBroadcastRtmpPublish[];
