@@ -114,7 +114,7 @@ public:
 				auto field = FindField(line.c_str(), NULL, ": ");
 				auto value = FindField(line.c_str(), ": ", NULL);
 				if (field.size() != 0) {
-					m_mapValues[field] = value;
+					m_mapHeaders[field] = value;
 				}
 			}
 			start = start + line.size() + 2;
@@ -142,8 +142,8 @@ public:
 	}
 	const string& operator[](const char *name) const {
 		//rtsp field
-		auto it = m_mapValues.find(name);
-		if (it == m_mapValues.end()) {
+		auto it = m_mapHeaders.find(name);
+		if (it == m_mapHeaders.end()) {
 			return m_strNull;
 		}
 		return it->second;
@@ -157,7 +157,7 @@ public:
         m_strFullUrl.clear();
 		m_strTail.clear();
 		m_strContent.clear();
-		m_mapValues.clear();
+		m_mapHeaders.clear();
 		m_mapUrlArgs.clear();
 	}
 
@@ -169,7 +169,7 @@ public:
 	}
 
 	StrCaseMap& getValues() const {
-		return m_mapValues;
+		return m_mapHeaders;
 	}
 	StrCaseMap& getUrlArgs() const {
 		return m_mapUrlArgs;
@@ -195,7 +195,7 @@ private:
 	string m_strContent;
 	string m_strNull;
     string m_strFullUrl;
-	mutable StrCaseMap m_mapValues;
+	mutable StrCaseMap m_mapHeaders;
 	mutable StrCaseMap m_mapUrlArgs;
 };
 

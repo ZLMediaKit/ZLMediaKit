@@ -51,6 +51,7 @@ public:
 public:
 	bool seekTo(uint32_t ui32Stamp) override;
 	uint32_t getStamp() override;
+    bool shutDown() override;
 private:
 
 #ifdef ENABLE_MP4V2
