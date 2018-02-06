@@ -57,10 +57,19 @@ void HttpRequester::onDisconnect(const SockException &ex){
     }
 }
     
-void HttpRequester::startRequester(const string &url,const HttpRequesterResult &onResult){
+void HttpRequester::startRequester(const string &url,const HttpRequesterResult &onResult , uint32_t timeOutSecond){
     _onResult = onResult;
+    _resTicker.resetTime();
+    _timeOutSecond = timeOutSecond;
     sendRequest(url);
-    
+}
+
+void HttpRequester::onManager(){
+    if(_onResult && _resTicker.elapsedTime() > _timeOutSecond * 1000){
+        //超时
+        onDisconnect(SockException(Err_timeout,"wait http response timeout"));
+        shutdown();
+    }
 }
 
 
