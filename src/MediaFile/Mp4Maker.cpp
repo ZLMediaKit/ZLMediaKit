@@ -219,7 +219,7 @@ void Mp4Maker::closeFile() {
 		stat(m_strFile.data(), &fileData);
 		m_info.ui64FileSize = fileData.st_size;
 		//----record 业务逻辑----//
-		NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastRecordMP4,(const Mp4Info &)m_info);
+		NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastRecordMP4,m_info);
 	}
 }
 

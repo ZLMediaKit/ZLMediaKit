@@ -125,6 +125,12 @@ void RtspSession::onError(const SockException& err) {
 		g_mapPostter.emplace(this, dynamic_pointer_cast<RtspSession>(shared_from_this()));
 		TraceL << "quickTime will not send request any more!";
 	}
+
+    //流量统计事件广播
+    static uint64_t iFlowThreshold = mINI::Instance()[Broadcast::kFlowThreshold];
+    if(m_ui64TotalBytes > iFlowThreshold * 1024){
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes);
+    }
 }
 
 void RtspSession::onManager() {
@@ -144,9 +150,11 @@ void RtspSession::onManager() {
 
 void RtspSession::onRecv(const Socket::Buffer::Ptr &pBuf) {
 	m_ticker.resetTime();
-	char tmp[2 * 1024];
-	m_pcBuf = tmp;
-	if (m_bBase64need) {
+    char tmp[2 * 1024];
+    m_pcBuf = tmp;
+
+    m_ui64TotalBytes += pBuf->size();
+    if (m_bBase64need) {
 		//quicktime 加密后的rtsp请求，需要解密
 		av_base64_decode((uint8_t *) m_pcBuf, pBuf->data(), sizeof(tmp));
 		m_parser.Parse(m_pcBuf); //rtsp请求解析
@@ -217,8 +225,8 @@ bool RtspSession::handleReq_Describe() {
 
     //广播是否需要认证事件
     if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
-                                           m_mediaInfo.m_app.data(),
-                                           m_mediaInfo.m_streamid.data(),
+                                           m_mediaInfo.m_app,
+                                           m_mediaInfo.m_streamid,
                                            invoker)){
         //无人监听此事件，说明无需认证
         invoker("");
@@ -322,7 +330,7 @@ void RtspSession::onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string
     };
     //此时必须提供明文密码
     bool must_no_encrypt = true;
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,user.data(),must_no_encrypt,invoker)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,user,must_no_encrypt,invoker)){
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
         WarnL << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
@@ -404,7 +412,7 @@ void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const strin
 
     //此时可以提供明文或md5加密的密码
     bool must_no_encrypt = false;
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,username.data(),must_no_encrypt,invoker)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,username,must_no_encrypt,invoker)){
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
         WarnL << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
@@ -908,6 +916,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 			return;
 		}
         BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
+        m_ui64TotalBytes += buffer->size();
         pSock->send(buffer,SOCKET_DEFAULE_FLAGS, peerAddr.get());
 	}
 		break;

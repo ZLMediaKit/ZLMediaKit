@@ -83,7 +83,7 @@ void HttpClient::sendRequest(const string &strUrl){
     _isHttps = isHttps;
 
     if(!alive() || bChanged){
-        InfoL << "reconnet:" << _lastHost;
+        //InfoL << "reconnet:" << _lastHost;
         startConnect(host, port);
     }else{
         SockException ex;

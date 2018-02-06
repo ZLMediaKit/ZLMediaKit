@@ -83,16 +83,20 @@ public:
 private:
 	typedef bool (RtspSession::*rtspCMDHandle)();
 	int send(const string &strBuf) override {
+        m_ui64TotalBytes += strBuf.size();
 		return m_pSender->send(strBuf);
 	}
 	int send(string &&strBuf) override {
-		return m_pSender->send(std::move(strBuf));
+        m_ui64TotalBytes += strBuf.size();
+        return m_pSender->send(std::move(strBuf));
 	}
 	int send(const char *pcBuf, int iSize) override {
-		return m_pSender->send(pcBuf, iSize);
+        m_ui64TotalBytes += iSize;
+        return m_pSender->send(pcBuf, iSize);
 	}
 	int send(const Socket::Buffer::Ptr &pkt) override{
-		return m_pSender->send(pkt,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+        m_ui64TotalBytes += pkt->size();
+        return m_pSender->send(pkt,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 	}
 	void shutdown() override;
 	bool handleReq_Options(); //处理options方法
@@ -185,6 +189,10 @@ private:
 	//quicktime 请求rtsp会产生两次tcp连接，
 	//一次发送 get 一次发送post，需要通过sessioncookie关联起来
 	string m_strSessionCookie;
+
+    //消耗的总流量
+    uint64_t m_ui64TotalBytes = 0;
+
 	static recursive_mutex g_mtxGetter; //对quicktime上锁保护
 	static recursive_mutex g_mtxPostter; //对quicktime上锁保护
 	static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
