@@ -181,6 +181,10 @@ void MediaReader::startReadMP4() {
 uint32_t MediaReader::getStamp() {
 	 return m_iSeekTime + m_ticker.elapsedTime();
 }
+bool MediaReader::shutDown(){
+    AsyncTaskThread::Instance().CancelTask(reinterpret_cast<uint64_t>(this));
+    return true;
+}
 
 bool MediaReader::readSample(int iTimeInc) {
 	TimeTicker();
