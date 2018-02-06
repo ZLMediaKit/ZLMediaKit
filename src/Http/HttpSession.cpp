@@ -161,6 +161,10 @@ inline HttpSession::HttpCode HttpSession::parserHttpReq(const string &str) {
 }
 void HttpSession::onError(const SockException& err) {
 	//WarnL << err.what();
+    static uint64_t iFlowThreshold = mINI::Instance()[Broadcast::kFlowThreshold];
+    if(m_previousTagSize > iFlowThreshold * 1024){
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_previousTagSize);
+    }
 }
 
 void HttpSession::onManager() {
@@ -185,10 +189,10 @@ inline bool HttpSession::checkLiveFlvStream(){
 	}
     //拼接成完整url
     auto fullUrl = string(HTTP_SCHEMA) + "://" + m_parser["Host"] + m_parser.FullUrl();
-    MediaInfo info(fullUrl);
-    info.m_streamid.erase(info.m_streamid.size() - 4);//去除.flv后缀
+    m_mediaInfo.parse(fullUrl);
+    m_mediaInfo.m_streamid.erase(m_mediaInfo.m_streamid.size() - 4);//去除.flv后缀
 
-	auto mediaSrc = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,info.m_vhost,info.m_app,info.m_streamid));
+	auto mediaSrc = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,m_mediaInfo.m_vhost,m_mediaInfo.m_app,m_mediaInfo.m_streamid));
 	if(!mediaSrc){
 		//该rtmp源不存在
         sendNotFound(true);
@@ -288,7 +292,7 @@ inline bool HttpSession::checkLiveFlvStream(){
             onRes(authSuccess,err);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,info,invoker);
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
     if(!flag){
         //该事件无人监听,默认不鉴权
         onRes(true,"");
@@ -306,9 +310,9 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	//事件未被拦截，则认为是http下载请求
 
 	auto fullUrl = string(HTTP_SCHEMA) + "://" + m_parser["Host"] + m_parser.FullUrl();
-	MediaInfo info(fullUrl);
+    m_mediaInfo.parse(fullUrl);
 
-	string strFile = m_strPath + "/" + info.m_vhost + m_parser.Url();
+	string strFile = m_strPath + "/" + m_mediaInfo.m_vhost + m_parser.Url();
 	/////////////HTTP连接是否需要被关闭////////////////
 	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
 	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
@@ -317,7 +321,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	if (strFile.back() == '/') {
 		//生成文件夹菜单索引
 		string strMeun;
-		if (!makeMeun(strFile,info.m_vhost, strMeun)) {
+		if (!makeMeun(strFile,m_mediaInfo.m_vhost, strMeun)) {
 			//文件夹不存在
 			sendNotFound(bClose);
 			return eHttpCode;
@@ -600,7 +604,7 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	};
 	///////////////////广播HTTP事件///////////////////////////
 	bool consumed = false;//该事件是否被消费
-	NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastHttpRequest,m_parser,invoker,(bool &)consumed);
+	NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastHttpRequest,m_parser,invoker,consumed);
 	if(!consumed && doInvoke){
 		//该事件无人消费，所以返回404
 		invoker("404 Not Found",KeyValue(),"");

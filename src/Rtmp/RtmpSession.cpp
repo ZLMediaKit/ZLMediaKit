@@ -52,9 +52,12 @@ RtmpSession::~RtmpSession() {
 
 void RtmpSession::onError(const SockException& err) {
 	DebugL << err.what();
-	if (m_pPublisherSrc) {
-		m_pPublisherSrc.reset();
-	}
+
+    //流量统计事件广播
+    static uint64_t iFlowThreshold = mINI::Instance()[Broadcast::kFlowThreshold];
+    if(m_ui64TotalBytes > iFlowThreshold * 1024){
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes);
+    }
 }
 
 void RtmpSession::onManager() {
@@ -76,6 +79,7 @@ void RtmpSession::onManager() {
 void RtmpSession::onRecv(const Socket::Buffer::Ptr &pBuf) {
 	m_ticker.resetTime();
 	try {
+        m_ui64TotalBytes += pBuf->size();
 		onParseRtmp(pBuf->data(), pBuf->size());
 	} catch (exception &e) {
 		WarnL << e.what();

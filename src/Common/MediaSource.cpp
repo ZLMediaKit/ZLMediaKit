@@ -82,10 +82,10 @@ bool MediaSource::regist() {
         InfoL << m_strSchema << " " << m_strVhost << " " << m_strApp << " " << m_strId;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
                                            true,
-                                           m_strSchema.data(),
-                                           m_strVhost.data(),
-                                           m_strApp.data(),
-                                           m_strId.data());
+                                           m_strSchema,
+                                           m_strVhost,
+                                           m_strApp,
+                                           m_strId);
     }
     return success;
 }
@@ -111,10 +111,10 @@ void MediaSource::unregisted(){
     InfoL <<  "" <<  m_strSchema << " " << m_strVhost << " " << m_strApp << " " << m_strId;
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
                                        false,
-                                       m_strSchema.data(),
-                                       m_strVhost.data(),
-                                       m_strApp.data(),
-                                       m_strId.data());
+                                       m_strSchema,
+                                       m_strVhost,
+                                       m_strApp,
+                                       m_strId);
 }
 
 void MediaInfo::parse(const string &url){

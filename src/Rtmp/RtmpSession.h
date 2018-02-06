@@ -65,7 +65,8 @@ private:
 	bool m_bPublisherSrcRegisted = false;
     std::weak_ptr<RtmpMediaSource> m_pPlayerSrc;
     uint32_t m_aui32FirstStamp[2] = {0};
-
+    //消耗的总流量
+    uint64_t m_ui64TotalBytes = 0;
 	void onProcessCmd(AMFDecoder &dec);
 	void onCmd_connect(AMFDecoder &dec);
 	void onCmd_createStream(AMFDecoder &dec);
@@ -82,10 +83,12 @@ private:
 
 	void onSendMedia(const RtmpPacket::Ptr &pkt);
 	void onSendRawData(const char *pcRawData,int iSize) override{
+        m_ui64TotalBytes += iSize;
 		send(pcRawData, iSize);
 	}
 	void onSendRawData(const Socket::Buffer::Ptr &buffer,int flags) override{
-		sock->send(buffer,flags);
+        m_ui64TotalBytes += buffer->size();
+        sock->send(buffer,flags);
 	}
 	void onRtmpChunk(RtmpPacket &chunkData) override;
 
