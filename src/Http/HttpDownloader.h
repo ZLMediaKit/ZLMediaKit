@@ -39,8 +39,9 @@ public:
 	HttpDownloader();
 	virtual ~HttpDownloader();
 	//开始下载文件,默认断点续传方式下载
-	void startDownload(const string &url,const string &filePath = "",bool bAppend = false);
-	void startDownload(const string &url,const onDownloadResult &cb){
+	void startDownload(const string &url,const string &filePath = "",bool bAppend = false,uint32_t timeOutSecond = 10 );
+	void startDownload(const string &url,const onDownloadResult &cb,uint32_t timeOutSecond = 10){
+        _timeOutSecond = timeOutSecond;
 		setOnResult(cb);
 		startDownload(url);
 	}
@@ -52,11 +53,14 @@ private:
 	void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override;
 	void onResponseCompleted() override;
 	void onDisconnect(const SockException &ex) override;
-	void closeFile();
+    void onManager() override;
+
+    void closeFile();
 
 	FILE *_saveFile = nullptr;
 	string _filePath;
 	onDownloadResult _onResult;
+    uint32_t _timeOutSecond;
 	bool _bDownloadSuccess = false;
 };
 

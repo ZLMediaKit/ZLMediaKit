@@ -41,8 +41,9 @@ HttpDownloader::~HttpDownloader() {
 	closeFile();
 }
 
-void HttpDownloader::startDownload(const string& url, const string& filePath,bool bAppend) {
+void HttpDownloader::startDownload(const string& url, const string& filePath,bool bAppend,uint32_t timeOutSecond) {
 	_filePath = filePath;
+    _timeOutSecond = timeOutSecond;
 	if(_filePath.empty()){
 		_filePath = exeDir() + "HttpDownloader/" + MD5(url).hexdigest();
 	}
@@ -123,6 +124,15 @@ void HttpDownloader::closeFile() {
 		_saveFile = nullptr;
 	}
 }
+
+void HttpDownloader::onManager(){
+    if(elapsedTime() > _timeOutSecond * 1000){
+        //超时
+        onDisconnect(SockException(Err_timeout,"download timeout"));
+        shutdown();
+    }
+}
+
 
 } /* namespace Http */
 } /* namespace ZL */
