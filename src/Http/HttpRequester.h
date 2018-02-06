@@ -40,17 +40,17 @@ public:
     HttpRequester();
     virtual ~HttpRequester();
     
-    void startRequester(const string &url,const HttpRequesterResult &onResult);
+    void startRequester(const string &url,const HttpRequesterResult &onResult,uint32_t timeOutSecond = 10);
 private:
     void onResponseHeader(const string &status,const HttpHeader &headers) override;
     void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize)  override;
     void onResponseCompleted() override;
     void onDisconnect(const SockException &ex) override;
-    
+    void onManager() override;
     string _strRecvBody;
     HttpRequesterResult _onResult;
-    
-    
+    Ticker _resTicker;
+    uint32_t _timeOutSecond;
 };
 
 }//namespace Http
