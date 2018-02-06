@@ -206,7 +206,8 @@ inline bool HttpSession::checkLiveFlvStream(){
 		return true;
 	}
 
-    auto onRes = [this,mediaSrc](bool authSuccess,const string &err){
+    auto onRes = [this,mediaSrc](const string &err){
+        bool authSuccess = err.empty();
         if(!authSuccess){
             sendResponse("401 Unauthorized", makeHttpHeader(true,err.size()),err);
             shutdown();
@@ -279,23 +280,23 @@ inline bool HttpSession::checkLiveFlvStream(){
     };
 
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool authSuccess,const string &err){
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,onRes,authSuccess,err](){
+        strongSelf->async([weakSelf,onRes,err](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            onRes(authSuccess,err);
+            onRes(err);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
     if(!flag){
         //该事件无人监听,默认不鉴权
-        onRes(true,"");
+        onRes("");
     }
     return true;
 }
