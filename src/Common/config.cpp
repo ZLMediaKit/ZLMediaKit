@@ -54,6 +54,11 @@ const char kBroadcastOnGetRtspRealm[] = "kBroadcastOnGetRtspRealm";
 const char kBroadcastOnRtspAuth[] = "kBroadcastOnRtspAuth";
 const char kBroadcastMediaPlayed[] = "kBroadcastMediaPlayed";
 const char kBroadcastRtmpPublish[] = "kBroadcastRtmpPublish";
+const char kBroadcastFlowReport[] = "kBroadcastFlowReport";
+const char kFlowThreshold[] = "Broadcast.flowThreshold";
+onceToken token([](){
+    mINI::Instance()[kFlowThreshold] = 1024;
+},nullptr);
 } //namespace Broadcast
 
 //代理失败最大重试次数

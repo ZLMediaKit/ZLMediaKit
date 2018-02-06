@@ -76,7 +76,9 @@ private:
 	//flv over http
 	uint32_t m_aui32FirstStamp[2] = {0};
 	uint32_t m_previousTagSize = 0;
+    MediaInfo m_mediaInfo;
 	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
+
 	void onSendMedia(const RtmpPacket::Ptr &pkt);
 	void sendRtmp(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp);
 	void sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp);
