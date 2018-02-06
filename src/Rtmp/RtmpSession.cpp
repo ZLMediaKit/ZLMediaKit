@@ -134,12 +134,13 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
 	dec.load<AMFValue>();/* NULL */
     m_mediaInfo.parse(m_strTcUrl + "/" + dec.load<std::string>());
 
-    auto onRes = [this](bool authSuccess,const string &err){
+    auto onRes = [this](const string &err){
         auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
                                                                            m_mediaInfo.m_vhost,
                                                                            m_mediaInfo.m_app,
                                                                            m_mediaInfo.m_streamid,
                                                                            false));
+        bool authSuccess = err.empty();
         bool ok = (!src && !m_pPublisherSrc && authSuccess);
         AMFValue status(AMF_OBJECT);
         status.set("level", ok ? "status" : "error");
@@ -162,17 +163,17 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
     };
 
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool success,const string &err){
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,onRes,success,err](){
+        strongSelf->async([weakSelf,onRes,err](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            onRes(success,err);
+            onRes(err);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastRtmpPublish,
@@ -180,7 +181,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
                                                    invoker);
     if(!flag){
         //该事件无人监听，默认鉴权成功
-        onRes(true,"");
+        onRes("");
     }
 }
 
@@ -194,12 +195,13 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
 }
 
 void  RtmpSession::doPlay(AMFDecoder &dec){
-    auto onRes = [this](bool authSuccess,const string &err) {
+    auto onRes = [this](const string &err) {
         auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
                                                                            m_mediaInfo.m_vhost,
                                                                            m_mediaInfo.m_app,
                                                                            m_mediaInfo.m_streamid,
                                                                            true));
+        bool authSuccess = err.empty();
         bool ok = (src.operator bool() && authSuccess);
         if(ok){
             ok = ok && src->ready();
@@ -297,23 +299,23 @@ void  RtmpSession::doPlay(AMFDecoder &dec){
     };
 
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool authSuccess,const string &err){
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,onRes,authSuccess,err](){
+        strongSelf->async([weakSelf,onRes,err](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            onRes(authSuccess,err);
+            onRes(err);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
     if(!flag){
         //该事件无人监听,默认不鉴权
-        onRes(true,"");
+        onRes("");
     }
 }
 void RtmpSession::onCmd_play2(AMFDecoder &dec) {

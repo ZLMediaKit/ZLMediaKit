@@ -85,7 +85,8 @@ extern const char kBroadcastOnRtspAuth[];
 #define BroadcastOnRtspAuthArgs const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker
 
 //鉴权结果回调对象
-typedef std::function<void(bool success, const string &errMessage)> AuthInvoker;
+//如果errMessage为空则代表鉴权成功
+typedef std::function<void(const string &errMessage)> AuthInvoker;
 
 //收到rtmp推流事件广播，通过该事件控制推流鉴权
 extern const char kBroadcastRtmpPublish[];
