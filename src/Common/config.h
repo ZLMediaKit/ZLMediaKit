@@ -90,11 +90,11 @@ typedef std::function<void(bool success, const string &errMessage)> AuthInvoker;
 
 //收到rtmp推流事件广播，通过该事件控制推流鉴权
 extern const char kBroadcastRtmpPublish[];
-#define BroadcastRtmpPublishArgs MediaInfo &args,Broadcast::AuthInvoker &invoker
+#define BroadcastRtmpPublishArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker
 
 //播放rtsp或rtmp事件广播，通过该事件控制播放鉴权
 extern const char kBroadcastMediaPlayed[];
-#define BroadcastMediaPlayedArgs MediaInfo &args,Broadcast::AuthInvoker &invoker
+#define BroadcastMediaPlayedArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker
 
 } //namespace Broadcast
 
