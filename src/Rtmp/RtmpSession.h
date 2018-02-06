@@ -44,7 +44,7 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Rtmp {
 
-class RtmpSession: public TcpLimitedSession<MAX_TCP_SESSION> ,public  RtmpProtocol{
+class RtmpSession: public TcpLimitedSession<MAX_TCP_SESSION> ,public  RtmpProtocol , public MediaSourceEvent{
 public:
 	typedef std::shared_ptr<RtmpSession> Ptr;
 	RtmpSession(const std::shared_ptr<ThreadPool> &_th, const Socket::Ptr &_sock);
@@ -95,6 +95,12 @@ private:
 		invoke << str << m_dNowReqID << reply << status;
 		sendResponse(MSG_CMD, invoke.data());
 	}
+
+    bool shutDown() override {
+        InfoL << "kick out:" << m_mediaInfo.m_vhost << " " << m_mediaInfo.m_app << " " << m_mediaInfo.m_streamid;
+        safeShutdown();
+        return true;
+    }
 };
 
 } /* namespace Rtmp */

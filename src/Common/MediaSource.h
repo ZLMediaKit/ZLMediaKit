@@ -55,10 +55,16 @@ public:
     virtual ~MediaSourceEvent(){};
 public:
     virtual bool seekTo(uint32_t ui32Stamp){
+        //拖动进度条
         return false;
     }
     virtual uint32_t getStamp() {
+        //获取时间戳
         return 0;
+    }
+    virtual bool shutDown() {
+        //通知其停止推流
+        return false;
     }
 };
 class MediaInfo
@@ -151,8 +157,29 @@ public:
         }
         return listener->getStamp();
     }
+    bool shutDown() {
+        auto listener = m_listener.lock();
+        if(!listener){
+            return false;
+        }
+        return listener->shutDown();
+    }
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         m_listener = listener;
+    }
+
+    template <typename FUN>
+    static void for_each_media(FUN && fun){
+        lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
+        for (auto &pr0 : g_mapMediaSrc){
+            for(auto &pr1 : pr0.second){
+                for(auto &pr2 : pr1.second){
+                    for(auto &pr3 : pr2.second){
+                        fun(pr0.first,pr1.first,pr2.first,pr3.first,pr3.second.lock());
+                    }
+                }
+            }
+        }
     }
 private:
         template <typename FUN>
@@ -195,6 +222,7 @@ private:
             }
         }
     };
+
     void unregisted();
 protected:
     std::weak_ptr<MediaSourceEvent> m_listener;

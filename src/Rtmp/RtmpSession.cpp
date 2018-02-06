@@ -145,7 +145,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         sendReply("onStatus", nullptr, status);
         if (!ok) {
             WarnL << "onPublish:"
-                  << (authSuccess ? "Already publishing:" : err.data())
+                  << (authSuccess ? "Already publishing:" : err.data()) << " "
                   << m_mediaInfo.m_vhost << " "
                   << m_mediaInfo.m_app << " "
                   << m_mediaInfo.m_streamid << endl;
@@ -154,6 +154,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         }
         m_bPublisherSrcRegisted = false;
         m_pPublisherSrc.reset(new RtmpToRtspMediaSource(m_mediaInfo.m_vhost,m_mediaInfo.m_app,m_mediaInfo.m_streamid));
+        m_pPublisherSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
     };
 
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
@@ -213,7 +214,7 @@ void  RtmpSession::doPlay(AMFDecoder &dec){
         sendReply("onStatus", nullptr, status);
         if (!ok) {
             WarnL << "onPlayed:"
-                  << (authSuccess ? "No such stream:" : err.data())
+                  << (authSuccess ? "No such stream:" : err.data()) << " "
                   << m_mediaInfo.m_vhost << " "
                   << m_mediaInfo.m_app << " "
                   << m_mediaInfo.m_streamid
