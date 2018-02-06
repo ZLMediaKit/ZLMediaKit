@@ -649,7 +649,8 @@ bool RtspSession::handleReq_Play() {
 		send_SessionNotFound();
 		return false;
 	}
-    auto onRes = [this](bool authSuccess,const string &err){
+    auto onRes = [this](const string &err){
+        bool authSuccess = err.empty();
         char response[2 * 1024];
         m_pcBuf = response;
         if(!authSuccess && m_bFirstPlay){
@@ -742,23 +743,23 @@ bool RtspSession::handleReq_Play() {
     };
 
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes](bool authSuccess,const string &err){
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,onRes,authSuccess,err](){
+        strongSelf->async([weakSelf,onRes,err](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            onRes(authSuccess,err);
+            onRes(err);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
     if(!flag){
         //该事件无人监听,默认不鉴权
-        onRes(true,"");
+        onRes("");
     }
 	return true;
 }
