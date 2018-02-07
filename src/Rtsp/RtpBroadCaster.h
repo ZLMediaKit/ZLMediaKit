@@ -65,7 +65,7 @@ public:
 private:
 	MultiCastAddressMaker(){};
 	void release(uint32_t iAddr);
-	uint32_t m_iAddr = mINI::Instance()[Config::MultiCast::kAddrMin].as<uint32_t>();
+	uint32_t m_iAddr = 0;
 	recursive_mutex m_mtx;
 	unordered_set<uint32_t> m_setBadAddr;
 };
