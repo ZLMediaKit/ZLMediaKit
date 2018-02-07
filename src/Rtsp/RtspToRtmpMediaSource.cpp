@@ -38,8 +38,12 @@ namespace ZL {
 namespace Rtsp {
 
 
-RtspToRtmpMediaSource::RtspToRtmpMediaSource(const string &vhost,const string &app,const string &id,bool bEnableFile) :
-		RtspMediaSource(vhost,app,id),m_bEnableFile(bEnableFile) {
+RtspToRtmpMediaSource::RtspToRtmpMediaSource(const string &vhost,
+                                             const string &app,
+                                             const string &id,
+                                             bool bEnableHls,
+                                             bool bEnableMp4) :
+		RtspMediaSource(vhost,app,id),m_bEnableHls(bEnableHls),m_bEnableMp4(bEnableMp4) {
 }
 
 RtspToRtmpMediaSource::~RtspToRtmpMediaSource() {

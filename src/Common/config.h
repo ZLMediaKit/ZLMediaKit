@@ -104,12 +104,6 @@ extern const char kBroadcastFlowReport[];
 extern const char kFlowThreshold[];
 } //namespace Broadcast
 
-//代理失败最大重试次数
-namespace Proxy {
-extern const char kReplayCount[];
-}//namespace Proxy
-
-
 ////////////HTTP配置///////////
 namespace Http {
 extern const char kPort[];

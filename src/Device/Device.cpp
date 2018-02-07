@@ -36,8 +36,13 @@ using namespace ZL::Util;
 namespace ZL {
 namespace DEV {
 
-DevChannel::DevChannel(const char *strVhost,const char *strApp, const char *strId,float fDuration,bool bLiveStream ) :
-		 RtspToRtmpMediaSource(strVhost,strApp,strId , bLiveStream) {
+DevChannel::DevChannel(const char *strVhost,
+                       const char *strApp,
+                       const char *strId,
+                       float fDuration,
+                       bool bEanbleHls,
+                       bool bEnableMp4 ) :
+        RtspToRtmpMediaSource(strVhost,strApp,strId,bEanbleHls,bEnableMp4) {
 
 	m_strSdp = "v=0\r\n";
 	m_strSdp += "o=- 1383190487994921 1 IN IP4 0.0.0.0\r\n";
@@ -46,7 +51,7 @@ DevChannel::DevChannel(const char *strVhost,const char *strApp, const char *strI
 	m_strSdp += "c=IN IP4 0.0.0.0\r\n";
 	m_strSdp += "t=0 0\r\n";
 	//直播，时间长度永远
-	if(fDuration <= 0 || bLiveStream){
+	if(fDuration <= 0){
 		m_strSdp += "a=range:npt=0-\r\n";
 	}else{
 		m_strSdp += StrPrinter <<"a=range:npt=0-" << fDuration  << "\r\n" << endl;
@@ -56,9 +61,9 @@ DevChannel::DevChannel(const char *strVhost,const char *strApp, const char *strI
 DevChannel::~DevChannel() {
 }
 
+#ifdef ENABLE_X264
 void DevChannel::inputYUV(char* apcYuv[3], int aiYuvLen[3], uint32_t uiStamp) {
 	//TimeTicker1(50);
-#ifdef ENABLE_X264
 	if (!m_pH264Enc) {
 		m_pH264Enc.reset(new H264Encoder());
 		if (!m_pH264Enc->init(m_video->iWidth, m_video->iHeight, m_video->iFrameRate)) {
@@ -73,13 +78,11 @@ void DevChannel::inputYUV(char* apcYuv[3], int aiYuvLen[3], uint32_t uiStamp) {
 			inputH264((char *) pOut[i].pucData, pOut[i].iLength, uiStamp);
 		}
 	}
-#else
-	ErrorL << "libx264 was not enabled!";
-#endif //ENABLE_X264
 }
+#endif //ENABLE_X264
 
-void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
 #ifdef ENABLE_FAAC
+void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
 	if (!m_pAacEnc) {
 		m_pAacEnc.reset(new AACEncoder());
 		if (!m_pAacEnc->init(m_audio->iSampleRate, m_audio->iChannel, m_audio->iSampleBit)) {
@@ -94,10 +97,8 @@ void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
 			inputAAC((char *) pucOut, iRet, uiStamp);
 		}
 	}
-#else
-	ErrorL << "libfaac was not enabled!";
-#endif //ENABLE_FAAC
 }
+#endif //ENABLE_FAAC
 
 void DevChannel::inputH264(char* pcData, int iDataLen, uint32_t uiStamp) {
 	if (!m_pRtpMaker_h264) {
