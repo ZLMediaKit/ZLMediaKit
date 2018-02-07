@@ -26,6 +26,7 @@
 
 #include <list>
 #include <type_traits>
+#include <arpa/inet.h>
 #include "RtpBroadCaster.h"
 #include "Util/util.h"
 #include "Network/sockutil.h"
@@ -36,12 +37,20 @@ using namespace std;
 namespace ZL {
 namespace Rtsp {
 
+static uint32_t addressToInt(const string &ip){
+    struct in_addr addr;
+    bzero(&addr,sizeof(addr));
+
+    inet_aton(ip.data(),&addr);
+    return (uint32_t)ntohl((uint32_t &)addr.s_addr);
+}
 
 std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
 	lock_guard<recursive_mutex> lck(m_mtx);
-	static uint32_t addrMin = mINI::Instance()[Config::MultiCast::kAddrMin].as<uint32_t>();
-	static uint32_t addrMax = mINI::Instance()[Config::MultiCast::kAddrMax].as<uint32_t>();
-	if(m_iAddr > addrMax){
+	static uint32_t addrMin = addressToInt(mINI::Instance()[Config::MultiCast::kAddrMin]);
+	static uint32_t addrMax = addressToInt(mINI::Instance()[Config::MultiCast::kAddrMax]);
+
+	if(m_iAddr > addrMax || m_iAddr == 0){
 		m_iAddr = addrMin;
 	}
 	auto iGotAddr =  m_iAddr++;
@@ -56,8 +65,7 @@ std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
 	}
 	m_setBadAddr.emplace(iGotAddr);
 	std::shared_ptr<uint32_t> ret(new uint32_t(iGotAddr),[](uint32_t *ptr){
-		auto val = *ptr;
-		MultiCastAddressMaker::Instance().release(val);
+		MultiCastAddressMaker::Instance().release(*ptr);
 		delete ptr;
 	});
 	return ret;
