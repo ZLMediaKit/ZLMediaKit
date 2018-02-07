@@ -69,18 +69,30 @@ public:
 class DevChannel  : public RtspToRtmpMediaSource{
 public:
 	typedef std::shared_ptr<DevChannel> Ptr;
-	DevChannel(const char *strVhost,const char *strApp, const char *strId,float fDuration = 0,bool bLiveStream = true);
+    //fDuration<=0为直播，否则为点播
+	DevChannel(const char *strVhost,
+               const char *strApp,
+               const char *strId,
+               float fDuration = 0,
+               bool bEanbleHls = true,
+               bool bEnableMp4 = false);
 	virtual ~DevChannel();
 
 	void initVideo(const VideoInfo &info);
 	void initAudio(const AudioInfo &info);
 
-	void inputYUV(char *apcYuv[3], int aiYuvLen[3], uint32_t uiStamp);
-	void inputPCM(char *pcData, int iDataLen, uint32_t uiStamp);
-
 	void inputH264(char *pcData, int iDataLen, uint32_t uiStamp);
 	void inputAAC(char *pcDataWithAdts, int iDataLen, uint32_t uiStamp);
 	void inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,char *pcAdtsHeader);
+
+#ifdef ENABLE_X264
+        void inputYUV(char *apcYuv[3], int aiYuvLen[3], uint32_t uiStamp);
+#endif //ENABLE_X264
+
+#ifdef ENABLE_FAAC
+        void inputPCM(char *pcData, int iDataLen, uint32_t uiStamp);
+#endif //ENABLE_FAAC
+
 private:
 	inline void makeSDP_264(unsigned char *pucData, int iDataLen);
 	inline void makeSDP_AAC(unsigned char *pucData);

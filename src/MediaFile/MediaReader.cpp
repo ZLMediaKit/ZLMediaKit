@@ -129,7 +129,7 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 	}
 
 	m_iDuration	= MAX(m_video_ms,m_audio_ms);
-	m_pChn.reset(new DevChannel(strVhost.data(),strApp.data(),strId.data(),m_iDuration/1000.0,false));
+	m_pChn.reset(new DevChannel(strVhost.data(),strApp.data(),strId.data(),m_iDuration/1000.0,true, false));
 	if (m_audio_trId != MP4_INVALID_TRACK_ID) {
 		AudioInfo info;
 		info.iChannel = m_audio_num_channels;

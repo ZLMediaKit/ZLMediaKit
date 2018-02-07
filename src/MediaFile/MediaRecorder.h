@@ -46,7 +46,12 @@ namespace MediaFile {
 class MediaRecorder {
 public:
 	typedef std::shared_ptr<MediaRecorder> Ptr;
-	MediaRecorder(const string &strVhost,const string &strApp,const string &strId,const std::shared_ptr<PlayerBase> &pPlayer);
+	MediaRecorder(const string &strVhost,
+                  const string &strApp,
+                  const string &strId,
+                  const std::shared_ptr<PlayerBase> &pPlayer,
+                  bool m_enableHls = true,
+                  bool m_enableMp4 = false);
 	virtual ~MediaRecorder();
 
 	void inputH264(	void *pData,

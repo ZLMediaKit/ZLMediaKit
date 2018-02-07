@@ -37,7 +37,13 @@ using namespace ZL::Network;
 namespace ZL {
 namespace MediaFile {
 
-MediaRecorder::MediaRecorder(const string &strVhost ,const string &strApp,const string &strId,const std::shared_ptr<PlayerBase> &pPlayer) {
+MediaRecorder::MediaRecorder(const string &strVhost_tmp,
+                             const string &strApp,
+                             const string &strId,
+                             const std::shared_ptr<PlayerBase> &pPlayer,
+                             bool enableHls,
+                             bool enableMp4) {
+
 	static string hlsPrefix = mINI::Instance()[Config::Hls::kHttpPrefix];
 	static string hlsPrefixDefaultVhost = mINI::Instance()[Config::Hls::kHttpPrefixDefaultVhost];
 	static string hlsPath = mINI::Instance()[Config::Hls::kFilePath];
@@ -45,31 +51,41 @@ MediaRecorder::MediaRecorder(const string &strVhost ,const string &strApp,const 
 	static uint32_t hlsDuration = mINI::Instance()[Config::Hls::kSegmentDuration].as<uint32_t>();
 	static uint32_t hlsNum = mINI::Instance()[Config::Hls::kSegmentNum].as<uint32_t>();
 
-	string hlsPrefixVhost = hlsPrefix;
-	do{
-		//生成hls http前缀
-		if (strVhost.empty() || strVhost == DEFAULT_VHOST) {
-			hlsPrefixVhost = hlsPrefixDefaultVhost;
-			break;
-		}
-		auto pos_start = hlsPrefixVhost.find("${");
-		auto pos_end = hlsPrefixVhost.find("}");
-		if (pos_start != string::npos && pos_end != string::npos && pos_end - pos_start - 2 > 0 ) {
-			auto key = hlsPrefixVhost.substr(pos_start + 2, pos_end - pos_start - 2);
-			trim(key);
-			if (key == VHOST_KEY) {
-				hlsPrefixVhost.replace(pos_start, pos_end - pos_start + 1, strVhost);
-			}
-		}
-	}while(0);
-	m_hlsMaker.reset(new HLSMaker(hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8",
-								  hlsPrefixVhost + "/" + strApp + "/" + strId + "/",
-								  hlsBufSize,hlsDuration,hlsNum));
+    string strVhost = strVhost_tmp;
+    if(trim(strVhost).empty()){
+        //如果strVhost为空，则强制为默认虚拟主机
+        strVhost = DEFAULT_VHOST;
+    }
+
+    if(enableHls) {
+        string hlsPrefixVhost = hlsPrefix;
+        do {
+            //生成hls http前缀
+            if (strVhost == DEFAULT_VHOST) {
+                hlsPrefixVhost = hlsPrefixDefaultVhost;
+                break;
+            }
+            auto pos_start = hlsPrefixVhost.find("${");
+            auto pos_end = hlsPrefixVhost.find("}");
+            if (pos_start != string::npos && pos_end != string::npos && pos_end - pos_start - 2 > 0) {
+                auto key = hlsPrefixVhost.substr(pos_start + 2, pos_end - pos_start - 2);
+                trim(key);
+                if (key == VHOST_KEY) {
+                    hlsPrefixVhost.replace(pos_start, pos_end - pos_start + 1, strVhost);
+                }
+            }
+        } while (0);
+        m_hlsMaker.reset(new HLSMaker(hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8",
+                                      hlsPrefixVhost + "/" + strApp + "/" + strId + "/",
+                                      hlsBufSize, hlsDuration, hlsNum));
+    }
 #ifdef ENABLE_MP4V2
 	static string recordPath = mINI::Instance()[Config::Record::kFilePath];
 	static string recordAppName = mINI::Instance()[Config::Record::kAppName];
-	m_mp4Maker.reset(new Mp4Maker(recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/",
-								  strVhost,strApp,strId,pPlayer));
+    if(enableMp4){
+        m_mp4Maker.reset(new Mp4Maker(recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/",
+                                      strVhost,strApp,strId,pPlayer));
+    }
 #endif //ENABLE_MP4V2
 }
 
@@ -77,16 +93,24 @@ MediaRecorder::~MediaRecorder() {
 }
 
 void MediaRecorder::inputH264(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp, int iType) {
-	m_hlsMaker->inputH264(pData, ui32Length, ui32TimeStamp * 90, iType);
+    if(m_hlsMaker){
+        m_hlsMaker->inputH264(pData, ui32Length, ui32TimeStamp * 90, iType);
+    }
 #ifdef ENABLE_MP4V2
-	m_mp4Maker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
+    if(m_mp4Maker){
+        m_mp4Maker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
+    }
 #endif //ENABLE_MP4V2
 }
 
 void MediaRecorder::inputAAC(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp) {
-	m_hlsMaker->inputAAC(pData, ui32Length, ui32TimeStamp * 90);
+    if(m_hlsMaker){
+        m_hlsMaker->inputAAC(pData, ui32Length, ui32TimeStamp * 90);
+    }
 #ifdef ENABLE_MP4V2
-	m_mp4Maker->inputAAC(pData, ui32Length, ui32TimeStamp);
+    if(m_mp4Maker){
+        m_mp4Maker->inputAAC(pData, ui32Length, ui32TimeStamp);
+    }
 #endif //ENABLE_MP4V2
 }
 

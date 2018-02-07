@@ -37,15 +37,20 @@ using namespace ZL::Thread;
 namespace ZL {
 namespace DEV {
 
-const char PlayerProxy::kAliveSecond[] = "alive_second";
-
-PlayerProxy::PlayerProxy(const char *strVhost,const char *strApp,const char *strSrc){
+PlayerProxy::PlayerProxy(const char *strVhost,
+                         const char *strApp,
+                         const char *strSrc,
+                         bool bEnableHls,
+                         bool bEnableMp4,
+                         int iRetryCount){
 	m_strVhost = strVhost;
 	m_strApp = strApp;
 	m_strSrc = strSrc;
+    m_bEnableHls = bEnableHls;
+    m_bEnableMp4 = bEnableMp4;
+    m_iRetryCount = iRetryCount;
 }
 void PlayerProxy::play(const char* strUrl) {
-	m_aliveSecond = (*this)[kAliveSecond];
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 	setOnVideoCB( [weakSelf](const H264Frame &data ) {
 		auto strongSelf = weakSelf.lock();
@@ -57,7 +62,6 @@ void PlayerProxy::play(const char* strUrl) {
 		}else{
 			strongSelf->initMedia();
 		}
-		strongSelf->checkExpired();
 	});
 	setOnAudioCB( [weakSelf](const AdtsFrame &data ) {
 		auto strongSelf = weakSelf.lock();
@@ -69,25 +73,21 @@ void PlayerProxy::play(const char* strUrl) {
 		}else{
 			strongSelf->initMedia();
 		}
-		strongSelf->checkExpired();
 	});
 
-	std::shared_ptr<uint64_t> piFailedCnt(new uint64_t(0)); //连续播放失败次数
+	std::shared_ptr<int> piFailedCnt(new int(0)); //连续播放失败次数
 	string strUrlTmp(strUrl);
 	setOnPlayResult([weakSelf,strUrlTmp,piFailedCnt](const SockException &err) {
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf) {
 			return;
 		}
-		static uint64_t replayCnt = mINI::Instance()[Config::Proxy::kReplayCount].as<uint64_t>();
 		if(!err) {
 			// 播放成功
 			*piFailedCnt = 0;//连续播放失败次数清0
-		}else if(*piFailedCnt < replayCnt) {
+		}else if(*piFailedCnt < strongSelf->m_iRetryCount || strongSelf->m_iRetryCount < 0) {
 			// 播放失败，延时重试播放
 			strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
-		}else{
-			strongSelf->expired();
 		}
 	});
 	setOnShutdown([weakSelf,strUrlTmp,piFailedCnt](const SockException &err) {
@@ -99,11 +99,8 @@ void PlayerProxy::play(const char* strUrl) {
 			strongSelf->m_pChn.reset();
 		}
 		//播放异常中断，延时重试播放
-		static uint64_t replayCnt = mINI::Instance()[Config::Proxy::kReplayCount].as<uint64_t>();
-		if(*piFailedCnt < replayCnt) {
+		if(*piFailedCnt < strongSelf->m_iRetryCount || strongSelf->m_iRetryCount < 0) {
 			strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
-		}else{
-			strongSelf->expired();
 		}
 	});
 	MediaPlayer::play(strUrl);
@@ -113,10 +110,9 @@ PlayerProxy::~PlayerProxy() {
 	auto iTaskId = reinterpret_cast<uint64_t>(this);
 	AsyncTaskThread::Instance().CancelTask(iTaskId);
 }
-void PlayerProxy::rePlay(const string &strUrl,uint64_t iFailedCnt){
-	checkExpired();
+void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 	auto iTaskId = reinterpret_cast<uint64_t>(this);
-	auto iDelay = MAX((uint64_t)2 * 1000, MIN(iFailedCnt * 3000,(uint64_t)60*1000));
+	auto iDelay = MAX(2 * 1000, MIN(iFailedCnt * 3000,60*1000));
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 	AsyncTaskThread::Instance().CancelTask(iTaskId);
 	AsyncTaskThread::Instance().DoTaskDelay(iTaskId, iDelay, [weakSelf,strUrl,iFailedCnt]() {
@@ -134,7 +130,7 @@ void PlayerProxy::initMedia() {
 	if (!isInited()) {
 		return;
 	}
-	m_pChn.reset(new DevChannel(m_strVhost.data(),m_strApp.data(),m_strSrc.data(),getDuration()));
+	m_pChn.reset(new DevChannel(m_strVhost.data(),m_strApp.data(),m_strSrc.data(),getDuration(),m_bEnableHls,m_bEnableMp4));
 	if (containVideo()) {
 		VideoInfo info;
 		info.iFrameRate = getVideoFps();
@@ -151,18 +147,6 @@ void PlayerProxy::initMedia() {
 	}
 }
 
-void PlayerProxy::checkExpired() {
-	if(m_aliveSecond && m_aliveTicker.elapsedTime() > m_aliveSecond * 1000){
-		//到期
-		expired();
-	}
-}
-
-void PlayerProxy::expired() {
-	if(onExpired){
-		onExpired();
-	}
-}
 
 } /* namespace Player */
 } /* namespace ZL */

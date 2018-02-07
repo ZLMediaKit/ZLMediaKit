@@ -29,10 +29,6 @@
 #include "Util/onceToken.h"
 #include "Network/sockutil.h"
 
-#ifndef UINT64_MAX
-#define UINT64_MAX 0xFFFFFFFFFFFFFFFF
-#endif//UINT64_MAX
-
 using namespace ZL::Network;
 
 namespace Config {
@@ -60,20 +56,6 @@ onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
 },nullptr);
 } //namespace Broadcast
-
-//代理失败最大重试次数
-namespace Proxy {
-#define PROXY_FIELD "proxy."
-
-#define PROXY_REPLAY_CNT (UINT64_MAX)
-const char kReplayCount[] = PROXY_FIELD"replayCount";
-
-onceToken token([](){
-	mINI::Instance()[kReplayCount] = PROXY_REPLAY_CNT;
-},nullptr);
-
-}//namespace Proxy
-
 
 ////////////HTTP配置///////////
 namespace Http {

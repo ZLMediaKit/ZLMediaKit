@@ -41,15 +41,19 @@ namespace Rtsp {
 class RtspToRtmpMediaSource: public RtspMediaSource {
 public:
 	typedef std::shared_ptr<RtspToRtmpMediaSource> Ptr;
-	RtspToRtmpMediaSource(const string &vhost,const string &app,const string &id,bool bEnableFile = true);
+
+	RtspToRtmpMediaSource(const string &vhost,
+                          const string &app,
+                          const string &id,
+                          bool bEnableHls = true,
+                          bool bEnableMp4 = true);
+
 	virtual ~RtspToRtmpMediaSource();
 
 	virtual void onGetSDP(const string& strSdp) override{
 		try {
 			m_pParser.reset(new RtpParser(strSdp));
-			if(m_bEnableFile){
-				m_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),m_pParser));
-			}
+            m_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),m_pParser,m_bEnableHls,m_bEnableMp4));
 			m_pParser->setOnAudioCB( std::bind(&RtspToRtmpMediaSource::onGetAdts, this, placeholders::_1));
 			m_pParser->setOnVideoCB( std::bind(&RtspToRtmpMediaSource::onGetH264, this, placeholders::_1));
 			makeMetaData();
@@ -92,8 +96,9 @@ private:
 	RtmpMediaSource::Ptr m_pRtmpSrc;
 	uint8_t m_ui8AudioFlags = 0;
 	MediaRecorder::Ptr m_pRecorder;
-	bool m_bEnableFile = true;
-	void onGetH264(const H264Frame &frame);
+	bool m_bEnableHls;
+    bool m_bEnableMp4;
+    void onGetH264(const H264Frame &frame);
 	void onGetAdts(const AdtsFrame &frame);
 	void makeVideoConfigPkt();
 	void makeAudioConfigPkt();
