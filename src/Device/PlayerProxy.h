@@ -41,28 +41,31 @@ namespace DEV {
 class PlayerProxy :public MediaPlayer, public std::enable_shared_from_this<PlayerProxy>{
 public:
 	typedef std::shared_ptr<PlayerProxy> Ptr;
-	//设置代理时间，0为永久，其他为代理秒数
-	//设置方法：proxy[PlayerProxy::kAliveSecond] = 100;
-	static const char kAliveSecond[];
 
-	PlayerProxy(const char *strVhost, const char *strApp, const char *strSrc);
+    //如果iRetryCount<0,则一直重试播放；否则重试iRetryCount次数
+    //默认一直重试
+	PlayerProxy(const char *strVhost,
+                const char *strApp,
+                const char *strSrc,
+                bool bEnableHls = true,
+                bool bEnableMp4 = false,
+                int iRetryCount = -1);
+
 	virtual ~PlayerProxy();
+
 	void play(const char* strUrl) override;
-	void setOnExpired(const function<void()> &cb){
-		onExpired = cb;
-	}
-private :
-	DevChannel::Ptr m_pChn;
-	Ticker m_aliveTicker;
-	uint32_t m_aliveSecond = 0;
-	function<void()> onExpired;
+
+private:
+    bool m_bEnableHls;
+    bool m_bEnableMp4;
+    int m_iRetryCount;
+    DevChannel::Ptr m_pChn;
 	string m_strVhost;
 	string m_strApp;
 	string m_strSrc;
+private:
 	void initMedia();
-	void rePlay(const string &strUrl,uint64_t iFailedCnt);
-	void checkExpired();
-	void expired();
+	void rePlay(const string &strUrl,int iFailedCnt);
 };
 
 } /* namespace Player */

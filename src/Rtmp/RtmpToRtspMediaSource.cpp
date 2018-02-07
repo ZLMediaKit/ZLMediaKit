@@ -36,8 +36,12 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Rtmp {
 
-RtmpToRtspMediaSource::RtmpToRtspMediaSource(const string &vhost,const string &app, const string &id) :
-		RtmpMediaSource(vhost,app,id) {
+RtmpToRtspMediaSource::RtmpToRtspMediaSource(const string &vhost,
+                                             const string &app,
+                                             const string &id,
+                                             bool bEnableHls,
+                                             bool bEnableMp4) :
+		RtmpMediaSource(vhost,app,id),m_bEnableHls(bEnableHls),m_bEnableMp4(bEnableMp4) {
 }
 RtmpToRtspMediaSource::~RtmpToRtspMediaSource() {}
 
@@ -56,14 +60,18 @@ bool RtmpToRtspMediaSource::unregist() {
 }
 
 void RtmpToRtspMediaSource::onGetH264(const H264Frame &frame) {
-	m_pRecorder->inputH264((char *) frame.data.data(), frame.data.size(), frame.timeStamp, frame.type);
+    if(m_pRecorder){
+        m_pRecorder->inputH264((char *) frame.data.data(), frame.data.size(), frame.timeStamp, frame.type);
+    }
 
 	if(m_pRtpMaker_h264){
 		m_pRtpMaker_h264->makeRtp(frame.data.data() + 4, frame.data.size() - 4, frame.timeStamp);
 	}
 }
 inline void RtmpToRtspMediaSource::onGetAdts(const AdtsFrame &frame) {
-	m_pRecorder->inputAAC((char *) frame.data, frame.aac_frame_length, frame.timeStamp);
+	if(m_pRecorder){
+        m_pRecorder->inputAAC((char *) frame.data, frame.aac_frame_length, frame.timeStamp);
+    }
 
 	if (m_pRtpMaker_aac) {
 		m_pRtpMaker_aac->makeRtp((char *) frame.data + 7, frame.aac_frame_length - 7, frame.timeStamp);
