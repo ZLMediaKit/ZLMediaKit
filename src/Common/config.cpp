@@ -210,20 +210,16 @@ onceToken token([](){
 namespace MultiCast {
 #define MULTI_FIELD "multicast."
 //组播分配起始地址
-#define MULTI_ADDR_MIN (0xE00000FF + 10)
 const char kAddrMin[] = MULTI_FIELD"addrMin";
-
 //组播分配截止地址
-#define MULTI_ADDR_MAX (0xEFFFFFFF)
 const char kAddrMax[] = MULTI_FIELD"addrMax";
-
 //组播TTL
 #define MULTI_UDP_TTL 64
 const char kUdpTTL[] = MULTI_FIELD"udpTTL";
 
 onceToken token([](){
-	mINI::Instance()[kAddrMin] = MULTI_ADDR_MIN;
-	mINI::Instance()[kAddrMax] = MULTI_ADDR_MAX;
+	mINI::Instance()[kAddrMin] = "239.0.0.0";
+	mINI::Instance()[kAddrMax] = "239.255.255.255";
 	mINI::Instance()[kUdpTTL] = MULTI_UDP_TTL;
 },nullptr);
 
