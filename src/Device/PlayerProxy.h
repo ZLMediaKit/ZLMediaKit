@@ -38,7 +38,7 @@ using namespace ZL::Player;
 namespace ZL {
 namespace DEV {
 
-class PlayerProxy :public MediaPlayer, public std::enable_shared_from_this<PlayerProxy>{
+class PlayerProxy :public MediaPlayer, public std::enable_shared_from_this<PlayerProxy> , public MediaSourceEvent {
 public:
 	typedef std::shared_ptr<PlayerProxy> Ptr;
 
@@ -54,7 +54,7 @@ public:
 	virtual ~PlayerProxy();
 
 	void play(const char* strUrl) override;
-
+    bool shutDown() override;
 private:
     bool m_bEnableHls;
     bool m_bEnableMp4;

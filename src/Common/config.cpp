@@ -24,6 +24,7 @@
  * SOFTWARE.
  */
 
+#include <Util/NoticeCenter.h>
 #include "Common/config.h"
 #include "Util/util.h"
 #include "Util/onceToken.h"
@@ -33,12 +34,20 @@ using namespace ZL::Network;
 
 namespace Config {
 
-void loadIniConfig(){
-	auto &ini = ZL::Util::mINI::Instance();
+bool loadIniConfig(const char *ini_path){
+    string ini;
+    if(ini_path){
+        ini = ini_path;
+    }else{
+        ini = exePath() + ".ini";
+    }
 	try{
-		ini.parseFile(exePath() + ".ini");
+        mINI::Instance().parseFile(ini);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastUpdateConfig);
+        return true;
 	}catch (std::exception &ex) {
-		ini.dumpFile(exePath() + ".ini");
+        mINI::Instance().dumpFile(ini);
+        return false;
 	}
 }
 ////////////广播名称///////////
@@ -51,7 +60,11 @@ const char kBroadcastOnRtspAuth[] = "kBroadcastOnRtspAuth";
 const char kBroadcastMediaPlayed[] = "kBroadcastMediaPlayed";
 const char kBroadcastRtmpPublish[] = "kBroadcastRtmpPublish";
 const char kBroadcastFlowReport[] = "kBroadcastFlowReport";
-const char kFlowThreshold[] = "Broadcast.flowThreshold";
+const char kBroadcastUpdateConfig[] = "kBroadcastUpdateConfig";
+const char kBroadcastShellLogin[] = "kBroadcastShellLogin";
+
+const char kFlowThreshold[] = "broadcast.flowThreshold";
+
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
 },nullptr);
