@@ -28,13 +28,13 @@
 #include "Common/config.h"
 #include "Util/CMD.h"
 #include "Util/onceToken.h"
+#include "Util/NoticeCenter.h"
 
+using namespace Config;
 using namespace ZL::Util;
 
 namespace ZL {
 namespace Shell {
-
-unordered_map<string, string> ShellSession::g_mapUser;
 
 ShellSession::ShellSession(const std::shared_ptr<ThreadPool> &_th,
                            const Socket::Ptr &_sock) :
@@ -82,8 +82,9 @@ void ShellSession::onManager() {
 }
 
 inline bool ShellSession::onCommandLine(const string& line) {
-	if (m_requestCB) {
-		bool ret = m_requestCB(line);
+    auto loginInterceptor = m_loginInterceptor;
+    if (loginInterceptor) {
+		bool ret = loginInterceptor(line);
 		return ret;
 	}
     try {
@@ -103,45 +104,61 @@ inline bool ShellSession::onCommandLine(const string& line) {
 inline void ShellSession::pleaseInputUser() {
 	send("\033[0m");
 	send(StrPrinter << SERVER_NAME << " login: " << endl);
-	m_requestCB = [this](const string &line) {
-		m_strUserName=line;
+	m_loginInterceptor = [this](const string &user_name) {
+		m_strUserName=user_name;
         pleaseInputPasswd();
 		return true;
 	};
 }
 inline void ShellSession::pleaseInputPasswd() {
 	send("Password: \033[8m");
-	m_requestCB = [this](const string &passwd) {
-		if(!onAuth(m_strUserName, passwd)) {
-			send(StrPrinter
-					<<"\033[0mPermission denied,"
-					<<" please try again.\r\n"
-					<<m_strUserName<<"@"<<SERVER_NAME
-					<<"'s password: \033[8m"
-					<<endl);
-			return true;
-		}
-		send("\033[0m");
-		send("-----------------------------------------\r\n");
-		send(StrPrinter<<"欢迎来到"<<SERVER_NAME<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
-		send("-----------------------------------------\r\n");
-        printShellPrefix();
-		m_requestCB=nullptr;
+	m_loginInterceptor = [this](const string &passwd) {
+        auto onAuth = [this](const string &errMessage){
+            if(!errMessage.empty()){
+                //鉴权失败
+                send(StrPrinter
+                     <<"\033[0mAuth failed("
+                     << errMessage
+                     <<"), please try again.\r\n"
+                     <<m_strUserName<<"@"<<SERVER_NAME
+                     <<"'s password: \033[8m"
+                     <<endl);
+                return;
+            }
+            send("\033[0m");
+            send("-----------------------------------------\r\n");
+            send(StrPrinter<<"欢迎来到"<<SERVER_NAME<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
+            send("-----------------------------------------\r\n");
+            printShellPrefix();
+            m_loginInterceptor=nullptr;
+        };
+
+        weak_ptr<ShellSession> weakSelf = dynamic_pointer_cast<ShellSession>(shared_from_this());
+        Broadcast::AuthInvoker invoker = [weakSelf,onAuth](const string &errMessage){
+            auto strongSelf =  weakSelf.lock();
+            if(!strongSelf){
+                return;
+            }
+            strongSelf->async([errMessage,weakSelf,onAuth](){
+                auto strongSelf =  weakSelf.lock();
+                if(!strongSelf){
+                    return;
+                }
+                onAuth(errMessage);
+            });
+        };
+
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastShellLogin,m_strUserName,passwd,invoker);
+        if(!flag){
+            //如果无人监听shell登录事件，那么默认shell无法登录
+            onAuth("please listen kBroadcastShellLogin event");
+        }
 		return true;
 	};
 }
 
 inline void ShellSession::printShellPrefix() {
 	send(StrPrinter << m_strUserName << "@" << SERVER_NAME << "# " << endl);
-}
-
-inline bool ShellSession::onAuth(const string &user, const string &pwd) {
-	auto it = g_mapUser.find(user);
-	if (it == g_mapUser.end()) {
-		//WarnL << user << " " << pwd;
-		return false;
-	}
-	return it->second == pwd;
 }
 
 }/* namespace Shell */

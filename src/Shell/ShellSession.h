@@ -48,22 +48,16 @@ public:
     void onError(const SockException &err) override {};
 	void onManager() override;
 
-	static void addUser(const string &userName,const string &userPwd){
-		g_mapUser[userName] = userPwd;
-	}
 private:
 	inline bool onCommandLine(const string &);
-	inline bool onAuth(const string &user, const string &pwd);
 	inline void pleaseInputUser();
 	inline void pleaseInputPasswd();
 	inline void printShellPrefix();
 
-	function<bool(const string &)> m_requestCB;
+	function<bool(const string &)> m_loginInterceptor;
 	string m_strRecvBuf;
 	Ticker m_beatTicker;
 	string m_strUserName;
-
-	static unordered_map<string, string> g_mapUser;
 };
 
 } /* namespace Shell */

@@ -131,6 +131,7 @@ void PlayerProxy::initMedia() {
 		return;
 	}
 	m_pChn.reset(new DevChannel(m_strVhost.data(),m_strApp.data(),m_strSrc.data(),getDuration(),m_bEnableHls,m_bEnableMp4));
+    m_pChn->setListener(shared_from_this());
 	if (containVideo()) {
 		VideoInfo info;
 		info.iFrameRate = getVideoFps();
@@ -145,6 +146,18 @@ void PlayerProxy::initMedia() {
 		info.iSampleBit = getAudioSampleBit();
 		m_pChn->initAudio(info);
 	}
+}
+bool PlayerProxy::shutDown() {
+    //通知其停止推流
+    weak_ptr<PlayerProxy> weakSlef = dynamic_pointer_cast<PlayerProxy>(shared_from_this());
+    ASYNC_TRACE([weakSlef](){
+        auto stronSelf = weakSlef.lock();
+        if(stronSelf){
+            stronSelf->m_pChn.reset();
+            stronSelf->teardown();
+        }
+    });
+    return true;
 }
 
 

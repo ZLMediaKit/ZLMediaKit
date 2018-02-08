@@ -3,56 +3,94 @@
 //
 
 #include "Util/CMD.h"
-#include "Rtsp/RtspMediaSource.h"
-#include "Rtmp/RtmpMediaSource.h"
+#include "Common/MediaSource.h"
 
 using namespace ZL::Util;
-using namespace ZL::Rtsp;
-using namespace ZL::Rtmp;
+using namespace ZL::Media;
 
 namespace ZL {
 namespace Shell {
 
-class CMD_rtsp: public CMD {
+
+class CMD_media: public CMD {
 public:
-    CMD_rtsp(){
-        _parser.reset(new OptionParser(nullptr));
-        (*_parser) << Option('l', "list", Option::ArgNone, nullptr,false, "list all media source of rtsp",
-                             [](const std::shared_ptr<ostream> &stream, const string &arg) {
-//                                 auto mediaSet = RtspMediaSource::getMediaSet();
-//                                 for (auto &src : mediaSet) {
-//                                     (*stream) << "\t" << src << "\r\n";
-//                                 }
-                                 return false;
-                             });
+    CMD_media(){
+        _parser.reset(new OptionParser([](const std::shared_ptr<ostream> &stream,mINI &ini){
+            MediaSource::for_each_media([&](const string &schema,
+                                            const string &vhost,
+                                            const string &app,
+                                            const string &streamid,
+                                            const MediaSource::Ptr &media){
+                if(!ini["schema"].empty() && ini["schema"] != schema){
+                    //筛选协议不匹配
+                    return;
+                }
+                if(!ini["vhost"].empty() && ini["vhost"] != vhost){
+                    //筛选虚拟主机不匹配
+                    return;
+                }
+                if(!ini["app"].empty() && ini["app"] != app){
+                    //筛选应用名不匹配
+                    return;
+                }
+                if(!ini["stream"].empty() && ini["stream"] != streamid){
+                    //流id不匹配
+                    return;
+                }
+                if(ini.find("list") != ini.end()){
+                    //列出源
+                    (*stream) << "\t"
+                              << schema << "/"
+                              << vhost << "/"
+                              << app << "/"
+                              << streamid
+                              << "\r\n";
+                    return;
+                }
+
+                if(ini.find("kick") != ini.end()){
+                    //踢出源
+                    do{
+                        if(!media) {
+                            break;
+                        }
+                        if(!media->shutDown()) {
+                            break;
+                        }
+                        (*stream) << "\t踢出成功:"
+                                  << schema << "/"
+                                  << vhost << "/"
+                                  << app << "/"
+                                  << streamid
+                                  << "\r\n";
+                        return;
+                    }while(0);
+                    (*stream) << "\t踢出失败:"
+                              << schema << "/"
+                              << vhost << "/"
+                              << app << "/"
+                              << streamid
+                              << "\r\n";
+                    return;
+                }
+
+            });
+        }));
+        (*_parser) << Option('k', "kick", Option::ArgNone,nullptr,false, "踢出媒体源", nullptr);
+        (*_parser) << Option('l', "list", Option::ArgNone,nullptr,false, "列出媒体源", nullptr);
+        (*_parser) << Option('S', "schema", Option::ArgRequired,nullptr,false, "协议筛选", nullptr);
+        (*_parser) << Option('v', "vhost", Option::ArgRequired,nullptr,false, "虚拟主机筛选", nullptr);
+        (*_parser) << Option('a', "app", Option::ArgRequired,nullptr,false, "应用名筛选", nullptr);
+        (*_parser) << Option('s', "stream", Option::ArgRequired,nullptr,false, "流id筛选", nullptr);
     }
-    virtual ~CMD_rtsp() {}
+    virtual ~CMD_media() {}
     const char *description() const override {
-        return "查看rtsp服务器相关信息.";
-    }
-};
-class CMD_rtmp: public CMD {
-public:
-    CMD_rtmp(){
-        _parser.reset(new OptionParser(nullptr));
-        (*_parser) << Option('l', "list", Option::ArgNone,nullptr,false, "list all media source of rtmp",
-                             [](const std::shared_ptr<ostream> &stream, const string &arg) {
-//                                 auto mediaSet = RtmpMediaSource::getMediaSet();
-//                                 for (auto &src : mediaSet) {
-//                                     (*stream) << "\t" << src << "\r\n";
-//                                 }
-                                 return false;
-                             });
-    }
-    virtual ~CMD_rtmp() {}
-    const char *description() const override {
-        return "查看rtmp服务器相关信息.";
+        return "媒体源相关操作.";
     }
 };
 
 static onceToken s_token([]() {
-    REGIST_CMD(rtmp);
-    REGIST_CMD(rtsp);
+    REGIST_CMD(media);
 }, nullptr);
 
 

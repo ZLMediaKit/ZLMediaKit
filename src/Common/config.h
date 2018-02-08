@@ -29,13 +29,19 @@
 #define COMMON_CONFIG_H
 
 #include "Util/mini.h"
+#include "Util/onceToken.h"
 #include <functional>
 using namespace std;
 using namespace ZL::Util;
 
 namespace Config {
 
-void loadIniConfig();
+//加载配置文件，如果配置文件不存在，那么会导出默认配置并生成配置文件
+//加载配置文件成功后会触发kBroadcastUpdateConfig广播
+//如果指定的文件名(ini_path)为空，那么会加载默认配置文件
+//默认配置文件名为 /path/to/your/exe.ini
+//加载配置文件成功后返回true，否则返回false
+bool loadIniConfig(const char *ini_path = nullptr);
 ////////////TCP最大连接数///////////
 #define MAX_TCP_SESSION 100000
 ////////////其他宏定义///////////
@@ -96,12 +102,22 @@ extern const char kBroadcastRtmpPublish[];
 extern const char kBroadcastMediaPlayed[];
 #define BroadcastMediaPlayedArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker
 
+//shell登录鉴权
+extern const char kBroadcastShellLogin[];
+#define BroadcastShellLoginArgs const string &user_name,const string &passwd,const Broadcast::AuthInvoker &invoker
+
 //停止rtsp/rtmp/http-flv会话后流量汇报事件广播
 extern const char kBroadcastFlowReport[];
 #define BroadcastFlowReportArgs const MediaInfo &args,const uint64_t &totalBytes
 
 //流量汇报事件流量阈值,单位KB，默认1MB
 extern const char kFlowThreshold[];
+
+//更新配置文件事件广播,执行loadIniConfig函数加载配置文件成功后会触发该广播
+extern const char kBroadcastUpdateConfig[];
+#define BroadcastUpdateConfigArgs void
+#define ReloadConfigTag  ((void *)(0xFF))
+
 } //namespace Broadcast
 
 ////////////HTTP配置///////////
