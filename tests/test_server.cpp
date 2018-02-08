@@ -112,16 +112,24 @@ static onceToken s_token([](){
 	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastRtmpPublish,[](BroadcastRtmpPublishArgs){
         InfoL << args.m_vhost << " " << args.m_app << " " << args.m_streamid << " " << args.m_param_strs ;
         EventPoller::Instance().async([invoker](){
-            //invoker("");//鉴权成功
-            invoker("this is auth failed message");//鉴权失败
+            invoker("");//鉴权成功
+            //invoker("this is auth failed message");//鉴权失败
         });
     });
 
     NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastMediaPlayed,[](BroadcastMediaPlayedArgs){
         InfoL << args.m_schema << " " << args.m_vhost << " " << args.m_app << " " << args.m_streamid << " " << args.m_param_strs ;
         EventPoller::Instance().async([invoker](){
-            //invoker("");//鉴权成功
-            invoker("this is auth failed message");//鉴权失败
+            invoker("");//鉴权成功
+            //invoker("this is auth failed message");//鉴权失败
+        });
+    });
+
+    NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
+        InfoL << "shell login:" << user_name << " " << passwd;
+        EventPoller::Instance().async([invoker](){
+            invoker("");//鉴权成功
+            //invoker("this is auth failed message");//鉴权失败
         });
     });
 
@@ -130,7 +138,9 @@ static onceToken s_token([](){
 int main(int argc,char *argv[]){
 	//设置退出信号处理函数
 	signal(SIGINT, [](int){EventPoller::Instance().shutdown();});
-	//设置日志
+    signal(SIGHUP, [](int){Config::loadIniConfig();});
+
+    //设置日志
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 	//加载配置文件，如果配置文件不存在就创建一个
@@ -176,10 +186,8 @@ int main(int argc,char *argv[]){
 #endif //ENABLE_OPENSSL
 
 	//简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
-	//测试方法:telnet 127.0.0.1 8023
-	//输入用户名和密码登录(user:test,pwd:123456)，输入help命令查看帮助
+	//测试方法:telnet 127.0.0.1 9000
 	TcpServer<ShellSession>::Ptr shellSrv(new TcpServer<ShellSession>());
-	ShellSession::addUser("test", "123456");
 	shellSrv->start(mINI::Instance()[Config::Shell::kPort]);
 	//开启rtsp/rtmp/http服务器
 	TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
