@@ -127,8 +127,8 @@ void RtspPlayer::play(const char* strUrl, const char *strUser, const char *strPw
     }
 	m_eType = eType;
 	if (m_eType == RTP_TCP && !m_pucRtpBuf) {
-		static uint32_t rtpSize = mINI::Instance()[Config::Rtp::kUdpBufSize].as<uint32_t>();
-		m_pucRtpBuf = new uint8_t[rtpSize];
+        GET_CONFIG_AND_REGISTER(uint32_t,rtpSize,Config::Rtp::kUdpBufSize);
+        m_pucRtpBuf = new uint8_t[rtpSize];
 	}
 	auto ip = FindField(strUrl, "://", "/");
 	if (!ip.size()) {
@@ -203,8 +203,8 @@ void RtspPlayer::onRecv(const Socket::Buffer::Ptr& pBuf) {
 	if (m_eType == RTP_TCP && m_pucRtpBuf) {
 		//RTP data
 		while (size > 0) {
-			static uint32_t rtpSize = mINI::Instance()[Config::Rtp::kUdpBufSize].as<uint32_t>();
-			int added = rtpSize - m_uiRtpBufLen;
+            GET_CONFIG_AND_REGISTER(uint32_t,rtpSize,Config::Rtp::kUdpBufSize);
+            int added = rtpSize - m_uiRtpBufLen;
 			added = (added > size ? size : added);
 			memcpy(m_pucRtpBuf + m_uiRtpBufLen, buf, added);
 			m_uiRtpBufLen += added;
@@ -607,8 +607,8 @@ inline bool RtspPlayer::HandleOneRtp(int iTrackidx, unsigned char *pucData, unsi
 	//开始排序缓存
 	if (m_abSortStarted[iTrackidx]) {
 		m_amapRtpSort[iTrackidx].emplace(rtppt.sequence, pt_ptr);
-		static uint32_t clearCount = mINI::Instance()[Config::Rtp::kClearCount].as<uint32_t>();
-		static uint32_t maxRtpCount = mINI::Instance()[Config::Rtp::kMaxRtpCount].as<uint32_t>();
+        GET_CONFIG_AND_REGISTER(uint32_t,clearCount,Config::Rtp::kClearCount);
+        GET_CONFIG_AND_REGISTER(uint32_t,maxRtpCount,Config::Rtp::kMaxRtpCount);
 		if (m_aui64SeqOkCnt[iTrackidx] >= clearCount) {
 			//网络环境改善，需要清空排序缓存
 			m_aui64SeqOkCnt[iTrackidx] = 0;

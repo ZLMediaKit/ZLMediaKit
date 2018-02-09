@@ -28,9 +28,11 @@
 #ifndef COMMON_CONFIG_H
 #define COMMON_CONFIG_H
 
+#include <functional>
 #include "Util/mini.h"
 #include "Util/onceToken.h"
-#include <functional>
+#include "Util/NoticeCenter.h"
+
 using namespace std;
 using namespace ZL::Util;
 
@@ -114,9 +116,32 @@ extern const char kBroadcastFlowReport[];
 extern const char kFlowThreshold[];
 
 //更新配置文件事件广播,执行loadIniConfig函数加载配置文件成功后会触发该广播
-extern const char kBroadcastUpdateConfig[];
-#define BroadcastUpdateConfigArgs void
+extern const char kBroadcastReloadConfig[];
+#define BroadcastReloadConfigArgs void
 #define ReloadConfigTag  ((void *)(0xFF))
+
+#define RELOAD_KEY(arg,key) \
+    do{ \
+        decltype(arg) arg##tmp = mINI::Instance()[key]; \
+        if(arg != arg##tmp ) { \
+            arg = arg##tmp; \
+            InfoL << "reload config:" << key << "=" <<  arg; \
+        } \
+    }while(0);
+
+//监听某个配置发送变更
+#define RELOAD_KEY_REGISTER(arg,key) \
+    do{ \
+        static onceToken s_token([](){ \
+            NoticeCenter::Instance().addListener(ReloadConfigTag,Config::Broadcast::kBroadcastReloadConfig,[](BroadcastReloadConfigArgs){ \
+                RELOAD_KEY(arg,key); \
+            }); \
+        }); \
+    }while(0);
+
+#define GET_CONFIG_AND_REGISTER(type,arg,key) \
+        static type arg = mINI::Instance()[key]; \
+        RELOAD_KEY_REGISTER(arg,key);
 
 } //namespace Broadcast
 
