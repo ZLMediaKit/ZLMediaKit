@@ -102,8 +102,9 @@ get_mime_type(const char* name) {
 
 HttpSession::HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
 		TcpLimitedSession(pTh, pSock) {
-	static string rootPath =  mINI::Instance()[Config::Http::kRootPath];
-	m_strPath = rootPath;
+    GET_CONFIG_AND_REGISTER(string,rootPath,Config::Http::kRootPath);
+
+    m_strPath = rootPath;
 	static onceToken token([]() {
 		g_mapCmdIndex.emplace("GET",&HttpSession::Handle_Req_GET);
 		g_mapCmdIndex.emplace("POST",&HttpSession::Handle_Req_POST);
@@ -118,8 +119,9 @@ void HttpSession::onRecv(const Socket::Buffer::Ptr &pBuf) {
 	onRecv(pBuf->data(),pBuf->size());
 }
 void HttpSession::onRecv(const char *data,int size){
-	static uint32_t reqSize =  mINI::Instance()[Config::Http::kMaxReqSize].as<uint32_t>();
-	m_ticker.resetTime();
+    GET_CONFIG_AND_REGISTER(uint32_t,reqSize,Config::Http::kMaxReqSize);
+
+    m_ticker.resetTime();
 	if (m_strRcvBuf.size() + size >= reqSize) {
 		WarnL << "接收缓冲区溢出:" << m_strRcvBuf.size() + size << "," << reqSize;
 		shutdown();
@@ -163,7 +165,8 @@ inline HttpSession::HttpCode HttpSession::parserHttpReq(const string &str) {
 }
 void HttpSession::onError(const SockException& err) {
 	//WarnL << err.what();
-    static uint64_t iFlowThreshold = mINI::Instance()[Broadcast::kFlowThreshold];
+    GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
+
     if(m_previousTagSize > iFlowThreshold * 1024){
         uint64_t totalBytes = m_previousTagSize;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,totalBytes);
@@ -171,8 +174,9 @@ void HttpSession::onError(const SockException& err) {
 }
 
 void HttpSession::onManager() {
-	static uint32_t keepAliveSec =  mINI::Instance()[Config::Http::kKeepAliveSecond].as<uint32_t>();
-	if(m_ticker.elapsedTime() > keepAliveSec * 1000){
+    GET_CONFIG_AND_REGISTER(uint32_t,keepAliveSec,Config::Http::kKeepAliveSecond);
+
+    if(m_ticker.elapsedTime() > keepAliveSec * 1000){
 		//1分钟超时
 		WarnL<<"HttpSession timeouted!";
 		shutdown();
@@ -318,8 +322,9 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 
 	string strFile = m_strPath + "/" + m_mediaInfo.m_vhost + m_parser.Url();
 	/////////////HTTP连接是否需要被关闭////////////////
-	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
-	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
+    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
+
+    bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
 	HttpCode eHttpCode = bClose ? Http_failed : Http_success;
 	//访问的是文件夹
 	if (strFile.back() == '/') {
@@ -384,8 +389,9 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	std::shared_ptr<FILE> pFilePtr(pFile, [](FILE *pFp) {
 		fclose(pFp);
 	});
-	static uint32_t sendBufSize =  mINI::Instance()[Config::Http::kSendBufSize].as<uint32_t>();
-	//不允许主动丢包
+    GET_CONFIG_AND_REGISTER(uint32_t,sendBufSize,Config::Http::kSendBufSize);
+
+    //不允许主动丢包
 	sock->setShouldDropPacket(false);
 	//缓存大小为两个包,太大可能导致发送时间太长从而超时
 	sock->setSendPktSize(2);
@@ -545,9 +551,9 @@ inline void HttpSession::sendResponse(const char* pcStatus, const KeyValue& head
 }
 inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iContentSize,const char* pcContentType) {
 	KeyValue headerOut;
-	static string charSet =  mINI::Instance()[Config::Http::kCharSet];
-	static uint32_t keepAliveSec =  mINI::Instance()[Config::Http::kKeepAliveSecond].as<uint32_t>();
-	static uint32_t reqCnt =  mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
+    GET_CONFIG_AND_REGISTER(string,charSet,Config::Http::kCharSet);
+    GET_CONFIG_AND_REGISTER(uint32_t,keepAliveSec,Config::Http::kKeepAliveSecond);
+    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
 
 	headerOut.emplace("Date", dateStr());
 	headerOut.emplace("Server", SERVER_NAME);
@@ -568,7 +574,8 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
 string HttpSession::urlDecode(const string &str){
 	auto ret = strCoding::UrlUTF8Decode(str);
 #ifdef _WIN32
-	static bool isGb2312 = !strcasecmp(mINI::Instance()[Config::Http::kCharSet].data(), "gb2312");
+    GET_CONFIG_AND_REGISTER(string,charSet,Config::Http::kCharSet);
+	bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
 	if (isGb2312) {
 		ret = strCoding::UTF8ToGB2312(ret);
 	}
@@ -585,8 +592,9 @@ inline void HttpSession::urlDecode(Parser &parser){
 
 inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	///////////////////是否断开本链接///////////////////////
-	static uint32_t reqCnt = mINI::Instance()[Config::Http::kMaxReqCount].as<uint32_t>();
-	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
+    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
+
+    bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
 	auto Origin = m_parser["Origin"];
 	/////////////////////异步回复Invoker///////////////////////////////
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
@@ -643,8 +651,9 @@ void HttpSession::responseDelay(const string &Origin,bool bClose,
 	sendResponse(codeOut.data(), headerOut, contentOut);
 }
 inline void HttpSession::sendNotFound(bool bClose) {
-	static string notFound =  mINI::Instance()[Config::Http::kNotFound];
-	sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
+    GET_CONFIG_AND_REGISTER(string,notFound,Config::Http::kNotFound);
+
+    sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
 }
 
 void HttpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {

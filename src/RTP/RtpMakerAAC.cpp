@@ -36,8 +36,9 @@ namespace ZL {
 namespace Rtsp {
 
 void RtpMaker_AAC::makeRtp(const char *pcData, int iLen, uint32_t uiStamp) {
-	static uint32_t cycleMS = mINI::Instance()[Config::Rtp::kCycleMS].as<uint32_t>();
-	uiStamp %= cycleMS;
+    GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Config::Rtp::kCycleMS);
+
+    uiStamp %= cycleMS;
 	char *ptr = (char *) pcData;
 	int iSize = iLen;
 	while (iSize > 0 ) {

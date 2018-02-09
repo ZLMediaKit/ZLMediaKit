@@ -54,7 +54,8 @@ void RtmpSession::onError(const SockException& err) {
 	DebugL << err.what();
 
     //流量统计事件广播
-    static uint64_t iFlowThreshold = mINI::Instance()[Broadcast::kFlowThreshold];
+    GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
+
     if(m_ui64TotalBytes > iFlowThreshold * 1024){
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes);
     }

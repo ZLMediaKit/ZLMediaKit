@@ -119,8 +119,9 @@ void Mp4Maker::inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp
 }
 
 void Mp4Maker::_inputH264(void* pData, uint32_t ui32Length, uint32_t ui32Duration, int iType) {
-	static uint32_t recordMS = 1000 * mINI::Instance()[Config::Record::kFileSecond].as<uint32_t>();
-	if(iType == 5 && (m_hMp4 == MP4_INVALID_FILE_HANDLE || m_ticker.elapsedTime() > recordMS)){
+    GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Config::Record::kFileSecond);
+
+    if(iType == 5 && (m_hMp4 == MP4_INVALID_FILE_HANDLE || m_ticker.elapsedTime() > recordSec * 1000)){
 		//在I帧率处新建MP4文件
 		//如果文件未创建或者文件超过10分钟则创建新文件
 		createFile();
@@ -131,8 +132,9 @@ void Mp4Maker::_inputH264(void* pData, uint32_t ui32Length, uint32_t ui32Duratio
 }
 
 void Mp4Maker::_inputAAC(void* pData, uint32_t ui32Length, uint32_t ui32Duration) {
-	static uint32_t recordMS = 1000 * mINI::Instance()[Config::Record::kFileSecond].as<uint32_t>();
-	if (!m_pPlayer->containVideo() && (m_hMp4 == MP4_INVALID_FILE_HANDLE || m_ticker.elapsedTime() > recordMS)) {
+    GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Config::Record::kFileSecond);
+
+    if (!m_pPlayer->containVideo() && (m_hMp4 == MP4_INVALID_FILE_HANDLE || m_ticker.elapsedTime() > recordSec * 1000)) {
 		//在I帧率处新建MP4文件
 		//如果文件未创建或者文件超过10分钟则创建新文件
 		createFile();
@@ -158,8 +160,10 @@ void Mp4Maker::createFile() {
 	m_info.ui64StartedTime = ::time(NULL);
 	m_info.strFileName = strTime + ".mp4";
 	m_info.strFilePath = strFile;
-	static string appName = mINI::Instance()[Config::Record::kAppName];
-	m_info.strUrl = m_info.strVhost + "/"
+
+    GET_CONFIG_AND_REGISTER(string,appName,Config::Record::kAppName);
+
+    m_info.strUrl = m_info.strVhost + "/"
 					+ appName + "/"
 					+ m_info.strAppName + "/"
 					+ m_info.strStreamId + "/"

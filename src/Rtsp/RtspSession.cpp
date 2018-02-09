@@ -127,7 +127,7 @@ void RtspSession::onError(const SockException& err) {
 	}
 
     //流量统计事件广播
-    static uint64_t iFlowThreshold = mINI::Instance()[Broadcast::kFlowThreshold];
+    GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
     if(m_ui64TotalBytes > iFlowThreshold * 1024){
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes);
     }
@@ -278,7 +278,7 @@ void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const strin
 
         int n;
         char response[2 * 1024];
-        static bool authBasic = mINI::Instance()[Config::Rtsp::kAuthBasic];
+        GET_CONFIG_AND_REGISTER(bool,authBasic,Config::Rtsp::kAuthBasic);
         if (!authBasic) {
             //我们需要客户端优先以md5方式认证
             strongSelf->m_strNonce = makeRandStr(32);
@@ -617,8 +617,8 @@ bool RtspSession::handleReq_Setup() {
 			return false;
 		}
 		startListenPeerUdpData();
-		static uint32_t udpTTL = mINI::Instance()[MultiCast::kUdpTTL].as<uint32_t>();
-		int n = sprintf(m_pcBuf, "RTSP/1.0 200 OK\r\n"
+        GET_CONFIG_AND_REGISTER(uint32_t,udpTTL,MultiCast::kUdpTTL);
+        int n = sprintf(m_pcBuf, "RTSP/1.0 200 OK\r\n"
 				"CSeq: %d\r\n"
 				"Server: %s-%0.2f(build in %s)\r\n"
 				"%s"

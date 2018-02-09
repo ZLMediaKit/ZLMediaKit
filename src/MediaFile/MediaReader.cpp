@@ -37,8 +37,9 @@ namespace MediaFile {
 
 #ifdef ENABLE_MP4V2
 MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId) {
-	static string recordPath = mINI::Instance()[Config::Record::kFilePath];
-	auto strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
+    GET_CONFIG_AND_REGISTER(string,recordPath,Config::Record::kFilePath);
+
+    auto strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
 
 	m_hMP4File = MP4Read(strFileName.data());
 	if(m_hMP4File == MP4_INVALID_FILE_HANDLE){
@@ -168,8 +169,9 @@ MediaReader::~MediaReader() {
 
 void MediaReader::startReadMP4() {
 	auto strongSelf = shared_from_this();
-	static uint32_t sampleMS = mINI::Instance()[Config::Record::kSampleMS].as<uint32_t>();
-	AsyncTaskThread::Instance().DoTaskDelay(reinterpret_cast<uint64_t>(this), sampleMS, [strongSelf](){
+    GET_CONFIG_AND_REGISTER(uint32_t,sampleMS,Config::Record::kSampleMS);
+
+    AsyncTaskThread::Instance().DoTaskDelay(reinterpret_cast<uint64_t>(this), sampleMS, [strongSelf](){
 		return strongSelf->readSample();
 	});
 	m_pChn->setListener(strongSelf);
@@ -321,8 +323,9 @@ void MediaReader::seek(int iSeekTime,bool bReStart){
 
 MediaSource::Ptr MediaReader::onMakeMediaSource(const string &strSchema,const string &strVhost,const string &strApp, const string &strId){
 #ifdef ENABLE_MP4V2
-	static string appName = mINI::Instance()[Config::Record::kAppName];
-	if (strApp != appName) {
+    GET_CONFIG_AND_REGISTER(string,appName,Config::Record::kAppName);
+
+    if (strApp != appName) {
 		return nullptr;
 	}
 	try {
