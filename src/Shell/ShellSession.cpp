@@ -148,7 +148,7 @@ inline void ShellSession::pleaseInputPasswd() {
             });
         };
 
-        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastShellLogin,m_strUserName,passwd,invoker);
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastShellLogin,m_strUserName,passwd,invoker,*this);
         if(!flag){
             //如果无人监听shell登录事件，那么默认shell无法登录
             onAuth("please listen kBroadcastShellLogin event");
