@@ -72,9 +72,15 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
                 trim(key);
                 if (key == VHOST_KEY) {
                     hlsPrefixVhost.replace(pos_start, pos_end - pos_start + 1, strVhost);
+                } else{
+                    //不识别的环境变量
+                    break;
                 }
+            }else{
+                //没有更多环境变量了
+                break;
             }
-        } while (0);
+        } while (true);
         m_hlsMaker.reset(new HLSMaker(hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8",
                                       hlsPrefixVhost + "/" + strApp + "/" + strId + "/",
                                       hlsBufSize, hlsDuration, hlsNum));
