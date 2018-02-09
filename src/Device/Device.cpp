@@ -107,7 +107,7 @@ void DevChannel::inputH264(char* pcData, int iDataLen, uint32_t uiStamp) {
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
 			onGetRTP(pkt,bKeyPos);
 		};
-		static uint32_t videoMtu = mINI::Instance()[Config::Rtp::kVideoMtuSize].as<uint32_t>();
+        GET_CONFIG_AND_REGISTER(uint32_t,videoMtu,Config::Rtp::kVideoMtuSize);
 		m_pRtpMaker_h264.reset(new RtpMaker_H264(lam, ui32Ssrc,videoMtu));
 	}
 	if (!m_bSdp_gotH264 && m_video) {
@@ -130,8 +130,8 @@ void DevChannel::inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool keyPos) {
 			onGetRTP(pkt,keyPos);
 		};
-		static uint32_t audioMtu = mINI::Instance()[Config::Rtp::kAudioMtuSize].as<uint32_t>();
-		m_pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc, audioMtu,m_audio->iSampleRate));
+        GET_CONFIG_AND_REGISTER(uint32_t,audioMtu,Config::Rtp::kAudioMtuSize);
+        m_pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc, audioMtu,m_audio->iSampleRate));
 	}
 	if (!m_bSdp_gotAAC && m_audio && pcAdtsHeader) {
 		makeSDP_AAC((unsigned char*) pcAdtsHeader);

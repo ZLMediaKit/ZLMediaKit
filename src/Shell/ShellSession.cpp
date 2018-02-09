@@ -47,8 +47,8 @@ ShellSession::~ShellSession() {
 
 void ShellSession::onRecv(const Socket::Buffer::Ptr&buf) {
 	//DebugL << hexdump(buf->data(), buf->size());
-	static uint32_t maxReqSize = mINI::Instance()[Config::Shell::kMaxReqSize].as<uint32_t>();
-	if (m_strRecvBuf.size() + buf->size() >= maxReqSize) {
+    GET_CONFIG_AND_REGISTER(uint32_t,maxReqSize,Config::Shell::kMaxReqSize);
+    if (m_strRecvBuf.size() + buf->size() >= maxReqSize) {
 		WarnL << "接收缓冲区溢出!";
 		shutdown();
 		return;

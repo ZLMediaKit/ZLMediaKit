@@ -44,12 +44,12 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
                              bool enableHls,
                              bool enableMp4) {
 
-	static string hlsPrefix = mINI::Instance()[Config::Hls::kHttpPrefix];
-	static string hlsPrefixDefaultVhost = mINI::Instance()[Config::Hls::kHttpPrefixDefaultVhost];
-	static string hlsPath = mINI::Instance()[Config::Hls::kFilePath];
-	static uint32_t hlsBufSize = mINI::Instance()[Config::Hls::kFileBufSize].as<uint32_t>();
-	static uint32_t hlsDuration = mINI::Instance()[Config::Hls::kSegmentDuration].as<uint32_t>();
-	static uint32_t hlsNum = mINI::Instance()[Config::Hls::kSegmentNum].as<uint32_t>();
+    GET_CONFIG_AND_REGISTER(string,hlsPrefix,Config::Hls::kHttpPrefix);
+    GET_CONFIG_AND_REGISTER(string,hlsPrefixDefaultVhost,Config::Hls::kHttpPrefixDefaultVhost);
+    GET_CONFIG_AND_REGISTER(string,hlsPath,Config::Hls::kFilePath);
+    GET_CONFIG_AND_REGISTER(uint32_t,hlsBufSize,Config::Hls::kFileBufSize);
+    GET_CONFIG_AND_REGISTER(uint32_t,hlsDuration,Config::Hls::kSegmentDuration);
+    GET_CONFIG_AND_REGISTER(uint32_t,hlsNum,Config::Hls::kSegmentNum);
 
     string strVhost = strVhost_tmp;
     if(trim(strVhost).empty()){
@@ -80,8 +80,9 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
                                       hlsBufSize, hlsDuration, hlsNum));
     }
 #ifdef ENABLE_MP4V2
-	static string recordPath = mINI::Instance()[Config::Record::kFilePath];
-	static string recordAppName = mINI::Instance()[Config::Record::kAppName];
+    GET_CONFIG_AND_REGISTER(string,recordPath,Config::Record::kFilePath);
+    GET_CONFIG_AND_REGISTER(string,recordAppName,Config::Record::kAppName);
+
     if(enableMp4){
         m_mp4Maker.reset(new Mp4Maker(recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/",
                                       strVhost,strApp,strId,pPlayer));

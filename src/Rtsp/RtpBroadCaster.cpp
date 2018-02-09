@@ -47,8 +47,10 @@ static uint32_t addressToInt(const string &ip){
 
 std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
 	lock_guard<recursive_mutex> lck(m_mtx);
-	static uint32_t addrMin = addressToInt(mINI::Instance()[Config::MultiCast::kAddrMin]);
-	static uint32_t addrMax = addressToInt(mINI::Instance()[Config::MultiCast::kAddrMax]);
+    GET_CONFIG_AND_REGISTER(string,addrMinStr,Config::MultiCast::kAddrMin);
+    GET_CONFIG_AND_REGISTER(string,addrMaxStr,Config::MultiCast::kAddrMax);
+    uint32_t addrMin = addressToInt(addrMinStr);
+	uint32_t addrMax = addressToInt(addrMaxStr);
 
 	if(m_iAddr > addrMax || m_iAddr == 0){
 		m_iAddr = addrMin;
@@ -106,8 +108,9 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,c
 			throw std::runtime_error(strErr);
 		}
 		auto fd = m_apUdpSock[i]->rawFD();
-		static uint32_t udpTTL = mINI::Instance()[Config::MultiCast::kUdpTTL].as<uint32_t>();
-		SockUtil::setMultiTTL(fd, udpTTL);
+        GET_CONFIG_AND_REGISTER(uint32_t,udpTTL,Config::MultiCast::kUdpTTL);
+
+        SockUtil::setMultiTTL(fd, udpTTL);
 		SockUtil::setMultiLOOP(fd, false);
 		SockUtil::setMultiIF(fd, strLocalIp.data());
 

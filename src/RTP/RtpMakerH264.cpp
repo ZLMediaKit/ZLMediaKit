@@ -36,8 +36,9 @@ namespace ZL {
 namespace Rtsp {
 
 void RtpMaker_H264::makeRtp(const char* pcData, int iLen, uint32_t uiStamp) {
-	static uint32_t cycleMS = mINI::Instance()[Config::Rtp::kCycleMS].as<uint32_t>();
-	uiStamp %= cycleMS;
+    GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Config::Rtp::kCycleMS);
+
+    uiStamp %= cycleMS;
 	int iSize = m_iMtuSize - 2;
 	if (iLen > iSize) { //超过MTU
 		const unsigned char s_e_r_Start = 0x80;

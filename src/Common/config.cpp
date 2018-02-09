@@ -43,7 +43,7 @@ bool loadIniConfig(const char *ini_path){
     }
 	try{
         mINI::Instance().parseFile(ini);
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastUpdateConfig);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
         return true;
 	}catch (std::exception &ex) {
         mINI::Instance().dumpFile(ini);
@@ -60,7 +60,7 @@ const char kBroadcastOnRtspAuth[] = "kBroadcastOnRtspAuth";
 const char kBroadcastMediaPlayed[] = "kBroadcastMediaPlayed";
 const char kBroadcastRtmpPublish[] = "kBroadcastRtmpPublish";
 const char kBroadcastFlowReport[] = "kBroadcastFlowReport";
-const char kBroadcastUpdateConfig[] = "kBroadcastUpdateConfig";
+const char kBroadcastReloadConfig[] = "kBroadcastReloadConfig";
 const char kBroadcastShellLogin[] = "kBroadcastShellLogin";
 
 const char kFlowThreshold[] = "broadcast.flowThreshold";

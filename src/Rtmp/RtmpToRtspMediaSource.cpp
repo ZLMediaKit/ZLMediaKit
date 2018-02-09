@@ -98,8 +98,9 @@ void RtmpToRtspMediaSource::makeSDP() {
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
 			m_pRtspSrc->onGetRTP(pkt,bKeyPos);
 		};
-		static uint32_t videoMtu = mINI::Instance()[Config::Rtp::kVideoMtuSize].as<uint32_t>();
-		m_pRtpMaker_h264.reset(new RtpMaker_H264(lam, ssrc0,videoMtu));
+
+        GET_CONFIG_AND_REGISTER(uint32_t,videoMtu,Config::Rtp::kVideoMtuSize);
+        m_pRtpMaker_h264.reset(new RtpMaker_H264(lam, ssrc0,videoMtu));
 
 		char strTemp[100];
 		int profile_level_id = 0;
@@ -140,8 +141,8 @@ void RtmpToRtspMediaSource::makeSDP() {
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
 			m_pRtspSrc->onGetRTP(pkt,bKeyPos);
 		};
-		static uint32_t audioMtu = mINI::Instance()[Config::Rtp::kAudioMtuSize].as<uint32_t>();
-		m_pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc1, audioMtu,m_pParser->getAudioSampleRate()));
+        GET_CONFIG_AND_REGISTER(uint32_t,audioMtu,Config::Rtp::kAudioMtuSize);
+        m_pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc1, audioMtu,m_pParser->getAudioSampleRate()));
 
 		char configStr[32];
 		const string & strAacCfg = m_pParser->getAudioCfg();
