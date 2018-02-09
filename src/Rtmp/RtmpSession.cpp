@@ -57,7 +57,7 @@ void RtmpSession::onError(const SockException& err) {
     GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
 
     if(m_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes,*this);
     }
 }
 
@@ -179,7 +179,8 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
     };
     auto flag = NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastRtmpPublish,
                                                    m_mediaInfo,
-                                                   invoker);
+                                                   invoker,
+                                                   *this);
     if(!flag){
         //该事件无人监听，默认鉴权成功
         onRes("");
@@ -313,7 +314,7 @@ void  RtmpSession::doPlay(AMFDecoder &dec){
             onRes(err);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker,*this);
     if(!flag){
         //该事件无人监听,默认不鉴权
         onRes("");

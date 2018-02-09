@@ -73,24 +73,24 @@ namespace Broadcast {
 
 //注册或反注册MediaSource事件广播
 extern const char kBroadcastMediaChanged[];
-#define BroadcastMediaChangedArgs const bool &bRegist, const string &schema,const string &vhost,const string &app,const string &stream
+#define BroadcastMediaChangedArgs const bool &bRegist, const string &schema,const string &vhost,const string &app,const string &stream,MediaSource &sender
 
 //录制mp4文件成功后广播
 extern const char kBroadcastRecordMP4[];
-#define BroadcastRecordMP4Args const Mp4Info &info
+#define BroadcastRecordMP4Args const Mp4Info &info,Mp4Maker &sender
 
 //收到http api请求广播
 extern const char kBroadcastHttpRequest[];
-#define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed
+#define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,TcpSession &sender
 
 //该流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm.如果该事件不监听则不认证
 extern const char kBroadcastOnGetRtspRealm[];
-#define BroadcastOnGetRtspRealmArgs const string &app,const string &stream,const RtspSession::onGetRealm &invoker
+#define BroadcastOnGetRtspRealmArgs const string &app,const string &stream,const RtspSession::onGetRealm &invoker,TcpSession &sender
 
 //请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
 //获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码
 extern const char kBroadcastOnRtspAuth[];
-#define BroadcastOnRtspAuthArgs const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker
+#define BroadcastOnRtspAuthArgs const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker,TcpSession &sender
 
 //鉴权结果回调对象
 //如果errMessage为空则代表鉴权成功
@@ -98,19 +98,19 @@ typedef std::function<void(const string &errMessage)> AuthInvoker;
 
 //收到rtmp推流事件广播，通过该事件控制推流鉴权
 extern const char kBroadcastRtmpPublish[];
-#define BroadcastRtmpPublishArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker
+#define BroadcastRtmpPublishArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
 
 //播放rtsp/rtmp/http-flv事件广播，通过该事件控制播放鉴权
 extern const char kBroadcastMediaPlayed[];
-#define BroadcastMediaPlayedArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker
+#define BroadcastMediaPlayedArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
 
 //shell登录鉴权
 extern const char kBroadcastShellLogin[];
-#define BroadcastShellLoginArgs const string &user_name,const string &passwd,const Broadcast::AuthInvoker &invoker
+#define BroadcastShellLoginArgs const string &user_name,const string &passwd,const Broadcast::AuthInvoker &invoker,TcpSession &sender
 
 //停止rtsp/rtmp/http-flv会话后流量汇报事件广播
 extern const char kBroadcastFlowReport[];
-#define BroadcastFlowReportArgs const MediaInfo &args,const uint64_t &totalBytes
+#define BroadcastFlowReportArgs const MediaInfo &args,const uint64_t &totalBytes,TcpSession &sender
 
 //流量汇报事件流量阈值,单位KB，默认1MB
 extern const char kFlowThreshold[];

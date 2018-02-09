@@ -169,7 +169,7 @@ void HttpSession::onError(const SockException& err) {
 
     if(m_previousTagSize > iFlowThreshold * 1024){
         uint64_t totalBytes = m_previousTagSize;
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,totalBytes);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,totalBytes,*this);
     }
 }
 
@@ -300,7 +300,7 @@ inline bool HttpSession::checkLiveFlvStream(){
             onRes(err);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker,*this);
     if(!flag){
         //该事件无人监听,默认不鉴权
         onRes("");
@@ -616,7 +616,7 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	};
 	///////////////////广播HTTP事件///////////////////////////
 	bool consumed = false;//该事件是否被消费
-	NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastHttpRequest,m_parser,invoker,consumed);
+	NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastHttpRequest,m_parser,invoker,consumed,*this);
 	if(!consumed && doInvoke){
 		//该事件无人消费，所以返回404
 		invoker("404 Not Found",KeyValue(),"");

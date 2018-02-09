@@ -85,7 +85,8 @@ bool MediaSource::regist() {
                                            m_strSchema,
                                            m_strVhost,
                                            m_strApp,
-                                           m_strId);
+                                           m_strId,
+                                           *this);
     }
     return success;
 }
@@ -114,7 +115,8 @@ void MediaSource::unregisted(){
                                        m_strSchema,
                                        m_strVhost,
                                        m_strApp,
-                                       m_strId);
+                                       m_strId,
+                                       *this);
 }
 
 void MediaInfo::parse(const string &url){

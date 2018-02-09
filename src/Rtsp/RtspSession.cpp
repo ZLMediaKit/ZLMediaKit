@@ -129,7 +129,7 @@ void RtspSession::onError(const SockException& err) {
     //流量统计事件广播
     GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
     if(m_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes,*this);
     }
 }
 
@@ -227,7 +227,8 @@ bool RtspSession::handleReq_Describe() {
     if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
                                            m_mediaInfo.m_app,
                                            m_mediaInfo.m_streamid,
-                                           invoker)){
+                                           invoker,
+                                            *this)){
         //无人监听此事件，说明无需认证
         invoker("");
     }
@@ -328,9 +329,16 @@ void RtspSession::onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string
             onAuthFailed(weakSelf,realm);
         }
     };
+
+    auto strongSelf = weakSelf.lock();
+    if(!strongSelf){
+        //本对象已销毁
+        return;
+    }
+
     //此时必须提供明文密码
     bool must_no_encrypt = true;
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,user,must_no_encrypt,invoker)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,user,must_no_encrypt,invoker,*strongSelf)){
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
         WarnL << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
@@ -412,7 +420,7 @@ void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const strin
 
     //此时可以提供明文或md5加密的密码
     bool must_no_encrypt = false;
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,username,must_no_encrypt,invoker)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,username,must_no_encrypt,invoker,*strongSelf)){
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
         WarnL << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
@@ -756,7 +764,7 @@ bool RtspSession::handleReq_Play() {
             onRes(err);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker);
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker,*this);
     if(!flag){
         //该事件无人监听,默认不鉴权
         onRes("");
