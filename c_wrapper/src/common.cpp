@@ -74,6 +74,9 @@ API_EXPORT void API_CALL onAppExit(){
 	cleaner::Destory();
 }
 API_EXPORT void API_CALL setGlobalOptionString(const char *key,const char *val){
+    if(mINI::Instance().find(key) == mINI::Instance().end()){
+        WarnL << "key:" << key << " not existed!";
+    }
     mINI::Instance()[key] = val;
 }
 API_EXPORT int API_CALL initHttpServer(unsigned short port){
