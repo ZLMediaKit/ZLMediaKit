@@ -62,6 +62,7 @@ private:
 	onDownloadResult _onResult;
     uint32_t _timeOutSecond;
 	bool _bDownloadSuccess = false;
+    Ticker _downloadTicker;
 };
 
 } /* namespace Http */

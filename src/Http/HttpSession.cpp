@@ -101,7 +101,7 @@ get_mime_type(const char* name) {
 
 
 HttpSession::HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
-		TcpLimitedSession(pTh, pSock) {
+		TcpSession(pTh, pSock) {
     GET_CONFIG_AND_REGISTER(string,rootPath,Config::Http::kRootPath);
 
     m_strPath = rootPath;
@@ -115,7 +115,7 @@ HttpSession::~HttpSession() {
 	//DebugL;
 }
 
-void HttpSession::onRecv(const Socket::Buffer::Ptr &pBuf) {
+void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 	onRecv(pBuf->data(),pBuf->size());
 }
 void HttpSession::onRecv(const char *data,int size){
@@ -256,6 +256,11 @@ inline bool HttpSession::checkLiveFlvStream(){
         });
 
         //开始发送rtmp负载
+
+        //关闭tcp_nodelay ,优化性能
+        SockUtil::setNoDelay(_sock->rawFD(),false);
+        (*this) << SocketFlags(sock_flags);
+
         m_pRingReader = mediaSrc->getRing()->attach();
         weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
         m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
@@ -392,9 +397,9 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
     GET_CONFIG_AND_REGISTER(uint32_t,sendBufSize,Config::Http::kSendBufSize);
 
     //不允许主动丢包
-	sock->setShouldDropPacket(false);
+    _sock->setShouldDropPacket(false);
 	//缓存大小为两个包,太大可能导致发送时间太长从而超时
-	sock->setSendPktSize(2);
+    _sock->setSendPktSize(2);
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
 	auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
 		TimeTicker();
@@ -403,7 +408,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
             //更新超时定时器
             strongSelf->m_ticker.resetTime();
             //从循环池获取一个内存片
-            auto sendBuf = strongSelf->sock->obtainBuffer();
+            auto sendBuf = strongSelf->obtainBuffer();
             sendBuf->setCapacity(sendBufSize);
             //本次需要读取文件字节数
 			int64_t iReq = MIN(sendBufSize,*piLeft);
@@ -421,8 +426,8 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 				//InfoL << "send complete!" << iRead << " " << iReq << " " << *piLeft;
 				if(iRead>0) {
 					sendBuf->setSize(iRead);
-					strongSelf->sock->setSendPktSize(3);//强制写入socket缓存
-					strongSelf->sock->send(sendBuf,sock_flags);
+					strongSelf->_sock->setSendPktSize(3);//强制写入socket缓存
+					strongSelf->send(sendBuf);
 				}
 				if(bClose) {
 					strongSelf->shutdown();
@@ -431,7 +436,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 			}
             //文件还未读完
             sendBuf->setSize(iRead);
-            int iSent = strongSelf->sock->send(sendBuf,sock_flags);
+            int iSent = strongSelf->send(sendBuf);
 			if(iSent == -1) {
 				//send error
 				//InfoL << "send error";
@@ -451,9 +456,10 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 		return false;
 	};
 	//关闭tcp_nodelay ,优化性能
-	SockUtil::setNoDelay(sock->rawFD(),false);
-	onFlush();
-	sock->setOnFlush(onFlush);
+	SockUtil::setNoDelay(_sock->rawFD(),false);
+    (*this) << SocketFlags(sock_flags);
+    onFlush();
+	_sock->setOnFlush(onFlush);
 	return Http_success;
 }
 
@@ -690,7 +696,7 @@ public:
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-class BufferRtmp : public Socket::Buffer{
+class BufferRtmp : public Buffer{
 public:
     typedef std::shared_ptr<BufferRtmp> Ptr;
     BufferRtmp(const RtmpPacket::Ptr & pkt):_rtmp(pkt){}
@@ -708,28 +714,28 @@ private:
 
 void HttpSession::sendRtmp(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp) {
 	auto size = htonl(m_previousTagSize);
-    sock->send((char *)&size,4,sock_flags);//send PreviousTagSize
+    send((char *)&size,4);//send PreviousTagSize
 	RtmpTagHeader header;
 	header.type = pkt->typeId;
 	set_be24(header.data_size, pkt->strBuf.size());
 	header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
 	set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
-    sock->send((char *)&header, sizeof(header),sock_flags);//send tag header
-    sock->send(std::make_shared<BufferRtmp>(pkt),sock_flags);//send tag data
+    send((char *)&header, sizeof(header));//send tag header
+    send(std::make_shared<BufferRtmp>(pkt));//send tag data
 	m_previousTagSize += (pkt->strBuf.size() + sizeof(header) + 4);
 	m_ticker.resetTime();
 }
 
 void HttpSession::sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp) {
     auto size = htonl(m_previousTagSize);
-    sock->send((char *)&size,4,sock_flags);//send PreviousTagSize
+    send((char *)&size,4);//send PreviousTagSize
     RtmpTagHeader header;
     header.type = ui8Type;
     set_be24(header.data_size, strBuf.size());
     header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
     set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
-    sock->send((char *)&header, sizeof(header),sock_flags);//send tag header
-    sock->send(strBuf,sock_flags);//send tag data
+    send((char *)&header, sizeof(header));//send tag header
+    send(strBuf);//send tag data
     m_previousTagSize += (strBuf.size() + sizeof(header) + 4);
     m_ticker.resetTime();
 }

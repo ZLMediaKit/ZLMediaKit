@@ -29,7 +29,7 @@
 #include <functional>
 #include "Common/config.h"
 #include "Rtsp/Rtsp.h"
-#include "Network/TcpLimitedSession.h"
+#include "Network/TcpSession.h"
 #include "Rtmp/RtmpMediaSource.h"
 
 using namespace std;
@@ -40,7 +40,7 @@ namespace ZL {
 namespace Http {
 
 
-class HttpSession: public TcpLimitedSession<MAX_TCP_SESSION> {
+class HttpSession: public TcpSession {
 public:
 	typedef StrCaseMap KeyValue;
 	typedef std::function<void(const string &codeOut,
@@ -50,7 +50,7 @@ public:
 	HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock);
 	virtual ~HttpSession();
 
-	virtual void onRecv(const Socket::Buffer::Ptr &) override;
+	virtual void onRecv(const Buffer::Ptr &) override;
 	virtual void onError(const SockException &err) override;
 	virtual void onManager() override;
 

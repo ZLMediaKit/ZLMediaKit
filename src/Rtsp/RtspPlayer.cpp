@@ -173,7 +173,7 @@ void RtspPlayer::onConnect(const SockException &err){
 	}));
 }
 
-void RtspPlayer::onRecv(const Socket::Buffer::Ptr& pBuf) {
+void RtspPlayer::onRecv(const Buffer::Ptr& pBuf) {
 	const char *buf = pBuf->data();
 	int size = pBuf->size();
 	if (m_onHandshake) {
@@ -364,7 +364,7 @@ void RtspPlayer::HandleResSETUP(const Parser& parser, unsigned int uiTrackIndex)
 		}
 		auto srcIP = inet_addr(get_peer_ip().data());
 		weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-		pUdpSockRef->setOnRead([srcIP,i,weakSelf](const Socket::Buffer::Ptr &buf, struct sockaddr *addr) {
+		pUdpSockRef->setOnRead([srcIP,i,weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr) {
 			auto strongSelf=weakSelf.lock();
 			if(!strongSelf) {
 				return;

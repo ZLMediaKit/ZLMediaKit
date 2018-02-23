@@ -1,6 +1,6 @@
 #!/bin/bash
 path=`pwd`
-wget https://raw.githubusercontent.com/xiongziliang/ZLToolKit/master/build_for_linux.sh -O ./toolkit_build.sh
+wget https://raw.githubusercontent.com/xiongziliang/ZLToolKit/develop/build_for_linux.sh -O ./toolkit_build.sh
 sudo chmod +x ./toolkit_build.sh
 ./toolkit_build.sh
 sudo apt-get install libx264-dev
@@ -13,6 +13,7 @@ cd $path
 cd ..
 git clone --depth=50 https://github.com/xiongziliang/ZLMediaKit.git
 cd ZLMediaKit
+git checkout 2.0-alpha
 mkdir -p linux_build
 rm -rf ./build
 ln -s ./linux_build build

@@ -55,7 +55,7 @@ public:
 	void reset();
 protected:
 	virtual void onSendRawData(const char *pcRawData,int iSize) = 0;
-	virtual void onSendRawData(const Socket::Buffer::Ptr &buffer,int flags) = 0;
+	virtual void onSendRawData(const Buffer::Ptr &buffer,int flags) = 0;
 
 	virtual void onRtmpChunk(RtmpPacket &chunkData) = 0;
 
@@ -85,7 +85,7 @@ protected:
 	int m_iNowStreamID = 0;
 	int m_iNowChunkID = 0;
 	bool m_bDataStarted = false;
-    ResourcePool<Socket::BufferRaw,MAX_SEND_PKT> m_bufferPool;
+    ResourcePool<BufferRaw,MAX_SEND_PKT> m_bufferPool;
 private:
 	void handle_S0S1S2(const function<void()> &cb);
 	void handle_C0C1();

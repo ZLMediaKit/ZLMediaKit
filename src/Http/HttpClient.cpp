@@ -110,7 +110,7 @@ void  HttpClient::onConnect(const SockException &ex) {
         send(_body);
     }
 }
-void  HttpClient::onRecv(const Socket::Buffer::Ptr &pBuf) {
+void  HttpClient::onRecv(const Buffer::Ptr &pBuf) {
 	onRecvBytes(pBuf->data(),pBuf->size());
 }
 
