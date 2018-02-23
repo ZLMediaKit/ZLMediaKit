@@ -37,7 +37,7 @@
 #include "Player/PlayerBase.h"
 #include "Util/util.h"
 #include "Util/logger.h"
-#include "Network/TcpLimitedSession.h"
+#include "Network/TcpSession.h"
 
 using namespace std;
 using namespace ZL::Util;
@@ -50,7 +50,7 @@ namespace Rtsp {
 
 class RtspSession;
 
-class BufferRtp : public Socket::Buffer{
+class BufferRtp : public Buffer{
 public:
     typedef std::shared_ptr<BufferRtp> Ptr;
     BufferRtp(const RtpPacket::Ptr & pkt,uint32_t offset = 0 ):_rtp(pkt),_offset(offset){}
@@ -67,7 +67,7 @@ private:
     uint32_t _offset;
 };
 
-class RtspSession: public TcpLimitedSession<MAX_TCP_SESSION> {
+class RtspSession: public TcpSession {
 public:
 	typedef std::shared_ptr<RtspSession> Ptr;
 	typedef std::function<void(const string &realm)> onGetRealm;
@@ -77,7 +77,7 @@ public:
 
 	RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock);
 	virtual ~RtspSession();
-	void onRecv(const Socket::Buffer::Ptr &pBuf) override;
+	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onError(const SockException &err) override;
 	void onManager() override;
 private:
@@ -94,7 +94,7 @@ private:
         m_ui64TotalBytes += iSize;
         return m_pSender->send(pcBuf, iSize);
 	}
-	int send(const Socket::Buffer::Ptr &pkt) override{
+	int send(const Buffer::Ptr &pkt) override{
         m_ui64TotalBytes += pkt->size();
         return m_pSender->send(pkt,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 	}
@@ -134,7 +134,7 @@ private:
 		}
 		return -1;
 	}
-	inline void onRcvPeerUdpData(int iTrackIdx, const Socket::Buffer::Ptr &pBuf, const struct sockaddr &addr);
+	inline void onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr &addr);
 	inline void startListenPeerUdpData();
 
     //认证相关

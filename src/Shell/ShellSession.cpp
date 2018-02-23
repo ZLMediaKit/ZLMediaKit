@@ -38,14 +38,14 @@ namespace Shell {
 
 ShellSession::ShellSession(const std::shared_ptr<ThreadPool> &_th,
                            const Socket::Ptr &_sock) :
-        TcpLimitedSession(_th, _sock) {
+        TcpSession(_th, _sock) {
     pleaseInputUser();
 }
 
 ShellSession::~ShellSession() {
 }
 
-void ShellSession::onRecv(const Socket::Buffer::Ptr&buf) {
+void ShellSession::onRecv(const Buffer::Ptr&buf) {
 	//DebugL << hexdump(buf->data(), buf->size());
     GET_CONFIG_AND_REGISTER(uint32_t,maxReqSize,Config::Shell::kMaxReqSize);
     if (m_strRecvBuf.size() + buf->size() >= maxReqSize) {

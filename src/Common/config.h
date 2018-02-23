@@ -44,8 +44,6 @@ namespace Config {
 //默认配置文件名为 /path/to/your/exe.ini
 //加载配置文件成功后返回true，否则返回false
 bool loadIniConfig(const char *ini_path = nullptr);
-////////////TCP最大连接数///////////
-#define MAX_TCP_SESSION 100000
 ////////////其他宏定义///////////
 #ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b) )

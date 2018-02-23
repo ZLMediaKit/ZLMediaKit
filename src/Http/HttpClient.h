@@ -111,7 +111,7 @@ protected:
     virtual void onDisconnect(const SockException &ex){}
 private:
     virtual void onConnect(const SockException &ex) override;
-    virtual void onRecv(const Socket::Buffer::Ptr &pBuf) override;
+    virtual void onRecv(const Buffer::Ptr &pBuf) override;
     virtual void onErr(const SockException &ex) override;
     
     //send

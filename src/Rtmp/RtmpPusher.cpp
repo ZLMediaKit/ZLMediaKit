@@ -131,7 +131,7 @@ void RtmpPusher::onConnect(const SockException &err){
         strongSelf->send_connect();
 	});
 }
-void RtmpPusher::onRecv(const Socket::Buffer::Ptr &pBuf){
+void RtmpPusher::onRecv(const Buffer::Ptr &pBuf){
 	try {
 		onParseRtmp(pBuf->data(), pBuf->size());
 	} catch (exception &e) {

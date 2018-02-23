@@ -87,7 +87,7 @@ void UDPServer::onErr(const string& strKey, const SockException& err) {
 	lock_guard<mutex> lck(m_mtxUpdSock);
 	m_mapUpdSock.erase(strKey);
 }
-void UDPServer::onRcvData(int iTrackIndex, const Socket::Buffer::Ptr &pBuf, struct sockaddr* pPeerAddr) {
+void UDPServer::onRcvData(int iTrackIndex, const Buffer::Ptr &pBuf, struct sockaddr* pPeerAddr) {
 	//TraceL << trackIndex;
 	struct sockaddr_in *in = (struct sockaddr_in *) pPeerAddr;
 	string peerIp = inet_ntoa(in->sin_addr);

@@ -108,7 +108,7 @@ private:
 
 	void play(const char* strUrl, const char *strUser, const char *strPwd,  eRtpType eType);
 	void onConnect(const SockException &err) override;
-	void onRecv(const Socket::Buffer::Ptr &pBuf) override;
+	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onErr(const SockException &ex) override;
 
 	void HandleResSETUP(const Parser &parser, unsigned int uiTrackIndex);

@@ -1,6 +1,6 @@
 #!/bin/bash
 path=`pwd`
-wget https://raw.githubusercontent.com/xiongziliang/ZLToolKit/master/build_for_mac.sh -O toolkit_build.sh
+wget https://raw.githubusercontent.com/xiongziliang/ZLToolKit/develop/build_for_mac.sh -O toolkit_build.sh
 sudo chmod +x ./toolkit_build.sh
 ./toolkit_build.sh
 brew install x264
@@ -12,6 +12,7 @@ cd $path
 cd ..
 git clone --depth=50 https://github.com/xiongziliang/ZLMediaKit.git
 cd ZLMediaKit
+git checkout 2.0-alpha
 mkdir -p mac_build
 rm -rf ./build
 ln -s ./mac_build build
