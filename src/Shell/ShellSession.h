@@ -30,7 +30,7 @@
 #include <functional>
 #include "Common/config.h"
 #include "Util/TimeTicker.h"
-#include "Network/TcpLimitedSession.h"
+#include "Network/TcpSession.h"
 
 using namespace std;
 using namespace ZL::Util;
@@ -39,12 +39,12 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Shell {
 
-class ShellSession: public TcpLimitedSession<MAX_TCP_SESSION> {
+class ShellSession: public TcpSession {
 public:
 	ShellSession(const std::shared_ptr<ThreadPool> &_th, const Socket::Ptr &_sock);
 	virtual ~ShellSession();
 
-	void onRecv(const Socket::Buffer::Ptr &) override;
+	void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override {};
 	void onManager() override;
 

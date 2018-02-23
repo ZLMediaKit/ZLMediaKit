@@ -56,7 +56,7 @@ public:
 protected:
 
 	//for Tcpclient
-	void onRecv(const Socket::Buffer::Ptr &pBuf) override;
+	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onConnect(const SockException &err) override;
 	void onErr(const SockException &ex) override;
 
@@ -65,8 +65,8 @@ protected:
 	void onSendRawData(const char *pcRawData, int iSize) override {
 		send(pcRawData, iSize);
 	}
-	void onSendRawData(const Socket::Buffer::Ptr &buffer,int flags) override{
-		m_pSock->send(buffer,flags);
+	void onSendRawData(const Buffer::Ptr &buffer,int flags) override{
+		_sock->send(buffer,flags);
 	}
 private:
     void init(const RtmpMediaSource::Ptr  &src);

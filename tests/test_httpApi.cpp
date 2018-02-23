@@ -112,13 +112,13 @@ int main(int argc,char *argv[]){
 #endif //ENABLE_OPENSSL
 
 	//开启http服务器
-	TcpServer<HttpSession>::Ptr httpSrv(new TcpServer<HttpSession>());
-	httpSrv->start(mINI::Instance()[Config::Http::kPort]);//默认80
+	TcpServer::Ptr httpSrv(new TcpServer());
+	httpSrv->start<HttpSession>(mINI::Instance()[Config::Http::kPort]);//默认80
 
 #ifdef ENABLE_OPENSSL
     //如果支持ssl，还可以开启https服务器
-	TcpServer<HttpsSession>::Ptr httpsSrv(new TcpServer<HttpsSession>());
-	httpsSrv->start(mINI::Instance()[Config::Http::kSSLPort]);//默认443
+	TcpServer::Ptr httpsSrv(new TcpServer());
+	httpsSrv->start<HttpsSession>(mINI::Instance()[Config::Http::kSSLPort]);//默认443
 #endif //ENABLE_OPENSSL
 
 	InfoL << "你可以在浏览器输入:http://127.0.0.1/api/my_api?key0=val0&key1=参数1" << endl;

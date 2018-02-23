@@ -36,7 +36,7 @@
 #include "RtmpToRtspMediaSource.h"
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
-#include "Network/TcpLimitedSession.h"
+#include "Network/TcpSession.h"
 
 using namespace ZL::Util;
 using namespace ZL::Network;
@@ -44,12 +44,12 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Rtmp {
 
-class RtmpSession: public TcpLimitedSession<MAX_TCP_SESSION> ,public  RtmpProtocol , public MediaSourceEvent{
+class RtmpSession: public TcpSession ,public  RtmpProtocol , public MediaSourceEvent{
 public:
 	typedef std::shared_ptr<RtmpSession> Ptr;
 	RtmpSession(const std::shared_ptr<ThreadPool> &_th, const Socket::Ptr &_sock);
 	virtual ~RtmpSession();
-	void onRecv(const Socket::Buffer::Ptr &pBuf) override;
+	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onError(const SockException &err) override;
 	void onManager() override;
 private:
@@ -86,9 +86,9 @@ private:
         m_ui64TotalBytes += iSize;
 		send(pcRawData, iSize);
 	}
-	void onSendRawData(const Socket::Buffer::Ptr &buffer,int flags) override{
+	void onSendRawData(const Buffer::Ptr &buffer,int flags) override{
         m_ui64TotalBytes += buffer->size();
-        sock->send(buffer,flags);
+        _sock->send(buffer,flags);
 	}
 	void onRtmpChunk(RtmpPacket &chunkData) override;
 

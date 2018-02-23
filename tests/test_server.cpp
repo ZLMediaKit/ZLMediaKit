@@ -195,47 +195,48 @@ int main(int argc,char *argv[]) {
 
         //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
         //测试方法:telnet 127.0.0.1 9000
-        TcpServer<ShellSession>::Ptr shellSrv(new TcpServer<ShellSession>());
-        TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
-        TcpServer<RtmpSession>::Ptr rtmpSrv(new TcpServer<RtmpSession>());
-        TcpServer<HttpSession>::Ptr httpSrv(new TcpServer<HttpSession>());
-        shellSrv->start(shellPort);
-        rtspSrv->start(rtspPort);//默认554
-        rtmpSrv->start(rtmpPort);//默认1935
-        httpSrv->start(httpPort);//默认80
+        TcpServer::Ptr shellSrv(new TcpServer());
+        TcpServer::Ptr rtspSrv(new TcpServer());
+        TcpServer::Ptr rtmpSrv(new TcpServer());
+        TcpServer::Ptr httpSrv(new TcpServer());
+
+        shellSrv->start<ShellSession>(shellPort);
+        rtspSrv->start<RtspSession>(rtspPort);//默认554
+        rtmpSrv->start<RtmpSession>(rtmpPort);//默认1935
+        httpSrv->start<HttpSession>(httpPort);//默认80
 
 #ifdef ENABLE_OPENSSL
         //如果支持ssl，还可以开启https服务器
-        TcpServer<HttpsSession>::Ptr httpsSrv(new TcpServer<HttpsSession>());
-        httpsSrv->start(httpsPort);//默认443
+        TcpServer::Ptr httpsSrv(new TcpServer());
+        httpsSrv->start<HttpsSession>(httpsPort);//默认443
 #endif //ENABLE_OPENSSL
 
         NoticeCenter::Instance().addListener(ReloadConfigTag,Config::Broadcast::kBroadcastReloadConfig,[&](BroadcastReloadConfigArgs){
             //重新创建服务器
             if(shellPort != mINI::Instance()[Config::Shell::kPort].as<uint16_t>()){
                 shellPort = mINI::Instance()[Config::Shell::kPort];
-                shellSrv->start(shellPort);
+                shellSrv->start<ShellSession>(shellPort);
                 InfoL << "重启shell服务器:" << shellPort;
             }
             if(rtspPort != mINI::Instance()[Config::Rtsp::kPort].as<uint16_t>()){
                 rtspPort = mINI::Instance()[Config::Rtsp::kPort];
-                rtspSrv->start(rtspPort);
+                rtspSrv->start<RtspSession>(rtspPort);
                 InfoL << "重启rtsp服务器" << rtspPort;
             }
             if(rtmpPort != mINI::Instance()[Config::Rtmp::kPort].as<uint16_t>()){
                 rtmpPort = mINI::Instance()[Config::Rtmp::kPort];
-                rtmpSrv->start(rtmpPort);
+                rtmpSrv->start<RtmpSession>(rtmpPort);
                 InfoL << "重启rtmp服务器" << rtmpPort;
             }
             if(httpPort != mINI::Instance()[Config::Http::kPort].as<uint16_t>()){
                 httpPort = mINI::Instance()[Config::Http::kPort];
-                httpSrv->start(httpPort);
+                httpSrv->start<HttpSession>(httpPort);
                 InfoL << "重启http服务器" << httpPort;
             }
 #ifdef ENABLE_OPENSSL
             if(httpsPort != mINI::Instance()[Config::Http::kSSLPort].as<uint16_t>()){
                 httpsPort = mINI::Instance()[Config::Http::kSSLPort];
-                httpsSrv->start(httpsPort);
+                httpsSrv->start<HttpsSession>(httpsPort);
                 InfoL << "重启https服务器" << httpsPort;
             }
 #endif //ENABLE_OPENSSL

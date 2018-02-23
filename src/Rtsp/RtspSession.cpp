@@ -56,7 +56,7 @@ recursive_mutex RtspSession::g_mtxGetter; //对quicktime上锁保护
 recursive_mutex RtspSession::g_mtxPostter; //对quicktime上锁保护
 unordered_map<string, RtspSession::rtspCMDHandle> RtspSession::g_mapCmd;
 RtspSession::RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
-		TcpLimitedSession(pTh, pSock), m_pSender(pSock) {
+		TcpSession(pTh, pSock), m_pSender(pSock) {
 	static onceToken token( []() {
 		g_mapCmd.emplace("OPTIONS",&RtspSession::handleReq_Options);
 		g_mapCmd.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
@@ -76,21 +76,21 @@ RtspSession::RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::P
 	pSock->setSendPktSize(32);
 #endif//__x86_64__
 
-	DebugL <<  getPeerIp();
+	DebugL <<  get_peer_ip();
 }
 
 RtspSession::~RtspSession() {
 	if (m_onDestory) {
 		m_onDestory();
 	}
-	DebugL << getPeerIp();
+    DebugL <<  get_peer_ip();
 }
 
 void RtspSession::shutdown(){
-	if (sock) {
-		sock->emitErr(SockException(Err_other, "self shutdown"));
+	if (_sock) {
+		_sock->emitErr(SockException(Err_other, "self shutdown"));
 	}
-	if (m_bBase64need && !sock) {
+	if (m_bBase64need && !_sock) {
 		//quickTime http postter,and self is detached from tcpServer
 		lock_guard<recursive_mutex> lock(g_mtxPostter);
 		g_mapPostter.erase(this);
@@ -108,7 +108,7 @@ void RtspSession::onError(const SockException& err) {
 	TraceL << err.getErrCode() << " " << err.what();
 	if (m_bListenPeerUdpData) {
 		//取消UDP端口监听
-		UDPServer::Instance().stopListenPeer(getPeerIp().data(), this);
+		UDPServer::Instance().stopListenPeer(get_peer_ip().data(), this);
 		m_bListenPeerUdpData = false;
 	}
 	if (!m_bBase64need && m_strSessionCookie.size() != 0) {
@@ -119,7 +119,7 @@ void RtspSession::onError(const SockException& err) {
 
 	if (m_bBase64need && err.getErrCode() == Err_eof) {
 		//quickTime http postter,正在发送rtp; QuickTime只是断开了请求连接,请继续发送rtp
-		sock = nullptr;
+		_sock = nullptr;
 		lock_guard<recursive_mutex> lock(g_mtxPostter);
 		//为了保证脱离TCPServer后还能正常运作,需要保持本对象的强引用
 		g_mapPostter.emplace(this, dynamic_pointer_cast<RtspSession>(shared_from_this()));
@@ -136,19 +136,19 @@ void RtspSession::onError(const SockException& err) {
 void RtspSession::onManager() {
 	if (m_ticker.createdTime() > 10 * 1000) {
 		if (m_strSession.size() == 0) {
-			WarnL << "非法链接:" << getPeerIp();
+			WarnL << "非法链接:" << get_peer_ip();
 			shutdown();
 			return;
 		}
 	}
 	if (m_rtpType != PlayerBase::RTP_TCP && m_ticker.elapsedTime() > 15 * 1000) {
-		WarnL << "RTSP会话超时:" << getPeerIp();
+		WarnL << "RTSP会话超时:" << get_peer_ip();
 		shutdown();
 		return;
 	}
 }
 
-void RtspSession::onRecv(const Socket::Buffer::Ptr &pBuf) {
+void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
 	m_ticker.resetTime();
     char tmp[2 * 1024];
     m_pcBuf = tmp;
@@ -556,14 +556,14 @@ bool RtspSession::handleReq_Setup() {
 		break;
 	case PlayerBase::RTP_UDP: {
 		//我们用trackIdx区分rtp和rtcp包
-		auto pSockRtp = UDPServer::Instance().getSock(getLocalIp().data(),2*trackIdx);
+		auto pSockRtp = UDPServer::Instance().getSock(get_local_ip().data(),2*trackIdx);
 		if (!pSockRtp) {
 			//分配端口失败
 			WarnL << "分配rtp端口失败";
 			send_NotAcceptable();
 			return false;
 		}
-		auto pSockRtcp = UDPServer::Instance().getSock(getLocalIp().data(),2*trackIdx + 1 ,pSockRtp->get_local_port() + 1);
+		auto pSockRtcp = UDPServer::Instance().getSock(get_local_ip().data(),2*trackIdx + 1 ,pSockRtp->get_local_port() + 1);
 		if (!pSockRtcp) {
 			//分配端口失败
 			WarnL << "分配rtcp端口失败";
@@ -577,7 +577,7 @@ bool RtspSession::handleReq_Setup() {
 		struct sockaddr_in peerAddr;
 		peerAddr.sin_family = AF_INET;
 		peerAddr.sin_port = htons(ui16PeerPort);
-		peerAddr.sin_addr.s_addr = inet_addr(getPeerIp().data());
+		peerAddr.sin_addr.s_addr = inet_addr(get_peer_ip().data());
 		bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
 		m_apPeerUdpAddr[trackIdx].reset((struct sockaddr *) (new struct sockaddr_in(peerAddr)));
 		//尝试获取客户端nat映射地址
@@ -601,7 +601,7 @@ bool RtspSession::handleReq_Setup() {
 		break;
 	case PlayerBase::RTP_MULTICAST: {
 		if(!m_pBrdcaster){
-			m_pBrdcaster = RtpBroadCaster::get(getLocalIp(),m_mediaInfo.m_vhost, m_mediaInfo.m_app, m_mediaInfo.m_streamid);
+			m_pBrdcaster = RtpBroadCaster::get(get_local_ip(),m_mediaInfo.m_vhost, m_mediaInfo.m_app, m_mediaInfo.m_streamid);
 			if (!m_pBrdcaster) {
 				send_NotAcceptable();
 				return false;
@@ -617,7 +617,7 @@ bool RtspSession::handleReq_Setup() {
 		}
 		int iSrvPort = m_pBrdcaster->getPort(trackid);
 		//我们用trackIdx区分rtp和rtcp包
-		auto pSockRtcp = UDPServer::Instance().getSock(getLocalIp().data(),2*trackIdx + 1,iSrvPort + 1);
+		auto pSockRtcp = UDPServer::Instance().getSock(get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
 		if (!pSockRtcp) {
 			//分配端口失败
 			WarnL << "分配rtcp端口失败";
@@ -636,7 +636,7 @@ bool RtspSession::handleReq_Setup() {
 				m_iCseq, SERVER_NAME,
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), m_pBrdcaster->getIP().data(),
-				getLocalIp().data(), iSrvPort, pSockRtcp->get_local_port(),
+				get_local_ip().data(), iSrvPort, pSockRtcp->get_local_port(),
 				udpTTL,printSSRC(trackRef.ssrc).data(),
 				m_strSession.data());
 		send(m_pcBuf, n);
@@ -934,12 +934,12 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 	}
 }
 
-inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Socket::Buffer::Ptr &pBuf, const struct sockaddr& addr) {
+inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {
 	if(iTrackIdx % 2 == 0){
 		//这是rtp探测包
 		if(!m_bGotAllPeerUdp){
 			//还没有获取完整的rtp探测包
-			if(SockUtil::in_same_lan(getLocalIp().data(),getPeerIp().data())){
+			if(SockUtil::in_same_lan(get_local_ip().data(),get_peer_ip().data())){
 				//在内网中，客户端上报的端口号是真实的，所以我们忽略udp打洞包
 				m_bGotAllPeerUdp = true;
 				return;
@@ -967,8 +967,8 @@ inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Socket::Buffer::P
 inline void RtspSession::startListenPeerUdpData() {
 	m_bListenPeerUdpData = true;
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-	UDPServer::Instance().listenPeer(getPeerIp().data(), this,
-			[weakSelf](int iTrackIdx,const Socket::Buffer::Ptr &pBuf,struct sockaddr *pPeerAddr)->bool {
+	UDPServer::Instance().listenPeer(get_peer_ip().data(), this,
+			[weakSelf](int iTrackIdx,const Buffer::Ptr &pBuf,struct sockaddr *pPeerAddr)->bool {
 				auto strongSelf=weakSelf.lock();
 				if(!strongSelf) {
 					return false;
@@ -986,7 +986,7 @@ inline void RtspSession::startListenPeerUdpData() {
 }
 
 inline void RtspSession::initSender(const std::shared_ptr<RtspSession>& session) {
-	m_pSender = session->sock;
+	m_pSender = session->_sock;
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
 	session->m_onDestory = [weakSelf]() {
 		auto strongSelf=weakSelf.lock();

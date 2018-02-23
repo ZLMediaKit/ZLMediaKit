@@ -126,7 +126,7 @@ void RtmpPlayer::onConnect(const SockException &err){
 		strongSelf->send_connect();
 	});
 }
-void RtmpPlayer::onRecv(const Socket::Buffer::Ptr &pBuf){
+void RtmpPlayer::onRecv(const Buffer::Ptr &pBuf){
 	try {
 		onParseRtmp(pBuf->data(), pBuf->size());
 	} catch (exception &e) {

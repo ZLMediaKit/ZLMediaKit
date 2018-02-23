@@ -33,7 +33,7 @@ namespace Rtmp {
 
 unordered_map<string, RtmpSession::rtmpCMDHandle> RtmpSession::g_mapCmd;
 RtmpSession::RtmpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
-		TcpLimitedSession(pTh, pSock) {
+		TcpSession(pTh, pSock) {
 	static onceToken token([]() {
 		g_mapCmd.emplace("connect",&RtmpSession::onCmd_connect);
 		g_mapCmd.emplace("createStream",&RtmpSession::onCmd_createStream);
@@ -43,11 +43,11 @@ RtmpSession::RtmpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::P
 		g_mapCmd.emplace("play2",&RtmpSession::onCmd_play2);
 		g_mapCmd.emplace("seek",&RtmpSession::onCmd_seek);
 		g_mapCmd.emplace("pause",&RtmpSession::onCmd_pause);}, []() {});
-	DebugL << getPeerIp();
+	DebugL << get_peer_ip();
 }
 
 RtmpSession::~RtmpSession() {
-	DebugL << getPeerIp();
+    DebugL << get_peer_ip();
 }
 
 void RtmpSession::onError(const SockException& err) {
@@ -64,20 +64,20 @@ void RtmpSession::onError(const SockException& err) {
 void RtmpSession::onManager() {
 	if (m_ticker.createdTime() > 10 * 1000) {
 		if (!m_pRingReader && !m_pPublisherSrc) {
-			WarnL << "非法链接:" << getPeerIp();
+			WarnL << "非法链接:" << get_peer_ip();
 			shutdown();
 		}
 	}
 	if (m_pPublisherSrc) {
 		//publisher
 		if (m_ticker.elapsedTime() > 10 * 1000) {
-			WarnL << "数据接收超时:" << getPeerIp();
+			WarnL << "数据接收超时:" << get_peer_ip();
 			shutdown();
 		}
 	}
 }
 
-void RtmpSession::onRecv(const Socket::Buffer::Ptr &pBuf) {
+void RtmpSession::onRecv(const Buffer::Ptr &pBuf) {
 	m_ticker.resetTime();
 	try {
         m_ui64TotalBytes += pBuf->size();
@@ -273,7 +273,7 @@ void  RtmpSession::doPlay(AMFDecoder &dec){
 
         m_pRingReader = src->getRing()->attach();
         weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-        SockUtil::setNoDelay(sock->rawFD(), false);
+        SockUtil::setNoDelay(_sock->rawFD(), false);
         m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {

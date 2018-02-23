@@ -44,7 +44,7 @@ namespace Rtsp {
 
 class UDPServer {
 public:
-	typedef function< bool(int, const Socket::Buffer::Ptr &, struct sockaddr *)> onRecvData;
+	typedef function< bool(int, const Buffer::Ptr &, struct sockaddr *)> onRecvData;
 	UDPServer();
 	virtual ~UDPServer();
 	static UDPServer &Instance() {
@@ -58,7 +58,7 @@ public:
 	void listenPeer(const char *strPeerIp, void *pSelf, const onRecvData &cb);
 	void stopListenPeer(const char *strPeerIp, void *pSelf);
 private:
-	void onRcvData(int iTrackId, const Socket::Buffer::Ptr &pBuf,struct sockaddr *pPeerAddr);
+	void onRcvData(int iTrackId, const Buffer::Ptr &pBuf,struct sockaddr *pPeerAddr);
 	void onErr(const string &strKey,const SockException &err);
 	unordered_map<string, Socket::Ptr> m_mapUpdSock;
 	mutex m_mtxUpdSock;

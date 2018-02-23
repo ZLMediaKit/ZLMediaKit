@@ -58,7 +58,7 @@ public:
 	virtual ~HttpsSession(){
 		//m_sslBox.shutdown();
 	}
-	void onRecv(const Socket::Buffer::Ptr &pBuf) override{
+	void onRecv(const Buffer::Ptr &pBuf) override{
 		TimeTicker();
 		m_sslBox.onRecv(pBuf->data(), pBuf->size());
 	}
