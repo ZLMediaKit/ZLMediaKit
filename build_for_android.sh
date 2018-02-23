@@ -7,7 +7,7 @@ cd $path
 cd ..
 git clone --depth=50 https://github.com/xiongziliang/ZLMediaKit.git
 cd ZLMediaKit
-git checkout 2.0-alpha
+git fetch origin 2.0-alpha:2.0-alpha
 mkdir -p android_build
 rm -rf ./build
 ln -s ./android_build build
