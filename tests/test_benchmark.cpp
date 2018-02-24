@@ -43,57 +43,58 @@ using namespace ZL::Thread;
 using namespace ZL::Network;
 
 
-int main(int argc, char *argv[]){
-	//设置退出信号处理函数
-	signal(SIGINT, [](int){EventPoller::Instance().shutdown();});
-	//设置日志
-	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
-	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
+int main(int argc, char *argv[]) {
+    //设置退出信号处理函数
+    signal(SIGINT, [](int) { EventPoller::Instance().shutdown(); });
+    //设置日志
+    Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
+    Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-	if(argc != 5){
-		FatalL << "\r\n测试方法:./test_benchmark player_count play_interval rtxp_url rtp_type\r\n"
-			   << "例如你想每隔50毫秒启动共计100个播放器（tcp方式播放rtsp://127.0.0.1/live/0 ）可以输入以下命令:\r\n"
-		       << "./test_benchmark 100 50 rtsp://127.0.0.1/live/0 0\r\n"
-		       <<endl;
-		Logger::Destory();
-		return 0;
+    if (argc != 5) {
+        FatalL << "\r\n测试方法:./test_benchmark player_count play_interval rtxp_url rtp_type\r\n"
+               << "例如你想每隔50毫秒启动共计100个播放器（tcp方式播放rtsp://127.0.0.1/live/0 ）可以输入以下命令:\r\n"
+               << "./test_benchmark 100 50 rtsp://127.0.0.1/live/0 0\r\n"
+               << endl;
+        Logger::Destory();
+        return 0;
 
-	}
+    }
+    {
+        list<MediaPlayer::Ptr> playerList;
+        auto playerCnt = atoi(argv[1]);//启动的播放器个数
+        atomic_int alivePlayerCnt(0);
+        //每隔若干毫秒启动一个播放器（如果一次性全部启动，服务器和客户端可能都承受不了）
+        AsyncTaskThread::Instance().DoTaskDelay(0, atoi(argv[2]), [&]() {
+            MediaPlayer::Ptr player(new MediaPlayer());
+            player->setOnPlayResult([&](const SockException &ex) {
+                if (!ex) {
+                    ++alivePlayerCnt;
+                }
+            });
+            player->setOnShutdown([&](const SockException &ex) {
+                --alivePlayerCnt;
+            });
+            (*player)[RtspPlayer::kRtpType] = atoi(argv[4]);
+            player->play(argv[3]);
+            playerList.push_back(player);
+            return playerCnt--;
+        });
 
-	list<MediaPlayer::Ptr> playerList;
-	auto playerCnt = atoi(argv[1]);//启动的播放器个数
-	atomic_int alivePlayerCnt(0);
-	//每隔若干毫秒启动一个播放器（如果一次性全部启动，服务器和客户端可能都承受不了）
-	AsyncTaskThread::Instance().DoTaskDelay(0, atoi(argv[2]), [&](){
-		MediaPlayer::Ptr player(new MediaPlayer());
-		player->setOnPlayResult([&](const SockException &ex){
-			if(!ex){
-				++alivePlayerCnt;
-			}
-		});
-		player->setOnShutdown([&](const SockException &ex){
-			--alivePlayerCnt;
-		});
-		(*player)[RtspPlayer::kRtpType] = atoi(argv[4]);
-		player->play(argv[3]);
-		playerList.push_back(player);
-		return playerCnt--;
-	});
+        AsyncTaskThread::Instance().DoTaskDelay(0, 1000, [&]() {
+            InfoL << "存活播放器个数:" << alivePlayerCnt.load();
+            return true;
+        });
+        EventPoller::Instance().runLoop();
+        AsyncTaskThread::Instance().CancelTask(0);
+    }
 
-	AsyncTaskThread::Instance().DoTaskDelay(0, 1000, [&](){
-		InfoL << "存活播放器个数:" << alivePlayerCnt.load();
-		return true;
-	});
-	EventPoller::Instance().runLoop();
-	playerList.clear();
-
-	static onceToken token(nullptr, []() {
-		WorkThreadPool::Instance();
-		UDPServer::Destory();
+    static onceToken token(nullptr, []() {
+        WorkThreadPool::Instance();
+        UDPServer::Destory();
+        EventPoller::Destory();
         AsyncTaskThread::Destory();
-		EventPoller::Destory();
-		Logger::Destory();
-	});
-	return 0;
+        Logger::Destory();
+    });
+    return 0;
 }
 
