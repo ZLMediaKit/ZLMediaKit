@@ -44,9 +44,9 @@ using namespace ZL::Rtmp;
 using namespace ZL::Rtsp;
 using namespace ZL::Http;
 
-static TcpServer<RtspSession>::Ptr s_pRtspSrv;
-static TcpServer<RtmpSession>::Ptr s_pRtmpSrv;
-static TcpServer<HttpSession>::Ptr s_pHttpSrv;
+static TcpServer::Ptr s_pRtspSrv;
+static TcpServer::Ptr s_pRtmpSrv;
+static TcpServer::Ptr s_pHttpSrv;
 
 //////////////////////////environment init///////////////////////////
 
@@ -80,9 +80,9 @@ API_EXPORT void API_CALL setGlobalOptionString(const char *key,const char *val){
     mINI::Instance()[key] = val;
 }
 API_EXPORT int API_CALL initHttpServer(unsigned short port){
-	s_pHttpSrv.reset(new TcpServer<HttpSession>());
+	s_pHttpSrv.reset(new TcpServer());
 	try {
-		s_pHttpSrv->start(port);
+		s_pHttpSrv->start<HttpSession>(port);
 		return 0;
 	} catch (std::exception &ex) {
 		s_pHttpSrv.reset();
@@ -91,9 +91,9 @@ API_EXPORT int API_CALL initHttpServer(unsigned short port){
 	}
 }
 API_EXPORT int API_CALL initRtspServer(unsigned short port) {
-	s_pRtspSrv.reset(new TcpServer<RtspSession>());
+	s_pRtspSrv.reset(new TcpServer());
 	try {
-		s_pRtspSrv->start(port);
+		s_pRtspSrv->start<RtspSession>(port);
 		return 0;
 	} catch (std::exception &ex) {
 		s_pRtspSrv.reset();
@@ -103,9 +103,9 @@ API_EXPORT int API_CALL initRtspServer(unsigned short port) {
 }
 
 API_EXPORT int API_CALL initRtmpServer(unsigned short port) {
-	s_pRtmpSrv.reset(new TcpServer<RtmpSession>());
+	s_pRtmpSrv.reset(new TcpServer());
 	try {
-		s_pRtmpSrv->start(port);
+		s_pRtmpSrv->start<RtmpSession>(port);
 		return 0;
 	} catch (std::exception &ex) {
 		s_pRtmpSrv.reset();
