@@ -150,6 +150,7 @@ int main(int argc,char *argv[]){
 	requesterPost.reset();
 	//程序开始退出
 	EventPoller::Destory();
+	AsyncTaskThread::Destory();
 	Logger::Destory();
 	return 0;
 }
