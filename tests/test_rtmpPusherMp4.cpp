@@ -121,6 +121,7 @@ int domain(int argc,const char *argv[]){
 
 	//程序清理
 	EventPoller::Destory();
+	AsyncTaskThread::Destory();
 	Logger::Destory();
 	return 0;
 }

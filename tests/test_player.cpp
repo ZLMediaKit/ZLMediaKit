@@ -89,8 +89,8 @@ int main(int argc, char *argv[]){
 
 	static onceToken token(nullptr, []() {
 		UDPServer::Destory();
-        	AsyncTaskThread::Destory();
 		EventPoller::Destory();
+		AsyncTaskThread::Destory();
 		Logger::Destory();
 	});
 	return 0;
