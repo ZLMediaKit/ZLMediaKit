@@ -56,24 +56,24 @@ API_EXPORT void API_CALL setGlobalOptionString(const char *key,const char *val);
 
 /*
  * 描述:创建Http服务器
- * 参数:port:htt监听端口，推荐80
- * 返回值:0:成功;-1:失败
+ * 参数:port:htt监听端口，推荐80，传入0则随机分配
+ * 返回值:0:失败,非0:端口号
  */
-API_EXPORT int API_CALL initHttpServer(unsigned short port);
+API_EXPORT unsigned short API_CALL initHttpServer(unsigned short port);
 
 /*
  * 描述:创建RTSP服务器
- * 参数:port:rtsp监听端口，推荐554
- * 返回值:0:成功;-1:失败
+ * 参数:port:rtsp监听端口，推荐554，传入0则随机分配
+ * 返回值:0:失败,非0:端口号
  */
-API_EXPORT int API_CALL initRtspServer(unsigned short port);
+API_EXPORT unsigned short API_CALL initRtspServer(unsigned short port);
 
 /*
  * 描述:创建RTMP服务器
- * 参数:port:rtmp监听端口，推荐1935
- * 返回值:0:成功;-1:失败
+ * 参数:port:rtmp监听端口，推荐1935，传入0则随机分配
+ * 返回值:0:失败,非0:端口号
  */
-API_EXPORT int API_CALL initRtmpServer(unsigned short port);
+API_EXPORT unsigned short API_CALL initRtmpServer(unsigned short port);
 
 
 /////////////////////////日志////////////////////////////////
