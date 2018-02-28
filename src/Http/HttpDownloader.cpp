@@ -41,7 +41,7 @@ HttpDownloader::~HttpDownloader() {
 	closeFile();
 }
 
-void HttpDownloader::startDownload(const string& url, const string& filePath,bool bAppend,uint32_t timeOutSecond) {
+void HttpDownloader::startDownload(const string& url, const string& filePath,bool bAppend,float timeOutSecond) {
 	_filePath = filePath;
     _timeOutSecond = timeOutSecond;
     _downloadTicker.resetTime();
@@ -64,7 +64,7 @@ void HttpDownloader::startDownload(const string& url, const string& filePath,boo
 		addHeader("Range", StrPrinter << "bytes=" << currentLen << "-" << endl);
 	}
 	setMethod("GET");
-	sendRequest(url);
+	sendRequest(url,timeOutSecond);
 }
 
 void HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {

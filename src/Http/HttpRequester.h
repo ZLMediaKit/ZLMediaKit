@@ -40,7 +40,7 @@ public:
     HttpRequester();
     virtual ~HttpRequester();
     
-    void startRequester(const string &url,const HttpRequesterResult &onResult,uint32_t timeOutSecond = 10);
+    void startRequester(const string &url,const HttpRequesterResult &onResult,float timeOutSecond = 10);
 private:
     void onResponseHeader(const string &status,const HttpHeader &headers) override;
     void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize)  override;
@@ -50,7 +50,7 @@ private:
     string _strRecvBody;
     HttpRequesterResult _onResult;
     Ticker _resTicker;
-    uint32_t _timeOutSecond;
+    float _timeOutSecond;
 };
 
 }//namespace Http

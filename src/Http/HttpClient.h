@@ -68,7 +68,7 @@ public:
     typedef std::shared_ptr<HttpClient> Ptr;
     HttpClient();
     virtual ~HttpClient();
-    virtual void sendRequest(const string &url);
+    virtual void sendRequest(const string &url,float fTimeOutSec);
     void clear(){
         _header.clear();
         _body.clear();
