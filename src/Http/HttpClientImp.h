@@ -41,7 +41,7 @@ public:
 	typedef std::shared_ptr<HttpClientImp> Ptr;
 	HttpClientImp();
 	virtual ~HttpClientImp();
-	virtual void sendRequest(const string &url) override;
+	virtual void sendRequest(const string &url,float fTimeOutSec) override;
 
 #if defined(__GNUC__) && (__GNUC__ < 5)
 	void public_onRecvBytes(const char *data,int len){

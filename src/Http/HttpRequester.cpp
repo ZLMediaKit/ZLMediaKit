@@ -57,11 +57,11 @@ void HttpRequester::onDisconnect(const SockException &ex){
     }
 }
     
-void HttpRequester::startRequester(const string &url,const HttpRequesterResult &onResult , uint32_t timeOutSecond){
+void HttpRequester::startRequester(const string &url,const HttpRequesterResult &onResult , float timeOutSecond){
     _onResult = onResult;
     _resTicker.resetTime();
     _timeOutSecond = timeOutSecond;
-    sendRequest(url);
+    sendRequest(url,timeOutSecond);
 }
 
 void HttpRequester::onManager(){

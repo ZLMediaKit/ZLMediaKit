@@ -39,11 +39,10 @@ public:
 	HttpDownloader();
 	virtual ~HttpDownloader();
 	//开始下载文件,默认断点续传方式下载
-	void startDownload(const string &url,const string &filePath = "",bool bAppend = false,uint32_t timeOutSecond = 10 );
-	void startDownload(const string &url,const onDownloadResult &cb,uint32_t timeOutSecond = 10){
-        _timeOutSecond = timeOutSecond;
+	void startDownload(const string &url,const string &filePath = "",bool bAppend = false, float timeOutSecond = 10 );
+	void startDownload(const string &url,const onDownloadResult &cb,float timeOutSecond = 10){
 		setOnResult(cb);
-		startDownload(url);
+		startDownload(url,"",false,timeOutSecond);
 	}
 	void setOnResult(const onDownloadResult &cb){
 		_onResult = cb;
