@@ -79,38 +79,38 @@ API_EXPORT void API_CALL setGlobalOptionString(const char *key,const char *val){
     }
     mINI::Instance()[key] = val;
 }
-API_EXPORT int API_CALL initHttpServer(unsigned short port){
+API_EXPORT unsigned short API_CALL initHttpServer(unsigned short port){
 	s_pHttpSrv.reset(new TcpServer());
 	try {
 		s_pHttpSrv->start<HttpSession>(port);
-		return 0;
+		return s_pHttpSrv->getPort();
 	} catch (std::exception &ex) {
 		s_pHttpSrv.reset();
 		WarnL << ex.what();
-		return -1;
+		return 0;
 	}
 }
-API_EXPORT int API_CALL initRtspServer(unsigned short port) {
+API_EXPORT unsigned short API_CALL initRtspServer(unsigned short port) {
 	s_pRtspSrv.reset(new TcpServer());
 	try {
 		s_pRtspSrv->start<RtspSession>(port);
-		return 0;
+		return s_pRtspSrv->getPort();
 	} catch (std::exception &ex) {
 		s_pRtspSrv.reset();
 		WarnL << ex.what();
-		return -1;
+		return 0;
 	}
 }
 
-API_EXPORT int API_CALL initRtmpServer(unsigned short port) {
+API_EXPORT unsigned short API_CALL initRtmpServer(unsigned short port) {
 	s_pRtmpSrv.reset(new TcpServer());
 	try {
 		s_pRtmpSrv->start<RtmpSession>(port);
-		return 0;
+		return s_pRtmpSrv->getPort();
 	} catch (std::exception &ex) {
 		s_pRtmpSrv.reset();
 		WarnL << ex.what();
-		return -1;
+		return 0;
 	}
 }
 
