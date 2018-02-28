@@ -35,7 +35,7 @@ HttpClient::HttpClient(){
 }
 HttpClient::~HttpClient(){
 }
-void HttpClient::sendRequest(const string &strUrl){
+void HttpClient::sendRequest(const string &strUrl,float fTimeOutSec){
     auto protocol = FindField(strUrl.data(), NULL , "://");
     uint16_t defaultPort;
     bool isHttps;
@@ -84,7 +84,7 @@ void HttpClient::sendRequest(const string &strUrl){
 
     if(!alive() || bChanged){
         //InfoL << "reconnet:" << _lastHost;
-        startConnect(host, port);
+        startConnect(host, port,fTimeOutSec);
     }else{
         SockException ex;
         onConnect(ex);

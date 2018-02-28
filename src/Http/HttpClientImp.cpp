@@ -37,8 +37,8 @@ HttpClientImp::HttpClientImp() {
 HttpClientImp::~HttpClientImp() {
 }
 
-void HttpClientImp::sendRequest(const string& url) {
-	HttpClient::sendRequest(url);
+void HttpClientImp::sendRequest(const string& url,float fTimeOutSec) {
+	HttpClient::sendRequest(url,fTimeOutSec);
 	if(_isHttps){
 #ifndef ENABLE_OPENSSL
 		shutdown();
