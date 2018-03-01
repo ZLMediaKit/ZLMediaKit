@@ -39,6 +39,9 @@ using namespace std;
 using namespace ZL::Util;
 using namespace ZL::Player;
 
+#define H264_CODEC_ID 7
+#define AAC_CODEC_ID 10
+
 namespace ZL {
 namespace Rtmp {
 
@@ -95,18 +98,31 @@ public:
 		return m_strAudioCfg;
 	}
 	bool containAudio() const override{
-		return m_bHaveAudio;
+        //音频只支持aac
+		return m_iAudioCodecID == AAC_CODEC_ID;
 	}
 	bool containVideo () const override{
-		return m_bHaveVideo;
+        //视频只支持264
+		return m_iVideoCodecID == H264_CODEC_ID;
 	}
 	bool isInited() const override{
-		if (m_bHaveAudio && !m_strAudioCfg.size()) {
+        if((m_iAudioCodecID | m_iVideoCodecID) == 0){
+            //音视频codec_id都未获取到，说明还未初始化成功
+            return false;
+        }
+        if((m_iAudioCodecID & m_iVideoCodecID) == 0 && m_ticker.elapsedTime() < 300){
+            //音视频codec_id有其一未获取到,且最少分析300ms才能断定没有音频或视频
+            return false;
+        }
+		if (m_iAudioCodecID && !m_strAudioCfg.size()) {
+            //如果音频是aac但是还未获取aac config ，则未初始化成功
 			return false;
 		}
-		if (m_bHaveVideo && !m_strSPS.size()) {
-			return false;
+		if (m_iVideoCodecID && !m_strSPS.size()) {
+            //如果视频是h264但是还未获取sps ，则未初始化成功
+            return false;
 		}
+        //初始化成功
 		return true;
 	}
 	float getDuration() const override{
@@ -136,12 +152,15 @@ private:
 	int m_iVideoWidth = 0;
 	int m_iVideoHeight = 0;
 	float m_fVideoFps = 0;
-	bool m_bHaveAudio = false;
-	bool m_bHaveVideo = false;
+    //音视频codec_id初始为0代表尚未获取到
+    int m_iAudioCodecID = 0;
+    int m_iVideoCodecID = 0;
 	float m_fDuration = 0;
-	function<void(const H264Frame &frame)> onVideo;
+    mutable Ticker m_ticker;
+    function<void(const H264Frame &frame)> onVideo;
 	function<void(const AdtsFrame &frame)> onAudio;
 	recursive_mutex m_mtxCB;
+
 
 };
 
