@@ -46,8 +46,11 @@ namespace Rtsp {
 class RtspPlayerImp: public PlayerImp<RtspPlayer,RtpParser> {
 public:
 	typedef std::shared_ptr<RtspPlayerImp> Ptr;
-	RtspPlayerImp();
-	virtual ~RtspPlayerImp();
+	RtspPlayerImp(){};
+	virtual ~RtspPlayerImp(){
+        DebugL<<endl;
+        teardown();
+    };
     float getProgress() const override{
         if(getDuration() > 0){
             return getProgressTime() / getDuration();

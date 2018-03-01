@@ -44,8 +44,11 @@ namespace Rtmp {
 class RtmpPlayerImp: public PlayerImp<RtmpPlayer,RtmpParser> {
 public:
     typedef std::shared_ptr<RtmpPlayerImp> Ptr;
-    RtmpPlayerImp();
-    virtual ~RtmpPlayerImp();
+    RtmpPlayerImp(){};
+    virtual ~RtmpPlayerImp(){
+        DebugL<<endl;
+        teardown();
+    };
     float getProgress() const override{
         if(getDuration() > 0){
             return getProgressTime() / getDuration();
