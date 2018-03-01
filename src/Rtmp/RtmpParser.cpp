@@ -35,64 +35,70 @@ RtmpParser::RtmpParser(const AMFValue &val) {
     
 	if (videoCodec.type() == AMF_STRING) {
         if (videoCodec.as_string() == "avc1") {
-            //264
-            m_bHaveVideo = true;
+            //h264
+            m_iVideoCodecID = H264_CODEC_ID;
         } else {
             InfoL << "不支持RTMP视频格式:" << videoCodec.as_string();
         }
     }else if (videoCodec.type() != AMF_NULL){
-        if (videoCodec.as_integer() == 7) {
-            //264
-            m_bHaveVideo = true;
-        } else {
+        m_iVideoCodecID = videoCodec.as_integer();
+        if (m_iVideoCodecID != H264_CODEC_ID) {
             InfoL << "不支持RTMP视频格式:" << videoCodec.as_integer();
         }
     }
-    
-    
+
 	if (audioCodec.type() == AMF_STRING) {
 		if (audioCodec.as_string() == "mp4a") {
 			//aac
-			m_bHaveAudio = true;
+            m_iAudioCodecID = AAC_CODEC_ID;
 		} else {
 			InfoL << "不支持RTMP音频格式:" << audioCodec.as_string();
 		}
     }else if (audioCodec.type() != AMF_NULL) {
-        if (audioCodec.as_integer() == 10) {
-            //aac
-            m_bHaveAudio = true;
-        } else {
+        m_iAudioCodecID = audioCodec.as_integer();
+        if (m_iAudioCodecID != AAC_CODEC_ID) {
             InfoL << "不支持RTMP音频格式:" << audioCodec.as_integer();
         }
     }
-    
-    
-    if (!m_bHaveVideo && !m_bHaveAudio) {
-        throw std::runtime_error("不支持该RTMP媒体格式");
-    }
-    
 	onCheckMedia(val);
 }
 
 RtmpParser::~RtmpParser() {
-	// TODO Auto-generated destructor stub
 }
 
 bool RtmpParser::inputRtmp(const RtmpPacket::Ptr &pkt) {
-	switch (pkt->typeId) {
-	case MSG_VIDEO:
-		if (m_bHaveVideo) {
-			return inputVideo(pkt);
-		}
-		return false;
-	case MSG_AUDIO:
-		if (m_bHaveAudio) {
-			return inputAudio(pkt);
-		}
-		return false;
-	default:
-		return false;
-	}
+    switch (pkt->typeId) {
+        case MSG_VIDEO:{
+            if(m_iVideoCodecID == 0){
+                //未初始化视频
+                m_iVideoCodecID = pkt->getMediaType();
+                if(m_iVideoCodecID != H264_CODEC_ID){
+                    InfoL << "不支持RTMP视频格式:" << m_iVideoCodecID;
+                }
+            }
+            if(m_iVideoCodecID == H264_CODEC_ID){
+                return inputVideo(pkt);
+            }
+            return false;
+        }
+
+        case MSG_AUDIO: {
+            if(m_iAudioCodecID == 0){
+                //未初始化音频
+                m_iAudioCodecID = pkt->getMediaType();
+                if(m_iAudioCodecID != AAC_CODEC_ID){
+                    InfoL << "不支持RTMP音频格式:" << m_iAudioCodecID;
+                }
+            }
+            if (m_iAudioCodecID == AAC_CODEC_ID) {
+                return inputAudio(pkt);
+            }
+            return false;
+        }
+
+        default:
+            return false;
+    }
 }
 
 inline bool RtmpParser::inputVideo(const RtmpPacket::Ptr &pkt) {
