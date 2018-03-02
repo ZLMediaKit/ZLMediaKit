@@ -117,6 +117,9 @@ void DevChannel::inputH264(char* pcData, int iDataLen, uint32_t uiStamp) {
 	if (memcmp("\x00\x00\x01", pcData, 3) == 0) {
 		iOffset = 3;
 	}
+    if(uiStamp == 0){
+        uiStamp = (uint32_t)m_aTicker[0].elapsedTime();
+    }
 	m_pRtpMaker_h264->makeRtp(pcData + iOffset, iDataLen - iOffset, uiStamp);
 }
 
@@ -136,6 +139,9 @@ void DevChannel::inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp
 	if (!m_bSdp_gotAAC && m_audio && pcAdtsHeader) {
 		makeSDP_AAC((unsigned char*) pcAdtsHeader);
 	}
+    if(uiStamp == 0){
+        uiStamp = (uint32_t)m_aTicker[1].elapsedTime();
+    }
     if(pcDataWithoutAdts && iDataLen){
         m_pRtpMaker_aac->makeRtp(pcDataWithoutAdts, iDataLen, uiStamp);
     }
