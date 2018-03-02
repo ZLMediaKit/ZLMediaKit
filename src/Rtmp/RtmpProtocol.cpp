@@ -57,7 +57,7 @@ static string openssl_HMACsha256(const void *key,unsigned int key_len,
 	HMAC_Update(&ctx, (unsigned char*)data, data_len);
 	HMAC_Final(&ctx, (unsigned char *)out.get(), &out_len);
 	HMAC_CTX_cleanup(&ctx);
-#endif // defined(WIN32) || defined(ANDROID)
+#endif //defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER > 0x10100000L)
 	return string(out.get(),out_len);
 }
 #endif //ENABLE_OPENSSL
