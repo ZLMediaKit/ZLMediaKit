@@ -396,8 +396,6 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	});
     GET_CONFIG_AND_REGISTER(uint32_t,sendBufSize,Config::Http::kSendBufSize);
 
-    //不允许主动丢包
-    _sock->setShouldDropPacket(false);
 	//缓存大小为两个包,太大可能导致发送时间太长从而超时
     _sock->setSendPktSize(2);
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());

@@ -85,7 +85,8 @@ protected:
 	int m_iNowStreamID = 0;
 	int m_iNowChunkID = 0;
 	bool m_bDataStarted = false;
-    ResourcePool<BufferRaw,MAX_SEND_PKT> m_bufferPool;
+    BufferRaw::Ptr obtainBuffer();
+    //ResourcePool<BufferRaw,MAX_SEND_PKT> m_bufferPool;
 private:
 	void handle_S0S1S2(const function<void()> &cb);
 	void handle_C0C1();
