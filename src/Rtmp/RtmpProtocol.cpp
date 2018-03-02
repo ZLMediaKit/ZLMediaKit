@@ -34,12 +34,15 @@ using namespace ZL::Util;
 #ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
 #include <openssl/hmac.h>
+#include <openssl/opensslv.h>
+
 static string openssl_HMACsha256(const void *key,unsigned int key_len,
 								 const void *data,unsigned int data_len){
 	std::shared_ptr<char> out(new char[32],[](char *ptr){delete [] ptr;});
 	unsigned int out_len;
 
-#if defined(WIN32) || defined(ANDROID)
+#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    //openssl 1.1.0新增api，老版本api作废
 	HMAC_CTX *ctx = HMAC_CTX_new();
 	HMAC_CTX_reset(ctx);
 	HMAC_Init_ex(ctx, key, key_len, EVP_sha256(), NULL);
