@@ -34,6 +34,7 @@
 #include "RTP/RtpMakerAAC.h"
 #include "RTP/RtpMakerH264.h"
 #include "Rtsp/RtspToRtmpMediaSource.h"
+#include "Util/TimeTicker.h"
 
 using namespace std;
 using namespace ZL::Rtsp;
@@ -115,6 +116,7 @@ private:
 	unsigned int m_uiPPSLen = 0;
 	std::shared_ptr<VideoInfo> m_video;
 	std::shared_ptr<AudioInfo> m_audio;
+    SmoothTicker m_aTicker[2];
 };
 
 
