@@ -26,13 +26,13 @@
 
 #include <list>
 #include <type_traits>
-#include <arpa/inet.h>
 #include "RtpBroadCaster.h"
 #include "Util/util.h"
 #include "Network/sockutil.h"
 #include "RtspSession.h"
 
 using namespace std;
+using namespace ZL::Network;
 
 namespace ZL {
 namespace Rtsp {
@@ -40,8 +40,7 @@ namespace Rtsp {
 static uint32_t addressToInt(const string &ip){
     struct in_addr addr;
     bzero(&addr,sizeof(addr));
-
-    inet_aton(ip.data(),&addr);
+	addr.s_addr =  inet_addr(ip.data());
     return (uint32_t)ntohl((uint32_t &)addr.s_addr);
 }
 
