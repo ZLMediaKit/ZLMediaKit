@@ -29,10 +29,11 @@
 #include "MediaFile/MediaReader.h"
 #include "Util/util.h"
 #include "Rtsp/Rtsp.h"
+#include "Network/sockutil.h"
 
 using namespace ZL::Util;
+using namespace ZL::Network;
 using namespace ZL::MediaFile;
-
 
 namespace ZL {
 namespace Media {
@@ -165,13 +166,11 @@ void MediaInfo::parse(const string &url){
         //无效vhost
         m_vhost = DEFAULT_VHOST;
     }else{
-        struct in_addr addr;
-        if(0 != inet_aton(m_vhost.data(),&addr)){
+        if(INADDR_NONE != inet_addr(m_vhost.data())){
             //这是ip,未指定vhost;使用默认vhost
             m_vhost = DEFAULT_VHOST;
         }
     }
-
 }
 
 
