@@ -70,12 +70,6 @@ RtspSession::RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::P
 		g_mapCmd.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
 	}, []() {});
 
-#ifndef __x86_64__
-	SockUtil::setSendBuf(pSock->rawFD(), 32*1024);
-	SockUtil::setCloseWait(pSock->rawFD(), 0);
-	pSock->setSendPktSize(32);
-#endif//__x86_64__
-
 	DebugL <<  get_peer_ip();
 }
 
