@@ -396,8 +396,6 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	});
     GET_CONFIG_AND_REGISTER(uint32_t,sendBufSize,Config::Http::kSendBufSize);
 
-	//缓存大小为两个包,太大可能导致发送时间太长从而超时
-    _sock->setSendPktSize(2);
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
 	auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
 		TimeTicker();
@@ -424,7 +422,6 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 				//InfoL << "send complete!" << iRead << " " << iReq << " " << *piLeft;
 				if(iRead>0) {
 					sendBuf->setSize(iRead);
-					strongSelf->_sock->setSendPktSize(3);//强制写入socket缓存
 					strongSelf->send(sendBuf);
 				}
 				if(bClose) {
@@ -436,20 +433,20 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
             sendBuf->setSize(iRead);
             int iSent = strongSelf->send(sendBuf);
 			if(iSent == -1) {
-				//send error
 				//InfoL << "send error";
 				return false;
 			}
 			if(iSent < iRead) {
-				//send wait
-				//InfoL << "send wait";
 				//数据回滚
 				fseek(pFilePtr.get(), -iRead, SEEK_CUR);
 				*piLeft += iRead;
 				return true;
 			}
+            if(strongSelf->isSocketBusy()){
+                //套接字忙，那么停止继续写
+                return true;
+            }
 			//send success
-			//InfoL << "send success";
 		}
 		return false;
 	};
