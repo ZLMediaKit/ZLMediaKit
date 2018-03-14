@@ -317,6 +317,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	if(emitHttpEvent(false)){
 		return Http_success;
 	}
+    //再看看是否为http-flv直播请求
 	if(checkLiveFlvStream()){
 		return Http_success;
 	}
@@ -329,7 +330,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	/////////////HTTP连接是否需要被关闭////////////////
     GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
 
-    bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
+    bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) || ( ++m_iReqCnt > reqCnt);
 	HttpCode eHttpCode = bClose ? Http_failed : Http_success;
 	//访问的是文件夹
 	if (strFile.back() == '/') {
@@ -350,12 +351,19 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 		sendNotFound(bClose);
 		return eHttpCode;
 	}
-	FILE *pFile = fopen(strFile.data(), "rb");
-	if (pFile == NULL) {
+    //文件智能指针，防止退出时未关闭
+    std::shared_ptr<FILE> pFilePtr(fopen(strFile.data(), "rb"), [](FILE *pFile) {
+        if(pFile){
+            fclose(pFile);
+        }
+    });
+
+	if (!pFilePtr) {
 		//打开文件失败
 		sendNotFound(bClose);
 		return eHttpCode;
 	}
+
 	//判断是不是分节下载
 	auto &strRange = m_parser["Range"];
 	int64_t iRangeStart = 0, iRangeEnd = 0;
@@ -371,7 +379,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	} else {
 		//分节下载
 		pcHttpResult = "206 Partial Content";
-		fseek(pFile, iRangeStart, SEEK_SET);
+		fseek(pFilePtr.get(), iRangeStart, SEEK_SET);
 	}
 	auto httpHeader=makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strFile.data()));
 	if (strRange.size() != 0) {
@@ -391,9 +399,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	}
 	//回复Content部分
 	std::shared_ptr<int64_t> piLeft(new int64_t(iRangeEnd - iRangeStart + 1));
-	std::shared_ptr<FILE> pFilePtr(pFile, [](FILE *pFp) {
-		fclose(pFp);
-	});
+
     GET_CONFIG_AND_REGISTER(uint32_t,sendBufSize,Config::Http::kSendBufSize);
 
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
@@ -452,9 +458,30 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	};
 	//关闭tcp_nodelay ,优化性能
 	SockUtil::setNoDelay(_sock->rawFD(),false);
+    //设置MSG_MORE，优化性能
     (*this) << SocketFlags(sock_flags);
+
+    //后台线程执行onFlush
+    auto onFlushWrapper = [onFlush,weakSelf](){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            return false;
+        }
+        strongSelf->async([onFlush,weakSelf](){
+            //在后台线程完成文件读取，释放主线程性能
+            if(!onFlush()){
+                //如果onFlush返回false，则说明不再监听flush事件
+                auto strongSelf = weakSelf.lock();
+                if(strongSelf){
+                    strongSelf->_sock->setOnFlush(nullptr);
+                }
+            }
+        });
+        return true;
+    };
+
     onFlush();
-	_sock->setOnFlush(onFlush);
+	_sock->setOnFlush(onFlushWrapper);
 	return Http_success;
 }
 
@@ -595,7 +622,7 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	///////////////////是否断开本链接///////////////////////
     GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
 
-    bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) && ( ++m_iReqCnt < reqCnt);
+    bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) || ( ++m_iReqCnt > reqCnt);
 	auto Origin = m_parser["Origin"];
 	/////////////////////异步回复Invoker///////////////////////////////
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
