@@ -75,6 +75,12 @@ void RtmpSession::onManager() {
 			shutdown();
 		}
 	}
+    if(m_delayTask){
+        if(time(NULL) > m_iTaskTimeLine){
+            m_delayTask();
+            m_delayTask = nullptr;
+        }
+    }
 }
 
 void RtmpSession::onRecv(const Buffer::Ptr &pBuf) {
@@ -196,128 +202,146 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
 	throw std::runtime_error(StrPrinter << "Stop publishing." << endl);
 }
 
-void  RtmpSession::doPlay(AMFDecoder &dec){
-    auto onRes = [this](const string &err) {
-        auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
-                                                                           m_mediaInfo.m_vhost,
-                                                                           m_mediaInfo.m_app,
-                                                                           m_mediaInfo.m_streamid,
-                                                                           true));
-        bool authSuccess = err.empty();
-        bool ok = (src.operator bool() && authSuccess);
-        if(ok){
-            ok = ok && src->ready();
+void RtmpSession::doPlayResponse(const string &err,bool tryDelay) {
+    //获取流对象
+    auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
+                                                                       m_mediaInfo.m_vhost,
+                                                                       m_mediaInfo.m_app,
+                                                                       m_mediaInfo.m_streamid,
+                                                                       true));
+    if(src ){
+        if(!src->ready()){
+            //流未准备好那么相当于没有
+            src = nullptr;
         }
-        if (ok) {
-            //stream begin
-           sendUserControl(CONTROL_STREAM_BEGIN, STREAM_MEDIA);
-        }
-        // onStatus(NetStream.Play.Reset)
-        AMFValue status(AMF_OBJECT);
-        status.set("level", ok ? "status" : "error");
-        status.set("code", ok ? "NetStream.Play.Reset" : (authSuccess ? "NetStream.Play.StreamNotFound" : "NetStream.Play.BadAuth"));
-        status.set("description", ok ? "Resetting and playing." : (authSuccess ? "No such stream." : err.data()));
-        status.set("details", m_mediaInfo.m_streamid);
-        status.set("clientid", "0");
-        sendReply("onStatus", nullptr, status);
-        if (!ok) {
-            WarnL << "onPlayed:"
-                  << (authSuccess ? "No such stream:" : err.data()) << " "
-                  << m_mediaInfo.m_vhost << " "
-                  << m_mediaInfo.m_app << " "
-                  << m_mediaInfo.m_streamid
-                  << endl;
-            shutdown();
+    }
+
+    //是否鉴权成功
+    bool authSuccess = err.empty();
+    if(authSuccess && !src && tryDelay ){
+        //校验成功，但是流不存在而导致的不能播放，我们看看该流延时几秒后是否确实不能播放
+        doDelay(3,[this](){
+            //延时后就不再延时重试了
+            doPlayResponse("",false);
+        });
+        return;
+    }
+
+    ///////回复流程///////
+
+    //是否播放成功
+    bool ok = (src.operator bool() && authSuccess);
+    if (ok) {
+        //stream begin
+        sendUserControl(CONTROL_STREAM_BEGIN, STREAM_MEDIA);
+    }
+    // onStatus(NetStream.Play.Reset)
+    AMFValue status(AMF_OBJECT);
+    status.set("level", ok ? "status" : "error");
+    status.set("code", ok ? "NetStream.Play.Reset" : (authSuccess ? "NetStream.Play.StreamNotFound" : "NetStream.Play.BadAuth"));
+    status.set("description", ok ? "Resetting and playing." : (authSuccess ? "No such stream." : err.data()));
+    status.set("details", m_mediaInfo.m_streamid);
+    status.set("clientid", "0");
+    sendReply("onStatus", nullptr, status);
+    if (!ok) {
+        WarnL << "onPlayed:"
+              << (authSuccess ? "No such stream:" : err.data()) << " "
+              << m_mediaInfo.m_vhost << " "
+              << m_mediaInfo.m_app << " "
+              << m_mediaInfo.m_streamid
+              << endl;
+        shutdown();
+        return;
+    }
+
+    // onStatus(NetStream.Play.Start)
+    status.clear();
+    status.set("level", "status");
+    status.set("code", "NetStream.Play.Start");
+    status.set("description", "Started playing.");
+    status.set("details", m_mediaInfo.m_streamid);
+    status.set("clientid", "0");
+    sendReply("onStatus", nullptr, status);
+
+    // |RtmpSampleAccess(true, true)
+    AMFEncoder invoke;
+    invoke << "|RtmpSampleAccess" << true << true;
+    sendResponse(MSG_DATA, invoke.data());
+
+    //onStatus(NetStream.Data.Start)
+    invoke.clear();
+    AMFValue obj(AMF_OBJECT);
+    obj.set("code", "NetStream.Data.Start");
+    invoke << "onStatus" << obj;
+    sendResponse(MSG_DATA, invoke.data());
+
+    //onStatus(NetStream.Play.PublishNotify)
+    status.clear();
+    status.set("level", "status");
+    status.set("code", "NetStream.Play.PublishNotify");
+    status.set("description", "Now published.");
+    status.set("details", m_mediaInfo.m_streamid);
+    status.set("clientid", "0");
+    sendReply("onStatus", nullptr, status);
+
+    // onMetaData
+    invoke.clear();
+    invoke << "onMetaData" << src->getMetaData();
+    sendResponse(MSG_DATA, invoke.data());
+
+    src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
+        //DebugL<<"send initial frame";
+        onSendMedia(pkt);
+    });
+
+    m_pRingReader = src->getRing()->attach();
+    weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+    SockUtil::setNoDelay(_sock->rawFD(), false);
+    m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
+        auto strongSelf = weakSelf.lock();
+        if (!strongSelf) {
             return;
         }
-
-        // onStatus(NetStream.Play.Start)
-        status.clear();
-        status.set("level", "status");
-        status.set("code", "NetStream.Play.Start");
-        status.set("description", "Started playing.");
-        status.set("details", m_mediaInfo.m_streamid);
-        status.set("clientid", "0");
-        sendReply("onStatus", nullptr, status);
-
-        // |RtmpSampleAccess(true, true)
-        AMFEncoder invoke;
-        invoke << "|RtmpSampleAccess" << true << true;
-        sendResponse(MSG_DATA, invoke.data());
-
-        //onStatus(NetStream.Data.Start)
-        invoke.clear();
-        AMFValue obj(AMF_OBJECT);
-        obj.set("code", "NetStream.Data.Start");
-        invoke << "onStatus" << obj;
-        sendResponse(MSG_DATA, invoke.data());
-
-        //onStatus(NetStream.Play.PublishNotify)
-        status.clear();
-        status.set("level", "status");
-        status.set("code", "NetStream.Play.PublishNotify");
-        status.set("description", "Now published.");
-        status.set("details", m_mediaInfo.m_streamid);
-        status.set("clientid", "0");
-        sendReply("onStatus", nullptr, status);
-
-        // onMetaData
-        invoke.clear();
-        invoke << "onMetaData" << src->getMetaData();
-        sendResponse(MSG_DATA, invoke.data());
-
-        src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
-            //DebugL<<"send initial frame";
-            onSendMedia(pkt);
-        });
-
-        m_pRingReader = src->getRing()->attach();
-        weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-        SockUtil::setNoDelay(_sock->rawFD(), false);
-        m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
+        strongSelf->async([weakSelf, pkt]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return;
             }
-            strongSelf->async([weakSelf, pkt]() {
-                auto strongSelf = weakSelf.lock();
-                if (!strongSelf) {
-                    return;
-                }
-                strongSelf->onSendMedia(pkt);
-            });
+            strongSelf->onSendMedia(pkt);
         });
-        m_pRingReader->setDetachCB([weakSelf]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
-                return;
-            }
-            strongSelf->safeShutdown();
-        });
-        m_pPlayerSrc = src;
-        if (src->getRing()->readerCount() == 1) {
-            src->seekTo(0);
+    });
+    m_pRingReader->setDetachCB([weakSelf]() {
+        auto strongSelf = weakSelf.lock();
+        if (!strongSelf) {
+            return;
         }
-    };
+        strongSelf->safeShutdown();
+    });
+    m_pPlayerSrc = src;
+    if (src->getRing()->readerCount() == 1) {
+        src->seekTo(0);
+    }
+}
 
+void RtmpSession::doPlay(AMFDecoder &dec){
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
+    Broadcast::AuthInvoker invoker = [weakSelf](const string &err){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,onRes,err](){
+        strongSelf->async([weakSelf,err](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            onRes(err);
+            strongSelf->doPlayResponse(err,true);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker,*this);
     if(!flag){
         //该事件无人监听,默认不鉴权
-        onRes("");
+        doPlayResponse("",true);
     }
 }
 void RtmpSession::onCmd_play2(AMFDecoder &dec) {
@@ -411,6 +435,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 		if (!m_pPublisherSrc) {
 			throw std::runtime_error("Not a rtmp publisher!");
 		}
+		chunkData.timeStamp = m_stampTicker[chunkData.typeId % 2].elapsedTime();
 		m_pPublisherSrc->onGetMedia(std::make_shared<RtmpPacket>(chunkData));
 		if(!m_bPublisherSrcRegisted && m_pPublisherSrc->ready()){
 			m_bPublisherSrcRegisted = true;
@@ -456,6 +481,12 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 	}
 	sendRtmp(pkt->typeId, pkt->streamId, pkt->strBuf, modifiedStamp, pkt->chunkId , true);
 }
+
+void RtmpSession::doDelay(int delaySec, const std::function<void()> &fun) {
+    m_delayTask = fun;
+    m_iTaskTimeLine = time(NULL) + delaySec;
+}
+
 
 } /* namespace Rtmp */
 } /* namespace ZL */

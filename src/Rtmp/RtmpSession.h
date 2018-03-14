@@ -57,6 +57,7 @@ private:
     MediaInfo m_mediaInfo;
 	double m_dNowReqID = 0;
 	Ticker m_ticker;//数据接收时间
+	SmoothTicker m_stampTicker[2];//时间戳生产器
 	typedef void (RtmpSession::*rtmpCMDHandle)(AMFDecoder &dec);
 	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
 
@@ -77,6 +78,7 @@ private:
 	void onCmd_play(AMFDecoder &dec);
 	void onCmd_play2(AMFDecoder &dec);
 	void doPlay(AMFDecoder &dec);
+    void doPlayResponse(const string &err,bool tryDelay);
 	void onCmd_seek(AMFDecoder &dec);
 	void onCmd_pause(AMFDecoder &dec);
 	void setMetaData(AMFDecoder &dec);
@@ -104,6 +106,11 @@ private:
         safeShutdown();
         return true;
     }
+
+    void doDelay(int delaySec,const std::function<void()> &fun);
+    std::function<void()> m_delayTask;
+    uint32_t m_iTaskTimeLine = 0;
+
 };
 
 } /* namespace Rtmp */
