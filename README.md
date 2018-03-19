@@ -1,10 +1,10 @@
 # 一个基于C++11简单易用的轻量级流媒体库
 平台|编译状态
 ----|-------
-Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=2.0-alpha)](https://travis-ci.org/xiongziliang/ZLMediaKit)
-macOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac.svg?branch=2.0-alpha)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac)
-iOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios.svg?branch=2.0-alpha)](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios)
-Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android.svg?branch=2.0-alpha)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android)
+Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
+macOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac)
+iOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios)
+Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android)
 Windows | 已经完成移植
 
 ## 项目特点
