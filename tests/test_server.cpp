@@ -135,6 +135,10 @@ static onceToken s_token([](){
 
 }, nullptr);
 
+#if !defined(SIGHUP)
+#defined SIGHUP 1
+#endif
+
 int main(int argc,char *argv[]) {
     //设置退出信号处理函数
     signal(SIGINT, [](int) { EventPoller::Instance().shutdown(); });

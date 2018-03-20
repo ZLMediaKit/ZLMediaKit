@@ -734,9 +734,9 @@ bool RtspSession::handleReq_Play() {
                 shutdown();
                 return;
             }
-            iLen += sprintf(m_pcBuf + iLen, "url=%s/%s%d;seq=%d;rtptime=%u,",
+            iLen += sprintf(m_pcBuf + iLen, "url=%s/%s%s;seq=%d;rtptime=%u,",
                             m_strUrl.data(), track.trackStyle.data(),
-                            track.trackId, track.seq,track.timeStamp);
+                            track.trackIdStr.data(), track.seq,track.timeStamp);
         }
         iLen -= 1;
         (m_pcBuf)[iLen] = '\0';
