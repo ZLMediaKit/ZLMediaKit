@@ -71,7 +71,13 @@ int parserSDP(const string& sdp, RtspTrack Track[2]) {
 		if (IDStr == "") {
 			break;
 		}
-		TrackID = atoi(IDStr.c_str());
+        if(strcasecmp(IDStr.data(),"video") == 0){
+            TrackID = 0;
+        }else if(strcasecmp(IDStr.data(),"audio") == 0){
+            TrackID = 1;
+        }else{
+            TrackID = atoi(IDStr.c_str());
+        }
 		pos_end = sdp.find("m=", pos_head + 2);
 		if (pos_end == string::npos) {
 			pos_end = sdp.size();
@@ -81,8 +87,8 @@ int parserSDP(const string& sdp, RtspTrack Track[2]) {
 		Track[track_cnt].trackStyle = track_str;
 		Track[track_cnt].inited = false;
 		Track[track_cnt].trackId = TrackID;
-		Track[track_cnt].PT = atoi(
-				FindField(mid.c_str(), "rtpmap:", " ").c_str());
+        Track[track_cnt].trackIdStr = IDStr;
+		Track[track_cnt].PT = atoi(FindField(mid.c_str(), "rtpmap:", " ").c_str());
 		if (mid.find("m=video") != string::npos) {
 			//视频通道
 			Track[track_cnt].type = TrackVideo;

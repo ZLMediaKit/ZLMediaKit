@@ -225,14 +225,19 @@ inline void RtspPlayer::HandleResDESCRIBE(const Parser& parser) {
 	}
 	auto strSdp = parser.Content();
 	m_strContentBase = parser["Content-Base"];
+
+    if(m_strContentBase.empty()){
+        m_strContentBase = m_strUrl;
+    }
+    if (m_strContentBase[m_strContentBase.length() - 1] == '/') {
+        m_strContentBase.pop_back();
+    }
+
 	auto iLen = atoi(parser["Content-Length"].data());
 	if(iLen > 0){
 		strSdp.erase(iLen);
 	}
 
-	if (m_strContentBase[m_strContentBase.length() - 1] == '/') {
-		m_strContentBase.pop_back();
-	}
 	//解析sdp
 	m_uiTrackCnt = parserSDP(strSdp, m_aTrackInfo);
     for (unsigned int i=0; i<m_uiTrackCnt; i++) {
@@ -256,21 +261,21 @@ inline void RtspPlayer::sendSetup(unsigned int trackIndex) {
 	auto &track = m_aTrackInfo[trackIndex];
 	switch (m_eType) {
 	case RTP_TCP: {
-		iLen = sprintf(acRtspbuf, "SETUP %s/%s%d RTSP/1.0\r\n"
+		iLen = sprintf(acRtspbuf, "SETUP %s/%s%s RTSP/1.0\r\n"
 				"CSeq: %d\r\n"
 				"Transport: RTP/AVP/TCP;unicast;interleaved=%d-%d\r\n"
 				"Authorization: Basic %s\r\n\r\n", m_strContentBase.c_str(),
-				track.trackStyle.c_str(), track.trackId, m_uiCseq++,
+				track.trackStyle.c_str(), track.trackIdStr.data(), m_uiCseq++,
 				track.trackId * 2, track.trackId * 2 + 1,
 				m_strAuthorization.c_str());
 	}
 		break;
 	case RTP_MULTICAST: {
-		iLen = sprintf(acRtspbuf, "SETUP %s/%s%d RTSP/1.0\r\n"
+		iLen = sprintf(acRtspbuf, "SETUP %s/%s%s RTSP/1.0\r\n"
 				"CSeq: %d\r\n"
 				"Transport: RTP/AVP;multicast\r\n"
 				"Authorization: Basic %s\r\n\r\n", m_strContentBase.c_str(),
-				track.trackStyle.c_str(), track.trackId, m_uiCseq++,
+				track.trackStyle.c_str(), track.trackIdStr.data(), m_uiCseq++,
 				m_strAuthorization.c_str());
 	}
 		break;
@@ -281,11 +286,11 @@ inline void RtspPlayer::sendSetup(unsigned int trackIndex) {
 			throw std::runtime_error("open udp sock err");
 		}
 		int port = m_apUdpSock[trackIndex]->get_local_port();
-		iLen = sprintf(acRtspbuf, "SETUP %s/%s%d RTSP/1.0\r\n"
+		iLen = sprintf(acRtspbuf, "SETUP %s/%s%s RTSP/1.0\r\n"
 				"CSeq: %d\r\n"
 				"Transport: RTP/AVP;unicast;client_port=%d-%d\r\n"
 				"Authorization: Basic %s\r\n\r\n", m_strContentBase.c_str(),
-				track.trackStyle.c_str(), track.trackId, m_uiCseq++, port,
+				track.trackStyle.c_str(), track.trackIdStr.data(), m_uiCseq++, port,
 				port + 1, m_strAuthorization.c_str());
 	}
 		break;
