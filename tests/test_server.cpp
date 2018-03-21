@@ -136,7 +136,7 @@ static onceToken s_token([](){
 }, nullptr);
 
 #if !defined(SIGHUP)
-#defined SIGHUP 1
+#define SIGHUP 1
 #endif
 
 int main(int argc,char *argv[]) {
@@ -148,7 +148,10 @@ int main(int argc,char *argv[]) {
     Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
     //加载配置文件，如果配置文件不存在就创建一个
+    InfoL <<  mINI::Instance().dump();
     Config::loadIniConfig();
+    InfoL <<  mINI::Instance().dump();
+
 
     {
         //这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
