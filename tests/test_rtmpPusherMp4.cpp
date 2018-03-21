@@ -48,7 +48,6 @@ RtmpPusher::Ptr pusher;
 void rePushDelay(const string &app,const string &stream,const string &url);
 void createPusher(const string &app,const string &stream,const string &url);
 
-
 //创建推流器并开始推流
 void createPusher(const string &app,const string &stream,const string &url){
     auto rtmpSrc = dynamic_pointer_cast<RtmpMediaSource>(MediaReader::onMakeMediaSource(RTMP_SCHEMA,DEFAULT_VHOST,app,stream));
@@ -94,17 +93,12 @@ void rePushDelay(const string &app,const string &stream,const string &url){
 }
 
 //这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了
-int domain(int argc,const char *argv[]){
+int domain(const string & filePath,const string & pushUrl){
 	//设置退出信号处理函数
 	signal(SIGINT, [](int){EventPoller::Instance().shutdown();});
 	//设置日志
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
 	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
-
-    //filePath同时也是流id
-    string filePath = argv[1];
-    //推流地址
-    string pushUrl = argv[2];
 
     //录像应用名称默认为record
     string appName = mINI::Instance()[Config::Record::kAppName];
@@ -131,8 +125,7 @@ int domain(int argc,const char *argv[]){
 int main(int argc,char *argv[]){
     //MP4文件需要放置在 httpRoot/record目录下,文件负载必须为h264+aac
     //可以使用test_server生成的mp4文件
-    const char *argList[] = {argv[0],"app/stream/2017-09-30/12-55-38.mp4","rtmp://jizan.iok.la/live/test"};
-    return domain(3,argList);
+    return domain("app/stream/2017-09-30/12-55-38.mp4","rtmp://jizan.iok.la/live/test");
 }
 
 
