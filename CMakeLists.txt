@@ -113,6 +113,10 @@ if(NOT WIN32)
     add_compile_options(-Wno-predefined-identifier-outside-function)
 endif()
 
+if(WIN32)
+list(APPEND LINK_LIB_LIST ws2_32)
+endif()
+
 #编译动态库
 if(NOT IOS AND NOT ANDROID)
     add_library(${CMAKE_PROJECT_NAME}_shared SHARED ${SRC_LIST})
