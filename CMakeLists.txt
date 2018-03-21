@@ -83,7 +83,7 @@ add_library(zlmediakit STATIC ${MediaKit_src_list})
 
 if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
-else if(NOT ANDROID and NOT IOS)
+elif(NOT ANDROID and NOT IOS)
     list(APPEND LINK_LIB_LIST pthread)
 endif ()
 
