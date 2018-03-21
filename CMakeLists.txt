@@ -81,10 +81,10 @@ add_definitions(-DENABLE_RING_USEBUF)
 add_library(zltoolkit STATIC ${ToolKit_src_list})
 add_library(zlmediakit STATIC ${MediaKit_src_list})
 
-if (NOT WIN32)
-    list(APPEND LINK_LIB_LIST pthread)
-else()
+if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
+else(LINUX and NOT ANDROID)
+    list(APPEND LINK_LIB_LIST pthread)
 endif ()
 
 message(STATUS "linked libraries:${LINK_LIB_LIST}")
