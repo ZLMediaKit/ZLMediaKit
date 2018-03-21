@@ -19,8 +19,9 @@
 #define MIN_LOG2_MAX_FRAME_NUM    	4
 #define H264_MAX_PICTURE_COUNT 		36
 #define CODEC_FLAG2_IGNORE_CROP   0x00010000 ///< Discard cropping information from SPS.
+#ifndef INT_MAX
 #define INT_MAX						65535
-
+#endif //INT_MAX
 
 /* report level */
 #define RPT_ERR (1) // error, system error
