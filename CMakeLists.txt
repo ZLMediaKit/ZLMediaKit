@@ -1,7 +1,7 @@
 ﻿project(ZLMediaKit)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1.3)
 #使能c++11
-add_compile_options(-std=c++11)
+set(CMAKE_CXX_STANDARD 11)
 
 #加载自定义模块
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
@@ -81,10 +81,10 @@ add_definitions(-DENABLE_RING_USEBUF)
 add_library(zltoolkit STATIC ${ToolKit_src_list})
 add_library(zlmediakit STATIC ${MediaKit_src_list})
 
-if (NOT WIN32)
-    list(APPEND LINK_LIB_LIST pthread)
-else()
+if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
+elif(NOT ANDROID and NOT IOS)
+    list(APPEND LINK_LIB_LIST pthread)
 endif ()
 
 message(STATUS "linked libraries:${LINK_LIB_LIST}")
