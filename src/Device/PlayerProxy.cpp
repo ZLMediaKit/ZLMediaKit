@@ -58,7 +58,7 @@ void PlayerProxy::play(const char* strUrl) {
 			return;
 		}
 		if(strongSelf->m_pChn){
-			strongSelf->m_pChn->inputH264((char *)data.data.data(), data.data.size(), data.timeStamp);
+			strongSelf->m_pChn->inputH264((char *)data.data.data(), data.data.size(), 0);
 		}else{
 			strongSelf->initMedia();
 		}
@@ -69,7 +69,7 @@ void PlayerProxy::play(const char* strUrl) {
 			return;
 		}
 		if(strongSelf->m_pChn){
-			strongSelf->m_pChn->inputAAC((char *)data.data, data.aac_frame_length, data.timeStamp);
+			strongSelf->m_pChn->inputAAC((char *)data.data, data.aac_frame_length, 0);
 		}else{
 			strongSelf->initMedia();
 		}
