@@ -148,11 +148,7 @@ int main(int argc,char *argv[]) {
     Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
     //加载配置文件，如果配置文件不存在就创建一个
-    InfoL <<  mINI::Instance().dump();
     Config::loadIniConfig();
-    InfoL <<  mINI::Instance().dump();
-
-
     {
         //这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
         //如果是其他不识别的音视频将会被忽略(譬如说h264+adpcm转发后会去除音频)
