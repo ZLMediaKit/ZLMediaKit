@@ -1,8 +1,6 @@
 #!/bin/bash
-path=`pwd`
 cd ..
 git clone --depth=1 https://github.com/xiongziliang/ZLMediaKit.git
-cd $path
 cd ZLMediaKit
 git submodule init
 git submodule update
