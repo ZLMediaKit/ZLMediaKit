@@ -63,7 +63,10 @@ void RtspPlayer::teardown(){
 	if (alive()) {
 		write("TEARDOWN %s RTSP/1.0\r\n"
 				"CSeq: %d\r\n"
-				"Session: %s\r\n\r\n", m_strContentBase.c_str(), m_uiCseq++,
+                "Authorization: Basic %s\r\n"
+                "Session: %s\r\n\r\n",
+                m_strContentBase.c_str(), m_uiCseq++,
+                m_strAuthorization.c_str(),
 				m_strSession.c_str());
 
 		m_uiTrackCnt = 0;
@@ -399,8 +402,11 @@ bool RtspPlayer::sendOptions() {
 	};
 	return -1 != write(	"OPTIONS %s RTSP/1.0\r\n"
 						"CSeq: %d\r\n"
+                        "Authorization: Basic %s\r\n"
 						"Session: %s\r\n\r\n",
-						m_strContentBase.c_str(), m_uiCseq++, m_strSession.c_str());
+						m_strContentBase.c_str(), m_uiCseq++,
+                        m_strAuthorization.c_str(),
+                        m_strSession.c_str());
 }
 inline void RtspPlayer::sendPause(bool bPause,float fTime){
     //开启或暂停rtsp
@@ -408,9 +414,10 @@ inline void RtspPlayer::sendPause(bool bPause,float fTime){
     write("%s %s RTSP/1.0\r\n"
           "CSeq: %d\r\n"
           "Session: %s\r\n"
+          "Authorization: Basic %s\r\n"
           "Range: npt=%.2f-\r\n\r\n", bPause ? "PAUSE" : "PLAY",
           m_strContentBase.c_str(), m_uiCseq++,
-          m_strSession.c_str(),fTime);
+          m_strSession.c_str(),m_strAuthorization.c_str(),fTime);
     
     if(!bPause){
         //修改时间轴
