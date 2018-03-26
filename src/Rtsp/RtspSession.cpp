@@ -481,11 +481,8 @@ inline void RtspSession::send_SessionNotFound() {
 }
 bool RtspSession::handleReq_Setup() {
 //处理setup命令，该函数可能进入多次
-//track id
-	int trackid = atoi( FindField( m_parser.Url().data(),
-									m_aTrackInfo[0].trackStyle.data(),
-									NULL).data());
-	int trackIdx = getTrackIndexByTrackId(trackid);
+    auto controlSuffix = m_parser.Url().substr(1 + m_parser.Url().find_last_of('/'));
+	int trackIdx = getTrackIndexByControlSuffix(controlSuffix);
 	if (trackIdx == -1) {
 		//未找到相应track
 		return false;
@@ -541,8 +538,8 @@ bool RtspSession::handleReq_Setup() {
 				"x-Dynamic-Rate: 1\r\n\r\n",
 				m_iCseq, SERVER_NAME,
 				RTSP_VERSION, RTSP_BUILDTIME,
-				dateHeader().data(), trackid * 2,
-				trackid * 2 + 1,
+				dateHeader().data(), trackRef.trackId * 2,
+                trackRef.trackId * 2 + 1,
 				printSSRC(trackRef.ssrc).data(),
 				m_strSession.data());
 		send(m_pcBuf, iLen);
@@ -609,7 +606,7 @@ bool RtspSession::handleReq_Setup() {
 				strongSelf->safeShutdown();
 			});
 		}
-		int iSrvPort = m_pBrdcaster->getPort(trackid);
+		int iSrvPort = m_pBrdcaster->getPort(trackRef.trackId);
 		//我们用trackIdx区分rtp和rtcp包
 		auto pSockRtcp = UDPServer::Instance().getSock(get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
 		if (!pSockRtcp) {
@@ -734,9 +731,8 @@ bool RtspSession::handleReq_Play() {
                 shutdown();
                 return;
             }
-            iLen += sprintf(m_pcBuf + iLen, "url=%s/%s%s;seq=%d;rtptime=%u,",
-                            m_strUrl.data(), track.trackStyle.data(),
-                            track.trackIdStr.data(), track.seq,track.timeStamp);
+            iLen += sprintf(m_pcBuf + iLen, "url=%s/%s;seq=%d;rtptime=%u,",
+                            m_strUrl.data(), track.controlSuffix.data(), track.seq,track.timeStamp);
         }
         iLen -= 1;
         (m_pcBuf)[iLen] = '\0';

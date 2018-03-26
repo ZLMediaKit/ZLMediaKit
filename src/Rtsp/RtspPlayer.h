@@ -127,14 +127,22 @@ private:
 	inline bool HandleOneRtp(int iTrackidx, unsigned char *ucData, unsigned int uiLen);
 	bool sendOptions();
 	inline void _onRecvRTP(const RtpPacket::Ptr &pRtppt, int iTrackidx);
-	inline int getTrackIndex(int iTrackId) const{
+	inline int getTrackIndex(const string &controlSuffix) const{
 		for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-			if (m_aTrackInfo[i].trackId == iTrackId) {
+			if (m_aTrackInfo[i].controlSuffix == controlSuffix) {
 				return i;
 			}
 		}
 		return -1;
 	}
+    inline int getTrackIndex(int iTrackId) const{
+        for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
+            if (m_aTrackInfo[i].trackId == iTrackId) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
 	string m_strUrl;
 	unsigned int m_uiTrackCnt = 0;
