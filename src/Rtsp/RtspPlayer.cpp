@@ -261,21 +261,21 @@ inline void RtspPlayer::sendSetup(unsigned int trackIndex) {
 	auto &track = m_aTrackInfo[trackIndex];
 	switch (m_eType) {
 	case RTP_TCP: {
-		iLen = sprintf(acRtspbuf, "SETUP %s/%s%s RTSP/1.0\r\n"
+		iLen = sprintf(acRtspbuf, "SETUP %s/%s RTSP/1.0\r\n"
 				"CSeq: %d\r\n"
 				"Transport: RTP/AVP/TCP;unicast;interleaved=%d-%d\r\n"
 				"Authorization: Basic %s\r\n\r\n", m_strContentBase.c_str(),
-				track.trackStyle.c_str(), track.trackIdStr.data(), m_uiCseq++,
+				track.controlSuffix.c_str(), m_uiCseq++,
 				track.trackId * 2, track.trackId * 2 + 1,
 				m_strAuthorization.c_str());
 	}
 		break;
 	case RTP_MULTICAST: {
-		iLen = sprintf(acRtspbuf, "SETUP %s/%s%s RTSP/1.0\r\n"
+		iLen = sprintf(acRtspbuf, "SETUP %s/%s RTSP/1.0\r\n"
 				"CSeq: %d\r\n"
 				"Transport: RTP/AVP;multicast\r\n"
 				"Authorization: Basic %s\r\n\r\n", m_strContentBase.c_str(),
-				track.trackStyle.c_str(), track.trackIdStr.data(), m_uiCseq++,
+				track.controlSuffix.c_str(), m_uiCseq++,
 				m_strAuthorization.c_str());
 	}
 		break;
@@ -286,11 +286,11 @@ inline void RtspPlayer::sendSetup(unsigned int trackIndex) {
 			throw std::runtime_error("open udp sock err");
 		}
 		int port = m_apUdpSock[trackIndex]->get_local_port();
-		iLen = sprintf(acRtspbuf, "SETUP %s/%s%s RTSP/1.0\r\n"
+		iLen = sprintf(acRtspbuf, "SETUP %s/%s RTSP/1.0\r\n"
 				"CSeq: %d\r\n"
 				"Transport: RTP/AVP;unicast;client_port=%d-%d\r\n"
 				"Authorization: Basic %s\r\n\r\n", m_strContentBase.c_str(),
-				track.trackStyle.c_str(), track.trackIdStr.data(), m_uiCseq++, port,
+				track.controlSuffix.c_str(), m_uiCseq++, port,
 				port + 1, m_strAuthorization.c_str());
 	}
 		break;
@@ -456,12 +456,12 @@ void RtspPlayer::HandleResPAUSE(const Parser& parser, bool bPause) {
             vector<string> vec = split(strRtpInfo, ",");
             for(auto &strTrack : vec){
                 strTrack.append(";");
-                auto strTrackId = FindField(strTrack.data(), m_aTrackInfo[0].trackStyle.data(), ";");
+                auto strControlSuffix = strTrack.substr(1 + strTrack.find_last_of('/'),strTrack.find(';') - strTrack.find_last_of('/') - 1);
                 auto strRtpTime = FindField(strTrack.data(), "rtptime=", ";");
-                auto iIdx = getTrackIndex(atoi(strTrackId.data()));
+                auto iIdx = getTrackIndex(strControlSuffix);
                 m_adFistStamp[iIdx] = atoll(strRtpTime.data());
                 m_adNowStamp[iIdx] = m_adFistStamp[iIdx];
-                DebugL << "rtptime:" << strTrackId <<" " << strRtpTime;
+                DebugL << "rtptime:" << strControlSuffix <<" " << strRtpTime;
             }
         }
 		_onPlayResult(SockException(Err_success, "rtsp play success"));

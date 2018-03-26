@@ -134,6 +134,15 @@ private:
 		}
 		return -1;
 	}
+    inline int getTrackIndexByControlSuffix(const string &controlSuffix) {
+        for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
+            if (controlSuffix == m_aTrackInfo[i].controlSuffix) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
 	inline void onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr &addr);
 	inline void startListenPeerUdpData();
 

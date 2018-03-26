@@ -44,11 +44,10 @@ class RtspTrack{
 public:
 	uint8_t PT;
 	uint8_t trackId;
-    string trackIdStr;
     uint8_t interleaved;
 	TrackType type = (TrackType) -1;
 	string trackSdp;
-	string trackStyle;
+    string controlSuffix;
 	bool inited;
 	uint32_t ssrc = 0;
 	uint16_t seq;

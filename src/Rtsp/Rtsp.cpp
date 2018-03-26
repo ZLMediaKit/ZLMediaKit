@@ -50,65 +50,57 @@ string FindField(const char* buf, const char* start, const char *end ,int bufSiz
 	return string(msg_start, msg_end);
 }
 int parserSDP(const string& sdp, RtspTrack Track[2]) {
-	string track_str;
-	if (sdp.find("trackID=") != string::npos) {
-		track_str = "trackID=";
-	}else if (sdp.find("track") != string::npos) {
-		track_str = "track";
-	}else if (sdp.find("streamid=") != string::npos) {
-		track_str = "streamid=";
-	}else if (sdp.find("stream") != string::npos) {
-		track_str = "stream";
-	}
 	int track_cnt = 0;
-	string::size_type pos_head = sdp.find("m=");
-	string::size_type pos_end = 0;
-	string IDStr;
-	int TrackID;
-	string mid;
-	while (true) {
-		IDStr = FindField(sdp.c_str() + pos_head, track_str.c_str(), "\r\n");
-		if (IDStr == "") {
-			break;
-		}
-        if(strcasecmp(IDStr.data(),"video") == 0){
-            TrackID = 0;
-        }else if(strcasecmp(IDStr.data(),"audio") == 0){
-            TrackID = 1;
-        }else{
-            TrackID = atoi(IDStr.c_str());
-        }
-		pos_end = sdp.find("m=", pos_head + 2);
+	string::size_type pos_head = 0;
+	while ((pos_head = sdp.find("m=",pos_head)) != string::npos ) {
+        auto pos_end = sdp.find("m=", pos_head + 2);
 		if (pos_end == string::npos) {
 			pos_end = sdp.size();
 		}
-		mid = sdp.substr(pos_head, pos_end - pos_head);
-		Track[track_cnt].trackSdp = mid;
-		Track[track_cnt].trackStyle = track_str;
+		auto sdp_mid = sdp.substr(pos_head, pos_end - pos_head);
+		Track[track_cnt].trackSdp = sdp_mid;
 		Track[track_cnt].inited = false;
-		Track[track_cnt].trackId = TrackID;
-        Track[track_cnt].trackIdStr = IDStr;
-		Track[track_cnt].PT = atoi(FindField(mid.c_str(), "rtpmap:", " ").c_str());
-		if (mid.find("m=video") != string::npos) {
+		Track[track_cnt].PT = atoi(FindField(sdp_mid.c_str(), "a=rtpmap:", " ").c_str());
+        auto control = string("/") + trim(FindField(sdp_mid.c_str(), "a=control:", "\n"));
+        Track[track_cnt].controlSuffix = control.substr(1 + control.find_last_of('/'));
+
+		if (sdp_mid.find("m=video") != string::npos) {
 			//视频通道
 			Track[track_cnt].type = TrackVideo;
-		} else if (mid.find("m=audio") != string::npos) {
+            Track[track_cnt].trackId = 0;
+        } else if (sdp_mid.find("m=audio") != string::npos) {
 			//音频通道
 			Track[track_cnt].type = TrackAudio;
-		} else {
+            Track[track_cnt].trackId = 1;
+        } else {
 			//不识别的track
-			return 0;
+			return track_cnt;
 		}
 		pos_head = pos_end;
-		if (track_cnt++ > 2) {
-			//最大支持2个通道
-			return 0;
-		}
+        track_cnt++;
 	}
 	return track_cnt;
-
 }
-
+//static  onceToken s_token([](){
+//   string str = "v=0\n"
+//           "o=- 1001 1 IN IP4 192.168.0.22\n"
+//           "s=VCP IPC Realtime stream\n"
+//           "m=video 0 RTP/AVP 105\n"
+//           "c=IN IP4 192.168.0.22\n"
+//           "a=control:rtsp://192.168.0.22/media/video1/video\n"
+//           "a=rtpmap:105 H264/90000\n"
+//           "a=fmtp:105 profile-level-id=64001f; packetization-mode=1; sprop-parameter-sets=Z2QAH6wrUCgC3QgAAB9AAAYahCAA,aO4xsg==\n"
+//           "a=recvonly\n"
+//           "m=application 0 RTP/AVP 107\n"
+//           "c=IN IP4 192.168.0.22\n"
+//           "a=control:rtsp://192.168.0.22/media/video1/metadata\n"
+//           "a=rtpmap:107 vnd.onvif.metadata/90000\n"
+//           "a=fmtp:107 DecoderTag=h3c-v3 RTCP=0\n"
+//           "a=recvonly";
+//    RtspTrack track[2];
+//    parserSDP(str,track);
+//    track[0].inited=true;
+//});
 bool MakeNalu(char in, NALU &nal) {
 	nal.forbidden_zero_bit = in >> 7;
 	if (nal.forbidden_zero_bit) {
