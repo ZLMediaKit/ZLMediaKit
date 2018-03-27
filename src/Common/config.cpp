@@ -287,21 +287,11 @@ const char kFileBufSize[] = HLS_FIELD"fileBufSize";
 #define HLS_FILE_PATH (HTTP_ROOT_PATH)
 const char kFilePath[] = HLS_FIELD"filePath";
 
-//HTTP访问url前缀
-#define HTTP_PREFIX (StrPrinter << "http://${" << VHOST_KEY << "}:" << HTTP_PORT << endl)
-const char kHttpPrefix[] = HLS_FIELD"httpPrefix";
-
-#define HTTP_PREFIX_DEFAULT_VHOST (StrPrinter << "http://" << SockUtil::get_local_ip() << ":" << HTTP_PORT << endl)
-const char kHttpPrefixDefaultVhost[] = HLS_FIELD"httpPrefixDefaultVhost";
-
 onceToken token([](){
 	mINI::Instance()[kSegmentDuration] = HLS_SEGMENT_DURATION;
 	mINI::Instance()[kSegmentNum] = HLS_SEGMENT_NUM;
 	mINI::Instance()[kFileBufSize] = HLS_FILE_BUF_SIZE;
 	mINI::Instance()[kFilePath] = HLS_FILE_PATH;
-	mINI::Instance()[kHttpPrefix] = HTTP_PREFIX;
-	mINI::Instance()[kHttpPrefixDefaultVhost] = HTTP_PREFIX_DEFAULT_VHOST;
-
 },nullptr);
 
 } //namespace Hls
