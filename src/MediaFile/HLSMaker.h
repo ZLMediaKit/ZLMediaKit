@@ -43,7 +43,6 @@ namespace MediaFile {
 class HLSMaker {
 public:
 	HLSMaker(const string &strM3u8File,
-			const string &strHttpUrl,
 			uint32_t ui32BufSize = 64 * 1024,
 			uint32_t ui32Duration = 5,
 			uint32_t ui32Num = 3);
@@ -63,7 +62,6 @@ public:
 private:
 	TSMaker m_ts;
 	string m_strM3u8File;
-	string m_strHttpUrl;
 	string m_strFileName;
 	string m_strOutputPrefix;
 	uint32_t m_ui32SegmentDuration;

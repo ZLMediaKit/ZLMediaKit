@@ -33,8 +33,10 @@ using namespace ZL::Util;
 namespace ZL {
 namespace MediaFile {
 
-HLSMaker::HLSMaker(const string& strM3u8File, const string& strHttpUrl,
-		uint32_t ui32BufSize, uint32_t ui32Duration, uint32_t ui32Num) {
+HLSMaker::HLSMaker(const string& strM3u8File,
+                   uint32_t ui32BufSize,
+                   uint32_t ui32Duration,
+                   uint32_t ui32Num) {
 	if (ui32BufSize < 16 * 1024) {
 		ui32BufSize = 16 * 1024;
 	}
@@ -44,7 +46,6 @@ HLSMaker::HLSMaker(const string& strM3u8File, const string& strHttpUrl,
 	m_ui32BufSize = ui32BufSize;
 	m_ui64TsCnt = 0;
 	m_strM3u8File = strM3u8File;
-	m_strHttpUrl = strHttpUrl.substr(0, strHttpUrl.find_last_of('/') + 1);
 	m_ui32NumSegments = ui32Num;
 	m_ui32SegmentDuration = ui32Duration;
 
@@ -85,6 +86,7 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
         snprintf(acWriteBuf,
                  sizeof(acWriteBuf),
                  "#EXTM3U\n"
+                 "#EXT-X-VERSION:3\n"
                  "#EXT-X-TARGETDURATION:%u\n"
                  "#EXT-X-MEDIA-SEQUENCE:%u\n",
                  maxSegmentDuration,
@@ -93,6 +95,7 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 		snprintf(acWriteBuf,
                  sizeof(acWriteBuf),
                  "#EXTM3U\n"
+                 "#EXT-X-VERSION:3\n"
                  "#EXT-X-TARGETDURATION:%u\n",
                  maxSegmentDuration);
 	}
@@ -104,9 +107,8 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 	for (unsigned int i = iFirstSegment; i < uiLastSegment; i++) {
 		snprintf(acWriteBuf,
                  sizeof(acWriteBuf),
-                 "#EXTINF:%.3f,\n%s%s-%u.ts\n",
+                 "#EXTINF:%.3f,\n%s-%u.ts\n",
                  m_iDurations[i-iFirstSegment]/1000.0,
-                 m_strHttpUrl.c_str(),
 				 m_strFileName.c_str(),
                  i);
 		if (fwrite(acWriteBuf, strlen(acWriteBuf), 1, pM3u8File.get()) != 1) {

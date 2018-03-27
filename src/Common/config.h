@@ -232,10 +232,6 @@ extern const char kSegmentNum[];
 extern const char kFileBufSize[];
 //录制文件路径
 extern const char kFilePath[];
-//HTTP访问url前缀
-extern const char kHttpPrefix[];
-//HTTP默认vhost访问url前缀
-extern const char kHttpPrefixDefaultVhost[];
 } //namespace Hls
 
 }  // namespace Config
