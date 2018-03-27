@@ -44,8 +44,6 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
                              bool enableHls,
                              bool enableMp4) {
 
-    GET_CONFIG_AND_REGISTER(string,hlsPrefix,Config::Hls::kHttpPrefix);
-    GET_CONFIG_AND_REGISTER(string,hlsPrefixDefaultVhost,Config::Hls::kHttpPrefixDefaultVhost);
     GET_CONFIG_AND_REGISTER(string,hlsPath,Config::Hls::kFilePath);
     GET_CONFIG_AND_REGISTER(uint32_t,hlsBufSize,Config::Hls::kFileBufSize);
     GET_CONFIG_AND_REGISTER(uint32_t,hlsDuration,Config::Hls::kSegmentDuration);
@@ -58,40 +56,17 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
     }
 
     if(enableHls) {
-        string hlsPrefixVhost = hlsPrefix;
-        do {
-            //生成hls http前缀
-            if (strVhost == DEFAULT_VHOST) {
-                hlsPrefixVhost = hlsPrefixDefaultVhost;
-                break;
-            }
-            auto pos_start = hlsPrefixVhost.find("${");
-            auto pos_end = hlsPrefixVhost.find("}");
-            if (pos_start != string::npos && pos_end != string::npos && pos_end - pos_start - 2 > 0) {
-                auto key = hlsPrefixVhost.substr(pos_start + 2, pos_end - pos_start - 2);
-                trim(key);
-                if (key == VHOST_KEY) {
-                    hlsPrefixVhost.replace(pos_start, pos_end - pos_start + 1, strVhost);
-                } else{
-                    //不识别的环境变量
-                    break;
-                }
-            }else{
-                //没有更多环境变量了
-                break;
-            }
-        } while (true);
-        m_hlsMaker.reset(new HLSMaker(hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8",
-                                      hlsPrefixVhost + "/" + strApp + "/" + strId + "/",
-                                      hlsBufSize, hlsDuration, hlsNum));
+        auto m3u8FilePath = hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
+        m_hlsMaker.reset(new HLSMaker(m3u8FilePath,hlsBufSize, hlsDuration, hlsNum));
     }
+
 #ifdef ENABLE_MP4V2
     GET_CONFIG_AND_REGISTER(string,recordPath,Config::Record::kFilePath);
     GET_CONFIG_AND_REGISTER(string,recordAppName,Config::Record::kAppName);
 
     if(enableMp4){
-        m_mp4Maker.reset(new Mp4Maker(recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/",
-                                      strVhost,strApp,strId,pPlayer));
+        auto mp4FilePath = recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
+        m_mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId,pPlayer));
     }
 #endif //ENABLE_MP4V2
 }
