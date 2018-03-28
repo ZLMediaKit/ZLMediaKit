@@ -49,13 +49,13 @@ public:
 
 	virtual ~HLSMaker();
 
-	//时间戳：参考频率90000
+	//时间戳：参考频率1000
 	void inputH264(	void *pData,
 					uint32_t ui32Length,
 					uint32_t ui32TimeStamp,
 					int iType);
 
-	//时间戳：参考频率90000
+	//时间戳：参考频率1000
 	void inputAAC(	void *pData,
 					uint32_t ui32Length,
 					uint32_t ui32TimeStamp);
@@ -68,7 +68,7 @@ private:
 	uint32_t m_ui32NumSegments;
 	uint64_t m_ui64TsCnt;
 	uint32_t m_ui32BufSize;
-	Ticker m_Timer;
+    uint32_t m_ui32LastStamp;
 	std::deque<int> m_iDurations;
 
 	bool write_index_file(int iFirstSegment, unsigned int uiLastSegment, int iEnd);
