@@ -76,7 +76,7 @@ MediaRecorder::~MediaRecorder() {
 
 void MediaRecorder::inputH264(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp, int iType) {
     if(m_hlsMaker){
-        m_hlsMaker->inputH264(pData, ui32Length, ui32TimeStamp * 90, iType);
+        m_hlsMaker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
     }
 #ifdef ENABLE_MP4V2
     if(m_mp4Maker){
@@ -87,7 +87,7 @@ void MediaRecorder::inputH264(void* pData, uint32_t ui32Length, uint32_t ui32Tim
 
 void MediaRecorder::inputAAC(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp) {
     if(m_hlsMaker){
-        m_hlsMaker->inputAAC(pData, ui32Length, ui32TimeStamp * 90);
+        m_hlsMaker->inputAAC(pData, ui32Length, ui32TimeStamp);
     }
 #ifdef ENABLE_MP4V2
     if(m_mp4Maker){

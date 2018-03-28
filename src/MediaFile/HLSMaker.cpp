@@ -128,9 +128,15 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 }
 
 void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp, int type) {
+    if(m_ui32LastStamp == 0){
+        m_ui32LastStamp = timeStamp;
+    }
+    int stampInc = timeStamp - m_ui32LastStamp;
+
 	switch (type) {
 	case 7: //SPS
-		if (m_Timer.elapsedTime() >= m_ui32SegmentDuration * 1000) {
+		if (stampInc >= m_ui32SegmentDuration * 1000) {
+            m_ui32LastStamp = timeStamp;
             //关闭文件
 			m_ts.clear();
 			auto strTmpFileName = StrPrinter << m_strOutputPrefix << '-' << (++m_ui64TsCnt) << ".ts" << endl;
@@ -139,8 +145,7 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp, int ty
 				return;
 			}
             //记录切片时间
-            m_iDurations.push_back(m_Timer.elapsedTime());
-            m_Timer.resetTime();
+            m_iDurations.push_back(stampInc);
 			if(removets()){
                 //删除老的时间戳
                 m_iDurations.pop_front();
@@ -149,10 +154,10 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp, int ty
 		}
 	case 1: //P
 			//insert aud frame before p and SPS frame
-		m_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, timeStamp);
+		m_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, timeStamp * 90);
 	case 5:		//IDR
 	case 8:		//PPS
-		m_ts.inputH264((char *) data, length, timeStamp);
+		m_ts.inputH264((char *) data, length, timeStamp * 90);
 		break;
 	default:
 		break;
@@ -160,15 +165,15 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp, int ty
 }
 
 void HLSMaker::inputAAC(void *data, uint32_t length, uint32_t timeStamp) {
-	m_ts.inputAAC((char *) data, length, timeStamp);
+    m_ts.inputAAC((char *) data, length, timeStamp * 90);
 }
 
 bool HLSMaker::removets() {
-	if (m_ui64TsCnt <= m_ui32NumSegments) {
+	if (m_ui64TsCnt < m_ui32NumSegments + 2) {
 		return false;
 	}
 	File::delete_file((StrPrinter << m_strOutputPrefix << "-"
-                                  << m_ui64TsCnt - m_ui32NumSegments - 1
+                                  << m_ui64TsCnt - m_ui32NumSegments - 2
                                   << ".ts" << endl).data());
     return true;
 }
