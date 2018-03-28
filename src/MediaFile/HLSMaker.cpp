@@ -64,7 +64,10 @@ HLSMaker::~HLSMaker() {
 bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, int iEnd) {
 	char acWriteBuf[1024];
     std::shared_ptr<FILE> pM3u8File(File::createfile_file(m_strM3u8File.data(), "w"),[](FILE *fp){
-        fclose(fp);
+        if(fp){
+            fflush(fp);
+            fclose(fp);
+        }
     });
 	if (!pM3u8File) {
 		WarnL << "Could not open temporary m3u8 index file (" << m_strM3u8File << "), no index file will be created";
@@ -75,7 +78,7 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
     }
 
     //最少1秒
-    int maxSegmentDuration = 1;
+    int maxSegmentDuration = 0;
     for (auto dur : m_iDurations) {
         dur /=1000;
         if(dur > maxSegmentDuration){
@@ -87,15 +90,17 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
                  sizeof(acWriteBuf),
                  "#EXTM3U\n"
                  "#EXT-X-VERSION:3\n"
+                 "#EXT-X-ALLOW-CACHE:NO\n"
                  "#EXT-X-TARGETDURATION:%u\n"
                  "#EXT-X-MEDIA-SEQUENCE:%u\n",
-                 maxSegmentDuration,
+                 maxSegmentDuration + 1,
                  iFirstSegment);
 	} else {
 		snprintf(acWriteBuf,
                  sizeof(acWriteBuf),
                  "#EXTM3U\n"
                  "#EXT-X-VERSION:3\n"
+                 "#EXT-X-ALLOW-CACHE:NO\n"
                  "#EXT-X-TARGETDURATION:%u\n",
                  maxSegmentDuration);
 	}
