@@ -132,6 +132,6 @@ bool getAVCInfo(const string& strSps,int &iVideoWidth, int &iVideoHeight, float 
 	}
 	h264GetWidthHeight(&tH264SpsInfo, &iVideoWidth, &iVideoHeight);
 	h264GeFramerate(&tH264SpsInfo, &iVideoFps);
-	//FatalL << iVideoWidth << " " << iVideoHeight << " " << iVideoFps;
+	//ErrorL << iVideoWidth << " " << iVideoHeight << " " << iVideoFps;
 	return true;
 }
