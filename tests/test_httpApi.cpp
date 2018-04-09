@@ -106,7 +106,7 @@ int main(int argc,char *argv[]){
 		//加载证书，证书包含公钥和私钥
 		SSL_Initor::Instance().loadServerPem((exePath() + ".pem").data());
 	}catch(...){
-		FatalL << "请把证书:" << (exeName() + ".pem") << "放置在本程序可执行程序同目录下:" << exeDir() << endl;
+		ErrorL << "请把证书:" << (exeName() + ".pem") << "放置在本程序可执行程序同目录下:" << exeDir() << endl;
 		return 0;
 	}
 #endif //ENABLE_OPENSSL

@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
     if (argc != 5) {
-        FatalL << "\r\n测试方法:./test_benchmark player_count play_interval rtxp_url rtp_type\r\n"
+        ErrorL << "\r\n测试方法:./test_benchmark player_count play_interval rtxp_url rtp_type\r\n"
                << "例如你想每隔50毫秒启动共计100个播放器（tcp方式播放rtsp://127.0.0.1/live/0 ）可以输入以下命令:\r\n"
                << "./test_benchmark 100 50 rtsp://127.0.0.1/live/0 0\r\n"
                << endl;

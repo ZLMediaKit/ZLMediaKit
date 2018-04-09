@@ -52,7 +52,7 @@ int main(int argc, char *argv[]){
 	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
 	if(argc != 3){
-		FatalL << "\r\n测试方法：./test_player rtxp_url rtp_type\r\n"
+		ErrorL << "\r\n测试方法：./test_player rtxp_url rtp_type\r\n"
 		       << "例如：./test_player rtsp://admin:123456@127.0.0.1/live/0 0\r\n"
 		       <<endl;
 		Logger::Destory();
