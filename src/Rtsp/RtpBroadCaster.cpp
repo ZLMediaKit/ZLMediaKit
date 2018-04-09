@@ -61,7 +61,7 @@ std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
 			return obtain(--iTry);
 		}
 		//分配完了,应该不可能到这里
-		FatalL;
+		ErrorL;
 		return nullptr;
 	}
 	m_setBadAddr.emplace(iGotAddr);
