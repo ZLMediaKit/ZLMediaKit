@@ -68,7 +68,7 @@ API_EXPORT PlayerContext API_CALL createPlayer() {
 	MediaPlayer::Ptr ret(new MediaPlayer());
 	s_mapPlayer.emplace(ret.get(), ret);
 	if(s_mapPlayer.size() > 16){
-		FatalL << s_mapPlayer.size();
+		ErrorL << s_mapPlayer.size();
 	}
 	return ret.get();
 }

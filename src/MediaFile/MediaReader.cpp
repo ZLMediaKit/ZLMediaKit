@@ -226,7 +226,7 @@ inline bool MediaReader::readVideoSample(int iTimeInc) {
 					break;
 				}
 			}else{
-				FatalL << "读取视频失败:" << iIdx + 1;
+				ErrorL << "读取视频失败:" << iIdx + 1;
 			}
 		}
 		m_video_current = iIdx;
@@ -248,7 +248,7 @@ inline bool MediaReader::readAudioSample(int iTimeInc) {
 					writeAAC(m_adts.data, m_adts.aac_frame_length, (double) m_audio_ms * i / m_audio_num_samples);
 				}
 			}else{
-				FatalL << "读取音频失败:" << i+ 1;
+				ErrorL << "读取音频失败:" << i+ 1;
 			}
 		}
 		m_audio_current = iNextSample;
