@@ -139,7 +139,7 @@ void HttpClient::onRecvBytes(const char* data, int size) {
 			for(auto &pr: _parser.getValues()){
 				printer << pr.first << ":" << pr.second << "\r\n";
 			}
-			FatalL << _totalBodySize << ":" << _recvedBodySize << "\r\n" << (printer << endl);
+            ErrorL << _totalBodySize << ":" << _recvedBodySize << "\r\n" << (printer << endl);
 			shutdown();
 			return;
 		}
@@ -168,7 +168,7 @@ void HttpClient::onRecvBytes(const char* data, int size) {
 	for(auto &pr: _parser.getValues()){
 		printer << pr.first << ":" << pr.second << "\r\n";
 	}
-	FatalL << _totalBodySize << ":" << _recvedBodySize << "\r\n" << (printer << endl);
+    ErrorL << _totalBodySize << ":" << _recvedBodySize << "\r\n" << (printer << endl);
 	shutdown();
 }
     
