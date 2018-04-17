@@ -36,7 +36,6 @@
 #include "Network/sockutil.h"
 
 using namespace std;
-using namespace ZL::Screen;
 using namespace ZL::Codec;
 using namespace ZL::Util;
 using namespace ZL::Thread;
@@ -44,55 +43,55 @@ using namespace ZL::Network;
 using namespace ZL::Rtsp;
 using namespace ZL::Player;
 
-int main(int argc, char *argv[]){
-	//设置退出信号处理函数
-	signal(SIGINT, [](int){EventPoller::Instance().shutdown();});
-	//设置日志
-	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
-	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
+int main(int argc, char *argv[]) {
+    //设置退出信号处理函数
+    signal(SIGINT, [](int) { EventPoller::Instance().shutdown(); });
+    //设置日志
+    Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
+    Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-	if(argc != 3){
-		ErrorL << "\r\n测试方法：./test_player rtxp_url rtp_type\r\n"
-		       << "例如：./test_player rtsp://admin:123456@127.0.0.1/live/0 0\r\n"
-		       <<endl;
-		Logger::Destory();
-		return 0;
+    if (argc != 3) {
+        ErrorL << "\r\n测试方法：./test_player rtxp_url rtp_type\r\n"
+               << "例如：./test_player rtsp://admin:123456@127.0.0.1/live/0 0\r\n"
+               << endl;
+        Logger::Destory();
+        return 0;
 
-	}
+    }
 
-	MediaPlayer::Ptr player(new MediaPlayer());
-	player->setOnPlayResult([](const SockException &ex) {
-		InfoL << "OnPlayResult:" << ex.what();
-	});
-	player->setOnShutdown([](const SockException &ex) {
-		ErrorL << "OnShutdown:" << ex.what();
-	});
-	(*player)[RtspPlayer::kRtpType] = atoi(argv[2]);
-	player->play(argv[1]);
+    MediaPlayer::Ptr player(new MediaPlayer());
+    player->setOnPlayResult([](const SockException &ex) {
+        InfoL << "OnPlayResult:" << ex.what();
+    });
+    player->setOnShutdown([](const SockException &ex) {
+        ErrorL << "OnShutdown:" << ex.what();
+    });
+    (*player)[RtspPlayer::kRtpType] = atoi(argv[2]);
+    player->play(argv[1]);
 
-	H264Decoder decoder;
-	YuvDisplayer displayer;
-	ThreadPool pool(1);
-	player->setOnVideoCB([&](const H264Frame &frame){
-		pool.async([&,frame]() {
-					AVFrame *pFrame = nullptr;
-					bool flag = decoder.inputVideo((unsigned char *)frame.data.data(), frame.data.size() ,frame.timeStamp, &pFrame);
-					if(flag) {
-						//DebugL << pFrame->pkt_pts;
-						displayer.displayYUV(pFrame);
-					}
-				});
-	});
+    H264Decoder decoder;
+    YuvDisplayer displayer;
+    player->setOnVideoCB([&](const H264Frame &frame) {
+        SDLDisplayerHelper::Instance().doTask([&, frame]() {
+            AVFrame *pFrame = nullptr;
+            bool flag = decoder.inputVideo((unsigned char *) frame.data.data(), frame.data.size(), frame.timeStamp, &pFrame);
+            if (flag) {
+                //DebugL << pFrame->pkt_pts;
+                displayer.displayYUV(pFrame);
+            }
+            return true;
+        });
+    });
 
-	EventPoller::Instance().runLoop();
+    EventPoller::Instance().runLoop();
 
 
-	static onceToken token(nullptr, []() {
-		UDPServer::Destory();
-		EventPoller::Destory();
-		AsyncTaskThread::Destory();
-		Logger::Destory();
-	});
-	return 0;
+    static onceToken token(nullptr, []() {
+        UDPServer::Destory();
+        EventPoller::Destory();
+        AsyncTaskThread::Destory();
+        Logger::Destory();
+    });
+    return 0;
 }
 
