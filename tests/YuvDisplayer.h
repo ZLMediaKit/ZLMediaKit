@@ -165,11 +165,8 @@ public:
                     SDL_RENDERER_TARGETTEXTURE = 0x00000008     /**< The renderer supports
                                                                      rendering to texture */
 #endif
-#if defined(__linux__)
-			_render = SDL_CreateRenderer(_win, -1, SDL_RENDERER_SOFTWARE);
-#else
+
 			_render = SDL_CreateRenderer(_win, -1, SDL_RENDERER_ACCELERATED);
-#endif
 		}
 		if (_render && !_texture) {
 			_texture = SDL_CreateTexture(_render, SDL_PIXELFORMAT_IYUV,
