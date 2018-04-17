@@ -59,39 +59,38 @@ int main(int argc, char *argv[]) {
 
     }
 
-    MediaPlayer::Ptr player(new MediaPlayer());
-    player->setOnPlayResult([](const SockException &ex) {
-        InfoL << "OnPlayResult:" << ex.what();
-    });
-    player->setOnShutdown([](const SockException &ex) {
-        ErrorL << "OnShutdown:" << ex.what();
-    });
-    (*player)[RtspPlayer::kRtpType] = atoi(argv[2]);
-    player->play(argv[1]);
-
-    H264Decoder decoder;
-    YuvDisplayer displayer;
-    player->setOnVideoCB([&](const H264Frame &frame) {
-        SDLDisplayerHelper::Instance().doTask([&, frame]() {
-            AVFrame *pFrame = nullptr;
-            bool flag = decoder.inputVideo((unsigned char *) frame.data.data(), frame.data.size(), frame.timeStamp, &pFrame);
-            if (flag) {
-                //DebugL << pFrame->pkt_pts;
-                displayer.displayYUV(pFrame);
-            }
-            return true;
+    {
+        MediaPlayer::Ptr player(new MediaPlayer());
+        player->setOnPlayResult([](const SockException &ex) {
+            InfoL << "OnPlayResult:" << ex.what();
         });
-    });
+        player->setOnShutdown([](const SockException &ex) {
+            ErrorL << "OnShutdown:" << ex.what();
+        });
+        (*player)[RtspPlayer::kRtpType] = atoi(argv[2]);
+        player->play(argv[1]);
 
-    EventPoller::Instance().runLoop();
+        H264Decoder decoder;
+        YuvDisplayer displayer;
+        player->setOnVideoCB([&](const H264Frame &frame) {
+            SDLDisplayerHelper::Instance().doTask([&, frame]() {
+                AVFrame *pFrame = nullptr;
+                bool flag = decoder.inputVideo((unsigned char *) frame.data.data(), frame.data.size(), frame.timeStamp,
+                                               &pFrame);
+                if (flag) {
+                    //DebugL << pFrame->pkt_pts;
+                    displayer.displayYUV(pFrame);
+                }
+                return true;
+            });
+        });
 
-
-    static onceToken token(nullptr, []() {
-        UDPServer::Destory();
-        EventPoller::Destory();
-        AsyncTaskThread::Destory();
-        Logger::Destory();
-    });
+        EventPoller::Instance().runLoop();
+    }
+    UDPServer::Destory();
+    EventPoller::Destory();
+    AsyncTaskThread::Destory();
+    Logger::Destory();
     return 0;
 }
 
