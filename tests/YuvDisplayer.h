@@ -1,9 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
- *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * Copyright (c) 2017 xiongziliang <771730766@qq.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 #ifndef YUVDISPLAYER_H_
 #define YUVDISPLAYER_H_
 #include <stdexcept>
@@ -31,68 +28,176 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <SDL/SDL.h>
-#include <libavcodec/avcodec.h>
+#include "SDL2/SDL.h"
+#include "libavcodec/avcodec.h"
 #ifdef __cplusplus
 }
 #endif
 
-namespace ZL {
-namespace Screen {
+#if defined(_WIN32)
+#pragma comment(lib,"SDL2.lib")
+#endif //defined(_WIN32)
+
+using namespace ZL::Util;
+
+#define REFRESH_EVENT   (SDL_USEREVENT + 1)
+
+class SDLDisplayerHelper
+{
+public:
+    static SDLDisplayerHelper &Instance(){
+        static SDLDisplayerHelper *instance(new SDLDisplayerHelper);
+        return *instance;
+    }
+    static void Destory(){
+        delete &Instance();
+    }
+    template<typename FUN>
+    void doTask(FUN &&f){
+        {
+            lock_guard<mutex> lck(_mtxTask);
+            _taskList.emplace_back(f);
+        }
+        SDL_Event event;
+        event.type = REFRESH_EVENT;
+        SDL_PushEvent(&event);
+    }
+
+
+private:
+    SDLDisplayerHelper(){
+        _loopThread.reset(new std::thread(&SDLDisplayerHelper::runLoop,this));
+    };
+    ~SDLDisplayerHelper(){
+        doTask([](){return false;});
+        _loopThread->join();
+        _loopThread.reset();
+    };
+
+    void runLoop(){
+        bool flag = true;
+        std::function<bool ()> task;
+        SDL_Event event;
+        while(flag){
+            SDL_WaitEvent(&event);
+            if (event.type == REFRESH_EVENT)
+            {
+                {
+                    lock_guard<mutex> lck(_mtxTask);
+                    if(_taskList.empty()){
+                        //not reachable
+                        continue;
+                    }
+                    task = _taskList.front();
+                    _taskList.pop_front();
+                }
+                flag = task();
+            }
+
+        }
+    }
+
+
+    std::deque<std::function<bool ()> > _taskList;
+    std::shared_ptr<thread> _loopThread;
+    std::mutex _mtxTask;
+
+};
 
 class YuvDisplayer {
 public:
-	YuvDisplayer(){
-		static onceToken token([]() {
-			if(SDL_Init(SDL_INIT_EVERYTHING) == -1) {
-				throw std::runtime_error("初始化SDL失败");
-			}
-		}, []() {
-			SDL_Quit();
-		});
+	YuvDisplayer(void *hwnd = nullptr,const char *title = "untitled"){
+
+        static onceToken token([]() {
+            if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO) == -1) {
+                string err = "初始化SDL失败:";
+                err+= SDL_GetError();
+                ErrorL << err;
+                throw std::runtime_error(err);
+            }
+            SDL_LogSetAllPriority(SDL_LOG_PRIORITY_CRITICAL);
+            SDL_LogSetOutputFunction([](void *userdata, int category, SDL_LogPriority priority, const char *message){
+                DebugL << category << " " <<  priority << message;
+            },nullptr);
+            InfoL << "SDL_Init";
+        }, []() {
+            SDLDisplayerHelper::Destory();
+            SDL_Quit();
+            InfoL << "SDL_Quit";
+        });
+
+		_title = title;
+		_hwnd = hwnd;
 	}
 	virtual ~YuvDisplayer(){
-		if(m_pOverlay){
-			SDL_FreeYUVOverlay(m_pOverlay);
+		if (_texture) {
+			SDL_DestroyTexture(_texture);
+			_texture = nullptr;
+		}
+		if (_render) {
+			SDL_DestroyRenderer(_render);
+			_render = nullptr;
+		}
+		if (_win) {
+			SDL_DestroyWindow(_win);
+			_win = nullptr;
 		}
 	}
 	bool displayYUV(AVFrame *pFrame){
-		if (!m_pScreen) {
-			/* Set up the screen */
-			m_pScreen = SDL_SetVideoMode(1366, 768, 16, SDL_SWSURFACE);
+		if (!_win) {
+			if (_hwnd) {
+				_win = SDL_CreateWindowFrom(_hwnd);
+			}else {
+				_win = SDL_CreateWindow(_title.data(),
+										SDL_WINDOWPOS_UNDEFINED,
+										SDL_WINDOWPOS_UNDEFINED,
+										pFrame->width,
+										pFrame->height,
+										SDL_WINDOW_OPENGL);
+			}
 		}
-
-		if (!m_pOverlay && m_pScreen) {
-			/* Create a YUV overlay */
-			m_pOverlay = SDL_CreateYUVOverlay(pFrame->width,  pFrame->height, SDL_YV12_OVERLAY, m_pScreen);
-			/* Set the window caption */
-			SDL_WM_SetCaption("YUV Window", NULL);
+		if (_win && ! _render){
+#if 0
+			SDL_RENDERER_SOFTWARE = 0x00000001,         /**< The renderer is a software fallback */
+                    SDL_RENDERER_ACCELERATED = 0x00000002,      /**< The renderer uses hardware
+                                                                     acceleration */
+                    SDL_RENDERER_PRESENTVSYNC = 0x00000004,     /**< Present is synchronized
+                                                                     with the refresh rate */
+                    SDL_RENDERER_TARGETTEXTURE = 0x00000008     /**< The renderer supports
+                                                                     rendering to texture */
+#endif
+#if defined(__linux__)
+			_render = SDL_CreateRenderer(_win, -1, SDL_RENDERER_SOFTWARE);
+#else
+			_render = SDL_CreateRenderer(_win, -1, SDL_RENDERER_ACCELERATED);
+#endif
 		}
-		if (m_pOverlay) {
-			/* Apply the image to the screen */
-			m_pOverlay->pixels[0] = pFrame->data[0];
-			m_pOverlay->pixels[2] = pFrame->data[1];
-			m_pOverlay->pixels[1] = pFrame->data[2];
+		if (_render && !_texture) {
+			_texture = SDL_CreateTexture(_render, SDL_PIXELFORMAT_IYUV,
+										 SDL_TEXTUREACCESS_STREAMING,
+										 pFrame->width,
+										 pFrame->height);
+		}
+		if (_texture) {
+			SDL_UpdateYUVTexture(_texture, nullptr,
+								 pFrame->data[0], pFrame->linesize[0],
+								 pFrame->data[1], pFrame->linesize[1],
+								 pFrame->data[2], pFrame->linesize[2]);
 
-			m_pOverlay->pitches[0] = pFrame->linesize[0];
-			m_pOverlay->pitches[2] = pFrame->linesize[1];
-			m_pOverlay->pitches[1] = pFrame->linesize[2];
-
-			/* Update the screen */
-			SDL_Rect rect = { 0 ,0 ,1366,768};
-			SDL_LockYUVOverlay(m_pOverlay);
-			SDL_DisplayYUVOverlay(m_pOverlay, &rect);
-			SDL_UnlockYUVOverlay(m_pOverlay);
+			//SDL_UpdateTexture(_texture, nullptr, pFrame->data[0], pFrame->linesize[0]);
+			SDL_RenderClear(_render);
+			SDL_RenderCopy(_render, _texture, nullptr, nullptr);
+			SDL_RenderPresent(_render);
 			return true;
 		}
 		return false;
 	}
 private:
-	SDL_Surface* m_pScreen = nullptr;
-	SDL_Overlay* m_pOverlay = nullptr;
+	string _title;
+	SDL_Window *_win = nullptr;
+	SDL_Renderer *_render = nullptr;
+	SDL_Texture *_texture = nullptr;
+	void *_hwnd = nullptr;
 };
-
-} /* namespace Screen */
-} /* namespace ZL */
 
 #endif /* YUVDISPLAYER_H_ */
