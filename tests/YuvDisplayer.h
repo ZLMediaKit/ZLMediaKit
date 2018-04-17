@@ -123,7 +123,6 @@ public:
         }, []() {
             SDLDisplayerHelper::Destory();
             SDL_Quit();
-            InfoL << "SDL_Quit";
         });
 
 		_title = title;
