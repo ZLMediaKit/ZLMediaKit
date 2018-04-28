@@ -139,6 +139,7 @@ private:
 	bool m_bHaveAudio = false;
 	bool m_bHaveVideo= false;
 	float m_fDuration = 0;
+	bool m_bParseSpsDelay = false;
 
 	function<void(const H264Frame &frame)> onVideo;
 	function<void(const AdtsFrame &frame)> onAudio;
