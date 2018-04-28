@@ -211,6 +211,11 @@ inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
 		throw std::runtime_error("只支持264格式的视频！");
 	}
 	string sps_pps = FindField(video.trackSdp.c_str(), "sprop-parameter-sets=", "\r\n");
+	if(sps_pps.empty()){
+		//SDP里面没SPS_PPS描述，需要在后续rtp中获取
+		m_bParseSpsDelay  = true;
+		return;
+	}
 	string base64_SPS = FindField(sps_pps.c_str(), NULL, ",");
 	string base64_PPS = FindField(sps_pps.c_str(), ",", NULL);
 	if(base64_PPS.back() == ';'){
@@ -270,8 +275,14 @@ inline void RtpParser::_onGetH264(H264Frame& frame) {
 	case 1:  //P
 		onGetH264(frame);
 		break;
-	case 7://SPS
-		m_strSPS=frame.data;break;
+	case 7: {//SPS
+		m_strSPS = frame.data;
+		if(m_bParseSpsDelay && !m_strSPS.empty()){
+			m_bParseSpsDelay = false;
+			getAVCInfo(m_strSPS, m_iVideoWidth, m_iVideoHeight, m_fVideoFps);
+		}
+	}
+		break;
 	case 8://PPS
 		m_strPPS=frame.data;break;
 	default:
