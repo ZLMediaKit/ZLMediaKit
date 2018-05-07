@@ -25,6 +25,9 @@ file(GLOB MediaKit_src_list ${MediaKit_Root}/*/*.cpp ${MediaKit_Root}/*/*.h ${Me
 #去除win32的适配代码
 if (NOT WIN32)
     list(REMOVE_ITEM ToolKit_src_list ${ToolKit_Root}/win32/getopt.c)
+else()
+     #防止Windows.h包含Winsock.h
+    add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif ()
 
 #添加两个静态库
