@@ -476,12 +476,12 @@ inline void RtspSession::send_SessionNotFound() {
 			dateHeader().data());
 	send(m_pcBuf, n);
 
-	/*405 Method Not Allowed*/
+	/*40 Method Not Allowed*/
 
 }
 bool RtspSession::handleReq_Setup() {
 //处理setup命令，该函数可能进入多次
-    auto controlSuffix = m_parser.Url().substr(1 + m_parser.Url().find_last_of('/'));
+    auto controlSuffix = m_parser.Url().substr(1 + m_parser.Url().rfind('/'));
 	int trackIdx = getTrackIndexByControlSuffix(controlSuffix);
 	if (trackIdx == -1) {
 		//未找到相应track

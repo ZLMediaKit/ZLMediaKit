@@ -463,7 +463,7 @@ void RtspPlayer::HandleResPAUSE(const Parser& parser, bool bPause) {
             vector<string> vec = split(strRtpInfo, ",");
             for(auto &strTrack : vec){
                 strTrack.append(";");
-                auto strControlSuffix = strTrack.substr(1 + strTrack.find_last_of('/'),strTrack.find(';') - strTrack.find_last_of('/') - 1);
+                auto strControlSuffix = strTrack.substr(1 + strTrack.rfind('/'),strTrack.find(';') - strTrack.rfind('/') - 1);
                 auto strRtpTime = FindField(strTrack.data(), "rtptime=", ";");
                 auto iIdx = getTrackIndex(strControlSuffix);
                 m_adFistStamp[iIdx] = atoll(strRtpTime.data());
