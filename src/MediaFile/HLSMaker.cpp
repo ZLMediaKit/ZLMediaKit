@@ -49,15 +49,15 @@ HLSMaker::HLSMaker(const string& strM3u8File,
 	m_ui32NumSegments = ui32Num;
 	m_ui32SegmentDuration = ui32Duration;
 
-	m_strOutputPrefix = strM3u8File.substr(0, strM3u8File.find_last_of('.'));
-	m_strFileName = m_strOutputPrefix.substr(m_strOutputPrefix.find_last_of('/') + 1);
+	m_strOutputPrefix = strM3u8File.substr(0, strM3u8File.rfind('.'));
+	m_strFileName = m_strOutputPrefix.substr(m_strOutputPrefix.rfind('/') + 1);
 	m_ts.init(m_strOutputPrefix + "-0.ts", m_ui32BufSize);
 }
 
 
 HLSMaker::~HLSMaker() {
 	m_ts.clear();
-	string strDir = m_strOutputPrefix.substr(0,m_strOutputPrefix.find_last_of('/'));
+	string strDir = m_strOutputPrefix.substr(0,m_strOutputPrefix.rfind('/'));
 	File::delete_file(strDir.data());
 }
 

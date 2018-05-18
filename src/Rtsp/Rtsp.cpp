@@ -62,7 +62,7 @@ int parserSDP(const string& sdp, RtspTrack Track[2]) {
 		Track[track_cnt].inited = false;
 		Track[track_cnt].PT = atoi(FindField(sdp_mid.c_str(), "a=rtpmap:", " ").c_str());
         auto control = string("/") + trim(FindField(sdp_mid.c_str(), "a=control:", "\n"));
-        Track[track_cnt].controlSuffix = control.substr(1 + control.find_last_of('/'));
+        Track[track_cnt].controlSuffix = control.substr(1 + control.rfind('/'));
 
 		if (sdp_mid.find("m=video") != string::npos) {
 			//视频通道
