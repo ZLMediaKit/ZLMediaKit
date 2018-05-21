@@ -147,6 +147,9 @@ void RtspPlayer::play(const char* strUrl, const char *strUser, const char *strPw
 	}
 
 	m_strUrl = strUrl;
+	if(!(*this)[PlayerBase::kNetAdapter].empty()){
+		setNetAdapter((*this)[PlayerBase::kNetAdapter]);
+	}
 	startConnect(ip.data(), port);
 }
 void RtspPlayer::onConnect(const SockException &err){
