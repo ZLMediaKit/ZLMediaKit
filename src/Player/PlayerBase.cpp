@@ -37,6 +37,7 @@ using namespace ZL::Rtsp;
 namespace ZL {
 namespace Player {
 
+const char PlayerBase::kNetAdapter[] = "net_adapter";
 
 PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 	string prefix = FindField(strUrl, NULL, "://");

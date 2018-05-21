@@ -51,7 +51,8 @@ public:
 		RTP_MULTICAST = 2,
 	} eRtpType;
     static Ptr createPlayer(const char* strUrl);
-    
+	static const char kNetAdapter[];
+
 	PlayerBase(){};
 	virtual ~PlayerBase(){};
 	virtual void play(const char* strUrl) {};
@@ -79,8 +80,6 @@ public:
     virtual float getDuration() const { return 0;};
     virtual float getProgress() const { return 0;};
     virtual void seekTo(float fProgress) {};
-    
-
 protected:
     virtual void onShutdown(const SockException &ex) {};
     virtual void onPlayResult(const SockException &ex) {};

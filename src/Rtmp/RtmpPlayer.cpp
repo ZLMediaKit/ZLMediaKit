@@ -75,7 +75,6 @@ void RtmpPlayer::teardown() {
         shutdown();
 	}
 }
-
 void RtmpPlayer::play(const char* strUrl)  {
 	teardown();
 	string strHost = FindField(strUrl, "://", "/");
@@ -96,6 +95,9 @@ void RtmpPlayer::play(const char* strUrl)  {
 	} else {
         //服务器域名
 		strHost = FindField(strHost.c_str(), NULL, ":");
+	}
+	if(!(*this)[PlayerBase::kNetAdapter].empty()){
+		setNetAdapter((*this)[PlayerBase::kNetAdapter]);
 	}
 	startConnect(strHost, iPort);
 }
