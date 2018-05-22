@@ -48,6 +48,7 @@ HLSMaker::HLSMaker(const string& strM3u8File,
 	m_strM3u8File = strM3u8File;
 	m_ui32NumSegments = ui32Num;
 	m_ui32SegmentDuration = ui32Duration;
+	m_ui32LastStamp = 0;
 
 	m_strOutputPrefix = strM3u8File.substr(0, strM3u8File.rfind('.'));
 	m_strFileName = m_strOutputPrefix.substr(m_strOutputPrefix.rfind('/') + 1);
