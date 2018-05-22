@@ -648,7 +648,8 @@ bool RtspSession::handleReq_Play() {
 		send_SessionNotFound();
 		return false;
 	}
-    auto onRes = [this](const string &err){
+	auto strRange = m_parser["Range"];
+    auto onRes = [this,strRange](const string &err){
         bool authSuccess = err.empty();
         char response[2 * 1024];
         m_pcBuf = response;
@@ -690,7 +691,6 @@ bool RtspSession::handleReq_Play() {
         auto pMediaSrc = m_pMediaSrc.lock();
         uint32_t iStamp = 0;
         if(pMediaSrc){
-            auto strRange = m_parser["Range"];
             if (strRange.size() && !m_bFirstPlay) {
                 auto strStart = FindField(strRange.data(), "npt=", "-");
                 if (strStart == "now") {
