@@ -70,17 +70,17 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 					getAVCInfo(m_strSps, (int &)m_video_width, (int &)m_video_height, framerate);
 					m_video_framerate = framerate;
 					m_strSps = string("\x0\x0\x0\x1",4) + m_strSps;
-					free(seqheader[ix]);
+					MP4Free(seqheader[ix]);
 				}
-				free(seqheader);
-				free(seqheadersize);
+				MP4Free(seqheader);
+				MP4Free(seqheadersize);
 				for (ix = 0; pictheadersize[ix] != 0; ix++) {
 					m_strPps.assign("\x0\x0\x0\x1",4);
 					m_strPps.append((char *)(pictheader[ix]), pictheadersize[ix]);
-					free(pictheader[ix]);
+					MP4Free(pictheader[ix]);
 				}
-				free(pictheader);
-				free(pictheadersize);
+				MP4Free(pictheader);
+				MP4Free(pictheadersize);
 			}
 			m_video_ms = 1000.0 * m_video_duration / m_video_timescale;
 			/*InfoL 	<< "\r\n"
@@ -111,7 +111,7 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 				makeAdtsHeader(m_strAacCfg, m_adts);
 				writeAdtsHeader(m_adts,m_adts.data);
 				getAACInfo(m_adts, (int &)m_audio_sample_rate, (int &)m_audio_num_channels);
-				free(ppConfig);
+				MP4Free(ppConfig);
 			}
 			m_audio_ms = 1000.0 * m_audio_duration / m_audio_sample_rate;
 			/*InfoL 	<< "\r\n"
