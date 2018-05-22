@@ -26,13 +26,13 @@
 
 #ifdef ENABLE_MP4V2
 
-#include <netinet/in.h>
 #include <sys/stat.h>
 #include "Common/config.h"
 #include "Mp4Maker.h"
 #include "MediaRecorder.h"
 #include "Util/File.h"
 #include "Util/mini.h"
+#include "Util/util.h"
 #include "Util/NoticeCenter.h"
 
 using namespace ZL::Util;
@@ -43,20 +43,17 @@ namespace MediaFile {
 string timeStr(const char *fmt) {
 	std::tm tm_snapshot;
 	auto time = ::time(NULL);
-#if defined(WIN32)
-	localtime_s(&tm_snapshot, &time); // thread-safe?
-	std::ostringstream oss;
-	oss << std::put_time(const_cast<std::tm*>(&tm_snapshot), fmt);
-	return oss.str();
+#if defined(_WIN32)
+	localtime_s(&tm_snapshot, &time); // thread-safe
 #else
 	localtime_r(&time, &tm_snapshot); // POSIX
+#endif
 	const size_t size = 1024;
 	char buffer[size];
 	auto success = std::strftime(buffer, size, fmt, &tm_snapshot);
 	if (0 == success)
 		return string(fmt);
 	return buffer;
-#endif
 }
 
 Mp4Maker::Mp4Maker(const string& strPath,
@@ -171,7 +168,11 @@ void Mp4Maker::createFile() {
 					+ strTime + ".mp4";
 	//----record 业务逻辑----//
 
+#if !defined(_WIN32)
 	File::createfile_path(strFileTmp.data(), S_IRWXO | S_IRWXG | S_IRWXU);
+#else
+	File::createfile_path(strFileTmp.data(), 0);
+#endif
 	m_hMp4 = MP4Create(strFileTmp.data());
 	if (m_hMp4 == MP4_INVALID_FILE_HANDLE) {
 		WarnL << "创建MP4文件失败:" << strFileTmp;
