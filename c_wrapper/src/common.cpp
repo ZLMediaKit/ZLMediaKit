@@ -132,16 +132,16 @@ API_EXPORT void API_CALL log_setLevel(LogType level){
 class LogoutChannel: public LogChannel {
 public:
 	LogoutChannel(const string &name, onLogOut cb, LogLevel level = LDebug)
-:LogChannel(name, level, "%Y-%m-%d %H:%M:%S"){
+:LogChannel(name, level){
 		_cb = cb;
 	}
 	virtual ~LogoutChannel(){}
 	void write(const LogInfo_ptr &logInfo){
-		if (level() > logInfo->getLevel()) {
+		if (level() > logInfo->_level) {
 			return;
 		}
 		stringstream strStream;
-		logInfo->format(strStream, timeFormat().data(), false);
+		logInfo->format(strStream, false);
 		auto strTmp = strStream.str();
 		if (_cb) {
 			_cb(strTmp.data(), strTmp.size());
