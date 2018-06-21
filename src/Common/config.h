@@ -181,6 +181,8 @@ extern const char kAuthBasic[];
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
 extern const char kPort[];
+extern const char kModifyStamp[];
+
 } //namespace RTMP
 
 

@@ -174,9 +174,11 @@ namespace Rtmp {
 
 #define RTMP_PORT 1935
 const char kPort[] = RTMP_FIELD"port";
+const char kModifyStamp[] = RTMP_FIELD"modifyStamp";
 
 onceToken token([](){
 	mINI::Instance()[kPort] = RTMP_PORT;
+	mINI::Instance()[kModifyStamp] = true;
 },nullptr);
 } //namespace RTMP
 

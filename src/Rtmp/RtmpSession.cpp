@@ -26,6 +26,7 @@
 
 
 #include "RtmpSession.h"
+#include "Common/config.h"
 #include "Util/onceToken.h"
 
 namespace ZL {
@@ -435,7 +436,10 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 		if (!m_pPublisherSrc) {
 			throw std::runtime_error("Not a rtmp publisher!");
 		}
-		chunkData.timeStamp = m_stampTicker[chunkData.typeId % 2].elapsedTime();
+		GET_CONFIG_AND_REGISTER(bool,rtmp_modify_stamp,Config::Rtmp::kModifyStamp);
+		if(rtmp_modify_stamp){
+			chunkData.timeStamp = m_stampTicker[chunkData.typeId % 2].elapsedTime();
+		}
 		m_pPublisherSrc->onGetMedia(std::make_shared<RtmpPacket>(chunkData));
 		if(!m_bPublisherSrcRegisted && m_pPublisherSrc->ready()){
 			m_bPublisherSrcRegisted = true;

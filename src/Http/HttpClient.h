@@ -71,13 +71,13 @@ public:
     virtual Buffer::Ptr readData() = 0;
 };
 
-class HttpBodyString : public HttpBody{
+class HttpStringBody : public HttpBody{
 public:
-    typedef std::shared_ptr<HttpBodyString> Ptr;
-    HttpBodyString(const string &str){
+    typedef std::shared_ptr<HttpStringBody> Ptr;
+    HttpStringBody(const string &str){
         _str = str;
     }
-    virtual ~HttpBodyString(){}
+    virtual ~HttpStringBody(){}
 
     uint64_t remainSize() override {
         return _str.size();
@@ -229,7 +229,7 @@ public:
         return *this;
     }
     void setBody(const string &body){
-        _body.reset(new HttpBodyString(body));
+        _body.reset(new HttpStringBody(body));
     }
     void setBody(const HttpBody::Ptr &body){
         _body = body;
