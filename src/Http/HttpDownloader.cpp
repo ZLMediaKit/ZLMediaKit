@@ -43,8 +43,6 @@ HttpDownloader::~HttpDownloader() {
 
 void HttpDownloader::startDownload(const string& url, const string& filePath,bool bAppend,float timeOutSecond) {
 	_filePath = filePath;
-    _timeOutSecond = timeOutSecond;
-    _downloadTicker.resetTime();
 	if(_filePath.empty()){
 		_filePath = exeDir() + "HttpDownloader/" + MD5(url).hexdigest();
 	}
@@ -68,7 +66,6 @@ void HttpDownloader::startDownload(const string& url, const string& filePath,boo
 }
 
 void HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {
-    _downloadTicker.resetTime();
     if(status != "200" && status != "206"){
 		//失败
 		shutdown();
@@ -83,22 +80,11 @@ void HttpDownloader::onResponseHeader(const string& status,const HttpHeader& hea
 }
 
 void HttpDownloader::onResponseBody(const char* buf, size_t size, size_t recvedSize, size_t totalSize) {
-    _downloadTicker.resetTime();
     if(_saveFile){
 		fwrite(buf,size,1,_saveFile);
 	}
 }
-//string getMd5Sum(const string &filePath){
-//	auto fp = File::createfile_file(filePath.data(),"rb");
-//	fseek(fp,0,SEEK_END);
-//	auto sz = ftell(fp);
-//	char tmp[sz];
-//	fseek(fp,0,SEEK_SET);
-//	auto rd = fread(tmp,1,sz,fp);
-//	InfoL << sz << " " << rd;
-//	fclose(fp);
-//	return MD5(string(tmp,sz)).hexdigest();
-//}
+
 void HttpDownloader::onResponseCompleted() {
 	closeFile();
 	//InfoL << "md5Sum:" << getMd5Sum(_filePath);
@@ -126,14 +112,6 @@ void HttpDownloader::closeFile() {
 		fclose(_saveFile);
 		_saveFile = nullptr;
 	}
-}
-
-void HttpDownloader::onManager(){
-    if(_downloadTicker.elapsedTime() > _timeOutSecond * 1000){
-        //超时
-        onDisconnect(SockException(Err_timeout,"download timeout"));
-        shutdown();
-    }
 }
 
 

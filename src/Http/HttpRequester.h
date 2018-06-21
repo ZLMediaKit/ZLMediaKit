@@ -39,18 +39,15 @@ public:
     typedef std::function<void(const SockException &ex,const string &status,const HttpHeader &header,const string &strRecvBody)> HttpRequesterResult;
     HttpRequester();
     virtual ~HttpRequester();
-    
     void startRequester(const string &url,const HttpRequesterResult &onResult,float timeOutSecond = 10);
 private:
     void onResponseHeader(const string &status,const HttpHeader &headers) override;
     void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize)  override;
     void onResponseCompleted() override;
     void onDisconnect(const SockException &ex) override;
-    void onManager() override;
+private:
     string _strRecvBody;
     HttpRequesterResult _onResult;
-    Ticker _resTicker;
-    float _timeOutSecond;
 };
 
 }//namespace Http

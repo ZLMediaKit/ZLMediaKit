@@ -52,16 +52,12 @@ private:
 	void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override;
 	void onResponseCompleted() override;
 	void onDisconnect(const SockException &ex) override;
-    void onManager() override;
-
     void closeFile();
-
+private:
 	FILE *_saveFile = nullptr;
 	string _filePath;
 	onDownloadResult _onResult;
-    uint32_t _timeOutSecond;
 	bool _bDownloadSuccess = false;
-    Ticker _downloadTicker;
 };
 
 } /* namespace Http */

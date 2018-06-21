@@ -24,6 +24,7 @@
  * SOFTWARE.
  */
 
+#include "Player/Player.h"
 #include "Common/config.h"
 #include "PlayerProxy.h"
 #include "Util/mini.h"
@@ -58,7 +59,7 @@ void PlayerProxy::play(const char* strUrl) {
 			return;
 		}
 		if(strongSelf->m_pChn){
-			strongSelf->m_pChn->inputH264((char *)data.data.data(), data.data.size(), 0);
+			strongSelf->m_pChn->inputH264((char *)data.data.data(), data.data.size(), data.timeStamp);
 		}else{
 			strongSelf->initMedia();
 		}
@@ -69,7 +70,7 @@ void PlayerProxy::play(const char* strUrl) {
 			return;
 		}
 		if(strongSelf->m_pChn){
-			strongSelf->m_pChn->inputAAC((char *)data.data, data.aac_frame_length, 0);
+			strongSelf->m_pChn->inputAAC((char *)data.data, data.aac_frame_length, data.timeStamp);
 		}else{
 			strongSelf->initMedia();
 		}
