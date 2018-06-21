@@ -59,18 +59,9 @@ void HttpRequester::onDisconnect(const SockException &ex){
     
 void HttpRequester::startRequester(const string &url,const HttpRequesterResult &onResult , float timeOutSecond){
     _onResult = onResult;
-    _resTicker.resetTime();
-    _timeOutSecond = timeOutSecond;
     sendRequest(url,timeOutSecond);
 }
 
-void HttpRequester::onManager(){
-    if(_onResult && _resTicker.elapsedTime() > _timeOutSecond * 1000){
-        //超时
-        onDisconnect(SockException(Err_timeout,"wait http response timeout"));
-        shutdown();
-    }
-}
 
 
 }//namespace Http

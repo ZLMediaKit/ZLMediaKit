@@ -36,6 +36,7 @@ HttpClient::HttpClient(){
 HttpClient::~HttpClient(){
 }
 void HttpClient::sendRequest(const string &strUrl,float fTimeOutSec){
+    _aliveTicker.resetTime();
     auto protocol = FindField(strUrl.data(), NULL , "://");
     uint16_t defaultPort;
     bool isHttps;
@@ -73,15 +74,15 @@ void HttpClient::sendRequest(const string &strUrl,float fTimeOutSec){
     _header.emplace(string("Accept-Language"),"zh-CN,zh;q=0.8");
     _header.emplace(string("User-Agent"),"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36");
     
-    if(!_body.empty()){
-        _header.emplace(string("Content-Length"),to_string(_body.size()));
+    if(_body && _body->remainSize()){
+        _header.emplace(string("Content-Length"),to_string(_body->remainSize()));
         _header.emplace(string("Content-Type"),"application/x-www-form-urlencoded; charset=UTF-8");
     }
 
     bool bChanged = (_lastHost != host + ":" + to_string(port)) || (_isHttps != isHttps);
     _lastHost = host + ":" + to_string(port);
     _isHttps = isHttps;
-
+    _fTimeOutSec = fTimeOutSec;
     if(!alive() || bChanged){
         //InfoL << "reconnet:" << _lastHost;
         startConnect(host, port,fTimeOutSec);
@@ -93,33 +94,39 @@ void HttpClient::sendRequest(const string &strUrl,float fTimeOutSec){
 
 
 void  HttpClient::onConnect(const SockException &ex) {
+    _aliveTicker.resetTime();
 	if(ex){
 		onDisconnect(ex);
 		return;
 	}
     _recvedBodySize = -1;
     _recvedResponse.clear();
-    send(_method + " ");
-    send(_path + " HTTP/1.1\r\n");
+    _StrPrinter printer;
+    printer << _method + " " << _path + " HTTP/1.1\r\n";
     for (auto &pr : _header) {
-        send(pr.first + ": ");
-        send(pr.second + "\r\n");
+        printer <<  pr.first + ": ";
+        printer << pr.second + "\r\n";
     }
-    send("\r\n");
-    if (!_body.empty()) {
-        send(_body);
-    }
+    send(printer << "\r\n");
+    onSend();
 }
 void  HttpClient::onRecv(const Buffer::Ptr &pBuf) {
 	onRecvBytes(pBuf->data(),pBuf->size());
 }
 
 void  HttpClient::onErr(const SockException &ex) {
+    if(ex.getErrCode() == Err_eof && _totalBodySize == INT64_MAX){
+        //如果Content-Length未指定 但服务器断开链接
+        //则认为本次http请求完成
+        _totalBodySize = 0;
+        onResponseCompleted();
+    }
 	onDisconnect(ex);
 }
 
 void HttpClient::onRecvBytes(const char* data, int size) {
-	if(_recvedBodySize == -1){
+    _aliveTicker.resetTime();
+    if(_recvedBodySize == -1){
 		//还没有收到http body，这只是http头
 		auto lastLen = _recvedResponse.size();
 		_recvedResponse.append(data,size);
@@ -132,6 +139,9 @@ void HttpClient::onRecvBytes(const char* data, int size) {
 		onResponseHeader(_parser.Url(),_parser.getValues());
 
 		_totalBodySize = atoll(((HttpHeader &)_parser.getValues())["Content-Length"].data());
+		if(_totalBodySize == 0){
+            _totalBodySize = INT64_MAX;
+		}
 		_recvedBodySize = _recvedResponse.size() - pos - 4;
 		if(_totalBodySize < _recvedBodySize){
 			//http body 比声明的大 这个不可能的
@@ -149,6 +159,7 @@ void HttpClient::onRecvBytes(const char* data, int size) {
 		}
 
 		if(_recvedBodySize >= _totalBodySize){
+            _totalBodySize = 0;
 			onResponseCompleted();
 		}
 		_recvedResponse.clear();
@@ -159,6 +170,9 @@ void HttpClient::onRecvBytes(const char* data, int size) {
 		_recvedBodySize += size;
 		onResponseBody(data,size,_recvedBodySize,_totalBodySize);
 		if(_recvedBodySize >= _totalBodySize){
+		    //如果接收的数据大于Content-Length
+            //则认为本次http请求完成
+            _totalBodySize = 0;
 			onResponseCompleted();
 		}
 		return;
@@ -171,8 +185,39 @@ void HttpClient::onRecvBytes(const char* data, int size) {
     ErrorL << _totalBodySize << ":" << _recvedBodySize << "\r\n" << (printer << endl);
 	shutdown();
 }
-    
-    
+
+void HttpClient::onSend() {
+    _aliveTicker.resetTime();
+    while (_body && _body->remainSize() && !isSocketBusy()){
+        auto buffer = _body->readData();
+        if (!buffer){
+            //数据发送结束或读取数据异常
+            break;
+        }
+        if(send(buffer) <= 0){
+            //发送数据失败，不需要回滚数据，因为发送前已经通过isSocketBusy()判断socket可写
+            //所以发送缓存区肯定未满,该buffer肯定已经写入socket
+            break;
+        }
+    }
+}
+
+void HttpClient::onManager() {
+    if(_aliveTicker.elapsedTime() > 3 * 1000 && _totalBodySize == INT64_MAX){
+        //如果Content-Length未指定 但接收数据超时
+        //则认为本次http请求完成
+        _totalBodySize = 0;
+        onResponseCompleted();
+    }
+
+    if(_fTimeOutSec > 0 && _aliveTicker.elapsedTime() > _fTimeOutSec * 1000){
+        //超时
+        onDisconnect(SockException(Err_timeout,"http request timeout"));
+        shutdown();
+    }
+}
+
+
 } /* namespace Http */
 } /* namespace ZL */
 
