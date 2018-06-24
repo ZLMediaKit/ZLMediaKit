@@ -75,6 +75,7 @@ private:
 		if(m_onShutdown){
 			m_onShutdown(ex);
 		}
+		m_pRtmpReader.reset();
 	}
 	void onPublishResult(const SockException &ex) {
 		m_pPublishTimer.reset();
