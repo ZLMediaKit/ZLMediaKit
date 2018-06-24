@@ -108,6 +108,7 @@ int domain(const string &playUrl, const string &pushUrl) {
 
         //事件轮询
         EventPoller::Instance().runLoop();
+        pusher.reset();
     }
     //删除事件监听
     NoticeCenter::Instance().delListener(nullptr);
@@ -121,7 +122,7 @@ int domain(const string &playUrl, const string &pushUrl) {
 
 
 int main(int argc, char *argv[]) {
-    return domain("rtmp://live.hkstv.hk.lxdns.com/live/hks", "rtmp://jizan.iok.la/live/stream");
+    return domain("rtmp://live.hkstv.hk.lxdns.com/live/hks", "rtmp://127.0.0.1/live/stream");
 }
 
 
