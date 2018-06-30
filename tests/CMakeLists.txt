@@ -11,7 +11,7 @@ find_package(AVUTIL QUIET)
 if(AVUTIL_FOUND)
     include_directories(${AVUTIL_INCLUDE_DIR})
     list(APPEND  LINK_LIB_LIST ${AVUTIL_LIBRARIES})
-    message(STATUS " found  libutil")
+    message(STATUS "found  libutil ${AVUTIL_LIBRARIES}")
 endif()
 
 #查找ffmpeg/libavcodec是否安装
@@ -19,7 +19,7 @@ find_package(AVCODEC QUIET)
 if(AVCODEC_FOUND)
     include_directories(${AVCODEC_INCLUDE_DIR})
     list(APPEND  LINK_LIB_LIST ${AVCODEC_LIBRARIES})
-    message(STATUS " found  libavcodec")
+    message(STATUS "found  libavcodec ${AVCODEC_LIBRARIES}")
 endif()
 
 aux_source_directory(. TEST_SRC_LIST)
