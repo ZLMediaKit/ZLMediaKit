@@ -73,16 +73,29 @@ int main(int argc, char *argv[]) {
         H264Decoder decoder;
         YuvDisplayer displayer;
         player->setOnVideoCB([&](const H264Frame &frame) {
+#ifndef __MACH__
             SDLDisplayerHelper::Instance().doTask([&, frame]() {
                 AVFrame *pFrame = nullptr;
                 bool flag = decoder.inputVideo((unsigned char *) frame.data.data(), frame.data.size(), frame.timeStamp,
                                                &pFrame);
                 if (flag) {
                     //DebugL << pFrame->pkt_pts;
-                    displayer.displayYUV(pFrame);
+                    EventPoller::Instance().sync([&](){
+                        displayer.displayYUV(pFrame);
+                    });
                 }
                 return true;
             });
+#else
+            AVFrame *pFrame = nullptr;
+            bool flag = decoder.inputVideo((unsigned char *) frame.data.data(), frame.data.size(), frame.timeStamp,
+                                           &pFrame);
+            if (flag) {
+                //DebugL << pFrame->pkt_pts;
+                displayer.displayYUV(pFrame);
+            }
+#endif
+
         });
 
         EventPoller::Instance().runLoop();

@@ -56,16 +56,19 @@ public:
 	void play(const char* strUrl) override;
     bool shutDown() override;
 private:
+	void initMedia();
+	void rePlay(const string &strUrl,int iFailedCnt);
+	void makeMuteAudio(uint32_t stamp);
+private:
     bool m_bEnableHls;
     bool m_bEnableMp4;
     int m_iRetryCount;
     DevChannel::Ptr m_pChn;
-	string m_strVhost;
-	string m_strApp;
-	string m_strSrc;
-private:
-	void initMedia();
-	void rePlay(const string &strUrl,int iFailedCnt);
+    string m_strVhost;
+    string m_strApp;
+    string m_strSrc;
+    bool m_haveAudio = false;
+    int m_iAudioIndex = 0;
 };
 
 } /* namespace Player */

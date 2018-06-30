@@ -42,6 +42,8 @@ using namespace ZL::Util;
 
 #define REFRESH_EVENT   (SDL_USEREVENT + 1)
 
+
+#ifndef __MACH__
 class SDLDisplayerHelper
 {
 public:
@@ -104,6 +106,8 @@ private:
 
 };
 
+#endif //__MACH__
+
 class YuvDisplayer {
 public:
 	YuvDisplayer(void *hwnd = nullptr,const char *title = "untitled"){
@@ -121,7 +125,9 @@ public:
             },nullptr);
             InfoL << "SDL_Init";
         }, []() {
+#ifndef __MACH__
             SDLDisplayerHelper::Destory();
+#endif
             SDL_Quit();
         });
 
