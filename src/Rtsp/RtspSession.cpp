@@ -282,7 +282,7 @@ void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const strin
                         "CSeq: %d\r\n"
                         "Server: %s-%0.2f(build in %s)\r\n"
                         "%s"
-                        "WWW-Authenticate:Digest realm=\"%s\",nonce=\"%s\"\r\n\r\n",
+                        "WWW-Authenticate: Digest realm=\"%s\",nonce=\"%s\"\r\n\r\n",
                         strongSelf->m_iCseq, SERVER_NAME,
                         RTSP_VERSION, RTSP_BUILDTIME,
                         dateHeader().data(), realm.data(), strongSelf->m_strNonce.data());
@@ -293,7 +293,7 @@ void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const strin
                         "CSeq: %d\r\n"
                         "Server: %s-%0.2f(build in %s)\r\n"
                         "%s"
-                        "WWW-Authenticate:Basic realm=\"%s\"\r\n\r\n",
+                        "WWW-Authenticate: Basic realm=\"%s\"\r\n\r\n",
                         strongSelf->m_iCseq, SERVER_NAME,
                         RTSP_VERSION, RTSP_BUILDTIME,
                         dateHeader().data(), realm.data());

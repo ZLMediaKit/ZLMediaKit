@@ -38,6 +38,11 @@ namespace ZL {
 namespace Player {
 
 const char PlayerBase::kNetAdapter[] = "net_adapter";
+const char PlayerBase::kRtpType[] = "rtp_type";
+const char PlayerBase::kRtspUser[] = "rtsp_user" ;
+const char PlayerBase::kRtspPwd[] = "rtsp_pwd";
+const char PlayerBase::kRtspPwdIsMD5[] = "rtsp_pwd_md5";
+
 
 PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 	string prefix = FindField(strUrl, NULL, "://");

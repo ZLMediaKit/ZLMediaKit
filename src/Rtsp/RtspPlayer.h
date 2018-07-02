@@ -54,9 +54,6 @@ namespace Rtsp {
 class RtspPlayer: public PlayerBase,public TcpClient {
 public:
 	typedef std::shared_ptr<RtspPlayer> Ptr;
-	//设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
-	//设置方法:player[RtspPlayer::kRtpType] = 0/1/2;
-	static const char kRtpType[];
 
 	RtspPlayer();
 	virtual ~RtspPlayer(void);
@@ -71,79 +68,38 @@ protected:
     float getProgressTime() const;
     void seekToTime(float fTime);
 private:
-	 void _onShutdown(const SockException &ex) {
-		WarnL << ex.getErrCode() << " " << ex.what();
-		m_pPlayTimer.reset();
-		m_pRtpTimer.reset();
-		m_pBeatTimer.reset();
-		onShutdown(ex);
-	}
-	void _onRecvRTP(const RtpPacket::Ptr &pRtppt, const RtspTrack &track) {
-		m_rtpTicker.resetTime();
-		onRecvRTP(pRtppt,track);
-	}
-	void _onPlayResult(const SockException &ex) {
-		WarnL << ex.getErrCode() << " " << ex.what();
-        m_pPlayTimer.reset();
-        m_pRtpTimer.reset();
-		if (!ex) {
-			m_rtpTicker.resetTime();
-			weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-			m_pRtpTimer.reset( new Timer(5, [weakSelf]() {
-				auto strongSelf=weakSelf.lock();
-				if(!strongSelf) {
-					return false;
-				}
-				if(strongSelf->m_rtpTicker.elapsedTime()>10000) {
-					//recv rtp timeout!
-					strongSelf->_onShutdown(SockException(Err_timeout,"recv rtp timeout"));
-					strongSelf->teardown();
-					return false;
-				}
-				return true;
-			}));
-		}
-		onPlayResult(ex);
-	}
+	void onShutdown_l(const SockException &ex);
+    void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, int iTrackidx);
+	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const RtspTrack &track);
+	void onPlayResult_l(const SockException &ex);
+
+    int getTrackIndex(const string &controlSuffix) const;
+    int getTrackIndex(int iTrackId) const;
 
 	void play(const char* strUrl, const char *strUser, const char *strPwd,  eRtpType eType);
 	void onConnect(const SockException &err) override;
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onErr(const SockException &ex) override;
 
-	void HandleResSETUP(const Parser &parser, unsigned int uiTrackIndex);
-	void HandleResDESCRIBE(const Parser &parser);
-	void HandleResPAUSE(const Parser &parser, bool bPause);
+	void handleResSETUP(const Parser &parser, unsigned int uiTrackIndex);
+	void handleResDESCRIBE(const Parser &parser);
+	bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
+	void handleResPAUSE(const Parser &parser, bool bPause);
 
 	//发数据给服务器
-	inline int write(const char *strMsg, ...);
-	inline int onProcess(const char* strBuf);
+	int onProcess(const char* strBuf);
 	//生成rtp包结构体
-	inline void splitRtp(unsigned char *pucData, unsigned int uiLen);
-	//发送SETUP命令
-	inline void sendSetup(unsigned int uiTrackIndex);
-    inline void sendPause(bool bPause,float fTime);
-	//处理一个rtp包
-	inline bool HandleOneRtp(int iTrackidx, unsigned char *ucData, unsigned int uiLen);
-	bool sendOptions();
-	inline void _onRecvRTP(const RtpPacket::Ptr &pRtppt, int iTrackidx);
-	inline int getTrackIndex(const string &controlSuffix) const{
-		for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-			if (m_aTrackInfo[i].controlSuffix == controlSuffix) {
-				return i;
-			}
-		}
-		return -1;
-	}
-    inline int getTrackIndex(int iTrackId) const{
-        for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-            if (m_aTrackInfo[i].trackId == iTrackId) {
-                return i;
-            }
-        }
-        return -1;
-    }
+	void splitRtp(unsigned char *pucData, unsigned int uiLen);
+    //处理一个rtp包
+    bool handleOneRtp(int iTrackidx, unsigned char *ucData, unsigned int uiLen);
 
+	//发送SETUP命令
+    bool sendSetup(unsigned int uiTrackIndex);
+    bool sendPause(bool bPause,float fTime);
+	bool sendOptions();
+	bool sendDescribe();
+    bool sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
+private:
 	string m_strUrl;
 	unsigned int m_uiTrackCnt = 0;
 	RtspTrack m_aTrackInfo[2];
@@ -158,7 +114,6 @@ private:
 	string m_strSession;
 	unsigned int m_uiCseq = 1;
 	uint32_t m_aui32SsrcErrorCnt[2] = { 0, 0 };
-	string m_strAuthorization;
 	string m_strContentBase;
 	eRtpType m_eType = RTP_TCP;
 	/* RTP包排序所用参数 */

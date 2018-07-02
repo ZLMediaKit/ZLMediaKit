@@ -51,7 +51,18 @@ public:
 		RTP_MULTICAST = 2,
 	} eRtpType;
     static Ptr createPlayer(const char* strUrl);
+
+    //指定网卡ip
 	static const char kNetAdapter[];
+	//设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
+	//设置方法:player[PlayerBase::kRtpType] = 0/1/2;
+	static const char kRtpType[];
+	//rtsp认证用户名
+	static const char kRtspUser[];
+	//rtsp认证用用户密码，可以是明文也可以是md5,md5密码生成方式 md5(username:realm:password)
+	static const char kRtspPwd[];
+	//rtsp认证用用户密码是否为md5
+	static const char kRtspPwdIsMD5[];
 
 	PlayerBase(){};
 	virtual ~PlayerBase(){};

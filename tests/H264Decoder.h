@@ -60,9 +60,9 @@ public:
 		if (!m_pContext) {
 			throw std::runtime_error("创建解码器失败");
 		}
-		if (pCodec->capabilities & CODEC_CAP_TRUNCATED) {
+		if (pCodec->capabilities & AV_CODEC_CAP_TRUNCATED) {
 			/* we do not send complete frames */
-			m_pContext->flags |= CODEC_FLAG_TRUNCATED;
+			m_pContext->flags |= AV_CODEC_FLAG_TRUNCATED;
 		}
 		if(avcodec_open2(m_pContext.get(), pCodec, NULL)< 0){
 			throw std::runtime_error("打开编码器失败");
