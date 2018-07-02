@@ -16,14 +16,14 @@ Windows | 已经完成移植
 ## 功能清单
 - RTSP
   - RTSP 服务器，支持RTMP/MP4转RTSP。
-  - RTSP 播放器，支持RTSP代理。
+  - RTSP 播放器，支持RTSP代理，支持生成静音音频
   - 支持 `rtp over udp` `rtp over tcp` `rtp over http` `rtp组播`  四种RTP传输方式 。
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口。
 
 - RTMP
   - RTMP 播放服务器，支持RTSP/MP4转RTMP。
   - RTMP 发布服务器，支持录制发布流。
-  - RTMP 播放器，支持RTMP代理。
+  - RTMP 播放器，支持RTMP代理，支持生成静音音频
   - RTMP 推流客户端。
   - 支持http-flv直播。
   - 支持https-flv直播。
