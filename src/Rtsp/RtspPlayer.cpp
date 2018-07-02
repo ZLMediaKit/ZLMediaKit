@@ -50,7 +50,7 @@ namespace Rtsp {
 		onRecvRTP_l(it->second, trackidx); \
 		m_amapRtpSort[trackidx].erase(it);
 
-const char kMd5Nonce[] = "md5_nonce";
+const char kRtspMd5Nonce[] = "rtsp_md5_nonce";
 const char kRtspRealm[] = "rtsp_realm";
 
 RtspPlayer::RtspPlayer(void){
@@ -69,7 +69,7 @@ void RtspPlayer::teardown(){
 		shutdown();
 	}
 
-    erase(kMd5Nonce);
+    erase(kRtspMd5Nonce);
     erase(kRtspRealm);
     m_uiTrackCnt = 0;
     m_onHandshake = nullptr;
@@ -233,12 +233,12 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
 
     if (sscanf(paramsStr.data(), "Digest realm=\"%[^\"]\", nonce=\"%[^\"]\", stale=%[a-zA-Z]", realm, nonce, stale) == 3) {
         (*this)[kRtspRealm] = realm;
-        (*this)[kMd5Nonce] = nonce;
+        (*this)[kRtspMd5Nonce] = nonce;
         return true;
     }
     if (sscanf(paramsStr.data(), "Digest realm=\"%[^\"]\", nonce=\"%[^\"]\"", realm, nonce) == 2) {
         (*this)[kRtspRealm] = realm;
-        (*this)[kMd5Nonce] = nonce;
+        (*this)[kRtspMd5Nonce] = nonce;
         return true;
     }
     if (sscanf(paramsStr.data(), "Basic realm=\"%[^\"]\"", realm) == 1) {
@@ -711,7 +711,7 @@ bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
 	}
 
 	if(!(*this)[kRtspRealm].empty() && !(*this)[PlayerBase::kRtspUser].empty()){
-		if(!(*this)[kMd5Nonce].empty()){
+		if(!(*this)[kRtspMd5Nonce].empty()){
 			//MD5认证
 			/*
 			response计算方法如下：
@@ -725,12 +725,12 @@ bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
 			if(!(*this)[PlayerBase::kRtspPwdIsMD5].as<bool>()){
 				encrypted_pwd = MD5((*this)[PlayerBase::kRtspUser]+ ":" + (*this)[kRtspRealm] + ":" + encrypted_pwd).hexdigest();
 			}
-			auto response = MD5( encrypted_pwd + ":" + (*this)[kMd5Nonce]  + ":" + MD5(cmd + ":" + url).hexdigest()).hexdigest();
+			auto response = MD5( encrypted_pwd + ":" + (*this)[kRtspMd5Nonce]  + ":" + MD5(cmd + ":" + url).hexdigest()).hexdigest();
 			_StrPrinter printer;
 			printer << "Digest ";
 			printer << "username=\"" << (*this)[PlayerBase::kRtspUser] << "\", ";
 			printer << "realm=\"" << (*this)[kRtspRealm] << "\", ";
-			printer << "nonce=\"" << (*this)[kMd5Nonce] << "\", ";
+			printer << "nonce=\"" << (*this)[kRtspMd5Nonce] << "\", ";
 			printer << "uri=\"" << url << "\", ";
 			printer << "response=\"" << response << "\"";
 			header.emplace("Authorization",printer);
