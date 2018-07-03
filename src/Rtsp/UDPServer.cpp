@@ -32,6 +32,14 @@ using namespace ZL::Util;
 namespace ZL {
 namespace Rtsp {
 
+UDPServer &UDPServer::Instance() {
+	static UDPServer *instance(new UDPServer());
+	return *instance;
+}
+void UDPServer::Destory() {
+	delete &UDPServer::Instance();
+}
+
 UDPServer::UDPServer() {
 }
 

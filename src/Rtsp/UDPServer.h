@@ -47,13 +47,9 @@ public:
 	typedef function< bool(int, const Buffer::Ptr &, struct sockaddr *)> onRecvData;
 	UDPServer();
 	virtual ~UDPServer();
-	static UDPServer &Instance() {
-		static UDPServer *instance(new UDPServer());
-		return *instance;
-	}
-	static void Destory() {
-		delete &UDPServer::Instance();
-	}
+	static UDPServer &Instance();
+	static void Destory();
+
 	Socket::Ptr getSock(const char *strLocalIp, int iTrackIndex,uint16_t iLocalPort = 0);
 	void listenPeer(const char *strPeerIp, void *pSelf, const onRecvData &cb);
 	void stopListenPeer(const char *strPeerIp, void *pSelf);
