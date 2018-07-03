@@ -37,6 +37,11 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Rtsp {
 
+MultiCastAddressMaker &MultiCastAddressMaker::Instance() {
+	static MultiCastAddressMaker instance;
+	return instance;
+}
+
 static uint32_t addressToInt(const string &ip){
     struct in_addr addr;
     bzero(&addr,sizeof(addr));

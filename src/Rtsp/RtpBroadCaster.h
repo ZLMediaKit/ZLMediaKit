@@ -47,10 +47,8 @@ namespace Rtsp {
 class MultiCastAddressMaker
 {
 public:
-	static MultiCastAddressMaker &Instance(){
-		static MultiCastAddressMaker instance;
-		return instance;
-	}
+	static MultiCastAddressMaker &Instance();
+
 	static bool isMultiCastAddress(uint32_t iAddr){
 		static uint32_t addrMin = mINI::Instance()[Config::MultiCast::kAddrMin].as<uint32_t>();
 		static uint32_t addrMax = mINI::Instance()[Config::MultiCast::kAddrMax].as<uint32_t>();
