@@ -53,7 +53,7 @@ static TcpServer::Ptr s_pHttpSrv;
 API_EXPORT void API_CALL onAppStart(){
 	static onceToken s_token([](){
 		Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
-		EventPoller::Instance(true);
+		EventPoller::Instance().runLoop(false);
 
 		cleaner::Instance().push_back([](){
 			s_pRtspSrv.reset();
