@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(MediaKitWrapper)
 
 #加载自定义模块
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 #设置库文件路径
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #设置可执行程序路径
@@ -65,30 +65,32 @@ if(FAAC_FOUND)
     list(APPEND LINK_LIB_LIST ${FAAC_LIBRARIES})
 endif()
 
-#查找ZLToolKit是否安装
-find_package(ZLTOOLKIT QUIET)
-if(ZLTOOLKIT_FOUND)
-    message(STATUS "找到ZLToolKit库:\"${ZLTOOLKIT_INCLUDE_DIR}\"")
-    include_directories(${ZLTOOLKIT_INCLUDE_DIR})
-    list(APPEND LINK_LIB_LIST ${ZLTOOLKIT_LIBRARIES})
-endif()
 
-#查找ZLMediaKit是否安装
-find_package(ZLMEDIAKIT QUIET)
-if(ZLMEDIAKIT_FOUND)
-    message(STATUS "找到ZLMediaKit库:\"${ZLMEDIAKIT_INCLUDE_DIR}\"")
-    include_directories(${ZLMEDIAKIT_INCLUDE_DIR})
-    list(APPEND LINK_LIB_LIST ${ZLMEDIAKIT_LIBRARIES})
-endif()
+#设置工程源码根目录
+set(ToolKit_Root ${CMAKE_SOURCE_DIR}/../ZLToolKit/src)
+set(MediaKit_Root ${CMAKE_SOURCE_DIR}/../src)
 
+#设置头文件目录
+INCLUDE_DIRECTORIES(${ToolKit_Root})
+INCLUDE_DIRECTORIES(${MediaKit_Root})
 
-#打印库文件
-message(STATUS "将链接依赖库:${LINK_LIB_LIST}")
-#开启RTSP/RTMP之间的互相转换,开启HLS
-add_definitions(-DENABLE_RTMP2RTSP -DENABLE_RTSP2RTMP -DENABLE_HLS -DHAVE_CONFIG_H)
+#收集源代码
+file(GLOB ToolKit_src_list ${ToolKit_Root}/*/*.cpp ${ToolKit_Root}/*/*.h ${ToolKit_Root}/*/*.c)
+file(GLOB MediaKit_src_list ${MediaKit_Root}/*/*.cpp ${MediaKit_Root}/*/*.h ${MediaKit_Root}/*/*.c)
+
+#去除win32的适配代码
+if (NOT WIN32)
+    list(REMOVE_ITEM ToolKit_src_list ${ToolKit_Root}/win32/getopt.c)
+else()
+    #防止Windows.h包含Winsock.h
+    add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS)
+endif ()
+
+#使能GOP缓存
+add_definitions(-DENABLE_RING_USEBUF)
 
 #引用头文件路径
-include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${CMAKE_SOURCE_DIR}/src)
 
 #使能c++11
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
@@ -103,22 +105,18 @@ endif(NOT WIN32)
 #收集源文件
 file(GLOB SRC_LIST src/*.cpp src/*.h)
 
-#编译动态库
-if(NOT IOS AND NOT ANDROID)
-    add_library(${CMAKE_PROJECT_NAME}_shared SHARED ${SRC_LIST})
-    set_target_properties(${CMAKE_PROJECT_NAME}_shared PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
-    install(TARGETS ${CMAKE_PROJECT_NAME}_shared  ARCHIVE DESTINATION ${INSTALL_PATH_LIB} LIBRARY DESTINATION ${INSTALL_PATH_LIB})
-    if(WIN32)
-        target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${LINK_LIB_LIST} WS2_32 Iphlpapi shlwapi)
-    else(WIN32)
-        target_link_libraries(${CMAKE_PROJECT_NAME}_shared ${LINK_LIB_LIST})
-    endif(WIN32)
-endif()
+if (WIN32)
+    list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
+elseif(NOT ANDROID OR IOS)
+    list(APPEND LINK_LIB_LIST pthread)
+endif ()
 
-#编译静态库
-add_library(${CMAKE_PROJECT_NAME}_static STATIC ${SRC_LIST})
-set_target_properties(${CMAKE_PROJECT_NAME}_static PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
-install(TARGETS ${CMAKE_PROJECT_NAME}_static ARCHIVE DESTINATION ${INSTALL_PATH_LIB})
+
+add_library(zltoolkit STATIC ${ToolKit_src_list})
+add_library(zlmediakit STATIC ${MediaKit_src_list})
+
+add_library(${CMAKE_PROJECT_NAME}_shared SHARED ${SRC_LIST})
+target_link_libraries(${CMAKE_PROJECT_NAME}_shared zlmediakit zltoolkit ${LINK_LIB_LIST})
 
 #测试程序
 if(NOT IOS)
