@@ -54,7 +54,7 @@ namespace Rtsp {
 
 class RtspMediaSource: public MediaSource {
 public:
-	typedef ResourcePool<RtpPacket, 64> PoolType;
+	typedef ResourcePool<RtpPacket> PoolType;
 	typedef std::shared_ptr<RtspMediaSource> Ptr;
 	typedef RingBuffer<RtpPacket::Ptr> RingType;
 
