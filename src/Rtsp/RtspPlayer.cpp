@@ -54,6 +54,7 @@ const char kRtspMd5Nonce[] = "rtsp_md5_nonce";
 const char kRtspRealm[] = "rtsp_realm";
 
 RtspPlayer::RtspPlayer(void){
+	m_pktPool.setSize(64);
 }
 RtspPlayer::~RtspPlayer(void) {
     teardown();

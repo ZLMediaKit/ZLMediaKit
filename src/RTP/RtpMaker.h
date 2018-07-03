@@ -51,6 +51,7 @@ public:
 		m_iMtuSize = iMtuSize;
 		m_ui8PlayloadType = ui8PlayloadType;
 		m_ui8Interleaved = ui8Interleaved;
+		m_pktPool.setSize(64);
 	}
 	virtual ~RtpMaker() {
 	}
