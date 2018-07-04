@@ -228,9 +228,9 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
         return false;
     }
 
-    char realm[paramsStr.size()];
-    char nonce[paramsStr.size()];
-    char stale[paramsStr.size()];
+    char realm[1024];
+    char nonce[1024];
+    char stale[1024];
 
     if (sscanf(paramsStr.data(), "Digest realm=\"%[^\"]\", nonce=\"%[^\"]\", stale=%[a-zA-Z]", realm, nonce, stale) == 3) {
         (*this)[kRtspRealm] = realm;
