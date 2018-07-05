@@ -126,7 +126,7 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,c
 	}
 	m_pReader = src->getRing()->attach();
 	m_pReader->setReadCB([this](const RtpPacket::Ptr &pkt){
-		int i = (pkt->interleaved/2)%2;
+		int i = (int)(pkt->type);
 		auto &pSock = m_apUdpSock[i];
 		auto &peerAddr = m_aPeerUdpAddr[i];
         BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
@@ -148,9 +148,8 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,c
             << strVhost << " "
 			<< strApp << " " << strStream;
 }
-uint16_t RtpBroadCaster::getPort(int iTrackId){
-	int i = iTrackId%2;
-	return m_apUdpSock[i]->get_local_port();
+uint16_t RtpBroadCaster::getPort(int trackType){
+	return m_apUdpSock[trackType]->get_local_port();
 }
 string RtpBroadCaster::getIP(){
 	return inet_ntoa(m_aPeerUdpAddr[0].sin_addr);
