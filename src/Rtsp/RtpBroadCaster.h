@@ -74,7 +74,7 @@ public:
 	virtual ~RtpBroadCaster();
 	static Ptr get(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
 	void setDetachCB(void *listener,const onDetach &cb);
-	uint16_t getPort(int iTrackId);
+	uint16_t getPort(int trackType);
 	string getIP();
 private:
 	static recursive_mutex g_mtx;
