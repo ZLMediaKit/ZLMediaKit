@@ -81,7 +81,8 @@ public:
 	virtual int getAudioSampleRate() const { return 0; };
 	virtual int getAudioSampleBit() const { return 0; };
 	virtual int getAudioChannel() const { return 0; };
-    virtual float getRtpLossRate(int iTrackId) const {return 0; };
+	//TrackVideo = 0, TrackAudio = 1
+    virtual float getRtpLossRate(int trackType) const {return 0; };
 	virtual const string& getPps() const { static string null;return null; };
 	virtual const string& getSps() const { static string null;return null; };
 	virtual const string& getAudioCfg() const { static string null;return null; };

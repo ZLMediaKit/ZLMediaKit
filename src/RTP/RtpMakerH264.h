@@ -44,7 +44,7 @@ class RtpMaker_H264: public RtpMaker {
 public:
 	typedef std::shared_ptr<RtpMaker_H264> Ptr;
 	RtpMaker_H264(const onGetRTP &cb, uint32_t ui32Ssrc,int iMtuSize = 1400,int iSampleRate = 90000,
-			uint8_t ui8PlayloadType = 96, uint8_t ui8Interleaved = 0) :
+			uint8_t ui8PlayloadType = 96, uint8_t ui8Interleaved = TrackVideo * 2) :
 			RtpMaker(cb, ui32Ssrc, iMtuSize,iSampleRate, ui8PlayloadType, ui8Interleaved) {
 	}
 	virtual ~RtpMaker_H264() {

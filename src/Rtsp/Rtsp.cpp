@@ -67,11 +67,9 @@ int parserSDP(const string& sdp, RtspTrack Track[2]) {
 		if (sdp_mid.find("m=video") != string::npos) {
 			//视频通道
 			Track[track_cnt].type = TrackVideo;
-            Track[track_cnt].trackId = 0;
         } else if (sdp_mid.find("m=audio") != string::npos) {
 			//音频通道
 			Track[track_cnt].type = TrackAudio;
-            Track[track_cnt].trackId = 1;
         } else {
 			//不识别的track
 			return track_cnt;

@@ -45,7 +45,7 @@ public:
 	typedef std::shared_ptr<RtpMaker_AAC> Ptr;
 	RtpMaker_AAC(const onGetRTP &cb,
 			uint32_t ui32Ssrc, int iMtuSize , int iSampleRate, uint8_t ui8PlayloadType = 97,
-			uint8_t ui8Interleaved = 2) :
+			uint8_t ui8Interleaved = TrackAudio * 2) :
 			RtpMaker(cb, ui32Ssrc, iMtuSize,iSampleRate, ui8PlayloadType, ui8Interleaved) {
 	}
 	virtual ~RtpMaker_AAC() {

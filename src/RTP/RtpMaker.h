@@ -28,6 +28,7 @@
 #define RTP_RTPMAKER_H_
 
 #include "Rtsp/RtspMediaSource.h"
+#include "Rtsp/Rtsp.h"
 #include "Util/logger.h"
 #include "Util/RingBuffer.h"
 #include "Util/TimeTicker.h"
