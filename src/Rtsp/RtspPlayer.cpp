@@ -228,22 +228,27 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
         return false;
     }
 
-    char realm[1024];
-    char nonce[1024];
-    char stale[1024];
+    char *realm = new char[paramsStr.size()];
+    char *nonce = new char[paramsStr.size()];
+    char *stale = new char[paramsStr.size()];
+    onceToken token(nullptr,[&](){
+        delete[] realm;
+        delete[] nonce;
+        delete[] stale;
+    });
 
     if (sscanf(paramsStr.data(), "Digest realm=\"%[^\"]\", nonce=\"%[^\"]\", stale=%[a-zA-Z]", realm, nonce, stale) == 3) {
-        (*this)[kRtspRealm] = realm;
-        (*this)[kRtspMd5Nonce] = nonce;
+        (*this)[kRtspRealm] = (const char *)realm;
+        (*this)[kRtspMd5Nonce] = (const char *)nonce;
         return true;
     }
     if (sscanf(paramsStr.data(), "Digest realm=\"%[^\"]\", nonce=\"%[^\"]\"", realm, nonce) == 2) {
-        (*this)[kRtspRealm] = realm;
-        (*this)[kRtspMd5Nonce] = nonce;
+        (*this)[kRtspRealm] = (const char *)realm;
+        (*this)[kRtspMd5Nonce] = (const char *)nonce;
         return true;
     }
     if (sscanf(paramsStr.data(), "Basic realm=\"%[^\"]\"", realm) == 1) {
-        (*this)[kRtspRealm] = realm;
+        (*this)[kRtspRealm] = (const char *)realm;
         return true;
     }
     return false;
