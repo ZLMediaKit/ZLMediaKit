@@ -126,9 +126,9 @@ private:
 		}
 		return tmp;
 	}
-	inline int getTrackIndexByTrackId(int iTrackId) {
+	inline int getTrackIndexByTrackType(TrackType type) {
 		for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-			if (iTrackId == m_aTrackInfo[i].trackId) {
+			if (type == m_aTrackInfo[i].type) {
 				return i;
 			}
 		}

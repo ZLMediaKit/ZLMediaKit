@@ -60,7 +60,7 @@ public:
 	void play(const char* strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
-	float getRtpLossRate(int iTrackId) const override;
+	float getRtpLossRate(int iTrackType) const override;
 protected:
 	//派生类回调函数
 	virtual bool onCheckSDP(const string &strSdp, const RtspTrack *pTrack, int iTrackCnt) = 0;
@@ -73,8 +73,9 @@ private:
 	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const RtspTrack &track);
 	void onPlayResult_l(const SockException &ex);
 
-    int getTrackIndex(const string &controlSuffix) const;
-    int getTrackIndex(int iTrackId) const;
+    int getTrackIndexByControlSuffix(const string &controlSuffix) const;
+    int getTrackIndexByInterleaved(int interleaved) const;
+	int getTrackIndexByTrackType(TrackType trackId) const;
 
 	void play(const char* strUrl, const char *strUser, const char *strPwd,  eRtpType eType);
 	void onConnect(const SockException &err) override;

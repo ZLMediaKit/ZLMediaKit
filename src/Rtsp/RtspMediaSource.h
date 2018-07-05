@@ -74,14 +74,14 @@ public:
 		return m_strSdp;
 	}
 
-	virtual uint32_t getSsrc(int trackId) {
-		return m_mapTracks[trackId].ssrc;
+	virtual uint32_t getSsrc(TrackType trackType) {
+		return m_mapTracks[trackType].ssrc;
 	}
-	virtual uint16_t getSeqence(int trackId) {
-		return m_mapTracks[trackId].seq;
+	virtual uint16_t getSeqence(TrackType trackType) {
+		return m_mapTracks[trackType].seq;
 	}
-	virtual uint32_t getTimestamp(int trackId) {
-		return m_mapTracks[trackId].timeStamp;
+	virtual uint32_t getTimestamp(TrackType trackType) {
+		return m_mapTracks[trackType].timeStamp;
 	}
 
 	virtual void onGetSDP(const string& sdp) {
@@ -89,7 +89,7 @@ public:
 		m_strSdp = sdp;
 	}
 	virtual void onGetRTP(const RtpPacket::Ptr &rtppt, bool keyPos) {
-		auto &trackRef = m_mapTracks[rtppt->interleaved / 2];
+		auto &trackRef = m_mapTracks[rtppt->type];
 		trackRef.seq = rtppt->sequence;
 		trackRef.timeStamp = rtppt->timeStamp;
 		trackRef.ssrc = rtppt->ssrc;

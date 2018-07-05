@@ -297,7 +297,7 @@ bool RtspPlayer::sendSetup(unsigned int trackIndex) {
 	switch (m_eType) {
 		case RTP_TCP: {
 			StrCaseMap header;
-			header["Transport"] = StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track.trackId * 2 << "-" << track.trackId * 2 + 1;
+			header["Transport"] = StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track.type * 2 << "-" << track.type * 2 + 1;
 			return sendRtspRequest("SETUP",baseUrl,header);
 		}
 			break;
@@ -485,7 +485,7 @@ void RtspPlayer::handleResPAUSE(const Parser& parser, bool bPause) {
                 strTrack.append(";");
                 auto strControlSuffix = strTrack.substr(1 + strTrack.rfind('/'),strTrack.find(';') - strTrack.rfind('/') - 1);
                 auto strRtpTime = FindField(strTrack.data(), "rtptime=", ";");
-                auto iIdx = getTrackIndex(strControlSuffix);
+                auto iIdx = getTrackIndexByControlSuffix(strControlSuffix);
                 m_adFistStamp[iIdx] = atoll(strRtpTime.data());
                 m_adNowStamp[iIdx] = m_adFistStamp[iIdx];
                 DebugL << "rtptime:" << strControlSuffix <<" " << strRtpTime;
@@ -552,7 +552,7 @@ void RtspPlayer::splitRtp(unsigned char* pucRtp, unsigned int uiLen) {
 			}
 			int trackIdx = -1;
 			if(interleaved %2 ==0){
-				trackIdx = getTrackIndex(interleaved/2);
+				trackIdx = getTrackIndexByInterleaved(interleaved);
 			}
 			if (trackIdx != -1) {
 				handleOneRtp(trackIdx, rtp_ptr + 4, length);
@@ -582,7 +582,7 @@ bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned in
 	auto &track = m_aTrackInfo[iTrackidx];
 	auto pt_ptr=m_pktPool.obtain();
 	auto &rtppt=*pt_ptr;
-	rtppt.interleaved = track.trackId * 2;
+	rtppt.interleaved = track.interleaved;
 	rtppt.length = uiLen + 4;
 
 	rtppt.mark = pucData[1] >> 7;
@@ -667,8 +667,8 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtppt, int trackidx){
     
 	onRecvRTP_l(rtppt,m_aTrackInfo[trackidx]);
 }
-float RtspPlayer::getRtpLossRate(int iTrackId) const{
-	int iTrackIdx = getTrackIndex(iTrackId);
+float RtspPlayer::getRtpLossRate(int iTrackType) const{
+	int iTrackIdx = getTrackIndexByTrackType((TrackType)iTrackType);
 	if(iTrackIdx == -1){
 		uint64_t totalRecv = 0;
 		uint64_t totalSend = 0;
@@ -788,7 +788,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex) {
 	onPlayResult(ex);
 }
 
-int RtspPlayer::getTrackIndex(const string &controlSuffix) const{
+int RtspPlayer::getTrackIndexByControlSuffix(const string &controlSuffix) const{
 	for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
 		if (m_aTrackInfo[i].controlSuffix == controlSuffix) {
 			return i;
@@ -796,9 +796,18 @@ int RtspPlayer::getTrackIndex(const string &controlSuffix) const{
 	}
 	return -1;
 }
-int RtspPlayer::getTrackIndex(int iTrackId) const{
+int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const{
 	for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-		if (m_aTrackInfo[i].trackId == iTrackId) {
+		if (m_aTrackInfo[i].interleaved == interleaved) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
+	for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
+		if (m_aTrackInfo[i].type == trackType) {
 			return i;
 		}
 	}

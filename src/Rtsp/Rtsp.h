@@ -43,7 +43,6 @@ typedef enum {
 class RtspTrack{
 public:
 	uint8_t PT;
-	uint8_t trackId;
     uint8_t interleaved;
 	TrackType type = (TrackType) -1;
 	string trackSdp;

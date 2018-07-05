@@ -538,8 +538,8 @@ bool RtspSession::handleReq_Setup() {
 				"x-Dynamic-Rate: 1\r\n\r\n",
 				m_iCseq, SERVER_NAME,
 				RTSP_VERSION, RTSP_BUILDTIME,
-				dateHeader().data(), trackRef.trackId * 2,
-                trackRef.trackId * 2 + 1,
+				dateHeader().data(), trackRef.type * 2,
+                trackRef.type * 2 + 1,
 				printSSRC(trackRef.ssrc).data(),
 				m_strSession.data());
 		send(m_pcBuf, iLen);
@@ -606,7 +606,7 @@ bool RtspSession::handleReq_Setup() {
 				strongSelf->safeShutdown();
 			});
 		}
-		int iSrvPort = m_pBrdcaster->getPort(trackRef.trackId);
+		int iSrvPort = m_pBrdcaster->getPort(trackRef.type);
 		//我们用trackIdx区分rtp和rtcp包
 		auto pSockRtcp = UDPServer::Instance().getSock(get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
 		if (!pSockRtcp) {
@@ -709,9 +709,9 @@ bool RtspSession::handleReq_Play() {
             }
             for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
                 auto &track = m_aTrackInfo[i];
-                track.ssrc = pMediaSrc->getSsrc(track.trackId);
-                track.seq = pMediaSrc->getSeqence(track.trackId);
-                track.timeStamp = pMediaSrc->getTimestamp(track.trackId);
+                track.ssrc = pMediaSrc->getSsrc(track.type);
+                track.seq = pMediaSrc->getSeqence(track.type);
+                track.timeStamp = pMediaSrc->getTimestamp(track.type);
             }
         }
         m_bFirstPlay = false;
@@ -873,9 +873,9 @@ inline bool RtspSession::findStream() {
 
 	for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
 		auto &track = m_aTrackInfo[i];
-		track.ssrc = pMediaSrc->getSsrc(track.trackId);
-		track.seq = pMediaSrc->getSeqence(track.trackId);
-		track.timeStamp = pMediaSrc->getTimestamp(track.trackId);
+		track.ssrc = pMediaSrc->getSsrc(track.type);
+		track.seq = pMediaSrc->getSeqence(track.type);
+		track.timeStamp = pMediaSrc->getTimestamp(track.type);
 	}
 
 	return true;
@@ -904,7 +904,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 	}
 		break;
 	case PlayerBase::RTP_UDP: {
-		int iTrackIndex = getTrackIndexByTrackId(pkt->interleaved / 2);
+		int iTrackIndex = getTrackIndexByTrackType(pkt->type);
 		auto pSock = m_apUdpSock[iTrackIndex].lock();
 		if (!pSock) {
 			shutdown();
