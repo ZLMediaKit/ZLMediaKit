@@ -148,7 +148,7 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,c
             << strVhost << " "
 			<< strApp << " " << strStream;
 }
-uint16_t RtpBroadCaster::getPort(int trackType){
+uint16_t RtpBroadCaster::getPort(TrackType trackType){
 	return m_apUdpSock[trackType]->get_local_port();
 }
 string RtpBroadCaster::getIP(){
