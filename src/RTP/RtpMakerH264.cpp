@@ -108,8 +108,9 @@ inline void RtpMaker_H264::makeH264Rtp(const void* data, unsigned int len, bool 
 	rtppkt.timeStamp = m_ui32TimeStamp;
 	rtppkt.ssrc = m_ui32Ssrc;
 	rtppkt.type = TrackVideo;
-	uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
+	rtppkt.offset = 16;
 	memcpy(rtppkt.payload + 16, data, len);
+	uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
 	onMakeRtp(pRtppkt, type == 5);
 	m_ui16Sequence++;
 	//InfoL<<timeStamp<<" "<<time<<" "<<sampleRate;

@@ -583,6 +583,12 @@ void RtspPlayer::splitRtp(unsigned char* pucRtp, unsigned int uiLen) {
 	}
 }
 
+
+#   define AV_RB16(x)                           \
+    ((((const uint8_t*)(x))[0] << 8) |          \
+      ((const uint8_t*)(x))[1])
+
+
 bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned int uiLen) {
 	auto &track = m_aTrackInfo[iTrackidx];
 	auto pt_ptr=m_pktPool.obtain();
@@ -620,6 +626,20 @@ bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned in
 	rtppt.payload[1] = rtppt.interleaved;
 	rtppt.payload[2] = (uiLen & 0xFF00) >> 8;
 	rtppt.payload[3] = (uiLen & 0x00FF);
+
+	rtppt.offset 	= 16;
+	int csrc     	= pucData[0] & 0x0f;
+	int ext      	= pucData[0] & 0x10;
+	rtppt.offset 	+= 4 * csrc;
+	if (ext) {
+		if(uiLen < rtppt.offset){
+			return false;
+		}
+		/* calculate the header extension length (stored as number of 32-bit words) */
+		ext = (AV_RB16(pucData + rtppt.offset - 2) + 1) << 2;
+		rtppt.offset += ext;
+	}
+
 	memcpy(rtppt.payload + 4, pucData, uiLen);
 
 	/////////////////////////////////RTP排序逻辑///////////////////////////////////
