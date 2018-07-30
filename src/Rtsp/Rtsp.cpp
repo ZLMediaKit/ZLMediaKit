@@ -99,7 +99,7 @@ int parserSDP(const string& sdp, RtspTrack Track[2]) {
 //    parserSDP(str,track);
 //    track[0].inited=true;
 //});
-bool MakeNalu(char in, NALU &nal) {
+bool MakeNalu(uint8_t in, NALU &nal) {
 	nal.forbidden_zero_bit = in >> 7;
 	if (nal.forbidden_zero_bit) {
 		return false;
@@ -108,7 +108,7 @@ bool MakeNalu(char in, NALU &nal) {
 	nal.type = in & 0x1f;
 	return true;
 }
-bool MakeFU(char in, FU &fu) {
+bool MakeFU(uint8_t in, FU &fu) {
 	fu.S = in >> 7;
 	fu.E = (in >> 6) & 0x01;
 	fu.R = (in >> 5) & 0x01;

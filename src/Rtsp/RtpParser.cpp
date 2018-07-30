@@ -111,18 +111,18 @@ bool RtpParser::inputRtp(const RtpPacket& rtp) {
 
 inline bool RtpParser::inputVideo(const RtpPacket& rtppack,
 		const RtspTrack& track) {
-	const char *frame = (char *) rtppack.payload + 16;
-	int length = rtppack.length - 16;
+	const uint8_t *frame = (uint8_t *) rtppack.payload + rtppack.offset;
+	int length = rtppack.length - rtppack.offset;
 	NALU nal;
 	MakeNalu(*frame, nal);
 	//Type==1:P frame
 	//Type==6:SEI frame
 	//Type==7:SPS frame
 	//Type==8:PPS frame
-	if (nal.type > 0 && nal.type < 24) {
+	if (nal.type >= 0 && nal.type < 24) {
 		//a full frame
 		m_h264frame.data.assign("\x0\x0\x0\x1", 4);
-		m_h264frame.data.append(frame, length);
+		m_h264frame.data.append((char *)frame, length);
 		m_h264frame.type = nal.type;
 		m_h264frame.timeStamp = rtppack.timeStamp / 90;
 		m_h264frame.sequence = rtppack.sequence;
@@ -139,7 +139,7 @@ inline bool RtpParser::inputVideo(const RtpPacket& rtppack,
 			char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
 			m_h264frame.data.assign("\x0\x0\x0\x1", 4);
 			m_h264frame.data.push_back(tmp);
-			m_h264frame.data.append(frame + 2, length - 2);
+			m_h264frame.data.append((char *)frame + 2, length - 2);
 			m_h264frame.type = fu.type;
 			m_h264frame.timeStamp = rtppack.timeStamp / 90;
 			m_h264frame.sequence = rtppack.sequence;
@@ -154,17 +154,17 @@ inline bool RtpParser::inputVideo(const RtpPacket& rtppack,
 		m_h264frame.sequence = rtppack.sequence;
 		if (fu.E == 1) {
 			//FU-A end
-			m_h264frame.data.append(frame + 2, length - 2);
+			m_h264frame.data.append((char *)frame + 2, length - 2);
 			m_h264frame.timeStamp = rtppack.timeStamp / 90;
 			_onGetH264(m_h264frame);
 			m_h264frame.data.clear();
 			return false;
 		}
 		//FU-A mid
-		m_h264frame.data.append(frame + 2, length - 2);
+		m_h264frame.data.append((char *)frame + 2, length - 2);
 		return false;
 	}
-	WarnL << nal.type;
+	WarnL << nal.type << " " << rtppack.sequence;
 	return false;
 	// 29 FU-B     单NAL单元B模式
 	// 24 STAP-A   单一时间的组合包
@@ -239,8 +239,8 @@ inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
 
 inline bool RtpParser::inputAudio(const RtpPacket& rtppack,
 		const RtspTrack& track) {
-	char *frame = (char *) rtppack.payload + 16;
-	int length = rtppack.length - 16;
+	char *frame = (char *) rtppack.payload + rtppack.offset;
+	int length = rtppack.length - rtppack.offset;
 
 	if (m_adts.aac_frame_length + length - 4 > sizeof(AdtsFrame::data)) {
 		m_adts.aac_frame_length = 7;
@@ -271,9 +271,8 @@ inline void RtpParser::_onGetH264(H264Frame& frame) {
 		insertedFrame.timeStamp = frame.timeStamp;
 		insertedFrame.data = m_strPPS;
 		onGetH264(insertedFrame);
-	}
-	case 1:  //P
 		onGetH264(frame);
+	}
 		break;
 	case 7: {//SPS
 		m_strSPS = frame.data;
@@ -284,8 +283,10 @@ inline void RtpParser::_onGetH264(H264Frame& frame) {
 	}
 		break;
 	case 8://PPS
-		m_strPPS=frame.data;break;
+		m_strPPS=frame.data;
+		break;
 	default:
+        onGetH264(frame);
 		break;
 	}
 }
