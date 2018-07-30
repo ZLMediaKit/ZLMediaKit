@@ -136,7 +136,7 @@ public:
 		_cb = cb;
 	}
 	virtual ~LogoutChannel(){}
-	void write(const LogInfo_ptr &logInfo){
+	void write(const LogInfoPtr &logInfo){
 		if (level() > logInfo->_level) {
 			return;
 		}
