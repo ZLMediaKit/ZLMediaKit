@@ -91,7 +91,7 @@ inline void RtpMaker_AAC::makeAACRtp(const void *pData, unsigned int uiLen, bool
 	rtppkt.timeStamp = m_ui32TimeStamp;
 	rtppkt.ssrc = m_ui32Ssrc;
 	rtppkt.type = TrackAudio;
-
+	rtppkt.offset = 16;
 	memcpy(rtppkt.payload + 16, pData, uiLen);
 	onMakeRtp(pRtppkt, false);
 	m_ui16Sequence++;
