@@ -64,6 +64,7 @@ public:
     uint16_t sequence;
     uint32_t ssrc;
     uint8_t payload[1560];
+	uint8_t offset;
     TrackType type;
 };
 
@@ -209,8 +210,8 @@ typedef struct {
 	unsigned type :5;
 } FU;
 
-bool MakeNalu(char in, NALU &nal) ;
-bool MakeFU(char in, FU &fu) ;
+bool MakeNalu(uint8_t in, NALU &nal) ;
+bool MakeFU(uint8_t in, FU &fu) ;
 
 
 #endif //RTSP_RTSP_H_
