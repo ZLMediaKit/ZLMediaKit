@@ -174,15 +174,13 @@ public:
 		return m_mapUrlArgs;
 	}
 
-
 	static StrCaseMap parseArgs(const string &str,const char *pair_delim = "&", const char *key_delim = "="){
 		StrCaseMap ret;
 		auto arg_vec = split(str, pair_delim);
 		for (string &key_val : arg_vec) {
-			auto key_val_vec = split(key_val, key_delim);
-			if (key_val_vec.size() >= 2) {
-				ret[key_val_vec[0]] = key_val_vec[1];
-			}
+			auto key = FindField(key_val.data(),NULL,key_delim);
+			auto val = FindField(key_val.data(),key_delim, NULL);
+			ret[key] = val;
 		}
 		return ret;
 	}
