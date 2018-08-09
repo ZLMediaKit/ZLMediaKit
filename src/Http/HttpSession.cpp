@@ -744,7 +744,7 @@ void HttpSession::sendRtmp(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp) {
 	set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
     send((char *)&header, sizeof(header));//send tag header
     send(std::make_shared<BufferRtmp>(pkt));//send tag data
-	m_previousTagSize += (pkt->strBuf.size() + sizeof(header) + 4);
+	m_previousTagSize += (pkt->strBuf.size() + sizeof(header));
 	m_ticker.resetTime();
 }
 
@@ -758,7 +758,7 @@ void HttpSession::sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t 
     set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
     send((char *)&header, sizeof(header));//send tag header
     send(strBuf);//send tag data
-    m_previousTagSize += (strBuf.size() + sizeof(header) + 4);
+    m_previousTagSize += (strBuf.size() + sizeof(header));
     m_ticker.resetTime();
 }
 
