@@ -192,8 +192,6 @@ namespace Rtp {
 extern const char kVideoMtuSize[];
 //RTP打包最大MTU,公网情况下更小
 extern const char kAudioMtuSize[];
-//udp方式接受RTP包的最大缓存
-extern const char kUdpBufSize[];
 //RTP排序缓存最大个数
 extern const char kMaxRtpCount[];
 //如果RTP序列正确次数累计达到该数字就启动清空排序缓存

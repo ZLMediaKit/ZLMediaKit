@@ -50,6 +50,8 @@ namespace Rtsp {
 		onRecvRTP_l(it->second, trackidx); \
 		m_amapRtpSort[trackidx].erase(it);
 
+#define RTP_BUF_SIZE (4 * 1024)
+
 const char kRtspMd5Nonce[] = "rtsp_md5_nonce";
 const char kRtspRealm[] = "rtsp_realm";
 
@@ -133,8 +135,7 @@ void RtspPlayer::play(const char* strUrl, const char *strUser, const char *strPw
 
 	m_eType = eType;
 	if (m_eType == RTP_TCP && !m_pucRtpBuf) {
-        GET_CONFIG_AND_REGISTER(uint32_t,rtpSize,Config::Rtp::kUdpBufSize);
-        m_pucRtpBuf = new uint8_t[rtpSize];
+        m_pucRtpBuf = new uint8_t[RTP_BUF_SIZE];
 	}
 	auto ip = FindField(strUrl, "://", "/");
 	if (!ip.size()) {
@@ -207,8 +208,7 @@ void RtspPlayer::onRecv(const Buffer::Ptr& pBuf) {
 	if (m_eType == RTP_TCP && m_pucRtpBuf) {
 		//RTP data
 		while (size > 0) {
-            GET_CONFIG_AND_REGISTER(uint32_t,rtpSize,Config::Rtp::kUdpBufSize);
-            int added = rtpSize - m_uiRtpBufLen;
+            int added = RTP_BUF_SIZE - m_uiRtpBufLen;
 			added = (added > size ? size : added);
 			memcpy(m_pucRtpBuf + m_uiRtpBufLen, buf, added);
 			m_uiRtpBufLen += added;

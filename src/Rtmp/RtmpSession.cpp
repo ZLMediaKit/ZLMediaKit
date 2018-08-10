@@ -32,23 +32,21 @@
 namespace ZL {
 namespace Rtmp {
 
-unordered_map<string, RtmpSession::rtmpCMDHandle> RtmpSession::g_mapCmd;
 RtmpSession::RtmpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
 		TcpSession(pTh, pSock) {
-	static onceToken token([]() {
-		g_mapCmd.emplace("connect",&RtmpSession::onCmd_connect);
-		g_mapCmd.emplace("createStream",&RtmpSession::onCmd_createStream);
-		g_mapCmd.emplace("publish",&RtmpSession::onCmd_publish);
-		g_mapCmd.emplace("deleteStream",&RtmpSession::onCmd_deleteStream);
-		g_mapCmd.emplace("play",&RtmpSession::onCmd_play);
-		g_mapCmd.emplace("play2",&RtmpSession::onCmd_play2);
-		g_mapCmd.emplace("seek",&RtmpSession::onCmd_seek);
-		g_mapCmd.emplace("pause",&RtmpSession::onCmd_pause);}, []() {});
 	DebugL << get_peer_ip();
+	//设置10秒发送缓存
+    pSock->setSendBufSecond(10);
+    //设置15秒发送超时时间
+    pSock->setSendTimeOutSecond(15);
 }
 
 RtmpSession::~RtmpSession() {
     DebugL << get_peer_ip();
+    if(m_delayTask){
+        m_delayTask();
+        m_delayTask = nullptr;
+    }
 }
 
 void RtmpSession::onError(const SockException& err) {
@@ -63,7 +61,7 @@ void RtmpSession::onError(const SockException& err) {
 }
 
 void RtmpSession::onManager() {
-	if (m_ticker.createdTime() > 10 * 1000) {
+	if (m_ticker.createdTime() > 15 * 1000) {
 		if (!m_pRingReader && !m_pPublisherSrc) {
 			WarnL << "非法链接:" << get_peer_ip();
 			shutdown();
@@ -71,7 +69,7 @@ void RtmpSession::onManager() {
 	}
 	if (m_pPublisherSrc) {
 		//publisher
-		if (m_ticker.elapsedTime() > 10 * 1000) {
+		if (m_ticker.elapsedTime() > 15 * 1000) {
 			WarnL << "数据接收超时:" << get_peer_ip();
 			shutdown();
 		}
@@ -139,10 +137,14 @@ void RtmpSession::onCmd_createStream(AMFDecoder &dec) {
 }
 
 void RtmpSession::onCmd_publish(AMFDecoder &dec) {
+    std::shared_ptr<Ticker> pTicker(new Ticker);
+    std::shared_ptr<onceToken> pToken(new onceToken(nullptr,[pTicker](){
+        DebugL << "publish 回复时间:" << pTicker->elapsedTime() << "ms";
+    }));
 	dec.load<AMFValue>();/* NULL */
     m_mediaInfo.parse(m_strTcUrl + "/" + dec.load<std::string>());
 
-    auto onRes = [this](const string &err){
+    auto onRes = [this,pToken](const string &err){
         auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
                                                                            m_mediaInfo.m_vhost,
                                                                            m_mediaInfo.m_app,
@@ -171,12 +173,12 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
     };
 
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
+    Broadcast::AuthInvoker invoker = [weakSelf,onRes,pToken](const string &err){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,onRes,err](){
+        strongSelf->async([weakSelf,onRes,err,pToken](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
@@ -203,7 +205,7 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
 	throw std::runtime_error(StrPrinter << "Stop publishing." << endl);
 }
 
-void RtmpSession::doPlayResponse(const string &err,bool tryDelay) {
+void RtmpSession::doPlayResponse(const string &err,bool tryDelay,const std::shared_ptr<onceToken> &pToken) {
     //获取流对象
     auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
                                                                        m_mediaInfo.m_vhost,
@@ -220,10 +222,52 @@ void RtmpSession::doPlayResponse(const string &err,bool tryDelay) {
     //是否鉴权成功
     bool authSuccess = err.empty();
     if(authSuccess && !src && tryDelay ){
-        //校验成功，但是流不存在而导致的不能播放，我们看看该流延时几秒后是否确实不能播放
-        doDelay(3,[this](){
-            //延时后就不再延时重试了
-            doPlayResponse("",false);
+        //校验成功，但是流不存在而导致的不能播放
+        //所以我们注册rtmp注册事件，等rtmp推流端推流成功后再告知播放器开始播放
+        auto task_id = this;
+        auto media_info = m_mediaInfo;
+        weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+
+        NoticeCenter::Instance().addListener(task_id,Broadcast::kBroadcastMediaChanged,
+                                             [task_id,weakSelf,media_info,pToken](BroadcastMediaChangedArgs){
+            if(bRegist &&
+               schema == media_info.m_schema &&
+               vhost == media_info.m_vhost &&
+               app == media_info.m_app &&
+               stream == media_info.m_schema){
+                //播发器请求的rtmp流终于注册上了
+                auto strongSelf = weakSelf.lock();
+                if(!strongSelf) {
+                    return;
+                }
+                //切换到自己的线程再回复
+                strongSelf->async([task_id,weakSelf,pToken](){
+                    auto strongSelf = weakSelf.lock();
+                    if(!strongSelf) {
+                        return;
+                    }
+                    //回复播放器
+                    strongSelf->doPlayResponse("",false,pToken);
+                    //取消延时任务，防止多次回复
+                    strongSelf->cancelDelyaTask();
+                    //取消事件监听
+                    NoticeCenter::Instance().delListener(task_id,Broadcast::kBroadcastMediaChanged);
+                });
+            }
+        });
+
+        //5秒后执行延时任务
+        doDelay(5,[task_id,weakSelf,pToken](){
+            //取消监听该事件,该延时任务可以在本对象析构时或到达指定延时后调用
+            //所以该对象在销毁前一定会被取消事件监听
+            NoticeCenter::Instance().delListener(task_id,Broadcast::kBroadcastMediaChanged);
+
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf) {
+                return;
+            }
+            //5秒后，我们不管流有没有注册上都回复播放器
+            strongSelf->doPlayResponse("",false,pToken);
         });
         return;
     }
@@ -325,24 +369,28 @@ void RtmpSession::doPlayResponse(const string &err,bool tryDelay) {
 }
 
 void RtmpSession::doPlay(AMFDecoder &dec){
+    std::shared_ptr<Ticker> pTicker(new Ticker);
+    std::shared_ptr<onceToken> pToken(new onceToken(nullptr,[pTicker](){
+        DebugL << "play 回复时间:" << pTicker->elapsedTime() << "ms";
+    }));
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf](const string &err){
+    Broadcast::AuthInvoker invoker = [weakSelf,pToken](const string &err){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,err](){
+        strongSelf->async([weakSelf,err,pToken](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            strongSelf->doPlayResponse(err,true);
+            strongSelf->doPlayResponse(err,true,pToken);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,m_mediaInfo,invoker,*this);
     if(!flag){
         //该事件无人监听,默认不鉴权
-        doPlayResponse("",true);
+        doPlayResponse("",true,pToken);
     }
 }
 void RtmpSession::onCmd_play2(AMFDecoder &dec) {
@@ -401,7 +449,19 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
 }
 
 void RtmpSession::onProcessCmd(AMFDecoder &dec) {
-	std::string method = dec.load<std::string>();
+    typedef void (RtmpSession::*rtmpCMDHandle)(AMFDecoder &dec);
+    static unordered_map<string, rtmpCMDHandle> g_mapCmd;
+    static onceToken token([]() {
+        g_mapCmd.emplace("connect",&RtmpSession::onCmd_connect);
+        g_mapCmd.emplace("createStream",&RtmpSession::onCmd_createStream);
+        g_mapCmd.emplace("publish",&RtmpSession::onCmd_publish);
+        g_mapCmd.emplace("deleteStream",&RtmpSession::onCmd_deleteStream);
+        g_mapCmd.emplace("play",&RtmpSession::onCmd_play);
+        g_mapCmd.emplace("play2",&RtmpSession::onCmd_play2);
+        g_mapCmd.emplace("seek",&RtmpSession::onCmd_seek);
+        g_mapCmd.emplace("pause",&RtmpSession::onCmd_pause);}, []() {});
+
+    std::string method = dec.load<std::string>();
 	auto it = g_mapCmd.find(method);
 	if (it == g_mapCmd.end()) {
 		TraceL << "can not support cmd:" << method;
@@ -487,8 +547,15 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 }
 
 void RtmpSession::doDelay(int delaySec, const std::function<void()> &fun) {
+    if(m_delayTask){
+        m_delayTask();
+    }
     m_delayTask = fun;
     m_iTaskTimeLine = time(NULL) + delaySec;
+}
+
+void RtmpSession::cancelDelyaTask(){
+    m_delayTask = nullptr;
 }
 
 

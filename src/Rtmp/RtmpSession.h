@@ -53,21 +53,6 @@ public:
 	void onError(const SockException &err) override;
 	void onManager() override;
 private:
-    std::string m_strTcUrl;
-    MediaInfo m_mediaInfo;
-	double m_dNowReqID = 0;
-	Ticker m_ticker;//数据接收时间
-	SmoothTicker m_stampTicker[2];//时间戳生产器
-	typedef void (RtmpSession::*rtmpCMDHandle)(AMFDecoder &dec);
-	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
-
-	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
-	std::shared_ptr<RtmpMediaSource> m_pPublisherSrc;
-	bool m_bPublisherSrcRegisted = false;
-    std::weak_ptr<RtmpMediaSource> m_pPlayerSrc;
-    uint32_t m_aui32FirstStamp[2] = {0};
-    //消耗的总流量
-    uint64_t m_ui64TotalBytes = 0;
 	void onProcessCmd(AMFDecoder &dec);
 	void onCmd_connect(AMFDecoder &dec);
 	void onCmd_createStream(AMFDecoder &dec);
@@ -78,7 +63,7 @@ private:
 	void onCmd_play(AMFDecoder &dec);
 	void onCmd_play2(AMFDecoder &dec);
 	void doPlay(AMFDecoder &dec);
-    void doPlayResponse(const string &err,bool tryDelay);
+    void doPlayResponse(const string &err,bool tryDelay,const std::shared_ptr<onceToken> &token);
 	void onCmd_seek(AMFDecoder &dec);
 	void onCmd_pause(AMFDecoder &dec);
 	void setMetaData(AMFDecoder &dec);
@@ -108,6 +93,20 @@ private:
     }
 
     void doDelay(int delaySec,const std::function<void()> &fun);
+	void cancelDelyaTask();
+private:
+	std::string m_strTcUrl;
+	MediaInfo m_mediaInfo;
+	double m_dNowReqID = 0;
+	Ticker m_ticker;//数据接收时间
+	SmoothTicker m_stampTicker[2];//时间戳生产器
+	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
+	std::shared_ptr<RtmpMediaSource> m_pPublisherSrc;
+	bool m_bPublisherSrcRegisted = false;
+	std::weak_ptr<RtmpMediaSource> m_pPlayerSrc;
+	uint32_t m_aui32FirstStamp[2] = {0};
+	//消耗的总流量
+	uint64_t m_ui64TotalBytes = 0;
     std::function<void()> m_delayTask;
     uint32_t m_iTaskTimeLine = 0;
 

@@ -54,21 +54,12 @@ unordered_map<string, weak_ptr<RtspSession> > RtspSession::g_mapGetter;
 unordered_map<void *, std::shared_ptr<RtspSession> > RtspSession::g_mapPostter;
 recursive_mutex RtspSession::g_mtxGetter; //对quicktime上锁保护
 recursive_mutex RtspSession::g_mtxPostter; //对quicktime上锁保护
-unordered_map<string, RtspSession::rtspCMDHandle> RtspSession::g_mapCmd;
 RtspSession::RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
 		TcpSession(pTh, pSock), m_pSender(pSock) {
-	static onceToken token( []() {
-		g_mapCmd.emplace("OPTIONS",&RtspSession::handleReq_Options);
-		g_mapCmd.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
-		g_mapCmd.emplace("SETUP",&RtspSession::handleReq_Setup);
-		g_mapCmd.emplace("PLAY",&RtspSession::handleReq_Play);
-		g_mapCmd.emplace("PAUSE",&RtspSession::handleReq_Pause);
-		g_mapCmd.emplace("TEARDOWN",&RtspSession::handleReq_Teardown);
-		g_mapCmd.emplace("GET",&RtspSession::handleReq_Get);
-		g_mapCmd.emplace("POST",&RtspSession::handleReq_Post);
-		g_mapCmd.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
-		g_mapCmd.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
-	}, []() {});
+	//设置10秒发送缓存
+	pSock->setSendBufSecond(10);
+	//设置15秒发送超时时间
+	pSock->setSendTimeOutSecond(15);
 
 	DebugL <<  get_peer_ip();
 }
@@ -128,7 +119,7 @@ void RtspSession::onError(const SockException& err) {
 }
 
 void RtspSession::onManager() {
-	if (m_ticker.createdTime() > 10 * 1000) {
+	if (m_ticker.createdTime() > 15 * 1000) {
 		if (m_strSession.size() == 0) {
 			WarnL << "非法链接:" << get_peer_ip();
 			shutdown();
@@ -162,6 +153,22 @@ void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
 	m_iCseq = atoi(m_parser["CSeq"].data());
 
 	bool ret = false;
+
+	typedef bool (RtspSession::*rtspCMDHandle)();
+	static unordered_map<string, rtspCMDHandle> g_mapCmd;
+	static onceToken token( []() {
+		g_mapCmd.emplace("OPTIONS",&RtspSession::handleReq_Options);
+		g_mapCmd.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
+		g_mapCmd.emplace("SETUP",&RtspSession::handleReq_Setup);
+		g_mapCmd.emplace("PLAY",&RtspSession::handleReq_Play);
+		g_mapCmd.emplace("PAUSE",&RtspSession::handleReq_Pause);
+		g_mapCmd.emplace("TEARDOWN",&RtspSession::handleReq_Teardown);
+		g_mapCmd.emplace("GET",&RtspSession::handleReq_Get);
+		g_mapCmd.emplace("POST",&RtspSession::handleReq_Post);
+		g_mapCmd.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
+		g_mapCmd.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
+	}, []() {});
+
 	auto it = g_mapCmd.find(strCmd);
 	if (it != g_mapCmd.end()) {
 		auto fun = it->second;

@@ -89,7 +89,7 @@ const char kSendBufSize[] = HTTP_FIELD"sendBufSize";
 const char kMaxReqSize[] = HTTP_FIELD"maxReqSize";
 
 //http keep-alive秒数
-#define HTTP_KEEP_ALIVE_SECOND 5
+#define HTTP_KEEP_ALIVE_SECOND 10
 const char kKeepAliveSecond[] = HTTP_FIELD"keepAliveSecond";
 
 //http keep-alive最大请求数
@@ -194,10 +194,6 @@ const char kVideoMtuSize[] = RTP_FIELD"videoMtuSize";
 #define RTP_Audio_MTU_SIZE 600
 const char kAudioMtuSize[] = RTP_FIELD"audioMtuSize";
 
-//udp方式接受RTP包的最大缓存
-#define RTP_UDP_BUFSIZE (128 * 1024)
-const char kUdpBufSize[] = RTP_FIELD"udpBufSize";
-
 //RTP排序缓存最大个数
 #define RTP_MAX_RTP_COUNT 50
 const char kMaxRtpCount[] = RTP_FIELD"maxRtpCount";
@@ -214,7 +210,6 @@ const char kCycleMS[] = RTP_FIELD"cycleMS";
 onceToken token([](){
 	mINI::Instance()[kVideoMtuSize] = RTP_VIDOE_MTU_SIZE;
 	mINI::Instance()[kAudioMtuSize] = RTP_Audio_MTU_SIZE;
-	mINI::Instance()[kUdpBufSize] = RTP_UDP_BUFSIZE;
 	mINI::Instance()[kMaxRtpCount] = RTP_MAX_RTP_COUNT;
 	mINI::Instance()[kClearCount] = RTP_CLEAR_COUNT;
 	mINI::Instance()[kCycleMS] = RTP_CYCLE_MS;

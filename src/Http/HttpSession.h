@@ -64,8 +64,6 @@ private:
 		Http_failed = 1,
 		Http_moreData = 2,
 	} HttpCode;
-	typedef HttpSession::HttpCode (HttpSession::*HttpCMDHandle)();
-	static unordered_map<string, HttpCMDHandle> g_mapCmdIndex;
 
 	Parser m_parser;
 	string m_strPath;
