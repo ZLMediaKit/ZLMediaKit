@@ -230,22 +230,24 @@ void RtmpSession::doPlayResponse(const string &err,bool tryDelay,const std::shar
 
         NoticeCenter::Instance().addListener(task_id,Broadcast::kBroadcastMediaChanged,
                                              [task_id,weakSelf,media_info,pToken](BroadcastMediaChangedArgs){
-            if(bRegist &&
+
+             if(bRegist &&
                schema == media_info.m_schema &&
                vhost == media_info.m_vhost &&
                app == media_info.m_app &&
-               stream == media_info.m_schema){
+               stream == media_info.m_streamid){
                 //播发器请求的rtmp流终于注册上了
                 auto strongSelf = weakSelf.lock();
                 if(!strongSelf) {
                     return;
                 }
                 //切换到自己的线程再回复
-                strongSelf->async([task_id,weakSelf,pToken](){
+                strongSelf->async([task_id,weakSelf,pToken,media_info](){
                     auto strongSelf = weakSelf.lock();
                     if(!strongSelf) {
                         return;
                     }
+                    DebugL << "收到rtmp注册事件,回复播放器:" << media_info.m_schema << "/" << media_info.m_vhost << "/" << media_info.m_app << "/" << media_info.m_streamid;
                     //回复播放器
                     strongSelf->doPlayResponse("",false,pToken);
                     //取消延时任务，防止多次回复
