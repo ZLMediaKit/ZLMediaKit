@@ -49,7 +49,6 @@ namespace Http {
 
 static int sock_flags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
-unordered_map<string, HttpSession::HttpCMDHandle> HttpSession::g_mapCmdIndex;
 string dateStr() {
 	char buf[64];
 	time_t tt = time(NULL);
@@ -102,13 +101,14 @@ get_mime_type(const char* name) {
 
 HttpSession::HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
 		TcpSession(pTh, pSock) {
-    GET_CONFIG_AND_REGISTER(string,rootPath,Config::Http::kRootPath);
 
+	//设置10秒发送缓存
+	pSock->setSendBufSecond(10);
+	//设置15秒发送超时时间
+	pSock->setSendTimeOutSecond(15);
+
+    GET_CONFIG_AND_REGISTER(string,rootPath,Config::Http::kRootPath);
     m_strPath = rootPath;
-	static onceToken token([]() {
-		g_mapCmdIndex.emplace("GET",&HttpSession::Handle_Req_GET);
-		g_mapCmdIndex.emplace("POST",&HttpSession::Handle_Req_POST);
-	}, nullptr);
 }
 
 HttpSession::~HttpSession() {
@@ -154,6 +154,14 @@ inline HttpSession::HttpCode HttpSession::parserHttpReq(const string &str) {
 	m_parser.Parse(str.data());
 	urlDecode(m_parser);
 	string cmd = m_parser.Method();
+
+	typedef HttpSession::HttpCode (HttpSession::*HttpCMDHandle)();
+	static unordered_map<string, HttpCMDHandle> g_mapCmdIndex;
+	static onceToken token([]() {
+		g_mapCmdIndex.emplace("GET",&HttpSession::Handle_Req_GET);
+		g_mapCmdIndex.emplace("POST",&HttpSession::Handle_Req_POST);
+	}, nullptr);
+
 	auto it = g_mapCmdIndex.find(cmd);
 	if (it == g_mapCmdIndex.end()) {
 		WarnL << cmd;

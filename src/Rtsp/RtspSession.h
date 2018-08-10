@@ -81,7 +81,6 @@ public:
 	void onError(const SockException &err) override;
 	void onManager() override;
 private:
-	typedef bool (RtspSession::*rtspCMDHandle)();
 	int send(const string &strBuf) override {
         m_ui64TotalBytes += strBuf.size();
 		return m_pSender->send(strBuf);
@@ -162,7 +161,6 @@ private:
 	bool m_bFirstPlay = true;
     MediaInfo m_mediaInfo;
 	std::weak_ptr<RtspMediaSource> m_pMediaSrc;
-	static unordered_map<string, rtspCMDHandle> g_mapCmd;
 
 	//RTP缓冲
 	weak_ptr<RingBuffer<RtpPacket::Ptr> > m_pWeakRing;
