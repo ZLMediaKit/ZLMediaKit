@@ -242,6 +242,10 @@ void RtmpSession::doPlayResponse(const string &err,bool tryDelay,const std::shar
                     return;
                 }
                 //切换到自己的线程再回复
+                //如果触发 kBroadcastMediaChanged 事件的线程与本RtmpSession绑定的线程相同,
+                //那么strongSelf->async操作可能是同步操作,
+                //通过指定参数may_sync为false确保 NoticeCenter::delListener操作延后执行,
+                //以便防止遍历事件监听对象map时做删除操作
                 strongSelf->async([task_id,weakSelf,pToken,media_info](){
                     auto strongSelf = weakSelf.lock();
                     if(!strongSelf) {
@@ -252,9 +256,11 @@ void RtmpSession::doPlayResponse(const string &err,bool tryDelay,const std::shar
                     strongSelf->doPlayResponse("",false,pToken);
                     //取消延时任务，防止多次回复
                     strongSelf->cancelDelyaTask();
+
                     //取消事件监听
+                    //在事件触发时不能在当前线程移除事件监听,否则会导致遍历map时做删除操作导致程序崩溃
                     NoticeCenter::Instance().delListener(task_id,Broadcast::kBroadcastMediaChanged);
-                });
+                }, false);
             }
         });
 
