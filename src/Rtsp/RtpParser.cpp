@@ -285,8 +285,11 @@ inline void RtpParser::_onGetH264(H264Frame& frame) {
 	case 8://PPS
 		m_strPPS=frame.data;
 		break;
+	case 1:
+	    //B or P
+		onGetH264(frame);
+		break;
 	default:
-        onGetH264(frame);
 		break;
 	}
 }
