@@ -82,7 +82,9 @@ inline void RtpMaker_AAC::makeAACRtp(const void *pData, unsigned int uiLen, bool
 	memcpy(&pucRtp[8], &ts, 4);
 	//ssrc
 	memcpy(&pucRtp[12], &sc, 4);
+	//playload
 	memcpy(&pucRtp[16], pData, uiLen);
+
 	rtppkt.PT = m_ui8PlayloadType;
 	rtppkt.interleaved = m_ui8Interleaved;
 	rtppkt.mark = bMark;
@@ -92,7 +94,7 @@ inline void RtpMaker_AAC::makeAACRtp(const void *pData, unsigned int uiLen, bool
 	rtppkt.ssrc = m_ui32Ssrc;
 	rtppkt.type = TrackAudio;
 	rtppkt.offset = 16;
-	memcpy(rtppkt.payload + 16, pData, uiLen);
+
 	onMakeRtp(pRtppkt, false);
 	m_ui16Sequence++;
 }
