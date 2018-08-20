@@ -99,7 +99,9 @@ inline void RtpMaker_H264::makeH264Rtp(const void* data, unsigned int len, bool 
 	memcpy(&pucRtp[8], &ts, 4);
 	//ssrc
 	memcpy(&pucRtp[12], &sc, 4);
+	//playload
 	memcpy(&pucRtp[16], data, len);
+
 	rtppkt.PT = m_ui8PlayloadType;
 	rtppkt.interleaved = m_ui8Interleaved;
 	rtppkt.mark = mark;
@@ -109,7 +111,7 @@ inline void RtpMaker_H264::makeH264Rtp(const void* data, unsigned int len, bool 
 	rtppkt.ssrc = m_ui32Ssrc;
 	rtppkt.type = TrackVideo;
 	rtppkt.offset = 16;
-	memcpy(rtppkt.payload + 16, data, len);
+
 	uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
 	onMakeRtp(pRtppkt, type == 5);
 	m_ui16Sequence++;
