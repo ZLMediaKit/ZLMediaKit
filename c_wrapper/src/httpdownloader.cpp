@@ -57,14 +57,20 @@ API_EXPORT HttpDownloaderContex API_CALL createDownloader(){
 	return ret.get();
 }
 API_EXPORT void API_CALL downloader_startDownload(HttpDownloaderContex ctx,const char *url,downloader_onResult cb,void *userData){
+    downloader_startDownload_l(ctx,url,"",cb,userData);
+}
+
+
+API_EXPORT void API_CALL downloader_startDownload_l(HttpDownloaderContex ctx,const char *url,const  char *file,downloader_onResult cb,void *userData){
 	HttpDownloader *ptr = (HttpDownloader *)ctx;
 	string urlTmp(url);
-	ptr->startDownload(url, [cb,userData,urlTmp](int code,const char *errMsg,const char *filePath){
+	ptr->setOnResult([cb,userData,urlTmp](int code,const char *errMsg,const char *filePath){
 		if(cb){
 			InfoL << code << " " << errMsg << " " << filePath << " " << urlTmp;
 			cb(userData,code,errMsg,filePath);
 		}
 	});
+	ptr->startDownload(url,file,false);
 }
 API_EXPORT void API_CALL releaseDownloader(HttpDownloaderContex ctx){
 	lock_guard<recursive_mutex> lck(s_mtxMapDownloader);
