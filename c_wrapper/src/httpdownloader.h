@@ -39,6 +39,7 @@ typedef void(API_CALL *downloader_onResult)(void *userData,int code,const char *
 
 API_EXPORT HttpDownloaderContex API_CALL createDownloader();
 API_EXPORT void API_CALL downloader_startDownload(HttpDownloaderContex ctx,const char *url,downloader_onResult cb,void *userData);
+API_EXPORT void API_CALL downloader_startDownload_l(HttpDownloaderContex ctx,const char *url,const char *file,downloader_onResult cb,void *userData);
 API_EXPORT void API_CALL releaseDownloader(HttpDownloaderContex ctx);
 
 
