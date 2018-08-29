@@ -39,10 +39,10 @@ extern "C" {
 typedef void* MediaContext;
 /*
  * 描述:创建一个媒体源
- * 参数:mediaName:媒体名称,url地址的一部分,bEanbleHls:是否启用hls，bEnableMp4:是否录制mp4
+ * 参数:mediaName:媒体名称,url地址的一部分,fDuration:文件长度(单位秒)，直播输入0,bEanbleHls:是否启用hls，bEnableMp4:是否录制mp4
  * 返回值:媒体源句柄
  */
-API_EXPORT MediaContext API_CALL createMedia(const char *appName,const char *mediaName,int bEanbleHls, int bEnableMp4);
+API_EXPORT MediaContext API_CALL createMedia(const char *appName,const char *mediaName,float fDuration,int bEanbleHls, int bEnableMp4);
 
 /*
  * 描述:销毁媒体源
