@@ -31,6 +31,7 @@
 #include <string>
 #include <functional>
 #include "Util/util.h"
+#include "Player/Player.h"
 #include "RTP/RtpMakerAAC.h"
 #include "RTP/RtpMakerH264.h"
 #include "Rtsp/RtspToRtmpMediaSource.h"
@@ -65,6 +66,7 @@ public:
 	int iChannel;
 	int iSampleBit;
 	int iSampleRate;
+	int iProfile;
 };
 
 class DevChannel  : public RtspToRtmpMediaSource{
@@ -82,9 +84,9 @@ public:
 	void initVideo(const VideoInfo &info);
 	void initAudio(const AudioInfo &info);
 
-	void inputH264(char *pcData, int iDataLen, uint32_t uiStamp);
-	void inputAAC(char *pcDataWithAdts, int iDataLen, uint32_t uiStamp);
-	void inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,char *pcAdtsHeader);
+	void inputH264(const char *pcData, int iDataLen, uint32_t uiStamp);
+	void inputAAC(const char *pcDataWithAdts, int iDataLen, uint32_t uiStamp, bool withAdtsHeader = true);
+	void inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,const char *pcAdtsHeader);
 
 #ifdef ENABLE_X264
         void inputYUV(char *apcYuv[3], int aiYuvLen[3], uint32_t uiStamp);
@@ -117,6 +119,7 @@ private:
 	std::shared_ptr<VideoInfo> m_video;
 	std::shared_ptr<AudioInfo> m_audio;
     SmoothTicker m_aTicker[2];
+	std::shared_ptr<AdtsFrame> m_pAdtsHeader;
 };
 
 

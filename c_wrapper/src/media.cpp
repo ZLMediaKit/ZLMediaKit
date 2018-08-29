@@ -49,8 +49,8 @@ static onceToken s_token([](){
 
 
 //////////////////////////Rtsp media///////////////////////////
-API_EXPORT MediaContext API_CALL createMedia(const char *appName,const char *mediaName) {
-	DevChannel::Ptr ret(new DevChannel(DEFAULT_VHOST,appName,mediaName));
+API_EXPORT MediaContext API_CALL createMedia(const char *appName,const char *mediaName , int bEanbleHls, int bEnableMp4) {
+	DevChannel::Ptr ret(new DevChannel(DEFAULT_VHOST,appName,mediaName,0,bEanbleHls,bEnableMp4));
 	lock_guard<recursive_mutex> lck(s_mtxMapMedia);
 	s_mapMedia.emplace((void *) (ret.get()), ret);
 	return ret.get();
@@ -68,12 +68,13 @@ API_EXPORT void API_CALL media_initVideo(MediaContext ctx, int width, int height
 	info.iHeight = height;
 	ptr->initVideo(info);
 }
-API_EXPORT void API_CALL media_initAudio(MediaContext ctx, int channel, int sampleBit, int sampleRate) {
+API_EXPORT void API_CALL media_initAudio(MediaContext ctx, int channel, int sampleBit, int sampleRate,int profile) {
 	DevChannel *ptr = (DevChannel *) ctx;
 	AudioInfo info;
 	info.iSampleRate = sampleRate;
 	info.iChannel = channel;
 	info.iSampleBit = sampleBit;
+	info.iProfile = profile;
 	ptr->initAudio(info);
 }
 API_EXPORT void API_CALL media_inputH264(MediaContext ctx, void *data, int len, unsigned long stamp) {
@@ -81,10 +82,10 @@ API_EXPORT void API_CALL media_inputH264(MediaContext ctx, void *data, int len, 
 	DevChannel *ptr = (DevChannel *) ctx;
 	ptr->inputH264((char *) data, len, stamp);
 }
-API_EXPORT void API_CALL media_inputAAC(MediaContext ctx, void *data, int len,unsigned long stamp) {
+API_EXPORT void API_CALL media_inputAAC(MediaContext ctx, void *data, int len,unsigned long stamp,int withAdtsHeader) {
 	//TimeTicker();
 	DevChannel *ptr = (DevChannel *) ctx;
-	ptr->inputAAC((char *) data, len, stamp);
+	ptr->inputAAC((char *) data, len, stamp,withAdtsHeader);
 }
 
 API_EXPORT void API_CALL media_inputAAC1(MediaContext ctx, void *data, int len, unsigned long stamp,void *adts){

@@ -63,6 +63,14 @@ typedef struct {
 	uint32_t timeStamp;
 } AdtsFrame;
 
+unsigned const samplingFrequencyTable[16] = { 96000, 88200,
+											  64000, 48000,
+											  44100, 32000,
+											  24000, 22050,
+											  16000, 12000,
+											  11025, 8000,
+											  7350, 0, 0, 0 };
+
 void	makeAdtsHeader(const string &strAudioCfg,AdtsFrame &adts);
 void 	writeAdtsHeader(const AdtsFrame &adts, uint8_t *pcAdts) ;
 string 	makeAdtsConfig(const uint8_t *pcAdts);
