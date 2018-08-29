@@ -100,7 +100,7 @@ void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
 }
 #endif //ENABLE_FAAC
 
-void DevChannel::inputH264(char* pcData, int iDataLen, uint32_t uiStamp) {
+void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t uiStamp) {
 	if (!m_pRtpMaker_h264) {
 		uint32_t ui32Ssrc;
 		memcpy(&ui32Ssrc, makeRandStr(4, false).data(), 4);
@@ -123,10 +123,16 @@ void DevChannel::inputH264(char* pcData, int iDataLen, uint32_t uiStamp) {
 	m_pRtpMaker_h264->makeRtp(pcData + iOffset, iDataLen - iOffset, uiStamp);
 }
 
-void DevChannel::inputAAC(char* pcData, int iDataLen, uint32_t uiStamp) {
-	inputAAC(pcData+7,iDataLen-7,uiStamp,pcData);
+void DevChannel::inputAAC(const char* pcData, int iDataLen, uint32_t uiStamp,bool withAdtsHeader) {
+	if(withAdtsHeader){
+		inputAAC(pcData+7,iDataLen-7,uiStamp,pcData);
+	} else if(m_pAdtsHeader){
+		m_pAdtsHeader->aac_frame_length = iDataLen;
+		writeAdtsHeader(*m_pAdtsHeader,m_pAdtsHeader->data);
+		inputAAC(pcData,iDataLen,uiStamp,(const char *)m_pAdtsHeader->data);
+	}
 }
-void DevChannel::inputAAC(char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,char *pcAdtsHeader){
+void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,const char *pcAdtsHeader){
 	if (!m_pRtpMaker_aac) {
 		uint32_t ssrc;
 		memcpy(&ssrc, makeRandStr(8, false).data() + 4, 4);
@@ -273,6 +279,33 @@ void DevChannel::initVideo(const VideoInfo& info) {
 
 void DevChannel::initAudio(const AudioInfo& info) {
 	m_audio.reset(new AudioInfo(info));
+	m_pAdtsHeader.reset((AdtsFrame *)malloc(sizeof(AdtsFrame) - sizeof(AdtsFrame::data) + 7),[](AdtsFrame *ptr){
+		free(ptr);
+	});
+
+	m_pAdtsHeader->syncword = 0x0FFF;
+	m_pAdtsHeader->id = 0;
+	m_pAdtsHeader->layer = 0;
+	m_pAdtsHeader->protection_absent = 1;
+	m_pAdtsHeader->profile =  info.iProfile;//audioObjectType - 1;
+	int i = 0;
+	for(auto rate : samplingFrequencyTable){
+		if(rate == info.iSampleRate){
+			m_pAdtsHeader->sf_index = i;
+		};
+		++i;
+	}
+
+	m_pAdtsHeader->private_bit = 0;
+	m_pAdtsHeader->channel_configuration = info.iChannel;
+	m_pAdtsHeader->original = 0;
+	m_pAdtsHeader->home = 0;
+	m_pAdtsHeader->copyright_identification_bit = 0;
+	m_pAdtsHeader->copyright_identification_start = 0;
+	m_pAdtsHeader->aac_frame_length = 7;
+	m_pAdtsHeader->adts_buffer_fullness = 2047;
+	m_pAdtsHeader->no_raw_data_blocks_in_frame = 0;
+
 }
 } /* namespace DEV */
 } /* namespace ZL */

@@ -39,10 +39,10 @@ extern "C" {
 typedef void* MediaContext;
 /*
  * 描述:创建一个媒体源
- * 参数:mediaName:媒体名称,url地址的一部分
+ * 参数:mediaName:媒体名称,url地址的一部分,bEanbleHls:是否启用hls，bEnableMp4:是否录制mp4
  * 返回值:媒体源句柄
  */
-API_EXPORT MediaContext API_CALL createMedia(const char *appName,const char *mediaName);
+API_EXPORT MediaContext API_CALL createMedia(const char *appName,const char *mediaName,int bEanbleHls, int bEnableMp4);
 
 /*
  * 描述:销毁媒体源
@@ -60,10 +60,10 @@ API_EXPORT void API_CALL media_initVideo(MediaContext ctx, int width, int height
 
 /*
  * 描述:初始化媒体源的音频信息
- * 参数:ctx:媒体源句柄;channel:声道数;sampleBit:音频采样位数,支持16bit;sampleRate:音频采样率
+ * 参数:ctx:媒体源句柄;channel:声道数;sampleBit:音频采样位数,支持16bit;sampleRate:音频采样率;profile:aac编码profile，在不输入adts头时用于生产adts头
  * 返回值:无
  */
-API_EXPORT void API_CALL media_initAudio(MediaContext ctx, int channel, int sampleBit, int sampleRate);
+API_EXPORT void API_CALL media_initAudio(MediaContext ctx, int channel, int sampleBit, int sampleRate , int profile);
 
 /*
  * 描述:输入单帧H264视频，需要输入SPS和PPS帧,帧起始字节00 00 01,00 00 00 01均可
@@ -74,10 +74,10 @@ API_EXPORT void API_CALL media_inputH264(MediaContext ctx, void *data, int len, 
 
 /*
  * 描述:输入单帧AAC音频(有adts头)
- * 参数:ctx:媒体源句柄;data:单帧AAC数据;len:单帧AAC数据字节数;stamp:时间戳，毫秒
+ * 参数:ctx:媒体源句柄;data:单帧AAC数据;len:单帧AAC数据字节数;stamp:时间戳，毫秒 ,withAdtsHeader:是否有adts头
  * 返回值:无
  */
-API_EXPORT void API_CALL media_inputAAC(MediaContext ctx, void *data, int len, unsigned long stamp);
+API_EXPORT void API_CALL media_inputAAC(MediaContext ctx, void *data, int len, unsigned long stamp,int withAdtsHeader);
 
     
 /*
