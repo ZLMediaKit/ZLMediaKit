@@ -180,6 +180,10 @@ inline bool RtmpParser::inputAudio(const RtmpPacket::Ptr &pkt) {
 	return false;
 }
 inline void RtmpParser::onGetAAC(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
+    if(iLen + 7 > sizeof(m_adts.data)){
+        WarnL << "Illegal adts data, exceeding the length limit.";
+        return;
+    }
 	//添加adts头
 	memcpy(m_adts.data + 7, pcData, iLen);
 	m_adts.aac_frame_length = 7 + iLen;
