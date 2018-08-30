@@ -207,13 +207,13 @@ void RtspToRtmpMediaSource::makeMetaData() {
 	if (m_pParser->containVideo()) {
 		metaData.set("width", m_pParser->getVideoWidth());
 		metaData.set("height", m_pParser->getVideoHeight());
-		metaData.set("videocodecid", 7); //h.264
+		metaData.set("videocodecid", "avc1"); //h.264
 		metaData.set("videodatarate", 5000);
 		metaData.set("framerate", m_pParser->getVideoFps());
 		makeVideoConfigPkt();
 	}
 	if (m_pParser->containAudio()) {
-		metaData.set("audiocodecid", 10); //aac
+		metaData.set("audiocodecid", "mp4a"); //aac
 		metaData.set("audiodatarate", 160);
 		metaData.set("audiosamplerate", m_pParser->getAudioSampleRate());
 		metaData.set("audiosamplesize", m_pParser->getAudioSampleBit());
