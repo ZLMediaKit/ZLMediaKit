@@ -175,9 +175,8 @@ void HttpSession::onError(const SockException& err) {
 	//WarnL << err.what();
     GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
 
-    if(m_previousTagSize > iFlowThreshold * 1024){
-        uint64_t totalBytes = m_previousTagSize;
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,totalBytes,*this);
+    if(m_ui64TotalBytes > iFlowThreshold * 1024){
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes,*this);
     }
 }
 
@@ -224,73 +223,18 @@ inline bool HttpSession::checkLiveFlvStream(){
         }
         //找到rtmp源，发送http头，负载后续发送
         sendResponse("200 OK", makeHttpHeader(false,0,get_mime_type(".flv")), "");
-        //发送flv文件头
-        char flv_file_header[] = "FLV\x1\x5\x0\x0\x0\x9"; // have audio and have video
-        bool is_have_audio = false,is_have_video = false;
-
-        mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-            if(pkt->typeId == MSG_VIDEO){
-                is_have_video = true;
-            }
-            if(pkt->typeId == MSG_AUDIO){
-                is_have_audio = true;
-            }
-        });
-
-        if (is_have_audio && is_have_video) {
-            flv_file_header[4] = 0x05;
-        } else if (is_have_audio && !is_have_video) {
-            flv_file_header[4] = 0x04;
-        } else if (!is_have_audio && is_have_video) {
-            flv_file_header[4] = 0x01;
-        } else {
-            flv_file_header[4] = 0x00;
-        }
-        //send flv header
-        send(flv_file_header, sizeof(flv_file_header) - 1);
-        //send metadata
-        AMFEncoder invoke;
-        invoke << "onMetaData" << mediaSrc->getMetaData();
-        sendRtmp(MSG_DATA, invoke.data(), 0);
-        //send config frame
-        mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-            onSendMedia(pkt);
-        });
 
         //开始发送rtmp负载
-
         //关闭tcp_nodelay ,优化性能
         SockUtil::setNoDelay(_sock->rawFD(),false);
         (*this) << SocketFlags(sock_flags);
 
-        m_pRingReader = mediaSrc->getRing()->attach();
-        weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-        m_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
-            auto strongSelf = weakSelf.lock();
-            if(!strongSelf) {
-                return;
-            }
-            strongSelf->async([pkt,weakSelf](){
-                auto strongSelf = weakSelf.lock();
-                if(!strongSelf) {
-                    return;
-                }
-                strongSelf->onSendMedia(pkt);
-            });
-        });
-        m_pRingReader->setDetachCB([weakSelf](){
-            auto strongSelf = weakSelf.lock();
-            if(!strongSelf) {
-                return;
-            }
-            strongSelf->async_first([weakSelf](){
-                auto strongSelf = weakSelf.lock();
-                if(!strongSelf) {
-                    return;
-                }
-                strongSelf->shutdown();
-            });
-        });
+		try{
+			start(mediaSrc);
+		}catch (std::exception &ex){
+			//该rtmp源不存在
+			shutdown();
+		}
     };
 
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
@@ -682,86 +626,43 @@ void HttpSession::responseDelay(const string &Origin,bool bClose,
 }
 inline void HttpSession::sendNotFound(bool bClose) {
     GET_CONFIG_AND_REGISTER(string,notFound,Config::Http::kNotFound);
-
     sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
 }
 
-void HttpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
-	auto modifiedStamp = pkt->timeStamp;
-	auto &firstStamp = m_aui32FirstStamp[pkt->typeId % 2];
-	if(!firstStamp){
-		firstStamp = modifiedStamp;
-	}
-	if(modifiedStamp >= firstStamp){
-		//计算时间戳增量
-		modifiedStamp -= firstStamp;
-	}else{
-		//发生回环，重新计算时间戳增量
-		CLEAR_ARR(m_aui32FirstStamp);
-		modifiedStamp = 0;
-	}
-	sendRtmp(pkt, modifiedStamp);
+
+void HttpSession::onWrite(const Buffer::Ptr &buffer) {
+	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+	async([weakSelf,buffer](){
+		auto strongSelf = weakSelf.lock();
+		if(!strongSelf) {
+			return;
+		}
+		strongSelf->m_ui64TotalBytes += buffer->size();
+		strongSelf->send(buffer);
+	});
 }
 
-#if defined(_WIN32)
-#pragma pack(push, 1)
-#endif // defined(_WIN32)
+void HttpSession::onWrite(const char *data, int len) {
+	BufferRaw::Ptr buffer(new BufferRaw);
+	buffer->assign(data,len);
 
-class RtmpTagHeader {
-public:
-	uint8_t type = 0;
-	uint8_t data_size[3] = {0};
-	uint8_t timestamp[3] = {0};
-	uint8_t timestamp_ex = 0;
-	uint8_t streamid[3] = {0}; /* Always 0. */
-}PACKED;
-
-#if defined(_WIN32)
-#pragma pack(pop)
-#endif // defined(_WIN32)
-
-class BufferRtmp : public Buffer{
-public:
-    typedef std::shared_ptr<BufferRtmp> Ptr;
-    BufferRtmp(const RtmpPacket::Ptr & pkt):_rtmp(pkt){}
-    virtual ~BufferRtmp(){}
-
-    char *data() override {
-        return (char *)_rtmp->strBuf.data();
-    }
-    uint32_t size() const override {
-        return _rtmp->strBuf.size();
-    }
-private:
-    RtmpPacket::Ptr _rtmp;
-};
-
-void HttpSession::sendRtmp(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp) {
-	auto size = htonl(m_previousTagSize);
-    send((char *)&size,4);//send PreviousTagSize
-	RtmpTagHeader header;
-	header.type = pkt->typeId;
-	set_be24(header.data_size, pkt->strBuf.size());
-	header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
-	set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
-    send((char *)&header, sizeof(header));//send tag header
-    send(std::make_shared<BufferRtmp>(pkt));//send tag data
-	m_previousTagSize += (pkt->strBuf.size() + sizeof(header));
-	m_ticker.resetTime();
+	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+	async([weakSelf,buffer](){
+		auto strongSelf = weakSelf.lock();
+		if(!strongSelf) {
+			return;
+		}
+		strongSelf->m_ui64TotalBytes += buffer->size();
+		strongSelf->send(buffer);
+	});
 }
 
-void HttpSession::sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp) {
-    auto size = htonl(m_previousTagSize);
-    send((char *)&size,4);//send PreviousTagSize
-    RtmpTagHeader header;
-    header.type = ui8Type;
-    set_be24(header.data_size, strBuf.size());
-    header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
-    set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
-    send((char *)&header, sizeof(header));//send tag header
-    send(strBuf);//send tag data
-    m_previousTagSize += (strBuf.size() + sizeof(header));
-    m_ticker.resetTime();
+void HttpSession::onDetach() {
+	safeShutdown();
+}
+
+std::shared_ptr<FlvMuxer> HttpSession::getSharedPtr(){
+	return dynamic_pointer_cast<FlvMuxer>(shared_from_this());
 }
 
 } /* namespace Http */

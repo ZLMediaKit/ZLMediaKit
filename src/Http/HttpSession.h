@@ -31,6 +31,7 @@
 #include "Rtsp/Rtsp.h"
 #include "Network/TcpSession.h"
 #include "Rtmp/RtmpMediaSource.h"
+#include "Rtmp/FlvMuxer.h"
 
 using namespace std;
 using namespace ZL::Rtmp;
@@ -40,7 +41,7 @@ namespace ZL {
 namespace Http {
 
 
-class HttpSession: public TcpSession {
+class HttpSession: public TcpSession,FlvMuxer {
 public:
 	typedef StrCaseMap KeyValue;
 	typedef std::function<void(const string &codeOut,
@@ -57,6 +58,12 @@ public:
 	static string urlDecode(const string &str);
 protected:
 	void onRecv(const char *data,int size);
+
+	//FlvMuxer override
+	void onWrite(const Buffer::Ptr &data) override ;
+	void onWrite(const char *data,int len) override;
+	void onDetach() override;
+	std::shared_ptr<FlvMuxer> getSharedPtr() override;
 private:
 	typedef enum
 	{
@@ -70,16 +77,11 @@ private:
 	string m_strRcvBuf;
 	Ticker m_ticker;
 	uint32_t m_iReqCnt = 0;
+	//消耗的总流量
+	uint64_t m_ui64TotalBytes = 0;
 
 	//flv over http
-	uint32_t m_aui32FirstStamp[2] = {0};
-	uint32_t m_previousTagSize = 0;
     MediaInfo m_mediaInfo;
-	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
-
-	void onSendMedia(const RtmpPacket::Ptr &pkt);
-	void sendRtmp(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp);
-	void sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp);
 
 	inline HttpCode parserHttpReq(const string &);
 	inline HttpCode Handle_Req_GET();
