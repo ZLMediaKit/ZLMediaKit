@@ -102,7 +102,6 @@ private:
 	SmoothTicker m_stampTicker[2];//时间戳生产器
 	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
 	std::shared_ptr<RtmpMediaSource> m_pPublisherSrc;
-	bool m_bPublisherSrcRegisted = false;
 	std::weak_ptr<RtmpMediaSource> m_pPlayerSrc;
 	uint32_t m_aui32FirstStamp[2] = {0};
 	//消耗的总流量

@@ -34,6 +34,7 @@
 #include <unordered_map>
 #include "amf.h"
 #include "Rtmp.h"
+#include "RtmpParser.h"
 #include "Common/config.h"
 #include "Common/MediaSender.h"
 #include "Common/MediaSource.h"
@@ -71,6 +72,7 @@ public:
 	}
 
 	const AMFValue &getMetaData() const {
+		lock_guard<recursive_mutex> lock(m_mtxMap);
 		return m_metadata;
 	}
 	template<typename FUN>
@@ -80,22 +82,42 @@ public:
 			f(pr.second);
 		}
 	}
-	bool ready() const {
-		lock_guard<recursive_mutex> lock(m_mtxMap);
-		return (m_mapCfgFrame.size() != 0);
-	}
+
 	virtual void onGetMetaData(const AMFValue &_metadata) {
+		lock_guard<recursive_mutex> lock(m_mtxMap);
 		m_metadata = _metadata;
+		RtmpParser parser(_metadata);
+		m_iCfgFrameSize = parser.containAudio() + parser.containVideo();
+		if(ready()){
+			MediaSource::regist();
+			m_bRegisted = true;
+		} else{
+			m_bAsyncRegist = true;
+		}
 	}
 	virtual void onGetMedia(const RtmpPacket::Ptr &pkt) {
-		if (pkt->isCfgFrame()) {
+		if(!m_bRegisted){
 			lock_guard<recursive_mutex> lock(m_mtxMap);
-			m_mapCfgFrame.emplace(pkt->typeId, pkt);
+			if (m_mapCfgFrame.size() != m_iCfgFrameSize && pkt->isCfgFrame()) {
+				m_mapCfgFrame.emplace(pkt->typeId, pkt);
+
+				if( m_mapCfgFrame.size() == m_iCfgFrameSize && m_bAsyncRegist){
+					m_bAsyncRegist = false;
+					MediaSource::regist();
+					m_bRegisted = true;
+				}
+			}
 		}
+
 		auto _ring = m_pRing;
 		m_thPool.async([_ring,pkt]() {
 			_ring->write(pkt,pkt->isVideoKeyFrame());
 		});
+	}
+private:
+	bool ready(){
+		lock_guard<recursive_mutex> lock(m_mtxMap);
+		return m_iCfgFrameSize != -1 && m_iCfgFrameSize == m_mapCfgFrame.size();
 	}
 protected:
 	AMFValue m_metadata;
@@ -103,6 +125,9 @@ protected:
 	mutable recursive_mutex m_mtxMap;
 	RingBuffer<RtmpPacket::Ptr>::Ptr m_pRing; //rtp环形缓冲
 	ThreadPool &m_thPool;
+	int m_iCfgFrameSize = -1;
+	bool m_bAsyncRegist = false;
+	bool m_bRegisted = false;
 };
 
 } /* namespace Rtmp */

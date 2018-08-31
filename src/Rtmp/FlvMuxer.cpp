@@ -21,9 +21,6 @@ void FlvMuxer::start(const RtmpMediaSource::Ptr &media) {
     if(!media){
         throw std::runtime_error("RtmpMediaSource 无效");
     }
-    if(!media->ready()){
-        throw std::runtime_error("RtmpMediaSource 未准备好");
-    }
 
     onWriteFlvHeader(media);
 
@@ -176,6 +173,7 @@ void FlvRecorder::startRecord(const string &vhost, const string &app, const stri
 }
 
 void FlvRecorder::startRecord(const RtmpMediaSource::Ptr &media, const string &file_path) {
+    lock_guard<recursive_mutex> lck(_file_mtx);
     //开辟文件写缓存
     std::shared_ptr<char> fileBuf(new char[FILE_BUF_SIZE],[](char *ptr){
         if(ptr){
@@ -183,7 +181,7 @@ void FlvRecorder::startRecord(const RtmpMediaSource::Ptr &media, const string &f
         }
     });
     //新建文件
-    std::shared_ptr<FILE> _file(File::createfile_file(file_path.data(),"wb"),[fileBuf](FILE *fp){
+    _file.reset(File::createfile_file(file_path.data(),"wb"),[fileBuf](FILE *fp){
         if(fp){
             fflush(fp);
             fclose(fp);
@@ -219,6 +217,12 @@ void FlvRecorder::onDetach() {
 
 std::shared_ptr<FlvMuxer> FlvRecorder::getSharedPtr() {
     return  shared_from_this();
+}
+
+FlvRecorder::FlvRecorder() {
+}
+
+FlvRecorder::~FlvRecorder() {
 }
 
 

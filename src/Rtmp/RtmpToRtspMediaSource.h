@@ -63,9 +63,6 @@ public:
                           bool bEnableMp4 = false);
 	virtual ~RtmpToRtspMediaSource();
 
-	bool regist() override;
-	bool unregist() override;
-
 	void onGetMetaData(const AMFValue &_metadata) override {
 		try {
 			m_pParser.reset(new RtmpParser(_metadata));

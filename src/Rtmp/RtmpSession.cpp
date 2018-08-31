@@ -167,7 +167,6 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             shutdown();
             return;
         }
-        m_bPublisherSrcRegisted = false;
         m_pPublisherSrc.reset(new RtmpToRtspMediaSource(m_mediaInfo.m_vhost,m_mediaInfo.m_app,m_mediaInfo.m_streamid));
         m_pPublisherSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
     };
@@ -212,13 +211,6 @@ void RtmpSession::doPlayResponse(const string &err,bool tryDelay,const std::shar
                                                                        m_mediaInfo.m_app,
                                                                        m_mediaInfo.m_streamid,
                                                                        true));
-    if(src ){
-        if(!src->ready()){
-            //流未准备好那么相当于没有
-            src = nullptr;
-        }
-    }
-
     //是否鉴权成功
     bool authSuccess = err.empty();
     if(authSuccess && !src && tryDelay ){
@@ -509,10 +501,6 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 			chunkData.timeStamp = m_stampTicker[chunkData.typeId % 2].elapsedTime();
 		}
 		m_pPublisherSrc->onGetMedia(std::make_shared<RtmpPacket>(chunkData));
-		if(!m_bPublisherSrcRegisted && m_pPublisherSrc->ready()){
-			m_bPublisherSrcRegisted = true;
-			m_pPublisherSrc->regist();
-		}
 	}
 		break;
 	default:

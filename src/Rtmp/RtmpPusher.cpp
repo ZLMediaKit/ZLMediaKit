@@ -194,10 +194,7 @@ inline void RtmpPusher::send_metaData(){
     if (!src) {
         throw std::runtime_error("the media source was released");
     }
-    if (!src->ready()) {
-        throw std::runtime_error("the media source is not ready");
-    }
-    
+
     AMFEncoder enc;
     enc << "@setDataFrame" << "onMetaData" <<  src->getMetaData();
     sendRequest(MSG_DATA, enc.data());

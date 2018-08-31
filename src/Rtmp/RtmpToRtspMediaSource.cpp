@@ -45,19 +45,6 @@ RtmpToRtspMediaSource::RtmpToRtspMediaSource(const string &vhost,
 }
 RtmpToRtspMediaSource::~RtmpToRtspMediaSource() {}
 
-bool RtmpToRtspMediaSource::regist() {
-	if (m_pRtspSrc) {
-		m_pRtspSrc->regist();
-	}
-	return MediaSource::regist();
-}
-
-bool RtmpToRtspMediaSource::unregist() {
-	if(m_pRtspSrc){
-		m_pRtspSrc->unregist();
-	}
-	return MediaSource::unregist();
-}
 
 void RtmpToRtspMediaSource::onGetH264(const H264Frame &frame) {
     if(m_pRecorder){
@@ -166,7 +153,6 @@ void RtmpToRtspMediaSource::makeSDP() {
 	m_pRtspSrc.reset(new RtspMediaSource(getVhost(),getApp(),getId()));
 	m_pRtspSrc->setListener(m_listener);
 	m_pRtspSrc->onGetSDP(strSDP);
-	m_pRtspSrc->regist();
 }
 
 

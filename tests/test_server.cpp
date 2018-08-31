@@ -34,6 +34,7 @@
 #include "Http/HttpSession.h"
 #include "Shell/ShellSession.h"
 #include "Util/MD5.h"
+#include "Rtmp/FlvMuxer.h"
 
 #ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
@@ -132,6 +133,29 @@ static onceToken s_token([](){
             //invoker("this is auth failed message");//鉴权失败
         });
     });
+
+    //此处用于测试rtmp保存为flv录像，保存在http根目录下
+    NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastMediaChanged,[](BroadcastMediaChangedArgs){
+        if(schema == RTMP_SCHEMA){
+            static map<string,FlvRecorder::Ptr> s_mapFlvRecorder;
+            static mutex s_mtxFlvRecorder;
+            lock_guard<mutex> lck(s_mtxFlvRecorder);
+            if(bRegist){
+                GET_CONFIG_AND_REGISTER(string,http_root,Config::Http::kRootPath);
+                auto path = http_root + "/" + vhost + "/" + app + "/" + stream + "_" + to_string(time(NULL)) + ".flv";
+                FlvRecorder::Ptr recorder(new FlvRecorder);
+                try{
+                    recorder->startRecord(dynamic_pointer_cast<RtmpMediaSource>(sender.shared_from_this()),path);
+                    s_mapFlvRecorder[vhost + "/" + app + "/" + stream] = recorder;
+                }catch(std::exception &ex){
+                    WarnL << ex.what();
+                }
+            }else{
+                s_mapFlvRecorder.erase(vhost + "/" + app + "/" + stream);
+            }
+        }
+    });
+
 
 }, nullptr);
 

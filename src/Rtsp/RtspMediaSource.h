@@ -87,6 +87,7 @@ public:
 	virtual void onGetSDP(const string& sdp) {
 		//派生类设置该媒体源媒体描述信息
 		m_strSdp = sdp;
+		regist();
 	}
 	virtual void onGetRTP(const RtpPacket::Ptr &rtppt, bool keyPos) {
 		auto &trackRef = m_mapTracks[rtppt->type];
