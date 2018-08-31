@@ -635,6 +635,7 @@ void HttpSession::onWrite(const Buffer::Ptr &buffer) {
 		if(!strongSelf) {
 			return;
 		}
+		strongSelf->m_ticker.resetTime();
 		strongSelf->m_ui64TotalBytes += buffer->size();
 		strongSelf->send(buffer);
 	});
@@ -650,6 +651,7 @@ void HttpSession::onWrite(const char *data, int len) {
 		if(!strongSelf) {
 			return;
 		}
+		strongSelf->m_ticker.resetTime();
 		strongSelf->m_ui64TotalBytes += buffer->size();
 		strongSelf->send(buffer);
 	});
