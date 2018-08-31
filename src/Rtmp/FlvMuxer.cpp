@@ -173,6 +173,7 @@ void FlvRecorder::startRecord(const string &vhost, const string &app, const stri
 }
 
 void FlvRecorder::startRecord(const RtmpMediaSource::Ptr &media, const string &file_path) {
+    stop();
     lock_guard<recursive_mutex> lck(_file_mtx);
     //开辟文件写缓存
     std::shared_ptr<char> fileBuf(new char[FILE_BUF_SIZE],[](char *ptr){

@@ -64,12 +64,13 @@ int main(int argc,char *argv[]){
             return;
         }
         auto player = userData;
-        media = createMedia("app","media");
+        media = createMedia("app","media",0,0,0);
         if(player_containAudio(player) == 1){
             media_initAudio(media,
                             player_getAudioChannel(player),
                             player_getAudioSampleBit(player),
-                            player_getAudioSampleRate(player));
+                            player_getAudioSampleRate(player),
+                            0);
         }
 
         if(player_containVideo(player) == 1){
@@ -98,7 +99,7 @@ int main(int argc,char *argv[]){
 
         ////////输入aac///////////
         if(media){
-            media_inputAAC(media,data,len,timeStamp);
+            media_inputAAC(media,data,len,timeStamp,1);
         }
     },player);
 
