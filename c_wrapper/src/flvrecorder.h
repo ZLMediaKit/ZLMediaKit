@@ -24,15 +24,44 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_RTSPAPI_H_
-#define SRC_RTSPAPI_H_
+#ifndef MEDIAKITWRAPPER_FLVMUXER_H
+#define MEDIAKITWRAPPER_FLVMUXER_H
 
 #include "common.h"
-#include "httpdownloader.h"
-#include "media.h"
-#include "player.h"
-#include "proxyplayer.h"
-#include "flvrecorder.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
-#endif /* SRC_RTSPAPI_H_ */
+typedef void* FlvRecorderContex;
+
+/**
+ * 创建flv录制器
+ * @return
+ */
+API_EXPORT FlvRecorderContex API_CALL createFlvRecorder();
+
+/**
+ * 释放flv录制器
+ * @param ctx
+ */
+API_EXPORT void API_CALL releaseFlvRecorder(FlvRecorderContex ctx);
+
+/**
+ * 开始录制flv
+ * @param ctx flv录制器
+ * @param appName 绑定的RtmpMediaSource的 app名
+ * @param streamName 绑定的RtmpMediaSource的 stream名
+ * @param file_path 文件存放地址
+ * @return 0:开始超过，-1:失败,打开文件失败或该RtmpMediaSource不存在
+ */
+API_EXPORT int API_CALL flvRecorder_start(FlvRecorderContex ctx,const char *appName,const char *streamName, const char *file_path);
+
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* MEDIAKITWRAPPER_FLVMUXER_H */
