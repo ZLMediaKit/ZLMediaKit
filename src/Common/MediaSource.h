@@ -117,9 +117,6 @@ public:
         unregist();
     }
 
-    virtual bool regist() ;
-    virtual bool unregist() ;
-
     static Ptr find(const string &schema,
                     const string &vhost,
                     const string &app,
@@ -179,6 +176,10 @@ public:
             }
         }
     }
+
+protected:
+    bool regist() ;
+    bool unregist() ;
 private:
         template <typename FUN>
         static bool searchMedia(const string &schema,

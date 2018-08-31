@@ -68,8 +68,6 @@ public:
 		}
 		RtspMediaSource::onGetRTP(pRtppkt, bKeyPos);
 	}
-	virtual bool regist() override ;
-	virtual bool unregist() override;
 
 	int readerCount(){
 		return getRing()->readerCount() + (m_pRtmpSrc ? m_pRtmpSrc->getRing()->readerCount() : 0);

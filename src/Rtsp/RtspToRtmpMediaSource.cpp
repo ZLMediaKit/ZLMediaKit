@@ -50,20 +50,6 @@ RtspToRtmpMediaSource::~RtspToRtmpMediaSource() {
 
 }
 
-bool RtspToRtmpMediaSource::regist() {
-	if (m_pRtmpSrc) {
-		m_pRtmpSrc->regist();
-	}
-	return MediaSource::regist();
-}
-
-bool RtspToRtmpMediaSource::unregist() {
-	if (m_pRtmpSrc) {
-		m_pRtmpSrc->unregist();
-	}
-	return MediaSource::unregist();
-}
-
 void RtspToRtmpMediaSource::makeVideoConfigPkt() {
 	int8_t flags = 7; //h.264
 	flags |= (FLV_KEY_FRAME << 4);

@@ -207,11 +207,9 @@ inline bool HttpSession::checkLiveFlvStream(){
     m_mediaInfo.m_streamid.erase(m_mediaInfo.m_streamid.size() - 4);//去除.flv后缀
 
 	auto mediaSrc = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,m_mediaInfo.m_vhost,m_mediaInfo.m_app,m_mediaInfo.m_streamid));
-	if(!mediaSrc || !mediaSrc->ready()){
+	if(!mediaSrc){
 		//该rtmp源不存在
-        sendNotFound(true);
-        shutdown();
-		return true;
+		return false;
 	}
 
     auto onRes = [this,mediaSrc](const string &err){

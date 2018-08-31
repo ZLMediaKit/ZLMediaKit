@@ -16,6 +16,7 @@ namespace Rtmp {
 
 class FlvMuxer{
 public:
+    typedef std::shared_ptr<FlvMuxer> Ptr;
     FlvMuxer();
     virtual ~FlvMuxer();
     void stop();
@@ -38,6 +39,7 @@ private:
 
 class FlvRecorder : public FlvMuxer , public std::enable_shared_from_this<FlvRecorder>{
 public:
+    typedef std::shared_ptr<FlvRecorder> Ptr;
     FlvRecorder();
     virtual ~FlvRecorder();
     void startRecord(const string &vhost,const string &app,const string &stream,const string &file_path);

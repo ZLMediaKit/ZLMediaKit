@@ -41,7 +41,7 @@ namespace ZL {
 namespace Http {
 
 
-class HttpSession: public TcpSession,FlvMuxer {
+class HttpSession: public TcpSession,public FlvMuxer {
 public:
 	typedef StrCaseMap KeyValue;
 	typedef std::function<void(const string &codeOut,
