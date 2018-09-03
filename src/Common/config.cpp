@@ -269,11 +269,11 @@ namespace Hls {
 #define HLS_FIELD "hls."
 
 //HLS切片时长,单位秒
-#define HLS_SEGMENT_DURATION 0
+#define HLS_SEGMENT_DURATION 3
 const char kSegmentDuration[] = HLS_FIELD"segDur";
 
 //HLS切片个数
-#define HLS_SEGMENT_NUM 1
+#define HLS_SEGMENT_NUM 3
 const char kSegmentNum[] = HLS_FIELD"segNum";
 
 //HLS文件写缓存大小
