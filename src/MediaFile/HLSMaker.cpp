@@ -89,20 +89,20 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 	if (m_ui32NumSegments) {
         snprintf(acWriteBuf,
                  sizeof(acWriteBuf),
-                 "#EXTM3U\n"
-                 "#EXT-X-VERSION:3\n"
-                 "#EXT-X-ALLOW-CACHE:NO\n"
-                 "#EXT-X-TARGETDURATION:%u\n"
-                 "#EXT-X-MEDIA-SEQUENCE:%u\n",
+                 "#EXTM3U\r\n"
+                 "#EXT-X-VERSION:3\r\n"
+                 "#EXT-X-ALLOW-CACHE:NO\r\n"
+                 "#EXT-X-TARGETDURATION:%u\r\n"
+                 "#EXT-X-MEDIA-SEQUENCE:%u\r\n",
                  maxSegmentDuration + 1,
                  iFirstSegment);
 	} else {
 		snprintf(acWriteBuf,
                  sizeof(acWriteBuf),
-                 "#EXTM3U\n"
-                 "#EXT-X-VERSION:3\n"
-                 "#EXT-X-ALLOW-CACHE:NO\n"
-                 "#EXT-X-TARGETDURATION:%u\n",
+                 "#EXTM3U\r\n"
+                 "#EXT-X-VERSION:3\r\n"
+                 "#EXT-X-ALLOW-CACHE:NO\r\n"
+                 "#EXT-X-TARGETDURATION:%u\r\n",
                  maxSegmentDuration);
 	}
 	if (fwrite(acWriteBuf, strlen(acWriteBuf), 1, pM3u8File.get()) != 1) {
@@ -113,7 +113,7 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 	for (unsigned int i = iFirstSegment; i < uiLastSegment; i++) {
 		snprintf(acWriteBuf,
                  sizeof(acWriteBuf),
-                 "#EXTINF:%.3f,\n%s-%u.ts\n",
+                 "#EXTINF:%.3f,\r\n%s-%u.ts\r\n",
                  m_iDurations[i-iFirstSegment]/1000.0,
 				 m_strFileName.c_str(),
                  i);
@@ -124,7 +124,7 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 	}
 
 	if (iEnd) {
-		snprintf(acWriteBuf, sizeof(acWriteBuf), "#EXT-X-ENDLIST\n");
+		snprintf(acWriteBuf, sizeof(acWriteBuf), "#EXT-X-ENDLIST\r\n");
 		if (fwrite(acWriteBuf, strlen(acWriteBuf), 1, pM3u8File.get()) != 1) {
 			WarnL << "Could not write last file and endlist tag to m3u8 index file";
             return false;
