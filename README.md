@@ -1,4 +1,4 @@
-# 一个基于C++11简单易用的轻量级流媒体库
+# 高性能运营级流媒体框架
  [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
 ## 项目特点
