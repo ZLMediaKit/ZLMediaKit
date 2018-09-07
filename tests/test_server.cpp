@@ -64,7 +64,7 @@ using namespace ZL::Network;
 
 static onceToken s_token([](){
 	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastOnGetRtspRealm,[](BroadcastOnGetRtspRealmArgs){
-		if(string("1") == stream ){
+		if(string("1") == args.m_streamid ){
 			// live/1需要认证
 			EventPoller::Instance().async([invoker](){
 				//该流需要认证，并且设置realm

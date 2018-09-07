@@ -226,8 +226,7 @@ bool RtspSession::handleReq_Describe() {
 
     //广播是否需要认证事件
     if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
-                                           m_mediaInfo.m_app,
-                                           m_mediaInfo.m_streamid,
+                                           m_mediaInfo,
                                            invoker,
                                             *this)){
         //无人监听此事件，说明无需认证
