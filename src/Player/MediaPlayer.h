@@ -33,10 +33,12 @@
 #include "PlayerBase.h"
 #include "Rtsp/RtspPlayer.h"
 #include "Rtmp/RtmpPlayer.h"
+#include "Thread/TaskExecutor.h"
 
 using namespace std;
 using namespace ZL::Rtsp;
 using namespace ZL::Rtmp;
+using namespace ZL::Thread;
 
 namespace ZL {
 namespace Player {
@@ -50,6 +52,7 @@ public:
 	void play(const char* strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
+	TaskExecutor::Ptr getExecutor();
 private:
 	string m_strPrefix;
 

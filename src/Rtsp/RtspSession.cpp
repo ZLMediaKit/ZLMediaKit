@@ -72,8 +72,11 @@ RtspSession::~RtspSession() {
 }
 
 void RtspSession::shutdown(){
+	shutdown_l(true);
+}
+void RtspSession::shutdown_l(bool close){
 	if (_sock) {
-		_sock->emitErr(SockException(Err_other, "self shutdown"));
+		_sock->emitErr(SockException(Err_other, "self shutdown"),close);
 	}
 	if (m_bBase64need && !_sock) {
 		//quickTime http postter,and self is detached from tcpServer
@@ -107,7 +110,10 @@ void RtspSession::onError(const SockException& err) {
 		_sock = nullptr;
 		lock_guard<recursive_mutex> lock(g_mtxPostter);
 		//为了保证脱离TCPServer后还能正常运作,需要保持本对象的强引用
-		g_mapPostter.emplace(this, dynamic_pointer_cast<RtspSession>(shared_from_this()));
+		try {
+			g_mapPostter.emplace(this, dynamic_pointer_cast<RtspSession>(shared_from_this()));
+		}catch (std::exception &ex){
+		}
 		TraceL << "quickTime will not send request any more!";
 	}
 
@@ -143,10 +149,18 @@ void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
 		//quicktime 加密后的rtsp请求，需要解密
 		av_base64_decode((uint8_t *) m_pcBuf, pBuf->data(), sizeof(tmp));
 		m_parser.Parse(m_pcBuf); //rtsp请求解析
-		//TraceL << buf;
 	} else {
-		//TraceL << request;
 		m_parser.Parse(pBuf->data()); //rtsp请求解析
+		if(!m_parser.Content().empty()){
+			weak_ptr<TcpSession> weakSelf = shared_from_this();
+			BufferString::Ptr nextRecv(new BufferString(m_parser.Content()));
+			async([weakSelf,nextRecv](){
+				auto strongSelf = weakSelf.lock();
+				if(strongSelf){
+					strongSelf->onRecv(nextRecv);
+				}
+			}, false);
+		}
 	}
 
 	string strCmd = m_parser.Method(); //提取出请求命令字
@@ -811,6 +825,7 @@ bool RtspSession::handleReq_Get() {
 //注册GET
 	lock_guard<recursive_mutex> lock(g_mtxGetter);
 	g_mapGetter[m_strSessionCookie] = dynamic_pointer_cast<RtspSession>(shared_from_this());
+	//InfoL << m_strSessionCookie;
 	send(m_pcBuf, n);
 	return true;
 
@@ -822,6 +837,7 @@ bool RtspSession::handleReq_Post() {
 //Poster 找到 Getter
 	auto it = g_mapGetter.find(sessioncookie);
 	if (it == g_mapGetter.end()) {
+		//WarnL << sessioncookie;
 		return false;
 	}
 	m_bBase64need = true;
@@ -830,6 +846,7 @@ bool RtspSession::handleReq_Post() {
 	g_mapGetter.erase(sessioncookie);
 	if (!strongSession) {
 		send_SessionNotFound();
+		//WarnL;
 		return false;
 	}
 	initSender(strongSession);
@@ -985,10 +1002,11 @@ inline void RtspSession::initSender(const std::shared_ptr<RtspSession>& session)
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
 	session->m_onDestory = [weakSelf]() {
 		auto strongSelf=weakSelf.lock();
-		if(!strongSelf) {
-			return;
-		}
-		strongSelf->m_pSender->setOnErr([weakSelf](const SockException &err) {
+        if(!strongSelf) {
+            return;
+        }
+        //DebugL;
+        strongSelf->m_pSender->setOnErr([weakSelf](const SockException &err) {
 			auto strongSelf=weakSelf.lock();
 			if(!strongSelf) {
 				return;
@@ -996,7 +1014,7 @@ inline void RtspSession::initSender(const std::shared_ptr<RtspSession>& session)
 			strongSelf->safeShutdown();
 		});
 	};
-	session->shutdown();
+	session->shutdown_l(false);
 }
 
 #ifdef RTSP_SEND_RTCP

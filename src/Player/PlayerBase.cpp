@@ -46,18 +46,13 @@ const char PlayerBase::kRtspPwdIsMD5[] = "rtsp_pwd_md5";
 
 PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 	string prefix = FindField(strUrl, NULL, "://");
-	auto onDestory = [](PlayerBase *ptr){
-		ASYNC_TRACE([ptr](){
-			delete ptr;
-		});
-	};
 	if (strcasecmp("rtsp",prefix.data()) == 0) {
-		return PlayerBase::Ptr(new RtspPlayerImp(),onDestory);
+		return PlayerBase::Ptr(new RtspPlayerImp());
 	}
 	if (strcasecmp("rtmp",prefix.data()) == 0) {
-		return PlayerBase::Ptr(new RtmpPlayerImp(),onDestory);
+		return PlayerBase::Ptr(new RtmpPlayerImp());
 	}
-	return PlayerBase::Ptr(new RtspPlayerImp(),onDestory);
+	return PlayerBase::Ptr(new RtspPlayerImp());
 }
 
 } /* namespace Player */
