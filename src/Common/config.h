@@ -83,12 +83,12 @@ extern const char kBroadcastHttpRequest[];
 
 //该流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm.如果该事件不监听则不认证
 extern const char kBroadcastOnGetRtspRealm[];
-#define BroadcastOnGetRtspRealmArgs const string &app,const string &stream,const RtspSession::onGetRealm &invoker,TcpSession &sender
+#define BroadcastOnGetRtspRealmArgs const MediaInfo &args,const RtspSession::onGetRealm &invoker,TcpSession &sender
 
 //请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
 //获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码
 extern const char kBroadcastOnRtspAuth[];
-#define BroadcastOnRtspAuthArgs const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker,TcpSession &sender
+#define BroadcastOnRtspAuthArgs const MediaInfo &args,const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker,TcpSession &sender
 
 //鉴权结果回调对象
 //如果errMessage为空则代表鉴权成功

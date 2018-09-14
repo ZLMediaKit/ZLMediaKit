@@ -1,17 +1,19 @@
-# 一个基于C++11简单易用的轻量级流媒体库
-平台|编译状态
-----|-------
-Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
-macOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac)
-iOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios)
-Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android)
-Windows | 已经完成移植
+# 一个基于C++11的高性能运营级流媒体服务框架
+ [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
 ## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
 - 打包多种流媒体协议(RTSP/RTMP/HLS），支持协议间的互相转换，提供一站式的服务。
 - 使用epoll+线程池+异步网络IO模式开发，并发性能优越。
 - 只实现主流的的H264+AAC流媒体方案，代码精简,脉络清晰，适合学习。
+- 代码经过大量的稳定性、性能测试，可满足商用服务器项目。
+- 支持linux、macos、ios、android、windows平台
+
+## 项目定位
+- 移动嵌入式跨平台流媒体解决方案。
+- 商用级流媒体服务器。
+- 网络编程二次开发SDK。
+
 
 ## 功能清单
 - RTSP
@@ -44,6 +46,9 @@ Windows | 已经完成移植
   - 支持配置文件热加载
   - 支持流量统计、推流播放鉴权等事件
   - 支持rtsp/rtmp/http虚拟主机
+  - 支持flv、mp4文件录制
+  - 支持rtps/rtmp点播，支持seek
+
  
 ## 后续任务
 - 添加rtsp推流功能
@@ -202,17 +207,9 @@ Windows | 已经完成移植
 ## QA
 - 怎么测试服务器性能？
     
-    ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。由于ZLToolKit默认关闭了tcp客户端多线程的支持，如果需要提高测试并发量，需要在编译ZLToolKit时启用ENABLE_ASNC_TCP_CLIENT宏，具体操作如下：
-	```
-	#编译ZLToolKit
-	cd ZLToolKit
-	mkdir -p build
-	cd build 
-	cmake .. -DENABLE_ASNC_TCP_CLIENT
-	make -j4
-	sudo make install
-	```
-	这里是测试报告：[benchmark.md](https://github.com/xiongziliang/ZLMediaKit/blob/master/benchmark.md)
+    ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。
+
+    这里是测试报告：[benchmark.md](https://github.com/xiongziliang/ZLMediaKit/blob/master/benchmark.md)
 
 - github下载太慢了，有其他下载方式吗？
     
@@ -227,8 +224,23 @@ Windows | 已经完成移植
  - [IOS rtmp/rtsp播放器，视频推流器](https://gitee.com/xiahcu/IOSPlayer)
  - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xiongziliang/ZLMediaPlayer)
 
+   上述工程可能在最新的代码的情况下编译不过，请手动修改
  
+
+## 授权协议
+
+本项目使用宽松的MIT协议，在保留版权信息的情况下可以自由应用于各自商用、非商业的项目。
+
 ## 联系方式
-- 邮箱：<771730766@qq.com>
-- QQ群：542509000
+ - 邮箱：<771730766@qq.com>
+ - QQ群：542509000
+
+## 捐赠
+如果本项目能切实帮助您减少重复开发的工作量，您可以在自愿的基础上支持下作者，谢谢！
+
+[支付宝](https://raw.githubusercontent.com/xiongziliang/other/master/IMG_3919.JPG)
+
+[微信](https://raw.githubusercontent.com/xiongziliang/other/master/IMG_3920.JPG)
+
+	
 
