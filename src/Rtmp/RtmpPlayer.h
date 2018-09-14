@@ -93,7 +93,7 @@ private:
 					return false;
 				}
 				return true;
-			}));
+			},getExecutor()));
 		}
 		onPlayResult(ex);
 	}

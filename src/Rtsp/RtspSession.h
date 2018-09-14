@@ -97,7 +97,8 @@ private:
         m_ui64TotalBytes += pkt->size();
         return m_pSender->send(pkt,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
 	}
-	void shutdown() override;
+	void shutdown() override ;
+	void shutdown_l(bool close);
 	bool handleReq_Options(); //处理options方法
 	bool handleReq_Describe(); //处理describe方法
 	bool handleReq_Setup(); //处理setup方法

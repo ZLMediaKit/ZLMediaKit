@@ -174,7 +174,7 @@ void RtspPlayer::onConnect(const SockException &err){
 		strongSelf->onPlayResult_l(SockException(Err_timeout,"play rtsp timeout"));
 		strongSelf->teardown();
 		return false;
-	}));
+	},getExecutor()));
 }
 
 void RtspPlayer::onRecv(const Buffer::Ptr& pBuf) {
@@ -414,7 +414,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 			return false;
 		}
 		return strongSelf->sendOptions();
-	}));
+	},getExecutor()));
 	pause(false);
 }
 
@@ -808,7 +808,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex) {
 				return false;
 			}
 			return true;
-		}));
+		},getExecutor()));
 	}
 	onPlayResult(ex);
 }

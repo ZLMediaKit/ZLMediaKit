@@ -121,7 +121,7 @@ void RtmpPusher::onConnect(const SockException &err){
 		strongSelf->onPublishResult(SockException(Err_timeout,"publish rtmp timeout"));
 		strongSelf->teardown();
 		return false;
-	}));
+	},getExecutor()));
 	startClientSession([weakSelf](){
         auto strongSelf=weakSelf.lock();
         if(!strongSelf) {
