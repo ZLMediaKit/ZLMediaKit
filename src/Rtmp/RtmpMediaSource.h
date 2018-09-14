@@ -36,7 +36,6 @@
 #include "Rtmp.h"
 #include "RtmpParser.h"
 #include "Common/config.h"
-#include "Common/MediaSender.h"
 #include "Common/MediaSource.h"
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -61,8 +60,7 @@ public:
 
 	RtmpMediaSource(const string &vhost,const string &strApp, const string &strId) :
 			MediaSource(RTMP_SCHEMA,vhost,strApp,strId),
-			m_pRing(new RingBuffer<RtmpPacket::Ptr>()),
-			m_thPool( MediaSender::sendThread()) {
+			m_pRing(new RingBuffer<RtmpPacket::Ptr>()) {
 	}
 	virtual ~RtmpMediaSource() {}
 
@@ -109,10 +107,7 @@ public:
 			}
 		}
 
-		auto _ring = m_pRing;
-		m_thPool.async([_ring,pkt]() {
-			_ring->write(pkt,pkt->isVideoKeyFrame());
-		});
+		m_pRing->write(pkt,pkt->isVideoKeyFrame());
 	}
 private:
 	bool ready(){
@@ -124,7 +119,6 @@ protected:
 	unordered_map<int, RtmpPacket::Ptr> m_mapCfgFrame;
 	mutable recursive_mutex m_mtxMap;
 	RingBuffer<RtmpPacket::Ptr>::Ptr m_pRing; //rtp环形缓冲
-	ThreadPool &m_thPool;
 	int m_iCfgFrameSize = -1;
 	bool m_bAsyncRegist = false;
 	bool m_bRegisted = false;

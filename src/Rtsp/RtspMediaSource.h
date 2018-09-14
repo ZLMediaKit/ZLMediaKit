@@ -34,7 +34,6 @@
 #include <unordered_map>
 #include "Rtsp.h"
 #include "Common/config.h"
-#include "Common/MediaSender.h"
 #include "Common/MediaSource.h"
 
 #include "Util/logger.h"
@@ -60,8 +59,7 @@ public:
 
 	RtspMediaSource(const string &strVhost,const string &strApp, const string &strId) :
 			MediaSource(RTSP_SCHEMA,strVhost,strApp,strId),
-			m_pRing(new RingBuffer<RtpPacket::Ptr>()),
-			m_thPool(MediaSender::sendThread()) {
+			m_pRing(new RingBuffer<RtpPacket::Ptr>()) {
 	}
 	virtual ~RtspMediaSource() {}
 
@@ -95,16 +93,12 @@ public:
 		trackRef.timeStamp = rtppt->timeStamp;
 		trackRef.ssrc = rtppt->ssrc;
 		trackRef.type = rtppt->type;
-		auto _outRing = m_pRing;
-		m_thPool.async([_outRing,rtppt,keyPos]() {
-			_outRing->write(rtppt,keyPos);
-		});
+		m_pRing->write(rtppt,keyPos);
 	}
 protected:
 	unordered_map<int, RtspTrack> m_mapTracks;
     string m_strSdp; //媒体描述信息
     RingType::Ptr m_pRing; //rtp环形缓冲
-	ThreadPool &m_thPool;
 };
 
 } /* namespace Rtsp */
