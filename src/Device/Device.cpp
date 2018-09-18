@@ -270,7 +270,6 @@ inline void DevChannel::makeSDP_AAC(unsigned char *fixedHeader) {
 
 void DevChannel::makeSDP(const string& strSdp) {
 	onGetSDP(strSdp);
-	regist();
 }
 
 void DevChannel::initVideo(const VideoInfo& info) {

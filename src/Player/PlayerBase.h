@@ -34,9 +34,11 @@
 #include "Player.h"
 #include "Network/Socket.h"
 #include "Util/mini.h"
+#include "Common/MediaSource.h"
 
 using namespace std;
 using namespace ZL::Util;
+using namespace ZL::Media;
 using namespace ZL::Network;
 
 namespace ZL {
@@ -92,6 +94,7 @@ public:
     virtual float getDuration() const { return 0;};
     virtual float getProgress() const { return 0;};
     virtual void seekTo(float fProgress) {};
+    virtual void setMediaSouce(const MediaSource::Ptr & src) {};
 protected:
     virtual void onShutdown(const SockException &ex) {};
     virtual void onPlayResult(const SockException &ex) {};
@@ -226,6 +229,14 @@ public:
         }
         return PlayerBase::seekTo(fProgress);
     };
+
+    void setMediaSouce(const MediaSource::Ptr & src) override {
+		if (m_parser) {
+			return m_parser->setMediaSouce(src);
+		}
+		m_pMediaSrc = src;
+    };
+
 protected:
 	void onShutdown(const SockException &ex) override {
 		if (m_shutdownCB) {
@@ -238,11 +249,13 @@ protected:
 			m_playResultCB = nullptr;
 		}
 	}
+protected:
 	function<void(const SockException &ex)> m_shutdownCB;
 	function<void(const SockException &ex)> m_playResultCB;
 	std::shared_ptr<Parser> m_parser;
 	function<void(const H264Frame &frame)> m_onGetVideoCB;
 	function<void(const AdtsFrame &frame)> m_onGetAudioCB;
+	MediaSource::Ptr m_pMediaSrc;
 
 };
 } /* namespace Player */

@@ -58,6 +58,7 @@ int parserSDP(const string& sdp, RtspTrack Track[2]) {
 			pos_end = sdp.size();
 		}
 		auto sdp_mid = sdp.substr(pos_head, pos_end - pos_head);
+		pos_head = pos_end;
 		Track[track_cnt].trackSdp = sdp_mid;
 		Track[track_cnt].inited = false;
 		Track[track_cnt].PT = atoi(FindField(sdp_mid.c_str(), "a=rtpmap:", " ").c_str());
@@ -72,9 +73,8 @@ int parserSDP(const string& sdp, RtspTrack Track[2]) {
 			Track[track_cnt].type = TrackAudio;
         } else {
 			//不识别的track
-			return track_cnt;
+			continue;
 		}
-		pos_head = pos_end;
         track_cnt++;
 	}
 	return track_cnt;
