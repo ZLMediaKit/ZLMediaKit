@@ -37,7 +37,9 @@ using namespace std;
 using namespace ZL::Util;
 
 typedef enum {
-	TrackVideo = 0, TrackAudio
+	TrackInvalid = -1,
+	TrackVideo = 0,
+	TrackAudio
 } TrackType;
 
 class RtspTrack{

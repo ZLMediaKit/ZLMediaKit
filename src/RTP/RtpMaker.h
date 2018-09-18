@@ -44,6 +44,8 @@ namespace Rtsp {
 class RtpMaker {
 public:
 	typedef function<void(const RtpPacket::Ptr &pPkt, bool bKeyPos)> onGetRTP;
+	typedef std::shared_ptr<RtpMaker> Ptr;
+
 	RtpMaker(const onGetRTP &cb, uint32_t ui32Ssrc, int iMtuSize,int iSampleRate,
 			uint8_t ui8PlayloadType, uint8_t ui8Interleaved) {
 		callBack = cb;
