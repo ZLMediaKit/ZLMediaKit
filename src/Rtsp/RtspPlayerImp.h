@@ -65,6 +65,10 @@ public:
 private:
 	//派生类回调函数
 	bool onCheckSDP(const string &sdp, const RtspTrack *track, int trackCnt) override {
+		m_pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(m_pMediaSrc);
+		if(m_pRtspMediaSrc){
+			m_pRtspMediaSrc->onGetSDP(sdp);
+		}
 		try {
 			m_parser.reset(new RtpParser(sdp));
 			m_parser->setOnVideoCB(m_onGetVideoCB);
@@ -72,12 +76,21 @@ private:
 			return true;
 		} catch (std::exception &ex) {
 			WarnL << ex.what();
-			return false;
+			return m_pRtspMediaSrc ? true : false;
 		}
 	}
 	void onRecvRTP(const RtpPacket::Ptr &rtppt, const RtspTrack &track) override {
-		m_parser->inputRtp(*rtppt);
+		if(m_parser){
+			m_parser->inputRtp(*rtppt);
+		}
+
+		if(m_pRtspMediaSrc){
+			m_pRtspMediaSrc->onGetRTP(rtppt,true);
+		}
 	}
+
+private:
+	RtspMediaSource::Ptr m_pRtspMediaSrc;
     
 };
 
