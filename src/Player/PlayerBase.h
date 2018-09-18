@@ -44,7 +44,28 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Player {
 
-class PlayerBase : public mINI{
+class MediaFormat {
+public:
+	virtual ~MediaFormat(){};
+	virtual int getVideoHeight() const { return 0; };
+	virtual int getVideoWidth() const { return 0; };
+	virtual float getVideoFps() const { return 0; };
+
+	virtual int getAudioSampleRate() const { return 0; };
+	virtual int getAudioSampleBit() const { return 0; };
+	virtual int getAudioChannel() const { return 0; };
+
+	virtual const string& getPps() const { static string null;return null; };
+	virtual const string& getSps() const { static string null;return null; };
+	virtual const string& getAudioCfg() const { static string null;return null; };
+
+	virtual bool containAudio() const { return false; };
+	virtual bool containVideo() const { return false; };
+
+	virtual float getDuration() const { return 0;};
+};
+
+class PlayerBase : public MediaFormat,public mINI{
 public:
 	typedef std::shared_ptr<PlayerBase> Ptr;
 	typedef enum {
@@ -77,24 +98,13 @@ public:
 	virtual void setOnVideoCB( const function<void(const H264Frame &frame)> &cb) {};
 	virtual void setOnAudioCB( const function<void(const AdtsFrame &frame)> &cb) {};
     
-	virtual int getVideoHeight() const { return 0; };
-	virtual int getVideoWidth() const { return 0; };
-	virtual float getVideoFps() const { return 0; };
-	virtual int getAudioSampleRate() const { return 0; };
-	virtual int getAudioSampleBit() const { return 0; };
-	virtual int getAudioChannel() const { return 0; };
-	//TrackVideo = 0, TrackAudio = 1
-    virtual float getRtpLossRate(int trackType) const {return 0; };
-	virtual const string& getPps() const { static string null;return null; };
-	virtual const string& getSps() const { static string null;return null; };
-	virtual const string& getAudioCfg() const { static string null;return null; };
-	virtual bool containAudio() const { return false; };
-    virtual bool containVideo() const { return false; };
-    virtual bool isInited() const { return true; };
-    virtual float getDuration() const { return 0;};
     virtual float getProgress() const { return 0;};
     virtual void seekTo(float fProgress) {};
     virtual void setMediaSouce(const MediaSource::Ptr & src) {};
+
+	virtual bool isInited() const { return true; };
+	//TrackVideo = 0, TrackAudio = 1
+	virtual float getRtpLossRate(int trackType) const {return 0; };
 protected:
     virtual void onShutdown(const SockException &ex) {};
     virtual void onPlayResult(const SockException &ex) {};
