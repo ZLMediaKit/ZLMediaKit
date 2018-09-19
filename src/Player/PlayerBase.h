@@ -35,6 +35,7 @@
 #include "Network/Socket.h"
 #include "Util/mini.h"
 #include "Common/MediaSource.h"
+#include "Util/RingBuffer.h"
 
 using namespace std;
 using namespace ZL::Util;
@@ -43,6 +44,100 @@ using namespace ZL::Network;
 
 namespace ZL {
 namespace Player {
+
+class TrackFrame : public Buffer {
+public:
+	typedef std::shared_ptr<TrackFrame> Ptr;
+	virtual ~TrackFrame(){}
+	virtual uint32_t stamp() = 0;
+};
+
+class TrackFormat {
+public:
+	typedef std::shared_ptr<TrackFormat> Ptr;
+	typedef RingBuffer<TrackFrame::Ptr> RingType;
+	typedef RingType::RingReader::Ptr ReaderType;
+
+	typedef enum {
+        VideoCodecInvalid = -1,
+        VideoCodecH264 = 0,
+        VideoCodecMax
+    } VideoCodecID;
+
+    typedef enum {
+        AudioCodecInvalid = -1,
+        AudioCodecAAC = 0,
+        AudioCodecMax
+    } AudioCodecID;
+	TrackFormat(){
+		_ring = std::make_shared<RingType>();
+	}
+    virtual ~TrackFormat(){}
+    virtual TrackType getTrackType() const = 0;
+    virtual int getCodecId() const = 0;
+
+	ReaderType attachReader(bool useBuffer = false){
+		return _ring->attach(useBuffer);
+    }
+
+	void writeFrame(const TrackFrame::Ptr &frame,bool keypos = true){
+		_ring->write(frame, keypos);
+	}
+private:
+	RingType::Ptr _ring;
+};
+
+class VideoTrackFormat : public TrackFormat {
+public:
+    TrackType getTrackType() const override { return TrackVideo;};
+    virtual int getVideoHeight() const = 0;
+    virtual int getVideoWidth() const  = 0;
+    virtual float getVideoFps() const = 0;
+};
+
+class AudioTrackFormat : public TrackFormat {
+public:
+    TrackType getTrackType() const override { return TrackAudio;};
+    virtual int getAudioSampleRate() const  = 0;
+    virtual int getAudioSampleBit() const = 0;
+    virtual int getAudioChannel() const = 0;
+};
+
+class H264TrackFormat : public VideoTrackFormat{
+public:
+	H264TrackFormat(const string &sps,const string &pps){
+		_sps = sps;
+		_pps = pps;
+	}
+	const string &getSps() const{
+		return _sps;
+	}
+	const string &getPps() const{
+		return _pps;
+	}
+	int getCodecId() const override{
+		return TrackFormat::VideoCodecH264;
+	}
+private:
+	string _sps;
+	string _pps;
+};
+
+class AACTrackFormat : public AudioTrackFormat{
+public:
+	AACTrackFormat(const string &aac_cfg){
+		_cfg = aac_cfg;
+	}
+	const string &getAacCfg() const{
+		return _cfg;
+	}
+	int getCodecId() const override{
+		return TrackFormat::AudioCodecAAC;
+	}
+private:
+	string _cfg;
+};
+
 
 class MediaFormat {
 public:
@@ -58,11 +153,6 @@ public:
 	virtual const string& getPps() const { static string null;return null; };
 	virtual const string& getSps() const { static string null;return null; };
 	virtual const string& getAudioCfg() const { static string null;return null; };
-
-	virtual bool containAudio() const { return false; };
-	virtual bool containVideo() const { return false; };
-
-	virtual float getDuration() const { return 0;};
 };
 
 class PlayerBase : public MediaFormat,public mINI{
@@ -105,6 +195,13 @@ public:
 	virtual bool isInited() const { return true; };
 	//TrackVideo = 0, TrackAudio = 1
 	virtual float getRtpLossRate(int trackType) const {return 0; };
+    virtual float getDuration() const { return 0;};
+
+    virtual bool containAudio() const { return false; };
+    virtual bool containVideo() const { return false; };
+
+    virtual int getTrackCount() const { return  0;};
+	virtual TrackFormat::Ptr getTrack(int index) const {return nullptr;};
 protected:
     virtual void onShutdown(const SockException &ex) {};
     virtual void onPlayResult(const SockException &ex) {};

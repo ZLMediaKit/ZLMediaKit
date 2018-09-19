@@ -18,17 +18,47 @@ using namespace ZL::Rtsp;
 namespace ZL{
 namespace Rtsp{
 
+/**
+ * sdp基类
+ */
 class Sdp {
 public:
     typedef std::shared_ptr<Sdp> Ptr;
     virtual ~Sdp(){}
-    virtual string getSdp() { return "";};
-    virtual TrackType getTrackType() { return TrackInvalid;};
-    virtual RtpMaker::Ptr createRtpMaker(const RtpMaker::onGetRTP &cb,uint32_t ui32Ssrc, int iMtuSize) { return nullptr;};
+    /**
+     * 获取sdp字符串
+     * @return
+     */
+    virtual string getSdp() const { return "";};
+
+    /**
+     * 获取track类型
+     * @return
+     */
+    virtual TrackType getTrackType() const { return TrackInvalid;};
+
+    /**
+     * 获取rtp生成器
+     * @param cb 回调lambad
+     * @param ui32Ssrc rtp ssrc
+     * @param iMtuSize rtp mtu
+     * @return
+     */
+    virtual RtpMaker::Ptr createRtpMaker(const RtpMaker::onGetRTP &cb,uint32_t ui32Ssrc, int iMtuSize) const{ return nullptr;};
 };
 
+/**
+ * sdp中除音视频外的其他描述部分
+ */
 class SdpTitle : public Sdp{
 public:
+
+    /**
+     * 构造title类型sdp
+     * @param dur_sec rtsp点播时长，0代表直播，单位秒
+     * @param header 自定义sdp描述
+     * @param version sdp版本
+     */
     SdpTitle(float dur_sec = 0,
              const map<string,string> &header = map<string,string>(),
              int version = 0){
@@ -53,7 +83,7 @@ public:
         }
         _printer << "a=control:*\r\n";
     }
-    string getSdp() override {
+    string getSdp() const override {
         return _printer;
     }
 
@@ -61,8 +91,21 @@ private:
     _StrPrinter _printer;
 };
 
+/**
+ * h264类型sdp
+ */
 class SdpH264 : public Sdp {
 public:
+
+    /**
+     *
+     * @param sps 264 sps,带0x00000001头
+     * @param pps 264 pps,带0x00000001头
+     * @param sample_rate 时间戳采样率，视频默认90000
+     * @param playload_type rtp playload type 默认96
+     * @param track_id trackID 默认为TrackVideo
+     * @param bitrate 比特率
+     */
     SdpH264(const string &sps,
             const string &pps,
             int sample_rate = 90000,
@@ -100,15 +143,15 @@ public:
         _printer << "a=control:trackID=" << track_id << "\r\n";
     }
 
-    string getSdp() override {
+    string getSdp() const override {
         return _printer;
     }
 
-    TrackType getTrackType() override {
+    TrackType getTrackType() const override {
         return TrackVideo;
     };
 
-    RtpMaker::Ptr createRtpMaker(const RtpMaker::onGetRTP &cb,uint32_t ui32Ssrc, int iMtuSize) override{
+    RtpMaker::Ptr createRtpMaker(const RtpMaker::onGetRTP &cb,uint32_t ui32Ssrc, int iMtuSize) const override{
         return std::make_shared<RtpMaker_H264>(cb,ui32Ssrc,iMtuSize,_sample_rate,_playload_type,_track_id * 2);
     };
 
@@ -121,8 +164,20 @@ private:
 };
 
 
+/**
+ * aac类型SDP
+ */
 class SdpAAC : public Sdp {
 public:
+
+    /**
+     * 构造aac sdp
+     * @param aac_cfg aac两个字节的配置描述
+     * @param sample_rate 音频采样率
+     * @param playload_type rtp playload type 默认96
+     * @param track_id trackID 默认为TrackVideo
+     * @param bitrate 比特率
+     */
     SdpAAC(const string &aac_cfg,
            int sample_rate,
            int playload_type = 98,
@@ -145,15 +200,15 @@ public:
         _printer << "a=control:trackID=" << track_id << "\r\n";
     }
 
-    string getSdp() override {
+    string getSdp() const override {
         return _printer;
     }
 
-    TrackType getTrackType() override {
+    TrackType getTrackType() const override {
         return TrackAudio;
     };
 
-    RtpMaker::Ptr createRtpMaker(const RtpMaker::onGetRTP &cb,uint32_t ui32Ssrc, int iMtuSize) override{
+    RtpMaker::Ptr createRtpMaker(const RtpMaker::onGetRTP &cb,uint32_t ui32Ssrc, int iMtuSize) const override{
         return std::make_shared<RtpMaker_AAC>(cb,ui32Ssrc,iMtuSize,_sample_rate,_playload_type,_track_id * 2);
     };
 private:
@@ -163,34 +218,67 @@ private:
     int _track_id;
 };
 
+/**
+ * rtsp生成器
+ */
 class RtspMaker{
 public:
-    RtspMaker(const RtpMaker::onGetRTP &callback) : _vec_rtp_maker(8){
+    /**
+     * 构成函数
+     * @param callback rtp回调lambad
+     */
+    RtspMaker(const RtpMaker::onGetRTP &callback) : _vec_rtp_maker(TrackMax){
         _callback = callback;
     }
-    
-    template<typename First,typename ...Others>
-    void addTrack(First && first,Others &&...others){
-        addTrack(std::forward<First>(first));
-        addTrack(std::forward<Others>(others)...);
-    }
-    template<typename First>
-    void addTrack(First && first){
-        _printer << first->getSdp();
-        if(first->getTrackType() >= 0){
-            auto rtpMaker = first-> createRtpMaker(_callback, 0,1400);
-            _vec_rtp_maker[first->getTrackType()] = rtpMaker;
+
+    /**
+     * 添加音视频track
+     * @param sdp 媒体描述
+     * @param ssrc 媒体rtp ssrc
+     * @param mtu 媒体rtp mtu
+     * @return 成功与否
+     */
+    bool addTrack(const Sdp & sdp,uint32_t ssrc = 0,int mtu = 1400){
+        auto type = sdp.getTrackType();
+        if(type < 0 || type >= _vec_rtp_maker.size()){
+            return false;
         }
+
+        if(_vec_rtp_maker[type]){
+            return false;
+        }
+
+        if(ssrc == 0){
+            ssrc = ((uint64_t) &sdp) & 0xFFFFFFFF;
+        }
+
+        auto rtpMaker = sdp.createRtpMaker(_callback, ssrc,mtu);
+        _vec_rtp_maker[sdp.getTrackType()] = rtpMaker;
+        _printer << sdp.getSdp();
+        return true;
     }
 
     virtual ~RtspMaker() {};
-    
+
+    /**
+     * 获取完整的SDP字符串
+     * @return SDP字符串
+     */
     string getSdp() {
         return _printer;
     }
 
+
+    /**
+     * 打包RTP数据包
+     * @param type 媒体类型
+     * @param pcData 媒体数据
+     * @param iDataLen 媒体数据长度
+     * @param uiStamp  媒体时间戳，单位毫秒
+     * @return 是否成功
+     */
     bool makeRtp(TrackType type,const char *pcData, int iDataLen, uint32_t uiStamp){
-        if(type < 0 || type > _vec_rtp_maker.size()){
+        if(type < 0 || type >= _vec_rtp_maker.size()){
             return false;
         }
         auto track = _vec_rtp_maker[type];
@@ -205,7 +293,6 @@ private:
     vector<RtpMaker::Ptr> _vec_rtp_maker;
     _StrPrinter _printer;
     RtpMaker::onGetRTP _callback;
-
 };
 
 
