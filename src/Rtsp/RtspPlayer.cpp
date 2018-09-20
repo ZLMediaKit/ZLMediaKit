@@ -31,16 +31,14 @@
 
 #include "Common/config.h"
 #include "RtspPlayer.h"
-#include "Device/base64.h"
 #include "H264/SPSParser.h"
 #include "Util/MD5.h"
 #include "Util/mini.h"
 #include "Util/util.h"
+#include "Util/base64.h"
 #include "Network/sockutil.h"
-#include "Device/base64.h"
 
 using namespace ZL::Util;
-
 
 namespace ZL {
 namespace Rtsp {

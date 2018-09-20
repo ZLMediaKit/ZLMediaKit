@@ -27,7 +27,7 @@
 #include "Common/config.h"
 #include "RtmpToRtspMediaSource.h"
 #include "Util/util.h"
-#include "Device/base64.h"
+#include "Util/base64.h"
 #include "Network/sockutil.h"
 
 using namespace ZL::Util;
