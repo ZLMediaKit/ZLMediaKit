@@ -139,34 +139,18 @@ void RtspSession::onManager() {
 	}
 }
 
-void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
-	m_ticker.resetTime();
+
+void RtspSession::onRecvContent(const string &content){
+
+}
+
+int64_t RtspSession::onRecvHeader(const string &header) {
     char tmp[2 * 1024];
     m_pcBuf = tmp;
 
-    m_ui64TotalBytes += pBuf->size();
-    if (m_bBase64need) {
-		//quicktime 加密后的rtsp请求，需要解密
-		av_base64_decode((uint8_t *) m_pcBuf, pBuf->data(), sizeof(tmp));
-		m_parser.Parse(m_pcBuf); //rtsp请求解析
-	} else {
-		m_parser.Parse(pBuf->data()); //rtsp请求解析
-		if(!m_parser.Content().empty()){
-			weak_ptr<TcpSession> weakSelf = shared_from_this();
-			BufferString::Ptr nextRecv(new BufferString(m_parser.Content()));
-			async([weakSelf,nextRecv](){
-				auto strongSelf = weakSelf.lock();
-				if(strongSelf){
-					strongSelf->onRecv(nextRecv);
-				}
-			}, false);
-		}
-	}
-
+	m_parser.Parse(header.data()); //rtsp请求解析
 	string strCmd = m_parser.Method(); //提取出请求命令字
 	m_iCseq = atoi(m_parser["CSeq"].data());
-
-	bool ret = false;
 
 	typedef bool (RtspSession::*rtspCMDHandle)();
 	static unordered_map<string, rtspCMDHandle> g_mapCmd;
@@ -186,15 +170,36 @@ void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
 	auto it = g_mapCmd.find(strCmd);
 	if (it != g_mapCmd.end()) {
 		auto fun = it->second;
-		ret = (this->*fun)();
-		m_parser.Clear();
-	} else {
-		ret = (m_rtpType == PlayerBase::RTP_TCP);
-	}
-	if (!ret) {
+		if(!(this->*fun)()){
+		    shutdown();
+		}
+	} else{
 		shutdown();
 		WarnL << "cmd=" << strCmd;
 	}
+
+    m_parser.Clear();
+    return 0;
+}
+
+
+void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
+	m_ticker.resetTime();
+    m_ui64TotalBytes += pBuf->size();
+    if (m_bBase64need) {
+		//quicktime 加密后的rtsp请求，需要解密
+		inputRtspOrRtcp(decodeBase64(string(pBuf->data(),pBuf->size())));
+	} else {
+        inputRtspOrRtcp(string(pBuf->data(),pBuf->size()));
+	}
+}
+
+void RtspSession::inputRtspOrRtcp(const string &str) {
+	if(str[0] == '$' && m_rtpType == PlayerBase::RTP_TCP){
+		//这是rtcp
+		return;
+	}
+    input(str);
 }
 
 bool RtspSession::handleReq_Options() {
