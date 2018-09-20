@@ -620,19 +620,27 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 	//////////////获取HTTP POST Content/////////////
 	GET_CONFIG_AND_REGISTER(uint32_t,reqSize,Config::Http::kMaxReqSize);
-	int realContentLen = atoi(m_parser["Content-Length"].data());
+	int realContentLen = m_parser["Content-Length"].empty() ? -1 : atoi(m_parser["Content-Length"].data());
 	int iContentLen = realContentLen;
 	if(iContentLen > reqSize){
 		//Content大小超过限制,那么我们把这个http post请求当做不限制content长度来处理
 		//这种情况下，用于文件post很有必要，否则内存可能溢出
-		iContentLen = 0;
+		iContentLen = -1;
+	}
+
+	GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
+	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) || ( ++m_iReqCnt > reqCnt);
+
+	if(iContentLen == 0){
+		emitHttpEvent(true);
+		return !bClose;
 	}
 
 	if(iContentLen > 0){
 		//返回固定长度的content
 		content_len = iContentLen;
 		auto parserCopy = m_parser;
-		m_contentCallBack = [this,parserCopy](const string &content){
+		m_contentCallBack = [this,parserCopy,bClose](const string &content){
 			//恢复http头
 			m_parser = parserCopy;
 			//设置content
@@ -642,6 +650,9 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 			//清空数据,节省内存
 			m_parser.Clear();
 			//m_contentCallBack是不可持续的，收到一次content后就销毁
+			if(bClose){
+				shutdown();
+			}
 			return false;
 		};
 	}else{
