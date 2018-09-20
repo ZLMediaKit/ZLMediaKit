@@ -25,10 +25,10 @@
  */
 #include <stdio.h>
 #include <stdio.h>
-#include "base64.h"
 #include "Device.h"
 #include "Util/logger.h"
 #include "Util/util.h"
+#include "Util/base64.h"
 #include "Util/TimeTicker.h"
 
 using namespace ZL::Util;
