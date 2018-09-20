@@ -38,6 +38,7 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Network/TcpSession.h"
+#include "Http/HttpRequestSplitter.h"
 
 using namespace std;
 using namespace ZL::Util;
@@ -67,7 +68,7 @@ private:
     uint32_t _offset;
 };
 
-class RtspSession: public TcpSession {
+class RtspSession: public TcpSession, public HttpRequestSplitter {
 public:
 	typedef std::shared_ptr<RtspSession> Ptr;
 	typedef std::function<void(const string &realm)> onGetRealm;
@@ -80,7 +81,27 @@ public:
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onError(const SockException &err) override;
 	void onManager() override;
+
+protected:
+	//HttpRequestSplitter override
+	/**
+    * 收到请求头
+    * @param header 请求头
+    * @return 请求头后的content长度,
+    *  <0 : 代表后面所有数据都是content
+    *  0 : 代表为后面数据还是请求头,
+    *  >0 : 代表后面数据为固定长度content,
+    */
+	int64_t onRecvHeader(const string &header) override ;
+
+	/**
+     * 收到content分片或全部数据
+     * onRecvHeader函数返回>0,则为全部数据
+     * @param content
+     */
+	void onRecvContent(const string &content) override;
 private:
+	void inputRtspOrRtcp(const string &str);
 	int send(const string &strBuf) override {
         m_ui64TotalBytes += strBuf.size();
 		return m_pSender->send(strBuf);
@@ -153,6 +174,7 @@ private:
     static void onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strBase64);
     static void onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strMd5);
 
+private:
 	char *m_pcBuf = nullptr;
 	Ticker m_ticker;
 	Parser m_parser; //rtsp解析类
