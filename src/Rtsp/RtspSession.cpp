@@ -499,7 +499,7 @@ inline void RtspSession::send_SessionNotFound() {
 }
 bool RtspSession::handleReq_Setup() {
 //处理setup命令，该函数可能进入多次
-    auto controlSuffix = m_parser.Url().substr(1 + m_parser.Url().rfind('/'));
+    auto controlSuffix = m_parser.FullUrl().substr(1 + m_parser.FullUrl().rfind('/'));
 	int trackIdx = getTrackIndexByControlSuffix(controlSuffix);
 	if (trackIdx == -1) {
 		//未找到相应track
