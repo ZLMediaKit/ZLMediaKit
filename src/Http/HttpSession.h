@@ -85,7 +85,7 @@ protected:
 
 	/**
 	 * 重载之用于处理不定长度的content
-	 * 这个函数可用于处理大文件上传、http-flv推流,WebSocket数据
+	 * 这个函数可用于处理大文件上传、http-flv推流
 	 * @param header http请求头
 	 * @param content content分片数据
 	 * @param content_size content大小,如果为0则是不限长度content
@@ -95,6 +95,15 @@ protected:
         shutdown();
 	}
 
+
+    /**
+     * 重载之用于处理websocket数据
+     * @param header http请求头
+     * @param data websocket数据
+     */
+	virtual void onRecvWebSocketData(const Parser &header,const string &data){
+        shutdown();
+    }
 private:
 	Parser m_parser;
 	string m_strPath;
@@ -110,6 +119,7 @@ private:
 	inline bool Handle_Req_GET(int64_t &content_len);
 	inline bool Handle_Req_POST(int64_t &content_len);
 	inline bool checkLiveFlvStream();
+	inline bool checkWebSocket();
 	inline bool emitHttpEvent(bool doInvoke);
 	inline void urlDecode(Parser &parser);
 	inline bool makeMeun(const string &strFullPath,const string &vhost, string &strRet);
@@ -119,6 +129,20 @@ private:
 	void responseDelay(const string &Origin,bool bClose,
 					   const string &codeOut,const KeyValue &headerOut,
 					   const string &contentOut);
+};
+
+/**
+ * 回显WebSocket会话
+ */
+class EchoWebSocketSession : public HttpSession {
+public:
+    EchoWebSocketSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : HttpSession(pTh,pSock){};
+    virtual ~EchoWebSocketSession(){};
+protected:
+    void onRecvWebSocketData(const Parser &header,const string &data) override {
+        DebugL << "收到websocket数据:" << data;
+        (*this) << "echo:" << data;
+    }
 };
 
 } /* namespace Http */
