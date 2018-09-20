@@ -21,6 +21,10 @@ splitPacket:
         _remain_data.erase(0, index + 4);
     }
 
+    if(_remain_data.empty()){
+        return;
+    }
+
     if(_content_len > 0){
         //数据按照固定长度content处理
         if(_remain_data.size() < _content_len){

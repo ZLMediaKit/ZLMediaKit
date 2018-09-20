@@ -40,6 +40,8 @@
 #include "Util/onceToken.h"
 #include "Util/mini.h"
 #include "Util/NoticeCenter.h"
+#include "Util/base64.h"
+#include "Util/SHA1.h"
 #include "Rtmp/utils.h"
 
 using namespace ZL::Util;
@@ -180,6 +182,23 @@ void HttpSession::onManager() {
 		shutdown();
 	}
 }
+
+
+inline bool HttpSession::checkWebSocket(){
+	if(m_parser["Connection"] != "Upgrade" ||
+	   m_parser["Upgrade"] != "websocket" ){
+		return false;
+	}
+	auto Sec_WebSocket_Key = m_parser["Sec-WebSocket-Key"];
+	auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
+
+	KeyValue headerOut;
+	headerOut["Upgrade"] = "websocket";
+	headerOut["Connection"] = "Upgrade";
+	headerOut["Sec-WebSocket-Accept"] = Sec_WebSocket_Accept;
+	sendResponse("101 Switching Protocols",headerOut,"");
+	return true;
+}
 //http-flv 链接格式:http://vhost-url:port/app/streamid.flv?key1=value1&key2=value2
 //如果url(除去?以及后面的参数)后缀是.flv,那么表明该url是一个http-flv直播。
 inline bool HttpSession::checkLiveFlvStream(){
@@ -248,16 +267,29 @@ inline bool HttpSession::checkLiveFlvStream(){
     return true;
 }
 inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
+	//先看看是否为WebSocket请求
+	if(checkWebSocket()){
+		content_len = -1;
+		auto parserCopy = m_parser;
+		m_contentCallBack = [this,parserCopy](const string &data){
+			onRecvWebSocketData(parserCopy,data);
+			//m_contentCallBack是可持续的，后面还要处理后续数据
+			return true;
+		};
+		return true;
+	}
+
 	//先看看该http事件是否被拦截
 	if(emitHttpEvent(false)){
 		return true;
 	}
+
     //再看看是否为http-flv直播请求
 	if(checkLiveFlvStream()){
 		return true;
 	}
-	//事件未被拦截，则认为是http下载请求
 
+	//事件未被拦截，则认为是http下载请求
 	auto fullUrl = string(HTTP_SCHEMA) + "://" + m_parser["Host"] + m_parser.FullUrl();
     m_mediaInfo.parse(fullUrl);
 
