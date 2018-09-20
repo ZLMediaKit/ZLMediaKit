@@ -32,6 +32,7 @@
 #include "Network/TcpSession.h"
 #include "Rtmp/RtmpMediaSource.h"
 #include "Rtmp/FlvMuxer.h"
+#include "HttpRequestSplitter.h"
 
 using namespace std;
 using namespace ZL::Rtmp;
@@ -40,8 +41,7 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Http {
 
-
-class HttpSession: public TcpSession,public FlvMuxer {
+class HttpSession: public TcpSession,public FlvMuxer, public HttpRequestSplitter {
 public:
 	typedef StrCaseMap KeyValue;
 	typedef std::function<void(const string &codeOut,
@@ -57,35 +57,58 @@ public:
 
 	static string urlDecode(const string &str);
 protected:
+	//用于HttpsSession调用
 	void onRecv(const char *data,int size);
-
 	//FlvMuxer override
 	void onWrite(const Buffer::Ptr &data) override ;
 	void onWrite(const char *data,int len) override;
 	void onDetach() override;
 	std::shared_ptr<FlvMuxer> getSharedPtr() override;
-private:
-	typedef enum
-	{
-		Http_success = 0,
-		Http_failed = 1,
-		Http_moreData = 2,
-	} HttpCode;
+	//HttpRequestSplitter override
 
+	/**
+     * 收到请求头
+     * @param header 请求头
+     * @return 请求头后的content长度,
+     *  <0 : 代表后面所有数据都是content
+     *  0 : 代表为后面数据还是请求头,
+     *  >0 : 代表后面数据为固定长度content,
+     */
+	int64_t onRecvHeader(const string &header) override;
+
+	/**
+     * 收到content分片或全部数据
+     * onRecvHeader函数返回>0,则为全部数据
+     * @param content
+     */
+	void onRecvContent(const string &content) override;
+
+	/**
+	 * 重载之用于处理不定长度的content
+	 * 这个函数可用于处理大文件上传、http-flv推流,WebSocket数据
+	 * @param header http请求头
+	 * @param content content分片数据
+	 * @param content_size content大小,如果为0则是不限长度content
+	 */
+	virtual void onRecvUnlimitedContent(const Parser &header,const string &content,int64_t content_size){
+        WarnL << "content数据长度过大，无法处理,请重载HttpSession::onRecvUnlimitedContent";
+        shutdown();
+	}
+
+private:
 	Parser m_parser;
 	string m_strPath;
-	string m_strRcvBuf;
 	Ticker m_ticker;
 	uint32_t m_iReqCnt = 0;
 	//消耗的总流量
 	uint64_t m_ui64TotalBytes = 0;
-
 	//flv over http
     MediaInfo m_mediaInfo;
-
-	inline HttpCode parserHttpReq(const string &);
-	inline HttpCode Handle_Req_GET();
-	inline HttpCode Handle_Req_POST();
+    //处理content数据的callback
+	function<bool (const string &content) > m_contentCallBack;
+private:
+	inline bool Handle_Req_GET(int64_t &content_len);
+	inline bool Handle_Req_POST(int64_t &content_len);
 	inline bool checkLiveFlvStream();
 	inline bool emitHttpEvent(bool doInvoke);
 	inline void urlDecode(Parser &parser);

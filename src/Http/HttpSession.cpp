@@ -115,62 +115,53 @@ HttpSession::~HttpSession() {
 	//DebugL;
 }
 
-void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
-	onRecv(pBuf->data(),pBuf->size());
-}
-void HttpSession::onRecv(const char *data,int size){
-    GET_CONFIG_AND_REGISTER(uint32_t,reqSize,Config::Http::kMaxReqSize);
-
-    m_ticker.resetTime();
-	if (m_strRcvBuf.size() + size >= reqSize) {
-		WarnL << "接收缓冲区溢出:" << m_strRcvBuf.size() + size << "," << reqSize;
-		shutdown();
-		return;
-	}
-	m_strRcvBuf.append(data, size);
-	size_t index;
-	string onePkt;
-	while ((index = m_strRcvBuf.find("\r\n\r\n")) != std::string::npos) {
-		onePkt = m_strRcvBuf.substr(0, index + 4);
-		m_strRcvBuf.erase(0, index + 4);
-		switch (parserHttpReq(onePkt)) {
-		case Http_failed:
-			//失败
-			shutdown();
-			return;
-		case Http_success:
-			//成功
-			break;
-		case Http_moreData:
-			//需要更多数据,恢复数据并退出
-			m_strRcvBuf = onePkt + m_strRcvBuf;
-			m_parser.Clear();
-			return;
-		}
-	}
-	m_parser.Clear();
-}
-inline HttpSession::HttpCode HttpSession::parserHttpReq(const string &str) {
-	m_parser.Parse(str.data());
-	urlDecode(m_parser);
-	string cmd = m_parser.Method();
-
-	typedef HttpSession::HttpCode (HttpSession::*HttpCMDHandle)();
+int64_t HttpSession::onRecvHeader(const string &header) {
+	typedef bool (HttpSession::*HttpCMDHandle)(int64_t &);
 	static unordered_map<string, HttpCMDHandle> g_mapCmdIndex;
 	static onceToken token([]() {
 		g_mapCmdIndex.emplace("GET",&HttpSession::Handle_Req_GET);
 		g_mapCmdIndex.emplace("POST",&HttpSession::Handle_Req_POST);
 	}, nullptr);
 
+	m_parser.Parse(header.data());
+	urlDecode(m_parser);
+	string cmd = m_parser.Method();
 	auto it = g_mapCmdIndex.find(cmd);
 	if (it == g_mapCmdIndex.end()) {
 		WarnL << cmd;
 		sendResponse("403 Forbidden", makeHttpHeader(true), "");
-		return Http_failed;
+		shutdown();
+		return 0;
 	}
-	auto fun = it->second;
-	return (this->*fun)();
+
+	//默认后面数据不是content而是header
+	int64_t content_len = 0;
+	auto &fun = it->second;
+	if(!(this->*fun)(content_len)){
+		shutdown();
+	}
+	//清空解析器节省内存
+	m_parser.Clear();
+	//返回content长度
+	return content_len;
 }
+
+void HttpSession::onRecvContent(const string &content) {
+	if(m_contentCallBack){
+		if(!m_contentCallBack(content)){
+			m_contentCallBack = nullptr;
+		}
+	}
+}
+
+void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
+	onRecv(pBuf->data(),pBuf->size());
+}
+void HttpSession::onRecv(const char *data,int size){
+    m_ticker.resetTime();
+    input(string(data,size));
+}
+
 void HttpSession::onError(const SockException& err) {
 	//WarnL << err.what();
     GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
@@ -256,14 +247,14 @@ inline bool HttpSession::checkLiveFlvStream(){
     }
     return true;
 }
-inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
+inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//先看看该http事件是否被拦截
 	if(emitHttpEvent(false)){
-		return Http_success;
+		return true;
 	}
     //再看看是否为http-flv直播请求
 	if(checkLiveFlvStream()){
-		return Http_success;
+		return true;
 	}
 	//事件未被拦截，则认为是http下载请求
 
@@ -275,7 +266,6 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
     GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
 
     bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) || ( ++m_iReqCnt > reqCnt);
-	HttpCode eHttpCode = bClose ? Http_failed : Http_success;
 	//访问的是文件夹
 	if (strFile.back() == '/') {
 		//生成文件夹菜单索引
@@ -283,17 +273,17 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 		if (!makeMeun(strFile,m_mediaInfo.m_vhost, strMeun)) {
 			//文件夹不存在
 			sendNotFound(bClose);
-			return eHttpCode;
+			return !bClose;
 		}
 		sendResponse("200 OK", makeHttpHeader(bClose,strMeun.size() ), strMeun);
-		return eHttpCode;
+		return !bClose;
 	}
 	//访问的是文件
 	struct stat tFileStat;
 	if (0 != stat(strFile.data(), &tFileStat)) {
 		//文件不存在
 		sendNotFound(bClose);
-		return eHttpCode;
+		return !bClose;
 	}
     //文件智能指针，防止退出时未关闭
     std::shared_ptr<FILE> pFilePtr(fopen(strFile.data(), "rb"), [](FILE *pFile) {
@@ -305,7 +295,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	if (!pFilePtr) {
 		//打开文件失败
 		sendNotFound(bClose);
-		return eHttpCode;
+		return !bClose;
 	}
 
 	//判断是不是分节下载
@@ -339,7 +329,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 	sendResponse(pcHttpResult, httpHeader, "");
 	if (iRangeEnd - iRangeStart < 0) {
 		//文件是空的!
-		return eHttpCode;
+		return !bClose;
 	}
 	//回复Content部分
 	std::shared_ptr<int64_t> piLeft(new int64_t(iRangeEnd - iRangeStart + 1));
@@ -426,7 +416,7 @@ inline HttpSession::HttpCode HttpSession::Handle_Req_GET() {
 
     onFlush();
 	_sock->setOnFlush(onFlushWrapper);
-	return Http_success;
+	return true;
 }
 
 inline bool HttpSession::makeMeun(const string &strFullPath,const string &vhost, string &strRet) {
@@ -595,17 +585,44 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	}
 	return consumed;
 }
-inline HttpSession::HttpCode HttpSession::Handle_Req_POST() {
+inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 	//////////////获取HTTP POST Content/////////////
-	int iContentLen = atoi(m_parser["Content-Length"].data());
-	if ((int) m_strRcvBuf.size() < iContentLen) {
-		return Http_moreData; //需要更多数据
+	GET_CONFIG_AND_REGISTER(uint32_t,reqSize,Config::Http::kMaxReqSize);
+	int realContentLen = atoi(m_parser["Content-Length"].data());
+	int iContentLen = realContentLen;
+	if(iContentLen > reqSize){
+		//Content大小超过限制,那么我们把这个http post请求当做不限制content长度来处理
+		//这种情况下，用于文件post很有必要，否则内存可能溢出
+		iContentLen = 0;
 	}
-	m_parser.setContent(m_strRcvBuf.substr(0, iContentLen));
-	m_strRcvBuf.erase(0, iContentLen);
-	//广播事件
-	emitHttpEvent(true);
-	return Http_success;
+
+	if(iContentLen > 0){
+		//返回固定长度的content
+		content_len = iContentLen;
+		auto parserCopy = m_parser;
+		m_contentCallBack = [this,parserCopy](const string &content){
+			//恢复http头
+			m_parser = parserCopy;
+			//设置content
+			m_parser.setContent(content);
+			//触发http事件
+			emitHttpEvent(true);
+			//清空数据,节省内存
+			m_parser.Clear();
+			//m_contentCallBack是不可持续的，收到一次content后就销毁
+			return false;
+		};
+	}else{
+		//返回不固定长度的content
+		content_len = -1;
+		auto parserCopy = m_parser;
+		m_contentCallBack = [this,parserCopy,realContentLen](const string &content){
+			onRecvUnlimitedContent(parserCopy,content,realContentLen);
+			//m_contentCallBack是可持续的，后面还要处理后续content数据
+			return true;
+		};
+	}
+	return true;
 }
 void HttpSession::responseDelay(const string &Origin,bool bClose,
 								const string &codeOut,const KeyValue &headerOut,
