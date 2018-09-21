@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by xzl on 2018/9/21.
 //
 
@@ -33,6 +33,9 @@ public:
         CONTROL_RSVF = 0xF
     } Type;
 public:
+    WebSocketHeader() : _mask(4){}
+    virtual ~WebSocketHeader(){}
+public:
     bool _fin;
     uint8_t _reserved;
     Type _opcode;
@@ -46,11 +49,44 @@ public:
     WebSocketSplitter(){}
     virtual ~WebSocketSplitter(){}
 
+    /**
+     * 输入数据以便解包webSocket数据以及处理粘包问题
+     * 可能触发onWebSocketDecodeHeader和onWebSocketDecodePlayload回调
+     * @param data 需要解包的数据，可能是不完整的包或多个包
+     * @param len 数据长度
+     */
     void decode(uint8_t *data,uint64_t len);
+
+    /**
+     * 编码一个数据包
+     * 将触发2次onWebSocketEncodeData回调
+     * 第一次是数据头，第二次是负载数据
+     * @param data 负载数据
+     * @param len 负载数据长度
+     */
     void encode(uint8_t *data,uint64_t len);
 protected:
-    virtual void onWebSocketHeader(const WebSocketHeader &packet) {};
-    virtual void onWebSocketPlayload(const WebSocketHeader &packet,const uint8_t *ptr,uint64_t len,uint64_t recved) {};
+    /**
+     * 收到一个webSocket数据包包头，后续将继续触发onWebSocketDecodePlayload回调
+     * @param packet 数据包头
+     */
+    virtual void onWebSocketDecodeHeader(const WebSocketHeader &packet) {};
+
+    /**
+     * 收到webSocket数据包负载
+     * @param packet 数据包包头
+     * @param ptr 负载数据指针
+     * @param len 负载数据长度
+     * @param recved 已接收数据长度，等于packet._playload_len时则接受完毕
+     */
+    virtual void onWebSocketDecodePlayload(const WebSocketHeader &packet, const uint8_t *ptr, uint64_t len, uint64_t recved) {};
+
+    /**
+     * websocket数据编码回调
+     * @param ptr 数据指针
+     * @param len 数据指针长度
+     */
+    virtual void onWebSocketEncodeData(const uint8_t *ptr,uint64_t len){};
 private:
     void onPlayloadData(uint8_t *data,uint64_t len);
 private:

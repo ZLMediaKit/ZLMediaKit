@@ -144,12 +144,24 @@ public:
     EchoWebSocketSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : HttpSession(pTh,pSock){};
     virtual ~EchoWebSocketSession(){};
 protected:
-    void onWebSocketHeader(const WebSocketHeader &packet) override{
+    void onWebSocketDecodeHeader(const WebSocketHeader &packet) override{
         DebugL << packet._playload_len;
     };
-    void onWebSocketPlayload(const WebSocketHeader &packet,const uint8_t *ptr,uint64_t len,uint64_t recved) override {
+    void onWebSocketDecodePlayload(const WebSocketHeader &packet,const uint8_t *ptr,uint64_t len,uint64_t recved) override {
         DebugL << string((char *)ptr,len) << " " << recved;
+
+        //webSocket服务器不允许对数据进行掩码加密
+        bool mask_flag = _mask_flag;
+        _mask_flag = false;
+        WebSocketSplitter::encode((uint8_t *)ptr,len);
+        _mask_flag = true;
+
     };
+
+    void onWebSocketEncodeData(const uint8_t *ptr,uint64_t len) override{
+        send((char *)ptr,len);
+    };
+
 };
 
 } /* namespace Http */
