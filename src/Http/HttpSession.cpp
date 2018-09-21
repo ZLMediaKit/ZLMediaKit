@@ -618,27 +618,20 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	return consumed;
 }
 inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
-	//////////////获取HTTP POST Content/////////////
-	GET_CONFIG_AND_REGISTER(uint32_t,reqSize,Config::Http::kMaxReqSize);
-	int realContentLen = m_parser["Content-Length"].empty() ? -1 : atoi(m_parser["Content-Length"].data());
-	int iContentLen = realContentLen;
-	if(iContentLen > reqSize){
-		//Content大小超过限制,那么我们把这个http post请求当做不限制content长度来处理
-		//这种情况下，用于文件post很有必要，否则内存可能溢出
-		iContentLen = -1;
-	}
+	GET_CONFIG_AND_REGISTER(uint64_t,maxReqSize,Config::Http::kMaxReqSize);
+    GET_CONFIG_AND_REGISTER(int,maxReqCnt,Config::Http::kMaxReqCount);
 
-	GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
-	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) || ( ++m_iReqCnt > reqCnt);
+    int64_t totalContentLen = m_parser["Content-Length"].empty() ? -1 : atoll(m_parser["Content-Length"].data());
+	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) || ( ++m_iReqCnt > maxReqCnt);
 
-	if(iContentLen == 0){
+	if(totalContentLen == 0){
 		emitHttpEvent(true);
 		return !bClose;
 	}
 
-	if(iContentLen > 0){
+	if(totalContentLen > 0 && totalContentLen < maxReqSize ){
 		//返回固定长度的content
-		content_len = iContentLen;
+		content_len = totalContentLen;
 		auto parserCopy = m_parser;
 		m_contentCallBack = [this,parserCopy,bClose](const string &content){
 			//恢复http头
@@ -659,10 +652,29 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 		//返回不固定长度的content
 		content_len = -1;
 		auto parserCopy = m_parser;
-		m_contentCallBack = [this,parserCopy,realContentLen](const string &content){
-			onRecvUnlimitedContent(parserCopy,content,realContentLen);
-			//m_contentCallBack是可持续的，后面还要处理后续content数据
-			return true;
+		std::shared_ptr<int64_t> recvedContentLen = std::make_shared<int64_t>(0);
+		m_contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const string &content){
+		    *(recvedContentLen) += content.size();
+
+		    onRecvUnlimitedContent(parserCopy,content,totalContentLen,*(recvedContentLen));
+
+			if(*(recvedContentLen) < totalContentLen){
+			    //数据还没接收完毕
+                //m_contentCallBack是可持续的，后面还要处理后续content数据
+                return true;
+			}
+
+			//数据接收完毕
+            if(!bClose){
+			    //keep-alive类型连接
+				//content接收完毕，后续都是http header
+				setContentLen(0);
+                return false;
+            }
+
+            //连接类型是close类型，收完content就关闭连接
+            shutdown();
+            return false ;
 		};
 	}
 	return true;

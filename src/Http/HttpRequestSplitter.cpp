@@ -47,3 +47,7 @@ splitPacket:
         _remain_data.clear();
     }
 }
+
+void HttpRequestSplitter::setContentLen(int64_t content_len) {
+    _content_len = content_len;
+}

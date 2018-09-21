@@ -88,9 +88,10 @@ protected:
 	 * 这个函数可用于处理大文件上传、http-flv推流
 	 * @param header http请求头
 	 * @param content content分片数据
-	 * @param content_size content大小,如果为0则是不限长度content
+	 * @param totalSize content总大小,如果为0则是不限长度content
+	 * @param recvedSize 已收数据大小
 	 */
-	virtual void onRecvUnlimitedContent(const Parser &header,const string &content,int64_t content_size){
+	virtual void onRecvUnlimitedContent(const Parser &header,const string &content,int64_t totalSize,int64_t recvedSize){
         WarnL << "content数据长度过大，无法处理,请重载HttpSession::onRecvUnlimitedContent";
         shutdown();
 	}
