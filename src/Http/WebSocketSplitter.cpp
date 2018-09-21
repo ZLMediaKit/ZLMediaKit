@@ -117,7 +117,6 @@ begin_decode:
 void WebSocketSplitter::onPlayloadData(uint8_t *ptr, uint64_t len) {
     if(_mask_flag){
         for(int i = 0; i < len ; ++i,++ptr){
-            InfoL << (int)(*(ptr)) << "^" << (int)(_mask[(i + _mask_offset) % 4]) << "=" << (int)(*(ptr) ^ _mask[(i + _mask_offset) % 4]);
             *(ptr) ^= _mask[(i + _mask_offset) % 4];
         }
         _mask_offset = (_mask_offset + len) % 4;
