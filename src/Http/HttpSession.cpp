@@ -614,6 +614,10 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	if(!consumed && doInvoke){
 		//该事件无人消费，所以返回404
 		invoker("404 Not Found",KeyValue(),"");
+		if(bClose){
+			//close类型，回复完毕，关闭连接
+			shutdown();
+		}
 	}
 	return consumed;
 }
@@ -622,30 +626,28 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
     GET_CONFIG_AND_REGISTER(int,maxReqCnt,Config::Http::kMaxReqCount);
 
     int64_t totalContentLen = m_parser["Content-Length"].empty() ? -1 : atoll(m_parser["Content-Length"].data());
-	bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) || ( ++m_iReqCnt > maxReqCnt);
 
 	if(totalContentLen == 0){
+		//content为空
+		//emitHttpEvent内部会选择是否关闭连接
 		emitHttpEvent(true);
-		return !bClose;
+		return true;
 	}
 
 	if(totalContentLen > 0 && totalContentLen < maxReqSize ){
 		//返回固定长度的content
 		content_len = totalContentLen;
 		auto parserCopy = m_parser;
-		m_contentCallBack = [this,parserCopy,bClose](const string &content){
+		m_contentCallBack = [this,parserCopy](const string &content){
 			//恢复http头
 			m_parser = parserCopy;
 			//设置content
 			m_parser.setContent(content);
-			//触发http事件
+			//触发http事件，emitHttpEvent内部会选择是否关闭连接
 			emitHttpEvent(true);
 			//清空数据,节省内存
 			m_parser.Clear();
-			//m_contentCallBack是不可持续的，收到一次content后就销毁
-			if(bClose){
-				shutdown();
-			}
+			//content已经接收完毕
 			return false;
 		};
 	}else{
@@ -653,6 +655,8 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 		content_len = -1;
 		auto parserCopy = m_parser;
 		std::shared_ptr<int64_t> recvedContentLen = std::make_shared<int64_t>(0);
+		bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) || ( ++m_iReqCnt > maxReqCnt);
+
 		m_contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const string &content){
 		    *(recvedContentLen) += content.size();
 
@@ -669,14 +673,17 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 			    //keep-alive类型连接
 				//content接收完毕，后续都是http header
 				setContentLen(0);
+                //content已经接收完毕
                 return false;
             }
 
             //连接类型是close类型，收完content就关闭连接
             shutdown();
+            //content已经接收完毕
             return false ;
 		};
 	}
+	//有后续content数据要处理,暂时不关闭连接
 	return true;
 }
 void HttpSession::responseDelay(const string &Origin,bool bClose,
