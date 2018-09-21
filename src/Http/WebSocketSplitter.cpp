@@ -1,8 +1,11 @@
-//
+﻿//
 // Created by xzl on 2018/9/21.
 //
 
 #include "WebSocketSplitter.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include "Util/logger.h"
 #include "Util/util.h"
 using namespace ZL::Util;
@@ -84,7 +87,7 @@ begin_decode:
         _got_header = true;
         _mask_offset = 0;
         _playload_offset = 0;
-        onWebSocketHeader(*this);
+        onWebSocketDecodeHeader(*this);
     }
 
     uint64_t remain = len - (ptr - data);
@@ -121,5 +124,75 @@ void WebSocketSplitter::onPlayloadData(uint8_t *ptr, uint64_t len) {
         }
         _mask_offset = (_mask_offset + len) % 4;
     }
-    onWebSocketPlayload(*this,_mask_flag ? ptr - len : ptr,len,_playload_offset);
+    onWebSocketDecodePlayload(*this, _mask_flag ? ptr - len : ptr, len, _playload_offset);
 }
+
+void WebSocketSplitter::encode(uint8_t *data, uint64_t len) {
+    string ret;
+
+    uint8_t byte = _fin << 7 | ((_reserved & 0x07) << 4) | (_opcode & 0x0F) ;
+    ret.push_back(byte);
+
+    _mask_flag = (_mask_flag && _mask.size() >= 4);
+    byte = _mask_flag << 7;
+
+    _playload_len = len;
+    if(_playload_len < 126){
+        byte |= _playload_len;
+        ret.push_back(byte);
+    }else if(_playload_len <= 0xFFFF){
+        byte |= 126;
+        ret.push_back(byte);
+
+        uint16_t len = htons(_playload_len);
+        ret.append((char *)&len,2);
+    }else{
+        byte |= 127;
+        ret.push_back(byte);
+
+        uint32_t len_high = htonl(_playload_len >> 32) ;
+        uint32_t len_low = htonl(_playload_len & 0xFFFFFFFF);
+        ret.append((char *)&len_high,4);
+        ret.append((char *)&len_low,4);
+    }
+    if(_mask_flag){
+        ret.append((char *)_mask.data(),4);
+    }
+
+    onWebSocketEncodeData((uint8_t*)ret.data(),ret.size());
+
+    if(_mask_flag){
+        uint8_t *ptr = data;
+        for(int i = 0; i < len ; ++i,++ptr){
+            *(ptr) ^= _mask[i % 4];
+        }
+    }
+    onWebSocketEncodeData(data,len);
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
