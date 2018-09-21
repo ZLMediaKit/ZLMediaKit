@@ -33,6 +33,7 @@
 #include "Rtmp/RtmpMediaSource.h"
 #include "Rtmp/FlvMuxer.h"
 #include "HttpRequestSplitter.h"
+#include "WebSocketSplitter.h"
 
 using namespace std;
 using namespace ZL::Rtmp;
@@ -41,7 +42,10 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Http {
 
-class HttpSession: public TcpSession,public FlvMuxer, public HttpRequestSplitter {
+class HttpSession: public TcpSession,
+                   public FlvMuxer,
+                   public HttpRequestSplitter,
+                   public WebSocketSplitter {
 public:
 	typedef StrCaseMap KeyValue;
 	typedef std::function<void(const string &codeOut,
@@ -103,7 +107,7 @@ protected:
      * @param data websocket数据
      */
 	virtual void onRecvWebSocketData(const Parser &header,const string &data){
-        shutdown();
+        WebSocketSplitter::decode((uint8_t *)data.data(),data.size());
     }
 private:
 	Parser m_parser;
@@ -140,10 +144,12 @@ public:
     EchoWebSocketSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : HttpSession(pTh,pSock){};
     virtual ~EchoWebSocketSession(){};
 protected:
-    void onRecvWebSocketData(const Parser &header,const string &data) override {
-        DebugL << "收到websocket数据:" << data;
-        (*this) << "echo:" << data;
-    }
+    void onWebSocketHeader(const WebSocketHeader &packet) override{
+        DebugL << packet._playload_len;
+    };
+    void onWebSocketPlayload(const WebSocketHeader &packet,const uint8_t *ptr,uint64_t len,uint64_t recved) override {
+        DebugL << string((char *)ptr,len) << " " << recved;
+    };
 };
 
 } /* namespace Http */

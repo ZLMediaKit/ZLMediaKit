@@ -3,6 +3,9 @@
 //
 
 #include "HttpRequestSplitter.h"
+#include "Util/logger.h"
+#include "Util/util.h"
+using namespace ZL::Util;
 
 void HttpRequestSplitter::input(const string &data) {
     if(_remain_data.empty()){
