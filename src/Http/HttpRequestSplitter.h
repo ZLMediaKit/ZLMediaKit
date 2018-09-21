@@ -35,6 +35,11 @@ protected:
      * @param content
      */
     virtual void onRecvContent(const string &content) = 0;
+
+    /**
+     * 设置content len
+     */
+    void setContentLen(int64_t content_len);
 private:
     string _remain_data;
     int64_t _content_len = 0;
