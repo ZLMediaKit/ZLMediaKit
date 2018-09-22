@@ -70,44 +70,34 @@ protected:
 	std::shared_ptr<FlvMuxer> getSharedPtr() override;
 	//HttpRequestSplitter override
 
-	/**
-     * 收到请求头
-     * @param header 请求头
-     * @return 请求头后的content长度,
-     *  <0 : 代表后面所有数据都是content
-     *  0 : 代表为后面数据还是请求头,
-     *  >0 : 代表后面数据为固定长度content,
-     */
-	int64_t onRecvHeader(const string &header) override;
-
-	/**
-     * 收到content分片或全部数据
-     * onRecvHeader函数返回>0,则为全部数据
-     * @param content
-     */
-	void onRecvContent(const string &content) override;
+	int64_t onRecvHeader(const char *data,uint64_t len) override;
+	void onRecvContent(const char *data,uint64_t len) override;
 
 	/**
 	 * 重载之用于处理不定长度的content
 	 * 这个函数可用于处理大文件上传、http-flv推流
 	 * @param header http请求头
-	 * @param content content分片数据
+	 * @param data content分片数据
+	 * @param len content分片数据大小
 	 * @param totalSize content总大小,如果为0则是不限长度content
 	 * @param recvedSize 已收数据大小
 	 */
-	virtual void onRecvUnlimitedContent(const Parser &header,const string &content,int64_t totalSize,int64_t recvedSize){
+	virtual void onRecvUnlimitedContent(const Parser &header,
+										const char *data,
+										uint64_t len,
+										uint64_t totalSize,
+										uint64_t recvedSize){
         WarnL << "content数据长度过大，无法处理,请重载HttpSession::onRecvUnlimitedContent";
         shutdown();
 	}
 
+    void onWebSocketDecodeHeader(const WebSocketHeader &packet) override{
+        DebugL << "默认关闭WebSocket";
+        shutdown();
+    };
 
-    /**
-     * 重载之用于处理websocket数据
-     * @param header http请求头
-     * @param data websocket数据
-     */
-	virtual void onRecvWebSocketData(const Parser &header,const string &data){
-        WebSocketSplitter::decode((uint8_t *)data.data(),data.size());
+	void onRecvWebSocketData(const Parser &header,const char *data,uint64_t len){
+        WebSocketSplitter::decode((uint8_t *)data,len);
     }
 private:
 	Parser m_parser;
@@ -119,7 +109,7 @@ private:
 	//flv over http
     MediaInfo m_mediaInfo;
     //处理content数据的callback
-	function<bool (const string &content) > m_contentCallBack;
+	function<bool (const char *data,uint64_t len) > m_contentCallBack;
 private:
 	inline bool Handle_Req_GET(int64_t &content_len);
 	inline bool Handle_Req_POST(int64_t &content_len);

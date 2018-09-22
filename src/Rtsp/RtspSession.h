@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -84,24 +84,9 @@ public:
 
 protected:
 	//HttpRequestSplitter override
-	/**
-    * 收到请求头
-    * @param header 请求头
-    * @return 请求头后的content长度,
-    *  <0 : 代表后面所有数据都是content
-    *  0 : 代表为后面数据还是请求头,
-    *  >0 : 代表后面数据为固定长度content,
-    */
-	int64_t onRecvHeader(const string &header) override ;
-
-	/**
-     * 收到content分片或全部数据
-     * onRecvHeader函数返回>0,则为全部数据
-     * @param content
-     */
-	void onRecvContent(const string &content) override;
+	int64_t onRecvHeader(const char *data,uint64_t len) override ;
 private:
-	void inputRtspOrRtcp(const string &str);
+	void inputRtspOrRtcp(const char *data,uint64_t len);
 	int send(const string &strBuf) override {
         m_ui64TotalBytes += strBuf.size();
 		return m_pSender->send(strBuf);

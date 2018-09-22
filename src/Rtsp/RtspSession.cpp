@@ -140,15 +140,11 @@ void RtspSession::onManager() {
 }
 
 
-void RtspSession::onRecvContent(const string &content){
-
-}
-
-int64_t RtspSession::onRecvHeader(const string &header) {
+int64_t RtspSession::onRecvHeader(const char *header,uint64_t len) {
     char tmp[2 * 1024];
     m_pcBuf = tmp;
 
-	m_parser.Parse(header.data()); //rtsp请求解析
+	m_parser.Parse(header); //rtsp请求解析
 	string strCmd = m_parser.Method(); //提取出请求命令字
 	m_iCseq = atoi(m_parser["CSeq"].data());
 
@@ -188,18 +184,19 @@ void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
     m_ui64TotalBytes += pBuf->size();
     if (m_bBase64need) {
 		//quicktime 加密后的rtsp请求，需要解密
-		inputRtspOrRtcp(decodeBase64(string(pBuf->data(),pBuf->size())));
+		auto str = decodeBase64(string(pBuf->data(),pBuf->size()));
+		inputRtspOrRtcp(str.data(),str.size());
 	} else {
-        inputRtspOrRtcp(string(pBuf->data(),pBuf->size()));
+        inputRtspOrRtcp(pBuf->data(),pBuf->size());
 	}
 }
 
-void RtspSession::inputRtspOrRtcp(const string &str) {
-	if(str[0] == '$' && m_rtpType == PlayerBase::RTP_TCP){
+void RtspSession::inputRtspOrRtcp(const char *data,uint64_t len) {
+	if(data[0] == '$' && m_rtpType == PlayerBase::RTP_TCP){
 		//这是rtcp
 		return;
 	}
-    input(str);
+    input(data,len);
 }
 
 bool RtspSession::handleReq_Options() {

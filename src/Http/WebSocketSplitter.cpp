@@ -90,6 +90,8 @@ begin_decode:
         onWebSocketDecodeHeader(*this);
     }
 
+    //进入后面逻辑代表已经获取到了webSocket协议头，
+
     uint64_t remain = len - (ptr - data);
     if(remain > 0){
         uint64_t playload_slice_len = remain;
@@ -101,16 +103,17 @@ begin_decode:
 
         if(_playload_offset == _playload_len){
             //这是下一个包
-            if(remain - playload_slice_len > 0){
-                string nextPacket((char *)ptr + playload_slice_len,remain - playload_slice_len);
-                _got_header = false;
-                _remain_data = nextPacket;
+            remain -= playload_slice_len;
+            ptr += playload_slice_len;
+            _got_header = false;
+
+            if(remain > 0){
+                //剩余数据是下一个包，把它的数据放置在缓存中
+                _remain_data.assign((char *)ptr,remain);
 
                 data = ptr = (uint8_t *)_remain_data.data();
                 len = _remain_data.size();
                 goto begin_decode;
-            } else{
-                _got_header = false;
             }
         }
     }

@@ -7,48 +7,68 @@
 #include "Util/util.h"
 using namespace ZL::Util;
 
-void HttpRequestSplitter::input(const string &data) {
-    if(_remain_data.empty()){
-        _remain_data = data;
-    }else{
-        _remain_data.append(data);
+void HttpRequestSplitter::input(const char *data,uint64_t len) {
+    const char *ptr = data;
+    if(!_remain_data.empty()){
+        _remain_data.append(data,len);
+        data = ptr = _remain_data.data();
+        len = _remain_data.size();
     }
 
 splitPacket:
 
     //数据按照请求头处理
-    size_t index;
-    while (_content_len == 0 && (index = _remain_data.find("\r\n\r\n")) != std::string::npos ) {
+    char *index = nullptr;
+    while (_content_len == 0 && (index = strstr(ptr,"\r\n\r\n")) != nullptr) {
         //_content_len == 0，这是请求头
-        _content_len = onRecvHeader(_remain_data.substr(0, index + 4));
-        _remain_data.erase(0, index + 4);
+        _content_len = onRecvHeader(ptr, index - ptr + 4);
+        ptr = index + 4;
     }
 
-    if(_remain_data.empty()){
+    uint64_t remain = len - (ptr - data);
+    if(remain <= 0){
+        //没有剩余数据，清空缓存
+        _remain_data.clear();
         return;
     }
 
+    if(_content_len == 0){
+        //尚未找到http头，缓存定位到剩余数据部分
+        _remain_data.assign(ptr,remain);
+        return;
+    }
+
+    //已经找到http头了
     if(_content_len > 0){
         //数据按照固定长度content处理
-        if(_remain_data.size() < _content_len){
-            //数据不够
+        if(remain < _content_len){
+            //数据不够，缓存定位到剩余数据部分
+            _remain_data.assign(ptr,remain);
             return;
         }
         //收到content数据，并且接受content完毕
-        onRecvContent(_remain_data.substr(0,_content_len));
-        _remain_data.erase(0,_content_len);
+        onRecvContent(ptr,_content_len);
+
+        remain -= _content_len;
+        ptr += _content_len;
         //content处理完毕,后面数据当做请求头处理
         _content_len = 0;
 
-        if(!_remain_data.empty()){
+        if(remain > 0){
             //还有数据没有处理完毕
+            _remain_data.assign(ptr,remain);
+
+            data = ptr = (char *)_remain_data.data();
+            len = _remain_data.size();
             goto splitPacket;
         }
-    }else{
-        //数据按照不固定长度content处理
-        onRecvContent(_remain_data);
-        _remain_data.clear();
+        return;
     }
+
+
+    //_content_len < 0;数据按照不固定长度content处理
+    onRecvContent(ptr,remain);//消费掉所有剩余数据
+    _remain_data.clear();
 }
 
 void HttpRequestSplitter::setContentLen(int64_t content_len) {
