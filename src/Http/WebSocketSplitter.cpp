@@ -104,10 +104,10 @@ begin_decode:
             if(remain - playload_slice_len > 0){
                 string nextPacket((char *)ptr + playload_slice_len,remain - playload_slice_len);
                 _got_header = false;
-                _remain_data.clear();
+                _remain_data = nextPacket;
 
-                data = ptr = (uint8_t *)nextPacket.data();
-                len = nextPacket.size();
+                data = ptr = (uint8_t *)_remain_data.data();
+                len = _remain_data.size();
                 goto begin_decode;
             } else{
                 _got_header = false;
