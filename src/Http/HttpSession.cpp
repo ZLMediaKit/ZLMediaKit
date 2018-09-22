@@ -117,7 +117,7 @@ HttpSession::~HttpSession() {
 	//DebugL;
 }
 
-int64_t HttpSession::onRecvHeader(const string &header) {
+int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
 	typedef bool (HttpSession::*HttpCMDHandle)(int64_t &);
 	static unordered_map<string, HttpCMDHandle> g_mapCmdIndex;
 	static onceToken token([]() {
@@ -125,7 +125,7 @@ int64_t HttpSession::onRecvHeader(const string &header) {
 		g_mapCmdIndex.emplace("POST",&HttpSession::Handle_Req_POST);
 	}, nullptr);
 
-	m_parser.Parse(header.data());
+	m_parser.Parse(header);
 	urlDecode(m_parser);
 	string cmd = m_parser.Method();
 	auto it = g_mapCmdIndex.find(cmd);
@@ -148,9 +148,9 @@ int64_t HttpSession::onRecvHeader(const string &header) {
 	return content_len;
 }
 
-void HttpSession::onRecvContent(const string &content) {
+void HttpSession::onRecvContent(const char *data,uint64_t len) {
 	if(m_contentCallBack){
-		if(!m_contentCallBack(content)){
+		if(!m_contentCallBack(data,len)){
 			m_contentCallBack = nullptr;
 		}
 	}
@@ -161,7 +161,7 @@ void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 }
 void HttpSession::onRecv(const char *data,int size){
     m_ticker.resetTime();
-    input(string(data,size));
+    input(data,size);
 }
 
 void HttpSession::onError(const SockException& err) {
@@ -271,8 +271,8 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	if(checkWebSocket()){
 		content_len = -1;
 		auto parserCopy = m_parser;
-		m_contentCallBack = [this,parserCopy](const string &data){
-			onRecvWebSocketData(parserCopy,data);
+		m_contentCallBack = [this,parserCopy](const char *data,uint64_t len){
+			onRecvWebSocketData(parserCopy,data,len);
 			//m_contentCallBack是可持续的，后面还要处理后续数据
 			return true;
 		};
@@ -638,11 +638,11 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 		//返回固定长度的content
 		content_len = totalContentLen;
 		auto parserCopy = m_parser;
-		m_contentCallBack = [this,parserCopy](const string &content){
+		m_contentCallBack = [this,parserCopy](const char *data,uint64_t len){
 			//恢复http头
 			m_parser = parserCopy;
 			//设置content
-			m_parser.setContent(content);
+			m_parser.setContent(string(data,len));
 			//触发http事件，emitHttpEvent内部会选择是否关闭连接
 			emitHttpEvent(true);
 			//清空数据,节省内存
@@ -654,13 +654,13 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 		//返回不固定长度的content
 		content_len = -1;
 		auto parserCopy = m_parser;
-		std::shared_ptr<int64_t> recvedContentLen = std::make_shared<int64_t>(0);
+		std::shared_ptr<uint64_t> recvedContentLen = std::make_shared<uint64_t>(0);
 		bool bClose = (strcasecmp(m_parser["Connection"].data(),"close") == 0) || ( ++m_iReqCnt > maxReqCnt);
 
-		m_contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const string &content){
-		    *(recvedContentLen) += content.size();
+		m_contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const char *data,uint64_t len){
+		    *(recvedContentLen) += len;
 
-		    onRecvUnlimitedContent(parserCopy,content,totalContentLen,*(recvedContentLen));
+		    onRecvUnlimitedContent(parserCopy,data,len,totalContentLen,*(recvedContentLen));
 
 			if(*(recvedContentLen) < totalContentLen){
 			    //数据还没接收完毕
