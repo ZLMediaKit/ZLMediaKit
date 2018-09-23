@@ -35,6 +35,7 @@
 #include "Util/util.h"
 #include "Network/TcpClient.h"
 #include "HttpRequestSplitter.h"
+#include "HttpCookie.h"
 
 using namespace std;
 using namespace ZL::Util;
@@ -292,6 +293,7 @@ protected:
     virtual void onManager() override;
 private:
     void onResponseCompleted_l();
+    void checkCookie(HttpHeader &headers );
 protected:
     bool _isHttps;
 private:
