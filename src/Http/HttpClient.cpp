@@ -139,15 +139,28 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     _parser.Parse(data);
     onResponseHeader(_parser.Url(), _parser.getValues());
 
-    if (_parser["Content-Length"].empty() && !_parser.Content().empty()) {
-        //如果http回复未声明Content-Length字段，但是却有content内容，那说明可能是个不限长度的content
-        _totalBodySize = INT64_MAX;
-        _recvedBodySize = 0;
-        //返回-1代表不限制content回复大小
-        return -1;
+    if(_parser["Content-Length"].empty()){
+        //没有Content-Length字段
+        if(!_parser.Content().empty()){
+            //如果http回复未声明Content-Length字段，但是却有content内容，那说明可能是个不限长度的content
+            _totalBodySize = INT64_MAX;
+            _recvedBodySize = 0;
+            //返回-1代表不限制content回复大小
+            return -1;
+        }
+        //content长度为0，本次http请求结束
+        onResponseCompleted_l();
+        return 0;
     }
-    _totalBodySize = atoll(_parser["Content-Length"].data());
+
     _recvedBodySize = 0;
+    _totalBodySize = atoll(_parser["Content-Length"].data());
+
+    if(_totalBodySize == 0){
+        //content长度为0，本次http请求结束
+        onResponseCompleted_l();
+        return 0;
+    }
 
     //虽然我们知道content的确切大小，
     //但是由于我们没必要等content接收完毕才回调onRecvContent(因为这样浪费内存并且要多次拷贝数据)
