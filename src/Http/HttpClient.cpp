@@ -86,6 +86,18 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     _lastHost = host + ":" + to_string(port);
     _isHttps = isHttps;
     _fTimeOutSec = fTimeOutSec;
+
+    auto cookies = HttpCookieStorage::Instance().get(_lastHost,_path);
+    _StrPrinter printer;
+    for(auto &cookie : cookies){
+        printer << cookie->getKey() << "=" << cookie->getVal() << ";";
+    }
+    if(!printer.empty()){
+        printer.pop_back();
+        _header.emplace(string("Cookie"), printer);
+    }
+
+
     if (!alive() || bChanged) {
         //InfoL << "reconnet:" << _lastHost;
         startConnect(host, port, fTimeOutSec);
@@ -138,6 +150,7 @@ void HttpClient::onErr(const SockException &ex) {
 int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     _parser.Parse(data);
     onResponseHeader(_parser.Url(), _parser.getValues());
+    checkCookie(_parser.getValues());
 
     if(_parser["Content-Length"].empty()){
         //没有Content-Length字段
@@ -221,6 +234,33 @@ void HttpClient::onResponseCompleted_l() {
     _recvedBodySize = 0;
     HttpRequestSplitter::reset();
     onResponseCompleted();
+}
+
+void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
+    //Set-Cookie: IPTV_SERVER=8E03927B-CC8C-4389-BC00-31DBA7EC7B49;expires=Sun, Sep 23 2018 15:07:31 GMT;path=/index/api/
+    auto set_cookie = headers["Set-Cookie"];
+    if(set_cookie.empty()){
+        return;
+    }
+    auto key_val = Parser::parseArgs(set_cookie,";","=");
+
+    HttpCookie::Ptr cookie = std::make_shared<HttpCookie>();
+    cookie->setHost(_lastHost);
+
+    for(auto &pr : key_val){
+        if(pr.first == "path"){
+            cookie->setPath(pr.second);
+        }else if(pr.first == "expires"){
+            cookie->setExpires(pr.second);
+        }else{
+            cookie->setKeyVal(pr.first,pr.second);
+        }
+    }
+    if(!(*cookie)){
+        //无效的cookie
+        return;
+    }
+    HttpCookieStorage::Instance().set(cookie);
 }
 
 
