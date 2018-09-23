@@ -18,7 +18,7 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
 splitPacket:
 
     //数据按照请求头处理
-    char *index = nullptr;
+    const char *index = nullptr;
     while (_content_len == 0 && (index = strstr(ptr,"\r\n\r\n")) != nullptr) {
         //_content_len == 0，这是请求头
         _content_len = onRecvHeader(ptr, index - ptr + 4);
