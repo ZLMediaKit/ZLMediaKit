@@ -77,7 +77,7 @@ protected:
      * @param packet 数据包包头
      * @param ptr 负载数据指针
      * @param len 负载数据长度
-     * @param recved 已接收数据长度，等于packet._playload_len时则接受完毕
+     * @param recved 已接收数据长度(包含本次数据长度)，等于packet._playload_len时则接受完毕
      */
     virtual void onWebSocketDecodePlayload(const WebSocketHeader &packet, const uint8_t *ptr, uint64_t len, uint64_t recved) {};
 

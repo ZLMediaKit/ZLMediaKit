@@ -74,3 +74,8 @@ splitPacket:
 void HttpRequestSplitter::setContentLen(int64_t content_len) {
     _content_len = content_len;
 }
+
+void HttpRequestSplitter::reset() {
+    _content_len = 0;
+    _remain_data.clear();
+}

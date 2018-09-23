@@ -26,9 +26,9 @@ protected:
      * @param len 请求头长度
      *
      * @return 请求头后的content长度,
-     *  <0 : 代表后面所有数据都是content
+     *  <0 : 代表后面所有数据都是content，此时后面的content将分段通过onRecvContent函数回调出去
      *  0 : 代表为后面数据还是请求头,
-     *  >0 : 代表后面数据为固定长度content,
+     *  >0 : 代表后面数据为固定长度content,此时将缓存content并等到所有content接收完毕一次性通过onRecvContent函数回调出去
      */
     virtual int64_t onRecvHeader(const char *data,uint64_t len) = 0;
 
@@ -44,6 +44,11 @@ protected:
      * 设置content len
      */
     void setContentLen(int64_t content_len);
+
+    /**
+     * 恢复初始设置
+     */
+     void reset();
 private:
     string _remain_data;
     int64_t _content_len = 0;

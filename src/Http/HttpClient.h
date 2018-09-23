@@ -34,6 +34,7 @@
 #include "Rtsp/Rtsp.h"
 #include "Util/util.h"
 #include "Network/TcpClient.h"
+#include "HttpRequestSplitter.h"
 
 using namespace std;
 using namespace ZL::Util;
@@ -198,7 +199,7 @@ private:
 
 
 
-class HttpClient : public TcpClient
+class HttpClient : public TcpClient , public HttpRequestSplitter
 {
 public:
     typedef StrCaseMap HttpHeader;
@@ -211,7 +212,6 @@ public:
         _body.reset();
         _method.clear();
         _path.clear();
-        _recvedResponse.clear();
         _parser.Clear();
     }
     void setMethod(const string &method){
@@ -241,23 +241,57 @@ public:
         return _parser.getValues();
     }
 protected:
+    /**
+     * 收到http回复头
+     * @param status 状态码，譬如:200 OK
+     * @param headers http头
+     */
     virtual void onResponseHeader(const string &status,const HttpHeader &headers){
         DebugL << status;
     };
+
+    /**
+     * 收到http conten数据
+     * @param buf 数据指针
+     * @param size 数据大小
+     * @param recvedSize 已收数据大小(包含本次数据大小),当其等于totalSize时将触发onResponseCompleted回调
+     * @param totalSize 总数据大小
+     */
     virtual void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize){
         DebugL << size << " " <<  recvedSize << " " << totalSize;
     };
+
+    /**
+     * 接收http回复完毕
+     */
     virtual void onResponseCompleted(){
     	DebugL;
     }
+
+    /**
+     * 收到http回复数据回调
+     * @param data 数据指针
+     * @param size 数据大小
+     */
     virtual void onRecvBytes(const char *data,int size);
+
+    /**
+     * http链接断开回调
+     * @param ex 断开原因
+     */
     virtual void onDisconnect(const SockException &ex){}
+
+    //HttpRequestSplitter override
+    int64_t onRecvHeader(const char *data,uint64_t len) override ;
+    void onRecvContent(const char *data,uint64_t len) override;
 protected:
     virtual void onConnect(const SockException &ex) override;
     virtual void onRecv(const Buffer::Ptr &pBuf) override;
     virtual void onErr(const SockException &ex) override;
     virtual void onSend() override;
     virtual void onManager() override;
+private:
+    void onResponseCompleted_l();
 protected:
     bool _isHttps;
 private:
@@ -267,7 +301,6 @@ private:
     string _method;
     string _path;
     //recv
-    string _recvedResponse;
     int64_t _recvedBodySize;
     int64_t _totalBodySize;
     Parser _parser;

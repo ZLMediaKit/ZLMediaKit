@@ -98,8 +98,8 @@ begin_decode:
         if(playload_slice_len + _playload_offset > _playload_len){
             playload_slice_len = _playload_len - _playload_offset;
         }
-        onPlayloadData(ptr,playload_slice_len);
         _playload_offset += playload_slice_len;
+        onPlayloadData(ptr,playload_slice_len);
 
         if(_playload_offset == _playload_len){
             //这是下一个包
