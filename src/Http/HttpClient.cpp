@@ -247,15 +247,23 @@ void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
     HttpCookie::Ptr cookie = std::make_shared<HttpCookie>();
     cookie->setHost(_lastHost);
 
-    for(auto &pr : key_val){
-        if(pr.first == "path"){
-            cookie->setPath(pr.second);
-        }else if(pr.first == "expires"){
-            cookie->setExpires(pr.second);
-        }else{
-            cookie->setKeyVal(pr.first,pr.second);
+    int index = 0;
+    auto arg_vec = split(set_cookie, ";");
+    for (string &key_val : arg_vec) {
+        auto key = FindField(key_val.data(),NULL,"=");
+        auto val = FindField(key_val.data(),"=", NULL);
+
+        if(index++ == 0){
+            cookie->setKeyVal(key,val);
+        } else{
+            if(key == "path"){
+                cookie->setPath(val);
+            }else if(key == "expires"){
+                cookie->setExpires(val);
+            }
         }
     }
+
     if(!(*cookie)){
         //无效的cookie
         return;
