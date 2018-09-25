@@ -144,7 +144,7 @@ protected:
         bool mask_flag = _mask_flag;
         _mask_flag = false;
         WebSocketSplitter::encode((uint8_t *)ptr,len);
-        _mask_flag = true;
+        _mask_flag = mask_flag;
 
     };
 
