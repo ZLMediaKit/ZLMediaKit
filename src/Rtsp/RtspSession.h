@@ -45,6 +45,8 @@ using namespace ZL::Util;
 using namespace ZL::Rtsp;
 using namespace ZL::Player;
 using namespace ZL::Network;
+using namespace ZL::Http;
+
 
 namespace ZL {
 namespace Rtsp {
