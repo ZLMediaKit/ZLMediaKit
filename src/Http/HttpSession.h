@@ -135,43 +135,22 @@ private:
 template <typename SessionType>
 class WebSocketSession : public HttpSession {
 public:
-    WebSocketSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : HttpSession(pTh,pSock){
-        _session = std::make_shared<SessionImp>(pTh,pSock);
-    }
-    virtual ~WebSocketSession(){};
+    WebSocketSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : HttpSession(pTh,pSock){}
+    virtual ~WebSocketSession(){}
 
     //收到eof或其他导致脱离TcpServer事件的回调
     void onError(const SockException &err) override{
         HttpSession::onError(err);
-        _session->onError(err);
+        if(_session){
+            _session->onError(err);
+        }
     }
     //每隔一段时间触发，用来做超时管理
     void onManager() override{
         HttpSession::onManager();
-        _session->onManager();
-    }
-    //在创建TcpSession后，TcpServer会把自身的配置参数通过该函数传递给TcpSession
-    void attachServer(const TcpServer &server) override{
-        HttpSession::attachServer(server);
-        _session->attachServer(server);
-
-        //此处截取数据并进行websocket协议打包
-        weak_ptr<WebSocketSession> weakSelf = dynamic_pointer_cast<WebSocketSession>(shared_from_this());
-        _session->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf){
-            auto strongSelf = weakSelf.lock();
-            if(strongSelf){
-                bool mask_flag = strongSelf->_mask_flag;
-                strongSelf->_mask_flag = false;
-                strongSelf->WebSocketSplitter::encode((uint8_t *)buf->data(),buf->size());
-                strongSelf->_mask_flag = mask_flag;
-            }
-            return buf->size();
-        });
-
-    }
-    //作为该TcpSession的唯一标识符
-    string getIdentifier() const override{
-        return _session->getIdentifier();
+        if(_session){
+            _session->onManager();
+        }
     }
 protected:
     /**
@@ -181,6 +160,22 @@ protected:
     void onWebSocketDecodeHeader(const WebSocketHeader &packet) override{
         //新包，原来的包残余数据清空掉
         _remian_data.clear();
+        if(_firstPacket){
+            _firstPacket = false;
+            _session = std::make_shared<SessionImp>(nullptr,_sock);
+            //此处截取数据并进行websocket协议打包
+            weak_ptr<WebSocketSession> weakSelf = dynamic_pointer_cast<WebSocketSession>(shared_from_this());
+            _session->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf){
+                auto strongSelf = weakSelf.lock();
+                if(strongSelf){
+                    bool mask_flag = strongSelf->_mask_flag;
+                    strongSelf->_mask_flag = false;
+                    strongSelf->WebSocketSplitter::encode((uint8_t *)buf->data(),buf->size());
+                    strongSelf->_mask_flag = mask_flag;
+                }
+                return buf->size();
+            });
+        }
     }
 
     /**
@@ -280,6 +275,7 @@ private:
 private:
     std::shared_ptr<SessionImp> _session;
     string _remian_data;
+    bool _firstPacket = true;
 };
 
 /**
