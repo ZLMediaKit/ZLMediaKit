@@ -49,7 +49,7 @@ using namespace ZL::Util;
 namespace ZL {
 namespace Http {
 
-static int sock_flags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
+static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
 string dateStr() {
 	char buf[64];
@@ -235,7 +235,7 @@ inline bool HttpSession::checkLiveFlvStream(){
         //开始发送rtmp负载
         //关闭tcp_nodelay ,优化性能
         SockUtil::setNoDelay(_sock->rawFD(),false);
-        (*this) << SocketFlags(sock_flags);
+        (*this) << SocketFlags(kSockFlags);
 
 		try{
 			start(mediaSrc);
@@ -425,29 +425,10 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//关闭tcp_nodelay ,优化性能
 	SockUtil::setNoDelay(_sock->rawFD(),false);
     //设置MSG_MORE，优化性能
-    (*this) << SocketFlags(sock_flags);
-
-    //后台线程执行onFlush
-    auto onFlushWrapper = [onFlush,weakSelf](){
-        auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
-            return false;
-        }
-        strongSelf->async([onFlush,weakSelf](){
-            //在后台线程完成文件读取，释放主线程性能
-            if(!onFlush()){
-                //如果onFlush返回false，则说明不再监听flush事件
-                auto strongSelf = weakSelf.lock();
-                if(strongSelf){
-                    strongSelf->_sock->setOnFlush(nullptr);
-                }
-            }
-        });
-        return true;
-    };
+    (*this) << SocketFlags(kSockFlags);
 
     onFlush();
-	_sock->setOnFlush(onFlushWrapper);
+	_sock->setOnFlush(onFlush);
 	return true;
 }
 

@@ -69,13 +69,9 @@ private:
 	void setMetaData(AMFDecoder &dec);
 
 	void onSendMedia(const RtmpPacket::Ptr &pkt);
-	void onSendRawData(const char *pcRawData,int iSize) override{
-        m_ui64TotalBytes += iSize;
-		send(pcRawData, iSize);
-	}
-	void onSendRawData(const Buffer::Ptr &buffer,int flags) override{
+	void onSendRawData(const Buffer::Ptr &buffer) override{
         m_ui64TotalBytes += buffer->size();
-        _sock->send(buffer,flags);
+		send(buffer);
 	}
 	void onRtmpChunk(RtmpPacket &chunkData) override;
 

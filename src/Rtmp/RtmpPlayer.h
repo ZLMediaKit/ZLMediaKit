@@ -105,11 +105,8 @@ private:
 	//fro RtmpProtocol
 	void onRtmpChunk(RtmpPacket &chunkData) override;
 	void onStreamDry(uint32_t ui32StreamId) override;
-	void onSendRawData(const char *pcRawData, int iSize) override {
-		send(pcRawData, iSize);
-	}
-    void onSendRawData(const Buffer::Ptr &buffer,int flags) override{
-        _sock->send(buffer,flags);
+    void onSendRawData(const Buffer::Ptr &buffer) override{
+        send(buffer);
     }
 
 	template<typename FUN>

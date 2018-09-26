@@ -43,6 +43,8 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Rtsp {
 
+static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
+
 string dateHeader() {
 	char buf[200];
 	time_t tt = time(NULL);
@@ -210,7 +212,7 @@ bool RtspSession::handleReq_Options() {
 			m_iCseq, SERVER_NAME,
 			RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
-	send(m_pcBuf, n);
+	SocketHelper::send(m_pcBuf, n);
 	return true;
 }
 
@@ -277,7 +279,7 @@ void RtspSession::onAuthSuccess(const weak_ptr<RtspSession> &weakSelf) {
                         RTSP_VERSION, RTSP_BUILDTIME,
                         dateHeader().data(), strongSelf->m_strUrl.data(),
                         (int) strongSelf->m_strSdp.length(), strongSelf->m_strSdp.data());
-        strongSelf->send(response, n);
+        strongSelf->SocketHelper::send(response, n);
     });
 }
 void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const string &realm) {
@@ -320,7 +322,7 @@ void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const strin
                         RTSP_VERSION, RTSP_BUILDTIME,
                         dateHeader().data(), realm.data());
         }
-        strongSelf->send(response, n);
+        strongSelf->SocketHelper::send(response, n);
     });
 }
 
@@ -471,7 +473,7 @@ inline void RtspSession::send_StreamNotFound() {
 			m_iCseq, SERVER_NAME,
 			RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
-	send(m_pcBuf, n);
+	SocketHelper::send(m_pcBuf, n);
 }
 inline void RtspSession::send_UnsupportedTransport() {
 	int n = sprintf(m_pcBuf, "RTSP/1.0 461 Unsupported Transport\r\n"
@@ -482,7 +484,7 @@ inline void RtspSession::send_UnsupportedTransport() {
 			m_iCseq, SERVER_NAME,
 			RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
-	send(m_pcBuf, n);
+	SocketHelper::send(m_pcBuf, n);
 }
 
 inline void RtspSession::send_SessionNotFound() {
@@ -494,7 +496,7 @@ inline void RtspSession::send_SessionNotFound() {
 			m_iCseq, SERVER_NAME,
 			RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
-	send(m_pcBuf, n);
+	SocketHelper::send(m_pcBuf, n);
 
 	/*40 Method Not Allowed*/
 
@@ -562,7 +564,7 @@ bool RtspSession::handleReq_Setup() {
                 trackRef.type * 2 + 1,
 				printSSRC(trackRef.ssrc).data(),
 				m_strSession.data());
-		send(m_pcBuf, iLen);
+		SocketHelper::send(m_pcBuf, iLen);
 	}
 		break;
 	case PlayerBase::RTP_UDP: {
@@ -607,7 +609,7 @@ bool RtspSession::handleReq_Setup() {
 				pSockRtp->get_local_port(), pSockRtcp->get_local_port(),
 				printSSRC(trackRef.ssrc).data(),
 				m_strSession.data());
-		send(m_pcBuf, n);
+		SocketHelper::send(m_pcBuf, n);
 	}
 		break;
 	case PlayerBase::RTP_MULTICAST: {
@@ -650,7 +652,7 @@ bool RtspSession::handleReq_Setup() {
 				get_local_ip().data(), iSrvPort, pSockRtcp->get_local_port(),
 				udpTTL,printSSRC(trackRef.ssrc).data(),
 				m_strSession.data());
-		send(m_pcBuf, n);
+		SocketHelper::send(m_pcBuf, n);
 	}
 		break;
 	default:
@@ -685,7 +687,7 @@ bool RtspSession::handleReq_Play() {
                             m_iCseq, SERVER_NAME,
                             RTSP_VERSION, RTSP_BUILDTIME,
                             dateHeader().data(),(int)err.size(),err.data());
-            send(m_pcBuf,n);
+			SocketHelper::send(m_pcBuf,n);
             shutdown();
             return;
         }
@@ -757,7 +759,11 @@ bool RtspSession::handleReq_Play() {
         iLen -= 1;
         (m_pcBuf)[iLen] = '\0';
         iLen += sprintf(m_pcBuf + iLen, "\r\n\r\n");
-        send(m_pcBuf, iLen);
+		SocketHelper::send(m_pcBuf, iLen);
+
+		//提高发送性能
+		(*this) << SocketFlags(kSockFlags);
+		SockUtil::setNoDelay(m_pSender->rawFD(),false);
     };
 
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
@@ -793,7 +799,7 @@ bool RtspSession::handleReq_Pause() {
 			"%s"
 			"Session: %s\r\n\r\n", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data(), m_strSession.data());
-	send(m_pcBuf, n);
+	SocketHelper::send(m_pcBuf, n);
 	if(m_pRtpReader){
 		m_pRtpReader->setReadCB(nullptr);
 	}
@@ -809,7 +815,7 @@ bool RtspSession::handleReq_Teardown() {
 			"Session: %s\r\n\r\n", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data(), m_strSession.data());
 
-	send(m_pcBuf, n);
+	SocketHelper::send(m_pcBuf, n);
 	TraceL << "播放器断开连接!";
 	return false;
 }
@@ -827,7 +833,7 @@ bool RtspSession::handleReq_Get() {
 	lock_guard<recursive_mutex> lock(g_mtxGetter);
 	g_mapGetter[m_strSessionCookie] = dynamic_pointer_cast<RtspSession>(shared_from_this());
 	//InfoL << m_strSessionCookie;
-	send(m_pcBuf, n);
+	SocketHelper::send(m_pcBuf, n);
 	return true;
 
 }
@@ -862,7 +868,7 @@ bool RtspSession::handleReq_SET_PARAMETER() {
 			"%s"
 			"Session: %s\r\n\r\n", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data(), m_strSession.data());
-	send(m_pcBuf, n);
+	SocketHelper::send(m_pcBuf, n);
 	return true;
 }
 
@@ -873,7 +879,7 @@ inline void RtspSession::send_NotAcceptable() {
 			"%s"
 			"Connection: Close\r\n\r\n", m_iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 			dateHeader().data());
-	send(m_pcBuf, n);
+	SocketHelper::send(m_pcBuf, n);
 
 }
 
@@ -939,7 +945,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 		}
         BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
         m_ui64TotalBytes += buffer->size();
-        pSock->send(buffer,SOCKET_DEFAULE_FLAGS, peerAddr.get());
+        pSock->send(buffer,kSockFlags, peerAddr.get());
 	}
 		break;
 	default:

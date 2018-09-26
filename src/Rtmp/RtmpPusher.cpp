@@ -35,6 +35,8 @@ using namespace ZL::Util;
 namespace ZL {
 namespace Rtmp {
 
+static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
+
 unordered_map<string, RtmpPusher::rtmpCMDHandle> RtmpPusher::g_mapCmd;
 RtmpPusher::RtmpPusher(const char *strVhost,const char *strApp,const char *strStream) {
     auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,strVhost,strApp,strStream));
@@ -200,7 +202,7 @@ inline void RtmpPusher::send_metaData(){
     sendRequest(MSG_DATA, enc.data());
     
     src->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-        sendRtmp(pkt->typeId, m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId , true);
+        sendRtmp(pkt->typeId, m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId );
     });
     
     m_pRtmpReader = src->getRing()->attach();
@@ -210,7 +212,7 @@ inline void RtmpPusher::send_metaData(){
     	if(!strongSelf) {
     		return;
     	}
-    	strongSelf->sendRtmp(pkt->typeId, strongSelf->m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId , true);
+    	strongSelf->sendRtmp(pkt->typeId, strongSelf->m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId);
     });
     m_pRtmpReader->setDetachCB([weakSelf](){
         auto strongSelf = weakSelf.lock();
@@ -220,6 +222,9 @@ inline void RtmpPusher::send_metaData(){
         }
     });
     onPublishResult(SockException(Err_success,"success"));
+	//提高发送性能
+	(*this) << SocketFlags(kSockFlags);
+	SockUtil::setNoDelay(_sock->rawFD(),false);
 }
 void RtmpPusher::onCmd_result(AMFDecoder &dec){
 	auto iReqId = dec.load<int>();

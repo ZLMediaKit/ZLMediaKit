@@ -43,6 +43,16 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
 
 splitPacket:
 
+    /*确保ptr最后一个字节是0，防止strstr越界
+     *由于ZLToolKit确保内存最后一个字节是保留未使用字节并置0，
+     *所以此处可以不用再次置0
+     *但是上层数据可能来自其他渠道，保险起见还是置0
+     */
+
+    char &tail_ref = ((char *) ptr)[len];
+    char tail_tmp = tail_ref;
+    tail_ref = 0;
+
     //数据按照请求头处理
     const char *index = nullptr;
     while (_content_len == 0 && (index = strstr(ptr,"\r\n\r\n")) != nullptr) {
@@ -50,6 +60,11 @@ splitPacket:
         _content_len = onRecvHeader(ptr, index - ptr + 4);
         ptr = index + 4;
     }
+
+    /*
+     * 恢复末尾字节
+     */
+    tail_ref = tail_tmp;
 
     uint64_t remain = len - (ptr - data);
     if(remain <= 0){

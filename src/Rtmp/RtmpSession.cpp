@@ -32,6 +32,8 @@
 namespace ZL {
 namespace Rtmp {
 
+static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
+
 RtmpSession::RtmpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
 		TcpSession(pTh, pSock) {
 	DebugL << get_peer_ip();
@@ -366,6 +368,10 @@ void RtmpSession::doPlayResponse(const string &err,bool tryDelay,const std::shar
     if (src->getRing()->readerCount() == 1) {
         src->seekTo(0);
     }
+
+    //提高发送性能
+    (*this) << SocketFlags(kSockFlags);
+    SockUtil::setNoDelay(_sock->rawFD(),false);
 }
 
 void RtmpSession::doPlay(AMFDecoder &dec){
@@ -539,7 +545,7 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 		CLEAR_ARR(m_aui32FirstStamp);
 		modifiedStamp = 0;
 	}
-	sendRtmp(pkt->typeId, pkt->streamId, pkt->strBuf, modifiedStamp, pkt->chunkId , true);
+	sendRtmp(pkt->typeId, pkt->streamId, pkt->strBuf, modifiedStamp, pkt->chunkId);
 }
 
 void RtmpSession::doDelay(int delaySec, const std::function<void()> &fun) {
