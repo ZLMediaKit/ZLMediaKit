@@ -113,7 +113,7 @@ int main(int argc,char *argv[]){
 
 	//开启http服务器
 	TcpServer::Ptr httpSrv(new TcpServer());
-	httpSrv->start<HttpSession>(mINI::Instance()[Config::Http::kPort]);//默认80
+	httpSrv->start<EchoWebSocketSession>(mINI::Instance()[Config::Http::kPort]);//默认80
 
 #ifdef ENABLE_OPENSSL
     //如果支持ssl，还可以开启https服务器
