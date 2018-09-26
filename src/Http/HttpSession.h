@@ -126,33 +126,184 @@ private:
 					   const string &contentOut);
 };
 
+
 /**
- * 回显WebSocket会话
+ * 通过该模板类可以透明化WebSocket协议，
+ * 用户只要实现WebSock协议下的具体业务协议，譬如基于WebSocket协议的Rtmp协议等
+ * @tparam SessionType 业务协议的TcpSession类
  */
-class EchoWebSocketSession : public HttpSession {
+template <typename SessionType>
+class WebSocketSession : public HttpSession {
 public:
-    EchoWebSocketSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : HttpSession(pTh,pSock){};
-    virtual ~EchoWebSocketSession(){};
+    WebSocketSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : HttpSession(pTh,pSock){
+        _session = std::make_shared<SessionImp>(pTh,pSock);
+    }
+    virtual ~WebSocketSession(){};
+
+    //收到eof或其他导致脱离TcpServer事件的回调
+    void onError(const SockException &err) override{
+        HttpSession::onError(err);
+        _session->onError(err);
+    }
+    //每隔一段时间触发，用来做超时管理
+    void onManager() override{
+        HttpSession::onManager();
+        _session->onManager();
+    }
+    //在创建TcpSession后，TcpServer会把自身的配置参数通过该函数传递给TcpSession
+    void attachServer(const TcpServer &server) override{
+        HttpSession::attachServer(server);
+        _session->attachServer(server);
+
+        //此处截取数据并进行websocket协议打包
+        weak_ptr<WebSocketSession> weakSelf = dynamic_pointer_cast<WebSocketSession>(shared_from_this());
+        _session->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf){
+            auto strongSelf = weakSelf.lock();
+            if(strongSelf){
+                bool mask_flag = strongSelf->_mask_flag;
+                strongSelf->_mask_flag = false;
+                strongSelf->WebSocketSplitter::encode((uint8_t *)buf->data(),buf->size());
+                strongSelf->_mask_flag = mask_flag;
+            }
+            return buf->size();
+        });
+
+    }
+    //作为该TcpSession的唯一标识符
+    string getIdentifier() const override{
+        return _session->getIdentifier();
+    }
 protected:
+    /**
+     * 开始收到一个webSocket数据包
+     * @param packet
+     */
     void onWebSocketDecodeHeader(const WebSocketHeader &packet) override{
-        DebugL << packet._playload_len;
-    };
+        //新包，原来的包残余数据清空掉
+        _remian_data.clear();
+    }
+
+    /**
+     * 收到websocket数据包负载
+     * @param packet
+     * @param ptr
+     * @param len
+     * @param recved
+     */
     void onWebSocketDecodePlayload(const WebSocketHeader &packet,const uint8_t *ptr,uint64_t len,uint64_t recved) override {
-        DebugL << string((char *)ptr,len) << " " << recved;
+        if(packet._playload_len == recved){
+            //收到完整的包
+            if(_remian_data.empty()){
+                onRecvWholePacket((char *)ptr,len);
+            }else{
+                _remian_data.append((char *)ptr,len);
+                onRecvWholePacket(_remian_data);
+                _remian_data.clear();
+            }
+        } else {
+            //部分数据
+            _remian_data.append((char *)ptr,len);
+        }
+    }
 
-        //webSocket服务器不允许对数据进行掩码加密
-        bool mask_flag = _mask_flag;
-        _mask_flag = false;
-        WebSocketSplitter::encode((uint8_t *)ptr,len);
-        _mask_flag = mask_flag;
-
-    };
-
+    /**
+     * 发送数据进行websocket协议打包后回调
+     * @param ptr
+     * @param len
+     */
     void onWebSocketEncodeData(const uint8_t *ptr,uint64_t len) override{
-        send((char *)ptr,len);
-    };
+        _session->realSend(_session->obtainBuffer((char *)ptr,len));
+    }
 
+    /**
+     * 收到一个完整的websock数据包
+     * @param data
+     * @param len
+     */
+    void onRecvWholePacket(const char *data,uint64_t len){
+        BufferRaw::Ptr buffer = _session->obtainBuffer(data,len);
+        _session->onRecv(buffer);
+    }
+
+    /**
+     * 收到一个完整的websock数据包
+     * @param str
+     */
+    void onRecvWholePacket(const string &str){
+        BufferString::Ptr buffer = std::make_shared<BufferString>(str);
+        _session->onRecv(buffer);
+    }
+
+private:
+    typedef function<int(const Buffer::Ptr &buf)> onBeforeSendCB;
+    /**
+     * 该类实现了TcpSession派生类发送数据的截取
+     * 目的是发送业务数据前进行websocket协议的打包
+     */
+    class SessionImp : public SessionType{
+    public:
+        SessionImp(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : SessionType(pTh,pSock){};
+        ~SessionImp(){}
+
+        /**
+         * 截取到数据后，再进行webSocket协议打包
+         * 然后真正的发送数据到socket
+         * @param buf 数据
+         * @return 数据字节数
+         */
+        int realSend(const Buffer::Ptr &buf){
+            return SessionType::send(buf);
+        }
+
+        /**
+         * 设置发送数据截取回调函数
+         * @param cb 截取回调函数
+         */
+        void setOnBeforeSendCB(const onBeforeSendCB &cb){
+            _beforeSendCB = cb;
+        }
+    protected:
+        /**
+         * 重载send函数截取数据
+         * @param buf 需要截取的数据
+         * @return 数据字节数
+         */
+        int send(const Buffer::Ptr &buf) override {
+            if(_beforeSendCB){
+                return _beforeSendCB(buf);
+            }
+            return SessionType::send(buf);
+        }
+    private:
+        onBeforeSendCB _beforeSendCB;
+    };
+private:
+    std::shared_ptr<SessionImp> _session;
+    string _remian_data;
 };
+
+/**
+ * 回显会话
+ */
+class EchoSession : public TcpSession {
+public:
+    EchoSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : TcpSession(pTh,pSock){};
+    virtual ~EchoSession(){};
+
+    void onRecv(const Buffer::Ptr &buffer) override {
+        send(buffer);
+    }
+    void onError(const SockException &err) override{
+        WarnL << err.what();
+    }
+    //每隔一段时间触发，用来做超时管理
+    void onManager() override{
+        DebugL;
+    }
+};
+
+
+typedef WebSocketSession<EchoSession> EchoWebSocketSession;
 
 } /* namespace Http */
 } /* namespace ZL */

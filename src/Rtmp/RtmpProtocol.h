@@ -54,11 +54,8 @@ public:
 	void onParseRtmp(const char *pcRawData,int iSize);
 	void reset();
 protected:
-	virtual void onSendRawData(const char *pcRawData,int iSize) = 0;
-	virtual void onSendRawData(const Buffer::Ptr &buffer,int flags) = 0;
-
+	virtual void onSendRawData(const Buffer::Ptr &buffer) = 0;
 	virtual void onRtmpChunk(RtmpPacket &chunkData) = 0;
-
 	virtual void onStreamBegin(uint32_t ui32StreamId){
 		m_ui32StreamId = ui32StreamId;
 	}
@@ -78,19 +75,19 @@ protected:
 	void sendInvoke(const string &strCmd, const AMFValue &val);
 	void sendRequest(int iCmd, const string &str);
 	void sendResponse(int iType, const string &str);
-	void sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId, const std::string &strBuf, uint32_t ui32TimeStamp, int iChunkID,bool msg_more = false);
+	void sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId, const std::string &strBuf, uint32_t ui32TimeStamp, int iChunkID);
 protected:
 	int m_iReqID = 0;
 	uint32_t m_ui32StreamId = STREAM_CONTROL;
 	int m_iNowStreamID = 0;
 	int m_iNowChunkID = 0;
 	bool m_bDataStarted = false;
-    BufferRaw::Ptr obtainBuffer();
-    //ResourcePool<BufferRaw,MAX_SEND_PKT> m_bufferPool;
+	inline BufferRaw::Ptr obtainBuffer();
+	inline BufferRaw::Ptr obtainBuffer(const void *data, int len);
+	//ResourcePool<BufferRaw,MAX_SEND_PKT> m_bufferPool;
 private:
 	void handle_S0S1S2(const function<void()> &cb);
 	void handle_C0C1();
-
 	void handle_C1_simple();
 #ifdef ENABLE_OPENSSL
 	void handle_C1_complex();
@@ -104,6 +101,7 @@ private:
 	void handle_rtmp();
 	void handle_rtmpChunk(RtmpPacket &chunkData);
 
+private:
 	////////////ChunkSize////////////
 	size_t m_iChunkLenIn = DEFAULT_CHUNK_LEN;
 	size_t m_iChunkLenOut = DEFAULT_CHUNK_LEN;

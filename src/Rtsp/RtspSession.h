@@ -89,21 +89,9 @@ protected:
 	int64_t onRecvHeader(const char *data,uint64_t len) override ;
 private:
 	void inputRtspOrRtcp(const char *data,uint64_t len);
-	int send(const string &strBuf) override {
-        m_ui64TotalBytes += strBuf.size();
-		return m_pSender->send(strBuf);
-	}
-	int send(string &&strBuf) override {
-        m_ui64TotalBytes += strBuf.size();
-        return m_pSender->send(std::move(strBuf));
-	}
-	int send(const char *pcBuf, int iSize) override {
-        m_ui64TotalBytes += iSize;
-        return m_pSender->send(pcBuf, iSize);
-	}
 	int send(const Buffer::Ptr &pkt) override{
         m_ui64TotalBytes += pkt->size();
-        return m_pSender->send(pkt,SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+        return m_pSender->send(pkt,_flags);
 	}
 	void shutdown() override ;
 	void shutdown_l(bool close);

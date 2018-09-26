@@ -48,15 +48,13 @@ public:
 		HttpClient::onRecvBytes(data,len);
 	}
 	void public_send(const char *data, uint32_t len){
-		HttpClient::send(data,len);
+		HttpClient::send(obtainBuffer(data,len));
 	}
 #endif //defined(__GNUC__) && (__GNUC__ < 5)
 private:
 #ifdef ENABLE_OPENSSL
 	virtual void onRecvBytes(const char *data,int size) override;
-	virtual int send(const string &str) override;
-	virtual int send(string &&str) override;
-	virtual int send(const char *str, int len) override;
+	virtual int send(const Buffer::Ptr &buf) override;
 	std::shared_ptr<SSL_Box> _sslBox;
 #endif //ENABLE_OPENSSL
 };

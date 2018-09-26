@@ -54,19 +54,15 @@ public:
 	}
 
 protected:
-
-	//for Tcpclient
+	//for Tcpclient override
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onConnect(const SockException &err) override;
 	void onErr(const SockException &ex) override;
 
-	//fro RtmpProtocol
+	//for RtmpProtocol override
 	void onRtmpChunk(RtmpPacket &chunkData) override;
-	void onSendRawData(const char *pcRawData, int iSize) override {
-		send(pcRawData, iSize);
-	}
-	void onSendRawData(const Buffer::Ptr &buffer,int flags) override{
-		_sock->send(buffer,flags);
+	void onSendRawData(const Buffer::Ptr &buffer) override{
+		send(buffer);
 	}
 private:
     void init(const RtmpMediaSource::Ptr  &src);

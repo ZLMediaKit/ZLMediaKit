@@ -44,7 +44,7 @@ public:
 #if defined(__GNUC__) && (__GNUC__ < 5)
 			public_send(data,len);
 #else//defined(__GNUC__) && (__GNUC__ < 5)
-			HttpSession::send(data,len);
+			HttpSession::send(obtainBuffer(data,len));
 #endif//defined(__GNUC__) && (__GNUC__ < 5)
 		});
 		m_sslBox.setOnDecData([&](const char *data, uint32_t len){
@@ -64,27 +64,17 @@ public:
 	}
 #if defined(__GNUC__) && (__GNUC__ < 5)
 	int public_send(const char *data, uint32_t len){
-		return HttpSession::send(data,len);
+		return HttpSession::send(obtainBuffer(data,len));
 	}
 	void public_onRecv(const char *data, uint32_t len){
 		HttpSession::onRecv(data,len);
 	}
 #endif//defined(__GNUC__) && (__GNUC__ < 5)
 private:
-	virtual int send(const string &buf) override{
+	virtual int send(const Buffer::Ptr &buf) override{
 		TimeTicker();
-		m_sslBox.onSend(buf.data(), buf.size());
-		return buf.size();
-	}
-	virtual int send(string &&buf) override{
-		TimeTicker();
-		m_sslBox.onSend(buf.data(), buf.size());
-		return buf.size();
-	}
-	virtual int send(const char *buf, int size) override{
-		TimeTicker();
-		m_sslBox.onSend(buf, size);
-		return size;
+		m_sslBox.onSend(buf->data(), buf->size());
+		return buf->size();
 	}
 	SSL_Box m_sslBox;
 };

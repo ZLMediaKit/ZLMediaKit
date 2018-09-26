@@ -57,7 +57,7 @@ void HttpClientImp::sendRequest(const string& url,float fTimeOutSec) {
 #if defined(__GNUC__) && (__GNUC__ < 5)
 			public_send(data,len);
 #else//defined(__GNUC__) && (__GNUC__ < 5)
-			HttpClient::send(data,len);
+			HttpClient::send(obtainBuffer(data,len));
 #endif//defined(__GNUC__) && (__GNUC__ < 5)
 		});
 #endif //ENABLE_OPENSSL
@@ -78,28 +78,12 @@ void HttpClientImp::onRecvBytes(const char* data, int size) {
 	}
 }
 
-int HttpClientImp::send(const string& str) {
+int HttpClientImp::send(const Buffer::Ptr &buf) {
 	if(_sslBox){
-		_sslBox->onSend(str.data(),str.size());
-		return str.size();
+		_sslBox->onSend(buf->data(),buf->size());
+		return buf->size();
 	}
-	return HttpClient::send(str);
-}
-int HttpClientImp::send(string &&str){
-	if(_sslBox){
-		_sslBox->onSend(str.data(),str.size());
-		return str.size();
-	}
-	return HttpClient::send(std::move(str));
-}
-
-int HttpClientImp::send(const char* str, int len) {
-	if(_sslBox){
-		_sslBox->onSend(str,len);
-		return len;
-	}
-	return HttpClient::send(str,len);
-
+	return HttpClient::send(buf);
 }
 #endif //ENABLE_OPENSSL
 

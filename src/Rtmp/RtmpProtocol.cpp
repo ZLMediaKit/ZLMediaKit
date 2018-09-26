@@ -190,7 +190,7 @@ void RtmpProtocol::sendRequest(int iCmd, const string& str) {
 }
 
 void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
-		const std::string& strBuf, uint32_t ui32TimeStamp, int iChunkId , bool msg_more) {
+		const std::string& strBuf, uint32_t ui32TimeStamp, int iChunkId) {
 	if (iChunkId < 2 || iChunkId > 63) {
 		auto strErr = StrPrinter << "不支持发送该类型的块流 ID:" << iChunkId << endl;
 		throw std::runtime_error(strErr);
@@ -235,7 +235,7 @@ void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
 		pos += chunk;
 	}
     buffer->setSize(totalSize);
-	onSendRawData(buffer,msg_more ? SOCKET_DEFAULE_FLAGS : (SOCKET_DEFAULE_FLAGS | FLAG_MORE));
+	onSendRawData(buffer);
 	m_ui32ByteSent += totalSize;
 	if (m_ui32WinSize > 0 && m_ui32ByteSent - m_ui32LastSent >= m_ui32WinSize) {
 		m_ui32LastSent = m_ui32ByteSent;
@@ -253,9 +253,9 @@ void RtmpProtocol::onParseRtmp(const char *pcRawData, int iSize) {
 void RtmpProtocol::startClientSession(const function<void()> &callBack) {
 	//发送 C0C1
 	char handshake_head = HANDSHAKE_PLAINTEXT;
-	onSendRawData(&handshake_head, 1);
+	onSendRawData(obtainBuffer(&handshake_head, 1));
 	RtmpHandshake c1(0);
-	onSendRawData((char *) (&c1), sizeof(c1));
+	onSendRawData(obtainBuffer((char *) (&c1), sizeof(c1)));
 	m_nextHandle = [this,callBack]() {
 		//等待 S0+S1+S2
 		handle_S0S1S2(callBack);
@@ -271,7 +271,7 @@ void RtmpProtocol::handle_S0S1S2(const function<void()> &callBack) {
 	}
 	//发送 C2
 	const char *pcC2 = m_strRcvBuf.data() + 1;
-	onSendRawData(pcC2, C1_HANDSHARK_SIZE);
+	onSendRawData(obtainBuffer(pcC2, C1_HANDSHARK_SIZE));
 	m_strRcvBuf.erase(0, 1 + 2 * C1_HANDSHARK_SIZE);
 	//握手结束
 	m_nextHandle = [this]() {
@@ -306,12 +306,12 @@ void RtmpProtocol::handle_C0C1() {
 void RtmpProtocol::handle_C1_simple(){
 	//发送S0
 	char handshake_head = HANDSHAKE_PLAINTEXT;
-	onSendRawData(&handshake_head, 1);
+	onSendRawData(obtainBuffer(&handshake_head, 1));
 	//发送S1
 	RtmpHandshake s1(0);
-	onSendRawData((char *) &s1, C1_HANDSHARK_SIZE);
+	onSendRawData(obtainBuffer((char *) &s1, C1_HANDSHARK_SIZE));
 	//发送S2
-	onSendRawData(m_strRcvBuf.c_str() + 1, C1_HANDSHARK_SIZE);
+	onSendRawData(obtainBuffer(m_strRcvBuf.c_str() + 1, C1_HANDSHARK_SIZE));
 	//等待C2
 	m_nextHandle = [this]() {
 		handle_C2();
@@ -433,7 +433,7 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
 	//S1S2计算参考自:https://github.com/hitYangfei/golang/blob/master/rtmpserver.go
 	//发送S0
 	char handshake_head = HANDSHAKE_PLAINTEXT;
-	onSendRawData(&handshake_head, 1);
+	onSendRawData(obtainBuffer(&handshake_head, 1));
 	//S1
 	RtmpHandshake s1(0);
 	memcpy(s1.zero,"\x04\x05\x00\x01",4);
@@ -460,7 +460,7 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
 	s1_joined.erase(digestPos - s1_start,C1_DIGEST_SIZE);
 	string s1_digest = openssl_HMACsha256(FMSKey,S1_FMS_KEY_SIZE,s1_joined.data(),s1_joined.size());
 	memcpy(digestPos,s1_digest.data(),s1_digest.size());
-	onSendRawData((char *) &s1, sizeof(s1));
+	onSendRawData(obtainBuffer((char *) &s1, sizeof(s1)));
 
 	//S2
 	string s2_key = openssl_HMACsha256(FMSKey,S2_FMS_KEY_SIZE,digest.data(),digest.size());
@@ -468,7 +468,7 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
 	s2.random_generate((char *)&s2,8);
 	string s2_digest = openssl_HMACsha256(s2_key.data(),s2_key.size(),&s2,sizeof(s2) - C1_DIGEST_SIZE);
 	memcpy((char *)&s2 + C1_HANDSHARK_SIZE - C1_DIGEST_SIZE,s2_digest.data(),C1_DIGEST_SIZE);
-	onSendRawData((char *)&s2, sizeof(s2));
+	onSendRawData(obtainBuffer((char *)&s2, sizeof(s2)));
 	//等待C2
 	m_nextHandle = [this]() {
 		handle_C2();
@@ -689,6 +689,12 @@ void RtmpProtocol::handle_rtmpChunk(RtmpPacket& chunkData) {
 
 BufferRaw::Ptr RtmpProtocol::obtainBuffer() {
     return std::make_shared<BufferRaw>() ;//_bufferPool.obtain();
+}
+
+BufferRaw::Ptr RtmpProtocol::obtainBuffer(const void *data, int len) {
+	auto buffer = obtainBuffer();
+	buffer->assign((const char *)data,len);
+	return buffer;
 }
 
 } /* namespace Rtmp */
