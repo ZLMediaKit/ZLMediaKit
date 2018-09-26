@@ -30,6 +30,7 @@
 #include "Common/config.h"
 #include "Rtsp/Rtsp.h"
 #include "Network/TcpSession.h"
+#include "Network/TcpServer.h"
 #include "Rtmp/RtmpMediaSource.h"
 #include "Rtmp/FlvMuxer.h"
 #include "HttpRequestSplitter.h"
@@ -152,6 +153,11 @@ public:
             _session->onManager();
         }
     }
+
+    void attachServer(const TcpServer &server) override{
+        HttpSession::attachServer(server);
+        _weakServer = const_cast<TcpServer &>(server).shared_from_this();
+    }
 protected:
     /**
      * 开始收到一个webSocket数据包
@@ -160,22 +166,32 @@ protected:
     void onWebSocketDecodeHeader(const WebSocketHeader &packet) override{
         //新包，原来的包残余数据清空掉
         _remian_data.clear();
-        if(_firstPacket){
-            _firstPacket = false;
-            _session = std::make_shared<SessionImp>(nullptr,_sock);
-            //此处截取数据并进行websocket协议打包
-            weak_ptr<WebSocketSession> weakSelf = dynamic_pointer_cast<WebSocketSession>(shared_from_this());
-            _session->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf){
-                auto strongSelf = weakSelf.lock();
-                if(strongSelf){
-                    bool mask_flag = strongSelf->_mask_flag;
-                    strongSelf->_mask_flag = false;
-                    strongSelf->WebSocketSplitter::encode((uint8_t *)buf->data(),buf->size());
-                    strongSelf->_mask_flag = mask_flag;
-                }
-                return buf->size();
-            });
+
+        if(!_firstPacket){
+            return;
         }
+        //这是个WebSocket会话而不是普通的Http会话
+        _firstPacket = false;
+        _session = std::make_shared<SessionImp>(nullptr,_sock);
+
+        auto strongServer = _weakServer.lock();
+        if(strongServer){
+            _session->attachServer(*strongServer);
+        }
+
+        //此处截取数据并进行websocket协议打包
+        weak_ptr<WebSocketSession> weakSelf = dynamic_pointer_cast<WebSocketSession>(shared_from_this());
+        _session->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf){
+            auto strongSelf = weakSelf.lock();
+            if(strongSelf){
+                bool mask_flag = strongSelf->_mask_flag;
+                strongSelf->_mask_flag = false;
+                strongSelf->WebSocketSplitter::encode((uint8_t *)buf->data(),buf->size());
+                strongSelf->_mask_flag = mask_flag;
+            }
+            return buf->size();
+        });
+
     }
 
     /**
@@ -276,6 +292,7 @@ private:
     std::shared_ptr<SessionImp> _session;
     string _remian_data;
     bool _firstPacket = true;
+    weak_ptr<TcpServer> _weakServer;
 };
 
 /**
