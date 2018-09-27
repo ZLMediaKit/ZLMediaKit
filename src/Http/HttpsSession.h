@@ -94,21 +94,21 @@ public:
 
 	//收到eof或其他导致脱离TcpServer事件的回调
 	void onError(const SockException &err) override{
-		HttpSession::onError(err);
+		HttpSessionType::onError(err);
 		if(_session){
 			_session->onError(err);
 		}
 	}
 	//每隔一段时间触发，用来做超时管理
 	void onManager() override{
-		HttpSession::onManager();
+		HttpSessionType::onManager();
 		if(_session){
 			_session->onManager();
 		}
 	}
 
 	void attachServer(const TcpServer &server) override{
-		HttpSession::attachServer(server);
+		HttpSessionType::attachServer(server);
 		_weakServer = const_cast<TcpServer &>(server).shared_from_this();
 	}
 protected:
@@ -272,7 +272,9 @@ public:
 };
 
 
-typedef WebSocketSession<EchoSession> EchoWebSocketSession;
+typedef WebSocketSession<EchoSession,HttpSession> EchoWebSocketSession;
+typedef WebSocketSession<EchoSession,HttpsSession> SSLEchoWebSocketSession;
+
 
 } /* namespace Http */
 } /* namespace ZL */
