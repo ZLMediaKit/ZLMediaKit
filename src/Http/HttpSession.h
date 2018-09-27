@@ -172,7 +172,7 @@ protected:
         }
         //这是个WebSocket会话而不是普通的Http会话
         _firstPacket = false;
-        _session = std::make_shared<SessionImp>(nullptr,_sock);
+        _session = std::make_shared<SessionImp>(getIdentifier(),nullptr,_sock);
 
         auto strongServer = _weakServer.lock();
         if(strongServer){
@@ -253,7 +253,11 @@ private:
      */
     class SessionImp : public SessionType{
     public:
-        SessionImp(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : SessionType(pTh,pSock){};
+        SessionImp(const string &identifier,
+                   const std::shared_ptr<ThreadPool> &pTh,
+                   const Socket::Ptr &pSock) :
+                _identifier(identifier),SessionType(pTh,pSock){}
+
         ~SessionImp(){}
 
         /**
@@ -285,14 +289,18 @@ private:
             }
             return SessionType::send(buf);
         }
+        string getIdentifier() const override{
+            return _identifier;
+        }
     private:
         onBeforeSendCB _beforeSendCB;
+        string _identifier;
     };
 private:
-    std::shared_ptr<SessionImp> _session;
-    string _remian_data;
     bool _firstPacket = true;
+    string _remian_data;
     weak_ptr<TcpServer> _weakServer;
+    std::shared_ptr<SessionImp> _session;
 };
 
 /**
