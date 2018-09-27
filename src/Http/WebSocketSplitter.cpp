@@ -115,6 +115,9 @@ begin_decode:
         _mask_offset = 0;
         _playload_offset = 0;
         onWebSocketDecodeHeader(*this);
+        if(_playload_len == 0){
+            onWebSocketDecodeComplete(*this);
+        }
     }
 
     //进入后面逻辑代表已经获取到了webSocket协议头，
@@ -129,6 +132,8 @@ begin_decode:
         onPlayloadData(ptr,playload_slice_len);
 
         if(_playload_offset == _playload_len){
+            onWebSocketDecodeComplete(*this);
+
             //这是下一个包
             remain -= playload_slice_len;
             ptr += playload_slice_len;
@@ -157,47 +162,48 @@ void WebSocketSplitter::onPlayloadData(uint8_t *ptr, uint64_t len) {
     onWebSocketDecodePlayload(*this, _mask_flag ? ptr - len : ptr, len, _playload_offset);
 }
 
-void WebSocketSplitter::encode(uint8_t *data, uint64_t len) {
+void WebSocketSplitter::encode(const WebSocketHeader &header,uint8_t *data, uint64_t len) {
     string ret;
 
-    uint8_t byte = _fin << 7 | ((_reserved & 0x07) << 4) | (_opcode & 0x0F) ;
+    uint8_t byte = header._fin << 7 | ((header._reserved & 0x07) << 4) | (header._opcode & 0x0F) ;
     ret.push_back(byte);
 
-    _mask_flag = (_mask_flag && _mask.size() >= 4);
-    byte = _mask_flag << 7;
+    auto mask_flag = (header._mask_flag && header._mask.size() >= 4);
+    byte = mask_flag << 7;
 
-    _playload_len = len;
-    if(_playload_len < 126){
-        byte |= _playload_len;
+    if(len < 126){
+        byte |= len;
         ret.push_back(byte);
-    }else if(_playload_len <= 0xFFFF){
+    }else if(len <= 0xFFFF){
         byte |= 126;
         ret.push_back(byte);
 
-        uint16_t len = htons(_playload_len);
+        uint16_t len = htons(len);
         ret.append((char *)&len,2);
     }else{
         byte |= 127;
         ret.push_back(byte);
 
-        uint32_t len_high = htonl(_playload_len >> 32) ;
-        uint32_t len_low = htonl(_playload_len & 0xFFFFFFFF);
+        uint32_t len_high = htonl(len >> 32) ;
+        uint32_t len_low = htonl(len & 0xFFFFFFFF);
         ret.append((char *)&len_high,4);
         ret.append((char *)&len_low,4);
     }
-    if(_mask_flag){
-        ret.append((char *)_mask.data(),4);
+    if(mask_flag){
+        ret.append((char *)header._mask.data(),4);
     }
 
     onWebSocketEncodeData((uint8_t*)ret.data(),ret.size());
 
-    if(_mask_flag){
-        uint8_t *ptr = data;
-        for(int i = 0; i < len ; ++i,++ptr){
-            *(ptr) ^= _mask[i % 4];
+    if(len > 0){
+        if(mask_flag){
+            uint8_t *ptr = data;
+            for(int i = 0; i < len ; ++i,++ptr){
+                *(ptr) ^= header._mask[i % 4];
+            }
         }
+        onWebSocketEncodeData(data,len);
     }
-    onWebSocketEncodeData(data,len);
 
 }
 

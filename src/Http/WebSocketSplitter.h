@@ -87,25 +87,33 @@ public:
      * 编码一个数据包
      * 将触发2次onWebSocketEncodeData回调
      * 第一次是数据头，第二次是负载数据
+     * @param header 数据头
      * @param data 负载数据
      * @param len 负载数据长度
      */
-    void encode(uint8_t *data,uint64_t len);
+    void encode(const WebSocketHeader &header,uint8_t *data,uint64_t len);
 protected:
     /**
      * 收到一个webSocket数据包包头，后续将继续触发onWebSocketDecodePlayload回调
-     * @param packet 数据包头
+     * @param header 数据包头
      */
-    virtual void onWebSocketDecodeHeader(const WebSocketHeader &packet) {};
+    virtual void onWebSocketDecodeHeader(const WebSocketHeader &header) {};
 
     /**
      * 收到webSocket数据包负载
-     * @param packet 数据包包头
+     * @param header 数据包包头
      * @param ptr 负载数据指针
      * @param len 负载数据长度
-     * @param recved 已接收数据长度(包含本次数据长度)，等于packet._playload_len时则接受完毕
+     * @param recved 已接收数据长度(包含本次数据长度)，等于header._playload_len时则接受完毕
      */
-    virtual void onWebSocketDecodePlayload(const WebSocketHeader &packet, const uint8_t *ptr, uint64_t len, uint64_t recved) {};
+    virtual void onWebSocketDecodePlayload(const WebSocketHeader &header, const uint8_t *ptr, uint64_t len, uint64_t recved) {};
+
+
+    /**
+     * 接收到完整的一个webSocket数据包后回调
+     * @param header 数据包包头
+     */
+    virtual void onWebSocketDecodeComplete(const WebSocketHeader &header) {};
 
     /**
      * websocket数据编码回调
