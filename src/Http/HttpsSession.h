@@ -160,7 +160,11 @@ protected:
 	 * 接收到完整的一个webSocket数据包后回调
 	 * @param header 数据包包头
 	 */
-	void onWebSocketDecodeComplete(const WebSocketHeader &header) override {
+	void onWebSocketDecodeComplete(const WebSocketHeader &header_in) override {
+        WebSocketHeader& header = const_cast<WebSocketHeader&>(header_in);
+        auto  flag = header._mask_flag;
+		header._mask_flag = false;
+
 		switch (header._opcode){
             case WebSocketHeader::CLOSE:{
                 HttpSessionType::encode(header,nullptr,0);
@@ -185,6 +189,7 @@ protected:
 				break;
 		}
 		_remian_data.clear();
+		header._mask_flag = flag;
 	}
 
 	/**
