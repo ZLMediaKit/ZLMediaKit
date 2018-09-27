@@ -308,9 +308,17 @@ private:
  */
 class EchoSession : public TcpSession {
 public:
-    EchoSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : TcpSession(pTh,pSock){};
-    virtual ~EchoSession(){};
+    EchoSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
+            TcpSession(pTh,pSock){
+        DebugL;
+    }
+    virtual ~EchoSession(){
+        DebugL;
+    }
 
+    void attachServer(const TcpServer &server) override{
+        DebugL << getIdentifier() << " " << TcpSession::getIdentifier();
+    }
     void onRecv(const Buffer::Ptr &buffer) override {
         send(buffer);
     }
