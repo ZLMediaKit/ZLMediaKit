@@ -141,7 +141,8 @@ begin_decode:
 
             if(remain > 0){
                 //剩余数据是下一个包，把它的数据放置在缓存中
-                _remain_data.assign((char *)ptr,remain);
+                string str((char *)ptr,remain);
+                _remain_data = str;
 
                 data = ptr = (uint8_t *)_remain_data.data();
                 len = _remain_data.size();
