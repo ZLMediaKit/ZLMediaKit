@@ -41,7 +41,7 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
         len = _remain_data.size();
     }
 
-splitPacket:
+    splitPacket:
 
     /*确保ptr最后一个字节是0，防止strstr越界
      *由于ZLToolKit确保内存最后一个字节是保留未使用字节并置0，
@@ -75,7 +75,8 @@ splitPacket:
 
     if(_content_len == 0){
         //尚未找到http头，缓存定位到剩余数据部分
-        _remain_data.assign(ptr,remain);
+        string str(ptr,remain);
+        _remain_data = str;
         return;
     }
 
@@ -84,7 +85,8 @@ splitPacket:
         //数据按照固定长度content处理
         if(remain < _content_len){
             //数据不够，缓存定位到剩余数据部分
-            _remain_data.assign(ptr,remain);
+            string str(ptr,remain);
+            _remain_data = str;
             return;
         }
         //收到content数据，并且接受content完毕
@@ -97,12 +99,14 @@ splitPacket:
 
         if(remain > 0){
             //还有数据没有处理完毕
-            _remain_data.assign(ptr,remain);
+            string str(ptr,remain);
+            _remain_data = str;
 
             data = ptr = (char *)_remain_data.data();
             len = _remain_data.size();
             goto splitPacket;
         }
+        _remain_data.clear();
         return;
     }
 
