@@ -135,10 +135,12 @@ protected:
 			_session->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf){
 				auto strongSelf = weakSelf.lock();
 				if(strongSelf){
-					bool mask_flag = strongSelf->_mask_flag;
-					strongSelf->_mask_flag = false;
-					strongSelf->WebSocketSplitter::encode(*strongSelf,(uint8_t *)buf->data(),buf->size());
-					strongSelf->_mask_flag = mask_flag;
+                    WebSocketHeader header;
+                    header._fin = true;
+                    header._reserved = 0;
+                    header._opcode = WebSocketHeader::TEXT;
+                    header._mask_flag = false;
+                    strongSelf->WebSocketSplitter::encode(header,(uint8_t *)buf->data(),buf->size());
 				}
 				return buf->size();
 			});
