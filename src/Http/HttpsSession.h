@@ -101,9 +101,10 @@ public:
 	}
 	//每隔一段时间触发，用来做超时管理
 	void onManager() override{
-		HttpSessionType::onManager();
 		if(_session){
 			_session->onManager();
+		}else{
+            HttpSessionType::onManager();
 		}
 	}
 
