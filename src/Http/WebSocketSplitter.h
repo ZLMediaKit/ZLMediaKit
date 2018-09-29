@@ -91,7 +91,7 @@ public:
      * @param data 负载数据
      * @param len 负载数据长度
      */
-    void encode(const WebSocketHeader &header,uint8_t *data,uint64_t len);
+    void encode(const WebSocketHeader &header,uint8_t *data,const uint64_t len);
 protected:
     /**
      * 收到一个webSocket数据包包头，后续将继续触发onWebSocketDecodePlayload回调

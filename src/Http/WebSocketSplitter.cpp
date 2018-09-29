@@ -163,7 +163,7 @@ void WebSocketSplitter::onPlayloadData(uint8_t *ptr, uint64_t len) {
     onWebSocketDecodePlayload(*this, _mask_flag ? ptr - len : ptr, len, _playload_offset);
 }
 
-void WebSocketSplitter::encode(const WebSocketHeader &header,uint8_t *data, uint64_t len) {
+void WebSocketSplitter::encode(const WebSocketHeader &header,uint8_t *data, const uint64_t len) {
     string ret;
 
     uint8_t byte = header._fin << 7 | ((header._reserved & 0x07) << 4) | (header._opcode & 0x0F) ;
@@ -179,8 +179,8 @@ void WebSocketSplitter::encode(const WebSocketHeader &header,uint8_t *data, uint
         byte |= 126;
         ret.push_back(byte);
 
-        uint16_t len = htons(len);
-        ret.append((char *)&len,2);
+        auto len_low = htons(len);
+        ret.append((char *)&len_low,2);
     }else{
         byte |= 127;
         ret.push_back(byte);
