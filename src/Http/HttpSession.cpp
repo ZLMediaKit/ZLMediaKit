@@ -185,11 +185,10 @@ void HttpSession::onManager() {
 
 
 inline bool HttpSession::checkWebSocket(){
-	if(m_parser["Connection"] != "Upgrade" ||
-	   m_parser["Upgrade"] != "websocket" ){
+	auto Sec_WebSocket_Key = m_parser["Sec-WebSocket-Key"];
+	if(Sec_WebSocket_Key.empty()){
 		return false;
 	}
-	auto Sec_WebSocket_Key = m_parser["Sec-WebSocket-Key"];
 	auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
 	KeyValue headerOut;
