@@ -108,7 +108,7 @@ extern const char kBroadcastShellLogin[];
 
 //停止rtsp/rtmp/http-flv会话后流量汇报事件广播
 extern const char kBroadcastFlowReport[];
-#define BroadcastFlowReportArgs const MediaInfo &args,const uint64_t &totalBytes,TcpSession &sender
+#define BroadcastFlowReportArgs const MediaInfo &args,const uint64_t &totalBytes,const uint64_t &totalDuration,TcpSession &sender
 
 //流量汇报事件流量阈值,单位KB，默认1MB
 extern const char kFlowThreshold[];
