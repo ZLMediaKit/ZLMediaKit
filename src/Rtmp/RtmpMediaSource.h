@@ -94,16 +94,14 @@ public:
 		}
 	}
 	virtual void onGetMedia(const RtmpPacket::Ptr &pkt) {
-		if(!m_bRegisted){
-			lock_guard<recursive_mutex> lock(m_mtxMap);
-			if (m_mapCfgFrame.size() != m_iCfgFrameSize && pkt->isCfgFrame()) {
-				m_mapCfgFrame.emplace(pkt->typeId, pkt);
+		lock_guard<recursive_mutex> lock(m_mtxMap);
+		if (pkt->isCfgFrame()) {
+			m_mapCfgFrame.emplace(pkt->typeId, pkt);
 
-				if( m_mapCfgFrame.size() == m_iCfgFrameSize && m_bAsyncRegist){
-					m_bAsyncRegist = false;
-					MediaSource::regist();
-					m_bRegisted = true;
-				}
+			if(m_bAsyncRegist && !m_bRegisted &&  m_mapCfgFrame.size() == m_iCfgFrameSize){
+				m_bAsyncRegist = false;
+				MediaSource::regist();
+				m_bRegisted = true;
 			}
 		}
 
