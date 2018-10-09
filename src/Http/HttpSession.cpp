@@ -169,7 +169,11 @@ void HttpSession::onError(const SockException& err) {
     GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
 
     if(m_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes,*this);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
+										   m_mediaInfo,
+										   m_ui64TotalBytes,
+										   m_ticker.createdTime()/1000,
+										   *this);
     }
 }
 

@@ -122,7 +122,11 @@ void RtspSession::onError(const SockException& err) {
     //流量统计事件广播
     GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
     if(m_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,m_mediaInfo,m_ui64TotalBytes,*this);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
+										   m_mediaInfo,
+										   m_ui64TotalBytes,
+										   m_ticker.createdTime()/1000,
+										   *this);
     }
 }
 
