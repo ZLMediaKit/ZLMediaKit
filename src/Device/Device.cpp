@@ -128,8 +128,8 @@ void DevChannel::inputAAC(const char* pcData, int iDataLen, uint32_t uiStamp,boo
 		inputAAC(pcData+7,iDataLen-7,uiStamp,pcData);
 	} else if(m_pAdtsHeader){
 		m_pAdtsHeader->aac_frame_length = iDataLen;
-		writeAdtsHeader(*m_pAdtsHeader,m_pAdtsHeader->data);
-		inputAAC(pcData,iDataLen,uiStamp,(const char *)m_pAdtsHeader->data);
+		writeAdtsHeader(*m_pAdtsHeader,(uint8_t *)m_pAdtsHeader->buffer);
+		inputAAC(pcData,iDataLen,uiStamp,(const char *)m_pAdtsHeader->buffer);
 	}
 }
 void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,const char *pcAdtsHeader){
@@ -278,9 +278,7 @@ void DevChannel::initVideo(const VideoInfo& info) {
 
 void DevChannel::initAudio(const AudioInfo& info) {
 	m_audio.reset(new AudioInfo(info));
-	m_pAdtsHeader.reset((AdtsFrame *)malloc(sizeof(AdtsFrame) - sizeof(AdtsFrame::data) + 7),[](AdtsFrame *ptr){
-		free(ptr);
-	});
+	m_pAdtsHeader = std::make_shared<AdtsFrame>();
 
 	m_pAdtsHeader->syncword = 0x0FFF;
 	m_pAdtsHeader->id = 0;

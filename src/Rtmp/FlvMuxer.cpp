@@ -106,7 +106,7 @@ public:
     BufferRtmp(const RtmpPacket::Ptr & pkt):_rtmp(pkt){}
     virtual ~BufferRtmp(){}
 
-    char *data() override {
+    char *data() const override {
         return (char *)_rtmp->strBuf.data();
     }
     uint32_t size() const override {

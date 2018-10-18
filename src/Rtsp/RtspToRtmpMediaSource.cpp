@@ -92,9 +92,9 @@ void RtspToRtmpMediaSource::makeVideoConfigPkt() {
 }
 void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 	if(m_pRecorder){
-		m_pRecorder->inputH264((char *) frame.data.data(), frame.data.size(), frame.timeStamp, frame.type);
+		m_pRecorder->inputH264((char *) frame.data(), frame.size(), frame.timeStamp, frame.type);
 	}
-	uint8_t nal_type = frame.data[4] & 0x1F;
+	uint8_t nal_type = frame.data()[4] & 0x1F;
 	int8_t flags = 7; //h.264
 	bool is_config = false;
 	switch (nal_type) {
@@ -112,10 +112,10 @@ void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 	rtmpPkt->strBuf.push_back(flags);
 	rtmpPkt->strBuf.push_back(!is_config);
 	rtmpPkt->strBuf.append("\x0\x0\x0", 3);
-	uint32_t size = frame.data.size() - 4;
+	uint32_t size = frame.size() - 4;
 	size = htonl(size);
 	rtmpPkt->strBuf.append((char *) &size, 4);
-	rtmpPkt->strBuf.append(&frame.data[4], frame.data.size() - 4);
+	rtmpPkt->strBuf.append(&frame.data()[4], frame.size() - 4);
 
 	rtmpPkt->bodySize = rtmpPkt->strBuf.size();
 	rtmpPkt->chunkId = CHUNK_VIDEO;
@@ -126,7 +126,7 @@ void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 }
 void RtspToRtmpMediaSource::onGetAdts(const AdtsFrame& frame) {
 	if(m_pRecorder){
-		m_pRecorder->inputAAC((char *) frame.data, frame.aac_frame_length, frame.timeStamp);
+		m_pRecorder->inputAAC((char *) frame.buffer, frame.aac_frame_length, frame.timeStamp);
 	}
 
 	RtmpPacket::Ptr rtmpPkt(new RtmpPacket);
@@ -134,7 +134,7 @@ void RtspToRtmpMediaSource::onGetAdts(const AdtsFrame& frame) {
 	uint8_t is_config = false;
 	rtmpPkt->strBuf.push_back(m_ui8AudioFlags);
 	rtmpPkt->strBuf.push_back(!is_config);
-	rtmpPkt->strBuf.append((char *) frame.data + 7, frame.aac_frame_length - 7);
+	rtmpPkt->strBuf.append((char *) frame.buffer + 7, frame.aac_frame_length - 7);
 
 	rtmpPkt->bodySize = rtmpPkt->strBuf.size();
 	rtmpPkt->chunkId = CHUNK_AUDIO;

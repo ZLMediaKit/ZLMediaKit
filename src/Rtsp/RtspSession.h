@@ -59,7 +59,7 @@ public:
     BufferRtp(const RtpPacket::Ptr & pkt,uint32_t offset = 0 ):_rtp(pkt),_offset(offset){}
     virtual ~BufferRtp(){}
 
-    char *data() override {
+    char *data() const override {
         return (char *)_rtp->payload + _offset;
     }
     uint32_t size() const override {

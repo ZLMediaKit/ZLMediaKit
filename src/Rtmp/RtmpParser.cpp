@@ -152,15 +152,15 @@ inline void RtmpParser::_onGetH264(const char* pcData, int iLen, uint32_t ui32Ti
 inline void RtmpParser::onGetH264(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
 	m_h264frame.type = pcData[0] & 0x1F;
 	m_h264frame.timeStamp = ui32TimeStamp;
-	m_h264frame.data.assign("\x0\x0\x0\x1", 4);  //添加264头
-	m_h264frame.data.append(pcData, iLen);
+	m_h264frame.buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
+	m_h264frame.buffer.append(pcData, iLen);
 	{
 		lock_guard<recursive_mutex> lck(m_mtxCB);
 		if (onVideo) {
 			onVideo(m_h264frame);
 		}
 	}
-	m_h264frame.data.clear();
+	m_h264frame.buffer.clear();
 }
 
 inline bool RtmpParser::inputAudio(const RtmpPacket::Ptr &pkt) {
@@ -180,15 +180,15 @@ inline bool RtmpParser::inputAudio(const RtmpPacket::Ptr &pkt) {
 	return false;
 }
 inline void RtmpParser::onGetAAC(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
-    if(iLen + 7 > sizeof(m_adts.data)){
+    if(iLen + 7 > sizeof(m_adts.buffer)){
         WarnL << "Illegal adts data, exceeding the length limit.";
         return;
     }
 	//添加adts头
-	memcpy(m_adts.data + 7, pcData, iLen);
+	memcpy(m_adts.buffer + 7, pcData, iLen);
 	m_adts.aac_frame_length = 7 + iLen;
     m_adts.timeStamp = ui32TimeStamp;
-    writeAdtsHeader(m_adts, m_adts.data);
+    writeAdtsHeader(m_adts, m_adts.buffer);
 	{
 		lock_guard<recursive_mutex> lck(m_mtxCB);
 		if (onAudio) {
