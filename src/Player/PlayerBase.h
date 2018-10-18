@@ -36,6 +36,7 @@
 #include "Util/mini.h"
 #include "Common/MediaSource.h"
 #include "Util/RingBuffer.h"
+#include "Frame.h"
 
 using namespace std;
 using namespace ZL::Util;
@@ -45,17 +46,10 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Player {
 
-class TrackFrame : public Buffer {
-public:
-	typedef std::shared_ptr<TrackFrame> Ptr;
-	virtual ~TrackFrame(){}
-	virtual uint32_t stamp() = 0;
-};
-
 class TrackFormat {
 public:
 	typedef std::shared_ptr<TrackFormat> Ptr;
-	typedef RingBuffer<TrackFrame::Ptr> RingType;
+	typedef RingBuffer<Frame::Ptr> RingType;
 	typedef RingType::RingReader::Ptr ReaderType;
 
 	typedef enum {
@@ -80,7 +74,7 @@ public:
 		return _ring->attach(useBuffer);
     }
 
-	void writeFrame(const TrackFrame::Ptr &frame,bool keypos = true){
+	void writeFrame(const Frame::Ptr &frame,bool keypos = true){
 		_ring->write(frame, keypos);
 	}
 private:

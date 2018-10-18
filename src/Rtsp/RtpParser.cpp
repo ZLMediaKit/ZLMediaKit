@@ -121,13 +121,13 @@ inline bool RtpParser::inputVideo(const RtpPacket& rtppack,
 	//Type==8:PPS frame
 	if (nal.type >= 0 && nal.type < 24) {
 		//a full frame
-		m_h264frame.data.assign("\x0\x0\x0\x1", 4);
-		m_h264frame.data.append((char *)frame, length);
+		m_h264frame.buffer.assign("\x0\x0\x0\x1", 4);
+		m_h264frame.buffer.append((char *)frame, length);
 		m_h264frame.type = nal.type;
 		m_h264frame.timeStamp = rtppack.timeStamp / 90;
 		m_h264frame.sequence = rtppack.sequence;
 		_onGetH264(m_h264frame);
-		m_h264frame.data.clear();
+		m_h264frame.buffer.clear();
 		return (m_h264frame.type == 7);
 	}
 	if (nal.type == 28) {
@@ -137,9 +137,9 @@ inline bool RtpParser::inputVideo(const RtpPacket& rtppack,
 		if (fu.S == 1) {
 			//FU-A start
 			char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
-			m_h264frame.data.assign("\x0\x0\x0\x1", 4);
-			m_h264frame.data.push_back(tmp);
-			m_h264frame.data.append((char *)frame + 2, length - 2);
+			m_h264frame.buffer.assign("\x0\x0\x0\x1", 4);
+			m_h264frame.buffer.push_back(tmp);
+			m_h264frame.buffer.append((char *)frame + 2, length - 2);
 			m_h264frame.type = fu.type;
 			m_h264frame.timeStamp = rtppack.timeStamp / 90;
 			m_h264frame.sequence = rtppack.sequence;
@@ -147,21 +147,21 @@ inline bool RtpParser::inputVideo(const RtpPacket& rtppack,
 		}
 
 		if (rtppack.sequence != (uint16_t)(m_h264frame.sequence + 1)) {
-			m_h264frame.data.clear();
+			m_h264frame.buffer.clear();
 			WarnL << "丢包,帧废弃:" << rtppack.sequence << "," << m_h264frame.sequence;
 			return false;
 		}
 		m_h264frame.sequence = rtppack.sequence;
 		if (fu.E == 1) {
 			//FU-A end
-			m_h264frame.data.append((char *)frame + 2, length - 2);
+			m_h264frame.buffer.append((char *)frame + 2, length - 2);
 			m_h264frame.timeStamp = rtppack.timeStamp / 90;
 			_onGetH264(m_h264frame);
-			m_h264frame.data.clear();
+			m_h264frame.buffer.clear();
 			return false;
 		}
 		//FU-A mid
-		m_h264frame.data.append((char *)frame + 2, length - 2);
+		m_h264frame.buffer.append((char *)frame + 2, length - 2);
 		return false;
 	}
 	WarnL << nal.type << " " << rtppack.sequence;
@@ -242,16 +242,16 @@ inline bool RtpParser::inputAudio(const RtpPacket& rtppack,
 	char *frame = (char *) rtppack.payload + rtppack.offset;
 	int length = rtppack.length - rtppack.offset;
 
-	if (m_adts.aac_frame_length + length - 4 > sizeof(AdtsFrame::data)) {
+	if (m_adts.aac_frame_length + length - 4 > sizeof(AdtsFrame::buffer)) {
 		m_adts.aac_frame_length = 7;
 		return false;
 	}
-	memcpy(m_adts.data + m_adts.aac_frame_length, frame + 4, length - 4);
+	memcpy(m_adts.buffer + m_adts.aac_frame_length, frame + 4, length - 4);
 	m_adts.aac_frame_length += (length - 4);
 	if (rtppack.mark == true) {
 		m_adts.sequence = rtppack.sequence;
 		m_adts.timeStamp = rtppack.timeStamp * (1000.0 / m_iSampleRate);
-		writeAdtsHeader(m_adts, m_adts.data);
+		writeAdtsHeader(m_adts, m_adts.buffer);
 		onGetAdts(m_adts);
 		m_adts.aac_frame_length = 7;
 	}
@@ -264,18 +264,18 @@ inline void RtpParser::_onGetH264(H264Frame& frame) {
 		H264Frame insertedFrame;
 		insertedFrame.type = 7; //SPS
 		insertedFrame.timeStamp = frame.timeStamp;
-		insertedFrame.data = m_strSPS;
+		insertedFrame.buffer = m_strSPS;
 		onGetH264(insertedFrame);
 
 		insertedFrame.type = 8; //PPS
 		insertedFrame.timeStamp = frame.timeStamp;
-		insertedFrame.data = m_strPPS;
+		insertedFrame.buffer = m_strPPS;
 		onGetH264(insertedFrame);
 		onGetH264(frame);
 	}
 		break;
 	case 7: {//SPS
-		m_strSPS = frame.data;
+		m_strSPS = frame.buffer;
 		if(m_bParseSpsDelay && !m_strSPS.empty()){
 			m_bParseSpsDelay = false;
 			getAVCInfo(m_strSPS, m_iVideoWidth, m_iVideoHeight, m_fVideoFps);
@@ -283,7 +283,7 @@ inline void RtpParser::_onGetH264(H264Frame& frame) {
 	}
 		break;
 	case 8://PPS
-		m_strPPS=frame.data;
+		m_strPPS=frame.buffer;
 		break;
 	case 1:
 	    //B or P

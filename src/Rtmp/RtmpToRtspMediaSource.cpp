@@ -48,20 +48,20 @@ RtmpToRtspMediaSource::~RtmpToRtspMediaSource() {}
 
 void RtmpToRtspMediaSource::onGetH264(const H264Frame &frame) {
     if(m_pRecorder){
-        m_pRecorder->inputH264((char *) frame.data.data(), frame.data.size(), frame.timeStamp, frame.type);
+        m_pRecorder->inputH264((char *) frame.data(), frame.size(), frame.timeStamp, frame.type);
     }
 
 	if(m_pRtpMaker_h264){
-		m_pRtpMaker_h264->makeRtp(frame.data.data() + 4, frame.data.size() - 4, frame.timeStamp);
+		m_pRtpMaker_h264->makeRtp(frame.data() + 4, frame.size() - 4, frame.timeStamp);
 	}
 }
 inline void RtmpToRtspMediaSource::onGetAdts(const AdtsFrame &frame) {
 	if(m_pRecorder){
-        m_pRecorder->inputAAC((char *) frame.data, frame.aac_frame_length, frame.timeStamp);
+        m_pRecorder->inputAAC((char *) frame.buffer, frame.aac_frame_length, frame.timeStamp);
     }
 
 	if (m_pRtpMaker_aac) {
-		m_pRtpMaker_aac->makeRtp((char *) frame.data + 7, frame.aac_frame_length - 7, frame.timeStamp);
+		m_pRtpMaker_aac->makeRtp((char *) frame.buffer + 7, frame.aac_frame_length - 7, frame.timeStamp);
 	}
 }
 

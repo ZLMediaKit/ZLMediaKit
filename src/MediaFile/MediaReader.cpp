@@ -109,7 +109,7 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 			if(MP4GetTrackESConfiguration(m_hMP4File,m_audio_trId,&ppConfig,&pConfigSize)){
 				m_strAacCfg.assign((char *)ppConfig, pConfigSize);
 				makeAdtsHeader(m_strAacCfg, m_adts);
-				writeAdtsHeader(m_adts,m_adts.data);
+				writeAdtsHeader(m_adts,m_adts.buffer);
 				getAACInfo(m_adts, (int &)m_audio_sample_rate, (int &)m_audio_num_channels);
 				MP4Free(ppConfig);
 			}
@@ -148,7 +148,7 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 	}
 
 	if (m_audio_trId != MP4_INVALID_TRACK_ID) {
-		m_pChn->inputAAC((char *)m_adts.data, 7, 0);
+		m_pChn->inputAAC((char *)m_adts.buffer, 7, 0);
 	}
 
 	if (m_video_trId != MP4_INVALID_TRACK_ID) {
@@ -240,12 +240,12 @@ inline bool MediaReader::readAudioSample(int iTimeInc) {
 		auto iNextSample = getAudioSampleId(iTimeInc);
 		for (auto i = m_audio_current; i < iNextSample; i++) {
 			uint32_t numBytes = m_audio_sample_max_size;
-			uint8_t *pBytes = m_adts.data + 7;
+			uint8_t *pBytes = m_adts.buffer + 7;
 			if(MP4ReadSample(m_hMP4File, m_audio_trId, i + 1, &pBytes, &numBytes)){
 				if (!iTimeInc) {
 					m_adts.aac_frame_length = 7 + numBytes;
-					writeAdtsHeader(m_adts, m_adts.data);
-					writeAAC(m_adts.data, m_adts.aac_frame_length, (double) m_audio_ms * i / m_audio_num_samples);
+					writeAdtsHeader(m_adts, m_adts.buffer);
+					writeAAC(m_adts.buffer, m_adts.aac_frame_length, (double) m_audio_ms * i / m_audio_num_samples);
 				}
 			}else{
 				ErrorL << "读取音频失败:" << i+ 1;
