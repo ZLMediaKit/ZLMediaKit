@@ -34,9 +34,10 @@
 #include "Player.h"
 #include "Network/Socket.h"
 #include "Util/mini.h"
-#include "Common/MediaSource.h"
 #include "Util/RingBuffer.h"
+#include "Common/MediaSource.h"
 #include "Frame.h"
+#include "Track.h"
 
 using namespace std;
 using namespace ZL::Util;
@@ -45,93 +46,6 @@ using namespace ZL::Network;
 
 namespace ZL {
 namespace Player {
-
-class TrackFormat {
-public:
-	typedef std::shared_ptr<TrackFormat> Ptr;
-	typedef RingBuffer<Frame::Ptr> RingType;
-	typedef RingType::RingReader::Ptr ReaderType;
-
-	typedef enum {
-        VideoCodecInvalid = -1,
-        VideoCodecH264 = 0,
-        VideoCodecMax
-    } VideoCodecID;
-
-    typedef enum {
-        AudioCodecInvalid = -1,
-        AudioCodecAAC = 0,
-        AudioCodecMax
-    } AudioCodecID;
-	TrackFormat(){
-		_ring = std::make_shared<RingType>();
-	}
-    virtual ~TrackFormat(){}
-    virtual TrackType getTrackType() const = 0;
-    virtual int getCodecId() const = 0;
-
-	ReaderType attachReader(bool useBuffer = false){
-		return _ring->attach(useBuffer);
-    }
-
-	void writeFrame(const Frame::Ptr &frame,bool keypos = true){
-		_ring->write(frame, keypos);
-	}
-private:
-	RingType::Ptr _ring;
-};
-
-class VideoTrackFormat : public TrackFormat {
-public:
-    TrackType getTrackType() const override { return TrackVideo;};
-    virtual int getVideoHeight() const = 0;
-    virtual int getVideoWidth() const  = 0;
-    virtual float getVideoFps() const = 0;
-};
-
-class AudioTrackFormat : public TrackFormat {
-public:
-    TrackType getTrackType() const override { return TrackAudio;};
-    virtual int getAudioSampleRate() const  = 0;
-    virtual int getAudioSampleBit() const = 0;
-    virtual int getAudioChannel() const = 0;
-};
-
-class H264TrackFormat : public VideoTrackFormat{
-public:
-	H264TrackFormat(const string &sps,const string &pps){
-		_sps = sps;
-		_pps = pps;
-	}
-	const string &getSps() const{
-		return _sps;
-	}
-	const string &getPps() const{
-		return _pps;
-	}
-	int getCodecId() const override{
-		return TrackFormat::VideoCodecH264;
-	}
-private:
-	string _sps;
-	string _pps;
-};
-
-class AACTrackFormat : public AudioTrackFormat{
-public:
-	AACTrackFormat(const string &aac_cfg){
-		_cfg = aac_cfg;
-	}
-	const string &getAacCfg() const{
-		return _cfg;
-	}
-	int getCodecId() const override{
-		return TrackFormat::AudioCodecAAC;
-	}
-private:
-	string _cfg;
-};
-
 
 class MediaFormat {
 public:
