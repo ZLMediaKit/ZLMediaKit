@@ -4,10 +4,23 @@
 
 #include "AACRtpCodec.h"
 
-void AACRtpCodec::inputFame(const Frame::Ptr &frame, bool key_pos) {
+AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
+                             uint32_t ui32MtuSize,
+                             uint32_t ui32SampleRate,
+                             uint8_t ui8PlayloadType,
+                             uint8_t ui8Interleaved) :
+        RtpInfo(ui32Ssrc,
+                ui32MtuSize,
+                ui32SampleRate,
+                ui8PlayloadType,
+                ui8Interleaved) {
+
+}
+
+void AACRtpEncoder::inputFame(const Frame::Ptr &frame, bool key_pos) {
     RtpCodec::inputFame(frame, key_pos);
 
-    GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Config::Rtp::kCycleMS);
+    GET_CONFIG_AND_REGISTER(uint32_t, cycleMS, Config::Rtp::kCycleMS);
     auto uiStamp = frame->stamp();
     auto pcData = frame->data();
     auto iLen = frame->size();
@@ -15,7 +28,7 @@ void AACRtpCodec::inputFame(const Frame::Ptr &frame, bool key_pos) {
     uiStamp %= cycleMS;
     char *ptr = (char *) pcData;
     int iSize = iLen;
-    while (iSize > 0 ) {
+    while (iSize > 0) {
         if (iSize <= m_ui32MtuSize - 20) {
             m_aucSectionBuf[0] = 0;
             m_aucSectionBuf[1] = 16;
@@ -37,7 +50,7 @@ void AACRtpCodec::inputFame(const Frame::Ptr &frame, bool key_pos) {
     }
 }
 
-void AACRtpCodec::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp) {
+void AACRtpEncoder::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp) {
     uint16_t u16RtpLen = uiLen + 12;
     m_ui32TimeStamp = (m_ui32SampleRate / 1000) * uiStamp;
     uint32_t ts = htonl(m_ui32TimeStamp);
@@ -75,7 +88,7 @@ void AACRtpCodec::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, 
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-void AACRtpCodec::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
+void AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     RtpCodec::inputRtp(rtppack, key_pos);
 
     int length = rtppack->length - rtppack->offset;
@@ -95,11 +108,12 @@ void AACRtpCodec::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     }
 }
 
-void AACRtpCodec::onGetAdts(const AdtsFrame::Ptr &frame) {
+void AACRtpDecoder::onGetAdts(const AdtsFrame::Ptr &frame) {
     //写入环形缓存
     RtpCodec::inputFame(frame, false);
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     m_adts = m_framePool.obtain();
     m_adts->aac_frame_length = 7;
 }
+
 
