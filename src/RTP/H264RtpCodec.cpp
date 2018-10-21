@@ -60,9 +60,8 @@ void H264RtpCodec::makeH264Rtp(const void* data, unsigned int len, bool mark, ui
     uint16_t sq = htons(m_ui16Sequence);
     uint32_t sc = htonl(m_ui32Ssrc);
 
-    auto pRtppkt = obtainRtp();
-    auto &rtppkt = *(pRtppkt.get());
-    unsigned char *pucRtp = rtppkt.payload;
+    auto rtppkt = obtainRtp();
+    unsigned char *pucRtp = rtppkt->payload;
     pucRtp[0] = '$';
     pucRtp[1] = m_ui8Interleaved;
     pucRtp[2] = ui16RtpLen >> 8;
@@ -76,18 +75,18 @@ void H264RtpCodec::makeH264Rtp(const void* data, unsigned int len, bool mark, ui
     //playload
     memcpy(&pucRtp[16], data, len);
 
-    rtppkt.PT = m_ui8PlayloadType;
-    rtppkt.interleaved = m_ui8Interleaved;
-    rtppkt.mark = mark;
-    rtppkt.length = len + 16;
-    rtppkt.sequence = m_ui16Sequence;
-    rtppkt.timeStamp = m_ui32TimeStamp;
-    rtppkt.ssrc = m_ui32Ssrc;
-    rtppkt.type = TrackVideo;
-    rtppkt.offset = 16;
+    rtppkt->PT = m_ui8PlayloadType;
+    rtppkt->interleaved = m_ui8Interleaved;
+    rtppkt->mark = mark;
+    rtppkt->length = len + 16;
+    rtppkt->sequence = m_ui16Sequence;
+    rtppkt->timeStamp = m_ui32TimeStamp;
+    rtppkt->ssrc = m_ui32Ssrc;
+    rtppkt->type = TrackVideo;
+    rtppkt->offset = 16;
 
     uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
-    RtpCodec::inputRtp(pRtppkt,type == 5);
+    RtpCodec::inputRtp(rtppkt,type == 5);
     m_ui16Sequence++;
 }
 
@@ -173,7 +172,9 @@ bool H264RtpCodec::decodeRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
 }
 
 void H264RtpCodec::onGetH264(const H264Frame::Ptr &frame) {
+    //写入环形缓存
     RtpCodec::inputFame(frame,frame->type == 5);
+    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     m_h264frame = m_framePool.obtain();
     m_h264frame->buffer.clear();
 }

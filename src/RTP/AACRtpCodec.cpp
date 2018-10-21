@@ -78,15 +78,13 @@ void AACRtpCodec::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, 
 void AACRtpCodec::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     RtpCodec::inputRtp(rtppack, key_pos);
 
-    char *frame = (char *) rtppack->payload + rtppack->offset;
     int length = rtppack->length - rtppack->offset;
-
     if (m_adts->aac_frame_length + length - 4 > sizeof(AdtsFrame::buffer)) {
         m_adts->aac_frame_length = 7;
         WarnL << "aac负载数据太长";
-        return ;
+        return;
     }
-    memcpy(m_adts->buffer + m_adts->aac_frame_length, frame + 4, length - 4);
+    memcpy(m_adts->buffer + m_adts->aac_frame_length, rtppack->payload + rtppack->offset + 4, length - 4);
     m_adts->aac_frame_length += (length - 4);
     if (rtppack->mark == true) {
         m_adts->sequence = rtppack->sequence;
@@ -95,11 +93,12 @@ void AACRtpCodec::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
         writeAdtsHeader(*m_adts, m_adts->buffer);
         onGetAdts(m_adts);
     }
-    return ;
 }
 
 void AACRtpCodec::onGetAdts(const AdtsFrame::Ptr &frame) {
+    //写入环形缓存
     RtpCodec::inputFame(frame, false);
+    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     m_adts = m_framePool.obtain();
     m_adts->aac_frame_length = 7;
 }
