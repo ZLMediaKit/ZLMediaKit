@@ -21,8 +21,9 @@ public:
     typedef RingBuffer<RtpPacket::Ptr> RtpRing;
 
     RtpCodec(){
-        _frameRing = std::make_shared<FrameRing>();
-        _rtpRing = std::make_shared<RtpRing>();
+        //禁用缓存
+        _frameRing = std::make_shared<FrameRing>(1);
+        _rtpRing = std::make_shared<RtpRing>(1);
     }
     virtual ~RtpCodec(){}
 
@@ -45,11 +46,11 @@ private:
 };
 
 
-class RtpEncoder : public RtpCodec{
+class RtpInfo{
 public:
-    typedef std::shared_ptr<RtpEncoder> Ptr;
+    typedef std::shared_ptr<RtpInfo> Ptr;
 
-    RtpEncoder(uint32_t ui32Ssrc,
+    RtpInfo(uint32_t ui32Ssrc,
                uint32_t ui32MtuSize,
                uint32_t ui32SampleRate,
                uint8_t ui8PlayloadType,
@@ -62,7 +63,7 @@ public:
         m_rtpPool.setSize(32);
     }
 
-    ~RtpEncoder(){}
+    virtual ~RtpInfo(){}
 
     int getInterleaved() const {
         return m_ui8Interleaved;
