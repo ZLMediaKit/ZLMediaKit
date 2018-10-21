@@ -13,7 +13,16 @@ class Frame : public Buffer {
 public:
     typedef std::shared_ptr<Frame> Ptr;
     virtual ~Frame(){}
+    /**
+     * 时间戳
+     */
     virtual uint32_t stamp() = 0;
+
+    /**
+     * 前缀长度，譬如264前缀为0x00 00 00 01,那么前缀长度就是4
+     * aac前缀则为7个字节
+     */
+    virtual uint32_t prefixSize() = 0;
 };
 
 class H264Frame : public Frame {
@@ -29,14 +38,16 @@ public:
     uint32_t stamp() override {
         return timeStamp;
     }
+    uint32_t prefixSize() override{
+        return iPrefixSize;
+    }
 public:
     uint16_t sequence;
     uint32_t timeStamp;
     unsigned char type;
     string buffer;
+    uint32_t iPrefixSize = 4;
 };
-
-
 
 //ADTS 头中相对有用的信息 采样率、声道数、帧长度
 class AdtsFrame : public Frame {
@@ -51,6 +62,9 @@ public:
     }
     uint32_t stamp() override {
         return timeStamp;
+    }
+    uint32_t prefixSize() override{
+        return iPrefixSize;
     }
 public:
     unsigned int syncword; //12 bslbf 同步字The bit string ‘1111 1111 1111’，说明一个ADTS帧的开始
@@ -75,6 +89,7 @@ public:
     unsigned char buffer[2 * 1024 + 7];
     uint16_t sequence;
     uint32_t timeStamp;
+    uint32_t iPrefixSize = 4;
 } ;
 
 
