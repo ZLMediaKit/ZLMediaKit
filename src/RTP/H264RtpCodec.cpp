@@ -4,11 +4,24 @@
 
 #include "H264RtpCodec.h"
 
-void H264RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
-    RtpCodec::inputRtp(rtp, decodeRtp(rtp,key_pos));
+
+H264RtpDecoder::H264RtpDecoder() {
+    m_h264frame = obtainFrame();
 }
 
-bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
+H264Frame::Ptr  H264RtpDecoder::obtainFrame() {
+    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
+    auto frame = m_framePool.obtain();
+    frame->buffer.clear();
+    frame->iPrefixSize = 4;
+    return frame;
+}
+
+void H264RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
+    RtpCodec::inputRtp(rtp, decodeRtp(rtp));
+}
+
+bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
     /**
      * h264帧类型
      * Type==1:P/B frame
@@ -85,10 +98,9 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
 void H264RtpDecoder::onGetH264(const H264Frame::Ptr &frame) {
     //写入环形缓存
     RtpCodec::inputFame(frame,frame->type == 5);
-    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    m_h264frame = m_framePool.obtain();
-    m_h264frame->buffer.clear();
+    m_h264frame = obtainFrame();
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -109,8 +121,8 @@ void H264RtpEncoder::inputFame(const Frame::Ptr &frame, bool key_pos) {
 
     GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Config::Rtp::kCycleMS);
     auto uiStamp = frame->stamp();
-    auto pcData = frame->data();
-    auto iLen = frame->size();
+    auto pcData = frame->data() + frame->prefixSize();
+    auto iLen = frame->size() - frame->prefixSize();
 
     uiStamp %= cycleMS;
     int iSize = m_ui32MtuSize - 2;

@@ -18,12 +18,12 @@ AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
 }
 
 void AACRtpEncoder::inputFame(const Frame::Ptr &frame, bool key_pos) {
-    RtpCodec::inputFame(frame, key_pos);
+    RtpCodec::inputFame(frame, false);
 
     GET_CONFIG_AND_REGISTER(uint32_t, cycleMS, Config::Rtp::kCycleMS);
     auto uiStamp = frame->stamp();
-    auto pcData = frame->data();
-    auto iLen = frame->size();
+    auto pcData = frame->data() + frame->prefixSize();
+    auto iLen = frame->size() - frame->prefixSize();
 
     uiStamp %= cycleMS;
     char *ptr = (char *) pcData;
@@ -87,9 +87,21 @@ void AACRtpEncoder::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
+AACRtpDecoder::AACRtpDecoder(uint32_t ui32SampleRate) {
+    m_adts = obtainFrame();
+    m_sampleRate = ui32SampleRate;
+}
+
+AdtsFrame::Ptr AACRtpDecoder::obtainFrame() {
+    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
+    auto frame = m_framePool.obtain();
+    frame->aac_frame_length = 7;
+    frame->iPrefixSize = 7;
+    return frame;
+}
 
 void AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
-    RtpCodec::inputRtp(rtppack, key_pos);
+    RtpCodec::inputRtp(rtppack, false);
 
     int length = rtppack->length - rtppack->offset;
     if (m_adts->aac_frame_length + length - 4 > sizeof(AdtsFrame::buffer)) {
@@ -102,7 +114,7 @@ void AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     if (rtppack->mark == true) {
         m_adts->sequence = rtppack->sequence;
         //todo(xzl) 此处完成时间戳转换
-//        m_adts->timeStamp = rtppack->timeStamp * (1000.0 / m_iSampleRate);
+        m_adts->timeStamp = rtppack->timeStamp * (1000.0 / m_sampleRate);
         writeAdtsHeader(*m_adts, m_adts->buffer);
         onGetAdts(m_adts);
     }
@@ -111,9 +123,9 @@ void AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
 void AACRtpDecoder::onGetAdts(const AdtsFrame::Ptr &frame) {
     //写入环形缓存
     RtpCodec::inputFame(frame, false);
-    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    m_adts = m_framePool.obtain();
-    m_adts->aac_frame_length = 7;
+    m_adts = obtainFrame();
 }
+
+
 
 
