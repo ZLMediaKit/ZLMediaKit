@@ -2,9 +2,9 @@
 // Created by xzl on 2018/10/18.
 //
 
-#include "AACRtpEncoder.h"
+#include "AACRtpCodec.h"
 
-void AACRtpEncoder::inputFame(const Frame::Ptr &frame, bool key_pos) {
+void AACRtpCodec::inputFame(const Frame::Ptr &frame, bool key_pos) {
     RtpCodec::inputFame(frame, key_pos);
 
     GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Config::Rtp::kCycleMS);
@@ -37,7 +37,7 @@ void AACRtpEncoder::inputFame(const Frame::Ptr &frame, bool key_pos) {
     }
 }
 
-void AACRtpEncoder::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp) {
+void AACRtpCodec::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp) {
     uint16_t u16RtpLen = uiLen + 12;
     m_ui32TimeStamp = (m_ui32SampleRate / 1000) * uiStamp;
     uint32_t ts = htonl(m_ui32TimeStamp);
@@ -75,30 +75,32 @@ void AACRtpEncoder::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-void AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
-    RtpCodec::inputRtp(rtp, key_pos);
+void AACRtpCodec::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
+    RtpCodec::inputRtp(rtppack, key_pos);
 
-    auto &rtppack = *rtp;
-    char *frame = (char *) rtppack.payload + rtppack.offset;
-    int length = rtppack.length - rtppack.offset;
+    char *frame = (char *) rtppack->payload + rtppack->offset;
+    int length = rtppack->length - rtppack->offset;
 
     if (m_adts->aac_frame_length + length - 4 > sizeof(AdtsFrame::buffer)) {
         m_adts->aac_frame_length = 7;
+        WarnL << "aac负载数据太长";
         return ;
     }
     memcpy(m_adts->buffer + m_adts->aac_frame_length, frame + 4, length - 4);
     m_adts->aac_frame_length += (length - 4);
-    if (rtppack.mark == true) {
-        m_adts->sequence = rtppack.sequence;
-
-        //todo(xzl) 完成时间戳转换
-//        m_adts->timeStamp = rtppack.timeStamp * (1000.0 / m_iSampleRate);
+    if (rtppack->mark == true) {
+        m_adts->sequence = rtppack->sequence;
+        //todo(xzl) 此处完成时间戳转换
+//        m_adts->timeStamp = rtppack->timeStamp * (1000.0 / m_iSampleRate);
         writeAdtsHeader(*m_adts, m_adts->buffer);
-        RtpCodec::inputFame(m_adts,false);
-        m_adts->aac_frame_length = 7;
+        onGetAdts(m_adts);
     }
+    return ;
 }
 
-AACRtpDecoder::AACRtpDecoder() {
-    m_adts = std::make_shared<AdtsFrame>();
+void AACRtpCodec::onGetAdts(const AdtsFrame::Ptr &frame) {
+    RtpCodec::inputFame(frame, false);
+    m_adts = m_framePool.obtain();
+    m_adts->aac_frame_length = 7;
 }
+
