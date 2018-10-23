@@ -156,45 +156,11 @@ protected:
     ResourcePool<RtpPacket> m_rtpPool;
 };
 
-class RtpCodec : public RtpRing, public FrameRingInterface , public CodecInfo{
+class RtpCodec : public RtpRing, public FrameRingInterfaceDelegate , public CodecInfo{
 public:
     typedef std::shared_ptr<RtpCodec> Ptr;
     RtpCodec(){}
     virtual ~RtpCodec(){}
-
-    void setDelegate(const FrameRingInterface::Ptr &delegate){
-        _delegate = delegate;
-    }
-    /**
-     * 获取帧环形缓存
-     * @return
-     */
-    FrameRingInterface::RingType::Ptr getFrameRing() const override {
-        if(_delegate){
-            return _delegate->getFrameRing();
-        }
-        return nullptr;
-    }
-
-    /**
-     * 设置帧环形缓存
-     * @param ring
-     */
-    void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override {
-        if(_delegate){
-            _delegate->setFrameRing(ring);
-        }
-    }
-
-    /**
-     * 写入帧数据
-     * @param frame 帧
-     */
-    void inputFrame(const Frame::Ptr &frame) override{
-        if(_delegate){
-            _delegate->inputFrame(frame);
-        }
-    }
 
     /**
      * 根据CodecId生成Rtp打包器
@@ -220,9 +186,6 @@ public:
      * @return
      */
     static Ptr getRtpDecoderById(CodecId codecId,uint32_t ui32SampleRate);
-
-private:
-    FrameRingInterface::Ptr _delegate;
 };
 
 

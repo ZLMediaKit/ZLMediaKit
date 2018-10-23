@@ -8,6 +8,7 @@
 #include "RTP/H264RtpCodec.h"
 #include "RTP/AACRtpCodec.h"
 #include "Util/base64.h"
+#include "Player/Track.h"
 
 namespace ZL{
 namespace Rtsp{
@@ -28,6 +29,14 @@ public:
         _sample_rate = sample_rate;
         _playload_type = playload_type;
     }
+
+    /**
+     * 根据Track生成SDP对象
+     * @param track 媒体信息
+     * @return 返回sdp对象
+     */
+    static Ptr getSdpByTrack(const Track::Ptr &track);
+
     virtual ~Sdp(){}
 
     /**

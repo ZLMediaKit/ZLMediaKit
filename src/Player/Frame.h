@@ -95,7 +95,6 @@ public:
     virtual void inputFrame(const Frame::Ptr &frame) = 0;
 };
 
-
 class FrameRing : public FrameRingInterface{
 public:
     typedef std::shared_ptr<FrameRing> Ptr;
@@ -131,6 +130,53 @@ public:
 protected:
     RingType::Ptr _frameRing;
 };
+
+class FrameRingInterfaceDelegate : public FrameRingInterface {
+public:
+    typedef std::shared_ptr<FrameRingInterfaceDelegate> Ptr;
+
+    FrameRingInterfaceDelegate(){
+        _delegate = std::make_shared<FrameRing>();
+    }
+    virtual ~FrameRingInterfaceDelegate(){}
+
+    void setDelegate(const FrameRingInterface::Ptr &delegate){
+        _delegate = delegate;
+    }
+    /**
+     * 获取帧环形缓存
+     * @return
+     */
+    FrameRingInterface::RingType::Ptr getFrameRing() const override {
+        if(_delegate){
+            return _delegate->getFrameRing();
+        }
+        return nullptr;
+    }
+
+    /**
+     * 设置帧环形缓存
+     * @param ring
+     */
+    void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override {
+        if(_delegate){
+            _delegate->setFrameRing(ring);
+        }
+    }
+
+    /**
+     * 写入帧数据
+     * @param frame 帧
+     */
+    void inputFrame(const Frame::Ptr &frame) override{
+        if(_delegate){
+            _delegate->inputFrame(frame);
+        }
+    }
+private:
+    FrameRingInterface::Ptr _delegate;
+};
+
 
 /**
  * 264帧类
