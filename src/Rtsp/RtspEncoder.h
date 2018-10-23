@@ -5,51 +5,71 @@
 #ifndef ZLMEDIAKIT_RTSPMAKER_H
 #define ZLMEDIAKIT_RTSPMAKER_H
 
-#include "Device/base64.h"
-#include "Rtsp.h"
-#include "RTP/RtpMaker.h"
-#include "RTP/RtpMakerH264.h"
-#include "RTP/RtpMakerAAC.h"
-#include "Player/PlayerBase.h"
-
-using namespace ZL::Player;
-using namespace ZL::Rtsp;
+#include "RTP/H264RtpCodec.h"
+#include "RTP/AACRtpCodec.h"
+#include "Util/base64.h"
 
 namespace ZL{
 namespace Rtsp{
 
 /**
- * sdp基类
- */
-class Sdp {
+* sdp基类
+*/
+class Sdp : public TrackFormat , public RtpRingInterface{
 public:
     typedef std::shared_ptr<Sdp> Ptr;
+    Sdp(){}
     virtual ~Sdp(){}
     /**
      * 获取sdp字符串
      * @return
      */
-    virtual string getSdp() const { return "";};
+    virtual string getSdp() const  = 0;
 
-    /**
-     * 获取track类型
-     * @return
-     */
-    virtual TrackType getTrackType() const { return TrackInvalid;};
+    TrackType getTrackType() const override {
+        return TrackInvalid;
+    }
 
-    /**
-     * 获取rtp生成器
-     * @param cb 回调lambad
-     * @param ui32Ssrc rtp ssrc
-     * @param iMtuSize rtp mtu
-     * @return
-     */
-    virtual RtpMaker::Ptr createRtpMaker(const RtpMaker::onGetRTP &cb,uint32_t ui32Ssrc, int iMtuSize) const{ return nullptr;};
+    CodecId getCodecId() const override{
+        return CodecInvalid;
+    }
+
+    FrameRingInterface::RingType::Ptr getFrameRing() const override {
+        return _encoder->getFrameRing();
+    }
+
+    RtpRingInterface::RingType::Ptr getRtpRing() const override{
+        return _encoder->getRtpRing();
+    }
+
+    void inputFrame(const Frame::Ptr &frame,bool key_pos) override{
+        _encoder->inputFrame(frame,key_pos);
+    }
+
+    void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
+        _encoder->inputRtp(rtp,key_pos);
+    }
+
+    virtual void createRtpEncoder(uint32_t ssrc, int mtu) = 0;
+
+    void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override{
+        if(_encoder){
+            _encoder->setFrameRing(ring);
+        }
+    }
+    void setRtpRing(const RtpRingInterface::RingType::Ptr &ring) override{
+        if(_encoder){
+            _encoder->setRtpRing(ring);
+        }
+    }
+
+protected:
+    RtpEncoder::Ptr _encoder;
 };
 
 /**
- * sdp中除音视频外的其他描述部分
- */
+* sdp中除音视频外的其他描述部分
+*/
 class SdpTitle : public Sdp{
 public:
 
@@ -70,8 +90,8 @@ public:
             }
         } else {
             _printer << "o=- 1383190487994921 1 IN IP4 0.0.0.0\r\n";
-            _printer << "s=RTSP Session, streamed by the ZL\r\n";
-            _printer << "i=ZL Live Stream\r\n";
+            _printer << "s=RTSP Session, streamed by the ZLMediaKit\r\n";
+            _printer << "i=ZLMediaKit Live Stream\r\n";
             _printer << "c=IN IP4 0.0.0.0\r\n";
             _printer << "t=0 0\r\n";
         }
@@ -86,14 +106,14 @@ public:
     string getSdp() const override {
         return _printer;
     }
-
+    void createRtpEncoder(uint32_t ssrc, int mtu) override {}
 private:
     _StrPrinter _printer;
 };
 
 /**
- * h264类型sdp
- */
+* h264类型sdp
+*/
 class SdpH264 : public Sdp {
 public:
 
@@ -111,12 +131,12 @@ public:
             int sample_rate = 90000,
             int playload_type = 96,
             int track_id = TrackVideo,
-            int bitrate = 4000){
+            int bitrate = 4000) {
 
         _playload_type = playload_type;
         _sample_rate = sample_rate;
         _track_id = track_id;
-        
+
         //视频通道
         _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
@@ -149,12 +169,19 @@ public:
 
     TrackType getTrackType() const override {
         return TrackVideo;
-    };
+    }
 
-    RtpMaker::Ptr createRtpMaker(const RtpMaker::onGetRTP &cb,uint32_t ui32Ssrc, int iMtuSize) const override{
-        return std::make_shared<RtpMaker_H264>(cb,ui32Ssrc,iMtuSize,_sample_rate,_playload_type,_track_id * 2);
-    };
+    CodecId getCodecId() const override {
+        return CodecH264;
+    }
 
+    void createRtpEncoder(uint32_t ssrc, int mtu) override{
+        _encoder = std::make_shared<H264RtpEncoder>(ssrc,
+                                                    mtu,
+                                                    _sample_rate,
+                                                    _playload_type,
+                                                    _track_id * 2);
+    }
 private:
     _StrPrinter _printer;
     int _playload_type;
@@ -165,8 +192,8 @@ private:
 
 
 /**
- * aac类型SDP
- */
+* aac类型SDP
+*/
 class SdpAAC : public Sdp {
 public:
 
@@ -207,10 +234,29 @@ public:
     TrackType getTrackType() const override {
         return TrackAudio;
     };
+    CodecId getCodecId() const override {
+        return CodecAAC;
+    }
 
-    RtpMaker::Ptr createRtpMaker(const RtpMaker::onGetRTP &cb,uint32_t ui32Ssrc, int iMtuSize) const override{
-        return std::make_shared<RtpMaker_AAC>(cb,ui32Ssrc,iMtuSize,_sample_rate,_playload_type,_track_id * 2);
-    };
+    void createRtpEncoder(uint32_t ssrc,
+                          int mtu) override{
+        _encoder = std::make_shared<AACRtpEncoder>(ssrc,
+                                                   mtu,
+                                                   _sample_rate,
+                                                   _playload_type,
+                                                   _track_id * 2);
+    }
+
+    void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override{
+        if(_encoder){
+            _encoder->setFrameRing(ring);
+        }
+    }
+    void setRtpRing(const RtpRingInterface::RingType::Ptr &ring) override{
+        if(_encoder){
+            _encoder->setRtpRing(ring);
+        }
+    }
 private:
     _StrPrinter _printer;
     int _playload_type;
@@ -219,85 +265,116 @@ private:
 };
 
 /**
- * rtsp生成器
- */
-class RtspMaker{
+* rtsp生成器
+*/
+class RtspEncoder : public FrameRingInterface , public RtpRingInterface{
 public:
     /**
      * 构成函数
-     * @param callback rtp回调lambad
      */
-    RtspMaker(const RtpMaker::onGetRTP &callback) : _vec_rtp_maker(TrackMax){
-        _callback = callback;
+    RtspEncoder(){
+        //自适应缓存
+        _rtpRing = std::make_shared<RtpRingInterface::RingType>(0);
+        //禁用缓存
+        _frameRing = std::make_shared<FrameRingInterface::RingType>(1);
     }
+    virtual ~RtspEncoder(){}
 
     /**
      * 添加音视频track
-     * @param sdp 媒体描述
+     * @param sdp 媒体描述对象
      * @param ssrc 媒体rtp ssrc
      * @param mtu 媒体rtp mtu
-     * @return 成功与否
      */
-    bool addTrack(const Sdp & sdp,uint32_t ssrc = 0,int mtu = 1400){
-        auto type = sdp.getTrackType();
-        if(type < 0 || type >= _vec_rtp_maker.size()){
-            return false;
-        }
-
-        if(_vec_rtp_maker[type]){
-            return false;
-        }
-
+    void addTrack(const Sdp::Ptr & sdp,uint32_t ssrc = 0,int mtu = 1400){
         if(ssrc == 0){
-            ssrc = ((uint64_t) &sdp) & 0xFFFFFFFF;
+            ssrc = ((uint64_t) sdp.get()) & 0xFFFFFFFF;
         }
-
-        auto rtpMaker = sdp.createRtpMaker(_callback, ssrc,mtu);
-        _vec_rtp_maker[sdp.getTrackType()] = rtpMaker;
-        _printer << sdp.getSdp();
-        return true;
+        sdp->createRtpEncoder(ssrc, mtu);
+        sdp->setFrameRing(_frameRing);
+        sdp->setRtpRing(_rtpRing);
+        _sdp_map[sdp->getTrackType()] = sdp;
     }
 
-    virtual ~RtspMaker() {};
 
     /**
      * 获取完整的SDP字符串
      * @return SDP字符串
      */
     string getSdp() {
-        return _printer;
+        _StrPrinter printer;
+        for(auto &pr : _sdp_map){
+            printer << pr.second->getSdp() ;
+        }
+        return printer;
     }
 
 
     /**
-     * 打包RTP数据包
-     * @param type 媒体类型
-     * @param pcData 媒体数据
-     * @param iDataLen 媒体数据长度
-     * @param uiStamp  媒体时间戳，单位毫秒
-     * @return 是否成功
+     * 写入帧数据然后打包rtp
+     * @param frame 帧数据
+     * @param key_pos 是否为关键帧
      */
-    bool makeRtp(TrackType type,const char *pcData, int iDataLen, uint32_t uiStamp){
-        if(type < 0 || type >= _vec_rtp_maker.size()){
-            return false;
+    void inputFrame(const Frame::Ptr &frame,bool key_pos = true) override {
+        auto it = _sdp_map.find(frame->getTrackType());
+        if(it == _sdp_map.end()){
+            return ;
         }
-        auto track = _vec_rtp_maker[type];
-        if(!track){
-            return false;
-        }
-        track->makeRtp(pcData,iDataLen,uiStamp);
-        return true;
+        it->second->inputFrame(frame,key_pos);
     }
 
+     /**
+      * 也可以在外部打包好rtp然后再写入
+      * @param rtp rtp包
+      * @param key_pos 是否为关键帧的第一个rtp包
+      */
+    void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override {
+        _rtpRing->write(rtp,key_pos);
+    }
+
+    /**
+     * 获取rtp环形缓存
+     * @return
+     */
+    RtpRingInterface::RingType::Ptr getRtpRing() const override{
+        return  _rtpRing;
+    }
+
+    /**
+     * 获取帧环形缓存
+     * @return
+     */
+    FrameRingInterface::RingType::Ptr getFrameRing() const override{
+        return _frameRing;
+    }
+
+    /**
+     * 设置帧环形缓存
+     * @param ring
+     */
+    void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override{
+        _frameRing = ring;
+        for(auto &pr : _sdp_map){
+            pr.second->setFrameRing(ring);
+        }
+    }
+
+
+    /**
+     * 设置rtp环形缓存
+     * @param ring
+     */
+    void setRtpRing(const RtpRingInterface::RingType::Ptr &ring) override{
+        _rtpRing = ring;
+        for(auto &pr : _sdp_map){
+            pr.second->setRtpRing(ring);
+        }
+    }
 private:
-    vector<RtpMaker::Ptr> _vec_rtp_maker;
-    _StrPrinter _printer;
-    RtpMaker::onGetRTP _callback;
+    map<int,Sdp::Ptr> _sdp_map;
+    RtpRingInterface::RingType::Ptr _rtpRing;
+    FrameRingInterface::RingType::Ptr _frameRing;
 };
-
-
-
-
 
 
 }

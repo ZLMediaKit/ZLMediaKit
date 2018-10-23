@@ -32,6 +32,7 @@
 #include "Player/Player.h"
 #include "Player/PlayerBase.h"
 #include "Util/TimeTicker.h"
+#include "RTP/RtpCodec.h"
 
 using namespace std;
 using namespace ZL::Util;
@@ -51,7 +52,7 @@ public:
 		lock_guard<recursive_mutex> lck(m_mtxCB);
 		onVideo = cb;
 	}
-	void setOnAudioCB(const function<void(const AdtsFrame &frame)> &cb) override{
+	void setOnAudioCB(const function<void(const AACFrame &frame)> &cb) override{
 		lock_guard<recursive_mutex> lck(m_mtxCB);
 		onAudio = cb;
 	}
@@ -120,11 +121,11 @@ private:
 	inline bool inputAudio(const RtpPacket &rtp, const RtspTrack &track);
 	inline void _onGetH264(H264Frame &frame);
 	inline void onGetH264(H264Frame &frame);
-	inline void onGetAdts(AdtsFrame &frame);
+	inline void onGetAdts(AACFrame &frame);
 	//video
 	H264Frame m_h264frame;
 	//aduio
-	AdtsFrame m_adts;
+	AACFrame m_adts;
 
 	int m_iSampleRate = 44100;
 	int m_iSampleBit = 16;
@@ -142,7 +143,7 @@ private:
 	bool m_bParseSpsDelay = false;
 
 	function<void(const H264Frame &frame)> onVideo;
-	function<void(const AdtsFrame &frame)> onAudio;
+	function<void(const AACFrame &frame)> onAudio;
 	recursive_mutex m_mtxCB;
 };
 

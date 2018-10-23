@@ -242,7 +242,7 @@ inline bool RtpParser::inputAudio(const RtpPacket& rtppack,
 	char *frame = (char *) rtppack.payload + rtppack.offset;
 	int length = rtppack.length - rtppack.offset;
 
-	if (m_adts.aac_frame_length + length - 4 > sizeof(AdtsFrame::buffer)) {
+	if (m_adts.aac_frame_length + length - 4 > sizeof(AACFrame::buffer)) {
 		m_adts.aac_frame_length = 7;
 		return false;
 	}
@@ -302,7 +302,7 @@ inline void RtpParser::onGetH264(H264Frame& frame) {
 	}
 }
 
-inline void RtpParser::onGetAdts(AdtsFrame& frame) {
+inline void RtpParser::onGetAdts(AACFrame& frame) {
 	//frame.timeStamp=ticker1.elapsedTime();
 	lock_guard<recursive_mutex> lck(m_mtxCB);
 	if (onAudio) {

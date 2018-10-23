@@ -74,7 +74,7 @@ private:
 	uint32_t m_audio_sample_rate = 0;
 	uint32_t m_audio_num_channels = 0;
 	string m_strAacCfg;
-	AdtsFrame m_adts;
+	AACFrame m_adts;
 
 	int m_iDuration = 0;
 	DevChannel::Ptr m_pChn;

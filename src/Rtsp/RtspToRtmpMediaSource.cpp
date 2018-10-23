@@ -124,7 +124,7 @@ void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 	rtmpPkt->typeId = MSG_VIDEO;
 	m_pRtmpSrc->onGetMedia(rtmpPkt);
 }
-void RtspToRtmpMediaSource::onGetAdts(const AdtsFrame& frame) {
+void RtspToRtmpMediaSource::onGetAdts(const AACFrame& frame) {
 	if(m_pRecorder){
 		m_pRecorder->inputAAC((char *) frame.buffer, frame.aac_frame_length, frame.timeStamp);
 	}

@@ -24,12 +24,20 @@ public:
      * @param key_pos 此参数内部强制转换为false,请忽略之
      */
     void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = false) override;
+
+    TrackType getTrackType() const override{
+        return TrackAudio;
+    }
+
+    CodecId getCodecId() const override{
+        return CodecAAC;
+    }
 private:
-    void onGetAdts(const AdtsFrame::Ptr &frame);
-    AdtsFrame::Ptr obtainFrame();
+    void onGetAdts(const AACFrame::Ptr &frame);
+    AACFrame::Ptr obtainFrame();
 private:
-    AdtsFrame::Ptr m_adts;
-    ResourcePool<AdtsFrame> m_framePool;
+    AACFrame::Ptr m_adts;
+    ResourcePool<AACFrame> m_framePool;
     uint32_t m_sampleRate;
 };
 
@@ -37,7 +45,7 @@ private:
 /**
  * aac adts转rtp类
  */
-class AACRtpEncoder : public RtpInfo, public RtpCodec {
+class AACRtpEncoder : public RtpEncoder {
 public:
     /**
      * @param ui32Ssrc ssrc
@@ -58,7 +66,16 @@ public:
      * @param frame 带dats头的aac数据
      * @param key_pos 此参数内部强制转换为false,请忽略之
      */
-    void inputFame(const Frame::Ptr &frame, bool key_pos = false) override;
+    void inputFrame(const Frame::Ptr &frame, bool key_pos = false) override;
+
+    TrackType getTrackType() const override{
+        return TrackAudio;
+    }
+
+    CodecId getCodecId() const override{
+        return CodecAAC;
+    }
+
 private:
     void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:

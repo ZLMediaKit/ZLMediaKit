@@ -14,35 +14,55 @@ using namespace std;
 using namespace ZL::Util;
 using namespace ZL::Player;
 
-class RtpCodec{
+class RtpPacket {
 public:
-    typedef std::shared_ptr<RtpCodec> Ptr;
-    typedef RingBuffer<Frame::Ptr> FrameRing;
-    typedef RingBuffer<RtpPacket::Ptr> RtpRing;
+    typedef std::shared_ptr<RtpPacket> Ptr;
+    uint8_t interleaved;
+    uint8_t PT;
+    bool mark;
+    uint32_t length;
+    uint32_t timeStamp;
+    uint16_t sequence;
+    uint32_t ssrc;
+    uint8_t payload[1560];
+    uint8_t offset;
+    TrackType type;
+};
 
-    RtpCodec(){
+class RtpRingInterface {
+public:
+    typedef RingBuffer<RtpPacket::Ptr> RingType;
+
+    RtpRingInterface(){}
+    virtual ~RtpRingInterface(){}
+    virtual RingType::Ptr getRtpRing() const = 0;
+    virtual void setRtpRing(const RingType::Ptr &ring) = 0;
+    virtual void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) = 0;
+};
+
+class RtpRing : public RtpRingInterface {
+public:
+    typedef std::shared_ptr<RtpRing> Ptr;
+
+    RtpRing(){
         //禁用缓存
-        _frameRing = std::make_shared<FrameRing>(1);
-        _rtpRing = std::make_shared<RtpRing>(1);
+        _rtpRing = std::make_shared<RingType>(1);
     }
-    virtual ~RtpCodec(){}
+    virtual ~RtpRing(){}
 
-    FrameRing::Ptr &getFrameRing() {
-        return _frameRing;
-    }
-    RtpRing::Ptr &getRtpRing() {
+    RingType::Ptr getRtpRing() const override {
         return _rtpRing;
     }
 
-    virtual void inputFame(const Frame::Ptr &frame,bool key_pos){
-        _frameRing->write(frame,key_pos);
+    void setRtpRing(const RingType::Ptr &ring) override {
+        _rtpRing = ring;
     }
-    virtual void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos){
+
+    void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
         _rtpRing->write(rtp,key_pos);
     }
-private:
-    FrameRing::Ptr _frameRing;
-    RtpRing::Ptr _rtpRing;
+protected:
+    RingType::Ptr _rtpRing;
 };
 
 
@@ -105,6 +125,31 @@ protected:
     ResourcePool<RtpPacket> m_rtpPool;
 };
 
+class RtpCodec : public RtpRing, public FrameRing , public CodecInfo{
+public:
+    typedef std::shared_ptr<RtpCodec> Ptr;
+    RtpCodec(){}
+    virtual ~RtpCodec(){}
+};
+
+class RtpEncoder : public RtpInfo, public RtpCodec{
+public:
+    typedef std::shared_ptr<RtpEncoder> Ptr;
+
+    /**
+     * @param ui32Ssrc ssrc
+     * @param ui32MtuSize mtu大小
+     * @param ui32SampleRate 采样率，强制为90000
+     * @param ui8PlayloadType pt类型
+     * @param ui8Interleaved rtsp interleaved
+     */
+    RtpEncoder(uint32_t ui32Ssrc,
+               uint32_t ui32MtuSize = 1400,
+               uint32_t ui32SampleRate = 90000,
+               uint8_t ui8PlayloadType = 96,
+               uint8_t ui8Interleaved = TrackVideo * 2);
+    ~RtpEncoder() {}
+};
 
 
 

@@ -97,7 +97,7 @@ void PlayerProxy::play(const char* strUrl) {
 			strongSelf->initMedia();
 		}
 	});
-	setOnAudioCB( [weakSelf](const AdtsFrame &data ) {
+	setOnAudioCB( [weakSelf](const AACFrame &data ) {
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf){
 			return;

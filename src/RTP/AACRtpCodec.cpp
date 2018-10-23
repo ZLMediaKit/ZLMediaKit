@@ -9,16 +9,16 @@ AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
                              uint32_t ui32SampleRate,
                              uint8_t ui8PlayloadType,
                              uint8_t ui8Interleaved) :
-        RtpInfo(ui32Ssrc,
-                ui32MtuSize,
-                ui32SampleRate,
-                ui8PlayloadType,
-                ui8Interleaved) {
+        RtpEncoder(ui32Ssrc,
+                   ui32MtuSize,
+                   ui32SampleRate,
+                   ui8PlayloadType,
+                   ui8Interleaved) {
 
 }
 
-void AACRtpEncoder::inputFame(const Frame::Ptr &frame, bool key_pos) {
-    RtpCodec::inputFame(frame, false);
+void AACRtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
+    RtpCodec::inputFrame(frame, false);
 
     GET_CONFIG_AND_REGISTER(uint32_t, cycleMS, Config::Rtp::kCycleMS);
     auto uiStamp = frame->stamp();
@@ -92,7 +92,7 @@ AACRtpDecoder::AACRtpDecoder(uint32_t ui32SampleRate) {
     m_sampleRate = ui32SampleRate;
 }
 
-AdtsFrame::Ptr AACRtpDecoder::obtainFrame() {
+AACFrame::Ptr AACRtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = m_framePool.obtain();
     frame->aac_frame_length = 7;
@@ -104,7 +104,7 @@ void AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     RtpCodec::inputRtp(rtppack, false);
 
     int length = rtppack->length - rtppack->offset;
-    if (m_adts->aac_frame_length + length - 4 > sizeof(AdtsFrame::buffer)) {
+    if (m_adts->aac_frame_length + length - 4 > sizeof(AACFrame::buffer)) {
         m_adts->aac_frame_length = 7;
         WarnL << "aac负载数据太长";
         return;
@@ -120,9 +120,9 @@ void AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     }
 }
 
-void AACRtpDecoder::onGetAdts(const AdtsFrame::Ptr &frame) {
+void AACRtpDecoder::onGetAdts(const AACFrame::Ptr &frame) {
     //写入环形缓存
-    RtpCodec::inputFame(frame, false);
+    RtpCodec::inputFrame(frame, false);
     m_adts = obtainFrame();
 }
 
