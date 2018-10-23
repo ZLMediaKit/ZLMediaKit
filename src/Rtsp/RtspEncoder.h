@@ -71,10 +71,9 @@ public:
     /**
      * 输入帧数据，驱动rtp打包
      * @param frame 帧数据
-     * @param key_pos 是否为关键帧
      */
-    bool inputFrame(const Frame::Ptr &frame,bool key_pos) override{
-        return _encoder->inputFrame(frame,key_pos);
+    void inputFrame(const Frame::Ptr &frame) override{
+        _encoder->inputFrame(frame);
     }
 
     /**
@@ -313,14 +312,13 @@ public:
     /**
      * 写入帧数据然后打包rtp
      * @param frame 帧数据
-     * @param key_pos 是否为关键帧
      */
-    bool inputFrame(const Frame::Ptr &frame,bool key_pos = true) override {
+    void inputFrame(const Frame::Ptr &frame) override {
         auto it = _sdp_map.find(frame->getTrackType());
         if(it == _sdp_map.end()){
-            return false;
+            return ;
         }
-        return it->second->inputFrame(frame,key_pos);
+        it->second->inputFrame(frame);
     }
 
      /**

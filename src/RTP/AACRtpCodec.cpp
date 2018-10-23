@@ -17,8 +17,8 @@ AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
         AACRtpDecoder(ui32SampleRate){
 }
 
-bool AACRtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
-    RtpCodec::inputFrame(frame, false);
+void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
+    RtpCodec::inputFrame(frame);
 
     GET_CONFIG_AND_REGISTER(uint32_t, cycleMS, Config::Rtp::kCycleMS);
     auto uiStamp = frame->stamp();
@@ -47,7 +47,6 @@ bool AACRtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
         ptr += (m_ui32MtuSize - 20);
         iSize -= (m_ui32MtuSize - 20);
     }
-    return false;
 }
 
 void AACRtpEncoder::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp) {
@@ -122,7 +121,7 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
 
 void AACRtpDecoder::onGetAdts(const AACFrame::Ptr &frame) {
     //写入环形缓存
-    RtpCodec::inputFrame(frame, false);
+    RtpCodec::inputFrame(frame);
     m_adts = obtainFrame();
 }
 

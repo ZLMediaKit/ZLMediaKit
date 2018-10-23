@@ -68,9 +68,8 @@ public:
     /**
      * 输入aac 数据，必须带dats头
      * @param frame 带dats头的aac数据
-     * @param key_pos 此参数内部强制转换为false,请忽略之
      */
-    bool inputFrame(const Frame::Ptr &frame, bool key_pos = false) override;
+    void inputFrame(const Frame::Ptr &frame) override;
 private:
     void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:

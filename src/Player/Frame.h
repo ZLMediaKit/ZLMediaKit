@@ -50,13 +50,19 @@ public:
     /**
      * 时间戳
      */
-    virtual uint32_t stamp() = 0;
+    virtual uint32_t stamp() const = 0;
 
     /**
      * 前缀长度，譬如264前缀为0x00 00 00 01,那么前缀长度就是4
      * aac前缀则为7个字节
      */
-    virtual uint32_t prefixSize() = 0;
+    virtual uint32_t prefixSize() const = 0;
+
+    /**
+     * 返回是否为关键帧
+     * @return
+     */
+    virtual bool keyFrame() const = 0;
 };
 
 /**
@@ -85,10 +91,8 @@ public:
     /**
      * 写入帧数据
      * @param frame 帧
-     * @param key_pos 是否为关键帧
-     * @return 是否为关键帧
      */
-    virtual bool inputFrame(const Frame::Ptr &frame,bool key_pos) = 0;
+    virtual void inputFrame(const Frame::Ptr &frame) = 0;
 };
 
 
@@ -120,11 +124,9 @@ public:
     /**
      * 输入数据帧
      * @param frame
-     * @param key_pos
      */
-    bool inputFrame(const Frame::Ptr &frame,bool key_pos) override{
-        _frameRing->write(frame,key_pos);
-        return key_pos;
+    void inputFrame(const Frame::Ptr &frame) override{
+        _frameRing->write(frame,frame->keyFrame());
     }
 protected:
     RingType::Ptr _frameRing;
@@ -143,10 +145,10 @@ public:
     uint32_t size() const override {
         return buffer.size();
     }
-    uint32_t stamp() override {
+    uint32_t stamp() const override {
         return timeStamp;
     }
-    uint32_t prefixSize() override{
+    uint32_t prefixSize() const override{
         return iPrefixSize;
     }
 
@@ -156,6 +158,10 @@ public:
 
     CodecId getCodecId() const override{
         return CodecH264;
+    }
+
+    bool keyFrame() const override {
+        return type == 5;
     }
 public:
     uint16_t sequence;
@@ -178,10 +184,10 @@ public:
     uint32_t size() const override {
         return aac_frame_length;
     }
-    uint32_t stamp() override {
+    uint32_t stamp() const override {
         return timeStamp;
     }
-    uint32_t prefixSize() override{
+    uint32_t prefixSize() const override{
         return iPrefixSize;
     }
 
@@ -191,6 +197,10 @@ public:
 
     CodecId getCodecId() const override{
         return CodecAAC;
+    }
+
+    bool keyFrame() const override {
+        return false;
     }
 public:
     unsigned int syncword; //12 bslbf 同步字The bit string ‘1111 1111 1111’，说明一个ADTS帧的开始

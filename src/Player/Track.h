@@ -21,6 +21,9 @@ public:
     Track(){}
     virtual ~Track(){}
 
+    /**
+     * 根据sdp生成Track对象
+     */
     static Ptr getTrackBySdp(const string &sdp);
 };
 
@@ -165,9 +168,8 @@ public:
     /**
      * 输入数据帧,并获取sps pps
      * @param frame 数据帧
-     * @param key_pos 是否为关键帧
      */
-    bool inputFrame(const Frame::Ptr &frame,bool key_pos) override{
+    void inputFrame(const Frame::Ptr &frame) override{
         int type = (*((uint8_t *)frame->data() + frame->prefixSize())) & 0x1F;
         switch (type){
             case 7:{
@@ -193,7 +195,7 @@ public:
                     insertFrame->type = 7;
                     insertFrame->buffer = _sps;
                     insertFrame->iPrefixSize = 0;
-                    VideoTrack::inputFrame(insertFrame, true);
+                    VideoTrack::inputFrame(insertFrame);
                 }
 
                 if(!_pps.empty()){
@@ -202,19 +204,18 @@ public:
                     insertFrame->type = 8;
                     insertFrame->buffer = _pps;
                     insertFrame->iPrefixSize = 0;
-                    VideoTrack::inputFrame(insertFrame, false);
+                    VideoTrack::inputFrame(insertFrame);
                 }
-                VideoTrack::inputFrame(frame, false);
+                VideoTrack::inputFrame(frame);
             }
                 break;
 
             case 1:{
                 //B or P
-                VideoTrack::inputFrame(frame, false);
+                VideoTrack::inputFrame(frame);
             }
                 break;
         }
-        return type == 5;
     }
 private:
     /**
