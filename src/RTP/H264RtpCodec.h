@@ -44,7 +44,7 @@ private:
 /**
  * 264 rtp打包类
  */
-class H264RtpEncoder : public RtpEncoder{
+class H264RtpEncoder : public H264RtpDecoder ,public RtpInfo{
 public:
 
     /**
@@ -67,14 +67,6 @@ public:
      * @param key_pos
      */
     void inputFrame(const Frame::Ptr &frame, bool key_pos) override;
-
-    TrackType getTrackType() const override{
-        return TrackVideo;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecH264;
-    }
 private:
     void makeH264Rtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:

@@ -14,9 +14,18 @@ using namespace std;
 using namespace ZL::Util;
 using namespace ZL::Player;
 
-class RtpPacket {
+class RtpPacket : public CodecInfo {
 public:
     typedef std::shared_ptr<RtpPacket> Ptr;
+
+    TrackType getTrackType() const  {
+        return type;
+    }
+
+    CodecId getCodecId() const {
+        return CodecInvalid;
+    }
+public:
     uint8_t interleaved;
     uint8_t PT;
     bool mark;
@@ -71,10 +80,13 @@ public:
     typedef std::shared_ptr<RtpInfo> Ptr;
 
     RtpInfo(uint32_t ui32Ssrc,
-               uint32_t ui32MtuSize,
-               uint32_t ui32SampleRate,
-               uint8_t ui8PlayloadType,
-               uint8_t ui8Interleaved) {
+            uint32_t ui32MtuSize,
+            uint32_t ui32SampleRate,
+            uint8_t ui8PlayloadType,
+            uint8_t ui8Interleaved) {
+        if(ui32Ssrc == 0){
+            ui32Ssrc = ((uint64_t)this) & 0xFFFFFFFF;
+        }
         m_ui32Ssrc = ui32Ssrc;
         m_ui32SampleRate = ui32SampleRate;
         m_ui32MtuSize = ui32MtuSize;
@@ -130,26 +142,15 @@ public:
     typedef std::shared_ptr<RtpCodec> Ptr;
     RtpCodec(){}
     virtual ~RtpCodec(){}
+
+    static Ptr getRtpCodec(CodecId codecId,
+                           uint32_t ui32Ssrc,
+                           uint32_t ui32MtuSize,
+                           uint32_t ui32SampleRate,
+                           uint8_t ui8PlayloadType,
+                           uint8_t ui8Interleaved);
 };
 
-class RtpEncoder : public RtpInfo, public RtpCodec{
-public:
-    typedef std::shared_ptr<RtpEncoder> Ptr;
-
-    /**
-     * @param ui32Ssrc ssrc
-     * @param ui32MtuSize mtu大小
-     * @param ui32SampleRate 采样率，强制为90000
-     * @param ui8PlayloadType pt类型
-     * @param ui8Interleaved rtsp interleaved
-     */
-    RtpEncoder(uint32_t ui32Ssrc,
-               uint32_t ui32MtuSize = 1400,
-               uint32_t ui32SampleRate = 90000,
-               uint8_t ui8PlayloadType = 96,
-               uint8_t ui8Interleaved = TrackVideo * 2);
-    ~RtpEncoder() {}
-};
 
 
 

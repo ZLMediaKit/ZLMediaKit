@@ -45,7 +45,7 @@ private:
 /**
  * aac adts转rtp类
  */
-class AACRtpEncoder : public RtpEncoder {
+class AACRtpEncoder : public AACRtpDecoder , public RtpInfo {
 public:
     /**
      * @param ui32Ssrc ssrc
@@ -67,15 +67,6 @@ public:
      * @param key_pos 此参数内部强制转换为false,请忽略之
      */
     void inputFrame(const Frame::Ptr &frame, bool key_pos = false) override;
-
-    TrackType getTrackType() const override{
-        return TrackAudio;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecAAC;
-    }
-
 private:
     void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:

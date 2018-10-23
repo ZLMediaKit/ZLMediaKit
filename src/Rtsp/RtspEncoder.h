@@ -18,7 +18,10 @@ namespace Rtsp{
 class Sdp : public TrackFormat , public RtpRingInterface{
 public:
     typedef std::shared_ptr<Sdp> Ptr;
-    Sdp(){}
+    Sdp(uint32_t sample_rate, uint8_t playload_type){
+        _sample_rate = sample_rate;
+        _playload_type = playload_type;
+    }
     virtual ~Sdp(){}
     /**
      * 获取sdp字符串
@@ -50,8 +53,6 @@ public:
         _encoder->inputRtp(rtp,key_pos);
     }
 
-    virtual void createRtpEncoder(uint32_t ssrc, int mtu) = 0;
-
     void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override{
         if(_encoder){
             _encoder->setFrameRing(ring);
@@ -63,8 +64,18 @@ public:
         }
     }
 
-protected:
-    RtpEncoder::Ptr _encoder;
+    virtual void createRtpEncoder(uint32_t ssrc, int mtu) {
+        _encoder = RtpCodec::getRtpCodec (getCodecId(),
+                                          ssrc,
+                                          mtu,
+                                          _sample_rate,
+                                          _playload_type,
+                                          getTrackType() * 2);
+    }
+private:
+    RtpCodec::Ptr _encoder;
+    uint8_t _playload_type;
+    uint32_t _sample_rate;
 };
 
 /**
@@ -81,7 +92,7 @@ public:
      */
     SdpTitle(float dur_sec = 0,
              const map<string,string> &header = map<string,string>(),
-             int version = 0){
+             int version = 0) : Sdp(0,0){
         _printer << "v=" << version << "\r\n";
 
         if(!header.empty()){
@@ -106,7 +117,6 @@ public:
     string getSdp() const override {
         return _printer;
     }
-    void createRtpEncoder(uint32_t ssrc, int mtu) override {}
 private:
     _StrPrinter _printer;
 };
@@ -130,13 +140,7 @@ public:
             const string &pps,
             int sample_rate = 90000,
             int playload_type = 96,
-            int track_id = TrackVideo,
-            int bitrate = 4000) {
-
-        _playload_type = playload_type;
-        _sample_rate = sample_rate;
-        _track_id = track_id;
-
+            int bitrate = 4000) : Sdp(sample_rate,playload_type) {
         //视频通道
         _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
@@ -160,7 +164,7 @@ public:
         memset(strTemp, 0, 100);
         av_base64_encode(strTemp, 100, (uint8_t *) strPPS.data(), strPPS.size());
         _printer << strTemp << "\r\n";
-        _printer << "a=control:trackID=" << track_id << "\r\n";
+        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
     }
 
     string getSdp() const override {
@@ -174,20 +178,8 @@ public:
     CodecId getCodecId() const override {
         return CodecH264;
     }
-
-    void createRtpEncoder(uint32_t ssrc, int mtu) override{
-        _encoder = std::make_shared<H264RtpEncoder>(ssrc,
-                                                    mtu,
-                                                    _sample_rate,
-                                                    _playload_type,
-                                                    _track_id * 2);
-    }
 private:
     _StrPrinter _printer;
-    int _playload_type;
-    int _sample_rate;
-    int _track_id;
-
 };
 
 
@@ -208,13 +200,7 @@ public:
     SdpAAC(const string &aac_cfg,
            int sample_rate,
            int playload_type = 98,
-           int track_id = TrackAudio,
-           int bitrate = 128){
-
-        _playload_type = playload_type;
-        _sample_rate = sample_rate;
-        _track_id = track_id;
-
+           int bitrate = 128) : Sdp(sample_rate,playload_type){
         _printer << "m=audio 0 RTP/AVP " << playload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
         _printer << "a=rtpmap:" << playload_type << " MPEG4-GENERIC/" << sample_rate << "\r\n";
@@ -224,7 +210,7 @@ public:
         _printer << "a=fmtp:" << playload_type << " streamtype=5;profile-level-id=1;mode=AAC-hbr;"
                  << "sizelength=13;indexlength=3;indexdeltalength=3;config="
                  << configStr << "\r\n";
-        _printer << "a=control:trackID=" << track_id << "\r\n";
+        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
     }
 
     string getSdp() const override {
@@ -237,31 +223,8 @@ public:
     CodecId getCodecId() const override {
         return CodecAAC;
     }
-
-    void createRtpEncoder(uint32_t ssrc,
-                          int mtu) override{
-        _encoder = std::make_shared<AACRtpEncoder>(ssrc,
-                                                   mtu,
-                                                   _sample_rate,
-                                                   _playload_type,
-                                                   _track_id * 2);
-    }
-
-    void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override{
-        if(_encoder){
-            _encoder->setFrameRing(ring);
-        }
-    }
-    void setRtpRing(const RtpRingInterface::RingType::Ptr &ring) override{
-        if(_encoder){
-            _encoder->setRtpRing(ring);
-        }
-    }
 private:
     _StrPrinter _printer;
-    int _playload_type;
-    int _sample_rate;
-    int _track_id;
 };
 
 /**
@@ -329,7 +292,11 @@ public:
       * @param key_pos 是否为关键帧的第一个rtp包
       */
     void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override {
-        _rtpRing->write(rtp,key_pos);
+         auto it = _sdp_map.find(rtp->getTrackType());
+         if(it == _sdp_map.end()){
+             return ;
+         }
+         it->second->inputRtp(rtp,key_pos);
     }
 
     /**
