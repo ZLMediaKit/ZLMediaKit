@@ -26,6 +26,8 @@ public:
 
 class VideoTrack : public Track {
 public:
+    typedef std::shared_ptr<VideoTrack> Ptr;
+
     TrackType getTrackType() const override { return TrackVideo;};
 
     /**
@@ -49,6 +51,8 @@ public:
 
 class AudioTrack : public Track {
 public:
+    typedef std::shared_ptr<AudioTrack> Ptr;
+
     TrackType getTrackType() const override { return TrackAudio;};
 
     /**
@@ -72,6 +76,7 @@ public:
 
 class H264Track : public VideoTrack{
 public:
+    typedef std::shared_ptr<H264Track> Ptr;
 
     /**
      * 不指定sps pps构造h264类型的媒体
@@ -162,7 +167,7 @@ public:
      * @param frame 数据帧
      * @param key_pos 是否为关键帧
      */
-    void inputFrame(const Frame::Ptr &frame,bool key_pos) override{
+    bool inputFrame(const Frame::Ptr &frame,bool key_pos) override{
         int type = (*((uint8_t *)frame->data() + frame->prefixSize())) & 0x1F;
         switch (type){
             case 7:{
@@ -209,6 +214,7 @@ public:
             }
                 break;
         }
+        return type == 5;
     }
 private:
     /**
@@ -228,6 +234,8 @@ private:
 
 class AACTrack : public AudioTrack{
 public:
+    typedef std::shared_ptr<AACTrack> Ptr;
+
     /**
      * 构造aac类型的媒体
      * @param aac_cfg aac两个字节的配置信息

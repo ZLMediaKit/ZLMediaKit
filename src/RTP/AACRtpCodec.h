@@ -12,6 +12,8 @@
  */
 class AACRtpDecoder : public RtpCodec {
 public:
+    typedef std::shared_ptr<AACRtpDecoder> Ptr;
+
     /**
      * @param ui32SampleRate 采样率，用于时间戳转换用
      */
@@ -23,7 +25,7 @@ public:
      * @param rtp rtp数据包
      * @param key_pos 此参数内部强制转换为false,请忽略之
      */
-    void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = false) override;
+    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = false) override;
 
     TrackType getTrackType() const override{
         return TrackAudio;
@@ -47,6 +49,8 @@ private:
  */
 class AACRtpEncoder : public AACRtpDecoder , public RtpInfo {
 public:
+    typedef std::shared_ptr<AACRtpEncoder> Ptr;
+
     /**
      * @param ui32Ssrc ssrc
      * @param ui32MtuSize mtu 大小
@@ -66,7 +70,7 @@ public:
      * @param frame 带dats头的aac数据
      * @param key_pos 此参数内部强制转换为false,请忽略之
      */
-    void inputFrame(const Frame::Ptr &frame, bool key_pos = false) override;
+    bool inputFrame(const Frame::Ptr &frame, bool key_pos = false) override;
 private:
     void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:

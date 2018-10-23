@@ -27,6 +27,8 @@ typedef enum {
 
 class CodecInfo {
 public:
+    typedef std::shared_ptr<CodecInfo> Ptr;
+
     CodecInfo(){}
     virtual ~CodecInfo(){}
 
@@ -63,6 +65,7 @@ public:
 class FrameRingInterface {
 public:
     typedef RingBuffer<Frame::Ptr> RingType;
+    typedef std::shared_ptr<FrameRingInterface> Ptr;
 
     FrameRingInterface(){}
     virtual ~FrameRingInterface(){}
@@ -83,8 +86,9 @@ public:
      * 写入帧数据
      * @param frame 帧
      * @param key_pos 是否为关键帧
+     * @return 是否为关键帧
      */
-    virtual void inputFrame(const Frame::Ptr &frame,bool key_pos) = 0;
+    virtual bool inputFrame(const Frame::Ptr &frame,bool key_pos) = 0;
 };
 
 
@@ -118,8 +122,9 @@ public:
      * @param frame
      * @param key_pos
      */
-    void inputFrame(const Frame::Ptr &frame,bool key_pos) override{
+    bool inputFrame(const Frame::Ptr &frame,bool key_pos) override{
         _frameRing->write(frame,key_pos);
+        return key_pos;
     }
 protected:
     RingType::Ptr _frameRing;

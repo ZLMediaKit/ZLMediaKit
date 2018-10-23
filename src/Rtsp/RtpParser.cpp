@@ -53,76 +53,73 @@ static int getTimeInSDP(const string &sdp) {
 RtpParser::RtpParser(const string& sdp) {
 	RtspTrack tmp[2];
 	int cnt = parserSDP(sdp, tmp);
-	if (0 == cnt) {
-		throw std::runtime_error("parse sdp failed");
-	}
-
 	for (int i = 0; i < cnt; i++) {
 		switch (tmp[i].type) {
 		case TrackVideo: {
-			try {
-				onGetVideoTrack(tmp[i]);
-				m_bHaveVideo = true;
-				m_mapTracks.emplace(tmp[i].PT, tmp[i]);
-			} catch (std::exception &ex) {
-				WarnL << ex.what();
-			}
+            onGetVideoTrack(tmp[i]);
 		}
 			break;
 		case TrackAudio: {
-			try {
-				onGetAudioTrack(tmp[i]);
-				m_bHaveAudio = true;
-				m_mapTracks.emplace(tmp[i].PT, tmp[i]);
-			} catch (std::exception &ex) {
-				WarnL << ex.what();
-			}
+            onGetAudioTrack(tmp[i]);
 		}
 			break;
 		default:
 			break;
 		}
 	}
-	if (!m_bHaveVideo && !m_bHaveAudio) {
-		throw std::runtime_error("不支持该RTSP媒体格式");
-	}
 	m_fDuration = getTimeInSDP(sdp);
-}
-RtpParser::~RtpParser() {
 }
 
 bool RtpParser::inputRtp(const RtpPacket::Ptr & rtp) {
-	auto &track = m_mapTracks[rtp->PT];
-	switch (track.type) {
+	switch (rtp->getTrackType()) {
 	case TrackVideo:
-		if (m_bHaveVideo) {
-			return inputVideo(rtp, track);
-		}
-		return false;
+        return inputVideo(rtp);
 	case TrackAudio:
-		if (m_bHaveAudio) {
-			return inputAudio(rtp, track);
-		}
-		return false;
+        return inputAudio(rtp);
 	default:
 		return false;
 	}
 }
 
-inline bool RtpParser::inputVideo(const RtpPacket::Ptr & rtp, const RtspTrack& track) {
+inline bool RtpParser::inputVideo(const RtpPacket::Ptr &rtp) {
+    if(_videoRtpDecoder){
+		return _videoRtpDecoder->inputRtp(rtp, true);
+    }
+	return false;
+}
 
+inline bool RtpParser::inputAudio(const RtpPacket::Ptr &rtp) {
+    if(_audioRtpDecoder){
+		return _audioRtpDecoder->inputRtp(rtp, false);
+    }
+	return false;
 }
 
 inline void RtpParser::onGetAudioTrack(const RtspTrack& audio) {
-
+    _audioTrack = dynamic_pointer_cast<AudioTrack>(Track::getTrackBySdp(audio.trackSdp));
+    if(_audioTrack){
+		_audioRtpDecoder = RtpCodec::getRtpDecoderById(_audioTrack->getCodecId(),_audioTrack->getAudioSampleRate());
+    }
 }
 
 inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
-
+	_videoTrack = dynamic_pointer_cast<VideoTrack>(Track::getTrackBySdp(video.trackSdp));
+	if(_videoTrack){
+		_videoRtpDecoder = RtpCodec::getRtpDecoderById(_videoTrack->getCodecId(),90000);
+	}
 }
 
-inline bool RtpParser::inputAudio(const RtpPacket::Ptr &rtppack, const RtspTrack& track) {
+vector<Track::Ptr> RtpParser::getTracks() const {
+	vector<Track::Ptr> ret;
+	if(_videoTrack){
+		ret.emplace_back(_videoTrack);
+	}
+	if(_audioTrack){
+		ret.emplace_back(_audioTrack);
+	}
+	return ret;
 }
+
 
 } /* namespace Rtsp */
 } /* namespace ZL */

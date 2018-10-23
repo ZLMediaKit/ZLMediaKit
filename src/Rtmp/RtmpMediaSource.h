@@ -85,7 +85,7 @@ public:
 		lock_guard<recursive_mutex> lock(m_mtxMap);
 		m_metadata = _metadata;
 		RtmpParser parser(_metadata);
-		m_iCfgFrameSize = parser.getTrackCount();
+		m_iCfgFrameSize = parser.getTracks().size();
 		if(ready()){
 			MediaSource::regist();
 			m_bRegisted = true;

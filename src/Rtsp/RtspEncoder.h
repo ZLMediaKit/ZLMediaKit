@@ -73,8 +73,8 @@ public:
      * @param frame 帧数据
      * @param key_pos 是否为关键帧
      */
-    void inputFrame(const Frame::Ptr &frame,bool key_pos) override{
-        _encoder->inputFrame(frame,key_pos);
+    bool inputFrame(const Frame::Ptr &frame,bool key_pos) override{
+        return _encoder->inputFrame(frame,key_pos);
     }
 
     /**
@@ -82,8 +82,8 @@ public:
      * @param rtp rtp数据包
      * @param key_pos 是否为关键帧第一个rtp包
      */
-    void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
-        _encoder->inputRtp(rtp,key_pos);
+    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
+        return _encoder->inputRtp(rtp,key_pos);
     }
 
     /**
@@ -108,12 +108,12 @@ public:
      * @param mtu mtu大小，一般小于1500字节，推荐1400
      */
     virtual void createRtpEncoder(uint32_t ssrc, int mtu) {
-        _encoder = RtpCodec::getRtpCodecById(getCodecId(),
-                                             ssrc,
-                                             mtu,
-                                             _sample_rate,
-                                             _playload_type,
-                                             getTrackType() * 2);
+        _encoder = RtpCodec::getRtpEncoderById(getCodecId(),
+                                               ssrc,
+                                               mtu,
+                                               _sample_rate,
+                                               _playload_type,
+                                               getTrackType() * 2);
     }
 private:
     RtpCodec::Ptr _encoder;
@@ -315,12 +315,12 @@ public:
      * @param frame 帧数据
      * @param key_pos 是否为关键帧
      */
-    void inputFrame(const Frame::Ptr &frame,bool key_pos = true) override {
+    bool inputFrame(const Frame::Ptr &frame,bool key_pos = true) override {
         auto it = _sdp_map.find(frame->getTrackType());
         if(it == _sdp_map.end()){
-            return ;
+            return false;
         }
-        it->second->inputFrame(frame,key_pos);
+        return it->second->inputFrame(frame,key_pos);
     }
 
      /**
@@ -328,12 +328,12 @@ public:
       * @param rtp rtp包
       * @param key_pos 是否为关键帧的第一个rtp包
       */
-    void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override {
+     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override {
          auto it = _sdp_map.find(rtp->getTrackType());
          if(it == _sdp_map.end()){
-             return ;
+             return false;
          }
-         it->second->inputRtp(rtp,key_pos);
+         return it->second->inputRtp(rtp,key_pos);
     }
 
     /**

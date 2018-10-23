@@ -41,12 +41,30 @@ public:
 class RtpRingInterface {
 public:
     typedef RingBuffer<RtpPacket::Ptr> RingType;
+    typedef std::shared_ptr<RtpRingInterface> Ptr;
 
     RtpRingInterface(){}
     virtual ~RtpRingInterface(){}
+
+    /**
+     * 获取rtp环形缓存
+     * @return
+     */
     virtual RingType::Ptr getRtpRing() const = 0;
+
+    /**
+     * 设置rtp环形缓存
+     * @param ring
+     */
     virtual void setRtpRing(const RingType::Ptr &ring) = 0;
-    virtual void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) = 0;
+
+    /**
+     * 输入rtp包
+     * @param rtp rtp包
+     * @param key_pos 是否为关键帧第一个rtp包
+     * @return 是否为关键帧第一个rtp包
+     */
+    virtual bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) = 0;
 };
 
 class RtpRing : public RtpRingInterface {
@@ -67,8 +85,9 @@ public:
         _rtpRing = ring;
     }
 
-    void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
+    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
         _rtpRing->write(rtp,key_pos);
+        return key_pos;
     }
 protected:
     RingType::Ptr _rtpRing;
@@ -143,12 +162,14 @@ public:
     RtpCodec(){}
     virtual ~RtpCodec(){}
 
-    static Ptr getRtpCodecById(CodecId codecId,
-                               uint32_t ui32Ssrc,
-                               uint32_t ui32MtuSize,
-                               uint32_t ui32SampleRate,
-                               uint8_t ui8PlayloadType,
-                               uint8_t ui8Interleaved);
+    static Ptr getRtpEncoderById(CodecId codecId,
+                                 uint32_t ui32Ssrc,
+                                 uint32_t ui32MtuSize,
+                                 uint32_t ui32SampleRate,
+                                 uint8_t ui8PlayloadType,
+                                 uint8_t ui8Interleaved);
+
+    static Ptr getRtpDecoderById(CodecId codecId,uint32_t ui32SampleRate);
 };
 
 

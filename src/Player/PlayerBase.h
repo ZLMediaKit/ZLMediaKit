@@ -87,8 +87,7 @@ public:
 	virtual float getRtpLossRate(int trackType) const {return 0; }
     virtual float getDuration() const { return 0;}
 
-    virtual int getTrackCount() const { return  0;}
-	virtual Track::Ptr getTrack(int index) const {return nullptr;}
+	virtual vector<Track::Ptr> getTracks() const { return vector<Track::Ptr>();}
 protected:
     virtual void onShutdown(const SockException &ex) {}
     virtual void onPlayResult(const SockException &ex) {}
@@ -146,18 +145,12 @@ public:
 		m_pMediaSrc = src;
     }
 
-    virtual int getTrackCount() const override{
-        if (m_parser) {
-            return m_parser->getTrackCount();
-        }
-        return PlayerBase::getTrackCount();
-    }
-    virtual Track::Ptr getTrack(int index) const override{
-        if (m_parser) {
-            return m_parser->getTrack(index);
-        }
-        return PlayerBase::getTrack(index);
-    }
+    vector<Track::Ptr> getTracks() const override{
+		if (m_parser) {
+			return m_parser->getTracks();
+		}
+		return PlayerBase::getTracks();
+	}
 protected:
 	void onShutdown(const SockException &ex) override {
 		if (m_shutdownCB) {

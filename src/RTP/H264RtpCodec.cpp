@@ -17,8 +17,10 @@ H264Frame::Ptr  H264RtpDecoder::obtainFrame() {
     return frame;
 }
 
-void H264RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
-    RtpCodec::inputRtp(rtp, decodeRtp(rtp));
+bool H264RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
+    key_pos = decodeRtp(rtp);
+    RtpCodec::inputRtp(rtp, key_pos);
+    return key_pos;
 }
 
 bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
@@ -116,12 +118,14 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ui32Ssrc,
                 ui8Interleaved) {
 }
 
-void H264RtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
+bool H264RtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
+    auto pcData = frame->data() + frame->prefixSize();
+
+    key_pos = (((uint8_t *) (pcData))[0] & 0x1F) == 5;
     RtpCodec::inputFrame(frame, key_pos);
 
     GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Config::Rtp::kCycleMS);
     auto uiStamp = frame->stamp();
-    auto pcData = frame->data() + frame->prefixSize();
     auto iLen = frame->size() - frame->prefixSize();
 
     uiStamp %= cycleMS;
@@ -163,6 +167,8 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
     } else {
         makeH264Rtp(pcData, iLen, true, uiStamp);
     }
+
+    return key_pos;
 }
 
 void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, uint32_t uiStamp) {

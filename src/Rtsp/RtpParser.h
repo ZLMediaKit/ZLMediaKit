@@ -45,7 +45,8 @@ class RtpParser : public PlayerBase{
 public:
 	typedef std::shared_ptr<RtpParser> Ptr;
 	RtpParser(const string &sdp);
-	virtual ~RtpParser();
+	virtual ~RtpParser(){};
+
 	//返回值：true 代表是i帧第一个rtp包
 	bool inputRtp(const RtpPacket::Ptr &rtp);
 
@@ -54,32 +55,22 @@ public:
 	}
 
     bool isInited() const override{
-        if (m_bHaveAudio && !m_strAudioCfg.size()) {
-            return false;
-        }
-        if (m_bHaveVideo && !m_strSPS.size()) {
-            return false;
-        }
         return true;
     }
-private:
-	std::unordered_map<uint8_t, RtspTrack> m_mapTracks;
 
+    vector<Track::Ptr> getTracks() const override;
+private:
 	inline void onGetAudioTrack(const RtspTrack &audio);
 	inline void onGetVideoTrack(const RtspTrack &video);
-
 	//返回值：true 代表是i帧第一个rtp包
-	inline bool inputVideo(const RtpPacket::Ptr &rtp, const RtspTrack &track);
-	inline bool inputAudio(const RtpPacket::Ptr &rtp, const RtspTrack &track);
-
-	string m_strSPS;
-	string m_strPPS;
-	string m_strAudioCfg;
-	bool m_bHaveAudio = false;
-	bool m_bHaveVideo= false;
+	inline bool inputVideo(const RtpPacket::Ptr &rtp);
+	inline bool inputAudio(const RtpPacket::Ptr &rtp);
+private:
 	float m_fDuration = 0;
-
-	recursive_mutex m_mtxCB;
+	AudioTrack::Ptr _audioTrack;
+	VideoTrack::Ptr _videoTrack;
+	RtpCodec::Ptr _audioRtpDecoder;
+	RtpCodec::Ptr _videoRtpDecoder;
 };
 
 } /* namespace Rtsp */
