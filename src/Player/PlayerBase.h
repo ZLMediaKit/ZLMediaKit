@@ -109,7 +109,7 @@ public:
     virtual bool containVideo() const { return false; };
 
     virtual int getTrackCount() const { return  0;};
-	virtual TrackFormat::Ptr getTrack(int index) const {return nullptr;};
+	virtual Track::Ptr getTrack(int index) const {return nullptr;};
 protected:
     virtual void onShutdown(const SockException &ex) {};
     virtual void onPlayResult(const SockException &ex) {};
