@@ -442,7 +442,8 @@ bool RtspPlayer::sendPause(bool bPause,float fTime){
             if (m_aTrackInfo[i].type == TrackVideo) {
                 m_adFistStamp[i] = m_adNowStamp[i] + iTimeInc * 90000.0;
             }else if (m_aTrackInfo[i].type == TrackAudio){
-                m_adFistStamp[i] = m_adNowStamp[i] + iTimeInc * getAudioSampleRate();
+				//todo(xzl) 修复此处
+//                m_adFistStamp[i] = m_adNowStamp[i] + iTimeInc * getAudioSampleRate();
             }
             m_adNowStamp[i] = m_adFistStamp[i];
         }
@@ -718,7 +719,10 @@ float RtspPlayer::getProgressTime() const{
         if (m_aTrackInfo[i].type == TrackVideo) {
             iTime[i] = (m_adNowStamp[i] - m_adFistStamp[i]) / 90000.0;
         }else if (m_aTrackInfo[i].type == TrackAudio){
-            iTime[i] = (m_adNowStamp[i] - m_adFistStamp[i]) / getAudioSampleRate();
+			//todo(xzl) 修复此处
+#if 0
+			iTime[i] = (m_adNowStamp[i] - m_adFistStamp[i]) / getAudioSampleRate();
+#endif
         }
     }
     return m_fSeekTo + MAX(iTime[0],iTime[1]);

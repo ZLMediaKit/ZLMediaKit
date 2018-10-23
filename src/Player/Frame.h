@@ -93,8 +93,7 @@ public:
     typedef std::shared_ptr<FrameRing> Ptr;
 
     FrameRing(){
-        //禁用缓存
-        _frameRing = std::make_shared<RingType>(1);
+        _frameRing = std::make_shared<RingType>();
     }
     virtual ~FrameRing(){}
 

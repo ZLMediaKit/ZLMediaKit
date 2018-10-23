@@ -53,58 +53,6 @@ public:
 
 	bool inputRtmp(const RtmpPacket::Ptr &pkt);
 
-	void setOnVideoCB(const function<void(const H264Frame &frame)> &cb) override{
-		lock_guard<recursive_mutex> lck(m_mtxCB);
-		onVideo = cb;
-	}
-	void setOnAudioCB(const function<void(const AACFrame &frame)> &cb) override{
-		lock_guard<recursive_mutex> lck(m_mtxCB);
-		onAudio = cb;
-	}
-
-	int getVideoHeight() const override{
-		return m_iVideoHeight;
-	}
-
-	int getVideoWidth() const override{
-		return m_iVideoWidth;
-	}
-
-	float getVideoFps() const override{
-		return m_fVideoFps;
-	}
-
-	int getAudioSampleRate() const override{
-		return m_iSampleRate;
-	}
-
-	int getAudioSampleBit() const override{
-		return m_iSampleBit;
-	}
-
-	int getAudioChannel() const override{
-		return m_iChannel;
-	}
-
-	const string& getPps() const override{
-		return m_strPPS;
-	}
-
-	const string& getSps() const override{
-		return m_strSPS;
-	}
-
-	const string& getAudioCfg() const override{
-		return m_strAudioCfg;
-	}
-	bool containAudio() const override{
-        //音频只支持aac
-		return m_iAudioCodecID == AAC_CODEC_ID;
-	}
-	bool containVideo () const override{
-        //视频只支持264
-		return m_iVideoCodecID == H264_CODEC_ID;
-	}
 	bool isInited() const override{
         if((m_iAudioCodecID | m_iVideoCodecID) == 0){
             //音视频codec_id都未获取到，说明还未初始化成功

@@ -71,8 +71,9 @@ private:
 		}
 		try {
 			m_parser.reset(new RtpParser(sdp));
-			m_parser->setOnVideoCB(m_onGetVideoCB);
-			m_parser->setOnAudioCB(m_onGetAudioCB);
+			//todo(xzl) 修复此处
+//			m_parser->setOnVideoCB(m_onGetVideoCB);
+//			m_parser->setOnAudioCB(m_onGetAudioCB);
 			return true;
 		} catch (std::exception &ex) {
 			WarnL << ex.what();
@@ -81,7 +82,7 @@ private:
 	}
 	void onRecvRTP(const RtpPacket::Ptr &rtppt, const RtspTrack &track) override {
 		if(m_parser){
-			m_parser->inputRtp(*rtppt);
+			m_parser->inputRtp(rtppt);
 		}
 
 		if(m_pRtspMediaSrc){
