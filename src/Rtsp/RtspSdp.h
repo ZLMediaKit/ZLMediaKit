@@ -289,7 +289,7 @@ public:
     virtual ~RtspMaker(){}
 
     /**
-     * 添加音视频track
+     * 添加音视频或title 媒体
      * @param sdp 媒体描述对象
      * @param ssrc 媒体rtp ssrc
      * @param mtu 媒体rtp mtu
@@ -304,6 +304,23 @@ public:
         _sdp_map[sdp->getTrackType()] = sdp;
     }
 
+
+    /**
+     * 添加音视频或title 媒体
+     * @param track 媒体描述
+     * @param ssrc 媒体rtp ssrc
+     * @param mtu 媒体rtp mtu
+     */
+    void addTrack(const Track::Ptr & track,uint32_t ssrc = 0,int mtu = 1400) {
+        if(track->getCodecId() == CodecInvalid){
+            addTrack(std::make_shared<TitleSdp>(),ssrc,mtu);
+        } else {
+            Sdp::Ptr sdp = Sdp::getSdpByTrack(track);
+            if(sdp){
+                addTrack(sdp,ssrc,mtu);
+            }
+        }
+    }
 
     /**
      * 获取完整的SDP字符串
