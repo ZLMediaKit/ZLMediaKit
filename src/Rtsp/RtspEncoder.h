@@ -15,7 +15,7 @@ namespace Rtsp{
 /**
 * sdp基类
 */
-class Sdp : public TrackFormat , public RtpRingInterface{
+class Sdp :  public Track , public RtpRingInterface{
 public:
     typedef std::shared_ptr<Sdp> Ptr;
     Sdp(uint32_t sample_rate, uint8_t playload_type){
@@ -54,14 +54,10 @@ public:
     }
 
     void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override{
-        if(_encoder){
-            _encoder->setFrameRing(ring);
-        }
+        _encoder->setFrameRing(ring);
     }
     void setRtpRing(const RtpRingInterface::RingType::Ptr &ring) override{
-        if(_encoder){
-            _encoder->setRtpRing(ring);
-        }
+        _encoder->setRtpRing(ring);
     }
 
     virtual void createRtpEncoder(uint32_t ssrc, int mtu) {
@@ -81,7 +77,7 @@ private:
 /**
 * sdp中除音视频外的其他描述部分
 */
-class SdpTitle : public Sdp{
+class TitleSdp : public Sdp{
 public:
 
     /**
@@ -90,7 +86,7 @@ public:
      * @param header 自定义sdp描述
      * @param version sdp版本
      */
-    SdpTitle(float dur_sec = 0,
+    TitleSdp(float dur_sec = 0,
              const map<string,string> &header = map<string,string>(),
              int version = 0) : Sdp(0,0){
         _printer << "v=" << version << "\r\n";
@@ -124,7 +120,7 @@ private:
 /**
 * h264类型sdp
 */
-class SdpH264 : public Sdp {
+class H264Sdp : public Sdp {
 public:
 
     /**
@@ -136,7 +132,7 @@ public:
      * @param track_id trackID 默认为TrackVideo
      * @param bitrate 比特率
      */
-    SdpH264(const string &sps,
+    H264Sdp(const string &sps,
             const string &pps,
             int sample_rate = 90000,
             int playload_type = 96,
@@ -186,7 +182,7 @@ private:
 /**
 * aac类型SDP
 */
-class SdpAAC : public Sdp {
+class AACSdp : public Sdp {
 public:
 
     /**
@@ -197,7 +193,7 @@ public:
      * @param track_id trackID 默认为TrackVideo
      * @param bitrate 比特率
      */
-    SdpAAC(const string &aac_cfg,
+    AACSdp(const string &aac_cfg,
            int sample_rate,
            int playload_type = 98,
            int bitrate = 128) : Sdp(sample_rate,playload_type){
