@@ -55,7 +55,7 @@ void RtmpToRtspMediaSource::onGetH264(const H264Frame &frame) {
 		m_pRtpMaker_h264->makeRtp(frame.data() + 4, frame.size() - 4, frame.timeStamp);
 	}
 }
-inline void RtmpToRtspMediaSource::onGetAdts(const AdtsFrame &frame) {
+inline void RtmpToRtspMediaSource::onGetAdts(const AACFrame &frame) {
 	if(m_pRecorder){
         m_pRecorder->inputAAC((char *) frame.buffer, frame.aac_frame_length, frame.timeStamp);
     }

@@ -14,35 +14,11 @@
 using namespace std;
 using namespace ZL::Util;
 
-class TrackFormat {
+class TrackFormat : public FrameRingInterface , public CodecInfo{
 public:
     typedef std::shared_ptr<TrackFormat> Ptr;
-    typedef RingBuffer<Frame::Ptr> RingType;
-
-    typedef enum {
-        CodecInvalid = -1,
-        CodecH264 = 0,
-        CodecAAC = 0x0100,
-        CodecMax
-    } CodecID;
-
-    TrackFormat(){
-        _ring = std::make_shared<RingType>();
-    }
+    TrackFormat(){}
     virtual ~TrackFormat(){}
-    virtual TrackType getTrackType() const = 0;
-    virtual int getCodecId() const = 0;
-
-
-    void writeFrame(const Frame::Ptr &frame,bool keypos = true){
-        _ring->write(frame, keypos);
-    }
-
-    RingType::Ptr& getRing() {
-        return _ring;
-    }
-private:
-    RingType::Ptr _ring;
 };
 
 class VideoTrackFormat : public TrackFormat {
@@ -73,8 +49,8 @@ public:
     const string &getPps() const{
         return _pps;
     }
-    int getCodecId() const override{
-        return TrackFormat::CodecH264;
+    CodecId getCodecId() const override{
+        return CodecH264;
     }
 private:
     string _sps;
@@ -89,8 +65,8 @@ public:
     const string &getAacCfg() const{
         return _cfg;
     }
-    int getCodecId() const override{
-        return TrackFormat::CodecAAC;
+    CodecId getCodecId() const override{
+        return CodecAAC;
     }
 private:
     string _cfg;

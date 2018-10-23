@@ -32,43 +32,23 @@
 #include <unordered_map>
 #include "Common/config.h"
 #include "Util/util.h"
+#include "Player/Frame.h"
 
 using namespace std;
 using namespace ZL::Util;
 
-typedef enum {
-	TrackVideo = 0,
-	TrackAudio,
-    TrackInvalid,
-    TrackMax
-} TrackType;
 
 class RtspTrack{
 public:
 	uint8_t PT;
     uint8_t interleaved;
-	TrackType type = (TrackType) -1;
+	TrackType type = TrackInvalid;
 	string trackSdp;
     string controlSuffix;
 	bool inited;
 	uint32_t ssrc = 0;
 	uint16_t seq;
 	uint32_t timeStamp;
-};
-
-class RtpPacket {
-public:
-    typedef std::shared_ptr<RtpPacket> Ptr;
-    uint8_t interleaved;
-    uint8_t PT;
-    bool mark;
-    uint32_t length;
-    uint32_t timeStamp;
-    uint16_t sequence;
-    uint32_t ssrc;
-    uint8_t payload[1560];
-	uint8_t offset;
-    TrackType type;
 };
 
 class RtcpCounter {

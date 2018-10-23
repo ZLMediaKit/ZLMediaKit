@@ -40,10 +40,10 @@ unsigned const samplingFrequencyTable[16] = { 96000, 88200,
 											  11025, 8000,
 											  7350, 0, 0, 0 };
 
-void	makeAdtsHeader(const string &strAudioCfg,AdtsFrame &adts);
-void 	writeAdtsHeader(const AdtsFrame &adts, uint8_t *pcAdts) ;
+void	makeAdtsHeader(const string &strAudioCfg,AACFrame &adts);
+void 	writeAdtsHeader(const AACFrame &adts, uint8_t *pcAdts) ;
 string 	makeAdtsConfig(const uint8_t *pcAdts);
-void 	getAACInfo(const AdtsFrame &adts,int &iSampleRate,int &iChannel);
+void 	getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel);
 bool 	getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
 
 #endif /* SRC_PLAYER_PLAYER_H_ */

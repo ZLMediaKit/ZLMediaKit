@@ -5,11 +5,43 @@
 #ifndef ZLMEDIAKIT_FRAME_H
 #define ZLMEDIAKIT_FRAME_H
 
+#include "Util/RingBuffer.h"
 #include "Network/Socket.h"
 
+using namespace ZL::Util;
 using namespace ZL::Network;
 
-class Frame : public Buffer {
+typedef enum {
+    CodecInvalid = -1,
+    CodecH264 = 0,
+    CodecAAC = 0x0100,
+    CodecMax
+} CodecId;
+
+typedef enum {
+    TrackInvalid = -1,
+    TrackVideo = 0,
+    TrackAudio,
+    TrackMax
+} TrackType;
+
+class CodecInfo {
+public:
+    CodecInfo(){}
+    virtual ~CodecInfo(){}
+
+    /**
+     * 获取音视频类型
+     */
+    virtual TrackType getTrackType() const  = 0;
+
+    /**
+     * 获取编解码器类型
+     */
+    virtual CodecId getCodecId() const = 0;
+};
+
+class Frame : public Buffer, public CodecInfo{
 public:
     typedef std::shared_ptr<Frame> Ptr;
     virtual ~Frame(){}
@@ -25,6 +57,78 @@ public:
     virtual uint32_t prefixSize() = 0;
 };
 
+/**
+ * 帧环形缓存接口类
+ */
+class FrameRingInterface {
+public:
+    typedef RingBuffer<Frame::Ptr> RingType;
+
+    FrameRingInterface(){}
+    virtual ~FrameRingInterface(){}
+
+    /**
+     * 获取帧环形缓存
+     * @return
+     */
+    virtual RingType::Ptr getFrameRing() const = 0;
+
+    /**
+     * 设置帧环形缓存
+     * @param ring
+     */
+    virtual void setFrameRing(const RingType::Ptr &ring)  = 0;
+
+    /**
+     * 写入帧数据
+     * @param frame 帧
+     * @param key_pos 是否为关键帧
+     */
+    virtual void inputFrame(const Frame::Ptr &frame,bool key_pos) = 0;
+};
+
+
+class FrameRing : public FrameRingInterface{
+public:
+    typedef std::shared_ptr<FrameRing> Ptr;
+
+    FrameRing(){
+        //禁用缓存
+        _frameRing = std::make_shared<RingType>(1);
+    }
+    virtual ~FrameRing(){}
+
+    /**
+     * 获取帧环形缓存
+     * @return
+     */
+    RingType::Ptr getFrameRing() const override {
+        return _frameRing;
+    }
+
+    /**
+     * 设置帧环形缓存
+     * @param ring
+     */
+    void setFrameRing(const RingType::Ptr &ring) override {
+        _frameRing = ring;
+    }
+
+    /**
+     * 输入数据帧
+     * @param frame
+     * @param key_pos
+     */
+    void inputFrame(const Frame::Ptr &frame,bool key_pos) override{
+        _frameRing->write(frame,key_pos);
+    }
+protected:
+    RingType::Ptr _frameRing;
+};
+
+/**
+ * 264帧类
+ */
 class H264Frame : public Frame {
 public:
     typedef std::shared_ptr<H264Frame> Ptr;
@@ -41,6 +145,14 @@ public:
     uint32_t prefixSize() override{
         return iPrefixSize;
     }
+
+    TrackType getTrackType() const override{
+        return TrackVideo;
+    }
+
+    CodecId getCodecId() const override{
+        return CodecH264;
+    }
 public:
     uint16_t sequence;
     uint32_t timeStamp;
@@ -49,10 +161,12 @@ public:
     uint32_t iPrefixSize = 4;
 };
 
-//ADTS 头中相对有用的信息 采样率、声道数、帧长度
-class AdtsFrame : public Frame {
+/**
+ * aac帧，包含adts头
+ */
+class AACFrame : public Frame {
 public:
-    typedef std::shared_ptr<AdtsFrame> Ptr;
+    typedef std::shared_ptr<AACFrame> Ptr;
 
     char *data() const override{
         return (char *)buffer;
@@ -65,6 +179,14 @@ public:
     }
     uint32_t prefixSize() override{
         return iPrefixSize;
+    }
+
+    TrackType getTrackType() const override{
+        return TrackAudio;
+    }
+
+    CodecId getCodecId() const override{
+        return CodecAAC;
     }
 public:
     unsigned int syncword; //12 bslbf 同步字The bit string ‘1111 1111 1111’，说明一个ADTS帧的开始

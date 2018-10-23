@@ -94,7 +94,7 @@ public:
 	virtual void setOnShutdown( const function<void(const SockException &)> &cb) {};
 	virtual void setOnPlayResult( const function<void(const SockException &ex)> &cb) {};
 	virtual void setOnVideoCB( const function<void(const H264Frame &frame)> &cb) {};
-	virtual void setOnAudioCB( const function<void(const AdtsFrame &frame)> &cb) {};
+	virtual void setOnAudioCB( const function<void(const AACFrame &frame)> &cb) {};
     
     virtual float getProgress() const { return 0;};
     virtual void seekTo(float fProgress) {};
@@ -140,7 +140,7 @@ public:
 		}
 		m_onGetVideoCB = cb;
 	}
-	void setOnAudioCB(const function<void(const AdtsFrame &frame)> &cb) override{
+	void setOnAudioCB(const function<void(const AACFrame &frame)> &cb) override{
 		if (m_parser) {
 			m_parser->setOnAudioCB(cb);
 		}
@@ -269,7 +269,7 @@ protected:
 	function<void(const SockException &ex)> m_playResultCB;
 	std::shared_ptr<Parser> m_parser;
 	function<void(const H264Frame &frame)> m_onGetVideoCB;
-	function<void(const AdtsFrame &frame)> m_onGetAudioCB;
+	function<void(const AACFrame &frame)> m_onGetAudioCB;
 	MediaSource::Ptr m_pMediaSrc;
 
 };

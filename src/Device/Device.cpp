@@ -278,7 +278,7 @@ void DevChannel::initVideo(const VideoInfo& info) {
 
 void DevChannel::initAudio(const AudioInfo& info) {
 	m_audio.reset(new AudioInfo(info));
-	m_pAdtsHeader = std::make_shared<AdtsFrame>();
+	m_pAdtsHeader = std::make_shared<AACFrame>();
 
 	m_pAdtsHeader->syncword = 0x0FFF;
 	m_pAdtsHeader->id = 0;

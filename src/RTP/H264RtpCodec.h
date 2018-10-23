@@ -24,6 +24,14 @@ public:
      * @param key_pos 此参数忽略之
      */
     void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
+
+    TrackType getTrackType() const override{
+        return TrackVideo;
+    }
+
+    CodecId getCodecId() const override{
+        return CodecH264;
+    }
 private:
     bool decodeRtp(const RtpPacket::Ptr &rtp);
     void onGetH264(const H264Frame::Ptr &frame);
@@ -36,7 +44,7 @@ private:
 /**
  * 264 rtp打包类
  */
-class H264RtpEncoder : public RtpInfo, public RtpCodec {
+class H264RtpEncoder : public RtpEncoder{
 public:
 
     /**
@@ -58,7 +66,15 @@ public:
      * @param frame 帧数据，必须
      * @param key_pos
      */
-    void inputFame(const Frame::Ptr &frame, bool key_pos) override;
+    void inputFrame(const Frame::Ptr &frame, bool key_pos) override;
+
+    TrackType getTrackType() const override{
+        return TrackVideo;
+    }
+
+    CodecId getCodecId() const override{
+        return CodecH264;
+    }
 private:
     void makeH264Rtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:

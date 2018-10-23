@@ -35,6 +35,7 @@
 #include "RTP/RtpMakerAAC.h"
 #include "RTP/RtpMakerH264.h"
 #include "Rtsp/RtspToRtmpMediaSource.h"
+#include "Rtsp/RtspEncoder.h"
 #include "Util/TimeTicker.h"
 
 using namespace std;
@@ -119,7 +120,7 @@ private:
 	std::shared_ptr<VideoInfo> m_video;
 	std::shared_ptr<AudioInfo> m_audio;
     SmoothTicker m_aTicker[2];
-	std::shared_ptr<AdtsFrame> m_pAdtsHeader;
+	std::shared_ptr<AACFrame> m_pAdtsHeader;
 };
 
 

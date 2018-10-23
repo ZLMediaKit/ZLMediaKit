@@ -94,7 +94,7 @@ private:
     bool m_bEnableHls;
     bool m_bEnableMp4;
 	void onGetH264(const H264Frame &frame);
-	void onGetAdts(const AdtsFrame &frame);
+	void onGetAdts(const AACFrame &frame);
 	void makeSDP();
 };
 

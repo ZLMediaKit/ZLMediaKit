@@ -32,7 +32,7 @@
 using namespace ZL::Util;
 
 
-void writeAdtsHeader(const AdtsFrame &hed, uint8_t *pcAdts) {
+void writeAdtsHeader(const AACFrame &hed, uint8_t *pcAdts) {
 	pcAdts[0] = (hed.syncword >> 4 & 0xFF); //8bit
 	pcAdts[1] = (hed.syncword << 4 & 0xF0); //4 bit
 	pcAdts[1] |= (hed.id << 3 & 0x08); //1 bit
@@ -85,7 +85,7 @@ string 	makeAdtsConfig(const uint8_t *pcAdts){
 	audioSpecificConfig[1] = (sampling_frequency_index << 7) | (channel_configuration << 3);
 	return string((char *)audioSpecificConfig,2);
 }
-void makeAdtsHeader(const string &strAudioCfg,AdtsFrame &adts) {
+void makeAdtsHeader(const string &strAudioCfg,AACFrame &adts) {
 	uint8_t cfg1 = strAudioCfg[0];
 	uint8_t cfg2 = strAudioCfg[1];
 
@@ -113,7 +113,7 @@ void makeAdtsHeader(const string &strAudioCfg,AdtsFrame &adts) {
 	adts.adts_buffer_fullness = 2047;
 	adts.no_raw_data_blocks_in_frame = 0;
 }
-void getAACInfo(const AdtsFrame &adts,int &iSampleRate,int &iChannel){
+void getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel){
 	iSampleRate = samplingFrequencyTable[adts.sf_index];
 	iChannel = adts.channel_configuration;
 }
