@@ -109,11 +109,11 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ui32Ssrc,
                                uint32_t ui32SampleRate,
                                uint8_t ui8PlayloadType,
                                uint8_t ui8Interleaved) :
-        RtpEncoder(ui32Ssrc,
-                   ui32MtuSize,
-                   ui32SampleRate,
-                   ui8PlayloadType,
-                   ui8Interleaved) {
+        RtpInfo(ui32Ssrc,
+                ui32MtuSize,
+                ui32SampleRate,
+                ui8PlayloadType,
+                ui8Interleaved) {
 }
 
 void H264RtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
