@@ -277,16 +277,16 @@ private:
 /**
 * rtsp生成器
 */
-class RtspEncoder : public FrameRingInterface , public RtpRingInterface{
+class RtspMaker : public FrameRingInterface , public RtpRingInterface{
 public:
     /**
      * 构成函数
      */
-    RtspEncoder(){
+    RtspMaker(){
         _rtpRing = std::make_shared<RtpRingInterface::RingType>();
         _frameRing = std::make_shared<FrameRingInterface::RingType>();
     }
-    virtual ~RtspEncoder(){}
+    virtual ~RtspMaker(){}
 
     /**
      * 添加音视频track
