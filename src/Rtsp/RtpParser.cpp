@@ -91,8 +91,8 @@ RtpParser::RtpParser(const string& sdp) {
 RtpParser::~RtpParser() {
 }
 
-bool RtpParser::inputRtp(const RtpPacket& rtp) {
-	auto &track = m_mapTracks[rtp.PT];
+bool RtpParser::inputRtp(const RtpPacket::Ptr & rtp) {
+	auto &track = m_mapTracks[rtp->PT];
 	switch (track.type) {
 	case TrackVideo:
 		if (m_bHaveVideo) {
@@ -109,205 +109,19 @@ bool RtpParser::inputRtp(const RtpPacket& rtp) {
 	}
 }
 
-inline bool RtpParser::inputVideo(const RtpPacket& rtppack,
-		const RtspTrack& track) {
-	const uint8_t *frame = (uint8_t *) rtppack.payload + rtppack.offset;
-	int length = rtppack.length - rtppack.offset;
-	NALU nal;
-	MakeNalu(*frame, nal);
-	//Type==1:P frame
-	//Type==6:SEI frame
-	//Type==7:SPS frame
-	//Type==8:PPS frame
-	if (nal.type >= 0 && nal.type < 24) {
-		//a full frame
-		m_h264frame.buffer.assign("\x0\x0\x0\x1", 4);
-		m_h264frame.buffer.append((char *)frame, length);
-		m_h264frame.type = nal.type;
-		m_h264frame.timeStamp = rtppack.timeStamp / 90;
-		m_h264frame.sequence = rtppack.sequence;
-		_onGetH264(m_h264frame);
-		m_h264frame.buffer.clear();
-		return (m_h264frame.type == 7);
-	}
-	if (nal.type == 28) {
-		//FU-A
-		FU fu;
-		MakeFU(frame[1], fu);
-		if (fu.S == 1) {
-			//FU-A start
-			char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
-			m_h264frame.buffer.assign("\x0\x0\x0\x1", 4);
-			m_h264frame.buffer.push_back(tmp);
-			m_h264frame.buffer.append((char *)frame + 2, length - 2);
-			m_h264frame.type = fu.type;
-			m_h264frame.timeStamp = rtppack.timeStamp / 90;
-			m_h264frame.sequence = rtppack.sequence;
-			return (m_h264frame.type == 7); //i frame
-		}
+inline bool RtpParser::inputVideo(const RtpPacket::Ptr & rtp, const RtspTrack& track) {
 
-		if (rtppack.sequence != (uint16_t)(m_h264frame.sequence + 1)) {
-			m_h264frame.buffer.clear();
-			WarnL << "丢包,帧废弃:" << rtppack.sequence << "," << m_h264frame.sequence;
-			return false;
-		}
-		m_h264frame.sequence = rtppack.sequence;
-		if (fu.E == 1) {
-			//FU-A end
-			m_h264frame.buffer.append((char *)frame + 2, length - 2);
-			m_h264frame.timeStamp = rtppack.timeStamp / 90;
-			_onGetH264(m_h264frame);
-			m_h264frame.buffer.clear();
-			return false;
-		}
-		//FU-A mid
-		m_h264frame.buffer.append((char *)frame + 2, length - 2);
-		return false;
-	}
-	WarnL << nal.type << " " << rtppack.sequence;
-	return false;
-	// 29 FU-B     单NAL单元B模式
-	// 24 STAP-A   单一时间的组合包
-	// 25 STAP-B   单一时间的组合包
-	// 26 MTAP16   多个时间的组合包
-	// 27 MTAP24   多个时间的组合包
-	// 0 udef
-	// 30 udef
-	// 31 udef
 }
 
 inline void RtpParser::onGetAudioTrack(const RtspTrack& audio) {
-	for (auto &ch : const_cast<string &>(audio.trackSdp)) {
-		ch = tolower(ch);
-	}
-	if (audio.trackSdp.find("mpeg4-generic") == string::npos) {
-		throw std::runtime_error("只支持aac格式的音频！");
-	}
-	string fConfigStr = FindField(audio.trackSdp.c_str(), "config=", "\r\n");
-	if (fConfigStr.size() != 4) {
-		fConfigStr = FindField(audio.trackSdp.c_str(), "config=", ";");
-	}
-	if (fConfigStr.size() != 4) {
-		throw std::runtime_error("解析aac格式头失败！");
-	}
-	m_strAudioCfg.clear();
-	unsigned int cfg1;
-	sscanf(fConfigStr.substr(0, 2).c_str(), "%02X", &cfg1);
-	cfg1 &= 0x00FF;
-	m_strAudioCfg.push_back(cfg1);
-	unsigned int cfg2;
-	sscanf(fConfigStr.substr(2, 2).c_str(), "%02X", &cfg2);
-	cfg2 &= 0x00FF;
-	m_strAudioCfg.push_back(cfg2);
-	makeAdtsHeader(m_strAudioCfg,m_adts);
-	getAACInfo(m_adts, m_iSampleRate, m_iChannel);
-	if(m_adts.profile >= 3){
-		throw std::runtime_error("不支持该profile的AAC");
-	}
+
 }
 
 inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
-	if (video.trackSdp.find("H264") == string::npos) {
-		throw std::runtime_error("只支持264格式的视频！");
-	}
-	string sps_pps = FindField(video.trackSdp.c_str(), "sprop-parameter-sets=", "\r\n");
-	if(sps_pps.empty()){
-		//SDP里面没SPS_PPS描述，需要在后续rtp中获取
-		m_bParseSpsDelay  = true;
-		return;
-	}
-	string base64_SPS = FindField(sps_pps.c_str(), NULL, ",");
-	string base64_PPS = FindField(sps_pps.c_str(), ",", NULL);
-	if(base64_PPS.back() == ';'){
-		base64_PPS.pop_back();
-	}
-	uint8_t SPS_BUF[256], PPS_BUF[256];
-	int SPS_LEN = av_base64_decode(SPS_BUF, base64_SPS.c_str(), sizeof(SPS_BUF));
-	int PPS_LEN = av_base64_decode(PPS_BUF, base64_PPS.c_str(), sizeof(PPS_BUF));
 
-	m_strSPS.assign("\x00\x00\x00\x01", 4);
-	m_strSPS.append((char *) SPS_BUF, SPS_LEN);
-
-	m_strPPS.assign("\x00\x00\x00\x01", 4);
-	m_strPPS.append((char *) PPS_BUF, PPS_LEN);
-
-	string strTmp((char *)SPS_BUF, SPS_LEN);
-	if (!getAVCInfo(strTmp, m_iVideoWidth, m_iVideoHeight, m_fVideoFps)) {
-		throw std::runtime_error("parse sdp failed");
-	}
 }
 
-inline bool RtpParser::inputAudio(const RtpPacket& rtppack,
-		const RtspTrack& track) {
-	char *frame = (char *) rtppack.payload + rtppack.offset;
-	int length = rtppack.length - rtppack.offset;
-
-	if (m_adts.aac_frame_length + length - 4 > sizeof(AACFrame::buffer)) {
-		m_adts.aac_frame_length = 7;
-		return false;
-	}
-	memcpy(m_adts.buffer + m_adts.aac_frame_length, frame + 4, length - 4);
-	m_adts.aac_frame_length += (length - 4);
-	if (rtppack.mark == true) {
-		m_adts.sequence = rtppack.sequence;
-		m_adts.timeStamp = rtppack.timeStamp * (1000.0 / m_iSampleRate);
-		writeAdtsHeader(m_adts, m_adts.buffer);
-		onGetAdts(m_adts);
-		m_adts.aac_frame_length = 7;
-	}
-	return false;
-}
-
-inline void RtpParser::_onGetH264(H264Frame& frame) {
-	switch (frame.type) {
-	case 5: {	//I
-		H264Frame insertedFrame;
-		insertedFrame.type = 7; //SPS
-		insertedFrame.timeStamp = frame.timeStamp;
-		insertedFrame.buffer = m_strSPS;
-		onGetH264(insertedFrame);
-
-		insertedFrame.type = 8; //PPS
-		insertedFrame.timeStamp = frame.timeStamp;
-		insertedFrame.buffer = m_strPPS;
-		onGetH264(insertedFrame);
-		onGetH264(frame);
-	}
-		break;
-	case 7: {//SPS
-		m_strSPS = frame.buffer;
-		if(m_bParseSpsDelay && !m_strSPS.empty()){
-			m_bParseSpsDelay = false;
-			getAVCInfo(m_strSPS, m_iVideoWidth, m_iVideoHeight, m_fVideoFps);
-		}
-	}
-		break;
-	case 8://PPS
-		m_strPPS=frame.buffer;
-		break;
-	case 1:
-	    //B or P
-		onGetH264(frame);
-		break;
-	default:
-		break;
-	}
-}
-
-inline void RtpParser::onGetH264(H264Frame& frame) {
-	//frame.timeStamp=ticker0.elapsedTime();
-	lock_guard<recursive_mutex> lck(m_mtxCB);
-	if (onVideo) {
-		onVideo(frame);
-	}
-}
-
-inline void RtpParser::onGetAdts(AACFrame& frame) {
-	//frame.timeStamp=ticker1.elapsedTime();
-	lock_guard<recursive_mutex> lck(m_mtxCB);
-	if (onAudio) {
-		onAudio(frame);
-	}
+inline bool RtpParser::inputAudio(const RtpPacket::Ptr &rtppack, const RtspTrack& track) {
 }
 
 } /* namespace Rtsp */

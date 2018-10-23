@@ -20,6 +20,8 @@ public:
     typedef std::shared_ptr<Track> Ptr;
     Track(){}
     virtual ~Track(){}
+
+    static Ptr getTrackBySdp(const string &sdp);
 };
 
 class VideoTrack : public Track {
@@ -72,6 +74,11 @@ class H264Track : public VideoTrack{
 public:
 
     /**
+     * 不指定sps pps构造h264类型的媒体
+     * 在随后的inputFrame中获取sps pps
+     */
+    H264Track(){}
+    /**
      * 构造h264类型的媒体
      * @param sps sps帧数据
      * @param pps pps帧数据
@@ -97,7 +104,6 @@ public:
         _pps = string(pps->data() + pps->prefixSize(),pps->size() - pps->prefixSize());
         parseSps(_sps);
     }
-
 
     /**
      * 返回不带0x00 00 00 01头的sps
@@ -141,6 +147,68 @@ public:
      */
     float getVideoFps() const override{
         return _fps;
+    }
+
+    TrackType getTrackType() const override {
+        if(_sps.empty() || _pps.empty()){
+            return TrackInvalid;
+        }
+        return TrackAudio;
+    }
+
+
+    /**
+     * 输入数据帧,并获取sps pps
+     * @param frame 数据帧
+     * @param key_pos 是否为关键帧
+     */
+    void inputFrame(const Frame::Ptr &frame,bool key_pos) override{
+        int type = (*((uint8_t *)frame->data() + frame->prefixSize())) & 0x1F;
+        switch (type){
+            case 7:{
+                //sps
+                bool flag = _sps.empty();
+                _sps = string(frame->data() + frame->prefixSize(),frame->size() - frame->prefixSize());
+                if(flag && _width == 0){
+                    parseSps(_sps);
+                }
+            }
+                break;
+            case 8:{
+                //pps
+                _pps = string(frame->data() + frame->prefixSize(),frame->size() - frame->prefixSize());
+            }
+                break;
+
+            case 5:{
+                //I
+                if(!_sps.empty()){
+                    H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
+                    insertFrame->timeStamp = frame->stamp();
+                    insertFrame->type = 7;
+                    insertFrame->buffer = _sps;
+                    insertFrame->iPrefixSize = 0;
+                    VideoTrack::inputFrame(insertFrame, true);
+                }
+
+                if(!_pps.empty()){
+                    H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
+                    insertFrame->timeStamp = frame->stamp();
+                    insertFrame->type = 8;
+                    insertFrame->buffer = _pps;
+                    insertFrame->iPrefixSize = 0;
+                    VideoTrack::inputFrame(insertFrame, false);
+                }
+                VideoTrack::inputFrame(frame, false);
+            }
+                break;
+
+            case 1:{
+                //B or P
+                VideoTrack::inputFrame(frame, false);
+            }
+                break;
+        }
     }
 private:
     /**

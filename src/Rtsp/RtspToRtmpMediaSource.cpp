@@ -63,8 +63,10 @@ void RtspToRtmpMediaSource::makeVideoConfigPkt() {
 
 ////////////sps
 	rtmpPkt->strBuf.push_back(1); // version
-	string m_sps = m_pParser->getSps().substr(4);
-	string m_pps = m_pParser->getPps().substr(4);
+
+	//todo(xzl) 修复此处
+	string m_sps ;//= m_pParser->getSps().substr(4);
+	string m_pps ;//= m_pParser->getPps().substr(4);
 	//DebugL<<hexdump(m_sps.data(), m_sps.size());
 	rtmpPkt->strBuf.push_back(m_sps[1]); // profile
 	rtmpPkt->strBuf.push_back(m_sps[2]); // compat
@@ -145,6 +147,8 @@ void RtspToRtmpMediaSource::onGetAdts(const AACFrame& frame) {
 }
 
 void RtspToRtmpMediaSource::makeAudioConfigPkt() {
+	//todo(xzl) 修复此处
+#if 0
 	uint8_t flvStereoOrMono = (m_pParser->getAudioChannel() > 1);
 	uint8_t flvSampleRate;
 	switch (m_pParser->getAudioSampleRate()) {
@@ -182,6 +186,8 @@ void RtspToRtmpMediaSource::makeAudioConfigPkt() {
 	rtmpPkt->timeStamp = 0;
 	rtmpPkt->typeId = MSG_AUDIO;
 	m_pRtmpSrc->onGetMedia(rtmpPkt);
+
+#endif
 }
 
 void RtspToRtmpMediaSource::makeMetaData() {
@@ -190,6 +196,9 @@ void RtspToRtmpMediaSource::makeMetaData() {
 	AMFValue metaData(AMF_OBJECT);
 	metaData.set("duration", m_pParser->getDuration());
 	metaData.set("fileSize", 0);
+	//todo(xzl) 修复此处
+#if 0
+
 	if (m_pParser->containVideo()) {
 		metaData.set("width", m_pParser->getVideoWidth());
 		metaData.set("height", m_pParser->getVideoHeight());
@@ -208,6 +217,7 @@ void RtspToRtmpMediaSource::makeMetaData() {
 		makeAudioConfigPkt();
 	}
 
+#endif
 	m_pRtmpSrc->onGetMetaData(metaData);
 }
 } /* namespace Rtsp */

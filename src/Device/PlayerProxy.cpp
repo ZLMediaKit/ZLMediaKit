@@ -83,31 +83,33 @@ PlayerProxy::PlayerProxy(const char *strVhost,
 }
 void PlayerProxy::play(const char* strUrl) {
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
-	setOnVideoCB( [weakSelf](const H264Frame &data ) {
-		auto strongSelf = weakSelf.lock();
-		if(!strongSelf){
-			return;
-		}
-		if(strongSelf->m_pChn){
-			strongSelf->m_pChn->inputH264((char *)data.data(), data.size(), data.timeStamp);
-			if(!strongSelf->m_haveAudio){
-				strongSelf->makeMuteAudio(data.timeStamp);
-			}
-		}else{
-			strongSelf->initMedia();
-		}
-	});
-	setOnAudioCB( [weakSelf](const AACFrame &data ) {
-		auto strongSelf = weakSelf.lock();
-		if(!strongSelf){
-			return;
-		}
-		if(strongSelf->m_pChn){
-			strongSelf->m_pChn->inputAAC((char *)data.data(), data.size(), data.timeStamp);
-		}else{
-			strongSelf->initMedia();
-		}
-	});
+
+	//todo(xzl) 修复此处
+//	setOnVideoCB( [weakSelf](const H264Frame &data ) {
+//		auto strongSelf = weakSelf.lock();
+//		if(!strongSelf){
+//			return;
+//		}
+//		if(strongSelf->m_pChn){
+//			strongSelf->m_pChn->inputH264((char *)data.data(), data.size(), data.timeStamp);
+//			if(!strongSelf->m_haveAudio){
+//				strongSelf->makeMuteAudio(data.timeStamp);
+//			}
+//		}else{
+//			strongSelf->initMedia();
+//		}
+//	});
+//	setOnAudioCB( [weakSelf](const AACFrame &data ) {
+//		auto strongSelf = weakSelf.lock();
+//		if(!strongSelf){
+//			return;
+//		}
+//		if(strongSelf->m_pChn){
+//			strongSelf->m_pChn->inputAAC((char *)data.data(), data.size(), data.timeStamp);
+//		}else{
+//			strongSelf->initMedia();
+//		}
+//	});
 
 	std::shared_ptr<int> piFailedCnt(new int(0)); //连续播放失败次数
 	string strUrlTmp(strUrl);
@@ -166,28 +168,31 @@ void PlayerProxy::initMedia() {
 	}
 	m_pChn.reset(new DevChannel(m_strVhost.data(),m_strApp.data(),m_strSrc.data(),getDuration(),m_bEnableHls,m_bEnableMp4));
     m_pChn->setListener(shared_from_this());
-	if (containVideo()) {
-		VideoInfo info;
-		info.iFrameRate = getVideoFps();
-		info.iWidth = getVideoWidth();
-		info.iHeight = getVideoHeight();
-		m_pChn->initVideo(info);
-	}
 
-	m_haveAudio = containAudio();
-	if (containAudio()) {
-		AudioInfo info;
-		info.iSampleRate = getAudioSampleRate();
-		info.iChannel = getAudioChannel();
-		info.iSampleBit = getAudioSampleBit();
-		m_pChn->initAudio(info);
-	}else{
-		AudioInfo info;
-		info.iSampleRate = MUTE_ADTS_SAMPLE_RATE;
-		info.iChannel = MUTE_ADTS_CHN_CNT;
-		info.iSampleBit = MUTE_ADTS_SAMPLE_BIT;
-		m_pChn->initAudio(info);
-	}
+	//todo(xzl) 修复此处
+
+//	if (containVideo()) {
+//		VideoInfo info;
+//		info.iFrameRate = getVideoFps();
+//		info.iWidth = getVideoWidth();
+//		info.iHeight = getVideoHeight();
+//		m_pChn->initVideo(info);
+//	}
+//
+//	m_haveAudio = containAudio();
+//	if (containAudio()) {
+//		AudioInfo info;
+//		info.iSampleRate = getAudioSampleRate();
+//		info.iChannel = getAudioChannel();
+//		info.iSampleBit = getAudioSampleBit();
+//		m_pChn->initAudio(info);
+//	}else{
+//		AudioInfo info;
+//		info.iSampleRate = MUTE_ADTS_SAMPLE_RATE;
+//		info.iChannel = MUTE_ADTS_CHN_CNT;
+//		info.iSampleBit = MUTE_ADTS_SAMPLE_BIT;
+//		m_pChn->initAudio(info);
+//	}
 }
 bool PlayerProxy::shutDown() {
     //通知其停止推流

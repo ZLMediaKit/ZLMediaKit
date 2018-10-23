@@ -55,7 +55,7 @@ public:
 
     RtpRing(){
         //禁用缓存
-        _rtpRing = std::make_shared<RingType>(1);
+        _rtpRing = std::make_shared<RingType>();
     }
     virtual ~RtpRing(){}
 
@@ -143,12 +143,12 @@ public:
     RtpCodec(){}
     virtual ~RtpCodec(){}
 
-    static Ptr getRtpCodec(CodecId codecId,
-                           uint32_t ui32Ssrc,
-                           uint32_t ui32MtuSize,
-                           uint32_t ui32SampleRate,
-                           uint8_t ui8PlayloadType,
-                           uint8_t ui8Interleaved);
+    static Ptr getRtpCodecById(CodecId codecId,
+                               uint32_t ui32Ssrc,
+                               uint32_t ui32MtuSize,
+                               uint32_t ui32SampleRate,
+                               uint8_t ui8PlayloadType,
+                               uint8_t ui8Interleaved);
 };
 
 

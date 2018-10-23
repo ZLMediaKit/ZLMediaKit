@@ -131,15 +131,18 @@ void Mp4Maker::_inputH264(void* pData, uint32_t ui32Length, uint32_t ui32Duratio
 void Mp4Maker::_inputAAC(void* pData, uint32_t ui32Length, uint32_t ui32Duration) {
     GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Config::Record::kFileSecond);
 
-    if (!m_pPlayer->containVideo() && (m_hMp4 == MP4_INVALID_FILE_HANDLE || m_ticker.elapsedTime() > recordSec * 1000)) {
-		//在I帧率处新建MP4文件
-		//如果文件未创建或者文件超过10分钟则创建新文件
-		createFile();
-	}
-	if (m_hAudio != MP4_INVALID_TRACK_ID) {
-		auto duration = ui32Duration * m_pPlayer->getAudioSampleRate() /1000.0;
-		MP4WriteSample(m_hMp4, m_hAudio, (uint8_t*)pData + 7, ui32Length - 7,duration,0,false);
-	}
+	//todo(xzl) 修复此处
+
+//
+//    if (!m_pPlayer->containVideo() && (m_hMp4 == MP4_INVALID_FILE_HANDLE || m_ticker.elapsedTime() > recordSec * 1000)) {
+//		//在I帧率处新建MP4文件
+//		//如果文件未创建或者文件超过10分钟则创建新文件
+//		createFile();
+//	}
+//	if (m_hAudio != MP4_INVALID_TRACK_ID) {
+//		auto duration = ui32Duration * m_pPlayer->getAudioSampleRate() /1000.0;
+//		MP4WriteSample(m_hMp4, m_hAudio, (uint8_t*)pData + 7, ui32Length - 7,duration,0,false);
+//	}
 }
 
 void Mp4Maker::createFile() {
@@ -182,28 +185,31 @@ void Mp4Maker::createFile() {
 	m_strFileTmp = strFileTmp;
 	m_strFile = strFile;
 	m_ticker.resetTime();
-	if(m_pPlayer->containVideo()){
-		auto &sps = m_pPlayer->getSps();
-		auto &pps = m_pPlayer->getPps();
-		m_hVideo = MP4AddH264VideoTrack(m_hMp4, 90000, MP4_INVALID_DURATION,
-				m_pPlayer->getVideoWidth(), m_pPlayer->getVideoHeight(),
-				sps[5], sps[6], sps[7], 3);
-		if(m_hVideo !=MP4_INVALID_TRACK_ID){
-			MP4AddH264SequenceParameterSet(m_hMp4, m_hVideo, (uint8_t *)sps.data() + 4, sps.size() - 4);
-			MP4AddH264PictureParameterSet(m_hMp4, m_hVideo, (uint8_t *)pps.data() + 4, pps.size() - 4);
-		}else{
-			WarnL << "添加视频通道失败:" << strFileTmp;
-		}
-	}
-	if(m_pPlayer->containAudio()){
-		m_hAudio = MP4AddAudioTrack(m_hMp4, m_pPlayer->getAudioSampleRate(), MP4_INVALID_DURATION, MP4_MPEG4_AUDIO_TYPE);
-		if (m_hAudio != MP4_INVALID_TRACK_ID) {
-			auto &cfg =  m_pPlayer->getAudioCfg();
-			MP4SetTrackESConfiguration(m_hMp4, m_hAudio,(uint8_t *)cfg.data(), cfg.size());
-		}else{
-			WarnL << "添加音频通道失败:" << strFileTmp;
-		}
-	}
+
+	//todo(xzl) 修复此处
+
+//	if(m_pPlayer->containVideo()){
+//		auto &sps = m_pPlayer->getSps();
+//		auto &pps = m_pPlayer->getPps();
+//		m_hVideo = MP4AddH264VideoTrack(m_hMp4, 90000, MP4_INVALID_DURATION,
+//				m_pPlayer->getVideoWidth(), m_pPlayer->getVideoHeight(),
+//				sps[5], sps[6], sps[7], 3);
+//		if(m_hVideo !=MP4_INVALID_TRACK_ID){
+//			MP4AddH264SequenceParameterSet(m_hMp4, m_hVideo, (uint8_t *)sps.data() + 4, sps.size() - 4);
+//			MP4AddH264PictureParameterSet(m_hMp4, m_hVideo, (uint8_t *)pps.data() + 4, pps.size() - 4);
+//		}else{
+//			WarnL << "添加视频通道失败:" << strFileTmp;
+//		}
+//	}
+//	if(m_pPlayer->containAudio()){
+//		m_hAudio = MP4AddAudioTrack(m_hMp4, m_pPlayer->getAudioSampleRate(), MP4_INVALID_DURATION, MP4_MPEG4_AUDIO_TYPE);
+//		if (m_hAudio != MP4_INVALID_TRACK_ID) {
+//			auto &cfg =  m_pPlayer->getAudioCfg();
+//			MP4SetTrackESConfiguration(m_hMp4, m_hAudio,(uint8_t *)cfg.data(), cfg.size());
+//		}else{
+//			WarnL << "添加音频通道失败:" << strFileTmp;
+//		}
+//	}
 }
 
 void Mp4Maker::closeFile() {

@@ -47,23 +47,7 @@ using namespace ZL::Network;
 namespace ZL {
 namespace Player {
 
-class MediaFormat {
-public:
-	virtual ~MediaFormat(){};
-	virtual int getVideoHeight() const { return 0; };
-	virtual int getVideoWidth() const { return 0; };
-	virtual float getVideoFps() const { return 0; };
-
-	virtual int getAudioSampleRate() const { return 0; };
-	virtual int getAudioSampleBit() const { return 0; };
-	virtual int getAudioChannel() const { return 0; };
-
-	virtual const string& getPps() const { static string null;return null; };
-	virtual const string& getSps() const { static string null;return null; };
-	virtual const string& getAudioCfg() const { static string null;return null; };
-};
-
-class PlayerBase : public MediaFormat,public mINI{
+class PlayerBase : public mINI{
 public:
 	typedef std::shared_ptr<PlayerBase> Ptr;
 	typedef enum {
@@ -85,34 +69,29 @@ public:
 	//rtsp认证用用户密码是否为md5
 	static const char kRtspPwdIsMD5[];
 
-	PlayerBase(){};
-	virtual ~PlayerBase(){};
-	virtual void play(const char* strUrl) {};
-	virtual void pause(bool bPause) {};
-	virtual void teardown() {};
+	PlayerBase(){}
+	virtual ~PlayerBase(){}
+	virtual void play(const char* strUrl) {}
+	virtual void pause(bool bPause) {}
+	virtual void teardown() {}
 
-	virtual void setOnShutdown( const function<void(const SockException &)> &cb) {};
-	virtual void setOnPlayResult( const function<void(const SockException &ex)> &cb) {};
-	virtual void setOnVideoCB( const function<void(const H264Frame &frame)> &cb) {};
-	virtual void setOnAudioCB( const function<void(const AACFrame &frame)> &cb) {};
-    
-    virtual float getProgress() const { return 0;};
-    virtual void seekTo(float fProgress) {};
-    virtual void setMediaSouce(const MediaSource::Ptr & src) {};
+	virtual void setOnShutdown( const function<void(const SockException &)> &cb) {}
+	virtual void setOnPlayResult( const function<void(const SockException &ex)> &cb) {}
 
-	virtual bool isInited() const { return true; };
+    virtual float getProgress() const { return 0;}
+    virtual void seekTo(float fProgress) {}
+    virtual void setMediaSouce(const MediaSource::Ptr & src) {}
+
+	virtual bool isInited() const { return true; }
 	//TrackVideo = 0, TrackAudio = 1
-	virtual float getRtpLossRate(int trackType) const {return 0; };
-    virtual float getDuration() const { return 0;};
+	virtual float getRtpLossRate(int trackType) const {return 0; }
+    virtual float getDuration() const { return 0;}
 
-    virtual bool containAudio() const { return false; };
-    virtual bool containVideo() const { return false; };
-
-    virtual int getTrackCount() const { return  0;};
-	virtual Track::Ptr getTrack(int index) const {return nullptr;};
+    virtual int getTrackCount() const { return  0;}
+	virtual Track::Ptr getTrack(int index) const {return nullptr;}
 protected:
-    virtual void onShutdown(const SockException &ex) {};
-    virtual void onPlayResult(const SockException &ex) {};
+    virtual void onShutdown(const SockException &ex) {}
+    virtual void onPlayResult(const SockException &ex) {}
 };
 
 template<typename Parent,typename Parser>
@@ -120,8 +99,8 @@ class PlayerImp : public Parent
 {
 public:
 	typedef std::shared_ptr<PlayerImp> Ptr;
-	PlayerImp(){};
-	virtual ~PlayerImp(){};
+	PlayerImp(){}
+	virtual ~PlayerImp(){}
 	void setOnShutdown(const function<void(const SockException &)> &cb) override {
 		if (m_parser) {
 			m_parser->setOnShutdown(cb);
@@ -134,92 +113,7 @@ public:
 		}
 		m_playResultCB = cb;
 	}
-	void setOnVideoCB(const function<void(const H264Frame &frame)> &cb) override{
-		if (m_parser) {
-			m_parser->setOnVideoCB(cb);
-		}
-		m_onGetVideoCB = cb;
-	}
-	void setOnAudioCB(const function<void(const AACFrame &frame)> &cb) override{
-		if (m_parser) {
-			m_parser->setOnAudioCB(cb);
-		}
-		m_onGetAudioCB = cb;
-	}
-	int getVideoHeight() const override{
-		if (m_parser) {
-			return m_parser->getVideoHeight();
-		}
-		return PlayerBase::getVideoHeight();
-	}
 
-	int getVideoWidth() const override{
-		if (m_parser) {
-			return m_parser->getVideoWidth();
-		}
-		return PlayerBase::getVideoWidth();
-	}
-
-	float getVideoFps() const override{
-		if (m_parser) {
-			return m_parser->getVideoFps();
-		}
-		return PlayerBase::getVideoFps();
-	}
-
-	int getAudioSampleRate() const override{
-		if (m_parser) {
-			return m_parser->getAudioSampleRate();
-		}
-		return PlayerBase::getAudioSampleRate();
-	}
-
-	int getAudioSampleBit() const override{
-		if (m_parser) {
-			return m_parser->getAudioSampleBit();
-		}
-		return PlayerBase::getAudioSampleBit();
-	}
-
-	int getAudioChannel() const override{
-		if (m_parser) {
-			return m_parser->getAudioChannel();
-		}
-		return PlayerBase::getAudioChannel();
-	}
-
-	const string& getPps() const override{
-		if (m_parser) {
-			return m_parser->getPps();
-		}
-		return PlayerBase::getPps();
-	}
-
-	const string& getSps() const override{
-		if (m_parser) {
-			return m_parser->getSps();
-		}
-		return PlayerBase::getSps();
-	}
-
-	const string& getAudioCfg() const override{
-		if (m_parser) {
-			return m_parser->getAudioCfg();
-		}
-		return PlayerBase::getAudioCfg();
-	}
-	bool containAudio() const override{
-		if (m_parser) {
-			return m_parser->containAudio();
-		}
-		return PlayerBase::containAudio();
-	}
-    bool containVideo() const override{
-        if (m_parser) {
-            return m_parser->containVideo();
-        }
-        return PlayerBase::containVideo();
-    }
     bool isInited() const override{
         if (m_parser) {
             return m_parser->isInited();
@@ -237,21 +131,33 @@ public:
             return m_parser->getProgress();
         }
         return PlayerBase::getProgress();
-    };
+    }
     void seekTo(float fProgress) override{
         if (m_parser) {
             return m_parser->seekTo(fProgress);
         }
         return PlayerBase::seekTo(fProgress);
-    };
+    }
 
     void setMediaSouce(const MediaSource::Ptr & src) override {
 		if (m_parser) {
 			return m_parser->setMediaSouce(src);
 		}
 		m_pMediaSrc = src;
-    };
+    }
 
+    virtual int getTrackCount() const override{
+        if (m_parser) {
+            return m_parser->getTrackCount();
+        }
+        return PlayerBase::getTrackCount();
+    }
+    virtual Track::Ptr getTrack(int index) const override{
+        if (m_parser) {
+            return m_parser->getTrack(index);
+        }
+        return PlayerBase::getTrack(index);
+    }
 protected:
 	void onShutdown(const SockException &ex) override {
 		if (m_shutdownCB) {
@@ -268,11 +174,9 @@ protected:
 	function<void(const SockException &ex)> m_shutdownCB;
 	function<void(const SockException &ex)> m_playResultCB;
 	std::shared_ptr<Parser> m_parser;
-	function<void(const H264Frame &frame)> m_onGetVideoCB;
-	function<void(const AACFrame &frame)> m_onGetAudioCB;
 	MediaSource::Ptr m_pMediaSrc;
-
 };
+
 } /* namespace Player */
 } /* namespace ZL */
 

@@ -69,8 +69,9 @@ private:
         }
         try {
             m_parser.reset(new RtmpParser(val));
-            m_parser->setOnVideoCB(m_onGetVideoCB);
-            m_parser->setOnAudioCB(m_onGetAudioCB);
+            //todo(xzl) 修复此处
+//            m_parser->setOnVideoCB(m_onGetVideoCB);
+//            m_parser->setOnAudioCB(m_onGetAudioCB);
             return true;
         } catch (std::exception &ex) {
             WarnL << ex.what();

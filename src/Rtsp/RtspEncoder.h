@@ -108,12 +108,12 @@ public:
      * @param mtu mtu大小，一般小于1500字节，推荐1400
      */
     virtual void createRtpEncoder(uint32_t ssrc, int mtu) {
-        _encoder = RtpCodec::getRtpCodec (getCodecId(),
-                                          ssrc,
-                                          mtu,
-                                          _sample_rate,
-                                          _playload_type,
-                                          getTrackType() * 2);
+        _encoder = RtpCodec::getRtpCodecById(getCodecId(),
+                                             ssrc,
+                                             mtu,
+                                             _sample_rate,
+                                             _playload_type,
+                                             getTrackType() * 2);
     }
 private:
     RtpCodec::Ptr _encoder;
@@ -275,10 +275,8 @@ public:
      * 构成函数
      */
     RtspEncoder(){
-        //自适应缓存
-        _rtpRing = std::make_shared<RtpRingInterface::RingType>(0);
-        //禁用缓存
-        _frameRing = std::make_shared<FrameRingInterface::RingType>(1);
+        _rtpRing = std::make_shared<RtpRingInterface::RingType>();
+        _frameRing = std::make_shared<FrameRingInterface::RingType>();
     }
     virtual ~RtspEncoder(){}
 
