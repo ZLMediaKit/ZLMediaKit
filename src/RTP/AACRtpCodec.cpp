@@ -17,7 +17,7 @@ AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
         AACRtpDecoder(ui32SampleRate){
 }
 
-void AACRtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
+bool AACRtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
     RtpCodec::inputFrame(frame, false);
 
     GET_CONFIG_AND_REGISTER(uint32_t, cycleMS, Config::Rtp::kCycleMS);
@@ -46,8 +46,8 @@ void AACRtpEncoder::inputFrame(const Frame::Ptr &frame, bool key_pos) {
         makeAACRtp(m_aucSectionBuf, m_ui32MtuSize - 16, false, uiStamp);
         ptr += (m_ui32MtuSize - 20);
         iSize -= (m_ui32MtuSize - 20);
-
     }
+    return false;
 }
 
 void AACRtpEncoder::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp) {
@@ -100,24 +100,24 @@ AACFrame::Ptr AACRtpDecoder::obtainFrame() {
     return frame;
 }
 
-void AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
+bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     RtpCodec::inputRtp(rtppack, false);
 
     int length = rtppack->length - rtppack->offset;
     if (m_adts->aac_frame_length + length - 4 > sizeof(AACFrame::buffer)) {
         m_adts->aac_frame_length = 7;
         WarnL << "aac负载数据太长";
-        return;
+        return false;
     }
     memcpy(m_adts->buffer + m_adts->aac_frame_length, rtppack->payload + rtppack->offset + 4, length - 4);
     m_adts->aac_frame_length += (length - 4);
     if (rtppack->mark == true) {
         m_adts->sequence = rtppack->sequence;
-        //todo(xzl) 此处完成时间戳转换
         m_adts->timeStamp = rtppack->timeStamp * (1000.0 / m_sampleRate);
         writeAdtsHeader(*m_adts, m_adts->buffer);
         onGetAdts(m_adts);
     }
+    return false;
 }
 
 void AACRtpDecoder::onGetAdts(const AACFrame::Ptr &frame) {

@@ -15,6 +15,8 @@ using namespace ZL::Util;
  */
 class H264RtpDecoder : public RtpCodec {
 public:
+    typedef std::shared_ptr<H264RtpDecoder> Ptr;
+
     H264RtpDecoder();
     ~H264RtpDecoder() {}
 
@@ -23,7 +25,7 @@ public:
      * @param rtp rtp包
      * @param key_pos 此参数忽略之
      */
-    void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
+    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
 
     TrackType getTrackType() const override{
         return TrackVideo;
@@ -46,6 +48,7 @@ private:
  */
 class H264RtpEncoder : public H264RtpDecoder ,public RtpInfo{
 public:
+    typedef std::shared_ptr<H264RtpEncoder> Ptr;
 
     /**
      * @param ui32Ssrc ssrc
@@ -66,7 +69,7 @@ public:
      * @param frame 帧数据，必须
      * @param key_pos
      */
-    void inputFrame(const Frame::Ptr &frame, bool key_pos) override;
+    bool inputFrame(const Frame::Ptr &frame, bool key_pos) override;
 private:
     void makeH264Rtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:
