@@ -67,9 +67,8 @@ public:
     /**
      * 输入264帧
      * @param frame 帧数据，必须
-     * @param key_pos
      */
-    bool inputFrame(const Frame::Ptr &frame, bool key_pos) override;
+    void inputFrame(const Frame::Ptr &frame) override;
 private:
     void makeH264Rtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:

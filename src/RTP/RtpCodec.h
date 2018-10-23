@@ -162,6 +162,16 @@ public:
     RtpCodec(){}
     virtual ~RtpCodec(){}
 
+    /**
+     * 根据CodecId生成Rtp打包器
+     * @param codecId
+     * @param ui32Ssrc
+     * @param ui32MtuSize
+     * @param ui32SampleRate
+     * @param ui8PlayloadType
+     * @param ui8Interleaved
+     * @return
+     */
     static Ptr getRtpEncoderById(CodecId codecId,
                                  uint32_t ui32Ssrc,
                                  uint32_t ui32MtuSize,
@@ -169,6 +179,12 @@ public:
                                  uint8_t ui8PlayloadType,
                                  uint8_t ui8Interleaved);
 
+    /**
+     * 根据CodecId生成Rtp解包器
+     * @param codecId
+     * @param ui32SampleRate
+     * @return
+     */
     static Ptr getRtpDecoderById(CodecId codecId,uint32_t ui32SampleRate);
 };
 
