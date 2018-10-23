@@ -35,7 +35,7 @@
 #include "RTP/RtpMakerAAC.h"
 #include "RTP/RtpMakerH264.h"
 #include "Rtsp/RtspToRtmpMediaSource.h"
-#include "Rtsp/RtspEncoder.h"
+#include "Rtsp/RtspSdp.h"
 #include "Util/TimeTicker.h"
 
 using namespace std;
