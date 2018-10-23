@@ -118,12 +118,15 @@ void getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel){
 	iChannel = adts.channel_configuration;
 }
 bool getAVCInfo(const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
+	return getAVCInfo(strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
+}
+bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
 	T_GetBitContext tGetBitBuf;
 	T_SPS tH264SpsInfo;
 	memset(&tGetBitBuf,0,sizeof(tGetBitBuf));
 	memset(&tH264SpsInfo,0,sizeof(tH264SpsInfo));
-	tGetBitBuf.pu8Buf = (uint8_t *)strSps.data() + 1;
-	tGetBitBuf.iBufSize = strSps.size() - 1;
+	tGetBitBuf.pu8Buf = (uint8_t*)sps + 1;
+	tGetBitBuf.iBufSize = sps_len - 1;
 	if(0 != h264DecSeqParameterSet((void *) &tGetBitBuf, &tH264SpsInfo)){
 		return false;
 	}

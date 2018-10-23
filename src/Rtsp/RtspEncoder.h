@@ -15,51 +15,98 @@ namespace Rtsp{
 /**
 * sdp基类
 */
-class Sdp :  public Track , public RtpRingInterface{
+class Sdp :  public FrameRingInterface , public RtpRingInterface , public CodecInfo{
 public:
     typedef std::shared_ptr<Sdp> Ptr;
+
+    /**
+     * 构造sdp
+     * @param sample_rate 采样率
+     * @param playload_type pt类型
+     */
     Sdp(uint32_t sample_rate, uint8_t playload_type){
         _sample_rate = sample_rate;
         _playload_type = playload_type;
     }
     virtual ~Sdp(){}
+
     /**
      * 获取sdp字符串
      * @return
      */
     virtual string getSdp() const  = 0;
 
+    /**
+     * 返回音频或视频类型
+     * @return
+     */
     TrackType getTrackType() const override {
         return TrackInvalid;
     }
 
+    /**
+     * 返回编码器id
+     * @return
+     */
     CodecId getCodecId() const override{
         return CodecInvalid;
     }
 
+    /**
+     * 获取帧环形缓存
+     * @return
+     */
     FrameRingInterface::RingType::Ptr getFrameRing() const override {
         return _encoder->getFrameRing();
     }
 
+    /**
+     * 获取rtp环形缓存
+     * @return
+     */
     RtpRingInterface::RingType::Ptr getRtpRing() const override{
         return _encoder->getRtpRing();
     }
 
+    /**
+     * 输入帧数据，驱动rtp打包
+     * @param frame 帧数据
+     * @param key_pos 是否为关键帧
+     */
     void inputFrame(const Frame::Ptr &frame,bool key_pos) override{
         _encoder->inputFrame(frame,key_pos);
     }
 
+    /**
+     * 也可以在外部打包rtp后直接输入rtp
+     * @param rtp rtp数据包
+     * @param key_pos 是否为关键帧第一个rtp包
+     */
     void inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
         _encoder->inputRtp(rtp,key_pos);
     }
 
+    /**
+     * 替换帧环形缓存，目的是多个rtp打包器共用一个环形缓存
+     * @param ring
+     */
     void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override{
         _encoder->setFrameRing(ring);
     }
+
+    /**
+     * 替换帧环形缓存，目的是多个rtp打包器共用一个环形缓存
+     * @param ring
+     */
     void setRtpRing(const RtpRingInterface::RingType::Ptr &ring) override{
         _encoder->setRtpRing(ring);
     }
 
+    /**
+     * 创建Rtp打包器
+     * @param ssrc 打包器ssrc，可以为0
+     * @param mtu mtu大小，一般小于1500字节，推荐1400
+     */
     virtual void createRtpEncoder(uint32_t ssrc, int mtu) {
         _encoder = RtpCodec::getRtpCodec (getCodecId(),
                                           ssrc,
@@ -127,20 +174,17 @@ public:
      *
      * @param sps 264 sps,带0x00000001头
      * @param pps 264 pps,带0x00000001头
-     * @param sample_rate 时间戳采样率，视频默认90000
-     * @param playload_type rtp playload type 默认96
-     * @param track_id trackID 默认为TrackVideo
+     * @param playload_type  rtp playload type 默认96
      * @param bitrate 比特率
      */
     H264Sdp(const string &sps,
             const string &pps,
-            int sample_rate = 90000,
             int playload_type = 96,
-            int bitrate = 4000) : Sdp(sample_rate,playload_type) {
+            int bitrate = 4000) : Sdp(90000,playload_type) {
         //视频通道
         _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << " H264/" << sample_rate << "\r\n";
+        _printer << "a=rtpmap:" << playload_type << " H264/" << 90000 << "\r\n";
         _printer << "a=fmtp:" << playload_type << " packetization-mode=1;profile-level-id=";
 
         char strTemp[100];
@@ -186,11 +230,10 @@ class AACSdp : public Sdp {
 public:
 
     /**
-     * 构造aac sdp
+     *
      * @param aac_cfg aac两个字节的配置描述
      * @param sample_rate 音频采样率
-     * @param playload_type rtp playload type 默认96
-     * @param track_id trackID 默认为TrackVideo
+     * @param playload_type rtp playload type 默认98
      * @param bitrate 比特率
      */
     AACSdp(const string &aac_cfg,

@@ -45,5 +45,7 @@ void 	writeAdtsHeader(const AACFrame &adts, uint8_t *pcAdts) ;
 string 	makeAdtsConfig(const uint8_t *pcAdts);
 void 	getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel);
 bool 	getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
+bool 	getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
+
 
 #endif /* SRC_PLAYER_PLAYER_H_ */
