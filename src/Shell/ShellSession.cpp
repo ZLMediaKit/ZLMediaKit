@@ -29,12 +29,9 @@
 #include "Util/CMD.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
+using namespace toolkit;
 
-using namespace Config;
-using namespace ZL::Util;
-
-namespace ZL {
-namespace Shell {
+namespace mediakit {
 
 ShellSession::ShellSession(const std::shared_ptr<ThreadPool> &_th,
                            const Socket::Ptr &_sock) :
@@ -47,7 +44,7 @@ ShellSession::~ShellSession() {
 
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
 	//DebugL << hexdump(buf->data(), buf->size());
-    GET_CONFIG_AND_REGISTER(uint32_t,maxReqSize,Config::Shell::kMaxReqSize);
+    GET_CONFIG_AND_REGISTER(uint32_t,maxReqSize,Shell::kMaxReqSize);
     if (_strRecvBuf.size() + buf->size() >= maxReqSize) {
 		WarnL << "接收缓冲区溢出!";
 		shutdown();
@@ -161,5 +158,4 @@ inline void ShellSession::printShellPrefix() {
 	send(StrPrinter << _strUserName << "@" << SERVER_NAME << "# " << endl);
 }
 
-}/* namespace Shell */
-} /* namespace ZL */
+}/* namespace mediakit */

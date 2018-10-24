@@ -31,13 +31,9 @@
 #include "Common/config.h"
 #include "Util/TimeTicker.h"
 #include "Network/TcpSession.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Shell {
+namespace mediakit {
 
 class ShellSession: public TcpSession {
 public:
@@ -60,7 +56,6 @@ private:
 	string _strUserName;
 };
 
-} /* namespace Shell */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_SHELL_SHELLSESSION_H_ */

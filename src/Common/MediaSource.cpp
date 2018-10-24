@@ -31,12 +31,9 @@
 #include "Rtsp/Rtsp.h"
 #include "Network/sockutil.h"
 
-using namespace ZL::Util;
-using namespace ZL::Network;
-using namespace ZL::MediaFile;
+using namespace toolkit;
 
-namespace ZL {
-namespace Media {
+namespace mediakit {
 
 recursive_mutex MediaSource::g_mtxMediaSrc;
 MediaSource::SchemaVhostAppStreamMap MediaSource::g_mapMediaSrc;
@@ -174,5 +171,4 @@ void MediaInfo::parse(const string &url){
 }
 
 
-} /* namespace Media */
-} /* namespace ZL */
+} /* namespace mediakit */

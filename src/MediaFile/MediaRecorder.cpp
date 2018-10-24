@@ -30,12 +30,9 @@
 #include "Util/util.h"
 #include "Util/mini.h"
 #include "Network/sockutil.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace MediaFile {
+namespace mediakit {
 
 MediaRecorder::MediaRecorder(const string &strVhost_tmp,
                              const string &strApp,
@@ -44,10 +41,10 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
                              bool enableHls,
                              bool enableMp4) {
 
-    GET_CONFIG_AND_REGISTER(string,hlsPath,Config::Hls::kFilePath);
-    GET_CONFIG_AND_REGISTER(uint32_t,hlsBufSize,Config::Hls::kFileBufSize);
-    GET_CONFIG_AND_REGISTER(uint32_t,hlsDuration,Config::Hls::kSegmentDuration);
-    GET_CONFIG_AND_REGISTER(uint32_t,hlsNum,Config::Hls::kSegmentNum);
+    GET_CONFIG_AND_REGISTER(string,hlsPath,Hls::kFilePath);
+    GET_CONFIG_AND_REGISTER(uint32_t,hlsBufSize,Hls::kFileBufSize);
+    GET_CONFIG_AND_REGISTER(uint32_t,hlsDuration,Hls::kSegmentDuration);
+    GET_CONFIG_AND_REGISTER(uint32_t,hlsNum,Hls::kSegmentNum);
 
     string strVhost = strVhost_tmp;
     if(trim(strVhost).empty()){
@@ -61,8 +58,8 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
     }
 
 #ifdef ENABLE_MP4V2
-    GET_CONFIG_AND_REGISTER(string,recordPath,Config::Record::kFilePath);
-    GET_CONFIG_AND_REGISTER(string,recordAppName,Config::Record::kAppName);
+    GET_CONFIG_AND_REGISTER(string,recordPath,Record::kFilePath);
+    GET_CONFIG_AND_REGISTER(string,recordAppName,Record::kAppName);
 
     if(enableMp4){
         auto mp4FilePath = recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
@@ -96,5 +93,4 @@ void MediaRecorder::inputAAC(void* pData, uint32_t ui32Length, uint32_t ui32Time
 #endif //ENABLE_MP4V2
 }
 
-} /* namespace MediaFile */
-} /* namespace ZL */
+} /* namespace mediakit */

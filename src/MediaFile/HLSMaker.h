@@ -34,11 +34,9 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include <deque>
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL {
-namespace MediaFile {
+namespace mediakit {
 
 class HLSMaker {
 public:
@@ -75,7 +73,6 @@ private:
 	bool removets();
 };
 
-} /* namespace MediaFile */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* HLSMAKER_H_ */

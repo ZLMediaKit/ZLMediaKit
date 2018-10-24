@@ -31,8 +31,7 @@
 #include <windows.h> 
 #endif//defined(_WIN32)
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 //////////////////////////通用///////////////////////
 void UTF8ToUnicode(wchar_t* pOut, const char *pText)
@@ -239,5 +238,4 @@ string strCoding::GB2312ToUTF8(const string &str) {
 
 
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */

@@ -36,11 +36,9 @@
 #include "Network/Socket.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 class UDPServer {
 public:
@@ -63,7 +61,6 @@ private:
 	mutex _mtxDataHandler;
 };
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* RTSP_UDPSERVER_H_ */

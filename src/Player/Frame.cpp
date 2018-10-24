@@ -3,3 +3,7 @@
 //
 
 #include "Frame.h"
+
+namespace mediakit{
+
+}

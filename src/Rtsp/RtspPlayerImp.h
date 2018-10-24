@@ -37,11 +37,9 @@
 #include "Util/TimeTicker.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Player;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 class RtspPlayerImp: public PlayerImp<RtspPlayer,RtpParser> {
 public:
@@ -95,7 +93,6 @@ private:
     
 };
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTP_RTPPARSERTESTER_H_ */

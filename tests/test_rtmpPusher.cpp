@@ -34,11 +34,8 @@
 #include "Common/config.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Rtmp;
-using namespace ZL::Thread;
-using namespace ZL::Network;
-using namespace ZL::DEV;
+using namespace toolkit;
+using namespace mediakit;
 
 //推流器，保持强引用
 RtmpPusher::Ptr pusher;
@@ -98,7 +95,7 @@ int domain(const string &playUrl, const string &pushUrl) {
         player->play(playUrl.data());
 
         //监听RtmpMediaSource注册事件,在PlayerProxy播放成功后触发
-        NoticeCenter::Instance().addListener(nullptr, Config::Broadcast::kBroadcastMediaChanged,
+        NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged,
                                              [pushUrl](BroadcastMediaChangedArgs) {
                                                  //媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
                                                  if(bRegist && schema == RTMP_SCHEMA){

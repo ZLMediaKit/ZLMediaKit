@@ -5,8 +5,7 @@
 #include <Player/Player.h>
 #include "AACRtmpCodec.h"
 
-namespace ZL{
-namespace Rtmp {
+namespace mediakit{
 
 AACRtmpDecoder::AACRtmpDecoder() {
     _adts = obtainFrame();
@@ -127,13 +126,4 @@ void AACRtmpEncoder::makeAudioConfigPkt() {
 
 
 
-
-
-
-
-
-
-
-
-}//namespace Rtmp
-}//namespace ZL
+}//namespace mediakit

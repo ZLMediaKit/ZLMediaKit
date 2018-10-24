@@ -32,8 +32,7 @@
 #include "cleaner.h"
 
 using namespace std;
-using namespace ZL::DEV;
-using namespace ZL::Util;
+using namespace toolkit;
 
 static recursive_mutex s_mtxMapMedia;
 static unordered_map<void *, DevChannel::Ptr> s_mapMedia;

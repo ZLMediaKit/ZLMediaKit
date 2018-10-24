@@ -43,13 +43,11 @@
 #include "Util/NoticeCenter.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Http;
-using namespace ZL::Thread;
-using namespace ZL::Network;
+using namespace toolkit;
+using namespace mediakit;
 
 static onceToken s_token([](){
-    NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastHttpRequest,[](BroadcastHttpRequestArgs){
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpRequest,[](BroadcastHttpRequestArgs){
         //const Parser &parser,HttpSession::HttpResponseInvoker &invoker,bool &consumed
         if(strstr(parser.Url().data(),"/api/") != parser.Url().data()){
             return;
@@ -98,7 +96,7 @@ int main(int argc,char *argv[]){
 	Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 	//加载配置文件，如果配置文件不存在就创建一个
-	Config::loadIniConfig();
+	loadIniConfig();
 
 #ifdef ENABLE_OPENSSL
 	//请把证书"test_httpApi.pem"放置在本程序可执行程序同目录下
@@ -113,12 +111,12 @@ int main(int argc,char *argv[]){
 
 	//开启http服务器
 	TcpServer::Ptr httpSrv(new TcpServer());
-	httpSrv->start<EchoWebSocketSession>(mINI::Instance()[Config::Http::kPort]);//默认80
+	httpSrv->start<EchoWebSocketSession>(mINI::Instance()[Http::kPort]);//默认80
 
 #ifdef ENABLE_OPENSSL
     //如果支持ssl，还可以开启https服务器
 	TcpServer::Ptr httpsSrv(new TcpServer());
-	httpsSrv->start<SSLEchoWebSocketSession>(mINI::Instance()[Config::Http::kSSLPort]);//默认443
+	httpsSrv->start<SSLEchoWebSocketSession>(mINI::Instance()[Http::kSSLPort]);//默认443
 #endif //ENABLE_OPENSSL
 
 	InfoL << "你可以在浏览器输入:http://127.0.0.1/api/my_api?key0=val0&key1=参数1" << endl;

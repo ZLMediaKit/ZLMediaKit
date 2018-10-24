@@ -41,8 +41,7 @@ extern "C" {
 
 using namespace std;
 
-namespace ZL {
-namespace Codec {
+namespace mediakit {
 
 class H264Decoder
 {
@@ -95,8 +94,7 @@ private:
 };
 
 
-} /* namespace Codec */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* H264Decoder_H_ */
 

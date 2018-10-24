@@ -26,10 +26,9 @@
 
 #include "HttpCookie.h"
 #include "Util/util.h"
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 void HttpCookie::setPath(const string &path){
     _path = path;
@@ -104,5 +103,4 @@ vector<HttpCookie::Ptr> HttpCookieStorage::get(const string &host, const string 
 }
 
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */

@@ -8,8 +8,7 @@
 #include "macros.h"
 #include "h264_parser.h"
 #include "h264_poc.h"
-
-using namespace ZL::Util;
+using namespace toolkit;
 
 namespace media {
     

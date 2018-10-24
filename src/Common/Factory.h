@@ -10,7 +10,9 @@
 #include "Rtsp/RtspSdp.h"
 
 using namespace std;
-using namespace ZL::Rtsp;
+using namespace toolkit;
+
+namespace mediakit{
 
 class Factory {
 public:
@@ -53,5 +55,6 @@ public:
     static RtpCodec::Ptr getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRate);
 };
 
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_FACTORY_H

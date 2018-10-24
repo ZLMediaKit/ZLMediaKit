@@ -38,10 +38,9 @@ extern "C" {
 }
 #endif
 
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace ZL {
-namespace Codec {
+namespace mediakit {
 
 AACEncoder::AACEncoder() {
 
@@ -117,8 +116,7 @@ int AACEncoder::inputData(char *pcPcmBufr, int iLen, unsigned char **ppucOutBuff
 	return nRet;
 }
 
-} /* namespace Codec */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif //ENABLE_FAAC
 

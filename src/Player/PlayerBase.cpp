@@ -29,13 +29,9 @@
 #include "Rtsp/Rtsp.h"
 #include "Rtsp/RtspPlayerImp.h"
 #include "Rtmp/RtmpPlayerImp.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Rtmp;
-using namespace ZL::Rtsp;
-
-namespace ZL {
-namespace Player {
+namespace mediakit {
 
 const char PlayerBase::kNetAdapter[] = "net_adapter";
 const char PlayerBase::kRtpType[] = "rtp_type";
@@ -55,5 +51,4 @@ PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 	return PlayerBase::Ptr(new RtspPlayerImp());
 }
 
-} /* namespace Player */
-} /* namespace ZL */
+} /* namespace mediakit */

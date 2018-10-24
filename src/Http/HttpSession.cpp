@@ -43,11 +43,9 @@
 #include "Util/base64.h"
 #include "Util/SHA1.h"
 #include "Rtmp/utils.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
@@ -109,7 +107,7 @@ HttpSession::HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::P
 	//设置15秒发送超时时间
 	pSock->setSendTimeOutSecond(15);
 
-    GET_CONFIG_AND_REGISTER(string,rootPath,Config::Http::kRootPath);
+    GET_CONFIG_AND_REGISTER(string,rootPath,Http::kRootPath);
     _strPath = rootPath;
 }
 
@@ -178,7 +176,7 @@ void HttpSession::onError(const SockException& err) {
 }
 
 void HttpSession::onManager() {
-    GET_CONFIG_AND_REGISTER(uint32_t,keepAliveSec,Config::Http::kKeepAliveSecond);
+    GET_CONFIG_AND_REGISTER(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
 
     if(_ticker.elapsedTime() > keepAliveSec * 1000){
 		//1分钟超时
@@ -298,7 +296,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 
 	string strFile = _strPath + "/" + _mediaInfo._vhost + _parser.Url();
 	/////////////HTTP连接是否需要被关闭////////////////
-    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
+    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
 
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 	//访问的是文件夹
@@ -369,7 +367,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//回复Content部分
 	std::shared_ptr<int64_t> piLeft(new int64_t(iRangeEnd - iRangeStart + 1));
 
-    GET_CONFIG_AND_REGISTER(uint32_t,sendBufSize,Config::Http::kSendBufSize);
+    GET_CONFIG_AND_REGISTER(uint32_t,sendBufSize,Http::kSendBufSize);
 
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
 	auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
@@ -529,9 +527,9 @@ inline void HttpSession::sendResponse(const char* pcStatus, const KeyValue& head
 }
 inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iContentSize,const char* pcContentType) {
 	KeyValue headerOut;
-    GET_CONFIG_AND_REGISTER(string,charSet,Config::Http::kCharSet);
-    GET_CONFIG_AND_REGISTER(uint32_t,keepAliveSec,Config::Http::kKeepAliveSecond);
-    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
+    GET_CONFIG_AND_REGISTER(string,charSet,Http::kCharSet);
+    GET_CONFIG_AND_REGISTER(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
+    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
 
 	headerOut.emplace("Date", dateStr());
 	headerOut.emplace("Server", SERVER_NAME);
@@ -552,7 +550,7 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
 string HttpSession::urlDecode(const string &str){
 	auto ret = strCoding::UrlUTF8Decode(str);
 #ifdef _WIN32
-    GET_CONFIG_AND_REGISTER(string,charSet,Config::Http::kCharSet);
+    GET_CONFIG_AND_REGISTER(string,charSet,Http::kCharSet);
 	bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
 	if (isGb2312) {
 		ret = strCoding::UTF8ToGB2312(ret);
@@ -570,7 +568,7 @@ inline void HttpSession::urlDecode(Parser &parser){
 
 inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	///////////////////是否断开本链接///////////////////////
-    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Config::Http::kMaxReqCount);
+    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
 
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 	auto Origin = _parser["Origin"];
@@ -594,7 +592,7 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	};
 	///////////////////广播HTTP事件///////////////////////////
 	bool consumed = false;//该事件是否被消费
-	NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,*this);
+	NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,*this);
 	if(!consumed && doInvoke){
 		//该事件无人消费，所以返回404
 		invoker("404 Not Found",KeyValue(),"");
@@ -606,8 +604,8 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	return consumed;
 }
 inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
-	GET_CONFIG_AND_REGISTER(uint64_t,maxReqSize,Config::Http::kMaxReqSize);
-    GET_CONFIG_AND_REGISTER(int,maxReqCnt,Config::Http::kMaxReqCount);
+	GET_CONFIG_AND_REGISTER(uint64_t,maxReqSize,Http::kMaxReqSize);
+    GET_CONFIG_AND_REGISTER(int,maxReqCnt,Http::kMaxReqCount);
 
     int64_t totalContentLen = _parser["Content-Length"].empty() ? -1 : atoll(_parser["Content-Length"].data());
 
@@ -686,7 +684,7 @@ void HttpSession::responseDelay(const string &Origin,bool bClose,
 	sendResponse(codeOut.data(), headerOut, contentOut);
 }
 inline void HttpSession::sendNotFound(bool bClose) {
-    GET_CONFIG_AND_REGISTER(string,notFound,Config::Http::kNotFound);
+    GET_CONFIG_AND_REGISTER(string,notFound,Http::kNotFound);
     sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
 }
 
@@ -728,5 +726,4 @@ std::shared_ptr<FlvMuxer> HttpSession::getSharedPtr(){
 	return dynamic_pointer_cast<FlvMuxer>(shared_from_this());
 }
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */

@@ -7,9 +7,9 @@
 
 #include "Util/RingBuffer.h"
 #include "Network/Socket.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-using namespace ZL::Network;
+namespace mediakit{
 
 typedef enum {
     CodecInvalid = -1,
@@ -290,6 +290,6 @@ public:
 } ;
 
 
-
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_FRAME_H

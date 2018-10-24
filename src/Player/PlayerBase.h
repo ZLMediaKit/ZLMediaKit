@@ -38,14 +38,9 @@
 #include "Common/MediaSource.h"
 #include "Frame.h"
 #include "Track.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Media;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Player {
+namespace mediakit {
 
 class PlayerBase : public mINI{
 public:
@@ -170,7 +165,6 @@ protected:
 	MediaSource::Ptr _pMediaSrc;
 };
 
-} /* namespace Player */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_PLAYER_PLAYERBASE_H_ */

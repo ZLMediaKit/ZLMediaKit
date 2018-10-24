@@ -30,9 +30,9 @@
 #include "Util/onceToken.h"
 #include "Network/sockutil.h"
 
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace Config {
+namespace mediakit {
 
 bool loadIniConfig(const char *ini_path){
     string ini;
@@ -293,6 +293,6 @@ onceToken token([](){
 
 } //namespace Hls
 
-}  // namespace Config
+}  // namespace mediakit
 
 

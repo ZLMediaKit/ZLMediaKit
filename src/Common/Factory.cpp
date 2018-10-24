@@ -4,6 +4,8 @@
 
 #include "Factory.h"
 
+namespace mediakit{
+
 Sdp::Ptr Factory::getSdpByTrack(const Track::Ptr &track) {
     switch (track->getCodecId()){
         case CodecH264:{
@@ -100,4 +102,6 @@ RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRat
             return nullptr;
     }
 }
+
+}//namespace mediakit
 

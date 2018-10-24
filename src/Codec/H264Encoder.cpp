@@ -28,10 +28,10 @@
 #include "H264Encoder.h"
 
 #include "Util/TimeTicker.h"
-using namespace ZL::Util;
 
-namespace ZL {
-namespace Codec {
+using namespace toolkit;
+
+namespace mediakit {
 
 H264Encoder::H264Encoder() {
 
@@ -347,8 +347,7 @@ int H264Encoder::inputData(char* apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H26
 	return iNal;
 }
 
-} /* namespace Codec */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif //ENABLE_X264
 

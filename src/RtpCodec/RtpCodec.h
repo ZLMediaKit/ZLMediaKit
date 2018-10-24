@@ -9,10 +9,9 @@
 #include "Util/RingBuffer.h"
 #include "Rtsp/Rtsp.h"
 #include "Player/PlayerBase.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Player;
+namespace mediakit{
 
 class RtpPacket : public CodecInfo {
 public:
@@ -156,7 +155,7 @@ public:
     virtual ~RtpCodec(){}
 };
 
-
+}//namespace mediakit
 
 
 

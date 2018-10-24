@@ -34,8 +34,7 @@
 using namespace std;
 
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class WebSocketHeader {
 public:
@@ -130,8 +129,7 @@ private:
     uint64_t _playload_offset = 0;
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 
 #endif //ZLMEDIAKIT_WEBSOCKETSPLITTER_H

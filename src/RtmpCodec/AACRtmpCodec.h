@@ -7,8 +7,7 @@
 
 #include "RtmpCodec.h"
 
-namespace ZL{
-namespace Rtmp {
+namespace mediakit{
 /**
  * aac Rtmp转adts类
  */
@@ -64,7 +63,6 @@ private:
     uint8_t _ui8AudioFlags;
 };
 
-}//namespace Rtmp
-}//namespace ZL
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_AACRTMPCODEC_H

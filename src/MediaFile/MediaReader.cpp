@@ -28,16 +28,13 @@
 #include "Common/config.h"
 #include "Util/mini.h"
 #include "Http/HttpSession.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-
-namespace ZL {
-namespace MediaFile {
+namespace mediakit {
 
 #ifdef ENABLE_MP4V2
 MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId) {
-    GET_CONFIG_AND_REGISTER(string,recordPath,Config::Record::kFilePath);
+    GET_CONFIG_AND_REGISTER(string,recordPath,Record::kFilePath);
 
     auto strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
 
@@ -169,7 +166,7 @@ MediaReader::~MediaReader() {
 
 void MediaReader::startReadMP4() {
 	auto strongSelf = shared_from_this();
-    GET_CONFIG_AND_REGISTER(uint32_t,sampleMS,Config::Record::kSampleMS);
+    GET_CONFIG_AND_REGISTER(uint32_t,sampleMS,Record::kSampleMS);
 
     AsyncTaskThread::Instance().DoTaskDelay(reinterpret_cast<uint64_t>(this), sampleMS, [strongSelf](){
 		return strongSelf->readSample();
@@ -323,7 +320,7 @@ void MediaReader::seek(int iSeekTime,bool bReStart){
 
 MediaSource::Ptr MediaReader::onMakeMediaSource(const string &strSchema,const string &strVhost,const string &strApp, const string &strId){
 #ifdef ENABLE_MP4V2
-    GET_CONFIG_AND_REGISTER(string,appName,Config::Record::kAppName);
+    GET_CONFIG_AND_REGISTER(string,appName,Record::kAppName);
 
     if (strApp != appName) {
 		return nullptr;
@@ -343,5 +340,4 @@ MediaSource::Ptr MediaReader::onMakeMediaSource(const string &strSchema,const st
 
 
 
-} /* namespace MediaFile */
-} /* namespace ZL */
+} /* namespace mediakit */

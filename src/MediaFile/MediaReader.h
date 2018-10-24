@@ -34,13 +34,9 @@
 #ifdef ENABLE_MP4V2
 #include <mp4v2/mp4v2.h>
 #endif //ENABLE_MP4V2
+using namespace toolkit;
 
-using namespace ZL::DEV;
-using namespace ZL::Rtsp;
-using namespace ZL::Rtmp;
-
-namespace ZL {
-namespace MediaFile {
+namespace mediakit {
 
 class MediaReader : public std::enable_shared_from_this<MediaReader> ,public MediaSourceEvent{
 public:
@@ -103,7 +99,6 @@ private:
 #endif //ENABLE_MP4V2
 };
 
-} /* namespace MediaFile */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_MEDIAFILE_MEDIAREADER_H_ */

@@ -38,8 +38,7 @@ extern "C" {
 }
 #endif //__cplusplus
 
-namespace ZL {
-namespace Codec {
+namespace mediakit {
 
 class H264Encoder {
 public:
@@ -60,7 +59,6 @@ private:
 	H264Frame _aFrames[10];
 };
 
-} /* namespace Codec */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* CODEC_H264ENCODER_H_ */

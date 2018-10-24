@@ -39,14 +39,9 @@
 #include "Util/TimeTicker.h"
 #include "Network/Socket.h"
 #include "Network/TcpClient.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Player;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 class RtmpPlayer:public PlayerBase, public TcpClient,  public RtmpProtocol{
 public:
@@ -156,7 +151,6 @@ private:
 	Ticker _aNowStampTicker[2];
 };
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTMP_RtmpPlayer2_H_ */

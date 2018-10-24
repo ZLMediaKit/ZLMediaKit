@@ -28,12 +28,9 @@
 #include "MediaPlayer.h"
 #include "Rtmp/RtmpPlayerImp.h"
 #include "Rtsp/RtspPlayerImp.h"
+using namespace toolkit;
 
-using namespace ZL::Rtmp;
-using namespace ZL::Rtsp;
-
-namespace ZL {
-namespace Player {
+namespace mediakit {
 
 MediaPlayer::MediaPlayer() {
 }
@@ -78,5 +75,4 @@ void MediaPlayer::teardown() {
 }
 
 
-} /* namespace Player */
-} /* namespace ZL */
+} /* namespace mediakit */

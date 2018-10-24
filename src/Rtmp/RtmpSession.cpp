@@ -29,8 +29,7 @@
 #include "Common/config.h"
 #include "Util/onceToken.h"
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
@@ -191,7 +190,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             onRes(err);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastRtmpPublish,
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRtmpPublish,
                                                    _mediaInfo,
                                                    invoker,
                                                    *this);
@@ -506,7 +505,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 		if (!_pPublisherSrc) {
 			throw std::runtime_error("Not a rtmp publisher!");
 		}
-		GET_CONFIG_AND_REGISTER(bool,rtmp_modify_stamp,Config::Rtmp::kModifyStamp);
+		GET_CONFIG_AND_REGISTER(bool,rtmp_modify_stamp,Rtmp::kModifyStamp);
 		if(rtmp_modify_stamp){
 			chunkData.timeStamp = _stampTicker[chunkData.typeId % 2].elapsedTime();
 		}
@@ -565,5 +564,4 @@ void RtmpSession::cancelDelyaTask(){
 }
 
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */

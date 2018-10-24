@@ -28,10 +28,9 @@
 #include "HttpRequestSplitter.h"
 #include "Util/logger.h"
 #include "Util/util.h"
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 void HttpRequestSplitter::input(const char *data,uint64_t len) {
     const char *ptr = data;
@@ -126,6 +125,5 @@ void HttpRequestSplitter::reset() {
 }
 
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 

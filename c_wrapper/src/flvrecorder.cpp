@@ -5,7 +5,7 @@
 #include "flvrecorder.h"
 #include "Rtmp/FlvMuxer.h"
 
-using namespace ZL::Rtmp;
+using namespace toolkit;
 
 API_EXPORT FlvRecorderContex API_CALL createFlvRecorder(){
     DebugL;

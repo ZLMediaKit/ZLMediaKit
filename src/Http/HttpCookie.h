@@ -34,8 +34,7 @@
 #include <mutex>
 using namespace std;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class HttpCookie {
 public:
@@ -75,7 +74,6 @@ private:
 };
 
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif //ZLMEDIAKIT_HTTPCOOKIE_H

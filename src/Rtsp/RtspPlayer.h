@@ -41,14 +41,9 @@
 #include "Network/TcpClient.h"
 
 using namespace std;
-using namespace ZL::Rtsp;
-using namespace ZL::Player;
-using namespace ZL::Util;
-using namespace ZL::Poller;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 //实现了rtsp播放器协议部分的功能
 class RtspPlayer: public PlayerBase,public TcpClient {
@@ -142,7 +137,6 @@ private:
     Ticker _aNowStampTicker[2];
 };
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTSPPLAYER_RTSPPLAYER_H_TXT_ */

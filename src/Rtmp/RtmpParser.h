@@ -34,16 +34,12 @@
 #include "Player/Player.h"
 #include "Util/TimeTicker.h"
 #include "Player/PlayerBase.h"
-
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Player;
+using namespace toolkit;
 
 #define H264_CODEC_ID 7
 #define AAC_CODEC_ID 10
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 class RtmpParser : public PlayerBase{
 public:
@@ -112,7 +108,6 @@ private:
 
 };
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPPARSER_H_ */

@@ -31,10 +31,9 @@
 #include "Util/base64.h"
 #include "Util/TimeTicker.h"
 
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace ZL {
-namespace DEV {
+namespace mediakit {
 
 DevChannel::DevChannel(const char *strVhost,
                        const char *strApp,
@@ -107,7 +106,7 @@ void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t uiStamp) {
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
 			onGetRTP(pkt,bKeyPos);
 		};
-        GET_CONFIG_AND_REGISTER(uint32_t,videoMtu,Config::Rtp::kVideoMtuSize);
+        GET_CONFIG_AND_REGISTER(uint32_t,videoMtu,Rtp::kVideoMtuSize);
 		_pRtpMaker_h264.reset(new RtpMaker_H264(lam, ui32Ssrc,videoMtu));
 	}
 	if (!_bSdp_gotH264 && _video) {
@@ -139,7 +138,7 @@ void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t u
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool keyPos) {
 			onGetRTP(pkt,keyPos);
 		};
-        GET_CONFIG_AND_REGISTER(uint32_t,audioMtu,Config::Rtp::kAudioMtuSize);
+        GET_CONFIG_AND_REGISTER(uint32_t,audioMtu,Rtp::kAudioMtuSize);
         _pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc, audioMtu,_audio->iSampleRate));
 	}
 	if (!_bSdp_gotAAC && _audio && pcAdtsHeader) {
@@ -304,6 +303,5 @@ void DevChannel::initAudio(const AudioInfo& info) {
 	_pAdtsHeader->no_raw_data_blocks_in_frame = 0;
 
 }
-} /* namespace DEV */
-} /* namespace ZL */
+} /* namespace mediakit */
 

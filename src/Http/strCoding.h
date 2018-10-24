@@ -32,8 +32,7 @@
 
 using namespace std;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class strCoding {
 public:
@@ -51,7 +50,6 @@ private:
 	virtual ~strCoding(void);
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_STRCODING_H_ */

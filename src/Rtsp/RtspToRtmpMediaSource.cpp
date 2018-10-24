@@ -30,13 +30,9 @@
 #include "RtspToRtmpMediaSource.h"
 #include "Util/util.h"
 #include "Network/sockutil.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Rtsp {
-
+namespace mediakit {
 
 RtspToRtmpMediaSource::RtspToRtmpMediaSource(const string &vhost,
                                              const string &app,
@@ -220,5 +216,5 @@ void RtspToRtmpMediaSource::makeMetaData() {
 #endif
 	_pRtmpSrc->onGetMetaData(metaData);
 }
-} /* namespace Rtsp */
-} /* namespace ZL */
+
+} /* namespace mediakit */

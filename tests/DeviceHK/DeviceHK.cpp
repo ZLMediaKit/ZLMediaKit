@@ -27,8 +27,7 @@
 #include "DeviceHK.h"
 #include "Util/TimeTicker.h"
 #include "Util/MD5.h"
-namespace ZL {
-namespace DEV {
+namespace mediakit {
 
 #define HK_APP_NAME  "live"
 
@@ -261,7 +260,6 @@ void DevChannelHK::onGetDecData(char* pBuf, int nSize, FRAME_INFO* pFrameInfo) {
 	}
 }
 
-} /* namespace DEV */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif //ENABLE_HKDEVICE

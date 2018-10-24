@@ -37,11 +37,9 @@
 #include "WebSocketSplitter.h"
 
 using namespace std;
-using namespace ZL::Rtmp;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class HttpSession: public TcpSession,
                    public FlvMuxer,
@@ -128,7 +126,6 @@ private:
 };
 
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_HTTPSESSION_H_ */

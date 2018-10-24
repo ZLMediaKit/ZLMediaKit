@@ -40,11 +40,9 @@
 #include "Rtsp/Rtsp.h"
 
 using namespace std;
-using namespace Config;
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace ZL {
-namespace Media {
+namespace mediakit {
 
 class MediaSourceEvent
 {
@@ -234,8 +232,7 @@ private:
     static recursive_mutex g_mtxMediaSrc; //访问静态的媒体源表的互斥锁
 };
 
-} /* namespace Media */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 
 #endif //ZLMEDIAKIT_MEDIASOURCE_H

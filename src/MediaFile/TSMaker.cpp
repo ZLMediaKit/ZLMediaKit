@@ -26,8 +26,7 @@
 
 #include "TSMaker.h"
 #include "Util/logger.h"
-
-using namespace ZL::Util;
+using namespace toolkit;
 
 TSMaker::TSMaker() {
 	m_pOutVideoTs = NULL;

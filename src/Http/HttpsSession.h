@@ -31,10 +31,9 @@
 #include "Util/SSLBox.h"
 #include "Util/TimeTicker.h"
 
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class HttpsSession: public HttpSession {
 public:
@@ -284,7 +283,6 @@ typedef WebSocketSession<EchoSession,HttpSession> EchoWebSocketSession;
 typedef WebSocketSession<EchoSession,HttpsSession> SSLEchoWebSocketSession;
 
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_HTTPSSESSION_H_ */

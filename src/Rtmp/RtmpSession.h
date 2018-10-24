@@ -37,12 +37,9 @@
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Network/TcpSession.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 class RtmpSession: public TcpSession ,public  RtmpProtocol , public MediaSourceEvent{
 public:
@@ -107,7 +104,6 @@ private:
 
 };
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPSESSION_H_ */

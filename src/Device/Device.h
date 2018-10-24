@@ -39,22 +39,18 @@
 #include "Util/TimeTicker.h"
 
 using namespace std;
-using namespace ZL::Rtsp;
-using namespace ZL::Util;
+using namespace toolkit;
 
 #ifdef ENABLE_FAAC
 #include "Codec/AACEncoder.h"
-using namespace ZL::Codec;
 #endif //ENABLE_FAAC
 
 #ifdef ENABLE_X264
 #include "Codec/H264Encoder.h"
-using namespace ZL::Codec;
 #endif //ENABLE_X264
 
 
-namespace ZL {
-namespace DEV {
+namespace mediakit {
 
 class VideoInfo {
 public:
@@ -124,7 +120,6 @@ private:
 };
 
 
-} /* namespace DEV */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* DEVICE_DEVICE_H_ */

@@ -38,7 +38,8 @@ extern "C" {
 #pragma comment(lib,"SDL2.lib")
 #endif //defined(_WIN32)
 
-using namespace ZL::Util;
+using namespace toolkit;
+using namespace mediakit;
 
 #define REFRESH_EVENT   (SDL_USEREVENT + 1)
 

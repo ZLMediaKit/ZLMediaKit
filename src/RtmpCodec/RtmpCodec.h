@@ -8,12 +8,9 @@
 #include "Rtmp/Rtmp.h"
 #include "Player/Frame.h"
 #include "Util/RingBuffer.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL{
-namespace Rtmp {
-
+namespace mediakit{
 
 class RtmpRingInterface {
 public:
@@ -78,9 +75,6 @@ public:
 };
 
 
-
-
-}//namespace Rtmp
-}//namespace ZL
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_RTMPCODEC_H

@@ -28,8 +28,7 @@
 #ifndef CODEC_AACENCODER_H_
 #define CODEC_AACENCODER_H_
 
-namespace ZL {
-namespace Codec {
+namespace mediakit {
 
 class AACEncoder {
 public:
@@ -51,7 +50,6 @@ private:
 
 };
 
-} /* namespace Codec */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* CODEC_AACENCODER_H_ */

@@ -36,12 +36,10 @@
 #include "Util/NoticeCenter.h"
 #include "Network/sockutil.h"
 
-using namespace Config;
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace std;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
@@ -301,7 +299,7 @@ void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const strin
 
         int n;
         char response[2 * 1024];
-        GET_CONFIG_AND_REGISTER(bool,authBasic,Config::Rtsp::kAuthBasic);
+        GET_CONFIG_AND_REGISTER(bool,authBasic,Rtsp::kAuthBasic);
         if (!authBasic) {
             //我们需要客户端优先以md5方式认证
             strongSelf->_strNonce = makeRandStr(32);
@@ -1089,6 +1087,5 @@ inline void RtspSession::sendRTCP() {
 #endif
 
 }
-/* namespace Session */
-} /* namespace ZL */
+/* namespace mediakit */
 

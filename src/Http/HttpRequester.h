@@ -29,9 +29,8 @@
 
 #include "HttpClientImp.h"
 
-namespace ZL{
-namespace Http{
-    
+namespace mediakit{
+
 class HttpRequester : public HttpClientImp
 {
 public:
@@ -50,7 +49,6 @@ private:
     HttpRequesterResult _onResult;
 };
 
-}//namespace Http
-}//namespace ZL
+}//namespace mediakit
 
 #endif /* Htt_HttpRequester_h */
