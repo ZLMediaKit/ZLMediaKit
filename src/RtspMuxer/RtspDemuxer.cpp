@@ -56,11 +56,11 @@ RtspDemuxer::RtspDemuxer(const string& sdp) {
 	for (int i = 0; i < cnt; i++) {
 		switch (tmp[i].type) {
 		case TrackVideo: {
-            onGetVideoTrack(tmp[i]);
+			makeVideoTrack(tmp[i]);
 		}
 			break;
 		case TrackAudio: {
-            onGetAudioTrack(tmp[i]);
+			makeAudioTrack(tmp[i]);
 		}
 			break;
 		default:
@@ -79,7 +79,10 @@ bool RtspDemuxer::inputRtp(const RtpPacket::Ptr & rtp) {
 		return false;
 	}
 	case TrackAudio:{
-		_audioRtpDecoder->inputRtp(rtp, false);
+		if(_audioRtpDecoder){
+			_audioRtpDecoder->inputRtp(rtp, false);
+			return false;
+		}
 		return false;
 	}
 	default:
@@ -88,7 +91,7 @@ bool RtspDemuxer::inputRtp(const RtpPacket::Ptr & rtp) {
 }
 
 
-inline void RtspDemuxer::onGetAudioTrack(const RtspTrack& audio) {
+void RtspDemuxer::makeAudioTrack(const RtspTrack &audio) {
 	//生成Track对象
     _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio.trackSdp));
     if(_audioTrack){
@@ -97,11 +100,14 @@ inline void RtspDemuxer::onGetAudioTrack(const RtspTrack& audio) {
 		if(_audioRtpDecoder){
 			//设置rtp解码器代理，生成的frame写入该Track
 			_audioRtpDecoder->setDelegate(_audioTrack);
+		} else{
+			//找不到相应的rtp解码器，该track无效
+			_audioTrack.reset();
 		}
     }
 }
 
-inline void RtspDemuxer::onGetVideoTrack(const RtspTrack& video) {
+void RtspDemuxer::makeVideoTrack(const RtspTrack &video) {
 	//生成Track对象
 	_videoTrack = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video.trackSdp));
 	if(_videoTrack){
@@ -110,6 +116,9 @@ inline void RtspDemuxer::onGetVideoTrack(const RtspTrack& video) {
 		if(_videoRtpDecoder){
 			//设置rtp解码器代理，生成的frame写入该Track
 			_videoRtpDecoder->setDelegate(_videoTrack);
+		}else{
+			//找不到相应的rtp解码器，该track无效
+			_videoTrack.reset();
 		}
 	}
 }
@@ -123,6 +132,23 @@ vector<Track::Ptr> RtspDemuxer::getTracks() const {
 		ret.emplace_back(_audioTrack);
 	}
 	return ret;
+}
+
+bool RtspDemuxer::isInited() const {
+	bool ret = true;
+	if(ret && _audioTrack){
+		//getTrackType() 等于TrackInvalid时说明该Track还未准备好
+		ret = _audioTrack->getTrackType() != TrackInvalid;
+	}
+	if(ret && _videoTrack){
+		//getTrackType() 等于TrackInvalid时说明该Track还未准备好
+		ret = _videoTrack->getTrackType() != TrackInvalid;
+	}
+	return ret;
+}
+
+float RtspDemuxer::getDuration() const {
+	return _fDuration;
 }
 
 

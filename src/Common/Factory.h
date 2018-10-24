@@ -8,6 +8,8 @@
 #include <string>
 #include "Player/Track.h"
 #include "RtspMuxer/RtspSdp.h"
+#include "RtspMuxer/RtpCodec.h"
+#include "RtmpMuxer/RtmpCodec.h"
 #include "Rtmp/amf.h"
 
 using namespace std;
@@ -21,7 +23,6 @@ public:
      * 根据sdp生成Track对象
      */
     static Track::Ptr getTrackBySdp(const string &sdp);
-    static Track::Ptr getTrackByAmf(const AMFValue &amf);
     static Track::Ptr getTrackByCodecId(CodecId codecId);
 
 
@@ -57,6 +58,13 @@ public:
      * @return
      */
     static RtpCodec::Ptr getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRate);
+
+
+    //////////////////////////////////////////////////////////////////
+
+    static Track::Ptr getTrackByAmf(const AMFValue &amf);
+    static CodecId getCodecIdByAmf(const AMFValue &val);
+    static RtmpCodec::Ptr getRtmpCodecById(CodecId codecId);
 };
 
 }//namespace mediakit
