@@ -123,6 +123,8 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
             flags |= ((keyFrame ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
 
             RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
+            rtmpPkt->strBuf.clear();
+
             rtmpPkt->strBuf.push_back(flags);
             rtmpPkt->strBuf.push_back(!is_config);
             rtmpPkt->strBuf.append("\x0\x0\x0", 3);
@@ -151,6 +153,8 @@ void H264RtmpEncoder::makeVideoConfigPkt() {
     bool is_config = true;
 
     RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
+    rtmpPkt->strBuf.clear();
+
     //////////header
     rtmpPkt->strBuf.push_back(flags);
     rtmpPkt->strBuf.push_back(!is_config);
