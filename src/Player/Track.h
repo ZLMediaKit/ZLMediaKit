@@ -233,6 +233,12 @@ public:
     typedef std::shared_ptr<AACTrack> Ptr;
 
     /**
+     * 延后获取adts头信息
+     * 在随后的inputFrame中获取adts头信息
+     */
+    AACTrack(){}
+
+    /**
      * 构造aac类型的媒体
      * @param aac_cfg aac两个字节的配置信息
      */
@@ -286,6 +292,16 @@ public:
     }
 
     /**
+     * 在获取aac_cfg前是无效的Track
+     * @return
+     */
+    TrackType getTrackType() const override {
+        if(_cfg.empty()){
+            return TrackInvalid;
+        }
+        return TrackAudio;
+    }
+    /**
     * 返回音频采样率
     * @return
     */
@@ -307,6 +323,18 @@ public:
         return _channel;
     }
 
+    /**
+    * 输入数据帧,并获取aac_cfg
+    * @param frame 数据帧
+    */
+    void inputFrame(const Frame::Ptr &frame) override{
+        if(_cfg.empty() && frame->prefixSize() == 7){
+            //7个字节的adts头
+            _cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
+            parseAacCfg(_cfg);
+        }
+        AudioTrack::inputFrame(frame);
+    }
 private:
     /**
      * 解析2个字节的aac配置

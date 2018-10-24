@@ -8,6 +8,7 @@
 #include <string>
 #include "Player/Track.h"
 #include "RtspMuxer/RtspSdp.h"
+#include "Rtmp/amf.h"
 
 using namespace std;
 using namespace toolkit;
@@ -20,6 +21,9 @@ public:
      * 根据sdp生成Track对象
      */
     static Track::Ptr getTrackBySdp(const string &sdp);
+    static Track::Ptr getTrackByAmf(const AMFValue &amf);
+    static Track::Ptr getTrackByCodecId(CodecId codecId);
+
 
     /**
     * 根据Track生成SDP对象
