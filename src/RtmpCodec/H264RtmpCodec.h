@@ -34,15 +34,15 @@ public:
     CodecId getCodecId() const override{
         return CodecH264;
     }
-private:
+protected:
     bool decodeRtmp(const RtmpPacket::Ptr &Rtmp);
     void onGetH264_l(const char *pcData, int iLen, uint32_t ui32TimeStamp);
     void onGetH264(const char *pcData, int iLen, uint32_t ui32TimeStamp);
     H264Frame::Ptr obtainFrame();
-private:
+protected:
     H264Frame::Ptr m_h264frame;
-    string m_strSPS;
-    string m_strPPS;
+    string m_sps;
+    string m_pps;
 };
 
 /**
@@ -62,9 +62,6 @@ public:
     void inputFrame(const Frame::Ptr &frame) override;
 private:
     void makeVideoConfigPkt();
-private:
-    string m_sps;
-    string m_pps;
 };
 
 #endif //ZLMEDIAKIT_H264RTMPCODEC_H

@@ -114,12 +114,12 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
         m_adts->sequence = rtppack->sequence;
         m_adts->timeStamp = rtppack->timeStamp * (1000.0 / m_sampleRate);
         writeAdtsHeader(*m_adts, m_adts->buffer);
-        onGetAdts(m_adts);
+        onGetAAC(m_adts);
     }
     return false;
 }
 
-void AACRtpDecoder::onGetAdts(const AACFrame::Ptr &frame) {
+void AACRtpDecoder::onGetAAC(const AACFrame::Ptr &frame) {
     //写入环形缓存
     RtpCodec::inputFrame(frame);
     m_adts = obtainFrame();
