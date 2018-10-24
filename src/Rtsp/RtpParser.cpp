@@ -73,28 +73,21 @@ RtpParser::RtpParser(const string& sdp) {
 
 bool RtpParser::inputRtp(const RtpPacket::Ptr & rtp) {
 	switch (rtp->getTrackType()) {
-	case TrackVideo:
-        return inputVideo(rtp);
-	case TrackAudio:
-        return inputAudio(rtp);
+	case TrackVideo:{
+		if(_videoRtpDecoder){
+			return _videoRtpDecoder->inputRtp(rtp, true);
+		}
+		return false;
+	}
+	case TrackAudio:{
+		_audioRtpDecoder->inputRtp(rtp, false);
+		return false;
+	}
 	default:
 		return false;
 	}
 }
 
-inline bool RtpParser::inputVideo(const RtpPacket::Ptr &rtp) {
-    if(_videoRtpDecoder){
-		return _videoRtpDecoder->inputRtp(rtp, true);
-    }
-	return false;
-}
-
-inline bool RtpParser::inputAudio(const RtpPacket::Ptr &rtp) {
-    if(_audioRtpDecoder){
-		return _audioRtpDecoder->inputRtp(rtp, false);
-    }
-	return false;
-}
 
 inline void RtpParser::onGetAudioTrack(const RtspTrack& audio) {
 	//生成Track对象
