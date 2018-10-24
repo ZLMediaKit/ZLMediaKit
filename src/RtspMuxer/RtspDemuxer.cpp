@@ -135,16 +135,17 @@ vector<Track::Ptr> RtspDemuxer::getTracks() const {
 }
 
 bool RtspDemuxer::isInited() const {
-	bool ret = true;
-	if(ret && _audioTrack){
-		//getTrackType() 等于TrackInvalid时说明该Track还未准备好
-		ret = _audioTrack->getTrackType() != TrackInvalid;
-	}
-	if(ret && _videoTrack){
-		//getTrackType() 等于TrackInvalid时说明该Track还未准备好
-		ret = _videoTrack->getTrackType() != TrackInvalid;
-	}
-	return ret;
+    bool videoReady = true ,auidoReady = true;
+
+    if(_videoTrack){
+        videoReady = _videoTrack->ready();
+    }
+
+    if(_audioTrack){
+        auidoReady = _audioTrack->ready();
+    }
+
+    return videoReady && auidoReady;
 }
 
 float RtspDemuxer::getDuration() const {
