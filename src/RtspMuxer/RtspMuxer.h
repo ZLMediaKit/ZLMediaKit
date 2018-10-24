@@ -2,8 +2,8 @@
 // Created by xzl on 2018/10/24.
 //
 
-#ifndef ZLMEDIAKIT_RTSPMAKER_H
-#define ZLMEDIAKIT_RTSPMAKER_H
+#ifndef ZLMEDIAKIT_RTSPMUXER_H
+#define ZLMEDIAKIT_RTSPMUXER_H
 
 #include "RtspSdp.h"
 
@@ -132,4 +132,4 @@ private:
 
 } /* namespace mediakit */
 
-#endif //ZLMEDIAKIT_RTSPMAKER_H
+#endif //ZLMEDIAKIT_RTSPMUXER_H

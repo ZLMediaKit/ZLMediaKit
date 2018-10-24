@@ -2,8 +2,8 @@
 // Created by xzl on 2018/8/30.
 //
 
-#ifndef ZLMEDIAKIT_FLVRECORDER_H
-#define ZLMEDIAKIT_FLVRECORDER_H
+#ifndef ZLMEDIAKIT_FLVMUXER_H
+#define ZLMEDIAKIT_FLVMUXER_H
 
 #include "Rtmp/Rtmp.h"
 #include "Rtmp/RtmpMediaSource.h"
@@ -55,4 +55,4 @@ private:
 
 }//namespace mediakit
 
-#endif //ZLMEDIAKIT_FLVRECORDER_H
+#endif //ZLMEDIAKIT_FLVMUXER_H

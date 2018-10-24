@@ -24,8 +24,8 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_RTP_RTPPARSER_H_
-#define SRC_RTP_RTPPARSER_H_
+#ifndef SRC_RTP_RTSPDEMUXER_H_
+#define SRC_RTP_RTSPDEMUXER_H_
 
 #include <unordered_map>
 #include "Rtsp/Rtsp.h"
@@ -83,4 +83,4 @@ private:
 
 } /* namespace mediakit */
 
-#endif /* SRC_RTP_RTPPARSER_H_ */
+#endif /* SRC_RTP_RTSPDEMUXER_H_ */
