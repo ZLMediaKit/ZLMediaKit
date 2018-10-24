@@ -13,7 +13,7 @@ using namespace ZL::Util;
 /**
  * h264 rtp解码类
  */
-class H264RtpDecoder : public RtpCodec {
+class H264RtpDecoder : public RtpCodec , public ResourcePoolHelper<H264Frame> {
 public:
     typedef std::shared_ptr<H264RtpDecoder> Ptr;
 
@@ -40,7 +40,6 @@ private:
     H264Frame::Ptr obtainFrame();
 private:
     H264Frame::Ptr m_h264frame;
-    ResourcePool<H264Frame> m_framePool;
 };
 
 /**

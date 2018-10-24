@@ -10,7 +10,7 @@
 /**
  * aac rtp转adts类
  */
-class AACRtpDecoder : public RtpCodec {
+class AACRtpDecoder : public RtpCodec , public ResourcePoolHelper<AACFrame> {
 public:
     typedef std::shared_ptr<AACRtpDecoder> Ptr;
 
@@ -39,7 +39,6 @@ private:
     AACFrame::Ptr obtainFrame();
 private:
     AACFrame::Ptr m_adts;
-    ResourcePool<AACFrame> m_framePool;
     uint32_t m_sampleRate;
 };
 

@@ -11,7 +11,7 @@ H264RtpDecoder::H264RtpDecoder() {
 
 H264Frame::Ptr  H264RtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    auto frame = m_framePool.obtain();
+    auto frame = ResourcePoolHelper<H264Frame>::obtainObj();
     frame->buffer.clear();
     frame->iPrefixSize = 4;
     return frame;
@@ -174,7 +174,7 @@ void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, 
     uint16_t sq = htons(m_ui16Sequence);
     uint32_t sc = htonl(m_ui32Ssrc);
 
-    auto rtppkt = obtainRtp();
+    auto rtppkt = ResourcePoolHelper<RtpPacket>::obtainObj();
     unsigned char *pucRtp = rtppkt->payload;
     pucRtp[0] = '$';
     pucRtp[1] = m_ui8Interleaved;

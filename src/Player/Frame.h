@@ -65,6 +65,21 @@ public:
     virtual bool keyFrame() const = 0;
 };
 
+template <typename T>
+class ResourcePoolHelper{
+public:
+    ResourcePoolHelper(int size = 8){
+        _pool.setSize(size);
+    }
+    virtual ~ResourcePoolHelper(){}
+
+    std::shared_ptr<T> obtainObj(){
+        return _pool.obtain();
+    }
+private:
+    ResourcePool<T> _pool;
+};
+
 /**
  * 帧环形缓存接口类
  */
