@@ -3,6 +3,10 @@
 //
 
 #include "Factory.h"
+#include "RtmpMuxer/H264RtmpCodec.h"
+#include "RtmpMuxer/AACRtmpCodec.h"
+#include "RtspMuxer/H264RtpCodec.h"
+#include "RtspMuxer/AACRtpCodec.h"
 
 namespace mediakit{
 
@@ -75,7 +79,7 @@ Track::Ptr Factory::getTrackBySdp(const string &sdp) {
 }
 
 
-CodecId getCodecIdByAmf(const AMFValue &val){
+CodecId Factory::getCodecIdByAmf(const AMFValue &val){
     if (val.type() == AMF_STRING){
         auto str = val.as_string();
         if(str == "avc1"){
@@ -148,6 +152,17 @@ RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRat
             return std::make_shared<H264RtpDecoder>();
         case CodecAAC:
             return std::make_shared<AACRtpDecoder>(ui32SampleRate);
+        default:
+            return nullptr;
+    }
+}
+
+RtmpCodec::Ptr Factory::getRtmpCodecById(CodecId codecId) {
+    switch (codecId){
+        case CodecH264:
+            return std::make_shared<H264RtmpEncoder>();
+        case CodecAAC:
+            return std::make_shared<AACRtmpEncoder>();
         default:
             return nullptr;
     }

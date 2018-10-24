@@ -32,12 +32,11 @@
 #include "Rtmp/amf.h"
 #include "Rtmp/Rtmp.h"
 #include "Player/Player.h"
-#include "Util/TimeTicker.h"
 #include "Player/PlayerBase.h"
-using namespace toolkit;
+#include "Util/TimeTicker.h"
+#include "RtmpCodec.h"
 
-#define H264_CODEC_ID 7
-#define AAC_CODEC_ID 10
+using namespace toolkit;
 
 namespace mediakit {
 
@@ -47,67 +46,61 @@ public:
 	RtmpDemuxer(const AMFValue &val);
 	virtual ~RtmpDemuxer();
 
+	/**
+	 * 开始解复用
+	 * @param pkt rtmp包
+	 * @return true 代表是i帧
+	 */
 	bool inputRtmp(const RtmpPacket::Ptr &pkt);
 
-	bool isInited() const override{
-        if((_iAudioCodecID | _iVideoCodecID) == 0){
-            //音视频codec_id都未获取到，说明还未初始化成功
-            return false;
-        }
-        if((_iAudioCodecID & _iVideoCodecID) == 0 && _ticker.elapsedTime() < 300){
-            //音视频codec_id有其一未获取到,且最少分析300ms才能断定没有音频或视频
-            return false;
-        }
-		if (_iAudioCodecID && !_strAudioCfg.size()) {
-            //如果音频是aac但是还未获取aac config ，则未初始化成功
-			return false;
-		}
-		if (_iVideoCodecID && !_strSPS.size()) {
-            //如果视频是h264但是还未获取sps ，则未初始化成功
-            return false;
-		}
-        //初始化成功
-		return true;
-	}
-	float getDuration() const override{
-		return _fDuration;
-	}
+	/**
+	 * 获取节目总时长
+	 * @return
+	 */
+	float getDuration() const override;
+
+	/**
+	 * 返回是否完成初始化完毕
+	 * 由于在构造该对象时是无法获取sps pps aac_cfg等这些信息，
+	 * 所以要调用inputRtmp后才会获取到这些信息，这时才初始化成功
+	 * @return
+	 */
+	bool isInited() const override;
+
+	/**
+     * 获取所有可用Track，请在isInited()返回true时调用
+     * @return
+     */
+	vector<Track::Ptr> getTracks() const override;
 private:
-	inline void onCheckMedia(const AMFValue &obj);
-
-	//返回值：true 代表是i帧第一个rtp包
-	inline bool inputVideo(const RtmpPacket::Ptr &pkt);
-	inline bool inputAudio(const RtmpPacket::Ptr &pkt);
-	inline void _onGetH264(const char *pcData, int iLen, uint32_t ui32TimeStamp);
-	inline void onGetH264(const char *pcData, int iLen, uint32_t ui32TimeStamp);
-	inline void onGetAAC(const char *pcData, int iLen, uint32_t ui32TimeStamp);
-	//video
-	H264Frame _h264frame;
-	//aduio
-	AACFrame _adts;
-
-	int _iSampleRate = 44100;
-	int _iSampleBit = 16;
-	int _iChannel = 1;
-
-	string _strSPS;
-	string _strPPS;
-	string _strAudioCfg;
-	int _iVideoWidth = 0;
-	int _iVideoHeight = 0;
-	float _fVideoFps = 0;
-    //音视频codec_id初始为0代表尚未获取到
-    int _iAudioCodecID = 0;
-    int _iVideoCodecID = 0;
+	void makeVideoTrack(const AMFValue &val);
+	void makeAudioTrack(const AMFValue &val);
+private:
 	float _fDuration = 0;
-    mutable Ticker _ticker;
-    function<void(const H264Frame &frame)> onVideo;
-	function<void(const AACFrame &frame)> onAudio;
-	recursive_mutex _mtxCB;
-
-
+	bool _tryGetVideoTrack = false;
+	bool _tryGetAudioTrack = false;
+	AudioTrack::Ptr _audioTrack;
+	VideoTrack::Ptr _videoTrack;
+	RtmpCodec::Ptr _audioRtmpDecoder;
+	RtmpCodec::Ptr _videoRtmpDecoder;
 };
 
 } /* namespace mediakit */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #endif /* SRC_RTMP_RTMPDEMUXER_H_ */

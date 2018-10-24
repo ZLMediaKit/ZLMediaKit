@@ -45,12 +45,18 @@ public:
 	RtspDemuxer(const string &sdp);
 	virtual ~RtspDemuxer(){};
 
-	//返回值：true 代表是i帧第一个rtp包
+	/**
+	 * 开始解复用
+	 * @param rtp rtp包
+	 * @return true 代表是i帧第一个rtp包
+	 */
 	bool inputRtp(const RtpPacket::Ptr &rtp);
 
-	float getDuration() const override {
-		return _fDuration;
-	}
+	/**
+	 * 获取节目总时长
+	 * @return
+	 */
+	float getDuration() const override;
 
 	/**
 	 * 返回是否完成初始化完毕
@@ -58,21 +64,16 @@ public:
 	 * 所以要等待接收到到sps的rtp包后才能完成
 	 * @return
 	 */
-    bool isInited() const override{
-        bool ret = true;
-        if(ret && _audioTrack){
-        	ret = _audioTrack->getTrackType() != TrackInvalid;
-        }
-        if(ret && _videoTrack){
-			ret = _videoTrack->getTrackType() != TrackInvalid;
-		}
-		return ret;
-    }
+    bool isInited() const override;
 
+    /**
+     * 获取所有可用Track，请在isInited()返回true时调用
+     * @return
+     */
     vector<Track::Ptr> getTracks() const override;
 private:
-	inline void onGetAudioTrack(const RtspTrack &audio);
-	inline void onGetVideoTrack(const RtspTrack &video);
+	void makeAudioTrack(const RtspTrack &audio);
+	void makeVideoTrack(const RtspTrack &video);
 private:
 	float _fDuration = 0;
 	AudioTrack::Ptr _audioTrack;

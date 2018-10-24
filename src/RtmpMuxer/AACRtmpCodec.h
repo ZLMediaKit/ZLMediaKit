@@ -49,7 +49,7 @@ class AACRtmpEncoder : public AACRtmpDecoder ,  public ResourcePoolHelper<RtmpPa
 public:
     typedef std::shared_ptr<AACRtmpEncoder> Ptr;
 
-    AACRtmpEncoder();
+    AACRtmpEncoder(){}
     ~AACRtmpEncoder() {}
 
     /**
