@@ -75,6 +75,56 @@ Track::Ptr Factory::getTrackBySdp(const string &sdp) {
 }
 
 
+CodecId getCodecIdByAmf(const AMFValue &val){
+    if (val.type() == AMF_STRING){
+        auto str = val.as_string();
+        if(str == "avc1"){
+            return CodecH264;
+        }
+        if(str == "mp4a"){
+            return CodecAAC;
+        }
+        return CodecInvalid;
+    }
+
+    if (val.type() != AMF_NULL){
+        auto type_id = val.as_integer();
+        switch (type_id){
+            case 7:{
+                return CodecH264;
+            }
+            case 10:{
+                return CodecAAC;
+            }
+            default:
+                return CodecInvalid;
+        }
+    }
+    return CodecInvalid;
+}
+
+Track::Ptr Factory::getTrackByCodecId(CodecId codecId) {
+    switch (codecId){
+        case CodecH264:{
+            return std::make_shared<H264Track>();
+        }
+        case CodecAAC:{
+            return std::make_shared<AACTrack>();
+        }
+        default:
+            return nullptr;
+    }
+}
+
+
+Track::Ptr Factory::getTrackByAmf(const AMFValue &amf) {
+    CodecId codecId = getCodecIdByAmf(amf);
+    if(codecId == CodecInvalid){
+        return nullptr;
+    }
+    return getTrackByCodecId(codecId);
+}
+
 
 RtpCodec::Ptr Factory::getRtpEncoderById(CodecId codecId,
                                           uint32_t ui32Ssrc,
@@ -102,6 +152,7 @@ RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRat
             return nullptr;
     }
 }
+
 
 }//namespace mediakit
 
