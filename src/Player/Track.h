@@ -20,6 +20,12 @@ public:
     typedef std::shared_ptr<Track> Ptr;
     Track(){}
     virtual ~Track(){}
+
+    /**
+     * 是否准备好
+     * @return
+     */
+    virtual bool ready() = 0;
 };
 
 class VideoTrack : public Track {
@@ -152,11 +158,8 @@ public:
         return _fps;
     }
 
-    TrackType getTrackType() const override {
-        if(_sps.empty() || _pps.empty()){
-            return TrackInvalid;
-        }
-        return TrackVideo;
+    bool ready() override {
+        return !_sps.empty() && !_pps.empty();
     }
 
 
@@ -295,12 +298,11 @@ public:
      * 在获取aac_cfg前是无效的Track
      * @return
      */
-    TrackType getTrackType() const override {
-        if(_cfg.empty()){
-            return TrackInvalid;
-        }
-        return TrackAudio;
+    bool ready() override {
+        return !_cfg.empty();
     }
+
+
     /**
     * 返回音频采样率
     * @return

@@ -43,8 +43,19 @@ namespace mediakit {
 class RtmpDemuxer : public PlayerBase{
 public:
 	typedef std::shared_ptr<RtmpDemuxer> Ptr;
+
+	/**
+	 * 等效于RtmpDemuxer(AMFValue(AMF_NULL))
+	 */
+	RtmpDemuxer(){}
+	/**
+	 * 构造rtmp解复用器
+	 * @param val rtmp的metedata，可以传入null类型，
+	 * 这样就会在inputRtmp时异步探测媒体编码格式
+	 */
 	RtmpDemuxer(const AMFValue &val);
-	virtual ~RtmpDemuxer();
+
+	virtual ~RtmpDemuxer(){};
 
 	/**
 	 * 开始解复用
@@ -77,8 +88,8 @@ private:
 	void makeAudioTrack(const AMFValue &val);
 private:
 	float _fDuration = 0;
-	bool _tryGetVideoTrack = false;
-	bool _tryGetAudioTrack = false;
+	bool _tryedGetVideoTrack = false;
+	bool _tryedGetAudioTrack = false;
 	AudioTrack::Ptr _audioTrack;
 	VideoTrack::Ptr _videoTrack;
 	RtmpCodec::Ptr _audioRtmpDecoder;

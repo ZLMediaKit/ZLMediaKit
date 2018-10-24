@@ -29,6 +29,7 @@
 
 namespace mediakit {
 
+
 RtmpDemuxer::RtmpDemuxer(const AMFValue &val) {
     try {
         makeVideoTrack(val["videocodecid"]);
@@ -44,17 +45,14 @@ RtmpDemuxer::RtmpDemuxer(const AMFValue &val) {
     }
 }
 
-RtmpDemuxer::~RtmpDemuxer() {
-}
-
 bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->typeId) {
         case MSG_VIDEO: {
             if(_videoRtmpDecoder){
                 return _videoRtmpDecoder->inputRtmp(pkt, true);
             }
-            if(!_tryGetVideoTrack){
-                _tryGetVideoTrack = true;
+            if(!_tryedGetVideoTrack){
+                _tryedGetVideoTrack = true;
                 auto codec = AMFValue(pkt->getMediaType());
                 makeVideoTrack(codec);
             }
@@ -66,8 +64,8 @@ bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
                 _audioRtmpDecoder->inputRtmp(pkt, false);
                 return false;
             }
-            if(!_tryGetAudioTrack) {
-                _tryGetAudioTrack = true;
+            if(!_tryedGetAudioTrack) {
+                _tryedGetAudioTrack = true;
                 auto codec = AMFValue(pkt->getMediaType());
                 makeAudioTrack(codec);
             }
@@ -122,16 +120,22 @@ vector<Track::Ptr> RtmpDemuxer::getTracks() const {
 }
 
 bool RtmpDemuxer::isInited() const {
-    bool ret = true;
-    if(ret && _audioTrack){
-        //getTrackType() 等于TrackInvalid时说明该Track还未准备好
-        ret = _audioTrack->getTrackType() != TrackInvalid;
+    bool videoReady ,auidoReady;
+
+    if(_videoTrack){
+        //getTrackType() != TrackInvalid说明其已经准备好了
+        videoReady = _videoTrack->ready();
+    }else{
+        videoReady = _tryedGetVideoTrack || _tryedGetAudioTrack;
     }
-    if(ret && _videoTrack){
-        //getTrackType() 等于TrackInvalid时说明该Track还未准备好
-        ret = _videoTrack->getTrackType() != TrackInvalid;
+
+    if(_audioTrack){
+        auidoReady = _audioTrack->ready();
+    }else{
+        auidoReady = _tryedGetVideoTrack || _tryedGetAudioTrack;
     }
-    return ret;
+
+    return videoReady && auidoReady;
 }
 
 float RtmpDemuxer::getDuration() const {
