@@ -188,6 +188,11 @@ public:
         const static int channel[] = { 1, 2 };
         return channel[flvStereoOrMono];
     }
+
+    /**
+     * 返回不带0x00 00 00 01头的sps
+     * @return
+     */
     string getH264SPS() const {
         string ret;
         if (getMediaType() != 7) {
@@ -210,6 +215,11 @@ public:
         ret.assign(strBuf.data() + 13, sps_size);
         return ret;
     }
+
+    /**
+     * 返回不带0x00 00 00 01头的pps
+     * @return
+     */
     string getH264PPS() const {
         string ret;
         if (getMediaType() != 7) {
@@ -257,5 +267,9 @@ public:
         return ret;
     }
 };
+
+
+
+
 
 #endif

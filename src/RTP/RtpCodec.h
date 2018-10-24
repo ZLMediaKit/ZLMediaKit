@@ -72,7 +72,6 @@ public:
     typedef std::shared_ptr<RtpRing> Ptr;
 
     RtpRing(){
-        //禁用缓存
         _rtpRing = std::make_shared<RingType>();
     }
     virtual ~RtpRing(){}
@@ -111,7 +110,6 @@ public:
         m_ui32MtuSize = ui32MtuSize;
         m_ui8PlayloadType = ui8PlayloadType;
         m_ui8Interleaved = ui8Interleaved;
-        m_rtpPool.setSize(32);
     }
 
     virtual ~RtpInfo(){}
@@ -142,10 +140,6 @@ public:
         return m_ui32MtuSize;
     }
 protected:
-    RtpPacket::Ptr obtainRtp(){
-        return m_rtpPool.obtain();
-    }
-protected:
     uint32_t m_ui32Ssrc;
     uint32_t m_ui32SampleRate;
     uint32_t m_ui32MtuSize;
@@ -153,10 +147,9 @@ protected:
     uint8_t m_ui8Interleaved;
     uint16_t m_ui16Sequence = 0;
     uint32_t m_ui32TimeStamp = 0;
-    ResourcePool<RtpPacket> m_rtpPool;
 };
 
-class RtpCodec : public RtpRing, public FrameRingInterfaceDelegate , public CodecInfo{
+class RtpCodec : public RtpRing, public FrameRingInterfaceDelegate , public CodecInfo ,  public ResourcePoolHelper<RtpPacket>{
 public:
     typedef std::shared_ptr<RtpCodec> Ptr;
     RtpCodec(){}

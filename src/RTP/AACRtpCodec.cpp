@@ -55,8 +55,8 @@ void AACRtpEncoder::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark
     uint32_t ts = htonl(m_ui32TimeStamp);
     uint16_t sq = htons(m_ui16Sequence);
     uint32_t sc = htonl(m_ui32Ssrc);
-    auto pRtppkt = obtainRtp();
-    auto &rtppkt = *(pRtppkt.get());
+    auto pRtppkt = ResourcePoolHelper<RtpPacket>::obtainObj();
+    auto &rtppkt = *pRtppkt;
     unsigned char *pucRtp = rtppkt.payload;
     pucRtp[0] = '$';
     pucRtp[1] = m_ui8Interleaved;
@@ -93,7 +93,7 @@ AACRtpDecoder::AACRtpDecoder(uint32_t ui32SampleRate) {
 
 AACFrame::Ptr AACRtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    auto frame = m_framePool.obtain();
+    auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
     frame->aac_frame_length = 7;
     frame->iPrefixSize = 7;
     return frame;
