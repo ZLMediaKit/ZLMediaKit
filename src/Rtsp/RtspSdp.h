@@ -30,13 +30,6 @@ public:
         _playload_type = playload_type;
     }
 
-    /**
-     * 根据Track生成SDP对象
-     * @param track 媒体信息
-     * @return 返回sdp对象
-     */
-    static Ptr getSdpByTrack(const Track::Ptr &track);
-
     virtual ~Sdp(){}
 
     /**
@@ -115,14 +108,7 @@ public:
      * @param ssrc 打包器ssrc，可以为0
      * @param mtu mtu大小，一般小于1500字节，推荐1400
      */
-    virtual void createRtpEncoder(uint32_t ssrc, int mtu) {
-        _encoder = RtpCodec::getRtpEncoderById(getCodecId(),
-                                               ssrc,
-                                               mtu,
-                                               _sample_rate,
-                                               _playload_type,
-                                               getTrackType() * 2);
-    }
+    virtual void createRtpEncoder(uint32_t ssrc, int mtu);
 private:
     RtpCodec::Ptr _encoder;
     uint8_t _playload_type;
@@ -311,16 +297,7 @@ public:
      * @param ssrc 媒体rtp ssrc
      * @param mtu 媒体rtp mtu
      */
-    void addTrack(const Track::Ptr & track,uint32_t ssrc = 0,int mtu = 1400) {
-        if(track->getCodecId() == CodecInvalid){
-            addTrack(std::make_shared<TitleSdp>(),ssrc,mtu);
-        } else {
-            Sdp::Ptr sdp = Sdp::getSdpByTrack(track);
-            if(sdp){
-                addTrack(sdp,ssrc,mtu);
-            }
-        }
-    }
+    void addTrack(const Track::Ptr & track,uint32_t ssrc = 0,int mtu = 1400) ;
 
     /**
      * 获取完整的SDP字符串

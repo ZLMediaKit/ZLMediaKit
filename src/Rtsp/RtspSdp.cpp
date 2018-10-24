@@ -1,38 +1,22 @@
-//
-// Created by xzl on 2018/10/23.
-//
-#include "RtspSdp.h"
+﻿#include "RtspSdp.h"
+#include "Common/Factory.h"
 
-namespace ZL{
-namespace Rtsp{
+void Sdp::createRtpEncoder(uint32_t ssrc, int mtu) {
+    _encoder = Factory::getRtpEncoderById(getCodecId(),
+                                          ssrc,
+                                          mtu,
+                                          _sample_rate,
+                                          _playload_type,
+                                          getTrackType() * 2);
+}
 
-
-Sdp::Ptr Sdp::getSdpByTrack(const Track::Ptr &track) {
-    switch (track->getCodecId()){
-        case CodecH264:{
-            H264Track::Ptr h264Track = dynamic_pointer_cast<H264Track>(track);
-            if(!h264Track){
-                return nullptr;
-            }
-            return std::make_shared<H264Sdp>(h264Track->getSps(),h264Track->getPps());
+void RtspMaker::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
+    if (track->getCodecId() == CodecInvalid) {
+        addTrack(std::make_shared<TitleSdp>(), ssrc, mtu);
+    } else {
+        Sdp::Ptr sdp = Factory::getSdpByTrack(track);
+        if (sdp) {
+            addTrack(sdp, ssrc, mtu);
         }
-
-        case CodecAAC:{
-            AACTrack::Ptr aacTrack = dynamic_pointer_cast<AACTrack>(track);
-            if(!aacTrack){
-                return nullptr;
-            }
-            return std::make_shared<AACSdp>(aacTrack->getAacCfg(),aacTrack->getAudioSampleRate());
-        }
-
-        default:
-            return nullptr;
     }
 }
-
-
-
-
-}
-}
-
