@@ -5,8 +5,8 @@
 #ifndef ZLMEDIAKIT_FLVRECORDER_H
 #define ZLMEDIAKIT_FLVRECORDER_H
 
-#include "Rtmp.h"
-#include "RtmpMediaSource.h"
+#include "Rtmp/Rtmp.h"
+#include "Rtmp/RtmpMediaSource.h"
 #include "Network/Socket.h"
 using namespace toolkit;
 

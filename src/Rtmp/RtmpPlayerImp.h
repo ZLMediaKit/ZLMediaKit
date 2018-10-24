@@ -31,15 +31,15 @@
 #include <functional>
 #include "Common/config.h"
 #include "RtmpPlayer.h"
-#include "RtmpParser.h"
 #include "RtmpMediaSource.h"
+#include "RtmpMuxer/RtmpDemuxer.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 using namespace toolkit;
 
 namespace mediakit {
 
-class RtmpPlayerImp: public PlayerImp<RtmpPlayer,RtmpParser> {
+class RtmpPlayerImp: public PlayerImp<RtmpPlayer,RtmpDemuxer> {
 public:
     typedef std::shared_ptr<RtmpPlayerImp> Ptr;
     RtmpPlayerImp(){};
@@ -65,7 +65,7 @@ private:
             _pRtmpMediaSrc->onGetMetaData(val);
         }
         try {
-            _parser.reset(new RtmpParser(val));
+            _parser.reset(new RtmpDemuxer(val));
             //todo(xzl) 修复此处
 //            _parser->setOnVideoCB(_onGetVideoCB);
 //            _parser->setOnAudioCB(_onGetAudioCB);

@@ -32,18 +32,18 @@
 #include "Player/Player.h"
 #include "Player/PlayerBase.h"
 #include "Util/TimeTicker.h"
-#include "RtpCodec/RtpCodec.h"
+#include "RtspMuxer/RtpCodec.h"
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-class RtpParser : public PlayerBase{
+class RtspDemuxer : public PlayerBase{
 public:
-	typedef std::shared_ptr<RtpParser> Ptr;
-	RtpParser(const string &sdp);
-	virtual ~RtpParser(){};
+	typedef std::shared_ptr<RtspDemuxer> Ptr;
+	RtspDemuxer(const string &sdp);
+	virtual ~RtspDemuxer(){};
 
 	//返回值：true 代表是i帧第一个rtp包
 	bool inputRtp(const RtpPacket::Ptr &rtp);

@@ -34,11 +34,10 @@
 #include <unordered_map>
 #include "amf.h"
 #include "Rtmp.h"
-#include "RtmpParser.h"
 #include "RtmpMediaSource.h"
-#include "RtpCodec/RtpMakerH264.h"
-#include "RtpCodec/RtpMakerAAC.h"
-#include "Rtsp/RtpParser.h"
+#include "RtspMuxer/RtpMakerH264.h"
+#include "RtspMuxer/RtpMakerAAC.h"
+#include "RtmpMuxer/RtmpDemuxer.h"
 #include "Rtsp/RtspMediaSource.h"
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -61,7 +60,7 @@ public:
 
 	void onGetMetaData(const AMFValue &_metadata) override {
 		try {
-			_pParser.reset(new RtmpParser(_metadata));
+			_pParser.reset(new RtmpDemuxer(_metadata));
 			_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),_pParser,_bEnableHls,_bEnableMp4));
 			//todo(xzl) 修复此处
 
@@ -84,7 +83,7 @@ public:
 	}
 
 private:
-	RtmpParser::Ptr _pParser;
+	RtmpDemuxer::Ptr _pParser;
 	RtspMediaSource::Ptr _pRtspSrc;
 	RtpMaker_AAC::Ptr _pRtpMaker_aac;
 	RtpMaker_H264::Ptr _pRtpMaker_h264;
