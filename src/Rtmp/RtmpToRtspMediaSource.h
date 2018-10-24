@@ -65,12 +65,12 @@ public:
 
 	void onGetMetaData(const AMFValue &_metadata) override {
 		try {
-			m_pParser.reset(new RtmpParser(_metadata));
-			m_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),m_pParser,m_bEnableHls,m_bEnableMp4));
+			_pParser.reset(new RtmpParser(_metadata));
+			_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),_pParser,_bEnableHls,_bEnableMp4));
 			//todo(xzl) 修复此处
 
-//			m_pParser->setOnAudioCB(std::bind(&RtmpToRtspMediaSource::onGetAAC, this, placeholders::_1));
-//			m_pParser->setOnVideoCB(std::bind(&RtmpToRtspMediaSource::onGetH264, this, placeholders::_1));
+//			_pParser->setOnAudioCB(std::bind(&RtmpToRtspMediaSource::onGetAAC, this, placeholders::_1));
+//			_pParser->setOnVideoCB(std::bind(&RtmpToRtspMediaSource::onGetH264, this, placeholders::_1));
 		} catch (exception &ex) {
 			WarnL << ex.what();
 		}
@@ -78,23 +78,23 @@ public:
 	}
 
 	void onGetMedia(const RtmpPacket::Ptr &pkt) override {
-		if (m_pParser) {
-			if (!m_pRtspSrc && m_pParser->isInited()) {
+		if (_pParser) {
+			if (!_pRtspSrc && _pParser->isInited()) {
 				makeSDP();
 			}
-			m_pParser->inputRtmp(pkt);
+			_pParser->inputRtmp(pkt);
 		}
 		RtmpMediaSource::onGetMedia(pkt);
 	}
 
 private:
-	RtmpParser::Ptr m_pParser;
-	RtspMediaSource::Ptr m_pRtspSrc;
-	RtpMaker_AAC::Ptr m_pRtpMaker_aac;
-	RtpMaker_H264::Ptr m_pRtpMaker_h264;
-	MediaRecorder::Ptr m_pRecorder;
-    bool m_bEnableHls;
-    bool m_bEnableMp4;
+	RtmpParser::Ptr _pParser;
+	RtspMediaSource::Ptr _pRtspSrc;
+	RtpMaker_AAC::Ptr _pRtpMaker_aac;
+	RtpMaker_H264::Ptr _pRtpMaker_h264;
+	MediaRecorder::Ptr _pRecorder;
+    bool _bEnableHls;
+    bool _bEnableMp4;
 	void onGetH264(const H264Frame &frame);
 	void onGetAAC(const AACFrame &frame);
 	void makeSDP();

@@ -77,17 +77,17 @@ public:
     void parse(const string &url);
 
     string &operator[](const string &key){
-        return m_params[key];
+        return _params[key];
     }
 public:
-    string m_schema;
-    string m_host;
-    string m_port;
-    string m_vhost;
-    string m_app;
-    string m_streamid;
-    StrCaseMap m_params;
-    string m_param_strs;
+    string _schema;
+    string _host;
+    string _port;
+    string _vhost;
+    string _app;
+    string _streamid;
+    StrCaseMap _params;
+    string _para_strs;
 
 };
 
@@ -104,13 +104,13 @@ public:
                 const string &strVhost,
                 const string &strApp,
                 const string &strId) :
-            m_strSchema(strSchema),
-            m_strApp(strApp),
-            m_strId(strId) {
+            _strSchema(strSchema),
+            _strApp(strApp),
+            _strId(strId) {
         if(strVhost.empty()){
-            m_strVhost = DEFAULT_VHOST;
+            _strVhost = DEFAULT_VHOST;
         }else{
-            m_strVhost = strVhost;
+            _strVhost = strVhost;
         }
     }
     virtual ~MediaSource() {
@@ -124,21 +124,21 @@ public:
                     bool bMake = true) ;
 
     const string& getSchema() const {
-        return m_strSchema;
+        return _strSchema;
     }
     const string& getVhost() const {
-        return m_strVhost;
+        return _strVhost;
     }
     const string& getApp() const {
         //获取该源的id
-        return m_strApp;
+        return _strApp;
     }
     const string& getId() const {
-        return m_strId;
+        return _strId;
     }
 
     bool seekTo(uint32_t ui32Stamp) {
-        auto listener = m_listener.lock();
+        auto listener = _listener.lock();
         if(!listener){
             return false;
         }
@@ -146,21 +146,21 @@ public:
     }
 
     uint32_t getStamp() {
-        auto listener = m_listener.lock();
+        auto listener = _listener.lock();
         if(!listener){
             return 0;
         }
         return listener->getStamp();
     }
     bool shutDown() {
-        auto listener = m_listener.lock();
+        auto listener = _listener.lock();
         if(!listener){
             return false;
         }
         return listener->shutDown();
     }
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-        m_listener = listener;
+        _listener = listener;
     }
 
     template <typename FUN>
@@ -224,12 +224,12 @@ private:
 
     void unregisted();
 protected:
-    std::weak_ptr<MediaSourceEvent> m_listener;
+    std::weak_ptr<MediaSourceEvent> _listener;
 private:
-    string m_strSchema;//协议类型
-    string m_strVhost; //vhost
-    string m_strApp; //媒体app
-    string m_strId; //媒体id
+    string _strSchema;//协议类型
+    string _strVhost; //vhost
+    string _strApp; //媒体app
+    string _strId; //媒体id
     static SchemaVhostAppStreamMap g_mapMediaSrc; //静态的媒体源表
     static recursive_mutex g_mtxMediaSrc; //访问静态的媒体源表的互斥锁
 };

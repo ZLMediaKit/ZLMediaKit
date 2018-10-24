@@ -63,32 +63,32 @@ public:
 private:
     //派生类回调函数
     bool onCheckMeta(AMFValue &val)  override {
-        m_pRtmpMediaSrc = dynamic_pointer_cast<RtmpMediaSource>(m_pMediaSrc);
-        if(m_pRtmpMediaSrc){
-            m_pRtmpMediaSrc->onGetMetaData(val);
+        _pRtmpMediaSrc = dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc);
+        if(_pRtmpMediaSrc){
+            _pRtmpMediaSrc->onGetMetaData(val);
         }
         try {
-            m_parser.reset(new RtmpParser(val));
+            _parser.reset(new RtmpParser(val));
             //todo(xzl) 修复此处
-//            m_parser->setOnVideoCB(m_onGetVideoCB);
-//            m_parser->setOnAudioCB(m_onGetAudioCB);
+//            _parser->setOnVideoCB(_onGetVideoCB);
+//            _parser->setOnAudioCB(_onGetAudioCB);
             return true;
         } catch (std::exception &ex) {
             WarnL << ex.what();
-            return m_pRtmpMediaSrc ? true : false;
+            return _pRtmpMediaSrc ? true : false;
         }
     }
     void onMediaData(const RtmpPacket::Ptr &chunkData) override {
-    	if(m_parser){
-    		m_parser->inputRtmp(chunkData);
+    	if(_parser){
+    		_parser->inputRtmp(chunkData);
     	}
-    	if(m_pRtmpMediaSrc){
-            m_pRtmpMediaSrc->onGetMedia(chunkData);
+    	if(_pRtmpMediaSrc){
+            _pRtmpMediaSrc->onGetMedia(chunkData);
     	}
     }
 
 private:
-    RtmpMediaSource::Ptr m_pRtmpMediaSrc;
+    RtmpMediaSource::Ptr _pRtmpMediaSrc;
 };
                     
                     

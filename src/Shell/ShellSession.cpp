@@ -48,14 +48,14 @@ ShellSession::~ShellSession() {
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
 	//DebugL << hexdump(buf->data(), buf->size());
     GET_CONFIG_AND_REGISTER(uint32_t,maxReqSize,Config::Shell::kMaxReqSize);
-    if (m_strRecvBuf.size() + buf->size() >= maxReqSize) {
+    if (_strRecvBuf.size() + buf->size() >= maxReqSize) {
 		WarnL << "接收缓冲区溢出!";
 		shutdown();
 		return;
 	}
-	m_beatTicker.resetTime();
-	m_strRecvBuf.append(buf->data(), buf->size());
-	if (m_strRecvBuf.find("\xff\xf4\xff\0xfd\x06") != std::string::npos) {
+	_beatTicker.resetTime();
+	_strRecvBuf.append(buf->data(), buf->size());
+	if (_strRecvBuf.find("\xff\xf4\xff\0xfd\x06") != std::string::npos) {
 		WarnL << "收到Ctrl+C.";
 		send("\033[0m\r\n	Bye bye!\r\n");
 		shutdown();
@@ -63,9 +63,9 @@ void ShellSession::onRecv(const Buffer::Ptr&buf) {
 	}
 	size_t index;
 	string line;
-	while ((index = m_strRecvBuf.find("\r\n")) != std::string::npos) {
-		line = m_strRecvBuf.substr(0, index);
-		m_strRecvBuf.erase(0, index + 2);
+	while ((index = _strRecvBuf.find("\r\n")) != std::string::npos) {
+		line = _strRecvBuf.substr(0, index);
+		_strRecvBuf.erase(0, index + 2);
 		if (!onCommandLine(line)) {
 			shutdown();
 			return;
@@ -74,7 +74,7 @@ void ShellSession::onRecv(const Buffer::Ptr&buf) {
 }
 
 void ShellSession::onManager() {
-	if (m_beatTicker.elapsedTime() > 1000 * 60 * 5) {
+	if (_beatTicker.elapsedTime() > 1000 * 60 * 5) {
 		//5 miniutes for alive
 		shutdown();
 		return;
@@ -82,7 +82,7 @@ void ShellSession::onManager() {
 }
 
 inline bool ShellSession::onCommandLine(const string& line) {
-    auto loginInterceptor = m_loginInterceptor;
+    auto loginInterceptor = _loginInterceptor;
     if (loginInterceptor) {
 		bool ret = loginInterceptor(line);
 		return ret;
@@ -104,15 +104,15 @@ inline bool ShellSession::onCommandLine(const string& line) {
 inline void ShellSession::pleaseInputUser() {
 	send("\033[0m");
 	send(StrPrinter << SERVER_NAME << " login: " << endl);
-	m_loginInterceptor = [this](const string &user_name) {
-		m_strUserName=user_name;
+	_loginInterceptor = [this](const string &user_name) {
+		_strUserName=user_name;
         pleaseInputPasswd();
 		return true;
 	};
 }
 inline void ShellSession::pleaseInputPasswd() {
 	send("Password: \033[8m");
-	m_loginInterceptor = [this](const string &passwd) {
+	_loginInterceptor = [this](const string &passwd) {
         auto onAuth = [this](const string &errMessage){
             if(!errMessage.empty()){
                 //鉴权失败
@@ -120,7 +120,7 @@ inline void ShellSession::pleaseInputPasswd() {
                      <<"\033[0mAuth failed("
                      << errMessage
                      <<"), please try again.\r\n"
-                     <<m_strUserName<<"@"<<SERVER_NAME
+                     <<_strUserName<<"@"<<SERVER_NAME
                      <<"'s password: \033[8m"
                      <<endl);
                 return;
@@ -130,7 +130,7 @@ inline void ShellSession::pleaseInputPasswd() {
             send(StrPrinter<<"欢迎来到"<<SERVER_NAME<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
             send("-----------------------------------------\r\n");
             printShellPrefix();
-            m_loginInterceptor=nullptr;
+            _loginInterceptor=nullptr;
         };
 
         weak_ptr<ShellSession> weakSelf = dynamic_pointer_cast<ShellSession>(shared_from_this());
@@ -148,7 +148,7 @@ inline void ShellSession::pleaseInputPasswd() {
             });
         };
 
-        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastShellLogin,m_strUserName,passwd,invoker,*this);
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastShellLogin,_strUserName,passwd,invoker,*this);
         if(!flag){
             //如果无人监听shell登录事件，那么默认shell无法登录
             onAuth("please listen kBroadcastShellLogin event");
@@ -158,7 +158,7 @@ inline void ShellSession::pleaseInputPasswd() {
 }
 
 inline void ShellSession::printShellPrefix() {
-	send(StrPrinter << m_strUserName << "@" << SERVER_NAME << "# " << endl);
+	send(StrPrinter << _strUserName << "@" << SERVER_NAME << "# " << endl);
 }
 
 }/* namespace Shell */

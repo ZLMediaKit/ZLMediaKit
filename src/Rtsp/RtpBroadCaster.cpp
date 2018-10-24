@@ -50,17 +50,17 @@ static uint32_t addressToInt(const string &ip){
 }
 
 std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
-	lock_guard<recursive_mutex> lck(m_mtx);
+	lock_guard<recursive_mutex> lck(_mtx);
     GET_CONFIG_AND_REGISTER(string,addrMinStr,Config::MultiCast::kAddrMin);
     GET_CONFIG_AND_REGISTER(string,addrMaxStr,Config::MultiCast::kAddrMax);
     uint32_t addrMin = addressToInt(addrMinStr);
 	uint32_t addrMax = addressToInt(addrMaxStr);
 
-	if(m_iAddr > addrMax || m_iAddr == 0){
-		m_iAddr = addrMin;
+	if(_iAddr > addrMax || _iAddr == 0){
+		_iAddr = addrMin;
 	}
-	auto iGotAddr =  m_iAddr++;
-	if(m_setBadAddr.find(iGotAddr) != m_setBadAddr.end()){
+	auto iGotAddr =  _iAddr++;
+	if(_setBadAddr.find(iGotAddr) != _setBadAddr.end()){
 		//已经分配过了
 		if(iTry){
 			return obtain(--iTry);
@@ -69,7 +69,7 @@ std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
 		ErrorL;
 		return nullptr;
 	}
-	m_setBadAddr.emplace(iGotAddr);
+	_setBadAddr.emplace(iGotAddr);
 	std::shared_ptr<uint32_t> ret(new uint32_t(iGotAddr),[](uint32_t *ptr){
 		MultiCastAddressMaker::Instance().release(*ptr);
 		delete ptr;
@@ -77,8 +77,8 @@ std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
 	return ret;
 }
 void MultiCastAddressMaker::release(uint32_t iAddr){
-	lock_guard<recursive_mutex> lck(m_mtx);
-	m_setBadAddr.erase(iAddr);
+	lock_guard<recursive_mutex> lck(_mtx);
+	_setBadAddr.erase(iAddr);
 }
 
 
@@ -86,16 +86,16 @@ recursive_mutex RtpBroadCaster::g_mtx;
 unordered_map<string, weak_ptr<RtpBroadCaster> > RtpBroadCaster::g_mapBroadCaster;
 
 void RtpBroadCaster::setDetachCB(void* listener, const onDetach& cb) {
-	lock_guard<recursive_mutex> lck(m_mtx);
+	lock_guard<recursive_mutex> lck(_mtx);
 	if(cb){
-		m_mapDetach.emplace(listener,cb);
+		_mapDetach.emplace(listener,cb);
 	}else{
-		m_mapDetach.erase(listener);
+		_mapDetach.erase(listener);
 	}
 }
 RtpBroadCaster::~RtpBroadCaster() {
-	m_pReader->setReadCB(nullptr);
-	m_pReader->setDetachCB(nullptr);
+	_pReader->setReadCB(nullptr);
+	_pReader->setDetachCB(nullptr);
 	DebugL;
 }
 RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
@@ -104,55 +104,55 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,c
 		auto strErr = StrPrinter << "未找到媒体源:" << strVhost << " " << strApp << " " << strStream << endl;
 		throw std::runtime_error(strErr);
 	}
-	m_multiAddr = MultiCastAddressMaker::Instance().obtain();
+	_multiAddr = MultiCastAddressMaker::Instance().obtain();
 	for(auto i = 0; i < 2; i++){
-		m_apUdpSock[i].reset(new Socket());
-		if(!m_apUdpSock[i]->bindUdpSock(0, strLocalIp.data())){
+		_apUdpSock[i].reset(new Socket());
+		if(!_apUdpSock[i]->bindUdpSock(0, strLocalIp.data())){
 			auto strErr = StrPrinter << "绑定UDP端口失败:" << strLocalIp << endl;
 			throw std::runtime_error(strErr);
 		}
-		auto fd = m_apUdpSock[i]->rawFD();
+		auto fd = _apUdpSock[i]->rawFD();
         GET_CONFIG_AND_REGISTER(uint32_t,udpTTL,Config::MultiCast::kUdpTTL);
 
         SockUtil::setMultiTTL(fd, udpTTL);
 		SockUtil::setMultiLOOP(fd, false);
 		SockUtil::setMultiIF(fd, strLocalIp.data());
 
-		struct sockaddr_in &peerAddr = m_aPeerUdpAddr[i];
+		struct sockaddr_in &peerAddr = _aPeerUdpAddr[i];
 		peerAddr.sin_family = AF_INET;
-		peerAddr.sin_port = htons(m_apUdpSock[i]->get_local_port());
-		peerAddr.sin_addr.s_addr = htonl(*m_multiAddr);
+		peerAddr.sin_port = htons(_apUdpSock[i]->get_local_port());
+		peerAddr.sin_addr.s_addr = htonl(*_multiAddr);
 		bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
 	}
-	m_pReader = src->getRing()->attach();
-	m_pReader->setReadCB([this](const RtpPacket::Ptr &pkt){
+	_pReader = src->getRing()->attach();
+	_pReader->setReadCB([this](const RtpPacket::Ptr &pkt){
 		int i = (int)(pkt->type);
-		auto &pSock = m_apUdpSock[i];
-		auto &peerAddr = m_aPeerUdpAddr[i];
+		auto &pSock = _apUdpSock[i];
+		auto &peerAddr = _aPeerUdpAddr[i];
         BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
 		pSock->send(buffer,SOCKET_DEFAULE_FLAGS | FLAG_MORE,(struct sockaddr *)(&peerAddr));
 	});
-	m_pReader->setDetachCB([this](){
-		unordered_map<void * , onDetach > m_mapDetach_copy;
+	_pReader->setDetachCB([this](){
+		unordered_map<void * , onDetach > _mapDetach_copy;
 		{
-			lock_guard<recursive_mutex> lck(m_mtx);
-			m_mapDetach_copy = std::move(m_mapDetach);
+			lock_guard<recursive_mutex> lck(_mtx);
+			_mapDetach_copy = std::move(_mapDetach);
 		}
-		for(auto &pr : m_mapDetach_copy){
+		for(auto &pr : _mapDetach_copy){
 			pr.second();
 		}
 	});
-	DebugL << MultiCastAddressMaker::toString(*m_multiAddr) << " "
-			<< m_apUdpSock[0]->get_local_port() << " "
-			<< m_apUdpSock[1]->get_local_port() << " "
+	DebugL << MultiCastAddressMaker::toString(*_multiAddr) << " "
+			<< _apUdpSock[0]->get_local_port() << " "
+			<< _apUdpSock[1]->get_local_port() << " "
             << strVhost << " "
 			<< strApp << " " << strStream;
 }
 uint16_t RtpBroadCaster::getPort(TrackType trackType){
-	return m_apUdpSock[trackType]->get_local_port();
+	return _apUdpSock[trackType]->get_local_port();
 }
 string RtpBroadCaster::getIP(){
-	return inet_ntoa(m_aPeerUdpAddr[0].sin_addr);
+	return inet_ntoa(_aPeerUdpAddr[0].sin_addr);
 }
 RtpBroadCaster::Ptr RtpBroadCaster::make(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream){
 	try{

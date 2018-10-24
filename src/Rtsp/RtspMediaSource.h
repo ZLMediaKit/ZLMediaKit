@@ -60,46 +60,46 @@ public:
 
 	RtspMediaSource(const string &strVhost,const string &strApp, const string &strId) :
 			MediaSource(RTSP_SCHEMA,strVhost,strApp,strId),
-			m_pRing(new RingBuffer<RtpPacket::Ptr>()) {
+			_pRing(new RingBuffer<RtpPacket::Ptr>()) {
 	}
 	virtual ~RtspMediaSource() {}
 
 	const RingType::Ptr &getRing() const {
 		//获取媒体源的rtp环形缓冲
-		return m_pRing;
+		return _pRing;
 	}
 	const string& getSdp() const {
 		//获取该源的媒体描述信息
-		return m_strSdp;
+		return _strSdp;
 	}
 
 	virtual uint32_t getSsrc(TrackType trackType) {
-		return m_mapTracks[trackType].ssrc;
+		return _mapTracks[trackType].ssrc;
 	}
 	virtual uint16_t getSeqence(TrackType trackType) {
-		return m_mapTracks[trackType].seq;
+		return _mapTracks[trackType].seq;
 	}
 	virtual uint32_t getTimestamp(TrackType trackType) {
-		return m_mapTracks[trackType].timeStamp;
+		return _mapTracks[trackType].timeStamp;
 	}
 
 	virtual void onGetSDP(const string& sdp) {
 		//派生类设置该媒体源媒体描述信息
-		m_strSdp = sdp;
+		_strSdp = sdp;
 		regist();
 	}
 	virtual void onGetRTP(const RtpPacket::Ptr &rtppt, bool keyPos) {
-		auto &trackRef = m_mapTracks[rtppt->type];
+		auto &trackRef = _mapTracks[rtppt->type];
 		trackRef.seq = rtppt->sequence;
 		trackRef.timeStamp = rtppt->timeStamp;
 		trackRef.ssrc = rtppt->ssrc;
 		trackRef.type = rtppt->type;
-		m_pRing->write(rtppt,keyPos);
+		_pRing->write(rtppt,keyPos);
 	}
 protected:
-	unordered_map<int, RtspTrack> m_mapTracks;
-    string m_strSdp; //媒体描述信息
-    RingType::Ptr m_pRing; //rtp环形缓冲
+	unordered_map<int, RtspTrack> _mapTracks;
+    string _strSdp; //媒体描述信息
+    RingType::Ptr _pRing; //rtp环形缓冲
 };
 
 } /* namespace Rtsp */

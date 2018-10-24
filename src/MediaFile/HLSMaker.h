@@ -60,16 +60,16 @@ public:
 					uint32_t ui32Length,
 					uint32_t ui32TimeStamp);
 private:
-	TSMaker m_ts;
-	string m_strM3u8File;
-	string m_strFileName;
-	string m_strOutputPrefix;
-	uint32_t m_ui32SegmentDuration;
-	uint32_t m_ui32NumSegments;
-	uint64_t m_ui64TsCnt;
-	uint32_t m_ui32BufSize;
-    uint32_t m_ui32LastStamp;
-	std::deque<int> m_iDurations;
+	TSMaker _ts;
+	string _strM3u8File;
+	string _strFileName;
+	string _strOutputPrefix;
+	uint32_t _ui32SegmentDuration;
+	uint32_t _ui32NumSegments;
+	uint64_t _ui64TsCnt;
+	uint32_t _ui32BufSize;
+    uint32_t _ui32LastStamp;
+	std::deque<int> _iDurations;
 
 	bool write_index_file(int iFirstSegment, unsigned int uiLastSegment, int iEnd);
 	bool removets();

@@ -101,73 +101,73 @@ public:
 	PlayerImp(){}
 	virtual ~PlayerImp(){}
 	void setOnShutdown(const function<void(const SockException &)> &cb) override {
-		if (m_parser) {
-			m_parser->setOnShutdown(cb);
+		if (_parser) {
+			_parser->setOnShutdown(cb);
 		}
-		m_shutdownCB = cb;
+		_shutdownCB = cb;
 	}
 	void setOnPlayResult(const function<void(const SockException &ex)> &cb) override {
-		if (m_parser) {
-			m_parser->setOnPlayResult(cb);
+		if (_parser) {
+			_parser->setOnPlayResult(cb);
 		}
-		m_playResultCB = cb;
+		_playResultCB = cb;
 	}
 
     bool isInited() const override{
-        if (m_parser) {
-            return m_parser->isInited();
+        if (_parser) {
+            return _parser->isInited();
         }
         return PlayerBase::isInited();
     }
 	float getDuration() const override {
-		if (m_parser) {
-			return m_parser->getDuration();
+		if (_parser) {
+			return _parser->getDuration();
 		}
 		return PlayerBase::getDuration();
 	}
     float getProgress() const override{
-        if (m_parser) {
-            return m_parser->getProgress();
+        if (_parser) {
+            return _parser->getProgress();
         }
         return PlayerBase::getProgress();
     }
     void seekTo(float fProgress) override{
-        if (m_parser) {
-            return m_parser->seekTo(fProgress);
+        if (_parser) {
+            return _parser->seekTo(fProgress);
         }
         return PlayerBase::seekTo(fProgress);
     }
 
     void setMediaSouce(const MediaSource::Ptr & src) override {
-		if (m_parser) {
-			return m_parser->setMediaSouce(src);
+		if (_parser) {
+			return _parser->setMediaSouce(src);
 		}
-		m_pMediaSrc = src;
+		_pMediaSrc = src;
     }
 
     vector<Track::Ptr> getTracks() const override{
-		if (m_parser) {
-			return m_parser->getTracks();
+		if (_parser) {
+			return _parser->getTracks();
 		}
 		return PlayerBase::getTracks();
 	}
 protected:
 	void onShutdown(const SockException &ex) override {
-		if (m_shutdownCB) {
-			m_shutdownCB(ex);
+		if (_shutdownCB) {
+			_shutdownCB(ex);
 		}
 	}
 	void onPlayResult(const SockException &ex) override {
-		if (m_playResultCB) {
-			m_playResultCB(ex);
-			m_playResultCB = nullptr;
+		if (_playResultCB) {
+			_playResultCB(ex);
+			_playResultCB = nullptr;
 		}
 	}
 protected:
-	function<void(const SockException &ex)> m_shutdownCB;
-	function<void(const SockException &ex)> m_playResultCB;
-	std::shared_ptr<Parser> m_parser;
-	MediaSource::Ptr m_pMediaSrc;
+	function<void(const SockException &ex)> _shutdownCB;
+	function<void(const SockException &ex)> _playResultCB;
+	std::shared_ptr<Parser> _parser;
+	MediaSource::Ptr _pMediaSrc;
 };
 
 } /* namespace Player */

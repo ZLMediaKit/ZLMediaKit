@@ -68,7 +68,7 @@ RtpParser::RtpParser(const string& sdp) {
 			break;
 		}
 	}
-	m_fDuration = getTimeInSDP(sdp);
+	_fDuration = getTimeInSDP(sdp);
 }
 
 bool RtpParser::inputRtp(const RtpPacket::Ptr & rtp) {

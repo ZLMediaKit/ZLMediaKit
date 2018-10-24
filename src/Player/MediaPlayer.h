@@ -54,7 +54,7 @@ public:
 	void teardown() override;
 	TaskExecutor::Ptr getExecutor();
 private:
-	string m_strPrefix;
+	string _strPrefix;
 
 };
 

@@ -55,37 +55,37 @@ public:
 private:
 
 #ifdef ENABLE_MP4V2
-	MP4FileHandle m_hMP4File = MP4_INVALID_FILE_HANDLE;
-	MP4TrackId m_video_trId = MP4_INVALID_TRACK_ID;
-	uint32_t m_video_ms = 0;
-	uint32_t m_video_num_samples = 0;
-	uint32_t m_video_sample_max_size = 0;
-	uint32_t m_video_width = 0;
-	uint32_t m_video_height = 0;
-	uint32_t m_video_framerate = 0;
-	string m_strPps;
-	string m_strSps;
-	bool m_bSyncSample  = false;
+	MP4FileHandle _hMP4File = MP4_INVALID_FILE_HANDLE;
+	MP4TrackId _video_trId = MP4_INVALID_TRACK_ID;
+	uint32_t _video_ms = 0;
+	uint32_t _video_num_samples = 0;
+	uint32_t _video_sample_max_size = 0;
+	uint32_t _video_width = 0;
+	uint32_t _video_height = 0;
+	uint32_t _video_framerate = 0;
+	string _strPps;
+	string _strSps;
+	bool _bSyncSample  = false;
 
-	MP4TrackId m_audio_trId = MP4_INVALID_TRACK_ID;
-	uint32_t m_audio_ms = 0;
-	uint32_t m_audio_num_samples = 0;
-	uint32_t m_audio_sample_max_size = 0;
-	uint32_t m_audio_sample_rate = 0;
-	uint32_t m_audio_num_channels = 0;
-	string m_strAacCfg;
-	AACFrame m_adts;
+	MP4TrackId _audio_trId = MP4_INVALID_TRACK_ID;
+	uint32_t _audio_ms = 0;
+	uint32_t _audio_num_samples = 0;
+	uint32_t _audio_sample_max_size = 0;
+	uint32_t _audio_sample_rate = 0;
+	uint32_t _audio_num_channels = 0;
+	string _strAacCfg;
+	AACFrame _adts;
 
-	int m_iDuration = 0;
-	DevChannel::Ptr m_pChn;
-	MP4SampleId m_video_current = 0;
-	MP4SampleId m_audio_current = 0;
-	std::shared_ptr<uint8_t> m_pcVideoSample;
+	int _iDuration = 0;
+	DevChannel::Ptr _pChn;
+	MP4SampleId _video_current = 0;
+	MP4SampleId _audio_current = 0;
+	std::shared_ptr<uint8_t> _pcVideoSample;
 
-	int m_iSeekTime = 0 ;
-	Ticker m_ticker;
-	Ticker m_alive;
-	recursive_mutex m_mtx;
+	int _iSeekTime = 0 ;
+	Ticker _ticker;
+	Ticker _alive;
+	recursive_mutex _mtx;
 
 	void seek(int iSeekTime,bool bReStart = true);
 	inline void setSeekTime(int iSeekTime);

@@ -57,7 +57,7 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
 
     if(enableHls) {
         auto m3u8FilePath = hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
-        m_hlsMaker.reset(new HLSMaker(m3u8FilePath,hlsBufSize, hlsDuration, hlsNum));
+        _hlsMaker.reset(new HLSMaker(m3u8FilePath,hlsBufSize, hlsDuration, hlsNum));
     }
 
 #ifdef ENABLE_MP4V2
@@ -66,7 +66,7 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
 
     if(enableMp4){
         auto mp4FilePath = recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
-        m_mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId,pPlayer));
+        _mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId,pPlayer));
     }
 #endif //ENABLE_MP4V2
 }
@@ -75,23 +75,23 @@ MediaRecorder::~MediaRecorder() {
 }
 
 void MediaRecorder::inputH264(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp, int iType) {
-    if(m_hlsMaker){
-        m_hlsMaker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
+    if(_hlsMaker){
+        _hlsMaker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
     }
 #ifdef ENABLE_MP4V2
-    if(m_mp4Maker){
-        m_mp4Maker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
+    if(_mp4Maker){
+        _mp4Maker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
     }
 #endif //ENABLE_MP4V2
 }
 
 void MediaRecorder::inputAAC(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp) {
-    if(m_hlsMaker){
-        m_hlsMaker->inputAAC(pData, ui32Length, ui32TimeStamp);
+    if(_hlsMaker){
+        _hlsMaker->inputAAC(pData, ui32Length, ui32TimeStamp);
     }
 #ifdef ENABLE_MP4V2
-    if(m_mp4Maker){
-        m_mp4Maker->inputAAC(pData, ui32Length, ui32TimeStamp);
+    if(_mp4Maker){
+        _mp4Maker->inputAAC(pData, ui32Length, ui32TimeStamp);
     }
 #endif //ENABLE_MP4V2
 }

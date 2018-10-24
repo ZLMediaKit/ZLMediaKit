@@ -44,29 +44,29 @@ public:
     void inputH264(const string &h264,uint32_t dts);
 
     int32_t getPOC() const{
-        return m_iNowPOC;
+        return _iNowPOC;
     }
     int getSliceType() const{
-        return m_shdr.slice_type;
+        return _shdr.slice_type;
     }
     int getNaluType() const{
-        return m_nalu.nal_unit_type;
+        return _nalu.nal_unit_type;
     }
     uint32_t getPts() const{
-    		return m_iNowPTS;
+    		return _iNowPTS;
     }
 private:
-    media::H264Parser m_parser;
-    media::H264POC m_poc;
-    media::H264NALU m_nalu;
-    media::H264SliceHeader m_shdr;
+    media::H264Parser _parser;
+    media::H264POC _poc;
+    media::H264NALU _nalu;
+    media::H264SliceHeader _shdr;
 
-    int32_t m_iNowPOC = INT32_MAX;
-    int32_t m_iLastPOC = INT32_MAX;
+    int32_t _iNowPOC = INT32_MAX;
+    int32_t _iLastPOC = INT32_MAX;
 
-    uint32_t m_iNowPTS = INT32_MAX;
-    uint32_t m_iLastPTS = INT32_MAX;
-    int32_t m_iMsPerPOC = 30;
+    uint32_t _iNowPTS = INT32_MAX;
+    uint32_t _iLastPTS = INT32_MAX;
+    int32_t _iMsPerPOC = 30;
 
     void computePts(uint32_t dts);
 

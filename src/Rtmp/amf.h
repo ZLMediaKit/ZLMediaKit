@@ -61,13 +61,13 @@ public:
 	~AMFValue();
 
 	void clear() {
-		switch (m_type) {
+		switch (_type) {
 		case AMF_STRING:
-			m_value.string->clear();
+			_value.string->clear();
 			break;
 		case AMF_OBJECT:
 		case AMF_ECMA_ARRAY:
-			m_value.object->clear();
+			_value.object->clear();
 			break;
 		default:
 			break;
@@ -75,23 +75,23 @@ public:
 	}
 
 	AMFType type() const {
-		return m_type;
+		return _type;
 	}
 
 	const std::string &as_string() const {
-		if(m_type != AMF_STRING){
+		if(_type != AMF_STRING){
 			throw std::runtime_error("AMF not a string");
 		}
-		return *m_value.string;
+		return *_value.string;
 	}
 	double as_number() const {
-		switch (m_type) {
+		switch (_type) {
 		case AMF_NUMBER:
-			return m_value.number;
+			return _value.number;
 		case AMF_INTEGER:
-			return m_value.integer;
+			return _value.integer;
 		case AMF_BOOLEAN:
-			return m_value.boolean;
+			return _value.boolean;
 			break;
 		default:
 			throw std::runtime_error("AMF not a number");
@@ -99,13 +99,13 @@ public:
 		}
 	}
 	int as_integer() const {
-		switch (m_type) {
+		switch (_type) {
 		case AMF_NUMBER:
-			return m_value.number;
+			return _value.number;
 		case AMF_INTEGER:
-			return m_value.integer;
+			return _value.integer;
 		case AMF_BOOLEAN:
-			return m_value.boolean;
+			return _value.boolean;
 			break;
 		default:
 			throw std::runtime_error("AMF not a integer");
@@ -113,13 +113,13 @@ public:
 		}
 	}
 	bool as_boolean() const {
-		switch (m_type) {
+		switch (_type) {
 		case AMF_NUMBER:
-			return m_value.number;
+			return _value.number;
 		case AMF_INTEGER:
-			return m_value.integer;
+			return _value.integer;
 		case AMF_BOOLEAN:
-			return m_value.boolean;
+			return _value.boolean;
 			break;
 		default:
 			throw std::runtime_error("AMF not a boolean");
@@ -128,11 +128,11 @@ public:
 	}
 
 	const AMFValue &operator[](const char *str) const {
-		if (m_type != AMF_OBJECT && m_type != AMF_ECMA_ARRAY) {
+		if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
 			throw std::runtime_error("AMF not a object");
 		}
-		auto i = m_value.object->find(str);
-		if (i == m_value.object->end()) {
+		auto i = _value.object->find(str);
+		if (i == _value.object->end()) {
 			static AMFValue val(AMF_NULL);
 			return val;
 		}
@@ -140,36 +140,36 @@ public:
 	}
 	template<typename FUN>
 	void object_for_each(const FUN &fun) const {
-		if (m_type != AMF_OBJECT && m_type != AMF_ECMA_ARRAY) {
+		if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
 			throw std::runtime_error("AMF not a object");
 		}
-		for (auto & pr : *(m_value.object)) {
+		for (auto & pr : *(_value.object)) {
 			fun(pr.first, pr.second);
 		}
 	}
 
 	operator bool() const{
-		return m_type != AMF_NULL;
+		return _type != AMF_NULL;
 	}
 	void set(const std::string &s, const AMFValue &val) {
-		if (m_type != AMF_OBJECT && m_type != AMF_ECMA_ARRAY) {
+		if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
 			throw std::runtime_error("AMF not a object");
 		}
-		m_value.object->emplace(s, val);
+		_value.object->emplace(s, val);
 	}
 	void add(const AMFValue &val) {
-		if (m_type != AMF_STRICT_ARRAY) {
+		if (_type != AMF_STRICT_ARRAY) {
 			throw std::runtime_error("AMF not a array");
 		}
-		assert(m_type == AMF_STRICT_ARRAY);
-		m_value.array->push_back(val);
+		assert(_type == AMF_STRICT_ARRAY);
+		_value.array->push_back(val);
 	}
 
 private:
 	typedef std::map<std::string, AMFValue> mapType;
 	typedef std::vector<AMFValue> arrayType;
 
-	AMFType m_type;
+	AMFType _type;
 	union {
 		std::string *string;
 		double number;
@@ -177,20 +177,20 @@ private:
 		bool boolean;
 		mapType *object;
 		arrayType *array;
-	} m_value;
+	} _value;
 
 	friend class AMFEncoder;
 	const mapType &getMap() const {
-		if (m_type != AMF_OBJECT && m_type != AMF_ECMA_ARRAY) {
+		if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
 			throw std::runtime_error("AMF not a object");
 		}
-		return *m_value.object;
+		return *_value.object;
 	}
 	const arrayType &getArr() const {
-		if (m_type != AMF_STRICT_ARRAY) {
+		if (_type != AMF_STRICT_ARRAY) {
 			throw std::runtime_error("AMF not a array");
 		}
-		return *m_value.array;
+		return *_value.array;
 	}
 	inline void destroy();
 	inline void init();

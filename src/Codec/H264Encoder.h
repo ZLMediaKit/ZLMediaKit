@@ -54,10 +54,10 @@ public:
 	bool init(int iWidth, int iHeight, int iFps);
 	int inputData(char *apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H264Frame **ppFrame);
 private:
-	x264_t* m_pX264Handle = nullptr;
-	x264_picture_t* m_pPicIn = nullptr;
-	x264_picture_t* m_pPicOut = nullptr;
-	H264Frame m_aFrames[10];
+	x264_t* _pX264Handle = nullptr;
+	x264_picture_t* _pPicIn = nullptr;
+	x264_picture_t* _pPicOut = nullptr;
+	H264Frame _aFrames[10];
 };
 
 } /* namespace Codec */

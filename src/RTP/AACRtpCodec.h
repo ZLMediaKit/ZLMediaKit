@@ -38,8 +38,8 @@ private:
     void onGetAAC(const AACFrame::Ptr &frame);
     AACFrame::Ptr obtainFrame();
 private:
-    AACFrame::Ptr m_adts;
-    uint32_t m_sampleRate;
+    AACFrame::Ptr _adts;
+    uint32_t _sampleRate;
 };
 
 
@@ -72,7 +72,7 @@ public:
 private:
     void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:
-    unsigned char m_aucSectionBuf[1600];
+    unsigned char _aucSectionBuf[1600];
 };
 
 

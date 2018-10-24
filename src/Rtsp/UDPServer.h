@@ -56,11 +56,11 @@ public:
 private:
 	void onRcvData(int iTrackId, const Buffer::Ptr &pBuf,struct sockaddr *pPeerAddr);
 	void onErr(const string &strKey,const SockException &err);
-	unordered_map<string, Socket::Ptr> m_mapUpdSock;
-	mutex m_mtxUpdSock;
+	unordered_map<string, Socket::Ptr> _mapUpdSock;
+	mutex _mtxUpdSock;
 
-	unordered_map<string, unordered_map<void *, onRecvData> > m_mapDataHandler;
-	mutex m_mtxDataHandler;
+	unordered_map<string, unordered_map<void *, onRecvData> > _mapDataHandler;
+	mutex _mtxDataHandler;
 };
 
 } /* namespace Rtsp */

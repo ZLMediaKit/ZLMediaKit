@@ -43,22 +43,22 @@ MediaPlayer::~MediaPlayer() {
 }
 void MediaPlayer::play(const char* strUrl) {
 	string strPrefix = FindField(strUrl, NULL, "://");
-	if ((strcasecmp(m_strPrefix.data(),strPrefix.data()) != 0) || strPrefix.empty()) {
+	if ((strcasecmp(_strPrefix.data(),strPrefix.data()) != 0) || strPrefix.empty()) {
 		//协议切换
-		m_strPrefix = strPrefix;
-		m_parser = PlayerBase::createPlayer(strUrl);
-		m_parser->setOnShutdown(m_shutdownCB);
+		_strPrefix = strPrefix;
+		_parser = PlayerBase::createPlayer(strUrl);
+		_parser->setOnShutdown(_shutdownCB);
 		//todo(xzl) 修复此处
-//		m_parser->setOnVideoCB(m_onGetVideoCB);
-//		m_parser->setOnAudioCB(m_onGetAudioCB);
+//		_parser->setOnVideoCB(_onGetVideoCB);
+//		_parser->setOnAudioCB(_onGetAudioCB);
 	}
-	m_parser->setOnPlayResult(m_playResultCB);
-	m_parser->mINI::operator=(*this);
-	m_parser->play(strUrl);
+	_parser->setOnPlayResult(_playResultCB);
+	_parser->mINI::operator=(*this);
+	_parser->play(strUrl);
 }
 
 TaskExecutor::Ptr MediaPlayer::getExecutor(){
-	auto parser = dynamic_pointer_cast<SocketHelper>(m_parser);
+	auto parser = dynamic_pointer_cast<SocketHelper>(_parser);
 	if(!parser){
 		return nullptr;
 	}
@@ -66,14 +66,14 @@ TaskExecutor::Ptr MediaPlayer::getExecutor(){
 }
 
 void MediaPlayer::pause(bool bPause) {
-	if (m_parser) {
-		m_parser->pause(bPause);
+	if (_parser) {
+		_parser->pause(bPause);
 	}
 }
 
 void MediaPlayer::teardown() {
-	if (m_parser) {
-		m_parser->teardown();
+	if (_parser) {
+		_parser->teardown();
 	}
 }
 

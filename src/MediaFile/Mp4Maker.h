@@ -73,29 +73,29 @@ public:
 	//时间戳：参考频率1000
 	void inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
 private:
-	MP4FileHandle m_hMp4 = MP4_INVALID_FILE_HANDLE;
-	MP4TrackId m_hVideo = MP4_INVALID_TRACK_ID;
-	MP4TrackId m_hAudio = MP4_INVALID_TRACK_ID;
-	PlayerBase::Ptr m_pPlayer;
-	string m_strPath;
-	string m_strFile;
-	string m_strFileTmp;
-	Ticker m_ticker;
-	SmoothTicker m_mediaTicker[2];
+	MP4FileHandle _hMp4 = MP4_INVALID_FILE_HANDLE;
+	MP4TrackId _hVideo = MP4_INVALID_TRACK_ID;
+	MP4TrackId _hAudio = MP4_INVALID_TRACK_ID;
+	PlayerBase::Ptr _pPlayer;
+	string _strPath;
+	string _strFile;
+	string _strFileTmp;
+	Ticker _ticker;
+	SmoothTicker _mediaTicker[2];
 
 	void createFile();
 	void closeFile();
 	void _inputH264(void *pData, uint32_t ui32Length, uint32_t ui64Duration, int iType);
 	void _inputAAC(void *pData, uint32_t ui32Length, uint32_t ui64Duration);
 
-	string m_strLastVideo;
-	string m_strLastAudio;
+	string _strLastVideo;
+	string _strLastAudio;
 
-	uint32_t m_ui32LastVideoTime = 0;
-	uint32_t m_ui32LastAudioTime = 0;
-	int m_iLastVideoType = 0;
+	uint32_t _ui32LastVideoTime = 0;
+	uint32_t _ui32LastAudioTime = 0;
+	int _iLastVideoType = 0;
 
-	Mp4Info m_info;
+	Mp4Info _info;
 };
 
 } /* namespace MediaFile */

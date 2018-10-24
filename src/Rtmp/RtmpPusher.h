@@ -46,11 +46,11 @@ public:
 	void teardown();
 
 	void setOnPublished(Event onPublished) {
-		m_onPublished = onPublished;
+		_onPublished = onPublished;
 	}
 
 	void setOnShutdown(Event onShutdown) {
-		m_onShutdown = onShutdown;
+		_onShutdown = onShutdown;
 	}
 
 protected:
@@ -67,28 +67,28 @@ protected:
 private:
     void init(const RtmpMediaSource::Ptr  &src);
 	void onShutdown(const SockException &ex) {
-		m_pPublishTimer.reset();
-		if(m_onShutdown){
-			m_onShutdown(ex);
+		_pPublishTimer.reset();
+		if(_onShutdown){
+			_onShutdown(ex);
 		}
-		m_pRtmpReader.reset();
+		_pRtmpReader.reset();
 	}
 	void onPublishResult(const SockException &ex) {
-		m_pPublishTimer.reset();
-		if(m_onPublished){
-			m_onPublished(ex);
+		_pPublishTimer.reset();
+		if(_onPublished){
+			_onPublished(ex);
 		}
 	}
 
 	template<typename FUN>
 	inline void addOnResultCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
-		m_mapOnResultCB.emplace(m_iReqID, fun);
+		lock_guard<recursive_mutex> lck(_mtxOnResultCB);
+		_mapOnResultCB.emplace(_iReqID, fun);
 	}
 	template<typename FUN>
 	inline void addOnStatusCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
-		m_dqOnStatusCB.emplace_back(fun);
+		lock_guard<recursive_mutex> lck(_mtxOnStatusCB);
+		_dqOnStatusCB.emplace_back(fun);
 	}
 
 	void onCmd_result(AMFDecoder &dec);
@@ -100,27 +100,27 @@ private:
 	inline void send_publish();
 	inline void send_metaData();
 
-	string m_strApp;
-	string m_strStream;
-	string m_strTcUrl;
+	string _strApp;
+	string _strStream;
+	string _strTcUrl;
 
-	unordered_map<int, function<void(AMFDecoder &dec)> > m_mapOnResultCB;
-	recursive_mutex m_mtxOnResultCB;
-	deque<function<void(AMFValue &dec)> > m_dqOnStatusCB;
-	recursive_mutex m_mtxOnStatusCB;
+	unordered_map<int, function<void(AMFDecoder &dec)> > _mapOnResultCB;
+	recursive_mutex _mtxOnResultCB;
+	deque<function<void(AMFValue &dec)> > _dqOnStatusCB;
+	recursive_mutex _mtxOnStatusCB;
 
 	typedef void (RtmpPusher::*rtmpCMDHandle)(AMFDecoder &dec);
 	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
 
 	//超时功能实现
-	std::shared_ptr<Timer> m_pPublishTimer;
+	std::shared_ptr<Timer> _pPublishTimer;
     
     //源
-    std::weak_ptr<RtmpMediaSource> m_pMediaSrc;
-    RtmpMediaSource::RingType::RingReader::Ptr m_pRtmpReader;
+    std::weak_ptr<RtmpMediaSource> _pMediaSrc;
+    RtmpMediaSource::RingType::RingReader::Ptr _pRtmpReader;
     //事件监听
-    Event m_onShutdown;
-    Event m_onPublished;
+    Event _onShutdown;
+    Event _onPublished;
 };
 
 } /* namespace Rtmp */

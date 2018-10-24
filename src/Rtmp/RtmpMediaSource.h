@@ -60,66 +60,66 @@ public:
 
 	RtmpMediaSource(const string &vhost,const string &strApp, const string &strId) :
 			MediaSource(RTMP_SCHEMA,vhost,strApp,strId),
-			m_pRing(new RingBuffer<RtmpPacket::Ptr>()) {
+			_pRing(new RingBuffer<RtmpPacket::Ptr>()) {
 	}
 	virtual ~RtmpMediaSource() {}
 
 	const RingType::Ptr &getRing() const {
 		//获取媒体源的rtp环形缓冲
-		return m_pRing;
+		return _pRing;
 	}
 
 	const AMFValue &getMetaData() const {
-		lock_guard<recursive_mutex> lock(m_mtxMap);
-		return m_metadata;
+		lock_guard<recursive_mutex> lock(_mtxMap);
+		return _metadata;
 	}
 	template<typename FUN>
 	void getConfigFrame(const FUN &f) {
-		lock_guard<recursive_mutex> lock(m_mtxMap);
-		for (auto &pr : m_mapCfgFrame) {
+		lock_guard<recursive_mutex> lock(_mtxMap);
+		for (auto &pr : _mapCfgFrame) {
 			f(pr.second);
 		}
 	}
 
-	virtual void onGetMetaData(const AMFValue &_metadata) {
-		lock_guard<recursive_mutex> lock(m_mtxMap);
-		m_metadata = _metadata;
-		RtmpParser parser(_metadata);
-		m_iCfgFrameSize = parser.getTracks().size();
+	virtual void onGetMetaData(const AMFValue &metadata) {
+		lock_guard<recursive_mutex> lock(_mtxMap);
+		_metadata = metadata;
+		RtmpParser parser(metadata);
+		_iCfgFrameSize = parser.getTracks().size();
 		if(ready()){
 			MediaSource::regist();
-			m_bRegisted = true;
+			_bRegisted = true;
 		} else{
-			m_bAsyncRegist = true;
+			_bAsyncRegist = true;
 		}
 	}
 	virtual void onGetMedia(const RtmpPacket::Ptr &pkt) {
-		lock_guard<recursive_mutex> lock(m_mtxMap);
+		lock_guard<recursive_mutex> lock(_mtxMap);
 		if (pkt->isCfgFrame()) {
-			m_mapCfgFrame.emplace(pkt->typeId, pkt);
+			_mapCfgFrame.emplace(pkt->typeId, pkt);
 
-			if(m_bAsyncRegist && !m_bRegisted &&  m_mapCfgFrame.size() == m_iCfgFrameSize){
-				m_bAsyncRegist = false;
+			if(_bAsyncRegist && !_bRegisted &&  _mapCfgFrame.size() == _iCfgFrameSize){
+				_bAsyncRegist = false;
 				MediaSource::regist();
-				m_bRegisted = true;
+				_bRegisted = true;
 			}
 		}
 
-		m_pRing->write(pkt,pkt->isVideoKeyFrame());
+		_pRing->write(pkt,pkt->isVideoKeyFrame());
 	}
 private:
 	bool ready(){
-		lock_guard<recursive_mutex> lock(m_mtxMap);
-		return m_iCfgFrameSize != -1 && m_iCfgFrameSize == m_mapCfgFrame.size();
+		lock_guard<recursive_mutex> lock(_mtxMap);
+		return _iCfgFrameSize != -1 && _iCfgFrameSize == _mapCfgFrame.size();
 	}
 protected:
-	AMFValue m_metadata;
-	unordered_map<int, RtmpPacket::Ptr> m_mapCfgFrame;
-	mutable recursive_mutex m_mtxMap;
-	RingBuffer<RtmpPacket::Ptr>::Ptr m_pRing; //rtp环形缓冲
-	int m_iCfgFrameSize = -1;
-	bool m_bAsyncRegist = false;
-	bool m_bRegisted = false;
+	AMFValue _metadata;
+	unordered_map<int, RtmpPacket::Ptr> _mapCfgFrame;
+	mutable recursive_mutex _mtxMap;
+	RingBuffer<RtmpPacket::Ptr>::Ptr _pRing; //rtp环形缓冲
+	int _iCfgFrameSize = -1;
+	bool _bAsyncRegist = false;
+	bool _bRegisted = false;
 };
 
 } /* namespace Rtmp */

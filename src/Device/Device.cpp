@@ -44,19 +44,19 @@ DevChannel::DevChannel(const char *strVhost,
                        bool bEnableMp4 ) :
         RtspToRtmpMediaSource(strVhost,strApp,strId,bEanbleHls,bEnableMp4) {
 
-	m_strSdp = "v=0\r\n";
-	m_strSdp += "o=- 1383190487994921 1 IN IP4 0.0.0.0\r\n";
-	m_strSdp += "s=RTSP Session, streamed by the ZL\r\n";
-	m_strSdp += "i=ZL Live Stream\r\n";
-	m_strSdp += "c=IN IP4 0.0.0.0\r\n";
-	m_strSdp += "t=0 0\r\n";
+	_strSdp = "v=0\r\n";
+	_strSdp += "o=- 1383190487994921 1 IN IP4 0.0.0.0\r\n";
+	_strSdp += "s=RTSP Session, streamed by the ZL\r\n";
+	_strSdp += "i=ZL Live Stream\r\n";
+	_strSdp += "c=IN IP4 0.0.0.0\r\n";
+	_strSdp += "t=0 0\r\n";
 	//直播，时间长度永远
 	if(fDuration <= 0){
-		m_strSdp += "a=range:npt=0-\r\n";
+		_strSdp += "a=range:npt=0-\r\n";
 	}else{
-		m_strSdp += StrPrinter <<"a=range:npt=0-" << fDuration  << "\r\n" << endl;
+		_strSdp += StrPrinter <<"a=range:npt=0-" << fDuration  << "\r\n" << endl;
 	}
-	m_strSdp += "a=control:*\r\n";
+	_strSdp += "a=control:*\r\n";
 }
 DevChannel::~DevChannel() {
 }
@@ -64,16 +64,16 @@ DevChannel::~DevChannel() {
 #ifdef ENABLE_X264
 void DevChannel::inputYUV(char* apcYuv[3], int aiYuvLen[3], uint32_t uiStamp) {
 	//TimeTicker1(50);
-	if (!m_pH264Enc) {
-		m_pH264Enc.reset(new H264Encoder());
-		if (!m_pH264Enc->init(m_video->iWidth, m_video->iHeight, m_video->iFrameRate)) {
-			m_pH264Enc.reset();
+	if (!_pH264Enc) {
+		_pH264Enc.reset(new H264Encoder());
+		if (!_pH264Enc->init(_video->iWidth, _video->iHeight, _video->iFrameRate)) {
+			_pH264Enc.reset();
 			WarnL << "H264Encoder init failed!";
 		}
 	}
-	if (m_pH264Enc) {
+	if (_pH264Enc) {
 		H264Encoder::H264Frame *pOut;
-		int iFrames = m_pH264Enc->inputData(apcYuv, aiYuvLen, uiStamp, &pOut);
+		int iFrames = _pH264Enc->inputData(apcYuv, aiYuvLen, uiStamp, &pOut);
 		for (int i = 0; i < iFrames; i++) {
 			inputH264((char *) pOut[i].pucData, pOut[i].iLength, uiStamp);
 		}
@@ -83,16 +83,16 @@ void DevChannel::inputYUV(char* apcYuv[3], int aiYuvLen[3], uint32_t uiStamp) {
 
 #ifdef ENABLE_FAAC
 void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
-	if (!m_pAacEnc) {
-		m_pAacEnc.reset(new AACEncoder());
-		if (!m_pAacEnc->init(m_audio->iSampleRate, m_audio->iChannel, m_audio->iSampleBit)) {
-			m_pAacEnc.reset();
+	if (!_pAacEnc) {
+		_pAacEnc.reset(new AACEncoder());
+		if (!_pAacEnc->init(_audio->iSampleRate, _audio->iChannel, _audio->iSampleBit)) {
+			_pAacEnc.reset();
 			WarnL << "AACEncoder init failed!";
 		}
 	}
-	if (m_pAacEnc) {
+	if (_pAacEnc) {
 		unsigned char *pucOut;
-		int iRet = m_pAacEnc->inputData(pcData, iDataLen, &pucOut);
+		int iRet = _pAacEnc->inputData(pcData, iDataLen, &pucOut);
 		if (iRet > 0) {
 			inputAAC((char *) pucOut, iRet, uiStamp);
 		}
@@ -101,16 +101,16 @@ void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
 #endif //ENABLE_FAAC
 
 void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t uiStamp) {
-	if (!m_pRtpMaker_h264) {
+	if (!_pRtpMaker_h264) {
 		uint32_t ui32Ssrc;
 		memcpy(&ui32Ssrc, makeRandStr(4, false).data(), 4);
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
 			onGetRTP(pkt,bKeyPos);
 		};
         GET_CONFIG_AND_REGISTER(uint32_t,videoMtu,Config::Rtp::kVideoMtuSize);
-		m_pRtpMaker_h264.reset(new RtpMaker_H264(lam, ui32Ssrc,videoMtu));
+		_pRtpMaker_h264.reset(new RtpMaker_H264(lam, ui32Ssrc,videoMtu));
 	}
-	if (!m_bSdp_gotH264 && m_video) {
+	if (!_bSdp_gotH264 && _video) {
 		makeSDP_264((unsigned char*) pcData, iDataLen);
 	}
 	int iOffset = 4;
@@ -118,38 +118,38 @@ void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t uiStamp) {
 		iOffset = 3;
 	}
     if(uiStamp == 0){
-        uiStamp = (uint32_t)m_aTicker[0].elapsedTime();
+        uiStamp = (uint32_t)_aTicker[0].elapsedTime();
     }
-	m_pRtpMaker_h264->makeRtp(pcData + iOffset, iDataLen - iOffset, uiStamp);
+	_pRtpMaker_h264->makeRtp(pcData + iOffset, iDataLen - iOffset, uiStamp);
 }
 
 void DevChannel::inputAAC(const char* pcData, int iDataLen, uint32_t uiStamp,bool withAdtsHeader) {
 	if(withAdtsHeader){
 		inputAAC(pcData+7,iDataLen-7,uiStamp,pcData);
-	} else if(m_pAdtsHeader){
-		m_pAdtsHeader->aac_frame_length = iDataLen;
-		writeAdtsHeader(*m_pAdtsHeader,(uint8_t *)m_pAdtsHeader->buffer);
-		inputAAC(pcData,iDataLen,uiStamp,(const char *)m_pAdtsHeader->buffer);
+	} else if(_pAdtsHeader){
+		_pAdtsHeader->aac_frame_length = iDataLen;
+		writeAdtsHeader(*_pAdtsHeader,(uint8_t *)_pAdtsHeader->buffer);
+		inputAAC(pcData,iDataLen,uiStamp,(const char *)_pAdtsHeader->buffer);
 	}
 }
 void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,const char *pcAdtsHeader){
-	if (!m_pRtpMaker_aac) {
+	if (!_pRtpMaker_aac) {
 		uint32_t ssrc;
 		memcpy(&ssrc, makeRandStr(8, false).data() + 4, 4);
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool keyPos) {
 			onGetRTP(pkt,keyPos);
 		};
         GET_CONFIG_AND_REGISTER(uint32_t,audioMtu,Config::Rtp::kAudioMtuSize);
-        m_pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc, audioMtu,m_audio->iSampleRate));
+        _pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc, audioMtu,_audio->iSampleRate));
 	}
-	if (!m_bSdp_gotAAC && m_audio && pcAdtsHeader) {
+	if (!_bSdp_gotAAC && _audio && pcAdtsHeader) {
 		makeSDP_AAC((unsigned char*) pcAdtsHeader);
 	}
     if(uiStamp == 0){
-        uiStamp = (uint32_t)m_aTicker[1].elapsedTime();
+        uiStamp = (uint32_t)_aTicker[1].elapsedTime();
     }
     if(pcDataWithoutAdts && iDataLen){
-        m_pRtpMaker_aac->makeRtp(pcDataWithoutAdts, iDataLen, uiStamp);
+        _pRtpMaker_aac->makeRtp(pcDataWithoutAdts, iDataLen, uiStamp);
     }
 }
 
@@ -161,77 +161,77 @@ inline void DevChannel::makeSDP_264(unsigned char *pcData, int iDataLen) {
 	switch (pcData[offset] & 0x1F) {
 	case 7:/*SPS frame*/
 	{
-		if (m_uiSPSLen != 0) {
+		if (_uiSPSLen != 0) {
 			break;
 		}
-		memcpy(m_aucSPS, pcData + offset, iDataLen - offset);
-		m_uiSPSLen = iDataLen - offset;
+		memcpy(_aucSPS, pcData + offset, iDataLen - offset);
+		_uiSPSLen = iDataLen - offset;
 	}
 		break;
 	case 8:/*PPS frame*/
 	{
-		if (m_uiPPSLen != 0) {
+		if (_uiPPSLen != 0) {
 			break;
 		}
-		memcpy(m_aucPPS, pcData + offset, iDataLen - offset);
-		m_uiPPSLen = iDataLen - offset;
+		memcpy(_aucPPS, pcData + offset, iDataLen - offset);
+		_uiPPSLen = iDataLen - offset;
 	}
 		break;
 	default:
 		break;
 	}
-	if (!m_uiSPSLen || !m_uiPPSLen) {
+	if (!_uiSPSLen || !_uiPPSLen) {
 		return;
 	}
 
 	char acTmp[256];
 	int profile_level_id = 0;
-	if (m_uiSPSLen >= 4) { // sanity check
-		profile_level_id = (m_aucSPS[1] << 16) | (m_aucSPS[2] << 8) | m_aucSPS[3]; // profile_idc|constraint_setN_flag|level_idc
+	if (_uiSPSLen >= 4) { // sanity check
+		profile_level_id = (_aucSPS[1] << 16) | (_aucSPS[2] << 8) | _aucSPS[3]; // profile_idc|constraint_setN_flag|level_idc
 	}
 
 	//视频通道
-	m_strSdp += StrPrinter << "m=video 0 RTP/AVP "
-			<< m_pRtpMaker_h264->getPlayloadType() << "\r\n" << endl;
-	m_strSdp += "b=AS:5100\r\n";
-	m_strSdp += StrPrinter << "a=rtpmap:" << m_pRtpMaker_h264->getPlayloadType()
-			<< " H264/" << m_pRtpMaker_h264->getSampleRate() << "\r\n" << endl;
-	m_strSdp += StrPrinter << "a=fmtp:" << m_pRtpMaker_h264->getPlayloadType()
+	_strSdp += StrPrinter << "m=video 0 RTP/AVP "
+			<< _pRtpMaker_h264->getPlayloadType() << "\r\n" << endl;
+	_strSdp += "b=AS:5100\r\n";
+	_strSdp += StrPrinter << "a=rtpmap:" << _pRtpMaker_h264->getPlayloadType()
+			<< " H264/" << _pRtpMaker_h264->getSampleRate() << "\r\n" << endl;
+	_strSdp += StrPrinter << "a=fmtp:" << _pRtpMaker_h264->getPlayloadType()
 			<< " packetization-mode=1;profile-level-id=" << endl;
 
 	memset(acTmp, 0, sizeof(acTmp));
 	sprintf(acTmp, "%06X", profile_level_id);
-	m_strSdp += acTmp;
-	m_strSdp += ";sprop-parameter-sets=";
+	_strSdp += acTmp;
+	_strSdp += ";sprop-parameter-sets=";
 	memset(acTmp, 0, sizeof(acTmp));
-	av_base64_encode(acTmp, sizeof(acTmp), (uint8_t *) m_aucSPS, m_uiSPSLen);
+	av_base64_encode(acTmp, sizeof(acTmp), (uint8_t *) _aucSPS, _uiSPSLen);
 	//WarnL<<"SPS base64:"<<strTemp;
 	//WarnL<<"SPS hexdump:"<<hexdump(SPS_BUF, SPS_LEN);
-	m_strSdp += acTmp;
-	m_strSdp += ",";
+	_strSdp += acTmp;
+	_strSdp += ",";
 	memset(acTmp, 0, sizeof(acTmp));
-	av_base64_encode(acTmp, sizeof(acTmp), (uint8_t *) m_aucPPS, m_uiPPSLen);
-	m_strSdp += acTmp;
-	m_strSdp += "\r\n";
-	if (m_video->iFrameRate > 0 && m_video->iHeight > 0 && m_video->iWidth > 0) {
-		m_strSdp += "a=framerate:";
-		m_strSdp += StrPrinter << m_video->iFrameRate << endl;
-		m_strSdp += StrPrinter << "\r\na=framesize:"
-				<< m_pRtpMaker_h264->getPlayloadType() << " " << endl;
-		m_strSdp += StrPrinter << m_video->iWidth << endl;
-		m_strSdp += "-";
-		m_strSdp += StrPrinter << m_video->iHeight << endl;
-		m_strSdp += "\r\n";
+	av_base64_encode(acTmp, sizeof(acTmp), (uint8_t *) _aucPPS, _uiPPSLen);
+	_strSdp += acTmp;
+	_strSdp += "\r\n";
+	if (_video->iFrameRate > 0 && _video->iHeight > 0 && _video->iWidth > 0) {
+		_strSdp += "a=framerate:";
+		_strSdp += StrPrinter << _video->iFrameRate << endl;
+		_strSdp += StrPrinter << "\r\na=framesize:"
+				<< _pRtpMaker_h264->getPlayloadType() << " " << endl;
+		_strSdp += StrPrinter << _video->iWidth << endl;
+		_strSdp += "-";
+		_strSdp += StrPrinter << _video->iHeight << endl;
+		_strSdp += "\r\n";
 	}
-	m_strSdp += StrPrinter << "a=control:trackID="
-			<< m_pRtpMaker_h264->getInterleaved() / 2 << "\r\n" << endl;
-	m_bSdp_gotH264 = true;
-	if (m_audio) {
-		if (m_bSdp_gotAAC) {
-			makeSDP(m_strSdp);
+	_strSdp += StrPrinter << "a=control:trackID="
+			<< _pRtpMaker_h264->getInterleaved() / 2 << "\r\n" << endl;
+	_bSdp_gotH264 = true;
+	if (_audio) {
+		if (_bSdp_gotAAC) {
+			makeSDP(_strSdp);
 		}
 	} else {
-		makeSDP(m_strSdp);
+		makeSDP(_strSdp);
 	}
 }
 
@@ -244,27 +244,27 @@ inline void DevChannel::makeSDP_AAC(unsigned char *fixedHeader) {
 	char fConfigStr[5] = { 0 };
 	sprintf(fConfigStr, "%02X%02x", (uint8_t)audioSpecificConfig[0],(uint8_t)audioSpecificConfig[1]);
 
-	m_strSdp += StrPrinter << "m=audio 0 RTP/AVP "
-			<< m_pRtpMaker_aac->getPlayloadType() << "\r\n" << endl;
-	m_strSdp += "b=AS:96\r\n";
-	m_strSdp += StrPrinter << "a=rtpmap:" << m_pRtpMaker_aac->getPlayloadType()
-			<< " MPEG4-GENERIC/" << m_pRtpMaker_aac->getSampleRate() << "\r\n"
+	_strSdp += StrPrinter << "m=audio 0 RTP/AVP "
+			<< _pRtpMaker_aac->getPlayloadType() << "\r\n" << endl;
+	_strSdp += "b=AS:96\r\n";
+	_strSdp += StrPrinter << "a=rtpmap:" << _pRtpMaker_aac->getPlayloadType()
+			<< " MPEG4-GENERIC/" << _pRtpMaker_aac->getSampleRate() << "\r\n"
 			<< endl;
-	m_strSdp += StrPrinter << "a=fmtp:" << m_pRtpMaker_aac->getPlayloadType()
+	_strSdp += StrPrinter << "a=fmtp:" << _pRtpMaker_aac->getPlayloadType()
 				<< " streamtype=5;profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3;config="
 				<< endl;
-	m_strSdp += fConfigStr;
-	m_strSdp += "\r\n";
-	m_strSdp += StrPrinter << "a=control:trackID="
-			<< m_pRtpMaker_aac->getInterleaved() / 2 << "\r\n" << endl;
+	_strSdp += fConfigStr;
+	_strSdp += "\r\n";
+	_strSdp += StrPrinter << "a=control:trackID="
+			<< _pRtpMaker_aac->getInterleaved() / 2 << "\r\n" << endl;
 
-	m_bSdp_gotAAC = true;
-	if (m_video) {
-		if (m_bSdp_gotH264) {
-			makeSDP(m_strSdp);
+	_bSdp_gotAAC = true;
+	if (_video) {
+		if (_bSdp_gotH264) {
+			makeSDP(_strSdp);
 		}
 	} else {
-		makeSDP(m_strSdp);
+		makeSDP(_strSdp);
 	}
 }
 
@@ -273,35 +273,35 @@ void DevChannel::makeSDP(const string& strSdp) {
 }
 
 void DevChannel::initVideo(const VideoInfo& info) {
-	m_video.reset(new VideoInfo(info));
+	_video.reset(new VideoInfo(info));
 }
 
 void DevChannel::initAudio(const AudioInfo& info) {
-	m_audio.reset(new AudioInfo(info));
-	m_pAdtsHeader = std::make_shared<AACFrame>();
+	_audio.reset(new AudioInfo(info));
+	_pAdtsHeader = std::make_shared<AACFrame>();
 
-	m_pAdtsHeader->syncword = 0x0FFF;
-	m_pAdtsHeader->id = 0;
-	m_pAdtsHeader->layer = 0;
-	m_pAdtsHeader->protection_absent = 1;
-	m_pAdtsHeader->profile =  info.iProfile;//audioObjectType - 1;
+	_pAdtsHeader->syncword = 0x0FFF;
+	_pAdtsHeader->id = 0;
+	_pAdtsHeader->layer = 0;
+	_pAdtsHeader->protection_absent = 1;
+	_pAdtsHeader->profile =  info.iProfile;//audioObjectType - 1;
 	int i = 0;
 	for(auto rate : samplingFrequencyTable){
 		if(rate == info.iSampleRate){
-			m_pAdtsHeader->sf_index = i;
+			_pAdtsHeader->sf_index = i;
 		};
 		++i;
 	}
 
-	m_pAdtsHeader->private_bit = 0;
-	m_pAdtsHeader->channel_configuration = info.iChannel;
-	m_pAdtsHeader->original = 0;
-	m_pAdtsHeader->home = 0;
-	m_pAdtsHeader->copyright_identification_bit = 0;
-	m_pAdtsHeader->copyright_identification_start = 0;
-	m_pAdtsHeader->aac_frame_length = 7;
-	m_pAdtsHeader->adts_buffer_fullness = 2047;
-	m_pAdtsHeader->no_raw_data_blocks_in_frame = 0;
+	_pAdtsHeader->private_bit = 0;
+	_pAdtsHeader->channel_configuration = info.iChannel;
+	_pAdtsHeader->original = 0;
+	_pAdtsHeader->home = 0;
+	_pAdtsHeader->copyright_identification_bit = 0;
+	_pAdtsHeader->copyright_identification_start = 0;
+	_pAdtsHeader->aac_frame_length = 7;
+	_pAdtsHeader->adts_buffer_fullness = 2047;
+	_pAdtsHeader->no_raw_data_blocks_in_frame = 0;
 
 }
 } /* namespace DEV */

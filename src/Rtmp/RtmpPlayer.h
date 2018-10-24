@@ -65,28 +65,28 @@ protected:
 private:
 	void _onShutdown(const SockException &ex) {
 		WarnL << ex.getErrCode() << " " << ex.what();
-		m_pPlayTimer.reset();
-		m_pMediaTimer.reset();
-		m_pBeatTimer.reset();
+		_pPlayTimer.reset();
+		_pMediaTimer.reset();
+		_pBeatTimer.reset();
 		onShutdown(ex);
 	}
 	void _onMediaData(const RtmpPacket::Ptr &chunkData) {
-		m_mediaTicker.resetTime();
+		_mediaTicker.resetTime();
 		onMediaData(chunkData);
 	}
 	void _onPlayResult(const SockException &ex) {
 		WarnL << ex.getErrCode() << " " << ex.what();
-		m_pPlayTimer.reset();
-		m_pMediaTimer.reset();
+		_pPlayTimer.reset();
+		_pMediaTimer.reset();
 		if (!ex) {
-			m_mediaTicker.resetTime();
+			_mediaTicker.resetTime();
 			weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-			m_pMediaTimer.reset( new Timer(5, [weakSelf]() {
+			_pMediaTimer.reset( new Timer(5, [weakSelf]() {
 				auto strongSelf=weakSelf.lock();
 				if(!strongSelf) {
 					return false;
 				}
-				if(strongSelf->m_mediaTicker.elapsedTime()>10000) {
+				if(strongSelf->_mediaTicker.elapsedTime()>10000) {
 					//recv media timeout!
 					strongSelf->_onShutdown(SockException(Err_timeout,"recv rtmp timeout"));
 					strongSelf->teardown();
@@ -111,13 +111,13 @@ private:
 
 	template<typename FUN>
 	inline void addOnResultCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
-		m_mapOnResultCB.emplace(m_iReqID, fun);
+		lock_guard<recursive_mutex> lck(_mtxOnResultCB);
+		_mapOnResultCB.emplace(_iReqID, fun);
 	}
 	template<typename FUN>
 	inline void addOnStatusCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
-		m_dqOnStatusCB.emplace_back(fun);
+		lock_guard<recursive_mutex> lck(_mtxOnStatusCB);
+		_dqOnStatusCB.emplace_back(fun);
 	}
 
 	void onCmd_result(AMFDecoder &dec);
@@ -129,31 +129,31 @@ private:
 	inline void send_play();
 	inline void send_pause(bool bPause);
 
-	string m_strApp;
-	string m_strStream;
-	string m_strTcUrl;
-	bool m_bPaused = false;
+	string _strApp;
+	string _strStream;
+	string _strTcUrl;
+	bool _bPaused = false;
 
-	unordered_map<int, function<void(AMFDecoder &dec)> > m_mapOnResultCB;
-	recursive_mutex m_mtxOnResultCB;
-	deque<function<void(AMFValue &dec)> > m_dqOnStatusCB;
-	recursive_mutex m_mtxOnStatusCB;
+	unordered_map<int, function<void(AMFDecoder &dec)> > _mapOnResultCB;
+	recursive_mutex _mtxOnResultCB;
+	deque<function<void(AMFValue &dec)> > _dqOnStatusCB;
+	recursive_mutex _mtxOnStatusCB;
 
 	typedef void (RtmpPlayer::*rtmpCMDHandle)(AMFDecoder &dec);
 	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
 
 	//超时功能实现
-	Ticker m_mediaTicker;
-	std::shared_ptr<Timer> m_pMediaTimer;
-	std::shared_ptr<Timer> m_pPlayTimer;
+	Ticker _mediaTicker;
+	std::shared_ptr<Timer> _pMediaTimer;
+	std::shared_ptr<Timer> _pPlayTimer;
 	//心跳定时器
-	std::shared_ptr<Timer> m_pBeatTimer;
+	std::shared_ptr<Timer> _pBeatTimer;
 
 	//播放进度控制
-	float m_fSeekTo = 0;
-	double m_adFistStamp[2] = { 0, 0 };
-	double m_adNowStamp[2] = { 0, 0 };
-	Ticker m_aNowStampTicker[2];
+	float _fSeekTo = 0;
+	double _adFistStamp[2] = { 0, 0 };
+	double _adNowStamp[2] = { 0, 0 };
+	Ticker _aNowStampTicker[2];
 };
 
 } /* namespace Rtmp */

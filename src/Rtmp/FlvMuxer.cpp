@@ -43,8 +43,8 @@ void FlvMuxer::start(const RtmpMediaSource::Ptr &media) {
 }
 
 void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
-    m_previousTagSize = 0;
-    CLEAR_ARR(m_aui32FirstStamp);
+    _previousTagSize = 0;
+    CLEAR_ARR(_aui32FirstStamp);
 
     //发送flv文件头
     char flv_file_header[] = "FLV\x1\x5\x0\x0\x0\x9"; // have audio and have video
@@ -118,7 +118,7 @@ private:
 
 
 void FlvMuxer::onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp) {
-    auto size = htonl(m_previousTagSize);
+    auto size = htonl(_previousTagSize);
     onWrite((char *)&size,4);//onWrite PreviousTagSize
     RtmpTagHeader header;
     header.type = pkt->typeId;
@@ -127,11 +127,11 @@ void FlvMuxer::onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp)
     set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
     onWrite((char *)&header, sizeof(header));//onWrite tag header
     onWrite(std::make_shared<BufferRtmp>(pkt));//onWrite tag data
-    m_previousTagSize += (pkt->strBuf.size() + sizeof(header));
+    _previousTagSize += (pkt->strBuf.size() + sizeof(header));
 }
 
 void FlvMuxer::onWriteFlvTag(uint8_t ui8Type, const std::string &strBuf, uint32_t ui32TimeStamp) {
-    auto size = htonl(m_previousTagSize);
+    auto size = htonl(_previousTagSize);
     onWrite((char *)&size,4);//onWrite PreviousTagSize
     RtmpTagHeader header;
     header.type = ui8Type;
@@ -140,12 +140,12 @@ void FlvMuxer::onWriteFlvTag(uint8_t ui8Type, const std::string &strBuf, uint32_
     set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
     onWrite((char *)&header, sizeof(header));//onWrite tag header
     onWrite(std::make_shared<BufferString>(strBuf));//onWrite tag data
-    m_previousTagSize += (strBuf.size() + sizeof(header));
+    _previousTagSize += (strBuf.size() + sizeof(header));
 }
 
 void FlvMuxer::onWriteRtmp(const RtmpPacket::Ptr &pkt) {
     auto modifiedStamp = pkt->timeStamp;
-    auto &firstStamp = m_aui32FirstStamp[pkt->typeId % 2];
+    auto &firstStamp = _aui32FirstStamp[pkt->typeId % 2];
     if(!firstStamp){
         firstStamp = modifiedStamp;
     }
@@ -154,7 +154,7 @@ void FlvMuxer::onWriteRtmp(const RtmpPacket::Ptr &pkt) {
         modifiedStamp -= firstStamp;
     }else{
         //发生回环，重新计算时间戳增量
-        CLEAR_ARR(m_aui32FirstStamp);
+        CLEAR_ARR(_aui32FirstStamp);
         modifiedStamp = 0;
     }
     onWriteFlvTag(pkt, modifiedStamp);

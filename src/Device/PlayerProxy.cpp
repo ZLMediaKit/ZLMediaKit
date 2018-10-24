@@ -74,12 +74,12 @@ PlayerProxy::PlayerProxy(const char *strVhost,
                          bool bEnableHls,
                          bool bEnableMp4,
                          int iRetryCount){
-	m_strVhost = strVhost;
-	m_strApp = strApp;
-	m_strSrc = strSrc;
-    m_bEnableHls = bEnableHls;
-    m_bEnableMp4 = bEnableMp4;
-    m_iRetryCount = iRetryCount;
+	_strVhost = strVhost;
+	_strApp = strApp;
+	_strSrc = strSrc;
+    _bEnableHls = bEnableHls;
+    _bEnableMp4 = bEnableMp4;
+    _iRetryCount = iRetryCount;
 }
 void PlayerProxy::play(const char* strUrl) {
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
@@ -90,9 +90,9 @@ void PlayerProxy::play(const char* strUrl) {
 //		if(!strongSelf){
 //			return;
 //		}
-//		if(strongSelf->m_pChn){
-//			strongSelf->m_pChn->inputH264((char *)data.data(), data.size(), data.timeStamp);
-//			if(!strongSelf->m_haveAudio){
+//		if(strongSelf->_pChn){
+//			strongSelf->_pChn->inputH264((char *)data.data(), data.size(), data.timeStamp);
+//			if(!strongSelf->_haveAudio){
 //				strongSelf->makeMuteAudio(data.timeStamp);
 //			}
 //		}else{
@@ -104,8 +104,8 @@ void PlayerProxy::play(const char* strUrl) {
 //		if(!strongSelf){
 //			return;
 //		}
-//		if(strongSelf->m_pChn){
-//			strongSelf->m_pChn->inputAAC((char *)data.data(), data.size(), data.timeStamp);
+//		if(strongSelf->_pChn){
+//			strongSelf->_pChn->inputAAC((char *)data.data(), data.size(), data.timeStamp);
 //		}else{
 //			strongSelf->initMedia();
 //		}
@@ -121,7 +121,7 @@ void PlayerProxy::play(const char* strUrl) {
 		if(!err) {
 			// 播放成功
 			*piFailedCnt = 0;//连续播放失败次数清0
-		}else if(*piFailedCnt < strongSelf->m_iRetryCount || strongSelf->m_iRetryCount < 0) {
+		}else if(*piFailedCnt < strongSelf->_iRetryCount || strongSelf->_iRetryCount < 0) {
 			// 播放失败，延时重试播放
 			strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
 		}
@@ -131,11 +131,11 @@ void PlayerProxy::play(const char* strUrl) {
 		if(!strongSelf) {
 			return;
 		}
-		if(strongSelf->m_pChn) {
-			strongSelf->m_pChn.reset();
+		if(strongSelf->_pChn) {
+			strongSelf->_pChn.reset();
 		}
 		//播放异常中断，延时重试播放
-		if(*piFailedCnt < strongSelf->m_iRetryCount || strongSelf->m_iRetryCount < 0) {
+		if(*piFailedCnt < strongSelf->_iRetryCount || strongSelf->_iRetryCount < 0) {
 			strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
 		}
 	});
@@ -166,8 +166,8 @@ void PlayerProxy::initMedia() {
 	if (!isInited()) {
 		return;
 	}
-	m_pChn.reset(new DevChannel(m_strVhost.data(),m_strApp.data(),m_strSrc.data(),getDuration(),m_bEnableHls,m_bEnableMp4));
-    m_pChn->setListener(shared_from_this());
+	_pChn.reset(new DevChannel(_strVhost.data(),_strApp.data(),_strSrc.data(),getDuration(),_bEnableHls,_bEnableMp4));
+    _pChn->setListener(shared_from_this());
 
 	//todo(xzl) 修复此处
 
@@ -176,22 +176,22 @@ void PlayerProxy::initMedia() {
 //		info.iFrameRate = getVideoFps();
 //		info.iWidth = getVideoWidth();
 //		info.iHeight = getVideoHeight();
-//		m_pChn->initVideo(info);
+//		_pChn->initVideo(info);
 //	}
 //
-//	m_haveAudio = containAudio();
+//	_haveAudio = containAudio();
 //	if (containAudio()) {
 //		AudioInfo info;
 //		info.iSampleRate = getAudioSampleRate();
 //		info.iChannel = getAudioChannel();
 //		info.iSampleBit = getAudioSampleBit();
-//		m_pChn->initAudio(info);
+//		_pChn->initAudio(info);
 //	}else{
 //		AudioInfo info;
 //		info.iSampleRate = MUTE_ADTS_SAMPLE_RATE;
 //		info.iChannel = MUTE_ADTS_CHN_CNT;
 //		info.iSampleBit = MUTE_ADTS_SAMPLE_BIT;
-//		m_pChn->initAudio(info);
+//		_pChn->initAudio(info);
 //	}
 }
 bool PlayerProxy::shutDown() {
@@ -202,7 +202,7 @@ bool PlayerProxy::shutDown() {
 		executor->async_first([weakSlef]() {
 			auto stronSelf = weakSlef.lock();
 			if (stronSelf) {
-				stronSelf->m_pChn.reset();
+				stronSelf->_pChn.reset();
 				stronSelf->teardown();
 			}
 		});
@@ -212,10 +212,10 @@ bool PlayerProxy::shutDown() {
 
 void PlayerProxy::makeMuteAudio(uint32_t stamp) {
 	auto iAudioIndex = stamp / MUTE_ADTS_DATA_MS;
-	if(m_iAudioIndex != iAudioIndex){
-		m_iAudioIndex = iAudioIndex;
-		m_pChn->inputAAC((char *)MUTE_ADTS_DATA,MUTE_ADTS_DATA_LEN, m_iAudioIndex * MUTE_ADTS_DATA_MS);
-		//DebugL << m_iAudioIndex * MUTE_ADTS_DATA_MS << " " << stamp;
+	if(_iAudioIndex != iAudioIndex){
+		_iAudioIndex = iAudioIndex;
+		_pChn->inputAAC((char *)MUTE_ADTS_DATA,MUTE_ADTS_DATA_LEN, _iAudioIndex * MUTE_ADTS_DATA_MS);
+		//DebugL << _iAudioIndex * MUTE_ADTS_DATA_MS << " " << stamp;
 	}
 }
 

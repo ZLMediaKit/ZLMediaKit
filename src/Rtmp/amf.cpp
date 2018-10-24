@@ -36,24 +36,24 @@ using namespace ZL::Network;
 
 /////////////////////AMFValue/////////////////////////////
 inline void AMFValue::destroy() {
-	switch (m_type) {
+	switch (_type) {
 	case AMF_STRING:
-		if (m_value.string) {
-			delete m_value.string;
-			m_value.string = nullptr;
+		if (_value.string) {
+			delete _value.string;
+			_value.string = nullptr;
 		}
 		break;
 	case AMF_OBJECT:
 	case AMF_ECMA_ARRAY:
-		if (m_value.object) {
-			delete m_value.object;
-			m_value.object = nullptr;
+		if (_value.object) {
+			delete _value.object;
+			_value.object = nullptr;
 		}
 		break;
 	case AMF_STRICT_ARRAY:
-		if (m_value.array) {
-			delete m_value.array;
-			m_value.array = nullptr;
+		if (_value.array) {
+			delete _value.array;
+			_value.array = nullptr;
 		}
 		break;
 	default:
@@ -61,16 +61,16 @@ inline void AMFValue::destroy() {
 	}
 }
 inline void AMFValue::init() {
-	switch (m_type) {
+	switch (_type) {
 	case AMF_OBJECT:
 	case AMF_ECMA_ARRAY:
-		m_value.object = new mapType;
+		_value.object = new mapType;
 		break;
 	case AMF_STRING:
-		m_value.string = new std::string;
+		_value.string = new std::string;
 		break;
 	case AMF_STRICT_ARRAY:
-		m_value.array = new arrayType;
+		_value.array = new arrayType;
 		break;
 
 	default:
@@ -79,7 +79,7 @@ inline void AMFValue::init() {
 
 }
 AMFValue::AMFValue(AMFType type) :
-		m_type(type) {
+		_type(type) {
 	init();
 }
 
@@ -89,38 +89,38 @@ AMFValue::~AMFValue() {
 }
 
 AMFValue::AMFValue(const char *s) :
-		m_type(AMF_STRING) {
+		_type(AMF_STRING) {
 	init();
-	*m_value.string = s;
+	*_value.string = s;
 }
 
 
 AMFValue::AMFValue(const std::string &s) :
-		m_type(AMF_STRING) {
+		_type(AMF_STRING) {
 	init();
-	*m_value.string = s;
+	*_value.string = s;
 }
 
 AMFValue::AMFValue(double n) :
-		m_type(AMF_NUMBER) {
+		_type(AMF_NUMBER) {
 	init();
-	m_value.number = n;
+	_value.number = n;
 }
 
 AMFValue::AMFValue(int i) :
-		m_type(AMF_INTEGER) {
+		_type(AMF_INTEGER) {
 	init();
-	m_value.integer = i;
+	_value.integer = i;
 }
 
 AMFValue::AMFValue(bool b) :
-		m_type(AMF_BOOLEAN) {
+		_type(AMF_BOOLEAN) {
 	init();
-	m_value.boolean = b;
+	_value.boolean = b;
 }
 
 AMFValue::AMFValue(const AMFValue &from) :
-		m_type(AMF_NULL) {
+		_type(AMF_NULL) {
 	*this = from;
 }
 
@@ -134,27 +134,27 @@ AMFValue& AMFValue::operator =(const AMFValue &from) {
 }
 AMFValue& AMFValue::operator =(AMFValue &&from) {
 	destroy();
-	m_type = from.m_type;
+	_type = from._type;
 	init();
-	switch (m_type) {
+	switch (_type) {
 	case AMF_STRING:
-		*m_value.string = (*from.m_value.string);
+		*_value.string = (*from._value.string);
 		break;
 	case AMF_OBJECT:
 	case AMF_ECMA_ARRAY:
-		*m_value.object = (*from.m_value.object);
+		*_value.object = (*from._value.object);
 		break;
 	case AMF_STRICT_ARRAY:
-		*m_value.array = (*from.m_value.array);
+		*_value.array = (*from._value.array);
 		break;
 	case AMF_NUMBER:
-		m_value.number = from.m_value.number;
+		_value.number = from._value.number;
 		break;
 	case AMF_INTEGER:
-		m_value.integer = from.m_value.integer;
+		_value.integer = from._value.integer;
 		break;
 	case AMF_BOOLEAN:
-		m_value.boolean = from.m_value.boolean;
+		_value.boolean = from._value.boolean;
 		break;
 	default:
 		break;

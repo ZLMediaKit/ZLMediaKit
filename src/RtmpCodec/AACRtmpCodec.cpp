@@ -67,7 +67,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
         //////////header
         uint8_t is_config = false;
-        rtmpPkt->strBuf.push_back(m_ui8AudioFlags);
+        rtmpPkt->strBuf.push_back(_ui8AudioFlags);
         rtmpPkt->strBuf.push_back(!is_config);
         rtmpPkt->strBuf.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
 
@@ -108,12 +108,12 @@ void AACRtmpEncoder::makeAudioConfigPkt() {
     uint8_t flvSampleBit = iSampleBit == 16;
     uint8_t flvAudioType = 10; //aac
 
-    m_ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
+    _ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
 
     RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
     //////////header
     uint8_t is_config = true;
-    rtmpPkt->strBuf.push_back(m_ui8AudioFlags);
+    rtmpPkt->strBuf.push_back(_ui8AudioFlags);
     rtmpPkt->strBuf.push_back(!is_config);
     rtmpPkt->strBuf.append(_aac_cfg);
 

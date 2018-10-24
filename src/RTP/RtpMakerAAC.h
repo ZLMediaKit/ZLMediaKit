@@ -53,7 +53,7 @@ public:
 	void makeRtp(const char *pcData, int iDataLen, uint32_t uiStamp) override;
 private:
 	inline void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
-	unsigned char m_aucSectionBuf[1600];
+	unsigned char _aucSectionBuf[1600];
 };
 
 } /* namespace RTP */

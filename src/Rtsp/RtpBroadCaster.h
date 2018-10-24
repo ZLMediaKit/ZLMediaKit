@@ -64,9 +64,9 @@ public:
 private:
 	MultiCastAddressMaker(){};
 	void release(uint32_t iAddr);
-	uint32_t m_iAddr = 0;
-	recursive_mutex m_mtx;
-	unordered_set<uint32_t> m_setBadAddr;
+	uint32_t _iAddr = 0;
+	recursive_mutex _mtx;
+	unordered_set<uint32_t> _setBadAddr;
 };
 class RtpBroadCaster {
 public:
@@ -82,12 +82,12 @@ private:
 	static unordered_map<string , weak_ptr<RtpBroadCaster> > g_mapBroadCaster;
 	static Ptr make(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
 
-	std::shared_ptr<uint32_t> m_multiAddr;
-	recursive_mutex m_mtx;
-	unordered_map<void * , onDetach > m_mapDetach;
-	RtspMediaSource::RingType::RingReader::Ptr m_pReader;
-	Socket::Ptr m_apUdpSock[2];
-	struct sockaddr_in m_aPeerUdpAddr[2];
+	std::shared_ptr<uint32_t> _multiAddr;
+	recursive_mutex _mtx;
+	unordered_map<void * , onDetach > _mapDetach;
+	RtspMediaSource::RingType::RingReader::Ptr _pReader;
+	Socket::Ptr _apUdpSock[2];
+	struct sockaddr_in _aPeerUdpAddr[2];
 
 	RtpBroadCaster(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
 

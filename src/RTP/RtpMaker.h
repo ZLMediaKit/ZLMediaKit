@@ -49,12 +49,12 @@ public:
 	RtpMaker(const onGetRTP &cb, uint32_t ui32Ssrc, int iMtuSize,int iSampleRate,
 			uint8_t ui8PlayloadType, uint8_t ui8Interleaved) {
 		callBack = cb;
-		m_ui32Ssrc = ui32Ssrc;
-		m_ui32SampleRate = iSampleRate;
-		m_iMtuSize = iMtuSize;
-		m_ui8PlayloadType = ui8PlayloadType;
-		m_ui8Interleaved = ui8Interleaved;
-		m_pktPool.setSize(64);
+		_ui32Ssrc = ui32Ssrc;
+		_ui32SampleRate = iSampleRate;
+		_iMtuSize = iMtuSize;
+		_ui8PlayloadType = ui8PlayloadType;
+		_ui8Interleaved = ui8Interleaved;
+		_pktPool.setSize(64);
 	}
 	virtual ~RtpMaker() {
 	}
@@ -62,43 +62,43 @@ public:
 	virtual void makeRtp(const char *pcData, int iDataLen, uint32_t uiStamp)=0;
 
 	int getInterleaved() const {
-		return m_ui8Interleaved;
+		return _ui8Interleaved;
 	}
 
 	int getPlayloadType() const {
-		return m_ui8PlayloadType;
+		return _ui8PlayloadType;
 	}
 
 	int getSampleRate() const {
-		return m_ui32SampleRate;
+		return _ui32SampleRate;
 	}
 
 	uint32_t getSsrc() const {
-		return m_ui32Ssrc;
+		return _ui32Ssrc;
 	}
 
 	uint16_t getSeqence() const {
-		return m_ui16Sequence;
+		return _ui16Sequence;
 	}
 	uint32_t getTimestamp() const {
-		return m_ui32TimeStamp;
+		return _ui32TimeStamp;
 	}
 protected:
-	uint32_t m_ui32Ssrc;
-	uint32_t m_ui32SampleRate;
-	int m_iMtuSize;
-	uint8_t m_ui8PlayloadType;
-	uint8_t m_ui8Interleaved;
-	uint16_t m_ui16Sequence = 0;
-	uint32_t m_ui32TimeStamp = 0;
+	uint32_t _ui32Ssrc;
+	uint32_t _ui32SampleRate;
+	int _iMtuSize;
+	uint8_t _ui8PlayloadType;
+	uint8_t _ui8Interleaved;
+	uint16_t _ui16Sequence = 0;
+	uint32_t _ui32TimeStamp = 0;
 	virtual void onMakeRtp(const RtpPacket::Ptr &pkt, bool bKeyPos = true) {
 		callBack(pkt, bKeyPos);
 	}
 	inline RtpPacket::Ptr obtainPkt() {
-		return m_pktPool.obtain();
+		return _pktPool.obtain();
 	}
 private:
-	RtspMediaSource::PoolType m_pktPool;
+	RtspMediaSource::PoolType _pktPool;
 	onGetRTP callBack;
 };
 
