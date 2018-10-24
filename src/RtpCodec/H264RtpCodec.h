@@ -7,8 +7,9 @@
 
 #include "RtpCodec.h"
 #include "Util/ResourcePool.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
+namespace mediakit{
 
 /**
  * h264 rtp解码类
@@ -74,5 +75,6 @@ private:
     unsigned char _aucSectionBuf[1600];
 };
 
+}//namespace mediakit{
 
 #endif //ZLMEDIAKIT_H264RTPCODEC_H

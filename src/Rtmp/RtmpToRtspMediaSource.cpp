@@ -29,12 +29,9 @@
 #include "Util/util.h"
 #include "Util/base64.h"
 #include "Network/sockutil.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 RtmpToRtspMediaSource::RtmpToRtspMediaSource(const string &vhost,
                                              const string &app,
@@ -89,7 +86,7 @@ void RtmpToRtspMediaSource::makeSDP() {
 //			_pRtspSrc->onGetRTP(pkt,bKeyPos);
 //		};
 //
-//        GET_CONFIG_AND_REGISTER(uint32_t,videoMtu,Config::Rtp::kVideoMtuSize);
+//        GET_CONFIG_AND_REGISTER(uint32_t,videoMtu,Rtp::kVideoMtuSize);
 //        _pRtpMaker_h264.reset(new RtpMaker_H264(lam, ssrc0,videoMtu));
 //
 //		char strTemp[100];
@@ -131,7 +128,7 @@ void RtmpToRtspMediaSource::makeSDP() {
 //		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
 //			_pRtspSrc->onGetRTP(pkt,bKeyPos);
 //		};
-//        GET_CONFIG_AND_REGISTER(uint32_t,audioMtu,Config::Rtp::kAudioMtuSize);
+//        GET_CONFIG_AND_REGISTER(uint32_t,audioMtu,Rtp::kAudioMtuSize);
 //        _pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc1, audioMtu,_pParser->getAudioSampleRate()));
 //
 //		char configStr[32];
@@ -159,5 +156,4 @@ void RtmpToRtspMediaSource::makeSDP() {
 }
 
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */

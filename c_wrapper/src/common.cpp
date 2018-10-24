@@ -39,10 +39,7 @@
 #include "cleaner.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Rtmp;
-using namespace ZL::Rtsp;
-using namespace ZL::Http;
+using namespace toolkit;
 
 static TcpServer::Ptr s_pRtspSrv;
 static TcpServer::Ptr s_pRtmpSrv;

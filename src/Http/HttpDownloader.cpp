@@ -27,11 +27,9 @@
 #include "HttpDownloader.h"
 #include "Util/MD5.h"
 #include "Util/File.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 HttpDownloader::HttpDownloader() {
 
@@ -115,5 +113,4 @@ void HttpDownloader::closeFile() {
 }
 
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */

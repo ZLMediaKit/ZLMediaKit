@@ -34,11 +34,9 @@
 #include "Util/mini.h"
 #include "Util/util.h"
 #include "Util/NoticeCenter.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL {
-namespace MediaFile {
+namespace mediakit {
 
 string timeStr(const char *fmt) {
 	std::tm tm_snapshot;
@@ -116,7 +114,7 @@ void Mp4Maker::inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp
 }
 
 void Mp4Maker::_inputH264(void* pData, uint32_t ui32Length, uint32_t ui32Duration, int iType) {
-    GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Config::Record::kFileSecond);
+    GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Record::kFileSecond);
 
     if(iType == 5 && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)){
 		//在I帧率处新建MP4文件
@@ -129,7 +127,7 @@ void Mp4Maker::_inputH264(void* pData, uint32_t ui32Length, uint32_t ui32Duratio
 }
 
 void Mp4Maker::_inputAAC(void* pData, uint32_t ui32Length, uint32_t ui32Duration) {
-    GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Config::Record::kFileSecond);
+    GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Record::kFileSecond);
 
 	//todo(xzl) 修复此处
 
@@ -161,7 +159,7 @@ void Mp4Maker::createFile() {
 	_info.strFileName = strTime + ".mp4";
 	_info.strFilePath = strFile;
 
-    GET_CONFIG_AND_REGISTER(string,appName,Config::Record::kAppName);
+    GET_CONFIG_AND_REGISTER(string,appName,Record::kAppName);
 
     _info.strUrl = _info.strVhost + "/"
 					+ appName + "/"
@@ -230,12 +228,11 @@ void Mp4Maker::closeFile() {
 		stat(_strFile.data(), &fileData);
 		_info.ui64FileSize = fileData.st_size;
 		//----record 业务逻辑----//
-		NoticeCenter::Instance().emitEvent(Config::Broadcast::kBroadcastRecordMP4,_info,*this);
+		NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4,_info,*this);
 	}
 }
 
-} /* namespace MediaFile */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 
 #endif //ENABLE_MP4V2

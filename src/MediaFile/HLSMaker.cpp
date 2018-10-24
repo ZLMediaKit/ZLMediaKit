@@ -27,11 +27,9 @@
 #include "HLSMaker.h"
 #include "Util/File.h"
 #include "Util/uv_errno.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL {
-namespace MediaFile {
+namespace mediakit {
 
 HLSMaker::HLSMaker(const string& strM3u8File,
                    uint32_t ui32BufSize,
@@ -184,6 +182,5 @@ bool HLSMaker::removets() {
     return true;
 }
 
-} /* namespace MediaFile */
-} /* namespace ZL */
+} /* namespace mediakit */
 

@@ -36,11 +36,8 @@
 #include "Http/HttpDownloader.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Http;
-using namespace ZL::Poller;
-using namespace ZL::Network;
-
+using namespace toolkit;
+using namespace mediakit;
 
 int main(int argc, char *argv[]) {
     //设置退出信号处理函数

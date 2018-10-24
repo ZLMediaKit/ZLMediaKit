@@ -35,11 +35,7 @@
 #include "cleaner.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Thread;
-using namespace ZL::Player;
-using namespace ZL::Rtmp;
-using namespace ZL::Rtsp;
+using namespace toolkit;
 
 static recursive_mutex s_mtxMapPlayer;
 static unordered_map<void *, MediaPlayer::Ptr> s_mapPlayer;

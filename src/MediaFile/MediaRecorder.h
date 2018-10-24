@@ -35,13 +35,9 @@
 #endif //ENABLE_MP4V2
 
 #include "HLSMaker.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Player;
-
-namespace ZL {
-namespace MediaFile {
-
+namespace mediakit {
 
 class MediaRecorder {
 public:
@@ -70,7 +66,6 @@ private:
 
 };
 
-} /* namespace MediaFile */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_MEDIAFILE_MEDIARECORDER_H_ */

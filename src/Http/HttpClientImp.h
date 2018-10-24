@@ -30,11 +30,11 @@
 #include "HttpClient.h"
 #ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
-using namespace ZL::Util;
 #endif //ENABLE_OPENSSL
 
-namespace ZL {
-namespace Http {
+using namespace toolkit;
+
+namespace mediakit {
 
 class HttpClientImp: public HttpClient {
 public:
@@ -59,7 +59,6 @@ private:
 #endif //ENABLE_OPENSSL
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_HTTPCLIENTIMP_H_ */

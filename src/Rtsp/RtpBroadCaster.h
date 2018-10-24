@@ -39,11 +39,9 @@
 #include "Network/Socket.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit{
 
 class MultiCastAddressMaker
 {
@@ -51,8 +49,8 @@ public:
 	static MultiCastAddressMaker &Instance();
 
 	static bool isMultiCastAddress(uint32_t iAddr){
-		static uint32_t addrMin = mINI::Instance()[Config::MultiCast::kAddrMin].as<uint32_t>();
-		static uint32_t addrMax = mINI::Instance()[Config::MultiCast::kAddrMax].as<uint32_t>();
+		static uint32_t addrMin = mINI::Instance()[MultiCast::kAddrMin].as<uint32_t>();
+		static uint32_t addrMax = mINI::Instance()[MultiCast::kAddrMax].as<uint32_t>();
 		return iAddr >= addrMin && iAddr <= addrMax;
 	}
 	static string toString(uint32_t iAddr){
@@ -93,7 +91,6 @@ private:
 
 };
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+}//namespace mediakit
 
 #endif /* SRC_RTSP_RTPBROADCASTER_H_ */

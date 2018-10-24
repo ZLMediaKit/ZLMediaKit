@@ -41,15 +41,9 @@
 #include "Http/HttpRequestSplitter.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Rtsp;
-using namespace ZL::Player;
-using namespace ZL::Network;
-using namespace ZL::Http;
+using namespace toolkit;
 
-
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 class RtspSession;
 
@@ -205,7 +199,6 @@ private:
 
 };
 
-} /* namespace Session */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SESSION_RTSPSESSION_H_ */

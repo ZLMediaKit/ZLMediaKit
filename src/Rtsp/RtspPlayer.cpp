@@ -37,11 +37,9 @@
 #include "Util/util.h"
 #include "Util/base64.h"
 #include "Network/sockutil.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 #define POP_HEAD(trackidx) \
 		auto it = _amapRtpSort[trackidx].begin(); \
@@ -656,8 +654,8 @@ bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned in
 	//开始排序缓存
 	if (_abSortStarted[iTrackidx]) {
 		_amapRtpSort[iTrackidx].emplace(rtppt.sequence, pt_ptr);
-        GET_CONFIG_AND_REGISTER(uint32_t,clearCount,Config::Rtp::kClearCount);
-        GET_CONFIG_AND_REGISTER(uint32_t,maxRtpCount,Config::Rtp::kMaxRtpCount);
+        GET_CONFIG_AND_REGISTER(uint32_t,clearCount,Rtp::kClearCount);
+        GET_CONFIG_AND_REGISTER(uint32_t,maxRtpCount,Rtp::kMaxRtpCount);
 		if (_aui64SeqOkCnt[iTrackidx] >= clearCount) {
 			//网络环境改善，需要清空排序缓存
 			_aui64SeqOkCnt[iTrackidx] = 0;
@@ -841,7 +839,6 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
 	return -1;
 }
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 

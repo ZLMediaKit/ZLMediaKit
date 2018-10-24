@@ -33,9 +33,7 @@
 #include "cleaner.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Http;
-
+using namespace toolkit;
 
 static recursive_mutex s_mtxMapDownloader;
 static unordered_map<void *, HttpDownloader::Ptr> s_mapDownloader;

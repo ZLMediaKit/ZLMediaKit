@@ -39,11 +39,9 @@
 #include "Util/ResourcePool.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 class RtmpProtocol {
 public:
@@ -119,7 +117,6 @@ private:
 	function<void()> _nextHandle;
 };
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPPROTOCOL_H_ */

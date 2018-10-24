@@ -34,11 +34,9 @@
 #include "Util/RingBuffer.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Rtsp;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit{
 
 class RtpMaker_H264: public RtpMaker {
 public:
@@ -56,7 +54,7 @@ private:
 	unsigned char aucSectionBuf[1600];
 };
 
-} /* namespace RTP */
-} /* namespace ZL */
+}//namespace mediakit
+
 
 #endif /* RTP_RTPMAKERH264_H_ */

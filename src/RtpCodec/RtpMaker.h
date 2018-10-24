@@ -34,12 +34,9 @@
 #include "Util/TimeTicker.h"
 #include "Util/ResourcePool.h"
 #include "Thread/ThreadPool.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-using namespace ZL::Thread;
-
-namespace ZL {
-namespace Rtsp {
+namespace mediakit{
 
 class RtpMaker {
 public:
@@ -102,7 +99,7 @@ private:
 	onGetRTP callBack;
 };
 
-} /* namespace RTP */
-} /* namespace ZL */
+} //namespace mediakit
+
 
 #endif /* RTP_RTPMAKER_H_ */

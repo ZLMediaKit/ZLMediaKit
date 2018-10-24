@@ -32,10 +32,9 @@
 #include "RtspSession.h"
 
 using namespace std;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit{
 
 MultiCastAddressMaker &MultiCastAddressMaker::Instance() {
 	static MultiCastAddressMaker instance;
@@ -51,8 +50,8 @@ static uint32_t addressToInt(const string &ip){
 
 std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
 	lock_guard<recursive_mutex> lck(_mtx);
-    GET_CONFIG_AND_REGISTER(string,addrMinStr,Config::MultiCast::kAddrMin);
-    GET_CONFIG_AND_REGISTER(string,addrMaxStr,Config::MultiCast::kAddrMax);
+    GET_CONFIG_AND_REGISTER(string,addrMinStr,MultiCast::kAddrMin);
+    GET_CONFIG_AND_REGISTER(string,addrMaxStr,MultiCast::kAddrMax);
     uint32_t addrMin = addressToInt(addrMinStr);
 	uint32_t addrMax = addressToInt(addrMaxStr);
 
@@ -112,7 +111,7 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,c
 			throw std::runtime_error(strErr);
 		}
 		auto fd = _apUdpSock[i]->rawFD();
-        GET_CONFIG_AND_REGISTER(uint32_t,udpTTL,Config::MultiCast::kUdpTTL);
+        GET_CONFIG_AND_REGISTER(uint32_t,udpTTL,MultiCast::kUdpTTL);
 
         SockUtil::setMultiTTL(fd, udpTTL);
 		SockUtil::setMultiLOOP(fd, false);
@@ -184,8 +183,4 @@ RtpBroadCaster::Ptr RtpBroadCaster::get(const string &strLocalIp,const string &s
 }
 
 
-
-} /* namespace Rtsp */
-} /* namespace ZL */
-
-
+}//namespace mediakit

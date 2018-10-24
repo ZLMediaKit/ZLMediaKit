@@ -30,9 +30,7 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Network/sockutil.h"
-
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace toolkit;
 
 /////////////////////AMFValue/////////////////////////////
 inline void AMFValue::destroy() {

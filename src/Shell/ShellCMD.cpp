@@ -4,12 +4,9 @@
 
 #include "Util/CMD.h"
 #include "Common/MediaSource.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-using namespace ZL::Media;
-
-namespace ZL {
-namespace Shell {
+namespace mediakit {
 
 
 class CMD_media: public CMD {
@@ -94,5 +91,4 @@ static onceToken s_token([]() {
 }, nullptr);
 
 
-}/* namespace Shell */
-} /* namespace ZL */
+} /* namespace mediakit */

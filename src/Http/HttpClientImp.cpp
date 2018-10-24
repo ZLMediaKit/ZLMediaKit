@@ -24,10 +24,9 @@
  * SOFTWARE.
  */
 
-#include <Http/HttpClientImp.h>
+#include "Http/HttpClientImp.h"
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 HttpClientImp::HttpClientImp() {
 	// TODO Auto-generated constructor stub
@@ -87,5 +86,4 @@ int HttpClientImp::send(const Buffer::Ptr &buf) {
 }
 #endif //ENABLE_OPENSSL
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */

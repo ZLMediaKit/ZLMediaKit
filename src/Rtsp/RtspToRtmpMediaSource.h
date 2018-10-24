@@ -32,12 +32,10 @@
 #include "Rtmp/amf.h"
 #include "Rtmp/RtmpMediaSource.h"
 #include "MediaFile/MediaRecorder.h"
+using namespace toolkit;
 
-using namespace ZL::Rtmp;
-using namespace ZL::MediaFile;
+namespace mediakit {
 
-namespace ZL {
-namespace Rtsp {
 class RtspToRtmpMediaSource: public RtspMediaSource {
 public:
 	typedef std::shared_ptr<RtspToRtmpMediaSource> Ptr;
@@ -109,7 +107,6 @@ private:
 
 };
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_ */

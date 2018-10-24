@@ -37,13 +37,9 @@
 #include "Util/logger.h"
 #include "Util/TimeTicker.h"
 #include "Util/TimeTicker.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Player;
-
-namespace ZL {
-namespace MediaFile {
+namespace mediakit {
 
 class Mp4Info
 {
@@ -98,8 +94,7 @@ private:
 	Mp4Info _info;
 };
 
-} /* namespace MediaFile */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif ///ENABLE_MP4V2
 

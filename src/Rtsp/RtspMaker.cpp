@@ -5,8 +5,7 @@
 #include "RtspMaker.h"
 #include "Common/Factory.h"
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 void RtspMaker::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
     if (track->getCodecId() == CodecInvalid) {
@@ -19,5 +18,4 @@ void RtspMaker::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
     }
 }
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */

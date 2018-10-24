@@ -33,8 +33,7 @@
 
 using namespace std;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 static int getTimeInSDP(const string &sdp) {
 	auto strRange = FindField(sdp.data(), "a=range:npt=", "\r\n");
@@ -127,5 +126,4 @@ vector<Track::Ptr> RtpParser::getTracks() const {
 }
 
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */

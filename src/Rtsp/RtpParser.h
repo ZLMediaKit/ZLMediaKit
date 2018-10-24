@@ -35,11 +35,9 @@
 #include "RtpCodec/RtpCodec.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Player;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 class RtpParser : public PlayerBase{
 public:
@@ -83,7 +81,6 @@ private:
 	RtpCodec::Ptr _videoRtpDecoder;
 };
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTP_RTPPARSER_H_ */

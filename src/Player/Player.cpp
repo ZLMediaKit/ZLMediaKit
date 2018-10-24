@@ -28,9 +28,7 @@
 #include "Player.h"
 #include "H264/SPSParser.h"
 #include "Util/logger.h"
-
-using namespace ZL::Util;
-
+using namespace toolkit;
 
 void writeAdtsHeader(const AACFrame &hed, uint8_t *pcAdts) {
 	pcAdts[0] = (hed.syncword >> 4 & 0xFF); //8bit

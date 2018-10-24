@@ -30,11 +30,9 @@
 #include "Util/util.h"
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 unordered_map<string, RtmpPlayer::rtmpCMDHandle> RtmpPlayer::g_mapCmd;
 RtmpPlayer::RtmpPlayer() {
@@ -351,6 +349,5 @@ void RtmpPlayer::seekToTime(float fTime){
 
 }
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 

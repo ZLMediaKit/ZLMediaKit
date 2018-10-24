@@ -29,8 +29,7 @@
 
 #include "HttpClientImp.h"
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class HttpDownloader: public HttpClientImp {
 public:
@@ -60,7 +59,6 @@ private:
 	bool _bDownloadSuccess = false;
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_HTTPDOWNLOADER_H_ */

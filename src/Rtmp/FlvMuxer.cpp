@@ -8,8 +8,7 @@
 
 #define FILE_BUF_SIZE (64 * 1024)
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 
 FlvMuxer::FlvMuxer() {
@@ -227,5 +226,4 @@ FlvRecorder::~FlvRecorder() {
 }
 
 
-    }//namespace Rtmp
-}//namespace ZL
+}//namespace mediakit

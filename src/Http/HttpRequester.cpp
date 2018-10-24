@@ -25,8 +25,7 @@
  */
 #include "HttpRequester.h"
 
-namespace ZL{
-namespace Http{
+namespace mediakit{
 
 HttpRequester::HttpRequester(){
     
@@ -63,6 +62,4 @@ void HttpRequester::startRequester(const string &url,const HttpRequesterResult &
 }
 
 
-
-}//namespace Http
-}//namespace ZL
+}//namespace mediakit

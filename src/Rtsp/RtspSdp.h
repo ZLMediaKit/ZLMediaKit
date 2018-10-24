@@ -10,8 +10,7 @@
 #include "Util/base64.h"
 #include "Player/Track.h"
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 /**
 * sdp基类
@@ -259,8 +258,7 @@ private:
 };
 
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 
 

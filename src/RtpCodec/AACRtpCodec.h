@@ -7,6 +7,7 @@
 
 #include "RtpCodec.h"
 
+namespace mediakit{
 /**
  * aac rtp转adts类
  */
@@ -75,5 +76,6 @@ private:
     unsigned char _aucSectionBuf[1600];
 };
 
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_AACRTPCODEC_H

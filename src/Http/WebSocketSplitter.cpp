@@ -30,11 +30,9 @@
 #include <arpa/inet.h>
 #include "Util/logger.h"
 #include "Util/util.h"
-using namespace ZL::Util;
+using namespace toolkit;
 
-
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 /**
  *
@@ -210,27 +208,7 @@ void WebSocketSplitter::encode(const WebSocketHeader &header,uint8_t *data, cons
 
 
 
-} /* namespace Http */
-} /* namespace ZL */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+} /* namespace mediakit */
 
 
 

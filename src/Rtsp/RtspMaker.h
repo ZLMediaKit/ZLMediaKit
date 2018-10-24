@@ -7,8 +7,7 @@
 
 #include "RtspSdp.h"
 
-namespace ZL{
-namespace Rtsp{
+namespace mediakit{
 /**
 * rtsp生成器
 */
@@ -131,7 +130,6 @@ private:
 };
 
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif //ZLMEDIAKIT_RTSPMAKER_H

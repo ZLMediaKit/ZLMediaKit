@@ -8,11 +8,9 @@
 #include "Rtmp.h"
 #include "RtmpMediaSource.h"
 #include "Network/Socket.h"
+using namespace toolkit;
 
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 class FlvMuxer{
 public:
@@ -55,7 +53,6 @@ private:
 };
 
 
-}//namespace Rtmp
-}//namespace ZL
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_FLVRECORDER_H

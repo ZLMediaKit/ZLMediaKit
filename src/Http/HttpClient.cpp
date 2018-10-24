@@ -27,8 +27,7 @@
 #include "HttpClient.h"
 #include "Rtsp/Rtsp.h"
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 
 HttpClient::HttpClient() {
@@ -272,6 +271,5 @@ void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
 }
 
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 

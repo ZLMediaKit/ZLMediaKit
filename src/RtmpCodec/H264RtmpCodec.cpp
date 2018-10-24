@@ -4,6 +4,7 @@
 
 #include "H264RtmpCodec.h"
 
+namespace mediakit{
 
 H264RtmpDecoder::H264RtmpDecoder() {
     _h264frame = obtainFrame();
@@ -185,20 +186,7 @@ void H264RtmpEncoder::makeVideoConfigPkt() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}//namespace mediakit
 
 
 

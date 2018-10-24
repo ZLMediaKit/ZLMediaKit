@@ -28,15 +28,12 @@
 #include "RtpMakerAAC.h"
 #include "Util/mini.h"
 #include "Network/sockutil.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Rtsp {
+namespace mediakit{
 
 void RtpMaker_AAC::makeRtp(const char *pcData, int iLen, uint32_t uiStamp) {
-    GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Config::Rtp::kCycleMS);
+    GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Rtp::kCycleMS);
 
     uiStamp %= cycleMS;
 	char *ptr = (char *) pcData;
@@ -99,5 +96,4 @@ inline void RtpMaker_AAC::makeAACRtp(const void *pData, unsigned int uiLen, bool
 	_ui16Sequence++;
 }
 
-} /* namespace RTP */
-} /* namespace ZL */
+}//namespace mediakit

@@ -38,11 +38,9 @@
 #include "HttpCookie.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class HttpArgs : public StrCaseMap {
 public:
@@ -311,21 +309,6 @@ private:
     float _fTimeOutSec = 0;
 };
 
-
-
-
-
-
-
-
-} /* namespace Http */
-} /* namespace ZL */
-
-
-
-
-
-
-
+} /* namespace mediakit */
 
 #endif /* Http_HttpClient_h */

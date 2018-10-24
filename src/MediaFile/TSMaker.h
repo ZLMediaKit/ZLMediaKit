@@ -34,9 +34,8 @@
 #include <string>
 #include <iostream>
 #include "Util/File.h"
-
 using namespace std;
-using namespace ZL::Util;
+using namespace toolkit;
 
 #define TS_PACKET_SIZE                 188
 #define TS_PACKET_HEADER               4

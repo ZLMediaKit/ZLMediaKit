@@ -45,12 +45,9 @@
 #include "Thread/ThreadPool.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Thread;
-using namespace ZL::Media;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 class RtspMediaSource: public MediaSource {
 public:
@@ -102,7 +99,6 @@ protected:
     RingType::Ptr _pRing; //rtp环形缓冲
 };
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTSP_RTSPMEDIASOURCE_H_ */

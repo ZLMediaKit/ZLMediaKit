@@ -28,15 +28,12 @@
 #include "RtpMakerH264.h"
 #include "Util/mini.h"
 #include "Network/sockutil.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Rtsp {
+namespace mediakit{
 
 void RtpMaker_H264::makeRtp(const char* pcData, int iLen, uint32_t uiStamp) {
-    GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Config::Rtp::kCycleMS);
+    GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Rtp::kCycleMS);
 
     uiStamp %= cycleMS;
 	int iSize = _iMtuSize - 2;
@@ -118,5 +115,4 @@ inline void RtpMaker_H264::makeH264Rtp(const void* data, unsigned int len, bool 
 	//InfoL<<timeStamp<<" "<<time<<" "<<sampleRate;
 }
 
-} /* namespace RTP */
-} /* namespace ZL */
+}//namespace mediakit

@@ -30,8 +30,7 @@
 #include <string>
 using namespace std;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class HttpRequestSplitter {
 public:
@@ -79,7 +78,6 @@ private:
     int64_t _content_len = 0;
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif //ZLMEDIAKIT_HTTPREQUESTSPLITTER_H

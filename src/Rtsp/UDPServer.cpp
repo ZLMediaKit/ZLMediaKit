@@ -26,11 +26,9 @@
 
 #include "UDPServer.h"
 #include "Util/TimeTicker.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
 UDPServer &UDPServer::Instance() {
 	static UDPServer *instance(new UDPServer());
@@ -116,7 +114,6 @@ void UDPServer::onRcvData(int iTrackIndex, const Buffer::Ptr &pBuf, struct socka
 	}
 }
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 

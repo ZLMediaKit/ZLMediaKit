@@ -36,12 +36,8 @@
 #include "Thread/WorkThreadPool.h"
 
 using namespace std;
-using namespace ZL::DEV;
-using namespace ZL::Util;
-using namespace ZL::Rtsp;
-using namespace ZL::Thread;
-using namespace ZL::Network;
-
+using namespace toolkit;
+using namespace mediakit;
 
 int main(int argc, char *argv[]) {
     //设置退出信号处理函数

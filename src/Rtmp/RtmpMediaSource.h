@@ -44,14 +44,9 @@
 #include "Util/ResourcePool.h"
 #include "Util/NoticeCenter.h"
 #include "Thread/ThreadPool.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Thread;
-using namespace ZL::Media;
-
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 class RtmpMediaSource: public MediaSource {
 public:
@@ -122,7 +117,6 @@ protected:
 	bool _bRegisted = false;
 };
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPMEDIASOURCE_H_ */

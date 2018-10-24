@@ -31,8 +31,7 @@
 #include "RtmpMediaSource.h"
 #include "Network/TcpClient.h"
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 class RtmpPusher: public RtmpProtocol , public TcpClient{
 public:
@@ -123,7 +122,6 @@ private:
     Event _onPublished;
 };
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPPUSHER_H_ */

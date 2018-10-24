@@ -34,14 +34,9 @@
 #include "Rtsp/RtspPlayer.h"
 #include "Rtmp/RtmpPlayer.h"
 #include "Thread/TaskExecutor.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Rtsp;
-using namespace ZL::Rtmp;
-using namespace ZL::Thread;
-
-namespace ZL {
-namespace Player {
+namespace mediakit {
 
 class MediaPlayer : public PlayerImp<PlayerBase,PlayerBase> {
 public:
@@ -58,7 +53,6 @@ private:
 
 };
 
-} /* namespace Player */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_PLAYER_MEDIAPLAYER_H_ */

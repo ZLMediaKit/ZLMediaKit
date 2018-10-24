@@ -1,6 +1,8 @@
 ﻿#include "RtspSdp.h"
 #include "Common/Factory.h"
 
+namespace mediakit{
+
 void Sdp::createRtpEncoder(uint32_t ssrc, int mtu) {
     _encoder = Factory::getRtpEncoderById(getCodecId(),
                                           ssrc,
@@ -10,5 +12,6 @@ void Sdp::createRtpEncoder(uint32_t ssrc, int mtu) {
                                           getTrackType() * 2);
 }
 
+}
 
 

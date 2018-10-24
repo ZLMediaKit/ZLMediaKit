@@ -88,7 +88,7 @@ static type& name = *new type arguments
 
 #include <assert.h>
 #include "Util/logger.h"
-using namespace ZL::Util;
+using namespace toolkit;
 
 #define DCHECK(x) if(!(x)) { ErrorL << "DCHECK " << #x <<endl; }
 #define DCHECK_GT(x,y) if(!((x) > (y))) { ErrorL << "DCHECK_GT:" << #x << #y << endl; }

@@ -7,9 +7,9 @@
 
 #include "RtmpCodec.h"
 #include "Util/ResourcePool.h"
+using namespace toolkit;
 
-using namespace ZL::Rtmp;
-
+namespace mediakit{
 /**
  * h264 Rtmp解码类
  */
@@ -63,5 +63,7 @@ public:
 private:
     void makeVideoConfigPkt();
 };
+
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_H264RTMPCODEC_H

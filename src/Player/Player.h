@@ -31,6 +31,7 @@
 #include "Frame.h"
 
 using namespace std;
+using namespace mediakit;
 
 unsigned const samplingFrequencyTable[16] = { 96000, 88200,
 											  64000, 48000,

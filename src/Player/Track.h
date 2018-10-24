@@ -11,9 +11,9 @@
 #include "Util/RingBuffer.h"
 #include "Rtsp/Rtsp.h"
 #include "Player.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Util;
+namespace mediakit{
 
 class Track : public FrameRing , public CodecInfo{
 public:
@@ -324,5 +324,6 @@ private:
     int _channel = 0;
 };
 
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_TRACK_H

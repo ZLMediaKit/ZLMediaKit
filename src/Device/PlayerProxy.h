@@ -33,10 +33,10 @@
 #include "Util/TimeTicker.h"
 
 using namespace std;
-using namespace ZL::Player;
+using namespace toolkit;
 
-namespace ZL {
-namespace DEV {
+
+namespace mediakit {
 
 class PlayerProxy :public MediaPlayer, public std::enable_shared_from_this<PlayerProxy> , public MediaSourceEvent {
 public:
@@ -71,7 +71,6 @@ private:
     int _iAudioIndex = 0;
 };
 
-} /* namespace Player */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_DEVICE_PLAYERPROXY_H_ */

@@ -29,7 +29,7 @@
 #include "Util/util.h"
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
-using namespace ZL::Util;
+using namespace toolkit;
 
 #ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
@@ -72,8 +72,7 @@ static string openssl_HMACsha256(const void *key,unsigned int key_len,
 #define S2_FMS_KEY_SIZE 68
 #define C1_OFFSET_SIZE 4
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 RtmpProtocol::RtmpProtocol() {
 	_nextHandle = [this](){
@@ -697,5 +696,4 @@ BufferRaw::Ptr RtmpProtocol::obtainBuffer(const void *data, int len) {
 	return buffer;
 }
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */

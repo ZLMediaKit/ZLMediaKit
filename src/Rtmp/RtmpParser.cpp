@@ -26,8 +26,7 @@
 
 #include "RtmpParser.h"
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 RtmpParser::RtmpParser(const AMFValue &val) {
 	auto videoCodec = val["videocodecid"];
@@ -232,29 +231,4 @@ inline void RtmpParser::onCheckMedia(const AMFValue& obj) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */

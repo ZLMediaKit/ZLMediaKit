@@ -35,11 +35,8 @@
 #include "MediaFile/MediaReader.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Rtmp;
-using namespace ZL::Thread;
-using namespace ZL::Network;
-using namespace ZL::DEV;
+using namespace toolkit;
+using namespace mediakit;
 
 //推流器，保持强引用
 RtmpPusher::Ptr pusher;
@@ -101,7 +98,7 @@ int domain(const string & filePath,const string & pushUrl){
 	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
     //录像应用名称默认为record
-    string appName = mINI::Instance()[Config::Record::kAppName];
+    string appName = mINI::Instance()[Record::kAppName];
     //app必须record，filePath(流id)为相对于httpRoot/record的路径，否则MediaReader会找到不该文件
     //限制app为record是为了防止服务器上的文件被肆意访问
     createPusher(appName,filePath,pushUrl);

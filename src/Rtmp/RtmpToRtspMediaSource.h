@@ -43,14 +43,10 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "MediaFile/MediaRecorder.h"
-
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Rtsp;
-using namespace ZL::MediaFile;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 class RtmpToRtspMediaSource: public RtmpMediaSource {
 public:
@@ -100,7 +96,6 @@ private:
 	void makeSDP();
 };
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPTORTSPMEDIASOURCE_H_ */

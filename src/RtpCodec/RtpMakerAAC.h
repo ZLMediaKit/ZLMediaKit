@@ -35,10 +35,9 @@
 #include "Util/ResourcePool.h"
 
 using namespace std;
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit{
 
 class RtpMaker_AAC: public RtpMaker {
 public:
@@ -56,7 +55,6 @@ private:
 	unsigned char _aucSectionBuf[1600];
 };
 
-} /* namespace RTP */
-} /* namespace ZL */
+}//namespace mediakit
 
 #endif /* RTP_RTPMAKERAAC_H_ */

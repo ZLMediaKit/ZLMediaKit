@@ -28,8 +28,7 @@
 #include "Device/PlayerProxy.h"
 #include "Util/onceToken.h"
 
-using namespace ZL::DEV;
-using namespace ZL::Util;
+using namespace toolkit;
 
 static recursive_mutex s_mtxMapProxyPlayer;
 static unordered_map<void *, PlayerProxy::Ptr> s_mapProxyPlayer;

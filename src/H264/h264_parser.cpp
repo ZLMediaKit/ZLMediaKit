@@ -7,8 +7,7 @@
 #include <memory>
 #include "macros.h"
 #include "Util/logger.h"
-using namespace ZL::Util;
-
+using namespace toolkit;
 
 template <class ForwardIterator>
 void STLDeleteContainerPairSecondPointers(ForwardIterator begin,

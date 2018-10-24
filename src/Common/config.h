@@ -34,9 +34,9 @@
 #include "Util/NoticeCenter.h"
 
 using namespace std;
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace Config {
+namespace mediakit {
 
 //加载配置文件，如果配置文件不存在，那么会导出默认配置并生成配置文件
 //加载配置文件成功后会触发kBroadcastUpdateConfig广播
@@ -131,7 +131,7 @@ extern const char kBroadcastReloadConfig[];
 #define RELOAD_KEY_REGISTER(arg,key) \
     do{ \
         static onceToken s_token([](){ \
-            NoticeCenter::Instance().addListener(ReloadConfigTag,Config::Broadcast::kBroadcastReloadConfig,[](BroadcastReloadConfigArgs){ \
+            NoticeCenter::Instance().addListener(ReloadConfigTag,Broadcast::kBroadcastReloadConfig,[](BroadcastReloadConfigArgs){ \
                 RELOAD_KEY(arg,key); \
             }); \
         }); \
@@ -234,6 +234,6 @@ extern const char kFileBufSize[];
 extern const char kFilePath[];
 } //namespace Hls
 
-}  // namespace Config
+}  // namespace mediakit
 
 #endif /* COMMON_CONFIG_H */

@@ -50,20 +50,13 @@
 #include "Device/PlayerProxy.h"
 
 using namespace std;
-using namespace ZL::DEV;
-using namespace ZL::Util;
-using namespace ZL::Http;
-using namespace ZL::Rtsp;
-using namespace ZL::Rtmp;
-using namespace ZL::Shell;
-using namespace ZL::Thread;
-using namespace ZL::Network;
-
+using namespace toolkit;
+using namespace mediakit;
 
 #define REALM "realm_zlmedaikit"
 
 static onceToken s_token([](){
-	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastOnGetRtspRealm,[](BroadcastOnGetRtspRealmArgs){
+	NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastOnGetRtspRealm,[](BroadcastOnGetRtspRealmArgs){
 		if(string("1") == args.m_streamid ){
 			// live/1需要认证
 			EventPoller::Instance().async([invoker](){
@@ -80,7 +73,7 @@ static onceToken s_token([](){
 		}
 	});
 
-	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastOnRtspAuth,[](BroadcastOnRtspAuthArgs){
+	NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastOnRtspAuth,[](BroadcastOnRtspAuthArgs){
 		InfoL << "用户：" << user_name <<  (must_no_encrypt ?  " Base64" : " MD5" )<< " 方式登录";
 		string user = user_name;
 		//假设我们异步读取数据库
@@ -110,7 +103,7 @@ static onceToken s_token([](){
 	});
 
 
-	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastRtmpPublish,[](BroadcastRtmpPublishArgs){
+	NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRtmpPublish,[](BroadcastRtmpPublishArgs){
         InfoL << args.m_vhost << " " << args.m_app << " " << args.m_streamid << " " << args.m_param_strs ;
         EventPoller::Instance().async([invoker](){
             invoker("");//鉴权成功
@@ -118,7 +111,7 @@ static onceToken s_token([](){
         });
     });
 
-    NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastMediaPlayed,[](BroadcastMediaPlayedArgs){
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPlayed,[](BroadcastMediaPlayedArgs){
         InfoL << args.m_schema << " " << args.m_vhost << " " << args.m_app << " " << args.m_streamid << " " << args.m_param_strs ;
         EventPoller::Instance().async([invoker](){
             invoker("");//鉴权成功
@@ -126,7 +119,7 @@ static onceToken s_token([](){
         });
     });
 
-    NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
         InfoL << "shell login:" << user_name << " " << passwd;
         EventPoller::Instance().async([invoker](){
             invoker("");//鉴权成功
@@ -135,13 +128,13 @@ static onceToken s_token([](){
     });
 
     //此处用于测试rtmp保存为flv录像，保存在http根目录下
-    NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastMediaChanged,[](BroadcastMediaChangedArgs){
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaChanged,[](BroadcastMediaChangedArgs){
         if(schema == RTMP_SCHEMA){
             static map<string,FlvRecorder::Ptr> s_mapFlvRecorder;
             static mutex s_mtxFlvRecorder;
             lock_guard<mutex> lck(s_mtxFlvRecorder);
             if(bRegist){
-                GET_CONFIG_AND_REGISTER(string,http_root,Config::Http::kRootPath);
+                GET_CONFIG_AND_REGISTER(string,http_root,Http::kRootPath);
                 auto path = http_root + "/" + vhost + "/" + app + "/" + stream + "_" + to_string(time(NULL)) + ".flv";
                 FlvRecorder::Ptr recorder(new FlvRecorder);
                 try{
@@ -166,13 +159,13 @@ static onceToken s_token([](){
 int main(int argc,char *argv[]) {
     //设置退出信号处理函数
     signal(SIGINT, [](int) { EventPoller::Instance().shutdown(); });
-    signal(SIGHUP, [](int) { Config::loadIniConfig(); });
+    signal(SIGHUP, [](int) { loadIniConfig(); });
 
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
     //加载配置文件，如果配置文件不存在就创建一个
-    Config::loadIniConfig();
+    loadIniConfig();
     {
         //这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
         //如果是其他不识别的音视频将会被忽略(譬如说h264+adpcm转发后会去除音频)
@@ -214,11 +207,11 @@ int main(int argc,char *argv[]) {
         }
 #endif //ENABLE_OPENSSL
 
-        uint16_t shellPort = mINI::Instance()[Config::Shell::kPort];
-        uint16_t rtspPort = mINI::Instance()[Config::Rtsp::kPort];
-        uint16_t rtmpPort = mINI::Instance()[Config::Rtmp::kPort];
-        uint16_t httpPort = mINI::Instance()[Config::Http::kPort];
-        uint16_t httpsPort = mINI::Instance()[Config::Http::kSSLPort];
+        uint16_t shellPort = mINI::Instance()[Shell::kPort];
+        uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
+        uint16_t rtmpPort = mINI::Instance()[Rtmp::kPort];
+        uint16_t httpPort = mINI::Instance()[Http::kPort];
+        uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
 
         //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
         //测试方法:telnet 127.0.0.1 9000
@@ -238,31 +231,31 @@ int main(int argc,char *argv[]) {
         httpsSrv->start<HttpsSession>(httpsPort);//默认443
 #endif //ENABLE_OPENSSL
 
-        NoticeCenter::Instance().addListener(ReloadConfigTag,Config::Broadcast::kBroadcastReloadConfig,[&](BroadcastReloadConfigArgs){
+        NoticeCenter::Instance().addListener(ReloadConfigTag,Broadcast::kBroadcastReloadConfig,[&](BroadcastReloadConfigArgs){
             //重新创建服务器
-            if(shellPort != mINI::Instance()[Config::Shell::kPort].as<uint16_t>()){
-                shellPort = mINI::Instance()[Config::Shell::kPort];
+            if(shellPort != mINI::Instance()[Shell::kPort].as<uint16_t>()){
+                shellPort = mINI::Instance()[Shell::kPort];
                 shellSrv->start<ShellSession>(shellPort);
                 InfoL << "重启shell服务器:" << shellPort;
             }
-            if(rtspPort != mINI::Instance()[Config::Rtsp::kPort].as<uint16_t>()){
-                rtspPort = mINI::Instance()[Config::Rtsp::kPort];
+            if(rtspPort != mINI::Instance()[Rtsp::kPort].as<uint16_t>()){
+                rtspPort = mINI::Instance()[Rtsp::kPort];
                 rtspSrv->start<RtspSession>(rtspPort);
                 InfoL << "重启rtsp服务器" << rtspPort;
             }
-            if(rtmpPort != mINI::Instance()[Config::Rtmp::kPort].as<uint16_t>()){
-                rtmpPort = mINI::Instance()[Config::Rtmp::kPort];
+            if(rtmpPort != mINI::Instance()[Rtmp::kPort].as<uint16_t>()){
+                rtmpPort = mINI::Instance()[Rtmp::kPort];
                 rtmpSrv->start<RtmpSession>(rtmpPort);
                 InfoL << "重启rtmp服务器" << rtmpPort;
             }
-            if(httpPort != mINI::Instance()[Config::Http::kPort].as<uint16_t>()){
-                httpPort = mINI::Instance()[Config::Http::kPort];
+            if(httpPort != mINI::Instance()[Http::kPort].as<uint16_t>()){
+                httpPort = mINI::Instance()[Http::kPort];
                 httpSrv->start<HttpSession>(httpPort);
                 InfoL << "重启http服务器" << httpPort;
             }
 #ifdef ENABLE_OPENSSL
-            if(httpsPort != mINI::Instance()[Config::Http::kSSLPort].as<uint16_t>()){
-                httpsPort = mINI::Instance()[Config::Http::kSSLPort];
+            if(httpsPort != mINI::Instance()[Http::kSSLPort].as<uint16_t>()){
+                httpsPort = mINI::Instance()[Http::kSSLPort];
                 httpsSrv->start<HttpsSession>(httpsPort);
                 InfoL << "重启https服务器" << httpsPort;
             }

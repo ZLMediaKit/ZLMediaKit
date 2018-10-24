@@ -35,13 +35,10 @@
 #include "RtmpMediaSource.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Player;
+namespace mediakit {
 
-namespace ZL {
-namespace Rtmp {
 class RtmpPlayerImp: public PlayerImp<RtmpPlayer,RtmpParser> {
 public:
     typedef std::shared_ptr<RtmpPlayerImp> Ptr;
@@ -92,7 +89,6 @@ private:
 };
                     
                     
-} /* namespace Rtmp */
-} /* namespace ZL */
-                
+} /* namespace mediakit */
+
 #endif /* SRC_RTMP_RTMPPLAYERIMP_H_ */
