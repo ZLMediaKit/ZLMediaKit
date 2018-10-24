@@ -62,6 +62,23 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         _aac_cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
         makeAudioConfigPkt();
     }
+
+    if(!_aac_cfg.empty()){
+        RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
+        //////////header
+        uint8_t is_config = false;
+        rtmpPkt->strBuf.push_back(m_ui8AudioFlags);
+        rtmpPkt->strBuf.push_back(!is_config);
+        rtmpPkt->strBuf.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+
+        rtmpPkt->bodySize = rtmpPkt->strBuf.size();
+        rtmpPkt->chunkId = CHUNK_AUDIO;
+        rtmpPkt->streamId = STREAM_MEDIA;
+        rtmpPkt->timeStamp = frame->stamp();
+        rtmpPkt->typeId = MSG_AUDIO;
+        inputRtmp(rtmpPkt, false);
+    }
+
 }
 
 void AACRtmpEncoder::makeAudioConfigPkt() {
@@ -91,7 +108,7 @@ void AACRtmpEncoder::makeAudioConfigPkt() {
     uint8_t flvSampleBit = iSampleBit == 16;
     uint8_t flvAudioType = 10; //aac
 
-    uint8_t m_ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
+    m_ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
 
     RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
     //////////header
@@ -105,7 +122,7 @@ void AACRtmpEncoder::makeAudioConfigPkt() {
     rtmpPkt->streamId = STREAM_MEDIA;
     rtmpPkt->timeStamp = 0;
     rtmpPkt->typeId = MSG_AUDIO;
-    inputRtmp(rtmpPkt, true);
+    inputRtmp(rtmpPkt, false);
 }
 
 
