@@ -32,7 +32,7 @@
 #include "Player/Player.h"
 #include "Player/PlayerBase.h"
 #include "Util/TimeTicker.h"
-#include "RTP/RtpCodec.h"
+#include "RtpCodec/RtpCodec.h"
 
 using namespace std;
 using namespace ZL::Util;

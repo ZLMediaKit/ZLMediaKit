@@ -35,7 +35,7 @@
 #include "Rtsp.h"
 #include "Common/config.h"
 #include "Common/MediaSource.h"
-#include "RTP/RtpCodec.h"
+#include "RtpCodec/RtpCodec.h"
 
 #include "Util/logger.h"
 #include "Util/RingBuffer.h"

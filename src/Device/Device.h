@@ -32,8 +32,8 @@
 #include <functional>
 #include "Util/util.h"
 #include "Player/Player.h"
-#include "RTP/RtpMakerAAC.h"
-#include "RTP/RtpMakerH264.h"
+#include "RtpCodec/RtpMakerAAC.h"
+#include "RtpCodec/RtpMakerH264.h"
 #include "Rtsp/RtspToRtmpMediaSource.h"
 #include "Rtsp/RtspSdp.h"
 #include "Util/TimeTicker.h"
