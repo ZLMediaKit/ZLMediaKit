@@ -29,6 +29,7 @@
 #include "RtpParser.h"
 #include "Util/base64.h"
 #include "H264/SPSParser.h"
+#include "Common/Factory.h"
 
 using namespace std;
 
@@ -97,10 +98,10 @@ inline bool RtpParser::inputAudio(const RtpPacket::Ptr &rtp) {
 
 inline void RtpParser::onGetAudioTrack(const RtspTrack& audio) {
 	//生成Track对象
-    _audioTrack = dynamic_pointer_cast<AudioTrack>(Track::getTrackBySdp(audio.trackSdp));
+    _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio.trackSdp));
     if(_audioTrack){
     	//生成RtpCodec对象以便解码rtp
-		_audioRtpDecoder = RtpCodec::getRtpDecoderById(_audioTrack->getCodecId(),_audioTrack->getAudioSampleRate());
+		_audioRtpDecoder = Factory::getRtpDecoderById(_audioTrack->getCodecId(),_audioTrack->getAudioSampleRate());
 		if(_audioRtpDecoder){
 			//设置rtp解码器代理，生成的frame写入该Track
 			_audioRtpDecoder->setDelegate(_audioTrack);
@@ -110,10 +111,10 @@ inline void RtpParser::onGetAudioTrack(const RtspTrack& audio) {
 
 inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
 	//生成Track对象
-	_videoTrack = dynamic_pointer_cast<VideoTrack>(Track::getTrackBySdp(video.trackSdp));
+	_videoTrack = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video.trackSdp));
 	if(_videoTrack){
 		//生成RtpCodec对象以便解码rtp
-		_videoRtpDecoder = RtpCodec::getRtpDecoderById(_videoTrack->getCodecId(),90000);
+		_videoRtpDecoder = Factory::getRtpDecoderById(_videoTrack->getCodecId(),90000);
 		if(_videoRtpDecoder){
 			//设置rtp解码器代理，生成的frame写入该Track
 			_videoRtpDecoder->setDelegate(_videoTrack);

@@ -20,11 +20,6 @@ public:
     typedef std::shared_ptr<Track> Ptr;
     Track(){}
     virtual ~Track(){}
-
-    /**
-     * 根据sdp生成Track对象
-     */
-    static Ptr getTrackBySdp(const string &sdp);
 };
 
 class VideoTrack : public Track {
