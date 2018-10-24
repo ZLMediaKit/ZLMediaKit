@@ -61,6 +61,7 @@ public:
 
 private:
     void makeAudioConfigPkt();
+    uint8_t m_ui8AudioFlags;
 };
 
 }//namespace Rtmp
