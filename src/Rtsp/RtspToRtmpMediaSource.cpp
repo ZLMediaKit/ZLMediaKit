@@ -43,7 +43,7 @@ RtspToRtmpMediaSource::RtspToRtmpMediaSource(const string &vhost,
                                              const string &id,
                                              bool bEnableHls,
                                              bool bEnableMp4) :
-		RtspMediaSource(vhost,app,id),m_bEnableHls(bEnableHls),m_bEnableMp4(bEnableMp4) {
+		RtspMediaSource(vhost,app,id),_bEnableHls(bEnableHls),_bEnableMp4(bEnableMp4) {
 }
 
 RtspToRtmpMediaSource::~RtspToRtmpMediaSource() {
@@ -65,36 +65,36 @@ void RtspToRtmpMediaSource::makeVideoConfigPkt() {
 	rtmpPkt->strBuf.push_back(1); // version
 
 	//todo(xzl) 修复此处
-	string m_sps ;//= m_pParser->getSps().substr(4);
-	string m_pps ;//= m_pParser->getPps().substr(4);
-	//DebugL<<hexdump(m_sps.data(), m_sps.size());
-	rtmpPkt->strBuf.push_back(m_sps[1]); // profile
-	rtmpPkt->strBuf.push_back(m_sps[2]); // compat
-	rtmpPkt->strBuf.push_back(m_sps[3]); // level
+	string _sps ;//= _pParser->getSps().substr(4);
+	string _pps ;//= _pParser->getPps().substr(4);
+	//DebugL<<hexdump(_sps.data(), _sps.size());
+	rtmpPkt->strBuf.push_back(_sps[1]); // profile
+	rtmpPkt->strBuf.push_back(_sps[2]); // compat
+	rtmpPkt->strBuf.push_back(_sps[3]); // level
 	rtmpPkt->strBuf.push_back(0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
 	rtmpPkt->strBuf.push_back(0xe1); // 3 bits reserved + 5 bits number of sps (00001)
-	uint16_t size = m_sps.size();
+	uint16_t size = _sps.size();
 	size = htons(size);
 	rtmpPkt->strBuf.append((char *) &size, 2);
-	rtmpPkt->strBuf.append(m_sps);
+	rtmpPkt->strBuf.append(_sps);
 
 /////////////pps
 	rtmpPkt->strBuf.push_back(1); // version
-	size = m_pps.size();
+	size = _pps.size();
 	size = htons(size);
 	rtmpPkt->strBuf.append((char *) &size, 2);
-	rtmpPkt->strBuf.append(m_pps);
+	rtmpPkt->strBuf.append(_pps);
 
 	rtmpPkt->bodySize = rtmpPkt->strBuf.size();
 	rtmpPkt->chunkId = CHUNK_VIDEO;
 	rtmpPkt->streamId = STREAM_MEDIA;
 	rtmpPkt->timeStamp = 0;
 	rtmpPkt->typeId = MSG_VIDEO;
-	m_pRtmpSrc->onGetMedia(rtmpPkt);
+	_pRtmpSrc->onGetMedia(rtmpPkt);
 }
 void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
-	if(m_pRecorder){
-		m_pRecorder->inputH264((char *) frame.data(), frame.size(), frame.timeStamp, frame.type);
+	if(_pRecorder){
+		_pRecorder->inputH264((char *) frame.data(), frame.size(), frame.timeStamp, frame.type);
 	}
 	uint8_t nal_type = frame.data()[4] & 0x1F;
 	int8_t flags = 7; //h.264
@@ -124,17 +124,17 @@ void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 	rtmpPkt->streamId = STREAM_MEDIA;
 	rtmpPkt->timeStamp = frame.timeStamp;
 	rtmpPkt->typeId = MSG_VIDEO;
-	m_pRtmpSrc->onGetMedia(rtmpPkt);
+	_pRtmpSrc->onGetMedia(rtmpPkt);
 }
 void RtspToRtmpMediaSource::onGetAAC(const AACFrame& frame) {
-	if(m_pRecorder){
-		m_pRecorder->inputAAC((char *) frame.buffer, frame.aac_frame_length, frame.timeStamp);
+	if(_pRecorder){
+		_pRecorder->inputAAC((char *) frame.buffer, frame.aac_frame_length, frame.timeStamp);
 	}
 
 	RtmpPacket::Ptr rtmpPkt(new RtmpPacket);
 //////////header
 	uint8_t is_config = false;
-	rtmpPkt->strBuf.push_back(m_ui8AudioFlags);
+	rtmpPkt->strBuf.push_back(_ui8AudioFlags);
 	rtmpPkt->strBuf.push_back(!is_config);
 	rtmpPkt->strBuf.append((char *) frame.buffer + 7, frame.aac_frame_length - 7);
 
@@ -143,15 +143,15 @@ void RtspToRtmpMediaSource::onGetAAC(const AACFrame& frame) {
 	rtmpPkt->streamId = STREAM_MEDIA;
 	rtmpPkt->timeStamp = frame.timeStamp;
 	rtmpPkt->typeId = MSG_AUDIO;
-	m_pRtmpSrc->onGetMedia(rtmpPkt);
+	_pRtmpSrc->onGetMedia(rtmpPkt);
 }
 
 void RtspToRtmpMediaSource::makeAudioConfigPkt() {
 	//todo(xzl) 修复此处
 #if 0
-	uint8_t flvStereoOrMono = (m_pParser->getAudioChannel() > 1);
+	uint8_t flvStereoOrMono = (_pParser->getAudioChannel() > 1);
 	uint8_t flvSampleRate;
-	switch (m_pParser->getAudioSampleRate()) {
+	switch (_pParser->getAudioSampleRate()) {
 	case 48000:
 	case 44100:
 		flvSampleRate = 3;
@@ -168,57 +168,57 @@ void RtspToRtmpMediaSource::makeAudioConfigPkt() {
 		flvSampleRate = 0;
 		break;
 	}
-	uint8_t flvSampleBit = m_pParser->getAudioSampleBit() == 16;
+	uint8_t flvSampleBit = _pParser->getAudioSampleBit() == 16;
 	uint8_t flvAudioType = 10; //aac
 
-	m_ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
+	_ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
 
 	RtmpPacket::Ptr rtmpPkt(new RtmpPacket);
 //////////header
 	uint8_t is_config = true;
-	rtmpPkt->strBuf.push_back(m_ui8AudioFlags);
+	rtmpPkt->strBuf.push_back(_ui8AudioFlags);
 	rtmpPkt->strBuf.push_back(!is_config);
-	rtmpPkt->strBuf.append(m_pParser->getAudioCfg());
+	rtmpPkt->strBuf.append(_pParser->getAudioCfg());
 
 	rtmpPkt->bodySize = rtmpPkt->strBuf.size();
 	rtmpPkt->chunkId = CHUNK_AUDIO;
 	rtmpPkt->streamId = STREAM_MEDIA;
 	rtmpPkt->timeStamp = 0;
 	rtmpPkt->typeId = MSG_AUDIO;
-	m_pRtmpSrc->onGetMedia(rtmpPkt);
+	_pRtmpSrc->onGetMedia(rtmpPkt);
 
 #endif
 }
 
 void RtspToRtmpMediaSource::makeMetaData() {
-	m_pRtmpSrc.reset(new RtmpMediaSource(getVhost(),getApp(),getId()));
-	m_pRtmpSrc->setListener(m_listener);
+	_pRtmpSrc.reset(new RtmpMediaSource(getVhost(),getApp(),getId()));
+	_pRtmpSrc->setListener(_listener);
 	AMFValue metaData(AMF_OBJECT);
-	metaData.set("duration", m_pParser->getDuration());
+	metaData.set("duration", _pParser->getDuration());
 	metaData.set("fileSize", 0);
 	//todo(xzl) 修复此处
 #if 0
 
-	if (m_pParser->containVideo()) {
-		metaData.set("width", m_pParser->getVideoWidth());
-		metaData.set("height", m_pParser->getVideoHeight());
+	if (_pParser->containVideo()) {
+		metaData.set("width", _pParser->getVideoWidth());
+		metaData.set("height", _pParser->getVideoHeight());
 		metaData.set("videocodecid", "avc1"); //h.264
 		metaData.set("videodatarate", 5000);
-		metaData.set("framerate", m_pParser->getVideoFps());
+		metaData.set("framerate", _pParser->getVideoFps());
 		makeVideoConfigPkt();
 	}
-	if (m_pParser->containAudio()) {
+	if (_pParser->containAudio()) {
 		metaData.set("audiocodecid", "mp4a"); //aac
 		metaData.set("audiodatarate", 160);
-		metaData.set("audiosamplerate", m_pParser->getAudioSampleRate());
-		metaData.set("audiosamplesize", m_pParser->getAudioSampleBit());
-		metaData.set("audiochannels", m_pParser->getAudioChannel());
-		metaData.set("stereo", m_pParser->getAudioChannel() > 1);
+		metaData.set("audiosamplerate", _pParser->getAudioSampleRate());
+		metaData.set("audiosamplesize", _pParser->getAudioSampleBit());
+		metaData.set("audiochannels", _pParser->getAudioChannel());
+		metaData.set("stereo", _pParser->getAudioChannel() > 1);
 		makeAudioConfigPkt();
 	}
 
 #endif
-	m_pRtmpSrc->onGetMetaData(metaData);
+	_pRtmpSrc->onGetMetaData(metaData);
 }
 } /* namespace Rtsp */
 } /* namespace ZL */

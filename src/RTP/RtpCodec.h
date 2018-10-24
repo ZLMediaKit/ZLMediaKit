@@ -105,48 +105,48 @@ public:
         if(ui32Ssrc == 0){
             ui32Ssrc = ((uint64_t)this) & 0xFFFFFFFF;
         }
-        m_ui32Ssrc = ui32Ssrc;
-        m_ui32SampleRate = ui32SampleRate;
-        m_ui32MtuSize = ui32MtuSize;
-        m_ui8PlayloadType = ui8PlayloadType;
-        m_ui8Interleaved = ui8Interleaved;
+        _ui32Ssrc = ui32Ssrc;
+        _ui32SampleRate = ui32SampleRate;
+        _ui32MtuSize = ui32MtuSize;
+        _ui8PlayloadType = ui8PlayloadType;
+        _ui8Interleaved = ui8Interleaved;
     }
 
     virtual ~RtpInfo(){}
 
     int getInterleaved() const {
-        return m_ui8Interleaved;
+        return _ui8Interleaved;
     }
 
     int getPlayloadType() const {
-        return m_ui8PlayloadType;
+        return _ui8PlayloadType;
     }
 
     int getSampleRate() const {
-        return m_ui32SampleRate;
+        return _ui32SampleRate;
     }
 
     uint32_t getSsrc() const {
-        return m_ui32Ssrc;
+        return _ui32Ssrc;
     }
 
     uint16_t getSeqence() const {
-        return m_ui16Sequence;
+        return _ui16Sequence;
     }
     uint32_t getTimestamp() const {
-        return m_ui32TimeStamp;
+        return _ui32TimeStamp;
     }
     uint32_t getMtuSize() const {
-        return m_ui32MtuSize;
+        return _ui32MtuSize;
     }
 protected:
-    uint32_t m_ui32Ssrc;
-    uint32_t m_ui32SampleRate;
-    uint32_t m_ui32MtuSize;
-    uint8_t m_ui8PlayloadType;
-    uint8_t m_ui8Interleaved;
-    uint16_t m_ui16Sequence = 0;
-    uint32_t m_ui32TimeStamp = 0;
+    uint32_t _ui32Ssrc;
+    uint32_t _ui32SampleRate;
+    uint32_t _ui32MtuSize;
+    uint8_t _ui8PlayloadType;
+    uint8_t _ui8Interleaved;
+    uint16_t _ui16Sequence = 0;
+    uint32_t _ui32TimeStamp = 0;
 };
 
 class RtpCodec : public RtpRing, public FrameRingInterfaceDelegate , public CodecInfo ,  public ResourcePoolHelper<RtpPacket>{

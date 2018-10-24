@@ -50,8 +50,8 @@ public:
                   const string &strApp,
                   const string &strId,
                   const std::shared_ptr<PlayerBase> &pPlayer,
-                  bool m_enableHls = true,
-                  bool m_enableMp4 = false);
+                  bool enableHls = true,
+                  bool enableMp4 = false);
 	virtual ~MediaRecorder();
 
 	void inputH264(	void *pData,
@@ -63,9 +63,9 @@ public:
 					uint32_t ui32Length,
 					uint32_t ui32TimeStamp);
 private:
-	std::shared_ptr<HLSMaker> m_hlsMaker;
+	std::shared_ptr<HLSMaker> _hlsMaker;
 #ifdef  ENABLE_MP4V2
-	std::shared_ptr<Mp4Maker> m_mp4Maker;
+	std::shared_ptr<Mp4Maker> _mp4Maker;
 #endif //ENABLE_MP4V2
 
 };

@@ -57,7 +57,7 @@ protected:
 	virtual void onSendRawData(const Buffer::Ptr &buffer) = 0;
 	virtual void onRtmpChunk(RtmpPacket &chunkData) = 0;
 	virtual void onStreamBegin(uint32_t ui32StreamId){
-		m_ui32StreamId = ui32StreamId;
+		_ui32StreamId = ui32StreamId;
 	}
 	virtual void onStreamEof(uint32_t ui32StreamId){};
 	virtual void onStreamDry(uint32_t ui32StreamId){};
@@ -77,14 +77,14 @@ protected:
 	void sendResponse(int iType, const string &str);
 	void sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId, const std::string &strBuf, uint32_t ui32TimeStamp, int iChunkID);
 protected:
-	int m_iReqID = 0;
-	uint32_t m_ui32StreamId = STREAM_CONTROL;
-	int m_iNowStreamID = 0;
-	int m_iNowChunkID = 0;
-	bool m_bDataStarted = false;
+	int _iReqID = 0;
+	uint32_t _ui32StreamId = STREAM_CONTROL;
+	int _iNowStreamID = 0;
+	int _iNowChunkID = 0;
+	bool _bDataStarted = false;
 	inline BufferRaw::Ptr obtainBuffer();
 	inline BufferRaw::Ptr obtainBuffer(const void *data, int len);
-	//ResourcePool<BufferRaw,MAX_SEND_PKT> m_bufferPool;
+	//ResourcePool<BufferRaw,MAX_SEND_PKT> _bufferPool;
 private:
 	void handle_S0S1S2(const function<void()> &cb);
 	void handle_C0C1();
@@ -103,20 +103,20 @@ private:
 
 private:
 	////////////ChunkSize////////////
-	size_t m_iChunkLenIn = DEFAULT_CHUNK_LEN;
-	size_t m_iChunkLenOut = DEFAULT_CHUNK_LEN;
+	size_t _iChunkLenIn = DEFAULT_CHUNK_LEN;
+	size_t _iChunkLenOut = DEFAULT_CHUNK_LEN;
 	////////////Acknowledgement////////////
-	uint32_t m_ui32ByteSent = 0;
-	uint32_t m_ui32LastSent = 0;
-	uint32_t m_ui32WinSize = 0;
+	uint32_t _ui32ByteSent = 0;
+	uint32_t _ui32LastSent = 0;
+	uint32_t _ui32WinSize = 0;
 	///////////PeerBandwidth///////////
-	uint32_t m_ui32Bandwidth = 2500000;
-	uint8_t m_ui8LimitType = 2;
+	uint32_t _ui32Bandwidth = 2500000;
+	uint8_t _ui8LimitType = 2;
 	////////////Chunk////////////
-	unordered_map<int, RtmpPacket> m_mapChunkData;
+	unordered_map<int, RtmpPacket> _mapChunkData;
 	//////////Rtmp parser//////////
-	string m_strRcvBuf;
-	function<void()> m_nextHandle;
+	string _strRcvBuf;
+	function<void()> _nextHandle;
 };
 
 } /* namespace Rtmp */

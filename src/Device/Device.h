@@ -102,25 +102,25 @@ private:
 	inline void makeSDP_AAC(unsigned char *pucData);
 	inline void makeSDP(const string& strSdp);
 #ifdef ENABLE_X264
-	std::shared_ptr<H264Encoder> m_pH264Enc;
+	std::shared_ptr<H264Encoder> _pH264Enc;
 #endif //ENABLE_X264
 
 #ifdef ENABLE_FAAC
-	std::shared_ptr<AACEncoder> m_pAacEnc;
+	std::shared_ptr<AACEncoder> _pAacEnc;
 #endif //ENABLE_FAAC
-	RtpMaker_AAC::Ptr m_pRtpMaker_aac;
-	RtpMaker_H264::Ptr m_pRtpMaker_h264;
-	bool m_bSdp_gotH264 = false;
-	bool m_bSdp_gotAAC = false;
+	RtpMaker_AAC::Ptr _pRtpMaker_aac;
+	RtpMaker_H264::Ptr _pRtpMaker_h264;
+	bool _bSdp_gotH264 = false;
+	bool _bSdp_gotAAC = false;
 
-	unsigned char m_aucSPS[256];
-	unsigned int m_uiSPSLen = 0;
-	unsigned char m_aucPPS[256];
-	unsigned int m_uiPPSLen = 0;
-	std::shared_ptr<VideoInfo> m_video;
-	std::shared_ptr<AudioInfo> m_audio;
-    SmoothTicker m_aTicker[2];
-	std::shared_ptr<AACFrame> m_pAdtsHeader;
+	unsigned char _aucSPS[256];
+	unsigned int _uiSPSLen = 0;
+	unsigned char _aucPPS[256];
+	unsigned int _uiPPSLen = 0;
+	std::shared_ptr<VideoInfo> _video;
+	std::shared_ptr<AudioInfo> _audio;
+    SmoothTicker _aTicker[2];
+	std::shared_ptr<AACFrame> _pAdtsHeader;
 };
 
 

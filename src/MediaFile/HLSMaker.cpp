@@ -43,35 +43,35 @@ HLSMaker::HLSMaker(const string& strM3u8File,
     if(ui32Num < 1){
         ui32Num = 1;
     }
-	m_ui32BufSize = ui32BufSize;
-	m_ui64TsCnt = 0;
-	m_strM3u8File = strM3u8File;
-	m_ui32NumSegments = ui32Num;
-	m_ui32SegmentDuration = ui32Duration;
-	m_ui32LastStamp = 0;
+	_ui32BufSize = ui32BufSize;
+	_ui64TsCnt = 0;
+	_strM3u8File = strM3u8File;
+	_ui32NumSegments = ui32Num;
+	_ui32SegmentDuration = ui32Duration;
+	_ui32LastStamp = 0;
 
-	m_strOutputPrefix = strM3u8File.substr(0, strM3u8File.rfind('.'));
-	m_strFileName = m_strOutputPrefix.substr(m_strOutputPrefix.rfind('/') + 1);
-	m_ts.init(m_strOutputPrefix + "-0.ts", m_ui32BufSize);
+	_strOutputPrefix = strM3u8File.substr(0, strM3u8File.rfind('.'));
+	_strFileName = _strOutputPrefix.substr(_strOutputPrefix.rfind('/') + 1);
+	_ts.init(_strOutputPrefix + "-0.ts", _ui32BufSize);
 }
 
 
 HLSMaker::~HLSMaker() {
-	m_ts.clear();
-	string strDir = m_strOutputPrefix.substr(0,m_strOutputPrefix.rfind('/'));
+	_ts.clear();
+	string strDir = _strOutputPrefix.substr(0,_strOutputPrefix.rfind('/'));
 	File::delete_file(strDir.data());
 }
 
 bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, int iEnd) {
 	char acWriteBuf[1024];
-    std::shared_ptr<FILE> pM3u8File(File::createfile_file(m_strM3u8File.data(), "w"),[](FILE *fp){
+    std::shared_ptr<FILE> pM3u8File(File::createfile_file(_strM3u8File.data(), "w"),[](FILE *fp){
         if(fp){
             fflush(fp);
             fclose(fp);
         }
     });
 	if (!pM3u8File) {
-		WarnL << "Could not open temporary m3u8 index file (" << m_strM3u8File << "), no index file will be created";
+		WarnL << "Could not open temporary m3u8 index file (" << _strM3u8File << "), no index file will be created";
 		return false;
 	}
     if (iFirstSegment < 0) {
@@ -80,13 +80,13 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 
     //最少1秒
     int maxSegmentDuration = 0;
-    for (auto dur : m_iDurations) {
+    for (auto dur : _iDurations) {
         dur /=1000;
         if(dur > maxSegmentDuration){
             maxSegmentDuration = dur;
         }
     }
-	if (m_ui32NumSegments) {
+	if (_ui32NumSegments) {
         snprintf(acWriteBuf,
                  sizeof(acWriteBuf),
                  "#EXTM3U\r\n"
@@ -114,8 +114,8 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 		snprintf(acWriteBuf,
                  sizeof(acWriteBuf),
                  "#EXTINF:%.3f,\r\n%s-%u.ts\r\n",
-                 m_iDurations[i-iFirstSegment]/1000.0,
-				 m_strFileName.c_str(),
+                 _iDurations[i-iFirstSegment]/1000.0,
+				 _strFileName.c_str(),
                  i);
 		if (fwrite(acWriteBuf, strlen(acWriteBuf), 1, pM3u8File.get()) != 1) {
 			WarnL << "Could not write to m3u8 index file, will not continue writing to index file";
@@ -134,36 +134,36 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 }
 
 void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp, int type) {
-    if(m_ui32LastStamp == 0){
-        m_ui32LastStamp = timeStamp;
+    if(_ui32LastStamp == 0){
+        _ui32LastStamp = timeStamp;
     }
-    int stampInc = timeStamp - m_ui32LastStamp;
+    int stampInc = timeStamp - _ui32LastStamp;
 
 	switch (type) {
 	case 7: //SPS
-		if (stampInc >= m_ui32SegmentDuration * 1000) {
-            m_ui32LastStamp = timeStamp;
+		if (stampInc >= _ui32SegmentDuration * 1000) {
+            _ui32LastStamp = timeStamp;
             //关闭文件
-			m_ts.clear();
-			auto strTmpFileName = StrPrinter << m_strOutputPrefix << '-' << (++m_ui64TsCnt) << ".ts" << endl;
-			if (!m_ts.init(strTmpFileName, m_ui32BufSize)) {
+			_ts.clear();
+			auto strTmpFileName = StrPrinter << _strOutputPrefix << '-' << (++_ui64TsCnt) << ".ts" << endl;
+			if (!_ts.init(strTmpFileName, _ui32BufSize)) {
 				//创建文件失败
 				return;
 			}
             //记录切片时间
-            m_iDurations.push_back(stampInc);
+            _iDurations.push_back(stampInc);
 			if(removets()){
                 //删除老的时间戳
-                m_iDurations.pop_front();
+                _iDurations.pop_front();
             }
-			write_index_file(m_ui64TsCnt - m_ui32NumSegments, m_ui64TsCnt, 0);
+			write_index_file(_ui64TsCnt - _ui32NumSegments, _ui64TsCnt, 0);
 		}
 	case 1: //P
 			//insert aud frame before p and SPS frame
-		m_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, timeStamp * 90);
+		_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, timeStamp * 90);
 	case 5:		//IDR
 	case 8:		//PPS
-		m_ts.inputH264((char *) data, length, timeStamp * 90);
+		_ts.inputH264((char *) data, length, timeStamp * 90);
 		break;
 	default:
 		break;
@@ -171,15 +171,15 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp, int ty
 }
 
 void HLSMaker::inputAAC(void *data, uint32_t length, uint32_t timeStamp) {
-    m_ts.inputAAC((char *) data, length, timeStamp * 90);
+    _ts.inputAAC((char *) data, length, timeStamp * 90);
 }
 
 bool HLSMaker::removets() {
-	if (m_ui64TsCnt < m_ui32NumSegments + 2) {
+	if (_ui64TsCnt < _ui32NumSegments + 2) {
 		return false;
 	}
-	File::delete_file((StrPrinter << m_strOutputPrefix << "-"
-                                  << m_ui64TsCnt - m_ui32NumSegments - 2
+	File::delete_file((StrPrinter << _strOutputPrefix << "-"
+                                  << _ui64TsCnt - _ui32NumSegments - 2
                                   << ".ts" << endl).data());
     return true;
 }

@@ -39,7 +39,7 @@ private:
     void onGetH264(const H264Frame::Ptr &frame);
     H264Frame::Ptr obtainFrame();
 private:
-    H264Frame::Ptr m_h264frame;
+    H264Frame::Ptr _h264frame;
 };
 
 /**
@@ -71,7 +71,7 @@ public:
 private:
     void makeH264Rtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:
-    unsigned char m_aucSectionBuf[1600];
+    unsigned char _aucSectionBuf[1600];
 };
 
 

@@ -39,19 +39,19 @@ H264Encoder::H264Encoder() {
 
 H264Encoder::~H264Encoder() {
 	//* 清除图像区域
-	if (m_pPicIn) {
-		delete m_pPicIn;
-		m_pPicIn = nullptr;
+	if (_pPicIn) {
+		delete _pPicIn;
+		_pPicIn = nullptr;
 	}
-	if (m_pPicOut) {
-		delete m_pPicOut;
-		m_pPicOut = nullptr;
+	if (_pPicOut) {
+		delete _pPicOut;
+		_pPicOut = nullptr;
 	}
 
 	//* 关闭编码器句柄
-	if (m_pX264Handle) {
-		x264_encoder_close(m_pX264Handle);
-		m_pX264Handle = nullptr;
+	if (_pX264Handle) {
+		x264_encoder_close(_pX264Handle);
+		_pX264Handle = nullptr;
 	}
 }
 
@@ -229,7 +229,7 @@ Value的值就是fps。
 } x264_param_t;*/
 
 bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
-	if (m_pX264Handle) {
+	if (_pX264Handle) {
 		return true;
 	}
 	x264_param_t X264Param, *pX264Param = &X264Param;
@@ -307,43 +307,43 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
 
 	//* 打开编码器句柄,通过x264_encoder_parameters得到设置给X264
 	//* 的参数.通过x264_encoder_reconfig更新X264的参数
-	m_pX264Handle = x264_encoder_open(pX264Param);
-	if (!m_pX264Handle) {
+	_pX264Handle = x264_encoder_open(pX264Param);
+	if (!_pX264Handle) {
 		return false;
 	}
-	m_pPicIn = new x264_picture_t;
-	m_pPicOut = new x264_picture_t;
-	x264_picture_init(m_pPicIn);
-	x264_picture_init(m_pPicOut);
-	m_pPicIn->img.i_csp = X264_CSP_I420;
-	m_pPicIn->img.i_plane = 3;
+	_pPicIn = new x264_picture_t;
+	_pPicOut = new x264_picture_t;
+	x264_picture_init(_pPicIn);
+	x264_picture_init(_pPicOut);
+	_pPicIn->img.i_csp = X264_CSP_I420;
+	_pPicIn->img.i_plane = 3;
 	return true;
 }
 
 int H264Encoder::inputData(char* apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H264Frame** ppFrame) {
 	//TimeTicker1(5);
-	m_pPicIn->img.i_stride[0] = aiYuvLen[0];
-	m_pPicIn->img.i_stride[1] = aiYuvLen[1];
-	m_pPicIn->img.i_stride[2] = aiYuvLen[2];
-	m_pPicIn->img.plane[0] = (uint8_t *) apcYuv[0];
-	m_pPicIn->img.plane[1] = (uint8_t *) apcYuv[1];
-	m_pPicIn->img.plane[2] = (uint8_t *) apcYuv[2];
-	m_pPicIn->i_pts = i64Pts;
+	_pPicIn->img.i_stride[0] = aiYuvLen[0];
+	_pPicIn->img.i_stride[1] = aiYuvLen[1];
+	_pPicIn->img.i_stride[2] = aiYuvLen[2];
+	_pPicIn->img.plane[0] = (uint8_t *) apcYuv[0];
+	_pPicIn->img.plane[1] = (uint8_t *) apcYuv[1];
+	_pPicIn->img.plane[2] = (uint8_t *) apcYuv[2];
+	_pPicIn->i_pts = i64Pts;
 	int iNal;
 	x264_nal_t* pNals;
 
-	int iResult = x264_encoder_encode(m_pX264Handle, &pNals, &iNal, m_pPicIn,
-			m_pPicOut);
+	int iResult = x264_encoder_encode(_pX264Handle, &pNals, &iNal, _pPicIn,
+			_pPicOut);
 	if (iResult <= 0) {
 		return 0;
 	}
 	for (int i = 0; i < iNal; i++) {
 		x264_nal_t pNal = pNals[i];
-		m_aFrames[i].iType = pNal.i_type;
-		m_aFrames[i].iLength = pNal.i_payload;
-		m_aFrames[i].pucData = pNal.p_payload;
+		_aFrames[i].iType = pNal.i_type;
+		_aFrames[i].iLength = pNal.i_payload;
+		_aFrames[i].pucData = pNal.p_payload;
 	}
-	*ppFrame = m_aFrames;
+	*ppFrame = _aFrames;
 	return iNal;
 }
 

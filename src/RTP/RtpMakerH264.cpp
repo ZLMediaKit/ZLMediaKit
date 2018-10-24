@@ -39,7 +39,7 @@ void RtpMaker_H264::makeRtp(const char* pcData, int iLen, uint32_t uiStamp) {
     GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Config::Rtp::kCycleMS);
 
     uiStamp %= cycleMS;
-	int iSize = m_iMtuSize - 2;
+	int iSize = _iMtuSize - 2;
 	if (iLen > iSize) { //超过MTU
 		const unsigned char s_e_r_Start = 0x80;
 		const unsigned char s_e_r_Mid = 0x00;
@@ -81,20 +81,20 @@ void RtpMaker_H264::makeRtp(const char* pcData, int iLen, uint32_t uiStamp) {
 
 inline void RtpMaker_H264::makeH264Rtp(const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
 	uint16_t ui16RtpLen = len + 12;
-	m_ui32TimeStamp = (m_ui32SampleRate / 1000) * uiStamp;
-	uint32_t ts = htonl(m_ui32TimeStamp);
-	uint16_t sq = htons(m_ui16Sequence);
-	uint32_t sc = htonl(m_ui32Ssrc);
+	_ui32TimeStamp = (_ui32SampleRate / 1000) * uiStamp;
+	uint32_t ts = htonl(_ui32TimeStamp);
+	uint16_t sq = htons(_ui16Sequence);
+	uint32_t sc = htonl(_ui32Ssrc);
 
 	auto pRtppkt = obtainPkt();
 	auto &rtppkt = *(pRtppkt.get());
 	unsigned char *pucRtp = rtppkt.payload;
 	pucRtp[0] = '$';
-	pucRtp[1] = m_ui8Interleaved;
+	pucRtp[1] = _ui8Interleaved;
 	pucRtp[2] = ui16RtpLen >> 8;
 	pucRtp[3] = ui16RtpLen & 0x00FF;
 	pucRtp[4] = 0x80;
-	pucRtp[5] = (mark << 7) | m_ui8PlayloadType;
+	pucRtp[5] = (mark << 7) | _ui8PlayloadType;
 	memcpy(&pucRtp[6], &sq, 2);
 	memcpy(&pucRtp[8], &ts, 4);
 	//ssrc
@@ -102,19 +102,19 @@ inline void RtpMaker_H264::makeH264Rtp(const void* data, unsigned int len, bool 
 	//playload
 	memcpy(&pucRtp[16], data, len);
 
-	rtppkt.PT = m_ui8PlayloadType;
-	rtppkt.interleaved = m_ui8Interleaved;
+	rtppkt.PT = _ui8PlayloadType;
+	rtppkt.interleaved = _ui8Interleaved;
 	rtppkt.mark = mark;
 	rtppkt.length = len + 16;
-	rtppkt.sequence = m_ui16Sequence;
-	rtppkt.timeStamp = m_ui32TimeStamp;
-	rtppkt.ssrc = m_ui32Ssrc;
+	rtppkt.sequence = _ui16Sequence;
+	rtppkt.timeStamp = _ui32TimeStamp;
+	rtppkt.ssrc = _ui32Ssrc;
 	rtppkt.type = TrackVideo;
 	rtppkt.offset = 16;
 
 	uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
 	onMakeRtp(pRtppkt, type == 5);
-	m_ui16Sequence++;
+	_ui16Sequence++;
 	//InfoL<<timeStamp<<" "<<time<<" "<<sampleRate;
 }
 

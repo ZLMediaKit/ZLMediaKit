@@ -83,79 +83,79 @@ public:
 				break;
 			}
 			if (start == buf) {
-				m_strMethod = FindField(line.c_str(), NULL, " ");
-                m_strFullUrl = FindField(line.c_str(), " ", " ");
-				auto args_pos =  m_strFullUrl.find('?');
+				_strMethod = FindField(line.c_str(), NULL, " ");
+                _strFullUrl = FindField(line.c_str(), " ", " ");
+				auto args_pos =  _strFullUrl.find('?');
 				if(args_pos != string::npos){
-					m_strUrl = m_strFullUrl.substr(0,args_pos);
-					m_mapUrlArgs = parseArgs(m_strFullUrl.substr(args_pos + 1 ));
+					_strUrl = _strFullUrl.substr(0,args_pos);
+					_mapUrlArgs = parseArgs(_strFullUrl.substr(args_pos + 1 ));
 				}else{
-					m_strUrl = m_strFullUrl;
+					_strUrl = _strFullUrl;
 				}
-				m_strTail = FindField(line.c_str(), (m_strFullUrl + " ").c_str(), NULL);
+				_strTail = FindField(line.c_str(), (_strFullUrl + " ").c_str(), NULL);
 			} else {
 				auto field = FindField(line.c_str(), NULL, ": ");
 				auto value = FindField(line.c_str(), ": ", NULL);
 				if (field.size() != 0) {
-					m_mapHeaders[field] = value;
+					_mapHeaders[field] = value;
 				}
 			}
 			start = start + line.size() + 2;
 			if (strncmp(start, "\r\n", 2) == 0) { //协议解析完毕
-				m_strContent = FindField(start, "\r\n", NULL);
+				_strContent = FindField(start, "\r\n", NULL);
 				break;
 			}
 		}
 	}
 	const string& Method() const {
 		//rtsp方法
-		return m_strMethod;
+		return _strMethod;
 	}
 	const string& Url() const {
 		//rtsp url
-		return m_strUrl;
+		return _strUrl;
 	}
     const string& FullUrl() const {
         //rtsp url with args
-        return m_strFullUrl;
+        return _strFullUrl;
     }
 	const string& Tail() const {
 		//RTSP/1.0
-		return m_strTail;
+		return _strTail;
 	}
 	const string& operator[](const char *name) const {
 		//rtsp field
-		auto it = m_mapHeaders.find(name);
-		if (it == m_mapHeaders.end()) {
-			return m_strNull;
+		auto it = _mapHeaders.find(name);
+		if (it == _mapHeaders.end()) {
+			return _strNull;
 		}
 		return it->second;
 	}
 	const string& Content() const {
-		return m_strContent;
+		return _strContent;
 	}
 	void Clear() {
-		m_strMethod.clear();
-		m_strUrl.clear();
-        m_strFullUrl.clear();
-		m_strTail.clear();
-		m_strContent.clear();
-		m_mapHeaders.clear();
-		m_mapUrlArgs.clear();
+		_strMethod.clear();
+		_strUrl.clear();
+        _strFullUrl.clear();
+		_strTail.clear();
+		_strContent.clear();
+		_mapHeaders.clear();
+		_mapUrlArgs.clear();
 	}
 
 	void setUrl(const string& url) {
-		this->m_strUrl = url;
+		this->_strUrl = url;
 	}
 	void setContent(const string& content) {
-		this->m_strContent = content;
+		this->_strContent = content;
 	}
 
 	StrCaseMap& getValues() const {
-		return m_mapHeaders;
+		return _mapHeaders;
 	}
 	StrCaseMap& getUrlArgs() const {
-		return m_mapUrlArgs;
+		return _mapUrlArgs;
 	}
 
 	static StrCaseMap parseArgs(const string &str,const char *pair_delim = "&", const char *key_delim = "="){
@@ -170,14 +170,14 @@ public:
 	}
 
 private:
-	string m_strMethod;
-	string m_strUrl;
-	string m_strTail;
-	string m_strContent;
-	string m_strNull;
-    string m_strFullUrl;
-	mutable StrCaseMap m_mapHeaders;
-	mutable StrCaseMap m_mapUrlArgs;
+	string _strMethod;
+	string _strUrl;
+	string _strTail;
+	string _strContent;
+	string _strNull;
+    string _strFullUrl;
+	mutable StrCaseMap _mapHeaders;
+	mutable StrCaseMap _mapUrlArgs;
 };
 
 typedef struct {

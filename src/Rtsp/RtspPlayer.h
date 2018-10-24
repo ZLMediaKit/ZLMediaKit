@@ -101,45 +101,45 @@ private:
 	bool sendDescribe();
     bool sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
 private:
-	string m_strUrl;
-	unsigned int m_uiTrackCnt = 0;
-	RtspTrack m_aTrackInfo[2];
+	string _strUrl;
+	unsigned int _uiTrackCnt = 0;
+	RtspTrack _aTrackInfo[2];
 
-	function<void(const Parser&)> m_onHandshake;
-	RtspMediaSource::PoolType m_pktPool;
+	function<void(const Parser&)> _onHandshake;
+	RtspMediaSource::PoolType _pktPool;
 
-	uint8_t *m_pucRtpBuf = nullptr;
-	unsigned int m_uiRtpBufLen = 0;
-	Socket::Ptr m_apUdpSock[2];
+	uint8_t *_pucRtpBuf = nullptr;
+	unsigned int _uiRtpBufLen = 0;
+	Socket::Ptr _apUdpSock[2];
 	//rtsp info
-	string m_strSession;
-	unsigned int m_uiCseq = 1;
-	uint32_t m_aui32SsrcErrorCnt[2] = { 0, 0 };
-	string m_strContentBase;
-	eRtpType m_eType = RTP_TCP;
+	string _strSession;
+	unsigned int _uiCseq = 1;
+	uint32_t _aui32SsrcErrorCnt[2] = { 0, 0 };
+	string _strContentBase;
+	eRtpType _eType = RTP_TCP;
 	/* RTP包排序所用参数 */
-	uint16_t m_aui16LastSeq[2] = { 0 , 0 };
-	uint64_t m_aui64SeqOkCnt[2] = { 0 , 0};
-	bool m_abSortStarted[2] = { 0 , 0};
-	map<uint32_t , RtpPacket::Ptr> m_amapRtpSort[2];
+	uint16_t _aui16LastSeq[2] = { 0 , 0 };
+	uint64_t _aui64SeqOkCnt[2] = { 0 , 0};
+	bool _abSortStarted[2] = { 0 , 0};
+	map<uint32_t , RtpPacket::Ptr> _amapRtpSort[2];
 
 	/* 丢包率统计需要用到的参数 */
-	uint16_t m_aui16FirstSeq[2] = { 0 , 0};
-	uint16_t m_aui16NowSeq[2] = { 0 , 0 };
-	uint64_t m_aui64RtpRecv[2] = { 0 , 0};
+	uint16_t _aui16FirstSeq[2] = { 0 , 0};
+	uint16_t _aui16NowSeq[2] = { 0 , 0 };
+	uint64_t _aui64RtpRecv[2] = { 0 , 0};
 
 	//超时功能实现
-	Ticker m_rtpTicker;
-	std::shared_ptr<Timer> m_pPlayTimer;
-	std::shared_ptr<Timer> m_pRtpTimer;
+	Ticker _rtpTicker;
+	std::shared_ptr<Timer> _pPlayTimer;
+	std::shared_ptr<Timer> _pRtpTimer;
 	//心跳定时器
-	std::shared_ptr<Timer> m_pBeatTimer;
+	std::shared_ptr<Timer> _pBeatTimer;
     
     //播放进度控制
-    float m_fSeekTo = 0;
-    double m_adFistStamp[2] = {0,0};
-    double m_adNowStamp[2] = {0,0};
-    Ticker m_aNowStampTicker[2];
+    float _fSeekTo = 0;
+    double _adFistStamp[2] = {0,0};
+    double _adNowStamp[2] = {0,0};
+    Ticker _aNowStampTicker[2];
 };
 
 } /* namespace Rtsp */

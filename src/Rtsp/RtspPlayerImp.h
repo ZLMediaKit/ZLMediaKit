@@ -65,33 +65,33 @@ public:
 private:
 	//派生类回调函数
 	bool onCheckSDP(const string &sdp, const RtspTrack *track, int trackCnt) override {
-		m_pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(m_pMediaSrc);
-		if(m_pRtspMediaSrc){
-			m_pRtspMediaSrc->onGetSDP(sdp);
+		_pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
+		if(_pRtspMediaSrc){
+			_pRtspMediaSrc->onGetSDP(sdp);
 		}
 		try {
-			m_parser.reset(new RtpParser(sdp));
+			_parser.reset(new RtpParser(sdp));
 			//todo(xzl) 修复此处
-//			m_parser->setOnVideoCB(m_onGetVideoCB);
-//			m_parser->setOnAudioCB(m_onGetAudioCB);
+//			_parser->setOnVideoCB(_onGetVideoCB);
+//			_parser->setOnAudioCB(_onGetAudioCB);
 			return true;
 		} catch (std::exception &ex) {
 			WarnL << ex.what();
-			return m_pRtspMediaSrc ? true : false;
+			return _pRtspMediaSrc ? true : false;
 		}
 	}
 	void onRecvRTP(const RtpPacket::Ptr &rtppt, const RtspTrack &track) override {
-		if(m_parser){
-			m_parser->inputRtp(rtppt);
+		if(_parser){
+			_parser->inputRtp(rtppt);
 		}
 
-		if(m_pRtspMediaSrc){
-			m_pRtspMediaSrc->onGetRTP(rtppt,true);
+		if(_pRtspMediaSrc){
+			_pRtspMediaSrc->onGetRTP(rtppt,true);
 		}
 	}
 
 private:
-	RtspMediaSource::Ptr m_pRtspMediaSrc;
+	RtspMediaSource::Ptr _pRtspMediaSrc;
     
 };
 

@@ -101,16 +101,16 @@ protected:
         WebSocketSplitter::decode((uint8_t *)data,len);
     }
 private:
-	Parser m_parser;
-	string m_strPath;
-	Ticker m_ticker;
-	uint32_t m_iReqCnt = 0;
+	Parser _parser;
+	string _strPath;
+	Ticker _ticker;
+	uint32_t _iReqCnt = 0;
 	//消耗的总流量
-	uint64_t m_ui64TotalBytes = 0;
+	uint64_t _ui64TotalBytes = 0;
 	//flv over http
-    MediaInfo m_mediaInfo;
+    MediaInfo _mediaInfo;
     //处理content数据的callback
-	function<bool (const char *data,uint64_t len) > m_contentCallBack;
+	function<bool (const char *data,uint64_t len) > _contentCallBack;
 private:
 	inline bool Handle_Req_GET(int64_t &content_len);
 	inline bool Handle_Req_POST(int64_t &content_len);

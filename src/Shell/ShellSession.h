@@ -54,10 +54,10 @@ private:
 	inline void pleaseInputPasswd();
 	inline void printShellPrefix();
 
-	function<bool(const string &)> m_loginInterceptor;
-	string m_strRecvBuf;
-	Ticker m_beatTicker;
-	string m_strUserName;
+	function<bool(const string &)> _loginInterceptor;
+	string _strRecvBuf;
+	Ticker _beatTicker;
+	string _strUserName;
 };
 
 } /* namespace Shell */

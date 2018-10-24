@@ -77,16 +77,16 @@ MediaSource::Ptr MediaSource::find(
 bool MediaSource::regist() {
     //注册该源，注册后服务器才能找到该源
     lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-    auto pr = g_mapMediaSrc[m_strSchema][m_strVhost][m_strApp].emplace(m_strId,shared_from_this());
+    auto pr = g_mapMediaSrc[_strSchema][_strVhost][_strApp].emplace(_strId,shared_from_this());
     auto success = pr.second;
     if(success){
-        InfoL << m_strSchema << " " << m_strVhost << " " << m_strApp << " " << m_strId;
+        InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
                                            true,
-                                           m_strSchema,
-                                           m_strVhost,
-                                           m_strApp,
-                                           m_strId,
+                                           _strSchema,
+                                           _strVhost,
+                                           _strApp,
+                                           _strId,
                                            *this);
     }
     return success;
@@ -94,7 +94,7 @@ bool MediaSource::regist() {
 bool MediaSource::unregist() {
     //反注册该源
     lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-    return searchMedia(m_strSchema, m_strVhost, m_strApp, m_strId, [&](SchemaVhostAppStreamMap::iterator &it0 ,
+    return searchMedia(_strSchema, _strVhost, _strApp, _strId, [&](SchemaVhostAppStreamMap::iterator &it0 ,
                                                                        VhostAppStreamMap::iterator &it1,
                                                                        AppStreamMap::iterator &it2,
                                                                        StreamMap::iterator &it3){
@@ -110,13 +110,13 @@ bool MediaSource::unregist() {
     });
 }
 void MediaSource::unregisted(){
-    InfoL <<  "" <<  m_strSchema << " " << m_strVhost << " " << m_strApp << " " << m_strId;
+    InfoL <<  "" <<  _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
                                        false,
-                                       m_strSchema,
-                                       m_strVhost,
-                                       m_strApp,
-                                       m_strId,
+                                       _strSchema,
+                                       _strVhost,
+                                       _strApp,
+                                       _strId,
                                        *this);
 }
 
@@ -124,7 +124,7 @@ void MediaInfo::parse(const string &url){
     //string url = "rtsp://127.0.0.1:8554/live/id?key=val&a=1&&b=2&vhost=vhost.com";
     auto schema_pos = url.find("://");
     if(schema_pos != string::npos){
-        m_schema = url.substr(0,schema_pos);
+        _schema = url.substr(0,schema_pos);
     }else{
         schema_pos = -3;
     }
@@ -133,14 +133,14 @@ void MediaInfo::parse(const string &url){
         auto vhost = split_vec[0];
         auto pos = vhost.find(":");
         if(pos != string::npos){
-            m_host = m_vhost = vhost.substr(0,pos);
-            m_port = vhost.substr(pos + 1);
+            _host = _vhost = vhost.substr(0,pos);
+            _port = vhost.substr(pos + 1);
         } else{
-            m_host = m_vhost = vhost;
+            _host = _vhost = vhost;
         }
     }
     if(split_vec.size() > 1){
-        m_app = split_vec[1];
+        _app = split_vec[1];
     }
     if(split_vec.size() > 2){
         string steamid;
@@ -152,23 +152,23 @@ void MediaInfo::parse(const string &url){
         }
         auto pos = steamid.find("?");
         if(pos != string::npos){
-            m_streamid = steamid.substr(0,pos);
-            m_param_strs = steamid.substr(pos + 1);
-            m_params = Parser::parseArgs(m_param_strs);
-            if(m_params.find(VHOST_KEY) != m_params.end()){
-                m_vhost = m_params[VHOST_KEY];
+            _streamid = steamid.substr(0,pos);
+            _para_strs = steamid.substr(pos + 1);
+            _params = Parser::parseArgs(_para_strs);
+            if(_params.find(VHOST_KEY) != _params.end()){
+                _vhost = _params[VHOST_KEY];
             }
         } else{
-            m_streamid = steamid;
+            _streamid = steamid;
         }
     }
-    if(m_vhost.empty()){
+    if(_vhost.empty()){
         //无效vhost
-        m_vhost = DEFAULT_VHOST;
+        _vhost = DEFAULT_VHOST;
     }else{
-        if(INADDR_NONE != inet_addr(m_vhost.data())){
+        if(INADDR_NONE != inet_addr(_vhost.data())){
             //这是ip,未指定vhost;使用默认vhost
-            m_vhost = DEFAULT_VHOST;
+            _vhost = DEFAULT_VHOST;
         }
     }
 }

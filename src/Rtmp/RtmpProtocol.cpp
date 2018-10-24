@@ -76,7 +76,7 @@ namespace ZL {
 namespace Rtmp {
 
 RtmpProtocol::RtmpProtocol() {
-	m_nextHandle = [this](){
+	_nextHandle = [this](){
 		handle_C0C1();
 	};
 }
@@ -85,25 +85,25 @@ RtmpProtocol::~RtmpProtocol() {
 }
 void RtmpProtocol::reset() {
 	////////////ChunkSize////////////
-	m_iChunkLenIn = DEFAULT_CHUNK_LEN;
-	m_iChunkLenOut = DEFAULT_CHUNK_LEN;
+	_iChunkLenIn = DEFAULT_CHUNK_LEN;
+	_iChunkLenOut = DEFAULT_CHUNK_LEN;
 	////////////Acknowledgement////////////
-	m_ui32ByteSent = 0;
-	m_ui32LastSent = 0;
-	m_ui32WinSize = 0;
+	_ui32ByteSent = 0;
+	_ui32LastSent = 0;
+	_ui32WinSize = 0;
 	///////////PeerBandwidth///////////
-	m_ui32Bandwidth = 2500000;
-	m_ui8LimitType = 2;
+	_ui32Bandwidth = 2500000;
+	_ui8LimitType = 2;
 	////////////Chunk////////////
-	m_mapChunkData.clear();
-	m_iNowStreamID = 0;
-	m_iNowChunkID = 0;
+	_mapChunkData.clear();
+	_iNowStreamID = 0;
+	_iNowChunkID = 0;
 	//////////Invoke Request//////////
-	m_iReqID = 0;
+	_iReqID = 0;
 	//////////Rtmp parser//////////
-	m_strRcvBuf.clear();
-	m_ui32StreamId = STREAM_CONTROL;
-	m_nextHandle = [this]() {
+	_strRcvBuf.clear();
+	_ui32StreamId = STREAM_CONTROL;
+	_nextHandle = [this]() {
 		handle_C0C1();
 	};
 }
@@ -132,7 +132,7 @@ void RtmpProtocol::sendChunkSize(uint32_t ui32Size) {
 	uint32_t len = htonl(ui32Size);
 	std::string set_chunk((char *) &len, 4);
 	sendRequest(MSG_SET_CHUNK, set_chunk);
-	m_iChunkLenOut = ui32Size;
+	_iChunkLenOut = ui32Size;
 }
 
 void RtmpProtocol::sendPingRequest(uint32_t ui32TimeStamp) {
@@ -173,20 +173,20 @@ void RtmpProtocol::sendUserControl(uint16_t ui16EventType,
 }
 
 void RtmpProtocol::sendResponse(int iType, const string& str) {
-	if(!m_bDataStarted && (iType == MSG_DATA)){
-		m_bDataStarted =  true;
+	if(!_bDataStarted && (iType == MSG_DATA)){
+		_bDataStarted =  true;
 	}
-	sendRtmp(iType, m_iNowStreamID, str, 0, m_bDataStarted ? CHUNK_CLIENT_REQUEST_AFTER : CHUNK_CLIENT_REQUEST_BEFORE);
+	sendRtmp(iType, _iNowStreamID, str, 0, _bDataStarted ? CHUNK_CLIENT_REQUEST_AFTER : CHUNK_CLIENT_REQUEST_BEFORE);
 }
 
 void RtmpProtocol::sendInvoke(const string& strCmd, const AMFValue& val) {
 	AMFEncoder enc;
-	enc << strCmd << ++m_iReqID << val;
+	enc << strCmd << ++_iReqID << val;
 	sendRequest(MSG_CMD, enc.data());
 }
 
 void RtmpProtocol::sendRequest(int iCmd, const string& str) {
-	sendRtmp(iCmd, m_ui32StreamId, str, 0, CHUNK_SERVER_REQUEST);
+	sendRtmp(iCmd, _ui32StreamId, str, 0, CHUNK_SERVER_REQUEST);
 }
 
 void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
@@ -205,7 +205,7 @@ void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
 	set_le32(header.streamId, ui32StreamId);
 
 	//估算rtmp包数据大小
-	uint32_t capacity = ((bExtStamp ? 5 : 1) * (1 + (strBuf.size() / m_iChunkLenOut))) + strBuf.size() + sizeof(header);
+	uint32_t capacity = ((bExtStamp ? 5 : 1) * (1 + (strBuf.size() / _iChunkLenOut))) + strBuf.size() + sizeof(header);
 	uint32_t totalSize = 0;
 	BufferRaw::Ptr buffer = obtainBuffer();
 	buffer->setCapacity(capacity);
@@ -229,23 +229,23 @@ void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
 			memcpy(buffer->data() + totalSize,acExtStamp, 4);
 			totalSize += 4;
 		}
-		size_t chunk = min(m_iChunkLenOut, strBuf.size() - pos);
+		size_t chunk = min(_iChunkLenOut, strBuf.size() - pos);
 		memcpy(buffer->data() + totalSize,strBuf.data() + pos, chunk);
 		totalSize += chunk;
 		pos += chunk;
 	}
     buffer->setSize(totalSize);
 	onSendRawData(buffer);
-	m_ui32ByteSent += totalSize;
-	if (m_ui32WinSize > 0 && m_ui32ByteSent - m_ui32LastSent >= m_ui32WinSize) {
-		m_ui32LastSent = m_ui32ByteSent;
-		sendAcknowledgement(m_ui32ByteSent);
+	_ui32ByteSent += totalSize;
+	if (_ui32WinSize > 0 && _ui32ByteSent - _ui32LastSent >= _ui32WinSize) {
+		_ui32LastSent = _ui32ByteSent;
+		sendAcknowledgement(_ui32ByteSent);
 	}
 }
 
 void RtmpProtocol::onParseRtmp(const char *pcRawData, int iSize) {
-	m_strRcvBuf.append(pcRawData, iSize);
-	auto cb = m_nextHandle;
+	_strRcvBuf.append(pcRawData, iSize);
+	auto cb = _nextHandle;
 	cb();
 }
 
@@ -256,25 +256,25 @@ void RtmpProtocol::startClientSession(const function<void()> &callBack) {
 	onSendRawData(obtainBuffer(&handshake_head, 1));
 	RtmpHandshake c1(0);
 	onSendRawData(obtainBuffer((char *) (&c1), sizeof(c1)));
-	m_nextHandle = [this,callBack]() {
+	_nextHandle = [this,callBack]() {
 		//等待 S0+S1+S2
 		handle_S0S1S2(callBack);
 	};
 }
 void RtmpProtocol::handle_S0S1S2(const function<void()> &callBack) {
-	if (m_strRcvBuf.size() < 1 + 2 * C1_HANDSHARK_SIZE) {
+	if (_strRcvBuf.size() < 1 + 2 * C1_HANDSHARK_SIZE) {
 		//数据不够
 		return;
 	}
-	if (m_strRcvBuf[0] != HANDSHAKE_PLAINTEXT) {
+	if (_strRcvBuf[0] != HANDSHAKE_PLAINTEXT) {
 		throw std::runtime_error("only plaintext[0x03] handshake supported");
 	}
 	//发送 C2
-	const char *pcC2 = m_strRcvBuf.data() + 1;
+	const char *pcC2 = _strRcvBuf.data() + 1;
 	onSendRawData(obtainBuffer(pcC2, C1_HANDSHARK_SIZE));
-	m_strRcvBuf.erase(0, 1 + 2 * C1_HANDSHARK_SIZE);
+	_strRcvBuf.erase(0, 1 + 2 * C1_HANDSHARK_SIZE);
 	//握手结束
-	m_nextHandle = [this]() {
+	_nextHandle = [this]() {
 		//握手结束并且开始进入解析命令模式
 		handle_rtmp();
 	};
@@ -282,14 +282,14 @@ void RtmpProtocol::handle_S0S1S2(const function<void()> &callBack) {
 }
 ////for server ////
 void RtmpProtocol::handle_C0C1() {
-	if (m_strRcvBuf.size() < 1 + C1_HANDSHARK_SIZE) {
+	if (_strRcvBuf.size() < 1 + C1_HANDSHARK_SIZE) {
 		//need more data!
 		return;
 	}
-	if (m_strRcvBuf[0] != HANDSHAKE_PLAINTEXT) {
+	if (_strRcvBuf[0] != HANDSHAKE_PLAINTEXT) {
 		throw std::runtime_error("only plaintext[0x03] handshake supported");
 	}
-	if(memcmp(m_strRcvBuf.c_str() + 5,"\x00\x00\x00\x00",4) ==0 ){
+	if(memcmp(_strRcvBuf.c_str() + 5,"\x00\x00\x00\x00",4) ==0 ){
 		//simple handsharke
 		handle_C1_simple();
 	}else{
@@ -301,7 +301,7 @@ void RtmpProtocol::handle_C0C1() {
 		handle_C1_simple();
 #endif//ENABLE_OPENSSL
 	}
-	m_strRcvBuf.erase(0, 1 + C1_HANDSHARK_SIZE);
+	_strRcvBuf.erase(0, 1 + C1_HANDSHARK_SIZE);
 }
 void RtmpProtocol::handle_C1_simple(){
 	//发送S0
@@ -311,9 +311,9 @@ void RtmpProtocol::handle_C1_simple(){
 	RtmpHandshake s1(0);
 	onSendRawData(obtainBuffer((char *) &s1, C1_HANDSHARK_SIZE));
 	//发送S2
-	onSendRawData(obtainBuffer(m_strRcvBuf.c_str() + 1, C1_HANDSHARK_SIZE));
+	onSendRawData(obtainBuffer(_strRcvBuf.c_str() + 1, C1_HANDSHARK_SIZE));
 	//等待C2
-	m_nextHandle = [this]() {
+	_nextHandle = [this]() {
 		handle_C2();
 	};
 }
@@ -321,7 +321,7 @@ void RtmpProtocol::handle_C1_simple(){
 void RtmpProtocol::handle_C1_complex(){
 	//参考自:http://blog.csdn.net/win_lin/article/details/13006803
 	//skip c0,time,version
-	const char *c1_start = m_strRcvBuf.data() + 1;
+	const char *c1_start = _strRcvBuf.data() + 1;
 	const char *schema_start = c1_start + 8;
 	char *digest_start;
 	try{
@@ -470,57 +470,57 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
 	memcpy((char *)&s2 + C1_HANDSHARK_SIZE - C1_DIGEST_SIZE,s2_digest.data(),C1_DIGEST_SIZE);
 	onSendRawData(obtainBuffer((char *)&s2, sizeof(s2)));
 	//等待C2
-	m_nextHandle = [this]() {
+	_nextHandle = [this]() {
 		handle_C2();
 	};
 }
 #endif //ENABLE_OPENSSL
 void RtmpProtocol::handle_C2() {
-	if (m_strRcvBuf.size() < C1_HANDSHARK_SIZE) {
+	if (_strRcvBuf.size() < C1_HANDSHARK_SIZE) {
 		//need more data!
 		return;
 	}
-	m_strRcvBuf.erase(0, C1_HANDSHARK_SIZE);
+	_strRcvBuf.erase(0, C1_HANDSHARK_SIZE);
 	//握手结束，进入命令模式
-	if (!m_strRcvBuf.empty()) {
+	if (!_strRcvBuf.empty()) {
 		handle_rtmp();
 	}
-	m_nextHandle = [this]() {
+	_nextHandle = [this]() {
 		handle_rtmp();
 	};
 }
 
 void RtmpProtocol::handle_rtmp() {
-	while (!m_strRcvBuf.empty()) {
-		uint8_t flags = m_strRcvBuf[0];
+	while (!_strRcvBuf.empty()) {
+		uint8_t flags = _strRcvBuf[0];
 		int iOffset = 0;
 		static const size_t HEADER_LENGTH[] = { 12, 8, 4, 1 };
 		size_t iHeaderLen = HEADER_LENGTH[flags >> 6];
-		m_iNowChunkID = flags & 0x3f;
-        if(m_iNowChunkID >10){
+		_iNowChunkID = flags & 0x3f;
+        if(_iNowChunkID >10){
             int i=0;
             i++;
         }
-		switch (m_iNowChunkID) {
+		switch (_iNowChunkID) {
 		case 0: {
 			//0 值表示二字节形式，并且 ID 范围 64 - 319
 			//(第二个字节 + 64)。
-			if (m_strRcvBuf.size() < 2) {
+			if (_strRcvBuf.size() < 2) {
 				//need more data
 				return;
 			}
-			m_iNowChunkID = 64 + (uint8_t) (m_strRcvBuf[1]);
+			_iNowChunkID = 64 + (uint8_t) (_strRcvBuf[1]);
 			iOffset = 1;
 		}
 			break;
 		case 1: {
 			//1 值表示三字节形式，并且 ID 范围为 64 - 65599
 			//((第三个字节) * 256 + 第二个字节 + 64)。
-			if (m_strRcvBuf.size() < 3) {
+			if (_strRcvBuf.size() < 3) {
 				//need more data
 				return;
 			}
-			m_iNowChunkID = 64 + ((uint8_t) (m_strRcvBuf[2]) << 8) + (uint8_t) (m_strRcvBuf[1]);
+			_iNowChunkID = 64 + ((uint8_t) (_strRcvBuf[2]) << 8) + (uint8_t) (_strRcvBuf[1]);
 			iOffset = 2;
 		}
 			break;
@@ -529,13 +529,13 @@ void RtmpProtocol::handle_rtmp() {
 			break;
 		}
 
-		if (m_strRcvBuf.size() < iHeaderLen + iOffset) {
+		if (_strRcvBuf.size() < iHeaderLen + iOffset) {
 			//need more data
 			return;
 		}
-		RtmpHeader &header = *((RtmpHeader *) (m_strRcvBuf.data() + iOffset));
-		auto &chunkData = m_mapChunkData[m_iNowChunkID];
-		chunkData.chunkId = m_iNowChunkID;
+		RtmpHeader &header = *((RtmpHeader *) (_strRcvBuf.data() + iOffset));
+		auto &chunkData = _mapChunkData[_iNowChunkID];
+		chunkData.chunkId = _iNowChunkID;
 		switch (iHeaderLen) {
 		case 12:
             chunkData.hasAbsStamp = true;
@@ -549,11 +549,11 @@ void RtmpProtocol::handle_rtmp() {
 		}
 		
         if (chunkData.hasExtStamp) {
-			if (m_strRcvBuf.size() < iHeaderLen + iOffset + 4) {
+			if (_strRcvBuf.size() < iHeaderLen + iOffset + 4) {
 				//need more data
 				return;
 			}
-            chunkData.deltaStamp = load_be32(m_strRcvBuf.data() + iOffset + iHeaderLen);
+            chunkData.deltaStamp = load_be32(_strRcvBuf.data() + iOffset + iHeaderLen);
 			iOffset += 4;
 		}
 		
@@ -561,18 +561,18 @@ void RtmpProtocol::handle_rtmp() {
 			throw std::runtime_error("非法的bodySize");
 		}
         
-		auto iMore = min(m_iChunkLenIn, chunkData.bodySize - chunkData.strBuf.size());
-		if (m_strRcvBuf.size() < iHeaderLen + iOffset + iMore) {
+		auto iMore = min(_iChunkLenIn, chunkData.bodySize - chunkData.strBuf.size());
+		if (_strRcvBuf.size() < iHeaderLen + iOffset + iMore) {
 			//need more data
 			return;
 		}
 		
-        chunkData.strBuf.append(m_strRcvBuf, iHeaderLen + iOffset, iMore);
-		m_strRcvBuf.erase(0, iHeaderLen + iOffset + iMore);
+        chunkData.strBuf.append(_strRcvBuf, iHeaderLen + iOffset, iMore);
+		_strRcvBuf.erase(0, iHeaderLen + iOffset + iMore);
         
 		if (chunkData.strBuf.size() == chunkData.bodySize) {
             //frame is ready
-            m_iNowStreamID = chunkData.streamId;
+            _iNowStreamID = chunkData.streamId;
             chunkData.timeStamp = chunkData.deltaStamp + (chunkData.hasAbsStamp ? 0 : chunkData.timeStamp);
             
 			if(chunkData.bodySize){
@@ -600,8 +600,8 @@ void RtmpProtocol::handle_rtmpChunk(RtmpPacket& chunkData) {
 			if (chunkData.strBuf.size() < 4) {
 				throw std::runtime_error("MSG_SET_CHUNK :Not enough data");
 			}
-			m_iChunkLenIn = load_be32(&chunkData.strBuf[0]);
-			TraceL << "MSG_SET_CHUNK:" << m_iChunkLenIn;
+			_iChunkLenIn = load_be32(&chunkData.strBuf[0]);
+			TraceL << "MSG_SET_CHUNK:" << _iChunkLenIn;
 		}
 			break;
 		case MSG_USER_CONTROL: {
@@ -668,14 +668,14 @@ void RtmpProtocol::handle_rtmpChunk(RtmpPacket& chunkData) {
 			break;
 
 		case MSG_WIN_SIZE: {
-			m_ui32WinSize = load_be32(&chunkData.strBuf[0]);
-			TraceL << "MSG_WIN_SIZE:" << m_ui32WinSize;
+			_ui32WinSize = load_be32(&chunkData.strBuf[0]);
+			TraceL << "MSG_WIN_SIZE:" << _ui32WinSize;
 		}
 			break;
 		case MSG_SET_PEER_BW: {
-			m_ui32Bandwidth = load_be32(&chunkData.strBuf[0]);
-			m_ui8LimitType =  chunkData.strBuf[4];
-			TraceL << "MSG_SET_PEER_BW:" << m_ui32WinSize;
+			_ui32Bandwidth = load_be32(&chunkData.strBuf[0]);
+			_ui8LimitType =  chunkData.strBuf[4];
+			TraceL << "MSG_SET_PEER_BW:" << _ui32WinSize;
 		}
 			break;
 		case MSG_AGGREGATE:

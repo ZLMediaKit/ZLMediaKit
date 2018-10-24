@@ -41,21 +41,21 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 
     auto strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
 
-	m_hMP4File = MP4Read(strFileName.data());
-	if(m_hMP4File == MP4_INVALID_FILE_HANDLE){
+	_hMP4File = MP4Read(strFileName.data());
+	if(_hMP4File == MP4_INVALID_FILE_HANDLE){
 		throw runtime_error(StrPrinter << "打开MP4文件失败:" << strFileName << endl);
 	}
-	m_video_trId = MP4FindTrackId(m_hMP4File, 0, MP4_VIDEO_TRACK_TYPE, 0);
-	if(m_video_trId != MP4_INVALID_TRACK_ID){
-		 if(strcmp(MP4GetTrackMediaDataName(m_hMP4File, m_video_trId),"avc1") ==0){
-			auto m_video_timescale 		= MP4GetTrackTimeScale(m_hMP4File, m_video_trId);
-			auto m_video_duration 		= MP4GetTrackDuration(m_hMP4File, m_video_trId);
-			m_video_num_samples     = MP4GetTrackNumberOfSamples(m_hMP4File, m_video_trId);
-			m_video_sample_max_size = MP4GetTrackMaxSampleSize(m_hMP4File, m_video_trId);
-			m_video_width 			= MP4GetTrackVideoWidth(m_hMP4File, m_video_trId);
-			m_video_height 			= MP4GetTrackVideoHeight(m_hMP4File, m_video_trId);
-			m_video_framerate       = MP4GetTrackVideoFrameRate(m_hMP4File, m_video_trId);
-			m_pcVideoSample = std::shared_ptr<uint8_t> (new uint8_t[m_video_sample_max_size],[](uint8_t *ptr){
+	_video_trId = MP4FindTrackId(_hMP4File, 0, MP4_VIDEO_TRACK_TYPE, 0);
+	if(_video_trId != MP4_INVALID_TRACK_ID){
+		 if(strcmp(MP4GetTrackMediaDataName(_hMP4File, _video_trId),"avc1") ==0){
+			auto _video_timescale 		= MP4GetTrackTimeScale(_hMP4File, _video_trId);
+			auto _video_duration 		= MP4GetTrackDuration(_hMP4File, _video_trId);
+			_video_num_samples     = MP4GetTrackNumberOfSamples(_hMP4File, _video_trId);
+			_video_sample_max_size = MP4GetTrackMaxSampleSize(_hMP4File, _video_trId);
+			_video_width 			= MP4GetTrackVideoWidth(_hMP4File, _video_trId);
+			_video_height 			= MP4GetTrackVideoHeight(_hMP4File, _video_trId);
+			_video_framerate       = MP4GetTrackVideoFrameRate(_hMP4File, _video_trId);
+			_pcVideoSample = std::shared_ptr<uint8_t> (new uint8_t[_video_sample_max_size],[](uint8_t *ptr){
 				delete [] ptr;
 			});
 			uint8_t **seqheader;
@@ -63,106 +63,106 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 			uint32_t *pictheadersize;
 			uint32_t *seqheadersize;
 			uint32_t ix;
-			if(MP4GetTrackH264SeqPictHeaders(m_hMP4File, m_video_trId, &seqheader, &seqheadersize, &pictheader, &pictheadersize)){
+			if(MP4GetTrackH264SeqPictHeaders(_hMP4File, _video_trId, &seqheader, &seqheadersize, &pictheader, &pictheadersize)){
 				for (ix = 0; seqheadersize[ix] != 0; ix++) {
-					m_strSps.assign((char *)(seqheader[ix]), seqheadersize[ix]);
+					_strSps.assign((char *)(seqheader[ix]), seqheadersize[ix]);
 					float framerate;
-					getAVCInfo(m_strSps, (int &)m_video_width, (int &)m_video_height, framerate);
-					m_video_framerate = framerate;
-					m_strSps = string("\x0\x0\x0\x1",4) + m_strSps;
+					getAVCInfo(_strSps, (int &)_video_width, (int &)_video_height, framerate);
+					_video_framerate = framerate;
+					_strSps = string("\x0\x0\x0\x1",4) + _strSps;
 					MP4Free(seqheader[ix]);
 				}
 				MP4Free(seqheader);
 				MP4Free(seqheadersize);
 				for (ix = 0; pictheadersize[ix] != 0; ix++) {
-					m_strPps.assign("\x0\x0\x0\x1",4);
-					m_strPps.append((char *)(pictheader[ix]), pictheadersize[ix]);
+					_strPps.assign("\x0\x0\x0\x1",4);
+					_strPps.append((char *)(pictheader[ix]), pictheadersize[ix]);
 					MP4Free(pictheader[ix]);
 				}
 				MP4Free(pictheader);
 				MP4Free(pictheadersize);
 			}
-			m_video_ms = 1000.0 * m_video_duration / m_video_timescale;
+			_video_ms = 1000.0 * _video_duration / _video_timescale;
 			/*InfoL 	<< "\r\n"
-					<< m_video_ms << "\r\n"
-					<< m_video_num_samples << "\r\n"
-					<< m_video_framerate << "\r\n"
-					<< m_video_width << "\r\n"
-					<< m_video_height << "\r\n";*/
+					<< _video_ms << "\r\n"
+					<< _video_num_samples << "\r\n"
+					<< _video_framerate << "\r\n"
+					<< _video_width << "\r\n"
+					<< _video_height << "\r\n";*/
 		} else {
 			//如果不是h264，则忽略
-			m_video_trId = MP4_INVALID_TRACK_ID;
+			_video_trId = MP4_INVALID_TRACK_ID;
 		}
 	}
 
 
-	m_audio_trId = MP4FindTrackId(m_hMP4File, 0, MP4_AUDIO_TRACK_TYPE, 0);
-	if (m_audio_trId != MP4_INVALID_TRACK_ID) {
-		if (strcmp(MP4GetTrackMediaDataName(m_hMP4File, m_audio_trId), "mp4a") == 0) {
-			m_audio_sample_rate = MP4GetTrackTimeScale(m_hMP4File, m_audio_trId);
-			auto m_audio_duration = MP4GetTrackDuration(m_hMP4File, m_audio_trId);
-			m_audio_num_samples = MP4GetTrackNumberOfSamples(m_hMP4File,m_audio_trId);
-			m_audio_num_channels = MP4GetTrackAudioChannels(m_hMP4File, m_audio_trId);
-			m_audio_sample_max_size = MP4GetTrackMaxSampleSize(m_hMP4File,m_audio_trId);
+	_audio_trId = MP4FindTrackId(_hMP4File, 0, MP4_AUDIO_TRACK_TYPE, 0);
+	if (_audio_trId != MP4_INVALID_TRACK_ID) {
+		if (strcmp(MP4GetTrackMediaDataName(_hMP4File, _audio_trId), "mp4a") == 0) {
+			_audio_sample_rate = MP4GetTrackTimeScale(_hMP4File, _audio_trId);
+			auto _audio_duration = MP4GetTrackDuration(_hMP4File, _audio_trId);
+			_audio_num_samples = MP4GetTrackNumberOfSamples(_hMP4File,_audio_trId);
+			_audio_num_channels = MP4GetTrackAudioChannels(_hMP4File, _audio_trId);
+			_audio_sample_max_size = MP4GetTrackMaxSampleSize(_hMP4File,_audio_trId);
 			uint8_t *ppConfig;
 			uint32_t pConfigSize;
-			if(MP4GetTrackESConfiguration(m_hMP4File,m_audio_trId,&ppConfig,&pConfigSize)){
-				m_strAacCfg.assign((char *)ppConfig, pConfigSize);
-				makeAdtsHeader(m_strAacCfg, m_adts);
-				writeAdtsHeader(m_adts,m_adts.buffer);
-				getAACInfo(m_adts, (int &)m_audio_sample_rate, (int &)m_audio_num_channels);
+			if(MP4GetTrackESConfiguration(_hMP4File,_audio_trId,&ppConfig,&pConfigSize)){
+				_strAacCfg.assign((char *)ppConfig, pConfigSize);
+				makeAdtsHeader(_strAacCfg, _adts);
+				writeAdtsHeader(_adts,_adts.buffer);
+				getAACInfo(_adts, (int &)_audio_sample_rate, (int &)_audio_num_channels);
 				MP4Free(ppConfig);
 			}
-			m_audio_ms = 1000.0 * m_audio_duration / m_audio_sample_rate;
+			_audio_ms = 1000.0 * _audio_duration / _audio_sample_rate;
 			/*InfoL 	<< "\r\n"
-					<< m_audio_ms << "\r\n"
-					<< m_audio_num_samples << "\r\n"
-					<< m_audio_num_channels << "\r\n"
-					<< m_audio_sample_rate << "\r\n";*/
+					<< _audio_ms << "\r\n"
+					<< _audio_num_samples << "\r\n"
+					<< _audio_num_channels << "\r\n"
+					<< _audio_sample_rate << "\r\n";*/
 		}else{
-			m_audio_trId = MP4_INVALID_TRACK_ID;
+			_audio_trId = MP4_INVALID_TRACK_ID;
 		}
 	}
-	if(m_audio_trId == MP4_INVALID_TRACK_ID && m_video_trId == MP4_INVALID_TRACK_ID){
-		MP4Close(m_hMP4File);
-		m_hMP4File = MP4_INVALID_FILE_HANDLE;
+	if(_audio_trId == MP4_INVALID_TRACK_ID && _video_trId == MP4_INVALID_TRACK_ID){
+		MP4Close(_hMP4File);
+		_hMP4File = MP4_INVALID_FILE_HANDLE;
 		throw runtime_error(StrPrinter << "该MP4文件音视频格式不支持:" << strFileName << endl);
 	}
 
-	m_iDuration	= MAX(m_video_ms,m_audio_ms);
-	m_pChn.reset(new DevChannel(strVhost.data(),strApp.data(),strId.data(),m_iDuration/1000.0,false, false));
-	if (m_audio_trId != MP4_INVALID_TRACK_ID) {
+	_iDuration	= MAX(_video_ms,_audio_ms);
+	_pChn.reset(new DevChannel(strVhost.data(),strApp.data(),strId.data(),_iDuration/1000.0,false, false));
+	if (_audio_trId != MP4_INVALID_TRACK_ID) {
 		AudioInfo info;
-		info.iChannel = m_audio_num_channels;
+		info.iChannel = _audio_num_channels;
 		info.iSampleBit = 16;
-		info.iSampleRate = m_audio_sample_rate;
-		m_pChn->initAudio(info);
+		info.iSampleRate = _audio_sample_rate;
+		_pChn->initAudio(info);
 	}
 
-	if (m_video_trId != MP4_INVALID_TRACK_ID) {
+	if (_video_trId != MP4_INVALID_TRACK_ID) {
 		VideoInfo info;
-		info.iFrameRate = m_video_framerate;
-		info.iWidth = m_video_width;
-		info.iHeight = m_video_height;
-		m_pChn->initVideo(info);
+		info.iFrameRate = _video_framerate;
+		info.iWidth = _video_width;
+		info.iHeight = _video_height;
+		_pChn->initVideo(info);
 	}
 
-	if (m_audio_trId != MP4_INVALID_TRACK_ID) {
-		m_pChn->inputAAC((char *)m_adts.buffer, 7, 0);
+	if (_audio_trId != MP4_INVALID_TRACK_ID) {
+		_pChn->inputAAC((char *)_adts.buffer, 7, 0);
 	}
 
-	if (m_video_trId != MP4_INVALID_TRACK_ID) {
-		//m_pChn->initVideo(info);
-		m_pChn->inputH264((char *) m_strSps.data(), m_strSps.size(), 0);
-		m_pChn->inputH264((char *) m_strPps.data(), m_strPps.size(), 0);
+	if (_video_trId != MP4_INVALID_TRACK_ID) {
+		//_pChn->initVideo(info);
+		_pChn->inputH264((char *) _strSps.data(), _strSps.size(), 0);
+		_pChn->inputH264((char *) _strPps.data(), _strPps.size(), 0);
 	}
 }
 
 
 MediaReader::~MediaReader() {
-	if (m_hMP4File != MP4_INVALID_FILE_HANDLE) {
-		MP4Close(m_hMP4File);
-		m_hMP4File = MP4_INVALID_FILE_HANDLE;
+	if (_hMP4File != MP4_INVALID_FILE_HANDLE) {
+		MP4Close(_hMP4File);
+		_hMP4File = MP4_INVALID_FILE_HANDLE;
 	}
 }
 
@@ -174,14 +174,14 @@ void MediaReader::startReadMP4() {
     AsyncTaskThread::Instance().DoTaskDelay(reinterpret_cast<uint64_t>(this), sampleMS, [strongSelf](){
 		return strongSelf->readSample();
 	});
-	m_pChn->setListener(strongSelf);
+	_pChn->setListener(strongSelf);
 }
  bool MediaReader::seekTo(uint32_t ui32Stamp){
 	 seek(ui32Stamp);
 	 return true;
 }
 uint32_t MediaReader::getStamp() {
-	 return m_iSeekTime + m_ticker.elapsedTime();
+	 return _iSeekTime + _ticker.elapsedTime();
 }
 bool MediaReader::shutDown(){
     AsyncTaskThread::Instance().CancelTask(reinterpret_cast<uint64_t>(this));
@@ -190,25 +190,25 @@ bool MediaReader::shutDown(){
 
 bool MediaReader::readSample(int iTimeInc) {
 	TimeTicker();
-	lock_guard<recursive_mutex> lck(m_mtx);
+	lock_guard<recursive_mutex> lck(_mtx);
 	auto bFlag0 = readVideoSample(iTimeInc);//数据没读完
 	auto bFlag1 = readAudioSample(iTimeInc);//数据没读完
-	auto bFlag2 = m_pChn->readerCount() > 0;//读取者大于0
+	auto bFlag2 = _pChn->readerCount() > 0;//读取者大于0
 	if((bFlag0 || bFlag1) && bFlag2){
-		m_alive.resetTime();
+		_alive.resetTime();
 	}
 	//DebugL << "alive ...";
 	//3秒延时关闭
-	return  m_alive.elapsedTime() <  3 * 1000;
+	return  _alive.elapsedTime() <  3 * 1000;
 }
 inline bool MediaReader::readVideoSample(int iTimeInc) {
-	if (m_video_trId != MP4_INVALID_TRACK_ID) {
+	if (_video_trId != MP4_INVALID_TRACK_ID) {
 		auto iNextSample = getVideoSampleId(iTimeInc);
-		MP4SampleId iIdx = m_video_current;
-		for (iIdx = m_video_current; iIdx < iNextSample; iIdx++) {
-			uint8_t *pBytes = m_pcVideoSample.get();
-			uint32_t numBytes = m_video_sample_max_size;
-			if(MP4ReadSample(m_hMP4File, m_video_trId, iIdx + 1, &pBytes, &numBytes,NULL,NULL,NULL,&m_bSyncSample)){
+		MP4SampleId iIdx = _video_current;
+		for (iIdx = _video_current; iIdx < iNextSample; iIdx++) {
+			uint8_t *pBytes = _pcVideoSample.get();
+			uint32_t numBytes = _video_sample_max_size;
+			if(MP4ReadSample(_hMP4File, _video_trId, iIdx + 1, &pBytes, &numBytes,NULL,NULL,NULL,&_bSyncSample)){
 				if (!iTimeInc) {
 					uint32_t iOffset = 0;
 					while (iOffset < numBytes) {
@@ -219,97 +219,97 @@ inline bool MediaReader::readVideoSample(int iTimeInc) {
                             break;
                         }
 						memcpy(pBytes + iOffset, "\x0\x0\x0\x1", 4);
-						writeH264(pBytes + iOffset, iFrameLen + 4, (double) m_video_ms * iIdx / m_video_num_samples);
+						writeH264(pBytes + iOffset, iFrameLen + 4, (double) _video_ms * iIdx / _video_num_samples);
 						iOffset += (iFrameLen + 4);
 					}
-				}else if(m_bSyncSample){
+				}else if(_bSyncSample){
 					break;
 				}
 			}else{
 				ErrorL << "读取视频失败:" << iIdx + 1;
 			}
 		}
-		m_video_current = iIdx;
-		return m_video_current < m_video_num_samples;
+		_video_current = iIdx;
+		return _video_current < _video_num_samples;
 	}
 	return false;
 }
 
 inline bool MediaReader::readAudioSample(int iTimeInc) {
-	if (m_audio_trId != MP4_INVALID_TRACK_ID) {
+	if (_audio_trId != MP4_INVALID_TRACK_ID) {
 		auto iNextSample = getAudioSampleId(iTimeInc);
-		for (auto i = m_audio_current; i < iNextSample; i++) {
-			uint32_t numBytes = m_audio_sample_max_size;
-			uint8_t *pBytes = m_adts.buffer + 7;
-			if(MP4ReadSample(m_hMP4File, m_audio_trId, i + 1, &pBytes, &numBytes)){
+		for (auto i = _audio_current; i < iNextSample; i++) {
+			uint32_t numBytes = _audio_sample_max_size;
+			uint8_t *pBytes = _adts.buffer + 7;
+			if(MP4ReadSample(_hMP4File, _audio_trId, i + 1, &pBytes, &numBytes)){
 				if (!iTimeInc) {
-					m_adts.aac_frame_length = 7 + numBytes;
-					writeAdtsHeader(m_adts, m_adts.buffer);
-					writeAAC(m_adts.buffer, m_adts.aac_frame_length, (double) m_audio_ms * i / m_audio_num_samples);
+					_adts.aac_frame_length = 7 + numBytes;
+					writeAdtsHeader(_adts, _adts.buffer);
+					writeAAC(_adts.buffer, _adts.aac_frame_length, (double) _audio_ms * i / _audio_num_samples);
 				}
 			}else{
 				ErrorL << "读取音频失败:" << i+ 1;
 			}
 		}
-		m_audio_current = iNextSample;
-		return m_audio_current < m_audio_num_samples;
+		_audio_current = iNextSample;
+		return _audio_current < _audio_num_samples;
 	}
 	return false;
 }
 
 inline void MediaReader::writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	m_pChn->inputH264((char *)pucData, iLen, uiStamp);
+	_pChn->inputH264((char *)pucData, iLen, uiStamp);
 }
 
 inline void MediaReader::writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	m_pChn->inputAAC((char *)pucData, iLen, uiStamp);
+	_pChn->inputAAC((char *)pucData, iLen, uiStamp);
 }
 
 inline MP4SampleId MediaReader::getVideoSampleId(int iTimeInc ) {
-	MP4SampleId video_current = (double)m_video_num_samples *  (m_iSeekTime + m_ticker.elapsedTime() + iTimeInc) / m_video_ms;
-	video_current = MAX(0,MIN(m_video_num_samples, video_current));
+	MP4SampleId video_current = (double)_video_num_samples *  (_iSeekTime + _ticker.elapsedTime() + iTimeInc) / _video_ms;
+	video_current = MAX(0,MIN(_video_num_samples, video_current));
 	return video_current;
 
 }
 
 inline MP4SampleId MediaReader::getAudioSampleId(int iTimeInc) {
-	MP4SampleId audio_current = (double)m_audio_num_samples * (m_iSeekTime + m_ticker.elapsedTime() + iTimeInc)  / m_audio_ms ;
-	audio_current = MAX(0,MIN(m_audio_num_samples,audio_current));
+	MP4SampleId audio_current = (double)_audio_num_samples * (_iSeekTime + _ticker.elapsedTime() + iTimeInc)  / _audio_ms ;
+	audio_current = MAX(0,MIN(_audio_num_samples,audio_current));
 	return audio_current;
 }
 inline void MediaReader::setSeekTime(int iSeekTime){
-	m_iSeekTime = MAX(0, MIN(iSeekTime,m_iDuration));
-	m_ticker.resetTime();
-	if (m_audio_trId != MP4_INVALID_TRACK_ID) {
-		m_audio_current = getAudioSampleId();
+	_iSeekTime = MAX(0, MIN(iSeekTime,_iDuration));
+	_ticker.resetTime();
+	if (_audio_trId != MP4_INVALID_TRACK_ID) {
+		_audio_current = getAudioSampleId();
 	}
-	if (m_video_trId != MP4_INVALID_TRACK_ID) {
-		m_video_current = getVideoSampleId();
+	if (_video_trId != MP4_INVALID_TRACK_ID) {
+		_video_current = getVideoSampleId();
 	}
 }
 
 inline uint32_t MediaReader::getVideoCurrentTime(){
-	return (double)m_video_current * m_video_ms /m_video_num_samples;
+	return (double)_video_current * _video_ms /_video_num_samples;
 }
 void MediaReader::seek(int iSeekTime,bool bReStart){
-	lock_guard<recursive_mutex> lck(m_mtx);
-	if(iSeekTime == 0 || m_video_trId == MP4_INVALID_TRACK_ID){
+	lock_guard<recursive_mutex> lck(_mtx);
+	if(iSeekTime == 0 || _video_trId == MP4_INVALID_TRACK_ID){
 		setSeekTime(iSeekTime);
 	}else{
 		setSeekTime(iSeekTime - 5000);
 		//在之后的10秒查找关键帧
 		readVideoSample(10000);
-		if (m_bSyncSample) {
+		if (_bSyncSample) {
 			//找到关键帧
-			auto iIdr =  m_video_current;
+			auto iIdr =  _video_current;
 			setSeekTime(getVideoCurrentTime());
-			m_video_current = iIdr;
+			_video_current = iIdr;
 		}else{
 			//未找到关键帧
 			setSeekTime(iSeekTime);
 		}
 	}
-	m_pChn->updateTimeStamp(m_iSeekTime);
+	_pChn->updateTimeStamp(_iSeekTime);
 
 	if(bReStart){
 		AsyncTaskThread::Instance().CancelTask(reinterpret_cast<uint64_t>(this));

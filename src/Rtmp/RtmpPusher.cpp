@@ -56,7 +56,7 @@ void RtmpPusher::init(const RtmpMediaSource::Ptr  &src){
         g_mapCmd.emplace("_result",&RtmpPusher::onCmd_result);
         g_mapCmd.emplace("onStatus",&RtmpPusher::onCmd_onStatus);
     }, []() {});
-    m_pMediaSrc=src;
+    _pMediaSrc=src;
 }
 
 RtmpPusher::~RtmpPusher() {
@@ -65,18 +65,18 @@ RtmpPusher::~RtmpPusher() {
 }
 void RtmpPusher::teardown() {
 	if (alive()) {
-		m_strApp.clear();
-		m_strStream.clear();
-		m_strTcUrl.clear();
+		_strApp.clear();
+		_strStream.clear();
+		_strTcUrl.clear();
 		{
-			lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
-			m_mapOnResultCB.clear();
+			lock_guard<recursive_mutex> lck(_mtxOnResultCB);
+			_mapOnResultCB.clear();
 		}
         {
-            lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
-            m_dqOnStatusCB.clear();
+            lock_guard<recursive_mutex> lck(_mtxOnStatusCB);
+            _dqOnStatusCB.clear();
         }
-		m_pPublishTimer.reset();
+		_pPublishTimer.reset();
         reset();
         shutdown();
 	}
@@ -85,15 +85,15 @@ void RtmpPusher::teardown() {
 void RtmpPusher::publish(const char* strUrl)  {
 	teardown();
 	string strHost = FindField(strUrl, "://", "/");
-	m_strApp = 	FindField(strUrl, (strHost + "/").data(), "/");
-    m_strStream = FindField(strUrl, (strHost + "/" + m_strApp + "/").data(), NULL);
-    m_strTcUrl = string("rtmp://") + strHost + "/" + m_strApp;
+	_strApp = 	FindField(strUrl, (strHost + "/").data(), "/");
+    _strStream = FindField(strUrl, (strHost + "/" + _strApp + "/").data(), NULL);
+    _strTcUrl = string("rtmp://") + strHost + "/" + _strApp;
 
-    if (!m_strApp.size() || !m_strStream.size()) {
+    if (!_strApp.size() || !_strStream.size()) {
         onPublishResult(SockException(Err_other,"rtmp url非法"));
         return;
     }
-	DebugL << strHost << " " << m_strApp << " " << m_strStream;
+	DebugL << strHost << " " << _strApp << " " << _strStream;
 
 	auto iPort = atoi(FindField(strHost.c_str(), ":", NULL).c_str());
 	if (iPort <= 0) {
@@ -115,7 +115,7 @@ void RtmpPusher::onConnect(const SockException &err){
 		return;
 	}
 	weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
-	m_pPublishTimer.reset( new Timer(10,  [weakSelf]() {
+	_pPublishTimer.reset( new Timer(10,  [weakSelf]() {
 		auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
 			return false;
@@ -147,10 +147,10 @@ void RtmpPusher::onRecv(const Buffer::Ptr &pBuf){
 
 inline void RtmpPusher::send_connect() {
 	AMFValue obj(AMF_OBJECT);
-	obj.set("app", m_strApp);
+	obj.set("app", _strApp);
 	obj.set("type", "nonprivate");
-	obj.set("tcUrl", m_strTcUrl);
-	obj.set("swfUrl", m_strTcUrl);
+	obj.set("tcUrl", _strTcUrl);
+	obj.set("swfUrl", _strTcUrl);
 	sendInvoke("connect", obj);
 	addOnResultCB([this](AMFDecoder &dec){
 		//TraceL << "connect result";
@@ -171,13 +171,13 @@ inline void RtmpPusher::send_createStream() {
 	addOnResultCB([this](AMFDecoder &dec){
 		//TraceL << "createStream result";
 		dec.load<AMFValue>();
-		m_ui32StreamId = dec.load<int>();
+		_ui32StreamId = dec.load<int>();
 		send_publish();
 	});
 }
 inline void RtmpPusher::send_publish() {
 	AMFEncoder enc;
-	enc << "publish" << ++m_iReqID << nullptr << m_strStream << m_strApp ;
+	enc << "publish" << ++_iReqID << nullptr << _strStream << _strApp ;
 	sendRequest(MSG_CMD, enc.data());
 
 	addOnStatusCB([this](AMFValue &val) {
@@ -192,7 +192,7 @@ inline void RtmpPusher::send_publish() {
 }
 
 inline void RtmpPusher::send_metaData(){
-    auto src = m_pMediaSrc.lock();
+    auto src = _pMediaSrc.lock();
     if (!src) {
         throw std::runtime_error("the media source was released");
     }
@@ -202,19 +202,19 @@ inline void RtmpPusher::send_metaData(){
     sendRequest(MSG_DATA, enc.data());
     
     src->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-        sendRtmp(pkt->typeId, m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId );
+        sendRtmp(pkt->typeId, _ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId );
     });
     
-    m_pRtmpReader = src->getRing()->attach();
+    _pRtmpReader = src->getRing()->attach();
     weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
-    m_pRtmpReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
+    _pRtmpReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
     	auto strongSelf = weakSelf.lock();
     	if(!strongSelf) {
     		return;
     	}
-    	strongSelf->sendRtmp(pkt->typeId, strongSelf->m_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId);
+    	strongSelf->sendRtmp(pkt->typeId, strongSelf->_ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId);
     });
-    m_pRtmpReader->setDetachCB([weakSelf](){
+    _pRtmpReader->setDetachCB([weakSelf](){
         auto strongSelf = weakSelf.lock();
         if(strongSelf){
             strongSelf->onShutdown(SockException(Err_other,"媒体源被释放"));
@@ -228,11 +228,11 @@ inline void RtmpPusher::send_metaData(){
 }
 void RtmpPusher::onCmd_result(AMFDecoder &dec){
 	auto iReqId = dec.load<int>();
-	lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
-	auto it = m_mapOnResultCB.find(iReqId);
-	if(it != m_mapOnResultCB.end()){
+	lock_guard<recursive_mutex> lck(_mtxOnResultCB);
+	auto it = _mapOnResultCB.find(iReqId);
+	if(it != _mapOnResultCB.end()){
 		it->second(dec);
-		m_mapOnResultCB.erase(it);
+		_mapOnResultCB.erase(it);
 	}else{
 		WarnL << "unhandled _result";
 	}
@@ -249,10 +249,10 @@ void RtmpPusher::onCmd_onStatus(AMFDecoder &dec) {
 		throw std::runtime_error("onStatus:the result object was not found");
 	}
 
-    lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
-	if(m_dqOnStatusCB.size()){
-		m_dqOnStatusCB.front()(val);
-		m_dqOnStatusCB.pop_front();
+    lock_guard<recursive_mutex> lck(_mtxOnStatusCB);
+	if(_dqOnStatusCB.size()){
+		_dqOnStatusCB.front()(val);
+		_dqOnStatusCB.pop_front();
 	}else{
 		auto level = val["level"];
 		auto code = val["code"].as_string();

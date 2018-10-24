@@ -70,7 +70,7 @@ private:
 
 	void onSendMedia(const RtmpPacket::Ptr &pkt);
 	void onSendRawData(const Buffer::Ptr &buffer) override{
-        m_ui64TotalBytes += buffer->size();
+        _ui64TotalBytes += buffer->size();
 		send(buffer);
 	}
 	void onRtmpChunk(RtmpPacket &chunkData) override;
@@ -78,12 +78,12 @@ private:
 	template<typename first, typename second>
 	inline void sendReply(const char *str, const first &reply, const second &status) {
 		AMFEncoder invoke;
-		invoke << str << m_dNowReqID << reply << status;
+		invoke << str << _dNowReqID << reply << status;
 		sendResponse(MSG_CMD, invoke.data());
 	}
 
     bool shutDown() override {
-        InfoL << "kick out:" << m_mediaInfo.m_vhost << " " << m_mediaInfo.m_app << " " << m_mediaInfo.m_streamid;
+        InfoL << "kick out:" << _mediaInfo._vhost << " " << _mediaInfo._app << " " << _mediaInfo._streamid;
         safeShutdown();
         return true;
     }
@@ -91,19 +91,19 @@ private:
     void doDelay(int delaySec,const std::function<void()> &fun);
 	void cancelDelyaTask();
 private:
-	std::string m_strTcUrl;
-	MediaInfo m_mediaInfo;
-	double m_dNowReqID = 0;
-	Ticker m_ticker;//数据接收时间
-	SmoothTicker m_stampTicker[2];//时间戳生产器
-	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
-	std::shared_ptr<RtmpMediaSource> m_pPublisherSrc;
-	std::weak_ptr<RtmpMediaSource> m_pPlayerSrc;
-	uint32_t m_aui32FirstStamp[2] = {0};
+	std::string _strTcUrl;
+	MediaInfo _mediaInfo;
+	double _dNowReqID = 0;
+	Ticker _ticker;//数据接收时间
+	SmoothTicker _stampTicker[2];//时间戳生产器
+	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr _pRingReader;
+	std::shared_ptr<RtmpMediaSource> _pPublisherSrc;
+	std::weak_ptr<RtmpMediaSource> _pPlayerSrc;
+	uint32_t _aui32FirstStamp[2] = {0};
 	//消耗的总流量
-	uint64_t m_ui64TotalBytes = 0;
-    std::function<void()> m_delayTask;
-    uint32_t m_iTaskTimeLine = 0;
+	uint64_t _ui64TotalBytes = 0;
+    std::function<void()> _delayTask;
+    uint32_t _iTaskTimeLine = 0;
 
 };
 

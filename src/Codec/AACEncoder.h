@@ -39,15 +39,15 @@ public:
 	int inputData(char *pcData, int iLen, unsigned char **ppucOutBuffer);
 
 private:
-	unsigned char *m_pucPcmBuf = nullptr;
-	unsigned int m_uiPcmLen = 0;
+	unsigned char *_pucPcmBuf = nullptr;
+	unsigned int _uiPcmLen = 0;
 
-	unsigned char *m_pucAacBuf = nullptr;
-	void *m_hEncoder = nullptr;
+	unsigned char *_pucAacBuf = nullptr;
+	void *_hEncoder = nullptr;
 
-	unsigned long m_ulInputSamples = 0;
-	unsigned long m_ulMaxInputBytes = 0;
-	unsigned long m_ulMaxOutputBytes = 0;
+	unsigned long _ulInputSamples = 0;
+	unsigned long _ulMaxInputBytes = 0;
+	unsigned long _ulMaxOutputBytes = 0;
 
 };
 

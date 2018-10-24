@@ -33,8 +33,8 @@ private:
     void onWriteFlvTag(uint8_t ui8Type, const std::string &strBuf, uint32_t ui32TimeStamp);
 private:
     RtmpMediaSource::RingType::RingReader::Ptr _ring_reader;
-    uint32_t m_aui32FirstStamp[2] = {0};
-    uint32_t m_previousTagSize = 0;
+    uint32_t _aui32FirstStamp[2] = {0};
+    uint32_t _previousTagSize = 0;
 };
 
 class FlvRecorder : public FlvMuxer , public std::enable_shared_from_this<FlvRecorder>{

@@ -40,9 +40,9 @@ protected:
     void onGetH264(const char *pcData, int iLen, uint32_t ui32TimeStamp);
     H264Frame::Ptr obtainFrame();
 protected:
-    H264Frame::Ptr m_h264frame;
-    string m_sps;
-    string m_pps;
+    H264Frame::Ptr _h264frame;
+    string _sps;
+    string _pps;
 };
 
 /**

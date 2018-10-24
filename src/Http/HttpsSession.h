@@ -40,14 +40,14 @@ class HttpsSession: public HttpSession {
 public:
 	HttpsSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock):
 		HttpSession(pTh,pSock){
-		m_sslBox.setOnEncData([&](const char *data, uint32_t len){
+		_sslBox.setOnEncData([&](const char *data, uint32_t len){
 #if defined(__GNUC__) && (__GNUC__ < 5)
 			public_send(data,len);
 #else//defined(__GNUC__) && (__GNUC__ < 5)
 			HttpSession::send(obtainBuffer(data,len));
 #endif//defined(__GNUC__) && (__GNUC__ < 5)
 		});
-		m_sslBox.setOnDecData([&](const char *data, uint32_t len){
+		_sslBox.setOnDecData([&](const char *data, uint32_t len){
 #if defined(__GNUC__) && (__GNUC__ < 5)
 			public_onRecv(data,len);
 #else//defined(__GNUC__) && (__GNUC__ < 5)
@@ -56,11 +56,11 @@ public:
 		});
 	}
 	virtual ~HttpsSession(){
-		//m_sslBox.shutdown();
+		//_sslBox.shutdown();
 	}
 	void onRecv(const Buffer::Ptr &pBuf) override{
 		TimeTicker();
-		m_sslBox.onRecv(pBuf->data(), pBuf->size());
+		_sslBox.onRecv(pBuf->data(), pBuf->size());
 	}
 #if defined(__GNUC__) && (__GNUC__ < 5)
 	int public_send(const char *data, uint32_t len){
@@ -73,10 +73,10 @@ public:
 protected:
 	virtual int send(const Buffer::Ptr &buf) override{
 		TimeTicker();
-		m_sslBox.onSend(buf->data(), buf->size());
+		_sslBox.onSend(buf->data(), buf->size());
 		return buf->size();
 	}
-	SSL_Box m_sslBox;
+	SSL_Box _sslBox;
 };
 
 

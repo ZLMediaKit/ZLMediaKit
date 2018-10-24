@@ -90,8 +90,8 @@ protected:
 private:
 	void inputRtspOrRtcp(const char *data,uint64_t len);
 	int send(const Buffer::Ptr &pkt) override{
-        m_ui64TotalBytes += pkt->size();
-        return m_pSender->send(pkt,_flags);
+        _ui64TotalBytes += pkt->size();
+        return _pSender->send(pkt,_flags);
 	}
 	void shutdown() override ;
 	void shutdown_l(bool close);
@@ -123,16 +123,16 @@ private:
 		return tmp;
 	}
 	inline int getTrackIndexByTrackType(TrackType type) {
-		for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-			if (type == m_aTrackInfo[i].type) {
+		for (unsigned int i = 0; i < _uiTrackCnt; i++) {
+			if (type == _aTrackInfo[i].type) {
 				return i;
 			}
 		}
 		return -1;
 	}
     inline int getTrackIndexByControlSuffix(const string &controlSuffix) {
-        for (unsigned int i = 0; i < m_uiTrackCnt; i++) {
-            if (controlSuffix == m_aTrackInfo[i].controlSuffix) {
+        for (unsigned int i = 0; i < _uiTrackCnt; i++) {
+            if (controlSuffix == _aTrackInfo[i].controlSuffix) {
                 return i;
             }
         }
@@ -150,53 +150,53 @@ private:
     static void onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strMd5);
 
 private:
-	char *m_pcBuf = nullptr;
-	Ticker m_ticker;
-	Parser m_parser; //rtsp解析类
-	string m_strUrl;
-	string m_strSdp;
-	string m_strSession;
-	bool m_bFirstPlay = true;
-    MediaInfo m_mediaInfo;
-	std::weak_ptr<RtspMediaSource> m_pMediaSrc;
+	char *_pcBuf = nullptr;
+	Ticker _ticker;
+	Parser _parser; //rtsp解析类
+	string _strUrl;
+	string _strSdp;
+	string _strSession;
+	bool _bFirstPlay = true;
+    MediaInfo _mediaInfo;
+	std::weak_ptr<RtspMediaSource> _pMediaSrc;
 
 	//RTP缓冲
-	weak_ptr<RingBuffer<RtpPacket::Ptr> > m_pWeakRing;
-	RingBuffer<RtpPacket::Ptr>::RingReader::Ptr m_pRtpReader;
+	weak_ptr<RingBuffer<RtpPacket::Ptr> > _pWeakRing;
+	RingBuffer<RtpPacket::Ptr>::RingReader::Ptr _pRtpReader;
 
-	PlayerBase::eRtpType m_rtpType = PlayerBase::RTP_UDP;
-	bool m_bSetUped = false;
-	int m_iCseq = 0;
-	unsigned int m_uiTrackCnt = 0; //媒体track个数
-	RtspTrack m_aTrackInfo[2]; //媒体track信息,trackid idx 为数组下标
-	bool m_bGotAllPeerUdp = false;
+	PlayerBase::eRtpType _rtpType = PlayerBase::RTP_UDP;
+	bool _bSetUped = false;
+	int _iCseq = 0;
+	unsigned int _uiTrackCnt = 0; //媒体track个数
+	RtspTrack _aTrackInfo[2]; //媒体track信息,trackid idx 为数组下标
+	bool _bGotAllPeerUdp = false;
 
 #ifdef RTSP_SEND_RTCP
-	RtcpCounter m_aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
-	Ticker m_aRtcpTicker[2]; //rtcp发送时间,trackid idx 为数组下标
+	RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
+	Ticker _aRtcpTicker[2]; //rtcp发送时间,trackid idx 为数组下标
 	inline void sendRTCP();
 #endif
 
 	//RTP over UDP
-	bool m_abGotPeerUdp[2] = { false, false }; //获取客户端udp端口计数
-	weak_ptr<Socket> m_apUdpSock[2]; //发送RTP的UDP端口,trackid idx 为数组下标
-	std::shared_ptr<struct sockaddr> m_apPeerUdpAddr[2]; //播放器接收RTP的地址,trackid idx 为数组下标
-	bool m_bListenPeerUdpData = false;
-	RtpBroadCaster::Ptr m_pBrdcaster;
+	bool _abGotPeerUdp[2] = { false, false }; //获取客户端udp端口计数
+	weak_ptr<Socket> _apUdpSock[2]; //发送RTP的UDP端口,trackid idx 为数组下标
+	std::shared_ptr<struct sockaddr> _apPeerUdpAddr[2]; //播放器接收RTP的地址,trackid idx 为数组下标
+	bool _bListenPeerUdpData = false;
+	RtpBroadCaster::Ptr _pBrdcaster;
 
 	//登录认证
-    string m_strNonce;
+    string _strNonce;
 
 	//RTSP over HTTP
-	function<void(void)> m_onDestory;
-	bool m_bBase64need = false; //是否需要base64解码
-	Socket::Ptr m_pSender; //回复rtsp时走的tcp通道，供quicktime用
+	function<void(void)> _onDestory;
+	bool _bBase64need = false; //是否需要base64解码
+	Socket::Ptr _pSender; //回复rtsp时走的tcp通道，供quicktime用
 	//quicktime 请求rtsp会产生两次tcp连接，
 	//一次发送 get 一次发送post，需要通过sessioncookie关联起来
-	string m_strSessionCookie;
+	string _strSessionCookie;
 
     //消耗的总流量
-    uint64_t m_ui64TotalBytes = 0;
+    uint64_t _ui64TotalBytes = 0;
 
 	static recursive_mutex g_mtxGetter; //对quicktime上锁保护
 	static recursive_mutex g_mtxPostter; //对quicktime上锁保护

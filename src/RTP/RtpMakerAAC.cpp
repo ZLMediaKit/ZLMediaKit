@@ -42,42 +42,42 @@ void RtpMaker_AAC::makeRtp(const char *pcData, int iLen, uint32_t uiStamp) {
 	char *ptr = (char *) pcData;
 	int iSize = iLen;
 	while (iSize > 0 ) {
-		if (iSize <= m_iMtuSize - 20) {
-			m_aucSectionBuf[0] = 0;
-			m_aucSectionBuf[1] = 16;
-			m_aucSectionBuf[2] = iLen >> 5;
-			m_aucSectionBuf[3] = (iLen & 0x1F) << 3;
-			memcpy(m_aucSectionBuf + 4, ptr, iSize);
-			makeAACRtp(m_aucSectionBuf, iSize + 4, true, uiStamp);
+		if (iSize <= _iMtuSize - 20) {
+			_aucSectionBuf[0] = 0;
+			_aucSectionBuf[1] = 16;
+			_aucSectionBuf[2] = iLen >> 5;
+			_aucSectionBuf[3] = (iLen & 0x1F) << 3;
+			memcpy(_aucSectionBuf + 4, ptr, iSize);
+			makeAACRtp(_aucSectionBuf, iSize + 4, true, uiStamp);
 			break;
 		}
-		m_aucSectionBuf[0] = 0;
-		m_aucSectionBuf[1] = 16;
-		m_aucSectionBuf[2] = (iLen) >> 5;
-		m_aucSectionBuf[3] = (iLen & 0x1F) << 3;
-		memcpy(m_aucSectionBuf + 4, ptr, m_iMtuSize - 20);
-		makeAACRtp(m_aucSectionBuf, m_iMtuSize - 16, false, uiStamp);
-		ptr += (m_iMtuSize - 20);
-		iSize -= (m_iMtuSize - 20);
+		_aucSectionBuf[0] = 0;
+		_aucSectionBuf[1] = 16;
+		_aucSectionBuf[2] = (iLen) >> 5;
+		_aucSectionBuf[3] = (iLen & 0x1F) << 3;
+		memcpy(_aucSectionBuf + 4, ptr, _iMtuSize - 20);
+		makeAACRtp(_aucSectionBuf, _iMtuSize - 16, false, uiStamp);
+		ptr += (_iMtuSize - 20);
+		iSize -= (_iMtuSize - 20);
 
 	}
 }
 
 inline void RtpMaker_AAC::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp) {
 	uint16_t u16RtpLen = uiLen + 12;
-	m_ui32TimeStamp = (m_ui32SampleRate / 1000) * uiStamp;
-	uint32_t ts = htonl(m_ui32TimeStamp);
-	uint16_t sq = htons(m_ui16Sequence);
-	uint32_t sc = htonl(m_ui32Ssrc);
+	_ui32TimeStamp = (_ui32SampleRate / 1000) * uiStamp;
+	uint32_t ts = htonl(_ui32TimeStamp);
+	uint16_t sq = htons(_ui16Sequence);
+	uint32_t sc = htonl(_ui32Ssrc);
 	auto pRtppkt = obtainPkt();
 	auto &rtppkt = *(pRtppkt.get());
 	unsigned char *pucRtp = rtppkt.payload;
 	pucRtp[0] = '$';
-	pucRtp[1] = m_ui8Interleaved;
+	pucRtp[1] = _ui8Interleaved;
 	pucRtp[2] = u16RtpLen >> 8;
 	pucRtp[3] = u16RtpLen & 0x00FF;
 	pucRtp[4] = 0x80;
-	pucRtp[5] = (bMark << 7) | m_ui8PlayloadType;
+	pucRtp[5] = (bMark << 7) | _ui8PlayloadType;
 	memcpy(&pucRtp[6], &sq, 2);
 	memcpy(&pucRtp[8], &ts, 4);
 	//ssrc
@@ -85,18 +85,18 @@ inline void RtpMaker_AAC::makeAACRtp(const void *pData, unsigned int uiLen, bool
 	//playload
 	memcpy(&pucRtp[16], pData, uiLen);
 
-	rtppkt.PT = m_ui8PlayloadType;
-	rtppkt.interleaved = m_ui8Interleaved;
+	rtppkt.PT = _ui8PlayloadType;
+	rtppkt.interleaved = _ui8Interleaved;
 	rtppkt.mark = bMark;
 	rtppkt.length = uiLen + 16;
-	rtppkt.sequence = m_ui16Sequence;
-	rtppkt.timeStamp = m_ui32TimeStamp;
-	rtppkt.ssrc = m_ui32Ssrc;
+	rtppkt.sequence = _ui16Sequence;
+	rtppkt.timeStamp = _ui32TimeStamp;
+	rtppkt.ssrc = _ui32Ssrc;
 	rtppkt.type = TrackAudio;
 	rtppkt.offset = 16;
 
 	onMakeRtp(pRtppkt, false);
-	m_ui16Sequence++;
+	_ui16Sequence++;
 }
 
 } /* namespace RTP */

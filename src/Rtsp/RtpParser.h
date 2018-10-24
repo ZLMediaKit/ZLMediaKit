@@ -51,7 +51,7 @@ public:
 	bool inputRtp(const RtpPacket::Ptr &rtp);
 
 	float getDuration() const override {
-		return m_fDuration;
+		return _fDuration;
 	}
 
 	/**
@@ -76,7 +76,7 @@ private:
 	inline void onGetAudioTrack(const RtspTrack &audio);
 	inline void onGetVideoTrack(const RtspTrack &video);
 private:
-	float m_fDuration = 0;
+	float _fDuration = 0;
 	AudioTrack::Ptr _audioTrack;
 	VideoTrack::Ptr _videoTrack;
 	RtpCodec::Ptr _audioRtpDecoder;
