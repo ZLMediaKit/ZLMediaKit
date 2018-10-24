@@ -35,7 +35,7 @@ public:
         return CodecAAC;
     }
 private:
-    void onGetAdts(const AACFrame::Ptr &frame);
+    void onGetAAC(const AACFrame::Ptr &frame);
     AACFrame::Ptr obtainFrame();
 private:
     AACFrame::Ptr m_adts;

@@ -69,7 +69,7 @@ public:
 			m_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),m_pParser,m_bEnableHls,m_bEnableMp4));
 			//todo(xzl) 修复此处
 
-//			m_pParser->setOnAudioCB(std::bind(&RtmpToRtspMediaSource::onGetAdts, this, placeholders::_1));
+//			m_pParser->setOnAudioCB(std::bind(&RtmpToRtspMediaSource::onGetAAC, this, placeholders::_1));
 //			m_pParser->setOnVideoCB(std::bind(&RtmpToRtspMediaSource::onGetH264, this, placeholders::_1));
 		} catch (exception &ex) {
 			WarnL << ex.what();
@@ -96,7 +96,7 @@ private:
     bool m_bEnableHls;
     bool m_bEnableMp4;
 	void onGetH264(const H264Frame &frame);
-	void onGetAdts(const AACFrame &frame);
+	void onGetAAC(const AACFrame &frame);
 	void makeSDP();
 };
 

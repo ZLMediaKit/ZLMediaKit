@@ -26,12 +26,12 @@ bool H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos) {
 bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
     if (pkt->isCfgFrame()) {
         //缓存sps pps，后续插入到I帧之前
-        m_strSPS = pkt->getH264SPS();
-        m_strPPS  = pkt->getH264PPS();
+        m_sps = pkt->getH264SPS();
+        m_pps  = pkt->getH264PPS();
         return false;
     }
 
-    if (m_strSPS.size()) {
+    if (m_sps.size()) {
         uint32_t iTotalLen = pkt->strBuf.size();
         uint32_t iOffset = 5;
         while(iOffset + 4 < iTotalLen){
@@ -54,8 +54,8 @@ inline void H264RtmpDecoder::onGetH264_l(const char* pcData, int iLen, uint32_t 
     switch (pcData[0] & 0x1F) {
         case 5: {
             //I frame
-            onGetH264(m_strSPS.data(), m_strSPS.length(), ui32TimeStamp);
-            onGetH264(m_strPPS.data(), m_strPPS.length(), ui32TimeStamp);
+            onGetH264(m_sps.data(), m_sps.length(), ui32TimeStamp);
+            onGetH264(m_pps.data(), m_pps.length(), ui32TimeStamp);
         }
         case 1: {
             //I or P or B frame
