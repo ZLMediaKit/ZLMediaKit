@@ -5,8 +5,8 @@
 #ifndef ZLMEDIAKIT_RTSPSDP_H
 #define ZLMEDIAKIT_RTSPSDP_H
 
-#include "RTP/H264RtpCodec.h"
-#include "RTP/AACRtpCodec.h"
+#include "RtpCodec/H264RtpCodec.h"
+#include "RtpCodec/AACRtpCodec.h"
 #include "Util/base64.h"
 #include "Player/Track.h"
 
