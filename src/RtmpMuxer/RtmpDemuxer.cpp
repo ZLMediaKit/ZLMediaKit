@@ -24,11 +24,11 @@
  * SOFTWARE.
  */
 
-#include "RtmpParser.h"
+#include "RtmpDemuxer.h"
 
 namespace mediakit {
 
-RtmpParser::RtmpParser(const AMFValue &val) {
+RtmpDemuxer::RtmpDemuxer(const AMFValue &val) {
 	auto videoCodec = val["videocodecid"];
 	auto audioCodec = val["audiocodecid"];
     
@@ -62,10 +62,10 @@ RtmpParser::RtmpParser(const AMFValue &val) {
 	onCheckMedia(val);
 }
 
-RtmpParser::~RtmpParser() {
+RtmpDemuxer::~RtmpDemuxer() {
 }
 
-bool RtmpParser::inputRtmp(const RtmpPacket::Ptr &pkt) {
+bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->typeId) {
         case MSG_VIDEO:{
             if(_iVideoCodecID == 0){
@@ -100,7 +100,7 @@ bool RtmpParser::inputRtmp(const RtmpPacket::Ptr &pkt) {
     }
 }
 
-inline bool RtmpParser::inputVideo(const RtmpPacket::Ptr &pkt) {
+inline bool RtmpDemuxer::inputVideo(const RtmpPacket::Ptr &pkt) {
 	if (pkt->isCfgFrame()) {
 		//WarnL << " got h264 cfg";
 		if (_strSPS.size()) {
@@ -133,7 +133,7 @@ inline bool RtmpParser::inputVideo(const RtmpPacket::Ptr &pkt) {
 	}
 	return  pkt->isVideoKeyFrame();
 }
-inline void RtmpParser::_onGetH264(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
+inline void RtmpDemuxer::_onGetH264(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
 	switch (pcData[0] & 0x1F) {
 	case 5: {
 		onGetH264(_strSPS.data() + 4, _strSPS.length() - 4, ui32TimeStamp);
@@ -148,7 +148,7 @@ inline void RtmpParser::_onGetH264(const char* pcData, int iLen, uint32_t ui32Ti
 		break;
 	}
 }
-inline void RtmpParser::onGetH264(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
+inline void RtmpDemuxer::onGetH264(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
 	_h264frame.type = pcData[0] & 0x1F;
 	_h264frame.timeStamp = ui32TimeStamp;
 	_h264frame.buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
@@ -162,7 +162,7 @@ inline void RtmpParser::onGetH264(const char* pcData, int iLen, uint32_t ui32Tim
 	_h264frame.buffer.clear();
 }
 
-inline bool RtmpParser::inputAudio(const RtmpPacket::Ptr &pkt) {
+inline bool RtmpDemuxer::inputAudio(const RtmpPacket::Ptr &pkt) {
 	if (pkt->isCfgFrame()) {
 		if (_strAudioCfg.size()) {
 			return false;
@@ -178,7 +178,7 @@ inline bool RtmpParser::inputAudio(const RtmpPacket::Ptr &pkt) {
 	}
 	return false;
 }
-inline void RtmpParser::onGetAAC(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
+inline void RtmpDemuxer::onGetAAC(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
     if(iLen + 7 > sizeof(_adts.buffer)){
         WarnL << "Illegal adts data, exceeding the length limit.";
         return;
@@ -197,7 +197,7 @@ inline void RtmpParser::onGetAAC(const char* pcData, int iLen, uint32_t ui32Time
 	_adts.aac_frame_length = 7;
 
 }
-inline void RtmpParser::onCheckMedia(const AMFValue& obj) {
+inline void RtmpDemuxer::onCheckMedia(const AMFValue& obj) {
 	obj.object_for_each([&](const string &key ,const AMFValue& val) {
 		if(key == "duration") {
 			_fDuration = val.as_number();

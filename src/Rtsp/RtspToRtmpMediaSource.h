@@ -27,10 +27,10 @@
 #ifndef SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
 #define SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
 
-#include "RtpParser.h"
 #include "RtspMediaSource.h"
 #include "Rtmp/amf.h"
 #include "Rtmp/RtmpMediaSource.h"
+#include "RtspMuxer/RtspDemuxer.h"
 #include "MediaFile/MediaRecorder.h"
 using namespace toolkit;
 
@@ -50,7 +50,7 @@ public:
 
 	virtual void onGetSDP(const string& strSdp) override{
 		try {
-			_pParser.reset(new RtpParser(strSdp));
+			_pParser.reset(new RtspDemuxer(strSdp));
             _pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),_pParser,_bEnableHls,_bEnableMp4));
 			//todo(xzl) 修复此处
 //			_pParser->setOnAudioCB( std::bind(&RtspToRtmpMediaSource::onGetAAC, this, placeholders::_1));
@@ -98,7 +98,7 @@ private:
 	void makeAudioConfigPkt();
 	void makeMetaData();
 private:
-	RtpParser::Ptr _pParser;
+	RtspDemuxer::Ptr _pParser;
 	RtmpMediaSource::Ptr _pRtmpSrc;
 	uint8_t _ui8AudioFlags = 0;
 	MediaRecorder::Ptr _pRecorder;

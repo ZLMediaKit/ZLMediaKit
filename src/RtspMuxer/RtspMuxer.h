@@ -11,16 +11,16 @@ namespace mediakit{
 /**
 * rtsp生成器
 */
-class RtspMaker : public FrameRingInterface , public RtpRingInterface{
+class RtspMuxer : public FrameRingInterface , public RtpRingInterface{
 public:
     /**
      * 构成函数
      */
-    RtspMaker(){
+    RtspMuxer(){
         _rtpRing = std::make_shared<RtpRingInterface::RingType>();
         _frameRing = std::make_shared<FrameRingInterface::RingType>();
     }
-    virtual ~RtspMaker(){}
+    virtual ~RtspMuxer(){}
 
     /**
      * 添加音视频或title 媒体

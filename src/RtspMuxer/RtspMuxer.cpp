@@ -2,12 +2,12 @@
 // Created by xzl on 2018/10/24.
 //
 
-#include "RtspMaker.h"
+#include "RtspMuxer.h"
 #include "Common/Factory.h"
 
 namespace mediakit {
 
-void RtspMaker::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
+void RtspMuxer::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
     if (track->getCodecId() == CodecInvalid) {
         addTrack(std::make_shared<TitleSdp>(), ssrc, mtu);
     } else {

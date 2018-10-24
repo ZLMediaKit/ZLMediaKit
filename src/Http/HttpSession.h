@@ -32,7 +32,7 @@
 #include "Network/TcpSession.h"
 #include "Network/TcpServer.h"
 #include "Rtmp/RtmpMediaSource.h"
-#include "Rtmp/FlvMuxer.h"
+#include "RtmpMuxer/FlvMuxer.h"
 #include "HttpRequestSplitter.h"
 #include "WebSocketSplitter.h"
 

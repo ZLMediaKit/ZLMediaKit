@@ -34,7 +34,7 @@
 #include <unordered_map>
 #include "amf.h"
 #include "Rtmp.h"
-#include "RtmpParser.h"
+#include "RtmpMuxer/RtmpDemuxer.h"
 #include "Common/config.h"
 #include "Common/MediaSource.h"
 #include "Util/util.h"
@@ -79,7 +79,7 @@ public:
 	virtual void onGetMetaData(const AMFValue &metadata) {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		_metadata = metadata;
-		RtmpParser parser(metadata);
+		RtmpDemuxer parser(metadata);
 		_iCfgFrameSize = parser.getTracks().size();
 		if(ready()){
 			MediaSource::regist();

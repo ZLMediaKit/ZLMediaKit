@@ -29,8 +29,8 @@
 
 #include <functional>
 #include <unordered_map>
-#include "amf.h"
-#include "Rtmp.h"
+#include "Rtmp/amf.h"
+#include "Rtmp/Rtmp.h"
 #include "Player/Player.h"
 #include "Util/TimeTicker.h"
 #include "Player/PlayerBase.h"
@@ -41,11 +41,11 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class RtmpParser : public PlayerBase{
+class RtmpDemuxer : public PlayerBase{
 public:
-	typedef std::shared_ptr<RtmpParser> Ptr;
-	RtmpParser(const AMFValue &val);
-	virtual ~RtmpParser();
+	typedef std::shared_ptr<RtmpDemuxer> Ptr;
+	RtmpDemuxer(const AMFValue &val);
+	virtual ~RtmpDemuxer();
 
 	bool inputRtmp(const RtmpPacket::Ptr &pkt);
 

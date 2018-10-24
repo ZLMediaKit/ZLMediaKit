@@ -26,7 +26,7 @@
 
 #include <cctype>
 #include <algorithm>
-#include "RtpParser.h"
+#include "RtspDemuxer.h"
 #include "Util/base64.h"
 #include "H264/SPSParser.h"
 #include "Common/Factory.h"
@@ -50,7 +50,7 @@ static int getTimeInSDP(const string &sdp) {
 	}
 	return atof(strEnd.data()) - atof(strStart.data());
 }
-RtpParser::RtpParser(const string& sdp) {
+RtspDemuxer::RtspDemuxer(const string& sdp) {
 	RtspTrack tmp[2];
 	int cnt = parserSDP(sdp, tmp);
 	for (int i = 0; i < cnt; i++) {
@@ -70,7 +70,7 @@ RtpParser::RtpParser(const string& sdp) {
 	_fDuration = getTimeInSDP(sdp);
 }
 
-bool RtpParser::inputRtp(const RtpPacket::Ptr & rtp) {
+bool RtspDemuxer::inputRtp(const RtpPacket::Ptr & rtp) {
 	switch (rtp->getTrackType()) {
 	case TrackVideo:{
 		if(_videoRtpDecoder){
@@ -88,7 +88,7 @@ bool RtpParser::inputRtp(const RtpPacket::Ptr & rtp) {
 }
 
 
-inline void RtpParser::onGetAudioTrack(const RtspTrack& audio) {
+inline void RtspDemuxer::onGetAudioTrack(const RtspTrack& audio) {
 	//生成Track对象
     _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio.trackSdp));
     if(_audioTrack){
@@ -101,7 +101,7 @@ inline void RtpParser::onGetAudioTrack(const RtspTrack& audio) {
     }
 }
 
-inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
+inline void RtspDemuxer::onGetVideoTrack(const RtspTrack& video) {
 	//生成Track对象
 	_videoTrack = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video.trackSdp));
 	if(_videoTrack){
@@ -114,7 +114,7 @@ inline void RtpParser::onGetVideoTrack(const RtspTrack& video) {
 	}
 }
 
-vector<Track::Ptr> RtpParser::getTracks() const {
+vector<Track::Ptr> RtspDemuxer::getTracks() const {
 	vector<Track::Ptr> ret;
 	if(_videoTrack){
 		ret.emplace_back(_videoTrack);

@@ -31,8 +31,8 @@
 #include <algorithm>
 #include <functional>
 #include "Common/config.h"
-#include "RtpParser.h"
 #include "RtspPlayer.h"
+#include "RtspMuxer/RtspDemuxer.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 
@@ -41,7 +41,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class RtspPlayerImp: public PlayerImp<RtspPlayer,RtpParser> {
+class RtspPlayerImp: public PlayerImp<RtspPlayer,RtspDemuxer> {
 public:
 	typedef std::shared_ptr<RtspPlayerImp> Ptr;
 	RtspPlayerImp(){};
@@ -68,7 +68,7 @@ private:
 			_pRtspMediaSrc->onGetSDP(sdp);
 		}
 		try {
-			_parser.reset(new RtpParser(sdp));
+			_parser.reset(new RtspDemuxer(sdp));
 			//todo(xzl) 修复此处
 //			_parser->setOnVideoCB(_onGetVideoCB);
 //			_parser->setOnAudioCB(_onGetAudioCB);
