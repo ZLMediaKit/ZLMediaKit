@@ -24,8 +24,8 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_RTMP_RTMPPARSER_H_
-#define SRC_RTMP_RTMPPARSER_H_
+#ifndef SRC_RTMP_RTMPDEMUXER_H_
+#define SRC_RTMP_RTMPDEMUXER_H_
 
 #include <functional>
 #include <unordered_map>
@@ -110,4 +110,4 @@ private:
 
 } /* namespace mediakit */
 
-#endif /* SRC_RTMP_RTMPPARSER_H_ */
+#endif /* SRC_RTMP_RTMPDEMUXER_H_ */
