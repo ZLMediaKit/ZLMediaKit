@@ -166,13 +166,13 @@ public:
 
     /**
      *
-     * @param sps 264 sps,带0x00000001头
-     * @param pps 264 pps,带0x00000001头
+     * @param sps 264 sps,不带0x00000001头
+     * @param pps 264 pps,不带0x00000001头
      * @param playload_type  rtp playload type 默认96
      * @param bitrate 比特率
      */
-    H264Sdp(const string &sps,
-            const string &pps,
+    H264Sdp(const string &strSPS,
+            const string &strPPS,
             int playload_type = 96,
             int bitrate = 4000) : Sdp(90000,playload_type) {
         //视频通道
@@ -183,8 +183,6 @@ public:
 
         char strTemp[100];
         int profile_level_id = 0;
-        string strSPS = sps.substr(4);
-        string strPPS = pps.substr(4);
         if (strSPS.length() >= 4) { // sanity check
             profile_level_id = (strSPS[1] << 16) | (strSPS[2] << 8) | strSPS[3]; // profile_idc|constraint_setN_flag|level_idc
         }

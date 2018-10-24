@@ -156,7 +156,7 @@ public:
         if(_sps.empty() || _pps.empty()){
             return TrackInvalid;
         }
-        return TrackAudio;
+        return TrackVideo;
     }
 
 

@@ -54,17 +54,27 @@ public:
 		return m_fDuration;
 	}
 
+	/**
+	 * 返回是否完成初始化完毕
+	 * 由于有些rtsp的sdp不包含sps pps信息
+	 * 所以要等待接收到到sps的rtp包后才能完成
+	 * @return
+	 */
     bool isInited() const override{
-        return true;
+        bool ret = true;
+        if(ret && _audioTrack){
+        	ret = _audioTrack->getTrackType() != TrackInvalid;
+        }
+        if(ret && _videoTrack){
+			ret = _videoTrack->getTrackType() != TrackInvalid;
+		}
+		return ret;
     }
 
     vector<Track::Ptr> getTracks() const override;
 private:
 	inline void onGetAudioTrack(const RtspTrack &audio);
 	inline void onGetVideoTrack(const RtspTrack &video);
-	//返回值：true 代表是i帧第一个rtp包
-	inline bool inputVideo(const RtpPacket::Ptr &rtp);
-	inline bool inputAudio(const RtpPacket::Ptr &rtp);
 private:
 	float m_fDuration = 0;
 	AudioTrack::Ptr _audioTrack;
