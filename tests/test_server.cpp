@@ -34,7 +34,7 @@
 #include "Http/HttpSession.h"
 #include "Shell/ShellSession.h"
 #include "Util/MD5.h"
-#include "Rtmp/FlvMuxer.h"
+#include "RtmpMuxer/FlvMuxer.h"
 
 #ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
@@ -57,7 +57,7 @@ using namespace mediakit;
 
 static onceToken s_token([](){
 	NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastOnGetRtspRealm,[](BroadcastOnGetRtspRealmArgs){
-		if(string("1") == args.m_streamid ){
+		if(string("1") == args._streamid ){
 			// live/1需要认证
 			EventPoller::Instance().async([invoker](){
 				//该流需要认证，并且设置realm
@@ -104,7 +104,7 @@ static onceToken s_token([](){
 
 
 	NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRtmpPublish,[](BroadcastRtmpPublishArgs){
-        InfoL << args.m_vhost << " " << args.m_app << " " << args.m_streamid << " " << args.m_param_strs ;
+        InfoL << args._vhost << " " << args._app << " " << args._streamid << " " << args._param_strs ;
         EventPoller::Instance().async([invoker](){
             invoker("");//鉴权成功
             //invoker("this is auth failed message");//鉴权失败
@@ -112,7 +112,7 @@ static onceToken s_token([](){
     });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPlayed,[](BroadcastMediaPlayedArgs){
-        InfoL << args.m_schema << " " << args.m_vhost << " " << args.m_app << " " << args.m_streamid << " " << args.m_param_strs ;
+        InfoL << args._schema << " " << args._vhost << " " << args._app << " " << args._streamid << " " << args._param_strs ;
         EventPoller::Instance().async([invoker](){
             invoker("");//鉴权成功
             //invoker("this is auth failed message");//鉴权失败

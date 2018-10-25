@@ -67,26 +67,15 @@ private:
 		if(_pRtspMediaSrc){
 			_pRtspMediaSrc->onGetSDP(sdp);
 		}
-		try {
-			_parser.reset(new RtspDemuxer(sdp));
-			//todo(xzl) 修复此处
-//			_parser->setOnVideoCB(_onGetVideoCB);
-//			_parser->setOnAudioCB(_onGetAudioCB);
-			return true;
-		} catch (std::exception &ex) {
-			WarnL << ex.what();
-			return _pRtspMediaSrc ? true : false;
-		}
+        _parser.reset(new RtspDemuxer(sdp));
+        return true;
 	}
 	void onRecvRTP(const RtpPacket::Ptr &rtppt, const RtspTrack &track) override {
-		if(_parser){
-			_parser->inputRtp(rtppt);
-		}
-
-		if(_pRtspMediaSrc){
-			_pRtspMediaSrc->onWrite(rtppt,true);
-		}
-	}
+        if(_pRtspMediaSrc){
+            _pRtspMediaSrc->onWrite(rtppt,true);
+        }
+        _parser->inputRtp(rtppt);
+    }
 
 private:
 	RtspMediaSource::Ptr _pRtspMediaSrc;

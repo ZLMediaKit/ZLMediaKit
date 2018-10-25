@@ -85,7 +85,7 @@ public:
     string _app;
     string _streamid;
     StrCaseMap _params;
-    string _para_strs;
+    string _param_strs;
 
 };
 

@@ -150,8 +150,8 @@ void MediaInfo::parse(const string &url){
         auto pos = steamid.find("?");
         if(pos != string::npos){
             _streamid = steamid.substr(0,pos);
-            _para_strs = steamid.substr(pos + 1);
-            _params = Parser::parseArgs(_para_strs);
+            _param_strs = steamid.substr(pos + 1);
+            _params = Parser::parseArgs(_param_strs);
             if(_params.find(VHOST_KEY) != _params.end()){
                 _vhost = _params[VHOST_KEY];
             }

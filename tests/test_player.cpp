@@ -68,6 +68,8 @@ int main(int argc, char *argv[]) {
 
         H264Decoder decoder;
         YuvDisplayer displayer;
+        //todo(xzl) 修复此处
+#if 0
         player->setOnVideoCB([&](const H264Frame &frame) {
 #ifndef __MACH__
             SDLDisplayerHelper::Instance().doTask([&, frame]() {
@@ -93,7 +95,7 @@ int main(int argc, char *argv[]) {
 #endif
 
         });
-
+#endif
         EventPoller::Instance().runLoop();
     }
     UDPServer::Destory();
