@@ -50,6 +50,77 @@ string FindField(const char* buf, const char* start, const char *end ,int bufSiz
 	return string(msg_start, msg_end);
 }
 int parserSDP(const string& sdp, RtspTrack Track[2]) {
+	map<string,map<char ,map<string ,string> > > sdpAttr;
+	string sdpTrack = "";
+
+	auto lines = split(sdp,"\n");
+	for (auto &line : lines){
+		trim(line);
+		if(line.size() < 2){
+			continue;
+		}
+		if(line[1] != '='){
+			continue;
+		}
+		char opt = line[0];
+		string opt_val = line.substr(2);
+		switch (opt){
+			case 'o':
+			case 's':
+			case 'i':
+			case 'c':
+			case 't':{
+				sdpAttr[sdpTrack][opt][""] = opt_val;
+			}
+				break;
+			case 'm':{
+				sdpTrack = FindField(opt_val.data(), nullptr," ");
+				sdpAttr[sdpTrack][opt][""] = opt_val;
+			}
+				break;
+			case 'a':{
+				string attr = FindField(opt_val.data(), nullptr,":");
+				if(attr.empty()){
+					sdpAttr[sdpTrack][opt][opt_val] = opt_val;
+				}else{
+					sdpAttr[sdpTrack][opt][attr] = FindField(opt_val.data(),":", nullptr);
+				}
+			}
+				break;
+			default:
+				break;
+		}
+	}
+
+	for (auto &pr : sdpAttr) {
+		TrackType trackType = TrackInvalid;
+		if (pr.first == "video") {
+			trackType = TrackVideo;
+		} else if (pr.first == "audio") {
+			trackType = TrackAudio;
+		} else if (pr.first == "") {
+			//title
+			auto range = pr.second['a']["range"];
+			char name[16] = {0},start[16] = {0},end[16] = {0};
+			if (2 == sscanf(range.data(), "%15[^=]=%15[^-]-%15s", name, start, end)) {
+
+			}
+			DebugL << range;
+			continue;
+		} else {
+			continue;
+		}
+
+		auto rtpmap = pr.second['a']["rtpmap"];
+		int pt, samplerate;
+		char codec[16] = {0};
+		if (3 == sscanf(rtpmap.data(), "%d %15[^/]/%d", &pt, codec, &samplerate)) {
+
+		}
+		DebugL << codec;
+	}
+
+
 	int track_cnt = 0;
 	string::size_type pos_head = 0;
 	while ((pos_head = sdp.find("m=",pos_head)) != string::npos ) {
@@ -79,26 +150,27 @@ int parserSDP(const string& sdp, RtspTrack Track[2]) {
 	}
 	return track_cnt;
 }
-//static  onceToken s_token([](){
-//   string str = "v=0\n"
-//           "o=- 1001 1 IN IP4 192.168.0.22\n"
-//           "s=VCP IPC Realtime stream\n"
-//           "m=video 0 RTP/AVP 105\n"
-//           "c=IN IP4 192.168.0.22\n"
-//           "a=control:rtsp://192.168.0.22/media/video1/video\n"
-//           "a=rtpmap:105 H264/90000\n"
-//           "a=fmtp:105 profile-level-id=64001f; packetization-mode=1; sprop-parameter-sets=Z2QAH6wrUCgC3QgAAB9AAAYahCAA,aO4xsg==\n"
-//           "a=recvonly\n"
-//           "m=application 0 RTP/AVP 107\n"
-//           "c=IN IP4 192.168.0.22\n"
-//           "a=control:rtsp://192.168.0.22/media/video1/metadata\n"
-//           "a=rtpmap:107 vnd.onvif.metadata/90000\n"
-//           "a=fmtp:107 DecoderTag=h3c-v3 RTCP=0\n"
-//           "a=recvonly";
-//    RtspTrack track[2];
-//    parserSDP(str,track);
-//    track[0].inited=true;
-//});
+static  onceToken s_token([](){
+   string str = "v=0\n"
+           "o=- 1001 1 IN IP4 192.168.0.22\n"
+           "s=VCP IPC Realtime stream\n"
+		   "a=range:npt=0-\n"
+           "m=video 0 RTP/AVP 105\n"
+           "c=IN IP4 192.168.0.22\n"
+           "a=control:rtsp://192.168.0.22/media/video1/video\n"
+           "a=rtpmap:105 H264/90000\n"
+           "a=fmtp:105 profile-level-id=64001f; packetization-mode=1; sprop-parameter-sets=Z2QAH6wrUCgC3QgAAB9AAAYahCAA,aO4xsg==\n"
+           "a=recvonly\n"
+           "m=application 0 RTP/AVP 107\n"
+           "c=IN IP4 192.168.0.22\n"
+           "a=control:rtsp://192.168.0.22/media/video1/metadata\n"
+           "a=rtpmap:107 vnd.onvif.metadata/90000\n"
+           "a=fmtp:107 DecoderTag=h3c-v3 RTCP=0\n"
+           "a=recvonly";
+    RtspTrack track[2];
+    parserSDP(str,track);
+    track[0].inited=true;
+});
 bool MakeNalu(uint8_t in, NALU &nal) {
 	nal.forbidden_zero_bit = in >> 7;
 	if (nal.forbidden_zero_bit) {

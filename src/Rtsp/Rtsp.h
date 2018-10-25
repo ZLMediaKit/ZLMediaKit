@@ -50,6 +50,7 @@ public:
 	uint32_t ssrc = 0;
 	uint16_t seq;
 	uint32_t timeStamp;
+	uint32_t sampleRate;
 };
 
 class RtcpCounter {
