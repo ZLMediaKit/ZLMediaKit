@@ -123,7 +123,6 @@ bool RtmpDemuxer::isInited() const {
     bool videoReady ,auidoReady;
 
     if(_videoTrack){
-        //getTrackType() != TrackInvalid说明其已经准备好了
         videoReady = _videoTrack->ready();
     }else{
         videoReady = _tryedGetVideoTrack || _tryedGetAudioTrack;
