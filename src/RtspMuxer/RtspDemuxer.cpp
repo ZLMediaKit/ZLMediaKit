@@ -71,7 +71,7 @@ RtspDemuxer::RtspDemuxer(const string& sdp) {
 }
 
 bool RtspDemuxer::inputRtp(const RtpPacket::Ptr & rtp) {
-	switch (rtp->getTrackType()) {
+	switch (rtp->type) {
 	case TrackVideo:{
 		if(_videoRtpDecoder){
 			return _videoRtpDecoder->inputRtp(rtp, true);
