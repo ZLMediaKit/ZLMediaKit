@@ -33,15 +33,22 @@ void RtspMuxer::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
     //记录该Track
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
+
     auto lam = [this,ssrc,mtu,track](){
+        //异步生成rtp编码器
+        //根据track生产sdp
         Sdp::Ptr sdp = Factory::getSdpByTrack(track);
         if (!sdp) {
             return;
         }
+
+        // 根据sdp生成rtp编码器
         auto encoder = sdp->createRtpEncoder(ssrc ? ssrc : ((uint64_t) sdp.get()) & 0xFFFFFFFF, mtu);
         if (!encoder) {
             return;
         }
+        //添加其sdp
+        _sdp.append(sdp->getSdp());
         //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtpEncoder中
         track->setDelegate(encoder);
         //rtp编码器共用同一个环形缓存
@@ -59,12 +66,7 @@ string RtspMuxer::getSdp() {
         //尚未就绪
         return "";
     }
-
-//    _StrPrinter printer;
-//    for (auto &pr : _sdp_map) {
-//        printer << pr.second->getSdp();
-//    }
-//    return printer;
+    return _sdp;
 }
 
 
@@ -80,7 +82,7 @@ void RtspMuxer::inputFrame(const Frame::Ptr &frame) {
     it->second->inputFrame(frame);
 
     if(!ready && it->second->ready()){
-        //Track又未就绪状态装换成就绪状态，我们就生成sdp以及rtp编码器
+        //Track由未就绪状态装换成就绪状态，我们就生成sdp以及rtp编码器
         auto it_callback = _trackReadyCallback.find(codec_id);
         if(it_callback != _trackReadyCallback.end()){
             it_callback->second();

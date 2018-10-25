@@ -38,7 +38,8 @@ public:
     /**
      * 构造函数
      */
-    RtspMuxer(){
+    RtspMuxer(const TitleSdp::Ptr &title = std::make_shared<TitleSdp>()){
+        _sdp = title->getSdp();
         _rtpRing = std::make_shared<RtpRingInterface::RingType>();
     }
     virtual ~RtspMuxer(){}
@@ -79,6 +80,7 @@ private:
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
     RtpRingInterface::RingType::Ptr _rtpRing;
+    string _sdp;
 };
 
 
