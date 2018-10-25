@@ -104,7 +104,7 @@ void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t uiStamp) {
 		uint32_t ui32Ssrc;
 		memcpy(&ui32Ssrc, makeRandStr(4, false).data(), 4);
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
-			onGetRTP(pkt,bKeyPos);
+			onWrite(pkt,bKeyPos);
 		};
         GET_CONFIG_AND_REGISTER(uint32_t,videoMtu,Rtp::kVideoMtuSize);
 		_pRtpMaker_h264.reset(new RtpMaker_H264(lam, ui32Ssrc,videoMtu));
@@ -136,7 +136,7 @@ void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t u
 		uint32_t ssrc;
 		memcpy(&ssrc, makeRandStr(8, false).data() + 4, 4);
 		auto lam = [this](const RtpPacket::Ptr &pkt, bool keyPos) {
-			onGetRTP(pkt,keyPos);
+			onWrite(pkt,keyPos);
 		};
         GET_CONFIG_AND_REGISTER(uint32_t,audioMtu,Rtp::kAudioMtuSize);
         _pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc, audioMtu,_audio->iSampleRate));

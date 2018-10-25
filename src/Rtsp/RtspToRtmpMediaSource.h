@@ -61,11 +61,11 @@ public:
 		}
 		RtspMediaSource::onGetSDP(strSdp);
 	}
-	virtual void onGetRTP(const RtpPacket::Ptr &pRtppkt, bool bKeyPos) override{
+	virtual void onWrite(const RtpPacket::Ptr &pRtppkt, bool bKeyPos) override{
 		if (_pParser) {
 			bKeyPos = _pParser->inputRtp(pRtppkt);
 		}
-		RtspMediaSource::onGetRTP(pRtppkt, bKeyPos);
+		RtspMediaSource::onWrite(pRtppkt, bKeyPos);
 	}
 
 	int readerCount(){

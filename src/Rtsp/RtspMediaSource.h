@@ -85,18 +85,14 @@ public:
 		_strSdp = sdp;
 		regist();
 	}
-	virtual void onGetRTP(const RtpPacket::Ptr &rtppt, bool keyPos) {
+
+	void onWrite(const RtpPacket::Ptr &rtppt, bool keyPos) override {
 		auto &trackRef = _mapTracks[rtppt->type];
 		trackRef.seq = rtppt->sequence;
 		trackRef.timeStamp = rtppt->timeStamp;
 		trackRef.ssrc = rtppt->ssrc;
 		trackRef.type = rtppt->type;
 		_pRing->write(rtppt,keyPos);
-	}
-
-private:
-	void onWrite(const RtpPacket::Ptr &rtppt, bool keyPos) override {
-		onGetRTP(rtppt,keyPos);
 	}
 protected:
 	unordered_map<int, RtspTrack> _mapTracks;

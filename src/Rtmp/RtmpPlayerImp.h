@@ -80,7 +80,7 @@ private:
     		_parser->inputRtmp(chunkData);
     	}
     	if(_pRtmpMediaSrc){
-            _pRtmpMediaSrc->onGetMedia(chunkData);
+            _pRtmpMediaSrc->onWrite(chunkData);
     	}
     }
 

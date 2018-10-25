@@ -86,7 +86,7 @@ void RtspToRtmpMediaSource::makeVideoConfigPkt() {
 	rtmpPkt->streamId = STREAM_MEDIA;
 	rtmpPkt->timeStamp = 0;
 	rtmpPkt->typeId = MSG_VIDEO;
-	_pRtmpSrc->onGetMedia(rtmpPkt);
+	_pRtmpSrc->onWrite(rtmpPkt);
 }
 void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 	if(_pRecorder){
@@ -120,7 +120,7 @@ void RtspToRtmpMediaSource::onGetH264(const H264Frame& frame) {
 	rtmpPkt->streamId = STREAM_MEDIA;
 	rtmpPkt->timeStamp = frame.timeStamp;
 	rtmpPkt->typeId = MSG_VIDEO;
-	_pRtmpSrc->onGetMedia(rtmpPkt);
+	_pRtmpSrc->onWrite(rtmpPkt);
 }
 void RtspToRtmpMediaSource::onGetAAC(const AACFrame& frame) {
 	if(_pRecorder){
@@ -139,7 +139,7 @@ void RtspToRtmpMediaSource::onGetAAC(const AACFrame& frame) {
 	rtmpPkt->streamId = STREAM_MEDIA;
 	rtmpPkt->timeStamp = frame.timeStamp;
 	rtmpPkt->typeId = MSG_AUDIO;
-	_pRtmpSrc->onGetMedia(rtmpPkt);
+	_pRtmpSrc->onWrite(rtmpPkt);
 }
 
 void RtspToRtmpMediaSource::makeAudioConfigPkt() {
@@ -181,7 +181,7 @@ void RtspToRtmpMediaSource::makeAudioConfigPkt() {
 	rtmpPkt->streamId = STREAM_MEDIA;
 	rtmpPkt->timeStamp = 0;
 	rtmpPkt->typeId = MSG_AUDIO;
-	_pRtmpSrc->onGetMedia(rtmpPkt);
+	_pRtmpSrc->onWrite(rtmpPkt);
 
 #endif
 }

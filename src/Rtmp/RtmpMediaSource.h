@@ -76,6 +76,7 @@ public:
 		}
 	}
 
+
 	virtual void onGetMetaData(const AMFValue &metadata) {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		_metadata = metadata;
@@ -88,7 +89,8 @@ public:
 			_bAsyncRegist = true;
 		}
 	}
-	virtual void onGetMedia(const RtmpPacket::Ptr &pkt) {
+
+    void onWrite(const RtmpPacket::Ptr &pkt,bool isKey = true) override {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		if (pkt->isCfgFrame()) {
 			_mapCfgFrame.emplace(pkt->typeId, pkt);
@@ -106,10 +108,6 @@ private:
 	bool ready(){
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		return _iCfgFrameSize != -1 && _iCfgFrameSize == _mapCfgFrame.size();
-	}
-
-	void onWrite(const RtmpPacket::Ptr &pkt,bool isKey = true) override {
-		onGetMedia(pkt);
 	}
 protected:
 	AMFValue _metadata;
