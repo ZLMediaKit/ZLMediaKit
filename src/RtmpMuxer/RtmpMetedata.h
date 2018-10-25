@@ -91,9 +91,28 @@ public:
         _metedata.set("height", video->getVideoHeight());
         _metedata.set("videodatarate", datarate);
         _metedata.set("framerate", video->getVideoFps());
-        _metedata.set("videocodecid", Factory::getAmfByCodecId(video->getCodecId())); //h.264
+        _codecId = video->getCodecId();
+        _metedata.set("videocodecid", Factory::getAmfByCodecId(_codecId));
     }
     virtual ~VideoMete(){}
+
+    /**
+     * 返回音频或视频类型
+     * @return
+     */
+    TrackType getTrackType() const override {
+        return TrackVideo;
+    }
+
+    /**
+     * 返回编码器id
+     * @return
+     */
+    CodecId getCodecId() const override{
+        return _codecId;
+    }
+private:
+    CodecId _codecId;
 };
 
 
@@ -105,9 +124,28 @@ public:
         _metedata.set("audiosamplesize", audio->getAudioSampleBit());
         _metedata.set("audiochannels", audio->getAudioChannel());
         _metedata.set("stereo", audio->getAudioChannel() > 1);
-        _metedata.set("audiocodecid", Factory::getAmfByCodecId(audio->getCodecId())); //aac
+        _codecId = audio->getCodecId();
+        _metedata.set("audiocodecid", Factory::getAmfByCodecId(_codecId));
     }
     virtual ~AudioMete(){}
+
+    /**
+     * 返回音频或视频类型
+     * @return
+     */
+    TrackType getTrackType() const override {
+        return TrackAudio;
+    }
+
+    /**
+     * 返回编码器id
+     * @return
+     */
+    CodecId getCodecId() const override{
+        return _codecId;
+    }
+private:
+    CodecId _codecId;
 };
 
 
