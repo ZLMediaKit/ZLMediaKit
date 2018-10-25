@@ -157,7 +157,11 @@ void SdpAttr::load(const string &sdp) {
 	}
 }
 
-SdpTrack::Ptr SdpAttr::getTrack(TrackType type) {
+bool SdpAttr::available() const {
+    return getTrack(TrackAudio) || getTrack(TrackVideo);
+}
+
+SdpTrack::Ptr SdpAttr::getTrack(TrackType type) const {
 	for (auto &pr : _track_map){
 		if(pr.second->_type == type){
 			return pr.second;
@@ -218,24 +222,5 @@ static  onceToken s_token([](){
 	SdpAttr attr(str);
     track[0].inited=true;
 });
-bool MakeNalu(uint8_t in, NALU &nal) {
-	nal.forbidden_zero_bit = in >> 7;
-	if (nal.forbidden_zero_bit) {
-		return false;
-	}
-	nal.nal_ref_idc = (in & 0x60) >> 5;
-	nal.type = in & 0x1f;
-	return true;
-}
-bool MakeFU(uint8_t in, FU &fu) {
-	fu.S = in >> 7;
-	fu.E = (in >> 6) & 0x01;
-	fu.R = (in >> 5) & 0x01;
-	fu.type = in & 0x1f;
-	if (fu.R != 0) {
-		return false;
-	}
-	return true;
-}
 
 
