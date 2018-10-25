@@ -84,7 +84,7 @@ private:
 		}
 
 		if(_pRtspMediaSrc){
-			_pRtspMediaSrc->onGetRTP(rtppt,true);
+			_pRtspMediaSrc->onWrite(rtppt,true);
 		}
 	}
 

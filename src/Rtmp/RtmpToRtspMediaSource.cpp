@@ -83,7 +83,7 @@ void RtmpToRtspMediaSource::makeSDP() {
 //		uint32_t ssrc0;
 //		memcpy(&ssrc0, makeRandStr(4, false).data(), 4);
 //		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
-//			_pRtspSrc->onGetRTP(pkt,bKeyPos);
+//			_pRtspSrc->onWrite(pkt,bKeyPos);
 //		};
 //
 //        GET_CONFIG_AND_REGISTER(uint32_t,videoMtu,Rtp::kVideoMtuSize);
@@ -126,7 +126,7 @@ void RtmpToRtspMediaSource::makeSDP() {
 //		uint32_t ssrc1;
 //		memcpy(&ssrc1, makeRandStr(8, false).data() + 4, 4);
 //		auto lam = [this](const RtpPacket::Ptr &pkt, bool bKeyPos) {
-//			_pRtspSrc->onGetRTP(pkt,bKeyPos);
+//			_pRtspSrc->onWrite(pkt,bKeyPos);
 //		};
 //        GET_CONFIG_AND_REGISTER(uint32_t,audioMtu,Rtp::kAudioMtuSize);
 //        _pRtpMaker_aac.reset(new RtpMaker_AAC(lam, ssrc1, audioMtu,_pParser->getAudioSampleRate()));

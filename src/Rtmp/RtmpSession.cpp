@@ -509,7 +509,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 		if(rtmp_modify_stamp){
 			chunkData.timeStamp = _stampTicker[chunkData.typeId % 2].elapsedTime();
 		}
-		_pPublisherSrc->onGetMedia(std::make_shared<RtmpPacket>(chunkData));
+		_pPublisherSrc->onWrite(std::make_shared<RtmpPacket>(chunkData));
 	}
 		break;
 	default:

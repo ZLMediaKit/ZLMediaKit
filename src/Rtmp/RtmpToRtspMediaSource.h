@@ -72,14 +72,14 @@ public:
 		RtmpMediaSource::onGetMetaData(_metadata);
 	}
 
-	void onGetMedia(const RtmpPacket::Ptr &pkt) override {
+	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos) override {
 		if (_pParser) {
 			if (!_pRtspSrc && _pParser->isInited()) {
 				makeSDP();
 			}
 			_pParser->inputRtmp(pkt);
 		}
-		RtmpMediaSource::onGetMedia(pkt);
+		RtmpMediaSource::onWrite(pkt,key_pos);
 	}
 
 private:
