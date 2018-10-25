@@ -49,78 +49,124 @@ string FindField(const char* buf, const char* start, const char *end ,int bufSiz
 	}
 	return string(msg_start, msg_end);
 }
-int parserSDP(const string& sdp, RtspTrack Track[2]) {
-	map<string,map<char ,map<string ,string> > > sdpAttr;
-	string sdpTrack = "";
+
+
+void SdpAttr::load(const string &sdp) {
+	_track_map.clear();
+	string key;
+	SdpTrack::Ptr track = std::make_shared<SdpTrack>();
 
 	auto lines = split(sdp,"\n");
 	for (auto &line : lines){
 		trim(line);
-		if(line.size() < 2){
-			continue;
-		}
-		if(line[1] != '='){
+		if(line.size() < 2 || line[1] != '='){
 			continue;
 		}
 		char opt = line[0];
 		string opt_val = line.substr(2);
 		switch (opt){
 			case 'o':
+				track->_o = opt_val;
+				break;
 			case 's':
+				track->_s = opt_val;
+				break;
 			case 'i':
+				track->_i = opt_val;
+				break;
 			case 'c':
-			case 't':{
-				sdpAttr[sdpTrack][opt][""] = opt_val;
-			}
+				track->_c = opt_val;
+				break;
+			case 't':
+				track->_t = opt_val;
+				break;
+			case 'b':
+				track->_b = opt_val;
 				break;
 			case 'm':{
-				sdpTrack = FindField(opt_val.data(), nullptr," ");
-				sdpAttr[sdpTrack][opt][""] = opt_val;
+				_track_map[key] = track;
+				track = std::make_shared<SdpTrack>();
+				key = FindField(opt_val.data(), nullptr," ");;
+				track->_m = opt_val;
 			}
 				break;
 			case 'a':{
 				string attr = FindField(opt_val.data(), nullptr,":");
 				if(attr.empty()){
-					sdpAttr[sdpTrack][opt][opt_val] = opt_val;
+					track->_attr[opt_val] = "";
 				}else{
-					sdpAttr[sdpTrack][opt][attr] = FindField(opt_val.data(),":", nullptr);
+					track->_attr[attr] = FindField(opt_val.data(),":", nullptr);
 				}
 			}
 				break;
 			default:
+				track->_other[opt] = opt_val;
 				break;
 		}
 	}
+	_track_map[key] = track;
 
-	for (auto &pr : sdpAttr) {
-		TrackType trackType = TrackInvalid;
-		if (pr.first == "video") {
-			trackType = TrackVideo;
+
+	for (auto &pr : _track_map) {
+		auto &track = *pr.second;
+		if (pr.first == "") {
+			track._type = TrackTitle;
+		} else if (pr.first == "video") {
+			track._type = TrackVideo;
 		} else if (pr.first == "audio") {
-			trackType = TrackAudio;
-		} else if (pr.first == "") {
-			//title
-			auto range = pr.second['a']["range"];
-			char name[16] = {0},start[16] = {0},end[16] = {0};
-			if (2 == sscanf(range.data(), "%15[^=]=%15[^-]-%15s", name, start, end)) {
-
-			}
-			DebugL << range;
-			continue;
+			track._type = TrackAudio;
 		} else {
-			continue;
+			track._type = TrackInvalid;
 		}
 
-		auto rtpmap = pr.second['a']["rtpmap"];
-		int pt, samplerate;
-		char codec[16] = {0};
-		if (3 == sscanf(rtpmap.data(), "%d %15[^/]/%d", &pt, codec, &samplerate)) {
-
+		auto it = track._attr.find("range");
+		if (it != track._attr.end()) {
+			char name[16] = {0}, start[16] = {0}, end[16] = {0};
+			int ret = sscanf(it->second.data(), "%15[^=]=%15[^-]-%15s", name, start, end);
+			if (3 == ret || 2 == ret) {
+				if (strcmp(start, "now") == 0) {
+					strcpy(start, "0");
+				}
+				track._start = atof(start);
+				track._end = atof(end);
+				track._duration = track._end - track._start;
+			}
 		}
-		DebugL << codec;
+
+		it = track._attr.find("rtpmap");
+		if(it != track._attr.end()){
+			auto rtpmap = it->second;
+			int pt, samplerate;
+			char codec[16] = {0};
+			if (3 == sscanf(rtpmap.data(), "%d %15[^/]/%d", &pt, codec, &samplerate)) {
+				track._pt = pt;
+				track._codec = codec;
+				track._samplerate = samplerate;
+			}
+		}
+
+		it = track._attr.find("fmtp");
+		if(it != track._attr.end()) {
+			track._fmtp = it->second;
+		}
+
+		it = track._attr.find("control");
+		if(it != track._attr.end()) {
+			track._control = it->second;
+		}
 	}
+}
 
+SdpTrack::Ptr SdpAttr::getTrack(TrackType type) {
+	for (auto &pr : _track_map){
+		if(pr.second->_type == type){
+			return pr.second;
+		}
+	}
+	return nullptr;
+}
 
+int parserSDP(const string& sdp, RtspTrack Track[2]) {
 	int track_cnt = 0;
 	string::size_type pos_head = 0;
 	while ((pos_head = sdp.find("m=",pos_head)) != string::npos ) {
@@ -169,6 +215,7 @@ static  onceToken s_token([](){
            "a=recvonly";
     RtspTrack track[2];
     parserSDP(str,track);
+	SdpAttr attr(str);
     track[0].inited=true;
 });
 bool MakeNalu(uint8_t in, NALU &nal) {
@@ -190,3 +237,5 @@ bool MakeFU(uint8_t in, FU &fu) {
 	}
 	return true;
 }
+
+

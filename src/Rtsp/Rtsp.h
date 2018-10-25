@@ -38,6 +38,43 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
+class SdpTrack{
+public:
+	typedef std::shared_ptr<SdpTrack> Ptr;
+
+	string _m;
+	string _o;
+	string _s;
+	string _i;
+	string _c;
+	string _t;
+	string _b;
+
+	float _duration = 0;
+	float _start = 0;
+	float _end = 0;
+
+	map<char,string> _other;
+	map<string,string> _attr;
+public:
+	int _pt;
+	string _codec;
+	int _samplerate;
+	string _fmtp;
+	string _control;
+	TrackType _type;
+};
+class SdpAttr {
+public:
+	typedef std::shared_ptr<SdpAttr> Ptr;
+	SdpAttr(const string &sdp){load(sdp);};
+	~SdpAttr(){}
+
+	void load(const string &sdp);
+	SdpTrack::Ptr getTrack(TrackType type);
+private:
+	map<string,SdpTrack::Ptr> _track_map;
+};
 
 class RtspTrack{
 public:
@@ -62,7 +99,6 @@ public:
 
 string FindField(const char* buf, const char* start, const char *end,int bufSize = 0 );
 int parserSDP(const string& sdp, RtspTrack Track[2]);
-
 
 struct StrCaseCompare
 {
