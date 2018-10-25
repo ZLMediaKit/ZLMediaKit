@@ -162,7 +162,9 @@ public:
      * @param frame
      */
     void inputFrame(const Frame::Ptr &frame) override{
-        _frameRing->write(frame,frame->keyFrame());
+        if(_frameRing){
+            _frameRing->write(frame,frame->keyFrame());
+        }
     }
 protected:
     RingType::Ptr _frameRing;

@@ -36,7 +36,7 @@ namespace mediakit {
 /**
 * sdp基类
 */
-class Sdp :  public FrameRingInterface , public RtpRingInterface , public CodecInfo{
+class Sdp : public CodecInfo{
 public:
     typedef std::shared_ptr<Sdp> Ptr;
 
@@ -60,62 +60,13 @@ public:
 
 
     /**
-     * 获取帧环形缓存
-     * @return
-     */
-    FrameRingInterface::RingType::Ptr getFrameRing() const override {
-        return _encoder->getFrameRing();
-    }
-
-    /**
-     * 获取rtp环形缓存
-     * @return
-     */
-    RtpRingInterface::RingType::Ptr getRtpRing() const override{
-        return _encoder->getRtpRing();
-    }
-
-    /**
-     * 输入帧数据，驱动rtp打包
-     * @param frame 帧数据
-     */
-    void inputFrame(const Frame::Ptr &frame) override{
-        _encoder->inputFrame(frame);
-    }
-
-    /**
-     * 也可以在外部打包rtp后直接输入rtp
-     * @param rtp rtp数据包
-     * @param key_pos 是否为关键帧第一个rtp包
-     */
-    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
-        return _encoder->inputRtp(rtp,key_pos);
-    }
-
-    /**
-     * 替换帧环形缓存，目的是多个rtp打包器共用一个环形缓存
-     * @param ring
-     */
-    void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override{
-        _encoder->setFrameRing(ring);
-    }
-
-    /**
-     * 替换帧环形缓存，目的是多个rtp打包器共用一个环形缓存
-     * @param ring
-     */
-    void setRtpRing(const RtpRingInterface::RingType::Ptr &ring) override{
-        _encoder->setRtpRing(ring);
-    }
-
-    /**
      * 创建Rtp打包器
      * @param ssrc 打包器ssrc，可以为0
      * @param mtu mtu大小，一般小于1500字节，推荐1400
+     * @return Rtp打包器
      */
-    virtual void createRtpEncoder(uint32_t ssrc, int mtu);
+    virtual RtpCodec::Ptr  createRtpEncoder(uint32_t ssrc, int mtu);
 private:
-    RtpCodec::Ptr _encoder;
     uint8_t _playload_type;
     uint32_t _sample_rate;
 };
@@ -270,7 +221,7 @@ public:
 
     TrackType getTrackType() const override {
         return TrackAudio;
-    };
+    }
     CodecId getCodecId() const override {
         return CodecAAC;
     }

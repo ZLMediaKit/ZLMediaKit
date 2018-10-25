@@ -37,7 +37,7 @@ using namespace toolkit;
 
 namespace mediakit{
 
-class Track : public FrameRing , public CodecInfo{
+class Track : public FrameRingInterfaceDelegate , public CodecInfo{
 public:
     typedef std::shared_ptr<Track> Ptr;
     Track(){}
