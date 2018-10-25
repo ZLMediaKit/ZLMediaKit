@@ -196,17 +196,18 @@ RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRat
     }
 }
 
-RtmpCodec::Ptr Factory::getRtmpCodecById(CodecId codecId) {
-    switch (codecId){
+RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
+    switch (track->getCodecId()){
         case CodecH264:
-            return std::make_shared<H264RtmpEncoder>();
+            return std::make_shared<H264RtmpEncoder>(track);
         case CodecAAC:
-            return std::make_shared<AACRtmpEncoder>();
+            return std::make_shared<AACRtmpEncoder>(track);
         default:
-            WarnL << "暂不支持该CodecId:" << codecId;
+            WarnL << "暂不支持该CodecId:" << track->getCodecId();
             return nullptr;
     }
 }
+
 
 
 }//namespace mediakit

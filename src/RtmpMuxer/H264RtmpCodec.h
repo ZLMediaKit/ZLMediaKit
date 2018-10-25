@@ -28,6 +28,7 @@
 #define ZLMEDIAKIT_H264RTMPCODEC_H
 
 #include "RtmpCodec.h"
+#include "Player/Track.h"
 #include "Util/ResourcePool.h"
 using namespace toolkit;
 
@@ -74,16 +75,24 @@ class H264RtmpEncoder : public H264RtmpDecoder, public ResourcePoolHelper<RtmpPa
 public:
     typedef std::shared_ptr<H264RtmpEncoder> Ptr;
 
-    H264RtmpEncoder();
+    /**
+     * 构造函数，track可以为空，此时则在inputFrame时输入sps pps
+     * 如果track不为空且包含sps pps信息，
+     * 那么inputFrame时可以不输入sps pps
+     * @param track
+     */
+    H264RtmpEncoder(const Track::Ptr &track);
     ~H264RtmpEncoder() {}
 
     /**
-     * 输入264帧,需要指出的是，必须输入sps pps帧
+     * 输入264帧，可以不带sps pps
      * @param frame 帧数据
      */
     void inputFrame(const Frame::Ptr &frame) override;
 private:
     void makeVideoConfigPkt();
+private:
+    H264Track::Ptr _track;
 };
 
 }//namespace mediakit

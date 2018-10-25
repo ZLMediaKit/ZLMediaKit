@@ -75,12 +75,23 @@ void AACRtmpDecoder::onGetAAC(const char* pcData, int iLen, uint32_t ui32TimeSta
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
+AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track) {
+    _track = dynamic_pointer_cast<AACTrack>(track);
+}
+
 void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     RtmpCodec::inputFrame(frame);
-    if(frame->prefixSize() >= 7 && _aac_cfg.empty()){
-        //包含adts头
-        _aac_cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
-        makeAudioConfigPkt();
+
+    if(_aac_cfg.empty()){
+        if(frame->prefixSize() >= 7){
+            //包含adts头,从adts头获取aac配置信息
+            _aac_cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
+            makeAudioConfigPkt();
+        } else if(_track && _track->ready()){
+            //从track中和获取aac配置信息
+            _aac_cfg = _track->getAacCfg();
+            makeAudioConfigPkt();
+        }
     }
 
     if(!_aac_cfg.empty()){
@@ -148,7 +159,5 @@ void AACRtmpEncoder::makeAudioConfigPkt() {
     rtmpPkt->typeId = MSG_AUDIO;
     inputRtmp(rtmpPkt, false);
 }
-
-
 
 }//namespace mediakit
