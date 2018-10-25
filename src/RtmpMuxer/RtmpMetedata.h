@@ -42,6 +42,7 @@ namespace mediakit {
 class Metedata : public CodecInfo{
 public:
     typedef std::shared_ptr<Metedata> Ptr;
+
     Metedata():_metedata(AMF_OBJECT){}
     virtual ~Metedata(){}
     const AMFValue &getMetedata() const{
@@ -56,6 +57,8 @@ protected:
 */
 class TitleMete : public Metedata{
 public:
+    typedef std::shared_ptr<TitleMete> Ptr;
+
     TitleMete(float dur_sec = 0,
               uint64_t fileSize = 0,
               const map<string,string> &header = map<string,string>()){
@@ -86,6 +89,8 @@ public:
 
 class VideoMete : public Metedata{
 public:
+    typedef std::shared_ptr<VideoMete> Ptr;
+
     VideoMete(const VideoTrack::Ptr &video,int datarate = 5000){
         _metedata.set("width", video->getVideoWidth());
         _metedata.set("height", video->getVideoHeight());
@@ -118,6 +123,8 @@ private:
 
 class AudioMete : public Metedata{
 public:
+    typedef std::shared_ptr<AudioMete> Ptr;
+
     AudioMete(const AudioTrack::Ptr &audio,int datarate = 160){
         _metedata.set("audiodatarate", datarate);
         _metedata.set("audiosamplerate", audio->getAudioSampleRate());

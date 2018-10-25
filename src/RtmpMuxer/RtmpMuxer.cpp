@@ -24,35 +24,45 @@
 * SOFTWARE.
 */
 
-#include "RtspMuxer.h"
-#include "Common/Factory.h"
+#include "RtmpMuxer.h"
 
 namespace mediakit {
 
-void RtspMuxer::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
+void RtmpMuxer::addTrack(const Track::Ptr &track) {
     //记录该Track
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
 
-    auto lam = [this,ssrc,mtu,track](){
-        //异步生成rtp编码器
-        //根据track生产sdp
-        Sdp::Ptr sdp = Factory::getSdpByTrack(track);
-        if (!sdp) {
-            return;
-        }
-
-        // 根据sdp生成rtp编码器
-        auto encoder = sdp->createRtpEncoder(ssrc ? ssrc : ((uint64_t) sdp.get()) & 0xFFFFFFFF, mtu);
+    auto lam = [this,track](){
+        //异步生成Rtmp编码器
+        auto encoder = Factory::getRtmpCodecByTrack(track);
         if (!encoder) {
             return;
         }
-        //添加其sdp
-        _sdp.append(sdp->getSdp());
-        //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtpEncoder中
+
+        //根据track生产sdp
+        Metedata::Ptr metedate;
+        switch (track->getTrackType()){
+            case TrackVideo:{
+                metedate = std::make_shared<VideoMete>(dynamic_pointer_cast<VideoTrack>(track));
+            }
+                break;
+            case TrackAudio:{
+                metedate = std::make_shared<AudioMete>(dynamic_pointer_cast<AudioTrack>(track));
+            }
+                break;
+            default:
+                return;;
+
+        }
+        //添加其metedata
+        metedate->getMetedata().object_for_each([&](const std::string &key, const AMFValue &value){
+            _metedata.set(key,value);
+        });
+        //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtmpEncoder中
         track->setDelegate(encoder);
-        //rtp编码器共用同一个环形缓存
-        encoder->setRtpRing(_rtpRing);
+        //Rtmp编码器共用同一个环形缓存
+        encoder->setRtmpRing(_rtmpRing);
     };
     if(track->ready()){
         lam();
@@ -61,16 +71,18 @@ void RtspMuxer::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
     }
 }
 
-string RtspMuxer::getSdp() {
+
+const AMFValue &RtmpMuxer::getMetedata() const {
     if(!_trackReadyCallback.empty()){
         //尚未就绪
-        return "";
+        static AMFValue s_amf;
+        return s_amf;
     }
-    return _sdp;
+    return _metedata;
 }
 
 
-void RtspMuxer::inputFrame(const Frame::Ptr &frame) {
+void RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
     auto codec_id = frame->getCodecId();
     auto it = _track_map.find(codec_id);
     if (it == _track_map.end()) {
@@ -82,7 +94,7 @@ void RtspMuxer::inputFrame(const Frame::Ptr &frame) {
     it->second->inputFrame(frame);
 
     if(!ready && it->second->ready()){
-        //Track由未就绪状态装换成就绪状态，我们就生成sdp以及rtp编码器
+        //Track由未就绪状态装换成就绪状态，我们就生成sdp以及Rtmp编码器
         auto it_callback = _trackReadyCallback.find(codec_id);
         if(it_callback != _trackReadyCallback.end()){
             it_callback->second();
@@ -91,13 +103,13 @@ void RtspMuxer::inputFrame(const Frame::Ptr &frame) {
     }
 }
 
-bool RtspMuxer::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
-   _rtpRing->write(rtp,key_pos);
+bool RtmpMuxer::inputRtmp(const RtmpPacket::Ptr &rtmp , bool key_pos) {
+    _rtmpRing->write(rtmp,key_pos);
     return key_pos;
 }
 
-RtpRingInterface::RingType::Ptr RtspMuxer::getRtpRing() const {
-    return _rtpRing;
+RtmpRingInterface::RingType::Ptr RtmpMuxer::getRtmpRing() const {
+    return _rtmpRing;
 }
 
-} /* namespace mediakit */
+}
