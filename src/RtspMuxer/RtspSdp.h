@@ -34,7 +34,7 @@
 namespace mediakit {
 
 /**
-* sdp基类
+* rtsp sdp基类
 */
 class Sdp : public CodecInfo{
 public:

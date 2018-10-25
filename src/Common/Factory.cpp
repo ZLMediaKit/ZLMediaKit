@@ -208,6 +208,18 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
     }
 }
 
+AMFValue Factory::getAmfByCodecId(CodecId codecId) {
+    switch (codecId){
+        case CodecAAC:{
+            return AMFValue("mp4a");
+        }
+        case CodecH264:{
+            return AMFValue("avc1");
+        }
+        default:
+            return AMFValue(AMF_NULL);
+    }
+}
 
 
 }//namespace mediakit
