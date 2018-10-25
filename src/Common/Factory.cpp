@@ -15,6 +15,11 @@ Sdp::Ptr Factory::getSdpByTrack(const Track::Ptr &track) {
         case CodecH264:{
             H264Track::Ptr h264Track = dynamic_pointer_cast<H264Track>(track);
             if(!h264Track){
+                WarnL << "该Track不是H264Track类型";
+                return nullptr;
+            }
+            if(!h264Track->ready()){
+                WarnL << "该Track未准备好";
                 return nullptr;
             }
             return std::make_shared<H264Sdp>(h264Track->getSps(),h264Track->getPps());
@@ -23,12 +28,17 @@ Sdp::Ptr Factory::getSdpByTrack(const Track::Ptr &track) {
         case CodecAAC:{
             AACTrack::Ptr aacTrack = dynamic_pointer_cast<AACTrack>(track);
             if(!aacTrack){
+                WarnL << "该Track不是AACTrack类型";
+                return nullptr;
+            }
+            if(!aacTrack->ready()){
+                WarnL << "该Track未准备好";
                 return nullptr;
             }
             return std::make_shared<AACSdp>(aacTrack->getAacCfg(),aacTrack->getAudioSampleRate());
         }
-
         default:
+            WarnL << "暂不支持的CodecId:" << track->getCodecId();
             return nullptr;
     }
 }
@@ -41,7 +51,8 @@ Track::Ptr Factory::getTrackBySdp(const string &sdp) {
             aac_cfg_str = FindField(sdp.c_str(), "config=", ";");
         }
         if (aac_cfg_str.size() != 4) {
-            return nullptr;
+            //延后获取adts头
+            return std::make_shared<AACTrack>();
         }
         string aac_cfg;
 
@@ -74,7 +85,7 @@ Track::Ptr Factory::getTrackBySdp(const string &sdp) {
         return std::make_shared<H264Track>(sps,pps,0,0);
     }
 
-
+    WarnL << "暂不支持该sdp:" << sdp;
     return nullptr;
 }
 
@@ -116,6 +127,7 @@ Track::Ptr Factory::getTrackByCodecId(CodecId codecId) {
             return std::make_shared<AACTrack>();
         }
         default:
+            WarnL << "暂不支持该CodecId:" << codecId;
             return nullptr;
     }
 }
@@ -124,6 +136,7 @@ Track::Ptr Factory::getTrackByCodecId(CodecId codecId) {
 Track::Ptr Factory::getTrackByAmf(const AMFValue &amf) {
     CodecId codecId = getCodecIdByAmf(amf);
     if(codecId == CodecInvalid){
+        WarnL << "暂不支持该Amf:" << amf.type();
         return nullptr;
     }
     return getTrackByCodecId(codecId);
@@ -142,6 +155,7 @@ RtpCodec::Ptr Factory::getRtpEncoderById(CodecId codecId,
         case CodecAAC:
             return std::make_shared<AACRtpEncoder>(ui32Ssrc,ui32MtuSize,ui32SampleRate,ui8PlayloadType,ui8Interleaved);
         default:
+            WarnL << "暂不支持该CodecId:" << codecId;
             return nullptr;
     }
 }
@@ -153,6 +167,7 @@ RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRat
         case CodecAAC:
             return std::make_shared<AACRtpDecoder>(ui32SampleRate);
         default:
+            WarnL << "暂不支持该CodecId:" << codecId;
             return nullptr;
     }
 }
@@ -164,6 +179,7 @@ RtmpCodec::Ptr Factory::getRtmpCodecById(CodecId codecId) {
         case CodecAAC:
             return std::make_shared<AACRtmpEncoder>();
         default:
+            WarnL << "暂不支持该CodecId:" << codecId;
             return nullptr;
     }
 }
