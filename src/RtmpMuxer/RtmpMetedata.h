@@ -75,7 +75,7 @@ public:
      * @return
      */
     TrackType getTrackType() const override {
-        return TrackInvalid;
+        return TrackTitle;
     }
 
     /**
