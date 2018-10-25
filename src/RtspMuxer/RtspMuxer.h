@@ -76,11 +76,15 @@ public:
      * @return
      */
     RtpRingInterface::RingType::Ptr getRtpRing() const;
+
+protected:
+    virtual void onInited(){};
 private:
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
     RtpRingInterface::RingType::Ptr _rtpRing;
     string _sdp;
+    bool _inited = false;
 };
 
 

@@ -101,6 +101,11 @@ void RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
             _trackReadyCallback.erase(it_callback);
         }
     }
+
+    if(!_inited && _trackReadyCallback.empty()){
+        _inited = true;
+        onInited();
+    }
 }
 
 bool RtmpMuxer::inputRtmp(const RtmpPacket::Ptr &rtmp , bool key_pos) {

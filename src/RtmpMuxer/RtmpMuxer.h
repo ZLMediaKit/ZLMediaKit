@@ -72,11 +72,15 @@ public:
      * @return
      */
     RtmpRingInterface::RingType::Ptr getRtmpRing() const;
+
+protected:
+    virtual void onInited(){};
 private:
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
     RtmpRingInterface::RingType::Ptr _rtmpRing;
     AMFValue _metedata;
+    bool  _inited = false;
 };
 
 

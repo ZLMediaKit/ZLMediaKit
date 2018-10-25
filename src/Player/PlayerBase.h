@@ -42,7 +42,17 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class PlayerBase : public mINI{
+class DemuxerBase {
+public:
+	typedef std::shared_ptr<DemuxerBase> Ptr;
+
+	virtual float getDuration() const { return 0;}
+	virtual bool isInited() const { return true; }
+	virtual vector<Track::Ptr> getTracks() const { return vector<Track::Ptr>();}
+};
+
+
+class PlayerBase : public DemuxerBase, public mINI{
 public:
 	typedef std::shared_ptr<PlayerBase> Ptr;
 	typedef enum {
@@ -76,13 +86,8 @@ public:
     virtual float getProgress() const { return 0;}
     virtual void seekTo(float fProgress) {}
     virtual void setMediaSouce(const MediaSource::Ptr & src) {}
-
-	virtual bool isInited() const { return true; }
 	//TrackVideo = 0, TrackAudio = 1
 	virtual float getRtpLossRate(int trackType) const {return 0; }
-    virtual float getDuration() const { return 0;}
-
-	virtual vector<Track::Ptr> getTracks() const { return vector<Track::Ptr>();}
 protected:
     virtual void onShutdown(const SockException &ex) {}
     virtual void onPlayResult(const SockException &ex) {}

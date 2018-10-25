@@ -89,6 +89,11 @@ void RtspMuxer::inputFrame(const Frame::Ptr &frame) {
             _trackReadyCallback.erase(it_callback);
         }
     }
+
+    if(!_inited && _trackReadyCallback.empty()){
+        _inited = true;
+        onInited();
+    }
 }
 
 bool RtspMuxer::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
