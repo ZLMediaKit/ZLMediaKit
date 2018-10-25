@@ -28,6 +28,7 @@
 #define ZLMEDIAKIT_AACRTMPCODEC_H
 
 #include "RtmpCodec.h"
+#include "Player/Track.h"
 
 namespace mediakit{
 /**
@@ -71,18 +72,26 @@ class AACRtmpEncoder : public AACRtmpDecoder ,  public ResourcePoolHelper<RtmpPa
 public:
     typedef std::shared_ptr<AACRtmpEncoder> Ptr;
 
-    AACRtmpEncoder(){}
+    /**
+     * 构造函数，track可以为空，此时则在inputFrame时输入adts头
+     * 如果track不为空且包含adts头相关信息，
+     * 那么inputFrame时可以不输入adts头
+     * @param track
+     */
+    AACRtmpEncoder(const Track::Ptr &track);
     ~AACRtmpEncoder() {}
 
     /**
-     * 输入aac 数据，必须带dats头
-     * @param frame 带dats头的aac数据
+     * 输入aac 数据，可以不带adts头
+     * @param frame aac数据
      */
     void inputFrame(const Frame::Ptr &frame) override;
 
 private:
     void makeAudioConfigPkt();
+private:
     uint8_t _ui8AudioFlags;
+    AACTrack::Ptr _track;
 };
 
 }//namespace mediakit

@@ -106,11 +106,11 @@ public:
     static CodecId getCodecIdByAmf(const AMFValue &val);
 
     /**
-     * 根据CodecId获取Rtmp的编解码器
-     * @param codecId CodecId
+     * 根据Track获取Rtmp的编解码器
+     * @param track 媒体描述对象
      * @return
      */
-    static RtmpCodec::Ptr getRtmpCodecById(CodecId codecId);
+    static RtmpCodec::Ptr getRtmpCodecByTrack(const Track::Ptr &track);
 };
 
 
