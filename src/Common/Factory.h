@@ -19,12 +19,19 @@ namespace mediakit{
 
 class Factory {
 public:
+
+    /**
+     * 根据CodecId获取Track，该Track的ready()状态一般都为false
+     * @param codecId 编解码器id
+     * @return
+     */
+    static Track::Ptr getTrackByCodecId(CodecId codecId);
+
+    ////////////////////////////////rtsp相关//////////////////////////////////
     /**
      * 根据sdp生成Track对象
      */
     static Track::Ptr getTrackBySdp(const string &sdp);
-    static Track::Ptr getTrackByCodecId(CodecId codecId);
-
 
     /**
     * 根据Track生成SDP对象
@@ -60,12 +67,47 @@ public:
     static RtpCodec::Ptr getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRate);
 
 
-    //////////////////////////////////////////////////////////////////
+    ////////////////////////////////rtmp相关//////////////////////////////////
 
+    /**
+     * 根据amf对象获取响应的Track
+     * @param amf rtmp metedata中的videocodecid或audiocodecid的值
+     * @return
+     */
     static Track::Ptr getTrackByAmf(const AMFValue &amf);
+
+    /**
+     * 根据amf对象获取相应的CodecId
+     * @param val rtmp metedata中的videocodecid或audiocodecid的值
+     * @return
+     */
     static CodecId getCodecIdByAmf(const AMFValue &val);
+
+    /**
+     * 根据CodecId获取Rtmp的编解码器
+     * @param codecId CodecId
+     * @return
+     */
     static RtmpCodec::Ptr getRtmpCodecById(CodecId codecId);
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }//namespace mediakit
 
