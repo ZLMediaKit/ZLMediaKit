@@ -59,6 +59,15 @@ public:
         _rtmp->inputFrame(frame);
         _rtsp->inputFrame(frame);
     }
+
+    /**
+     * 设置事件监听器
+     * @param listener
+     */
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
+        _rtmp->setListener(listener);
+        _rtsp->setListener(listener);
+    }
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
