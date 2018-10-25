@@ -30,14 +30,72 @@
 namespace mediakit {
 
 void RtspMuxer::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
-    if (track->getCodecId() == CodecInvalid) {
-        addTrack(std::make_shared<TitleSdp>(), ssrc, mtu);
-    } else {
+    //记录该Track
+    auto codec_id = track->getCodecId();
+    _track_map[codec_id] = track;
+    auto lam = [this,ssrc,mtu,track](){
         Sdp::Ptr sdp = Factory::getSdpByTrack(track);
-        if (sdp) {
-            addTrack(sdp, ssrc, mtu);
+        if (!sdp) {
+            return;
+        }
+        auto encoder = sdp->createRtpEncoder(ssrc ? ssrc : ((uint64_t) sdp.get()) & 0xFFFFFFFF, mtu);
+        if (!encoder) {
+            return;
+        }
+        //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtpEncoder中
+        track->setDelegate(encoder);
+        //rtp编码器共用同一个环形缓存
+        encoder->setRtpRing(_rtpRing);
+    };
+    if(track->ready()){
+        lam();
+    }else{
+        _trackReadyCallback[codec_id] = lam;
+    }
+}
+
+string RtspMuxer::getSdp() {
+    if(!_trackReadyCallback.empty()){
+        //尚未就绪
+        return "";
+    }
+
+//    _StrPrinter printer;
+//    for (auto &pr : _sdp_map) {
+//        printer << pr.second->getSdp();
+//    }
+//    return printer;
+}
+
+
+void RtspMuxer::inputFrame(const Frame::Ptr &frame) {
+    auto codec_id = frame->getCodecId();
+    auto it = _track_map.find(codec_id);
+    if (it == _track_map.end()) {
+        return;
+    }
+    //Track是否准备好
+    auto ready = it->second->ready();
+    //inputFrame可能使Track变成就绪状态
+    it->second->inputFrame(frame);
+
+    if(!ready && it->second->ready()){
+        //Track又未就绪状态装换成就绪状态，我们就生成sdp以及rtp编码器
+        auto it_callback = _trackReadyCallback.find(codec_id);
+        if(it_callback != _trackReadyCallback.end()){
+            it_callback->second();
+            _trackReadyCallback.erase(it_callback);
         }
     }
+}
+
+bool RtspMuxer::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
+   _rtpRing->write(rtp,key_pos);
+    return true;
+}
+
+RtpRingInterface::RingType::Ptr RtspMuxer::getRtpRing() const {
+    return _rtpRing;
 }
 
 } /* namespace mediakit */

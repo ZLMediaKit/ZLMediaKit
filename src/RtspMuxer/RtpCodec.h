@@ -97,7 +97,9 @@ public:
     }
 
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
-        _rtpRing->write(rtp,key_pos);
+        if(_rtpRing){
+            _rtpRing->write(rtp,key_pos);
+        }
         return key_pos;
     }
 protected:
