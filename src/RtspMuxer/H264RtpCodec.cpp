@@ -28,6 +28,41 @@
 
 namespace mediakit{
 
+
+typedef struct {
+    unsigned forbidden_zero_bit :1;
+    unsigned nal_ref_idc :2;
+    unsigned type :5;
+} NALU;
+
+typedef struct {
+    unsigned S :1;
+    unsigned E :1;
+    unsigned R :1;
+    unsigned type :5;
+} FU;
+
+bool MakeNalu(uint8_t in, NALU &nal) {
+    nal.forbidden_zero_bit = in >> 7;
+    if (nal.forbidden_zero_bit) {
+        return false;
+    }
+    nal.nal_ref_idc = (in & 0x60) >> 5;
+    nal.type = in & 0x1f;
+    return true;
+}
+bool MakeFU(uint8_t in, FU &fu) {
+    fu.S = in >> 7;
+    fu.E = (in >> 6) & 0x01;
+    fu.R = (in >> 5) & 0x01;
+    fu.type = in & 0x1f;
+    if (fu.R != 0) {
+        return false;
+    }
+    return true;
+}
+
+
 H264RtpDecoder::H264RtpDecoder() {
     _h264frame = obtainFrame();
 }

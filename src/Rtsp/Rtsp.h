@@ -71,7 +71,8 @@ public:
 	~SdpAttr(){}
 
 	void load(const string &sdp);
-	SdpTrack::Ptr getTrack(TrackType type);
+	SdpTrack::Ptr getTrack(TrackType type) const;
+	bool available() const ;
 private:
 	map<string,SdpTrack::Ptr> _track_map;
 };
@@ -218,21 +219,6 @@ private:
 	mutable StrCaseMap _mapUrlArgs;
 };
 
-typedef struct {
-	unsigned forbidden_zero_bit :1;
-	unsigned nal_ref_idc :2;
-	unsigned type :5;
-} NALU;
-
-typedef struct {
-	unsigned S :1;
-	unsigned E :1;
-	unsigned R :1;
-	unsigned type :5;
-} FU;
-
-bool MakeNalu(uint8_t in, NALU &nal) ;
-bool MakeFU(uint8_t in, FU &fu) ;
 
 
 #endif //RTSP_RTSP_H_
