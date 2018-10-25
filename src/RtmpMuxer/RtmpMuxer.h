@@ -24,66 +24,94 @@
 * SOFTWARE.
 */
 
-#ifndef ZLMEDIAKIT_RTSPMUXER_H
-#define ZLMEDIAKIT_RTSPMUXER_H
+#ifndef ZLMEDIAKIT_RTMPMUXER_H
+#define ZLMEDIAKIT_RTMPMUXER_H
 
-#include "RtspSdp.h"
+#include "RtmpMetedata.h"
 
 namespace mediakit{
-/**
-* rtsp生成器
-*/
-class RtspMuxer{
+
+class RtmpMuxer{
 public:
     /**
      * 构造函数
      */
-    RtspMuxer(const TitleSdp::Ptr &title = std::make_shared<TitleSdp>()){
-        _sdp = title->getSdp();
-        _rtpRing = std::make_shared<RtpRingInterface::RingType>();
+    RtmpMuxer(const TitleMete::Ptr &title = std::make_shared<TitleMete>()) : _metedata(AMF_OBJECT){
+        _metedata = title->getMetedata();
+        _rtmpRing = std::make_shared<RtmpRingInterface::RingType>();
     }
-    virtual ~RtspMuxer(){}
+    virtual ~RtmpMuxer(){}
 
     /**
      * 添加音视频媒体
      * @param track 媒体描述
-     * @param ssrc 媒体rtp ssrc
-     * @param mtu 媒体rtp mtu
      */
-    void addTrack(const Track::Ptr & track,uint32_t ssrc = 0,int mtu = 1400) ;
+    void addTrack(const Track::Ptr & track) ;
 
     /**
      * 获取完整的SDP字符串
      * @return SDP字符串
      */
-    string getSdp() ;
+    const AMFValue &getMetedata() const ;
 
     /**
-     * 写入帧数据然后打包rtp
+     * 写入帧数据然后打包rtmp
      * @param frame 帧数据
      */
     void inputFrame(const Frame::Ptr &frame) ;
 
     /**
-     * 也可以在外部打包好rtp然后再写入
-     * @param rtp rtp包
-     * @param key_pos 是否为关键帧的第一个rtp包
+     * 也可以在外部打包好rtmp然后再写入
+     * @param rtmp rtmp包
+     * @param key_pos 是否为关键帧
      */
-    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true);
+    bool inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos = true);
 
     /**
-     * 获取rtp环形缓存
+     * 获取rtmp环形缓存
      * @return
      */
-    RtpRingInterface::RingType::Ptr getRtpRing() const;
+    RtmpRingInterface::RingType::Ptr getRtmpRing() const;
 private:
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
-    RtpRingInterface::RingType::Ptr _rtpRing;
-    string _sdp;
+    RtmpRingInterface::RingType::Ptr _rtmpRing;
+    AMFValue _metedata;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 } /* namespace mediakit */
 
-#endif //ZLMEDIAKIT_RTSPMUXER_H
+#endif //ZLMEDIAKIT_RTMPMUXER_H
