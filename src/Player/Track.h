@@ -48,6 +48,12 @@ public:
      * @return
      */
     virtual bool ready() = 0;
+
+    /**
+     * 克隆接口，用于复制本对象用
+     * @return
+     */
+    virtual Track::Ptr clone() = 0;
 };
 
 class VideoTrack : public Track {
@@ -245,6 +251,9 @@ private:
     void parseSps(const string &sps){
         getAVCInfo(sps,_width,_height,_fps);
     }
+    Track::Ptr clone() override {
+        return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
+    }
 private:
     string _sps;
     string _pps;
@@ -368,6 +377,9 @@ private:
         AACFrame aacFrame;
         makeAdtsHeader(aac_cfg,aacFrame);
         getAACInfo(aacFrame,_sampleRate,_channel);
+    }
+    Track::Ptr clone() override {
+        return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
     }
 private:
     string _cfg;
