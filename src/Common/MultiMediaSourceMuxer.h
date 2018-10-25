@@ -24,7 +24,45 @@
  * SOFTWARE.
  */
 
-#include "MediaSourceMaker.h"
-namespace mediakit{
+#ifndef ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
+#define ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
 
-}
+#include "RtspMuxer/RtspMediaSourceMuxer.h"
+#include "RtmpMuxer/RtmpMediaSourceMuxer.h"
+
+class MultiMediaSourceMuxer {
+public:
+    MultiMediaSourceMuxer(const string &vhost,
+                          const string &strApp,
+                          const string &strId,
+                          float dur_sec = 0.0){
+        _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost,strApp,strId,std::make_shared<TitleMete>(dur_sec));
+        _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost,strApp,strId,std::make_shared<TitleSdp>(dur_sec));
+    }
+    virtual ~MultiMediaSourceMuxer(){}
+
+
+    /**
+     * 添加音视频媒体
+     * @param track 媒体描述
+     */
+    void addTrack(const Track::Ptr & track,int mtu = 1400) {
+        _rtmp->addTrack(track);
+        _rtsp->addTrack(track,0,mtu);
+    }
+
+    /**
+     * 写入帧数据然后打包rtmp
+     * @param frame 帧数据
+     */
+    void inputFrame(const Frame::Ptr &frame) {
+        _rtmp->inputFrame(frame);
+        _rtsp->inputFrame(frame);
+    }
+private:
+    RtmpMediaSourceMuxer::Ptr _rtmp;
+    RtspMediaSourceMuxer::Ptr _rtsp;
+};
+
+
+#endif //ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H

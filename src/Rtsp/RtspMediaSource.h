@@ -49,7 +49,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class RtspMediaSource: public MediaSource {
+class RtspMediaSource: public MediaSource , public RingDelegate<RtpPacket::Ptr> {
 public:
 	typedef ResourcePool<RtpPacket> PoolType;
 	typedef std::shared_ptr<RtspMediaSource> Ptr;
@@ -92,6 +92,11 @@ public:
 		trackRef.ssrc = rtppt->ssrc;
 		trackRef.type = rtppt->type;
 		_pRing->write(rtppt,keyPos);
+	}
+
+private:
+	void onWrite(const RtpPacket::Ptr &rtppt, bool keyPos) override {
+		onGetRTP(rtppt,keyPos);
 	}
 protected:
 	unordered_map<int, RtspTrack> _mapTracks;

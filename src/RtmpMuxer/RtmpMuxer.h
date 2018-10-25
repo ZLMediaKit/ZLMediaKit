@@ -33,11 +33,17 @@ namespace mediakit{
 
 class RtmpMuxer{
 public:
+    typedef std::shared_ptr<RtmpMuxer> Ptr;
+
     /**
      * 构造函数
      */
-    RtmpMuxer(const TitleMete::Ptr &title = std::make_shared<TitleMete>()) : _metedata(AMF_OBJECT){
-        _metedata = title->getMetedata();
+    RtmpMuxer(const TitleMete::Ptr &title = nullptr) : _metedata(AMF_OBJECT){
+        if(!title){
+            _metedata = std::make_shared<TitleMete>()->getMetedata();
+        }else{
+            _metedata = title->getMetedata();
+        }
         _rtmpRing = std::make_shared<RtmpRingInterface::RingType>();
     }
     virtual ~RtmpMuxer(){}
