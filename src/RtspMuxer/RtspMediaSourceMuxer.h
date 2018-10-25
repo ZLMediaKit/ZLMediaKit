@@ -24,23 +24,38 @@
  * SOFTWARE.
  */
 
-#ifndef ZLMEDIAKIT_MEDIASOURCEMAKER_H
-#define ZLMEDIAKIT_MEDIASOURCEMAKER_H
+#ifndef ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
+#define ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
 
-#include "Player/Track.h"
+#include "RtspMuxer/RtspMuxer.h"
 #include "Rtsp/RtspMediaSource.h"
-#include "Rtmp/RtmpMediaSource.h"
 
 namespace mediakit {
 
-class MediaSourceMaker {
+class RtspMediaSourceMuxer : public RtspMuxer {
 public:
-    MediaSourceMaker() {}
-    virtual ~MediaSourceMaker() {}
+    typedef std::shared_ptr<RtspMediaSourceMuxer> Ptr;
+
+    RtspMediaSourceMuxer(const string &vhost,
+                         const string &strApp,
+                         const string &strId,
+                         const TitleSdp::Ptr &title = nullptr) : RtspMuxer(title){
+        _mediaSouce = std::make_shared<RtspMediaSource>(vhost,strApp,strId);
+        getRtpRing()->setDelegate(_mediaSouce);
+    }
+    virtual ~RtspMediaSourceMuxer(){}
+
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
+        _mediaSouce->setListener(listener);
+    }
 private:
-    RtspMediaSource::Ptr _rtspSrc;
-    RtmpMediaSource::Ptr _rtmpSrc;
+    void onInited() override {
+        _mediaSouce->onGetSDP(getSdp());
+    }
+private:
+    RtspMediaSource::Ptr _mediaSouce;
 };
 
-} //namespace mediakit
-#endif //ZLMEDIAKIT_MEDIASOURCEMAKER_H
+
+}//namespace mediakit
+#endif //ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H

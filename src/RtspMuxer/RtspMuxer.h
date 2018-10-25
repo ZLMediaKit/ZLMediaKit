@@ -35,11 +35,17 @@ namespace mediakit{
 */
 class RtspMuxer{
 public:
+    typedef std::shared_ptr<RtspMuxer> Ptr;
+
     /**
      * 构造函数
      */
-    RtspMuxer(const TitleSdp::Ptr &title = std::make_shared<TitleSdp>()){
-        _sdp = title->getSdp();
+    RtspMuxer(const TitleSdp::Ptr &title = nullptr){
+        if(!title){
+            _sdp = std::make_shared<TitleSdp>()->getSdp();
+        } else{
+            _sdp = title->getSdp();
+        }
         _rtpRing = std::make_shared<RtpRingInterface::RingType>();
     }
     virtual ~RtspMuxer(){}

@@ -48,7 +48,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class RtmpMediaSource: public MediaSource {
+class RtmpMediaSource: public MediaSource ,public RingDelegate<RtmpPacket::Ptr> {
 public:
 	typedef std::shared_ptr<RtmpMediaSource> Ptr;
 	typedef RingBuffer<RtmpPacket::Ptr> RingType;
@@ -106,6 +106,10 @@ private:
 	bool ready(){
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		return _iCfgFrameSize != -1 && _iCfgFrameSize == _mapCfgFrame.size();
+	}
+
+	void onWrite(const RtmpPacket::Ptr &pkt,bool isKey = true) override {
+		onGetMedia(pkt);
 	}
 protected:
 	AMFValue _metadata;
