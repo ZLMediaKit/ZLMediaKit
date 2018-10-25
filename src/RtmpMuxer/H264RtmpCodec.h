@@ -93,6 +93,7 @@ private:
     void makeVideoConfigPkt();
 private:
     H264Track::Ptr _track;
+    bool _gotSpsPps = false;
 };
 
 }//namespace mediakit
