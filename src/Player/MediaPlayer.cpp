@@ -45,9 +45,6 @@ void MediaPlayer::play(const char* strUrl) {
 		_strPrefix = strPrefix;
 		_parser = PlayerBase::createPlayer(strUrl);
 		_parser->setOnShutdown(_shutdownCB);
-		//todo(xzl) 修复此处
-//		_parser->setOnVideoCB(_onGetVideoCB);
-//		_parser->setOnAudioCB(_onGetAudioCB);
 	}
 	_parser->setOnPlayResult(_playResultCB);
 	_parser->mINI::operator=(*this);

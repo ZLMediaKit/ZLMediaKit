@@ -64,24 +64,14 @@ private:
         if(_pRtmpMediaSrc){
             _pRtmpMediaSrc->onGetMetaData(val);
         }
-        try {
-            _parser.reset(new RtmpDemuxer(val));
-            //todo(xzl) 修复此处
-//            _parser->setOnVideoCB(_onGetVideoCB);
-//            _parser->setOnAudioCB(_onGetAudioCB);
-            return true;
-        } catch (std::exception &ex) {
-            WarnL << ex.what();
-            return _pRtmpMediaSrc ? true : false;
-        }
+        _parser.reset(new RtmpDemuxer(val));
+        return true;
     }
     void onMediaData(const RtmpPacket::Ptr &chunkData) override {
-    	if(_parser){
-    		_parser->inputRtmp(chunkData);
-    	}
     	if(_pRtmpMediaSrc){
             _pRtmpMediaSrc->onWrite(chunkData);
-    	}
+        }
+        _parser->inputRtmp(chunkData);
     }
 
 private:
