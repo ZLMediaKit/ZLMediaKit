@@ -111,6 +111,14 @@ public:
      * @return
      */
     static RtmpCodec::Ptr getRtmpCodecByTrack(const Track::Ptr &track);
+
+
+    /**
+     * 根据codecId获取rtmp的codec描述
+     * @param codecId
+     * @return
+     */
+    static AMFValue getAmfByCodecId(CodecId codecId);
 };
 
 
