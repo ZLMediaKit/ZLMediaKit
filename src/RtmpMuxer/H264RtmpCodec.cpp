@@ -116,42 +116,48 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto iLen = frame->size() - frame->prefixSize();
     auto type = ((uint8_t*)pcData)[0] & 0x1F;
 
-    //尝试从frame中获取sps pps
-    switch (type){
-        case 7:{
-            //sps
-            if(_sps.empty()){
-                _sps = string(pcData,iLen);
-                if(!_pps.empty()){
-                    makeVideoConfigPkt();
+    if(!_gotSpsPps){
+        //尝试从frame中获取sps pps
+        switch (type){
+            case 7:{
+                //sps
+                if(_sps.empty()){
+                    _sps = string(pcData,iLen);
+                    if(!_pps.empty()){
+                        makeVideoConfigPkt();
+                    }
                 }
             }
-        }
-            break;
-        case 8:{
-            //pps
-            if(_pps.empty()){
-                _pps = string(pcData,iLen);
-                if(!_sps.empty()){
-                    makeVideoConfigPkt();
+                break;
+            case 8:{
+                //pps
+                if(_pps.empty()){
+                    _pps = string(pcData,iLen);
+                    if(!_sps.empty()){
+                        makeVideoConfigPkt();
+                    }
                 }
             }
+                break;
+            default:
+                break;
         }
-            break;
-        default:
-            break;
-    }
 
-    //尝试从track中获取sps pps信息
-    if((!_sps.empty() || !_pps.empty()) && _track && _track->ready()){
-        _sps = _track->getSps();
-        _pps = _track->getPps();
-        makeVideoConfigPkt();
+        //尝试从track中获取sps pps信息
+        if((!_sps.empty() || !_pps.empty()) && _track && _track->ready()){
+            _sps = _track->getSps();
+            _pps = _track->getPps();
+            makeVideoConfigPkt();
+        }
     }
 
     switch (type){
-        case 1:
-        case 5:{
+        case 5:
+            //在IDR帧之前插入config包
+            if(_gotSpsPps){
+                makeVideoConfigPkt();
+            }
+        case 1:{
             //I or P or B frame
             int8_t flags = 7; //h.264
             bool is_config = false;
@@ -184,6 +190,8 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 
 
 void H264RtmpEncoder::makeVideoConfigPkt() {
+    _gotSpsPps = true;
+
     int8_t flags = 7; //h.264
     flags |= (FLV_KEY_FRAME << 4);
     bool is_config = true;
