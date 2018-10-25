@@ -40,7 +40,7 @@ void RtmpMuxer::addTrack(const Track::Ptr &track) {
             return;
         }
 
-        //根据track生产sdp
+        //根据track生产metedata
         Metedata::Ptr metedate;
         switch (track->getTrackType()){
             case TrackVideo:{
@@ -94,7 +94,7 @@ void RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
     it->second->inputFrame(frame);
 
     if(!ready && it->second->ready()){
-        //Track由未就绪状态装换成就绪状态，我们就生成sdp以及Rtmp编码器
+        //Track由未就绪状态装换成就绪状态，我们就生成metedata以及Rtmp编码器
         auto it_callback = _trackReadyCallback.find(codec_id);
         if(it_callback != _trackReadyCallback.end()){
             it_callback->second();
