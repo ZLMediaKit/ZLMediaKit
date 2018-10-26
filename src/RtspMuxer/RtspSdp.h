@@ -153,9 +153,11 @@ public:
         _printer << "a=fmtp:" << playload_type << " packetization-mode=1;profile-level-id=";
 
         char strTemp[100];
-        int profile_level_id = 0;
+        uint32_t profile_level_id = 0;
         if (strSPS.length() >= 4) { // sanity check
-            profile_level_id = (strSPS[1] << 16) | (strSPS[2] << 8) | strSPS[3]; // profile_idc|constraint_setN_flag|level_idc
+            profile_level_id = (uint8_t(strSPS[1]) << 16) |
+                               (uint8_t(strSPS[2]) << 8)  |
+                               (uint8_t(strSPS[3])); // profile_idc|constraint_setN_flag|level_idc
         }
         memset(strTemp, 0, 100);
         sprintf(strTemp, "%06X", profile_level_id);
