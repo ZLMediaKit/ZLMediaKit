@@ -110,13 +110,13 @@ void SdpAttr::load(const string &sdp) {
 	for (auto &pr : _track_map) {
 		auto &track = *pr.second;
 		if (pr.first == "") {
-			track.type = TrackTitle;
+			track._type = TrackTitle;
 		} else if (pr.first == "video") {
-			track.type = TrackVideo;
+			track._type = TrackVideo;
 		} else if (pr.first == "audio") {
-			track.type = TrackAudio;
+			track._type = TrackAudio;
 		} else {
-			track.type = TrackInvalid;
+			track._type = TrackInvalid;
 		}
 
 		auto it = track._attr.find("range");
@@ -165,7 +165,7 @@ bool SdpAttr::available() const {
 
 SdpTrack::Ptr SdpAttr::getTrack(TrackType type) const {
 	for (auto &pr : _track_map){
-		if(pr.second->type == type){
+		if(pr.second->_type == type){
 			return pr.second;
 		}
 	}

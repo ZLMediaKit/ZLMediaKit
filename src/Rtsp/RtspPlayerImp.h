@@ -67,7 +67,7 @@ private:
 		if(_pRtspMediaSrc){
 			_pRtspMediaSrc->onGetSDP(sdp);
 		}
-        _parser.reset(new RtspDemuxer(sdp));
+        _parser.reset(new RtspDemuxer(sdpAttr));
         return true;
 	}
 	void onRecvRTP(const RtpPacket::Ptr &rtppt, const SdpTrack::Ptr &track) override {

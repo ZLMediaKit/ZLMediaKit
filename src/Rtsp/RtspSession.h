@@ -118,7 +118,7 @@ private:
 	}
 	inline int getTrackIndexByTrackType(TrackType type) {
 		for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
-			if (type == _aTrackInfo[i]->type) {
+			if (type == _aTrackInfo[i]->_type) {
 				return i;
 			}
 		}

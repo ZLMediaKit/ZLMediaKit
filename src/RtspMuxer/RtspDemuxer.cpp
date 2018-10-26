@@ -61,7 +61,7 @@ RtspDemuxer::RtspDemuxer(const SdpAttr &attr) {
 void RtspDemuxer::loadSdp(const SdpAttr &attr) {
 	auto tracks = attr.getAvailableTrack();
 	for (auto &track : tracks){
-		switch (track->type) {
+		switch (track->_type) {
 			case TrackVideo: {
 				makeVideoTrack(track);
 			}
