@@ -723,13 +723,13 @@ bool RtspSession::handleReq_Play() {
                 auto iStartTime = 1000 * atof(strStart.data());
                 InfoL << "rtsp seekTo(ms):" << iStartTime;
                 pMediaSrc->seekTo(iStartTime);
-                iStamp = pMediaSrc->getStamp();
+                iStamp = pMediaSrc->getTimeStamp(TrackInvalid);
             }else if(pMediaSrc->getRing()->readerCount() == 1){
                 //第一个消费者
                 pMediaSrc->seekTo(0);
                 iStamp = 0;
             }else{
-                iStamp = pMediaSrc->getStamp();
+                iStamp = pMediaSrc->getTimeStamp(TrackInvalid);
             }
 
             for(auto &track : _aTrackInfo){

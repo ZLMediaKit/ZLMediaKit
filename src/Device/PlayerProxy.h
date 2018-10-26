@@ -54,7 +54,7 @@ public:
 	virtual ~PlayerProxy();
 
 	void play(const char* strUrl) override;
-    bool shutDown() override;
+    bool close() override;
 private:
 	void initMedia();
 	void rePlay(const string &strUrl,int iFailedCnt);

@@ -54,11 +54,7 @@ public:
         //拖动进度条
         return false;
     }
-    virtual uint32_t getStamp() {
-        //获取时间戳
-        return 0;
-    }
-    virtual bool shutDown() {
+    virtual bool close() {
         //通知其停止推流
         return false;
     }
@@ -143,19 +139,14 @@ public:
         return listener->seekTo(ui32Stamp);
     }
 
-    uint32_t getStamp() {
-        auto listener = _listener.lock();
-        if(!listener){
-            return 0;
-        }
-        return listener->getStamp();
-    }
-    bool shutDown() {
+    virtual uint32_t getTimeStamp(TrackType trackType) = 0;
+
+    bool close() {
         auto listener = _listener.lock();
         if(!listener){
             return false;
         }
-        return listener->shutDown();
+        return listener->close();
     }
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _listener = listener;

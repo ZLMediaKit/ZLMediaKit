@@ -84,12 +84,18 @@ public:
 		}
 		return track->_seq;
 	}
-	virtual uint32_t getTimeStamp(TrackType trackType) {
+
+	uint32_t getTimeStamp(TrackType trackType) override {
 		auto track = _sdpAttr.getTrack(trackType);
-		if(!track){
-			return 0;
+		if(track) {
+			return track->_time_stamp;
 		}
-		return track->_time_stamp;
+		auto tracks = _sdpAttr.getAvailableTrack();
+		switch (tracks.size()){
+			case 0: return 0;
+			case 1: return tracks[0]->_time_stamp;
+			default:return MAX(tracks[0]->_time_stamp,tracks[1]->_time_stamp);
+		}
 	}
 
 	virtual void setTimeStamp(uint32_t uiStamp) {

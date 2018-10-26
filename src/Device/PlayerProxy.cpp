@@ -192,7 +192,7 @@ void PlayerProxy::initMedia() {
 //		_pChn->initAudio(info);
 //	}
 }
-bool PlayerProxy::shutDown() {
+bool PlayerProxy::close() {
     //通知其停止推流
     weak_ptr<PlayerProxy> weakSlef = dynamic_pointer_cast<PlayerProxy>(shared_from_this());
 	auto executor = getExecutor();

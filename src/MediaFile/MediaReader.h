@@ -46,8 +46,7 @@ public:
 	static MediaSource::Ptr onMakeMediaSource(const string &strSchema,const string &strVhost,const string &strApp, const string &strId);
 public:
 	bool seekTo(uint32_t ui32Stamp) override;
-	uint32_t getStamp() override;
-    bool shutDown() override;
+    bool close() override;
 private:
 
 #ifdef ENABLE_MP4V2
