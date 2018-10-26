@@ -29,7 +29,9 @@
 
 namespace mediakit {
 
-void RtspMuxer::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
+void RtspMuxer::addTrack(const Track::Ptr &track_in, uint32_t ssrc, int mtu) {
+    //克隆Track，只拷贝其数据，不拷贝其数据转发关系
+    auto track = track_in->clone();
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
     if(mtu == 0){

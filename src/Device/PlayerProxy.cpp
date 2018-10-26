@@ -179,7 +179,7 @@ void PlayerProxy::onPlaySuccess() {
 	auto videoTrack = getTrack(TrackVideo);
 	if(videoTrack){
 		//添加视频
-		_pChn->addTrack(videoTrack->clone());
+		_pChn->addTrack(videoTrack);
 		//视频数据写入_pChn
 		videoTrack->addDelegate(_pChn);
 	}
@@ -187,7 +187,7 @@ void PlayerProxy::onPlaySuccess() {
 	auto audioTrack = getTrack(TrackAudio);
 	if(audioTrack){
 		//添加音频
-		_pChn->addTrack(audioTrack->clone());
+		_pChn->addTrack(audioTrack);
 		//音频数据写入_pChn
         audioTrack->addDelegate(_pChn);
     }else if(videoTrack){
