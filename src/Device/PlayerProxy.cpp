@@ -83,6 +83,7 @@ void PlayerProxy::play(const char* strUrl) {
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 
 	//todo(xzl) 修复此处
+
 //	setOnVideoCB( [weakSelf](const H264Frame &data ) {
 //		auto strongSelf = weakSelf.lock();
 //		if(!strongSelf){
@@ -212,7 +213,7 @@ void PlayerProxy::makeMuteAudio(uint32_t stamp) {
 	auto iAudioIndex = stamp / MUTE_ADTS_DATA_MS;
 	if(_iAudioIndex != iAudioIndex){
 		_iAudioIndex = iAudioIndex;
-		_pChn->inputAAC((char *)MUTE_ADTS_DATA,MUTE_ADTS_DATA_LEN, _iAudioIndex * MUTE_ADTS_DATA_MS);
+        _pChn->inputFrame(std::make_shared<AACFrameNoCopyAble>((char *)MUTE_ADTS_DATA,MUTE_ADTS_DATA_LEN, _iAudioIndex * MUTE_ADTS_DATA_MS));
 		//DebugL << _iAudioIndex * MUTE_ADTS_DATA_MS << " " << stamp;
 	}
 }

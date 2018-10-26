@@ -35,6 +35,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
+#if 0
 DevChannel::DevChannel(const char *strVhost,
                        const char *strApp,
                        const char *strId,
@@ -303,5 +304,7 @@ void DevChannel::initAudio(const AudioInfo& info) {
 	_pAdtsHeader->no_raw_data_blocks_in_frame = 0;
 
 }
+
+#endif
 } /* namespace mediakit */
 

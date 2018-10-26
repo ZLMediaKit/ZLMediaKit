@@ -60,7 +60,7 @@ void RtmpMuxer::addTrack(const Track::Ptr &track) {
             _metedata.set(key,value);
         });
         //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtmpEncoder中
-        track->setDelegate(encoder);
+        track->addDelegate(encoder);
         //Rtmp编码器共用同一个环形缓存
         encoder->setRtmpRing(_rtmpRing);
     };

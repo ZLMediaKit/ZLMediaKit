@@ -37,9 +37,11 @@
 #include "Rtsp/RtspToRtmpMediaSource.h"
 #include "RtspMuxer/RtspSdp.h"
 #include "Util/TimeTicker.h"
+#include "Common/MultiMediaSourceMuxer.h"
 
 using namespace std;
 using namespace toolkit;
+
 
 #ifdef ENABLE_FAAC
 #include "Codec/AACEncoder.h"
@@ -52,6 +54,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
+#if 0
 class VideoInfo {
 public:
 	int iWidth;
@@ -119,6 +122,23 @@ private:
 	std::shared_ptr<AACFrame> _pAdtsHeader;
 };
 
+#endif //0
+class DevChannelNew : public MultiMediaSourceMuxer
+{
+public:
+    typedef std::shared_ptr<DevChannelNew> Ptr;
+
+    DevChannelNew(const char *strVhost,
+			   const char *strApp,
+			   const char *strId,
+			   float fDuration = 0,
+			   bool bEanbleHls = true,
+			   bool bEnableMp4 = false):
+			MultiMediaSourceMuxer(strVhost,strApp,strId,fDuration){};
+	virtual ~DevChannelNew(){}
+};
+
+typedef DevChannelNew DevChannel;
 
 } /* namespace mediakit */
 

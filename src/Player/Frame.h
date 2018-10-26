@@ -27,8 +27,11 @@
 #ifndef ZLMEDIAKIT_FRAME_H
 #define ZLMEDIAKIT_FRAME_H
 
+#include <mutex>
 #include "Util/RingBuffer.h"
 #include "Network/Socket.h"
+
+using namespace std;
 using namespace toolkit;
 
 namespace mediakit{
@@ -103,10 +106,23 @@ private:
     ResourcePool<T> _pool;
 };
 
+class FrameRingWriterInterface {
+public:
+    typedef std::shared_ptr<FrameRingWriterInterface> Ptr;
+
+    FrameRingWriterInterface(){}
+    virtual ~FrameRingWriterInterface(){}
+    /**
+    * 写入帧数据
+    * @param frame 帧
+    */
+    virtual void inputFrame(const Frame::Ptr &frame) = 0;
+};
+
 /**
  * 帧环形缓存接口类
  */
-class FrameRingInterface {
+class FrameRingInterface : public FrameRingWriterInterface{
 public:
     typedef RingBuffer<Frame::Ptr> RingType;
     typedef std::shared_ptr<FrameRingInterface> Ptr;
@@ -125,12 +141,6 @@ public:
      * @param ring
      */
     virtual void setFrameRing(const RingType::Ptr &ring)  = 0;
-
-    /**
-     * 写入帧数据
-     * @param frame 帧
-     */
-    virtual void inputFrame(const Frame::Ptr &frame) = 0;
 };
 
 class FrameRing : public FrameRingInterface{
@@ -171,37 +181,21 @@ protected:
     RingType::Ptr _frameRing;
 };
 
-class FrameRingInterfaceDelegate : public FrameRingInterface {
+class FrameRingInterfaceDelegate : public FrameRing {
 public:
     typedef std::shared_ptr<FrameRingInterfaceDelegate> Ptr;
 
-    FrameRingInterfaceDelegate(){
-        _delegate = std::make_shared<FrameRing>();
-    }
+    FrameRingInterfaceDelegate(){}
     virtual ~FrameRingInterfaceDelegate(){}
 
-    void setDelegate(const FrameRingInterface::Ptr &delegate){
-        _delegate = delegate;
-    }
-    /**
-     * 获取帧环形缓存
-     * @return
-     */
-    FrameRingInterface::RingType::Ptr getFrameRing() const override {
-        if(_delegate){
-            return _delegate->getFrameRing();
-        }
-        return nullptr;
+    void addDelegate(const FrameRingWriterInterface::Ptr &delegate){
+        lock_guard<mutex> lck(_mtx);
+        _delegateMap.emplace(delegate.get(),delegate);
     }
 
-    /**
-     * 设置帧环形缓存
-     * @param ring
-     */
-    void setFrameRing(const FrameRingInterface::RingType::Ptr &ring) override {
-        if(_delegate){
-            _delegate->setFrameRing(ring);
-        }
+    void delDelegate(void *ptr){
+        lock_guard<mutex> lck(_mtx);
+        _delegateMap.erase(ptr);
     }
 
     /**
@@ -209,12 +203,16 @@ public:
      * @param frame 帧
      */
     void inputFrame(const Frame::Ptr &frame) override{
-        if(_delegate){
-            _delegate->inputFrame(frame);
+        FrameRing::inputFrame(frame);
+        lock_guard<mutex> lck(_mtx);
+        for(auto &pr : _delegateMap){
+            pr.second->inputFrame(frame);
         }
     }
 private:
-    FrameRingInterface::Ptr _delegate;
+    mutex _mtx;
+    map<void *,FrameRingWriterInterface::Ptr>  _delegateMap;
+    FrameRing::Ptr _frameRing;
 };
 
 
@@ -256,6 +254,7 @@ public:
     string buffer;
     uint32_t iPrefixSize = 4;
 };
+
 
 /**
  * aac帧，包含adts头
@@ -311,7 +310,80 @@ public:
     unsigned char buffer[2 * 1024 + 7];
     uint16_t sequence;
     uint32_t timeStamp;
-    uint32_t iPrefixSize = 4;
+    uint32_t iPrefixSize = 7;
+} ;
+
+
+
+class FrameNoCopyAble : public Frame{
+public:
+    typedef std::shared_ptr<FrameNoCopyAble> Ptr;
+    char *data() const override{
+        return buffer_ptr;
+    }
+    uint32_t size() const override {
+        return buffer_size;
+    }
+    uint32_t stamp() const override {
+        return timeStamp;
+    }
+    uint32_t prefixSize() const override{
+        return iPrefixSize;
+    }
+public:
+    char *buffer_ptr;
+    uint32_t buffer_size;
+    uint32_t timeStamp;
+    uint32_t iPrefixSize;
+};
+
+
+class H264FrameNoCopyAble : public FrameNoCopyAble {
+public:
+    typedef std::shared_ptr<H264FrameNoCopyAble> Ptr;
+
+    H264FrameNoCopyAble(char *ptr,uint32_t size,uint32_t stamp,int prefixeSize = 4){
+        buffer_ptr = ptr;
+        buffer_size = size;
+        timeStamp = stamp;
+        iPrefixSize = prefixeSize;
+    }
+
+    TrackType getTrackType() const override{
+        return TrackVideo;
+    }
+
+    CodecId getCodecId() const override{
+        return CodecH264;
+    }
+
+    bool keyFrame() const override {
+        return (buffer_ptr[iPrefixSize] & 0x1F) == 5;
+    }
+};
+
+class AACFrameNoCopyAble : public FrameNoCopyAble {
+public:
+    typedef std::shared_ptr<AACFrameNoCopyAble> Ptr;
+
+    AACFrameNoCopyAble(char *ptr,uint32_t size,uint32_t stamp,int prefixeSize = 7){
+        buffer_ptr = ptr;
+        buffer_size = size;
+        timeStamp = stamp;
+        iPrefixSize = prefixeSize;
+    }
+
+    TrackType getTrackType() const override{
+        return TrackAudio;
+    }
+
+    CodecId getCodecId() const override{
+        return CodecAAC;
+    }
+
+    bool keyFrame() const override {
+        return false;
+    }
 } ;
 
 

@@ -29,9 +29,7 @@
 
 namespace mediakit {
 
-void RtspMuxer::addTrack(const Track::Ptr &track_in, uint32_t ssrc, int mtu) {
-    //克隆对象，防止在setDelegate时错误覆盖
-    auto track = track_in->clone();
+void RtspMuxer::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
 
@@ -51,7 +49,7 @@ void RtspMuxer::addTrack(const Track::Ptr &track_in, uint32_t ssrc, int mtu) {
         //添加其sdp
         _sdp.append(sdp->getSdp());
         //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtpEncoder中
-        track->setDelegate(encoder);
+        track->addDelegate(encoder);
         //rtp编码器共用同一个环形缓存
         encoder->setRtpRing(_rtpRing);
     };
