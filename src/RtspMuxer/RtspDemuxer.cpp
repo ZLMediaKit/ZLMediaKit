@@ -35,21 +35,6 @@ using namespace std;
 
 namespace mediakit {
 
-static int getTimeInSDP(const string &sdp) {
-	auto strRange = FindField(sdp.data(), "a=range:npt=", "\r\n");
-	strRange.append(" ");
-	auto iPos = strRange.find('-');
-	if (iPos == string::npos) {
-		return 0;
-	}
-	auto strStart = strRange.substr(0, iPos);
-	auto strEnd = strRange.substr(iPos + 1);
-	strEnd.pop_back();
-	if (strStart == "now") {
-		strStart = "0";
-	}
-	return atof(strEnd.data()) - atof(strStart.data());
-}
 RtspDemuxer::RtspDemuxer(const string& sdp) {
 	loadSdp(SdpAttr(sdp));
 }

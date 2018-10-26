@@ -83,8 +83,8 @@ private:
 	Ticker _alive;
 	recursive_mutex _mtx;
 
-	void seek(int iSeekTime,bool bReStart = true);
-	inline void setSeekTime(int iSeekTime);
+	void seek(uint32_t iSeekTime,bool bReStart = true);
+	inline void setSeekTime(uint32_t iSeekTime);
 	inline uint32_t getVideoCurrentTime();
 	void startReadMP4();
 	inline MP4SampleId getVideoSampleId(int iTimeInc = 0);

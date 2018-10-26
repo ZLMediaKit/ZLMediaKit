@@ -339,7 +339,7 @@ void RtmpPlayer::seekToMilliSecond(uint32_t seekMS){
         //TraceL << "seek result";
         _aNowStampTicker[0].resetTime();
         _aNowStampTicker[1].resetTime();
-		auto iTimeInc = seekMS - getProgressMilliSecond();
+		int iTimeInc = seekMS - getProgressMilliSecond();
         for(auto i = 0 ;i < 2 ;i++){
             _aiFistStamp[i] = _aiNowStamp[i] + iTimeInc;
             _aiNowStamp[i] = _aiFistStamp[i];
