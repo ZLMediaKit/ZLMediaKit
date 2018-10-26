@@ -129,29 +129,13 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 	_iDuration	= MAX(_video_ms,_audio_ms);
 	_pChn.reset(new DevChannel(strVhost.data(),strApp.data(),strId.data(),_iDuration/1000.0,false, false));
 	if (_audio_trId != MP4_INVALID_TRACK_ID) {
-		AudioInfo info;
-		info.iChannel = _audio_num_channels;
-		info.iSampleBit = 16;
-		info.iSampleRate = _audio_sample_rate;
-		_pChn->initAudio(info);
+		AACTrack::Ptr track = std::make_shared<AACTrack>(_strAacCfg);
+		_pChn->addTrack(track);
 	}
 
 	if (_video_trId != MP4_INVALID_TRACK_ID) {
-		VideoInfo info;
-		info.iFrameRate = _video_framerate;
-		info.iWidth = _video_width;
-		info.iHeight = _video_height;
-		_pChn->initVideo(info);
-	}
-
-	if (_audio_trId != MP4_INVALID_TRACK_ID) {
-		_pChn->inputAAC((char *)_adts.buffer, 7, 0);
-	}
-
-	if (_video_trId != MP4_INVALID_TRACK_ID) {
-		//_pChn->initVideo(info);
-		_pChn->inputH264((char *) _strSps.data(), _strSps.size(), 0);
-		_pChn->inputH264((char *) _strPps.data(), _strPps.size(), 0);
+		H264Track::Ptr track = std::make_shared<H264Track>(_strSps,_strPps);
+		_pChn->addTrack(track);
 	}
 }
 
@@ -252,11 +236,11 @@ inline bool MediaReader::readAudioSample(int iTimeInc) {
 }
 
 inline void MediaReader::writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	_pChn->inputH264((char *)pucData, iLen, uiStamp);
+	_pChn->inputFrame(std::make_shared<H264FrameNoCopyAble>((char*)pucData,iLen,uiStamp));
 }
 
 inline void MediaReader::writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	_pChn->inputAAC((char *)pucData, iLen, uiStamp);
+	_pChn->inputFrame(std::make_shared<AACFrameNoCopyAble>((char*)pucData,iLen,uiStamp));
 }
 
 inline MP4SampleId MediaReader::getVideoSampleId(int iTimeInc ) {

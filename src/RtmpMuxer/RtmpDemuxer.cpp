@@ -84,7 +84,7 @@ void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec) {
         _videoRtmpDecoder = Factory::getRtmpCodecByTrack(_videoTrack);
         if (_videoRtmpDecoder) {
             //设置rtmp解码器代理，生成的frame写入该Track
-            _videoRtmpDecoder->setDelegate(_videoTrack);
+            _videoRtmpDecoder->addDelegate(_videoTrack);
         } else {
             //找不到相应的rtmp解码器，该track无效
             _videoTrack.reset();
@@ -100,7 +100,7 @@ void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec) {
         _audioRtmpDecoder = Factory::getRtmpCodecByTrack(_audioTrack);
         if (_audioRtmpDecoder) {
             //设置rtmp解码器代理，生成的frame写入该Track
-            _audioRtmpDecoder->setDelegate(_audioTrack);
+            _audioRtmpDecoder->addDelegate(_audioTrack);
         } else {
             //找不到相应的rtmp解码器，该track无效
             _audioTrack.reset();
