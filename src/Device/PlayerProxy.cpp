@@ -81,35 +81,6 @@ PlayerProxy::PlayerProxy(const char *strVhost,
 }
 void PlayerProxy::play(const char* strUrl) {
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
-
-	//todo(xzl) 修复此处
-
-//	setOnVideoCB( [weakSelf](const H264Frame &data ) {
-//		auto strongSelf = weakSelf.lock();
-//		if(!strongSelf){
-//			return;
-//		}
-//		if(strongSelf->_pChn){
-//			strongSelf->_pChn->inputH264((char *)data.data(), data.size(), data.timeStamp);
-//			if(!strongSelf->_haveAudio){
-//				strongSelf->makeMuteAudio(data.timeStamp);
-//			}
-//		}else{
-//			strongSelf->initMedia();
-//		}
-//	});
-//	setOnAudioCB( [weakSelf](const AACFrame &data ) {
-//		auto strongSelf = weakSelf.lock();
-//		if(!strongSelf){
-//			return;
-//		}
-//		if(strongSelf->_pChn){
-//			strongSelf->_pChn->inputAAC((char *)data.data(), data.size(), data.timeStamp);
-//		}else{
-//			strongSelf->initMedia();
-//		}
-//	});
-
 	std::shared_ptr<int> piFailedCnt(new int(0)); //连续播放失败次数
 	string strUrlTmp(strUrl);
 	setOnPlayResult([weakSelf,strUrlTmp,piFailedCnt](const SockException &err) {
@@ -120,6 +91,7 @@ void PlayerProxy::play(const char* strUrl) {
 		if(!err) {
 			// 播放成功
 			*piFailedCnt = 0;//连续播放失败次数清0
+			strongSelf->onPlaySuccess();
 		}else if(*piFailedCnt < strongSelf->_iRetryCount || strongSelf->_iRetryCount < 0) {
 			// 播放失败，延时重试播放
 			strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
@@ -161,38 +133,6 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 		return false;
 	});
 }
-void PlayerProxy::initMedia() {
-	if (!isInited()) {
-		return;
-	}
-	_pChn.reset(new DevChannel(_strVhost.data(),_strApp.data(),_strSrc.data(),getDuration(),_bEnableHls,_bEnableMp4));
-    _pChn->setListener(shared_from_this());
-
-	//todo(xzl) 修复此处
-
-//	if (containVideo()) {
-//		VideoInfo info;
-//		info.iFrameRate = getVideoFps();
-//		info.iWidth = getVideoWidth();
-//		info.iHeight = getVideoHeight();
-//		_pChn->initVideo(info);
-//	}
-//
-//	_haveAudio = containAudio();
-//	if (containAudio()) {
-//		AudioInfo info;
-//		info.iSampleRate = getAudioSampleRate();
-//		info.iChannel = getAudioChannel();
-//		info.iSampleBit = getAudioSampleBit();
-//		_pChn->initAudio(info);
-//	}else{
-//		AudioInfo info;
-//		info.iSampleRate = MUTE_ADTS_SAMPLE_RATE;
-//		info.iChannel = MUTE_ADTS_CHN_CNT;
-//		info.iSampleBit = MUTE_ADTS_SAMPLE_BIT;
-//		_pChn->initAudio(info);
-//	}
-}
 bool PlayerProxy::close() {
     //通知其停止推流
     weak_ptr<PlayerProxy> weakSlef = dynamic_pointer_cast<PlayerProxy>(shared_from_this());
@@ -209,12 +149,56 @@ bool PlayerProxy::close() {
     return true;
 }
 
-void PlayerProxy::makeMuteAudio(uint32_t stamp) {
-	auto iAudioIndex = stamp / MUTE_ADTS_DATA_MS;
-	if(_iAudioIndex != iAudioIndex){
-		_iAudioIndex = iAudioIndex;
-        _pChn->inputFrame(std::make_shared<AACFrameNoCopyAble>((char *)MUTE_ADTS_DATA,MUTE_ADTS_DATA_LEN, _iAudioIndex * MUTE_ADTS_DATA_MS));
-		//DebugL << _iAudioIndex * MUTE_ADTS_DATA_MS << " " << stamp;
+
+class MuteAudioMaker : public FrameRingInterfaceDelegate{
+public:
+	typedef std::shared_ptr<MuteAudioMaker> Ptr;
+
+	MuteAudioMaker(){};
+	virtual ~MuteAudioMaker(){}
+	void inputFrame(const Frame::Ptr &frame) override {
+		if(frame->getTrackType() == TrackVideo){
+			auto iAudioIndex = frame->stamp() / MUTE_ADTS_DATA_MS;
+			if(_iAudioIndex != iAudioIndex){
+				_iAudioIndex = iAudioIndex;
+				auto aacFrame = std::make_shared<AACFrameNoCopyAble>((char *)MUTE_ADTS_DATA,
+																	 MUTE_ADTS_DATA_LEN,
+																	  _iAudioIndex * MUTE_ADTS_DATA_MS);
+				FrameRingInterfaceDelegate::inputFrame(aacFrame);
+			}
+		}
+	}
+private:
+	int _iAudioIndex = 0;
+};
+
+void PlayerProxy::onPlaySuccess() {
+	_pChn.reset(new DevChannel(_strVhost.data(),_strApp.data(),_strSrc.data(),getDuration(),_bEnableHls,_bEnableMp4));
+	_pChn->setListener(shared_from_this());
+
+	auto videoTrack = getTrack(TrackVideo);
+	if(videoTrack){
+		//添加视频
+		_pChn->addTrack(videoTrack->clone());
+		//视频数据写入_pChn
+		videoTrack->addDelegate(_pChn);
+	}
+
+	auto audioTrack = getTrack(TrackAudio);
+	if(audioTrack){
+		//添加音频
+		_pChn->addTrack(audioTrack->clone());
+		//音频数据写入_pChn
+        audioTrack->addDelegate(_pChn);
+    }else if(videoTrack){
+		//没有音频信息，产生一个静音音频
+		MuteAudioMaker::Ptr audioMaker = std::make_shared<MuteAudioMaker>();
+		//videoTrack把数据写入MuteAudioMaker
+		videoTrack->addDelegate(audioMaker);
+		//添加一个静音Track至_pChn
+		_pChn->addTrack(std::make_shared<AACTrack>());
+		//MuteAudioMaker生成静音音频然后写入_pChn；
+		audioMaker->addDelegate(_pChn);
 	}
 }
 

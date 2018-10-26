@@ -32,7 +32,9 @@ namespace mediakit {
 void RtspMuxer::addTrack(const Track::Ptr &track, uint32_t ssrc, int mtu) {
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
-
+    if(mtu == 0){
+        mtu = (track->getTrackType() == TrackVideo ? 1400 : 600);
+    }
     auto lam = [this,ssrc,mtu,track](){
         //异步生成rtp编码器
         //根据track生产sdp

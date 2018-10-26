@@ -41,6 +41,7 @@ class Track : public FrameRingInterfaceDelegate , public CodecInfo{
 public:
     typedef std::shared_ptr<Track> Ptr;
     Track(){}
+
     virtual ~Track(){}
 
     /**
@@ -48,6 +49,19 @@ public:
      * @return
      */
     virtual bool ready() = 0;
+
+    /**
+     * 克隆接口，用于复制本对象用
+     * @return
+     */
+    virtual Track::Ptr clone() = 0;
+
+    /**
+     * 复制拷贝，只能拷贝一些描述信息，
+     * 环形缓存和代理关系不能拷贝，否则会关系紊乱
+     * @param that
+     */
+    Track(const Track &that){}
 };
 
 class VideoTrack : public Track {
@@ -245,6 +259,9 @@ private:
     void parseSps(const string &sps){
         getAVCInfo(sps,_width,_height,_fps);
     }
+    Track::Ptr clone() override {
+        return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
+    }
 private:
     string _sps;
     string _pps;
@@ -368,6 +385,9 @@ private:
         AACFrame aacFrame;
         makeAdtsHeader(aac_cfg,aacFrame);
         getAACInfo(aacFrame,_sampleRate,_channel);
+    }
+    Track::Ptr clone() override {
+        return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
     }
 private:
     string _cfg;
