@@ -109,7 +109,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         rtmpPkt->streamId = STREAM_MEDIA;
         rtmpPkt->timeStamp = frame->stamp();
         rtmpPkt->typeId = MSG_AUDIO;
-        inputRtmp(rtmpPkt, false);
+        RtmpCodec::inputRtmp(rtmpPkt, false);
     }
 
 }
@@ -157,7 +157,7 @@ void AACRtmpEncoder::makeAudioConfigPkt() {
     rtmpPkt->streamId = STREAM_MEDIA;
     rtmpPkt->timeStamp = 0;
     rtmpPkt->typeId = MSG_AUDIO;
-    inputRtmp(rtmpPkt, false);
+    RtmpCodec::inputRtmp(rtmpPkt, false);
 }
 
 }//namespace mediakit
