@@ -89,7 +89,7 @@ void RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
         return;
     }
     it->second->inputFrame(frame);
-    if(!_trackReadyCallback.empty() && it->second->ready()){
+    if(!_inited && !_trackReadyCallback.empty() && it->second->ready()){
         //Track由未就绪状态装换成就绪状态，我们就生成metedata以及Rtmp编码器
         auto it_callback = _trackReadyCallback.find(codec_id);
         if(it_callback != _trackReadyCallback.end()){
