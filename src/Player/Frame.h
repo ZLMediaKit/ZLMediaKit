@@ -39,8 +39,8 @@ namespace mediakit{
 typedef enum {
     CodecInvalid = -1,
     CodecH264 = 0,
-    CodecAAC = 0x0100,
-    CodecMax
+    CodecAAC,
+    CodecMax = 0x7FFF
 } CodecId;
 
 typedef enum {
@@ -48,7 +48,7 @@ typedef enum {
     TrackVideo = 0,
     TrackAudio,
     TrackTitle,
-    TrackMax
+    TrackMax = 0x7FFF
 } TrackType;
 
 class CodecInfo {
@@ -148,7 +148,6 @@ public:
     typedef std::shared_ptr<FrameRing> Ptr;
 
     FrameRing(){
-        _frameRing = std::make_shared<RingType>();
     }
     virtual ~FrameRing(){}
 
@@ -212,7 +211,6 @@ public:
 private:
     mutex _mtx;
     map<void *,FrameRingWriterInterface::Ptr>  _delegateMap;
-    FrameRing::Ptr _frameRing;
 };
 
 
