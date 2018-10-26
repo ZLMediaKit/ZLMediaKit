@@ -85,7 +85,6 @@ public:
     typedef std::shared_ptr<RtpRing> Ptr;
 
     RtpRing(){
-        _rtpRing = std::make_shared<RingType>();
     }
     virtual ~RtpRing(){}
 

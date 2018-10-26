@@ -68,7 +68,6 @@ public:
     typedef std::shared_ptr<RtmpRing> Ptr;
 
     RtmpRing(){
-        _rtmpRing = std::make_shared<RingType>();
     }
     virtual ~RtmpRing(){}
 
@@ -81,7 +80,9 @@ public:
     }
 
     bool inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos) override{
-        _rtmpRing->write(rtmp,key_pos);
+        if(_rtmpRing){
+            _rtmpRing->write(rtmp,key_pos);
+        }
         return key_pos;
     }
 protected:
