@@ -684,8 +684,8 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtppt, int trackidx){
     
 	onRecvRTP_l(rtppt,_aTrackInfo[trackidx]);
 }
-float RtspPlayer::getRtpLossRate(int iTrackType) const{
-	int iTrackIdx = getTrackIndexByTrackType((TrackType)iTrackType);
+float RtspPlayer::getRtpLossRate(TrackType type) const{
+	int iTrackIdx = getTrackIndexByTrackType(type);
 	if(iTrackIdx == -1){
 		uint64_t totalRecv = 0;
 		uint64_t totalSend = 0;

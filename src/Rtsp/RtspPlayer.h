@@ -55,7 +55,7 @@ public:
 	void play(const char* strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
-	float getRtpLossRate(int iTrackType) const override;
+	float getRtpLossRate(TrackType type) const override;
 protected:
 	//派生类回调函数
 	virtual bool onCheckSDP(const string &strSdp, const SdpAttr &sdpAttr) = 0;
