@@ -51,25 +51,34 @@ static int getTimeInSDP(const string &sdp) {
 	return atof(strEnd.data()) - atof(strStart.data());
 }
 RtspDemuxer::RtspDemuxer(const string& sdp) {
-	RtspTrack tmp[2];
-	int cnt = parserSDP(sdp, tmp);
-	for (int i = 0; i < cnt; i++) {
-		switch (tmp[i].type) {
-		case TrackVideo: {
-			makeVideoTrack(tmp[i]);
-		}
-			break;
-		case TrackAudio: {
-			makeAudioTrack(tmp[i]);
-		}
-			break;
-		default:
-			break;
-		}
-	}
-	_fDuration = getTimeInSDP(sdp);
+	loadSdp(SdpAttr(sdp));
 }
 
+RtspDemuxer::RtspDemuxer(const SdpAttr &attr) {
+	loadSdp(attr);
+}
+
+void RtspDemuxer::loadSdp(const SdpAttr &attr) {
+	auto tracks = attr.getAvailableTrack();
+	for (auto &track : tracks){
+		switch (track->type) {
+			case TrackVideo: {
+				makeVideoTrack(track);
+			}
+				break;
+			case TrackAudio: {
+				makeAudioTrack(track);
+			}
+				break;
+			default:
+				break;
+		}
+	}
+	auto titleTrack = attr.getTrack(TrackTitle);
+	if(titleTrack){
+		_fDuration = titleTrack->_duration;
+	}
+}
 bool RtspDemuxer::inputRtp(const RtpPacket::Ptr & rtp) {
 	switch (rtp->type) {
 	case TrackVideo:{
@@ -91,9 +100,9 @@ bool RtspDemuxer::inputRtp(const RtpPacket::Ptr & rtp) {
 }
 
 
-void RtspDemuxer::makeAudioTrack(const RtspTrack &audio) {
+void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
 	//生成Track对象
-    _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio.trackSdp));
+    _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio));
     if(_audioTrack){
     	//生成RtpCodec对象以便解码rtp
 		_audioRtpDecoder = Factory::getRtpDecoderById(_audioTrack->getCodecId(),_audioTrack->getAudioSampleRate());
@@ -107,9 +116,9 @@ void RtspDemuxer::makeAudioTrack(const RtspTrack &audio) {
     }
 }
 
-void RtspDemuxer::makeVideoTrack(const RtspTrack &video) {
+void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
 	//生成Track对象
-	_videoTrack = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video.trackSdp));
+	_videoTrack = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video));
 	if(_videoTrack){
 		//生成RtpCodec对象以便解码rtp
 		_videoRtpDecoder = Factory::getRtpDecoderById(_videoTrack->getCodecId(),90000);
@@ -151,6 +160,5 @@ bool RtspDemuxer::isInited() const {
 float RtspDemuxer::getDuration() const {
 	return _fDuration;
 }
-
 
 } /* namespace mediakit */

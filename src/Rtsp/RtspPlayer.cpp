@@ -70,7 +70,7 @@ void RtspPlayer::teardown(){
 
     erase(kRtspMd5Nonce);
     erase(kRtspRealm);
-    _uiTrackCnt = 0;
+	_aTrackInfo.clear();
     _onHandshake = nullptr;
     _uiRtpBufLen = 0;
     _strSession.clear();
@@ -276,17 +276,21 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 	}
 
 	//解析sdp
-	_uiTrackCnt = parserSDP(strSdp, _aTrackInfo);
-    for (unsigned int i=0; i<_uiTrackCnt; i++) {
-    	_aTrackInfo[i].ssrc=0;
-        _aui32SsrcErrorCnt[i]=0;
-    }
-	if (!_uiTrackCnt) {
+	_sdpAttr.load(strSdp);
+	_aTrackInfo = _sdpAttr.getAvailableTrack();
+
+	if (_aTrackInfo.empty()) {
 		throw std::runtime_error("解析SDP失败");
 	}
-	if (!onCheckSDP(strSdp, _aTrackInfo, _uiTrackCnt)) {
+	if (!onCheckSDP(strSdp, _sdpAttr)) {
 		throw std::runtime_error("onCheckSDP faied");
 	}
+
+	CLEAR_ARR(_aui32SsrcErrorCnt)
+	for (auto &track : _aTrackInfo) {
+		track->ssrc=0;
+	}
+
 	sendSetup(0);
 }
 //发送SETUP命令
@@ -294,11 +298,11 @@ bool RtspPlayer::sendSetup(unsigned int trackIndex) {
     _onHandshake = std::bind(&RtspPlayer::handleResSETUP,this, placeholders::_1,trackIndex);
 
     auto &track = _aTrackInfo[trackIndex];
-	auto baseUrl = _strContentBase + "/" + track.controlSuffix;
+	auto baseUrl = _strContentBase + "/" + track->_control_surffix;
 	switch (_eType) {
 		case RTP_TCP: {
 			StrCaseMap header;
-			header["Transport"] = StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track.type * 2 << "-" << track.type * 2 + 1;
+			header["Transport"] = StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->type * 2 << "-" << track->type * 2 + 1;
 			return sendRtspRequest("SETUP",baseUrl,header);
 		}
 			break;
@@ -348,7 +352,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 
 	if(_eType == RTP_TCP)  {
 		string interleaved = FindField( FindField((strTransport + ";").c_str(), "interleaved=", ";").c_str(), NULL, "-");
-		_aTrackInfo[uiTrackIndex].interleaved = atoi(interleaved.c_str());
+		_aTrackInfo[uiTrackIndex]->interleaved = atoi(interleaved.c_str());
 	}else{
 		const char *strPos = (_eType == RTP_MULTICAST ? "port=" : "server_port=") ;
 		auto port_str = FindField((strTransport + ";").c_str(), strPos, ";");
@@ -377,13 +381,13 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 		}
 	}
 
-	if (uiTrackIndex < _uiTrackCnt - 1) {
+	if (uiTrackIndex < _aTrackInfo.size() - 1) {
 		//需要继续发送SETUP命令
 		sendSetup(uiTrackIndex + 1);
 		return;
 	}
 
-	for (unsigned int i = 0; i < _uiTrackCnt && _eType != RTP_TCP; i++) {
+	for (unsigned int i = 0; i < _aTrackInfo.size() && _eType != RTP_TCP; i++) {
 		auto &pUdpSockRef = _apUdpSock[i];
 		if(!pUdpSockRef){
 			continue;
@@ -436,13 +440,8 @@ bool RtspPlayer::sendPause(bool bPause,float fTime){
         _aNowStampTicker[0].resetTime();
         _aNowStampTicker[1].resetTime();
         float iTimeInc = fTime - getProgressTime();
-        for(unsigned int i = 0 ;i < _uiTrackCnt ;i++){
-            if (_aTrackInfo[i].type == TrackVideo) {
-                _adFistStamp[i] = _adNowStamp[i] + iTimeInc * 90000.0;
-            }else if (_aTrackInfo[i].type == TrackAudio){
-				//todo(xzl) 修复此处
-//                _adFistStamp[i] = _adNowStamp[i] + iTimeInc * getAudioSampleRate();
-            }
+        for(unsigned int i = 0 ;i < _aTrackInfo.size() ;i++){
+			_adFistStamp[i] = _adNowStamp[i] + iTimeInc * _aTrackInfo[i]->_samplerate;
             _adNowStamp[i] = _adFistStamp[i];
         }
         _fSeekTo = fTime;
@@ -590,7 +589,7 @@ bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned in
 	auto &track = _aTrackInfo[iTrackidx];
 	auto pt_ptr=_pktPool.obtain();
 	auto &rtppt=*pt_ptr;
-	rtppt.interleaved = track.interleaved;
+	rtppt.interleaved = track->interleaved;
 	rtppt.length = uiLen + 4;
 
 	rtppt.mark = pucData[1] >> 7;
@@ -604,15 +603,15 @@ bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned in
 	//ssrc
 	memcpy(&rtppt.ssrc,pucData+8,4);//内存对齐
 	rtppt.ssrc = ntohl(rtppt.ssrc);
-	rtppt.type = track.type;
-	if (track.ssrc == 0) {
-		track.ssrc = rtppt.ssrc;
+	rtppt.type = track->type;
+	if (track->ssrc == 0) {
+		track->ssrc = rtppt.ssrc;
 		//保存SSRC
-	} else if (track.ssrc != rtppt.ssrc) {
+	} else if (track->ssrc != rtppt.ssrc) {
 		//ssrc错误
 		WarnL << "ssrc错误";
 		if (_aui32SsrcErrorCnt[iTrackidx]++ > 10) {
-			track.ssrc = rtppt.ssrc;
+			track->ssrc = rtppt.ssrc;
 			WarnL << "ssrc更换!";
 		}
 		return false;
@@ -694,7 +693,7 @@ float RtspPlayer::getRtpLossRate(int iTrackType) const{
 	if(iTrackIdx == -1){
 		uint64_t totalRecv = 0;
 		uint64_t totalSend = 0;
-		for (unsigned int i = 0; i < _uiTrackCnt; i++) {
+		for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
 			totalRecv += _aui64RtpRecv[i];
 			totalSend += (_aui16NowSeq[i] - _aui16FirstSeq[i] + 1);
 		}
@@ -713,15 +712,8 @@ float RtspPlayer::getRtpLossRate(int iTrackType) const{
 
 float RtspPlayer::getProgressTime() const{
     double iTime[2] = {0,0};
-    for(unsigned int i = 0 ;i < _uiTrackCnt ;i++){
-        if (_aTrackInfo[i].type == TrackVideo) {
-            iTime[i] = (_adNowStamp[i] - _adFistStamp[i]) / 90000.0;
-        }else if (_aTrackInfo[i].type == TrackAudio){
-			//todo(xzl) 修复此处
-#if 0
-			iTime[i] = (_adNowStamp[i] - _adFistStamp[i]) / getAudioSampleRate();
-#endif
-        }
+    for(unsigned int i = 0 ;i < _aTrackInfo.size() ;i++){
+		iTime[i] = (_adNowStamp[i] - _adFistStamp[i]) / _aTrackInfo[i]->_samplerate;
     }
     return _fSeekTo + MAX(iTime[0],iTime[1]);
 }
@@ -785,7 +777,7 @@ void RtspPlayer::onShutdown_l(const SockException &ex) {
 	_pBeatTimer.reset();
 	onShutdown(ex);
 }
-void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const RtspTrack &track) {
+void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track) {
 	_rtpTicker.resetTime();
 	onRecvRTP(pRtppt,track);
 }
@@ -814,16 +806,16 @@ void RtspPlayer::onPlayResult_l(const SockException &ex) {
 }
 
 int RtspPlayer::getTrackIndexByControlSuffix(const string &controlSuffix) const{
-	for (unsigned int i = 0; i < _uiTrackCnt; i++) {
-		if (_aTrackInfo[i].controlSuffix == controlSuffix) {
+	for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
+		if (_aTrackInfo[i]->_control_surffix == controlSuffix) {
 			return i;
 		}
 	}
 	return -1;
 }
 int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const{
-	for (unsigned int i = 0; i < _uiTrackCnt; i++) {
-		if (_aTrackInfo[i].interleaved == interleaved) {
+	for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
+		if (_aTrackInfo[i]->interleaved == interleaved) {
 			return i;
 		}
 	}
@@ -831,8 +823,8 @@ int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const{
 }
 
 int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
-	for (unsigned int i = 0; i < _uiTrackCnt; i++) {
-		if (_aTrackInfo[i].type == trackType) {
+	for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
+		if (_aTrackInfo[i]->type == trackType) {
 			return i;
 		}
 	}

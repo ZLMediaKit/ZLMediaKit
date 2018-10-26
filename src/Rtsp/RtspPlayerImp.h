@@ -62,7 +62,7 @@ public:
     };
 private:
 	//派生类回调函数
-	bool onCheckSDP(const string &sdp, const RtspTrack *track, int trackCnt) override {
+	bool onCheckSDP(const string &sdp, const SdpAttr &sdpAttr) override {
 		_pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
 		if(_pRtspMediaSrc){
 			_pRtspMediaSrc->onGetSDP(sdp);
@@ -70,7 +70,7 @@ private:
         _parser.reset(new RtspDemuxer(sdp));
         return true;
 	}
-	void onRecvRTP(const RtpPacket::Ptr &rtppt, const RtspTrack &track) override {
+	void onRecvRTP(const RtpPacket::Ptr &rtppt, const SdpTrack::Ptr &track) override {
         if(_pRtspMediaSrc){
             _pRtspMediaSrc->onWrite(rtppt,true);
         }

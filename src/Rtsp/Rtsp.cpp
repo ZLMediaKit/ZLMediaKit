@@ -110,13 +110,13 @@ void SdpAttr::load(const string &sdp) {
 	for (auto &pr : _track_map) {
 		auto &track = *pr.second;
 		if (pr.first == "") {
-			track._type = TrackTitle;
+			track.type = TrackTitle;
 		} else if (pr.first == "video") {
-			track._type = TrackVideo;
+			track.type = TrackVideo;
 		} else if (pr.first == "audio") {
-			track._type = TrackAudio;
+			track.type = TrackAudio;
 		} else {
-			track._type = TrackInvalid;
+			track.type = TrackInvalid;
 		}
 
 		auto it = track._attr.find("range");
@@ -153,6 +153,8 @@ void SdpAttr::load(const string &sdp) {
 		it = track._attr.find("control");
 		if(it != track._attr.end()) {
 			track._control = it->second;
+			auto surffix = string("/") + track._control;
+			track._control_surffix = surffix.substr(1 + surffix.rfind('/'));
 		}
 	}
 }
@@ -163,64 +165,25 @@ bool SdpAttr::available() const {
 
 SdpTrack::Ptr SdpAttr::getTrack(TrackType type) const {
 	for (auto &pr : _track_map){
-		if(pr.second->_type == type){
+		if(pr.second->type == type){
 			return pr.second;
 		}
 	}
 	return nullptr;
 }
 
-int parserSDP(const string& sdp, RtspTrack Track[2]) {
-	int track_cnt = 0;
-	string::size_type pos_head = 0;
-	while ((pos_head = sdp.find("m=",pos_head)) != string::npos ) {
-        auto pos_end = sdp.find("m=", pos_head + 2);
-		if (pos_end == string::npos) {
-			pos_end = sdp.size();
-		}
-		auto sdp_mid = sdp.substr(pos_head, pos_end - pos_head);
-		pos_head = pos_end;
-		Track[track_cnt].trackSdp = sdp_mid;
-		Track[track_cnt].inited = false;
-		Track[track_cnt].PT = atoi(FindField(sdp_mid.c_str(), "a=rtpmap:", " ").c_str());
-        auto control = string("/") + trim(FindField(sdp_mid.c_str(), "a=control:", "\n"));
-        Track[track_cnt].controlSuffix = control.substr(1 + control.rfind('/'));
-
-		if (sdp_mid.find("m=video") != string::npos) {
-			//视频通道
-			Track[track_cnt].type = TrackVideo;
-        } else if (sdp_mid.find("m=audio") != string::npos) {
-			//音频通道
-			Track[track_cnt].type = TrackAudio;
-        } else {
-			//不识别的track
-			continue;
-		}
-        track_cnt++;
+vector<SdpTrack::Ptr> SdpAttr::getAvailableTrack() const {
+	vector<SdpTrack::Ptr> ret;
+	auto video = getTrack(TrackVideo);
+	if(video){
+		ret.emplace_back(video);
 	}
-	return track_cnt;
+	auto audio = getTrack(TrackAudio);
+	if(audio){
+		ret.emplace_back(audio);
+	}
+	return ret;
 }
-static  onceToken s_token([](){
-   string str = "v=0\n"
-           "o=- 1001 1 IN IP4 192.168.0.22\n"
-           "s=VCP IPC Realtime stream\n"
-		   "a=range:npt=0-\n"
-           "m=video 0 RTP/AVP 105\n"
-           "c=IN IP4 192.168.0.22\n"
-           "a=control:rtsp://192.168.0.22/media/video1/video\n"
-           "a=rtpmap:105 H264/90000\n"
-           "a=fmtp:105 profile-level-id=64001f; packetization-mode=1; sprop-parameter-sets=Z2QAH6wrUCgC3QgAAB9AAAYahCAA,aO4xsg==\n"
-           "a=recvonly\n"
-           "m=application 0 RTP/AVP 107\n"
-           "c=IN IP4 192.168.0.22\n"
-           "a=control:rtsp://192.168.0.22/media/video1/metadata\n"
-           "a=rtpmap:107 vnd.onvif.metadata/90000\n"
-           "a=fmtp:107 DecoderTag=h3c-v3 RTCP=0\n"
-           "a=recvonly";
-    RtspTrack track[2];
-    parserSDP(str,track);
-	SdpAttr attr(str);
-    track[0].inited=true;
-});
+
 
 

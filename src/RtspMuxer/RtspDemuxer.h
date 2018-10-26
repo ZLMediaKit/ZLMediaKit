@@ -43,6 +43,7 @@ class RtspDemuxer : public PlayerBase{
 public:
 	typedef std::shared_ptr<RtspDemuxer> Ptr;
 	RtspDemuxer(const string &sdp);
+	RtspDemuxer(const SdpAttr &attr);
 	virtual ~RtspDemuxer(){};
 
 	/**
@@ -72,8 +73,9 @@ public:
      */
     vector<Track::Ptr> getTracks() const override;
 private:
-	void makeAudioTrack(const RtspTrack &audio);
-	void makeVideoTrack(const RtspTrack &video);
+	void makeAudioTrack(const SdpTrack::Ptr &audio);
+	void makeVideoTrack(const SdpTrack::Ptr &video);
+	void loadSdp(const SdpAttr &attr);
 private:
 	float _fDuration = 0;
 	AudioTrack::Ptr _audioTrack;

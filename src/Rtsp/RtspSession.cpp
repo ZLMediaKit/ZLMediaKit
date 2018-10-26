@@ -511,12 +511,12 @@ bool RtspSession::handleReq_Setup() {
 		//未找到相应track
 		return false;
 	}
-	RtspTrack &trackRef = _aTrackInfo[trackIdx];
-	if (trackRef.inited) {
+	SdpTrack::Ptr &trackRef = _aTrackInfo[trackIdx];
+	if (trackRef->inited) {
 		//已经初始化过该Track
 		return false;
 	}
-	trackRef.inited = true; //现在初始化
+	trackRef->inited = true; //现在初始化
 
 	auto strongRing = _pWeakRing.lock();
 	if (!strongRing) {
@@ -562,9 +562,9 @@ bool RtspSession::handleReq_Setup() {
 				"x-Dynamic-Rate: 1\r\n\r\n",
 				_iCseq, SERVER_NAME,
 				RTSP_VERSION, RTSP_BUILDTIME,
-				dateHeader().data(), trackRef.type * 2,
-                trackRef.type * 2 + 1,
-				printSSRC(trackRef.ssrc).data(),
+				dateHeader().data(), trackRef->type * 2,
+                trackRef->type * 2 + 1,
+				printSSRC(trackRef->ssrc).data(),
 				_strSession.data());
 		SocketHelper::send(_pcBuf, iLen);
 	}
@@ -609,7 +609,7 @@ bool RtspSession::handleReq_Setup() {
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), strClientPort.data(),
 				pSockRtp->get_local_port(), pSockRtcp->get_local_port(),
-				printSSRC(trackRef.ssrc).data(),
+				printSSRC(trackRef->ssrc).data(),
 				_strSession.data());
 		SocketHelper::send(_pcBuf, n);
 	}
@@ -630,7 +630,7 @@ bool RtspSession::handleReq_Setup() {
 				strongSelf->safeShutdown();
 			});
 		}
-		int iSrvPort = _pBrdcaster->getPort(trackRef.type);
+		int iSrvPort = _pBrdcaster->getPort(trackRef->type);
 		//我们用trackIdx区分rtp和rtcp包
 		auto pSockRtcp = UDPServer::Instance().getSock(get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
 		if (!pSockRtcp) {
@@ -652,7 +652,7 @@ bool RtspSession::handleReq_Setup() {
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), _pBrdcaster->getIP().data(),
 				get_local_ip().data(), iSrvPort, pSockRtcp->get_local_port(),
-				udpTTL,printSSRC(trackRef.ssrc).data(),
+				udpTTL,printSSRC(trackRef->ssrc).data(),
 				_strSession.data());
 		SocketHelper::send(_pcBuf, n);
 	}
@@ -733,9 +733,9 @@ bool RtspSession::handleReq_Play() {
             }
             for (unsigned int i = 0; i < _uiTrackCnt; i++) {
                 auto &track = _aTrackInfo[i];
-                track.ssrc = pMediaSrc->getSsrc(track.type);
-                track.seq = pMediaSrc->getSeqence(track.type);
-                track.timeStamp = pMediaSrc->getTimestamp(track.type);
+                track->ssrc = pMediaSrc->getSsrc(track->type);
+                track->seq = pMediaSrc->getSeqence(track->type);
+                track->timeStamp = pMediaSrc->getTimestamp(track->type);
             }
         }
         _bFirstPlay = false;
@@ -750,13 +750,13 @@ bool RtspSession::handleReq_Play() {
 
         for (unsigned int i = 0; i < _uiTrackCnt; i++) {
             auto &track = _aTrackInfo[i];
-            if (track.inited == false) {
+            if (track->inited == false) {
                 //还有track没有setup
                 shutdown();
                 return;
             }
             iLen += sprintf(_pcBuf + iLen, "url=%s/%s;seq=%d;rtptime=%u,",
-                            _strUrl.data(), track.controlSuffix.data(), track.seq,track.timeStamp);
+                            _strUrl.data(), track->_control_surffix.data(), track->seq,track->timeStamp);
         }
         iLen -= 1;
         (_pcBuf)[iLen] = '\0';
@@ -895,7 +895,10 @@ inline bool RtspSession::findStream() {
 	_strSdp = pMediaSrc->getSdp();
 	_pWeakRing = pMediaSrc->getRing();
 
-	_uiTrackCnt = parserSDP(_strSdp, _aTrackInfo);
+	_sdpAttr.load(_strSdp);
+	_aTrackInfo = _sdpAttr.getAvailableTrack();
+	_uiTrackCnt = _aTrackInfo.size();
+
 	if (_uiTrackCnt == 0 || _uiTrackCnt > 2) {
 		return false;
 	}
@@ -904,9 +907,9 @@ inline bool RtspSession::findStream() {
 
 	for (unsigned int i = 0; i < _uiTrackCnt; i++) {
 		auto &track = _aTrackInfo[i];
-		track.ssrc = pMediaSrc->getSsrc(track.type);
-		track.seq = pMediaSrc->getSeqence(track.type);
-		track.timeStamp = pMediaSrc->getTimestamp(track.type);
+		track->ssrc = pMediaSrc->getSsrc(track->type);
+		track->seq = pMediaSrc->getSeqence(track->type);
+		track->timeStamp = pMediaSrc->getTimestamp(track->type);
 	}
 
 	return true;

@@ -53,7 +53,7 @@ public:
     /**
      * 根据sdp生成Track对象
      */
-    static Track::Ptr getTrackBySdp(const string &sdp);
+    static Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track);
 
     /**
     * 根据Track生成SDP对象

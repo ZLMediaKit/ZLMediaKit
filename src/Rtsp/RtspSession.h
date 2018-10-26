@@ -118,7 +118,7 @@ private:
 	}
 	inline int getTrackIndexByTrackType(TrackType type) {
 		for (unsigned int i = 0; i < _uiTrackCnt; i++) {
-			if (type == _aTrackInfo[i].type) {
+			if (type == _aTrackInfo[i]->type) {
 				return i;
 			}
 		}
@@ -126,7 +126,7 @@ private:
 	}
     inline int getTrackIndexByControlSuffix(const string &controlSuffix) {
         for (unsigned int i = 0; i < _uiTrackCnt; i++) {
-            if (controlSuffix == _aTrackInfo[i].controlSuffix) {
+            if (controlSuffix == _aTrackInfo[i]->_control_surffix) {
                 return i;
             }
         }
@@ -161,8 +161,11 @@ private:
 	PlayerBase::eRtpType _rtpType = PlayerBase::RTP_UDP;
 	bool _bSetUped = false;
 	int _iCseq = 0;
+
+	SdpAttr _sdpAttr;
 	unsigned int _uiTrackCnt = 0; //媒体track个数
-	RtspTrack _aTrackInfo[2]; //媒体track信息,trackid idx 为数组下标
+	vector<SdpTrack::Ptr> _aTrackInfo;
+
 	bool _bGotAllPeerUdp = false;
 
 #ifdef RTSP_SEND_RTCP
