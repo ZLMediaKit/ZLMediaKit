@@ -257,7 +257,7 @@ void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, 
     rtppkt->offset = 16;
 
     uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
-    RtpCodec::inputRtp(rtppkt,type == 5);
+    RtpCodec::inputRtp(rtppkt,type == 7);
     _ui16Sequence++;
     _ui32TimeStamp = uiStamp;
 }
