@@ -205,15 +205,16 @@ void RtspSession::inputRtspOrRtcp(const char *data,uint64_t len) {
 
 bool RtspSession::handleReq_Options() {
 //支持这些命令
-	int n = sprintf(_pcBuf, "RTSP/1.0 200 OK\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"Public: OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY,"
-			" PAUSE, SET_PARAMETER, GET_PARAMETER\r\n\r\n",
-			_iCseq, SERVER_NAME,
-			RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data());
+	int n = sprintf(_pcBuf,
+					"RTSP/1.0 200 OK\r\n"
+					"CSeq: %d\r\n"
+					"Server: %s-%0.2f(build in %s)\r\n"
+					"%s"
+					"Public: OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY,"
+					" PAUSE, SET_PARAMETER, GET_PARAMETER\r\n\r\n",
+					_iCseq, SERVER_NAME,
+					RTSP_VERSION, RTSP_BUILDTIME,
+					dateHeader().data());
 	SocketHelper::send(_pcBuf, n);
 	return true;
 }
@@ -467,37 +468,40 @@ void RtspSession::onAuthUser(const weak_ptr<RtspSession> &weakSelf,const string 
     }
 }
 inline void RtspSession::send_StreamNotFound() {
-	int n = sprintf(_pcBuf, "RTSP/1.0 404 Stream Not Found\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"Connection: Close\r\n\r\n",
-			_iCseq, SERVER_NAME,
-			RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data());
+	int n = sprintf(_pcBuf,
+					"RTSP/1.0 404 Stream Not Found\r\n"
+					"CSeq: %d\r\n"
+					"Server: %s-%0.2f(build in %s)\r\n"
+					"%s"
+					"Connection: Close\r\n\r\n",
+					_iCseq, SERVER_NAME,
+					RTSP_VERSION, RTSP_BUILDTIME,
+					dateHeader().data());
 	SocketHelper::send(_pcBuf, n);
 }
 inline void RtspSession::send_UnsupportedTransport() {
-	int n = sprintf(_pcBuf, "RTSP/1.0 461 Unsupported Transport\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"Connection: Close\r\n\r\n",
-			_iCseq, SERVER_NAME,
-			RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data());
+	int n = sprintf(_pcBuf,
+					"RTSP/1.0 461 Unsupported Transport\r\n"
+					"CSeq: %d\r\n"
+					"Server: %s-%0.2f(build in %s)\r\n"
+					"%s"
+					"Connection: Close\r\n\r\n",
+					_iCseq, SERVER_NAME,
+					RTSP_VERSION, RTSP_BUILDTIME,
+					dateHeader().data());
 	SocketHelper::send(_pcBuf, n);
 }
 
 inline void RtspSession::send_SessionNotFound() {
-	int n = sprintf(_pcBuf, "RTSP/1.0 454 Session Not Found\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"Connection: Close\r\n\r\n",
-			_iCseq, SERVER_NAME,
-			RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data());
+	int n = sprintf(_pcBuf,
+					"RTSP/1.0 454 Session Not Found\r\n"
+					"CSeq: %d\r\n"
+					"Server: %s-%0.2f(build in %s)\r\n"
+					"%s"
+					"Connection: Close\r\n\r\n",
+					_iCseq, SERVER_NAME,
+					RTSP_VERSION, RTSP_BUILDTIME,
+					dateHeader().data());
 	SocketHelper::send(_pcBuf, n);
 
 	/*40 Method Not Allowed*/
@@ -551,21 +555,22 @@ bool RtspSession::handleReq_Setup() {
 
 	switch (_rtpType) {
 	case PlayerBase::RTP_TCP: {
-		int iLen = sprintf(_pcBuf, "RTSP/1.0 200 OK\r\n"
-				"CSeq: %d\r\n"
-				"Server: %s-%0.2f(build in %s)\r\n"
-				"%s"
-				"Transport: RTP/AVP/TCP;unicast;"
-				"interleaved=%d-%d;ssrc=%s;mode=play\r\n"
-				"Session: %s\r\n"
-				"x-Transport-Options: late-tolerance=1.400000\r\n"
-				"x-Dynamic-Rate: 1\r\n\r\n",
-				_iCseq, SERVER_NAME,
-				RTSP_VERSION, RTSP_BUILDTIME,
-				dateHeader().data(), trackRef->_type * 2,
-                trackRef->_type * 2 + 1,
-				printSSRC(trackRef->_ssrc).data(),
-				_strSession.data());
+		int iLen = sprintf(_pcBuf,
+						   "RTSP/1.0 200 OK\r\n"
+						   "CSeq: %d\r\n"
+						   "Server: %s-%0.2f(build in %s)\r\n"
+						   "%s"
+						   "Transport: RTP/AVP/TCP;unicast;"
+						   "interleaved=%d-%d;ssrc=%s;mode=play\r\n"
+						   "Session: %s\r\n"
+						   "x-Transport-Options: late-tolerance=1.400000\r\n"
+						   "x-Dynamic-Rate: 1\r\n\r\n",
+						   _iCseq, SERVER_NAME,
+						   RTSP_VERSION, RTSP_BUILDTIME,
+						   dateHeader().data(), trackRef->_type * 2,
+						   trackRef->_type * 2 + 1,
+						   printSSRC(trackRef->_ssrc).data(),
+						   _strSession.data());
 		SocketHelper::send(_pcBuf, iLen);
 	}
 		break;
@@ -598,19 +603,20 @@ bool RtspSession::handleReq_Setup() {
 		//尝试获取客户端nat映射地址
 		startListenPeerUdpData();
 		//InfoL << "分配端口:" << srv_port;
-		int n = sprintf(_pcBuf, "RTSP/1.0 200 OK\r\n"
-				"CSeq: %d\r\n"
-				"Server: %s-%0.2f(build in %s)\r\n"
-				"%s"
-				"Transport: RTP/AVP/UDP;unicast;"
-				"client_port=%s;server_port=%d-%d;ssrc=%s;mode=play\r\n"
-				"Session: %s\r\n\r\n",
-				_iCseq, SERVER_NAME,
-				RTSP_VERSION, RTSP_BUILDTIME,
-				dateHeader().data(), strClientPort.data(),
-				pSockRtp->get_local_port(), pSockRtcp->get_local_port(),
-				printSSRC(trackRef->_ssrc).data(),
-				_strSession.data());
+		int n = sprintf(_pcBuf,
+						"RTSP/1.0 200 OK\r\n"
+						"CSeq: %d\r\n"
+						"Server: %s-%0.2f(build in %s)\r\n"
+						"%s"
+						"Transport: RTP/AVP/UDP;unicast;"
+						"client_port=%s;server_port=%d-%d;ssrc=%s;mode=play\r\n"
+						"Session: %s\r\n\r\n",
+						_iCseq, SERVER_NAME,
+						RTSP_VERSION, RTSP_BUILDTIME,
+						dateHeader().data(), strClientPort.data(),
+						pSockRtp->get_local_port(), pSockRtcp->get_local_port(),
+						printSSRC(trackRef->_ssrc).data(),
+						_strSession.data());
 		SocketHelper::send(_pcBuf, n);
 	}
 		break;
@@ -641,19 +647,20 @@ bool RtspSession::handleReq_Setup() {
 		}
 		startListenPeerUdpData();
         GET_CONFIG_AND_REGISTER(uint32_t,udpTTL,MultiCast::kUdpTTL);
-        int n = sprintf(_pcBuf, "RTSP/1.0 200 OK\r\n"
-				"CSeq: %d\r\n"
-				"Server: %s-%0.2f(build in %s)\r\n"
-				"%s"
-				"Transport: RTP/AVP;multicast;destination=%s;"
-				"source=%s;port=%d-%d;ttl=%d;ssrc=%s\r\n"
-				"Session: %s\r\n\r\n",
-				_iCseq, SERVER_NAME,
-				RTSP_VERSION, RTSP_BUILDTIME,
-				dateHeader().data(), _pBrdcaster->getIP().data(),
-				get_local_ip().data(), iSrvPort, pSockRtcp->get_local_port(),
-				udpTTL,printSSRC(trackRef->_ssrc).data(),
-				_strSession.data());
+		int n = sprintf(_pcBuf,
+						"RTSP/1.0 200 OK\r\n"
+						"CSeq: %d\r\n"
+						"Server: %s-%0.2f(build in %s)\r\n"
+						"%s"
+						"Transport: RTP/AVP;multicast;destination=%s;"
+						"source=%s;port=%d-%d;ttl=%d;ssrc=%s\r\n"
+						"Session: %s\r\n\r\n",
+						_iCseq, SERVER_NAME,
+						RTSP_VERSION, RTSP_BUILDTIME,
+						dateHeader().data(), _pBrdcaster->getIP().data(),
+						get_local_ip().data(), iSrvPort, pSockRtcp->get_local_port(),
+						udpTTL, printSSRC(trackRef->_ssrc).data(),
+						_strSession.data());
 		SocketHelper::send(_pcBuf, n);
 	}
 		break;
@@ -713,40 +720,34 @@ bool RtspSession::handleReq_Play() {
         }
 
         auto pMediaSrc = _pMediaSrc.lock();
-        uint32_t iStamp = 0;
-        if(pMediaSrc){
-            if (strRange.size() && !_bFirstPlay) {
-                auto strStart = FindField(strRange.data(), "npt=", "-");
-                if (strStart == "now") {
-                    strStart = "0";
-                }
-                auto iStartTime = 1000 * atof(strStart.data());
-                InfoL << "rtsp seekTo(ms):" << iStartTime;
-                pMediaSrc->seekTo(iStartTime);
-                iStamp = pMediaSrc->getTimeStamp(TrackInvalid);
-            }else if(pMediaSrc->getRing()->readerCount() == 1){
-                //第一个消费者
-                pMediaSrc->seekTo(0);
-                iStamp = 0;
-            }else{
-                iStamp = pMediaSrc->getTimeStamp(TrackInvalid);
-            }
-
-            for(auto &track : _aTrackInfo){
-				track->_ssrc = pMediaSrc->getSsrc(track->_type);
-				track->_seq = pMediaSrc->getSeqence(track->_type);
-				track->_time_stamp = pMediaSrc->getTimeStamp(track->_type);
-            }
+        if(!pMediaSrc){
+        	send_StreamNotFound();
+        	shutdown();
+			return;
         }
-        _bFirstPlay = false;
-        int iLen = sprintf(_pcBuf, "RTSP/1.0 200 OK\r\n"
-                                   "CSeq: %d\r\n"
-                                   "Server: %s-%0.2f(build in %s)\r\n"
-                                   "%s"
-                                   "Session: %s\r\n"
-                                   "Range: npt=%.2f-\r\n"
-                                   "RTP-Info: ", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
-                           dateHeader().data(), _strSession.data(),iStamp/1000.0);
+
+		if (strRange.size() && !_bFirstPlay) {
+			auto strStart = FindField(strRange.data(), "npt=", "-");
+			if (strStart == "now") {
+				strStart = "0";
+			}
+			auto iStartTime = 1000 * atof(strStart.data());
+			InfoL << "rtsp seekTo(ms):" << iStartTime;
+			pMediaSrc->seekTo(iStartTime);
+		}else if(pMediaSrc->getRing()->readerCount() == 1){
+			//第一个消费者
+			pMediaSrc->seekTo(0);
+		}
+		_bFirstPlay = false;
+		int iLen = sprintf(_pcBuf,
+						   "RTSP/1.0 200 OK\r\n"
+						   "CSeq: %d\r\n"
+						   "Server: %s-%0.2f(build in %s)\r\n"
+						   "%s"
+						   "Session: %s\r\n"
+						   "Range: npt=%.2f-\r\n"
+						   "RTP-Info: ", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
+						   dateHeader().data(), _strSession.data(), pMediaSrc->getTimeStamp(TrackInvalid) / 1000.0);
 
 		for(auto &track : _aTrackInfo){
 			if (track->_inited == false) {
@@ -754,11 +755,15 @@ bool RtspSession::handleReq_Play() {
 				shutdown();
 				return;
 			}
+			track->_ssrc = pMediaSrc->getSsrc(track->_type);
+			track->_seq = pMediaSrc->getSeqence(track->_type);
+			track->_time_stamp = pMediaSrc->getTimeStamp(track->_type);
+
 			iLen += sprintf(_pcBuf + iLen, "url=%s/%s;seq=%d;rtptime=%u,",
 							_strUrl.data(),
 							track->_control_surffix.data(),
 							track->_seq,
-							track->_time_stamp * track->_samplerate / 1000);
+							track->_time_stamp * (track->_samplerate / 1000));
 		}
 
         iLen -= 1;
@@ -798,14 +803,15 @@ bool RtspSession::handleReq_Pause() {
 		send_SessionNotFound();
 		return false;
 	}
-	int n = sprintf(_pcBuf, "RTSP/1.0 200 OK\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"Session: %s\r\n\r\n", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data(), _strSession.data());
+	int n = sprintf(_pcBuf,
+					"RTSP/1.0 200 OK\r\n"
+					"CSeq: %d\r\n"
+					"Server: %s-%0.2f(build in %s)\r\n"
+					"%s"
+					"Session: %s\r\n\r\n", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
+					dateHeader().data(), _strSession.data());
 	SocketHelper::send(_pcBuf, n);
-	if(_pRtpReader){
+	if (_pRtpReader) {
 		_pRtpReader->setReadCB(nullptr);
 	}
 	return true;
@@ -813,13 +819,13 @@ bool RtspSession::handleReq_Pause() {
 }
 
 bool RtspSession::handleReq_Teardown() {
-	int n = sprintf(_pcBuf, "RTSP/1.0 200 OK\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"Session: %s\r\n\r\n", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data(), _strSession.data());
-
+	int n = sprintf(_pcBuf,
+					"RTSP/1.0 200 OK\r\n"
+					"CSeq: %d\r\n"
+					"Server: %s-%0.2f(build in %s)\r\n"
+					"%s"
+					"Session: %s\r\n\r\n", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
+					dateHeader().data(), _strSession.data());
 	SocketHelper::send(_pcBuf, n);
 	TraceL << "播放器断开连接!";
 	return false;
@@ -827,13 +833,14 @@ bool RtspSession::handleReq_Teardown() {
 
 bool RtspSession::handleReq_Get() {
 	_strSessionCookie = _parser["x-sessioncookie"];
-	int n = sprintf(_pcBuf, "HTTP/1.0 200 OK\r\n"
-			"%s"
-			"Connection: close\r\n"
-			"Cache-Control: no-store\r\n"
-			"Pragma: no-cache\r\n"
-			"Content-Type: application/x-rtsp-tunnelled\r\n\r\n",
-			dateHeader().data());
+	int n = sprintf(_pcBuf,
+					"HTTP/1.0 200 OK\r\n"
+					"%s"
+					"Connection: close\r\n"
+					"Cache-Control: no-store\r\n"
+					"Pragma: no-cache\r\n"
+					"Content-Type: application/x-rtsp-tunnelled\r\n\r\n",
+					dateHeader().data());
 //注册GET
 	lock_guard<recursive_mutex> lock(g_mtxGetter);
 	g_mapGetter[_strSessionCookie] = dynamic_pointer_cast<RtspSession>(shared_from_this());
@@ -867,23 +874,25 @@ bool RtspSession::handleReq_Post() {
 
 bool RtspSession::handleReq_SET_PARAMETER() {
 	//TraceL<<endl;
-	int n = sprintf(_pcBuf, "RTSP/1.0 200 OK\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"Session: %s\r\n\r\n", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data(), _strSession.data());
+	int n = sprintf(_pcBuf,
+					"RTSP/1.0 200 OK\r\n"
+					"CSeq: %d\r\n"
+					"Server: %s-%0.2f(build in %s)\r\n"
+					"%s"
+					"Session: %s\r\n\r\n", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
+					dateHeader().data(), _strSession.data());
 	SocketHelper::send(_pcBuf, n);
 	return true;
 }
 
 inline void RtspSession::send_NotAcceptable() {
-	int n = sprintf(_pcBuf, "RTSP/1.0 406 Not Acceptable\r\n"
-			"CSeq: %d\r\n"
-			"Server: %s-%0.2f(build in %s)\r\n"
-			"%s"
-			"Connection: Close\r\n\r\n", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
-			dateHeader().data());
+	int n = sprintf(_pcBuf,
+					"RTSP/1.0 406 Not Acceptable\r\n"
+					"CSeq: %d\r\n"
+					"Server: %s-%0.2f(build in %s)\r\n"
+					"%s"
+					"Connection: Close\r\n\r\n", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
+					dateHeader().data());
 	SocketHelper::send(_pcBuf, n);
 
 }
