@@ -72,13 +72,6 @@ public:
 		return getRing()->readerCount() + (_pRtmpSrc ? _pRtmpSrc->getRing()->readerCount() : 0);
 	}
 
-	void updateTimeStamp(uint32_t uiStamp) {
-		auto tracks = _sdpAttr.getAvailableTrack();
-		for (auto &track : tracks) {
-			track->_time_stamp  = uiStamp * (track->_samplerate / 1000.0);
-		}
-	}
-
 protected:
 	void onGetH264(const H264Frame &frame);
 	void onGetAAC(const AACFrame &frame);

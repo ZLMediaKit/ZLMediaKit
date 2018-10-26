@@ -55,13 +55,13 @@ public:
 	void play(const char* strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
-	float getRtpLossRate(TrackType type) const override;
+	float getPacketLossRate(TrackType type) const override;
 protected:
 	//派生类回调函数
 	virtual bool onCheckSDP(const string &strSdp, const SdpAttr &sdpAttr) = 0;
 	virtual void onRecvRTP(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track) = 0;
-    float getProgressTime() const;
-    void seekToTime(float fTime);
+    uint32_t getProgressMilliSecond() const;
+    void seekToMilliSecond(uint32_t ms);
 private:
 	void onShutdown_l(const SockException &ex);
     void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, int iTrackidx);
@@ -91,7 +91,7 @@ private:
 
 	//发送SETUP命令
     bool sendSetup(unsigned int uiTrackIndex);
-    bool sendPause(bool bPause,float fTime);
+    bool sendPause(bool bPause,uint32_t ms);
 	bool sendOptions();
 	bool sendDescribe();
     bool sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
@@ -131,10 +131,12 @@ private:
 	//心跳定时器
 	std::shared_ptr<Timer> _pBeatTimer;
     
-    //播放进度控制
-    float _fSeekTo = 0;
-    double _adFistStamp[2] = {0,0};
-    double _adNowStamp[2] = {0,0};
+    //播放进度控制,单位毫秒
+    uint32_t _iSeekTo = 0;
+
+    //单位毫秒
+	uint32_t _aiFistStamp[2] = {0,0};
+	uint32_t _aiNowStamp[2] = {0,0};
     Ticker _aNowStampTicker[2];
 };
 

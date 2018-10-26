@@ -521,7 +521,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 void RtmpSession::onCmd_seek(AMFDecoder &dec) {
     dec.load<AMFValue>();/* NULL */
     auto milliSeconds = dec.load<AMFValue>().as_number();
-    InfoL << "rtmp seekTo:" << milliSeconds/1000.0;
+    InfoL << "rtmp seekTo(ms):" << milliSeconds;
     auto stongSrc = _pPlayerSrc.lock();
     if (stongSrc) {
         stongSrc->seekTo(milliSeconds);

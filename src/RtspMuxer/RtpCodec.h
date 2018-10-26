@@ -42,6 +42,7 @@ public:
     uint8_t PT;
     bool mark;
     uint32_t length;
+    //时间戳，单位毫秒
     uint32_t timeStamp;
     uint16_t sequence;
     uint32_t ssrc;

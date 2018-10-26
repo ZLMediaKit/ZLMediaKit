@@ -69,6 +69,7 @@ public:
     bool _inited = false;
     uint32_t _ssrc = 0;
     uint16_t _seq = 0;
+	//时间戳，单位毫秒
     uint32_t _time_stamp = 0;
 };
 class SdpAttr {

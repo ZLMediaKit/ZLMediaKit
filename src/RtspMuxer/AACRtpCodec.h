@@ -37,10 +37,7 @@ class AACRtpDecoder : public RtpCodec , public ResourcePoolHelper<AACFrame> {
 public:
     typedef std::shared_ptr<AACRtpDecoder> Ptr;
 
-    /**
-     * @param ui32SampleRate 采样率，用于时间戳转换用
-     */
-    AACRtpDecoder(uint32_t ui32SampleRate);
+    AACRtpDecoder();
     ~AACRtpDecoder() {}
 
     /**
@@ -62,7 +59,6 @@ private:
     AACFrame::Ptr obtainFrame();
 private:
     AACFrame::Ptr _adts;
-    uint32_t _sampleRate;
 };
 
 

@@ -66,9 +66,9 @@ void RtmpPlayer::teardown() {
 		_pBeatTimer.reset();
 		_pPlayTimer.reset();
 		_pMediaTimer.reset();
-        _fSeekTo = 0;
-        CLEAR_ARR(_adFistStamp);
-        CLEAR_ARR(_adNowStamp);
+        _iSeekTo = 0;
+        CLEAR_ARR(_aiFistStamp);
+        CLEAR_ARR(_aiNowStamp);
         reset();
         shutdown();
 	}
@@ -310,7 +310,7 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
 		case MSG_VIDEO: {
             auto idx = chunkData.typeId%2;
             if (_aNowStampTicker[idx].elapsedTime() > 500) {
-                _adNowStamp[idx] = chunkData.timeStamp;
+                _aiNowStamp[idx] = chunkData.timeStamp;
             }
 			_onMediaData(std::make_shared<RtmpPacket>(chunkData));
 		}
@@ -321,30 +321,30 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
 		}
 }
 
-float RtmpPlayer::getProgressTime() const{
-    double iTime[2] = {0,0};
+uint32_t RtmpPlayer::getProgressMilliSecond() const{
+	uint32_t iTime[2] = {0,0};
     for(auto i = 0 ;i < 2 ;i++){
-        iTime[i] = (_adNowStamp[i] - _adFistStamp[i]) / 1000.0;
+        iTime[i] = _aiNowStamp[i] - _aiFistStamp[i];
     }
-    return _fSeekTo + MAX(iTime[0],iTime[1]);
+    return _iSeekTo + MAX(iTime[0],iTime[1]);
 }
-void RtmpPlayer::seekToTime(float fTime){
+void RtmpPlayer::seekToMilliSecond(uint32_t seekMS){
     if (_bPaused) {
         pause(false);
     }
     AMFEncoder enc;
-    enc << "seek" << ++_iReqID << nullptr << fTime * 1000.0;
+    enc << "seek" << ++_iReqID << nullptr << seekMS * 1.0;
     sendRequest(MSG_CMD, enc.data());
-    addOnStatusCB([this,fTime](AMFValue &val) {
+    addOnStatusCB([this,seekMS](AMFValue &val) {
         //TraceL << "seek result";
         _aNowStampTicker[0].resetTime();
         _aNowStampTicker[1].resetTime();
-        float iTimeInc = fTime - getProgressTime();
+		auto iTimeInc = seekMS - getProgressMilliSecond();
         for(auto i = 0 ;i < 2 ;i++){
-            _adFistStamp[i] = _adNowStamp[i] + iTimeInc * 1000.0;
-            _adNowStamp[i] = _adFistStamp[i];
+            _aiFistStamp[i] = _aiNowStamp[i] + iTimeInc;
+            _aiNowStamp[i] = _aiFistStamp[i];
         }
-        _fSeekTo = fTime;
+        _iSeekTo = seekMS;
     });
 
 }

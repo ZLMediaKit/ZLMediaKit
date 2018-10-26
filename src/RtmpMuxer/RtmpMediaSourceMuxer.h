@@ -48,6 +48,9 @@ public:
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _mediaSouce->setListener(listener);
     }
+    int readerCount() const{
+        return _mediaSouce->getRing()->readerCount();
+    }
 private:
     void onInited() override {
         _mediaSouce->onGetMetaData(getMetedata());
