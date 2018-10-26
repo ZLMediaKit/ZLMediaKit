@@ -51,7 +51,7 @@ public:
                         if(!media) {
                             break;
                         }
-                        if(!media->shutDown()) {
+                        if(!media->close()) {
                             break;
                         }
                         (*stream) << "\t踢出成功:"

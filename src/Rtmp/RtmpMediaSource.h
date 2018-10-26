@@ -93,7 +93,7 @@ public:
     void onWrite(const RtmpPacket::Ptr &pkt,bool isKey = true) override {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		if (pkt->isCfgFrame()) {
-			_mapCfgFrame.emplace(pkt->typeId, pkt);
+			_mapCfgFrame[pkt->typeId] = pkt;
 
 			if(_bAsyncRegist && !_bRegisted &&  _mapCfgFrame.size() == _iCfgFrameSize){
 				_bAsyncRegist = false;
@@ -101,8 +101,20 @@ public:
 				_bRegisted = true;
 			}
 		}
-
+		_mapStamp[pkt->typeId] = pkt->timeStamp;
 		_pRing->write(pkt,pkt->isVideoKeyFrame());
+	}
+
+	uint32_t getTimeStamp(TrackType trackType) override {
+		lock_guard<recursive_mutex> lock(_mtxMap);
+		switch (trackType){
+			case TrackVideo:
+				return _mapStamp[MSG_VIDEO];
+			case TrackAudio:
+				return _mapStamp[MSG_AUDIO];
+			default:
+				return MAX(_mapStamp[MSG_VIDEO],_mapStamp[MSG_AUDIO]);
+		}
 	}
 private:
 	bool ready(){
@@ -111,7 +123,8 @@ private:
 	}
 protected:
 	AMFValue _metadata;
-	unordered_map<int, RtmpPacket::Ptr> _mapCfgFrame;
+	map<int, RtmpPacket::Ptr> _mapCfgFrame;
+	map<int,uint32_t> _mapStamp;
 	mutable recursive_mutex _mtxMap;
 	RingBuffer<RtmpPacket::Ptr>::Ptr _pRing; //rtp环形缓冲
 	int _iCfgFrameSize = -1;

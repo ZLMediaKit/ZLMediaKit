@@ -79,7 +79,7 @@ private:
 		sendResponse(MSG_CMD, invoke.data());
 	}
 
-    bool shutDown() override {
+    bool close() override {
         InfoL << "kick out:" << _mediaInfo._vhost << " " << _mediaInfo._app << " " << _mediaInfo._streamid;
         safeShutdown();
         return true;

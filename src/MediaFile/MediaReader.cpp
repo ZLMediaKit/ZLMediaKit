@@ -177,10 +177,7 @@ void MediaReader::startReadMP4() {
 	 seek(ui32Stamp);
 	 return true;
 }
-uint32_t MediaReader::getStamp() {
-	 return _iSeekTime + _ticker.elapsedTime();
-}
-bool MediaReader::shutDown(){
+bool MediaReader::close(){
     AsyncTaskThread::Instance().CancelTask(reinterpret_cast<uint64_t>(this));
     return true;
 }
