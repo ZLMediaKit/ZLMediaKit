@@ -720,9 +720,9 @@ bool RtspSession::handleReq_Play() {
                 if (strStart == "now") {
                     strStart = "0";
                 }
-                auto iStartTime = atof(strStart.data());
-                InfoL << "rtsp seekTo:" << iStartTime;
-                pMediaSrc->seekTo(iStartTime * 1000);
+                auto iStartTime = 1000 * atof(strStart.data());
+                InfoL << "rtsp seekTo(ms):" << iStartTime;
+                pMediaSrc->seekTo(iStartTime);
                 iStamp = pMediaSrc->getStamp();
             }else if(pMediaSrc->getRing()->readerCount() == 1){
                 //第一个消费者

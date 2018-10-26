@@ -435,7 +435,7 @@ bool RtspPlayer::sendPause(bool bPause,uint32_t seekMS){
         //修改时间轴
         _aNowStampTicker[0].resetTime();
         _aNowStampTicker[1].resetTime();
-        auto iTimeInc = seekMS - getProgressMilliSecond();
+        int iTimeInc = seekMS - getProgressMilliSecond();
         for(unsigned int i = 0 ;i < _aTrackInfo.size() ;i++){
 			_aiFistStamp[i] = _aiNowStamp[i] + iTimeInc;
             _aiNowStamp[i] = _aiFistStamp[i];

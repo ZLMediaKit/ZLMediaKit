@@ -274,7 +274,7 @@ inline MP4SampleId MediaReader::getAudioSampleId(int iTimeInc) {
 	audio_current = MAX(0,MIN(_audio_num_samples,audio_current));
 	return audio_current;
 }
-inline void MediaReader::setSeekTime(int iSeekTime){
+inline void MediaReader::setSeekTime(uint32_t iSeekTime){
 	_iSeekTime = MAX(0, MIN(iSeekTime,_iDuration));
 	_ticker.resetTime();
 	if (_audio_trId != MP4_INVALID_TRACK_ID) {
@@ -288,7 +288,7 @@ inline void MediaReader::setSeekTime(int iSeekTime){
 inline uint32_t MediaReader::getVideoCurrentTime(){
 	return (double)_video_current * _video_ms /_video_num_samples;
 }
-void MediaReader::seek(int iSeekTime,bool bReStart){
+void MediaReader::seek(uint32_t iSeekTime,bool bReStart){
 	lock_guard<recursive_mutex> lck(_mtx);
 	if(iSeekTime == 0 || _video_trId == MP4_INVALID_TRACK_ID){
 		setSeekTime(iSeekTime);
