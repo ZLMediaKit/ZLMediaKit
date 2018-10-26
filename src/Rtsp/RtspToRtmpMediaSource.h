@@ -49,8 +49,9 @@ public:
 	virtual ~RtspToRtmpMediaSource();
 
 	virtual void onGetSDP(const string& strSdp) override{
+		RtspMediaSource::onGetSDP(strSdp);
 		try {
-			_pParser.reset(new RtspDemuxer(strSdp));
+			_pParser.reset(new RtspDemuxer(_sdpAttr));
             _pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),_pParser,_bEnableHls,_bEnableMp4));
 			//todo(xzl) 修复此处
 //			_pParser->setOnAudioCB( std::bind(&RtspToRtmpMediaSource::onGetAAC, this, placeholders::_1));
@@ -59,7 +60,6 @@ public:
 		} catch (exception &ex) {
 			WarnL << ex.what();
 		}
-		RtspMediaSource::onGetSDP(strSdp);
 	}
 	virtual void onWrite(const RtpPacket::Ptr &pRtppkt, bool bKeyPos) override{
 		if (_pParser) {
@@ -73,20 +73,9 @@ public:
 	}
 
 	void updateTimeStamp(uint32_t uiStamp) {
-		for (auto &pr : _mapTracks) {
-			switch (pr.second.type) {
-			case TrackAudio: {
-				//todo(xzl) 修复此处
-//				pr.second.timeStamp = uiStamp * (_pParser->getAudioSampleRate() / 1000.0);
-			}
-				break;
-			case TrackVideo: {
-				pr.second.timeStamp = uiStamp * 90;
-			}
-				break;
-			default:
-				break;
-			}
+		auto tracks = _sdpAttr.getAvailableTrack();
+		for (auto &track : tracks) {
+			track->_time_stamp  = uiStamp * (track->_samplerate / 1000.0);
 		}
 	}
 

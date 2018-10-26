@@ -63,13 +63,13 @@ public:
 	string _fmtp;
 	string _control;
 	string _control_surffix;
-	TrackType type;
+	TrackType _type;
 public:
-    uint8_t interleaved = 0;
-    bool inited = false;
-    uint32_t ssrc = 0;
-    uint16_t seq = 0;
-    uint32_t timeStamp = 0;
+    uint8_t _interleaved = 0;
+    bool _inited = false;
+    uint32_t _ssrc = 0;
+    uint16_t _seq = 0;
+    uint32_t _time_stamp = 0;
 };
 class SdpAttr {
 public:

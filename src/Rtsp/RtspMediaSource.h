@@ -71,31 +71,45 @@ public:
 	}
 
 	virtual uint32_t getSsrc(TrackType trackType) {
-		return _mapTracks[trackType].ssrc;
+		auto track = _sdpAttr.getTrack(trackType);
+		if(!track){
+			return 0;
+		}
+		return track->_ssrc;
 	}
 	virtual uint16_t getSeqence(TrackType trackType) {
-		return _mapTracks[trackType].seq;
+		auto track = _sdpAttr.getTrack(trackType);
+		if(!track){
+			return 0;
+		}
+		return track->_seq;
 	}
 	virtual uint32_t getTimestamp(TrackType trackType) {
-		return _mapTracks[trackType].timeStamp;
+		auto track = _sdpAttr.getTrack(trackType);
+		if(!track){
+			return 0;
+		}
+		return track->_time_stamp;
 	}
 
 	virtual void onGetSDP(const string& sdp) {
 		//派生类设置该媒体源媒体描述信息
 		_strSdp = sdp;
+		_sdpAttr.load(sdp);
 		regist();
 	}
 
 	void onWrite(const RtpPacket::Ptr &rtppt, bool keyPos) override {
-		auto &trackRef = _mapTracks[rtppt->type];
-		trackRef.seq = rtppt->sequence;
-		trackRef.timeStamp = rtppt->timeStamp;
-		trackRef.ssrc = rtppt->ssrc;
-		trackRef.type = rtppt->type;
+		auto track = _sdpAttr.getTrack(rtppt->type);
+		if(track){
+			track->_seq = rtppt->sequence;
+			track->_time_stamp = rtppt->timeStamp;
+			track->_ssrc = rtppt->ssrc;
+		}
 		_pRing->write(rtppt,keyPos);
 	}
 protected:
-	unordered_map<int, SdpTrack> _mapTracks;
+	SdpAttr _sdpAttr;
     string _strSdp; //媒体描述信息
     RingType::Ptr _pRing; //rtp环形缓冲
 };

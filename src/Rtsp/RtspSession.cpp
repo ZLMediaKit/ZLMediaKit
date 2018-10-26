@@ -512,11 +512,11 @@ bool RtspSession::handleReq_Setup() {
 		return false;
 	}
 	SdpTrack::Ptr &trackRef = _aTrackInfo[trackIdx];
-	if (trackRef->inited) {
+	if (trackRef->_inited) {
 		//已经初始化过该Track
 		return false;
 	}
-	trackRef->inited = true; //现在初始化
+	trackRef->_inited = true; //现在初始化
 
 	auto strongRing = _pWeakRing.lock();
 	if (!strongRing) {
@@ -562,9 +562,9 @@ bool RtspSession::handleReq_Setup() {
 				"x-Dynamic-Rate: 1\r\n\r\n",
 				_iCseq, SERVER_NAME,
 				RTSP_VERSION, RTSP_BUILDTIME,
-				dateHeader().data(), trackRef->type * 2,
-                trackRef->type * 2 + 1,
-				printSSRC(trackRef->ssrc).data(),
+				dateHeader().data(), trackRef->_type * 2,
+                trackRef->_type * 2 + 1,
+				printSSRC(trackRef->_ssrc).data(),
 				_strSession.data());
 		SocketHelper::send(_pcBuf, iLen);
 	}
@@ -609,7 +609,7 @@ bool RtspSession::handleReq_Setup() {
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), strClientPort.data(),
 				pSockRtp->get_local_port(), pSockRtcp->get_local_port(),
-				printSSRC(trackRef->ssrc).data(),
+				printSSRC(trackRef->_ssrc).data(),
 				_strSession.data());
 		SocketHelper::send(_pcBuf, n);
 	}
@@ -630,7 +630,7 @@ bool RtspSession::handleReq_Setup() {
 				strongSelf->safeShutdown();
 			});
 		}
-		int iSrvPort = _pBrdcaster->getPort(trackRef->type);
+		int iSrvPort = _pBrdcaster->getPort(trackRef->_type);
 		//我们用trackIdx区分rtp和rtcp包
 		auto pSockRtcp = UDPServer::Instance().getSock(get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
 		if (!pSockRtcp) {
@@ -652,7 +652,7 @@ bool RtspSession::handleReq_Setup() {
 				RTSP_VERSION, RTSP_BUILDTIME,
 				dateHeader().data(), _pBrdcaster->getIP().data(),
 				get_local_ip().data(), iSrvPort, pSockRtcp->get_local_port(),
-				udpTTL,printSSRC(trackRef->ssrc).data(),
+				udpTTL,printSSRC(trackRef->_ssrc).data(),
 				_strSession.data());
 		SocketHelper::send(_pcBuf, n);
 	}
@@ -733,9 +733,9 @@ bool RtspSession::handleReq_Play() {
             }
 
             for(auto &track : _aTrackInfo){
-				track->ssrc = pMediaSrc->getSsrc(track->type);
-				track->seq = pMediaSrc->getSeqence(track->type);
-				track->timeStamp = pMediaSrc->getTimestamp(track->type);
+				track->_ssrc = pMediaSrc->getSsrc(track->_type);
+				track->_seq = pMediaSrc->getSeqence(track->_type);
+				track->_time_stamp = pMediaSrc->getTimestamp(track->_type);
             }
         }
         _bFirstPlay = false;
@@ -749,12 +749,12 @@ bool RtspSession::handleReq_Play() {
                            dateHeader().data(), _strSession.data(),iStamp/1000.0);
 
 		for(auto &track : _aTrackInfo){
-			if (track->inited == false) {
+			if (track->_inited == false) {
 				//还有track没有setup
 				shutdown();
 				return;
 			}
-			iLen += sprintf(_pcBuf + iLen, "url=%s/%s;seq=%d;rtptime=%u,", _strUrl.data(), track->_control_surffix.data(), track->seq,track->timeStamp);
+			iLen += sprintf(_pcBuf + iLen, "url=%s/%s;seq=%d;rtptime=%u,", _strUrl.data(), track->_control_surffix.data(), track->_seq,track->_time_stamp);
 		}
 
         iLen -= 1;
@@ -904,9 +904,9 @@ inline bool RtspSession::findStream() {
 	_pMediaSrc = pMediaSrc;
 
 	for(auto &track : _aTrackInfo){
-		track->ssrc = pMediaSrc->getSsrc(track->type);
-		track->seq = pMediaSrc->getSeqence(track->type);
-		track->timeStamp = pMediaSrc->getTimestamp(track->type);
+		track->_ssrc = pMediaSrc->getSsrc(track->_type);
+		track->_seq = pMediaSrc->getSeqence(track->_type);
+		track->_time_stamp = pMediaSrc->getTimestamp(track->_type);
 	}
 	return true;
 }

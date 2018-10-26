@@ -287,10 +287,6 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 	}
 
 	CLEAR_ARR(_aui32SsrcErrorCnt)
-	for (auto &track : _aTrackInfo) {
-		track->ssrc=0;
-	}
-
 	sendSetup(0);
 }
 //发送SETUP命令
@@ -302,7 +298,7 @@ bool RtspPlayer::sendSetup(unsigned int trackIndex) {
 	switch (_eType) {
 		case RTP_TCP: {
 			StrCaseMap header;
-			header["Transport"] = StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->type * 2 << "-" << track->type * 2 + 1;
+			header["Transport"] = StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1;
 			return sendRtspRequest("SETUP",baseUrl,header);
 		}
 			break;
@@ -352,7 +348,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 
 	if(_eType == RTP_TCP)  {
 		string interleaved = FindField( FindField((strTransport + ";").c_str(), "interleaved=", ";").c_str(), NULL, "-");
-		_aTrackInfo[uiTrackIndex]->interleaved = atoi(interleaved.c_str());
+		_aTrackInfo[uiTrackIndex]->_interleaved = atoi(interleaved.c_str());
 	}else{
 		const char *strPos = (_eType == RTP_MULTICAST ? "port=" : "server_port=") ;
 		auto port_str = FindField((strTransport + ";").c_str(), strPos, ";");
@@ -589,7 +585,7 @@ bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned in
 	auto &track = _aTrackInfo[iTrackidx];
 	auto pt_ptr=_pktPool.obtain();
 	auto &rtppt=*pt_ptr;
-	rtppt.interleaved = track->interleaved;
+	rtppt.interleaved = track->_interleaved;
 	rtppt.length = uiLen + 4;
 
 	rtppt.mark = pucData[1] >> 7;
@@ -603,15 +599,15 @@ bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned in
 	//ssrc
 	memcpy(&rtppt.ssrc,pucData+8,4);//内存对齐
 	rtppt.ssrc = ntohl(rtppt.ssrc);
-	rtppt.type = track->type;
-	if (track->ssrc == 0) {
-		track->ssrc = rtppt.ssrc;
+	rtppt.type = track->_type;
+	if (track->_ssrc == 0) {
+		track->_ssrc = rtppt.ssrc;
 		//保存SSRC
-	} else if (track->ssrc != rtppt.ssrc) {
+	} else if (track->_ssrc != rtppt.ssrc) {
 		//ssrc错误
 		WarnL << "ssrc错误";
 		if (_aui32SsrcErrorCnt[iTrackidx]++ > 10) {
-			track->ssrc = rtppt.ssrc;
+			track->_ssrc = rtppt.ssrc;
 			WarnL << "ssrc更换!";
 		}
 		return false;
@@ -815,7 +811,7 @@ int RtspPlayer::getTrackIndexByControlSuffix(const string &controlSuffix) const{
 }
 int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const{
 	for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
-		if (_aTrackInfo[i]->interleaved == interleaved) {
+		if (_aTrackInfo[i]->_interleaved == interleaved) {
 			return i;
 		}
 	}
@@ -824,7 +820,7 @@ int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const{
 
 int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
 	for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
-		if (_aTrackInfo[i]->type == trackType) {
+		if (_aTrackInfo[i]->_type == trackType) {
 			return i;
 		}
 	}
