@@ -28,8 +28,9 @@
 
 namespace mediakit {
 
-void RtmpMuxer::addTrack(const Track::Ptr &track) {
-    //记录该Track
+void RtmpMuxer::addTrack(const Track::Ptr &track_in) {
+    //克隆Track，只拷贝其数据，不拷贝其数据转发关系
+    auto track = track_in->clone();
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
 

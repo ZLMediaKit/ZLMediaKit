@@ -49,9 +49,8 @@ public:
      * @param track 媒体描述
      */
     void addTrack(const Track::Ptr & track) {
-        //克隆track的目的是防止inputFrame时由于用的同一个track而导致写入两次数据
-        _rtmp->addTrack(track->clone());
-        _rtsp->addTrack(track->clone());
+        _rtmp->addTrack(track);
+        _rtsp->addTrack(track);
     }
 
     /**
@@ -59,7 +58,6 @@ public:
      * @param frame 帧数据
      */
     void inputFrame(const Frame::Ptr &frame) override {
-        //_rtmp和_rtsp对象不能使用相同的Track，否则会触发两次inputFrame操作
         _rtmp->inputFrame(frame);
         _rtsp->inputFrame(frame);
     }
