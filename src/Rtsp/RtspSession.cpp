@@ -789,7 +789,6 @@ bool RtspSession::handleReq_Play() {
         });
     };
     if(_bFirstPlay){
-        _bFirstPlay = false;
         //第一次收到play命令，需要鉴权
         auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
         if(!flag){
