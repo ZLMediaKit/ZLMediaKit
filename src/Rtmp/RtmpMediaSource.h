@@ -100,9 +100,10 @@ public:
 				MediaSource::regist();
 				_bRegisted = true;
 			}
+		} else{
+			_mapStamp[pkt->typeId] = pkt->timeStamp;
+			_pRing->write(pkt,pkt->isVideoKeyFrame());
 		}
-		_mapStamp[pkt->typeId] = pkt->timeStamp;
-		_pRing->write(pkt,pkt->isVideoKeyFrame());
 	}
 
 	uint32_t getTimeStamp(TrackType trackType) override {

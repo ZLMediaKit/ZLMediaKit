@@ -153,10 +153,6 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 
     switch (type){
         case 5:
-            //在IDR帧之前插入config包
-            if(_gotSpsPps){
-                makeVideoConfigPkt();
-            }
         case 1:{
             //I or P or B frame
             int8_t flags = 7; //h.264
@@ -230,7 +226,7 @@ void H264RtmpEncoder::makeVideoConfigPkt() {
     rtmpPkt->streamId = STREAM_MEDIA;
     rtmpPkt->timeStamp = 0;
     rtmpPkt->typeId = MSG_VIDEO;
-    RtmpCodec::inputRtmp(rtmpPkt, true);
+    RtmpCodec::inputRtmp(rtmpPkt, false);
 }
 
 
