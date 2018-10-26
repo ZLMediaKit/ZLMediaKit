@@ -55,8 +55,8 @@ public:
 protected:
 	virtual bool onCheckMeta(AMFValue &val) =0;
 	virtual void onMediaData(const RtmpPacket::Ptr &chunkData) =0;
-	float getProgressTime() const;
-	void seekToTime(float fTime);
+	uint32_t getProgressMilliSecond() const;
+	void seekToMilliSecond(uint32_t ms);
 private:
 	void _onShutdown(const SockException &ex) {
 		WarnL << ex.getErrCode() << " " << ex.what();
@@ -145,9 +145,9 @@ private:
 	std::shared_ptr<Timer> _pBeatTimer;
 
 	//播放进度控制
-	float _fSeekTo = 0;
-	double _adFistStamp[2] = { 0, 0 };
-	double _adNowStamp[2] = { 0, 0 };
+	uint32_t _iSeekTo = 0;
+	uint32_t _aiFistStamp[2] = { 0, 0 };
+	uint32_t _aiNowStamp[2] = { 0, 0 };
 	Ticker _aNowStampTicker[2];
 };
 

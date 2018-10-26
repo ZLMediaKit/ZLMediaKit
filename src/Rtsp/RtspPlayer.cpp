@@ -91,9 +91,9 @@ void RtspPlayer::teardown(){
     _pBeatTimer.reset();
     _pPlayTimer.reset();
     _pRtpTimer.reset();
-    _fSeekTo = 0;
-    CLEAR_ARR(_adFistStamp);
-    CLEAR_ARR(_adNowStamp);
+    _iSeekTo = 0;
+    CLEAR_ARR(_aiFistStamp);
+    CLEAR_ARR(_aiNowStamp);
 }
 
 void RtspPlayer::play(const char* strUrl){
@@ -430,17 +430,17 @@ bool RtspPlayer::sendDescribe() {
 }
 
 
-bool RtspPlayer::sendPause(bool bPause,float fTime){
+bool RtspPlayer::sendPause(bool bPause,uint32_t seekMS){
     if(!bPause){
         //修改时间轴
         _aNowStampTicker[0].resetTime();
         _aNowStampTicker[1].resetTime();
-        float iTimeInc = fTime - getProgressTime();
+        auto iTimeInc = seekMS - getProgressMilliSecond();
         for(unsigned int i = 0 ;i < _aTrackInfo.size() ;i++){
-			_adFistStamp[i] = _adNowStamp[i] + iTimeInc * _aTrackInfo[i]->_samplerate;
-            _adNowStamp[i] = _adFistStamp[i];
+			_aiFistStamp[i] = _aiNowStamp[i] + iTimeInc;
+            _aiNowStamp[i] = _aiFistStamp[i];
         }
-        _fSeekTo = fTime;
+        _iSeekTo = seekMS;
     }
 
 	//开启或暂停rtsp
@@ -448,12 +448,12 @@ bool RtspPlayer::sendPause(bool bPause,float fTime){
 
 	StrCaseMap header;
 	char buf[8];
-	sprintf(buf,"%.2f",fTime);
+	sprintf(buf,"%.2f",seekMS / 1000.0);
 	header["Range"] = StrPrinter << "npt=" << buf << "-";
 	return sendRtspRequest(bPause ? "PAUSE" : "PLAY",_strContentBase,header);
 }
 void RtspPlayer::pause(bool bPause) {
-    sendPause(bPause,getProgressTime());
+    sendPause(bPause, getProgressMilliSecond());
 }
 
 void RtspPlayer::handleResPAUSE(const Parser& parser, bool bPause) {
@@ -471,8 +471,8 @@ void RtspPlayer::handleResPAUSE(const Parser& parser, bool bPause) {
             if (strStart == "now") {
                 strStart = "0";
             }
-            _fSeekTo = atof(strStart.data());
-            DebugL << "Range:" << _fSeekTo << " " << strStart ;
+            _iSeekTo = 1000 * atof(strStart.data());
+            DebugL << "seekTo(ms):" << _iSeekTo ;
         }
         auto strRtpInfo =  parser["RTP-Info"];
         if (strRtpInfo.size()) {
@@ -482,10 +482,10 @@ void RtspPlayer::handleResPAUSE(const Parser& parser, bool bPause) {
                 strTrack.append(";");
                 auto strControlSuffix = strTrack.substr(1 + strTrack.rfind('/'),strTrack.find(';') - strTrack.rfind('/') - 1);
                 auto strRtpTime = FindField(strTrack.data(), "rtptime=", ";");
-                auto iIdx = getTrackIndexByControlSuffix(strControlSuffix);
-                _adFistStamp[iIdx] = atoll(strRtpTime.data());
-                _adNowStamp[iIdx] = _adFistStamp[iIdx];
-                DebugL << "rtptime:" << strControlSuffix <<" " << strRtpTime;
+                auto idx = getTrackIndexByControlSuffix(strControlSuffix);
+                _aiFistStamp[idx] = atoll(strRtpTime.data()) * 1000 / _aTrackInfo[idx]->_samplerate;
+                _aiNowStamp[idx] = _aiFistStamp[idx];
+                DebugL << "rtptime(ms):" << strControlSuffix <<" " << strRtpTime;
             }
         }
 		onPlayResult_l(SockException(Err_success, "rtsp play success"));
@@ -595,7 +595,8 @@ bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned in
 	rtppt.sequence = ntohs(rtppt.sequence);
 	//时间戳
     memcpy(&rtppt.timeStamp, pucData+4, 4);//内存对齐
-    rtppt.timeStamp = ntohl(rtppt.timeStamp);
+	//时间戳转换成毫秒
+    rtppt.timeStamp = ntohl(rtppt.timeStamp) * 1000 / track->_samplerate;
 	//ssrc
 	memcpy(&rtppt.ssrc,pucData+8,4);//内存对齐
 	rtppt.ssrc = ntohl(rtppt.ssrc);
@@ -679,12 +680,12 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtppt, int trackidx){
 	_aui16NowSeq[trackidx] = rtppt->sequence;
     
     if (_aNowStampTicker[trackidx].elapsedTime() > 500) {
-        _adNowStamp[trackidx] = rtppt->timeStamp;
+        _aiNowStamp[trackidx] = rtppt->timeStamp;
     }
     
 	onRecvRTP_l(rtppt,_aTrackInfo[trackidx]);
 }
-float RtspPlayer::getRtpLossRate(TrackType type) const{
+float RtspPlayer::getPacketLossRate(TrackType type) const{
 	int iTrackIdx = getTrackIndexByTrackType(type);
 	if(iTrackIdx == -1){
 		uint64_t totalRecv = 0;
@@ -706,15 +707,15 @@ float RtspPlayer::getRtpLossRate(TrackType type) const{
 	return 1.0 - (double)_aui64RtpRecv[iTrackIdx] / (_aui16NowSeq[iTrackIdx] - _aui16FirstSeq[iTrackIdx] + 1);
 }
 
-float RtspPlayer::getProgressTime() const{
-    double iTime[2] = {0,0};
+uint32_t RtspPlayer::getProgressMilliSecond() const{
+	uint32_t iTime[2] = {0,0};
     for(unsigned int i = 0 ;i < _aTrackInfo.size() ;i++){
-		iTime[i] = (_adNowStamp[i] - _adFistStamp[i]) / _aTrackInfo[i]->_samplerate;
+		iTime[i] = _aiNowStamp[i] - _aiFistStamp[i];
     }
-    return _fSeekTo + MAX(iTime[0],iTime[1]);
+    return _iSeekTo + MAX(iTime[0],iTime[1]);
 }
-void RtspPlayer::seekToTime(float fTime) {
-    sendPause(false,fTime);
+void RtspPlayer::seekToMilliSecond(uint32_t ms) {
+    sendPause(false,ms);
 }
 
 bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrCaseMap &header_const) {

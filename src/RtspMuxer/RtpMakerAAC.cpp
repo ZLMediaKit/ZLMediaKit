@@ -62,8 +62,7 @@ void RtpMaker_AAC::makeRtp(const char *pcData, int iLen, uint32_t uiStamp) {
 
 inline void RtpMaker_AAC::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp) {
 	uint16_t u16RtpLen = uiLen + 12;
-	_ui32TimeStamp = (_ui32SampleRate / 1000) * uiStamp;
-	uint32_t ts = htonl(_ui32TimeStamp);
+	uint32_t ts = htonl((_ui32SampleRate / 1000) * uiStamp);
 	uint16_t sq = htons(_ui16Sequence);
 	uint32_t sc = htonl(_ui32Ssrc);
 	auto pRtppkt = obtainPkt();
@@ -87,13 +86,14 @@ inline void RtpMaker_AAC::makeAACRtp(const void *pData, unsigned int uiLen, bool
 	rtppkt.mark = bMark;
 	rtppkt.length = uiLen + 16;
 	rtppkt.sequence = _ui16Sequence;
-	rtppkt.timeStamp = _ui32TimeStamp;
+	rtppkt.timeStamp = uiStamp;
 	rtppkt.ssrc = _ui32Ssrc;
 	rtppkt.type = TrackAudio;
 	rtppkt.offset = 16;
 
 	onMakeRtp(pRtppkt, false);
 	_ui16Sequence++;
+	_ui32TimeStamp = uiStamp;
 }
 
 }//namespace mediakit

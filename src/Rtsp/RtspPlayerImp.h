@@ -51,14 +51,14 @@ public:
     };
     float getProgress() const override{
         if(getDuration() > 0){
-            return getProgressTime() / getDuration();
+            return getProgressMilliSecond() / (getDuration() * 1000);
         }
         return PlayerBase::getProgress();
         
     };
     void seekTo(float fProgress) override{
         fProgress = MAX(float(0),MIN(fProgress,float(1.0)));
-        seekToTime(fProgress * getDuration());
+        seekToMilliSecond(fProgress * getDuration() * 1000);
     };
 private:
 	//派生类回调函数

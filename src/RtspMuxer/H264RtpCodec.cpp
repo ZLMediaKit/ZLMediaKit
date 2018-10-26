@@ -101,7 +101,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
         _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
         _h264frame->buffer.append((char *)frame, length);
         _h264frame->type = nal.type;
-        _h264frame->timeStamp = rtppack->timeStamp / 90;
+        _h264frame->timeStamp = rtppack->timeStamp;
         _h264frame->sequence = rtppack->sequence;
         auto isIDR = _h264frame->type == 5;
         onGetH264(_h264frame);
@@ -119,7 +119,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             _h264frame->buffer.push_back(tmp);
             _h264frame->buffer.append((char *)frame + 2, length - 2);
             _h264frame->type = fu.type;
-            _h264frame->timeStamp = rtppack->timeStamp / 90;
+            _h264frame->timeStamp = rtppack->timeStamp;
             _h264frame->sequence = rtppack->sequence;
             return (_h264frame->type == 5); //i frame
         }
@@ -133,7 +133,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
         if (fu.E == 1) {
             //FU-A end
             _h264frame->buffer.append((char *)frame + 2, length - 2);
-            _h264frame->timeStamp = rtppack->timeStamp / 90;
+            _h264frame->timeStamp = rtppack->timeStamp;
             auto isIDR = _h264frame->type == 5;
             onGetH264(_h264frame);
             return isIDR;
@@ -227,8 +227,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
 
 void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
     uint16_t ui16RtpLen = len + 12;
-    _ui32TimeStamp = (_ui32SampleRate / 1000) * uiStamp;
-    uint32_t ts = htonl(_ui32TimeStamp);
+    uint32_t ts = htonl((_ui32SampleRate / 1000) * uiStamp);
     uint16_t sq = htons(_ui16Sequence);
     uint32_t sc = htonl(_ui32Ssrc);
 
@@ -252,7 +251,7 @@ void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, 
     rtppkt->mark = mark;
     rtppkt->length = len + 16;
     rtppkt->sequence = _ui16Sequence;
-    rtppkt->timeStamp = _ui32TimeStamp;
+    rtppkt->timeStamp = uiStamp;
     rtppkt->ssrc = _ui32Ssrc;
     rtppkt->type = TrackVideo;
     rtppkt->offset = 16;
@@ -260,6 +259,7 @@ void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, 
     uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
     RtpCodec::inputRtp(rtppkt,type == 5);
     _ui16Sequence++;
+    _ui32TimeStamp = uiStamp;
 }
 
 }//namespace mediakit

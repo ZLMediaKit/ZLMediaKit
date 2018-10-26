@@ -78,8 +78,7 @@ void RtpMaker_H264::makeRtp(const char* pcData, int iLen, uint32_t uiStamp) {
 
 inline void RtpMaker_H264::makeH264Rtp(const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
 	uint16_t ui16RtpLen = len + 12;
-	_ui32TimeStamp = (_ui32SampleRate / 1000) * uiStamp;
-	uint32_t ts = htonl(_ui32TimeStamp);
+	uint32_t ts = htonl((_ui32SampleRate / 1000) * uiStamp);
 	uint16_t sq = htons(_ui16Sequence);
 	uint32_t sc = htonl(_ui32Ssrc);
 
@@ -104,7 +103,7 @@ inline void RtpMaker_H264::makeH264Rtp(const void* data, unsigned int len, bool 
 	rtppkt.mark = mark;
 	rtppkt.length = len + 16;
 	rtppkt.sequence = _ui16Sequence;
-	rtppkt.timeStamp = _ui32TimeStamp;
+	rtppkt.timeStamp = uiStamp;
 	rtppkt.ssrc = _ui32Ssrc;
 	rtppkt.type = TrackVideo;
 	rtppkt.offset = 16;
@@ -112,6 +111,7 @@ inline void RtpMaker_H264::makeH264Rtp(const void* data, unsigned int len, bool 
 	uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
 	onMakeRtp(pRtppkt, type == 5);
 	_ui16Sequence++;
+	_ui32TimeStamp = uiStamp;
 	//InfoL<<timeStamp<<" "<<time<<" "<<sampleRate;
 }
 

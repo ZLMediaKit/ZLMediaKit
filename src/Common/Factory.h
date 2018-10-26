@@ -86,7 +86,7 @@ public:
      * @param ui32SampleRate
      * @return
      */
-    static RtpCodec::Ptr getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRate);
+    static RtpCodec::Ptr getRtpDecoderById(CodecId codecId);
 
 
     ////////////////////////////////rtmp相关//////////////////////////////////

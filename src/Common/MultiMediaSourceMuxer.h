@@ -32,6 +32,8 @@
 
 class MultiMediaSourceMuxer {
 public:
+    typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
+
     MultiMediaSourceMuxer(const string &vhost,
                           const string &strApp,
                           const string &strId,
@@ -67,6 +69,18 @@ public:
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _rtmp->setListener(listener);
         _rtsp->setListener(listener);
+    }
+
+    /**
+     * 返回总的消费者个数
+     * @return
+     */
+    int readerCount() const{
+        return _rtsp->readerCount() + _rtmp->readerCount();
+    }
+
+    void updateTimeStamp(uint32_t stamp){
+        _rtsp->updateTimeStamp(stamp);
     }
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;

@@ -84,12 +84,19 @@ public:
 		}
 		return track->_seq;
 	}
-	virtual uint32_t getTimestamp(TrackType trackType) {
+	virtual uint32_t getTimeStamp(TrackType trackType) {
 		auto track = _sdpAttr.getTrack(trackType);
 		if(!track){
 			return 0;
 		}
 		return track->_time_stamp;
+	}
+
+	void updateTimeStamp(uint32_t uiStamp) {
+		auto tracks = _sdpAttr.getAvailableTrack();
+		for (auto &track : tracks) {
+			track->_time_stamp  = uiStamp;
+		}
 	}
 
 	virtual void onGetSDP(const string& sdp) {

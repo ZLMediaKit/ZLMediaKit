@@ -184,12 +184,12 @@ RtpCodec::Ptr Factory::getRtpEncoderById(CodecId codecId,
     }
 }
 
-RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId, uint32_t ui32SampleRate) {
+RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId) {
     switch (codecId){
         case CodecH264:
             return std::make_shared<H264RtpDecoder>();
         case CodecAAC:
-            return std::make_shared<AACRtpDecoder>(ui32SampleRate);
+            return std::make_shared<AACRtpDecoder>();
         default:
             WarnL << "暂不支持该CodecId:" << codecId;
             return nullptr;

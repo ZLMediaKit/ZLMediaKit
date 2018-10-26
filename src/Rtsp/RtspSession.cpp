@@ -735,7 +735,7 @@ bool RtspSession::handleReq_Play() {
             for(auto &track : _aTrackInfo){
 				track->_ssrc = pMediaSrc->getSsrc(track->_type);
 				track->_seq = pMediaSrc->getSeqence(track->_type);
-				track->_time_stamp = pMediaSrc->getTimestamp(track->_type);
+				track->_time_stamp = pMediaSrc->getTimeStamp(track->_type);
             }
         }
         _bFirstPlay = false;
@@ -754,7 +754,11 @@ bool RtspSession::handleReq_Play() {
 				shutdown();
 				return;
 			}
-			iLen += sprintf(_pcBuf + iLen, "url=%s/%s;seq=%d;rtptime=%u,", _strUrl.data(), track->_control_surffix.data(), track->_seq,track->_time_stamp);
+			iLen += sprintf(_pcBuf + iLen, "url=%s/%s;seq=%d;rtptime=%u,",
+							_strUrl.data(),
+							track->_control_surffix.data(),
+							track->_seq,
+							track->_time_stamp * track->_samplerate / 1000);
 		}
 
         iLen -= 1;
@@ -906,7 +910,7 @@ inline bool RtspSession::findStream() {
 	for(auto &track : _aTrackInfo){
 		track->_ssrc = pMediaSrc->getSsrc(track->_type);
 		track->_seq = pMediaSrc->getSeqence(track->_type);
-		track->_time_stamp = pMediaSrc->getTimestamp(track->_type);
+		track->_time_stamp = pMediaSrc->getTimeStamp(track->_type);
 	}
 	return true;
 }
