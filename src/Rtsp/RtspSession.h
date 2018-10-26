@@ -117,7 +117,7 @@ private:
 		return tmp;
 	}
 	inline int getTrackIndexByTrackType(TrackType type) {
-		for (unsigned int i = 0; i < _uiTrackCnt; i++) {
+		for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
 			if (type == _aTrackInfo[i]->type) {
 				return i;
 			}
@@ -125,7 +125,7 @@ private:
 		return -1;
 	}
     inline int getTrackIndexByControlSuffix(const string &controlSuffix) {
-        for (unsigned int i = 0; i < _uiTrackCnt; i++) {
+        for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
             if (controlSuffix == _aTrackInfo[i]->_control_surffix) {
                 return i;
             }
@@ -163,7 +163,6 @@ private:
 	int _iCseq = 0;
 
 	SdpAttr _sdpAttr;
-	unsigned int _uiTrackCnt = 0; //媒体track个数
 	vector<SdpTrack::Ptr> _aTrackInfo;
 
 	bool _bGotAllPeerUdp = false;

@@ -664,7 +664,7 @@ bool RtspSession::handleReq_Setup() {
 }
 
 bool RtspSession::handleReq_Play() {
-	if (_uiTrackCnt == 0) {
+	if (_aTrackInfo.size() == 0) {
 		//还没有Describe
 		return false;
 	}
@@ -731,11 +731,11 @@ bool RtspSession::handleReq_Play() {
             }else{
                 iStamp = pMediaSrc->getStamp();
             }
-            for (unsigned int i = 0; i < _uiTrackCnt; i++) {
-                auto &track = _aTrackInfo[i];
-                track->ssrc = pMediaSrc->getSsrc(track->type);
-                track->seq = pMediaSrc->getSeqence(track->type);
-                track->timeStamp = pMediaSrc->getTimestamp(track->type);
+
+            for(auto &track : _aTrackInfo){
+				track->ssrc = pMediaSrc->getSsrc(track->type);
+				track->seq = pMediaSrc->getSeqence(track->type);
+				track->timeStamp = pMediaSrc->getTimestamp(track->type);
             }
         }
         _bFirstPlay = false;
@@ -748,16 +748,15 @@ bool RtspSession::handleReq_Play() {
                                    "RTP-Info: ", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
                            dateHeader().data(), _strSession.data(),iStamp/1000.0);
 
-        for (unsigned int i = 0; i < _uiTrackCnt; i++) {
-            auto &track = _aTrackInfo[i];
-            if (track->inited == false) {
-                //还有track没有setup
-                shutdown();
-                return;
-            }
-            iLen += sprintf(_pcBuf + iLen, "url=%s/%s;seq=%d;rtptime=%u,",
-                            _strUrl.data(), track->_control_surffix.data(), track->seq,track->timeStamp);
-        }
+		for(auto &track : _aTrackInfo){
+			if (track->inited == false) {
+				//还有track没有setup
+				shutdown();
+				return;
+			}
+			iLen += sprintf(_pcBuf + iLen, "url=%s/%s;seq=%d;rtptime=%u,", _strUrl.data(), track->_control_surffix.data(), track->seq,track->timeStamp);
+		}
+
         iLen -= 1;
         (_pcBuf)[iLen] = '\0';
         iLen += sprintf(_pcBuf + iLen, "\r\n\r\n");
@@ -897,21 +896,18 @@ inline bool RtspSession::findStream() {
 
 	_sdpAttr.load(_strSdp);
 	_aTrackInfo = _sdpAttr.getAvailableTrack();
-	_uiTrackCnt = _aTrackInfo.size();
 
-	if (_uiTrackCnt == 0 || _uiTrackCnt > 2) {
+	if (_aTrackInfo.empty()) {
 		return false;
 	}
 	_strSession = makeRandStr(12);
 	_pMediaSrc = pMediaSrc;
 
-	for (unsigned int i = 0; i < _uiTrackCnt; i++) {
-		auto &track = _aTrackInfo[i];
+	for(auto &track : _aTrackInfo){
 		track->ssrc = pMediaSrc->getSsrc(track->type);
 		track->seq = pMediaSrc->getSeqence(track->type);
 		track->timeStamp = pMediaSrc->getTimestamp(track->type);
 	}
-
 	return true;
 }
 
@@ -972,7 +968,7 @@ inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf
 			_apPeerUdpAddr[iTrackIdx / 2].reset(new struct sockaddr(addr));
 			_abGotPeerUdp[iTrackIdx / 2] = true;
 			_bGotAllPeerUdp = true;//先假设获取到完整的rtp探测包
-			for (unsigned int i = 0; i < _uiTrackCnt; i++) {
+			for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
 				if (!_abGotPeerUdp[i]) {
 					//还有track没获取到rtp探测包
 					_bGotAllPeerUdp = false;
