@@ -58,14 +58,14 @@ public:
 	float getRtpLossRate(int iTrackType) const override;
 protected:
 	//派生类回调函数
-	virtual bool onCheckSDP(const string &strSdp, const RtspTrack *pTrack, int iTrackCnt) = 0;
-	virtual void onRecvRTP(const RtpPacket::Ptr &pRtppt, const RtspTrack &track) = 0;
+	virtual bool onCheckSDP(const string &strSdp, const SdpAttr &sdpAttr) = 0;
+	virtual void onRecvRTP(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track) = 0;
     float getProgressTime() const;
     void seekToTime(float fTime);
 private:
 	void onShutdown_l(const SockException &ex);
     void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, int iTrackidx);
-	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const RtspTrack &track);
+	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
 	void onPlayResult_l(const SockException &ex);
 
     int getTrackIndexByControlSuffix(const string &controlSuffix) const;
@@ -97,8 +97,9 @@ private:
     bool sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
 private:
 	string _strUrl;
-	unsigned int _uiTrackCnt = 0;
-	RtspTrack _aTrackInfo[2];
+
+	SdpAttr _sdpAttr;
+	vector<SdpTrack::Ptr> _aTrackInfo;
 
 	function<void(const Parser&)> _onHandshake;
 	RtspMediaSource::PoolType _pktPool;

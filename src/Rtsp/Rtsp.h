@@ -62,34 +62,31 @@ public:
 	int _samplerate;
 	string _fmtp;
 	string _control;
-	TrackType _type;
+	string _control_surffix;
+	TrackType type;
+public:
+    uint8_t interleaved = 0;
+    bool inited = false;
+    uint32_t ssrc = 0;
+    uint16_t seq = 0;
+    uint32_t timeStamp = 0;
 };
 class SdpAttr {
 public:
 	typedef std::shared_ptr<SdpAttr> Ptr;
-	SdpAttr(const string &sdp){load(sdp);};
+    SdpAttr(){}
+	SdpAttr(const string &sdp){load(sdp);}
 	~SdpAttr(){}
 
-	void load(const string &sdp);
-	SdpTrack::Ptr getTrack(TrackType type) const;
-	bool available() const ;
+    void load(const string &sdp);
+    bool available() const ;
+
+    SdpTrack::Ptr getTrack(TrackType type) const;
+    vector<SdpTrack::Ptr> getAvailableTrack() const;
 private:
-	map<string,SdpTrack::Ptr> _track_map;
+    map<string,SdpTrack::Ptr> _track_map;
 };
 
-class RtspTrack{
-public:
-	uint8_t PT;
-    uint8_t interleaved;
-	TrackType type = TrackInvalid;
-	string trackSdp;
-    string controlSuffix;
-	bool inited;
-	uint32_t ssrc = 0;
-	uint16_t seq;
-	uint32_t timeStamp;
-	uint32_t sampleRate;
-};
 
 class RtcpCounter {
 public:
@@ -99,7 +96,6 @@ public:
 };
 
 string FindField(const char* buf, const char* start, const char *end,int bufSize = 0 );
-int parserSDP(const string& sdp, RtspTrack Track[2]);
 
 struct StrCaseCompare
 {

@@ -95,7 +95,7 @@ public:
 		_pRing->write(rtppt,keyPos);
 	}
 protected:
-	unordered_map<int, RtspTrack> _mapTracks;
+	unordered_map<int, SdpTrack> _mapTracks;
     string _strSdp; //媒体描述信息
     RingType::Ptr _pRing; //rtp环形缓冲
 };

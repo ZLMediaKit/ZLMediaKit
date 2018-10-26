@@ -66,11 +66,11 @@ Sdp::Ptr Factory::getSdpByTrack(const Track::Ptr &track) {
 }
 
 
-Track::Ptr Factory::getTrackBySdp(const string &sdp) {
-    if (strcasestr(sdp.data(), "mpeg4-generic") != nullptr) {
-        string aac_cfg_str = FindField(sdp.c_str(), "config=", "\r\n");
+Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
+    if (strcasestr(track->_codec.data(), "mpeg4-generic") != nullptr) {
+        string aac_cfg_str = FindField(track->_fmtp.c_str(), "config=", "\r\n");
         if (aac_cfg_str.size() != 4) {
-            aac_cfg_str = FindField(sdp.c_str(), "config=", ";");
+            aac_cfg_str = FindField(track->_fmtp.c_str(), "config=", ";");
         }
         if (aac_cfg_str.size() != 4) {
             //延后获取adts头
@@ -91,8 +91,8 @@ Track::Ptr Factory::getTrackBySdp(const string &sdp) {
         return std::make_shared<AACTrack>(aac_cfg);
     }
 
-    if (strcasestr(sdp.data(), "h264") != nullptr) {
-        string sps_pps = FindField(sdp.c_str(), "sprop-parameter-sets=", "\r\n");
+    if (strcasestr(track->_codec.data(), "h264") != nullptr) {
+        string sps_pps = FindField(track->_fmtp.c_str(), "sprop-parameter-sets=", "\r\n");
         if(sps_pps.empty()){
             return std::make_shared<H264Track>();
         }
@@ -107,7 +107,7 @@ Track::Ptr Factory::getTrackBySdp(const string &sdp) {
         return std::make_shared<H264Track>(sps,pps,0,0);
     }
 
-    WarnL << "暂不支持该sdp:" << sdp;
+    WarnL << "暂不支持该sdp:" << track->_codec << " " << track->_fmtp;
     return nullptr;
 }
 
