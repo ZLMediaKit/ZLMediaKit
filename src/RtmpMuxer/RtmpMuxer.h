@@ -28,10 +28,11 @@
 #define ZLMEDIAKIT_RTMPMUXER_H
 
 #include "RtmpMetedata.h"
+#include "Player/Frame.h"
 
 namespace mediakit{
 
-class RtmpMuxer{
+class RtmpMuxer : public FrameRingWriterInterface{
 public:
     typedef std::shared_ptr<RtmpMuxer> Ptr;
 
@@ -64,7 +65,7 @@ public:
      * 写入帧数据然后打包rtmp
      * @param frame 帧数据
      */
-    void inputFrame(const Frame::Ptr &frame) ;
+    void inputFrame(const Frame::Ptr &frame) override ;
 
     /**
      * 也可以在外部打包好rtmp然后再写入

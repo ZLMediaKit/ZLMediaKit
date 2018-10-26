@@ -28,12 +28,13 @@
 #define ZLMEDIAKIT_RTSPMUXER_H
 
 #include "RtspSdp.h"
+#include "Player/Frame.h"
 
 namespace mediakit{
 /**
 * rtsp生成器
 */
-class RtspMuxer{
+class RtspMuxer : public  FrameRingWriterInterface{
 public:
     typedef std::shared_ptr<RtspMuxer> Ptr;
 
@@ -56,7 +57,7 @@ public:
      * @param ssrc 媒体rtp ssrc
      * @param mtu 媒体rtp mtu
      */
-    void addTrack(const Track::Ptr & track,uint32_t ssrc = 0,int mtu = 1400) ;
+    void addTrack(const Track::Ptr & track,uint32_t ssrc = 0,int mtu = 0) ;
 
     /**
      * 获取完整的SDP字符串
@@ -68,7 +69,7 @@ public:
      * 写入帧数据然后打包rtp
      * @param frame 帧数据
      */
-    void inputFrame(const Frame::Ptr &frame) ;
+    void inputFrame(const Frame::Ptr &frame) override ;
 
     /**
      * 也可以在外部打包好rtp然后再写入

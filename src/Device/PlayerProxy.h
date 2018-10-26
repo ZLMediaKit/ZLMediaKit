@@ -38,7 +38,9 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class PlayerProxy :public MediaPlayer, public std::enable_shared_from_this<PlayerProxy> , public MediaSourceEvent {
+class PlayerProxy :public MediaPlayer,
+				   public std::enable_shared_from_this<PlayerProxy> ,
+				   public MediaSourceEvent{
 public:
 	typedef std::shared_ptr<PlayerProxy> Ptr;
 
@@ -58,7 +60,7 @@ public:
 private:
 	void initMedia();
 	void rePlay(const string &strUrl,int iFailedCnt);
-	void makeMuteAudio(uint32_t stamp);
+	void onPlaySuccess();
 private:
     bool _bEnableHls;
     bool _bEnableMp4;
@@ -67,8 +69,6 @@ private:
     string _strVhost;
     string _strApp;
     string _strSrc;
-    bool _haveAudio = false;
-    int _iAudioIndex = 0;
 };
 
 } /* namespace mediakit */

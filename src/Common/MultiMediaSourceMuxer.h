@@ -30,7 +30,7 @@
 #include "RtspMuxer/RtspMediaSourceMuxer.h"
 #include "RtmpMuxer/RtmpMediaSourceMuxer.h"
 
-class MultiMediaSourceMuxer {
+class MultiMediaSourceMuxer : public FrameRingWriterInterface{
 public:
     typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
 
@@ -48,16 +48,16 @@ public:
      * 添加音视频媒体
      * @param track 媒体描述
      */
-    void addTrack(const Track::Ptr & track,int mtu = 1400) {
+    void addTrack(const Track::Ptr & track) {
         _rtmp->addTrack(track);
-        _rtsp->addTrack(track,0,mtu);
+        _rtsp->addTrack(track);
     }
 
     /**
      * 写入帧数据然后打包rtmp
      * @param frame 帧数据
      */
-    void inputFrame(const Frame::Ptr &frame) {
+    void inputFrame(const Frame::Ptr &frame) override {
         _rtmp->inputFrame(frame);
         _rtsp->inputFrame(frame);
     }
