@@ -79,8 +79,8 @@ public:
         return _rtsp->readerCount() + _rtmp->readerCount();
     }
 
-    void updateTimeStamp(uint32_t stamp){
-        _rtsp->updateTimeStamp(stamp);
+    void setTimeStamp(uint32_t stamp){
+        _rtsp->setTimeStamp(stamp);
     }
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
