@@ -671,11 +671,7 @@ bool RtspSession::handleReq_Setup() {
 }
 
 bool RtspSession::handleReq_Play() {
-	if (_aTrackInfo.size() == 0) {
-		//还没有Describe
-		return false;
-	}
-	if (_parser["Session"] != _strSession) {
+	if (_aTrackInfo.empty() || _parser["Session"] != _strSession) {
 		send_SessionNotFound();
 		return false;
 	}
@@ -684,7 +680,7 @@ bool RtspSession::handleReq_Play() {
         bool authSuccess = err.empty();
         char response[2 * 1024];
         _pcBuf = response;
-        if(!authSuccess && _bFirstPlay){
+        if(!authSuccess){
             //第一次play是播放，否则是恢复播放。只对播放鉴权
             int n = sprintf(_pcBuf,
                             "RTSP/1.0 401 Unauthorized\r\n"
@@ -700,24 +696,6 @@ bool RtspSession::handleReq_Play() {
             shutdown();
             return;
         }
-        if(_pRtpReader){
-            weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-            SockUtil::setNoDelay(_pSender->rawFD(), false);
-            _pRtpReader->setReadCB([weakSelf](const RtpPacket::Ptr &pack) {
-                auto strongSelf = weakSelf.lock();
-                if(!strongSelf) {
-                    return;
-                }
-                strongSelf->async([weakSelf,pack](){
-                    auto strongSelf = weakSelf.lock();
-                    if(!strongSelf) {
-                        return;
-                    }
-                    strongSelf->sendRtpPacket(pack);
-                });
-
-            });
-        }
 
         auto pMediaSrc = _pMediaSrc.lock();
         if(!pMediaSrc){
@@ -727,6 +705,7 @@ bool RtspSession::handleReq_Play() {
         }
 
 		if (strRange.size() && !_bFirstPlay) {
+            //这个是seek操作
 			auto strStart = FindField(strRange.data(), "npt=", "-");
 			if (strStart == "now") {
 				strStart = "0";
@@ -774,6 +753,25 @@ bool RtspSession::handleReq_Play() {
 		//提高发送性能
 		(*this) << SocketFlags(kSockFlags);
 		SockUtil::setNoDelay(_pSender->rawFD(),false);
+
+        if(_pRtpReader){
+            weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+            SockUtil::setNoDelay(_pSender->rawFD(), false);
+            _pRtpReader->setReadCB([weakSelf](const RtpPacket::Ptr &pack) {
+                auto strongSelf = weakSelf.lock();
+                if(!strongSelf) {
+                    return;
+                }
+                strongSelf->async([weakSelf,pack](){
+                    auto strongSelf = weakSelf.lock();
+                    if(!strongSelf) {
+                        return;
+                    }
+                    strongSelf->sendRtpPacket(pack);
+                });
+
+            });
+        }
     };
 
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
@@ -790,9 +788,16 @@ bool RtspSession::handleReq_Play() {
             onRes(err);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
-    if(!flag){
-        //该事件无人监听,默认不鉴权
+    if(_bFirstPlay){
+        _bFirstPlay = false;
+        //第一次收到play命令，需要鉴权
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
+        if(!flag){
+            //该事件无人监听,默认不鉴权
+            onRes("");
+        }
+    }else{
+        //后面是seek或恢复命令，不需要鉴权
         onRes("");
     }
 	return true;
