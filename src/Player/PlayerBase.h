@@ -49,6 +49,15 @@ public:
 	virtual float getDuration() const { return 0;}
 	virtual bool isInited() const { return true; }
 	virtual vector<Track::Ptr> getTracks() const { return vector<Track::Ptr>();}
+	virtual Track::Ptr getTrack(TrackType type) const {
+		auto tracks = getTracks();
+		for(auto &track : tracks){
+			if(track->getTrackType() == type){
+				return track;
+			}
+		}
+		return nullptr;
+	}
 };
 
 
@@ -85,9 +94,9 @@ public:
 
     virtual float getProgress() const { return 0;}
     virtual void seekTo(float fProgress) {}
+
     virtual void setMediaSouce(const MediaSource::Ptr & src) {}
-	//TrackVideo = 0, TrackAudio = 1
-	virtual float getRtpLossRate(int trackType) const {return 0; }
+	virtual float getRtpLossRate(TrackType trackType) const {return 0; }
 protected:
     virtual void onShutdown(const SockException &ex) {}
     virtual void onPlayResult(const SockException &ex) {}
