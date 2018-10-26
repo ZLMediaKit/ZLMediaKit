@@ -208,7 +208,7 @@ public:
         _printer << "a=rtpmap:" << playload_type << " MPEG4-GENERIC/" << sample_rate << "\r\n";
 
         char configStr[32] = {0};
-        snprintf(configStr, sizeof(configStr), "%02X%02x", aac_cfg[0], aac_cfg[1]);
+        snprintf(configStr, sizeof(configStr), "%02X%02X", (uint8_t)aac_cfg[0], (uint8_t)aac_cfg[1]);
         _printer << "a=fmtp:" << playload_type << " streamtype=5;profile-level-id=1;mode=AAC-hbr;"
                  << "sizelength=13;indexlength=3;indexdeltalength=3;config="
                  << configStr << "\r\n";
