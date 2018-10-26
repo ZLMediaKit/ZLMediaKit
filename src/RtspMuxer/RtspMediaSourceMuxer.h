@@ -51,8 +51,8 @@ public:
     int readerCount() const{
         return _mediaSouce->getRing()->readerCount();
     }
-    void updateTimeStamp(uint32_t stamp){
-        _mediaSouce->updateTimeStamp(stamp);
+    void setTimeStamp(uint32_t stamp){
+        _mediaSouce->setTimeStamp(stamp);
     }
 private:
     void onInited() override {

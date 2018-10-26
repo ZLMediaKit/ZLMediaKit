@@ -306,7 +306,7 @@ void MediaReader::seek(int iSeekTime,bool bReStart){
 			setSeekTime(iSeekTime);
 		}
 	}
-	_pChn->updateTimeStamp(_iSeekTime);
+	_pChn->setTimeStamp(_iSeekTime);
 
 	if(bReStart){
 		AsyncTaskThread::Instance().CancelTask(reinterpret_cast<uint64_t>(this));

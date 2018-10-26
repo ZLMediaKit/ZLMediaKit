@@ -92,7 +92,7 @@ public:
 		return track->_time_stamp;
 	}
 
-	void updateTimeStamp(uint32_t uiStamp) {
+	void setTimeStamp(uint32_t uiStamp) {
 		auto tracks = _sdpAttr.getAvailableTrack();
 		for (auto &track : tracks) {
 			track->_time_stamp  = uiStamp;
