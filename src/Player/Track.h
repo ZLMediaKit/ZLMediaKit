@@ -37,6 +37,9 @@ using namespace toolkit;
 
 namespace mediakit{
 
+/**
+ * 媒体通道描述类，也支持帧输入输出
+ */
 class Track : public FrameRingInterfaceDelegate , public CodecInfo{
 public:
     typedef std::shared_ptr<Track> Ptr;
@@ -45,25 +48,30 @@ public:
     virtual ~Track(){}
 
     /**
-     * 是否准备好
+     * 是否准备好，准备好才能获取譬如sps pps等信息
      * @return
      */
     virtual bool ready() = 0;
 
     /**
      * 克隆接口，用于复制本对象用
+     * 在调用该接口时只会复制派生类的信息
+     * 环形缓存和代理关系不能拷贝，否则会关系紊乱
      * @return
      */
     virtual Track::Ptr clone() = 0;
 
     /**
-     * 复制拷贝，只能拷贝一些描述信息，
+     * 复制拷贝，只能拷贝派生类的信息，
      * 环形缓存和代理关系不能拷贝，否则会关系紊乱
      * @param that
      */
     Track(const Track &that){}
 };
 
+/**
+ * 视频通道描述Track类，支持获取宽高fps信息
+ */
 class VideoTrack : public Track {
 public:
     typedef std::shared_ptr<VideoTrack> Ptr;
@@ -89,6 +97,9 @@ public:
     virtual float getVideoFps() const = 0;
 };
 
+/**
+ * 音频Track派生类，支持采样率通道数，采用位数信息
+ */
 class AudioTrack : public Track {
 public:
     typedef std::shared_ptr<AudioTrack> Ptr;
@@ -114,6 +125,9 @@ public:
     virtual int getAudioChannel() const = 0;
 };
 
+/**
+ * 264视频通道
+ */
 class H264Track : public VideoTrack{
 public:
     typedef std::shared_ptr<H264Track> Ptr;
@@ -270,6 +284,9 @@ private:
     float _fps = 0;
 };
 
+/**
+ * aac音频通道
+ */
 class AACTrack : public AudioTrack{
 public:
     typedef std::shared_ptr<AACTrack> Ptr;
