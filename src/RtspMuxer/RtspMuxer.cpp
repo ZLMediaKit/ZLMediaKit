@@ -29,79 +29,47 @@
 
 namespace mediakit {
 
-void RtspMuxer::addTrack(const Track::Ptr &track_in, uint32_t ssrc, int mtu) {
-    //克隆Track，只拷贝其数据，不拷贝其数据转发关系
-    auto track = track_in->clone();
-    auto codec_id = track->getCodecId();
-    _track_map[codec_id] = track;
-    if(mtu == 0){
-        mtu = (track->getTrackType() == TrackVideo ? 1400 : 600);
+RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title){
+    if(!title){
+        _sdp = std::make_shared<TitleSdp>()->getSdp();
+    } else{
+        _sdp = title->getSdp();
     }
-    auto lam = [this,ssrc,mtu,track](){
-        //异步生成rtp编码器
-        //根据track生产sdp
-        Sdp::Ptr sdp = Factory::getSdpByTrack(track);
-        if (!sdp) {
-            return;
-        }
+    _rtpRing = std::make_shared<RtpRingInterface::RingType>();
+}
 
-        // 根据sdp生成rtp编码器
-        auto encoder = sdp->createRtpEncoder(ssrc ? ssrc : ((uint64_t) sdp.get()) & 0xFFFFFFFF, mtu);
-        if (!encoder) {
-            return;
-        }
-        //添加其sdp
-        _sdp.append(sdp->getSdp());
-        //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtpEncoder中
-        track->addDelegate(encoder);
-        //rtp编码器共用同一个环形缓存
-        encoder->setRtpRing(_rtpRing);
-    };
-    if(track->ready()){
-        lam();
-    }else{
-        _trackReadyCallback[codec_id] = lam;
+void RtspMuxer::onTrackReady(const Track::Ptr &track) {
+    //根据track生产sdp
+    Sdp::Ptr sdp = Factory::getSdpByTrack(track);
+    if (!sdp) {
+        return;
     }
+    uint32_t ssrc = ((uint64_t) sdp.get()) & 0xFFFFFFFF;
+    auto mtu = (track->getTrackType() == TrackVideo ? 1400 : 600);
+    // 根据sdp生成rtp编码器ssrc
+    auto encoder = sdp->createRtpEncoder(ssrc, mtu);
+    if (!encoder) {
+        return;
+    }
+    //添加其sdp
+    _sdp.append(sdp->getSdp());
+    //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtpEncoder中
+    track->addDelegate(encoder);
+    //rtp编码器共用同一个环形缓存
+    encoder->setRtpRing(_rtpRing);
 }
 
 string RtspMuxer::getSdp() {
-    if(!_trackReadyCallback.empty()){
+    if(!isAllTrackReady()){
         //尚未就绪
         return "";
     }
     return _sdp;
 }
 
-
-void RtspMuxer::inputFrame(const Frame::Ptr &frame) {
-    auto codec_id = frame->getCodecId();
-    auto it = _track_map.find(codec_id);
-    if (it == _track_map.end()) {
-        return;
-    }
-    it->second->inputFrame(frame);
-    if(!_inited && !_trackReadyCallback.empty() && it->second->ready()){
-        //Track由未就绪状态装换成就绪状态，我们就生成sdp以及rtp编码器
-        auto it_callback = _trackReadyCallback.find(codec_id);
-        if(it_callback != _trackReadyCallback.end()){
-            it_callback->second();
-            _trackReadyCallback.erase(it_callback);
-        }
-    }
-
-    if(!_inited && _trackReadyCallback.empty()){
-        _inited = true;
-        onInited();
-    }
-}
-
-bool RtspMuxer::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
-   _rtpRing->write(rtp,key_pos);
-    return key_pos;
-}
-
 RtpRingInterface::RingType::Ptr RtspMuxer::getRtpRing() const {
     return _rtpRing;
 }
+
 
 } /* namespace mediakit */

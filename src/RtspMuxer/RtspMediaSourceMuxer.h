@@ -55,7 +55,7 @@ public:
         _mediaSouce->setTimeStamp(stamp);
     }
 private:
-    void onInited() override {
+    void onAllTrackReady() override {
         _mediaSouce->onGetSDP(getSdp());
     }
 private:

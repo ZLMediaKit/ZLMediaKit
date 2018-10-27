@@ -30,7 +30,7 @@
 #include "RtspMuxer/RtspMediaSourceMuxer.h"
 #include "RtmpMuxer/RtmpMediaSourceMuxer.h"
 
-class MultiMediaSourceMuxer : public FrameRingWriterInterface{
+class MultiMediaSourceMuxer : public FrameWriterInterface{
 public:
     typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
 

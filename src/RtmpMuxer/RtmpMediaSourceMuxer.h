@@ -52,7 +52,7 @@ public:
         return _mediaSouce->getRing()->readerCount();
     }
 private:
-    void onInited() override {
+    void onAllTrackReady() override {
         _mediaSouce->onGetMetaData(getMetedata());
     }
 private:
