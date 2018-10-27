@@ -37,6 +37,10 @@ using namespace toolkit;
 
 namespace mediakit{
 
+/**
+ * 该类的作用是等待Track ready()返回true也就是就绪后再通知派生类进行下一步的操作
+ * 目的是输入Frame前由Track截取处理下，以便获取有效的信息（譬如sps pps aa_cfg）
+ */
 class MediaSink : public FrameWriterInterface , public std::enable_shared_from_this<MediaSink>{
 public:
     typedef std::shared_ptr<MediaSink> Ptr;

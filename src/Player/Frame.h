@@ -52,6 +52,9 @@ typedef enum {
     TrackMax = 0x7FFF
 } TrackType;
 
+/**
+ * 编码信息的抽象接口
+ */
 class CodecInfo {
 public:
     typedef std::shared_ptr<CodecInfo> Ptr;
@@ -70,6 +73,9 @@ public:
     virtual CodecId getCodecId() const = 0;
 };
 
+/**
+ * 帧类型的抽象接口
+ */
 class Frame : public Buffer, public CodecInfo{
 public:
     typedef std::shared_ptr<Frame> Ptr;
@@ -92,6 +98,10 @@ public:
     virtual bool keyFrame() const = 0;
 };
 
+/**
+ * 循环池辅助类
+ * @tparam T
+ */
 template <typename T>
 class ResourcePoolHelper{
 public:
@@ -107,6 +117,9 @@ private:
     ResourcePool<T> _pool;
 };
 
+/**
+ * 写帧接口的抽闲接口
+ */
 class FrameWriterInterface {
 public:
     typedef std::shared_ptr<FrameWriterInterface> Ptr;
@@ -120,11 +133,18 @@ public:
     virtual void inputFrame(const Frame::Ptr &frame) = 0;
 };
 
+/**
+ * 写帧接口转function，辅助类
+ */
 class FrameWriterInterfaceHelper : public FrameWriterInterface {
 public:
     typedef std::shared_ptr<FrameWriterInterfaceHelper> Ptr;
     typedef std::function<void(const Frame::Ptr &frame)> onWriteFrame;
 
+    /**
+     * inputFrame后触发onWriteFrame回调
+     * @param cb
+     */
     FrameWriterInterfaceHelper(const onWriteFrame& cb){
         _writeCallback = cb;
     }
@@ -165,6 +185,9 @@ public:
     virtual void setFrameRing(const RingType::Ptr &ring)  = 0;
 };
 
+/**
+ * 帧环形缓存
+ */
 class FrameRing : public FrameRingInterface{
 public:
     typedef std::shared_ptr<FrameRing> Ptr;
@@ -202,6 +225,9 @@ protected:
     RingType::Ptr _frameRing;
 };
 
+/**
+ * 支持代理转发的帧环形缓存
+ */
 class FrameRingInterfaceDelegate : public FrameRing {
 public:
     typedef std::shared_ptr<FrameRingInterfaceDelegate> Ptr;
