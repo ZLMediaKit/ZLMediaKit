@@ -37,7 +37,6 @@ namespace mediakit {
 MediaRecorder::MediaRecorder(const string &strVhost_tmp,
                              const string &strApp,
                              const string &strId,
-                             const std::shared_ptr<PlayerBase> &pPlayer,
                              bool enableHls,
                              bool enableMp4) {
 
@@ -63,7 +62,7 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
 
     if(enableMp4){
         auto mp4FilePath = recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
-        _mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId,pPlayer));
+        _mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId));
     }
 #endif //ENABLE_MP4V2
 }
@@ -73,22 +72,22 @@ MediaRecorder::~MediaRecorder() {
 
 void MediaRecorder::inputH264(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp, int iType) {
     if(_hlsMaker){
-        _hlsMaker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
+//        _hlsMaker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
     }
 #ifdef ENABLE_MP4V2
     if(_mp4Maker){
-        _mp4Maker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
+//        _mp4Maker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
     }
 #endif //ENABLE_MP4V2
 }
 
 void MediaRecorder::inputAAC(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp) {
     if(_hlsMaker){
-        _hlsMaker->inputAAC(pData, ui32Length, ui32TimeStamp);
+//        _hlsMaker->inputAAC(pData, ui32Length, ui32TimeStamp);
     }
 #ifdef ENABLE_MP4V2
     if(_mp4Maker){
-        _mp4Maker->inputAAC(pData, ui32Length, ui32TimeStamp);
+       // _mp4Maker->inputAAC(pData, ui32Length, ui32TimeStamp);
     }
 #endif //ENABLE_MP4V2
 }

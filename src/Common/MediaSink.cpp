@@ -83,5 +83,15 @@ bool MediaSink::isAllTrackReady() const {
     return _allTrackReady;
 }
 
+Track::Ptr MediaSink::getTrack(TrackType type) const {
+    lock_guard<mutex> lck(_mtx);
+    for (auto &pr : _track_map){
+        if(pr.second->getTrackType() == type){
+            return pr.second;
+        }
+    }
+    return nullptr;
+}
+
 
 }//namespace mediakit

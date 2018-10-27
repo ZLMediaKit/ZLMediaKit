@@ -61,7 +61,7 @@ public:
 	void onGetMetaData(const AMFValue &_metadata) override {
 		try {
 			_pParser.reset(new RtmpDemuxer(_metadata));
-			_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),_pParser,_bEnableHls,_bEnableMp4));
+			_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),_bEnableHls,_bEnableMp4));
 			//todo(xzl) 修复此处
 
 //			_pParser->setOnAudioCB(std::bind(&RtmpToRtspMediaSource::onGetAAC, this, placeholders::_1));

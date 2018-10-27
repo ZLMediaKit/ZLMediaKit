@@ -52,7 +52,7 @@ public:
 		RtspMediaSource::onGetSDP(strSdp);
 		try {
 			_pParser.reset(new RtspDemuxer(_sdpAttr));
-            _pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),_pParser,_bEnableHls,_bEnableMp4));
+            _pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),_bEnableHls,_bEnableMp4));
 			//todo(xzl) 修复此处
 //			_pParser->setOnAudioCB( std::bind(&RtspToRtmpMediaSource::onGetAAC, this, placeholders::_1));
 //			_pParser->setOnVideoCB( std::bind(&RtspToRtmpMediaSource::onGetH264, this, placeholders::_1));

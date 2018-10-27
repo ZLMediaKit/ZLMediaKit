@@ -27,18 +27,19 @@
 #ifndef HLSMAKER_H_
 #define HLSMAKER_H_
 
+#include <deque>
 #include "TSMaker.h"
-#include "Common/config.h"
 #include "Util/TimeTicker.h"
 #include "Util/File.h"
 #include "Util/util.h"
 #include "Util/logger.h"
-#include <deque>
+#include "Common/config.h"
+#include "Common/MediaSink.h"
 using namespace toolkit;
 
 namespace mediakit {
 
-class HLSMaker {
+class HLSMaker : public MediaSink{
 public:
 	HLSMaker(const string &strM3u8File,
 			uint32_t ui32BufSize = 64 * 1024,
@@ -47,16 +48,28 @@ public:
 
 	virtual ~HLSMaker();
 
+protected:
+	/**
+     * 某Track输出frame，在onAllTrackReady触发后才会调用此方法
+     * @param frame
+     */
+	void onTrackFrame(const Frame::Ptr &frame) override ;
+private:
 	//时间戳：参考频率1000
-	void inputH264(	void *pData,
-					uint32_t ui32Length,
-					uint32_t ui32TimeStamp,
-					int iType);
+	void inputH264(void *pData,
+				   uint32_t ui32Length,
+				   uint32_t ui32TimeStamp);
 
 	//时间戳：参考频率1000
-	void inputAAC(	void *pData,
-					uint32_t ui32Length,
-					uint32_t ui32TimeStamp);
+	void inputAAC(void *pData,
+				  uint32_t ui32Length,
+				  uint32_t ui32TimeStamp);
+
+	bool write_index_file(int iFirstSegment,
+						  unsigned int uiLastSegment,
+						  int iEnd);
+
+	bool removets();
 private:
 	TSMaker _ts;
 	string _strM3u8File;
@@ -69,8 +82,7 @@ private:
     uint32_t _ui32LastStamp;
 	std::deque<int> _iDurations;
 
-	bool write_index_file(int iFirstSegment, unsigned int uiLastSegment, int iEnd);
-	bool removets();
+
 };
 
 } /* namespace mediakit */
