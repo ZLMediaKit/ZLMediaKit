@@ -238,28 +238,32 @@ public:
             case 5:{
                 //I
                 if(!_sps.empty()){
-                    if(!_spsFrame){
+                    if(!_spsFrame)
+                    {
                         H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                        insertFrame->timeStamp = frame->stamp();
                         insertFrame->type = 7;
-                        insertFrame->buffer.assign("\x0\x0\x0\x1");
+                        insertFrame->timeStamp = frame->stamp();
+                        insertFrame->buffer.assign("\x0\x0\x0\x1",4);
                         insertFrame->buffer.append(_sps);
                         insertFrame->iPrefixSize = 4;
                         _spsFrame = insertFrame;
                     }
+                    _spsFrame->timeStamp = frame->stamp();
                     VideoTrack::inputFrame(_spsFrame);
                 }
 
                 if(!_pps.empty()){
-                    if(!_ppsFrame){
+                    if(!_ppsFrame)
+                    {
                         H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                        insertFrame->timeStamp = frame->stamp();
                         insertFrame->type = 8;
-                        insertFrame->buffer.assign("\x0\x0\x0\x1");
+                        insertFrame->timeStamp = frame->stamp();
+                        insertFrame->buffer.assign("\x0\x0\x0\x1",4);
                         insertFrame->buffer.append(_pps);
                         insertFrame->iPrefixSize = 4;
                         _ppsFrame = insertFrame;
                     }
+                    _ppsFrame->timeStamp = frame->stamp();
                     VideoTrack::inputFrame(_ppsFrame);
                 }
                 VideoTrack::inputFrame(frame);
