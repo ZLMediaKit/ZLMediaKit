@@ -45,7 +45,8 @@ RtmpToRtspMediaSource::~RtmpToRtspMediaSource() {}
 
 void RtmpToRtspMediaSource::onGetH264(const H264Frame &frame) {
     if(_pRecorder){
-        _pRecorder->inputH264((char *) frame.data(), frame.size(), frame.timeStamp, frame.type);
+		//todo(xzl) 修复此处
+//        _pRecorder->inputH264((char *) frame.data(), frame.size(), frame.timeStamp, frame.type);
     }
 
 	if(_pRtpMaker_h264){
@@ -54,7 +55,8 @@ void RtmpToRtspMediaSource::onGetH264(const H264Frame &frame) {
 }
 inline void RtmpToRtspMediaSource::onGetAAC(const AACFrame &frame) {
 	if(_pRecorder){
-        _pRecorder->inputAAC((char *) frame.buffer, frame.aac_frame_length, frame.timeStamp);
+		//todo(xzl) 修复此处
+//		_pRecorder->inputAAC((char *) frame.buffer, frame.aac_frame_length, frame.timeStamp);
     }
 
 	if (_pRtpMaker_aac) {
