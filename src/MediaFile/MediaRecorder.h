@@ -48,7 +48,7 @@ public:
                   bool enableHls = true,
                   bool enableMp4 = false);
 	virtual ~MediaRecorder();
-protected:
+
 	/**
      * 输入frame
      * @param frame

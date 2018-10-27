@@ -29,6 +29,7 @@
 
 #include "RtspMuxer/RtspMediaSourceMuxer.h"
 #include "RtmpMuxer/RtmpMediaSourceMuxer.h"
+#include "MediaFile/MediaRecorder.h"
 
 class MultiMediaSourceMuxer : public FrameWriterInterface{
 public:
@@ -37,9 +38,13 @@ public:
     MultiMediaSourceMuxer(const string &vhost,
                           const string &strApp,
                           const string &strId,
-                          float dur_sec = 0.0){
+                          float dur_sec = 0.0,
+                          bool bEanbleHls = true,
+                          bool bEnableMp4 = false){
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost,strApp,strId,std::make_shared<TitleMete>(dur_sec));
         _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost,strApp,strId,std::make_shared<TitleSdp>(dur_sec));
+        _record = std::make_shared<MediaRecorder>(vhost,strApp,strId,bEanbleHls,bEnableMp4);
+
     }
     virtual ~MultiMediaSourceMuxer(){}
 
@@ -51,6 +56,7 @@ public:
     void addTrack(const Track::Ptr & track) {
         _rtmp->addTrack(track);
         _rtsp->addTrack(track);
+        _record->addTrack(track);
     }
 
     /**
@@ -60,6 +66,7 @@ public:
     void inputFrame(const Frame::Ptr &frame) override {
         _rtmp->inputFrame(frame);
         _rtsp->inputFrame(frame);
+        _record->inputFrame(frame);
     }
 
     /**
@@ -85,6 +92,7 @@ public:
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
+    MediaRecorder::Ptr _record;
 };
 
 
