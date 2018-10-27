@@ -100,6 +100,10 @@ void PlayerProxy::play(const char* strUrl) {
 			return;
 		}
 		if(strongSelf->_pChn) {
+			auto tracks = strongSelf->getTracks();
+			for (auto & track : tracks){
+				track->delDelegate(strongSelf->_pChn.get());
+			}
 			strongSelf->_pChn.reset();
 		}
 		//播放异常中断，延时重试播放
