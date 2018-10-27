@@ -29,35 +29,22 @@
 
 #include "RtspSdp.h"
 #include "Player/Frame.h"
+#include "Common/MediaSink.h"
 
 namespace mediakit{
 /**
 * rtsp生成器
 */
-class RtspMuxer : public  FrameRingWriterInterface{
+class RtspMuxer : public MediaSink{
 public:
     typedef std::shared_ptr<RtspMuxer> Ptr;
 
     /**
      * 构造函数
      */
-    RtspMuxer(const TitleSdp::Ptr &title = nullptr){
-        if(!title){
-            _sdp = std::make_shared<TitleSdp>()->getSdp();
-        } else{
-            _sdp = title->getSdp();
-        }
-        _rtpRing = std::make_shared<RtpRingInterface::RingType>();
-    }
-    virtual ~RtspMuxer(){}
+    RtspMuxer(const TitleSdp::Ptr &title = nullptr);
 
-    /**
-     * 添加音视频媒体
-     * @param track 媒体描述
-     * @param ssrc 媒体rtp ssrc
-     * @param mtu 媒体rtp mtu
-     */
-    void addTrack(const Track::Ptr & track,uint32_t ssrc = 0,int mtu = 0) ;
+    virtual ~RtspMuxer(){}
 
     /**
      * 获取完整的SDP字符串
@@ -66,32 +53,20 @@ public:
     string getSdp() ;
 
     /**
-     * 写入帧数据然后打包rtp
-     * @param frame 帧数据
-     */
-    void inputFrame(const Frame::Ptr &frame) override ;
-
-    /**
-     * 也可以在外部打包好rtp然后再写入
-     * @param rtp rtp包
-     * @param key_pos 是否为关键帧的第一个rtp包
-     */
-    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true);
-
-    /**
      * 获取rtp环形缓存
      * @return
      */
     RtpRingInterface::RingType::Ptr getRtpRing() const;
-
 protected:
-    virtual void onInited(){};
+    /**
+    * 某track已经准备好，其ready()状态返回true，
+    * 此时代表可以获取其例如sps pps等相关信息了
+    * @param track
+    */
+    void onTrackReady(const Track::Ptr & track) override ;
 private:
-    map<int,Track::Ptr> _track_map;
-    map<int,function<void()> > _trackReadyCallback;
     RtpRingInterface::RingType::Ptr _rtpRing;
     string _sdp;
-    bool _inited = false;
 };
 
 

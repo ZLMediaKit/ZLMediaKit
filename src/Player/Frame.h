@@ -28,6 +28,7 @@
 #define ZLMEDIAKIT_FRAME_H
 
 #include <mutex>
+#include <functional>
 #include "Util/RingBuffer.h"
 #include "Network/Socket.h"
 
@@ -106,12 +107,12 @@ private:
     ResourcePool<T> _pool;
 };
 
-class FrameRingWriterInterface {
+class FrameWriterInterface {
 public:
-    typedef std::shared_ptr<FrameRingWriterInterface> Ptr;
+    typedef std::shared_ptr<FrameWriterInterface> Ptr;
 
-    FrameRingWriterInterface(){}
-    virtual ~FrameRingWriterInterface(){}
+    FrameWriterInterface(){}
+    virtual ~FrameWriterInterface(){}
     /**
     * 写入帧数据
     * @param frame 帧
@@ -119,10 +120,31 @@ public:
     virtual void inputFrame(const Frame::Ptr &frame) = 0;
 };
 
+class FrameWriterInterfaceHelper : public FrameWriterInterface {
+public:
+    typedef std::shared_ptr<FrameWriterInterfaceHelper> Ptr;
+    typedef std::function<void(const Frame::Ptr &frame)> onWriteFrame;
+
+    FrameWriterInterfaceHelper(const onWriteFrame& cb){
+        _writeCallback = cb;
+    }
+    virtual ~FrameWriterInterfaceHelper(){}
+    /**
+    * 写入帧数据
+    * @param frame 帧
+    */
+    void inputFrame(const Frame::Ptr &frame) override {
+        _writeCallback(frame);
+    }
+private:
+    onWriteFrame _writeCallback;
+};
+
+
 /**
  * 帧环形缓存接口类
  */
-class FrameRingInterface : public FrameRingWriterInterface{
+class FrameRingInterface : public FrameWriterInterface{
 public:
     typedef RingBuffer<Frame::Ptr> RingType;
     typedef std::shared_ptr<FrameRingInterface> Ptr;
@@ -187,7 +209,7 @@ public:
     FrameRingInterfaceDelegate(){}
     virtual ~FrameRingInterfaceDelegate(){}
 
-    void addDelegate(const FrameRingWriterInterface::Ptr &delegate){
+    void addDelegate(const FrameWriterInterface::Ptr &delegate){
         lock_guard<mutex> lck(_mtx);
         _delegateMap.emplace(delegate.get(),delegate);
     }
@@ -210,7 +232,7 @@ public:
     }
 private:
     mutex _mtx;
-    map<void *,FrameRingWriterInterface::Ptr>  _delegateMap;
+    map<void *,FrameWriterInterface::Ptr>  _delegateMap;
 };
 
 

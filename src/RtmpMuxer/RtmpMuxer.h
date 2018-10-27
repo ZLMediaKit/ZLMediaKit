@@ -29,31 +29,19 @@
 
 #include "RtmpMetedata.h"
 #include "Player/Frame.h"
+#include "Common/MediaSink.h"
 
 namespace mediakit{
 
-class RtmpMuxer : public FrameRingWriterInterface{
+class RtmpMuxer : public MediaSink{
 public:
     typedef std::shared_ptr<RtmpMuxer> Ptr;
 
     /**
      * 构造函数
      */
-    RtmpMuxer(const TitleMete::Ptr &title = nullptr) : _metedata(AMF_OBJECT){
-        if(!title){
-            _metedata = std::make_shared<TitleMete>()->getMetedata();
-        }else{
-            _metedata = title->getMetedata();
-        }
-        _rtmpRing = std::make_shared<RtmpRingInterface::RingType>();
-    }
+    RtmpMuxer(const TitleMete::Ptr &title);
     virtual ~RtmpMuxer(){}
-
-    /**
-     * 添加音视频媒体
-     * @param track 媒体描述
-     */
-    void addTrack(const Track::Ptr & track) ;
 
     /**
      * 获取完整的SDP字符串
@@ -62,32 +50,20 @@ public:
     const AMFValue &getMetedata() const ;
 
     /**
-     * 写入帧数据然后打包rtmp
-     * @param frame 帧数据
-     */
-    void inputFrame(const Frame::Ptr &frame) override ;
-
-    /**
-     * 也可以在外部打包好rtmp然后再写入
-     * @param rtmp rtmp包
-     * @param key_pos 是否为关键帧
-     */
-    bool inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos = true);
-
-    /**
      * 获取rtmp环形缓存
      * @return
      */
     RtmpRingInterface::RingType::Ptr getRtmpRing() const;
-
 protected:
-    virtual void onInited(){};
+    /**
+   * 某track已经准备好，其ready()状态返回true，
+   * 此时代表可以获取其例如sps pps等相关信息了
+   * @param track
+   */
+    void onTrackReady(const Track::Ptr & track) override ;
 private:
-    map<int,Track::Ptr> _track_map;
-    map<int,function<void()> > _trackReadyCallback;
     RtmpRingInterface::RingType::Ptr _rtmpRing;
     AMFValue _metedata;
-    bool  _inited = false;
 };
 
 
