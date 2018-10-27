@@ -37,12 +37,14 @@
 #include "Util/logger.h"
 #include "Util/TimeTicker.h"
 #include "Util/TimeTicker.h"
+#include "Common/MediaSink.h"
+#include "Player/Track.h"
+
 using namespace toolkit;
 
 namespace mediakit {
 
-class Mp4Info
-{
+class Mp4Info {
 public:
 	time_t ui64StartedTime; //GMT标准时间，单位秒
 	time_t ui64TimeLen;//录像长度，单位秒
@@ -55,43 +57,54 @@ public:
 	string strStreamId;//流ID
 	string strVhost;//vhost
 };
-class Mp4Maker {
+class Mp4Maker : public MediaSink{
 public:
 	typedef std::shared_ptr<Mp4Maker> Ptr;
 	Mp4Maker(const string &strPath,
 			 const string &strVhost ,
 			 const string &strApp,
-			 const string &strStreamId,
-			 const PlayerBase::Ptr &pPlayer);
+			 const string &strStreamId);
 	virtual ~Mp4Maker();
+private:
+	/**
+     * 某Track输出frame，在onAllTrackReady触发后才会调用此方法
+     * @param frame
+     */
+	void onTrackFrame(const Frame::Ptr &frame) override ;
+
+	/**
+	 * 所有Track准备好了
+	 */
+	void onAllTrackReady() override;
+private:
+    void createFile();
+    void closeFile();
+
 	//时间戳：参考频率1000
-	void inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp, int iType);
+	void inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
 	//时间戳：参考频率1000
 	void inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
+
+	void inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui64Duration);
+    void inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui64Duration);
 private:
 	MP4FileHandle _hMp4 = MP4_INVALID_FILE_HANDLE;
 	MP4TrackId _hVideo = MP4_INVALID_TRACK_ID;
 	MP4TrackId _hAudio = MP4_INVALID_TRACK_ID;
-	PlayerBase::Ptr _pPlayer;
 	string _strPath;
 	string _strFile;
 	string _strFileTmp;
 	Ticker _ticker;
-	SmoothTicker _mediaTicker[2];
-
-	void createFile();
-	void closeFile();
-	void _inputH264(void *pData, uint32_t ui32Length, uint32_t ui64Duration, int iType);
-	void _inputAAC(void *pData, uint32_t ui32Length, uint32_t ui64Duration);
 
 	string _strLastVideo;
 	string _strLastAudio;
 
 	uint32_t _ui32LastVideoTime = 0;
 	uint32_t _ui32LastAudioTime = 0;
-	int _iLastVideoType = 0;
-
 	Mp4Info _info;
+
+	bool _haveVideo = false;
+	int _audioSampleRate;
 };
 
 } /* namespace mediakit */

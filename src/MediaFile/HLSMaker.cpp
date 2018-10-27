@@ -131,12 +131,12 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 	return true;
 }
 
-void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp, int type) {
+void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp) {
     if(_ui32LastStamp == 0){
         _ui32LastStamp = timeStamp;
     }
     int stampInc = timeStamp - _ui32LastStamp;
-
+    auto type = ((uint8_t*)data)[4] & 0x1F;
 	switch (type) {
 	case 7: //SPS
 		if (stampInc >= _ui32SegmentDuration * 1000) {
@@ -180,6 +180,30 @@ bool HLSMaker::removets() {
                                   << _ui64TsCnt - _ui32NumSegments - 2
                                   << ".ts" << endl).data());
     return true;
+}
+
+void HLSMaker::onTrackFrame(const Frame::Ptr &frame) {
+	switch (frame->getCodecId()){
+		case CodecH264:{
+			if( frame->prefixSize() == 4){
+				inputH264(frame->data(), frame->size(),frame->stamp());
+			}else{
+				WarnL << "h264必须要有头4个字节的前缀";
+			}
+		}
+			break;
+		case CodecAAC:{
+			if( frame->prefixSize() == 7) {
+				inputAAC(frame->data(), frame->size(), frame->stamp());
+			}else{
+				WarnL << "adts必须要有头7个字节的adts头";
+			}
+		}
+			break;
+
+		default:
+			break;
+	}
 }
 
 } /* namespace mediakit */

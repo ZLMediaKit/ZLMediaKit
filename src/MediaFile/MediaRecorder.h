@@ -45,7 +45,6 @@ public:
 	MediaRecorder(const string &strVhost,
                   const string &strApp,
                   const string &strId,
-                  const std::shared_ptr<PlayerBase> &pPlayer,
                   bool enableHls = true,
                   bool enableMp4 = false);
 	virtual ~MediaRecorder();

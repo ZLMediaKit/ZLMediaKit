@@ -58,7 +58,7 @@ public:
      * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
      * @param track
      */
-    void addTrack(const Track::Ptr & track);
+    virtual void addTrack(const Track::Ptr & track);
 
 
     /**
@@ -66,6 +66,14 @@ public:
      * @return
      */
     bool isAllTrackReady() const ;
+
+
+    /**
+     * 获取特定类型的Track
+     * @param type
+     * @return
+     */
+    Track::Ptr getTrack(TrackType type) const ;
 protected:
     /**
      * 某track已经准备好，其ready()状态返回true，
@@ -85,7 +93,7 @@ protected:
      */
     virtual void onTrackFrame(const Frame::Ptr &frame) {};
 private:
-    mutex _mtx;
+    mutable mutex _mtx;
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
     bool _allTrackReady = false;

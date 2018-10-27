@@ -238,21 +238,29 @@ public:
             case 5:{
                 //I
                 if(!_sps.empty()){
-                    H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                    insertFrame->timeStamp = frame->stamp();
-                    insertFrame->type = 7;
-                    insertFrame->buffer = _sps;
-                    insertFrame->iPrefixSize = 0;
-                    VideoTrack::inputFrame(insertFrame);
+                    if(!_spsFrame){
+                        H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
+                        insertFrame->timeStamp = frame->stamp();
+                        insertFrame->type = 7;
+                        insertFrame->buffer.assign("\x0\x0\x0\x1");
+                        insertFrame->buffer.append(_sps);
+                        insertFrame->iPrefixSize = 4;
+                        _spsFrame = insertFrame;
+                    }
+                    VideoTrack::inputFrame(_spsFrame);
                 }
 
                 if(!_pps.empty()){
-                    H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                    insertFrame->timeStamp = frame->stamp();
-                    insertFrame->type = 8;
-                    insertFrame->buffer = _pps;
-                    insertFrame->iPrefixSize = 0;
-                    VideoTrack::inputFrame(insertFrame);
+                    if(!_ppsFrame){
+                        H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
+                        insertFrame->timeStamp = frame->stamp();
+                        insertFrame->type = 8;
+                        insertFrame->buffer.assign("\x0\x0\x0\x1");
+                        insertFrame->buffer.append(_pps);
+                        insertFrame->iPrefixSize = 4;
+                        _ppsFrame = insertFrame;
+                    }
+                    VideoTrack::inputFrame(_ppsFrame);
                 }
                 VideoTrack::inputFrame(frame);
             }
@@ -282,6 +290,8 @@ private:
     int _width = 0;
     int _height = 0;
     float _fps = 0;
+    H264Frame::Ptr _spsFrame;
+    H264Frame::Ptr _ppsFrame;
 };
 
 /**
