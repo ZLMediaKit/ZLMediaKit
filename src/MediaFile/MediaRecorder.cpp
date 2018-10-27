@@ -70,24 +70,24 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
 MediaRecorder::~MediaRecorder() {
 }
 
-void MediaRecorder::inputH264(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp, int iType) {
-    if(_hlsMaker){
-//        _hlsMaker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
+void MediaRecorder::inputFrame(const Frame::Ptr &frame) {
+    if (_hlsMaker) {
+        _hlsMaker->inputFrame(frame);
     }
 #ifdef ENABLE_MP4V2
-    if(_mp4Maker){
-//        _mp4Maker->inputH264(pData, ui32Length, ui32TimeStamp, iType);
+    if (_mp4Maker) {
+        _mp4Maker->inputFrame(frame);
     }
 #endif //ENABLE_MP4V2
 }
 
-void MediaRecorder::inputAAC(void* pData, uint32_t ui32Length, uint32_t ui32TimeStamp) {
-    if(_hlsMaker){
-//        _hlsMaker->inputAAC(pData, ui32Length, ui32TimeStamp);
+void MediaRecorder::addTrack(const Track::Ptr &track) {
+    if (_hlsMaker) {
+        _hlsMaker->addTrack(track);
     }
 #ifdef ENABLE_MP4V2
-    if(_mp4Maker){
-       // _mp4Maker->inputAAC(pData, ui32Length, ui32TimeStamp);
+    if (_mp4Maker) {
+        _mp4Maker->addTrack(track);
     }
 #endif //ENABLE_MP4V2
 }

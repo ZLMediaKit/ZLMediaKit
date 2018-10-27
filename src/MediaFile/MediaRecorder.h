@@ -39,7 +39,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class MediaRecorder {
+class MediaRecorder : public MediaSink{
 public:
 	typedef std::shared_ptr<MediaRecorder> Ptr;
 	MediaRecorder(const string &strVhost,
@@ -48,15 +48,19 @@ public:
                   bool enableHls = true,
                   bool enableMp4 = false);
 	virtual ~MediaRecorder();
+protected:
+	/**
+     * 输入frame
+     * @param frame
+     */
+	void inputFrame(const Frame::Ptr &frame) override ;
 
-	void inputH264(	void *pData,
-					uint32_t ui32Length,
-					uint32_t ui32TimeStamp,
-					int iType);
-
-	void inputAAC(	void *pData,
-					uint32_t ui32Length,
-					uint32_t ui32TimeStamp);
+	/**
+     * 添加track，内部会调用Track的clone方法
+     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
+     * @param track
+     */
+	void addTrack(const Track::Ptr & track) override;
 private:
 	std::shared_ptr<HLSMaker> _hlsMaker;
 #ifdef  ENABLE_MP4V2
