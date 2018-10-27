@@ -123,22 +123,8 @@ private:
 };
 
 #endif //0
-class DevChannelNew : public MultiMediaSourceMuxer
-{
-public:
-    typedef std::shared_ptr<DevChannelNew> Ptr;
 
-    DevChannelNew(const char *strVhost,
-			   const char *strApp,
-			   const char *strId,
-			   float fDuration = 0,
-			   bool bEanbleHls = true,
-			   bool bEnableMp4 = false):
-			MultiMediaSourceMuxer(strVhost,strApp,strId,fDuration){};
-	virtual ~DevChannelNew(){}
-};
-
-typedef DevChannelNew DevChannel;
+typedef MultiMediaSourceMuxer DevChannel;
 
 } /* namespace mediakit */
 
