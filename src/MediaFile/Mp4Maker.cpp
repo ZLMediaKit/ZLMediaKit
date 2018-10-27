@@ -113,7 +113,7 @@ void Mp4Maker::inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp
 void Mp4Maker::inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32Duration) {
     GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Record::kFileSecond);
 
-	auto iType = ((uint8_t*)pData)[0] & 0x1F;
+	auto iType = ((uint8_t*)pData)[4] & 0x1F;
 	if(iType == 5 && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)){
 		//在I帧率处新建MP4文件
 		//如果文件未创建或者文件超过10分钟则创建新文件

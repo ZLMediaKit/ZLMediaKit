@@ -29,7 +29,7 @@
 namespace mediakit{
 
 void MediaSink::addTrack(const Track::Ptr &track_in) {
-    lock_guard<mutex> lck(_mtx);
+    lock_guard<recursive_mutex> lck(_mtx);
 //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
 
@@ -57,7 +57,7 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
 }
 
 void MediaSink::inputFrame(const Frame::Ptr &frame) {
-    lock_guard<mutex> lck(_mtx);
+    lock_guard<recursive_mutex> lck(_mtx);
     auto codec_id = frame->getCodecId();
     auto it = _track_map.find(codec_id);
     if (it == _track_map.end()) {
@@ -84,7 +84,7 @@ bool MediaSink::isAllTrackReady() const {
 }
 
 Track::Ptr MediaSink::getTrack(TrackType type) const {
-    lock_guard<mutex> lck(_mtx);
+    lock_guard<recursive_mutex> lck(_mtx);
     for (auto &pr : _track_map){
         if(pr.second->getTrackType() == type){
             return pr.second;
