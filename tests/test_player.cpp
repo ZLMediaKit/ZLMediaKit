@@ -41,10 +41,9 @@ using namespace mediakit;
 
 int main(int argc, char *argv[]) {
     //设置退出信号处理函数
-    signal(SIGINT, [](int) { EventPoller::Instance().shutdown(); });
+    signal(SIGINT, [](int) { SDLDisplayerHelper::Instance().shutdown(); });
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
-    Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
     if (argc != 3) {
         ErrorL << "\r\n测试方法：./test_player rtxp_url rtp_type\r\n"
@@ -57,46 +56,44 @@ int main(int argc, char *argv[]) {
 
     {
         MediaPlayer::Ptr player(new MediaPlayer());
-        player->setOnPlayResult([](const SockException &ex) {
+        weak_ptr<MediaPlayer> weakPlayer = player;
+        player->setOnPlayResult([weakPlayer](const SockException &ex) {
             InfoL << "OnPlayResult:" << ex.what();
+            auto strongPlayer = weakPlayer.lock();
+            if (ex || !strongPlayer) {
+                return;
+            }
+
+            auto viedoTrack = strongPlayer->getTrack(TrackVideo);
+            if (!viedoTrack || viedoTrack->getCodecId() != CodecH264) {
+                WarnL << "没有视频或者视频不是264编码!";
+                return;
+            }
+            SDLDisplayerHelper::Instance().doTask([viedoTrack]() {
+                std::shared_ptr<H264Decoder> decoder(new H264Decoder);
+                std::shared_ptr<YuvDisplayer> displayer(new YuvDisplayer);
+                viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([decoder, displayer](const Frame::Ptr &frame) {
+                    SDLDisplayerHelper::Instance().doTask([decoder, displayer, frame]() {
+                        AVFrame *pFrame = nullptr;
+                        bool flag = decoder->inputVideo((unsigned char *) frame->data(), frame->size(),
+                                                        frame->stamp(), &pFrame);
+                        if (flag) {
+                            displayer->displayYUV(pFrame);
+                        }
+                        return true;
+                    });
+                }));
+                return true;
+            });
         });
+
+
         player->setOnShutdown([](const SockException &ex) {
             ErrorL << "OnShutdown:" << ex.what();
         });
         (*player)[RtspPlayer::kRtpType] = atoi(argv[2]);
         player->play(argv[1]);
-
-        H264Decoder decoder;
-        YuvDisplayer displayer;
-        //todo(xzl) 修复此处
-#if 0
-        player->setOnVideoCB([&](const H264Frame &frame) {
-#ifndef __MACH__
-            SDLDisplayerHelper::Instance().doTask([&, frame]() {
-                AVFrame *pFrame = nullptr;
-                bool flag = decoder.inputVideo((unsigned char *) frame.data.data(), frame.data.size(), frame.timeStamp,
-                                               &pFrame);
-                if (flag) {
-                    //DebugL << pFrame->pkt_pts;
-                    EventPoller::Instance().sync([&](){
-                        displayer.displayYUV(pFrame);
-                    });
-                }
-                return true;
-            });
-#else
-            AVFrame *pFrame = nullptr;
-            bool flag = decoder.inputVideo((unsigned char *) frame.data.data(), frame.data.size(), frame.timeStamp,
-                                           &pFrame);
-            if (flag) {
-                //DebugL << pFrame->pkt_pts;
-                displayer.displayYUV(pFrame);
-            }
-#endif
-
-        });
-#endif
-        EventPoller::Instance().runLoop();
+        SDLDisplayerHelper::Instance().runLoop();
     }
     UDPServer::Destory();
     EventPoller::Destory();
