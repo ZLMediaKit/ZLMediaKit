@@ -80,8 +80,7 @@ public:
 	virtual void onGetMetaData(const AMFValue &metadata) {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		_metadata = metadata;
-		RtmpDemuxer parser(metadata);
-		_iCfgFrameSize = parser.getTracks().size();
+		_iCfgFrameSize = RtmpDemuxer::getTrackCount(metadata);
 		if(ready()){
 			MediaSource::regist();
 			_bRegisted = true;
