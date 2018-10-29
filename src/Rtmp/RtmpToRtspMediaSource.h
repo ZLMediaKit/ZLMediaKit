@@ -32,16 +32,14 @@
 #include <memory>
 #include <functional>
 #include <unordered_map>
+#include "Util/util.h"
+#include "Util/logger.h"
 #include "amf.h"
 #include "Rtmp.h"
 #include "RtmpMediaSource.h"
-#include "RtspMuxer/RtpMakerH264.h"
-#include "RtspMuxer/RtpMakerAAC.h"
 #include "RtmpMuxer/RtmpDemuxer.h"
-#include "Rtsp/RtspMediaSource.h"
-#include "Util/util.h"
-#include "Util/logger.h"
 #include "MediaFile/MediaRecorder.h"
+#include "RtspMuxer/RtspMediaSourceMuxer.h"
 using namespace std;
 using namespace toolkit;
 
@@ -55,44 +53,39 @@ public:
                           const string &app,
                           const string &id,
                           bool bEnableHls = true,
-                          bool bEnableMp4 = false);
-	virtual ~RtmpToRtspMediaSource();
+                          bool bEnableMp4 = false):RtmpMediaSource(vhost, app, id){
+		_recorder = std::make_shared<MediaRecorder>(vhost, app, id, bEnableHls, bEnableMp4);
+	}
+	virtual ~RtmpToRtspMediaSource(){}
 
 	void onGetMetaData(const AMFValue &_metadata) override {
-		try {
-			_pParser.reset(new RtmpDemuxer(_metadata));
-			_pRecorder.reset(new MediaRecorder(getVhost(),getApp(),getId(),_bEnableHls,_bEnableMp4));
-			//todo(xzl) 修复此处
-
-//			_pParser->setOnAudioCB(std::bind(&RtmpToRtspMediaSource::onGetAAC, this, placeholders::_1));
-//			_pParser->setOnVideoCB(std::bind(&RtmpToRtspMediaSource::onGetH264, this, placeholders::_1));
-		} catch (exception &ex) {
-			WarnL << ex.what();
-		}
+		_rtmpDemuxer = std::make_shared<RtmpDemuxer>(_metadata);
 		RtmpMediaSource::onGetMetaData(_metadata);
 	}
 
 	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos) override {
-		if (_pParser) {
-			if (!_pRtspSrc && _pParser->isInited()) {
-				makeSDP();
+		if(_rtmpDemuxer){
+			_rtmpDemuxer->inputRtmp(pkt);
+			if(!_rtspMuxer && _rtmpDemuxer->isInited()){
+				_rtspMuxer = std::make_shared<RtspMediaSourceMuxer>(getVhost(),
+																	getApp(),
+																	getId(),
+																	std::make_shared<TitleSdp>(
+																			_rtmpDemuxer->getDuration()));
+				for (auto &track : _rtmpDemuxer->getTracks()){
+					_rtspMuxer->addTrack(track);
+					_recorder->addTrack(track);
+					track->addDelegate(_rtspMuxer);
+					track->addDelegate(_recorder);
+				}
 			}
-			_pParser->inputRtmp(pkt);
 		}
 		RtmpMediaSource::onWrite(pkt,key_pos);
 	}
-
 private:
-	RtmpDemuxer::Ptr _pParser;
-	RtspMediaSource::Ptr _pRtspSrc;
-	RtpMaker_AAC::Ptr _pRtpMaker_aac;
-	RtpMaker_H264::Ptr _pRtpMaker_h264;
-	MediaRecorder::Ptr _pRecorder;
-    bool _bEnableHls;
-    bool _bEnableMp4;
-	void onGetH264(const H264Frame &frame);
-	void onGetAAC(const AACFrame &frame);
-	void makeSDP();
+	RtmpDemuxer::Ptr _rtmpDemuxer;
+	RtspMediaSourceMuxer::Ptr _rtspMuxer;
+	MediaRecorder::Ptr _recorder;
 };
 
 } /* namespace mediakit */

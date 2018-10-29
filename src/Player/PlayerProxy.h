@@ -24,37 +24,52 @@
  * SOFTWARE.
  */
 
-#ifndef RTP_RTPMAKERAAC_H_
-#define RTP_RTPMAKERAAC_H_
+#ifndef SRC_DEVICE_PLAYERPROXY_H_
+#define SRC_DEVICE_PLAYERPROXY_H_
 
 #include <memory>
-#include "RtpMaker.h"
-#include "Rtsp/RtspMediaSource.h"
-#include "Util/logger.h"
-#include "Util/RingBuffer.h"
-#include "Util/ResourcePool.h"
+#include "Common/Device.h"
+#include "Player/MediaPlayer.h"
+#include "Util/TimeTicker.h"
 
 using namespace std;
 using namespace toolkit;
 
-namespace mediakit{
 
-class RtpMaker_AAC: public RtpMaker {
+namespace mediakit {
+
+class PlayerProxy :public MediaPlayer,
+				   public std::enable_shared_from_this<PlayerProxy> ,
+				   public MediaSourceEvent{
 public:
-	typedef std::shared_ptr<RtpMaker_AAC> Ptr;
-	RtpMaker_AAC(const onGetRTP &cb,
-			uint32_t ui32Ssrc, int iMtuSize , int iSampleRate, uint8_t ui8PlayloadType = 97,
-			uint8_t ui8Interleaved = TrackAudio * 2) :
-			RtpMaker(cb, ui32Ssrc, iMtuSize,iSampleRate, ui8PlayloadType, ui8Interleaved) {
-	}
-	virtual ~RtpMaker_AAC() {
-	}
-	void makeRtp(const char *pcData, int iDataLen, uint32_t uiStamp) override;
+	typedef std::shared_ptr<PlayerProxy> Ptr;
+
+    //如果iRetryCount<0,则一直重试播放；否则重试iRetryCount次数
+    //默认一直重试
+	PlayerProxy(const char *strVhost,
+                const char *strApp,
+                const char *strSrc,
+                bool bEnableHls = true,
+                bool bEnableMp4 = false,
+                int iRetryCount = -1);
+
+	virtual ~PlayerProxy();
+
+	void play(const char* strUrl) override;
+    bool close() override;
 private:
-	inline void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
-	unsigned char _aucSectionBuf[1600];
+	void rePlay(const string &strUrl,int iFailedCnt);
+	void onPlaySuccess();
+private:
+    bool _bEnableHls;
+    bool _bEnableMp4;
+    int _iRetryCount;
+    DevChannel::Ptr _pChn;
+    string _strVhost;
+    string _strApp;
+    string _strSrc;
 };
 
-}//namespace mediakit
+} /* namespace mediakit */
 
-#endif /* RTP_RTPMAKERAAC_H_ */
+#endif /* SRC_DEVICE_PLAYERPROXY_H_ */

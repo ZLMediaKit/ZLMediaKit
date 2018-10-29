@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -47,7 +47,7 @@
 #include "Network/TcpServer.h"
 #include "Poller/EventPoller.h"
 #include "Thread/WorkThreadPool.h"
-#include "Device/PlayerProxy.h"
+#include "Player/PlayerProxy.h"
 
 using namespace std;
 using namespace toolkit;
