@@ -84,10 +84,21 @@ void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
 }
 #endif //ENABLE_FAAC
 
-void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t uiStamp , int prefixeSize) {
+void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t uiStamp) {
     if(uiStamp == 0){
         uiStamp = (uint32_t)_aTicker[0].elapsedTime();
     }
+
+    int prefixeSize;
+
+    if (memcmp("\x00\x00\x00\x01", pcData, 4) == 0) {
+        prefixeSize = 4;
+    } else if (memcmp("\x00\x00\x01", pcData, 3) == 0) {
+        prefixeSize = 3;
+    } else {
+        prefixeSize = 0;
+    }
+
     inputFrame(std::make_shared<H264FrameNoCopyAble>((char *)pcData,iDataLen,uiStamp,prefixeSize));
 }
 
