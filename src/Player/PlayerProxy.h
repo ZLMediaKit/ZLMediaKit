@@ -64,7 +64,7 @@ private:
     bool _bEnableHls;
     bool _bEnableMp4;
     int _iRetryCount;
-    DevChannel::Ptr _pChn;
+	MultiMediaSourceMuxer::Ptr _mediaMuxer;
     string _strVhost;
     string _strApp;
     string _strSrc;

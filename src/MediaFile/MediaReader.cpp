@@ -127,15 +127,15 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 	}
 
 	_iDuration	= MAX(_video_ms,_audio_ms);
-	_pChn.reset(new DevChannel(strVhost.data(),strApp.data(),strId.data(),_iDuration/1000.0,false, false));
+	_mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost.data(),strApp.data(),strId.data(),_iDuration/1000.0,false, false));
 	if (_audio_trId != MP4_INVALID_TRACK_ID) {
 		AACTrack::Ptr track = std::make_shared<AACTrack>(_strAacCfg);
-		_pChn->addTrack(track);
+		_mediaMuxer->addTrack(track);
 	}
 
 	if (_video_trId != MP4_INVALID_TRACK_ID) {
 		H264Track::Ptr track = std::make_shared<H264Track>(_strSps,_strPps);
-		_pChn->addTrack(track);
+		_mediaMuxer->addTrack(track);
 	}
 }
 
@@ -155,7 +155,7 @@ void MediaReader::startReadMP4() {
     AsyncTaskThread::Instance().DoTaskDelay(reinterpret_cast<uint64_t>(this), sampleMS, [strongSelf](){
 		return strongSelf->readSample();
 	});
-	_pChn->setListener(strongSelf);
+	_mediaMuxer->setListener(strongSelf);
 }
  bool MediaReader::seekTo(uint32_t ui32Stamp){
 	 seek(ui32Stamp);
@@ -171,7 +171,7 @@ bool MediaReader::readSample(int iTimeInc) {
 	lock_guard<recursive_mutex> lck(_mtx);
 	auto bFlag0 = readVideoSample(iTimeInc);//数据没读完
 	auto bFlag1 = readAudioSample(iTimeInc);//数据没读完
-	auto bFlag2 = _pChn->readerCount() > 0;//读取者大于0
+	auto bFlag2 = _mediaMuxer->readerCount() > 0;//读取者大于0
 	if((bFlag0 || bFlag1) && bFlag2){
 		_alive.resetTime();
 	}
@@ -236,11 +236,11 @@ inline bool MediaReader::readAudioSample(int iTimeInc) {
 }
 
 inline void MediaReader::writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	_pChn->inputFrame(std::make_shared<H264FrameNoCopyAble>((char*)pucData,iLen,uiStamp));
+	_mediaMuxer->inputFrame(std::make_shared<H264FrameNoCopyAble>((char*)pucData,iLen,uiStamp));
 }
 
 inline void MediaReader::writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	_pChn->inputFrame(std::make_shared<AACFrameNoCopyAble>((char*)pucData,iLen,uiStamp));
+	_mediaMuxer->inputFrame(std::make_shared<AACFrameNoCopyAble>((char*)pucData,iLen,uiStamp));
 }
 
 inline MP4SampleId MediaReader::getVideoSampleId(int iTimeInc ) {
@@ -287,7 +287,7 @@ void MediaReader::seek(uint32_t iSeekTime,bool bReStart){
 			setSeekTime(iSeekTime);
 		}
 	}
-	_pChn->setTimeStamp(_iSeekTime);
+	_mediaMuxer->setTimeStamp(_iSeekTime);
 
 	if(bReStart){
 		AsyncTaskThread::Instance().CancelTask(reinterpret_cast<uint64_t>(this));
