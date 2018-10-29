@@ -32,7 +32,7 @@
 #include "Rtsp/UDPServer.h"
 #include "Network/sockutil.h"
 #include "Poller/EventPoller.h"
-#include "Device/PlayerProxy.h"
+#include "Player/PlayerProxy.h"
 #include "Thread/WorkThreadPool.h"
 
 using namespace std;

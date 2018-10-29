@@ -27,7 +27,7 @@
 #ifndef SRC_MEDIAFILE_MEDIAREADER_H_
 #define SRC_MEDIAFILE_MEDIAREADER_H_
 
-#include "Device/Device.h"
+#include "Common/Device.h"
 #include "Rtsp/RtspMediaSource.h"
 #include "Rtmp/RtmpMediaSource.h"
 

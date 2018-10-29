@@ -29,7 +29,7 @@
 #include "Util/logger.h"
 #include "Util/NoticeCenter.h"
 #include "Poller/EventPoller.h"
-#include "Device/PlayerProxy.h"
+#include "Player/PlayerProxy.h"
 #include "Rtmp/RtmpPusher.h"
 #include "Common/config.h"
 #include "MediaFile/MediaReader.h"
