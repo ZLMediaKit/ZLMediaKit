@@ -55,6 +55,14 @@ public:
 	 */
 	RtmpDemuxer(const AMFValue &val);
 
+	/**
+	 *
+	 * 获取rtmp track 数
+	 * @param metedata rtmp的metedata
+	 * @return
+	 */
+	static int getTrackCount(const AMFValue &metedata);
+
 	virtual ~RtmpDemuxer(){};
 
 	/**

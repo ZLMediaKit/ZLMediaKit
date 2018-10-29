@@ -39,7 +39,8 @@ RtmpMuxer::RtmpMuxer(const TitleMete::Ptr &title) {
 
 void RtmpMuxer::onTrackReady(const Track::Ptr &track) {
     //生成rtmp编码器
-    auto encoder = Factory::getRtmpCodecByTrack(track);
+    //克隆该Track，防止循环引用
+    auto encoder = Factory::getRtmpCodecByTrack(track->clone());
     if (!encoder) {
         return;
     }
