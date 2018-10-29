@@ -242,6 +242,9 @@ bool RtspSession::handleReq_Describe() {
     	}
     	//恢复现场
 		strongSelf->_parser = parserCopy;
+		char tmp[2 * 1024];
+		strongSelf->_pcBuf = tmp;
+
     	if(!success){
 			//未找到相应的MediaSource
 			strongSelf->send_StreamNotFound();
