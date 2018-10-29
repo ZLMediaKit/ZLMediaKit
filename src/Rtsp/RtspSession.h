@@ -156,9 +156,6 @@ private:
 	bool _bFirstPlay = true;
     MediaInfo _mediaInfo;
 	std::weak_ptr<RtspMediaSource> _pMediaSrc;
-
-	//RTP缓冲
-	weak_ptr<RingBuffer<RtpPacket::Ptr> > _pWeakRing;
 	RingBuffer<RtpPacket::Ptr>::RingReader::Ptr _pRtpReader;
 
 	PlayerBase::eRtpType _rtpType = PlayerBase::RTP_UDP;
@@ -204,6 +201,7 @@ private:
 
     std::function<void()> _delayTask;
     uint32_t _iTaskTimeLine = 0;
+    atomic<bool> _enableSendRtp;
 };
 
 } /* namespace mediakit */

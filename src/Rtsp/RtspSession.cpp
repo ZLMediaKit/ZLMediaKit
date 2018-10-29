@@ -541,13 +541,6 @@ bool RtspSession::handleReq_Setup() {
 	}
 	trackRef->_inited = true; //现在初始化
 
-	auto strongRing = _pWeakRing.lock();
-	if (!strongRing) {
-		//the media source is released!
-		send_NotAcceptable();
-		return false;
-	}
-
 	if(!_bSetUped){
 		_bSetUped = true;
 		auto strTransport = _parser["Transport"];
@@ -558,18 +551,6 @@ bool RtspSession::handleReq_Setup() {
 		}else{
 			_rtpType = PlayerBase::RTP_UDP;
 		}
-	}
-
-	if (!_pRtpReader && _rtpType != PlayerBase::RTP_MULTICAST) {
-		_pRtpReader = strongRing->attach();
-		weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-		_pRtpReader->setDetachCB([weakSelf]() {
-			auto strongSelf = weakSelf.lock();
-			if(!strongSelf) {
-				return;
-			}
-			strongSelf->safeShutdown();
-		});
 	}
 
 	switch (_rtpType) {
@@ -723,6 +704,9 @@ bool RtspSession::handleReq_Play() {
 			return;
         }
 
+        bool useBuf = true;
+		_enableSendRtp = false;
+
 		if (strRange.size() && !_bFirstPlay) {
             //这个是seek操作
 			auto strStart = FindField(strRange.data(), "npt=", "-");
@@ -731,8 +715,8 @@ bool RtspSession::handleReq_Play() {
 			}
 			auto iStartTime = 1000 * atof(strStart.data());
 			InfoL << "rtsp seekTo(ms):" << iStartTime;
-			pMediaSrc->seekTo(iStartTime);
-		}else if(pMediaSrc->getRing()->readerCount() == 1){
+			useBuf = !pMediaSrc->seekTo(iStartTime);
+		}else if(pMediaSrc->getRing()->readerCount() == 0){
 			//第一个消费者
 			pMediaSrc->seekTo(0);
 		}
@@ -769,28 +753,41 @@ bool RtspSession::handleReq_Play() {
         iLen += sprintf(_pcBuf + iLen, "\r\n\r\n");
 		SocketHelper::send(_pcBuf, iLen);
 
+		_enableSendRtp = true;
+
 		//提高发送性能
 		(*this) << SocketFlags(kSockFlags);
 		SockUtil::setNoDelay(_pSender->rawFD(),false);
 
-        if(_pRtpReader){
-            weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-            SockUtil::setNoDelay(_pSender->rawFD(), false);
-            _pRtpReader->setReadCB([weakSelf](const RtpPacket::Ptr &pack) {
-                auto strongSelf = weakSelf.lock();
-                if(!strongSelf) {
-                    return;
-                }
-                strongSelf->async([weakSelf,pack](){
-                    auto strongSelf = weakSelf.lock();
-                    if(!strongSelf) {
-                        return;
-                    }
-                    strongSelf->sendRtpPacket(pack);
-                });
-
-            });
-        }
+		if (!_pRtpReader && _rtpType != PlayerBase::RTP_MULTICAST) {
+			weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+			_pRtpReader = pMediaSrc->getRing()->attach(useBuf);
+			_pRtpReader->setDetachCB([weakSelf]() {
+				auto strongSelf = weakSelf.lock();
+				if(!strongSelf) {
+					return;
+				}
+				strongSelf->safeShutdown();
+			});
+			_pRtpReader->setReadCB([weakSelf](const RtpPacket::Ptr &pack) {
+				auto strongSelf = weakSelf.lock();
+				if(!strongSelf) {
+					return;
+				}
+				if(!strongSelf->_enableSendRtp) {
+					return;
+				}
+				strongSelf->async([weakSelf,pack](){
+					auto strongSelf = weakSelf.lock();
+					if(!strongSelf) {
+						return;
+					}
+					if(strongSelf->_enableSendRtp) {
+						strongSelf->sendRtpPacket(pack);
+					}
+				});
+			});
+		}
     };
 
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
@@ -834,11 +831,8 @@ bool RtspSession::handleReq_Pause() {
 					"Session: %s\r\n\r\n", _iCseq, SERVER_NAME, RTSP_VERSION, RTSP_BUILDTIME,
 					dateHeader().data(), _strSession.data());
 	SocketHelper::send(_pcBuf, n);
-	if (_pRtpReader) {
-		_pRtpReader->setReadCB(nullptr);
-	}
+	_enableSendRtp = false;
 	return true;
-
 }
 
 bool RtspSession::handleReq_Teardown() {
@@ -992,8 +986,6 @@ inline bool RtspSession::findStream() {
 		return false;
 	}
 	_strSdp = pMediaSrc->getSdp();
-	_pWeakRing = pMediaSrc->getRing();
-
 	_sdpAttr.load(_strSdp);
 	_aTrackInfo = _sdpAttr.getAvailableTrack();
 
