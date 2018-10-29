@@ -104,6 +104,7 @@ private:
 	void inline send_SessionNotFound(); //会话id错误
 	void inline send_NotAcceptable(); //rtsp同时播放数限制
 	inline bool findStream(); //根据rtsp url查找 MediaSource实例
+    inline void findStream(const function<void(bool)> &cb); //根据rtsp url查找 MediaSource实例
 
 	inline void initSender(const std::shared_ptr<RtspSession> &pSession); //处理rtsp over http，quicktime使用的
 	inline void sendRtpPacket(const RtpPacket::Ptr &pkt);
@@ -143,6 +144,8 @@ private:
     static void onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strBase64);
     static void onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strMd5);
 
+    void doDelay(int delaySec,const std::function<void()> &fun);
+    void cancelDelyaTask();
 private:
 	char *_pcBuf = nullptr;
 	Ticker _ticker;
@@ -199,6 +202,8 @@ private:
 	static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
 	static unordered_map<void *, std::shared_ptr<RtspSession> > g_mapPostter;
 
+    std::function<void()> _delayTask;
+    uint32_t _iTaskTimeLine = 0;
 };
 
 } /* namespace mediakit */

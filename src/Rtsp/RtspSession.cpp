@@ -141,6 +141,13 @@ void RtspSession::onManager() {
 		shutdown();
 		return;
 	}
+
+    if(_delayTask){
+        if(time(NULL) > _iTaskTimeLine){
+            _delayTask();
+            _delayTask = nullptr;
+        }
+    }
 }
 
 
@@ -226,33 +233,42 @@ bool RtspSession::handleReq_Describe() {
         _mediaInfo.parse(_parser.FullUrl());
     }
 
-	if (!findStream()) {
-		//未找到相应的MediaSource
-		send_StreamNotFound();
-		return false;
-	}
+	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());\
+	auto parserCopy = _parser;
+    findStream([weakSelf,parserCopy](bool success){
+    	auto strongSelf = weakSelf.lock();
+    	if(!strongSelf){
+			return;
+    	}
+    	//恢复现场
+		strongSelf->_parser = parserCopy;
+    	if(!success){
+			//未找到相应的MediaSource
+			strongSelf->send_StreamNotFound();
+			strongSelf->shutdown();
+			return;
+    	}
+		//该请求中的认证信息
+		auto authorization = strongSelf->_parser["Authorization"];
+		onGetRealm invoker = [weakSelf,authorization](const string &realm){
+			if(realm.empty()){
+				//无需认证,回复sdp
+				onAuthSuccess(weakSelf);
+				return;
+			}
+			//该流需要认证
+			onAuthUser(weakSelf,realm,authorization);
+		};
 
-    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    //该请求中的认证信息
-    auto authorization = _parser["Authorization"];
-    onGetRealm invoker = [weakSelf,authorization](const string &realm){
-        if(realm.empty()){
-            //无需认证,回复sdp
-            onAuthSuccess(weakSelf);
-            return;
-        }
-        //该流需要认证
-        onAuthUser(weakSelf,realm,authorization);
-    };
-
-    //广播是否需要认证事件
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
-                                           _mediaInfo,
-                                           invoker,
-                                            *this)){
-        //无人监听此事件，说明无需认证
-        invoker("");
-    }
+		//广播是否需要认证事件
+		if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
+											   strongSelf->_mediaInfo,
+											   invoker,
+											   *strongSelf)){
+			//无人监听此事件，说明无需认证
+			invoker("");
+		}
+    });
     return true;
 }
 void RtspSession::onAuthSuccess(const weak_ptr<RtspSession> &weakSelf) {
@@ -899,6 +915,70 @@ inline void RtspSession::send_NotAcceptable() {
 					dateHeader().data());
 	SocketHelper::send(_pcBuf, n);
 
+}
+
+void RtspSession::doDelay(int delaySec, const std::function<void()> &fun) {
+    if(_delayTask){
+        _delayTask();
+    }
+    _delayTask = fun;
+    _iTaskTimeLine = time(NULL) + delaySec;
+}
+
+void RtspSession::cancelDelyaTask(){
+    _delayTask = nullptr;
+}
+
+void RtspSession::findStream(const function<void(bool)> &cb) {
+	bool success = findStream();
+	if (success) {
+		cb(true);
+		return;
+	}
+
+	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+	auto task_id = this;
+	auto media_info = _mediaInfo;
+
+	auto onRegist = [task_id, weakSelf, media_info, cb](BroadcastMediaChangedArgs) {
+		if (bRegist &&
+			schema == media_info._schema &&
+			vhost == media_info._vhost &&
+			app == media_info._app &&
+			stream == media_info._streamid) {
+			//播发器请求的rtmp流终于注册上了
+			auto strongSelf = weakSelf.lock();
+			if (!strongSelf) {
+				return;
+			}
+			//切换到自己的线程再回复
+			//如果触发 kBroadcastMediaChanged 事件的线程与本RtspSession绑定的线程相同,
+			//那么strongSelf->async操作可能是同步操作,
+			//通过指定参数may_sync为false确保 NoticeCenter::delListener操作延后执行,
+			//以便防止遍历事件监听对象map时做删除操作
+			strongSelf->async([task_id, weakSelf, media_info, cb]() {
+				auto strongSelf = weakSelf.lock();
+				if (!strongSelf) {
+					return;
+				}
+				DebugL << "收到rtsp注册事件,回复播放器:" << media_info._schema << "/" << media_info._vhost << "/"
+					   << media_info._app << "/" << media_info._streamid;
+				cb(strongSelf->findStream());
+				//取消延时任务，防止多次回复
+				strongSelf->cancelDelyaTask();
+
+				//取消事件监听
+				//在事件触发时不能在当前线程移除事件监听,否则会导致遍历map时做删除操作导致程序崩溃
+				NoticeCenter::Instance().delListener(task_id, Broadcast::kBroadcastMediaChanged);
+			}, false);
+		}
+	};
+
+	NoticeCenter::Instance().addListener(task_id, Broadcast::kBroadcastMediaChanged, onRegist);
+	//5秒后执行失败回调
+	doDelay(5, [cb]() {
+		cb(false);
+	});
 }
 
 inline bool RtspSession::findStream() {
