@@ -44,7 +44,6 @@ using namespace mediakit;
 #define REFRESH_EVENT   (SDL_USEREVENT + 1)
 
 
-#ifndef __MACH__
 class SDLDisplayerHelper
 {
 public:
@@ -66,48 +65,44 @@ public:
         SDL_PushEvent(&event);
     }
 
+	void runLoop(){
+		bool flag = true;
+		std::function<bool ()> task;
+		SDL_Event event;
+		while(flag){
+			SDL_WaitEvent(&event);
+			if (event.type == REFRESH_EVENT)
+			{
+				{
+					lock_guard<mutex> lck(_mtxTask);
+					if(_taskList.empty()){
+						//not reachable
+						continue;
+					}
+					task = _taskList.front();
+					_taskList.pop_front();
+				}
+				flag = task();
+			}
 
+		}
+	}
+
+	void shutdown(){
+		doTask([](){return false;});
+	}
 private:
     SDLDisplayerHelper(){
-        _loopThread.reset(new std::thread(&SDLDisplayerHelper::runLoop,this));
     };
     ~SDLDisplayerHelper(){
-        doTask([](){return false;});
-        _loopThread->join();
-        _loopThread.reset();
+		shutdown();
     };
-
-    void runLoop(){
-        bool flag = true;
-        std::function<bool ()> task;
-        SDL_Event event;
-        while(flag){
-            SDL_WaitEvent(&event);
-            if (event.type == REFRESH_EVENT)
-            {
-                {
-                    lock_guard<mutex> lck(_mtxTask);
-                    if(_taskList.empty()){
-                        //not reachable
-                        continue;
-                    }
-                    task = _taskList.front();
-                    _taskList.pop_front();
-                }
-                flag = task();
-            }
-
-        }
-    }
-
-
+private:
     std::deque<std::function<bool ()> > _taskList;
-    std::shared_ptr<thread> _loopThread;
     std::mutex _mtxTask;
 
 };
 
-#endif //__MACH__
 
 class YuvDisplayer {
 public:
@@ -126,9 +121,7 @@ public:
             },nullptr);
             InfoL << "SDL_Init";
         }, []() {
-#ifndef __MACH__
             SDLDisplayerHelper::Destory();
-#endif
             SDL_Quit();
         });
 
