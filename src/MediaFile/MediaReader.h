@@ -47,9 +47,21 @@ public:
 public:
 	bool seekTo(uint32_t ui32Stamp) override;
     bool close() override;
-private:
 
 #ifdef ENABLE_MP4V2
+private:
+	void seek(uint32_t iSeekTime,bool bReStart = true);
+	inline void setSeekTime(uint32_t iSeekTime);
+	inline uint32_t getVideoCurrentTime();
+	void startReadMP4();
+	inline MP4SampleId getVideoSampleId(int iTimeInc = 0);
+	inline MP4SampleId getAudioSampleId(int iTimeInc = 0);
+	bool readSample(int iTimeInc = 0);
+	inline bool readVideoSample(int iTimeInc = 0);
+	inline bool readAudioSample(int iTimeInc = 0);
+	inline void writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp);
+	inline void writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp);
+private:
 	MP4FileHandle _hMP4File = MP4_INVALID_FILE_HANDLE;
 	MP4TrackId _video_trId = MP4_INVALID_TRACK_ID;
 	uint32_t _video_ms = 0;
@@ -72,7 +84,7 @@ private:
 	AACFrame _adts;
 
 	int _iDuration = 0;
-	DevChannel::Ptr _pChn;
+	MultiMediaSourceMuxer::Ptr _mediaMuxer;
 	MP4SampleId _video_current = 0;
 	MP4SampleId _audio_current = 0;
 	std::shared_ptr<uint8_t> _pcVideoSample;
@@ -81,20 +93,6 @@ private:
 	Ticker _ticker;
 	Ticker _alive;
 	recursive_mutex _mtx;
-
-	void seek(uint32_t iSeekTime,bool bReStart = true);
-	inline void setSeekTime(uint32_t iSeekTime);
-	inline uint32_t getVideoCurrentTime();
-	void startReadMP4();
-	inline MP4SampleId getVideoSampleId(int iTimeInc = 0);
-	inline MP4SampleId getAudioSampleId(int iTimeInc = 0);
-	bool readSample(int iTimeInc = 0);
-	inline bool readVideoSample(int iTimeInc = 0);
-	inline bool readAudioSample(int iTimeInc = 0);
-	inline void writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp);
-	inline void writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp);
-
-
 #endif //ENABLE_MP4V2
 };
 

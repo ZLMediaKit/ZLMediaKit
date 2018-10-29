@@ -99,12 +99,12 @@ void PlayerProxy::play(const char* strUrl) {
 		if(!strongSelf) {
 			return;
 		}
-		if(strongSelf->_pChn) {
+		if(strongSelf->_mediaMuxer) {
 			auto tracks = strongSelf->getTracks();
 			for (auto & track : tracks){
-				track->delDelegate(strongSelf->_pChn.get());
+				track->delDelegate(strongSelf->_mediaMuxer.get());
 			}
-			strongSelf->_pChn.reset();
+			strongSelf->_mediaMuxer.reset();
 		}
 		//播放异常中断，延时重试播放
 		if(*piFailedCnt < strongSelf->_iRetryCount || strongSelf->_iRetryCount < 0) {
@@ -142,7 +142,7 @@ bool PlayerProxy::close() {
 		executor->async_first([weakSlef]() {
 			auto stronSelf = weakSlef.lock();
 			if (stronSelf) {
-				stronSelf->_pChn.reset();
+				stronSelf->_mediaMuxer.reset();
 				stronSelf->teardown();
 			}
 		});
@@ -174,32 +174,32 @@ private:
 };
 
 void PlayerProxy::onPlaySuccess() {
-	_pChn.reset(new DevChannel(_strVhost.data(),_strApp.data(),_strSrc.data(),getDuration(),_bEnableHls,_bEnableMp4));
-	_pChn->setListener(shared_from_this());
+	_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost.data(),_strApp.data(),_strSrc.data(),getDuration(),_bEnableHls,_bEnableMp4));
+	_mediaMuxer->setListener(shared_from_this());
 
 	auto videoTrack = getTrack(TrackVideo);
 	if(videoTrack){
 		//添加视频
-		_pChn->addTrack(videoTrack);
+		_mediaMuxer->addTrack(videoTrack);
 		//视频数据写入_pChn
-		videoTrack->addDelegate(_pChn);
+		videoTrack->addDelegate(_mediaMuxer);
 	}
 
 	auto audioTrack = getTrack(TrackAudio);
 	if(audioTrack){
 		//添加音频
-		_pChn->addTrack(audioTrack);
+		_mediaMuxer->addTrack(audioTrack);
 		//音频数据写入_pChn
-        audioTrack->addDelegate(_pChn);
+        audioTrack->addDelegate(_mediaMuxer);
     }else if(videoTrack){
 		//没有音频信息，产生一个静音音频
 		MuteAudioMaker::Ptr audioMaker = std::make_shared<MuteAudioMaker>();
 		//videoTrack把数据写入MuteAudioMaker
 		videoTrack->addDelegate(audioMaker);
 		//添加一个静音Track至_pChn
-		_pChn->addTrack(std::make_shared<AACTrack>());
+		_mediaMuxer->addTrack(std::make_shared<AACTrack>());
 		//MuteAudioMaker生成静音音频然后写入_pChn；
-		audioMaker->addDelegate(_pChn);
+		audioMaker->addDelegate(_mediaMuxer);
 	}
 }
 
