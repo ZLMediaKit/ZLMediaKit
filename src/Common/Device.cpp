@@ -94,7 +94,7 @@ void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t uiStamp , 
 void DevChannel::inputAAC(const char* pcData, int iDataLen, uint32_t uiStamp,bool withAdtsHeader) {
 	if(withAdtsHeader){
 		inputAAC(pcData+7,iDataLen-7,uiStamp,pcData);
-	} else {
+	} else if(_audio) {
 		inputAAC(pcData,iDataLen,uiStamp,(char *)_adtsHeader);
 	}
 }
