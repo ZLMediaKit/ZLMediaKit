@@ -185,10 +185,10 @@ bool HLSMaker::removets() {
 void HLSMaker::onTrackFrame(const Frame::Ptr &frame) {
 	switch (frame->getCodecId()){
 		case CodecH264:{
-			if( frame->prefixSize() == 4){
+			if( frame->prefixSize() != 0){
 				inputH264(frame->data(), frame->size(),frame->stamp());
 			}else{
-				WarnL << "h264必须要有头4个字节的前缀";
+				WarnL << "h264必须要有头4个或3个字节的前缀";
 			}
 		}
 			break;
