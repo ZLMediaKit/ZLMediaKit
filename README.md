@@ -5,7 +5,8 @@
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
 - 打包多种流媒体协议(RTSP/RTMP/HLS），支持协议间的互相转换，提供一站式的服务。
 - 使用epoll+线程池+异步网络IO模式开发，并发性能优越。
-- 只实现主流的的H264+AAC流媒体方案，代码精简,脉络清晰，适合学习。
+- 已实现主流的的H264+AAC流媒体方案，代码精简,脉络清晰，适合学习。
+- 编码格式与框架代码解耦，方便自由简洁的添加支持其他编码格式
 - 代码经过大量的稳定性、性能测试，可满足商用服务器项目。
 - 支持linux、macos、ios、android、windows平台
 
@@ -53,6 +54,7 @@
 
  
 ## 后续任务
+- 添加支持H265
 - 添加rtsp推流功能
 
 ## 编译要求
@@ -143,23 +145,32 @@
 
 - 作为播放器：
 	```
-	MediaPlayer::Ptr player(new MediaPlayer());
-	player->setOnPlayResult([](const SockException &ex) {
-		InfoL << "OnPlayResult:" << ex.what();
-	});
-	player->setOnShutdown([](const SockException &ex) {
-		ErrorL << "OnShutdown:" << ex.what();
-	});
-	player->setOnVideoCB([&](const H264Frame &frame){
-		//在这里解码H264并显示
-	});
-	player->setOnAudioCB([&](const AdtsFrame &frame){
-		//在这里解码AAC并播放
-	});
-	//支持rtmp、rtsp
-	(*player)[RtspPlayer::kRtpType] = PlayerBase::RTP_TCP;
-	player->play("rtsp://admin:jzan123456@192.168.0.122/");
-	EventPoller::Instance().runLoop();
+    MediaPlayer::Ptr player(new MediaPlayer());
+    weak_ptr<MediaPlayer> weakPlayer = player;
+    player->setOnPlayResult([weakPlayer](const SockException &ex) {
+        InfoL << "OnPlayResult:" << ex.what();
+        auto strongPlayer = weakPlayer.lock();
+        if (ex || !strongPlayer) {
+            return;
+        }
+
+        auto viedoTrack = strongPlayer->getTrack(TrackVideo);
+        if (!viedoTrack) {
+            WarnL << "没有视频Track!";
+            return;
+        }
+        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([](const Frame::Ptr &frame) {
+            //此处解码并播放
+        }));
+    });
+
+    player->setOnShutdown([](const SockException &ex) {
+        ErrorL << "OnShutdown:" << ex.what();
+    });
+
+    //支持rtmp、rtsp
+    (*player)[RtspPlayer::kRtpType] = PlayerBase::RTP_TCP;
+    player->play("rtsp://admin:jzan123456@192.168.0.122/");
 	```
 - 作为代理服务器：
 	```
