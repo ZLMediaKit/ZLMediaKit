@@ -98,7 +98,7 @@ public:
 	 * 输入264帧
 	 * @param pcData 264单帧数据指针
 	 * @param iDataLen 数据指针长度
-	 * @param uiStamp 时间戳，单位毫秒
+	 * @param uiStamp 时间戳，单位毫秒；等于0时内部会自动生成时间戳
 	 * @param prefixSize 264 其实头字节数，起始头可以是0x00 00 00 01 或 0x 00 00 01 或者没有起始头
 	 */
 	void inputH264(const char *pcData, int iDataLen, uint32_t uiStamp,int prefixSize = 4);
@@ -107,7 +107,7 @@ public:
 	 * 输入可能带adts头的aac帧
 	 * @param pcDataWithAdts 可能带adts头的aac帧
 	 * @param iDataLen 帧数据长度
-	 * @param uiStamp 时间戳，单位毫秒
+	 * @param uiStamp 时间戳，单位毫秒，等于0时内部会自动生成时间戳
 	 * @param withAdtsHeader 是否带adts头
 	 */
 	void inputAAC(const char *pcDataWithAdts, int iDataLen, uint32_t uiStamp, bool withAdtsHeader = true);
