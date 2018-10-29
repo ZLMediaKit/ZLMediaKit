@@ -129,7 +129,7 @@ static onceToken s_token([](){
 
     //此处用于测试rtmp保存为flv录像，保存在http根目录下
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaChanged,[](BroadcastMediaChangedArgs){
-        if(schema == RTMP_SCHEMA){
+        if(schema == RTMP_SCHEMA && app == "live"){
             static map<string,FlvRecorder::Ptr> s_mapFlvRecorder;
             static mutex s_mtxFlvRecorder;
             lock_guard<mutex> lck(s_mtxFlvRecorder);
