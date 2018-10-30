@@ -26,10 +26,9 @@
 #ifndef ZLMEDIAKIT_RTSPSDP_H
 #define ZLMEDIAKIT_RTSPSDP_H
 
-#include "RtspMuxer/H264RtpCodec.h"
-#include "RtspMuxer/AACRtpCodec.h"
 #include "Util/base64.h"
 #include "Extension/Track.h"
+#include "RtspMuxer/RtpCodec.h"
 
 namespace mediakit {
 
@@ -124,108 +123,6 @@ public:
      */
     CodecId getCodecId() const override{
         return CodecInvalid;
-    }
-private:
-    _StrPrinter _printer;
-};
-
-/**
-* h264类型sdp
-*/
-class H264Sdp : public Sdp {
-public:
-
-    /**
-     *
-     * @param sps 264 sps,不带0x00000001头
-     * @param pps 264 pps,不带0x00000001头
-     * @param playload_type  rtp playload type 默认96
-     * @param bitrate 比特率
-     */
-    H264Sdp(const string &strSPS,
-            const string &strPPS,
-            int playload_type = 96,
-            int bitrate = 4000) : Sdp(90000,playload_type) {
-        //视频通道
-        _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
-        _printer << "b=AS:" << bitrate << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << " H264/" << 90000 << "\r\n";
-        _printer << "a=fmtp:" << playload_type << " packetization-mode=1;profile-level-id=";
-
-        char strTemp[100];
-        uint32_t profile_level_id = 0;
-        if (strSPS.length() >= 4) { // sanity check
-            profile_level_id = (uint8_t(strSPS[1]) << 16) |
-                               (uint8_t(strSPS[2]) << 8)  |
-                               (uint8_t(strSPS[3])); // profile_idc|constraint_setN_flag|level_idc
-        }
-        memset(strTemp, 0, 100);
-        sprintf(strTemp, "%06X", profile_level_id);
-        _printer << strTemp;
-        _printer << ";sprop-parameter-sets=";
-        memset(strTemp, 0, 100);
-        av_base64_encode(strTemp, 100, (uint8_t *) strSPS.data(), strSPS.size());
-        _printer << strTemp << ",";
-        memset(strTemp, 0, 100);
-        av_base64_encode(strTemp, 100, (uint8_t *) strPPS.data(), strPPS.size());
-        _printer << strTemp << "\r\n";
-        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
-    }
-
-    string getSdp() const override {
-        return _printer;
-    }
-
-    TrackType getTrackType() const override {
-        return TrackVideo;
-    }
-
-    CodecId getCodecId() const override {
-        return CodecH264;
-    }
-private:
-    _StrPrinter _printer;
-};
-
-
-/**
-* aac类型SDP
-*/
-class AACSdp : public Sdp {
-public:
-
-    /**
-     *
-     * @param aac_cfg aac两个字节的配置描述
-     * @param sample_rate 音频采样率
-     * @param playload_type rtp playload type 默认98
-     * @param bitrate 比特率
-     */
-    AACSdp(const string &aac_cfg,
-           int sample_rate,
-           int playload_type = 98,
-           int bitrate = 128) : Sdp(sample_rate,playload_type){
-        _printer << "m=audio 0 RTP/AVP " << playload_type << "\r\n";
-        _printer << "b=AS:" << bitrate << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << " MPEG4-GENERIC/" << sample_rate << "\r\n";
-
-        char configStr[32] = {0};
-        snprintf(configStr, sizeof(configStr), "%02X%02X", (uint8_t)aac_cfg[0], (uint8_t)aac_cfg[1]);
-        _printer << "a=fmtp:" << playload_type << " streamtype=5;profile-level-id=1;mode=AAC-hbr;"
-                 << "sizelength=13;indexlength=3;indexdeltalength=3;config="
-                 << configStr << "\r\n";
-        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
-    }
-
-    string getSdp() const override {
-        return _printer;
-    }
-
-    TrackType getTrackType() const override {
-        return TrackAudio;
-    }
-    CodecId getCodecId() const override {
-        return CodecAAC;
     }
 private:
     _StrPrinter _printer;
