@@ -39,6 +39,7 @@
 #include "Poller/Timer.h"
 #include "Network/Socket.h"
 #include "Network/TcpClient.h"
+#include "RtspSplitter.h"
 
 using namespace std;
 using namespace toolkit;
@@ -46,7 +47,7 @@ using namespace toolkit;
 namespace mediakit {
 
 //实现了rtsp播放器协议部分的功能
-class RtspPlayer: public PlayerBase,public TcpClient {
+class RtspPlayer: public PlayerBase,public TcpClient, public RtspSplitter {
 public:
 	typedef std::shared_ptr<RtspPlayer> Ptr;
 
@@ -62,6 +63,19 @@ protected:
 	virtual void onRecvRTP(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track) = 0;
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
+
+    /**
+     * 收到完整的rtsp包回调，包括sdp等content数据
+     * @param parser rtsp包
+     */
+    void onWholeRtspPacket(Parser &parser) override ;
+
+    /**
+     * 收到rtp包回调
+     * @param data
+     * @param len
+     */
+    void onRtpPacket(const char *data,uint64_t len) override ;
 private:
 	void onShutdown_l(const SockException &ex);
     void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, int iTrackidx);
@@ -81,11 +95,6 @@ private:
 	void handleResDESCRIBE(const Parser &parser);
 	bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
 	void handleResPAUSE(const Parser &parser, bool bPause);
-
-	//发数据给服务器
-	int onProcess(const char* strBuf);
-	//生成rtp包结构体
-	void splitRtp(unsigned char *pucData, unsigned int uiLen);
     //处理一个rtp包
     bool handleOneRtp(int iTrackidx, unsigned char *ucData, unsigned int uiLen);
 
@@ -103,9 +112,6 @@ private:
 
 	function<void(const Parser&)> _onHandshake;
 	RtspMediaSource::PoolType _pktPool;
-
-	uint8_t *_pucRtpBuf = nullptr;
-	unsigned int _uiRtpBufLen = 0;
 	Socket::Ptr _apUdpSock[2];
 	//rtsp info
 	string _strSession;
