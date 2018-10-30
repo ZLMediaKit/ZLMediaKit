@@ -252,7 +252,7 @@ public:
                     _vpsFrame = insertFrame;
                 }
                 _vpsFrame->timeStamp = frame->stamp();
-               // VideoTrack::inputFrame(_vpsFrame);
+                VideoTrack::inputFrame(_vpsFrame);
             }
             if (!_sps.empty()) {
                 if (!_spsFrame) {
@@ -265,7 +265,7 @@ public:
                     _spsFrame = insertFrame;
                 }
                 _spsFrame->timeStamp = frame->stamp();
-               // VideoTrack::inputFrame(_spsFrame);
+                VideoTrack::inputFrame(_spsFrame);
             }
 
             if (!_pps.empty()) {
@@ -279,7 +279,7 @@ public:
                     _ppsFrame = insertFrame;
                 }
                 _ppsFrame->timeStamp = frame->stamp();
-                //VideoTrack::inputFrame(_ppsFrame);
+                VideoTrack::inputFrame(_ppsFrame);
             }
             VideoTrack::inputFrame(frame);
             return;
