@@ -93,7 +93,6 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
     const uint8_t *frame = (uint8_t *) rtppack->payload + rtppack->offset;
     int length = rtppack->length - rtppack->offset;
-
     int nal = H265_TYPE(frame[0]);
 
     if (nal > 50){
@@ -108,13 +107,13 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
         case 49: {
             // fragmentation unit (FU)
             FU fu;
-            MakeFU(frame[1], fu);
+            MakeFU(frame[2], fu);
             if (fu.S == 1) {
                 //FU-A start
                 _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
                 _h265frame->buffer.push_back(fu.type << 1);
                 _h265frame->buffer.push_back(0x01);
-                _h265frame->buffer.append((char *) frame + 2, length - 2);
+                _h265frame->buffer.append((char *) frame + 3, length - 3);
                 _h265frame->type = fu.type;
                 _h265frame->timeStamp = rtppack->timeStamp;
                 _h265frame->sequence = rtppack->sequence;
@@ -129,14 +128,14 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             _h265frame->sequence = rtppack->sequence;
             if (fu.E == 1) {
                 //FU-A end
-                _h265frame->buffer.append((char *) frame + 2, length - 2);
+                _h265frame->buffer.append((char *) frame + 3, length - 3);
                 _h265frame->timeStamp = rtppack->timeStamp;
                 auto isIDR = _h265frame->keyFrame();
                 onGetH265(_h265frame);
                 return isIDR;
             }
             //FU-A mid
-            _h265frame->buffer.append((char *) frame + 2, length - 2);
+            _h265frame->buffer.append((char *) frame + 3, length - 3);
             return false;
         }
         
