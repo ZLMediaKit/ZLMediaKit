@@ -48,6 +48,19 @@ Sdp::Ptr Factory::getSdpByTrack(const Track::Ptr &track) {
             return std::make_shared<H264Sdp>(h264Track->getSps(),h264Track->getPps());
         }
 
+        case CodecH265:{
+            H265Track::Ptr h265Track = dynamic_pointer_cast<H265Track>(track);
+            if(!h265Track){
+                WarnL << "该Track不是H265Track类型";
+                return nullptr;
+            }
+            if(!h265Track->ready()){
+                WarnL << "该Track未准备好";
+                return nullptr;
+            }
+            return std::make_shared<H265Sdp>(h265Track->getSps(),h265Track->getPps());
+        }
+
         case CodecAAC:{
             AACTrack::Ptr aacTrack = dynamic_pointer_cast<AACTrack>(track);
             if(!aacTrack){
@@ -115,7 +128,9 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         if (3 != sscanf(track->_fmtp.c_str(), "%d sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt, sprop_sps, sprop_pps)) {
             return std::make_shared<H265Track>();
         }
-        return std::make_shared<H265Track>("",sprop_sps,sprop_pps,0,0,0);
+        auto sps = decodeBase64(sprop_sps);
+        auto pps = decodeBase64(sprop_pps);
+        return std::make_shared<H265Track>("",sps,pps,0,0,0);
     }
 
 

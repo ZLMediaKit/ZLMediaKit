@@ -29,6 +29,7 @@
 
 #include "Frame.h"
 #include "Track.h"
+#include "RtspMuxer/RtspSdp.h"
 
 namespace mediakit {
 
@@ -228,7 +229,7 @@ public:
     }
 
     bool ready() override {
-        return !_sps.empty() && !_pps.empty() && !_vps.empty();
+        return !_sps.empty() && !_pps.empty();
     }
 
 
@@ -251,7 +252,7 @@ public:
                     _vpsFrame = insertFrame;
                 }
                 _vpsFrame->timeStamp = frame->stamp();
-                VideoTrack::inputFrame(_vpsFrame);
+               // VideoTrack::inputFrame(_vpsFrame);
             }
             if (!_sps.empty()) {
                 if (!_spsFrame) {
@@ -264,7 +265,7 @@ public:
                     _spsFrame = insertFrame;
                 }
                 _spsFrame->timeStamp = frame->stamp();
-                VideoTrack::inputFrame(_spsFrame);
+               // VideoTrack::inputFrame(_spsFrame);
             }
 
             if (!_pps.empty()) {
@@ -278,7 +279,7 @@ public:
                     _ppsFrame = insertFrame;
                 }
                 _ppsFrame->timeStamp = frame->stamp();
-                VideoTrack::inputFrame(_ppsFrame);
+                //VideoTrack::inputFrame(_ppsFrame);
             }
             VideoTrack::inputFrame(frame);
             return;
@@ -289,17 +290,20 @@ public:
             case H265Frame::NAL_VPS: {
                 //vps
                 _vps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+                VideoTrack::inputFrame(frame);
             }
                 break;
 
             case H265Frame::NAL_SPS: {
                 //sps
                 _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+                VideoTrack::inputFrame(frame);
             }
                 break;
             case H265Frame::NAL_PPS: {
                 //pps
                 _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+                VideoTrack::inputFrame(frame);
             }
                 break;
 
@@ -341,6 +345,51 @@ private:
 };
 
 
+/**
+* h265类型sdp
+*/
+class H265Sdp : public Sdp {
+public:
+
+    /**
+     *
+     * @param sps 265 sps,不带0x00000001头
+     * @param pps 265 pps,不带0x00000001头
+     * @param playload_type  rtp playload type 默认96
+     * @param bitrate 比特率
+     */
+    H265Sdp(const string &strSPS,
+            const string &strPPS,
+            int playload_type = 96,
+            int bitrate = 4000) : Sdp(90000,playload_type) {
+        //视频通道
+        _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
+        _printer << "b=AS:" << bitrate << "\r\n";
+        _printer << "a=rtpmap:" << playload_type << " H265/" << 90000 << "\r\n";
+        _printer << "a=fmtp:" << playload_type << " sprop-sps=";
+        _printer << encodeBase64(strSPS) << "; ";
+        _printer << "sprop-pps=";
+        _printer << encodeBase64(strPPS) << "\r\n";
+        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
+    }
+
+    string getSdp() const override {
+        return _printer;
+    }
+
+    TrackType getTrackType() const override {
+        return TrackVideo;
+    }
+
+    CodecId getCodecId() const override {
+        return CodecH265;
+    }
+private:
+    _StrPrinter _printer;
+};
+
+
+    
 }//namespace mediakit
 
 

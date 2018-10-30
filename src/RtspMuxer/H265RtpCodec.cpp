@@ -129,7 +129,7 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             _h265frame->buffer.append((char *) frame + 3, length - 3);
             return false;
         }
-        
+
         default: // 4.4.1. Single NAL Unit Packets (p24)
             //a full frame
             _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
@@ -146,6 +146,7 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 void H265RtpDecoder::onGetH265(const H265Frame::Ptr &frame) {
     //写入环形缓存
     auto lastSeq = _h265frame->sequence;
+    DebugL << (int)frame->type;
     RtpCodec::inputFrame(frame);
     _h265frame = obtainFrame();
     _h265frame->sequence = lastSeq;
@@ -170,49 +171,47 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     RtpCodec::inputFrame(frame);
 
     GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Rtp::kCycleMS);
-    auto pcData = frame->data() + frame->prefixSize();
+    uint8_t *pcData = (uint8_t*)frame->data() + frame->prefixSize();
     auto uiStamp = frame->stamp();
     auto iLen = frame->size() - frame->prefixSize();
-
+    unsigned char naluType = H265_TYPE(pcData[0]); //获取NALU的5bit 帧类型
     uiStamp %= cycleMS;
-    int iSize = _ui32MtuSize - 3;
-    if (iLen > iSize) { //超过MTU
-        const unsigned char s_e_Start = 1 << 7;
-        const unsigned char s_e_Mid = 0x00;
-        const unsigned char s_e_End = 1 << 6;
+
+    WarnL << (int)naluType;
+    int maxSize = _ui32MtuSize - 3;
+    if (iLen > maxSize) { //超过MTU
         //获取帧头数据，1byte
-        unsigned char naluType = H265_TYPE(pcData[0]); //获取NALU的5bit 帧类型
-        unsigned char s_e_type = naluType;
+        unsigned char s_e_type;
         bool bFirst = true;
         bool mark = false;
         int nOffset = 2;
         while (!mark) {
-            if (iLen < nOffset + iSize) {			//是否拆分结束
-                iSize = iLen - nOffset;
+            if (iLen < nOffset + maxSize) {			//是否拆分结束
+                maxSize = iLen - nOffset;
                 mark = true;
-                s_e_type = s_e_End + naluType;
+                s_e_type = 1 << 7 | naluType;
             } else {
                 if (bFirst == true) {
-                    s_e_type = s_e_Start + naluType;
+                    s_e_type = 1 << 6 | naluType;
                     bFirst = false;
                 } else {
-                    s_e_type = s_e_Mid + naluType;
+                    s_e_type = naluType;
                 }
             }
             //FU type
             _aucSectionBuf[0] = 49 << 1;
             _aucSectionBuf[1] = 1;
             _aucSectionBuf[2] = s_e_type;
-            memcpy(_aucSectionBuf + 3, (unsigned char *) pcData + nOffset, iSize);
-            nOffset += iSize;
-            makeH265Rtp(_aucSectionBuf, iSize + 3, mark, uiStamp);
+            memcpy(_aucSectionBuf + 3, pcData + nOffset, maxSize);
+            nOffset += maxSize;
+            makeH265Rtp(naluType,_aucSectionBuf, maxSize + 3, mark, uiStamp);
         }
     } else {
-        makeH265Rtp(pcData, iLen, true, uiStamp);
+        makeH265Rtp(naluType,pcData, iLen, true, uiStamp);
     }
 }
 
-void H265RtpEncoder::makeH265Rtp(const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
+void H265RtpEncoder::makeH265Rtp(int nal_type,const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
     uint16_t ui16RtpLen = len + 12;
     uint32_t ts = htonl((_ui32SampleRate / 1000) * uiStamp);
     uint16_t sq = htons(_ui16Sequence);
@@ -242,9 +241,7 @@ void H265RtpEncoder::makeH265Rtp(const void* data, unsigned int len, bool mark, 
     rtppkt->ssrc = _ui32Ssrc;
     rtppkt->type = TrackVideo;
     rtppkt->offset = 16;
-
-    uint8_t type = H265_TYPE(((uint8_t *) (data))[0]);
-    RtpCodec::inputRtp(rtppkt,type == H265Frame::isKeyFrame(type));
+    RtpCodec::inputRtp(rtppkt,nal_type == H265Frame::NAL_VPS);
     _ui16Sequence++;
     _ui32TimeStamp = uiStamp;
 }
