@@ -30,6 +30,8 @@
 #include "Frame.h"
 #include "Track.h"
 
+#define H264_TYPE(v) ((uint8_t)(v) & 0x1F)
+
 namespace mediakit{
 
 bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
@@ -41,6 +43,13 @@ bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight
 class H264Frame : public Frame {
 public:
     typedef std::shared_ptr<H264Frame> Ptr;
+
+    typedef enum {
+        NAL_SPS = 7,
+        NAL_PPS = 8,
+        NAL_IDR = 5,
+        NAL_B_P = 1
+    } NalType;
 
     char *data() const override{
         return (char *)buffer.data();
@@ -64,7 +73,7 @@ public:
     }
 
     bool keyFrame() const override {
-        return type == 5;
+        return type == NAL_IDR;
     }
 public:
     uint16_t sequence;
@@ -95,7 +104,7 @@ public:
     }
 
     bool keyFrame() const override {
-        return (buffer_ptr[iPrefixSize] & 0x1F) == 5;
+        return H264_TYPE(buffer_ptr[iPrefixSize]) == H264Frame::NAL_IDR;
     }
 };
 
@@ -193,9 +202,10 @@ public:
      * @param frame 数据帧
      */
     void inputFrame(const Frame::Ptr &frame) override{
-        int type = (*((uint8_t *)frame->data() + frame->prefixSize())) & 0x1F;
+        int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
+
         switch (type){
-            case 7:{
+            case H264Frame::NAL_SPS:{
                 //sps
                 bool flag = _sps.empty();
                 _sps = string(frame->data() + frame->prefixSize(),frame->size() - frame->prefixSize());
@@ -204,19 +214,19 @@ public:
                 }
             }
                 break;
-            case 8:{
+            case H264Frame::NAL_PPS:{
                 //pps
                 _pps = string(frame->data() + frame->prefixSize(),frame->size() - frame->prefixSize());
             }
                 break;
 
-            case 5:{
+            case H264Frame::NAL_IDR:{
                 //I
                 if(!_sps.empty()){
                     if(!_spsFrame)
                     {
                         H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                        insertFrame->type = 7;
+                        insertFrame->type = H264Frame::NAL_SPS;
                         insertFrame->timeStamp = frame->stamp();
                         insertFrame->buffer.assign("\x0\x0\x0\x1",4);
                         insertFrame->buffer.append(_sps);
@@ -231,7 +241,7 @@ public:
                     if(!_ppsFrame)
                     {
                         H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                        insertFrame->type = 8;
+                        insertFrame->type = H264Frame::NAL_PPS;
                         insertFrame->timeStamp = frame->stamp();
                         insertFrame->buffer.assign("\x0\x0\x0\x1",4);
                         insertFrame->buffer.append(_pps);
@@ -245,7 +255,7 @@ public:
             }
                 break;
 
-            case 1:{
+            case H264Frame::NAL_B_P:{
                 //B or P
                 VideoTrack::inputFrame(frame);
             }

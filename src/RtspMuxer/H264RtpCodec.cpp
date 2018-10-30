@@ -103,7 +103,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
         _h264frame->type = nal.type;
         _h264frame->timeStamp = rtppack->timeStamp;
         _h264frame->sequence = rtppack->sequence;
-        auto isIDR = _h264frame->type == 5;
+        auto isIDR = _h264frame->type == H264Frame::NAL_IDR;
         onGetH264(_h264frame);
         return (isIDR); //i frame
     }
@@ -121,7 +121,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             _h264frame->type = fu.type;
             _h264frame->timeStamp = rtppack->timeStamp;
             _h264frame->sequence = rtppack->sequence;
-            return (_h264frame->type == 5); //i frame
+            return (_h264frame->type == H264Frame::NAL_IDR); //i frame
         }
 
         if (rtppack->sequence != (uint16_t)(_h264frame->sequence + 1)) {
@@ -134,7 +134,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             //FU-A end
             _h264frame->buffer.append((char *)frame + 2, length - 2);
             _h264frame->timeStamp = rtppack->timeStamp;
-            auto isIDR = _h264frame->type == 5;
+            auto isIDR = _h264frame->type == H264Frame::NAL_IDR;
             onGetH264(_h264frame);
             return isIDR;
         }
@@ -256,8 +256,8 @@ void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, 
     rtppkt->type = TrackVideo;
     rtppkt->offset = 16;
 
-    uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
-    RtpCodec::inputRtp(rtppkt,type == 7);
+    uint8_t type = H264_TYPE(((uint8_t *) (data))[0]);
+    RtpCodec::inputRtp(rtppkt,type == H264Frame::NAL_IDR);
     _ui16Sequence++;
     _ui32TimeStamp = uiStamp;
 }

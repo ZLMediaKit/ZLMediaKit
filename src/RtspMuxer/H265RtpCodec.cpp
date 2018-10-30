@@ -256,8 +256,8 @@ void H265RtpEncoder::makeH265Rtp(const void* data, unsigned int len, bool mark, 
     rtppkt->type = TrackVideo;
     rtppkt->offset = 16;
 
-    uint8_t type = ((uint8_t *) (data))[0] & 0x1F;
-    RtpCodec::inputRtp(rtppkt,type == 7);
+    uint8_t type = H265_TYPE(((uint8_t *) (data))[0]);
+    RtpCodec::inputRtp(rtppkt,type == H265Frame::isKeyFrame(type));
     _ui16Sequence++;
     _ui32TimeStamp = uiStamp;
 }
