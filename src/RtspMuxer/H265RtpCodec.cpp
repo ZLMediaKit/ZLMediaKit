@@ -146,7 +146,6 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 void H265RtpDecoder::onGetH265(const H265Frame::Ptr &frame) {
     //写入环形缓存
     auto lastSeq = _h265frame->sequence;
-    DebugL << (int)frame->type;
     RtpCodec::inputFrame(frame);
     _h265frame = obtainFrame();
     _h265frame->sequence = lastSeq;
@@ -177,7 +176,6 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     unsigned char naluType = H265_TYPE(pcData[0]); //获取NALU的5bit 帧类型
     uiStamp %= cycleMS;
 
-    WarnL << (int)naluType;
     int maxSize = _ui32MtuSize - 3;
     if (iLen > maxSize) { //超过MTU
         //获取帧头数据，1byte
@@ -189,10 +187,10 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
             if (iLen < nOffset + maxSize) {			//是否拆分结束
                 maxSize = iLen - nOffset;
                 mark = true;
-                s_e_type = 1 << 7 | naluType;
+                s_e_type = 1 << 6 | naluType;
             } else {
                 if (bFirst == true) {
-                    s_e_type = 1 << 6 | naluType;
+                    s_e_type = 1 << 7 | naluType;
                     bFirst = false;
                 } else {
                     s_e_type = naluType;
