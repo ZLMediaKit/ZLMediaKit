@@ -191,7 +191,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         const unsigned char s_e_r_Mid = 0x00;
         const unsigned char s_e_r_End = 0x40;
         //获取帧头数据，1byte
-        unsigned char naluType = *((unsigned char *) pcData) & 0x1f; //获取NALU的5bit 帧类型
+        unsigned char naluType =  H264_TYPE(pcData[0]); //获取NALU的5bit 帧类型
 
         unsigned char nal_ref_idc = *((unsigned char *) pcData) & 0x60; //获取NALU的2bit 帧重要程度 00 可以丢 11不能丢
         //nal_ref_idc = 0x60;
@@ -257,7 +257,7 @@ void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, 
     rtppkt->offset = 16;
 
     uint8_t type = H264_TYPE(((uint8_t *) (data))[0]);
-    RtpCodec::inputRtp(rtppkt,type == H264Frame::NAL_IDR);
+    RtpCodec::inputRtp(rtppkt,type == H264Frame::NAL_SPS);
     _ui16Sequence++;
     _ui32TimeStamp = uiStamp;
 }
