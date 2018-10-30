@@ -55,11 +55,7 @@ RtspPlayer::RtspPlayer(void){
 	_pktPool.setSize(64);
 }
 RtspPlayer::~RtspPlayer(void) {
-    teardown();
-    if (_pucRtpBuf) {
-        delete[] _pucRtpBuf;
-        _pucRtpBuf = nullptr;
-    }
+    RtspPlayer::teardown();
     DebugL<<endl;
 }
 void RtspPlayer::teardown(){
@@ -72,7 +68,6 @@ void RtspPlayer::teardown(){
     erase(kRtspRealm);
 	_aTrackInfo.clear();
     _onHandshake = nullptr;
-    _uiRtpBufLen = 0;
     _strSession.clear();
     _uiCseq = 1;
     _strContentBase.clear();
@@ -130,9 +125,7 @@ void RtspPlayer::play(const char* strUrl, const char *strUser, const char *strPw
     }
 
 	_eType = eType;
-	if (_eType == RTP_TCP && !_pucRtpBuf) {
-        _pucRtpBuf = new uint8_t[RTP_BUF_SIZE];
-	}
+
 	auto ip = FindField(strUrl, "://", "/");
 	if (!ip.size()) {
 		ip = FindField(strUrl, "://", NULL);
@@ -174,45 +167,7 @@ void RtspPlayer::onConnect(const SockException &err){
 }
 
 void RtspPlayer::onRecv(const Buffer::Ptr& pBuf) {
-	const char *buf = pBuf->data();
-	int size = pBuf->size();
-	if (_onHandshake) {
-	    //rtsp回复
-        int offset = 0;
-        while(offset < size - 4){
-            char *pos = (char *)memchr(buf + offset, 'R', size - offset);
-            if(pos == NULL){
-                break;
-            }
-            if(memcmp(pos, "RTSP", 4) == 0){
-                try {
-                    pos += onProcess(pos);
-                } catch (std::exception &err) {
-                    SockException ex(Err_other, err.what());
-                    onPlayResult_l(ex);
-                    onShutdown_l(ex);
-                    teardown();
-                    return;
-                }
-            }else{
-                pos += 1;
-            }
-            offset = pos - buf;
-        }
-	}
-
-	if (_eType == RTP_TCP && _pucRtpBuf) {
-		//RTP data
-		while (size > 0) {
-            int added = RTP_BUF_SIZE - _uiRtpBufLen;
-			added = (added > size ? size : added);
-			memcpy(_pucRtpBuf + _uiRtpBufLen, buf, added);
-			_uiRtpBufLen += added;
-			size -= added;
-			buf += added;
-			splitRtp(_pucRtpBuf, _uiRtpBufLen);
-		}
-	}
+    input(pBuf->data(),pBuf->size());
 }
 void RtspPlayer::onErr(const SockException &ex) {
 	onShutdown_l (ex);
@@ -260,7 +215,6 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 		throw std::runtime_error(
 		StrPrinter << "DESCRIBE:" << parser.Url() << " " << parser.Tail() << endl);
 	}
-	auto strSdp = parser.Content();
 	_strContentBase = parser["Content-Base"];
 
     if(_strContentBase.empty()){
@@ -270,19 +224,14 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
         _strContentBase.pop_back();
     }
 
-	auto iLen = atoi(parser["Content-Length"].data());
-	if(iLen > 0){
-		strSdp.erase(iLen);
-	}
-
 	//解析sdp
-	_sdpAttr.load(strSdp);
+	_sdpAttr.load(parser.Content());
 	_aTrackInfo = _sdpAttr.getAvailableTrack();
 
 	if (_aTrackInfo.empty()) {
 		throw std::runtime_error("无有效的Sdp Track");
 	}
-	if (!onCheckSDP(strSdp, _sdpAttr)) {
+	if (!onCheckSDP(parser.Content(), _sdpAttr)) {
 		throw std::runtime_error("onCheckSDP faied");
 	}
 
@@ -345,6 +294,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 	}else{
 		_eType = RTP_UDP;
 	}
+
+	RtspSplitter::enableRecvRtp(_eType == RTP_TCP);
 
 	if(_eType == RTP_TCP)  {
 		string interleaved = FindField( FindField((strTransport + ";").c_str(), "interleaved=", ";").c_str(), NULL, "-");
@@ -416,6 +367,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 
 bool RtspPlayer::sendOptions() {
 	_onHandshake = [](const Parser& parser){
+//		DebugL << "options response";
 		return true;
 	};
 	return sendRtspRequest("OPTIONS",_strContentBase);
@@ -494,87 +446,36 @@ void RtspPlayer::handleResPAUSE(const Parser& parser, bool bPause) {
 	}
 }
 
-int RtspPlayer::onProcess(const char* pcBuf) {
-    auto strRtsp = FindField(pcBuf, "RTSP", "\r\n\r\n");
-    if(strRtsp.empty()){
-        return 4;
+void RtspPlayer::onWholeRtspPacket(Parser &parser) {
+    try {
+		decltype(_onHandshake) fun;
+		_onHandshake.swap(fun);
+        if(fun){
+            fun(parser);
+        }
+        parser.Clear();
+    } catch (std::exception &err) {
+        SockException ex(Err_other, err.what());
+        onPlayResult_l(ex);
+        onShutdown_l(ex);
+        teardown();
     }
-
-    strRtsp = string("RTSP") + strRtsp + "\r\n\r\n";
-	Parser parser;
-	parser.Parse(strRtsp.data());
-    int iLen = 0;
-	if (parser.Url() == "200") {
-		iLen = atoi(parser["Content-Length"].data());
-		if (iLen) {
-			string strContent(pcBuf + strRtsp.size(), iLen);
-			parser.setContent(strContent);
-		}
-	}
-	auto fun = _onHandshake;
-	_onHandshake = nullptr;
-    if(fun){
-        fun(parser);
-    }
-	parser.Clear();
-    return strRtsp.size() + iLen;
 }
 
-
-void RtspPlayer::splitRtp(unsigned char* pucRtp, unsigned int uiLen) {
-	unsigned char* rtp_ptr = pucRtp;
-	while (uiLen >= 4) {
-		if (rtp_ptr[0] == '$') {
-			//通道0
-			uint8_t interleaved = rtp_ptr[1];
-			uint16_t length = (rtp_ptr[2] << 8) | rtp_ptr[3];
-			if (length > 1600) {
-				//没有大于MTU的包
-				//WarnL << "没有大于MTU的包:" << length;
-				rtp_ptr += 1;
-				uiLen -= 1;
-				continue;
-			}
-			if ((unsigned int) length + 4 + 4 > uiLen) {
-				//buf 太小,还没到该RTP包的结尾
-				break;
-			}
-			auto nextPkt = rtp_ptr + length + 4;
-			if (*nextPkt != '$' && memcmp(nextPkt,"RTSP",4)!=0 ) {
-				//没有找到该包的尾部
-				//WarnL << "没有找到该包的尾部";
-				rtp_ptr += 1;
-				uiLen -= 1;
-				continue;
-			}
-			int trackIdx = -1;
-			if(interleaved %2 ==0){
-				trackIdx = getTrackIndexByInterleaved(interleaved);
-			}
-			if (trackIdx != -1) {
-				handleOneRtp(trackIdx, rtp_ptr + 4, length);
-			}
-			rtp_ptr += (length + 4);
-			uiLen -= (length + 4);
-			continue;
-		}
-		unsigned char *pos = (unsigned char *) memchr(rtp_ptr + 1, '$', uiLen - 1);
-		if (pos == NULL) {
-			//缓存里面没有任何RTP包
-			//WarnL << "缓存里面没有任何RTP包";
-			uiLen = 0;
-			break;
-		}
-		//有RTP包起始头
-		uiLen -= (pos - rtp_ptr);
-		rtp_ptr = pos;
-	}
-	_uiRtpBufLen = uiLen;
-	if (rtp_ptr != pucRtp) {
-		memmove(pucRtp, rtp_ptr, uiLen);
-	}
+void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
+    if(len > 1600){
+        //没有大于MTU的包
+        return;
+    }
+    int trackIdx = -1;
+    uint8_t interleaved = data[1];
+    if(interleaved %2 ==0){
+        trackIdx = getTrackIndexByInterleaved(interleaved);
+    }
+    if (trackIdx != -1) {
+        handleOneRtp(trackIdx, (unsigned char *)data + 4, len - 4);
+    }
 }
-
 
 #   define AV_RB16(x)                           \
     ((((const uint8_t*)(x))[0] << 8) |          \
