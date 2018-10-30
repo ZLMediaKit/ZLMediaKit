@@ -42,7 +42,7 @@ typedef struct {
     unsigned type :5;
 } FU;
 
-bool MakeNalu(uint8_t in, NALU &nal) {
+static bool MakeNalu(uint8_t in, NALU &nal) {
     nal.forbidden_zero_bit = in >> 7;
     if (nal.forbidden_zero_bit) {
         return false;
@@ -51,7 +51,7 @@ bool MakeNalu(uint8_t in, NALU &nal) {
     nal.type = in & 0x1f;
     return true;
 }
-bool MakeFU(uint8_t in, FU &fu) {
+static bool MakeFU(uint8_t in, FU &fu) {
     fu.S = in >> 7;
     fu.E = (in >> 6) & 0x01;
     fu.R = (in >> 5) & 0x01;
@@ -61,7 +61,6 @@ bool MakeFU(uint8_t in, FU &fu) {
     }
     return true;
 }
-
 
 H264RtpDecoder::H264RtpDecoder() {
     _h264frame = obtainFrame();
@@ -157,8 +156,10 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
 void H264RtpDecoder::onGetH264(const H264Frame::Ptr &frame) {
     //写入环形缓存
+    auto lastSeq = _h264frame->sequence;
     RtpCodec::inputFrame(frame);
     _h264frame = obtainFrame();
+    _h264frame->sequence = lastSeq;
 }
 
 

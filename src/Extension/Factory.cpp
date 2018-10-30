@@ -29,6 +29,7 @@
 #include "RtmpMuxer/AACRtmpCodec.h"
 #include "RtspMuxer/H264RtpCodec.h"
 #include "RtspMuxer/AACRtpCodec.h"
+#include "RtspMuxer/H265RtpCodec.h"
 
 namespace mediakit{
 
@@ -107,8 +108,80 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         return std::make_shared<H264Track>(sps,pps,0,0);
     }
 
+    if (strcasestr(track->_codec.data(), "h265") != nullptr) {
+        //a=fmtp:96 sprop-sps=QgEBAWAAAAMAsAAAAwAAAwBdoAKAgC0WNrkky/AIAAADAAgAAAMBlQg=; sprop-pps=RAHA8vA8kAA=
+        int pt;
+        char sprop_sps[128] = {0},sprop_pps[128] = {0};
+        if (3 != sscanf(track->_fmtp.c_str(), "%d sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt, sprop_sps, sprop_pps)) {
+            return std::make_shared<H265Track>();
+        }
+        return std::make_shared<H265Track>("",sprop_sps,sprop_pps,0,0,0);
+    }
+
+
     WarnL << "暂不支持该sdp:" << track->_codec << " " << track->_fmtp;
     return nullptr;
+}
+
+
+Track::Ptr Factory::getTrackByCodecId(CodecId codecId) {
+    switch (codecId){
+        case CodecH264:{
+            return std::make_shared<H264Track>();
+        }
+        case CodecH265:{
+            return std::make_shared<H265Track>();
+        }
+        case CodecAAC:{
+            return std::make_shared<AACTrack>();
+        }
+        default:
+            WarnL << "暂不支持该CodecId:" << codecId;
+            return nullptr;
+    }
+}
+
+RtpCodec::Ptr Factory::getRtpEncoderById(CodecId codecId,
+                                         uint32_t ui32Ssrc,
+                                         uint32_t ui32MtuSize,
+                                         uint32_t ui32SampleRate,
+                                         uint8_t ui8PlayloadType,
+                                         uint8_t ui8Interleaved) {
+    switch (codecId){
+        case CodecH264:
+            return std::make_shared<H264RtpEncoder>(ui32Ssrc,ui32MtuSize,ui32SampleRate,ui8PlayloadType,ui8Interleaved);
+        case CodecH265:
+            return std::make_shared<H265RtpEncoder>(ui32Ssrc,ui32MtuSize,ui32SampleRate,ui8PlayloadType,ui8Interleaved);
+        case CodecAAC:
+            return std::make_shared<AACRtpEncoder>(ui32Ssrc,ui32MtuSize,ui32SampleRate,ui8PlayloadType,ui8Interleaved);
+        default:
+            WarnL << "暂不支持该CodecId:" << codecId;
+            return nullptr;
+    }
+}
+
+RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId) {
+    switch (codecId){
+        case CodecH264:
+            return std::make_shared<H264RtpDecoder>();
+        case CodecH265:
+            return std::make_shared<H265RtpDecoder>();
+        case CodecAAC:
+            return std::make_shared<AACRtpDecoder>();
+        default:
+            WarnL << "暂不支持该CodecId:" << codecId;
+            return nullptr;
+    }
+}
+
+/////////////////////////////rtmp相关///////////////////////////////////////////
+
+Track::Ptr Factory::getTrackByAmf(const AMFValue &amf) {
+    CodecId codecId = getCodecIdByAmf(amf);
+    if(codecId == CodecInvalid){
+        return nullptr;
+    }
+    return getTrackByCodecId(codecId);
 }
 
 
@@ -143,58 +216,6 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
     return CodecInvalid;
 }
 
-Track::Ptr Factory::getTrackByCodecId(CodecId codecId) {
-    switch (codecId){
-        case CodecH264:{
-            return std::make_shared<H264Track>();
-        }
-        case CodecAAC:{
-            return std::make_shared<AACTrack>();
-        }
-        default:
-            WarnL << "暂不支持该CodecId:" << codecId;
-            return nullptr;
-    }
-}
-
-
-Track::Ptr Factory::getTrackByAmf(const AMFValue &amf) {
-    CodecId codecId = getCodecIdByAmf(amf);
-    if(codecId == CodecInvalid){
-        return nullptr;
-    }
-    return getTrackByCodecId(codecId);
-}
-
-
-RtpCodec::Ptr Factory::getRtpEncoderById(CodecId codecId,
-                                          uint32_t ui32Ssrc,
-                                          uint32_t ui32MtuSize,
-                                          uint32_t ui32SampleRate,
-                                          uint8_t ui8PlayloadType,
-                                          uint8_t ui8Interleaved) {
-    switch (codecId){
-        case CodecH264:
-            return std::make_shared<H264RtpEncoder>(ui32Ssrc,ui32MtuSize,ui32SampleRate,ui8PlayloadType,ui8Interleaved);
-        case CodecAAC:
-            return std::make_shared<AACRtpEncoder>(ui32Ssrc,ui32MtuSize,ui32SampleRate,ui8PlayloadType,ui8Interleaved);
-        default:
-            WarnL << "暂不支持该CodecId:" << codecId;
-            return nullptr;
-    }
-}
-
-RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId) {
-    switch (codecId){
-        case CodecH264:
-            return std::make_shared<H264RtpDecoder>();
-        case CodecAAC:
-            return std::make_shared<AACRtpDecoder>();
-        default:
-            WarnL << "暂不支持该CodecId:" << codecId;
-            return nullptr;
-    }
-}
 
 RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
     switch (track->getCodecId()){

@@ -435,9 +435,11 @@ void RtspPlayer::handleResPAUSE(const Parser& parser, bool bPause) {
                 auto strControlSuffix = strTrack.substr(1 + strTrack.rfind('/'),strTrack.find(';') - strTrack.rfind('/') - 1);
                 auto strRtpTime = FindField(strTrack.data(), "rtptime=", ";");
                 auto idx = getTrackIndexByControlSuffix(strControlSuffix);
-                _aiFistStamp[idx] = atoll(strRtpTime.data()) * 1000 / _aTrackInfo[idx]->_samplerate;
-                _aiNowStamp[idx] = _aiFistStamp[idx];
-                DebugL << "rtptime(ms):" << strControlSuffix <<" " << strRtpTime;
+                if(idx != -1){
+                    _aiFistStamp[idx] = atoll(strRtpTime.data()) * 1000 / _aTrackInfo[idx]->_samplerate;
+                    _aiNowStamp[idx] = _aiFistStamp[idx];
+                    DebugL << "rtptime(ms):" << strControlSuffix <<" " << strRtpTime;
+                }
             }
         }
 		onPlayResult_l(SockException(Err_success, "rtsp play success"));

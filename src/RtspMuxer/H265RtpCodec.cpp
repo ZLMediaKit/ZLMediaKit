@@ -28,40 +28,40 @@
 
 namespace mediakit{
 
-
-typedef struct {
-    unsigned forbidden_zero_bit :1;
-    unsigned nal_ref_idc :2;
-    unsigned type :5;
-} NALU;
+//41
+//42              0                   1
+//43              0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+//44             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//45             |F|   Type    |  LayerId  | TID |
+//46             +-------------+-----------------+
+//48                F       = 0
+//49                Type    = 49 (fragmentation unit (FU))
+//50                LayerId = 0
+//51                TID     = 1
+//56         /*
+//57               create the FU header
+//58
+//59               0 1 2 3 4 5 6 7
+//60              +-+-+-+-+-+-+-+-+
+//61              |S|E|  FuType   |
+//62              +---------------+
+//63
+//64                 S       = variable
+//65                 E       = variable
+//66                 FuType  = NAL unit type
+//67
 
 typedef struct {
     unsigned S :1;
     unsigned E :1;
-    unsigned R :1;
-    unsigned type :5;
+    unsigned type :6;
 } FU;
 
-bool MakeNalu(uint8_t in, NALU &nal) {
-    nal.forbidden_zero_bit = in >> 7;
-    if (nal.forbidden_zero_bit) {
-        return false;
-    }
-    nal.nal_ref_idc = (in & 0x60) >> 5;
-    nal.type = in & 0x1f;
-    return true;
-}
-bool MakeFU(uint8_t in, FU &fu) {
+static void MakeFU(uint8_t in, FU &fu) {
     fu.S = in >> 7;
     fu.E = (in >> 6) & 0x01;
-    fu.R = (in >> 5) & 0x01;
-    fu.type = in & 0x1f;
-    if (fu.R != 0) {
-        return false;
-    }
-    return true;
+    fu.type = in & 0x3f;
 }
-
 
 H265RtpDecoder::H265RtpDecoder() {
     _h265frame = obtainFrame();
@@ -93,72 +93,72 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
     const uint8_t *frame = (uint8_t *) rtppack->payload + rtppack->offset;
     int length = rtppack->length - rtppack->offset;
-    NALU nal;
-    MakeNalu(*frame, nal);
 
-    if (nal.type >= 0 && nal.type < 24) {
-        //a full frame
-        _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
-        _h265frame->buffer.append((char *)frame, length);
-        _h265frame->type = nal.type;
-        _h265frame->timeStamp = rtppack->timeStamp;
-        _h265frame->sequence = rtppack->sequence;
-        auto isIDR = _h265frame->type == 5;
-        onGetH265(_h265frame);
-        return (isIDR); //i frame
+    int nal = H265_TYPE(frame[0]);
+
+    if (nal > 50){
+        WarnL << "不支持该类型的265 RTP包" << nal;
+        return false; // packet discard, Unsupported (HEVC) NAL type
     }
+    switch (nal) {
+        case 50:
+        case 48: // aggregated packet (AP) - with two or more NAL units
+            WarnL << "不支持该类型的265 RTP包" << nal;
+            return false;
+        case 49: {
+            // fragmentation unit (FU)
+            FU fu;
+            MakeFU(frame[1], fu);
+            if (fu.S == 1) {
+                //FU-A start
+                _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
+                _h265frame->buffer.push_back(fu.type << 1);
+                _h265frame->buffer.push_back(0x01);
+                _h265frame->buffer.append((char *) frame + 2, length - 2);
+                _h265frame->type = fu.type;
+                _h265frame->timeStamp = rtppack->timeStamp;
+                _h265frame->sequence = rtppack->sequence;
+                return (_h265frame->keyFrame()); //i frame
+            }
 
-    if (nal.type == 28) {
-        //FU-A
-        FU fu;
-        MakeFU(frame[1], fu);
-        if (fu.S == 1) {
-            //FU-A start
-            char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
-            _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
-            _h265frame->buffer.push_back(tmp);
-            _h265frame->buffer.append((char *)frame + 2, length - 2);
-            _h265frame->type = fu.type;
-            _h265frame->timeStamp = rtppack->timeStamp;
+            if (rtppack->sequence != (uint16_t) (_h265frame->sequence + 1)) {
+                _h265frame->buffer.clear();
+                WarnL << "丢包,帧废弃:" << rtppack->sequence << "," << _h265frame->sequence;
+                return false;
+            }
             _h265frame->sequence = rtppack->sequence;
-            return (_h265frame->type == 5); //i frame
-        }
-
-        if (rtppack->sequence != (uint16_t)(_h265frame->sequence + 1)) {
-            _h265frame->buffer.clear();
-            WarnL << "丢包,帧废弃:" << rtppack->sequence << "," << _h265frame->sequence;
+            if (fu.E == 1) {
+                //FU-A end
+                _h265frame->buffer.append((char *) frame + 2, length - 2);
+                _h265frame->timeStamp = rtppack->timeStamp;
+                auto isIDR = _h265frame->keyFrame();
+                onGetH265(_h265frame);
+                return isIDR;
+            }
+            //FU-A mid
+            _h265frame->buffer.append((char *) frame + 2, length - 2);
             return false;
         }
-        _h265frame->sequence = rtppack->sequence;
-        if (fu.E == 1) {
-            //FU-A end
-            _h265frame->buffer.append((char *)frame + 2, length - 2);
+        
+        default: // 4.4.1. Single NAL Unit Packets (p24)
+            //a full frame
+            _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
+            _h265frame->buffer.append((char *)frame, length);
+            _h265frame->type = nal;
             _h265frame->timeStamp = rtppack->timeStamp;
-            auto isIDR = _h265frame->type == 5;
+            _h265frame->sequence = rtppack->sequence;
+            auto isIDR = _h265frame->keyFrame();
             onGetH265(_h265frame);
-            return isIDR;
-        }
-        //FU-A mid
-        _h265frame->buffer.append((char *)frame + 2, length - 2);
-        return false;
+            return (isIDR); //i frame
     }
-
-    WarnL << "不支持的rtp类型:" << nal.type << " " << rtppack->sequence;
-    return false;
-    // 29 FU-B     单NAL单元B模式
-    // 24 STAP-A   单一时间的组合包
-    // 25 STAP-B   单一时间的组合包
-    // 26 MTAP16   多个时间的组合包
-    // 27 MTAP24   多个时间的组合包
-    // 0 udef
-    // 30 udef
-    // 31 udef
 }
 
 void H265RtpDecoder::onGetH265(const H265Frame::Ptr &frame) {
     //写入环形缓存
+    auto lastSeq = _h265frame->sequence;
     RtpCodec::inputFrame(frame);
     _h265frame = obtainFrame();
+    _h265frame->sequence = lastSeq;
 }
 
 
