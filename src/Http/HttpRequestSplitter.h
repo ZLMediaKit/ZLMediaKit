@@ -42,7 +42,7 @@ public:
      * @param data 需要添加的数据
      * @param len 数据长度
      */
-    void input(const char *data,uint64_t len);
+    virtual void input(const char *data,uint64_t len);
 protected:
     /**
      * 收到请求头
@@ -63,6 +63,14 @@ protected:
      * @param len 数据长度
      */
     virtual void onRecvContent(const char *data,uint64_t len) {};
+
+    /**
+     * 判断数据中是否有包尾
+     * @param data 数据指针
+     * @param len 数据长度
+     * @return nullptr代表未找到包位，否则返回包尾指针
+     */
+    virtual const char *onSearchPacketTail(const char *data,int len);
 
     /**
      * 设置content len
