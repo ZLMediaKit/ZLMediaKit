@@ -27,6 +27,7 @@
 #include "HLSMaker.h"
 #include "Util/File.h"
 #include "Util/uv_errno.h"
+#include "Extension/H264.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -136,9 +137,10 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp) {
         _ui32LastStamp = timeStamp;
     }
     int stampInc = timeStamp - _ui32LastStamp;
-    auto type = ((uint8_t*)data)[4] & 0x1F;
+    auto type =  H264_TYPE(((uint8_t*)data)[4]);
+    
 	switch (type) {
-	case 7: //SPS
+	case H264Frame::NAL_SPS: //SPS
 		if (stampInc >= _ui32SegmentDuration * 1000) {
             _ui32LastStamp = timeStamp;
             //关闭文件
@@ -156,11 +158,11 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp) {
             }
 			write_index_file(_ui64TsCnt - _ui32NumSegments, _ui64TsCnt, 0);
 		}
-	case 1: //P
+	case H264Frame::NAL_B_P: //P
 			//insert aud frame before p and SPS frame
 		_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, timeStamp * 90);
-	case 5:		//IDR
-	case 8:		//PPS
+	case H264Frame::NAL_IDR:		//IDR
+	case H264Frame::NAL_PPS:		//PPS
 		_ts.inputH264((char *) data, length, timeStamp * 90);
 		break;
 	default:

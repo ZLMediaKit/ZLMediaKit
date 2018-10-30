@@ -74,24 +74,23 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
 
 
 inline void H264RtmpDecoder::onGetH264_l(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
-    switch (pcData[0] & 0x1F) {
-        case 5: {
+    switch (H264_TYPE(pcData[0])) {
+        case H264Frame::NAL_IDR: {
             //I frame
             onGetH264(_sps.data(), _sps.length(), ui32TimeStamp);
             onGetH264(_pps.data(), _pps.length(), ui32TimeStamp);
         }
-        case 1: {
+        case H264Frame::NAL_B_P: {
             //I or P or B frame
             onGetH264(pcData, iLen, ui32TimeStamp);
         }
             break;
         default:
-            //WarnL <<(int)(pcData[0] & 0x1F);
             break;
     }
 }
 inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
-    _h264frame->type = pcData[0] & 0x1F;
+    _h264frame->type = H264_TYPE(pcData[0]);
     _h264frame->timeStamp = ui32TimeStamp;
     _h264frame->buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
     _h264frame->buffer.append(pcData, iLen);
@@ -114,12 +113,12 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 
     auto pcData = frame->data() + frame->prefixSize();
     auto iLen = frame->size() - frame->prefixSize();
-    auto type = ((uint8_t*)pcData)[0] & 0x1F;
+    auto type = H264_TYPE(((uint8_t*)pcData)[0]);
 
     if(!_gotSpsPps){
         //尝试从frame中获取sps pps
         switch (type){
-            case 7:{
+            case H264Frame::NAL_SPS:{
                 //sps
                 if(_sps.empty()){
                     _sps = string(pcData,iLen);
@@ -129,7 +128,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
                 }
             }
                 break;
-            case 8:{
+            case H264Frame::NAL_PPS:{
                 //pps
                 if(_pps.empty()){
                     _pps = string(pcData,iLen);
@@ -152,8 +151,8 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 
     switch (type){
-        case 5:
-        case 1:{
+        case H264Frame::NAL_IDR:
+        case H264Frame::NAL_B_P:{
             //I or P or B frame
             int8_t flags = 7; //h.264
             bool is_config = false;

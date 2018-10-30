@@ -76,10 +76,10 @@ Mp4Maker::~Mp4Maker() {
 }
 
 void Mp4Maker::inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp){
-	auto iType = ((uint8_t*)pData)[0] & 0x1F;
+	auto iType = H264_TYPE(((uint8_t*)pData)[0]);
 	switch (iType) {
-	case 1: //P
-	case 5: { //IDR
+	case H264Frame::NAL_B_P: //P
+	case H264Frame::NAL_IDR: { //IDR
 		if (_strLastVideo.size()) {
 			int64_t iTimeInc = (int64_t)ui32TimeStamp - (int64_t)_ui32LastVideoTime;
 			iTimeInc = MAX(0,MIN(iTimeInc,500));
@@ -115,9 +115,8 @@ void Mp4Maker::inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp
 
 void Mp4Maker::inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32Duration) {
     GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Record::kFileSecond);
-
-	auto iType = ((uint8_t*)pData)[4] & 0x1F;
-	if(iType == 5 && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)){
+	auto iType =  H264_TYPE(((uint8_t*)pData)[4]);
+	if(iType == H264Frame::NAL_IDR && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)){
 		//在I帧率处新建MP4文件
 		//如果文件未创建或者文件超过10分钟则创建新文件
 		createFile();
