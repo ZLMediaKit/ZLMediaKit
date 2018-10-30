@@ -161,29 +161,26 @@ public:
 
     /**
      * 构造h265类型的媒体
+     * @param vps vps帧数据
      * @param sps sps帧数据
      * @param pps pps帧数据
+     * @param vps_prefix_len 265头长度，可以为3个或4个字节，一般为0x00 00 00 01
      * @param sps_prefix_len 265头长度，可以为3个或4个字节，一般为0x00 00 00 01
      * @param pps_prefix_len 265头长度，可以为3个或4个字节，一般为0x00 00 00 01
      */
-    H265Track(const string &sps, const string &pps, int sps_prefix_len = 4, int pps_prefix_len = 4) {
+    H265Track(const string &vps,const string &sps, const string &pps,int vps_prefix_len = 4, int sps_prefix_len = 4, int pps_prefix_len = 4) {
+        _vps = vps.substr(vps_prefix_len);
         _sps = sps.substr(sps_prefix_len);
         _pps = pps.substr(pps_prefix_len);
-        parseSps(_sps);
+        onReady();
     }
 
     /**
-     * 构造h265类型的媒体
-     * @param sps sps帧
-     * @param pps pps帧
+     * 返回不带0x00 00 00 01头的vps
+     * @return
      */
-    H265Track(const Frame::Ptr &sps, const Frame::Ptr &pps) {
-        if (sps->getCodecId() != CodecH265 || pps->getCodecId() != CodecH265) {
-            throw std::invalid_argument("必须输入H265类型的帧");
-        }
-        _sps = string(sps->data() + sps->prefixSize(), sps->size() - sps->prefixSize());
-        _pps = string(pps->data() + pps->prefixSize(), pps->size() - pps->prefixSize());
-        parseSps(_sps);
+    const string &getVps() const {
+        return _vps;
     }
 
     /**
@@ -231,7 +228,7 @@ public:
     }
 
     bool ready() override {
-        return !_sps.empty() && !_pps.empty();
+        return !_sps.empty() && !_pps.empty() && !_vps.empty();
     }
 
 
@@ -312,13 +309,17 @@ public:
             }
                 break;
         }
+
+        if(_width == 0 && ready() ){
+            onReady();
+        }
     }
 private:
     /**
      * 解析sps获取宽高fps
      * @param sps sps不含头数据
      */
-    void parseSps(const string &sps) {
+    void onReady() {
 //        getAVCInfo(sps,_width,_height,_fps);
     }
 
