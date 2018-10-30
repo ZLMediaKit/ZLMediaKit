@@ -82,15 +82,6 @@ bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
 }
 
 bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
-    /**
-     * h265帧类型
-     * Type==1:P/B frame
-     * Type==5:IDR frame
-     * Type==6:SEI frame
-     * Type==7:SPS frame
-     * Type==8:PPS frame
-     */
-
     const uint8_t *frame = (uint8_t *) rtppack->payload + rtppack->offset;
     int length = rtppack->length - rtppack->offset;
     int nal = H265_TYPE(frame[0]);
@@ -184,40 +175,37 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto iLen = frame->size() - frame->prefixSize();
 
     uiStamp %= cycleMS;
-    int iSize = _ui32MtuSize - 2;
+    int iSize = _ui32MtuSize - 3;
     if (iLen > iSize) { //超过MTU
-        const unsigned char s_e_r_Start = 0x80;
-        const unsigned char s_e_r_Mid = 0x00;
-        const unsigned char s_e_r_End = 0x40;
+        const unsigned char s_e_Start = 1 << 7;
+        const unsigned char s_e_Mid = 0x00;
+        const unsigned char s_e_End = 1 << 6;
         //获取帧头数据，1byte
-        unsigned char naluType = *((unsigned char *) pcData) & 0x1f; //获取NALU的5bit 帧类型
-
-        unsigned char nal_ref_idc = *((unsigned char *) pcData) & 0x60; //获取NALU的2bit 帧重要程度 00 可以丢 11不能丢
-        //nal_ref_idc = 0x60;
-        //组装FU-A帧头数据 2byte
-        unsigned char f_nri_type = nal_ref_idc + 28;//F为0 1bit,nri上面获取到2bit,28为FU-A分片类型5bit
-        unsigned char s_e_r_type = naluType;
+        unsigned char naluType = H265_TYPE(pcData[0]); //获取NALU的5bit 帧类型
+        unsigned char s_e_type = naluType;
         bool bFirst = true;
         bool mark = false;
-        int nOffset = 1;
+        int nOffset = 2;
         while (!mark) {
             if (iLen < nOffset + iSize) {			//是否拆分结束
                 iSize = iLen - nOffset;
                 mark = true;
-                s_e_r_type = s_e_r_End + naluType;
+                s_e_type = s_e_End + naluType;
             } else {
                 if (bFirst == true) {
-                    s_e_r_type = s_e_r_Start + naluType;
+                    s_e_type = s_e_Start + naluType;
                     bFirst = false;
                 } else {
-                    s_e_r_type = s_e_r_Mid + naluType;
+                    s_e_type = s_e_Mid + naluType;
                 }
             }
-            memcpy(_aucSectionBuf, &f_nri_type, 1);
-            memcpy(_aucSectionBuf + 1, &s_e_r_type, 1);
-            memcpy(_aucSectionBuf + 2, (unsigned char *) pcData + nOffset, iSize);
+            //FU type
+            _aucSectionBuf[0] = 49 << 1;
+            _aucSectionBuf[1] = 1;
+            _aucSectionBuf[2] = s_e_type;
+            memcpy(_aucSectionBuf + 3, (unsigned char *) pcData + nOffset, iSize);
             nOffset += iSize;
-            makeH265Rtp(_aucSectionBuf, iSize + 2, mark, uiStamp);
+            makeH265Rtp(_aucSectionBuf, iSize + 3, mark, uiStamp);
         }
     } else {
         makeH265Rtp(pcData, iLen, true, uiStamp);

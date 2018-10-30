@@ -29,6 +29,8 @@
 
 #include "Frame.h"
 #include "Track.h"
+#include "RtspMuxer/RtspSdp.h"
+
 
 #define H264_TYPE(v) ((uint8_t)(v) & 0x1F)
 
@@ -281,6 +283,67 @@ private:
     H264Frame::Ptr _spsFrame;
     H264Frame::Ptr _ppsFrame;
 };
+
+
+/**
+* h264类型sdp
+*/
+class H264Sdp : public Sdp {
+public:
+
+    /**
+     *
+     * @param sps 264 sps,不带0x00000001头
+     * @param pps 264 pps,不带0x00000001头
+     * @param playload_type  rtp playload type 默认96
+     * @param bitrate 比特率
+     */
+    H264Sdp(const string &strSPS,
+            const string &strPPS,
+            int playload_type = 96,
+            int bitrate = 4000) : Sdp(90000,playload_type) {
+        //视频通道
+        _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
+        _printer << "b=AS:" << bitrate << "\r\n";
+        _printer << "a=rtpmap:" << playload_type << " H264/" << 90000 << "\r\n";
+        _printer << "a=fmtp:" << playload_type << " packetization-mode=1;profile-level-id=";
+
+        char strTemp[100];
+        uint32_t profile_level_id = 0;
+        if (strSPS.length() >= 4) { // sanity check
+            profile_level_id = (uint8_t(strSPS[1]) << 16) |
+                               (uint8_t(strSPS[2]) << 8)  |
+                               (uint8_t(strSPS[3])); // profile_idc|constraint_setN_flag|level_idc
+        }
+        memset(strTemp, 0, 100);
+        sprintf(strTemp, "%06X", profile_level_id);
+        _printer << strTemp;
+        _printer << ";sprop-parameter-sets=";
+        memset(strTemp, 0, 100);
+        av_base64_encode(strTemp, 100, (uint8_t *) strSPS.data(), strSPS.size());
+        _printer << strTemp << ",";
+        memset(strTemp, 0, 100);
+        av_base64_encode(strTemp, 100, (uint8_t *) strPPS.data(), strPPS.size());
+        _printer << strTemp << "\r\n";
+        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
+    }
+
+    string getSdp() const override {
+        return _printer;
+    }
+
+    TrackType getTrackType() const override {
+        return TrackVideo;
+    }
+
+    CodecId getCodecId() const override {
+        return CodecH264;
+    }
+private:
+    _StrPrinter _printer;
+};
+
+
 
 
 }//namespace mediakit
