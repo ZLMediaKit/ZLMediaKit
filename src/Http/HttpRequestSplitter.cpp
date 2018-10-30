@@ -54,10 +54,12 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
 
     //数据按照请求头处理
     const char *index = nullptr;
-    while (_content_len == 0 && (index = strstr(ptr,"\r\n\r\n")) != nullptr) {
+    uint64_t remain = len;
+    while (_content_len == 0 && remain > 0 && (index = onSearchPacketTail(ptr,remain)) != nullptr) {
         //_content_len == 0，这是请求头
-        _content_len = onRecvHeader(ptr, index - ptr + 4);
-        ptr = index + 4;
+        _content_len = onRecvHeader(ptr, index - ptr);
+        ptr = index;
+        remain = len - (ptr - data);
     }
 
     /*
@@ -65,7 +67,6 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
      */
     tail_ref = tail_tmp;
 
-    uint64_t remain = len - (ptr - data);
     if(remain <= 0){
         //没有剩余数据，清空缓存
         _remain_data.clear();
@@ -122,6 +123,14 @@ void HttpRequestSplitter::setContentLen(int64_t content_len) {
 void HttpRequestSplitter::reset() {
     _content_len = 0;
     _remain_data.clear();
+}
+
+const char *HttpRequestSplitter::onSearchPacketTail(const char *data,int len) {
+    auto pos = strstr(data,"\r\n\r\n");
+    if(pos == nullptr){
+        return nullptr;
+    }
+    return  pos + 4;
 }
 
 
