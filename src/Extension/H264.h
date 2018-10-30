@@ -131,7 +131,7 @@ public:
     H264Track(const string &sps,const string &pps,int sps_prefix_len = 4,int pps_prefix_len = 4){
         _sps = sps.substr(sps_prefix_len);
         _pps = pps.substr(pps_prefix_len);
-        parseSps(_sps);
+        onReady();
     }
 
     /**
@@ -145,7 +145,7 @@ public:
         }
         _sps = string(sps->data() + sps->prefixSize(),sps->size() - sps->prefixSize());
         _pps = string(pps->data() + pps->prefixSize(),pps->size() - pps->prefixSize());
-        parseSps(_sps);
+        onReady();
     }
 
     /**
@@ -207,11 +207,7 @@ public:
         switch (type){
             case H264Frame::NAL_SPS:{
                 //sps
-                bool flag = _sps.empty();
                 _sps = string(frame->data() + frame->prefixSize(),frame->size() - frame->prefixSize());
-                if(flag && _width == 0){
-                    parseSps(_sps);
-                }
             }
                 break;
             case H264Frame::NAL_PPS:{
@@ -261,14 +257,17 @@ public:
             }
                 break;
         }
+
+        if(_width == 0 && ready()){
+            onReady();
+        }
     }
 private:
     /**
      * 解析sps获取宽高fps
-     * @param sps sps不含头数据
      */
-    void parseSps(const string &sps){
-        getAVCInfo(sps,_width,_height,_fps);
+    void onReady(){
+        getAVCInfo(_sps,_width,_height,_fps);
     }
     Track::Ptr clone() override {
         return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);

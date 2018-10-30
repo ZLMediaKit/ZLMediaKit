@@ -152,7 +152,7 @@ public:
             throw std::invalid_argument("adts配置必须为2个字节");
         }
         _cfg = aac_cfg;
-        parseAacCfg(_cfg);
+        onReady();
     }
 
     /**
@@ -165,7 +165,7 @@ public:
             throw std::invalid_argument("adts头必须不少于7个字节");
         }
         _cfg = makeAdtsConfig((uint8_t*)adts_header);
-        parseAacCfg(_cfg);
+        onReady();
     }
 
     /**
@@ -177,7 +177,7 @@ public:
             throw std::invalid_argument("必须输入带adts头的aac帧");
         }
         _cfg = makeAdtsConfig((uint8_t*)aac_frame_with_adts->data());
-        parseAacCfg(_cfg);
+        onReady();
     }
 
     /**
@@ -235,18 +235,17 @@ public:
         if(_cfg.empty() && frame->prefixSize() >= 7){
             //7个字节的adts头
             _cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
-            parseAacCfg(_cfg);
+            onReady();
         }
         AudioTrack::inputFrame(frame);
     }
 private:
     /**
      * 解析2个字节的aac配置
-     * @param aac_cfg
      */
-    void parseAacCfg(const string &aac_cfg){
+    void onReady(){
         AACFrame aacFrame;
-        makeAdtsHeader(aac_cfg,aacFrame);
+        makeAdtsHeader(_cfg,aacFrame);
         getAACInfo(aacFrame,_sampleRate,_channel);
     }
     Track::Ptr clone() override {
