@@ -32,7 +32,6 @@
 #include <functional>
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
-#include "Player/Player.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
 using namespace std;

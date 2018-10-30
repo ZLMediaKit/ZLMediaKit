@@ -31,7 +31,6 @@
 #include <unordered_map>
 #include "Rtmp/amf.h"
 #include "Rtmp/Rtmp.h"
-#include "Player/Player.h"
 #include "Player/PlayerBase.h"
 #include "Util/TimeTicker.h"
 #include "RtmpCodec.h"

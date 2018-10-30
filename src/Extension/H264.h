@@ -24,106 +24,81 @@
  * SOFTWARE.
  */
 
-#ifndef ZLMEDIAKIT_TRACK_H
-#define ZLMEDIAKIT_TRACK_H
+#ifndef ZLMEDIAKIT_H264_H
+#define ZLMEDIAKIT_H264_H
 
-#include <memory>
-#include <string>
 #include "Frame.h"
-#include "Util/RingBuffer.h"
-#include "Rtsp/Rtsp.h"
-#include "Player.h"
-using namespace toolkit;
+#include "Track.h"
 
 namespace mediakit{
 
-/**
- * 媒体通道描述类，也支持帧输入输出
- */
-class Track : public FrameRingInterfaceDelegate , public CodecInfo{
-public:
-    typedef std::shared_ptr<Track> Ptr;
-    Track(){}
-
-    virtual ~Track(){}
-
-    /**
-     * 是否准备好，准备好才能获取譬如sps pps等信息
-     * @return
-     */
-    virtual bool ready() = 0;
-
-    /**
-     * 克隆接口，用于复制本对象用
-     * 在调用该接口时只会复制派生类的信息
-     * 环形缓存和代理关系不能拷贝，否则会关系紊乱
-     * @return
-     */
-    virtual Track::Ptr clone() = 0;
-
-    /**
-     * 复制拷贝，只能拷贝派生类的信息，
-     * 环形缓存和代理关系不能拷贝，否则会关系紊乱
-     * @param that
-     */
-    Track(const Track &that){}
-};
+bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
+bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
 
 /**
- * 视频通道描述Track类，支持获取宽高fps信息
+ * 264帧类
  */
-class VideoTrack : public Track {
+class H264Frame : public Frame {
 public:
-    typedef std::shared_ptr<VideoTrack> Ptr;
+    typedef std::shared_ptr<H264Frame> Ptr;
 
-    TrackType getTrackType() const override { return TrackVideo;};
+    char *data() const override{
+        return (char *)buffer.data();
+    }
+    uint32_t size() const override {
+        return buffer.size();
+    }
+    uint32_t stamp() const override {
+        return timeStamp;
+    }
+    uint32_t prefixSize() const override{
+        return iPrefixSize;
+    }
 
-    /**
-     * 返回视频高度
-     * @return
-     */
-    virtual int getVideoHeight() const = 0;
+    TrackType getTrackType() const override{
+        return TrackVideo;
+    }
 
-    /**
-     * 返回视频宽度
-     * @return
-     */
-    virtual int getVideoWidth() const  = 0;
+    CodecId getCodecId() const override{
+        return CodecH264;
+    }
 
-    /**
-     * 返回视频fps
-     * @return
-     */
-    virtual float getVideoFps() const = 0;
+    bool keyFrame() const override {
+        return type == 5;
+    }
+public:
+    uint16_t sequence;
+    uint32_t timeStamp;
+    unsigned char type;
+    string buffer;
+    uint32_t iPrefixSize = 4;
 };
 
-/**
- * 音频Track派生类，支持采样率通道数，采用位数信息
- */
-class AudioTrack : public Track {
+
+class H264FrameNoCopyAble : public FrameNoCopyAble {
 public:
-    typedef std::shared_ptr<AudioTrack> Ptr;
+    typedef std::shared_ptr<H264FrameNoCopyAble> Ptr;
 
-    TrackType getTrackType() const override { return TrackAudio;};
+    H264FrameNoCopyAble(char *ptr,uint32_t size,uint32_t stamp,int prefixeSize = 4){
+        buffer_ptr = ptr;
+        buffer_size = size;
+        timeStamp = stamp;
+        iPrefixSize = prefixeSize;
+    }
 
-    /**
-     * 返回音频采样率
-     * @return
-     */
-    virtual int getAudioSampleRate() const  = 0;
+    TrackType getTrackType() const override{
+        return TrackVideo;
+    }
 
-    /**
-     * 返回音频采样位数，一般为16或8
-     * @return
-     */
-    virtual int getAudioSampleBit() const = 0;
+    CodecId getCodecId() const override{
+        return CodecH264;
+    }
 
-    /**
-     * 返回音频通道数
-     * @return
-     */
-    virtual int getAudioChannel() const = 0;
+    bool keyFrame() const override {
+        return (buffer_ptr[iPrefixSize] & 0x1F) == 5;
+    }
 };
+
 
 /**
  * 264视频通道
@@ -298,135 +273,8 @@ private:
     H264Frame::Ptr _ppsFrame;
 };
 
-/**
- * aac音频通道
- */
-class AACTrack : public AudioTrack{
-public:
-    typedef std::shared_ptr<AACTrack> Ptr;
-
-    /**
-     * 延后获取adts头信息
-     * 在随后的inputFrame中获取adts头信息
-     */
-    AACTrack(){}
-
-    /**
-     * 构造aac类型的媒体
-     * @param aac_cfg aac两个字节的配置信息
-     */
-    AACTrack(const string &aac_cfg){
-        if(aac_cfg.size() != 2){
-            throw std::invalid_argument("adts配置必须为2个字节");
-        }
-        _cfg = aac_cfg;
-        parseAacCfg(_cfg);
-    }
-
-    /**
-     * 构造aac类型的媒体
-     * @param adts_header adts头，7个字节
-     * @param adts_header_len adts头长度，不少于7个字节
-     */
-    AACTrack(const char *adts_header,int adts_header_len = 7){
-        if(adts_header_len < 7){
-            throw std::invalid_argument("adts头必须不少于7个字节");
-        }
-        _cfg = makeAdtsConfig((uint8_t*)adts_header);
-        parseAacCfg(_cfg);
-    }
-
-    /**
-     * 构造aac类型的媒体
-     * @param aac_frame_with_adts 带adts头的aac帧
-     */
-    AACTrack(const Frame::Ptr &aac_frame_with_adts){
-        if(aac_frame_with_adts->getCodecId() != CodecAAC || aac_frame_with_adts->prefixSize() < 7){
-            throw std::invalid_argument("必须输入带adts头的aac帧");
-        }
-        _cfg = makeAdtsConfig((uint8_t*)aac_frame_with_adts->data());
-        parseAacCfg(_cfg);
-    }
-
-    /**
-     * 获取aac两个字节的配置
-     * @return
-     */
-    const string &getAacCfg() const{
-        return _cfg;
-    }
-
-    /**
-     * 返回编码类型
-     * @return
-     */
-    CodecId getCodecId() const override{
-        return CodecAAC;
-    }
-
-    /**
-     * 在获取aac_cfg前是无效的Track
-     * @return
-     */
-    bool ready() override {
-        return !_cfg.empty();
-    }
-
-
-    /**
-    * 返回音频采样率
-    * @return
-    */
-    int getAudioSampleRate() const override{
-        return _sampleRate;
-    }
-    /**
-     * 返回音频采样位数，一般为16或8
-     * @return
-     */
-    int getAudioSampleBit() const override{
-        return _sampleBit;
-    }
-    /**
-     * 返回音频通道数
-     * @return
-     */
-    int getAudioChannel() const override{
-        return _channel;
-    }
-
-    /**
-    * 输入数据帧,并获取aac_cfg
-    * @param frame 数据帧
-    */
-    void inputFrame(const Frame::Ptr &frame) override{
-        if(_cfg.empty() && frame->prefixSize() >= 7){
-            //7个字节的adts头
-            _cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
-            parseAacCfg(_cfg);
-        }
-        AudioTrack::inputFrame(frame);
-    }
-private:
-    /**
-     * 解析2个字节的aac配置
-     * @param aac_cfg
-     */
-    void parseAacCfg(const string &aac_cfg){
-        AACFrame aacFrame;
-        makeAdtsHeader(aac_cfg,aacFrame);
-        getAACInfo(aacFrame,_sampleRate,_channel);
-    }
-    Track::Ptr clone() override {
-        return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
-    }
-private:
-    string _cfg;
-    int _sampleRate = 0;
-    int _sampleBit = 16;
-    int _channel = 0;
-};
 
 }//namespace mediakit
 
-#endif //ZLMEDIAKIT_TRACK_H
+
+#endif //ZLMEDIAKIT_H264_H

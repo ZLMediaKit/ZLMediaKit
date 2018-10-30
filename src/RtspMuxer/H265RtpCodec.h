@@ -24,76 +24,81 @@
  * SOFTWARE.
  */
 
-#ifndef ZLMEDIAKIT_AACRTPCODEC_H
-#define ZLMEDIAKIT_AACRTPCODEC_H
+#ifndef ZLMEDIAKIT_H265RTPCODEC_H
+#define ZLMEDIAKIT_H265RTPCODEC_H
 
 #include "RtpCodec.h"
-#include "Extension/AAC.h"
-namespace mediakit{
-/**
- * aac rtp转adts类
- */
-class AACRtpDecoder : public RtpCodec , public ResourcePoolHelper<AACFrame> {
-public:
-    typedef std::shared_ptr<AACRtpDecoder> Ptr;
+#include "Util/ResourcePool.h"
+#include "Extension/H265.h"
 
-    AACRtpDecoder();
-    ~AACRtpDecoder() {}
+using namespace toolkit;
+
+namespace mediakit{
+
+/**
+ * h265 rtp解码类
+ */
+class H265RtpDecoder : public RtpCodec , public ResourcePoolHelper<H265Frame> {
+public:
+    typedef std::shared_ptr<H265RtpDecoder> Ptr;
+
+    H265RtpDecoder();
+    ~H265RtpDecoder() {}
 
     /**
-     * 输入rtp并解码
-     * @param rtp rtp数据包
-     * @param key_pos 此参数内部强制转换为false,请忽略之
+     * 输入265 rtp包
+     * @param rtp rtp包
+     * @param key_pos 此参数忽略之
      */
-    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = false) override;
+    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
 
     TrackType getTrackType() const override{
-        return TrackAudio;
+        return TrackVideo;
     }
 
     CodecId getCodecId() const override{
-        return CodecAAC;
+        return CodecH265;
     }
 private:
-    void onGetAAC(const AACFrame::Ptr &frame);
-    AACFrame::Ptr obtainFrame();
+    bool decodeRtp(const RtpPacket::Ptr &rtp);
+    void onGetH265(const H265Frame::Ptr &frame);
+    H265Frame::Ptr obtainFrame();
 private:
-    AACFrame::Ptr _adts;
+    H265Frame::Ptr _h265frame;
 };
 
-
 /**
- * aac adts转rtp类
+ * 265 rtp打包类
  */
-class AACRtpEncoder : public AACRtpDecoder , public RtpInfo {
+class H265RtpEncoder : public H265RtpDecoder ,public RtpInfo{
 public:
-    typedef std::shared_ptr<AACRtpEncoder> Ptr;
+    typedef std::shared_ptr<H265RtpEncoder> Ptr;
 
     /**
      * @param ui32Ssrc ssrc
-     * @param ui32MtuSize mtu 大小
-     * @param ui32SampleRate 采样率
+     * @param ui32MtuSize mtu大小
+     * @param ui32SampleRate 采样率，强制为90000
      * @param ui8PlayloadType pt类型
-     * @param ui8Interleaved rtsp interleaved 值
+     * @param ui8Interleaved rtsp interleaved
      */
-    AACRtpEncoder(uint32_t ui32Ssrc,
-                  uint32_t ui32MtuSize,
-                  uint32_t ui32SampleRate,
-                  uint8_t ui8PlayloadType = 97,
-                  uint8_t ui8Interleaved = TrackAudio * 2);
-    ~AACRtpEncoder() {}
+    H265RtpEncoder(uint32_t ui32Ssrc,
+                   uint32_t ui32MtuSize = 1400,
+                   uint32_t ui32SampleRate = 90000,
+                   uint8_t ui8PlayloadType = 96,
+                   uint8_t ui8Interleaved = TrackVideo * 2);
+    ~H265RtpEncoder() {}
 
     /**
-     * 输入aac 数据，必须带dats头
-     * @param frame 带dats头的aac数据
+     * 输入265帧
+     * @param frame 帧数据，必须
      */
     void inputFrame(const Frame::Ptr &frame) override;
 private:
-    void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
+    void makeH265Rtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:
     unsigned char _aucSectionBuf[1600];
 };
 
-}//namespace mediakit
+}//namespace mediakit{
 
-#endif //ZLMEDIAKIT_AACRTPCODEC_H
+#endif //ZLMEDIAKIT_H265RTPCODEC_H
