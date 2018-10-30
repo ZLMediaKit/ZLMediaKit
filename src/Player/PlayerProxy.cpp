@@ -24,7 +24,6 @@
  * SOFTWARE.
  */
 
-#include "Player/Player.h"
 #include "Common/config.h"
 #include "PlayerProxy.h"
 #include "Util/mini.h"

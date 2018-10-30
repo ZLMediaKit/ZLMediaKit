@@ -29,7 +29,7 @@
 #include "RtspDemuxer.h"
 #include "Util/base64.h"
 #include "H264/SPSParser.h"
-#include "Common/Factory.h"
+#include "Extension/Factory.h"
 
 using namespace std;
 

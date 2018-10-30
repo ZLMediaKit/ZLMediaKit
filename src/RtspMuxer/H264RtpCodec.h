@@ -29,6 +29,7 @@
 
 #include "RtpCodec.h"
 #include "Util/ResourcePool.h"
+#include "Extension/H264.h"
 using namespace toolkit;
 
 namespace mediakit{

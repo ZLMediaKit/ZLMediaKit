@@ -30,9 +30,9 @@
 #include "RtmpMuxer/H264RtmpCodec.h"
 #include "RtmpMuxer/AACRtmpCodec.h"
 #include "Util/base64.h"
-#include "Player/Track.h"
+#include "Extension/Track.h"
 #include "Rtmp/amf.h"
-#include "Common/Factory.h"
+#include "Extension/Factory.h"
 
 namespace mediakit {
 

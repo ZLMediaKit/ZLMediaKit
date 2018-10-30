@@ -34,6 +34,9 @@
 #include "Util/mini.h"
 #include "Util/util.h"
 #include "Util/NoticeCenter.h"
+#include "Extension/H264.h"
+#include "Extension/AAC.h"
+
 using namespace toolkit;
 
 namespace mediakit {

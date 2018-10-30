@@ -31,13 +31,12 @@
 #include <memory>
 #include <string>
 #include <functional>
-#include "Player.h"
 #include "Network/Socket.h"
 #include "Util/mini.h"
 #include "Util/RingBuffer.h"
 #include "Common/MediaSource.h"
-#include "Frame.h"
-#include "Track.h"
+#include "Extension/Frame.h"
+#include "Extension/Track.h"
 using namespace toolkit;
 
 namespace mediakit {

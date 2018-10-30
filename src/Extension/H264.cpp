@@ -24,29 +24,33 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_PLAYER_PLAYER_H_
-#define SRC_PLAYER_PLAYER_H_
 
-#include <string>
-#include "Frame.h"
+#include "H264.h"
+#include "H264/SPSParser.h"
+#include "Util/logger.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace mediakit;
+namespace mediakit{
 
-unsigned const samplingFrequencyTable[16] = { 96000, 88200,
-											  64000, 48000,
-											  44100, 32000,
-											  24000, 22050,
-											  16000, 12000,
-											  11025, 8000,
-											  7350, 0, 0, 0 };
+bool getAVCInfo(const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
+    return getAVCInfo(strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
+}
+bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
+    T_GetBitContext tGetBitBuf;
+    T_SPS tH264SpsInfo;
+    memset(&tGetBitBuf,0,sizeof(tGetBitBuf));
+    memset(&tH264SpsInfo,0,sizeof(tH264SpsInfo));
+    tGetBitBuf.pu8Buf = (uint8_t*)sps + 1;
+    tGetBitBuf.iBufSize = sps_len - 1;
+    if(0 != h264DecSeqParameterSet((void *) &tGetBitBuf, &tH264SpsInfo)){
+        return false;
+    }
+    h264GetWidthHeight(&tH264SpsInfo, &iVideoWidth, &iVideoHeight);
+    h264GeFramerate(&tH264SpsInfo, &iVideoFps);
+    //ErrorL << iVideoWidth << " " << iVideoHeight << " " << iVideoFps;
+    return true;
+}
 
-void	makeAdtsHeader(const string &strAudioCfg,AACFrame &adts);
-void 	writeAdtsHeader(const AACFrame &adts, uint8_t *pcAdts) ;
-string 	makeAdtsConfig(const uint8_t *pcAdts);
-void 	getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel);
-bool 	getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-bool 	getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
+}//namespace mediakit
 
 
-#endif /* SRC_PLAYER_PLAYER_H_ */

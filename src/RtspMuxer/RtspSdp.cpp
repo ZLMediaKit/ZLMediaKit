@@ -24,7 +24,7 @@
 * SOFTWARE.
 */
 #include "RtspSdp.h"
-#include "Common/Factory.h"
+#include "Extension/Factory.h"
 
 namespace mediakit{
 
