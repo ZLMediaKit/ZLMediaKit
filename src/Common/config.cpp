@@ -62,6 +62,7 @@ const char kBroadcastRtmpPublish[] = "kBroadcastRtmpPublish";
 const char kBroadcastFlowReport[] = "kBroadcastFlowReport";
 const char kBroadcastReloadConfig[] = "kBroadcastReloadConfig";
 const char kBroadcastShellLogin[] = "kBroadcastShellLogin";
+const char kBroadcastNotFoundStream[] = "kBroadcastNotFoundStream";
 
 const char kFlowThreshold[] = "broadcast.flowThreshold";
 

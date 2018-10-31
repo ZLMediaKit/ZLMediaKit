@@ -247,6 +247,7 @@ bool RtspSession::handleReq_Describe() {
 
     	if(!success){
 			//未找到相应的MediaSource
+			WarnL << "No such stream:" <<  strongSelf->_mediaInfo._vhost << " " <<  strongSelf->_mediaInfo._app << " " << strongSelf->_mediaInfo._streamid;
 			strongSelf->send_StreamNotFound();
 			strongSelf->shutdown();
 			return;
@@ -933,6 +934,9 @@ void RtspSession::findStream(const function<void(bool)> &cb) {
 		return;
 	}
 
+	//广播未找到流
+	NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,_mediaInfo,*this);
+
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
 	auto task_id = this;
 	auto media_info = _mediaInfo;
@@ -943,7 +947,7 @@ void RtspSession::findStream(const function<void(bool)> &cb) {
 			vhost == media_info._vhost &&
 			app == media_info._app &&
 			stream == media_info._streamid) {
-			//播发器请求的rtmp流终于注册上了
+			//播发器请求的rtsp流终于注册上了
 			auto strongSelf = weakSelf.lock();
 			if (!strongSelf) {
 				return;
@@ -983,7 +987,6 @@ inline bool RtspSession::findStream() {
 	RtspMediaSource::Ptr pMediaSrc =
     dynamic_pointer_cast<RtspMediaSource>( MediaSource::find(RTSP_SCHEMA,_mediaInfo._vhost, _mediaInfo._app,_mediaInfo._streamid) );
 	if (!pMediaSrc) {
-		WarnL << "No such stream:" <<  _mediaInfo._vhost << " " <<  _mediaInfo._app << " " << _mediaInfo._streamid;
 		return false;
 	}
 	_strSdp = pMediaSrc->getSdp();
