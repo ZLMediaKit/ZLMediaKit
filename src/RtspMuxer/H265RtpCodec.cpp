@@ -210,38 +210,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
 }
 
 void H265RtpEncoder::makeH265Rtp(int nal_type,const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
-    uint16_t ui16RtpLen = len + 12;
-    uint32_t ts = htonl((_ui32SampleRate / 1000) * uiStamp);
-    uint16_t sq = htons(_ui16Sequence);
-    uint32_t sc = htonl(_ui32Ssrc);
-
-    auto rtppkt = ResourcePoolHelper<RtpPacket>::obtainObj();
-    unsigned char *pucRtp = rtppkt->payload;
-    pucRtp[0] = '$';
-    pucRtp[1] = _ui8Interleaved;
-    pucRtp[2] = ui16RtpLen >> 8;
-    pucRtp[3] = ui16RtpLen & 0x00FF;
-    pucRtp[4] = 0x80;
-    pucRtp[5] = (mark << 7) | _ui8PlayloadType;
-    memcpy(&pucRtp[6], &sq, 2);
-    memcpy(&pucRtp[8], &ts, 4);
-    //ssrc
-    memcpy(&pucRtp[12], &sc, 4);
-    //playload
-    memcpy(&pucRtp[16], data, len);
-
-    rtppkt->PT = _ui8PlayloadType;
-    rtppkt->interleaved = _ui8Interleaved;
-    rtppkt->mark = mark;
-    rtppkt->length = len + 16;
-    rtppkt->sequence = _ui16Sequence;
-    rtppkt->timeStamp = uiStamp;
-    rtppkt->ssrc = _ui32Ssrc;
-    rtppkt->type = TrackVideo;
-    rtppkt->offset = 16;
-    RtpCodec::inputRtp(rtppkt,nal_type == H265Frame::NAL_VPS);
-    _ui16Sequence++;
-    _ui32TimeStamp = uiStamp;
+    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),nal_type == H265Frame::NAL_VPS);
 }
 
 }//namespace mediakit

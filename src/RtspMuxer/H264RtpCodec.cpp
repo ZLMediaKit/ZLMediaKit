@@ -184,6 +184,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto pcData = frame->data() + frame->prefixSize();
     auto uiStamp = frame->stamp();
     auto iLen = frame->size() - frame->prefixSize();
+    unsigned char naluType =  H264_TYPE(pcData[0]); //获取NALU的5bit 帧类型
 
     uiStamp %= cycleMS;
     int iSize = _ui32MtuSize - 2;
@@ -192,8 +193,6 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         const unsigned char s_e_r_Mid = 0x00;
         const unsigned char s_e_r_End = 0x40;
         //获取帧头数据，1byte
-        unsigned char naluType =  H264_TYPE(pcData[0]); //获取NALU的5bit 帧类型
-
         unsigned char nal_ref_idc = *((unsigned char *) pcData) & 0x60; //获取NALU的2bit 帧重要程度 00 可以丢 11不能丢
         //nal_ref_idc = 0x60;
         //组装FU-A帧头数据 2byte
@@ -219,48 +218,15 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
             memcpy(_aucSectionBuf + 1, &s_e_r_type, 1);
             memcpy(_aucSectionBuf + 2, (unsigned char *) pcData + nOffset, iSize);
             nOffset += iSize;
-            makeH264Rtp(_aucSectionBuf, iSize + 2, mark, uiStamp);
+            makeH264Rtp(naluType,_aucSectionBuf, iSize + 2, mark, uiStamp);
         }
     } else {
-        makeH264Rtp(pcData, iLen, true, uiStamp);
+        makeH264Rtp(naluType,pcData, iLen, true, uiStamp);
     }
 }
 
-void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
-    uint16_t ui16RtpLen = len + 12;
-    uint32_t ts = htonl((_ui32SampleRate / 1000) * uiStamp);
-    uint16_t sq = htons(_ui16Sequence);
-    uint32_t sc = htonl(_ui32Ssrc);
-
-    auto rtppkt = ResourcePoolHelper<RtpPacket>::obtainObj();
-    unsigned char *pucRtp = rtppkt->payload;
-    pucRtp[0] = '$';
-    pucRtp[1] = _ui8Interleaved;
-    pucRtp[2] = ui16RtpLen >> 8;
-    pucRtp[3] = ui16RtpLen & 0x00FF;
-    pucRtp[4] = 0x80;
-    pucRtp[5] = (mark << 7) | _ui8PlayloadType;
-    memcpy(&pucRtp[6], &sq, 2);
-    memcpy(&pucRtp[8], &ts, 4);
-    //ssrc
-    memcpy(&pucRtp[12], &sc, 4);
-    //playload
-    memcpy(&pucRtp[16], data, len);
-
-    rtppkt->PT = _ui8PlayloadType;
-    rtppkt->interleaved = _ui8Interleaved;
-    rtppkt->mark = mark;
-    rtppkt->length = len + 16;
-    rtppkt->sequence = _ui16Sequence;
-    rtppkt->timeStamp = uiStamp;
-    rtppkt->ssrc = _ui32Ssrc;
-    rtppkt->type = TrackVideo;
-    rtppkt->offset = 16;
-
-    uint8_t type = H264_TYPE(((uint8_t *) (data))[0]);
-    RtpCodec::inputRtp(rtppkt,type == H264Frame::NAL_SPS);
-    _ui16Sequence++;
-    _ui32TimeStamp = uiStamp;
+void H264RtpEncoder::makeH264Rtp(int nal_type,const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
+    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),nal_type == H264Frame::NAL_SPS);
 }
 
 }//namespace mediakit
