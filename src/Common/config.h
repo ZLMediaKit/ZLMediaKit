@@ -110,6 +110,10 @@ extern const char kBroadcastShellLogin[];
 extern const char kBroadcastFlowReport[];
 #define BroadcastFlowReportArgs const MediaInfo &args,const uint64_t &totalBytes,const uint64_t &totalDuration,TcpSession &sender
 
+//未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了
+extern const char kBroadcastNotFoundStream[];
+#define BroadcastNotFoundStreamArgs const MediaInfo &args,TcpSession &sender
+
 //流量汇报事件流量阈值,单位KB，默认1MB
 extern const char kFlowThreshold[];
 

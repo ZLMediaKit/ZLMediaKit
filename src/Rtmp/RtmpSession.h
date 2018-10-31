@@ -60,7 +60,9 @@ private:
 	void onCmd_play(AMFDecoder &dec);
 	void onCmd_play2(AMFDecoder &dec);
 	void doPlay(AMFDecoder &dec);
-    void doPlayResponse(const string &err,bool tryDelay,const std::shared_ptr<onceToken> &token);
+	void doPlayResponse(const string &err,const std::function<void(bool)> &cb);
+	void sendPlayResponse(const string &err,const RtmpMediaSource::Ptr &src);
+
 	void onCmd_seek(AMFDecoder &dec);
 	void onCmd_pause(AMFDecoder &dec);
 	void setMetaData(AMFDecoder &dec);
@@ -87,6 +89,7 @@ private:
 
     void doDelay(int delaySec,const std::function<void()> &fun);
 	void cancelDelyaTask();
+	void findStream(const function<void(const RtmpMediaSource::Ptr &src)> &cb ,bool retry = true);
 private:
 	std::string _strTcUrl;
 	MediaInfo _mediaInfo;
