@@ -107,7 +107,7 @@ protected:
 };
 
 
-class RtpInfo{
+class RtpInfo : public  ResourcePoolHelper<RtpPacket>{
 public:
     typedef std::shared_ptr<RtpInfo> Ptr;
 
@@ -153,6 +153,7 @@ public:
     uint32_t getMtuSize() const {
         return _ui32MtuSize;
     }
+    RtpPacket::Ptr makeRtp(TrackType type,const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 protected:
     uint32_t _ui32Ssrc;
     uint32_t _ui32SampleRate;
@@ -163,7 +164,7 @@ protected:
     uint32_t _ui32TimeStamp = 0;
 };
 
-class RtpCodec : public RtpRing, public FrameRingInterfaceDelegate , public CodecInfo ,  public ResourcePoolHelper<RtpPacket>{
+class RtpCodec : public RtpRing, public FrameRingInterfaceDelegate , public CodecInfo{
 public:
     typedef std::shared_ptr<RtpCodec> Ptr;
     RtpCodec(){}

@@ -71,40 +71,8 @@ void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 }
 
-void AACRtpEncoder::makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp) {
-    uint16_t u16RtpLen = uiLen + 12;
-    uint32_t ts = htonl((_ui32SampleRate / 1000) * uiStamp);
-    uint16_t sq = htons(_ui16Sequence);
-    uint32_t sc = htonl(_ui32Ssrc);
-    auto pRtppkt = ResourcePoolHelper<RtpPacket>::obtainObj();
-    auto &rtppkt = *pRtppkt;
-    unsigned char *pucRtp = rtppkt.payload;
-    pucRtp[0] = '$';
-    pucRtp[1] = _ui8Interleaved;
-    pucRtp[2] = u16RtpLen >> 8;
-    pucRtp[3] = u16RtpLen & 0x00FF;
-    pucRtp[4] = 0x80;
-    pucRtp[5] = (bMark << 7) | _ui8PlayloadType;
-    memcpy(&pucRtp[6], &sq, 2);
-    memcpy(&pucRtp[8], &ts, 4);
-    //ssrc
-    memcpy(&pucRtp[12], &sc, 4);
-    //playload
-    memcpy(&pucRtp[16], pData, uiLen);
-
-    rtppkt.PT = _ui8PlayloadType;
-    rtppkt.interleaved = _ui8Interleaved;
-    rtppkt.mark = bMark;
-    rtppkt.length = uiLen + 16;
-    rtppkt.sequence = _ui16Sequence;
-    rtppkt.timeStamp = uiStamp;
-    rtppkt.ssrc = _ui32Ssrc;
-    rtppkt.type = TrackAudio;
-    rtppkt.offset = 16;
-
-    RtpCodec::inputRtp(pRtppkt, false);
-    _ui16Sequence++;
-    _ui32TimeStamp = uiStamp;
+void AACRtpEncoder::makeAACRtp(const void *data, unsigned int len, bool mark, uint32_t uiStamp) {
+    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp), false);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

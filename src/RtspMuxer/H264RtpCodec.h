@@ -93,7 +93,7 @@ public:
      */
     void inputFrame(const Frame::Ptr &frame) override;
 private:
-    void makeH264Rtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
+    void makeH264Rtp(int nal_type,const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
 private:
     unsigned char _aucSectionBuf[1600];
 };
