@@ -28,12 +28,8 @@
 #include <signal.h>
 #include <iostream>
 #include "Common/config.h"
-#include "Http/HttpSession.h"
-#ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
 #include "Http/HttpsSession.h"
-#endif//ENABLE_OPENSSL
-
 #include "Util/File.h"
 #include "Util/logger.h"
 #include "Util/onceToken.h"
