@@ -229,7 +229,7 @@ public:
     }
 
     bool ready() override {
-        return !_sps.empty() && !_pps.empty();
+        return !_vps.empty() && !_sps.empty() && !_pps.empty();
     }
 
 
