@@ -973,7 +973,7 @@ void RtspSession::findStream(const function<void(bool)> &cb) {
 
 	NoticeCenter::Instance().addListener(task_id, Broadcast::kBroadcastMediaChanged, onRegist);
 	//5秒后执行失败回调
-	doDelay(5, [cb]() {
+	doDelay(5, [cb,task_id]() {
 		NoticeCenter::Instance().delListener(task_id,Broadcast::kBroadcastMediaChanged);
 		cb(false);
 	});
