@@ -92,13 +92,13 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     RtpCodec::inputRtp(rtppack, false);
 
     int length = rtppack->length - rtppack->offset;
-    if (_adts->aac_frame_length + length - 4 > sizeof(AACFrame::buffer)) {
+    if (_adts->aac_frame_length + length > sizeof(AACFrame::buffer)) {
         _adts->aac_frame_length = 7;
         WarnL << "aac负载数据太长";
         return false;
     }
-    memcpy(_adts->buffer + _adts->aac_frame_length, rtppack->payload + rtppack->offset + 4, length - 4);
-    _adts->aac_frame_length += (length - 4);
+    memcpy(_adts->buffer + _adts->aac_frame_length, rtppack->payload + rtppack->offset, length);
+    _adts->aac_frame_length += length;
     if (rtppack->mark == true) {
         _adts->sequence = rtppack->sequence;
         _adts->timeStamp = rtppack->timeStamp;
