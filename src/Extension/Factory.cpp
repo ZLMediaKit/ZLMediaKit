@@ -82,7 +82,7 @@ Sdp::Ptr Factory::getSdpByTrack(const Track::Ptr &track) {
 
 Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     if (strcasestr(track->_codec.data(), "mpeg4-generic") != nullptr) {
-        string aac_cfg_str = FindField(track->_fmtp.c_str(), "config=", "\r\n");
+        string aac_cfg_str = FindField(track->_fmtp.c_str(), "config=", nullptr);
         if (aac_cfg_str.size() != 4) {
             aac_cfg_str = FindField(track->_fmtp.c_str(), "config=", ";");
         }
@@ -106,7 +106,7 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     }
 
     if (strcasestr(track->_codec.data(), "h264") != nullptr) {
-        string sps_pps = FindField(track->_fmtp.c_str(), "sprop-parameter-sets=", "\r\n");
+        string sps_pps = FindField(track->_fmtp.c_str(), "sprop-parameter-sets=", nullptr);
         if(sps_pps.empty()){
             return std::make_shared<H264Track>();
         }
@@ -124,13 +124,19 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     if (strcasestr(track->_codec.data(), "h265") != nullptr) {
         //a=fmtp:96 sprop-sps=QgEBAWAAAAMAsAAAAwAAAwBdoAKAgC0WNrkky/AIAAADAAgAAAMBlQg=; sprop-pps=RAHA8vA8kAA=
         int pt;
-        char sprop_sps[128] = {0},sprop_pps[128] = {0};
-        if (3 != sscanf(track->_fmtp.c_str(), "%d sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt, sprop_sps, sprop_pps)) {
-            return std::make_shared<H265Track>();
+        char sprop_vps[128] = {0},sprop_sps[128] = {0},sprop_pps[128] = {0};
+        if (4 == sscanf(track->_fmtp.c_str(), "%d sprop-vps=%127[^;]; sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt, sprop_vps,sprop_sps, sprop_pps)) {
+            auto vps = decodeBase64(sprop_vps);
+            auto sps = decodeBase64(sprop_sps);
+            auto pps = decodeBase64(sprop_pps);
+            return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
         }
-        auto sps = decodeBase64(sprop_sps);
-        auto pps = decodeBase64(sprop_pps);
-        return std::make_shared<H265Track>("",sps,pps,0,0,0);
+        if (3 == sscanf(track->_fmtp.c_str(), "%d sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt,sprop_sps, sprop_pps)) {
+            auto sps = decodeBase64(sprop_sps);
+            auto pps = decodeBase64(sprop_pps);
+            return std::make_shared<H265Track>("",sps,pps,0,0,0);
+        }
+        return std::make_shared<H265Track>();
     }
 
 
