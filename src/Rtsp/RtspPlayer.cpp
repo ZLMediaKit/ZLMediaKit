@@ -499,7 +499,7 @@ bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned in
 	//时间戳
     memcpy(&rtppt.timeStamp, pucData+4, 4);//内存对齐
 	//时间戳转换成毫秒
-    rtppt.timeStamp = ntohl(rtppt.timeStamp) * 1000 / track->_samplerate;
+    rtppt.timeStamp = ntohl(rtppt.timeStamp) * 1000L / track->_samplerate;
 	//ssrc
 	memcpy(&rtppt.ssrc,pucData+8,4);//内存对齐
 	rtppt.ssrc = ntohl(rtppt.ssrc);
