@@ -58,7 +58,7 @@ Sdp::Ptr Factory::getSdpByTrack(const Track::Ptr &track) {
                 WarnL << "该Track未准备好";
                 return nullptr;
             }
-            return std::make_shared<H265Sdp>(h265Track->getSps(),h265Track->getPps());
+            return std::make_shared<H265Sdp>(h265Track->getVps(),h265Track->getSps(),h265Track->getPps());
         }
 
         case CodecAAC:{
