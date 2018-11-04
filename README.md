@@ -22,6 +22,7 @@
   - RTSP 播放器，支持RTSP代理，支持生成静音音频
   - 支持 `rtp over udp` `rtp over tcp` `rtp over http` `rtp组播`  四种RTP传输方式 。
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口。
+  - 支持H265编码
 
 - RTMP
   - RTMP 播放服务器，支持RTSP/MP4转RTMP。
@@ -54,7 +55,7 @@
 
  
 ## 后续任务
-- 添加支持H265
+- 完善支持H265
 - 添加rtsp推流功能
 
 ## 编译要求
