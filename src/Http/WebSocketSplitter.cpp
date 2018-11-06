@@ -26,8 +26,11 @@
 
 #include "WebSocketSplitter.h"
 #include <sys/types.h>
-//#include <sys/socket.h>
-//#include <arpa/inet.h>
+#if !defined(_WIN32)
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#endif //!defined(_WIN32)
+
 #include "Util/logger.h"
 #include "Util/util.h"
 using namespace toolkit;
