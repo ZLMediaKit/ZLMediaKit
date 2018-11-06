@@ -26,8 +26,12 @@
 
 #include "HttpCookie.h"
 #include "Util/util.h"
-using namespace toolkit;
 
+#if defined(_WIN32)
+#include "strptime_win.h"
+#endif
+
+using namespace toolkit;
 namespace mediakit {
 
 void HttpCookie::setPath(const string &path){
