@@ -73,9 +73,12 @@ MediaSource::Ptr MediaSource::find(
 }
 bool MediaSource::regist() {
     //注册该源，注册后服务器才能找到该源
-    lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-    auto pr = g_mapMediaSrc[_strSchema][_strVhost][_strApp].emplace(_strId,shared_from_this());
-    auto success = pr.second;
+    bool success;
+    {
+        lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
+        auto pr = g_mapMediaSrc[_strSchema][_strVhost][_strApp].emplace(_strId, shared_from_this());
+        success = pr.second;
+    }
     if(success){
         InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
