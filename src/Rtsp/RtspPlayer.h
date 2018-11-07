@@ -106,7 +106,6 @@ private:
     bool sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
 private:
 	string _strUrl;
-
 	SdpAttr _sdpAttr;
 	vector<SdpTrack::Ptr> _aTrackInfo;
 
@@ -143,7 +142,6 @@ private:
     //单位毫秒
 	uint32_t _aiFistStamp[2] = {0,0};
 	uint32_t _aiNowStamp[2] = {0,0};
-    Ticker _aNowStampTicker[2];
 };
 
 } /* namespace mediakit */

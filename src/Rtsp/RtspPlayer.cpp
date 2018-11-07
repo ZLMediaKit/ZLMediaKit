@@ -385,8 +385,6 @@ bool RtspPlayer::sendDescribe() {
 bool RtspPlayer::sendPause(bool bPause,uint32_t seekMS){
     if(!bPause){
         //修改时间轴
-        _aNowStampTicker[0].resetTime();
-        _aNowStampTicker[1].resetTime();
         int iTimeInc = seekMS - getProgressMilliSecond();
         for(unsigned int i = 0 ;i < _aTrackInfo.size() ;i++){
 			_aiFistStamp[i] = _aiNowStamp[i] + iTimeInc;
@@ -415,8 +413,6 @@ void RtspPlayer::handleResPAUSE(const Parser& parser, bool bPause) {
 	}
 	if (!bPause) {
         //修正时间轴
-        _aNowStampTicker[0].resetTime();
-        _aNowStampTicker[1].resetTime();
         auto strRange = parser["Range"];
         if (strRange.size()) {
             auto strStart = FindField(strRange.data(), "npt=", "-");
@@ -581,11 +577,9 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtppt, int trackidx){
 	}
 	_aui64RtpRecv[trackidx] ++;
 	_aui16NowSeq[trackidx] = rtppt->sequence;
-    
-    if (_aNowStampTicker[trackidx].elapsedTime() > 500) {
-        _aiNowStamp[trackidx] = rtppt->timeStamp;
-    }
-    
+	_aiNowStamp[trackidx] = rtppt->timeStamp;
+
+    rtppt->timeStamp -= _aiFistStamp[trackidx];
 	onRecvRTP_l(rtppt,_aTrackInfo[trackidx]);
 }
 float RtspPlayer::getPacketLossRate(TrackType type) const{
@@ -707,7 +701,8 @@ void RtspPlayer::onPlayResult_l(const SockException &ex) {
 
 int RtspPlayer::getTrackIndexByControlSuffix(const string &controlSuffix) const{
 	for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
-		if (_aTrackInfo[i]->_control_surffix == controlSuffix) {
+		auto pos = _aTrackInfo[i]->_control_surffix.find(controlSuffix);
+		if (pos == 0) {
 			return i;
 		}
 	}
