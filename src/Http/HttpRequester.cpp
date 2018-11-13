@@ -42,11 +42,12 @@ void HttpRequester::onResponseBody(const char *buf,size_t size,size_t recvedSize
     _strRecvBody.append(buf,size);
 }
     
-void HttpRequester::onResponseCompleted() {
+bool HttpRequester::onResponseCompleted() {
     if(_onResult){
         _onResult(SockException(),responseStatus(),responseHeader(),_strRecvBody);
         _onResult = nullptr;
     }
+    return true;
 }
     
 void HttpRequester::onDisconnect(const SockException &ex){

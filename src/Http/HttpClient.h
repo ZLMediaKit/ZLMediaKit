@@ -264,10 +264,12 @@ protected:
     };
 
     /**
-     * 接收http回复完毕
+     * 接收http回复完毕,
+     * @return 是否真的结束数据接收
      */
-    virtual void onResponseCompleted(){
+    virtual bool onResponseCompleted(){
     	DebugL;
+        return true;
     }
 
     /**
@@ -293,8 +295,8 @@ protected:
     virtual void onSend() override;
     virtual void onManager() override;
 private:
-    void onResponseCompleted_l();
-    void checkCookie(HttpHeader &headers );
+    bool onResponseCompleted_l();
+    void checkCookie(const HttpHeader &headers );
 protected:
     bool _isHttps;
 private:
