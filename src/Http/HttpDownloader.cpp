@@ -83,7 +83,7 @@ void HttpDownloader::onResponseBody(const char* buf, size_t size, size_t recvedS
 	}
 }
 
-void HttpDownloader::onResponseCompleted() {
+bool HttpDownloader::onResponseCompleted() {
 	closeFile();
 	//InfoL << "md5Sum:" << getMd5Sum(_filePath);
 	_bDownloadSuccess = true;
@@ -91,6 +91,7 @@ void HttpDownloader::onResponseCompleted() {
 		_onResult(Err_success,"success",_filePath.data());
 		_onResult = nullptr;
 	}
+	return true;
 }
 
 void HttpDownloader::onDisconnect(const SockException &ex) {

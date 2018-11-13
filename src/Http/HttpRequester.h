@@ -42,7 +42,7 @@ public:
 private:
     void onResponseHeader(const string &status,const HttpHeader &headers) override;
     void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize)  override;
-    void onResponseCompleted() override;
+    bool onResponseCompleted() override;
     void onDisconnect(const SockException &ex) override;
 private:
     string _strRecvBody;

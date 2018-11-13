@@ -515,7 +515,7 @@ inline bool HttpSession::makeMeun(const string &strFullPath,const string &vhost,
 }
 inline void HttpSession::sendResponse(const char* pcStatus, const KeyValue& header, const string& strContent) {
 	_StrPrinter printer;
-	printer << "HTTP/1.1 " << pcStatus << " \r\n";
+	printer << "HTTP/1.1 " << pcStatus << "\r\n";
 	for (auto &pr : header) {
 		printer << pr.first << ": " << pr.second << "\r\n";
 	}

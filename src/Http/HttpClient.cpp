@@ -153,11 +153,10 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
 
     if(_parser["Content-Length"].empty()){
         //没有Content-Length字段
-//        if(_parser.Content().empty()){
-//            //content长度为0，本次http请求结束
-//            onResponseCompleted_l();
-//            return 0;
-//        }
+        auto ret = onResponseCompleted_l();
+        if(ret){
+            return 0;
+        }
         //如果http回复未声明Content-Length字段，但是却有content内容，那说明可能是个不限长度的content
         _totalBodySize = INT64_MAX;
         _recvedBodySize = 0;
@@ -228,26 +227,29 @@ void HttpClient::onManager() {
     }
 }
 
-void HttpClient::onResponseCompleted_l() {
+bool HttpClient::onResponseCompleted_l() {
     _totalBodySize = 0;
     _recvedBodySize = 0;
-    HttpRequestSplitter::reset();
-    onResponseCompleted();
+    bool ret = onResponseCompleted();
+    if(ret){
+        HttpRequestSplitter::reset();
+    }
+    return ret;
 }
 
-void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
+void HttpClient::checkCookie(const HttpClient::HttpHeader &headers) {
     //Set-Cookie: IPTV_SERVER=8E03927B-CC8C-4389-BC00-31DBA7EC7B49;expires=Sun, Sep 23 2018 15:07:31 GMT;path=/index/api/
-    auto set_cookie = headers["Set-Cookie"];
-    if(set_cookie.empty()){
+    auto it_set_cookie = headers.find("Set-Cookie");
+    if(it_set_cookie == headers.end()){
         return;
     }
-    auto key_val = Parser::parseArgs(set_cookie,";","=");
+    auto key_val = Parser::parseArgs(it_set_cookie->second,";","=");
 
     HttpCookie::Ptr cookie = std::make_shared<HttpCookie>();
     cookie->setHost(_lastHost);
 
     int index = 0;
-    auto arg_vec = split(set_cookie, ";");
+    auto arg_vec = split(it_set_cookie->second, ";");
     for (string &key_val : arg_vec) {
         auto key = FindField(key_val.data(),NULL,"=");
         auto val = FindField(key_val.data(),"=", NULL);
