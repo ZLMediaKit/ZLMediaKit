@@ -233,11 +233,14 @@ public:
     void setBody(const HttpBody::Ptr &body){
         _body = body;
     }
-    const string &responseStatus(){
+    const string &responseStatus() const{
         return _parser.Url();
     }
-    const HttpHeader &responseHeader(){
+    const HttpHeader &responseHeader() const{
         return _parser.getValues();
+    }
+    const Parser& response() const{
+        return _parser;
     }
 protected:
     /**
