@@ -81,19 +81,19 @@ public:
      * 返回视频高度
      * @return
      */
-    virtual int getVideoHeight() const = 0;
+    virtual int getVideoHeight() const {return 0;};
 
     /**
      * 返回视频宽度
      * @return
      */
-    virtual int getVideoWidth() const  = 0;
+    virtual int getVideoWidth() const {return 0;};
 
     /**
      * 返回视频fps
      * @return
      */
-    virtual float getVideoFps() const = 0;
+    virtual float getVideoFps() const {return 0;};
 };
 
 /**
@@ -109,19 +109,19 @@ public:
      * 返回音频采样率
      * @return
      */
-    virtual int getAudioSampleRate() const  = 0;
+    virtual int getAudioSampleRate() const  {return 0;};
 
     /**
      * 返回音频采样位数，一般为16或8
      * @return
      */
-    virtual int getAudioSampleBit() const = 0;
+    virtual int getAudioSampleBit() const {return 0;};
 
     /**
      * 返回音频通道数
      * @return
      */
-    virtual int getAudioChannel() const = 0;
+    virtual int getAudioChannel() const {return 0;};
 };
 
 

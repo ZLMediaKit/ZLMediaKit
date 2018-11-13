@@ -92,10 +92,16 @@ public:
     typedef std::shared_ptr<VideoMete> Ptr;
 
     VideoMete(const VideoTrack::Ptr &video,int datarate = 5000){
-        _metedata.set("width", video->getVideoWidth());
-        _metedata.set("height", video->getVideoHeight());
+        if(video->getVideoWidth() > 0 ){
+            _metedata.set("width", video->getVideoWidth());
+        }
+        if(video->getVideoHeight() > 0 ){
+            _metedata.set("height", video->getVideoHeight());
+        }
+        if(video->getVideoFps() > 0 ){
+            _metedata.set("framerate", video->getVideoFps());
+        }
         _metedata.set("videodatarate", datarate);
-        _metedata.set("framerate", video->getVideoFps());
         _codecId = video->getCodecId();
         _metedata.set("videocodecid", Factory::getAmfByCodecId(_codecId));
     }
@@ -127,10 +133,16 @@ public:
 
     AudioMete(const AudioTrack::Ptr &audio,int datarate = 160){
         _metedata.set("audiodatarate", datarate);
-        _metedata.set("audiosamplerate", audio->getAudioSampleRate());
-        _metedata.set("audiosamplesize", audio->getAudioSampleBit());
-        _metedata.set("audiochannels", audio->getAudioChannel());
-        _metedata.set("stereo", audio->getAudioChannel() > 1);
+        if(audio->getAudioSampleRate() > 0){
+            _metedata.set("audiosamplerate", audio->getAudioSampleRate());
+        }
+        if(audio->getAudioSampleBit() > 0){
+            _metedata.set("audiosamplesize", audio->getAudioSampleBit());
+        }
+        if(audio->getAudioChannel() > 0){
+            _metedata.set("audiochannels", audio->getAudioChannel());
+            _metedata.set("stereo", audio->getAudioChannel() > 1);
+        }
         _codecId = audio->getCodecId();
         _metedata.set("audiocodecid", Factory::getAmfByCodecId(_codecId));
     }

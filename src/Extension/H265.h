@@ -173,7 +173,6 @@ public:
         _vps = vps.substr(vps_prefix_len);
         _sps = sps.substr(sps_prefix_len);
         _pps = pps.substr(pps_prefix_len);
-        onReady();
     }
 
     /**
@@ -202,30 +201,6 @@ public:
 
     CodecId getCodecId() const override {
         return CodecH265;
-    }
-
-    /**
-     * 返回视频高度
-     * @return
-     */
-    int getVideoHeight() const override {
-        return _width;
-    }
-
-    /**
-     * 返回视频宽度
-     * @return
-     */
-    int getVideoWidth() const override {
-        return _height;
-    }
-
-    /**
-     * 返回视频fps
-     * @return
-     */
-    float getVideoFps() const override {
-        return _fps;
     }
 
     bool ready() override {
@@ -313,20 +288,8 @@ public:
             }
                 break;
         }
-
-        if(_width == 0 && ready() ){
-            onReady();
-        }
     }
 private:
-    /**
-     * 解析sps获取宽高fps
-     * @param sps sps不含头数据
-     */
-    void onReady() {
-//        getAVCInfo(sps,_width,_height,_fps);
-    }
-
     Track::Ptr clone() override {
         return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this);
     }
@@ -335,9 +298,6 @@ private:
     string _vps;
     string _sps;
     string _pps;
-    int _width = 0;
-    int _height = 0;
-    float _fps = 0;
 
     H265Frame::Ptr _vpsFrame;
     H265Frame::Ptr _spsFrame;
