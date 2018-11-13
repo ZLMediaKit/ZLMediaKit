@@ -36,6 +36,7 @@
 #include "Network/TcpClient.h"
 #include "HttpRequestSplitter.h"
 #include "HttpCookie.h"
+#include "HttpChunkedSplitter.h"
 
 using namespace std;
 using namespace toolkit;
@@ -314,6 +315,7 @@ private:
     string _lastHost;
     Ticker _aliveTicker;
     float _fTimeOutSec = 0;
+    std::shared_ptr<HttpChunkedSplitter> _chunkedSplitter;
 };
 
 } /* namespace mediakit */

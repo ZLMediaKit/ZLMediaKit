@@ -117,6 +117,7 @@ void HttpClient::onConnect(const SockException &ex) {
     _totalBodySize = 0;
     _recvedBodySize = 0;
     HttpRequestSplitter::reset();
+    _chunkedSplitter.reset();
 
     _StrPrinter printer;
     printer << _method + " " << _path + " HTTP/1.1\r\n";
@@ -156,6 +157,20 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
         _totalBodySize = atoll(_parser["Content-Length"].data());
     }
 
+    if(_parser["Transfer-Encoding"] == "chunked"){
+        //如果Transfer-Encoding字段等于chunked，则认为后续的content是不限制长度的
+        _totalBodySize = -1;
+        _chunkedSplitter = std::make_shared<HttpChunkedSplitter>([this](const char *data,uint64_t len){
+            if(len > 0){
+                auto recvedBodySize = _recvedBodySize + len;
+                onResponseBody(data, len, recvedBodySize, INT64_MAX);
+                _recvedBodySize = recvedBodySize;
+            }else{
+                onResponseCompleted_l();
+            }
+        });
+    }
+
     if(_totalBodySize == 0){
         //后续没content，本次http请求结束
         onResponseCompleted_l();
@@ -171,6 +186,10 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
 }
 
 void HttpClient::onRecvContent(const char *data, uint64_t len) {
+    if(_chunkedSplitter){
+        _chunkedSplitter->input(data,len);
+        return;
+    }
     auto recvedBodySize = _recvedBodySize + len;
     if(_totalBodySize < 0){
         //不限长度的content,最大支持INT64_MAX个字节
@@ -231,7 +250,6 @@ void HttpClient::onManager() {
 void HttpClient::onResponseCompleted_l() {
     _totalBodySize = 0;
     _recvedBodySize = 0;
-    HttpRequestSplitter::reset();
     onResponseCompleted();
 }
 
