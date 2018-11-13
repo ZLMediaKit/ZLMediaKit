@@ -63,7 +63,7 @@ void HttpDownloader::startDownload(const string& url, const string& filePath,boo
 	sendRequest(url,timeOutSecond);
 }
 
-void HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {
+int64_t HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {
     if(status != "200" && status != "206"){
 		//失败
 		shutdown();
@@ -75,6 +75,8 @@ void HttpDownloader::onResponseHeader(const string& status,const HttpHeader& hea
 			_onResult = nullptr;
 		}
 	}
+	//后续全部是content
+	return -1;
 }
 
 void HttpDownloader::onResponseBody(const char* buf, size_t size, size_t recvedSize, size_t totalSize) {
@@ -83,7 +85,7 @@ void HttpDownloader::onResponseBody(const char* buf, size_t size, size_t recvedS
 	}
 }
 
-bool HttpDownloader::onResponseCompleted() {
+void HttpDownloader::onResponseCompleted() {
 	closeFile();
 	//InfoL << "md5Sum:" << getMd5Sum(_filePath);
 	_bDownloadSuccess = true;
@@ -91,7 +93,6 @@ bool HttpDownloader::onResponseCompleted() {
 		_onResult(Err_success,"success",_filePath.data());
 		_onResult = nullptr;
 	}
-	return true;
 }
 
 void HttpDownloader::onDisconnect(const SockException &ex) {

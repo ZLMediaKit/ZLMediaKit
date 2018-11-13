@@ -47,9 +47,9 @@ public:
 		_onResult = cb;
 	}
 private:
-	void onResponseHeader(const string &status,const HttpHeader &headers) override;
+	int64_t onResponseHeader(const string &status,const HttpHeader &headers) override;
 	void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override;
-	bool onResponseCompleted() override;
+	void onResponseCompleted() override;
 	void onDisconnect(const SockException &ex) override;
     void closeFile();
 private:
