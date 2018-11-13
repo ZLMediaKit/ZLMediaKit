@@ -124,10 +124,11 @@
   
 - 编译
 ```
-   1 使用cmake-gui打开工程并生成vs工程文件.
-   2 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
-   3 选择编译Release 版本.
-   4 找到目标文件并运行测试用例.
+   1 进入ZLMediaKit目录执行 git submodule update --init 以下载ZLToolKit的代码
+   2 使用cmake-gui打开工程并生成vs工程文件.
+   3 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
+   4 选择编译Release 版本.
+   5 找到目标文件并运行测试用例.
 ```
 ## 使用方法
 - 作为服务器：
@@ -232,6 +233,11 @@
     [ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
   
     [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
+    
+    
+- 在windows下编译很多错误？
+ 
+    由于本项目主体代码在macOS/linux下开发，部分源码采用的是无bom头的UTF-8编码；由于windows对于utf-8支持不甚友好，所以如果发现编译错误请先尝试添     加bom头再编译。
 
 ## 参考案例
  - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
