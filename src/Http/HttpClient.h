@@ -247,9 +247,13 @@ protected:
      * 收到http回复头
      * @param status 状态码，譬如:200 OK
      * @param headers http头
+     * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
+     *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
      */
-    virtual void onResponseHeader(const string &status,const HttpHeader &headers){
+    virtual int64_t onResponseHeader(const string &status,const HttpHeader &headers){
         DebugL << status;
+        //无Content-Length字段时默认后面全是content
+        return -1;
     };
 
     /**
@@ -265,11 +269,9 @@ protected:
 
     /**
      * 接收http回复完毕,
-     * @return 是否真的结束数据接收
      */
-    virtual bool onResponseCompleted(){
+    virtual void onResponseCompleted(){
     	DebugL;
-        return true;
     }
 
     /**
@@ -295,7 +297,7 @@ protected:
     virtual void onSend() override;
     virtual void onManager() override;
 private:
-    bool onResponseCompleted_l();
+    void onResponseCompleted_l();
     void checkCookie(const HttpHeader &headers );
 protected:
     bool _isHttps;

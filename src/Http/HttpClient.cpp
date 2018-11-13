@@ -138,7 +138,7 @@ void HttpClient::onRecvBytes(const char *data, int size) {
 }
 
 void HttpClient::onErr(const SockException &ex) {
-    if (ex.getErrCode() == Err_eof && _totalBodySize == INT64_MAX) {
+    if (ex.getErrCode() == Err_eof && _totalBodySize < 0) {
         //如果Content-Length未指定 但服务器断开链接
         //则认为本次http请求完成
         onResponseCompleted_l();
@@ -148,52 +148,53 @@ void HttpClient::onErr(const SockException &ex) {
 
 int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     _parser.Parse(data);
-    onResponseHeader(_parser.Url(), _parser.getValues());
     checkCookie(_parser.getValues());
+    _totalBodySize = onResponseHeader(_parser.Url(), _parser.getValues());
 
-    if(_parser["Content-Length"].empty()){
-        //没有Content-Length字段
-        auto ret = onResponseCompleted_l();
-        if(ret){
-            return 0;
-        }
-        //如果http回复未声明Content-Length字段，但是却有content内容，那说明可能是个不限长度的content
-        _totalBodySize = INT64_MAX;
-        _recvedBodySize = 0;
-        //返回-1代表不限制content回复大小
-        return -1;
+    if(!_parser["Content-Length"].empty()){
+        //有Content-Length字段时忽略onResponseHeader的返回值
+        _totalBodySize = atoll(_parser["Content-Length"].data());
     }
 
-    //有Content-Length字段
-    _recvedBodySize = 0;
-    _totalBodySize = atoll(_parser["Content-Length"].data());
-
     if(_totalBodySize == 0){
-        //content长度为0，本次http请求结束
+        //后续没content，本次http请求结束
         onResponseCompleted_l();
         return 0;
     }
 
-    //虽然我们知道content的确切大小，
+    //当_totalBodySize != 0时到达这里，代表后续有content
+    //虽然我们在_totalBodySize >0 时知道content的确切大小，
     //但是由于我们没必要等content接收完毕才回调onRecvContent(因为这样浪费内存并且要多次拷贝数据)
     //所以返回-1代表我们接下来分段接收content
+    _recvedBodySize = 0;
     return -1;
 }
 
 void HttpClient::onRecvContent(const char *data, uint64_t len) {
     auto recvedBodySize = _recvedBodySize + len;
-    if (recvedBodySize < _totalBodySize) {
+    if(_totalBodySize < 0){
+        //不限长度的content,最大支持INT64_MAX个字节
+        onResponseBody(data, len, recvedBodySize, INT64_MAX);
+        _recvedBodySize = recvedBodySize;
+        return;
+    }
+
+    //固定长度的content
+    if ( recvedBodySize < _totalBodySize ) {
+        //content还未接收完毕
         onResponseBody(data, len, recvedBodySize, _totalBodySize);
         _recvedBodySize = recvedBodySize;
-    } else {
-        onResponseBody(data, _totalBodySize - _recvedBodySize, _totalBodySize, _totalBodySize);
-        bool biggerThanExpected = recvedBodySize > _totalBodySize;
-        onResponseCompleted_l();
-        if(biggerThanExpected) {
-            //声明的content数据比真实的小，那么我们只截取前面部分的并断开链接
-            shutdown();
-            onDisconnect(SockException(Err_other, "http response content size bigger than expected"));
-        }
+        return;
+    }
+
+    //content接收完毕
+    onResponseBody(data, _totalBodySize - _recvedBodySize, _totalBodySize, _totalBodySize);
+    bool biggerThanExpected = recvedBodySize > _totalBodySize;
+    onResponseCompleted_l();
+    if(biggerThanExpected) {
+        //声明的content数据比真实的小，那么我们只截取前面部分的并断开链接
+        shutdown();
+        onDisconnect(SockException(Err_other, "http response content size bigger than expected"));
     }
 }
 
@@ -214,7 +215,7 @@ void HttpClient::onSend() {
 }
 
 void HttpClient::onManager() {
-    if (_aliveTicker.elapsedTime() > 3 * 1000 && _totalBodySize == INT64_MAX) {
+    if (_aliveTicker.elapsedTime() > 3 * 1000 && _totalBodySize < 0) {
         //如果Content-Length未指定 但接收数据超时
         //则认为本次http请求完成
         onResponseCompleted_l();
@@ -227,14 +228,11 @@ void HttpClient::onManager() {
     }
 }
 
-bool HttpClient::onResponseCompleted_l() {
+void HttpClient::onResponseCompleted_l() {
     _totalBodySize = 0;
     _recvedBodySize = 0;
-    bool ret = onResponseCompleted();
-    if(ret){
-        HttpRequestSplitter::reset();
-    }
-    return ret;
+    HttpRequestSplitter::reset();
+    onResponseCompleted();
 }
 
 void HttpClient::checkCookie(const HttpClient::HttpHeader &headers) {

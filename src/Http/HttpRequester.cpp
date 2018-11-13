@@ -34,20 +34,21 @@ HttpRequester::~HttpRequester(){
     
 }
 
-void HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
+int64_t HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
     _strRecvBody.clear();
+    //后续全部是content
+    return -1;
 }
     
 void HttpRequester::onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) {
     _strRecvBody.append(buf,size);
 }
     
-bool HttpRequester::onResponseCompleted() {
+void HttpRequester::onResponseCompleted() {
     if(_onResult){
         _onResult(SockException(),responseStatus(),responseHeader(),_strRecvBody);
         _onResult = nullptr;
     }
-    return true;
 }
     
 void HttpRequester::onDisconnect(const SockException &ex){
