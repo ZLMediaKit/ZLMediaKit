@@ -56,9 +56,9 @@ private:
 	void startReadMP4();
 	inline MP4SampleId getVideoSampleId(int iTimeInc = 0);
 	inline MP4SampleId getAudioSampleId(int iTimeInc = 0);
-	bool readSample(int iTimeInc = 0);
-	inline bool readVideoSample(int iTimeInc = 0);
-	inline bool readAudioSample(int iTimeInc = 0);
+	bool readSample(int iTimeInc, bool justSeekSyncFrame);
+	inline bool readVideoSample(int iTimeInc,bool justSeekSyncFrame);
+	inline bool readAudioSample(int iTimeInc,bool justSeekSyncFrame);
 	inline void writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp);
 	inline void writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp);
 private:

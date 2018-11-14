@@ -153,8 +153,10 @@ void MediaReader::startReadMP4() {
     GET_CONFIG_AND_REGISTER(uint32_t,sampleMS,Record::kSampleMS);
 
     AsyncTaskThread::Instance().DoTaskDelay(reinterpret_cast<uint64_t>(this), sampleMS, [strongSelf](){
-		return strongSelf->readSample();
+		return strongSelf->readSample(0,false);
 	});
+    //先读sampleMS毫秒的数据用于产生MediaSouce
+	readSample(sampleMS, false);
 	_mediaMuxer->setListener(strongSelf);
 }
  bool MediaReader::seekTo(uint32_t ui32Stamp){
@@ -166,11 +168,11 @@ bool MediaReader::close(){
     return true;
 }
 
-bool MediaReader::readSample(int iTimeInc) {
+bool MediaReader::readSample(int iTimeInc,bool justSeekSyncFrame) {
 	TimeTicker();
 	lock_guard<recursive_mutex> lck(_mtx);
-	auto bFlag0 = readVideoSample(iTimeInc);//数据没读完
-	auto bFlag1 = readAudioSample(iTimeInc);//数据没读完
+	auto bFlag0 = readVideoSample(iTimeInc,justSeekSyncFrame);//数据没读完
+	auto bFlag1 = readAudioSample(iTimeInc,justSeekSyncFrame);//数据没读完
 	auto bFlag2 = _mediaMuxer->readerCount() > 0;//读取者大于0
 	if((bFlag0 || bFlag1) && bFlag2){
 		_alive.resetTime();
@@ -179,15 +181,15 @@ bool MediaReader::readSample(int iTimeInc) {
 	//3秒延时关闭
 	return  _alive.elapsedTime() <  3 * 1000;
 }
-inline bool MediaReader::readVideoSample(int iTimeInc) {
+inline bool MediaReader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
 	if (_video_trId != MP4_INVALID_TRACK_ID) {
 		auto iNextSample = getVideoSampleId(iTimeInc);
 		MP4SampleId iIdx = _video_current;
-		for (iIdx = _video_current; iIdx < iNextSample; iIdx++) {
+		for (; iIdx < iNextSample; iIdx++) {
 			uint8_t *pBytes = _pcVideoSample.get();
 			uint32_t numBytes = _video_sample_max_size;
 			if(MP4ReadSample(_hMP4File, _video_trId, iIdx + 1, &pBytes, &numBytes,NULL,NULL,NULL,&_bSyncSample)){
-				if (!iTimeInc) {
+				if (!justSeekSyncFrame) {
 					uint32_t iOffset = 0;
 					while (iOffset < numBytes) {
 						uint32_t iFrameLen;
@@ -213,14 +215,14 @@ inline bool MediaReader::readVideoSample(int iTimeInc) {
 	return false;
 }
 
-inline bool MediaReader::readAudioSample(int iTimeInc) {
+inline bool MediaReader::readAudioSample(int iTimeInc,bool justSeekSyncFrame) {
 	if (_audio_trId != MP4_INVALID_TRACK_ID) {
 		auto iNextSample = getAudioSampleId(iTimeInc);
 		for (auto i = _audio_current; i < iNextSample; i++) {
 			uint32_t numBytes = _audio_sample_max_size;
 			uint8_t *pBytes = _adts.buffer + 7;
 			if(MP4ReadSample(_hMP4File, _audio_trId, i + 1, &pBytes, &numBytes)){
-				if (!iTimeInc) {
+				if (!justSeekSyncFrame) {
 					_adts.aac_frame_length = 7 + numBytes;
 					writeAdtsHeader(_adts, _adts.buffer);
 					writeAAC(_adts.buffer, _adts.aac_frame_length, (double) _audio_ms * i / _audio_num_samples);
@@ -276,7 +278,7 @@ void MediaReader::seek(uint32_t iSeekTime,bool bReStart){
 	}else{
 		setSeekTime(iSeekTime - 5000);
 		//在之后的10秒查找关键帧
-		readVideoSample(10000);
+		readVideoSample(10000, true);
 		if (_bSyncSample) {
 			//找到关键帧
 			auto iIdr =  _video_current;
