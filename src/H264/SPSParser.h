@@ -1,4 +1,4 @@
-#ifndef _SPSPARSER_H_
+﻿#ifndef _SPSPARSER_H_
 #define _SPSPARSER_H_
 
 #if defined (__cplusplus)
