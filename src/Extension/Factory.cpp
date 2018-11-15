@@ -232,8 +232,10 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
                 WarnL << "暂不支持该Amf:" << type_id;
                 return CodecInvalid;
         }
+    }else{
+        WarnL << "Metedata不存在相应的Track";
     }
-    WarnL << "暂不支持该Amf:" << val.type();
+
     return CodecInvalid;
 }
 

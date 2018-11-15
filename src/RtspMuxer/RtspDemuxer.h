@@ -38,7 +38,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class RtspDemuxer : public PlayerBase{
+class RtspDemuxer : public Demuxer{
 public:
 	typedef std::shared_ptr<RtspDemuxer> Ptr;
 	RtspDemuxer(const string &sdp);
@@ -51,34 +51,11 @@ public:
 	 * @return true 代表是i帧第一个rtp包
 	 */
 	bool inputRtp(const RtpPacket::Ptr &rtp);
-
-	/**
-	 * 获取节目总时长
-	 * @return
-	 */
-	float getDuration() const override;
-
-	/**
-	 * 返回是否完成初始化完毕
-	 * 由于有些rtsp的sdp不包含sps pps信息
-	 * 所以要等待接收到到sps的rtp包后才能完成
-	 * @return
-	 */
-    bool isInited() const override;
-
-    /**
-     * 获取所有可用Track，请在isInited()返回true时调用
-     * @return
-     */
-    vector<Track::Ptr> getTracks() const override;
 private:
 	void makeAudioTrack(const SdpTrack::Ptr &audio);
 	void makeVideoTrack(const SdpTrack::Ptr &video);
 	void loadSdp(const SdpAttr &attr);
 private:
-	float _fDuration = 0;
-	AudioTrack::Ptr _audioTrack;
-	VideoTrack::Ptr _videoTrack;
 	RtpCodec::Ptr _audioRtpDecoder;
 	RtpCodec::Ptr _videoRtpDecoder;
 };

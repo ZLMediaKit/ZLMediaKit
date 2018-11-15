@@ -117,33 +117,4 @@ void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
 	}
 }
 
-vector<Track::Ptr> RtspDemuxer::getTracks() const {
-	vector<Track::Ptr> ret;
-	if(_videoTrack){
-		ret.emplace_back(_videoTrack);
-	}
-	if(_audioTrack){
-		ret.emplace_back(_audioTrack);
-	}
-	return ret;
-}
-
-bool RtspDemuxer::isInited() const {
-    bool videoReady = true ,auidoReady = true;
-
-    if(_videoTrack){
-        videoReady = _videoTrack->ready();
-    }
-
-    if(_audioTrack){
-        auidoReady = _audioTrack->ready();
-    }
-
-    return videoReady && auidoReady;
-}
-
-float RtspDemuxer::getDuration() const {
-	return _fDuration;
-}
-
 } /* namespace mediakit */

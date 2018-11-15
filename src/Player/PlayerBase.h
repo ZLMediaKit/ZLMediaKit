@@ -55,7 +55,7 @@ public:
 	 * 是否初始化完毕，完毕后方可调用getTrack方法
 	 * @return
 	 */
-	virtual bool isInited() const { return true; }
+	virtual bool isInited() { return true; }
 
 	/**
 	 * 获取全部的Track
@@ -183,7 +183,7 @@ public:
 		_playResultCB = cb;
 	}
 
-    bool isInited() const override{
+    bool isInited() override{
         if (_parser) {
             return _parser->isInited();
         }
@@ -225,11 +225,36 @@ protected:
 	void onShutdown(const SockException &ex) override {
 		if (_shutdownCB) {
 			_shutdownCB(ex);
+			_shutdownCB = nullptr;
 		}
 	}
+
 	void onPlayResult(const SockException &ex) override {
-		if (_playResultCB) {
+		if(!_playResultCB){
+			return;
+		}
+		if(ex){
+			//播放失败，则立即回调
 			_playResultCB(ex);
+			_playResultCB = nullptr;
+			return;
+		}
+		//播放成功
+
+		if(isInited()){
+			//初始化完毕则立即回调
+			_playResultCB(ex);
+			_playResultCB = nullptr;
+			return;
+		}
+		//播放成功却未初始化完毕
+	}
+	void checkInited(){
+		if(!_playResultCB){
+			return;
+		}
+		if(isInited()){
+			_playResultCB(SockException(Err_success,"play success"));
 			_playResultCB = nullptr;
 		}
 	}
@@ -238,6 +263,41 @@ protected:
 	function<void(const SockException &ex)> _playResultCB;
 	std::shared_ptr<Parser> _parser;
 	MediaSource::Ptr _pMediaSrc;
+};
+
+
+class Demuxer : public PlayerBase{
+public:
+	Demuxer(){};
+	virtual ~Demuxer(){};
+
+	/**
+	 * 返回是否完成初始化完毕
+	 * 在构造RtspDemuxer对象时有些rtsp的sdp不包含sps pps信息
+	 * 所以要等待接收到到sps的rtp包后才能完成
+	 *
+	 * 在构造RtmpDemuxer对象时是无法获取sps pps aac_cfg等这些信息，
+	 * 所以要调用inputRtmp后才会获取到这些信息，这时才初始化成功
+	 * @return
+	 */
+	bool isInited() override;
+
+	/**
+	 * 获取所有可用Track，请在isInited()返回true时调用
+	 * @return
+	 */
+	vector<Track::Ptr> getTracks() const override;
+
+	/**
+	 * 获取节目总时长
+	 * @return
+	 */
+	float getDuration() const override;
+protected:
+	AudioTrack::Ptr _audioTrack;
+	VideoTrack::Ptr _videoTrack;
+	Ticker _ticker;
+	float _fDuration = 0;
 };
 
 } /* namespace mediakit */

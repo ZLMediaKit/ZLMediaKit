@@ -112,38 +112,5 @@ void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec) {
     }
 }
 
-vector<Track::Ptr> RtmpDemuxer::getTracks() const {
-    vector<Track::Ptr> ret;
-    if(_videoTrack){
-        ret.emplace_back(_videoTrack);
-    }
-    if(_audioTrack){
-        ret.emplace_back(_audioTrack);
-    }
-    return ret;
-}
-
-bool RtmpDemuxer::isInited() const {
-    bool videoReady ,auidoReady;
-
-    if(_videoTrack){
-        videoReady = _videoTrack->ready();
-    }else{
-        videoReady = _tryedGetVideoTrack || _tryedGetAudioTrack;
-    }
-
-    if(_audioTrack){
-        auidoReady = _audioTrack->ready();
-    }else{
-        auidoReady = _tryedGetVideoTrack || _tryedGetAudioTrack;
-    }
-
-    return videoReady && auidoReady;
-}
-
-float RtmpDemuxer::getDuration() const {
-    return _fDuration;
-}
-
 
 } /* namespace mediakit */

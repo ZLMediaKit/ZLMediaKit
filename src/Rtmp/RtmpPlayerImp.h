@@ -72,6 +72,7 @@ private:
             _pRtmpMediaSrc->onWrite(chunkData);
         }
         _parser->inputRtmp(chunkData);
+        checkInited();
     }
 
 private:

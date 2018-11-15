@@ -39,7 +39,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class RtmpDemuxer : public PlayerBase{
+class RtmpDemuxer : public Demuxer{
 public:
 	typedef std::shared_ptr<RtmpDemuxer> Ptr;
 
@@ -53,6 +53,7 @@ public:
 	 * 这样就会在inputRtmp时异步探测媒体编码格式
 	 */
 	RtmpDemuxer(const AMFValue &val);
+	virtual ~RtmpDemuxer(){};
 
 	/**
 	 *
@@ -62,43 +63,18 @@ public:
 	 */
 	static int getTrackCount(const AMFValue &metedata);
 
-	virtual ~RtmpDemuxer(){};
-
 	/**
 	 * 开始解复用
 	 * @param pkt rtmp包
 	 * @return true 代表是i帧
 	 */
 	bool inputRtmp(const RtmpPacket::Ptr &pkt);
-
-	/**
-	 * 获取节目总时长
-	 * @return
-	 */
-	float getDuration() const override;
-
-	/**
-	 * 返回是否完成初始化完毕
-	 * 由于在构造该对象时是无法获取sps pps aac_cfg等这些信息，
-	 * 所以要调用inputRtmp后才会获取到这些信息，这时才初始化成功
-	 * @return
-	 */
-	bool isInited() const override;
-
-	/**
-     * 获取所有可用Track，请在isInited()返回true时调用
-     * @return
-     */
-	vector<Track::Ptr> getTracks() const override;
 private:
 	void makeVideoTrack(const AMFValue &val);
 	void makeAudioTrack(const AMFValue &val);
 private:
-	float _fDuration = 0;
 	bool _tryedGetVideoTrack = false;
 	bool _tryedGetAudioTrack = false;
-	AudioTrack::Ptr _audioTrack;
-	VideoTrack::Ptr _videoTrack;
 	RtmpCodec::Ptr _audioRtmpDecoder;
 	RtmpCodec::Ptr _videoRtmpDecoder;
 };

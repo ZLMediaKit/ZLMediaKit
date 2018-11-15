@@ -75,6 +75,7 @@ private:
             _pRtspMediaSrc->onWrite(rtppt,true);
         }
         _parser->inputRtp(rtppt);
+        checkInited();
     }
 
 private:

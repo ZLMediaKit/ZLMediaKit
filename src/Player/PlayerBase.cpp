@@ -51,4 +51,39 @@ PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 	return PlayerBase::Ptr(new RtspPlayerImp());
 }
 
+///////////////////////////Demuxer//////////////////////////////
+bool Demuxer::isInited() {
+	if(_ticker.createdTime() < 500){
+		//500毫秒内判断条件
+		//如果音视频都准备好了 ，说明Track全部就绪
+		return (_videoTrack &&  _videoTrack->ready() && _audioTrack && _audioTrack->ready());
+	}
+
+	//500毫秒之后,去除还未就绪的Track
+	if(_videoTrack && !_videoTrack->ready()){
+		//有视频但是视频未就绪
+		_videoTrack = nullptr;
+	}
+
+	if(_audioTrack && !_audioTrack->ready()){
+		//有音频但是音频未就绪
+		_audioTrack = nullptr;
+	}
+	return true;
+}
+
+vector<Track::Ptr> Demuxer::getTracks() const {
+	vector<Track::Ptr> ret;
+	if(_videoTrack){
+		ret.emplace_back(_videoTrack);
+	}
+	if(_audioTrack){
+		ret.emplace_back(_audioTrack);
+	}
+	return ret;
+}
+
+float Demuxer::getDuration() const {
+	return _fDuration;
+}
 } /* namespace mediakit */
