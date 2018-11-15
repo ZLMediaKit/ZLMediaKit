@@ -578,6 +578,9 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtppt, int trackidx){
 	_aui64RtpRecv[trackidx] ++;
 	_aui16NowSeq[trackidx] = rtppt->sequence;
 	_aiNowStamp[trackidx] = rtppt->timeStamp;
+	if( _aiFistStamp[trackidx] == 0){
+		_aiFistStamp[trackidx] = _aiNowStamp[trackidx];
+	}
 
     rtppt->timeStamp -= _aiFistStamp[trackidx];
 	onRecvRTP_l(rtppt,_aTrackInfo[trackidx]);
