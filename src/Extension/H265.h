@@ -265,20 +265,17 @@ public:
             case H265Frame::NAL_VPS: {
                 //vps
                 _vps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
-                VideoTrack::inputFrame(frame);
             }
                 break;
 
             case H265Frame::NAL_SPS: {
                 //sps
                 _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
-                VideoTrack::inputFrame(frame);
             }
                 break;
             case H265Frame::NAL_PPS: {
                 //pps
                 _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
-                VideoTrack::inputFrame(frame);
             }
                 break;
 
