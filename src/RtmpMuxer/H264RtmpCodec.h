@@ -95,6 +95,7 @@ private:
 private:
     H264Track::Ptr _track;
     bool _gotSpsPps = false;
+    RtmpPacket::Ptr _lastPacket;
 };
 
 }//namespace mediakit
