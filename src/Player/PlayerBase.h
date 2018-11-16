@@ -53,23 +53,26 @@ public:
 
 	/**
 	 * 是否初始化完毕，完毕后方可调用getTrack方法
+	 * @param analysisMs 数据流最大分析时间 单位毫秒
 	 * @return
 	 */
-	virtual bool isInited() { return true; }
+	virtual bool isInited(int analysisMs = 2000) { return true; }
 
 	/**
 	 * 获取全部的Track
+	 * @param trackReady 是否获取全部已经准备好的Track
 	 * @return
 	 */
-	virtual vector<Track::Ptr> getTracks() const { return vector<Track::Ptr>();}
+	virtual vector<Track::Ptr> getTracks(bool trackReady = true) const { return vector<Track::Ptr>();}
 
 	/**
 	 * 获取特定Track
-	 * @param type
+	 * @param type track类型
+	 * @param trackReady 是否获取全部已经准备好的Track
 	 * @return
 	 */
-	virtual Track::Ptr getTrack(TrackType type) const {
-		auto tracks = getTracks();
+	virtual Track::Ptr getTrack(TrackType type , bool trackReady = true) const {
+		auto tracks = getTracks(trackReady);
 		for(auto &track : tracks){
 			if(track->getTrackType() == type){
 				return track;
@@ -183,11 +186,11 @@ public:
 		_playResultCB = cb;
 	}
 
-    bool isInited() override{
+    bool isInited(int analysisMs = 2000) override{
         if (_parser) {
-            return _parser->isInited();
+            return _parser->isInited(analysisMs);
         }
-        return PlayerBase::isInited();
+        return PlayerBase::isInited(analysisMs);
     }
 	float getDuration() const override {
 		if (_parser) {
@@ -215,11 +218,11 @@ public:
 		_pMediaSrc = src;
     }
 
-    vector<Track::Ptr> getTracks() const override{
+    vector<Track::Ptr> getTracks(bool trackReady = true) const override{
 		if (_parser) {
-			return _parser->getTracks();
+			return _parser->getTracks(trackReady);
 		}
-		return PlayerBase::getTracks();
+		return PlayerBase::getTracks(trackReady);
 	}
 protected:
 	void onShutdown(const SockException &ex) override {
@@ -278,15 +281,16 @@ public:
 	 *
 	 * 在构造RtmpDemuxer对象时是无法获取sps pps aac_cfg等这些信息，
 	 * 所以要调用inputRtmp后才会获取到这些信息，这时才初始化成功
+	 * @param analysisMs 数据流最大分析时间 单位毫秒
 	 * @return
 	 */
-	bool isInited() override;
+	bool isInited(int analysisMs = 2000) override;
 
 	/**
 	 * 获取所有可用Track，请在isInited()返回true时调用
 	 * @return
 	 */
-	vector<Track::Ptr> getTracks() const override;
+	vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 
 	/**
 	 * 获取节目总时长

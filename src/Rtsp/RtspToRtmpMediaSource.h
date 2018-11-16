@@ -66,7 +66,7 @@ public:
                                                                     getId(),
                                                                     std::make_shared<TitleMete>(
                                                                             _rtspDemuxer->getDuration()));
-                for (auto &track : _rtspDemuxer->getTracks()) {
+                for (auto &track : _rtspDemuxer->getTracks(false)) {
                     _rtmpMuxer->addTrack(track);
                     _recorder->addTrack(track);
                     track->addDelegate(_rtmpMuxer);
