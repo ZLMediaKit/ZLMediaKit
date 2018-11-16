@@ -205,7 +205,6 @@ public:
      */
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-
         switch (type){
             case H264Frame::NAL_SPS:{
                 //sps
@@ -220,7 +219,7 @@ public:
 
             case H264Frame::NAL_IDR:{
                 //I
-                if(!_sps.empty()){
+                if(!_sps.empty() && _last_frame_type != H264Frame::NAL_IDR){
                     if(!_spsFrame)
                     {
                         H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
@@ -235,7 +234,7 @@ public:
                     VideoTrack::inputFrame(_spsFrame);
                 }
 
-                if(!_pps.empty()){
+                if(!_pps.empty() && _last_frame_type != H264Frame::NAL_IDR){
                     if(!_ppsFrame)
                     {
                         H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
@@ -250,12 +249,14 @@ public:
                     VideoTrack::inputFrame(_ppsFrame);
                 }
                 VideoTrack::inputFrame(frame);
+                _last_frame_type = type;
             }
                 break;
 
             case H264Frame::NAL_B_P:{
                 //B or P
                 VideoTrack::inputFrame(frame);
+                _last_frame_type = type;
             }
                 break;
         }
@@ -280,6 +281,7 @@ private:
     int _width = 0;
     int _height = 0;
     float _fps = 0;
+    int _last_frame_type = -1;
     H264Frame::Ptr _spsFrame;
     H264Frame::Ptr _ppsFrame;
 };
