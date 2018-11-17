@@ -106,6 +106,7 @@ inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t ui
 
 H264RtmpEncoder::H264RtmpEncoder(const Track::Ptr &track) {
     _track = dynamic_pointer_cast<H264Track>(track);
+
 }
 
 void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
@@ -122,9 +123,6 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
                 //sps
                 if(_sps.empty()){
                     _sps = string(pcData,iLen);
-                    if(!_pps.empty()){
-                        makeVideoConfigPkt();
-                    }
                 }
             }
                 break;
@@ -132,9 +130,6 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
                 //pps
                 if(_pps.empty()){
                     _pps = string(pcData,iLen);
-                    if(!_sps.empty()){
-                        makeVideoConfigPkt();
-                    }
                 }
             }
                 break;
@@ -142,10 +137,14 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
                 break;
         }
 
-        //尝试从track中获取sps pps信息
-        if((!_sps.empty() || !_pps.empty()) && _track && _track->ready()){
+        if(_track && _track->ready()){
+            //尝试从track中获取sps pps信息
             _sps = _track->getSps();
             _pps = _track->getPps();
+        }
+
+        if(!_sps.empty() && !_pps.empty()){
+            _gotSpsPps = true;
             makeVideoConfigPkt();
         }
     }
@@ -190,8 +189,6 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 
 
 void H264RtmpEncoder::makeVideoConfigPkt() {
-    _gotSpsPps = true;
-
     int8_t flags = 7; //h.264
     flags |= (FLV_KEY_FRAME << 4);
     bool is_config = true;
