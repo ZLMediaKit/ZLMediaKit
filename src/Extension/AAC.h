@@ -63,7 +63,7 @@ public:
     uint32_t size() const override {
         return aac_frame_length;
     }
-    uint32_t stamp() const override {
+    uint32_t dts() const override {
         return timeStamp;
     }
     uint32_t prefixSize() const override{

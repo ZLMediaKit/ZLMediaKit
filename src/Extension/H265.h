@@ -78,7 +78,7 @@ public:
         return buffer.size();
     }
 
-    uint32_t stamp() const override {
+    uint32_t dts() const override {
         return timeStamp;
     }
 

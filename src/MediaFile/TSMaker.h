@@ -239,8 +239,8 @@ public:
 	TSMaker();
 	virtual ~TSMaker();
 	bool init(const string &strFilename, uint32_t ui32BufSize);
-	int inputH264(const char *pcData, uint32_t ui32Len, uint64_t ui64Time);
-	int inputAAC(const char *pcData, uint32_t ui32Len, uint64_t ui64Time);
+	int inputH264(const char *pcData, uint32_t ui32Len, uint64_t ui64Dts , uint64_t ui64Pts);
+	int inputAAC(const char *pcData, uint32_t ui32Len, uint64_t ui64Dts , uint64_t ui64Pts);
 	void clear();
 private:
 	string m_strFilename;
@@ -260,7 +260,7 @@ private:
 	void WriteAdaptive_flags_Head(Ts_Adaptation_field * pAdaptationField, uint64_t ui64VideoPts);
 	void WriteAdaptive_flags_Tail(Ts_Adaptation_field * pAdaptationField); //填写自适应段标志帧尾的
 
-	void PES2TS(TsPes * pPes, unsigned int uiPID, Ts_Adaptation_field * pAdaptationField, uint64_t ui64Pts);
+	void PES2TS(TsPes * pPes, unsigned int uiPID, Ts_Adaptation_field * pAdaptationField, uint64_t ui64Dts ,uint64_t ui64Pts );
 	void CreateAdaptive_Ts(Ts_Adaptation_field * pAdaptationField, unsigned char * pcTs, unsigned int uiAdaptiveLength);
 };
 

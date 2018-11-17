@@ -82,9 +82,28 @@ public:
     typedef std::shared_ptr<Frame> Ptr;
     virtual ~Frame(){}
     /**
-     * 时间戳
+     * 时间戳,已经废弃，请使用dts() 、pts()接口
      */
-    virtual uint32_t stamp() const = 0;
+    inline uint32_t stamp() const {
+        return dts();
+    };
+
+
+    /**
+     * 返回解码时间戳，单位毫秒
+     * @return
+     */
+    virtual uint32_t dts() const = 0;
+
+
+
+    /**
+     * 返回显示时间戳，单位毫秒
+     * @return
+     */
+    virtual uint32_t pts() const {
+        return dts();
+    }
 
     /**
      * 前缀长度，譬如264前缀为0x00 00 00 01,那么前缀长度就是4
@@ -271,7 +290,7 @@ public:
     uint32_t size() const override {
         return buffer_size;
     }
-    uint32_t stamp() const override {
+    uint32_t dts() const override {
         return timeStamp;
     }
     uint32_t prefixSize() const override{
