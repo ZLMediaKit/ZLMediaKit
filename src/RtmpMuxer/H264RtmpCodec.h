@@ -60,8 +60,8 @@ public:
     }
 protected:
     bool decodeRtmp(const RtmpPacket::Ptr &Rtmp);
-    void onGetH264_l(const char *pcData, int iLen, uint32_t ui32TimeStamp);
-    void onGetH264(const char *pcData, int iLen, uint32_t ui32TimeStamp);
+    void onGetH264_l(const char *pcData, int iLen, uint32_t dts,uint32_t pts);
+    void onGetH264(const char *pcData, int iLen, uint32_t dts,uint32_t pts);
     H264Frame::Ptr obtainFrame();
 protected:
     H264Frame::Ptr _h264frame;
