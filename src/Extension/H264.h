@@ -62,6 +62,11 @@ public:
     uint32_t dts() const override {
         return timeStamp;
     }
+
+    uint32_t pts() const override {
+        return ptsStamp ? ptsStamp : timeStamp;
+    }
+
     uint32_t prefixSize() const override{
         return iPrefixSize;
     }
@@ -80,6 +85,7 @@ public:
 public:
     uint16_t sequence;
     uint32_t timeStamp;
+    uint32_t ptsStamp = 0;
     unsigned char type;
     string buffer;
     uint32_t iPrefixSize = 4;

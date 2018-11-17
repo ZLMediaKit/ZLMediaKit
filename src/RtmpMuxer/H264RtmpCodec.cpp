@@ -54,9 +54,13 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
         return false;
     }
 
-    if (_sps.size()) {
+    if (_sps.size() && pkt->strBuf.size() > 9) {
         uint32_t iTotalLen = pkt->strBuf.size();
         uint32_t iOffset = 5;
+        uint8_t *cts_ptr = (uint8_t *) (pkt->strBuf.data() + 2);
+        int32_t cts = (((cts_ptr[0] << 16) | (cts_ptr[1] << 8) | (cts_ptr[2])) + 0xff800000) ^ 0xff800000;
+        auto pts = pkt->timeStamp + cts;
+
         while(iOffset + 4 < iTotalLen){
             uint32_t iFrameLen;
             memcpy(&iFrameLen, pkt->strBuf.data() + iOffset, 4);
@@ -65,7 +69,7 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
             if(iFrameLen + iOffset > iTotalLen){
                 break;
             }
-            onGetH264_l(pkt->strBuf.data() + iOffset, iFrameLen, pkt->timeStamp);
+            onGetH264_l(pkt->strBuf.data() + iOffset, iFrameLen, pkt->timeStamp , pts);
             iOffset += iFrameLen;
         }
     }
@@ -73,25 +77,26 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
 }
 
 
-inline void H264RtmpDecoder::onGetH264_l(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
+inline void H264RtmpDecoder::onGetH264_l(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
     switch (H264_TYPE(pcData[0])) {
         case H264Frame::NAL_IDR: {
             //I frame
-            onGetH264(_sps.data(), _sps.length(), ui32TimeStamp);
-            onGetH264(_pps.data(), _pps.length(), ui32TimeStamp);
+            onGetH264(_sps.data(), _sps.length(), dts , pts);
+            onGetH264(_pps.data(), _pps.length(), dts , pts);
         }
         case H264Frame::NAL_B_P: {
             //I or P or B frame
-            onGetH264(pcData, iLen, ui32TimeStamp);
+            onGetH264(pcData, iLen, dts , pts);
         }
             break;
         default:
             break;
     }
 }
-inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
+inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
     _h264frame->type = H264_TYPE(pcData[0]);
-    _h264frame->timeStamp = ui32TimeStamp;
+    _h264frame->timeStamp = dts;
+    _h264frame->ptsStamp = pts;
     _h264frame->buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
     _h264frame->buffer.append(pcData, iLen);
 
@@ -167,7 +172,9 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
                 _lastPacket->strBuf.clear();
                 _lastPacket->strBuf.push_back(flags);
                 _lastPacket->strBuf.push_back(!is_config);
-                _lastPacket->strBuf.append("\x0\x0\x0", 3);
+                auto cts = frame->pts() - frame->dts();
+                cts = htonl(cts);
+                _lastPacket->strBuf.append((char *)&cts + 1, 3);
 
                 _lastPacket->chunkId = CHUNK_VIDEO;
                 _lastPacket->streamId = STREAM_MEDIA;
