@@ -99,7 +99,7 @@ void PlayerProxy::play(const char* strUrl) {
 			return;
 		}
 		if(strongSelf->_mediaMuxer) {
-			auto tracks = strongSelf->getTracks();
+			auto tracks = strongSelf->getTracks(false);
 			for (auto & track : tracks){
 				track->delDelegate(strongSelf->_mediaMuxer.get());
 			}
@@ -176,7 +176,7 @@ void PlayerProxy::onPlaySuccess() {
 	_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost.data(),_strApp.data(),_strSrc.data(),getDuration(),_bEnableHls,_bEnableMp4));
 	_mediaMuxer->setListener(shared_from_this());
 
-	auto videoTrack = getTrack(TrackVideo);
+	auto videoTrack = getTrack(TrackVideo,false);
 	if(videoTrack){
 		//添加视频
 		_mediaMuxer->addTrack(videoTrack);
@@ -184,7 +184,7 @@ void PlayerProxy::onPlaySuccess() {
 		videoTrack->addDelegate(_mediaMuxer);
 	}
 
-	auto audioTrack = getTrack(TrackAudio);
+	auto audioTrack = getTrack(TrackAudio, false);
 	if(audioTrack){
 		//添加音频
 		_mediaMuxer->addTrack(audioTrack);
