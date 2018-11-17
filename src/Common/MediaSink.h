@@ -29,6 +29,7 @@
 
 #include <mutex>
 #include <memory>
+#include "Util/TimeTicker.h"
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
 
@@ -70,10 +71,11 @@ public:
 
     /**
      * 获取特定类型的Track
-     * @param type
+     * @param type track类型
+	 * @param trackReady 是否获取已经准备好的Track
      * @return
      */
-    Track::Ptr getTrack(TrackType type) const ;
+    Track::Ptr getTrack(TrackType type,bool trackReady = true) const ;
 protected:
     /**
      * 某track已经准备好，其ready()状态返回true，
@@ -97,6 +99,7 @@ private:
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
     bool _allTrackReady = false;
+    Ticker _ticker;
 };
 
 
