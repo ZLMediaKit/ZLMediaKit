@@ -132,17 +132,18 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
 	return true;
 }
 
-void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp) {
+void HLSMaker::inputH264(const Frame::Ptr &frame) {
+    auto dts = frame->dts();
     if(_ui32LastStamp == 0){
-        _ui32LastStamp = timeStamp;
+        _ui32LastStamp = dts;
     }
-    int stampInc = timeStamp - _ui32LastStamp;
-    auto type =  H264_TYPE(((uint8_t*)data)[4]);
+    int stampInc = dts - _ui32LastStamp;
+    auto type =  H264_TYPE(((uint8_t*)(frame->data() + frame->prefixSize()))[0]);
     
 	switch (type) {
 	case H264Frame::NAL_SPS: //SPS
 		if (stampInc >= _ui32SegmentDuration * 1000) {
-            _ui32LastStamp = timeStamp;
+            _ui32LastStamp = dts;
             //关闭文件
 			_ts.clear();
 			auto strTmpFileName = StrPrinter << _strOutputPrefix << '-' << (++_ui64TsCnt) << ".ts" << endl;
@@ -160,22 +161,22 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp) {
 		}
 	case H264Frame::NAL_B_P: //P
 			//insert aud frame before p and SPS frame
-		if(timeStamp != _ui32LastFrameStamp){
-			_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, timeStamp * 90);
+		if(dts != _ui32LastFrameStamp){
+			_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, dts * 90L , frame->pts() * 90L);
 		}
 	case H264Frame::NAL_IDR:		//IDR
 	case H264Frame::NAL_PPS:		//PPS
-		_ts.inputH264((char *) data, length, timeStamp * 90);
+		_ts.inputH264(frame->data(), frame->size(), dts * 90L , frame->pts() * 90L);
 		break;
 	default:
 		break;
 	}
 
-	_ui32LastFrameStamp = timeStamp;
+	_ui32LastFrameStamp = dts;
 }
 
-void HLSMaker::inputAAC(void *data, uint32_t length, uint32_t timeStamp) {
-    _ts.inputAAC((char *) data, length, timeStamp * 90);
+void HLSMaker::inputAAC(const Frame::Ptr &frame) {
+    _ts.inputAAC(frame->data(), frame->size(), frame->dts() * 90L , frame->pts() * 90L);
 }
 
 bool HLSMaker::removets() {
@@ -192,7 +193,7 @@ void HLSMaker::onTrackFrame(const Frame::Ptr &frame) {
 	switch (frame->getCodecId()){
 		case CodecH264:{
 			if( frame->prefixSize() != 0){
-				inputH264(frame->data(), frame->size(),frame->stamp());
+				inputH264(frame);
 			}else{
 				WarnL << "h264必须要有头4个或3个字节的前缀";
 			}
@@ -200,7 +201,7 @@ void HLSMaker::onTrackFrame(const Frame::Ptr &frame) {
 			break;
 		case CodecAAC:{
 			if( frame->prefixSize() == 7) {
-				inputAAC(frame->data(), frame->size(), frame->stamp());
+				inputAAC(frame);
 			}else{
 				WarnL << "adts必须要有头7个字节的adts头";
 			}

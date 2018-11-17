@@ -35,6 +35,8 @@
 #include "Util/logger.h"
 #include "Common/config.h"
 #include "Common/MediaSink.h"
+#include "Extension/Frame.h"
+
 using namespace toolkit;
 
 namespace mediakit {
@@ -55,15 +57,8 @@ protected:
      */
 	void onTrackFrame(const Frame::Ptr &frame) override ;
 private:
-	//时间戳：参考频率1000
-	void inputH264(void *pData,
-				   uint32_t ui32Length,
-				   uint32_t ui32TimeStamp);
-
-	//时间戳：参考频率1000
-	void inputAAC(void *pData,
-				  uint32_t ui32Length,
-				  uint32_t ui32TimeStamp);
+	void inputH264(const Frame::Ptr &frame);
+	void inputAAC(const Frame::Ptr &frame);
 
 	bool write_index_file(int iFirstSegment,
 						  unsigned int uiLastSegment,
