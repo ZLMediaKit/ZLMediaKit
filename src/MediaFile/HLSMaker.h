@@ -80,6 +80,7 @@ private:
 	uint64_t _ui64TsCnt;
 	uint32_t _ui32BufSize;
     uint32_t _ui32LastStamp;
+	uint32_t _ui32LastFrameStamp = 0;
 	std::deque<int> _iDurations;
 
 

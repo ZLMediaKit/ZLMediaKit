@@ -160,7 +160,9 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp) {
 		}
 	case H264Frame::NAL_B_P: //P
 			//insert aud frame before p and SPS frame
-		_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, timeStamp * 90);
+		if(timeStamp != _ui32LastFrameStamp){
+			_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, timeStamp * 90);
+		}
 	case H264Frame::NAL_IDR:		//IDR
 	case H264Frame::NAL_PPS:		//PPS
 		_ts.inputH264((char *) data, length, timeStamp * 90);
@@ -168,6 +170,8 @@ void HLSMaker::inputH264(void *data, uint32_t length, uint32_t timeStamp) {
 	default:
 		break;
 	}
+
+	_ui32LastFrameStamp = timeStamp;
 }
 
 void HLSMaker::inputAAC(void *data, uint32_t length, uint32_t timeStamp) {
