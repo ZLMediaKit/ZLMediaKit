@@ -197,16 +197,15 @@ int main(int argc,char *argv[]) {
             //需要保存PlayerProxy，否则作用域结束就会销毁该对象
             proxyMap.emplace(to_string(i), player);
             ++i;
-
-
-            DebugL << "\r\n"
-                      " PlayerProxy构造函数前两个参数分别为应用名（app）,流id（streamId）\n"
-                      " 比如说应用为live，流id为0，那么直播地址为:\n"
-                      " hls地址 : http://127.0.0.1/live/0/hls.m3u8\n"
-                      " http-flv地址 : http://127.0.0.1/live/0.flv\n"
-                      " rtsp地址 : rtsp://127.0.0.1/live/0\n"
-                      " rtmp地址 : rtmp://127.0.0.1/live/0";
         }
+
+        DebugL << "\r\n"
+                  " PlayerProxy构造函数前两个参数分别为应用名（app）,流id（streamId）\n"
+                  " 比如说应用为live，流id为0，那么直播地址为:\n"
+                  " hls地址 : http://127.0.0.1/live/0/hls.m3u8\n"
+                  " http-flv地址 : http://127.0.0.1/live/0.flv\n"
+                  " rtsp地址 : rtsp://127.0.0.1/live/0\n"
+                  " rtmp地址 : rtmp://127.0.0.1/live/0";
 
 #ifdef ENABLE_OPENSSL
         //请把证书"test_server.pem"放置在本程序可执行程序同目录下
