@@ -188,29 +188,28 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 maxSize = iLen - nOffset;
                 mark = true;
                 s_e_type = 1 << 6 | naluType;
-            } else {
-                if (bFirst == true) {
+            } else if (bFirst) {
                     s_e_type = 1 << 7 | naluType;
-                    bFirst = false;
-                } else {
-                    s_e_type = naluType;
-                }
+            } else {
+                s_e_type = naluType;
             }
+
             //FU type
             _aucSectionBuf[0] = 49 << 1;
             _aucSectionBuf[1] = 1;
             _aucSectionBuf[2] = s_e_type;
             memcpy(_aucSectionBuf + 3, pcData + nOffset, maxSize);
             nOffset += maxSize;
-            makeH265Rtp(naluType,_aucSectionBuf, maxSize + 3, mark, uiStamp);
+            makeH265Rtp(naluType,_aucSectionBuf, maxSize + 3, mark,bFirst, uiStamp);
+            bFirst = false;
         }
     } else {
-        makeH265Rtp(naluType,pcData, iLen, true, uiStamp);
+        makeH265Rtp(naluType,pcData, iLen, true, true, uiStamp);
     }
 }
 
-void H265RtpEncoder::makeH265Rtp(int nal_type,const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
-    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),nal_type == H265Frame::NAL_VPS);
+void H265RtpEncoder::makeH265Rtp(int nal_type,const void* data, unsigned int len, bool mark, bool first_packet, uint32_t uiStamp) {
+    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),first_packet && H265Frame::isKeyFrame(nal_type));
 }
 
 }//namespace mediakit
