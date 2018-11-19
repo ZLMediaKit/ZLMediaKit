@@ -45,7 +45,6 @@ public:
     RtmpPlayerImp(){};
     virtual ~RtmpPlayerImp(){
         DebugL<<endl;
-        teardown();
     };
     float getProgress() const override{
         if(getDuration() > 0){

@@ -41,14 +41,20 @@ const char PlayerBase::kRtspPwdIsMD5[] = "rtsp_pwd_md5";
 
 
 PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
+	static auto releasePlayer = [](PlayerBase *ptr){
+		onceToken token(nullptr,[&](){
+			delete  ptr;
+		});
+		ptr->teardown();
+	};
 	string prefix = FindField(strUrl, NULL, "://");
 	if (strcasecmp("rtsp",prefix.data()) == 0) {
-		return PlayerBase::Ptr(new RtspPlayerImp());
+		return PlayerBase::Ptr(new RtspPlayerImp(),releasePlayer);
 	}
 	if (strcasecmp("rtmp",prefix.data()) == 0) {
-		return PlayerBase::Ptr(new RtmpPlayerImp());
+		return PlayerBase::Ptr(new RtmpPlayerImp(),releasePlayer);
 	}
-	return PlayerBase::Ptr(new RtspPlayerImp());
+	return PlayerBase::Ptr(new RtspPlayerImp(),releasePlayer);
 }
 
 ///////////////////////////Demuxer//////////////////////////////

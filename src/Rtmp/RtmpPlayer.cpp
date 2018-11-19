@@ -46,7 +46,6 @@ RtmpPlayer::RtmpPlayer() {
 }
 
 RtmpPlayer::~RtmpPlayer() {
-	teardown();
 	DebugL << endl;
 }
 void RtmpPlayer::teardown() {
