@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -178,13 +178,17 @@ int main(int argc,char *argv[]) {
         for (auto &url : urlList) {
             //PlayerProxy构造函数前两个参数分别为应用名（app）,流id（streamId）
             //比如说应用为live，流id为0，那么直播地址为:
-            //http://127.0.0.1/live/0/hls.m3u8
-            //rtsp://127.0.0.1/live/0
-            //rtmp://127.0.0.1/live/0
+
+            //hls地址 : http://127.0.0.1/live/0/hls.m3u8
+            //http-flv地址 : http://127.0.0.1/live/0.flv
+            //rtsp地址 : rtsp://127.0.0.1/live/0
+            //rtmp地址 : rtmp://127.0.0.1/live/0
+
             //录像地址为(当然vlc不支持这么多级的rtmp url，可以用test_player测试rtmp点播):
             //http://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
             //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
             //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
+
             PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "live", to_string(i).data()));
             //指定RTP over TCP(播放rtsp时有效)
             (*player)[RtspPlayer::kRtpType] = PlayerBase::RTP_TCP;
@@ -193,6 +197,15 @@ int main(int argc,char *argv[]) {
             //需要保存PlayerProxy，否则作用域结束就会销毁该对象
             proxyMap.emplace(to_string(i), player);
             ++i;
+
+
+            DebugL << "\r\n"
+                      " PlayerProxy构造函数前两个参数分别为应用名（app）,流id（streamId）\n"
+                      " 比如说应用为live，流id为0，那么直播地址为:\n"
+                      " hls地址 : http://127.0.0.1/live/0/hls.m3u8\n"
+                      " http-flv地址 : http://127.0.0.1/live/0.flv\n"
+                      " rtsp地址 : rtsp://127.0.0.1/live/0\n"
+                      " rtmp地址 : rtmp://127.0.0.1/live/0";
         }
 
 #ifdef ENABLE_OPENSSL
