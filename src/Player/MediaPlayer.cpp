@@ -36,7 +36,6 @@ MediaPlayer::MediaPlayer() {
 }
 
 MediaPlayer::~MediaPlayer() {
-	teardown();
 }
 void MediaPlayer::play(const char* strUrl) {
 	string strPrefix = FindField(strUrl, NULL, "://");

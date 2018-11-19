@@ -55,7 +55,6 @@ RtspPlayer::RtspPlayer(void){
 	_pktPool.setSize(64);
 }
 RtspPlayer::~RtspPlayer(void) {
-    RtspPlayer::teardown();
     DebugL<<endl;
 }
 void RtspPlayer::teardown(){
