@@ -44,8 +44,8 @@ void MediaPlayer::play(const char* strUrl) {
 		//协议切换
 		_strPrefix = strPrefix;
 		_parser = PlayerBase::createPlayer(strUrl);
-		_parser->setOnShutdown(_shutdownCB);
 	}
+	_parser->setOnShutdown(_shutdownCB);
 	_parser->setOnPlayResult(_playResultCB);
 	_parser->mINI::operator=(*this);
 	_parser->play(strUrl);
