@@ -206,27 +206,25 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 iSize = iLen - nOffset;
                 mark = true;
                 s_e_r_type = s_e_r_End + naluType;
+            } else  if (bFirst) {
+                s_e_r_type = s_e_r_Start + naluType;
             } else {
-                if (bFirst == true) {
-                    s_e_r_type = s_e_r_Start + naluType;
-                    bFirst = false;
-                } else {
-                    s_e_r_type = s_e_r_Mid + naluType;
-                }
+                s_e_r_type = s_e_r_Mid + naluType;
             }
             memcpy(_aucSectionBuf, &f_nri_type, 1);
             memcpy(_aucSectionBuf + 1, &s_e_r_type, 1);
             memcpy(_aucSectionBuf + 2, (unsigned char *) pcData + nOffset, iSize);
             nOffset += iSize;
-            makeH264Rtp(naluType,_aucSectionBuf, iSize + 2, mark, uiStamp);
+            makeH264Rtp(naluType,_aucSectionBuf, iSize + 2, mark,bFirst, uiStamp);
+            bFirst = false;
         }
     } else {
-        makeH264Rtp(naluType,pcData, iLen, true, uiStamp);
+        makeH264Rtp(naluType,pcData, iLen, true, true, uiStamp);
     }
 }
 
-void H264RtpEncoder::makeH264Rtp(int nal_type,const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
-    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),nal_type == H264Frame::NAL_SPS);
+void H264RtpEncoder::makeH264Rtp(int nal_type,const void* data, unsigned int len, bool mark, bool first_packet, uint32_t uiStamp) {
+    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),first_packet && nal_type == H264Frame::NAL_IDR);
 }
 
 }//namespace mediakit

@@ -94,7 +94,7 @@ public:
      */
     void inputFrame(const Frame::Ptr &frame) override;
 private:
-    void makeH265Rtp(int nal_type,const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
+    void makeH265Rtp(int nal_type,const void *pData, unsigned int uiLen, bool bMark, bool first_packet,uint32_t uiStamp);
 private:
     unsigned char _aucSectionBuf[1600];
 };
