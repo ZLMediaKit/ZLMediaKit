@@ -81,7 +81,7 @@ Sdp::Ptr Factory::getSdpByTrack(const Track::Ptr &track) {
 
 
 Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
-    if (toolkit::strcasecmp(track->_codec.data(), "mpeg4-generic") == 0) {
+    if (strcasecmp(track->_codec.data(), "mpeg4-generic") == 0) {
         string aac_cfg_str = FindField(track->_fmtp.c_str(), "config=", nullptr);
         if (aac_cfg_str.size() != 4) {
             aac_cfg_str = FindField(track->_fmtp.c_str(), "config=", ";");
@@ -105,7 +105,7 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         return std::make_shared<AACTrack>(aac_cfg);
     }
 
-    if (toolkit::strcasecmp(track->_codec.data(), "h264") == 0) {
+    if (strcasecmp(track->_codec.data(), "h264") == 0) {
         string sps_pps = FindField(track->_fmtp.c_str(), "sprop-parameter-sets=", nullptr);
         if(sps_pps.empty()){
             return std::make_shared<H264Track>();
@@ -121,7 +121,7 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         return std::make_shared<H264Track>(sps,pps,0,0);
     }
 
-    if (toolkit::strcasecmp(track->_codec.data(), "h265") == 0) {
+    if (strcasecmp(track->_codec.data(), "h265") == 0) {
         //a=fmtp:96 sprop-sps=QgEBAWAAAAMAsAAAAwAAAwBdoAKAgC0WNrkky/AIAAADAAgAAAMBlQg=; sprop-pps=RAHA8vA8kAA=
         int pt;
         char sprop_vps[128] = {0},sprop_sps[128] = {0},sprop_pps[128] = {0};
