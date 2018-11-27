@@ -39,7 +39,7 @@ MediaPlayer::~MediaPlayer() {
 }
 void MediaPlayer::play(const char* strUrl) {
 	string strPrefix = FindField(strUrl, NULL, "://");
-	if ((strcasecmp(_strPrefix.data(),strPrefix.data()) != 0) || strPrefix.empty()) {
+	if ((toolkit::strcasecmp(_strPrefix.data(),strPrefix.data()) != 0) || strPrefix.empty()) {
 		//协议切换
 		_strPrefix = strPrefix;
 		_parser = PlayerBase::createPlayer(strUrl);

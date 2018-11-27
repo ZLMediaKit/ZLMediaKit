@@ -41,10 +41,10 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     auto protocol = FindField(strUrl.data(), NULL, "://");
     uint16_t defaultPort;
     bool isHttps;
-    if (strcasecmp(protocol.data(), "http") == 0) {
+    if (toolkit::strcasecmp(protocol.data(), "http") == 0) {
         defaultPort = 80;
         isHttps = false;
-    } else if (strcasecmp(protocol.data(), "https") == 0) {
+    } else if (toolkit::strcasecmp(protocol.data(), "https") == 0) {
         defaultPort = 443;
         isHttps = true;
     } else {
