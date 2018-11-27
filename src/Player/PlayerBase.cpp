@@ -48,10 +48,10 @@ PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 		ptr->teardown();
 	};
 	string prefix = FindField(strUrl, NULL, "://");
-	if (toolkit::strcasecmp("rtsp",prefix.data()) == 0) {
+	if (strcasecmp("rtsp",prefix.data()) == 0) {
 		return PlayerBase::Ptr(new RtspPlayerImp(),releasePlayer);
 	}
-	if (toolkit::strcasecmp("rtmp",prefix.data()) == 0) {
+	if (strcasecmp("rtmp",prefix.data()) == 0) {
 		return PlayerBase::Ptr(new RtmpPlayerImp(),releasePlayer);
 	}
 	return PlayerBase::Ptr(new RtspPlayerImp(),releasePlayer);

@@ -208,7 +208,7 @@ inline bool HttpSession::checkLiveFlvStream(){
 		//未找到".flv"后缀
 		return false;
 	}
-	if(toolkit::strcasecmp(pos,".flv") != 0){
+	if(strcasecmp(pos,".flv") != 0){
 		//未找到".flv"后缀
 		return false;
 	}
@@ -298,7 +298,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	/////////////HTTP连接是否需要被关闭////////////////
     GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
 
-    bool bClose = (toolkit::strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
+    bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 	//访问的是文件夹
 	if (strFile.back() == '/') {
 		//生成文件夹菜单索引
@@ -551,7 +551,7 @@ string HttpSession::urlDecode(const string &str){
 	auto ret = strCoding::UrlUTF8Decode(str);
 #ifdef _WIN32
     GET_CONFIG_AND_REGISTER(string,charSet,Http::kCharSet);
-	bool isGb2312 = !toolkit::strcasecmp(charSet.data(), "gb2312");
+	bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
 	if (isGb2312) {
 		ret = strCoding::UTF8ToGB2312(ret);
 	}
@@ -570,7 +570,7 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	///////////////////是否断开本链接///////////////////////
     GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
 
-    bool bClose = (toolkit::strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
+    bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 	auto Origin = _parser["Origin"];
 	/////////////////////异步回复Invoker///////////////////////////////
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
@@ -637,7 +637,7 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 		content_len = -1;
 		auto parserCopy = _parser;
 		std::shared_ptr<uint64_t> recvedContentLen = std::make_shared<uint64_t>(0);
-		bool bClose = (toolkit::strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > maxReqCnt);
+		bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > maxReqCnt);
 
 		_contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const char *data,uint64_t len){
 		    *(recvedContentLen) += len;
