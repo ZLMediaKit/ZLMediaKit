@@ -101,7 +101,7 @@ string FindField(const char* buf, const char* start, const char *end,int bufSize
 struct StrCaseCompare
 {
     bool operator()(const string& __x, const string& __y) const
-    {return strcasecmp(__x.data(), __y.data()) < 0 ;}
+    {return toolkit::strcasecmp(__x.data(), __y.data()) < 0 ;}
 };
 typedef map<string,string,StrCaseCompare> StrCaseMap;
 

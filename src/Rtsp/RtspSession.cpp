@@ -444,7 +444,7 @@ void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const strin
         }
 
         auto good_response = MD5( encrypted_pwd + ":" + nonce + ":" + MD5(string("DESCRIBE") + ":" + uri).hexdigest()).hexdigest();
-        if(strcasecmp(good_response.data(),response.data()) == 0){
+        if(toolkit::strcasecmp(good_response.data(),response.data()) == 0){
             //认证成功！md5不区分大小写
             onAuthSuccess(weakSelf);
             TraceL << "onAuthSuccess";
