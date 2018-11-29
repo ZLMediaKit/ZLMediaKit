@@ -30,3 +30,7 @@
 
 
 *.DS_Store
+
+/cmake-build-debug/
+/.idea/
+/c_wrapper/.idea/
