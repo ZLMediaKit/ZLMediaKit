@@ -38,14 +38,10 @@ MediaPlayer::MediaPlayer() {
 MediaPlayer::~MediaPlayer() {
 }
 void MediaPlayer::play(const char* strUrl) {
-	string strPrefix = FindField(strUrl, NULL, "://");
-	if ((strcasecmp(_strPrefix.data(),strPrefix.data()) != 0) || strPrefix.empty()) {
-		//协议切换
-		_strPrefix = strPrefix;
-		_parser = PlayerBase::createPlayer(strUrl);
-	}
+    _parser = PlayerBase::createPlayer(strUrl);
 	_parser->setOnShutdown(_shutdownCB);
 	_parser->setOnPlayResult(_playResultCB);
+    _parser->setMediaSouce(_pMediaSrc);
 	_parser->mINI::operator=(*this);
 	_parser->play(strUrl);
 }
