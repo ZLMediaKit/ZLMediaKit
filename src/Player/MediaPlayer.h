@@ -47,8 +47,6 @@ public:
 	void pause(bool bPause) override;
 	void teardown() override;
 	TaskExecutor::Ptr getExecutor();
-private:
-	string _strPrefix;
 
 };
 
