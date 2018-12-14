@@ -24,19 +24,7 @@
  * SOFTWARE.
  */
 
-#include <set>
-#include <cmath>
-#include <stdarg.h>
-#include <algorithm>
-
 #include "Common/config.h"
-#include "RtspPlayer.h"
-#include "H264/SPSParser.h"
-#include "Util/MD5.h"
-#include "Util/mini.h"
-#include "Util/util.h"
-#include "Util/base64.h"
-#include "Network/sockutil.h"
 #include "RtpReceiver.h"
 
 #define POP_HEAD(trackidx) \

@@ -46,7 +46,7 @@ public:
                           const string &app,
                           const string &id,
                           bool bEnableHls = true,
-                          bool bEnableMp4 = true) : RtspMediaSource(vhost, app, id) {
+                          bool bEnableMp4 = false) : RtspMediaSource(vhost, app, id) {
         _recorder = std::make_shared<MediaRecorder>(vhost, app, id, bEnableHls, bEnableMp4);
     }
 
