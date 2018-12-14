@@ -87,6 +87,7 @@ class PlayerBase : public DemuxerBase, public mINI{
 public:
 	typedef std::shared_ptr<PlayerBase> Ptr;
 	typedef enum {
+		RTP_Invalid = -1,
 		RTP_TCP = 0,
 		RTP_UDP = 1,
 		RTP_MULTICAST = 2,

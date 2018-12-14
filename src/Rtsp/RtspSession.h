@@ -77,27 +77,24 @@ public:
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onError(const SockException &err) override;
 	void onManager() override;
-
 protected:
 	//HttpRequestSplitter override
 	int64_t onRecvHeader(const char *data,uint64_t len) override ;
+	void onRecvContent(const char *data,uint64_t len) override;
 private:
 	void inputRtspOrRtcp(const char *data,uint64_t len);
-	int send(const Buffer::Ptr &pkt) override{
-        _ui64TotalBytes += pkt->size();
-        return _pSender->send(pkt,_flags);
-	}
 	void shutdown() override ;
 	void shutdown_l(bool close);
-	bool handleReq_Options(); //处理options方法
-	bool handleReq_Describe(); //处理describe方法
-	bool handleReq_Setup(); //处理setup方法
-	bool handleReq_Play(); //处理play方法
-	bool handleReq_Pause(); //处理pause方法
-	bool handleReq_Teardown(); //处理teardown方法
-	bool handleReq_Get(); //处理Get方法
-	bool handleReq_Post(); //处理Post方法
-	bool handleReq_SET_PARAMETER(); //处理SET_PARAMETER方法
+	int handleReq_Options(); //处理options方法
+	int handleReq_Describe(); //处理describe方法
+	int handleReq_ANNOUNCE(); //处理options方法
+	int handleReq_Setup(); //处理setup方法
+	int handleReq_Play(); //处理play方法
+	int handleReq_Pause(); //处理pause方法
+	int handleReq_Teardown(); //处理teardown方法
+	int handleReq_Get(); //处理Get方法
+	int handleReq_Post(); //处理Post方法
+	int handleReq_SET_PARAMETER(); //处理SET_PARAMETER方法
 
 	void inline send_StreamNotFound(); //rtsp资源未找到
 	void inline send_UnsupportedTransport(); //不支持的传输模式
@@ -106,33 +103,9 @@ private:
 	inline bool findStream(); //根据rtsp url查找 MediaSource实例
     inline void findStream(const function<void(bool)> &cb); //根据rtsp url查找 MediaSource实例
 
-	inline void initSender(const std::shared_ptr<RtspSession> &pSession); //处理rtsp over http，quicktime使用的
-	inline void sendRtpPacket(const RtpPacket::Ptr &pkt);
-	inline string printSSRC(uint32_t ui32Ssrc) {
-		char tmp[9] = { 0 };
-		ui32Ssrc = htonl(ui32Ssrc);
-		uint8_t *pSsrc = (uint8_t *) &ui32Ssrc;
-		for (int i = 0; i < 4; i++) {
-			sprintf(tmp + 2 * i, "%02X", pSsrc[i]);
-		}
-		return tmp;
-	}
-	inline int getTrackIndexByTrackType(TrackType type) {
-		for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
-			if (type == _aTrackInfo[i]->_type) {
-				return i;
-			}
-		}
-		return -1;
-	}
-    inline int getTrackIndexByControlSuffix(const string &controlSuffix) {
-        for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
-            if (controlSuffix == _aTrackInfo[i]->_control_surffix) {
-                return i;
-            }
-        }
-        return -1;
-    }
+	inline string printSSRC(uint32_t ui32Ssrc);
+	inline int getTrackIndexByTrackType(TrackType type);
+    inline int getTrackIndexByControlSuffix(const string &controlSuffix);
 
 	inline void onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr &addr);
 	inline void startListenPeerUdpData();
@@ -146,10 +119,16 @@ private:
 
     void doDelay(int delaySec,const std::function<void()> &fun);
     void cancelDelyaTask();
+
+	inline void sendRtpPacket(const RtpPacket::Ptr &pkt);
+	bool sendRtspResponse(const string &res_code,const std::initializer_list<string> &header, const string &sdp = "" , const char *protocol = "RTSP/1.0");
+	bool sendRtspResponse(const string &res_code,const StrCaseMap &header = StrCaseMap(), const string &sdp = "",const char *protocol = "RTSP/1.0");
+	int send(const Buffer::Ptr &pkt) override;
+	inline void initSender(const std::shared_ptr<RtspSession> &pSession); //处理rtsp over http，quicktime使用的
 private:
-	char *_pcBuf = nullptr;
 	Ticker _ticker;
 	Parser _parser; //rtsp解析类
+	int _iCseq = 0;
 	string _strUrl;
 	string _strSdp;
 	string _strSession;
@@ -157,31 +136,23 @@ private:
     MediaInfo _mediaInfo;
 	std::weak_ptr<RtspMediaSource> _pMediaSrc;
 	RingBuffer<RtpPacket::Ptr>::RingReader::Ptr _pRtpReader;
-
-	PlayerBase::eRtpType _rtpType = PlayerBase::RTP_UDP;
-	bool _bSetUped = false;
-	int _iCseq = 0;
-
-	SdpAttr _sdpAttr;
+	PlayerBase::eRtpType _rtpType = PlayerBase::RTP_Invalid;
 	vector<SdpTrack::Ptr> _aTrackInfo;
 
+	//RTP over udp
 	bool _bGotAllPeerUdp = false;
-
-#ifdef RTSP_SEND_RTCP
-	RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
-	Ticker _aRtcpTicker[2]; //rtcp发送时间,trackid idx 为数组下标
-	inline void sendRTCP();
-#endif
-
-	//RTP over UDP
 	bool _abGotPeerUdp[2] = { false, false }; //获取客户端udp端口计数
 	weak_ptr<Socket> _apUdpSock[2]; //发送RTP的UDP端口,trackid idx 为数组下标
 	std::shared_ptr<struct sockaddr> _apPeerUdpAddr[2]; //播放器接收RTP的地址,trackid idx 为数组下标
 	bool _bListenPeerUdpData = false;
+
+	//RTP over udp_multicast
 	RtpBroadCaster::Ptr _pBrdcaster;
 
 	//登录认证
     string _strNonce;
+    //消耗的总流量
+    uint64_t _ui64TotalBytes = 0;
 
 	//RTSP over HTTP
 	function<void(void)> _onDestory;
@@ -190,18 +161,21 @@ private:
 	//quicktime 请求rtsp会产生两次tcp连接，
 	//一次发送 get 一次发送post，需要通过sessioncookie关联起来
 	string _strSessionCookie;
-
-    //消耗的总流量
-    uint64_t _ui64TotalBytes = 0;
-
 	static recursive_mutex g_mtxGetter; //对quicktime上锁保护
 	static recursive_mutex g_mtxPostter; //对quicktime上锁保护
 	static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
 	static unordered_map<void *, std::shared_ptr<RtspSession> > g_mapPostter;
+	function<void(const char *data,uint64_t len)> _onContent;
 
     std::function<void()> _delayTask;
     uint32_t _iTaskTimeLine = 0;
     atomic<bool> _enableSendRtp;
+
+#ifdef RTSP_SEND_RTCP
+	RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
+	Ticker _aRtcpTicker[2]; //rtcp发送时间,trackid idx 为数组下标
+	inline void sendRTCP();
+#endif
 };
 
 } /* namespace mediakit */

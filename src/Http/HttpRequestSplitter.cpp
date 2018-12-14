@@ -54,12 +54,16 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
 
     //数据按照请求头处理
     const char *index = nullptr;
-    uint64_t remain = len;
-    while (_content_len == 0 && remain > 0 && (index = onSearchPacketTail(ptr,remain)) != nullptr) {
+    _remain_data_size = len;
+    while (_content_len == 0 && _remain_data_size > 0 && (index = onSearchPacketTail(ptr,_remain_data_size)) != nullptr) {
         //_content_len == 0，这是请求头
-        _content_len = onRecvHeader(ptr, index - ptr);
+        const char *header_ptr = ptr;
+        int64_t header_size = index - ptr;
+
         ptr = index;
-        remain = len - (ptr - data);
+        _remain_data_size = len - (ptr - data);
+
+        _content_len = onRecvHeader(header_ptr, header_size);
     }
 
     /*
@@ -67,7 +71,7 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
      */
     tail_ref = tail_tmp;
 
-    if(remain <= 0){
+    if(_remain_data_size <= 0){
         //没有剩余数据，清空缓存
         _remain_data.clear();
         return;
@@ -75,7 +79,7 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
 
     if(_content_len == 0){
         //尚未找到http头，缓存定位到剩余数据部分
-        string str(ptr,remain);
+        string str(ptr,_remain_data_size);
         _remain_data = str;
         return;
     }
@@ -83,23 +87,23 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
     //已经找到http头了
     if(_content_len > 0){
         //数据按照固定长度content处理
-        if(remain < _content_len){
+        if(_remain_data_size < _content_len){
             //数据不够，缓存定位到剩余数据部分
-            string str(ptr,remain);
+            string str(ptr,_remain_data_size);
             _remain_data = str;
             return;
         }
         //收到content数据，并且接受content完毕
         onRecvContent(ptr,_content_len);
 
-        remain -= _content_len;
+        _remain_data_size -= _content_len;
         ptr += _content_len;
         //content处理完毕,后面数据当做请求头处理
         _content_len = 0;
 
-        if(remain > 0){
+        if(_remain_data_size > 0){
             //还有数据没有处理完毕
-            string str(ptr,remain);
+            string str(ptr,_remain_data_size);
             _remain_data = str;
 
             data = ptr = (char *)_remain_data.data();
@@ -112,7 +116,7 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
 
 
     //_content_len < 0;数据按照不固定长度content处理
-    onRecvContent(ptr,remain);//消费掉所有剩余数据
+    onRecvContent(ptr,_remain_data_size);//消费掉所有剩余数据
     _remain_data.clear();
 }
 
@@ -131,6 +135,10 @@ const char *HttpRequestSplitter::onSearchPacketTail(const char *data,int len) {
         return nullptr;
     }
     return  pos + 4;
+}
+
+int64_t HttpRequestSplitter::remainDataSize() {
+    return _remain_data_size;
 }
 
 
