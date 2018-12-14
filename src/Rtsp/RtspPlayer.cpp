@@ -41,18 +41,11 @@ using namespace toolkit;
 
 namespace mediakit {
 
-#define POP_HEAD(trackidx) \
-		auto it = _amapRtpSort[trackidx].begin(); \
-		onRecvRTP_l(it->second, trackidx); \
-		_amapRtpSort[trackidx].erase(it);
-
-#define RTP_BUF_SIZE (4 * 1024)
-
 const char kRtspMd5Nonce[] = "rtsp_md5_nonce";
 const char kRtspRealm[] = "rtsp_realm";
 
 RtspPlayer::RtspPlayer(void){
-	_pktPool.setSize(64);
+	RtpReceiver::setPoolSize(64);
 }
 RtspPlayer::~RtspPlayer(void) {
     DebugL<<endl;
@@ -65,29 +58,26 @@ void RtspPlayer::teardown(){
 
     erase(kRtspMd5Nonce);
     erase(kRtspRealm);
+
 	_aTrackInfo.clear();
-    _onHandshake = nullptr;
     _strSession.clear();
-    _uiCseq = 1;
     _strContentBase.clear();
+	RtpReceiver::clear();
+
     CLEAR_ARR(_apUdpSock);
-    CLEAR_ARR(_aui16LastSeq)
     CLEAR_ARR(_aui16FirstSeq)
-    CLEAR_ARR(_aui32SsrcErrorCnt)
     CLEAR_ARR(_aui64RtpRecv)
-    CLEAR_ARR(_aui64SeqOkCnt)
-    CLEAR_ARR(_abSortStarted)
     CLEAR_ARR(_aui64RtpRecv)
     CLEAR_ARR(_aui16NowSeq)
-    _amapRtpSort[0].clear();
-    _amapRtpSort[1].clear();
+	CLEAR_ARR(_aiFistStamp);
+	CLEAR_ARR(_aiNowStamp);
 
     _pBeatTimer.reset();
     _pPlayTimer.reset();
     _pRtpTimer.reset();
     _iSeekTo = 0;
-    CLEAR_ARR(_aiFistStamp);
-    CLEAR_ARR(_aiNowStamp);
+	_uiCseq = 1;
+	_onHandshake = nullptr;
 }
 
 void RtspPlayer::play(const char* strUrl){
@@ -234,7 +224,6 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 		throw std::runtime_error("onCheckSDP faied");
 	}
 
-	CLEAR_ARR(_aui32SsrcErrorCnt)
 	sendSetup(0);
 }
 //发送SETUP命令
@@ -307,7 +296,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
         if(!pUdpSockRef){
             pUdpSockRef.reset(new Socket());
         }
-        
+
 		if (_eType == RTP_MULTICAST) {
 			auto multiAddr = FindField((strTransport + ";").c_str(), "destination=", ";");
 			if (!pUdpSockRef->bindUdpSock(port, "0.0.0.0")) {
@@ -346,10 +335,10 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 				return;
 			}
 			if(((struct sockaddr_in *)addr)->sin_addr.s_addr != srcIP) {
-				WarnL << "收到请他地址的UDP数据:" << inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
+				WarnL << "收到其他地址的UDP数据:" << inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
 				return;
 			}
-			strongSelf->handleOneRtp(i,(unsigned char *)buf->data(),buf->size());
+			strongSelf->handleOneRtp(i,strongSelf->_aTrackInfo[i],(unsigned char *)buf->data(),buf->size());
 		});
 	}
 	/////////////////////////心跳/////////////////////////////////
@@ -470,105 +459,12 @@ void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
         trackIdx = getTrackIndexByInterleaved(interleaved);
     }
     if (trackIdx != -1) {
-        handleOneRtp(trackIdx, (unsigned char *)data + 4, len - 4);
+        handleOneRtp(trackIdx,_aTrackInfo[trackIdx],(unsigned char *)data + 4, len - 4);
     }
 }
 
-#   define AV_RB16(x)                           \
-    ((((const uint8_t*)(x))[0] << 8) |          \
-      ((const uint8_t*)(x))[1])
 
-
-bool RtspPlayer::handleOneRtp(int iTrackidx, unsigned char *pucData, unsigned int uiLen) {
-	auto &track = _aTrackInfo[iTrackidx];
-	auto pt_ptr=_pktPool.obtain();
-	auto &rtppt=*pt_ptr;
-	rtppt.interleaved = track->_interleaved;
-	rtppt.length = uiLen + 4;
-
-	rtppt.mark = pucData[1] >> 7;
-	rtppt.PT = pucData[1] & 0x7F;
-	//序列号
-	memcpy(&rtppt.sequence,pucData+2,2);//内存对齐
-	rtppt.sequence = ntohs(rtppt.sequence);
-	//时间戳
-    memcpy(&rtppt.timeStamp, pucData+4, 4);//内存对齐
-	//时间戳转换成毫秒
-    rtppt.timeStamp = ntohl(rtppt.timeStamp) * 1000L / track->_samplerate;
-	//ssrc
-	memcpy(&rtppt.ssrc,pucData+8,4);//内存对齐
-	rtppt.ssrc = ntohl(rtppt.ssrc);
-	rtppt.type = track->_type;
-	if (track->_ssrc == 0) {
-		track->_ssrc = rtppt.ssrc;
-		//保存SSRC
-	} else if (track->_ssrc != rtppt.ssrc) {
-		//ssrc错误
-		WarnL << "ssrc错误";
-		if (_aui32SsrcErrorCnt[iTrackidx]++ > 10) {
-			track->_ssrc = rtppt.ssrc;
-			WarnL << "ssrc更换!";
-		}
-		return false;
-	}
-	_aui32SsrcErrorCnt[iTrackidx] = 0;
-
-	rtppt.payload[0] = '$';
-	rtppt.payload[1] = rtppt.interleaved;
-	rtppt.payload[2] = (uiLen & 0xFF00) >> 8;
-	rtppt.payload[3] = (uiLen & 0x00FF);
-
-	rtppt.offset 	= 16;
-	int csrc     	= pucData[0] & 0x0f;
-	int ext      	= pucData[0] & 0x10;
-	rtppt.offset 	+= 4 * csrc;
-	if (ext) {
-		if(uiLen < rtppt.offset){
-			return false;
-		}
-		/* calculate the header extension length (stored as number of 32-bit words) */
-		ext = (AV_RB16(pucData + rtppt.offset - 2) + 1) << 2;
-		rtppt.offset += ext;
-	}
-
-	memcpy(rtppt.payload + 4, pucData, uiLen);
-
-	/////////////////////////////////RTP排序逻辑///////////////////////////////////
-	if(rtppt.sequence != (uint16_t)(_aui16LastSeq[iTrackidx] + 1) && _aui16LastSeq[iTrackidx] != 0){
-		//包乱序或丢包
-		_aui64SeqOkCnt[iTrackidx] = 0;
-		_abSortStarted[iTrackidx] = true;
-		//WarnL << "包乱序或丢包:" << trackidx <<" " << rtppt.sequence << " " << _aui16LastSeq[trackidx];
-	}else{
-		//正确序列的包
-		_aui64SeqOkCnt[iTrackidx]++;
-	}
-	_aui16LastSeq[iTrackidx] = rtppt.sequence;
-
-	//开始排序缓存
-	if (_abSortStarted[iTrackidx]) {
-		_amapRtpSort[iTrackidx].emplace(rtppt.sequence, pt_ptr);
-        GET_CONFIG_AND_REGISTER(uint32_t,clearCount,Rtp::kClearCount);
-        GET_CONFIG_AND_REGISTER(uint32_t,maxRtpCount,Rtp::kMaxRtpCount);
-		if (_aui64SeqOkCnt[iTrackidx] >= clearCount) {
-			//网络环境改善，需要清空排序缓存
-			_aui64SeqOkCnt[iTrackidx] = 0;
-			_abSortStarted[iTrackidx] = false;
-			while (_amapRtpSort[iTrackidx].size()) {
-				POP_HEAD(iTrackidx)
-			}
-		} else if (_amapRtpSort[iTrackidx].size() >= maxRtpCount) {
-			//排序缓存溢出
-			POP_HEAD(iTrackidx)
-		}
-	}else{
-		//正确序列
-		onRecvRTP_l(pt_ptr, iTrackidx);
-	}
-	//////////////////////////////////////////////////////////////////////////////////
-	return true;
-}
-void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtppt, int trackidx){
+void RtspPlayer::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx){
 	//统计丢包率
 	if (_aui16FirstSeq[trackidx] == 0 || rtppt->sequence < _aui16FirstSeq[trackidx]) {
 		_aui16FirstSeq[trackidx] = rtppt->sequence;
