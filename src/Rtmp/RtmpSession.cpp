@@ -190,7 +190,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             onRes(err);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRtmpPublish,
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,
                                                    _mediaInfo,
                                                    invoker,
                                                    *this);

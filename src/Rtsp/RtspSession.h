@@ -88,6 +88,7 @@ private:
 	int handleReq_Options(); //处理options方法
 	int handleReq_Describe(); //处理describe方法
 	int handleReq_ANNOUNCE(); //处理options方法
+    int handleReq_RECORD(); //处理options方法
 	int handleReq_Setup(); //处理setup方法
 	int handleReq_Play(); //处理play方法
 	int handleReq_Pause(); //处理pause方法
@@ -108,7 +109,7 @@ private:
     inline int getTrackIndexByControlSuffix(const string &controlSuffix);
 
 	inline void onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr &addr);
-	inline void startListenPeerUdpData();
+	inline void startListenPeerUdpData(int iTrackIdx);
 
     //认证相关
     static void onAuthSuccess(const weak_ptr<RtspSession> &weakSelf);
@@ -142,9 +143,9 @@ private:
 	//RTP over udp
 	bool _bGotAllPeerUdp = false;
 	bool _abGotPeerUdp[2] = { false, false }; //获取客户端udp端口计数
-	weak_ptr<Socket> _apUdpSock[2]; //发送RTP的UDP端口,trackid idx 为数组下标
-	std::shared_ptr<struct sockaddr> _apPeerUdpAddr[2]; //播放器接收RTP的地址,trackid idx 为数组下标
-	bool _bListenPeerUdpData = false;
+	Socket::Ptr _apRtpSock[2]; //RTP端口,trackid idx 为数组下标
+	Socket::Ptr _apRtcpSock[2];//RTCP端口,trackid idx 为数组下标
+	std::shared_ptr<struct sockaddr> _apPeerRtpPortAddr[2]; //播放器接收RTP的地址,trackid idx 为数组下标
 
 	//RTP over udp_multicast
 	RtpBroadCaster::Ptr _pBrdcaster;
