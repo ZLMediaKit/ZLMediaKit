@@ -92,9 +92,13 @@ extern const char kBroadcastOnRtspAuth[];
 //如果errMessage为空则代表鉴权成功
 typedef std::function<void(const string &errMessage)> AuthInvoker;
 
-//收到rtmp推流事件广播，通过该事件控制推流鉴权
-extern const char kBroadcastRtmpPublish[];
-#define BroadcastRtmpPublishArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
+//收到rtsp/rtmp推流事件广播，通过该事件控制推流鉴权
+extern const char kBroadcastMediaPublish[];
+#define BroadcastMediaPublishArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
+
+//兼容旧代码的宏
+#define BroadcastRtmpPublishArgs BroadcastMediaPublishArgs
+#define kBroadcastRtmpPublish kBroadcastMediaPublish
 
 //播放rtsp/rtmp/http-flv事件广播，通过该事件控制播放鉴权
 extern const char kBroadcastMediaPlayed[];
