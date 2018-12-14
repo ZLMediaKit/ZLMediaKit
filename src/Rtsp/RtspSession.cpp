@@ -222,11 +222,36 @@ void RtspSession::onRecvContent(const char *data, uint64_t len) {
 }
 
 int RtspSession::handleReq_ANNOUNCE() {
-	sendRtspResponse("200 OK");
-	_onContent = [this](const char *data, uint64_t len){
+	auto parseCopy = _parser;
+	_onContent = [this,parseCopy](const char *data, uint64_t len){
+		_parser = parseCopy;
 	    _strSdp.assign(data,len);
-	    SdpAttr attr(_strSdp);
-        _aTrackInfo = attr.getAvailableTrack();
+		//解析url获取媒体名称
+		_mediaInfo.parse(_parser.FullUrl());
+
+		auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTSP_SCHEMA,
+																		   _mediaInfo._vhost,
+																		   _mediaInfo._app,
+																		   _mediaInfo._streamid,
+																		   false));
+		if(src){
+			sendRtspResponse("406 Not Acceptable", {"Content-Type", "text/plain"}, "Already publishing.");
+			WarnL << "ANNOUNCE:"
+				  << "Already publishing:"
+				  << _mediaInfo._vhost << " "
+				  << _mediaInfo._app << " "
+				  << _mediaInfo._streamid << endl;
+			shutdown();
+			return;
+		}
+
+		_strSession = makeRandStr(12);
+		_aTrackInfo = SdpAttr(_strSdp).getAvailableTrack();
+		_strUrl = _parser.Url();
+
+		_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
+		_pushSrc->onGetSDP(_strSdp);
+		sendRtspResponse("200 OK");
 	};
 	return atoi(_parser["Content-Length"].data());
 }
@@ -994,12 +1019,18 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 	}
 }
 
+void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
+	if(_pushSrc){
+		_pushSrc->onWrite(rtppt,true);
+	}
+}
 inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {
 	//这是rtcp心跳包，说明播放器还存活
 	_ticker.resetTime();
 
 	if(iTrackIdx % 2 == 0){
-//		DebugL << "rtp数据包:" << iTrackIdx / 2;
+	    handleOneRtp(iTrackIdx / 2,_aTrackInfo[iTrackIdx / 2],( unsigned char *)pBuf->data(),pBuf->size());
+
 		//这是rtp探测包
 		if(!_bGotAllPeerUdp){
 			//还没有获取完整的rtp探测包

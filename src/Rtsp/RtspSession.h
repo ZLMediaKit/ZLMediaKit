@@ -39,6 +39,8 @@
 #include "Util/logger.h"
 #include "Network/TcpSession.h"
 #include "Http/HttpRequestSplitter.h"
+#include "RtpReceiver.h"
+#include "RtspToRtmpMediaSource.h"
 
 using namespace std;
 using namespace toolkit;
@@ -64,7 +66,7 @@ private:
     uint32_t _offset;
 };
 
-class RtspSession: public TcpSession, public HttpRequestSplitter {
+class RtspSession: public TcpSession, public HttpRequestSplitter, public RtpReceiver{
 public:
 	typedef std::shared_ptr<RtspSession> Ptr;
 	typedef std::function<void(const string &realm)> onGetRealm;
@@ -81,6 +83,8 @@ protected:
 	//HttpRequestSplitter override
 	int64_t onRecvHeader(const char *data,uint64_t len) override ;
 	void onRecvContent(const char *data,uint64_t len) override;
+	//RtpReceiver override
+	void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
 private:
 	void inputRtspOrRtcp(const char *data,uint64_t len);
 	void shutdown() override ;
@@ -171,6 +175,9 @@ private:
     std::function<void()> _delayTask;
     uint32_t _iTaskTimeLine = 0;
     atomic<bool> _enableSendRtp;
+
+    //rtsp推流相关
+	RtspToRtmpMediaSource::Ptr _pushSrc;
 
 #ifdef RTSP_SEND_RTCP
 	RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
