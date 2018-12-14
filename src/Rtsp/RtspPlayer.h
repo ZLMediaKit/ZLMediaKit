@@ -40,6 +40,7 @@
 #include "Network/Socket.h"
 #include "Network/TcpClient.h"
 #include "RtspSplitter.h"
+#include "RtpReceiver.h"
 
 using namespace std;
 using namespace toolkit;
@@ -47,7 +48,7 @@ using namespace toolkit;
 namespace mediakit {
 
 //实现了rtsp播放器协议部分的功能
-class RtspPlayer: public PlayerBase,public TcpClient, public RtspSplitter {
+class RtspPlayer: public PlayerBase,public TcpClient, public RtspSplitter, public RtpReceiver {
 public:
 	typedef std::shared_ptr<RtspPlayer> Ptr;
 
@@ -76,9 +77,15 @@ protected:
      * @param len
      */
     void onRtpPacket(const char *data,uint64_t len) override ;
+
+    /**
+     * rtp数据包排序后输出
+     * @param rtppt rtp数据包
+     * @param trackidx track索引
+     */
+	void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
 private:
 	void onShutdown_l(const SockException &ex);
-    void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, int iTrackidx);
 	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
 	void onPlayResult_l(const SockException &ex);
 
@@ -95,8 +102,6 @@ private:
 	void handleResDESCRIBE(const Parser &parser);
 	bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
 	void handleResPAUSE(const Parser &parser, bool bPause);
-    //处理一个rtp包
-    bool handleOneRtp(int iTrackidx, unsigned char *ucData, unsigned int uiLen);
 
 	//发送SETUP命令
     bool sendSetup(unsigned int uiTrackIndex);
@@ -110,19 +115,12 @@ private:
 	vector<SdpTrack::Ptr> _aTrackInfo;
 
 	function<void(const Parser&)> _onHandshake;
-	RtspMediaSource::PoolType _pktPool;
 	Socket::Ptr _apUdpSock[2];
 	//rtsp info
 	string _strSession;
 	unsigned int _uiCseq = 1;
-	uint32_t _aui32SsrcErrorCnt[2] = { 0, 0 };
 	string _strContentBase;
 	eRtpType _eType = RTP_TCP;
-	/* RTP包排序所用参数 */
-	uint16_t _aui16LastSeq[2] = { 0 , 0 };
-	uint64_t _aui64SeqOkCnt[2] = { 0 , 0};
-	bool _abSortStarted[2] = { 0 , 0};
-	map<uint32_t , RtpPacket::Ptr> _amapRtpSort[2];
 
 	/* 丢包率统计需要用到的参数 */
 	uint16_t _aui16FirstSeq[2] = { 0 , 0};
