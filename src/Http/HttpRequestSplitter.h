@@ -81,9 +81,15 @@ protected:
      * 恢复初始设置
      */
      void reset();
+
+     /**
+      * 剩余数据大小
+      */
+     int64_t remainDataSize();
 private:
     string _remain_data;
     int64_t _content_len = 0;
+    int64_t _remain_data_size = 0;
 };
 
 } /* namespace mediakit */

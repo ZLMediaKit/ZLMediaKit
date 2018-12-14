@@ -57,14 +57,12 @@ bool loadIniConfig(const char *ini_path = nullptr);
 #define CLEAR_ARR(arr) for(auto &item : arr){ item = 0;}
 #endif //CLEAR_ARR
 
-#define SERVER_NAME "ZLMediaKit"
+#define SERVER_NAME "ZLMediaKit-3.0"
 #define VHOST_KEY "vhost"
 #define HTTP_SCHEMA "http"
 #define RTSP_SCHEMA "rtsp"
 #define RTMP_SCHEMA "rtmp"
 #define DEFAULT_VHOST "__defaultVhost__"
-#define RTSP_VERSION 1.30
-#define RTSP_BUILDTIME __DATE__" CST"
 
 ////////////广播名称///////////
 namespace Broadcast {
