@@ -55,6 +55,10 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
     rtppt.sequence = ntohs(rtppt.sequence);
     //时间戳
     memcpy(&rtppt.timeStamp, pucData+4, 4);//内存对齐
+
+    if(!track->_samplerate){
+        return false;
+    }
     //时间戳转换成毫秒
     rtppt.timeStamp = ntohl(rtppt.timeStamp) * 1000L / track->_samplerate;
     //ssrc
