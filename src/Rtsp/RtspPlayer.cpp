@@ -28,6 +28,7 @@
 #include <cmath>
 #include <stdarg.h>
 #include <algorithm>
+#include <iomanip>
 
 #include "Common/config.h"
 #include "RtspPlayer.h"
@@ -234,15 +235,11 @@ bool RtspPlayer::sendSetup(unsigned int trackIndex) {
 	auto baseUrl = _strContentBase + "/" + track->_control_surffix;
 	switch (_eType) {
 		case RTP_TCP: {
-			StrCaseMap header;
-			header["Transport"] = StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1;
-			return sendRtspRequest("SETUP",baseUrl,header);
+			return sendRtspRequest("SETUP",baseUrl,{"Transport",StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1});
 		}
 			break;
 		case RTP_MULTICAST: {
-			StrCaseMap header;
-			header["Transport"] = "Transport: RTP/AVP;multicast";
-			return sendRtspRequest("SETUP",baseUrl,header);
+			return sendRtspRequest("SETUP",baseUrl,{"Transport","Transport: RTP/AVP;multicast"});
 		}
 			break;
 		case RTP_UDP: {
@@ -252,9 +249,7 @@ bool RtspPlayer::sendSetup(unsigned int trackIndex) {
 				throw std::runtime_error("open udp sock err");
 			}
 			int port = _apUdpSock[trackIndex]->get_local_port();
-			StrCaseMap header;
-			header["Transport"] = StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1;
-			return sendRtspRequest("SETUP",baseUrl,header);
+			return sendRtspRequest("SETUP",baseUrl,{"Transport",StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1});
 		}
 			break;
 		default:
@@ -364,9 +359,7 @@ bool RtspPlayer::sendOptions() {
 bool RtspPlayer::sendDescribe() {
 	//发送DESCRIBE命令后处理函数:handleResDESCRIBE
 	_onHandshake = std::bind(&RtspPlayer::handleResDESCRIBE,this, placeholders::_1);
-	StrCaseMap header;
-	header["Accept"] = "application/sdp";
-	return sendRtspRequest("DESCRIBE",_strUrl,header);
+	return sendRtspRequest("DESCRIBE",_strUrl,{"Accept","application/sdp"});
 }
 
 
@@ -383,12 +376,9 @@ bool RtspPlayer::sendPause(bool bPause,uint32_t seekMS){
 
 	//开启或暂停rtsp
 	_onHandshake = std::bind(&RtspPlayer::handleResPAUSE,this, placeholders::_1,bPause);
-
-	StrCaseMap header;
-	char buf[8];
-	sprintf(buf,"%.2f",seekMS / 1000.0);
-	header["Range"] = StrPrinter << "npt=" << buf << "-";
-	return sendRtspRequest(bPause ? "PAUSE" : "PLAY",_strContentBase,header);
+	return sendRtspRequest(bPause ? "PAUSE" : "PLAY",
+						   _strContentBase,
+						   {"Range",StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-"});
 }
 void RtspPlayer::pause(bool bPause) {
     sendPause(bPause, getProgressMilliSecond());
@@ -513,6 +503,19 @@ void RtspPlayer::seekToMilliSecond(uint32_t ms) {
     sendPause(false,ms);
 }
 
+bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std::initializer_list<string> &header) {
+	string key;
+	StrCaseMap header_map;
+	int i = 0;
+	for(auto &val : header){
+		if(++i % 2 == 0){
+			header_map.emplace(key,val);
+		}else{
+			key = val;
+		}
+	}
+	return sendRtspRequest(cmd,url,header_map);
+}
 bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrCaseMap &header_const) {
 	auto header = header_const;
 	header.emplace("CSeq",StrPrinter << _uiCseq++);

@@ -108,7 +108,9 @@ private:
     bool sendPause(bool bPause,uint32_t ms);
 	bool sendOptions();
 	bool sendDescribe();
+
     bool sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
+	bool sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
 private:
 	string _strUrl;
 	SdpAttr _sdpAttr;
