@@ -1,15 +1,32 @@
-/*
- * TSMaker.cpp
+﻿/*
+ * MIT License
  *
- *  Created on: 2013-6-21
- *      Author: root
+ * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #include "TSMaker.h"
-#include <sys/time.h>
 #include "Util/logger.h"
-
-using namespace ZL::Util;
+using namespace toolkit;
 
 TSMaker::TSMaker() {
 	m_pOutVideoTs = NULL;
@@ -261,7 +278,7 @@ void TSMaker::TsHeader2buffer(TsPacketHeader* pTsHeader, unsigned char* pucBuffe
 
 }
 
-void TSMaker::WriteAdaptive_flags_Head( Ts_Adaptation_field * pTsAdaptationField, uint64_t ui64VideoPts) {
+void TSMaker::WriteAdaptive_flags_Head( Ts_Adaptation_field * pTsAdaptationField, uint64_t ui64VideoDts) {
 	//填写自适应段
 	pTsAdaptationField->discontinuty_indicator = 0;
 	pTsAdaptationField->random_access_indicator = 0;
@@ -273,7 +290,7 @@ void TSMaker::WriteAdaptive_flags_Head( Ts_Adaptation_field * pTsAdaptationField
 	pTsAdaptationField->adaptation_field_extension_flag = 0;
 
 	//需要自己算
-	pTsAdaptationField->pcr = ui64VideoPts * 300;
+	pTsAdaptationField->pcr = ui64VideoDts * 300;
 	pTsAdaptationField->adaptation_field_length = 7;                     //占用7位
 
 	pTsAdaptationField->opcr = 0;
@@ -281,14 +298,14 @@ void TSMaker::WriteAdaptive_flags_Head( Ts_Adaptation_field * pTsAdaptationField
 	pTsAdaptationField->private_data_len = 0;
 }
 
-int TSMaker::inputH264(const char* pcData, uint32_t ui32Len, uint64_t ui64Time) {
+int TSMaker::inputH264(const char* pcData, uint32_t ui32Len, uint64_t ui64Dts , uint64_t ui64Pts) {
 	if (m_pOutVideoTs == NULL) {
 		return false;
 	}
 	m_pVideo_pes->ES = const_cast<char *>(pcData);
 	m_pVideo_pes->ESlen = ui32Len;
 	Ts_Adaptation_field ts_adaptation_field_Head;
-	WriteAdaptive_flags_Head(&ts_adaptation_field_Head, ui64Time); //填写自适应段标志帧头
+	WriteAdaptive_flags_Head(&ts_adaptation_field_Head, ui64Dts); //填写自适应段标志帧头
 	m_pVideo_pes->packet_start_code_prefix = 0x000001;
 	m_pVideo_pes->stream_id = TS_H264_STREAM_ID; //E0~EF表示是视频的,C0~DF是音频,H264-- E0
 	m_pVideo_pes->marker_bit = 0x02;
@@ -305,12 +322,12 @@ int TSMaker::inputH264(const char* pcData, uint32_t ui32Len, uint64_t ui64Time) 
 	m_pVideo_pes->PES_CRC_flag = 0x00;
 	m_pVideo_pes->PES_extension_flag = 0x00;
 	m_pVideo_pes->PES_header_data_length = 0x0A; //后面的数据包括了PTS和 DTS所占的字节数
-	PES2TS(m_pVideo_pes, TS_H264_PID, &ts_adaptation_field_Head, ui64Time);
+	PES2TS(m_pVideo_pes, TS_H264_PID, &ts_adaptation_field_Head, ui64Dts , ui64Pts);
 	m_pVideo_pes->ESlen = 0;
 	return ui32Len;
 }
 
-int TSMaker::inputAAC(const char* pcData, uint32_t ui32Len, uint64_t ui64Pts) {
+int TSMaker::inputAAC(const char* pcData, uint32_t ui32Len, uint64_t ui64Dts , uint64_t ui64Pts) {
 	if (m_pOutVideoTs == NULL) {
 		return 0;
 	}
@@ -334,7 +351,7 @@ int TSMaker::inputAAC(const char* pcData, uint32_t ui32Len, uint64_t ui64Pts) {
 	m_pAudio_pes->PES_CRC_flag = 0x00;
 	m_pAudio_pes->PES_extension_flag = 0x00;
 	m_pAudio_pes->PES_header_data_length = 0x0A; //后面的数据包括了PTS
-	PES2TS(m_pAudio_pes, TS_AAC_PID, &ts_adaptation_field_Head, ui64Pts);
+	PES2TS(m_pAudio_pes, TS_AAC_PID, &ts_adaptation_field_Head,ui64Dts,ui64Pts);
 	m_pAudio_pes->ESlen = 0;
 	return ui32Len;
 }
@@ -451,7 +468,7 @@ void TSMaker::CreateAdaptive_Ts(Ts_Adaptation_field * pTsAdaptationField, unsign
 	}
 	return;
 }
-void TSMaker::PES2TS(TsPes * pTsPes, unsigned int uiPID, Ts_Adaptation_field * pTsAdaptationFieldHead, uint64_t ui64Dts) {
+void TSMaker::PES2TS(TsPes * pTsPes, unsigned int uiPID, Ts_Adaptation_field * pTsAdaptationFieldHead, uint64_t ui64Dts ,uint64_t ui64Pts) {
 	TsPacketHeader ts_header;
 	unsigned int uiAdaptiveLength = 0;                                //要填写0XFF的长度
 	unsigned int uiFirstPacketLoadLength = 188 - 4 - 1 - pTsAdaptationFieldHead->adaptation_field_length - 19; //分片包的第一个包的负载长度
@@ -512,18 +529,18 @@ void TSMaker::PES2TS(TsPes * pTsPes, unsigned int uiPID, Ts_Adaptation_field * p
 					| pTsPes->PES_CRC_flag << 1 | pTsPes->PES_extension_flag;
 			pucTSBuf += 8;
 			switch (pTsPes->PTS_DTS_flags) {
-			case 0x03: //both pts and ui64Dts
+			case 0x03: //both pts and dts
 				pucTSBuf[6] = (((0x1 << 4) | ((ui64Dts >> 29) & 0x0E) | 0x01) & 0xff);
 				pucTSBuf[7] = (((((ui64Dts >> 14) & 0xfffe) | 0x01) >> 8) & 0xff);
 				pucTSBuf[8] = ((((ui64Dts >> 14) & 0xfffe) | 0x01) & 0xff);
 				pucTSBuf[9] = ((((ui64Dts << 1) & 0xfffe) | 0x01) >> 8) & 0xff;
 				pucTSBuf[10] = (((ui64Dts << 1) & 0xfffe) | 0x01) & 0xff;
 			case 0x02: //pts only
-				pucTSBuf[1] = (((0x3 << 4) | ((ui64Dts >> 29) & 0x0E) | 0x01) & 0xff);
-				pucTSBuf[2] = (((((ui64Dts >> 14) & 0xfffe) | 0x01) >> 8) & 0xff);
-				pucTSBuf[3] = ((((ui64Dts >> 14) & 0xfffe) | 0x01) & 0xff);
-				pucTSBuf[4] = (((((ui64Dts << 1) & 0xfffe) | 0x01) >> 8) & 0xff);
-				pucTSBuf[5] = ((((ui64Dts << 1) & 0xfffe) | 0x01) & 0xff);
+				pucTSBuf[1] = (((0x3 << 4) | ((ui64Pts >> 29) & 0x0E) | 0x01) & 0xff);
+				pucTSBuf[2] = (((((ui64Pts >> 14) & 0xfffe) | 0x01) >> 8) & 0xff);
+				pucTSBuf[3] = ((((ui64Pts >> 14) & 0xfffe) | 0x01) & 0xff);
+				pucTSBuf[4] = (((((ui64Pts << 1) & 0xfffe) | 0x01) >> 8) & 0xff);
+				pucTSBuf[5] = ((((ui64Pts << 1) & 0xfffe) | 0x01) & 0xff);
 				break;
 			default:
 				break;

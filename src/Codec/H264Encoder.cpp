@@ -1,17 +1,37 @@
-/*
- * H264Encoder.cpp
+﻿/*
+ * MIT License
  *
- *  Created on: 2016年8月11日
- *      Author: xzl
+ * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
+
 #ifdef ENABLE_X264
 #include "H264Encoder.h"
 
 #include "Util/TimeTicker.h"
-using namespace ZL::Util;
 
-namespace ZL {
-namespace Codec {
+using namespace toolkit;
+
+namespace mediakit {
 
 H264Encoder::H264Encoder() {
 
@@ -19,19 +39,19 @@ H264Encoder::H264Encoder() {
 
 H264Encoder::~H264Encoder() {
 	//* 清除图像区域
-	if (m_pPicIn) {
-		delete m_pPicIn;
-		m_pPicIn = nullptr;
+	if (_pPicIn) {
+		delete _pPicIn;
+		_pPicIn = nullptr;
 	}
-	if (m_pPicOut) {
-		delete m_pPicOut;
-		m_pPicOut = nullptr;
+	if (_pPicOut) {
+		delete _pPicOut;
+		_pPicOut = nullptr;
 	}
 
 	//* 关闭编码器句柄
-	if (m_pX264Handle) {
-		x264_encoder_close(m_pX264Handle);
-		m_pX264Handle = nullptr;
+	if (_pX264Handle) {
+		x264_encoder_close(_pX264Handle);
+		_pX264Handle = nullptr;
 	}
 }
 
@@ -57,20 +77,20 @@ Vui参数集视频可用性信息视频标准化选项
   int i_sar_height;
   int i_sar_width;  设置长宽比
 
-  int i_overscan;  0=undef, 1=no overscan, 2=overscan 过扫描线，默认"undef"(不设置)，可选项：show(观看)/crop(去除)
+  int i_overscan;  0=undef, 1=no overscan, 2=overscan 过扫描线，默认"undef"(不设置)，可选项:show(观看)/crop(去除)
 
   见以下的值h264附件E
   Int i_vidformat; 视频格式，默认"undef"，component/pal/ntsc/secam/mac/undef
-  int b_fullrange; Specify full range samples setting，默认"off"，可选项：off/on
-  int i_colorprim; 原始色度格式，默认"undef"，可选项：undef/bt709/bt470m/bt470bg，smpte170m/smpte240m/film
-  int i_transfer; 转换方式，默认"undef"，可选项：undef/bt709/bt470m/bt470bg/linear,log100/log316/smpte170m/smpte240m
+  int b_fullrange; Specify full range samples setting，默认"off"，可选项:off/on
+  int i_colorprim; 原始色度格式，默认"undef"，可选项:undef/bt709/bt470m/bt470bg，smpte170m/smpte240m/film
+  int i_transfer; 转换方式，默认"undef"，可选项:undef/bt709/bt470m/bt470bg/linear,log100/log316/smpte170m/smpte240m
   int i_colmatrix; 色度矩阵设置，默认"undef",undef/bt709/fcc/bt470bg,smpte170m/smpte240m/GBR/YCgCo
   int i_chroma_loc;  both top & bottom色度样本指定，范围0~5，默认0
   } vui;
 
   int i_fps_num;
   int i_fps_den;
-这两个参数是由fps帧率确定的，赋值的过程见下：
+这两个参数是由fps帧率确定的，赋值的过程见下:
 { float fps;
 if( sscanf( value, "%d/%d", &p->i_fps_num, &p->i_fps_den ) == 2 )
   ;
@@ -137,7 +157,7 @@ Value的值就是fps。
   int i_subpel_refine;  亚像素运动估计质量
   int b_chroma_me;  亚像素色度运动估计和P帧的模式选择
   int b_mixed_references; 允许每个宏块的分区在P帧有它自己的参考号
-  int i_trellis;  Trellis量化，对每个8x8的块寻找合适的量化值，需要CABAC，默认0 0：关闭1：只在最后编码时使用2：一直使用
+  int i_trellis;  Trellis量化，对每个8x8的块寻找合适的量化值，需要CABAC，默认0 0:关闭1:只在最后编码时使用2:一直使用
   int b_fast_pskip; 快速P帧跳过检测
   int b_dct_decimate;  在P-frames转换参数域
   int i_noise_reduction; 自适应伪盲区
@@ -209,7 +229,7 @@ Value的值就是fps。
 } x264_param_t;*/
 
 bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
-	if (m_pX264Handle) {
+	if (_pX264Handle) {
 		return true;
 	}
 	x264_param_t X264Param, *pX264Param = &X264Param;
@@ -249,13 +269,13 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
 	 这个GOP就称为open-GOP。
 	 有些解码器不能完全支持open-GOP码流，
 	 例如蓝光解码器，因此在x264里面open-GOP是默认关闭的。
-	 对于解码端，接收到的码流如果如下：I0 B0 B1 P0 B2 B3...这就是一个open-GOP码流（I帧后面紧跟B帧）。
+	 对于解码端，接收到的码流如果如下:I0 B0 B1 P0 B2 B3...这就是一个open-GOP码流（I帧后面紧跟B帧）。
 	 因此B0 B1的解码需要用到I0前面一个GOP的数据，B0 B1的dts是小于I0的。
-	 如果码流如下： I0 P0 B0 B1 P1 B2 B3...这就是一个close-GOP码流，
+	 如果码流如下: I0 P0 B0 B1 P1 B2 B3...这就是一个close-GOP码流，
 	 I0后面所有帧的解码不依赖于I0前面的帧，I0后面所有帧的dts都比I0的大。
 	 如果码流是IDR0 B0 B1 P0 B2 B3...那个这个GOP是close-GOP，B0,B1虽然dst比IDR0小，
 	 但编解码端都刷新了参考缓冲，B0,B1参考不到前向GOP帧。
-	 对于编码端，如果编码帧类型决定如下： ...P0 B1 B2 P3 B4 B5 I6这就会输出open-Gop码流 （P0 P3 B1 B2 I6 B4 B5...），
+	 对于编码端，如果编码帧类型决定如下: ...P0 B1 B2 P3 B4 B5 I6这就会输出open-Gop码流 （P0 P3 B1 B2 I6 B4 B5...），
 	 B4 B5的解码依赖P3。
 	 如果编码帧类型决定如下...P0 B1 B2 P3 B4 P5 I6这样就不会输出open-GOP码流（P0 P3 B1 B2 P5 B4 I6...）。
 	 两者区别在于I6前面的第5帧是设置为B帧还是P帧，
@@ -287,48 +307,47 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
 
 	//* 打开编码器句柄,通过x264_encoder_parameters得到设置给X264
 	//* 的参数.通过x264_encoder_reconfig更新X264的参数
-	m_pX264Handle = x264_encoder_open(pX264Param);
-	if (!m_pX264Handle) {
+	_pX264Handle = x264_encoder_open(pX264Param);
+	if (!_pX264Handle) {
 		return false;
 	}
-	m_pPicIn = new x264_picture_t;
-	m_pPicOut = new x264_picture_t;
-	x264_picture_init(m_pPicIn);
-	x264_picture_init(m_pPicOut);
-	m_pPicIn->img.i_csp = X264_CSP_I420;
-	m_pPicIn->img.i_plane = 3;
+	_pPicIn = new x264_picture_t;
+	_pPicOut = new x264_picture_t;
+	x264_picture_init(_pPicIn);
+	x264_picture_init(_pPicOut);
+	_pPicIn->img.i_csp = X264_CSP_I420;
+	_pPicIn->img.i_plane = 3;
 	return true;
 }
 
 int H264Encoder::inputData(char* apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H264Frame** ppFrame) {
 	//TimeTicker1(5);
-	m_pPicIn->img.i_stride[0] = aiYuvLen[0];
-	m_pPicIn->img.i_stride[1] = aiYuvLen[1];
-	m_pPicIn->img.i_stride[2] = aiYuvLen[2];
-	m_pPicIn->img.plane[0] = (uint8_t *) apcYuv[0];
-	m_pPicIn->img.plane[1] = (uint8_t *) apcYuv[1];
-	m_pPicIn->img.plane[2] = (uint8_t *) apcYuv[2];
-	m_pPicIn->i_pts = i64Pts;
+	_pPicIn->img.i_stride[0] = aiYuvLen[0];
+	_pPicIn->img.i_stride[1] = aiYuvLen[1];
+	_pPicIn->img.i_stride[2] = aiYuvLen[2];
+	_pPicIn->img.plane[0] = (uint8_t *) apcYuv[0];
+	_pPicIn->img.plane[1] = (uint8_t *) apcYuv[1];
+	_pPicIn->img.plane[2] = (uint8_t *) apcYuv[2];
+	_pPicIn->i_pts = i64Pts;
 	int iNal;
 	x264_nal_t* pNals;
 
-	int iResult = x264_encoder_encode(m_pX264Handle, &pNals, &iNal, m_pPicIn,
-			m_pPicOut);
+	int iResult = x264_encoder_encode(_pX264Handle, &pNals, &iNal, _pPicIn,
+			_pPicOut);
 	if (iResult <= 0) {
 		return 0;
 	}
 	for (int i = 0; i < iNal; i++) {
 		x264_nal_t pNal = pNals[i];
-		m_aFrames[i].iType = pNal.i_type;
-		m_aFrames[i].iLength = pNal.i_payload;
-		m_aFrames[i].pucData = pNal.p_payload;
+		_aFrames[i].iType = pNal.i_type;
+		_aFrames[i].iLength = pNal.i_payload;
+		_aFrames[i].pucData = pNal.p_payload;
 	}
-	*ppFrame = m_aFrames;
+	*ppFrame = _aFrames;
 	return iNal;
 }
 
-} /* namespace Codec */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif //ENABLE_X264
 

@@ -1,8 +1,27 @@
-/*
- * HttpDownloader.h
+﻿/*
+ * MIT License
  *
- *  Created on: 2017年5月5日
- *      Author: xzl
+ * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #ifndef SRC_HTTP_HTTPDOWNLOADER_H_
@@ -10,8 +29,7 @@
 
 #include "HttpClientImp.h"
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class HttpDownloader: public HttpClientImp {
 public:
@@ -20,28 +38,27 @@ public:
 	HttpDownloader();
 	virtual ~HttpDownloader();
 	//开始下载文件,默认断点续传方式下载
-	void startDownload(const string &url,const string &filePath = "",bool bAppend = false);
-	void startDownload(const string &url,const onDownloadResult &cb){
+	void startDownload(const string &url,const string &filePath = "",bool bAppend = false, float timeOutSecond = 10 );
+	void startDownload(const string &url,const onDownloadResult &cb,float timeOutSecond = 10){
 		setOnResult(cb);
-		startDownload(url);
+		startDownload(url,"",false,timeOutSecond);
 	}
 	void setOnResult(const onDownloadResult &cb){
 		_onResult = cb;
 	}
 private:
-	void onResponseHeader(const string &status,const HttpHeader &headers) override;
+	int64_t onResponseHeader(const string &status,const HttpHeader &headers) override;
 	void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override;
 	void onResponseCompleted() override;
 	void onDisconnect(const SockException &ex) override;
-	void closeFile();
-
+    void closeFile();
+private:
 	FILE *_saveFile = nullptr;
 	string _filePath;
 	onDownloadResult _onResult;
 	bool _bDownloadSuccess = false;
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_HTTPDOWNLOADER_H_ */

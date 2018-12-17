@@ -1,7 +1,5 @@
-/***************************************************************************************
- ***************************************************************************************/
-#ifndef _JZAN_SPS_PPS_H_
-#define _JZAN_SPS_PPS_H_
+﻿#ifndef _SPSPARSER_H_
+#define _SPSPARSER_H_
 
 #if defined (__cplusplus)
     extern "C" {
@@ -189,4 +187,4 @@ void h264GeFramerate(T_SPS *ptSps, float *pfFramerate);
 }
 #endif
 
-#endif
+#endif //_SPS_PPS_H_

@@ -1,9 +1,7 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h> /* for uint32_t, etc */
-#include <pthread.h>
-
 #include "SPSParser.h"
 
 /********************************************
@@ -21,8 +19,9 @@
 #define MIN_LOG2_MAX_FRAME_NUM    	4
 #define H264_MAX_PICTURE_COUNT 		36
 #define CODEC_FLAG2_IGNORE_CROP   0x00010000 ///< Discard cropping information from SPS.
+#ifndef INT_MAX
 #define INT_MAX						65535
-
+#endif //INT_MAX
 
 /* report level */
 #define RPT_ERR (1) // error, system error

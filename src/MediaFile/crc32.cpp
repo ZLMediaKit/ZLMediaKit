@@ -1,18 +1,4 @@
-/*
- * crc32.cpp
- *
- *  Created on: 2013-9-11
- *      Author: root
- */
-
-/*
- * crc32.h
- *
- *  Created on: 2013-6-21
- *      Author: root
- */
-
-#include "crc32.h"
+﻿#include "crc32.h"
 
 #define BSWAP16C(x) (((x) << 8 & 0xff00)  | ((x) >> 8 & 0x00ff))
 #define BSWAP32C(x) (BSWAP16C(x) << 16 | BSWAP16C((x) >> 16))

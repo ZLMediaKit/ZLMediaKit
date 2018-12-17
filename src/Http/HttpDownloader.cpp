@@ -1,18 +1,35 @@
-/*
- * HttpDownloader.cpp
+﻿/*
+ * MIT License
  *
- *  Created on: 2017年5月5日
- *      Author: xzl
+ * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #include "HttpDownloader.h"
 #include "Util/MD5.h"
 #include "Util/File.h"
+using namespace toolkit;
 
-using namespace ZL::Util;
-
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 HttpDownloader::HttpDownloader() {
 
@@ -22,7 +39,7 @@ HttpDownloader::~HttpDownloader() {
 	closeFile();
 }
 
-void HttpDownloader::startDownload(const string& url, const string& filePath,bool bAppend) {
+void HttpDownloader::startDownload(const string& url, const string& filePath,bool bAppend,float timeOutSecond) {
 	_filePath = filePath;
 	if(_filePath.empty()){
 		_filePath = exeDir() + "HttpDownloader/" + MD5(url).hexdigest();
@@ -43,11 +60,11 @@ void HttpDownloader::startDownload(const string& url, const string& filePath,boo
 		addHeader("Range", StrPrinter << "bytes=" << currentLen << "-" << endl);
 	}
 	setMethod("GET");
-	sendRequest(url);
+	sendRequest(url,timeOutSecond);
 }
 
-void HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {
-	if(status != "200" && status != "206"){
+int64_t HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {
+    if(status != "200" && status != "206"){
 		//失败
 		shutdown();
 		closeFile();
@@ -58,24 +75,16 @@ void HttpDownloader::onResponseHeader(const string& status,const HttpHeader& hea
 			_onResult = nullptr;
 		}
 	}
+	//后续全部是content
+	return -1;
 }
 
 void HttpDownloader::onResponseBody(const char* buf, size_t size, size_t recvedSize, size_t totalSize) {
-	if(_saveFile){
+    if(_saveFile){
 		fwrite(buf,size,1,_saveFile);
 	}
 }
-//string getMd5Sum(const string &filePath){
-//	auto fp = File::createfile_file(filePath.data(),"rb");
-//	fseek(fp,0,SEEK_END);
-//	auto sz = ftell(fp);
-//	char tmp[sz];
-//	fseek(fp,0,SEEK_SET);
-//	auto rd = fread(tmp,1,sz,fp);
-//	InfoL << sz << " " << rd;
-//	fclose(fp);
-//	return MD5(string(tmp,sz)).hexdigest();
-//}
+
 void HttpDownloader::onResponseCompleted() {
 	closeFile();
 	//InfoL << "md5Sum:" << getMd5Sum(_filePath);
@@ -105,5 +114,5 @@ void HttpDownloader::closeFile() {
 	}
 }
 
-} /* namespace Http */
-} /* namespace ZL */
+
+} /* namespace mediakit */

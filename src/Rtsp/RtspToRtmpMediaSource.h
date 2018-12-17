@@ -1,102 +1,87 @@
-/*
- * RtspToRtmpMediaSource.h
- *
- *  Created on: 2016年9月7日
- *      Author: xzl
- */
+﻿/*
+* MIT License
+*
+* Copyright (c) 2016 xiongziliang <771730766@qq.com>
+*
+* This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
 
 #ifndef SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
 #define SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
 
-#include "RtpParser.h"
-#include "RtspMediaSource.h"
 #include "Rtmp/amf.h"
-#include "Rtmp/RtmpMediaSource.h"
+#include "RtspMediaSource.h"
 #include "MediaFile/MediaRecorder.h"
+#include "Rtmp/RtmpMediaSource.h"
+#include "RtspMuxer/RtspDemuxer.h"
+#include "RtmpMuxer/RtmpMediaSourceMuxer.h"
 
-using namespace ZL::Rtmp;
-using namespace ZL::MediaFile;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
-#ifdef ENABLE_RTSP2RTMP
-class RtspToRtmpMediaSource: public RtspMediaSource {
+namespace mediakit {
+
+class RtspToRtmpMediaSource : public RtspMediaSource {
 public:
-	typedef std::shared_ptr<RtspToRtmpMediaSource> Ptr;
-	RtspToRtmpMediaSource(const string &_app,const string &_id,bool bEnableFile = true);
-	virtual ~RtspToRtmpMediaSource();
+    typedef std::shared_ptr<RtspToRtmpMediaSource> Ptr;
 
-	virtual void onGetSDP(const string& strSdp) override{
-		try {
-			m_pParser.reset(new RtpParser(strSdp));
-			if(m_bEnableFile){
-				m_pRecorder.reset(new MediaRecorder(getApp(),getId(),m_pParser));
-			}
-			m_pParser->setOnAudioCB( std::bind(&RtspToRtmpMediaSource::onGetAdts, this, placeholders::_1));
-			m_pParser->setOnVideoCB( std::bind(&RtspToRtmpMediaSource::onGetH264, this, placeholders::_1));
-			makeMetaData();
-		} catch (exception &ex) {
-			WarnL << ex.what();
-		}
-		RtspMediaSource::onGetSDP(strSdp);
-	}
-	virtual void onGetRTP(const RtpPacket::Ptr &pRtppkt, bool bKeyPos) override{
-		if (m_pParser) {
-			bKeyPos = m_pParser->inputRtp(*pRtppkt);
-		}
-		RtspMediaSource::onGetRTP(pRtppkt, bKeyPos);
-	}
-	virtual void regist() override ;
-	virtual void unregist() override;
-	int readerCount(){
-		return getRing()->readerCount() + (m_pRtmpSrc ? m_pRtmpSrc->getRing()->readerCount() : 0);
-	}
-	void setOnSeek(const function<bool(uint32_t)> &cb) override{
-		RtspMediaSource::setOnSeek(cb);
-		if(m_pRtmpSrc){
-			m_pRtmpSrc->setOnSeek(cb);
-		}
-	}
-	void setOnStamp(const function<uint32_t()> &cb) override{
-		RtspMediaSource::setOnStamp(cb);
-		if (m_pRtmpSrc) {
-			m_pRtmpSrc->setOnStamp(cb);
-		}
-	}
-	void updateTimeStamp(uint32_t uiStamp) {
-		for (auto &pr : m_mapTracks) {
-			switch (pr.second.type) {
-			case TrackAudio: {
-				pr.second.timeStamp = uiStamp * (m_pParser->getAudioSampleRate() / 1000.0);
-			}
-				break;
-			case TrackVideo: {
-				pr.second.timeStamp = uiStamp * 90;
-			}
-				break;
-			default:
-				break;
-			}
-		}
-	}
+    RtspToRtmpMediaSource(const string &vhost,
+                          const string &app,
+                          const string &id,
+                          bool bEnableHls = true,
+                          bool bEnableMp4 = false) : RtspMediaSource(vhost, app, id) {
+        _recorder = std::make_shared<MediaRecorder>(vhost, app, id, bEnableHls, bEnableMp4);
+    }
+
+    virtual ~RtspToRtmpMediaSource() {}
+
+    virtual void onGetSDP(const string &strSdp) override {
+        _rtspDemuxer = std::make_shared<RtspDemuxer>(strSdp);
+        RtspMediaSource::onGetSDP(strSdp);
+    }
+
+    virtual void onWrite(const RtpPacket::Ptr &rtp, bool bKeyPos) override {
+        if (_rtspDemuxer) {
+            bKeyPos = _rtspDemuxer->inputRtp(rtp);
+            if (!_rtmpMuxer && _rtspDemuxer->isInited()) {
+                _rtmpMuxer = std::make_shared<RtmpMediaSourceMuxer>(getVhost(),
+                                                                    getApp(),
+                                                                    getId(),
+                                                                    std::make_shared<TitleMete>(
+                                                                            _rtspDemuxer->getDuration()));
+                for (auto &track : _rtspDemuxer->getTracks(false)) {
+                    _rtmpMuxer->addTrack(track);
+                    _recorder->addTrack(track);
+                    track->addDelegate(_rtmpMuxer);
+                    track->addDelegate(_recorder);
+                }
+            }
+        }
+        RtspMediaSource::onWrite(rtp, bKeyPos);
+    }
 private:
-	RtpParser::Ptr m_pParser;
-	RtmpMediaSource::Ptr m_pRtmpSrc;
-	RtmpPacket m_rtmpPkt;
-	uint8_t m_ui8AudioFlags = 0;
-	MediaRecorder::Ptr m_pRecorder;
-	bool m_bEnableFile = true;
-	void onGetH264(const H264Frame &frame);
-	void onGetAdts(const AdtsFrame &frame);
-	void makeVideoConfigPkt();
-	void makeAudioConfigPkt();
-	void makeMetaData();
+    RtspDemuxer::Ptr _rtspDemuxer;
+    RtmpMediaSourceMuxer::Ptr _rtmpMuxer;
+    MediaRecorder::Ptr _recorder;
 };
 
-#else
-typedef RtspMediaSource RtspToRtmpMediaSource;
-#endif //ENABLE_RTSP2RTMP
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_ */

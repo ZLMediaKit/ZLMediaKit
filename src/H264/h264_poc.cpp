@@ -1,4 +1,4 @@
-// Copyright 2014 The Chromium Authors. All rights reserved.
+﻿// Copyright 2014 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,8 +8,7 @@
 #include "macros.h"
 #include "h264_parser.h"
 #include "h264_poc.h"
-
-using namespace ZL::Util;
+using namespace toolkit;
 
 namespace media {
     
@@ -113,7 +112,7 @@ namespace media {
                 //           (assuming no interlacing).
                 int32_t top_foc = pic_order_cnt_msb + slice_hdr.pic_order_cnt_lsb;
                 int32_t bottom_foc = top_foc + slice_hdr.delta_pic_order_cnt_bottom;
-                *pic_order_cnt = std::min(top_foc, bottom_foc);
+                *pic_order_cnt = min(top_foc, bottom_foc);
                 
                 // Store state.
                 prev_frame_num_ = slice_hdr.frame_num;
@@ -182,7 +181,7 @@ namespace media {
                 int32_t top_foc = expected_pic_order_cnt + slice_hdr.delta_pic_order_cnt0;
                 int32_t bottom_foc = top_foc + sps->offset_for_top_to_bottom_field +
                 slice_hdr.delta_pic_order_cnt1;
-                *pic_order_cnt = std::min(top_foc, bottom_foc);
+                *pic_order_cnt = min(top_foc, bottom_foc);
                 
                 // Store state.
                 prev_frame_num_ = slice_hdr.frame_num;

@@ -1,9 +1,29 @@
-/*
- * H264Encoder.h
+﻿/*
+ * MIT License
  *
- *  Created on: 2016年8月11日
- *      Author: xzl
+ * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
+
 
 #ifndef CODEC_H264ENCODER_H_
 #define CODEC_H264ENCODER_H_
@@ -18,8 +38,7 @@ extern "C" {
 }
 #endif //__cplusplus
 
-namespace ZL {
-namespace Codec {
+namespace mediakit {
 
 class H264Encoder {
 public:
@@ -34,13 +53,12 @@ public:
 	bool init(int iWidth, int iHeight, int iFps);
 	int inputData(char *apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H264Frame **ppFrame);
 private:
-	x264_t* m_pX264Handle = nullptr;
-	x264_picture_t* m_pPicIn = nullptr;
-	x264_picture_t* m_pPicOut = nullptr;
-	H264Frame m_aFrames[10];
+	x264_t* _pX264Handle = nullptr;
+	x264_picture_t* _pPicIn = nullptr;
+	x264_picture_t* _pPicOut = nullptr;
+	H264Frame _aFrames[10];
 };
 
-} /* namespace Codec */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* CODEC_H264ENCODER_H_ */

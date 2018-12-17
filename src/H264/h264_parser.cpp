@@ -1,4 +1,4 @@
-// Copyright 2014 The Chromium Authors. All rights reserved.
+﻿// Copyright 2014 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,8 +7,7 @@
 #include <memory>
 #include "macros.h"
 #include "Util/logger.h"
-using namespace ZL::Util;
-
+using namespace toolkit;
 
 template <class ForwardIterator>
 void STLDeleteContainerPairSecondPointers(ForwardIterator begin,
@@ -173,7 +172,7 @@ return kInvalidStream;                                         \
             start += subsamples[i].clear_bytes;
             
             const uint8_t* end =
-            std::min(start + subsamples[i].cypher_bytes, stream_end);
+            min(start + subsamples[i].cypher_bytes, stream_end);
             encrypted_ranges_.Add(start, end);
             start = end;
         }
@@ -311,7 +310,7 @@ return kInvalidStream;                                         \
                 // The start code is inside an encrypted section so we need to scan
                 // for another start code.
                 *start_code_size = 0;
-                start += std::min(*offset + 1, bytes_left);
+                start += min(*offset + 1, bytes_left);
             }
         } while (*start_code_size == 0);
         

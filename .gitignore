@@ -10,8 +10,8 @@
 *.pch
 
 # Compiled Dynamic libraries
-*.dylib
-*.dll
+#*.dylib
+#*.dll
 
 # Fortran module files
 *.mod
@@ -23,7 +23,14 @@
 *.lib
 
 # Executables
-*.exe
+#*.exe
 *.out
 *.app
 /X64/
+
+
+*.DS_Store
+
+/cmake-build-debug/
+/.idea/
+/c_wrapper/.idea/

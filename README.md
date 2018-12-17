@@ -1,47 +1,70 @@
-# 一个基于C++11简单易用的轻量级流媒体库
-平台|编译状态
-----|-------
-Linux | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
-macOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_mac)
-iOS | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit-build_for_ios)
-Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit_build_for_android)
+# 一个基于C++11的高性能运营级流媒体服务框架
+ [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
 ## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
 - 打包多种流媒体协议(RTSP/RTMP/HLS），支持协议间的互相转换，提供一站式的服务。
 - 使用epoll+线程池+异步网络IO模式开发，并发性能优越。
-- 只实现主流的的H264+AAC流媒体方案，代码精简,脉络清晰，适合学习。
+- 已实现主流的的H264+AAC流媒体方案，代码精简,脉络清晰，适合学习。
+- 编码格式与框架代码解耦，方便自由简洁的添加支持其他编码格式
+- 代码经过大量的稳定性、性能测试，可满足商用服务器项目。
+- 支持linux、macos、ios、android、windows平台
+
+## 项目定位
+- 移动嵌入式跨平台流媒体解决方案。
+- 商用级流媒体服务器。
+- 网络编程二次开发SDK。
+
 
 ## 功能清单
 - RTSP
   - RTSP 服务器，支持RTMP/MP4转RTSP。
-  - RTSP 播放器，支持RTSP代理。
+  - RTSP 播放器，支持RTSP代理，支持生成静音音频
   - 支持 `rtp over udp` `rtp over tcp` `rtp over http` `rtp组播`  四种RTP传输方式 。
+  - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口。
+  - 支持H265编码
 
 - RTMP
   - RTMP 播放服务器，支持RTSP/MP4转RTMP。
   - RTMP 发布服务器，支持录制发布流。
-  - RTMP 播放器，支持RTMP代理。
+  - RTMP 播放器，支持RTMP代理，支持生成静音音频
   - RTMP 推流客户端。
+  - 支持http-flv直播。
+  - 支持https-flv直播。
 
 - HLS
   - 支持HLS文件生成，自带HTTP文件服务器。
   
 - HTTP[S]
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`。
-  - 客户端提供`文件下载器(支持断点续传)`,`接口请求器`。
+  - 客户端提供`文件下载器(支持断点续传)`,`接口请求器`,`文件上传器`。
+  - 完整HTTP API服务器，可以作为web后台开发框架。
+  - 支持跨域访问。
+  - 客户端支持cookie
+  - 支持WebSocket服务器
 
 - 其他
   - 支持输入YUV+PCM自动生成RTSP/RTMP/HLS/MP4.
   - 支持简单的telnet调试。
   - 支持H264的解析，支持B帧的POC计算排序。
+  - 支持配置文件热加载
+  - 支持流量统计、推流播放鉴权等事件
+  - 支持rtsp/rtmp/http虚拟主机
+  - 支持flv、mp4文件录制
+  - 支持rtps/rtmp点播，支持seek
+
  
 ## 后续任务
-- 提供更多的示例代码
+- 完善支持H265
+- 添加rtsp推流功能
+
+## 编译要求
+- 编译器支持C++11，GCC4.8/Clang3.3/VC2015或以上
+- cmake3.2或以上
 
 ## 编译(Linux)
 - 我的编译环境
-  - Ubuntu16.04 64 bit + gcc5.4(最低gcc4.7)
+  - Ubuntu16.04 64 bit + gcc5.4
   - cmake 3.5.1
 - 编译
   
@@ -93,39 +116,63 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
   export ANDROID_NDK_ROOT=/path/to/ndk
   ./build_for_android.sh
   ```
+## 编译(Windows)
+- 我的编译环境
+  - windows 10
+  - visual studio 2017
+  - [cmake-gui](https://cmake.org/files/v3.10/cmake-3.10.0-rc1-win32-x86.msi)
+  
+- 编译
+```
+   1 进入ZLMediaKit目录执行 git submodule update --init 以下载ZLToolKit的代码
+   2 使用cmake-gui打开工程并生成vs工程文件.
+   3 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
+   4 选择编译Release 版本.
+   5 找到目标文件并运行测试用例.
+```
 ## 使用方法
 - 作为服务器：
 	```
-	TcpServer<RtspSession>::Ptr rtspSrv(new TcpServer<RtspSession>());
-	TcpServer<RtmpSession>::Ptr rtmpSrv(new TcpServer<RtmpSession>());
-	TcpServer<HttpSession>::Ptr httpSrv(new TcpServer<HttpSession>());
-	TcpServer<HttpsSession>::Ptr httpsSrv(new TcpServer<HttpsSession>());
+	TcpServer::Ptr rtspSrv(new TcpServer());
+	TcpServer::Ptr rtmpSrv(new TcpServer());
+	TcpServer::Ptr httpSrv(new TcpServer());
+	TcpServer::Ptr httpsSrv(new TcpServer());
 	
-	rtspSrv->start(mINI::Instance()[Config::Rtsp::kPort]);
-	rtmpSrv->start(mINI::Instance()[Config::Rtmp::kPort]);
-	httpSrv->start(mINI::Instance()[Config::Http::kPort]);
-	httpsSrv->start(mINI::Instance()[Config::Http::kSSLPort]);
+	rtspSrv->start<RtspSession>(mINI::Instance()[Config::Rtsp::kPort]);
+	rtmpSrv->start<RtmpSession>(mINI::Instance()[Config::Rtmp::kPort]);
+	httpSrv->start<HttpSession>(mINI::Instance()[Config::Http::kPort]);
+	httpsSrv->start<HttpsSession>(mINI::Instance()[Config::Http::kSSLPort]);
 	EventPoller::Instance().runLoop();
 	```
 
 - 作为播放器：
 	```
-	MediaPlayer::Ptr player(new MediaPlayer());
-	player->setOnPlayResult([](const SockException &ex) {
-		InfoL << "OnPlayResult:" << ex.what();
-	});
-	player->setOnShutdown([](const SockException &ex) {
-		ErrorL << "OnShutdown:" << ex.what();
-	});
-	player->setOnVideoCB([&](const H264Frame &frame){
-		//在这里解码H264并显示
-	});
-	player->setOnAudioCB([&](const AdtsFrame &frame){
-		//在这里解码AAC并播放
-	});
-	//支持rtmp、rtsp
-	player->play("rtsp://192.168.0.122/","admin","123456",PlayerBase::RTP_TCP);
-	EventPoller::Instance().runLoop();
+    MediaPlayer::Ptr player(new MediaPlayer());
+    weak_ptr<MediaPlayer> weakPlayer = player;
+    player->setOnPlayResult([weakPlayer](const SockException &ex) {
+        InfoL << "OnPlayResult:" << ex.what();
+        auto strongPlayer = weakPlayer.lock();
+        if (ex || !strongPlayer) {
+            return;
+        }
+
+        auto viedoTrack = strongPlayer->getTrack(TrackVideo);
+        if (!viedoTrack) {
+            WarnL << "没有视频Track!";
+            return;
+        }
+        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([](const Frame::Ptr &frame) {
+            //此处解码并播放
+        }));
+    });
+
+    player->setOnShutdown([](const SockException &ex) {
+        ErrorL << "OnShutdown:" << ex.what();
+    });
+
+    //支持rtmp、rtsp
+    (*player)[RtspPlayer::kRtpType] = PlayerBase::RTP_TCP;
+    player->play("rtsp://admin:jzan123456@192.168.0.122/");
 	```
 - 作为代理服务器：
 	```
@@ -173,41 +220,11 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
 	EventPoller::Instance().runLoop();
 	```
 ## QA
-- 为什么VLC播放一段时间就停止了？
-    
-    由于ZLMediaKit在实现RTSP协议时，采用OPTIONS命令作为心跳包（在RTP over UDP时有效），如果播放器不持续发送OPTIONS指令，那么ZLMediaKit会断开连接。如果你要用第三方播放器测试，你可以改RTP over TCP方式或者修改ZLMediaKit的源码，修改位置位置为src/Rtsp/RtspSession.cpp RtspSession::onManager函数,修改成如下所示：
-	```
-  	void RtspSession::onManager() {
-		if (m_ticker.createdTime() > 10 * 1000) {
-			if (m_strSession.size() == 0) {
-				WarnL << "非法链接:" << getPeerIp();
-				shutdown();
-				return;
-			}
-			if (m_bListenPeerUdpPort) {
-				UDPServer::Instance().stopListenPeer(getPeerIp().data(), this);
-				m_bListenPeerUdpPort = false;
-			}
-		}
-		/*if (m_rtpType != PlayerBase::RTP_TCP && m_ticker.elapsedTime() > 15 * 1000) {
-			WarnL << "RTSP会话超时:" << getPeerIp();
-			shutdown();
-			return;
- 		/*}
-  	}
-	```
 - 怎么测试服务器性能？
     
-    ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。由于ZLToolKit默认关闭了tcp客户端多线程的支持，如果需要提高测试并发量，需要在编译ZLToolKit时启用ENABLE_ASNC_TCP_CLIENT宏，具体操作如下：
-	```
-	#编译ZLToolKit
-	cd ZLToolKit
-	mkdir -p build
-	cd build -DENABLE_ASNC_TCP_CLIENT
-	cmake ..
-	make -j4
-	sudo make install
-	```
+    ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。
+
+    这里是测试报告：[benchmark.md](https://github.com/xiongziliang/ZLMediaKit/blob/master/benchmark.md)
 
 - github下载太慢了，有其他下载方式吗？
     
@@ -216,9 +233,36 @@ Android | [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit_build_f
     [ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
   
     [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
+    
+    
+- 在windows下编译很多错误？
+ 
+    由于本项目主体代码在macOS/linux下开发，部分源码采用的是无bom头的UTF-8编码；由于windows对于utf-8支持不甚友好，所以如果发现编译错误请先尝试添     加bom头再编译。
 
+## 参考案例
+ - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
+ - [IOS rtmp/rtsp播放器，视频推流器](https://gitee.com/xiahcu/IOSPlayer)
+ - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xiongziliang/ZLMediaPlayer)
+
+   上述工程可能在最新的代码的情况下编译不过，请手动修改
+ 
+
+## 授权协议
+
+本项目自有代码使用宽松的MIT协议，在保留版权信息的情况下可以自由应用于各自商用、非商业的项目。
+但是本项目也零碎的使用了一些其他的开源代码，在商用的情况下请自行替代或剔除；
+由于使用本项目而产生的商业纠纷或侵权行为一概与本项项目及开发者无关，请自行承担法律风险。
 
 ## 联系方式
-- 邮箱：<771730766@qq.com>
-- QQ群：542509000
+ - 邮箱：<771730766@qq.com>
+ - QQ群：542509000
+
+## 捐赠
+如果本项目能切实帮助您减少重复开发的工作量，您可以在自愿的基础上支持下作者，谢谢！
+
+[支付宝](https://raw.githubusercontent.com/xiongziliang/other/master/IMG_3919.JPG)
+
+[微信](https://raw.githubusercontent.com/xiongziliang/other/master/IMG_3920.JPG)
+
+	
 

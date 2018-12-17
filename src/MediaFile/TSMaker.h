@@ -1,8 +1,27 @@
-/*
- * TSMaker.h
+﻿/*
+ * MIT License
  *
- *  Created on: 2013-6-21
- *      Author: root
+ * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #ifndef TSMAKER_H_
@@ -15,9 +34,8 @@
 #include <string>
 #include <iostream>
 #include "Util/File.h"
-
 using namespace std;
-using namespace ZL::Util;
+using namespace toolkit;
 
 #define TS_PACKET_SIZE                 188
 #define TS_PACKET_HEADER               4
@@ -221,8 +239,8 @@ public:
 	TSMaker();
 	virtual ~TSMaker();
 	bool init(const string &strFilename, uint32_t ui32BufSize);
-	int inputH264(const char *pcData, uint32_t ui32Len, uint64_t ui64Time);
-	int inputAAC(const char *pcData, uint32_t ui32Len, uint64_t ui64Time);
+	int inputH264(const char *pcData, uint32_t ui32Len, uint64_t ui64Dts , uint64_t ui64Pts);
+	int inputAAC(const char *pcData, uint32_t ui32Len, uint64_t ui64Dts , uint64_t ui64Pts);
 	void clear();
 private:
 	string m_strFilename;
@@ -242,7 +260,7 @@ private:
 	void WriteAdaptive_flags_Head(Ts_Adaptation_field * pAdaptationField, uint64_t ui64VideoPts);
 	void WriteAdaptive_flags_Tail(Ts_Adaptation_field * pAdaptationField); //填写自适应段标志帧尾的
 
-	void PES2TS(TsPes * pPes, unsigned int uiPID, Ts_Adaptation_field * pAdaptationField, uint64_t ui64Pts);
+	void PES2TS(TsPes * pPes, unsigned int uiPID, Ts_Adaptation_field * pAdaptationField, uint64_t ui64Dts ,uint64_t ui64Pts );
 	void CreateAdaptive_Ts(Ts_Adaptation_field * pAdaptationField, unsigned char * pcTs, unsigned int uiAdaptiveLength);
 };
 

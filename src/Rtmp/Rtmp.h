@@ -1,18 +1,48 @@
+﻿/*
+ * MIT License
+ *
+ * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 #ifndef __rtmp_h
 #define __rtmp_h
 
-#include <netinet/in.h>
 #include <memory>
 #include <string>
 #include "Util/util.h"
 #include "Util/logger.h"
-
-using namespace std;
-using namespace ZL::Util;
+#include "Network/sockutil.h"
+using namespace toolkit;
 
 #define PORT	1935
 #define DEFAULT_CHUNK_LEN	128
+
+#if !defined(_WIN32)
 #define PACKED	__attribute__((packed))
+#else
+#define PACKED
+#endif //!defined(_WIN32)
+
+
 #define HANDSHAKE_PLAINTEXT	0x03
 #define RANDOM_LEN		(1536 - 8)
 
@@ -52,6 +82,11 @@ using namespace ZL::Util;
 #define FLV_KEY_FRAME				1
 #define FLV_INTER_FRAME				2
 
+
+#if defined(_WIN32)
+#pragma pack(push, 1)
+#endif // defined(_WIN32)
+
 class RtmpHandshake {
 public:
     RtmpHandshake(uint32_t _time, uint8_t *_random = nullptr) {
@@ -87,6 +122,9 @@ public:
     uint8_t streamId[4]; /* Note, this is little-endian while others are BE */
 }PACKED;
 
+#if defined(_WIN32)
+#pragma pack(pop)
+#endif // defined(_WIN32)
 
 class RtmpPacket {
 public:
@@ -147,6 +185,11 @@ public:
         const static int channel[] = { 1, 2 };
         return channel[flvStereoOrMono];
     }
+
+    /**
+     * 返回不带0x00 00 00 01头的sps
+     * @return
+     */
     string getH264SPS() const {
         string ret;
         if (getMediaType() != 7) {
@@ -169,6 +212,11 @@ public:
         ret.assign(strBuf.data() + 13, sps_size);
         return ret;
     }
+
+    /**
+     * 返回不带0x00 00 00 01头的pps
+     * @return
+     */
     string getH264PPS() const {
         string ret;
         if (getMediaType() != 7) {
@@ -216,5 +264,9 @@ public:
         return ret;
     }
 };
+
+
+
+
 
 #endif
