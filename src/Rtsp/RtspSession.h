@@ -66,7 +66,7 @@ private:
     uint32_t _offset;
 };
 
-class RtspSession: public TcpSession, public HttpRequestSplitter, public RtpReceiver{
+class RtspSession: public TcpSession, public HttpRequestSplitter, public RtpReceiver , public MediaSourceEvent{
 public:
 	typedef std::shared_ptr<RtspSession> Ptr;
 	typedef std::function<void(const string &realm)> onGetRealm;
@@ -85,10 +85,10 @@ protected:
 	void onRecvContent(const char *data,uint64_t len) override;
 	//RtpReceiver override
 	void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
+	//MediaSourceEvent override
+	bool close() override ;
 private:
 	void inputRtspOrRtcp(const char *data,uint64_t len);
-	void shutdown() override ;
-	void shutdown_l(bool close);
 	int handleReq_Options(); //处理options方法
 	int handleReq_Describe(); //处理describe方法
 	int handleReq_ANNOUNCE(); //处理options方法
@@ -129,7 +129,6 @@ private:
 	bool sendRtspResponse(const string &res_code,const std::initializer_list<string> &header, const string &sdp = "" , const char *protocol = "RTSP/1.0");
 	bool sendRtspResponse(const string &res_code,const StrCaseMap &header = StrCaseMap(), const string &sdp = "",const char *protocol = "RTSP/1.0");
 	int send(const Buffer::Ptr &pkt) override;
-	inline void initSender(const std::shared_ptr<RtspSession> &pSession); //处理rtsp over http，quicktime使用的
 private:
 	Ticker _ticker;
 	Parser _parser; //rtsp解析类
@@ -160,17 +159,11 @@ private:
     uint64_t _ui64TotalBytes = 0;
 
 	//RTSP over HTTP
-	function<void(void)> _onDestory;
-	bool _bBase64need = false; //是否需要base64解码
-	Socket::Ptr _pSender; //回复rtsp时走的tcp通道，供quicktime用
 	//quicktime 请求rtsp会产生两次tcp连接，
-	//一次发送 get 一次发送post，需要通过sessioncookie关联起来
-	string _strSessionCookie;
-	static recursive_mutex g_mtxGetter; //对quicktime上锁保护
-	static recursive_mutex g_mtxPostter; //对quicktime上锁保护
-	static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
-	static unordered_map<void *, std::shared_ptr<RtspSession> > g_mapPostter;
+	//一次发送 get 一次发送post，需要通过x-sessioncookie关联起来
+	string _http_x_sessioncookie;
 	function<void(const char *data,uint64_t len)> _onContent;
+	function<void(const Buffer::Ptr &pBuf)> _onRecv;
 
     std::function<void()> _delayTask;
     uint32_t _iTaskTimeLine = 0;
