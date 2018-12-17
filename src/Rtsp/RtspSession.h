@@ -30,15 +30,15 @@
 #include <set>
 #include <vector>
 #include <unordered_map>
+#include "Util/util.h"
+#include "Util/logger.h"
 #include "Common/config.h"
+#include "Network/TcpSession.h"
+#include "Player/PlayerBase.h"
 #include "Rtsp.h"
 #include "RtpBroadCaster.h"
 #include "RtspMediaSource.h"
-#include "Player/PlayerBase.h"
-#include "Util/util.h"
-#include "Util/logger.h"
-#include "Network/TcpSession.h"
-#include "Http/HttpRequestSplitter.h"
+#include "RtspSplitter.h"
 #include "RtpReceiver.h"
 #include "RtspToRtmpMediaSource.h"
 
@@ -66,7 +66,7 @@ private:
     uint32_t _offset;
 };
 
-class RtspSession: public TcpSession, public HttpRequestSplitter, public RtpReceiver , public MediaSourceEvent{
+class RtspSession: public TcpSession, public RtspSplitter, public RtpReceiver , public MediaSourceEvent{
 public:
 	typedef std::shared_ptr<RtspSession> Ptr;
 	typedef std::function<void(const string &realm)> onGetRealm;
@@ -80,26 +80,43 @@ public:
 	void onError(const SockException &err) override;
 	void onManager() override;
 protected:
-	//HttpRequestSplitter override
-	int64_t onRecvHeader(const char *data,uint64_t len) override ;
-	void onRecvContent(const char *data,uint64_t len) override;
+	//RtspSplitter override
+    /**
+     * 收到完整的rtsp包回调，包括sdp等content数据
+     * @param parser rtsp包
+     */
+    void onWholeRtspPacket(Parser &parser) override;
+
+    /**
+     * 收到rtp包回调
+     * @param data
+     * @param len
+     */
+    void onRtpPacket(const char *data,uint64_t len) override;
+
+    /**
+     * 从rtsp头中获取Content长度
+     * @param parser
+     * @return
+     */
+    int64_t getContentLength(Parser &parser) override;
+
 	//RtpReceiver override
 	void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
 	//MediaSourceEvent override
 	bool close() override ;
 private:
-	void inputRtspOrRtcp(const char *data,uint64_t len);
-	int handleReq_Options(); //处理options方法
-	int handleReq_Describe(); //处理describe方法
-	int handleReq_ANNOUNCE(); //处理options方法
-    int handleReq_RECORD(); //处理options方法
-	int handleReq_Setup(); //处理setup方法
-	int handleReq_Play(); //处理play方法
-	int handleReq_Pause(); //处理pause方法
-	int handleReq_Teardown(); //处理teardown方法
-	int handleReq_Get(); //处理Get方法
-	int handleReq_Post(); //处理Post方法
-	int handleReq_SET_PARAMETER(); //处理SET_PARAMETER方法
+	bool handleReq_Options(const Parser &parser); //处理options方法
+    bool handleReq_Describe(const Parser &parser); //处理describe方法
+    bool handleReq_ANNOUNCE(const Parser &parser); //处理options方法
+    bool handleReq_RECORD(const Parser &parser); //处理options方法
+    bool handleReq_Setup(const Parser &parser); //处理setup方法
+    bool handleReq_Play(const Parser &parser); //处理play方法
+    bool handleReq_Pause(const Parser &parser); //处理pause方法
+    bool handleReq_Teardown(const Parser &parser); //处理teardown方法
+    bool handleReq_Get(const Parser &parser); //处理Get方法
+    bool handleReq_Post(const Parser &parser); //处理Post方法
+    bool handleReq_SET_PARAMETER(const Parser &parser); //处理SET_PARAMETER方法
 
 	void inline send_StreamNotFound(); //rtsp资源未找到
 	void inline send_UnsupportedTransport(); //不支持的传输模式
@@ -111,6 +128,7 @@ private:
 	inline string printSSRC(uint32_t ui32Ssrc);
 	inline int getTrackIndexByTrackType(TrackType type);
     inline int getTrackIndexByControlSuffix(const string &controlSuffix);
+	inline int getTrackIndexByInterleaved(int interleaved);
 
 	inline void onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr &addr);
 	inline void startListenPeerUdpData(int iTrackIdx);
@@ -131,7 +149,6 @@ private:
 	int send(const Buffer::Ptr &pkt) override;
 private:
 	Ticker _ticker;
-	Parser _parser; //rtsp解析类
 	int _iCseq = 0;
 	string _strUrl;
 	string _strSdp;
@@ -162,7 +179,6 @@ private:
 	//quicktime 请求rtsp会产生两次tcp连接，
 	//一次发送 get 一次发送post，需要通过x-sessioncookie关联起来
 	string _http_x_sessioncookie;
-	function<void(const char *data,uint64_t len)> _onContent;
 	function<void(const Buffer::Ptr &pBuf)> _onRecv;
 
     std::function<void()> _delayTask;

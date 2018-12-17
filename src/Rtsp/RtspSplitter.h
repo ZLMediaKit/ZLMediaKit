@@ -36,6 +36,12 @@ class RtspSplitter : public HttpRequestSplitter{
 public:
     RtspSplitter(){}
     virtual ~RtspSplitter(){}
+
+    /**
+    * 是否允许接收rtp包
+    * @param enable
+    */
+    void enableRecvRtp(bool enable);
 protected:
     /**
      * 收到完整的rtsp包回调，包括sdp等content数据
@@ -51,10 +57,11 @@ protected:
     virtual void onRtpPacket(const char *data,uint64_t len) = 0;
 
     /**
-     * 是否允许接收rtp包
-     * @param enable
+     * 从rtsp头中获取Content长度
+     * @param parser
+     * @return
      */
-    void enableRecvRtp(bool enable);
+    virtual int64_t getContentLength(Parser &parser);
 protected:
     const char *onSearchPacketTail(const char *data,int len) override ;
     int64_t onRecvHeader(const char *data,uint64_t len) override;
