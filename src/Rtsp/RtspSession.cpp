@@ -1066,7 +1066,7 @@ inline void RtspSession::startListenPeerUdpData(int trackIdx) {
 			return false;
 		}
 		struct sockaddr addr=*pPeerAddr;
-		strongSelf->async_first([weakSelf,pBuf,addr,iTrackIdx]() {
+		strongSelf->async([weakSelf,pBuf,addr,iTrackIdx]() {
 			auto strongSelf=weakSelf.lock();
 			if(!strongSelf) {
 				return;
