@@ -59,9 +59,10 @@ int64_t RtspSplitter::onRecvHeader(const char *data, uint64_t len) {
         return 0;
     }
     _parser.Parse(data);
-    auto ret = atoi(_parser["Content-Length"].data());
+    auto ret = getContentLength(_parser);
     if(ret == 0){
         onWholeRtspPacket(_parser);
+        _parser.Clear();
     }
     return ret;
 }
@@ -69,10 +70,15 @@ int64_t RtspSplitter::onRecvHeader(const char *data, uint64_t len) {
 void RtspSplitter::onRecvContent(const char *data, uint64_t len) {
     _parser.setContent(string(data,len));
     onWholeRtspPacket(_parser);
+    _parser.Clear();
 }
 
 void RtspSplitter::enableRecvRtp(bool enable) {
     _enableRecvRtp = enable;
+}
+
+int64_t RtspSplitter::getContentLength(Parser &parser) {
+    return atoi(parser["Content-Length"].data());
 }
 
 
