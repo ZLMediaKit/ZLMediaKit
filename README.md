@@ -23,6 +23,7 @@
   - 支持 `rtp over udp` `rtp over tcp` `rtp over http` `rtp组播`  四种RTP传输方式 。
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口。
   - 支持H265编码
+  - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
 
 - RTMP
   - RTMP 播放服务器，支持RTSP/MP4转RTMP。
@@ -56,7 +57,6 @@
  
 ## 后续任务
 - 完善支持H265
-- 添加rtsp推流功能
 
 ## 编译要求
 - 编译器支持C++11，GCC4.8/Clang3.3/VC2015或以上
