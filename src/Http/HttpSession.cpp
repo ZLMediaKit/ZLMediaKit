@@ -155,11 +155,8 @@ void HttpSession::onRecvContent(const char *data,uint64_t len) {
 }
 
 void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
-	onRecv(pBuf->data(),pBuf->size());
-}
-void HttpSession::onRecv(const char *data,int size){
     _ticker.resetTime();
-    input(data,size);
+    input(pBuf->data(),pBuf->size());
 }
 
 void HttpSession::onError(const SockException& err) {

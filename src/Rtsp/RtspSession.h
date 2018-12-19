@@ -41,6 +41,7 @@
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
 #include "RtspToRtmpMediaSource.h"
+#include "Http/HttpsSession.h"
 
 using namespace std;
 using namespace toolkit;
@@ -105,6 +106,9 @@ protected:
 	void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
 	//MediaSourceEvent override
 	bool close() override ;
+
+	//TcpSession override
+    int send(const Buffer::Ptr &pkt) override;
 private:
 	bool handleReq_Options(const Parser &parser); //处理options方法
     bool handleReq_Describe(const Parser &parser); //处理describe方法
@@ -146,7 +150,6 @@ private:
 	inline void sendRtpPacket(const RtpPacket::Ptr &pkt);
 	bool sendRtspResponse(const string &res_code,const std::initializer_list<string> &header, const string &sdp = "" , const char *protocol = "RTSP/1.0");
 	bool sendRtspResponse(const string &res_code,const StrCaseMap &header = StrCaseMap(), const string &sdp = "",const char *protocol = "RTSP/1.0");
-	int send(const Buffer::Ptr &pkt) override;
 private:
 	Ticker _ticker;
 	int _iCseq = 0;
@@ -194,6 +197,11 @@ private:
 	inline void sendRTCP();
 #endif
 };
+
+/**
+ * 支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
+ */
+typedef TcpSessionWithSSL<RtspSession> RtspSessionWithSSL;
 
 } /* namespace mediakit */
 

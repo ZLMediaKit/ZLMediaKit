@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -235,12 +235,18 @@ int main(int argc,char *argv[]) {
         shellSrv->start<ShellSession>(shellPort);
         rtspSrv->start<RtspSession>(rtspPort);//默认554
         rtmpSrv->start<RtmpSession>(rtmpPort);//默认1935
-        httpSrv->start<HttpSession>(httpPort);//默认80
+        //http服务器,支持websocket
+        httpSrv->start<EchoWebSocketSession>(httpPort);//默认80
 
 #ifdef ENABLE_OPENSSL
         //如果支持ssl，还可以开启https服务器
         TcpServer::Ptr httpsSrv(new TcpServer());
-        httpsSrv->start<HttpsSession>(httpsPort);//默认443
+        //https服务器,支持websocket
+        httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);//默认443
+
+        //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
+        TcpServer::Ptr rtspSSLSrv(new TcpServer());
+        rtspSSLSrv->start<RtspSessionWithSSL>(rtspPort + 1);//默认555
 #endif //ENABLE_OPENSSL
 
         NoticeCenter::Instance().addListener(ReloadConfigTag,Broadcast::kBroadcastReloadConfig,[&](BroadcastReloadConfigArgs){
