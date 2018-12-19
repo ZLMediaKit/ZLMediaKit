@@ -151,8 +151,6 @@ extern const char kBroadcastReloadConfig[];
 
 ////////////HTTP配置///////////
 namespace Http {
-extern const char kPort[];
-extern const char kSSLPort[];
 //http 文件发送缓存大小
 extern const char kSendBufSize[];
 //http 最大请求字节数
@@ -173,20 +171,16 @@ extern const char kNotFound[];
 ////////////SHELL配置///////////
 namespace Shell {
 extern const char kMaxReqSize[];
-extern const char kPort[];
 } //namespace Shell
 
 ////////////RTSP服务器配置///////////
 namespace Rtsp {
-
-extern const char kPort[];
 //是否优先base64方式认证？默认Md5方式认证
 extern const char kAuthBasic[];
 } //namespace Rtsp
 
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
-extern const char kPort[];
 extern const char kModifyStamp[];
 
 } //namespace RTMP

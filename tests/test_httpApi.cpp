@@ -42,6 +42,22 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
+namespace mediakit {
+////////////HTTP配置///////////
+namespace Http {
+#define HTTP_FIELD "http."
+#define HTTP_PORT 80
+const char kPort[] = HTTP_FIELD"port";
+#define HTTPS_PORT 443
+extern const char kSSLPort[] = HTTP_FIELD"sslport";
+onceToken token1([](){
+	mINI::Instance()[kPort] = HTTP_PORT;
+	mINI::Instance()[kSSLPort] = HTTPS_PORT;
+},nullptr);
+}//namespace Http
+}  // namespace mediakit
+
+
 static onceToken s_token([](){
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpRequest,[](BroadcastHttpRequestArgs){
         //const Parser &parser,HttpSession::HttpResponseInvoker &invoker,bool &consumed

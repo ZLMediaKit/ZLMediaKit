@@ -75,12 +75,6 @@ onceToken token([](){
 namespace Http {
 #define HTTP_FIELD "http."
 
-#define HTTP_PORT 80
-const char kPort[] = HTTP_FIELD"port";
-
-#define HTTPS_PORT 443
-extern const char kSSLPort[] = HTTP_FIELD"sslport";
-
 //http 文件发送缓存大小
 #define HTTP_SEND_BUF_SIZE (64 * 1024)
 const char kSendBufSize[] = HTTP_FIELD"sendBufSize";
@@ -123,8 +117,6 @@ const char kNotFound[] = HTTP_FIELD"notFound";
 
 
 onceToken token([](){
-	mINI::Instance()[kPort] = HTTP_PORT;
-	mINI::Instance()[kSSLPort] = HTTPS_PORT;
 	mINI::Instance()[kSendBufSize] = HTTP_SEND_BUF_SIZE;
 	mINI::Instance()[kMaxReqSize] = HTTP_MAX_REQ_SIZE;
 	mINI::Instance()[kKeepAliveSecond] = HTTP_KEEP_ALIVE_SECOND;
@@ -140,14 +132,10 @@ onceToken token([](){
 namespace Shell {
 #define SHELL_FIELD "shell."
 
-#define SHELL_PORT 9000
-const char kPort[] = SHELL_FIELD"port";
-
 #define SHELL_MAX_REQ_SIZE 1024
 const char kMaxReqSize[] = SHELL_FIELD"maxReqSize";
 
 onceToken token([](){
-	mINI::Instance()[kPort] = SHELL_PORT;
 	mINI::Instance()[kMaxReqSize] = SHELL_MAX_REQ_SIZE;
 },nullptr);
 } //namespace Shell
@@ -155,14 +143,9 @@ onceToken token([](){
 ////////////RTSP服务器配置///////////
 namespace Rtsp {
 #define RTSP_FIELD "rtsp."
-
-#define RTSP_PORT 554
-const char kPort[] = RTSP_FIELD"port";
-
 const char kAuthBasic[] = RTSP_FIELD"authBasic";
 
 onceToken token([](){
-	mINI::Instance()[kPort] = RTSP_PORT;
 	//默认Md5方式认证
 	mINI::Instance()[kAuthBasic] = 0;
 },nullptr);
@@ -172,13 +155,9 @@ onceToken token([](){
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
 #define RTMP_FIELD "rtmp."
-
-#define RTMP_PORT 1935
-const char kPort[] = RTMP_FIELD"port";
 const char kModifyStamp[] = RTMP_FIELD"modifyStamp";
 
 onceToken token([](){
-	mINI::Instance()[kPort] = RTMP_PORT;
 	mINI::Instance()[kModifyStamp] = true;
 },nullptr);
 } //namespace RTMP
