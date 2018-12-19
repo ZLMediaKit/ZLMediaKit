@@ -53,6 +53,56 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
+namespace mediakit {
+////////////HTTP配置///////////
+namespace Http {
+#define HTTP_FIELD "http."
+#define HTTP_PORT 80
+const char kPort[] = HTTP_FIELD"port";
+#define HTTPS_PORT 443
+extern const char kSSLPort[] = HTTP_FIELD"sslport";
+onceToken token1([](){
+    mINI::Instance()[kPort] = HTTP_PORT;
+    mINI::Instance()[kSSLPort] = HTTPS_PORT;
+},nullptr);
+}//namespace Http
+
+////////////SHELL配置///////////
+namespace Shell {
+#define SHELL_FIELD "shell."
+#define SHELL_PORT 9000
+const char kPort[] = SHELL_FIELD"port";
+onceToken token1([](){
+    mINI::Instance()[kPort] = SHELL_PORT;
+},nullptr);
+} //namespace Shell
+
+////////////RTSP服务器配置///////////
+namespace Rtsp {
+#define RTSP_FIELD "rtsp."
+#define RTSP_PORT 554
+#define RTSPS_PORT 322
+const char kPort[] = RTSP_FIELD"port";
+const char kSSLPort[] = RTSP_FIELD"sslport";
+onceToken token1([](){
+    mINI::Instance()[kPort] = RTSP_PORT;
+    mINI::Instance()[kSSLPort] = RTSPS_PORT;
+},nullptr);
+
+} //namespace Rtsp
+
+////////////RTMP服务器配置///////////
+namespace Rtmp {
+#define RTMP_FIELD "rtmp."
+#define RTMP_PORT 1935
+const char kPort[] = RTMP_FIELD"port";
+onceToken token1([](){
+    mINI::Instance()[kPort] = RTMP_PORT;
+},nullptr);
+} //namespace RTMP
+}  // namespace mediakit
+
+
 #define REALM "realm_zlmedaikit"
 
 static onceToken s_token([](){
@@ -221,6 +271,7 @@ int main(int argc,char *argv[]) {
 
         uint16_t shellPort = mINI::Instance()[Shell::kPort];
         uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
+        uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
         uint16_t rtmpPort = mINI::Instance()[Rtmp::kPort];
         uint16_t httpPort = mINI::Instance()[Http::kPort];
         uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
@@ -246,9 +297,10 @@ int main(int argc,char *argv[]) {
 
         //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
         TcpServer::Ptr rtspSSLSrv(new TcpServer());
-        rtspSSLSrv->start<RtspSessionWithSSL>(rtspPort + 1);//默认555
+        rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);//默认322
 #endif //ENABLE_OPENSSL
 
+        //服务器支持动态切换端口(不影响现有连接)
         NoticeCenter::Instance().addListener(ReloadConfigTag,Broadcast::kBroadcastReloadConfig,[&](BroadcastReloadConfigArgs){
             //重新创建服务器
             if(shellPort != mINI::Instance()[Shell::kPort].as<uint16_t>()){
@@ -268,14 +320,20 @@ int main(int argc,char *argv[]) {
             }
             if(httpPort != mINI::Instance()[Http::kPort].as<uint16_t>()){
                 httpPort = mINI::Instance()[Http::kPort];
-                httpSrv->start<HttpSession>(httpPort);
+                httpSrv->start<EchoWebSocketSession>(httpPort);
                 InfoL << "重启http服务器" << httpPort;
             }
 #ifdef ENABLE_OPENSSL
             if(httpsPort != mINI::Instance()[Http::kSSLPort].as<uint16_t>()){
                 httpsPort = mINI::Instance()[Http::kSSLPort];
-                httpsSrv->start<HttpsSession>(httpsPort);
+                httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);
                 InfoL << "重启https服务器" << httpsPort;
+            }
+
+            if(rtspsPort != mINI::Instance()[Rtsp::kSSLPort].as<uint16_t>()){
+                rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
+                rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);
+                InfoL << "重启rtsps服务器" << rtspsPort;
             }
 #endif //ENABLE_OPENSSL
         });
