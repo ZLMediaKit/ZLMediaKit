@@ -35,49 +35,41 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class HttpsSession: public HttpSession {
+template<typename TcpSessionType>
+class TcpSessionWithSSL: public TcpSessionType {
 public:
-	HttpsSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock):
-		HttpSession(pTh,pSock){
+	TcpSessionWithSSL(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock):
+			TcpSessionType(pTh,pSock){
 		_sslBox.setOnEncData([&](const char *data, uint32_t len){
-#if defined(__GNUC__) && (__GNUC__ < 5)
 			public_send(data,len);
-#else//defined(__GNUC__) && (__GNUC__ < 5)
-			HttpSession::send(obtainBuffer(data,len));
-#endif//defined(__GNUC__) && (__GNUC__ < 5)
 		});
 		_sslBox.setOnDecData([&](const char *data, uint32_t len){
-#if defined(__GNUC__) && (__GNUC__ < 5)
 			public_onRecv(data,len);
-#else//defined(__GNUC__) && (__GNUC__ < 5)
-			HttpSession::onRecv(data,len);
-#endif//defined(__GNUC__) && (__GNUC__ < 5)
 		});
 	}
-	virtual ~HttpsSession(){
+	virtual ~TcpSessionWithSSL(){
 		//_sslBox.shutdown();
 	}
 	void onRecv(const Buffer::Ptr &pBuf) override{
-		TimeTicker();
 		_sslBox.onRecv(pBuf->data(), pBuf->size());
 	}
-#if defined(__GNUC__) && (__GNUC__ < 5)
+
 	int public_send(const char *data, uint32_t len){
-		return HttpSession::send(obtainBuffer(data,len));
+		return TcpSessionType::send(TcpSessionType::obtainBuffer(data,len));
 	}
 	void public_onRecv(const char *data, uint32_t len){
-		HttpSession::onRecv(data,len);
+		TcpSessionType::onRecv(TcpSessionType::obtainBuffer(data,len));
 	}
-#endif//defined(__GNUC__) && (__GNUC__ < 5)
 protected:
 	virtual int send(const Buffer::Ptr &buf) override{
-		TimeTicker();
 		_sslBox.onSend(buf->data(), buf->size());
 		return buf->size();
 	}
+private:
 	SSL_Box _sslBox;
 };
 
+typedef TcpSessionWithSSL<HttpSession> HttpsSession;
 
 
 /**

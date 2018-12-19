@@ -60,8 +60,6 @@ public:
 
 	static string urlDecode(const string &str);
 protected:
-	//用于HttpsSession调用
-	void onRecv(const char *data,int size);
 	//FlvMuxer override
 	void onWrite(const Buffer::Ptr &data) override ;
 	void onWrite(const char *data,int len) override;
