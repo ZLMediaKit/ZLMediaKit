@@ -45,7 +45,11 @@ void RtspMuxer::onTrackReady(const Track::Ptr &track) {
         return;
     }
     uint32_t ssrc = ((uint64_t) sdp.get()) & 0xFFFFFFFF;
-    auto mtu = (track->getTrackType() == TrackVideo ? 1400 : 600);
+
+    GET_CONFIG_AND_REGISTER(uint32_t,audio_mtu,Rtp::kAudioMtuSize);
+    GET_CONFIG_AND_REGISTER(uint32_t,video_mtu,Rtp::kVideoMtuSize);
+
+    auto mtu = (track->getTrackType() == TrackVideo ? video_mtu : audio_mtu);
     // 根据sdp生成rtp编码器ssrc
     auto encoder = sdp->createRtpEncoder(ssrc, mtu);
     if (!encoder) {
