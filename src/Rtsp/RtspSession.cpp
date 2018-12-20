@@ -998,7 +998,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 		}
         BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
         _ui64TotalBytes += buffer->size();
-        pSock->send(buffer,kSockFlags, peerAddr.get());
+        pSock->send(buffer,SOCKET_DEFAULE_FLAGS, peerAddr.get());
 	}
 		break;
 	default:

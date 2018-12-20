@@ -129,7 +129,7 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,c
 		auto &pSock = _apUdpSock[i];
 		auto &peerAddr = _aPeerUdpAddr[i];
         BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
-		pSock->send(buffer,SOCKET_DEFAULE_FLAGS | FLAG_MORE,(struct sockaddr *)(&peerAddr));
+		pSock->send(buffer,SOCKET_DEFAULE_FLAGS,(struct sockaddr *)(&peerAddr));
 	});
 	_pReader->setDetachCB([this](){
 		unordered_map<void * , onDetach > _mapDetach_copy;
