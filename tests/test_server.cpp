@@ -27,27 +27,23 @@
 #include <map>
 #include <signal.h>
 #include <iostream>
+
+#include "Util/MD5.h"
+#include "Util/File.h"
+#include "Util/logger.h"
+#include "Util/SSLBox.h"
+#include "Util/onceToken.h"
+#include "Network/TcpServer.h"
+#include "Poller/EventPoller.h"
+
 #include "Common/config.h"
 #include "Rtsp/UDPServer.h"
 #include "Rtsp/RtspSession.h"
 #include "Rtmp/RtmpSession.h"
-#include "Http/HttpSession.h"
 #include "Shell/ShellSession.h"
-#include "Util/MD5.h"
 #include "RtmpMuxer/FlvMuxer.h"
-
-#ifdef ENABLE_OPENSSL
-#include "Util/SSLBox.h"
-#include "Http/HttpsSession.h"
-#endif//ENABLE_OPENSSL
-
-#include "Util/File.h"
-#include "Util/logger.h"
-#include "Util/onceToken.h"
-#include "Network/TcpServer.h"
-#include "Poller/EventPoller.h"
-#include "Thread/WorkThreadPool.h"
 #include "Player/PlayerProxy.h"
+#include "Http/WebSocketSession.h"
 
 using namespace std;
 using namespace toolkit;
@@ -279,7 +275,6 @@ int main(int argc,char *argv[]) {
                   " rtsp地址 : rtsp://127.0.0.1/live/0\n"
                   " rtmp地址 : rtmp://127.0.0.1/live/0";
 
-#ifdef ENABLE_OPENSSL
         //请把证书"test_server.pem"放置在本程序可执行程序同目录下
         try {
             //加载证书，证书包含公钥和私钥
@@ -289,7 +284,6 @@ int main(int argc,char *argv[]) {
             proxyMap.clear();
             return 0;
         }
-#endif //ENABLE_OPENSSL
 
         uint16_t shellPort = mINI::Instance()[Shell::kPort];
         uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
@@ -311,7 +305,6 @@ int main(int argc,char *argv[]) {
         //http服务器,支持websocket
         httpSrv->start<EchoWebSocketSession>(httpPort);//默认80
 
-#ifdef ENABLE_OPENSSL
         //如果支持ssl，还可以开启https服务器
         TcpServer::Ptr httpsSrv(new TcpServer());
         //https服务器,支持websocket
@@ -320,7 +313,6 @@ int main(int argc,char *argv[]) {
         //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
         TcpServer::Ptr rtspSSLSrv(new TcpServer());
         rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);//默认322
-#endif //ENABLE_OPENSSL
 
         //服务器支持动态切换端口(不影响现有连接)
         NoticeCenter::Instance().addListener(ReloadConfigTag,Broadcast::kBroadcastReloadConfig,[&](BroadcastReloadConfigArgs){
@@ -345,7 +337,6 @@ int main(int argc,char *argv[]) {
                 httpSrv->start<EchoWebSocketSession>(httpPort);
                 InfoL << "重启http服务器" << httpPort;
             }
-#ifdef ENABLE_OPENSSL
             if(httpsPort != mINI::Instance()[Http::kSSLPort].as<uint16_t>()){
                 httpsPort = mINI::Instance()[Http::kSSLPort];
                 httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);
@@ -357,7 +348,6 @@ int main(int argc,char *argv[]) {
                 rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);
                 InfoL << "重启rtsps服务器" << rtspsPort;
             }
-#endif //ENABLE_OPENSSL
         });
 
         EventPoller::Instance().runLoop();

@@ -41,7 +41,6 @@
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
 #include "RtspToRtmpMediaSource.h"
-#include "Http/HttpsSession.h"
 
 using namespace std;
 using namespace toolkit;
