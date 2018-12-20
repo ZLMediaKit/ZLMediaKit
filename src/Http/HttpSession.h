@@ -124,6 +124,8 @@ private:
 };
 
 
+typedef TcpSessionWithSSL<HttpSession> HttpsSession;
+
 } /* namespace mediakit */
 
 #endif /* SRC_HTTP_HTTPSESSION_H_ */
