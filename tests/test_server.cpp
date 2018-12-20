@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -237,8 +237,8 @@ int main(int argc,char *argv[]) {
     {
         //这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
         //如果是其他不识别的音视频将会被忽略(譬如说h264+adpcm转发后会去除音频)
-        auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
-                        "rtmp://live.hkstv.hk.lxdns.com/live/hks"
+        auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks1",
+                        "rtmp://live.hkstv.hk.lxdns.com/live/hks2"
                 //rtsp链接支持输入用户名密码
                 /*"rtsp://admin:jzan123456@192.168.0.122/"*/};
         map<string, PlayerProxy::Ptr> proxyMap;
