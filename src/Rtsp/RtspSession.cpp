@@ -180,6 +180,9 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
 }
 
 void RtspSession::onRtpPacket(const char *data, uint64_t len) {
+	if(!_pushSrc){
+		return;
+	}
 	if(len > 1600){
 		//没有大于MTU的包
 		return;
@@ -1007,16 +1010,17 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 }
 
 void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
-	if(_pushSrc){
-		_pushSrc->onWrite(rtppt, false);
-	}
+	_pushSrc->onWrite(rtppt, false);
 }
 inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {
 	//这是rtcp心跳包，说明播放器还存活
 	_ticker.resetTime();
 
 	if(iTrackIdx % 2 == 0){
-	    handleOneRtp(iTrackIdx / 2,_aTrackInfo[iTrackIdx / 2],( unsigned char *)pBuf->data(),pBuf->size());
+
+		if(_pushSrc){
+			handleOneRtp(iTrackIdx / 2,_aTrackInfo[iTrackIdx / 2],( unsigned char *)pBuf->data(),pBuf->size());
+		}
 
 		//这是rtp探测包
 		if(!_bGotAllPeerUdp){
@@ -1038,8 +1042,6 @@ inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf
 				}
 			}
 		}
-	}else{
-//		TraceL << "rtcp数据包" << (iTrackIdx-1)/2 ;
 	}
 }
 
