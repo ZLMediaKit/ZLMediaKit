@@ -99,8 +99,7 @@ get_mime_type(const char* name) {
 }
 
 
-HttpSession::HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
-		TcpSession(pTh, pSock) {
+HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 
 	//设置10秒发送缓存
 	pSock->setSendBufSecond(10);

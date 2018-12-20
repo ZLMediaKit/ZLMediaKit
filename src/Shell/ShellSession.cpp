@@ -33,9 +33,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-ShellSession::ShellSession(const std::shared_ptr<ThreadPool> &_th,
-                           const Socket::Ptr &_sock) :
-        TcpSession(_th, _sock) {
+ShellSession::ShellSession(const Socket::Ptr &_sock) : TcpSession(_sock) {
     pleaseInputUser();
 }
 

@@ -44,7 +44,7 @@ namespace mediakit {
 class RtmpSession: public TcpSession ,public  RtmpProtocol , public MediaSourceEvent{
 public:
 	typedef std::shared_ptr<RtmpSession> Ptr;
-	RtmpSession(const std::shared_ptr<ThreadPool> &_th, const Socket::Ptr &_sock);
+	RtmpSession(const Socket::Ptr &_sock);
 	virtual ~RtmpSession();
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onError(const SockException &err) override;

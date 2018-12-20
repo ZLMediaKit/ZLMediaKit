@@ -72,7 +72,7 @@ static recursive_mutex g_mtxGetter;
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
-RtspSession::RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : TcpSession(pTh, pSock) {
+RtspSession::RtspSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	//设置10秒发送缓存
 	pSock->setSendBufSecond(10);
 	//设置15秒发送超时时间
