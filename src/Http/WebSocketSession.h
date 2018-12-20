@@ -37,7 +37,7 @@
 template <class SessionType,class HttpSessionType = HttpSession>
 class WebSocketSession : public HttpSessionType {
 public:
-    WebSocketSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) : HttpSessionType(pTh,pSock){}
+    WebSocketSession(const Socket::Ptr &pSock) : HttpSessionType(pSock){}
     virtual ~WebSocketSession(){}
 
     //收到eof或其他导致脱离TcpServer事件的回调
@@ -72,7 +72,7 @@ protected:
         if(_firstPacket){
             //这是个WebSocket会话而不是普通的Http会话
             _firstPacket = false;
-            _session = std::make_shared<SessionImp>(HttpSessionType::getIdentifier(),nullptr,HttpSessionType::_sock);
+            _session = std::make_shared<SessionImp>(HttpSessionType::getIdentifier(),HttpSessionType::_sock);
 
             auto strongServer = _weakServer.lock();
             if(strongServer){
@@ -159,10 +159,8 @@ private:
      */
     class SessionImp : public SessionType{
     public:
-        SessionImp(const string &identifier,
-                   const std::shared_ptr<ThreadPool> &pTh,
-                   const Socket::Ptr &pSock) :
-                _identifier(identifier),SessionType(pTh,pSock){}
+        SessionImp(const string &identifier,const Socket::Ptr &pSock) :
+                _identifier(identifier),SessionType(pSock){}
 
         ~SessionImp(){}
 
@@ -204,8 +202,7 @@ private:
 */
 class EchoSession : public TcpSession {
 public:
-    EchoSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock) :
-            TcpSession(pTh,pSock){
+    EchoSession(const Socket::Ptr &pSock) : TcpSession(pSock){
         DebugL;
     }
     virtual ~EchoSession(){

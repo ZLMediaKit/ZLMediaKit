@@ -51,7 +51,7 @@ public:
 							   const KeyValue &headerOut,
 							   const string &contentOut)>  HttpResponseInvoker;
 
-	HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock);
+	HttpSession(const Socket::Ptr &pSock);
 	virtual ~HttpSession();
 
 	virtual void onRecv(const Buffer::Ptr &) override;

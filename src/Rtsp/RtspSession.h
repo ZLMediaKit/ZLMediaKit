@@ -74,7 +74,7 @@ public:
     //在请求明文密码时如果提供md5密码者则会导致认证失败
 	typedef std::function<void(bool encrypted,const string &pwd_or_md5)> onAuth;
 
-	RtspSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock);
+	RtspSession(const Socket::Ptr &pSock);
 	virtual ~RtspSession();
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onError(const SockException &err) override;

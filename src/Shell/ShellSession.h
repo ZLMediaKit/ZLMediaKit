@@ -37,7 +37,7 @@ namespace mediakit {
 
 class ShellSession: public TcpSession {
 public:
-	ShellSession(const std::shared_ptr<ThreadPool> &_th, const Socket::Ptr &_sock);
+	ShellSession(const Socket::Ptr &_sock);
 	virtual ~ShellSession();
 
 	void onRecv(const Buffer::Ptr &) override;
