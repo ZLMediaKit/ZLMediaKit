@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -149,6 +149,10 @@ void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
 void RtspSession::onWholeRtspPacket(Parser &parser) {
 	string strCmd = parser.Method(); //提取出请求命令字
 	_iCseq = atoi(parser["CSeq"].data());
+	if(_strContentBase.empty()){
+		_strContentBase = parser.Url();
+		_mediaInfo.parse(parser.FullUrl());
+	}
 
 	typedef bool (RtspSession::*rtsp_request_handler)(const Parser &parser);
 	static unordered_map<string, rtsp_request_handler> s_handler_map;
@@ -213,10 +217,6 @@ bool RtspSession::handleReq_Options(const Parser &parser) {
 }
 
 bool RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
-	_strSdp = parser.Content();
-	//解析url获取媒体名称
-	_mediaInfo.parse(parser.FullUrl());
-
 	auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTSP_SCHEMA,
 																	   _mediaInfo._vhost,
 																	   _mediaInfo._app,
@@ -233,8 +233,8 @@ bool RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 	}
 
 	_strSession = makeRandStr(12);
-	_aTrackInfo = SdpAttr(_strSdp).getAvailableTrack();
-	_strUrl = parser.Url();
+    _strSdp = parser.Content();
+    _aTrackInfo = SdpAttr(_strSdp).getAvailableTrack();
 
 	_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
@@ -264,7 +264,7 @@ bool RtspSession::handleReq_RECORD(const Parser &parser){
 				shutdown();
 				return;
 			}
-			rtp_info << "url=" << _strUrl << "/" << track->_control_surffix << ",";
+			rtp_info << "url=" << _strContentBase << "/" << track->_control_surffix << ",";
 		}
 
 		rtp_info.pop_back();
@@ -299,10 +299,6 @@ bool RtspSession::handleReq_RECORD(const Parser &parser){
 
 
 bool RtspSession::handleReq_Describe(const Parser &parser) {
-	//解析url获取媒体名称
-	_strUrl = parser.Url();
-	_mediaInfo.parse(parser.FullUrl());
-
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
 	auto authorization = parser["Authorization"];
 
@@ -354,7 +350,7 @@ void RtspSession::onAuthSuccess(const weak_ptr<RtspSession> &weakSelf) {
             return;
         }
 		strongSelf->sendRtspResponse("200 OK",
-									 {"Content-Base",strongSelf->_strUrl,
+									 {"Content-Base",strongSelf->_strContentBase,
 									  "x-Accept-Retransmit","our-retransmit",
 									  "x-Accept-Dynamic-Rate","1"
 									 },strongSelf->_strSdp);
@@ -379,14 +375,12 @@ void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const strin
 			strongSelf->_strNonce = makeRandStr(32);
 			strongSelf->sendRtspResponse("401 Unauthorized",
 										 {"WWW-Authenticate",
-										  StrPrinter << "Digest realm=\"" << realm << "\",nonce=\"" << strongSelf->_strNonce << "\"" },
-										 strongSelf->_strSdp);
+										  StrPrinter << "Digest realm=\"" << realm << "\",nonce=\"" << strongSelf->_strNonce << "\"" });
         }else {
             //当然我们也支持base64认证,但是我们不建议这样做
 			strongSelf->sendRtspResponse("401 Unauthorized",
 										 {"WWW-Authenticate",
-										  StrPrinter << "Basic realm=\"" << realm << "\"" },
-										 strongSelf->_strSdp);
+										  StrPrinter << "Basic realm=\"" << realm << "\"" });
         }
     });
 }
@@ -541,7 +535,10 @@ inline void RtspSession::send_SessionNotFound() {
 }
 bool RtspSession::handleReq_Setup(const Parser &parser) {
 //处理setup命令，该函数可能进入多次
-    auto controlSuffix = parser.FullUrl().substr(1 + parser.FullUrl().rfind('/'));
+    auto controlSuffix = parser.FullUrl().substr(_strContentBase.size());
+    if(controlSuffix.front() == '/'){
+		controlSuffix = controlSuffix.substr(1);
+    }
 	int trackIdx = getTrackIndexByControlSuffix(controlSuffix);
 	if (trackIdx == -1) {
 		//未找到相应track
@@ -715,7 +712,7 @@ bool RtspSession::handleReq_Play(const Parser &parser) {
 			track->_seq = pMediaSrc->getSeqence(track->_type);
 			track->_time_stamp = pMediaSrc->getTimeStamp(track->_type);
 
-			rtp_info << "url=" << _strUrl << "/" << track->_control_surffix << ";"
+			rtp_info << "url=" << _strContentBase << "/" << track->_control_surffix << ";"
 					 << "seq=" << track->_seq << ";"
 					 << "rtptime=" << (int)(track->_time_stamp * (track->_samplerate / 1000)) << ",";
 		}
@@ -1182,6 +1179,9 @@ inline int RtspSession::getTrackIndexByControlSuffix(const string &controlSuffix
 		if (controlSuffix == _aTrackInfo[i]->_control_surffix) {
 			return i;
 		}
+	}
+	if(_aTrackInfo.size() == 1){
+        return 0;
 	}
 	return -1;
 }

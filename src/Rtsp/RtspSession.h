@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -152,7 +152,7 @@ private:
 private:
 	Ticker _ticker;
 	int _iCseq = 0;
-	string _strUrl;
+	string _strContentBase;
 	string _strSdp;
 	string _strSession;
 	bool _bFirstPlay = true;
