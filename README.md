@@ -62,16 +62,16 @@
 
 - 转协议:
 
-    |         功能/编码格式         | H264 | H265 | AAC  | other |
-    | :---------------------------: | :--: | :--: | :--: | :---: |
-    | RTSP --> RTMP/HTTP[S]-FLV/FLV |  Y   |  Y   |  Y   |   N   |
-    |       RTMP --> RTSP[S]        |  Y   |  Y   |  Y   |   N   |
-    |         RTSP --> HLS          |  Y   |  N   |  Y   |   N   |
-    |         RTMP --> HLS          |  Y   |  N   |  Y   |   N   |
-    |         RTSP --> MP4          |  Y   |  N   |  Y   |   N   |
-    |         RTMP --> MP4          |  Y   |  N   |  Y   |   N   |
-    |         MP4 --> RTSP          |  Y   |  N   |  Y   |   N   |
-    |         MP4 --> RTMP          |  Y   |  N   |  Y   |   N   |
+    |          功能/编码格式           | H264 | H265 | AAC  | other |
+    | :------------------------------: | :--: | :--: | :--: | :---: |
+    | RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  Y   |  Y   |   N   |
+    |         RTMP --> RTSP[S]         |  Y   |  Y   |  Y   |   N   |
+    |         RTSP[S] --> HLS          |  Y   |  N   |  Y   |   N   |
+    |           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
+    |         RTSP[S] --> MP4          |  Y   |  N   |  Y   |   N   |
+    |           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
+    |         MP4 --> RTSP[S]          |  Y   |  N   |  Y   |   N   |
+    |           MP4 --> RTMP           |  Y   |  N   |  Y   |   N   |
 
 - RTP传输方式:
 
