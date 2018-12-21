@@ -38,7 +38,7 @@
 
 - HLS
   - 支持HLS文件生成，自带HTTP文件服务器。
-  
+
 - HTTP[S]
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`。
   - 客户端提供`文件下载器(支持断点续传)`,`接口请求器`,`文件上传器`。
@@ -57,7 +57,50 @@
   - 支持flv、mp4文件录制
   - 支持rtps/rtmp点播，支持seek
 
- 
+
+## 其他功能细节表
+
+- 转协议:
+
+    |         功能/编码格式         | H264 | H265 | AAC  | other |
+    | :---------------------------: | :--: | :--: | :--: | :---: |
+    | RTSP --> RTMP/HTTP[S]-FLV/FLV |  Y   |  Y   |  Y   |   N   |
+    |       RTMP --> RTSP[S]        |  Y   |  Y   |  Y   |   N   |
+    |         RTSP --> HLS          |  Y   |  N   |  Y   |   N   |
+    |         RTMP --> HLS          |  Y   |  N   |  Y   |   N   |
+    |         RTSP --> MP4          |  Y   |  N   |  Y   |   N   |
+    |         RTMP --> MP4          |  Y   |  N   |  Y   |   N   |
+    |         MP4 --> RTSP          |  Y   |  N   |  Y   |   N   |
+    |         MP4 --> RTMP          |  Y   |  N   |  Y   |   N   |
+
+- RTP传输方式:
+
+  |  功能/RTP传输方式   | tcp  | udp  | http | udp_multicast |
+  | :-----------------: | :--: | :--: | :--: | :-----------: |
+  | RTSP[S] Play Server |  Y   |  Y   |  Y   |       Y       |
+  | RTSP[S] Push Server |  Y   |  Y   |  N   |       N       |
+  |     RTSP Player     |  Y   |  Y   |  N   |       Y       |
+
+
+- 支持的服务器类型列表
+
+  |      服务类型       | Y/N  |
+  | :-----------------: | :--: |
+  | RTSP[S] Play Server |  Y   |
+  | RTSP[S] Push Server |  Y   |
+  |        RTMP         |  Y   |
+  |  HTTP[S]/WebSocket  |  Y   |
+
+- 支持的客户端类型
+
+  | 客户端类型  | Y/N  |
+  | :---------: | :--: |
+  | RTSP Player |  Y   |
+  | RTSP Pusher |  N   |
+  | RTMP Player |  Y   |
+  | RTMP Pusher |  Y   |
+  |   HTTP[S]   |  Y   |
+
 ## 后续任务
 - 完善支持H265
 
@@ -74,8 +117,8 @@
   ```
   cd ZLMediaKit
   ./build_for_linux.sh
-  ```  
-    
+  ```
+
 ## 编译(macOS)
 - 我的编译环境
   - macOS Sierra(10.12.1) + xcode8.3.1
@@ -87,7 +130,7 @@
   cd ZLMediaKit
   ./build_for_mac.sh
   ```
-	 
+
 ## 编译(iOS)
 - 编译环境:`请参考macOS的编译指导。`
 - 编译
@@ -224,22 +267,22 @@
 	```
 ## QA
 - 怎么测试服务器性能？
-    
+
     ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。
 
     这里是测试报告：[benchmark.md](https://github.com/xiongziliang/ZLMediaKit/blob/master/benchmark.md)
 
 - github下载太慢了，有其他下载方式吗？
-    
+
     你可以在通过开源中国获取最新的代码，地址为：
- 
+
     [ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
-  
+
     [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
-    
-    
+
+
 - 在windows下编译很多错误？
- 
+
     由于本项目主体代码在macOS/linux下开发，部分源码采用的是无bom头的UTF-8编码；由于windows对于utf-8支持不甚友好，所以如果发现编译错误请先尝试添     加bom头再编译。
 
 ## 参考案例
@@ -248,7 +291,7 @@
  - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xiongziliang/ZLMediaPlayer)
 
    上述工程可能在最新的代码的情况下编译不过，请手动修改
- 
+
 
 ## 授权协议
 
@@ -267,5 +310,5 @@
 
 [微信](https://raw.githubusercontent.com/xiongziliang/other/master/IMG_3920.JPG)
 
-	
+
 
