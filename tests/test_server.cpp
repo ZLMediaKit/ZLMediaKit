@@ -56,7 +56,7 @@ namespace Http {
 #define HTTP_PORT 80
 const char kPort[] = HTTP_FIELD"port";
 #define HTTPS_PORT 443
-extern const char kSSLPort[] = HTTP_FIELD"sslport";
+const char kSSLPort[] = HTTP_FIELD"sslport";
 onceToken token1([](){
     mINI::Instance()[kPort] = HTTP_PORT;
     mINI::Instance()[kSSLPort] = HTTPS_PORT;
