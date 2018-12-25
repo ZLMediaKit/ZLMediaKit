@@ -60,7 +60,7 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
         return false;
     }
     //时间戳转换成毫秒
-    rtppt.timeStamp = ntohl(rtppt.timeStamp) * 1000L / track->_samplerate;
+    rtppt.timeStamp = ntohl(rtppt.timeStamp) * 1000LL / track->_samplerate;
     //ssrc
     memcpy(&rtppt.ssrc,pucData+8,4);//内存对齐
     rtppt.ssrc = ntohl(rtppt.ssrc);

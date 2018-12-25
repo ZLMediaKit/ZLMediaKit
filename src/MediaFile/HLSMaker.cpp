@@ -162,11 +162,11 @@ void HLSMaker::inputH264(const Frame::Ptr &frame) {
 	case H264Frame::NAL_B_P: //P
 			//insert aud frame before p and SPS frame
 		if(dts != _ui32LastFrameStamp){
-			_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, dts * 90L , frame->pts() * 90L);
+			_ts.inputH264("\x0\x0\x0\x1\x9\xf0", 6, dts * 90LL , frame->pts() * 90LL);
 		}
 	case H264Frame::NAL_IDR:		//IDR
 	case H264Frame::NAL_PPS:		//PPS
-		_ts.inputH264(frame->data(), frame->size(), dts * 90L , frame->pts() * 90L);
+		_ts.inputH264(frame->data(), frame->size(), dts * 90LL , frame->pts() * 90LL);
 		break;
 	default:
 		break;
@@ -176,7 +176,7 @@ void HLSMaker::inputH264(const Frame::Ptr &frame) {
 }
 
 void HLSMaker::inputAAC(const Frame::Ptr &frame) {
-    _ts.inputAAC(frame->data(), frame->size(), frame->dts() * 90L , frame->pts() * 90L);
+    _ts.inputAAC(frame->data(), frame->size(), frame->dts() * 90LL , frame->pts() * 90LL);
 }
 
 bool HLSMaker::removets() {
