@@ -284,6 +284,8 @@
 - 在windows下编译很多错误？
 
     由于本项目主体代码在macOS/linux下开发，部分源码采用的是无bom头的UTF-8编码；由于windows对于utf-8支持不甚友好，所以如果发现编译错误请先尝试添     加bom头再编译。
+    也可以通过参考这篇博客解决:
+    [vs2015:/utf-8选项解决UTF-8 without BOM 源码中文输出乱码问题](https://blog.csdn.net/10km/article/details/80203286)
 
 ## 参考案例
  - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
