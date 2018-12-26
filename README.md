@@ -64,14 +64,23 @@
 
     |          功能/编码格式           | H264 | H265 | AAC  | other |
     | :------------------------------: | :--: | :--: | :--: | :---: |
-    | RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  Y   |  Y   |   N   |
-    |         RTMP --> RTSP[S]         |  Y   |  Y   |  Y   |   N   |
+    | RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  N   |  Y   |   N   |
+    |         RTMP --> RTSP[S]         |  Y   |  N   |  Y   |   N   |
     |         RTSP[S] --> HLS          |  Y   |  N   |  Y   |   N   |
     |           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
     |         RTSP[S] --> MP4          |  Y   |  N   |  Y   |   N   |
     |           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
     |         MP4 --> RTSP[S]          |  Y   |  N   |  Y   |   N   |
     |           MP4 --> RTMP           |  Y   |  N   |  Y   |   N   |
+
+- 流生成：
+
+  |          功能/编码格式             | H264 | H265 | AAC  | other |
+  | :------------------------------: | :--: | :--: | :--: | :---: |
+  | RTSP[S]推流 |  Y   |  Y  |  Y   |   Y   |
+  |         RTSP拉流代理         |  Y   |  Y  |  Y   |   N   |
+  |   RTMP推流    |  Y   |  Y   |  Y   |   Y   |
+  | RTMP拉流代理  |  Y   |  N   |  Y   |   N   |
 
 - RTP传输方式:
 
