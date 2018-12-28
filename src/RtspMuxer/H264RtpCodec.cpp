@@ -142,7 +142,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
         return false;
     }
 
-    WarnL << "不支持的rtp类型:" << nal.type << " " << rtppack->sequence;
+    WarnL << "不支持的rtp类型:" << (int)nal.type << " " << rtppack->sequence;
     return false;
     // 29 FU-B     单NAL单元B模式
     // 24 STAP-A   单一时间的组合包

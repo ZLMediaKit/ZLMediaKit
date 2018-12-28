@@ -27,8 +27,9 @@
 #ifndef RTSP_UDPSERVER_H_
 #define RTSP_UDPSERVER_H_
 
-#include <mutex>
 #include <stdint.h>
+#include <mutex>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include "Util/util.h"
@@ -40,18 +41,23 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class UDPServer {
+class UDPServer : public std::enable_shared_from_this<UDPServer> {
 public:
 	typedef function< bool(int, const Buffer::Ptr &, struct sockaddr *)> onRecvData;
-	UDPServer();
-	virtual ~UDPServer();
+	~UDPServer();
 	static UDPServer &Instance();
-	static void Destory();
+
+	/**
+	 * 废弃的接口，无实际操作
+	 * @deprecated
+	 */
+	static void Destory(){};
 
 	Socket::Ptr getSock(const char *strLocalIp, int iTrackIndex,uint16_t iLocalPort = 0);
 	void listenPeer(const char *strPeerIp, void *pSelf, const onRecvData &cb);
 	void stopListenPeer(const char *strPeerIp, void *pSelf);
 private:
+	UDPServer();
 	void onRcvData(int iTrackId, const Buffer::Ptr &pBuf,struct sockaddr *pPeerAddr);
 	void onErr(const string &strKey,const SockException &err);
 	unordered_map<string, Socket::Ptr> _mapUpdSock;

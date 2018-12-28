@@ -26,18 +26,14 @@
 
 #include "UDPServer.h"
 #include "Util/TimeTicker.h"
+#include "Util/onceToken.h"
+
 using namespace toolkit;
 
 namespace mediakit {
 
-UDPServer &UDPServer::Instance() {
-	static UDPServer *instance(new UDPServer());
-	return *instance;
-}
-void UDPServer::Destory() {
-	delete &UDPServer::Instance();
-}
-
+INSTANCE_IMP(UDPServer);
+    
 UDPServer::UDPServer() {
 }
 

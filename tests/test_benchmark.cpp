@@ -41,9 +41,10 @@ using namespace mediakit;
 
 int main(int argc, char *argv[]) {
     //设置退出信号处理函数
-    signal(SIGINT, [](int) { EventPoller::Instance().shutdown(); });
+    signal(SIGINT, [](int) { EventPollerPool::Instance().shutdown(); });
+
     //设置日志
-    Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
+    Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
     if (argc != 5) {
@@ -55,42 +56,33 @@ int main(int argc, char *argv[]) {
         return 0;
 
     }
-    {
-        list<MediaPlayer::Ptr> playerList;
-        auto playerCnt = atoi(argv[1]);//启动的播放器个数
-        atomic_int alivePlayerCnt(0);
-        //每隔若干毫秒启动一个播放器（如果一次性全部启动，服务器和客户端可能都承受不了）
-        AsyncTaskThread::Instance().DoTaskDelay(0, atoi(argv[2]), [&]() {
-            MediaPlayer::Ptr player(new MediaPlayer());
-            player->setOnPlayResult([&](const SockException &ex) {
-                if (!ex) {
-                    ++alivePlayerCnt;
-                }
-            });
-            player->setOnShutdown([&](const SockException &ex) {
-                --alivePlayerCnt;
-            });
-            (*player)[RtspPlayer::kRtpType] = atoi(argv[4]);
-            player->play(argv[3]);
-            playerList.push_back(player);
-            return playerCnt--;
+    list<MediaPlayer::Ptr> playerList;
+    auto playerCnt = atoi(argv[1]);//启动的播放器个数
+    atomic_int alivePlayerCnt(0);
+    //每隔若干毫秒启动一个播放器（如果一次性全部启动，服务器和客户端可能都承受不了）
+    AsyncTaskThread::Instance().DoTaskDelay(0, atoi(argv[2]), [&]() {
+        MediaPlayer::Ptr player(new MediaPlayer());
+        player->setOnPlayResult([&](const SockException &ex) {
+            if (!ex) {
+                ++alivePlayerCnt;
+            }
         });
-
-        AsyncTaskThread::Instance().DoTaskDelay(0, 1000, [&]() {
-            InfoL << "存活播放器个数:" << alivePlayerCnt.load();
-            return true;
+        player->setOnShutdown([&](const SockException &ex) {
+            --alivePlayerCnt;
         });
-        EventPoller::Instance().runLoop();
-        AsyncTaskThread::Instance().CancelTask(0);
-    }
-
-    static onceToken token(nullptr, []() {
-        WorkThreadPool::Instance();
-        UDPServer::Destory();
-        EventPoller::Destory();
-        AsyncTaskThread::Destory();
-        Logger::Destory();
+        (*player)[RtspPlayer::kRtpType] = atoi(argv[4]);
+        player->play(argv[3]);
+        playerList.push_back(player);
+        return playerCnt--;
     });
+
+    AsyncTaskThread::Instance().DoTaskDelay(0, 1000, [&]() {
+        InfoL << "存活播放器个数:" << alivePlayerCnt.load();
+        return true;
+    });
+
+    EventPollerPool::Instance().wait();
+    AsyncTaskThread::Instance().CancelTask(0);
     return 0;
 }
 

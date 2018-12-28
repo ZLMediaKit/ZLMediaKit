@@ -83,37 +83,26 @@ void rePushDelay(const string &app, const string &stream, const string &url) {
 //这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了
 int domain(const string &playUrl, const string &pushUrl) {
     //设置退出信号处理函数
-    signal(SIGINT, [](int) { EventPoller::Instance().shutdown(); });
+    signal(SIGINT, [](int) { EventPollerPool::Instance().shutdown(); });
     //设置日志
-    Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
+    Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-    {
-        //拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
-        //你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请查看test_rtmpPusherMp4.cpp代码）
-        PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "app", "stream"));
-        player->play(playUrl.data());
+    //拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
+    //你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请查看test_rtmpPusherMp4.cpp代码）
+    PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "app", "stream"));
+    player->play(playUrl.data());
 
-        //监听RtmpMediaSource注册事件,在PlayerProxy播放成功后触发
-        NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged,
-                                             [pushUrl](BroadcastMediaChangedArgs) {
-                                                 //媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
-                                                 if(bRegist && schema == RTMP_SCHEMA){
-                                                     createPusher(app, stream, pushUrl);
-                                                 }
-                                             });
-
-        //事件轮询
-        EventPoller::Instance().runLoop();
-        pusher.reset();
-    }
-    //删除事件监听
-    NoticeCenter::Instance().delListener(nullptr);
-
-    //清理程序
-    EventPoller::Destory();
-    AsyncTaskThread::Destory();
-    Logger::Destory();
+    //监听RtmpMediaSource注册事件,在PlayerProxy播放成功后触发
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged,
+                                         [pushUrl](BroadcastMediaChangedArgs) {
+                                             //媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
+                                             if(bRegist && schema == RTMP_SCHEMA){
+                                                 createPusher(app, stream, pushUrl);
+                                             }
+                                         });
+    //事件轮询
+    EventPollerPool::Instance().wait();
     return 0;
 }
 
