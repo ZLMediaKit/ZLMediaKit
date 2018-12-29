@@ -55,7 +55,7 @@ public:
 	typedef std::shared_ptr<RtspMediaSource> Ptr;
 	typedef RingBuffer<RtpPacket::Ptr> RingType;
 
-	RtspMediaSource(const string &strVhost,const string &strApp, const string &strId,int ringSize = 32) :
+	RtspMediaSource(const string &strVhost,const string &strApp, const string &strId,int ringSize = 0) :
 			MediaSource(RTSP_SCHEMA,strVhost,strApp,strId),
 			_pRing(new RingBuffer<RtpPacket::Ptr>(ringSize)) {
 	}
