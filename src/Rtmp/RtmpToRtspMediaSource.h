@@ -53,7 +53,8 @@ public:
                           const string &app,
                           const string &id,
                           bool bEnableHls = true,
-                          bool bEnableMp4 = false):RtmpMediaSource(vhost, app, id){
+                          bool bEnableMp4 = false,
+						  int ringSize = 32):RtmpMediaSource(vhost, app, id,ringSize){
 		_recorder = std::make_shared<MediaRecorder>(vhost, app, id, bEnableHls, bEnableMp4);
 	}
 	virtual ~RtmpToRtspMediaSource(){}
