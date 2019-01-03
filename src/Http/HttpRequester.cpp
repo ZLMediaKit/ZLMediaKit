@@ -63,5 +63,11 @@ void HttpRequester::startRequester(const string &url,const HttpRequesterResult &
     sendRequest(url,timeOutSecond);
 }
 
+void HttpRequester::clear() {
+    HttpClientImp::clear();
+    _strRecvBody.clear();
+    _onResult = nullptr;
+}
+
 
 }//namespace mediakit

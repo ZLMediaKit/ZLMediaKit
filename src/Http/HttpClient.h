@@ -207,13 +207,21 @@ public:
     HttpClient();
     virtual ~HttpClient();
     virtual void sendRequest(const string &url,float fTimeOutSec);
-    void clear(){
+
+    virtual void clear(){
         _header.clear();
         _body.reset();
         _method.clear();
         _path.clear();
         _parser.Clear();
+        _recvedBodySize = 0;
+        _totalBodySize = 0;
+        _aliveTicker.resetTime();
+        _fTimeOutSec = 0;
+        _chunkedSplitter.reset();
+        HttpRequestSplitter::reset();
     }
+
     void setMethod(const string &method){
         _method = method;
     }
@@ -291,6 +299,9 @@ protected:
     //HttpRequestSplitter override
     int64_t onRecvHeader(const char *data,uint64_t len) override ;
     void onRecvContent(const char *data,uint64_t len) override;
+
+    //在连接服务器前调用一次
+    virtual void onBeforeConnect(string &strUrl, uint16_t &iPort,float &fTimeOutSec) {};
 protected:
     virtual void onConnect(const SockException &ex) override;
     virtual void onRecv(const Buffer::Ptr &pBuf) override;
@@ -303,7 +314,6 @@ private:
 protected:
     bool _isHttps;
 private:
-    //send
     HttpHeader _header;
     HttpBody::Ptr _body;
     string _method;

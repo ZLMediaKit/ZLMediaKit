@@ -126,6 +126,7 @@ void HttpRequestSplitter::setContentLen(int64_t content_len) {
 
 void HttpRequestSplitter::reset() {
     _content_len = 0;
+    _remain_data_size = 0;
     _remain_data.clear();
 }
 

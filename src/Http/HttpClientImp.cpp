@@ -28,47 +28,21 @@
 
 namespace mediakit {
 
-HttpClientImp::HttpClientImp() {
-	// TODO Auto-generated constructor stub
-
-}
-
-HttpClientImp::~HttpClientImp() {
-}
-
-void HttpClientImp::sendRequest(const string& url,float fTimeOutSec) {
-	HttpClient::sendRequest(url,fTimeOutSec);
+#if defined(ENABLE_OPENSSL)
+void HttpClientImp::onBeforeConnect(string &strUrl, uint16_t &iPort,float &fTimeOutSec) {
 	if(_isHttps){
-#ifndef ENABLE_OPENSSL
-		shutdown();
-		throw std::invalid_argument("不支持HTTPS协议");
-#else
 		_sslBox.reset(new SSL_Box(false));
 		_sslBox->setOnDecData([this](const char *data, uint32_t len){
-#if defined(__GNUC__) && (__GNUC__ < 5)
 			public_onRecvBytes(data,len);
-#else//defined(__GNUC__) && (__GNUC__ < 5)
-			HttpClient::onRecvBytes(data,len);
-#endif//defined(__GNUC__) && (__GNUC__ < 5)
 		});
 		_sslBox->setOnEncData([this](const char *data, uint32_t len){
-
-#if defined(__GNUC__) && (__GNUC__ < 5)
 			public_send(data,len);
-#else//defined(__GNUC__) && (__GNUC__ < 5)
-			HttpClient::send(obtainBuffer(data,len));
-#endif//defined(__GNUC__) && (__GNUC__ < 5)
 		});
-#endif //ENABLE_OPENSSL
-
 	}else{
-#ifdef ENABLE_OPENSSL
 		_sslBox.reset();
-#endif //ENABLE_OPENSSL
 	}
 }
 
-#ifdef ENABLE_OPENSSL
 void HttpClientImp::onRecvBytes(const char* data, int size) {
 	if(_sslBox){
 		_sslBox->onRecv(data,size);
@@ -84,6 +58,7 @@ int HttpClientImp::send(const Buffer::Ptr &buf) {
 	}
 	return HttpClient::send(buf);
 }
-#endif //ENABLE_OPENSSL
+
+#endif //defined(ENABLE_OPENSSL)
 
 } /* namespace mediakit */

@@ -60,7 +60,7 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     if (_path.empty()) {
         _path = "/";
     }
-    auto port = atoi(FindField(host.data(), ":", NULL).data());
+    uint16_t port = atoi(FindField(host.data(), ":", NULL).data());
     if (port <= 0) {
         //默认端口
         port = defaultPort;
@@ -99,6 +99,7 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
 
     if (!alive() || bChanged) {
         //InfoL << "reconnet:" << _lastHost;
+        onBeforeConnect(host, port , fTimeOutSec);
         startConnect(host, port, fTimeOutSec);
     } else {
         SockException ex;

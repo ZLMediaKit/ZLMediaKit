@@ -36,28 +36,32 @@ using namespace toolkit;
 
 namespace mediakit {
 
+#if defined(ENABLE_OPENSSL)
 class HttpClientImp: public HttpClient {
 public:
 	typedef std::shared_ptr<HttpClientImp> Ptr;
-	HttpClientImp();
-	virtual ~HttpClientImp();
-	virtual void sendRequest(const string &url,float fTimeOutSec) override;
+	HttpClientImp() {}
+	virtual ~HttpClientImp() {}
 
-#if defined(__GNUC__) && (__GNUC__ < 5)
-	void public_onRecvBytes(const char *data,int len){
+	inline void public_onRecvBytes(const char *data,int len){
 		HttpClient::onRecvBytes(data,len);
 	}
-	void public_send(const char *data, uint32_t len){
+	inline void public_send(const char *data, uint32_t len){
 		HttpClient::send(obtainBuffer(data,len));
 	}
-#endif //defined(__GNUC__) && (__GNUC__ < 5)
 private:
-#ifdef ENABLE_OPENSSL
-	virtual void onRecvBytes(const char *data,int size) override;
-	virtual int send(const Buffer::Ptr &buf) override;
+	void onRecvBytes(const char *data,int size) override;
+	int send(const Buffer::Ptr &buf) override;
+	void onBeforeConnect(string &strUrl, uint16_t &iPort,float &fTimeOutSec) override;
+private:
 	std::shared_ptr<SSL_Box> _sslBox;
-#endif //ENABLE_OPENSSL
 };
+
+#else
+
+typedef HttpClient HttpClientImp;
+
+#endif // defined(ENABLE_OPENSSL)
 
 } /* namespace mediakit */
 
