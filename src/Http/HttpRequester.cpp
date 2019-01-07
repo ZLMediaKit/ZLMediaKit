@@ -36,8 +36,8 @@ HttpRequester::~HttpRequester(){
 
 int64_t HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
     _strRecvBody.clear();
-    //后续全部是content
-    return -1;
+    //无Content-Length字段时默认后面没有content
+    return 0;
 }
     
 void HttpRequester::onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) {
