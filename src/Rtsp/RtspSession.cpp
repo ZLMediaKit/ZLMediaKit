@@ -535,7 +535,7 @@ inline void RtspSession::send_SessionNotFound() {
 }
 bool RtspSession::handleReq_Setup(const Parser &parser) {
 //处理setup命令，该函数可能进入多次
-    auto controlSuffix = parser.FullUrl().substr(_strContentBase.size());
+    auto controlSuffix = split(parser.Url(),"/").back();// parser.FullUrl().substr(_strContentBase.size());
     if(controlSuffix.front() == '/'){
 		controlSuffix = controlSuffix.substr(1);
     }
