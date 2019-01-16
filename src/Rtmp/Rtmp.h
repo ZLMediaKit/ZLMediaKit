@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <string>
+#include <cstdlib>
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Network/sockutil.h"

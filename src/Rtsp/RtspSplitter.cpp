@@ -24,6 +24,7 @@
  * SOFTWARE.
  */
 
+#include <cstdlib>
 #include "RtspSplitter.h"
 
 namespace mediakit{
