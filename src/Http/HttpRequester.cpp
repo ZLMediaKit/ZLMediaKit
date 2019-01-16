@@ -40,7 +40,7 @@ int64_t HttpRequester::onResponseHeader(const string &status,const HttpHeader &h
     return 0;
 }
     
-void HttpRequester::onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) {
+void HttpRequester::onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize) {
     _strRecvBody.append(buf,size);
 }
     

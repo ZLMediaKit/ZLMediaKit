@@ -24,6 +24,7 @@
 * SOFTWARE.
 */
 
+#include <cstdlib>
 #include "HttpClient.h"
 #include "Rtsp/Rtsp.h"
 

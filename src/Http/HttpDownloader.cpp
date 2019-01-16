@@ -79,7 +79,7 @@ int64_t HttpDownloader::onResponseHeader(const string& status,const HttpHeader& 
 	return -1;
 }
 
-void HttpDownloader::onResponseBody(const char* buf, size_t size, size_t recvedSize, size_t totalSize) {
+void HttpDownloader::onResponseBody(const char* buf, int64_t size, int64_t recvedSize, int64_t totalSize) {
     if(_saveFile){
 		fwrite(buf,size,1,_saveFile);
 	}

@@ -272,7 +272,7 @@ protected:
      * @param recvedSize 已收数据大小(包含本次数据大小),当其等于totalSize时将触发onResponseCompleted回调
      * @param totalSize 总数据大小
      */
-    virtual void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize){
+    virtual void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize){
         DebugL << size << " " <<  recvedSize << " " << totalSize;
     };
 
