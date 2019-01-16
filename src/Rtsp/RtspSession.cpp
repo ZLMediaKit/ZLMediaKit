@@ -119,8 +119,9 @@ void RtspSession::onManager() {
 		}
 	}
 
-	//组播不检查心跳是否超时
-	if (_rtpType == PlayerBase::RTP_UDP && _ticker.elapsedTime() > 15 * 1000) {
+
+	if ((_rtpType == PlayerBase::RTP_UDP || _pushSrc ) && _ticker.elapsedTime() > 15 * 1000) {
+		//如果是推流端或者rtp over udp类型的播放端，那么就做超时检测
 		WarnL << "RTSP会话超时:" << get_peer_ip();
 		shutdown();
 		return;
