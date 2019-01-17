@@ -2,6 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2019 火宣 <459502659@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -107,51 +108,89 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
         return (isIDR); //i frame
     }
 
-    if (nal.type == 28) {
-        //FU-A
-        FU fu;
-        MakeFU(frame[1], fu);
-        if (fu.S == 1) {
-            //FU-A start
-            char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
-            _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
-            _h264frame->buffer.push_back(tmp);
-            _h264frame->buffer.append((char *)frame + 2, length - 2);
-            _h264frame->type = fu.type;
-            _h264frame->timeStamp = rtppack->timeStamp;
-            _h264frame->sequence = rtppack->sequence;
-            return (_h264frame->type == H264Frame::NAL_IDR); //i frame
+    switch (nal.type){
+        case 24:{
+            // 24 STAP-A   单一时间的组合包
+            bool haveIDR = false;
+            auto ptr = frame + 1;
+            while(true){
+                int off = ptr - frame;
+                if (off >= length) {
+                    break;
+                }
+                //获取当前nalu的大小
+                uint16_t len = *ptr++;
+                len <<= 8;
+                len |= *ptr++;
+                if (off + len > length) {
+                    break;
+                }
+                if(len >= 10){
+                    //过小的帧丢弃
+                    NALU nal;
+                    MakeNalu(ptr[0], nal);
+                    _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
+                    _h264frame->buffer.append((char *)ptr, len);
+                    _h264frame->type = nal.type;
+                    _h264frame->timeStamp = rtppack->timeStamp;
+                    _h264frame->sequence = rtppack->sequence;
+                    if(nal.type == H264Frame::NAL_IDR){
+                        haveIDR = true;
+                    }
+                    onGetH264(_h264frame);
+                }
+                ptr += len;
+            }
+            return haveIDR;
         }
 
-        if (rtppack->sequence != (uint16_t)(_h264frame->sequence + 1)) {
-            _h264frame->buffer.clear();
-            WarnL << "丢包,帧废弃:" << rtppack->sequence << "," << _h264frame->sequence;
+        case 28:{
+            //FU-A
+            FU fu;
+            MakeFU(frame[1], fu);
+            if (fu.S == 1) {
+                //FU-A start
+                char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
+                _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
+                _h264frame->buffer.push_back(tmp);
+                _h264frame->buffer.append((char *)frame + 2, length - 2);
+                _h264frame->type = fu.type;
+                _h264frame->timeStamp = rtppack->timeStamp;
+                _h264frame->sequence = rtppack->sequence;
+                return (_h264frame->type == H264Frame::NAL_IDR); //i frame
+            }
+
+            if (rtppack->sequence != (uint16_t)(_h264frame->sequence + 1)) {
+                _h264frame->buffer.clear();
+                WarnL << "丢包,帧废弃:" << rtppack->sequence << "," << _h264frame->sequence;
+                return false;
+            }
+            _h264frame->sequence = rtppack->sequence;
+            if (fu.E == 1) {
+                //FU-A end
+                _h264frame->buffer.append((char *)frame + 2, length - 2);
+                _h264frame->timeStamp = rtppack->timeStamp;
+                auto isIDR = _h264frame->type == H264Frame::NAL_IDR;
+                onGetH264(_h264frame);
+                return isIDR;
+            }
+            //FU-A mid
+            _h264frame->buffer.append((char *)frame + 2, length - 2);
             return false;
         }
-        _h264frame->sequence = rtppack->sequence;
-        if (fu.E == 1) {
-            //FU-A end
-            _h264frame->buffer.append((char *)frame + 2, length - 2);
-            _h264frame->timeStamp = rtppack->timeStamp;
-            auto isIDR = _h264frame->type == H264Frame::NAL_IDR;
-            onGetH264(_h264frame);
-            return isIDR;
-        }
-        //FU-A mid
-        _h264frame->buffer.append((char *)frame + 2, length - 2);
-        return false;
-    }
 
-    WarnL << "不支持的rtp类型:" << (int)nal.type << " " << rtppack->sequence;
-    return false;
-    // 29 FU-B     单NAL单元B模式
-    // 24 STAP-A   单一时间的组合包
-    // 25 STAP-B   单一时间的组合包
-    // 26 MTAP16   多个时间的组合包
-    // 27 MTAP24   多个时间的组合包
-    // 0 udef
-    // 30 udef
-    // 31 udef
+        default:{
+            // 29 FU-B     单NAL单元B模式
+            // 25 STAP-B   单一时间的组合包
+            // 26 MTAP16   多个时间的组合包
+            // 27 MTAP24   多个时间的组合包
+            // 0 udef
+            // 30 udef
+            // 31 udef
+            WarnL << "不支持的rtp类型:" << (int)nal.type << " " << rtppack->sequence;
+            return false;
+        }
+    }
 }
 
 void H264RtpDecoder::onGetH264(const H264Frame::Ptr &frame) {
