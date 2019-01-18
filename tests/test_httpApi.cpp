@@ -102,7 +102,9 @@ static onceToken s_token([](){
 
 int main(int argc,char *argv[]){
 	//设置退出信号处理函数
-	signal(SIGINT, [](int){EventPollerPool::Instance().shutdown();});
+	static semaphore sem;
+	signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
+
 	//设置日志
 	Logger::Instance().add(std::make_shared<ConsoleChannel>());
 	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
@@ -133,7 +135,7 @@ int main(int argc,char *argv[]){
 
 	InfoL << "你可以在浏览器输入:http://127.0.0.1/api/my_api?key0=val0&key1=参数1" << endl;
 
-	EventPollerPool::Instance().wait();
+	sem.wait();
 	return 0;
 }
 

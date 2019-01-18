@@ -229,7 +229,8 @@ static onceToken s_token([](){
 
 int main(int argc,char *argv[]) {
     //设置退出信号处理函数
-    signal(SIGINT, [](int) { EventPollerPool::Instance().shutdown(); });
+    static semaphore sem;
+    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
     signal(SIGHUP, [](int) { loadIniConfig(); });
 
     //设置日志
@@ -354,7 +355,7 @@ int main(int argc,char *argv[]) {
         }
     });
 
-    EventPollerPool::Instance().wait();
+    sem.wait();
 	return 0;
 }
 

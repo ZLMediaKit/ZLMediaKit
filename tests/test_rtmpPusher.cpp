@@ -83,7 +83,8 @@ void rePushDelay(const string &app, const string &stream, const string &url) {
 //这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了
 int domain(const string &playUrl, const string &pushUrl) {
     //设置退出信号处理函数
-    signal(SIGINT, [](int) { EventPollerPool::Instance().shutdown(); });
+    static semaphore sem;
+    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
@@ -101,8 +102,7 @@ int domain(const string &playUrl, const string &pushUrl) {
                                                  createPusher(app, stream, pushUrl);
                                              }
                                          });
-    //事件轮询
-    EventPollerPool::Instance().wait();
+    sem.wait();
     return 0;
 }
 
