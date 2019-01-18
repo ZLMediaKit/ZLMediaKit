@@ -41,7 +41,9 @@ using namespace mediakit;
 
 int main(int argc, char *argv[]) {
     //设置退出信号处理函数
-    signal(SIGINT, [](int) { EventPollerPool::Instance().shutdown(); });
+    static semaphore sem;
+    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
+
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
@@ -182,8 +184,7 @@ int main(int argc, char *argv[]) {
                                           }
                                       });
 
-    //事件轮询
-    EventPollerPool::Instance().wait();
+    sem.wait();
     return 0;
 }
 

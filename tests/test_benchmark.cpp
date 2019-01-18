@@ -41,7 +41,8 @@ using namespace mediakit;
 
 int main(int argc, char *argv[]) {
     //设置退出信号处理函数
-    signal(SIGINT, [](int) { EventPollerPool::Instance().shutdown(); });
+    static semaphore sem;
+    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
 
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
@@ -52,7 +53,6 @@ int main(int argc, char *argv[]) {
                << "例如你想每隔50毫秒启动共计100个播放器（tcp方式播放rtsp://127.0.0.1/live/0 ）可以输入以下命令:\r\n"
                << "./test_benchmark 100 50 rtsp://127.0.0.1/live/0 0\r\n"
                << endl;
-        Logger::Destory();
         return 0;
 
     }
@@ -81,8 +81,7 @@ int main(int argc, char *argv[]) {
         return true;
     });
 
-    EventPollerPool::Instance().wait();
-    AsyncTaskThread::Instance().CancelTask(0);
+    sem.wait();
     return 0;
 }
 
