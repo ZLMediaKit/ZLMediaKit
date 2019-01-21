@@ -181,7 +181,7 @@ public:
      * @return
      */
     int getVideoHeight() const override{
-        return _width;
+        return _height ;
     }
 
     /**
@@ -189,7 +189,7 @@ public:
      * @return
      */
     int getVideoWidth() const override{
-        return _height;
+        return _width;
     }
 
     /**
