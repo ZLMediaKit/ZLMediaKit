@@ -76,6 +76,16 @@ void AACRtpEncoder::makeAACRtp(const void *data, unsigned int len, bool mark, ui
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
+
+AACRtpDecoder::AACRtpDecoder(const Track::Ptr &track){
+    auto aacTrack = dynamic_pointer_cast<AACTrack>(track);
+    if(!aacTrack || !aacTrack->ready()){
+        WarnL << "该aac track无效!";
+    }else{
+        _aac_cfg = aacTrack->getAacCfg();
+    }
+    _adts = obtainFrame();
+}
 AACRtpDecoder::AACRtpDecoder() {
     _adts = obtainFrame();
 }
@@ -85,6 +95,9 @@ AACFrame::Ptr AACRtpDecoder::obtainFrame() {
     auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
     frame->aac_frame_length = 7;
     frame->iPrefixSize = 7;
+    if(frame->syncword == 0 && !_aac_cfg.empty()) {
+        makeAdtsHeader(_aac_cfg,*frame);
+    }
     return frame;
 }
 
@@ -92,13 +105,13 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     RtpCodec::inputRtp(rtppack, false);
 
     int length = rtppack->length - rtppack->offset;
-    if (_adts->aac_frame_length + length > sizeof(AACFrame::buffer)) {
+    if (_adts->aac_frame_length + length - 4 > sizeof(AACFrame::buffer)) {
         _adts->aac_frame_length = 7;
         WarnL << "aac负载数据太长";
         return false;
     }
-    memcpy(_adts->buffer + _adts->aac_frame_length, rtppack->payload + rtppack->offset, length);
-    _adts->aac_frame_length += length;
+    memcpy(_adts->buffer + _adts->aac_frame_length, rtppack->payload + rtppack->offset + 4, length - 4);
+    _adts->aac_frame_length += (length - 4);
     if (rtppack->mark == true) {
         _adts->sequence = rtppack->sequence;
         _adts->timeStamp = rtppack->timeStamp;
@@ -113,6 +126,7 @@ void AACRtpDecoder::onGetAAC(const AACFrame::Ptr &frame) {
     RtpCodec::inputFrame(frame);
     _adts = obtainFrame();
 }
+
 
 }//namespace mediakit
 

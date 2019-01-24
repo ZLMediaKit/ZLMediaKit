@@ -181,16 +181,16 @@ RtpCodec::Ptr Factory::getRtpEncoderById(CodecId codecId,
     }
 }
 
-RtpCodec::Ptr Factory::getRtpDecoderById(CodecId codecId) {
-    switch (codecId){
+RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
+    switch (track->getCodecId()){
         case CodecH264:
             return std::make_shared<H264RtpDecoder>();
         case CodecH265:
             return std::make_shared<H265RtpDecoder>();
         case CodecAAC:
-            return std::make_shared<AACRtpDecoder>();
+            return std::make_shared<AACRtpDecoder>(track->clone());
         default:
-            WarnL << "暂不支持该CodecId:" << codecId;
+            WarnL << "暂不支持该CodecId:" << track->getCodecId();
             return nullptr;
     }
 }

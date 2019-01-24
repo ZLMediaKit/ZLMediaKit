@@ -90,7 +90,7 @@ void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
     _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio));
     if(_audioTrack){
     	//生成RtpCodec对象以便解码rtp
-		_audioRtpDecoder = Factory::getRtpDecoderById(_audioTrack->getCodecId());
+		_audioRtpDecoder = Factory::getRtpDecoderByTrack(_audioTrack);
 		if(_audioRtpDecoder){
 			//设置rtp解码器代理，生成的frame写入该Track
 			_audioRtpDecoder->addDelegate(_audioTrack);
@@ -106,7 +106,7 @@ void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
 	_videoTrack = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video));
 	if(_videoTrack){
 		//生成RtpCodec对象以便解码rtp
-		_videoRtpDecoder = Factory::getRtpDecoderById(_videoTrack->getCodecId());
+		_videoRtpDecoder = Factory::getRtpDecoderByTrack(_videoTrack);
 		if(_videoRtpDecoder){
 			//设置rtp解码器代理，生成的frame写入该Track
 			_videoRtpDecoder->addDelegate(_videoTrack);

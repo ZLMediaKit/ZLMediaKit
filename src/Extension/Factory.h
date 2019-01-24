@@ -81,12 +81,11 @@ public:
                                            uint8_t ui8Interleaved);
 
     /**
-     * 根据CodecId生成Rtp解包器
-     * @param codecId
-     * @param ui32SampleRate
+     * 根据Track生成Rtp解包器
+     * @param track
      * @return
      */
-    static RtpCodec::Ptr getRtpDecoderById(CodecId codecId);
+    static RtpCodec::Ptr getRtpDecoderByTrack(const Track::Ptr &track);
 
 
     ////////////////////////////////rtmp相关//////////////////////////////////

@@ -37,7 +37,7 @@ class AACRtpDecoder : public RtpCodec , public ResourcePoolHelper<AACFrame> {
 public:
     typedef std::shared_ptr<AACRtpDecoder> Ptr;
 
-    AACRtpDecoder();
+    AACRtpDecoder(const Track::Ptr &track);
     ~AACRtpDecoder() {}
 
     /**
@@ -50,15 +50,17 @@ public:
     TrackType getTrackType() const override{
         return TrackAudio;
     }
-
     CodecId getCodecId() const override{
         return CodecAAC;
     }
+protected:
+    AACRtpDecoder();
 private:
     void onGetAAC(const AACFrame::Ptr &frame);
     AACFrame::Ptr obtainFrame();
 private:
     AACFrame::Ptr _adts;
+    string _aac_cfg;
 };
 
 

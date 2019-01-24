@@ -82,7 +82,7 @@ public:
         return false;
     }
 public:
-    unsigned int syncword; //12 bslbf 同步字The bit string ‘1111 1111 1111’，说明一个ADTS帧的开始
+    unsigned int syncword = 0; //12 bslbf 同步字The bit string ‘1111 1111 1111’，说明一个ADTS帧的开始
     unsigned int id;        //1 bslbf   MPEG 标示符, 设置为1
     unsigned int layer;    //2 uimsbf Indicates which layer is used. Set to ‘00’
     unsigned int protection_absent;  //1 bslbf  表示是否误码校验
@@ -234,10 +234,15 @@ public:
     * @param frame 数据帧
     */
     void inputFrame(const Frame::Ptr &frame) override{
-        if(_cfg.empty() && frame->prefixSize() >= 7){
-            //7个字节的adts头
-            _cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
-            onReady();
+        if(_cfg.empty()){
+            //未获取到aac_cfg信息
+            if(frame->prefixSize() >= 7) {
+                //7个字节的adts头
+                _cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
+                onReady();
+            }else{
+                WarnL << "无法获取adts头!";
+            }
         }
         AudioTrack::inputFrame(frame);
     }
