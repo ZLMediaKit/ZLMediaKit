@@ -74,9 +74,12 @@ private:
             _pRtspMediaSrc->onWrite(rtppt,true);
         }
         _parser->inputRtp(rtppt);
-        checkInited();
+        checkIndited();
     }
 
+    bool isInited(int analysisMs = 2000) override{
+        return true;
+    }
 private:
 	RtspMediaSource::Ptr _pRtspMediaSrc;
     
