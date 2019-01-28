@@ -46,13 +46,6 @@ public:
 	typedef function< bool(int, const Buffer::Ptr &, struct sockaddr *)> onRecvData;
 	~UDPServer();
 	static UDPServer &Instance();
-
-	/**
-	 * 废弃的接口，无实际操作
-	 * @deprecated
-	 */
-	static void Destory(){};
-
 	Socket::Ptr getSock(const char *strLocalIp, int iTrackIndex,uint16_t iLocalPort = 0);
 	void listenPeer(const char *strPeerIp, void *pSelf, const onRecvData &cb);
 	void stopListenPeer(const char *strPeerIp, void *pSelf);
