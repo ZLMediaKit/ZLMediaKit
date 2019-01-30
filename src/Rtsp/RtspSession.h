@@ -28,6 +28,7 @@
 #define SESSION_RTSPSESSION_H_
 
 #include <set>
+#include <atomic>
 #include <vector>
 #include <unordered_map>
 #include "Util/util.h"
@@ -79,6 +80,7 @@ public:
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onError(const SockException &err) override;
 	void onManager() override;
+	static uint32_t getSessionCountOnInterface(const string &ifr);
 protected:
 	//RtspSplitter override
     /**

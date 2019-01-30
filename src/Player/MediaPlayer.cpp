@@ -46,12 +46,12 @@ void MediaPlayer::play(const char* strUrl) {
 	_parser->play(strUrl);
 }
 
-TaskExecutor::Ptr MediaPlayer::getExecutor(){
+EventPoller::Ptr MediaPlayer::getPoller(){
 	auto parser = dynamic_pointer_cast<SocketHelper>(_parser);
 	if(!parser){
 		return nullptr;
 	}
-	return parser->getExecutor();
+	return parser->getPoller();
 }
 
 void MediaPlayer::pause(bool bPause) {

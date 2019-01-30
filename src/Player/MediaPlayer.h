@@ -46,7 +46,7 @@ public:
 	void play(const char* strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
-	TaskExecutor::Ptr getExecutor();
+	EventPoller::Ptr getPoller();
 
 };
 

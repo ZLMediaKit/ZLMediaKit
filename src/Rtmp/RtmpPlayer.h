@@ -88,7 +88,7 @@ private:
 					return false;
 				}
 				return true;
-			},getExecutor()));
+			},getPoller()));
 		}
 		onPlayResult(ex);
 	}

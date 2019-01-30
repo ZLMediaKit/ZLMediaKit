@@ -136,9 +136,9 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 bool PlayerProxy::close() {
     //通知其停止推流
     weak_ptr<PlayerProxy> weakSlef = dynamic_pointer_cast<PlayerProxy>(shared_from_this());
-	auto executor = getExecutor();
-	if(executor) {
-		executor->async_first([weakSlef]() {
+	auto poller = getPoller();
+	if(poller) {
+		poller->async_first([weakSlef]() {
 			auto stronSelf = weakSlef.lock();
 			if (stronSelf) {
 				stronSelf->_mediaMuxer.reset();
