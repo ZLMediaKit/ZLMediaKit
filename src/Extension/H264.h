@@ -38,6 +38,7 @@ namespace mediakit{
 
 bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
 bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
+void splitH264(const char *ptr, int len, const std::function<void(const char *, int)> &cb);
 
 /**
  * 264帧类
@@ -116,6 +117,20 @@ public:
     }
 };
 
+class H264FrameSubFrame : public H264FrameNoCopyAble{
+public:
+    typedef std::shared_ptr<H264FrameSubFrame> Ptr;
+
+    H264FrameSubFrame(const Frame::Ptr &strongRef,
+                           char *ptr,
+                           uint32_t size,
+                           uint32_t stamp,
+                           int prefixeSize) : H264FrameNoCopyAble(ptr,size,stamp,prefixeSize){
+        _strongRef = strongRef;
+    }
+private:
+    Frame::Ptr _strongRef;
+};
 
 /**
  * 264视频通道
@@ -204,12 +219,55 @@ public:
         return !_sps.empty() && !_pps.empty();
     }
 
+    /**
+    * 输入数据帧,并获取sps pps
+    * @param frame 数据帧
+    */
+    void inputFrame(const Frame::Ptr &frame) override{
+        int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
+        if(type == H264Frame::NAL_SPS){
+            //有些设备会把SPS PPS IDR帧当做一个帧打包，所以我们要split一下
+            bool  first_frame = true;
+            splitH264(frame->data() + frame->prefixSize(),
+                      frame->size() - frame->prefixSize(),
+                      [&](const char *ptr, int len){
+                      if(first_frame){
+                          H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
+                                                                                                 frame->data(),
+                                                                                                 len + frame->prefixSize(),
+                                                                                                 frame->stamp(),
+                                                                                                 frame->prefixSize());
+                          inputFrame_l(sub_frame);
+                          first_frame = false;
+                      }else{
+                          H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
+                                                                                                 (char *)ptr,
+                                                                                                 len ,
+                                                                                                 frame->stamp(),
+                                                                                                 3);
+                          inputFrame_l(sub_frame);
+                      }
+            });
+        } else{
+            inputFrame_l(frame);
+        }
+    }
+private:
+    /**
+     * 解析sps获取宽高fps
+     */
+    void onReady(){
+        getAVCInfo(_sps,_width,_height,_fps);
+    }
+    Track::Ptr clone() override {
+        return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
+    }
 
     /**
      * 输入数据帧,并获取sps pps
      * @param frame 数据帧
      */
-    void inputFrame(const Frame::Ptr &frame) override{
+    void inputFrame_l(const Frame::Ptr &frame){
         int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
         switch (type){
             case H264Frame::NAL_SPS:{
@@ -270,16 +328,6 @@ public:
         if(_width == 0 && ready()){
             onReady();
         }
-    }
-private:
-    /**
-     * 解析sps获取宽高fps
-     */
-    void onReady(){
-        getAVCInfo(_sps,_width,_height,_fps);
-    }
-    Track::Ptr clone() override {
-        return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
     }
 private:
     string _sps;

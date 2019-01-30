@@ -51,6 +51,32 @@ bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight
     return true;
 }
 
+
+const char *memfind(const char *buf, int len, const char *subbuf, int sublen) {
+    for (auto i = 0; i < len - sublen; ++i) {
+        if (memcmp(buf + i, subbuf, sublen) == 0) {
+            return buf + i;
+        }
+    }
+    return NULL;
+}
+
+void splitH264(const char *ptr, int len, const std::function<void(const char *, int)> &cb) {
+    auto nal = ptr;
+    auto end = ptr + len;
+    while(true) {
+        auto next_nal = memfind(nal + 3,end - nal - 3,"\x0\x0\x1",3);
+        if(next_nal){
+            cb(nal,next_nal - nal);
+            nal = next_nal;
+            continue;
+        }
+        cb(nal,end - nal);
+        break;
+    }
+}
+
+
 }//namespace mediakit
 
 
