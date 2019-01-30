@@ -29,7 +29,6 @@
 #include "Util/mini.h"
 #include "Util/MD5.h"
 #include "Util/logger.h"
-#include "Thread/AsyncTaskThread.h"
 
 using namespace toolkit;
 
@@ -114,15 +113,13 @@ void PlayerProxy::play(const char* strUrl) {
 }
 
 PlayerProxy::~PlayerProxy() {
-	auto iTaskId = reinterpret_cast<uint64_t>(this);
-	AsyncTaskThread::Instance().CancelTask(iTaskId);
+	_timer.reset();
 }
 void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 	auto iTaskId = reinterpret_cast<uint64_t>(this);
 	auto iDelay = MAX(2 * 1000, MIN(iFailedCnt * 3000,60*1000));
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
-	AsyncTaskThread::Instance().CancelTask(iTaskId);
-	AsyncTaskThread::Instance().DoTaskDelay(iTaskId, iDelay, [weakSelf,strUrl,iFailedCnt]() {
+	_timer = std::make_shared<Timer>(iDelay / 1000.0f,[weakSelf,strUrl,iFailedCnt]() {
 		//播放失败次数越多，则延时越长
 		auto strongPlayer = weakSelf.lock();
 		if(!strongPlayer) {
@@ -131,7 +128,7 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 		WarnL << "重试播放[" << iFailedCnt << "]:"  << strUrl;
 		strongPlayer->MediaPlayer::play(strUrl.data());
 		return false;
-	});
+	}, nullptr);
 }
 bool PlayerProxy::close() {
     //通知其停止推流

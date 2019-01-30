@@ -68,6 +68,7 @@ private:
     string _strVhost;
     string _strApp;
     string _strSrc;
+    Timer::Ptr _timer;
 };
 
 } /* namespace mediakit */
