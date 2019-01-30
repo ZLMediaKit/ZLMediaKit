@@ -93,6 +93,7 @@ private:
 	Ticker _ticker;
 	Ticker _alive;
 	recursive_mutex _mtx;
+	Timer::Ptr _timer;
 #endif //ENABLE_MP4V2
 };
 

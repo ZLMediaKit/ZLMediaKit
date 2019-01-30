@@ -152,9 +152,10 @@ void MediaReader::startReadMP4() {
 	auto strongSelf = shared_from_this();
     GET_CONFIG_AND_REGISTER(uint32_t,sampleMS,Record::kSampleMS);
 
-    AsyncTaskThread::Instance().DoTaskDelay(reinterpret_cast<uint64_t>(this), sampleMS, [strongSelf](){
+	_timer = std::make_shared<Timer>(sampleMS / 1000.0f,[strongSelf](){
 		return strongSelf->readSample(0,false);
-	});
+	}, nullptr);
+
     //先读sampleMS毫秒的数据用于产生MediaSouce
 	readSample(sampleMS, false);
 	_mediaMuxer->setListener(strongSelf);
@@ -164,7 +165,7 @@ void MediaReader::startReadMP4() {
 	 return true;
 }
 bool MediaReader::close(){
-    AsyncTaskThread::Instance().CancelTask(reinterpret_cast<uint64_t>(this));
+	_timer.reset();
     return true;
 }
 
@@ -292,7 +293,7 @@ void MediaReader::seek(uint32_t iSeekTime,bool bReStart){
 	_mediaMuxer->setTimeStamp(_iSeekTime);
 
 	if(bReStart){
-		AsyncTaskThread::Instance().CancelTask(reinterpret_cast<uint64_t>(this));
+		_timer.reset();
 		startReadMP4();
 	}
 }

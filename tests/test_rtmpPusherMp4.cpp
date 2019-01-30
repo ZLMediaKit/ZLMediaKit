@@ -75,18 +75,16 @@ void createPusher(const string &app,const string &stream,const string &url){
 	pusher->publish(url.data());
 }
 
+Timer::Ptr g_timer;
 //推流失败或断开延迟2秒后重试推流
-void rePushDelay(const string &app,const string &stream,const string &url){
-	//上次延时两秒的任务可能还没执行，所以我们要先取消上次任务
-	AsyncTaskThread::Instance().CancelTask(0);
-	//2秒后执行重新推流的任务
-	AsyncTaskThread::Instance().DoTaskDelay(0, 2000, [app, stream,url]() {
+void rePushDelay(const string &app, const string &stream, const string &url) {
+	g_timer = std::make_shared<Timer>(2,[app, stream, url]() {
 		InfoL << "Re-Publishing...";
 		//重新推流
-		createPusher(app,stream,url);
+		createPusher(app, stream, url);
 		//此任务不重复
 		return false;
-	});
+	}, nullptr);
 }
 
 //这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了

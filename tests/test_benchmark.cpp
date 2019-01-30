@@ -58,8 +58,9 @@ int main(int argc, char *argv[]) {
     list<MediaPlayer::Ptr> playerList;
     auto playerCnt = atoi(argv[1]);//启动的播放器个数
     atomic_int alivePlayerCnt(0);
+
     //每隔若干毫秒启动一个播放器（如果一次性全部启动，服务器和客户端可能都承受不了）
-    AsyncTaskThread::Instance().DoTaskDelay(0, atoi(argv[2]), [&]() {
+    Timer timer0(atoi(argv[2])/1000.0f,[&]() {
         MediaPlayer::Ptr player(new MediaPlayer());
         player->setOnPlayResult([&](const SockException &ex) {
             if (!ex) {
@@ -73,12 +74,13 @@ int main(int argc, char *argv[]) {
         player->play(argv[3]);
         playerList.push_back(player);
         return playerCnt--;
-    });
+    }, nullptr);
 
-    AsyncTaskThread::Instance().DoTaskDelay(0, 1000, [&]() {
+
+    Timer timer1(1,[&]() {
         InfoL << "存活播放器个数:" << alivePlayerCnt.load();
         return true;
-    });
+    }, nullptr);
 
     sem.wait();
     return 0;
