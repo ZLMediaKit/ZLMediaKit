@@ -70,19 +70,42 @@ static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
 //对g_mapGetter上锁保护
 static recursive_mutex g_mtxGetter;
 
+//rtsp会话个数统计
+static recursive_mutex g_mtxSessionCounter;
+static unordered_map<string,atomic<uint32_t > > g_mapSessionCounter;
+
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
+
+uint32_t RtspSession::getSessionCountOnInterface(const string &ifr){
+    lock_guard<recursive_mutex> lck(g_mtxSessionCounter);
+    if(ifr.empty()){
+        int i = 0;
+        for(auto &pr : g_mapSessionCounter){
+            i += pr.second;
+        }
+        return i;
+    }
+    return g_mapSessionCounter[ifr];
+}
 
 RtspSession::RtspSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	//设置10秒发送缓存
-	pSock->setSendBufSecond(10);
+	pSock->setSendBufSecond(30);
 	//设置15秒发送超时时间
-	pSock->setSendTimeOutSecond(15);
+	pSock->setSendTimeOutSecond(45);
 
 	DebugL <<  get_peer_ip();
+
+	lock_guard<recursive_mutex> lck(g_mtxSessionCounter);
+	++(g_mapSessionCounter[get_local_ip()]);
 }
 
 RtspSession::~RtspSession() {
     DebugL <<  get_peer_ip();
+
+	lock_guard<recursive_mutex> lck(g_mtxSessionCounter);
+	--(g_mapSessionCounter[get_local_ip()]);
+
 }
 
 void RtspSession::onError(const SockException& err) {

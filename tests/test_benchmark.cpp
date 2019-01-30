@@ -33,7 +33,6 @@
 #include "Network/sockutil.h"
 #include "Poller/EventPoller.h"
 #include "Player/PlayerProxy.h"
-#include "Thread/WorkThreadPool.h"
 
 using namespace std;
 using namespace toolkit;

@@ -116,7 +116,7 @@ void RtmpPlayer::onConnect(const SockException &err){
 		strongSelf->_onPlayResult(SockException(Err_timeout,"play rtmp timeout"));
 		strongSelf->teardown();
 		return false;
-	},getExecutor()));
+	},getPoller()));
 	startClientSession([weakSelf](){
         auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
@@ -230,7 +230,7 @@ inline void RtmpPlayer::send_pause(bool bPause) {
 			uint32_t timeStamp = ::time(NULL);
 			strongSelf->sendUserControl(CONTROL_PING_REQUEST, timeStamp);
 			return true;
-		},getExecutor()));
+		},getPoller()));
 	}
 }
 
