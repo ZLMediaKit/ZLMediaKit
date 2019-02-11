@@ -228,11 +228,6 @@ static onceToken s_token([](){
 #endif
 
 int main(int argc,char *argv[]) {
-    //设置退出信号处理函数
-    static semaphore sem;
-    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
-    signal(SIGHUP, [](int) { loadIniConfig(); });
-
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().add(std::make_shared<FileChannel>());
@@ -355,6 +350,10 @@ int main(int argc,char *argv[]) {
         }
     });
 
+    //设置退出信号处理函数
+    static semaphore sem;
+    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
+    signal(SIGHUP, [](int) { loadIniConfig(); });
     sem.wait();
 	return 0;
 }
