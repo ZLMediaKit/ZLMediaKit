@@ -88,7 +88,7 @@ static onceToken s_token([](){
         auto contentOut = printer << endl;
 
         ////////////////我们测算异步回复，当然你也可以同步回复/////////////////
-        EventPoller::Instance().sync([invoker,contentOut](){
+		EventPollerPool::Instance().getPoller()->async([invoker,contentOut](){
             HttpSession::KeyValue headerOut;
 			//你可以自定义header,如果跟默认header重名，则会覆盖之
 			//默认header有:Server,Connection,Date,Content-Type,Content-Length
