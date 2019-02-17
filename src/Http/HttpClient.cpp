@@ -1,4 +1,4 @@
-﻿/*
+/*
 * MIT License
 *
 * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -236,7 +236,7 @@ void HttpClient::onSend() {
 }
 
 void HttpClient::onManager() {
-    if (_aliveTicker.elapsedTime() > 3 * 1000 && _totalBodySize < 0) {
+    if (_aliveTicker.elapsedTime() > 3 * 1000 && _totalBodySize < 0 && !_chunkedSplitter) {
         //如果Content-Length未指定 但接收数据超时
         //则认为本次http请求完成
         onResponseCompleted_l();
