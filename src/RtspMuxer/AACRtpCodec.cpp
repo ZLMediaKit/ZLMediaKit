@@ -104,20 +104,65 @@ AACFrame::Ptr AACRtpDecoder::obtainFrame() {
 bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     RtpCodec::inputRtp(rtppack, false);
 
+	// 获取rtp数据长度
     int length = rtppack->length - rtppack->offset;
-    if (_adts->aac_frame_length + length - 4 > sizeof(AACFrame::buffer)) {
-        _adts->aac_frame_length = 7;
-        WarnL << "aac负载数据太长";
-        return false;
-    }
-    memcpy(_adts->buffer + _adts->aac_frame_length, rtppack->payload + rtppack->offset + 4, length - 4);
-    _adts->aac_frame_length += (length - 4);
-    if (rtppack->mark == true) {
-        _adts->sequence = rtppack->sequence;
-        _adts->timeStamp = rtppack->timeStamp;
-        writeAdtsHeader(*_adts, _adts->buffer);
-        onGetAAC(_adts);
-    }
+
+	// 获取rtp数据
+	const uint8_t *rtp_packet_buf = (uint8_t *)rtppack->payload + rtppack->offset;
+	
+	do
+	{
+		// 查询头部的偏移，每次2字节
+		uint32_t au_header_offset = 0;
+		//首2字节表示Au-Header的长度，单位bit，所以除以16得到Au-Header字节数
+		const uint16_t au_header_length = (((rtp_packet_buf[au_header_offset] << 8) | rtp_packet_buf[au_header_offset + 1]) >> 4);
+		au_header_offset += 2;
+		
+		//assert(length > (2 + au_header_length * 2));
+		if (length < (2 + au_header_length * 2))
+			break;
+		
+		// 存放每一个aac帧长度
+		std::vector<uint32_t > vec_aac_len;
+		for (int i = 0; i < au_header_length; ++i)
+		{
+			// 之后的2字节是AU_HEADER
+			const uint16_t au_header = ((rtp_packet_buf[au_header_offset] << 8) | rtp_packet_buf[au_header_offset + 1]);
+			// 其中高13位表示一帧AAC负载的字节长度，低3位无用
+			uint32_t nAac = (au_header >> 3);
+			vec_aac_len.push_back(nAac);
+			au_header_offset += 2;
+		}
+
+		// 真正aac负载开始处
+		const uint8_t *rtp_packet_payload = rtp_packet_buf + au_header_offset;
+		// 载荷查找
+		uint32_t next_aac_payload_offset = 0;
+		for (int j = 0; j < au_header_length; ++j)
+		{
+			// 当前aac包长度
+			const uint32_t cur_aac_payload_len = vec_aac_len.at(j);
+
+			if (_adts->aac_frame_length + cur_aac_payload_len > sizeof(AACFrame::buffer)) {
+				_adts->aac_frame_length = 7;
+				WarnL << "aac负载数据太长";
+				return false;
+			}
+			
+			// 提取每一包aac载荷数据
+			memcpy(_adts->buffer + _adts->aac_frame_length, rtp_packet_payload + next_aac_payload_offset, cur_aac_payload_len);
+			_adts->aac_frame_length += (cur_aac_payload_len);
+			if (rtppack->mark == true) {
+				_adts->sequence = rtppack->sequence;
+				_adts->timeStamp = rtppack->timeStamp;
+				writeAdtsHeader(*_adts, _adts->buffer);
+				onGetAAC(_adts);
+			}
+
+			next_aac_payload_offset += cur_aac_payload_len;
+		}
+	} while (0);
+	
     return false;
 }
 
