@@ -70,6 +70,9 @@ private:
     	if(_pRtmpMediaSrc){
             _pRtmpMediaSrc->onWrite(chunkData);
         }
+        if(!_parser){
+            _parser.reset(new RtmpDemuxer());
+    	}
         _parser->inputRtmp(chunkData);
         checkInited();
     }
