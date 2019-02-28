@@ -57,7 +57,7 @@ protected:
 	virtual void onMediaData(const RtmpPacket::Ptr &chunkData) =0;
 	uint32_t getProgressMilliSecond() const;
 	void seekToMilliSecond(uint32_t ms);
-private:
+protected:
 	void _onShutdown(const SockException &ex) {
 		WarnL << ex.getErrCode() << " " << ex.what();
 		_pPlayTimer.reset();

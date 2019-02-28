@@ -72,7 +72,8 @@ private:
         }
         if(!_parser){
             _parser.reset(new RtmpDemuxer());
-    	}
+            _onPlayResult(SockException(Err_success,"play rtmp success"));
+        }
         _parser->inputRtmp(chunkData);
         checkInited();
     }

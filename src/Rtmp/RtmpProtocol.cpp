@@ -677,8 +677,61 @@ void RtmpProtocol::handle_rtmpChunk(RtmpPacket& chunkData) {
 			TraceL << "MSG_SET_PEER_BW:" << _ui32WinSize;
 		}
 			break;
-		case MSG_AGGREGATE:
-			throw std::runtime_error("streaming FLV not supported");
+		case MSG_AGGREGATE: {
+			auto ptr = (uint8_t*)chunkData.strBuf.data();
+			auto ptr_tail = (uint8_t*)&chunkData.strBuf.back();
+			while(ptr < ptr_tail - 8 - 3){
+				auto type = *ptr;
+				ptr += 1;
+				auto size = load_be24(ptr);
+				ptr += 3;
+				auto ts = load_be24(ptr);
+				ptr += 3;
+				ts |= (*ptr << 24);
+				ptr += 1;
+
+				//参考ffmpeg忽略了3个字节
+				/**
+				 *  while (next - pkt->data < pkt->size - RTMP_HEADER) {
+						type = bytestream_get_byte(&next);
+						size = bytestream_get_be24(&next);
+						cts  = bytestream_get_be24(&next);
+						cts |= bytestream_get_byte(&next) << 24;
+						if (!pts)
+							pts = cts;
+						ts += cts - pts;
+						pts = cts;
+						if (size + 3 + 4 > pkt->data + pkt->size - next)
+							break;
+						bytestream_put_byte(&p, type);
+						bytestream_put_be24(&p, size);
+						bytestream_put_be24(&p, ts);
+						bytestream_put_byte(&p, ts >> 24);
+						memcpy(p, next, size + 3 + 4);
+						p    += size + 3;
+						bytestream_put_be32(&p, size + RTMP_HEADER);
+						next += size + 3 + 4;
+					}
+				 */
+				ptr += 3;
+				//参考FFmpeg多拷贝了4个字节
+				size += 4;
+				if(ptr + size > ptr_tail){
+					break;
+				}
+//				DebugL << (int)type << " " << size << " " << ts << " " << hexdump(ptr,size > 32 ? 32 : size);
+				RtmpPacket sub_packet ;
+				sub_packet.strBuf.resize(size);
+				memcpy((char *)sub_packet.strBuf.data(),ptr,size);
+				sub_packet.typeId = type;
+				sub_packet.bodySize = size;
+				sub_packet.timeStamp = ts;
+				sub_packet.streamId = chunkData.streamId;
+				sub_packet.chunkId = chunkData.chunkId;
+				handle_rtmpChunk(sub_packet);
+				ptr += size;
+			}
+		}
 			break;
 		default:
 			onRtmpChunk(chunkData);
