@@ -253,7 +253,7 @@ protected:
 			return;
 		}
 		//播放成功后，我们还必须等待各个Track初始化完毕才能回调告知已经初始化完毕
-		if(isInited(INT_MAX)){
+		if(isInited(0xFFFF)){
 			//初始化完毕则立即回调
 			_playResultCB(ex);
 			_playResultCB = nullptr;
