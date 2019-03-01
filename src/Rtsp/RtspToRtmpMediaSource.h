@@ -61,7 +61,7 @@ public:
     virtual void onWrite(const RtpPacket::Ptr &rtp, bool bKeyPos) override {
         if (_rtspDemuxer) {
             bKeyPos = _rtspDemuxer->inputRtp(rtp);
-            if (!_rtmpMuxer && _rtspDemuxer->isInited()) {
+            if (!_rtmpMuxer && _rtspDemuxer->isInited(2000)) {
                 _rtmpMuxer = std::make_shared<RtmpMediaSourceMuxer>(getVhost(),
                                                                     getApp(),
                                                                     getId(),

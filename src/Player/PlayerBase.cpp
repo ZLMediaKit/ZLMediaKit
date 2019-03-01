@@ -39,8 +39,13 @@ const char PlayerBase::kRtspUser[] = "rtsp_user" ;
 const char PlayerBase::kRtspPwd[] = "rtsp_pwd";
 const char PlayerBase::kRtspPwdIsMD5[] = "rtsp_pwd_md5";
 
+const char PlayerBase::kPlayTimeoutMS[] = "play_timeout_ms";
+const char PlayerBase::kMediaTimeoutMS[] = "media_timeout_ms";
+const char PlayerBase::kBeatIntervalMS[] = "beat_interval_ms";
+const char PlayerBase::kMaxAnalysisMS[] = "max_analysis_ms";
 
-PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
+
+	PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 	static auto releasePlayer = [](PlayerBase *ptr){
 		onceToken token(nullptr,[&](){
 			delete  ptr;
@@ -55,6 +60,13 @@ PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
 		return PlayerBase::Ptr(new RtmpPlayerImp(),releasePlayer);
 	}
 	return PlayerBase::Ptr(new RtspPlayerImp(),releasePlayer);
+}
+
+PlayerBase::PlayerBase() {
+	this->mINI::operator[](kPlayTimeoutMS) = 10000;
+	this->mINI::operator[](kMediaTimeoutMS) = 5000;
+	this->mINI::operator[](kBeatIntervalMS) = 5000;
+	this->mINI::operator[](kMaxAnalysisMS) = 2000;
 }
 
 ///////////////////////////Demuxer//////////////////////////////

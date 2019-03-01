@@ -59,15 +59,15 @@ public:
 	}
 	virtual ~RtmpToRtspMediaSource(){}
 
-	void onGetMetaData(const AMFValue &_metadata) override {
-		_rtmpDemuxer = std::make_shared<RtmpDemuxer>(_metadata);
-		RtmpMediaSource::onGetMetaData(_metadata);
+	void onGetMetaData(const AMFValue &metadata) override {
+		_rtmpDemuxer = std::make_shared<RtmpDemuxer>(metadata);
+		RtmpMediaSource::onGetMetaData(metadata);
 	}
 
 	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos) override {
 		if(_rtmpDemuxer){
 			_rtmpDemuxer->inputRtmp(pkt);
-			if(!_rtspMuxer && _rtmpDemuxer->isInited()){
+			if(!_rtspMuxer && _rtmpDemuxer->isInited(2000)){
 				_rtspMuxer = std::make_shared<RtspMediaSourceMuxer>(getVhost(),
 																	getApp(),
 																	getId(),

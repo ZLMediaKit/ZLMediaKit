@@ -54,7 +54,7 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
         return false;
     }
 
-    if (_sps.size() && pkt->strBuf.size() > 9) {
+    if (pkt->strBuf.size() > 9) {
         uint32_t iTotalLen = pkt->strBuf.size();
         uint32_t iOffset = 5;
         uint8_t *cts_ptr = (uint8_t *) (pkt->strBuf.data() + 2);
@@ -81,9 +81,15 @@ inline void H264RtmpDecoder::onGetH264_l(const char* pcData, int iLen, uint32_t 
     switch (H264_TYPE(pcData[0])) {
         case H264Frame::NAL_IDR: {
             //I frame
-            onGetH264(_sps.data(), _sps.length(), dts , pts);
-            onGetH264(_pps.data(), _pps.length(), dts , pts);
+            if(_sps.length()){
+                onGetH264(_sps.data(), _sps.length(), dts , pts);
+            }
+            if(_pps.length()){
+                onGetH264(_pps.data(), _pps.length(), dts , pts);
+            }
+            onGetH264(pcData, iLen, dts , pts);
         }
+            break;
         case H264Frame::NAL_B_P: {
             //I or P or B frame
             onGetH264(pcData, iLen, dts , pts);

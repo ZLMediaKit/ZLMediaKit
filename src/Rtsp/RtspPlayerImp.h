@@ -74,10 +74,15 @@ private:
             _pRtspMediaSrc->onWrite(rtppt,true);
         }
         _parser->inputRtp(rtppt);
-        checkInited();
+
+        //由于我们重载isInited方法强制认为一旦获取sdp那么就初始化Track成功，
+        //所以我们不需要在后续检验是否初始化成功
+        //checkInited(0);
     }
 
-    bool isInited(int analysisMs = 2000) override{
+    bool isInited(int analysisMs) override{
+	    //rtsp是通过sdp来完成track的初始化的，所以我们强制返回true，
+        //认为已经初始化完毕，这样可以提高rtsp打开速度
         return true;
     }
 private:
