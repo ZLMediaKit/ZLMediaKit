@@ -80,7 +80,7 @@ void RtmpPlayer::play(const char* strUrl)  {
     _strTcUrl = string("rtmp://") + strHost + "/" + _strApp;
 
     if (!_strApp.size() || !_strStream.size()) {
-        _onPlayResult(SockException(Err_other,"rtmp url非法"));
+        onPlayResult_l(SockException(Err_other,"rtmp url非法"));
         return;
     }
 	DebugL << strHost << " " << _strApp << " " << _strStream;
@@ -96,27 +96,30 @@ void RtmpPlayer::play(const char* strUrl)  {
 	if(!(*this)[PlayerBase::kNetAdapter].empty()){
 		setNetAdapter((*this)[PlayerBase::kNetAdapter]);
 	}
-	startConnect(strHost, iPort);
-}
-void RtmpPlayer::onErr(const SockException &ex){
-	_onShutdown(ex);
-}
-void RtmpPlayer::onConnect(const SockException &err){
-	if(err.getErrCode()!=Err_success) {
-		_onPlayResult(err);
-		return;
-	}
 
 	weak_ptr<RtmpPlayer> weakSelf= dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-	_pPlayTimer.reset( new Timer(10, [weakSelf]() {
+	float playTimeOutSec = (*this)[kPlayTimeoutMS].as<int>() / 1000.0;
+	_pPlayTimer.reset( new Timer(playTimeOutSec, [weakSelf]() {
 		auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
 			return false;
 		}
-		strongSelf->_onPlayResult(SockException(Err_timeout,"play rtmp timeout"));
+		strongSelf->onPlayResult_l(SockException(Err_timeout,"play rtmp timeout"));
 		strongSelf->teardown();
 		return false;
 	},getPoller()));
+
+	startConnect(strHost, iPort , playTimeOutSec);
+}
+void RtmpPlayer::onErr(const SockException &ex){
+	onShutdown_l(ex);
+}
+void RtmpPlayer::onConnect(const SockException &err){
+	if(err.getErrCode()!=Err_success) {
+		onPlayResult_l(err);
+		return;
+	}
+	weak_ptr<RtmpPlayer> weakSelf= dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
 	startClientSession([weakSelf](){
         auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
@@ -130,8 +133,8 @@ void RtmpPlayer::onRecv(const Buffer::Ptr &pBuf){
 		onParseRtmp(pBuf->data(), pBuf->size());
 	} catch (exception &e) {
 		SockException ex(Err_other, e.what());
-		_onPlayResult(ex);
-		_onShutdown(ex);
+		onPlayResult_l(ex);
+		onShutdown_l(ex);
 		teardown();
 	}
 }
@@ -210,7 +213,7 @@ inline void RtmpPlayer::send_pause(bool bPause) {
         }else{
             _bPaused = bPause;
             if(!bPause){
-                _onPlayResult(SockException(Err_success, "rtmp resum success"));
+                onPlayResult_l(SockException(Err_success, "rtmp resum success"));
             }else{
                 //暂停播放
                 _pMediaTimer.reset();
@@ -222,7 +225,7 @@ inline void RtmpPlayer::send_pause(bool bPause) {
 	_pBeatTimer.reset();
 	if(bPause){
 		weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-		_pBeatTimer.reset(new Timer(3,[weakSelf](){
+		_pBeatTimer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0,[weakSelf](){
 			auto strongSelf = weakSelf.lock();
 			if (!strongSelf){
 				return false;
@@ -279,12 +282,12 @@ void RtmpPlayer::onCmd_onMetaData(AMFDecoder &dec) {
 	if(!onCheckMeta(val)){
 		throw std::runtime_error("onCheckMeta faied");
 	}
-	_onPlayResult(SockException(Err_success,"play rtmp success"));
+	onPlayResult_l(SockException(Err_success,"play rtmp success"));
 }
 
 void RtmpPlayer::onStreamDry(uint32_t ui32StreamId) {
 	//TraceL << ui32StreamId;
-	_onShutdown(SockException(Err_other,"rtmp stream dry"));
+	onShutdown_l(SockException(Err_other,"rtmp stream dry"));
 }
 
 
@@ -311,7 +314,7 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
             if (_aNowStampTicker[idx].elapsedTime() > 500) {
                 _aiNowStamp[idx] = chunkData.timeStamp;
             }
-			_onMediaData(std::make_shared<RtmpPacket>(std::move(chunkData)));
+			onMediaData_l(std::make_shared<RtmpPacket>(std::move(chunkData)));
 		}
 			break;
 		default:

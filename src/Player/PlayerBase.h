@@ -56,7 +56,7 @@ public:
 	 * @param analysisMs 数据流最大分析时间 单位毫秒
 	 * @return
 	 */
-	virtual bool isInited(int analysisMs = 2000) { return true; }
+	virtual bool isInited(int analysisMs) { return true; }
 
 	/**
 	 * 获取全部的Track
@@ -103,10 +103,19 @@ public:
 	static const char kRtspUser[];
 	//rtsp认证用用户密码，可以是明文也可以是md5,md5密码生成方式 md5(username:realm:password)
 	static const char kRtspPwd[];
-	//rtsp认证用用户密码是否为md5
+	//rtsp认证用用户密码是否为md5类型
 	static const char kRtspPwdIsMD5[];
+	//播放超时时间，默认10,000 毫秒
+	static const char kPlayTimeoutMS[];
+	//rtp/rtmp包接收超时时间，默认5000秒
+	static const char kMediaTimeoutMS[];
+	//rtsp/rtmp心跳时间,默认5000毫秒
+	static const char kBeatIntervalMS[];
+	//Track编码格式探测最大时间，单位毫秒，默认2000
+	static const char kMaxAnalysisMS[];
 
-	PlayerBase(){}
+
+	PlayerBase();
 	virtual ~PlayerBase(){}
 
 	/**
@@ -187,7 +196,7 @@ public:
 		_playResultCB = cb;
 	}
 
-    bool isInited(int analysisMs = 2000) override{
+    bool isInited(int analysisMs) override{
         if (_parser) {
             return _parser->isInited(analysisMs);
         }
@@ -243,21 +252,20 @@ protected:
 			_playResultCB = nullptr;
 			return;
 		}
-		//播放成功
-
-		if(isInited()){
+		//播放成功后，我们还必须等待各个Track初始化完毕才能回调告知已经初始化完毕
+		if(isInited(INT_MAX)){
 			//初始化完毕则立即回调
 			_playResultCB(ex);
 			_playResultCB = nullptr;
 			return;
 		}
-		//播放成功却未初始化完毕
+		//播放成功却未初始化完毕，这个时候不回调汇报播放成功
 	}
-	void checkInited(){
+	void checkInited(int analysisMs){
 		if(!_playResultCB){
 			return;
 		}
-		if(isInited()){
+		if(isInited(analysisMs)){
 			_playResultCB(SockException(Err_success,"play success"));
 			_playResultCB = nullptr;
 		}
@@ -285,7 +293,7 @@ public:
 	 * @param analysisMs 数据流最大分析时间 单位毫秒
 	 * @return
 	 */
-	bool isInited(int analysisMs = 2000) override;
+	bool isInited(int analysisMs) override;
 
 	/**
 	 * 获取所有可用Track，请在isInited()返回true时调用

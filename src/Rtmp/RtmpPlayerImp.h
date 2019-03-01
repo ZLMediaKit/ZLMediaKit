@@ -56,6 +56,10 @@ public:
         fProgress = MAX(float(0),MIN(fProgress,float(1.0)));
         seekToMilliSecond(fProgress * getDuration() * 1000);
     };
+    void play(const char* strUrl) override {
+        _analysisMs = (*this)[PlayerBase::kMaxAnalysisMS].as<int>();
+        PlayerImp<RtmpPlayer,RtmpDemuxer>::play(strUrl);
+    }
 private:
     //派生类回调函数
     bool onCheckMeta(AMFValue &val)  override {
@@ -71,18 +75,19 @@ private:
             _pRtmpMediaSrc->onWrite(chunkData);
         }
         if(!_parser){
+    	    //这个流没有metedata，那么尝试在音视频包里面还原出相关信息
             _parser.reset(new RtmpDemuxer());
-            _onPlayResult(SockException(Err_success,"play rtmp success"));
+            onPlayResult_l(SockException(Err_success,"play rtmp success"));
         }
         _parser->inputRtmp(chunkData);
-        checkInited();
+        checkInited(_analysisMs);
     }
-
 private:
     RtmpMediaSource::Ptr _pRtmpMediaSrc;
+    int _analysisMs;
 };
-                    
-                    
+
+
 } /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPPLAYERIMP_H_ */

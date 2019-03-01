@@ -58,32 +58,33 @@ protected:
 	uint32_t getProgressMilliSecond() const;
 	void seekToMilliSecond(uint32_t ms);
 protected:
-	void _onShutdown(const SockException &ex) {
+	void onShutdown_l(const SockException &ex) {
 		WarnL << ex.getErrCode() << " " << ex.what();
 		_pPlayTimer.reset();
 		_pMediaTimer.reset();
 		_pBeatTimer.reset();
 		onShutdown(ex);
 	}
-	void _onMediaData(const RtmpPacket::Ptr &chunkData) {
+	void onMediaData_l(const RtmpPacket::Ptr &chunkData) {
 		_mediaTicker.resetTime();
 		onMediaData(chunkData);
 	}
-	void _onPlayResult(const SockException &ex) {
+	void onPlayResult_l(const SockException &ex) {
 		WarnL << ex.getErrCode() << " " << ex.what();
 		_pPlayTimer.reset();
 		_pMediaTimer.reset();
 		if (!ex) {
 			_mediaTicker.resetTime();
 			weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-			_pMediaTimer.reset( new Timer(5, [weakSelf]() {
+			int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
+			_pMediaTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
 				auto strongSelf=weakSelf.lock();
 				if(!strongSelf) {
 					return false;
 				}
-				if(strongSelf->_mediaTicker.elapsedTime()>10000) {
+				if(strongSelf->_mediaTicker.elapsedTime()> timeoutMS) {
 					//recv media timeout!
-					strongSelf->_onShutdown(SockException(Err_timeout,"recv rtmp timeout"));
+					strongSelf->onShutdown_l(SockException(Err_timeout,"recv rtmp timeout"));
 					strongSelf->teardown();
 					return false;
 				}

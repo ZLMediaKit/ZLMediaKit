@@ -133,7 +133,20 @@ void RtspPlayer::play(const char* strUrl, const char *strUser, const char *strPw
 	if(!(*this)[PlayerBase::kNetAdapter].empty()){
 		setNetAdapter((*this)[PlayerBase::kNetAdapter]);
 	}
-	startConnect(ip.data(), port);
+
+	weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
+	float playTimeOutSec = (*this)[kPlayTimeoutMS].as<int>() / 1000.0;
+	_pPlayTimer.reset( new Timer(playTimeOutSec,  [weakSelf]() {
+		auto strongSelf=weakSelf.lock();
+		if(!strongSelf) {
+			return false;
+		}
+		strongSelf->onPlayResult_l(SockException(Err_timeout,"play rtsp timeout"));
+		strongSelf->teardown();
+		return false;
+	},getPoller()));
+
+	startConnect(ip.data(), port , playTimeOutSec);
 }
 void RtspPlayer::onConnect(const SockException &err){
 	if(err.getErrCode()!=Err_success) {
@@ -143,17 +156,6 @@ void RtspPlayer::onConnect(const SockException &err){
 	}
 
 	sendDescribe();
-
-	weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-	_pPlayTimer.reset( new Timer(10,  [weakSelf]() {
-		auto strongSelf=weakSelf.lock();
-		if(!strongSelf) {
-			return false;
-		}
-		strongSelf->onPlayResult_l(SockException(Err_timeout,"play rtsp timeout"));
-		strongSelf->teardown();
-		return false;
-	},getPoller()));
 }
 
 void RtspPlayer::onRecv(const Buffer::Ptr& pBuf) {
@@ -346,7 +348,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 	}
 	/////////////////////////心跳/////////////////////////////////
 	weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-	_pBeatTimer.reset(new Timer(5, [weakSelf](){
+	_pBeatTimer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0, [weakSelf](){
 		auto strongSelf = weakSelf.lock();
 		if (!strongSelf){
 			return false;
@@ -591,12 +593,13 @@ void RtspPlayer::onPlayResult_l(const SockException &ex) {
 	if (!ex) {
 		_rtpTicker.resetTime();
 		weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-		_pRtpTimer.reset( new Timer(5, [weakSelf]() {
+		int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
+		_pRtpTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
 			auto strongSelf=weakSelf.lock();
 			if(!strongSelf) {
 				return false;
 			}
-			if(strongSelf->_rtpTicker.elapsedTime()>10000) {
+			if(strongSelf->_rtpTicker.elapsedTime()> timeoutMS) {
 				//recv rtp timeout!
 				strongSelf->onShutdown_l(SockException(Err_timeout,"recv rtp timeout"));
 				strongSelf->teardown();
