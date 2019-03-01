@@ -52,26 +52,26 @@ int RtmpDemuxer::getTrackCount(const AMFValue &metedata) {
 bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->typeId) {
         case MSG_VIDEO: {
-            if(_videoRtmpDecoder){
-                return _videoRtmpDecoder->inputRtmp(pkt, true);
-            }
             if(!_tryedGetVideoTrack){
                 _tryedGetVideoTrack = true;
                 auto codec = AMFValue(pkt->getMediaType());
                 makeVideoTrack(codec);
             }
+            if(_videoRtmpDecoder){
+                return _videoRtmpDecoder->inputRtmp(pkt, true);
+            }
             return false;
         }
 
         case MSG_AUDIO: {
-            if(_audioRtmpDecoder){
-                _audioRtmpDecoder->inputRtmp(pkt, false);
-                return false;
-            }
             if(!_tryedGetAudioTrack) {
                 _tryedGetAudioTrack = true;
                 auto codec = AMFValue(pkt->getMediaType());
                 makeAudioTrack(codec);
+            }
+            if(_audioRtmpDecoder){
+                _audioRtmpDecoder->inputRtmp(pkt, false);
+                return false;
             }
             return false;
         }
