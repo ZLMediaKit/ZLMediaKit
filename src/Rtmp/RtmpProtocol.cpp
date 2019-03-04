@@ -679,8 +679,8 @@ void RtmpProtocol::handle_rtmpChunk(RtmpPacket& chunkData) {
 			break;
 		case MSG_AGGREGATE: {
 			auto ptr = (uint8_t*)chunkData.strBuf.data();
-			auto ptr_tail = (uint8_t*)&chunkData.strBuf.back();
-			while(ptr < ptr_tail - 8 - 3){
+			auto ptr_tail = ptr + chunkData.strBuf.length() ;
+			while(ptr + 8 + 3 < ptr_tail){
 				auto type = *ptr;
 				ptr += 1;
 				auto size = load_be24(ptr);
@@ -717,9 +717,10 @@ void RtmpProtocol::handle_rtmpChunk(RtmpPacket& chunkData) {
 				//参考FFmpeg多拷贝了4个字节
 				size += 4;
 				if(ptr + size > ptr_tail){
+//				    ErrorL << ptr + size << " " << ptr_tail << " " << ptr_tail - ptr - size;
 					break;
 				}
-//				DebugL << (int)type << " " << size << " " << ts << " " << hexdump(ptr,size > 32 ? 32 : size);
+//				DebugL << (int)type << " " << size << " " << ts << " " << chunkData.timeStamp << " " << ptr_tail - ptr;
 				RtmpPacket sub_packet ;
 				sub_packet.strBuf.resize(size);
 				memcpy((char *)sub_packet.strBuf.data(),ptr,size);
@@ -731,6 +732,7 @@ void RtmpProtocol::handle_rtmpChunk(RtmpPacket& chunkData) {
 				handle_rtmpChunk(sub_packet);
 				ptr += size;
 			}
+//			InfoL << ptr_tail - ptr;
 		}
 			break;
 		default:
