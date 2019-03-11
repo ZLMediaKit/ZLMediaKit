@@ -728,7 +728,6 @@ bool RtspSession::handleReq_Play(const Parser &parser) {
 		_enableSendRtp = true;
 
 		//提高发送性能
-		(*this) << SocketFlags(kSockFlags);
 		SockUtil::setNoDelay(_sock->rawFD(),false);
 		(*this) << SocketFlags(kSockFlags);
 
