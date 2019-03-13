@@ -167,7 +167,7 @@ public:
     }
 
 protected:
-    bool regist() ;
+    void regist() ;
     bool unregist() ;
 private:
         template <typename FUN>
