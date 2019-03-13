@@ -71,25 +71,20 @@ MediaSource::Ptr MediaSource::find(
     return ret;
 
 }
-bool MediaSource::regist() {
+void MediaSource::regist() {
     //注册该源，注册后服务器才能找到该源
-    bool success;
     {
         lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-        auto pr = g_mapMediaSrc[_strSchema][_strVhost][_strApp].emplace(_strId, shared_from_this());
-        success = pr.second;
+        g_mapMediaSrc[_strSchema][_strVhost][_strApp][_strId] =  shared_from_this();
     }
-    if(success){
-        InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
-                                           true,
-                                           _strSchema,
-                                           _strVhost,
-                                           _strApp,
-                                           _strId,
-                                           *this);
-    }
-    return success;
+    InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
+                                       true,
+                                       _strSchema,
+                                       _strVhost,
+                                       _strApp,
+                                       _strId,
+                                       *this);
 }
 bool MediaSource::unregist() {
     //反注册该源
