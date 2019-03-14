@@ -310,7 +310,7 @@ protected:
     virtual void onManager() override;
 private:
     void onResponseCompleted_l();
-    void checkCookie(const HttpHeader &headers );
+    void checkCookie(HttpHeader &headers );
 protected:
     bool _isHttps;
 private:
