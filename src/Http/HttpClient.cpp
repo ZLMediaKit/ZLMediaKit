@@ -255,7 +255,7 @@ void HttpClient::onResponseCompleted_l() {
     onResponseCompleted();
 }
 
-void HttpClient::checkCookie(const HttpClient::HttpHeader &headers) {
+void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
     //Set-Cookie: IPTV_SERVER=8E03927B-CC8C-4389-BC00-31DBA7EC7B49;expires=Sun, Sep 23 2018 15:07:31 GMT;path=/index/api/
     auto it_set_cookie = headers.find("Set-Cookie");
     if(it_set_cookie == headers.end()){
@@ -274,12 +274,17 @@ void HttpClient::checkCookie(const HttpClient::HttpHeader &headers) {
 
         if(index++ == 0){
             cookie->setKeyVal(key,val);
-        } else{
-            if(key == "path"){
-                cookie->setPath(val);
-            }else if(key == "expires"){
-                cookie->setExpires(val);
-            }
+            continue;
+        }
+
+        if(key == "path") {
+            cookie->setPath(val);
+            continue;
+        }
+
+        if(key == "expires"){
+            cookie->setExpires(val,headers["Date"]);
+            continue;
         }
     }
 

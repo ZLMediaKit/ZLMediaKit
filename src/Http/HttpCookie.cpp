@@ -26,6 +26,7 @@
 
 #include "HttpCookie.h"
 #include "Util/util.h"
+#include "Util/logger.h"
 
 #if defined(_WIN32)
 #include "strptime_win.h"
@@ -40,10 +41,17 @@ void HttpCookie::setPath(const string &path){
 void HttpCookie::setHost(const string &host){
     _host = host;
 }
-void HttpCookie::setExpires(const string &expires){
+static uint32_t timeStrToInt(const string &date){
     struct tm tt;
-    strptime(expires.data(),"%a, %b %d %Y %H:%M:%S %Z",&tt);
-    _expire = mktime(&tt);
+    strptime(date.data(),"%a, %b %d %Y %H:%M:%S %Z",&tt);
+    return mktime(&tt);
+}
+void HttpCookie::setExpires(const string &expires,const string &server_date){
+    _expire = timeStrToInt(expires);
+    if(!server_date.empty()){
+        _expire =  time(NULL) + (_expire - timeStrToInt(server_date));
+//        DebugL <<  (timeStrToInt(expires) - timeStrToInt(server_date)) / 60;
+    }
 }
 void HttpCookie::setKeyVal(const string &key,const string &val){
     _key = key;

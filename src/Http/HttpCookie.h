@@ -45,7 +45,7 @@ public:
 
     void setPath(const string &path);
     void setHost(const string &host);
-    void setExpires(const string &expires);
+    void setExpires(const string &expires,const string &server_date);
     void setKeyVal(const string &key,const string &val);
     operator bool ();
 
