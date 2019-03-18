@@ -167,7 +167,6 @@ private:
 	bool _abGotPeerUdp[2] = { false, false }; //获取客户端udp端口计数
 	Socket::Ptr _apRtpSock[2]; //RTP端口,trackid idx 为数组下标
 	Socket::Ptr _apRtcpSock[2];//RTCP端口,trackid idx 为数组下标
-	std::shared_ptr<struct sockaddr> _apPeerRtpPortAddr[2]; //播放器接收RTP的地址,trackid idx 为数组下标
 
 	//RTP over udp_multicast
 	RtpBroadCaster::Ptr _pBrdcaster;
