@@ -100,9 +100,6 @@ get_mime_type(const char* name) {
 
 
 HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
-
-	//设置10秒发送缓存
-	pSock->setSendBufSecond(10);
 	//设置15秒发送超时时间
 	pSock->setSendTimeOutSecond(15);
 

@@ -317,7 +317,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 			rtpto.sin_port = ntohs(port);
 			rtpto.sin_family = AF_INET;
 			rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().c_str());
-			pUdpSockRef->send("\xce\xfa\xed\xfe", 4,SOCKET_DEFAULE_FLAGS, (struct sockaddr *) &rtpto);
+			pUdpSockRef->setSendPeerAddr((struct sockaddr *)&(rtpto));
+			pUdpSockRef->send("\xce\xfa\xed\xfe", 4);
 		}
 	}
 

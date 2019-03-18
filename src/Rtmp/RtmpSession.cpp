@@ -35,8 +35,6 @@ static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
 RtmpSession::RtmpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	DebugL << get_peer_ip();
-	//设置10秒发送缓存
-    pSock->setSendBufSecond(10);
     //设置15秒发送超时时间
     pSock->setSendTimeOutSecond(15);
 }
