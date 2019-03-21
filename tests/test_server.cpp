@@ -192,7 +192,7 @@ static onceToken s_token([](){
                 auto path = http_root + "/" + vhost + "/" + app + "/" + stream + "_" + to_string(time(NULL)) + ".flv";
                 FlvRecorder::Ptr recorder(new FlvRecorder);
                 try{
-                    recorder->startRecord(dynamic_pointer_cast<RtmpMediaSource>(sender.shared_from_this()),path);
+                    recorder->startRecord(nullptr,dynamic_pointer_cast<RtmpMediaSource>(sender.shared_from_this()),path);
                     s_mapFlvRecorder[vhost + "/" + app + "/" + stream] = recorder;
                 }catch(std::exception &ex){
                     WarnL << ex.what();

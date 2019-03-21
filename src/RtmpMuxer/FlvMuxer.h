@@ -41,7 +41,7 @@ public:
     virtual ~FlvMuxer();
     void stop();
 protected:
-    void start(const RtmpMediaSource::Ptr &media);
+    void start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &media);
     virtual void onWrite(const Buffer::Ptr &data) = 0;
     virtual void onWrite(const char *data,int len) = 0;
     virtual void onDetach() = 0;
@@ -55,6 +55,7 @@ private:
     RtmpMediaSource::RingType::RingReader::Ptr _ring_reader;
     uint32_t _aui32FirstStamp[2] = {0};
     uint32_t _previousTagSize = 0;
+
 };
 
 class FlvRecorder : public FlvMuxer , public std::enable_shared_from_this<FlvRecorder>{
@@ -62,8 +63,8 @@ public:
     typedef std::shared_ptr<FlvRecorder> Ptr;
     FlvRecorder();
     virtual ~FlvRecorder();
-    void startRecord(const string &vhost,const string &app,const string &stream,const string &file_path);
-    void startRecord(const RtmpMediaSource::Ptr &media,const string &file_path);
+    void startRecord(const EventPoller::Ptr &poller,const string &vhost,const string &app,const string &stream,const string &file_path);
+    void startRecord(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &media,const string &file_path);
 private:
     virtual void onWrite(const Buffer::Ptr &data) override ;
     virtual void onWrite(const char *data,int len) override;

@@ -38,7 +38,7 @@ FlvMuxer::FlvMuxer() {
 FlvMuxer::~FlvMuxer() {
 }
 
-void FlvMuxer::start(const RtmpMediaSource::Ptr &media) {
+void FlvMuxer::start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &media) {
     if(!media){
         throw std::runtime_error("RtmpMediaSource 无效");
     }
@@ -46,7 +46,7 @@ void FlvMuxer::start(const RtmpMediaSource::Ptr &media) {
     onWriteFlvHeader(media);
 
     std::weak_ptr<FlvMuxer> weakSelf = getSharedPtr();
-    _ring_reader = media->getRing()->attach();
+    _ring_reader = media->getRing()->attach(poller);
     _ring_reader->setDetachCB([weakSelf](){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
@@ -189,11 +189,11 @@ void FlvMuxer::stop() {
 }
 
 ///////////////////////////////////////////////////////FlvRecorder/////////////////////////////////////////////////////
-void FlvRecorder::startRecord(const string &vhost, const string &app, const string &stream,const string &file_path) {
-    startRecord(dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,vhost,app,stream,false)),file_path);
+void FlvRecorder::startRecord(const EventPoller::Ptr &poller,const string &vhost, const string &app, const string &stream,const string &file_path) {
+    startRecord(poller,dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,vhost,app,stream,false)),file_path);
 }
 
-void FlvRecorder::startRecord(const RtmpMediaSource::Ptr &media, const string &file_path) {
+void FlvRecorder::startRecord(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &media, const string &file_path) {
     stop();
     lock_guard<recursive_mutex> lck(_file_mtx);
     //开辟文件写缓存
@@ -215,7 +215,7 @@ void FlvRecorder::startRecord(const RtmpMediaSource::Ptr &media, const string &f
 
     //设置文件写缓存
     setvbuf( _file.get(), fileBuf.get(),_IOFBF, FILE_BUF_SIZE);
-    start(media);
+    start(poller,media);
 }
 
 void FlvRecorder::onWrite(const Buffer::Ptr &data) {

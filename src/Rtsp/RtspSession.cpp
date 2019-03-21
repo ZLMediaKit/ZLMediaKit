@@ -74,7 +74,7 @@ static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
 RtspSession::RtspSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	//设置15秒发送超时时间
-	pSock->setSendTimeOutSecond(15);
+	pSock->setSendTimeOutSecond(45);
 
 	DebugL <<  get_peer_ip();
 }
@@ -628,7 +628,7 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 				if(!strongSelf) {
 					return;
 				}
-				strongSelf->safeShutdown();
+				strongSelf->shutdown();
 			});
 		}
 		int iSrvPort = _pBrdcaster->getPort(trackRef->_type);
@@ -731,28 +731,22 @@ bool RtspSession::handleReq_Play(const Parser &parser) {
 
 		if (!_pRtpReader && _rtpType != PlayerBase::RTP_MULTICAST) {
 			weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-			_pRtpReader = pMediaSrc->getRing()->attach(useBuf);
+			_pRtpReader = pMediaSrc->getRing()->attach(getPoller(),useBuf);
 			_pRtpReader->setDetachCB([weakSelf]() {
 				auto strongSelf = weakSelf.lock();
 				if(!strongSelf) {
 					return;
 				}
-				strongSelf->safeShutdown();
+				strongSelf->shutdown();
 			});
 			_pRtpReader->setReadCB([weakSelf](const RtpPacket::Ptr &pack) {
 				auto strongSelf = weakSelf.lock();
 				if(!strongSelf) {
 					return;
 				}
-				strongSelf->async([weakSelf,pack](){
-					auto strongSelf = weakSelf.lock();
-					if(!strongSelf) {
-						return;
-					}
-					if(strongSelf->_enableSendRtp) {
-						strongSelf->sendRtpPacket(pack);
-					}
-				});
+				if(strongSelf->_enableSendRtp) {
+					strongSelf->sendRtpPacket(pack);
+				}
 			});
 		}
     };
