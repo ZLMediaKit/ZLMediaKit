@@ -124,7 +124,7 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,c
 		bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
 		_apUdpSock[i]->setSendPeerAddr((struct sockaddr *)&peerAddr);
 	}
-	_pReader = src->getRing()->attach();
+	_pReader = src->getRing()->attach(nullptr);
 	_pReader->setReadCB([this](const RtpPacket::Ptr &pkt){
 		int i = (int)(pkt->type);
 		auto &pSock = _apUdpSock[i];

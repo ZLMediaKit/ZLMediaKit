@@ -203,7 +203,7 @@ inline void RtmpPusher::send_metaData(){
         sendRtmp(pkt->typeId, _ui32StreamId, pkt->strBuf, pkt->timeStamp, pkt->chunkId );
     });
     
-    _pRtmpReader = src->getRing()->attach();
+    _pRtmpReader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
     _pRtmpReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
     	auto strongSelf = weakSelf.lock();
