@@ -42,6 +42,16 @@ void FlvMuxer::start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &
     if(!media){
         throw std::runtime_error("RtmpMediaSource 无效");
     }
+    if(!poller->isCurrentThread()){
+        weak_ptr<FlvMuxer> weakSelf = getSharedPtr();
+        poller->async([weakSelf,poller,media](){
+            auto strongSelf = weakSelf.lock();
+            if(strongSelf){
+                strongSelf->start(poller,media);
+            }
+        });
+        return;
+    }
 
     onWriteFlvHeader(media);
 
