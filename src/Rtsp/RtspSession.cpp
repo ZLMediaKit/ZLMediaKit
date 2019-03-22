@@ -74,7 +74,7 @@ static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
 RtspSession::RtspSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	//设置15秒发送超时时间
-	pSock->setSendTimeOutSecond(45);
+	pSock->setSendTimeOutSecond(15);
 
 	DebugL <<  get_peer_ip();
 }
@@ -628,7 +628,7 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 				if(!strongSelf) {
 					return;
 				}
-				strongSelf->shutdown();
+				strongSelf->safeShutdown();
 			});
 		}
 		int iSrvPort = _pBrdcaster->getPort(trackRef->_type);
