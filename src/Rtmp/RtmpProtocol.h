@@ -74,6 +74,7 @@ protected:
 	void sendRequest(int iCmd, const string &str);
 	void sendResponse(int iType, const string &str);
 	void sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId, const std::string &strBuf, uint32_t ui32TimeStamp, int iChunkID);
+	void sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId, const Buffer::Ptr &buffer, uint32_t ui32TimeStamp, int iChunkID);
 protected:
 	int _iReqID = 0;
 	uint32_t _ui32StreamId = STREAM_CONTROL;

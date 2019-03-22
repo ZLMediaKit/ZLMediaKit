@@ -188,59 +188,82 @@ void RtmpProtocol::sendRequest(int iCmd, const string& str) {
 	sendRtmp(iCmd, _ui32StreamId, str, 0, CHUNK_SERVER_REQUEST);
 }
 
+class BufferPartial : public Buffer {
+public:
+    BufferPartial(const Buffer::Ptr &buffer,uint32_t offset,uint32_t size){
+        _buffer = buffer;
+        _data = buffer->data() + offset;
+        _size = size;
+    }
+
+    ~BufferPartial(){}
+
+    char *data() const override {
+        return _data;
+    }
+    uint32_t size() const override{
+        return _size;
+    }
+private:
+    Buffer::Ptr _buffer;
+    char *_data;
+    uint32_t _size;
+};
+
 void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
-		const std::string& strBuf, uint32_t ui32TimeStamp, int iChunkId) {
-	if (iChunkId < 2 || iChunkId > 63) {
-		auto strErr = StrPrinter << "不支持发送该类型的块流 ID:" << iChunkId << endl;
-		throw std::runtime_error(strErr);
-	}
-
-	bool bExtStamp = ui32TimeStamp >= 0xFFFFFF;
-	RtmpHeader header;
-	header.flags = (iChunkId & 0x3f) | (0 << 6);
-	header.typeId = ui8Type;
-	set_be24(header.timeStamp, bExtStamp ? 0xFFFFFF : ui32TimeStamp);
-	set_be24(header.bodySize, strBuf.size());
-	set_le32(header.streamId, ui32StreamId);
-
-	//估算rtmp包数据大小
-	uint32_t capacity = ((bExtStamp ? 5 : 1) * (1 + (strBuf.size() / _iChunkLenOut))) + strBuf.size() + sizeof(header);
-	uint32_t totalSize = 0;
-	BufferRaw::Ptr buffer = obtainBuffer();
-	buffer->setCapacity(capacity);
-	memcpy(buffer->data() + totalSize,(char *) &header, sizeof(header));
-	totalSize += sizeof(header);
-
-	char acExtStamp[4];
-	if (bExtStamp) {
-		//扩展时间戳
-		set_be32(acExtStamp, ui32TimeStamp);
-	}
-	size_t pos = 0;
-	while (pos < strBuf.size()) {
-		if (pos) {
-			uint8_t flags = (iChunkId & 0x3f) | (3 << 6);
-			memcpy(buffer->data() + totalSize,&flags, 1);
-			totalSize += 1;
-		}
-		if (bExtStamp) {
-			//扩展时间戳
-			memcpy(buffer->data() + totalSize,acExtStamp, 4);
-			totalSize += 4;
-		}
-		size_t chunk = min(_iChunkLenOut, strBuf.size() - pos);
-		memcpy(buffer->data() + totalSize,strBuf.data() + pos, chunk);
-		totalSize += chunk;
-		pos += chunk;
-	}
-    buffer->setSize(totalSize);
-	onSendRawData(buffer);
-	_ui32ByteSent += totalSize;
-	if (_ui32WinSize > 0 && _ui32ByteSent - _ui32LastSent >= _ui32WinSize) {
-		_ui32LastSent = _ui32ByteSent;
-		sendAcknowledgement(_ui32ByteSent);
-	}
+                            const std::string& strBuf, uint32_t ui32TimeStamp, int iChunkId) {
+    sendRtmp(ui8Type,ui32StreamId,std::make_shared<BufferString>(strBuf),ui32TimeStamp,iChunkId);
 }
+
+void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
+        const Buffer::Ptr &buf, uint32_t ui32TimeStamp, int iChunkId){
+    if (iChunkId < 2 || iChunkId > 63) {
+        auto strErr = StrPrinter << "不支持发送该类型的块流 ID:" << iChunkId << endl;
+        throw std::runtime_error(strErr);
+    }
+
+    bool bExtStamp = ui32TimeStamp >= 0xFFFFFF;
+    RtmpHeader header;
+    header.flags = (iChunkId & 0x3f) | (0 << 6);
+    header.typeId = ui8Type;
+    set_be24(header.timeStamp, bExtStamp ? 0xFFFFFF : ui32TimeStamp);
+    set_be24(header.bodySize, buf->size());
+    set_le32(header.streamId, ui32StreamId);
+
+    //估算rtmp包数据大小
+    uint32_t totalSize = 0;
+    onSendRawData(obtainBuffer((char *) &header, sizeof(header)));
+    totalSize += sizeof(header);
+
+    char acExtStamp[4];
+    if (bExtStamp) {
+        //扩展时间戳
+        set_be32(acExtStamp, ui32TimeStamp);
+    }
+    size_t pos = 0;
+    while (pos < buf->size()) {
+        if (pos) {
+            uint8_t flags = (iChunkId & 0x3f) | (3 << 6);
+            onSendRawData(obtainBuffer((char *) &flags, 1));
+            totalSize += 1;
+        }
+        if (bExtStamp) {
+            //扩展时间戳
+            onSendRawData(obtainBuffer(acExtStamp, 4));
+            totalSize += 4;
+        }
+        size_t chunk = min(_iChunkLenOut, buf->size() - pos);
+        onSendRawData(std::make_shared<BufferPartial>(buf,pos,chunk));
+        totalSize += chunk;
+        pos += chunk;
+    }
+    _ui32ByteSent += totalSize;
+    if (_ui32WinSize > 0 && _ui32ByteSent - _ui32LastSent >= _ui32WinSize) {
+        _ui32LastSent = _ui32ByteSent;
+        sendAcknowledgement(_ui32ByteSent);
+    }
+}
+
 
 void RtmpProtocol::onParseRtmp(const char *pcRawData, int iSize) {
 	_strRcvBuf.append(pcRawData, iSize);

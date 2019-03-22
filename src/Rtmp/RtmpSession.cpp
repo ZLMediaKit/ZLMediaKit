@@ -547,7 +547,7 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 		CLEAR_ARR(_aui32FirstStamp);
 		modifiedStamp = 0;
 	}
-	sendRtmp(pkt->typeId, pkt->streamId, pkt->strBuf, modifiedStamp, pkt->chunkId);
+	sendRtmp(pkt->typeId, pkt->streamId, pkt, modifiedStamp, pkt->chunkId);
 }
 
 void RtmpSession::doDelay(int delaySec, const std::function<void()> &fun) {
