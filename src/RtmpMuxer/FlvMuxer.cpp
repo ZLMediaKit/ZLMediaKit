@@ -131,23 +131,6 @@ public:
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-class BufferRtmp : public Buffer{
-public:
-    typedef std::shared_ptr<BufferRtmp> Ptr;
-    BufferRtmp(const RtmpPacket::Ptr & pkt):_rtmp(pkt){}
-    virtual ~BufferRtmp(){}
-
-    char *data() const override {
-        return (char *)_rtmp->strBuf.data();
-    }
-    uint32_t size() const override {
-        return _rtmp->strBuf.size();
-    }
-private:
-    RtmpPacket::Ptr _rtmp;
-};
-
-
 void FlvMuxer::onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp) {
     auto size = htonl(_previousTagSize);
     onWrite((char *)&size,4);//onWrite PreviousTagSize
@@ -157,7 +140,7 @@ void FlvMuxer::onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp)
     header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
     set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
     onWrite((char *)&header, sizeof(header));//onWrite tag header
-    onWrite(std::make_shared<BufferRtmp>(pkt));//onWrite tag data
+    onWrite(pkt);//onWrite tag data
     _previousTagSize += (pkt->strBuf.size() + sizeof(header));
 }
 
