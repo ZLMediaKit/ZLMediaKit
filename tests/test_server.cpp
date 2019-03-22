@@ -185,21 +185,25 @@ static onceToken s_token([](){
         if(schema == RTMP_SCHEMA && app == "live"){
             static map<string,FlvRecorder::Ptr> s_mapFlvRecorder;
             static mutex s_mtxFlvRecorder;
-            lock_guard<mutex> lck(s_mtxFlvRecorder);
-            if(bRegist){
-                DebugL << "开始录制RTMP：" << schema << " " << vhost << " " << app << " " << stream;
-                GET_CONFIG_AND_REGISTER(string,http_root,Http::kRootPath);
-                auto path = http_root + "/" + vhost + "/" + app + "/" + stream + "_" + to_string(time(NULL)) + ".flv";
-                FlvRecorder::Ptr recorder(new FlvRecorder);
-                try{
-                    recorder->startRecord(nullptr,dynamic_pointer_cast<RtmpMediaSource>(sender.shared_from_this()),path);
-                    s_mapFlvRecorder[vhost + "/" + app + "/" + stream] = recorder;
-                }catch(std::exception &ex){
-                    WarnL << ex.what();
+            auto poller = EventPollerPool::Instance().getPoller();
+            auto rtmpMediaSrc = dynamic_pointer_cast<RtmpMediaSource>(sender.shared_from_this());
+            poller->async([bRegist,schema,vhost,app,stream,poller,rtmpMediaSrc](){
+                lock_guard<mutex> lck(s_mtxFlvRecorder);
+                if(bRegist){
+                    DebugL << "开始录制RTMP：" << schema << " " << vhost << " " << app << " " << stream;
+                    GET_CONFIG_AND_REGISTER(string,http_root,Http::kRootPath);
+                    auto path = http_root + "/" + vhost + "/" + app + "/" + stream + "_" + to_string(time(NULL)) + ".flv";
+                    FlvRecorder::Ptr recorder(new FlvRecorder);
+                    try{
+                        recorder->startRecord(poller,rtmpMediaSrc,path);
+                        s_mapFlvRecorder[vhost + "/" + app + "/" + stream] = recorder;
+                    }catch(std::exception &ex){
+                        WarnL << ex.what();
+                    }
+                }else{
+                    s_mapFlvRecorder.erase(vhost + "/" + app + "/" + stream);
                 }
-            }else{
-                s_mapFlvRecorder.erase(vhost + "/" + app + "/" + stream);
-            }
+            });
         }
     });
 
