@@ -31,6 +31,7 @@
 #include <cstdlib>
 #include "Util/util.h"
 #include "Util/logger.h"
+#include "Network/Buffer.h"
 #include "Network/sockutil.h"
 using namespace toolkit;
 
@@ -127,7 +128,7 @@ public:
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-class RtmpPacket {
+class RtmpPacket : public Buffer{
 public:
     typedef std::shared_ptr<RtmpPacket> Ptr;
     uint8_t typeId;
@@ -139,7 +140,13 @@ public:
     uint32_t streamId;
     uint32_t chunkId;
     std::string strBuf;
-
+public:
+    char *data() const override{
+        return (char*)strBuf.data();
+    }
+    uint32_t size() const override {
+        return strBuf.size();
+    };
 public:
     RtmpPacket() = default;
     RtmpPacket(const RtmpPacket &that) = default;
