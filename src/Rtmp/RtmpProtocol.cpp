@@ -221,41 +221,55 @@ void RtmpProtocol::sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId,
         auto strErr = StrPrinter << "不支持发送该类型的块流 ID:" << iChunkId << endl;
         throw std::runtime_error(strErr);
     }
-
+	//是否有扩展时间戳
     bool bExtStamp = ui32TimeStamp >= 0xFFFFFF;
-    RtmpHeader header;
-    header.flags = (iChunkId & 0x3f) | (0 << 6);
-    header.typeId = ui8Type;
-    set_be24(header.timeStamp, bExtStamp ? 0xFFFFFF : ui32TimeStamp);
-    set_be24(header.bodySize, buf->size());
-    set_le32(header.streamId, ui32StreamId);
 
-    //估算rtmp包数据大小
-    uint32_t totalSize = 0;
-    onSendRawData(obtainBuffer((char *) &header, sizeof(header)));
-    totalSize += sizeof(header);
+    //rtmp头
+	BufferRaw::Ptr bufferHeader = obtainBuffer();
+	bufferHeader->setCapacity(sizeof(RtmpHeader));
+	bufferHeader->setSize(sizeof(RtmpHeader));
+	//对rtmp头赋值，如果使用整形赋值，在arm android上可能由于数据对齐导致总线错误的问题
+	RtmpHeader *header = (RtmpHeader*) bufferHeader->data();
+    header->flags = (iChunkId & 0x3f) | (0 << 6);
+    header->typeId = ui8Type;
+    set_be24(header->timeStamp, bExtStamp ? 0xFFFFFF : ui32TimeStamp);
+    set_be24(header->bodySize, buf->size());
+    set_le32(header->streamId, ui32StreamId);
+    //发送rtmp头
+    onSendRawData(bufferHeader);
 
-    char acExtStamp[4];
+    //扩展时间戳字段
+	BufferRaw::Ptr bufferExtStamp;
     if (bExtStamp) {
-        //扩展时间戳
-        set_be32(acExtStamp, ui32TimeStamp);
-    }
-    size_t pos = 0;
-    while (pos < buf->size()) {
-        if (pos) {
-            uint8_t flags = (iChunkId & 0x3f) | (3 << 6);
-            onSendRawData(obtainBuffer((char *) &flags, 1));
+        //生成扩展时间戳
+		bufferExtStamp = obtainBuffer();
+		bufferExtStamp->setCapacity(4);
+		bufferExtStamp->setSize(4);
+		set_be32(bufferExtStamp->data(), ui32TimeStamp);
+	}
+
+	//生成一个字节的flag，标明是什么chunkId
+	BufferRaw::Ptr bufferFlags = obtainBuffer();
+	bufferFlags->setCapacity(1);
+	bufferFlags->setSize(1);
+	bufferFlags->data()[0] = (iChunkId & 0x3f) | (3 << 6);
+    
+    size_t offset = 0;
+	uint32_t totalSize = sizeof(RtmpHeader);
+    while (offset < buf->size()) {
+        if (offset) {
+            onSendRawData(bufferFlags);
             totalSize += 1;
         }
         if (bExtStamp) {
             //扩展时间戳
-            onSendRawData(obtainBuffer(acExtStamp, 4));
+            onSendRawData(bufferExtStamp);
             totalSize += 4;
         }
-        size_t chunk = min(_iChunkLenOut, buf->size() - pos);
-        onSendRawData(std::make_shared<BufferPartial>(buf,pos,chunk));
+        size_t chunk = min(_iChunkLenOut, buf->size() - offset);
+        onSendRawData(std::make_shared<BufferPartial>(buf,offset,chunk));
         totalSize += chunk;
-        pos += chunk;
+        offset += chunk;
     }
     _ui32ByteSent += totalSize;
     if (_ui32WinSize > 0 && _ui32ByteSent - _ui32LastSent >= _ui32WinSize) {
