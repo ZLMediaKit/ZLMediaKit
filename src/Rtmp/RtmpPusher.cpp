@@ -35,26 +35,16 @@ namespace mediakit {
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
-unordered_map<string, RtmpPusher::rtmpCMDHandle> RtmpPusher::g_mapCmd;
 RtmpPusher::RtmpPusher(const char *strVhost,const char *strApp,const char *strStream) {
     auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,strVhost,strApp,strStream));
     if (!src) {
         auto strErr = StrPrinter << "media source:"  << strVhost << "/" << strApp << "/" << strStream << "not found!" << endl;
         throw std::runtime_error(strErr);
     }
-    init(src);
+	_pMediaSrc=src;
 }
 RtmpPusher::RtmpPusher(const RtmpMediaSource::Ptr &src){
-    init(src);
-}
-
-void RtmpPusher::init(const RtmpMediaSource::Ptr  &src){
-    static onceToken token([]() {
-        g_mapCmd.emplace("_error",&RtmpPusher::onCmd_result);
-        g_mapCmd.emplace("_result",&RtmpPusher::onCmd_result);
-        g_mapCmd.emplace("onStatus",&RtmpPusher::onCmd_onStatus);
-    }, []() {});
-    _pMediaSrc=src;
+	_pMediaSrc=src;
 }
 
 RtmpPusher::~RtmpPusher() {
@@ -266,6 +256,14 @@ void RtmpPusher::onRtmpChunk(RtmpPacket &chunkData) {
 	switch (chunkData.typeId) {
 		case MSG_CMD:
 		case MSG_CMD3: {
+			typedef void (RtmpPusher::*rtmpCMDHandle)(AMFDecoder &dec);
+			static unordered_map<string, rtmpCMDHandle> g_mapCmd;
+			static onceToken token([]() {
+				g_mapCmd.emplace("_error",&RtmpPusher::onCmd_result);
+				g_mapCmd.emplace("_result",&RtmpPusher::onCmd_result);
+				g_mapCmd.emplace("onStatus",&RtmpPusher::onCmd_onStatus);
+			}, []() {});
+
 			AMFDecoder dec(chunkData.strBuf, 0);
 			std::string type = dec.load<std::string>();
 			auto it = g_mapCmd.find(type);
