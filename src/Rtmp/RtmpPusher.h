@@ -64,7 +64,6 @@ protected:
 		send(buffer);
 	}
 private:
-    void init(const RtmpMediaSource::Ptr  &src);
 	void onShutdown(const SockException &ex) {
 		_pPublishTimer.reset();
 		if(_onShutdown){
@@ -99,6 +98,7 @@ private:
 	inline void send_publish();
 	inline void send_metaData();
 
+private:
 	string _strApp;
 	string _strStream;
 	string _strTcUrl;
@@ -107,13 +107,8 @@ private:
 	recursive_mutex _mtxOnResultCB;
 	deque<function<void(AMFValue &dec)> > _dqOnStatusCB;
 	recursive_mutex _mtxOnStatusCB;
-
-	typedef void (RtmpPusher::*rtmpCMDHandle)(AMFDecoder &dec);
-	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
-
 	//超时功能实现
 	std::shared_ptr<Timer> _pPublishTimer;
-    
     //源
     std::weak_ptr<RtmpMediaSource> _pMediaSrc;
     RtmpMediaSource::RingType::RingReader::Ptr _pRtmpReader;
