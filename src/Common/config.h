@@ -234,6 +234,29 @@ extern const char kFileBufSize[];
 extern const char kFilePath[];
 } //namespace Hls
 
+
+
+namespace Client {
+//指定网卡ip
+extern const char kNetAdapter[];
+//设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
+//设置方法:player[PlayerBase::kRtpType] = 0/1/2;
+extern const char kRtpType[];
+//rtsp认证用户名
+extern const char kRtspUser[];
+//rtsp认证用用户密码，可以是明文也可以是md5,md5密码生成方式 md5(username:realm:password)
+extern const char kRtspPwd[];
+//rtsp认证用用户密码是否为md5类型
+extern const char kRtspPwdIsMD5[];
+//握手超时时间，默认10,000 毫秒
+extern const char kTimeoutMS[];
+//rtp/rtmp包接收超时时间，默认5000秒
+extern const char kMediaTimeoutMS[];
+//rtsp/rtmp心跳时间,默认5000毫秒
+extern const char kBeatIntervalMS[];
+//Track编码格式探测最大时间，单位毫秒，默认2000
+extern const char kMaxAnalysisMS[];
+}
 }  // namespace mediakit
 
 #endif /* COMMON_CONFIG_H */

@@ -39,7 +39,9 @@
 #include "Util/TimeTicker.h"
 #include "Network/Socket.h"
 #include "Network/TcpClient.h"
+
 using namespace toolkit;
+using namespace mediakit::Client;
 
 namespace mediakit {
 

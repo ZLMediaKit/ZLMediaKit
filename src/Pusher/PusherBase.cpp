@@ -31,19 +31,9 @@
 #include "Rtmp/RtmpPusher.h"
 
 using namespace toolkit;
+using namespace mediakit::Client;
 
 namespace mediakit {
-
-const char PusherBase::kNetAdapter[] = "net_adapter";
-const char PusherBase::kRtpType[] = "rtp_type";
-const char PusherBase::kRtspUser[] = "rtsp_user" ;
-const char PusherBase::kRtspPwd[] = "rtsp_pwd";
-const char PusherBase::kRtspPwdIsMD5[] = "rtsp_pwd_md5";
-
-const char PusherBase::kPlayTimeoutMS[] = "play_timeout_ms";
-const char PusherBase::kMediaTimeoutMS[] = "media_timeout_ms";
-const char PusherBase::kBeatIntervalMS[] = "beat_interval_ms";
-
 
 PusherBase::Ptr PusherBase::createPusher(const MediaSource::Ptr &src,
                                          const string & strUrl) {
@@ -64,8 +54,7 @@ PusherBase::Ptr PusherBase::createPusher(const MediaSource::Ptr &src,
 }
 
 PusherBase::PusherBase() {
-    this->mINI::operator[](kPlayTimeoutMS) = 10000;
-    this->mINI::operator[](kMediaTimeoutMS) = 5000;
+    this->mINI::operator[](kTimeoutMS) = 10000;
     this->mINI::operator[](kBeatIntervalMS) = 5000;
 }
 

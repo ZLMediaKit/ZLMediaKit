@@ -39,6 +39,7 @@
 #include "Util/base64.h"
 #include "Network/sockutil.h"
 using namespace toolkit;
+using namespace mediakit::Client;
 
 namespace mediakit {
 
@@ -129,7 +130,7 @@ void RtspPlayer::play(const string &strUrl, const string &strUser, const string 
 	_strUrl = strUrl;
 
 	weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-	float playTimeOutSec = (*this)[kPlayTimeoutMS].as<int>() / 1000.0;
+	float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
 	_pPlayTimer.reset( new Timer(playTimeOutSec,  [weakSelf]() {
 		auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
@@ -140,8 +141,8 @@ void RtspPlayer::play(const string &strUrl, const string &strUser, const string 
 		return false;
 	},getPoller()));
 
-	if(!(*this)[PlayerBase::kNetAdapter].empty()){
-		setNetAdapter((*this)[PlayerBase::kNetAdapter]);
+	if(!(*this)[kNetAdapter].empty()){
+		setNetAdapter((*this)[kNetAdapter]);
 	}
 	startConnect(ip, port , playTimeOutSec);
 }
@@ -531,7 +532,7 @@ bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
 		header.emplace("Session",_strSession);
 	}
 
-	if(!_rtspRealm.empty() && !(*this)[PlayerBase::kRtspUser].empty()){
+	if(!_rtspRealm.empty() && !(*this)[kRtspUser].empty()){
 		if(!_rtspMd5Nonce.empty()){
 			//MD5认证
 			/*
@@ -542,22 +543,22 @@ bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
 			(2)当password为ANSI字符串,则
 				response= md5( md5(username:realm:password):nonce:md5(public_method:url) );
 			 */
-			string encrypted_pwd = (*this)[PlayerBase::kRtspPwd];
-			if(!(*this)[PlayerBase::kRtspPwdIsMD5].as<bool>()){
-				encrypted_pwd = MD5((*this)[PlayerBase::kRtspUser]+ ":" + _rtspRealm + ":" + encrypted_pwd).hexdigest();
+			string encrypted_pwd = (*this)[kRtspPwd];
+			if(!(*this)[kRtspPwdIsMD5].as<bool>()){
+				encrypted_pwd = MD5((*this)[kRtspUser]+ ":" + _rtspRealm + ":" + encrypted_pwd).hexdigest();
 			}
 			auto response = MD5( encrypted_pwd + ":" + _rtspMd5Nonce  + ":" + MD5(cmd + ":" + url).hexdigest()).hexdigest();
 			_StrPrinter printer;
 			printer << "Digest ";
-			printer << "username=\"" << (*this)[PlayerBase::kRtspUser] << "\", ";
+			printer << "username=\"" << (*this)[kRtspUser] << "\", ";
 			printer << "realm=\"" << _rtspRealm << "\", ";
 			printer << "nonce=\"" << _rtspMd5Nonce << "\", ";
 			printer << "uri=\"" << url << "\", ";
 			printer << "response=\"" << response << "\"";
 			header.emplace("Authorization",printer);
-		}else if(!(*this)[PlayerBase::kRtspPwdIsMD5].as<bool>()){
+		}else if(!(*this)[kRtspPwdIsMD5].as<bool>()){
 			//base64认证
-			string authStr = StrPrinter << (*this)[PlayerBase::kRtspUser] << ":" << (*this)[PlayerBase::kRtspPwd];
+			string authStr = StrPrinter << (*this)[kRtspUser] << ":" << (*this)[kRtspPwd];
 			char authStrBase64[1024] = {0};
 			av_base64_encode(authStrBase64,sizeof(authStrBase64),(uint8_t *)authStr.data(),authStr.size());
 			header.emplace("Authorization",StrPrinter << "Basic " << authStrBase64 );

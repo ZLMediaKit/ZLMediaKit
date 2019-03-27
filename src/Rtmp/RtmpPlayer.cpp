@@ -31,6 +31,7 @@
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
 using namespace toolkit;
+using namespace mediakit::Client;
 
 namespace mediakit {
 
@@ -93,12 +94,12 @@ void RtmpPlayer::play(const string &strUrl)  {
         //服务器域名
 		strHost = FindField(strHost.data(), NULL, ":");
 	}
-	if(!(*this)[PlayerBase::kNetAdapter].empty()){
-		setNetAdapter((*this)[PlayerBase::kNetAdapter]);
+	if(!(*this)[kNetAdapter].empty()){
+		setNetAdapter((*this)[kNetAdapter]);
 	}
 
 	weak_ptr<RtmpPlayer> weakSelf= dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-	float playTimeOutSec = (*this)[kPlayTimeoutMS].as<int>() / 1000.0;
+	float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
 	_pPlayTimer.reset( new Timer(playTimeOutSec, [weakSelf]() {
 		auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {

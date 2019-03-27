@@ -30,6 +30,7 @@
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
 using namespace toolkit;
+using namespace mediakit::Client;
 
 namespace mediakit {
 
@@ -85,7 +86,7 @@ void RtmpPusher::publish(const string &strUrl)  {
 	}
 
     weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
-    float playTimeOutSec = (*this)[kPlayTimeoutMS].as<int>() / 1000.0;
+    float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
     _pPublishTimer.reset( new Timer(playTimeOutSec,  [weakSelf]() {
         auto strongSelf=weakSelf.lock();
         if(!strongSelf) {
