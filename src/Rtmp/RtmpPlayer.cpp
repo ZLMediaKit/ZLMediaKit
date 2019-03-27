@@ -72,11 +72,11 @@ void RtmpPlayer::teardown() {
         shutdown();
 	}
 }
-void RtmpPlayer::play(const char* strUrl)  {
+void RtmpPlayer::play(const string &strUrl)  {
 	teardown();
-	string strHost = FindField(strUrl, "://", "/");
-	_strApp = 	FindField(strUrl, (strHost + "/").data(), "/");
-    _strStream = FindField(strUrl, (strHost + "/" + _strApp + "/").data(), NULL);
+	string strHost = FindField(strUrl.data(), "://", "/");
+	_strApp = 	FindField(strUrl.data(), (strHost + "/").data(), "/");
+    _strStream = FindField(strUrl.data(), (strHost + "/" + _strApp + "/").data(), NULL);
     _strTcUrl = string("rtmp://") + strHost + "/" + _strApp;
 
     if (!_strApp.size() || !_strStream.size()) {
@@ -85,13 +85,13 @@ void RtmpPlayer::play(const char* strUrl)  {
     }
 	DebugL << strHost << " " << _strApp << " " << _strStream;
 
-	auto iPort = atoi(FindField(strHost.c_str(), ":", NULL).c_str());
+	auto iPort = atoi(FindField(strHost.data(), ":", NULL).data());
 	if (iPort <= 0) {
         //rtmp 默认端口1935
 		iPort = 1935;
 	} else {
         //服务器域名
-		strHost = FindField(strHost.c_str(), NULL, ":");
+		strHost = FindField(strHost.data(), NULL, ":");
 	}
 	if(!(*this)[PlayerBase::kNetAdapter].empty()){
 		setNetAdapter((*this)[PlayerBase::kNetAdapter]);

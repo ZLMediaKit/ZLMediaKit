@@ -86,13 +86,7 @@ public:
 class PlayerBase : public DemuxerBase, public mINI{
 public:
 	typedef std::shared_ptr<PlayerBase> Ptr;
-	typedef enum {
-		RTP_Invalid = -1,
-		RTP_TCP = 0,
-		RTP_UDP = 1,
-		RTP_MULTICAST = 2,
-	} eRtpType;
-    static Ptr createPlayer(const char* strUrl);
+    static Ptr createPlayer(const string &strUrl);
 
     //指定网卡ip
 	static const char kNetAdapter[];
@@ -122,7 +116,7 @@ public:
 	 * 开始播放
 	 * @param strUrl 视频url，支持rtsp/rtmp
 	 */
-	virtual void play(const char* strUrl) {}
+	virtual void play(const string &strUrl) {}
 
 	/**
 	 * 暂停或恢复

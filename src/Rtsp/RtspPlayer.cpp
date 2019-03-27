@@ -42,9 +42,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-const char kRtspMd5Nonce[] = "rtsp_md5_nonce";
-const char kRtspRealm[] = "rtsp_realm";
-
 RtspPlayer::RtspPlayer(void){
 	RtpReceiver::setPoolSize(64);
 }
@@ -57,8 +54,8 @@ void RtspPlayer::teardown(){
 		shutdown();
 	}
 
-    erase(kRtspMd5Nonce);
-    erase(kRtspRealm);
+	_rtspMd5Nonce.clear();
+	_rtspRealm.clear();
 
 	_aTrackInfo.clear();
     _strSession.clear();
@@ -81,58 +78,55 @@ void RtspPlayer::teardown(){
 	_onHandshake = nullptr;
 }
 
-void RtspPlayer::play(const char* strUrl){
-	auto userAndPwd = FindField(strUrl,"://","@");
-	eRtpType eType = (eRtpType)(int)(*this)[kRtpType];
+void RtspPlayer::play(const string &strUrl){
+	auto userAndPwd = FindField(strUrl.data(),"://","@");
+	Rtsp::eRtpType eType = (Rtsp::eRtpType)(int)(*this)[kRtpType];
 	if(userAndPwd.empty()){
-		play(strUrl,nullptr,nullptr,eType);
+		play(strUrl,"","",eType);
 		return;
 	}
-	auto suffix = FindField(strUrl,"@",nullptr);
+	auto suffix = FindField(strUrl.data(),"@",nullptr);
 	auto url = StrPrinter << "rtsp://" << suffix << endl;
 	if(userAndPwd.find(":") == string::npos){
-		play(url.data(),userAndPwd.data(),nullptr,eType);
+		play(url,userAndPwd,"",eType);
 		return;
 	}
 	auto user = FindField(userAndPwd.data(),nullptr,":");
 	auto pwd = FindField(userAndPwd.data(),":",nullptr);
-	play(url.data(),user.data(),pwd.data(),eType);
+	play(url,user,pwd,eType);
 }
 //播放，指定是否走rtp over tcp
-void RtspPlayer::play(const char* strUrl, const char *strUser, const char *strPwd,  eRtpType eType ) {
+void RtspPlayer::play(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType ) {
 	DebugL   << strUrl << " "
-			<< (strUser ? strUser : "null") << " "
-			<< (strPwd ? strPwd:"null") << " "
+			<< (strUser.size() ? strUser : "null") << " "
+			<< (strPwd.size() ? strPwd:"null") << " "
 			<< eType;
 	teardown();
 
-	if(strUser){
+	if(strUser.size()){
         (*this)[kRtspUser] = strUser;
     }
-    if(strPwd){
+    if(strPwd.size()){
         (*this)[kRtspPwd] = strPwd;
 		(*this)[kRtspPwdIsMD5] = false;
     }
 
 	_eType = eType;
 
-	auto ip = FindField(strUrl, "://", "/");
+	auto ip = FindField(strUrl.data(), "://", "/");
 	if (!ip.size()) {
-		ip = FindField(strUrl, "://", NULL);
+		ip = FindField(strUrl.data(), "://", NULL);
 	}
-	auto port = atoi(FindField(ip.c_str(), ":", NULL).c_str());
+	auto port = atoi(FindField(ip.data(), ":", NULL).data());
 	if (port <= 0) {
 		//rtsp 默认端口554
 		port = 554;
 	} else {
 		//服务器域名
-		ip = FindField(ip.c_str(), NULL, ":");
+		ip = FindField(ip.data(), NULL, ":");
 	}
 
 	_strUrl = strUrl;
-	if(!(*this)[PlayerBase::kNetAdapter].empty()){
-		setNetAdapter((*this)[PlayerBase::kNetAdapter]);
-	}
 
 	weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
 	float playTimeOutSec = (*this)[kPlayTimeoutMS].as<int>() / 1000.0;
@@ -146,7 +140,10 @@ void RtspPlayer::play(const char* strUrl, const char *strUser, const char *strPw
 		return false;
 	},getPoller()));
 
-	startConnect(ip.data(), port , playTimeOutSec);
+	if(!(*this)[PlayerBase::kNetAdapter].empty()){
+		setNetAdapter((*this)[PlayerBase::kNetAdapter]);
+	}
+	startConnect(ip, port , playTimeOutSec);
 }
 void RtspPlayer::onConnect(const SockException &err){
 	if(err.getErrCode()!=Err_success) {
@@ -166,7 +163,7 @@ void RtspPlayer::onErr(const SockException &ex) {
 }
 // from live555
 bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
-    if(!(*this)[kRtspRealm].empty()){
+    if(!_rtspRealm.empty()){
         //已经认证过了
         return false;
     }
@@ -181,17 +178,17 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
     });
 
     if (sscanf(paramsStr.data(), "Digest realm=\"%[^\"]\", nonce=\"%[^\"]\", stale=%[a-zA-Z]", realm, nonce, stale) == 3) {
-        (*this)[kRtspRealm] = (const char *)realm;
-        (*this)[kRtspMd5Nonce] = (const char *)nonce;
+        _rtspRealm = (const char *)realm;
+        _rtspMd5Nonce = (const char *)nonce;
         return true;
     }
     if (sscanf(paramsStr.data(), "Digest realm=\"%[^\"]\", nonce=\"%[^\"]\"", realm, nonce) == 2) {
-        (*this)[kRtspRealm] = (const char *)realm;
-        (*this)[kRtspMd5Nonce] = (const char *)nonce;
+        _rtspRealm = (const char *)realm;
+        _rtspMd5Nonce = (const char *)nonce;
         return true;
     }
     if (sscanf(paramsStr.data(), "Basic realm=\"%[^\"]\"", realm) == 1) {
-        (*this)[kRtspRealm] = (const char *)realm;
+        _rtspRealm = (const char *)realm;
         return true;
     }
     return false;
@@ -208,7 +205,7 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 		if(newUrl.empty()){
 			throw std::runtime_error("未找到Location字段(跳转url)");
 		}
-		play(newUrl.data());
+		play(newUrl);
 		return;
 	}
 	if (parser.Url() != "200") {
@@ -244,15 +241,13 @@ bool RtspPlayer::sendSetup(unsigned int trackIndex) {
     auto &track = _aTrackInfo[trackIndex];
 	auto baseUrl = _strContentBase + "/" + track->_control_surffix;
 	switch (_eType) {
-		case RTP_TCP: {
+		case Rtsp::RTP_TCP: {
 			return sendRtspRequest("SETUP",baseUrl,{"Transport",StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1});
 		}
-			break;
-		case RTP_MULTICAST: {
+		case Rtsp::RTP_MULTICAST: {
 			return sendRtspRequest("SETUP",baseUrl,{"Transport","Transport: RTP/AVP;multicast"});
 		}
-			break;
-		case RTP_UDP: {
+		case Rtsp::RTP_UDP: {
 			_apUdpSock[trackIndex].reset(new Socket());
 			if (!_apUdpSock[trackIndex]->bindUdpSock(0, get_local_ip().data())) {
 				_apUdpSock[trackIndex].reset();
@@ -261,10 +256,8 @@ bool RtspPlayer::sendSetup(unsigned int trackIndex) {
 			int port = _apUdpSock[trackIndex]->get_local_port();
 			return sendRtspRequest("SETUP",baseUrl,{"Transport",StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1});
 		}
-			break;
 		default:
 			return false;
-			break;
 	}
 }
 
@@ -281,29 +274,29 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 
 	auto strTransport = parser["Transport"];
 	if(strTransport.find("TCP") != string::npos){
-		_eType = RTP_TCP;
+		_eType = Rtsp::RTP_TCP;
 	}else if(strTransport.find("multicast") != string::npos){
-		_eType = RTP_MULTICAST;
+		_eType = Rtsp::RTP_MULTICAST;
 	}else{
-		_eType = RTP_UDP;
+		_eType = Rtsp::RTP_UDP;
 	}
 
-	RtspSplitter::enableRecvRtp(_eType == RTP_TCP);
+	RtspSplitter::enableRecvRtp(_eType == Rtsp::RTP_TCP);
 
-	if(_eType == RTP_TCP)  {
-		string interleaved = FindField( FindField((strTransport + ";").c_str(), "interleaved=", ";").c_str(), NULL, "-");
-		_aTrackInfo[uiTrackIndex]->_interleaved = atoi(interleaved.c_str());
+	if(_eType == Rtsp::RTP_TCP)  {
+		string interleaved = FindField( FindField((strTransport + ";").data(), "interleaved=", ";").data(), NULL, "-");
+		_aTrackInfo[uiTrackIndex]->_interleaved = atoi(interleaved.data());
 	}else{
-		const char *strPos = (_eType == RTP_MULTICAST ? "port=" : "server_port=") ;
-		auto port_str = FindField((strTransport + ";").c_str(), strPos, ";");
-		uint16_t port = atoi(FindField(port_str.c_str(), NULL, "-").c_str());
+		const char *strPos = (_eType == Rtsp::RTP_MULTICAST ? "port=" : "server_port=") ;
+		auto port_str = FindField((strTransport + ";").data(), strPos, ";");
+		uint16_t port = atoi(FindField(port_str.data(), NULL, "-").data());
         auto &pUdpSockRef = _apUdpSock[uiTrackIndex];
         if(!pUdpSockRef){
             pUdpSockRef.reset(new Socket());
         }
 
-		if (_eType == RTP_MULTICAST) {
-			auto multiAddr = FindField((strTransport + ";").c_str(), "destination=", ";");
+		if (_eType == Rtsp::RTP_MULTICAST) {
+			auto multiAddr = FindField((strTransport + ";").data(), "destination=", ";");
 			if (!pUdpSockRef->bindUdpSock(port, "0.0.0.0")) {
 				pUdpSockRef.reset();
 				throw std::runtime_error("open udp sock err");
@@ -316,7 +309,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 			struct sockaddr_in rtpto;
 			rtpto.sin_port = ntohs(port);
 			rtpto.sin_family = AF_INET;
-			rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().c_str());
+			rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
 			pUdpSockRef->setSendPeerAddr((struct sockaddr *)&(rtpto));
 			pUdpSockRef->send("\xce\xfa\xed\xfe", 4);
 		}
@@ -328,7 +321,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 		return;
 	}
 
-	for (unsigned int i = 0; i < _aTrackInfo.size() && _eType != RTP_TCP; i++) {
+	for (unsigned int i = 0; i < _aTrackInfo.size() && _eType != Rtsp::RTP_TCP; i++) {
 		auto &pUdpSockRef = _apUdpSock[i];
 		if(!pUdpSockRef){
 			continue;
@@ -348,21 +341,23 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 		});
 	}
 	/////////////////////////心跳/////////////////////////////////
-	weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-	_pBeatTimer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0, [weakSelf](){
-		auto strongSelf = weakSelf.lock();
-		if (!strongSelf){
-			return false;
-		}
-		return strongSelf->sendOptions();
-	},getPoller()));
+	if(_eType != Rtsp::RTP_TCP){
+		weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
+		_pBeatTimer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0, [weakSelf](){
+			auto strongSelf = weakSelf.lock();
+			if (!strongSelf){
+				return false;
+			}
+			return strongSelf->sendOptions();
+		},getPoller()));
+	}
+
 	pause(false);
 }
 
 bool RtspPlayer::sendOptions() {
 	_onHandshake = [](const Parser& parser){
 //		DebugL << "options response";
-		return true;
 	};
 	return sendRtspRequest("OPTIONS",_strContentBase);
 }
@@ -530,12 +525,14 @@ bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
 bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrCaseMap &header_const) {
 	auto header = header_const;
 	header.emplace("CSeq",StrPrinter << _uiCseq++);
+	header.emplace("User-Agent",SERVER_NAME "(build in " __DATE__ " " __TIME__ ")");
+
 	if(!_strSession.empty()){
 		header.emplace("Session",_strSession);
 	}
 
-	if(!(*this)[kRtspRealm].empty() && !(*this)[PlayerBase::kRtspUser].empty()){
-		if(!(*this)[kRtspMd5Nonce].empty()){
+	if(!_rtspRealm.empty() && !(*this)[PlayerBase::kRtspUser].empty()){
+		if(!_rtspMd5Nonce.empty()){
 			//MD5认证
 			/*
 			response计算方法如下：
@@ -547,14 +544,14 @@ bool RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
 			 */
 			string encrypted_pwd = (*this)[PlayerBase::kRtspPwd];
 			if(!(*this)[PlayerBase::kRtspPwdIsMD5].as<bool>()){
-				encrypted_pwd = MD5((*this)[PlayerBase::kRtspUser]+ ":" + (*this)[kRtspRealm] + ":" + encrypted_pwd).hexdigest();
+				encrypted_pwd = MD5((*this)[PlayerBase::kRtspUser]+ ":" + _rtspRealm + ":" + encrypted_pwd).hexdigest();
 			}
-			auto response = MD5( encrypted_pwd + ":" + (*this)[kRtspMd5Nonce]  + ":" + MD5(cmd + ":" + url).hexdigest()).hexdigest();
+			auto response = MD5( encrypted_pwd + ":" + _rtspMd5Nonce  + ":" + MD5(cmd + ":" + url).hexdigest()).hexdigest();
 			_StrPrinter printer;
 			printer << "Digest ";
 			printer << "username=\"" << (*this)[PlayerBase::kRtspUser] << "\", ";
-			printer << "realm=\"" << (*this)[kRtspRealm] << "\", ";
-			printer << "nonce=\"" << (*this)[kRtspMd5Nonce] << "\", ";
+			printer << "realm=\"" << _rtspRealm << "\", ";
+			printer << "nonce=\"" << _rtspMd5Nonce << "\", ";
 			printer << "uri=\"" << url << "\", ";
 			printer << "response=\"" << response << "\"";
 			header.emplace("Authorization",printer);

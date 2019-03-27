@@ -35,9 +35,9 @@ using namespace toolkit;
 
 namespace mediakit {
 
-DevChannel::DevChannel(const char *strVhost,
-                       const char *strApp,
-                       const char *strId,
+DevChannel::DevChannel(const string &strVhost,
+                       const string &strApp,
+                       const string &strId,
                        float fDuration,
                        bool bEanbleHls,
                        bool bEnableMp4) :

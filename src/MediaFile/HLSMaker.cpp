@@ -114,7 +114,7 @@ bool HLSMaker::write_index_file(int iFirstSegment, unsigned int uiLastSegment, i
                  sizeof(acWriteBuf),
                  "#EXTINF:%.3f,\r\n%s-%u.ts\r\n",
                  _iDurations[i-iFirstSegment]/1000.0,
-				 _strFileName.c_str(),
+				 _strFileName.data(),
                  i);
 		if (fwrite(acWriteBuf, strlen(acWriteBuf), 1, pM3u8File.get()) != 1) {
 			WarnL << "Could not write to m3u8 index file, will not continue writing to index file";

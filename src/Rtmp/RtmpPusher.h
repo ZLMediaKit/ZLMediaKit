@@ -30,28 +30,27 @@
 #include "RtmpProtocol.h"
 #include "RtmpMediaSource.h"
 #include "Network/TcpClient.h"
+#include "Pusher/PusherBase.h"
 
 namespace mediakit {
 
-class RtmpPusher: public RtmpProtocol , public TcpClient{
+class RtmpPusher: public RtmpProtocol , public TcpClient , public PusherBase{
 public:
 	typedef std::shared_ptr<RtmpPusher> Ptr;
-	typedef std::function<void(const SockException &ex)> Event;
-	RtmpPusher(const char *strVhost,const char *strApp,const char *strStream);
 	RtmpPusher(const RtmpMediaSource::Ptr  &src);
 	virtual ~RtmpPusher();
 
-	void publish(const char* strUrl);
-	void teardown();
+	void publish(const string &strUrl) override ;
 
-	void setOnPublished(Event onPublished) {
-		_onPublished = onPublished;
+	void teardown() override;
+
+	void setOnPublished(const Event &cb) override {
+		_onPublished = cb;
 	}
 
-	void setOnShutdown(Event onShutdown) {
-		_onShutdown = onShutdown;
+	void setOnShutdown(const Event &cb) override{
+		_onShutdown = cb;
 	}
-
 protected:
 	//for Tcpclient override
 	void onRecv(const Buffer::Ptr &pBuf) override;

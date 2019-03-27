@@ -84,6 +84,7 @@ using namespace toolkit;
 #define FLV_KEY_FRAME				1
 #define FLV_INTER_FRAME				2
 
+namespace mediakit {
 
 #if defined(_WIN32)
 #pragma pack(push, 1)
@@ -291,7 +292,7 @@ public:
     }
 };
 
-
+}//namespace mediakit
 
 
 

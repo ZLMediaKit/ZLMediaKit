@@ -27,6 +27,8 @@
 #include <stdlib.h>
 #include "Rtsp.h"
 
+namespace mediakit{
+
 string FindField(const char* buf, const char* start, const char *end ,int bufSize) {
 	if(bufSize <=0 ){
 		bufSize = strlen(buf);
@@ -185,5 +187,5 @@ vector<SdpTrack::Ptr> SdpAttr::getAvailableTrack() const {
 	return ret;
 }
 
-
+}//namespace mediakit
 

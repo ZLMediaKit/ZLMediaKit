@@ -82,9 +82,9 @@ Sdp::Ptr Factory::getSdpByTrack(const Track::Ptr &track) {
 
 Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     if (strcasecmp(track->_codec.data(), "mpeg4-generic") == 0) {
-        string aac_cfg_str = FindField(track->_fmtp.c_str(), "config=", nullptr);
+        string aac_cfg_str = FindField(track->_fmtp.data(), "config=", nullptr);
         if (aac_cfg_str.size() != 4) {
-            aac_cfg_str = FindField(track->_fmtp.c_str(), "config=", ";");
+            aac_cfg_str = FindField(track->_fmtp.data(), "config=", ";");
         }
         if (aac_cfg_str.size() != 4) {
             //延后获取adts头
@@ -93,12 +93,12 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         string aac_cfg;
 
         unsigned int cfg1;
-        sscanf(aac_cfg_str.substr(0, 2).c_str(), "%02X", &cfg1);
+        sscanf(aac_cfg_str.substr(0, 2).data(), "%02X", &cfg1);
         cfg1 &= 0x00FF;
         aac_cfg.push_back(cfg1);
 
         unsigned int cfg2;
-        sscanf(aac_cfg_str.substr(2, 2).c_str(), "%02X", &cfg2);
+        sscanf(aac_cfg_str.substr(2, 2).data(), "%02X", &cfg2);
         cfg2 &= 0x00FF;
         aac_cfg.push_back(cfg2);
 
@@ -106,12 +106,12 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     }
 
     if (strcasecmp(track->_codec.data(), "h264") == 0) {
-        string sps_pps = FindField(track->_fmtp.c_str(), "sprop-parameter-sets=", nullptr);
+        string sps_pps = FindField(track->_fmtp.data(), "sprop-parameter-sets=", nullptr);
         if(sps_pps.empty()){
             return std::make_shared<H264Track>();
         }
-        string base64_SPS = FindField(sps_pps.c_str(), NULL, ",");
-        string base64_PPS = FindField(sps_pps.c_str(), ",", NULL);
+        string base64_SPS = FindField(sps_pps.data(), NULL, ",");
+        string base64_PPS = FindField(sps_pps.data(), ",", NULL);
         if(base64_PPS.back() == ';'){
             base64_PPS.pop_back();
         }
@@ -125,13 +125,13 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         //a=fmtp:96 sprop-sps=QgEBAWAAAAMAsAAAAwAAAwBdoAKAgC0WNrkky/AIAAADAAgAAAMBlQg=; sprop-pps=RAHA8vA8kAA=
         int pt;
         char sprop_vps[128] = {0},sprop_sps[128] = {0},sprop_pps[128] = {0};
-        if (4 == sscanf(track->_fmtp.c_str(), "%d sprop-vps=%127[^;]; sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt, sprop_vps,sprop_sps, sprop_pps)) {
+        if (4 == sscanf(track->_fmtp.data(), "%d sprop-vps=%127[^;]; sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt, sprop_vps,sprop_sps, sprop_pps)) {
             auto vps = decodeBase64(sprop_vps);
             auto sps = decodeBase64(sprop_sps);
             auto pps = decodeBase64(sprop_pps);
             return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
         }
-        if (3 == sscanf(track->_fmtp.c_str(), "%d sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt,sprop_sps, sprop_pps)) {
+        if (3 == sscanf(track->_fmtp.data(), "%d sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt,sprop_sps, sprop_pps)) {
             auto sps = decodeBase64(sprop_sps);
             auto pps = decodeBase64(sprop_pps);
             return std::make_shared<H265Track>("",sps,pps,0,0,0);

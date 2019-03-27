@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -85,7 +85,7 @@ RtspSession::~RtspSession() {
 
 void RtspSession::onError(const SockException& err) {
 	TraceL << err.getErrCode() << " " << err.what();
-	if (_rtpType == PlayerBase::RTP_MULTICAST) {
+	if (_rtpType == Rtsp::RTP_MULTICAST) {
 		//取消UDP端口监听
 		UDPServer::Instance().stopListenPeer(get_peer_ip().data(), this);
 	}
@@ -118,7 +118,7 @@ void RtspSession::onManager() {
 	}
 
 
-	if ((_rtpType == PlayerBase::RTP_UDP || _pushSrc ) && _ticker.elapsedTime() > 15 * 1000) {
+	if ((_rtpType == Rtsp::RTP_UDP || _pushSrc ) && _ticker.elapsedTime() > 15 * 1000) {
 		//如果是推流端或者rtp over udp类型的播放端，那么就做超时检测
 		WarnL << "RTSP会话超时:" << get_peer_ip();
 		shutdown();
@@ -550,22 +550,22 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 	}
 	trackRef->_inited = true; //现在初始化
 
-	if(_rtpType == PlayerBase::RTP_Invalid){
+	if(_rtpType == Rtsp::RTP_Invalid){
 		auto strTransport = parser["Transport"];
 		if(strTransport.find("TCP") != string::npos){
-			_rtpType = PlayerBase::RTP_TCP;
+			_rtpType = Rtsp::RTP_TCP;
 		}else if(strTransport.find("multicast") != string::npos){
-			_rtpType = PlayerBase::RTP_MULTICAST;
+			_rtpType = Rtsp::RTP_MULTICAST;
 		}else{
-			_rtpType = PlayerBase::RTP_UDP;
+			_rtpType = Rtsp::RTP_UDP;
 		}
 	}
 
 	//允许接收rtp、rtcp包
-	RtspSplitter::enableRecvRtp(_rtpType == PlayerBase::RTP_TCP);
+	RtspSplitter::enableRecvRtp(_rtpType == Rtsp::RTP_TCP);
 
 	switch (_rtpType) {
-	case PlayerBase::RTP_TCP: {
+	case Rtsp::RTP_TCP: {
 		trackRef->_interleaved = trackRef->_type * 2;
 		sendRtspResponse("200 OK",
 						 {"Transport",StrPrinter << "RTP/AVP/TCP;unicast;"
@@ -576,7 +576,7 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 						 });
 	}
 		break;
-	case PlayerBase::RTP_UDP: {
+	case Rtsp::RTP_UDP: {
 		//我们用trackIdx区分rtp和rtcp包
 		auto pSockRtp = std::make_shared<Socket>(_sock->getPoller());
 		if (!pSockRtp->bindUdpSock(0,get_local_ip().data())) {
@@ -615,7 +615,7 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 						 });
 	}
 		break;
-	case PlayerBase::RTP_MULTICAST: {
+	case Rtsp::RTP_MULTICAST: {
 		if(!_pBrdcaster){
 			_pBrdcaster = RtpBroadCaster::get(get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
 			if (!_pBrdcaster) {
@@ -729,7 +729,7 @@ bool RtspSession::handleReq_Play(const Parser &parser) {
 		SockUtil::setNoDelay(_sock->rawFD(),false);
 		(*this) << SocketFlags(kSockFlags);
 
-		if (!_pRtpReader && _rtpType != PlayerBase::RTP_MULTICAST) {
+		if (!_pRtpReader && _rtpType != Rtsp::RTP_MULTICAST) {
 			weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
 			_pRtpReader = pMediaSrc->getRing()->attach(getPoller(),useBuf);
 			_pRtpReader->setDetachCB([weakSelf]() {
@@ -959,7 +959,7 @@ inline bool RtspSession::findStream() {
 inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 	//InfoL<<(int)pkt.Interleaved;
 	switch (_rtpType) {
-	case PlayerBase::RTP_TCP: {
+	case Rtsp::RTP_TCP: {
         BufferRtp::Ptr buffer(new BufferRtp(pkt));
 		send(buffer);
 #ifdef RTSP_SEND_RTCP
@@ -977,7 +977,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 #endif
 	}
 		break;
-	case PlayerBase::RTP_UDP: {
+	case Rtsp::RTP_UDP: {
 		int iTrackIndex = getTrackIndexByTrackType(pkt->type);
 		auto &pSock = _apRtpSock[iTrackIndex];
 		if (!pSock) {
@@ -1051,7 +1051,7 @@ inline void RtspSession::startListenPeerUdpData(int trackIdx) {
 	};
 
 	switch (_rtpType){
-		case PlayerBase::RTP_MULTICAST:{
+		case Rtsp::RTP_MULTICAST:{
 			//组播使用的共享rtcp端口
 			UDPServer::Instance().listenPeer(get_peer_ip().data(), this, [onUdpData](
 					int iTrackIdx, const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr) {
@@ -1059,7 +1059,7 @@ inline void RtspSession::startListenPeerUdpData(int trackIdx) {
 			});
 		}
 			break;
-		case PlayerBase::RTP_UDP:{
+		case Rtsp::RTP_UDP:{
 			auto setEvent = [&](Socket::Ptr &sock,int iTrackIdx){
 				if(!sock){
 					WarnL << "udp端口为空:" << iTrackIdx;

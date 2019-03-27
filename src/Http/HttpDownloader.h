@@ -34,7 +34,7 @@ namespace mediakit {
 class HttpDownloader: public HttpClientImp {
 public:
 	typedef std::shared_ptr<HttpDownloader> Ptr;
-	typedef std::function<void(ErrCode code,const char *errMsg,const char *filePath)> onDownloadResult;
+	typedef std::function<void(ErrCode code,const string &errMsg,const string &filePath)> onDownloadResult;
 	HttpDownloader();
 	virtual ~HttpDownloader();
 	//开始下载文件,默认断点续传方式下载

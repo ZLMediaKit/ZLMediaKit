@@ -35,14 +35,6 @@ namespace mediakit {
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
-RtmpPusher::RtmpPusher(const char *strVhost,const char *strApp,const char *strStream) {
-    auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,strVhost,strApp,strStream));
-    if (!src) {
-        auto strErr = StrPrinter << "media source:"  << strVhost << "/" << strApp << "/" << strStream << "not found!" << endl;
-        throw std::runtime_error(strErr);
-    }
-	_pMediaSrc=src;
-}
 RtmpPusher::RtmpPusher(const RtmpMediaSource::Ptr &src){
 	_pMediaSrc=src;
 }
@@ -70,11 +62,11 @@ void RtmpPusher::teardown() {
 	}
 }
 
-void RtmpPusher::publish(const char* strUrl)  {
+void RtmpPusher::publish(const string &strUrl)  {
 	teardown();
-	string strHost = FindField(strUrl, "://", "/");
-	_strApp = 	FindField(strUrl, (strHost + "/").data(), "/");
-    _strStream = FindField(strUrl, (strHost + "/" + _strApp + "/").data(), NULL);
+	string strHost = FindField(strUrl.data(), "://", "/");
+	_strApp = 	FindField(strUrl.data(), (strHost + "/").data(), "/");
+    _strStream = FindField(strUrl.data(), (strHost + "/" + _strApp + "/").data(), NULL);
     _strTcUrl = string("rtmp://") + strHost + "/" + _strApp;
 
     if (!_strApp.size() || !_strStream.size()) {
@@ -83,14 +75,31 @@ void RtmpPusher::publish(const char* strUrl)  {
     }
 	DebugL << strHost << " " << _strApp << " " << _strStream;
 
-	auto iPort = atoi(FindField(strHost.c_str(), ":", NULL).c_str());
+	auto iPort = atoi(FindField(strHost.data(), ":", NULL).data());
 	if (iPort <= 0) {
         //rtmp 默认端口1935
 		iPort = 1935;
 	} else {
         //服务器域名
-		strHost = FindField(strHost.c_str(), NULL, ":");
+		strHost = FindField(strHost.data(), NULL, ":");
 	}
+
+    weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
+    float playTimeOutSec = (*this)[kPlayTimeoutMS].as<int>() / 1000.0;
+    _pPublishTimer.reset( new Timer(playTimeOutSec,  [weakSelf]() {
+        auto strongSelf=weakSelf.lock();
+        if(!strongSelf) {
+            return false;
+        }
+        strongSelf->onPublishResult(SockException(Err_timeout,"publish rtmp timeout"));
+        strongSelf->teardown();
+        return false;
+    },getPoller()));
+
+    if(!(*this)[kNetAdapter].empty()){
+        setNetAdapter((*this)[kNetAdapter]);
+    }
+
 	startConnect(strHost, iPort);
 }
 
@@ -98,26 +107,18 @@ void RtmpPusher::onErr(const SockException &ex){
 	onShutdown(ex);
 }
 void RtmpPusher::onConnect(const SockException &err){
-	if(err.getErrCode()!=Err_success) {
+	if(err) {
 		onPublishResult(err);
 		return;
 	}
 	weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
-	_pPublishTimer.reset( new Timer(10,  [weakSelf]() {
-		auto strongSelf=weakSelf.lock();
-		if(!strongSelf) {
-			return false;
-		}
-		strongSelf->onPublishResult(SockException(Err_timeout,"publish rtmp timeout"));
-		strongSelf->teardown();
-		return false;
-	},getPoller()));
 	startClientSession([weakSelf](){
         auto strongSelf=weakSelf.lock();
         if(!strongSelf) {
             return;
         }
-        //strongSelf->sendChunkSize(60000);
+
+        strongSelf->sendChunkSize(60000);
         strongSelf->send_connect();
 	});
 }

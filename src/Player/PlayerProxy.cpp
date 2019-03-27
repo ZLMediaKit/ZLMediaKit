@@ -61,9 +61,9 @@ static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 
 #define MUTE_ADTS_DATA_LEN sizeof(s_mute_adts)
 #define MUTE_ADTS_DATA_MS 130
 
-PlayerProxy::PlayerProxy(const char *strVhost,
-                         const char *strApp,
-                         const char *strSrc,
+PlayerProxy::PlayerProxy(const string &strVhost,
+                         const string &strApp,
+                         const string &strSrc,
                          bool bEnableHls,
                          bool bEnableMp4,
                          int iRetryCount){
@@ -74,10 +74,9 @@ PlayerProxy::PlayerProxy(const char *strVhost,
     _bEnableMp4 = bEnableMp4;
     _iRetryCount = iRetryCount;
 }
-void PlayerProxy::play(const char* strUrl) {
+void PlayerProxy::play(const string &strUrlTmp) {
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 	std::shared_ptr<int> piFailedCnt(new int(0)); //连续播放失败次数
-	string strUrlTmp(strUrl);
 	setOnPlayResult([weakSelf,strUrlTmp,piFailedCnt](const SockException &err) {
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf) {
@@ -109,7 +108,7 @@ void PlayerProxy::play(const char* strUrl) {
 			strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
 		}
 	});
-	MediaPlayer::play(strUrl);
+	MediaPlayer::play(strUrlTmp);
 }
 
 PlayerProxy::~PlayerProxy() {
@@ -126,7 +125,7 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 			return false;
 		}
 		WarnL << "重试播放[" << iFailedCnt << "]:"  << strUrl;
-		strongPlayer->MediaPlayer::play(strUrl.data());
+		strongPlayer->MediaPlayer::play(strUrl);
 		return false;
 	}, nullptr);
 }
@@ -170,7 +169,7 @@ private:
 };
 
 void PlayerProxy::onPlaySuccess() {
-	_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost.data(),_strApp.data(),_strSrc.data(),getDuration(),_bEnableHls,_bEnableMp4));
+	_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost,_strApp,_strSrc,getDuration(),_bEnableHls,_bEnableMp4));
 	_mediaMuxer->setListener(shared_from_this());
 
 	auto videoTrack = getTrack(TrackVideo,false);
