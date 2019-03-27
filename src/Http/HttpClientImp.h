@@ -28,40 +28,20 @@
 #define SRC_HTTP_HTTPCLIENTIMP_H_
 
 #include "HttpClient.h"
-#ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
-#endif //ENABLE_OPENSSL
 
 using namespace toolkit;
 
 namespace mediakit {
 
-#if defined(ENABLE_OPENSSL)
-class HttpClientImp: public HttpClient {
+class HttpClientImp: public TcpClientWithSSL<HttpClient> {
 public:
 	typedef std::shared_ptr<HttpClientImp> Ptr;
 	HttpClientImp() {}
 	virtual ~HttpClientImp() {}
-
-	inline void public_onRecvBytes(const char *data,int len){
-		HttpClient::onRecvBytes(data,len);
-	}
-	inline void public_send(const char *data, uint32_t len){
-		HttpClient::send(obtainBuffer(data,len));
-	}
-private:
-	void onRecvBytes(const char *data,int size) override;
-	int send(const Buffer::Ptr &buf) override;
-	void onBeforeConnect(string &strUrl, uint16_t &iPort,float &fTimeOutSec) override;
-private:
-	std::shared_ptr<SSL_Box> _sslBox;
+protected:
+	void onConnect(const SockException &ex)  override ;
 };
-
-#else
-
-typedef HttpClient HttpClientImp;
-
-#endif // defined(ENABLE_OPENSSL)
 
 } /* namespace mediakit */
 

@@ -100,7 +100,6 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
 
     if (!alive() || bChanged) {
         //InfoL << "reconnet:" << _lastHost;
-        onBeforeConnect(host, port , fTimeOutSec);
         startConnect(host, port, fTimeOutSec);
     } else {
         SockException ex;
@@ -132,12 +131,8 @@ void HttpClient::onConnect(const SockException &ex) {
 }
 
 void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
-    onRecvBytes(pBuf->data(), pBuf->size());
-}
-
-void HttpClient::onRecvBytes(const char *data, int size) {
     _aliveTicker.resetTime();
-    HttpRequestSplitter::input(data, size);
+    HttpRequestSplitter::input(pBuf->data(), pBuf->size());
 }
 
 void HttpClient::onErr(const SockException &ex) {

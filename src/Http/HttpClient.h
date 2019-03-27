@@ -284,13 +284,6 @@ protected:
     }
 
     /**
-     * 收到http回复数据回调
-     * @param data 数据指针
-     * @param size 数据大小
-     */
-    virtual void onRecvBytes(const char *data,int size);
-
-    /**
      * http链接断开回调
      * @param ex 断开原因
      */
@@ -299,9 +292,6 @@ protected:
     //HttpRequestSplitter override
     int64_t onRecvHeader(const char *data,uint64_t len) override ;
     void onRecvContent(const char *data,uint64_t len) override;
-
-    //在连接服务器前调用一次
-    virtual void onBeforeConnect(string &strUrl, uint16_t &iPort,float &fTimeOutSec) {};
 protected:
     virtual void onConnect(const SockException &ex) override;
     virtual void onRecv(const Buffer::Ptr &pBuf) override;
