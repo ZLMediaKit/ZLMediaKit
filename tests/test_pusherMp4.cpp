@@ -103,8 +103,9 @@ int domain(const string & filePath,const string & pushUrl){
     //app必须record，filePath(流id)为相对于httpRoot/record的路径，否则MediaReader会找到不该文件
     //限制app为record是为了防止服务器上的文件被肆意访问
     createPusher(FindField(pushUrl.data(), nullptr,"://"),DEFAULT_VHOST,appName,filePath,pushUrl);
-
     sem.wait();
+	pusher.reset();
+	g_timer.reset();
 	return 0;
 }
 

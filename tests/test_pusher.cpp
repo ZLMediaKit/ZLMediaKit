@@ -103,6 +103,8 @@ int domain(const string &playUrl, const string &pushUrl) {
     static semaphore sem;
     signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
     sem.wait();
+    pusher.reset();
+    g_timer.reset();
     return 0;
 }
 
