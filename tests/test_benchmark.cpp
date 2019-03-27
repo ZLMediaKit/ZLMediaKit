@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
         player->setOnShutdown([&](const SockException &ex) {
             --alivePlayerCnt;
         });
-        (*player)[RtspPlayer::kRtpType] = atoi(argv[4]);
+        (*player)[kRtpType] = atoi(argv[4]);
         player->play(argv[3]);
         playerList.push_back(player);
         return playerCnt--;
