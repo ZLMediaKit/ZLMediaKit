@@ -28,37 +28,13 @@
 
 namespace mediakit {
 
-#if defined(ENABLE_OPENSSL)
-void HttpClientImp::onBeforeConnect(string &strUrl, uint16_t &iPort,float &fTimeOutSec) {
-	if(_isHttps){
-		_sslBox.reset(new SSL_Box(false));
-		_sslBox->setOnDecData([this](const char *data, uint32_t len){
-			public_onRecvBytes(data,len);
-		});
-		_sslBox->setOnEncData([this](const char *data, uint32_t len){
-			public_send(data,len);
-		});
-	}else{
-		_sslBox.reset();
+void HttpClientImp::onConnect(const SockException &ex) {
+	if(!_isHttps){
+		HttpClient::onConnect(ex);
+	} else {
+		TcpClientWithSSL<HttpClient>::onConnect(ex);
 	}
-}
 
-void HttpClientImp::onRecvBytes(const char* data, int size) {
-	if(_sslBox){
-		_sslBox->onRecv(data,size);
-	}else{
-		HttpClient::onRecvBytes(data,size);
-	}
 }
-
-int HttpClientImp::send(const Buffer::Ptr &buf) {
-	if(_sslBox){
-		_sslBox->onSend(buf->data(),buf->size());
-		return buf->size();
-	}
-	return HttpClient::send(buf);
-}
-
-#endif //defined(ENABLE_OPENSSL)
 
 } /* namespace mediakit */
