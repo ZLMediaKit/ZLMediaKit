@@ -273,6 +273,20 @@ onceToken token([](){
 
 } //namespace Hls
 
+
+namespace Client {
+const char kNetAdapter[] = "net_adapter";
+const char kRtpType[] = "rtp_type";
+const char kRtspUser[] = "rtsp_user" ;
+const char kRtspPwd[] = "rtsp_pwd";
+const char kRtspPwdIsMD5[] = "rtsp_pwd_md5";
+const char kTimeoutMS[] = "protocol_timeout_ms";
+const char kMediaTimeoutMS[] = "media_timeout_ms";
+const char kBeatIntervalMS[] = "beat_interval_ms";
+const char kMaxAnalysisMS[] = "max_analysis_ms";
+
+}
+
 }  // namespace mediakit
 
 

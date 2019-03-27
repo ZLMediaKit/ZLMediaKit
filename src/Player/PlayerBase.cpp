@@ -33,18 +33,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-const char PlayerBase::kNetAdapter[] = "net_adapter";
-const char PlayerBase::kRtpType[] = "rtp_type";
-const char PlayerBase::kRtspUser[] = "rtsp_user" ;
-const char PlayerBase::kRtspPwd[] = "rtsp_pwd";
-const char PlayerBase::kRtspPwdIsMD5[] = "rtsp_pwd_md5";
-
-const char PlayerBase::kPlayTimeoutMS[] = "play_timeout_ms";
-const char PlayerBase::kMediaTimeoutMS[] = "media_timeout_ms";
-const char PlayerBase::kBeatIntervalMS[] = "beat_interval_ms";
-const char PlayerBase::kMaxAnalysisMS[] = "max_analysis_ms";
-
-
 PlayerBase::Ptr PlayerBase::createPlayer(const string &strUrl) {
 	static auto releasePlayer = [](PlayerBase *ptr){
 		onceToken token(nullptr,[&](){
@@ -63,7 +51,7 @@ PlayerBase::Ptr PlayerBase::createPlayer(const string &strUrl) {
 }
 
 PlayerBase::PlayerBase() {
-	this->mINI::operator[](kPlayTimeoutMS) = 10000;
+	this->mINI::operator[](kTimeoutMS) = 10000;
 	this->mINI::operator[](kMediaTimeoutMS) = 5000;
 	this->mINI::operator[](kBeatIntervalMS) = 5000;
 	this->mINI::operator[](kMaxAnalysisMS) = 2000;

@@ -7,6 +7,8 @@
 #include "RtspPusher.h"
 #include "RtspSession.h"
 
+using namespace mediakit::Client;
+
 namespace mediakit {
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
@@ -44,7 +46,7 @@ void RtspPusher::teardown() {
 
 void RtspPusher::publish(const string &strUrl) {
     auto userAndPwd = FindField(strUrl.data(),"://","@");
-    Rtsp::eRtpType eType = (Rtsp::eRtpType)(int)(*this)[ PlayerBase::kRtpType];
+    Rtsp::eRtpType eType = (Rtsp::eRtpType)(int)(*this)[ kRtpType];
     if(userAndPwd.empty()){
         publish(strUrl,"","",eType);
         return;
@@ -68,11 +70,11 @@ void RtspPusher::publish(const string & strUrl, const string &strUser, const str
     teardown();
 
     if(strUser.size()){
-        (*this)[PlayerBase::kRtspUser] = strUser;
+        (*this)[kRtspUser] = strUser;
     }
     if(strPwd.size()){
-        (*this)[PlayerBase::kRtspPwd] = strPwd;
-        (*this)[PlayerBase::kRtspPwdIsMD5] = false;
+        (*this)[kRtspPwd] = strPwd;
+        (*this)[kRtspPwdIsMD5] = false;
     }
 
     _eType = eType;
@@ -93,7 +95,7 @@ void RtspPusher::publish(const string & strUrl, const string &strUser, const str
     _strUrl = strUrl;
 
     weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
-    float playTimeOutSec = (*this)[kPlayTimeoutMS].as<int>() / 1000.0;
+    float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
     _pPublishTimer.reset( new Timer(playTimeOutSec,  [weakSelf]() {
         auto strongSelf=weakSelf.lock();
         if(!strongSelf) {

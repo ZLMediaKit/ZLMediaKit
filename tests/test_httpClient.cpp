@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     for (auto &url : urlList) {
         //创建下载器
         HttpDownloader::Ptr downloader(new HttpDownloader());
-        downloader->setOnResult([](ErrCode code, const char *errMsg, const char *filePath) {
+        downloader->setOnResult([](ErrCode code, const string &errMsg, const string &filePath) {
             DebugL << "=====================HttpDownloader result=======================";
             //下载结果回调
             if (code == Err_success) {

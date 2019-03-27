@@ -42,29 +42,10 @@ namespace mediakit {
 class PusherBase : public mINI{
 public:
     typedef std::shared_ptr<PusherBase> Ptr;
+    typedef std::function<void(const SockException &ex)> Event;
 
     static Ptr createPusher(const MediaSource::Ptr &src,
                             const string &strUrl);
-
-    //指定网卡ip
-    static const char kNetAdapter[];
-    //设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
-    //设置方法:player[PusherBase::kRtpType] = 0/1/2;
-    static const char kRtpType[];
-    //rtsp认证用户名
-    static const char kRtspUser[];
-    //rtsp认证用用户密码，可以是明文也可以是md5,md5密码生成方式 md5(username:realm:password)
-    static const char kRtspPwd[];
-    //rtsp认证用用户密码是否为md5类型
-    static const char kRtspPwdIsMD5[];
-    //播放超时时间，默认10,000 毫秒
-    static const char kPlayTimeoutMS[];
-    //rtp/rtmp包接收超时时间，默认5000秒
-    static const char kMediaTimeoutMS[];
-    //rtsp/rtmp心跳时间,默认5000毫秒
-    static const char kBeatIntervalMS[];
-
-    typedef std::function<void(const SockException &ex)> Event;
 
     PusherBase();
     virtual ~PusherBase(){}

@@ -36,6 +36,7 @@
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 using namespace toolkit;
+using namespace mediakit::Client;
 
 namespace mediakit {
 
@@ -57,7 +58,7 @@ public:
         seekToMilliSecond(fProgress * getDuration() * 1000);
     };
     void play(const string &strUrl) override {
-        _analysisMs = (*this)[PlayerBase::kMaxAnalysisMS].as<int>();
+        _analysisMs = (*this)[kMaxAnalysisMS].as<int>();
         PlayerImp<RtmpPlayer,RtmpDemuxer>::play(strUrl);
     }
 private:
