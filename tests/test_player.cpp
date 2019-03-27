@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     player->setOnShutdown([](const SockException &ex) {
         ErrorL << "OnShutdown:" << ex.what();
     });
-    (*player)[RtspPlayer::kRtpType] = atoi(argv[2]);
+    (*player)[kRtpType] = atoi(argv[2]);
     player->play(argv[1]);
 
     SDLDisplayerHelper::Instance().runLoop();
