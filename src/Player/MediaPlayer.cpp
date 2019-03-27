@@ -37,7 +37,7 @@ MediaPlayer::MediaPlayer() {
 
 MediaPlayer::~MediaPlayer() {
 }
-void MediaPlayer::play(const char* strUrl) {
+void MediaPlayer::play(const string &strUrl) {
     _parser = PlayerBase::createPlayer(strUrl);
 	_parser->setOnShutdown(_shutdownCB);
 	_parser->setOnPlayResult(_playResultCB);

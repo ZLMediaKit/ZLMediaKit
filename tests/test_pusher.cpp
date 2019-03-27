@@ -32,47 +32,48 @@
 #include "Player/PlayerProxy.h"
 #include "Rtmp/RtmpPusher.h"
 #include "Common/config.h"
+#include "Pusher/MediaPusher.h"
 
 using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
 //推流器，保持强引用
-RtmpPusher::Ptr pusher;
+MediaPusher::Ptr pusher;
 
 //声明函数
-void rePushDelay(const string &app, const string &stream, const string &url);
+void rePushDelay(const string &schema,const string &vhost,const string &app, const string &stream, const string &url);
 
 //创建推流器并开始推流
-void createPusher(const string &app, const string &stream, const string &url) {
-    //创建推流器并绑定一个RtmpMediaSource
-    pusher.reset(new RtmpPusher(DEFAULT_VHOST, app.data(), stream.data()));
+void createPusher(const string &schema,const string &vhost,const string &app, const string &stream, const string &url) {
+    //创建推流器并绑定一个MediaSource
+    pusher.reset(new MediaPusher(schema,vhost, app, stream));
     //设置推流中断处理逻辑
-    pusher->setOnShutdown([app, stream, url](const SockException &ex) {
+    pusher->setOnShutdown([schema,vhost, app, stream, url](const SockException &ex) {
         WarnL << "Server connection is closed:" << ex.getErrCode() << " " << ex.what();
         //重试
-        rePushDelay(app, stream, url);
+        rePushDelay(schema,vhost,app, stream, url);
     });
     //设置发布结果处理逻辑
-    pusher->setOnPublished([app, stream, url](const SockException &ex) {
+    pusher->setOnPublished([schema,vhost, app, stream, url](const SockException &ex) {
         if (ex) {
             WarnL << "Publish fail:" << ex.getErrCode() << " " << ex.what();
             //如果发布失败，就重试
-            rePushDelay(app, stream, url);
+            rePushDelay(schema,vhost,app, stream, url);
         } else {
             InfoL << "Publish success,Please play with player:" << url;
         }
     });
-    pusher->publish(url.data());
+    pusher->publish(url);
 }
 
 Timer::Ptr g_timer;
 //推流失败或断开延迟2秒后重试推流
-void rePushDelay(const string &app, const string &stream, const string &url) {
-    g_timer = std::make_shared<Timer>(2,[app, stream, url]() {
+void rePushDelay(const string &schema,const string &vhost,const string &app, const string &stream, const string &url) {
+    g_timer = std::make_shared<Timer>(2,[schema,vhost,app, stream, url]() {
         InfoL << "Re-Publishing...";
         //重新推流
-        createPusher(app, stream, url);
+        createPusher(schema,vhost,app, stream, url);
         //此任务不重复
         return false;
     }, nullptr);
@@ -80,9 +81,6 @@ void rePushDelay(const string &app, const string &stream, const string &url) {
 
 //这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了
 int domain(const string &playUrl, const string &pushUrl) {
-    //设置退出信号处理函数
-    static semaphore sem;
-    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
@@ -96,17 +94,21 @@ int domain(const string &playUrl, const string &pushUrl) {
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged,
                                          [pushUrl](BroadcastMediaChangedArgs) {
                                              //媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
-                                             if(bRegist && schema == RTMP_SCHEMA){
-                                                 createPusher(app, stream, pushUrl);
+                                             if(bRegist && pushUrl.find(schema) == 0){
+                                                 createPusher(schema,vhost,app, stream, pushUrl);
                                              }
                                          });
+
+    //设置退出信号处理函数
+    static semaphore sem;
+    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
     sem.wait();
     return 0;
 }
 
 
 int main(int argc, char *argv[]) {
-    return domain("rtmp://live.hkstv.hk.lxdns.com/live/hks", "rtmp://127.0.0.1/live/stream");
+    return domain("rtmp://live.hkstv.hk.lxdns.com/live/hks1", "rtsp://127.0.0.1/live/rtsp_push");
 }
 
 

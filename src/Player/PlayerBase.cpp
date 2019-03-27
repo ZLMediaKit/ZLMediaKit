@@ -45,14 +45,14 @@ const char PlayerBase::kBeatIntervalMS[] = "beat_interval_ms";
 const char PlayerBase::kMaxAnalysisMS[] = "max_analysis_ms";
 
 
-	PlayerBase::Ptr PlayerBase::createPlayer(const char* strUrl) {
+PlayerBase::Ptr PlayerBase::createPlayer(const string &strUrl) {
 	static auto releasePlayer = [](PlayerBase *ptr){
 		onceToken token(nullptr,[&](){
 			delete  ptr;
 		});
 		ptr->teardown();
 	};
-	string prefix = FindField(strUrl, NULL, "://");
+	string prefix = FindField(strUrl.data(), NULL, "://");
 	if (strcasecmp("rtsp",prefix.data()) == 0) {
 		return PlayerBase::Ptr(new RtspPlayerImp(),releasePlayer);
 	}

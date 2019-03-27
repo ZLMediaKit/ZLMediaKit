@@ -325,7 +325,7 @@ void RtmpProtocol::handle_C0C1() {
 	if (_strRcvBuf[0] != HANDSHAKE_PLAINTEXT) {
 		throw std::runtime_error("only plaintext[0x03] handshake supported");
 	}
-	if(memcmp(_strRcvBuf.c_str() + 5,"\x00\x00\x00\x00",4) ==0 ){
+	if(memcmp(_strRcvBuf.data() + 5,"\x00\x00\x00\x00",4) ==0 ){
 		//simple handsharke
 		handle_C1_simple();
 	}else{
@@ -347,7 +347,7 @@ void RtmpProtocol::handle_C1_simple(){
 	RtmpHandshake s1(0);
 	onSendRawData(obtainBuffer((char *) &s1, C1_HANDSHARK_SIZE));
 	//发送S2
-	onSendRawData(obtainBuffer(_strRcvBuf.c_str() + 1, C1_HANDSHARK_SIZE));
+	onSendRawData(obtainBuffer(_strRcvBuf.data() + 1, C1_HANDSHARK_SIZE));
 	//等待C2
 	_nextHandle = [this]() {
 		handle_C2();

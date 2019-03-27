@@ -32,6 +32,7 @@
 #include "Player/PlayerProxy.h"
 #include "Rtmp/RtmpPusher.h"
 #include "Common/config.h"
+#include "Pusher/MediaPusher.h"
 #include "MediaFile/MediaReader.h"
 
 using namespace std;
@@ -39,49 +40,49 @@ using namespace toolkit;
 using namespace mediakit;
 
 //推流器，保持强引用
-RtmpPusher::Ptr pusher;
+MediaPusher::Ptr pusher;
 
 //声明函数
-void rePushDelay(const string &app,const string &stream,const string &url);
-void createPusher(const string &app,const string &stream,const string &url);
+void rePushDelay(const string &schema,const string &vhost,const string &app, const string &stream, const string &url);
+
 
 //创建推流器并开始推流
-void createPusher(const string &app,const string &stream,const string &url){
-    auto rtmpSrc = dynamic_pointer_cast<RtmpMediaSource>(MediaReader::onMakeMediaSource(RTMP_SCHEMA,DEFAULT_VHOST,app,stream));
-    if(!rtmpSrc){
+void createPusher(const string &schema,const string &vhost,const string &app, const string &stream, const string &url) {
+	auto src = MediaReader::onMakeMediaSource(schema,vhost,app,stream);
+    if(!src){
         //文件不存在
         WarnL << "MP4 file not exited!";
         return;
     }
 
-    //创建推流器并绑定一个RtmpMediaSource
-    pusher.reset(new RtmpPusher(rtmpSrc));
+	//创建推流器并绑定一个MediaSource
+    pusher.reset(new MediaPusher(src));
 	//设置推流中断处理逻辑
-	pusher->setOnShutdown([app,stream, url](const SockException &ex) {
+	pusher->setOnShutdown([schema,vhost,app,stream, url](const SockException &ex) {
 		WarnL << "Server connection is closed:" << ex.getErrCode() << " " << ex.what();
         //重新推流
-        rePushDelay(app, stream, url);
+		rePushDelay(schema,vhost,app, stream, url);
 	});
 	//设置发布结果处理逻辑
-	pusher->setOnPublished([app,stream, url](const SockException &ex) {
+	pusher->setOnPublished([schema,vhost,app,stream, url](const SockException &ex) {
 		if (ex) {
 			WarnL << "Publish fail:" << ex.getErrCode() << " " << ex.what();
 			//如果发布失败，就重试
-            rePushDelay(app,stream, url);
+			rePushDelay(schema,vhost,app, stream, url);
 		}else {
 			InfoL << "Publish success,Please play with player:" << url;
 		}
 	});
-	pusher->publish(url.data());
+	pusher->publish(url);
 }
 
 Timer::Ptr g_timer;
 //推流失败或断开延迟2秒后重试推流
-void rePushDelay(const string &app, const string &stream, const string &url) {
-	g_timer = std::make_shared<Timer>(2,[app, stream, url]() {
+void rePushDelay(const string &schema,const string &vhost,const string &app, const string &stream, const string &url) {
+	g_timer = std::make_shared<Timer>(2,[schema,vhost,app, stream, url]() {
 		InfoL << "Re-Publishing...";
 		//重新推流
-		createPusher(app, stream, url);
+		createPusher(schema,vhost,app, stream, url);
 		//此任务不重复
 		return false;
 	}, nullptr);
@@ -101,7 +102,7 @@ int domain(const string & filePath,const string & pushUrl){
     string appName = mINI::Instance()[Record::kAppName];
     //app必须record，filePath(流id)为相对于httpRoot/record的路径，否则MediaReader会找到不该文件
     //限制app为record是为了防止服务器上的文件被肆意访问
-    createPusher(appName,filePath,pushUrl);
+    createPusher(FindField(pushUrl.data(), nullptr,"://"),DEFAULT_VHOST,appName,filePath,pushUrl);
 
     sem.wait();
 	return 0;
@@ -112,7 +113,7 @@ int domain(const string & filePath,const string & pushUrl){
 int main(int argc,char *argv[]){
     //MP4文件需要放置在 httpRoot/record目录下,文件负载必须为h264+aac
     //可以使用test_server生成的mp4文件
-    return domain("app/stream/2017-09-30/12-55-38.mp4","rtmp://jizan.iok.la/live/test");
+    return domain("app/stream/2017-09-30/12-55-38.mp4","rtsp://127.0.0.1/live/rtsp_push");
 }
 
 

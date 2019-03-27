@@ -46,16 +46,16 @@ public:
 
     //如果iRetryCount<0,则一直重试播放；否则重试iRetryCount次数
     //默认一直重试
-	PlayerProxy(const char *strVhost,
-                const char *strApp,
-                const char *strSrc,
+	PlayerProxy(const string &strVhost,
+                const string &strApp,
+                const string &strSrc,
                 bool bEnableHls = true,
                 bool bEnableMp4 = false,
                 int iRetryCount = -1);
 
 	virtual ~PlayerProxy();
 
-	void play(const char* strUrl) override;
+	void play(const string &strUrl) override;
     bool close() override;
 private:
 	void rePlay(const string &strUrl,int iFailedCnt);

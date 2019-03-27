@@ -159,7 +159,7 @@ private:
     MediaInfo _mediaInfo;
 	std::weak_ptr<RtspMediaSource> _pMediaSrc;
 	RingBuffer<RtpPacket::Ptr>::RingReader::Ptr _pRtpReader;
-	PlayerBase::eRtpType _rtpType = PlayerBase::RTP_Invalid;
+	Rtsp::eRtpType _rtpType = Rtsp::RTP_Invalid;
 	vector<SdpTrack::Ptr> _aTrackInfo;
 
 	//RTP over udp

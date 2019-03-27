@@ -71,7 +71,7 @@ int64_t HttpDownloader::onResponseHeader(const string& status,const HttpHeader& 
 		File::delete_file(_filePath.data());
 		if(_onResult){
 			auto errMsg = StrPrinter << "Http Status:" << status << endl;
-			_onResult(Err_other,errMsg.data(),_filePath.data());
+			_onResult(Err_other,errMsg,_filePath);
 			_onResult = nullptr;
 		}
 	}
@@ -90,7 +90,7 @@ void HttpDownloader::onResponseCompleted() {
 	//InfoL << "md5Sum:" << getMd5Sum(_filePath);
 	_bDownloadSuccess = true;
 	if(_onResult){
-		_onResult(Err_success,"success",_filePath.data());
+		_onResult(Err_success,"success",_filePath);
 		_onResult = nullptr;
 	}
 }
@@ -101,7 +101,7 @@ void HttpDownloader::onDisconnect(const SockException &ex) {
 		File::delete_file(_filePath.data());
 	}
 	if(_onResult){
-		_onResult(ex.getErrCode(),ex.what(),_filePath.data());
+		_onResult(ex.getErrCode(),ex.what(),_filePath);
 		_onResult = nullptr;
 	}
 }

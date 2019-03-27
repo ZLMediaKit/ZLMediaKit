@@ -54,7 +54,7 @@ public:
 
 	RtspPlayer();
 	virtual ~RtspPlayer(void);
-	void play(const char* strUrl) override;
+	void play(const string &strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
 	float getPacketLossRate(TrackType type) const override;
@@ -93,7 +93,7 @@ private:
     int getTrackIndexByInterleaved(int interleaved) const;
 	int getTrackIndexByTrackType(TrackType trackId) const;
 
-	void play(const char* strUrl, const char *strUser, const char *strPwd,  eRtpType eType);
+	void play(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType);
 	void onConnect(const SockException &err) override;
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onErr(const SockException &ex) override;
@@ -115,14 +115,16 @@ private:
 	string _strUrl;
 	SdpAttr _sdpAttr;
 	vector<SdpTrack::Ptr> _aTrackInfo;
-
 	function<void(const Parser&)> _onHandshake;
 	Socket::Ptr _apUdpSock[2];
+	//rtsp鉴权相关
+	string _rtspMd5Nonce;
+	string _rtspRealm;
 	//rtsp info
 	string _strSession;
 	unsigned int _uiCseq = 1;
 	string _strContentBase;
-	eRtpType _eType = RTP_TCP;
+	Rtsp::eRtpType _eType = Rtsp::RTP_TCP;
 
 	/* 丢包率统计需要用到的参数 */
 	uint16_t _aui16FirstSeq[2] = { 0 , 0};

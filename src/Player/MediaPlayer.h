@@ -43,7 +43,7 @@ public:
 
 	MediaPlayer();
 	virtual ~MediaPlayer();
-	void play(const char* strUrl) override;
+	void play(const string &strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
 	EventPoller::Ptr getPoller();

@@ -70,9 +70,9 @@ class DevChannel  : public MultiMediaSourceMuxer{
 public:
 	typedef std::shared_ptr<DevChannel> Ptr;
     //fDuration<=0为直播，否则为点播
-    DevChannel(const char *strVhost,
-               const char *strApp,
-               const char *strId,
+    DevChannel(const string &strVhost,
+               const string &strApp,
+               const string &strId,
                float fDuration = 0,
                bool bEanbleHls = true,
                bool bEnableMp4 = false);

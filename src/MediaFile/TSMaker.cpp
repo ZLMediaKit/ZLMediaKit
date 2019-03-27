@@ -93,7 +93,7 @@ void TSMaker::flush() {
 bool TSMaker::init(const string& filename, uint32_t bufsize) {
 	m_strFilename = filename;
 	if (m_pOutVideoTs == NULL) {
-		m_pOutVideoTs = File::createfile_file(filename.c_str(), "wb");
+		m_pOutVideoTs = File::createfile_file(filename.data(), "wb");
 		if (m_pOutVideoTs == NULL) {
 			return false;
 		}

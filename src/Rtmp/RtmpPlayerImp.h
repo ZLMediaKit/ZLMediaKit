@@ -56,7 +56,7 @@ public:
         fProgress = MAX(float(0),MIN(fProgress,float(1.0)));
         seekToMilliSecond(fProgress * getDuration() * 1000);
     };
-    void play(const char* strUrl) override {
+    void play(const string &strUrl) override {
         _analysisMs = (*this)[PlayerBase::kMaxAnalysisMS].as<int>();
         PlayerImp<RtmpPlayer,RtmpDemuxer>::play(strUrl);
     }

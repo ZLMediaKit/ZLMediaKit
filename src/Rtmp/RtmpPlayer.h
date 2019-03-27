@@ -49,7 +49,7 @@ public:
 	RtmpPlayer();
 	virtual ~RtmpPlayer();
 
-	void play(const char* strUrl) override;
+	void play(const string &strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
 protected:
