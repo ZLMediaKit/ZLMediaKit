@@ -549,6 +549,7 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 		return false;
 	}
 	trackRef->_inited = true; //现在初始化
+	trackRef->_interleaved = trackRef->_type * 2;
 
 	if(_rtpType == Rtsp::RTP_Invalid){
 		auto strTransport = parser["Transport"];
@@ -566,7 +567,6 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 
 	switch (_rtpType) {
 	case Rtsp::RTP_TCP: {
-		trackRef->_interleaved = trackRef->_type * 2;
 		sendRtspResponse("200 OK",
 						 {"Transport",StrPrinter << "RTP/AVP/TCP;unicast;"
 												 << "interleaved=" << trackRef->_type * 2 << "-" << trackRef->_type * 2 + 1 << ";"

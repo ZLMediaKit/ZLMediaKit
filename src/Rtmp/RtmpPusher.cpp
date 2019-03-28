@@ -64,12 +64,17 @@ void RtmpPusher::teardown() {
 }
 
 void RtmpPusher::onPublishResult(const SockException &ex) {
-	_pPublishTimer.reset();
-	if(_onPublished){
-		_onPublished(ex);
-		_onPublished = nullptr;
-	}else if(_onShutdown){
-		_onShutdown(ex);
+	if(_pPublishTimer){
+		//播放结果回调
+		_pPublishTimer.reset();
+		if(_onPublished){
+			_onPublished(ex);
+		}
+	} else {
+		//播放成功后异常断开回调
+		if(_onShutdown){
+			_onShutdown(ex);
+		}
 	}
 
 	if(ex){
