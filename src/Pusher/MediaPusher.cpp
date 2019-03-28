@@ -46,7 +46,7 @@ MediaPusher::MediaPusher(const string &schema,
 MediaPusher::~MediaPusher() {
 }
 void MediaPusher::publish(const string &strUrl) {
-    _parser = PusherBase::createPusher(_src,strUrl);
+    _parser = PusherBase::createPusher(_src.lock(),strUrl);
     _parser->setOnShutdown(_shutdownCB);
     _parser->setOnPublished(_publishCB);
     _parser->mINI::operator=(*this);

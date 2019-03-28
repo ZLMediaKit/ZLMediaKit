@@ -49,9 +49,8 @@ public:
     virtual ~MediaPusher();
     void publish(const string &strUrl) override;
     EventPoller::Ptr getPoller();
-
 private:
-    MediaSource::Ptr _src;
+    std::weak_ptr<MediaSource> _src;
 };
 
 } /* namespace mediakit */
