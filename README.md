@@ -128,8 +128,29 @@
 - 编译
   
   ```
-  cd ZLMediaKit
-  ./build_for_linux.sh
+	//如果是centos6.x,需要先安装较新版本的gcc以及cmake，然后打开脚本build_for_linux.sh手动编译
+	//如果是ubuntu这样的比较新的系统版本可以直接操作第4步
+
+	1、安装GCC5.2(如果gcc版本高于4.7可以跳过此步骤)
+	sudo yum install centos-release-scl -y
+	sudo yum install devtoolset-4-toolchain -y
+	scl enable devtoolset-4 bash
+
+	2、安装cmake
+	cd third/
+	#需要安装新版本cmake,当然你也可以通过yum或者apt-get方式安装(前提是版本够新)
+	tar -xvf cmake-3.10.0-rc4.tar.gz
+	cd cmake-3.10.0-rc4
+	./configure
+	make -j4
+	sudo make install
+
+	3、切换高版本gcc
+	scl enable devtoolset-4 bash
+
+	4、编译
+	cd ZLMediaKit
+	./build_for_linux.sh
   ```
 
 ## 编译(macOS)
