@@ -23,6 +23,7 @@
   - RTSP 服务器，支持RTMP/MP4转RTSP。
   - RTSPS 服务器，支持亚马逊echo show这样的设备
   - RTSP 播放器，支持RTSP代理，支持生成静音音频
+  - RTSP 推流客户端与服务器
   - 支持 `rtp over udp` `rtp over tcp` `rtp over http` `rtp组播`  四种RTP传输方式 。
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口。
   - 支持H265编码
