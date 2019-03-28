@@ -85,7 +85,6 @@ protected:
      */
 	void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
 private:
-	void onShutdown_l(const SockException &ex);
 	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
 	void onPlayResult_l(const SockException &ex);
 
@@ -104,13 +103,13 @@ private:
 	void handleResPAUSE(const Parser &parser, bool bPause);
 
 	//发送SETUP命令
-    bool sendSetup(unsigned int uiTrackIndex);
-    bool sendPause(bool bPause,uint32_t ms);
-	bool sendOptions();
-	bool sendDescribe();
+	void sendSetup(unsigned int uiTrackIndex);
+	void sendPause(bool bPause,uint32_t ms);
+	void sendOptions();
+	void sendDescribe();
 
-    bool sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
-	bool sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
+    void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
+	void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
 private:
 	string _strUrl;
 	SdpAttr _sdpAttr;

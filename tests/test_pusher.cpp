@@ -48,6 +48,8 @@ void rePushDelay(const string &schema,const string &vhost,const string &app, con
 void createPusher(const string &schema,const string &vhost,const string &app, const string &stream, const string &url) {
     //创建推流器并绑定一个MediaSource
     pusher.reset(new MediaPusher(schema,vhost, app, stream));
+    //可以指定rtsp推流方式，支持tcp和udp方式，默认tcp
+//    (*pusher)[Client::kRtpType] = Rtsp::RTP_UDP;
     //设置推流中断处理逻辑
     pusher->setOnShutdown([schema,vhost, app, stream, url](const SockException &ex) {
         WarnL << "Server connection is closed:" << ex.getErrCode() << " " << ex.what();
