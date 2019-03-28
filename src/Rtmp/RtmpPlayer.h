@@ -60,41 +60,12 @@ protected:
 	uint32_t getProgressMilliSecond() const;
 	void seekToMilliSecond(uint32_t ms);
 protected:
-	void onShutdown_l(const SockException &ex) {
-		WarnL << ex.getErrCode() << " " << ex.what();
-		_pPlayTimer.reset();
-		_pMediaTimer.reset();
-		_pBeatTimer.reset();
-		onShutdown(ex);
-	}
 	void onMediaData_l(const RtmpPacket::Ptr &chunkData) {
 		_mediaTicker.resetTime();
 		onMediaData(chunkData);
 	}
-	void onPlayResult_l(const SockException &ex) {
-		WarnL << ex.getErrCode() << " " << ex.what();
-		_pPlayTimer.reset();
-		_pMediaTimer.reset();
-		if (!ex) {
-			_mediaTicker.resetTime();
-			weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-			int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
-			_pMediaTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
-				auto strongSelf=weakSelf.lock();
-				if(!strongSelf) {
-					return false;
-				}
-				if(strongSelf->_mediaTicker.elapsedTime()> timeoutMS) {
-					//recv media timeout!
-					strongSelf->onShutdown_l(SockException(Err_timeout,"recv rtmp timeout"));
-					strongSelf->teardown();
-					return false;
-				}
-				return true;
-			},getPoller()));
-		}
-		onPlayResult(ex);
-	}
+
+	void onPlayResult_l(const SockException &ex);
 
 	//for Tcpclient
 	void onRecv(const Buffer::Ptr &pBuf) override;

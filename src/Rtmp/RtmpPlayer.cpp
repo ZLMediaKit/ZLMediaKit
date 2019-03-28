@@ -106,14 +106,45 @@ void RtmpPlayer::play(const string &strUrl)  {
 			return false;
 		}
 		strongSelf->onPlayResult_l(SockException(Err_timeout,"play rtmp timeout"));
-		strongSelf->teardown();
 		return false;
 	},getPoller()));
 
 	startConnect(strHost, iPort , playTimeOutSec);
 }
 void RtmpPlayer::onErr(const SockException &ex){
-	onShutdown_l(ex);
+	onPlayResult_l(ex);
+}
+
+void RtmpPlayer::onPlayResult_l(const SockException &ex) {
+	WarnL << ex.getErrCode() << " " << ex.what();
+	if (_pPlayTimer) {
+		_pPlayTimer.reset();
+		onPlayResult(ex);
+		if(!ex){
+			_mediaTicker.resetTime();
+			weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+			int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
+			_pMediaTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
+				auto strongSelf=weakSelf.lock();
+				if(!strongSelf) {
+					return false;
+				}
+				if(strongSelf->_mediaTicker.elapsedTime()> timeoutMS) {
+					//recv media timeout!
+					strongSelf->onPlayResult_l(SockException(Err_timeout,"recv rtmp timeout"));
+					return false;
+				}
+				return true;
+			},getPoller()));
+		}
+	}else if(ex){
+		//播放成功后异常断开回调
+		onShutdown(ex);
+	}
+
+	if(ex){
+		teardown();
+	}
 }
 void RtmpPlayer::onConnect(const SockException &err){
 	if(err.getErrCode()!=Err_success) {
@@ -135,8 +166,6 @@ void RtmpPlayer::onRecv(const Buffer::Ptr &pBuf){
 	} catch (exception &e) {
 		SockException ex(Err_other, e.what());
 		onPlayResult_l(ex);
-		onShutdown_l(ex);
-		teardown();
 	}
 }
 
@@ -288,7 +317,7 @@ void RtmpPlayer::onCmd_onMetaData(AMFDecoder &dec) {
 
 void RtmpPlayer::onStreamDry(uint32_t ui32StreamId) {
 	//TraceL << ui32StreamId;
-	onShutdown_l(SockException(Err_other,"rtmp stream dry"));
+	onPlayResult_l(SockException(Err_other,"rtmp stream dry"));
 }
 
 
