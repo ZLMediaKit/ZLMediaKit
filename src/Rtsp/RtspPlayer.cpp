@@ -600,7 +600,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex) {
 				return true;
 			},getPoller()));
 		}
-	} else {
+	} else if(ex){
 		//播放成功后异常断开回调
 		onShutdown(ex);
 	}
