@@ -63,19 +63,7 @@ protected:
 		send(buffer);
 	}
 private:
-	void onShutdown(const SockException &ex) {
-		_pPublishTimer.reset();
-		if(_onShutdown){
-			_onShutdown(ex);
-		}
-		_pRtmpReader.reset();
-	}
-	void onPublishResult(const SockException &ex) {
-		_pPublishTimer.reset();
-		if(_onPublished){
-			_onPublished(ex);
-		}
-	}
+	void onPublishResult(const SockException &ex);
 
 	template<typename FUN>
 	inline void addOnResultCB(const FUN &fun) {

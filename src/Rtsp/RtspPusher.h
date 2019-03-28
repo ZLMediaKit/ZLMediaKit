@@ -50,7 +50,6 @@ protected:
     void onRtpPacket(const char *data,uint64_t len) override {};
 private:
     void publish(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType );
-    void onShutdown(const SockException &ex);
     void onPublishResult(const SockException &ex);
 
     void sendAnnounce();

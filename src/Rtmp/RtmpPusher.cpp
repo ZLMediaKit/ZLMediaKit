@@ -63,6 +63,20 @@ void RtmpPusher::teardown() {
 	}
 }
 
+void RtmpPusher::onPublishResult(const SockException &ex) {
+	_pPublishTimer.reset();
+	if(_onPublished){
+		_onPublished(ex);
+		_onPublished = nullptr;
+	}else if(_onShutdown){
+		_onShutdown(ex);
+	}
+
+	if(ex){
+		teardown();
+	}
+}
+
 void RtmpPusher::publish(const string &strUrl)  {
 	teardown();
 	string strHost = FindField(strUrl.data(), "://", "/");
@@ -93,7 +107,6 @@ void RtmpPusher::publish(const string &strUrl)  {
             return false;
         }
         strongSelf->onPublishResult(SockException(Err_timeout,"publish rtmp timeout"));
-        strongSelf->teardown();
         return false;
     },getPoller()));
 
@@ -105,7 +118,7 @@ void RtmpPusher::publish(const string &strUrl)  {
 }
 
 void RtmpPusher::onErr(const SockException &ex){
-	onShutdown(ex);
+	onPublishResult(ex);
 }
 void RtmpPusher::onConnect(const SockException &err){
 	if(err) {
@@ -129,8 +142,6 @@ void RtmpPusher::onRecv(const Buffer::Ptr &pBuf){
 	} catch (exception &e) {
 		SockException ex(Err_other, e.what());
 		onPublishResult(ex);
-		onShutdown(ex);
-		teardown();
 	}
 }
 
@@ -207,8 +218,7 @@ inline void RtmpPusher::send_metaData(){
     _pRtmpReader->setDetachCB([weakSelf](){
         auto strongSelf = weakSelf.lock();
         if(strongSelf){
-            strongSelf->onShutdown(SockException(Err_other,"媒体源被释放"));
-            strongSelf->teardown();
+            strongSelf->onPublishResult(SockException(Err_other,"媒体源被释放"));
         }
     });
     onPublishResult(SockException(Err_success,"success"));

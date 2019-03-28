@@ -62,17 +62,15 @@ void RtspPusher::publish(const string &strUrl) {
     publish(url,user,pwd,eType);
 }
 
-void RtspPusher::onShutdown(const SockException &ex) {
-    if(_onShutdown){
-        _onShutdown(ex);
-    }
-    teardown();
-}
 void RtspPusher::onPublishResult(const SockException &ex) {
     _pPublishTimer.reset();
     if(_onPublished){
         _onPublished(ex);
+        _onPublished = nullptr;
+    }else if(_onShutdown){
+        _onShutdown(ex);
     }
+
     if(ex){
         teardown();
     }
@@ -128,7 +126,7 @@ void RtspPusher::publish(const string & strUrl, const string &strUser, const str
 }
 
 void RtspPusher::onErr(const SockException &ex) {
-    onShutdown(ex);
+    onPublishResult(ex);
 }
 
 void RtspPusher::onConnect(const SockException &err) {
@@ -145,7 +143,6 @@ void RtspPusher::onRecv(const Buffer::Ptr &pBuf){
     } catch (exception &e) {
         SockException ex(Err_other, e.what());
         onPublishResult(ex);
-        onShutdown(ex);
     }
 }
 
@@ -366,7 +363,7 @@ void RtspPusher::sendRecord() {
         _pRtspReader->setDetachCB([weakSelf](){
             auto strongSelf = weakSelf.lock();
             if(strongSelf){
-                strongSelf->onShutdown(SockException(Err_other,"媒体源被释放"));
+                strongSelf->onPublishResult(SockException(Err_other,"媒体源被释放"));
             }
         });
         if(_eType != Rtsp::RTP_TCP){
