@@ -91,6 +91,7 @@
   | RTSP[S] Play Server |  Y   |  Y   |  Y   |       Y       |
   | RTSP[S] Push Server |  Y   |  Y   |  N   |       N       |
   |     RTSP Player     |  Y   |  Y   |  N   |       Y       |
+  |     RTSP Pusher     |  Y   |  Y   |  N   |       N       |
 
 
 - 支持的服务器类型列表
@@ -107,7 +108,7 @@
   | 客户端类型  | Y/N  |
   | :---------: | :--: |
   | RTSP Player |  Y   |
-  | RTSP Pusher |  N   |
+  | RTSP Pusher |  Y   |
   | RTMP Player |  Y   |
   | RTMP Pusher |  Y   |
   |   HTTP[S]   |  Y   |
