@@ -50,25 +50,13 @@ protected:
     void onRtpPacket(const char *data,uint64_t len) override {};
 private:
     void publish(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType );
+    void onShutdown(const SockException &ex);
+    void onPublishResult(const SockException &ex);
 
-    void onShutdown(const SockException &ex) {
-        _pPublishTimer.reset();
-        if(_onShutdown){
-            _onShutdown(ex);
-        }
-        _pRtspReader.reset();
-    }
-    void onPublishResult(const SockException &ex) {
-        _pPublishTimer.reset();
-        if(_onPublished){
-            _onPublished(ex);
-        }
-    }
-
-    bool sendAnnounce();
-    bool sendSetup(unsigned int uiTrackIndex);
-    bool sendRecord();
-    bool sendOptions();
+    void sendAnnounce();
+    void sendSetup(unsigned int uiTrackIndex);
+    void sendRecord();
+    void sendOptions();
 
     void handleResAnnounce(const Parser &parser);
     void handleResSetup(const Parser &parser, unsigned int uiTrackIndex);
@@ -77,8 +65,8 @@ private:
     inline int getTrackIndexByTrackType(TrackType type);
 
     void sendRtpPacket(const RtpPacket::Ptr & pkt) ;
-    bool sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap(),const string &sdp = "" );
-    bool sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header,const string &sdp = "");
+    void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap(),const string &sdp = "" );
+    void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header,const string &sdp = "");
 private:
     //rtsp鉴权相关
     string _rtspMd5Nonce;
