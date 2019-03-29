@@ -100,7 +100,8 @@ onceToken token1([](){
 
 
 #define REALM "realm_zlmedaikit"
-
+static map<string,FlvRecorder::Ptr> s_mapFlvRecorder;
+static mutex s_mtxFlvRecorder;
 static onceToken s_token([](){
     //监听kBroadcastOnGetRtspRealm事件决定rtsp链接是否需要鉴权(传统的rtsp鉴权方案)才能访问
 	NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastOnGetRtspRealm,[](BroadcastOnGetRtspRealmArgs){
@@ -183,8 +184,6 @@ static onceToken s_token([](){
     //监听rtsp、rtmp源注册或注销事件；此处用于测试rtmp保存为flv录像，保存在http根目录下
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaChanged,[](BroadcastMediaChangedArgs){
         if(schema == RTMP_SCHEMA && app == "live"){
-            static map<string,FlvRecorder::Ptr> s_mapFlvRecorder;
-            static mutex s_mtxFlvRecorder;
             lock_guard<mutex> lck(s_mtxFlvRecorder);
             if(bRegist){
                 DebugL << "开始录制RTMP：" << schema << " " << vhost << " " << app << " " << stream;
@@ -355,6 +354,9 @@ int main(int argc,char *argv[]) {
     signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
     signal(SIGHUP, [](int) { loadIniConfig(); });
     sem.wait();
+
+    lock_guard<mutex> lck(s_mtxFlvRecorder);
+    s_mapFlvRecorder.clear();
 	return 0;
 }
 
