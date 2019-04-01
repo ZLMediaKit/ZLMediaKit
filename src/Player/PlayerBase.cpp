@@ -33,7 +33,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-PlayerBase::Ptr PlayerBase::createPlayer(const string &strUrl) {
+PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const string &strUrl) {
 	static auto releasePlayer = [](PlayerBase *ptr){
 		onceToken token(nullptr,[&](){
 			delete  ptr;
@@ -42,12 +42,12 @@ PlayerBase::Ptr PlayerBase::createPlayer(const string &strUrl) {
 	};
 	string prefix = FindField(strUrl.data(), NULL, "://");
 	if (strcasecmp("rtsp",prefix.data()) == 0) {
-		return PlayerBase::Ptr(new RtspPlayerImp(),releasePlayer);
+		return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
 	}
 	if (strcasecmp("rtmp",prefix.data()) == 0) {
-		return PlayerBase::Ptr(new RtmpPlayerImp(),releasePlayer);
+		return PlayerBase::Ptr(new RtmpPlayerImp(poller),releasePlayer);
 	}
-	return PlayerBase::Ptr(new RtspPlayerImp(),releasePlayer);
+	return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
 }
 
 PlayerBase::PlayerBase() {

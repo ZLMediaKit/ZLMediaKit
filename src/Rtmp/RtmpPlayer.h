@@ -48,7 +48,7 @@ namespace mediakit {
 class RtmpPlayer:public PlayerBase, public TcpClient,  public RtmpProtocol{
 public:
 	typedef std::shared_ptr<RtmpPlayer> Ptr;
-	RtmpPlayer();
+	RtmpPlayer(const EventPoller::Ptr &poller);
 	virtual ~RtmpPlayer();
 
 	void play(const string &strUrl) override;

@@ -44,7 +44,8 @@ public:
     typedef std::shared_ptr<PusherBase> Ptr;
     typedef std::function<void(const SockException &ex)> Event;
 
-    static Ptr createPusher(const MediaSource::Ptr &src,
+    static Ptr createPusher(const EventPoller::Ptr &poller,
+                            const MediaSource::Ptr &src,
                             const string &strUrl);
 
     PusherBase();
@@ -78,7 +79,10 @@ template<typename Parent,typename Parser>
 class PusherImp : public Parent {
 public:
     typedef std::shared_ptr<PusherImp> Ptr;
-    PusherImp(){}
+
+    template<typename ...ArgsType>
+    PusherImp(ArgsType &&...args):Parent(std::forward<ArgsType>(args)...){}
+
     virtual ~PusherImp(){}
 
     /**

@@ -43,7 +43,7 @@ namespace mediakit {
 class RtmpPlayerImp: public PlayerImp<RtmpPlayer,RtmpDemuxer> {
 public:
     typedef std::shared_ptr<RtmpPlayerImp> Ptr;
-    RtmpPlayerImp(){};
+    RtmpPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtmpPlayer,RtmpDemuxer>(poller){};
     virtual ~RtmpPlayerImp(){
         DebugL<<endl;
     };

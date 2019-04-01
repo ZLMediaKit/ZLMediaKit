@@ -36,7 +36,7 @@ using namespace mediakit::Client;
 namespace mediakit {
 
 unordered_map<string, RtmpPlayer::rtmpCMDHandle> RtmpPlayer::g_mapCmd;
-RtmpPlayer::RtmpPlayer() {
+RtmpPlayer::RtmpPlayer(const EventPoller::Ptr &poller) : TcpClient(poller) {
 	static onceToken token([]() {
 		g_mapCmd.emplace("_error",&RtmpPlayer::onCmd_result);
 		g_mapCmd.emplace("_result",&RtmpPlayer::onCmd_result);

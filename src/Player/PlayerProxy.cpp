@@ -66,7 +66,8 @@ PlayerProxy::PlayerProxy(const string &strVhost,
                          const string &strSrc,
                          bool bEnableHls,
                          bool bEnableMp4,
-                         int iRetryCount){
+                         int iRetryCount,
+						 const EventPoller::Ptr &poller) : MediaPlayer(poller){
 	_strVhost = strVhost;
 	_strApp = strApp;
 	_strSrc = strSrc;
@@ -127,21 +128,18 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 		WarnL << "重试播放[" << iFailedCnt << "]:"  << strUrl;
 		strongPlayer->MediaPlayer::play(strUrl);
 		return false;
-	}, nullptr);
+	}, getPoller());
 }
 bool PlayerProxy::close() {
-    //通知其停止推流
-    weak_ptr<PlayerProxy> weakSlef = dynamic_pointer_cast<PlayerProxy>(shared_from_this());
-	auto poller = getPoller();
-	if(poller) {
-		poller->async_first([weakSlef]() {
-			auto stronSelf = weakSlef.lock();
-			if (stronSelf) {
-				stronSelf->_mediaMuxer.reset();
-				stronSelf->teardown();
-			}
-		});
-	}
+	//通知其停止推流
+	weak_ptr<PlayerProxy> weakSlef = dynamic_pointer_cast<PlayerProxy>(shared_from_this());
+	getPoller()->async_first([weakSlef]() {
+		auto stronSelf = weakSlef.lock();
+		if (stronSelf) {
+			stronSelf->_mediaMuxer.reset();
+			stronSelf->teardown();
+		}
+	});
     return true;
 }
 

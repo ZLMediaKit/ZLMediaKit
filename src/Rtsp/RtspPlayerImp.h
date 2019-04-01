@@ -44,7 +44,7 @@ namespace mediakit {
 class RtspPlayerImp: public PlayerImp<RtspPlayer,RtspDemuxer> {
 public:
 	typedef std::shared_ptr<RtspPlayerImp> Ptr;
-	RtspPlayerImp(){};
+	RtspPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtspPlayer,RtspDemuxer>(poller){}
 	virtual ~RtspPlayerImp(){
         DebugL<<endl;
     };

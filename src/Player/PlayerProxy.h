@@ -51,7 +51,8 @@ public:
                 const string &strSrc,
                 bool bEnableHls = true,
                 bool bEnableMp4 = false,
-                int iRetryCount = -1);
+                int iRetryCount = -1,
+				const EventPoller::Ptr &poller = nullptr);
 
 	virtual ~PlayerProxy();
 
