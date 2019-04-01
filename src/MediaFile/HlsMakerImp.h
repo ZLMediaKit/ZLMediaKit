@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -24,51 +24,41 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_MEDIAFILE_MEDIARECORDER_H_
-#define SRC_MEDIAFILE_MEDIARECORDER_H_
+#ifndef HLSMAKERIMP_H
+#define HLSMAKERIMP_H
 
 #include <memory>
-#include "Player/PlayerBase.h"
-
-#ifdef  ENABLE_MP4V2
-#include "Mp4Maker.h"
-#endif //ENABLE_MP4V2
-
-#include "HlsRecorder.h"
-using namespace toolkit;
+#include <string>
+#include <stdlib.h>
+#include "HlsMaker.h"
+using namespace std;
 
 namespace mediakit {
 
-class MediaRecorder : public MediaSink{
+class HlsMakerImp : public HlsMaker{
 public:
-	typedef std::shared_ptr<MediaRecorder> Ptr;
-	MediaRecorder(const string &strVhost,
-                  const string &strApp,
-                  const string &strId,
-                  bool enableHls = true,
-                  bool enableMp4 = false);
-	virtual ~MediaRecorder();
-
-	/**
-     * 输入frame
-     * @param frame
-     */
-	void inputFrame(const Frame::Ptr &frame) override ;
-
-	/**
-     * 添加track，内部会调用Track的clone方法
-     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
-     * @param track
-     */
-	void addTrack(const Track::Ptr & track) override;
+    HlsMakerImp(const string &m3u8_file,
+                const string &params,
+                uint32_t bufSize  = 64 * 1024,
+                float seg_duration = 5,
+                uint32_t seg_number = 3);
+    virtual ~HlsMakerImp();
+protected:
+    string onOpenFile(int index) override ;
+    void onDelFile(int index) override;
+    void onWriteFile(const char *data, int len) override;
+    void onWriteHls(const char *data, int len) override;
 private:
-	std::shared_ptr<HlsRecorder> _hlsMaker;
-#ifdef  ENABLE_MP4V2
-	std::shared_ptr<Mp4Maker> _mp4Maker;
-#endif //ENABLE_MP4V2
-
+    string fullPath(int index);
+    std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
+private:
+    std::shared_ptr<FILE> _file;
+    std::shared_ptr<char> _file_buf;
+    string _path_prefix;
+    string _path_hls;
+    string _params;
+    int _buf_size;
 };
 
-} /* namespace mediakit */
-
-#endif /* SRC_MEDIAFILE_MEDIARECORDER_H_ */
+}//namespace mediakit
+#endif //HLSMAKERIMP_H

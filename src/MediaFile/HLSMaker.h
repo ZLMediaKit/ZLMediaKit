@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -24,63 +24,76 @@
  * SOFTWARE.
  */
 
-#ifndef HLSMAKER_H_
-#define HLSMAKER_H_
+#ifndef HLSMAKER_H
+#define HLSMAKER_H
 
 #include <deque>
-#include "TSMaker.h"
+#include <tuple>
+#include "Common/config.h"
 #include "Util/TimeTicker.h"
 #include "Util/File.h"
 #include "Util/util.h"
 #include "Util/logger.h"
-#include "Common/config.h"
-#include "Common/MediaSink.h"
-#include "Extension/Frame.h"
-
 using namespace toolkit;
 
 namespace mediakit {
 
-class HLSMaker : public MediaSink{
+class HlsMaker {
 public:
-	HLSMaker(const string &strM3u8File,
-			uint32_t ui32BufSize = 64 * 1024,
-			uint32_t ui32Duration = 5,
-			uint32_t ui32Num = 3);
-
-	virtual ~HLSMaker();
-
-protected:
-	/**
-     * 某Track输出frame，在onAllTrackReady触发后才会调用此方法
-     * @param frame
+    /**
+     * @param seg_duration 切片文件长度
+     * @param seg_number 切片个数
      */
-	void onTrackFrame(const Frame::Ptr &frame) override ;
+    HlsMaker(float seg_duration = 5, uint32_t seg_number = 3);
+    virtual ~HlsMaker();
+
+    /**
+     * 写入ts数据
+     * @param data 数据
+     * @param len 数据长度
+     * @param timestamp 毫秒时间戳
+     */
+    void inputData(void *data, uint32_t len, uint32_t timestamp);
+protected:
+    /**
+     * 创建ts切片文件回调
+     * @param index
+     * @return
+     */
+    virtual string onOpenFile(int index) = 0;
+
+    /**
+     * 删除ts切片文件回调
+     * @param index
+     */
+    virtual void onDelFile(int index) = 0;
+
+    /**
+     * 写ts切片文件回调
+     * @param data
+     * @param len
+     */
+    virtual void onWriteFile(const char *data, int len) = 0;
+
+    /**
+     * 写m3u8文件回调
+     * @param data
+     * @param len
+     */
+    virtual void onWriteHls(const char *data, int len) = 0;
 private:
-	void inputH264(const Frame::Ptr &frame);
-	void inputAAC(const Frame::Ptr &frame);
-
-	bool write_index_file(int iFirstSegment,
-						  unsigned int uiLastSegment,
-						  int iEnd);
-
-	bool removets();
+    void delOldFile();
+    void addNewFile(uint32_t timestamp);
+    void makeIndexFile(bool eof = false);
 private:
-	TSMaker _ts;
-	string _strM3u8File;
-	string _strFileName;
-	string _strOutputPrefix;
-	uint32_t _ui32SegmentDuration;
-	uint32_t _ui32NumSegments;
-	uint64_t _ui64TsCnt;
-	uint32_t _ui32BufSize;
-    uint32_t _ui32LastStamp;
-	uint32_t _ui32LastFrameStamp = 0;
-	std::deque<int> _iDurations;
-
-
+    string _file_prefix;
+    float _seg_duration = 0;
+    uint32_t _seg_number = 0;
+    uint64_t _file_index = 0;
+    uint32_t _stamp_last = 0;
+    string _last_file_name;
+    std::deque<tuple<int,string> > _seg_dur_list;
 };
 
-} /* namespace mediakit */
-
-#endif /* HLSMAKER_H_ */
+}//namespace mediakit
+#endif //HLSMAKER_H
