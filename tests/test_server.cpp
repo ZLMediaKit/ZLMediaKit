@@ -274,15 +274,8 @@ int main(int argc,char *argv[]) {
               " rtsp地址 : rtsp://127.0.0.1/live/0\n"
               " rtmp地址 : rtmp://127.0.0.1/live/0";
 
-    //请把证书"test_server.pem"放置在本程序可执行程序同目录下
-    try {
-        //加载证书，证书包含公钥和私钥
-        SSL_Initor::Instance().loadServerPem((exePath() + ".pem").data());
-    } catch (...) {
-        ErrorL << "请把证书:" << (exeName() + ".pem") << "放置在本程序可执行程序同目录下:" << exeDir() << endl;
-        proxyMap.clear();
-        return 0;
-    }
+    //加载证书，证书包含公钥和私钥
+    SSL_Initor::Instance().loadServerPem((exeDir() + "ssl.pem").data());
 
     uint16_t shellPort = mINI::Instance()[Shell::kPort];
     uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
