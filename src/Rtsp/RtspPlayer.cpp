@@ -43,7 +43,7 @@ using namespace mediakit::Client;
 
 namespace mediakit {
 
-RtspPlayer::RtspPlayer(void){
+RtspPlayer::RtspPlayer(const EventPoller::Ptr &poller) : TcpClient(poller){
 	RtpReceiver::setPoolSize(64);
 }
 RtspPlayer::~RtspPlayer(void) {

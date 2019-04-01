@@ -37,7 +37,7 @@ namespace mediakit {
 class RtmpPusher: public RtmpProtocol , public TcpClient , public PusherBase{
 public:
 	typedef std::shared_ptr<RtmpPusher> Ptr;
-	RtmpPusher(const RtmpMediaSource::Ptr  &src);
+	RtmpPusher(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &src);
 	virtual ~RtmpPusher();
 
 	void publish(const string &strUrl) override ;

@@ -25,7 +25,7 @@ namespace mediakit {
 class RtspPusher : public TcpClient, public RtspSplitter, public PusherBase {
 public:
     typedef std::shared_ptr<RtspPusher> Ptr;
-    RtspPusher(const RtspMediaSource::Ptr  &src);
+    RtspPusher(const EventPoller::Ptr &poller,const RtspMediaSource::Ptr &src);
     virtual ~RtspPusher();
 
     void publish(const string &strUrl) override;

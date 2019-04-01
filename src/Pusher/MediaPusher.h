@@ -42,15 +42,18 @@ public:
     MediaPusher(const string &schema,
                 const string &strVhost,
                 const string &strApp,
-                const string &strStream);
+                const string &strStream,
+                const EventPoller::Ptr &poller = nullptr);
 
-    MediaPusher(const MediaSource::Ptr &src);
+    MediaPusher(const MediaSource::Ptr &src,
+                const EventPoller::Ptr &poller = nullptr);
 
     virtual ~MediaPusher();
     void publish(const string &strUrl) override;
     EventPoller::Ptr getPoller();
 private:
     std::weak_ptr<MediaSource> _src;
+    EventPoller::Ptr _poller;
 };
 
 } /* namespace mediakit */

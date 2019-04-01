@@ -86,7 +86,7 @@ public:
 class PlayerBase : public DemuxerBase, public mINI{
 public:
 	typedef std::shared_ptr<PlayerBase> Ptr;
-    static Ptr createPlayer(const string &strUrl);
+    static Ptr createPlayer(const EventPoller::Ptr &poller,const string &strUrl);
 
 	PlayerBase();
 	virtual ~PlayerBase(){}
@@ -154,7 +154,10 @@ class PlayerImp : public Parent
 {
 public:
 	typedef std::shared_ptr<PlayerImp> Ptr;
-	PlayerImp(){}
+
+	template<typename ...ArgsType>
+	PlayerImp(ArgsType &&...args):Parent(std::forward<ArgsType>(args)...){}
+
 	virtual ~PlayerImp(){}
 	void setOnShutdown(const function<void(const SockException &)> &cb) override {
 		if (_parser) {

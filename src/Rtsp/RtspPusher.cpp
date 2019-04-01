@@ -13,7 +13,7 @@ namespace mediakit {
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
-RtspPusher::RtspPusher(const RtspMediaSource::Ptr &src) {
+RtspPusher::RtspPusher(const EventPoller::Ptr &poller,const RtspMediaSource::Ptr &src) : TcpClient(poller){
     _pMediaSrc = src;
 }
 

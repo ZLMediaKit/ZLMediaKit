@@ -32,21 +32,27 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MediaPusher::MediaPusher(const MediaSource::Ptr &src) {
+MediaPusher::MediaPusher(const MediaSource::Ptr &src,
+                         const EventPoller::Ptr &poller) {
     _src = src;
+    _poller = poller;
+    if(!_poller){
+        _poller = EventPollerPool::Instance().getPoller();
+    }
 }
 
 MediaPusher::MediaPusher(const string &schema,
                          const string &strVhost,
                          const string &strApp,
-                         const string &strStream) {
-    _src = MediaSource::find(schema,strVhost,strApp,strStream);
+                         const string &strStream,
+                         const EventPoller::Ptr &poller) :
+        MediaPusher(MediaSource::find(schema,strVhost,strApp,strStream),poller){
 }
 
 MediaPusher::~MediaPusher() {
 }
 void MediaPusher::publish(const string &strUrl) {
-    _parser = PusherBase::createPusher(_src.lock(),strUrl);
+    _parser = PusherBase::createPusher(_poller,_src.lock(),strUrl);
     _parser->setOnShutdown(_shutdownCB);
     _parser->setOnPublished(_publishCB);
     _parser->mINI::operator=(*this);
@@ -54,11 +60,7 @@ void MediaPusher::publish(const string &strUrl) {
 }
 
 EventPoller::Ptr MediaPusher::getPoller(){
-    auto parser = dynamic_pointer_cast<SocketHelper>(_parser);
-    if(!parser){
-        return nullptr;
-    }
-    return parser->getPoller();
+    return _poller;
 }
 
 
