@@ -32,7 +32,7 @@ else()
 endif ()
 
 #添加两个静态库
-set(LINK_LIB_LIST zlmediakit zltoolkit)
+set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
 
 #查找openssl是否安装
 find_package(OpenSSL QUIET)
