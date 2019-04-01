@@ -69,8 +69,8 @@
     | :------------------------------: | :--: | :--: | :--: | :---: |
     | RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  N   |  Y   |   N   |
     |         RTMP --> RTSP[S]         |  Y   |  N   |  Y   |   N   |
-    |         RTSP[S] --> HLS          |  Y   |  N   |  Y   |   N   |
-    |           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
+    |         RTSP[S] --> HLS          |  Y   |  Y   |  Y   |   N   |
+    |           RTMP --> HLS           |  Y   |  Y   |  Y   |   N   |
     |         RTSP[S] --> MP4          |  Y   |  N   |  Y   |   N   |
     |           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
     |         MP4 --> RTSP[S]          |  Y   |  N   |  Y   |   N   |
