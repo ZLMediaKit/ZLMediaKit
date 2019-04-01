@@ -222,7 +222,6 @@
 	rtmpSrv->start<RtmpSession>(mINI::Instance()[Config::Rtmp::kPort]);
 	httpSrv->start<HttpSession>(mINI::Instance()[Config::Http::kPort]);
 	httpsSrv->start<HttpsSession>(mINI::Instance()[Config::Http::kSSLPort]);
-	EventPoller::Instance().runLoop();
 	```
 
 - 作为播放器：
@@ -251,7 +250,7 @@
     });
 
     //支持rtmp、rtsp
-    (*player)[RtspPlayer::kRtpType] = PlayerBase::RTP_TCP;
+    (*player)[Client::kRtpType] = Rtsp::RTP_TCP;
     player->play("rtsp://admin:jzan123456@192.168.0.122/");
 	```
 - 作为代理服务器：
@@ -297,7 +296,6 @@
 		pusher->publish("rtmp://jizan.iok.la/live/test");
 	});
 
-	EventPoller::Instance().runLoop();
 	```
 ## QA
 - 怎么测试服务器性能？
