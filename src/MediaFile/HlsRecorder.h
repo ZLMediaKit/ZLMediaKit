@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -24,51 +24,25 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_MEDIAFILE_MEDIARECORDER_H_
-#define SRC_MEDIAFILE_MEDIARECORDER_H_
+#ifndef HLSRECORDER_H
+#define HLSRECORDER_H
 
-#include <memory>
-#include "Player/PlayerBase.h"
-
-#ifdef  ENABLE_MP4V2
-#include "Mp4Maker.h"
-#endif //ENABLE_MP4V2
-
-#include "HlsRecorder.h"
-using namespace toolkit;
+#include "HlsMakerImp.h"
+#include "TsMuxer.h"
 
 namespace mediakit {
 
-class MediaRecorder : public MediaSink{
+class HlsRecorder : public HlsMakerImp , public TsMuxer  {
 public:
-	typedef std::shared_ptr<MediaRecorder> Ptr;
-	MediaRecorder(const string &strVhost,
-                  const string &strApp,
-                  const string &strId,
-                  bool enableHls = true,
-                  bool enableMp4 = false);
-	virtual ~MediaRecorder();
-
-	/**
-     * 输入frame
-     * @param frame
-     */
-	void inputFrame(const Frame::Ptr &frame) override ;
-
-	/**
-     * 添加track，内部会调用Track的clone方法
-     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
-     * @param track
-     */
-	void addTrack(const Track::Ptr & track) override;
-private:
-	std::shared_ptr<HlsRecorder> _hlsMaker;
-#ifdef  ENABLE_MP4V2
-	std::shared_ptr<Mp4Maker> _mp4Maker;
-#endif //ENABLE_MP4V2
-
+    template<typename ...ArgsType>
+    HlsRecorder(ArgsType &&...args):HlsMakerImp(std::forward<ArgsType>(args)...){}
+    ~HlsRecorder(){};
+protected:
+    void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) override {
+        inputData((char *)packet,bytes,timestamp);
+    };
 };
 
-} /* namespace mediakit */
+}//namespace mediakit
 
-#endif /* SRC_MEDIAFILE_MEDIARECORDER_H_ */
+#endif //HLSRECORDER_H

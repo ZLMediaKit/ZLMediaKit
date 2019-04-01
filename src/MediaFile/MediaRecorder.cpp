@@ -30,6 +30,7 @@
 #include "Util/util.h"
 #include "Util/mini.h"
 #include "Network/sockutil.h"
+#include "HlsMakerImp.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -53,7 +54,7 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
 
     if(enableHls) {
         auto m3u8FilePath = hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
-        _hlsMaker.reset(new HLSMaker(m3u8FilePath,hlsBufSize, hlsDuration, hlsNum));
+        _hlsMaker.reset(new HlsRecorder(m3u8FilePath,string(VHOST_KEY) + "=" + strVhost ,hlsBufSize, hlsDuration, hlsNum));
     }
 
 #ifdef ENABLE_MP4V2

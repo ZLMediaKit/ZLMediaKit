@@ -11,7 +11,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 #设置工程源码根目录
-set(ToolKit_Root ${CMAKE_SOURCE_DIR}/ZLToolKit/src)
+set(ToolKit_Root ${CMAKE_SOURCE_DIR}/3rdpart/ZLToolKit/src)
+set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
 set(MediaKit_Root ${CMAKE_SOURCE_DIR}/src)
 
 #设置头文件目录
@@ -83,6 +84,13 @@ add_definitions(-DENABLE_RING_USEBUF)
 #添加库
 add_library(zltoolkit STATIC ${ToolKit_src_list})
 add_library(zlmediakit STATIC ${MediaKit_src_list})
+
+#libmpeg
+aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
+aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
+include_directories(${MediaServer_Root}/libmpeg/include)
+add_library(mpeg STATIC ${src_mpeg})
+
 
 if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
