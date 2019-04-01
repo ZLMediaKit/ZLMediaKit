@@ -112,26 +112,16 @@ int main(int argc,char *argv[]){
 	//加载配置文件，如果配置文件不存在就创建一个
 	loadIniConfig();
 
-#ifdef ENABLE_OPENSSL
-	//请把证书"test_httpApi.pem"放置在本程序可执行程序同目录下
-	try{
-		//加载证书，证书包含公钥和私钥
-		SSL_Initor::Instance().loadServerPem((exePath() + ".pem").data());
-	}catch(...){
-		ErrorL << "请把证书:" << (exeName() + ".pem") << "放置在本程序可执行程序同目录下:" << exeDir() << endl;
-		return 0;
-	}
-#endif //ENABLE_OPENSSL
+	//加载证书，证书包含公钥和私钥
+	SSL_Initor::Instance().loadServerPem((exeDir() + "ssl.pem").data());
 
 	//开启http服务器
 	TcpServer::Ptr httpSrv(new TcpServer());
 	httpSrv->start<EchoWebSocketSession>(mINI::Instance()[Http::kPort]);//默认80
 
-#ifdef ENABLE_OPENSSL
     //如果支持ssl，还可以开启https服务器
 	TcpServer::Ptr httpsSrv(new TcpServer());
 	httpsSrv->start<SSLEchoWebSocketSession>(mINI::Instance()[Http::kSSLPort]);//默认443
-#endif //ENABLE_OPENSSL
 
 	InfoL << "你可以在浏览器输入:http://127.0.0.1/api/my_api?key0=val0&key1=参数1" << endl;
 

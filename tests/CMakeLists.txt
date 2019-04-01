@@ -1,4 +1,6 @@
-﻿#查找SDL2是否安装
+﻿execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/ssl.pem ${EXECUTABLE_OUTPUT_PATH}/)
+
+#查找SDL2是否安装
 find_package(SDL2 QUIET)
 if (SDL2_FOUND)
     include_directories(${SDL2_INCLUDE_DIR})
