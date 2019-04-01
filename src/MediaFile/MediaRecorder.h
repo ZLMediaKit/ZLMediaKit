@@ -29,6 +29,7 @@
 
 #include <memory>
 #include "Player/PlayerBase.h"
+#include "Common/MediaSink.h"
 
 #ifdef  ENABLE_MP4V2
 #include "Mp4Maker.h"
