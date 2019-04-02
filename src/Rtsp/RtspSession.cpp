@@ -349,7 +349,7 @@ void RtspSession::onAuthSuccess(const weak_ptr<RtspSession> &weakSelf) {
             return;
         }
 		strongSelf->sendRtspResponse("200 OK",
-									 {"Content-Base",strongSelf->_strContentBase,
+									 {"Content-Base",strongSelf->_strContentBase + "/",
 									  "x-Accept-Retransmit","our-retransmit",
 									  "x-Accept-Dynamic-Rate","1"
 									 },strongSelf->_strSdp);
