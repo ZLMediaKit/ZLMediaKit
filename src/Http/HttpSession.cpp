@@ -190,6 +190,9 @@ inline bool HttpSession::checkWebSocket(){
 	headerOut["Upgrade"] = "websocket";
 	headerOut["Connection"] = "Upgrade";
 	headerOut["Sec-WebSocket-Accept"] = Sec_WebSocket_Accept;
+	if(!_parser["Sec-WebSocket-Protocol"].empty()){
+		headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
+	}
 	sendResponse("101 Switching Protocols",headerOut,"");
 	return true;
 }
