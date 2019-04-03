@@ -36,6 +36,7 @@
 #include "Util/NoticeCenter.h"
 #include "Extension/H264.h"
 #include "Extension/AAC.h"
+#include "Thread/WorkThreadPool.h"
 
 using namespace toolkit;
 
@@ -212,25 +213,33 @@ void Mp4Maker::createFile() {
 	}
 }
 
+void Mp4Maker::asyncClose() {
+	auto hMp4 = _hMp4;
+	auto strFileTmp = _strFileTmp;
+	auto strFile = _strFile;
+	auto info = _info;
+	WorkThreadPool::Instance().getExecutor()->async([hMp4,strFileTmp,strFile,info]() {
+		//获取文件录制时间，放在MP4Close之前是为了忽略MP4Close执行时间
+		const_cast<Mp4Info&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
+		//MP4Close非常耗时，所以要放在后台线程执行
+		MP4Close(hMp4,MP4_CLOSE_DO_NOT_COMPUTE_BITRATE);
+		//临时文件名改成正式文件名，防止mp4未完成时被访问
+		rename(strFileTmp.data(),strFile.data());
+		//获取文件大小
+		struct stat fileData;
+		stat(strFile.data(), &fileData);
+		const_cast<Mp4Info&>(info).ui64FileSize = fileData.st_size;
+		/////record 业务逻辑//////
+		NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4,info);
+	});
+}
+
 void Mp4Maker::closeFile() {
 	if (_hMp4 != MP4_INVALID_FILE_HANDLE) {
-		{
-			TimeTicker();
-			MP4Close(_hMp4,MP4_CLOSE_DO_NOT_COMPUTE_BITRATE);
-		}
-		rename(_strFileTmp.data(),_strFile.data());
+		asyncClose();
 		_hMp4 = MP4_INVALID_FILE_HANDLE;
 		_hVideo = MP4_INVALID_TRACK_ID;
 		_hAudio = MP4_INVALID_TRACK_ID;
-
-		/////record 业务逻辑//////
-		_info.ui64TimeLen = ::time(NULL) - _info.ui64StartedTime;
-		//获取文件大小
-		struct stat fileData;
-		stat(_strFile.data(), &fileData);
-		_info.ui64FileSize = fileData.st_size;
-		//----record 业务逻辑----//
-		NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4,_info,*this);
 	}
 }
 

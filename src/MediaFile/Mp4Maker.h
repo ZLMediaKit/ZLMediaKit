@@ -79,6 +79,7 @@ private:
 private:
     void createFile();
     void closeFile();
+    void asyncClose();
 
 	//时间戳：参考频率1000
 	void inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
