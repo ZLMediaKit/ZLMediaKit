@@ -33,10 +33,12 @@ using namespace toolkit;
 namespace mediakit {
 
 #ifdef ENABLE_MP4V2
-MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId) {
-    GET_CONFIG_AND_REGISTER(string,recordPath,Record::kFilePath);
-
-    auto strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
+MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
+    auto strFileName = filePath;
+    if(strFileName.empty()){
+		GET_CONFIG_AND_REGISTER(string,recordPath,Record::kFilePath);
+		strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
+    }
 
 	_hMP4File = MP4Read(strFileName.data());
 	if(_hMP4File == MP4_INVALID_FILE_HANDLE){
@@ -302,15 +304,19 @@ void MediaReader::seek(uint32_t iSeekTime,bool bReStart){
 
 
 
-MediaSource::Ptr MediaReader::onMakeMediaSource(const string &strSchema,const string &strVhost,const string &strApp, const string &strId){
+MediaSource::Ptr MediaReader::onMakeMediaSource(const string &strSchema,
+												const string &strVhost,
+												const string &strApp,
+												const string &strId,
+												const string &filePath,
+												bool checkApp ){
 #ifdef ENABLE_MP4V2
     GET_CONFIG_AND_REGISTER(string,appName,Record::kAppName);
-
-    if (strApp != appName) {
+    if (checkApp && strApp != appName) {
 		return nullptr;
 	}
 	try {
-		MediaReader::Ptr pReader(new MediaReader(strVhost,strApp, strId));
+		MediaReader::Ptr pReader(new MediaReader(strVhost,strApp, strId,filePath));
 		pReader->startReadMP4();
 		return MediaSource::find(strSchema,strVhost,strApp, strId, false);
 	} catch (std::exception &ex) {
