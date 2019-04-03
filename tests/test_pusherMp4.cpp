@@ -43,32 +43,46 @@ using namespace mediakit;
 MediaPusher::Ptr pusher;
 
 //声明函数
-void rePushDelay(const string &schema,const string &vhost,const string &app, const string &stream, const string &url);
-
+//推流失败或断开延迟2秒后重试推流
+void rePushDelay(const string &schema,
+				 const string &vhost,
+				 const string &app,
+				 const string &stream,
+				 const string &filePath,
+				 const string &url) ;
 
 //创建推流器并开始推流
-void createPusher(const string &schema,const string &vhost,const string &app, const string &stream, const string &url) {
-	auto src = MediaReader::onMakeMediaSource(schema,vhost,app,stream);
+void createPusher(const string &schema,
+				  const string &vhost,
+				  const string &app,
+				  const string &stream,
+				  const string &filePath,
+				  const string &url) {
+	//不限制APP名，并且指定文件绝对路径
+	auto src = MediaReader::onMakeMediaSource(schema,vhost,app,stream,filePath, false);
     if(!src){
         //文件不存在
-        WarnL << "MP4 file not exited!";
+        WarnL << "MP4文件不存在:" << filePath;
         return;
     }
 
 	//创建推流器并绑定一个MediaSource
     pusher.reset(new MediaPusher(src));
+	//可以指定rtsp推流方式，支持tcp和udp方式，默认tcp
+//    (*pusher)[Client::kRtpType] = Rtsp::RTP_UDP;
+
 	//设置推流中断处理逻辑
-	pusher->setOnShutdown([schema,vhost,app,stream, url](const SockException &ex) {
+	pusher->setOnShutdown([schema,vhost,app,stream,filePath, url](const SockException &ex) {
 		WarnL << "Server connection is closed:" << ex.getErrCode() << " " << ex.what();
         //重新推流
-		rePushDelay(schema,vhost,app, stream, url);
+		rePushDelay(schema,vhost,app, stream,filePath, url);
 	});
 	//设置发布结果处理逻辑
-	pusher->setOnPublished([schema,vhost,app,stream, url](const SockException &ex) {
+	pusher->setOnPublished([schema,vhost,app,stream,filePath, url](const SockException &ex) {
 		if (ex) {
 			WarnL << "Publish fail:" << ex.getErrCode() << " " << ex.what();
 			//如果发布失败，就重试
-			rePushDelay(schema,vhost,app, stream, url);
+			rePushDelay(schema,vhost,app, stream, filePath ,url);
 		}else {
 			InfoL << "Publish success,Please play with player:" << url;
 		}
@@ -78,11 +92,16 @@ void createPusher(const string &schema,const string &vhost,const string &app, co
 
 Timer::Ptr g_timer;
 //推流失败或断开延迟2秒后重试推流
-void rePushDelay(const string &schema,const string &vhost,const string &app, const string &stream, const string &url) {
-	g_timer = std::make_shared<Timer>(2,[schema,vhost,app, stream, url]() {
+void rePushDelay(const string &schema,
+				 const string &vhost,
+				 const string &app,
+				 const string &stream,
+				 const string &filePath,
+				 const string &url) {
+	g_timer = std::make_shared<Timer>(2,[schema,vhost,app, stream, filePath,url]() {
 		InfoL << "Re-Publishing...";
 		//重新推流
-		createPusher(schema,vhost,app, stream, url);
+		createPusher(schema,vhost,app, stream, filePath,url);
 		//此任务不重复
 		return false;
 	}, nullptr);
@@ -90,19 +109,15 @@ void rePushDelay(const string &schema,const string &vhost,const string &app, con
 
 //这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了
 int domain(const string & filePath,const string & pushUrl){
-	//设置退出信号处理函数
-	static semaphore sem;
-	signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
-
 	//设置日志
 	Logger::Instance().add(std::make_shared<ConsoleChannel>());
 	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
+	//vhost/app/stream可以随便自己填，现在不限制app应用名了
+    createPusher(FindField(pushUrl.data(), nullptr,"://"),DEFAULT_VHOST,"live","stream",filePath,pushUrl);
 
-    //录像应用名称默认为record
-    string appName = mINI::Instance()[Record::kAppName];
-    //app必须record，filePath(流id)为相对于httpRoot/record的路径，否则MediaReader会找到不该文件
-    //限制app为record是为了防止服务器上的文件被肆意访问
-    createPusher(FindField(pushUrl.data(), nullptr,"://"),DEFAULT_VHOST,appName,filePath,pushUrl);
+	//设置退出信号处理函数
+	static semaphore sem;
+	signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
     sem.wait();
 	pusher.reset();
 	g_timer.reset();
@@ -112,9 +127,9 @@ int domain(const string & filePath,const string & pushUrl){
 
 
 int main(int argc,char *argv[]){
-    //MP4文件需要放置在 httpRoot/record目录下,文件负载必须为h264+aac
     //可以使用test_server生成的mp4文件
-    return domain("app/stream/2017-09-30/12-55-38.mp4","rtsp://127.0.0.1/live/rtsp_push");
+	//文件使用绝对路径，推流url支持rtsp和rtmp
+    return domain("/Users/xzl/Desktop/bear-1280x720-long.mp4","rtsp://127.0.0.1/live/rtsp_push");
 }
 
 
