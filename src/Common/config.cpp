@@ -227,8 +227,8 @@ const char kAppName[] = RECORD_FIELD"appName";
 #define RECORD_SAMPLE_MS 100
 const char kSampleMS[] = RECORD_FIELD"sampleMS";
 
-//MP4文件录制大小,不能太大,否则MP4Close函数执行事件太长
-#define RECORD_FILE_SECOND (10*60)
+//MP4文件录制大小,默认一个小时
+#define RECORD_FILE_SECOND (60*60)
 const char kFileSecond[] = RECORD_FIELD"fileSecond";
 
 //录制文件路径

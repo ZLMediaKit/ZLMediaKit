@@ -73,7 +73,7 @@ extern const char kBroadcastMediaChanged[];
 
 //录制mp4文件成功后广播
 extern const char kBroadcastRecordMP4[];
-#define BroadcastRecordMP4Args const Mp4Info &info,Mp4Maker &sender
+#define BroadcastRecordMP4Args const Mp4Info &info
 
 //收到http api请求广播
 extern const char kBroadcastHttpRequest[];
@@ -216,7 +216,7 @@ namespace Record {
 extern const char kAppName[];
 //每次流化MP4文件的时长,单位毫秒
 extern const char kSampleMS[];
-//MP4文件录制大小,不能太大,否则MP4Close函数执行事件太长
+//MP4文件录制大小,默认一个小时
 extern const char kFileSecond[];
 //录制文件路径
 extern const char kFilePath[];
