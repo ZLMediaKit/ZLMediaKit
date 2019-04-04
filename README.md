@@ -137,7 +137,6 @@
 	scl enable devtoolset-4 bash
 
 	2、安装cmake
-	cd third/
 	#需要安装新版本cmake,当然你也可以通过yum或者apt-get方式安装(前提是版本够新)
 	tar -xvf cmake-3.10.0-rc4.tar.gz
 	cd cmake-3.10.0-rc4
