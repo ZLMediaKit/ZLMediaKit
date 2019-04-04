@@ -95,6 +95,14 @@ inline void H264RtmpDecoder::onGetH264_l(const char* pcData, int iLen, uint32_t 
             onGetH264(pcData, iLen, dts , pts);
         }
             break;
+        case H264Frame::NAL_SPS: {
+            _sps.assign(pcData, iLen);
+        }
+            break;
+        case H264Frame::NAL_PPS:{
+            _pps.assign(pcData, iLen);
+        }
+            break;
         default:
             break;
     }
