@@ -39,10 +39,10 @@ set(ENABLE_X264 true)
 
 #添加两个静态库
 if(ENABLE_HLS)
-    set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
-    set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
-    add_definitions(-DENABLE_HLS)
     message(STATUS "ENABLE_HLS defined")
+    add_definitions(-DENABLE_HLS)
+    set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
+    set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
 else()
     set(LINK_LIB_LIST zlmediakit zltoolkit)
 endif()
