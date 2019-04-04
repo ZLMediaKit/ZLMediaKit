@@ -25,8 +25,9 @@
  */
 
 #include "TsMuxer.h"
-#include <assert.h>
+#if defined(ENABLE_HLS)
 #include "mpeg-ts-proto.h"
+#include "mpeg-ts.h"
 
 namespace mediakit {
 
@@ -122,3 +123,5 @@ void TsMuxer::uninit() {
 }
 
 }//namespace mediakit
+
+#endif// defined(ENABLE_HLS)
