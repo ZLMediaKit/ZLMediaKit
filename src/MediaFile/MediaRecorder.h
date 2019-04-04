@@ -30,12 +30,9 @@
 #include <memory>
 #include "Player/PlayerBase.h"
 #include "Common/MediaSink.h"
-
-#ifdef  ENABLE_MP4V2
 #include "Mp4Maker.h"
-#endif //ENABLE_MP4V2
-
 #include "HlsRecorder.h"
+
 using namespace toolkit;
 
 namespace mediakit {
@@ -63,11 +60,13 @@ public:
      */
 	void addTrack(const Track::Ptr & track) override;
 private:
+#if defined(ENABLE_HLS)
 	std::shared_ptr<HlsRecorder> _hlsMaker;
-#ifdef  ENABLE_MP4V2
-	std::shared_ptr<Mp4Maker> _mp4Maker;
-#endif //ENABLE_MP4V2
+#endif //defined(ENABLE_HLS)
 
+#if defined(ENABLE_MP4V2)
+	std::shared_ptr<Mp4Maker> _mp4Maker;
+#endif //defined(ENABLE_MP4V2)
 };
 
 } /* namespace mediakit */

@@ -12,7 +12,6 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 #设置工程源码根目录
 set(ToolKit_Root ${CMAKE_SOURCE_DIR}/3rdpart/ZLToolKit/src)
-set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
 set(MediaKit_Root ${CMAKE_SOURCE_DIR}/src)
 
 #设置头文件目录
@@ -31,40 +30,54 @@ else()
     add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS)
 endif ()
 
+set(ENABLE_HLS true)
+set(ENABLE_OPENSSL true)
+set(ENABLE_MYSQL true)
+set(ENABLE_MP4V2 true)
+set(ENABLE_FAAC true)
+set(ENABLE_X264 true)
+
 #添加两个静态库
-set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
+if(ENABLE_HLS)
+    set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
+    set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
+    add_definitions(-DENABLE_HLS)
+    message(STATUS "ENABLE_HLS defined")
+else()
+    set(LINK_LIB_LIST zlmediakit zltoolkit)
+endif()
 
 #查找openssl是否安装
 find_package(OpenSSL QUIET)
-if (OPENSSL_FOUND)
-    message(STATUS "found openssl library\"${OPENSSL_INCLUDE_DIR}\",ENABLE_OPENSSL enabled")
+if (OPENSSL_FOUND AND ENABLE_OPENSSL)
+    message(STATUS "found library:${OPENSSL_LIBRARIES},ENABLE_OPENSSL defined")
     include_directories(${OPENSSL_INCLUDE_DIR})
     add_definitions(-DENABLE_OPENSSL)
     list(APPEND LINK_LIB_LIST ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
+endif ()
 
 #查找mysql是否安装
 find_package(MYSQL QUIET)
-if (MYSQL_FOUND)
-    message(STATUS "found mysqlclient library\"${MYSQL_INCLUDE_DIR}\",ENABLE_MYSQL enabled")
+if (MYSQL_FOUND AND ENABLE_MYSQL)
+    message(STATUS "found library:${MYSQL_LIBRARIES},ENABLE_MYSQL defined")
     include_directories(${MYSQL_INCLUDE_DIR})
     add_definitions(-DENABLE_MYSQL)
     list(APPEND LINK_LIB_LIST ${MYSQL_LIBRARIES})
-endif (MYSQL_FOUND)
+endif ()
 
 #查找MP4V2是否安装
 find_package(MP4V2 QUIET)
-if (MP4V2_FOUND)
+if (MP4V2_FOUND AND ENABLE_MP4V2)
     include_directories(${MP4V2_INCLUDE_DIR})
     list(APPEND LINK_LIB_LIST ${MP4V2_LIBRARY})
     add_definitions(-DENABLE_MP4V2)
-    message(STATUS "found MP4V2:${MP4V2_INCLUDE_DIR},${MP4V2_LIBRARY}")
-endif (MP4V2_FOUND)
+    message(STATUS "found library:${MP4V2_LIBRARY},ENABLE_MP4V2 defined")
+endif ()
 
 #查找x264是否安装
 find_package(X264 QUIET)
-if (X264_FOUND)
-    message(STATUS "found x264 library\"${X264_INCLUDE_DIRS}\",ENABLE_X264 enabled")
+if (X264_FOUND AND ENABLE_X264)
+    message(STATUS "found library:${X264_LIBRARIES},ENABLE_X264 defined")
     include_directories(${X264_INCLUDE_DIRS})
     add_definitions(-DENABLE_X264)
     list(APPEND LINK_LIB_LIST ${X264_LIBRARIES})
@@ -72,33 +85,30 @@ endif ()
 
 #查找faac是否安装
 find_package(FAAC QUIET)
-if (FAAC_FOUND)
-    message(STATUS "found faac library\"${FAAC_INCLUDE_DIR}\",ENABLE_FAAC enabled")
+if (FAAC_FOUND AND ENABLE_FAAC)
+    message(STATUS "found library:${FAAC_LIBRARIES},ENABLE_FAAC defined")
     include_directories(${FAAC_INCLUDE_DIR})
     add_definitions(-DENABLE_FAAC)
     list(APPEND LINK_LIB_LIST ${FAAC_LIBRARIES})
 endif ()
 
-#使能GOP缓存
-add_definitions(-DENABLE_RING_USEBUF)
 #添加库
 add_library(zltoolkit STATIC ${ToolKit_src_list})
 add_library(zlmediakit STATIC ${MediaKit_src_list})
 
 #libmpeg
-aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
-aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
-include_directories(${MediaServer_Root}/libmpeg/include)
-add_library(mpeg STATIC ${src_mpeg})
-
+if(ENABLE_HLS)
+    aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
+    aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
+    include_directories(${MediaServer_Root}/libmpeg/include)
+    add_library(mpeg STATIC ${src_mpeg})
+endif()
 
 if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
 elseif(NOT ANDROID OR IOS)
     list(APPEND LINK_LIB_LIST pthread)
 endif ()
-
-message(STATUS "linked libraries:${LINK_LIB_LIST}")
 
 #测试程序
 add_subdirectory(tests)
