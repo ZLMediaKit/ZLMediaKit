@@ -62,7 +62,6 @@ public:
 protected:
 	//FlvMuxer override
 	void onWrite(const Buffer::Ptr &data) override ;
-	void onWrite(const char *data,int len) override;
 	void onDetach() override;
 	std::shared_ptr<FlvMuxer> getSharedPtr() override;
 	//HttpRequestSplitter override

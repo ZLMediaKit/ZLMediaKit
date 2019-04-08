@@ -691,14 +691,6 @@ void HttpSession::onWrite(const Buffer::Ptr &buffer) {
 	send(buffer);
 }
 
-void HttpSession::onWrite(const char *data, int len) {
-	BufferRaw::Ptr buffer(new BufferRaw);
-	buffer->assign(data,len);
-	_ticker.resetTime();
-	_ui64TotalBytes += buffer->size();
-	send(buffer);
-}
-
 void HttpSession::onDetach() {
 	shutdown();
 }
