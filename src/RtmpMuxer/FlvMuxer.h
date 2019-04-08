@@ -43,18 +43,16 @@ public:
 protected:
     void start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &media);
     virtual void onWrite(const Buffer::Ptr &data) = 0;
-    virtual void onWrite(const char *data,int len) = 0;
     virtual void onDetach() = 0;
     virtual std::shared_ptr<FlvMuxer> getSharedPtr() = 0;
 private:
     void onWriteFlvHeader(const RtmpMediaSource::Ptr &media);
     void onWriteRtmp(const RtmpPacket::Ptr &pkt);
     void onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp);
-    void onWriteFlvTag(uint8_t ui8Type, const std::string &strBuf, uint32_t ui32TimeStamp);
+    void onWriteFlvTag(uint8_t ui8Type, const Buffer::Ptr &buffer, uint32_t ui32TimeStamp);
 private:
     RtmpMediaSource::RingType::RingReader::Ptr _ring_reader;
     uint32_t _aui32FirstStamp[2] = {0};
-    uint32_t _previousTagSize = 0;
 
 };
 
@@ -67,7 +65,6 @@ public:
     void startRecord(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &media,const string &file_path);
 private:
     virtual void onWrite(const Buffer::Ptr &data) override ;
-    virtual void onWrite(const char *data,int len) override;
     virtual void onDetach() override;
     virtual std::shared_ptr<FlvMuxer> getSharedPtr() override;
 private:

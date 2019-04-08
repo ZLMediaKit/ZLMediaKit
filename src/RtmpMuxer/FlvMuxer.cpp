@@ -74,7 +74,6 @@ void FlvMuxer::start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &
 }
 
 void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
-    _previousTagSize = 0;
     CLEAR_ARR(_aui32FirstStamp);
 
     //发送flv文件头
@@ -101,11 +100,17 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     }
 
     //flv header
-    onWrite(flv_file_header, sizeof(flv_file_header) - 1);
+    onWrite(std::make_shared<BufferRaw>(flv_file_header, sizeof(flv_file_header) - 1));
+
+    auto size = htonl(0);
+    //PreviousTagSize0 Always 0
+    onWrite(std::make_shared<BufferRaw>((char *)&size,4));
+
     //metadata
     AMFEncoder invoke;
     invoke << "onMetaData" << mediaSrc->getMetaData();
-    onWriteFlvTag(MSG_DATA, invoke.data(), 0);
+    onWriteFlvTag(MSG_DATA, std::make_shared<BufferString>(invoke.data()), 0);
+
     //config frame
     mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
         onWriteRtmp(pkt);
@@ -132,29 +137,22 @@ public:
 #endif // defined(_WIN32)
 
 void FlvMuxer::onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp) {
-    auto size = htonl(_previousTagSize);
-    onWrite((char *)&size,4);//onWrite PreviousTagSize
-    RtmpTagHeader header;
-    header.type = pkt->typeId;
-    set_be24(header.data_size, pkt->strBuf.size());
-    header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
-    set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
-    onWrite((char *)&header, sizeof(header));//onWrite tag header
-    onWrite(pkt);//onWrite tag data
-    _previousTagSize += (pkt->strBuf.size() + sizeof(header));
+    onWriteFlvTag(pkt->typeId,pkt,ui32TimeStamp);
 }
 
-void FlvMuxer::onWriteFlvTag(uint8_t ui8Type, const std::string &strBuf, uint32_t ui32TimeStamp) {
-    auto size = htonl(_previousTagSize);
-    onWrite((char *)&size,4);//onWrite PreviousTagSize
+void FlvMuxer::onWriteFlvTag(uint8_t ui8Type, const Buffer::Ptr &buffer, uint32_t ui32TimeStamp) {
     RtmpTagHeader header;
     header.type = ui8Type;
-    set_be24(header.data_size, strBuf.size());
+    set_be24(header.data_size, buffer->size());
     header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
     set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
-    onWrite((char *)&header, sizeof(header));//onWrite tag header
-    onWrite(std::make_shared<BufferString>(strBuf));//onWrite tag data
-    _previousTagSize += (strBuf.size() + sizeof(header));
+    //tag header
+    onWrite(std::make_shared<BufferRaw>((char *)&header, sizeof(header)));
+    //tag data
+    onWrite(buffer);
+    auto size = htonl((buffer->size() + sizeof(header)));
+    //PreviousTagSize
+    onWrite(std::make_shared<BufferRaw>((char *)&size,4));
 }
 
 void FlvMuxer::onWriteRtmp(const RtmpPacket::Ptr &pkt) {
@@ -215,13 +213,6 @@ void FlvRecorder::onWrite(const Buffer::Ptr &data) {
     lock_guard<recursive_mutex> lck(_file_mtx);
     if(_file){
         fwrite(data->data(),data->size(),1,_file.get());
-    }
-}
-
-void FlvRecorder::onWrite(const char *data, int len) {
-    lock_guard<recursive_mutex> lck(_file_mtx);
-    if(_file){
-        fwrite(data,len,1,_file.get());
     }
 }
 
