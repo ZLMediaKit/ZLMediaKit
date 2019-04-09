@@ -100,6 +100,13 @@ public:
 				_bRegisted = true;
 			}
 		} else{
+			if(!_bRegisted){
+				//强制在3秒后注册，不管是否有metedata或config包
+				if(_ticker.createdTime() > 3 * 1000){
+					MediaSource::regist();
+					_bRegisted = true;
+				}
+			}
 			_mapStamp[pkt->typeId] = pkt->timeStamp;
 			_pRing->write(pkt,pkt->isVideoKeyFrame());
 		}
@@ -130,6 +137,7 @@ protected:
 	int _iCfgFrameSize = -1;
 	bool _bAsyncRegist = false;
 	bool _bRegisted = false;
+	Ticker _ticker;
 };
 
 } /* namespace mediakit */
