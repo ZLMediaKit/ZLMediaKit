@@ -215,50 +215,13 @@ public:
     void inputFrame(const Frame::Ptr &frame) override {
         int type = H265_TYPE(((uint8_t *) frame->data() + frame->prefixSize())[0]);
         if (H265Frame::isKeyFrame(type)) {
-            //关键帧之前插入vps sps pps
-            if(!_vps.empty()){
-                if (!_vpsFrame) {
-                    H265Frame::Ptr insertFrame = std::make_shared<H265Frame>();
-                    insertFrame->type = H265Frame::NAL_VPS;
-                    insertFrame->timeStamp = frame->stamp();
-                    insertFrame->buffer.assign("\x0\x0\x0\x1", 4);
-                    insertFrame->buffer.append(_sps);
-                    insertFrame->iPrefixSize = 4;
-                    _vpsFrame = insertFrame;
-                }
-                _vpsFrame->timeStamp = frame->stamp();
-                VideoTrack::inputFrame(_vpsFrame);
-            }
-            if (!_sps.empty()) {
-                if (!_spsFrame) {
-                    H265Frame::Ptr insertFrame = std::make_shared<H265Frame>();
-                    insertFrame->type = H265Frame::NAL_SPS;
-                    insertFrame->timeStamp = frame->stamp();
-                    insertFrame->buffer.assign("\x0\x0\x0\x1", 4);
-                    insertFrame->buffer.append(_sps);
-                    insertFrame->iPrefixSize = 4;
-                    _spsFrame = insertFrame;
-                }
-                _spsFrame->timeStamp = frame->stamp();
-                VideoTrack::inputFrame(_spsFrame);
-            }
-
-            if (!_pps.empty()) {
-                if (!_ppsFrame) {
-                    H265Frame::Ptr insertFrame = std::make_shared<H265Frame>();
-                    insertFrame->type = H265Frame::NAL_PPS;
-                    insertFrame->timeStamp = frame->stamp();
-                    insertFrame->buffer.assign("\x0\x0\x0\x1", 4);
-                    insertFrame->buffer.append(_pps);
-                    insertFrame->iPrefixSize = 4;
-                    _ppsFrame = insertFrame;
-                }
-                _ppsFrame->timeStamp = frame->stamp();
-                VideoTrack::inputFrame(_ppsFrame);
-            }
+            insertConfigFrame(frame);
             VideoTrack::inputFrame(frame);
+            _last_frame_is_idr = true;
             return;
         }
+
+        _last_frame_is_idr = false;
 
         //非idr帧
         switch (type) {
@@ -291,14 +254,54 @@ private:
         return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this);
     }
 
+    //在idr帧前插入vps sps pps帧
+    void insertConfigFrame(const Frame::Ptr &frame){
+        if(_last_frame_is_idr){
+            return;
+        }
+        if(!_vps.empty()){
+            if (!_vpsFrame) {
+                _vpsFrame = std::make_shared<H265Frame>();
+                _vpsFrame->type = H265Frame::NAL_VPS;
+                _vpsFrame->buffer.assign("\x0\x0\x0\x1", 4);
+                _vpsFrame->buffer.append(_vps);
+                _vpsFrame->iPrefixSize = 4;
+            }
+            _vpsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(_vpsFrame);
+        }
+        if (!_sps.empty()) {
+            if (!_spsFrame) {
+                _spsFrame = std::make_shared<H265Frame>();
+                _spsFrame->type = H265Frame::NAL_SPS;
+                _spsFrame->buffer.assign("\x0\x0\x0\x1", 4);
+                _spsFrame->buffer.append(_sps);
+                _spsFrame->iPrefixSize = 4;
+            }
+            _spsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(_spsFrame);
+        }
+
+        if (!_pps.empty()) {
+            if (!_ppsFrame) {
+                _ppsFrame = std::make_shared<H265Frame>();
+                _ppsFrame->type = H265Frame::NAL_PPS;
+                _ppsFrame->buffer.assign("\x0\x0\x0\x1", 4);
+                _ppsFrame->buffer.append(_pps);
+                _ppsFrame->iPrefixSize = 4;
+            }
+            _ppsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(_ppsFrame);
+        }
+    }
 private:
     string _vps;
     string _sps;
     string _pps;
-
     H265Frame::Ptr _vpsFrame;
     H265Frame::Ptr _spsFrame;
     H265Frame::Ptr _ppsFrame;
+    bool _last_frame_is_idr = false;
 };
 
 
