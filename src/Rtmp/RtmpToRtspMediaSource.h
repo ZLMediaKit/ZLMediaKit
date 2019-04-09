@@ -56,6 +56,7 @@ public:
                           bool bEnableMp4 = false,
 						  int ringSize = 0):RtmpMediaSource(vhost, app, id,ringSize){
 		_recorder = std::make_shared<MediaRecorder>(vhost, app, id, bEnableHls, bEnableMp4);
+		_rtmpDemuxer = std::make_shared<RtmpDemuxer>();
 	}
 	virtual ~RtmpToRtspMediaSource(){}
 
@@ -65,20 +66,17 @@ public:
 	}
 
 	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos) override {
-		if(_rtmpDemuxer){
-			_rtmpDemuxer->inputRtmp(pkt);
-			if(!_rtspMuxer && _rtmpDemuxer->isInited(2000)){
-				_rtspMuxer = std::make_shared<RtspMediaSourceMuxer>(getVhost(),
-																	getApp(),
-																	getId(),
-																	std::make_shared<TitleSdp>(
-																			_rtmpDemuxer->getDuration()));
-				for (auto &track : _rtmpDemuxer->getTracks(false)){
-					_rtspMuxer->addTrack(track);
-					_recorder->addTrack(track);
-					track->addDelegate(_rtspMuxer);
-					track->addDelegate(_recorder);
-				}
+		_rtmpDemuxer->inputRtmp(pkt);
+		if(!_rtspMuxer && _rtmpDemuxer->isInited(2000)){
+			_rtspMuxer = std::make_shared<RtspMediaSourceMuxer>(getVhost(),
+																getApp(),
+																getId(),
+																std::make_shared<TitleSdp>(_rtmpDemuxer->getDuration()));
+			for (auto &track : _rtmpDemuxer->getTracks(false)){
+				_rtspMuxer->addTrack(track);
+				_recorder->addTrack(track);
+				track->addDelegate(_rtspMuxer);
+				track->addDelegate(_recorder);
 			}
 		}
 		RtmpMediaSource::onWrite(pkt,key_pos);
