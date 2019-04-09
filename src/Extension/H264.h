@@ -283,44 +283,16 @@ private:
 
             case H264Frame::NAL_IDR:{
                 //I
-                if(!_sps.empty() && _last_frame_type != H264Frame::NAL_IDR){
-                    if(!_spsFrame)
-                    {
-                        H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                        insertFrame->type = H264Frame::NAL_SPS;
-                        insertFrame->timeStamp = frame->stamp();
-                        insertFrame->buffer.assign("\x0\x0\x0\x1",4);
-                        insertFrame->buffer.append(_sps);
-                        insertFrame->iPrefixSize = 4;
-                        _spsFrame = insertFrame;
-                    }
-                    _spsFrame->timeStamp = frame->stamp();
-                    VideoTrack::inputFrame(_spsFrame);
-                }
-
-                if(!_pps.empty() && _last_frame_type != H264Frame::NAL_IDR){
-                    if(!_ppsFrame)
-                    {
-                        H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                        insertFrame->type = H264Frame::NAL_PPS;
-                        insertFrame->timeStamp = frame->stamp();
-                        insertFrame->buffer.assign("\x0\x0\x0\x1",4);
-                        insertFrame->buffer.append(_pps);
-                        insertFrame->iPrefixSize = 4;
-                        _ppsFrame = insertFrame;
-                    }
-                    _ppsFrame->timeStamp = frame->stamp();
-                    VideoTrack::inputFrame(_ppsFrame);
-                }
+                insertConfigFrame(frame);
                 VideoTrack::inputFrame(frame);
-                _last_frame_type = type;
+                _last_frame_is_idr = true;
             }
                 break;
 
             case H264Frame::NAL_B_P:{
                 //B or P
                 VideoTrack::inputFrame(frame);
-                _last_frame_type = type;
+                _last_frame_is_idr = false;
             }
                 break;
         }
@@ -329,13 +301,45 @@ private:
             onReady();
         }
     }
+
+private:
+    //在idr帧前插入sps pps帧
+    void insertConfigFrame(const Frame::Ptr &frame){
+        if(_last_frame_is_idr){
+            return;
+        }
+
+        if(!_sps.empty()){
+            if(!_spsFrame){
+                _spsFrame = std::make_shared<H264Frame>();
+                _spsFrame->type = H264Frame::NAL_SPS;
+                _spsFrame->buffer.assign("\x0\x0\x0\x1",4);
+                _spsFrame->buffer.append(_sps);
+                _spsFrame->iPrefixSize = 4;
+            }
+            _spsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(_spsFrame);
+        }
+
+        if(!_pps.empty()){
+            if(!_ppsFrame) {
+                _ppsFrame = std::make_shared<H264Frame>();
+                _ppsFrame->type = H264Frame::NAL_PPS;
+                _ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
+                _ppsFrame->buffer.append(_pps);
+                _ppsFrame->iPrefixSize = 4;
+            }
+            _ppsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(_ppsFrame);
+        }
+    }
 private:
     string _sps;
     string _pps;
     int _width = 0;
     int _height = 0;
     float _fps = 0;
-    int _last_frame_type = -1;
+    bool _last_frame_is_idr = false;
     H264Frame::Ptr _spsFrame;
     H264Frame::Ptr _ppsFrame;
 };
