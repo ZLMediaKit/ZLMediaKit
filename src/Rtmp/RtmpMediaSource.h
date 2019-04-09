@@ -108,8 +108,8 @@ public:
 	}
 protected:
 	AMFValue _metadata;
-	map<int, RtmpPacket::Ptr> _mapCfgFrame;
-	map<int,uint32_t> _mapStamp;
+    unordered_map<int, RtmpPacket::Ptr> _mapCfgFrame;
+	unordered_map<int,uint32_t> _mapStamp;
 	mutable recursive_mutex _mtxMap;
 	RingBuffer<RtmpPacket::Ptr>::Ptr _pRing; //rtp环形缓冲
 	bool _bRegisted = false;
