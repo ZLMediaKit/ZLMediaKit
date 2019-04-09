@@ -107,18 +107,13 @@ static onceToken s_token([](){
 	NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastOnGetRtspRealm,[](BroadcastOnGetRtspRealmArgs){
         DebugL << "RTSP是否需要鉴权事件：" << args._schema << " " << args._vhost << " " << args._app << " " << args._streamid << " " << args._param_strs ;
         if(string("1") == args._streamid ){
-			// live/1需要认证
-			EventPollerPool::Instance().getPoller()->async([invoker](){
-				//该流需要认证，并且设置realm
-				invoker(REALM);
-			});
-		}else{
-			//我们异步执行invoker。
-			//有时我们要查询redis或数据库来判断该流是否需要认证，通过invoker的方式可以做到完全异步
-            EventPollerPool::Instance().getPoller()->async([invoker](){
-				//该流我们不需要认证
-				invoker("");
-			});
+            // live/1需要认证
+            //该流需要认证，并且设置realm
+            invoker(REALM);
+        }else{
+            //有时我们要查询redis或数据库来判断该流是否需要认证，通过invoker的方式可以做到完全异步
+            //该流我们不需要认证
+            invoker("");
 		}
 	});
 
@@ -127,58 +122,50 @@ static onceToken s_token([](){
         DebugL << "RTSP播放鉴权:" << args._schema << " " << args._vhost << " " << args._app << " " << args._streamid << " " << args._param_strs ;
         DebugL << "RTSP用户：" << user_name <<  (must_no_encrypt ?  " Base64" : " MD5" )<< " 方式登录";
 		string user = user_name;
-		//假设我们异步读取数据库
-        EventPollerPool::Instance().getPoller()->async([must_no_encrypt,invoker,user](){
-			if(user == "test0"){
-				//假设数据库保存的是明文
-				invoker(false,"pwd0");
-				return;
-			}
+        //假设我们异步读取数据库
+        if(user == "test0"){
+            //假设数据库保存的是明文
+            invoker(false,"pwd0");
+            return;
+        }
 
-			if(user == "test1"){
-				//假设数据库保存的是密文
-				auto encrypted_pwd = MD5(user + ":" + REALM + ":" + "pwd1").hexdigest();
-				invoker(true,encrypted_pwd);
-				return;
-			}
-			if(user == "test2" && must_no_encrypt){
-				//假设登录的是test2,并且以base64方式登录，此时我们提供加密密码，那么会导致认证失败
-				//可以通过这个方式屏蔽base64这种不安全的加密方式
-				invoker(true,"pwd2");
-				return;
-			}
+        if(user == "test1"){
+            //假设数据库保存的是密文
+            auto encrypted_pwd = MD5(user + ":" + REALM + ":" + "pwd1").hexdigest();
+            invoker(true,encrypted_pwd);
+            return;
+        }
+        if(user == "test2" && must_no_encrypt){
+            //假设登录的是test2,并且以base64方式登录，此时我们提供加密密码，那么会导致认证失败
+            //可以通过这个方式屏蔽base64这种不安全的加密方式
+            invoker(true,"pwd2");
+            return;
+        }
 
-			//其他用户密码跟用户名一致
-			invoker(false,user);
-		});
+        //其他用户密码跟用户名一致
+        invoker(false,user);
 	});
 
 
 	//监听rtsp/rtmp推流事件，返回结果告知是否有推流权限
 	NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
         DebugL << "推流鉴权：" << args._schema << " " << args._vhost << " " << args._app << " " << args._streamid << " " << args._param_strs ;
-        EventPollerPool::Instance().getPoller()->async([invoker](){
-            invoker("");//鉴权成功
-            //invoker("this is auth failed message");//鉴权失败
-        });
+        invoker("");//鉴权成功
+        //invoker("this is auth failed message");//鉴权失败
     });
 
 	//监听rtsp/rtsps/rtmp/http-flv播放事件，返回结果告知是否有播放权限(rtsp通过kBroadcastOnRtspAuth或此事件都可以实现鉴权)
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPlayed,[](BroadcastMediaPlayedArgs){
         DebugL << "播放鉴权:" << args._schema << " " << args._vhost << " " << args._app << " " << args._streamid << " " << args._param_strs ;
-        EventPollerPool::Instance().getPoller()->async([invoker](){
-            invoker("");//鉴权成功
-            //invoker("this is auth failed message");//鉴权失败
-        });
+        invoker("");//鉴权成功
+        //invoker("this is auth failed message");//鉴权失败
     });
 
     //shell登录事件，通过shell可以登录进服务器执行一些命令
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
         DebugL << "shell login:" << user_name << " " << passwd;
-        EventPollerPool::Instance().getPoller()->async([invoker](){
-            invoker("");//鉴权成功
-            //invoker("this is auth failed message");//鉴权失败
-        });
+        invoker("");//鉴权成功
+        //invoker("this is auth failed message");//鉴权失败
     });
 
     //监听rtsp、rtmp源注册或注销事件；此处用于测试rtmp保存为flv录像，保存在http根目录下
