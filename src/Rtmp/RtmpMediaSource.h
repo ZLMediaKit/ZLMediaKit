@@ -76,36 +76,19 @@ public:
 		}
 	}
 
-
 	virtual void onGetMetaData(const AMFValue &metadata) {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		_metadata = metadata;
-		_iCfgFrameSize = RtmpDemuxer::getTrackCount(metadata);
-		if(ready()){
-			MediaSource::regist();
-			_bRegisted = true;
-		} else{
-			_bAsyncRegist = true;
-		}
 	}
 
     void onWrite(const RtmpPacket::Ptr &pkt,bool isKey = true) override {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		if (pkt->isCfgFrame()) {
 			_mapCfgFrame[pkt->typeId] = pkt;
-
-			if(_bAsyncRegist && !_bRegisted &&  _mapCfgFrame.size() == _iCfgFrameSize){
-				_bAsyncRegist = false;
-				MediaSource::regist();
-				_bRegisted = true;
-			}
 		} else{
 			if(!_bRegisted){
-				//强制在3秒后注册，不管是否有metedata或config包
-				if(_ticker.createdTime() > 3 * 1000){
-					MediaSource::regist();
-					_bRegisted = true;
-				}
+                MediaSource::regist();
+                _bRegisted = true;
 			}
 			_mapStamp[pkt->typeId] = pkt->timeStamp;
 			_pRing->write(pkt,pkt->isVideoKeyFrame());
@@ -123,21 +106,13 @@ public:
 				return MAX(_mapStamp[MSG_VIDEO],_mapStamp[MSG_AUDIO]);
 		}
 	}
-private:
-	bool ready(){
-		lock_guard<recursive_mutex> lock(_mtxMap);
-		return _iCfgFrameSize != -1 && _iCfgFrameSize == _mapCfgFrame.size();
-	}
 protected:
 	AMFValue _metadata;
 	map<int, RtmpPacket::Ptr> _mapCfgFrame;
 	map<int,uint32_t> _mapStamp;
 	mutable recursive_mutex _mtxMap;
 	RingBuffer<RtmpPacket::Ptr>::Ptr _pRing; //rtp环形缓冲
-	int _iCfgFrameSize = -1;
-	bool _bAsyncRegist = false;
 	bool _bRegisted = false;
-	Ticker _ticker;
 };
 
 } /* namespace mediakit */
