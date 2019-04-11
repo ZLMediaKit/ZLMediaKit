@@ -68,9 +68,9 @@ private:
     uint32_t _aui32SsrcErrorCnt[2] = { 0, 0 };
     /* RTP包排序所用参数 */
     uint16_t _aui16LastSeq[2] = { 0 , 0 };
-    uint64_t _aui64SeqOkCnt[2] = { 0 , 0};
+    uint32_t _aui32SeqOkCnt[2] = { 0 , 0};
     bool _abSortStarted[2] = { 0 , 0};
-    map<uint32_t , RtpPacket::Ptr> _amapRtpSort[2];
+    map<uint16_t , RtpPacket::Ptr> _amapRtpSort[2];
     RtspMediaSource::PoolType _pktPool;
 };
 

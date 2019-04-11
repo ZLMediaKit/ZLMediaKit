@@ -81,7 +81,7 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
 
     rtppt.payload[0] = '$';
     rtppt.payload[1] = rtppt.interleaved;
-    rtppt.payload[2] = (uiLen & 0xFF00) >> 8;
+    rtppt.payload[2] = uiLen >> 8;
     rtppt.payload[3] = (uiLen & 0x00FF);
 
     rtppt.offset 	= 16;
@@ -100,14 +100,20 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
     memcpy(rtppt.payload + 4, pucData, uiLen);
 
     /////////////////////////////////RTP排序逻辑///////////////////////////////////
-    if(rtppt.sequence != (uint16_t)(_aui16LastSeq[iTrackidx] + 1) && _aui16LastSeq[iTrackidx] != 0){
+    if(rtppt.sequence != _aui16LastSeq[iTrackidx] + 1 && _aui16LastSeq[iTrackidx] != 0){
         //包乱序或丢包
-        _aui64SeqOkCnt[iTrackidx] = 0;
+        _aui32SeqOkCnt[iTrackidx] = 0;
         _abSortStarted[iTrackidx] = true;
-        //WarnL << "包乱序或丢包:" << trackidx <<" " << rtppt.sequence << " " << _aui16LastSeq[trackidx];
+
+        if(_aui16LastSeq[iTrackidx] > rtppt.sequence && _aui16LastSeq[iTrackidx] - rtppt.sequence > 0x7FFF){
+            //sequence回环，清空所有排序缓存
+            while (_amapRtpSort[iTrackidx].size()) {
+                POP_HEAD(iTrackidx)
+            }
+        }
     }else{
         //正确序列的包
-        _aui64SeqOkCnt[iTrackidx]++;
+        _aui32SeqOkCnt[iTrackidx]++;
     }
     _aui16LastSeq[iTrackidx] = rtppt.sequence;
 
@@ -116,9 +122,9 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
         _amapRtpSort[iTrackidx].emplace(rtppt.sequence, pt_ptr);
         GET_CONFIG_AND_REGISTER(uint32_t,clearCount,Rtp::kClearCount);
         GET_CONFIG_AND_REGISTER(uint32_t,maxRtpCount,Rtp::kMaxRtpCount);
-        if (_aui64SeqOkCnt[iTrackidx] >= clearCount) {
+        if (_aui32SeqOkCnt[iTrackidx] >= clearCount) {
             //网络环境改善，需要清空排序缓存
-            _aui64SeqOkCnt[iTrackidx] = 0;
+            _aui32SeqOkCnt[iTrackidx] = 0;
             _abSortStarted[iTrackidx] = false;
             while (_amapRtpSort[iTrackidx].size()) {
                 POP_HEAD(iTrackidx)
@@ -138,7 +144,7 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
 void RtpReceiver::clear() {
     CLEAR_ARR(_aui16LastSeq)
     CLEAR_ARR(_aui32SsrcErrorCnt)
-    CLEAR_ARR(_aui64SeqOkCnt)
+    CLEAR_ARR(_aui32SeqOkCnt)
     CLEAR_ARR(_abSortStarted)
 
     _amapRtpSort[0].clear();
