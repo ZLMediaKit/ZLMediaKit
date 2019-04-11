@@ -70,10 +70,12 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
         //保存SSRC
     } else if (track->_ssrc != rtppt.ssrc) {
         //ssrc错误
-        WarnL << "ssrc错误";
+        WarnL << "ssrc错误:" << rtppt.ssrc << " != " << track->_ssrc;
         if (_aui32SsrcErrorCnt[iTrackidx]++ > 10) {
+            //ssrc切换后清除老数据
+            WarnL << "ssrc更换:" << track->_ssrc << " -> " << rtppt.ssrc;
+            _amapRtpSort[iTrackidx].clear();
             track->_ssrc = rtppt.ssrc;
-            WarnL << "ssrc更换!";
         }
         return false;
     }
@@ -104,7 +106,7 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
         //包乱序或丢包
         _aui32SeqOkCnt[iTrackidx] = 0;
         _abSortStarted[iTrackidx] = true;
-
+//        WarnL << "包乱序或丢包:" << iTrackidx <<" " << rtppt.sequence << " " << _aui16LastSeq[iTrackidx];
         if(_aui16LastSeq[iTrackidx] > rtppt.sequence && _aui16LastSeq[iTrackidx] - rtppt.sequence > 0x7FFF){
             //sequence回环，清空所有排序缓存
             while (_amapRtpSort[iTrackidx].size()) {
