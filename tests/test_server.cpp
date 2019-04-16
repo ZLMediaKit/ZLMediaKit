@@ -262,7 +262,11 @@ int main(int argc,char *argv[]) {
               " rtmp地址 : rtmp://127.0.0.1/live/0";
 
     //加载证书，证书包含公钥和私钥
-    SSL_Initor::Instance().loadServerPem((exeDir() + "ssl.pem").data());
+    SSL_Initor::Instance().loadCertificate((exeDir() + "ssl.p12").data());
+    //信任某个自签名证书
+    SSL_Initor::Instance().trustCertificate((exeDir() + "ssl.p12").data());
+    //不忽略无效证书证书(例如自签名或过期证书)
+    SSL_Initor::Instance().ignoreInvalidCertificate(false);
 
     uint16_t shellPort = mINI::Instance()[Shell::kPort];
     uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
