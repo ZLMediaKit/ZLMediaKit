@@ -1,4 +1,4 @@
-﻿execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/ssl.pem ${EXECUTABLE_OUTPUT_PATH}/)
+﻿execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/ssl.p12 ${EXECUTABLE_OUTPUT_PATH}/)
 
 #查找SDL2是否安装
 find_package(SDL2 QUIET)
