@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <algorithm>
+#include <iomanip>
 
 #include "Common/config.h"
 #include "strCoding.h"
@@ -296,9 +297,9 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 	//访问的是文件夹
-	if (strFile.back() == '/') {
+	if (strFile.back() == '/' || File::is_dir(strFile.data())) {
 		//生成文件夹菜单索引
-		string strMeun;
+ 		string strMeun;
 		if (!makeMeun(strFile,_mediaInfo._vhost, strMeun)) {
 			//文件夹不存在
 			sendNotFound(bClose);
@@ -431,11 +432,18 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 
 inline bool HttpSession::makeMeun(const string &strFullPath,const string &vhost, string &strRet) {
 	string strPathPrefix(strFullPath);
-	strPathPrefix = strPathPrefix.substr(0, strPathPrefix.length() - 1);
+	string last_dir_name;
+	if(strPathPrefix.back() == '/'){
+		strPathPrefix.pop_back();
+	}else{
+		last_dir_name = split(strPathPrefix,"/").back();
+	}
+
 	if (!File::is_dir(strPathPrefix.data())) {
 		return false;
 	}
-	strRet = "<html>\r\n"
+	stringstream ss;
+	ss <<   "<html>\r\n"
 			"<head>\r\n"
 			"<title>文件索引</title>\r\n"
 			"</head>\r\n"
@@ -444,20 +452,24 @@ inline bool HttpSession::makeMeun(const string &strFullPath,const string &vhost,
 
 	string strPath = strFullPath;
 	strPath = strPath.substr(_strPath.length() + vhost.length() + 1);
-	strRet += strPath;
-	strRet += "</h1>\r\n";
+	ss << strPath;
+	ss << "</h1>\r\n";
 	if (strPath != "/") {
-		strRet += "<li><a href=\"";
-		strRet += "/";
-		strRet += "\">";
-		strRet += "根目录";
-		strRet += "</a></li>\r\n";
+		ss << "<li><a href=\"";
+		ss << "/";
+		ss << "\">";
+		ss << "根目录";
+		ss << "</a></li>\r\n";
 
-		strRet += "<li><a href=\"";
-		strRet += "../";
-		strRet += "\">";
-		strRet += "上级目录";
-		strRet += "</a></li>\r\n";
+		ss << "<li><a href=\"";
+		if(!last_dir_name.empty()){
+			ss << "./";
+		}else{
+			ss << "../";
+		}
+		ss << "\">";
+		ss << "上级目录";
+		ss << "</a></li>\r\n";
 	}
 
 	DIR *pDir;
@@ -475,38 +487,47 @@ inline bool HttpSession::makeMeun(const string &strFullPath,const string &vhost,
 		}
 		setFile.emplace(pDirent->d_name);
 	}
+	int i = 0;
 	for(auto &strFile :setFile ){
 		string strAbsolutePath = strPathPrefix + "/" + strFile;
-		if (File::is_dir(strAbsolutePath.data())) {
-			strRet += "<li><a href=\"";
-			strRet += strFile;
-			strRet += "/\">";
-			strRet += strFile;
-			strRet += "/</a></li>\r\n";
-		} else { //是文件
-			strRet += "<li><a href=\"";
-			strRet += strFile;
-			strRet += "\">";
-			strRet += strFile;
-			struct stat fileData;
-			if (0 == stat(strAbsolutePath.data(), &fileData)) {
-				auto &fileSize = fileData.st_size;
-				if (fileSize < 1024) {
-					strRet += StrPrinter << " (" << fileData.st_size << "B)" << endl;
-				} else if (fileSize < 1024 * 1024) {
-					strRet += StrPrinter << " (" << fileData.st_size / 1024 << "KB)" << endl;
-				} else if (fileSize < 1024 * 1024 * 1024) {
-					strRet += StrPrinter << " (" << fileData.st_size / 1024 / 1024 << "MB)" << endl;
-				} else {
-					strRet += StrPrinter << " (" << fileData.st_size / 1024 / 1024 / 1024 << "GB)" << endl;
-				}
-			}
-			strRet += "</a></li>\r\n";
+		bool isDir = File::is_dir(strAbsolutePath.data());
+		ss << "<li><span>" << i++ << "</span>\t";
+		ss << "<a href=\"";
+		if(!last_dir_name.empty()){
+			ss << last_dir_name << "/" << strFile;
+		}else{
+			ss << strFile;
 		}
+
+		if(isDir){
+			ss << "/";
+		}
+		ss << "\">";
+		ss << strFile;
+		if (isDir) {
+			ss << "/</a></li>\r\n";
+			continue;
+		}
+		//是文件
+		struct stat fileData;
+		if (0 == stat(strAbsolutePath.data(), &fileData)) {
+			auto &fileSize = fileData.st_size;
+			if (fileSize < 1024) {
+				ss << " (" << fileData.st_size << "B)" << endl;
+			} else if (fileSize < 1024 * 1024) {
+				ss << fixed << setprecision(2) << " (" << fileData.st_size / 1024.0 << "KB)";
+			} else if (fileSize < 1024 * 1024 * 1024) {
+				ss << fixed << setprecision(2) << " (" << fileData.st_size / 1024 / 1024.0 << "MB)";
+			} else {
+				ss << fixed << setprecision(2) << " (" << fileData.st_size / 1024 / 1024 / 1024.0 << "GB)";
+			}
+		}
+		ss << "</a></li>\r\n";
 	}
 	closedir(pDir);
-	strRet += "<ul>\r\n";
-	strRet += "</ul>\r\n</body></html>";
+	ss << "<ul>\r\n";
+	ss << "</ul>\r\n</body></html>";
+	ss.str().swap(strRet);
 	return true;
 }
 inline void HttpSession::sendResponse(const char* pcStatus, const KeyValue& header, const string& strContent) {
