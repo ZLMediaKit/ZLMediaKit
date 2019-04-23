@@ -635,7 +635,15 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 		return true;
 	}
 
-	if(totalContentLen > 0 && totalContentLen < maxReqSize ){
+    //根据Content-Length设置接收缓存大小
+    if(totalContentLen > 0){
+        _sock->setReadBuffer(std::make_shared<BufferRaw>(MIN(totalContentLen + 1,256 * 1024)));
+    }else{
+	    //不定长度的Content-Length
+        _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+	}
+
+    if(totalContentLen > 0 && totalContentLen < maxReqSize ){
 		//返回固定长度的content
 		content_len = totalContentLen;
 		auto parserCopy = _parser;
@@ -652,9 +660,6 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 			return false;
 		};
 	}else{
-		//如果是post请求 并且totalContentLen数据超过maxReqSize，那么我们加大接收缓存提升性能
-		_sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
-
 		//返回不固定长度的content
 		content_len = -1;
 		auto parserCopy = _parser;
