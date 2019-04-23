@@ -103,6 +103,8 @@ get_mime_type(const char* name) {
 HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	//设置15秒发送超时时间
 	pSock->setSendTimeOutSecond(15);
+	//起始接收buffer缓存设置为4K，节省内存
+	pSock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
 
     GET_CONFIG_AND_REGISTER(string,rootPath,Http::kRootPath);
     _strPath = rootPath;
@@ -650,6 +652,9 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 			return false;
 		};
 	}else{
+		//如果是post请求 并且totalContentLen数据超过maxReqSize，那么我们加大接收缓存提升性能
+		_sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+
 		//返回不固定长度的content
 		content_len = -1;
 		auto parserCopy = _parser;
