@@ -69,13 +69,13 @@ namespace mediakit {
 static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
 //对g_mapGetter上锁保护
 static recursive_mutex g_mtxGetter;
-
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
 RtspSession::RtspSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	//设置15秒发送超时时间
 	pSock->setSendTimeOutSecond(15);
-
+	//起始接收buffer缓存设置为4K，节省内存
+	pSock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
 	DebugL <<  get_peer_ip();
 }
 
@@ -269,6 +269,10 @@ bool RtspSession::handleReq_RECORD(const Parser &parser){
 		rtp_info.pop_back();
 		sendRtspResponse("200 OK", {"RTP-Info",rtp_info});
 		SockUtil::setNoDelay(_sock->rawFD(),false);
+		if(_rtpType == Rtsp::RTP_TCP){
+			//如果是rtsp推流服务器，并且是TCP推流，那么加大TCP接收缓存，这样能提升接收性能
+			_sock->setReadBuffer(std::make_shared<BufferRaw>(128 * 1024));
+		}
 		(*this) << SocketFlags(kSockFlags);
 	};
 
