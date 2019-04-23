@@ -185,8 +185,13 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     //但是由于我们没必要等content接收完毕才回调onRecvContent(因为这样浪费内存并且要多次拷贝数据)
     //所以返回-1代表我们接下来分段接收content
     _recvedBodySize = 0;
-    //根据_totalBodySize设置接收缓存大小
-    _sock->setReadBuffer(std::make_shared<BufferRaw>(MIN(_totalBodySize + 1,256 * 1024)));
+    if(_totalBodySize > 0){
+        //根据_totalBodySize设置接收缓存大小
+        _sock->setReadBuffer(std::make_shared<BufferRaw>(MIN(_totalBodySize + 1,256 * 1024)));
+    }else{
+        _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+    }
+
     return -1;
 }
 
