@@ -37,6 +37,8 @@ RtmpSession::RtmpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	DebugL << get_peer_ip();
     //设置15秒发送超时时间
     pSock->setSendTimeOutSecond(15);
+    //起始接收buffer缓存设置为4K，节省内存
+    pSock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
 }
 
 RtmpSession::~RtmpSession() {
@@ -171,6 +173,8 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         }
         _pPublisherSrc.reset(new RtmpToRtspMediaSource(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid));
         _pPublisherSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
+        //如果是rtmp推流客户端，那么加大TCP接收缓存，这样能提升接收性能
+        _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
     };
 
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());

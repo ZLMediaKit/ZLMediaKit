@@ -271,7 +271,7 @@ bool RtspSession::handleReq_RECORD(const Parser &parser){
 		SockUtil::setNoDelay(_sock->rawFD(),false);
 		if(_rtpType == Rtsp::RTP_TCP){
 			//如果是rtsp推流服务器，并且是TCP推流，那么加大TCP接收缓存，这样能提升接收性能
-			_sock->setReadBuffer(std::make_shared<BufferRaw>(128 * 1024));
+			_sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
 		}
 		(*this) << SocketFlags(kSockFlags);
 	};
