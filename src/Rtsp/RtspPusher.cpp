@@ -139,6 +139,8 @@ void RtspPusher::onConnect(const SockException &err) {
         onPublishResult(err);
         return;
     }
+    //推流器不需要多大的接收缓存，节省内存占用
+    _sock->setReadBuffer(std::make_shared<BufferRaw>(1 * 1024));
     sendAnnounce();
 }
 
