@@ -186,11 +186,7 @@ void RtspSession::onRtpPacket(const char *data, uint64_t len) {
 	if(!_pushSrc){
 		return;
 	}
-	if(len > 1600){
-		//没有大于MTU的包
-		WarnL << "大于MTU的RTP包:" << len << ",来自:" << get_peer_ip();
-		return;
-	}
+
 	int trackIdx = -1;
 	uint8_t interleaved = data[1];
 	if(interleaved %2 == 0){
