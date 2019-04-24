@@ -46,7 +46,7 @@ public:
     uint32_t timeStamp;
     uint16_t sequence;
     uint32_t ssrc;
-    uint8_t payload[1560];
+    uint8_t payload[1600];
     uint8_t offset;
     TrackType type;
 };

@@ -98,7 +98,14 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
         ext = (AV_RB16(pucData + rtppt.offset - 2) + 1) << 2;
         rtppt.offset += ext;
     }
+
     if(rtppt.length - rtppt.offset <= 0){
+        WarnL << "无有效负载的rtp包:" << rtppt.length << "<=" << (int)rtppt.offset;
+        return false;
+    }
+
+    if(uiLen > sizeof(rtppt.payload) - 4){
+        WarnL << "超长的rtp包:" << uiLen << ">" << sizeof(rtppt.payload) - 4;
         return false;
     }
     memcpy(rtppt.payload + 4, pucData, uiLen);
