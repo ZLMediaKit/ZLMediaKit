@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016 xiongziliang <771730766@qq.com>
@@ -188,6 +188,7 @@ void RtspSession::onRtpPacket(const char *data, uint64_t len) {
 	}
 	if(len > 1600){
 		//没有大于MTU的包
+		WarnL << "大于MTU的RTP包:" << len << ",来自:" << get_peer_ip();
 		return;
 	}
 	int trackIdx = -1;

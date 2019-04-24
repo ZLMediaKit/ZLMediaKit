@@ -447,6 +447,7 @@ void RtspPlayer::onWholeRtspPacket(Parser &parser) {
 void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
     if(len > 1600){
         //没有大于MTU的包
+		WarnL << "大于MTU的RTP包:" << len << ",来自:" << get_peer_ip();
         return;
     }
     int trackIdx = -1;
