@@ -98,7 +98,9 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
         ext = (AV_RB16(pucData + rtppt.offset - 2) + 1) << 2;
         rtppt.offset += ext;
     }
-
+    if(rtppt.length - rtppt.offset <= 0){
+        return false;
+    }
     memcpy(rtppt.payload + 4, pucData, uiLen);
 
     /////////////////////////////////RTP排序逻辑///////////////////////////////////
