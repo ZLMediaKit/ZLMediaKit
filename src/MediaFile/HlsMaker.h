@@ -86,11 +86,10 @@ private:
     void addNewFile(uint32_t timestamp);
     void makeIndexFile(bool eof = false);
 private:
-    string _file_prefix;
     float _seg_duration = 0;
     uint32_t _seg_number = 0;
     uint64_t _file_index = 0;
-    uint32_t _stamp_last = 0;
+    Ticker _ticker;
     string _last_file_name;
     std::deque<tuple<int,string> > _seg_dur_list;
 };
