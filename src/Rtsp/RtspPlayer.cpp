@@ -342,7 +342,9 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 		});
 	}
 	/////////////////////////心跳/////////////////////////////////
-	if(_eType != Rtsp::RTP_TCP){
+	//有些设备在rtp over tcp的情况下也需要定时发送心跳包(比较坑爹)
+	//if(_eType != Rtsp::RTP_TCP)
+	{
 		weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
 		_pBeatTimer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0, [weakSelf](){
 			auto strongSelf = weakSelf.lock();
