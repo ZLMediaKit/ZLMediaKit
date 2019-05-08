@@ -84,13 +84,28 @@ protected:
      * @param trackidx track索引
      */
 	void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
+
+
+    /**
+     * 收到RTCP包回调
+     * @param iTrackidx
+     * @param track
+     * @param pucData
+     * @param uiLen
+     */
+    virtual void onRecvRtcp(int iTrackidx,SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
+
+    /**
+     * 发送rtcp包维持心跳
+     */
+    virtual void sendRtcpPacket();
 private:
 	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
 	void onPlayResult_l(const SockException &ex);
 
     int getTrackIndexByControlSuffix(const string &controlSuffix) const;
     int getTrackIndexByInterleaved(int interleaved) const;
-	int getTrackIndexByTrackType(TrackType trackId) const;
+	int getTrackIndexByTrackType(TrackType trackType) const;
 
 	void play(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType);
 	void onConnect(const SockException &err) override;
@@ -115,8 +130,10 @@ private:
 	SdpAttr _sdpAttr;
 	vector<SdpTrack::Ptr> _aTrackInfo;
 	function<void(const Parser&)> _onHandshake;
-	Socket::Ptr _apUdpSock[2];
-	//rtsp鉴权相关
+    Socket::Ptr _apRtpSock[2]; //RTP端口,trackid idx 为数组下标
+    Socket::Ptr _apRtcpSock[2];//RTCP端口,trackid idx 为数组下标
+
+    //rtsp鉴权相关
 	string _rtspMd5Nonce;
 	string _rtspRealm;
 	//rtsp info
