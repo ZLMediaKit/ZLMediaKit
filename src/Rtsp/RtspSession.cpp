@@ -976,44 +976,6 @@ inline bool RtspSession::findStream() {
 }
 
 
-inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
-	//InfoL<<(int)pkt.Interleaved;
-	switch (_rtpType) {
-	case Rtsp::RTP_TCP: {
-        BufferRtp::Ptr buffer(new BufferRtp(pkt));
-		send(buffer);
-#ifdef RTSP_SEND_RTCP
-		int iTrackIndex = getTrackIndexByTrackId(pkt.interleaved / 2);
-		RtcpCounter &counter = _aRtcpCnt[iTrackIndex];
-		counter.pktCnt += 1;
-		counter.octCount += (pkt.length - 12);
-		auto &_ticker = _aRtcpTicker[iTrackIndex];
-		if (_ticker.elapsedTime() > 5 * 1000) {
-			//send rtcp every 5 second
-			_ticker.resetTime();
-			counter.timeStamp = pkt.timeStamp;
-			sendRTCP();
-		}
-#endif
-	}
-		break;
-	case Rtsp::RTP_UDP: {
-		int iTrackIndex = getTrackIndexByTrackType(pkt->type);
-		auto &pSock = _apRtpSock[iTrackIndex];
-		if (!pSock) {
-			shutdown();
-			return;
-		}
-		BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
-        _ui64TotalBytes += buffer->size();
-        pSock->send(buffer);
-	}
-		break;
-	default:
-		break;
-	}
-}
-
 void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
 	_pushSrc->onWrite(rtppt, false);
 }
@@ -1202,63 +1164,108 @@ bool RtspSession::close() {
 	return true;
 }
 
+
+inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
+    //InfoL<<(int)pkt.Interleaved;
+    switch (_rtpType) {
+        case Rtsp::RTP_TCP: {
+            BufferRtp::Ptr buffer(new BufferRtp(pkt));
+            send(buffer);
+        }
+            break;
+        case Rtsp::RTP_UDP: {
+            int iTrackIndex = getTrackIndexByTrackType(pkt->type);
+            auto &pSock = _apRtpSock[iTrackIndex];
+            if (!pSock) {
+                shutdown();
+                return;
+            }
+            BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
+            _ui64TotalBytes += buffer->size();
+            pSock->send(buffer);
+        }
+            break;
+        default:
+            break;
+    }
+
 #ifdef RTSP_SEND_RTCP
-inline void RtspSession::sendRTCP() {
-	//DebugL;
-	uint8_t aui8Rtcp[60] = {0};
-	uint8_t *pui8Rtcp_SR = aui8Rtcp + 4, *pui8Rtcp_SDES = pui8Rtcp_SR + 28;
-	for (uint8_t i = 0; i < _uiTrackCnt; i++) {
-		auto &track = _aTrackInfo[i];
-		auto &counter = _aRtcpCnt[i];
+    int iTrackIndex = getTrackIndexByInterleaved(pkt->interleaved);
+    if(iTrackIndex == -1){
+        return;
+    }
+    RtcpCounter &counter = _aRtcpCnt[iTrackIndex];
+    counter.pktCnt += 1;
+    counter.octCount += (pkt->length - pkt->offset);
+    auto &ticker = _aRtcpTicker[iTrackIndex];
+    if (ticker.elapsedTime() > 5 * 1000) {
+        //send rtcp every 5 second
+        ticker.resetTime();
+        //直接保存网络字节序
+        memcpy(&counter.timeStamp, pkt->payload + 8 , 4);
+        sendSenderReport(_rtpType == Rtsp::RTP_TCP,iTrackIndex);
+    }
+#endif
+}
 
-		aui8Rtcp[0] = '$';
-		aui8Rtcp[1] = track.trackId * 2 + 1;
-		aui8Rtcp[2] = 56 / 256;
-		aui8Rtcp[3] = 56 % 256;
+#ifdef RTSP_SEND_RTCP
+inline void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
+    uint8_t aui8Rtcp[4 + 28 + 10 + sizeof(SERVER_NAME) + 1] = {0};
+    uint8_t *pui8Rtcp_SR = aui8Rtcp + 4, *pui8Rtcp_SDES = pui8Rtcp_SR + 28;
+    auto &track = _aTrackInfo[iTrackIndex];
+    auto &counter = _aRtcpCnt[iTrackIndex];
 
-		pui8Rtcp_SR[0] = 0x80;
-		pui8Rtcp_SR[1] = 0xC8;
-		pui8Rtcp_SR[2] = 0x00;
-		pui8Rtcp_SR[3] = 0x06;
+    aui8Rtcp[0] = '$';
+    aui8Rtcp[1] = track->_interleaved + 1;
+    aui8Rtcp[2] = (sizeof(aui8Rtcp) - 4) / 256;
+    aui8Rtcp[3] = (sizeof(aui8Rtcp) - 4) % 256;
 
-		uint32_t ssrc=htonl(track.ssrc);
-		memcpy(&pui8Rtcp_SR[4], &ssrc, 4);
+    pui8Rtcp_SR[0] = 0x80;
+    pui8Rtcp_SR[1] = 0xC8;
+    pui8Rtcp_SR[2] = 0x00;
+    pui8Rtcp_SR[3] = 0x06;
 
-		uint64_t msw;
-		uint64_t lsw;
-		struct timeval tv;
-		gettimeofday(&tv, NULL);
-		msw = tv.tv_sec + 0x83AA7E80; /* 0x83AA7E80 is the number of seconds from 1900 to 1970 */
-		lsw = (uint32_t) ((double) tv.tv_usec * (double) (((uint64_t) 1) << 32) * 1.0e-6);
+    uint32_t ssrc=htonl(track->_ssrc);
+    memcpy(&pui8Rtcp_SR[4], &ssrc, 4);
 
-		msw = htonl(msw);
-		memcpy(&pui8Rtcp_SR[8], &msw, 4);
+    uint64_t msw;
+    uint64_t lsw;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    msw = tv.tv_sec + 0x83AA7E80; /* 0x83AA7E80 is the number of seconds from 1900 to 1970 */
+    lsw = (uint32_t) ((double) tv.tv_usec * (double) (((uint64_t) 1) << 32) * 1.0e-6);
 
-		lsw = htonl(lsw);
-		memcpy(&pui8Rtcp_SR[12], &lsw, 4);
+    msw = htonl(msw);
+    memcpy(&pui8Rtcp_SR[8], &msw, 4);
 
-		uint32_t rtpStamp = htonl(counter.timeStamp);
-		memcpy(&pui8Rtcp_SR[16], &rtpStamp, 4);
+    lsw = htonl(lsw);
+    memcpy(&pui8Rtcp_SR[12], &lsw, 4);
+    //直接使用网络字节序
+    memcpy(&pui8Rtcp_SR[16], &counter.timeStamp, 4);
 
-		uint32_t pktCnt = htonl(counter.pktCnt);
-		memcpy(&pui8Rtcp_SR[20], &pktCnt, 4);
+    uint32_t pktCnt = htonl(counter.pktCnt);
+    memcpy(&pui8Rtcp_SR[20], &pktCnt, 4);
 
-		uint32_t octCount = htonl(counter.octCount);
-		memcpy(&pui8Rtcp_SR[24], &octCount, 4);
+    uint32_t octCount = htonl(counter.octCount);
+    memcpy(&pui8Rtcp_SR[24], &octCount, 4);
 
-		pui8Rtcp_SDES[0] = 0x81;
-		pui8Rtcp_SDES[1] = 0xCA;
-		pui8Rtcp_SDES[2] = 0x00;
-		pui8Rtcp_SDES[3] = 0x06;
+    pui8Rtcp_SDES[0] = 0x81;
+    pui8Rtcp_SDES[1] = 0xCA;
+    pui8Rtcp_SDES[2] = 0x00;
+    pui8Rtcp_SDES[3] = 0x06;
 
-		memcpy(&pui8Rtcp_SDES[4], &ssrc, 4);
+    memcpy(&pui8Rtcp_SDES[4], &ssrc, 4);
 
-		pui8Rtcp_SDES[8] = 0x01;
-		pui8Rtcp_SDES[9] = 0x0f;
-		memcpy(&pui8Rtcp_SDES[10], "_ZL_RtspServer_", 15);
-		pui8Rtcp_SDES[25] = 0x00;
-		send((char *) aui8Rtcp, 60);
-	}
+    pui8Rtcp_SDES[8] = 0x01;
+    pui8Rtcp_SDES[9] = 0x0f;
+    memcpy(&pui8Rtcp_SDES[10], SERVER_NAME, sizeof(SERVER_NAME));
+    pui8Rtcp_SDES[10 + sizeof(SERVER_NAME)] = 0x00;
+
+    if(overTcp){
+        send(obtainBuffer((char *) aui8Rtcp, sizeof(aui8Rtcp)));
+    }else {
+        _apRtcpSock[iTrackIndex]->send((char *) aui8Rtcp + 4, sizeof(aui8Rtcp) - 4);
+    }
 }
 #endif
 
