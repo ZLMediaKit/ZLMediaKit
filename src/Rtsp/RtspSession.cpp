@@ -605,13 +605,24 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 		_apRtcpSock[trackIdx] = pSockRtcp;
 		//设置客户端内网端口信息
 		string strClientPort = FindField(parser["Transport"].data(), "client_port=", NULL);
-		uint16_t ui16PeerPort = atoi( FindField(strClientPort.data(), NULL, "-").data());
-		struct sockaddr_in peerAddr;
+		uint16_t ui16RtpPort = atoi( FindField(strClientPort.data(), NULL, "-").data());
+        uint16_t ui16RtcpPort = atoi( FindField(strClientPort.data(), "-" , NULL).data());
+
+        struct sockaddr_in peerAddr;
+        //设置rtp发送目标地址
 		peerAddr.sin_family = AF_INET;
-		peerAddr.sin_port = htons(ui16PeerPort);
+		peerAddr.sin_port = htons(ui16RtpPort);
 		peerAddr.sin_addr.s_addr = inet_addr(get_peer_ip().data());
 		bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
 		pSockRtp->setSendPeerAddr((struct sockaddr *)(&peerAddr));
+
+		//设置rtcp发送目标地址
+        peerAddr.sin_family = AF_INET;
+        peerAddr.sin_port = htons(ui16RtcpPort);
+        peerAddr.sin_addr.s_addr = inet_addr(get_peer_ip().data());
+        bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
+        pSockRtcp->setSendPeerAddr((struct sockaddr *)(&peerAddr));
+
 		//尝试获取客户端nat映射地址
 		startListenPeerUdpData(trackIdx);
 		//InfoL << "分配端口:" << srv_port;
@@ -1013,30 +1024,16 @@ inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBu
 	if(intervaled % 2 == 0){
 		if(_pushSrc){
 			handleOneRtp(intervaled / 2,_aTrackInfo[intervaled / 2],( unsigned char *)pBuf->data(),pBuf->size());
-		}
-
-		//这是rtp探测包
-		if(!_bGotAllPeerUdp){
-			//还没有获取完整的rtp探测包
-			if(SockUtil::in_same_lan(get_local_ip().data(),get_peer_ip().data())){
-				//在内网中，客户端上报的端口号是真实的，所以我们忽略udp打洞包
-				_bGotAllPeerUdp = true;
-				return;
-			}
-			//设置真实的客户端nat映射端口号
-			_apRtpSock[intervaled / 2]->setSendPeerAddr(&addr);
-			_abGotPeerUdp[intervaled / 2] = true;
-			_bGotAllPeerUdp = true;//先假设获取到完整的rtp探测包
-			for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
-				if (!_abGotPeerUdp[i]) {
-					//还有track没获取到rtp探测包
-					_bGotAllPeerUdp = false;
-					break;
-				}
-			}
+		}else if(_udpSockConnected.count(intervaled)){
+            //这是rtp打洞包
+            _udpSockConnected.emplace(intervaled);
+            _apRtpSock[intervaled / 2]->setSendPeerAddr(&addr);
 		}
 	}else{
 	    //rtcp包
+        if(_udpSockConnected.count(intervaled)){
+            _apRtcpSock[(intervaled - 1) / 2]->setSendPeerAddr(&addr);
+        }
         onRecvRtcp((intervaled - 1) / 2,_aTrackInfo[(intervaled - 1) / 2],( unsigned char *)pBuf->data(),pBuf->size());
     }
 }

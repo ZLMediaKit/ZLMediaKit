@@ -29,6 +29,7 @@
 
 #include <set>
 #include <vector>
+#include <unordered_set>
 #include <unordered_map>
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -173,11 +174,9 @@ private:
 	vector<SdpTrack::Ptr> _aTrackInfo;
 
 	//RTP over udp
-	bool _bGotAllPeerUdp = false;
-	bool _abGotPeerUdp[2] = { false, false }; //获取客户端udp端口计数
 	Socket::Ptr _apRtpSock[2]; //RTP端口,trackid idx 为数组下标
 	Socket::Ptr _apRtcpSock[2];//RTCP端口,trackid idx 为数组下标
-
+    unordered_set<int> _udpSockConnected;
 	//RTP over udp_multicast
 	RtpBroadCaster::Ptr _pBrdcaster;
 
