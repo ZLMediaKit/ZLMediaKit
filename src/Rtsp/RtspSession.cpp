@@ -191,12 +191,20 @@ void RtspSession::onRtpPacket(const char *data, uint64_t len) {
 	uint8_t interleaved = data[1];
 	if(interleaved %2 == 0){
 		trackIdx = getTrackIndexByInterleaved(interleaved);
-	}
-	if (trackIdx != -1) {
-		handleOneRtp(trackIdx,_aTrackInfo[trackIdx],(unsigned char *)data + 4, len - 4);
+        if (trackIdx != -1) {
+            handleOneRtp(trackIdx,_aTrackInfo[trackIdx],(unsigned char *)data + 4, len - 4);
+        }
+	}else{
+        trackIdx = getTrackIndexByInterleaved(interleaved - 1);
+        if (trackIdx != -1) {
+            onRecvRtcp(trackIdx,_aTrackInfo[trackIdx],(unsigned char *)data + 4, len - 4);
+        }
 	}
 }
 
+void RtspSession::onRecvRtcp(int iTrackidx,SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen){
+
+}
 int64_t RtspSession::getContentLength(Parser &parser) {
 	if(parser.Method() == "POST"){
 		//http post请求的content数据部分是base64编码后的rtsp请求信令包
@@ -998,14 +1006,13 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
 	_pushSrc->onWrite(rtppt, false);
 }
-inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {
+inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {
 	//这是rtcp心跳包，说明播放器还存活
 	_ticker.resetTime();
 
-	if(iTrackIdx % 2 == 0){
-
+	if(intervaled % 2 == 0){
 		if(_pushSrc){
-			handleOneRtp(iTrackIdx / 2,_aTrackInfo[iTrackIdx / 2],( unsigned char *)pBuf->data(),pBuf->size());
+			handleOneRtp(intervaled / 2,_aTrackInfo[intervaled / 2],( unsigned char *)pBuf->data(),pBuf->size());
 		}
 
 		//这是rtp探测包
@@ -1017,8 +1024,8 @@ inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf
 				return;
 			}
 			//设置真实的客户端nat映射端口号
-			_apRtpSock[iTrackIdx / 2]->setSendPeerAddr(&addr);
-			_abGotPeerUdp[iTrackIdx / 2] = true;
+			_apRtpSock[intervaled / 2]->setSendPeerAddr(&addr);
+			_abGotPeerUdp[intervaled / 2] = true;
 			_bGotAllPeerUdp = true;//先假设获取到完整的rtp探测包
 			for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
 				if (!_abGotPeerUdp[i]) {
@@ -1028,25 +1035,28 @@ inline void RtspSession::onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf
 				}
 			}
 		}
-	}
+	}else{
+	    //rtcp包
+        onRecvRtcp((intervaled - 1) / 2,_aTrackInfo[(intervaled - 1) / 2],( unsigned char *)pBuf->data(),pBuf->size());
+    }
 }
 
 
 inline void RtspSession::startListenPeerUdpData(int trackIdx) {
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
 
-	auto onUdpData = [weakSelf](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr,int iTrackIdx){
+	auto onUdpData = [weakSelf](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr,int intervaled){
 		auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
 			return false;
 		}
 		struct sockaddr addr=*pPeerAddr;
-		strongSelf->async([weakSelf,pBuf,addr,iTrackIdx]() {
+		strongSelf->async([weakSelf,pBuf,addr,intervaled]() {
 			auto strongSelf=weakSelf.lock();
 			if(!strongSelf) {
 				return;
 			}
-			strongSelf->onRcvPeerUdpData(iTrackIdx,pBuf,addr);
+			strongSelf->onRcvPeerUdpData(intervaled,pBuf,addr);
 		});
 		return true;
 	};
@@ -1055,19 +1065,19 @@ inline void RtspSession::startListenPeerUdpData(int trackIdx) {
 		case Rtsp::RTP_MULTICAST:{
 			//组播使用的共享rtcp端口
 			UDPServer::Instance().listenPeer(get_peer_ip().data(), this, [onUdpData](
-					int iTrackIdx, const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr) {
-				return onUdpData(pBuf,pPeerAddr,iTrackIdx);
+					int intervaled, const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr) {
+				return onUdpData(pBuf,pPeerAddr,intervaled);
 			});
 		}
 			break;
 		case Rtsp::RTP_UDP:{
-			auto setEvent = [&](Socket::Ptr &sock,int iTrackIdx){
+			auto setEvent = [&](Socket::Ptr &sock,int intervaled){
 				if(!sock){
-					WarnL << "udp端口为空:" << iTrackIdx;
+					WarnL << "udp端口为空:" << intervaled;
 					return;
 				}
-				sock->setOnRead([onUdpData,iTrackIdx](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr){
-					onUdpData(pBuf,pPeerAddr,iTrackIdx);
+				sock->setOnRead([onUdpData,intervaled](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr){
+					onUdpData(pBuf,pPeerAddr,intervaled);
 				});
 			};
 			setEvent(_apRtpSock[trackIdx], 2*trackIdx );
