@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  * Copyright (c) 2018 huohuo <913481084@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
@@ -32,7 +32,6 @@
 
 #include "Common/config.h"
 #include "RtspPlayer.h"
-#include "H264/SPSParser.h"
 #include "Util/MD5.h"
 #include "Util/mini.h"
 #include "Util/util.h"

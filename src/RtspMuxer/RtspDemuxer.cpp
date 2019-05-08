@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -28,7 +28,6 @@
 #include <algorithm>
 #include "RtspDemuxer.h"
 #include "Util/base64.h"
-#include "H264/SPSParser.h"
 #include "Extension/Factory.h"
 
 using namespace std;
