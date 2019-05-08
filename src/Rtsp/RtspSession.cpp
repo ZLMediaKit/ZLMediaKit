@@ -1041,8 +1041,13 @@ inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBu
 
 inline void RtspSession::startListenPeerUdpData(int trackIdx) {
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-
-	auto onUdpData = [weakSelf](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr,int intervaled){
+    auto srcIP = inet_addr(get_peer_ip().data());
+	auto onUdpData = [weakSelf,srcIP](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr,int intervaled){
+        if (((struct sockaddr_in *) pPeerAddr)->sin_addr.s_addr != srcIP) {
+            WarnL << ((intervaled % 2 == 0) ? "收到其他地址的rtp数据:" : "收到其他地址的rtcp数据:")
+            << inet_ntoa(((struct sockaddr_in *) pPeerAddr)->sin_addr);
+            return true;
+        }
 		auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
 			return false;
