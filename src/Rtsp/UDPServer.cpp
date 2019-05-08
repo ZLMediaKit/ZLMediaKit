@@ -41,9 +41,9 @@ UDPServer::~UDPServer() {
 	InfoL;
 }
 
-Socket::Ptr UDPServer::getSock(const char* strLocalIp, int iTrackIndex,uint16_t iLocalPort) {
+Socket::Ptr UDPServer::getSock(const char* strLocalIp, int intervaled,uint16_t iLocalPort) {
 	lock_guard<mutex> lck(_mtxUpdSock);
-	string strKey = StrPrinter << strLocalIp << ":" << iTrackIndex << endl;
+	string strKey = StrPrinter << strLocalIp << ":" << intervaled << endl;
 	auto it = _mapUpdSock.find(strKey);
 	if (it == _mapUpdSock.end()) {
 		Socket::Ptr pSock(new Socket());
@@ -53,10 +53,10 @@ Socket::Ptr UDPServer::getSock(const char* strLocalIp, int iTrackIndex,uint16_t 
 			return nullptr;
 		}
 
-		pSock->setOnRead(bind(&UDPServer::onRcvData, this, iTrackIndex, placeholders::_1,placeholders::_2));
+		pSock->setOnRead(bind(&UDPServer::onRcvData, this, intervaled, placeholders::_1,placeholders::_2));
 		pSock->setOnErr(bind(&UDPServer::onErr, this, strKey, placeholders::_1));
 		_mapUpdSock[strKey] = pSock;
-		DebugL << strLocalIp << " " << pSock->get_local_port() << " " << iTrackIndex;
+		DebugL << strLocalIp << " " << pSock->get_local_port() << " " << intervaled;
 		return pSock;
 	}
 	return it->second;
@@ -89,7 +89,7 @@ void UDPServer::onErr(const string& strKey, const SockException& err) {
 	lock_guard<mutex> lck(_mtxUpdSock);
 	_mapUpdSock.erase(strKey);
 }
-void UDPServer::onRcvData(int iTrackIndex, const Buffer::Ptr &pBuf, struct sockaddr* pPeerAddr) {
+void UDPServer::onRcvData(int intervaled, const Buffer::Ptr &pBuf, struct sockaddr* pPeerAddr) {
 	//TraceL << trackIndex;
 	struct sockaddr_in *in = (struct sockaddr_in *) pPeerAddr;
 	string peerIp = inet_ntoa(in->sin_addr);
@@ -101,7 +101,7 @@ void UDPServer::onRcvData(int iTrackIndex, const Buffer::Ptr &pBuf, struct socka
 	auto &mapRef = it0->second;
 	for (auto it1 = mapRef.begin(); it1 != mapRef.end(); ++it1) {
 		onRecvData &funRef = it1->second;
-		if (!funRef(iTrackIndex, pBuf, pPeerAddr)) {
+		if (!funRef(intervaled, pBuf, pPeerAddr)) {
 			it1 = mapRef.erase(it1);
 		}
 	}

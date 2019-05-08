@@ -108,6 +108,16 @@ protected:
 
 	//TcpSession override
     int send(const Buffer::Ptr &pkt) override;
+
+
+    /**
+     * 收到RTCP包回调
+     * @param iTrackidx
+     * @param track
+     * @param pucData
+     * @param uiLen
+     */
+    void onRecvRtcp(int iTrackidx,SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
 private:
 	bool handleReq_Options(const Parser &parser); //处理options方法
     bool handleReq_Describe(const Parser &parser); //处理describe方法
@@ -133,7 +143,7 @@ private:
     inline int getTrackIndexByControlSuffix(const string &controlSuffix);
 	inline int getTrackIndexByInterleaved(int interleaved);
 
-	inline void onRcvPeerUdpData(int iTrackIdx, const Buffer::Ptr &pBuf, const struct sockaddr &addr);
+	inline void onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBuf, const struct sockaddr &addr);
 	inline void startListenPeerUdpData(int iTrackIdx);
 
     //认证相关
