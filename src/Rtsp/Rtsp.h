@@ -111,6 +111,7 @@ class RtcpCounter {
 public:
 	uint32_t pktCnt = 0;
 	uint32_t octCount = 0;
+	//网络字节序
 	uint32_t timeStamp = 0;
 };
 
