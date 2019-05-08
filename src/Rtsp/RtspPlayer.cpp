@@ -254,7 +254,7 @@ void RtspPlayer::sendSetup(unsigned int trackIndex) {
 				throw std::runtime_error("open rtp sock err");
 			}
             _apRtcpSock[trackIndex].reset(new Socket());
-            if (!_apRtcpSock[trackIndex]->bindUdpSock(0, get_local_ip().data())) {
+            if (!_apRtcpSock[trackIndex]->bindUdpSock(_apRtpSock[trackIndex]->get_local_port() + 1, get_local_ip().data())) {
                 _apRtcpSock[trackIndex].reset();
                 throw std::runtime_error("open rtcp sock err");
             }
