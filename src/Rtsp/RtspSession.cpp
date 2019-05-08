@@ -1210,7 +1210,8 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 
 #ifdef RTSP_SEND_RTCP
 inline void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
-    uint8_t aui8Rtcp[4 + 28 + 10 + sizeof(SERVER_NAME) + 1] = {0};
+    static const char server_name[] = "ZLMediaKitRtsp";
+    uint8_t aui8Rtcp[4 + 28 + 10 + sizeof(server_name) + 1] = {0};
     uint8_t *pui8Rtcp_SR = aui8Rtcp + 4, *pui8Rtcp_SDES = pui8Rtcp_SR + 28;
     auto &track = _aTrackInfo[iTrackIndex];
     auto &counter = _aRtcpCnt[iTrackIndex];
@@ -1258,8 +1259,8 @@ inline void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
 
     pui8Rtcp_SDES[8] = 0x01;
     pui8Rtcp_SDES[9] = 0x0f;
-    memcpy(&pui8Rtcp_SDES[10], SERVER_NAME, sizeof(SERVER_NAME));
-    pui8Rtcp_SDES[10 + sizeof(SERVER_NAME)] = 0x00;
+    memcpy(&pui8Rtcp_SDES[10], server_name, sizeof(server_name));
+    pui8Rtcp_SDES[10 + sizeof(server_name)] = 0x00;
 
     if(overTcp){
         send(obtainBuffer((char *) aui8Rtcp, sizeof(aui8Rtcp)));
