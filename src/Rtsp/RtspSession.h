@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -117,7 +117,7 @@ protected:
      * @param pucData
      * @param uiLen
      */
-    void onRecvRtcp(int iTrackidx,SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
+    virtual void onRecvRtcp(int iTrackidx,SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
 private:
 	bool handleReq_Options(const Parser &parser); //处理options方法
     bool handleReq_Describe(const Parser &parser); //处理describe方法
