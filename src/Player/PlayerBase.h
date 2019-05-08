@@ -120,6 +120,12 @@ public:
 	 */
 	virtual void setOnPlayResult( const function<void(const SockException &ex)> &cb) {}
 
+    /**
+     * 设置播放恢复回调
+     * @param cb
+     */
+    virtual void setOnResume( const function<void()> &cb) {}
+
 	/**
 	 * 获取播放进度，取值 0.0 ~ 1.0
 	 * @return
@@ -147,6 +153,10 @@ public:
 protected:
     virtual void onShutdown(const SockException &ex) {}
     virtual void onPlayResult(const SockException &ex) {}
+    /**
+     * 暂停后恢复播放时间
+     */
+    virtual void onResume(){};
 };
 
 template<typename Parent,typename Parser>
@@ -171,6 +181,13 @@ public:
 		}
 		_playResultCB = cb;
 	}
+
+    void setOnResume(const function<void()> &cb) override {
+        if (_parser) {
+            _parser->setOnResume(cb);
+        }
+        _resumeCB = cb;
+    }
 
     bool isInited(int analysisMs) override{
         if (_parser) {
@@ -237,7 +254,14 @@ protected:
 		}
 		//播放成功却未初始化完毕，这个时候不回调汇报播放成功
 	}
-	void checkInited(int analysisMs){
+
+	void onResume() override{
+        if(_resumeCB){
+            _resumeCB();
+        }
+    }
+
+    void checkInited(int analysisMs){
 		if(!_playResultCB){
 			return;
 		}
@@ -249,7 +273,8 @@ protected:
 protected:
 	function<void(const SockException &ex)> _shutdownCB;
 	function<void(const SockException &ex)> _playResultCB;
-	std::shared_ptr<Parser> _parser;
+    function<void()> _resumeCB;
+    std::shared_ptr<Parser> _parser;
 	MediaSource::Ptr _pMediaSrc;
 };
 

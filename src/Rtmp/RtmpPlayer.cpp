@@ -117,30 +117,40 @@ void RtmpPlayer::onErr(const SockException &ex){
 
 void RtmpPlayer::onPlayResult_l(const SockException &ex) {
 	WarnL << ex.getErrCode() << " " << ex.what();
+
+    if(!ex){
+        //恢复rtmp接收超时定时器
+        _mediaTicker.resetTime();
+        weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+        int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
+        _pMediaTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
+            auto strongSelf=weakSelf.lock();
+            if(!strongSelf) {
+                return false;
+            }
+            if(strongSelf->_mediaTicker.elapsedTime()> timeoutMS) {
+                //recv media timeout!
+                strongSelf->onPlayResult_l(SockException(Err_timeout,"recv rtmp timeout"));
+                return false;
+            }
+            return true;
+        },getPoller()));
+    }
+
 	if (_pPlayTimer) {
+	    //开始播放阶段
 		_pPlayTimer.reset();
 		onPlayResult(ex);
-		if(!ex){
-			_mediaTicker.resetTime();
-			weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-			int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
-			_pMediaTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
-				auto strongSelf=weakSelf.lock();
-				if(!strongSelf) {
-					return false;
-				}
-				if(strongSelf->_mediaTicker.elapsedTime()> timeoutMS) {
-					//recv media timeout!
-					strongSelf->onPlayResult_l(SockException(Err_timeout,"recv rtmp timeout"));
-					return false;
-				}
-				return true;
-			},getPoller()));
-		}
-	}else if(ex){
-		//播放成功后异常断开回调
-		onShutdown(ex);
-	}
+	}else {
+	    //播放中途阶段
+        if (ex) {
+            //播放成功后异常断开回调
+            onShutdown(ex);
+        }else{
+            //恢复播放
+            onResume();
+        }
+    }
 
 	if(ex){
 		teardown();

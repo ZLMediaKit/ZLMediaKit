@@ -614,36 +614,44 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &
 }
 void RtspPlayer::onPlayResult_l(const SockException &ex) {
 	WarnL << ex.getErrCode() << " " << ex.what();
-	if(_pPlayTimer){
-		//播放结果回调
-		_pPlayTimer.reset();
-		onPlayResult(ex);
-		if(!ex){
-			//播放成功
-			_rtpTicker.resetTime();
-			weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-			int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
-			_pRtpTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
-				auto strongSelf=weakSelf.lock();
-				if(!strongSelf) {
-					return false;
-				}
-				if(strongSelf->_rtpTicker.elapsedTime()> timeoutMS) {
-					//recv rtp timeout!
-					strongSelf->onPlayResult_l(SockException(Err_timeout,"recv rtp timeout"));
-					return false;
-				}
-				return true;
-			},getPoller()));
-		}
-	} else if(ex){
-		//播放成功后异常断开回调
-		onShutdown(ex);
-	}
 
-	if(ex){
-		teardown();
-	}
+    if(!ex){
+        //播放成功，恢复rtp接收超时定时器
+        _rtpTicker.resetTime();
+        weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
+        int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
+        _pRtpTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
+            auto strongSelf=weakSelf.lock();
+            if(!strongSelf) {
+                return false;
+            }
+            if(strongSelf->_rtpTicker.elapsedTime()> timeoutMS) {
+                //recv rtp timeout!
+                strongSelf->onPlayResult_l(SockException(Err_timeout,"recv rtp timeout"));
+                return false;
+            }
+            return true;
+        },getPoller()));
+    }
+
+    if (_pPlayTimer) {
+        //开始播放阶段
+        _pPlayTimer.reset();
+        onPlayResult(ex);
+    }else {
+        //播放中途阶段
+        if (ex) {
+            //播放成功后异常断开回调
+            onShutdown(ex);
+        }else{
+            //恢复播放
+            onResume();
+        }
+    }
+
+    if(ex){
+        teardown();
+    }
 }
 
 int RtspPlayer::getTrackIndexByControlSuffix(const string &controlSuffix) const{

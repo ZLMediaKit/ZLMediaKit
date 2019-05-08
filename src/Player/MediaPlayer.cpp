@@ -45,6 +45,7 @@ void MediaPlayer::play(const string &strUrl) {
 	_parser = PlayerBase::createPlayer(_poller,strUrl);
 	_parser->setOnShutdown(_shutdownCB);
 	_parser->setOnPlayResult(_playResultCB);
+    _parser->setOnResume(_resumeCB);
     _parser->setMediaSouce(_pMediaSrc);
 	_parser->mINI::operator=(*this);
 	_parser->play(strUrl);
