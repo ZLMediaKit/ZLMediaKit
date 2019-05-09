@@ -197,12 +197,12 @@ void RtspSession::onRtpPacket(const char *data, uint64_t len) {
 	}else{
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
         if (trackIdx != -1) {
-            onRecvRtcp(trackIdx,_aTrackInfo[trackIdx],(unsigned char *)data + 4, len - 4);
+            onRtcpPacket(trackIdx, _aTrackInfo[trackIdx], (unsigned char *) data + 4, len - 4);
         }
 	}
 }
 
-void RtspSession::onRecvRtcp(int iTrackidx,SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen){
+void RtspSession::onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen){
 
 }
 int64_t RtspSession::getContentLength(Parser &parser) {
@@ -996,7 +996,8 @@ inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBu
         if(_udpSockConnected.count(intervaled)){
             _apRtcpSock[(intervaled - 1) / 2]->setSendPeerAddr(&addr);
         }
-        onRecvRtcp((intervaled - 1) / 2,_aTrackInfo[(intervaled - 1) / 2],( unsigned char *)pBuf->data(),pBuf->size());
+        onRtcpPacket((intervaled - 1) / 2, _aTrackInfo[(intervaled - 1) / 2], (unsigned char *) pBuf->data(),
+                     pBuf->size());
     }
 }
 

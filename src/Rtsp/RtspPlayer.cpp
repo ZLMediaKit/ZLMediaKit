@@ -357,7 +357,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
                     WarnL << "收到其他地址的rtcp数据:" << inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
                     return;
                 }
-                strongSelf->onRecvRtcp(uiTrackIndex, strongSelf->_aTrackInfo[uiTrackIndex], (unsigned char *) buf->data(), buf->size());
+                strongSelf->onRtcpPacket(uiTrackIndex, strongSelf->_aTrackInfo[uiTrackIndex],
+                                         (unsigned char *) buf->data(), buf->size());
             });
         }
 	}
@@ -481,12 +482,12 @@ void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
     }else{
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
         if (trackIdx != -1) {
-            onRecvRtcp(trackIdx,_aTrackInfo[trackIdx],(unsigned char *)data + 4, len - 4);
+            onRtcpPacket(trackIdx, _aTrackInfo[trackIdx], (unsigned char *) data + 4, len - 4);
         }
     }
 }
 
-void RtspPlayer::onRecvRtcp(int iTrackidx,SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen){
+void RtspPlayer::onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen){
 
 }
 
