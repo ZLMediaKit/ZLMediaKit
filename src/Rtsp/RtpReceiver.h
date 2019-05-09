@@ -64,11 +64,14 @@ protected:
     virtual void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx){}
     void clear();
     void setPoolSize(int size);
+    int getJitterSize(int iTrackidx);
+    int getCycleCount(int iTrackidx);
 private:
     uint32_t _aui32SsrcErrorCnt[2] = { 0, 0 };
     /* RTP包排序所用参数 */
     uint16_t _aui16LastSeq[2] = { 0 , 0 };
     uint32_t _aui32SeqOkCnt[2] = { 0 , 0};
+    uint32_t _clcyeCount[2] = { 0 , 0};
     bool _abSortStarted[2] = { 0 , 0};
     map<uint16_t , RtpPacket::Ptr> _amapRtpSort[2];
     RtspMediaSource::PoolType _pktPool;

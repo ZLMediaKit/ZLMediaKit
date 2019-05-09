@@ -1190,7 +1190,6 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
             break;
     }
 
-#ifdef RTSP_SEND_RTCP
     int iTrackIndex = getTrackIndexByInterleaved(pkt->interleaved);
     if(iTrackIndex == -1){
         return;
@@ -1206,21 +1205,19 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
         memcpy(&counter.timeStamp, pkt->payload + 8 , 4);
         sendSenderReport(_rtpType == Rtsp::RTP_TCP,iTrackIndex);
     }
-#endif
 }
 
-#ifdef RTSP_SEND_RTCP
 inline void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
-    static const char server_name[] = "ZLMediaKitRtsp";
-    uint8_t aui8Rtcp[4 + 28 + 10 + sizeof(server_name) + 1] = {0};
+    static const char s_cname[] = "ZLMediaKitRtsp";
+    uint8_t aui8Rtcp[4 + 28 + 10 + sizeof(s_cname) + 1] = {0};
     uint8_t *pui8Rtcp_SR = aui8Rtcp + 4, *pui8Rtcp_SDES = pui8Rtcp_SR + 28;
     auto &track = _aTrackInfo[iTrackIndex];
     auto &counter = _aRtcpCnt[iTrackIndex];
 
     aui8Rtcp[0] = '$';
     aui8Rtcp[1] = track->_interleaved + 1;
-    aui8Rtcp[2] = (sizeof(aui8Rtcp) - 4) / 256;
-    aui8Rtcp[3] = (sizeof(aui8Rtcp) - 4) % 256;
+    aui8Rtcp[2] = (sizeof(aui8Rtcp) - 4) >> 8;
+    aui8Rtcp[3] = (sizeof(aui8Rtcp) - 4) & 0xFF;
 
     pui8Rtcp_SR[0] = 0x80;
     pui8Rtcp_SR[1] = 0xC8;
@@ -1260,8 +1257,8 @@ inline void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
 
     pui8Rtcp_SDES[8] = 0x01;
     pui8Rtcp_SDES[9] = 0x0f;
-    memcpy(&pui8Rtcp_SDES[10], server_name, sizeof(server_name));
-    pui8Rtcp_SDES[10 + sizeof(server_name)] = 0x00;
+    memcpy(&pui8Rtcp_SDES[10], s_cname, sizeof(s_cname));
+    pui8Rtcp_SDES[10 + sizeof(s_cname)] = 0x00;
 
     if(overTcp){
         send(obtainBuffer((char *) aui8Rtcp, sizeof(aui8Rtcp)));
@@ -1269,7 +1266,6 @@ inline void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
         _apRtcpSock[iTrackIndex]->send((char *) aui8Rtcp + 4, sizeof(aui8Rtcp) - 4);
     }
 }
-#endif
 
 }
 /* namespace mediakit */
