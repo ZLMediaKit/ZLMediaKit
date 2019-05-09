@@ -93,7 +93,7 @@ protected:
      * @param pucData
      * @param uiLen
      */
-    virtual void onRecvRtcp(int iTrackidx,SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
+    virtual void onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
 
     /**
      * 发送rtcp包维持心跳
