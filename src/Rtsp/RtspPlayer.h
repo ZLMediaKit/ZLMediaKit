@@ -94,11 +94,6 @@ protected:
      * @param uiLen
      */
     virtual void onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
-
-    /**
-     * 发送rtcp包维持心跳
-     */
-    virtual void sendRtcpPacket();
 private:
 	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
 	void onPlayResult_l(const SockException &ex);
@@ -125,6 +120,7 @@ private:
 
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
 	void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
+    void sendReceiverReport(bool overTcp,int iTrackIndex);
 private:
 	string _strUrl;
 	SdpAttr _sdpAttr;
@@ -151,15 +147,17 @@ private:
 	Ticker _rtpTicker;
 	std::shared_ptr<Timer> _pPlayTimer;
 	std::shared_ptr<Timer> _pRtpTimer;
-	//心跳定时器
-	std::shared_ptr<Timer> _pBeatTimer;
-    
+
     //播放进度控制,单位毫秒
     uint32_t _iSeekTo = 0;
 
     //单位毫秒
 	uint32_t _aiFistStamp[2] = {0,0};
 	uint32_t _aiNowStamp[2] = {0,0};
+
+	//rtcp相关
+    RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
+    Ticker _aRtcpTicker[2]; //rtcp发送时间,trackid idx 为数组下标
 };
 
 } /* namespace mediakit */

@@ -116,11 +116,12 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
         _aui32SeqOkCnt[iTrackidx] = 0;
         _abSortStarted[iTrackidx] = true;
 //        WarnL << "包乱序或丢包:" << iTrackidx <<" " << rtppt.sequence << " " << _aui16LastSeq[iTrackidx];
-        if(_aui16LastSeq[iTrackidx] > rtppt.sequence && _aui16LastSeq[iTrackidx] - rtppt.sequence > 0x7FFF){
+        if(_aui16LastSeq[iTrackidx] > rtppt.sequence && _aui16LastSeq[iTrackidx] - rtppt.sequence > 0xFF){
             //sequence回环，清空所有排序缓存
             while (_amapRtpSort[iTrackidx].size()) {
                 POP_HEAD(iTrackidx)
             }
+            ++_clcyeCount[iTrackidx];
         }
     }else{
         //正确序列的包
@@ -157,6 +158,7 @@ void RtpReceiver::clear() {
     CLEAR_ARR(_aui32SsrcErrorCnt)
     CLEAR_ARR(_aui32SeqOkCnt)
     CLEAR_ARR(_abSortStarted)
+    CLEAR_ARR(_clcyeCount)
 
     _amapRtpSort[0].clear();
     _amapRtpSort[1].clear();
@@ -165,5 +167,14 @@ void RtpReceiver::clear() {
 void RtpReceiver::setPoolSize(int size) {
     _pktPool.setSize(size);
 }
+
+int RtpReceiver::getJitterSize(int iTrackidx){
+    return _amapRtpSort[iTrackidx].size();
+}
+
+int RtpReceiver::getCycleCount(int iTrackidx){
+    return _clcyeCount[iTrackidx];
+}
+
 
 }//namespace mediakit
