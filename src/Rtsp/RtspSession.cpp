@@ -148,7 +148,7 @@ void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
 void RtspSession::onWholeRtspPacket(Parser &parser) {
 	string strCmd = parser.Method(); //提取出请求命令字
 	_iCseq = atoi(parser["CSeq"].data());
-	if(_strContentBase.empty()){
+	if(_strContentBase.empty() && strCmd != "GET"){
 		_strContentBase = parser.Url();
 		_mediaInfo.parse(parser.FullUrl());
 	}
