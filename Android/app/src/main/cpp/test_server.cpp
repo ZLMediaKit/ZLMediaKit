@@ -57,7 +57,7 @@ namespace Http {
 const char kPort[] = HTTP_FIELD"port";
 #define HTTPS_PORT 8443
 const char kSSLPort[] = HTTP_FIELD"sslport";
-onceToken token1([](){
+static onceToken token1([](){
     mINI::Instance()[kPort] = HTTP_PORT;
     mINI::Instance()[kSSLPort] = HTTPS_PORT;
 },nullptr);
@@ -68,7 +68,7 @@ namespace Shell {
 #define SHELL_FIELD "shell."
 #define SHELL_PORT 9000
 const char kPort[] = SHELL_FIELD"port";
-onceToken token1([](){
+static onceToken token1([](){
     mINI::Instance()[kPort] = SHELL_PORT;
 },nullptr);
 } //namespace Shell
@@ -80,7 +80,7 @@ namespace Rtsp {
 #define RTSPS_PORT 8322
 const char kPort[] = RTSP_FIELD"port";
 const char kSSLPort[] = RTSP_FIELD"sslport";
-onceToken token1([](){
+static onceToken token1([](){
     mINI::Instance()[kPort] = RTSP_PORT;
     mINI::Instance()[kSSLPort] = RTSPS_PORT;
 },nullptr);
@@ -92,7 +92,7 @@ namespace Rtmp {
 #define RTMP_FIELD "rtmp."
 #define RTMP_PORT 1935
 const char kPort[] = RTMP_FIELD"port";
-onceToken token1([](){
+static onceToken token1([](){
     mINI::Instance()[kPort] = RTMP_PORT;
 },nullptr);
 } //namespace RTMP
