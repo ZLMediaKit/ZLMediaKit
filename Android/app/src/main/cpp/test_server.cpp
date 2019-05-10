@@ -216,7 +216,7 @@ static onceToken s_token([](){
 //设置退出信号处理函数
 static semaphore s_sem;
 
-int do_main(string ini_file) {
+static int do_main(string ini_file) {
     //加载配置文件，如果配置文件不存在就创建一个
     loadIniConfig(ini_file.data());
 
