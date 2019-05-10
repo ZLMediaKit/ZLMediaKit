@@ -24,10 +24,11 @@
  * SOFTWARE.
  */
 
-#include <Util/NoticeCenter.h>
 #include "Common/config.h"
 #include "Util/util.h"
+#include "Util/logger.h"
 #include "Util/onceToken.h"
+#include "Util/NoticeCenter.h"
 #include "Network/sockutil.h"
 
 using namespace toolkit;
@@ -46,6 +47,7 @@ bool loadIniConfig(const char *ini_path){
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
         return true;
 	}catch (std::exception &ex) {
+		InfoL << "dump ini file to:" << ini;
         mINI::Instance().dumpFile(ini);
         return false;
 	}
