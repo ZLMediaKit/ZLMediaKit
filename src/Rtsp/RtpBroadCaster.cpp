@@ -97,7 +97,7 @@ RtpBroadCaster::~RtpBroadCaster() {
 	_pReader->setDetachCB(nullptr);
 	DebugL;
 }
-RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
+RtpBroadCaster::RtpBroadCaster(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
 	auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA,strVhost,strApp, strStream));
 	if(!src){
 		auto strErr = StrPrinter << "未找到媒体源:" << strVhost << " " << strApp << " " << strStream << endl;
@@ -124,7 +124,7 @@ RtpBroadCaster::RtpBroadCaster(const string &strLocalIp,const string &strVhost,c
 		bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
 		_apUdpSock[i]->setSendPeerAddr((struct sockaddr *)&peerAddr);
 	}
-	_pReader = src->getRing()->attach(EventPollerPool::Instance().getPoller());
+	_pReader = src->getRing()->attach(poller);
 	_pReader->setReadCB([this](const RtpPacket::Ptr &pkt){
 		int i = (int)(pkt->type);
 		auto &pSock = _apUdpSock[i];
@@ -154,9 +154,9 @@ uint16_t RtpBroadCaster::getPort(TrackType trackType){
 string RtpBroadCaster::getIP(){
 	return inet_ntoa(_aPeerUdpAddr[0].sin_addr);
 }
-RtpBroadCaster::Ptr RtpBroadCaster::make(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream){
+RtpBroadCaster::Ptr RtpBroadCaster::make(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream){
 	try{
-		auto ret = Ptr(new RtpBroadCaster(strLocalIp,strVhost,strApp,strStream));
+		auto ret = Ptr(new RtpBroadCaster(poller,strLocalIp,strVhost,strApp,strStream));
 		lock_guard<recursive_mutex> lck(g_mtx);
 		string strKey = StrPrinter << strLocalIp << " "  << strVhost << " " << strApp << " " << strStream << endl;
 		weak_ptr<RtpBroadCaster> weakPtr = ret;
@@ -168,17 +168,17 @@ RtpBroadCaster::Ptr RtpBroadCaster::make(const string &strLocalIp,const string &
 	}
 }
 
-RtpBroadCaster::Ptr RtpBroadCaster::get(const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
+RtpBroadCaster::Ptr RtpBroadCaster::get(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
 	string strKey = StrPrinter << strLocalIp << " " << strVhost << " " << strApp << " " << strStream << endl;
 	lock_guard<recursive_mutex> lck(g_mtx);
 	auto it = g_mapBroadCaster.find(strKey);
 	if (it == g_mapBroadCaster.end()) {
-		return make(strLocalIp,strVhost,strApp, strStream);
+		return make(poller,strLocalIp,strVhost,strApp, strStream);
 	}
 	auto ret = it->second.lock();
 	if (!ret) {
 		g_mapBroadCaster.erase(it);
-		return make(strLocalIp,strVhost,strApp, strStream);
+		return make(poller,strLocalIp,strVhost,strApp, strStream);
 	}
 	return ret;
 }
