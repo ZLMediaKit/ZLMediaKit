@@ -637,7 +637,7 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 		break;
 	case Rtsp::RTP_MULTICAST: {
 		if(!_pBrdcaster){
-			_pBrdcaster = RtpBroadCaster::get(get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
+			_pBrdcaster = RtpBroadCaster::get(getPoller(),get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
 			if (!_pBrdcaster) {
 				send_NotAcceptable();
 				return false;
