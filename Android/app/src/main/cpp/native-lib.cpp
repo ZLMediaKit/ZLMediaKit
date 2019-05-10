@@ -84,7 +84,7 @@ JNI_API(jboolean,startDemo,jstring path_to_jni_file){
     string jni_file = sd_path +  "/zlmediakit.jni";
 
     DebugL << "sd_path:" << sd_path;
-    DebugL << "jni file:" << sd_path;
+    DebugL << "jni file:" << jni_file;
 
     static thread s_th([sd_path,jni_file](){
         try {
