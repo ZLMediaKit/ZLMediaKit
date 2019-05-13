@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -313,10 +313,10 @@ private:
             if(!_spsFrame){
                 _spsFrame = std::make_shared<H264Frame>();
                 _spsFrame->type = H264Frame::NAL_SPS;
-                _spsFrame->buffer.assign("\x0\x0\x0\x1",4);
-                _spsFrame->buffer.append(_sps);
                 _spsFrame->iPrefixSize = 4;
             }
+            _spsFrame->buffer.assign("\x0\x0\x0\x1",4);
+            _spsFrame->buffer.append(_sps);
             _spsFrame->timeStamp = frame->stamp();
             VideoTrack::inputFrame(_spsFrame);
         }
@@ -325,10 +325,10 @@ private:
             if(!_ppsFrame) {
                 _ppsFrame = std::make_shared<H264Frame>();
                 _ppsFrame->type = H264Frame::NAL_PPS;
-                _ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
-                _ppsFrame->buffer.append(_pps);
                 _ppsFrame->iPrefixSize = 4;
             }
+            _ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
+            _ppsFrame->buffer.append(_pps);
             _ppsFrame->timeStamp = frame->stamp();
             VideoTrack::inputFrame(_ppsFrame);
         }
