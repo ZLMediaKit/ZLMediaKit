@@ -156,7 +156,11 @@ string RtpBroadCaster::getIP(){
 }
 RtpBroadCaster::Ptr RtpBroadCaster::make(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream){
 	try{
-		auto ret = Ptr(new RtpBroadCaster(poller,strLocalIp,strVhost,strApp,strStream));
+		auto ret = Ptr(new RtpBroadCaster(poller,strLocalIp,strVhost,strApp,strStream),[poller](RtpBroadCaster *ptr){
+            poller->async([ptr]() {
+                delete ptr;
+            });
+		});
 		lock_guard<recursive_mutex> lck(g_mtx);
 		string strKey = StrPrinter << strLocalIp << " "  << strVhost << " " << strApp << " " << strStream << endl;
 		weak_ptr<RtpBroadCaster> weakPtr = ret;
