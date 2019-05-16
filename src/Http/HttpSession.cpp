@@ -317,7 +317,6 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
     GET_CONFIG_AND_REGISTER(bool,enableVhost,Http::kEnableVhost);
     GET_CONFIG_AND_REGISTER(string,rootPath,Http::kRootPath);
     string strFile = enableVhost ?  rootPath + "/" + _mediaInfo._vhost + _parser.Url() :rootPath + _parser.Url();
-    replace(strFile,"//","/");
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 
     do{
@@ -327,7 +326,6 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
             if(!indexFile.empty()){
                 //发现该文件夹下有index文件
                 strFile = strFile + "/" + indexFile;
-                replace(strFile,"//","/");
                 break;
             }
             //生成文件夹菜单索引
