@@ -97,7 +97,6 @@ protected:
     }
 private:
 	Parser _parser;
-	string _strPath;
 	Ticker _ticker;
 	uint32_t _iReqCnt = 0;
 	//消耗的总流量
@@ -113,7 +112,6 @@ private:
 	inline bool checkWebSocket();
 	inline bool emitHttpEvent(bool doInvoke);
 	inline void urlDecode(Parser &parser);
-	inline bool makeMeun(const string &strFullPath,const string &vhost, string &strRet);
 	inline void sendNotFound(bool bClose);
 	inline void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
 	inline static KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");

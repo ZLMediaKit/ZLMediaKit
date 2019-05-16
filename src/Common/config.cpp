@@ -93,6 +93,10 @@ const char kKeepAliveSecond[] = HTTP_FIELD"keepAliveSecond";
 #define HTTP_MAX_REQ_CNT 100
 const char kMaxReqCount[] = HTTP_FIELD"maxReqCount";
 
+//文件服务器是否启动虚拟主机
+const char kEnableVhost[] = HTTP_FIELD"enableVhost";
+
+
 //http 字符编码
 #if defined(_WIN32)
 #define HTTP_CHAR_SET "gb2312"
@@ -126,6 +130,7 @@ onceToken token([](){
 	mINI::Instance()[kCharSet] = HTTP_CHAR_SET;
 	mINI::Instance()[kRootPath] = HTTP_ROOT_PATH;
 	mINI::Instance()[kNotFound] = HTTP_NOT_FOUND;
+    mINI::Instance()[kEnableVhost] = 1;
 },nullptr);
 
 }//namespace Http

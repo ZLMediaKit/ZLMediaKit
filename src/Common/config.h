@@ -165,6 +165,8 @@ extern const char kCharSet[];
 extern const char kRootPath[];
 //http 404错误提示内容
 extern const char kNotFound[];
+//文件服务器是否启动虚拟主机
+extern const char kEnableVhost[];
 
 }//namespace Http
 
