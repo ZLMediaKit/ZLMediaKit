@@ -105,9 +105,6 @@ HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	pSock->setSendTimeOutSecond(15);
 	//起始接收buffer缓存设置为4K，节省内存
 	pSock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
-
-    GET_CONFIG_AND_REGISTER(string,rootPath,Http::kRootPath);
-    _strPath = rootPath;
 }
 
 HttpSession::~HttpSession() {
@@ -266,6 +263,9 @@ inline bool HttpSession::checkLiveFlvStream(){
     }
     return true;
 }
+
+inline bool makeMeun(const string &httpPath,const string &strFullPath,const string &vhost, string &strRet) ;
+
 inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//先看看是否为WebSocket请求
 	if(checkWebSocket()){
@@ -293,16 +293,19 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	auto fullUrl = string(HTTP_SCHEMA) + "://" + _parser["Host"] + _parser.FullUrl();
     _mediaInfo.parse(fullUrl);
 
-	string strFile = _strPath + "/" + _mediaInfo._vhost + _parser.Url();
 	/////////////HTTP连接是否需要被关闭////////////////
     GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
+    GET_CONFIG_AND_REGISTER(bool,enableVhost,Http::kEnableVhost);
+    GET_CONFIG_AND_REGISTER(string,rootPath,Http::kRootPath);
+    string strFile = enableVhost ?  rootPath + "/" + _mediaInfo._vhost + _parser.Url() :rootPath + _parser.Url();
+    replace(strFile,"//","/");
 
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 	//访问的是文件夹
 	if (strFile.back() == '/' || File::is_dir(strFile.data())) {
 		//生成文件夹菜单索引
  		string strMeun;
-		if (!makeMeun(strFile,_mediaInfo._vhost, strMeun)) {
+		if (!makeMeun(_parser.Url(),strFile,_mediaInfo._vhost, strMeun)) {
 			//文件夹不存在
 			sendNotFound(bClose);
 			return !bClose;
@@ -432,7 +435,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	return true;
 }
 
-inline bool HttpSession::makeMeun(const string &strFullPath,const string &vhost, string &strRet) {
+inline bool makeMeun(const string &httpPath,const string &strFullPath,const string &vhost, string &strRet) {
 	string strPathPrefix(strFullPath);
 	string last_dir_name;
 	if(strPathPrefix.back() == '/'){
@@ -452,11 +455,9 @@ inline bool HttpSession::makeMeun(const string &strFullPath,const string &vhost,
 			"<body>\r\n"
 			"<h1>文件索引:";
 
-	string strPath = strFullPath;
-	strPath = strPath.substr(_strPath.length() + vhost.length() + 1);
-	ss << strPath;
+	ss << httpPath;
 	ss << "</h1>\r\n";
-	if (strPath != "/") {
+	if (httpPath != "/") {
 		ss << "<li><a href=\"";
 		ss << "/";
 		ss << "\">";
