@@ -416,7 +416,6 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 				 iRead = fread(sendBuf->data(), 1, iReq, pFilePtr.get());
 			}while(-1 == iRead && UV_EINTR == get_uv_error(false));
             //文件剩余字节数
-			
 			*piLeft -= iRead;
 
 			if (iRead < iReq || !*piLeft) {
@@ -435,20 +434,15 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
             sendBuf->setSize(iRead);
             int iSent = strongSelf->send(sendBuf);
 			if(iSent == -1) {
+			    //套机制销毁
 				//InfoL << "send error";
 				return false;
-			}
-			if(iSent < iRead) {
-				//数据回滚
-				fseek(pFilePtr.get(), -iRead, SEEK_CUR);
-				*piLeft += iRead;
-				return true;
 			}
             if(strongSelf->isSocketBusy()){
                 //套接字忙，那么停止继续写
                 return true;
             }
-			//send success
+			//继续写套接字
 		}
 		return false;
 	};
