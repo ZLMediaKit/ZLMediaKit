@@ -266,6 +266,25 @@ inline bool HttpSession::checkLiveFlvStream(){
 
 inline bool makeMeun(const string &httpPath,const string &strFullPath,const string &vhost, string &strRet) ;
 
+inline static string findIndexFile(const string &dir){
+    DIR *pDir;
+    dirent *pDirent;
+    if ((pDir = opendir(dir.data())) == NULL) {
+        return "";
+    }
+    set<string> setFile;
+    while ((pDirent = readdir(pDir)) != NULL) {
+        static set<const char *,StrCaseCompare> indexSet = {"index.html","index.htm","index"};
+        if(indexSet.find(pDirent->d_name) !=  indexSet.end()){
+            closedir(pDir);
+            return pDirent->d_name;
+        }
+    }
+    closedir(pDir);
+    return "";
+}
+
+
 inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//先看看是否为WebSocket请求
 	if(checkWebSocket()){
@@ -299,20 +318,30 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
     GET_CONFIG_AND_REGISTER(string,rootPath,Http::kRootPath);
     string strFile = enableVhost ?  rootPath + "/" + _mediaInfo._vhost + _parser.Url() :rootPath + _parser.Url();
     replace(strFile,"//","/");
-
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
-	//访问的是文件夹
-	if (strFile.back() == '/' || File::is_dir(strFile.data())) {
-		//生成文件夹菜单索引
- 		string strMeun;
-		if (!makeMeun(_parser.Url(),strFile,_mediaInfo._vhost, strMeun)) {
-			//文件夹不存在
-			sendNotFound(bClose);
-			return !bClose;
-		}
-		sendResponse("200 OK", makeHttpHeader(bClose,strMeun.size() ), strMeun);
-		return !bClose;
-	}
+
+    do{
+        //访问的是文件夹
+        if (strFile.back() == '/' || File::is_dir(strFile.data())) {
+            auto indexFile = findIndexFile(strFile);
+            if(!indexFile.empty()){
+                //发现该文件夹下有index文件
+                strFile = strFile + "/" + indexFile;
+                replace(strFile,"//","/");
+                break;
+            }
+            //生成文件夹菜单索引
+            string strMeun;
+            if (!makeMeun(_parser.Url(),strFile,_mediaInfo._vhost, strMeun)) {
+                //文件夹不存在
+                sendNotFound(bClose);
+                return !bClose;
+            }
+            sendResponse("200 OK", makeHttpHeader(bClose,strMeun.size() ), strMeun);
+            return !bClose;
+        }
+    }while(0);
+
 	//访问的是文件
 	struct stat tFileStat;
 	if (0 != stat(strFile.data(), &tFileStat)) {
