@@ -41,10 +41,13 @@ using namespace mediakit;
 
 //推流器，保持强引用
 MediaPusher::Ptr pusher;
+Timer::Ptr g_timer;
+
 
 //声明函数
 //推流失败或断开延迟2秒后重试推流
-void rePushDelay(const string &schema,
+void rePushDelay(const EventPoller::Ptr &poller,
+                 const string &schema,
 				 const string &vhost,
 				 const string &app,
 				 const string &stream,
@@ -52,7 +55,8 @@ void rePushDelay(const string &schema,
 				 const string &url) ;
 
 //创建推流器并开始推流
-void createPusher(const string &schema,
+void createPusher(const EventPoller::Ptr &poller,
+                  const string &schema,
 				  const string &vhost,
 				  const string &app,
 				  const string &stream,
@@ -67,22 +71,22 @@ void createPusher(const string &schema,
     }
 
 	//创建推流器并绑定一个MediaSource
-    pusher.reset(new MediaPusher(src));
+    pusher.reset(new MediaPusher(src,poller));
 	//可以指定rtsp推流方式，支持tcp和udp方式，默认tcp
 //    (*pusher)[Client::kRtpType] = Rtsp::RTP_UDP;
 
 	//设置推流中断处理逻辑
-	pusher->setOnShutdown([schema,vhost,app,stream,filePath, url](const SockException &ex) {
+	pusher->setOnShutdown([poller,schema,vhost,app,stream,filePath, url](const SockException &ex) {
 		WarnL << "Server connection is closed:" << ex.getErrCode() << " " << ex.what();
         //重新推流
-		rePushDelay(schema,vhost,app, stream,filePath, url);
+		rePushDelay(poller,schema,vhost,app, stream,filePath, url);
 	});
 	//设置发布结果处理逻辑
-	pusher->setOnPublished([schema,vhost,app,stream,filePath, url](const SockException &ex) {
+	pusher->setOnPublished([poller,schema,vhost,app,stream,filePath, url](const SockException &ex) {
 		if (ex) {
 			WarnL << "Publish fail:" << ex.getErrCode() << " " << ex.what();
 			//如果发布失败，就重试
-			rePushDelay(schema,vhost,app, stream, filePath ,url);
+			rePushDelay(poller,schema,vhost,app, stream, filePath ,url);
 		}else {
 			InfoL << "Publish success,Please play with player:" << url;
 		}
@@ -90,21 +94,21 @@ void createPusher(const string &schema,
 	pusher->publish(url);
 }
 
-Timer::Ptr g_timer;
 //推流失败或断开延迟2秒后重试推流
-void rePushDelay(const string &schema,
+void rePushDelay(const EventPoller::Ptr &poller,
+                 const string &schema,
 				 const string &vhost,
 				 const string &app,
 				 const string &stream,
 				 const string &filePath,
 				 const string &url) {
-	g_timer = std::make_shared<Timer>(2,[schema,vhost,app, stream, filePath,url]() {
+	g_timer = std::make_shared<Timer>(2,[poller,schema,vhost,app, stream, filePath,url]() {
 		InfoL << "Re-Publishing...";
 		//重新推流
-		createPusher(schema,vhost,app, stream, filePath,url);
+		createPusher(poller,schema,vhost,app, stream, filePath,url);
 		//此任务不重复
 		return false;
-	}, nullptr);
+	}, poller);
 }
 
 //这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了
@@ -112,8 +116,9 @@ int domain(const string & filePath,const string & pushUrl){
 	//设置日志
 	Logger::Instance().add(std::make_shared<ConsoleChannel>());
 	Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
-	//vhost/app/stream可以随便自己填，现在不限制app应用名了
-    createPusher(FindField(pushUrl.data(), nullptr,"://"),DEFAULT_VHOST,"live","stream",filePath,pushUrl);
+    auto poller = EventPollerPool::Instance().getPoller();
+    //vhost/app/stream可以随便自己填，现在不限制app应用名了
+    createPusher(poller,FindField(pushUrl.data(), nullptr,"://"),DEFAULT_VHOST,"live","stream",filePath,pushUrl);
 
 	//设置退出信号处理函数
 	static semaphore sem;
