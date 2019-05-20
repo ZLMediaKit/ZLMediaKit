@@ -45,6 +45,7 @@ static map<string, AsyncHttpApi> s_map_api;
 
 namespace API {
 typedef enum {
+    InvalidArgsFailed = -300,
     SqlFailed = -200,
     AuthFailed = -100,
     OtherFailed = -1,
@@ -73,6 +74,12 @@ class AuthException : public ApiRetException {
 public:
     AuthException(const char *str):ApiRetException(str,API::AuthFailed){}
     ~AuthException() = default;
+};
+
+class InvalidArgs: public ApiRetException {
+public:
+    InvalidArgs(const char *str):ApiRetException(str,API::InvalidArgsFailed){}
+    ~InvalidArgs() = default;
 };
 
 
@@ -150,11 +157,7 @@ static inline void addHttpListener(){
 
             try {
                 api(headerIn, headerOut, allArgs, val, invoker);
-            } catch(AuthException &ex){
-                val["code"] = API::AuthFailed;
-                val["msg"] = ex.what();
-                invoker("200 OK", headerOut, val.toStyledString());
-            } catch(ApiRetException &ex){
+            }  catch(ApiRetException &ex){
                 val["code"] = ex.code();
                 val["msg"] = ex.what();
                 invoker("200 OK", headerOut, val.toStyledString());
@@ -171,6 +174,21 @@ static inline void addHttpListener(){
         });
     });
 }
+
+template <typename Args,typename First>
+bool checArgs(Args &&args,First &&first){
+    return !args[first].empty();
+}
+
+template <typename Args,typename First,typename ...KeyTypes>
+bool checArgs(Args &&args,First &&first,KeyTypes && ...keys){
+    return !args[first].empty() && checArgs(args,keys...);
+}
+
+#define CHECK_ARGS(...)  \
+    if(!checArgs(allArgs,##__VA_ARGS__)){ \
+        throw InvalidArgs("缺少必要参数:" #__VA_ARGS__); \
+    }
 
 //安装api接口
 void installWebApi() {
@@ -287,6 +305,7 @@ void installWebApi() {
     });
 
     API_REGIST(api,kick_pusher,{
+        CHECK_ARGS("schema","vhost","app","stream");
         //踢掉推流器
         auto src = MediaSource::find(allArgs["schema"],
                                      allArgs["vhost"],
@@ -303,6 +322,7 @@ void installWebApi() {
     });
 
     API_REGIST(api,kick_session,{
+        CHECK_ARGS("id");
         //踢掉tcp会话
         auto id = allArgs["id"];
         if(id.empty()){
@@ -325,6 +345,7 @@ void installWebApi() {
     static unordered_map<uint64_t ,PlayerProxy::Ptr> s_proxyMap;
     static recursive_mutex s_proxyMapMtx;
     API_REGIST(api,addStreamProxy,{
+        CHECK_ARGS("vhost","app","stream","url");
         //添加拉流代理
         PlayerProxy::Ptr player(new PlayerProxy(
                 allArgs["vhost"],
@@ -344,6 +365,7 @@ void installWebApi() {
     });
 
     API_REGIST(api,delStreamProxy,{
+        CHECK_ARGS("id");
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         val["data"]["flag"] = s_proxyMap.erase(allArgs["id"].as<uint64_t>()) == 1;
     });
@@ -377,6 +399,7 @@ void installWebApi() {
     API_REGIST(hook,on_rtsp_auth,{
         //rtsp鉴权密码，密码等于用户名
         //rtsp可以有双重鉴权！后面还会触发on_play事件
+        CHECK_ARGS("user_name");
         val["code"] = 0;
         val["encrypted"] = false;
         val["passwd"] = allArgs["user_name"].data();
