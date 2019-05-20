@@ -199,6 +199,7 @@ void installWebHook(){
         body["id"] = sender.getIdentifier();
         body["totalBytes"] = (Json::UInt64)totalBytes;
         body["duration"] = (Json::UInt64)totalDuration;
+        body["player"] = isPlayer;
         //执行hook
         do_http_hook(hook_flowreport,body, nullptr);
     });

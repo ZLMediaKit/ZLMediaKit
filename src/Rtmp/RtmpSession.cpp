@@ -56,10 +56,12 @@ void RtmpSession::onError(const SockException& err) {
     GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
 
     if(_ui64TotalBytes > iFlowThreshold * 1024){
+        bool isPlayer = !_pPublisherSrc;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
                                            _mediaInfo,
                                            _ui64TotalBytes,
                                            _ticker.createdTime()/1000,
+                                           isPlayer,
                                            *this);
     }
 }
