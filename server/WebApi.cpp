@@ -134,7 +134,7 @@ static inline void addHttpListener(){
                                                            const string &contentOut){
                     stringstream ss;
                     for(auto &pr : allArgs ){
-                        ss << pr.first << " : " << (string)pr.second << "\r\n";
+                        ss << pr.first << " : " << pr.second << "\r\n";
                     }
 
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
@@ -379,7 +379,7 @@ void installWebApi() {
         //rtsp可以有双重鉴权！后面还会触发on_play事件
         val["code"] = 0;
         val["encrypted"] = false;
-        val["passwd"] = allArgs["user_name"];
+        val["passwd"] = allArgs["user_name"].data();
     });
 
     API_REGIST(hook,on_stream_changed,{
