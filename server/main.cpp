@@ -160,6 +160,9 @@ extern void unInstallWebHook();
 static void inline listen_shell_input(){
     cout << "> 欢迎进入命令模式，你可以输入\"help\"命令获取帮助" << endl;
     cout << "> " << std::flush;
+
+    signal(SIGTTOU,SIG_IGN);
+    signal(SIGTTIN,SIG_IGN);
     SockUtil::setNoBlocked(STDIN_FILENO);
     auto oninput = [](int event) {
         if (event & Event_Read) {
