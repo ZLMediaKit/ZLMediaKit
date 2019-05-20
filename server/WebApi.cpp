@@ -190,6 +190,10 @@ bool checkArgs(Args &&args,First &&first,KeyTypes && ...keys){
         throw InvalidArgs("缺少必要参数:" #__VA_ARGS__); \
     }
 
+
+static unordered_map<uint64_t ,PlayerProxy::Ptr> s_proxyMap;
+static recursive_mutex s_proxyMapMtx;
+
 //安装api接口
 void installWebApi() {
     addHttpListener();
@@ -342,8 +346,6 @@ void installWebApi() {
     });
 
 
-    static unordered_map<uint64_t ,PlayerProxy::Ptr> s_proxyMap;
-    static recursive_mutex s_proxyMapMtx;
     API_REGIST(api,addStreamProxy,{
         CHECK_ARGS("vhost","app","stream","url");
         //添加拉流代理
@@ -424,6 +426,9 @@ void installWebApi() {
         val["msg"] = "success";
     });
 
+}
 
-
+void unInstallWebApi(){
+    lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+    s_proxyMap.clear();
 }
