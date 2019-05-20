@@ -328,5 +328,8 @@ void installWebHook(){
     });
 #endif //ENABLE_MP4V2
 
+}
+
+void unInstallWebHook(){
 
 }

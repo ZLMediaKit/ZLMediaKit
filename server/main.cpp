@@ -153,7 +153,9 @@ public:
 
 
 extern void installWebApi();
+extern void unInstallWebApi();
 extern void installWebHook();
+extern void unInstallWebHook();
 
 static void inline listen_shell_input(){
     cout << "> 欢迎进入命令模式，你可以输入\"help\"命令获取帮助" << endl;
@@ -278,11 +280,18 @@ int main(int argc,char *argv[]) {
         static semaphore sem;
         signal(SIGINT, [](int) {
             InfoL << "SIGINT:exit";
+            signal(SIGINT, SIG_IGN);// 设置退出信号
             sem.post();
         });// 设置退出信号
         signal(SIGHUP, [](int) { mediakit::loadIniConfig(); });
         sem.wait();
     }
+    unInstallWebApi();
+    unInstallWebHook();
+    //休眠3秒再退出，防止资源释放顺序错误
+    InfoL << "程序退出中,请等待...";
+    sleep(3);
+    InfoL << "程序退出完毕!";
 	return 0;
 }
 
