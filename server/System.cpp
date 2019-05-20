@@ -275,23 +275,16 @@ static void sig_crash(int sig) {
 
 
 void System::startDaemon() {
-    signal(SIGTTOU,SIG_IGN);
-    signal(SIGTTIN,SIG_IGN);
-    signal(SIGHUP,SIG_IGN);
-    signal(SIGINT, [](int) {
-        InfoL << "SIGINT:exit";
-        signal(SIGINT,SIG_IGN);
-        throw ExitException();
-    });
-
+    static pid_t pid;
     do{
-        auto pid = fork();
+        pid = fork();
         if(pid == -1){
             WarnL << "fork失败:" << get_uv_errmsg();
             //休眠1秒再试
             sleep(1);
             continue;
         }
+
         if(pid == 0){
             //子进程
             return;
@@ -299,23 +292,21 @@ void System::startDaemon() {
 
         //父进程,监视子进程是否退出
         DebugL << "启动子进程:"  << pid;
+        signal(SIGINT, [](int) {
+            WarnL << "收到主动退出信号,关闭父进程与子进程";
+            kill(pid,SIGINT);
+            exit(0);
+        });
+
         do{
-            try {
-                int status = 0;
-                if(waitpid(pid, &status, 0) >= 0) {
-                    WarnL << "子进程退出";
-                    //休眠1秒再启动子进程
-                    sleep(1);
-                    break;
-                }
-                DebugL << "waitpid被中断:" << get_uv_errmsg();
-            }catch (ExitException &ex){
-                WarnL << "收到主动退出信号,关闭父进程与子进程";
-                //通知子进程主动退出
-                kill(pid,SIGINT);
-                //父进程主动退出
-                exit(0);
+            int status = 0;
+            if(waitpid(pid, &status, 0) >= 0) {
+                WarnL << "子进程退出";
+                //休眠1秒再启动子进程
+                sleep(1);
+                break;
             }
+            DebugL << "waitpid被中断:" << get_uv_errmsg();
         }while (true);
     }while (true);
 }
