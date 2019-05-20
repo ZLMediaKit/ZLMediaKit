@@ -37,7 +37,7 @@ namespace mediakit {
 
 bool loadIniConfig(const char *ini_path){
     string ini;
-    if(ini_path){
+    if(ini_path && ini_path[0] != '\0'){
         ini = ini_path;
     }else{
         ini = exePath() + ".ini";
