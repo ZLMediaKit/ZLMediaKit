@@ -305,7 +305,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 		    //udp组播
 			auto multiAddr = FindField((strTransport + ";").data(), "destination=", ";");
             pRtpSockRef.reset(new Socket());
-			if (!pRtpSockRef->bindUdpSock(rtp_port, "0.0.0.0")) {
+			if (!pRtpSockRef->bindUdpSock(rtp_port, multiAddr.data())) {
 				pRtpSockRef.reset();
 				throw std::runtime_error("open udp sock err");
 			}
