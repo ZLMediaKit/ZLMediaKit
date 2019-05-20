@@ -37,13 +37,14 @@
 #include "HttpRequestSplitter.h"
 #include "HttpCookie.h"
 #include "HttpChunkedSplitter.h"
+#include "strCoding.h"
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-class HttpArgs : public StrCaseMap {
+class HttpArgs : public map<string, variant, StrCaseCompare>  {
 public:
     HttpArgs(){}
     virtual ~HttpArgs(){}
@@ -52,7 +53,7 @@ public:
         for(auto &pr : *this){
             ret.append(pr.first);
             ret.append("=");
-            ret.append(pr.second);
+            ret.append(strCoding::UrlUTF8Encode(pr.second));
             ret.append("&");
         }
         if(ret.size()){
@@ -96,7 +97,8 @@ private:
 class HttpMultiFormBody : public HttpBody {
 public:
     typedef std::shared_ptr<HttpMultiFormBody> Ptr;
-    HttpMultiFormBody(const StrCaseMap &args,const string &filePath,const string &boundary,uint32_t sliceSize = 4 * 1024){
+    template<typename MapType>
+    HttpMultiFormBody(const MapType &args,const string &filePath,const string &boundary,uint32_t sliceSize = 4 * 1024){
         _fp = fopen(filePath.data(),"rb");
         if(!_fp){
             throw std::invalid_argument(StrPrinter << "打开文件失败：" << filePath << " " << get_uv_errmsg());
@@ -156,7 +158,8 @@ public:
     }
 
 public:
-    static string multiFormBodyPrefix(const StrCaseMap &args,const string &boundary,const string &fileName){
+    template<typename MapType>
+    static string multiFormBodyPrefix(const MapType &args,const string &boundary,const string &fileName){
         string MPboundary = string("--") + boundary;
         _StrPrinter body;
         for(auto &pr : args){
