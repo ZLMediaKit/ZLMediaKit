@@ -128,53 +128,49 @@ static inline void addHttpListener(){
         }
         //该api已被消费
         consumed = true;
-        AsyncHttpApi api = it->second;
-        //异步执行该api，防止阻塞NoticeCenter
-        EventPollerPool::Instance().getExecutor()->async([api, parser, invoker]() {
-            //执行API
-            Json::Value val;
-            val["code"] = API::Success;
-            HttpSession::KeyValue &headerIn = parser.getValues();
-            HttpSession::KeyValue headerOut;
-            auto allArgs = getAllArgs(parser);
-            headerOut["Content-Type"] = "application/json; charset=utf-8";
-            if(api_debug){
-                auto newInvoker = [invoker,parser,allArgs](const string &codeOut,
-                                                           const HttpSession::KeyValue &headerOut,
-                                                           const string &contentOut){
-                    stringstream ss;
-                    for(auto &pr : allArgs ){
-                        ss << pr.first << " : " << pr.second << "\r\n";
-                    }
+        //执行API
+        Json::Value val;
+        val["code"] = API::Success;
+        HttpSession::KeyValue headerOut;
+        auto allArgs = getAllArgs(parser);
+        HttpSession::KeyValue &headerIn = parser.getValues();
+        headerOut["Content-Type"] = "application/json; charset=utf-8";
+        if(api_debug){
+            auto newInvoker = [invoker,parser,allArgs](const string &codeOut,
+                                                       const HttpSession::KeyValue &headerOut,
+                                                       const string &contentOut){
+                stringstream ss;
+                for(auto &pr : allArgs ){
+                    ss << pr.first << " : " << pr.second << "\r\n";
+                }
 
-                    DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
-                           << "# content:\r\n" << parser.Content() << "\r\n"
-                           << "# args:\r\n" << ss.str()
-                           << "# response:\r\n"
-                           << contentOut << "\r\n";
+                DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
+                       << "# content:\r\n" << parser.Content() << "\r\n"
+                       << "# args:\r\n" << ss.str()
+                       << "# response:\r\n"
+                       << contentOut << "\r\n";
 
-                    invoker(codeOut,headerOut,contentOut);
-                };
-                ((HttpSession::HttpResponseInvoker &)invoker) = newInvoker;
-            }
+                invoker(codeOut,headerOut,contentOut);
+            };
+            ((HttpSession::HttpResponseInvoker &)invoker) = newInvoker;
+        }
 
-            try {
-                api(headerIn, headerOut, allArgs, val, invoker);
-            }  catch(ApiRetException &ex){
-                val["code"] = ex.code();
-                val["msg"] = ex.what();
-                invoker("200 OK", headerOut, val.toStyledString());
-            } catch(SqlException &ex){
-                val["code"] = API::SqlFailed;
-                val["msg"] = StrPrinter << "操作数据库失败:" << ex.what() << ":" << ex.getSql();
-                WarnL << ex.what() << ":" << ex.getSql();
-                invoker("200 OK", headerOut, val.toStyledString());
-            } catch (std::exception &ex) {
-                val["code"] = API::OtherFailed;
-                val["msg"] = ex.what();
-                invoker("200 OK", headerOut, val.toStyledString());
-            }
-        });
+        try {
+            it->second(headerIn, headerOut, allArgs, val, invoker);
+        }  catch(ApiRetException &ex){
+            val["code"] = ex.code();
+            val["msg"] = ex.what();
+            invoker("200 OK", headerOut, val.toStyledString());
+        } catch(SqlException &ex){
+            val["code"] = API::SqlFailed;
+            val["msg"] = StrPrinter << "操作数据库失败:" << ex.what() << ":" << ex.getSql();
+            WarnL << ex.what() << ":" << ex.getSql();
+            invoker("200 OK", headerOut, val.toStyledString());
+        } catch (std::exception &ex) {
+            val["code"] = API::OtherFailed;
+            val["msg"] = ex.what();
+            invoker("200 OK", headerOut, val.toStyledString());
+        }
     });
 }
 
