@@ -188,95 +188,100 @@ static void inline listen_shell_input(){
     EventPollerPool::Instance().getFirstPoller()->addEvent(STDIN_FILENO, Event_Read | Event_Error | Event_LT,oninput);
 }
 int main(int argc,char *argv[]) {
-    CMD_main cmd_main;
-    try {
-        cmd_main.operator()(argc,argv);
-    } catch (std::exception &ex) {
-        cout << ex.what() << endl;
-        return -1;
-    }
+    {
+        CMD_main cmd_main;
+        try {
+            cmd_main.operator()(argc, argv);
+        } catch (std::exception &ex) {
+            cout << ex.what() << endl;
+            return -1;
+        }
 
-    bool bDaemon = cmd_main.hasKey("daemon");
-    LogLevel logLevel = (LogLevel)cmd_main["level"].as<int>();
-    logLevel = MIN(MAX(logLevel,LTrace),LError);
-    string ini_file = cmd_main["config"];
-    string ssl_file = cmd_main["ssl"];
-    int threads = cmd_main["threads"];
+        bool bDaemon = cmd_main.hasKey("daemon");
+        LogLevel logLevel = (LogLevel) cmd_main["level"].as<int>();
+        logLevel = MIN(MAX(logLevel, LTrace), LError);
+        string ini_file = cmd_main["config"];
+        string ssl_file = cmd_main["ssl"];
+        int threads = cmd_main["threads"];
 
-    //设置日志
-    Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel",logLevel));
+        //设置日志
+        Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
 #if defined(__linux__) || defined(__linux)
-    Logger::Instance().add(std::make_shared<SysLogChannel>("SysLogChannel",logLevel));
+        Logger::Instance().add(std::make_shared<SysLogChannel>("SysLogChannel",logLevel));
 #else
-    Logger::Instance().add(std::make_shared<FileChannel>("FileChannel",exePath() + ".log",logLevel));
+        Logger::Instance().add(std::make_shared<FileChannel>("FileChannel", exePath() + ".log", logLevel));
 #endif
 
-    if(bDaemon){
-        //启动守护进程
-        System::startDaemon();
+        if (bDaemon) {
+            //启动守护进程
+            System::startDaemon();
+        }
+
+        //启动异步日志线程
+        Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
+        //加载配置文件，如果配置文件不存在就创建一个
+        loadIniConfig(ini_file.data());
+
+        //加载证书，证书包含公钥和私钥
+        SSL_Initor::Instance().loadCertificate(ssl_file.data());
+        //信任某个自签名证书
+        SSL_Initor::Instance().trustCertificate(ssl_file.data());
+        //不忽略无效证书证书(例如自签名或过期证书)
+        SSL_Initor::Instance().ignoreInvalidCertificate(false);
+
+        uint16_t shellPort = mINI::Instance()[Shell::kPort];
+        uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
+        uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
+        uint16_t rtmpPort = mINI::Instance()[Rtmp::kPort];
+        uint16_t httpPort = mINI::Instance()[Http::kPort];
+        uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
+
+        /**
+         * 设置poller线程数,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
+         */
+        EventPollerPool::setPoolSize(threads);
+
+        //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
+        //测试方法:telnet 127.0.0.1 9000
+        TcpServer::Ptr shellSrv(new TcpServer());
+        TcpServer::Ptr rtspSrv(new TcpServer());
+        TcpServer::Ptr rtmpSrv(new TcpServer());
+        TcpServer::Ptr httpSrv(new TcpServer());
+
+        shellSrv->start<ShellSession>(shellPort);
+        rtspSrv->start<RtspSession>(rtspPort);//默认554
+        rtmpSrv->start<RtmpSession>(rtmpPort);//默认1935
+        //http服务器,支持websocket
+        httpSrv->start<EchoWebSocketSession>(httpPort);//默认80
+
+        //如果支持ssl，还可以开启https服务器
+        TcpServer::Ptr httpsSrv(new TcpServer());
+        //https服务器,支持websocket
+        httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);//默认443
+
+        //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
+        TcpServer::Ptr rtspSSLSrv(new TcpServer());
+        rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);//默认322
+
+        installWebApi();
+        InfoL << "已启动http api 接口";
+        installWebHook();
+        InfoL << "已启动http hook 接口";
+
+        if (!bDaemon) {
+            //交互式shell输入
+            listen_shell_input();
+        }
+
+        //设置退出信号处理函数
+        static semaphore sem;
+        signal(SIGINT, [](int) {
+            InfoL << "SIGINT:exit";
+            sem.post();
+        });// 设置退出信号
+        signal(SIGHUP, [](int) { mediakit::loadIniConfig(); });
+        sem.wait();
     }
-
-    //启动异步日志线程
-    Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
-    //加载配置文件，如果配置文件不存在就创建一个
-    loadIniConfig(ini_file.data());
-
-    //加载证书，证书包含公钥和私钥
-    SSL_Initor::Instance().loadCertificate(ssl_file.data());
-    //信任某个自签名证书
-    SSL_Initor::Instance().trustCertificate(ssl_file.data());
-    //不忽略无效证书证书(例如自签名或过期证书)
-    SSL_Initor::Instance().ignoreInvalidCertificate(false);
-
-    uint16_t shellPort = mINI::Instance()[Shell::kPort];
-    uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
-    uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
-    uint16_t rtmpPort = mINI::Instance()[Rtmp::kPort];
-    uint16_t httpPort = mINI::Instance()[Http::kPort];
-    uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
-
-    /**
-     * 设置poller线程数,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
-     */
-    EventPollerPool::setPoolSize(threads);
-
-    //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
-    //测试方法:telnet 127.0.0.1 9000
-    TcpServer::Ptr shellSrv(new TcpServer());
-    TcpServer::Ptr rtspSrv(new TcpServer());
-    TcpServer::Ptr rtmpSrv(new TcpServer());
-    TcpServer::Ptr httpSrv(new TcpServer());
-
-    shellSrv->start<ShellSession>(shellPort);
-    rtspSrv->start<RtspSession>(rtspPort);//默认554
-    rtmpSrv->start<RtmpSession>(rtmpPort);//默认1935
-    //http服务器,支持websocket
-    httpSrv->start<EchoWebSocketSession>(httpPort);//默认80
-
-    //如果支持ssl，还可以开启https服务器
-    TcpServer::Ptr httpsSrv(new TcpServer());
-    //https服务器,支持websocket
-    httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);//默认443
-
-    //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
-    TcpServer::Ptr rtspSSLSrv(new TcpServer());
-    rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);//默认322
-
-    installWebApi();
-    InfoL << "已启动http api 接口";
-    installWebHook();
-    InfoL << "已启动http hook 接口";
-
-    if(!bDaemon) {
-        //交互式shell输入
-        listen_shell_input();
-    }
-
-    //设置退出信号处理函数
-    static semaphore sem;
-    signal(SIGINT, [](int) { InfoL << "SIGINT:exit"; sem.post(); });// 设置退出信号
-    signal(SIGHUP, [](int) { mediakit::loadIniConfig(); });
-    sem.wait();
 	return 0;
 }
 

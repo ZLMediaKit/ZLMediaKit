@@ -13,14 +13,19 @@
 #include "Http/HttpRequester.h"
 #include "Http/HttpSession.h"
 #include "Network/TcpServer.h"
+#include "Player/PlayerProxy.h"
 
 using namespace Json;
 using namespace toolkit;
 using namespace mediakit;
 
+
+typedef map<string,variant,StrCaseCompare> ApiArgsType;
+
+
 #define API_ARGS HttpSession::KeyValue &headerIn, \
                  HttpSession::KeyValue &headerOut, \
-                 HttpSession::KeyValue &allArgs, \
+                 ApiArgsType &allArgs, \
                  Json::Value &val
 
 #define API_REGIST(field, name, ...) \
@@ -49,7 +54,7 @@ typedef enum {
 #define API_FIELD "api."
 const char kApiDebug[] = API_FIELD"apiDebug";
 static onceToken token([]() {
-    mINI::Instance()[kApiDebug] = "0";
+    mINI::Instance()[kApiDebug] = "1";
 });
 }//namespace API
 
@@ -72,20 +77,34 @@ public:
 
 
 //获取HTTP请求中url参数、content参数
-static HttpSession::KeyValue getAllArgs(const Parser &parser) {
-    HttpSession::KeyValue allArgs;
-    {
-        //TraceL << parser.FullUrl() << "\r\n" << parser.Content();
-        auto &urlArgs = parser.getUrlArgs();
+static ApiArgsType getAllArgs(const Parser &parser) {
+    ApiArgsType allArgs;
+    if(parser["Content-Type"].find("application/x-www-form-urlencoded") == 0){
         auto contentArgs = parser.parseArgs(parser.Content());
         for (auto &pr : contentArgs) {
-            allArgs.emplace(pr.first, HttpSession::urlDecode(pr.second));
+            allArgs[pr.first] = HttpSession::urlDecode(pr.second);
         }
-        for (auto &pr : urlArgs) {
-            allArgs.emplace(pr.first, HttpSession::urlDecode(pr.second));
+    }else if(parser["Content-Type"].find("application/json") == 0){
+        try {
+            stringstream ss(parser.Content());
+            Value jsonArgs;
+            ss >> jsonArgs;
+            auto keys = jsonArgs.getMemberNames();
+            for (auto key = keys.begin(); key != keys.end(); ++key){
+                allArgs[*key] = jsonArgs[*key].asString();
+            }
+        }catch (std::exception &ex){
+            WarnL << ex.what();
         }
+    }else if(!parser["Content-Type"].empty()){
+        WarnL << "invalid Content-Type:" << parser["Content-Type"];
     }
-    return allArgs;
+
+    auto &urlArgs = parser.getUrlArgs();
+    for (auto &pr : urlArgs) {
+        allArgs[pr.first] = HttpSession::urlDecode(pr.second);
+    }
+    return std::move(allArgs);
 }
 
 static inline void addHttpListener(){
@@ -107,7 +126,7 @@ static inline void addHttpListener(){
             val["code"] = API::Success;
             HttpSession::KeyValue &headerIn = parser.getValues();
             HttpSession::KeyValue headerOut;
-            HttpSession::KeyValue allArgs = getAllArgs(parser);
+            auto allArgs = getAllArgs(parser);
             headerOut["Content-Type"] = "application/json; charset=utf-8";
             if(api_debug){
                 auto newInvoker = [invoker,parser,allArgs](const string &codeOut,
@@ -115,13 +134,13 @@ static inline void addHttpListener(){
                                                            const string &contentOut){
                     stringstream ss;
                     for(auto &pr : allArgs ){
-                        ss << pr.first << " : " << pr.second << "\r\n";
+                        ss << pr.first << " : " << (string)pr.second << "\r\n";
                     }
 
-                    DebugL << "request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
-                           << "content:\r\n" << parser.Content() << "\r\n"
-                           << "args:\r\n" << ss.str()
-                           << "response:\r\n"
+                    DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
+                           << "# content:\r\n" << parser.Content() << "\r\n"
+                           << "# args:\r\n" << ss.str()
+                           << "# response:\r\n"
                            << contentOut << "\r\n";
 
                     invoker(codeOut,headerOut,contentOut);
@@ -263,7 +282,7 @@ void installWebApi() {
             item["vhost"] = vhost;
             item["app"] = app;
             item["stream"] = stream;
-            val["data"]["array"].append(item);
+            val["data"].append(item);
         });
     });
 
@@ -303,6 +322,33 @@ void installWebApi() {
     });
 
 
+    static unordered_map<uint64_t ,PlayerProxy::Ptr> s_proxyMap;
+    static recursive_mutex s_proxyMapMtx;
+    API_REGIST(api,addStreamProxy,{
+        //添加拉流代理
+        PlayerProxy::Ptr player(new PlayerProxy(
+                allArgs["vhost"],
+                allArgs["app"],
+                allArgs["stream"],
+                allArgs["enable_hls"],
+                allArgs["enable_mp4"]
+        ));
+        //指定RTP over TCP(播放rtsp时有效)
+        (*player)[kRtpType] = allArgs["rtp_type"].as<int>();
+        //开始播放，如果播放失败或者播放中止，将会自动重试若干次，重试次数在配置文件中配置，默认一直重试
+        player->play(allArgs["url"]);
+
+        val["data"]["id"] = player.get();
+        lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+        s_proxyMap[(uint64_t)player.get()] = player;
+    });
+
+    API_REGIST(api,delStreamProxy,{
+        lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+        val["data"]["flag"] = s_proxyMap.erase(allArgs["id"].as<uint64_t>()) == 1;
+    });
+
+
     ////////////以下是注册的Hook API////////////
     API_REGIST(hook,on_publish,{
         //开始推流事件
@@ -321,4 +367,40 @@ void installWebApi() {
         val["code"] = 0;
         val["msg"] = "success";
     });
+
+    API_REGIST(hook,on_rtsp_realm,{
+        //rtsp是否需要鉴权
+        val["code"] = 0;
+        val["realm"] = "zlmediakit_reaml";
+    });
+
+    API_REGIST(hook,on_rtsp_auth,{
+        //rtsp鉴权密码，密码等于用户名
+        //rtsp可以有双重鉴权！后面还会触发on_play事件
+        val["code"] = 0;
+        val["encrypted"] = false;
+        val["passwd"] = allArgs["user_name"];
+    });
+
+    API_REGIST(hook,on_stream_changed,{
+        //媒体注册或反注册事件
+        val["code"] = 0;
+        val["msg"] = "success";
+    });
+
+    API_REGIST(hook,on_stream_not_found,{
+        //媒体未找到事件
+        val["code"] = 0;
+        val["msg"] = "success";
+    });
+
+
+    API_REGIST(hook,on_record_mp4,{
+        //录制mp4分片完毕事件
+        val["code"] = 0;
+        val["msg"] = "success";
+    });
+
+
+
 }
