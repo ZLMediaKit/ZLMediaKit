@@ -168,11 +168,9 @@ void installWebHook(){
         body["ip"] = sender.get_peer_ip();
         body["port"] = sender.get_peer_port();
         body["id"] = sender.getIdentifier();
-        EventPollerPool::Instance().getExecutor()->async([body,invoker](){
-            //执行hook
-            do_http_hook(hook_publish,body,[invoker](const Value &obj,const string &err){
-                invoker(err);
-            });
+        //执行hook
+        do_http_hook(hook_publish,body,[invoker](const Value &obj,const string &err){
+            invoker(err);
         });
     });
 
@@ -185,12 +183,9 @@ void installWebHook(){
         body["ip"] = sender.get_peer_ip();
         body["port"] = sender.get_peer_port();
         body["id"] = sender.getIdentifier();
-        //异步执行该hook api，防止阻塞NoticeCenter
-        EventPollerPool::Instance().getExecutor()->async([body,invoker](){
-            //执行hook
-            do_http_hook(hook_play,body,[invoker](const Value &obj,const string &err){
-                invoker(err);
-            });
+        //执行hook
+        do_http_hook(hook_play,body,[invoker](const Value &obj,const string &err){
+            invoker(err);
         });
     });
 
@@ -204,12 +199,8 @@ void installWebHook(){
         body["id"] = sender.getIdentifier();
         body["totalBytes"] = (Json::UInt64)totalBytes;
         body["duration"] = (Json::UInt64)totalDuration;
-
-        //流量统计事件
-        EventPollerPool::Instance().getExecutor()->async([body,totalBytes](){
-            //执行hook
-            do_http_hook(hook_flowreport,body, nullptr);
-        });
+        //执行hook
+        do_http_hook(hook_flowreport,body, nullptr);
     });
 
 
@@ -226,17 +217,14 @@ void installWebHook(){
         body["ip"] = sender.get_peer_ip();
         body["port"] = sender.get_peer_port();
         body["id"] = sender.getIdentifier();
-
-        EventPollerPool::Instance().getExecutor()->async([body,invoker](){
-            //执行hook
-            do_http_hook(hook_rtsp_realm,body, [invoker](const Value &obj,const string &err){
-                if(!err.empty()){
-                    //如果接口访问失败，那么该rtsp流认证失败
-                    invoker(unAuthedRealm);
-                    return;
-                }
-                invoker(obj["realm"].asString());
-            });
+        //执行hook
+        do_http_hook(hook_rtsp_realm,body, [invoker](const Value &obj,const string &err){
+            if(!err.empty()){
+                //如果接口访问失败，那么该rtsp流认证失败
+                invoker(unAuthedRealm);
+                return;
+            }
+            invoker(obj["realm"].asString());
         });
     });
 
@@ -254,17 +242,14 @@ void installWebHook(){
         body["user_name"] = user_name;
         body["must_no_encrypt"] = must_no_encrypt;
         body["realm"] = realm;
-
-        EventPollerPool::Instance().getExecutor()->async([body,invoker](){
-            //执行hook
-            do_http_hook(hook_rtsp_auth,body, [invoker](const Value &obj,const string &err){
-                if(!err.empty()){
-                    //认证失败
-                    invoker(false,makeRandStr(12));
-                    return;
-                }
-                invoker(obj["encrypted"].asBool(),obj["passwd"].asString());
-            });
+        //执行hook
+        do_http_hook(hook_rtsp_auth,body, [invoker](const Value &obj,const string &err){
+            if(!err.empty()){
+                //认证失败
+                invoker(false,makeRandStr(12));
+                return;
+            }
+            invoker(obj["encrypted"].asBool(),obj["passwd"].asString());
         });
     });
 
@@ -280,11 +265,8 @@ void installWebHook(){
         body["vhost"] = vhost;
         body["app"] = app;
         body["stream"] = stream;
-
-        EventPollerPool::Instance().getExecutor()->async([body](){
-            //执行hook
-            do_http_hook(hook_stream_chaned,body, nullptr);
-        });
+        //执行hook
+        do_http_hook(hook_stream_chaned,body, nullptr);
     });
 
     //监听播放失败(未找到特定的流)事件
@@ -296,11 +278,8 @@ void installWebHook(){
         body["ip"] = sender.get_peer_ip();
         body["port"] = sender.get_peer_port();
         body["id"] = sender.getIdentifier();
-
-        EventPollerPool::Instance().getExecutor()->async([body](){
-            //执行hook
-            do_http_hook(hook_stream_not_found,body, nullptr);
-        });
+        //执行hook
+        do_http_hook(hook_stream_not_found,body, nullptr);
     });
 
 #ifdef ENABLE_MP4V2
@@ -320,11 +299,8 @@ void installWebHook(){
         body["app"] = info.strAppName;
         body["stream"] = info.strStreamId;
         body["vhost"] = info.strVhost;
-
-        EventPollerPool::Instance().getExecutor()->async([body](){
-            //执行hook
-            do_http_hook(hook_record_mp4,body, nullptr);
-        });
+        //执行hook
+        do_http_hook(hook_record_mp4,body, nullptr);
     });
 #endif //ENABLE_MP4V2
 
