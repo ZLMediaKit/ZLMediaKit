@@ -196,8 +196,11 @@ bool checkArgs(Args &&args,First &&first,KeyTypes && ...keys){
     }
 
 
-static unordered_map<uint64_t ,PlayerProxy::Ptr> s_proxyMap;
+static unordered_map<string ,PlayerProxy::Ptr> s_proxyMap;
 static recursive_mutex s_proxyMapMtx;
+static inline string getProxyKey(const string &vhost,const string &app,const string &stream){
+    return vhost + "/" + app + "/" + stream;
+}
 
 //安装api接口
 void installWebApi() {
@@ -366,6 +369,7 @@ void installWebApi() {
     API_REGIST_INVOKER(api,addStreamProxy,{
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream","url","secret");
+        auto key = getProxyKey(allArgs["vhost"],allArgs["app"],allArgs["stream"]);
         //添加拉流代理
         PlayerProxy::Ptr player(new PlayerProxy(
                 allArgs["vhost"],
@@ -377,14 +381,14 @@ void installWebApi() {
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = allArgs["rtp_type"].as<int>();
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
-        player->setPlayCallbackOnce([invoker,val,headerOut,player](const SockException &ex){
+        player->setPlayCallbackOnce([invoker,val,headerOut,player,key](const SockException &ex){
             if(ex){
                 const_cast<Value &>(val)["code"] = API::OtherFailed;
                 const_cast<Value &>(val)["msg"] = ex.what();
             }else{
-                const_cast<Value &>(val)["data"]["id"] = (uint64_t)player.get();
+                const_cast<Value &>(val)["data"]["key"] = key;
                 lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-                s_proxyMap[(uint64_t)player.get()] = player;
+                s_proxyMap[key] = player;
             }
             const_cast<PlayerProxy::Ptr &>(player).reset();
             invoker("200 OK", headerOut, val.toStyledString());
@@ -394,9 +398,9 @@ void installWebApi() {
 
     API_REGIST(api,delStreamProxy,{
         CHECK_SECRET();
-        CHECK_ARGS("id");
+        CHECK_ARGS("key");
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-        val["data"]["flag"] = s_proxyMap.erase(allArgs["id"].as<uint64_t>()) == 1;
+        val["data"]["flag"] = s_proxyMap.erase(allArgs["key"]) == 1;
     });
 
 
