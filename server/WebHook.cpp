@@ -54,7 +54,7 @@ onceToken token([](){
     mINI::Instance()[kOnStreamChanged] = "http://127.0.0.1/index/hook/on_stream_changed";
     mINI::Instance()[kOnStreamNotFound] = "http://127.0.0.1/index/hook/on_stream_not_found";
     mINI::Instance()[kOnRecordMp4] = "http://127.0.0.1/index/hook/on_record_mp4";
-    mINI::Instance()[kAdminParams] = "token=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
+    mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
 },nullptr);
 }//namespace Hook
 

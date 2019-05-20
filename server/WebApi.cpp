@@ -54,8 +54,11 @@ typedef enum {
 
 #define API_FIELD "api."
 const char kApiDebug[] = API_FIELD"apiDebug";
+const char kSecret[] = API_FIELD"secret";
+
 static onceToken token([]() {
     mINI::Instance()[kApiDebug] = "1";
+    mINI::Instance()[kSecret] = "035c73f7-bb6b-4889-a715-d9eb2d1925cc";
 });
 }//namespace API
 
@@ -190,6 +193,12 @@ bool checkArgs(Args &&args,First &&first,KeyTypes && ...keys){
         throw InvalidArgs("缺少必要参数:" #__VA_ARGS__); \
     }
 
+#define CHECK_SECRET() \
+    CHECK_ARGS("secret"); \
+    if(api_secret != allArgs["secret"]){ \
+        throw AuthException("secret错误"); \
+    }
+
 
 static unordered_map<uint64_t ,PlayerProxy::Ptr> s_proxyMap;
 static recursive_mutex s_proxyMapMtx;
@@ -197,6 +206,8 @@ static recursive_mutex s_proxyMapMtx;
 //安装api接口
 void installWebApi() {
     addHttpListener();
+
+    GET_CONFIG_AND_REGISTER(string,api_secret,API::kSecret);
 
     /**
      * 获取线程负载
@@ -220,6 +231,10 @@ void installWebApi() {
      * 获取服务器配置
      */
     API_REGIST(api, getServerConfig, {
+        CHECK_SECRET();
+        if(api_secret != allArgs["secret"]){
+            throw AuthException("secret错误");
+        }
         Value obj;
         for (auto &pr : mINI::Instance()) {
             obj[pr.first] = (string &) pr.second;
@@ -231,6 +246,7 @@ void installWebApi() {
      * 设置服务器配置
      */
     API_REGIST(api, setServerConfig, {
+        CHECK_SECRET();
         auto &ini = mINI::Instance();
         int changed = 0;
         for (auto &pr : allArgs) {
@@ -256,6 +272,7 @@ void installWebApi() {
      * 获取服务器api列表
      */
     API_REGIST(api,getApiList,{
+        CHECK_SECRET();
         for(auto &pr : s_map_api){
             val["data"].append(pr.first);
         }
@@ -265,6 +282,7 @@ void installWebApi() {
      * 重启服务器
      */
     API_REGIST(api,restartServer,{
+        CHECK_SECRET();
         EventPollerPool::Instance().getPoller()->doDelayTask(1000,[](){
             //尝试正常退出
             ::kill(getpid(), SIGINT);
@@ -282,6 +300,7 @@ void installWebApi() {
 
 
     API_REGIST(api,getMediaList,{
+        CHECK_SECRET();
         //获取所有MediaSource列表
         val["code"] = 0;
         val["msg"] = "success";
@@ -309,6 +328,7 @@ void installWebApi() {
     });
 
     API_REGIST(api,kick_pusher,{
+        CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
         //踢掉推流器
         auto src = MediaSource::find(allArgs["schema"],
@@ -326,6 +346,7 @@ void installWebApi() {
     });
 
     API_REGIST(api,kick_session,{
+        CHECK_SECRET();
         CHECK_ARGS("id");
         //踢掉tcp会话
         auto id = allArgs["id"];
@@ -347,7 +368,8 @@ void installWebApi() {
 
 
     API_REGIST(api,addStreamProxy,{
-        CHECK_ARGS("vhost","app","stream","url");
+        CHECK_SECRET();
+        CHECK_ARGS("vhost","app","stream","url","secret");
         //添加拉流代理
         PlayerProxy::Ptr player(new PlayerProxy(
                 allArgs["vhost"],
@@ -367,6 +389,7 @@ void installWebApi() {
     });
 
     API_REGIST(api,delStreamProxy,{
+        CHECK_SECRET();
         CHECK_ARGS("id");
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         val["data"]["flag"] = s_proxyMap.erase(allArgs["id"].as<uint64_t>()) == 1;
