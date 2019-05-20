@@ -99,10 +99,12 @@ void RtspSession::onError(const SockException& err) {
     //流量统计事件广播
     GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
     if(_ui64TotalBytes > iFlowThreshold * 1024){
+        bool isPlayer = !_pushSrc;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
 										   _mediaInfo,
 										   _ui64TotalBytes,
 										   _ticker.createdTime()/1000,
+                                           isPlayer,
 										   *this);
     }
 

@@ -164,6 +164,7 @@ void HttpSession::onError(const SockException& err) {
 										   _mediaInfo,
 										   _ui64TotalBytes,
 										   _ticker.createdTime()/1000,
+										   true,
 										   *this);
     }
 }
