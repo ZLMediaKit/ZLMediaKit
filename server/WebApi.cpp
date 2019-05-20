@@ -176,17 +176,17 @@ static inline void addHttpListener(){
 }
 
 template <typename Args,typename First>
-bool checArgs(Args &&args,First &&first){
+bool checkArgs(Args &&args,First &&first){
     return !args[first].empty();
 }
 
 template <typename Args,typename First,typename ...KeyTypes>
-bool checArgs(Args &&args,First &&first,KeyTypes && ...keys){
-    return !args[first].empty() && checArgs(args,keys...);
+bool checkArgs(Args &&args,First &&first,KeyTypes && ...keys){
+    return !args[first].empty() && checkArgs(std::forward<Args>(args),std::forward<KeyTypes>(keys)...);
 }
 
 #define CHECK_ARGS(...)  \
-    if(!checArgs(allArgs,##__VA_ARGS__)){ \
+    if(!checkArgs(allArgs,##__VA_ARGS__)){ \
         throw InvalidArgs("缺少必要参数:" #__VA_ARGS__); \
     }
 
