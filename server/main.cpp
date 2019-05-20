@@ -217,6 +217,9 @@ int main(int argc,char *argv[]) {
             System::startDaemon();
         }
 
+        //开启崩溃捕获等
+        System::systemSetup();
+
         //启动异步日志线程
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
         //加载配置文件，如果配置文件不存在就创建一个
@@ -236,9 +239,7 @@ int main(int argc,char *argv[]) {
         uint16_t httpPort = mINI::Instance()[Http::kPort];
         uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
 
-        /**
-         * 设置poller线程数,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
-         */
+        //设置poller线程数,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
         EventPollerPool::setPoolSize(threads);
 
         //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
