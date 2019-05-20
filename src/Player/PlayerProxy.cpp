@@ -75,6 +75,10 @@ PlayerProxy::PlayerProxy(const string &strVhost,
     _bEnableMp4 = bEnableMp4;
     _iRetryCount = iRetryCount;
 }
+
+void PlayerProxy::setPlayCallbackOnce(const function<void(const SockException &ex)> &cb){
+    _playCB = cb;
+}
 void PlayerProxy::play(const string &strUrlTmp) {
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 	std::shared_ptr<int> piFailedCnt(new int(0)); //连续播放失败次数
@@ -83,6 +87,12 @@ void PlayerProxy::play(const string &strUrlTmp) {
 		if(!strongSelf) {
 			return;
 		}
+
+		if(strongSelf->_playCB) {
+            strongSelf->_playCB(err);
+            strongSelf->_playCB = nullptr;
+        }
+
 		if(!err) {
 			// 播放成功
 			*piFailedCnt = 0;//连续播放失败次数清0

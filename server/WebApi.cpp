@@ -363,7 +363,7 @@ void installWebApi() {
     });
 
 
-    API_REGIST(api,addStreamProxy,{
+    API_REGIST_INVOKER(api,addStreamProxy,{
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream","url","secret");
         //添加拉流代理
@@ -376,12 +376,20 @@ void installWebApi() {
         ));
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = allArgs["rtp_type"].as<int>();
-        //开始播放，如果播放失败或者播放中止，将会自动重试若干次，重试次数在配置文件中配置，默认一直重试
+        //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
+        player->setPlayCallbackOnce([invoker,val,headerOut,player](const SockException &ex){
+            if(ex){
+                const_cast<Value &>(val)["code"] = API::OtherFailed;
+                const_cast<Value &>(val)["msg"] = ex.what();
+            }else{
+                const_cast<Value &>(val)["data"]["id"] = (uint64_t)player.get();
+                lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+                s_proxyMap[(uint64_t)player.get()] = player;
+            }
+            const_cast<PlayerProxy::Ptr &>(player).reset();
+            invoker("200 OK", headerOut, val.toStyledString());
+        });
         player->play(allArgs["url"]);
-
-        val["data"]["id"] = player.get();
-        lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-        s_proxyMap[(uint64_t)player.get()] = player;
     });
 
     API_REGIST(api,delStreamProxy,{

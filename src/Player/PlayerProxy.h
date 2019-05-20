@@ -56,7 +56,14 @@ public:
 
 	virtual ~PlayerProxy();
 
+    /**
+     * 设置play结果回调，只触发一次；在play执行之前有效
+     * @param cb
+     */
+    void setPlayCallbackOnce(const function<void(const SockException &ex)> &cb);
+
 	void play(const string &strUrl) override;
+
     bool close() override;
 private:
 	void rePlay(const string &strUrl,int iFailedCnt);
@@ -70,6 +77,7 @@ private:
     string _strApp;
     string _strSrc;
     Timer::Ptr _timer;
+    function<void(const SockException &ex)> _playCB;
 };
 
 } /* namespace mediakit */
