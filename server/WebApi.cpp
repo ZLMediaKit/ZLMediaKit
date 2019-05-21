@@ -7,7 +7,9 @@
 #include "Util/logger.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
+#ifdef ENABLE_MYSQL
 #include "Util/SqlPool.h"
+#endif //ENABLE_MYSQL
 #include "Common/config.h"
 #include "Common/MediaSource.h"
 #include "Http/HttpRequester.h"
@@ -161,12 +163,16 @@ static inline void addHttpListener(){
             val["code"] = ex.code();
             val["msg"] = ex.what();
             invoker("200 OK", headerOut, val.toStyledString());
-        } catch(SqlException &ex){
+        }
+#ifdef ENABLE_MYSQL
+        catch(SqlException &ex){
             val["code"] = API::SqlFailed;
             val["msg"] = StrPrinter << "操作数据库失败:" << ex.what() << ":" << ex.getSql();
             WarnL << ex.what() << ":" << ex.getSql();
             invoker("200 OK", headerOut, val.toStyledString());
-        } catch (std::exception &ex) {
+        }
+#endif// ENABLE_MYSQL
+        catch (std::exception &ex) {
             val["code"] = API::OtherFailed;
             val["msg"] = ex.what();
             invoker("200 OK", headerOut, val.toStyledString());
