@@ -290,9 +290,9 @@ void installWebHook(){
             return;
         }
         ArgsType body;
-        body["start_time"] = (uint64_t)info.ui64StartedTime;
-        body["time_len"] = (uint64_t)info.ui64TimeLen;
-        body["file_size"] = info.ui64FileSize;
+        body["start_time"] = (Json::UInt64)info.ui64StartedTime;
+        body["time_len"] = (Json::UInt64)info.ui64TimeLen;
+        body["file_size"] = (Json::UInt64)info.ui64FileSize;
         body["file_path"] = info.strFilePath;
         body["file_name"] = info.strFileName;
         body["folder"] = info.strFolder;
