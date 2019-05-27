@@ -79,6 +79,11 @@ PlayerProxy::PlayerProxy(const string &strVhost,
 void PlayerProxy::setPlayCallbackOnce(const function<void(const SockException &ex)> &cb){
     _playCB = cb;
 }
+
+void PlayerProxy::setOnClose(const function<void()> &cb){
+    _onClose = cb;
+}
+
 void PlayerProxy::play(const string &strUrlTmp) {
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 	std::shared_ptr<int> piFailedCnt(new int(0)); //连续播放失败次数
@@ -148,6 +153,9 @@ bool PlayerProxy::close() {
 		if (stronSelf) {
 			stronSelf->_mediaMuxer.reset();
 			stronSelf->teardown();
+			if(stronSelf->_onClose){
+                stronSelf->_onClose();
+			}
 		}
 	});
     return true;

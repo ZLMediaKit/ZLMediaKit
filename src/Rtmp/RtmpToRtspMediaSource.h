@@ -78,9 +78,17 @@ public:
 				track->addDelegate(_rtspMuxer);
 				track->addDelegate(_recorder);
 			}
+            _rtspMuxer->setListener(_listener);
 		}
 		RtmpMediaSource::onWrite(pkt,key_pos);
 	}
+
+	void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override {
+        RtmpMediaSource::setListener(listener);
+        if(_rtspMuxer){
+            _rtspMuxer->setListener(listener);
+        }
+    }
 private:
 	RtmpDemuxer::Ptr _rtmpDemuxer;
 	RtspMediaSourceMuxer::Ptr _rtspMuxer;
