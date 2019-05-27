@@ -148,7 +148,7 @@ public:
         }
         return listener->close();
     }
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
+    virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _listener = listener;
     }
 

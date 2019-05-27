@@ -338,7 +338,8 @@ void installWebApi() {
         });
     });
 
-    API_REGIST(api,kick_pusher,{
+    //主动关断流，包括关断拉流、推流
+    API_REGIST(api,close_stream,{
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
         //踢掉推流器
@@ -404,6 +405,12 @@ void installWebApi() {
             }
             const_cast<PlayerProxy::Ptr &>(player).reset();
             invoker("200 OK", headerOut, val.toStyledString());
+        });
+
+        //被主动关闭拉流
+        player->setOnClose([key](){
+            lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+            s_proxyMap.erase(key);
         });
         player->play(allArgs["url"]);
     });

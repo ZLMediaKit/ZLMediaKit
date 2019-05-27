@@ -62,8 +62,23 @@ public:
      */
     void setPlayCallbackOnce(const function<void(const SockException &ex)> &cb);
 
-	void play(const string &strUrl) override;
+    /**
+     * 设置主动关闭回调
+     * @param cb
+     */
+    void setOnClose(const function<void()> &cb);
 
+    /**
+     * 开始拉流播放
+     * @param strUrl
+     */
+    void play(const string &strUrl) override;
+
+
+    /**
+     * 被主动关闭
+     * @return
+     */
     bool close() override;
 private:
 	void rePlay(const string &strUrl,int iFailedCnt);
@@ -78,6 +93,7 @@ private:
     string _strSrc;
     Timer::Ptr _timer;
     function<void(const SockException &ex)> _playCB;
+    function<void()> _onClose;
 };
 
 } /* namespace mediakit */
