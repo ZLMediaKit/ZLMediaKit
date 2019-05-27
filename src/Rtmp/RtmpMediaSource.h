@@ -64,6 +64,10 @@ public:
 		return _pRing;
 	}
 
+	int readerCount() override {
+        return _pRing->readerCount();
+	}
+
 	const AMFValue &getMetaData() const {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		return _metadata;
@@ -87,7 +91,7 @@ public:
 			_mapCfgFrame[pkt->typeId] = pkt;
 		} else{
 			if(!_bRegisted){
-                MediaSource::regist();
+                regist();
                 _bRegisted = true;
 			}
 			_mapStamp[pkt->typeId] = pkt->timeStamp;

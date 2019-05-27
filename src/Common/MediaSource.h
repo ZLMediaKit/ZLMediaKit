@@ -54,10 +54,13 @@ public:
         //拖动进度条
         return false;
     }
+
     virtual bool close() {
         //通知其停止推流
         return false;
     }
+
+    virtual void onReaderChanged(const EventPoller::Ptr &poller,int size,bool add_flag){}
 };
 class MediaInfo
 {
@@ -166,6 +169,7 @@ public:
         }
     }
 
+    virtual int readerCount() = 0;
 protected:
     void regist() ;
     bool unregist() ;
