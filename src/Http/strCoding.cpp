@@ -68,7 +68,7 @@ char StrToBin(const char *str)
 	return chn;
 }
 
-string strCoding::UrlUTF8Encode(const string &str) {
+string strCoding::UrlEncode(const string &str) {
 	string dd;
 	size_t len = str.size();
 	for (size_t i = 0; i < len; i++) {
@@ -88,7 +88,7 @@ string strCoding::UrlUTF8Encode(const string &str) {
 	}
 	return dd;
 }
-string strCoding::UrlUTF8Decode(const string &str) {
+string strCoding::UrlDecode(const string &str) {
 	string output = "";
 	char tmp[2];
 	int i = 0, len = str.length();
@@ -111,55 +111,6 @@ string strCoding::UrlUTF8Decode(const string &str) {
 	return output;
 }
 
-string strCoding::UrlGB2312Encode(const string &str)
-{
-	string dd;
-	size_t len = str.size();
-	for (size_t i = 0; i<len; i++)
-	{
-		if (isalnum((uint8_t)str[i]))
-		{
-			char tempbuff[2];
-			sprintf(tempbuff, "%c", str[i]);
-			dd.append(tempbuff);
-		}
-		else if (isspace((uint8_t)str[i]))
-		{
-			dd.append("+");
-		}
-		else
-		{
-			char tempbuff[4];
-			sprintf(tempbuff, "%%%X%X", (uint8_t)str[i] >> 4, (uint8_t)str[i] % 16);
-			dd.append(tempbuff);
-		}
-	}
-	return dd;
-}
-
-string strCoding::UrlGB2312Decode(const string &str)
-{
-	string output = "";
-	char tmp[2];
-	int i = 0, idx = 0, len = str.length();
-	while (i<len) {
-		if (str[i] == '%') {
-			tmp[0] = str[i + 1];
-			tmp[1] = str[i + 2];
-			output += StrToBin(tmp);
-			i = i + 3;
-		}
-		else if (str[i] == '+') {
-			output += ' ';
-			i++;
-		}
-		else {
-			output += str[i];
-			i++;
-		}
-	}
-	return output;
-}
 
 ///////////////////////////////windows专用///////////////////////////////////
 #if defined(_WIN32)
