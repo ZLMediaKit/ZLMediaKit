@@ -53,7 +53,7 @@ public:
         for(auto &pr : *this){
             ret.append(pr.first);
             ret.append("=");
-            ret.append(strCoding::UrlUTF8Encode(pr.second));
+            ret.append(strCoding::UrlEncode(pr.second));
             ret.append("&");
         }
         if(ret.size()){

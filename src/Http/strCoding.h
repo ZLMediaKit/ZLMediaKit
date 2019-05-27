@@ -36,11 +36,8 @@ namespace mediakit {
 
 class strCoding {
 public:
-	static string UrlUTF8Encode(const string &str); //urlutf8 编码
-	static string UrlUTF8Decode(const string &str); //urlutf8解码
-
-	static string UrlGB2312Encode(const string &str); //urlgb2312编码 
-	static string UrlGB2312Decode(const string &str); //urlgb2312解码 
+	static string UrlEncode(const string &str); //urlutf8 编码
+	static string UrlDecode(const string &str); //urlutf8解码
 #if defined(_WIN32)
 	static string UTF8ToGB2312(const string &str);//utf_8转为gb2312 
 	static string GB2312ToUTF8(const string &str); //gb2312 转utf_8 

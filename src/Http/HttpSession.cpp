@@ -590,7 +590,7 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
 }
 
 string HttpSession::urlDecode(const string &str){
-	auto ret = strCoding::UrlUTF8Decode(str);
+	auto ret = strCoding::UrlDecode(str);
 #ifdef _WIN32
     GET_CONFIG_AND_REGISTER(string,charSet,Http::kCharSet);
 	bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
