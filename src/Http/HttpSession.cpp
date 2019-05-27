@@ -209,59 +209,79 @@ inline bool HttpSession::checkLiveFlvStream(){
 		//未找到".flv"后缀
 		return false;
 	}
-    //拼接成完整url
-    auto fullUrl = string(HTTP_SCHEMA) + "://" + _parser["Host"] + _parser.FullUrl();
-    _mediaInfo.parse(fullUrl);
+
+	//这是个.flv的流
+    _mediaInfo.parse(string(RTMP_SCHEMA) + "://" + _parser["Host"] + _parser.FullUrl());
+	if(_mediaInfo._app.empty() || _mediaInfo._streamid.size() < 5){
+	    //url不合法
+        return false;
+	}
     _mediaInfo._streamid.erase(_mediaInfo._streamid.size() - 4);//去除.flv后缀
 
-	auto mediaSrc = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid));
-	if(!mediaSrc){
-		//该rtmp源不存在
-		return false;
-	}
-
-    auto onRes = [this,mediaSrc](const string &err){
-        bool authSuccess = err.empty();
-        if(!authSuccess){
-            sendResponse("401 Unauthorized", makeHttpHeader(true,err.size()),err);
-            shutdown();
-            return ;
-        }
-        //找到rtmp源，发送http头，负载后续发送
-        sendResponse("200 OK", makeHttpHeader(false,0,get_mime_type(".flv")), "");
-
-        //开始发送rtmp负载
-        //关闭tcp_nodelay ,优化性能
-        SockUtil::setNoDelay(_sock->rawFD(),false);
-        (*this) << SocketFlags(kSockFlags);
-
-		try{
-			start(getPoller(),mediaSrc);
-		}catch (std::exception &ex){
-			//该rtmp源不存在
-			shutdown();
-		}
-    };
+    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
+    bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,5000,[weakSelf,bClose,this](const MediaSource::Ptr &src){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
+            //本对象已经销毁
             return;
         }
-        strongSelf->async([weakSelf,onRes,err](){
+        auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
+        if(!rtmp_src){
+            //未找到该流
+            sendNotFound(bClose);
+            if(bClose){
+                shutdown();
+            }
+            return;
+        }
+        //找到流了
+        auto onRes = [this,rtmp_src](const string &err){
+            bool authSuccess = err.empty();
+            if(!authSuccess){
+                sendResponse("401 Unauthorized", makeHttpHeader(true,err.size()),err);
+                shutdown();
+                return ;
+            }
+
+            //找到rtmp源，发送http头，负载后续发送
+            sendResponse("200 OK", makeHttpHeader(false,0,get_mime_type(".flv")), "");
+
+            //开始发送rtmp负载
+            //关闭tcp_nodelay ,优化性能
+            SockUtil::setNoDelay(_sock->rawFD(),false);
+            (*this) << SocketFlags(kSockFlags);
+
+            try{
+                start(getPoller(),rtmp_src);
+            }catch (std::exception &ex){
+                //该rtmp源不存在
+                shutdown();
+            }
+        };
+
+        weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+        Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            onRes(err);
-        });
-    };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
-    if(!flag){
-        //该事件无人监听,默认不鉴权
-        onRes("");
-    }
+            strongSelf->async([weakSelf,onRes,err](){
+                auto strongSelf = weakSelf.lock();
+                if(!strongSelf){
+                    return;
+                }
+                onRes(err);
+            });
+        };
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
+        if(!flag){
+            //该事件无人监听,默认不鉴权
+            onRes("");
+        }
+    });
     return true;
 }
 
