@@ -43,10 +43,6 @@ RtmpSession::RtmpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 
 RtmpSession::~RtmpSession() {
     DebugL << get_peer_ip();
-    if(_delayTask){
-        _delayTask();
-        _delayTask = nullptr;
-    }
 }
 
 void RtmpSession::onError(const SockException& err) {
@@ -80,12 +76,6 @@ void RtmpSession::onManager() {
 			shutdown();
 		}
 	}
-    if(_delayTask){
-        if(time(NULL) > _iTaskTimeLine){
-            _delayTask();
-            _delayTask = nullptr;
-        }
-    }
 }
 
 void RtmpSession::onRecv(const Buffer::Ptr &pBuf) {
@@ -212,70 +202,6 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
 	throw std::runtime_error(StrPrinter << "Stop publishing." << endl);
 }
 
-void RtmpSession::findStream(const function<void(const RtmpMediaSource::Ptr &src)> &cb,bool retry) {
-    auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
-                                                                       _mediaInfo._vhost,
-                                                                       _mediaInfo._app,
-                                                                       _mediaInfo._streamid,
-                                                                       true));
-    if(src || !retry){
-        cb(src);
-        return;
-    }
-
-    //广播未找到流
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,_mediaInfo,*this);
-
-    weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    auto task_id = this;
-    auto media_info = _mediaInfo;
-
-    auto onRegist = [task_id, weakSelf, media_info, cb](BroadcastMediaChangedArgs) {
-        if(bRegist &&
-           schema == media_info._schema &&
-           vhost == media_info._vhost &&
-           app == media_info._app &&
-           stream == media_info._streamid){
-            //播发器请求的rtmp流终于注册上了
-            auto strongSelf = weakSelf.lock();
-            if(!strongSelf) {
-                return;
-            }
-            //切换到自己的线程再回复
-            //如果触发 kBroadcastMediaChanged 事件的线程与本RtmpSession绑定的线程相同,
-            //那么strongSelf->async操作可能是同步操作,
-            //通过指定参数may_sync为false确保 NoticeCenter::delListener操作延后执行,
-            //以便防止遍历事件监听对象map时做删除操作
-            strongSelf->async([task_id,weakSelf,media_info,cb](){
-                auto strongSelf = weakSelf.lock();
-                if(!strongSelf) {
-                    return;
-                }
-                DebugL << "收到rtmp注册事件,回复播放器:" << media_info._schema << "/" << media_info._vhost << "/" << media_info._app << "/" << media_info._streamid;
-
-                //再找一遍媒体源，一般能找到
-                strongSelf->findStream(cb,false);
-
-                //取消延时任务，防止多次回复
-                strongSelf->cancelDelyaTask();
-
-                //取消事件监听
-                //在事件触发时不能在当前线程移除事件监听,否则会导致遍历map时做删除操作导致程序崩溃
-                NoticeCenter::Instance().delListener(task_id,Broadcast::kBroadcastMediaChanged);
-            }, false);
-        }
-    };
-
-    NoticeCenter::Instance().addListener(task_id, Broadcast::kBroadcastMediaChanged, onRegist);
-    //5秒后执行失败回调
-    doDelay(5, [cb,task_id]() {
-        //取消监听该事件,该延时任务可以在本对象析构时或到达指定延时后调用
-        //所以该对象在销毁前一定会被取消事件监听
-        NoticeCenter::Instance().delListener(task_id,Broadcast::kBroadcastMediaChanged);
-        cb(nullptr);
-    });
-
-}
 
 void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr &src){
     bool authSuccess = err.empty();
@@ -377,14 +303,16 @@ void RtmpSession::doPlayResponse(const string &err,const std::function<void(bool
         return;
     }
 
-    weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
     //鉴权成功，查找媒体源并回复
-    findStream([weakSelf,cb](const RtmpMediaSource::Ptr &src){
+    _mediaInfo._schema = RTMP_SCHEMA;
+    weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,5000,[weakSelf,cb](const MediaSource::Ptr &src){
+        auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
         auto strongSelf = weakSelf.lock();
         if(strongSelf){
-            strongSelf->sendPlayResponse("", src);
+            strongSelf->sendPlayResponse("", rtmp_src);
         }
-        cb(src.operator bool());
+        cb(rtmp_src.operator bool());
     });
 }
 
@@ -554,18 +482,6 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 		modifiedStamp = 0;
 	}
 	sendRtmp(pkt->typeId, pkt->streamId, pkt, modifiedStamp, pkt->chunkId);
-}
-
-void RtmpSession::doDelay(int delaySec, const std::function<void()> &fun) {
-    if(_delayTask){
-        _delayTask();
-    }
-    _delayTask = fun;
-    _iTaskTimeLine = time(NULL) + delaySec;
-}
-
-void RtmpSession::cancelDelyaTask(){
-    _delayTask = nullptr;
 }
 
 

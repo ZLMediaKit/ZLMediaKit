@@ -126,13 +126,6 @@ void RtspSession::onManager() {
 		shutdown();
 		return;
 	}
-
-    if(_delayTask){
-        if(time(NULL) > _iTaskTimeLine){
-            _delayTask();
-            _delayTask = nullptr;
-        }
-    }
 }
 
 void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
@@ -307,43 +300,60 @@ bool RtspSession::handleReq_RECORD(const Parser &parser){
 	return true;
 }
 
-
 bool RtspSession::handleReq_Describe(const Parser &parser) {
-	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-	auto authorization = parser["Authorization"];
+    _mediaInfo._schema = RTSP_SCHEMA;
+    auto authorization = parser["Authorization"];
+    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,5000,[weakSelf,authorization](const MediaSource::Ptr &src){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            return;
+        }
+        auto rtsp_src = dynamic_pointer_cast<RtspMediaSource>(src);
+        if (!rtsp_src) {
+            //未找到相应的MediaSource
+            WarnL << "No such stream:" <<  strongSelf->_mediaInfo._vhost << " " <<  strongSelf->_mediaInfo._app << " " << strongSelf->_mediaInfo._streamid;
+            strongSelf->send_StreamNotFound();
+            strongSelf->shutdown();
+            return;
+        }
+        //找到了响应的rtsp流
+        strongSelf->_strSdp = rtsp_src->getSdp();
+        SdpAttr sdpAttr(strongSelf->_strSdp);
+        strongSelf->_aTrackInfo = sdpAttr.getAvailableTrack();
+        if (strongSelf->_aTrackInfo.empty()) {
+            //该流无效
+            strongSelf->send_StreamNotFound();
+            strongSelf->shutdown();
+            return;
+        }
+        strongSelf->_strSession = makeRandStr(12);
+        strongSelf->_pMediaSrc = rtsp_src;
+        for(auto &track : strongSelf->_aTrackInfo){
+            track->_ssrc = rtsp_src->getSsrc(track->_type);
+            track->_seq = rtsp_src->getSeqence(track->_type);
+            track->_time_stamp = rtsp_src->getTimeStamp(track->_type);
+        }
 
-	findStream([weakSelf,authorization](bool success){
-    	auto strongSelf = weakSelf.lock();
-    	if(!strongSelf){
-			return;
-    	}
+        //该请求中的认证信息
+        onGetRealm invoker = [weakSelf,authorization](const string &realm){
+            if(realm.empty()){
+                //无需认证,回复sdp
+                onAuthSuccess(weakSelf);
+                return;
+            }
+            //该流需要认证
+            onAuthUser(weakSelf,realm,authorization);
+        };
 
-    	if(!success){
-			//未找到相应的MediaSource
-			WarnL << "No such stream:" <<  strongSelf->_mediaInfo._vhost << " " <<  strongSelf->_mediaInfo._app << " " << strongSelf->_mediaInfo._streamid;
-			strongSelf->send_StreamNotFound();
-			strongSelf->shutdown();
-			return;
-    	}
-		//该请求中的认证信息
-		onGetRealm invoker = [weakSelf,authorization](const string &realm){
-			if(realm.empty()){
-				//无需认证,回复sdp
-				onAuthSuccess(weakSelf);
-				return;
-			}
-			//该流需要认证
-			onAuthUser(weakSelf,realm,authorization);
-		};
-
-		//广播是否需要认证事件
-		if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
-											   strongSelf->_mediaInfo,
-											   invoker,
-											   *strongSelf)){
-			//无人监听此事件，说明无需认证
-			invoker("");
-		}
+        //广播是否需要认证事件
+        if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
+                                               strongSelf->_mediaInfo,
+                                               invoker,
+                                               *strongSelf)){
+            //无人监听此事件，说明无需认证
+            invoker("");
+        }
     });
     return true;
 }
@@ -883,98 +893,6 @@ bool RtspSession::handleReq_SET_PARAMETER(const Parser &parser) {
 
 inline void RtspSession::send_NotAcceptable() {
 	sendRtspResponse("406 Not Acceptable",{"Connection","Close"});
-}
-
-void RtspSession::doDelay(int delaySec, const std::function<void()> &fun) {
-    if(_delayTask){
-        _delayTask();
-    }
-    _delayTask = fun;
-    _iTaskTimeLine = time(NULL) + delaySec;
-}
-
-void RtspSession::cancelDelyaTask(){
-    _delayTask = nullptr;
-}
-
-void RtspSession::findStream(const function<void(bool)> &cb) {
-	bool success = findStream();
-	if (success) {
-		cb(true);
-		return;
-	}
-
-	//广播未找到流
-	NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,_mediaInfo,*this);
-
-	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-	auto task_id = this;
-	auto media_info = _mediaInfo;
-
-	auto onRegist = [task_id, weakSelf, media_info, cb](BroadcastMediaChangedArgs) {
-		if (bRegist &&
-			schema == media_info._schema &&
-			vhost == media_info._vhost &&
-			app == media_info._app &&
-			stream == media_info._streamid) {
-			//播发器请求的rtsp流终于注册上了
-			auto strongSelf = weakSelf.lock();
-			if (!strongSelf) {
-				return;
-			}
-			//切换到自己的线程再回复
-			//如果触发 kBroadcastMediaChanged 事件的线程与本RtspSession绑定的线程相同,
-			//那么strongSelf->async操作可能是同步操作,
-			//通过指定参数may_sync为false确保 NoticeCenter::delListener操作延后执行,
-			//以便防止遍历事件监听对象map时做删除操作
-			strongSelf->async([task_id, weakSelf, media_info, cb]() {
-				auto strongSelf = weakSelf.lock();
-				if (!strongSelf) {
-					return;
-				}
-				DebugL << "收到rtsp注册事件,回复播放器:" << media_info._schema << "/" << media_info._vhost << "/"
-					   << media_info._app << "/" << media_info._streamid;
-				cb(strongSelf->findStream());
-				//取消延时任务，防止多次回复
-				strongSelf->cancelDelyaTask();
-
-				//取消事件监听
-				//在事件触发时不能在当前线程移除事件监听,否则会导致遍历map时做删除操作导致程序崩溃
-				NoticeCenter::Instance().delListener(task_id, Broadcast::kBroadcastMediaChanged);
-			}, false);
-		}
-	};
-
-	NoticeCenter::Instance().addListener(task_id, Broadcast::kBroadcastMediaChanged, onRegist);
-	//5秒后执行失败回调
-	doDelay(5, [cb,task_id]() {
-		NoticeCenter::Instance().delListener(task_id,Broadcast::kBroadcastMediaChanged);
-		cb(false);
-	});
-}
-
-inline bool RtspSession::findStream() {
-	RtspMediaSource::Ptr pMediaSrc =
-    dynamic_pointer_cast<RtspMediaSource>( MediaSource::find(RTSP_SCHEMA,_mediaInfo._vhost, _mediaInfo._app,_mediaInfo._streamid) );
-	if (!pMediaSrc) {
-		return false;
-	}
-	_strSdp = pMediaSrc->getSdp();
-	SdpAttr sdpAttr(_strSdp);
-	_aTrackInfo = sdpAttr.getAvailableTrack();
-
-	if (_aTrackInfo.empty()) {
-		return false;
-	}
-	_strSession = makeRandStr(12);
-	_pMediaSrc = pMediaSrc;
-
-	for(auto &track : _aTrackInfo){
-		track->_ssrc = pMediaSrc->getSsrc(track->_type);
-		track->_seq = pMediaSrc->getSeqence(track->_type);
-		track->_time_stamp = pMediaSrc->getTimeStamp(track->_type);
-	}
-	return true;
 }
 
 

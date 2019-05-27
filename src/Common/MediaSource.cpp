@@ -30,6 +30,7 @@
 #include "Util/util.h"
 #include "Rtsp/Rtsp.h"
 #include "Network/sockutil.h"
+#include "Network/TcpSession.h"
 
 using namespace toolkit;
 
@@ -38,6 +39,67 @@ namespace mediakit {
 recursive_mutex MediaSource::g_mtxMediaSrc;
 MediaSource::SchemaVhostAppStreamMap MediaSource::g_mapMediaSrc;
 
+
+void MediaSource::findAsync(const MediaInfo &info,
+                            const std::shared_ptr<TcpSession> &session,
+                            bool retry,
+                            int maxWaitMs,
+                            const function<void(const MediaSource::Ptr &src)> &cb){
+
+    auto src = MediaSource::find(info._schema,
+                                 info._vhost,
+                                 info._app,
+                                 info._streamid,
+                                 true);
+    if(src || !retry){
+        cb(src);
+        return;
+    }
+
+    void *listener_tag = session.get();
+    weak_ptr<TcpSession> weakSession = session;
+    //广播未找到流,此时可以立即去拉流，这样还来得及
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info,session);
+
+    //若干秒后执行等待媒体注册超时回调
+    auto onRegistTimeout = session->getPoller()->doDelayTask(maxWaitMs,[cb,listener_tag](){
+        //取消监听该事件
+        NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
+        cb(nullptr);
+        return 0;
+    });
+
+    auto onRegist = [listener_tag,weakSession,info,cb,maxWaitMs,onRegistTimeout](BroadcastMediaChangedArgs) {
+        if(!bRegist || schema != info._schema || vhost != info._vhost || app != info._app ||stream != info._streamid){
+            //不是自己感兴趣的事件，忽略之
+            return;
+        }
+
+        //取消延时任务，防止多次回调
+        onRegistTimeout->cancel();
+
+        //播发器请求的流终于注册上了
+        auto strongSession = weakSession.lock();
+        if(!strongSession) {
+            return;
+        }
+
+        //切换到自己的线程再回复
+        strongSession->async([listener_tag,weakSession,info,cb,maxWaitMs](){
+            auto strongSession = weakSession.lock();
+            if(!strongSession) {
+                return;
+            }
+            DebugL << "收到媒体注册事件,回复播放器:" << info._schema << "/" << info._vhost << "/" << info._app << "/" << info._streamid;
+            //再找一遍媒体源，一般能找到
+            findAsync(info,strongSession,false,maxWaitMs,cb);
+            //取消事件监听
+            NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
+        }, false);
+    };
+    //监听媒体注册事件
+    NoticeCenter::Instance().addListener(listener_tag, Broadcast::kBroadcastMediaChanged, onRegist);
+}
 MediaSource::Ptr MediaSource::find(
         const string &schema,
         const string &vhost_tmp,
@@ -69,7 +131,6 @@ MediaSource::Ptr MediaSource::find(
         ret = MediaReader::onMakeMediaSource(schema, vhost,app,id);
     }
     return ret;
-
 }
 void MediaSource::regist() {
     //注册该源，注册后服务器才能找到该源
