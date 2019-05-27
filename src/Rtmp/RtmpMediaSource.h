@@ -127,9 +127,9 @@ public:
 
 private:
     void onReaderChanged(int size){
+        _readerTicker.resetTime();
         if(size != 0 || readerCount() != 0){
             //还有消费者正在观看该流，我们记录最后一次活动时间
-            _readerTicker.resetTime();
             _asyncEmitNoneReader = false;
             return;
         }
