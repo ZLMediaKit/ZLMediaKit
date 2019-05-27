@@ -716,7 +716,7 @@ bool RtspSession::handleReq_Play(const Parser &parser) {
 			auto iStartTime = 1000 * atof(strStart.data());
 			InfoL << "rtsp seekTo(ms):" << iStartTime;
 			useBuf = !pMediaSrc->seekTo(iStartTime);
-		}else if(pMediaSrc->getRing()->readerCount() == 0){
+		}else if(pMediaSrc->readerCount() == 0){
 			//第一个消费者
 			pMediaSrc->seekTo(0);
 		}

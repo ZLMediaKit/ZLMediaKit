@@ -89,6 +89,10 @@ public:
             _rtspMuxer->setListener(listener);
         }
     }
+
+    int readerCount() override {
+        return RtmpMediaSource::readerCount() + _rtspMuxer->readerCount();
+    }
 private:
 	RtmpDemuxer::Ptr _rtmpDemuxer;
 	RtspMediaSourceMuxer::Ptr _rtspMuxer;

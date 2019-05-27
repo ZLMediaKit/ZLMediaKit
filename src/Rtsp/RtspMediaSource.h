@@ -65,7 +65,12 @@ public:
 		//获取媒体源的rtp环形缓冲
 		return _pRing;
 	}
-	const string& getSdp() const {
+
+    int readerCount() override {
+        return _pRing->readerCount();
+	}
+
+    const string& getSdp() const {
 		//获取该源的媒体描述信息
 		return _strSdp;
 	}
