@@ -25,7 +25,8 @@ using namespace mediakit;
 typedef map<string,variant,StrCaseCompare> ApiArgsType;
 
 
-#define API_ARGS HttpSession::KeyValue &headerIn, \
+#define API_ARGS TcpSession &sender, \
+                 HttpSession::KeyValue &headerIn, \
                  HttpSession::KeyValue &headerOut, \
                  ApiArgsType &allArgs, \
                  Json::Value &val
@@ -33,7 +34,7 @@ typedef map<string,variant,StrCaseCompare> ApiArgsType;
 #define API_REGIST(field, name, ...) \
     s_map_api.emplace("/index/"#field"/"#name,[](API_ARGS,const HttpSession::HttpResponseInvoker &invoker){ \
          static auto lam = [&](API_ARGS) __VA_ARGS__ ;  \
-         lam(headerIn, headerOut, allArgs, val); \
+         lam(sender,headerIn, headerOut, allArgs, val); \
          invoker("200 OK", headerOut, val.toStyledString()); \
      });
 
@@ -164,7 +165,7 @@ static inline void addHttpListener(){
         }
 
         try {
-            it->second(headerIn, headerOut, allArgs, val, invoker);
+            it->second(sender,headerIn, headerOut, allArgs, val, invoker);
         }  catch(ApiRetException &ex){
             val["code"] = ex.code();
             val["msg"] = ex.what();
@@ -202,11 +203,12 @@ bool checkArgs(Args &&args,First &&first,KeyTypes && ...keys){
     }
 
 #define CHECK_SECRET() \
-    CHECK_ARGS("secret"); \
-    if(api_secret != allArgs["secret"]){ \
-        throw AuthException("secret错误"); \
+    if(sender.get_peer_ip() != "127.0.0.1"){ \
+        CHECK_ARGS("secret"); \
+        if(api_secret != allArgs["secret"]){ \
+            throw AuthException("secret错误"); \
+        } \
     }
-
 
 static unordered_map<string ,PlayerProxy::Ptr> s_proxyMap;
 static recursive_mutex s_proxyMapMtx;
