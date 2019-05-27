@@ -44,11 +44,13 @@ void FlvMuxer::start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &
     }
     if(!poller->isCurrentThread()){
         weak_ptr<FlvMuxer> weakSelf = getSharedPtr();
-        poller->async([weakSelf,poller,media](){
+        //延时两秒启动录制，目的是为了等待config帧收集完毕
+        poller->doDelayTask(2000,[weakSelf,poller,media](){
             auto strongSelf = weakSelf.lock();
             if(strongSelf){
                 strongSelf->start(poller,media);
             }
+            return 0;
         });
         return;
     }
