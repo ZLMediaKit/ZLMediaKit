@@ -411,35 +411,27 @@ void installWebApi() {
         val["msg"] = "success";
     });
 
-
-    //动态添加rtsp/rtmp拉流代理
-    //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&stream=0&url=rtmp://127.0.0.1/live/obs
-    API_REGIST_INVOKER(api,addStreamProxy,{
-        CHECK_SECRET();
-        CHECK_ARGS("vhost","app","stream","url");
-        auto key = getProxyKey(allArgs["vhost"],allArgs["app"],allArgs["stream"]);
+    static auto addStreamProxy = [](const string &vhost,
+                                    const string &app,
+                                    const string &stream,
+                                    const string &url,
+                                    bool enable_hls,
+                                    bool enable_mp4,
+                                    int rtp_type,
+                                    const function<void(const SockException &ex,const string &key)> &cb){
+        auto key = getProxyKey(vhost,app,stream);
         //添加拉流代理
-        PlayerProxy::Ptr player(new PlayerProxy(
-                allArgs["vhost"],
-                allArgs["app"],
-                allArgs["stream"],
-                allArgs["enable_hls"],
-                allArgs["enable_mp4"]
-        ));
+        PlayerProxy::Ptr player(new PlayerProxy(vhost,app,stream,enable_hls,enable_mp4));
         //指定RTP over TCP(播放rtsp时有效)
-        (*player)[kRtpType] = allArgs["rtp_type"].as<int>();
+        (*player)[kRtpType] = rtp_type;
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
-        player->setPlayCallbackOnce([invoker,val,headerOut,player,key](const SockException &ex){
-            if(ex){
-                const_cast<Value &>(val)["code"] = API::OtherFailed;
-                const_cast<Value &>(val)["msg"] = ex.what();
-            }else{
-                const_cast<Value &>(val)["data"]["key"] = key;
+        player->setPlayCallbackOnce([cb,player,key](const SockException &ex){
+            if(!ex){
                 lock_guard<recursive_mutex> lck(s_proxyMapMtx);
                 s_proxyMap[key] = player;
             }
             const_cast<PlayerProxy::Ptr &>(player).reset();
-            invoker("200 OK", headerOut, val.toStyledString());
+            cb(ex,key);
         });
 
         //被主动关闭拉流
@@ -447,7 +439,30 @@ void installWebApi() {
             lock_guard<recursive_mutex> lck(s_proxyMapMtx);
             s_proxyMap.erase(key);
         });
-        player->play(allArgs["url"]);
+        player->play(url);
+    };
+
+    //动态添加rtsp/rtmp拉流代理
+    //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&stream=0&url=rtmp://127.0.0.1/live/obs
+    API_REGIST_INVOKER(api,addStreamProxy,{
+        CHECK_SECRET();
+        CHECK_ARGS("vhost","app","stream","url");
+        addStreamProxy(allArgs["vhost"],
+                       allArgs["app"],
+                       allArgs["stream"],
+                       allArgs["url"],
+                       allArgs["enable_hls"],
+                       allArgs["enable_mp4"],
+                       allArgs["rtp_type"],
+                       [invoker,val,headerOut](const SockException &ex,const string &key){
+                           if(ex){
+                               const_cast<Value &>(val)["code"] = API::OtherFailed;
+                               const_cast<Value &>(val)["msg"] = ex.what();
+                           }else{
+                               const_cast<Value &>(val)["data"]["key"] = key;
+                           }
+                           invoker("200 OK", headerOut, val.toStyledString());
+                       });
     });
 
     //关闭拉流代理
@@ -496,9 +511,24 @@ void installWebApi() {
         throw SuccessException();
     });
 
-    API_REGIST(hook,on_stream_not_found,{
-        //媒体未找到事件
-        throw SuccessException();
+    API_REGIST_INVOKER(hook,on_stream_not_found,{
+        //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
+        addStreamProxy(allArgs["vhost"],
+                       allArgs["app"],
+                       allArgs["stream"],
+                       "rtmp://live.hkstv.hk.lxdns.com/live/hks2",
+                       false,
+                       false,
+                       0,
+                       [invoker,val,headerOut](const SockException &ex,const string &key){
+                           if(ex){
+                               const_cast<Value &>(val)["code"] = API::OtherFailed;
+                               const_cast<Value &>(val)["msg"] = ex.what();
+                           }else{
+                               const_cast<Value &>(val)["data"]["key"] = key;
+                           }
+                           invoker("200 OK", headerOut, val.toStyledString());
+                       });
     });
 
 
