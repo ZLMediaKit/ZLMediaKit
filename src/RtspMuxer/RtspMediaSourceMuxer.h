@@ -39,9 +39,8 @@ public:
     RtspMediaSourceMuxer(const string &vhost,
                          const string &strApp,
                          const string &strId,
-                         const TitleSdp::Ptr &title = nullptr,
-                         bool masterSrc = true) : RtspMuxer(title){
-        _mediaSouce = std::make_shared<RtspMediaSource>(vhost,strApp,strId,0,masterSrc);
+                         const TitleSdp::Ptr &title = nullptr) : RtspMuxer(title){
+        _mediaSouce = std::make_shared<RtspMediaSource>(vhost,strApp,strId);
         getRtpRing()->setDelegate(_mediaSouce);
     }
     virtual ~RtspMediaSourceMuxer(){}
