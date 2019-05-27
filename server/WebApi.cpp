@@ -350,10 +350,10 @@ void installWebApi() {
         if(src){
             bool flag = src->close();
             val["code"] = flag ? 0 : -1;
-            val["msg"] = flag ? "success" : "kick failed";
+            val["msg"] = flag ? "success" : "close failed";
         }else{
             val["code"] = -2;
-            val["msg"] = "can not find the pusher";
+            val["msg"] = "can not find the stream";
         }
     });
 
