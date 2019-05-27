@@ -89,10 +89,6 @@ private:
         safeShutdown();
         return true;
     }
-
-    void doDelay(int delaySec,const std::function<void()> &fun);
-	void cancelDelyaTask();
-	void findStream(const function<void(const RtmpMediaSource::Ptr &src)> &cb ,bool retry = true);
 private:
 	std::string _strTcUrl;
 	MediaInfo _mediaInfo;
@@ -105,8 +101,6 @@ private:
 	uint32_t _aui32FirstStamp[2] = {0};
 	//消耗的总流量
 	uint64_t _ui64TotalBytes = 0;
-    std::function<void()> _delayTask;
-    uint32_t _iTaskTimeLine = 0;
 
 };
 

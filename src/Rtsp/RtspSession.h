@@ -136,9 +136,6 @@ private:
 	void inline send_UnsupportedTransport(); //不支持的传输模式
 	void inline send_SessionNotFound(); //会话id错误
 	void inline send_NotAcceptable(); //rtsp同时播放数限制
-	inline bool findStream(); //根据rtsp url查找 MediaSource实例
-    inline void findStream(const function<void(bool)> &cb); //根据rtsp url查找 MediaSource实例
-
 	inline string printSSRC(uint32_t ui32Ssrc);
 	inline int getTrackIndexByTrackType(TrackType type);
     inline int getTrackIndexByControlSuffix(const string &controlSuffix);
@@ -153,9 +150,6 @@ private:
     static void onAuthUser(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &authorization);
     static void onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strBase64);
     static void onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strMd5);
-
-    void doDelay(int delaySec,const std::function<void()> &fun);
-    void cancelDelyaTask();
 
 	inline void sendRtpPacket(const RtpPacket::Ptr &pkt);
 	bool sendRtspResponse(const string &res_code,const std::initializer_list<string> &header, const string &sdp = "" , const char *protocol = "RTSP/1.0");
@@ -190,9 +184,6 @@ private:
 	//一次发送 get 一次发送post，需要通过x-sessioncookie关联起来
 	string _http_x_sessioncookie;
 	function<void(const Buffer::Ptr &pBuf)> _onRecv;
-
-    std::function<void()> _delayTask;
-    uint32_t _iTaskTimeLine = 0;
     atomic<bool> _enableSendRtp;
 
     //rtsp推流相关

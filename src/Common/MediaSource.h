@@ -42,6 +42,10 @@
 using namespace std;
 using namespace toolkit;
 
+namespace toolkit{
+    class TcpSession;
+}//namespace toolkit
+
 namespace mediakit {
 
 class MediaSource;
@@ -90,7 +94,6 @@ public:
     string _param_strs;
 };
 
-
 class MediaSource: public enable_shared_from_this<MediaSource> {
 public:
     typedef std::shared_ptr<MediaSource> Ptr;
@@ -121,6 +124,12 @@ public:
                     const string &app,
                     const string &id,
                     bool bMake = true) ;
+
+    static void findAsync(const MediaInfo &info,
+                          const std::shared_ptr<TcpSession> &session,
+                          bool retry,
+                          int maxWaitMs,
+                          const function<void(const MediaSource::Ptr &src)> &cb);
 
     const string& getSchema() const {
         return _strSchema;
