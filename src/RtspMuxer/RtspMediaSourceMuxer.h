@@ -39,8 +39,9 @@ public:
     RtspMediaSourceMuxer(const string &vhost,
                          const string &strApp,
                          const string &strId,
-                         const TitleSdp::Ptr &title = nullptr) : RtspMuxer(title){
-        _mediaSouce = std::make_shared<RtspMediaSource>(vhost,strApp,strId);
+                         const TitleSdp::Ptr &title = nullptr,
+                         bool masterSrc = true) : RtspMuxer(title){
+        _mediaSouce = std::make_shared<RtspMediaSource>(vhost,strApp,strId,0,masterSrc);
         getRtpRing()->setDelegate(_mediaSouce);
     }
     virtual ~RtspMediaSourceMuxer(){}
@@ -49,7 +50,7 @@ public:
         _mediaSouce->setListener(listener);
     }
     int readerCount() const{
-        return _mediaSouce->getRing()->readerCount();
+        return _mediaSouce->readerCount();
     }
     void setTimeStamp(uint32_t stamp){
         _mediaSouce->setTimeStamp(stamp);

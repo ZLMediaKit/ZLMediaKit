@@ -68,7 +68,7 @@ public:
 	 * 关闭MediaReader的流化进程，会触发该对象放弃自持有
 	 * @return
 	 */
-	bool close() override;
+	bool close(bool force) override;
 
 	/**
 	 * 自动生成MediaReader对象然后查找相关的MediaSource对象
@@ -86,9 +86,11 @@ public:
 											  const string &strId,
 											  const string &filePath = "",
 											  bool checkApp = true);
-#ifdef ENABLE_MP4V2
+
 private:
-	void seek(uint32_t iSeekTime,bool bReStart = true);
+    void onNoneReader(MediaSource &sender) override;
+#ifdef ENABLE_MP4V2
+    void seek(uint32_t iSeekTime,bool bReStart = true);
 	inline void setSeekTime(uint32_t iSeekTime);
 	inline uint32_t getVideoCurrentTime();
 	inline MP4SampleId getVideoSampleId(int iTimeInc = 0);

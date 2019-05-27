@@ -343,7 +343,7 @@ void installWebApi() {
     });
 
     //主动关断流，包括关断拉流、推流
-    //测试url http://127.0.0.1/index/api/close_stream?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
+    //测试url http://127.0.0.1/index/api/close_stream?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
     API_REGIST(api,close_stream,{
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
@@ -353,7 +353,7 @@ void installWebApi() {
                                      allArgs["app"],
                                      allArgs["stream"]);
         if(src){
-            bool flag = src->close();
+            bool flag = src->close(allArgs["force"].as<bool>());
             val["code"] = flag ? 0 : -1;
             val["msg"] = flag ? "success" : "close failed";
         }else{
@@ -511,6 +511,13 @@ void installWebApi() {
         //shell登录调试事件
         throw SuccessException();
     });
+
+    API_REGIST(hook,on_stream_none_reader,{
+        //无人观看流默认关闭
+        val["close"] = true;
+    });
+
+
 }
 
 void unInstallWebApi(){

@@ -44,8 +44,8 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class MediaSourceEvent
-{
+class MediaSource;
+class MediaSourceEvent{
 public:
     MediaSourceEvent(){};
     virtual ~MediaSourceEvent(){};
@@ -55,15 +55,18 @@ public:
         return false;
     }
 
-    virtual bool close() {
+    virtual bool close(bool force) {
         //通知其停止推流
         return false;
     }
 
-    virtual void onReaderChanged(const EventPoller::Ptr &poller,int size,bool add_flag){}
+    virtual void onNoneReader(MediaSource &sender){
+        //没有任何读取器消费该源，表明该源可以关闭了
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader,sender);
+    }
 };
-class MediaInfo
-{
+
+class MediaInfo{
 public:
     MediaInfo(){}
     MediaInfo(const string &url){
@@ -85,7 +88,6 @@ public:
     string _streamid;
     StrCaseMap _params;
     string _param_strs;
-
 };
 
 
@@ -144,12 +146,12 @@ public:
 
     virtual uint32_t getTimeStamp(TrackType trackType) = 0;
 
-    bool close() {
+    bool close(bool force) {
         auto listener = _listener.lock();
         if(!listener){
             return false;
         }
-        return listener->close();
+        return listener->close(force);
     }
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _listener = listener;

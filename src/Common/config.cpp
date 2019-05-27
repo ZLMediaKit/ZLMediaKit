@@ -65,11 +65,15 @@ const char kBroadcastFlowReport[] = "kBroadcastFlowReport";
 const char kBroadcastReloadConfig[] = "kBroadcastReloadConfig";
 const char kBroadcastShellLogin[] = "kBroadcastShellLogin";
 const char kBroadcastNotFoundStream[] = "kBroadcastNotFoundStream";
+const char kBroadcastStreamNoneReader[] = "kBroadcastStreamNoneReader";
 
 const char kFlowThreshold[] = "broadcast.flowThreshold";
+const char kStreamNoneReaderDelayMS[] = "broadcast.streamNoneReaderDelayMS";
+
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
+    mINI::Instance()[kStreamNoneReaderDelayMS] = 5 * 1000;
 },nullptr);
 } //namespace Broadcast
 

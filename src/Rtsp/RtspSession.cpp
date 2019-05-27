@@ -1161,7 +1161,10 @@ inline int RtspSession::getTrackIndexByInterleaved(int interleaved){
 	return -1;
 }
 
-bool RtspSession::close() {
+bool RtspSession::close(bool force) {
+    if(!force && _pushSrc->readerCount() != 0){
+        return false;
+    }
 	InfoL << "kick out:" << _mediaInfo._vhost << " " << _mediaInfo._app << " " << _mediaInfo._streamid;
 	safeShutdown();
 	return true;

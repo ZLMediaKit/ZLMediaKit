@@ -145,7 +145,11 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 		return false;
 	}, getPoller());
 }
-bool PlayerProxy::close() {
+bool PlayerProxy::close(bool force) {
+    if(!force && _mediaMuxer->readerCount() != 0){
+        return false;
+    }
+
 	//通知其停止推流
 	weak_ptr<PlayerProxy> weakSlef = dynamic_pointer_cast<PlayerProxy>(shared_from_this());
 	getPoller()->async_first([weakSlef]() {
@@ -161,6 +165,12 @@ bool PlayerProxy::close() {
     return true;
 }
 
+void PlayerProxy::onNoneReader(MediaSource &sender) {
+    if(_mediaMuxer->readerCount() != 0){
+        return;
+    }
+    MediaSourceEvent::onNoneReader(sender);
+}
 
 class MuteAudioMaker : public FrameRingInterfaceDelegate{
 public:

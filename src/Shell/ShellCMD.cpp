@@ -51,7 +51,7 @@ public:
                         if(!media) {
                             break;
                         }
-                        if(!media->close()) {
+                        if(!media->close(true)) {
                             break;
                         }
                         (*stream) << "\t踢出成功:"
@@ -86,9 +86,12 @@ public:
     }
 };
 
-static onceToken s_token([]() {
-    REGIST_CMD(media);
-}, nullptr);
+void installShellCMD(){
+    static onceToken s_token([]() {
+        REGIST_CMD(media);
+    }, nullptr);
+}
+
 
 
 } /* namespace mediakit */

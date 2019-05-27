@@ -55,10 +55,13 @@ public:
 	typedef std::shared_ptr<RtspMediaSource> Ptr;
 	typedef RingBuffer<RtpPacket::Ptr> RingType;
 
-	RtspMediaSource(const string &strVhost,const string &strApp, const string &strId,int ringSize = 0) :
+	RtspMediaSource(const string &strVhost,
+	                const string &strApp,
+	                const string &strId,
+	                int ringSize = 0) :
 			MediaSource(RTSP_SCHEMA,strVhost,strApp,strId),
-			_pRing(new RingBuffer<RtpPacket::Ptr>(ringSize)) {
-	}
+			_ringSize(ringSize){}
+
 	virtual ~RtspMediaSource() {}
 
 	const RingType::Ptr &getRing() const {
@@ -67,7 +70,7 @@ public:
 	}
 
     int readerCount() override {
-        return _pRing->readerCount();
+        return _pRing ? _pRing->readerCount() : 0;
 	}
 
     const string& getSdp() const {
@@ -114,7 +117,6 @@ public:
 		//派生类设置该媒体源媒体描述信息
 		_strSdp = sdp;
 		_sdpAttr.load(sdp);
-		regist();
 	}
 
 	void onWrite(const RtpPacket::Ptr &rtppt, bool keyPos) override {
@@ -124,12 +126,50 @@ public:
 			track->_time_stamp = rtppt->timeStamp;
 			track->_ssrc = rtppt->ssrc;
 		}
+		if(!_pRing){
+		    weak_ptr<RtspMediaSource> weakSelf = dynamic_pointer_cast<RtspMediaSource>(shared_from_this());
+            _pRing = std::make_shared<RingType>(_ringSize,[weakSelf](const EventPoller::Ptr &,int size,bool){
+                auto strongSelf = weakSelf.lock();
+                if(!strongSelf){
+                    return;
+                }
+                strongSelf->onReaderChanged(size);
+            });
+            onReaderChanged(0);
+            regist();
+		}
 		_pRing->write(rtppt,keyPos);
+        checkNoneReader();
+	}
+private:
+    void onReaderChanged(int size){
+        if(size != 0 || readerCount() != 0){
+            //还有消费者正在观看该流，我们记录最后一次活动时间
+            _readerTicker.resetTime();
+            _asyncEmitNoneReader = false;
+            return;
+        }
+        _asyncEmitNoneReader  = true;
+    }
+
+    void checkNoneReader(){
+        GET_CONFIG_AND_REGISTER(int,stream_none_reader_delay,Broadcast::kStreamNoneReaderDelayMS);
+        if(_asyncEmitNoneReader && _readerTicker.elapsedTime() > stream_none_reader_delay){
+            _asyncEmitNoneReader = false;
+            auto listener = _listener.lock();
+            if(!listener){
+                return;
+            }
+            listener->onNoneReader(*this);
+        }
 	}
 protected:
 	SdpAttr _sdpAttr;
     string _strSdp; //媒体描述信息
     RingType::Ptr _pRing; //rtp环形缓冲
+    int _ringSize;
+    Ticker _readerTicker;
+    bool _asyncEmitNoneReader = false;
 };
 
 } /* namespace mediakit */

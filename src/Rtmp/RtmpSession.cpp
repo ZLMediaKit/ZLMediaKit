@@ -360,7 +360,7 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         strongSelf->shutdown();
     });
     _pPlayerSrc = src;
-    if (src->getRing()->readerCount() == 1) {
+    if (src->readerCount() == 1) {
         src->seekTo(0);
     }
 

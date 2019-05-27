@@ -53,10 +53,13 @@ public:
 	typedef std::shared_ptr<RtmpMediaSource> Ptr;
 	typedef RingBuffer<RtmpPacket::Ptr> RingType;
 
-	RtmpMediaSource(const string &vhost,const string &strApp, const string &strId,int ringSize = 0) :
+	RtmpMediaSource(const string &vhost,
+	                const string &strApp,
+	                const string &strId,
+	                int ringSize = 0) :
 			MediaSource(RTMP_SCHEMA,vhost,strApp,strId),
-			_pRing(new RingBuffer<RtmpPacket::Ptr>(ringSize)) {
-	}
+			_ringSize(ringSize) {}
+
 	virtual ~RtmpMediaSource() {}
 
 	const RingType::Ptr &getRing() const {
@@ -65,7 +68,7 @@ public:
 	}
 
 	int readerCount() override {
-        return _pRing->readerCount();
+        return _pRing ? _pRing->readerCount() : 0;
 	}
 
 	const AMFValue &getMetaData() const {
@@ -89,15 +92,26 @@ public:
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		if (pkt->isCfgFrame()) {
 			_mapCfgFrame[pkt->typeId] = pkt;
-		} else{
-			if(!_bRegisted){
-                regist();
-                _bRegisted = true;
-			}
-			_mapStamp[pkt->typeId] = pkt->timeStamp;
-			_pRing->write(pkt,pkt->isVideoKeyFrame());
+            return;
 		}
-	}
+
+        _mapStamp[pkt->typeId] = pkt->timeStamp;
+
+        if(!_pRing){
+            weak_ptr<RtmpMediaSource> weakSelf = dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
+            _pRing = std::make_shared<RingType>(_ringSize,[weakSelf](const EventPoller::Ptr &,int size,bool){
+                auto strongSelf = weakSelf.lock();
+                if(!strongSelf){
+                    return;
+                }
+                strongSelf->onReaderChanged(size);
+            });
+            onReaderChanged(0);
+            regist();
+        }
+        _pRing->write(pkt,pkt->isVideoKeyFrame());
+        checkNoneReader();
+    }
 
 	uint32_t getTimeStamp(TrackType trackType) override {
 		lock_guard<recursive_mutex> lock(_mtxMap);
@@ -110,13 +124,38 @@ public:
 				return MAX(_mapStamp[MSG_VIDEO],_mapStamp[MSG_AUDIO]);
 		}
 	}
+
+private:
+    void onReaderChanged(int size){
+        if(size != 0 || readerCount() != 0){
+            //还有消费者正在观看该流，我们记录最后一次活动时间
+            _readerTicker.resetTime();
+            _asyncEmitNoneReader = false;
+            return;
+        }
+        _asyncEmitNoneReader  = true;
+    }
+
+    void checkNoneReader(){
+        GET_CONFIG_AND_REGISTER(int,stream_none_reader_delay,Broadcast::kStreamNoneReaderDelayMS);
+        if(_asyncEmitNoneReader && _readerTicker.elapsedTime() > stream_none_reader_delay){
+            _asyncEmitNoneReader = false;
+            auto listener = _listener.lock();
+            if(!listener){
+                return;
+            }
+            listener->onNoneReader(*this);
+        }
+    }
 protected:
 	AMFValue _metadata;
     unordered_map<int, RtmpPacket::Ptr> _mapCfgFrame;
 	unordered_map<int,uint32_t> _mapStamp;
 	mutable recursive_mutex _mtxMap;
 	RingBuffer<RtmpPacket::Ptr>::Ptr _pRing; //rtp环形缓冲
-	bool _bRegisted = false;
+	int _ringSize;
+	Ticker _readerTicker;
+    bool _asyncEmitNoneReader = false;
 };
 
 } /* namespace mediakit */
