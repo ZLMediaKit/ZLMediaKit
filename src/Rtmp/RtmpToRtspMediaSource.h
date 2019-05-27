@@ -91,7 +91,7 @@ public:
     }
 
     int readerCount() override {
-        return RtmpMediaSource::readerCount() + _rtspMuxer->readerCount();
+        return RtmpMediaSource::readerCount() + (_rtspMuxer ? _rtspMuxer->readerCount() : 0);
     }
 private:
 	RtmpDemuxer::Ptr _rtmpDemuxer;

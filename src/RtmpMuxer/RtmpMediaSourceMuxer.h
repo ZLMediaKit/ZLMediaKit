@@ -49,7 +49,7 @@ public:
         _mediaSouce->setListener(listener);
     }
     int readerCount() const{
-        return _mediaSouce->getRing()->readerCount();
+        return _mediaSouce->readerCount();
     }
 private:
     void onAllTrackReady() override {

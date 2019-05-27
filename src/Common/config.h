@@ -116,8 +116,17 @@ extern const char kBroadcastFlowReport[];
 extern const char kBroadcastNotFoundStream[];
 #define BroadcastNotFoundStreamArgs const MediaInfo &args,TcpSession &sender
 
+//某个流无人消费时触发，目的为了实现无人观看时主动断开拉流等业务逻辑
+extern const char kBroadcastStreamNoneReader[];
+#define BroadcastStreamNoneReaderArgs MediaSource &sender
+
 //流量汇报事件流量阈值,单位KB，默认1MB
 extern const char kFlowThreshold[];
+
+//流无人观看并且超过若干时间后才触发kBroadcastStreamNoneReader事件
+//默认连续5秒无人观看然后触发kBroadcastStreamNoneReader事件
+extern const char kStreamNoneReaderDelayMS[];
+
 
 //更新配置文件事件广播,执行loadIniConfig函数加载配置文件成功后会触发该广播
 extern const char kBroadcastReloadConfig[];

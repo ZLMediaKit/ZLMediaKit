@@ -33,7 +33,10 @@ using namespace toolkit;
 
 namespace mediakit {
 
+extern void installShellCMD();
+
 ShellSession::ShellSession(const Socket::Ptr &_sock) : TcpSession(_sock) {
+    installShellCMD();
     pleaseInputUser();
 }
 

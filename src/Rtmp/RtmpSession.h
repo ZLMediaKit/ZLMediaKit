@@ -81,7 +81,10 @@ private:
 		sendResponse(MSG_CMD, invoke.data());
 	}
 
-    bool close() override {
+    bool close(bool force) override {
+        if(!force && _pPublisherSrc->readerCount() != 0){
+            return false;
+        }
         InfoL << "kick out:" << _mediaInfo._vhost << " " << _mediaInfo._app << " " << _mediaInfo._streamid;
         safeShutdown();
         return true;

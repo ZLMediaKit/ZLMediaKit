@@ -166,9 +166,19 @@ void MediaReader::startReadMP4() {
 	 seek(ui32Stamp);
 	 return true;
 }
-bool MediaReader::close(){
+bool MediaReader::close(bool force){
+    if(!force && _mediaMuxer->readerCount() != 0 ){
+        return false;
+    }
 	_timer.reset();
     return true;
+}
+
+void MediaReader::onNoneReader(MediaSource &sender) {
+    if(_mediaMuxer->readerCount() != 0){
+        return;
+    }
+    MediaSourceEvent::onNoneReader(sender);
 }
 
 bool MediaReader::readSample(int iTimeInc,bool justSeekSyncFrame) {

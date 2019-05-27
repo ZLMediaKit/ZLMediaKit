@@ -42,6 +42,7 @@ const char kOnStreamChanged[] = HOOK_FIELD"on_stream_changed";
 const char kOnStreamNotFound[] = HOOK_FIELD"on_stream_not_found";
 const char kOnRecordMp4[] = HOOK_FIELD"on_record_mp4";
 const char kOnShellLogin[] = HOOK_FIELD"on_shell_login";
+const char kOnStreamNoneReader[] = HOOK_FIELD"on_stream_none_reader";
 const char kAdminParams[] = HOOK_FIELD"admin_params";
 
 onceToken token([](){
@@ -56,6 +57,7 @@ onceToken token([](){
     mINI::Instance()[kOnStreamNotFound] = "https://127.0.0.1/index/hook/on_stream_not_found";
     mINI::Instance()[kOnRecordMp4] = "https://127.0.0.1/index/hook/on_record_mp4";
     mINI::Instance()[kOnShellLogin] = "https://127.0.0.1/index/hook/on_shell_login";
+    mINI::Instance()[kOnStreamNoneReader] = "https://127.0.0.1/index/hook/on_stream_none_reader";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
 },nullptr);
 }//namespace Hook
@@ -159,7 +161,7 @@ void installWebHook(){
     GET_CONFIG_AND_REGISTER(string,hook_stream_not_found,Hook::kOnStreamNotFound);
     GET_CONFIG_AND_REGISTER(string,hook_record_mp4,Hook::kOnRecordMp4);
     GET_CONFIG_AND_REGISTER(string,hook_shell_login,Hook::kOnShellLogin);
-
+    GET_CONFIG_AND_REGISTER(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
         if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty()){
@@ -323,6 +325,29 @@ void installWebHook(){
         do_http_hook(hook_shell_login,body, [invoker](const Value &,const string &err){
             invoker(err);
         });
+    });
+
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastStreamNoneReader,[](BroadcastStreamNoneReaderArgs){
+        if(!hook_enable || hook_stream_none_reader.empty()){
+            return;
+        }
+
+        ArgsType body;
+        body["schema"] = sender.getSchema();
+        body["vhost"] = sender.getVhost();
+        body["app"] = sender.getApp();
+        body["stream"] = sender.getId();
+        weak_ptr<MediaSource> weakSrc = sender.shared_from_this();
+        //执行hook
+        do_http_hook(hook_stream_none_reader,body, [weakSrc](const Value &obj,const string &err){
+            bool flag = obj["close"].asBool();
+            auto strongSrc = weakSrc.lock();
+            if(!flag || !err.empty() || !strongSrc){
+                return;
+            }
+            strongSrc->close(false);
+        });
+
     });
 
 }

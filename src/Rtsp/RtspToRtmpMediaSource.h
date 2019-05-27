@@ -65,8 +65,7 @@ public:
                 _rtmpMuxer = std::make_shared<RtmpMediaSourceMuxer>(getVhost(),
                                                                     getApp(),
                                                                     getId(),
-                                                                    std::make_shared<TitleMete>(
-                                                                            _rtspDemuxer->getDuration()));
+                                                                    std::make_shared<TitleMete>(_rtspDemuxer->getDuration()));
                 for (auto &track : _rtspDemuxer->getTracks(false)) {
                     _rtmpMuxer->addTrack(track);
                     _recorder->addTrack(track);
@@ -86,7 +85,7 @@ public:
         }
     }
     int readerCount() override {
-        return RtspMediaSource::readerCount() + _rtmpMuxer->readerCount();
+        return RtspMediaSource::readerCount() + (_rtmpMuxer ? _rtmpMuxer->readerCount() : 0);
     }
 private:
     RtspDemuxer::Ptr _rtspDemuxer;
