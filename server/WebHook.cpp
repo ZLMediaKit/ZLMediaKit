@@ -41,19 +41,21 @@ const char kOnRtspAuth[] = HOOK_FIELD"on_rtsp_auth";
 const char kOnStreamChanged[] = HOOK_FIELD"on_stream_changed";
 const char kOnStreamNotFound[] = HOOK_FIELD"on_stream_not_found";
 const char kOnRecordMp4[] = HOOK_FIELD"on_record_mp4";
+const char kOnShellLogin[] = HOOK_FIELD"on_shell_login";
 const char kAdminParams[] = HOOK_FIELD"admin_params";
 
 onceToken token([](){
-    mINI::Instance()[kEnable] = false;
+    mINI::Instance()[kEnable] = true;
     mINI::Instance()[kTimeoutSec] = 10;
-    mINI::Instance()[kOnPublish] = "http://127.0.0.1/index/hook/on_publish";
-    mINI::Instance()[kOnPlay] = "http://127.0.0.1/index/hook/on_play";
-    mINI::Instance()[kOnFlowReport] = "http://127.0.0.1/index/hook/on_flow_report";
-    mINI::Instance()[kOnRtspRealm] = "http://127.0.0.1/index/hook/on_rtsp_realm";
-    mINI::Instance()[kOnRtspAuth] = "http://127.0.0.1/index/hook/on_rtsp_auth";
-    mINI::Instance()[kOnStreamChanged] = "http://127.0.0.1/index/hook/on_stream_changed";
-    mINI::Instance()[kOnStreamNotFound] = "http://127.0.0.1/index/hook/on_stream_not_found";
-    mINI::Instance()[kOnRecordMp4] = "http://127.0.0.1/index/hook/on_record_mp4";
+    mINI::Instance()[kOnPublish] = "https://127.0.0.1/index/hook/on_publish";
+    mINI::Instance()[kOnPlay] = "https://127.0.0.1/index/hook/on_play";
+    mINI::Instance()[kOnFlowReport] = "https://127.0.0.1/index/hook/on_flow_report";
+    mINI::Instance()[kOnRtspRealm] = "https://127.0.0.1/index/hook/on_rtsp_realm";
+    mINI::Instance()[kOnRtspAuth] = "https://127.0.0.1/index/hook/on_rtsp_auth";
+    mINI::Instance()[kOnStreamChanged] = "https://127.0.0.1/index/hook/on_stream_changed";
+    mINI::Instance()[kOnStreamNotFound] = "https://127.0.0.1/index/hook/on_stream_not_found";
+    mINI::Instance()[kOnRecordMp4] = "https://127.0.0.1/index/hook/on_record_mp4";
+    mINI::Instance()[kOnShellLogin] = "https://127.0.0.1/index/hook/on_shell_login";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
 },nullptr);
 }//namespace Hook
@@ -156,6 +158,7 @@ void installWebHook(){
     GET_CONFIG_AND_REGISTER(string,hook_stream_chaned,Hook::kOnStreamChanged);
     GET_CONFIG_AND_REGISTER(string,hook_stream_not_found,Hook::kOnStreamNotFound);
     GET_CONFIG_AND_REGISTER(string,hook_record_mp4,Hook::kOnRecordMp4);
+    GET_CONFIG_AND_REGISTER(string,hook_shell_login,Hook::kOnShellLogin);
 
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
@@ -304,6 +307,23 @@ void installWebHook(){
         do_http_hook(hook_record_mp4,body, nullptr);
     });
 #endif //ENABLE_MP4V2
+
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
+        if(!hook_enable || hook_shell_login.empty()){
+            return;
+        }
+        ArgsType body;
+        body["ip"] = sender.get_peer_ip();
+        body["port"] = sender.get_peer_port();
+        body["id"] = sender.getIdentifier();
+        body["user_name"] = user_name;
+        body["passwd"] = passwd;
+
+        //执行hook
+        do_http_hook(hook_shell_login,body, [invoker](const Value &,const string &err){
+            invoker(err);
+        });
+    });
 
 }
 

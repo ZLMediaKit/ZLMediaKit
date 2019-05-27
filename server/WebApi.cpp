@@ -47,7 +47,7 @@ static map<string, AsyncHttpApi> s_map_api;
 
 namespace API {
 typedef enum {
-    InvalidArgsFailed = -300,
+    InvalidArgs = -300,
     SqlFailed = -200,
     AuthFailed = -100,
     OtherFailed = -1,
@@ -81,10 +81,16 @@ public:
     ~AuthException() = default;
 };
 
-class InvalidArgs: public ApiRetException {
+class InvalidArgsException: public ApiRetException {
 public:
-    InvalidArgs(const char *str):ApiRetException(str,API::InvalidArgsFailed){}
-    ~InvalidArgs() = default;
+    InvalidArgsException(const char *str):ApiRetException(str,API::InvalidArgs){}
+    ~InvalidArgsException() = default;
+};
+
+class SuccessException: public ApiRetException {
+public:
+    SuccessException():ApiRetException("success",API::Success){}
+    ~SuccessException() = default;
 };
 
 
@@ -192,7 +198,7 @@ bool checkArgs(Args &&args,First &&first,KeyTypes && ...keys){
 
 #define CHECK_ARGS(...)  \
     if(!checkArgs(allArgs,##__VA_ARGS__)){ \
-        throw InvalidArgs("缺少必要参数:" #__VA_ARGS__); \
+        throw InvalidArgsException("缺少必要参数:" #__VA_ARGS__); \
     }
 
 #define CHECK_SECRET() \
@@ -413,24 +419,21 @@ void installWebApi() {
     ////////////以下是注册的Hook API////////////
     API_REGIST(hook,on_publish,{
         //开始推流事件
-        val["code"] = 0;
-        val["msg"] = "success";
+        throw SuccessException();
     });
 
     API_REGIST(hook,on_play,{
         //开始播放事件
-        val["code"] = 0;
-        val["msg"] = "success";
+        throw SuccessException();
     });
 
     API_REGIST(hook,on_flow_report,{
         //流量统计hook api
-        val["code"] = 0;
-        val["msg"] = "success";
+        throw SuccessException();
     });
 
     API_REGIST(hook,on_rtsp_realm,{
-        //rtsp是否需要鉴权
+        //rtsp是否需要鉴权，默认需要鉴权
         val["code"] = 0;
         val["realm"] = "zlmediakit_reaml";
     });
@@ -446,23 +449,24 @@ void installWebApi() {
 
     API_REGIST(hook,on_stream_changed,{
         //媒体注册或反注册事件
-        val["code"] = 0;
-        val["msg"] = "success";
+        throw SuccessException();
     });
 
     API_REGIST(hook,on_stream_not_found,{
         //媒体未找到事件
-        val["code"] = 0;
-        val["msg"] = "success";
+        throw SuccessException();
     });
 
 
     API_REGIST(hook,on_record_mp4,{
         //录制mp4分片完毕事件
-        val["code"] = 0;
-        val["msg"] = "success";
+        throw SuccessException();
     });
 
+    API_REGIST(hook,on_shell_login,{
+        //shell登录调试事件
+        throw SuccessException();
+    });
 }
 
 void unInstallWebApi(){
