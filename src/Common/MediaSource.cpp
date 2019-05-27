@@ -59,7 +59,7 @@ void MediaSource::findAsync(const MediaInfo &info,
     void *listener_tag = session.get();
     weak_ptr<TcpSession> weakSession = session;
     //广播未找到流,此时可以立即去拉流，这样还来得及
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info,session);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info,*session);
 
     //若干秒后执行等待媒体注册超时回调
     auto onRegistTimeout = session->getPoller()->doDelayTask(maxWaitMs,[cb,listener_tag](){
