@@ -216,15 +216,18 @@ static inline string getProxyKey(const string &vhost,const string &app,const str
     return vhost + "/" + app + "/" + stream;
 }
 
-//安装api接口
+/**
+ * 安装api接口
+ * 所有api都支持GET和POST两种方式
+ * POST方式参数支持application/json和application/x-www-form-urlencoded方式
+ */
 void installWebApi() {
     addHttpListener();
 
     GET_CONFIG_AND_REGISTER(string,api_secret,API::kSecret);
 
-    /**
-     * 获取线程负载
-     */
+    //获取线程负载
+    //测试url http://127.0.0.1/index/api/getThreadsLoad
     API_REGIST_INVOKER(api, getThreadsLoad, {
         EventPollerPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
@@ -240,14 +243,10 @@ void installWebApi() {
         });
     });
 
-    /**
-     * 获取服务器配置
-     */
+    //获取服务器配置
+    //测试url http://127.0.0.1/index/api/getServerConfig
     API_REGIST(api, getServerConfig, {
         CHECK_SECRET();
-        if(api_secret != allArgs["secret"]){
-            throw AuthException("secret错误");
-        }
         Value obj;
         for (auto &pr : mINI::Instance()) {
             obj[pr.first] = (string &) pr.second;
@@ -255,9 +254,9 @@ void installWebApi() {
         val["data"].append(obj);
     });
 
-    /**
-     * 设置服务器配置
-     */
+    //设置服务器配置
+    //测试url(比如关闭http api调试) http://127.0.0.1/index/api/setServerConfig?api.apiDebug=0
+    //你也可以通过http post方式传参，可以通过application/x-www-form-urlencoded或application/json方式传参
     API_REGIST(api, setServerConfig, {
         CHECK_SECRET();
         auto &ini = mINI::Instance();
@@ -281,9 +280,9 @@ void installWebApi() {
         val["changed"] = changed;
     });
 
-    /**
-     * 获取服务器api列表
-     */
+
+    //获取服务器api列表
+    //测试url http://127.0.0.1/index/api/getApiList
     API_REGIST(api,getApiList,{
         CHECK_SECRET();
         for(auto &pr : s_map_api){
@@ -291,9 +290,8 @@ void installWebApi() {
         }
     });
 
-    /**
-     * 重启服务器
-     */
+    //重启服务器,只有Daemon方式才能重启，否则是直接关闭！
+    //测试url http://127.0.0.1/index/api/restartServer
     API_REGIST(api,restartServer,{
         CHECK_SECRET();
         EventPollerPool::Instance().getPoller()->doDelayTask(1000,[](){
@@ -312,6 +310,10 @@ void installWebApi() {
     });
 
 
+    //获取流列表，可选筛选参数
+    //测试url0(获取所有流) http://127.0.0.1/index/api/getMediaList
+    //测试url1(获取虚拟主机为"__defaultVost__"的流) http://127.0.0.1/index/api/getMediaList?vhost=__defaultVost__
+    //测试url2(获取rtsp类型的流) http://127.0.0.1/index/api/getMediaList?schema=rtsp
     API_REGIST(api,getMediaList,{
         CHECK_SECRET();
         //获取所有MediaSource列表
@@ -341,6 +343,7 @@ void installWebApi() {
     });
 
     //主动关断流，包括关断拉流、推流
+    //测试url http://127.0.0.1/index/api/close_stream?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
     API_REGIST(api,close_stream,{
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
@@ -359,6 +362,34 @@ void installWebApi() {
         }
     });
 
+    //获取所有TcpSession列表信息
+    //可以根据本地端口和远端ip来筛选
+    //测试url(筛选某端口下的tcp会话) http://127.0.0.1/index/api/getAllSession?local_port=1935
+    API_REGIST(api,getAllSession,{
+        CHECK_SECRET();
+        Value jsession;
+        uint16_t local_port = allArgs["local_port"].as<uint16_t>();
+        string &peer_ip = allArgs["peer_ip"];
+
+        SessionMap::Instance().for_each_session([&](const string &id,const TcpSession::Ptr &session){
+            if(local_port != 0 && local_port != session->get_local_port()){
+                return;
+            }
+            if(!peer_ip.empty() && peer_ip != session->get_peer_ip()){
+                return;
+            }
+            jsession["peer_ip"] = session->get_peer_ip();
+            jsession["peer_port"] = session->get_peer_port();
+            jsession["local_ip"] = session->get_local_ip();
+            jsession["local_port"] = session->get_local_port();
+            jsession["id"] = id;
+            jsession["typeid"] = typeid(*session).name();
+            val["data"].append(jsession);
+        });
+    });
+
+    //断开tcp连接，比如说可以断开rtsp、rtmp播放器等
+    //测试url http://127.0.0.1/index/api/kick_session?id=123456
     API_REGIST(api,kick_session,{
         CHECK_SECRET();
         CHECK_ARGS("id");
@@ -381,9 +412,11 @@ void installWebApi() {
     });
 
 
+    //动态添加rtsp/rtmp拉流代理
+    //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&stream=0&url=rtmp://127.0.0.1/live/obs
     API_REGIST_INVOKER(api,addStreamProxy,{
         CHECK_SECRET();
-        CHECK_ARGS("vhost","app","stream","url","secret");
+        CHECK_ARGS("vhost","app","stream","url");
         auto key = getProxyKey(allArgs["vhost"],allArgs["app"],allArgs["stream"]);
         //添加拉流代理
         PlayerProxy::Ptr player(new PlayerProxy(
@@ -417,6 +450,8 @@ void installWebApi() {
         player->play(allArgs["url"]);
     });
 
+    //关闭拉流代理
+    //测试url http://127.0.0.1/index/api/delStreamProxy?key=__defaultVhost__/proxy/0
     API_REGIST(api,delStreamProxy,{
         CHECK_SECRET();
         CHECK_ARGS("key");
