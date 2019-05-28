@@ -47,7 +47,7 @@ ShellSession::~ShellSession() {
 
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
 	//DebugL << hexdump(buf->data(), buf->size());
-    GET_CONFIG_AND_REGISTER(uint32_t,maxReqSize,Shell::kMaxReqSize);
+    GET_CONFIG(uint32_t,maxReqSize,Shell::kMaxReqSize);
     if (_strRecvBuf.size() + buf->size() >= maxReqSize) {
 		WarnL << "接收缓冲区溢出!";
 		shutdown();

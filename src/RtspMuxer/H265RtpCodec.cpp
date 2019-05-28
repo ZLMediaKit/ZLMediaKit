@@ -169,7 +169,7 @@ H265RtpEncoder::H265RtpEncoder(uint32_t ui32Ssrc,
 void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     RtpCodec::inputFrame(frame);
 
-    GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Rtp::kCycleMS);
+    GET_CONFIG(uint32_t,cycleMS,Rtp::kCycleMS);
     uint8_t *pcData = (uint8_t*)frame->data() + frame->prefixSize();
     auto uiStamp = frame->stamp();
     auto iLen = frame->size() - frame->prefixSize();

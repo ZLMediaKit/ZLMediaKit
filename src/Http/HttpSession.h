@@ -95,16 +95,7 @@ protected:
 	void onRecvWebSocketData(const Parser &header,const char *data,uint64_t len){
         WebSocketSplitter::decode((uint8_t *)data,len);
     }
-private:
-	Parser _parser;
-	Ticker _ticker;
-	uint32_t _iReqCnt = 0;
-	//消耗的总流量
-	uint64_t _ui64TotalBytes = 0;
-	//flv over http
-    MediaInfo _mediaInfo;
-    //处理content数据的callback
-	function<bool (const char *data,uint64_t len) > _contentCallBack;
+
 private:
 	inline bool Handle_Req_GET(int64_t &content_len);
 	inline bool Handle_Req_POST(int64_t &content_len);
@@ -115,9 +106,21 @@ private:
 	inline void sendNotFound(bool bClose);
 	inline void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
 	inline static KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
-	void responseDelay(const string &Origin,bool bClose,
-					   const string &codeOut,const KeyValue &headerOut,
-					   const string &contentOut);
+    void responseDelay(const string &Origin,
+                       bool bClose,
+                       const string &codeOut,
+                       const KeyValue &headerOut,
+                       const string &contentOut);
+private:
+    Parser _parser;
+    Ticker _ticker;
+    uint32_t _iReqCnt = 0;
+    //消耗的总流量
+    uint64_t _ui64TotalBytes = 0;
+    //flv over http
+    MediaInfo _mediaInfo;
+    //处理content数据的callback
+    function<bool (const char *data,uint64_t len) > _contentCallBack;
 };
 
 

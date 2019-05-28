@@ -41,10 +41,11 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
                              bool enableHls,
                              bool enableMp4) {
 
-    GET_CONFIG_AND_REGISTER(string,hlsPath,Hls::kFilePath);
-    GET_CONFIG_AND_REGISTER(uint32_t,hlsBufSize,Hls::kFileBufSize);
-    GET_CONFIG_AND_REGISTER(uint32_t,hlsDuration,Hls::kSegmentDuration);
-    GET_CONFIG_AND_REGISTER(uint32_t,hlsNum,Hls::kSegmentNum);
+    GET_CONFIG(string,hlsPath,Hls::kFilePath);
+    GET_CONFIG(uint32_t,hlsBufSize,Hls::kFileBufSize);
+    GET_CONFIG(uint32_t,hlsDuration,Hls::kSegmentDuration);
+    GET_CONFIG(uint32_t,hlsNum,Hls::kSegmentNum);
+    GET_CONFIG(bool,enableVhost,General::kEnableVhost);
 
     string strVhost = strVhost_tmp;
     if(trim(strVhost).empty()){
@@ -54,17 +55,28 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
 
 #if defined(ENABLE_HLS)
     if(enableHls) {
-        auto m3u8FilePath = hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
-        _hlsMaker.reset(new HlsRecorder(m3u8FilePath,string(VHOST_KEY) + "=" + strVhost ,hlsBufSize, hlsDuration, hlsNum));
+        string m3u8FilePath;
+        if(enableVhost){
+            m3u8FilePath = hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
+            _hlsMaker.reset(new HlsRecorder(m3u8FilePath,string(VHOST_KEY) + "=" + strVhost ,hlsBufSize, hlsDuration, hlsNum));
+        }else{
+            m3u8FilePath = hlsPath + "/" + strApp + "/" + strId + "/hls.m3u8";
+            _hlsMaker.reset(new HlsRecorder(m3u8FilePath,"",hlsBufSize, hlsDuration, hlsNum));
+        }
     }
 #endif //defined(ENABLE_HLS)
 
 #if defined(ENABLE_MP4V2)
-    GET_CONFIG_AND_REGISTER(string,recordPath,Record::kFilePath);
-    GET_CONFIG_AND_REGISTER(string,recordAppName,Record::kAppName);
+    GET_CONFIG(string,recordPath,Record::kFilePath);
+    GET_CONFIG(string,recordAppName,Record::kAppName);
 
     if(enableMp4){
-        auto mp4FilePath = recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
+        string mp4FilePath;
+        if(enableVhost){
+            mp4FilePath = recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
+        } else {
+            mp4FilePath = recordPath + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
+        }
         _mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId));
     }
 #endif //defined(ENABLE_MP4V2)

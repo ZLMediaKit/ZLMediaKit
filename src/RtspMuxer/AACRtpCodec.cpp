@@ -42,7 +42,7 @@ AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
 void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     RtpCodec::inputFrame(frame);
 
-    GET_CONFIG_AND_REGISTER(uint32_t, cycleMS, Rtp::kCycleMS);
+    GET_CONFIG(uint32_t, cycleMS, Rtp::kCycleMS);
     auto uiStamp = frame->stamp();
     auto pcData = frame->data() + frame->prefixSize();
     auto iLen = frame->size() - frame->prefixSize();

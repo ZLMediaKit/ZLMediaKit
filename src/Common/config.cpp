@@ -66,17 +66,23 @@ const char kBroadcastReloadConfig[] = "kBroadcastReloadConfig";
 const char kBroadcastShellLogin[] = "kBroadcastShellLogin";
 const char kBroadcastNotFoundStream[] = "kBroadcastNotFoundStream";
 const char kBroadcastStreamNoneReader[] = "kBroadcastStreamNoneReader";
+} //namespace Broadcast
 
-const char kFlowThreshold[] = "broadcast.flowThreshold";
-const char kStreamNoneReaderDelayMS[] = "broadcast.streamNoneReaderDelayMS";
-const char kMaxStreamWaitTimeMS[] = "kMaxStreamWaitTimeMS";
-
+//通用配置项目
+namespace General{
+#define GENERAL_FIELD "general."
+const char kFlowThreshold[] = GENERAL_FIELD"flowThreshold";
+const char kStreamNoneReaderDelayMS[] = GENERAL_FIELD"streamNoneReaderDelayMS";
+const char kMaxStreamWaitTimeMS[] = GENERAL_FIELD"maxStreamWaitMS";
+const char kEnableVhost[] = GENERAL_FIELD"enableVhost";
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
     mINI::Instance()[kStreamNoneReaderDelayMS] = 5 * 1000;
     mINI::Instance()[kMaxStreamWaitTimeMS] = 5 * 1000;
+    mINI::Instance()[kEnableVhost] = 1;
 },nullptr);
-} //namespace Broadcast
+
+}//namespace General
 
 ////////////HTTP配置///////////
 namespace Http {
@@ -97,9 +103,6 @@ const char kKeepAliveSecond[] = HTTP_FIELD"keepAliveSecond";
 //http keep-alive最大请求数
 #define HTTP_MAX_REQ_CNT 100
 const char kMaxReqCount[] = HTTP_FIELD"maxReqCount";
-
-//文件服务器是否启动虚拟主机
-const char kEnableVhost[] = HTTP_FIELD"enableVhost";
 
 
 //http 字符编码
@@ -135,7 +138,6 @@ onceToken token([](){
 	mINI::Instance()[kCharSet] = HTTP_CHAR_SET;
 	mINI::Instance()[kRootPath] = HTTP_ROOT_PATH;
 	mINI::Instance()[kNotFound] = HTTP_NOT_FOUND;
-    mINI::Instance()[kEnableVhost] = 1;
 },nullptr);
 
 }//namespace Http

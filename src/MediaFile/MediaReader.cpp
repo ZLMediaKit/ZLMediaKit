@@ -36,8 +36,13 @@ namespace mediakit {
 MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
     auto strFileName = filePath;
     if(strFileName.empty()){
-		GET_CONFIG_AND_REGISTER(string,recordPath,Record::kFilePath);
-		strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
+		GET_CONFIG(string,recordPath,Record::kFilePath);
+        GET_CONFIG(bool,enableVhost,General::kEnableVhost);
+        if(enableVhost){
+            strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
+        }else{
+            strFileName = recordPath + "/" + strApp + "/" + strId;
+        }
     }
 
 	_hMP4File = MP4Read(strFileName.data());
@@ -152,7 +157,7 @@ MediaReader::~MediaReader() {
 
 void MediaReader::startReadMP4() {
 	auto strongSelf = shared_from_this();
-    GET_CONFIG_AND_REGISTER(uint32_t,sampleMS,Record::kSampleMS);
+    GET_CONFIG(uint32_t,sampleMS,Record::kSampleMS);
 
 	_timer = std::make_shared<Timer>(sampleMS / 1000.0f,[strongSelf](){
 		return strongSelf->readSample(0,false);
@@ -321,7 +326,7 @@ MediaSource::Ptr MediaReader::onMakeMediaSource(const string &strSchema,
 												const string &filePath,
 												bool checkApp ){
 #ifdef ENABLE_MP4V2
-    GET_CONFIG_AND_REGISTER(string,appName,Record::kAppName);
+    GET_CONFIG(string,appName,Record::kAppName);
     if (checkApp && strApp != appName) {
 		return nullptr;
 	}

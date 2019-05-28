@@ -174,7 +174,7 @@ static onceToken s_token([](){
             lock_guard<mutex> lck(s_mtxFlvRecorder);
             if(bRegist){
                 DebugL << "开始录制RTMP：" << schema << " " << vhost << " " << app << " " << stream;
-                GET_CONFIG_AND_REGISTER(string,http_root,Http::kRootPath);
+                GET_CONFIG(string,http_root,Http::kRootPath);
                 auto path = http_root + "/" + vhost + "/" + app + "/" + stream + "_" + to_string(time(NULL)) + ".flv";
                 FlvRecorder::Ptr recorder(new FlvRecorder);
                 try{

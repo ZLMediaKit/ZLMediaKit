@@ -97,7 +97,7 @@ void RtspSession::onError(const SockException& err) {
 	}
 
     //流量统计事件广播
-    GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
+    GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
     if(_ui64TotalBytes > iFlowThreshold * 1024){
         bool isPlayer = !_pushSrc;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
@@ -389,7 +389,7 @@ void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const strin
             return;
         }
 
-        GET_CONFIG_AND_REGISTER(bool,authBasic,Rtsp::kAuthBasic);
+        GET_CONFIG(bool,authBasic,Rtsp::kAuthBasic);
         if (!authBasic) {
             //我们需要客户端优先以md5方式认证
 			strongSelf->_strNonce = makeRandStr(32);
@@ -674,7 +674,7 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 			return false;
 		}
 		startListenPeerUdpData(trackIdx);
-        GET_CONFIG_AND_REGISTER(uint32_t,udpTTL,MultiCast::kUdpTTL);
+        GET_CONFIG(uint32_t,udpTTL,MultiCast::kUdpTTL);
 
 		sendRtspResponse("200 OK",
 						 {"Transport",StrPrinter << "RTP/AVP;multicast;"
