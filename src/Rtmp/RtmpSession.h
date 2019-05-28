@@ -85,7 +85,7 @@ private:
         if(!force && _pPublisherSrc->readerCount() != 0){
             return false;
         }
-        InfoL << "kick out:" << _mediaInfo._vhost << " " << _mediaInfo._app << " " << _mediaInfo._streamid;
+        InfoP(this) << "kick out:" << _mediaInfo._vhost << " " << _mediaInfo._app << " " << _mediaInfo._streamid;
         safeShutdown();
         return true;
     }
