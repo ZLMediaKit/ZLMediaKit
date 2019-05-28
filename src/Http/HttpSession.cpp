@@ -124,7 +124,7 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
 	string cmd = _parser.Method();
 	auto it = g_mapCmdIndex.find(cmd);
 	if (it == g_mapCmdIndex.end()) {
-		WarnL << cmd;
+		WarnP(this) << cmd;
 		sendResponse("403 Forbidden", makeHttpHeader(true), "");
 		shutdown();
 		return 0;
@@ -156,7 +156,7 @@ void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 }
 
 void HttpSession::onError(const SockException& err) {
-	//WarnL << err.what();
+//	WarnP(this) << err.what();
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
 
     if(_ui64TotalBytes > iFlowThreshold * 1024){
@@ -174,7 +174,7 @@ void HttpSession::onManager() {
 
     if(_ticker.elapsedTime() > keepAliveSec * 1000){
 		//1分钟超时
-		WarnL<<"HttpSession timeouted!";
+//		WarnP(this) <<"HttpSession timeouted!";
 		shutdown();
 	}
 }
@@ -441,7 +441,6 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 
 			if (iRead < iReq || !*piLeft) {
                 //文件读完
-				//InfoL << "send complete!" << iRead << " " << iReq << " " << *piLeft;
 				if(iRead>0) {
 					sendBuf->setSize(iRead);
 					strongSelf->send(sendBuf);
@@ -456,7 +455,6 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
             int iSent = strongSelf->send(sendBuf);
 			if(iSent == -1) {
 			    //套机制销毁
-				//InfoL << "send error";
 				return false;
 			}
             if(strongSelf->isSocketBusy()){
@@ -583,7 +581,6 @@ inline void HttpSession::sendResponse(const char* pcStatus, const KeyValue& head
 	}
 	printer << "\r\n" << strContent;
 	auto strSend = printer << endl;
-	//DebugL << strSend;
 	send(strSend);
 	_ticker.resetTime();
 }
