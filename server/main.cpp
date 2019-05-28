@@ -291,9 +291,9 @@ int main(int argc,char *argv[]) {
     }
     unInstallWebApi();
     unInstallWebHook();
-    //休眠3秒再退出，防止资源释放顺序错误
+    //休眠1秒再退出，防止资源释放顺序错误
     InfoL << "程序退出中,请等待...";
-    sleep(3);
+    sleep(1);
     InfoL << "程序退出完毕!";
 	return 0;
 }
