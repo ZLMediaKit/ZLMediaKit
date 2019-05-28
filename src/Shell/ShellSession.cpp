@@ -25,18 +25,20 @@
  */
 
 #include "ShellSession.h"
-#include "Common/config.h"
 #include "Util/CMD.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
+#include "Common/config.h"
+#include "ShellCMD.h"
 using namespace toolkit;
 
 namespace mediakit {
 
-extern void installShellCMD();
+static onceToken s_token([]() {
+    REGIST_CMD(media);
+}, nullptr);
 
 ShellSession::ShellSession(const Socket::Ptr &_sock) : TcpSession(_sock) {
-    installShellCMD();
     pleaseInputUser();
 }
 
