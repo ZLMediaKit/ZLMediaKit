@@ -304,7 +304,7 @@ bool RtspSession::handleReq_Describe(const Parser &parser) {
     _mediaInfo._schema = RTSP_SCHEMA;
     auto authorization = parser["Authorization"];
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,5000,[weakSelf,authorization](const MediaSource::Ptr &src){
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,authorization](const MediaSource::Ptr &src){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;

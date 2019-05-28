@@ -43,7 +43,6 @@ MediaSource::SchemaVhostAppStreamMap MediaSource::g_mapMediaSrc;
 void MediaSource::findAsync(const MediaInfo &info,
                             const std::shared_ptr<TcpSession> &session,
                             bool retry,
-                            int maxWaitMs,
                             const function<void(const MediaSource::Ptr &src)> &cb){
 
     auto src = MediaSource::find(info._schema,
@@ -61,15 +60,18 @@ void MediaSource::findAsync(const MediaInfo &info,
     //广播未找到流,此时可以立即去拉流，这样还来得及
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info,*session);
 
+    //最多等待一定时间，如果这个时间内，流未注册上，那么返回未找到流
+    GET_CONFIG_AND_REGISTER(int,maxWaitMS,Broadcast::kMaxStreamWaitTimeMS);
+
     //若干秒后执行等待媒体注册超时回调
-    auto onRegistTimeout = session->getPoller()->doDelayTask(maxWaitMs,[cb,listener_tag](){
+    auto onRegistTimeout = session->getPoller()->doDelayTask(maxWaitMS,[cb,listener_tag](){
         //取消监听该事件
         NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
         cb(nullptr);
         return 0;
     });
 
-    auto onRegist = [listener_tag,weakSession,info,cb,maxWaitMs,onRegistTimeout](BroadcastMediaChangedArgs) {
+    auto onRegist = [listener_tag,weakSession,info,cb,onRegistTimeout](BroadcastMediaChangedArgs) {
         if(!bRegist || schema != info._schema || vhost != info._vhost || app != info._app ||stream != info._streamid){
             //不是自己感兴趣的事件，忽略之
             return;
@@ -85,14 +87,14 @@ void MediaSource::findAsync(const MediaInfo &info,
         }
 
         //切换到自己的线程再回复
-        strongSession->async([listener_tag,weakSession,info,cb,maxWaitMs](){
+        strongSession->async([listener_tag,weakSession,info,cb](){
             auto strongSession = weakSession.lock();
             if(!strongSession) {
                 return;
             }
             DebugL << "收到媒体注册事件,回复播放器:" << info._schema << "/" << info._vhost << "/" << info._app << "/" << info._streamid;
             //再找一遍媒体源，一般能找到
-            findAsync(info,strongSession,false,maxWaitMs,cb);
+            findAsync(info,strongSession,false,cb);
             //取消事件监听
             NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
         }, false);
