@@ -252,7 +252,11 @@ extern const char kFilePath[];
 } //namespace Hls
 
 
-
+/**
+ * rtsp/rtmp播放器、推流器相关设置名，
+ * 这些设置项都不是配置文件用
+ * 只用于设置某个播放器或推流器实例用
+ */
 namespace Client {
 //指定网卡ip
 extern const char kNetAdapter[];
