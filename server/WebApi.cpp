@@ -232,7 +232,7 @@ void installWebApi() {
         EventPollerPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
             auto vec = EventPollerPool::Instance().getExecutorLoad();
-            int i = 0;
+            int i = API::Success;
             for (auto load : vec) {
                 Value obj(objectValue);
                 obj["load"] = load;
@@ -260,7 +260,7 @@ void installWebApi() {
     API_REGIST(api, setServerConfig, {
         CHECK_SECRET();
         auto &ini = mINI::Instance();
-        int changed = 0;
+        int changed = API::Success;
         for (auto &pr : allArgs) {
             if (ini.find(pr.first) == ini.end()) {
                 //没有这个key
@@ -317,7 +317,7 @@ void installWebApi() {
     API_REGIST(api,getMediaList,{
         CHECK_SECRET();
         //获取所有MediaSource列表
-        val["code"] = 0;
+        val["code"] = API::Success;
         val["msg"] = "success";
         MediaSource::for_each_media([&](const string &schema,
                                         const string &vhost,
@@ -372,7 +372,7 @@ void installWebApi() {
         string &peer_ip = allArgs["peer_ip"];
 
         SessionMap::Instance().for_each_session([&](const string &id,const TcpSession::Ptr &session){
-            if(local_port != 0 && local_port != session->get_local_port()){
+            if(local_port != API::Success && local_port != session->get_local_port()){
                 return;
             }
             if(!peer_ip.empty() && peer_ip != session->get_peer_ip()){
@@ -394,20 +394,14 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("id");
         //踢掉tcp会话
-        auto id = allArgs["id"];
-        if(id.empty()){
-            val["code"] = -1;
-            val["msg"] = "illegal parameter:id";
-            return;
-        }
-        auto session = SessionMap::Instance().get(id);
+        auto session = SessionMap::Instance().get(allArgs["id"]);
         if(!session){
-            val["code"] = -2;
+            val["code"] = API::OtherFailed;
             val["msg"] = "can not find the target";
             return;
         }
         session->safeShutdown();
-        val["code"] = 0;
+        val["code"] = API::Success;
         val["msg"] = "success";
     });
 
@@ -493,7 +487,7 @@ void installWebApi() {
 
     API_REGIST(hook,on_rtsp_realm,{
         //rtsp是否需要鉴权，默认需要鉴权
-        val["code"] = 0;
+        val["code"] = API::Success;
         val["realm"] = "zlmediakit_reaml";
     });
 
@@ -501,7 +495,7 @@ void installWebApi() {
         //rtsp鉴权密码，密码等于用户名
         //rtsp可以有双重鉴权！后面还会触发on_play事件
         CHECK_ARGS("user_name");
-        val["code"] = 0;
+        val["code"] = API::Success;
         val["encrypted"] = false;
         val["passwd"] = allArgs["user_name"].data();
     });
