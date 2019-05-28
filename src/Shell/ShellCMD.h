@@ -45,31 +45,33 @@ public:
                     return;
                 }
 
-                if(ini.find("kick") != ini.end()){
-                    //踢出源
-                    do{
-                        if(!media) {
-                            break;
-                        }
-                        if(!media->close(true)) {
-                            break;
-                        }
-                        (*stream) << "\t踢出成功:"
+                EventPollerPool::Instance().getPoller()->async([ini,media,stream,schema,vhost,app,streamid](){
+                    if(ini.find("kick") != ini.end()){
+                        //踢出源
+                        do{
+                            if(!media) {
+                                break;
+                            }
+                            if(!media->close(true)) {
+                                break;
+                            }
+                            (*stream) << "\t踢出成功:"
+                                      << schema << "/"
+                                      << vhost << "/"
+                                      << app << "/"
+                                      << streamid
+                                      << "\r\n";
+                            return;
+                        }while(0);
+                        (*stream) << "\t踢出失败:"
                                   << schema << "/"
                                   << vhost << "/"
                                   << app << "/"
                                   << streamid
                                   << "\r\n";
-                        return;
-                    }while(0);
-                    (*stream) << "\t踢出失败:"
-                              << schema << "/"
-                              << vhost << "/"
-                              << app << "/"
-                              << streamid
-                              << "\r\n";
-                    return;
-                }
+                    }
+                },false);
+
 
             });
         }));
@@ -86,11 +88,6 @@ public:
     }
 };
 
-void installShellCMD(){
-    static onceToken s_token([]() {
-        REGIST_CMD(media);
-    }, nullptr);
-}
 
 
 
