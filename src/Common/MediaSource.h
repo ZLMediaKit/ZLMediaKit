@@ -128,7 +128,6 @@ public:
     static void findAsync(const MediaInfo &info,
                           const std::shared_ptr<TcpSession> &session,
                           bool retry,
-                          int maxWaitMs,
                           const function<void(const MediaSource::Ptr &src)> &cb);
 
     const string& getSchema() const {

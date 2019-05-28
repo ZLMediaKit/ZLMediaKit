@@ -306,7 +306,7 @@ void RtmpSession::doPlayResponse(const string &err,const std::function<void(bool
     //鉴权成功，查找媒体源并回复
     _mediaInfo._schema = RTMP_SCHEMA;
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,5000,[weakSelf,cb](const MediaSource::Ptr &src){
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,cb](const MediaSource::Ptr &src){
         auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
         auto strongSelf = weakSelf.lock();
         if(strongSelf){

@@ -127,9 +127,14 @@ extern const char kFlowThreshold[];
 //默认连续5秒无人观看然后触发kBroadcastStreamNoneReader事件
 extern const char kStreamNoneReaderDelayMS[];
 
+//等待流注册超时时间，收到播放器后请求后，如果未找到相关流，服务器会等待一定时间，
+//如果在这个时间内，相关流注册上了，那么服务器会立即响应播放器播放成功，
+//否则会最多等待kMaxStreamWaitTimeMS毫秒，然后响应播放器播放失败
+extern const char kMaxStreamWaitTimeMS[];
 
 //更新配置文件事件广播,执行loadIniConfig函数加载配置文件成功后会触发该广播
 extern const char kBroadcastReloadConfig[];
+
 #define BroadcastReloadConfigArgs void
 #define ReloadConfigTag  ((void *)(0xFF))
 

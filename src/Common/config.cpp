@@ -69,11 +69,12 @@ const char kBroadcastStreamNoneReader[] = "kBroadcastStreamNoneReader";
 
 const char kFlowThreshold[] = "broadcast.flowThreshold";
 const char kStreamNoneReaderDelayMS[] = "broadcast.streamNoneReaderDelayMS";
-
+const char kMaxStreamWaitTimeMS[] = "kMaxStreamWaitTimeMS";
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
     mINI::Instance()[kStreamNoneReaderDelayMS] = 5 * 1000;
+    mINI::Instance()[kMaxStreamWaitTimeMS] = 5 * 1000;
 },nullptr);
 } //namespace Broadcast
 
