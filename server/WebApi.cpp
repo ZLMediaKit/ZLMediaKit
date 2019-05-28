@@ -127,7 +127,7 @@ static ApiArgsType getAllArgs(const Parser &parser) {
 }
 
 static inline void addHttpListener(){
-    GET_CONFIG_AND_REGISTER(bool, api_debug, API::kApiDebug);
+    GET_CONFIG(bool, api_debug, API::kApiDebug);
     //注册监听kBroadcastHttpRequest事件
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastHttpRequest, [](BroadcastHttpRequestArgs) {
         auto it = s_map_api.find(parser.Url());
@@ -224,7 +224,7 @@ static inline string getProxyKey(const string &vhost,const string &app,const str
 void installWebApi() {
     addHttpListener();
 
-    GET_CONFIG_AND_REGISTER(string,api_secret,API::kSecret);
+    GET_CONFIG(string,api_secret,API::kSecret);
 
     //获取线程负载
     //测试url http://127.0.0.1/index/api/getThreadsLoad

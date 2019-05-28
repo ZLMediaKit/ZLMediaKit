@@ -127,9 +127,10 @@ public:
 
 private:
     void onReaderChanged(int size){
+	    //我们记录最后一次活动时间
         _readerTicker.resetTime();
         if(size != 0 || readerCount() != 0){
-            //还有消费者正在观看该流，我们记录最后一次活动时间
+            //还有消费者正在观看该流
             _asyncEmitNoneReader = false;
             return;
         }
@@ -137,7 +138,7 @@ private:
     }
 
     void checkNoneReader(){
-        GET_CONFIG_AND_REGISTER(int,stream_none_reader_delay,Broadcast::kStreamNoneReaderDelayMS);
+        GET_CONFIG(int,stream_none_reader_delay,General::kStreamNoneReaderDelayMS);
         if(_asyncEmitNoneReader && _readerTicker.elapsedTime() > stream_none_reader_delay){
             _asyncEmitNoneReader = false;
             auto listener = _listener.lock();

@@ -111,7 +111,7 @@ const char *getContentType(const HttpArgs &value){
 }
 
 static void do_http_hook(const string &url,const ArgsType &body,const function<void(const Value &,const string &)> &fun){
-    GET_CONFIG_AND_REGISTER(float,hook_timeoutSec,Hook::kTimeoutSec);
+    GET_CONFIG(float,hook_timeoutSec,Hook::kTimeoutSec);
     HttpRequester::Ptr requester(new HttpRequester);
     requester->setMethod("POST");
     auto bodyStr = to_string(body);
@@ -150,18 +150,18 @@ static ArgsType make_json(const MediaInfo &args){
 
 
 void installWebHook(){
-    GET_CONFIG_AND_REGISTER(bool,hook_enable,Hook::kEnable);
-    GET_CONFIG_AND_REGISTER(string,hook_publish,Hook::kOnPublish);
-    GET_CONFIG_AND_REGISTER(string,hook_play,Hook::kOnPlay);
-    GET_CONFIG_AND_REGISTER(string,hook_flowreport,Hook::kOnFlowReport);
-    GET_CONFIG_AND_REGISTER(string,hook_adminparams,Hook::kAdminParams);
-    GET_CONFIG_AND_REGISTER(string,hook_rtsp_realm,Hook::kOnRtspRealm);
-    GET_CONFIG_AND_REGISTER(string,hook_rtsp_auth,Hook::kOnRtspAuth);
-    GET_CONFIG_AND_REGISTER(string,hook_stream_chaned,Hook::kOnStreamChanged);
-    GET_CONFIG_AND_REGISTER(string,hook_stream_not_found,Hook::kOnStreamNotFound);
-    GET_CONFIG_AND_REGISTER(string,hook_record_mp4,Hook::kOnRecordMp4);
-    GET_CONFIG_AND_REGISTER(string,hook_shell_login,Hook::kOnShellLogin);
-    GET_CONFIG_AND_REGISTER(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
+    GET_CONFIG(bool,hook_enable,Hook::kEnable);
+    GET_CONFIG(string,hook_publish,Hook::kOnPublish);
+    GET_CONFIG(string,hook_play,Hook::kOnPlay);
+    GET_CONFIG(string,hook_flowreport,Hook::kOnFlowReport);
+    GET_CONFIG(string,hook_adminparams,Hook::kAdminParams);
+    GET_CONFIG(string,hook_rtsp_realm,Hook::kOnRtspRealm);
+    GET_CONFIG(string,hook_rtsp_auth,Hook::kOnRtspAuth);
+    GET_CONFIG(string,hook_stream_chaned,Hook::kOnStreamChanged);
+    GET_CONFIG(string,hook_stream_not_found,Hook::kOnStreamNotFound);
+    GET_CONFIG(string,hook_record_mp4,Hook::kOnRecordMp4);
+    GET_CONFIG(string,hook_shell_login,Hook::kOnShellLogin);
+    GET_CONFIG(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
         if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty()){

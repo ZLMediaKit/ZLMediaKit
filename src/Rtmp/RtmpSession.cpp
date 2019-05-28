@@ -49,7 +49,7 @@ void RtmpSession::onError(const SockException& err) {
 	DebugL << err.what();
 
     //流量统计事件广播
-    GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
+    GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
 
     if(_ui64TotalBytes > iFlowThreshold * 1024){
         bool isPlayer = !_pPublisherSrc;
@@ -438,7 +438,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 		if (!_pPublisherSrc) {
 			throw std::runtime_error("Not a rtmp publisher!");
 		}
-		GET_CONFIG_AND_REGISTER(bool,rtmp_modify_stamp,Rtmp::kModifyStamp);
+		GET_CONFIG(bool,rtmp_modify_stamp,Rtmp::kModifyStamp);
 		if(rtmp_modify_stamp){
 			chunkData.timeStamp = _stampTicker[chunkData.typeId % 2].elapsedTime();
 		}

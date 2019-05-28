@@ -50,8 +50,8 @@ static uint32_t addressToInt(const string &ip){
 
 std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
 	lock_guard<recursive_mutex> lck(_mtx);
-    GET_CONFIG_AND_REGISTER(string,addrMinStr,MultiCast::kAddrMin);
-    GET_CONFIG_AND_REGISTER(string,addrMaxStr,MultiCast::kAddrMax);
+    GET_CONFIG(string,addrMinStr,MultiCast::kAddrMin);
+    GET_CONFIG(string,addrMaxStr,MultiCast::kAddrMax);
     uint32_t addrMin = addressToInt(addrMinStr);
 	uint32_t addrMax = addressToInt(addrMaxStr);
 
@@ -111,7 +111,7 @@ RtpBroadCaster::RtpBroadCaster(const EventPoller::Ptr &poller,const string &strL
 			throw std::runtime_error(strErr);
 		}
 		auto fd = _apUdpSock[i]->rawFD();
-        GET_CONFIG_AND_REGISTER(uint32_t,udpTTL,MultiCast::kUdpTTL);
+        GET_CONFIG(uint32_t,udpTTL,MultiCast::kUdpTTL);
 
         SockUtil::setMultiTTL(fd, udpTTL);
 		SockUtil::setMultiLOOP(fd, false);

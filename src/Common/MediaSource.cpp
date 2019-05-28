@@ -61,7 +61,7 @@ void MediaSource::findAsync(const MediaInfo &info,
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info,*session);
 
     //最多等待一定时间，如果这个时间内，流未注册上，那么返回未找到流
-    GET_CONFIG_AND_REGISTER(int,maxWaitMS,Broadcast::kMaxStreamWaitTimeMS);
+    GET_CONFIG(int,maxWaitMS,General::kMaxStreamWaitTimeMS);
 
     //若干秒后执行等待媒体注册超时回调
     auto onRegistTimeout = session->getPoller()->doDelayTask(maxWaitMS,[cb,listener_tag](){
@@ -112,6 +112,12 @@ MediaSource::Ptr MediaSource::find(
     if(vhost.empty()){
         vhost = DEFAULT_VHOST;
     }
+
+    GET_CONFIG(bool,enableVhost,General::kEnableVhost);
+    if(!enableVhost){
+        vhost = DEFAULT_VHOST;
+    }
+
     lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
     MediaSource::Ptr ret;
     searchMedia(schema, vhost, app, id,
@@ -135,6 +141,10 @@ MediaSource::Ptr MediaSource::find(
     return ret;
 }
 void MediaSource::regist() {
+    GET_CONFIG(bool,enableVhost,General::kEnableVhost);
+    if(!enableVhost){
+        _strVhost = DEFAULT_VHOST;
+    }
     //注册该源，注册后服务器才能找到该源
     {
         lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
@@ -228,6 +238,10 @@ void MediaInfo::parse(const string &url){
             //这是ip,未指定vhost;使用默认vhost
             _vhost = DEFAULT_VHOST;
         }
+    }
+    GET_CONFIG(bool,enableVhost,General::kEnableVhost);
+    if(!enableVhost){
+        _vhost = DEFAULT_VHOST;
     }
 }
 

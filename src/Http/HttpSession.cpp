@@ -157,7 +157,7 @@ void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 
 void HttpSession::onError(const SockException& err) {
 	//WarnL << err.what();
-    GET_CONFIG_AND_REGISTER(uint32_t,iFlowThreshold,Broadcast::kFlowThreshold);
+    GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
 
     if(_ui64TotalBytes > iFlowThreshold * 1024){
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
@@ -170,7 +170,7 @@ void HttpSession::onError(const SockException& err) {
 }
 
 void HttpSession::onManager() {
-    GET_CONFIG_AND_REGISTER(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
+    GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
 
     if(_ticker.elapsedTime() > keepAliveSec * 1000){
 		//1分钟超时
@@ -218,7 +218,7 @@ inline bool HttpSession::checkLiveFlvStream(){
 	}
     _mediaInfo._streamid.erase(_mediaInfo._streamid.size() - 4);//去除.flv后缀
 
-    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
+    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
@@ -285,7 +285,7 @@ inline bool HttpSession::checkLiveFlvStream(){
     return true;
 }
 
-inline bool makeMeun(const string &httpPath,const string &strFullPath,const string &vhost, string &strRet) ;
+inline bool makeMeun(const string &httpPath,const string &strFullPath, string &strRet) ;
 
 inline static string findIndexFile(const string &dir){
     DIR *pDir;
@@ -334,9 +334,9 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
     _mediaInfo.parse(fullUrl);
 
 	/////////////HTTP连接是否需要被关闭////////////////
-    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
-    GET_CONFIG_AND_REGISTER(bool,enableVhost,Http::kEnableVhost);
-    GET_CONFIG_AND_REGISTER(string,rootPath,Http::kRootPath);
+    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
+    GET_CONFIG(bool,enableVhost,General::kEnableVhost);
+    GET_CONFIG(string,rootPath,Http::kRootPath);
     string strFile = enableVhost ?  rootPath + "/" + _mediaInfo._vhost + _parser.Url() :rootPath + _parser.Url();
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 
@@ -351,7 +351,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
             }
             //生成文件夹菜单索引
             string strMeun;
-            if (!makeMeun(_parser.Url(),strFile,_mediaInfo._vhost, strMeun)) {
+            if (!makeMeun(_parser.Url(),strFile,strMeun)) {
                 //文件夹不存在
                 sendNotFound(bClose);
                 return !bClose;
@@ -417,7 +417,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//回复Content部分
 	std::shared_ptr<int64_t> piLeft(new int64_t(iRangeEnd - iRangeStart + 1));
 
-    GET_CONFIG_AND_REGISTER(uint32_t,sendBufSize,Http::kSendBufSize);
+    GET_CONFIG(uint32_t,sendBufSize,Http::kSendBufSize);
 
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
 	auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
@@ -477,7 +477,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	return true;
 }
 
-inline bool makeMeun(const string &httpPath,const string &strFullPath,const string &vhost, string &strRet) {
+inline bool makeMeun(const string &httpPath,const string &strFullPath, string &strRet) {
 	string strPathPrefix(strFullPath);
 	string last_dir_name;
 	if(strPathPrefix.back() == '/'){
@@ -589,9 +589,9 @@ inline void HttpSession::sendResponse(const char* pcStatus, const KeyValue& head
 }
 inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iContentSize,const char* pcContentType) {
 	KeyValue headerOut;
-    GET_CONFIG_AND_REGISTER(string,charSet,Http::kCharSet);
-    GET_CONFIG_AND_REGISTER(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
-    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
+    GET_CONFIG(string,charSet,Http::kCharSet);
+    GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
+    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
 
 	headerOut.emplace("Date", dateStr());
 	headerOut.emplace("Server", SERVER_NAME);
@@ -612,7 +612,7 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
 string HttpSession::urlDecode(const string &str){
 	auto ret = strCoding::UrlDecode(str);
 #ifdef _WIN32
-    GET_CONFIG_AND_REGISTER(string,charSet,Http::kCharSet);
+    GET_CONFIG(string,charSet,Http::kCharSet);
 	bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
 	if (isGb2312) {
 		ret = strCoding::UTF8ToGB2312(ret);
@@ -630,7 +630,7 @@ inline void HttpSession::urlDecode(Parser &parser){
 
 inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	///////////////////是否断开本链接///////////////////////
-    GET_CONFIG_AND_REGISTER(uint32_t,reqCnt,Http::kMaxReqCount);
+    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
 
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 	auto Origin = _parser["Origin"];
@@ -666,8 +666,8 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	return consumed;
 }
 inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
-	GET_CONFIG_AND_REGISTER(uint64_t,maxReqSize,Http::kMaxReqSize);
-    GET_CONFIG_AND_REGISTER(int,maxReqCnt,Http::kMaxReqCount);
+	GET_CONFIG(uint64_t,maxReqSize,Http::kMaxReqSize);
+    GET_CONFIG(int,maxReqCnt,Http::kMaxReqCount);
 
     int64_t totalContentLen = _parser["Content-Length"].empty() ? -1 : atoll(_parser["Content-Length"].data());
 
@@ -754,7 +754,7 @@ void HttpSession::responseDelay(const string &Origin,bool bClose,
 	sendResponse(codeOut.data(), headerOut, contentOut);
 }
 inline void HttpSession::sendNotFound(bool bClose) {
-    GET_CONFIG_AND_REGISTER(string,notFound,Http::kNotFound);
+    GET_CONFIG(string,notFound,Http::kNotFound);
     sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
 }
 

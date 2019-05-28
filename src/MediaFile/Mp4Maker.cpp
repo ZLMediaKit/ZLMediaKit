@@ -115,7 +115,7 @@ void Mp4Maker::inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp
 }
 
 void Mp4Maker::inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32Duration) {
-    GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Record::kFileSecond);
+    GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
 	auto iType =  H264_TYPE(((uint8_t*)pData)[4]);
 	if(iType == H264Frame::NAL_IDR && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)){
 		//在I帧率处新建MP4文件
@@ -128,7 +128,7 @@ void Mp4Maker::inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32Durati
 }
 
 void Mp4Maker::inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui32Duration) {
-    GET_CONFIG_AND_REGISTER(uint32_t,recordSec,Record::kFileSecond);
+    GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
 
     if (!_haveVideo && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)) {
 		//在I帧率处新建MP4文件
@@ -154,14 +154,24 @@ void Mp4Maker::createFile() {
 	_info.strFileName = strTime + ".mp4";
 	_info.strFilePath = strFile;
 
-    GET_CONFIG_AND_REGISTER(string,appName,Record::kAppName);
+    GET_CONFIG(string,appName,Record::kAppName);
+    GET_CONFIG(bool,enableVhost,General::kEnableVhost);
 
-    _info.strUrl = _info.strVhost + "/"
-					+ appName + "/"
-					+ _info.strAppName + "/"
-					+ _info.strStreamId + "/"
-					+ strDate + "/"
-					+ strTime + ".mp4";
+    if(enableVhost){
+        _info.strUrl = _info.strVhost + "/"
+                       + appName + "/"
+                       + _info.strAppName + "/"
+                       + _info.strStreamId + "/"
+                       + strDate + "/"
+                       + strTime + ".mp4";
+    }else{
+        _info.strUrl = appName + "/"
+                       + _info.strAppName + "/"
+                       + _info.strStreamId + "/"
+                       + strDate + "/"
+                       + strTime + ".mp4";
+    }
+
 	//----record 业务逻辑----//
 
 #if !defined(_WIN32)

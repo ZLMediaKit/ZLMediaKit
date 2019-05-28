@@ -219,7 +219,7 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ui32Ssrc,
 void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     RtpCodec::inputFrame(frame);
 
-    GET_CONFIG_AND_REGISTER(uint32_t,cycleMS,Rtp::kCycleMS);
+    GET_CONFIG(uint32_t,cycleMS,Rtp::kCycleMS);
     auto pcData = frame->data() + frame->prefixSize();
     auto uiStamp = frame->stamp();
     auto iLen = frame->size() - frame->prefixSize();

@@ -96,10 +96,6 @@ typedef std::function<void(const string &errMessage)> AuthInvoker;
 extern const char kBroadcastMediaPublish[];
 #define BroadcastMediaPublishArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
 
-//兼容旧代码的宏
-#define BroadcastRtmpPublishArgs BroadcastMediaPublishArgs
-#define kBroadcastRtmpPublish kBroadcastMediaPublish
-
 //播放rtsp/rtmp/http-flv事件广播，通过该事件控制播放鉴权
 extern const char kBroadcastMediaPlayed[];
 #define BroadcastMediaPlayedArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
@@ -120,24 +116,11 @@ extern const char kBroadcastNotFoundStream[];
 extern const char kBroadcastStreamNoneReader[];
 #define BroadcastStreamNoneReaderArgs MediaSource &sender
 
-//流量汇报事件流量阈值,单位KB，默认1MB
-extern const char kFlowThreshold[];
-
-//流无人观看并且超过若干时间后才触发kBroadcastStreamNoneReader事件
-//默认连续5秒无人观看然后触发kBroadcastStreamNoneReader事件
-extern const char kStreamNoneReaderDelayMS[];
-
-//等待流注册超时时间，收到播放器后请求后，如果未找到相关流，服务器会等待一定时间，
-//如果在这个时间内，相关流注册上了，那么服务器会立即响应播放器播放成功，
-//否则会最多等待kMaxStreamWaitTimeMS毫秒，然后响应播放器播放失败
-extern const char kMaxStreamWaitTimeMS[];
-
 //更新配置文件事件广播,执行loadIniConfig函数加载配置文件成功后会触发该广播
 extern const char kBroadcastReloadConfig[];
-
 #define BroadcastReloadConfigArgs void
-#define ReloadConfigTag  ((void *)(0xFF))
 
+#define ReloadConfigTag  ((void *)(0xFF))
 #define RELOAD_KEY(arg,key) \
     do{ \
         decltype(arg) arg##tmp = mINI::Instance()[key]; \
@@ -148,7 +131,7 @@ extern const char kBroadcastReloadConfig[];
     }while(0);
 
 //监听某个配置发送变更
-#define RELOAD_KEY_REGISTER(arg,key) \
+#define LISTEN_RELOAD_KEY(arg,key) \
     do{ \
         static onceToken s_token([](){ \
             NoticeCenter::Instance().addListener(ReloadConfigTag,Broadcast::kBroadcastReloadConfig,[](BroadcastReloadConfigArgs){ \
@@ -157,11 +140,32 @@ extern const char kBroadcastReloadConfig[];
         }); \
     }while(0);
 
-#define GET_CONFIG_AND_REGISTER(type,arg,key) \
+#define GET_CONFIG(type,arg,key) \
         static type arg = mINI::Instance()[key]; \
-        RELOAD_KEY_REGISTER(arg,key);
+        LISTEN_RELOAD_KEY(arg,key);
 
+
+//兼容老代码
+#define GET_CONFIG_AND_REGISTER GET_CONFIG
+#define BroadcastRtmpPublishArgs BroadcastMediaPublishArgs
+#define kBroadcastRtmpPublish kBroadcastMediaPublish
 } //namespace Broadcast
+
+////////////通用配置///////////
+namespace General{
+//流量汇报事件流量阈值,单位KB，默认1MB
+extern const char kFlowThreshold[];
+//流无人观看并且超过若干时间后才触发kBroadcastStreamNoneReader事件
+//默认连续5秒无人观看然后触发kBroadcastStreamNoneReader事件
+extern const char kStreamNoneReaderDelayMS[];
+//等待流注册超时时间，收到播放器后请求后，如果未找到相关流，服务器会等待一定时间，
+//如果在这个时间内，相关流注册上了，那么服务器会立即响应播放器播放成功，
+//否则会最多等待kMaxStreamWaitTimeMS毫秒，然后响应播放器播放失败
+extern const char kMaxStreamWaitTimeMS[];
+//是否启动虚拟主机
+extern const char kEnableVhost[];
+}//namespace General
+
 
 ////////////HTTP配置///////////
 namespace Http {
@@ -179,9 +183,6 @@ extern const char kCharSet[];
 extern const char kRootPath[];
 //http 404错误提示内容
 extern const char kNotFound[];
-//文件服务器是否启动虚拟主机
-extern const char kEnableVhost[];
-
 }//namespace Http
 
 ////////////SHELL配置///////////

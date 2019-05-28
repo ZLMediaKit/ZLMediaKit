@@ -132,8 +132,8 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
     //开始排序缓存
     if (_abSortStarted[iTrackidx]) {
         _amapRtpSort[iTrackidx].emplace(rtppt.sequence, pt_ptr);
-        GET_CONFIG_AND_REGISTER(uint32_t,clearCount,Rtp::kClearCount);
-        GET_CONFIG_AND_REGISTER(uint32_t,maxRtpCount,Rtp::kMaxRtpCount);
+        GET_CONFIG(uint32_t,clearCount,Rtp::kClearCount);
+        GET_CONFIG(uint32_t,maxRtpCount,Rtp::kMaxRtpCount);
         if (_aui32SeqOkCnt[iTrackidx] >= clearCount) {
             //网络环境改善，需要清空排序缓存
             _aui32SeqOkCnt[iTrackidx] = 0;
