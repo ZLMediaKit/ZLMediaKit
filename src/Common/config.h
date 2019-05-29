@@ -194,12 +194,19 @@ extern const char kMaxReqSize[];
 namespace Rtsp {
 //是否优先base64方式认证？默认Md5方式认证
 extern const char kAuthBasic[];
+//握手超时时间，默认15秒
+extern const char kHandshakeSecond[];
+//维持链接超时时间，默认15秒
+extern const char kKeepAliveSecond[];
 } //namespace Rtsp
 
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
 extern const char kModifyStamp[];
-
+//握手超时时间，默认15秒
+extern const char kHandshakeSecond[];
+//维持链接超时时间，默认15秒
+extern const char kKeepAliveSecond[];
 } //namespace RTMP
 
 

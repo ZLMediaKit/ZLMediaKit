@@ -158,10 +158,13 @@ onceToken token([](){
 namespace Rtsp {
 #define RTSP_FIELD "rtsp."
 const char kAuthBasic[] = RTSP_FIELD"authBasic";
-
+const char kHandshakeSecond[] = RTSP_FIELD"handshakeSecond";
+const char kKeepAliveSecond[] = RTSP_FIELD"keepAliveSecond";
 onceToken token([](){
 	//默认Md5方式认证
 	mINI::Instance()[kAuthBasic] = 0;
+    mINI::Instance()[kHandshakeSecond] = 15;
+    mINI::Instance()[kKeepAliveSecond] = 15;
 },nullptr);
 
 } //namespace Rtsp
@@ -170,10 +173,15 @@ onceToken token([](){
 namespace Rtmp {
 #define RTMP_FIELD "rtmp."
 const char kModifyStamp[] = RTMP_FIELD"modifyStamp";
+const char kHandshakeSecond[] = RTMP_FIELD"handshakeSecond";
+const char kKeepAliveSecond[] = RTMP_FIELD"keepAliveSecond";
 
 onceToken token([](){
 	mINI::Instance()[kModifyStamp] = true;
+    mINI::Instance()[kHandshakeSecond] = 15;
+    mINI::Instance()[kKeepAliveSecond] = 15;
 },nullptr);
+
 } //namespace RTMP
 
 

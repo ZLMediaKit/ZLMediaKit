@@ -63,14 +63,17 @@ void RtmpSession::onError(const SockException& err) {
 }
 
 void RtmpSession::onManager() {
-	if (_ticker.createdTime() > 15 * 1000) {
+    GET_CONFIG(uint32_t,handshake_sec,Rtmp::kKeepAliveSecond);
+    GET_CONFIG(uint32_t,keep_alive_sec,Rtmp::kKeepAliveSecond);
+
+	if (_ticker.createdTime() > handshake_sec * 1000) {
 		if (!_pRingReader && !_pPublisherSrc) {
 			shutdown(SockException(Err_timeout,"illegal connection"));
 		}
 	}
 	if (_pPublisherSrc) {
 		//publisher
-		if (_ticker.elapsedTime() > 15 * 1000) {
+		if (_ticker.elapsedTime() > keep_alive_sec * 1000) {
 			shutdown(SockException(Err_timeout,"recv data from rtmp pusher timeout"));
 		}
 	}
