@@ -83,13 +83,11 @@ protected:
 										uint64_t len,
 										uint64_t totalSize,
 										uint64_t recvedSize){
-        WarnL << "content数据长度过大，无法处理,请重载HttpSession::onRecvUnlimitedContent";
-        shutdown();
+        shutdown(SockException(Err_shutdown,"http post content is too huge,default closed"));
 	}
 
     void onWebSocketDecodeHeader(const WebSocketHeader &packet) override{
-        DebugL << "默认关闭WebSocket";
-        shutdown();
+        shutdown(SockException(Err_shutdown,"websocket connection default closed"));
     };
 
 	void onRecvWebSocketData(const Parser &header,const char *data,uint64_t len){

@@ -130,7 +130,7 @@ void HttpClient::onConnect(const SockException &ex) {
         printer << pr.second + "\r\n";
     }
     send(printer << "\r\n");
-    onSend();
+    onFlush();
 }
 
 void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
@@ -222,12 +222,11 @@ void HttpClient::onRecvContent(const char *data, uint64_t len) {
     onResponseCompleted_l();
     if(biggerThanExpected) {
         //声明的content数据比真实的小，那么我们只截取前面部分的并断开链接
-        shutdown();
-        onDisconnect(SockException(Err_other, "http response content size bigger than expected"));
+        shutdown(SockException(Err_shutdown, "http response content size bigger than expected"));
     }
 }
 
-void HttpClient::onSend() {
+void HttpClient::onFlush() {
     _aliveTicker.resetTime();
     while (_body && _body->remainSize() && !isSocketBusy()) {
         auto buffer = _body->readData();
@@ -252,8 +251,7 @@ void HttpClient::onManager() {
 
     if (_fTimeOutSec > 0 && _aliveTicker.elapsedTime() > _fTimeOutSec * 1000) {
         //超时
-        onDisconnect(SockException(Err_timeout, "http request timeout"));
-        shutdown();
+        shutdown(SockException(Err_timeout, "http request timeout"));
     }
 }
 

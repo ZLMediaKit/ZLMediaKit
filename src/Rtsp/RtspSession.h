@@ -105,7 +105,7 @@ protected:
 	//RtpReceiver override
 	void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
 	//MediaSourceEvent override
-	bool close(bool force) override ;
+	bool close(MediaSource &sender,bool force) override ;
 
 	//TcpSession override
     int send(const Buffer::Ptr &pkt) override;

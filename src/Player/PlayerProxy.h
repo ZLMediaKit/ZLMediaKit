@@ -79,7 +79,7 @@ public:
      * 被主动关闭
      * @return
      */
-    bool close(bool force) override;
+    bool close(MediaSource &sender,bool force) override;
 private:
     void onNoneReader(MediaSource &sender) override;
 	void rePlay(const string &strUrl,int iFailedCnt);

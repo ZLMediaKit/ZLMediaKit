@@ -237,5 +237,11 @@ void MediaInfo::parse(const string &url){
     }
 }
 
+void MediaSourceEvent::onNoneReader(MediaSource &sender){
+    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
+    //没有任何读取器消费该源，表明该源可以关闭了
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader,sender);
+}
+
 
 } /* namespace mediakit */

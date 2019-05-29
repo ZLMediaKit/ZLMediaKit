@@ -167,15 +167,16 @@ void MediaReader::startReadMP4() {
 	readSample(sampleMS, false);
 	_mediaMuxer->setListener(strongSelf);
 }
- bool MediaReader::seekTo(uint32_t ui32Stamp){
+ bool MediaReader::seekTo(MediaSource &sender,uint32_t ui32Stamp){
 	 seek(ui32Stamp);
 	 return true;
 }
-bool MediaReader::close(bool force){
+bool MediaReader::close(MediaSource &sender,bool force){
     if(!force && _mediaMuxer->readerCount() != 0 ){
         return false;
     }
 	_timer.reset();
+    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
     return true;
 }
 

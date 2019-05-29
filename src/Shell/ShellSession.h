@@ -41,7 +41,7 @@ public:
 	virtual ~ShellSession();
 
 	void onRecv(const Buffer::Ptr &) override;
-    void onError(const SockException &err) override {};
+    void onError(const SockException &err) override;
 	void onManager() override;
 
 private:

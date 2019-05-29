@@ -65,15 +65,13 @@ void RtmpSession::onError(const SockException& err) {
 void RtmpSession::onManager() {
 	if (_ticker.createdTime() > 15 * 1000) {
 		if (!_pRingReader && !_pPublisherSrc) {
-			WarnP(this) << "非法链接";
-			shutdown();
+			shutdown(SockException(Err_timeout,"illegal connection"));
 		}
 	}
 	if (_pPublisherSrc) {
 		//publisher
 		if (_ticker.elapsedTime() > 15 * 1000) {
-			WarnP(this) << "数据接收超时";
-			shutdown();
+			shutdown(SockException(Err_timeout,"recv data from rtmp pusher timeout"));
 		}
 	}
 }
@@ -84,8 +82,7 @@ void RtmpSession::onRecv(const Buffer::Ptr &pBuf) {
         _ui64TotalBytes += pBuf->size();
 		onParseRtmp(pBuf->data(), pBuf->size());
 	} catch (exception &e) {
-		WarnP(this) << e.what();
-		shutdown();
+		shutdown(SockException(Err_shutdown,StrPrinter << "catch exception:" << e.what()));
 	}
 }
 
@@ -159,12 +156,11 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         status.set("clientid", "0");
         sendReply("onStatus", nullptr, status);
         if (!ok) {
-            WarnP(this) << "onPublish:"
-                  << (authSuccess ? "Already publishing:" : err.data()) << " "
-                  << _mediaInfo._vhost << " "
-                  << _mediaInfo._app << " "
-                  << _mediaInfo._streamid << endl;
-            shutdown();
+            string errMsg = StrPrinter << (authSuccess ? "already publishing:" : err.data()) << " "
+                                    << _mediaInfo._vhost << " "
+                                    << _mediaInfo._app << " "
+                                    << _mediaInfo._streamid;
+            shutdown(SockException(Err_shutdown,errMsg));
             return;
         }
         _pPublisherSrc.reset(new RtmpToRtspMediaSource(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid));
@@ -222,12 +218,11 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
     status.set("clientid", "0");
     sendReply("onStatus", nullptr, status);
     if (!ok) {
-        WarnP(this) << (authSuccess ? "No such stream:" : err.data()) << " "
-              << _mediaInfo._vhost << " "
-              << _mediaInfo._app << " "
-              << _mediaInfo._streamid
-              << endl;
-        shutdown();
+        string errMsg = StrPrinter << (authSuccess ? "no such stream:" : err.data()) << " "
+                                 << _mediaInfo._vhost << " "
+                                 << _mediaInfo._app << " "
+                                 << _mediaInfo._streamid;
+        shutdown(SockException(Err_shutdown,errMsg));
         return;
     }
 
@@ -286,7 +281,7 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         if (!strongSelf) {
             return;
         }
-        strongSelf->shutdown();
+        strongSelf->shutdown(SockException(Err_shutdown,"rtmp ring buffer detached"));
     });
     _pPlayerSrc = src;
     if (src->readerCount() == 1) {
