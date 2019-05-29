@@ -111,7 +111,10 @@ void RtspSession::onError(const SockException& err) {
 }
 
 void RtspSession::onManager() {
-	if (_ticker.createdTime() > 15 * 1000) {
+    GET_CONFIG(uint32_t,handshake_sec,Rtsp::kKeepAliveSecond);
+    GET_CONFIG(uint32_t,keep_alive_sec,Rtsp::kKeepAliveSecond);
+
+    if (_ticker.createdTime() > handshake_sec * 1000) {
 		if (_strSession.size() == 0) {
 			shutdown(SockException(Err_timeout,"illegal connection"));
 			return;
@@ -119,7 +122,7 @@ void RtspSession::onManager() {
 	}
 
 
-	if ((_rtpType == Rtsp::RTP_UDP || _pushSrc ) && _ticker.elapsedTime() > 15 * 1000) {
+	if ((_rtpType == Rtsp::RTP_UDP || _pushSrc ) && _ticker.elapsedTime() > keep_alive_sec * 1000) {
 		//如果是推流端或者rtp over udp类型的播放端，那么就做超时检测
         shutdown(SockException(Err_timeout,"rtp over udp session timeouted"));
         return;
