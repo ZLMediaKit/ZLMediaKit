@@ -232,17 +232,7 @@ void MediaInfo::parse(const string &url){
     }
 
     GET_CONFIG(bool,enableVhost,General::kEnableVhost);
-    if(_vhost.empty()){
-        //无效vhost
-        _vhost = DEFAULT_VHOST;
-    }else if(INADDR_NONE != inet_addr(_vhost.data())){
-        //这是ip,未指定vhost;使用默认vhost
-        _vhost = DEFAULT_VHOST;
-    }else if(_vhost == "localhost"){
-        //localhost也是默认vhost
-        _vhost = DEFAULT_VHOST;
-    }else if(!enableVhost){
-        //关闭了虚拟主机
+    if(!enableVhost || _vhost.empty() || _vhost == "localhost" || INADDR_NONE != inet_addr(_vhost.data())){
         _vhost = DEFAULT_VHOST;
     }
 }
