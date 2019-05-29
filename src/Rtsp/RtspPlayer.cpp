@@ -51,7 +51,7 @@ RtspPlayer::~RtspPlayer(void) {
 void RtspPlayer::teardown(){
 	if (alive()) {
 		sendRtspRequest("TEARDOWN" ,_strContentBase);
-		shutdown();
+		shutdown(SockException(Err_shutdown,"teardown"));
 	}
 
 	_rtspMd5Nonce.clear();

@@ -101,6 +101,7 @@ get_mime_type(const char* name) {
 
 
 HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
+    TraceP(this);
 	//设置15秒发送超时时间
 	pSock->setSendTimeOutSecond(15);
 	//起始接收buffer缓存设置为4K，节省内存
@@ -108,7 +109,7 @@ HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 }
 
 HttpSession::~HttpSession() {
-	//DebugL;
+    TraceP(this);
 }
 
 int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
@@ -124,17 +125,16 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
 	string cmd = _parser.Method();
 	auto it = g_mapCmdIndex.find(cmd);
 	if (it == g_mapCmdIndex.end()) {
-		WarnP(this) << cmd;
 		sendResponse("403 Forbidden", makeHttpHeader(true), "");
-		shutdown();
-		return 0;
+        shutdown(SockException(Err_shutdown,StrPrinter << "403 Forbidden:" << cmd));
+        return 0;
 	}
 
 	//默认后面数据不是content而是header
 	int64_t content_len = 0;
 	auto &fun = it->second;
 	if(!(this->*fun)(content_len)){
-		shutdown();
+		shutdown(SockException(Err_shutdown,"Connection: close"));
 	}
 	//清空解析器节省内存
 	_parser.Clear();
@@ -156,9 +156,13 @@ void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 }
 
 void HttpSession::onError(const SockException& err) {
-//	WarnP(this) << err.what();
-    GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
+    if(_ticker.createdTime() < 10 * 1000){
+        TraceP(this) << err.what();
+    }else{
+        WarnP(this) << err.what();
+    }
 
+    GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
     if(_ui64TotalBytes > iFlowThreshold * 1024){
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
 										   _mediaInfo,
@@ -174,8 +178,7 @@ void HttpSession::onManager() {
 
     if(_ticker.elapsedTime() > keepAliveSec * 1000){
 		//1分钟超时
-//		WarnP(this) <<"HttpSession timeouted!";
-		shutdown();
+		shutdown(SockException(Err_timeout,"session timeouted"));
 	}
 }
 
@@ -233,7 +236,7 @@ inline bool HttpSession::checkLiveFlvStream(){
             //未找到该流
             sendNotFound(bClose);
             if(bClose){
-                shutdown();
+                shutdown(SockException(Err_shutdown,"flv stream not found"));
             }
             return;
         }
@@ -242,7 +245,7 @@ inline bool HttpSession::checkLiveFlvStream(){
             bool authSuccess = err.empty();
             if(!authSuccess){
                 sendResponse("401 Unauthorized", makeHttpHeader(true,err.size()),err);
-                shutdown();
+                shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << err));
                 return ;
             }
 
@@ -258,7 +261,7 @@ inline bool HttpSession::checkLiveFlvStream(){
                 start(getPoller(),rtmp_src);
             }catch (std::exception &ex){
                 //该rtmp源不存在
-                shutdown();
+                shutdown(SockException(Err_shutdown,"rtmp mediasource released"));
             }
         };
 
@@ -446,7 +449,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 					strongSelf->send(sendBuf);
 				}
 				if(bClose) {
-					strongSelf->shutdown();
+					strongSelf->shutdown(SockException(Err_shutdown,"read file eof"));
 				}
 				return false;
 			}
@@ -645,7 +648,7 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 			}
 			strongSelf->responseDelay(Origin,bClose,codeOut,headerOut,contentOut);
 			if(bClose){
-				strongSelf->shutdown();
+				strongSelf->shutdown(SockException(Err_shutdown,"Connection: close"));
 			}
 		});
 	};
@@ -657,7 +660,7 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 		invoker("404 Not Found",KeyValue(),"");
 		if(bClose){
 			//close类型，回复完毕，关闭连接
-			shutdown();
+			shutdown(SockException(Err_shutdown,"404 Not Found"));
 		}
 	}
 	return consumed;
@@ -727,7 +730,7 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
             }
 
             //连接类型是close类型，收完content就关闭连接
-            shutdown();
+            shutdown(SockException(Err_shutdown,"recv http content completed"));
             //content已经接收完毕
             return false ;
 		};
@@ -763,7 +766,7 @@ void HttpSession::onWrite(const Buffer::Ptr &buffer) {
 }
 
 void HttpSession::onDetach() {
-	shutdown();
+	shutdown(SockException(Err_shutdown,"rtmp ring buffer detached"));
 }
 
 std::shared_ptr<FlvMuxer> HttpSession::getSharedPtr(){

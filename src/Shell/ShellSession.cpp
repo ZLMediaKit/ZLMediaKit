@@ -39,26 +39,26 @@ static onceToken s_token([]() {
 }, nullptr);
 
 ShellSession::ShellSession(const Socket::Ptr &_sock) : TcpSession(_sock) {
+    DebugP(this);
     pleaseInputUser();
 }
 
 ShellSession::~ShellSession() {
+    DebugP(this);
 }
 
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
 	//DebugL << hexdump(buf->data(), buf->size());
     GET_CONFIG(uint32_t,maxReqSize,Shell::kMaxReqSize);
     if (_strRecvBuf.size() + buf->size() >= maxReqSize) {
-		WarnL << "接收缓冲区溢出!";
-		shutdown();
+		shutdown(SockException(Err_other,"recv buffer overflow"));
 		return;
 	}
 	_beatTicker.resetTime();
 	_strRecvBuf.append(buf->data(), buf->size());
 	if (_strRecvBuf.find("\xff\xf4\xff\0xfd\x06") != std::string::npos) {
-		WarnL << "收到Ctrl+C.";
 		send("\033[0m\r\n	Bye bye!\r\n");
-		shutdown();
+		shutdown(SockException(Err_other,"received Ctrl+C"));
 		return;
 	}
 	size_t index;
@@ -67,16 +67,20 @@ void ShellSession::onRecv(const Buffer::Ptr&buf) {
 		line = _strRecvBuf.substr(0, index);
 		_strRecvBuf.erase(0, index + 2);
 		if (!onCommandLine(line)) {
-			shutdown();
+			shutdown(SockException(Err_other,"exit cmd"));
 			return;
 		}
 	}
 }
 
+void ShellSession::onError(const SockException &err){
+    WarnP(this) << err.what();
+}
+
 void ShellSession::onManager() {
 	if (_beatTicker.elapsedTime() > 1000 * 60 * 5) {
 		//5 miniutes for alive
-		shutdown();
+        shutdown(SockException(Err_timeout,"session timeout"));
 		return;
 	}
 }

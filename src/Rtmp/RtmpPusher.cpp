@@ -59,7 +59,7 @@ void RtmpPusher::teardown() {
         }
 		_pPublishTimer.reset();
         reset();
-        shutdown();
+        shutdown(SockException(Err_shutdown,"teardown"));
 	}
 }
 

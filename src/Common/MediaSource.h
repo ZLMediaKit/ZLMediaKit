@@ -54,20 +54,17 @@ public:
     MediaSourceEvent(){};
     virtual ~MediaSourceEvent(){};
 public:
-    virtual bool seekTo(uint32_t ui32Stamp){
+    virtual bool seekTo(MediaSource &sender,uint32_t ui32Stamp){
         //拖动进度条
         return false;
     }
 
-    virtual bool close(bool force) {
+    virtual bool close(MediaSource &sender,bool force) {
         //通知其停止推流
         return false;
     }
 
-    virtual void onNoneReader(MediaSource &sender){
-        //没有任何读取器消费该源，表明该源可以关闭了
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader,sender);
-    }
+    virtual void onNoneReader(MediaSource &sender);
 };
 
 class MediaInfo{
@@ -149,7 +146,7 @@ public:
         if(!listener){
             return false;
         }
-        return listener->seekTo(ui32Stamp);
+        return listener->seekTo(*this,ui32Stamp);
     }
 
     virtual uint32_t getTimeStamp(TrackType trackType) = 0;
@@ -159,7 +156,7 @@ public:
         if(!listener){
             return false;
         }
-        return listener->close(force);
+        return listener->close(*this,force);
     }
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _listener = listener;

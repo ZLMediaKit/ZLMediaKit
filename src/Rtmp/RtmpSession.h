@@ -81,12 +81,12 @@ private:
 		sendResponse(MSG_CMD, invoke.data());
 	}
 
-    bool close(bool force) override {
+    bool close(MediaSource &sender,bool force) override {
         if(!force && _pPublisherSrc->readerCount() != 0){
             return false;
         }
-        InfoP(this) << "kick out:" << _mediaInfo._vhost << " " << _mediaInfo._app << " " << _mediaInfo._streamid;
-        safeShutdown();
+        string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+        safeShutdown(SockException(Err_shutdown,err));
         return true;
     }
 private:

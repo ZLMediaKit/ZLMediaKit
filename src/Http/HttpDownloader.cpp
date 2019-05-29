@@ -66,14 +66,7 @@ void HttpDownloader::startDownload(const string& url, const string& filePath,boo
 int64_t HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {
     if(status != "200" && status != "206"){
 		//失败
-		shutdown();
-		closeFile();
-		File::delete_file(_filePath.data());
-		if(_onResult){
-			auto errMsg = StrPrinter << "Http Status:" << status << endl;
-			_onResult(Err_other,errMsg,_filePath);
-			_onResult = nullptr;
-		}
+		shutdown(SockException(Err_shutdown,StrPrinter << "Http Status:" << status));
 	}
 	//后续全部是content
 	return -1;

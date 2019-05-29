@@ -25,7 +25,7 @@ RtspPusher::~RtspPusher() {
 void RtspPusher::teardown() {
     if (alive()) {
         sendRtspRequest("TEARDOWN" ,_strContentBase);
-        shutdown();
+        shutdown(SockException(Err_shutdown,"teardown"));
     }
 
     reset();
@@ -329,7 +329,7 @@ inline void RtspPusher::sendRtpPacket(const RtpPacket::Ptr & pkt) {
             int iTrackIndex = getTrackIndexByTrackType(pkt->type);
             auto &pSock = _apUdpSock[iTrackIndex];
             if (!pSock) {
-                shutdown();
+                shutdown(SockException(Err_shutdown,"udp sock not opened yet"));
                 return;
             }
             BufferRtp::Ptr buffer(new BufferRtp(pkt,4));

@@ -62,13 +62,13 @@ public:
 	 * @param ui32Stamp 偏移量，单位毫秒
 	 * @return
 	 */
-	bool seekTo(uint32_t ui32Stamp) override;
+	bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override;
 
 	/**
 	 * 关闭MediaReader的流化进程，会触发该对象放弃自持有
 	 * @return
 	 */
-	bool close(bool force) override;
+	bool close(MediaSource &sender,bool force) override;
 
 	/**
 	 * 自动生成MediaReader对象然后查找相关的MediaSource对象

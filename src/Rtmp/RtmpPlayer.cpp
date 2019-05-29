@@ -70,7 +70,7 @@ void RtmpPlayer::teardown() {
         CLEAR_ARR(_aiFistStamp);
         CLEAR_ARR(_aiNowStamp);
         reset();
-        shutdown();
+        shutdown(SockException(Err_shutdown,"teardown"));
 	}
 }
 void RtmpPlayer::play(const string &strUrl)  {
