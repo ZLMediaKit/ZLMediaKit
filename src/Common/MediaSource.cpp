@@ -239,6 +239,11 @@ void MediaInfo::parse(const string &url){
             _vhost = DEFAULT_VHOST;
         }
     }
+
+    if(_vhost == "localhost"){
+        _vhost = DEFAULT_VHOST;
+    }
+
     GET_CONFIG(bool,enableVhost,General::kEnableVhost);
     if(!enableVhost){
         _vhost = DEFAULT_VHOST;

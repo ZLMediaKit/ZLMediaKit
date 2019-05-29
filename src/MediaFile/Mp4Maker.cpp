@@ -155,22 +155,12 @@ void Mp4Maker::createFile() {
 	_info.strFilePath = strFile;
 
     GET_CONFIG(string,appName,Record::kAppName);
-    GET_CONFIG(bool,enableVhost,General::kEnableVhost);
 
-    if(enableVhost){
-        _info.strUrl = _info.strVhost + "/"
-                       + appName + "/"
-                       + _info.strAppName + "/"
-                       + _info.strStreamId + "/"
-                       + strDate + "/"
-                       + strTime + ".mp4";
-    }else{
-        _info.strUrl = appName + "/"
-                       + _info.strAppName + "/"
-                       + _info.strStreamId + "/"
-                       + strDate + "/"
-                       + strTime + ".mp4";
-    }
+    _info.strUrl = appName + "/"
+                   + _info.strAppName + "/"
+                   + _info.strStreamId + "/"
+                   + strDate + "/"
+                   + strTime + ".mp4";
 
 	//----record 业务逻辑----//
 
