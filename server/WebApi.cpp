@@ -507,6 +507,8 @@ void installWebApi() {
 
     API_REGIST_INVOKER(hook,on_stream_not_found,{
         //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
+        CHECK_SECRET();
+        CHECK_ARGS("vhost","app","stream");
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
                        allArgs["stream"],
