@@ -149,7 +149,7 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
 		_mediaInfo.parse(parser.FullUrl());
 	}
 
-	typedef bool (RtspSession::*rtsp_request_handler)(const Parser &parser);
+	typedef void (RtspSession::*rtsp_request_handler)(const Parser &parser);
 	static unordered_map<string, rtsp_request_handler> s_handler_map;
 	static onceToken token( []() {
 		s_handler_map.emplace("OPTIONS",&RtspSession::handleReq_Options);
@@ -167,14 +167,23 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
 	}, []() {});
 
 	auto it = s_handler_map.find(strCmd);
-	if (it != s_handler_map.end()) {
-		auto &fun = it->second;
-		if(!(this->*fun)(parser)){
-            shutdown(SockException(Err_shutdown,"self close"));
-        }
-	} else{
+	if (it == s_handler_map.end()) {
+        sendRtspResponse("403 Forbidden");
         shutdown(SockException(Err_shutdown,StrPrinter << "403 Forbidden:" << strCmd));
+        return;
 	}
+
+    auto &fun = it->second;
+    try {
+        (this->*fun)(parser);
+    }catch (SockException &ex){
+        if(ex){
+            shutdown(ex);
+        }
+    }catch (exception &ex){
+        shutdown(SockException(Err_shutdown,ex.what()));
+    }
+    parser.Clear();
 }
 
 void RtspSession::onRtpPacket(const char *data, uint64_t len) {
@@ -209,13 +218,12 @@ int64_t RtspSession::getContentLength(Parser &parser) {
 }
 
 
-bool RtspSession::handleReq_Options(const Parser &parser) {
+void RtspSession::handleReq_Options(const Parser &parser) {
 	//支持这些命令
 	sendRtspResponse("200 OK",{"Public" , "OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, ANNOUNCE, RECORD, SET_PARAMETER, GET_PARAMETER"});
-	return true;
 }
 
-bool RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
+void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 	auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTSP_SCHEMA,
 																	   _mediaInfo._vhost,
 																	   _mediaInfo._app,
@@ -223,12 +231,12 @@ bool RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 																	   false));
 	if(src){
 		sendRtspResponse("406 Not Acceptable", {"Content-Type", "text/plain"}, "Already publishing.");
-		WarnP(this) << "ANNOUNCE:"
-			  << "Already publishing:"
-			  << _mediaInfo._vhost << " "
-			  << _mediaInfo._app << " "
-			  << _mediaInfo._streamid << endl;
-		return false;
+        string err = StrPrinter << "ANNOUNCE:"
+                                << "Already publishing:"
+                                << _mediaInfo._vhost << " "
+                                << _mediaInfo._app << " "
+                                << _mediaInfo._streamid << endl;
+		throw SockException(Err_shutdown,err);
 	}
 
 	_strSession = makeRandStr(12);
@@ -239,13 +247,12 @@ bool RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
 	_pushSrc->onGetSDP(_strSdp);
 	sendRtspResponse("200 OK");
-	return true;
 }
 
-bool RtspSession::handleReq_RECORD(const Parser &parser){
+void RtspSession::handleReq_RECORD(const Parser &parser){
 	if (_aTrackInfo.empty() || parser["Session"] != _strSession) {
 		send_SessionNotFound();
-		return false;
+        throw SockException(Err_shutdown,_aTrackInfo.empty() ? "can not find any availabe track when record" : "session not found when record");
 	}
 	auto onRes = [this](const string &err){
 		bool authSuccess = err.empty();
@@ -297,10 +304,9 @@ bool RtspSession::handleReq_RECORD(const Parser &parser){
 		//该事件无人监听,默认不鉴权
 		onRes("");
 	}
-	return true;
 }
 
-bool RtspSession::handleReq_Describe(const Parser &parser) {
+void RtspSession::handleReq_Describe(const Parser &parser) {
     _mediaInfo._schema = RTSP_SCHEMA;
     auto authorization = parser["Authorization"];
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
@@ -337,13 +343,27 @@ bool RtspSession::handleReq_Describe(const Parser &parser) {
 
         //该请求中的认证信息
         onGetRealm invoker = [weakSelf,authorization](const string &realm){
-            if(realm.empty()){
-                //无需认证,回复sdp
-                onAuthSuccess(weakSelf);
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf){
+                //本对象已经销毁
                 return;
             }
-            //该流需要认证
-            onAuthUser(weakSelf,realm,authorization);
+            //切换到自己的线程然后执行
+            strongSelf->async([weakSelf,realm,authorization](){
+                auto strongSelf = weakSelf.lock();
+                if(!strongSelf){
+                    //本对象已经销毁
+                    return;
+                }
+                if(realm.empty()){
+                    //无需认证,回复sdp
+                    strongSelf->onAuthSuccess();
+                    return;
+                }
+                //该流需要认证
+                strongSelf->onAuthUser(realm,authorization);
+            });
+
         };
 
         //广播是否需要认证事件
@@ -355,101 +375,83 @@ bool RtspSession::handleReq_Describe(const Parser &parser) {
             invoker("");
         }
     });
-    return true;
 }
-void RtspSession::onAuthSuccess(const weak_ptr<RtspSession> &weakSelf) {
-    auto strongSelf = weakSelf.lock();
-    if(!strongSelf){
-        //本对象已销毁
-        return;
-    }
-    strongSelf->async([weakSelf](){
-        auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
-            //本对象已销毁
-            return;
-        }
-		strongSelf->sendRtspResponse("200 OK",
-									 {"Content-Base",strongSelf->_strContentBase + "/",
-									  "x-Accept-Retransmit","our-retransmit",
-									  "x-Accept-Dynamic-Rate","1"
-									 },strongSelf->_strSdp);
-    });
+void RtspSession::onAuthSuccess() {
+    TraceP(this);
+    sendRtspResponse("200 OK",
+                     {"Content-Base",_strContentBase + "/",
+                      "x-Accept-Retransmit","our-retransmit",
+                      "x-Accept-Dynamic-Rate","1"
+                     },_strSdp);
 }
-void RtspSession::onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const string &realm) {
-    auto strongSelf = weakSelf.lock();
-    if(!strongSelf){
-        //本对象已销毁
-        return;
+void RtspSession::onAuthFailed(const string &realm,const string &why,bool close) {
+    GET_CONFIG(bool,authBasic,Rtsp::kAuthBasic);
+    if (!authBasic) {
+        //我们需要客户端优先以md5方式认证
+        _strNonce = makeRandStr(32);
+        sendRtspResponse("401 Unauthorized",
+                         {"WWW-Authenticate",
+                          StrPrinter << "Digest realm=\"" << realm << "\",nonce=\"" << _strNonce << "\"" });
+    }else {
+        //当然我们也支持base64认证,但是我们不建议这样做
+        sendRtspResponse("401 Unauthorized",
+                         {"WWW-Authenticate",
+                          StrPrinter << "Basic realm=\"" << realm << "\"" });
     }
-    strongSelf->async([weakSelf,realm]() {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
-            //本对象已销毁
-            return;
-        }
-
-        GET_CONFIG(bool,authBasic,Rtsp::kAuthBasic);
-        if (!authBasic) {
-            //我们需要客户端优先以md5方式认证
-			strongSelf->_strNonce = makeRandStr(32);
-			strongSelf->sendRtspResponse("401 Unauthorized",
-										 {"WWW-Authenticate",
-										  StrPrinter << "Digest realm=\"" << realm << "\",nonce=\"" << strongSelf->_strNonce << "\"" });
-        }else {
-            //当然我们也支持base64认证,但是我们不建议这样做
-			strongSelf->sendRtspResponse("401 Unauthorized",
-										 {"WWW-Authenticate",
-										  StrPrinter << "Basic realm=\"" << realm << "\"" });
-        }
-    });
+    if(close){
+        shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << why));
+    }
 }
 
-void RtspSession::onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strBase64){
+void RtspSession::onAuthBasic(const string &realm,const string &strBase64){
     //base64认证
     char user_pwd_buf[512];
     av_base64_decode((uint8_t *)user_pwd_buf,strBase64.data(),strBase64.size());
     auto user_pwd_vec = split(user_pwd_buf,":");
     if(user_pwd_vec.size() < 2){
         //认证信息格式不合法，回复401 Unauthorized
-        onAuthFailed(weakSelf,realm);
+        onAuthFailed(realm,"can not find user and passwd when basic64 auth");
         return;
     }
     auto user = user_pwd_vec[0];
     auto pwd = user_pwd_vec[1];
+    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
     onAuth invoker = [pwd,realm,weakSelf](bool encrypted,const string &good_pwd){
-        if(!encrypted && pwd == good_pwd){
-            //提供的是明文密码且匹配正确
-            onAuthSuccess(weakSelf);
-        }else{
-            //密码错误
-            onAuthFailed(weakSelf,realm);
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            //本对象已经销毁
+            return;
         }
+        //切换到自己的线程执行
+        strongSelf->async([weakSelf,good_pwd,pwd,realm](){
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf){
+                //本对象已经销毁
+                return;
+            }
+            //base64忽略encrypted参数，上层必须传入明文密码
+            if(pwd == good_pwd){
+                //提供的密码且匹配正确
+                strongSelf->onAuthSuccess();
+                return;
+            }
+            //密码错误
+            strongSelf->onAuthFailed(realm,StrPrinter << "password mismatch when base64 auth:" << pwd << " != " << good_pwd);
+        });
     };
 
-    auto strongSelf = weakSelf.lock();
-    if(!strongSelf){
-        //本对象已销毁
-        return;
-    }
-
     //此时必须提供明文密码
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,strongSelf->_mediaInfo,realm,user, true,invoker,*strongSelf)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,_mediaInfo,realm,user, true,invoker,*this)){
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
-        WarnP(strongSelf.get()) << "请监听kBroadcastOnRtspAuth事件！";
+        WarnP(this) << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
         //我们输入的密码是明文
         invoker(false,pwd);
     }
 }
 
-void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strMd5){
-    auto strongSelf = weakSelf.lock();
-    if(!strongSelf){
-        return;
-    }
-
-	DebugP(strongSelf.get()) << strMd5;
+void RtspSession::onAuthDigest(const string &realm,const string &strMd5){
+	DebugP(this) << strMd5;
     auto mapTmp = Parser::parseArgs(strMd5,",","=");
     decltype(mapTmp) map;
     for(auto &pr : mapTmp){
@@ -457,15 +459,13 @@ void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const strin
     }
     //check realm
     if(realm != map["realm"]){
-        TraceP(strongSelf.get()) << "realm not mached:" << realm << "," << map["realm"];
-        onAuthFailed(weakSelf,realm);
+        onAuthFailed(realm,StrPrinter << "realm not mached:" << realm << " != " << map["realm"]);
         return ;
     }
     //check nonce
     auto nonce = map["nonce"];
-    if(strongSelf->_strNonce != nonce){
-        TraceP(strongSelf.get()) << "nonce not mached:" << nonce << "," << strongSelf->_strNonce;
-        onAuthFailed(weakSelf,realm);
+    if(_strNonce != nonce){
+        onAuthFailed(realm,StrPrinter << "nonce not mached:" << nonce << " != " << _strNonce);
         return ;
     }
     //check username and uri
@@ -473,20 +473,15 @@ void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const strin
     auto uri = map["uri"];
     auto response = map["response"];
     if(username.empty() || uri.empty() || response.empty()){
-        TraceP(strongSelf.get()) << "username/uri/response empty:" << username << "," << uri << "," << response;
-        onAuthFailed(weakSelf,realm);
+        onAuthFailed(realm,StrPrinter << "username/uri/response empty:" << username << "," << uri << "," << response);
         return ;
     }
 
-    auto realInvoker = [weakSelf,realm,nonce,uri,username,response](bool ignoreAuth,bool encrypted,const string &good_pwd){
-        auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
-            return;
-        }
+    auto realInvoker = [this,realm,nonce,uri,username,response](bool ignoreAuth,bool encrypted,const string &good_pwd){
         if(ignoreAuth){
             //忽略认证
-            onAuthSuccess(weakSelf);
-            TraceP(strongSelf.get()) << "auth ignored";
+            TraceP(this) << "auth ignored";
+            onAuthSuccess();
             return;
         }
         /*
@@ -506,45 +501,60 @@ void RtspSession::onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const strin
         auto good_response = MD5( encrypted_pwd + ":" + nonce + ":" + MD5(string("DESCRIBE") + ":" + uri).hexdigest()).hexdigest();
         if(strcasecmp(good_response.data(),response.data()) == 0){
             //认证成功！md5不区分大小写
-            onAuthSuccess(weakSelf);
-            TraceP(strongSelf.get()) << "onAuthSuccess";
+            onAuthSuccess();
         }else{
             //认证失败！
-            onAuthFailed(weakSelf,realm);
-            TraceP(strongSelf.get()) << "onAuthFailed";
+            onAuthFailed(realm, StrPrinter << "password mismatch when md5 auth:" << good_response << " != " << response );
         }
     };
-    onAuth invoker = [realInvoker](bool encrypted,const string &good_pwd){
-        realInvoker(false,encrypted,good_pwd);
+
+    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    onAuth invoker = [realInvoker,weakSelf](bool encrypted,const string &good_pwd){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            return;
+        }
+        //切换到自己的线程确保realInvoker执行时，this指针有效
+        strongSelf->async([realInvoker,weakSelf,encrypted,good_pwd](){
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf){
+                return;
+            }
+            realInvoker(false,encrypted,good_pwd);
+        });
     };
 
     //此时可以提供明文或md5加密的密码
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,strongSelf->_mediaInfo,realm,username, false,invoker,*strongSelf)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,_mediaInfo,realm,username, false,invoker,*this)){
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
-        WarnP(strongSelf.get()) << "请监听kBroadcastOnRtspAuth事件！";
+        WarnP(this) << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
         realInvoker(true,true,"");
     }
 }
 
-void RtspSession::onAuthUser(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &authorization){
+void RtspSession::onAuthUser(const string &realm,const string &authorization){
+    if(authorization.empty()){
+        onAuthFailed(realm,"", false);
+        return;
+    }
     //请求中包含认证信息
     auto authType = FindField(authorization.data(),NULL," ");
 	auto authStr = FindField(authorization.data()," ",NULL);
     if(authType.empty() || authStr.empty()){
         //认证信息格式不合法，回复401 Unauthorized
-        onAuthFailed(weakSelf,realm);
+        onAuthFailed(realm,"can not find auth type or auth string");
         return;
     }
     if(authType == "Basic"){
         //base64认证，需要明文密码
-        onAuthBasic(weakSelf,realm,authStr);
+        onAuthBasic(realm,authStr);
     }else if(authType == "Digest"){
         //md5认证
-        onAuthDigest(weakSelf,realm,authStr);
+        onAuthDigest(realm,authStr);
     }else{
         //其他认证方式？不支持！
-        onAuthFailed(weakSelf,realm);
+        onAuthFailed(realm,StrPrinter << "unsupported auth type:" << authType);
     }
 }
 inline void RtspSession::send_StreamNotFound() {
@@ -557,7 +567,8 @@ inline void RtspSession::send_UnsupportedTransport() {
 inline void RtspSession::send_SessionNotFound() {
 	sendRtspResponse("454 Session Not Found",{"Connection","Close"});
 }
-bool RtspSession::handleReq_Setup(const Parser &parser) {
+
+void RtspSession::handleReq_Setup(const Parser &parser) {
 //处理setup命令，该函数可能进入多次
     auto controlSuffix = split(parser.Url(),"/").back();// parser.FullUrl().substr(_strContentBase.size());
     if(controlSuffix.front() == '/'){
@@ -566,12 +577,12 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 	int trackIdx = getTrackIndexByControlSuffix(controlSuffix);
 	if (trackIdx == -1) {
 		//未找到相应track
-		return false;
-	}
+        throw SockException(Err_shutdown, StrPrinter << "can not find any track by control suffix:" << controlSuffix);
+    }
 	SdpTrack::Ptr &trackRef = _aTrackInfo[trackIdx];
 	if (trackRef->_inited) {
 		//已经初始化过该Track
-		return false;
+        throw SockException(Err_shutdown, "can not setup one track twice");
 	}
 	trackRef->_inited = true; //现在初始化
 	trackRef->_interleaved = trackRef->_type * 2;
@@ -606,17 +617,15 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 		auto pSockRtp = std::make_shared<Socket>(_sock->getPoller());
 		if (!pSockRtp->bindUdpSock(0,get_local_ip().data())) {
 			//分配端口失败
-			WarnP(this) << "分配rtp端口失败";
 			send_NotAcceptable();
-			return false;
-		}
+            throw SockException(Err_shutdown, "open rtp socket failed");
+        }
 		auto pSockRtcp = std::make_shared<Socket>(_sock->getPoller());
 		if (!pSockRtcp->bindUdpSock(pSockRtp->get_local_port() + 1,get_local_ip().data())) {
 			//分配端口失败
-			WarnP(this) << "分配rtcp端口失败";
 			send_NotAcceptable();
-			return false;
-		}
+            throw SockException(Err_shutdown, "open rtcp socket failed");
+        }
 		_apRtpSock[trackIdx] = pSockRtp;
 		_apRtcpSock[trackIdx] = pSockRtcp;
 		//设置客户端内网端口信息
@@ -656,8 +665,8 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 			_pBrdcaster = RtpBroadCaster::get(getPoller(),get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
 			if (!_pBrdcaster) {
 				send_NotAcceptable();
-				return false;
-			}
+                throw SockException(Err_shutdown, "can not get a available udp multicast socket");
+            }
 			weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
 			_pBrdcaster->setDetachCB(this, [weakSelf]() {
 				auto strongSelf = weakSelf.lock();
@@ -673,9 +682,8 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 		auto pSockRtcp = UDPServer::Instance().getSock(get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
 		if (!pSockRtcp) {
 			//分配端口失败
-			WarnP(this) << "分配rtcp端口失败";
 			send_NotAcceptable();
-			return false;
+            throw SockException(Err_shutdown, "open shared rtcp socket failed");
 		}
 		startListenPeerUdpData(trackIdx);
         GET_CONFIG(uint32_t,udpTTL,MultiCast::kUdpTTL);
@@ -693,14 +701,13 @@ bool RtspSession::handleReq_Setup(const Parser &parser) {
 	default:
 		break;
 	}
-	return true;
 }
 
-bool RtspSession::handleReq_Play(const Parser &parser) {
+void RtspSession::handleReq_Play(const Parser &parser) {
 	if (_aTrackInfo.empty() || parser["Session"] != _strSession) {
 		send_SessionNotFound();
-		return false;
-	}
+        throw SockException(Err_shutdown,_aTrackInfo.empty() ? "can not find any availabe track when play" : "session not found when play");
+    }
 	auto strRange = parser["Range"];
     auto onRes = [this,strRange](const string &err){
         bool authSuccess = err.empty();
@@ -812,27 +819,24 @@ bool RtspSession::handleReq_Play(const Parser &parser) {
         //后面是seek或恢复命令，不需要鉴权
         onRes("");
     }
-	return true;
 }
 
-bool RtspSession::handleReq_Pause(const Parser &parser) {
+void RtspSession::handleReq_Pause(const Parser &parser) {
 	if (parser["Session"] != _strSession) {
 		send_SessionNotFound();
-		return false;
-	}
+        throw SockException(Err_shutdown,"session not found when pause");
+    }
 
 	sendRtspResponse("200 OK");
 	_enableSendRtp = false;
-	return true;
 }
 
-bool RtspSession::handleReq_Teardown(const Parser &parser) {
+void RtspSession::handleReq_Teardown(const Parser &parser) {
 	sendRtspResponse("200 OK");
-	TraceP(this) << "播放器断开连接!";
-	return true;
+    throw SockException(Err_shutdown,"rtsp player send teardown request");
 }
 
-bool RtspSession::handleReq_Get(const Parser &parser) {
+void RtspSession::handleReq_Get(const Parser &parser) {
 	_http_x_sessioncookie = parser["x-sessioncookie"];
 	sendRtspResponse("200 OK",
 					 {"Connection","Close",
@@ -844,19 +848,16 @@ bool RtspSession::handleReq_Get(const Parser &parser) {
 	//注册http getter，以便http poster绑定
 	lock_guard<recursive_mutex> lock(g_mtxGetter);
 	g_mapGetter[_http_x_sessioncookie] = dynamic_pointer_cast<RtspSession>(shared_from_this());
-	return true;
-
 }
 
-bool RtspSession::handleReq_Post(const Parser &parser) {
+void RtspSession::handleReq_Post(const Parser &parser) {
 	lock_guard<recursive_mutex> lock(g_mtxGetter);
 	string sessioncookie = parser["x-sessioncookie"];
 	//Poster 找到 Getter
 	auto it = g_mapGetter.find(sessioncookie);
 	if (it == g_mapGetter.end()) {
-		WarnP(this) << "Http Poster未找到Http Getter";
-		return false;
-	}
+        throw SockException(Err_shutdown,"can not find http getter by x-sessioncookie");
+    }
 
 	//Poster 找到Getter的SOCK
 	auto httpGetterWeak = it->second;
@@ -885,13 +886,11 @@ bool RtspSession::handleReq_Post(const Parser &parser) {
 		//http poster后面的粘包
 		_onRecv(std::make_shared<BufferString>(parser.Content()));
 	}
-	return true;
 }
 
-bool RtspSession::handleReq_SET_PARAMETER(const Parser &parser) {
+void RtspSession::handleReq_SET_PARAMETER(const Parser &parser) {
 	//TraceP(this) <<endl;
 	sendRtspResponse("200 OK");
-	return true;
 }
 
 inline void RtspSession::send_NotAcceptable() {

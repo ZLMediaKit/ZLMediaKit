@@ -146,7 +146,7 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 	}, getPoller());
 }
 bool PlayerProxy::close(MediaSource &sender,bool force) {
-    if(!force && _mediaMuxer->readerCount() != 0){
+    if(!_mediaMuxer || (!force && _mediaMuxer->readerCount() != 0)){
         return false;
     }
 
