@@ -95,8 +95,8 @@ protected:
     }
 
 private:
-	inline bool Handle_Req_GET(int64_t &content_len);
-	inline bool Handle_Req_POST(int64_t &content_len);
+	inline void Handle_Req_GET(int64_t &content_len);
+	inline void Handle_Req_POST(int64_t &content_len);
 	inline bool checkLiveFlvStream();
 	inline bool checkWebSocket();
 	inline bool emitHttpEvent(bool doInvoke);
