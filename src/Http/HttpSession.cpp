@@ -113,7 +113,7 @@ HttpSession::~HttpSession() {
 }
 
 int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
-	typedef bool (HttpSession::*HttpCMDHandle)(int64_t &);
+	typedef void (HttpSession::*HttpCMDHandle)(int64_t &);
 	static unordered_map<string, HttpCMDHandle> g_mapCmdIndex;
 	static onceToken token([]() {
 		g_mapCmdIndex.emplace("GET",&HttpSession::Handle_Req_GET);
@@ -133,9 +133,16 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
 	//默认后面数据不是content而是header
 	int64_t content_len = 0;
 	auto &fun = it->second;
-	if(!(this->*fun)(content_len)){
-		shutdown(SockException(Err_shutdown,"Connection: close"));
-	}
+    try {
+        (this->*fun)(content_len);
+    }catch (SockException &ex){
+        if(ex){
+            shutdown(ex);
+        }
+    }catch (exception &ex){
+        shutdown(SockException(Err_shutdown,ex.what()));
+    }
+
 	//清空解析器节省内存
 	_parser.Clear();
 	//返回content长度
@@ -309,7 +316,7 @@ inline static string findIndexFile(const string &dir){
 }
 
 
-inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
+inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//先看看是否为WebSocket请求
 	if(checkWebSocket()){
 		content_len = -1;
@@ -319,17 +326,17 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 			//_contentCallBack是可持续的，后面还要处理后续数据
 			return true;
 		};
-		return true;
+		return;
 	}
 
 	//先看看该http事件是否被拦截
 	if(emitHttpEvent(false)){
-		return true;
+		return;
 	}
 
     //再看看是否为http-flv直播请求
 	if(checkLiveFlvStream()){
-		return true;
+		return;
 	}
 
 	//事件未被拦截，则认为是http下载请求
@@ -357,10 +364,10 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
             if (!makeMeun(_parser.Url(),strFile,strMeun)) {
                 //文件夹不存在
                 sendNotFound(bClose);
-                return !bClose;
+                throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on folder");
             }
             sendResponse("200 OK", makeHttpHeader(bClose,strMeun.size() ), strMeun);
-            return !bClose;
+            throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 200 ok on folder");
         }
     }while(0);
 
@@ -369,7 +376,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	if (0 != stat(strFile.data(), &tFileStat)) {
 		//文件不存在
 		sendNotFound(bClose);
-		return !bClose;
+        throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on file");
 	}
     //文件智能指针，防止退出时未关闭
     std::shared_ptr<FILE> pFilePtr(fopen(strFile.data(), "rb"), [](FILE *pFile) {
@@ -381,7 +388,7 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	if (!pFilePtr) {
 		//打开文件失败
 		sendNotFound(bClose);
-		return !bClose;
+        throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on open file failed");
 	}
 
 	//判断是不是分节下载
@@ -415,8 +422,8 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 	sendResponse(pcHttpResult, httpHeader, "");
 	if (iRangeEnd - iRangeStart < 0) {
 		//文件是空的!
-		return !bClose;
-	}
+        throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send file partial range excpted");
+    }
 	//回复Content部分
 	std::shared_ptr<int64_t> piLeft(new int64_t(iRangeEnd - iRangeStart + 1));
 
@@ -475,7 +482,6 @@ inline bool HttpSession::Handle_Req_GET(int64_t &content_len) {
 
     onFlush();
 	_sock->setOnFlush(onFlush);
-	return true;
 }
 
 inline bool makeMeun(const string &httpPath,const string &strFullPath, string &strRet) {
@@ -665,7 +671,7 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	}
 	return consumed;
 }
-inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
+inline void HttpSession::Handle_Req_POST(int64_t &content_len) {
 	GET_CONFIG(uint64_t,maxReqSize,Http::kMaxReqSize);
     GET_CONFIG(int,maxReqCnt,Http::kMaxReqCount);
 
@@ -675,7 +681,7 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 		//content为空
 		//emitHttpEvent内部会选择是否关闭连接
 		emitHttpEvent(true);
-		return true;
+		return;
 	}
 
     //根据Content-Length设置接收缓存大小
@@ -736,7 +742,6 @@ inline bool HttpSession::Handle_Req_POST(int64_t &content_len) {
 		};
 	}
 	//有后续content数据要处理,暂时不关闭连接
-	return true;
 }
 void HttpSession::responseDelay(const string &Origin,bool bClose,
 								const string &codeOut,const KeyValue &headerOut,
