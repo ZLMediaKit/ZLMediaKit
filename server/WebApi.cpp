@@ -414,15 +414,23 @@ void installWebApi() {
                                     int rtp_type,
                                     const function<void(const SockException &ex,const string &key)> &cb){
         auto key = getProxyKey(vhost,app,stream);
+        lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+        if(s_proxyMap.find(key) != s_proxyMap.end()){
+            //已经在拉流了
+            cb(SockException(Err_success),key);
+            return;
+        }
         //添加拉流代理
         PlayerProxy::Ptr player(new PlayerProxy(vhost,app,stream,enable_hls,enable_mp4));
+        s_proxyMap[key] = player;
+        
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = rtp_type;
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
         player->setPlayCallbackOnce([cb,player,key](const SockException &ex){
-            if(!ex){
+            if(ex){
                 lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-                s_proxyMap[key] = player;
+                s_proxyMap.erase(key);
             }
             const_cast<PlayerProxy::Ptr &>(player).reset();
             cb(ex,key);
