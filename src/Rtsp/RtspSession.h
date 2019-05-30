@@ -120,17 +120,17 @@ protected:
      */
     virtual void onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
 private:
-	bool handleReq_Options(const Parser &parser); //处理options方法
-    bool handleReq_Describe(const Parser &parser); //处理describe方法
-    bool handleReq_ANNOUNCE(const Parser &parser); //处理options方法
-    bool handleReq_RECORD(const Parser &parser); //处理options方法
-    bool handleReq_Setup(const Parser &parser); //处理setup方法
-    bool handleReq_Play(const Parser &parser); //处理play方法
-    bool handleReq_Pause(const Parser &parser); //处理pause方法
-    bool handleReq_Teardown(const Parser &parser); //处理teardown方法
-    bool handleReq_Get(const Parser &parser); //处理Get方法
-    bool handleReq_Post(const Parser &parser); //处理Post方法
-    bool handleReq_SET_PARAMETER(const Parser &parser); //处理SET_PARAMETER方法
+    void handleReq_Options(const Parser &parser); //处理options方法
+    void handleReq_Describe(const Parser &parser); //处理describe方法
+    void handleReq_ANNOUNCE(const Parser &parser); //处理options方法
+    void handleReq_RECORD(const Parser &parser); //处理options方法
+    void handleReq_Setup(const Parser &parser); //处理setup方法
+    void handleReq_Play(const Parser &parser); //处理play方法
+    void handleReq_Pause(const Parser &parser); //处理pause方法
+    void handleReq_Teardown(const Parser &parser); //处理teardown方法
+    void handleReq_Get(const Parser &parser); //处理Get方法
+    void handleReq_Post(const Parser &parser); //处理Post方法
+    void handleReq_SET_PARAMETER(const Parser &parser); //处理SET_PARAMETER方法
 
 	void inline send_StreamNotFound(); //rtsp资源未找到
 	void inline send_UnsupportedTransport(); //不支持的传输模式
@@ -145,11 +145,11 @@ private:
 	inline void startListenPeerUdpData(int iTrackIdx);
 
     //认证相关
-    static void onAuthSuccess(const weak_ptr<RtspSession> &weakSelf);
-    static void onAuthFailed(const weak_ptr<RtspSession> &weakSelf,const string &realm);
-    static void onAuthUser(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &authorization);
-    static void onAuthBasic(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strBase64);
-    static void onAuthDigest(const weak_ptr<RtspSession> &weakSelf,const string &realm,const string &strMd5);
+    void onAuthSuccess();
+    void onAuthFailed(const string &realm,const string &why,bool close = true);
+    void onAuthUser(const string &realm,const string &authorization);
+    void onAuthBasic(const string &realm,const string &strBase64);
+    void onAuthDigest(const string &realm,const string &strMd5);
 
 	inline void sendRtpPacket(const RtpPacket::Ptr &pkt);
 	bool sendRtspResponse(const string &res_code,const std::initializer_list<string> &header, const string &sdp = "" , const char *protocol = "RTSP/1.0");

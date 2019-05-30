@@ -172,7 +172,7 @@ void MediaReader::startReadMP4() {
 	 return true;
 }
 bool MediaReader::close(MediaSource &sender,bool force){
-    if(!force && _mediaMuxer->readerCount() != 0 ){
+    if(!_mediaMuxer || (!force && _mediaMuxer->readerCount() != 0)){
         return false;
     }
 	_timer.reset();
