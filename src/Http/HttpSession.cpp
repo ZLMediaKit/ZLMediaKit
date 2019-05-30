@@ -102,8 +102,8 @@ get_mime_type(const char* name) {
 
 HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
     TraceP(this);
-	//设置15秒发送超时时间
-	pSock->setSendTimeOutSecond(15);
+    GET_CONFIG(uint32_t,keep_alive_sec,Http::kKeepAliveSecond);
+    pSock->setSendTimeOutSecond(keep_alive_sec);
 	//起始接收buffer缓存设置为4K，节省内存
 	pSock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
 }
