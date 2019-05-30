@@ -59,11 +59,8 @@ int main(int argc, char *argv[]) {
     //下载器map
     map<string, HttpDownloader::Ptr> downloaderMap;
     //下载两个文件，一个是http下载，一个https下载
-    auto urlList = {"https://timgsa.baidu.com/timg?image&quality=80&"
-                    "size=b9999_10000&sec=1537717640404&"
-                    "di=f602efbebbc1e7f6b9ccb0bf0def89d0&"
-                    "imgtype=0&"
-                    "src=http%3A%2F%2Fimgsrc.baidu.com%2Fimgad%2Fpic%2Fitem%2F241f95cad1c8a786ff65052a6d09c93d70cf5042.jpg",};
+    auto urlList = {"http://www.baidu.com/img/baidu_resultlogo@2.png",
+                    "https://www.baidu.com/img/baidu_resultlogo@2.png"};
 
     for (auto &url : urlList) {
         //创建下载器
