@@ -235,7 +235,7 @@ int main(int argc,char *argv[]) {
         //信任某个自签名证书
         SSL_Initor::Instance().trustCertificate(ssl_file.data());
         //不忽略无效证书证书(例如自签名或过期证书)
-        SSL_Initor::Instance().ignoreInvalidCertificate(false);
+        SSL_Initor::Instance().ignoreInvalidCertificate(true);
 
         uint16_t shellPort = mINI::Instance()[Shell::kPort];
         uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
