@@ -117,6 +117,9 @@ public:
 		//派生类设置该媒体源媒体描述信息
 		_strSdp = sdp;
 		_sdpAttr.load(sdp);
+		if(_pRing){
+            regist();
+		}
 	}
 
 	void onWrite(const RtpPacket::Ptr &rtppt, bool keyPos) override {
@@ -136,7 +139,9 @@ public:
                 strongSelf->onReaderChanged(size);
             });
             onReaderChanged(0);
-            regist();
+            if(!_strSdp.empty()){
+                regist();
+            }
 		}
 		_pRing->write(rtppt,keyPos);
         checkNoneReader();

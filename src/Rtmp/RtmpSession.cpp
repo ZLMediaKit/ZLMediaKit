@@ -46,7 +46,7 @@ RtmpSession::~RtmpSession() {
 }
 
 void RtmpSession::onError(const SockException& err) {
-	DebugP(this) << err.what();
+	WarnP(this) << err.what();
 
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
@@ -143,6 +143,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
     }));
 	dec.load<AMFValue>();/* NULL */
     _mediaInfo.parse(_strTcUrl + "/" + dec.load<std::string>());
+    _mediaInfo._schema = RTMP_SCHEMA;
 
     auto onRes = [this,pToken](const string &err){
         auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
@@ -305,7 +306,6 @@ void RtmpSession::doPlayResponse(const string &err,const std::function<void(bool
     }
 
     //鉴权成功，查找媒体源并回复
-    _mediaInfo._schema = RTMP_SCHEMA;
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
     MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,cb](const MediaSource::Ptr &src){
         auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
@@ -351,6 +351,7 @@ void RtmpSession::onCmd_play2(AMFDecoder &dec) {
 void RtmpSession::onCmd_play(AMFDecoder &dec) {
 	dec.load<AMFValue>();/* NULL */
     _mediaInfo.parse(_strTcUrl + "/" + dec.load<std::string>());
+    _mediaInfo._schema = RTMP_SCHEMA;
 	doPlay(dec);
 }
 

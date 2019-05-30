@@ -147,7 +147,8 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
 	if(_strContentBase.empty() && strCmd != "GET"){
 		_strContentBase = parser.Url();
 		_mediaInfo.parse(parser.FullUrl());
-	}
+        _mediaInfo._schema = RTSP_SCHEMA;
+    }
 
 	typedef void (RtspSession::*rtsp_request_handler)(const Parser &parser);
 	static unordered_map<string, rtsp_request_handler> s_handler_map;
@@ -257,7 +258,6 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 	auto onRes = [this](const string &err){
 		bool authSuccess = err.empty();
 		if(!authSuccess){
-			//第一次play是播放，否则是恢复播放。只对播放鉴权
 			sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
 			shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << err));
 			return;
@@ -307,10 +307,46 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 }
 
 void RtspSession::handleReq_Describe(const Parser &parser) {
-    _mediaInfo._schema = RTSP_SCHEMA;
-    auto authorization = parser["Authorization"];
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,authorization](const MediaSource::Ptr &src){
+    //该请求中的认证信息
+    auto authorization = parser["Authorization"];
+    onGetRealm invoker = [weakSelf,authorization](const string &realm){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            //本对象已经销毁
+            return;
+        }
+        //切换到自己的线程然后执行
+        strongSelf->async([weakSelf,realm,authorization](){
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf){
+                //本对象已经销毁
+                return;
+            }
+            if(realm.empty()){
+                //无需认证,回复sdp
+                strongSelf->onAuthSuccess();
+                return;
+            }
+            //该流需要认证
+            strongSelf->onAuthUser(realm,authorization);
+        });
+
+    };
+
+    //广播是否需要认证事件
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
+                                           _mediaInfo,
+                                           invoker,
+                                           *this)){
+        //无人监听此事件，说明无需认证
+        invoker("");
+    }
+}
+void RtspSession::onAuthSuccess() {
+    TraceP(this);
+    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf](const MediaSource::Ptr &src){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
@@ -330,7 +366,7 @@ void RtspSession::handleReq_Describe(const Parser &parser) {
         if (strongSelf->_aTrackInfo.empty()) {
             //该流无效
             strongSelf->send_StreamNotFound();
-            strongSelf->shutdown(SockException(Err_shutdown,"can not find any availabe track in sdp"));
+            strongSelf->shutdown(SockException(Err_shutdown,"can not find any availabe track in sdp:" << strongSelf->_strSdp));
             return;
         }
         strongSelf->_strSession = makeRandStr(12);
@@ -341,48 +377,12 @@ void RtspSession::handleReq_Describe(const Parser &parser) {
             track->_time_stamp = rtsp_src->getTimeStamp(track->_type);
         }
 
-        //该请求中的认证信息
-        onGetRealm invoker = [weakSelf,authorization](const string &realm){
-            auto strongSelf = weakSelf.lock();
-            if(!strongSelf){
-                //本对象已经销毁
-                return;
-            }
-            //切换到自己的线程然后执行
-            strongSelf->async([weakSelf,realm,authorization](){
-                auto strongSelf = weakSelf.lock();
-                if(!strongSelf){
-                    //本对象已经销毁
-                    return;
-                }
-                if(realm.empty()){
-                    //无需认证,回复sdp
-                    strongSelf->onAuthSuccess();
-                    return;
-                }
-                //该流需要认证
-                strongSelf->onAuthUser(realm,authorization);
-            });
-
-        };
-
-        //广播是否需要认证事件
-        if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
-                                               strongSelf->_mediaInfo,
-                                               invoker,
-                                               *strongSelf)){
-            //无人监听此事件，说明无需认证
-            invoker("");
-        }
+        strongSelf->sendRtspResponse("200 OK",
+                                     {"Content-Base",strongSelf->_strContentBase + "/",
+                                      "x-Accept-Retransmit","our-retransmit",
+                                      "x-Accept-Dynamic-Rate","1"
+                                     },strongSelf->_strSdp);
     });
-}
-void RtspSession::onAuthSuccess() {
-    TraceP(this);
-    sendRtspResponse("200 OK",
-                     {"Content-Base",_strContentBase + "/",
-                      "x-Accept-Retransmit","our-retransmit",
-                      "x-Accept-Dynamic-Rate","1"
-                     },_strSdp);
 }
 void RtspSession::onAuthFailed(const string &realm,const string &why,bool close) {
     GET_CONFIG(bool,authBasic,Rtsp::kAuthBasic);
