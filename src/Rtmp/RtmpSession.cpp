@@ -85,7 +85,7 @@ void RtmpSession::onRecv(const Buffer::Ptr &pBuf) {
         _ui64TotalBytes += pBuf->size();
 		onParseRtmp(pBuf->data(), pBuf->size());
 	} catch (exception &e) {
-		shutdown(SockException(Err_shutdown,StrPrinter << "catch exception:" << e.what()));
+		shutdown(SockException(Err_shutdown, e.what()));
 	}
 }
 
