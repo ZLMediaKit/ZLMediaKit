@@ -2,6 +2,9 @@
 // Created by xzl on 2017/12/1.
 //
 
+#ifndef SRC_SHELL_SHELLCMD_H_
+#define SRC_SHELL_SHELLCMD_H_
+
 #include "Util/CMD.h"
 #include "Common/MediaSource.h"
 using namespace toolkit;
@@ -88,7 +91,6 @@ public:
     }
 };
 
-
-
-
 } /* namespace mediakit */
+
+#endif //SRC_SHELL_SHELLCMD_H_
