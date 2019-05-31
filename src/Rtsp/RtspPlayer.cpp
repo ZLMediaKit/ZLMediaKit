@@ -247,12 +247,12 @@ void RtspPlayer::sendSetup(unsigned int trackIndex) {
 		}
 			break;
 		case Rtsp::RTP_UDP: {
-			_apRtpSock[trackIndex].reset(new Socket());
+			_apRtpSock[trackIndex].reset(new Socket(getPoller()));
 			if (!_apRtpSock[trackIndex]->bindUdpSock(0, get_local_ip().data())) {
 				_apRtpSock[trackIndex].reset();
 				throw std::runtime_error("open rtp sock err");
 			}
-            _apRtcpSock[trackIndex].reset(new Socket());
+            _apRtcpSock[trackIndex].reset(new Socket(getPoller()));
             if (!_apRtcpSock[trackIndex]->bindUdpSock(_apRtpSock[trackIndex]->get_local_port() + 1, get_local_ip().data())) {
                 _apRtcpSock[trackIndex].reset();
                 throw std::runtime_error("open rtcp sock err");
@@ -304,7 +304,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 		if (_eType == Rtsp::RTP_MULTICAST) {
 		    //udp组播
 			auto multiAddr = FindField((strTransport + ";").data(), "destination=", ";");
-            pRtpSockRef.reset(new Socket());
+            pRtpSockRef.reset(new Socket(getPoller()));
 			if (!pRtpSockRef->bindUdpSock(rtp_port, multiAddr.data())) {
 				pRtpSockRef.reset();
 				throw std::runtime_error("open udp sock err");

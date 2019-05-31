@@ -41,12 +41,12 @@ UDPServer::~UDPServer() {
 	InfoL;
 }
 
-Socket::Ptr UDPServer::getSock(const char* strLocalIp, int intervaled,uint16_t iLocalPort) {
+Socket::Ptr UDPServer::getSock(const EventPoller::Ptr &poller,const char* strLocalIp, int intervaled,uint16_t iLocalPort) {
 	lock_guard<mutex> lck(_mtxUpdSock);
 	string strKey = StrPrinter << strLocalIp << ":" << intervaled << endl;
 	auto it = _mapUpdSock.find(strKey);
 	if (it == _mapUpdSock.end()) {
-		Socket::Ptr pSock(new Socket());
+		Socket::Ptr pSock(new Socket(poller));
 		//InfoL<<localIp;
 		if (!pSock->bindUdpSock(iLocalPort, strLocalIp)) {
 			//分配失败

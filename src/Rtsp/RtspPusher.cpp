@@ -252,7 +252,7 @@ void RtspPusher::sendSetup(unsigned int trackIndex) {
         }
             break;
         case Rtsp::RTP_UDP: {
-            _apUdpSock[trackIndex].reset(new Socket());
+            _apUdpSock[trackIndex].reset(new Socket(getPoller()));
             if (!_apUdpSock[trackIndex]->bindUdpSock(0, get_local_ip().data())) {
                 _apUdpSock[trackIndex].reset();
                 throw std::runtime_error("open udp sock err");
@@ -291,7 +291,7 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int uiTrackIndex)
         uint16_t port = atoi(FindField(port_str.data(), NULL, "-").data());
         auto &pUdpSockRef = _apUdpSock[uiTrackIndex];
         if(!pUdpSockRef){
-            pUdpSockRef.reset(new Socket());
+            pUdpSockRef.reset(new Socket(getPoller()));
         }
 
         struct sockaddr_in rtpto;

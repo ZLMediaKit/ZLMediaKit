@@ -679,7 +679,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 		int iSrvPort = _pBrdcaster->getPort(trackRef->_type);
 		//我们用trackIdx区分rtp和rtcp包
 		//由于组播udp端口是共享的，而rtcp端口为组播udp端口+1，所以rtcp端口需要改成共享端口
-		auto pSockRtcp = UDPServer::Instance().getSock(get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
+		auto pSockRtcp = UDPServer::Instance().getSock(getPoller(),get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
 		if (!pSockRtcp) {
 			//分配端口失败
 			send_NotAcceptable();
