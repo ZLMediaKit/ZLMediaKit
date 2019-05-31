@@ -490,4 +490,22 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 }
 
 
+bool RtmpSession::close(MediaSource &sender,bool force)  {
+    //此回调在其他线程触发
+    if(!_pPublisherSrc || (!force && _pPublisherSrc->readerCount() != 0)){
+        return false;
+    }
+    string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    safeShutdown(SockException(Err_shutdown,err));
+    return true;
+}
+
+void RtmpSession::onNoneReader(MediaSource &sender) {
+    //此回调在其他线程触发
+    if(!_pPublisherSrc || _pPublisherSrc->readerCount() != 0){
+        return;
+    }
+    MediaSourceEvent::onNoneReader(sender);
+}
+
 } /* namespace mediakit */

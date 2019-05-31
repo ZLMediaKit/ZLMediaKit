@@ -106,8 +106,10 @@ protected:
 	void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
 	//MediaSourceEvent override
 	bool close(MediaSource &sender,bool force) override ;
+    void onNoneReader(MediaSource &sender) override;
 
-	//TcpSession override
+
+    //TcpSession override
     int send(const Buffer::Ptr &pkt) override;
 
 

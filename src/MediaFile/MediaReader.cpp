@@ -181,7 +181,7 @@ bool MediaReader::close(MediaSource &sender,bool force){
 }
 
 void MediaReader::onNoneReader(MediaSource &sender) {
-    if(_mediaMuxer->readerCount() != 0){
+    if(!_mediaMuxer || _mediaMuxer->readerCount() != 0){
         return;
     }
     MediaSourceEvent::onNoneReader(sender);

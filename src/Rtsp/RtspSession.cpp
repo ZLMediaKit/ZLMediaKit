@@ -1089,12 +1089,22 @@ inline int RtspSession::getTrackIndexByInterleaved(int interleaved){
 }
 
 bool RtspSession::close(MediaSource &sender,bool force) {
-    if(!force && _pushSrc->readerCount() != 0){
+    //此回调在其他线程触发
+    if(!_pushSrc || (!force && _pushSrc->readerCount() != 0)){
         return false;
     }
 	string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
 	safeShutdown(SockException(Err_shutdown,err));
 	return true;
+}
+
+
+void RtspSession::onNoneReader(MediaSource &sender){
+    //此回调在其他线程触发
+    if(!_pushSrc || _pushSrc->readerCount() != 0){
+        return;
+    }
+    MediaSourceEvent::onNoneReader(sender);
 }
 
 
