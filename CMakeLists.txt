@@ -93,23 +93,33 @@ if (FAAC_FOUND AND ENABLE_FAAC)
     list(APPEND LINK_LIB_LIST ${FAAC_LIBRARIES})
 endif ()
 
+
 #添加库
 add_library(zltoolkit STATIC ${ToolKit_src_list})
 add_library(zlmediakit STATIC ${MediaKit_src_list})
 
+			
+set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573 /utf-8" )
 #libmpeg
 if(ENABLE_HLS)
     aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
     aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
     include_directories(${MediaServer_Root}/libmpeg/include)
     add_library(mpeg STATIC ${src_mpeg})
+	if(WIN32)
+		set_target_properties(mpeg PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
+	endif(WIN32)
 endif()
 
 if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
+	set_target_properties(zltoolkit PROPERTIES COMPILE_FLAGS ${VS_FALGS} )
+	set_target_properties(zlmediakit PROPERTIES COMPILE_FLAGS ${VS_FALGS} )
 elseif(NOT ANDROID OR IOS)
     list(APPEND LINK_LIB_LIST pthread)
 endif ()
+
+
 
 #测试程序
 add_subdirectory(tests)
