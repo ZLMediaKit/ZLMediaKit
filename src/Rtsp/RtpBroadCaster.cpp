@@ -105,7 +105,7 @@ RtpBroadCaster::RtpBroadCaster(const EventPoller::Ptr &poller,const string &strL
 	}
 	_multiAddr = MultiCastAddressMaker::Instance().obtain();
 	for(auto i = 0; i < 2; i++){
-		_apUdpSock[i].reset(new Socket());
+		_apUdpSock[i].reset(new Socket(poller));
 		if(!_apUdpSock[i]->bindUdpSock(0, strLocalIp.data())){
 			auto strErr = StrPrinter << "绑定UDP端口失败:" << strLocalIp << endl;
 			throw std::runtime_error(strErr);
