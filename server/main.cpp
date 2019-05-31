@@ -205,7 +205,7 @@ int main(int argc,char *argv[]) {
         bool bDaemon = cmd_main.hasKey("daemon");
         LogLevel logLevel = (LogLevel) cmd_main["level"].as<int>();
         logLevel = MIN(MAX(logLevel, LTrace), LError);
-        string ini_file = cmd_main["config"];
+        static string ini_file = cmd_main["config"];
         string ssl_file = cmd_main["ssl"];
         int threads = cmd_main["threads"];
 
@@ -286,7 +286,7 @@ int main(int argc,char *argv[]) {
             signal(SIGINT, SIG_IGN);// 设置退出信号
             sem.post();
         });// 设置退出信号
-        signal(SIGHUP, [](int) { mediakit::loadIniConfig(); });
+        signal(SIGHUP, [](int) { mediakit::loadIniConfig(ini_file.data()); });
         sem.wait();
     }
     unInstallWebApi();
