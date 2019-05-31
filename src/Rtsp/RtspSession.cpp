@@ -839,8 +839,7 @@ void RtspSession::handleReq_Teardown(const Parser &parser) {
 void RtspSession::handleReq_Get(const Parser &parser) {
 	_http_x_sessioncookie = parser["x-sessioncookie"];
 	sendRtspResponse("200 OK",
-					 {"Connection","Close",
-					  "Cache-Control","no-store",
+					 {"Cache-Control","no-store",
 					  "Pragma","no-store",
 					  "Content-Type","application/x-rtsp-tunnelled",
 					 },"","HTTP/1.0");
@@ -886,6 +885,12 @@ void RtspSession::handleReq_Post(const Parser &parser) {
 		//http poster后面的粘包
 		_onRecv(std::make_shared<BufferString>(parser.Content()));
 	}
+
+    sendRtspResponse("200 OK",
+                     {"Cache-Control","no-store",
+                      "Pragma","no-store",
+                      "Content-Type","application/x-rtsp-tunnelled",
+                     },"","HTTP/1.0");
 }
 
 void RtspSession::handleReq_SET_PARAMETER(const Parser &parser) {
