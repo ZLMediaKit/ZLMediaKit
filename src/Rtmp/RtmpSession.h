@@ -81,14 +81,8 @@ private:
 		sendResponse(MSG_CMD, invoke.data());
 	}
 
-    bool close(MediaSource &sender,bool force) override {
-        if(!force && _pPublisherSrc->readerCount() != 0){
-            return false;
-        }
-        string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
-        safeShutdown(SockException(Err_shutdown,err));
-        return true;
-    }
+    bool close(MediaSource &sender,bool force) override ;
+    void onNoneReader(MediaSource &sender) override;
 private:
 	std::string _strTcUrl;
 	MediaInfo _mediaInfo;
