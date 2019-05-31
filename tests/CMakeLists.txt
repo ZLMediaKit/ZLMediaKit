@@ -36,6 +36,11 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
     STRING(REGEX REPLACE "^\\./|\\.c[a-zA-Z0-9_]*$" "" TEST_EXE_NAME ${TEST_SRC})
     message(STATUS "add test:${TEST_EXE_NAME}")
     add_executable(${TEST_EXE_NAME} ${TEST_SRC})
+
+	if(WIN32)
+		set_target_properties(${TEST_EXE_NAME} PROPERTIES COMPILE_FLAGS ${VS_FALGS} )
+	endif(WIN32)
+
     target_link_libraries(${TEST_EXE_NAME} ${LINK_LIB_LIST})
 endforeach()
 
