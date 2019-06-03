@@ -203,7 +203,7 @@ void PlayerProxy::onPlaySuccess() {
 	if(videoTrack){
 		//添加视频
 		_mediaMuxer->addTrack(videoTrack);
-		//视频数据写入_pChn
+		//视频数据写入_mediaMuxer
 		videoTrack->addDelegate(_mediaMuxer);
 	}
 
@@ -211,16 +211,16 @@ void PlayerProxy::onPlaySuccess() {
 	if(audioTrack){
 		//添加音频
 		_mediaMuxer->addTrack(audioTrack);
-		//音频数据写入_pChn
+		//音频数据写入_mediaMuxer
         audioTrack->addDelegate(_mediaMuxer);
     }else if(videoTrack){
 		//没有音频信息，产生一个静音音频
 		MuteAudioMaker::Ptr audioMaker = std::make_shared<MuteAudioMaker>();
 		//videoTrack把数据写入MuteAudioMaker
 		videoTrack->addDelegate(audioMaker);
-		//添加一个静音Track至_pChn
+		//添加一个静音Track至_mediaMuxer
 		_mediaMuxer->addTrack(std::make_shared<AACTrack>());
-		//MuteAudioMaker生成静音音频然后写入_pChn；
+		//MuteAudioMaker生成静音音频然后写入_mediaMuxer；
 		audioMaker->addDelegate(_mediaMuxer);
 	}
 }
