@@ -164,7 +164,7 @@ void installWebHook(){
     GET_CONFIG(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
-        if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty()){
+        if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1"){
             invoker("");
             return;
         }
@@ -180,7 +180,7 @@ void installWebHook(){
     });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPlayed,[](BroadcastMediaPlayedArgs){
-        if(!hook_enable || args._param_strs == hook_adminparams || hook_play.empty()){
+        if(!hook_enable || args._param_strs == hook_adminparams || hook_play.empty() || sender.get_peer_ip() == "127.0.0.1"){
             invoker("");
             return;
         }
@@ -195,7 +195,7 @@ void installWebHook(){
     });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastFlowReport,[](BroadcastFlowReportArgs){
-        if(!hook_enable || args._param_strs == hook_adminparams || hook_flowreport.empty()){
+        if(!hook_enable || args._param_strs == hook_adminparams || hook_flowreport.empty() || sender.get_peer_ip() == "127.0.0.1"){
             return;
         }
         auto body = make_json(args);
@@ -214,7 +214,7 @@ void installWebHook(){
 
     //监听kBroadcastOnGetRtspRealm事件决定rtsp链接是否需要鉴权(传统的rtsp鉴权方案)才能访问
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastOnGetRtspRealm,[](BroadcastOnGetRtspRealmArgs){
-        if(!hook_enable || args._param_strs == hook_adminparams || hook_rtsp_realm.empty()){
+        if(!hook_enable || args._param_strs == hook_adminparams || hook_rtsp_realm.empty() || sender.get_peer_ip() == "127.0.0.1"){
             //无需认证
             invoker("");
             return;
@@ -311,7 +311,8 @@ void installWebHook(){
 #endif //ENABLE_MP4V2
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
-        if(!hook_enable || hook_shell_login.empty()){
+        if(!hook_enable || hook_shell_login.empty() || sender.get_peer_ip() == "127.0.0.1"){
+            invoker("");
             return;
         }
         ArgsType body;
