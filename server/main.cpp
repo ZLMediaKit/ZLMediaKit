@@ -44,6 +44,7 @@
 #include "Player/PlayerProxy.h"
 #include "Http/WebSocketSession.h"
 #include "System.h"
+#include "WebApi.h"
 
 using namespace std;
 using namespace toolkit;

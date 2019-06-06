@@ -16,6 +16,9 @@
 #include "Http/HttpSession.h"
 #include "Network/TcpServer.h"
 #include "Player/PlayerProxy.h"
+#include "FFmpegSource.h"
+#include "Util/MD5.h"
+#include "WebApi.h"
 
 using namespace Json;
 using namespace toolkit;
@@ -215,6 +218,9 @@ static recursive_mutex s_proxyMapMtx;
 static inline string getProxyKey(const string &vhost,const string &app,const string &stream){
     return vhost + "/" + app + "/" + stream;
 }
+
+static unordered_map<string ,FFmpegSource::Ptr> s_ffmpegMap;
+static recursive_mutex s_ffmpegMapMtx;
 
 /**
  * 安装api接口
@@ -427,12 +433,11 @@ void installWebApi() {
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = rtp_type;
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
-        player->setPlayCallbackOnce([cb,player,key](const SockException &ex){
+        player->setPlayCallbackOnce([cb,key](const SockException &ex){
             if(ex){
                 lock_guard<recursive_mutex> lck(s_proxyMapMtx);
                 s_proxyMap.erase(key);
             }
-            const_cast<PlayerProxy::Ptr &>(player).reset();
             cb(ex,key);
         });
 
@@ -476,6 +481,62 @@ void installWebApi() {
         val["data"]["flag"] = s_proxyMap.erase(allArgs["key"]) == 1;
     });
 
+    static auto addFFmepgSource = [](const string &src_url,
+                                     const string &dst_url,
+                                     int timeout_ms,
+                                     const function<void(const SockException &ex,const string &key)> &cb){
+        auto key = MD5(dst_url).hexdigest();
+        lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
+        if(s_ffmpegMap.find(key) != s_ffmpegMap.end()){
+            //已经在拉流了
+            cb(SockException(Err_success),key);
+            return;
+        }
+
+        FFmpegSource::Ptr ffmpeg = std::make_shared<FFmpegSource>();
+        s_ffmpegMap[key] = ffmpeg;
+
+        ffmpeg->setOnClose([key](){
+            lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
+            s_ffmpegMap.erase(key);
+        });
+        ffmpeg->play(src_url, dst_url,timeout_ms,[cb , key](const SockException &ex){
+            if(ex){
+                lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
+                s_ffmpegMap.erase(key);
+            }
+            cb(ex,key);
+        });
+    };
+
+    //动态添加rtsp/rtmp拉流代理
+    //测试url http://127.0.0.1/index/api/addFFmpegSource?src_url=http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8&dst_url=rtmp://127.0.0.1/live/hks2&timeout_ms=10000
+    API_REGIST_INVOKER(api,addFFmpegSource,{
+        CHECK_SECRET();
+        CHECK_ARGS("src_url","dst_url","timeout_ms");
+        auto src_url = allArgs["src_url"];
+        auto dst_url = allArgs["dst_url"];
+        int timeout_ms = allArgs["timeout_ms"];
+
+        addFFmepgSource(src_url,dst_url,timeout_ms,[invoker,val,headerOut](const SockException &ex,const string &key){
+            if(ex){
+                const_cast<Value &>(val)["code"] = API::OtherFailed;
+                const_cast<Value &>(val)["msg"] = ex.what();
+            }else{
+                const_cast<Value &>(val)["data"]["key"] = key;
+            }
+            invoker("200 OK", headerOut, val.toStyledString());
+        });
+    });
+
+    //关闭拉流代理
+    //测试url http://127.0.0.1/index/api/delFFmepgSource?key=key
+    API_REGIST(api,delFFmepgSource,{
+        CHECK_SECRET();
+        CHECK_ARGS("key");
+        lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
+        val["data"]["flag"] = s_ffmpegMap.erase(allArgs["key"]) == 1;
+    });
 
     ////////////以下是注册的Hook API////////////
     API_REGIST(hook,on_publish,{
@@ -517,22 +578,27 @@ void installWebApi() {
         //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream");
-        addStreamProxy(allArgs["vhost"],
-                       allArgs["app"],
-                       allArgs["stream"],
-                       "rtmp://live.hkstv.hk.lxdns.com/live/hks2",
-                       false,
-                       false,
-                       0,
-                       [invoker,val,headerOut](const SockException &ex,const string &key){
-                           if(ex){
-                               const_cast<Value &>(val)["code"] = API::OtherFailed;
-                               const_cast<Value &>(val)["msg"] = ex.what();
-                           }else{
-                               const_cast<Value &>(val)["data"]["key"] = key;
-                           }
-                           invoker("200 OK", headerOut, val.toStyledString());
-                       });
+        GET_CONFIG(int,rtmp_port,Rtmp::kPort);
+
+        string dst_url = StrPrinter
+                << "rtmp://127.0.0.1:"
+                << rtmp_port << "/"
+                << allArgs["app"] << "/"
+                << allArgs["stream"] << "?vhost="
+                << allArgs["vhost"];
+
+        addFFmepgSource("http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8",
+                        dst_url,
+                        10000,
+                        [invoker,val,headerOut](const SockException &ex,const string &key){
+                            if(ex){
+                                const_cast<Value &>(val)["code"] = API::OtherFailed;
+                                const_cast<Value &>(val)["msg"] = ex.what();
+                            }else{
+                                const_cast<Value &>(val)["data"]["key"] = key;
+                            }
+                            invoker("200 OK", headerOut, val.toStyledString());
+                        });
     });
 
 
@@ -555,6 +621,13 @@ void installWebApi() {
 }
 
 void unInstallWebApi(){
-    lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-    s_proxyMap.clear();
+    {
+        lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+        s_proxyMap.clear();
+    }
+
+    {
+        lock_guard<recursive_mutex> lck(s_ffmpegMapMtx);
+        s_ffmpegMap.clear();
+    }
 }
