@@ -72,6 +72,16 @@ void MediaSource::findAsync(const MediaInfo &info,
     });
 
     auto onRegist = [listener_tag,weakSession,info,cb,onRegistTimeout](BroadcastMediaChangedArgs) {
+        auto strongSession = weakSession.lock();
+        if(!strongSession) {
+            //自己已经销毁
+            //取消延时任务，防止多次回调
+            onRegistTimeout->cancel();
+            //取消事件监听
+            NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
+            return;
+        }
+
         if(!bRegist || schema != info._schema || vhost != info._vhost || app != info._app ||stream != info._streamid){
             //不是自己感兴趣的事件，忽略之
             return;
@@ -79,15 +89,11 @@ void MediaSource::findAsync(const MediaInfo &info,
 
         //取消延时任务，防止多次回调
         onRegistTimeout->cancel();
+        //取消事件监听
+        NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
 
-        //播发器请求的流终于注册上了
-        auto strongSession = weakSession.lock();
-        if(!strongSession) {
-            return;
-        }
-
-        //切换到自己的线程再回复
-        strongSession->async([listener_tag,weakSession,info,cb](){
+        //播发器请求的流终于注册上了，切换到自己的线程再回复
+        strongSession->async([weakSession,info,cb](){
             auto strongSession = weakSession.lock();
             if(!strongSession) {
                 return;
@@ -95,8 +101,6 @@ void MediaSource::findAsync(const MediaInfo &info,
             DebugL << "收到媒体注册事件,回复播放器:" << info._schema << "/" << info._vhost << "/" << info._app << "/" << info._streamid;
             //再找一遍媒体源，一般能找到
             findAsync(info,strongSession,false,cb);
-            //取消事件监听
-            NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
         }, false);
     };
     //监听媒体注册事件
