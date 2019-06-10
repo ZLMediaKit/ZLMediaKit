@@ -578,8 +578,10 @@ void installWebApi() {
         //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream");
-        GET_CONFIG(int,rtmp_port,Rtmp::kPort);
 
+#if 1
+        //通过FFmpeg按需拉流
+        GET_CONFIG(int,rtmp_port,Rtmp::kPort);
         string dst_url = StrPrinter
                 << "rtmp://127.0.0.1:"
                 << rtmp_port << "/"
@@ -587,7 +589,7 @@ void installWebApi() {
                 << allArgs["stream"] << "?vhost="
                 << allArgs["vhost"];
 
-        addFFmepgSource("http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8",
+        addFFmepgSource("http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
                         dst_url,
                         10000,
                         [invoker,val,headerOut](const SockException &ex,const string &key){
@@ -599,6 +601,28 @@ void installWebApi() {
                             }
                             invoker("200 OK", headerOut, val.toStyledString());
                         });
+
+
+#else
+        //通过内置支持的rtsp/rtmp按需拉流
+        addStreamProxy(allArgs["vhost"],
+                       allArgs["app"],
+                       allArgs["stream"],
+                       /** 支持rtsp和rtmp方式拉流 ，rtsp支持h265/h264/aac,rtmp仅支持h264/aac **/
+                       "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",//rtmp://live.hkstv.hk.lxdns.com/live/hks2
+                       false,
+                       false,
+                       0,//rtp over tcp方式拉流
+                       [invoker,val,headerOut](const SockException &ex,const string &key){
+                           if(ex){
+                               const_cast<Value &>(val)["code"] = API::OtherFailed;
+                               const_cast<Value &>(val)["msg"] = ex.what();
+                           }else{
+                               const_cast<Value &>(val)["data"]["key"] = key;
+                           }
+                           invoker("200 OK", headerOut, val.toStyledString());
+                       });
+#endif
     });
 
 
