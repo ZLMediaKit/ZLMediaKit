@@ -158,6 +158,14 @@ public:
         }
         return listener->close(*this,force);
     }
+
+    void onNoneReader(){
+        auto listener = _listener.lock();
+        if(!listener){
+            return;
+        }
+        listener->onNoneReader(*this);
+    }
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _listener = listener;
     }

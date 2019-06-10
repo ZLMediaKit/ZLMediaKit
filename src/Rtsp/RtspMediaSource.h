@@ -162,11 +162,7 @@ private:
         GET_CONFIG(int,stream_none_reader_delay,General::kStreamNoneReaderDelayMS);
         if(_asyncEmitNoneReader && _readerTicker.elapsedTime() > stream_none_reader_delay){
             _asyncEmitNoneReader = false;
-            auto listener = _listener.lock();
-            if(!listener){
-                return;
-            }
-            listener->onNoneReader(*this);
+            onNoneReader();
         }
 	}
 protected:
