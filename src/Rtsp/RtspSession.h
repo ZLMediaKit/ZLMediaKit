@@ -186,7 +186,7 @@ private:
 	//一次发送 get 一次发送post，需要通过x-sessioncookie关联起来
 	string _http_x_sessioncookie;
 	function<void(const Buffer::Ptr &pBuf)> _onRecv;
-    atomic<bool> _enableSendRtp;
+    bool _enableSendRtp;
 
     //rtsp推流相关
 	RtspToRtmpMediaSource::Ptr _pushSrc;

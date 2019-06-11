@@ -35,7 +35,7 @@ using namespace toolkit;
 
 namespace mediakit{
 
-class RtpPacket {
+class RtpPacket : public Buffer{
 public:
     typedef std::shared_ptr<RtpPacket> Ptr;
     uint8_t interleaved;
@@ -49,6 +49,13 @@ public:
     uint8_t payload[1604];
     uint8_t offset;
     TrackType type;
+
+    char *data() const override {
+        return (char *)payload;
+    }
+    uint32_t size() const override {
+        return length;
+    }
 };
 
 class RtpRingInterface {

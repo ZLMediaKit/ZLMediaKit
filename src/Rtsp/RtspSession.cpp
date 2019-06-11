@@ -37,6 +37,8 @@
 #include "Util/NoticeCenter.h"
 #include "Network/sockutil.h"
 
+#define RTSP_SERVER_SEND_RTCP 0
+
 using namespace std;
 using namespace toolkit;
 
@@ -1112,8 +1114,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
     //InfoP(this) <<(int)pkt.Interleaved;
     switch (_rtpType) {
         case Rtsp::RTP_TCP: {
-            BufferRtp::Ptr buffer(new BufferRtp(pkt));
-            send(buffer);
+            send(pkt);
         }
             break;
         case Rtsp::RTP_UDP: {
@@ -1132,6 +1133,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
             break;
     }
 
+#if RTSP_SERVER_SEND_RTCP
     int iTrackIndex = getTrackIndexByInterleaved(pkt->interleaved);
     if(iTrackIndex == -1){
         return;
@@ -1147,6 +1149,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
         memcpy(&counter.timeStamp, pkt->payload + 8 , 4);
         sendSenderReport(_rtpType == Rtsp::RTP_TCP,iTrackIndex);
     }
+#endif
 }
 
 inline void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
