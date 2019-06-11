@@ -970,7 +970,7 @@ inline void RtspSession::startListenPeerUdpData(int trackIdx) {
 					WarnP(this) << "udp端口为空:" << intervaled;
 					return;
 				}
-				sock->setOnRead([onUdpData,intervaled](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr){
+				sock->setOnRead([onUdpData,intervaled](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr , int addr_len){
 					onUdpData(pBuf,pPeerAddr,intervaled);
 				});
 			};
