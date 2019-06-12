@@ -667,6 +667,12 @@ void installWebApi() {
         val["close"] = true;
     });
 
+    API_REGIST(hook,on_http_access,{
+        //能访问根目录10分钟
+        val["path"] = "/";
+        val["second"] = 10 * 60;
+    });
+
 
 }
 
