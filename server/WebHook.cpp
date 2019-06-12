@@ -384,7 +384,7 @@ void installWebHook(){
 
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpAccess,[](BroadcastHttpAccessArgs){
-        if(!hook_enable || args._param_strs == hook_adminparams || hook_http_access.empty() ){
+        if(!hook_enable || args._param_strs == hook_adminparams || hook_http_access.empty() || sender.get_peer_ip() == "127.0.0.1"){
             //这种情况下随便访问,先让他随便访问1分钟，之后可能开启鉴权
             invoker("/",60);
             return;
