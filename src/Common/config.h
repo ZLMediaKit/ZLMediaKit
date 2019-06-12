@@ -68,28 +68,28 @@ bool loadIniConfig(const char *ini_path = nullptr);
 namespace Broadcast {
 
 //注册或反注册MediaSource事件广播
-extern const char kBroadcastMediaChanged[];
+extern const string kBroadcastMediaChanged;
 #define BroadcastMediaChangedArgs const bool &bRegist, const string &schema,const string &vhost,const string &app,const string &stream,MediaSource &sender
 
 //录制mp4文件成功后广播
-extern const char kBroadcastRecordMP4[];
+extern const string kBroadcastRecordMP4;
 #define BroadcastRecordMP4Args const Mp4Info &info
 
 //收到http api请求广播
-extern const char kBroadcastHttpRequest[];
+extern const string kBroadcastHttpRequest;
 #define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,TcpSession &sender
 
 //收到http 访问文件或目录的广播
-extern const char kBroadcastHttpAccess[];
+extern const string kBroadcastHttpAccess;
 #define BroadcastHttpAccessArgs const Parser &parser,const MediaInfo &args,const string &path,const bool &is_dir,const HttpSession::HttpAccessPathInvoker &invoker,TcpSession &sender
 
 //该流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm.如果该事件不监听则不认证
-extern const char kBroadcastOnGetRtspRealm[];
+extern const string kBroadcastOnGetRtspRealm;
 #define BroadcastOnGetRtspRealmArgs const MediaInfo &args,const RtspSession::onGetRealm &invoker,TcpSession &sender
 
 //请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
 //获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码
-extern const char kBroadcastOnRtspAuth[];
+extern const string kBroadcastOnRtspAuth;
 #define BroadcastOnRtspAuthArgs const MediaInfo &args,const string &realm,const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker,TcpSession &sender
 
 //鉴权结果回调对象
@@ -97,31 +97,31 @@ extern const char kBroadcastOnRtspAuth[];
 typedef std::function<void(const string &errMessage)> AuthInvoker;
 
 //收到rtsp/rtmp推流事件广播，通过该事件控制推流鉴权
-extern const char kBroadcastMediaPublish[];
+extern const string kBroadcastMediaPublish;
 #define BroadcastMediaPublishArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
 
 //播放rtsp/rtmp/http-flv事件广播，通过该事件控制播放鉴权
-extern const char kBroadcastMediaPlayed[];
+extern const string kBroadcastMediaPlayed;
 #define BroadcastMediaPlayedArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
 
 //shell登录鉴权
-extern const char kBroadcastShellLogin[];
+extern const string kBroadcastShellLogin;
 #define BroadcastShellLoginArgs const string &user_name,const string &passwd,const Broadcast::AuthInvoker &invoker,TcpSession &sender
 
 //停止rtsp/rtmp/http-flv会话后流量汇报事件广播
-extern const char kBroadcastFlowReport[];
+extern const string kBroadcastFlowReport;
 #define BroadcastFlowReportArgs const MediaInfo &args,const uint64_t &totalBytes,const uint64_t &totalDuration,const bool &isPlayer,TcpSession &sender
 
 //未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了
-extern const char kBroadcastNotFoundStream[];
+extern const string kBroadcastNotFoundStream;
 #define BroadcastNotFoundStreamArgs const MediaInfo &args,TcpSession &sender
 
 //某个流无人消费时触发，目的为了实现无人观看时主动断开拉流等业务逻辑
-extern const char kBroadcastStreamNoneReader[];
+extern const string kBroadcastStreamNoneReader;
 #define BroadcastStreamNoneReaderArgs MediaSource &sender
 
 //更新配置文件事件广播,执行loadIniConfig函数加载配置文件成功后会触发该广播
-extern const char kBroadcastReloadConfig[];
+extern const string kBroadcastReloadConfig;
 #define BroadcastReloadConfigArgs void
 
 #define ReloadConfigTag  ((void *)(0xFF))
@@ -158,108 +158,108 @@ extern const char kBroadcastReloadConfig[];
 ////////////通用配置///////////
 namespace General{
 //流量汇报事件流量阈值,单位KB，默认1MB
-extern const char kFlowThreshold[];
+extern const string kFlowThreshold;
 //流无人观看并且超过若干时间后才触发kBroadcastStreamNoneReader事件
 //默认连续5秒无人观看然后触发kBroadcastStreamNoneReader事件
-extern const char kStreamNoneReaderDelayMS[];
+extern const string kStreamNoneReaderDelayMS;
 //等待流注册超时时间，收到播放器后请求后，如果未找到相关流，服务器会等待一定时间，
 //如果在这个时间内，相关流注册上了，那么服务器会立即响应播放器播放成功，
 //否则会最多等待kMaxStreamWaitTimeMS毫秒，然后响应播放器播放失败
-extern const char kMaxStreamWaitTimeMS[];
+extern const string kMaxStreamWaitTimeMS;
 //是否启动虚拟主机
-extern const char kEnableVhost[];
+extern const string kEnableVhost;
 }//namespace General
 
 
 ////////////HTTP配置///////////
 namespace Http {
 //http 文件发送缓存大小
-extern const char kSendBufSize[];
+extern const string kSendBufSize;
 //http 最大请求字节数
-extern const char kMaxReqSize[];
+extern const string kMaxReqSize;
 //http keep-alive秒数
-extern const char kKeepAliveSecond[];
+extern const string kKeepAliveSecond;
 //http keep-alive最大请求数
-extern const char kMaxReqCount[];
+extern const string kMaxReqCount;
 //http 字符编码
-extern const char kCharSet[];
+extern const string kCharSet;
 //http 服务器根目录
-extern const char kRootPath[];
+extern const string kRootPath;
 //http 404错误提示内容
-extern const char kNotFound[];
+extern const string kNotFound;
 }//namespace Http
 
 ////////////SHELL配置///////////
 namespace Shell {
-extern const char kMaxReqSize[];
+extern const string kMaxReqSize;
 } //namespace Shell
 
 ////////////RTSP服务器配置///////////
 namespace Rtsp {
 //是否优先base64方式认证？默认Md5方式认证
-extern const char kAuthBasic[];
+extern const string kAuthBasic;
 //握手超时时间，默认15秒
-extern const char kHandshakeSecond[];
+extern const string kHandshakeSecond;
 //维持链接超时时间，默认15秒
-extern const char kKeepAliveSecond[];
+extern const string kKeepAliveSecond;
 } //namespace Rtsp
 
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
-extern const char kModifyStamp[];
+extern const string kModifyStamp;
 //握手超时时间，默认15秒
-extern const char kHandshakeSecond[];
+extern const string kHandshakeSecond;
 //维持链接超时时间，默认15秒
-extern const char kKeepAliveSecond[];
+extern const string kKeepAliveSecond;
 } //namespace RTMP
 
 
 ////////////RTP配置///////////
 namespace Rtp {
 //RTP打包最大MTU,公网情况下更小
-extern const char kVideoMtuSize[];
+extern const string kVideoMtuSize;
 //RTP打包最大MTU,公网情况下更小
-extern const char kAudioMtuSize[];
+extern const string kAudioMtuSize;
 //RTP排序缓存最大个数
-extern const char kMaxRtpCount[];
+extern const string kMaxRtpCount;
 //如果RTP序列正确次数累计达到该数字就启动清空排序缓存
-extern const char kClearCount[];
+extern const string kClearCount;
 //最大RTP时间为13个小时，每13小时回环一次
-extern const char kCycleMS[];
+extern const string kCycleMS;
 } //namespace Rtsp
 
 ////////////组播配置///////////
 namespace MultiCast {
 //组播分配起始地址
-extern const char kAddrMin[];
+extern const string kAddrMin;
 //组播分配截止地址
-extern const char kAddrMax[];
+extern const string kAddrMax;
 //组播TTL
-extern const char kUdpTTL[];
+extern const string kUdpTTL;
 } //namespace MultiCast
 
 ////////////录像配置///////////
 namespace Record {
 //查看录像的应用名称
-extern const char kAppName[];
+extern const string kAppName;
 //每次流化MP4文件的时长,单位毫秒
-extern const char kSampleMS[];
+extern const string kSampleMS;
 //MP4文件录制大小,默认一个小时
-extern const char kFileSecond[];
+extern const string kFileSecond;
 //录制文件路径
-extern const char kFilePath[];
+extern const string kFilePath;
 } //namespace Record
 
 ////////////HLS相关配置///////////
 namespace Hls {
 //HLS切片时长,单位秒
-extern const char kSegmentDuration[];
+extern const string kSegmentDuration;
 //HLS切片个数
-extern const char kSegmentNum[];
+extern const string kSegmentNum;
 //HLS文件写缓存大小
-extern const char kFileBufSize[];
+extern const string kFileBufSize;
 //录制文件路径
-extern const char kFilePath[];
+extern const string kFilePath;
 } //namespace Hls
 
 
@@ -270,24 +270,24 @@ extern const char kFilePath[];
  */
 namespace Client {
 //指定网卡ip
-extern const char kNetAdapter[];
+extern const string kNetAdapter;
 //设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
 //设置方法:player[PlayerBase::kRtpType] = 0/1/2;
-extern const char kRtpType[];
+extern const string kRtpType;
 //rtsp认证用户名
-extern const char kRtspUser[];
+extern const string kRtspUser;
 //rtsp认证用用户密码，可以是明文也可以是md5,md5密码生成方式 md5(username:realm:password)
-extern const char kRtspPwd[];
+extern const string kRtspPwd;
 //rtsp认证用用户密码是否为md5类型
-extern const char kRtspPwdIsMD5[];
+extern const string kRtspPwdIsMD5;
 //握手超时时间，默认10,000 毫秒
-extern const char kTimeoutMS[];
+extern const string kTimeoutMS;
 //rtp/rtmp包接收超时时间，默认5000秒
-extern const char kMediaTimeoutMS[];
+extern const string kMediaTimeoutMS;
 //rtsp/rtmp心跳时间,默认5000毫秒
-extern const char kBeatIntervalMS[];
+extern const string kBeatIntervalMS;
 //Track编码格式探测最大时间，单位毫秒，默认2000
-extern const char kMaxAnalysisMS[];
+extern const string kMaxAnalysisMS;
 }
 }  // namespace mediakit
 

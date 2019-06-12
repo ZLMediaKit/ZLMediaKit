@@ -54,28 +54,28 @@ bool loadIniConfig(const char *ini_path){
 }
 ////////////广播名称///////////
 namespace Broadcast {
-const char kBroadcastMediaChanged[] = "kBroadcastMediaChanged";
-const char kBroadcastRecordMP4[] = "kBroadcastRecordMP4";
-const char kBroadcastHttpRequest[] = "kBroadcastHttpRequest";
-const char kBroadcastHttpAccess[] = "kBroadcastHttpAccess";
-const char kBroadcastOnGetRtspRealm[] = "kBroadcastOnGetRtspRealm";
-const char kBroadcastOnRtspAuth[] = "kBroadcastOnRtspAuth";
-const char kBroadcastMediaPlayed[] = "kBroadcastMediaPlayed";
-const char kBroadcastMediaPublish[] = "kBroadcastMediaPublish";
-const char kBroadcastFlowReport[] = "kBroadcastFlowReport";
-const char kBroadcastReloadConfig[] = "kBroadcastReloadConfig";
-const char kBroadcastShellLogin[] = "kBroadcastShellLogin";
-const char kBroadcastNotFoundStream[] = "kBroadcastNotFoundStream";
-const char kBroadcastStreamNoneReader[] = "kBroadcastStreamNoneReader";
+const string kBroadcastMediaChanged = "kBroadcastMediaChanged";
+const string kBroadcastRecordMP4 = "kBroadcastRecordMP4";
+const string kBroadcastHttpRequest = "kBroadcastHttpRequest";
+const string kBroadcastHttpAccess = "kBroadcastHttpAccess";
+const string kBroadcastOnGetRtspRealm = "kBroadcastOnGetRtspRealm";
+const string kBroadcastOnRtspAuth = "kBroadcastOnRtspAuth";
+const string kBroadcastMediaPlayed = "kBroadcastMediaPlayed";
+const string kBroadcastMediaPublish = "kBroadcastMediaPublish";
+const string kBroadcastFlowReport = "kBroadcastFlowReport";
+const string kBroadcastReloadConfig = "kBroadcastReloadConfig";
+const string kBroadcastShellLogin = "kBroadcastShellLogin";
+const string kBroadcastNotFoundStream = "kBroadcastNotFoundStream";
+const string kBroadcastStreamNoneReader = "kBroadcastStreamNoneReader";
 } //namespace Broadcast
 
 //通用配置项目
 namespace General{
 #define GENERAL_FIELD "general."
-const char kFlowThreshold[] = GENERAL_FIELD"flowThreshold";
-const char kStreamNoneReaderDelayMS[] = GENERAL_FIELD"streamNoneReaderDelayMS";
-const char kMaxStreamWaitTimeMS[] = GENERAL_FIELD"maxStreamWaitMS";
-const char kEnableVhost[] = GENERAL_FIELD"enableVhost";
+const string kFlowThreshold = GENERAL_FIELD"flowThreshold";
+const string kStreamNoneReaderDelayMS = GENERAL_FIELD"streamNoneReaderDelayMS";
+const string kMaxStreamWaitTimeMS = GENERAL_FIELD"maxStreamWaitMS";
+const string kEnableVhost = GENERAL_FIELD"enableVhost";
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
     mINI::Instance()[kStreamNoneReaderDelayMS] = 5 * 1000;
@@ -91,19 +91,19 @@ namespace Http {
 
 //http 文件发送缓存大小
 #define HTTP_SEND_BUF_SIZE (64 * 1024)
-const char kSendBufSize[] = HTTP_FIELD"sendBufSize";
+const string kSendBufSize = HTTP_FIELD"sendBufSize";
 
 //http 最大请求字节数
 #define HTTP_MAX_REQ_SIZE (4*1024)
-const char kMaxReqSize[] = HTTP_FIELD"maxReqSize";
+const string kMaxReqSize = HTTP_FIELD"maxReqSize";
 
 //http keep-alive秒数
 #define HTTP_KEEP_ALIVE_SECOND 10
-const char kKeepAliveSecond[] = HTTP_FIELD"keepAliveSecond";
+const string kKeepAliveSecond = HTTP_FIELD"keepAliveSecond";
 
 //http keep-alive最大请求数
 #define HTTP_MAX_REQ_CNT 100
-const char kMaxReqCount[] = HTTP_FIELD"maxReqCount";
+const string kMaxReqCount = HTTP_FIELD"maxReqCount";
 
 
 //http 字符编码
@@ -112,11 +112,11 @@ const char kMaxReqCount[] = HTTP_FIELD"maxReqCount";
 #else
 #define HTTP_CHAR_SET "utf-8"
 #endif
-const char kCharSet[] = HTTP_FIELD"charSet";
+const string kCharSet = HTTP_FIELD"charSet";
 
 //http 服务器根目录
 #define HTTP_ROOT_PATH (exeDir() + "httpRoot")
-const char kRootPath[] = HTTP_FIELD"rootPath";
+const string kRootPath = HTTP_FIELD"rootPath";
 
 //http 404错误提示内容
 #define HTTP_NOT_FOUND "<html>"\
@@ -128,7 +128,7 @@ const char kRootPath[] = HTTP_FIELD"rootPath";
 		"</center>"\
 		"</body>"\
 		"</html>"
-const char kNotFound[] = HTTP_FIELD"notFound";
+const string kNotFound = HTTP_FIELD"notFound";
 
 
 onceToken token([](){
@@ -148,7 +148,7 @@ namespace Shell {
 #define SHELL_FIELD "shell."
 
 #define SHELL_MAX_REQ_SIZE 1024
-const char kMaxReqSize[] = SHELL_FIELD"maxReqSize";
+const string kMaxReqSize = SHELL_FIELD"maxReqSize";
 
 onceToken token([](){
 	mINI::Instance()[kMaxReqSize] = SHELL_MAX_REQ_SIZE;
@@ -158,9 +158,9 @@ onceToken token([](){
 ////////////RTSP服务器配置///////////
 namespace Rtsp {
 #define RTSP_FIELD "rtsp."
-const char kAuthBasic[] = RTSP_FIELD"authBasic";
-const char kHandshakeSecond[] = RTSP_FIELD"handshakeSecond";
-const char kKeepAliveSecond[] = RTSP_FIELD"keepAliveSecond";
+const string kAuthBasic = RTSP_FIELD"authBasic";
+const string kHandshakeSecond = RTSP_FIELD"handshakeSecond";
+const string kKeepAliveSecond = RTSP_FIELD"keepAliveSecond";
 onceToken token([](){
 	//默认Md5方式认证
 	mINI::Instance()[kAuthBasic] = 0;
@@ -173,9 +173,9 @@ onceToken token([](){
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
 #define RTMP_FIELD "rtmp."
-const char kModifyStamp[] = RTMP_FIELD"modifyStamp";
-const char kHandshakeSecond[] = RTMP_FIELD"handshakeSecond";
-const char kKeepAliveSecond[] = RTMP_FIELD"keepAliveSecond";
+const string kModifyStamp = RTMP_FIELD"modifyStamp";
+const string kHandshakeSecond = RTMP_FIELD"handshakeSecond";
+const string kKeepAliveSecond = RTMP_FIELD"keepAliveSecond";
 
 onceToken token([](){
 	mINI::Instance()[kModifyStamp] = true;
@@ -192,22 +192,22 @@ namespace Rtp {
 
 //RTP打包最大MTU,公网情况下更小
 #define RTP_VIDOE_MTU_SIZE 1400
-const char kVideoMtuSize[] = RTP_FIELD"videoMtuSize";
+const string kVideoMtuSize = RTP_FIELD"videoMtuSize";
 
 #define RTP_Audio_MTU_SIZE 600
-const char kAudioMtuSize[] = RTP_FIELD"audioMtuSize";
+const string kAudioMtuSize = RTP_FIELD"audioMtuSize";
 
 //RTP排序缓存最大个数
 #define RTP_MAX_RTP_COUNT 50
-const char kMaxRtpCount[] = RTP_FIELD"maxRtpCount";
+const string kMaxRtpCount = RTP_FIELD"maxRtpCount";
 
 //如果RTP序列正确次数累计达到该数字就启动清空排序缓存
 #define RTP_CLEAR_COUNT 10
-const char kClearCount[] = RTP_FIELD"clearCount";
+const string kClearCount = RTP_FIELD"clearCount";
 
 //最大RTP时间为13个小时，每13小时回环一次
 #define RTP_CYCLE_MS (13*60*60*1000)
-const char kCycleMS[] = RTP_FIELD"cycleMS";
+const string kCycleMS = RTP_FIELD"cycleMS";
 
 
 onceToken token([](){
@@ -223,12 +223,12 @@ onceToken token([](){
 namespace MultiCast {
 #define MULTI_FIELD "multicast."
 //组播分配起始地址
-const char kAddrMin[] = MULTI_FIELD"addrMin";
+const string kAddrMin = MULTI_FIELD"addrMin";
 //组播分配截止地址
-const char kAddrMax[] = MULTI_FIELD"addrMax";
+const string kAddrMax = MULTI_FIELD"addrMax";
 //组播TTL
 #define MULTI_UDP_TTL 64
-const char kUdpTTL[] = MULTI_FIELD"udpTTL";
+const string kUdpTTL = MULTI_FIELD"udpTTL";
 
 onceToken token([](){
 	mINI::Instance()[kAddrMin] = "239.0.0.0";
@@ -244,19 +244,19 @@ namespace Record {
 
 //查看录像的应用名称
 #define RECORD_APP_NAME "record"
-const char kAppName[] = RECORD_FIELD"appName";
+const string kAppName = RECORD_FIELD"appName";
 
 //每次流化MP4文件的时长,单位毫秒
 #define RECORD_SAMPLE_MS 100
-const char kSampleMS[] = RECORD_FIELD"sampleMS";
+const string kSampleMS = RECORD_FIELD"sampleMS";
 
 //MP4文件录制大小,默认一个小时
 #define RECORD_FILE_SECOND (60*60)
-const char kFileSecond[] = RECORD_FIELD"fileSecond";
+const string kFileSecond = RECORD_FIELD"fileSecond";
 
 //录制文件路径
 #define RECORD_FILE_PATH HTTP_ROOT_PATH
-const char kFilePath[] = RECORD_FIELD"filePath";
+const string kFilePath = RECORD_FIELD"filePath";
 
 onceToken token([](){
 	mINI::Instance()[kAppName] = RECORD_APP_NAME;
@@ -273,19 +273,19 @@ namespace Hls {
 
 //HLS切片时长,单位秒
 #define HLS_SEGMENT_DURATION 3
-const char kSegmentDuration[] = HLS_FIELD"segDur";
+const string kSegmentDuration = HLS_FIELD"segDur";
 
 //HLS切片个数
 #define HLS_SEGMENT_NUM 3
-const char kSegmentNum[] = HLS_FIELD"segNum";
+const string kSegmentNum = HLS_FIELD"segNum";
 
 //HLS文件写缓存大小
 #define HLS_FILE_BUF_SIZE (64 * 1024)
-const char kFileBufSize[] = HLS_FIELD"fileBufSize";
+const string kFileBufSize = HLS_FIELD"fileBufSize";
 
 //录制文件路径
 #define HLS_FILE_PATH (HTTP_ROOT_PATH)
-const char kFilePath[] = HLS_FIELD"filePath";
+const string kFilePath = HLS_FIELD"filePath";
 
 onceToken token([](){
 	mINI::Instance()[kSegmentDuration] = HLS_SEGMENT_DURATION;
@@ -298,15 +298,15 @@ onceToken token([](){
 
 
 namespace Client {
-const char kNetAdapter[] = "net_adapter";
-const char kRtpType[] = "rtp_type";
-const char kRtspUser[] = "rtsp_user" ;
-const char kRtspPwd[] = "rtsp_pwd";
-const char kRtspPwdIsMD5[] = "rtsp_pwd_md5";
-const char kTimeoutMS[] = "protocol_timeout_ms";
-const char kMediaTimeoutMS[] = "media_timeout_ms";
-const char kBeatIntervalMS[] = "beat_interval_ms";
-const char kMaxAnalysisMS[] = "max_analysis_ms";
+const string kNetAdapter = "net_adapter";
+const string kRtpType = "rtp_type";
+const string kRtspUser = "rtsp_user" ;
+const string kRtspPwd = "rtsp_pwd";
+const string kRtspPwdIsMD5 = "rtsp_pwd_md5";
+const string kTimeoutMS = "protocol_timeout_ms";
+const string kMediaTimeoutMS = "media_timeout_ms";
+const string kBeatIntervalMS = "beat_interval_ms";
+const string kMaxAnalysisMS = "max_analysis_ms";
 
 }
 
