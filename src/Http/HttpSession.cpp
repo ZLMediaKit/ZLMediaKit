@@ -49,6 +49,12 @@ using namespace toolkit;
 namespace mediakit {
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
+static const string kCookieName = "ZL_COOKIE";
+static const string kAccessPathKey = "kAccessPathKey";
+static int kMaxClientPerUid = 1;
+static const string kAccessDirUnauthorized = "你没有权限访问该目录";
+static const string kAccessFileUnauthorized = "你没有权限访问该文件";
+
 
 string dateStr() {
 	char buf[64];
@@ -315,6 +321,81 @@ inline static string findIndexFile(const string &dir){
     return "";
 }
 
+inline string HttpSession::getClientUid(){
+    //该ip端口只能有一个cookie，不能重复获取cookie，
+    //目的是为了防止我们让客户端设置cookie，但是客户端不支持cookie导致一直重复生成cookie
+    //判断是否为同一个用户还可以根据url相关字段，但是这个跟具体业务逻辑相关，在这里不便实现
+    //如果一个http客户端不支持cookie并且一直变换端口号，那么会导致服务器无法追踪该用户，从而导致一直触发事件并且一直生成cookie
+    return StrPrinter << get_peer_ip() << ":" << get_peer_port();
+}
+inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const function<void(bool canAccess,const CookieData::Ptr &cookie)> &callback_in){
+    auto path = path_in;
+    replace(const_cast<string &>(path),"//","/");
+
+    auto callback = [callback_in,this](bool canAccess,const CookieData::Ptr &cookie){
+        try {
+            callback_in(canAccess,cookie);
+        }catch (SockException &ex){
+            if(ex){
+                shutdown(ex);
+            }
+        }catch (exception &ex){
+            shutdown(SockException(Err_shutdown,ex.what()));
+        }
+    };
+
+    //根据http头中的cookie字段获取cookie
+    auto cookie = CookieManager::Instance().getCookie(_parser.getValues(), kCookieName);
+    if (cookie) {
+        //判断该用户是否有权限访问该目录，并且不再设置客户端cookie
+        callback(!(*cookie)[kAccessPathKey].empty() && path.find((*cookie)[kAccessPathKey]) == 0, nullptr);
+        return;
+    }
+
+    //根据该用户的用户名获取cookie
+    string uid = getClientUid();
+    auto cookie_str = CookieManager::Instance().getOldestCookie(uid, kMaxClientPerUid);
+    if(!cookie_str.empty()){
+        //该用户已经登录过了,但是它(http客户端)貌似不支持cookie，所以我们只能通过它的用户名获取cookie
+        cookie = CookieManager::Instance().getCookie(cookie_str);
+        if (cookie) {
+            //判断该用户是否有权限访问该目录，并且不再设置客户端cookie
+            callback(!(*cookie)[kAccessPathKey].empty() && path.find((*cookie)[kAccessPathKey]) == 0, nullptr);
+            return;
+        }
+    }
+
+    //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
+    weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+    HttpAccessPathInvoker accessPathInvoker = [weakSelf, callback, uid , path] (const string &accessPath, int cookieLifeSecond) {
+        auto strongSelf = weakSelf.lock();
+        if (!strongSelf) {
+            //自己已经销毁
+            return;
+        }
+        strongSelf->async([weakSelf, callback, accessPath, cookieLifeSecond, uid , path]() {
+            //切换到自己线程
+            auto strongSelf = weakSelf.lock();
+            if (!strongSelf) {
+                //自己已经销毁
+                return;
+            }
+            //我们给用户生成追踪cookie
+            auto cookie = CookieManager::Instance().addCookie(uid, kMaxClientPerUid, cookieLifeSecond);
+            //记录用户能访问的路径
+            (*cookie)[kAccessPathKey] = accessPath;
+            //判断该用户是否有权限访问该目录，并且设置客户端cookie
+            callback(!accessPath.empty() && path.find(accessPath) == 0, cookie);
+        });
+    };
+
+    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess,_parser,_mediaInfo,path,is_dir,accessPathInvoker,*this);
+    if(!flag){
+        //此事件无人监听，我们默认都有权限访问
+        callback(true, nullptr);
+    }
+
+}
 
 inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//先看看是否为WebSocket请求
@@ -357,17 +438,30 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
             if(!indexFile.empty()){
                 //发现该文件夹下有index文件
                 strFile = strFile + "/" + indexFile;
+                _parser.setUrl(_parser.Url() + "/" + indexFile);
                 break;
             }
-            //生成文件夹菜单索引
             string strMeun;
+            //生成文件夹菜单索引
             if (!makeMeun(_parser.Url(),strFile,strMeun)) {
                 //文件夹不存在
                 sendNotFound(bClose);
                 throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on folder");
             }
-            sendResponse("200 OK", makeHttpHeader(bClose,strMeun.size() ), strMeun);
-            throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 200 ok on folder");
+
+            //判断是否有权限访问该目录
+            canAccessPath(_parser.Url(),true,[this,bClose,strFile,strMeun](bool canAccess,const CookieData::Ptr &cookie){
+                if(!canAccess){
+                    const_cast<string &>(strMeun) = kAccessDirUnauthorized;
+                }
+                auto headerOut = makeHttpHeader(bClose,strMeun.size());
+                if(cookie){
+                    headerOut["Set-Cookie"] = cookie->getCookie(kCookieName);
+                }
+                sendResponse(canAccess ? "200 OK" : "401 Unauthorized" , headerOut, strMeun);
+                throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access folder");
+            });
+            return;
         }
     }while(0);
 
@@ -391,97 +485,106 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
         throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on open file failed");
 	}
 
-	//判断是不是分节下载
-	auto &strRange = _parser["Range"];
-	int64_t iRangeStart = 0, iRangeEnd = 0;
-	iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
-	iRangeEnd = atoll(FindField(strRange.data(), "-", "\r\n").data());
-	if (iRangeEnd == 0) {
-		iRangeEnd = tFileStat.st_size - 1;
-	}
-	const char *pcHttpResult = NULL;
-	if (strRange.size() == 0) {
-		//全部下载
-		pcHttpResult = "200 OK";
-	} else {
-		//分节下载
-		pcHttpResult = "206 Partial Content";
-		fseek(pFilePtr.get(), iRangeStart, SEEK_SET);
-	}
-	auto httpHeader=makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strFile.data()));
-	if (strRange.size() != 0) {
-		//分节下载返回Content-Range头
-		httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
-	}
-	auto Origin = _parser["Origin"];
-	if(!Origin.empty()){
-		httpHeader["Access-Control-Allow-Origin"] = Origin;
-		httpHeader["Access-Control-Allow-Credentials"] = "true";
-	}
-	//先回复HTTP头部分
-	sendResponse(pcHttpResult, httpHeader, "");
-	if (iRangeEnd - iRangeStart < 0) {
-		//文件是空的!
-        throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send file partial range excpted");
-    }
-	//回复Content部分
-	std::shared_ptr<int64_t> piLeft(new int64_t(iRangeEnd - iRangeStart + 1));
+	auto parser = _parser;
+    //判断是否有权限访问该文件
+    canAccessPath(_parser.Url(),false,[this,parser,tFileStat,pFilePtr,bClose,strFile](bool canAccess,const CookieData::Ptr &cookie){
+        //判断是不是分节下载
+        auto &strRange = parser["Range"];
+        int64_t iRangeStart = 0, iRangeEnd = 0;
+        iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
+        iRangeEnd = atoll(FindField(strRange.data(), "-", "\r\n").data());
+        if (iRangeEnd == 0) {
+            iRangeEnd = tFileStat.st_size - 1;
+        }
+        const char *pcHttpResult = NULL;
+        if (strRange.size() == 0) {
+            //全部下载
+            pcHttpResult = "200 OK";
+        } else {
+            //分节下载
+            pcHttpResult = "206 Partial Content";
+            fseek(pFilePtr.get(), iRangeStart, SEEK_SET);
+        }
+        auto httpHeader = canAccess ? makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strFile.data()))
+                                    : makeHttpHeader(bClose, kAccessFileUnauthorized.size());
+        if (strRange.size() != 0) {
+            //分节下载返回Content-Range头
+            httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
+        }
+        auto Origin = parser["Origin"];
+        if(!Origin.empty()){
+            httpHeader["Access-Control-Allow-Origin"] = Origin;
+            httpHeader["Access-Control-Allow-Credentials"] = "true";
+        }
 
-    GET_CONFIG(uint32_t,sendBufSize,Http::kSendBufSize);
+        if(cookie){
+            httpHeader["Set-Cookie"] = cookie->getCookie(kCookieName);
+        }
+        //先回复HTTP头部分
+        sendResponse(canAccess ? pcHttpResult : "401 Unauthorized" , httpHeader,canAccess ? "" : kAccessFileUnauthorized);
+        if (!canAccess || iRangeEnd - iRangeStart < 0) {
+            //文件是空的!
+            throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access file");
+        }
+        //回复Content部分
+        std::shared_ptr<int64_t> piLeft(new int64_t(iRangeEnd - iRangeStart + 1));
 
-	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-	auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
-		TimeTicker();
-		auto strongSelf = weakSelf.lock();
-		while(*piLeft && strongSelf){
-            //更新超时定时器
-            strongSelf->_ticker.resetTime();
-            //从循环池获取一个内存片
-            auto sendBuf = strongSelf->obtainBuffer();
-            sendBuf->setCapacity(sendBufSize);
-            //本次需要读取文件字节数
-			int64_t iReq = MIN(sendBufSize,*piLeft);
-            //读文件	
-			int iRead;
-			do{
-				 iRead = fread(sendBuf->data(), 1, iReq, pFilePtr.get());
-			}while(-1 == iRead && UV_EINTR == get_uv_error(false));
-            //文件剩余字节数
-			*piLeft -= iRead;
+        GET_CONFIG(uint32_t,sendBufSize,Http::kSendBufSize);
 
-			if (iRead < iReq || !*piLeft) {
-                //文件读完
-				if(iRead>0) {
-					sendBuf->setSize(iRead);
-					strongSelf->send(sendBuf);
-				}
-				if(bClose) {
-					strongSelf->shutdown(SockException(Err_shutdown,"read file eof"));
-				}
-				return false;
-			}
-            //文件还未读完
-            sendBuf->setSize(iRead);
-            int iSent = strongSelf->send(sendBuf);
-			if(iSent == -1) {
-			    //套机制销毁
-				return false;
-			}
-            if(strongSelf->isSocketBusy()){
-                //套接字忙，那么停止继续写
-                return true;
+        weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+        auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
+            TimeTicker();
+            auto strongSelf = weakSelf.lock();
+            while(*piLeft && strongSelf){
+                //更新超时定时器
+                strongSelf->_ticker.resetTime();
+                //从循环池获取一个内存片
+                auto sendBuf = strongSelf->obtainBuffer();
+                sendBuf->setCapacity(sendBufSize);
+                //本次需要读取文件字节数
+                int64_t iReq = MIN(sendBufSize,*piLeft);
+                //读文件
+                int iRead;
+                do{
+                    iRead = fread(sendBuf->data(), 1, iReq, pFilePtr.get());
+                }while(-1 == iRead && UV_EINTR == get_uv_error(false));
+                //文件剩余字节数
+                *piLeft -= iRead;
+
+                if (iRead < iReq || !*piLeft) {
+                    //文件读完
+                    if(iRead>0) {
+                        sendBuf->setSize(iRead);
+                        strongSelf->send(sendBuf);
+                    }
+                    if(bClose) {
+                        strongSelf->shutdown(SockException(Err_shutdown,"read file eof"));
+                    }
+                    return false;
+                }
+                //文件还未读完
+                sendBuf->setSize(iRead);
+                int iSent = strongSelf->send(sendBuf);
+                if(iSent == -1) {
+                    //套机制销毁
+                    return false;
+                }
+                if(strongSelf->isSocketBusy()){
+                    //套接字忙，那么停止继续写
+                    return true;
+                }
+                //继续写套接字
             }
-			//继续写套接字
-		}
-		return false;
-	};
-	//关闭tcp_nodelay ,优化性能
-	SockUtil::setNoDelay(_sock->rawFD(),false);
-    //设置MSG_MORE，优化性能
-    (*this) << SocketFlags(kSockFlags);
+            return false;
+        };
+        //关闭tcp_nodelay ,优化性能
+        SockUtil::setNoDelay(_sock->rawFD(),false);
+        //设置MSG_MORE，优化性能
+        (*this) << SocketFlags(kSockFlags);
 
-    onFlush();
-	_sock->setOnFlush(onFlush);
+        onFlush();
+        _sock->setOnFlush(onFlush);
+    });
 }
 
 inline bool makeMeun(const string &httpPath,const string &strFullPath, string &strRet) {

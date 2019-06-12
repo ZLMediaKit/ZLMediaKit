@@ -57,6 +57,7 @@ namespace Broadcast {
 const char kBroadcastMediaChanged[] = "kBroadcastMediaChanged";
 const char kBroadcastRecordMP4[] = "kBroadcastRecordMP4";
 const char kBroadcastHttpRequest[] = "kBroadcastHttpRequest";
+const char kBroadcastHttpAccess[] = "kBroadcastHttpAccess";
 const char kBroadcastOnGetRtspRealm[] = "kBroadcastOnGetRtspRealm";
 const char kBroadcastOnRtspAuth[] = "kBroadcastOnRtspAuth";
 const char kBroadcastMediaPlayed[] = "kBroadcastMediaPlayed";

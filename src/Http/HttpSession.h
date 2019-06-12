@@ -35,6 +35,7 @@
 #include "RtmpMuxer/FlvMuxer.h"
 #include "HttpRequestSplitter.h"
 #include "WebSocketSplitter.h"
+#include "CookieManager.h"
 
 using namespace std;
 using namespace toolkit;
@@ -50,6 +51,8 @@ public:
 	typedef std::function<void(const string &codeOut,
 							   const KeyValue &headerOut,
 							   const string &contentOut)>  HttpResponseInvoker;
+
+	typedef std::function<void(const string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
 
 	HttpSession(const Socket::Ptr &pSock);
 	virtual ~HttpSession();
@@ -109,6 +112,17 @@ private:
                        const string &codeOut,
                        const KeyValue &headerOut,
                        const string &contentOut);
+
+    /**
+     * 是否有权限访问某目录或文件
+     * @param path 文件或目录
+     * @param is_dir path是否为目录
+     * @param callback 有权限或无权限的回调
+     */
+    inline void canAccessPath(const string &path,bool is_dir,const function<void(bool canAccess,const CookieData::Ptr &cookie)> &callback);
+
+    //获取用户唯一识别id，我们默认为ip+端口号
+    inline string getClientUid();
 private:
     Parser _parser;
     Ticker _ticker;

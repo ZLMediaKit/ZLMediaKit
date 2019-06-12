@@ -38,6 +38,7 @@
 #include "Http/HttpRequester.h"
 #include "Network/TcpSession.h"
 #include "Rtsp/RtspSession.h"
+#include "Http/HttpSession.h"
 
 using namespace Json;
 using namespace toolkit;
@@ -69,6 +70,7 @@ const char kOnStreamNotFound[] = HOOK_FIELD"on_stream_not_found";
 const char kOnRecordMp4[] = HOOK_FIELD"on_record_mp4";
 const char kOnShellLogin[] = HOOK_FIELD"on_shell_login";
 const char kOnStreamNoneReader[] = HOOK_FIELD"on_stream_none_reader";
+const char kOnHttpAccess[] = HOOK_FIELD"on_http_access";
 const char kAdminParams[] = HOOK_FIELD"admin_params";
 
 onceToken token([](){
@@ -84,6 +86,7 @@ onceToken token([](){
     mINI::Instance()[kOnRecordMp4] = "https://127.0.0.1/index/hook/on_record_mp4";
     mINI::Instance()[kOnShellLogin] = "https://127.0.0.1/index/hook/on_shell_login";
     mINI::Instance()[kOnStreamNoneReader] = "https://127.0.0.1/index/hook/on_stream_none_reader";
+    mINI::Instance()[kOnHttpAccess] = "https://127.0.0.1/index/hook/on_http_access";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
 },nullptr);
 }//namespace Hook
@@ -188,6 +191,8 @@ void installWebHook(){
     GET_CONFIG(string,hook_record_mp4,Hook::kOnRecordMp4);
     GET_CONFIG(string,hook_shell_login,Hook::kOnShellLogin);
     GET_CONFIG(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
+    GET_CONFIG(string,hook_http_access,Hook::kOnHttpAccess);
+
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
         if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1"){
@@ -377,6 +382,37 @@ void installWebHook(){
 
     });
 
+
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpAccess,[](BroadcastHttpAccessArgs){
+        if(!hook_enable || args._param_strs == hook_adminparams || hook_http_access.empty() ){
+            //这种情况下随便访问,先让他随便访问1分钟，之后可能开启鉴权
+            invoker("/",60);
+            return;
+        }
+
+        ArgsType body;
+        body["ip"] = sender.get_peer_ip();
+        body["port"] = sender.get_peer_port();
+        body["id"] = sender.getIdentifier();
+        body["path"] = path;
+        body["is_dir"] = is_dir;
+        body["params"] = parser.Params();
+        body["content"] = parser.Content();
+        for(auto &pr : parser.getValues()){
+          body[string("header.") + pr.first] = pr.second;
+        }
+        //执行hook
+        do_http_hook(hook_http_access,body, [invoker](const Value &obj,const string &err){
+            if(!err.empty()){
+                //如果接口访问失败，那么10秒内该客户端都没有访问http服务器的权限
+                invoker("",10);
+                return;
+            }
+            //path参数是该客户端能访问的根目录，该目录下的所有文件它都能访问
+            //second参数规定该cookie超时时间,超过这个时间后，用户需要重新鉴权
+            invoker(obj["path"].asString(),obj["second"].asInt());
+        });
+    });
 }
 
 void unInstallWebHook(){

@@ -145,7 +145,8 @@ public:
 				auto args_pos = _strFullUrl.find('?');
 				if (args_pos != string::npos) {
 					_strUrl = _strFullUrl.substr(0, args_pos);
-					_mapUrlArgs = parseArgs(_strFullUrl.substr(args_pos + 1));
+                    _params = _strFullUrl.substr(args_pos + 1);
+					_mapUrlArgs = parseArgs(_params);
 				} else {
 					_strUrl = _strFullUrl;
 				}
@@ -202,10 +203,14 @@ public:
 		_strMethod.clear();
 		_strUrl.clear();
 		_strFullUrl.clear();
+        _params.clear();
 		_strTail.clear();
 		_strContent.clear();
 		_mapHeaders.clear();
 		_mapUrlArgs.clear();
+	}
+	 const string &Params() const {
+         return _params;
 	}
 
 	void setUrl(const string &url) {
@@ -242,6 +247,7 @@ private:
 	string _strContent;
 	string _strNull;
 	string _strFullUrl;
+	string _params;
 	mutable StrCaseMap _mapHeaders;
 	mutable StrCaseMap _mapUrlArgs;
 };

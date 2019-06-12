@@ -79,6 +79,10 @@ extern const char kBroadcastRecordMP4[];
 extern const char kBroadcastHttpRequest[];
 #define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,TcpSession &sender
 
+//收到http 访问文件或目录的广播
+extern const char kBroadcastHttpAccess[];
+#define BroadcastHttpAccessArgs const Parser &parser,const MediaInfo &args,const string &path,const bool &is_dir,const HttpSession::HttpAccessPathInvoker &invoker,TcpSession &sender
+
 //该流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm.如果该事件不监听则不认证
 extern const char kBroadcastOnGetRtspRealm[];
 #define BroadcastOnGetRtspRealmArgs const MediaInfo &args,const RtspSession::onGetRealm &invoker,TcpSession &sender
