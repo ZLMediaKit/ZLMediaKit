@@ -325,10 +325,18 @@ inline string HttpSession::getClientUid(){
     //该ip端口只能有一个cookie，不能重复获取cookie，
     //目的是为了防止我们让客户端设置cookie，但是客户端不支持cookie导致一直重复生成cookie
     //判断是否为同一个用户还可以根据url相关字段，但是这个跟具体业务逻辑相关，在这里不便实现
-    //如果一个http客户端不支持cookie并且一直变换端口号，那么会导致服务器无法追踪该用户，从而导致一直触发事件并且一直生成cookie
-    return StrPrinter << get_peer_ip() << ":" << get_peer_port();
+    //如果一个http客户端不支持cookie并且一直变换端口号，那么可能会导致服务器无法追踪该用户，从而导致一直触发事件并且一直生成cookie
+    string uid = StrPrinter << get_peer_ip() << ":" << get_peer_port();
+    //所以我们通过kBroadcastTrackHttpClient事件来让业务逻辑自行决定根据url参数追踪用户
+    NoticeCenter::Instance().emitEventNoCopy(Broadcast::kBroadcastTrackHttpClient,_parser,uid,*this);
+    return uid;
 }
 inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const function<void(bool canAccess,const CookieData::Ptr &cookie)> &callback_in){
+    if(NoticeCenter::Instance().listenerSize(Broadcast::kBroadcastHttpAccess) == 0){
+        //该事件无人监听，那么就不做cookie查找这样费时的操作
+        callback_in(true, nullptr);
+        return;
+    }
     auto path = path_in;
     replace(const_cast<string &>(path),"//","/");
 

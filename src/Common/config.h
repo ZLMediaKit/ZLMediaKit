@@ -79,9 +79,15 @@ extern const string kBroadcastRecordMP4;
 extern const string kBroadcastHttpRequest;
 #define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,TcpSession &sender
 
-//收到http 访问文件或目录的广播
+//收到http 访问文件或目录的广播，通过该事件控制访问http目录的权限
 extern const string kBroadcastHttpAccess;
 #define BroadcastHttpAccessArgs const Parser &parser,const MediaInfo &args,const string &path,const bool &is_dir,const HttpSession::HttpAccessPathInvoker &invoker,TcpSession &sender
+
+//追踪用户事件，如果http客户端不支持cookie，ip端口又一直变，那么可以根据url参数来追踪用户，
+//从而减少kBroadcastHttpAccess事件触发的次数。
+extern const string kBroadcastTrackHttpClient;
+#define BroadcastTrackHttpClientArgs const Parser &parser,string &uid,TcpSession &sender
+
 
 //该流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm.如果该事件不监听则不认证
 extern const string kBroadcastOnGetRtspRealm;
