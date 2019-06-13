@@ -263,42 +263,39 @@ void HttpClient::onResponseCompleted_l() {
 
 void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
     //Set-Cookie: IPTV_SERVER=8E03927B-CC8C-4389-BC00-31DBA7EC7B49;expires=Sun, Sep 23 2018 15:07:31 GMT;path=/index/api/
-    auto it_set_cookie = headers.find("Set-Cookie");
-    if(it_set_cookie == headers.end()){
-        return;
-    }
-    auto key_val = Parser::parseArgs(it_set_cookie->second,";","=");
+    for(auto it_set_cookie = headers.find("Set-Cookie") ; it_set_cookie != headers.end() ; ++it_set_cookie ){
+        auto key_val = Parser::parseArgs(it_set_cookie->second,";","=");
+        HttpCookie::Ptr cookie = std::make_shared<HttpCookie>();
+        cookie->setHost(_lastHost);
 
-    HttpCookie::Ptr cookie = std::make_shared<HttpCookie>();
-    cookie->setHost(_lastHost);
+        int index = 0;
+        auto arg_vec = split(it_set_cookie->second, ";");
+        for (string &key_val : arg_vec) {
+            auto key = FindField(key_val.data(),NULL,"=");
+            auto val = FindField(key_val.data(),"=", NULL);
 
-    int index = 0;
-    auto arg_vec = split(it_set_cookie->second, ";");
-    for (string &key_val : arg_vec) {
-        auto key = FindField(key_val.data(),NULL,"=");
-        auto val = FindField(key_val.data(),"=", NULL);
+            if(index++ == 0){
+                cookie->setKeyVal(key,val);
+                continue;
+            }
 
-        if(index++ == 0){
-            cookie->setKeyVal(key,val);
-            continue;
+            if(key == "path") {
+                cookie->setPath(val);
+                continue;
+            }
+
+            if(key == "expires"){
+                cookie->setExpires(val,headers["Date"]);
+                continue;
+            }
         }
 
-        if(key == "path") {
-            cookie->setPath(val);
+        if(!(*cookie)){
+            //无效的cookie
             continue;
         }
-
-        if(key == "expires"){
-            cookie->setExpires(val,headers["Date"]);
-            continue;
-        }
+        HttpCookieStorage::Instance().set(cookie);
     }
-
-    if(!(*cookie)){
-        //无效的cookie
-        return;
-    }
-    HttpCookieStorage::Instance().set(cookie);
 }
 
 
