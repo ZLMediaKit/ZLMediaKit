@@ -667,10 +667,40 @@ void installWebApi() {
         val["close"] = true;
     });
 
+    static auto checkAccess = [](const string &params){
+        //我们假定大家都要权限访问
+        return true;
+    };
+
     API_REGIST(hook,on_http_access,{
-        //能访问根目录10分钟
+#if 0
+        //能访问根目录以及根目录下所有文件10分钟
         val["path"] = "/";
         val["second"] = 10 * 60;
+#else
+        //在这里根据allArgs["params"](url参数)来判断该http客户端是否有权限访问该文件
+        if(!checkAccess(allArgs["params"])){
+            //无访问权限
+            val["path"] = "";
+            //标记该客户端无权限1分钟，1分钟之内它凭此cookie访问将都无权限
+            //如果客户端不支持cookie，那么可以根据url参数来追踪用户，请参考kBroadcastTrackHttpClient事件
+            //如果服务器未处理kBroadcastTrackHttpClient事件，那么ZLMediaKit会根据ip和端口追踪用户
+            val["second"] = 60;
+            return;
+        }
+
+        //只能访问本文件，且只授权10分钟，访问其他文件都要另外授权
+        if(allArgs["is_dir"].as<bool>()){
+            //访问的是目录，该授权cookie只对该目录有效
+            val["path"] = (string)allArgs["path"];
+        }else{
+            //访问的是文件，那么我们授予客户端访问所在目录的权限
+            string dir = allArgs["path"].substr(0,allArgs["path"].rfind("/") + 1);
+            val["path"] = dir;
+        }
+        //该http客户端用户被授予10分钟的访问权限，该权限仅限访问特定目录
+        val["second"] = 10 * 60;
+#endif
     });
 
 

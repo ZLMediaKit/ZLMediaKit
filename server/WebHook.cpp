@@ -382,11 +382,59 @@ void installWebHook(){
 
     });
 
+    //由于http是短链接，如果http客户端不支持cookie，那么http服务器就不好追踪用户；
+    //如果无法追踪用户，那么每次访问http服务器文件都会触发kBroadcastHttpAccess事件，这样的话会严重影响性能
+    //所以在http客户端不支持cookie的情况下，目前只有两种方式来追踪用户
+    //1、根据url参数,2、根据ip和端口
+    //由于http短连接的特性，端口基本上是无法固定的，所以根据ip和端口来追踪用户基本不太现实，所以只剩方式1了
+    //以下提供了根据url参数来追踪用户的范例
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastTrackHttpClient,[](BroadcastTrackHttpClientArgs){
+        auto &params = parser.getUrlArgs();
+        if(!params["token"].empty()){
+            //根据token追踪用户
+            uid = params["token"];
+            return;
+        }
 
+        if(!params["uid"].empty()){
+            //根据uid追踪用户
+            uid = params["uid"];
+            return;
+        }
+
+        if(!params["user"].empty()){
+            //根据user追踪用户
+            uid = params["user"];
+            return;
+        }
+
+        if(!params["secret"].empty()){
+            //根据secret追踪用户
+            uid = params["secret"];
+            return;
+        }
+    });
+
+
+    //http客户端访问文件鉴权事件
+    //开发者应该通过该事件判定http客户端是否有权限访问http服务器上的特定文件
+    //ZLMediaKit会记录本次鉴权的结果，并且通过设置cookie的方式追踪该http客户端，
+    //在该cookie的有效期内，该http客户端再次访问该文件将不再触发kBroadcastHttpAccess事件
+    //如果http客户端不支持cookie，那么ZLMediaKit会通过诸如url参数的方式追踪http客户端
+    //通过追踪http客户端的方式，可以减少http短连接导致的大量的鉴权事件请求
+    //在kBroadcastHttpAccess事件中，开发者应该通过参数params（url参数）来判断http客户端是否具有访问权限
+    //需要指出的是，假如http客户端支持cookie，并且判定客户端没有权限，那么在该cookie有效期内，
+    //不管该客户端是否变换url参数都将无法再次访问该文件，所以如果判定无权限的情况下，可以把cookie有效期设置短一点
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpAccess,[](BroadcastHttpAccessArgs){
-        if(!hook_enable || args._param_strs == hook_adminparams || hook_http_access.empty() || sender.get_peer_ip() == "127.0.0.1"){
-            //这种情况下随便访问,先让他随便访问1分钟，之后可能开启鉴权
-            invoker("/",60);
+        if(sender.get_peer_ip() == "127.0.0.1" && args._param_strs == hook_adminparams){
+            //如果是本机或超级管理员访问，那么不做访问鉴权；权限有效期1个小时
+            invoker("/",60 * 60);
+            return;
+        }
+        if(!hook_enable || hook_http_access.empty()){
+            //未开启http文件访问鉴权，那么允许访问，但是每次访问都要鉴权；
+            //因为后续随时都可能开启鉴权(重载配置文件后可能重新开启鉴权)
+            invoker("/",0);
             return;
         }
 
@@ -397,7 +445,6 @@ void installWebHook(){
         body["path"] = path;
         body["is_dir"] = is_dir;
         body["params"] = parser.Params();
-        body["content"] = parser.Content();
         for(auto &pr : parser.getValues()){
           body[string("header.") + pr.first] = pr.second;
         }
