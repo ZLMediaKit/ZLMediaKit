@@ -35,7 +35,7 @@
 #include "RtmpMuxer/FlvMuxer.h"
 #include "HttpRequestSplitter.h"
 #include "WebSocketSplitter.h"
-#include "CookieManager.h"
+#include "HttpCookieManager.h"
 
 using namespace std;
 using namespace toolkit;
@@ -119,7 +119,7 @@ private:
      * @param is_dir path是否为目录
      * @param callback 有权限或无权限的回调
      */
-    inline void canAccessPath(const string &path,bool is_dir,const function<void(bool canAccess,const CookieData::Ptr &cookie)> &callback);
+    inline void canAccessPath(const string &path,bool is_dir,const function<void(bool canAccess,const HttpServerCookie::Ptr &cookie)> &callback);
 
     //获取用户唯一识别id，我们默认为ip+端口号
     inline string getClientUid();
