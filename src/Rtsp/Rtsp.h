@@ -125,14 +125,29 @@ struct StrCaseCompare {
 
 class StrCaseMap : public multimap<string, string, StrCaseCompare>{
 public:
+    typedef multimap<string, string, StrCaseCompare> Super ;
     StrCaseMap() = default;
     ~StrCaseMap() = default;
     string &operator[](const string &key){
         auto it = find(key);
         if(it == end()){
-            it = emplace(key,"");
+            it = Super::emplace(key,"");
         }
         return it->second;
+    }
+
+    template <class K,class V>
+    void emplace(K &&k , V &&v) {
+        auto it = find(k);
+        if(it != end()){
+            return;
+        }
+        Super::emplace(std::forward<K>(k),std::forward<V>(v));
+    }
+
+    template <class K,class V>
+    void emplace_force(K &&k , V &&v) {
+        Super::emplace(std::forward<K>(k),std::forward<V>(v));
     }
 };
 
@@ -167,7 +182,7 @@ public:
 				auto field = FindField(line.data(), NULL, ": ");
 				auto value = FindField(line.data(), ": ", NULL);
 				if (field.size() != 0) {
-					_mapHeaders.emplace(field,value);
+					_mapHeaders.emplace_force(field,value);
 				}
 			}
 			start = start + line.size() + 2;
@@ -247,7 +262,7 @@ public:
 		for (string &key_val : arg_vec) {
 			auto key = FindField(key_val.data(), NULL, key_delim);
 			auto val = FindField(key_val.data(), key_delim, NULL);
-			ret.emplace(key,val);
+			ret.emplace_force(key,val);
 		}
 		return ret;
 	}

@@ -69,17 +69,16 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
         //服务器域名
         host = FindField(host.data(), NULL, ":");
     }
-    _header.emplace(string("Host"), host);
-    _header.emplace(string("Tools"), "ZLMediaKit");
-    _header.emplace(string("Connection"), "keep-alive");
-    _header.emplace(string("Accept"), "*/*");
-    _header.emplace(string("Accept-Language"), "zh-CN,zh;q=0.8");
-    _header.emplace(string("User-Agent"),
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36");
+    _header.emplace("Host", host);
+    _header.emplace("Tools", "ZLMediaKit");
+    _header.emplace("Connection", "keep-alive");
+    _header.emplace("Accept", "*/*");
+    _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
+    _header.emplace("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36");
 
     if (_body && _body->remainSize()) {
-        _header.emplace(string("Content-Length"), to_string(_body->remainSize()));
-        _header.emplace(string("Content-Type"), "application/x-www-form-urlencoded; charset=UTF-8");
+        _header.emplace("Content-Length", to_string(_body->remainSize()));
+        _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
     }
 
     bool bChanged = (_lastHost != host + ":" + to_string(port)) || (_isHttps != isHttps);
@@ -94,7 +93,7 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     }
     if(!printer.empty()){
         printer.pop_back();
-        _header.emplace(string("Cookie"), printer);
+        _header.emplace("Cookie", printer);
     }
 
 
