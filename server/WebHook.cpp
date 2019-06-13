@@ -404,8 +404,8 @@ void installWebHook(){
         //执行hook
         do_http_hook(hook_http_access,body, [invoker](const Value &obj,const string &err){
             if(!err.empty()){
-                //如果接口访问失败，那么10秒内该客户端都没有访问http服务器的权限
-                invoker("",10);
+                //如果接口访问失败，那么仅限本次没有访问http服务器的权限
+                invoker("",0);
                 return;
             }
             //path参数是该客户端能访问的根目录，该目录下的所有文件它都能访问

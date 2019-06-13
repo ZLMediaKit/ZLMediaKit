@@ -388,12 +388,16 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
                 //自己已经销毁
                 return;
             }
-            //我们给用户生成追踪cookie
-            auto cookie = CookieManager::Instance().addCookie(uid, kMaxClientPerUid, cookieLifeSecond);
-            //记录用户能访问的路径
-            (*cookie)[kAccessPathKey] = accessPath;
-            //判断该用户是否有权限访问该目录，并且设置客户端cookie
-            callback(!accessPath.empty() && path.find(accessPath) == 0, cookie);
+            if(cookieLifeSecond){
+                //我们给用户生成追踪cookie
+                auto cookie = CookieManager::Instance().addCookie(uid, kMaxClientPerUid, cookieLifeSecond);
+                //记录用户能访问的路径
+                (*cookie)[kAccessPathKey] = accessPath;
+                //判断该用户是否有权限访问该目录，并且设置客户端cookie
+                callback(!accessPath.empty() && path.find(accessPath) == 0, cookie);
+            }else{
+                callback(!accessPath.empty() && path.find(accessPath) == 0, nullptr);
+            }
         });
     };
 
