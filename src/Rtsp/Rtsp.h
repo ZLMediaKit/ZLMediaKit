@@ -122,7 +122,19 @@ struct StrCaseCompare {
 	bool operator()(const string &__x, const string &__y) const { return strcasecmp(__x.data(), __y.data()) < 0; }
 };
 
-typedef map<string, string, StrCaseCompare> StrCaseMap;
+
+class StrCaseMap : public multimap<string, string, StrCaseCompare>{
+public:
+    StrCaseMap() = default;
+    ~StrCaseMap() = default;
+    string &operator[](const string &key){
+        auto it = find(key);
+        if(it == end()){
+            it = emplace(key,"");
+        }
+        return it->second;
+    }
+};
 
 class Parser {
 public:
@@ -155,7 +167,7 @@ public:
 				auto field = FindField(line.data(), NULL, ": ");
 				auto value = FindField(line.data(), ": ", NULL);
 				if (field.size() != 0) {
-					_mapHeaders[field] = value;
+					_mapHeaders.emplace(field,value);
 				}
 			}
 			start = start + line.size() + 2;
@@ -235,7 +247,7 @@ public:
 		for (string &key_val : arg_vec) {
 			auto key = FindField(key_val.data(), NULL, key_delim);
 			auto val = FindField(key_val.data(), key_delim, NULL);
-			ret[key] = val;
+			ret.emplace(key,val);
 		}
 		return ret;
 	}

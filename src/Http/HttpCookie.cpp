@@ -80,7 +80,7 @@ void HttpCookieStorage::set(const HttpCookie::Ptr &cookie) {
     if(!cookie || !(*cookie)){
         return;
     }
-    _all_cookie[cookie->_host][cookie->_path] = cookie;
+    _all_cookie[cookie->_host][cookie->_path][cookie->_key] = cookie;
 }
 
 vector<HttpCookie::Ptr> HttpCookieStorage::get(const string &host, const string &path) {
@@ -88,29 +88,27 @@ vector<HttpCookie::Ptr> HttpCookieStorage::get(const string &host, const string 
     lock_guard<mutex> lck(_mtx_cookie);
     auto it =  _all_cookie.find(host);
     if(it == _all_cookie.end()){
+        //未找到该host相关记录
         return ret;
     }
-    auto &path_cookie = it->second;
-
-    auto lam = [&](const string &sub_path){
-        auto it_cookie = path_cookie.find(sub_path);
-        if(it_cookie != path_cookie.end()){
-            if(*(it_cookie->second)){
-                ret.emplace_back(it_cookie->second);
-            }else{
-                path_cookie.erase(it_cookie);
-            }
+    //遍历该host下所有path
+    for(auto &pr : it->second){
+        if(path.find(pr.first) != 0){
+            //这个path不匹配
+            continue;
         }
-    };
-
-
-    int pos = 0;
-    do{
-        auto sub_path = path.substr(0,pos + 1);
-        lam(sub_path);
-        pos = path.find('/',1 + pos);
-    }while (pos != string::npos);
-    lam(path);
+        //遍历该path下的各个cookie
+        for(auto it_cookie = pr.second.begin() ; it_cookie != pr.second.end() ; ){
+            if(!*(it_cookie->second)){
+                //该cookie已经过期，移除之
+                it_cookie = pr.second.erase(it_cookie);
+                continue;
+            }
+            //保存有效cookie
+            ret.emplace_back(it_cookie->second);
+            ++it_cookie;
+        }
+    }
     return ret;
 }
 
