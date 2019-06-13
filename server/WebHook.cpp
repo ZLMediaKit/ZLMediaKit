@@ -72,6 +72,7 @@ const char kOnShellLogin[] = HOOK_FIELD"on_shell_login";
 const char kOnStreamNoneReader[] = HOOK_FIELD"on_stream_none_reader";
 const char kOnHttpAccess[] = HOOK_FIELD"on_http_access";
 const char kAdminParams[] = HOOK_FIELD"admin_params";
+const char kAccessFileExceptHls[] = HOOK_FIELD"access_file_except_hls";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = true;
@@ -88,6 +89,7 @@ onceToken token([](){
     mINI::Instance()[kOnStreamNoneReader] = "https://127.0.0.1/index/hook/on_stream_none_reader";
     mINI::Instance()[kOnHttpAccess] = "https://127.0.0.1/index/hook/on_http_access";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
+    mINI::Instance()[kAccessFileExceptHls] = true;
 },nullptr);
 }//namespace Hook
 
@@ -192,6 +194,7 @@ void installWebHook(){
     GET_CONFIG(string,hook_shell_login,Hook::kOnShellLogin);
     GET_CONFIG(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
     GET_CONFIG(string,hook_http_access,Hook::kOnHttpAccess);
+    GET_CONFIG(bool,access_file_except_hls,Hook::kAccessFileExceptHls);
 
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
@@ -395,25 +398,39 @@ void installWebHook(){
             uid = params["token"];
             return;
         }
-
-        if(!params["uid"].empty()){
-            //根据uid追踪用户
-            uid = params["uid"];
-            return;
-        }
-
-        if(!params["user"].empty()){
-            //根据user追踪用户
-            uid = params["user"];
-            return;
-        }
-
-        if(!params["secret"].empty()){
-            //根据secret追踪用户
-            uid = params["secret"];
-            return;
+        if(!parser.Params().empty()){
+            //根据url参数来追踪用户
+            uid = parser.Params();
         }
     });
+
+    //字符串是否以xx结尾
+    static auto end_of = [](const string &str, const string &substr){
+        auto pos = str.rfind(substr);
+        return pos != string::npos && pos == str.size() - substr.size();
+    };
+
+    //拦截hls的播放请求
+    static auto checkHls = [](BroadcastHttpAccessArgs){
+        if(!end_of(args._streamid,("/hls.m3u8"))) {
+            //不是hls
+            return false;
+        }
+        //访问的.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
+        Broadcast::AuthInvoker mediaAuthInvoker = [invoker,path](const string &err){
+            if(err.empty() ){
+                //鉴权通过,允许播放一个小时
+                invoker(path.substr(0,path.rfind("/") + 1),60 * 60);
+            }else{
+                //鉴权失败，10秒内不允许播放hls
+                invoker("",10);
+            }
+        };
+
+        auto args_copy = args;
+        replace(args_copy._streamid,"/hls.m3u8","");
+        return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,args_copy,mediaAuthInvoker,sender);
+    };
 
 
     //http客户端访问文件鉴权事件
@@ -426,6 +443,17 @@ void installWebHook(){
     //需要指出的是，假如http客户端支持cookie，并且判定客户端没有权限，那么在该cookie有效期内，
     //不管该客户端是否变换url参数都将无法再次访问该文件，所以如果判定无权限的情况下，可以把cookie有效期设置短一点
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpAccess,[](BroadcastHttpAccessArgs){
+        if(checkHls(parser,args,path,is_dir,invoker,sender)){
+            //是hls的播放鉴权,拦截之
+            return;
+        }
+
+        if(!access_file_except_hls){
+            //不允许访问hls之外的文件
+            invoker("",60 * 60);
+            return;
+        }
+
         if(sender.get_peer_ip() == "127.0.0.1" && args._param_strs == hook_adminparams){
             //如果是本机或超级管理员访问，那么不做访问鉴权；权限有效期1个小时
             invoker("/",60 * 60);
@@ -446,7 +474,7 @@ void installWebHook(){
         body["is_dir"] = is_dir;
         body["params"] = parser.Params();
         for(auto &pr : parser.getValues()){
-          body[string("header.") + pr.first] = pr.second;
+            body[string("header.") + pr.first] = pr.second;
         }
         //执行hook
         do_http_hook(hook_http_access,body, [invoker](const Value &obj,const string &err){
