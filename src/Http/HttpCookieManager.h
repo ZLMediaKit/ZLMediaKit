@@ -183,21 +183,19 @@ public:
     HttpServerCookie::Ptr getCookie(const string &cookie_name,const StrCaseMap &http_header);
 
     /**
+     * 根据uid获取cookie
+     * @param cookie_name cookie名，例如MY_SESSION
+     * @param uid 用户id
+     * @return cookie对象
+     */
+    HttpServerCookie::Ptr getCookieByUid(const string &cookie_name,const string &uid);
+
+    /**
      * 删除cookie，用户登出时使用
      * @param cookie cookie对象，可以为nullptr
      * @return
      */
     bool delCookie(const HttpServerCookie::Ptr &cookie);
-
-
-    /**
-     * 获取某用户名下最先登录时的cookie，目的是实现某用户下最多登录若干个设备
-     * @param cookie_name cookie名，例如MY_SESSION
-     * @param uid 用户id
-     * @param max_client 最多登录的设备个数
-     * @return 最早的cookie随机字符串
-     */
-    string getOldestCookie(const string &cookie_name,const string &uid, int max_client = 1);
 private:
     HttpCookieManager();
     void onManager();
@@ -216,6 +214,15 @@ private:
      * @param cookie cookie随机字符串
      */
     void onDelCookie(const string &cookie_name,const string &uid,const string &cookie);
+
+    /**
+     * 获取某用户名下最先登录时的cookie，目的是实现某用户下最多登录若干个设备
+     * @param cookie_name cookie名，例如MY_SESSION
+     * @param uid 用户id
+     * @param max_client 最多登录的设备个数
+     * @return 最早的cookie随机字符串
+     */
+    string getOldestCookie(const string &cookie_name,const string &uid, int max_client = 1);
 
     /**
      * 删除cookie

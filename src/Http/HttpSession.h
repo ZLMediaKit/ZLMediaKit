@@ -114,14 +114,24 @@ private:
                        const string &contentOut);
 
     /**
-     * 是否有权限访问某目录或文件
+     * 判断http客户端是否有权限访问文件的逻辑步骤
+     *
+     * 1、根据http请求头查找cookie，找到进入步骤3
+     * 2、根据http url参数(如果没有根据ip+端口号)查找cookie，如果还是未找到cookie则进入步骤5
+     * 3、cookie标记是否有权限访问文件，如果有权限，直接返回文件
+     * 4、cookie中记录的url参数是否跟本次url参数一致，如果一致直接返回客户端错误码
+     * 5、触发kBroadcastHttpAccess事件
      * @param path 文件或目录
      * @param is_dir path是否为目录
      * @param callback 有权限或无权限的回调
      */
     inline void canAccessPath(const string &path,bool is_dir,const function<void(bool canAccess,const HttpServerCookie::Ptr &cookie)> &callback);
 
-    //获取用户唯一识别id，我们默认为ip+端口号
+    /**
+     * 获取用户唯一识别id
+     * 有url参数返回参数，无参数返回ip+端口号
+     * @return
+     */
     inline string getClientUid();
 private:
     Parser _parser;

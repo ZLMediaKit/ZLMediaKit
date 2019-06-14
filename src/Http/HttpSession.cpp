@@ -321,21 +321,46 @@ inline static string findIndexFile(const string &dir){
 }
 
 inline string HttpSession::getClientUid(){
-    //该ip端口只能有一个cookie，不能重复获取cookie，
-    //目的是为了防止我们让客户端设置cookie，但是客户端不支持cookie导致一直重复生成cookie
-    //判断是否为同一个用户还可以根据url相关字段，但是这个跟具体业务逻辑相关，在这里不便实现
-    //如果一个http客户端不支持cookie并且一直变换端口号，那么可能会导致服务器无法追踪该用户，从而导致一直触发事件并且一直生成cookie
-    string uid = StrPrinter << get_peer_ip() << ":" << get_peer_port();
-    //所以我们通过kBroadcastTrackHttpClient事件来让业务逻辑自行决定根据url参数追踪用户
-    NoticeCenter::Instance().emitEventNoCopy(Broadcast::kBroadcastTrackHttpClient,_parser,uid,*this);
+    //如果http客户端不支持cookie，那么我们可以通过url参数来追踪用户
+    //如果url参数也没有，那么只能通过ip+端口号来追踪用户
+    //追踪用户的目的是为了减少http短链接情况的重复鉴权验证，通过缓存记录鉴权结果，提高性能
+    string uid = _parser.Params();
+    if(uid.empty()){
+        uid = StrPrinter << get_peer_ip() << ":" << get_peer_port();
+    }
     return uid;
 }
-inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const function<void(bool canAccess,const HttpServerCookie::Ptr &cookie)> &callback_in){
-    if(NoticeCenter::Instance().listenerSize(Broadcast::kBroadcastHttpAccess) == 0){
-        //该事件无人监听，那么就不做cookie查找这样费时的操作
-        callback_in(true, nullptr);
-        return;
+
+
+//字符串是否以xx结尾
+static inline bool end_of(const string &str, const string &substr){
+    auto pos = str.rfind(substr);
+    return pos != string::npos && pos == str.size() - substr.size();
+};
+
+//拦截hls的播放请求
+static inline bool checkHls(BroadcastHttpAccessArgs){
+    if(!end_of(args._streamid,("/hls.m3u8"))) {
+        //不是hls
+        return false;
     }
+    //访问的hls.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
+    Broadcast::AuthInvoker mediaAuthInvoker = [invoker,path](const string &err){
+        if(err.empty() ){
+            //鉴权通过,允许播放一个小时
+            invoker(path.substr(0,path.rfind("/") + 1),60 * 60);
+        }else{
+            //鉴权失败，10秒内不允许播放hls
+            invoker("",10);
+        }
+    };
+
+    auto args_copy = args;
+    replace(args_copy._streamid,"/hls.m3u8","");
+    return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,args_copy,mediaAuthInvoker,sender);
+}
+
+inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const function<void(bool canAccess,const HttpServerCookie::Ptr &cookie)> &callback_in){
     auto path = path_in;
     replace(const_cast<string &>(path),"//","/");
 
@@ -351,23 +376,28 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
         }
     };
 
-    //根据http头中的cookie字段获取cookie
-    auto cookie = HttpCookieManager::Instance().getCookie(kCookieName,_parser.getValues());
-    if (cookie) {
-        //判断该用户是否有权限访问该目录，并且不再设置客户端cookie
-        callback(!(*cookie)[kAccessPathKey].empty() && path.find((*cookie)[kAccessPathKey]) == 0, nullptr);
-        return;
+    //获取用户唯一id
+    auto uid = getClientUid();
+    //先根据http头中的cookie字段获取cookie
+    HttpServerCookie::Ptr cookie = HttpCookieManager::Instance().getCookie(kCookieName, _parser.getValues());
+    if(!cookie){
+        //客户端请求中无cookie,再根据该用户的用户id获取cookie
+        cookie = HttpCookieManager::Instance().getCookieByUid(kCookieName, uid);
     }
 
-    //根据该用户的用户名获取cookie
-    string uid = getClientUid();
-    auto cookie_str = HttpCookieManager::Instance().getOldestCookie(kCookieName,uid);
-    if(!cookie_str.empty()){
-        //该用户已经登录过了,但是它(http客户端)貌似不支持cookie，所以我们只能通过它的用户名获取cookie
-        cookie = HttpCookieManager::Instance().getCookie(kCookieName,cookie_str);
-        if (cookie) {
-            //判断该用户是否有权限访问该目录，并且不再设置客户端cookie
-            callback(!(*cookie)[kAccessPathKey].empty() && path.find((*cookie)[kAccessPathKey]) == 0, nullptr);
+    if(cookie){
+        //找到了cookie
+        auto accessPath = (*cookie)[kAccessPathKey];
+        if (!accessPath.empty() && path.find(accessPath) == 0) {
+            //用户是有权限访问该目录
+            callback(true, nullptr);
+            return;
+        }
+        //用户无权限访问,我们看看用户的url参数变了没有
+        //如果url参数变了，那么重新鉴权
+        if (cookie->getUid() == _parser.Params()) {
+            //url参数未变，那么判断无权限访问
+            callback(false, nullptr);
             return;
         }
     }
@@ -400,6 +430,11 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
             }
         });
     };
+
+    if(checkHls(_parser,_mediaInfo,path,is_dir,accessPathInvoker,*this)){
+        //是hls的播放鉴权,拦截之
+        return;
+    }
 
     bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess,_parser,_mediaInfo,path,is_dir,accessPathInvoker,*this);
     if(!flag){
