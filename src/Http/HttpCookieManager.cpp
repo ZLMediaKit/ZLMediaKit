@@ -76,6 +76,10 @@ bool HttpServerCookie::isExpired() {
     return _ticker.elapsedTime() > _max_elapsed * 1000;
 }
 
+std::shared_ptr<lock_guard<mutex> > HttpServerCookie::getLock(){
+    return std::make_shared<lock_guard<mutex> >(_mtx);
+}
+
 string HttpServerCookie::cookieExpireTime() const{
     char buf[64];
     time_t tt = time(NULL) + _max_elapsed;
@@ -105,7 +109,7 @@ void HttpCookieManager::onManager() {
         for (auto it_cookie = it_name->second.begin() ; it_cookie != it_name->second.end() ; ){
             if(it_cookie->second->isExpired()){
                 //cookie过期,移除记录
-                WarnL << it_cookie->second->getUid() << " cookie过期";
+                DebugL << it_cookie->second->getUid() << " cookie过期:" << it_cookie->second->getCookie();
                 it_cookie = it_name->second.erase(it_cookie);
                 continue;
             }
@@ -114,7 +118,7 @@ void HttpCookieManager::onManager() {
 
         if(it_name->second.empty()){
             //该类型下没有任何cooki记录,移除之
-            WarnL << "该path下没有任何cooki记录:" << it_name->first;
+            DebugL << "该path下没有任何cooki记录:" << it_name->first;
             it_name = _map_cookie.erase(it_name);
             continue;
         }
@@ -152,6 +156,7 @@ HttpServerCookie::Ptr HttpCookieManager::getCookie(const string &cookie_name,con
     }
     if(it_cookie->second->isExpired()){
         //cookie过期
+        DebugL << "cookie过期:" << it_cookie->second->getCookie();
         it_name->second.erase(it_cookie);
         return nullptr;
     }

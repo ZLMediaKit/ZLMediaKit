@@ -399,13 +399,13 @@ void installWebHook(){
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpAccess,[](BroadcastHttpAccessArgs){
         if(sender.get_peer_ip() == "127.0.0.1" && args._param_strs == hook_adminparams){
             //如果是本机或超级管理员访问，那么不做访问鉴权；权限有效期1个小时
-            invoker("/",60 * 60);
+            invoker("","",60 * 60);
             return;
         }
         if(!hook_enable || hook_http_access.empty()){
             //未开启http文件访问鉴权，那么允许访问，但是每次访问都要鉴权；
             //因为后续随时都可能开启鉴权(重载配置文件后可能重新开启鉴权)
-            invoker("/",0);
+            invoker("","",0);
             return;
         }
 
@@ -423,15 +423,13 @@ void installWebHook(){
         do_http_hook(hook_http_access,body, [invoker](const Value &obj,const string &err){
             if(!err.empty()){
                 //如果接口访问失败，那么仅限本次没有访问http服务器的权限
-                invoker("",0);
+                invoker(err,"",0);
                 return;
             }
-            //path参数是该客户端能访问的顶端目录，该目录下的所有文件它都能访问
-            //second参数规定该cookie超时时间,超过这个时间后，用户需要重新鉴权
-            //如果path为空字符串，则为禁止访问任何目录
-            //如果second为0，本次鉴权结果不缓存
-            //如果被禁止访问文件，在cookie有效期内，假定再次访问的url参数变了，那么也能立即触发重新鉴权操作
-            invoker(obj["path"].asString(),obj["second"].asInt());
+            //err参数代表不能访问的原因，空则代表可以访问
+            //path参数是该客户端能访问或被禁止的顶端目录，如果path为空字符串，则表述为当前目录
+            //second参数规定该cookie超时时间，如果second为0，本次鉴权结果不缓存
+            invoker(obj["err"].asString(),obj["path"].asString(),obj["second"].asInt());
         });
     });
 }
