@@ -52,7 +52,12 @@ public:
 							   const KeyValue &headerOut,
 							   const string &contentOut)>  HttpResponseInvoker;
 
-	typedef std::function<void(const string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
+	/**
+	 * @param errMsg 如果为空，则代表鉴权通过，否则为错误提示
+	 * @param accessPath 运行或禁止访问的根目录
+	 * @param cookieLifeSecond 鉴权cookie有效期
+	 **/
+	typedef std::function<void(const string &errMsg,const string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
 
 	HttpSession(const Socket::Ptr &pSock);
 	virtual ~HttpSession();
@@ -125,7 +130,7 @@ private:
      * @param is_dir path是否为目录
      * @param callback 有权限或无权限的回调
      */
-    inline void canAccessPath(const string &path,bool is_dir,const function<void(bool canAccess,const HttpServerCookie::Ptr &cookie)> &callback);
+    inline void canAccessPath(const string &path,bool is_dir,const function<void(const string &errMsg,const HttpServerCookie::Ptr &cookie)> &callback);
 
     /**
      * 获取用户唯一识别id

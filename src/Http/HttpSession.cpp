@@ -49,11 +49,10 @@ using namespace toolkit;
 namespace mediakit {
 
 static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
+static int kHlsCookieSecond = 10 * 60;
 static const string kCookieName = "ZL_COOKIE";
-static const string kAccessPathKey = "kAccessPathKey";
-static const string kAccessDirUnauthorized = "你没有权限访问该目录";
-static const string kAccessFileUnauthorized = "你没有权限访问该文件";
-
+static const string kCookiePathKey = "kCookiePathKey";
+static const string kAccessErrKey = "kAccessErrKey";
 
 string dateStr() {
 	char buf[64];
@@ -346,13 +345,8 @@ static inline bool checkHls(BroadcastHttpAccessArgs){
     }
     //访问的hls.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
     Broadcast::AuthInvoker mediaAuthInvoker = [invoker,path](const string &err){
-        if(err.empty() ){
-            //鉴权通过,允许播放一个小时
-            invoker(path.substr(0,path.rfind("/") + 1),60 * 60);
-        }else{
-            //鉴权失败，10秒内不允许播放hls
-            invoker("",10);
-        }
+        //cookie有效期为kHlsCookieSecond
+        invoker(err,"",kHlsCookieSecond);
     };
 
     auto args_copy = args;
@@ -360,13 +354,13 @@ static inline bool checkHls(BroadcastHttpAccessArgs){
     return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,args_copy,mediaAuthInvoker,sender);
 }
 
-inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const function<void(bool canAccess,const HttpServerCookie::Ptr &cookie)> &callback_in){
+inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const function<void(const string &errMsg,const HttpServerCookie::Ptr &cookie)> &callback_in){
     auto path = path_in;
     replace(const_cast<string &>(path),"//","/");
 
-    auto callback = [callback_in,this](bool canAccess,const HttpServerCookie::Ptr &cookie){
+    auto callback = [callback_in,this](const string &errMsg,const HttpServerCookie::Ptr &cookie){
         try {
-            callback_in(canAccess,cookie);
+            callback_in(errMsg,cookie);
         }catch (SockException &ex){
             if(ex){
                 shutdown(ex);
@@ -386,48 +380,63 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
     }
 
     if(cookie){
-        //找到了cookie
-        auto accessPath = (*cookie)[kAccessPathKey];
-        if (!accessPath.empty() && path.find(accessPath) == 0) {
-            //用户是有权限访问该目录
-            callback(true, nullptr);
+        //找到了cookie，对cookie上锁先
+        auto lck = cookie->getLock();
+        auto accessErr = (*cookie)[kAccessErrKey];
+        if (accessErr.empty() && path.find((*cookie)[kCookiePathKey]) == 0) {
+            //用户有权限访问该目录
+            callback("", nullptr);
             return;
         }
+
         //用户无权限访问,我们看看用户的url参数变了没有
-        //如果url参数变了，那么重新鉴权
-        if (cookie->getUid() == _parser.Params()) {
+        if (_parser.Params().empty() || _parser.Params() == cookie->getUid()) {
             //url参数未变，那么判断无权限访问
-            callback(false, nullptr);
+            callback(accessErr.empty() ? "无权限访问该目录" : accessErr, nullptr);
             return;
         }
+        //如果url参数变了，那么旧cookie失效，我们重新鉴权
+        HttpCookieManager::Instance().delCookie(cookie);
     }
 
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-    HttpAccessPathInvoker accessPathInvoker = [weakSelf, callback, uid , path] (const string &accessPath, int cookieLifeSecond) {
+    HttpAccessPathInvoker accessPathInvoker = [weakSelf,callback,uid,path,is_dir] (const string &errMsg,const string &cookie_path_in, int cookieLifeSecond) {
+        string cookie_path = cookie_path_in;
+        if(cookie_path.empty()){
+            //如果未设置鉴权目录，那么我们采用当前目录
+            if(is_dir){
+                cookie_path = path;
+            }else{
+                cookie_path = path.substr(0,path.rfind("/") + 1);
+            }
+        }
+
+        HttpServerCookie::Ptr cookie ;
+        if(cookieLifeSecond) {
+            //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
+            cookie = HttpCookieManager::Instance().addCookie(kCookieName, uid, cookieLifeSecond);
+            //对cookie上锁
+            auto lck = cookie->getLock();
+            //记录用户能访问的路径
+            (*cookie)[kCookiePathKey] = cookie_path;
+            //记录能否访问
+            (*cookie)[kAccessErrKey] = errMsg;
+        }
+
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
             //自己已经销毁
             return;
         }
-        strongSelf->async([weakSelf, callback, accessPath, cookieLifeSecond, uid , path]() {
+        strongSelf->async([weakSelf,callback,cookie,errMsg]() {
             //切换到自己线程
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 //自己已经销毁
                 return;
             }
-            if(cookieLifeSecond){
-                //我们给用户生成追踪cookie
-                auto cookie = HttpCookieManager::Instance().addCookie(kCookieName,uid,cookieLifeSecond);
-                //记录用户能访问的路径
-                (*cookie)[kAccessPathKey] = accessPath;
-                //判断该用户是否有权限访问该目录，并且设置客户端cookie
-                callback(!accessPath.empty() && path.find(accessPath) == 0, cookie);
-            }else{
-                //仅限本次访问文件
-                callback(!accessPath.empty() && path.find(accessPath) == 0, nullptr);
-            }
+            callback(errMsg, cookie);
         });
     };
 
@@ -439,7 +448,7 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
     bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess,_parser,_mediaInfo,path,is_dir,accessPathInvoker,*this);
     if(!flag){
         //此事件无人监听，我们默认都有权限访问
-        callback(true, nullptr);
+        callback("", nullptr);
     }
 
 }
@@ -497,15 +506,16 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
             }
 
             //判断是否有权限访问该目录
-            canAccessPath(_parser.Url(),true,[this,bClose,strFile,strMeun](bool canAccess,const HttpServerCookie::Ptr &cookie){
-                if(!canAccess){
-                    const_cast<string &>(strMeun) = kAccessDirUnauthorized;
+            auto path = _parser.Url();
+            canAccessPath(_parser.Url(),true,[this,bClose,strFile,strMeun,path](const string &errMsg,const HttpServerCookie::Ptr &cookie){
+                if(!errMsg.empty()){
+                    const_cast<string &>(strMeun) = errMsg;
                 }
                 auto headerOut = makeHttpHeader(bClose,strMeun.size());
                 if(cookie){
-                    headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kAccessPathKey]);
+                    headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey]);
                 }
-                sendResponse(canAccess ? "200 OK" : "401 Unauthorized" , headerOut, strMeun);
+                sendResponse(errMsg.empty() ? "200 OK" : "401 Unauthorized" , headerOut, strMeun);
                 throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access folder");
             });
             return;
@@ -534,7 +544,16 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
 
 	auto parser = _parser;
     //判断是否有权限访问该文件
-    canAccessPath(_parser.Url(),false,[this,parser,tFileStat,pFilePtr,bClose,strFile](bool canAccess,const HttpServerCookie::Ptr &cookie){
+    canAccessPath(_parser.Url(),false,[this,parser,tFileStat,pFilePtr,bClose,strFile](const string &errMsg,const HttpServerCookie::Ptr &cookie){
+        if(!errMsg.empty()){
+            auto headerOut = makeHttpHeader(bClose,errMsg.size());
+            if(cookie){
+                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey]);
+            }
+            sendResponse("401 Unauthorized" , headerOut, errMsg);
+            throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access file failed");
+        }
+
         //判断是不是分节下载
         auto &strRange = parser["Range"];
         int64_t iRangeStart = 0, iRangeEnd = 0;
@@ -552,8 +571,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
             pcHttpResult = "206 Partial Content";
             fseek(pFilePtr.get(), iRangeStart, SEEK_SET);
         }
-        auto httpHeader = canAccess ? makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strFile.data()))
-                                    : makeHttpHeader(bClose, kAccessFileUnauthorized.size());
+        auto httpHeader =  makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strFile.data()));
         if (strRange.size() != 0) {
             //分节下载返回Content-Range头
             httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
@@ -564,12 +582,10 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
             httpHeader["Access-Control-Allow-Credentials"] = "true";
         }
 
-        if(cookie){
-            httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kAccessPathKey]);
-        }
         //先回复HTTP头部分
-        sendResponse(canAccess ? pcHttpResult : "401 Unauthorized" , httpHeader,canAccess ? "" : kAccessFileUnauthorized);
-        if (!canAccess || iRangeEnd - iRangeStart < 0) {
+        sendResponse(pcHttpResult,httpHeader,"");
+        
+        if (iRangeEnd - iRangeStart < 0) {
             //文件是空的!
             throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access file");
         }

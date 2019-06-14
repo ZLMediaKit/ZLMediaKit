@@ -102,6 +102,12 @@ public:
      * @return
      */
     bool isExpired();
+
+    /**
+     * 获取区域锁
+     * @return
+     */
+    std::shared_ptr<lock_guard<mutex> > getLock();
 private:
     string cookieExpireTime() const ;
 private:
@@ -110,6 +116,7 @@ private:
     string _cookie_uuid;
     uint64_t _max_elapsed;
     Ticker _ticker;
+    mutex _mtx;
     std::weak_ptr<HttpCookieManager> _manager;
 };
 
