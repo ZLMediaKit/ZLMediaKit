@@ -402,22 +402,19 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
     HttpAccessPathInvoker accessPathInvoker = [weakSelf,callback,uid,path,is_dir] (const string &errMsg,const string &cookie_path_in, int cookieLifeSecond) {
-        string cookie_path = cookie_path_in;
-        if(cookie_path.empty()){
-            //如果未设置鉴权目录，那么我们采用当前目录
-            if(is_dir){
-                cookie_path = path;
-            }else{
-                cookie_path = path.substr(0,path.rfind("/") + 1);
-            }
-        }
-
         HttpServerCookie::Ptr cookie ;
         if(cookieLifeSecond) {
             //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
             cookie = HttpCookieManager::Instance().addCookie(kCookieName, uid, cookieLifeSecond);
             //对cookie上锁
             auto lck = cookie->getLock();
+
+            string cookie_path = cookie_path_in;
+            if(cookie_path.empty()){
+                //如果未设置鉴权目录，那么我们采用当前目录
+                cookie_path = is_dir ? path : path.substr(0,path.rfind("/") + 1);
+            }
+
             //记录用户能访问的路径
             (*cookie)[kCookiePathKey] = cookie_path;
             //记录能否访问
@@ -506,8 +503,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
             }
 
             //判断是否有权限访问该目录
-            auto path = _parser.Url();
-            canAccessPath(_parser.Url(),true,[this,bClose,strFile,strMeun,path](const string &errMsg,const HttpServerCookie::Ptr &cookie){
+            canAccessPath(_parser.Url(),true,[this,bClose,strFile,strMeun](const string &errMsg,const HttpServerCookie::Ptr &cookie){
                 if(!errMsg.empty()){
                     const_cast<string &>(strMeun) = errMsg;
                 }
