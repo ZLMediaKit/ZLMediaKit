@@ -383,19 +383,21 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
         //找到了cookie，对cookie上锁先
         auto lck = cookie->getLock();
         auto accessErr = (*cookie)[kAccessErrKey];
-        if (accessErr.empty() && path.find((*cookie)[kCookiePathKey]) == 0) {
-            //用户有权限访问该目录
-            callback("", nullptr);
-            return;
+        if(path.find((*cookie)[kCookiePathKey]) == 0){
+            //上次cookie是限定本目录
+            if(accessErr.empty()){
+                //上次鉴权成功
+                callback("", nullptr);
+                return;
+            }
+            //上次鉴权失败，如果url发生变更，那么也重新鉴权
+            if (_parser.Params().empty() || _parser.Params() == cookie->getUid()) {
+                //url参数未变，那么判断无权限访问
+                callback(accessErr.empty() ? "无权限访问该目录" : accessErr, nullptr);
+                return;
+            }
         }
-
-        //用户无权限访问,我们看看用户的url参数变了没有
-        if (_parser.Params().empty() || _parser.Params() == cookie->getUid()) {
-            //url参数未变，那么判断无权限访问
-            callback(accessErr.empty() ? "无权限访问该目录" : accessErr, nullptr);
-            return;
-        }
-        //如果url参数变了，那么旧cookie失效，我们重新鉴权
+        //如果url参数变了或者不是限定本目录，那么旧cookie失效，重新鉴权
         HttpCookieManager::Instance().delCookie(cookie);
     }
 
