@@ -405,16 +405,15 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
         HttpServerCookie::Ptr cookie ;
         if(cookieLifeSecond) {
             //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
-            cookie = HttpCookieManager::Instance().addCookie(kCookieName, uid, cookieLifeSecond);
-            //对cookie上锁
-            auto lck = cookie->getLock();
-
             string cookie_path = cookie_path_in;
             if(cookie_path.empty()){
                 //如果未设置鉴权目录，那么我们采用当前目录
                 cookie_path = is_dir ? path : path.substr(0,path.rfind("/") + 1);
             }
 
+            cookie = HttpCookieManager::Instance().addCookie(kCookieName, uid, cookieLifeSecond);
+            //对cookie上锁
+            auto lck = cookie->getLock();
             //记录用户能访问的路径
             (*cookie)[kCookiePathKey] = cookie_path;
             //记录能否访问
