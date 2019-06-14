@@ -72,7 +72,6 @@ const char kOnShellLogin[] = HOOK_FIELD"on_shell_login";
 const char kOnStreamNoneReader[] = HOOK_FIELD"on_stream_none_reader";
 const char kOnHttpAccess[] = HOOK_FIELD"on_http_access";
 const char kAdminParams[] = HOOK_FIELD"admin_params";
-const char kAccessFileExceptHls[] = HOOK_FIELD"access_file_except_hls";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = true;
@@ -89,7 +88,6 @@ onceToken token([](){
     mINI::Instance()[kOnStreamNoneReader] = "https://127.0.0.1/index/hook/on_stream_none_reader";
     mINI::Instance()[kOnHttpAccess] = "https://127.0.0.1/index/hook/on_http_access";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
-    mINI::Instance()[kAccessFileExceptHls] = true;
 },nullptr);
 }//namespace Hook
 
@@ -194,8 +192,6 @@ void installWebHook(){
     GET_CONFIG(string,hook_shell_login,Hook::kOnShellLogin);
     GET_CONFIG(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
     GET_CONFIG(string,hook_http_access,Hook::kOnHttpAccess);
-    GET_CONFIG(bool,access_file_except_hls,Hook::kAccessFileExceptHls);
-
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
         if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1"){
@@ -385,75 +381,22 @@ void installWebHook(){
 
     });
 
-    //由于http是短链接，如果http客户端不支持cookie，那么http服务器就不好追踪用户；
-    //如果无法追踪用户，那么每次访问http服务器文件都会触发kBroadcastHttpAccess事件，这样的话会严重影响性能
-    //所以在http客户端不支持cookie的情况下，目前只有两种方式来追踪用户
-    //1、根据url参数,2、根据ip和端口
-    //由于http短连接的特性，端口基本上是无法固定的，所以根据ip和端口来追踪用户基本不太现实，所以只剩方式1了
-    //以下提供了根据url参数来追踪用户的范例
-    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastTrackHttpClient,[](BroadcastTrackHttpClientArgs){
-        auto &params = parser.getUrlArgs();
-        if(!params["token"].empty()){
-            //根据token追踪用户
-            uid = params["token"];
-            return;
-        }
-        if(!parser.Params().empty()){
-            //根据url参数来追踪用户
-            uid = parser.Params();
-        }
-    });
-
-    //字符串是否以xx结尾
-    static auto end_of = [](const string &str, const string &substr){
-        auto pos = str.rfind(substr);
-        return pos != string::npos && pos == str.size() - substr.size();
-    };
-
-    //拦截hls的播放请求
-    static auto checkHls = [](BroadcastHttpAccessArgs){
-        if(!end_of(args._streamid,("/hls.m3u8"))) {
-            //不是hls
-            return false;
-        }
-        //访问的.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
-        Broadcast::AuthInvoker mediaAuthInvoker = [invoker,path](const string &err){
-            if(err.empty() ){
-                //鉴权通过,允许播放一个小时
-                invoker(path.substr(0,path.rfind("/") + 1),60 * 60);
-            }else{
-                //鉴权失败，10秒内不允许播放hls
-                invoker("",10);
-            }
-        };
-
-        auto args_copy = args;
-        replace(args_copy._streamid,"/hls.m3u8","");
-        return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,args_copy,mediaAuthInvoker,sender);
-    };
-
-
-    //http客户端访问文件鉴权事件
+    /**
+     * kBroadcastHttpAccess事件触发机制
+     * 1、根据http请求头查找cookie，找到进入步骤3
+     * 2、根据http url参数(如果没有根据ip+端口号)查找cookie，如果还是未找到cookie则进入步骤5
+     * 3、cookie标记是否有权限访问文件，如果有权限，直接返回文件
+     * 4、cookie中记录的url参数是否跟本次url参数一致，如果一致直接返回客户端错误码
+     * 5、触发kBroadcastHttpAccess事件
+     */
     //开发者应该通过该事件判定http客户端是否有权限访问http服务器上的特定文件
-    //ZLMediaKit会记录本次鉴权的结果，并且通过设置cookie的方式追踪该http客户端，
-    //在该cookie的有效期内，该http客户端再次访问该文件将不再触发kBroadcastHttpAccess事件
-    //如果http客户端不支持cookie，那么ZLMediaKit会通过诸如url参数的方式追踪http客户端
-    //通过追踪http客户端的方式，可以减少http短连接导致的大量的鉴权事件请求
-    //在kBroadcastHttpAccess事件中，开发者应该通过参数params（url参数）来判断http客户端是否具有访问权限
-    //需要指出的是，假如http客户端支持cookie，并且判定客户端没有权限，那么在该cookie有效期内，
-    //不管该客户端是否变换url参数都将无法再次访问该文件，所以如果判定无权限的情况下，可以把cookie有效期设置短一点
+    //ZLMediaKit会记录本次鉴权的结果至cookie
+    //如果鉴权成功，在cookie有效期内，那么下次客户端再访问授权目录时，ZLMediaKit会直接返回文件
+    //如果鉴权失败，在cookie有效期内，如果http url参数不变(否则会立即再次触发鉴权事件)，ZLMediaKit会直接返回错误码
+    //如果用户客户端不支持cookie，那么ZLMediaKit会根据url参数查找cookie并追踪用户，
+    //如果没有url参数，客户端又不支持cookie，那么会根据ip和端口追踪用户
+    //追踪用户的目的是为了缓存上次鉴权结果，减少鉴权次数，提高性能
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpAccess,[](BroadcastHttpAccessArgs){
-        if(checkHls(parser,args,path,is_dir,invoker,sender)){
-            //是hls的播放鉴权,拦截之
-            return;
-        }
-
-        if(!access_file_except_hls){
-            //不允许访问hls之外的文件
-            invoker("",60 * 60);
-            return;
-        }
-
         if(sender.get_peer_ip() == "127.0.0.1" && args._param_strs == hook_adminparams){
             //如果是本机或超级管理员访问，那么不做访问鉴权；权限有效期1个小时
             invoker("/",60 * 60);
@@ -483,8 +426,11 @@ void installWebHook(){
                 invoker("",0);
                 return;
             }
-            //path参数是该客户端能访问的根目录，该目录下的所有文件它都能访问
+            //path参数是该客户端能访问的顶端目录，该目录下的所有文件它都能访问
             //second参数规定该cookie超时时间,超过这个时间后，用户需要重新鉴权
+            //如果path为空字符串，则为禁止访问任何目录
+            //如果second为0，本次鉴权结果不缓存
+            //如果被禁止访问文件，在cookie有效期内，假定再次访问的url参数变了，那么也能立即触发重新鉴权操作
             invoker(obj["path"].asString(),obj["second"].asInt());
         });
     });

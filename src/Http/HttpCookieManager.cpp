@@ -173,6 +173,17 @@ HttpServerCookie::Ptr HttpCookieManager::getCookie(const string &cookie_name,con
     return HttpCookieManager::Instance().getCookie(cookie_name , cookie);
 }
 
+HttpServerCookie::Ptr HttpCookieManager::getCookieByUid(const string &cookie_name,const string &uid){
+    if(cookie_name.empty() || uid.empty()){
+        return nullptr;
+    }
+    auto cookie = getOldestCookie(cookie_name,uid);
+    if(cookie.empty()){
+        return nullptr;
+    }
+    return getCookie(cookie_name,cookie);
+}
+
 bool HttpCookieManager::delCookie(const HttpServerCookie::Ptr &cookie) {
     if(!cookie){
         return false;

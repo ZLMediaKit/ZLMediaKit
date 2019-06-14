@@ -58,7 +58,6 @@ const string kBroadcastMediaChanged = "kBroadcastMediaChanged";
 const string kBroadcastRecordMP4 = "kBroadcastRecordMP4";
 const string kBroadcastHttpRequest = "kBroadcastHttpRequest";
 const string kBroadcastHttpAccess = "kBroadcastHttpAccess";
-const string kBroadcastTrackHttpClient = "kBroadcastTrackHttpClient";
 const string kBroadcastOnGetRtspRealm = "kBroadcastOnGetRtspRealm";
 const string kBroadcastOnRtspAuth = "kBroadcastOnRtspAuth";
 const string kBroadcastMediaPlayed = "kBroadcastMediaPlayed";
