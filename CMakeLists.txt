@@ -125,11 +125,7 @@ endif ()
 add_subdirectory(tests)
 
 #主服务器
-if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    add_subdirectory(server)
-elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    add_subdirectory(server)
-endif ()
+add_subdirectory(server)
 
 
 
