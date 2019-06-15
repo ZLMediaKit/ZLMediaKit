@@ -27,7 +27,6 @@
 #include <sstream>
 #include <unordered_map>
 #include <mutex>
-#include "System.h"
 #include "jsoncpp/json.h"
 #include "Util/logger.h"
 #include "Util/util.h"

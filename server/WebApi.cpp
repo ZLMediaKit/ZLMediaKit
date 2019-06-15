@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -42,9 +42,12 @@
 #include "Http/HttpSession.h"
 #include "Network/TcpServer.h"
 #include "Player/PlayerProxy.h"
-#include "FFmpegSource.h"
 #include "Util/MD5.h"
 #include "WebApi.h"
+
+#if !defined(_WIN32)
+#include "FFmpegSource.h"
+#endif//!defined(_WIN32)
 
 using namespace Json;
 using namespace toolkit;
@@ -245,8 +248,10 @@ static inline string getProxyKey(const string &vhost,const string &app,const str
     return vhost + "/" + app + "/" + stream;
 }
 
+#if !defined(_WIN32)
 static unordered_map<string ,FFmpegSource::Ptr> s_ffmpegMap;
 static recursive_mutex s_ffmpegMapMtx;
+#endif//#if !defined(_WIN32)
 
 /**
  * 安装api接口
@@ -322,6 +327,7 @@ void installWebApi() {
         }
     });
 
+#if !defined(_WIN32)
     //重启服务器,只有Daemon方式才能重启，否则是直接关闭！
     //测试url http://127.0.0.1/index/api/restartServer
     API_REGIST(api,restartServer,{
@@ -340,6 +346,7 @@ void installWebApi() {
         });
         val["msg"] = "服务器将在一秒后自动重启";
     });
+#endif//#if !defined(_WIN32)
 
 
     //获取流列表，可选筛选参数
@@ -507,6 +514,7 @@ void installWebApi() {
         val["data"]["flag"] = s_proxyMap.erase(allArgs["key"]) == 1;
     });
 
+#if !defined(_WIN32)
     static auto addFFmepgSource = [](const string &src_url,
                                      const string &dst_url,
                                      int timeout_ms,
@@ -563,6 +571,7 @@ void installWebApi() {
         lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
         val["data"]["flag"] = s_ffmpegMap.erase(allArgs["key"]) == 1;
     });
+#endif
 
     ////////////以下是注册的Hook API////////////
     API_REGIST(hook,on_publish,{
@@ -600,12 +609,12 @@ void installWebApi() {
         throw SuccessException();
     });
 
+
+#if !defined(_WIN32)
     API_REGIST_INVOKER(hook,on_stream_not_found,{
         //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream");
-
-#if 1
         //通过FFmpeg按需拉流
         GET_CONFIG(int,rtmp_port,Rtmp::kPort);
         string dst_url = StrPrinter
@@ -627,9 +636,14 @@ void installWebApi() {
                             }
                             invoker("200 OK", headerOut, val.toStyledString());
                         });
-
+    });
 
 #else
+
+    API_REGIST_INVOKER(hook,on_stream_not_found,{
+        //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
+        CHECK_SECRET();
+        CHECK_ARGS("vhost","app","stream");
         //通过内置支持的rtsp/rtmp按需拉流
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
@@ -648,9 +662,8 @@ void installWebApi() {
                            }
                            invoker("200 OK", headerOut, val.toStyledString());
                        });
-#endif
     });
-
+#endif // !defined(_WIN32)
 
     API_REGIST(hook,on_record_mp4,{
         //录制mp4分片完毕事件
@@ -701,8 +714,10 @@ void unInstallWebApi(){
         s_proxyMap.clear();
     }
 
+#if !defined(_WIN32)
     {
         lock_guard<recursive_mutex> lck(s_ffmpegMapMtx);
         s_ffmpegMap.clear();
     }
+#endif
 }

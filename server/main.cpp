@@ -43,8 +43,11 @@
 #include "RtmpMuxer/FlvMuxer.h"
 #include "Player/PlayerProxy.h"
 #include "Http/WebSocketSession.h"
-#include "System.h"
 #include "WebApi.h"
+
+#if !defined(_WIN32)
+#include "System.h"
+#endif//!defined(_WIN32)
 
 using namespace std;
 using namespace toolkit;
@@ -105,6 +108,7 @@ public:
     CMD_main() {
         _parser.reset(new OptionParser(nullptr));
 
+#if !defined(_WIN32)
         (*_parser) << Option('d',/*该选项简称，如果是\x00则说明无简称*/
                              "daemon",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
                              Option::ArgNone,/*该选项后面必须跟值*/
@@ -112,6 +116,7 @@ public:
                              false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
                              "是否以Daemon方式启动",/*该选项说明文字*/
                              nullptr);
+#endif//!defined(_WIN32)
 
         (*_parser) << Option('l',/*该选项简称，如果是\x00则说明无简称*/
                              "level",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
@@ -158,12 +163,14 @@ extern void unInstallWebApi();
 extern void installWebHook();
 extern void unInstallWebHook();
 
+#if !defined(_WIN32)
 static void inline listen_shell_input(){
     cout << "> 欢迎进入命令模式，你可以输入\"help\"命令获取帮助" << endl;
     cout << "> " << std::flush;
 
     signal(SIGTTOU,SIG_IGN);
     signal(SIGTTIN,SIG_IGN);
+
     SockUtil::setNoBlocked(STDIN_FILENO);
     auto oninput = [](int event) {
         if (event & Event_Read) {
@@ -193,6 +200,8 @@ static void inline listen_shell_input(){
     };
     EventPollerPool::Instance().getFirstPoller()->addEvent(STDIN_FILENO, Event_Read | Event_Error | Event_LT,oninput);
 }
+#endif//!defined(_WIN32)
+
 int main(int argc,char *argv[]) {
     {
         CMD_main cmd_main;
@@ -218,13 +227,14 @@ int main(int argc,char *argv[]) {
         Logger::Instance().add(std::make_shared<FileChannel>("FileChannel", exePath() + ".log", logLevel));
 #endif
 
+#if !defined(_WIN32)
         if (bDaemon) {
             //启动守护进程
             System::startDaemon();
         }
-
         //开启崩溃捕获等
         System::systemSetup();
+#endif//!defined(_WIN32)
 
         //启动异步日志线程
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
@@ -275,10 +285,12 @@ int main(int argc,char *argv[]) {
         installWebHook();
         InfoL << "已启动http hook 接口";
 
+#if !defined(_WIN32)
         if (!bDaemon) {
             //交互式shell输入
             listen_shell_input();
         }
+#endif
 
         //设置退出信号处理函数
         static semaphore sem;
@@ -287,7 +299,10 @@ int main(int argc,char *argv[]) {
             signal(SIGINT, SIG_IGN);// 设置退出信号
             sem.post();
         });// 设置退出信号
+
+#if !defined(_WIN32)
         signal(SIGHUP, [](int) { mediakit::loadIniConfig(ini_file.data()); });
+#endif
         sem.wait();
     }
     unInstallWebApi();
