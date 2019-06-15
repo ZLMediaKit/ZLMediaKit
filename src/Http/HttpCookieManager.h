@@ -47,7 +47,7 @@ class HttpCookieManager;
 /**
  * cookie对象，用于保存cookie的一些相关属性
  */
-class HttpServerCookie : public mINI , public noncopyable{
+class HttpServerCookie : public map<string,string> , public noncopyable{
 public:
     typedef std::shared_ptr<HttpServerCookie> Ptr;
     /**
