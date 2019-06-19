@@ -54,9 +54,9 @@ namespace mediakit {
 namespace Http {
 #define HTTP_FIELD "http."
 #define HTTP_PORT 80
-const char kPort[] = HTTP_FIELD"port";
+const string kPort = HTTP_FIELD"port";
 #define HTTPS_PORT 443
-const char kSSLPort[] = HTTP_FIELD"sslport";
+const string kSSLPort = HTTP_FIELD"sslport";
 onceToken token1([](){
     mINI::Instance()[kPort] = HTTP_PORT;
     mINI::Instance()[kSSLPort] = HTTPS_PORT;
@@ -67,7 +67,7 @@ onceToken token1([](){
 namespace Shell {
 #define SHELL_FIELD "shell."
 #define SHELL_PORT 9000
-const char kPort[] = SHELL_FIELD"port";
+const string kPort = SHELL_FIELD"port";
 onceToken token1([](){
     mINI::Instance()[kPort] = SHELL_PORT;
 },nullptr);
@@ -78,8 +78,8 @@ namespace Rtsp {
 #define RTSP_FIELD "rtsp."
 #define RTSP_PORT 554
 #define RTSPS_PORT 322
-const char kPort[] = RTSP_FIELD"port";
-const char kSSLPort[] = RTSP_FIELD"sslport";
+const string kPort = RTSP_FIELD"port";
+const string kSSLPort = RTSP_FIELD"sslport";
 onceToken token1([](){
     mINI::Instance()[kPort] = RTSP_PORT;
     mINI::Instance()[kSSLPort] = RTSPS_PORT;
@@ -91,7 +91,7 @@ onceToken token1([](){
 namespace Rtmp {
 #define RTMP_FIELD "rtmp."
 #define RTMP_PORT 1935
-const char kPort[] = RTMP_FIELD"port";
+const string kPort = RTMP_FIELD"port";
 onceToken token1([](){
     mINI::Instance()[kPort] = RTMP_PORT;
 },nullptr);
