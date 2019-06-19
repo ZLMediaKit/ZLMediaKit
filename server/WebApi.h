@@ -27,16 +27,21 @@
 #ifndef ZLMEDIAKIT_WEBAPI_H
 #define ZLMEDIAKIT_WEBAPI_H
 
+#include <string>
+using namespace std;
+
 namespace mediakit {
+
 ////////////RTSP服务器配置///////////
 namespace Rtsp {
-    extern const char kPort[];
+extern const string kPort;
 } //namespace Rtsp
 
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
-    extern const char kPort[];
+extern const string kPort;
 } //namespace RTMP
+
 }  // namespace mediakit
 
 
