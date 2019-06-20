@@ -260,7 +260,7 @@ string System::execute(const string &cmd) {
     }
     string ret;
     char buff[1024] = {0};
-    while(fgets(buff, sizeof(buff), fPipe)){
+    while(fgets(buff, sizeof(buff) - 1, fPipe)){
         ret.append(buff);
     }
     pclose(fPipe);
