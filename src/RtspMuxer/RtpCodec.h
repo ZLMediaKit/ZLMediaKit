@@ -35,27 +35,18 @@ using namespace toolkit;
 
 namespace mediakit{
 
-class RtpPacket : public Buffer{
+class RtpPacket : public BufferRaw{
 public:
     typedef std::shared_ptr<RtpPacket> Ptr;
     uint8_t interleaved;
     uint8_t PT;
     bool mark;
-    uint32_t length;
     //时间戳，单位毫秒
     uint32_t timeStamp;
     uint16_t sequence;
     uint32_t ssrc;
-    uint8_t payload[1604];
     uint8_t offset;
     TrackType type;
-
-    char *data() const override {
-        return (char *)payload;
-    }
-    uint32_t size() const override {
-        return length;
-    }
 };
 
 class RtpRingInterface {

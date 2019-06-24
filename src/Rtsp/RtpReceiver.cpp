@@ -45,9 +45,9 @@ RtpReceiver::~RtpReceiver() {}
 bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen) {
     auto pt_ptr=_pktPool.obtain();
     auto &rtppt=*pt_ptr;
-    rtppt.interleaved = track->_interleaved;
-    rtppt.length = uiLen + 4;
+    auto length = uiLen + 4;
 
+    rtppt.interleaved = track->_interleaved;
     rtppt.mark = pucData[1] >> 7;
     rtppt.PT = pucData[1] & 0x7F;
     //序列号
@@ -81,12 +81,8 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
     }
     _aui32SsrcErrorCnt[iTrackidx] = 0;
 
-    rtppt.payload[0] = '$';
-    rtppt.payload[1] = rtppt.interleaved;
-    rtppt.payload[2] = uiLen >> 8;
-    rtppt.payload[3] = (uiLen & 0x00FF);
-
-    rtppt.offset 	= 16;
+    //获取rtp中媒体数据偏移量
+    rtppt.offset 	= 12 + 4;
     int csrc     	= pucData[0] & 0x0f;
     int ext      	= pucData[0] & 0x10;
     rtppt.offset 	+= 4 * csrc;
@@ -99,16 +95,20 @@ bool RtpReceiver::handleOneRtp(int iTrackidx,SdpTrack::Ptr &track, unsigned char
         rtppt.offset += ext;
     }
 
-    if(rtppt.length - rtppt.offset <= 0){
-        WarnL << "无有效负载的rtp包:" << rtppt.length << "<=" << (int)rtppt.offset;
+    if(length - rtppt.offset <= 0){
+        WarnL << "无有效负载的rtp包:" << length << "<=" << (int)rtppt.offset;
         return false;
     }
 
-    if(uiLen > sizeof(rtppt.payload) - 4){
-        WarnL << "超长的rtp包:" << uiLen << ">" << sizeof(rtppt.payload) - 4;
-        return false;
-    }
-    memcpy(rtppt.payload + 4, pucData, uiLen);
+    rtppt.setCapacity(length);
+    rtppt.setSize(length);
+    uint8_t *payload_ptr = (uint8_t *)rtppt.data();
+    payload_ptr[0] = '$';
+    payload_ptr[1] = rtppt.interleaved;
+    payload_ptr[2] = uiLen >> 8;
+    payload_ptr[3] = (uiLen & 0x00FF);
+    //拷贝rtp负载
+    memcpy(payload_ptr + 4, pucData, uiLen);
 
     /////////////////////////////////RTP排序逻辑///////////////////////////////////
     if(rtppt.sequence != _aui16LastSeq[iTrackidx] + 1 && _aui16LastSeq[iTrackidx] != 0){

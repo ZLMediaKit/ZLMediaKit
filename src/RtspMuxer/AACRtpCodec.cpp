@@ -105,10 +105,10 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     RtpCodec::inputRtp(rtppack, false);
 
 	// 获取rtp数据长度
-    int length = rtppack->length - rtppack->offset;
+    int length = rtppack->size() - rtppack->offset;
 
 	// 获取rtp数据
-	const uint8_t *rtp_packet_buf = (uint8_t *)rtppack->payload + rtppack->offset;
+	const uint8_t *rtp_packet_buf = (uint8_t *)rtppack->data() + rtppack->offset;
 	
 	do
 	{

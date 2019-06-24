@@ -82,8 +82,8 @@ bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
 }
 
 bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
-    const uint8_t *frame = (uint8_t *) rtppack->payload + rtppack->offset;
-    int length = rtppack->length - rtppack->offset;
+    const uint8_t *frame = (uint8_t *) rtppack->data() + rtppack->offset;
+    int length = rtppack->size() - rtppack->offset;
     int nal = H265_TYPE(frame[0]);
 
     if (nal > 50){

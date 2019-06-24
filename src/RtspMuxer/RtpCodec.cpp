@@ -35,7 +35,10 @@ RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, unsigned int l
     uint32_t sc = htonl(_ui32Ssrc);
 
     auto rtppkt = ResourcePoolHelper<RtpPacket>::obtainObj();
-    unsigned char *pucRtp = rtppkt->payload;
+    rtppkt->setCapacity(len + 16);
+    rtppkt->setSize(len + 16);
+
+    unsigned char *pucRtp = (unsigned char *)rtppkt->data();
     pucRtp[0] = '$';
     pucRtp[1] = _ui8Interleaved;
     pucRtp[2] = ui16RtpLen >> 8;
@@ -52,7 +55,6 @@ RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, unsigned int l
     rtppkt->PT = _ui8PlayloadType;
     rtppkt->interleaved = _ui8Interleaved;
     rtppkt->mark = mark;
-    rtppkt->length = len + 16;
     rtppkt->sequence = _ui16Sequence;
     rtppkt->timeStamp = uiStamp;
     rtppkt->ssrc = _ui32Ssrc;

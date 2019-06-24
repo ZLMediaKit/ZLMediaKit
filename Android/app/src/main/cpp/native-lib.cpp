@@ -203,7 +203,7 @@ JNI_API(jlong,createMediaPlayer,jstring url,jobject callback){
         emitEvent((jobject)globalWeakRef,"onShutdown","(ILjava/lang/String;)V",(jint)ex.getErrCode(),env->NewStringUTF(ex.what()));
     });
 
-    (*player)[Client::kRtpType] = Rtsp::RTP_UDP;
+    (*player)[Client::kRtpType] = Rtsp::RTP_TCP;
     player->play(stringFromJstring(env,url));
 
     return (jlong)(ret);
