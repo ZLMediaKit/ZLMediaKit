@@ -180,12 +180,12 @@ void RtpReceiver::setPoolSize(int size) {
     _rtp_pool.setSize(size);
 }
 
-int RtpReceiver::getJitterSize(int iTrackidx){
-    return _rtp_sort_cache_map[iTrackidx].size();
+int RtpReceiver::getJitterSize(int track_index){
+    return _rtp_sort_cache_map[track_index].size();
 }
 
-int RtpReceiver::getCycleCount(int iTrackidx){
-    return _seq_cycle_count[iTrackidx];
+int RtpReceiver::getCycleCount(int track_index){
+    return _seq_cycle_count[track_index];
 }
 
 
