@@ -38,6 +38,7 @@
 #include "Network/TcpSession.h"
 #include "Rtsp/RtspSession.h"
 #include "Http/HttpSession.h"
+#include "WebHook.h"
 
 using namespace Json;
 using namespace toolkit;
@@ -57,20 +58,20 @@ typedef HttpArgs ArgsType;
 namespace Hook {
 #define HOOK_FIELD "hook."
 
-const char kEnable[] = HOOK_FIELD"enable";
-const char kTimeoutSec[] = HOOK_FIELD"timeoutSec";
-const char kOnPublish[] = HOOK_FIELD"on_publish";
-const char kOnPlay[] = HOOK_FIELD"on_play";
-const char kOnFlowReport[] = HOOK_FIELD"on_flow_report";
-const char kOnRtspRealm[] = HOOK_FIELD"on_rtsp_realm";
-const char kOnRtspAuth[] = HOOK_FIELD"on_rtsp_auth";
-const char kOnStreamChanged[] = HOOK_FIELD"on_stream_changed";
-const char kOnStreamNotFound[] = HOOK_FIELD"on_stream_not_found";
-const char kOnRecordMp4[] = HOOK_FIELD"on_record_mp4";
-const char kOnShellLogin[] = HOOK_FIELD"on_shell_login";
-const char kOnStreamNoneReader[] = HOOK_FIELD"on_stream_none_reader";
-const char kOnHttpAccess[] = HOOK_FIELD"on_http_access";
-const char kAdminParams[] = HOOK_FIELD"admin_params";
+const string kEnable = HOOK_FIELD"enable";
+const string kTimeoutSec = HOOK_FIELD"timeoutSec";
+const string kOnPublish = HOOK_FIELD"on_publish";
+const string kOnPlay = HOOK_FIELD"on_play";
+const string kOnFlowReport = HOOK_FIELD"on_flow_report";
+const string kOnRtspRealm = HOOK_FIELD"on_rtsp_realm";
+const string kOnRtspAuth = HOOK_FIELD"on_rtsp_auth";
+const string kOnStreamChanged = HOOK_FIELD"on_stream_changed";
+const string kOnStreamNotFound = HOOK_FIELD"on_stream_not_found";
+const string kOnRecordMp4 = HOOK_FIELD"on_record_mp4";
+const string kOnShellLogin = HOOK_FIELD"on_shell_login";
+const string kOnStreamNoneReader = HOOK_FIELD"on_stream_none_reader";
+const string kOnHttpAccess = HOOK_FIELD"on_http_access";
+const string kAdminParams = HOOK_FIELD"admin_params";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = true;
