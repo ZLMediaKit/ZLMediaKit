@@ -44,6 +44,7 @@
 #include "Player/PlayerProxy.h"
 #include "Util/MD5.h"
 #include "WebApi.h"
+#include "WebHook.h"
 
 #if !defined(_WIN32)
 #include "FFmpegSource.h"
@@ -88,8 +89,8 @@ typedef enum {
 } ApiErr;
 
 #define API_FIELD "api."
-const char kApiDebug[] = API_FIELD"apiDebug";
-const char kSecret[] = API_FIELD"secret";
+const string kApiDebug = API_FIELD"apiDebug";
+const string kSecret = API_FIELD"secret";
 
 static onceToken token([]() {
     mINI::Instance()[kApiDebug] = "1";
@@ -617,6 +618,8 @@ void installWebApi() {
         CHECK_ARGS("vhost","app","stream");
         //通过FFmpeg按需拉流
         GET_CONFIG(int,rtmp_port,Rtmp::kPort);
+        GET_CONFIG(int,timeout_sec,Hook::kTimeoutSec);
+
         string dst_url = StrPrinter
                 << "rtmp://127.0.0.1:"
                 << rtmp_port << "/"
@@ -626,7 +629,7 @@ void installWebApi() {
 
         addFFmepgSource("http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
                         dst_url,
-                        10000,
+                        (1000 * timeout_sec) - 500,
                         [invoker,val,headerOut](const SockException &ex,const string &key){
                             if(ex){
                                 const_cast<Value &>(val)["code"] = API::OtherFailed;
