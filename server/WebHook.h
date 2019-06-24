@@ -34,5 +34,7 @@ namespace Hook {
 extern const string kTimeoutSec;
 }//namespace Hook
 
+void installWebHook();
+void unInstallWebHook();
 
 #endif //ZLMEDIAKIT_WEBHOOK_H

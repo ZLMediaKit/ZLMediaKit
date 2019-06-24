@@ -45,4 +45,7 @@ extern const string kPort;
 }  // namespace mediakit
 
 
+void installWebApi();
+void unInstallWebApi();
+
 #endif //ZLMEDIAKIT_WEBAPI_H
