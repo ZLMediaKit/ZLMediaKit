@@ -58,14 +58,14 @@ protected:
 
     /**
      * rtp数据包排序后输出
-     * @param rtppt rtp数据包
-     * @param trackidx track索引
+     * @param rtp rtp数据包
+     * @param track_index track索引
      */
-    virtual void onRtpSorted(const RtpPacket::Ptr &rtp, int trackidx){}
+    virtual void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index){}
     void clear();
     void setPoolSize(int size);
-    int getJitterSize(int iTrackidx);
-    int getCycleCount(int iTrackidx);
+    int getJitterSize(int track_index);
+    int getCycleCount(int track_index);
 private:
     void sortRtp(const RtpPacket::Ptr &rtp , int track_index);
 private:
