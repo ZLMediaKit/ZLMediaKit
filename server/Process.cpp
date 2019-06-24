@@ -44,6 +44,11 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
     }
     if (_pid == 0) {
         //子进程
+
+        //子进程关闭core文件生成
+        struct rlimit rlim = {0,0};
+        setrlimit(RLIMIT_CORE, &rlim);
+
         // ignore the SIGINT and SIGTERM
         signal(SIGINT, SIG_IGN);
         signal(SIGTERM, SIG_IGN);
