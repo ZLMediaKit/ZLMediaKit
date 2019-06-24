@@ -91,8 +91,8 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
      * Type==8:PPS frame
      */
 
-    const uint8_t *frame = (uint8_t *) rtppack->payload + rtppack->offset;
-    int length = rtppack->length - rtppack->offset;
+    const uint8_t *frame = (uint8_t *) rtppack->data() + rtppack->offset;
+    int length = rtppack->size() - rtppack->offset;
     NALU nal;
     MakeNalu(*frame, nal);
 

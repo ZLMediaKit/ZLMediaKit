@@ -732,7 +732,7 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &tra
         //send rtcp every 5 second
         counter.lastTimeStamp = counter.timeStamp;
         //直接保存网络字节序
-        memcpy(&counter.timeStamp, pkt->payload + 8 , 4);
+        memcpy(&counter.timeStamp, pkt->data() + 8 , 4);
         if(counter.lastTimeStamp != 0){
             sendReceiverReport(_eType == Rtsp::RTP_TCP,iTrackIndex);
             ticker.resetTime();

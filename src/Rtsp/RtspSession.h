@@ -57,10 +57,10 @@ public:
     virtual ~BufferRtp(){}
 
     char *data() const override {
-        return (char *)_rtp->payload + _offset;
+        return (char *)_rtp->data() + _offset;
     }
     uint32_t size() const override {
-        return _rtp->length - _offset;
+        return _rtp->size() - _offset;
     }
 private:
     RtpPacket::Ptr _rtp;
