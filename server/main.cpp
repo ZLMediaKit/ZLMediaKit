@@ -44,6 +44,7 @@
 #include "Player/PlayerProxy.h"
 #include "Http/WebSocketSession.h"
 #include "WebApi.h"
+#include "WebHook.h"
 
 #if !defined(_WIN32)
 #include "System.h"
@@ -156,12 +157,6 @@ public:
         return "主程序命令参数";
     }
 };
-
-
-extern void installWebApi();
-extern void unInstallWebApi();
-extern void installWebHook();
-extern void unInstallWebHook();
 
 #if !defined(_WIN32)
 static void inline listen_shell_input(){
