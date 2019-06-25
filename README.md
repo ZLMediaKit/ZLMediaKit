@@ -152,7 +152,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 	
 	# 4、build
 	cd ZLMediaKit
-  	./build_for_linux.sh
+	./build_for_linux.sh
   ```
 
 ### Build on macOS
