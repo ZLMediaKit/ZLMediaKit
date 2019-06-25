@@ -221,7 +221,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
   
 - Guidance
 ```
-1 Enter the ZLMediaKit directory and execute git submodule update -- init downloads the code 	 for ZLToolKit
+1 Enter the ZLMediaKit directory and execute git submodule update -- init downloads the code for ZLToolKit
 2 Open the project with cmake-gui and generate the vs project file.
 3 Find the project file (ZLMediaKit.sln), double-click to open it with vs2017.
 4 Choose to compile Release version. Find the target file and run the test case.
