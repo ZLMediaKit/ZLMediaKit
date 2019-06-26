@@ -1110,7 +1110,7 @@ void RtspSession::onNoneReader(MediaSource &sender){
 }
 
 
-inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
+void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
     //InfoP(this) <<(int)pkt.Interleaved;
     switch (_rtpType) {
         case Rtsp::RTP_TCP: {
@@ -1152,7 +1152,7 @@ inline void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
 #endif
 }
 
-inline void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
+void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
     static const char s_cname[] = "ZLMediaKitRtsp";
     uint8_t aui8Rtcp[4 + 28 + 10 + sizeof(s_cname) + 1] = {0};
     uint8_t *pui8Rtcp_SR = aui8Rtcp + 4, *pui8Rtcp_SDES = pui8Rtcp_SR + 28;

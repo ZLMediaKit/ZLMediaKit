@@ -108,10 +108,8 @@ protected:
 	bool close(MediaSource &sender,bool force) override ;
     void onNoneReader(MediaSource &sender) override;
 
-
     //TcpSession override
     int send(const Buffer::Ptr &pkt) override;
-
 
     /**
      * 收到RTCP包回调
@@ -153,9 +151,10 @@ private:
     void onAuthBasic(const string &realm,const string &strBase64);
     void onAuthDigest(const string &realm,const string &strMd5);
 
-	inline void sendRtpPacket(const RtpPacket::Ptr &pkt);
+    void sendRtpPacket(const RtpPacket::Ptr &pkt);
 	bool sendRtspResponse(const string &res_code,const std::initializer_list<string> &header, const string &sdp = "" , const char *protocol = "RTSP/1.0");
 	bool sendRtspResponse(const string &res_code,const StrCaseMap &header = StrCaseMap(), const string &sdp = "",const char *protocol = "RTSP/1.0");
+	void sendSenderReport(bool overTcp,int iTrackIndex);
 private:
 	Ticker _ticker;
 	int _iCseq = 0;
@@ -193,7 +192,6 @@ private:
 
 	RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
 	Ticker _aRtcpTicker[2]; //rtcp发送时间,trackid idx 为数组下标
-	inline void sendSenderReport(bool overTcp,int iTrackIndex);
 };
 
 /**
