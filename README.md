@@ -33,11 +33,11 @@
   
 - HLS
   - RTSP RTMP can be converted into HLS,built-in HTTP server.
-  - Play authentication base on cookie.
+  - Play authentication based on cookie.
 
 - HTTP[S]
   - HTTP server,suppor directory meun、RESTful http api.
-  - HTPP client,downloader,uploader,and http api requester.
+  - HTTP client,downloader,uploader,and http api requester.
   - Cookie supported.
   - WebSocket Server.
   - File access authentication.
