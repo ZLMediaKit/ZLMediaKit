@@ -1,4 +1,4 @@
-#A lightweight ,high performance and stable stream server and client framework based on C++11.
+# A lightweight ,high performance and stable stream server and client framework based on C++11.
 
  [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
@@ -132,12 +132,12 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
   ```
 	# If it is on centos6.x, you need to install the newer version of GCC and cmake first, 
 	# and then compile manually according to the script "build_for_linux.sh".
-# If it is on a newer version of a system such as Ubuntu or Debain,
+	# If it is on a newer version of a system such as Ubuntu or Debain,
 	# step 4 can be manipulated directly.
 	
 	# 1、Install GCC5.2 (this step can be skipped if the GCC version is higher than 4.7)
 	sudo yum install centos-release-scl -y
-sudo yum install devtoolset-4-toolchain -y
+	sudo yum install devtoolset-4-toolchain -y
 	scl enable devtoolset-4 bash
 	
 	# 2、Install cmake (this step can be skipped if the cmake version is higher than 3.1)
@@ -145,17 +145,17 @@ sudo yum install devtoolset-4-toolchain -y
 	cd cmake-3.10.0-rc4
 	./configure
 	make -j4
-sudo make install
+	sudo make install
 	
 	# 3、Switch to high version GCC
-scl enable devtoolset-4 bash
+	scl enable devtoolset-4 bash
 	
 	# 4、build
 	cd ZLMediaKit
-  ./build_for_linux.sh
+	./build_for_linux.sh
   ```
 
-###Build on macOS
+### Build on macOS
 
 - My environment
   - macOS Sierra(10.12.1) + xcode8.3.1
@@ -168,9 +168,9 @@ scl enable devtoolset-4 bash
   ./build_for_mac.sh
   ```
 
-###Build on iOS
+### Build on iOS
 
-​	This build method is no longer recommended.It is recommended that make Xcode project by yourself.
+  This build method is no longer recommended.It is recommended that make Xcode project by yourself.
 
 - My environment
 
@@ -196,9 +196,9 @@ scl enable devtoolset-4 bash
 
 
 
-###Build on Android
+### Build on Android
 
-​	Now you can open android sudio project in `Android` folder,this is a `aar library` and damo project.
+  Now you can open android sudio project in `Android` folder,this is a `aar library` and damo project.
 
 - My environment
   - macOS Sierra(10.12.1) + xcode8.3.1
@@ -212,7 +212,7 @@ scl enable devtoolset-4 bash
   export ANDROID_NDK_ROOT=/path/to/ndk
   ./build_for_android.sh
   ```
-###Build on Windows
+### Build on Windows
 
 - My environment
   - windows 10
@@ -221,12 +221,12 @@ scl enable devtoolset-4 bash
   
 - Guidance
 ```
-1 Enter the ZLMediaKit directory and execute git submodule update -- init downloads the code 	 for ZLToolKit
+1 Enter the ZLMediaKit directory and execute git submodule update -- init downloads the code for ZLToolKit
 2 Open the project with cmake-gui and generate the vs project file.
 3 Find the project file (ZLMediaKit.sln), double-click to open it with vs2017.
 4 Choose to compile Release version. Find the target file and run the test case.
 ```
-##Usage
+## Usage
 
 - As server：
 	```
@@ -291,7 +291,7 @@ scl enable devtoolset-4 bash
 	player->play("rtmp://live.hkstv.hk.lxdns.com/live/hks");
 	
 	RtmpPusher::Ptr pusher;
-NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastRtmpSrcRegisted,
+	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastRtmpSrcRegisted,
 			[&pusher](BroadcastRtmpSrcRegistedArgs){
 		const_cast<RtmpPusher::Ptr &>(pusher).reset(new RtmpPusher(app,stream));
 		pusher->publish("rtmp://jizan.iok.la/live/test");
@@ -304,8 +304,6 @@ NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastRtmpSr
 [ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
 
 [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
-
-
 
 
 ## Licence
