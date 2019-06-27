@@ -926,19 +926,20 @@ inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBu
 
 	if(intervaled % 2 == 0){
 		if(_pushSrc){
+		    //这是rtsp推流上来的rtp包
 			handleOneRtp(intervaled / 2,_aTrackInfo[intervaled / 2],( unsigned char *)pBuf->data(),pBuf->size());
-		}else if(_udpSockConnected.count(intervaled)){
-            //这是rtp打洞包
+		}else if(!_udpSockConnected.count(intervaled)){
+            //这是rtsp播放器的rtp打洞包
             _udpSockConnected.emplace(intervaled);
             _apRtpSock[intervaled / 2]->setSendPeerAddr(&addr);
 		}
 	}else{
 	    //rtcp包
-        if(_udpSockConnected.count(intervaled)){
+        if(!_udpSockConnected.count(intervaled)){
+            _udpSockConnected.emplace(intervaled);
             _apRtcpSock[(intervaled - 1) / 2]->setSendPeerAddr(&addr);
         }
-        onRtcpPacket((intervaled - 1) / 2, _aTrackInfo[(intervaled - 1) / 2], (unsigned char *) pBuf->data(),
-                     pBuf->size());
+        onRtcpPacket((intervaled - 1) / 2, _aTrackInfo[(intervaled - 1) / 2], (unsigned char *) pBuf->data(),pBuf->size());
     }
 }
 
