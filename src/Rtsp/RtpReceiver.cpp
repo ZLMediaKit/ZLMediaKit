@@ -48,7 +48,7 @@ bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned ch
     auto &rtp = *rtp_ptr;
     auto length = rtp_raw_len + 4;
 
-    rtp.interleaved = track->_interleaved;
+    rtp.interleaved = 2 * track->_type;
     rtp.mark = rtp_raw_ptr[1] >> 7;
     rtp.PT = rtp_raw_ptr[1] & 0x7F;
     //序列号
