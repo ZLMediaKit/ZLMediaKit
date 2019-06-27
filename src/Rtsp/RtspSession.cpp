@@ -587,10 +587,9 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         throw SockException(Err_shutdown, "can not setup one track twice");
 	}
 	trackRef->_inited = true; //现在初始化
-	trackRef->_interleaved = trackRef->_type * 2;
 
 	if(_rtpType == Rtsp::RTP_Invalid){
-		auto strTransport = parser["Transport"];
+		auto &strTransport = parser["Transport"];
 		if(strTransport.find("TCP") != string::npos){
 			_rtpType = Rtsp::RTP_TCP;
 		}else if(strTransport.find("multicast") != string::npos){
@@ -600,14 +599,27 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 		}
 	}
 
-	//允许接收rtp、rtcp包
+    //允许接收rtp、rtcp包
 	RtspSplitter::enableRecvRtp(_rtpType == Rtsp::RTP_TCP);
 
 	switch (_rtpType) {
 	case Rtsp::RTP_TCP: {
+        if(_pushSrc){
+            //rtsp推流时，interleaved由推流者决定
+            auto key_values =  Parser::parseArgs(parser["Transport"],";","=");
+            int interleaved_rtp = -1 , interleaved_rtcp = -1;
+            if(2 == sscanf(key_values["interleaved"].data(),"%d-%d",&interleaved_rtp,&interleaved_rtcp)){
+                trackRef->_interleaved = interleaved_rtp;
+            }else{
+                throw SockException(Err_shutdown, "can not find interleaved when setup of rtp over tcp");
+            }
+        }else{
+            //rtsp播放时，由于数据共享分发，所以interleaved必须由服务器决定
+            trackRef->_interleaved = 2 * trackRef->_type;
+        }
 		sendRtspResponse("200 OK",
 						 {"Transport",StrPrinter << "RTP/AVP/TCP;unicast;"
-												 << "interleaved=" << trackRef->_type * 2 << "-" << trackRef->_type * 2 + 1 << ";"
+												 << "interleaved=" << (int)trackRef->_interleaved << "-" << (int)trackRef->_interleaved + 1 << ";"
 												 << "ssrc=" << printSSRC(trackRef->_ssrc),
 						  "x-Transport-Options" , "late-tolerance=1.400000",
 						  "x-Dynamic-Rate" , "1"
@@ -1134,7 +1146,7 @@ void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
     }
 
 #if RTSP_SERVER_SEND_RTCP
-    int iTrackIndex = getTrackIndexByInterleaved(pkt->interleaved);
+    int iTrackIndex = getTrackIndexByTrackType(pkt->type);
     if(iTrackIndex == -1){
         return;
     }
