@@ -26,7 +26,6 @@
 
 #include <algorithm>
 #include "PlayerBase.h"
-#include "Rtsp/Rtsp.h"
 #include "Rtsp/RtspPlayerImp.h"
 #include "Rtmp/RtmpPlayerImp.h"
 using namespace toolkit;

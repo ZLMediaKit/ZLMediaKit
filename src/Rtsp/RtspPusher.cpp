@@ -169,8 +169,8 @@ void RtspPusher::sendAnnounce() {
         throw std::runtime_error("the media source was released");
     }
     //解析sdp
-    _sdpAttr.load(src->getSdp());
-    _aTrackInfo = _sdpAttr.getAvailableTrack();
+    _sdpParser.load(src->getSdp());
+    _aTrackInfo = _sdpParser.getAvailableTrack();
 
     if (_aTrackInfo.empty()) {
         throw std::runtime_error("无有效的Sdp Track");

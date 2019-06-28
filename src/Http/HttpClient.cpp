@@ -26,7 +26,7 @@
 
 #include <cstdlib>
 #include "HttpClient.h"
-#include "Rtsp/Rtsp.h"
+#include "Common/config.h"
 
 namespace mediakit {
 

@@ -32,7 +32,6 @@
 #include <memory>
 #include <functional>
 #include <unordered_map>
-#include "Rtsp.h"
 #include "Common/config.h"
 #include "Common/MediaSource.h"
 #include "RtspMuxer/RtpCodec.h"
@@ -79,14 +78,14 @@ public:
 	}
 
 	virtual uint32_t getSsrc(TrackType trackType) {
-		auto track = _sdpAttr.getTrack(trackType);
+		auto track = _sdpParser.getTrack(trackType);
 		if(!track){
 			return 0;
 		}
 		return track->_ssrc;
 	}
 	virtual uint16_t getSeqence(TrackType trackType) {
-		auto track = _sdpAttr.getTrack(trackType);
+		auto track = _sdpParser.getTrack(trackType);
 		if(!track){
 			return 0;
 		}
@@ -94,11 +93,11 @@ public:
 	}
 
 	uint32_t getTimeStamp(TrackType trackType) override {
-		auto track = _sdpAttr.getTrack(trackType);
+		auto track = _sdpParser.getTrack(trackType);
 		if(track) {
 			return track->_time_stamp;
 		}
-		auto tracks = _sdpAttr.getAvailableTrack();
+		auto tracks = _sdpParser.getAvailableTrack();
 		switch (tracks.size()){
 			case 0: return 0;
 			case 1: return tracks[0]->_time_stamp;
@@ -107,7 +106,7 @@ public:
 	}
 
 	virtual void setTimeStamp(uint32_t uiStamp) {
-		auto tracks = _sdpAttr.getAvailableTrack();
+		auto tracks = _sdpParser.getAvailableTrack();
 		for (auto &track : tracks) {
 			track->_time_stamp  = uiStamp;
 		}
@@ -116,14 +115,14 @@ public:
 	virtual void onGetSDP(const string& sdp) {
 		//派生类设置该媒体源媒体描述信息
 		_strSdp = sdp;
-		_sdpAttr.load(sdp);
+		_sdpParser.load(sdp);
 		if(_pRing){
             regist();
 		}
 	}
 
 	void onWrite(const RtpPacket::Ptr &rtppt, bool keyPos) override {
-		auto track = _sdpAttr.getTrack(rtppt->type);
+		auto track = _sdpParser.getTrack(rtppt->type);
 		if(track){
 			track->_seq = rtppt->sequence;
 			track->_time_stamp = rtppt->timeStamp;
@@ -166,7 +165,7 @@ private:
         }
 	}
 protected:
-	SdpAttr _sdpAttr;
+	SdpParser _sdpParser;
     string _strSdp; //媒体描述信息
     RingType::Ptr _pRing; //rtp环形缓冲
     int _ringSize;

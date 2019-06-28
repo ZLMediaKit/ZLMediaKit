@@ -35,14 +35,14 @@ using namespace std;
 namespace mediakit {
 
 RtspDemuxer::RtspDemuxer(const string& sdp) {
-	loadSdp(SdpAttr(sdp));
+	loadSdp(SdpParser(sdp));
 }
 
-RtspDemuxer::RtspDemuxer(const SdpAttr &attr) {
+RtspDemuxer::RtspDemuxer(const SdpParser &attr) {
 	loadSdp(attr);
 }
 
-void RtspDemuxer::loadSdp(const SdpAttr &attr) {
+void RtspDemuxer::loadSdp(const SdpParser &attr) {
 	auto tracks = attr.getAvailableTrack();
 	for (auto &track : tracks){
 		switch (track->_type) {

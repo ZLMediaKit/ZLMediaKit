@@ -26,34 +26,11 @@
 
 #include <stdlib.h>
 #include "Rtsp.h"
+#include "Common/Parser.h"
 
 namespace mediakit{
 
-string FindField(const char* buf, const char* start, const char *end ,int bufSize) {
-	if(bufSize <=0 ){
-		bufSize = strlen(buf);
-	}
-	const char *msg_start = buf, *msg_end = buf + bufSize;
-	int len = 0;
-	if (start != NULL) {
-		len = strlen(start);
-		msg_start = strstr(buf, start);
-	}
-	if (msg_start == NULL) {
-		return "";
-	}
-	msg_start += len;
-	if (end != NULL) {
-		msg_end = strstr(msg_start, end);
-		if (msg_end == NULL) {
-			return "";
-		}
-	}
-	return string(msg_start, msg_end);
-}
-
-
-void SdpAttr::load(const string &sdp) {
+void SdpParser::load(const string &sdp) {
 	_track_map.clear();
 	string key;
 	SdpTrack::Ptr track = std::make_shared<SdpTrack>();
@@ -88,7 +65,7 @@ void SdpAttr::load(const string &sdp) {
 			case 'm':{
 				_track_map[key] = track;
 				track = std::make_shared<SdpTrack>();
-				key = FindField(opt_val.data(), nullptr," ");;
+				key = FindField(opt_val.data(), nullptr," ");
 				track->_m = opt_val;
 			}
 				break;
@@ -161,11 +138,11 @@ void SdpAttr::load(const string &sdp) {
 	}
 }
 
-bool SdpAttr::available() const {
+bool SdpParser::available() const {
     return getTrack(TrackAudio) || getTrack(TrackVideo);
 }
 
-SdpTrack::Ptr SdpAttr::getTrack(TrackType type) const {
+SdpTrack::Ptr SdpParser::getTrack(TrackType type) const {
 	for (auto &pr : _track_map){
 		if(pr.second->_type == type){
 			return pr.second;
@@ -174,7 +151,7 @@ SdpTrack::Ptr SdpAttr::getTrack(TrackType type) const {
 	return nullptr;
 }
 
-vector<SdpTrack::Ptr> SdpAttr::getAvailableTrack() const {
+vector<SdpTrack::Ptr> SdpParser::getAvailableTrack() const {
 	vector<SdpTrack::Ptr> ret;
 	auto video = getTrack(TrackVideo);
 	if(video){

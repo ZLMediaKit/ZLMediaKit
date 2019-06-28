@@ -7,7 +7,6 @@
 
 #include <string>
 #include <memory>
-#include "Rtsp.h"
 #include "RtspMediaSource.h"
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -81,7 +80,7 @@ private:
     Event _onPublished;
 
     string _strUrl;
-    SdpAttr _sdpAttr;
+    SdpParser _sdpParser;
     vector<SdpTrack::Ptr> _aTrackInfo;
     string _strSession;
     unsigned int _uiCseq = 1;
