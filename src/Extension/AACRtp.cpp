@@ -23,7 +23,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "AACRtpCodec.h"
+#include "AACRtp.h"
 
 namespace mediakit{
 
