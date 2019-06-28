@@ -81,20 +81,4 @@ private:
 
 } /* namespace mediakit */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif /* SRC_RTMP_RTMPDEMUXER_H_ */

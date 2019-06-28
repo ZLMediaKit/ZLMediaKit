@@ -30,6 +30,8 @@
 #include "Util/util.h"
 #include "Util/base64.h"
 #include "Util/TimeTicker.h"
+#include "Extension/AAC.h"
+#include "Extension/H264.h"
 
 using namespace toolkit;
 

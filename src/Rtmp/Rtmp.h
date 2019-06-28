@@ -33,6 +33,9 @@
 #include "Util/logger.h"
 #include "Network/Buffer.h"
 #include "Network/sockutil.h"
+#include "amf.h"
+#include "Extension/Track.h"
+
 using namespace toolkit;
 
 #define PORT	1935
@@ -291,6 +294,114 @@ public:
         return ret;
     }
 };
+
+
+
+/**
+ * rtmp metedata基类，用于描述rtmp格式信息
+ */
+class Metedata : public CodecInfo{
+public:
+    typedef std::shared_ptr<Metedata> Ptr;
+
+    Metedata():_metedata(AMF_OBJECT){}
+    virtual ~Metedata(){}
+    const AMFValue &getMetedata() const{
+        return _metedata;
+    }
+protected:
+    AMFValue _metedata;
+};
+
+/**
+* metedata中除音视频外的其他描述部分
+*/
+class TitleMete : public Metedata{
+public:
+    typedef std::shared_ptr<TitleMete> Ptr;
+
+    TitleMete(float dur_sec = 0,
+              uint64_t fileSize = 0,
+              const map<string,string> &header = map<string,string>()){
+        _metedata.set("duration", dur_sec);
+        _metedata.set("fileSize", 0);
+        _metedata.set("server","ZLMediaKit");
+        for (auto &pr : header){
+            _metedata.set(pr.first, pr.second);
+        }
+    }
+
+    /**
+     * 返回音频或视频类型
+     * @return
+     */
+    TrackType getTrackType() const override {
+        return TrackTitle;
+    }
+
+    /**
+     * 返回编码器id
+     * @return
+     */
+    CodecId getCodecId() const override{
+        return CodecInvalid;
+    }
+};
+
+class VideoMete : public Metedata{
+public:
+    typedef std::shared_ptr<VideoMete> Ptr;
+
+    VideoMete(const VideoTrack::Ptr &video,int datarate = 5000);
+    virtual ~VideoMete(){}
+
+    /**
+     * 返回音频或视频类型
+     * @return
+     */
+    TrackType getTrackType() const override {
+        return TrackVideo;
+    }
+
+    /**
+     * 返回编码器id
+     * @return
+     */
+    CodecId getCodecId() const override{
+        return _codecId;
+    }
+private:
+    CodecId _codecId;
+};
+
+
+class AudioMete : public Metedata{
+public:
+    typedef std::shared_ptr<AudioMete> Ptr;
+
+    AudioMete(const AudioTrack::Ptr &audio,int datarate = 160);
+
+    virtual ~AudioMete(){}
+
+    /**
+     * 返回音频或视频类型
+     * @return
+     */
+    TrackType getTrackType() const override {
+        return TrackAudio;
+    }
+
+    /**
+     * 返回编码器id
+     * @return
+     */
+    CodecId getCodecId() const override{
+        return _codecId;
+    }
+private:
+    CodecId _codecId;
+};
+
 
 }//namespace mediakit
 

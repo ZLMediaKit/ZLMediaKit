@@ -29,6 +29,7 @@
 #include "Util/mini.h"
 #include "Util/MD5.h"
 #include "Util/logger.h"
+#include "Extension/AAC.h"
 
 using namespace toolkit;
 

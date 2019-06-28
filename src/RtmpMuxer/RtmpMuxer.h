@@ -27,9 +27,10 @@
 #ifndef ZLMEDIAKIT_RTMPMUXER_H
 #define ZLMEDIAKIT_RTMPMUXER_H
 
-#include "RtmpMetedata.h"
+#include "Rtmp/Rtmp.h"
 #include "Extension/Frame.h"
 #include "Common/MediaSink.h"
+#include "RtmpCodec.h"
 
 namespace mediakit{
 
@@ -65,38 +66,6 @@ private:
     RtmpRingInterface::RingType::Ptr _rtmpRing;
     AMFValue _metedata;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 } /* namespace mediakit */
