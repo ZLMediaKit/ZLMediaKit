@@ -61,6 +61,12 @@ public:
     virtual Track::Ptr clone() = 0;
 
     /**
+     * 生成sdp
+     * @return  sdp对象
+     */
+    virtual Sdp::Ptr getSdp() = 0;
+
+    /**
      * 复制拷贝，只能拷贝派生类的信息，
      * 环形缓存和代理关系不能拷贝，否则会关系紊乱
      * @param that

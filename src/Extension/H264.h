@@ -29,9 +29,8 @@
 
 #include "Frame.h"
 #include "Track.h"
-#include "RtspMuxer/RtspSdp.h"
-
-
+#include "Util/base64.h"
+using namespace toolkit;
 #define H264_TYPE(v) ((uint8_t)(v) & 0x1F)
 
 namespace mediakit{
@@ -302,6 +301,8 @@ private:
         }
     }
 
+    //生成sdp
+    Sdp::Ptr getSdp() override ;
 private:
     //在idr帧前插入sps pps帧
     void insertConfigFrame(const Frame::Ptr &frame){

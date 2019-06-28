@@ -27,9 +27,9 @@
 #ifndef ZLMEDIAKIT_RTSPMUXER_H
 #define ZLMEDIAKIT_RTSPMUXER_H
 
-#include "RtspSdp.h"
 #include "Extension/Frame.h"
 #include "Common/MediaSink.h"
+#include "RtpCodec.h"
 
 namespace mediakit{
 /**

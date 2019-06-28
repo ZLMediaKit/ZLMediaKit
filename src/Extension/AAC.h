@@ -29,8 +29,6 @@
 
 #include "Frame.h"
 #include "Track.h"
-#include "RtspMuxer/RtspSdp.h"
-
 
 namespace mediakit{
 
@@ -258,6 +256,9 @@ private:
     Track::Ptr clone() override {
         return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
     }
+
+    //生成sdp
+    Sdp::Ptr getSdp() override ;
 private:
     string _cfg;
     int _sampleRate = 0;

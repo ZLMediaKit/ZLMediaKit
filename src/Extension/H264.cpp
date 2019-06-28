@@ -77,6 +77,13 @@ void splitH264(const char *ptr, int len, const std::function<void(const char *, 
 }
 
 
+Sdp::Ptr H264Track::getSdp() {
+    if(!ready()){
+        WarnL << "H264 Track未准备好";
+        return nullptr;
+    }
+    return std::make_shared<H264Sdp>(getSps(),getPps());
+}
 }//namespace mediakit
 
 

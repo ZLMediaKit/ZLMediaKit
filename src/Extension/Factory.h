@@ -30,7 +30,6 @@
 #include <string>
 #include "Rtmp/amf.h"
 #include "Extension/Track.h"
-#include "RtspMuxer/RtspSdp.h"
 #include "RtspMuxer/RtpCodec.h"
 #include "RtmpMuxer/RtmpCodec.h"
 
@@ -56,29 +55,11 @@ public:
     static Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track);
 
     /**
-    * 根据Track生成SDP对象
-    * @param track 媒体信息
-    * @return 返回sdp对象
-    */
-    static Sdp::Ptr getSdpByTrack(const Track::Ptr &track);
-
-
-    /**
-     * 根据CodecId生成Rtp打包器
-     * @param codecId
-     * @param ui32Ssrc
-     * @param ui32MtuSize
-     * @param ui32SampleRate
-     * @param ui8PlayloadType
-     * @param ui8Interleaved
+     * 根据sdp生成rtp编码器
+     * @param sdp sdp对象
      * @return
      */
-    static RtpCodec::Ptr getRtpEncoderById(CodecId codecId,
-                                           uint32_t ui32Ssrc,
-                                           uint32_t ui32MtuSize,
-                                           uint32_t ui32SampleRate,
-                                           uint8_t ui8PlayloadType,
-                                           uint8_t ui8Interleaved);
+    static RtpCodec::Ptr getRtpEncoderBySdp(const Sdp::Ptr &sdp);
 
     /**
      * 根据Track生成Rtp解包器

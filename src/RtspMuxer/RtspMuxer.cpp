@@ -40,18 +40,11 @@ RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title){
 
 void RtspMuxer::onTrackReady(const Track::Ptr &track) {
     //根据track生产sdp
-    Sdp::Ptr sdp = Factory::getSdpByTrack(track);
+    Sdp::Ptr sdp = track->getSdp();
     if (!sdp) {
         return;
     }
-    uint32_t ssrc = ((uint64_t) sdp.get()) & 0xFFFFFFFF;
-
-    GET_CONFIG(uint32_t,audio_mtu,Rtp::kAudioMtuSize);
-    GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
-
-    auto mtu = (track->getTrackType() == TrackVideo ? video_mtu : audio_mtu);
-    // 根据sdp生成rtp编码器ssrc
-    auto encoder = sdp->createRtpEncoder(ssrc, mtu);
+    auto encoder = Factory::getRtpEncoderBySdp(sdp);
     if (!encoder) {
         return;
     }
