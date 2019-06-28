@@ -35,20 +35,6 @@ using namespace toolkit;
 
 namespace mediakit{
 
-class RtpPacket : public BufferRaw{
-public:
-    typedef std::shared_ptr<RtpPacket> Ptr;
-    uint8_t interleaved;
-    uint8_t PT;
-    bool mark;
-    //时间戳，单位毫秒
-    uint32_t timeStamp;
-    uint16_t sequence;
-    uint32_t ssrc;
-    uint8_t offset;
-    TrackType type;
-};
-
 class RtpRingInterface {
 public:
     typedef RingBuffer<RtpPacket::Ptr> RingType;

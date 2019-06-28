@@ -29,11 +29,11 @@
 
 #include "Frame.h"
 #include "Track.h"
-#include "RtspMuxer/RtspSdp.h"
+#include "Util/base64.h"
+using namespace toolkit;
+#define H265_TYPE(v) (((uint8_t)(v) >> 1) & 0x3f)
 
 namespace mediakit {
-
-#define H265_TYPE(v) (((uint8_t)(v) >> 1) & 0x3f)
 
 /**
 * 265帧类
@@ -253,6 +253,9 @@ private:
     Track::Ptr clone() override {
         return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this);
     }
+
+    //生成sdp
+    Sdp::Ptr getSdp() override ;
 
     //在idr帧前插入vps sps pps帧
     void insertConfigFrame(const Frame::Ptr &frame){

@@ -49,6 +49,20 @@ typedef enum {
 } eRtpType;
 };
 
+class RtpPacket : public BufferRaw{
+public:
+	typedef std::shared_ptr<RtpPacket> Ptr;
+	uint8_t interleaved;
+	uint8_t PT;
+	bool mark;
+	//时间戳，单位毫秒
+	uint32_t timeStamp;
+	uint16_t sequence;
+	uint32_t ssrc;
+	uint8_t offset;
+	TrackType type;
+};
+
 class SdpTrack {
 public:
 	typedef std::shared_ptr<SdpTrack> Ptr;
@@ -89,19 +103,12 @@ public:
 	typedef std::shared_ptr<SdpAttr> Ptr;
 
 	SdpAttr() {}
-
 	SdpAttr(const string &sdp) { load(sdp); }
-
 	~SdpAttr() {}
-
 	void load(const string &sdp);
-
 	bool available() const;
-
 	SdpTrack::Ptr getTrack(TrackType type) const;
-
 	vector<SdpTrack::Ptr> getAvailableTrack() const;
-
 private:
 	map<string, SdpTrack::Ptr> _track_map;
 };
@@ -277,6 +284,110 @@ private:
 	string _params;
 	mutable StrCaseMap _mapHeaders;
 	mutable StrCaseMap _mapUrlArgs;
+};
+
+
+/**
+* rtsp sdp基类
+*/
+class Sdp : public CodecInfo{
+public:
+	typedef std::shared_ptr<Sdp> Ptr;
+
+	/**
+	 * 构造sdp
+	 * @param sample_rate 采样率
+	 * @param playload_type pt类型
+	 */
+	Sdp(uint32_t sample_rate, uint8_t playload_type){
+		_sample_rate = sample_rate;
+		_playload_type = playload_type;
+	}
+
+	virtual ~Sdp(){}
+
+	/**
+	 * 获取sdp字符串
+	 * @return
+	 */
+	virtual string getSdp() const  = 0;
+
+	/**
+	 * 获取pt
+	 * @return
+	 */
+	uint8_t getPlayloadType() const{
+		return _playload_type;
+	}
+
+	/**
+	 * 获取采样率
+	 * @return
+	 */
+	uint32_t getSampleRate() const{
+		return _sample_rate;
+	}
+private:
+	uint8_t _playload_type;
+	uint32_t _sample_rate;
+};
+
+/**
+* sdp中除音视频外的其他描述部分
+*/
+class TitleSdp : public Sdp{
+public:
+
+	/**
+	 * 构造title类型sdp
+	 * @param dur_sec rtsp点播时长，0代表直播，单位秒
+	 * @param header 自定义sdp描述
+	 * @param version sdp版本
+	 */
+	TitleSdp(float dur_sec = 0,
+			 const map<string,string> &header = map<string,string>(),
+			 int version = 0) : Sdp(0,0){
+		_printer << "v=" << version << "\r\n";
+
+		if(!header.empty()){
+			for (auto &pr : header){
+				_printer << pr.first << "=" << pr.second << "\r\n";
+			}
+		} else {
+			_printer << "o=- 1383190487994921 1 IN IP4 0.0.0.0\r\n";
+			_printer << "s=RTSP Session, streamed by the ZLMediaKit\r\n";
+			_printer << "i=ZLMediaKit Live Stream\r\n";
+			_printer << "c=IN IP4 0.0.0.0\r\n";
+			_printer << "t=0 0\r\n";
+		}
+
+		if(dur_sec <= 0){
+			_printer << "a=range:npt=0-\r\n";
+		}else{
+			_printer << "a=range:npt=0-" << dur_sec  << "\r\n";
+		}
+		_printer << "a=control:*\r\n";
+	}
+	string getSdp() const override {
+		return _printer;
+	}
+	/**
+	 * 返回音频或视频类型
+	 * @return
+	 */
+	TrackType getTrackType() const override {
+		return TrackTitle;
+	}
+
+	/**
+	 * 返回编码器id
+	 * @return
+	 */
+	CodecId getCodecId() const override{
+		return CodecInvalid;
+	}
+private:
+	_StrPrinter _printer;
 };
 
 } //namespace mediakit
