@@ -25,11 +25,11 @@
  */
 
 #include "Factory.h"
-#include "H264RtmpCodec.h"
-#include "AACRtmpCodec.h"
-#include "H264RtpCodec.h"
-#include "AACRtpCodec.h"
-#include "H265RtpCodec.h"
+#include "H264Rtmp.h"
+#include "AACRtmp.h"
+#include "H264Rtp.h"
+#include "AACRtp.h"
+#include "H265Rtp.h"
 
 namespace mediakit{
 

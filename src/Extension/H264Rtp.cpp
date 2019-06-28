@@ -25,7 +25,7 @@
  * SOFTWARE.
  */
 
-#include "H264RtpCodec.h"
+#include "H264Rtp.h"
 
 namespace mediakit{
 
