@@ -32,7 +32,7 @@
 #include "Common/config.h"
 #include "RtmpPlayer.h"
 #include "RtmpMediaSource.h"
-#include "RtmpMuxer/RtmpDemuxer.h"
+#include "RtmpDemuxer.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 using namespace toolkit;

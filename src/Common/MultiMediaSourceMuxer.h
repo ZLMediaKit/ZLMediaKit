@@ -27,8 +27,8 @@
 #ifndef ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
 #define ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
 
-#include "RtspMuxer/RtspMediaSourceMuxer.h"
-#include "RtmpMuxer/RtmpMediaSourceMuxer.h"
+#include "Rtsp/RtspMediaSourceMuxer.h"
+#include "Rtmp/RtmpMediaSourceMuxer.h"
 #include "MediaFile/MediaRecorder.h"
 
 class MultiMediaSourceMuxer : public FrameWriterInterface{

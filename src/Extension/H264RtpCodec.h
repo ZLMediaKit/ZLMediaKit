@@ -24,32 +24,32 @@
  * SOFTWARE.
  */
 
-#ifndef ZLMEDIAKIT_H264RTMPCODEC_H
-#define ZLMEDIAKIT_H264RTMPCODEC_H
+#ifndef ZLMEDIAKIT_H264RTPCODEC_H
+#define ZLMEDIAKIT_H264RTPCODEC_H
 
-#include "RtmpCodec.h"
-#include "Extension/Track.h"
+#include "Rtsp/RtpCodec.h"
 #include "Util/ResourcePool.h"
 #include "Extension/H264.h"
 using namespace toolkit;
 
 namespace mediakit{
-/**
- * h264 Rtmp解码类
- */
-class H264RtmpDecoder : public RtmpCodec ,public ResourcePoolHelper<H264Frame> {
-public:
-    typedef std::shared_ptr<H264RtmpDecoder> Ptr;
 
-    H264RtmpDecoder();
-    ~H264RtmpDecoder() {}
+/**
+ * h264 rtp解码类
+ */
+class H264RtpDecoder : public RtpCodec , public ResourcePoolHelper<H264Frame> {
+public:
+    typedef std::shared_ptr<H264RtpDecoder> Ptr;
+
+    H264RtpDecoder();
+    ~H264RtpDecoder() {}
 
     /**
-     * 输入264 Rtmp包
-     * @param rtmp Rtmp包
+     * 输入264 rtp包
+     * @param rtp rtp包
      * @param key_pos 此参数忽略之
      */
-    bool inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos = true) override;
+    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
 
     TrackType getTrackType() const override{
         return TrackVideo;
@@ -58,46 +58,46 @@ public:
     CodecId getCodecId() const override{
         return CodecH264;
     }
-protected:
-    bool decodeRtmp(const RtmpPacket::Ptr &Rtmp);
-    void onGetH264_l(const char *pcData, int iLen, uint32_t dts,uint32_t pts);
-    void onGetH264(const char *pcData, int iLen, uint32_t dts,uint32_t pts);
+private:
+    bool decodeRtp(const RtpPacket::Ptr &rtp);
+    void onGetH264(const H264Frame::Ptr &frame);
     H264Frame::Ptr obtainFrame();
-protected:
+private:
     H264Frame::Ptr _h264frame;
-    string _sps;
-    string _pps;
 };
 
 /**
- * 264 Rtmp打包类
+ * 264 rtp打包类
  */
-class H264RtmpEncoder : public H264RtmpDecoder, public ResourcePoolHelper<RtmpPacket> {
+class H264RtpEncoder : public H264RtpDecoder ,public RtpInfo{
 public:
-    typedef std::shared_ptr<H264RtmpEncoder> Ptr;
+    typedef std::shared_ptr<H264RtpEncoder> Ptr;
 
     /**
-     * 构造函数，track可以为空，此时则在inputFrame时输入sps pps
-     * 如果track不为空且包含sps pps信息，
-     * 那么inputFrame时可以不输入sps pps
-     * @param track
+     * @param ui32Ssrc ssrc
+     * @param ui32MtuSize mtu大小
+     * @param ui32SampleRate 采样率，强制为90000
+     * @param ui8PlayloadType pt类型
+     * @param ui8Interleaved rtsp interleaved
      */
-    H264RtmpEncoder(const Track::Ptr &track);
-    ~H264RtmpEncoder() {}
+    H264RtpEncoder(uint32_t ui32Ssrc,
+                   uint32_t ui32MtuSize = 1400,
+                   uint32_t ui32SampleRate = 90000,
+                   uint8_t ui8PlayloadType = 96,
+                   uint8_t ui8Interleaved = TrackVideo * 2);
+    ~H264RtpEncoder() {}
 
     /**
-     * 输入264帧，可以不带sps pps
-     * @param frame 帧数据
+     * 输入264帧
+     * @param frame 帧数据，必须
      */
     void inputFrame(const Frame::Ptr &frame) override;
 private:
-    void makeVideoConfigPkt();
+    void makeH264Rtp(int nal_type,const void *pData, unsigned int uiLen, bool bMark,  bool first_packet, uint32_t uiStamp);
 private:
-    H264Track::Ptr _track;
-    bool _gotSpsPps = false;
-    RtmpPacket::Ptr _lastPacket;
+    unsigned char _aucSectionBuf[1600];
 };
 
-}//namespace mediakit
+}//namespace mediakit{
 
-#endif //ZLMEDIAKIT_H264RTMPCODEC_H
+#endif //ZLMEDIAKIT_H264RTPCODEC_H

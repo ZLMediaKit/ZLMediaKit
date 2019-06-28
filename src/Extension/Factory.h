@@ -30,8 +30,8 @@
 #include <string>
 #include "Rtmp/amf.h"
 #include "Extension/Track.h"
-#include "RtspMuxer/RtpCodec.h"
-#include "RtmpMuxer/RtmpCodec.h"
+#include "Rtsp/RtpCodec.h"
+#include "Rtmp/RtmpCodec.h"
 
 using namespace std;
 using namespace toolkit;

@@ -41,7 +41,7 @@
 #include "Rtsp/RtspSession.h"
 #include "Rtmp/RtmpSession.h"
 #include "Shell/ShellSession.h"
-#include "RtmpMuxer/FlvMuxer.h"
+#include "Rtmp/FlvMuxer.h"
 #include "Player/PlayerProxy.h"
 #include "Http/WebSocketSession.h"
 

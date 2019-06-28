@@ -32,7 +32,7 @@
 #include <functional>
 #include "Common/config.h"
 #include "RtspPlayer.h"
-#include "RtspMuxer/RtspDemuxer.h"
+#include "RtspDemuxer.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 

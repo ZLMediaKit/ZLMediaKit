@@ -34,7 +34,7 @@
 #include <unordered_map>
 #include "amf.h"
 #include "Rtmp.h"
-#include "RtmpMuxer/RtmpDemuxer.h"
+#include "RtmpDemuxer.h"
 #include "Common/config.h"
 #include "Common/MediaSource.h"
 #include "Util/util.h"

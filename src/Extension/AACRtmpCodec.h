@@ -27,7 +27,7 @@
 #ifndef ZLMEDIAKIT_AACRTMPCODEC_H
 #define ZLMEDIAKIT_AACRTMPCODEC_H
 
-#include "RtmpCodec.h"
+#include "Rtmp/RtmpCodec.h"
 #include "Extension/Track.h"
 #include "Extension/AAC.h"
 

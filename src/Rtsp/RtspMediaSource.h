@@ -34,7 +34,7 @@
 #include <unordered_map>
 #include "Common/config.h"
 #include "Common/MediaSource.h"
-#include "RtspMuxer/RtpCodec.h"
+#include "RtpCodec.h"
 
 #include "Util/logger.h"
 #include "Util/RingBuffer.h"
