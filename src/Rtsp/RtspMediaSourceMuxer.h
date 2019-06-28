@@ -24,26 +24,26 @@
  * SOFTWARE.
  */
 
-#ifndef ZLMEDIAKIT_RTMPMEDIASOURCEMUXER_H
-#define ZLMEDIAKIT_RTMPMEDIASOURCEMUXER_H
+#ifndef ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
+#define ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
 
-#include "RtmpMuxer/RtmpMuxer.h"
-#include "Rtmp/RtmpMediaSource.h"
+#include "RtspMuxer.h"
+#include "Rtsp/RtspMediaSource.h"
 
 namespace mediakit {
 
-class RtmpMediaSourceMuxer : public RtmpMuxer {
+class RtspMediaSourceMuxer : public RtspMuxer {
 public:
-    typedef std::shared_ptr<RtmpMediaSourceMuxer> Ptr;
+    typedef std::shared_ptr<RtspMediaSourceMuxer> Ptr;
 
-    RtmpMediaSourceMuxer(const string &vhost,
+    RtspMediaSourceMuxer(const string &vhost,
                          const string &strApp,
                          const string &strId,
-                         const TitleMete::Ptr &title = nullptr) : RtmpMuxer(title){
-        _mediaSouce = std::make_shared<RtmpMediaSource>(vhost,strApp,strId);
-        getRtmpRing()->setDelegate(_mediaSouce);
+                         const TitleSdp::Ptr &title = nullptr) : RtspMuxer(title){
+        _mediaSouce = std::make_shared<RtspMediaSource>(vhost,strApp,strId);
+        getRtpRing()->setDelegate(_mediaSouce);
     }
-    virtual ~RtmpMediaSourceMuxer(){}
+    virtual ~RtspMediaSourceMuxer(){}
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _mediaSouce->setListener(listener);
@@ -51,14 +51,17 @@ public:
     int readerCount() const{
         return _mediaSouce->readerCount();
     }
-private:
-    void onAllTrackReady() override {
-        _mediaSouce->onGetMetaData(getMetedata());
+    void setTimeStamp(uint32_t stamp){
+        _mediaSouce->setTimeStamp(stamp);
     }
 private:
-    RtmpMediaSource::Ptr _mediaSouce;
+    void onAllTrackReady() override {
+        _mediaSouce->onGetSDP(getSdp());
+    }
+private:
+    RtspMediaSource::Ptr _mediaSouce;
 };
 
 
 }//namespace mediakit
-#endif //ZLMEDIAKIT_RTMPMEDIASOURCEMUXER_H
+#endif //ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H

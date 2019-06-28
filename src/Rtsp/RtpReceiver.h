@@ -31,7 +31,7 @@
 #include <map>
 #include <string>
 #include <memory>
-#include "RtspMuxer/RtpCodec.h"
+#include "RtpCodec.h"
 #include "RtspMediaSource.h"
 
 using namespace std;

@@ -31,8 +31,8 @@
 #include "RtspMediaSource.h"
 #include "MediaFile/MediaRecorder.h"
 #include "Rtmp/RtmpMediaSource.h"
-#include "RtspMuxer/RtspDemuxer.h"
-#include "RtmpMuxer/RtmpMediaSourceMuxer.h"
+#include "RtspDemuxer.h"
+#include "Rtmp/RtmpMediaSourceMuxer.h"
 
 using namespace toolkit;
 

@@ -37,9 +37,9 @@
 #include "amf.h"
 #include "Rtmp.h"
 #include "RtmpMediaSource.h"
-#include "RtmpMuxer/RtmpDemuxer.h"
+#include "RtmpDemuxer.h"
 #include "MediaFile/MediaRecorder.h"
-#include "RtspMuxer/RtspMediaSourceMuxer.h"
+#include "Rtsp/RtspMediaSourceMuxer.h"
 using namespace std;
 using namespace toolkit;
 

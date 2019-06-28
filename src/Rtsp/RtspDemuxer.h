@@ -30,7 +30,7 @@
 #include <unordered_map>
 #include "Player/PlayerBase.h"
 #include "Util/TimeTicker.h"
-#include "RtspMuxer/RtpCodec.h"
+#include "RtpCodec.h"
 
 using namespace std;
 using namespace toolkit;
