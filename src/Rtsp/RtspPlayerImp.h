@@ -61,19 +61,19 @@ public:
     };
 private:
 	//派生类回调函数
-	bool onCheckSDP(const string &sdp, const SdpAttr &sdpAttr) override {
+	bool onCheckSDP(const string &sdp, const SdpParser &parser) override {
 		_pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
 		if(_pRtspMediaSrc){
 			_pRtspMediaSrc->onGetSDP(sdp);
 		}
-        _parser.reset(new RtspDemuxer(sdpAttr));
+        _parser.reset(new RtspDemuxer(parser));
         return true;
 	}
-	void onRecvRTP(const RtpPacket::Ptr &rtppt, const SdpTrack::Ptr &track) override {
+	void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {
         if(_pRtspMediaSrc){
-            _pRtspMediaSrc->onWrite(rtppt,true);
+            _pRtspMediaSrc->onWrite(rtp,true);
         }
-        _parser->inputRtp(rtppt);
+        _parser->inputRtp(rtp);
 
         //由于我们重载isInited方法强制认为一旦获取sdp那么就初始化Track成功，
         //所以我们不需要在后续检验是否初始化成功

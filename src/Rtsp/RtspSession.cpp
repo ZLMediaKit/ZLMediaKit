@@ -244,7 +244,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 
 	_strSession = makeRandStr(12);
     _strSdp = parser.Content();
-    _aTrackInfo = SdpAttr(_strSdp).getAvailableTrack();
+    _aTrackInfo = SdpParser(_strSdp).getAvailableTrack();
 
 	_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
@@ -363,8 +363,8 @@ void RtspSession::onAuthSuccess() {
         }
         //找到了响应的rtsp流
         strongSelf->_strSdp = rtsp_src->getSdp();
-        SdpAttr sdpAttr(strongSelf->_strSdp);
-        strongSelf->_aTrackInfo = sdpAttr.getAvailableTrack();
+        SdpParser sdpParser(strongSelf->_strSdp);
+        strongSelf->_aTrackInfo = sdpParser.getAvailableTrack();
         if (strongSelf->_aTrackInfo.empty()) {
             //该流无效
             strongSelf->send_StreamNotFound();

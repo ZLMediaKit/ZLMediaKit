@@ -29,7 +29,6 @@
 
 #include <string>
 #include <memory>
-#include "Rtsp.h"
 #include "RtspSession.h"
 #include "RtspMediaSource.h"
 #include "Player/PlayerBase.h"
@@ -60,7 +59,7 @@ public:
 	float getPacketLossRate(TrackType type) const override;
 protected:
 	//派生类回调函数
-	virtual bool onCheckSDP(const string &strSdp, const SdpAttr &sdpAttr) = 0;
+	virtual bool onCheckSDP(const string &strSdp, const SdpParser &parser) = 0;
 	virtual void onRecvRTP(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track) = 0;
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
@@ -123,7 +122,7 @@ private:
     void sendReceiverReport(bool overTcp,int iTrackIndex);
 private:
 	string _strUrl;
-	SdpAttr _sdpAttr;
+	SdpParser _sdpParser;
 	vector<SdpTrack::Ptr> _aTrackInfo;
 	function<void(const Parser&)> _onHandshake;
     Socket::Ptr _apRtpSock[2]; //RTP端口,trackid idx 为数组下标

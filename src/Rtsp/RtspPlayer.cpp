@@ -220,13 +220,13 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
     }
 
 	//解析sdp
-	_sdpAttr.load(parser.Content());
-	_aTrackInfo = _sdpAttr.getAvailableTrack();
+	_sdpParser.load(parser.Content());
+	_aTrackInfo = _sdpParser.getAvailableTrack();
 
 	if (_aTrackInfo.empty()) {
 		throw std::runtime_error("无有效的Sdp Track");
 	}
-	if (!onCheckSDP(parser.Content(), _sdpAttr)) {
+	if (!onCheckSDP(parser.Content(), _sdpParser)) {
 		throw std::runtime_error("onCheckSDP faied");
 	}
 

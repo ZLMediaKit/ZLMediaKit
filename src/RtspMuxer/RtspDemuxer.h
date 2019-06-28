@@ -28,7 +28,6 @@
 #define SRC_RTP_RTSPDEMUXER_H_
 
 #include <unordered_map>
-#include "Rtsp/Rtsp.h"
 #include "Player/PlayerBase.h"
 #include "Util/TimeTicker.h"
 #include "RtspMuxer/RtpCodec.h"
@@ -42,7 +41,7 @@ class RtspDemuxer : public Demuxer{
 public:
 	typedef std::shared_ptr<RtspDemuxer> Ptr;
 	RtspDemuxer(const string &sdp);
-	RtspDemuxer(const SdpAttr &attr);
+	RtspDemuxer(const SdpParser &parser);
 	virtual ~RtspDemuxer(){};
 
 	/**
@@ -54,7 +53,7 @@ public:
 private:
 	void makeAudioTrack(const SdpTrack::Ptr &audio);
 	void makeVideoTrack(const SdpTrack::Ptr &video);
-	void loadSdp(const SdpAttr &attr);
+	void loadSdp(const SdpParser &parser);
 private:
 	RtpCodec::Ptr _audioRtpDecoder;
 	RtpCodec::Ptr _videoRtpDecoder;
