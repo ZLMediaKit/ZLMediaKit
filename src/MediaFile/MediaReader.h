@@ -27,9 +27,8 @@
 #ifndef SRC_MEDIAFILE_MEDIAREADER_H_
 #define SRC_MEDIAFILE_MEDIAREADER_H_
 
-#include "Common/Device.h"
-#include "Rtsp/RtspMediaSource.h"
-#include "Rtmp/RtmpMediaSource.h"
+#include "Common/MultiMediaSourceMuxer.h"
+#include "Extension/AAC.h"
 
 #ifdef ENABLE_MP4V2
 #include <mp4v2/mp4v2.h>

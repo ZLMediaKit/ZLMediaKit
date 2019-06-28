@@ -28,6 +28,9 @@
 #include "Common/config.h"
 #include "Util/mini.h"
 #include "Http/HttpSession.h"
+#include "Extension/AAC.h"
+#include "Extension/H264.h"
+
 using namespace toolkit;
 
 namespace mediakit {
