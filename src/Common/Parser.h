@@ -164,7 +164,7 @@ class Parser {
         return ret;
     }
 
-    private:
+private:
     string _strMethod;
     string _strUrl;
     string _strTail;
