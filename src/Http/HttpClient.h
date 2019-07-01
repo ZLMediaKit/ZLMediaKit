@@ -221,7 +221,6 @@ public:
         _recvedBodySize = 0;
         _totalBodySize = 0;
         _aliveTicker.resetTime();
-        _fTimeOutSec = 0;
         _chunkedSplitter.reset();
         HttpRequestSplitter::reset();
     }
