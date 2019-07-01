@@ -198,7 +198,7 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 		sendDescribe();
 		return;
 	}
-	if(parser.Url() == "302"){
+	if(parser.Url() == "302" || parser.Url() == "301"){
 		auto newUrl = parser["Location"];
 		if(newUrl.empty()){
 			throw std::runtime_error("未找到Location字段(跳转url)");
