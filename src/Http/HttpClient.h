@@ -254,6 +254,10 @@ public:
     const Parser& response() const{
         return _parser;
     }
+
+    const string &getUrl() const{
+        return _url;
+    }
 protected:
     /**
      * 收到http回复头
@@ -307,6 +311,7 @@ private:
 protected:
     bool _isHttps;
 private:
+    string _url;
     HttpHeader _header;
     HttpBody::Ptr _body;
     string _method;

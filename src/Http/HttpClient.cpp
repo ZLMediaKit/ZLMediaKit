@@ -39,6 +39,7 @@ HttpClient::~HttpClient() {
 
 void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     _aliveTicker.resetTime();
+    _url = strUrl;
     auto protocol = FindField(strUrl.data(), NULL, "://");
     uint16_t defaultPort;
     bool isHttps;
@@ -155,6 +156,7 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
             return 0;
         }
         HttpClient::clear();
+        setMethod("GET");
         HttpClient::sendRequest(newUrl,_fTimeOutSec);
         return 0;
     }
