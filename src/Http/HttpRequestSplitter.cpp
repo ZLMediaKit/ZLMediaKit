@@ -59,23 +59,22 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
         //_content_len == 0，这是请求头
         const char *header_ptr = ptr;
         int64_t header_size = index - ptr;
-
         ptr = index;
         _remain_data_size = len - (ptr - data);
-
         _content_len = onRecvHeader(header_ptr, header_size);
     }
-
-    /*
-     * 恢复末尾字节
-     */
-    tail_ref = tail_tmp;
 
     if(_remain_data_size <= 0){
         //没有剩余数据，清空缓存
         _remain_data.clear();
         return;
     }
+
+    /*
+     * 恢复末尾字节
+     * 移动到这来，目的是防止HttpRequestSplitter::reset()导致内存失效
+     */
+    tail_ref = tail_tmp;
 
     if(_content_len == 0){
         //尚未找到http头，缓存定位到剩余数据部分
