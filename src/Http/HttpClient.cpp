@@ -154,7 +154,7 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
             shutdown(SockException(Err_shutdown,"未找到Location字段(跳转url)"));
             return 0;
         }
-        clear();
+        HttpClient::clear();
         HttpClient::sendRequest(newUrl,_fTimeOutSec);
         return 0;
     }
