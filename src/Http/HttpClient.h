@@ -296,6 +296,14 @@ protected:
      */
     virtual void onDisconnect(const SockException &ex){}
 
+    /**
+     * 重定向事件
+     * @param url 重定向url
+     * @param temporary 是否为临时重定向
+     * @return 是否继续
+     */
+    virtual bool onRedirectUrl(const string &url,bool temporary){ return true;};
+
     //HttpRequestSplitter override
     int64_t onRecvHeader(const char *data,uint64_t len) override ;
     void onRecvContent(const char *data,uint64_t len) override;

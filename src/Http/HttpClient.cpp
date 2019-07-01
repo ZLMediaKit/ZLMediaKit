@@ -155,10 +155,12 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
             shutdown(SockException(Err_shutdown,"未找到Location字段(跳转url)"));
             return 0;
         }
-        HttpClient::clear();
-        setMethod("GET");
-        HttpClient::sendRequest(newUrl,_fTimeOutSec);
-        return 0;
+        if(onRedirectUrl(newUrl,_parser.Url() == "302")){
+            HttpClient::clear();
+            setMethod("GET");
+            HttpClient::sendRequest(newUrl,_fTimeOutSec);
+            return 0;
+        }
     }
 
     checkCookie(_parser.getValues());
