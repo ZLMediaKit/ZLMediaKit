@@ -97,9 +97,10 @@ public:
 	 * 输入264帧
 	 * @param pcData 264单帧数据指针
 	 * @param iDataLen 数据指针长度
-	 * @param uiStamp 时间戳，单位毫秒；等于0时内部会自动生成时间戳
+	 * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
+	 * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
 	 */
-	void inputH264(const char *pcData, int iDataLen, uint32_t uiStamp);
+	void inputH264(const char *pcData, int iDataLen, uint32_t dts,uint32_t pts = 0);
 
 	/**
 	 * 输入可能带adts头的aac帧

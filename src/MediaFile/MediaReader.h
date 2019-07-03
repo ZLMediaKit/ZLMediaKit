@@ -97,7 +97,7 @@ private:
 	bool readSample(int iTimeInc, bool justSeekSyncFrame);
 	inline bool readVideoSample(int iTimeInc,bool justSeekSyncFrame);
 	inline bool readAudioSample(int iTimeInc,bool justSeekSyncFrame);
-	inline void writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp);
+	inline void writeH264(uint8_t *pucData,int iLen,uint32_t dts,uint32_t pts);
 	inline void writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp);
 private:
 	MP4FileHandle _hMP4File = MP4_INVALID_FILE_HANDLE;

@@ -221,7 +221,7 @@ inline bool MediaReader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
                             break;
                         }
 						memcpy(pBytes + iOffset, "\x0\x0\x0\x1", 4);
-						writeH264(pBytes + iOffset, iFrameLen + 4, (double) _video_ms * iIdx / _video_num_samples);
+						writeH264(pBytes + iOffset, iFrameLen + 4, (double) _video_ms * iIdx / _video_num_samples, 0);
 						iOffset += (iFrameLen + 4);
 					}
 				}else if(_bSyncSample){
@@ -259,8 +259,8 @@ inline bool MediaReader::readAudioSample(int iTimeInc,bool justSeekSyncFrame) {
 	return false;
 }
 
-inline void MediaReader::writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	_mediaMuxer->inputFrame(std::make_shared<H264FrameNoCopyAble>((char*)pucData,iLen,uiStamp));
+inline void MediaReader::writeH264(uint8_t *pucData,int iLen,uint32_t dts,uint32_t pts) {
+	_mediaMuxer->inputFrame(std::make_shared<H264FrameNoCopyAble>((char*)pucData,iLen,dts,pts));
 }
 
 inline void MediaReader::writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp) {
