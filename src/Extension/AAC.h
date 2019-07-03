@@ -109,11 +109,11 @@ class AACFrameNoCopyAble : public FrameNoCopyAble {
 public:
     typedef std::shared_ptr<AACFrameNoCopyAble> Ptr;
 
-    AACFrameNoCopyAble(char *ptr,uint32_t size,uint32_t stamp,int prefixeSize = 7){
-        buffer_ptr = ptr;
-        buffer_size = size;
-        timeStamp = stamp;
-        iPrefixSize = prefixeSize;
+    AACFrameNoCopyAble(char *ptr,uint32_t size,uint32_t dts,int prefixeSize = 7){
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _prefixSize = prefixeSize;
     }
 
     TrackType getTrackType() const override{

@@ -96,11 +96,12 @@ class H264FrameNoCopyAble : public FrameNoCopyAble {
 public:
     typedef std::shared_ptr<H264FrameNoCopyAble> Ptr;
 
-    H264FrameNoCopyAble(char *ptr,uint32_t size,uint32_t stamp,int prefixeSize = 4){
-        buffer_ptr = ptr;
-        buffer_size = size;
-        timeStamp = stamp;
-        iPrefixSize = prefixeSize;
+    H264FrameNoCopyAble(char *ptr,uint32_t size,uint32_t dts , uint32_t pts ,int prefixeSize = 4){
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _pts = pts;
+        _prefixSize = prefixeSize;
     }
 
     TrackType getTrackType() const override{
@@ -112,19 +113,17 @@ public:
     }
 
     bool keyFrame() const override {
-        return H264_TYPE(buffer_ptr[iPrefixSize]) == H264Frame::NAL_IDR;
+        return H264_TYPE(_ptr[_prefixSize]) == H264Frame::NAL_IDR;
     }
 };
 
 class H264FrameSubFrame : public H264FrameNoCopyAble{
 public:
     typedef std::shared_ptr<H264FrameSubFrame> Ptr;
-
     H264FrameSubFrame(const Frame::Ptr &strongRef,
-                           char *ptr,
-                           uint32_t size,
-                           uint32_t stamp,
-                           int prefixeSize) : H264FrameNoCopyAble(ptr,size,stamp,prefixeSize){
+                      char *ptr,
+                      uint32_t size,
+                      int prefixeSize) : H264FrameNoCopyAble(ptr,size,strongRef->dts(),strongRef->pts(),prefixeSize){
         _strongRef = strongRef;
     }
 private:
@@ -234,7 +233,6 @@ public:
                           H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
                                                                                                  frame->data(),
                                                                                                  len + frame->prefixSize(),
-                                                                                                 frame->stamp(),
                                                                                                  frame->prefixSize());
                           inputFrame_l(sub_frame);
                           first_frame = false;
@@ -242,7 +240,6 @@ public:
                           H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
                                                                                                  (char *)ptr,
                                                                                                  len ,
-                                                                                                 frame->stamp(),
                                                                                                  3);
                           inputFrame_l(sub_frame);
                       }

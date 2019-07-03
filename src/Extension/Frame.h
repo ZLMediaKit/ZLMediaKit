@@ -285,22 +285,33 @@ class FrameNoCopyAble : public Frame{
 public:
     typedef std::shared_ptr<FrameNoCopyAble> Ptr;
     char *data() const override{
-        return buffer_ptr;
+        return _ptr;
     }
     uint32_t size() const override {
-        return buffer_size;
+        return _size;
     }
+
     uint32_t dts() const override {
-        return timeStamp;
+        return _dts;
     }
+
+    uint32_t pts() const override{
+        if(_pts){
+            return _pts;
+        }
+        return dts();
+    }
+
     uint32_t prefixSize() const override{
-        return iPrefixSize;
+        return _prefixSize;
     }
-public:
-    char *buffer_ptr;
-    uint32_t buffer_size;
-    uint32_t timeStamp;
-    uint32_t iPrefixSize;
+
+protected:
+    char *_ptr;
+    uint32_t _size;
+    uint32_t _dts;
+    uint32_t _pts = 0;
+    uint32_t _prefixSize;
 };
 
 

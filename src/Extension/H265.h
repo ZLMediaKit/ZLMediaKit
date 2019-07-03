@@ -125,11 +125,12 @@ class H265FrameNoCopyAble : public FrameNoCopyAble {
 public:
     typedef std::shared_ptr<H265FrameNoCopyAble> Ptr;
 
-    H265FrameNoCopyAble(char *ptr, uint32_t size, uint32_t stamp, int prefixeSize = 4) {
-        buffer_ptr = ptr;
-        buffer_size = size;
-        timeStamp = stamp;
-        iPrefixSize = prefixeSize;
+    H265FrameNoCopyAble(char *ptr, uint32_t size, uint32_t dts,uint32_t pts, int prefixeSize = 4) {
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _pts = pts;
+        _prefixSize = prefixeSize;
     }
 
     TrackType getTrackType() const override {
@@ -141,7 +142,7 @@ public:
     }
 
     bool keyFrame() const override {
-        int type = H265_TYPE(((uint8_t *) buffer_ptr)[iPrefixSize]);
+        int type = H265_TYPE(((uint8_t *) _ptr)[_prefixSize]);
         return H265Frame::isKeyFrame(type);
     }
 };
