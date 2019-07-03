@@ -308,27 +308,23 @@ private:
         }
 
         if(!_sps.empty()){
-            if(!_spsFrame){
-                _spsFrame = std::make_shared<H264Frame>();
-                _spsFrame->type = H264Frame::NAL_SPS;
-                _spsFrame->iPrefixSize = 4;
-            }
-            _spsFrame->buffer.assign("\x0\x0\x0\x1",4);
-            _spsFrame->buffer.append(_sps);
-            _spsFrame->timeStamp = frame->stamp();
-            VideoTrack::inputFrame(_spsFrame);
+            auto spsFrame = std::make_shared<H264Frame>();
+            spsFrame->type = H264Frame::NAL_SPS;
+            spsFrame->iPrefixSize = 4;
+            spsFrame->buffer.assign("\x0\x0\x0\x1",4);
+            spsFrame->buffer.append(_sps);
+            spsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(spsFrame);
         }
 
         if(!_pps.empty()){
-            if(!_ppsFrame) {
-                _ppsFrame = std::make_shared<H264Frame>();
-                _ppsFrame->type = H264Frame::NAL_PPS;
-                _ppsFrame->iPrefixSize = 4;
-            }
-            _ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
-            _ppsFrame->buffer.append(_pps);
-            _ppsFrame->timeStamp = frame->stamp();
-            VideoTrack::inputFrame(_ppsFrame);
+            auto ppsFrame = std::make_shared<H264Frame>();
+            ppsFrame->type = H264Frame::NAL_PPS;
+            ppsFrame->iPrefixSize = 4;
+            ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
+            ppsFrame->buffer.append(_pps);
+            ppsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(ppsFrame);
         }
     }
 private:
@@ -338,8 +334,6 @@ private:
     int _height = 0;
     float _fps = 0;
     bool _last_frame_is_idr = false;
-    H264Frame::Ptr _spsFrame;
-    H264Frame::Ptr _ppsFrame;
 };
 
 
