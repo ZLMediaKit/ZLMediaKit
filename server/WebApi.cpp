@@ -612,7 +612,7 @@ void installWebApi() {
 
 
 #if !defined(_WIN32)
-    API_REGIST_INVOKER(hook,on_stream_not_found,{
+    API_REGIST_INVOKER(hook,on_stream_not_found_ffmpeg,{
         //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream");
@@ -640,8 +640,7 @@ void installWebApi() {
                             invoker("200 OK", headerOut, val.toStyledString());
                         });
     });
-
-#else
+#endif//!defined(_WIN32)
 
     API_REGIST_INVOKER(hook,on_stream_not_found,{
         //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
@@ -652,8 +651,8 @@ void installWebApi() {
                        allArgs["app"],
                        allArgs["stream"],
                        /** 支持rtsp和rtmp方式拉流 ，rtsp支持h265/h264/aac,rtmp仅支持h264/aac **/
-                       "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",//rtmp://live.hkstv.hk.lxdns.com/live/hks2
-                       false,
+                       "rtmp://live.hkstv.hk.lxdns.com/live/hks2",//"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov"
+                       true,
                        false,
                        0,//rtp over tcp方式拉流
                        [invoker,val,headerOut](const SockException &ex,const string &key){
@@ -666,7 +665,6 @@ void installWebApi() {
                            invoker("200 OK", headerOut, val.toStyledString());
                        });
     });
-#endif // !defined(_WIN32)
 
     API_REGIST(hook,on_record_mp4,{
         //录制mp4分片完毕事件
