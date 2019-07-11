@@ -280,7 +280,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 	}
 
 	auto strTransport = parser["Transport"];
-	if(strTransport.find("TCP") != string::npos){
+	if(strTransport.find("TCP") != string::npos || strTransport.find("interleaved") != string::npos){
 		_eType = Rtsp::RTP_TCP;
 	}else if(strTransport.find("multicast") != string::npos){
 		_eType = Rtsp::RTP_MULTICAST;
@@ -314,6 +314,9 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 				SockUtil::joinMultiAddr(fd, multiAddr.data(),get_local_ip().data());
 			}
 		} else {
+			if(!pRtpSockRef || !pRtcpSockRef){
+				throw std::runtime_error("udp socket not created yet when rtp over udp");
+			}
 		    //udp单播
 			struct sockaddr_in rtpto;
 			rtpto.sin_port = ntohs(rtp_port);
