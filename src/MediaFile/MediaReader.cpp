@@ -37,6 +37,7 @@ namespace mediakit {
 
 #ifdef ENABLE_MP4V2
 MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
+	_poller = EventPollerPool::Instance().getPoller();
     auto strFileName = filePath;
     if(strFileName.empty()){
 		GET_CONFIG(string,recordPath,Record::kFilePath);
@@ -164,7 +165,7 @@ void MediaReader::startReadMP4() {
 
 	_timer = std::make_shared<Timer>(sampleMS / 1000.0f,[strongSelf](){
 		return strongSelf->readSample(0,false);
-	}, nullptr);
+	}, _poller);
 
     //先读sampleMS毫秒的数据用于产生MediaSouce
 	readSample(sampleMS, false);
