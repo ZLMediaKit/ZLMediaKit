@@ -242,12 +242,12 @@ bool RtspPusher::handleAuthenticationFailure(const string &paramsStr) {
     return false;
 }
 
-
-//有必须的情况下创建udp端口
+//有必要的情况下创建udp端口
 void RtspPusher::createUdpSockIfNecessary(int track_idx){
     auto &rtpSockRef = _apUdpSock[track_idx];
     if(!rtpSockRef){
         rtpSockRef.reset(new Socket(getPoller()));
+        //rtp随机端口
         if (!rtpSockRef->bindUdpSock(0, get_local_ip().data())) {
             rtpSockRef.reset();
             throw std::runtime_error("open rtp sock failed");
