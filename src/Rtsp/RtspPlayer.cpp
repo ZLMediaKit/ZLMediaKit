@@ -232,6 +232,29 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 
 	sendSetup(0);
 }
+
+//有必须的情况下创建udp端口
+void RtspPlayer::createUdpSockIfNecessary(int track_idx){
+	auto &rtpSockRef = _apRtpSock[track_idx];
+	auto &rtcpSockRef = _apRtcpSock[track_idx];
+	if(!rtpSockRef){
+		rtpSockRef.reset(new Socket(getPoller()));
+		if (!rtpSockRef->bindUdpSock(0, get_local_ip().data())) {
+			rtpSockRef.reset();
+			throw std::runtime_error("open rtp sock failed");
+		}
+	}
+
+	if(!rtcpSockRef){
+		rtcpSockRef.reset(new Socket(getPoller()));
+		if (!rtcpSockRef->bindUdpSock(rtpSockRef->get_local_port() + 1, get_local_ip().data())) {
+			rtcpSockRef.reset();
+			throw std::runtime_error("open rtcp sock failed");
+		}
+	}
+}
+
+
 //发送SETUP命令
 void RtspPlayer::sendSetup(unsigned int trackIndex) {
     _onHandshake = std::bind(&RtspPlayer::handleResSETUP,this, placeholders::_1,trackIndex);
@@ -247,16 +270,7 @@ void RtspPlayer::sendSetup(unsigned int trackIndex) {
 		}
 			break;
 		case Rtsp::RTP_UDP: {
-			_apRtpSock[trackIndex].reset(new Socket(getPoller()));
-			if (!_apRtpSock[trackIndex]->bindUdpSock(0, get_local_ip().data())) {
-				_apRtpSock[trackIndex].reset();
-				throw std::runtime_error("open rtp sock err");
-			}
-            _apRtcpSock[trackIndex].reset(new Socket(getPoller()));
-            if (!_apRtcpSock[trackIndex]->bindUdpSock(_apRtpSock[trackIndex]->get_local_port() + 1, get_local_ip().data())) {
-                _apRtcpSock[trackIndex].reset();
-                throw std::runtime_error("open rtcp sock err");
-            }
+			createUdpSockIfNecessary(trackIndex);
 			sendRtspRequest("SETUP",baseUrl,{"Transport",
                                     StrPrinter << "RTP/AVP;unicast;client_port="
                                     << _apRtpSock[trackIndex]->get_local_port() << "-"
@@ -314,10 +328,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 				SockUtil::joinMultiAddr(fd, multiAddr.data(),get_local_ip().data());
 			}
 		} else {
-			if(!pRtpSockRef || !pRtcpSockRef){
-				throw std::runtime_error("udp socket not created yet when rtp over udp");
-			}
-		    //udp单播
+			createUdpSockIfNecessary(uiTrackIndex);
+			//udp单播
 			struct sockaddr_in rtpto;
 			rtpto.sin_port = ntohs(rtp_port);
 			rtpto.sin_family = AF_INET;
