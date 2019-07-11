@@ -233,12 +233,13 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 	sendSetup(0);
 }
 
-//有必须的情况下创建udp端口
+//有必要的情况下创建udp端口
 void RtspPlayer::createUdpSockIfNecessary(int track_idx){
 	auto &rtpSockRef = _apRtpSock[track_idx];
 	auto &rtcpSockRef = _apRtcpSock[track_idx];
 	if(!rtpSockRef){
 		rtpSockRef.reset(new Socket(getPoller()));
+		//rtp随机端口
 		if (!rtpSockRef->bindUdpSock(0, get_local_ip().data())) {
 			rtpSockRef.reset();
 			throw std::runtime_error("open rtp sock failed");
@@ -247,6 +248,7 @@ void RtspPlayer::createUdpSockIfNecessary(int track_idx){
 
 	if(!rtcpSockRef){
 		rtcpSockRef.reset(new Socket(getPoller()));
+		//rtcp端口为rtp端口+1，目的是为了兼容某些服务器，其实更推荐随机端口
 		if (!rtcpSockRef->bindUdpSock(rtpSockRef->get_local_port() + 1, get_local_ip().data())) {
 			rtcpSockRef.reset();
 			throw std::runtime_error("open rtcp sock failed");
