@@ -120,6 +120,7 @@ private:
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
 	void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
     void sendReceiverReport(bool overTcp,int iTrackIndex);
+	void createUdpSockIfNecessary(int track_idx);
 private:
 	string _strUrl;
 	SdpParser _sdpParser;
