@@ -119,7 +119,8 @@ RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
     GET_CONFIG(uint32_t,audio_mtu,Rtp::kAudioMtuSize);
     GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
     // ssrc不冲突即可
-    uint32_t ssrc = ((uint64_t) sdp.get()) & 0xFFFFFFFF;
+    static atomic_int32_t s_ssrc(0x10000000);
+    uint32_t ssrc = ++s_ssrc;
     auto mtu = (sdp->getTrackType() == TrackVideo ? video_mtu : audio_mtu);
     auto sample_rate = sdp->getSampleRate();
     auto pt = sdp->getPlayloadType();
