@@ -16,7 +16,9 @@ namespace mediakit{
 string FindField(const char *buf, const char *start, const char *end, int bufSize = 0);
 
 struct StrCaseCompare {
-    bool operator()(const string &__x, const string &__y) const { return strcasecmp(__x.data(), __y.data()) < 0; }
+    bool operator()(const string &__x, const string &__y) const {
+        return strcasecmp(__x.data(), __y.data()) < 0;
+    }
 };
 
 
@@ -25,17 +27,19 @@ class StrCaseMap : public multimap<string, string, StrCaseCompare>{
     typedef multimap<string, string, StrCaseCompare> Super ;
     StrCaseMap() = default;
     ~StrCaseMap() = default;
-    string &operator[](const string &key){
-        auto it = find(key);
+
+    template <class K>
+    string &operator[](K &&k){
+        auto it = find(std::forward<K>(k));
         if(it == end()){
-            it = Super::emplace(key,"");
+            it = Super::emplace(std::forward<K>(k),"");
         }
         return it->second;
     }
 
     template <class K,class V>
     void emplace(K &&k , V &&v) {
-        auto it = find(k);
+        auto it = find(std::forward<K>(k));
         if(it != end()){
             return;
         }

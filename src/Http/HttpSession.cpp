@@ -913,13 +913,16 @@ void HttpSession::responseDelay(const string &Origin,bool bClose,
 		sendNotFound(bClose);
 		return;
 	}
-	auto headerOther=makeHttpHeader(bClose,contentOut.size(),"text/plain");
+	auto headerOther = makeHttpHeader(bClose,contentOut.size(),"text/plain");
 	if(!Origin.empty()){
 		headerOther["Access-Control-Allow-Origin"] = Origin;
 		headerOther["Access-Control-Allow-Credentials"] = "true";
 	}
-	const_cast<KeyValue &>(headerOut).insert(headerOther.begin(), headerOther.end());
-	sendResponse(codeOut.data(), headerOut, contentOut);
+    for (auto &pr : headerOut){
+        //替换掉默认的http头
+        headerOther[pr.first] = pr.second;
+    }
+	sendResponse(codeOut.data(), headerOther, contentOut);
 }
 inline void HttpSession::sendNotFound(bool bClose) {
     GET_CONFIG(string,notFound,Http::kNotFound);
