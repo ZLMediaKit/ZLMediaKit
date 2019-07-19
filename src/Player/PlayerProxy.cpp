@@ -130,7 +130,10 @@ void PlayerProxy::play(const string &strUrlTmp) {
 	MediaSource::Ptr mediaSource;
 	if(dynamic_pointer_cast<RtspPlayer>(_parser)){
 		//rtsp拉流
-		mediaSource = std::make_shared<RtspMediaSource>(_strVhost,_strApp,_strSrc);
+		GET_CONFIG(bool,directProxy,Rtsp::kDirectProxy);
+		if(directProxy){
+			mediaSource = std::make_shared<RtspMediaSource>(_strVhost,_strApp,_strSrc);
+		}
 	}else if(dynamic_pointer_cast<RtmpPlayer>(_parser)){
 		//rtmp拉流
 		mediaSource = std::make_shared<RtmpMediaSource>(_strVhost,_strApp,_strSrc);
