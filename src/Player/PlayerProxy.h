@@ -84,6 +84,7 @@ private:
     void onNoneReader(MediaSource &sender) override;
 	void rePlay(const string &strUrl,int iFailedCnt);
 	void onPlaySuccess();
+	int readerCount() ;
 private:
     bool _bEnableHls;
     bool _bEnableMp4;

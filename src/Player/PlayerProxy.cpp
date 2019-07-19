@@ -126,13 +126,25 @@ void PlayerProxy::play(const string &strUrlTmp) {
 		}
 	});
 	MediaPlayer::play(strUrlTmp);
+
+	MediaSource::Ptr mediaSource;
+	if(dynamic_pointer_cast<RtspPlayer>(_parser)){
+		//rtsp拉流
+		mediaSource = std::make_shared<RtspMediaSource>(_strVhost,_strApp,_strSrc);
+	}else if(dynamic_pointer_cast<RtmpPlayer>(_parser)){
+		//rtmp拉流
+		mediaSource = std::make_shared<RtmpMediaSource>(_strVhost,_strApp,_strSrc);
+	}
+	if(mediaSource){
+		setMediaSouce(mediaSource);
+		mediaSource->setListener(shared_from_this());
+	}
 }
 
 PlayerProxy::~PlayerProxy() {
 	_timer.reset();
 }
 void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
-	auto iTaskId = reinterpret_cast<uint64_t>(this);
 	auto iDelay = MAX(2 * 1000, MIN(iFailedCnt * 3000,60*1000));
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 	_timer = std::make_shared<Timer>(iDelay / 1000.0f,[weakSelf,strUrl,iFailedCnt]() {
@@ -146,8 +158,13 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 		return false;
 	}, getPoller());
 }
+
+int PlayerProxy::readerCount(){
+	return (_mediaMuxer ? _mediaMuxer->readerCount() : 0) + (_pMediaSrc ? _pMediaSrc->readerCount() : 0);
+}
+
 bool PlayerProxy::close(MediaSource &sender,bool force) {
-    if(!_mediaMuxer || (!force && _mediaMuxer->readerCount() != 0)){
+    if(!force && readerCount() != 0){
         return false;
     }
 
@@ -157,6 +174,7 @@ bool PlayerProxy::close(MediaSource &sender,bool force) {
 		auto stronSelf = weakSlef.lock();
 		if (stronSelf) {
 			stronSelf->_mediaMuxer.reset();
+			stronSelf->setMediaSouce(nullptr);
 			stronSelf->teardown();
 			if(stronSelf->_onClose){
                 stronSelf->_onClose();
@@ -197,7 +215,16 @@ private:
 };
 
 void PlayerProxy::onPlaySuccess() {
-	_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost,_strApp,_strSrc,getDuration(),_bEnableHls,_bEnableMp4));
+	if (dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc)) {
+		//rtsp拉流代理
+		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableHls, _bEnableMp4 , true, false));
+	} else if (dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc)) {
+		//rtmp拉流代理
+		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableHls, _bEnableMp4 , false, true));
+	} else {
+		//其他拉流代理
+		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableHls, _bEnableMp4 , true, true));
+	}
 	_mediaMuxer->setListener(shared_from_this());
 
 	auto videoTrack = getTrack(TrackVideo,false);
