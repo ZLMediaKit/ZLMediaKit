@@ -138,7 +138,7 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 	}
 
 	_iDuration	= MAX(_video_ms,_audio_ms);
-	_mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost,strApp,strId,_iDuration/1000.0,false, false));
+	_mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost, strApp, strId, _iDuration / 1000.0, true, true, false, false));
 	if (_audio_trId != MP4_INVALID_TRACK_ID) {
 		AACTrack::Ptr track = std::make_shared<AACTrack>(_strAacCfg);
 		_mediaMuxer->addTrack(track);

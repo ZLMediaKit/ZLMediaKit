@@ -449,6 +449,8 @@ void installWebApi() {
                                     const string &app,
                                     const string &stream,
                                     const string &url,
+                                    bool enable_rtsp,
+                                    bool enable_rtmp,
                                     bool enable_hls,
                                     bool enable_mp4,
                                     int rtp_type,
@@ -461,7 +463,7 @@ void installWebApi() {
             return;
         }
         //添加拉流代理
-        PlayerProxy::Ptr player(new PlayerProxy(vhost,app,stream,enable_hls,enable_mp4));
+        PlayerProxy::Ptr player(new PlayerProxy(vhost,app,stream,enable_rtsp,enable_rtmp,enable_hls,enable_mp4));
         s_proxyMap[key] = player;
         
         //指定RTP over TCP(播放rtsp时有效)
@@ -487,13 +489,15 @@ void installWebApi() {
     //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&stream=0&url=rtmp://127.0.0.1/live/obs
     API_REGIST_INVOKER(api,addStreamProxy,{
         CHECK_SECRET();
-        CHECK_ARGS("vhost","app","stream","url");
+        CHECK_ARGS("vhost","app","stream","url","enable_rtsp","enable_rtmp");
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
                        allArgs["stream"],
                        allArgs["url"],
-                       allArgs["enable_hls"],
-                       allArgs["enable_mp4"],
+                       allArgs["enable_rtsp"],/* 是否rtsp转发 */
+                       allArgs["enable_rtmp"],/* 是否rtmp转发 */
+                       allArgs["enable_hls"],/* 是否hls转发 */
+                       allArgs["enable_mp4"],/* 是否MP4录制 */
                        allArgs["rtp_type"],
                        [invoker,val,headerOut](const SockException &ex,const string &key){
                            if(ex){
@@ -651,9 +655,11 @@ void installWebApi() {
                        allArgs["app"],
                        allArgs["stream"],
                        /** 支持rtsp和rtmp方式拉流 ，rtsp支持h265/h264/aac,rtmp仅支持h264/aac **/
-                       "rtmp://live.hkstv.hk.lxdns.com/live/hks2",//"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov"
-                       true,
-                       false,
+                       "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+                       true,/* 开启rtsp转发 */
+                       true,/* 开启rtmp转发 */
+                       true,/* 开启hls转发 */
+                       false,/* 禁用MP4录制 */
                        0,//rtp over tcp方式拉流
                        [invoker,val,headerOut](const SockException &ex,const string &key){
                            if(ex){

@@ -39,10 +39,11 @@ public:
                           const string &strApp,
                           const string &strId,
                           float dur_sec = 0.0,
-                          bool bEanbleHls = true,
-                          bool bEnableMp4 = false,
+                          bool bEanbleRtsp = true,
                           bool bEanbleRtmp = true,
-                          bool bEanbleRtsp = true){
+                          bool bEanbleHls = true,
+                          bool bEnableMp4 = false
+                          ){
         if (bEanbleRtmp) {
             _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleMete>(dur_sec));
         }

@@ -49,6 +49,8 @@ public:
 	PlayerProxy(const string &strVhost,
                 const string &strApp,
                 const string &strSrc,
+				bool bEnableRtsp = true,
+				bool bEnableRtmp = true,
                 bool bEnableHls = true,
                 bool bEnableMp4 = false,
                 int iRetryCount = -1,
@@ -86,8 +88,10 @@ private:
 	void onPlaySuccess();
 	int readerCount() ;
 private:
-    bool _bEnableHls;
-    bool _bEnableMp4;
+    bool _bEnableRtsp;
+    bool _bEnableRtmp;
+	bool _bEnableHls;
+	bool _bEnableMp4;
     int _iRetryCount;
 	MultiMediaSourceMuxer::Ptr _mediaMuxer;
     string _strVhost;
