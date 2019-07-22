@@ -486,7 +486,7 @@ void installWebApi() {
     };
 
     //动态添加rtsp/rtmp拉流代理
-    //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&stream=0&url=rtmp://127.0.0.1/live/obs
+    //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&enable_rtsp=1&enable_rtmp=1&stream=0&url=rtmp://127.0.0.1/live/obs
     API_REGIST_INVOKER(api,addStreamProxy,{
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream","url","enable_rtsp","enable_rtmp");
