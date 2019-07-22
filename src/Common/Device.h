@@ -74,6 +74,8 @@ public:
                const string &strApp,
                const string &strId,
                float fDuration = 0,
+			   bool bEanbleRtsp = true,
+			   bool bEanbleRtmp = true,
                bool bEanbleHls = true,
                bool bEnableMp4 = false);
 

@@ -41,9 +41,11 @@ DevChannel::DevChannel(const string &strVhost,
                        const string &strApp,
                        const string &strId,
                        float fDuration,
+					   bool bEanbleRtsp,
+					   bool bEanbleRtmp,
                        bool bEanbleHls,
                        bool bEnableMp4) :
-        MultiMediaSourceMuxer(strVhost, strApp, strId, fDuration, bEanbleHls, bEnableMp4) {}
+        MultiMediaSourceMuxer(strVhost, strApp, strId, fDuration, bEanbleRtsp, bEanbleRtmp, bEanbleHls, bEnableMp4) {}
 
 DevChannel::~DevChannel() {}
 
