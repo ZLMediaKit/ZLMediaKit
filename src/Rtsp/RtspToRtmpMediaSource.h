@@ -53,23 +53,23 @@ public:
     virtual ~RtspToRtmpMediaSource() {}
 
     virtual void onGetSDP(const string &strSdp) override {
-        _rtspDemuxer = std::make_shared<RtspDemuxer>(strSdp);
+        _demuxer = std::make_shared<RtspDemuxer>(strSdp);
         RtspMediaSource::onGetSDP(strSdp);
     }
 
     virtual void onWrite(const RtpPacket::Ptr &rtp, bool bKeyPos) override {
-        if (_rtspDemuxer) {
-            bKeyPos = _rtspDemuxer->inputRtp(rtp);
-            if (!_muxer && _rtspDemuxer->isInited(2000)) {
+        if (_demuxer) {
+            bKeyPos = _demuxer->inputRtp(rtp);
+            if (!_muxer && _demuxer->isInited(2000)) {
                 _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(),
                                                                  getApp(),
                                                                  getId(),
-                                                                 _rtspDemuxer->getDuration(),
+                                                                 _demuxer->getDuration(),
                                                                  false,//不重复生成rtsp
                                                                  true,//转rtmp
                                                                  _bEnableHls,
                                                                  _bEnableMp4);
-                for (auto &track : _rtspDemuxer->getTracks(false)) {
+                for (auto &track : _demuxer->getTracks(false)) {
                     _muxer->addTrack(track);
                     track->addDelegate(_muxer);
                 }
@@ -89,7 +89,7 @@ public:
         return RtspMediaSource::readerCount() + (_muxer ? _muxer->readerCount() : 0);
     }
 private:
-    RtspDemuxer::Ptr _rtspDemuxer;
+    RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
     bool _bEnableHls;
     bool _bEnableMp4;
