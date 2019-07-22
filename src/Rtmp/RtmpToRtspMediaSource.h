@@ -57,27 +57,27 @@ public:
 						  int ringSize = 0) : RtmpMediaSource(vhost, app, id,ringSize){
 		_bEnableHls = bEnableHls;
 		_bEnableMp4 = bEnableMp4;
-		_rtmpDemuxer = std::make_shared<RtmpDemuxer>();
+		_demuxer = std::make_shared<RtmpDemuxer>();
 	}
 	virtual ~RtmpToRtspMediaSource(){}
 
 	void onGetMetaData(const AMFValue &metadata) override {
-		_rtmpDemuxer = std::make_shared<RtmpDemuxer>(metadata);
+		_demuxer = std::make_shared<RtmpDemuxer>(metadata);
 		RtmpMediaSource::onGetMetaData(metadata);
 	}
 
 	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos) override {
-		_rtmpDemuxer->inputRtmp(pkt);
-		if(!_muxer && _rtmpDemuxer->isInited(2000)){
+		_demuxer->inputRtmp(pkt);
+		if(!_muxer && _demuxer->isInited(2000)){
 			_muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(),
 															 getApp(),
 															 getId(),
-															 _rtmpDemuxer->getDuration(),
+															 _demuxer->getDuration(),
 															 true,//转rtsp
 															 false,//不重复生成rtmp
 															 _bEnableHls,
 															 _bEnableMp4);
-			for (auto &track : _rtmpDemuxer->getTracks(false)){
+			for (auto &track : _demuxer->getTracks(false)){
 				_muxer->addTrack(track);
 				track->addDelegate(_muxer);
 			}
@@ -97,7 +97,7 @@ public:
         return RtmpMediaSource::readerCount() + (_muxer ? _muxer->readerCount() : 0);
     }
 private:
-	RtmpDemuxer::Ptr _rtmpDemuxer;
+	RtmpDemuxer::Ptr _demuxer;
 	MultiMediaSourceMuxer::Ptr _muxer;
 	bool _bEnableHls;
 	bool _bEnableMp4;
