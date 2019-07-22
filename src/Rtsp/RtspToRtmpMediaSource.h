@@ -29,10 +29,8 @@
 
 #include "Rtmp/amf.h"
 #include "RtspMediaSource.h"
-#include "MediaFile/MediaRecorder.h"
-#include "Rtmp/RtmpMediaSource.h"
 #include "RtspDemuxer.h"
-#include "Rtmp/RtmpMediaSourceMuxer.h"
+#include "Common/MultiMediaSourceMuxer.h"
 
 using namespace toolkit;
 
@@ -48,7 +46,8 @@ public:
                           bool bEnableHls = true,
                           bool bEnableMp4 = false,
                           int ringSize = 0) : RtspMediaSource(vhost, app, id,ringSize) {
-        _recorder = std::make_shared<MediaRecorder>(vhost, app, id, bEnableHls, bEnableMp4);
+        _bEnableHls = bEnableHls;
+        _bEnableMp4 = bEnableMp4;
     }
 
     virtual ~RtspToRtmpMediaSource() {}
@@ -61,18 +60,20 @@ public:
     virtual void onWrite(const RtpPacket::Ptr &rtp, bool bKeyPos) override {
         if (_rtspDemuxer) {
             bKeyPos = _rtspDemuxer->inputRtp(rtp);
-            if (!_rtmpMuxer && _rtspDemuxer->isInited(2000)) {
-                _rtmpMuxer = std::make_shared<RtmpMediaSourceMuxer>(getVhost(),
-                                                                    getApp(),
-                                                                    getId(),
-                                                                    std::make_shared<TitleMete>(_rtspDemuxer->getDuration()));
+            if (!_muxer && _rtspDemuxer->isInited(2000)) {
+                _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(),
+                                                                 getApp(),
+                                                                 getId(),
+                                                                 _rtspDemuxer->getDuration(),
+                                                                 false,//不重复生成rtsp
+                                                                 true,//转rtmp
+                                                                 _bEnableHls,
+                                                                 _bEnableMp4);
                 for (auto &track : _rtspDemuxer->getTracks(false)) {
-                    _rtmpMuxer->addTrack(track);
-                    _recorder->addTrack(track);
-                    track->addDelegate(_rtmpMuxer);
-                    track->addDelegate(_recorder);
+                    _muxer->addTrack(track);
+                    track->addDelegate(_muxer);
                 }
-                _rtmpMuxer->setListener(_listener);
+                _muxer->setListener(_listener);
             }
         }
         RtspMediaSource::onWrite(rtp, bKeyPos);
@@ -80,17 +81,18 @@ public:
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override {
         RtspMediaSource::setListener(listener);
-        if(_rtmpMuxer){
-            _rtmpMuxer->setListener(listener);
+        if(_muxer){
+            _muxer->setListener(listener);
         }
     }
     int readerCount() override {
-        return RtspMediaSource::readerCount() + (_rtmpMuxer ? _rtmpMuxer->readerCount() : 0);
+        return RtspMediaSource::readerCount() + (_muxer ? _muxer->readerCount() : 0);
     }
 private:
     RtspDemuxer::Ptr _rtspDemuxer;
-    RtmpMediaSourceMuxer::Ptr _rtmpMuxer;
-    MediaRecorder::Ptr _recorder;
+    MultiMediaSourceMuxer::Ptr _muxer;
+    bool _bEnableHls;
+    bool _bEnableMp4;
 };
 
 } /* namespace mediakit */
