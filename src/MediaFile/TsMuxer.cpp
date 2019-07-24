@@ -78,7 +78,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
                 mpeg_ts_write(_context, it->second, back->keyFrame() ? 0x0001 : 0, back->pts() * 90LL, back->dts() * 90LL, merged_frame->data(),  merged_frame->size());
                 _frameCached.clear();
             }
-            _frameCached.emplace_back(frame);
+            _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
         }
             break;
         default: {

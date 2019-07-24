@@ -77,7 +77,7 @@ public:
 /**
  * 帧类型的抽象接口
  */
-class Frame : public Buffer, public CodecInfo{
+class Frame : public Buffer, public CodecInfo {
 public:
     typedef std::shared_ptr<Frame> Ptr;
     virtual ~Frame(){}
@@ -121,6 +121,12 @@ public:
      * 是否可以缓存
      */
     virtual bool cacheAble() const { return true; }
+
+    /**
+     * 返回可缓存的frame
+     * @return
+     */
+    static Ptr getCacheAbleFrame(const Ptr &frame);
 };
 
 /**
@@ -324,6 +330,57 @@ protected:
     uint32_t _dts;
     uint32_t _pts = 0;
     uint32_t _prefixSize;
+};
+
+class FrameCacheAble : public FrameNoCacheAble {
+public:
+    typedef std::shared_ptr<FrameCacheAble> Ptr;
+
+    FrameCacheAble(const Frame::Ptr &frame){
+        if(frame->cacheAble()){
+            _frame = frame;
+            _ptr = frame->data();
+        }else{
+            _buffer = std::make_shared<BufferRaw>();
+            _buffer->assign(frame->data(),frame->size());
+            _ptr = _buffer->data();
+        }
+        _size = frame->size();
+        _dts = frame->dts();
+        _pts = frame->pts();
+        _prefixSize = frame->prefixSize();
+        _trackType = frame->getTrackType();
+        _codec = frame->getCodecId();
+        _key = frame->keyFrame();
+    }
+
+    virtual ~FrameCacheAble() = default;
+
+    /**
+     * 可以被缓存
+     * @return
+     */
+    bool cacheAble() const override {
+        return true;
+    }
+
+    TrackType getTrackType() const override{
+        return _trackType;
+    }
+
+    CodecId getCodecId() const override{
+        return _codec;
+    }
+
+    bool keyFrame() const override{
+        return _key;
+    }
+private:
+    Frame::Ptr _frame;
+    BufferRaw::Ptr _buffer;
+    TrackType _trackType;
+    CodecId _codec;
+    bool _key;
 };
 
 
