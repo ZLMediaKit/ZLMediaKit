@@ -212,7 +212,7 @@ public:
 			auto iAudioIndex = frame->stamp() / MUTE_ADTS_DATA_MS;
 			if(_iAudioIndex != iAudioIndex){
 				_iAudioIndex = iAudioIndex;
-				auto aacFrame = std::make_shared<AACFrameNoCopyAble>((char *)MUTE_ADTS_DATA,
+				auto aacFrame = std::make_shared<AACFrameNoCacheAble>((char *)MUTE_ADTS_DATA,
 																	 MUTE_ADTS_DATA_LEN,
 																	  _iAudioIndex * MUTE_ADTS_DATA_MS);
 				FrameRingInterfaceDelegate::inputFrame(aacFrame);

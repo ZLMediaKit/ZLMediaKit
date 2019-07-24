@@ -261,11 +261,11 @@ inline bool MediaReader::readAudioSample(int iTimeInc,bool justSeekSyncFrame) {
 }
 
 inline void MediaReader::writeH264(uint8_t *pucData,int iLen,uint32_t dts,uint32_t pts) {
-	_mediaMuxer->inputFrame(std::make_shared<H264FrameNoCopyAble>((char*)pucData,iLen,dts,pts));
+	_mediaMuxer->inputFrame(std::make_shared<H264FrameNoCacheAble>((char*)pucData,iLen,dts,pts));
 }
 
 inline void MediaReader::writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	_mediaMuxer->inputFrame(std::make_shared<AACFrameNoCopyAble>((char*)pucData,iLen,uiStamp));
+	_mediaMuxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char*)pucData,iLen,uiStamp));
 }
 
 inline MP4SampleId MediaReader::getVideoSampleId(int iTimeInc ) {

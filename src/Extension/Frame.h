@@ -116,6 +116,11 @@ public:
      * @return
      */
     virtual bool keyFrame() const = 0;
+
+    /**
+     * 是否可以缓存
+     */
+    virtual bool cacheAble() const { return true; }
 };
 
 /**
@@ -281,9 +286,9 @@ private:
     map<void *,FrameWriterInterface::Ptr>  _delegateMap;
 };
 
-class FrameNoCopyAble : public Frame{
+class FrameNoCacheAble : public Frame{
 public:
-    typedef std::shared_ptr<FrameNoCopyAble> Ptr;
+    typedef std::shared_ptr<FrameNoCacheAble> Ptr;
     char *data() const override{
         return _ptr;
     }
@@ -306,6 +311,13 @@ public:
         return _prefixSize;
     }
 
+    /**
+     * 该帧不可缓存
+     * @return
+     */
+    bool cacheAble() const override {
+        return false;
+    }
 protected:
     char *_ptr;
     uint32_t _size;
