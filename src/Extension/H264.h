@@ -92,11 +92,11 @@ public:
 };
 
 
-class H264FrameNoCopyAble : public FrameNoCopyAble {
+class H264FrameNoCacheAble : public FrameNoCacheAble {
 public:
-    typedef std::shared_ptr<H264FrameNoCopyAble> Ptr;
+    typedef std::shared_ptr<H264FrameNoCacheAble> Ptr;
 
-    H264FrameNoCopyAble(char *ptr,uint32_t size,uint32_t dts , uint32_t pts ,int prefixeSize = 4){
+    H264FrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts , uint32_t pts ,int prefixeSize = 4){
         _ptr = ptr;
         _size = size;
         _dts = dts;
@@ -117,13 +117,13 @@ public:
     }
 };
 
-class H264FrameSubFrame : public H264FrameNoCopyAble{
+class H264FrameSubFrame : public H264FrameNoCacheAble{
 public:
     typedef std::shared_ptr<H264FrameSubFrame> Ptr;
     H264FrameSubFrame(const Frame::Ptr &strongRef,
                       char *ptr,
                       uint32_t size,
-                      int prefixeSize) : H264FrameNoCopyAble(ptr,size,strongRef->dts(),strongRef->pts(),prefixeSize){
+                      int prefixeSize) : H264FrameNoCacheAble(ptr,size,strongRef->dts(),strongRef->pts(),prefixeSize){
         _strongRef = strongRef;
     }
 private:

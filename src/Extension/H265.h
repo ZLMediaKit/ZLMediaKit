@@ -121,11 +121,11 @@ public:
 };
 
 
-class H265FrameNoCopyAble : public FrameNoCopyAble {
+class H265FrameNoCacheAble : public FrameNoCacheAble {
 public:
-    typedef std::shared_ptr<H265FrameNoCopyAble> Ptr;
+    typedef std::shared_ptr<H265FrameNoCacheAble> Ptr;
 
-    H265FrameNoCopyAble(char *ptr, uint32_t size, uint32_t dts,uint32_t pts, int prefixeSize = 4) {
+    H265FrameNoCacheAble(char *ptr, uint32_t size, uint32_t dts,uint32_t pts, int prefixeSize = 4) {
         _ptr = ptr;
         _size = size;
         _dts = dts;
