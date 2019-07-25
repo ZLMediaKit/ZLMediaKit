@@ -292,9 +292,12 @@ private:
     map<void *,FrameWriterInterface::Ptr>  _delegateMap;
 };
 
-class FrameNoCacheAble : public Frame{
+/**
+ * 通过Frame接口包装指针，方便使用者把自己的数据快速接入ZLMediaKit
+ */
+class FrameFromPtr : public Frame{
 public:
-    typedef std::shared_ptr<FrameNoCacheAble> Ptr;
+    typedef std::shared_ptr<FrameFromPtr> Ptr;
     char *data() const override{
         return _ptr;
     }
@@ -316,14 +319,6 @@ public:
     uint32_t prefixSize() const override{
         return _prefixSize;
     }
-
-    /**
-     * 该帧不可缓存
-     * @return
-     */
-    bool cacheAble() const override {
-        return false;
-    }
 protected:
     char *_ptr;
     uint32_t _size;
@@ -332,7 +327,31 @@ protected:
     uint32_t _prefixSize;
 };
 
-class FrameCacheAble : public FrameNoCacheAble {
+/**
+ * 不可缓存的帧，在DevChannel类中有用到。
+ * 该帧类型用于防止内存拷贝，直接使用指针传递数据
+ * 在大多数情况下，ZLMediaKit是同步对帧数据进行使用和处理的
+ * 所以提供此类型的帧很有必要，但是有时又无法避免缓存帧做后续处理
+ * 所以可以通过Frame::getCacheAbleFrame方法拷贝一个可缓存的帧
+ */
+class FrameNoCacheAble : public FrameFromPtr{
+public:
+    typedef std::shared_ptr<FrameNoCacheAble> Ptr;
+
+    /**
+     * 该帧不可缓存
+     * @return
+     */
+    bool cacheAble() const override {
+        return false;
+    }
+};
+
+/**
+ * 该对象的功能是把一个不可缓存的帧转换成可缓存的帧
+ * @see FrameNoCacheAble
+ */
+class FrameCacheAble : public FrameFromPtr {
 public:
     typedef std::shared_ptr<FrameCacheAble> Ptr;
 
