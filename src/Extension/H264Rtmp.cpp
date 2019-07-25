@@ -108,7 +108,7 @@ inline void H264RtmpDecoder::onGetH264_l(const char* pcData, int iLen, uint32_t 
     }
 }
 inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
-#if 0
+#if 1
     _h264frame->type = H264_TYPE(pcData[0]);
     _h264frame->timeStamp = dts;
     _h264frame->ptsStamp = pts;
