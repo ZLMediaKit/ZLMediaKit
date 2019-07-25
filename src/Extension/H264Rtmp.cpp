@@ -108,6 +108,7 @@ inline void H264RtmpDecoder::onGetH264_l(const char* pcData, int iLen, uint32_t 
     }
 }
 inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
+#if 0
     _h264frame->type = H264_TYPE(pcData[0]);
     _h264frame->timeStamp = dts;
     _h264frame->ptsStamp = pts;
@@ -117,6 +118,11 @@ inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dt
     //写入环形缓存
     RtmpCodec::inputFrame(_h264frame);
     _h264frame = obtainFrame();
+#else
+    //防止内存拷贝，这样产生的264帧不会有0x00 00 01头
+    auto frame = std::make_shared<H264FrameNoCacheAble>((char *)pcData,iLen,dts,pts,0);
+    RtmpCodec::inputFrame(frame);
+#endif
 }
 
 
