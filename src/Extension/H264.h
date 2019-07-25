@@ -92,6 +92,11 @@ public:
 };
 
 
+/**
+ * 防止内存拷贝的H264类
+ * 用户可以通过该类型快速把一个指针无拷贝的包装成Frame类
+ * 该类型在DevChannel中有使用
+ */
 class H264FrameNoCacheAble : public FrameNoCacheAble {
 public:
     typedef std::shared_ptr<H264FrameNoCacheAble> Ptr;
@@ -117,17 +122,26 @@ public:
     }
 };
 
+/**
+ * 一个H264Frame类中可以有多个帧，他们通过 0x 00 00 01 分隔
+ * ZLMediaKit会先把这种复合帧split成单个帧然后再处理
+ * 一个复合帧可以通过无内存拷贝的方式切割成多个H264FrameSubFrame
+ * 提供该类的目的是切换复合帧时防止内存拷贝，提高性能
+ */
 class H264FrameSubFrame : public H264FrameNoCacheAble{
 public:
     typedef std::shared_ptr<H264FrameSubFrame> Ptr;
-    H264FrameSubFrame(const Frame::Ptr &strongRef,
+    H264FrameSubFrame(const Frame::Ptr &parent_frame,
                       char *ptr,
                       uint32_t size,
-                      int prefixeSize) : H264FrameNoCacheAble(ptr,size,strongRef->dts(),strongRef->pts(),prefixeSize){
-        _strongRef = strongRef;
+                      int prefixeSize) : H264FrameNoCacheAble(ptr,size,parent_frame->dts(),parent_frame->pts(),prefixeSize){
+        _parent_frame = parent_frame;
+    }
+    bool cacheAble() const override {
+        return _parent_frame->cacheAble();
     }
 private:
-    Frame::Ptr _strongRef;
+    Frame::Ptr _parent_frame;
 };
 
 /**
