@@ -105,15 +105,15 @@ public:
     uint32_t iPrefixSize = 7;
 } ;
 
-class AACFrameNoCopyAble : public FrameNoCopyAble {
+class AACFrameNoCacheAble : public FrameNoCacheAble {
 public:
-    typedef std::shared_ptr<AACFrameNoCopyAble> Ptr;
+    typedef std::shared_ptr<AACFrameNoCacheAble> Ptr;
 
-    AACFrameNoCopyAble(char *ptr,uint32_t size,uint32_t stamp,int prefixeSize = 7){
-        buffer_ptr = ptr;
-        buffer_size = size;
-        timeStamp = stamp;
-        iPrefixSize = prefixeSize;
+    AACFrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts,int prefixeSize = 7){
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _prefixSize = prefixeSize;
     }
 
     TrackType getTrackType() const override{

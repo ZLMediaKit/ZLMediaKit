@@ -121,15 +121,16 @@ public:
 };
 
 
-class H265FrameNoCopyAble : public FrameNoCopyAble {
+class H265FrameNoCacheAble : public FrameNoCacheAble {
 public:
-    typedef std::shared_ptr<H265FrameNoCopyAble> Ptr;
+    typedef std::shared_ptr<H265FrameNoCacheAble> Ptr;
 
-    H265FrameNoCopyAble(char *ptr, uint32_t size, uint32_t stamp, int prefixeSize = 4) {
-        buffer_ptr = ptr;
-        buffer_size = size;
-        timeStamp = stamp;
-        iPrefixSize = prefixeSize;
+    H265FrameNoCacheAble(char *ptr, uint32_t size, uint32_t dts,uint32_t pts, int prefixeSize = 4) {
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _pts = pts;
+        _prefixSize = prefixeSize;
     }
 
     TrackType getTrackType() const override {
@@ -141,7 +142,7 @@ public:
     }
 
     bool keyFrame() const override {
-        int type = H265_TYPE(((uint8_t *) buffer_ptr)[iPrefixSize]);
+        int type = H265_TYPE(((uint8_t *) _ptr)[_prefixSize]);
         return H265Frame::isKeyFrame(type);
     }
 };
@@ -263,47 +264,38 @@ private:
             return;
         }
         if(!_vps.empty()){
-            if (!_vpsFrame) {
-                _vpsFrame = std::make_shared<H265Frame>();
-                _vpsFrame->type = H265Frame::NAL_VPS;
-                _vpsFrame->iPrefixSize = 4;
-            }
-            _vpsFrame->buffer.assign("\x0\x0\x0\x1", 4);
-            _vpsFrame->buffer.append(_vps);
-            _vpsFrame->timeStamp = frame->stamp();
-            VideoTrack::inputFrame(_vpsFrame);
+            auto vpsFrame = std::make_shared<H265Frame>();
+            vpsFrame->type = H265Frame::NAL_VPS;
+            vpsFrame->iPrefixSize = 4;
+            vpsFrame->buffer.assign("\x0\x0\x0\x1", 4);
+            vpsFrame->buffer.append(_vps);
+            vpsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(vpsFrame);
         }
         if (!_sps.empty()) {
-            if (!_spsFrame) {
-                _spsFrame = std::make_shared<H265Frame>();
-                _spsFrame->type = H265Frame::NAL_SPS;
-                _spsFrame->iPrefixSize = 4;
-            }
-            _spsFrame->buffer.assign("\x0\x0\x0\x1", 4);
-            _spsFrame->buffer.append(_sps);
-            _spsFrame->timeStamp = frame->stamp();
-            VideoTrack::inputFrame(_spsFrame);
+            auto spsFrame = std::make_shared<H265Frame>();
+            spsFrame->type = H265Frame::NAL_SPS;
+            spsFrame->iPrefixSize = 4;
+            spsFrame->buffer.assign("\x0\x0\x0\x1", 4);
+            spsFrame->buffer.append(_sps);
+            spsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(spsFrame);
         }
 
         if (!_pps.empty()) {
-            if (!_ppsFrame) {
-                _ppsFrame = std::make_shared<H265Frame>();
-                _ppsFrame->type = H265Frame::NAL_PPS;
-                _ppsFrame->iPrefixSize = 4;
-            }
-            _ppsFrame->buffer.assign("\x0\x0\x0\x1", 4);
-            _ppsFrame->buffer.append(_pps);
-            _ppsFrame->timeStamp = frame->stamp();
-            VideoTrack::inputFrame(_ppsFrame);
+            auto ppsFrame = std::make_shared<H265Frame>();
+            ppsFrame->type = H265Frame::NAL_PPS;
+            ppsFrame->iPrefixSize = 4;
+            ppsFrame->buffer.assign("\x0\x0\x0\x1", 4);
+            ppsFrame->buffer.append(_pps);
+            ppsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(ppsFrame);
         }
     }
 private:
     string _vps;
     string _sps;
     string _pps;
-    H265Frame::Ptr _vpsFrame;
-    H265Frame::Ptr _spsFrame;
-    H265Frame::Ptr _ppsFrame;
     bool _last_frame_is_idr = false;
 };
 

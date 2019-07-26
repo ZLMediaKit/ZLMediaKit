@@ -221,7 +221,6 @@ public:
         _recvedBodySize = 0;
         _totalBodySize = 0;
         _aliveTicker.resetTime();
-        _fTimeOutSec = 0;
         _chunkedSplitter.reset();
         HttpRequestSplitter::reset();
     }
@@ -254,6 +253,10 @@ public:
     }
     const Parser& response() const{
         return _parser;
+    }
+
+    const string &getUrl() const{
+        return _url;
     }
 protected:
     /**
@@ -293,6 +296,14 @@ protected:
      */
     virtual void onDisconnect(const SockException &ex){}
 
+    /**
+     * 重定向事件
+     * @param url 重定向url
+     * @param temporary 是否为临时重定向
+     * @return 是否继续
+     */
+    virtual bool onRedirectUrl(const string &url,bool temporary){ return true;};
+
     //HttpRequestSplitter override
     int64_t onRecvHeader(const char *data,uint64_t len) override ;
     void onRecvContent(const char *data,uint64_t len) override;
@@ -308,6 +319,7 @@ private:
 protected:
     bool _isHttps;
 private:
+    string _url;
     HttpHeader _header;
     HttpBody::Ptr _body;
     string _method;

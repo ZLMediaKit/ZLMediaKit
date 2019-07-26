@@ -92,15 +92,21 @@ public:
 };
 
 
-class H264FrameNoCopyAble : public FrameNoCopyAble {
+/**
+ * 防止内存拷贝的H264类
+ * 用户可以通过该类型快速把一个指针无拷贝的包装成Frame类
+ * 该类型在DevChannel中有使用
+ */
+class H264FrameNoCacheAble : public FrameNoCacheAble {
 public:
-    typedef std::shared_ptr<H264FrameNoCopyAble> Ptr;
+    typedef std::shared_ptr<H264FrameNoCacheAble> Ptr;
 
-    H264FrameNoCopyAble(char *ptr,uint32_t size,uint32_t stamp,int prefixeSize = 4){
-        buffer_ptr = ptr;
-        buffer_size = size;
-        timeStamp = stamp;
-        iPrefixSize = prefixeSize;
+    H264FrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts , uint32_t pts ,int prefixeSize = 4){
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _pts = pts;
+        _prefixSize = prefixeSize;
     }
 
     TrackType getTrackType() const override{
@@ -112,23 +118,30 @@ public:
     }
 
     bool keyFrame() const override {
-        return H264_TYPE(buffer_ptr[iPrefixSize]) == H264Frame::NAL_IDR;
+        return H264_TYPE(_ptr[_prefixSize]) == H264Frame::NAL_IDR;
     }
 };
 
-class H264FrameSubFrame : public H264FrameNoCopyAble{
+/**
+ * 一个H264Frame类中可以有多个帧，他们通过 0x 00 00 01 分隔
+ * ZLMediaKit会先把这种复合帧split成单个帧然后再处理
+ * 一个复合帧可以通过无内存拷贝的方式切割成多个H264FrameSubFrame
+ * 提供该类的目的是切换复合帧时防止内存拷贝，提高性能
+ */
+class H264FrameSubFrame : public H264FrameNoCacheAble{
 public:
     typedef std::shared_ptr<H264FrameSubFrame> Ptr;
-
-    H264FrameSubFrame(const Frame::Ptr &strongRef,
-                           char *ptr,
-                           uint32_t size,
-                           uint32_t stamp,
-                           int prefixeSize) : H264FrameNoCopyAble(ptr,size,stamp,prefixeSize){
-        _strongRef = strongRef;
+    H264FrameSubFrame(const Frame::Ptr &parent_frame,
+                      char *ptr,
+                      uint32_t size,
+                      int prefixeSize) : H264FrameNoCacheAble(ptr,size,parent_frame->dts(),parent_frame->pts(),prefixeSize){
+        _parent_frame = parent_frame;
+    }
+    bool cacheAble() const override {
+        return _parent_frame->cacheAble();
     }
 private:
-    Frame::Ptr _strongRef;
+    Frame::Ptr _parent_frame;
 };
 
 /**
@@ -234,7 +247,6 @@ public:
                           H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
                                                                                                  frame->data(),
                                                                                                  len + frame->prefixSize(),
-                                                                                                 frame->stamp(),
                                                                                                  frame->prefixSize());
                           inputFrame_l(sub_frame);
                           first_frame = false;
@@ -242,7 +254,6 @@ public:
                           H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
                                                                                                  (char *)ptr,
                                                                                                  len ,
-                                                                                                 frame->stamp(),
                                                                                                  3);
                           inputFrame_l(sub_frame);
                       }
@@ -311,27 +322,23 @@ private:
         }
 
         if(!_sps.empty()){
-            if(!_spsFrame){
-                _spsFrame = std::make_shared<H264Frame>();
-                _spsFrame->type = H264Frame::NAL_SPS;
-                _spsFrame->iPrefixSize = 4;
-            }
-            _spsFrame->buffer.assign("\x0\x0\x0\x1",4);
-            _spsFrame->buffer.append(_sps);
-            _spsFrame->timeStamp = frame->stamp();
-            VideoTrack::inputFrame(_spsFrame);
+            auto spsFrame = std::make_shared<H264Frame>();
+            spsFrame->type = H264Frame::NAL_SPS;
+            spsFrame->iPrefixSize = 4;
+            spsFrame->buffer.assign("\x0\x0\x0\x1",4);
+            spsFrame->buffer.append(_sps);
+            spsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(spsFrame);
         }
 
         if(!_pps.empty()){
-            if(!_ppsFrame) {
-                _ppsFrame = std::make_shared<H264Frame>();
-                _ppsFrame->type = H264Frame::NAL_PPS;
-                _ppsFrame->iPrefixSize = 4;
-            }
-            _ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
-            _ppsFrame->buffer.append(_pps);
-            _ppsFrame->timeStamp = frame->stamp();
-            VideoTrack::inputFrame(_ppsFrame);
+            auto ppsFrame = std::make_shared<H264Frame>();
+            ppsFrame->type = H264Frame::NAL_PPS;
+            ppsFrame->iPrefixSize = 4;
+            ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
+            ppsFrame->buffer.append(_pps);
+            ppsFrame->timeStamp = frame->stamp();
+            VideoTrack::inputFrame(ppsFrame);
         }
     }
 private:
@@ -341,8 +348,6 @@ private:
     int _height = 0;
     float _fps = 0;
     bool _last_frame_is_idr = false;
-    H264Frame::Ptr _spsFrame;
-    H264Frame::Ptr _ppsFrame;
 };
 
 

@@ -65,6 +65,8 @@ private:
     void sendRtpPacket(const RtpPacket::Ptr & pkt) ;
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap(),const string &sdp = "" );
     void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header,const string &sdp = "");
+
+    void createUdpSockIfNecessary(int track_idx);
 private:
     //rtsp鉴权相关
     string _rtspMd5Nonce;

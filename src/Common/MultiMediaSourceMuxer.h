@@ -39,13 +39,19 @@ public:
                           const string &strApp,
                           const string &strId,
                           float dur_sec = 0.0,
+                          bool bEanbleRtsp = true,
+                          bool bEanbleRtmp = true,
                           bool bEanbleHls = true,
                           //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
-                          int bRecordMp4 = false){
-        _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost,strApp,strId,std::make_shared<TitleMete>(dur_sec));
-        _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost,strApp,strId,std::make_shared<TitleSdp>(dur_sec));
+                          int bRecordMp4 = false
+                          ){
+        if (bEanbleRtmp) {
+            _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleMete>(dur_sec));
+        }
+        if (bEanbleRtsp) {
+            _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleSdp>(dur_sec));
+        }
         _record = std::make_shared<MediaRecorder>(vhost,strApp,strId,bEanbleHls,bRecordMp4);
-
     }
     virtual ~MultiMediaSourceMuxer(){}
 
@@ -55,8 +61,12 @@ public:
      * @param track 媒体描述
      */
     void addTrack(const Track::Ptr & track) {
-        _rtmp->addTrack(track);
-        _rtsp->addTrack(track);
+        if(_rtmp){
+            _rtmp->addTrack(track);
+        }
+        if(_rtsp){
+            _rtsp->addTrack(track);
+        }
         _record->addTrack(track);
     }
 
@@ -65,8 +75,12 @@ public:
      * @param frame 帧数据
      */
     void inputFrame(const Frame::Ptr &frame) override {
-        _rtmp->inputFrame(frame);
-        _rtsp->inputFrame(frame);
+        if(_rtmp) {
+            _rtmp->inputFrame(frame);
+        }
+        if(_rtsp) {
+            _rtsp->inputFrame(frame);
+        }
         _record->inputFrame(frame);
     }
 
@@ -75,8 +89,12 @@ public:
      * @param listener
      */
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-        _rtmp->setListener(listener);
-        _rtsp->setListener(listener);
+        if(_rtmp) {
+            _rtmp->setListener(listener);
+        }
+        if(_rtsp) {
+            _rtsp->setListener(listener);
+        }
     }
 
     /**
@@ -84,11 +102,13 @@ public:
      * @return
      */
     int readerCount() const{
-        return _rtsp->readerCount() + _rtmp->readerCount();
+        return (_rtsp ? _rtsp->readerCount() : 0) + (_rtmp ? _rtmp->readerCount() : 0);
     }
 
     void setTimeStamp(uint32_t stamp){
-        _rtsp->setTimeStamp(stamp);
+        if(_rtsp){
+            _rtsp->setTimeStamp(stamp);
+        }
     }
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;

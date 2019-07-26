@@ -49,6 +49,8 @@ public:
 	PlayerProxy(const string &strVhost,
                 const string &strApp,
                 const string &strSrc,
+				bool bEnableRtsp = true,
+				bool bEnableRtmp = true,
                 bool bEnableHls = true,
                 //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
                 int bRecordMp4 = 0,
@@ -85,7 +87,10 @@ private:
     void onNoneReader(MediaSource &sender) override;
 	void rePlay(const string &strUrl,int iFailedCnt);
 	void onPlaySuccess();
+	int readerCount() ;
 private:
+    bool _bEnableRtsp;
+    bool _bEnableRtmp;
     bool _bEnableHls;
     //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
     int _bRecordMp4;

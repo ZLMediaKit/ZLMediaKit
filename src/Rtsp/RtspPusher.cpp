@@ -242,6 +242,19 @@ bool RtspPusher::handleAuthenticationFailure(const string &paramsStr) {
     return false;
 }
 
+//有必要的情况下创建udp端口
+void RtspPusher::createUdpSockIfNecessary(int track_idx){
+    auto &rtpSockRef = _apUdpSock[track_idx];
+    if(!rtpSockRef){
+        rtpSockRef.reset(new Socket(getPoller()));
+        //rtp随机端口
+        if (!rtpSockRef->bindUdpSock(0, get_local_ip().data())) {
+            rtpSockRef.reset();
+            throw std::runtime_error("open rtp sock failed");
+        }
+    }
+}
+
 void RtspPusher::sendSetup(unsigned int trackIndex) {
     _onHandshake = std::bind(&RtspPusher::handleResSetup,this, placeholders::_1,trackIndex);
     auto &track = _aTrackInfo[trackIndex];
@@ -252,11 +265,7 @@ void RtspPusher::sendSetup(unsigned int trackIndex) {
         }
             break;
         case Rtsp::RTP_UDP: {
-            _apUdpSock[trackIndex].reset(new Socket(getPoller()));
-            if (!_apUdpSock[trackIndex]->bindUdpSock(0, get_local_ip().data())) {
-                _apUdpSock[trackIndex].reset();
-                throw std::runtime_error("open udp sock err");
-            }
+            createUdpSockIfNecessary(trackIndex);
             int port = _apUdpSock[trackIndex]->get_local_port();
             sendRtspRequest("SETUP",baseUrl,{"Transport",StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1});
         }
@@ -279,7 +288,7 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int uiTrackIndex)
     }
 
     auto strTransport = parser["Transport"];
-    if(strTransport.find("TCP") != string::npos){
+    if(strTransport.find("TCP") != string::npos || strTransport.find("interleaved") != string::npos){
         _eType = Rtsp::RTP_TCP;
         string interleaved = FindField( FindField((strTransport + ";").data(), "interleaved=", ";").data(), NULL, "-");
         _aTrackInfo[uiTrackIndex]->_interleaved = atoi(interleaved.data());
@@ -287,19 +296,15 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int uiTrackIndex)
         throw std::runtime_error("SETUP rtsp pusher can not support multicast!");
     }else{
         _eType = Rtsp::RTP_UDP;
+        createUdpSockIfNecessary(uiTrackIndex);
         const char *strPos = "server_port=" ;
         auto port_str = FindField((strTransport + ";").data(), strPos, ";");
         uint16_t port = atoi(FindField(port_str.data(), NULL, "-").data());
-        auto &pUdpSockRef = _apUdpSock[uiTrackIndex];
-        if(!pUdpSockRef){
-            pUdpSockRef.reset(new Socket(getPoller()));
-        }
-
         struct sockaddr_in rtpto;
         rtpto.sin_port = ntohs(port);
         rtpto.sin_family = AF_INET;
         rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-        pUdpSockRef->setSendPeerAddr((struct sockaddr *)&(rtpto));
+        _apUdpSock[uiTrackIndex]->setSendPeerAddr((struct sockaddr *)&(rtpto));
     }
 
     RtspSplitter::enableRecvRtp(_eType == Rtsp::RTP_TCP);

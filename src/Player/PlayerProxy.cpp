@@ -65,6 +65,8 @@ static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 
 PlayerProxy::PlayerProxy(const string &strVhost,
                          const string &strApp,
                          const string &strSrc,
+						 bool bEnableRtsp,
+						 bool bEnableRtmp,
                          bool bEnableHls,
                         //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
                          int bRecordMp4,
@@ -73,6 +75,8 @@ PlayerProxy::PlayerProxy(const string &strVhost,
 	_strVhost = strVhost;
 	_strApp = strApp;
 	_strSrc = strSrc;
+	_bEnableRtsp = bEnableRtsp;
+	_bEnableRtmp = bEnableRtmp;
     _bEnableHls = bEnableHls;
     //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
     _bRecordMp4 = bRecordMp4;
@@ -128,13 +132,30 @@ void PlayerProxy::play(const string &strUrlTmp) {
 		}
 	});
 	MediaPlayer::play(strUrlTmp);
+
+	MediaSource::Ptr mediaSource;
+	if(dynamic_pointer_cast<RtspPlayer>(_parser)){
+		//rtsp拉流
+		GET_CONFIG(bool,directProxy,Rtsp::kDirectProxy);
+		if(directProxy && _bEnableRtsp){
+			mediaSource = std::make_shared<RtspMediaSource>(_strVhost,_strApp,_strSrc);
+		}
+	}else if(dynamic_pointer_cast<RtmpPlayer>(_parser)){
+		//rtmp拉流
+		if(_bEnableRtmp){
+			mediaSource = std::make_shared<RtmpMediaSource>(_strVhost,_strApp,_strSrc);
+		}
+	}
+	if(mediaSource){
+		setMediaSouce(mediaSource);
+		mediaSource->setListener(shared_from_this());
+	}
 }
 
 PlayerProxy::~PlayerProxy() {
 	_timer.reset();
 }
 void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
-	auto iTaskId = reinterpret_cast<uint64_t>(this);
 	auto iDelay = MAX(2 * 1000, MIN(iFailedCnt * 3000,60*1000));
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 	_timer = std::make_shared<Timer>(iDelay / 1000.0f,[weakSelf,strUrl,iFailedCnt]() {
@@ -148,8 +169,13 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 		return false;
 	}, getPoller());
 }
+
+int PlayerProxy::readerCount(){
+	return (_mediaMuxer ? _mediaMuxer->readerCount() : 0) + (_pMediaSrc ? _pMediaSrc->readerCount() : 0);
+}
+
 bool PlayerProxy::close(MediaSource &sender,bool force) {
-    if(!_mediaMuxer || (!force && _mediaMuxer->readerCount() != 0)){
+    if(!force && readerCount() != 0){
         return false;
     }
 
@@ -159,6 +185,7 @@ bool PlayerProxy::close(MediaSource &sender,bool force) {
 		auto stronSelf = weakSlef.lock();
 		if (stronSelf) {
 			stronSelf->_mediaMuxer.reset();
+			stronSelf->setMediaSouce(nullptr);
 			stronSelf->teardown();
 			if(stronSelf->_onClose){
                 stronSelf->_onClose();
@@ -187,7 +214,7 @@ public:
 			auto iAudioIndex = frame->stamp() / MUTE_ADTS_DATA_MS;
 			if(_iAudioIndex != iAudioIndex){
 				_iAudioIndex = iAudioIndex;
-				auto aacFrame = std::make_shared<AACFrameNoCopyAble>((char *)MUTE_ADTS_DATA,
+				auto aacFrame = std::make_shared<AACFrameNoCacheAble>((char *)MUTE_ADTS_DATA,
 																	 MUTE_ADTS_DATA_LEN,
 																	  _iAudioIndex * MUTE_ADTS_DATA_MS);
 				FrameRingInterfaceDelegate::inputFrame(aacFrame);
@@ -200,7 +227,16 @@ private:
 
 void PlayerProxy::onPlaySuccess() {
     //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
-	_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost,_strApp,_strSrc,getDuration(),_bEnableHls,_bRecordMp4));
+	if (dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc)) {
+		//rtsp拉流代理
+		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), false, _bEnableRtmp, _bEnableHls, _bRecordMp4));
+	} else if (dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc)) {
+		//rtmp拉流代理
+		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableRtsp, false, _bEnableHls, _bRecordMp4));
+	} else {
+		//其他拉流代理
+		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableRtsp, _bEnableRtmp, _bEnableHls, _bRecordMp4));
+	}
 	_mediaMuxer->setListener(shared_from_this());
 
 	auto videoTrack = getTrack(TrackVideo,false);

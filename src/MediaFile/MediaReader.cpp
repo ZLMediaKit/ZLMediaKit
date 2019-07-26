@@ -37,6 +37,7 @@ namespace mediakit {
 
 #ifdef ENABLE_MP4V2
 MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
+	_poller = EventPollerPool::Instance().getPoller();
     auto strFileName = filePath;
     if(strFileName.empty()){
 		GET_CONFIG(string,recordPath,Record::kFilePath);
@@ -137,7 +138,7 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 	}
 
 	_iDuration	= MAX(_video_ms,_audio_ms);
-	_mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost,strApp,strId,_iDuration/1000.0,false, false));
+	_mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost, strApp, strId, _iDuration / 1000.0, true, true, false, false));
 	if (_audio_trId != MP4_INVALID_TRACK_ID) {
 		AACTrack::Ptr track = std::make_shared<AACTrack>(_strAacCfg);
 		_mediaMuxer->addTrack(track);
@@ -164,7 +165,7 @@ void MediaReader::startReadMP4() {
 
 	_timer = std::make_shared<Timer>(sampleMS / 1000.0f,[strongSelf](){
 		return strongSelf->readSample(0,false);
-	}, nullptr);
+	}, _poller);
 
     //先读sampleMS毫秒的数据用于产生MediaSouce
 	readSample(sampleMS, false);
@@ -221,7 +222,7 @@ inline bool MediaReader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
                             break;
                         }
 						memcpy(pBytes + iOffset, "\x0\x0\x0\x1", 4);
-						writeH264(pBytes + iOffset, iFrameLen + 4, (double) _video_ms * iIdx / _video_num_samples);
+						writeH264(pBytes + iOffset, iFrameLen + 4, (double) _video_ms * iIdx / _video_num_samples, 0);
 						iOffset += (iFrameLen + 4);
 					}
 				}else if(_bSyncSample){
@@ -259,12 +260,12 @@ inline bool MediaReader::readAudioSample(int iTimeInc,bool justSeekSyncFrame) {
 	return false;
 }
 
-inline void MediaReader::writeH264(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	_mediaMuxer->inputFrame(std::make_shared<H264FrameNoCopyAble>((char*)pucData,iLen,uiStamp));
+inline void MediaReader::writeH264(uint8_t *pucData,int iLen,uint32_t dts,uint32_t pts) {
+	_mediaMuxer->inputFrame(std::make_shared<H264FrameNoCacheAble>((char*)pucData,iLen,dts,pts));
 }
 
 inline void MediaReader::writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp) {
-	_mediaMuxer->inputFrame(std::make_shared<AACFrameNoCopyAble>((char*)pucData,iLen,uiStamp));
+	_mediaMuxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char*)pucData,iLen,uiStamp));
 }
 
 inline MP4SampleId MediaReader::getVideoSampleId(int iTimeInc ) {

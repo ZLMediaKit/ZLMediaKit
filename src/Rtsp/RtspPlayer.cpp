@@ -198,7 +198,7 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 		sendDescribe();
 		return;
 	}
-	if(parser.Url() == "302"){
+	if(parser.Url() == "302" || parser.Url() == "301"){
 		auto newUrl = parser["Location"];
 		if(newUrl.empty()){
 			throw std::runtime_error("未找到Location字段(跳转url)");
@@ -232,6 +232,31 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 
 	sendSetup(0);
 }
+
+//有必要的情况下创建udp端口
+void RtspPlayer::createUdpSockIfNecessary(int track_idx){
+	auto &rtpSockRef = _apRtpSock[track_idx];
+	auto &rtcpSockRef = _apRtcpSock[track_idx];
+	if(!rtpSockRef){
+		rtpSockRef.reset(new Socket(getPoller()));
+		//rtp随机端口
+		if (!rtpSockRef->bindUdpSock(0, get_local_ip().data())) {
+			rtpSockRef.reset();
+			throw std::runtime_error("open rtp sock failed");
+		}
+	}
+
+	if(!rtcpSockRef){
+		rtcpSockRef.reset(new Socket(getPoller()));
+		//rtcp端口为rtp端口+1，目的是为了兼容某些服务器，其实更推荐随机端口
+		if (!rtcpSockRef->bindUdpSock(rtpSockRef->get_local_port() + 1, get_local_ip().data())) {
+			rtcpSockRef.reset();
+			throw std::runtime_error("open rtcp sock failed");
+		}
+	}
+}
+
+
 //发送SETUP命令
 void RtspPlayer::sendSetup(unsigned int trackIndex) {
     _onHandshake = std::bind(&RtspPlayer::handleResSETUP,this, placeholders::_1,trackIndex);
@@ -247,16 +272,7 @@ void RtspPlayer::sendSetup(unsigned int trackIndex) {
 		}
 			break;
 		case Rtsp::RTP_UDP: {
-			_apRtpSock[trackIndex].reset(new Socket(getPoller()));
-			if (!_apRtpSock[trackIndex]->bindUdpSock(0, get_local_ip().data())) {
-				_apRtpSock[trackIndex].reset();
-				throw std::runtime_error("open rtp sock err");
-			}
-            _apRtcpSock[trackIndex].reset(new Socket(getPoller()));
-            if (!_apRtcpSock[trackIndex]->bindUdpSock(_apRtpSock[trackIndex]->get_local_port() + 1, get_local_ip().data())) {
-                _apRtcpSock[trackIndex].reset();
-                throw std::runtime_error("open rtcp sock err");
-            }
+			createUdpSockIfNecessary(trackIndex);
 			sendRtspRequest("SETUP",baseUrl,{"Transport",
                                     StrPrinter << "RTP/AVP;unicast;client_port="
                                     << _apRtpSock[trackIndex]->get_local_port() << "-"
@@ -280,7 +296,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 	}
 
 	auto strTransport = parser["Transport"];
-	if(strTransport.find("TCP") != string::npos){
+	if(strTransport.find("TCP") != string::npos || strTransport.find("interleaved") != string::npos){
 		_eType = Rtsp::RTP_TCP;
 	}else if(strTransport.find("multicast") != string::npos){
 		_eType = Rtsp::RTP_MULTICAST;
@@ -314,7 +330,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
 				SockUtil::joinMultiAddr(fd, multiAddr.data(),get_local_ip().data());
 			}
 		} else {
-		    //udp单播
+			createUdpSockIfNecessary(uiTrackIndex);
+			//udp单播
 			struct sockaddr_in rtpto;
 			rtpto.sin_port = ntohs(rtp_port);
 			rtpto.sin_family = AF_INET;

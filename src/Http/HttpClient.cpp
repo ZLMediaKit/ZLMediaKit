@@ -39,6 +39,7 @@ HttpClient::~HttpClient() {
 
 void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     _aliveTicker.resetTime();
+    _url = strUrl;
     auto protocol = FindField(strUrl.data(), NULL, "://");
     uint16_t defaultPort;
     bool isHttps;
@@ -148,6 +149,20 @@ void HttpClient::onErr(const SockException &ex) {
 
 int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     _parser.Parse(data);
+    if(_parser.Url() == "302" || _parser.Url() == "301"){
+        auto newUrl = _parser["Location"];
+        if(newUrl.empty()){
+            shutdown(SockException(Err_shutdown,"未找到Location字段(跳转url)"));
+            return 0;
+        }
+        if(onRedirectUrl(newUrl,_parser.Url() == "302")){
+            HttpClient::clear();
+            setMethod("GET");
+            HttpClient::sendRequest(newUrl,_fTimeOutSec);
+            return 0;
+        }
+    }
+
     checkCookie(_parser.getValues());
     _totalBodySize = onResponseHeader(_parser.Url(), _parser.getValues());
 

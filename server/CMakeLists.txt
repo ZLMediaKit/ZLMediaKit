@@ -6,8 +6,8 @@ else()
 	file(GLOB MediaServer_src_list ./*.cpp ./*.h)
 endif()
 
-message(STATUS ${MediaServer_src_list})
-#add_compile_options(-l sqlite3)
+#message(STATUS ${MediaServer_src_list})
+
 add_executable(MediaServer ${MediaServer_src_list})
 
 if(WIN32)

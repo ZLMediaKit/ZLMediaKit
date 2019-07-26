@@ -36,7 +36,6 @@ WORKDIR /usr/src/ZLMediaKit
 ADD  3rdpart   ./3rdpart
 ADD  Android   ./Android
 ADD  cmake  ./cmake
-ADD  node_modules   ./node_modules
 ADD  server   ./server
 ADD  src   ./src
 ADD  tests   ./tests

@@ -216,7 +216,7 @@ public:
 
     void setMediaSouce(const MediaSource::Ptr & src) override {
 		if (_parser) {
-			return _parser->setMediaSouce(src);
+			_parser->setMediaSouce(src);
 		}
 		_pMediaSrc = src;
     }
