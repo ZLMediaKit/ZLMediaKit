@@ -50,7 +50,8 @@ public:
                 const string &strApp,
                 const string &strSrc,
                 bool bEnableHls = true,
-                bool bEnableMp4 = false,
+                //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+                int bRecordMp4 = 0,
                 int iRetryCount = -1,
 				const EventPoller::Ptr &poller = nullptr);
 
@@ -86,7 +87,8 @@ private:
 	void onPlaySuccess();
 private:
     bool _bEnableHls;
-    bool _bEnableMp4;
+    //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+    int _bRecordMp4;
     int _iRetryCount;
 	MultiMediaSourceMuxer::Ptr _mediaMuxer;
     string _strVhost;

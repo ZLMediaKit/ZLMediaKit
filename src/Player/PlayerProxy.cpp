@@ -66,14 +66,16 @@ PlayerProxy::PlayerProxy(const string &strVhost,
                          const string &strApp,
                          const string &strSrc,
                          bool bEnableHls,
-                         bool bEnableMp4,
+                        //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+                         int bRecordMp4,
                          int iRetryCount,
 						 const EventPoller::Ptr &poller) : MediaPlayer(poller){
 	_strVhost = strVhost;
 	_strApp = strApp;
 	_strSrc = strSrc;
     _bEnableHls = bEnableHls;
-    _bEnableMp4 = bEnableMp4;
+    //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+    _bRecordMp4 = bRecordMp4;
     _iRetryCount = iRetryCount;
 }
 
@@ -197,7 +199,8 @@ private:
 };
 
 void PlayerProxy::onPlaySuccess() {
-	_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost,_strApp,_strSrc,getDuration(),_bEnableHls,_bEnableMp4));
+    //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+	_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost,_strApp,_strSrc,getDuration(),_bEnableHls,_bRecordMp4));
 	_mediaMuxer->setListener(shared_from_this());
 
 	auto videoTrack = getTrack(TrackVideo,false);

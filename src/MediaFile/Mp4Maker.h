@@ -63,7 +63,9 @@ public:
 	Mp4Maker(const string &strPath,
 			 const string &strVhost ,
 			 const string &strApp,
-			 const string &strStreamId);
+			 const string &strStreamId,
+			 //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+			 const int &recordMp4);
 	virtual ~Mp4Maker();
 private:
 	/**
@@ -92,6 +94,8 @@ private:
 	MP4FileHandle _hMp4 = MP4_INVALID_FILE_HANDLE;
 	MP4TrackId _hVideo = MP4_INVALID_TRACK_ID;
 	MP4TrackId _hAudio = MP4_INVALID_TRACK_ID;
+    //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+	int _recordMp4;
 	string _strPath;
 	string _strFile;
 	string _strFileTmp;

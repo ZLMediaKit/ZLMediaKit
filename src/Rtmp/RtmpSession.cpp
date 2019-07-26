@@ -28,6 +28,10 @@
 #include "RtmpSession.h"
 #include "Common/config.h"
 #include "Util/onceToken.h"
+#include "Kf/Globals.h"
+#include "Kf/DbUtil.h"
+#include <jsoncpp/value.h>
+#include <jsoncpp/json.h>
 
 namespace mediakit {
 
@@ -167,7 +171,17 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             shutdown(SockException(Err_shutdown,errMsg));
             return;
         }
-        _pPublisherSrc.reset(new RtmpToRtspMediaSource(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid));
+
+
+        //chenxiaolei 从数据中获取配置,确保通过 ffmpeg 的推流,也可以录像
+        Json::Value tProxyData =  searchChannel(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
+        if(!tProxyData.isNull()) {
+            int vRecordMp4 = tProxyData["record_mp4"].asInt();
+            bool vEnableHls = tProxyData.get("enable_hls",false).asBool();
+            _pPublisherSrc.reset(new RtmpToRtspMediaSource(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid,vEnableHls, vRecordMp4));
+        }else{
+            _pPublisherSrc.reset(new RtmpToRtspMediaSource(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid));
+        }
         _pPublisherSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
         //如果是rtmp推流客户端，那么加大TCP接收缓存，这样能提升接收性能
         _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));

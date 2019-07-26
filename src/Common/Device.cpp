@@ -42,8 +42,9 @@ DevChannel::DevChannel(const string &strVhost,
                        const string &strId,
                        float fDuration,
                        bool bEanbleHls,
-                       bool bEnableMp4) :
-        MultiMediaSourceMuxer(strVhost, strApp, strId, fDuration, bEanbleHls, bEnableMp4) {}
+                       //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+                       int bRecordMp4) :
+        MultiMediaSourceMuxer(strVhost, strApp, strId, fDuration, bEanbleHls, bRecordMp4) {}
 
 DevChannel::~DevChannel() {}
 

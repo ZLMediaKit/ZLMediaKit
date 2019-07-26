@@ -26,12 +26,16 @@
 
 #include <map>
 #include <signal.h>
+#include <jsoncpp/value.h>
+#include <jsoncpp/json.h>
 #include <iostream>
 #include "Util/MD5.h"
 #include "Util/File.h"
 #include "Util/logger.h"
 #include "Util/SSLBox.h"
 #include "Util/onceToken.h"
+#include "Kf/DbUtil.h"
+#include "Kf/Globals.h"
 #include "Util/CMD.h"
 #include "Network/TcpServer.h"
 #include "Poller/EventPoller.h"
@@ -45,6 +49,7 @@
 #include "Http/WebSocketSession.h"
 #include "WebApi.h"
 #include "WebHook.h"
+
 
 #if !defined(_WIN32)
 #include "System.h"
@@ -197,6 +202,58 @@ static void inline listen_shell_input(){
 }
 #endif//!defined(_WIN32)
 
+
+//chenxiaolei 适配数据库中的配置数据
+void initEventListener() {
+    static onceToken s_token([]() {
+        //当频道没有人观看时触发
+        //流无人观看并且超过若干时间后才触发kBroadcastStreamNoneReader事件
+        //默认连续streamNoneReaderDelayMS无人观看然后触发
+        NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastStreamNoneReader,[](BroadcastStreamNoneReaderArgs) {
+            /**
+            * 停止推流
+            */
+
+            InfoL << "用户停止播放,频道无人观看:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
+
+            Json::Value tProxyData =  searchChannel(sender.getVhost(), sender.getApp(),sender.getId());
+            if(!tProxyData.isNull()) {
+                int vRecordMp4 = tProxyData.get("record_mp4",0).asInt();
+                bool vOnDemand = tProxyData.get("on_demand",true).asBool();
+                bool realOnDemand = vRecordMp4 ? false : vOnDemand;
+                if(!realOnDemand){
+                    InfoL << "频道保持录像,忽略停止拉流:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
+                    return;
+                }
+            }
+            InfoL << "频道临时关闭,开始停止拉流:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
+            sender.close(true);
+        });
+        //监听播放失败(未找到特定的流)事件, 之前没人看,突然有人看的时候
+        //等待流注册超时时间，收到播放器后请求后，如果未找到相关流，服务器会等待一定时间，
+        //如果在这个时间内，相关流注册上了，那么服务器会立即响应播放器播放成功，
+        //否则会最多等待kMaxStreamWaitTimeMS毫秒，然后响应播放器播放失败
+        NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastNotFoundStream,[](BroadcastNotFoundStreamArgs){
+            /**
+             * 你可以在这个事件触发时再去拉流，这样就可以实现按需拉流
+             * 拉流成功后，ZLMediaKit会把其立即转发给播放器(最大等待时间约为maxStreamWaitMS，如果maxStreamWaitMS都未拉流成功，播放器会播放失败)
+             */
+
+
+            InfoL << "频道上未找到流:" << args._schema << "/" <<  args._vhost << "/" << args._app << "/" << args._streamid << "/" << args._param_strs ;
+            Json::Value tProxyData =  searchChannel(args._vhost,args._app,args._streamid);
+            if(!tProxyData.isNull() && tProxyData["active"].asInt()) {
+                InfoL << "为频道重新拉流:" << args._schema << "/" <<  args._vhost << "/" << args._app << "/" << args._streamid << "/" << args._param_strs << tProxyData["id"] ;
+                processProxyCfg(tProxyData, false);
+            }
+
+        });
+
+
+    }, nullptr);
+}
+
+
 int main(int argc,char *argv[]) {
     {
         CMD_main cmd_main;
@@ -215,11 +272,15 @@ int main(int argc,char *argv[]) {
         int threads = cmd_main["threads"];
 
         //设置日志
+        //chenxiaolei 日志存储目录调整
+        string logDir =exeDir()+ "log/";
+        File::createfile_path(logDir.data(), S_IRWXO | S_IRWXG | S_IRWXU);
+
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
 #if defined(__linux__) || defined(__linux)
         Logger::Instance().add(std::make_shared<SysLogChannel>("SysLogChannel",logLevel));
 #else
-        Logger::Instance().add(std::make_shared<FileChannel>("FileChannel", exePath() + ".log", logLevel));
+        Logger::Instance().add(std::make_shared<FileChannel>("FileChannel", logDir + exeName() + ".log", logLevel));
 #endif
 
 #if !defined(_WIN32)
@@ -231,10 +292,34 @@ int main(int argc,char *argv[]) {
         System::systemSetup();
 #endif//!defined(_WIN32)
 
+        //初始化sqlite数据库
+        string dbDataDir =exeDir()+ "dbdata/";
+        File::createfile_path(dbDataDir.data(), S_IRWXO | S_IRWXG | S_IRWXU);
+        initDatabase(dbDataDir);
+
         //启动异步日志线程
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
         //加载配置文件，如果配置文件不存在就创建一个
         loadIniConfig(ini_file.data());
+
+        uint16_t shellPort = mINI::Instance()[Shell::kPort];
+        uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
+        uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
+        uint16_t rtmpPort = mINI::Instance()[Rtmp::kPort];
+        uint16_t httpPort = mINI::Instance()[Http::kPort];
+        uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
+
+
+        //清理下无效临时录像
+        clearInvalidRecord(mINI::Instance()[Record::kFilePath]);
+
+        //执行转发规则
+        Json::Value cfg_root = searchChannels();
+        processProxyCfgs(cfg_root);
+
+        //事件监听
+        initEventListener();
+
 
         //加载证书，证书包含公钥和私钥
         SSL_Initor::Instance().loadCertificate(ssl_file.data());
@@ -243,12 +328,6 @@ int main(int argc,char *argv[]) {
         //不忽略无效证书证书(例如自签名或过期证书)
         SSL_Initor::Instance().ignoreInvalidCertificate(true);
 
-        uint16_t shellPort = mINI::Instance()[Shell::kPort];
-        uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
-        uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
-        uint16_t rtmpPort = mINI::Instance()[Rtmp::kPort];
-        uint16_t httpPort = mINI::Instance()[Http::kPort];
-        uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
 
         //设置poller线程数,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
         EventPollerPool::setPoolSize(threads);

@@ -113,7 +113,8 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
             if (rtppack->sequence != (uint16_t) (_h265frame->sequence + 1)) {
                 _h265frame->buffer.clear();
-                WarnL << "丢包,帧废弃:" << rtppack->sequence << "," << _h265frame->sequence;
+                //chenxiaolei  这个日志有些源,打印的太多,目测也不影响观看,调整为debug
+                DebugL << "丢包,帧废弃:" << rtppack->sequence << "," << _h265frame->sequence;
                 return false;
             }
             _h265frame->sequence = rtppack->sequence;

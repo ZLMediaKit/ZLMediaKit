@@ -122,6 +122,8 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
 	static onceToken token([]() {
 		g_mapCmdIndex.emplace("GET",&HttpSession::Handle_Req_GET);
 		g_mapCmdIndex.emplace("POST",&HttpSession::Handle_Req_POST);
+		//chenxiaolei  增加OPTIONS,以便支持web 页面的跨域嗅探请求
+		g_mapCmdIndex.emplace("OPTIONS",&HttpSession::Handle_Req_OPTIONS);
 	}, nullptr);
 
 	_parser.Parse(header);
@@ -581,7 +583,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
 
         //先回复HTTP头部分
         sendResponse(pcHttpResult,httpHeader,"");
-        
+
         if (iRangeEnd - iRangeStart < 0) {
             //文件是空的!
             throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access file");
@@ -762,6 +764,12 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
     GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
     GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
 
+    //chenxiaolei  请求跨域支持
+	headerOut.emplace("Access-Control-Allow-Headers", "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization");
+	headerOut.emplace("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS, DELETE");
+	headerOut.emplace("Access-Control-Allow-Origin", "*");
+	headerOut.emplace("Access-Control-Expose-Headers", "Location");
+
 	headerOut.emplace("Date", dateStr());
 	headerOut.emplace("Server", SERVER_NAME);
 	headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
@@ -834,6 +842,13 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	}
 	return consumed;
 }
+
+//chenxiaolei  增加OPTIONS,以便支持web 页面的跨域嗅探请求
+inline void HttpSession::Handle_Req_OPTIONS(int64_t &content_len) {
+    sendResponse( "200 OK"  , makeHttpHeader(false, 0), "");
+    shutdown(SockException(Err_shutdown,"recv http content completed"));
+}
+
 inline void HttpSession::Handle_Req_POST(int64_t &content_len) {
 	GET_CONFIG(uint64_t,maxReqSize,Http::kMaxReqSize);
     GET_CONFIG(int,maxReqCnt,Http::kMaxReqCount);

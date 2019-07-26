@@ -27,10 +27,16 @@
 *.out
 *.app
 /X64/
-
+.idea
 
 *.DS_Store
 
-/cmake-build-debug/
-/.idea/
+cmake-build-debug
+build
+mac_build
+linux_build
+android_build
+ios_build
 /c_wrapper/.idea/
+
+

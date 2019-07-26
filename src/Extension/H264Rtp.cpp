@@ -162,7 +162,8 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
             if (rtppack->sequence != (uint16_t)(_h264frame->sequence + 1)) {
                 _h264frame->buffer.clear();
-                WarnL << "丢包,帧废弃:" << rtppack->sequence << "," << _h264frame->sequence;
+                //chenxiaolei  这个日志有些源,打印的太多,目测也不影响观看,调整为debug
+                DebugL << "丢包,帧废弃:" << rtppack->sequence << "," << _h264frame->sequence;
                 return false;
             }
             _h264frame->sequence = rtppack->sequence;

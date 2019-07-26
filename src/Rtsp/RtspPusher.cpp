@@ -266,6 +266,7 @@ void RtspPusher::sendSetup(unsigned int trackIndex) {
     }
 }
 
+
 void RtspPusher::handleResSetup(const Parser &parser, unsigned int uiTrackIndex) {
     if (parser.Url() != "200") {
         throw std::runtime_error(

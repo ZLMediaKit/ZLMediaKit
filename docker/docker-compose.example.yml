@@ -1,0 +1,33 @@
+################################################################################################################################
+#   容器服务端口说明
+#       10800:  web管理界面
+#       1935 :  rtmp端口
+#       554  :  rtsp端口
+#       80   :  zlmedia服务端口
+#
+# 容器运行以后, 访问 http://[部署机ip]:[web管理端口|10800] 可以通过web管理,默认密码为123456 (conf.ini的secret)
+#   如: http://127.0.0.1:10800
+#
+################################################################################################################################
+
+version: "3"
+services:
+    zlmedia:
+        image: cl-zlmedia:latest
+        container_name: zlmedia
+        restart: always
+        ports:
+            - 11935:1935
+            - 10800:10800
+            - 9099:80
+            - 1554:554
+        environment:
+            - REACT_APP_API_HOST=127.0.0.1:9099
+        volumes:
+            - /usr/share/zoneinfo/Asia/Shanghai:/usr/share/zoneinfo/Asia/Shanghai:ro
+            - /__your_store_dir__/zlmedia/log:/usr/src/ZLMediaKit/zldata/log
+            - /__your_store_dir__/zlmedia/httpRoot:/usr/src/ZLMediaKit/zldata/httpRoot
+            - /__your_store_dir__/zlmedia/dbdata:/usr/src/ZLMediaKit/zldata/dbdata
+           #- /__your_store_dir__/zlmedia/config.ini:/usr/src/ZLMediaKit/zldata/config.ini
+
+

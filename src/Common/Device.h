@@ -75,7 +75,8 @@ public:
                const string &strId,
                float fDuration = 0,
                bool bEanbleHls = true,
-               bool bEnableMp4 = false);
+               //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+               int bRecordMp4 = 0);
 
 	virtual ~DevChannel();
 

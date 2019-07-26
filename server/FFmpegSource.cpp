@@ -29,6 +29,8 @@
 #include "Common/MediaSource.h"
 #include "Util/File.h"
 #include "System.h"
+#include "Kf/Globals.h"
+#include "Kf/DbUtil.h"
 
 namespace FFmpeg {
 #define FFmpeg_FIELD "ffmpeg."
@@ -38,7 +40,8 @@ const char kLog[] = FFmpeg_FIELD"log";
 
 onceToken token([]() {
     mINI::Instance()[kBin] = trim(System::execute("which ffmpeg"));
-    mINI::Instance()[kCmd] = "%s -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
+    //chenxiaolei  config.ini的[ffmpeg]cmd 去掉其中的第一个%s  , ffmpeg_bin
+    mINI::Instance()[kCmd] = "-i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
     mINI::Instance()[kLog] = exeDir() + "ffmpeg/ffmpeg.log";
 });
 }
@@ -52,18 +55,29 @@ FFmpegSource::~FFmpegSource() {
     DebugL;
 }
 
-
-void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_ms,const onPlay &cb) {
+//chenxiaolei  支持单独为每一次 play 单独配置 ffmpeg 参数
+void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_ms,const string &ffmpegCmd,const onPlay &cb) {
     GET_CONFIG(string,ffmpeg_bin,FFmpeg::kBin);
     GET_CONFIG(string,ffmpeg_cmd,FFmpeg::kCmd);
     GET_CONFIG(string,ffmpeg_log,FFmpeg::kLog);
 
+    //chenxiaolei  支持单独为每一次 play 单独配置 ffmpeg 参数
+    _ffmpegCmd = ffmpegCmd;
     _src_url = src_url;
     _dst_url = dst_url;
     _media_info.parse(dst_url);
 
+
+    //chenxiaolei  config.ini的[ffmpeg]cmd 去掉其中的第一个%s  , ffmpeg_bin
+    MediaInfo _src_media_info;
+    _src_media_info.parse(src_url);
+
+    string tempFFmpegCmd= _ffmpegCmd.empty() ? ffmpeg_cmd : _ffmpegCmd;
+    tempFFmpegCmd= ffmpeg_bin + " " + tempFFmpegCmd;
+
     char cmd[1024] = {0};
-    snprintf(cmd, sizeof(cmd),ffmpeg_cmd.data(),ffmpeg_bin.data(),src_url.data(),dst_url.data());
+    snprintf(cmd, sizeof(cmd),tempFFmpegCmd.data(),src_url.data(),dst_url.data());
+
     _process.run(cmd,ffmpeg_log);
     InfoL << cmd;
 
@@ -192,7 +206,7 @@ void FFmpegSource::startTimer(int timeout_ms) {
                 //同步查找流
                 if (!src) {
                     //流不在线，重新拉流
-                    strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms,
+                    strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, strongSelf ->_ffmpegCmd ,
                                      [](const SockException &) {});
                 }
             });
@@ -200,7 +214,7 @@ void FFmpegSource::startTimer(int timeout_ms) {
             //推流给其他服务器的，我们通过判断FFmpeg进程是否在线，如果FFmpeg推流中断，那么它应该会自动退出
             if (!strongSelf->_process.wait(false)) {
                 //ffmpeg不在线，重新拉流
-                strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [](const SockException &) {});
+                strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms,  strongSelf ->_ffmpegCmd, [](const SockException &) {});
             }
         }
         return true;
@@ -223,6 +237,17 @@ void FFmpegSource::startTimer(int timeout_ms) {
 
         //该流无人观看，我们停止吧
         if(strongSelf->_onClose){
+            //InfoL << "用户停止播放,频道无人观看:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
+
+            //chenxiaolei  根据数据库中的配置(是否录像)来决定是否停止
+            Json::Value tProxyData =  searchChannel(sender.getVhost(), sender.getApp(),sender.getId());
+            if(!tProxyData.isNull()) {
+                int vRecordMp4 = tProxyData["record_mp4"].asInt();
+                if(vRecordMp4){
+                    //InfoL << "频道保持录像,忽略停止拉流:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
+                    return;
+                }
+            }
             strongSelf->_onClose();
         }
     });

@@ -12,15 +12,27 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 #设置工程源码根目录
 set(ToolKit_Root ${CMAKE_SOURCE_DIR}/3rdpart/ZLToolKit/src)
+set(SQLite_Root ${CMAKE_SOURCE_DIR}/3rdpart/SQLite/src)
+set(SQLite3pp_Root ${CMAKE_SOURCE_DIR}/3rdpart/sqlite3pp)
+set(jsoncpp_Root ${CMAKE_SOURCE_DIR}/3rdpart/jsoncpp)
 set(MediaKit_Root ${CMAKE_SOURCE_DIR}/src)
 
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
 INCLUDE_DIRECTORIES(${MediaKit_Root})
-
+INCLUDE_DIRECTORIES(${SQLite_Root})
+#INCLUDE_DIRECTORIES(${SQLite3pp_Root})
+INCLUDE_DIRECTORIES(3rdpart)
 #收集源代码
 file(GLOB ToolKit_src_list ${ToolKit_Root}/*/*.cpp ${ToolKit_Root}/*/*.h ${ToolKit_Root}/*/*.c)
+file(GLOB SQLite_src_list ${SQLite_Root}/*.cpp ${SQLite_Root}/*.h ${SQLite_Root}/*.c)
 file(GLOB MediaKit_src_list ${MediaKit_Root}/*/*.cpp ${MediaKit_Root}/*/*.h ${MediaKit_Root}/*/*.c)
+file(GLOB sqlite3pp_src_list ${SQLite3pp_Root}/*.cpp  ${SQLite3pp_Root}/*.h)
+file(GLOB jsoncpp_src_list ${jsoncpp_Root}/*.cpp ${jsoncpp_Root}/*.h )
+
+add_library(sqlite3 STATIC ${SQLite_src_list})
+add_library(sqlite3pp STATIC ${sqlite3pp_src_list})
+add_library(jsoncpp STATIC ${jsoncpp_src_list})
 
 #去除win32的适配代码
 if (NOT WIN32)
@@ -42,9 +54,9 @@ if(ENABLE_HLS)
     message(STATUS "ENABLE_HLS defined")
     add_definitions(-DENABLE_HLS)
     set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
-    set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
+    set(LINK_LIB_LIST zlmediakit zltoolkit mpeg jsoncpp sqlite3pp sqlite3)
 else()
-    set(LINK_LIB_LIST zlmediakit zltoolkit)
+    set(LINK_LIB_LIST zlmediakit zltoolkit jsoncpp sqlite3pp sqlite3)
 endif()
 
 #查找openssl是否安装
@@ -96,6 +108,7 @@ endif ()
 
 #添加库
 add_library(zltoolkit STATIC ${ToolKit_src_list})
+
 add_library(zlmediakit STATIC ${MediaKit_src_list})
 
 			
@@ -121,8 +134,10 @@ endif ()
 
 
 
+
+
 #测试程序
-add_subdirectory(tests)
+#add_subdirectory(tests)
 
 #主服务器
 add_subdirectory(server)

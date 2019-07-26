@@ -28,6 +28,7 @@
 #define ZLMEDIAKIT_WEBAPI_H
 
 #include <string>
+#include "FFmpegSource.h"
 using namespace std;
 
 namespace mediakit {
@@ -44,8 +45,21 @@ extern const string kPort;
 
 }  // namespace mediakit
 
+//chenxiaolei 新增数据库配置的通道使用的proxyMap
+extern unordered_map<string ,PlayerProxy::Ptr> m_s_proxyMap;
+extern recursive_mutex m_s_proxyMapMtx;
 
-void installWebApi();
-void unInstallWebApi();
+//chenxiaolei 新增数据库配置的通道使用的proxyMap
+extern unordered_map<string ,FFmpegSource::Ptr> m_s_ffmpegMap;
+extern recursive_mutex m_s_ffmpegMapMtx;
+
+//chenxiaolei 配置生效方法
+extern void processProxyCfg(const Json::Value &proxyData, const bool initialize);
+//chenxiaolei 配置(数组,多个)生效方法
+extern void processProxyCfgs(const Json::Value &cfg_root);
+
+extern void installWebApi();
+extern void unInstallWebApi();
+
 
 #endif //ZLMEDIAKIT_WEBAPI_H

@@ -53,9 +53,10 @@ public:
                           const string &app,
                           const string &id,
                           bool bEnableHls = true,
-                          bool bEnableMp4 = false,
+                          //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+                          int bRecordMp4 = 0,
 						  int ringSize = 0):RtmpMediaSource(vhost, app, id,ringSize){
-		_recorder = std::make_shared<MediaRecorder>(vhost, app, id, bEnableHls, bEnableMp4);
+		_recorder = std::make_shared<MediaRecorder>(vhost, app, id, bEnableHls, bRecordMp4);
 		_rtmpDemuxer = std::make_shared<RtmpDemuxer>();
 	}
 	virtual ~RtmpToRtspMediaSource(){}

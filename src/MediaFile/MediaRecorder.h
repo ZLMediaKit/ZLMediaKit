@@ -44,7 +44,8 @@ public:
                   const string &strApp,
                   const string &strId,
                   bool enableHls = true,
-                  bool enableMp4 = false);
+                  //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+                  int recordMp4 = 0);
 	virtual ~MediaRecorder();
 
 	/**

@@ -1,0 +1,9 @@
+.git
+.idea
+cmake-build-debug
+build
+mac_build
+docker/Dockerfile
+linux_build
+android_build
+ios_build

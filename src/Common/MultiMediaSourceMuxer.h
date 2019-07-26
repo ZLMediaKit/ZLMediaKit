@@ -40,10 +40,11 @@ public:
                           const string &strId,
                           float dur_sec = 0.0,
                           bool bEanbleHls = true,
-                          bool bEnableMp4 = false){
+                          //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+                          int bRecordMp4 = false){
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost,strApp,strId,std::make_shared<TitleMete>(dur_sec));
         _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost,strApp,strId,std::make_shared<TitleSdp>(dur_sec));
-        _record = std::make_shared<MediaRecorder>(vhost,strApp,strId,bEanbleHls,bEnableMp4);
+        _record = std::make_shared<MediaRecorder>(vhost,strApp,strId,bEanbleHls,bRecordMp4);
 
     }
     virtual ~MultiMediaSourceMuxer(){}

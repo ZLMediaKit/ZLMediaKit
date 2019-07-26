@@ -36,6 +36,10 @@
 #include "Util/TimeTicker.h"
 #include "Util/NoticeCenter.h"
 #include "Network/sockutil.h"
+#include "Kf/Globals.h"
+#include "Kf/DbUtil.h"
+#include <jsoncpp/value.h>
+#include <jsoncpp/json.h>
 
 #define RTSP_SERVER_SEND_RTCP 0
 
@@ -246,7 +250,16 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     _strSdp = parser.Content();
     _aTrackInfo = SdpParser(_strSdp).getAvailableTrack();
 
-	_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
+    //chenxiaolei 从数据中获取配置,确保通过 ffmpeg 的推流,也可以录像
+    Json::Value tProxyData =  searchChannel(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
+    if(!tProxyData.isNull()) {
+        int vRecordMp4 = tProxyData["record_mp4"].asInt();
+        bool vEnableHls = tProxyData.get("enable_hls",false).asBool();
+        _pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid,vEnableHls,vRecordMp4);
+    }else{
+        _pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
+    }
+
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
 	_pushSrc->onGetSDP(_strSdp);
 	sendRtspResponse("200 OK");

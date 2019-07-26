@@ -51,7 +51,7 @@ public:
      * @param cb
      */
     void setOnClose(const function<void()> &cb);
-    void play(const string &src_url,const string &dst_url,int timeout_ms,const onPlay &cb);
+    void play(const string &src_url,const string &dst_url,int timeout_ms,const string &ffmpegCmd, const onPlay &cb);
 private:
     void findAsync(int maxWaitMS ,const function<void(const MediaSource::Ptr &src)> &cb);
     void startTimer(int timeout_ms);
@@ -60,6 +60,7 @@ private:
     Timer::Ptr _timer;
     EventPoller::Ptr _poller;
     MediaInfo _media_info;
+    string _ffmpegCmd;
     string _src_url;
     string _dst_url;
     function<void()> _onClose;

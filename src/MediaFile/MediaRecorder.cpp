@@ -39,7 +39,8 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
                              const string &strApp,
                              const string &strId,
                              bool enableHls,
-                             bool enableMp4) {
+                             //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+                             int recordMp4) {
 
     GET_CONFIG(string,hlsPath,Hls::kFilePath);
     GET_CONFIG(uint32_t,hlsBufSize,Hls::kFileBufSize);
@@ -70,14 +71,15 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
     GET_CONFIG(string,recordPath,Record::kFilePath);
     GET_CONFIG(string,recordAppName,Record::kAppName);
 
-    if(enableMp4){
+    //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+    if(recordMp4){
         string mp4FilePath;
         if(enableVhost){
             mp4FilePath = recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
         } else {
             mp4FilePath = recordPath + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
         }
-        _mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId));
+        _mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId,recordMp4));
     }
 #endif //defined(ENABLE_MP4V2)
 }

@@ -37,7 +37,13 @@
 #include "Extension/H264.h"
 #include "Extension/AAC.h"
 #include "Thread/WorkThreadPool.h"
+#include <stdio.h>
+#include <dirent.h>
+#include <regex>
+#include "jsoncpp/json.h"
+#include <vector>
 
+using namespace Json;
 using namespace toolkit;
 
 namespace mediakit {
@@ -58,12 +64,50 @@ string timeStr(const char *fmt) {
 	return buffer;
 }
 
+string timeStr2(std::time_t rawtime, const char *fmt) {
+    std::tm tm_snapshot;
+    auto time = ::time(NULL);
+#if defined(_WIN32)
+    localtime_s(&tm_snapshot, &time); // thread-safe
+#else
+    localtime_r(&rawtime, &tm_snapshot); // POSIX
+#endif
+    const size_t size = 1024;
+    char buffer[size];
+    auto success = std::strftime(buffer, size, fmt, &tm_snapshot);
+    if (0 == success)
+        return string(fmt);
+    return buffer;
+}
+
+
+time_t string2time(const std::string& timeStr){
+    struct tm stTm;
+    sscanf(timeStr.c_str(), "%4d%2d%2d",
+           &(stTm.tm_year),
+           &(stTm.tm_mon),
+           &(stTm.tm_mday));
+
+    stTm.tm_year -= 1900;
+    stTm.tm_mon--;
+    stTm.tm_isdst = -1;
+    stTm.tm_hour = 0;
+    stTm.tm_min = 0;
+    stTm.tm_sec = 0;
+
+    return mktime(&stTm);
+}
+
+
 Mp4Maker::Mp4Maker(const string& strPath,
 				   const string &strVhost,
 				   const string &strApp,
-				   const string &strStreamId) {
+				   const string &strStreamId,
+				   //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
+				   const int &recordMp4) {
 	DebugL << strPath;
 	_strPath = strPath;
+	_recordMp4 = recordMp4;
 
 	/////record 业务逻辑//////
 	_info.strAppName = strApp;
@@ -117,9 +161,11 @@ void Mp4Maker::inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp
 void Mp4Maker::inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32Duration) {
     GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
 	auto iType =  H264_TYPE(((uint8_t*)pData)[4]);
-	if(iType == H264Frame::NAL_IDR && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)){
+
+	//chenxiaolei 确保录像,不会跨天
+	if(iType == H264Frame::NAL_IDR && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000 || timeStr("%H%M%S")=="000000")){
 		//在I帧率处新建MP4文件
-		//如果文件未创建或者文件超过10分钟则创建新文件
+		//如果文件未创建或者文件超过recordSec秒(且不跨天)则创建新文件
 		createFile();
 	}
 	if (_hVideo != MP4_INVALID_TRACK_ID) {
@@ -130,9 +176,10 @@ void Mp4Maker::inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32Durati
 void Mp4Maker::inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui32Duration) {
     GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
 
-    if (!_haveVideo && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)) {
+    //chenxiaolei 确保录像,不会跨天
+    if (!_haveVideo && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000 || timeStr("%H%M%S")=="000000")) {
 		//在I帧率处新建MP4文件
-		//如果文件未创建或者文件超过10分钟则创建新文件
+        //如果文件未创建或者文件超过recordSec秒(且不跨天)则创建新文件
 		createFile();
 	}
 	if (_hAudio != MP4_INVALID_TRACK_ID) {
@@ -144,7 +191,8 @@ void Mp4Maker::inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui32Duratio
 void Mp4Maker::createFile() {
 	closeFile();
 
-	auto strDate = timeStr("%Y-%m-%d");
+    //chenxiaolei 录像父文件夹格式调整
+	auto strDate = timeStr("%Y%m%d");
 	auto strTime = timeStr("%H-%M-%S");
 	auto strFileTmp = _strPath + strDate + "/." + strTime + ".mp4";
 	auto strFile =	_strPath + strDate + "/" + strTime + ".mp4";
@@ -217,18 +265,72 @@ void Mp4Maker::asyncClose() {
 	auto hMp4 = _hMp4;
 	auto strFileTmp = _strFileTmp;
 	auto strFile = _strFile;
-	auto info = _info;
-	WorkThreadPool::Instance().getExecutor()->async([hMp4,strFileTmp,strFile,info]() {
+    auto info = _info;
+    //chenxiaolei 支持删除过期录像
+    auto strPath = _strPath;
+    auto recordMp4 = _recordMp4;
+	WorkThreadPool::Instance().getExecutor()->async([hMp4,strFileTmp,strFile,strPath,recordMp4,info]() {
 		//获取文件录制时间，放在MP4Close之前是为了忽略MP4Close执行时间
 		const_cast<Mp4Info&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
 		//MP4Close非常耗时，所以要放在后台线程执行
 		MP4Close(hMp4,MP4_CLOSE_DO_NOT_COMPUTE_BITRATE);
 		//临时文件名改成正式文件名，防止mp4未完成时被访问
 		rename(strFileTmp.data(),strFile.data());
+
+		//chenxiaolei 删除过期录像
+        if(recordMp4){
+            auto curTimeStr = timeStr("%Y%m%d");
+
+            DIR *dr = opendir(strPath.data());
+            if (dr != NULL)  {
+                std::vector<string> delDirPaths;
+                struct dirent *de;
+                while ((de = readdir(dr)) != NULL){
+                    if(!std::regex_match(de->d_name, std::regex("\\d{4}\\d{2}\\d{2}"))){
+                        continue;
+                    }
+                    auto curTime=string2time(curTimeStr);
+                    auto targetTime=string2time(de->d_name);
+                    double dSec= std::difftime(curTime, targetTime);
+                    double dDay= dSec/60/60/24;
+                    if( dDay >  recordMp4){
+                        /*auto delDirPath= (strPath + (de->d_name)).data();
+                        File::delete_file(delDirPath);*/
+                        auto delDirPath= (strPath + (de->d_name));
+                        delDirPaths.emplace_back(delDirPath);
+
+                        //system(("rm -rf " + delDirPath+"").data());
+                        //WarnL << "删除过期录像文件:"<< (strPath + (de->d_name)).data() ;
+                    }
+                }
+                closedir(dr);
+
+                for (auto val : delDirPaths){
+                    File::delete_file(val.data());
+                    WarnL << "删除过期录像文件:"<< val;
+                }
+            }
+        }
+
 		//获取文件大小
 		struct stat fileData;
 		stat(strFile.data(), &fileData);
 		const_cast<Mp4Info&>(info).ui64FileSize = fileData.st_size;
+
+
+		//chenxiaolei 生成录像文件的信息文件(记录录像时长,开始时间,持续时长等)
+        Json::Value infoJson;
+        infoJson["startAt"] = timeStr2(info.ui64StartedTime,"%Y%m%d%H%M%S");
+        infoJson["duration"] = (int)(info.ui64TimeLen) ;
+        infoJson["mp4"] = info.strUrl;
+
+        auto strInfoFile =	strFile +".json";
+        ofstream os;
+        os.open(strInfoFile);
+        Json::StyledWriter sw;
+        os << sw.write(infoJson);
+        os.close();
+
 		/////record 业务逻辑//////
 		NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4,info);
 	});
