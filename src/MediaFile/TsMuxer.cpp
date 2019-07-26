@@ -70,7 +70,12 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
                 if(_frameCached.size() != 1){
                     string merged;
                     _frameCached.for_each([&](const Frame::Ptr &frame){
-                        merged.append(frame->data(),frame->size());
+                        if(frame->prefixSize()){
+                            merged.append(frame->data(),frame->size());
+                        } else{
+                            merged.append("\x00\x00\x00\x01",4);
+                            merged.append(frame->data(),frame->size());
+                        }
                     });
                     merged_frame = std::make_shared<BufferString>(std::move(merged));
                 }
@@ -78,7 +83,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
                 mpeg_ts_write(_context, it->second, back->keyFrame() ? 0x0001 : 0, back->pts() * 90LL, back->dts() * 90LL, merged_frame->data(),  merged_frame->size());
                 _frameCached.clear();
             }
-            _frameCached.emplace_back(frame);
+            _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
         }
             break;
         default: {

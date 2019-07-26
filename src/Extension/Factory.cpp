@@ -118,8 +118,20 @@ Track::Ptr Factory::getTrackByCodecId(CodecId codecId) {
 RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
     GET_CONFIG(uint32_t,audio_mtu,Rtp::kAudioMtuSize);
     GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
-    // ssrc不冲突即可
-    uint32_t ssrc = ((uint64_t) sdp.get()) & 0xFFFFFFFF;
+    // ssrc不冲突即可,可以为任意的32位整形
+    static atomic<uint32_t> s_ssrc(0);
+    uint32_t ssrc = s_ssrc++;
+    if(!ssrc){
+        //ssrc不能为0
+        ssrc = 1;
+    }
+    if(sdp->getTrackType() == TrackVideo){
+        //视频的ssrc是偶数，方便调试
+        ssrc = 2 * ssrc;
+    }else{
+        //音频ssrc是奇数
+        ssrc = 2 * ssrc + 1;
+    }
     auto mtu = (sdp->getTrackType() == TrackVideo ? video_mtu : audio_mtu);
     auto sample_rate = sdp->getSampleRate();
     auto pt = sdp->getPlayloadType();

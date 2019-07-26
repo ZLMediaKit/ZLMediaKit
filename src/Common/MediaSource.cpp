@@ -241,9 +241,17 @@ void MediaInfo::parse(const string &url){
 }
 
 void MediaSourceEvent::onNoneReader(MediaSource &sender){
-    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
     //没有任何读取器消费该源，表明该源可以关闭了
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader,sender);
+    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
+    weak_ptr<MediaSource> weakPtr = sender.shared_from_this();
+
+    //异步广播该事件，防止同步调用sender.close()导致在接收rtp或rtmp包时清空包缓存等操作
+    EventPollerPool::Instance().getPoller()->async([weakPtr](){
+        auto strongPtr = weakPtr.lock();
+        if(strongPtr){
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader,*strongPtr);
+        }
+    },false);
 }
 
 

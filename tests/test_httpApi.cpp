@@ -56,49 +56,50 @@ onceToken token1([](){
 }//namespace Http
 }  // namespace mediakit
 
+void initEventListener(){
+	static onceToken s_token([](){
+		NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpRequest,[](BroadcastHttpRequestArgs){
+			//const Parser &parser,HttpSession::HttpResponseInvoker &invoker,bool &consumed
+			if(strstr(parser.Url().data(),"/api/") != parser.Url().data()){
+				return;
+			}
+			//url以"/api/起始，说明是http api"
+			consumed = true;//该http请求已被消费
 
-static onceToken s_token([](){
-    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpRequest,[](BroadcastHttpRequestArgs){
-        //const Parser &parser,HttpSession::HttpResponseInvoker &invoker,bool &consumed
-        if(strstr(parser.Url().data(),"/api/") != parser.Url().data()){
-            return;
-        }
-        //url以"/api/起始，说明是http api"
-        consumed = true;//该http请求已被消费
+			_StrPrinter printer;
+			////////////////method////////////////////
+			printer << "\r\nmethod:\r\n\t" << parser.Method();
+			////////////////url/////////////////
+			printer << "\r\nurl:\r\n\t" << parser.Url();
+			////////////////protocol/////////////////
+			printer << "\r\nprotocol:\r\n\t" << parser.Tail();
+			///////////////args//////////////////
+			printer << "\r\nargs:\r\n";
+			for(auto &pr : parser.getUrlArgs()){
+				printer <<  "\t" << pr.first << " : " << pr.second << "\r\n";
+			}
+			///////////////header//////////////////
+			printer << "\r\nheader:\r\n";
+			for(auto &pr : parser.getValues()){
+				printer <<  "\t" << pr.first << " : " << pr.second << "\r\n";
+			}
+			////////////////content/////////////////
+			printer << "\r\ncontent:\r\n" << parser.Content();
+			auto contentOut = printer << endl;
 
-        _StrPrinter printer;
-        ////////////////method////////////////////
-        printer << "\r\nmethod:\r\n\t" << parser.Method();
-        ////////////////url/////////////////
-        printer << "\r\nurl:\r\n\t" << parser.Url();
-        ////////////////protocol/////////////////
-        printer << "\r\nprotocol:\r\n\t" << parser.Tail();
-        ///////////////args//////////////////
-        printer << "\r\nargs:\r\n";
-        for(auto &pr : parser.getUrlArgs()){
-            printer <<  "\t" << pr.first << " : " << pr.second << "\r\n";
-        }
-        ///////////////header//////////////////
-        printer << "\r\nheader:\r\n";
-        for(auto &pr : parser.getValues()){
-            printer <<  "\t" << pr.first << " : " << pr.second << "\r\n";
-        }
-        ////////////////content/////////////////
-        printer << "\r\ncontent:\r\n" << parser.Content();
-        auto contentOut = printer << endl;
-
-        ////////////////我们测算异步回复，当然你也可以同步回复/////////////////
-		EventPollerPool::Instance().getPoller()->async([invoker,contentOut](){
-            HttpSession::KeyValue headerOut;
-			//你可以自定义header,如果跟默认header重名，则会覆盖之
-			//默认header有:Server,Connection,Date,Content-Type,Content-Length
-			//请勿覆盖Connection、Content-Length键
-			//键名覆盖时不区分大小写
-            headerOut["TestHeader"] = "HeaderValue";
-            invoker("200 OK",headerOut,contentOut);
-        });
-    });
-}, nullptr);
+			////////////////我们测算异步回复，当然你也可以同步回复/////////////////
+			EventPollerPool::Instance().getPoller()->async([invoker,contentOut](){
+				HttpSession::KeyValue headerOut;
+				//你可以自定义header,如果跟默认header重名，则会覆盖之
+				//默认header有:Server,Connection,Date,Content-Type,Content-Length
+				//请勿覆盖Connection、Content-Length键
+				//键名覆盖时不区分大小写
+				headerOut["TestHeader"] = "HeaderValue";
+				invoker("200 OK",headerOut,contentOut);
+			});
+		});
+	}, nullptr);
+}
 
 int main(int argc,char *argv[]){
 	//设置退出信号处理函数
@@ -111,6 +112,7 @@ int main(int argc,char *argv[]){
 
 	//加载配置文件，如果配置文件不存在就创建一个
 	loadIniConfig();
+	initEventListener();
 
 	//加载证书，证书包含公钥和私钥
 	SSL_Initor::Instance().loadCertificate((exeDir() + "ssl.p12").data());
