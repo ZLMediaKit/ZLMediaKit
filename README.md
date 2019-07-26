@@ -11,7 +11,7 @@
 - FFmpeg拉的流, 也可以录像
 - 录像可以设置最多保留录像天数
 - 增加了对应推送配置的一系列api
-- 新增了一套 [WEB UI界面](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI/blob/master/README_CN.md)来管理
+- 新增了一套 [WEB UI界面](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI/blob/master/README.md)来管理
 
 #### 安装
 ```shell
