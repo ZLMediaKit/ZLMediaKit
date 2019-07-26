@@ -25,7 +25,7 @@
  */
 
 #ifdef ENABLE_MP4V2
-
+#include <ctime>
 #include <sys/stat.h>
 #include "Common/config.h"
 #include "Mp4Maker.h"
