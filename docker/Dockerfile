@@ -33,13 +33,16 @@ RUN rm -f /etc/nginx/sites-enabled/default
 #后端
 FROM base as build_b
 WORKDIR /usr/src/ZLMediaKit
-ADD  3rdpart   ./3rdpart
+ADD  3rdpart/SQLite   ./3rdpart/SQLite
+ADD  3rdpart/jsoncpp   ./3rdpart/jsoncpp
+ADD  3rdpart/sqlite3pp   ./3rdpart/sqlite3pp
 ADD  Android   ./Android
 ADD  cmake  ./cmake
 ADD  server   ./server
 ADD  src   ./src
 ADD  tests   ./tests
-ADD  .travis.yml _config.yml CMakeLists.txt docker/build_for_docker_linux.sh ./
+ADD  .git   ./.git
+ADD  .travis.yml _config.yml CMakeLists.txt docker/build_for_docker_linux.sh .gitmodules ./
 RUN chmod +x build_for_docker_linux.sh
 RUN mkdir -p build/bin/dbdata && \
     mkdir -p build/bin/log
