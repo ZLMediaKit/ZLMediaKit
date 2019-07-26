@@ -4,6 +4,34 @@
 
 [中文](https://github.com/xiongziliang/ZLMediaKit/blob/master/README_CN.md)
 
+## chenxiaolei 二次开发改进
+
+- 内置了 sqlite数据库来保存 推送配置
+- 增加了对 推送配置的 实时快超截图
+- FFmpeg拉的流, 也可以录像
+- 录像可以设置最多保留录像天数
+- 增加了对应推送配置的一系列api
+- 新增了一套 [WEB UI界面](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI/blob/master/README_CN.md)来管理
+
+#### 安装
+```shell
+    //1, 安装 docker,docker-compose 
+    ...
+    
+    //2, 制作docker镜像
+    git clone https://github.com/chenxiaolei/ZLMediaKit
+    docker build -t cl-zlmedia -f ./docker/Dockerfile .
+    
+    //3, 找个地方运行 docker 容器
+    cp  ZLMediaKit/docker/docker-compose.example.yml  any_dir/docker-compose.yml
+    cd  any_dir 
+    docker-compose up -d
+    
+    //4, 访问管理页面
+    open browser: http://127.0.0.1:10800
+   
+```
+
 ## Why ZLMediaKit?
 - Developed based on C++ 11, the code is stable and reliable, avoiding the use of raw pointers, cross-platform porting is simple and convenient, and the code is clear and concise.
 - Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV`),and support Inter-protocol conversion.
