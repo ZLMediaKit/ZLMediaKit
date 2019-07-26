@@ -93,6 +93,11 @@ protected:
      * @param uiLen
      */
     virtual void onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
+
+	/////////////TcpClient override/////////////
+	void onConnect(const SockException &err) override;
+	void onRecv(const Buffer::Ptr &pBuf) override;
+	void onErr(const SockException &ex) override;
 private:
 	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
 	void onPlayResult_l(const SockException &ex);
@@ -102,10 +107,6 @@ private:
 	int getTrackIndexByTrackType(TrackType trackType) const;
 
 	void play(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType);
-	void onConnect(const SockException &err) override;
-	void onRecv(const Buffer::Ptr &pBuf) override;
-	void onErr(const SockException &ex) override;
-
 	void handleResSETUP(const Parser &parser, unsigned int uiTrackIndex);
 	void handleResDESCRIBE(const Parser &parser);
 	bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
@@ -120,6 +121,7 @@ private:
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
 	void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
     void sendReceiverReport(bool overTcp,int iTrackIndex);
+	void createUdpSockIfNecessary(int track_idx);
 private:
 	string _strUrl;
 	SdpParser _sdpParser;

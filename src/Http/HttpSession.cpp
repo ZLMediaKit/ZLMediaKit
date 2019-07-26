@@ -918,7 +918,11 @@ void HttpSession::responseDelay(const string &Origin,bool bClose,
 		headerOther["Access-Control-Allow-Origin"] = Origin;
 		headerOther["Access-Control-Allow-Credentials"] = "true";
 	}
-	const_cast<KeyValue &>(headerOut).insert(headerOther.begin(), headerOther.end());
+
+    for (auto &pr : headerOther){
+        //添加默认http头，默认http头不能覆盖用户自定义的头
+        const_cast<KeyValue &>(headerOut).emplace(pr.first,pr.second);
+    }
 	sendResponse(codeOut.data(), headerOut, contentOut);
 }
 inline void HttpSession::sendNotFound(bool bClose) {

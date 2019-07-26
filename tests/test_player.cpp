@@ -25,6 +25,7 @@
  */
 #include <signal.h>
 #include <unistd.h>
+#include "Util/util.h"
 #include "Util/logger.h"
 #include <iostream>
 #include "Poller/EventPoller.h"
@@ -68,22 +69,27 @@ int main(int argc, char *argv[]) {
             WarnL << "没有视频或者视频不是264编码!";
             return;
         }
-        SDLDisplayerHelper::Instance().doTask([viedoTrack]() {
-            std::shared_ptr<H264Decoder> decoder(new H264Decoder);
-            std::shared_ptr<YuvDisplayer> displayer(new YuvDisplayer);
-            viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([decoder, displayer](const Frame::Ptr &frame) {
-                SDLDisplayerHelper::Instance().doTask([decoder, displayer, frame]() {
-                    AVFrame *pFrame = nullptr;
-                    bool flag = decoder->inputVideo((unsigned char *) frame->data(), frame->size(),
-                                                    frame->stamp(), &pFrame);
-                    if (flag) {
-                        displayer->displayYUV(pFrame);
-                    }
-                    return true;
-                });
-            }));
-            return true;
-        });
+
+        AnyStorage::Ptr storage(new AnyStorage);
+        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([storage](const Frame::Ptr &frame) {
+            SDLDisplayerHelper::Instance().doTask([frame,storage]() {
+                auto &decoder = (*storage)["decoder"];
+                auto &displayer = (*storage)["displayer"];
+                if(!decoder){
+                    decoder.set<H264Decoder>();
+                }
+                if(!displayer){
+                    displayer.set<YuvDisplayer>();
+                }
+
+                AVFrame *pFrame = nullptr;
+                bool flag = decoder.get<H264Decoder>().inputVideo((unsigned char *) frame->data(), frame->size(), frame->stamp(), &pFrame);
+                if (flag) {
+                    displayer.get<YuvDisplayer>().displayYUV(pFrame);
+                }
+                return true;
+            });
+        }));
     });
 
 

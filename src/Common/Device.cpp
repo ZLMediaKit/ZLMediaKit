@@ -41,9 +41,11 @@ DevChannel::DevChannel(const string &strVhost,
                        const string &strApp,
                        const string &strId,
                        float fDuration,
+					   bool bEanbleRtsp,
+					   bool bEanbleRtmp,
                        bool bEanbleHls,
                        bool bEnableMp4) :
-        MultiMediaSourceMuxer(strVhost, strApp, strId, fDuration, bEanbleHls, bEnableMp4) {}
+        MultiMediaSourceMuxer(strVhost, strApp, strId, fDuration, bEanbleRtsp, bEanbleRtmp, bEanbleHls, bEnableMp4) {}
 
 DevChannel::~DevChannel() {}
 
@@ -101,7 +103,7 @@ void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t dts,uint32
     } else {
         prefixeSize = 0;
     }
-    inputFrame(std::make_shared<H264FrameNoCopyAble>((char *)pcData,iDataLen,dts,pts,prefixeSize));
+    inputFrame(std::make_shared<H264FrameNoCacheAble>((char *)pcData,iDataLen,dts,pts,prefixeSize));
 }
 
 void DevChannel::inputAAC(const char* pcData, int iDataLen, uint32_t uiStamp,bool withAdtsHeader) {
@@ -117,12 +119,12 @@ void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t u
         uiStamp = (uint32_t)_aTicker[1].elapsedTime();
     }
     if(pcAdtsHeader + 7 == pcDataWithoutAdts){
-		inputFrame(std::make_shared<AACFrameNoCopyAble>((char *)pcDataWithoutAdts - 7,iDataLen + 7,uiStamp,7));
+		inputFrame(std::make_shared<AACFrameNoCacheAble>((char *)pcDataWithoutAdts - 7,iDataLen + 7,uiStamp,7));
 	} else {
     	char *dataWithAdts = new char[iDataLen + 7];
 		memcpy(dataWithAdts,pcAdtsHeader,7);
     	memcpy(dataWithAdts + 7 , pcDataWithoutAdts , iDataLen);
-		inputFrame(std::make_shared<AACFrameNoCopyAble>(dataWithAdts,iDataLen + 7,uiStamp,7));
+		inputFrame(std::make_shared<AACFrameNoCacheAble>(dataWithAdts,iDataLen + 7,uiStamp,7));
 		delete [] dataWithAdts;
 	}
 }
