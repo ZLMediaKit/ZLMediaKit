@@ -44,9 +44,9 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
     target_link_libraries(${TEST_EXE_NAME} ${LINK_LIB_LIST})
 endforeach()
 
-if(MSVC)
+if(MSVC AND SDL2_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND)
     set_target_properties(test_player PROPERTIES LINK_FLAGS "/SAFESEH:NO /SUBSYSTEM:WINDOWS" )
-endif(MSVC)
+endif()
 
 
 
