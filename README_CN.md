@@ -60,7 +60,7 @@
   - 支持流量统计、推流播放鉴权等事件
   - 支持rtsp/rtmp/http虚拟主机
   - 支持flv、mp4文件录制
-  - 支持rtps/rtmp点播，支持seek
+  - 支持rtps/rtmp协议的mp4点播，支持seek
   - 支持按需拉流，无人观看自动关断拉流
   - 支持先拉流后推流，提高及时推流画面打开率
   - 支持rtsp/rtmp/http-flv/hls播放鉴权(url参数方式)
