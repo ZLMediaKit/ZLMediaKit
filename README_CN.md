@@ -1,3 +1,4 @@
+![logo](https://raw.githubusercontent.com/zlmediakit/ZLMediaKit/master/logo.png)
 # 一个基于C++11的高性能运营级流媒体服务框架
  [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
