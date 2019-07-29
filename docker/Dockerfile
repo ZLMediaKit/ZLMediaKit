@@ -53,7 +53,7 @@ RUN ["/bin/bash", "./build_for_docker_linux.sh"]
 
 #前端
 FROM base as build_f
-ENV ZLMEDIAKIT_NVR_UI_VERSION=1.0.3
+ENV ZLMEDIAKIT_NVR_UI_VERSION=1.0.4
 WORKDIR /usr/src/ZLMediaKitUI
 RUN mkdir ui && \
     curl -sLO https://github.com/chenxiaolei/ZLMediaKit_NVR_UI/releases/download/${ZLMEDIAKIT_NVR_UI_VERSION}/zlmediakit_nvr_ui.${ZLMEDIAKIT_NVR_UI_VERSION}.tar.gz &&\

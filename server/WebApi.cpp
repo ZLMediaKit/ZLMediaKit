@@ -170,7 +170,12 @@ static ArgsContentExt getAllArgs(const Parser &parser) {
             ss >> jsonArgs;
             auto keys = jsonArgs.getMemberNames();
             for (auto key = keys.begin(); key != keys.end(); ++key) {
-                allArgs[*key] = jsonArgs[*key].asString();
+                Value jVal= jsonArgs[*key];
+                if(!(jVal.isObject() || jVal.isArray() || jVal.isNull())){
+                    string s = jVal.asString();
+                    allArgs[*key] = s;
+                }
+
             }
         } catch (std::exception &ex) {
             WarnL << ex.what();
