@@ -11,8 +11,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 #设置工程源码根目录
-set(ToolKit_Root ${CMAKE_SOURCE_DIR}/3rdpart/ZLToolKit/src)
-set(MediaKit_Root ${CMAKE_SOURCE_DIR}/src)
+set(ToolKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/ZLToolKit/src)
+set(MediaKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
@@ -41,7 +41,7 @@ set(ENABLE_X264 true)
 if(ENABLE_HLS)
     message(STATUS "ENABLE_HLS defined")
     add_definitions(-DENABLE_HLS)
-    set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
+    set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
     set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
 else()
     set(LINK_LIB_LIST zlmediakit zltoolkit)
