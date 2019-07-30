@@ -227,7 +227,7 @@ private:
 
 void PlayerProxy::onPlaySuccess() {
     //chenxiaolei 修改为int, 录像最大录制天数,0就是不录
-	if (dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc)) {
+	/*if (dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc)) {
 		//rtsp拉流代理
 		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), false, _bEnableRtmp, _bEnableHls, _bRecordMp4));
 	} else if (dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc)) {
@@ -236,7 +236,9 @@ void PlayerProxy::onPlaySuccess() {
 	} else {
 		//其他拉流代理
 		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableRtsp, _bEnableRtmp, _bEnableHls, _bRecordMp4));
-	}
+	}*/
+	//chenxiaolei 根据配置来做 类型输出, 而不是根据接入源类型, 有些时候就是想要 rtmp->rtmp
+    _mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableRtsp, _bEnableRtmp, _bEnableHls, _bRecordMp4));
 	_mediaMuxer->setListener(shared_from_this());
 
 	auto videoTrack = getTrack(TrackVideo,false);
