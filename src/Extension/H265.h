@@ -30,6 +30,7 @@
 #include "Frame.h"
 #include "Track.h"
 #include "Util/base64.h"
+#include "H264.h"
 using namespace toolkit;
 #define H265_TYPE(v) (((uint8_t)(v) >> 1) & 0x3f)
 
@@ -147,6 +148,7 @@ public:
     }
 };
 
+typedef FrameInternal<H265FrameNoCacheAble> H265FrameInternal;
 
 /**
 * 265视频通道
@@ -210,10 +212,37 @@ public:
 
 
     /**
+    * 输入数据帧,并获取sps pps
+    * @param frame 数据帧
+    */
+    void inputFrame(const Frame::Ptr &frame) override{
+        bool  first_frame = true;
+        splitH264(frame->data() + frame->prefixSize(),
+                  frame->size() - frame->prefixSize(),
+                  [&](const char *ptr, int len){
+                      if(first_frame){
+                          H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame,
+                                                                                                 frame->data(),
+                                                                                                 len + frame->prefixSize(),
+                                                                                                 frame->prefixSize());
+                          inputFrame_l(sub_frame);
+                          first_frame = false;
+                      }else{
+                          H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame,
+                                                                                                 (char *)ptr,
+                                                                                                 len ,
+                                                                                                 3);
+                          inputFrame_l(sub_frame);
+                      }
+                  });
+    }
+
+private:
+    /**
      * 输入数据帧,并获取sps pps
      * @param frame 数据帧
      */
-    void inputFrame(const Frame::Ptr &frame) override {
+    void inputFrame_l(const Frame::Ptr &frame) {
         int type = H265_TYPE(((uint8_t *) frame->data() + frame->prefixSize())[0]);
         if (H265Frame::isKeyFrame(type)) {
             insertConfigFrame(frame);
@@ -250,7 +279,7 @@ public:
                 break;
         }
     }
-private:
+
     Track::Ptr clone() override {
         return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this);
     }
