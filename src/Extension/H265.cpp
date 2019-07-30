@@ -25,8 +25,35 @@
  */
 
 #include "H265.h"
+#include "SPSParser.h"
+#include "Util/logger.h"
 
 namespace mediakit{
+
+
+
+bool getAVCH265Info(const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
+	return getAVC265Info(strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
+
+}
+
+bool getAVC265Info(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
+    T_GetBitContext tGetBitBuf;
+    T_HEVCSPS tH265SpsInfo;
+    memset(&tGetBitBuf,0,sizeof(tGetBitBuf));
+    memset(&tH265SpsInfo,0,sizeof(tH265SpsInfo));
+    tGetBitBuf.pu8Buf = (uint8_t*)sps ;
+    tGetBitBuf.iBufSize = sps_len ;
+    if(0 != h265DecSeqParameterSet((void *) &tGetBitBuf, &tH265SpsInfo)){
+        return false;
+    }
+    h265GetWidthHeight(&tH265SpsInfo, &iVideoWidth, &iVideoHeight);
+    h265GeFramerate(&tH265SpsInfo, &iVideoFps);
+    //ErrorL << iVideoWidth << " " << iVideoHeight << " " << iVideoFps;
+    return true;
+}
+
+
 
 Sdp::Ptr H265Track::getSdp() {
     if(!ready()){
