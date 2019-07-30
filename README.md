@@ -1,3 +1,5 @@
+![logo](https://raw.githubusercontent.com/zlmediakit/ZLMediaKit/master/logo.png)
+
 # A lightweight ,high performance and stable stream server and client framework based on C++11.
 
  [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
