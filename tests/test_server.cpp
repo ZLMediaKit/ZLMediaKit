@@ -180,7 +180,7 @@ void initEventListener() {
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged, [](BroadcastMediaChangedArgs) {
             if (schema == RTMP_SCHEMA && app == "live") {
                 lock_guard<mutex> lck(s_mtxFlvRecorder);
-                if (bRegist) {
+                if (/*bRegist*/0) {
                     DebugL << "开始录制RTMP：" << schema << " " << vhost << " " << app << " " << stream;
                     GET_CONFIG(string, http_root, Http::kRootPath);
                     auto path =
@@ -239,8 +239,9 @@ int main(int argc,char *argv[]) {
 
     //这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
     //如果是其他不识别的音视频将会被忽略(譬如说h264+adpcm转发后会去除音频)
-    auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks1",
-                    "rtmp://live.hkstv.hk.lxdns.com/live/hks2"
+    auto urlList = {
+//    		"rtsp://admin:admin123@192.168.5.82/",
+    		"rtsp://192.168.5.24/live/chn0",
             //rtsp链接支持输入用户名密码
             /*"rtsp://admin:jzan123456@192.168.0.122/"*/};
     map<string, PlayerProxy::Ptr> proxyMap;
@@ -259,7 +260,7 @@ int main(int argc,char *argv[]) {
         //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
         //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 
-        PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "live", to_string(i).data()));
+        PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "live", to_string(i).data(),true,true,true,true));
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = Rtsp::RTP_TCP;
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，重试次数在配置文件中配置，默认一直重试
@@ -276,7 +277,7 @@ int main(int argc,char *argv[]) {
               " http-flv地址 : http://127.0.0.1/live/0.flv\n"
               " rtsp地址 : rtsp://127.0.0.1/live/0\n"
               " rtmp地址 : rtmp://127.0.0.1/live/0";
-
+#if 1
     //加载证书，证书包含公钥和私钥
     SSL_Initor::Instance().loadCertificate((exeDir() + "ssl.p12").data());
     //信任某个自签名证书
@@ -293,12 +294,12 @@ int main(int argc,char *argv[]) {
 
     //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
     //测试方法:telnet 127.0.0.1 9000
-    TcpServer::Ptr shellSrv(new TcpServer());
+//    TcpServer::Ptr shellSrv(new TcpServer());
     TcpServer::Ptr rtspSrv(new TcpServer());
     TcpServer::Ptr rtmpSrv(new TcpServer());
     TcpServer::Ptr httpSrv(new TcpServer());
 
-    shellSrv->start<ShellSession>(shellPort);
+//    shellSrv->start<ShellSession>(shellPort);
     rtspSrv->start<RtspSession>(rtspPort);//默认554
     rtmpSrv->start<RtmpSession>(rtmpPort);//默认1935
     //http服务器,支持websocket
@@ -312,15 +313,17 @@ int main(int argc,char *argv[]) {
     //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
     TcpServer::Ptr rtspSSLSrv(new TcpServer());
     rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);//默认322
-
+ 
     //服务器支持动态切换端口(不影响现有连接)
     NoticeCenter::Instance().addListener(ReloadConfigTag,Broadcast::kBroadcastReloadConfig,[&](BroadcastReloadConfigArgs){
         //重新创建服务器
+#if 0
         if(shellPort != mINI::Instance()[Shell::kPort].as<uint16_t>()){
             shellPort = mINI::Instance()[Shell::kPort];
             shellSrv->start<ShellSession>(shellPort);
             InfoL << "重启shell服务器:" << shellPort;
         }
+#endif
         if(rtspPort != mINI::Instance()[Rtsp::kPort].as<uint16_t>()){
             rtspPort = mINI::Instance()[Rtsp::kPort];
             rtspSrv->start<RtspSession>(rtspPort);
@@ -331,6 +334,7 @@ int main(int argc,char *argv[]) {
             rtmpSrv->start<RtmpSession>(rtmpPort);
             InfoL << "重启rtmp服务器" << rtmpPort;
         }
+#if 1
         if(httpPort != mINI::Instance()[Http::kPort].as<uint16_t>()){
             httpPort = mINI::Instance()[Http::kPort];
             httpSrv->start<EchoWebSocketSession>(httpPort);
@@ -341,6 +345,7 @@ int main(int argc,char *argv[]) {
             httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);
             InfoL << "重启https服务器" << httpsPort;
         }
+#endif
 
         if(rtspsPort != mINI::Instance()[Rtsp::kSSLPort].as<uint16_t>()){
             rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
@@ -348,7 +353,7 @@ int main(int argc,char *argv[]) {
             InfoL << "重启rtsps服务器" << rtspsPort;
         }
     });
-
+#endif
     //设置退出信号处理函数
     static semaphore sem;
     signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
