@@ -271,12 +271,17 @@ void Mp4Maker::asyncClose() {
     auto recordMp4 = _recordMp4;
 	WorkThreadPool::Instance().getExecutor()->async([hMp4,strFileTmp,strFile,strPath,recordMp4,info]() {
 		//获取文件录制时间，放在MP4Close之前是为了忽略MP4Close执行时间
+        InfoL << "获取文件录制时间";
 		const_cast<Mp4Info&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
 		//MP4Close非常耗时，所以要放在后台线程执行
+        InfoL << "台线程执行MP4Close";
 		MP4Close(hMp4,MP4_CLOSE_DO_NOT_COMPUTE_BITRATE);
+
+        InfoL << "临时文件名改成正式文件名，防止mp4未完成时被访问: rename " << strFileTmp.data() << ">" << strFile.data();
 		//临时文件名改成正式文件名，防止mp4未完成时被访问
 		rename(strFileTmp.data(),strFile.data());
 
+        InfoL << "删除过期录像";
 		//chenxiaolei 删除过期录像
         if(recordMp4){
             auto curTimeStr = timeStr("%Y%m%d");
@@ -319,6 +324,7 @@ void Mp4Maker::asyncClose() {
 
 
 		//chenxiaolei 生成录像文件的信息文件(记录录像时长,开始时间,持续时长等)
+        InfoL << "生成录像文件的信息文件";
         Json::Value infoJson;
         infoJson["startAt"] = timeStr2(info.ui64StartedTime,"%Y%m%d%H%M%S");
         infoJson["duration"] = (int)(info.ui64TimeLen) ;
@@ -330,7 +336,7 @@ void Mp4Maker::asyncClose() {
         Json::StyledWriter sw;
         os << sw.write(infoJson);
         os.close();
-
+        InfoL << "emitEvent kBroadcastRecordMP4";
 		/////record 业务逻辑//////
 		NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4,info);
 	});

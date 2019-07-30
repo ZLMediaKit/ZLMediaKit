@@ -1,5 +1,5 @@
 #################################################################
-# 在项目根目录执行 docker build -t cl-zlmedia -f ./docker/Dockerfile .
+# 在项目根目录执行 docker build -t nexus.docker.kefen.site:7300/kefen/cl-zlmedia -f ./docker/Dockerfile .
 #################################################################
 
 #基础

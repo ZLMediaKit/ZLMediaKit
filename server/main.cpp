@@ -222,7 +222,7 @@ void initEventListener() {
                 bool vOnDemand = tProxyData.get("on_demand",true).asBool();
                 bool realOnDemand = vRecordMp4 ? false : vOnDemand;
                 if(!realOnDemand){
-                    InfoL << "频道保持录像,忽略停止拉流:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
+                    //InfoL << "频道保持录像,忽略停止拉流:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
                     return;
                 }
             }
