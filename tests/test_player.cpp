@@ -39,9 +39,9 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-std::string Utf8ToGbk(std::string src_str)
-{
 #ifdef WIN32
+std::string Utf8ToGbk(std::string src_str){
+
     int len = MultiByteToWideChar(CP_UTF8, 0, src_str.c_str(), -1, NULL, 0);
     wchar_t* wszGBK = new wchar_t[len + 1];
     memset(wszGBK, 0, len * 2 + 2);
@@ -54,9 +54,6 @@ std::string Utf8ToGbk(std::string src_str)
     if (wszGBK) delete[] wszGBK;
     if (szGBK) delete[] szGBK;
     return strTemp;
-#else
-    return src_str;
-#endif
 }
 
 class log4Channel : public LogChannel {
@@ -75,6 +72,9 @@ public:
         printf("%s %s\n", logContext->_function, Utf8ToGbk(logContext->str()).c_str());
     }
 };
+#else
+typedef  ConsoleChannel log4Channel;
+#endif
 
 #ifdef WIN32
 #include <TCHAR.h>
