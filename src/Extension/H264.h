@@ -82,6 +82,16 @@ public:
     bool keyFrame() const override {
         return H264_TYPE(buffer[iPrefixSize]) == H264Frame::NAL_IDR;
     }
+
+    bool configFrame() const override{
+        switch(H264_TYPE(buffer[iPrefixSize]) ){
+            case H264Frame::NAL_SPS:
+            case H264Frame::NAL_PPS:
+                return true;
+            default:
+                return false;
+        }
+    }
 public:
     uint32_t timeStamp;
     uint32_t ptsStamp = 0;
@@ -117,6 +127,16 @@ public:
 
     bool keyFrame() const override {
         return H264_TYPE(_ptr[_prefixSize]) == H264Frame::NAL_IDR;
+    }
+
+    bool configFrame() const override{
+        switch(H264_TYPE(_ptr[_prefixSize])){
+            case H264Frame::NAL_SPS:
+            case H264Frame::NAL_PPS:
+                return true;
+            default:
+                return false;
+        }
     }
 };
 

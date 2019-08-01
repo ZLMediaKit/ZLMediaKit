@@ -65,6 +65,7 @@ private:
     H265Frame::Ptr obtainFrame();
 private:
     H265Frame::Ptr _h265frame;
+    int _lastSeq = 0;
 };
 
 /**

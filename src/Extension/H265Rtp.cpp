@@ -99,56 +99,56 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             // fragmentation unit (FU)
             FU fu;
             MakeFU(frame[2], fu);
-            if (fu.S == 1) {
-                //FU-A start
+            if (fu.S) {
+                //该帧的第一个rtp包
                 _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
                 _h265frame->buffer.push_back(fu.type << 1);
                 _h265frame->buffer.push_back(0x01);
                 _h265frame->buffer.append((char *) frame + 3, length - 3);
-                _h265frame->type = fu.type;
                 _h265frame->timeStamp = rtppack->timeStamp;
-                _h265frame->sequence = rtppack->sequence;
+                //该函数return时，保存下当前sequence,以便下次对比seq是否连续
+                _lastSeq = rtppack->sequence;
                 return (_h265frame->keyFrame()); //i frame
             }
 
-            if (rtppack->sequence != (uint16_t) (_h265frame->sequence + 1)) {
+            if (rtppack->sequence != _lastSeq + 1 && rtppack->sequence != 0) {
+                //中间的或末尾的rtp包，其seq必须连续(如果回环了则判定为连续)，否则说明rtp丢包，那么该帧不完整，必须得丢弃
                 _h265frame->buffer.clear();
-                WarnL << "丢包,帧废弃:" << rtppack->sequence << "," << _h265frame->sequence;
+                WarnL << "rtp sequence不连续: " << rtppack->sequence << " != " << _lastSeq << " + 1,该帧被废弃";
                 return false;
             }
-            _h265frame->sequence = rtppack->sequence;
-            if (fu.E == 1) {
-                //FU-A end
+
+            if (!fu.E) {
+                //该帧的中间rtp包
                 _h265frame->buffer.append((char *) frame + 3, length - 3);
-                _h265frame->timeStamp = rtppack->timeStamp;
-                auto isIDR = _h265frame->keyFrame();
-                onGetH265(_h265frame);
-                return isIDR;
+                //该函数return时，保存下当前sequence,以便下次对比seq是否连续
+                _lastSeq = rtppack->sequence;
+                return false;
             }
-            //FU-A mid
+
+            //该帧最后一个rtp包
             _h265frame->buffer.append((char *) frame + 3, length - 3);
-            return false;
+            _h265frame->timeStamp = rtppack->timeStamp;
+            auto key = _h265frame->keyFrame();
+            onGetH265(_h265frame);
+            return key;
         }
 
         default: // 4.4.1. Single NAL Unit Packets (p24)
             //a full frame
             _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
             _h265frame->buffer.append((char *)frame, length);
-            _h265frame->type = nal;
             _h265frame->timeStamp = rtppack->timeStamp;
-            _h265frame->sequence = rtppack->sequence;
-            auto isIDR = _h265frame->keyFrame();
+            auto key = _h265frame->keyFrame();
             onGetH265(_h265frame);
-            return (isIDR); //i frame
+            return key;
     }
 }
 
 void H265RtpDecoder::onGetH265(const H265Frame::Ptr &frame) {
     //写入环形缓存
-    auto lastSeq = _h265frame->sequence;
     RtpCodec::inputFrame(frame);
     _h265frame = obtainFrame();
-    _h265frame->sequence = lastSeq;
 }
 
 

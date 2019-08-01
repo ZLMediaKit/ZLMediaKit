@@ -31,16 +31,17 @@
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
 #include "Util/File.h"
+#include "Common/MediaSink.h"
 using namespace toolkit;
 
 namespace mediakit {
 
-class TsMuxer {
+class TsMuxer : public MediaSink{
 public:
     TsMuxer();
     virtual ~TsMuxer();
-    void addTrack(const Track::Ptr &track);
-    void inputFrame(const Frame::Ptr &frame);
+    void addTrack(const Track::Ptr &track) override;
+    void inputFrame(const Frame::Ptr &frame) override ;
 protected:
     virtual void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) = 0;
     void resetTracks();

@@ -1,4 +1,4 @@
-﻿/*
+﻿ /*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -37,14 +37,7 @@
 #include "Util/TimeTicker.h"
 #include "Util/TimeTicker.h"
 #include "Common/MediaSink.h"
-#include "Extension/Track.h"
-
-
-#include "mov-writer.h"
-#include "mpeg4-hevc.h"
-#include "mpeg4-avc.h"
-
-
+#include "MP4Muxer.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -62,20 +55,6 @@ public:
 	string strStreamId;//流ID
 	string strVhost;//vhost
 };
-
-class MovH265Info {
-public:
-	mov_writer_t* pMov;
-	struct mpeg4_hevc_t hevc;
-	struct mpeg4_avc_t avc;
-	int videoTrack;
-	int audioTrack;
-	int width;
-	int height;
-	uint32_t startPts;
-	FILE * pFile;
-};
-
 class Mp4Maker : public MediaSink{
 public:
 	typedef std::shared_ptr<Mp4Maker> Ptr;
@@ -99,38 +78,15 @@ private:
     void createFile();
     void closeFile();
     void asyncClose();
-
-	//时间戳：参考频率1000
-	void inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);	
-	void inputH265(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
-	//时间戳：参考频率1000
-	void inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
-
-	void inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);	
-	void inputH265_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
-    void inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
 private:
-
-	MovH265Info _movH265info;
-	int _h265Record = 0;
-	uint32_t _startPts;
-	
-	uint8_t _sBbuffer[2 * 1024 * 1024];
 	string _strPath;
 	string _strFile;
 	string _strFileTmp;
-	Ticker _ticker;
-
-	string _strLastVideo;
-	string _strLastAudio;
-
-	uint32_t _ui32LastVideoTime = 0;
-	uint32_t _ui32LastAudioTime = 0;
+	Ticker _createFileTicker;
 	Mp4Info _info;
-
 	bool _haveVideo = false;
-	int _audioSampleRate;
-	int _audioChannel;
+	MP4MuxerFile::Ptr _muxer;
+	list<Track::Ptr> _tracks;
 };
 
 } /* namespace mediakit */
