@@ -73,9 +73,9 @@
 | feature/codec | H264 | H265 | AAC  | other |
 | :-----------: | :--: | :--: | :--: | :---: |
 | RTSP[S] push  |  Y   |  Y   |  Y   |   Y   |
-|  RTSP proxy   |  Y   |  Y   |  Y   |   N   |
+|  RTSP proxy   |  Y   |  Y   |  Y   |   Y   |
 |   RTMP push   |  Y   |  Y   |  Y   |   Y   |
-|  RTMP proxy   |  Y   |  N   |  Y   |   N   |
+|  RTMP proxy   |  Y   |  Y   |  Y   |   Y   |
 
 - RTP transport:
 
