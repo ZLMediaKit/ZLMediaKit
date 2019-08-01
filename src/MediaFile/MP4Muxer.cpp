@@ -28,6 +28,7 @@
 
 #include "MP4Muxer.h"
 #include "Util/File.h"
+#include "Common/config.h"
 
 namespace mediakit{
 
@@ -213,8 +214,6 @@ void MP4Muxer::onTrackReady(const Track::Ptr &track) {
     }
 }
 
-#define FILE_BUF_SIZE (64 * 1024)
-
 MP4MuxerFile::MP4MuxerFile(const char *file) {
     //创建文件
     auto fp = File::createfile_file(file,"wb+");
@@ -222,8 +221,10 @@ MP4MuxerFile::MP4MuxerFile(const char *file) {
         throw std::runtime_error(string("打开文件失败:") + file);
     }
 
+    GET_CONFIG(uint32_t,mp4BufSize,Record::kFileBufSize);
+
     //新建文件io缓存
-    std::shared_ptr<char> file_buf(new char[FILE_BUF_SIZE],[](char *ptr){
+    std::shared_ptr<char> file_buf(new char[mp4BufSize],[](char *ptr){
         if(ptr){
             delete [] ptr;
         }
@@ -231,7 +232,7 @@ MP4MuxerFile::MP4MuxerFile(const char *file) {
 
     if(file_buf){
         //设置文件io缓存
-        setvbuf(fp, file_buf.get(), _IOFBF, FILE_BUF_SIZE);
+        setvbuf(fp, file_buf.get(), _IOFBF, mp4BufSize);
     }
 
     //创建智能指针

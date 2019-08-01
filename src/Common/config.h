@@ -255,6 +255,8 @@ extern const string kSampleMS;
 extern const string kFileSecond;
 //录制文件路径
 extern const string kFilePath;
+//mp4文件写缓存大小
+extern const string kFileBufSize;
 } //namespace Record
 
 ////////////HLS相关配置///////////
