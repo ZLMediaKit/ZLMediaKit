@@ -134,7 +134,10 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
         return 0;
 	}
 
-	//默认后面数据不是content而是header
+    //跨域
+    _origin = _parser["Origin"];
+
+    //默认后面数据不是content而是header
 	int64_t content_len = 0;
 	auto &fun = it->second;
     try {
@@ -775,6 +778,11 @@ inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iC
 	if(iContentSize > 0){
 		headerOut.emplace("Content-Length", StrPrinter<<iContentSize<<endl);
 	}
+
+    if(!_origin.empty()){
+        headerOut.emplace("Access-Control-Allow-Origin",_origin);
+        headerOut.emplace("Access-Control-Allow-Credentials", "true");
+    }
 	return headerOut;
 }
 
@@ -802,20 +810,19 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
     GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
 
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
-	auto Origin = _parser["Origin"];
 	/////////////////////异步回复Invoker///////////////////////////////
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-	HttpResponseInvoker invoker = [weakSelf,bClose,Origin](const string &codeOut, const KeyValue &headerOut, const string &contentOut){
+	HttpResponseInvoker invoker = [weakSelf,bClose](const string &codeOut, const KeyValue &headerOut, const string &contentOut){
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf) {
 			return;
 		}
-		strongSelf->async([weakSelf,bClose,codeOut,headerOut,contentOut,Origin]() {
+		strongSelf->async([weakSelf,bClose,codeOut,headerOut,contentOut]() {
 			auto strongSelf = weakSelf.lock();
 			if(!strongSelf) {
 				return;
 			}
-			strongSelf->responseDelay(Origin,bClose,codeOut,headerOut,contentOut);
+			strongSelf->responseDelay(bClose,codeOut,headerOut,contentOut);
 			if(bClose){
 				strongSelf->shutdown(SockException(Err_shutdown,"Connection: close"));
 			}
@@ -906,19 +913,15 @@ inline void HttpSession::Handle_Req_POST(int64_t &content_len) {
 	}
 	//有后续content数据要处理,暂时不关闭连接
 }
-void HttpSession::responseDelay(const string &Origin,bool bClose,
-								const string &codeOut,const KeyValue &headerOut,
+void HttpSession::responseDelay(bool bClose,
+                                const string &codeOut,
+                                const KeyValue &headerOut,
 								const string &contentOut){
 	if(codeOut.empty()){
 		sendNotFound(bClose);
 		return;
 	}
-	auto headerOther=makeHttpHeader(bClose,contentOut.size(),"text/plain");
-	if(!Origin.empty()){
-		headerOther["Access-Control-Allow-Origin"] = Origin;
-		headerOther["Access-Control-Allow-Credentials"] = "true";
-	}
-
+	auto headerOther = makeHttpHeader(bClose,contentOut.size(),"text/plain");
     for (auto &pr : headerOther){
         //添加默认http头，默认http头不能覆盖用户自定义的头
         const_cast<KeyValue &>(headerOut).emplace(pr.first,pr.second);
