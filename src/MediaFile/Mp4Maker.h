@@ -70,10 +70,12 @@ private:
      */
 	void onTrackFrame(const Frame::Ptr &frame) override ;
 
-	/**
-	 * 所有Track准备好了
-	 */
-	void onAllTrackReady() override;
+    /**
+     * 某track已经准备好，其ready()状态返回true，
+     * 此时代表可以获取其例如sps pps等相关信息了
+     * @param track
+     */
+    void onTrackReady(const Track::Ptr & track) override;
 private:
     void createFile();
     void closeFile();
