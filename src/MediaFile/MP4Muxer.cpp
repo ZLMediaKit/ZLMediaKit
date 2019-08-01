@@ -39,7 +39,7 @@ namespace mediakit{
 #define ftell64 ftell
 #endif
 
-MP4MuxerBase::MP4MuxerBase(int flags) {
+void MP4MuxerBase::init(int flags) {
     static struct mov_buffer_t s_io = {
             [](void* ctx, void* data, uint64_t bytes) {
                 MP4MuxerBase *thiz = (MP4MuxerBase *)ctx;
@@ -66,10 +66,6 @@ MP4MuxerBase::MP4MuxerBase(int flags) {
 }
 
 ///////////////////////////////////
-
-MP4Muxer::MP4Muxer(int flags) : MP4MuxerBase(flags) {
-}
-
 
 void MP4Muxer::onTrackFrame(const Frame::Ptr &frame) {
     if(frame->configFrame()){
@@ -196,15 +192,23 @@ MP4MuxerFile::MP4MuxerFile(const char *file) {
     _file.reset(fp,[file_buf](FILE *fp) {
         fclose(fp);
     });
+
+    init(MOV_FLAG_FASTSTART);
 }
 
+MP4MuxerFile::~MP4MuxerFile() {
+    _mov_writter = nullptr;
+}
 
 int MP4MuxerFile::onRead(void *data, uint64_t bytes) {
-    return fread(data, 1, bytes, _file.get());
+    if (bytes == fread(data, 1, bytes, _file.get())){
+        return 0;
+    }
+    return 0 != ferror(_file.get()) ? ferror(_file.get()) : -1 /*EOF*/;
 }
 
 int MP4MuxerFile::onWrite(const void *data, uint64_t bytes) {
-    return fwrite(data, 1, bytes, _file.get());
+    return bytes == fwrite(data, 1, bytes, _file.get()) ? 0 : ferror(_file.get());
 }
 
 
@@ -223,7 +227,6 @@ int MP4MuxerFile::onSeek(uint64_t offset) {
 uint64_t MP4MuxerFile::onTell() {
     return ftell64(_file.get());
 }
-
 
 }//namespace mediakit
 

@@ -44,20 +44,21 @@ namespace mediakit{
 
 class MP4MuxerBase{
 public:
-    MP4MuxerBase(int flags = MOV_FLAG_FASTSTART);
+    MP4MuxerBase() = default;
     virtual ~MP4MuxerBase() = default;
 protected:
     virtual int onRead(void* data, uint64_t bytes) = 0;
     virtual int onWrite(const void* data, uint64_t bytes) = 0;
     virtual int onSeek( uint64_t offset) = 0;
     virtual uint64_t onTell() = 0;
+    void init(int flags);
 protected:
     std::shared_ptr<mov_writer_t> _mov_writter;
 };
 
 class MP4Muxer : public MediaSink , public MP4MuxerBase{
 public:
-    MP4Muxer(int flags = MOV_FLAG_FASTSTART) ;
+    MP4Muxer() = default;
     ~MP4Muxer() override = default;
 protected:
     /**
@@ -81,7 +82,7 @@ class MP4MuxerFile : public MP4Muxer {
 public:
     typedef std::shared_ptr<MP4MuxerFile> Ptr;
     MP4MuxerFile(const char *file);
-    ~MP4MuxerFile() = default;
+    ~MP4MuxerFile();
 protected:
     int onRead(void* data, uint64_t bytes) override;
     int onWrite(const void* data, uint64_t bytes) override;
