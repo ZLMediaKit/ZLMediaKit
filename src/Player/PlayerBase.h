@@ -245,14 +245,9 @@ protected:
 			_playResultCB = nullptr;
 			return;
 		}
-		//播放成功后，我们还必须等待各个Track初始化完毕才能回调告知已经初始化完毕
-		if(isInited(0xFFFF)){
-			//初始化完毕则立即回调
-			_playResultCB(ex);
-			_playResultCB = nullptr;
-			return;
-		}
-		//播放成功却未初始化完毕，这个时候不回调汇报播放成功
+		//播放成功
+		_playResultCB(ex);
+		_playResultCB = nullptr;
 	}
 
 	void onResume() override{
@@ -260,16 +255,6 @@ protected:
             _resumeCB();
         }
     }
-
-    void checkInited(int analysisMs){
-		if(!_playResultCB){
-			return;
-		}
-		if(isInited(analysisMs)){
-			_playResultCB(SockException(Err_success,"play success"));
-			_playResultCB = nullptr;
-		}
-	}
 protected:
 	function<void(const SockException &ex)> _shutdownCB;
 	function<void(const SockException &ex)> _playResultCB;
