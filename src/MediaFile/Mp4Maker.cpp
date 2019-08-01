@@ -147,11 +147,12 @@ void Mp4Maker::onTrackFrame(const Frame::Ptr &frame) {
 	}
 }
 
-void Mp4Maker::onAllTrackReady() {
+void Mp4Maker::onTrackReady(const Track::Ptr & track){
 	//保存所有的track，为创建MP4MuxerFile做准备
-	_tracks.emplace_back(getTrack(TrackVideo));
-	_tracks.emplace_back(getTrack(TrackAudio));
-	_haveVideo = getTrack(TrackVideo).operator bool();
+	_tracks.emplace_back(track);
+	if(track->getTrackType() == TrackVideo){
+		_haveVideo = true;
+	}
 }
 
 } /* namespace mediakit */
