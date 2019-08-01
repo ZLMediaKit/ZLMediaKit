@@ -24,7 +24,7 @@
  * SOFTWARE.
  */
 
-#ifdef ENABLE_MP4V2
+#ifdef ENABLE_MP4RECORD
 #include <ctime>
 #include <sys/stat.h>
 #include "Common/config.h"
@@ -40,9 +40,14 @@
 #include "Thread/WorkThreadPool.h"
 
 
-#ifdef MP4_H265RECORD
 #include "mov-buffer.h"
 #include "mov-format.h"
+
+
+
+using namespace toolkit;
+
+namespace mediakit {
 
 #if defined(_WIN32) || defined(_WIN64)
 #define fseek64 _fseeki64
@@ -52,43 +57,39 @@
 #define ftell64 ftell
 #endif
 
-static int mov_file_read(void* fp, void* data, uint64_t bytes)
+static int movfileRead(void* fp, void* data, uint64_t bytes)
 {
     if (bytes == fread(data, 1, bytes, (FILE*)fp))
         return 0;
 	return 0 != ferror((FILE*)fp) ? ferror((FILE*)fp) : -1 /*EOF*/;
 }
 
-static int mov_file_write(void* fp, const void* data, uint64_t bytes)
+static int movfileWrite(void* fp, const void* data, uint64_t bytes)
 {
 	return bytes == fwrite(data, 1, bytes, (FILE*)fp) ? 0 : ferror((FILE*)fp);
 }
 
-static int mov_file_seek(void* fp, uint64_t offset)
+static int movfileSeek(void* fp, uint64_t offset)
 {
 	return fseek64((FILE*)fp, offset, SEEK_SET);
 }
 
-static uint64_t mov_file_tell(void* fp)
+static uint64_t movfileTell(void* fp)
 {
 	return ftell64((FILE*)fp);
 }
 
-const struct mov_buffer_t* mov_file_buffer(void)
+const struct mov_buffer_t* movfileBuffer(void)
 {
 	static struct mov_buffer_t s_io = {
-		mov_file_read,
-		mov_file_write,
-		mov_file_seek,
-		mov_file_tell,
+		movfileRead,
+		movfileWrite,
+		movfileSeek,
+		movfileTell,
 	};
 	return &s_io;
 }
-#endif
 
-using namespace toolkit;
-
-namespace mediakit {
 
 string timeStr(const char *fmt) {
 	std::tm tm_snapshot;
@@ -118,6 +119,11 @@ Mp4Maker::Mp4Maker(const string& strPath,
 	_info.strStreamId = strStreamId;
 	_info.strVhost = strVhost;
 	_info.strFolder = strPath;
+
+	memset(&_movH265info, 0, sizeof(_movH265info));
+	_movH265info.videoTrack = -1;	
+	_movH265info.audioTrack = -1;
+	
 	//----record 业务逻辑----//
 }
 Mp4Maker::~Mp4Maker() {
@@ -125,105 +131,140 @@ Mp4Maker::~Mp4Maker() {
 }
 
 void Mp4Maker::inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp){
-	auto iType = H264_TYPE(((uint8_t*)pData)[0]);
-	switch (iType) {
-	case H264Frame::NAL_B_P: //P
-	case H264Frame::NAL_IDR: { //IDR
-		if (_strLastVideo.size()) {
-			int64_t iTimeInc = (int64_t)ui32TimeStamp - (int64_t)_ui32LastVideoTime;
-			iTimeInc = MAX(0,MIN(iTimeInc,500));
-			if(iTimeInc == 0 ||  iTimeInc == 500){
-				WarnL << "abnormal time stamp increment:" << ui32TimeStamp << " " << _ui32LastVideoTime;
-			}
-			inputH264_l((char *) _strLastVideo.data(), _strLastVideo.size(), iTimeInc);
-		}
+	auto iType = H264_TYPE(((uint8_t*)pData)[4]);
+	
+	if (H264Frame::NAL_B_P <= iType && iType <= H264Frame::NAL_IDR){	
 
-		uint32_t prefixe  = htonl(ui32Length);
-		_strLastVideo.assign((char *) &prefixe, 4);
-		_strLastVideo.append((char *)pData,ui32Length);
-
+		int64_t iTimeInc = (int64_t)ui32TimeStamp - (int64_t)_ui32LastVideoTime;
+		iTimeInc = MAX(0,MIN(iTimeInc,500));
+		if( (iTimeInc == 0 ||  iTimeInc == 500) && H264Frame::NAL_IDR != iType){
+			WarnL << "abnormal time stamp increment:" << ui32TimeStamp << " " << _ui32LastVideoTime;
+		}		
+	
+		if ( _strLastVideo.size() ){
+			//如果出现SPS PPS黏连的帧,那么在这里先处理
+			inputH264_l((char *) _strLastVideo.data(), _strLastVideo.size(), _ui32LastVideoTime); 	
+			_strLastVideo = "";			
+		}				
+		inputH264_l((char *) pData, ui32Length, ui32TimeStamp); 	
 		_ui32LastVideoTime = ui32TimeStamp;
-	}
-		break;
-	default:
-		break;
+	}else{
+		//SPS PPS 进入等待组合为一帧
+		_strLastVideo.append((char *)pData,ui32Length);
+		_ui32LastVideoTime = ui32TimeStamp;
 	}
 }
 
 void Mp4Maker::inputH265(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp){
-#ifdef MP4_H265RECORD
+
 	auto iType = H265_TYPE(((uint8_t*)pData)[4]);
-	if (iType <= 19 ){
-		if (_strLastVideo.size() && iType == 19){
-			_strLastVideo.append((char *)pData,ui32Length);
-			inputH265_l((char *) _strLastVideo.data(), _strLastVideo.size(), ui32TimeStamp);
+	if (iType <= H265Frame::NAL_IDR_W_RADL ){
+		
+		int64_t iTimeInc = (int64_t)ui32TimeStamp - (int64_t)_ui32LastVideoTime;
+		iTimeInc = MAX(0,MIN(iTimeInc,500));
+		if((iTimeInc == 0 ||  iTimeInc == 500) && H265Frame::NAL_IDR_W_RADL != iType){
+			WarnL << "abnormal time stamp increment:" << ui32TimeStamp << " " << _ui32LastVideoTime;
+		}	
+		
+		if ( _strLastVideo.size() ){
+			//如果出现SPS PPS VPS黏连的帧,那么在这里先处理
+			inputH265_l((char *) _strLastVideo.data(), _strLastVideo.size(), _ui32LastVideoTime); 	
 			_strLastVideo = "";
-			_ui32LastVideoTime = ui32TimeStamp;
-		}else
-			inputH265_l((char *) pData, ui32Length, ui32TimeStamp);				
+		}
+		inputH265_l((char *) pData, ui32Length, ui32TimeStamp);	
+		_ui32LastVideoTime = ui32TimeStamp;
 	}else{
 		_strLastVideo.append((char *)pData,ui32Length);
 		_ui32LastVideoTime = ui32TimeStamp;
 	}
-#endif	
 }
 
-void Mp4Maker::inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp){
-#ifdef MP4_H265RECORD
-	if (_h265Record){
-		inputAAC_l((char *) pData, ui32Length, ui32TimeStamp);
-	}else
-#endif
-	{
-		if (_strLastAudio.size()) {
-			int64_t iTimeInc = (int64_t)ui32TimeStamp - (int64_t)_ui32LastAudioTime;
-			iTimeInc = MAX(0,MIN(iTimeInc,500));
-			if(iTimeInc == 0 ||  iTimeInc == 500){
-				WarnL << "abnormal time stamp increment:" << ui32TimeStamp << " " << _ui32LastAudioTime;
-			}
-			inputAAC_l((char *) _strLastAudio.data(), _strLastAudio.size(), iTimeInc);
-		}
-		_strLastAudio.assign((char *)pData, ui32Length);
-		_ui32LastAudioTime = ui32TimeStamp;
-	}
-
-
-
+void Mp4Maker::inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp){	
+	int64_t iTimeInc = (int64_t)ui32TimeStamp - (int64_t)_ui32LastAudioTime;
+	iTimeInc = MAX(0,MIN(iTimeInc,500));
+	if(iTimeInc == 0 ||  iTimeInc == 500){
+		WarnL << "abnormal time stamp increment:" << ui32TimeStamp << " " << _ui32LastAudioTime;
+	}		
+	inputAAC_l((char *) pData, ui32Length, ui32TimeStamp);
+	_ui32LastAudioTime = ui32TimeStamp;
 }
 
-void Mp4Maker::inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32Duration) {
+void Mp4Maker::inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp) {
     GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
 	auto iType =  H264_TYPE(((uint8_t*)pData)[4]);
-	if(iType == H264Frame::NAL_IDR && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)){
+	int32_t compositionTime;
+	if( iType >= H264Frame::NAL_IDR && (_movH265info.pMov == NULL || _ticker.elapsedTime() > recordSec * 1000)){
 		//在I帧率处新建MP4文件
 		//如果文件未创建或者文件超过10分钟则创建新文件
-		createFile();
+		//每一个录制的MP4文件时间戳都要从0开始		
+		_startPts = ui32TimeStamp;		
+		createFile();	
 	}
-	if (_hVideo != MP4_INVALID_TRACK_ID) {
-		MP4WriteSample(_hMp4, _hVideo, (uint8_t *) pData, ui32Length,ui32Duration * 90,0,iType == 5);
+
+	char *pNualData = (char *)pData;
+	if (_movH265info.pMov!=NULL){
+		int vcl;		
+		if (_movH265info.videoTrack < 0){
+			//解析解析SPS PPS,未添加track的时候执行
+			int n = h264_annexbtomp4(&_movH265info.avc, pData, ui32Length, _sBbuffer, sizeof(_sBbuffer), &vcl);
+			if (_movH265info.avc.nb_sps < 1 || _movH265info.avc.nb_pps < 1){
+				return; // waiting for sps/pps
+			}
+			
+			uint8_t sExtraData[64 * 1024];
+			int extraDataSize = mpeg4_avc_decoder_configuration_record_save(&_movH265info.avc, sExtraData, sizeof(sExtraData));
+			if (extraDataSize <= 0){
+				// invalid HVCC
+				return;
+			}
+
+			// TODO: waiting for key frame ???
+			_movH265info.videoTrack = mov_writer_add_video(_movH265info.pMov,
+															MOV_OBJECT_H264, 
+															_movH265info.width, 
+															_movH265info.height, 
+															sExtraData, 
+															extraDataSize);
+			return; 		
+		}
+		if ( iType <= H264Frame::NAL_IDR ){
+			uint8_t *ptr = (uint8_t*)pData;
+			ptr[0] = (uint8_t)((ui32Length-4 >> 24) & 0xFF);
+			ptr[1] = (uint8_t)((ui32Length-4 >> 16) & 0xFF);
+			ptr[2] = (uint8_t)((ui32Length-4 >> 8) & 0xFF);
+			ptr[3] = (uint8_t)((ui32Length-4 >> 0) & 0xFF);
+			uint32_t ui32Pts = ui32TimeStamp < _movH265info.startPts ? 0 : ui32TimeStamp-_movH265info.startPts;
+			mov_writer_write(_movH265info.pMov, 
+								_movH265info.videoTrack, pData, ui32Length, 
+								ui32Pts, 
+								ui32Pts, 
+								iType == H264Frame::NAL_IDR ? MOV_AV_FLAG_KEYFREAME : 0);
+		}
 	}
+
 }
 
 void Mp4Maker::inputH265_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp) {
     GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
 	
-#ifdef MP4_H265RECORD
 	int32_t compositionTime;
 	auto iType =  H265_TYPE(((uint8_t*)pData)[4]);
 	if( iType >= H265Frame::NAL_IDR_W_RADL && (_movH265info.pMov == NULL || _ticker.elapsedTime() > recordSec * 1000)){
-		//在I帧率处新建MP4文件
-		//如果文件未创建或者文件超过10分钟则创建新文件
 		_h265Record = 1;
+		//每一个录制的MP4文件时间戳都要从0开始
+		_startPts = ui32TimeStamp;
+		
+		//在I帧率处新建MP4文件
+		//如果文件未创建或者文件超过最长时间则创建新文件
 		createFile();
 	}
 
 	char *pNualData = (char *)pData;
-	if (/*iType <= 31 && */_movH265info.pMov!=NULL){
+	if (_movH265info.pMov!=NULL){
 		int vcl;
-		//media-server新版的api使用h265_annexbtomp4
-		//int n = h265_annexbtomp4(&_movH265info.hevc, pData, ui32Length, _sBbuffer, sizeof(_sBbuffer), &vcl);
-		int n = hevc_annexbtomp4(&_movH265info.hevc, pData, ui32Length, _sBbuffer, sizeof(_sBbuffer));
 		if (_movH265info.videoTrack < 0){
+			//解析解析VPS SPS PPS,未添加track的时候执行
+			int n = h265_annexbtomp4(&_movH265info.hevc, pData, ui32Length, _sBbuffer, sizeof(_sBbuffer), &vcl);
 			if (_movH265info.hevc.numOfArrays < 1){
 				return; // waiting for vps/sps/pps
 			}
@@ -234,55 +275,49 @@ void Mp4Maker::inputH265_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeSt
 				// invalid HVCC
 				return;
 			}
-
 			// TODO: waiting for key frame ???
 			_movH265info.videoTrack = mov_writer_add_video(_movH265info.pMov, MOV_OBJECT_HEVC, _movH265info.width, _movH265info.height, sExtraData, extraDataSize);
-			if (_movH265info.videoTrack < 0)
-				return;
+
+			return;			
 		}
-		mov_writer_write(_movH265info.pMov,
-							_movH265info.videoTrack, 
-							_sBbuffer, 
-							n, 
-							ui32TimeStamp, 
-							ui32TimeStamp, 
-							(iType >= 16 && iType <= 23) ? MOV_AV_FLAG_KEYFREAME : 0 );		
-//		mov_writer_write(_movH265info.pMov, _movH265info.videoTrack, _sBbuffer, n, ui32TimeStamp, ui32TimeStamp, 1 == vcl ? MOV_AV_FLAG_KEYFREAME : 0);
+		if ( iType <= H265Frame::NAL_IDR_W_RADL )
+		{
+			uint8_t *ptr = (uint8_t*)pData;
+			ptr[0] = (uint8_t)((ui32Length-4 >> 24) & 0xFF);
+			ptr[1] = (uint8_t)((ui32Length-4 >> 16) & 0xFF);
+			ptr[2] = (uint8_t)((ui32Length-4 >> 8) & 0xFF);
+			ptr[3] = (uint8_t)((ui32Length-4 >> 0) & 0xFF);
+
+			uint32_t ui32Pts = ui32TimeStamp < _movH265info.startPts ? 0 : ui32TimeStamp-_movH265info.startPts;
+			mov_writer_write(_movH265info.pMov,
+							_movH265info.videoTrack,
+							pData, 
+							ui32Length, 
+							ui32Pts, 
+							ui32Pts, 
+							iType == H265Frame::NAL_IDR_W_RADL ? MOV_AV_FLAG_KEYFREAME : 0);
+		}
 	}
-#endif
 
 }
 
-void Mp4Maker::inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui32Duration) {
+void Mp4Maker::inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp) {
     GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
-#ifdef MP4_H265RECORD
-	if ( _h265Record )
-	{
-		if (!_haveVideo && (_movH265info.pMov == NULL || _ticker.elapsedTime() > recordSec * 1000)) {
-			createFile();
-		}
-
-		if (-1 != _movH265info.audioTrack && _movH265info.pMov != NULL){
-			mov_writer_write(_movH265info.pMov, _movH265info.audioTrack,  (uint8_t*)pData, ui32Length, ui32Duration, ui32Duration, 0);
-		}
-	}else
-#endif	
-	{
-	    if (!_haveVideo && (_hMp4 == MP4_INVALID_FILE_HANDLE || _ticker.elapsedTime() > recordSec * 1000)) {
-			//在I帧率处新建MP4文件
-			//如果文件未创建或者文件超过10分钟则创建新文件
-			createFile();
-		}
-		if (_hAudio != MP4_INVALID_TRACK_ID) {
-			auto duration = ui32Duration * _audioSampleRate /1000.0;
-			MP4WriteSample(_hMp4, _hAudio, (uint8_t*)pData, ui32Length,duration,0,false);
-		}
+	if (!_haveVideo && (_movH265info.pMov == NULL || _ticker.elapsedTime() > recordSec * 1000)) {			
+		_startPts = ui32TimeStamp;
+		createFile();			
 	}
+
+	if (-1 != _movH265info.audioTrack && _movH265info.pMov != NULL){	
+
+		uint32_t ui32Pts = ui32TimeStamp < _movH265info.startPts ? 0 : ui32TimeStamp-_movH265info.startPts;
+		mov_writer_write(_movH265info.pMov, _movH265info.audioTrack,  (uint8_t*)pData, ui32Length, ui32Pts, ui32Pts, 0);		
+	}
+	
 }
 
 void Mp4Maker::createFile() {
 	closeFile();
-
 	auto strDate = timeStr("%Y-%m-%d");
 	auto strTime = timeStr("%H-%M-%S");
 	auto strFileTmp = _strPath + strDate + "/." + strTime + ".mp4";
@@ -309,119 +344,65 @@ void Mp4Maker::createFile() {
 	File::createfile_path(strFileTmp.data(), 0);
 #endif
 
-#ifdef MP4_H265RECORD
-	if ( _h265Record ){
-		memset(&_movH265info, 0, sizeof(_movH265info));
-		_movH265info.videoTrack = -1;	
-		_movH265info.audioTrack = -1;
-		_movH265info.width = 0;
-		_movH265info.height = 0;
-		_movH265info.ptr = NULL;
-		_movH265info.pFile = fopen(strFileTmp.data(), "wb+");
-		_movH265info.pMov  = mov_writer_create(mov_file_buffer(), _movH265info.pFile, 0/*MOV_FLAG_FASTSTART*/);
-	}else
-#endif	
-	{
-		_hMp4 = MP4Create(strFileTmp.data(),MP4_CREATE_64BIT_DATA);
-		if (_hMp4 == MP4_INVALID_FILE_HANDLE) {
-			WarnL << "创建MP4文件失败:" << strFileTmp;
-			return;
-		}
-	}
+	memset(&_movH265info, 0, sizeof(_movH265info));
+	_movH265info.videoTrack = -1;	
+	_movH265info.audioTrack = -1;
+	_movH265info.width = 0;
+	_movH265info.height = 0;
+	_movH265info.pFile = fopen(strFileTmp.data(), "wb+");
+	_movH265info.startPts = _startPts;
+	_movH265info.pMov  = mov_writer_create(movfileBuffer(), _movH265info.pFile, 0/*MOV_FLAG_FASTSTART*/);
 
-	//MP4SetTimeScale(_hMp4, 90000);
 	_strFileTmp = strFileTmp;
 	_strFile = strFile;
 	_ticker.resetTime();
 
 	if ( _h265Record ){
 		auto videoTrack = dynamic_pointer_cast<H265Track>(getTrack(TrackVideo));
-#ifdef MP4_H265RECORD
 		if(videoTrack){
 			_movH265info.width = videoTrack->getVideoWidth();
 			_movH265info.height = videoTrack->getVideoHeight();
 		}
-#endif
-		
-	}else	{
+	}else{
 		auto videoTrack = dynamic_pointer_cast<H264Track>(getTrack(TrackVideo));
 		if(videoTrack){
-			auto &sps = videoTrack->getSps();
-			auto &pps = videoTrack->getPps();
-		
-			
-			_hVideo = MP4AddH264VideoTrack(_hMp4,
-										   90000,
-										   MP4_INVALID_DURATION,
-										   videoTrack->getVideoWidth(),
-										   videoTrack->getVideoHeight(),
-										   sps[1],
-										   sps[2],
-										   sps[3],
-										   3);
-			if(_hVideo != MP4_INVALID_TRACK_ID){
-				MP4AddH264SequenceParameterSet(_hMp4, _hVideo, (uint8_t *)sps.data(), sps.size());
-				MP4AddH264PictureParameterSet(_hMp4, _hVideo, (uint8_t *)pps.data(), pps.size());
-			}else{
-				WarnL << "添加视频通道失败:" << strFileTmp;
-			}
-		}
-		
+//			auto &sps = videoTrack->getSps();
+//			auto &pps = videoTrack->getPps();
+			_movH265info.width = videoTrack->getVideoWidth();
+			_movH265info.height = videoTrack->getVideoHeight();
+		}		
 	}
+	if ( _movH265info.width <=0 || _movH265info.height <= 0 )
+		WarnL << "分辨率获取失败,MP4录制异常";
 
 	auto audioTrack = dynamic_pointer_cast<AACTrack>(getTrack(TrackAudio));
 	if(audioTrack){
 		_audioSampleRate = audioTrack->getAudioSampleRate();
 		_audioChannel = audioTrack->getAudioChannel();
-#ifdef MP4_H265RECORD
-		uint8_t extra_data[64 * 1024];
-		if ( _h265Record ){
-			_movH265info.audioTrack = mov_writer_add_audio(_movH265info.pMov, MOV_OBJECT_AAC, _audioChannel, 16, _audioSampleRate, audioTrack->getAacCfg().data(), 2);
-			if (-1 == _movH265info.audioTrack) 
-				WarnL << "添加音频通道失败:" << strFileTmp;
-		}else
-#endif		
-		{
-			_hAudio = MP4AddAudioTrack(_hMp4, _audioSampleRate, MP4_INVALID_DURATION, MP4_MPEG4_AUDIO_TYPE);
-			if (_hAudio != MP4_INVALID_TRACK_ID) {
-				auto &cfg =  audioTrack->getAacCfg();
-				MP4SetTrackESConfiguration(_hMp4, _hAudio,(uint8_t *)cfg.data(), cfg.size());
-			}else{
-				WarnL << "添加音频通道失败:" << strFileTmp;
-			}
-		}
+		uint8_t extra_data[64 * 1024];		
+		_movH265info.audioTrack = mov_writer_add_audio(_movH265info.pMov, MOV_OBJECT_AAC, _audioChannel, 16, _audioSampleRate, audioTrack->getAacCfg().data(), 2);
+		if (-1 == _movH265info.audioTrack) 
+			WarnL << "添加音频通道失败:" << strFileTmp;
 	}
 }
 
 void Mp4Maker::asyncClose() {
-
-//	auto hMp4 = (_h265Record==0)?_hMp4:_movH265info.pMov;
 	auto strFileTmp = _strFileTmp;
 	auto strFile = _strFile;
 	auto info = _info;
 	
-	int h265Record = _h265Record;
-#ifdef MP4_H265RECORD
-	FILE *pFile = (_h265Record)?_movH265info.pFile:NULL;
-	void * hMp4 = (_h265Record)?(void*)_movH265info.pMov:(void*)_hMp4;
-#else
-	auto hMp4 = _hMp4;
-	FILE *pFile = NULL;
-#endif
-	WorkThreadPool::Instance().getExecutor()->async([hMp4,strFileTmp,strFile,info,pFile,h265Record]() {
+	FILE *pFile = _movH265info.pFile;
+	mov_writer_t*  hMp4 = _movH265info.pMov;
+	WorkThreadPool::Instance().getExecutor()->async([hMp4,strFileTmp,strFile,info,pFile]() {
 		//获取文件录制时间，放在MP4Close之前是为了忽略MP4Close执行时间
 		const_cast<Mp4Info&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
 		//MP4Close非常耗时，所以要放在后台线程执行
-		
-#ifdef MP4_H265RECORD
-		if (h265Record){
-			mov_writer_destroy((mov_writer_t*)hMp4);			
+		if (hMp4 != NULL ){
+			mov_writer_destroy(hMp4);			
 			fclose(pFile);
-		}else
-#endif
-		{	
-			MP4Close(hMp4,MP4_CLOSE_DO_NOT_COMPUTE_BITRATE);
+			DebugL << "fclose end";
 		}
+
 		//临时文件名改成正式文件名，防止mp4未完成时被访问
 		rename(strFileTmp.data(),strFile.data());
 		//获取文件大小
@@ -434,35 +415,30 @@ void Mp4Maker::asyncClose() {
 }
 
 void Mp4Maker::closeFile() {
-#ifdef MP4_H265RECORD
-	if (_h265Record){
-		if (_movH265info.pMov != NULL) {	
-			asyncClose();
-		}
-	}else
-#endif
-	{
-		if (_hMp4 != MP4_INVALID_FILE_HANDLE) {
-			asyncClose();
-			_hMp4 = MP4_INVALID_FILE_HANDLE;
-			_hVideo = MP4_INVALID_TRACK_ID;
-			_hAudio = MP4_INVALID_TRACK_ID;
-		}
-	}
+	if (_movH265info.pMov != NULL) {	
+		asyncClose();
+		memset(&_movH265info, 0, sizeof(_movH265info));
+		_movH265info.pMov = NULL;
+		_movH265info.videoTrack = -1;	
+		_movH265info.audioTrack = -1;
+	}	
 }
 
 void Mp4Maker::onTrackFrame(const Frame::Ptr &frame) {
 	switch (frame->getCodecId()){
 		case CodecH264:{
-			inputH264(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(),frame->stamp());
+			//需要带00 00 00 01,方便在mov_writer_write的时候字节修改这4Byte为长度信息
+			inputH264(frame->data() , frame->size(),frame->pts());
 		}
 			break;
 		case CodecAAC:{
-			inputAAC(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(),frame->stamp());
+			//不需要ADTS头
+			inputAAC(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(),frame->pts());
 		}
 			break;
 		case CodecH265:{
-			inputH265(frame->data() , frame->size(),frame->stamp());
+			//需要带00 00 00 01,方便在mov_writer_write的时候字节修改这4Byte为长度信息
+			inputH265(frame->data() , frame->size(),frame->pts());
 		}
 			break;
 		default:
@@ -477,4 +453,4 @@ void Mp4Maker::onAllTrackReady() {
 } /* namespace mediakit */
 
 
-#endif //ENABLE_MP4V2
+#endif //ENABLE_MP4RECORD

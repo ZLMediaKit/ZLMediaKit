@@ -27,11 +27,10 @@
 #ifndef MP4MAKER_H_
 #define MP4MAKER_H_
 
-#ifdef ENABLE_MP4V2
+#ifdef ENABLE_MP4RECORD
 
 #include <mutex>
 #include <memory>
-#include <mp4v2/mp4v2.h>
 #include "Player/PlayerBase.h"
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -41,10 +40,10 @@
 #include "Extension/Track.h"
 
 
-#ifdef MP4_H265RECORD
 #include "mov-writer.h"
 #include "mpeg4-hevc.h"
-#endif
+#include "mpeg4-avc.h"
+
 
 using namespace toolkit;
 
@@ -66,17 +65,15 @@ public:
 
 class MovH265Info {
 public:
-	
-#ifdef MP4_H265RECORD
 	mov_writer_t* pMov;
 	struct mpeg4_hevc_t hevc;
+	struct mpeg4_avc_t avc;
 	int videoTrack;
 	int audioTrack;
 	int width;
 	int height;
-	const uint8_t* ptr;
+	uint32_t startPts;
 	FILE * pFile;
-#endif
 };
 
 class Mp4Maker : public MediaSink{
@@ -109,19 +106,16 @@ private:
 	//时间戳：参考频率1000
 	void inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
 
-	void inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui64Duration);	
+	void inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);	
 	void inputH265_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
-    void inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui64Duration);
+    void inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
 private:
 
 	MovH265Info _movH265info;
 	int _h265Record = 0;
+	uint32_t _startPts;
 	
 	uint8_t _sBbuffer[2 * 1024 * 1024];
-	MP4FileHandle _hMp4 = MP4_INVALID_FILE_HANDLE;
-	
-	MP4TrackId _hVideo = MP4_INVALID_TRACK_ID;
-	MP4TrackId _hAudio = MP4_INVALID_TRACK_ID;
 	string _strPath;
 	string _strFile;
 	string _strFileTmp;
@@ -141,6 +135,6 @@ private:
 
 } /* namespace mediakit */
 
-#endif ///ENABLE_MP4V2
+#endif ///ENABLE_MP4RECORD
 
 #endif /* MP4MAKER_H_ */
