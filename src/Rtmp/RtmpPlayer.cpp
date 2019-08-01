@@ -321,12 +321,30 @@ void RtmpPlayer::onCmd_onMetaData(AMFDecoder &dec) {
 	if(!onCheckMeta(val)){
 		throw std::runtime_error("onCheckMeta faied");
 	}
-	onPlayResult_l(SockException(Err_success,"play rtmp success"));
 }
 
 void RtmpPlayer::onStreamDry(uint32_t ui32StreamId) {
 	//TraceL << ui32StreamId;
 	onPlayResult_l(SockException(Err_other,"rtmp stream dry"));
+}
+
+void RtmpPlayer::onMediaData_l(const RtmpPacket::Ptr &packet) {
+	_mediaTicker.resetTime();
+	if(!_pPlayTimer){
+		//已经触发了onPlayResult事件，直接触发onMediaData事件
+		onMediaData(packet);
+		return;
+	}
+
+	if(packet->isCfgFrame()){
+		//输入配置帧以便初始化完成各个track
+		onMediaData(packet);
+	}else{
+		//先触发onPlayResult事件，这个时候解码器才能初始化完毕
+		onPlayResult_l(SockException(Err_success,"play rtmp success"));
+		//触发onPlayResult事件后，再把帧数据输入到解码器
+		onMediaData(packet);
+	}
 }
 
 
@@ -351,6 +369,7 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
 		case MSG_VIDEO: {
             auto idx = chunkData.typeId%2;
             if (_aNowStampTicker[idx].elapsedTime() > 500) {
+				//计算播放进度时间轴用
                 _aiNowStamp[idx] = chunkData.timeStamp;
             }
 			onMediaData_l(std::make_shared<RtmpPacket>(std::move(chunkData)));
