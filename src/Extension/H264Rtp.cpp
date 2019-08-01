@@ -100,12 +100,10 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
         //a full frame
         _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
         _h264frame->buffer.append((char *)frame, length);
-        _h264frame->type = nal.type;
         _h264frame->timeStamp = rtppack->timeStamp;
-        _h264frame->sequence = rtppack->sequence;
-        auto isIDR = _h264frame->type == H264Frame::NAL_IDR;
+        auto key = _h264frame->keyFrame();
         onGetH264(_h264frame);
-        return (isIDR); //i frame
+        return (key); //i frame
     }
 
     switch (nal.type){
@@ -131,9 +129,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
                     MakeNalu(ptr[0], nal);
                     _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
                     _h264frame->buffer.append((char *)ptr, len);
-                    _h264frame->type = nal.type;
                     _h264frame->timeStamp = rtppack->timeStamp;
-                    _h264frame->sequence = rtppack->sequence;
                     if(nal.type == H264Frame::NAL_IDR){
                         haveIDR = true;
                     }
@@ -148,35 +144,39 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             //FU-A
             FU fu;
             MakeFU(frame[1], fu);
-            if (fu.S == 1) {
-                //FU-A start
+            if (fu.S) {
+                //该帧的第一个rtp包
                 char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
                 _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
                 _h264frame->buffer.push_back(tmp);
                 _h264frame->buffer.append((char *)frame + 2, length - 2);
-                _h264frame->type = fu.type;
                 _h264frame->timeStamp = rtppack->timeStamp;
-                _h264frame->sequence = rtppack->sequence;
-                return (_h264frame->type == H264Frame::NAL_IDR); //i frame
+                //该函数return时，保存下当前sequence,以便下次对比seq是否连续
+                _lastSeq = rtppack->sequence;
+                return _h264frame->keyFrame();
             }
 
-            if (rtppack->sequence != (uint16_t)(_h264frame->sequence + 1)) {
+            if (rtppack->sequence != _lastSeq + 1 && rtppack->sequence != 0) {
+                //中间的或末尾的rtp包，其seq必须连续(如果回环了则判定为连续)，否则说明rtp丢包，那么该帧不完整，必须得丢弃
                 _h264frame->buffer.clear();
-                WarnL << "丢包,帧废弃:" << rtppack->sequence << "," << _h264frame->sequence;
+                WarnL << "rtp sequence不连续: " << rtppack->sequence << " != " << _lastSeq << " + 1,该帧被废弃";
                 return false;
             }
-            _h264frame->sequence = rtppack->sequence;
-            if (fu.E == 1) {
-                //FU-A end
+
+            if (!fu.E) {
+                //该帧的中间rtp包
                 _h264frame->buffer.append((char *)frame + 2, length - 2);
-                _h264frame->timeStamp = rtppack->timeStamp;
-                auto isIDR = _h264frame->type == H264Frame::NAL_IDR;
-                onGetH264(_h264frame);
-                return isIDR;
+                //该函数return时，保存下当前sequence,以便下次对比seq是否连续
+                _lastSeq = rtppack->sequence;
+                return false;
             }
-            //FU-A mid
+
+            //该帧最后一个rtp包
             _h264frame->buffer.append((char *)frame + 2, length - 2);
-            return false;
+            _h264frame->timeStamp = rtppack->timeStamp;
+            auto key = _h264frame->keyFrame();
+            onGetH264(_h264frame);
+            return key;
         }
 
         default:{
@@ -195,10 +195,8 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
 void H264RtpDecoder::onGetH264(const H264Frame::Ptr &frame) {
     //写入环形缓存
-    auto lastSeq = _h264frame->sequence;
     RtpCodec::inputFrame(frame);
     _h264frame = obtainFrame();
-    _h264frame->sequence = lastSeq;
 }
 
 
