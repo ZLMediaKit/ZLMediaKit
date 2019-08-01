@@ -74,17 +74,44 @@ void MP4Muxer::onTrackFrame(const Frame::Ptr &frame) {
     }
     auto it = _codec_to_trackid.find(frame->getCodecId());
     if(it == _codec_to_trackid.end()){
+        //该Track不存在或初始化失败
         return;
     }
 
+    int with_nalu_size ;
+    switch (frame->getCodecId()){
+        case CodecH264:
+        case CodecH265:
+            //我们输入264、265是没有头四个字节表明数据长度的
+            with_nalu_size = 0;
+            break;
+        default:
+            //aac或其他类型frame不用添加4个nalu_size的字节
+            with_nalu_size = 1;
+            break;
+    }
+
+    //mp4文件时间戳需要从0开始
+    auto &track_info = it->second;
+    if(!track_info.start_dts){
+        track_info.start_dts = frame->dts();
+    }
+    if(!track_info.start_pts){
+        track_info.start_pts = frame->pts();
+    }
+
+    //相对时间戳
+    int dts_inc = frame->dts() - track_info.start_dts;
+    int pts_inc = frame->pts() - track_info.start_pts;
+
     mov_writer_write_l(_mov_writter.get(),
-                     it->second,
-                     frame->data() + frame->prefixSize(),
-                     frame->size() - frame->prefixSize(),
-                     frame->pts(),
-                     frame->dts(),
-                     frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
-                     0);
+                       track_info.track_id,
+                       frame->data() + frame->prefixSize(),
+                       frame->size() - frame->prefixSize(),
+                       pts_inc >= 0 ? pts_inc : 0,
+                       dts_inc >= 0 ? dts_inc : 0,
+                       frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
+                       with_nalu_size);
 }
 
 void MP4Muxer::onTrackReady(const Track::Ptr &track) {
@@ -98,10 +125,16 @@ void MP4Muxer::onTrackReady(const Track::Ptr &track) {
             auto track_id = mov_writer_add_audio(_mov_writter.get(),
                                                  MOV_OBJECT_AAC,
                                                  aac_track->getAudioChannel(),
-                                                 aac_track->getAudioSampleBit(),
+                                                 aac_track->getAudioSampleBit() * aac_track->getAudioChannel(),
                                                  aac_track->getAudioSampleRate(),
                                                  aac_track->getAacCfg().data(), 2);
-            _codec_to_trackid[track->getCodecId()] = track_id;
+            if(track_id < 0){
+                WarnL << "添加AAC Track失败:" << track_id;
+                return;
+            }
+            track_info info;
+            info.track_id = track_id;
+            _codec_to_trackid[track->getCodecId()] = info;
         }
             break;
         case CodecH264: {
@@ -129,7 +162,14 @@ void MP4Muxer::onTrackReady(const Track::Ptr &track) {
                                                  h264_track->getVideoHeight(),
                                                  extra_data,
                                                  extra_data_size);
-            _codec_to_trackid[track->getCodecId()] = track_id;
+
+            if(track_id < 0){
+                WarnL << "添加H264 Track失败:" << track_id;
+                return;
+            }
+            track_info info;
+            info.track_id = track_id;
+            _codec_to_trackid[track->getCodecId()] = info;
         }
             break;
         case CodecH265: {
@@ -158,7 +198,13 @@ void MP4Muxer::onTrackReady(const Track::Ptr &track) {
                                                  h265_track->getVideoHeight(),
                                                  extra_data,
                                                  extra_data_size);
-            _codec_to_trackid[track->getCodecId()] = track_id;
+            if(track_id < 0){
+                WarnL << "添加H265 Track失败:" << track_id;
+                return;
+            }
+            track_info info;
+            info.track_id = track_id;
+            _codec_to_trackid[track->getCodecId()] = info;
         }
             break;
         default:
@@ -171,7 +217,7 @@ void MP4Muxer::onTrackReady(const Track::Ptr &track) {
 
 MP4MuxerFile::MP4MuxerFile(const char *file) {
     //创建文件
-    auto fp = File::createfile_file(file,"wb");
+    auto fp = File::createfile_file(file,"wb+");
     if(!fp){
         throw std::runtime_error(string("打开文件失败:") + file);
     }
