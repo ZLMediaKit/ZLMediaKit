@@ -2,6 +2,14 @@
 cmake_minimum_required(VERSION 3.1.3)
 #使能c++11
 set(CMAKE_CXX_STANDARD 11)
+SET(CMAKE_C_COMPILER aarch64-himix100-linux-gcc)
+SET(CMAKE_CXX_COMPILER aarch64-himix100-linux-g++)
+#SET(CMAKE_LINKER aarch64-himix100-linux-ld)
+SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+
 
 #加载自定义模块
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
@@ -13,6 +21,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 #设置工程源码根目录
 set(ToolKit_Root ${CMAKE_SOURCE_DIR}/3rdpart/ZLToolKit/src)
 set(MediaKit_Root ${CMAKE_SOURCE_DIR}/src)
+
 
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
@@ -32,11 +41,14 @@ endif ()
 
 set(ENABLE_HLS true)
 set(ENABLE_OPENSSL true)
-set(ENABLE_MYSQL true)
+set(ENABLE_MYSQL false)
 set(ENABLE_MP4V2 true)
-set(ENABLE_FAAC true)
-set(ENABLE_X264 true)
-set(MP4_H265RECORD true)
+set(ENABLE_FAAC false)
+set(ENABLE_X264 false)
+set(ENABLE_MP4RECORD true)
+
+
+
 
 #添加两个静态库
 if(ENABLE_HLS)
@@ -48,19 +60,28 @@ else()
     set(LINK_LIB_LIST zlmediakit zltoolkit)
 endif()
 
-if(MP4_H265RECORD)
-    message(STATUS "MP4_H265RECORD defined")
-    add_definitions(-DMP4_H265RECORD)
+if(ENABLE_MP4RECORD)
+    message(STATUS "ENABLE_MP4RECORD defined")
+    add_definitions(-DENABLE_MP4RECORD)
     set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
 	list(APPEND LINK_LIB_LIST mov flv)
 endif()
+
+set(OPENSSL_INCLUDE_DIR /nand/hi3559/openssl/include/)
+set(OPENSSL_LIBRARIES /nand/hi3559/openssl/lib/)
+#set(OPENSSL_CRYPTO_LIBRARIES /nand/hi3559/openssl/lib/libcrypto.so)
+
+set(MP4V2_INCLUDE_DIR /nand/hi3559/mp4v2/include/)
+#set(MP4V2_LIBRARY /nand/hi3559/mp4v2/lib/libmp4v2.a)
+set(MP4V2_LIBRARY /nand/hi3559/mp4v2/lib/libmp4v2.so)
+
 #查找openssl是否安装
 find_package(OpenSSL QUIET)
-if (OPENSSL_FOUND AND ENABLE_OPENSSL)
+if (1)
     message(STATUS "found library:${OPENSSL_LIBRARIES},ENABLE_OPENSSL defined")
-    include_directories(${OPENSSL_INCLUDE_DIR})
+    include_directories(/nand/hi3559/openssl/include/)
     add_definitions(-DENABLE_OPENSSL)
-    list(APPEND LINK_LIB_LIST ${OPENSSL_LIBRARIES})
+    list(APPEND LINK_LIB_LIST /nand/hi3559/openssl/lib/libssl.so /nand/hi3559/openssl/lib/libcrypto.so)
 endif ()
 
 #查找mysql是否安装
@@ -111,14 +132,14 @@ set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /w
 if(ENABLE_HLS)
     aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
     aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
-    include_directories(${MediaServer_Root}/libmpeg/include)
+    include_directories(${MediaServer_Root}/libmpeg/include)	
     add_library(mpeg STATIC ${src_mpeg})
 	if(WIN32)
 		set_target_properties(mpeg PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
 	endif(WIN32)
 endif()
 
-if(MP4_H265RECORD)
+if(ENABLE_MP4RECORD)
     aux_source_directory(${MediaServer_Root}/libmov/include src_mov)
     aux_source_directory(${MediaServer_Root}/libmov/source src_mov)	
 	include_directories(${MediaServer_Root}/libmov/include)
