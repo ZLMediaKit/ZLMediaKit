@@ -74,7 +74,12 @@ protected:
      */
     void onTrackFrame(const Frame::Ptr &frame) override;
 private:
-    map<CodecId,int> _codec_to_trackid;
+    struct track_info{
+        int track_id = -1;
+        uint32_t start_dts = 0;
+        uint32_t start_pts = 0;
+    };
+    map<CodecId,track_info> _codec_to_trackid;
 };
 
 

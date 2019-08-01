@@ -57,9 +57,7 @@ Mp4Maker::Mp4Maker(const string& strPath,
 				   const string &strVhost,
 				   const string &strApp,
 				   const string &strStreamId) {
-	DebugL << strPath;
 	_strPath = strPath;
-
 	/////record 业务逻辑//////
 	_info.strAppName = strApp;
 	_info.strStreamId = strStreamId;
