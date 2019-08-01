@@ -260,11 +260,15 @@ const string kFileSecond = RECORD_FIELD"fileSecond";
 #define RECORD_FILE_PATH HTTP_ROOT_PATH
 const string kFilePath = RECORD_FIELD"filePath";
 
+//mp4文件写缓存大小
+const string kFileBufSize = RECORD_FIELD"fileBufSize";
+
 onceToken token([](){
 	mINI::Instance()[kAppName] = RECORD_APP_NAME;
 	mINI::Instance()[kSampleMS] = RECORD_SAMPLE_MS;
 	mINI::Instance()[kFileSecond] = RECORD_FILE_SECOND;
 	mINI::Instance()[kFilePath] = RECORD_FILE_PATH;
+	mINI::Instance()[kFileBufSize] = 64 * 1024;
 },nullptr);
 
 } //namespace Record
