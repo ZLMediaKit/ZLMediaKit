@@ -64,6 +64,7 @@ private:
     H264Frame::Ptr obtainFrame();
 private:
     H264Frame::Ptr _h264frame;
+    int _lastSeq = 0;
 };
 
 /**

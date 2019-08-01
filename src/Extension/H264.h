@@ -80,13 +80,11 @@ public:
     }
 
     bool keyFrame() const override {
-        return type == NAL_IDR;
+        return H264_TYPE(buffer[iPrefixSize]) == H264Frame::NAL_IDR;
     }
 public:
-    uint16_t sequence;
     uint32_t timeStamp;
     uint32_t ptsStamp = 0;
-    unsigned char type;
     string buffer;
     uint32_t iPrefixSize = 4;
 };
@@ -326,7 +324,6 @@ private:
 
         if(!_sps.empty()){
             auto spsFrame = std::make_shared<H264Frame>();
-            spsFrame->type = H264Frame::NAL_SPS;
             spsFrame->iPrefixSize = 4;
             spsFrame->buffer.assign("\x0\x0\x0\x1",4);
             spsFrame->buffer.append(_sps);
@@ -336,7 +333,6 @@ private:
 
         if(!_pps.empty()){
             auto ppsFrame = std::make_shared<H264Frame>();
-            ppsFrame->type = H264Frame::NAL_PPS;
             ppsFrame->iPrefixSize = 4;
             ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
             ppsFrame->buffer.append(_pps);

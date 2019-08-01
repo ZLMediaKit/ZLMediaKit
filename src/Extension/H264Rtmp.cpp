@@ -80,7 +80,6 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
 
 inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
 #if 1
-    _h264frame->type = H264_TYPE(pcData[0]);
     _h264frame->timeStamp = dts;
     _h264frame->ptsStamp = pts;
     _h264frame->buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
