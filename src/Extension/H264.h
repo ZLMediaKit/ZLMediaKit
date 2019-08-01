@@ -128,13 +128,14 @@ public:
  * 一个复合帧可以通过无内存拷贝的方式切割成多个H264FrameSubFrame
  * 提供该类的目的是切换复合帧时防止内存拷贝，提高性能
  */
-class H264FrameSubFrame : public H264FrameNoCacheAble{
+template<typename Parent>
+class FrameInternal : public Parent{
 public:
-    typedef std::shared_ptr<H264FrameSubFrame> Ptr;
-    H264FrameSubFrame(const Frame::Ptr &parent_frame,
-                      char *ptr,
-                      uint32_t size,
-                      int prefixeSize) : H264FrameNoCacheAble(ptr,size,parent_frame->dts(),parent_frame->pts(),prefixeSize){
+    typedef std::shared_ptr<FrameInternal> Ptr;
+    FrameInternal(const Frame::Ptr &parent_frame,
+                  char *ptr,
+                  uint32_t size,
+                  int prefixeSize) : Parent(ptr,size,parent_frame->dts(),parent_frame->pts(),prefixeSize){
         _parent_frame = parent_frame;
     }
     bool cacheAble() const override {
@@ -143,6 +144,8 @@ public:
 private:
     Frame::Ptr _parent_frame;
 };
+
+typedef FrameInternal<H264FrameNoCacheAble> H264FrameInternal;
 
 /**
  * 264视频通道
@@ -243,21 +246,21 @@ public:
             splitH264(frame->data() + frame->prefixSize(),
                       frame->size() - frame->prefixSize(),
                       [&](const char *ptr, int len){
-                      if(first_frame){
-                          H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
-                                                                                                 frame->data(),
-                                                                                                 len + frame->prefixSize(),
-                                                                                                 frame->prefixSize());
-                          inputFrame_l(sub_frame);
-                          first_frame = false;
-                      }else{
-                          H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
-                                                                                                 (char *)ptr,
-                                                                                                 len ,
-                                                                                                 3);
-                          inputFrame_l(sub_frame);
-                      }
-            });
+                          if(first_frame){
+                              H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame,
+                                                                                                     frame->data(),
+                                                                                                     len + frame->prefixSize(),
+                                                                                                     frame->prefixSize());
+                              inputFrame_l(sub_frame);
+                              first_frame = false;
+                          }else{
+                              H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame,
+                                                                                                     (char *)ptr,
+                                                                                                     len ,
+                                                                                                     3);
+                              inputFrame_l(sub_frame);
+                          }
+                      });
         } else{
             inputFrame_l(frame);
         }

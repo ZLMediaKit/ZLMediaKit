@@ -111,9 +111,8 @@ private:
 	inline void urlDecode(Parser &parser);
 	inline void sendNotFound(bool bClose);
 	inline void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
-	inline static KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
-    void responseDelay(const string &Origin,
-                       bool bClose,
+	inline KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
+    void responseDelay(bool bClose,
                        const string &codeOut,
                        const KeyValue &headerOut,
                        const string &contentOut);
@@ -139,6 +138,7 @@ private:
      */
     inline string getClientUid();
 private:
+	string _origin;
     Parser _parser;
     Ticker _ticker;
     uint32_t _iReqCnt = 0;

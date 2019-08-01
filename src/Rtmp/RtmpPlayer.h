@@ -60,11 +60,7 @@ protected:
 	uint32_t getProgressMilliSecond() const;
 	void seekToMilliSecond(uint32_t ms);
 protected:
-	void onMediaData_l(const RtmpPacket::Ptr &chunkData) {
-		_mediaTicker.resetTime();
-		onMediaData(chunkData);
-	}
-
+	void onMediaData_l(const RtmpPacket::Ptr &chunkData);
 	void onPlayResult_l(const SockException &ex);
 
 	//for Tcpclient
@@ -97,7 +93,7 @@ protected:
 	inline void send_createStream();
 	inline void send_play();
 	inline void send_pause(bool bPause);
-
+private:
 	string _strApp;
 	string _strStream;
 	string _strTcUrl;
