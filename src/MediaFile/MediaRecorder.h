@@ -64,9 +64,9 @@ private:
 	std::shared_ptr<HlsRecorder> _hlsMaker;
 #endif //defined(ENABLE_HLS)
 
-#if defined(ENABLE_MP4V2)
+#if defined(ENABLE_MP4RECORD)
 	std::shared_ptr<Mp4Maker> _mp4Maker;
-#endif //defined(ENABLE_MP4V2)
+#endif //defined(ENABLE_MP4RECORD)
 };
 
 } /* namespace mediakit */
