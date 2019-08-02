@@ -80,6 +80,7 @@ private:
         uint32_t start_pts = 0;
     };
     map<CodecId,track_info> _codec_to_trackid;
+    bool _started = false;
 };
 
 

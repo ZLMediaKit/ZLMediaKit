@@ -79,6 +79,16 @@ void MP4Muxer::onTrackFrame(const Frame::Ptr &frame) {
         return;
     }
 
+    if(!_started){
+        //还没开始
+        if(frame->getTrackType() != TrackVideo || !frame->keyFrame()){
+            //如果首帧是音频或者是视频但是不是i帧，那么不能开始写文件
+            return;
+        }
+        //开始写文件
+        _started = true;
+    }
+
     int with_nalu_size ;
     switch (frame->getCodecId()){
         case CodecH264:
