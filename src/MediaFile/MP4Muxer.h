@@ -76,8 +76,8 @@ protected:
 private:
     struct track_info{
         int track_id = -1;
-        uint32_t start_dts = 0;
-        uint32_t start_pts = 0;
+        int64_t start_dts = 0;
+        int64_t dts_inc = 0;
     };
     map<CodecId,track_info> _codec_to_trackid;
     bool _started = false;
