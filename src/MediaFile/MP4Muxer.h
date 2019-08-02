@@ -39,6 +39,7 @@
 #include "Extension/AAC.h"
 #include "Extension/H264.h"
 #include "Extension/H265.h"
+#include "Stamp.h"
 
 namespace mediakit{
 
@@ -76,10 +77,9 @@ protected:
 private:
     struct track_info{
         int track_id = -1;
-        int64_t start_dts = 0;
-        int64_t dts_inc = 0;
+        Stamp stamp;
     };
-    map<CodecId,track_info> _codec_to_trackid;
+    unordered_map<int,track_info> _codec_to_trackid;
     bool _started = false;
 };
 

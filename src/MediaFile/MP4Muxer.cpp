@@ -104,41 +104,15 @@ void MP4Muxer::onTrackFrame(const Frame::Ptr &frame) {
 
     //mp4文件时间戳需要从0开始
     auto &track_info = it->second;
-    if(!track_info.start_dts){
-        track_info.start_dts = frame->dts();
-    }
-
-    //相对时间戳
-    int64_t dts_inc = frame->dts() - track_info.start_dts;
-    //pts和dts的差值
-    int pts_dts_diff = frame->pts() - frame->dts();
-    if(pts_dts_diff > 200 || pts_dts_diff < -200){
-        //如果差值大于200毫秒，则认为由于回环导致时间戳错乱了
-        pts_dts_diff = 0;
-    }
-
-    if(dts_inc < track_info.dts_inc){
-        //本次相对时间戳竟然小于上次？
-        if(dts_inc < 0){
-            //时间戳回环,保证下次相对时间戳与本次相对合理增长
-            track_info.start_dts = frame->dts() - track_info.dts_inc;
-            //本次时间戳强制等于上次时间戳+10
-            dts_inc = track_info.dts_inc + 10;
-        }else{
-            //时间戳变小了？,那么取上次时间戳+10
-            dts_inc = track_info.dts_inc + 10;
-        }
-    }
-
-    //保留上次相对时间戳
-    track_info.dts_inc = dts_inc;
+    int64_t dts_out, pts_out;
+    track_info.stamp.revise(frame->dts(),frame->pts(),dts_out,pts_out);
 
     mov_writer_write_l(_mov_writter.get(),
                        track_info.track_id,
                        frame->data() + frame->prefixSize(),
                        frame->size() - frame->prefixSize(),
-                       pts_dts_diff + dts_inc,
-                       dts_inc,
+                       pts_out,
+                       dts_out,
                        frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
                        with_nalu_size);
 }
