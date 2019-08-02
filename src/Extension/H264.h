@@ -36,7 +36,6 @@ using namespace toolkit;
 namespace mediakit{
 
 bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
 void splitH264(const char *ptr, int len, const std::function<void(const char *, int)> &cb);
 
 /**

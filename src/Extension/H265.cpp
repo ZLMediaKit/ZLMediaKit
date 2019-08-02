@@ -30,14 +30,7 @@
 
 namespace mediakit{
 
-
-
-bool getAVCH265Info(const string& strVps, const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
-	return getAVC265Info(strVps.data(),strVps.size(),strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
-
-}
-
-bool getAVC265Info(const char * vps, int vps_len,const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
+bool getHEVCInfo(const char * vps, int vps_len,const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
     T_GetBitContext tGetBitBuf;
     T_HEVCSPS tH265SpsInfo;	
     T_HEVCVPS tH265VpsInfo;
@@ -69,7 +62,9 @@ bool getAVC265Info(const char * vps, int vps_len,const char * sps,int sps_len,in
     return true;
 }
 
-
+bool getHEVCInfo(const string &strVps, const string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {
+	return getHEVCInfo(strVps.data(),strVps.size(),strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
+}
 
 Sdp::Ptr H265Track::getSdp() {
     if(!ready()){
