@@ -79,6 +79,14 @@ void MP4Muxer::onTrackFrame(const Frame::Ptr &frame) {
         return;
     }
 
+    if(frame->getTrackType() == TrackVideo){
+        if(!_started && !frame->keyFrame()){
+            //第一帧必须是I帧，防止花屏
+            return;
+        }
+        _started = true;
+    }
+
     int with_nalu_size ;
     switch (frame->getCodecId()){
         case CodecH264:
