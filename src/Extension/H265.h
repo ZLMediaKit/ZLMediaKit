@@ -36,8 +36,8 @@ using namespace toolkit;
 
 namespace mediakit {
 
-bool getAVCH265Info(const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-bool getAVC265Info(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
+bool getAVCH265Info(const string& strVps,const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
+bool getAVC265Info(const char * vps, int vps_len,const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
 
 /**
 * 265帧类
@@ -336,7 +336,7 @@ private:
      * 解析sps获取宽高fps
      */
     void onReady(){
-        getAVCH265Info(_sps,_width,_height,_fps);
+        getAVCH265Info(_vps,_sps,_width,_height,_fps);
     }
     Track::Ptr clone() override {
         return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this);
