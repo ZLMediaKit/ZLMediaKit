@@ -89,10 +89,8 @@ void Mp4Maker::createFile() {
 	try {
 		_muxer = std::make_shared<MP4MuxerFile>(strFileTmp.data());
 		for(auto &track :_tracks){
-			if(track){
-				//添加track
-				_muxer->addTrack(track);
-			}
+            //添加track
+            _muxer->addTrack(track);
 		}
 		_strFileTmp = strFileTmp;
 		_strFile = strFile;
