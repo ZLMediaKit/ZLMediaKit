@@ -24,44 +24,25 @@
  * SOFTWARE.
  */
 
-#ifndef TSMUXER_H
-#define TSMUXER_H
+#ifndef ZLMEDIAKIT_STAMP_H
+#define ZLMEDIAKIT_STAMP_H
 
-#include <unordered_map>
-#include "Extension/Frame.h"
-#include "Extension/Track.h"
-#include "Util/File.h"
-#include "Common/MediaSink.h"
-#include "Stamp.h"
 
-using namespace toolkit;
+#include <cstdint>
 
 namespace mediakit {
 
-class TsMuxer : public MediaSink{
+class Stamp {
 public:
-    TsMuxer();
-    virtual ~TsMuxer();
-    void addTrack(const Track::Ptr &track) override;
-    void inputFrame(const Frame::Ptr &frame) override ;
-protected:
-    virtual void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) = 0;
-    void resetTracks();
+    Stamp() = default;
+    ~Stamp() = default;
+    void revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_out);
 private:
-    void init();
-    void uninit();
-private:
-    void  *_context = nullptr;
-    char *_tsbuf[188];
-    uint32_t _timestamp = 0;
-
-    struct track_info{
-        int track_id = -1;
-        Stamp stamp;
-    };
-    unordered_map<int,track_info> _codec_to_trackid;
-    List<Frame::Ptr> _frameCached;
+    int64_t _start_dts = 0;
+    int64_t _dts_inc = 0;
+    bool _first = true;
 };
 
 }//namespace mediakit
-#endif //TSMUXER_H
+
+#endif //ZLMEDIAKIT_STAMP_H
