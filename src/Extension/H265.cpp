@@ -32,24 +32,40 @@ namespace mediakit{
 
 
 
-bool getAVCH265Info(const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
-	return getAVC265Info(strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
+bool getAVCH265Info(const string& strVps, const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
+	return getAVC265Info(strVps.data(),strVps.size(),strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
 
 }
 
-bool getAVC265Info(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
+bool getAVC265Info(const char * vps, int vps_len,const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
     T_GetBitContext tGetBitBuf;
-    T_HEVCSPS tH265SpsInfo;
-    memset(&tGetBitBuf,0,sizeof(tGetBitBuf));
-    memset(&tH265SpsInfo,0,sizeof(tH265SpsInfo));
-    tGetBitBuf.pu8Buf = (uint8_t*)sps ;
-    tGetBitBuf.iBufSize = sps_len ;
-    if(0 != h265DecSeqParameterSet((void *) &tGetBitBuf, &tH265SpsInfo)){
-        return false;
-    }
+    T_HEVCSPS tH265SpsInfo;	
+    T_HEVCVPS tH265VpsInfo;
+	if ( vps_len > 2 ){
+	    memset(&tGetBitBuf,0,sizeof(tGetBitBuf));	
+	    memset(&tH265VpsInfo,0,sizeof(tH265VpsInfo));
+	    tGetBitBuf.pu8Buf = (uint8_t*)vps+2;
+	    tGetBitBuf.iBufSize = vps_len-2;
+	    if(0 != h265DecVideoParameterSet((void *) &tGetBitBuf, &tH265VpsInfo)){
+	        return false;
+    	}
+	}
+
+	if ( sps_len > 2 ){
+	    memset(&tGetBitBuf,0,sizeof(tGetBitBuf));
+	    memset(&tH265SpsInfo,0,sizeof(tH265SpsInfo));
+	    tGetBitBuf.pu8Buf = (uint8_t*)sps+2;
+	    tGetBitBuf.iBufSize = sps_len-2;
+	    if(0 != h265DecSeqParameterSet((void *) &tGetBitBuf, &tH265SpsInfo)){
+	        return false;
+	    }
+	}
+	else 
+		return false;
     h265GetWidthHeight(&tH265SpsInfo, &iVideoWidth, &iVideoHeight);
-    h265GeFramerate(&tH265SpsInfo, &iVideoFps);
-    //ErrorL << iVideoWidth << " " << iVideoHeight << " " << iVideoFps;
+	iVideoFps = 0;
+    h265GeFramerate(&tH265VpsInfo, &tH265SpsInfo, &iVideoFps);
+//    ErrorL << iVideoWidth << " " << iVideoHeight << " " << iVideoFps;
     return true;
 }
 
