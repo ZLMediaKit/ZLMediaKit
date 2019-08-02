@@ -237,184 +237,204 @@ typedef struct T_PPS {
 
 
 typedef struct T_HEVCWindow {
-    unsigned int left_offset;
-    unsigned int right_offset;
-    unsigned int top_offset;
-    unsigned int bottom_offset;
+    unsigned int uiLeftOffset;
+    unsigned int uiRightOffset;
+    unsigned int uiTopOffset;
+    unsigned int uiBottomOffset;
 } T_HEVCWindow;
 
 
 typedef struct T_VUI {
-    T_AVRational sar;
+    T_AVRational tSar;
 
-    int overscan_info_present_flag;
-    int overscan_appropriate_flag;
+    int iOverscanInfoPresentFlag;
+    int iOverscanAppropriateFlag;
 
-    int video_signal_type_present_flag;
-    int video_format;
-    int video_full_range_flag;
-    int colour_description_present_flag;
-    uint8_t colour_primaries;
-    uint8_t transfer_characteristic;
-    uint8_t matrix_coeffs;
+    int iVideoSignalTypePresentFlag;
+    int iVideoFormat;
+    int iVideoFullRangeFlag;
+    int iColourDescriptionPresentFlag;
+    uint8_t u8ColourPrimaries;
+    uint8_t u8TransferCharacteristic;
+    uint8_t u8MatrixCoeffs;
 
-    int chroma_loc_info_present_flag;
-    int chroma_sample_loc_type_top_field;
-    int chroma_sample_loc_type_bottom_field;
-    int neutra_chroma_indication_flag;
+    int iChromaLocInfoPresentFlag;
+    int iChromaSampleLocTypeTopField;
+    int iChromaSampleLocTypeBottomField;
+    int iNeutraChromaIndicationFlag;
 
-    int field_seq_flag;
-    int frame_field_info_present_flag;
+    int iFieldSeqFlag;
+    int iFrameFieldInfoPresentFlag;
 
-    int default_display_window_flag;
-    T_HEVCWindow def_disp_win;
+    int iDefaultDisplayWindowFlag;
+    T_HEVCWindow tDefDispWin;
 
-    int vui_timing_info_present_flag;
-    uint32_t vui_num_units_in_tick;
-    uint32_t vui_time_scale;
-    int vui_poc_proportional_to_timing_flag;
-    int vui_num_ticks_poc_diff_one_minus1;
-    int vui_hrd_parameters_present_flag;
+    int iVuiTimingInfoPresentFlag;
+    uint32_t u32VuiNumUnitsInTick;
+    uint32_t u32VuiTimeScale;
+    int iVuiPocProportionalToTimingFlag;
+    int iVuiNumTicksPocDiffOneMinus1;
+    int iVuiHrdParametersPresentFlag;
 
-    int bitstream_restriction_flag;
-    int tiles_fixed_structure_flag;
-    int motion_vectors_over_pic_boundaries_flag;
-    int restricted_ref_pic_lists_flag;
-    int min_spatial_segmentation_idc;
-    int max_bytes_per_pic_denom;
-    int max_bits_per_min_cu_denom;
-    int log2_max_mv_length_horizontal;
-    int log2_max_mv_length_vertical;
+    int iBitstreamRestrictionFlag;
+    int iTilesFixedStructureFlag;
+    int iMotionVectorsOverPicBoundariesFlag;
+    int iRestrictedRefPicListsFlag;
+    int iMinSpatialSegmentationIdc;
+    int iMaxBytesPerPicDenom;
+    int iMaxBitsPerMinCuDenom;
+    int iLog2MaxMvLengthHorizontal;
+    int iLog2MaxMvLengthVertical;
 } T_VUI;
 
 typedef struct T_PTLCommon {
-    uint8_t profile_space;
-    uint8_t tier_flag;
-    uint8_t profile_idc;
-    uint8_t profile_compatibility_flag[32];
-    uint8_t level_idc;
-    uint8_t progressive_source_flag;
-    uint8_t interlaced_source_flag;
-    uint8_t non_packed_constraint_flag;
-    uint8_t frame_only_constraint_flag;
+    uint8_t u8ProfileSpace;
+    uint8_t u8TierFlag;
+    uint8_t u8ProfileIdc;
+    uint8_t au8ProfileCompatibilityFlag[32];
+    uint8_t u8LevelIdc;
+    uint8_t u8ProgressiveSourceFlag;
+    uint8_t u8InterlacedSourceFlag;
+    uint8_t u8NonPackedConstraintFlag;
+    uint8_t u8FrameOnlyConstraintFlag;
 } T_PTLCommon;
 
 typedef struct T_PTL {
-    T_PTLCommon general_ptl;
-    T_PTLCommon sub_layer_ptl[HEVC_MAX_SUB_LAYERS];
+    T_PTLCommon tGeneralPtl;
+    T_PTLCommon atSubLayerPtl[HEVC_MAX_SUB_LAYERS];
 
-    uint8_t sub_layer_profile_present_flag[HEVC_MAX_SUB_LAYERS];
-    uint8_t sub_layer_level_present_flag[HEVC_MAX_SUB_LAYERS];
+    uint8_t au8SubLayerProfilePresentFlag[HEVC_MAX_SUB_LAYERS];
+    uint8_t au8SubLayerLevelPresentFlag[HEVC_MAX_SUB_LAYERS];
 } T_PTL;
 
 typedef struct T_ScalingList {
     /* This is a little wasteful, since sizeID 0 only needs 8 coeffs,
      * and size ID 3 only has 2 arrays, not 6. */
-    uint8_t sl[4][6][64];
-    uint8_t sl_dc[2][6];
+    uint8_t aaau8Sl[4][6][64];
+    uint8_t aau8SlDc[2][6];
 } T_ScalingList;
 
 typedef struct T_ShortTermRPS {
-    unsigned int num_negative_pics;
-    int num_delta_pocs;
-    int rps_idx_num_delta_pocs;
-    int32_t delta_poc[32];
-    uint8_t used[32];
+    unsigned int uiNumNegativePics;
+    int iNumDeltaPocs;
+    int iRpsIdxNumDeltaPocs;
+    int32_t au32DeltaPoc[32];
+    uint8_t au8Used[32];
 } T_ShortTermRPS;
 
 
+typedef struct T_HEVCVPS {
+    uint8_t u8VpsTemporalIdNestingFlag;
+    int iVpsMaxLayers;
+    int iVpsMaxSubLayers; ///< vps_max_temporal_layers_minus1 + 1
+
+    T_PTL tPtl;
+    int iVpsSubLayerOrderingInfoPresentFlag;
+    unsigned int uiVpsMaxDecPicBuffering[HEVC_MAX_SUB_LAYERS];
+    unsigned int auiVpsNumReorderPics[HEVC_MAX_SUB_LAYERS];
+    unsigned int auiVpsMaxLatencyIncrease[HEVC_MAX_SUB_LAYERS];
+    int iVpsMaxLayerId;
+    int iVpsNumLayerSets; ///< vps_num_layer_sets_minus1 + 1
+    uint8_t u8VpsTimingInfoPresentFlag;
+    uint32_t u32VpsNumUnitsInTick;
+    uint32_t u32VpsTimeScale;
+    uint8_t u8VpsPocProportionalToTimingFlag;
+    int iVpsNumTicksPocDiffOne; ///< vps_num_ticks_poc_diff_one_minus1 + 1
+    int iVpsNumHrdParameters;
+
+} T_HEVCVPS;
+
 typedef struct T_HEVCSPS {
-    unsigned vps_id;
-    int chroma_format_idc;
-    uint8_t separate_colour_plane_flag;
+    unsigned int  uiVpsId;
+    int iChromaFormatIdc;
+    uint8_t u8SeparateColourPlaneFlag;
 
     ///< output (i.e. cropped) values
-    int output_width, output_height;
-    T_HEVCWindow output_window;
+    int iIutputWidth, iOutputHeight;
+    T_HEVCWindow tOutputWindow;
 
-    T_HEVCWindow pic_conf_win;
+    T_HEVCWindow tPicConfWin;
 
-    int bit_depth;	
-    int bit_depth_chroma;
-    int pixel_shift;
-//    enum AVPixelFormat pix_fmt;
+    int iBitDepth;	
+    int iBitDepthChroma;
+    int iPixelShift;
 
-    unsigned int log2_max_poc_lsb;
-    int pcm_enabled_flag;
+    unsigned int uiLog2MaxPocLsb;
+    int iPcmEnabledFlag;
 
-    int max_sub_layers;
+    int iMaxSubLayers;
     struct {
-        int max_dec_pic_buffering;
-        int num_reorder_pics;
-        int max_latency_increase;
-    } temporal_layer[HEVC_MAX_SUB_LAYERS];
-    uint8_t temporal_id_nesting_flag;
+        int iMaxDecPicBuffering;
+        int iNumReorderPics;
+        int iMaxLatencyIncrease;
+    } stTemporalLayer[HEVC_MAX_SUB_LAYERS];
+    uint8_t u8temporalIdNestingFlag;
 
-    T_VUI vui;
-    T_PTL ptl;
+    T_VUI tVui;
+    T_PTL tPtl;
 
-    uint8_t scaling_list_enable_flag;
-    T_ScalingList scaling_list;
+    uint8_t u8ScalingListEnableFlag;
+    T_ScalingList tScalingList;
 
-    unsigned int nb_st_rps;
-    T_ShortTermRPS st_rps[HEVC_MAX_SHORT_TERM_RPS_COUNT];
+    unsigned int uiNbStRps;
+    T_ShortTermRPS atStRps[HEVC_MAX_SHORT_TERM_RPS_COUNT];
 
-    uint8_t amp_enabled_flag;
-    uint8_t sao_enabled;
+    uint8_t u8AmpEnabledFlag;
+    uint8_t u8SaoEnabled;
 
-    uint8_t long_term_ref_pics_present_flag;
-    uint16_t lt_ref_pic_poc_lsb_sps[32];
-    uint8_t used_by_curr_pic_lt_sps_flag[32];
-    uint8_t num_long_term_ref_pics_sps;
+    uint8_t u8LongTermRefPicsPresentFlag;
+    uint16_t au16LtRefPicPocLsbSps[32];
+    uint8_t au8UsedByCurrPicLtSpsFlag[32];
+    uint8_t u8NumLongTermRefPicsSps;
 
     struct {
-        uint8_t bit_depth;
-        uint8_t bit_depth_chroma;
-        unsigned int log2_min_pcm_cb_size;
-        unsigned int log2_max_pcm_cb_size;
-        uint8_t loop_filter_disable_flag;
+        uint8_t u8BitDepth;
+        uint8_t u8BitDepthChroma;
+        unsigned int uiLog2MinPcmCbSize;
+        unsigned int uiLog2MaxPcmCbSize;
+        uint8_t u8LoopFilterDisableFlag;
     } pcm;
-    uint8_t sps_temporal_mvp_enabled_flag;
-    uint8_t sps_strong_intra_smoothing_enable_flag;
+    uint8_t u8SpsTemporalMvpEnabledFlag;
+    uint8_t u8SpsStrongIntraMmoothingEnableFlag;
 
-    unsigned int log2_min_cb_size;
-    unsigned int log2_diff_max_min_coding_block_size;
-    unsigned int log2_min_tb_size;
-    unsigned int log2_max_trafo_size;
-    unsigned int log2_ctb_size;
-    unsigned int log2_min_pu_size;
+    unsigned int uiLog2MinCbSize;
+    unsigned int uiLog2DiffMaxMinCodingBlockSize;
+    unsigned int uiLog2MinTbSize;
+    unsigned int uiLog2MaxTrafoSize;
+    unsigned int uiLog2CtbSize;
+    unsigned int uiLog2MinPuSize;
 
-    int max_transform_hierarchy_depth_inter;
-    int max_transform_hierarchy_depth_intra;
+    int iMaxTransformHierarchyDepthInter;
+    int iMaxTransformHierarchyDepthIntra;
 
-    int transform_skip_rotation_enabled_flag;
-    int transform_skip_context_enabled_flag;
-    int implicit_rdpcm_enabled_flag;
-    int explicit_rdpcm_enabled_flag;
-    int intra_smoothing_disabled_flag;
-    int persistent_rice_adaptation_enabled_flag;
+    int iTransformSkipRotationEnabledFlag;
+    int iTransformSkipContextEnabledFlag;
+    int iImplicitRdpcmEnabledFlag;
+    int iExplicitRdpcmEnabledFlag;
+    int iIntraSmoothingDisabledFlag;
+    int iHighPrecisionOffsetsEnabledFlag;
+    int iPersistentRiceAdaptationEnabledFlag;
 
     ///< coded frame dimension in various units
-    int width;
-    int height;
-    int ctb_width;
-    int ctb_height;
-    int ctb_size;
-    int min_cb_width;
-    int min_cb_height;
-    int min_tb_width;
-    int min_tb_height;
-    int min_pu_width;
-    int min_pu_height;
-    int tb_mask;
+    int iWidth;
+    int iHeight;
+    int iCtbWidth;
+    int iCtbHeight;
+    int iCtbSize;
+    int iMinCbWidth;
+    int iMinCbHeight;
+    int iMinTbWidth;
+    int iMinTbHeight;
+    int iMinPuWidth;
+    int iMinPuHeight;
+    int iTbMask;
 
-    int hshift[3];
-    int vshift[3];
+    int aiHshift[3];
+    int aiVshift[3];
 
-    int qp_bd_offset;
+    int iQpBdOffset;
 
-    uint8_t data[4096];
-    int data_size;
+	int iVuiPresent;
 }T_HEVCSPS;
 
 
@@ -428,13 +448,15 @@ typedef struct T_GetBitContext{
 
 
 int h264DecSeqParameterSet(void *pvBuf, T_SPS *ptSps);
-int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *p_sps );
+int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps );
+int h265DecVideoParameterSet( void *pvBufSrc, T_HEVCVPS *ptVps );
+
 
 void h264GetWidthHeight(T_SPS *ptSps, int *piWidth, int *piHeight);
 void h265GetWidthHeight(T_HEVCSPS *ptSps, int *piWidth, int *piHeight);
 
 void h264GeFramerate(T_SPS *ptSps, float *pfFramerate);
-void h265GeFramerate(T_HEVCSPS *ptSps, float *pfFramerate);
+void h265GeFramerate(T_HEVCVPS *ptVps, T_HEVCSPS *ptSps,float *pfFramerate);
 
 #if defined (__cplusplus)
 }
