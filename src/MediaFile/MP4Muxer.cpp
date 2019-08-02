@@ -79,11 +79,13 @@ void MP4Muxer::onTrackFrame(const Frame::Ptr &frame) {
         return;
     }
 
-    if(frame->getTrackType() == TrackVideo){
-        if(!_started && !frame->keyFrame()){
-            //第一帧必须是I帧，防止花屏
+    if(!_started){
+        //还没开始
+        if(frame->getTrackType() != TrackVideo || !frame->keyFrame()){
+            //如果首帧是音频或者是视频但是不是i帧，那么不能开始写文件
             return;
         }
+        //开始写文件
         _started = true;
     }
 
