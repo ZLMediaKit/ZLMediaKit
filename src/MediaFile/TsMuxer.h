@@ -38,12 +38,12 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class TsMuxer : public MediaSink{
+class TsMuxer {
 public:
     TsMuxer();
     virtual ~TsMuxer();
-    void addTrack(const Track::Ptr &track) override;
-    void inputFrame(const Frame::Ptr &frame) override ;
+    void addTrack(const Track::Ptr &track) ;
+    void inputFrame(const Frame::Ptr &frame)  ;
 protected:
     virtual void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) = 0;
     void resetTracks();
