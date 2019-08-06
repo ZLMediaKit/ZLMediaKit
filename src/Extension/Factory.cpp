@@ -36,10 +36,10 @@ namespace mediakit{
 Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     if (strcasecmp(track->_codec.data(), "mpeg4-generic") == 0) {
         string aac_cfg_str = FindField(track->_fmtp.data(), "config=", nullptr);
-        if (aac_cfg_str.size() != 4) {
+        if (aac_cfg_str.empty()) {
             aac_cfg_str = FindField(track->_fmtp.data(), "config=", ";");
         }
-        if (aac_cfg_str.size() != 4) {
+        if (aac_cfg_str.empty()) {
             //延后获取adts头
             return std::make_shared<AACTrack>();
         }
