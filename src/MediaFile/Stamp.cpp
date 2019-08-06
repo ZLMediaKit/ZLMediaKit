@@ -33,6 +33,12 @@ void Stamp::revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_ou
         //记录第一次时间戳，后面好计算时间戳增量
         _start_dts = dts;
         _first = false;
+        _ticker = std::make_shared<SmoothTicker>();
+    }
+    //pts和dts的差值
+    int pts_dts_diff = pts - dts;
+    if(_modifyStamp){
+        dts = _ticker->elapsedTime();
     }
 
     //相对时间戳
@@ -58,8 +64,7 @@ void Stamp::revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_ou
         //没有播放时间戳
         pts = dts;
     }
-    //pts和dts的差值
-    int pts_dts_diff = pts - dts;
+
     if(pts_dts_diff > 200 || pts_dts_diff < -200){
         //如果差值大于200毫秒，则认为由于回环导致时间戳错乱了
         pts_dts_diff = 0;

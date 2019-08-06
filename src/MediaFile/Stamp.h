@@ -27,20 +27,23 @@
 #ifndef ZLMEDIAKIT_STAMP_H
 #define ZLMEDIAKIT_STAMP_H
 
-
+#include "Util/TimeTicker.h"
 #include <cstdint>
+using namespace toolkit;
 
 namespace mediakit {
 
 class Stamp {
 public:
-    Stamp() = default;
+    Stamp(bool modifyStamp = false) {_modifyStamp = modifyStamp;};
     ~Stamp() = default;
     void revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_out);
 private:
     int64_t _start_dts = 0;
     int64_t _dts_inc = 0;
     bool _first = true;
+    bool _modifyStamp;
+    std::shared_ptr<SmoothTicker> _ticker;
 };
 
 }//namespace mediakit
