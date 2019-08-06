@@ -127,6 +127,14 @@ public:
                              "日志等级,LTrace~LError(0~4)",/*该选项说明文字*/
                              nullptr);
 
+        (*_parser) << Option('m',/*该选项简称，如果是\x00则说明无简称*/
+                             "max_day",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
+                             Option::ArgRequired,/*该选项后面必须跟值*/
+                             "7",/*该选项默认值*/
+                             false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
+                             "日志等级最多保存天数",/*该选项说明文字*/
+                             nullptr);
+
         (*_parser) << Option('c',/*该选项简称，如果是\x00则说明无简称*/
                              "config",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
                              Option::ArgRequired,/*该选项后面必须跟值*/
@@ -216,11 +224,10 @@ int main(int argc,char *argv[]) {
 
         //设置日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
-#if defined(__linux__) || defined(__linux)
-        Logger::Instance().add(std::make_shared<SysLogChannel>("SysLogChannel",logLevel));
-#else
-        Logger::Instance().add(std::make_shared<FileChannel>("FileChannel", exePath() + ".log", logLevel));
-#endif
+        auto fileChannel = std::make_shared<FileChannel>("FileChannel", exeDir() + "log/", logLevel);
+        //日志最多保存天数
+        fileChannel->setMaxDay(cmd_main["max_day"]);
+        Logger::Instance().add(fileChannel);
 
 #if !defined(_WIN32)
         if (bDaemon) {
