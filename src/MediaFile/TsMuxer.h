@@ -60,7 +60,7 @@ private:
         Stamp stamp;
     };
     unordered_map<int,track_info> _codec_to_trackid;
-    List<Frame::Ptr> _frameCached;
+    string _config_frame_cache;
 };
 
 }//namespace mediakit

@@ -73,28 +73,38 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
     switch (frame->getCodecId()){
         case CodecH265:
         case CodecH264: {
-            //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            if (!_frameCached.empty() && _frameCached.back()->dts() != frame->dts()) {
-                Frame::Ptr back = _frameCached.back();
-                Buffer::Ptr merged_frame = back;
-                if(_frameCached.size() != 1){
-                    string merged;
-                    _frameCached.for_each([&](const Frame::Ptr &frame){
-                        if(frame->prefixSize()){
-                            merged.append(frame->data(),frame->size());
-                        } else{
-                            merged.append("\x00\x00\x00\x01",4);
-                            merged.append(frame->data(),frame->size());
-                        }
-                    });
-                    merged_frame = std::make_shared<BufferString>(std::move(merged));
-                }
-                track_info.stamp.revise(back->dts(),back->pts(),dts_out,pts_out);
-                _timestamp = dts_out;
-                mpeg_ts_write(_context, track_info.track_id, back->keyFrame() ? 0x0001 : 0, pts_out * 90LL, dts_out * 90LL, merged_frame->data(),  merged_frame->size());
-                _frameCached.clear();
+
+            Buffer::Ptr merged_frame ;
+            if(frame->configFrame()){
+                //配置帧,缓存后直接返回，以便下次输入关键帧时使用
+                _config_frame_cache.append("\x00\x00\x00\x01",4);
+                _config_frame_cache.append(frame->data() + frame->prefixSize(),frame->size() - frame->prefixSize());
+                break;
             }
-            _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
+
+            if(frame->keyFrame()){
+                //关键帧
+                if(!_config_frame_cache.empty()){
+                    //有配置帧,那么配置帧合并关键帧后输入ts打包
+                    _config_frame_cache.append("\x00\x00\x00\x01",4);
+                    _config_frame_cache.append(frame->data() + frame->prefixSize(),frame->size() - frame->prefixSize());
+                    merged_frame = std::make_shared<BufferString>(std::move(_config_frame_cache));
+                    _config_frame_cache.clear();
+                }else{
+                    //这是非第一个的关键帧(h265有多种关键帧)
+                    merged_frame = frame;
+                }
+            }else{
+                //这里是普通帧，例如B/P，
+                merged_frame = frame;
+                //sps、pps这些配置帧清空掉
+                _config_frame_cache.clear();
+            }
+
+            //输入到ts文件
+            track_info.stamp.revise(frame->dts(),frame->pts(),dts_out,pts_out);
+            _timestamp = dts_out;
+            mpeg_ts_write(_context, track_info.track_id, frame->keyFrame() ? 0x0001 : 0, pts_out * 90LL, dts_out * 90LL, merged_frame->data(),  merged_frame->size());
         }
             break;
         default: {
