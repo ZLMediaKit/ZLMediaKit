@@ -959,7 +959,7 @@ void HttpSession::onWrite(const Buffer::Ptr &buffer) {
 
 void HttpSession::onWebSocketEncodeData(const uint8_t *ptr,uint64_t len){
     _ui64TotalBytes += len;
-    SocketHelper::send((char *)ptr,len);
+    send((char *)ptr,len);
 }
 
 void HttpSession::onDetach() {
