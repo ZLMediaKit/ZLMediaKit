@@ -1,4 +1,4 @@
-﻿/*
+﻿ /*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -27,19 +27,17 @@
 #ifndef MP4MAKER_H_
 #define MP4MAKER_H_
 
-#ifdef ENABLE_MP4V2
+#ifdef ENABLE_MP4RECORD
 
 #include <mutex>
 #include <memory>
-#include <mp4v2/mp4v2.h>
 #include "Player/PlayerBase.h"
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Util/TimeTicker.h"
 #include "Util/TimeTicker.h"
 #include "Common/MediaSink.h"
-#include "Extension/Track.h"
-
+#include "MP4Muxer.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -72,44 +70,29 @@ private:
      */
 	void onTrackFrame(const Frame::Ptr &frame) override ;
 
-	/**
-	 * 所有Track准备好了
-	 */
-	void onAllTrackReady() override;
+    /**
+     * 某track已经准备好，其ready()状态返回true，
+     * 此时代表可以获取其例如sps pps等相关信息了
+     * @param track
+     */
+    void onTrackReady(const Track::Ptr & track) override;
 private:
     void createFile();
     void closeFile();
     void asyncClose();
-
-	//时间戳：参考频率1000
-	void inputH264(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
-	//时间戳：参考频率1000
-	void inputAAC(void *pData, uint32_t ui32Length, uint32_t ui32TimeStamp);
-
-	void inputH264_l(void *pData, uint32_t ui32Length, uint32_t ui64Duration);
-    void inputAAC_l(void *pData, uint32_t ui32Length, uint32_t ui64Duration);
 private:
-	MP4FileHandle _hMp4 = MP4_INVALID_FILE_HANDLE;
-	MP4TrackId _hVideo = MP4_INVALID_TRACK_ID;
-	MP4TrackId _hAudio = MP4_INVALID_TRACK_ID;
 	string _strPath;
 	string _strFile;
 	string _strFileTmp;
-	Ticker _ticker;
-
-	string _strLastVideo;
-	string _strLastAudio;
-
-	uint32_t _ui32LastVideoTime = 0;
-	uint32_t _ui32LastAudioTime = 0;
+	Ticker _createFileTicker;
 	Mp4Info _info;
-
 	bool _haveVideo = false;
-	int _audioSampleRate;
+	MP4MuxerFile::Ptr _muxer;
+	list<Track::Ptr> _tracks;
 };
 
 } /* namespace mediakit */
 
-#endif ///ENABLE_MP4V2
+#endif ///ENABLE_MP4RECORD
 
 #endif /* MP4MAKER_H_ */

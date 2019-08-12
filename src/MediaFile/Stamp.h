@@ -23,26 +23,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef IPTV_PROCESS_H
-#define IPTV_PROCESS_H
 
-#include <sys/wait.h>
-#include <sys/fcntl.h>
-#include <string>
-using namespace std;
+#ifndef ZLMEDIAKIT_STAMP_H
+#define ZLMEDIAKIT_STAMP_H
 
-class Process {
+#include "Util/TimeTicker.h"
+#include <cstdint>
+using namespace toolkit;
+
+namespace mediakit {
+
+class Stamp {
 public:
-    Process();
-    ~Process();
-    void run(const string &cmd,const string &log_file);
-    void kill(int max_delay);
-    bool wait(bool block = true);
-    int exit_code();
+    Stamp(bool modifyStamp = false) {_modifyStamp = modifyStamp;};
+    ~Stamp() = default;
+    void revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_out);
 private:
-    pid_t _pid = -1;
-    int _exit_code = 0;
+    int64_t _start_dts = 0;
+    int64_t _dts_inc = 0;
+    bool _first = true;
+    bool _modifyStamp;
+    std::shared_ptr<SmoothTicker> _ticker;
 };
 
+}//namespace mediakit
 
-#endif //IPTV_PROCESS_H
+#endif //ZLMEDIAKIT_STAMP_H

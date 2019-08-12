@@ -99,6 +99,7 @@ private:
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
     bool _allTrackReady = false;
+    bool _anyTrackUnReady = false;
     Ticker _ticker;
 };
 

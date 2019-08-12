@@ -63,7 +63,7 @@
 |         RTMP --> RTSP[S]         |  Y   |  N   |  Y   |   N   |
 |         RTSP[S] --> HLS          |  Y   |  Y   |  Y   |   N   |
 |           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
-|         RTSP[S] --> MP4          |  Y   |  N   |  Y   |   N   |
+|         RTSP[S] --> MP4          |  Y   |  Y   |  Y   |   N   |
 |           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
 |         MP4 --> RTSP[S]          |  Y   |  N   |  Y   |   N   |
 |           MP4 --> RTMP           |  Y   |  N   |  Y   |   N   |
@@ -73,9 +73,9 @@
 | feature/codec | H264 | H265 | AAC  | other |
 | :-----------: | :--: | :--: | :--: | :---: |
 | RTSP[S] push  |  Y   |  Y   |  Y   |   Y   |
-|  RTSP proxy   |  Y   |  Y   |  Y   |   N   |
+|  RTSP proxy   |  Y   |  Y   |  Y   |   Y   |
 |   RTMP push   |  Y   |  Y   |  Y   |   Y   |
-|  RTMP proxy   |  Y   |  N   |  Y   |   N   |
+|  RTMP proxy   |  Y   |  Y   |  Y   |   Y   |
 
 - RTP transport:
 
