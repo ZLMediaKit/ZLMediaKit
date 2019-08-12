@@ -36,10 +36,10 @@ namespace mediakit{
 Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     if (strcasecmp(track->_codec.data(), "mpeg4-generic") == 0) {
         string aac_cfg_str = FindField(track->_fmtp.data(), "config=", nullptr);
-        if (aac_cfg_str.size() != 4) {
+        if (aac_cfg_str.empty()) {
             aac_cfg_str = FindField(track->_fmtp.data(), "config=", ";");
         }
-        if (aac_cfg_str.size() != 4) {
+        if (aac_cfg_str.empty()) {
             //延后获取adts头
             return std::make_shared<AACTrack>();
         }
@@ -76,8 +76,14 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
 
     if (strcasecmp(track->_codec.data(), "h265") == 0) {
         //a=fmtp:96 sprop-sps=QgEBAWAAAAMAsAAAAwAAAwBdoAKAgC0WNrkky/AIAAADAAgAAAMBlQg=; sprop-pps=RAHA8vA8kAA=
-        int pt;
+        int pt, id;
         char sprop_vps[128] = {0},sprop_sps[128] = {0},sprop_pps[128] = {0};
+        if (5 == sscanf(track->_fmtp.data(), "%d profile-id=%d; sprop-sps=%127[^;]; sprop-pps=%127[^;]; sprop-vps=%127[^;]", &pt, &id, sprop_sps,sprop_pps, sprop_vps)) {
+            auto vps = decodeBase64(sprop_vps);
+            auto sps = decodeBase64(sprop_sps);
+            auto pps = decodeBase64(sprop_pps);
+            return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
+        }
         if (4 == sscanf(track->_fmtp.data(), "%d sprop-vps=%127[^;]; sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt, sprop_vps,sprop_sps, sprop_pps)) {
             auto vps = decodeBase64(sprop_vps);
             auto sps = decodeBase64(sprop_sps);

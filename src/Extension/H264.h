@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -36,7 +36,6 @@ using namespace toolkit;
 namespace mediakit{
 
 bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
 void splitH264(const char *ptr, int len, const std::function<void(const char *, int)> &cb);
 
 /**
@@ -80,13 +79,21 @@ public:
     }
 
     bool keyFrame() const override {
-        return type == NAL_IDR;
+        return H264_TYPE(buffer[iPrefixSize]) == H264Frame::NAL_IDR;
+    }
+
+    bool configFrame() const override{
+        switch(H264_TYPE(buffer[iPrefixSize]) ){
+            case H264Frame::NAL_SPS:
+            case H264Frame::NAL_PPS:
+                return true;
+            default:
+                return false;
+        }
     }
 public:
-    uint16_t sequence;
     uint32_t timeStamp;
     uint32_t ptsStamp = 0;
-    unsigned char type;
     string buffer;
     uint32_t iPrefixSize = 4;
 };
@@ -119,6 +126,16 @@ public:
 
     bool keyFrame() const override {
         return H264_TYPE(_ptr[_prefixSize]) == H264Frame::NAL_IDR;
+    }
+
+    bool configFrame() const override{
+        switch(H264_TYPE(_ptr[_prefixSize])){
+            case H264Frame::NAL_SPS:
+            case H264Frame::NAL_PPS:
+                return true;
+            default:
+                return false;
+        }
     }
 };
 
@@ -326,7 +343,6 @@ private:
 
         if(!_sps.empty()){
             auto spsFrame = std::make_shared<H264Frame>();
-            spsFrame->type = H264Frame::NAL_SPS;
             spsFrame->iPrefixSize = 4;
             spsFrame->buffer.assign("\x0\x0\x0\x1",4);
             spsFrame->buffer.append(_sps);
@@ -336,7 +352,6 @@ private:
 
         if(!_pps.empty()){
             auto ppsFrame = std::make_shared<H264Frame>();
-            ppsFrame->type = H264Frame::NAL_PPS;
             ppsFrame->iPrefixSize = 4;
             ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
             ppsFrame->buffer.append(_pps);

@@ -32,9 +32,6 @@ using namespace toolkit;
 
 namespace mediakit{
 
-bool getAVCInfo(const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
-    return getAVCInfo(strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
-}
 bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
     T_GetBitContext tGetBitBuf;
     T_SPS tH264SpsInfo;
@@ -51,6 +48,9 @@ bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight
     return true;
 }
 
+bool getAVCInfo(const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
+    return getAVCInfo(strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
+}
 
 const char *memfind(const char *buf, int len, const char *subbuf, int sublen) {
     for (auto i = 0; i < len - sublen; ++i) {

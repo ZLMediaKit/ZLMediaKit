@@ -79,6 +79,10 @@ public:
     bool keyFrame() const override {
         return false;
     }
+
+    bool configFrame() const override{
+        return false;
+    }
 public:
     unsigned int syncword = 0; //12 bslbf 同步字The bit string ‘1111 1111 1111’，说明一个ADTS帧的开始
     unsigned int id;        //1 bslbf   MPEG 标示符, 设置为1
@@ -125,6 +129,10 @@ public:
     }
 
     bool keyFrame() const override {
+        return false;
+    }
+
+    bool configFrame() const override{
         return false;
     }
 } ;

@@ -118,6 +118,12 @@ public:
     virtual bool keyFrame() const = 0;
 
     /**
+     * 是否为配置帧，譬如sps pps vps
+     * @return
+     */
+    virtual bool configFrame() const = 0;
+
+    /**
      * 是否可以缓存
      */
     virtual bool cacheAble() const { return true; }
@@ -371,6 +377,7 @@ public:
         _trackType = frame->getTrackType();
         _codec = frame->getCodecId();
         _key = frame->keyFrame();
+        _config = frame->configFrame();
     }
 
     virtual ~FrameCacheAble() = default;
@@ -394,12 +401,17 @@ public:
     bool keyFrame() const override{
         return _key;
     }
+
+    bool configFrame() const override{
+        return _config;
+    }
 private:
     Frame::Ptr _frame;
     BufferRaw::Ptr _buffer;
     TrackType _trackType;
     CodecId _codec;
     bool _key;
+    bool _config;
 };
 
 

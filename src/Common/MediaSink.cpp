@@ -41,7 +41,7 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
         if(!strongSelf){
             return;
         }
-        if(strongSelf->_allTrackReady){
+        if(!strongSelf->_anyTrackUnReady){
             strongSelf->onTrackFrame(frame);
         }
     }));
@@ -53,6 +53,7 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
     if(track->ready()){
         lam();
     }else{
+        _anyTrackUnReady = true;
         _allTrackReady = false;
         _trackReadyCallback[codec_id] = lam;
         _ticker.resetTime();
@@ -79,7 +80,7 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
 
     if(!_allTrackReady && (_trackReadyCallback.empty() || _ticker.elapsedTime() > MAX_WAIT_MS)){
         _allTrackReady = true;
-
+        _anyTrackUnReady = false;
         if(!_trackReadyCallback.empty()){
             //这是超时强制忽略未准备好的Track
             _trackReadyCallback.clear();

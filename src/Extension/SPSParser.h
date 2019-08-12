@@ -7,6 +7,15 @@
 
 #define QP_MAX_NUM (51 + 6*6)           // The maximum supported qp
 
+#define HEVC_MAX_SHORT_TERM_RPS_COUNT 64
+
+#define T_PROFILE_HEVC_MAIN                        1
+#define T_PROFILE_HEVC_MAIN_10                     2
+#define T_PROFILE_HEVC_MAIN_STILL_PICTURE          3
+#define T_PROFILE_HEVC_REXT                        4
+
+
+
 /**
   * Chromaticity coordinates of the source primaries.
   */
@@ -64,6 +73,62 @@ enum T_AVColorSpace {
     AVCOL_SPC_BT2020_NCL  = 9,  ///< ITU-R BT2020 non-constant luminance system
     AVCOL_SPC_BT2020_CL   = 10, ///< ITU-R BT2020 constant luminance system
     AVCOL_SPC_NB,               ///< Not part of ABI
+};
+
+
+enum {
+    // 7.4.3.1: vps_max_layers_minus1 is in [0, 62].
+    HEVC_MAX_LAYERS     = 63,
+    // 7.4.3.1: vps_max_sub_layers_minus1 is in [0, 6].
+    HEVC_MAX_SUB_LAYERS = 7,
+    // 7.4.3.1: vps_num_layer_sets_minus1 is in [0, 1023].
+    HEVC_MAX_LAYER_SETS = 1024,
+
+    // 7.4.2.1: vps_video_parameter_set_id is u(4).
+    HEVC_MAX_VPS_COUNT = 16,
+    // 7.4.3.2.1: sps_seq_parameter_set_id is in [0, 15].
+    HEVC_MAX_SPS_COUNT = 16,
+    // 7.4.3.3.1: pps_pic_parameter_set_id is in [0, 63].
+    HEVC_MAX_PPS_COUNT = 64,
+
+    // A.4.2: MaxDpbSize is bounded above by 16.
+    HEVC_MAX_DPB_SIZE = 16,
+    // 7.4.3.1: vps_max_dec_pic_buffering_minus1[i] is in [0, MaxDpbSize - 1].
+    HEVC_MAX_REFS     = HEVC_MAX_DPB_SIZE,
+
+    // 7.4.3.2.1: num_short_term_ref_pic_sets is in [0, 64].
+    HEVC_MAX_SHORT_TERM_REF_PIC_SETS = 64,
+    // 7.4.3.2.1: num_long_term_ref_pics_sps is in [0, 32].
+    HEVC_MAX_LONG_TERM_REF_PICS      = 32,
+
+    // A.3: all profiles require that CtbLog2SizeY is in [4, 6].
+    HEVC_MIN_LOG2_CTB_SIZE = 4,
+    HEVC_MAX_LOG2_CTB_SIZE = 6,
+
+    // E.3.2: cpb_cnt_minus1[i] is in [0, 31].
+    HEVC_MAX_CPB_CNT = 32,
+
+    // A.4.1: in table A.6 the highest level allows a MaxLumaPs of 35 651 584.
+    HEVC_MAX_LUMA_PS = 35651584,
+    // A.4.1: pic_width_in_luma_samples and pic_height_in_luma_samples are
+    // constrained to be not greater than sqrt(MaxLumaPs * 8).  Hence height/
+    // width are bounded above by sqrt(8 * 35651584) = 16888.2 samples.
+    HEVC_MAX_WIDTH  = 16888,
+    HEVC_MAX_HEIGHT = 16888,
+
+    // A.4.1: table A.6 allows at most 22 tile rows for any level.
+    HEVC_MAX_TILE_ROWS    = 22,
+    // A.4.1: table A.6 allows at most 20 tile columns for any level.
+    HEVC_MAX_TILE_COLUMNS = 20,
+
+    // 7.4.7.1: in the worst case (tiles_enabled_flag and
+    // entropy_coding_sync_enabled_flag are both set), entry points can be
+    // placed at the beginning of every Ctb row in every tile, giving an
+    // upper bound of (num_tile_columns_minus1 + 1) * PicHeightInCtbsY - 1.
+    // Only a stream with very high resolution and perverse parameters could
+    // get near that, though, so set a lower limit here with the maximum
+    // possible value for 4K video (at most 135 16x16 Ctb rows).
+    HEVC_MAX_ENTRY_POINT_OFFSETS = HEVC_MAX_TILE_COLUMNS * 135,
 };
 
 
@@ -170,6 +235,209 @@ typedef struct T_PPS {
     int iChromaQpDiff;
 } T_PPS;
 
+
+typedef struct T_HEVCWindow {
+    unsigned int uiLeftOffset;
+    unsigned int uiRightOffset;
+    unsigned int uiTopOffset;
+    unsigned int uiBottomOffset;
+} T_HEVCWindow;
+
+
+typedef struct T_VUI {
+    T_AVRational tSar;
+
+    int iOverscanInfoPresentFlag;
+    int iOverscanAppropriateFlag;
+
+    int iVideoSignalTypePresentFlag;
+    int iVideoFormat;
+    int iVideoFullRangeFlag;
+    int iColourDescriptionPresentFlag;
+    uint8_t u8ColourPrimaries;
+    uint8_t u8TransferCharacteristic;
+    uint8_t u8MatrixCoeffs;
+
+    int iChromaLocInfoPresentFlag;
+    int iChromaSampleLocTypeTopField;
+    int iChromaSampleLocTypeBottomField;
+    int iNeutraChromaIndicationFlag;
+
+    int iFieldSeqFlag;
+    int iFrameFieldInfoPresentFlag;
+
+    int iDefaultDisplayWindowFlag;
+    T_HEVCWindow tDefDispWin;
+
+    int iVuiTimingInfoPresentFlag;
+    uint32_t u32VuiNumUnitsInTick;
+    uint32_t u32VuiTimeScale;
+    int iVuiPocProportionalToTimingFlag;
+    int iVuiNumTicksPocDiffOneMinus1;
+    int iVuiHrdParametersPresentFlag;
+
+    int iBitstreamRestrictionFlag;
+    int iTilesFixedStructureFlag;
+    int iMotionVectorsOverPicBoundariesFlag;
+    int iRestrictedRefPicListsFlag;
+    int iMinSpatialSegmentationIdc;
+    int iMaxBytesPerPicDenom;
+    int iMaxBitsPerMinCuDenom;
+    int iLog2MaxMvLengthHorizontal;
+    int iLog2MaxMvLengthVertical;
+} T_VUI;
+
+typedef struct T_PTLCommon {
+    uint8_t u8ProfileSpace;
+    uint8_t u8TierFlag;
+    uint8_t u8ProfileIdc;
+    uint8_t au8ProfileCompatibilityFlag[32];
+    uint8_t u8LevelIdc;
+    uint8_t u8ProgressiveSourceFlag;
+    uint8_t u8InterlacedSourceFlag;
+    uint8_t u8NonPackedConstraintFlag;
+    uint8_t u8FrameOnlyConstraintFlag;
+} T_PTLCommon;
+
+typedef struct T_PTL {
+    T_PTLCommon tGeneralPtl;
+    T_PTLCommon atSubLayerPtl[HEVC_MAX_SUB_LAYERS];
+
+    uint8_t au8SubLayerProfilePresentFlag[HEVC_MAX_SUB_LAYERS];
+    uint8_t au8SubLayerLevelPresentFlag[HEVC_MAX_SUB_LAYERS];
+} T_PTL;
+
+typedef struct T_ScalingList {
+    /* This is a little wasteful, since sizeID 0 only needs 8 coeffs,
+     * and size ID 3 only has 2 arrays, not 6. */
+    uint8_t aaau8Sl[4][6][64];
+    uint8_t aau8SlDc[2][6];
+} T_ScalingList;
+
+typedef struct T_ShortTermRPS {
+    unsigned int uiNumNegativePics;
+    int iNumDeltaPocs;
+    int iRpsIdxNumDeltaPocs;
+    int32_t au32DeltaPoc[32];
+    uint8_t au8Used[32];
+} T_ShortTermRPS;
+
+
+typedef struct T_HEVCVPS {
+    uint8_t u8VpsTemporalIdNestingFlag;
+    int iVpsMaxLayers;
+    int iVpsMaxSubLayers; ///< vps_max_temporal_layers_minus1 + 1
+
+    T_PTL tPtl;
+    int iVpsSubLayerOrderingInfoPresentFlag;
+    unsigned int uiVpsMaxDecPicBuffering[HEVC_MAX_SUB_LAYERS];
+    unsigned int auiVpsNumReorderPics[HEVC_MAX_SUB_LAYERS];
+    unsigned int auiVpsMaxLatencyIncrease[HEVC_MAX_SUB_LAYERS];
+    int iVpsMaxLayerId;
+    int iVpsNumLayerSets; ///< vps_num_layer_sets_minus1 + 1
+    uint8_t u8VpsTimingInfoPresentFlag;
+    uint32_t u32VpsNumUnitsInTick;
+    uint32_t u32VpsTimeScale;
+    uint8_t u8VpsPocProportionalToTimingFlag;
+    int iVpsNumTicksPocDiffOne; ///< vps_num_ticks_poc_diff_one_minus1 + 1
+    int iVpsNumHrdParameters;
+
+} T_HEVCVPS;
+
+typedef struct T_HEVCSPS {
+    unsigned int  uiVpsId;
+    int iChromaFormatIdc;
+    uint8_t u8SeparateColourPlaneFlag;
+
+    ///< output (i.e. cropped) values
+    int iIutputWidth, iOutputHeight;
+    T_HEVCWindow tOutputWindow;
+
+    T_HEVCWindow tPicConfWin;
+
+    int iBitDepth;	
+    int iBitDepthChroma;
+    int iPixelShift;
+
+    unsigned int uiLog2MaxPocLsb;
+    int iPcmEnabledFlag;
+
+    int iMaxSubLayers;
+    struct {
+        int iMaxDecPicBuffering;
+        int iNumReorderPics;
+        int iMaxLatencyIncrease;
+    } stTemporalLayer[HEVC_MAX_SUB_LAYERS];
+    uint8_t u8temporalIdNestingFlag;
+
+    T_VUI tVui;
+    T_PTL tPtl;
+
+    uint8_t u8ScalingListEnableFlag;
+    T_ScalingList tScalingList;
+
+    unsigned int uiNbStRps;
+    T_ShortTermRPS atStRps[HEVC_MAX_SHORT_TERM_RPS_COUNT];
+
+    uint8_t u8AmpEnabledFlag;
+    uint8_t u8SaoEnabled;
+
+    uint8_t u8LongTermRefPicsPresentFlag;
+    uint16_t au16LtRefPicPocLsbSps[32];
+    uint8_t au8UsedByCurrPicLtSpsFlag[32];
+    uint8_t u8NumLongTermRefPicsSps;
+
+    struct {
+        uint8_t u8BitDepth;
+        uint8_t u8BitDepthChroma;
+        unsigned int uiLog2MinPcmCbSize;
+        unsigned int uiLog2MaxPcmCbSize;
+        uint8_t u8LoopFilterDisableFlag;
+    } pcm;
+    uint8_t u8SpsTemporalMvpEnabledFlag;
+    uint8_t u8SpsStrongIntraMmoothingEnableFlag;
+
+    unsigned int uiLog2MinCbSize;
+    unsigned int uiLog2DiffMaxMinCodingBlockSize;
+    unsigned int uiLog2MinTbSize;
+    unsigned int uiLog2MaxTrafoSize;
+    unsigned int uiLog2CtbSize;
+    unsigned int uiLog2MinPuSize;
+
+    int iMaxTransformHierarchyDepthInter;
+    int iMaxTransformHierarchyDepthIntra;
+
+    int iTransformSkipRotationEnabledFlag;
+    int iTransformSkipContextEnabledFlag;
+    int iImplicitRdpcmEnabledFlag;
+    int iExplicitRdpcmEnabledFlag;
+    int iIntraSmoothingDisabledFlag;
+    int iHighPrecisionOffsetsEnabledFlag;
+    int iPersistentRiceAdaptationEnabledFlag;
+
+    ///< coded frame dimension in various units
+    int iWidth;
+    int iHeight;
+    int iCtbWidth;
+    int iCtbHeight;
+    int iCtbSize;
+    int iMinCbWidth;
+    int iMinCbHeight;
+    int iMinTbWidth;
+    int iMinTbHeight;
+    int iMinPuWidth;
+    int iMinPuHeight;
+    int iTbMask;
+
+    int aiHshift[3];
+    int aiVshift[3];
+
+    int iQpBdOffset;
+
+	int iVuiPresent;
+}T_HEVCSPS;
+
+
 typedef struct T_GetBitContext{
     uint8_t *pu8Buf;         /*Ö¸ÏòSPS start*/
     int     iBufSize;     /*SPS ³¤¶È*/
@@ -180,8 +448,15 @@ typedef struct T_GetBitContext{
 
 
 int h264DecSeqParameterSet(void *pvBuf, T_SPS *ptSps);
+int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps );
+int h265DecVideoParameterSet( void *pvBufSrc, T_HEVCVPS *ptVps );
+
+
 void h264GetWidthHeight(T_SPS *ptSps, int *piWidth, int *piHeight);
+void h265GetWidthHeight(T_HEVCSPS *ptSps, int *piWidth, int *piHeight);
+
 void h264GeFramerate(T_SPS *ptSps, float *pfFramerate);
+void h265GeFramerate(T_HEVCVPS *ptVps, T_HEVCSPS *ptSps,float *pfFramerate);
 
 #if defined (__cplusplus)
 }
