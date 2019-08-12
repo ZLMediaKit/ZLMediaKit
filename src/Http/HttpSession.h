@@ -102,10 +102,16 @@ protected:
         WebSocketSplitter::decode((uint8_t *)data,len);
     }
 
+	/**
+    * 发送数据进行websocket协议打包后回调
+    * @param ptr
+    * @param len
+    */
+	void onWebSocketEncodeData(const uint8_t *ptr,uint64_t len) override;
 private:
 	inline void Handle_Req_GET(int64_t &content_len);
 	inline void Handle_Req_POST(int64_t &content_len);
-	inline bool checkLiveFlvStream();
+	inline bool checkLiveFlvStream(bool over_websocket = false);
 	inline bool checkWebSocket();
 	inline bool emitHttpEvent(bool doInvoke);
 	inline void urlDecode(Parser &parser);
@@ -148,6 +154,7 @@ private:
     MediaInfo _mediaInfo;
     //处理content数据的callback
     function<bool (const char *data,uint64_t len) > _contentCallBack;
+	bool _flv_over_websocket = false;
 };
 
 
