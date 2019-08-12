@@ -212,11 +212,12 @@ inline bool HttpSession::checkWebSocket(){
 		headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
 	}
 	sendResponse("101 Switching Protocols",headerOut,"");
+    checkLiveFlvStream(true);
 	return true;
 }
 //http-flv 链接格式:http://vhost-url:port/app/streamid.flv?key1=value1&key2=value2
 //如果url(除去?以及后面的参数)后缀是.flv,那么表明该url是一个http-flv直播。
-inline bool HttpSession::checkLiveFlvStream(){
+inline bool HttpSession::checkLiveFlvStream(bool over_websocket){
 	auto pos = strrchr(_parser.Url().data(),'.');
 	if(!pos){
 		//未找到".flv"后缀
@@ -239,7 +240,7 @@ inline bool HttpSession::checkLiveFlvStream(){
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,bClose,this](const MediaSource::Ptr &src){
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,bClose,this,over_websocket](const MediaSource::Ptr &src){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             //本对象已经销毁
@@ -248,29 +249,35 @@ inline bool HttpSession::checkLiveFlvStream(){
         auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
         if(!rtmp_src){
             //未找到该流
-            sendNotFound(bClose);
+            if(!over_websocket){
+                sendNotFound(bClose);
+            }
             if(bClose){
                 shutdown(SockException(Err_shutdown,"flv stream not found"));
             }
             return;
         }
         //找到流了
-        auto onRes = [this,rtmp_src](const string &err){
+        auto onRes = [this,rtmp_src,over_websocket](const string &err){
             bool authSuccess = err.empty();
             if(!authSuccess){
-                sendResponse("401 Unauthorized", makeHttpHeader(true,err.size()),err);
+                if(!over_websocket){
+                    sendResponse("401 Unauthorized", makeHttpHeader(true,err.size()),err);
+                }
                 shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << err));
                 return ;
             }
 
-            //找到rtmp源，发送http头，负载后续发送
-            sendResponse("200 OK", makeHttpHeader(false,0,get_mime_type(".flv")), "");
+            if(!over_websocket) {
+                //找到rtmp源，发送http头，负载后续发送
+                sendResponse("200 OK", makeHttpHeader(false, 0, get_mime_type(".flv")), "");
+            }
 
             //开始发送rtmp负载
             //关闭tcp_nodelay ,优化性能
             SockUtil::setNoDelay(_sock->rawFD(),false);
             (*this) << SocketFlags(kSockFlags);
-
+            _flv_over_websocket = over_websocket;
             try{
                 start(getPoller(),rtmp_src);
             }catch (std::exception &ex){
@@ -473,7 +480,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
 	}
 
     //再看看是否为http-flv直播请求
-	if(checkLiveFlvStream()){
+	if(checkLiveFlvStream(false)){
 		return;
 	}
 
@@ -936,8 +943,23 @@ inline void HttpSession::sendNotFound(bool bClose) {
 
 void HttpSession::onWrite(const Buffer::Ptr &buffer) {
 	_ticker.resetTime();
-	_ui64TotalBytes += buffer->size();
-	send(buffer);
+    if(!_flv_over_websocket){
+        _ui64TotalBytes += buffer->size();
+        send(buffer);
+        return;
+    }
+
+    WebSocketHeader header;
+    header._fin = true;
+    header._reserved = 0;
+    header._opcode = WebSocketHeader::BINARY;
+    header._mask_flag = false;
+    WebSocketSplitter::encode(header,(uint8_t *)buffer->data(),buffer->size());
+}
+
+void HttpSession::onWebSocketEncodeData(const uint8_t *ptr,uint64_t len){
+    _ui64TotalBytes += len;
+    SocketHelper::send((char *)ptr,len);
 }
 
 void HttpSession::onDetach() {
