@@ -13,6 +13,7 @@
 - Well performance and stable test,can be used commercially.
 - Support linux, macos, ios, android, Windows Platforms.
 - Very low latency(lower then one second), video opened immediately.
+- **Now Support websocket-flv!**
 
 ## Features
 
