@@ -104,10 +104,9 @@ protected:
 
 	/**
     * 发送数据进行websocket协议打包后回调
-    * @param ptr
-    * @param len
+    * @param buffer
     */
-	void onWebSocketEncodeData(const uint8_t *ptr,uint64_t len) override;
+	void onWebSocketEncodeData(const Buffer::Ptr &buffer) override;
 private:
 	inline void Handle_Req_GET(int64_t &content_len);
 	inline void Handle_Req_POST(int64_t &content_len);

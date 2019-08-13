@@ -954,12 +954,12 @@ void HttpSession::onWrite(const Buffer::Ptr &buffer) {
     header._reserved = 0;
     header._opcode = WebSocketHeader::BINARY;
     header._mask_flag = false;
-    WebSocketSplitter::encode(header,(uint8_t *)buffer->data(),buffer->size());
+    WebSocketSplitter::encode(header,buffer);
 }
 
-void HttpSession::onWebSocketEncodeData(const uint8_t *ptr,uint64_t len){
-    _ui64TotalBytes += len;
-    send((char *)ptr,len);
+void HttpSession::onWebSocketEncodeData(const Buffer::Ptr &buffer){
+    _ui64TotalBytes += buffer->size();
+    send(buffer);
 }
 
 void HttpSession::onDetach() {
