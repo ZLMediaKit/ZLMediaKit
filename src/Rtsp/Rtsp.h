@@ -90,6 +90,8 @@ public:
 
 	map<char, string> _other;
 	map<string, string> _attr;
+
+	string toString() const;
 public:
 	int _pt;
 	string _codec;
@@ -118,6 +120,7 @@ public:
 	bool available() const;
 	SdpTrack::Ptr getTrack(TrackType type) const;
 	vector<SdpTrack::Ptr> getAvailableTrack() const;
+	string toString() const ;
 private:
 	map<string, SdpTrack::Ptr> _track_map;
 };
