@@ -44,6 +44,9 @@ RtpReceiver::RtpReceiver() {}
 RtpReceiver::~RtpReceiver() {}
 
 bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len) {
+    if(rtp_raw_len < 12){
+        return false;
+    }
     auto rtp_ptr = _rtp_pool.obtain();
     auto &rtp = *rtp_ptr;
     auto length = rtp_raw_len + 4;
@@ -109,9 +112,14 @@ bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned ch
         return false;
     }
 
+    uint8_t padding = 0;
+    if(rtp_raw_ptr[0] & 0x40){
+        padding = rtp_raw_ptr[rtp_raw_len - 1];
+    }
+
     //设置rtp负载长度
     rtp.setCapacity(length);
-    rtp.setSize(length);
+    rtp.setSize(length - padding);
     uint8_t *payload_ptr = (uint8_t *)rtp.data();
     payload_ptr[0] = '$';
     payload_ptr[1] = rtp.interleaved;
