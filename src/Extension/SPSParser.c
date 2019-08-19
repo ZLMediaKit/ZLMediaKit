@@ -439,7 +439,8 @@ static inline unsigned int showBitsLong(void *pvHandle, int iN)
 
     if (iN <= 32) {
         return showBits(ptPtr, iN);
-    } 
+    }
+    return 0;
 }
 
 
