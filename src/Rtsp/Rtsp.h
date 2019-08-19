@@ -59,7 +59,7 @@ public:
 	uint32_t timeStamp;
 	uint16_t sequence;
 	uint32_t ssrc;
-	uint8_t offset;
+	uint32_t offset;
 	TrackType type;
 };
 
