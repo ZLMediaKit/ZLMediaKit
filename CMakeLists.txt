@@ -2,13 +2,34 @@
 cmake_minimum_required(VERSION 3.1.3)
 #使能c++11
 set(CMAKE_CXX_STANDARD 11)
-
 #加载自定义模块
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
-#设置库文件路径
-set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-#设置可执行程序路径
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+
+#set(CMAKE_BUILD_TYPE "Release")
+
+if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+    message(STATUS "Release版本")
+    set(BuildType "Release")
+else()
+    set(BuildType "Debug")
+    message(STATUS "Debug版本")
+endif()
+
+#设置bin和lib库目录
+set(RELEASE_DIR ${CMAKE_SOURCE_DIR}/release)
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
+elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/windows)
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/windows)
+elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/mac/${BuildType})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/mac/${BuildType})
+endif ()
+
+LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
+
 
 #设置工程源码根目录
 set(ToolKit_Root ${CMAKE_SOURCE_DIR}/3rdpart/ZLToolKit/src)
