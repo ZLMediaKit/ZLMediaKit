@@ -237,7 +237,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 ## Usage
 
 - As server：
-	```
+	```cpp
 	TcpServer::Ptr rtspSrv(new TcpServer());
 	TcpServer::Ptr rtmpSrv(new TcpServer());
 	TcpServer::Ptr httpSrv(new TcpServer());
@@ -250,7 +250,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 	```
 
 - As player：
-	```
+	```cpp
     MediaPlayer::Ptr player(new MediaPlayer());
     weak_ptr<MediaPlayer> weakPlayer = player;
     player->setOnPlayResult([weakPlayer](const SockException &ex) {
@@ -279,7 +279,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
     player->play("rtsp://admin:jzan123456@192.168.0.122/");
 	```
 - As proxy server：
-	```
+	```cpp
 	//support rtmp and rtsp url
 	//just support H264+AAC
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
@@ -294,7 +294,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 	```
 	
 - As puser：
-	```
+	```cpp
 	PlayerProxy::Ptr player(new PlayerProxy("app","stream"));
 	player->play("rtmp://live.hkstv.hk.lxdns.com/live/hks");
 	
