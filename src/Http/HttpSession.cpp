@@ -403,7 +403,7 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
             //上次鉴权失败，如果url发生变更，那么也重新鉴权
             if (_parser.Params().empty() || _parser.Params() == cookie->getUid()) {
                 //url参数未变，那么判断无权限访问
-                callback(accessErr.empty() ? "无权限访问该目录" : accessErr, nullptr);
+                callback(accessErr.empty() ? "无权限访问该目录" : accessErr.get<string>(), nullptr);
                 return;
             }
         }
@@ -427,9 +427,9 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
             //对cookie上锁
             auto lck = cookie->getLock();
             //记录用户能访问的路径
-            (*cookie)[kCookiePathKey] = cookie_path;
+            (*cookie)[kCookiePathKey].set<string>(cookie_path);
             //记录能否访问
-            (*cookie)[kAccessErrKey] = errMsg;
+            (*cookie)[kAccessErrKey].set<string>(errMsg);
         }
 
         auto strongSelf = weakSelf.lock();
@@ -520,7 +520,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
                 }
                 auto headerOut = makeHttpHeader(bClose,strMeun.size());
                 if(cookie){
-                    headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey]);
+                    headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
                 }
                 sendResponse(errMsg.empty() ? "200 OK" : "401 Unauthorized" , headerOut, strMeun);
                 throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access folder");
@@ -555,7 +555,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
         if(!errMsg.empty()){
             auto headerOut = makeHttpHeader(bClose,errMsg.size());
             if(cookie){
-                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey]);
+                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
             }
             sendResponse("401 Unauthorized" , headerOut, errMsg);
             throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access file failed");
