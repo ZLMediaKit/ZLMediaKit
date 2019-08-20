@@ -117,7 +117,7 @@ bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned ch
         rtp.offset += ext;
     }
 
-    if(rtp_raw_len <= rtp.offset){
+    if(rtp_raw_len + 4 <= rtp.offset){
         WarnL << "无有效负载的rtp包:" << rtp_raw_len << " <= " << (int)rtp.offset;
         return false;
     }
