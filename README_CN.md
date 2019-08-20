@@ -225,7 +225,7 @@ git submodule update --init
 ```
 ## 使用方法
 - 作为服务器：
-	```
+	```cpp
 	TcpServer::Ptr rtspSrv(new TcpServer());
 	TcpServer::Ptr rtmpSrv(new TcpServer());
 	TcpServer::Ptr httpSrv(new TcpServer());
@@ -238,7 +238,7 @@ git submodule update --init
 	```
 
 - 作为播放器：
-	```
+	```cpp
     MediaPlayer::Ptr player(new MediaPlayer());
     weak_ptr<MediaPlayer> weakPlayer = player;
     player->setOnPlayResult([weakPlayer](const SockException &ex) {
@@ -267,7 +267,7 @@ git submodule update --init
     player->play("rtsp://admin:jzan123456@192.168.0.122/");
 	```
 - 作为代理服务器：
-	```
+	```cpp
 	//support rtmp and rtsp url
 	//just support H264+AAC
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
@@ -291,7 +291,7 @@ git submodule update --init
 	```
 	
 - 作为推流客户端器：
-	```
+	```cpp
 	PlayerProxy::Ptr player(new PlayerProxy("app","stream"));
 	//拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
 	//你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请研读MediaReader代码）
