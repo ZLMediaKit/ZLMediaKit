@@ -45,31 +45,46 @@ RtpReceiver::~RtpReceiver() {}
 
 bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len) {
     if(rtp_raw_len < 12){
+        WarnL << "rtp包太小:" << rtp_raw_len;
         return false;
     }
+
+    uint8_t padding = 0;
+    if (rtp_raw_ptr[0] & 0x40) {
+        //获取padding大小
+        padding = rtp_raw_ptr[rtp_raw_len - 1];
+        //移除padding flag
+        rtp_raw_ptr[0] &= ~0x40;
+        //移除padding字节
+        rtp_raw_len -= padding;
+    }
+
     auto rtp_ptr = _rtp_pool.obtain();
     auto &rtp = *rtp_ptr;
-    auto length = rtp_raw_len + 4;
 
+    rtp.type = track->_type;
     rtp.interleaved = 2 * track->_type;
     rtp.mark = rtp_raw_ptr[1] >> 7;
     rtp.PT = rtp_raw_ptr[1] & 0x7F;
-    //序列号
-    memcpy(&rtp.sequence,rtp_raw_ptr+2,2);//内存对齐
+
+    //序列号,内存对齐
+    memcpy(&rtp.sequence, rtp_raw_ptr + 2, 2);
     rtp.sequence = ntohs(rtp.sequence);
-    //时间戳
-    memcpy(&rtp.timeStamp, rtp_raw_ptr+4, 4);//内存对齐
+
+    //时间戳,内存对齐
+    memcpy(&rtp.timeStamp, rtp_raw_ptr + 4, 4);
+    rtp.timeStamp = ntohl(rtp.timeStamp);
 
     if(!track->_samplerate){
         //无法把时间戳转换成毫秒
         return false;
     }
     //时间戳转换成毫秒
-    rtp.timeStamp = ntohl(rtp.timeStamp) * 1000LL / track->_samplerate;
-    //ssrc
-    memcpy(&rtp.ssrc,rtp_raw_ptr+8,4);//内存对齐
+    rtp.timeStamp = rtp.timeStamp * 1000LL / track->_samplerate;
+
+    //ssrc,内存对齐
+    memcpy(&rtp.ssrc, rtp_raw_ptr + 8, 4);
     rtp.ssrc = ntohl(rtp.ssrc);
-    rtp.type = track->_type;
 
     if (track->_ssrc != rtp.ssrc) {
         if (track->_ssrc == 0) {
@@ -102,24 +117,19 @@ bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned ch
         rtp.offset += ext;
     }
 
-    if(length <= rtp.offset){
-        WarnL << "无有效负载的rtp包:" << length << "<=" << (int)rtp.offset;
+    if(rtp_raw_len <= rtp.offset){
+        WarnL << "无有效负载的rtp包:" << rtp_raw_len << " <= " << (int)rtp.offset;
         return false;
     }
 
-    if(length > RTP_MAX_SIZE){
-        WarnL << "超大的rtp包:" << length << ">" << RTP_MAX_SIZE;
+    if(rtp_raw_len > RTP_MAX_SIZE){
+        WarnL << "超大的rtp包:" << rtp_raw_len << " > " << RTP_MAX_SIZE;
         return false;
-    }
-
-    uint8_t padding = 0;
-    if(rtp_raw_ptr[0] & 0x40){
-        padding = rtp_raw_ptr[rtp_raw_len - 1];
     }
 
     //设置rtp负载长度
-    rtp.setCapacity(length);
-    rtp.setSize(length - padding);
+    rtp.setCapacity(rtp_raw_len + 4);
+    rtp.setSize(rtp_raw_len + 4);
     uint8_t *payload_ptr = (uint8_t *)rtp.data();
     payload_ptr[0] = '$';
     payload_ptr[1] = rtp.interleaved;
