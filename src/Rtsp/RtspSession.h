@@ -36,7 +36,7 @@
 #include "Common/config.h"
 #include "Network/TcpSession.h"
 #include "Player/PlayerBase.h"
-#include "RtpBroadCaster.h"
+#include "RtpMultiCaster.h"
 #include "RtspMediaSource.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
@@ -213,7 +213,7 @@ private:
     unordered_set<int> _udpSockConnected;
 	////////RTP over udp_multicast////////
 	//共享的rtp组播对象
-	RtpBroadCaster::Ptr _pBrdcaster;
+	RtpMultiCaster::Ptr _multicaster;
 
 	//登录认证
     string _strNonce;
