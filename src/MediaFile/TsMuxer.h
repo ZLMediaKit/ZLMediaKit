@@ -38,7 +38,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class TsMuxer {
+class TsMuxer : public MediaSink {
 public:
     TsMuxer();
     virtual ~TsMuxer();

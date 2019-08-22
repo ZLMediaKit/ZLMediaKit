@@ -40,11 +40,11 @@ void Stamp::revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_ou
         //记录第一次时间戳，后面好计算时间戳增量
         _start_dts = dts;
         _first = false;
-        _ticker = std::make_shared<SmoothTicker>();
+        _ticker.resetTime();
     }
     if (!dts) {
         //没有解码时间戳，我们生成解码时间戳
-        dts = _ticker->elapsedTime();
+        dts = _ticker.elapsedTime();
     }
 
     //相对时间戳
