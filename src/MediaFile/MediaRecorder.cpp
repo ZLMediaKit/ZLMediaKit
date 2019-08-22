@@ -66,7 +66,7 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
     }
 #endif //defined(ENABLE_HLS)
 
-#if defined(ENABLE_MP4V2)
+#if defined(ENABLE_MP4RECORD)
     GET_CONFIG(string,recordPath,Record::kFilePath);
     GET_CONFIG(string,recordAppName,Record::kAppName);
 
@@ -79,7 +79,7 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
         }
         _mp4Recorder.reset(new MP4Recorder(mp4FilePath,strVhost,strApp,strId));
     }
-#endif //defined(ENABLE_MP4V2)
+#endif //defined(ENABLE_MP4RECORD)
 }
 
 MediaRecorder::~MediaRecorder() {
@@ -92,11 +92,11 @@ void MediaRecorder::inputFrame(const Frame::Ptr &frame) {
     }
 #endif //defined(ENABLE_HLS)
 
-#if defined(ENABLE_MP4V2)
+#if defined(ENABLE_MP4RECORD)
     if (_mp4Recorder) {
         _mp4Recorder->inputFrame(frame);
     }
-#endif //defined(ENABLE_MP4V2)
+#endif //defined(ENABLE_MP4RECORD)
 }
 
 void MediaRecorder::addTrack(const Track::Ptr &track) {
