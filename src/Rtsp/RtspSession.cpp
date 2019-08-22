@@ -153,24 +153,24 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
     }
 
 	typedef void (RtspSession::*rtsp_request_handler)(const Parser &parser);
-	static unordered_map<string, rtsp_request_handler> s_handler_map;
+	static unordered_map<string, rtsp_request_handler> s_cmd_functions;
 	static onceToken token( []() {
-		s_handler_map.emplace("OPTIONS",&RtspSession::handleReq_Options);
-		s_handler_map.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
-		s_handler_map.emplace("ANNOUNCE",&RtspSession::handleReq_ANNOUNCE);
-		s_handler_map.emplace("RECORD",&RtspSession::handleReq_RECORD);
-		s_handler_map.emplace("SETUP",&RtspSession::handleReq_Setup);
-		s_handler_map.emplace("PLAY",&RtspSession::handleReq_Play);
-		s_handler_map.emplace("PAUSE",&RtspSession::handleReq_Pause);
-		s_handler_map.emplace("TEARDOWN",&RtspSession::handleReq_Teardown);
-		s_handler_map.emplace("GET",&RtspSession::handleReq_Get);
-		s_handler_map.emplace("POST",&RtspSession::handleReq_Post);
-		s_handler_map.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
-		s_handler_map.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
+		s_cmd_functions.emplace("OPTIONS",&RtspSession::handleReq_Options);
+		s_cmd_functions.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
+		s_cmd_functions.emplace("ANNOUNCE",&RtspSession::handleReq_ANNOUNCE);
+		s_cmd_functions.emplace("RECORD",&RtspSession::handleReq_RECORD);
+		s_cmd_functions.emplace("SETUP",&RtspSession::handleReq_Setup);
+		s_cmd_functions.emplace("PLAY",&RtspSession::handleReq_Play);
+		s_cmd_functions.emplace("PAUSE",&RtspSession::handleReq_Pause);
+		s_cmd_functions.emplace("TEARDOWN",&RtspSession::handleReq_Teardown);
+		s_cmd_functions.emplace("GET",&RtspSession::handleReq_Get);
+		s_cmd_functions.emplace("POST",&RtspSession::handleReq_Post);
+		s_cmd_functions.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
+		s_cmd_functions.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
 	}, []() {});
 
-	auto it = s_handler_map.find(strCmd);
-	if (it == s_handler_map.end()) {
+	auto it = s_cmd_functions.find(strCmd);
+	if (it == s_cmd_functions.end()) {
         sendRtspResponse("403 Forbidden");
         shutdown(SockException(Err_shutdown,StrPrinter << "403 Forbidden:" << strCmd));
         return;
@@ -918,6 +918,7 @@ inline void RtspSession::send_NotAcceptable() {
 
 
 void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
+
 	_pushSrc->onWrite(rtppt, false);
 }
 inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {
