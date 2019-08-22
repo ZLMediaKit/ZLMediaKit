@@ -61,12 +61,12 @@ public:
     };
 private:
 	//派生类回调函数
-	bool onCheckSDP(const string &sdp, const SdpParser &parser) override {
+	bool onCheckSDP(const string &sdp) override {
 		_pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
 		if(_pRtspMediaSrc){
-			_pRtspMediaSrc->onGetSDP(parser.toString());
+			_pRtspMediaSrc->onGetSDP(sdp);
 		}
-        _parser.reset(new RtspDemuxer(parser));
+        _parser.reset(new RtspDemuxer(sdp));
         return true;
 	}
 	void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {

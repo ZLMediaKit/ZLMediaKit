@@ -190,8 +190,6 @@ private:
 	int _iCseq = 0;
 	//ContentBase
 	string _strContentBase;
-	//推流端发送的sdp或播放端请求的sdp
-	string _strSdp;
 	//Session号
 	string _strSession;
 	//是否第一次播放，第一次播放需要鉴权，第二次播放属于暂停恢复
@@ -235,6 +233,8 @@ private:
 	RtcpCounter _aRtcpCnt[2];
 	//rtcp发送时间,trackid idx 为数组下标
 	Ticker _aRtcpTicker[2];
+    //时间戳修整器
+    Stamp _stamp[2];
 };
 
 /**
