@@ -44,7 +44,7 @@ private:
     int64_t _start_dts = 0;
     int64_t _dts_inc = 0;
     bool _first = true;
-    std::shared_ptr<SmoothTicker> _ticker;
+    SmoothTicker _ticker;
 };
 
 }//namespace mediakit

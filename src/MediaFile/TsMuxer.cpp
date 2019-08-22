@@ -42,19 +42,13 @@ TsMuxer::~TsMuxer() {
 void TsMuxer::addTrack(const Track::Ptr &track) {
     switch (track->getCodecId()){
         case CodecH264: {
-            track_info info;
-            info.track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H264, nullptr, 0);
-            _codec_to_trackid[track->getCodecId()] = info;
+            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H264, nullptr, 0);
         } break;
         case CodecH265: {
-            track_info info;
-            info.track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H265, nullptr, 0);
-            _codec_to_trackid[track->getCodecId()] = info;
+            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H265, nullptr, 0);
         }break;
         case CodecAAC: {
-            track_info info;
-            info.track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AAC, nullptr, 0);
-            _codec_to_trackid[track->getCodecId()] = info;
+            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AAC, nullptr, 0);
         }break;
         default:
             break;
