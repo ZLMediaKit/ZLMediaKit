@@ -397,20 +397,20 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
 
 void RtmpSession::onProcessCmd(AMFDecoder &dec) {
     typedef void (RtmpSession::*rtmpCMDHandle)(AMFDecoder &dec);
-    static unordered_map<string, rtmpCMDHandle> g_mapCmd;
+    static unordered_map<string, rtmpCMDHandle> s_cmd_functions;
     static onceToken token([]() {
-        g_mapCmd.emplace("connect",&RtmpSession::onCmd_connect);
-        g_mapCmd.emplace("createStream",&RtmpSession::onCmd_createStream);
-        g_mapCmd.emplace("publish",&RtmpSession::onCmd_publish);
-        g_mapCmd.emplace("deleteStream",&RtmpSession::onCmd_deleteStream);
-        g_mapCmd.emplace("play",&RtmpSession::onCmd_play);
-        g_mapCmd.emplace("play2",&RtmpSession::onCmd_play2);
-        g_mapCmd.emplace("seek",&RtmpSession::onCmd_seek);
-        g_mapCmd.emplace("pause",&RtmpSession::onCmd_pause);}, []() {});
+        s_cmd_functions.emplace("connect",&RtmpSession::onCmd_connect);
+        s_cmd_functions.emplace("createStream",&RtmpSession::onCmd_createStream);
+        s_cmd_functions.emplace("publish",&RtmpSession::onCmd_publish);
+        s_cmd_functions.emplace("deleteStream",&RtmpSession::onCmd_deleteStream);
+        s_cmd_functions.emplace("play",&RtmpSession::onCmd_play);
+        s_cmd_functions.emplace("play2",&RtmpSession::onCmd_play2);
+        s_cmd_functions.emplace("seek",&RtmpSession::onCmd_seek);
+        s_cmd_functions.emplace("pause",&RtmpSession::onCmd_pause);}, []() {});
 
     std::string method = dec.load<std::string>();
-	auto it = g_mapCmd.find(method);
-	if (it == g_mapCmd.end()) {
+	auto it = s_cmd_functions.find(method);
+	if (it == s_cmd_functions.end()) {
 		TraceP(this) << "can not support cmd:" << method;
 		return;
 	}
@@ -444,10 +444,12 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 			throw std::runtime_error("Not a rtmp publisher!");
 		}
 		GET_CONFIG(bool,rtmp_modify_stamp,Rtmp::kModifyStamp);
-		if(rtmp_modify_stamp){
-			chunkData.timeStamp = _stampTicker[chunkData.typeId % 2].elapsedTime();
-		}
-		_pPublisherSrc->onWrite(std::make_shared<RtmpPacket>(std::move(chunkData)));
+        if(rtmp_modify_stamp){
+            int64_t dts_out;
+            _stamp[chunkData.typeId % 2].revise(0, 0, dts_out, dts_out);
+            chunkData.timeStamp = dts_out;
+        }
+        _pPublisherSrc->onWrite(std::make_shared<RtmpPacket>(std::move(chunkData)));
 	}
 		break;
 	default:
@@ -473,20 +475,10 @@ void RtmpSession::onCmd_seek(AMFDecoder &dec) {
 }
 
 void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
-	auto modifiedStamp = pkt->timeStamp;
-	auto &firstStamp = _aui32FirstStamp[pkt->typeId % 2];
-	if(!firstStamp){
-		firstStamp = modifiedStamp;
-	}
-	if(modifiedStamp >= firstStamp){
-		//计算时间戳增量
-		modifiedStamp -= firstStamp;
-	}else{
-		//发生回环，重新计算时间戳增量
-		CLEAR_ARR(_aui32FirstStamp);
-		modifiedStamp = 0;
-	}
-	sendRtmp(pkt->typeId, pkt->streamId, pkt, modifiedStamp, pkt->chunkId);
+    //rtmp播放器时间戳从零开始
+    int64_t dts_out;
+    _stamp[pkt->typeId % 2].revise(pkt->timeStamp, 0, dts_out, dts_out);
+    sendRtmp(pkt->typeId, pkt->streamId, pkt, dts_out, pkt->chunkId);
 }
 
 
