@@ -673,14 +673,14 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 	}
 		break;
 	case Rtsp::RTP_MULTICAST: {
-		if(!_pBrdcaster){
-			_pBrdcaster = RtpBroadCaster::get(getPoller(),get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
-			if (!_pBrdcaster) {
+		if(!_multicaster){
+			_multicaster = RtpMultiCaster::get(getPoller(),get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
+			if (!_multicaster) {
 				send_NotAcceptable();
                 throw SockException(Err_shutdown, "can not get a available udp multicast socket");
             }
 			weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-			_pBrdcaster->setDetachCB(this, [weakSelf]() {
+			_multicaster->setDetachCB(this, [weakSelf]() {
 				auto strongSelf = weakSelf.lock();
 				if(!strongSelf) {
 					return;
@@ -688,7 +688,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 				strongSelf->safeShutdown(SockException(Err_shutdown,"ring buffer detached"));
 			});
 		}
-		int iSrvPort = _pBrdcaster->getPort(trackRef->_type);
+		int iSrvPort = _multicaster->getPort(trackRef->_type);
 		//我们用trackIdx区分rtp和rtcp包
 		//由于组播udp端口是共享的，而rtcp端口为组播udp端口+1，所以rtcp端口需要改成共享端口
 		auto pSockRtcp = UDPServer::Instance().getSock(getPoller(),get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
@@ -702,7 +702,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 
 		sendRtspResponse("200 OK",
 						 {"Transport",StrPrinter << "RTP/AVP;multicast;"
-												 << "destination=" << _pBrdcaster->getIP() << ";"
+												 << "destination=" << _multicaster->getIP() << ";"
 												 << "source=" << get_local_ip() << ";"
 												 << "port=" << iSrvPort << "-" << pSockRtcp->get_local_port() << ";"
 												 << "ttl=" << udpTTL << ";"

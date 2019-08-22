@@ -28,7 +28,7 @@
 #include <ctime>
 #include <sys/stat.h>
 #include "Common/config.h"
-#include "Mp4Maker.h"
+#include "MP4Recorder.h"
 #include "Util/util.h"
 #include "Util/NoticeCenter.h"
 #include "Thread/WorkThreadPool.h"
@@ -53,7 +53,7 @@ string timeStr(const char *fmt) {
 	return buffer;
 }
 
-Mp4Maker::Mp4Maker(const string& strPath,
+MP4Recorder::MP4Recorder(const string& strPath,
 				   const string &strVhost,
 				   const string &strApp,
 				   const string &strStreamId) {
@@ -64,11 +64,11 @@ Mp4Maker::Mp4Maker(const string& strPath,
 	_info.strVhost = strVhost;
 	_info.strFolder = strPath;
 }
-Mp4Maker::~Mp4Maker() {
+MP4Recorder::~MP4Recorder() {
 	closeFile();
 }
 
-void Mp4Maker::createFile() {
+void MP4Recorder::createFile() {
 	closeFile();
 	auto strDate = timeStr("%Y-%m-%d");
 	auto strTime = timeStr("%H-%M-%S");
@@ -100,7 +100,7 @@ void Mp4Maker::createFile() {
 	}
 }
 
-void Mp4Maker::asyncClose() {
+void MP4Recorder::asyncClose() {
 	auto muxer = _muxer;
 	auto strFileTmp = _strFileTmp;
 	auto strFile = _strFile;
@@ -121,14 +121,14 @@ void Mp4Maker::asyncClose() {
 	});
 }
 
-void Mp4Maker::closeFile() {
+void MP4Recorder::closeFile() {
 	if (_muxer) {
 		asyncClose();
 		_muxer = nullptr;
 	}
 }
 
-void Mp4Maker::onTrackFrame(const Frame::Ptr &frame) {
+void MP4Recorder::onTrackFrame(const Frame::Ptr &frame) {
 	GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
 	if(!_muxer || ((_createFileTicker.elapsedTime() > recordSec * 1000) &&
 			      (!_haveVideo || (_haveVideo && frame->keyFrame()))) ){
@@ -145,7 +145,7 @@ void Mp4Maker::onTrackFrame(const Frame::Ptr &frame) {
 	}
 }
 
-void Mp4Maker::onTrackReady(const Track::Ptr & track){
+void MP4Recorder::onTrackReady(const Track::Ptr & track){
 	//保存所有的track，为创建MP4MuxerFile做准备
 	_tracks.emplace_back(track);
 	if(track->getTrackType() == TrackVideo){

@@ -58,10 +58,10 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
         string m3u8FilePath;
         if(enableVhost){
             m3u8FilePath = hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
-            _hlsMaker.reset(new HlsRecorder(m3u8FilePath,string(VHOST_KEY) + "=" + strVhost ,hlsBufSize, hlsDuration, hlsNum));
+            _hlsRecorder.reset(new HlsRecorder(m3u8FilePath,string(VHOST_KEY) + "=" + strVhost ,hlsBufSize, hlsDuration, hlsNum));
         }else{
             m3u8FilePath = hlsPath + "/" + strApp + "/" + strId + "/hls.m3u8";
-            _hlsMaker.reset(new HlsRecorder(m3u8FilePath,"",hlsBufSize, hlsDuration, hlsNum));
+            _hlsRecorder.reset(new HlsRecorder(m3u8FilePath,"",hlsBufSize, hlsDuration, hlsNum));
         }
     }
 #endif //defined(ENABLE_HLS)
@@ -77,7 +77,7 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
         } else {
             mp4FilePath = recordPath + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
         }
-        _mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId));
+        _mp4Recorder.reset(new MP4Recorder(mp4FilePath,strVhost,strApp,strId));
     }
 #endif //defined(ENABLE_MP4V2)
 }
@@ -87,28 +87,28 @@ MediaRecorder::~MediaRecorder() {
 
 void MediaRecorder::inputFrame(const Frame::Ptr &frame) {
 #if defined(ENABLE_HLS)
-    if (_hlsMaker) {
-        _hlsMaker->inputFrame(frame);
+    if (_hlsRecorder) {
+        _hlsRecorder->inputFrame(frame);
     }
 #endif //defined(ENABLE_HLS)
 
 #if defined(ENABLE_MP4V2)
-    if (_mp4Maker) {
-        _mp4Maker->inputFrame(frame);
+    if (_mp4Recorder) {
+        _mp4Recorder->inputFrame(frame);
     }
 #endif //defined(ENABLE_MP4V2)
 }
 
 void MediaRecorder::addTrack(const Track::Ptr &track) {
 #if defined(ENABLE_HLS)
-    if (_hlsMaker) {
-        _hlsMaker->addTrack(track);
+    if (_hlsRecorder) {
+        _hlsRecorder->addTrack(track);
     }
 #endif //defined(ENABLE_HLS)
 
 #if defined(ENABLE_MP4RECORD)
-    if (_mp4Maker) {
-        _mp4Maker->addTrack(track);
+    if (_mp4Recorder) {
+        _mp4Recorder->addTrack(track);
     }
 #endif //defined(ENABLE_MP4RECORD)
 }

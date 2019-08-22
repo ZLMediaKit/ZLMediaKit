@@ -55,14 +55,14 @@ public:
 	string strStreamId;//流ID
 	string strVhost;//vhost
 };
-class Mp4Maker : public MediaSink{
+class MP4Recorder : public MediaSink{
 public:
-	typedef std::shared_ptr<Mp4Maker> Ptr;
-	Mp4Maker(const string &strPath,
+	typedef std::shared_ptr<MP4Recorder> Ptr;
+	MP4Recorder(const string &strPath,
 			 const string &strVhost ,
 			 const string &strApp,
 			 const string &strStreamId);
-	virtual ~Mp4Maker();
+	virtual ~MP4Recorder();
 private:
 	/**
      * 某Track输出frame，在onAllTrackReady触发后才会调用此方法
