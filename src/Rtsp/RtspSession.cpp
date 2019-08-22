@@ -242,13 +242,13 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 		throw SockException(Err_shutdown,err);
 	}
 
-	_strSession = makeRandStr(12);
-    _strSdp = parser.Content();
-    _aTrackInfo = SdpParser(_strSdp).getAvailableTrack();
+    SdpParser sdpParser(parser.Content());
+    _strSession = makeRandStr(12);
+    _aTrackInfo = sdpParser.getAvailableTrack();
 
 	_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
-	_pushSrc->onGetSDP(_strSdp);
+	_pushSrc->onGetSDP(sdpParser.toString());
 	sendRtspResponse("200 OK");
 }
 
@@ -362,9 +362,7 @@ void RtspSession::onAuthSuccess() {
             return;
         }
         //找到了响应的rtsp流
-        strongSelf->_strSdp = rtsp_src->getSdp();
-        SdpParser sdpParser(strongSelf->_strSdp);
-        strongSelf->_aTrackInfo = sdpParser.getAvailableTrack();
+        strongSelf->_aTrackInfo = SdpParser(rtsp_src->getSdp()).getAvailableTrack();
         if (strongSelf->_aTrackInfo.empty()) {
             //该流无效
             strongSelf->send_StreamNotFound();
@@ -383,7 +381,7 @@ void RtspSession::onAuthSuccess() {
                                      {"Content-Base",strongSelf->_strContentBase + "/",
                                       "x-Accept-Retransmit","our-retransmit",
                                       "x-Accept-Dynamic-Rate","1"
-                                     },strongSelf->_strSdp);
+                                     },rtsp_src->getSdp());
     });
 }
 void RtspSession::onAuthFailed(const string &realm,const string &why,bool close) {
@@ -918,7 +916,12 @@ inline void RtspSession::send_NotAcceptable() {
 
 
 void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
-
+    GET_CONFIG(bool,modify_stamp,Rtsp::kModifyStamp);
+    if(modify_stamp){
+        int64_t dts_out;
+        _stamp[trackidx].revise(0, 0, dts_out, dts_out);
+        rtppt->timeStamp = dts_out;
+    }
 	_pushSrc->onWrite(rtppt, false);
 }
 inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {
