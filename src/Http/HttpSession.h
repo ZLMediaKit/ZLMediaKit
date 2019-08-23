@@ -110,7 +110,7 @@ protected:
 private:
 	inline void Handle_Req_GET(int64_t &content_len);
 	inline void Handle_Req_POST(int64_t &content_len);
-	inline bool checkLiveFlvStream(bool over_websocket = false);
+	inline bool checkLiveFlvStream(const function<void()> &cb = nullptr);
 	inline bool checkWebSocket();
 	inline bool emitHttpEvent(bool doInvoke);
 	inline void urlDecode(Parser &parser);
