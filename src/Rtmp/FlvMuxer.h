@@ -30,6 +30,7 @@
 #include "Rtmp/Rtmp.h"
 #include "Rtmp/RtmpMediaSource.h"
 #include "Network/Socket.h"
+#include "MediaFile/Stamp.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -52,7 +53,8 @@ private:
     void onWriteFlvTag(uint8_t ui8Type, const Buffer::Ptr &buffer, uint32_t ui32TimeStamp);
 private:
     RtmpMediaSource::RingType::RingReader::Ptr _ring_reader;
-    uint32_t _aui32FirstStamp[2] = {0};
+    //时间戳修整器
+    Stamp _stamp[2];
 
 };
 
