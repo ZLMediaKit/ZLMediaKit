@@ -166,7 +166,7 @@ void WebSocketSplitter::onPlayloadData(uint8_t *ptr, uint64_t len) {
 
 void WebSocketSplitter::encode(const WebSocketHeader &header,const Buffer::Ptr &buffer) {
     string ret;
-    auto len = buffer ? buffer->size() : 0;
+    uint64_t len = buffer ? buffer->size() : 0;
     uint8_t byte = header._fin << 7 | ((header._reserved & 0x07) << 4) | (header._opcode & 0x0F) ;
     ret.push_back(byte);
 
