@@ -113,7 +113,7 @@ void RtspSession::onError(const SockException& err) {
 }
 
 void RtspSession::onManager() {
-    GET_CONFIG(uint32_t,handshake_sec,Rtsp::kKeepAliveSecond);
+    GET_CONFIG(uint32_t,handshake_sec,Rtsp::kHandshakeSecond);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtsp::kKeepAliveSecond);
 
     if (_ticker.createdTime() > handshake_sec * 1000) {
