@@ -63,7 +63,7 @@ void RtmpSession::onError(const SockException& err) {
 }
 
 void RtmpSession::onManager() {
-    GET_CONFIG(uint32_t,handshake_sec,Rtmp::kKeepAliveSecond);
+    GET_CONFIG(uint32_t,handshake_sec,Rtmp::kHandshakeSecond);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtmp::kKeepAliveSecond);
 
 	if (_ticker.createdTime() > handshake_sec * 1000) {
