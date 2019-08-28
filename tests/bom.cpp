@@ -1,6 +1,8 @@
 ﻿#include <stdlib.h>
 #include <memory.h>
+#if !defined(_WIN32)
 #include <dirent.h>
+#endif //!defined(_WIN32)
 #include <set>
 #include "Util/CMD.h"
 #include "Util/util.h"
