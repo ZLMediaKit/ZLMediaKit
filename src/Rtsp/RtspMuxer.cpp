@@ -39,7 +39,7 @@ RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title){
 }
 
 void RtspMuxer::onTrackReady(const Track::Ptr &track) {
-    //根据track生产sdp
+    //根据track生成sdp
     Sdp::Ptr sdp = track->getSdp();
     if (!sdp) {
         return;
