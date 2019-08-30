@@ -70,7 +70,7 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
     it->second->inputFrame(frame);
 
     if(!_allTrackReady && !_trackReadyCallback.empty() && it->second->ready()){
-        //Track由未就绪状态装换成就绪状态，我们就触发onTrackReady回调
+        //Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
         auto it_callback = _trackReadyCallback.find(codec_id);
         if(it_callback != _trackReadyCallback.end()){
             it_callback->second();

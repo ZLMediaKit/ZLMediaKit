@@ -450,7 +450,7 @@ void RtspPlayer::handleResPAUSE(const Parser& parser, bool bPause) {
                 auto strRtpTime = FindField(strTrack.data(), "rtptime=", ";");
                 auto idx = getTrackIndexByControlSuffix(strControlSuffix);
                 if(idx != -1){
-                    _aiFistStamp[idx] = atoll(strRtpTime.data()) * 1000 / _aTrackInfo[idx]->_samplerate;
+                    _aiFistStamp[idx] = _aTrackInfo[idx]->_samplerate>0?atoll(strRtpTime.data()) * 1000 / _aTrackInfo[idx]->_samplerate :1;
                     _aiNowStamp[idx] = _aiFistStamp[idx];
                     DebugL << "rtptime(ms):" << strControlSuffix <<" " << strRtpTime;
                 }
