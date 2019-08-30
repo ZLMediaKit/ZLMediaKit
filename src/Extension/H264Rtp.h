@@ -36,6 +36,8 @@ namespace mediakit{
 
 /**
  * h264 rtp解码类
+ * 将 h264 over rtsp-rtp 解复用出 h264-Frame
+ * rfc3984
  */
 class H264RtpDecoder : public RtpCodec , public ResourcePoolHelper<H264Frame> {
 public:

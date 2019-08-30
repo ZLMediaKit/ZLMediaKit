@@ -48,7 +48,7 @@ string 	makeAdtsConfig(const uint8_t *pcAdts);
 void 	getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel);
 
 
-    /**
+/**
  * aac帧，包含adts头
  */
 class AACFrame : public Frame {
