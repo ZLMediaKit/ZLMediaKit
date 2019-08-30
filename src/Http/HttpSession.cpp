@@ -490,6 +490,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
 
     //再看看是否为http-flv直播请求
 	if(checkLiveFlvStream()){
+		//若是，return！
 		return;
 	}
 

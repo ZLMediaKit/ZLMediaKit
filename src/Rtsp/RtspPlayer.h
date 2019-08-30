@@ -46,7 +46,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-//实现了rtsp播放器协议部分的功能
+//实现了rtsp播放器协议部分的功能，及数据接收功能
 class RtspPlayer: public PlayerBase,public TcpClient, public RtspSplitter, public RtpReceiver {
 public:
 	typedef std::shared_ptr<RtspPlayer> Ptr;

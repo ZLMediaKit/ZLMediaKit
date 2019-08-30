@@ -90,7 +90,24 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
      * Type==7:SPS frame
      * Type==8:PPS frame
      */
+	/*
+	RTF3984 5.2节  Common Structure of the RTP Payload Format
+    Table 1.  Summary of NAL unit types and their payload structures
 
+	   Type   Packet    Type name                        Section
+	   ---------------------------------------------------------
+	   0      undefined                                    -
+	   1-23   NAL unit  Single NAL unit packet per H.264   5.6
+	   24     STAP-A    Single-time aggregation packet     5.7.1
+	   25     STAP-B    Single-time aggregation packet     5.7.1
+	   26     MTAP16    Multi-time aggregation packet      5.7.2
+	   27     MTAP24    Multi-time aggregation packet      5.7.2
+	   28     FU-A      Fragmentation unit                 5.8
+	   29     FU-B      Fragmentation unit                 5.8
+	   30-31  undefined                                    -
+
+
+	*/
     const uint8_t *frame = (uint8_t *) rtppack->data() + rtppack->offset;
     int length = rtppack->size() - rtppack->offset;
     NALU nal;
@@ -145,7 +162,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             FU fu;
             MakeFU(frame[1], fu);
             if (fu.S) {
-                //该帧的第一个rtp包
+                //该帧的第一个rtp包  FU-A start
                 char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
                 _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
                 _h264frame->buffer.push_back(tmp);
@@ -164,14 +181,14 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             }
 
             if (!fu.E) {
-                //该帧的中间rtp包
+                //该帧的中间rtp包  FU-A mid
                 _h264frame->buffer.append((char *)frame + 2, length - 2);
                 //该函数return时，保存下当前sequence,以便下次对比seq是否连续
                 _lastSeq = rtppack->sequence;
                 return false;
             }
 
-            //该帧最后一个rtp包
+            //该帧最后一个rtp包  FU-A end
             _h264frame->buffer.append((char *)frame + 2, length - 2);
             _h264frame->timeStamp = rtppack->timeStamp;
             auto key = _h264frame->keyFrame();

@@ -361,10 +361,11 @@ void RtspSession::onAuthSuccess() {
             strongSelf->shutdown(SockException(Err_shutdown,err));
             return;
         }
-        //找到了响应的rtsp流
+        //找到了相应的rtsp流
         strongSelf->_aTrackInfo = SdpParser(rtsp_src->getSdp()).getAvailableTrack();
         if (strongSelf->_aTrackInfo.empty()) {
             //该流无效
+			DebugL << "无trackInfo，该流无效";
             strongSelf->send_StreamNotFound();
             strongSelf->shutdown(SockException(Err_shutdown,"can not find any availabe track in sdp"));
             return;

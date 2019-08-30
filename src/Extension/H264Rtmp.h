@@ -36,6 +36,7 @@ using namespace toolkit;
 namespace mediakit{
 /**
  * h264 Rtmp解码类
+ * 将 h264 over rtmp 解复用出 h264-Frame
  */
 class H264RtmpDecoder : public RtmpCodec ,public ResourcePoolHelper<H264Frame> {
 public:
