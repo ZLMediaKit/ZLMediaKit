@@ -65,18 +65,18 @@ private:
 	recursive_mutex _mtx;
 	unordered_set<uint32_t> _setBadAddr;
 };
-class RtpBroadCaster {
+class RtpMultiCaster {
 public:
-	typedef std::shared_ptr<RtpBroadCaster> Ptr;
+	typedef std::shared_ptr<RtpMultiCaster> Ptr;
 	typedef function<void()> onDetach;
-	virtual ~RtpBroadCaster();
+	virtual ~RtpMultiCaster();
 	static Ptr get(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
 	void setDetachCB(void *listener,const onDetach &cb);
 	uint16_t getPort(TrackType trackType);
 	string getIP();
 private:
 	static recursive_mutex g_mtx;
-	static unordered_map<string , weak_ptr<RtpBroadCaster> > g_mapBroadCaster;
+	static unordered_map<string , weak_ptr<RtpMultiCaster> > g_mapBroadCaster;
 	static Ptr make(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
 
 	std::shared_ptr<uint32_t> _multiAddr;
@@ -86,7 +86,7 @@ private:
 	Socket::Ptr _apUdpSock[2];
 	struct sockaddr_in _aPeerUdpAddr[2];
 
-	RtpBroadCaster(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
+	RtpMultiCaster(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream);
 
 };
 

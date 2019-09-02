@@ -44,7 +44,7 @@ using namespace toolkit;
 using namespace mediakit::Client;
 
 namespace mediakit {
-
+//实现了rtmp播放器协议部分的功能，及数据接收功能
 class RtmpPlayer:public PlayerBase, public TcpClient,  public RtmpProtocol{
 public:
 	typedef std::shared_ptr<RtmpPlayer> Ptr;
@@ -63,11 +63,11 @@ protected:
 	void onMediaData_l(const RtmpPacket::Ptr &chunkData);
 	void onPlayResult_l(const SockException &ex);
 
-	//for Tcpclient
+	//form Tcpclient
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onConnect(const SockException &err) override;
 	void onErr(const SockException &ex) override;
-	//fro RtmpProtocol
+	//from RtmpProtocol
 	void onRtmpChunk(RtmpPacket &chunkData) override;
 	void onStreamDry(uint32_t ui32StreamId) override;
     void onSendRawData(const Buffer::Ptr &buffer) override{

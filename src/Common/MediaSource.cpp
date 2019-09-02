@@ -123,6 +123,7 @@ MediaSource::Ptr MediaSource::find(
 
     lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
     MediaSource::Ptr ret;
+	//查找某一媒体源，找到后返回
     searchMedia(schema, vhost, app, id,
                 [&](SchemaVhostAppStreamMap::iterator &it0 ,
                     VhostAppStreamMap::iterator &it1,
@@ -138,7 +139,7 @@ MediaSource::Ptr MediaSource::find(
                     return true;
                 });
     if(!ret && bMake){
-        //查找某一媒体源，找到后返回
+        //未查找媒体源，则创建一个
         ret = MediaReader::onMakeMediaSource(schema, vhost,app,id);
     }
     return ret;

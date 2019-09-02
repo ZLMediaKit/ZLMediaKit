@@ -26,7 +26,7 @@
 
 #include <list>
 #include <type_traits>
-#include "RtpBroadCaster.h"
+#include "RtpMultiCaster.h"
 #include "Util/util.h"
 #include "Network/sockutil.h"
 #include "RtspSession.h"
@@ -81,10 +81,10 @@ void MultiCastAddressMaker::release(uint32_t iAddr){
 }
 
 
-recursive_mutex RtpBroadCaster::g_mtx;
-unordered_map<string, weak_ptr<RtpBroadCaster> > RtpBroadCaster::g_mapBroadCaster;
+recursive_mutex RtpMultiCaster::g_mtx;
+unordered_map<string, weak_ptr<RtpMultiCaster> > RtpMultiCaster::g_mapBroadCaster;
 
-void RtpBroadCaster::setDetachCB(void* listener, const onDetach& cb) {
+void RtpMultiCaster::setDetachCB(void* listener, const onDetach& cb) {
 	lock_guard<recursive_mutex> lck(_mtx);
 	if(cb){
 		_mapDetach.emplace(listener,cb);
@@ -92,12 +92,12 @@ void RtpBroadCaster::setDetachCB(void* listener, const onDetach& cb) {
 		_mapDetach.erase(listener);
 	}
 }
-RtpBroadCaster::~RtpBroadCaster() {
+RtpMultiCaster::~RtpMultiCaster() {
 	_pReader->setReadCB(nullptr);
 	_pReader->setDetachCB(nullptr);
 	DebugL;
 }
-RtpBroadCaster::RtpBroadCaster(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
+RtpMultiCaster::RtpMultiCaster(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
 	auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA,strVhost,strApp, strStream));
 	if(!src){
 		auto strErr = StrPrinter << "未找到媒体源:" << strVhost << " " << strApp << " " << strStream << endl;
@@ -148,22 +148,22 @@ RtpBroadCaster::RtpBroadCaster(const EventPoller::Ptr &poller,const string &strL
             << strVhost << " "
 			<< strApp << " " << strStream;
 }
-uint16_t RtpBroadCaster::getPort(TrackType trackType){
+uint16_t RtpMultiCaster::getPort(TrackType trackType){
 	return _apUdpSock[trackType]->get_local_port();
 }
-string RtpBroadCaster::getIP(){
+string RtpMultiCaster::getIP(){
 	return inet_ntoa(_aPeerUdpAddr[0].sin_addr);
 }
-RtpBroadCaster::Ptr RtpBroadCaster::make(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream){
+RtpMultiCaster::Ptr RtpMultiCaster::make(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream){
 	try{
-		auto ret = Ptr(new RtpBroadCaster(poller,strLocalIp,strVhost,strApp,strStream),[poller](RtpBroadCaster *ptr){
+		auto ret = Ptr(new RtpMultiCaster(poller,strLocalIp,strVhost,strApp,strStream),[poller](RtpMultiCaster *ptr){
             poller->async([ptr]() {
                 delete ptr;
             });
 		});
 		lock_guard<recursive_mutex> lck(g_mtx);
 		string strKey = StrPrinter << strLocalIp << " "  << strVhost << " " << strApp << " " << strStream << endl;
-		weak_ptr<RtpBroadCaster> weakPtr = ret;
+		weak_ptr<RtpMultiCaster> weakPtr = ret;
 		g_mapBroadCaster.emplace(strKey,weakPtr);
 		return ret;
 	}catch (std::exception &ex) {
@@ -172,7 +172,7 @@ RtpBroadCaster::Ptr RtpBroadCaster::make(const EventPoller::Ptr &poller,const st
 	}
 }
 
-RtpBroadCaster::Ptr RtpBroadCaster::get(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
+RtpMultiCaster::Ptr RtpMultiCaster::get(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
 	string strKey = StrPrinter << strLocalIp << " " << strVhost << " " << strApp << " " << strStream << endl;
 	lock_guard<recursive_mutex> lck(g_mtx);
 	auto it = g_mapBroadCaster.find(strKey);

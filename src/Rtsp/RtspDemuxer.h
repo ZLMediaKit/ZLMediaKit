@@ -41,7 +41,6 @@ class RtspDemuxer : public Demuxer{
 public:
 	typedef std::shared_ptr<RtspDemuxer> Ptr;
 	RtspDemuxer(const string &sdp);
-	RtspDemuxer(const SdpParser &parser);
 	virtual ~RtspDemuxer(){};
 
 	/**

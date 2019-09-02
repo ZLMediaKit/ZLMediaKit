@@ -46,7 +46,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-//实现了rtsp播放器协议部分的功能
+//实现了rtsp播放器协议部分的功能，及数据接收功能
 class RtspPlayer: public PlayerBase,public TcpClient, public RtspSplitter, public RtpReceiver {
 public:
 	typedef std::shared_ptr<RtspPlayer> Ptr;
@@ -59,7 +59,7 @@ public:
 	float getPacketLossRate(TrackType type) const override;
 protected:
 	//派生类回调函数
-	virtual bool onCheckSDP(const string &strSdp, const SdpParser &parser) = 0;
+	virtual bool onCheckSDP(const string &strSdp) = 0;
 	virtual void onRecvRTP(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track) = 0;
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
@@ -124,7 +124,6 @@ private:
 	void createUdpSockIfNecessary(int track_idx);
 private:
 	string _strUrl;
-	SdpParser _sdpParser;
 	vector<SdpTrack::Ptr> _aTrackInfo;
 	function<void(const Parser&)> _onHandshake;
     Socket::Ptr _apRtpSock[2]; //RTP端口,trackid idx 为数组下标

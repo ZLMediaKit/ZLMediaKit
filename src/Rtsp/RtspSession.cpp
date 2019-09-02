@@ -113,7 +113,7 @@ void RtspSession::onError(const SockException& err) {
 }
 
 void RtspSession::onManager() {
-    GET_CONFIG(uint32_t,handshake_sec,Rtsp::kKeepAliveSecond);
+    GET_CONFIG(uint32_t,handshake_sec,Rtsp::kHandshakeSecond);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtsp::kKeepAliveSecond);
 
     if (_ticker.createdTime() > handshake_sec * 1000) {
@@ -153,24 +153,24 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
     }
 
 	typedef void (RtspSession::*rtsp_request_handler)(const Parser &parser);
-	static unordered_map<string, rtsp_request_handler> s_handler_map;
+	static unordered_map<string, rtsp_request_handler> s_cmd_functions;
 	static onceToken token( []() {
-		s_handler_map.emplace("OPTIONS",&RtspSession::handleReq_Options);
-		s_handler_map.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
-		s_handler_map.emplace("ANNOUNCE",&RtspSession::handleReq_ANNOUNCE);
-		s_handler_map.emplace("RECORD",&RtspSession::handleReq_RECORD);
-		s_handler_map.emplace("SETUP",&RtspSession::handleReq_Setup);
-		s_handler_map.emplace("PLAY",&RtspSession::handleReq_Play);
-		s_handler_map.emplace("PAUSE",&RtspSession::handleReq_Pause);
-		s_handler_map.emplace("TEARDOWN",&RtspSession::handleReq_Teardown);
-		s_handler_map.emplace("GET",&RtspSession::handleReq_Get);
-		s_handler_map.emplace("POST",&RtspSession::handleReq_Post);
-		s_handler_map.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
-		s_handler_map.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
+		s_cmd_functions.emplace("OPTIONS",&RtspSession::handleReq_Options);
+		s_cmd_functions.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
+		s_cmd_functions.emplace("ANNOUNCE",&RtspSession::handleReq_ANNOUNCE);
+		s_cmd_functions.emplace("RECORD",&RtspSession::handleReq_RECORD);
+		s_cmd_functions.emplace("SETUP",&RtspSession::handleReq_Setup);
+		s_cmd_functions.emplace("PLAY",&RtspSession::handleReq_Play);
+		s_cmd_functions.emplace("PAUSE",&RtspSession::handleReq_Pause);
+		s_cmd_functions.emplace("TEARDOWN",&RtspSession::handleReq_Teardown);
+		s_cmd_functions.emplace("GET",&RtspSession::handleReq_Get);
+		s_cmd_functions.emplace("POST",&RtspSession::handleReq_Post);
+		s_cmd_functions.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
+		s_cmd_functions.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
 	}, []() {});
 
-	auto it = s_handler_map.find(strCmd);
-	if (it == s_handler_map.end()) {
+	auto it = s_cmd_functions.find(strCmd);
+	if (it == s_cmd_functions.end()) {
         sendRtspResponse("403 Forbidden");
         shutdown(SockException(Err_shutdown,StrPrinter << "403 Forbidden:" << strCmd));
         return;
@@ -242,13 +242,13 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 		throw SockException(Err_shutdown,err);
 	}
 
-	_strSession = makeRandStr(12);
-    _strSdp = parser.Content();
-    _aTrackInfo = SdpParser(_strSdp).getAvailableTrack();
+    SdpParser sdpParser(parser.Content());
+    _strSession = makeRandStr(12);
+    _aTrackInfo = sdpParser.getAvailableTrack();
 
 	_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
-	_pushSrc->onGetSDP(_strSdp);
+	_pushSrc->onGetSDP(sdpParser.toString());
 	sendRtspResponse("200 OK");
 }
 
@@ -361,12 +361,11 @@ void RtspSession::onAuthSuccess() {
             strongSelf->shutdown(SockException(Err_shutdown,err));
             return;
         }
-        //找到了响应的rtsp流
-        strongSelf->_strSdp = rtsp_src->getSdp();
-        SdpParser sdpParser(strongSelf->_strSdp);
-        strongSelf->_aTrackInfo = sdpParser.getAvailableTrack();
+        //找到了相应的rtsp流
+        strongSelf->_aTrackInfo = SdpParser(rtsp_src->getSdp()).getAvailableTrack();
         if (strongSelf->_aTrackInfo.empty()) {
             //该流无效
+			DebugL << "无trackInfo，该流无效";
             strongSelf->send_StreamNotFound();
             strongSelf->shutdown(SockException(Err_shutdown,"can not find any availabe track in sdp"));
             return;
@@ -383,7 +382,7 @@ void RtspSession::onAuthSuccess() {
                                      {"Content-Base",strongSelf->_strContentBase + "/",
                                       "x-Accept-Retransmit","our-retransmit",
                                       "x-Accept-Dynamic-Rate","1"
-                                     },strongSelf->_strSdp);
+                                     },rtsp_src->getSdp());
     });
 }
 void RtspSession::onAuthFailed(const string &realm,const string &why,bool close) {
@@ -675,14 +674,14 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 	}
 		break;
 	case Rtsp::RTP_MULTICAST: {
-		if(!_pBrdcaster){
-			_pBrdcaster = RtpBroadCaster::get(getPoller(),get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
-			if (!_pBrdcaster) {
+		if(!_multicaster){
+			_multicaster = RtpMultiCaster::get(getPoller(),get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
+			if (!_multicaster) {
 				send_NotAcceptable();
                 throw SockException(Err_shutdown, "can not get a available udp multicast socket");
             }
 			weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-			_pBrdcaster->setDetachCB(this, [weakSelf]() {
+			_multicaster->setDetachCB(this, [weakSelf]() {
 				auto strongSelf = weakSelf.lock();
 				if(!strongSelf) {
 					return;
@@ -690,7 +689,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 				strongSelf->safeShutdown(SockException(Err_shutdown,"ring buffer detached"));
 			});
 		}
-		int iSrvPort = _pBrdcaster->getPort(trackRef->_type);
+		int iSrvPort = _multicaster->getPort(trackRef->_type);
 		//我们用trackIdx区分rtp和rtcp包
 		//由于组播udp端口是共享的，而rtcp端口为组播udp端口+1，所以rtcp端口需要改成共享端口
 		auto pSockRtcp = UDPServer::Instance().getSock(getPoller(),get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
@@ -704,7 +703,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 
 		sendRtspResponse("200 OK",
 						 {"Transport",StrPrinter << "RTP/AVP;multicast;"
-												 << "destination=" << _pBrdcaster->getIP() << ";"
+												 << "destination=" << _multicaster->getIP() << ";"
 												 << "source=" << get_local_ip() << ";"
 												 << "port=" << iSrvPort << "-" << pSockRtcp->get_local_port() << ";"
 												 << "ttl=" << udpTTL << ";"
@@ -918,6 +917,12 @@ inline void RtspSession::send_NotAcceptable() {
 
 
 void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
+    GET_CONFIG(bool,modify_stamp,Rtsp::kModifyStamp);
+    if(modify_stamp){
+        int64_t dts_out;
+        _stamp[trackidx].revise(0, 0, dts_out, dts_out);
+        rtppt->timeStamp = dts_out;
+    }
 	_pushSrc->onWrite(rtppt, false);
 }
 inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {

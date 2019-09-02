@@ -89,7 +89,7 @@ protected:
                     header._reserved = 0;
                     header._opcode = WebSocketHeader::TEXT;
                     header._mask_flag = false;
-                    strongSelf->WebSocketSplitter::encode(header,(uint8_t *)buf->data(),buf->size());
+                    strongSelf->WebSocketSplitter::encode(header,buf);
                 }
                 return buf->size();
             });
@@ -118,12 +118,12 @@ protected:
 
         switch (header._opcode){
             case WebSocketHeader::CLOSE:{
-                HttpSessionType::encode(header,nullptr,0);
+                HttpSessionType::encode(header,nullptr);
             }
                 break;
             case WebSocketHeader::PING:{
                 const_cast<WebSocketHeader&>(header)._opcode = WebSocketHeader::PONG;
-                HttpSessionType::encode(header,(uint8_t *)_remian_data.data(),_remian_data.size());
+                HttpSessionType::encode(header,std::make_shared<BufferString>(_remian_data));
             }
                 break;
             case WebSocketHeader::CONTINUATION:{
@@ -132,8 +132,7 @@ protected:
                 break;
             case WebSocketHeader::TEXT:
             case WebSocketHeader::BINARY:{
-                BufferString::Ptr buffer = std::make_shared<BufferString>(_remian_data);
-                _session->onRecv(buffer);
+                _session->onRecv(std::make_shared<BufferString>(_remian_data));
             }
                 break;
             default:
@@ -145,11 +144,10 @@ protected:
 
     /**
     * 发送数据进行websocket协议打包后回调
-    * @param ptr
-    * @param len
+    * @param buffer
     */
-    void onWebSocketEncodeData(const uint8_t *ptr,uint64_t len) override{
-        SocketHelper::send((char *)ptr,len);
+    void onWebSocketEncodeData(const Buffer::Ptr &buffer) override{
+        SocketHelper::send(buffer);
     }
 private:
     typedef function<int(const Buffer::Ptr &buf)> onBeforeSendCB;

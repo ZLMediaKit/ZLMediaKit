@@ -135,9 +135,7 @@ void MP4Muxer::onTrackReady(const Track::Ptr &track) {
                 WarnL << "添加AAC Track失败:" << track_id;
                 return;
             }
-            track_info info;
-            info.track_id = track_id;
-            _codec_to_trackid[track->getCodecId()] = info;
+            _codec_to_trackid[track->getCodecId()].track_id = track_id;
         }
             break;
         case CodecH264: {
@@ -170,9 +168,7 @@ void MP4Muxer::onTrackReady(const Track::Ptr &track) {
                 WarnL << "添加H264 Track失败:" << track_id;
                 return;
             }
-            track_info info;
-            info.track_id = track_id;
-            _codec_to_trackid[track->getCodecId()] = info;
+            _codec_to_trackid[track->getCodecId()].track_id = track_id;
         }
             break;
         case CodecH265: {
@@ -205,9 +201,7 @@ void MP4Muxer::onTrackReady(const Track::Ptr &track) {
                 WarnL << "添加H265 Track失败:" << track_id;
                 return;
             }
-            track_info info;
-            info.track_id = track_id;
-            _codec_to_trackid[track->getCodecId()] = info;
+            _codec_to_trackid[track->getCodecId()].track_id = track_id;
         }
             break;
         default:

@@ -532,10 +532,6 @@ void RtmpProtocol::handle_rtmp() {
 		static const size_t HEADER_LENGTH[] = { 12, 8, 4, 1 };
 		size_t iHeaderLen = HEADER_LENGTH[flags >> 6];
 		_iNowChunkID = flags & 0x3f;
-        if(_iNowChunkID >10){
-            int i=0;
-            i++;
-        }
 		switch (_iNowChunkID) {
 		case 0: {
 			//0 值表示二字节形式，并且 ID 范围 64 - 319

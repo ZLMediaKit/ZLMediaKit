@@ -186,6 +186,14 @@ public:
     }
 
     virtual int readerCount() = 0;
+
+    /**
+     * 获取track
+     * @return
+     */
+    virtual vector<Track::Ptr> getTracks(bool trackReady) const{
+        return vector<Track::Ptr>(0);
+    }
 protected:
     void regist() ;
     bool unregist() ;

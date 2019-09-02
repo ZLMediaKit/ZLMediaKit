@@ -74,7 +74,7 @@ const string kOnHttpAccess = HOOK_FIELD"on_http_access";
 const string kAdminParams = HOOK_FIELD"admin_params";
 
 onceToken token([](){
-    mINI::Instance()[kEnable] = true;
+    mINI::Instance()[kEnable] = false;
     mINI::Instance()[kTimeoutSec] = 10;
     mINI::Instance()[kOnPublish] = "https://127.0.0.1/index/hook/on_publish";
     mINI::Instance()[kOnPlay] = "https://127.0.0.1/index/hook/on_play";
@@ -318,7 +318,7 @@ void installWebHook(){
         do_http_hook(hook_stream_not_found,body, nullptr);
     });
 
-#ifdef ENABLE_MP4V2
+#ifdef ENABLE_MP4RECORD
     //录制mp4文件成功后广播
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRecordMP4,[](BroadcastRecordMP4Args){
         if(!hook_enable || hook_record_mp4.empty()){
@@ -338,7 +338,7 @@ void installWebHook(){
         //执行hook
         do_http_hook(hook_record_mp4,body, nullptr);
     });
-#endif //ENABLE_MP4V2
+#endif //ENABLE_MP4RECORD
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
         if(!hook_enable || hook_shell_login.empty() || sender.get_peer_ip() == "127.0.0.1"){
