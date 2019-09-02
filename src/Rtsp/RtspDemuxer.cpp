@@ -38,10 +38,6 @@ RtspDemuxer::RtspDemuxer(const string& sdp) {
 	loadSdp(SdpParser(sdp));
 }
 
-RtspDemuxer::RtspDemuxer(const SdpParser &attr) {
-	loadSdp(attr);
-}
-
 void RtspDemuxer::loadSdp(const SdpParser &attr) {
 	auto tracks = attr.getAvailableTrack();
 	for (auto &track : tracks){

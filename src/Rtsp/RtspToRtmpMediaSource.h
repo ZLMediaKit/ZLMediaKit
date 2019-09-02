@@ -88,6 +88,17 @@ public:
     int readerCount() override {
         return RtspMediaSource::readerCount() + (_muxer ? _muxer->readerCount() : 0);
     }
+
+    /**
+     * 获取track
+     * @return
+     */
+    vector<Track::Ptr> getTracks(bool trackReady) const override {
+        if(!_demuxer){
+            return this->RtspMediaSource::getTracks(trackReady);
+        }
+        return _demuxer->getTracks(trackReady);
+    }
 private:
     RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;

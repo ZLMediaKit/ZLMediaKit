@@ -34,3 +34,4 @@
 /cmake-build-debug/
 /.idea/
 /c_wrapper/.idea/
+/release/mac/Debug/

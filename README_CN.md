@@ -11,6 +11,7 @@
 - 代码经过大量的稳定性、性能测试，可满足商用服务器项目。
 - 支持linux、macos、ios、android、windows平台
 - 支持画面秒开(GOP缓存)、极低延时(1秒内)
+- **支持websocket-flv直播**
 - [ZLMediaKit高并发实现原理](https://github.com/xiongziliang/ZLMediaKit/wiki/ZLMediaKit%E9%AB%98%E5%B9%B6%E5%8F%91%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)
 
 ## 项目定位
@@ -127,7 +128,12 @@
 ## 编译要求
 - 编译器支持C++11，GCC4.8/Clang3.3/VC2015或以上
 - cmake3.2或以上
-- **必须使用git下载完整的代码，不要使用下载zip包的方式下载源码，否则子模块代码默认不下载！**
+- **必须使用git下载完整的代码，不要使用下载zip包的方式下载源码，否则子模块代码默认不下载！你可以像以下这样操作:**
+```
+git clone https://github.com/zlmediakit/ZLMediaKit.git
+cd ZLMediaKit
+git submodule update --init
+```
 
 ## 编译(Linux)
 - 我的编译环境
@@ -219,7 +225,7 @@
 ```
 ## 使用方法
 - 作为服务器：
-	```
+	```cpp
 	TcpServer::Ptr rtspSrv(new TcpServer());
 	TcpServer::Ptr rtmpSrv(new TcpServer());
 	TcpServer::Ptr httpSrv(new TcpServer());
@@ -232,7 +238,7 @@
 	```
 
 - 作为播放器：
-	```
+	```cpp
     MediaPlayer::Ptr player(new MediaPlayer());
     weak_ptr<MediaPlayer> weakPlayer = player;
     player->setOnPlayResult([weakPlayer](const SockException &ex) {
@@ -261,7 +267,7 @@
     player->play("rtsp://admin:jzan123456@192.168.0.122/");
 	```
 - 作为代理服务器：
-	```
+	```cpp
 	//support rtmp and rtsp url
 	//just support H264+AAC
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
@@ -285,7 +291,7 @@
 	```
 	
 - 作为推流客户端器：
-	```
+	```cpp
 	PlayerProxy::Ptr player(new PlayerProxy("app","stream"));
 	//拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
 	//你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请研读MediaReader代码）

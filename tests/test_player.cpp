@@ -39,42 +39,6 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-#ifdef WIN32
-std::string Utf8ToGbk(std::string src_str){
-
-    int len = MultiByteToWideChar(CP_UTF8, 0, src_str.c_str(), -1, NULL, 0);
-    wchar_t* wszGBK = new wchar_t[len + 1];
-    memset(wszGBK, 0, len * 2 + 2);
-    MultiByteToWideChar(CP_UTF8, 0, src_str.c_str(), -1, wszGBK, len);
-    len = WideCharToMultiByte(CP_ACP, 0, wszGBK, -1, NULL, 0, NULL, NULL);
-    char* szGBK = new char[len + 1];
-    memset(szGBK, 0, len + 1);
-    WideCharToMultiByte(CP_ACP, 0, wszGBK, -1, szGBK, len, NULL, NULL);
-    string strTemp(szGBK);
-    if (wszGBK) delete[] wszGBK;
-    if (szGBK) delete[] szGBK;
-    return strTemp;
-}
-
-class log4Channel : public LogChannel {
-public:
-    log4Channel(const string &name = "log4Channel", LogLevel level = LTrace) :LogChannel(name, level)
-    {
-
-    }
-    ~log4Channel() {}
-    void write(const Logger &logger, const LogContextPtr &logContext) override
-    {
-        if (_level > logContext->_level) {
-            return;
-        }
-
-        printf("%s %s\n", logContext->_function, Utf8ToGbk(logContext->str()).c_str());
-    }
-};
-#else
-typedef  ConsoleChannel log4Channel;
-#endif
 
 #ifdef WIN32
 #include <TCHAR.h>
@@ -106,7 +70,7 @@ int main(int argc, char *argv[]) {
     //设置退出信号处理函数
     signal(SIGINT, [](int) { SDLDisplayerHelper::Instance().shutdown(); });
     //设置日志
-    Logger::Instance().add(std::make_shared<log4Channel>());
+    Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
     if (argc != 3) {

@@ -211,13 +211,25 @@ inline bool HttpSession::checkWebSocket(){
 	if(!_parser["Sec-WebSocket-Protocol"].empty()){
 		headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
 	}
-	sendResponse("101 Switching Protocols",headerOut,"");
-    checkLiveFlvStream(true);
+
+    auto res_cb = [this,headerOut](){
+        _flv_over_websocket = true;
+        sendResponse("101 Switching Protocols",headerOut,"");
+    };
+
+    //判断是否为websocket-flv
+    if(checkLiveFlvStream(res_cb)){
+        //这里是websocket-flv直播请求
+        return true;
+    }
+
+    //如果checkLiveFlvStream返回false,则代表不是websocket-flv，而是普通的websocket连接
+    sendResponse("101 Switching Protocols",headerOut,"");
 	return true;
 }
 //http-flv 链接格式:http://vhost-url:port/app/streamid.flv?key1=value1&key2=value2
 //如果url(除去?以及后面的参数)后缀是.flv,那么表明该url是一个http-flv直播。
-inline bool HttpSession::checkLiveFlvStream(bool over_websocket){
+inline bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
 	auto pos = strrchr(_parser.Url().data(),'.');
 	if(!pos){
 		//未找到".flv"后缀
@@ -240,7 +252,7 @@ inline bool HttpSession::checkLiveFlvStream(bool over_websocket){
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,bClose,this,over_websocket](const MediaSource::Ptr &src){
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,bClose,this,cb](const MediaSource::Ptr &src){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             //本对象已经销毁
@@ -249,35 +261,32 @@ inline bool HttpSession::checkLiveFlvStream(bool over_websocket){
         auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
         if(!rtmp_src){
             //未找到该流
-            if(!over_websocket){
-                sendNotFound(bClose);
-            }
+            sendNotFound(bClose);
             if(bClose){
                 shutdown(SockException(Err_shutdown,"flv stream not found"));
             }
             return;
         }
         //找到流了
-        auto onRes = [this,rtmp_src,over_websocket](const string &err){
+        auto onRes = [this,rtmp_src,cb](const string &err){
             bool authSuccess = err.empty();
             if(!authSuccess){
-                if(!over_websocket){
-                    sendResponse("401 Unauthorized", makeHttpHeader(true,err.size()),err);
-                }
+                sendResponse("401 Unauthorized", makeHttpHeader(true,err.size()),err);
                 shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << err));
                 return ;
             }
 
-            if(!over_websocket) {
+            if(!cb) {
                 //找到rtmp源，发送http头，负载后续发送
                 sendResponse("200 OK", makeHttpHeader(false, 0, get_mime_type(".flv")), "");
+            }else{
+                cb();
             }
 
             //开始发送rtmp负载
             //关闭tcp_nodelay ,优化性能
             SockUtil::setNoDelay(_sock->rawFD(),false);
             (*this) << SocketFlags(kSockFlags);
-            _flv_over_websocket = over_websocket;
             try{
                 start(getPoller(),rtmp_src);
             }catch (std::exception &ex){
@@ -403,7 +412,7 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
             //上次鉴权失败，如果url发生变更，那么也重新鉴权
             if (_parser.Params().empty() || _parser.Params() == cookie->getUid()) {
                 //url参数未变，那么判断无权限访问
-                callback(accessErr.empty() ? "无权限访问该目录" : accessErr, nullptr);
+                callback(accessErr.empty() ? "无权限访问该目录" : accessErr.get<string>(), nullptr);
                 return;
             }
         }
@@ -427,9 +436,9 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
             //对cookie上锁
             auto lck = cookie->getLock();
             //记录用户能访问的路径
-            (*cookie)[kCookiePathKey] = cookie_path;
+            (*cookie)[kCookiePathKey].set<string>(cookie_path);
             //记录能否访问
-            (*cookie)[kAccessErrKey] = errMsg;
+            (*cookie)[kAccessErrKey].set<string>(errMsg);
         }
 
         auto strongSelf = weakSelf.lock();
@@ -480,7 +489,8 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
 	}
 
     //再看看是否为http-flv直播请求
-	if(checkLiveFlvStream(false)){
+	if(checkLiveFlvStream()){
+		//若是，return！
 		return;
 	}
 
@@ -520,7 +530,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
                 }
                 auto headerOut = makeHttpHeader(bClose,strMeun.size());
                 if(cookie){
-                    headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey]);
+                    headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
                 }
                 sendResponse(errMsg.empty() ? "200 OK" : "401 Unauthorized" , headerOut, strMeun);
                 throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access folder");
@@ -555,7 +565,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
         if(!errMsg.empty()){
             auto headerOut = makeHttpHeader(bClose,errMsg.size());
             if(cookie){
-                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey]);
+                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
             }
             sendResponse("401 Unauthorized" , headerOut, errMsg);
             throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access file failed");
@@ -954,12 +964,12 @@ void HttpSession::onWrite(const Buffer::Ptr &buffer) {
     header._reserved = 0;
     header._opcode = WebSocketHeader::BINARY;
     header._mask_flag = false;
-    WebSocketSplitter::encode(header,(uint8_t *)buffer->data(),buffer->size());
+    WebSocketSplitter::encode(header,buffer);
 }
 
-void HttpSession::onWebSocketEncodeData(const uint8_t *ptr,uint64_t len){
-    _ui64TotalBytes += len;
-    SocketHelper::send((char *)ptr,len);
+void HttpSession::onWebSocketEncodeData(const Buffer::Ptr &buffer){
+    _ui64TotalBytes += buffer->size();
+    send(buffer);
 }
 
 void HttpSession::onDetach() {

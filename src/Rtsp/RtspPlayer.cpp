@@ -219,14 +219,14 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
         _strContentBase.pop_back();
     }
 
+	SdpParser sdpParser(parser.Content());
 	//解析sdp
-	_sdpParser.load(parser.Content());
-	_aTrackInfo = _sdpParser.getAvailableTrack();
+	_aTrackInfo = sdpParser.getAvailableTrack();
 
 	if (_aTrackInfo.empty()) {
 		throw std::runtime_error("无有效的Sdp Track");
 	}
-	if (!onCheckSDP(parser.Content(), _sdpParser)) {
+	if (!onCheckSDP(sdpParser.toString())) {
 		throw std::runtime_error("onCheckSDP faied");
 	}
 
@@ -450,7 +450,7 @@ void RtspPlayer::handleResPAUSE(const Parser& parser, bool bPause) {
                 auto strRtpTime = FindField(strTrack.data(), "rtptime=", ";");
                 auto idx = getTrackIndexByControlSuffix(strControlSuffix);
                 if(idx != -1){
-                    _aiFistStamp[idx] = atoll(strRtpTime.data()) * 1000 / _aTrackInfo[idx]->_samplerate;
+                    _aiFistStamp[idx] = _aTrackInfo[idx]->_samplerate>0?atoll(strRtpTime.data()) * 1000 / _aTrackInfo[idx]->_samplerate :1;
                     _aiNowStamp[idx] = _aiFistStamp[idx];
                     DebugL << "rtptime(ms):" << strControlSuffix <<" " << strRtpTime;
                 }
