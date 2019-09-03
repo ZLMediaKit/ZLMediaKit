@@ -49,7 +49,7 @@ void Stamp::revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_ou
 
     //相对时间戳
     dts_out = dts - _start_dts;
-    if(dts_out < _dts_inc){
+    if(dts_out < _dts_inc && !_playback){
         //本次相对时间戳竟然小于上次？
         if(dts_out < 0 || _dts_inc - dts_out > 0xFFFF){
             //时间戳回环,保证下次相对时间戳与本次相对合理增长
@@ -75,6 +75,10 @@ void Stamp::revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_ou
         //时间戳不能小于0
         pts_out = 0;
     }
+}
+
+void Stamp::setPlayBack(bool playback) {
+    _playback = playback;
 }
 
 }//namespace mediakit
