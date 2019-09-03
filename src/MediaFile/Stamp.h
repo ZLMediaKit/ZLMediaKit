@@ -39,8 +39,23 @@ class Stamp {
 public:
     Stamp() = default;
     ~Stamp() = default;
+
+    /**
+     * 设置回放模式，回放模式时间戳可以回退
+     * @param playback 是否为回放模式
+     */
+    void setPlayBack(bool playback = true);
+
+    /**
+     * 修正时间戳
+     * @param dts 输入dts，如果为0则根据系统时间戳生成
+     * @param pts 输入pts，如果为0则等于dts
+     * @param dts_out 输出dts
+     * @param pts_out 输出pts
+     */
     void revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_out);
 private:
+    bool _playback = false;
     int64_t _start_dts = 0;
     int64_t _dts_inc = 0;
     bool _first = true;

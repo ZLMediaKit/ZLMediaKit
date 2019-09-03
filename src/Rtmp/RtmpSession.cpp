@@ -464,6 +464,8 @@ void RtmpSession::onCmd_seek(AMFDecoder &dec) {
     InfoP(this) << "rtmp seekTo(ms):" << milliSeconds;
     auto stongSrc = _pPlayerSrc.lock();
     if (stongSrc) {
+        _stamp[0].setPlayBack();
+        _stamp[1].setPlayBack();
         stongSrc->seekTo(milliSeconds);
     }
 	AMFValue status(AMF_OBJECT);
