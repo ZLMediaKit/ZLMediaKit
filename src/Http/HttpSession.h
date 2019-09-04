@@ -142,6 +142,9 @@ private:
      * @return
      */
     inline string getClientUid();
+
+	//设置socket标志
+	void setSocketFlags();
 private:
 	string _origin;
     Parser _parser;
