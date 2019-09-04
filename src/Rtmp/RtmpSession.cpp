@@ -31,8 +31,6 @@
 
 namespace mediakit {
 
-static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
-
 RtmpSession::RtmpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtmp::kKeepAliveSecond);
@@ -171,6 +169,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         _pPublisherSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
         //如果是rtmp推流客户端，那么加大TCP接收缓存，这样能提升接收性能
         _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+        setSocketFlags();
     };
 
     Broadcast::AuthInvoker invoker = [weakSelf,onRes,pToken](const string &err){
@@ -272,7 +271,6 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
 
     _pRingReader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    SockUtil::setNoDelay(_sock->rawFD(), false);
     _pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -291,10 +289,8 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
     if (src->readerCount() == 1) {
         src->seekTo(0);
     }
-
-    //提高发送性能
-    (*this) << SocketFlags(kSockFlags);
-    SockUtil::setNoDelay(_sock->rawFD(),false);
+    //提高服务器发送性能
+    setSocketFlags();
 }
 
 void RtmpSession::doPlayResponse(const string &err,const std::function<void(bool)> &cb){
@@ -502,4 +498,13 @@ void RtmpSession::onNoneReader(MediaSource &sender) {
     MediaSourceEvent::onNoneReader(sender);
 }
 
+void RtmpSession::setSocketFlags(){
+    GET_CONFIG(bool,ultraLowDelay,General::kUltraLowDelay);
+    if(!ultraLowDelay) {
+        //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
+        SockUtil::setNoDelay(_sock->rawFD(), false);
+        //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
+        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+    }
+}
 } /* namespace mediakit */

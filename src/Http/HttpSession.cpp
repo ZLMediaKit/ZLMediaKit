@@ -48,7 +48,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 static int kHlsCookieSecond = 10 * 60;
 static const string kCookieName = "ZL_COOKIE";
 static const string kCookiePathKey = "kCookiePathKey";
@@ -283,10 +282,9 @@ inline bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
                 cb();
             }
 
-            //开始发送rtmp负载
-            //关闭tcp_nodelay ,优化性能
-            SockUtil::setNoDelay(_sock->rawFD(),false);
-            (*this) << SocketFlags(kSockFlags);
+            //http-flv直播牺牲延时提升发送性能
+            setSocketFlags();
+
             try{
                 start(getPoller(),rtmp_src);
             }catch (std::exception &ex){
@@ -657,10 +655,9 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
             }
             return false;
         };
-        //关闭tcp_nodelay ,优化性能
-        SockUtil::setNoDelay(_sock->rawFD(),false);
-        //设置MSG_MORE，优化性能
-        (*this) << SocketFlags(kSockFlags);
+
+        //文件下载提升发送性能
+        setSocketFlags();
 
         onFlush();
         _sock->setOnFlush(onFlush);
@@ -950,6 +947,15 @@ inline void HttpSession::sendNotFound(bool bClose) {
     sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
 }
 
+void HttpSession::setSocketFlags(){
+    GET_CONFIG(bool,ultraLowDelay,General::kUltraLowDelay);
+    if(!ultraLowDelay) {
+        //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
+        SockUtil::setNoDelay(_sock->rawFD(), false);
+        //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
+        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+    }
+}
 
 void HttpSession::onWrite(const Buffer::Ptr &buffer) {
 	_ticker.resetTime();

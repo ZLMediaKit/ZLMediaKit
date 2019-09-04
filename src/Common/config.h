@@ -168,6 +168,8 @@ extern const string kStreamNoneReaderDelayMS;
 extern const string kMaxStreamWaitTimeMS;
 //是否启动虚拟主机
 extern const string kEnableVhost;
+//超低延时模式，默认打开，打开后会降低延时但是转发性能会稍差
+extern const string kUltraLowDelay;
 }//namespace General
 
 

@@ -84,7 +84,7 @@ private:
 	inline void send_createStream();
 	inline void send_publish();
 	inline void send_metaData();
-
+	void setSocketFlags();
 private:
 	string _strApp;
 	string _strStream;
