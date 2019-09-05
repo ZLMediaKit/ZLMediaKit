@@ -30,6 +30,7 @@
 #include "H264Rtp.h"
 #include "AACRtp.h"
 #include "H265Rtp.h"
+#include "Common/Parser.h"
 
 namespace mediakit{
 
@@ -76,26 +77,14 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
 
     if (strcasecmp(track->_codec.data(), "h265") == 0) {
         //a=fmtp:96 sprop-sps=QgEBAWAAAAMAsAAAAwAAAwBdoAKAgC0WNrkky/AIAAADAAgAAAMBlQg=; sprop-pps=RAHA8vA8kAA=
-        int pt, id;
-        char sprop_vps[128] = {0},sprop_sps[128] = {0},sprop_pps[128] = {0};
-        if (5 == sscanf(track->_fmtp.data(), "%d profile-id=%d; sprop-sps=%127[^;]; sprop-pps=%127[^;]; sprop-vps=%127[^;]", &pt, &id, sprop_sps,sprop_pps, sprop_vps)) {
-            auto vps = decodeBase64(sprop_vps);
-            auto sps = decodeBase64(sprop_sps);
-            auto pps = decodeBase64(sprop_pps);
-            return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
+        auto map = Parser::parseArgs(track->_fmtp," ","=");
+        for(auto &pr : map){
+            trim(pr.second," ;");
         }
-        if (4 == sscanf(track->_fmtp.data(), "%d sprop-vps=%127[^;]; sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt, sprop_vps,sprop_sps, sprop_pps)) {
-            auto vps = decodeBase64(sprop_vps);
-            auto sps = decodeBase64(sprop_sps);
-            auto pps = decodeBase64(sprop_pps);
-            return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
-        }
-        if (3 == sscanf(track->_fmtp.data(), "%d sprop-sps=%127[^;]; sprop-pps=%127[^;]", &pt,sprop_sps, sprop_pps)) {
-            auto sps = decodeBase64(sprop_sps);
-            auto pps = decodeBase64(sprop_pps);
-            return std::make_shared<H265Track>("",sps,pps,0,0,0);
-        }
-        return std::make_shared<H265Track>();
+        auto vps = decodeBase64(map["sprop-vps"]);
+        auto sps = decodeBase64(map["sprop-sps"]);
+        auto pps = decodeBase64(map["sprop-pps"]);
+        return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
     }
 
 
