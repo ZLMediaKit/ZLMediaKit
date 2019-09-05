@@ -40,6 +40,40 @@ using namespace toolkit;
 using namespace mediakit;
 
 
+/**
+ * 合并一些时间戳相同的frame
+ */
+class FrameMerger {
+public:
+    FrameMerger() = default;
+    virtual ~FrameMerger() = default;
+
+    void inputFrame(const Frame::Ptr &frame,const function<void(uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer)> &cb){
+        if (!_frameCached.empty() && _frameCached.back()->dts() != frame->dts()) {
+            Frame::Ptr back = _frameCached.back();
+            Buffer::Ptr merged_frame = back;
+            if(_frameCached.size() != 1){
+                string merged;
+                _frameCached.for_each([&](const Frame::Ptr &frame){
+                    if(frame->prefixSize()){
+                        merged.append(frame->data(),frame->size());
+                    } else{
+                        merged.append("\x00\x00\x00\x01",4);
+                        merged.append(frame->data(),frame->size());
+                    }
+                });
+                merged_frame = std::make_shared<BufferString>(std::move(merged));
+            }
+            cb(back->dts(),back->pts(),merged_frame);
+            _frameCached.clear();
+        }
+        _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
+    }
+private:
+    List<Frame::Ptr> _frameCached;
+};
+
+
 #ifdef WIN32
 #include <TCHAR.h>
 
@@ -101,18 +135,26 @@ int main(int argc, char *argv[]) {
             SDLDisplayerHelper::Instance().doTask([frame,storage]() {
                 auto &decoder = (*storage)["decoder"];
                 auto &displayer = (*storage)["displayer"];
+                auto &merger = (*storage)["merger"];
                 if(!decoder){
                     decoder.set<H264Decoder>();
                 }
                 if(!displayer){
                     displayer.set<YuvDisplayer>();
                 }
+                if(!merger){
+                    merger.set<FrameMerger>();
+                };
 
-                AVFrame *pFrame = nullptr;
-                bool flag = decoder.get<H264Decoder>().inputVideo((unsigned char *) frame->data(), frame->size(), frame->stamp(), &pFrame);
-                if (flag) {
-                    displayer.get<YuvDisplayer>().displayYUV(pFrame);
-                }
+                merger.get<FrameMerger>().inputFrame(frame,[&](uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer){
+                    AVFrame *pFrame = nullptr;
+                    bool flag = decoder.get<H264Decoder>().inputVideo((unsigned char *) buffer->data(), buffer->size(), dts, &pFrame);
+                    if (flag) {
+                        displayer.get<YuvDisplayer>().displayYUV(pFrame);
+                    }
+                });
+
+
                 return true;
             });
         }));
