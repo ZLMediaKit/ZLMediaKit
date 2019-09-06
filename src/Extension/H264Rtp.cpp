@@ -238,32 +238,34 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto pcData = frame->data() + frame->prefixSize();
     auto uiStamp = frame->stamp();
     auto iLen = frame->size() - frame->prefixSize();
-    unsigned char naluType =  H264_TYPE(pcData[0]); //获取NALU的5bit 帧类型
+    //获取NALU的5bit 帧类型
+    unsigned char naluType =  H264_TYPE(pcData[0]);
 
     uiStamp %= cycleMS;
     int iSize = _ui32MtuSize - 2;
-    if (iLen > iSize) { //超过MTU
-        const unsigned char s_e_r_Start = 0x80;
-        const unsigned char s_e_r_Mid = 0x00;
-        const unsigned char s_e_r_End = 0x40;
-        //获取帧头数据，1byte
-        unsigned char nal_ref_idc = *((unsigned char *) pcData) & 0x60; //获取NALU的2bit 帧重要程度 00 可以丢 11不能丢
-        //nal_ref_idc = 0x60;
-        //组装FU-A帧头数据 2byte
-        unsigned char f_nri_type = nal_ref_idc + 28;//F为0 1bit,nri上面获取到2bit,28为FU-A分片类型5bit
-        unsigned char s_e_r_type = naluType;
+    //超过MTU则按照FU-A模式打包
+    if (iLen > iSize) {
+        //最高位bit为forbidden_zero_bit,
+        //后面2bit为nal_ref_idc(帧重要程度),00:可以丢,11:不能丢
+        //末尾5bit为nalu type，固定为28(FU-A)
+        unsigned char f_nri_flags = (*((unsigned char *) pcData) & 0x60) | 28;
+        unsigned char s_e_r_flags;
         bool bFirst = true;
         bool mark = false;
         int nOffset = 1;
         while (!mark) {
-            if (iLen < nOffset + iSize) {			//是否拆分结束
+            if (iLen < nOffset + iSize) {
+                //已经拆分结束
                 iSize = iLen - nOffset;
                 mark = true;
-                s_e_r_type = s_e_r_End + naluType;
-            } else  if (bFirst) {
-                s_e_r_type = s_e_r_Start + naluType;
+                //FU-A end
+                s_e_r_flags = (1 << 6) | naluType;
+            } else if (bFirst) {
+                //FU-A start
+                s_e_r_flags = (1 << 7) | naluType;
             } else {
-                s_e_r_type = s_e_r_Mid + naluType;
+                //FU-A mid
+                s_e_r_flags = naluType;
             }
 
             {
@@ -272,9 +274,9 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 //rtp payload 负载部分
                 uint8_t *payload = (uint8_t*)rtp->data() + rtp->offset;
                 //FU-A 第1个字节
-                memcpy(payload, &f_nri_type, 1);
+                payload[0] = f_nri_flags;
                 //FU-A 第2个字节
-                memcpy(payload + 1, &s_e_r_type, 1);
+                payload[1] = s_e_r_flags;
                 //H264 数据
                 memcpy(payload + 2, (unsigned char *) pcData + nOffset, iSize);
                 //输入到rtp环形缓存
