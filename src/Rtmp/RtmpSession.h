@@ -86,6 +86,7 @@ private:
     bool close(MediaSource &sender,bool force) override ;
     void onNoneReader(MediaSource &sender) override;
 	void setSocketFlags();
+	string getStreamId(const string &str);
 private:
 	std::string _strTcUrl;
 	MediaInfo _mediaInfo;

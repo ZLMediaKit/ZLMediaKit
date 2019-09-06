@@ -140,7 +140,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         }
     }));
 	dec.load<AMFValue>();/* NULL */
-    _mediaInfo.parse(_strTcUrl + "/" + dec.load<std::string>());
+    _mediaInfo.parse(_strTcUrl + "/" + getStreamId(dec.load<std::string>()));
     _mediaInfo._schema = RTMP_SCHEMA;
 
     auto onRes = [this,pToken](const string &err){
@@ -344,9 +344,41 @@ void RtmpSession::doPlay(AMFDecoder &dec){
 void RtmpSession::onCmd_play2(AMFDecoder &dec) {
 	doPlay(dec);
 }
+
+string RtmpSession::getStreamId(const string &str){
+    string stream_id;
+    string params;
+    auto pos = str.find('?');
+    if(pos != string::npos){
+        //有url参数
+        stream_id = str.substr(0,pos);
+        //获取url参数
+        params = str.substr(pos + 1);
+    }else{
+        //没有url参数
+        stream_id = str;
+    }
+
+    pos = stream_id.find(":");
+    if(pos != string::npos){
+        //vlc和ffplay在播放 rtmp://127.0.0.1/record/0.mp4时，
+        //传过来的url会是rtmp://127.0.0.1/record/mp4:0,
+        //我们在这里还原成0.mp4
+        stream_id = stream_id.substr(pos + 1) + "." + stream_id.substr(0,pos);
+    }
+
+    if(params.empty()){
+        //没有url参数
+        return stream_id;
+    }
+
+    //有url参数
+    return stream_id + '?' + params;
+}
+
 void RtmpSession::onCmd_play(AMFDecoder &dec) {
 	dec.load<AMFValue>();/* NULL */
-    _mediaInfo.parse(_strTcUrl + "/" + dec.load<std::string>());
+    _mediaInfo.parse(_strTcUrl + "/" + getStreamId(dec.load<std::string>()));
     _mediaInfo._schema = RTMP_SCHEMA;
 	doPlay(dec);
 }
