@@ -265,11 +265,22 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
             } else {
                 s_e_r_type = s_e_r_Mid + naluType;
             }
-            memcpy(_aucSectionBuf, &f_nri_type, 1);
-            memcpy(_aucSectionBuf + 1, &s_e_r_type, 1);
-            memcpy(_aucSectionBuf + 2, (unsigned char *) pcData + nOffset, iSize);
+
+            {
+                //传入nullptr先不做payload的内存拷贝
+                auto rtp = makeRtp(getTrackType(), nullptr, iSize + 2, mark, uiStamp);
+                //rtp payload 负载部分
+                uint8_t *payload = (uint8_t*)rtp->data() + rtp->offset;
+                //FU-A 第1个字节
+                memcpy(payload, &f_nri_type, 1);
+                //FU-A 第2个字节
+                memcpy(payload + 1, &s_e_r_type, 1);
+                //H264 数据
+                memcpy(payload + 2, (unsigned char *) pcData + nOffset, iSize);
+                //输入到rtp环形缓存
+                RtpCodec::inputRtp(rtp,bFirst && naluType == H264Frame::NAL_IDR);
+            }
             nOffset += iSize;
-            makeH264Rtp(naluType,_aucSectionBuf, iSize + 2, mark,bFirst, uiStamp);
             bFirst = false;
         }
     } else {

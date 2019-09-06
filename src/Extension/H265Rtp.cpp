@@ -194,13 +194,24 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 s_e_type = naluType;
             }
 
-            //FU type
-            _aucSectionBuf[0] = 49 << 1;
-            _aucSectionBuf[1] = 1;
-            _aucSectionBuf[2] = s_e_type;
-            memcpy(_aucSectionBuf + 3, pcData + nOffset, maxSize);
+            {
+                //传入nullptr先不做payload的内存拷贝
+                auto rtp = makeRtp(getTrackType(), nullptr, maxSize + 3, mark, uiStamp);
+                //rtp payload 负载部分
+                uint8_t *payload = (uint8_t*)rtp->data() + rtp->offset;
+                //FU-A 第1个字节
+                payload[0] = 49 << 1;
+                //FU-A 第2个字节貌似固定为1
+                payload[1] = 1;
+                //FU-A 第3个字节
+                payload[2] = s_e_type;
+                //H265 数据
+                memcpy(payload + 3,pcData + nOffset, maxSize);
+                //输入到rtp环形缓存
+                RtpCodec::inputRtp(rtp,bFirst && H265Frame::isKeyFrame(naluType));
+            }
+
             nOffset += maxSize;
-            makeH265Rtp(naluType,_aucSectionBuf, maxSize + 3, mark,bFirst, uiStamp);
             bFirst = false;
         }
     } else {

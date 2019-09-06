@@ -49,8 +49,11 @@ RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, unsigned int l
     memcpy(&pucRtp[8], &ts, 4);
     //ssrc
     memcpy(&pucRtp[12], &sc, 4);
-    //playload
-    memcpy(&pucRtp[16], data, len);
+
+    if(data){
+        //playload
+        memcpy(&pucRtp[16], data, len);
+    }
 
     rtppkt->PT = _ui8PlayloadType;
     rtppkt->interleaved = _ui8Interleaved;
