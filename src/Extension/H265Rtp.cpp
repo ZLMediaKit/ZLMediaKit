@@ -180,7 +180,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     //超过MTU,按照FU方式打包
     if (iLen > maxSize) {
         //获取帧头数据，1byte
-        unsigned char s_e_type;
+        unsigned char s_e_flags;
         bool bFirst = true;
         bool mark = false;
         int nOffset = 2;
@@ -189,13 +189,13 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 maxSize = iLen - nOffset;
                 mark = true;
                 //FU end
-                s_e_type = (1 << 6) | naluType;
+                s_e_flags = (1 << 6) | naluType;
             } else if (bFirst) {
                 //FU start
-                s_e_type = (1 << 7) | naluType;
+                s_e_flags = (1 << 7) | naluType;
             } else {
                 //FU mid
-                s_e_type = naluType;
+                s_e_flags = naluType;
             }
 
             {
@@ -208,7 +208,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 //FU 第2个字节貌似固定为1
                 payload[1] = 1;
                 //FU 第3个字节
-                payload[2] = s_e_type;
+                payload[2] = s_e_flags;
                 //H265 数据
                 memcpy(payload + 3,pcData + nOffset, maxSize);
                 //输入到rtp环形缓存
