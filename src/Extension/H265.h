@@ -267,8 +267,10 @@ public:
     * @param frame 数据帧
     */
     void inputFrame(const Frame::Ptr &frame) override{
-        bool  first_frame = true;
-        splitH264(frame->data() + frame->prefixSize(),
+		int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
+        if(type == H265Frame::NAL_VPS){
+	        bool  first_frame = true;
+	        splitH264(frame->data() + frame->prefixSize(),
                   frame->size() - frame->prefixSize(),
                   [&](const char *ptr, int len){
                       if(first_frame){
@@ -286,6 +288,9 @@ public:
                           inputFrame_l(sub_frame);
                       }
                   });
+        	}else{
+				inputFrame_l(frame);
+			}
     }
 
 private:
