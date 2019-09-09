@@ -400,7 +400,7 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
         //找到了cookie，对cookie上锁先
         auto lck = cookie->getLock();
         auto accessErr = (*cookie)[kAccessErrKey];
-        if(path.find((*cookie)[kCookiePathKey]) == 0){
+        if(path.find((*cookie)[kCookiePathKey].get<string>()) == 0){
             //上次cookie是限定本目录
             if(accessErr.empty()){
                 //上次鉴权成功
@@ -591,12 +591,10 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
             //分节下载返回Content-Range头
             httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
         }
-        auto Origin = parser["Origin"];
-        if(!Origin.empty()){
-            httpHeader["Access-Control-Allow-Origin"] = Origin;
-            httpHeader["Access-Control-Allow-Credentials"] = "true";
-        }
 
+        if(cookie){
+            httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+        }
         //先回复HTTP头部分
         sendResponse(pcHttpResult,httpHeader,"");
         
