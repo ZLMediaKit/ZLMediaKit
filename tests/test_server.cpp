@@ -157,7 +157,7 @@ void initEventListener() {
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaPublish, [](BroadcastMediaPublishArgs) {
             DebugL << "推流鉴权：" << args._schema << " " << args._vhost << " " << args._app << " " << args._streamid << " "
                    << args._param_strs;
-            invoker("");//鉴权成功
+            invoker("", true, true, false);//鉴权成功
             //invoker("this is auth failed message");//鉴权失败
         });
 

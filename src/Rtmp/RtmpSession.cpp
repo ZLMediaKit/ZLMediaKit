@@ -143,7 +143,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
     _mediaInfo.parse(_strTcUrl + "/" + getStreamId(dec.load<std::string>()));
     _mediaInfo._schema = RTMP_SCHEMA;
 
-    auto onRes = [this,pToken](const string &err){
+    auto onRes = [this,pToken](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
         auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
                                                                            _mediaInfo._vhost,
                                                                            _mediaInfo._app,
@@ -167,22 +167,25 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         }
         _pPublisherSrc.reset(new RtmpToRtspMediaSource(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid));
         _pPublisherSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
+        //设置转协议
+        _pPublisherSrc->setProtocolTranslation(enableRtxp,enableHls,enableMP4);
+
         //如果是rtmp推流客户端，那么加大TCP接收缓存，这样能提升接收性能
         _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
         setSocketFlags();
     };
 
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes,pToken](const string &err){
+    Broadcast::PublishAuthInvoker invoker = [weakSelf,onRes,pToken](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,onRes,err,pToken](){
+        strongSelf->async([weakSelf,onRes,err,pToken,enableRtxp,enableHls,enableMP4](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            onRes(err);
+            onRes(err,enableRtxp,enableHls,enableMP4);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,
@@ -191,7 +194,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
                                                    *this);
     if(!flag){
         //该事件无人监听，默认鉴权成功
-        onRes("");
+        onRes("",true,true,false);
     }
 }
 

@@ -195,7 +195,7 @@ void installWebHook(){
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
         if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1"){
-            invoker("");
+            invoker("",true, true,false);
             return;
         }
         //异步执行该hook api，防止阻塞NoticeCenter
@@ -205,7 +205,23 @@ void installWebHook(){
         body["id"] = sender.getIdentifier();
         //执行hook
         do_http_hook(hook_publish,body,[invoker](const Value &obj,const string &err){
-            invoker(err);
+            if(err.empty()){
+                //推流鉴权成功
+                bool enableRtxp = true;
+                bool enableHls = true;
+                bool enableMP4 = false;
+
+                //加try catch目的是兼容之前的hook接口，用户可以不传递enableRtxp、enableHls、enableMP4参数
+                try { enableRtxp = obj["enableRtxp"].asBool(); } catch (...) {}
+                try { enableHls = obj["enableHls"].asBool(); } catch (...) {}
+                try { enableMP4 = obj["enableMP4"].asBool(); } catch (...) {}
+
+                invoker(err,enableRtxp,enableHls,enableMP4);
+            }else{
+                //推流鉴权失败
+                invoker(err,false, false, false);
+            }
+
         });
     });
 

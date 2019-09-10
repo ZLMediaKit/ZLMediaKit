@@ -256,13 +256,16 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 		send_SessionNotFound();
         throw SockException(Err_shutdown,_aTrackInfo.empty() ? "can not find any availabe track when record" : "session not found when record");
 	}
-	auto onRes = [this](const string &err){
+	auto onRes = [this](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
 		bool authSuccess = err.empty();
 		if(!authSuccess){
 			sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
 			shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << err));
 			return;
 		}
+
+        //设置转协议
+        _pushSrc->setProtocolTranslation(enableRtxp,enableHls,enableMP4);
 
 		_StrPrinter rtp_info;
 		for(auto &track : _aTrackInfo){
@@ -284,17 +287,17 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 	};
 
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-	Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
+	Broadcast::PublishAuthInvoker invoker = [weakSelf,onRes](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf){
 			return;
 		}
-		strongSelf->async([weakSelf,onRes,err](){
+		strongSelf->async([weakSelf,onRes,err,enableRtxp,enableHls,enableMP4](){
 			auto strongSelf = weakSelf.lock();
 			if(!strongSelf){
 				return;
 			}
-			onRes(err);
+			onRes(err,enableRtxp,enableHls,enableMP4);
 		});
 	};
 
@@ -302,7 +305,7 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 	auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,_mediaInfo,invoker,*this);
 	if(!flag){
 		//该事件无人监听,默认不鉴权
-		onRes("");
+		onRes("",true,true,false);
 	}
 }
 

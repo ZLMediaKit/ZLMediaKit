@@ -92,13 +92,20 @@ extern const string kBroadcastOnGetRtspRealm;
 extern const string kBroadcastOnRtspAuth;
 #define BroadcastOnRtspAuthArgs const MediaInfo &args,const string &realm,const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker,TcpSession &sender
 
-//鉴权结果回调对象
+//推流鉴权结果回调对象
 //如果errMessage为空则代表鉴权成功
-typedef std::function<void(const string &errMessage)> AuthInvoker;
+//enableHls: 是否允许转换hls
+//enableMP4: 是否运行MP4录制
+//enableRtxp: rtmp推流时是否运行转rtsp；rtsp推流时，是否允许转rtmp
+typedef std::function<void(const string &errMessage,bool enableRtxp,bool enableHls,bool enableMP4)> PublishAuthInvoker;
 
 //收到rtsp/rtmp推流事件广播，通过该事件控制推流鉴权
 extern const string kBroadcastMediaPublish;
-#define BroadcastMediaPublishArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
+#define BroadcastMediaPublishArgs const MediaInfo &args,const Broadcast::PublishAuthInvoker &invoker,TcpSession &sender
+
+//播放鉴权结果回调对象
+//如果errMessage为空则代表鉴权成功
+typedef std::function<void(const string &errMessage)> AuthInvoker;
 
 //播放rtsp/rtmp/http-flv事件广播，通过该事件控制播放鉴权
 extern const string kBroadcastMediaPlayed;
