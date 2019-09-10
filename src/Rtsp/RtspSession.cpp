@@ -250,7 +250,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     auto full_url = parser.FullUrl();
     if(end_of(full_url,".sdp")){
         //去除.sdp后缀，防止EasyDarwin推流器强制添加.sdp后缀
-        full_url = full_url.substr(0,full_url.length() - 3);
+        full_url = full_url.substr(0,full_url.length() - 4);
         _mediaInfo.parse(full_url);
     }
 
