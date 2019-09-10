@@ -211,10 +211,18 @@ void installWebHook(){
                 bool enableHls = true;
                 bool enableMP4 = false;
 
-                //加try catch目的是兼容之前的hook接口，用户可以不传递enableRtxp、enableHls、enableMP4参数
-                try { enableRtxp = obj["enableRtxp"].asBool(); } catch (...) {}
-                try { enableHls = obj["enableHls"].asBool(); } catch (...) {}
-                try { enableMP4 = obj["enableMP4"].asBool(); } catch (...) {}
+                //兼容用户不传递enableRtxp、enableHls、enableMP4参数
+                if(obj.isMember("enableRtxp")){
+                    enableRtxp = obj["enableRtxp"].asBool();
+                }
+
+                if(obj.isMember("enableHls")){
+                    enableHls = obj["enableHls"].asBool();
+                }
+
+                if(obj.isMember("enableMP4")){
+                    enableMP4 = obj["enableMP4"].asBool();
+                }
 
                 invoker(err,enableRtxp,enableHls,enableMP4);
             }else{
