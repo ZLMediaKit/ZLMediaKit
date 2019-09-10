@@ -52,11 +52,7 @@ public:
 	RtmpToRtspMediaSource(const string &vhost,
                           const string &app,
                           const string &id,
-                          bool bEnableHls = true,
-                          bool bEnableMp4 = false,
 						  int ringSize = 0) : RtmpMediaSource(vhost, app, id,ringSize){
-		_bEnableHls = bEnableHls;
-		_bEnableMp4 = bEnableMp4;
 		_demuxer = std::make_shared<RtmpDemuxer>();
 	}
 	virtual ~RtmpToRtspMediaSource(){}
@@ -66,17 +62,17 @@ public:
 		RtmpMediaSource::onGetMetaData(metadata);
 	}
 
-	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos) override {
+	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos = true) override {
 		_demuxer->inputRtmp(pkt);
 		if(!_muxer && _demuxer->isInited(2000)){
 			_muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(),
 															 getApp(),
 															 getId(),
 															 _demuxer->getDuration(),
-															 true,//转rtsp
+															 _enableRtsp,
 															 false,//不重复生成rtmp
-															 _bEnableHls,
-															 _bEnableMp4);
+															 _enableHls,
+															 _enableMP4);
 			for (auto &track : _demuxer->getTracks(false)){
 				_muxer->addTrack(track);
 				track->addDelegate(_muxer);
@@ -107,11 +103,25 @@ public:
 		}
 		return _demuxer->getTracks(trackReady);
 	}
+
+	/**
+	 * 设置协议转换
+	 * @param enableRtsp 是否转换成rtsp
+	 * @param enableHls  是否转换成hls
+	 * @param enableMP4  是否mp4录制
+	 */
+	void setProtocolTranslation(bool enableRtsp,bool enableHls,bool enableMP4){
+//		DebugL << enableRtsp << " " << enableHls << " " << enableMP4;
+		_enableRtsp = enableRtsp;
+		_enableHls = enableHls;
+		_enableMP4 = enableMP4;
+	}
 private:
 	RtmpDemuxer::Ptr _demuxer;
 	MultiMediaSourceMuxer::Ptr _muxer;
-	bool _bEnableHls;
-	bool _bEnableMp4;
+	bool _enableHls = true;
+	bool _enableMP4 = false;
+	bool _enableRtsp = true;
 };
 
 } /* namespace mediakit */

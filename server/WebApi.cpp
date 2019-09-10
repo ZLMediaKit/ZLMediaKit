@@ -581,7 +581,12 @@ void installWebApi() {
     ////////////以下是注册的Hook API////////////
     API_REGIST(hook,on_publish,{
         //开始推流事件
-        throw SuccessException();
+        //转换成rtsp或rtmp
+        val["enableRtxp"] = true;
+        //转换hls
+        val["enableHls"] = true;
+        //不录制mp4
+        val["enableMP4"] = false;
     });
 
     API_REGIST(hook,on_play,{
