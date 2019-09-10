@@ -248,7 +248,8 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 	_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
 	_pushSrc->onGetSDP(sdpParser.toString());
-	sendRtspResponse("200 OK");
+
+	sendRtspResponse("200 OK",{"Content-Base",_strContentBase + "/"});
 }
 
 void RtspSession::handleReq_RECORD(const Parser &parser){
@@ -572,7 +573,7 @@ inline void RtspSession::send_SessionNotFound() {
 
 void RtspSession::handleReq_Setup(const Parser &parser) {
 //处理setup命令，该函数可能进入多次
-    auto controlSuffix = split(parser.Url(),"/").back();// parser.FullUrl().substr(_strContentBase.size());
+    auto controlSuffix = split(parser.FullUrl(),"/").back();// parser.FullUrl().substr(_strContentBase.size());
     if(controlSuffix.front() == '/'){
 		controlSuffix = controlSuffix.substr(1);
     }
