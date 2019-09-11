@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.1.3)
 #使能c++11
 set(CMAKE_CXX_STANDARD 11)
 #加载自定义模块
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 #set(CMAKE_BUILD_TYPE "Release")
 
@@ -16,7 +16,7 @@ else()
 endif()
 
 #设置bin和lib库目录
-set(RELEASE_DIR ${CMAKE_SOURCE_DIR}/release)
+set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release)
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
     SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
@@ -32,8 +32,8 @@ LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
 
 #设置工程源码根目录
-set(ToolKit_Root ${CMAKE_SOURCE_DIR}/3rdpart/ZLToolKit/src)
-set(MediaKit_Root ${CMAKE_SOURCE_DIR}/src)
+set(ToolKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/ZLToolKit/src)
+set(MediaKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
@@ -63,7 +63,7 @@ set(ENABLE_MP4RECORD true)
 if(ENABLE_HLS)
     message(STATUS "ENABLE_HLS defined")
     add_definitions(-DENABLE_HLS)
-    set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
+    set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
     set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
 else()
     set(LINK_LIB_LIST zlmediakit zltoolkit)
@@ -72,7 +72,7 @@ endif()
 if(ENABLE_MP4RECORD)
     message(STATUS "ENABLE_MP4RECORD defined")
     add_definitions(-DENABLE_MP4RECORD)
-    set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
+    set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
 	list(APPEND LINK_LIB_LIST mov flv)
 endif()
 #查找openssl是否安装
