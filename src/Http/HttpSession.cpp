@@ -399,8 +399,9 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
     if(cookie){
         //找到了cookie，对cookie上锁先
         auto lck = cookie->getLock();
-        auto accessErr = (*cookie)[kAccessErrKey];
-        if(path.find((*cookie)[kCookiePathKey].get<string>()) == 0){
+        auto accessErr = (*cookie)[kAccessErrKey].get<string>();
+        auto cookiePath = (*cookie)[kCookiePathKey].get<string>();
+        if(path.find(cookiePath) == 0){
             //上次cookie是限定本目录
             if(accessErr.empty()){
                 //上次鉴权成功
@@ -410,7 +411,7 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
             //上次鉴权失败，如果url发生变更，那么也重新鉴权
             if (_parser.Params().empty() || _parser.Params() == cookie->getUid()) {
                 //url参数未变，那么判断无权限访问
-                callback(accessErr.empty() ? "无权限访问该目录" : accessErr.get<string>(), nullptr);
+                callback(accessErr.empty() ? "无权限访问该目录" : accessErr, nullptr);
                 return;
             }
         }
