@@ -391,9 +391,12 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
     auto uid = getClientUid();
     //先根据http头中的cookie字段获取cookie
     HttpServerCookie::Ptr cookie = HttpCookieManager::Instance().getCookie(kCookieName, _parser.getValues());
+    //如果不是从http头中找到的cookie,我们让http客户端设置下cookie
+    bool cookie_from_header = true;
     if(!cookie){
         //客户端请求中无cookie,再根据该用户的用户id获取cookie
         cookie = HttpCookieManager::Instance().getCookieByUid(kCookieName, uid);
+        cookie_from_header = false;
     }
 
     if(cookie){
@@ -405,13 +408,13 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
             //上次cookie是限定本目录
             if(accessErr.empty()){
                 //上次鉴权成功
-                callback("", nullptr);
+                callback("", cookie_from_header ? nullptr : cookie);
                 return;
             }
-            //上次鉴权失败，如果url发生变更，那么也重新鉴权
+            //上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下
             if (_parser.Params().empty() || _parser.Params() == cookie->getUid()) {
-                //url参数未变，那么判断无权限访问
-                callback(accessErr.empty() ? "无权限访问该目录" : accessErr, nullptr);
+                //url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限
+                callback(accessErr, cookie_from_header ? nullptr : cookie);
                 return;
             }
         }
