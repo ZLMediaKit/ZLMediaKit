@@ -183,6 +183,8 @@ private:
 	bool sendRtspResponse(const string &res_code,const StrCaseMap &header = StrCaseMap(), const string &sdp = "",const char *protocol = "RTSP/1.0");
 	//服务器发送rtcp
 	void sendSenderReport(bool overTcp,int iTrackIndex);
+	//设置socket标志
+	void setSocketFlags();
 private:
 	//用于判断客户端是否超时
 	Ticker _ticker;

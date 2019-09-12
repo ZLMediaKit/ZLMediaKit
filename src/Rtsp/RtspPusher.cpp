@@ -11,8 +11,6 @@ using namespace mediakit::Client;
 
 namespace mediakit {
 
-static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
-
 RtspPusher::RtspPusher(const EventPoller::Ptr &poller,const RtspMediaSource::Ptr &src) : TcpClient(poller){
     _pMediaSrc = src;
 }
@@ -392,11 +390,19 @@ void RtspPusher::sendRecord() {
             },getPoller()));
         }
         onPublishResult(SockException(Err_success,"success"));
-        //提高发送性能
-        (*this) << SocketFlags(kSockFlags);
-        SockUtil::setNoDelay(_sock->rawFD(),false);
+        //提升发送性能
+        setSocketFlags();
     };
     sendRtspRequest("RECORD",_strContentBase,{"Range","npt=0.000-"});
+}
+
+void RtspPusher::setSocketFlags(){
+    GET_CONFIG(bool,ultraLowDelay,General::kUltraLowDelay);
+    if(!ultraLowDelay) {
+        //提高发送性能
+        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+        SockUtil::setNoDelay(_sock->rawFD(), false);
+    }
 }
 
 void RtspPusher::sendRtspRequest(const string &cmd, const string &url, const std::initializer_list<string> &header,const string &sdp ) {

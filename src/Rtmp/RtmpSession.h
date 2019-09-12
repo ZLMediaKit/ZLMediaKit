@@ -85,13 +85,15 @@ private:
 
     bool close(MediaSource &sender,bool force) override ;
     void onNoneReader(MediaSource &sender) override;
+	void setSocketFlags();
+	string getStreamId(const string &str);
 private:
 	std::string _strTcUrl;
 	MediaInfo _mediaInfo;
 	double _dNowReqID = 0;
 	Ticker _ticker;//数据接收时间
 	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr _pRingReader;
-	std::shared_ptr<RtmpMediaSource> _pPublisherSrc;
+	std::shared_ptr<RtmpToRtspMediaSource> _pPublisherSrc;
 	std::weak_ptr<RtmpMediaSource> _pPlayerSrc;
 	//时间戳修整器
 	Stamp _stamp[2];

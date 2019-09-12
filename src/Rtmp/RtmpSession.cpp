@@ -31,8 +31,6 @@
 
 namespace mediakit {
 
-static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
-
 RtmpSession::RtmpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
 	DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtmp::kKeepAliveSecond);
@@ -142,10 +140,10 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         }
     }));
 	dec.load<AMFValue>();/* NULL */
-    _mediaInfo.parse(_strTcUrl + "/" + dec.load<std::string>());
+    _mediaInfo.parse(_strTcUrl + "/" + getStreamId(dec.load<std::string>()));
     _mediaInfo._schema = RTMP_SCHEMA;
 
-    auto onRes = [this,pToken](const string &err){
+    auto onRes = [this,pToken](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
         auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
                                                                            _mediaInfo._vhost,
                                                                            _mediaInfo._app,
@@ -169,21 +167,25 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         }
         _pPublisherSrc.reset(new RtmpToRtspMediaSource(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid));
         _pPublisherSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
+        //设置转协议
+        _pPublisherSrc->setProtocolTranslation(enableRtxp,enableHls,enableMP4);
+
         //如果是rtmp推流客户端，那么加大TCP接收缓存，这样能提升接收性能
         _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+        setSocketFlags();
     };
 
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes,pToken](const string &err){
+    Broadcast::PublishAuthInvoker invoker = [weakSelf,onRes,pToken](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->async([weakSelf,onRes,err,pToken](){
+        strongSelf->async([weakSelf,onRes,err,pToken,enableRtxp,enableHls,enableMP4](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 return;
             }
-            onRes(err);
+            onRes(err,enableRtxp,enableHls,enableMP4);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,
@@ -192,7 +194,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
                                                    *this);
     if(!flag){
         //该事件无人监听，默认鉴权成功
-        onRes("");
+        onRes("",true,true,false);
     }
 }
 
@@ -272,7 +274,6 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
 
     _pRingReader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    SockUtil::setNoDelay(_sock->rawFD(), false);
     _pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -291,10 +292,8 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
     if (src->readerCount() == 1) {
         src->seekTo(0);
     }
-
-    //提高发送性能
-    (*this) << SocketFlags(kSockFlags);
-    SockUtil::setNoDelay(_sock->rawFD(),false);
+    //提高服务器发送性能
+    setSocketFlags();
 }
 
 void RtmpSession::doPlayResponse(const string &err,const std::function<void(bool)> &cb){
@@ -348,9 +347,41 @@ void RtmpSession::doPlay(AMFDecoder &dec){
 void RtmpSession::onCmd_play2(AMFDecoder &dec) {
 	doPlay(dec);
 }
+
+string RtmpSession::getStreamId(const string &str){
+    string stream_id;
+    string params;
+    auto pos = str.find('?');
+    if(pos != string::npos){
+        //有url参数
+        stream_id = str.substr(0,pos);
+        //获取url参数
+        params = str.substr(pos + 1);
+    }else{
+        //没有url参数
+        stream_id = str;
+    }
+
+    pos = stream_id.find(":");
+    if(pos != string::npos){
+        //vlc和ffplay在播放 rtmp://127.0.0.1/record/0.mp4时，
+        //传过来的url会是rtmp://127.0.0.1/record/mp4:0,
+        //我们在这里还原成0.mp4
+        stream_id = stream_id.substr(pos + 1) + "." + stream_id.substr(0,pos);
+    }
+
+    if(params.empty()){
+        //没有url参数
+        return stream_id;
+    }
+
+    //有url参数
+    return stream_id + '?' + params;
+}
+
 void RtmpSession::onCmd_play(AMFDecoder &dec) {
 	dec.load<AMFValue>();/* NULL */
-    _mediaInfo.parse(_strTcUrl + "/" + dec.load<std::string>());
+    _mediaInfo.parse(_strTcUrl + "/" + getStreamId(dec.load<std::string>()));
     _mediaInfo._schema = RTMP_SCHEMA;
 	doPlay(dec);
 }
@@ -464,6 +495,8 @@ void RtmpSession::onCmd_seek(AMFDecoder &dec) {
     InfoP(this) << "rtmp seekTo(ms):" << milliSeconds;
     auto stongSrc = _pPlayerSrc.lock();
     if (stongSrc) {
+        _stamp[0].setPlayBack();
+        _stamp[1].setPlayBack();
         stongSrc->seekTo(milliSeconds);
     }
 	AMFValue status(AMF_OBJECT);
@@ -500,4 +533,13 @@ void RtmpSession::onNoneReader(MediaSource &sender) {
     MediaSourceEvent::onNoneReader(sender);
 }
 
+void RtmpSession::setSocketFlags(){
+    GET_CONFIG(bool,ultraLowDelay,General::kUltraLowDelay);
+    if(!ultraLowDelay) {
+        //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
+        SockUtil::setNoDelay(_sock->rawFD(), false);
+        //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
+        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+    }
+}
 } /* namespace mediakit */
