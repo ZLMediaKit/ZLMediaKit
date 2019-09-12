@@ -10,7 +10,7 @@
 - 编码格式与框架代码解耦，方便自由简洁的添加支持其他编码格式
 - 代码经过大量的稳定性、性能测试，可满足商用服务器项目。
 - 支持linux、macos、ios、android、windows平台
-- 支持画面秒开(GOP缓存)、极低延时(1秒内)
+- 支持画面秒开(GOP缓存)、极低延时([500毫秒内，最低可达100毫秒](https://github.com/zlmediakit/ZLMediaKit/wiki/%E5%BB%B6%E6%97%B6%E6%B5%8B%E8%AF%95))
 - **支持websocket-flv直播**
 - [ZLMediaKit高并发实现原理](https://github.com/xiongziliang/ZLMediaKit/wiki/ZLMediaKit%E9%AB%98%E5%B9%B6%E5%8F%91%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)
 

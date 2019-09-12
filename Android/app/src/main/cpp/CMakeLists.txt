@@ -6,12 +6,12 @@
 cmake_minimum_required(VERSION 3.4.1)
 
 #设置生成的so动态库最后输出的路径
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/libs_export/${ANDROID_ABI})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/libs_export/${ANDROID_ABI})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs_export/${ANDROID_ABI})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs_export/${ANDROID_ABI})
 
 #设置工程源码根目录
-set(ZLMediaKit_Root ${CMAKE_SOURCE_DIR}/../../../../../)
-set(JNI_Root ${CMAKE_SOURCE_DIR})
+set(ZLMediaKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../)
+set(JNI_Root ${CMAKE_CURRENT_SOURCE_DIR})
 set(ToolKit_Root ${ZLMediaKit_Root}/3rdpart/ZLToolKit/src)
 set(MediaKit_Root ${ZLMediaKit_Root}/src)
 

@@ -48,7 +48,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 static int kHlsCookieSecond = 10 * 60;
 static const string kCookieName = "ZL_COOKIE";
 static const string kCookiePathKey = "kCookiePathKey";
@@ -283,10 +282,9 @@ inline bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
                 cb();
             }
 
-            //开始发送rtmp负载
-            //关闭tcp_nodelay ,优化性能
-            SockUtil::setNoDelay(_sock->rawFD(),false);
-            (*this) << SocketFlags(kSockFlags);
+            //http-flv直播牺牲延时提升发送性能
+            setSocketFlags();
+
             try{
                 start(getPoller(),rtmp_src);
             }catch (std::exception &ex){
@@ -393,26 +391,30 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
     auto uid = getClientUid();
     //先根据http头中的cookie字段获取cookie
     HttpServerCookie::Ptr cookie = HttpCookieManager::Instance().getCookie(kCookieName, _parser.getValues());
+    //如果不是从http头中找到的cookie,我们让http客户端设置下cookie
+    bool cookie_from_header = true;
     if(!cookie){
         //客户端请求中无cookie,再根据该用户的用户id获取cookie
         cookie = HttpCookieManager::Instance().getCookieByUid(kCookieName, uid);
+        cookie_from_header = false;
     }
 
     if(cookie){
         //找到了cookie，对cookie上锁先
         auto lck = cookie->getLock();
-        auto accessErr = (*cookie)[kAccessErrKey];
-        if(path.find((*cookie)[kCookiePathKey]) == 0){
+        auto accessErr = (*cookie)[kAccessErrKey].get<string>();
+        auto cookiePath = (*cookie)[kCookiePathKey].get<string>();
+        if(path.find(cookiePath) == 0){
             //上次cookie是限定本目录
             if(accessErr.empty()){
                 //上次鉴权成功
-                callback("", nullptr);
+                callback("", cookie_from_header ? nullptr : cookie);
                 return;
             }
-            //上次鉴权失败，如果url发生变更，那么也重新鉴权
+            //上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下
             if (_parser.Params().empty() || _parser.Params() == cookie->getUid()) {
-                //url参数未变，那么判断无权限访问
-                callback(accessErr.empty() ? "无权限访问该目录" : accessErr.get<string>(), nullptr);
+                //url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限
+                callback(accessErr, cookie_from_header ? nullptr : cookie);
                 return;
             }
         }
@@ -593,12 +595,10 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
             //分节下载返回Content-Range头
             httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
         }
-        auto Origin = parser["Origin"];
-        if(!Origin.empty()){
-            httpHeader["Access-Control-Allow-Origin"] = Origin;
-            httpHeader["Access-Control-Allow-Credentials"] = "true";
-        }
 
+        if(cookie){
+            httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+        }
         //先回复HTTP头部分
         sendResponse(pcHttpResult,httpHeader,"");
         
@@ -657,10 +657,9 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
             }
             return false;
         };
-        //关闭tcp_nodelay ,优化性能
-        SockUtil::setNoDelay(_sock->rawFD(),false);
-        //设置MSG_MORE，优化性能
-        (*this) << SocketFlags(kSockFlags);
+
+        //文件下载提升发送性能
+        setSocketFlags();
 
         onFlush();
         _sock->setOnFlush(onFlush);
@@ -950,6 +949,15 @@ inline void HttpSession::sendNotFound(bool bClose) {
     sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
 }
 
+void HttpSession::setSocketFlags(){
+    GET_CONFIG(bool,ultraLowDelay,General::kUltraLowDelay);
+    if(!ultraLowDelay) {
+        //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
+        SockUtil::setNoDelay(_sock->rawFD(), false);
+        //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
+        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+    }
+}
 
 void HttpSession::onWrite(const Buffer::Ptr &buffer) {
 	_ticker.resetTime();
