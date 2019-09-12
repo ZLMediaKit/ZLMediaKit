@@ -76,23 +76,25 @@ protected:
 
             auto strongServer = _weakServer.lock();
             if(strongServer){
+
+                //此处截取数据并进行websocket协议打包
+                weak_ptr<WebSocketSession> weakSelf = dynamic_pointer_cast<WebSocketSession>(HttpSessionType::shared_from_this());
+                _session->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf) {
+                    auto strongSelf = weakSelf.lock();
+                    if (strongSelf) {
+                        WebSocketHeader header;
+                        header._fin = true;
+                        header._reserved = 0;
+                        header._opcode = WebSocketHeader::TEXT;
+                        header._mask_flag = false;
+                        strongSelf->WebSocketSplitter::encode(header, (uint8_t *)buf->data(), buf->size());
+                    }
+                    return buf->size();
+                });
+
                 _session->attachServer(*strongServer);
             }
 
-            //此处截取数据并进行websocket协议打包
-            weak_ptr<WebSocketSession> weakSelf = dynamic_pointer_cast<WebSocketSession>(HttpSessionType::shared_from_this());
-            _session->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf){
-                auto strongSelf = weakSelf.lock();
-                if(strongSelf){
-                    WebSocketHeader header;
-                    header._fin = true;
-                    header._reserved = 0;
-                    header._opcode = WebSocketHeader::TEXT;
-                    header._mask_flag = false;
-                    strongSelf->WebSocketSplitter::encode(header,buf);
-                }
-                return buf->size();
-            });
         }
     }
 
