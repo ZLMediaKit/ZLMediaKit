@@ -51,7 +51,7 @@
   - 完整HTTP API服务器，可以作为web后台开发框架。
   - 支持跨域访问。
   - 支持http客户端、服务器cookie
-  - 支持WebSocket服务器
+  - 支持WebSocket服务器和客户端
   - 支持http文件访问鉴权
 
 - 其他
@@ -110,7 +110,7 @@
   | RTSP[S] Play Server |  Y   |
   | RTSP[S] Push Server |  Y   |
   |        RTMP         |  Y   |
-  |  HTTP[S]/WebSocket  |  Y   |
+  |  HTTP[S]/WebSocket[S]  |  Y   |
 
 - 支持的客户端类型
 
@@ -121,6 +121,7 @@
   | RTMP Player |  Y   |
   | RTMP Pusher |  Y   |
   |   HTTP[S]   |  Y   |
+  | WebSocket[S] |  Y  |
 
 ## 后续任务
 - 完善支持H265
