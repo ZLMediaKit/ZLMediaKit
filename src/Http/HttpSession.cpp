@@ -195,8 +195,7 @@ void HttpSession::onManager() {
 	}
 }
 
-
-inline bool HttpSession::checkWebSocket(){
+bool HttpSession::checkWebSocket(){
 	auto Sec_WebSocket_Key = _parser["Sec-WebSocket-Key"];
 	if(Sec_WebSocket_Key.empty()){
 		return false;
@@ -223,12 +222,17 @@ inline bool HttpSession::checkWebSocket(){
     }
 
     //如果checkLiveFlvStream返回false,则代表不是websocket-flv，而是普通的websocket连接
+    if(!onWebSocketConnect(_parser)){
+        sendResponse("501 Not Implemented",headerOut,"");
+        shutdown(SockException(Err_shutdown,"WebSocket server not implemented"));
+        return true;
+    }
     sendResponse("101 Switching Protocols",headerOut,"");
 	return true;
 }
 //http-flv 链接格式:http://vhost-url:port/app/streamid.flv?key1=value1&key2=value2
 //如果url(除去?以及后面的参数)后缀是.flv,那么表明该url是一个http-flv直播。
-inline bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
+bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
 	auto pos = strrchr(_parser.Url().data(),'.');
 	if(!pos){
 		//未找到".flv"后缀
@@ -316,9 +320,9 @@ inline bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
     return true;
 }
 
-inline bool makeMeun(const string &httpPath,const string &strFullPath, string &strRet) ;
+bool makeMeun(const string &httpPath,const string &strFullPath, string &strRet) ;
 
-inline static string findIndexFile(const string &dir){
+static string findIndexFile(const string &dir){
     DIR *pDir;
     dirent *pDirent;
     if ((pDir = opendir(dir.data())) == NULL) {
@@ -336,7 +340,7 @@ inline static string findIndexFile(const string &dir){
     return "";
 }
 
-inline string HttpSession::getClientUid(){
+string HttpSession::getClientUid(){
     //如果http客户端不支持cookie，那么我们可以通过url参数来追踪用户
     //如果url参数也没有，那么只能通过ip+端口号来追踪用户
     //追踪用户的目的是为了减少http短链接情况的重复鉴权验证，通过缓存记录鉴权结果，提高性能
@@ -349,13 +353,13 @@ inline string HttpSession::getClientUid(){
 
 
 //字符串是否以xx结尾
-static inline bool end_of(const string &str, const string &substr){
+static bool end_of(const string &str, const string &substr){
     auto pos = str.rfind(substr);
     return pos != string::npos && pos == str.size() - substr.size();
 };
 
 //拦截hls的播放请求
-static inline bool checkHls(BroadcastHttpAccessArgs){
+static bool checkHls(BroadcastHttpAccessArgs){
     if(!end_of(args._streamid,("/hls.m3u8"))) {
         //不是hls
         return false;
@@ -371,7 +375,7 @@ static inline bool checkHls(BroadcastHttpAccessArgs){
     return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,args_copy,mediaAuthInvoker,sender);
 }
 
-inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const function<void(const string &errMsg,const HttpServerCookie::Ptr &cookie)> &callback_in){
+void HttpSession::canAccessPath(const string &path_in,bool is_dir,const function<void(const string &errMsg,const HttpServerCookie::Ptr &cookie)> &callback_in){
     auto path = path_in;
     replace(const_cast<string &>(path),"//","/");
 
@@ -472,13 +476,12 @@ inline void HttpSession::canAccessPath(const string &path_in,bool is_dir,const f
 
 }
 
-inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
+void HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//先看看是否为WebSocket请求
 	if(checkWebSocket()){
 		content_len = -1;
-		auto parserCopy = _parser;
-		_contentCallBack = [this,parserCopy](const char *data,uint64_t len){
-			onRecvWebSocketData(parserCopy,data,len);
+		_contentCallBack = [this](const char *data,uint64_t len){
+            WebSocketSplitter::decode((uint8_t *)data,len);
 			//_contentCallBack是可持续的，后面还要处理后续数据
 			return true;
 		};
@@ -666,7 +669,7 @@ inline void HttpSession::Handle_Req_GET(int64_t &content_len) {
     });
 }
 
-inline bool makeMeun(const string &httpPath,const string &strFullPath, string &strRet) {
+bool makeMeun(const string &httpPath,const string &strFullPath, string &strRet) {
 	string strPathPrefix(strFullPath);
 	string last_dir_name;
 	if(strPathPrefix.back() == '/'){
@@ -764,7 +767,8 @@ inline bool makeMeun(const string &httpPath,const string &strFullPath, string &s
 	ss.str().swap(strRet);
 	return true;
 }
-inline void HttpSession::sendResponse(const char* pcStatus, const KeyValue& header, const string& strContent) {
+
+void HttpSession::sendResponse(const char* pcStatus, const KeyValue& header, const string& strContent) {
 	_StrPrinter printer;
 	printer << "HTTP/1.1 " << pcStatus << "\r\n";
 	for (auto &pr : header) {
@@ -775,7 +779,8 @@ inline void HttpSession::sendResponse(const char* pcStatus, const KeyValue& head
 	send(strSend);
 	_ticker.resetTime();
 }
-inline HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iContentSize,const char* pcContentType) {
+
+HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iContentSize,const char* pcContentType) {
 	KeyValue headerOut;
     GET_CONFIG(string,charSet,Http::kCharSet);
     GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
@@ -814,14 +819,14 @@ string HttpSession::urlDecode(const string &str){
     return ret;
 }
 
-inline void HttpSession::urlDecode(Parser &parser){
+void HttpSession::urlDecode(Parser &parser){
 	parser.setUrl(urlDecode(parser.Url()));
 	for(auto &pr : _parser.getUrlArgs()){
 		const_cast<string &>(pr.second) = urlDecode(pr.second);
 	}
 }
 
-inline bool HttpSession::emitHttpEvent(bool doInvoke){
+bool HttpSession::emitHttpEvent(bool doInvoke){
 	///////////////////是否断开本链接///////////////////////
     GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
 
@@ -857,7 +862,8 @@ inline bool HttpSession::emitHttpEvent(bool doInvoke){
 	}
 	return consumed;
 }
-inline void HttpSession::Handle_Req_POST(int64_t &content_len) {
+
+void HttpSession::Handle_Req_POST(int64_t &content_len) {
 	GET_CONFIG(uint64_t,maxReqSize,Http::kMaxReqSize);
     GET_CONFIG(int,maxReqCnt,Http::kMaxReqCount);
 
@@ -944,7 +950,8 @@ void HttpSession::responseDelay(bool bClose,
     }
 	sendResponse(codeOut.data(), headerOut, contentOut);
 }
-inline void HttpSession::sendNotFound(bool bClose) {
+
+void HttpSession::sendNotFound(bool bClose) {
     GET_CONFIG(string,notFound,Http::kNotFound);
     sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
 }
