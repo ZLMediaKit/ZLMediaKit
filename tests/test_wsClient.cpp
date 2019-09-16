@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
     WebSocketClient<EchoTcpClient>::Ptr client = std::make_shared<WebSocketClient<EchoTcpClient> >();
-    client->startConnect("127.0.0.1",80);
+    client->startConnect("121.40.165.18",8800);
 
     sem.wait();
     return 0;
