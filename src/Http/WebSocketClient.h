@@ -40,6 +40,11 @@ namespace mediakit{
 template <typename ClientType,WebSocketHeader::Type DataType>
 class HttpWsClient;
 
+/**
+ * 辅助类,用于拦截TcpClient数据发送前的拦截
+ * @tparam ClientType TcpClient派生类
+ * @tparam DataType 这里无用,为了声明友元用
+ */
 template <typename ClientType,WebSocketHeader::Type DataType>
 class ClientTypeImp : public ClientType {
 public:
@@ -72,6 +77,11 @@ private:
     onBeforeSendCB _beforeSendCB;
 };
 
+/**
+ * 此对象完成了weksocket 客户端握手协议，以及到TcpClient派生类事件的桥接
+ * @tparam ClientType TcpClient派生类
+ * @tparam DataType websocket负载类型，是TEXT还是BINARY类型
+ */
 template <typename ClientType,WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
 class HttpWsClient : public HttpClientImp , public WebSocketSplitter{
 public:
@@ -82,6 +92,11 @@ public:
     }
     ~HttpWsClient(){}
 
+    /**
+     * 发起ws握手
+     * @param ws_url ws连接url
+     * @param fTimeOutSec 超时时间
+     */
     void startWsClient(const string &ws_url,float fTimeOutSec){
         string http_url = ws_url;
         replace(http_url,"ws://","http://");
@@ -127,6 +142,9 @@ protected:
 
     //TcpClient override
 
+    /**
+     * 定时触发
+     */
     void onManager() override {
         if(_onRecv){
             //websocket连接成功了
@@ -136,7 +154,10 @@ protected:
             HttpClientImp::onManager();
         }
     }
-    //数据全部发送完毕后回调
+
+    /**
+     * 数据全部发送完毕后回调
+     */
     void onFlush() override{
         if(_onRecv){
             //websocket连接成功了
@@ -167,7 +188,7 @@ protected:
      */
     void onRecv(const Buffer::Ptr &pBuf) override{
         if(_onRecv){
-            //完成websocket握手后，拦截websocket数据
+            //完成websocket握手后，拦截websocket数据并解析
             _onRecv(pBuf);
         }else{
             //websocket握手数据
@@ -175,13 +196,17 @@ protected:
         }
     }
 
-    //tcp连接断开
+    /**
+     * tcp连接断开
+     * @param ex
+     */
     void onErr(const SockException &ex) override{
         //tcp断开或者shutdown导致的断开
         onWebSocketException(ex);
     }
 
     //WebSocketSplitter override
+
     /**
      * 收到一个webSocket数据包包头，后续将继续触发onWebSocketDecodePlayload回调
      * @param header 数据包头
@@ -269,11 +294,14 @@ private:
                 }
                 return buf->size();
             });
+
+            //设置sock，否则shutdown等接口都无效
+            _delegate.setSock(HttpClientImp::_sock);
             //触发连接成功事件
-            _delegate._sock = HttpClientImp::_sock;
             _delegate.onConnect(ex);
             //拦截websocket数据接收
             _onRecv = [this](const Buffer::Ptr &pBuf){
+                //解析websocket数据包
                 WebSocketSplitter::decode((uint8_t*)pBuf->data(),pBuf->size());
             };
             return;
@@ -298,7 +326,15 @@ private:
     string _payload;
 };
 
-template <typename ClientType,WebSocketHeader::Type DataType = WebSocketHeader::TEXT,bool userWSS = false >
+
+/**
+ * Tcp客户端转WebSocket客户端模板，
+ * 通过该模板，开发者再不修改TcpClient派生类任何代码的情况下快速实现WebSocket协议的包装
+ * @tparam ClientType TcpClient派生类
+ * @tparam DataType websocket负载类型，是TEXT还是BINARY类型
+ * @tparam useWSS 是否使用ws还是wss连接
+ */
+template <typename ClientType,WebSocketHeader::Type DataType = WebSocketHeader::TEXT,bool useWSS = false >
 class WebSocketClient : public ClientTypeImp<ClientType,DataType>{
 public:
     typedef std::shared_ptr<WebSocketClient> Ptr;
@@ -309,11 +345,20 @@ public:
     }
     ~WebSocketClient() override {}
 
+    /**
+     * 重载startConnect方法，
+     * 目的是替换TcpClient的连接服务器行为，使之先完成WebSocket握手
+     * @param strUrl websocket服务器ip或域名
+     * @param iPort websocket服务器端口
+     * @param fTimeOutSec 超时时间
+     */
     void startConnect(const string &strUrl, uint16_t iPort, float fTimeOutSec = 3) override {
         string ws_url;
-        if(userWSS){
+        if(useWSS){
+            //加密的ws
             ws_url = StrPrinter << "wss://" + strUrl << ":" << iPort << "/" ;
         }else{
+            //明文ws
             ws_url = StrPrinter << "ws://" + strUrl << ":" << iPort << "/" ;
         }
         _wsClient->startWsClient(ws_url,fTimeOutSec);
