@@ -77,6 +77,8 @@ int main(int argc, char *argv[]) {
     //https服务器,支持websocket
     httpsSrv->start<WebSocketSession<EchoSession,HttpsSession>>(443);//默认443
 
+    DebugL << "请打开网页:http://www.websocket-test.com/,连接 ws://127.0.0.1/测试";
+
     //设置退出信号处理函数
     static semaphore sem;
     signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
