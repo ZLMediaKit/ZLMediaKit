@@ -199,37 +199,5 @@ private:
     std::shared_ptr<SessionImp> _session;
 };
 
-/**
-* 回显会话
-*/
-class EchoSession : public TcpSession {
-public:
-    EchoSession(const Socket::Ptr &pSock) : TcpSession(pSock){
-        DebugL;
-    }
-    virtual ~EchoSession(){
-        DebugL;
-    }
-
-    void attachServer(const TcpServer &server) override{
-        DebugL << getIdentifier() << " " << TcpSession::getIdentifier();
-    }
-    void onRecv(const Buffer::Ptr &buffer) override {
-        //回显数据
-        send(buffer);
-    }
-    void onError(const SockException &err) override{
-        WarnL << err.what();
-    }
-    //每隔一段时间触发，用来做超时管理
-    void onManager() override{
-        DebugL;
-    }
-};
-
-
-typedef WebSocketSession<EchoSession,HttpSession> EchoWebSocketSession;
-typedef WebSocketSession<EchoSession,HttpsSession> SSLEchoWebSocketSession;
-
 
 #endif //ZLMEDIAKIT_WEBSOCKETSESSION_H
