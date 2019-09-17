@@ -202,7 +202,7 @@ bool HttpSession::checkWebSocket(){
 	}
 	auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
-	KeyValue headerOut;
+	KeyValue headerOut = makeHttpHeader();
 	headerOut["Upgrade"] = "websocket";
 	headerOut["Connection"] = "Upgrade";
 	headerOut["Sec-WebSocket-Accept"] = Sec_WebSocket_Accept;
