@@ -300,13 +300,13 @@ int main(int argc,char *argv[]) {
     shellSrv->start<ShellSession>(shellPort);
     rtspSrv->start<RtspSession>(rtspPort);//默认554
     rtmpSrv->start<RtmpSession>(rtmpPort);//默认1935
-    //http服务器,支持websocket
-    httpSrv->start<EchoWebSocketSession>(httpPort);//默认80
+    //http服务器
+    httpSrv->start<HttpSession>(httpPort);//默认80
 
     //如果支持ssl，还可以开启https服务器
     TcpServer::Ptr httpsSrv(new TcpServer());
-    //https服务器,支持websocket
-    httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);//默认443
+    //https服务器
+    httpsSrv->start<HttpsSession>(httpsPort);//默认443
 
     //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
     TcpServer::Ptr rtspSSLSrv(new TcpServer());
@@ -332,12 +332,12 @@ int main(int argc,char *argv[]) {
         }
         if(httpPort != mINI::Instance()[Http::kPort].as<uint16_t>()){
             httpPort = mINI::Instance()[Http::kPort];
-            httpSrv->start<EchoWebSocketSession>(httpPort);
+            httpSrv->start<HttpSession>(httpPort);
             InfoL << "重启http服务器" << httpPort;
         }
         if(httpsPort != mINI::Instance()[Http::kSSLPort].as<uint16_t>()){
             httpsPort = mINI::Instance()[Http::kSSLPort];
-            httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);
+            httpsSrv->start<HttpsSession>(httpsPort);
             InfoL << "重启https服务器" << httpsPort;
         }
 
