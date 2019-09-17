@@ -42,7 +42,7 @@
   - HTTP server,suppor directory meun、RESTful http api.
   - HTTP client,downloader,uploader,and http api requester.
   - Cookie supported.
-  - WebSocket Server.
+  - WebSocket Server and Client.
   - File access authentication.
   
 - Others
@@ -95,7 +95,7 @@
 | RTSP[S] Play Server |  Y   |
 | RTSP[S] Push Server |  Y   |
 |        RTMP         |  Y   |
-|  HTTP[S]/WebSocket  |  Y   |
+| HTTP[S]/WebSocket[S] |  Y   |
 
 - Client supported:
 
@@ -106,6 +106,7 @@
 | RTMP Player |  Y   |
 | RTMP Pusher |  Y   |
 |   HTTP[S]   |  Y   |
+| WebSocket[S] |  Y   |
 
 
 

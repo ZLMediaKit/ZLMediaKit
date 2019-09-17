@@ -72,8 +72,8 @@ protected:
 	void onWrite(const Buffer::Ptr &data) override ;
 	void onDetach() override;
 	std::shared_ptr<FlvMuxer> getSharedPtr() override;
-	//HttpRequestSplitter override
 
+	//HttpRequestSplitter override
 	int64_t onRecvHeader(const char *data,uint64_t len) override;
 	void onRecvContent(const char *data,uint64_t len) override;
 
@@ -94,29 +94,32 @@ protected:
         shutdown(SockException(Err_shutdown,"http post content is too huge,default closed"));
 	}
 
-    void onWebSocketDecodeHeader(const WebSocketHeader &packet) override{
-        shutdown(SockException(Err_shutdown,"websocket connection default closed"));
-    };
-
-	void onRecvWebSocketData(const Parser &header,const char *data,uint64_t len){
-        WebSocketSplitter::decode((uint8_t *)data,len);
+	/**
+     * websocket客户端连接上事件
+     * @param header http头
+     * @return true代表允许websocket连接，否则拒绝
+     */
+    virtual bool onWebSocketConnect(const Parser &header){
+        WarnL << "http server do not support websocket default";
+        return false;
     }
 
+	//WebSocketSplitter override
 	/**
-    * 发送数据进行websocket协议打包后回调
-    * @param buffer
-    */
+     * 发送数据进行websocket协议打包后回调
+     * @param buffer websocket协议数据
+     */
 	void onWebSocketEncodeData(const Buffer::Ptr &buffer) override;
 private:
-	inline void Handle_Req_GET(int64_t &content_len);
-	inline void Handle_Req_POST(int64_t &content_len);
-	inline bool checkLiveFlvStream(const function<void()> &cb = nullptr);
-	inline bool checkWebSocket();
-	inline bool emitHttpEvent(bool doInvoke);
-	inline void urlDecode(Parser &parser);
-	inline void sendNotFound(bool bClose);
-	inline void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
-	inline KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
+	void Handle_Req_GET(int64_t &content_len);
+	void Handle_Req_POST(int64_t &content_len);
+	bool checkLiveFlvStream(const function<void()> &cb = nullptr);
+	bool checkWebSocket();
+	bool emitHttpEvent(bool doInvoke);
+	void urlDecode(Parser &parser);
+	void sendNotFound(bool bClose);
+	void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
+	KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
     void responseDelay(bool bClose,
                        const string &codeOut,
                        const KeyValue &headerOut,
@@ -134,14 +137,14 @@ private:
      * @param is_dir path是否为目录
      * @param callback 有权限或无权限的回调
      */
-    inline void canAccessPath(const string &path,bool is_dir,const function<void(const string &errMsg,const HttpServerCookie::Ptr &cookie)> &callback);
+	void canAccessPath(const string &path,bool is_dir,const function<void(const string &errMsg,const HttpServerCookie::Ptr &cookie)> &callback);
 
     /**
      * 获取用户唯一识别id
      * 有url参数返回参数，无参数返回ip+端口号
      * @return
      */
-    inline string getClientUid();
+	string getClientUid();
 
 	//设置socket标志
 	void setSocketFlags();
