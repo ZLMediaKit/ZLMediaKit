@@ -53,10 +53,10 @@ endif ()
 
 set(ENABLE_HLS true)
 set(ENABLE_OPENSSL true)
-set(ENABLE_MYSQL true)
+set(ENABLE_MYSQL false)
 set(ENABLE_MP4V2 true)
-set(ENABLE_FAAC true)
-set(ENABLE_X264 true)
+set(ENABLE_FAAC false)
+set(ENABLE_X264 false)
 set(ENABLE_MP4RECORD true)
 
 #添加两个静态库
