@@ -76,8 +76,8 @@ inline void AMFValue::init() {
 	}
 
 }
-AMFValue::AMFValue() :
-		_type(AMF_NULL) {
+AMFValue::AMFValue(AMFType type) :
+		_type(type) {
 	init();
 }
 
