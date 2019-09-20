@@ -71,20 +71,26 @@ public:
 		SDL_Event event;
 		while(flag){
 			SDL_WaitEvent(&event);
-			if (event.type == REFRESH_EVENT)
-			{
-				{
-					lock_guard<mutex> lck(_mtxTask);
-					if(_taskList.empty()){
-						//not reachable
-						continue;
-					}
-					task = _taskList.front();
-					_taskList.pop_front();
-				}
-				flag = task();
-			}
-
+			switch (event.type){
+                case REFRESH_EVENT:{
+                    {
+                        lock_guard<mutex> lck(_mtxTask);
+                        if(_taskList.empty()){
+                            //not reachable
+                            continue;
+                        }
+                        task = _taskList.front();
+                        _taskList.pop_front();
+                    }
+                    flag = task();
+                    break;
+                case SDL_QUIT:
+                    InfoL << event.type;
+                    return;
+                }
+                default:
+                    break;
+            }
 		}
 	}
 
