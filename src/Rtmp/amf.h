@@ -55,7 +55,7 @@ public:
     typedef std::map<std::string, AMFValue> mapType;
     typedef std::vector<AMFValue> arrayType;
 
-	AMFValue();
+	AMFValue(AMFType type = AMF_NULL);
 	AMFValue(const char *s);
 	AMFValue(const std::string &s);
 	AMFValue(double n);
