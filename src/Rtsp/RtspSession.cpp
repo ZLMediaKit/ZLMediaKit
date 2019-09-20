@@ -382,7 +382,7 @@ void RtspSession::onAuthSuccess() {
             //该流无效
 			DebugL << "无trackInfo，该流无效";
             strongSelf->send_StreamNotFound();
-            strongSelf->shutdown(SockException(Err_shutdown,"can not find any availabe track in sdp"));
+            strongSelf->shutdown(SockException(Err_shutdown,"can not find any available track in sdp"));
             return;
         }
         strongSelf->_strSession = makeRandStr(12);
