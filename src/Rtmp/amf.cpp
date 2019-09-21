@@ -30,6 +30,7 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Network/sockutil.h"
+#include "Util/util.h"
 using namespace toolkit;
 
 /////////////////////AMFValue/////////////////////////////
@@ -224,6 +225,32 @@ bool AMFValue::as_boolean() const {
             throw std::runtime_error("AMF not a boolean");
     }
 }
+
+string AMFValue::to_string() const{
+    switch (_type) {
+        case AMF_NUMBER:
+            return StrPrinter << _value.number;
+        case AMF_INTEGER:
+            return StrPrinter << _value.integer;
+        case AMF_BOOLEAN:
+            return _value.boolean ? "true" : "false";
+        case AMF_STRING:
+            return *(_value.string);
+        case AMF_OBJECT:
+            return "object";
+        case AMF_NULL:
+            return "null";
+        case AMF_UNDEFINED:
+            return "undefined";
+        case AMF_ECMA_ARRAY:
+            return "ecma_array";
+        case AMF_STRICT_ARRAY:
+            return "strict_array";
+        default:
+            throw std::runtime_error("can not convert to string ");
+    }
+}
+
 
 const AMFValue& AMFValue::operator[](const char *str) const {
     if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
