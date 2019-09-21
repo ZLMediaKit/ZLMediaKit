@@ -262,10 +262,16 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
     status.set("clientid", "0");
     sendReply("onStatus", nullptr, status);
 
-    // onMetaData
-    invoke.clear();
-    invoke << "onMetaData" << src->getMetaData();
-    sendResponse(MSG_DATA, invoke.data());
+    auto &metadata = src->getMetaData();
+    if(metadata){
+        //在有metadata的情况下才发送metadata
+        //其实metadata没什么用，有些推流器不产生metadata
+        // onMetaData
+        invoke.clear();
+        invoke << "onMetaData" << metadata;
+        sendResponse(MSG_DATA, invoke.data());
+    }
+
 
     src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
         //DebugP(this)<<"send initial frame";
@@ -423,7 +429,9 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
 	if (type != "onMetaData") {
 		throw std::runtime_error("can only set metadata");
 	}
-	_pPublisherSrc->onGetMetaData(dec.load<AMFValue>());
+    auto metadata = dec.load<AMFValue>();
+    //dumpMetadata(metadata);
+	_pPublisherSrc->onGetMetaData(metadata);
 }
 
 void RtmpSession::onProcessCmd(AMFDecoder &dec) {
@@ -541,5 +549,17 @@ void RtmpSession::setSocketFlags(){
         //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
         (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }
+}
+
+void RtmpSession::dumpMetadata(const AMFValue &metadata) {
+    if(metadata.type() != AMF_OBJECT && metadata.type() != AMF_ECMA_ARRAY){
+        WarnL << "invalid metedata type:" << metadata.type();
+        return ;
+    }
+    _StrPrinter printer;
+    metadata.object_for_each([&](const string &key, const AMFValue &val){
+            printer << "\r\n" << key << "\t:" << val.to_string() ;
+    });
+    InfoL << _mediaInfo._vhost << " " << _mediaInfo._app << " " << _mediaInfo._streamid << (string)printer;
 }
 } /* namespace mediakit */
