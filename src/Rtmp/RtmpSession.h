@@ -87,6 +87,7 @@ private:
     void onNoneReader(MediaSource &sender) override;
 	void setSocketFlags();
 	string getStreamId(const string &str);
+	void dumpMetadata(const AMFValue &metedata);
 private:
 	std::string _strTcUrl;
 	MediaInfo _mediaInfo;
