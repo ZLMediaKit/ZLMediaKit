@@ -75,7 +75,7 @@ private:
             _pRtmpMediaSrc->onWrite(chunkData);
         }
         if(!_parser){
-    	    //这个流没有metedata
+    	    //这个流没有metadata
             _parser.reset(new RtmpDemuxer());
         }
         _parser->inputRtmp(chunkData);

@@ -29,11 +29,11 @@
 
 namespace mediakit {
 
-RtmpMuxer::RtmpMuxer(const TitleMete::Ptr &title) {
+RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
     if(!title){
-        _metedata = std::make_shared<TitleMete>()->getMetedata();
+        _metadata = std::make_shared<TitleMeta>()->getMetadata();
     }else{
-        _metedata = title->getMetedata();
+        _metadata = title->getMetadata();
     }
     _rtmpRing = std::make_shared<RtmpRingInterface::RingType>();
 }
@@ -45,24 +45,24 @@ void RtmpMuxer::onTrackReady(const Track::Ptr &track) {
     if (!encoder) {
         return;
     }
-    //根据track生产metedata
-    Metedata::Ptr metedate;
+    //根据track生产metadata
+    Metadata::Ptr metadata;
     switch (track->getTrackType()){
         case TrackVideo:{
-            metedate = std::make_shared<VideoMete>(dynamic_pointer_cast<VideoTrack>(track));
+            metadata = std::make_shared<VideoMeta>(dynamic_pointer_cast<VideoTrack>(track));
         }
             break;
         case TrackAudio:{
-            metedate = std::make_shared<AudioMete>(dynamic_pointer_cast<AudioTrack>(track));
+            metadata = std::make_shared<AudioMeta>(dynamic_pointer_cast<AudioTrack>(track));
         }
             break;
         default:
             return;;
 
     }
-    //添加其metedata
-    metedate->getMetedata().object_for_each([&](const std::string &key, const AMFValue &value){
-        _metedata.set(key,value);
+    //添加其metadata
+    metadata->getMetadata().object_for_each([&](const std::string &key, const AMFValue &value){
+        _metadata.set(key,value);
     });
     //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtmpEncoder中
     track->addDelegate(encoder);
@@ -71,13 +71,13 @@ void RtmpMuxer::onTrackReady(const Track::Ptr &track) {
 }
 
 
-const AMFValue &RtmpMuxer::getMetedata() const {
+const AMFValue &RtmpMuxer::getMetadata() const {
     if(!isAllTrackReady()){
         //尚未就绪
         static AMFValue s_amf;
         return s_amf;
     }
-    return _metedata;
+    return _metadata;
 }
 
 RtmpRingInterface::RingType::Ptr RtmpMuxer::getRtmpRing() const {

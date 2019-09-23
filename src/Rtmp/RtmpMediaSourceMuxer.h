@@ -39,7 +39,7 @@ public:
     RtmpMediaSourceMuxer(const string &vhost,
                          const string &strApp,
                          const string &strId,
-                         const TitleMete::Ptr &title = nullptr) : RtmpMuxer(title){
+                         const TitleMeta::Ptr &title = nullptr) : RtmpMuxer(title){
         _mediaSouce = std::make_shared<RtmpMediaSource>(vhost,strApp,strId);
         getRtmpRing()->setDelegate(_mediaSouce);
     }
@@ -53,7 +53,7 @@ public:
     }
 private:
     void onAllTrackReady() override {
-        _mediaSouce->onGetMetaData(getMetedata());
+        _mediaSouce->onGetMetaData(getMetadata());
     }
 private:
     RtmpMediaSource::Ptr _mediaSouce;
