@@ -53,16 +53,22 @@ public:
                           const string &app,
                           const string &id,
 						  int ringSize = 0) : RtmpMediaSource(vhost, app, id,ringSize){
-		_demuxer = std::make_shared<RtmpDemuxer>();
 	}
 	virtual ~RtmpToRtspMediaSource(){}
 
 	void onGetMetaData(const AMFValue &metadata) override {
-		_demuxer = std::make_shared<RtmpDemuxer>(metadata);
+		if(!_demuxer){
+			//在未调用onWrite前，设置Metadata能触发生成RtmpDemuxer
+			_demuxer = std::make_shared<RtmpDemuxer>(metadata);
+		}
 		RtmpMediaSource::onGetMetaData(metadata);
 	}
 
 	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos = true) override {
+		if(!_demuxer){
+			//尚未获取Metadata，那么不管有没有Metadata，都生成RtmpDemuxer
+			_demuxer = std::make_shared<RtmpDemuxer>();
+		}
 		_demuxer->inputRtmp(pkt);
 		if(!_muxer && _demuxer->isInited(2000)){
 			_muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(),

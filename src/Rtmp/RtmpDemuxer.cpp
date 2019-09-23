@@ -45,9 +45,6 @@ RtmpDemuxer::RtmpDemuxer(const AMFValue &val) {
     }
 }
 
-int RtmpDemuxer::getTrackCount(const AMFValue &metadata) {
-    return (int)(metadata["videocodecid"].type() != AMF_NULL) + (int)(metadata["audiocodecid"].type() != AMF_NULL);
-}
 
 bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->typeId) {
