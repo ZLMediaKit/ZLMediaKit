@@ -86,6 +86,9 @@ public:
 	virtual void onGetMetaData(const AMFValue &metadata) {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		_metadata = metadata;
+		if(_pRing){
+			regist();
+		}
 	}
 
     void onWrite(const RtmpPacket::Ptr &pkt,bool isKey = true) override {
@@ -107,7 +110,9 @@ public:
                 strongSelf->onReaderChanged(size);
             });
             onReaderChanged(0);
-            regist();
+			if(_metadata){
+				regist();
+			}
         }
         _pRing->write(pkt,pkt->isVideoKeyFrame());
         checkNoneReader();

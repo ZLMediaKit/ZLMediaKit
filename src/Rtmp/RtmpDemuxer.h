@@ -49,7 +49,7 @@ public:
 	RtmpDemuxer(){}
 	/**
 	 * 构造rtmp解复用器
-	 * @param val rtmp的metedata，可以传入null类型，
+	 * @param val rtmp的metadata，可以传入null类型，
 	 * 这样就会在inputRtmp时异步探测媒体编码格式
 	 */
 	RtmpDemuxer(const AMFValue &val);
@@ -58,10 +58,10 @@ public:
 	/**
 	 *
 	 * 获取rtmp track 数
-	 * @param metedata rtmp的metedata
+	 * @param metadata rtmp的metadata
 	 * @return
 	 */
-	static int getTrackCount(const AMFValue &metedata);
+	static int getTrackCount(const AMFValue &metadata);
 
 	/**
 	 * 开始解复用

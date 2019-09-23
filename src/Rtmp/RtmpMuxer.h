@@ -41,14 +41,14 @@ public:
     /**
      * 构造函数
      */
-    RtmpMuxer(const TitleMete::Ptr &title);
+    RtmpMuxer(const TitleMeta::Ptr &title);
     virtual ~RtmpMuxer(){}
 
     /**
      * 获取完整的SDP字符串
      * @return SDP字符串
      */
-    const AMFValue &getMetedata() const ;
+    const AMFValue &getMetadata() const ;
 
     /**
      * 获取rtmp环形缓存
@@ -64,7 +64,7 @@ protected:
     void onTrackReady(const Track::Ptr & track) override ;
 private:
     RtmpRingInterface::RingType::Ptr _rtmpRing;
-    AMFValue _metedata;
+    AMFValue _metadata;
 };
 
 

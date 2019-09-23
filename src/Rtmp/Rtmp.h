@@ -298,36 +298,36 @@ public:
 
 
 /**
- * rtmp metedata基类，用于描述rtmp格式信息
+ * rtmp metadata基类，用于描述rtmp格式信息
  */
-class Metedata : public CodecInfo{
+class Metadata : public CodecInfo{
 public:
-    typedef std::shared_ptr<Metedata> Ptr;
+    typedef std::shared_ptr<Metadata> Ptr;
 
-    Metedata():_metedata(AMF_OBJECT){}
-    virtual ~Metedata(){}
-    const AMFValue &getMetedata() const{
-        return _metedata;
+    Metadata():_metadata(AMF_OBJECT){}
+    virtual ~Metadata(){}
+    const AMFValue &getMetadata() const{
+        return _metadata;
     }
 protected:
-    AMFValue _metedata;
+    AMFValue _metadata;
 };
 
 /**
-* metedata中除音视频外的其他描述部分
+* metadata中除音视频外的其他描述部分
 */
-class TitleMete : public Metedata{
+class TitleMeta : public Metadata{
 public:
-    typedef std::shared_ptr<TitleMete> Ptr;
+    typedef std::shared_ptr<TitleMeta> Ptr;
 
-    TitleMete(float dur_sec = 0,
+    TitleMeta(float dur_sec = 0,
               uint64_t fileSize = 0,
               const map<string,string> &header = map<string,string>()){
-        _metedata.set("duration", dur_sec);
-        _metedata.set("fileSize", 0);
-        _metedata.set("server","ZLMediaKit");
+        _metadata.set("duration", dur_sec);
+        _metadata.set("fileSize", 0);
+        _metadata.set("server","ZLMediaKit");
         for (auto &pr : header){
-            _metedata.set(pr.first, pr.second);
+            _metadata.set(pr.first, pr.second);
         }
     }
 
@@ -348,12 +348,12 @@ public:
     }
 };
 
-class VideoMete : public Metedata{
+class VideoMeta : public Metadata{
 public:
-    typedef std::shared_ptr<VideoMete> Ptr;
+    typedef std::shared_ptr<VideoMeta> Ptr;
 
-    VideoMete(const VideoTrack::Ptr &video,int datarate = 5000);
-    virtual ~VideoMete(){}
+    VideoMeta(const VideoTrack::Ptr &video,int datarate = 5000);
+    virtual ~VideoMeta(){}
 
     /**
      * 返回音频或视频类型
@@ -375,13 +375,13 @@ private:
 };
 
 
-class AudioMete : public Metedata{
+class AudioMeta : public Metadata{
 public:
-    typedef std::shared_ptr<AudioMete> Ptr;
+    typedef std::shared_ptr<AudioMeta> Ptr;
 
-    AudioMete(const AudioTrack::Ptr &audio,int datarate = 160);
+    AudioMeta(const AudioTrack::Ptr &audio,int datarate = 160);
 
-    virtual ~AudioMete(){}
+    virtual ~AudioMeta(){}
 
     /**
      * 返回音频或视频类型

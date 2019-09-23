@@ -45,7 +45,7 @@ public:
                           bool bEnableMp4 = false
                           ){
         if (bEanbleRtmp) {
-            _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleMete>(dur_sec));
+            _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleMeta>(dur_sec));
         }
         if (bEanbleRtsp) {
             _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleSdp>(dur_sec));

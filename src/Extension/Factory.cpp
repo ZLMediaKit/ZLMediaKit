@@ -197,7 +197,7 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
                 return CodecInvalid;
         }
     }else{
-        WarnL << "Metedata不存在相应的Track";
+        WarnL << "Metadata不存在相应的Track";
     }
 
     return CodecInvalid;

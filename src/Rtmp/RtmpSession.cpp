@@ -431,6 +431,7 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
 	}
     auto metadata = dec.load<AMFValue>();
     //dumpMetadata(metadata);
+    _metadata_got = true;
 	_pPublisherSrc->onGetMetaData(metadata);
 }
 
@@ -487,6 +488,11 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
             int64_t dts_out;
             _stamp[chunkData.typeId % 2].revise(0, 0, dts_out, dts_out);
             chunkData.timeStamp = dts_out;
+        }
+        if(!_metadata_got){
+            //有些rtmp推流客户端不产生metadata，我们产生一个默认的metadata，目的是为了触发注册操作
+            _metadata_got = true;
+            _pPublisherSrc->onGetMetaData(TitleMeta().getMetadata());
         }
         _pPublisherSrc->onWrite(std::make_shared<RtmpPacket>(std::move(chunkData)));
 	}
@@ -553,7 +559,7 @@ void RtmpSession::setSocketFlags(){
 
 void RtmpSession::dumpMetadata(const AMFValue &metadata) {
     if(metadata.type() != AMF_OBJECT && metadata.type() != AMF_ECMA_ARRAY){
-        WarnL << "invalid metedata type:" << metadata.type();
+        WarnL << "invalid metadata type:" << metadata.type();
         return ;
     }
     _StrPrinter printer;
