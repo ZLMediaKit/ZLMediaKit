@@ -86,9 +86,6 @@ public:
 	virtual void onGetMetaData(const AMFValue &metadata) {
 		lock_guard<recursive_mutex> lock(_mtxMap);
 		_metadata = metadata;
-		if(_pRing){
-			regist();
-		}
 	}
 
     void onWrite(const RtmpPacket::Ptr &pkt,bool isKey = true) override {
@@ -99,7 +96,6 @@ public:
 		}
 
         _mapStamp[pkt->typeId] = pkt->timeStamp;
-
         if(!_pRing){
             weak_ptr<RtmpMediaSource> weakSelf = dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
             _pRing = std::make_shared<RingType>(_ringSize,[weakSelf](const EventPoller::Ptr &,int size,bool){
@@ -110,12 +106,16 @@ public:
                 strongSelf->onReaderChanged(size);
             });
             onReaderChanged(0);
-			if(_metadata){
-				regist();
-			}
         }
-        _pRing->write(pkt,pkt->isVideoKeyFrame());
-        checkNoneReader();
+
+		if(!_registed && _metadata && _mapCfgFrame.size() >= getTrackSize()){
+			//在未注册的情况下，需要获取到metadata并且获取到全部的config帧才可以注册
+			_registed = true;
+			regist();
+		}
+
+		_pRing->write(pkt,pkt->isVideoKeyFrame());
+		checkNoneReader();
     }
 
 	uint32_t getTimeStamp(TrackType trackType) override {
@@ -149,6 +149,17 @@ private:
             onNoneReader();
         }
     }
+
+	int getTrackSize(){
+		int ret = 0;
+		if(_metadata["videocodecid"]){
+			++ret;
+		}
+		if(_metadata["audiocodecid"]){
+			++ret;
+		}
+		return ret;
+	}
 protected:
 	AMFValue _metadata;
     unordered_map<int, RtmpPacket::Ptr> _mapCfgFrame;
@@ -158,6 +169,7 @@ protected:
 	int _ringSize;
 	Ticker _readerTicker;
     bool _asyncEmitNoneReader = false;
+	bool _registed = false;
 };
 
 } /* namespace mediakit */
