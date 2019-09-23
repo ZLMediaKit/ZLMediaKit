@@ -56,14 +56,6 @@ public:
 	virtual ~RtmpDemuxer(){};
 
 	/**
-	 *
-	 * 获取rtmp track 数
-	 * @param metadata rtmp的metadata
-	 * @return
-	 */
-	static int getTrackCount(const AMFValue &metadata);
-
-	/**
 	 * 开始解复用
 	 * @param pkt rtmp包
 	 * @return true 代表是i帧
