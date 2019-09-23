@@ -489,7 +489,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
             _stamp[chunkData.typeId % 2].revise(0, 0, dts_out, dts_out);
             chunkData.timeStamp = dts_out;
         }
-        if(!_metadata_got){
+        if(!_metadata_got && !chunkData.isCfgFrame()){
             //有些rtmp推流客户端不产生metadata，我们产生一个默认的metadata，目的是为了触发注册操作
             _metadata_got = true;
             _pPublisherSrc->onGetMetaData(TitleMeta().getMetadata());
