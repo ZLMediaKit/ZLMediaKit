@@ -205,7 +205,8 @@ static void inline listen_shell_input(){
 }
 #endif//!defined(_WIN32)
 
-int main(int argc,char *argv[]) {
+
+int start_main(int argc,char *argv[]) {
     {
         CMD_main cmd_main;
         try {
@@ -224,10 +225,12 @@ int main(int argc,char *argv[]) {
 
         //设置日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
+#ifndef ANDROID
         auto fileChannel = std::make_shared<FileChannel>("FileChannel", exeDir() + "log/", logLevel);
         //日志最多保存天数
         fileChannel->setMaxDay(cmd_main["max_day"]);
         Logger::Instance().add(fileChannel);
+#endif//
 
 #if !defined(_WIN32)
         if (bDaemon) {
@@ -287,7 +290,7 @@ int main(int argc,char *argv[]) {
         installWebHook();
         InfoL << "已启动http hook 接口";
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(ANDROID)
         if (!bDaemon) {
             //交互式shell输入
             listen_shell_input();
@@ -315,4 +318,11 @@ int main(int argc,char *argv[]) {
     InfoL << "程序退出完毕!";
 	return 0;
 }
+
+#ifndef DISABLE_MAIN
+int main(int argc,char *argv[]) {
+    return start_main(argc,argv);
+}
+#endif //DISABLE_MAIN
+
 
