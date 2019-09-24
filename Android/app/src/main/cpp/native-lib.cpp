@@ -179,7 +179,7 @@ JNI_API(jboolean,startDemo,jstring ini_dir){
                 replace(pr.second,"https://127.0.0.1/","http://127.0.0.1:8080/");
             }
             //默认打开hook
-            mINI::Instance()["hook.enable"] = 1;
+            mINI::Instance()["hook.enable"] = 0;
             //默认打开http api调试
             mINI::Instance()["api.apiDebug"] = 1;
 
