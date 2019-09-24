@@ -174,7 +174,14 @@ JNI_API(jboolean,startDemo,jstring ini_dir){
             mINI::Instance()["http.sslport"] = 8443;
             mINI::Instance()["rtsp.port"] = 8554;
             mINI::Instance()["rtsp.sslport"] = 8332;
-            //如果开启hook功能，那么需要修改hook地址才能使用
+            for(auto &pr : mINI::Instance()){
+                //替换hook默认地址
+                replace(pr.second,"https://127.0.0.1/","http://127.0.0.1:8080/");
+            }
+            //默认打开hook
+            mINI::Instance()["hook.enable"] = 1;
+            //默认打开http api调试
+            mINI::Instance()["api.apiDebug"] = 1;
 
             int argc = 5;
             const char *argv[] = {"","-c",ini_file.data(),"-s",pem_file.data()};
