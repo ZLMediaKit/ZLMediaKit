@@ -375,10 +375,10 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
                 _aiNowStamp[idx] = chunkData.timeStamp;
             }
 			if(!_metadata_got){
-				_metadata_got = true;
 				if(!onCheckMeta(TitleMeta().getMetadata())){
 					throw std::runtime_error("onCheckMeta failed");
 				}
+				_metadata_got = true;
 			}
 			onMediaData_l(std::make_shared<RtmpPacket>(std::move(chunkData)));
 		}
