@@ -153,9 +153,9 @@ public:
     };
 public:
     RtmpPacket() = default;
-    RtmpPacket(const RtmpPacket &that) = default;
-    RtmpPacket &operator=(const RtmpPacket &that) = default;
-    RtmpPacket &operator=(RtmpPacket &&that) = default;
+    RtmpPacket(const RtmpPacket &that) = delete;
+    RtmpPacket &operator=(const RtmpPacket &that) = delete;
+    RtmpPacket &operator=(RtmpPacket &&that) = delete;
 
     RtmpPacket(RtmpPacket &&that){
         typeId = that.typeId;

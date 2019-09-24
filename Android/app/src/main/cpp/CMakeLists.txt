@@ -1,19 +1,20 @@
-# For more information about using CMake with Android Studio, read the
-# documentation: https://d.android.com/studio/projects/add-native-code.html
-
-# Sets the minimum version of CMake required to build the native library.
-
-cmake_minimum_required(VERSION 3.4.1)
+project(ZLMediaKit)
+cmake_minimum_required(VERSION 3.1.3)
+#使能c++11
+set(CMAKE_CXX_STANDARD 11)
 
 #设置生成的so动态库最后输出的路径
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs_export/${ANDROID_ABI})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs_export/${ANDROID_ABI})
+
+LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
 #设置工程源码根目录
 set(ZLMediaKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../)
 set(JNI_Root ${CMAKE_CURRENT_SOURCE_DIR})
 set(ToolKit_Root ${ZLMediaKit_Root}/3rdpart/ZLToolKit/src)
 set(MediaKit_Root ${ZLMediaKit_Root}/src)
+set(MediaServer_Root ${ZLMediaKit_Root}/3rdpart/media-server/)
 
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
@@ -26,42 +27,43 @@ file(GLOB MediaKit_src_list ${MediaKit_Root}/*/*.cpp ${MediaKit_Root}/*/*.h ${Me
 file(GLOB JNI_src_list ${JNI_Root}/*.cpp ${JNI_Root}/*.h)
 
 #去除win32的适配代码
-list(REMOVE_ITEM ToolKit_src_list ${ToolKit_Root}/win32/getopt.c)
+if (NOT WIN32)
+    list(REMOVE_ITEM ToolKit_src_list ${ToolKit_Root}/win32/getopt.c)
+else()
+     #防止Windows.h包含Winsock.h
+    add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS)
+endif ()
 
 set(ENABLE_HLS true)
-#默认禁用的库，如果要开启，请指定其路径
-set(ENABLE_OPENSSL false)
+set(ENABLE_OPENSSL true)
 set(ENABLE_MYSQL false)
-set(ENABLE_MP4V2 false)
+set(ENABLE_MP4V2 true)
 set(ENABLE_FAAC false)
 set(ENABLE_X264 false)
+set(ENABLE_MP4RECORD true)
 
 #添加两个静态库
 if(ENABLE_HLS)
     message(STATUS "ENABLE_HLS defined")
     add_definitions(-DENABLE_HLS)
-    set(MediaServer_Root ${ZLMediaKit_Root}/3rdpart/media-server)
     set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
 else()
     set(LINK_LIB_LIST zlmediakit zltoolkit)
 endif()
 
-#查找openssl是否安装
-find_package(OpenSSL QUIET)
-if (OPENSSL_FOUND AND ENABLE_OPENSSL)
-    message(STATUS "found library:${OPENSSL_LIBRARIES},ENABLE_OPENSSL defined")
-    include_directories(${OPENSSL_INCLUDE_DIR})
-    add_definitions(-DENABLE_OPENSSL)
-    list(APPEND LINK_LIB_LIST ${OPENSSL_LIBRARIES})
-endif ()
 
-#查找mysql是否安装
-find_package(MYSQL QUIET)
-if (MYSQL_FOUND AND ENABLE_MYSQL)
-    message(STATUS "found library:${MYSQL_LIBRARIES},ENABLE_MYSQL defined")
-    include_directories(${MYSQL_INCLUDE_DIR})
-    add_definitions(-DENABLE_MYSQL)
-    list(APPEND LINK_LIB_LIST ${MYSQL_LIBRARIES})
+if(ENABLE_MP4RECORD)
+    message(STATUS "ENABLE_MP4RECORD defined")
+    add_definitions(-DENABLE_MP4RECORD)
+	list(APPEND LINK_LIB_LIST mov flv)
+endif()
+
+if (ENABLE_OPENSSL)
+    #openssl
+    add_definitions(-DENABLE_OPENSSL)
+    INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/../../../libs/${ANDROID_ABI}/include)
+    LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/../../../libs/${ANDROID_ABI}/)
+    list(APPEND LINK_LIB_LIST ssl crypto)
 endif ()
 
 #查找MP4V2是否安装
@@ -73,24 +75,6 @@ if (MP4V2_FOUND AND ENABLE_MP4V2)
     message(STATUS "found library:${MP4V2_LIBRARY},ENABLE_MP4V2 defined")
 endif ()
 
-#查找x264是否安装
-find_package(X264 QUIET)
-if (X264_FOUND AND ENABLE_X264)
-    message(STATUS "found library:${X264_LIBRARIES},ENABLE_X264 defined")
-    include_directories(${X264_INCLUDE_DIRS})
-    add_definitions(-DENABLE_X264)
-    list(APPEND LINK_LIB_LIST ${X264_LIBRARIES})
-endif ()
-
-#查找faac是否安装
-find_package(FAAC QUIET)
-if (FAAC_FOUND AND ENABLE_FAAC)
-    message(STATUS "found library:${FAAC_LIBRARIES},ENABLE_FAAC defined")
-    include_directories(${FAAC_INCLUDE_DIR})
-    add_definitions(-DENABLE_FAAC)
-    list(APPEND LINK_LIB_LIST ${FAAC_LIBRARIES})
-endif ()
-
 
 #libmpeg
 if(ENABLE_HLS)
@@ -98,6 +82,23 @@ if(ENABLE_HLS)
     aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
     include_directories(${MediaServer_Root}/libmpeg/include)
     add_library(mpeg STATIC ${src_mpeg})
+	if(WIN32)
+		set_target_properties(mpeg PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
+	endif(WIN32)
+endif()
+
+if(ENABLE_MP4RECORD)
+    aux_source_directory(${MediaServer_Root}/libmov/include src_mov)
+    aux_source_directory(${MediaServer_Root}/libmov/source src_mov)
+	include_directories(${MediaServer_Root}/libmov/include)
+    aux_source_directory(${MediaServer_Root}/libflv/include src_flv)
+    aux_source_directory(${MediaServer_Root}/libflv/source src_flv)
+	include_directories(${MediaServer_Root}/libflv/include)
+	add_library(mov STATIC ${src_mov})
+	add_library(flv STATIC ${src_flv})
+	if(WIN32)
+		set_target_properties(mov flv PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
+	endif(WIN32)
 endif()
 
 
@@ -106,5 +107,16 @@ add_library(zltoolkit STATIC ${ToolKit_src_list})
 add_library(zlmediakit STATIC ${MediaKit_src_list})
 add_library(zlmediakit_jni SHARED ${JNI_src_list})
 
+add_definitions(-DDISABLE_MAIN)
+#添加json以及MediaServer相关代码
+include_directories(${ZLMediaKit_Root}/3rdpart)
+include_directories(${ZLMediaKit_Root}/server)
+file(GLOB jsoncpp_src_list ${ZLMediaKit_Root}/3rdpart/jsoncpp/*.cpp)
+file(GLOB MediaServer_src_list ${ZLMediaKit_Root}/server/*.cpp)
+add_library(jsoncpp STATIC ${jsoncpp_src_list})
+add_library(MediaServer STATIC ${MediaServer_src_list})
+
 #链接
-target_link_libraries(zlmediakit_jni ${LINK_LIB_LIST} log z)
+target_link_libraries(zlmediakit_jni MediaServer jsoncpp ${LINK_LIB_LIST} log z)
+
+
