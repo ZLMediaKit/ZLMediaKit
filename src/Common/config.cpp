@@ -268,12 +268,16 @@ const string kFilePath = RECORD_FIELD"filePath";
 //mp4文件写缓存大小
 const string kFileBufSize = RECORD_FIELD"fileBufSize";
 
+//mp4文件是否重头循环读取
+const string kFileRepeat = RECORD_FIELD"fileRepeat";
+
 onceToken token([](){
 	mINI::Instance()[kAppName] = RECORD_APP_NAME;
 	mINI::Instance()[kSampleMS] = RECORD_SAMPLE_MS;
 	mINI::Instance()[kFileSecond] = RECORD_FILE_SECOND;
 	mINI::Instance()[kFilePath] = RECORD_FILE_PATH;
 	mINI::Instance()[kFileBufSize] = 64 * 1024;
+	mINI::Instance()[kFileRepeat] = false;
 },nullptr);
 
 } //namespace Record

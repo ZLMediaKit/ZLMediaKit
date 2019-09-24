@@ -200,6 +200,11 @@ bool MediaReader::readSample(int iTimeInc,bool justSeekSyncFrame) {
 	if((bFlag0 || bFlag1) && bFlag2){
 		_alive.resetTime();
 	}
+	//重头开始循环读取
+	GET_CONFIG(bool,fileRepeat,Record::kFileRepeat);
+	if (fileRepeat && !bFlag0 && !bFlag1) {
+		seek(0);
+	}
 	//DebugL << "alive ...";
 	//3秒延时关闭
 	return  _alive.elapsedTime() <  3 * 1000;
