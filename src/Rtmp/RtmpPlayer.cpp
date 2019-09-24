@@ -108,6 +108,7 @@ void RtmpPlayer::play(const string &strUrl)  {
 		return false;
 	},getPoller()));
 
+	_metadata_got = false;
 	startConnect(strHost, iPort , playTimeOutSec);
 }
 void RtmpPlayer::onErr(const SockException &ex){
@@ -319,8 +320,9 @@ void RtmpPlayer::onCmd_onMetaData(AMFDecoder &dec) {
 	//TraceL;
 	auto val = dec.load<AMFValue>();
 	if(!onCheckMeta(val)){
-		throw std::runtime_error("onCheckMeta faied");
+		throw std::runtime_error("onCheckMeta failed");
 	}
+	_metadata_got = true;
 }
 
 void RtmpPlayer::onStreamDry(uint32_t ui32StreamId) {
@@ -372,6 +374,12 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
 				//计算播放进度时间轴用
                 _aiNowStamp[idx] = chunkData.timeStamp;
             }
+			if(!_metadata_got){
+				_metadata_got = true;
+				if(!onCheckMeta(TitleMeta().getMetadata())){
+					throw std::runtime_error("onCheckMeta failed");
+				}
+			}
 			onMediaData_l(std::make_shared<RtmpPacket>(std::move(chunkData)));
 		}
 			break;
