@@ -276,7 +276,7 @@ extern const string kFileRepeat;
 namespace Hls {
 //HLS切片时长,单位秒
 extern const string kSegmentDuration;
-//HLS切片个数
+//HLS切片个数，如果设置为0，则不删除切片，而是保存为点播
 extern const string kSegmentNum;
 //HLS文件写缓存大小
 extern const string kFileBufSize;

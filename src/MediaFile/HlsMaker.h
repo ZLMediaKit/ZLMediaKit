@@ -81,13 +81,18 @@ protected:
      * @param len
      */
     virtual void onWriteHls(const char *data, int len) = 0;
-private:
+
+    /**
+     * 生成m3u8文件
+     * @param eof true代表点播
+     */
+    void makeIndexFile(bool eof = false);
     void delOldFile();
     void addNewFile(uint32_t timestamp);
-    void makeIndexFile(bool eof = false);
+protected:
+    uint32_t _seg_number = 0;
 private:
     float _seg_duration = 0;
-    uint32_t _seg_number = 0;
     uint64_t _file_index = 0;
     Ticker _ticker;
     string _last_file_name;
