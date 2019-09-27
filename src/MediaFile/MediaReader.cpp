@@ -30,6 +30,7 @@
 #include "Http/HttpSession.h"
 #include "Extension/AAC.h"
 #include "Extension/H264.h"
+#include "Thread/WorkThreadPool.h"
 
 using namespace toolkit;
 
@@ -37,7 +38,7 @@ namespace mediakit {
 
 #ifdef ENABLE_MP4V2
 MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
-	_poller = EventPollerPool::Instance().getPoller();
+	_poller = WorkThreadPool::Instance().getPoller();
     auto strFileName = filePath;
     if(strFileName.empty()){
 		GET_CONFIG(string,recordPath,Record::kFilePath);
