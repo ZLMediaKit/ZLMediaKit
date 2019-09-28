@@ -106,10 +106,15 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     //PreviousTagSize0 Always 0
     onWrite(std::make_shared<BufferRaw>((char *)&size,4));
 
-    //metadata
-    AMFEncoder invoke;
-    invoke << "onMetaData" << mediaSrc->getMetaData();
-    onWriteFlvTag(MSG_DATA, std::make_shared<BufferString>(invoke.data()), 0);
+
+    auto &metadata = mediaSrc->getMetaData();
+    if(metadata){
+        //在有metadata的情况下才发送metadata
+        //其实metadata没什么用，有些推流器不产生metadata
+        AMFEncoder invoke;
+        invoke << "onMetaData" << metadata;
+        onWriteFlvTag(MSG_DATA, std::make_shared<BufferString>(invoke.data()), 0);
+    }
 
     //config frame
     mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){

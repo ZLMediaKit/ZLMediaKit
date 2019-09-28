@@ -268,13 +268,15 @@ extern const string kFileSecond;
 extern const string kFilePath;
 //mp4文件写缓存大小
 extern const string kFileBufSize;
+//mp4文件是否重头循环读取
+extern const string kFileRepeat;
 } //namespace Record
 
 ////////////HLS相关配置///////////
 namespace Hls {
 //HLS切片时长,单位秒
 extern const string kSegmentDuration;
-//HLS切片个数
+//HLS切片个数，如果设置为0，则不删除切片，而是保存为点播
 extern const string kSegmentNum;
 //HLS文件写缓存大小
 extern const string kFileBufSize;

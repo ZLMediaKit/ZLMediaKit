@@ -62,7 +62,7 @@ public:
     }
 private:
     //派生类回调函数
-    bool onCheckMeta(AMFValue &val)  override {
+    bool onCheckMeta(const AMFValue &val) override {
         _pRtmpMediaSrc = dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc);
         if(_pRtmpMediaSrc){
             _pRtmpMediaSrc->onGetMetaData(val);
@@ -75,7 +75,7 @@ private:
             _pRtmpMediaSrc->onWrite(chunkData);
         }
         if(!_parser){
-    	    //这个流没有metedata
+    	    //这个流没有metadata
             _parser.reset(new RtmpDemuxer());
         }
         _parser->inputRtmp(chunkData);

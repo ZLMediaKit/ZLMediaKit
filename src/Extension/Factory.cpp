@@ -60,16 +60,16 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     }
 
     if (strcasecmp(track->_codec.data(), "h264") == 0) {
-        string sps_pps = FindField(track->_fmtp.data(), "sprop-parameter-sets=", nullptr);
+        auto map = Parser::parseArgs(track->_fmtp," ","=");
+        for(auto &pr : map){
+            trim(pr.second," ;");
+        }
+        auto sps_pps = map["sprop-parameter-sets"];
         if(sps_pps.empty()){
             return std::make_shared<H264Track>();
         }
         string base64_SPS = FindField(sps_pps.data(), NULL, ",");
         string base64_PPS = FindField(sps_pps.data(), ",", NULL);
-        if(base64_PPS.back() == ';'){
-            base64_PPS.pop_back();
-        }
-
         auto sps = decodeBase64(base64_SPS);
         auto pps = decodeBase64(base64_PPS);
         return std::make_shared<H264Track>(sps,pps,0,0);
@@ -197,7 +197,7 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
                 return CodecInvalid;
         }
     }else{
-        WarnL << "Metedata不存在相应的Track";
+        WarnL << "Metadata不存在相应的Track";
     }
 
     return CodecInvalid;

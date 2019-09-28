@@ -30,6 +30,7 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Network/sockutil.h"
+#include "Util/util.h"
 using namespace toolkit;
 
 /////////////////////AMFValue/////////////////////////////
@@ -161,6 +162,146 @@ AMFValue& AMFValue::operator =(AMFValue &&from) {
 
 }
 
+void AMFValue::clear() {
+    switch (_type) {
+        case AMF_STRING:
+            _value.string->clear();
+            break;
+        case AMF_OBJECT:
+        case AMF_ECMA_ARRAY:
+            _value.object->clear();
+            break;
+        default:
+            break;
+    }
+}
+
+AMFType AMFValue::type() const {
+    return _type;
+}
+
+const std::string &AMFValue::as_string() const {
+    if(_type != AMF_STRING){
+        throw std::runtime_error("AMF not a string");
+    }
+    return *_value.string;
+}
+
+double AMFValue::as_number() const {
+    switch (_type) {
+        case AMF_NUMBER:
+            return _value.number;
+        case AMF_INTEGER:
+            return _value.integer;
+        case AMF_BOOLEAN:
+            return _value.boolean;
+        default:
+            throw std::runtime_error("AMF not a number");
+    }
+}
+
+int AMFValue::as_integer() const {
+    switch (_type) {
+        case AMF_NUMBER:
+            return _value.number;
+        case AMF_INTEGER:
+            return _value.integer;
+        case AMF_BOOLEAN:
+            return _value.boolean;
+        default:
+            throw std::runtime_error("AMF not a integer");
+    }
+}
+
+bool AMFValue::as_boolean() const {
+    switch (_type) {
+        case AMF_NUMBER:
+            return _value.number;
+        case AMF_INTEGER:
+            return _value.integer;
+        case AMF_BOOLEAN:
+            return _value.boolean;
+        default:
+            throw std::runtime_error("AMF not a boolean");
+    }
+}
+
+string AMFValue::to_string() const{
+    switch (_type) {
+        case AMF_NUMBER:
+            return StrPrinter << _value.number;
+        case AMF_INTEGER:
+            return StrPrinter << _value.integer;
+        case AMF_BOOLEAN:
+            return _value.boolean ? "true" : "false";
+        case AMF_STRING:
+            return *(_value.string);
+        case AMF_OBJECT:
+            return "object";
+        case AMF_NULL:
+            return "null";
+        case AMF_UNDEFINED:
+            return "undefined";
+        case AMF_ECMA_ARRAY:
+            return "ecma_array";
+        case AMF_STRICT_ARRAY:
+            return "strict_array";
+        default:
+            throw std::runtime_error("can not convert to string ");
+    }
+}
+
+
+const AMFValue& AMFValue::operator[](const char *str) const {
+    if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
+        throw std::runtime_error("AMF not a object");
+    }
+    auto i = _value.object->find(str);
+    if (i == _value.object->end()) {
+        static AMFValue val(AMF_NULL);
+        return val;
+    }
+    return i->second;
+}
+
+void AMFValue::object_for_each(const function<void(const string &key, const AMFValue &val)> &fun) const {
+    if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
+        throw std::runtime_error("AMF not a object");
+    }
+    for (auto & pr : *(_value.object)) {
+        fun(pr.first, pr.second);
+    }
+}
+
+AMFValue::operator bool() const{
+    return _type != AMF_NULL;
+}
+void AMFValue::set(const std::string &s, const AMFValue &val) {
+    if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
+        throw std::runtime_error("AMF not a object");
+    }
+    _value.object->emplace(s, val);
+}
+void AMFValue::add(const AMFValue &val) {
+    if (_type != AMF_STRICT_ARRAY) {
+        throw std::runtime_error("AMF not a array");
+    }
+    assert(_type == AMF_STRICT_ARRAY);
+    _value.array->push_back(val);
+}
+
+const AMFValue::mapType &AMFValue::getMap() const {
+    if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
+        throw std::runtime_error("AMF not a object");
+    }
+    return *_value.object;
+}
+const AMFValue::arrayType &AMFValue::getArr() const {
+    if (_type != AMF_STRICT_ARRAY) {
+        throw std::runtime_error("AMF not a array");
+    }
+    return *_value.array;
+}
 ///////////////////////////////////////////////////////////////////////////
 
 enum {
@@ -314,6 +455,14 @@ void AMFEncoder::write_key(const std::string& s) {
 	uint16_t str_len = htons(s.size());
 	buf.append((char *) &str_len, 2);
 	buf += s;
+}
+
+void AMFEncoder::clear() {
+    buf.clear();
+}
+
+const std::string& AMFEncoder::data() const {
+    return buf;
 }
 
 //////////////////Decoder//////////////////
@@ -551,3 +700,8 @@ AMFValue AMFDecoder::load_arr() {
 	}*/
 	return object;
 }
+
+AMFDecoder::AMFDecoder(const std::string &buf_in, size_t pos_in, int version_in) :
+        buf(buf_in), pos(pos_in), version(version_in) {
+}
+
