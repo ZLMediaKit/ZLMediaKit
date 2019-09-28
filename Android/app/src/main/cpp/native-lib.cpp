@@ -1,6 +1,13 @@
 ﻿#include <jni.h>
 #include <string>
-#include "test_server.cpp"
+#include "Util/logger.h"
+#include "Thread/semaphore.h"
+#include "Common/config.h"
+#include "Player/MediaPlayer.h"
+#include "Extension/Frame.h"
+using namespace std;
+using namespace toolkit;
+using namespace mediakit;
 
 #define JNI_API(retType,funName,...) extern "C"  JNIEXPORT retType Java_com_zlmediakit_jni_ZLMediaKit_##funName(JNIEnv* env, jclass cls,##__VA_ARGS__)
 #define MediaPlayerCallBackSign "com/zlmediakit/jni/ZLMediaKit$MediaPlayerCallBack"
@@ -130,26 +137,56 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
     InfoL;
     return JNI_VERSION_1_6;
 }
+
+static pthread_t s_tread_id = 0;
 /*
  * 卸载动态库
  */
 JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* reserved){
     InfoL;
-    s_sem.post();
+    if(s_tread_id){
+        pthread_kill(s_tread_id,SIGINT);
+    }
 }
 
+extern int start_main(int argc,char *argv[]);
+JNI_API(jboolean,startDemo,jstring ini_dir){
+    string sd_path = stringFromJstring(env,ini_dir);
+    string ini_file = sd_path +  "/zlmediakit.ini";
 
-JNI_API(jboolean,startDemo,jstring path_to_jni_file){
-    string sd_path = stringFromJstring(env,path_to_jni_file);
-    string jni_file = sd_path +  "/zlmediakit.jni";
+    //可以在sd卡根目录下放置ssl证书以便支持https服务器，证书支持p12或pem格式
+    string pem_file = sd_path +  "/zlmediakit.pem";
 
     DebugL << "sd_path:" << sd_path;
-    DebugL << "jni file:" << jni_file;
+    DebugL << "ini file:" << ini_file;
 
-    static thread s_th([sd_path,jni_file](){
+    static thread s_th([sd_path,ini_file,pem_file](){
+        s_tread_id = pthread_self();
         try {
+            //http根目录修改默认路径
             mINI::Instance()[Http::kRootPath] = mINI::Instance()[Hls::kFilePath] = sd_path + "/httpRoot";
-            do_main(jni_file);
+            //mp4录制点播根目录修改默认路径
+            mINI::Instance()[Record::kFilePath] = mINI::Instance()[Hls::kFilePath] = sd_path + "/httpRoot";
+            //hls根目录修改默认路径
+            mINI::Instance()[Hls::kFilePath] = mINI::Instance()[Hls::kFilePath] = sd_path + "/httpRoot";
+            //替换默认端口号(在配置文件未生成时有效)
+            mINI::Instance()["http.port"] = 8080;
+            mINI::Instance()["http.sslport"] = 8443;
+            mINI::Instance()["rtsp.port"] = 8554;
+            mINI::Instance()["rtsp.sslport"] = 8332;
+            for(auto &pr : mINI::Instance()){
+                //替换hook默认地址
+                replace(pr.second,"https://127.0.0.1/","http://127.0.0.1:8080/");
+            }
+            //默认打开hook
+            mINI::Instance()["hook.enable"] = 0;
+            //默认打开http api调试
+            mINI::Instance()["api.apiDebug"] = 1;
+
+            int argc = 5;
+            const char *argv[] = {"","-c",ini_file.data(),"-s",pem_file.data()};
+
+            start_main(argc,(char **)argv);
         }catch (std::exception &ex){
             WarnL << ex.what();
         }
@@ -158,6 +195,7 @@ JNI_API(jboolean,startDemo,jstring path_to_jni_file){
     static onceToken s_token([]{
         s_th.detach();
     });
+
     return true;
 };
 

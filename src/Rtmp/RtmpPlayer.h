@@ -55,7 +55,7 @@ public:
 	void pause(bool bPause) override;
 	void teardown() override;
 protected:
-	virtual bool onCheckMeta(AMFValue &val) =0;
+	virtual bool onCheckMeta(const AMFValue &val) =0;
 	virtual void onMediaData(const RtmpPacket::Ptr &chunkData) =0;
 	uint32_t getProgressMilliSecond() const;
 	void seekToMilliSecond(uint32_t ms);
@@ -119,6 +119,7 @@ private:
 	uint32_t _aiFistStamp[2] = { 0, 0 };
 	uint32_t _aiNowStamp[2] = { 0, 0 };
 	Ticker _aNowStampTicker[2];
+	bool _metadata_got = false;
 };
 
 } /* namespace mediakit */

@@ -32,7 +32,9 @@
 #include <sys/resource.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#ifndef ANDROID
 #include <execinfo.h>
+#endif
 #include <map>
 #include <string>
 #include <iostream>
@@ -272,6 +274,7 @@ static string addr2line(const string &address) {
     return System::execute(cmd);
 }
 
+#ifndef ANDROID
 static void sig_crash(int sig) {
     signal(sig, SIG_DFL);
     void *array[MAX_STACK_FRAMES];
@@ -294,6 +297,8 @@ static void sig_crash(int sig) {
 
     NoticeCenter::Instance().emitEvent(kBroadcastOnCrashDump,sig,stack);
 }
+
+#endif//#ifndef ANDROID
 
 
 void System::startDaemon() {
@@ -365,8 +370,11 @@ void System::systemSetup(){
         InfoL << "文件最大描述符个数设置为:" << rlim_new.rlim_cur;
     }
 
+#ifndef ANDROID
     signal(SIGSEGV, sig_crash);
     signal(SIGABRT, sig_crash);
+#endif//#ifndef ANDROID
+
     NoticeCenter::Instance().addListener(nullptr,kBroadcastOnCrashDump,[](BroadcastOnCrashDumpArgs){
         stringstream ss;
         ss << "## crash date:" << currentDateTime() << endl;

@@ -27,35 +27,35 @@
 #include "Extension/Factory.h"
 namespace mediakit{
 
-VideoMete::VideoMete(const VideoTrack::Ptr &video,int datarate ){
+VideoMeta::VideoMeta(const VideoTrack::Ptr &video,int datarate ){
     if(video->getVideoWidth() > 0 ){
-        _metedata.set("width", video->getVideoWidth());
+        _metadata.set("width", video->getVideoWidth());
     }
     if(video->getVideoHeight() > 0 ){
-        _metedata.set("height", video->getVideoHeight());
+        _metadata.set("height", video->getVideoHeight());
     }
     if(video->getVideoFps() > 0 ){
-        _metedata.set("framerate", video->getVideoFps());
+        _metadata.set("framerate", video->getVideoFps());
     }
-    _metedata.set("videodatarate", datarate);
+    _metadata.set("videodatarate", datarate);
     _codecId = video->getCodecId();
-    _metedata.set("videocodecid", Factory::getAmfByCodecId(_codecId));
+    _metadata.set("videocodecid", Factory::getAmfByCodecId(_codecId));
 }
 
-AudioMete::AudioMete(const AudioTrack::Ptr &audio,int datarate){
-    _metedata.set("audiodatarate", datarate);
+AudioMeta::AudioMeta(const AudioTrack::Ptr &audio,int datarate){
+    _metadata.set("audiodatarate", datarate);
     if(audio->getAudioSampleRate() > 0){
-        _metedata.set("audiosamplerate", audio->getAudioSampleRate());
+        _metadata.set("audiosamplerate", audio->getAudioSampleRate());
     }
     if(audio->getAudioSampleBit() > 0){
-        _metedata.set("audiosamplesize", audio->getAudioSampleBit());
+        _metadata.set("audiosamplesize", audio->getAudioSampleBit());
     }
     if(audio->getAudioChannel() > 0){
-        _metedata.set("audiochannels", audio->getAudioChannel());
-        _metedata.set("stereo", audio->getAudioChannel() > 1);
+        _metadata.set("audiochannels", audio->getAudioChannel());
+        _metadata.set("stereo", audio->getAudioChannel() > 1);
     }
     _codecId = audio->getCodecId();
-    _metedata.set("audiocodecid", Factory::getAmfByCodecId(_codecId));
+    _metadata.set("audiocodecid", Factory::getAmfByCodecId(_codecId));
 }
 
 }//namespace mediakit

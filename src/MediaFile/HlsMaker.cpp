@@ -28,7 +28,8 @@
 namespace mediakit {
 
 HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number) {
-    seg_number = MAX(1,seg_number);
+    //最小允许设置为0，0个切片代表点播
+    seg_number = MAX(0,seg_number);
     seg_duration = MAX(1,seg_duration);
     _seg_number = seg_number;
     _seg_duration = seg_duration;
@@ -37,12 +38,9 @@ HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number) {
 HlsMaker::~HlsMaker() {
 }
 
-#define PRINT(...)  file_size += snprintf(file_content + file_size,sizeof(file_content) - file_size, ##__VA_ARGS__)
 
 void HlsMaker::makeIndexFile(bool eof) {
-    char file_content[4 * 1024];
-    int file_size = 0;
-
+    char file_content[1024];
     int maxSegmentDuration = 0;
     for (auto &tp : _seg_dur_list) {
         int dur = std::get<0>(tp);
@@ -50,7 +48,10 @@ void HlsMaker::makeIndexFile(bool eof) {
             maxSegmentDuration = dur;
         }
     }
-    PRINT("#EXTM3U\n"
+
+    string m3u8;
+    snprintf(file_content,sizeof(file_content),
+          "#EXTM3U\n"
           "#EXT-X-VERSION:3\n"
           "#EXT-X-ALLOW-CACHE:NO\n"
           "#EXT-X-TARGETDURATION:%u\n"
@@ -58,14 +59,18 @@ void HlsMaker::makeIndexFile(bool eof) {
           (maxSegmentDuration + 999) / 1000,
           _file_index);
 
+    m3u8.assign(file_content);
+
     for (auto &tp : _seg_dur_list) {
-        PRINT("#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
+        snprintf(file_content,sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
+        m3u8.append(file_content);
     }
 
     if (eof) {
-        PRINT("#EXT-X-ENDLIST\n");
+        snprintf(file_content,sizeof(file_content),"#EXT-X-ENDLIST\n");
+        m3u8.append(file_content);
     }
-    onWriteHls(file_content, file_size);
+    onWriteHls(m3u8.data(), m3u8.size());
 }
 
 
@@ -75,6 +80,10 @@ void HlsMaker::inputData(void *data, uint32_t len, uint32_t timestamp) {
 }
 
 void HlsMaker::delOldFile() {
+    if(_seg_number == 0){
+        //如果设置为保留0个切片，则认为是保存为点播
+        return;
+    }
     //在hls m3u8索引文件中,我们保存的切片个数跟_seg_number相关设置一致
     if (_file_index >= _seg_number + 2) {
         _seg_dur_list.pop_front();
