@@ -27,7 +27,7 @@
 #define IPTV_PROCESS_H
 
 #include <sys/wait.h>
-#include <sys/fcntl.h>
+#include <fcntl.h>
 #include <string>
 using namespace std;
 
