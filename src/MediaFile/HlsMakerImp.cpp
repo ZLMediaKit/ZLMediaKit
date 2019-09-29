@@ -46,8 +46,12 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
 }
 
 HlsMakerImp::~HlsMakerImp() {
-    _file.reset();
-    File::delete_file(_path_prefix.data());
+    //录制完了
+    makeIndexFile(true);
+    if(_seg_number){
+        //hls直播才删除文件
+        File::delete_file(_path_prefix.data());
+    }
 }
 
 string HlsMakerImp::onOpenFile(int index) {

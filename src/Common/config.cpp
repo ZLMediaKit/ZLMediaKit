@@ -77,12 +77,15 @@ const string kStreamNoneReaderDelayMS = GENERAL_FIELD"streamNoneReaderDelayMS";
 const string kMaxStreamWaitTimeMS = GENERAL_FIELD"maxStreamWaitMS";
 const string kEnableVhost = GENERAL_FIELD"enableVhost";
 const string kUltraLowDelay = GENERAL_FIELD"ultraLowDelay";
+const string kAddMuteAudio = GENERAL_FIELD"addMuteAudio";
+
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
     mINI::Instance()[kStreamNoneReaderDelayMS] = 5 * 1000;
     mINI::Instance()[kMaxStreamWaitTimeMS] = 5 * 1000;
     mINI::Instance()[kEnableVhost] = 1;
 	mINI::Instance()[kUltraLowDelay] = 1;
+	mINI::Instance()[kAddMuteAudio] = 1;
 },nullptr);
 
 }//namespace General

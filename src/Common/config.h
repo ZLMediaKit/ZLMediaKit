@@ -177,6 +177,8 @@ extern const string kMaxStreamWaitTimeMS;
 extern const string kEnableVhost;
 //超低延时模式，默认打开，打开后会降低延时但是转发性能会稍差
 extern const string kUltraLowDelay;
+//拉流代理时是否添加静音音频
+extern const string kAddMuteAudio;
 }//namespace General
 
 
@@ -276,7 +278,7 @@ extern const string kFileRepeat;
 namespace Hls {
 //HLS切片时长,单位秒
 extern const string kSegmentDuration;
-//HLS切片个数
+//HLS切片个数，如果设置为0，则不删除切片，而是保存为点播
 extern const string kSegmentNum;
 //HLS文件写缓存大小
 extern const string kFileBufSize;
