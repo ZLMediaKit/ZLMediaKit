@@ -244,13 +244,16 @@ void PlayerProxy::onPlaySuccess() {
 		videoTrack->addDelegate(_mediaMuxer);
 	}
 
+	//是否添加静音音频
+	GET_CONFIG(bool,addMuteAudio,General::kAddMuteAudio);
+
 	auto audioTrack = getTrack(TrackAudio, false);
 	if(audioTrack){
 		//添加音频
 		_mediaMuxer->addTrack(audioTrack);
 		//音频数据写入_mediaMuxer
         audioTrack->addDelegate(_mediaMuxer);
-    }else if(videoTrack){
+    }else if(addMuteAudio && videoTrack){
 		//没有音频信息，产生一个静音音频
 		MuteAudioMaker::Ptr audioMaker = std::make_shared<MuteAudioMaker>();
 		//videoTrack把数据写入MuteAudioMaker

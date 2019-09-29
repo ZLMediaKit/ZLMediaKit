@@ -177,6 +177,8 @@ extern const string kMaxStreamWaitTimeMS;
 extern const string kEnableVhost;
 //超低延时模式，默认打开，打开后会降低延时但是转发性能会稍差
 extern const string kUltraLowDelay;
+//拉流代理时是否添加静音音频
+extern const string kAddMuteAudio;
 }//namespace General
 
 
