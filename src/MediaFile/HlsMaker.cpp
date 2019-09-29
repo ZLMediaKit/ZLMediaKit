@@ -42,6 +42,12 @@ HlsMaker::~HlsMaker() {
 void HlsMaker::makeIndexFile(bool eof) {
     char file_content[1024];
     int maxSegmentDuration = 0;
+
+    //停止写之后将最后的片段也写进m3u8文件中
+    if (eof && stampInc > 0) {
+        _seg_dur_list.push_back(std::make_tuple(stampInc, _last_file_name));
+    }
+
     for (auto &tp : _seg_dur_list) {
         int dur = std::get<0>(tp);
         if (dur > maxSegmentDuration) {
@@ -57,7 +63,7 @@ void HlsMaker::makeIndexFile(bool eof) {
           "#EXT-X-TARGETDURATION:%u\n"
           "#EXT-X-MEDIA-SEQUENCE:%llu\n",
           (maxSegmentDuration + 999) / 1000,
-          _file_index);
+          _seg_number ? _file_index : 0);
 
     m3u8.assign(file_content);
 
@@ -96,7 +102,7 @@ void HlsMaker::delOldFile() {
 }
 
 void HlsMaker::addNewFile(uint32_t) {
-    int stampInc = _ticker.elapsedTime();
+    stampInc = _ticker.elapsedTime();
     if (stampInc >= _seg_duration * 1000) {
         _ticker.resetTime();
         auto file_name = onOpenFile(_file_index);

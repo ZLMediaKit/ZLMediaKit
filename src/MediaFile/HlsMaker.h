@@ -92,6 +92,7 @@ protected:
 protected:
     uint32_t _seg_number = 0;
 private:
+    int stampInc = 0;
     float _seg_duration = 0;
     uint64_t _file_index = 0;
     Ticker _ticker;
