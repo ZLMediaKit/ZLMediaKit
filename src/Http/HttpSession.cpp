@@ -619,7 +619,7 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
             TimeTicker();
             auto strongSelf = weakSelf.lock();
             while(*piLeft && strongSelf){
-                //更新超时定时器
+                //更新超时计时器
                 strongSelf->_ticker.resetTime();
                 //从循环池获取一个内存片
                 auto sendBuf = strongSelf->obtainBuffer();
@@ -636,28 +636,41 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
 
                 if (iRead < iReq || !*piLeft) {
                     //文件读完
-                    if(iRead>0) {
+                    if(iRead > 0) {
                         sendBuf->setSize(iRead);
                         strongSelf->send(sendBuf);
                     }
-                    if(bClose) {
-                        strongSelf->shutdown(SockException(Err_shutdown,"read file eof"));
+
+                    if(strongSelf->isSocketBusy()){
+                        //套接字忙,我们等待触发下一次onFlush事件
+                        //待所有数据flush到socket fd再移除onFlush事件监听
+                        //标记文件读写完毕
+                        *piLeft = 0;
+                        return true;
                     }
-                    return false;
+
+                    //文件全部flush到socket fd，可以直接关闭socket了
+                    break;
                 }
+
                 //文件还未读完
                 sendBuf->setSize(iRead);
-                int iSent = strongSelf->send(sendBuf);
-                if(iSent == -1) {
-                    //套机制销毁
+                if(strongSelf->send(sendBuf) == -1) {
+                    //socket已经销毁，不再监听onFlush事件
                     return false;
                 }
                 if(strongSelf->isSocketBusy()){
-                    //套接字忙，那么停止继续写
+                    //socket忙，那么停止继续写,等待下一次onFlush事件，然后再读文件写socket
                     return true;
                 }
-                //继续写套接字
+                //socket还可写，继续写socket
             }
+
+            if(bClose && strongSelf) {
+                //最后一次flush事件，文件也发送完毕了，可以关闭socket了
+                strongSelf->shutdown(SockException(Err_shutdown,"read file eof"));
+            }
+            //不再监听onFlush事件
             return false;
         };
 
