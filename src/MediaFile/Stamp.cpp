@@ -49,18 +49,24 @@ void Stamp::revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_ou
 
     //相对时间戳
     dts_out = dts - _start_dts;
-    if(dts_out < _dts_inc && !_playback){
-        //本次相对时间戳竟然小于上次？
-        if(dts_out < 0 || _dts_inc - dts_out > 0xFFFF){
-            //时间戳回环,保证下次相对时间戳与本次相对合理增长
-            _start_dts = dts - _dts_inc;
-            //本次时间戳强制等于上次时间戳
-            dts_out = _dts_inc;
-        }else{
-            //时间戳变小了？,那么取上次时间戳
+    if(!_playback){
+        if(dts_out < _dts_inc){
+            //本次相对时间戳竟然小于上次？
+            if(dts_out < 0 || _dts_inc - dts_out > 0xFFFF){
+                //时间戳回环,保证下次相对时间戳与本次相对合理增长
+                _start_dts = dts - _dts_inc;
+                //本次时间戳强制等于上次时间戳
+                dts_out = _dts_inc;
+            }else{
+                //时间戳变小了？,那么取上次时间戳
+                dts_out = _dts_inc;
+            }
+        }else if(dts_out - _dts_inc > 1000){
+            //直播时,不允许时间戳跳跃性增加
             dts_out = _dts_inc;
         }
     }
+
 
     //保留这次相对时间戳，以便下次对比是否回环或乱序
     _dts_inc = dts_out;
