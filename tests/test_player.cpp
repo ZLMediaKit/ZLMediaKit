@@ -101,6 +101,7 @@ int main(int argc, char *argv[]) {
 
 #endif
 
+    static char *url = argv[1];
     //设置退出信号处理函数
     signal(SIGINT, [](int) { SDLDisplayerHelper::Instance().shutdown(); });
     //设置日志
@@ -140,7 +141,7 @@ int main(int argc, char *argv[]) {
                     decoder.set<H264Decoder>();
                 }
                 if(!displayer){
-                    displayer.set<YuvDisplayer>();
+                    displayer.set<YuvDisplayer>(nullptr,url);
                 }
                 if(!merger){
                     merger.set<FrameMerger>();
