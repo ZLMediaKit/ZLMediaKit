@@ -60,9 +60,10 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     }
 
     if (strcasecmp(track->_codec.data(), "h264") == 0) {
-        auto map = Parser::parseArgs(track->_fmtp," ","=");
+        //a=fmtp:96 packetization-mode=1;profile-level-id=42C01F;sprop-parameter-sets=Z0LAH9oBQBboQAAAAwBAAAAPI8YMqA==,aM48gA==
+        auto map = Parser::parseArgs(track->_fmtp,";","=");
         for(auto &pr : map){
-            trim(pr.second," ;");
+            trim(pr.second);
         }
         auto sps_pps = map["sprop-parameter-sets"];
         if(sps_pps.empty()){
@@ -77,9 +78,9 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
 
     if (strcasecmp(track->_codec.data(), "h265") == 0) {
         //a=fmtp:96 sprop-sps=QgEBAWAAAAMAsAAAAwAAAwBdoAKAgC0WNrkky/AIAAADAAgAAAMBlQg=; sprop-pps=RAHA8vA8kAA=
-        auto map = Parser::parseArgs(track->_fmtp," ","=");
+        auto map = Parser::parseArgs(track->_fmtp,";","=");
         for(auto &pr : map){
-            trim(pr.second," ;");
+            trim(pr.second);
         }
         auto vps = decodeBase64(map["sprop-vps"]);
         auto sps = decodeBase64(map["sprop-sps"]);
