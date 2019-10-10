@@ -270,6 +270,8 @@ extern const string kFileSecond;
 extern const string kFilePath;
 //mp4文件写缓存大小
 extern const string kFileBufSize;
+//mp4录制完成后是否进行二次关键帧索引写入头部
+extern const string kFastStart;
 //mp4文件是否重头循环读取
 extern const string kFileRepeat;
 } //namespace Record

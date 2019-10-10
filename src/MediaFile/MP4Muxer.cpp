@@ -33,11 +33,11 @@
 namespace mediakit{
 
 #if defined(_WIN32) || defined(_WIN64)
-#define fseek64 _fseeki64
-#define ftell64 _ftelli64
+    #define fseek64 _fseeki64
+    #define ftell64 _ftelli64
 #else
-#define fseek64 fseek
-#define ftell64 ftell
+    #define fseek64 fseek
+    #define ftell64 ftell
 #endif
 
 void MP4MuxerBase::init(int flags) {
@@ -236,7 +236,9 @@ MP4MuxerFile::MP4MuxerFile(const char *file) {
         fclose(fp);
     });
 
-    init(MOV_FLAG_FASTSTART);
+    GET_CONFIG(bool, mp4FastStart, Record::kFastStart);
+
+    init(mp4FastStart ? MOV_FLAG_FASTSTART : 0);
 }
 
 MP4MuxerFile::~MP4MuxerFile() {
@@ -253,15 +255,6 @@ int MP4MuxerFile::onRead(void *data, uint64_t bytes) {
 int MP4MuxerFile::onWrite(const void *data, uint64_t bytes) {
     return bytes == fwrite(data, 1, bytes, _file.get()) ? 0 : ferror(_file.get());
 }
-
-
-#if defined(_WIN32) || defined(_WIN64)
-    #define fseek64 _fseeki64
-    #define ftell64 _ftelli64
-#else
-    #define fseek64 fseek
-    #define ftell64 ftell
-#endif
 
 int MP4MuxerFile::onSeek(uint64_t offset) {
     return fseek64(_file.get(), offset, SEEK_SET);

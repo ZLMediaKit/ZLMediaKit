@@ -584,6 +584,7 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
         if (iRangeEnd == 0) {
             iRangeEnd = tFileStat.st_size - 1;
         }
+        auto httpHeader =  makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strFile.data()));
         const char *pcHttpResult = NULL;
         if (strRange.size() == 0) {
             //全部下载
@@ -592,9 +593,6 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
             //分节下载
             pcHttpResult = "206 Partial Content";
             fseek(pFilePtr.get(), iRangeStart, SEEK_SET);
-        }
-        auto httpHeader =  makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strFile.data()));
-        if (strRange.size() != 0) {
             //分节下载返回Content-Range头
             httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
         }
