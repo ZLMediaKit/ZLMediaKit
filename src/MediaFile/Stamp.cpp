@@ -28,54 +28,51 @@
 
 namespace mediakit {
 
-void Stamp::revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_out) {
-    if(!pts){
-        //没有播放时间戳,使其赋值为解码时间戳
+int64_t DeltaStamp::deltaStamp(int64_t stamp) {
+    if(!_last_stamp){
+        //第一次计算时间戳增量,时间戳增量为0
+        _last_stamp = stamp;
+        return 0;
+    }
+
+    int64_t ret = stamp - _last_stamp;
+    if(ret >= 0){
+        //时间戳增量为正，返回之
+        _last_stamp = stamp;
+        return ret;
+    }
+
+    //时间戳增量为负，说明时间戳回环了或回退了
+    _last_stamp = stamp;
+    return _playback ? ret : 0;
+}
+
+void DeltaStamp::setPlayBack(bool playback) {
+    _playback = playback;
+}
+
+void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out) {
+    if(!dts && !pts){
+        //没有时间戳，我们生成时间戳
+        pts = dts = _ticker.elapsedTime();
+    }else if(!pts){
+        //只是没有播放时间戳,使其赋值为解码时间戳
         pts = dts;
     }
+
     //pts和dts的差值
     int pts_dts_diff = pts - dts;
 
-    if(_first){
-        //记录第一次时间戳，后面好计算时间戳增量
-        _start_dts = dts;
-        _first = false;
-        _ticker.resetTime();
-    }
-    if (!dts) {
-        //没有解码时间戳，我们生成解码时间戳
-        dts = _ticker.elapsedTime();
-    }
-
     //相对时间戳
-    dts_out = dts - _start_dts;
-    if(!_playback){
-        if(dts_out < _dts_inc){
-            //本次相对时间戳竟然小于上次？
-            if(dts_out < 0 || _dts_inc - dts_out > 0xFFFF){
-                //时间戳回环,保证下次相对时间戳与本次相对合理增长
-                _start_dts = dts - _dts_inc;
-                //本次时间戳强制等于上次时间戳
-                dts_out = _dts_inc;
-            }else{
-                //时间戳变小了？,那么取上次时间戳
-                dts_out = _dts_inc;
-            }
-        }else if(dts_out - _dts_inc > 1000){
-            //直播时,不允许时间戳跳跃性增加
-            dts_out = _dts_inc;
-        }
-    }
-
-
-    //保留这次相对时间戳，以便下次对比是否回环或乱序
-    _dts_inc = dts_out;
+    _relativeStamp += deltaStamp(dts);
+    dts_out = _relativeStamp;
 
     //////////////以下是播放时间戳的计算//////////////////
     if(pts_dts_diff > 200 || pts_dts_diff < -200){
         //如果差值大于200毫秒，则认为由于回环导致时间戳错乱了
         pts_dts_diff = 0;
     }
+
     pts_out = dts_out + pts_dts_diff;
     if(pts_out < 0){
         //时间戳不能小于0
@@ -83,8 +80,13 @@ void Stamp::revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_ou
     }
 }
 
-void Stamp::setPlayBack(bool playback) {
-    _playback = playback;
+void Stamp::setRelativeStamp(int64_t relativeStamp) {
+    _relativeStamp = relativeStamp;
 }
+
+int64_t Stamp::getRelativeStamp() const {
+    return _relativeStamp;
+}
+
 
 }//namespace mediakit
