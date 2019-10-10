@@ -153,6 +153,15 @@ if(ENABLE_MP4RECORD)
 	endif(WIN32)
 endif()
 
+if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+    #查找jemalloc是否安装
+    find_package(JEMALLOC QUIET)
+    if(JEMALLOC_FOUND)
+        message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
+        include_directories(${JEMALLOC_INCLUDE_DIR})
+        list(APPEND  LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
+    endif()
+endif()
 
 if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
