@@ -40,6 +40,7 @@
 #include "Network/TcpClient.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
+#include "MediaFile/Stamp.h"
 
 using namespace std;
 using namespace toolkit;
@@ -114,7 +115,7 @@ private:
 
 	//发送SETUP命令
 	void sendSetup(unsigned int uiTrackIndex);
-	void sendPause(bool bPause,uint32_t ms);
+	void sendPause(bool bPause,uint32_t ms, bool range);
 	void sendOptions();
 	void sendDescribe();
 
@@ -148,12 +149,8 @@ private:
 	std::shared_ptr<Timer> _pPlayTimer;
 	std::shared_ptr<Timer> _pRtpTimer;
 
-    //播放进度控制,单位毫秒
-    uint32_t _iSeekTo = 0;
-
-    //单位毫秒
-	uint32_t _aiFistStamp[2] = {0,0};
-	uint32_t _aiNowStamp[2] = {0,0};
+	//时间戳
+	Stamp _stamp[2];
 
 	//rtcp相关
     RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标

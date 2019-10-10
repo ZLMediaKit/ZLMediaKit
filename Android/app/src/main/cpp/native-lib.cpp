@@ -174,6 +174,7 @@ JNI_API(jboolean,startDemo,jstring ini_dir){
             mINI::Instance()["http.sslport"] = 8443;
             mINI::Instance()["rtsp.port"] = 8554;
             mINI::Instance()["rtsp.sslport"] = 8332;
+            mINI::Instance()["general.enableVhost"] = 0;
             for(auto &pr : mINI::Instance()){
                 //替换hook默认地址
                 replace(pr.second,"https://127.0.0.1/","http://127.0.0.1:8080/");
