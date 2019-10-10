@@ -257,7 +257,7 @@ namespace Record {
 const string kAppName = RECORD_FIELD"appName";
 
 //每次流化MP4文件的时长,单位毫秒
-#define RECORD_SAMPLE_MS 100
+#define RECORD_SAMPLE_MS 500
 const string kSampleMS = RECORD_FIELD"sampleMS";
 
 //MP4文件录制大小,默认一个小时
