@@ -179,6 +179,9 @@ extern const string kEnableVhost;
 extern const string kUltraLowDelay;
 //拉流代理时是否添加静音音频
 extern const string kAddMuteAudio;
+//拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
+//如果不删除将会接着上一次的数据继续写(录制hls/mp4时会继续在前一个文件后面写)
+extern const string kResetWhenRePlay;
 }//namespace General
 
 

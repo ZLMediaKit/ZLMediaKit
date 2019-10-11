@@ -113,4 +113,18 @@ void MediaRecorder::addTrack(const Track::Ptr &track) {
 #endif //defined(ENABLE_MP4RECORD)
 }
 
+void MediaRecorder::resetTracks() {
+#if defined(ENABLE_HLS)
+    if (_hlsRecorder) {
+        _hlsRecorder->resetTracks();
+    }
+#endif //defined(ENABLE_HLS)
+
+#if defined(ENABLE_MP4RECORD)
+    if (_mp4Recorder) {
+        _mp4Recorder->resetTracks();
+    }
+#endif //defined(ENABLE_MP4RECORD)
+}
+
 } /* namespace mediakit */

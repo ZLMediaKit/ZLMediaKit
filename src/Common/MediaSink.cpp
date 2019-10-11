@@ -32,7 +32,7 @@ namespace mediakit{
 
 void MediaSink::addTrack(const Track::Ptr &track_in) {
     lock_guard<recursive_mutex> lck(_mtx);
-//克隆Track，只拷贝其数据，不拷贝其数据转发关系
+    //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
 
     weak_ptr<MediaSink> weakSelf = shared_from_this();
@@ -58,6 +58,14 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
         _trackReadyCallback[codec_id] = lam;
         _ticker.resetTime();
     }
+}
+
+void MediaSink::resetTracks() {
+    _anyTrackUnReady = true;
+    _allTrackReady = false;
+    _track_map.clear();
+    _trackReadyCallback.clear();
+    _ticker.resetTime();
 }
 
 void MediaSink::inputFrame(const Frame::Ptr &frame) {

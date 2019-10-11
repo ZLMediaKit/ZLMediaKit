@@ -81,8 +81,18 @@ void HlsMaker::makeIndexFile(bool eof) {
 
 
 void HlsMaker::inputData(void *data, uint32_t len, uint32_t timestamp) {
-    addNewFile(timestamp);
-    onWriteFile((char *) data, len);
+    //分片数据中断结束
+    if (data && len) {
+        addNewFile(timestamp);
+        onWriteFile((char *) data, len);
+    }
+    else {
+        _noData = true;
+        _stampInc = _ticker.elapsedTime();
+        _seg_dur_list.push_back(std::make_tuple(_stampInc, _last_file_name));
+        delOldFile();
+        makeIndexFile();
+    }
 }
 
 void HlsMaker::delOldFile() {
@@ -102,6 +112,12 @@ void HlsMaker::delOldFile() {
 }
 
 void HlsMaker::addNewFile(uint32_t) {
+    //上次分片数据中断结束，重置时间避免中途的等待
+    if (_noData) {
+        _ticker.resetTime();
+        _last_file_name = onOpenFile(_file_index++);
+        _noData = false;
+    }
     _stampInc = _ticker.elapsedTime();
     if (_file_index == 0 || _stampInc >= _seg_duration * 1000) {
         _ticker.resetTime();
