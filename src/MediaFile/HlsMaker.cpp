@@ -103,7 +103,7 @@ void HlsMaker::delOldFile() {
 
 void HlsMaker::addNewFile(uint32_t) {
     _stampInc = _ticker.elapsedTime();
-    if (_stampInc >= _seg_duration * 1000) {
+    if (_file_index == 0 || _stampInc >= _seg_duration * 1000) {
         _ticker.resetTime();
         auto file_name = onOpenFile(_file_index);
         if (_file_index++ > 0) {
