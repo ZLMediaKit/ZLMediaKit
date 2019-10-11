@@ -48,17 +48,22 @@ public:
 	virtual ~MediaRecorder();
 
 	/**
-     * 输入frame
-     * @param frame
-     */
-	void inputFrame(const Frame::Ptr &frame) override ;
+       * 输入frame
+       * @param frame
+       */
+	void inputFrame(const Frame::Ptr &frame) override;
 
 	/**
-     * 添加track，内部会调用Track的clone方法
-     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
-     * @param track
-     */
+       * 添加track，内部会调用Track的clone方法
+       * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
+       * @param track
+       */
 	void addTrack(const Track::Ptr & track) override;
+
+      /**
+       * 重置track
+       */
+      void resetTracks() override;
 private:
 #if defined(ENABLE_HLS)
 	std::shared_ptr<HlsRecorder> _hlsRecorder;

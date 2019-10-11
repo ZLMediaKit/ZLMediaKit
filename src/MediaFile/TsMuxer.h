@@ -43,10 +43,10 @@ public:
     TsMuxer();
     virtual ~TsMuxer();
     void addTrack(const Track::Ptr &track) override;
-    void inputFrame(const Frame::Ptr &frame)  override;
+    void resetTracks() override;
+    void inputFrame(const Frame::Ptr &frame) override;
 protected:
     virtual void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) = 0;
-    void resetTracks();
 private:
     void init();
     void uninit();
