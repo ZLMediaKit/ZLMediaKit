@@ -61,7 +61,8 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
 }
 
 void MediaSink::resetTracks() {
-    _anyTrackUnReady = true;
+    lock_guard<recursive_mutex> lck(_mtx);
+    _anyTrackUnReady = false;
     _allTrackReady = false;
     _track_map.clear();
     _trackReadyCallback.clear();
