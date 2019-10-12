@@ -107,7 +107,7 @@ private:
     int getTrackIndexByInterleaved(int interleaved) const;
 	int getTrackIndexByTrackType(TrackType trackType) const;
 
-	void play(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType);
+	void play(bool isSSL,const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType);
 	void handleResSETUP(const Parser &parser, unsigned int uiTrackIndex);
 	void handleResDESCRIBE(const Parser &parser);
 	bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
