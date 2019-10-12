@@ -51,12 +51,9 @@ void DeltaStamp::setPlayBack(bool playback) {
     _playback = playback;
 }
 
-void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out) {
-    if(!dts && !pts){
-        //没有时间戳，我们生成时间戳
-        pts = dts = _ticker.elapsedTime();
-    }else if(!pts){
-        //只是没有播放时间戳,使其赋值为解码时间戳
+void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp) {
+    if(!pts){
+        //没有播放时间戳,使其赋值为解码时间戳
         pts = dts;
     }
 
@@ -64,7 +61,7 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out)
     int pts_dts_diff = pts - dts;
 
     //相对时间戳
-    _relativeStamp += deltaStamp(dts);
+    _relativeStamp += deltaStamp(modifyStamp ? _ticker.elapsedTime() : dts);
     dts_out = _relativeStamp;
 
     //////////////以下是播放时间戳的计算//////////////////
