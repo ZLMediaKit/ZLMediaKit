@@ -60,20 +60,20 @@ protected:
      * @param index
      * @return
      */
-    virtual string onOpenFile(int index) = 0;
+    virtual string onOpenSegment(int index) = 0;
 
     /**
      * 删除ts切片文件回调
      * @param index
      */
-    virtual void onDelFile(int index) = 0;
+    virtual void onDelSegment(int index) = 0;
 
     /**
      * 写ts切片文件回调
      * @param data
      * @param len
      */
-    virtual void onWriteFile(const char *data, int len) = 0;
+    virtual void onWriteSegment(const char *data, int len) = 0;
 
     /**
      * 写m3u8文件回调
@@ -83,20 +83,33 @@ protected:
     virtual void onWriteHls(const char *data, int len) = 0;
 
     /**
+     * 关闭上个ts切片并且写入m3u8索引
+     * @param eof
+     */
+    void flushLastSegment(bool eof = false);
+private:
+    /**
      * 生成m3u8文件
      * @param eof true代表点播
      */
     void makeIndexFile(bool eof = false);
-    void delOldFile();
-    void addNewFile(uint32_t timestamp);
-protected:
-    uint32_t _seg_number = 0;
+
+    /**
+     * 删除旧的ts切片
+     */
+    void delOldSegment();
+
+    /**
+     * 添加新的ts切片
+     * @param timestamp
+     */
+    void addNewSegment(uint32_t timestamp);
 private:
-    bool _noData = false;
-    int _stampInc = 0;
+    uint32_t _seg_number = 0;
     float _seg_duration = 0;
     uint64_t _file_index = 0;
     Ticker _ticker;
+    Ticker _ticker_last_data;
     string _last_file_name;
     std::deque<tuple<int,string> > _seg_dur_list;
 };
