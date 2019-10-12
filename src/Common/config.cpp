@@ -177,7 +177,7 @@ onceToken token([](){
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
 	mINI::Instance()[kDirectProxy] = 1;
-	mINI::Instance()[kModifyStamp] = true;
+	mINI::Instance()[kModifyStamp] = false;
 },nullptr);
 
 } //namespace Rtsp
