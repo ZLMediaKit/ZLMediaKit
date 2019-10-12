@@ -932,7 +932,7 @@ void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
     GET_CONFIG(bool,modify_stamp,Rtsp::kModifyStamp);
     if(modify_stamp){
         int64_t dts_out;
-        _stamp[trackidx].revise(0, 0, dts_out, dts_out);
+        _stamp[trackidx].revise(0, 0, dts_out, dts_out, true);
         rtppt->timeStamp = dts_out;
     }
 	_pushSrc->onWrite(rtppt, false);
