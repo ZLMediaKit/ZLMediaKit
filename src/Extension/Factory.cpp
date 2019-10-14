@@ -41,8 +41,8 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
             aac_cfg_str = FindField(track->_fmtp.data(), "config=", ";");
         }
         if (aac_cfg_str.empty()) {
-            //延后获取adts头
-            return std::make_shared<AACTrack>();
+            //如果sdp中获取不到aac config信息，那么在rtp也无法获取，那么忽略该Track
+            return nullptr;
         }
         string aac_cfg;
 
