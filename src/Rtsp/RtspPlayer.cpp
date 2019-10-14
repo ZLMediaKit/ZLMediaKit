@@ -123,7 +123,7 @@ void RtspPlayer::play(bool isSSL,const string &strUrl, const string &strUser, co
 
 	auto ip = FindField(strUrl.data(), "://", "/");
 	if (!ip.size()) {
-		ip = FindField(strUrl.data(), "://", NULL);
+		ip = split(FindField(strUrl.data(), "://", NULL),"?")[0];
 	}
 	auto port = atoi(FindField(ip.data(), ":", NULL).data());
 	if (port <= 0) {
