@@ -67,8 +67,9 @@ public:
      * @param pts 输入pts，如果为0则等于dts
      * @param dts_out 输出dts
      * @param pts_out 输出pts
+     * @param modifyStamp 是否用系统时间戳覆盖
      */
-    void revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out);
+    void revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
 
     /**
      * 再设置相对时间戳，用于seek用

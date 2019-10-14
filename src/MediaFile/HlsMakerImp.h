@@ -44,9 +44,9 @@ public:
                 uint32_t seg_number = 3);
     virtual ~HlsMakerImp();
 protected:
-    string onOpenFile(int index) override ;
-    void onDelFile(int index) override;
-    void onWriteFile(const char *data, int len) override;
+    string onOpenSegment(int index) override ;
+    void onDelSegment(int index) override;
+    void onWriteSegment(const char *data, int len) override;
     void onWriteHls(const char *data, int len) override;
 private:
     string fullPath(int index);
@@ -58,6 +58,8 @@ private:
     string _path_hls;
     string _params;
     int _buf_size;
+    //是否为点播
+    bool _is_vod;
 };
 
 }//namespace mediakit
