@@ -63,7 +63,7 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
         }else{
             m3u8FilePath = strApp + "/" + strId + "/hls.m3u8";
         }
-        m3u8FilePath = File::absolutePath(m3u8FilePath,false,hlsPath);
+        m3u8FilePath = File::absolutePath(m3u8FilePath,hlsPath);
         _hlsRecorder.reset(new HlsRecorder(m3u8FilePath,params,hlsBufSize, hlsDuration, hlsNum));
     }
 #endif //defined(ENABLE_HLS)
@@ -79,7 +79,7 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
         } else {
             mp4FilePath = recordAppName + "/" + strApp + "/"  + strId + "/";
         }
-        mp4FilePath = File::absolutePath(mp4FilePath,false,recordPath);
+        mp4FilePath = File::absolutePath(mp4FilePath,recordPath);
         _mp4Recorder.reset(new MP4Recorder(mp4FilePath,strVhost,strApp,strId));
     }
 #endif //defined(ENABLE_MP4RECORD)

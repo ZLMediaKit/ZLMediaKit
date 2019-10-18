@@ -504,7 +504,7 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
     GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
     GET_CONFIG(bool,enableVhost,General::kEnableVhost);
     GET_CONFIG(string,rootPath,Http::kRootPath);
-    auto strFile = File::absolutePath(enableVhost ? _mediaInfo._vhost + _parser.Url() : _parser.Url(), false, rootPath);
+    auto strFile = File::absolutePath(enableVhost ? _mediaInfo._vhost + _parser.Url() : _parser.Url(),rootPath);
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 
     do{
