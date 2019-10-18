@@ -375,10 +375,7 @@ static bool checkHls(BroadcastHttpAccessArgs){
     return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,args_copy,mediaAuthInvoker,sender);
 }
 
-void HttpSession::canAccessPath(const string &path_in,bool is_dir,const function<void(const string &errMsg,const HttpServerCookie::Ptr &cookie)> &callback_in){
-    auto path = path_in;
-    replace(const_cast<string &>(path),"//","/");
-
+void HttpSession::canAccessPath(const string &path,bool is_dir,const function<void(const string &errMsg,const HttpServerCookie::Ptr &cookie)> &callback_in){
     auto callback = [callback_in,this](const string &errMsg,const HttpServerCookie::Ptr &cookie){
         try {
             callback_in(errMsg,cookie);
@@ -507,7 +504,7 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
     GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
     GET_CONFIG(bool,enableVhost,General::kEnableVhost);
     GET_CONFIG(string,rootPath,Http::kRootPath);
-    string strFile = enableVhost ?  rootPath + "/" + _mediaInfo._vhost + _parser.Url() :rootPath + _parser.Url();
+    auto strFile = File::absolutePath(enableVhost ? _mediaInfo._vhost + _parser.Url() : _parser.Url(), false, rootPath);
     bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
 
     do{
