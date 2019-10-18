@@ -64,7 +64,7 @@ void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_
 
     char cmd[1024] = {0};
     snprintf(cmd, sizeof(cmd),ffmpeg_cmd.data(),ffmpeg_bin.data(),src_url.data(),dst_url.data());
-    _process.run(cmd,File::absolutePath("",false,ffmpeg_log));
+    _process.run(cmd,File::absolutePath("",ffmpeg_log));
     InfoL << cmd;
 
     if(_media_info._host == "127.0.0.1"){
