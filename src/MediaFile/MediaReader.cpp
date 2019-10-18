@@ -48,7 +48,7 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
         }else{
             strFileName = strApp + "/" + strId;
         }
-		strFileName = File::absolutePath(strFileName,true,recordPath);
+		strFileName = File::absolutePath(strFileName, false,recordPath);
     }
 
 	_hMP4File = MP4Read(strFileName.data());
