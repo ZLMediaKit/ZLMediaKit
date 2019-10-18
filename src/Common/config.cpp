@@ -122,7 +122,7 @@ const string kMaxReqCount = HTTP_FIELD"maxReqCount";
 const string kCharSet = HTTP_FIELD"charSet";
 
 //http 服务器根目录
-#define HTTP_ROOT_PATH (exeDir() + "httpRoot")
+#define HTTP_ROOT_PATH "./httpRoot"
 const string kRootPath = HTTP_FIELD"rootPath";
 
 //http 404错误提示内容
