@@ -169,20 +169,31 @@ void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 }
 
 void HttpSession::onError(const SockException& err) {
+    if(_is_flv_stream){
+        //flv播放器
+        WarnP(this) << "播放器("
+                    << _mediaInfo._vhost << "/"
+                    << _mediaInfo._app << "/"
+                    << _mediaInfo._streamid
+                    << ")断开:" << err.what();
+
+        GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
+        if(_ui64TotalBytes > iFlowThreshold * 1024){
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
+                                               _mediaInfo,
+                                               _ui64TotalBytes,
+                                               _ticker.createdTime()/1000,
+                                               true,
+                                               *this);
+        }
+        return;
+    }
+
+    //http客户端
     if(_ticker.createdTime() < 10 * 1000){
         TraceP(this) << err.what();
     }else{
         WarnP(this) << err.what();
-    }
-
-    GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
-    if(_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
-										   _mediaInfo,
-										   _ui64TotalBytes,
-										   _ticker.createdTime()/1000,
-										   true,
-										   *this);
     }
 }
 
@@ -291,6 +302,7 @@ bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
 
             try{
                 start(getPoller(),rtmp_src);
+                _is_flv_stream = true;
             }catch (std::exception &ex){
                 //该rtmp源不存在
                 shutdown(SockException(Err_shutdown,"rtmp mediasource released"));
