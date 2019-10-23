@@ -160,6 +160,7 @@ private:
     //处理content数据的callback
     function<bool (const char *data,uint64_t len) > _contentCallBack;
 	bool _flv_over_websocket = false;
+	bool _is_flv_stream = false;
 };
 
 
