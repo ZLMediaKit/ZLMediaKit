@@ -34,9 +34,8 @@
 #include "Util/File.h"
 #include "Util/logger.h"
 #include "Util/uv_errno.h"
-#include "Util/TimeTicker.h"
+#include "Thread/WorkThreadPool.h"
 #include "Process.h"
-#include "Poller/Timer.h"
 using namespace toolkit;
 
 void Process::run(const string &cmd, const string &log_file_tmp) {
@@ -46,12 +45,11 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         throw std::runtime_error(StrPrinter << "fork child process falied,err:" << get_uv_errmsg());
     }
     if (_pid == 0) {
-        //子进程
-
         //子进程关闭core文件生成
         struct rlimit rlim = {0,0};
         setrlimit(RLIMIT_CORE, &rlim);
 
+        //在启动子进程时，暂时禁用SIGINT、SIGTERM信号
         // ignore the SIGINT and SIGTERM
         signal(SIGINT, SIG_IGN);
         signal(SIGTERM, SIG_IGN);
@@ -109,24 +107,73 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
     InfoL << "start child proces " << _pid;
 }
 
-void Process::kill(int max_delay) {
+
+/**
+ * 获取进程是否存活状态
+ * @param pid 进程号
+ * @param exit_code_ptr 进程返回代码
+ * @param block 是否阻塞等待
+ * @return 进程是否还在运行
+ */
+static bool s_wait(pid_t pid,int *exit_code_ptr,bool block) {
+    if (pid <= 0) {
+        return false;
+    }
+    int status = 0;
+    pid_t p = waitpid(pid, &status, block ? 0 : WNOHANG);
+    int exit_code = (status & 0xFF00) >> 8;
+    if(exit_code_ptr){
+        *exit_code_ptr = (status & 0xFF00) >> 8;
+    }
+    if (p < 0) {
+        WarnL << "waitpid failed, pid=" << pid << ", err=" << get_uv_errmsg();
+        return false;
+    }
+    if (p > 0) {
+        InfoL << "process terminated, pid=" << pid << ", exit code=" << exit_code;
+        return false;
+    }
+    //WarnL << "process is running, pid=" << _pid;
+    return true;
+}
+
+static void s_kill(pid_t pid,int max_delay,bool force){
+    if (pid <= 0) {
+        //pid无效
+        return;
+    }
+
+    if (::kill(pid, force ? SIGKILL : SIGTERM) == -1) {
+        //进程可能已经退出了
+        WarnL << "kill process " << pid << " failed:" << get_uv_errmsg();
+        return;
+    }
+
+    if(force){
+        //发送SIGKILL信号后，阻塞等待退出
+        s_wait(pid, NULL, true);
+        DebugL << "force kill " << pid << " success!";
+        return;
+    }
+
+    //发送SIGTERM信号后，2秒后检查子进程是否已经退出
+    WorkThreadPool::Instance().getPoller()->doDelayTask(max_delay,[pid](){
+        if (!s_wait(pid, nullptr, false)) {
+            //进程已经退出了
+            return 0;
+        }
+        //进程还在运行
+        WarnL << "process still working,force kill it:" << pid;
+        s_kill(pid,0, true);
+        return 0;
+    });
+}
+
+void Process::kill(int max_delay,bool force) {
     if (_pid <= 0) {
         return;
     }
-    if (::kill(_pid, SIGTERM) == -1) {
-        WarnL << "kill process " << _pid << " falied,err:" << get_uv_errmsg();
-    } else {
-        //等待子进程退出
-        auto pid = _pid;
-        EventPollerPool::Instance().getPoller()->doDelayTask(max_delay,[pid](){
-            //最多等待２秒，２秒后强制杀掉程序
-            if (waitpid(pid, NULL, WNOHANG) == 0) {
-                ::kill(pid, SIGKILL);
-                WarnL << "force kill process " << pid;
-            }
-            return 0;
-        });
-    }
+    s_kill(_pid,max_delay,force);
     _pid = -1;
 }
 
@@ -134,28 +181,10 @@ Process::~Process() {
     kill(2000);
 }
 
-Process::Process() {
-}
+Process::Process() {}
 
 bool Process::wait(bool block) {
-    if (_pid <= 0) {
-        return false;
-    }
-    int status = 0;
-    pid_t p = waitpid(_pid, &status, block ? 0 : WNOHANG);
-
-    _exit_code = (status & 0xFF00) >> 8;
-    if (p < 0) {
-        WarnL << "waitpid failed, pid=" << _pid << ", err=" << get_uv_errmsg();
-        return false;
-    }
-    if (p > 0) {
-        InfoL << "process terminated, pid=" << _pid << ", exit code=" << _exit_code;
-        return false;
-    }
-
-    //WarnL << "process is running, pid=" << _pid;
-    return true;
+    return s_wait(_pid,&_exit_code,block);
 }
 
 int Process::exit_code() {
