@@ -63,6 +63,11 @@ public:
 			 const string &strApp,
 			 const string &strStreamId);
 	virtual ~MP4Recorder();
+
+	/**
+	 * 重置所有Track
+	 */
+	void resetTracks() override;
 private:
 	/**
      * 某Track输出frame，在onAllTrackReady触发后才会调用此方法

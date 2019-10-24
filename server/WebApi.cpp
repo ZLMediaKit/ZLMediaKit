@@ -45,6 +45,7 @@
 #include "Util/MD5.h"
 #include "WebApi.h"
 #include "WebHook.h"
+#include "Thread/WorkThreadPool.h"
 
 #if !defined(_WIN32)
 #include "FFmpegSource.h"
@@ -271,6 +272,23 @@ void installWebApi() {
             Value val;
             auto vec = EventPollerPool::Instance().getExecutorLoad();
             int i = API::Success;
+            for (auto load : vec) {
+                Value obj(objectValue);
+                obj["load"] = load;
+                obj["delay"] = vecDelay[i++];
+                val["data"].append(obj);
+            }
+            invoker("200 OK", headerOut, val.toStyledString());
+        });
+    });
+
+    //获取后台工作线程负载
+    //测试url http://127.0.0.1/index/api/getWorkThreadsLoad
+    API_REGIST_INVOKER(api, getWorkThreadsLoad, {
+        WorkThreadPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
+            Value val;
+            auto vec = WorkThreadPool::Instance().getExecutorLoad();
+            int i = 0;
             for (auto load : vec) {
                 Value obj(objectValue);
                 obj["load"] = load;

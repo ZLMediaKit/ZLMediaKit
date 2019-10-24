@@ -56,13 +56,15 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
 #if defined(ENABLE_HLS)
     if(enableHls) {
         string m3u8FilePath;
+        string params;
         if(enableVhost){
-            m3u8FilePath = hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
-            _hlsRecorder.reset(new HlsRecorder(m3u8FilePath,string(VHOST_KEY) + "=" + strVhost ,hlsBufSize, hlsDuration, hlsNum));
+            m3u8FilePath = strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
+            params = string(VHOST_KEY) + "=" + strVhost;
         }else{
-            m3u8FilePath = hlsPath + "/" + strApp + "/" + strId + "/hls.m3u8";
-            _hlsRecorder.reset(new HlsRecorder(m3u8FilePath,"",hlsBufSize, hlsDuration, hlsNum));
+            m3u8FilePath = strApp + "/" + strId + "/hls.m3u8";
         }
+        m3u8FilePath = File::absolutePath(m3u8FilePath,hlsPath);
+        _hlsRecorder.reset(new HlsRecorder(m3u8FilePath,params,hlsBufSize, hlsDuration, hlsNum));
     }
 #endif //defined(ENABLE_HLS)
 
@@ -73,10 +75,11 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
     if(enableMp4){
         string mp4FilePath;
         if(enableVhost){
-            mp4FilePath = recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
+            mp4FilePath = strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
         } else {
-            mp4FilePath = recordPath + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
+            mp4FilePath = recordAppName + "/" + strApp + "/"  + strId + "/";
         }
+        mp4FilePath = File::absolutePath(mp4FilePath,recordPath);
         _mp4Recorder.reset(new MP4Recorder(mp4FilePath,strVhost,strApp,strId));
     }
 #endif //defined(ENABLE_MP4RECORD)

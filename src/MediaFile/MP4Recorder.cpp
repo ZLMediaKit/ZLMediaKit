@@ -153,6 +153,14 @@ void MP4Recorder::onTrackReady(const Track::Ptr & track){
 	}
 }
 
+void MP4Recorder::resetTracks() {
+	closeFile();
+	_tracks.clear();
+	_haveVideo = false;
+	_createFileTicker.resetTime();
+	MediaSink::resetTracks();
+}
+
 } /* namespace mediakit */
 
 
