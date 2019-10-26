@@ -242,8 +242,9 @@ void HttpClient::onRecvContent(const char *data, uint64_t len) {
 
 void HttpClient::onFlush() {
     _aliveTicker.resetTime();
+    GET_CONFIG(uint32_t,sendBufSize,Http::kSendBufSize);
     while (_body && _body->remainSize() && !isSocketBusy()) {
-        auto buffer = _body->readData();
+        auto buffer = _body->readData(sendBufSize);
         if (!buffer) {
             //数据发送结束或读取数据异常
             break;

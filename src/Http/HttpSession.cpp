@@ -44,7 +44,7 @@
 #include "Util/base64.h"
 #include "Util/SHA1.h"
 #include "Rtmp/utils.h"
-#include "FileReader.h"
+#include "HttpBody.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -618,10 +618,10 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
         }
         //回复Content部分
         GET_CONFIG(uint32_t,sendBufSize,Http::kSendBufSize);
-        FileReader::Ptr fileReader = std::make_shared<FileReader>(pFilePtr,iRangeStart,iRangeEnd - iRangeStart + 1);
+        HttpBody::Ptr fileBody = std::make_shared<HttpFileBody>(pFilePtr,iRangeStart,iRangeEnd - iRangeStart + 1);
         weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
 
-        auto onFlush = [fileReader,bClose,weakSelf]() {
+        auto onFlush = [fileBody,bClose,weakSelf]() {
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 //本对象已经销毁
@@ -631,7 +631,7 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
                 //更新超时计时器
                 strongSelf->_ticker.resetTime();
                 //读取文件
-                auto sendBuf = fileReader->read(sendBufSize);
+                auto sendBuf = fileBody->readData(sendBufSize);
                 if (!sendBuf) {
                     //文件读完
                     if(strongSelf->isSocketBusy()){
