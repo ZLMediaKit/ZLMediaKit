@@ -34,7 +34,7 @@
 #endif
 
 #ifndef _WIN32
-//#define ENABLE_MMAP
+#define ENABLE_MMAP
 #endif
 
 namespace mediakit {
@@ -74,7 +74,7 @@ HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, uint64_t offset, uin
             WarnL << "mmap failed:" << get_uv_errmsg(false);
             break;
         }
-        _map_addr.reset(ptr,[max_size](char *ptr){
+        _map_addr.reset(ptr,[max_size,fp](char *ptr){
             munmap(ptr,max_size);
         });
     } while (false);
