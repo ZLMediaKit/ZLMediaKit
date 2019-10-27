@@ -503,11 +503,6 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
 		return;
 	}
 
-    //再看看是否为http-flv直播请求
-	if(checkLiveFlvStream()){
-		//若是，return！
-		return;
-	}
 
 	//事件未被拦截，则认为是http下载请求
 	auto fullUrl = string(HTTP_SCHEMA) + "://" + _parser["Host"] + _parser.FullUrl();
@@ -557,6 +552,11 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//访问的是文件
 	struct stat tFileStat;
 	if (0 != stat(strFile.data(), &tFileStat)) {
+        //再看看是否为http-flv直播请求
+        if(checkLiveFlvStream()){
+            //若是，return！
+            return;
+        }
 		//文件不存在
 		sendNotFound(bClose);
         throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on file");
