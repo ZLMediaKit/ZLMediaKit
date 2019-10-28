@@ -616,12 +616,7 @@ void installWebApi() {
     //测试url http://127.0.0.1/index/api/downloadBin
     API_REGIST_INVOKER(api,downloadBin,{
         CHECK_SECRET();
-        auto body = std::make_shared<HttpFileBody>(exePath());
-        if(!body->remainSize()){
-            invoker("404 Not Found", HttpSession::KeyValue(), "");
-            return;
-        }
-        invoker("200 OK", HttpSession::KeyValue(), body);
+        invoker.responseFile(headerIn,StrCaseMap(),exePath());
     });
 
     ////////////以下是注册的Hook API////////////

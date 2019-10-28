@@ -59,47 +59,50 @@ string dateStr() {
 	strftime(buf, sizeof buf, "%a, %b %d %Y %H:%M:%S GMT", gmtime(&tt));
 	return buf;
 }
-static const char*
-get_mime_type(const char* name) {
-	const char* dot;
-	dot = strrchr(name, '.');
-	static HttpSession::KeyValue mapType;
-	static onceToken token([&]() {
-		mapType.emplace(".html","text/html");
-		mapType.emplace(".htm","text/html");
-		mapType.emplace(".mp4","video/mp4");
-		mapType.emplace(".m3u8","application/vnd.apple.mpegurl");
-		mapType.emplace(".jpg","image/jpeg");
-		mapType.emplace(".jpeg","image/jpeg");
-		mapType.emplace(".gif","image/gif");
-		mapType.emplace(".png","image/png");
-		mapType.emplace(".ico","image/x-icon");
-		mapType.emplace(".css","text/css");
-		mapType.emplace(".js","application/javascript");
-		mapType.emplace(".au","audio/basic");
-		mapType.emplace(".wav","audio/wav");
-		mapType.emplace(".avi","video/x-msvideo");
-		mapType.emplace(".mov","video/quicktime");
-		mapType.emplace(".qt","video/quicktime");
-		mapType.emplace(".mpeg","video/mpeg");
-		mapType.emplace(".mpe","video/mpeg");
-		mapType.emplace(".vrml","model/vrml");
-		mapType.emplace(".wrl","model/vrml");
-		mapType.emplace(".midi","audio/midi");
-		mapType.emplace(".mid","audio/midi");
-		mapType.emplace(".mp3","audio/mpeg");
-		mapType.emplace(".ogg","application/ogg");
-		mapType.emplace(".pac","application/x-ns-proxy-autoconfig");
-        mapType.emplace(".flv","video/x-flv");
-	}, nullptr);
-	if(!dot){
-		return "text/plain";
-	}
-	auto it = mapType.find(dot);
-	if (it == mapType.end()) {
-		return "text/plain";
-	}
-	return it->second.data();
+
+const char *HttpSession::get_mime_type(const char *name) {
+    const char *dot;
+    dot = strrchr(name, '.');
+    static HttpSession::KeyValue mapType;
+    static onceToken token([&]() {
+        mapType.emplace(".html", "text/html");
+        mapType.emplace(".htm", "text/html");
+        mapType.emplace(".mp4", "video/mp4");
+        mapType.emplace(".mkv", "video/x-matroska");
+        mapType.emplace(".rmvb", "application/vnd.rn-realmedia");
+        mapType.emplace(".rm", "application/vnd.rn-realmedia");
+        mapType.emplace(".m3u8", "application/vnd.apple.mpegurl");
+        mapType.emplace(".jpg", "image/jpeg");
+        mapType.emplace(".jpeg", "image/jpeg");
+        mapType.emplace(".gif", "image/gif");
+        mapType.emplace(".png", "image/png");
+        mapType.emplace(".ico", "image/x-icon");
+        mapType.emplace(".css", "text/css");
+        mapType.emplace(".js", "application/javascript");
+        mapType.emplace(".au", "audio/basic");
+        mapType.emplace(".wav", "audio/wav");
+        mapType.emplace(".avi", "video/x-msvideo");
+        mapType.emplace(".mov", "video/quicktime");
+        mapType.emplace(".qt", "video/quicktime");
+        mapType.emplace(".mpeg", "video/mpeg");
+        mapType.emplace(".mpe", "video/mpeg");
+        mapType.emplace(".vrml", "model/vrml");
+        mapType.emplace(".wrl", "model/vrml");
+        mapType.emplace(".midi", "audio/midi");
+        mapType.emplace(".mid", "audio/midi");
+        mapType.emplace(".mp3", "audio/mpeg");
+        mapType.emplace(".ogg", "application/ogg");
+        mapType.emplace(".pac", "application/x-ns-proxy-autoconfig");
+        mapType.emplace(".flv", "video/x-flv");
+    }, nullptr);
+    if (!dot) {
+        return "text/plain";
+    }
+    auto it = mapType.find(dot);
+    if (it == mapType.end()) {
+        return "text/plain";
+    }
+    return it->second.data();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -130,6 +133,54 @@ HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::Htt
         }
         lambda(codeOut,headerOut,str);
     };
+}
+
+void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
+                                          const StrCaseMap &responseHeader,
+                                          const string &filePath) const {
+    try {
+        struct stat tFileStat;
+        if (filePath.empty() || 0 != stat(filePath.data(), &tFileStat)) {
+            //文件不存在
+            throw std::runtime_error("file not exited");
+        }
+
+        auto &strRange = const_cast<StrCaseMap &>(requestHeader)["Range"];
+        int64_t iRangeStart = 0, iRangeEnd = 0;
+        iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
+        iRangeEnd = atoll(FindField(strRange.data(), "-", "\r\n").data());
+        if (iRangeEnd == 0) {
+            iRangeEnd = tFileStat.st_size - 1;
+        }
+        const char *pcHttpResult = NULL;
+        StrCaseMap &httpHeader = const_cast<StrCaseMap&>(responseHeader);
+        if (strRange.size() == 0) {
+            //全部下载
+            pcHttpResult = "200 OK";
+        } else {
+            //分节下载
+            pcHttpResult = "206 Partial Content";
+            //分节下载返回Content-Range头
+            httpHeader.emplace("Content-Range", StrPrinter << "bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size << endl);
+        }
+
+        std::shared_ptr<FILE> fp(fopen(filePath.data(), "rb"), [](FILE *fp) {
+            if (fp) {
+                fclose(fp);
+            }
+        });
+        if (!fp) {
+            //打开文件失败
+            throw std::runtime_error(StrPrinter << "open file not failed:" << get_uv_errmsg(false));
+        }
+
+        //回复文件
+        HttpBody::Ptr fileBody = std::make_shared<HttpFileBody>(fp, iRangeStart, iRangeEnd - iRangeStart + 1);
+        (*this)(pcHttpResult, httpHeader, fileBody);
+
+    }catch (std::exception &ex){
+        (*this)("404 Not Found", responseHeader, ex.what());
+    }
 }
 
 HttpResponseInvokerImp::operator bool(){
@@ -163,7 +214,7 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
 	string cmd = _parser.Method();
 	auto it = g_mapCmdIndex.find(cmd);
 	if (it == g_mapCmdIndex.end()) {
-		sendResponse("403 Forbidden", makeHttpHeader(true), "");
+		sendResponse("403 Forbidden", true);
         shutdown(SockException(Err_shutdown,StrPrinter << "403 Forbidden:" << cmd));
         return 0;
 	}
@@ -248,7 +299,7 @@ bool HttpSession::checkWebSocket(){
 	}
 	auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
-	KeyValue headerOut = makeHttpHeader();
+	KeyValue headerOut;
 	headerOut["Upgrade"] = "websocket";
 	headerOut["Connection"] = "Upgrade";
 	headerOut["Sec-WebSocket-Accept"] = Sec_WebSocket_Accept;
@@ -258,7 +309,7 @@ bool HttpSession::checkWebSocket(){
 
     auto res_cb = [this,headerOut](){
         _flv_over_websocket = true;
-        sendResponse("101 Switching Protocols",headerOut,"");
+        sendResponse("101 Switching Protocols",false,nullptr,headerOut,nullptr,false);
     };
 
     //判断是否为websocket-flv
@@ -269,11 +320,11 @@ bool HttpSession::checkWebSocket(){
 
     //如果checkLiveFlvStream返回false,则代表不是websocket-flv，而是普通的websocket连接
     if(!onWebSocketConnect(_parser)){
-        sendResponse("501 Not Implemented",headerOut,"");
+        sendResponse("501 Not Implemented",true, nullptr, headerOut);
         shutdown(SockException(Err_shutdown,"WebSocket server not implemented"));
         return true;
     }
-    sendResponse("101 Switching Protocols",headerOut,"");
+    sendResponse("101 Switching Protocols",false, nullptr,headerOut);
 	return true;
 }
 //http-flv 链接格式:http://vhost-url:port/app/streamid.flv?key1=value1&key2=value2
@@ -320,14 +371,14 @@ bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
         auto onRes = [this,rtmp_src,cb](const string &err){
             bool authSuccess = err.empty();
             if(!authSuccess){
-                sendResponse("401 Unauthorized", makeHttpHeader(true,err.size()),err);
+                sendResponse("401 Unauthorized", true, nullptr, KeyValue(), std::make_shared<HttpStringBody>(err));
                 shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << err));
                 return ;
             }
 
             if(!cb) {
                 //找到rtmp源，发送http头，负载后续发送
-                sendResponse("200 OK", makeHttpHeader(false, -1, get_mime_type(".flv")), "");
+                sendResponse("200 OK", false, get_mime_type(".flv"),KeyValue(),nullptr,false);
             }else{
                 cb();
             }
@@ -571,11 +622,11 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
                 if(!errMsg.empty()){
                     const_cast<string &>(strMeun) = errMsg;
                 }
-                auto headerOut = makeHttpHeader(bClose,strMeun.size());
+                KeyValue headerOut;
                 if(cookie){
                     headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
                 }
-                sendResponse(errMsg.empty() ? "200 OK" : "401 Unauthorized" , headerOut, strMeun);
+                sendResponse(errMsg.empty() ? "200 OK" : "401 Unauthorized" ,bClose, "text/html", headerOut, std::make_shared<HttpStringBody>(strMeun));
                 throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access folder");
             });
             return;
@@ -594,64 +645,28 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
 		sendNotFound(bClose);
         throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on file");
 	}
-    //文件智能指针，防止退出时未关闭
-    std::shared_ptr<FILE> pFilePtr(fopen(strFile.data(), "rb"), [](FILE *pFile) {
-        if(pFile){
-            fclose(pFile);
-        }
-    });
-
-	if (!pFilePtr) {
-		//打开文件失败
-		sendNotFound(bClose);
-        throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on open file failed");
-	}
 
 	auto parser = _parser;
     //判断是否有权限访问该文件
-    canAccessPath(_parser.Url(),false,[this,parser,tFileStat,pFilePtr,bClose,strFile](const string &errMsg,const HttpServerCookie::Ptr &cookie){
+    canAccessPath(_parser.Url(),false,[this,parser,tFileStat,bClose,strFile](const string &errMsg,const HttpServerCookie::Ptr &cookie){
         if(!errMsg.empty()){
-            auto headerOut = makeHttpHeader(bClose,errMsg.size());
+            KeyValue headerOut;
             if(cookie){
                 headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
             }
-            sendResponse("401 Unauthorized" , headerOut, errMsg);
+            sendResponse("401 Unauthorized" ,bClose, nullptr, headerOut, std::make_shared<HttpStringBody>(errMsg));
             throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access file failed");
         }
 
-        //判断是不是分节下载
-        auto &strRange = parser["Range"];
-        int64_t iRangeStart = 0, iRangeEnd = 0;
-        iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
-        iRangeEnd = atoll(FindField(strRange.data(), "-", "\r\n").data());
-        if (iRangeEnd == 0) {
-            iRangeEnd = tFileStat.st_size - 1;
-        }
-        auto httpHeader =  makeHttpHeader(bClose, iRangeEnd - iRangeStart + 1, get_mime_type(strFile.data()));
-        const char *pcHttpResult = NULL;
-        if (strRange.size() == 0) {
-            //全部下载
-            pcHttpResult = "200 OK";
-        } else {
-            //分节下载
-            pcHttpResult = "206 Partial Content";
-            //分节下载返回Content-Range头
-            httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
-        }
-
+        KeyValue httpHeader;
         if(cookie){
             httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
         }
 
-        if (iRangeEnd - iRangeStart < 0) {
-            sendResponse(pcHttpResult,httpHeader,"");
-            //文件是空的!
-            throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access file");
-        }
-
-        //先回复HTTP头部分
-        HttpBody::Ptr fileBody = std::make_shared<HttpFileBody>(pFilePtr,iRangeStart,iRangeEnd - iRangeStart + 1);
-        sendResponse(pcHttpResult,httpHeader,fileBody,bClose);
+        HttpResponseInvoker invoker = [this,bClose,&strFile](const string &codeOut, const KeyValue &headerOut, const HttpBody::Ptr &body){
+            sendResponse(codeOut.data(), bClose, get_mime_type(strFile.data()), headerOut, body);
+        };
+        invoker.responseFile(parser.getValues(),httpHeader,strFile);
     });
 }
 
@@ -754,22 +769,77 @@ bool makeMeun(const string &httpPath,const string &strFullPath, string &strRet) 
 	return true;
 }
 
-void HttpSession::sendResponse(const char* pcStatus, const KeyValue& header, const string& strContent) {
-    sendResponse(pcStatus, header,strContent.empty() ? nullptr : std::make_shared<HttpStringBody>(strContent), false);
-}
 
-void HttpSession::sendResponse(const char *pcStatus,const KeyValue &header,const HttpBody::Ptr &body,bool bClose){
+void HttpSession::sendResponse(const char *pcStatus,
+                               bool bClose,
+                               const char *pcContentType,
+                               const HttpSession::KeyValue &header,
+                               const HttpBody::Ptr &body,
+                               bool set_content_len ){
+
+    GET_CONFIG(string,charSet,Http::kCharSet);
+    GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
+    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
+
+    //body默认为空
+    int64_t size = 0;
+    if (body && body->remainSize()) {
+        //有body，获取body大小
+        size = body->remainSize();
+        if (size >= INT64_MAX) {
+            //不固定长度的body，那么不设置content-length字段
+            size = -1;
+        }
+    }
+
+    if(!set_content_len || size == -1){
+        //如果是不定长度body，或者不设置conten-length,
+        //那么一定是Keep-Alive类型
+        bClose = false;
+    }
+
+    HttpSession::KeyValue &headerOut = const_cast<HttpSession::KeyValue &>(header);
+    headerOut.emplace("Date", dateStr());
+    headerOut.emplace("Server", SERVER_NAME);
+    headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
+    if(!bClose){
+        headerOut.emplace("Keep-Alive",StrPrinter << "timeout=" << keepAliveSec << ", max=" << reqCnt << endl);
+    }
+
+    if(!_origin.empty()){
+        //设置跨域
+        headerOut.emplace("Access-Control-Allow-Origin",_origin);
+        headerOut.emplace("Access-Control-Allow-Credentials", "true");
+    }
+
+    if(set_content_len && size >= 0){
+        //文件长度为定值或者,且不是http-flv设置Content-Length
+        headerOut.emplace("Content-Length", StrPrinter << size <<endl);
+    }
+
+    if(size && !pcContentType){
+        //有body时，设置缺省类型
+        pcContentType = "text/plain";
+    }
+
+    if(size && pcContentType){
+        //有body时，设置文件类型
+        auto strContentType = StrPrinter << pcContentType << "; charset=" << charSet << endl;
+        headerOut.emplace("Content-Type",strContentType);
+    }
+
     //发送http头
     _StrPrinter printer;
     printer << "HTTP/1.1 " << pcStatus << "\r\n";
     for (auto &pr : header) {
         printer << pr.first << ": " << pr.second << "\r\n";
     }
+
     printer << "\r\n";
     send(printer << endl);
     _ticker.resetTime();
 
-    if(!body || !body->remainSize()){
+    if(!size){
         //没有body
         if(bClose){
             shutdown(SockException(Err_shutdown,"close connection after send http header completed"));
@@ -832,34 +902,6 @@ void HttpSession::sendResponse(const char *pcStatus,const KeyValue &header,const
     _sock->setOnFlush(onFlush);
 }
 
-
-HttpSession::KeyValue HttpSession::makeHttpHeader(bool bClose, int64_t iContentSize,const char* pcContentType) {
-	KeyValue headerOut;
-    GET_CONFIG(string,charSet,Http::kCharSet);
-    GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
-    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
-
-	headerOut.emplace("Date", dateStr());
-	headerOut.emplace("Server", SERVER_NAME);
-	headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
-	if(!bClose){
-		headerOut.emplace("Keep-Alive",StrPrinter << "timeout=" << keepAliveSec << ", max=" << reqCnt << endl);
-	}
-	if(pcContentType){
-		auto strContentType = StrPrinter << pcContentType << "; charset=" << charSet << endl;
-		headerOut.emplace("Content-Type",strContentType);
-	}
-	if(iContentSize >= 0){
-		headerOut.emplace("Content-Length", StrPrinter<<iContentSize<<endl);
-	}
-
-    if(!_origin.empty()){
-        headerOut.emplace("Access-Control-Allow-Origin",_origin);
-        headerOut.emplace("Access-Control-Allow-Credentials", "true");
-    }
-	return headerOut;
-}
-
 string HttpSession::urlDecode(const string &str){
 	auto ret = strCoding::UrlDecode(str);
 #ifdef _WIN32
@@ -904,23 +946,7 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
                 return;
             }
 
-            //body默认为空
-            int64_t size = 0;
-            if (body && body->remainSize()) {
-                //有body，获取body大小
-                size = body->remainSize();
-                if (size >= INT64_MAX) {
-                    //不固定长度的body，那么不设置content-length字段
-                    size = -1;
-                }
-            }
-
-            auto headerOther = strongSelf->makeHttpHeader(bClose, size, "text/plain");
-            for (auto &pr : headerOther) {
-                //添加默认http头，默认http头不能覆盖用户自定义的头
-                const_cast<KeyValue &>(headerOut).emplace(pr.first, pr.second);
-            }
-            strongSelf->sendResponse(codeOut.data(), headerOut, body, bClose);
+            strongSelf->sendResponse(codeOut.data(), bClose, nullptr, headerOut, body);
 		});
 	};
 	///////////////////广播HTTP事件///////////////////////////
@@ -1012,7 +1038,7 @@ void HttpSession::Handle_Req_POST(int64_t &content_len) {
 
 void HttpSession::sendNotFound(bool bClose) {
     GET_CONFIG(string,notFound,Http::kNotFound);
-    sendResponse("404 Not Found", makeHttpHeader(bClose, notFound.size()), notFound);
+    sendResponse("404 Not Found", bClose,"text/html",KeyValue(),std::make_shared<HttpStringBody>(notFound));
 }
 
 void HttpSession::setSocketFlags(){
