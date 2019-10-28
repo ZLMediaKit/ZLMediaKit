@@ -44,6 +44,7 @@
 #include "Util/base64.h"
 #include "Util/SHA1.h"
 #include "Rtmp/utils.h"
+#include "HttpBody.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -502,11 +503,6 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
 		return;
 	}
 
-    //再看看是否为http-flv直播请求
-	if(checkLiveFlvStream()){
-		//若是，return！
-		return;
-	}
 
 	//事件未被拦截，则认为是http下载请求
 	auto fullUrl = string(HTTP_SCHEMA) + "://" + _parser["Host"] + _parser.FullUrl();
@@ -556,6 +552,11 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
 	//访问的是文件
 	struct stat tFileStat;
 	if (0 != stat(strFile.data(), &tFileStat)) {
+        //再看看是否为http-flv直播请求
+        if(checkLiveFlvStream()){
+            //若是，return！
+            return;
+        }
 		//文件不存在
 		sendNotFound(bClose);
         throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on file");
@@ -601,7 +602,6 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
         } else {
             //分节下载
             pcHttpResult = "206 Partial Content";
-            fseek(pFilePtr.get(), iRangeStart, SEEK_SET);
             //分节下载返回Content-Range头
             httpHeader.emplace("Content-Range",StrPrinter<<"bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size<< endl);
         }
@@ -617,51 +617,34 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
             throw SockException(bClose ? Err_shutdown : Err_success,"close connection after access file");
         }
         //回复Content部分
-        std::shared_ptr<int64_t> piLeft(new int64_t(iRangeEnd - iRangeStart + 1));
-
         GET_CONFIG(uint32_t,sendBufSize,Http::kSendBufSize);
-
+        HttpBody::Ptr fileBody = std::make_shared<HttpFileBody>(pFilePtr,iRangeStart,iRangeEnd - iRangeStart + 1);
         weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-        auto onFlush = [pFilePtr,bClose,weakSelf,piLeft]() {
-            TimeTicker();
+
+        auto onFlush = [fileBody,bClose,weakSelf]() {
             auto strongSelf = weakSelf.lock();
-            while(*piLeft && strongSelf){
+            if(!strongSelf){
+                //本对象已经销毁
+                return false;
+            }
+            while(true){
                 //更新超时计时器
                 strongSelf->_ticker.resetTime();
-                //从循环池获取一个内存片
-                auto sendBuf = strongSelf->obtainBuffer();
-                sendBuf->setCapacity(sendBufSize);
-                //本次需要读取文件字节数
-                int64_t iReq = MIN(sendBufSize,*piLeft);
-                //读文件
-                int iRead;
-                do{
-                    iRead = fread(sendBuf->data(), 1, iReq, pFilePtr.get());
-                }while(-1 == iRead && UV_EINTR == get_uv_error(false));
-                //文件剩余字节数
-                *piLeft -= iRead;
-
-                if (iRead < iReq || !*piLeft) {
+                //读取文件
+                auto sendBuf = fileBody->readData(sendBufSize);
+                if (!sendBuf) {
                     //文件读完
-                    if(iRead > 0) {
-                        sendBuf->setSize(iRead);
-                        strongSelf->send(sendBuf);
-                    }
-
                     if(strongSelf->isSocketBusy()){
                         //套接字忙,我们等待触发下一次onFlush事件
                         //待所有数据flush到socket fd再移除onFlush事件监听
                         //标记文件读写完毕
-                        *piLeft = 0;
                         return true;
                     }
-
                     //文件全部flush到socket fd，可以直接关闭socket了
                     break;
                 }
 
                 //文件还未读完
-                sendBuf->setSize(iRead);
                 if(strongSelf->send(sendBuf) == -1) {
                     //socket已经销毁，不再监听onFlush事件
                     return false;
@@ -673,7 +656,7 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
                 //socket还可写，继续写socket
             }
 
-            if(bClose && strongSelf) {
+            if(bClose) {
                 //最后一次flush事件，文件也发送完毕了，可以关闭socket了
                 strongSelf->shutdown(SockException(Err_shutdown,"read file eof"));
             }
