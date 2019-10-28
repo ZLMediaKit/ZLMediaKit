@@ -58,12 +58,32 @@ Buffer::Ptr HttpStringBody::readData(uint32_t size) {
 }
 
 //////////////////////////////////////////////////////////////////
+HttpFileBody::HttpFileBody(const string &filePath){
+    std::shared_ptr<FILE> fp(fopen(filePath.data(), "rb"), [](FILE *fp) {
+        if(fp){
+            fclose(fp);
+        }
+    });
+    if(!fp){
+        init(fp,0,0);
+    }else{
+        init(fp,0,HttpMultiFormBody::fileSize(fp.get()));
+    }
+}
 
 HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, uint64_t offset, uint64_t max_size) {
+    init(fp,offset,max_size);
+}
+
+void HttpFileBody::init(const std::shared_ptr<FILE> &fp,uint64_t offset,uint64_t max_size){
     _fp = fp;
     _max_size = max_size;
 #ifdef ENABLE_MMAP
     do {
+        if(!_fp){
+            //文件不存在
+            break;
+        }
         int fd = fileno(fp.get());
         if (fd < 0) {
             WarnL << "fileno failed:" << get_uv_errmsg(false);
@@ -79,7 +99,7 @@ HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, uint64_t offset, uin
         });
     } while (false);
 #endif
-    if(!_map_addr && offset){
+    if(!_map_addr && offset && fp.get()){
         //未映射,那么fseek设置偏移量
         fseek(fp.get(), offset, SEEK_SET);
     }

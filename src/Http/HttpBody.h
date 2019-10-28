@@ -93,10 +93,13 @@ public:
      * @param max_size 最大读取字节数，未判断是否大于文件真实大小
      */
     HttpFileBody(const std::shared_ptr<FILE> &fp,uint64_t offset,uint64_t max_size);
+    HttpFileBody(const string &file_path);
     ~HttpFileBody(){};
 
     uint64_t remainSize() override ;
     Buffer::Ptr readData(uint32_t size) override;
+private:
+    void init(const std::shared_ptr<FILE> &fp,uint64_t offset,uint64_t max_size);
 private:
     std::shared_ptr<FILE> _fp;
     uint64_t _max_size;
