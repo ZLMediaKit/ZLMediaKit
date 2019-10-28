@@ -54,14 +54,14 @@ public:
     /**
      * 剩余数据大小
      */
-    virtual uint64_t remainSize() = 0;
+    virtual uint64_t remainSize() { return 0;};
 
     /**
      * 读取一定字节数，返回大小可能小于size
      * @param size 请求大小
      * @return 字节对象
      */
-    virtual Buffer::Ptr readData(uint32_t size) = 0;
+    virtual Buffer::Ptr readData(uint32_t size) { return nullptr;};
 };
 
 /**
