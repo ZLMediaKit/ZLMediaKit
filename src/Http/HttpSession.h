@@ -61,6 +61,7 @@ public:
 
 	void operator()(const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const;
 	void operator()(const string &codeOut, const StrCaseMap &headerOut, const string &body) const;
+	void responseFile(const StrCaseMap &requestHeader,const StrCaseMap &responseHeader,const string &filePath) const;
 	operator bool();
 private:
 	HttpResponseInvokerLambda0 _lambad;
@@ -89,6 +90,7 @@ public:
 	virtual void onManager() override;
 
 	static string urlDecode(const string &str);
+	static const char* get_mime_type(const char* name);
 protected:
 	//FlvMuxer override
 	void onWrite(const Buffer::Ptr &data) override ;
@@ -140,10 +142,9 @@ private:
 	bool emitHttpEvent(bool doInvoke);
 	void urlDecode(Parser &parser);
 	void sendNotFound(bool bClose);
-	void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
-	void sendResponse(const char *pcStatus,const KeyValue &header,const HttpBody::Ptr &body,bool bClose);
-	KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
-
+	void sendResponse(const char *pcStatus, bool bClose, const char *pcContentType = nullptr,
+					  const HttpSession::KeyValue &header = HttpSession::KeyValue(),
+                      const HttpBody::Ptr &body = nullptr,bool set_content_len = true);
     /**
      * 判断http客户端是否有权限访问文件的逻辑步骤
      *
