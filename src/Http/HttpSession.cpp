@@ -138,32 +138,8 @@ HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::Htt
 void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
                                           const StrCaseMap &responseHeader,
                                           const string &filePath) const {
-    try {
-        struct stat tFileStat;
-        if (filePath.empty() || 0 != stat(filePath.data(), &tFileStat)) {
-            //文件不存在
-            throw std::runtime_error("file not exited");
-        }
-
-        auto &strRange = const_cast<StrCaseMap &>(requestHeader)["Range"];
-        int64_t iRangeStart = 0, iRangeEnd = 0;
-        iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
-        iRangeEnd = atoll(FindField(strRange.data(), "-", "\r\n").data());
-        if (iRangeEnd == 0) {
-            iRangeEnd = tFileStat.st_size - 1;
-        }
-        const char *pcHttpResult = NULL;
-        StrCaseMap &httpHeader = const_cast<StrCaseMap&>(responseHeader);
-        if (strRange.size() == 0) {
-            //全部下载
-            pcHttpResult = "200 OK";
-        } else {
-            //分节下载
-            pcHttpResult = "206 Partial Content";
-            //分节下载返回Content-Range头
-            httpHeader.emplace("Content-Range", StrPrinter << "bytes " << iRangeStart << "-" << iRangeEnd << "/" << tFileStat.st_size << endl);
-        }
-
+    StrCaseMap &httpHeader = const_cast<StrCaseMap&>(responseHeader);
+    do {
         std::shared_ptr<FILE> fp(fopen(filePath.data(), "rb"), [](FILE *fp) {
             if (fp) {
                 fclose(fp);
@@ -171,16 +147,43 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
         });
         if (!fp) {
             //打开文件失败
-            throw std::runtime_error(StrPrinter << "open file not failed:" << get_uv_errmsg(false));
+            break;
+        }
+
+        auto &strRange = const_cast<StrCaseMap &>(requestHeader)["Range"];
+        int64_t iRangeStart = 0;
+        int64_t iRangeEnd = 0 ;
+        int64_t fileSize = HttpMultiFormBody::fileSize(fp.get());
+
+        const char *pcHttpResult = NULL;
+        if (strRange.size() == 0) {
+            //全部下载
+            pcHttpResult = "200 OK";
+            iRangeEnd =  fileSize - 1;
+        } else {
+            //分节下载
+            pcHttpResult = "206 Partial Content";
+            iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
+            iRangeEnd = atoll(FindField(strRange.data(), "-", "\r\n").data());
+            if (iRangeEnd == 0) {
+                iRangeEnd = fileSize - 1;
+            }
+            //分节下载返回Content-Range头
+            httpHeader.emplace("Content-Range", StrPrinter << "bytes " << iRangeStart << "-" << iRangeEnd << "/" << fileSize << endl);
         }
 
         //回复文件
         HttpBody::Ptr fileBody = std::make_shared<HttpFileBody>(fp, iRangeStart, iRangeEnd - iRangeStart + 1);
         (*this)(pcHttpResult, httpHeader, fileBody);
+        return;
+    }while(false);
 
-    }catch (std::exception &ex){
-        (*this)("404 Not Found", responseHeader, ex.what());
-    }
+    GET_CONFIG(string,notFound,Http::kNotFound);
+    GET_CONFIG(string,charSet,Http::kCharSet);
+
+    auto strContentType = StrPrinter << "text/html; charset=" << charSet << endl;
+    httpHeader["Content-Type"] = strContentType;
+    (*this)("404 Not Found", httpHeader, notFound);
 }
 
 HttpResponseInvokerImp::operator bool(){
@@ -378,7 +381,7 @@ bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
 
             if(!cb) {
                 //找到rtmp源，发送http头，负载后续发送
-                sendResponse("200 OK", false, get_mime_type(".flv"),KeyValue(),nullptr,false);
+                sendResponse("200 OK", false, "video/x-flv",KeyValue(),nullptr,false);
             }else{
                 cb();
             }
@@ -583,10 +586,15 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
 		return;
 	}
 
-	//先看看该http事件是否被拦截
 	if(emitHttpEvent(false)){
+        //拦截http api事件
 		return;
 	}
+
+    if(checkLiveFlvStream()){
+        //拦截http-flv播放器
+        return;
+    }
 
 	//事件未被拦截，则认为是http下载请求
 	auto fullUrl = string(HTTP_SCHEMA) + "://" + _parser["Host"] + _parser.FullUrl();
@@ -633,22 +641,9 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
         }
     }while(0);
 
-	//访问的是文件
-	struct stat tFileStat;
-	if (0 != stat(strFile.data(), &tFileStat)) {
-        //再看看是否为http-flv直播请求
-        if(checkLiveFlvStream()){
-            //若是，return！
-            return;
-        }
-		//文件不存在
-		sendNotFound(bClose);
-        throw SockException(bClose ? Err_shutdown : Err_success,"close connection after send 404 not found on file");
-	}
-
 	auto parser = _parser;
     //判断是否有权限访问该文件
-    canAccessPath(_parser.Url(),false,[this,parser,tFileStat,bClose,strFile](const string &errMsg,const HttpServerCookie::Ptr &cookie){
+    canAccessPath(_parser.Url(),false,[this,parser,bClose,strFile](const string &errMsg,const HttpServerCookie::Ptr &cookie){
         if(!errMsg.empty()){
             KeyValue headerOut;
             if(cookie){
@@ -813,8 +808,8 @@ void HttpSession::sendResponse(const char *pcStatus,
     }
 
     if(set_content_len && size >= 0){
-        //文件长度为定值或者,且不是http-flv设置Content-Length
-        headerOut.emplace("Content-Length", StrPrinter << size <<endl);
+        //文件长度为定值或者,且不是http-flv强制设置Content-Length
+        headerOut["Content-Length"] = StrPrinter << size << endl;
     }
 
     if(size && !pcContentType){
