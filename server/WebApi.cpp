@@ -45,6 +45,7 @@
 #include "Util/MD5.h"
 #include "WebApi.h"
 #include "WebHook.h"
+#include "Thread/WorkThreadPool.h"
 
 #if !defined(_WIN32)
 #include "FFmpegSource.h"
@@ -180,19 +181,35 @@ static inline void addHttpListener(){
         if(api_debug){
             auto newInvoker = [invoker,parser,allArgs](const string &codeOut,
                                                        const HttpSession::KeyValue &headerOut,
-                                                       const string &contentOut){
+                                                       const HttpBody::Ptr &body){
                 stringstream ss;
                 for(auto &pr : allArgs ){
                     ss << pr.first << " : " << pr.second << "\r\n";
                 }
 
-                DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
-                       << "# content:\r\n" << parser.Content() << "\r\n"
-                       << "# args:\r\n" << ss.str()
-                       << "# response:\r\n"
-                       << contentOut << "\r\n";
+                //body默认为空
+                int64_t size = 0;
+                if (body && body->remainSize()) {
+                    //有body，获取body大小
+                    size = body->remainSize();
+                }
 
-                invoker(codeOut,headerOut,contentOut);
+                if(size < 4 * 1024){
+                    string contentOut = body->readData(size)->toString();
+                    DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
+                           << "# content:\r\n" << parser.Content() << "\r\n"
+                           << "# args:\r\n" << ss.str()
+                           << "# response:\r\n"
+                           << contentOut << "\r\n";
+                    invoker(codeOut,headerOut,contentOut);
+                } else{
+                    DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
+                           << "# content:\r\n" << parser.Content() << "\r\n"
+                           << "# args:\r\n" << ss.str()
+                           << "# response size:"
+                           << size <<"\r\n";
+                    invoker(codeOut,headerOut,body);
+                }
             };
             ((HttpSession::HttpResponseInvoker &)invoker) = newInvoker;
         }
@@ -271,6 +288,23 @@ void installWebApi() {
             Value val;
             auto vec = EventPollerPool::Instance().getExecutorLoad();
             int i = API::Success;
+            for (auto load : vec) {
+                Value obj(objectValue);
+                obj["load"] = load;
+                obj["delay"] = vecDelay[i++];
+                val["data"].append(obj);
+            }
+            invoker("200 OK", headerOut, val.toStyledString());
+        });
+    });
+
+    //获取后台工作线程负载
+    //测试url http://127.0.0.1/index/api/getWorkThreadsLoad
+    API_REGIST_INVOKER(api, getWorkThreadsLoad, {
+        WorkThreadPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
+            Value val;
+            auto vec = WorkThreadPool::Instance().getExecutorLoad();
+            int i = 0;
             for (auto load : vec) {
                 Value obj(objectValue);
                 obj["load"] = load;
@@ -577,6 +611,13 @@ void installWebApi() {
         val["data"]["flag"] = s_ffmpegMap.erase(allArgs["key"]) == 1;
     });
 #endif
+
+    //新增http api下载可执行程序文件接口
+    //测试url http://127.0.0.1/index/api/downloadBin
+    API_REGIST_INVOKER(api,downloadBin,{
+        CHECK_SECRET();
+        invoker.responseFile(headerIn,StrCaseMap(),exePath());
+    });
 
     ////////////以下是注册的Hook API////////////
     API_REGIST(hook,on_publish,{

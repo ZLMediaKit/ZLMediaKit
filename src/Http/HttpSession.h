@@ -36,11 +36,36 @@
 #include "HttpRequestSplitter.h"
 #include "WebSocketSplitter.h"
 #include "HttpCookieManager.h"
+#include "HttpBody.h"
+#include "Util/function_traits.h"
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
+
+/**
+ * 该类实现与老代码的兼容适配
+ */
+class HttpResponseInvokerImp{
+public:
+	typedef std::function<void(const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body)> HttpResponseInvokerLambda0;
+	typedef std::function<void(const string &codeOut, const StrCaseMap &headerOut, const string &body)> HttpResponseInvokerLambda1;
+
+	HttpResponseInvokerImp(){}
+	~HttpResponseInvokerImp(){}
+	template<typename C>
+	HttpResponseInvokerImp(const C &c):HttpResponseInvokerImp(typename function_traits<C>::stl_function_type(c)) {}
+	HttpResponseInvokerImp(const HttpResponseInvokerLambda0 &lambda);
+	HttpResponseInvokerImp(const HttpResponseInvokerLambda1 &lambda);
+
+	void operator()(const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const;
+	void operator()(const string &codeOut, const StrCaseMap &headerOut, const string &body) const;
+	void responseFile(const StrCaseMap &requestHeader,const StrCaseMap &responseHeader,const string &filePath) const;
+	operator bool();
+private:
+	HttpResponseInvokerLambda0 _lambad;
+};
 
 class HttpSession: public TcpSession,
                    public FlvMuxer,
@@ -48,9 +73,7 @@ class HttpSession: public TcpSession,
                    public WebSocketSplitter {
 public:
 	typedef StrCaseMap KeyValue;
-	typedef std::function<void(const string &codeOut,
-							   const KeyValue &headerOut,
-							   const string &contentOut)>  HttpResponseInvoker;
+	typedef HttpResponseInvokerImp HttpResponseInvoker;
 
 	/**
 	 * @param errMsg 如果为空，则代表鉴权通过，否则为错误提示
@@ -67,6 +90,7 @@ public:
 	virtual void onManager() override;
 
 	static string urlDecode(const string &str);
+	static const char* get_mime_type(const char* name);
 protected:
 	//FlvMuxer override
 	void onWrite(const Buffer::Ptr &data) override ;
@@ -118,13 +142,9 @@ private:
 	bool emitHttpEvent(bool doInvoke);
 	void urlDecode(Parser &parser);
 	void sendNotFound(bool bClose);
-	void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
-	KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
-    void responseDelay(bool bClose,
-                       const string &codeOut,
-                       const KeyValue &headerOut,
-                       const string &contentOut);
-
+	void sendResponse(const char *pcStatus, bool bClose, const char *pcContentType = nullptr,
+					  const HttpSession::KeyValue &header = HttpSession::KeyValue(),
+                      const HttpBody::Ptr &body = nullptr,bool set_content_len = true);
     /**
      * 判断http客户端是否有权限访问文件的逻辑步骤
      *
@@ -160,6 +180,7 @@ private:
     //处理content数据的callback
     function<bool (const char *data,uint64_t len) > _contentCallBack;
 	bool _flv_over_websocket = false;
+	bool _is_flv_stream = false;
 };
 
 

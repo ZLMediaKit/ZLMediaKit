@@ -44,10 +44,11 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 		GET_CONFIG(string,recordPath,Record::kFilePath);
         GET_CONFIG(bool,enableVhost,General::kEnableVhost);
         if(enableVhost){
-            strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
+            strFileName = strVhost + "/" + strApp + "/" + strId;
         }else{
-            strFileName = recordPath + "/" + strApp + "/" + strId;
+            strFileName = strApp + "/" + strId;
         }
+		strFileName = File::absolutePath(strFileName,recordPath);
     }
 
 	_hMP4File = MP4Read(strFileName.data());

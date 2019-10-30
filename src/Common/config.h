@@ -177,6 +177,11 @@ extern const string kMaxStreamWaitTimeMS;
 extern const string kEnableVhost;
 //超低延时模式，默认打开，打开后会降低延时但是转发性能会稍差
 extern const string kUltraLowDelay;
+//拉流代理时是否添加静音音频
+extern const string kAddMuteAudio;
+//拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
+//如果不删除将会接着上一次的数据继续写(录制hls/mp4时会继续在前一个文件后面写)
+extern const string kResetWhenRePlay;
 }//namespace General
 
 
@@ -268,6 +273,8 @@ extern const string kFileSecond;
 extern const string kFilePath;
 //mp4文件写缓存大小
 extern const string kFileBufSize;
+//mp4录制完成后是否进行二次关键帧索引写入头部
+extern const string kFastStart;
 //mp4文件是否重头循环读取
 extern const string kFileRepeat;
 } //namespace Record
