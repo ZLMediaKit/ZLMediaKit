@@ -33,18 +33,33 @@ using namespace toolkit;
 
 namespace mediakit {
 
-//该类解决时间戳回环、回退问题
-//计算相对时间戳或者产生平滑时间戳
-class Stamp {
+class DeltaStamp{
 public:
-    Stamp() = default;
-    ~Stamp() = default;
+    DeltaStamp() = default;
+    ~DeltaStamp() = default;
 
     /**
-     * 设置回放模式，回放模式时间戳可以回退
+     * 计算时间戳增量
+     * @param stamp 绝对时间戳
+     * @return 时间戳增量
+     */
+    int64_t deltaStamp(int64_t stamp);
+
+    /**
+     * 设置是否为回放模式，回放模式运行时间戳回退
      * @param playback 是否为回放模式
      */
     void setPlayBack(bool playback = true);
+private:
+    int64_t _last_stamp = 0;
+    bool _playback = false;
+};
+//该类解决时间戳回环、回退问题
+//计算相对时间戳或者产生平滑时间戳
+class Stamp : public DeltaStamp{
+public:
+    Stamp() = default;
+    ~Stamp() = default;
 
     /**
      * 修正时间戳
@@ -52,13 +67,23 @@ public:
      * @param pts 输入pts，如果为0则等于dts
      * @param dts_out 输出dts
      * @param pts_out 输出pts
+     * @param modifyStamp 是否用系统时间戳覆盖
      */
-    void revise(uint32_t dts, uint32_t pts, int64_t &dts_out, int64_t &pts_out);
+    void revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
+
+    /**
+     * 再设置相对时间戳，用于seek用
+     * @param relativeStamp 相对时间戳
+     */
+    void setRelativeStamp(int64_t relativeStamp);
+
+    /**
+     * 获取当前相对时间戳
+     * @return
+     */
+    int64_t getRelativeStamp() const ;
 private:
-    bool _playback = false;
-    int64_t _start_dts = 0;
-    int64_t _dts_inc = 0;
-    bool _first = true;
+    int64_t _relativeStamp = 0;
     SmoothTicker _ticker;
 };
 

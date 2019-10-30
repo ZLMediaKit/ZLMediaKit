@@ -1,2 +1,2 @@
-release/ filter=lfs diff=lfs merge=lfs -text
-*.a filter=lfs diff=lfs merge=lfs -text
+*.h linguist-language=cpp
+*.c linguist-language=cpp

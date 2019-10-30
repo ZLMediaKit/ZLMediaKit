@@ -44,13 +44,17 @@ RtmpSession::~RtmpSession() {
 }
 
 void RtmpSession::onError(const SockException& err) {
-	WarnP(this) << err.what();
+    bool isPlayer = !_pPublisherSrc;
+    WarnP(this) << (isPlayer ? "播放器(" : "推流器(")
+                << _mediaInfo._vhost << "/"
+                << _mediaInfo._app << "/"
+                << _mediaInfo._streamid
+                << ")断开:" << err.what();
 
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
 
     if(_ui64TotalBytes > iFlowThreshold * 1024){
-        bool isPlayer = !_pPublisherSrc;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
                                            _mediaInfo,
                                            _ui64TotalBytes,
@@ -486,7 +490,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 		GET_CONFIG(bool,rtmp_modify_stamp,Rtmp::kModifyStamp);
         if(rtmp_modify_stamp){
             int64_t dts_out;
-            _stamp[chunkData.typeId % 2].revise(0, 0, dts_out, dts_out);
+            _stamp[chunkData.typeId % 2].revise(0, 0, dts_out, dts_out, true);
             chunkData.timeStamp = dts_out;
         }
         if(!_metadata_got && !chunkData.isCfgFrame()){

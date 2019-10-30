@@ -41,8 +41,8 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
             aac_cfg_str = FindField(track->_fmtp.data(), "config=", ";");
         }
         if (aac_cfg_str.empty()) {
-            //延后获取adts头
-            return std::make_shared<AACTrack>();
+            //如果sdp中获取不到aac config信息，那么在rtp也无法获取，那么忽略该Track
+            return nullptr;
         }
         string aac_cfg;
 
@@ -60,10 +60,8 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     }
 
     if (strcasecmp(track->_codec.data(), "h264") == 0) {
-        auto map = Parser::parseArgs(track->_fmtp," ","=");
-        for(auto &pr : map){
-            trim(pr.second," ;");
-        }
+        //a=fmtp:96 packetization-mode=1;profile-level-id=42C01F;sprop-parameter-sets=Z0LAH9oBQBboQAAAAwBAAAAPI8YMqA==,aM48gA==
+        auto map = Parser::parseArgs(FindField(track->_fmtp.data()," ", nullptr),";","=");
         auto sps_pps = map["sprop-parameter-sets"];
         if(sps_pps.empty()){
             return std::make_shared<H264Track>();
@@ -77,10 +75,7 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
 
     if (strcasecmp(track->_codec.data(), "h265") == 0) {
         //a=fmtp:96 sprop-sps=QgEBAWAAAAMAsAAAAwAAAwBdoAKAgC0WNrkky/AIAAADAAgAAAMBlQg=; sprop-pps=RAHA8vA8kAA=
-        auto map = Parser::parseArgs(track->_fmtp," ","=");
-        for(auto &pr : map){
-            trim(pr.second," ;");
-        }
+        auto map = Parser::parseArgs(FindField(track->_fmtp.data()," ", nullptr),";","=");
         auto vps = decodeBase64(map["sprop-vps"]);
         auto sps = decodeBase64(map["sprop-sps"]);
         auto pps = decodeBase64(map["sprop-pps"]);

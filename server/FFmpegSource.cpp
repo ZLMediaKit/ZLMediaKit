@@ -39,7 +39,7 @@ const char kLog[] = FFmpeg_FIELD"log";
 onceToken token([]() {
     mINI::Instance()[kBin] = trim(System::execute("which ffmpeg"));
     mINI::Instance()[kCmd] = "%s -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
-    mINI::Instance()[kLog] = exeDir() + "ffmpeg/ffmpeg.log";
+    mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";
 });
 }
 
@@ -64,7 +64,7 @@ void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_
 
     char cmd[1024] = {0};
     snprintf(cmd, sizeof(cmd),ffmpeg_cmd.data(),ffmpeg_bin.data(),src_url.data(),dst_url.data());
-    _process.run(cmd,ffmpeg_log);
+    _process.run(cmd,File::absolutePath("",ffmpeg_log));
     InfoL << cmd;
 
     if(_media_info._host == "127.0.0.1"){

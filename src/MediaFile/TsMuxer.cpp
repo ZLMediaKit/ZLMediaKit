@@ -101,6 +101,8 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
 }
 
 void TsMuxer::resetTracks() {
+    //通知片段中断
+    onTs(nullptr, 0, 0, 0);
     uninit();
     init();
 }

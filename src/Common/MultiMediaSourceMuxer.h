@@ -70,6 +70,19 @@ public:
     }
 
     /**
+     * 重置音视频媒体
+     */
+    void resetTracks() {
+        if(_rtmp){
+            _rtmp->resetTracks();
+        }
+        if(_rtsp){
+            _rtsp->resetTracks();
+        }
+        _record->resetTracks();
+    }
+
+    /**
      * 写入帧数据然后打包rtmp
      * @param frame 帧数据
      */

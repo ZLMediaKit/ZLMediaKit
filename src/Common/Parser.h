@@ -163,7 +163,7 @@ class Parser {
         for (string &key_val : arg_vec) {
             auto key = FindField(key_val.data(), NULL, key_delim);
             auto val = FindField(key_val.data(), key_delim, NULL);
-            ret.emplace_force(key,val);
+            ret.emplace_force(trim(key),trim(val));
         }
         return ret;
     }

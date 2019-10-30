@@ -32,19 +32,9 @@ namespace mediakit{
 
 void MediaSink::addTrack(const Track::Ptr &track_in) {
     lock_guard<recursive_mutex> lck(_mtx);
-//克隆Track，只拷贝其数据，不拷贝其数据转发关系
+    //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
 
-    weak_ptr<MediaSink> weakSelf = shared_from_this();
-    track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([weakSelf](const Frame::Ptr &frame){
-        auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
-            return;
-        }
-        if(!strongSelf->_anyTrackUnReady){
-            strongSelf->onTrackFrame(frame);
-        }
-    }));
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
     auto lam = [this,track](){
@@ -58,6 +48,26 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
         _trackReadyCallback[codec_id] = lam;
         _ticker.resetTime();
     }
+
+    weak_ptr<MediaSink> weakSelf = shared_from_this();
+    track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([weakSelf](const Frame::Ptr &frame){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf){
+            return;
+        }
+        if(!strongSelf->_anyTrackUnReady){
+            strongSelf->onTrackFrame(frame);
+        }
+    }));
+}
+
+void MediaSink::resetTracks() {
+    lock_guard<recursive_mutex> lck(_mtx);
+    _anyTrackUnReady = false;
+    _allTrackReady = false;
+    _track_map.clear();
+    _trackReadyCallback.clear();
+    _ticker.resetTime();
 }
 
 void MediaSink::inputFrame(const Frame::Ptr &frame) {

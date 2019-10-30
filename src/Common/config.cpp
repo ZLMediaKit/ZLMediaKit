@@ -77,12 +77,17 @@ const string kStreamNoneReaderDelayMS = GENERAL_FIELD"streamNoneReaderDelayMS";
 const string kMaxStreamWaitTimeMS = GENERAL_FIELD"maxStreamWaitMS";
 const string kEnableVhost = GENERAL_FIELD"enableVhost";
 const string kUltraLowDelay = GENERAL_FIELD"ultraLowDelay";
+const string kAddMuteAudio = GENERAL_FIELD"addMuteAudio";
+const string kResetWhenRePlay = GENERAL_FIELD"resetWhenRePlay";
+
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
     mINI::Instance()[kStreamNoneReaderDelayMS] = 5 * 1000;
     mINI::Instance()[kMaxStreamWaitTimeMS] = 5 * 1000;
     mINI::Instance()[kEnableVhost] = 1;
 	mINI::Instance()[kUltraLowDelay] = 1;
+	mINI::Instance()[kAddMuteAudio] = 1;
+	mINI::Instance()[kResetWhenRePlay] = 1;
 },nullptr);
 
 }//namespace General
@@ -117,7 +122,7 @@ const string kMaxReqCount = HTTP_FIELD"maxReqCount";
 const string kCharSet = HTTP_FIELD"charSet";
 
 //http 服务器根目录
-#define HTTP_ROOT_PATH (exeDir() + "httpRoot")
+#define HTTP_ROOT_PATH "./httpRoot"
 const string kRootPath = HTTP_FIELD"rootPath";
 
 //http 404错误提示内容
@@ -172,7 +177,7 @@ onceToken token([](){
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
 	mINI::Instance()[kDirectProxy] = 1;
-	mINI::Instance()[kModifyStamp] = true;
+	mINI::Instance()[kModifyStamp] = false;
 },nullptr);
 
 } //namespace Rtsp
@@ -254,7 +259,7 @@ namespace Record {
 const string kAppName = RECORD_FIELD"appName";
 
 //每次流化MP4文件的时长,单位毫秒
-#define RECORD_SAMPLE_MS 100
+#define RECORD_SAMPLE_MS 500
 const string kSampleMS = RECORD_FIELD"sampleMS";
 
 //MP4文件录制大小,默认一个小时
@@ -268,6 +273,9 @@ const string kFilePath = RECORD_FIELD"filePath";
 //mp4文件写缓存大小
 const string kFileBufSize = RECORD_FIELD"fileBufSize";
 
+//mp4录制完成后是否进行二次关键帧索引写入头部
+const string kFastStart = RECORD_FIELD"fastStart";
+
 //mp4文件是否重头循环读取
 const string kFileRepeat = RECORD_FIELD"fileRepeat";
 
@@ -277,6 +285,7 @@ onceToken token([](){
 	mINI::Instance()[kFileSecond] = RECORD_FILE_SECOND;
 	mINI::Instance()[kFilePath] = RECORD_FILE_PATH;
 	mINI::Instance()[kFileBufSize] = 64 * 1024;
+	mINI::Instance()[kFastStart] = false;
 	mINI::Instance()[kFileRepeat] = false;
 },nullptr);
 

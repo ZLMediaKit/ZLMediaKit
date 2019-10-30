@@ -85,7 +85,13 @@ RtspSession::~RtspSession() {
 }
 
 void RtspSession::onError(const SockException& err) {
-	WarnP(this) << err.what();
+    bool isPlayer = !_pushSrc;
+    WarnP(this) << (isPlayer ? "播放器(" : "推流器(")
+                << _mediaInfo._vhost << "/"
+                << _mediaInfo._app << "/"
+                << _mediaInfo._streamid
+                << ")断开:" << err.what();
+
 	if (_rtpType == Rtsp::RTP_MULTICAST) {
 		//取消UDP端口监听
 		UDPServer::Instance().stopListenPeer(get_peer_ip().data(), this);
@@ -100,7 +106,6 @@ void RtspSession::onError(const SockException& err) {
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
     if(_ui64TotalBytes > iFlowThreshold * 1024){
-        bool isPlayer = !_pushSrc;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
 										   _mediaInfo,
 										   _ui64TotalBytes,
@@ -932,7 +937,7 @@ void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
     GET_CONFIG(bool,modify_stamp,Rtsp::kModifyStamp);
     if(modify_stamp){
         int64_t dts_out;
-        _stamp[trackidx].revise(0, 0, dts_out, dts_out);
+        _stamp[trackidx].revise(0, 0, dts_out, dts_out, true);
         rtppt->timeStamp = dts_out;
     }
 	_pushSrc->onWrite(rtppt, false);
