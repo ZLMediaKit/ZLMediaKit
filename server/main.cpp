@@ -205,6 +205,8 @@ static void inline listen_shell_input(){
 }
 #endif//!defined(_WIN32)
 
+//全局变量，在WebApi中用于保存配置文件用
+string g_ini_file;
 
 int start_main(int argc,char *argv[]) {
     {
@@ -219,7 +221,7 @@ int start_main(int argc,char *argv[]) {
         bool bDaemon = cmd_main.hasKey("daemon");
         LogLevel logLevel = (LogLevel) cmd_main["level"].as<int>();
         logLevel = MIN(MAX(logLevel, LTrace), LError);
-        static string ini_file = cmd_main["config"];
+        g_ini_file = cmd_main["config"];
         string ssl_file = cmd_main["ssl"];
         int threads = cmd_main["threads"];
 
@@ -244,7 +246,7 @@ int start_main(int argc,char *argv[]) {
         //启动异步日志线程
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
         //加载配置文件，如果配置文件不存在就创建一个
-        loadIniConfig(ini_file.data());
+        loadIniConfig(g_ini_file.data());
 
         //加载证书，证书包含公钥和私钥
         SSL_Initor::Instance().loadCertificate(ssl_file.data());
@@ -306,7 +308,7 @@ int start_main(int argc,char *argv[]) {
         });// 设置退出信号
 
 #if !defined(_WIN32)
-        signal(SIGHUP, [](int) { mediakit::loadIniConfig(ini_file.data()); });
+        signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });
 #endif
         sem.wait();
     }
