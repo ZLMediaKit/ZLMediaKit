@@ -255,6 +255,7 @@ int start_main(int argc,char *argv[]) {
             //加载文件夹下的所有证书
             File::scanDir(ssl_file,[](const string &path, bool isDir){
                 if(!isDir){
+                    //最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
                     SSL_Initor::Instance().loadCertificate(path.data());
                 }
                 return true;
