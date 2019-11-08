@@ -79,6 +79,9 @@ const string kEnableVhost = GENERAL_FIELD"enableVhost";
 const string kUltraLowDelay = GENERAL_FIELD"ultraLowDelay";
 const string kAddMuteAudio = GENERAL_FIELD"addMuteAudio";
 const string kResetWhenRePlay = GENERAL_FIELD"resetWhenRePlay";
+const string kPublishToRtxp = GENERAL_FIELD"publishToRtxp";
+const string kPublishToHls = GENERAL_FIELD"publishToHls";
+const string kPublishToMP4 = GENERAL_FIELD"publishToMP4";
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
@@ -88,6 +91,9 @@ onceToken token([](){
 	mINI::Instance()[kUltraLowDelay] = 1;
 	mINI::Instance()[kAddMuteAudio] = 1;
 	mINI::Instance()[kResetWhenRePlay] = 1;
+	mINI::Instance()[kPublishToRtxp] = 1;
+	mINI::Instance()[kPublishToHls] = 1;
+	mINI::Instance()[kPublishToMP4] = 0;
 },nullptr);
 
 }//namespace General

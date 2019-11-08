@@ -324,8 +324,11 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 	auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,_mediaInfo,invoker,*this);
 	if(!flag){
 		//该事件无人监听,默认不鉴权
-		onRes("",true,true,false);
-	}
+        GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
+        GET_CONFIG(bool,toHls,General::kPublishToHls);
+        GET_CONFIG(bool,toMP4,General::kPublishToMP4);
+        onRes("",toRtxp,toHls,toMP4);
+    }
 }
 
 void RtspSession::handleReq_Describe(const Parser &parser) {
