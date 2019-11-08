@@ -148,7 +148,7 @@ public:
                              Option::ArgRequired,/*该选项后面必须跟值*/
                              (exeDir() + "ssl.p12").data(),/*该选项默认值*/
                              false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
-                             "ssl证书路径,支持p12/pem类型",/*该选项说明文字*/
+                             "ssl证书文件或文件夹,支持p12/pem类型",/*该选项说明文字*/
                              nullptr);
 
         (*_parser) << Option('t',/*该选项简称，如果是\x00则说明无简称*/
@@ -248,12 +248,18 @@ int start_main(int argc,char *argv[]) {
         //加载配置文件，如果配置文件不存在就创建一个
         loadIniConfig(g_ini_file.data());
 
-        //加载证书，证书包含公钥和私钥
-        SSL_Initor::Instance().loadCertificate(ssl_file.data());
-        //信任某个自签名证书
-        SSL_Initor::Instance().trustCertificate(ssl_file.data());
-        //不忽略无效证书证书(例如自签名或过期证书)
-        SSL_Initor::Instance().ignoreInvalidCertificate(true);
+        if(!File::is_dir(ssl_file.data())){
+            //不是文件夹，加载证书，证书包含公钥和私钥
+            SSL_Initor::Instance().loadCertificate(ssl_file.data());
+        }else{
+            //加载文件夹下的所有证书
+            File::scanDir(ssl_file,[](const string &path, bool isDir){
+                if(!isDir){
+                    SSL_Initor::Instance().loadCertificate(path.data());
+                }
+                return true;
+            });
+        }
 
         uint16_t shellPort = mINI::Instance()[Shell::kPort];
         uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
