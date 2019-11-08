@@ -198,7 +198,10 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
                                                    *this);
     if(!flag){
         //该事件无人监听，默认鉴权成功
-        onRes("",true,true,false);
+        GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
+        GET_CONFIG(bool,toHls,General::kPublishToHls);
+        GET_CONFIG(bool,toMP4,General::kPublishToMP4);
+        onRes("",toRtxp,toHls,toMP4);
     }
 }
 

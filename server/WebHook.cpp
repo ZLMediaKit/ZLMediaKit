@@ -195,7 +195,10 @@ void installWebHook(){
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
         if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1"){
-            invoker("",true, true,false);
+            GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
+            GET_CONFIG(bool,toHls,General::kPublishToHls);
+            GET_CONFIG(bool,toMP4,General::kPublishToMP4);
+            invoker("",toRtxp,toHls,toMP4);
             return;
         }
         //异步执行该hook api，防止阻塞NoticeCenter

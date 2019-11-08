@@ -182,6 +182,12 @@ extern const string kAddMuteAudio;
 //拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
 //如果不删除将会接着上一次的数据继续写(录制hls/mp4时会继续在前一个文件后面写)
 extern const string kResetWhenRePlay;
+//是否默认推流时转换成rtsp或rtmp，hook接口(on_publish中可以覆盖该设置)
+extern const string kPublishToRtxp ;
+//是否默认推流时转换成hls，hook接口(on_publish中可以覆盖该设置)
+extern const string kPublishToHls ;
+//是否默认推流时mp4录像，hook接口(on_publish中可以覆盖该设置)
+extern const string kPublishToMP4 ;
 }//namespace General
 
 
