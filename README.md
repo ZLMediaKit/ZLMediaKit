@@ -306,6 +306,17 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 	});
 	
 	```
+## Docker Image
+You can pull a pre-built docker image from Docker Hub and run with
+```bash
+docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
+```
+
+Dockerfile is also supplied to build images on Ubuntu 16.04
+```bash
+cd docker
+docker build -t zlmediakit .
+```
 
 ## Mirrors
 
