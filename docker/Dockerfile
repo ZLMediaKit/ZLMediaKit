@@ -1,0 +1,36 @@
+FROM ubuntu:16.04
+#shell,rtmp,rtsp,rtsps,http,https
+EXPOSE 9000/tcp
+EXPOSE 1935/tcp
+EXPOSE 554/tcp
+EXPOSE 322/tcp
+EXPOSE 80/tcp
+EXPOSE 443/tcp
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+         build-essential \
+         cmake \
+         git \
+         curl \
+         ca-certificates \
+         libssl-dev \
+         libmysqlclient-dev \
+         libx264-dev \
+         libfaac-dev \
+         libmp4v2-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/media
+
+WORKDIR /opt/media
+RUN git clone --depth=1 https://github.com/xiongziliang/ZLMediaKit && \
+    cd ZLMediaKit && git submodule update --init --recursive && \
+    mkdir -p build release/linux/Release/
+
+WORKDIR /opt/media/ZLMediaKit/build
+RUN cmake -DCMAKE_BUILD_TYPE=Release .. && \
+    make -j4
+
+ENV PATH /opt/media/ZLMediaKit/release/linux/Release/:$PATH
+
+CMD MediaServer
