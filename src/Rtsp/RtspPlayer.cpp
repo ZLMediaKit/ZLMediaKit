@@ -105,7 +105,7 @@ void RtspPlayer::play(const string &strUrl){
 }
 
 void RtspPlayer::play(bool isSSL,const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType ) {
-	DebugL   << strUrl << " "
+	DebugL  << strUrl << " "
 			<< (strUser.size() ? strUser : "null") << " "
 			<< (strPwd.size() ? strPwd:"null") << " "
 			<< eType;
@@ -122,7 +122,7 @@ void RtspPlayer::play(bool isSSL,const string &strUrl, const string &strUser, co
 	_eType = eType;
 
 	auto ip = FindField(strUrl.data(), "://", "/");
-	if (!ip.size()) {
+	if (ip.empty()) {
 		ip = split(FindField(strUrl.data(), "://", NULL),"?")[0];
 	}
 	auto port = atoi(FindField(ip.data(), ":", NULL).data());
@@ -132,6 +132,11 @@ void RtspPlayer::play(bool isSSL,const string &strUrl, const string &strUser, co
 	} else {
 		//服务器域名
 		ip = FindField(ip.data(), NULL, ":");
+	}
+
+	if(ip.empty()){
+		onPlayResult_l(SockException(Err_other,StrPrinter << "illegal rtsp url:" << strUrl));
+		return;
 	}
 
 	_strUrl = strUrl;
