@@ -4,9 +4,9 @@ add_library(jsoncpp STATIC ${jsoncpp_src_list})
 
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-	set(MediaServer_src_list ./WebApi.cpp ./WebHook.cpp main.cpp)
+	set(MediaServer_src_list ./MiniDumper.cpp ./WebApi.cpp ./WebHook.cpp win32main.cpp)
 else()
-	file(GLOB MediaServer_src_list ./*.cpp ./*.h)
+	file(GLOB MediaServer_src_list ./WebApi.cpp ./WebHook.cpp ./System.cpp ./Process.cpp ./FFmpegSource.cpp main.cpp)
 endif()
 
 #message(STATUS ${MediaServer_src_list})
