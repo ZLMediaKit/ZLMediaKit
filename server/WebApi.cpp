@@ -554,7 +554,7 @@ void installWebApi() {
     });
 
 #if !defined(_WIN32)
-    static auto addFFmepgSource = [](const string &src_url,
+    static auto addFFmpegSource = [](const string &src_url,
                                      const string &dst_url,
                                      int timeout_ms,
                                      const function<void(const SockException &ex,const string &key)> &cb){
@@ -591,7 +591,7 @@ void installWebApi() {
         auto dst_url = allArgs["dst_url"];
         int timeout_ms = allArgs["timeout_ms"];
 
-        addFFmepgSource(src_url,dst_url,timeout_ms,[invoker,val,headerOut](const SockException &ex,const string &key){
+        addFFmpegSource(src_url,dst_url,timeout_ms,[invoker,val,headerOut](const SockException &ex,const string &key){
             if(ex){
                 const_cast<Value &>(val)["code"] = API::OtherFailed;
                 const_cast<Value &>(val)["msg"] = ex.what();
@@ -604,7 +604,7 @@ void installWebApi() {
 
     //关闭拉流代理
     //测试url http://127.0.0.1/index/api/delFFmepgSource?key=key
-    API_REGIST(api,delFFmepgSource,{
+    API_REGIST(api,delFFmpegSource,{
         CHECK_SECRET();
         CHECK_ARGS("key");
         lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
@@ -677,7 +677,7 @@ void installWebApi() {
                 << allArgs["stream"] << "?vhost="
                 << allArgs["vhost"];
 
-        addFFmepgSource("http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
+        addFFmpegSource("http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
                         dst_url,
                         (1000 * timeout_sec) - 500,
                         [invoker,val,headerOut](const SockException &ex,const string &key){
