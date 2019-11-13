@@ -128,6 +128,9 @@
 ## 编译要求
 - 编译器支持C++11，GCC4.8/Clang3.3/VC2015或以上
 - cmake3.2或以上
+
+## 编译前必看！！！
+
 - **必须使用git下载完整的代码，不要使用下载zip包的方式下载源码，否则子模块代码默认不下载！你可以像以下这样操作:**
 ```
 git clone https://github.com/zlmediakit/ZLMediaKit.git
