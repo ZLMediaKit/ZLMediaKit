@@ -296,6 +296,7 @@ void installWebApi() {
                 obj["delay"] = vecDelay[i++];
                 val["data"].append(obj);
             }
+            val["code"] = API::Success;
             invoker("200 OK", headerOut, val.toStyledString());
         });
     });
@@ -313,6 +314,7 @@ void installWebApi() {
                 obj["delay"] = vecDelay[i++];
                 val["data"].append(obj);
             }
+            val["code"] = API::Success;
             invoker("200 OK", headerOut, val.toStyledString());
         });
     });
@@ -393,8 +395,6 @@ void installWebApi() {
     API_REGIST(api,getMediaList,{
         CHECK_SECRET();
         //获取所有MediaSource列表
-        val["code"] = API::Success;
-        val["msg"] = "success";
         MediaSource::for_each_media([&](const string &schema,
                                         const string &vhost,
                                         const string &app,
@@ -479,13 +479,9 @@ void installWebApi() {
         //踢掉tcp会话
         auto session = SessionMap::Instance().get(allArgs["id"]);
         if(!session){
-            val["code"] = API::OtherFailed;
-            val["msg"] = "can not find the target";
-            return;
+            throw ApiRetException("can not find the target",API::OtherFailed);
         }
         session->safeShutdown();
-        val["code"] = API::Success;
-        val["msg"] = "success";
     });
 
     static auto addStreamProxy = [](const string &vhost,
