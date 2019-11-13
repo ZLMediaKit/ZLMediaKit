@@ -72,6 +72,8 @@ typedef map<string,variant,StrCaseCompare> ApiArgsType;
          invoker("200 OK", headerOut, val.toStyledString()); \
      });
 
+#define API_ARGS_VALUE sender,headerIn,headerOut,allArgs,val,invoker
+
 #define API_REGIST_INVOKER(field, name, ...) \
     s_map_api.emplace("/index/"#field"/"#name,[](API_ARGS,const HttpSession::HttpResponseInvoker &invoker) __VA_ARGS__);
 
@@ -602,13 +604,23 @@ void installWebApi() {
         });
     });
 
-    //关闭拉流代理
-    //测试url http://127.0.0.1/index/api/delFFmepgSource?key=key
-    API_REGIST(api,delFFmpegSource,{
+
+    static auto api_delFFmpegSource = [](API_ARGS,const HttpSession::HttpResponseInvoker &invoker){
         CHECK_SECRET();
         CHECK_ARGS("key");
         lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
         val["data"]["flag"] = s_ffmpegMap.erase(allArgs["key"]) == 1;
+    };
+
+    //关闭拉流代理
+    //测试url http://127.0.0.1/index/api/delFFmepgSource?key=key
+    API_REGIST(api,delFFmpegSource,{
+        api_delFFmpegSource(API_ARGS_VALUE);
+    });
+
+    //此处为了兼容之前的拼写错误
+    API_REGIST(api,delFFmepgSource,{
+        api_delFFmpegSource(API_ARGS_VALUE);
     });
 #endif
 
