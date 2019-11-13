@@ -418,6 +418,13 @@ void installWebApi() {
         });
     });
 
+    //测试url http://127.0.0.1/index/api/isMediaOnline?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
+    API_REGIST(api,isMediaOnline,{
+        CHECK_SECRET();
+        CHECK_ARGS("schema","vhost","app","stream");
+        val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"],false));
+    });
+
     //主动关断流，包括关断拉流、推流
     //测试url http://127.0.0.1/index/api/close_stream?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
     API_REGIST(api,close_stream,{
