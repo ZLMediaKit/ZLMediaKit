@@ -1,0 +1,16 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: build
+      run: ./build_for_linux.sh
+    - name: run
+      run: cd ZLMediaKit/release/linux/Debug && ./MediaServer -d 
+      
