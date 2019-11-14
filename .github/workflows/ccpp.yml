@@ -22,6 +22,4 @@ jobs:
     - name: 运行MediaServer
       run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
 
-    - name: 关闭MediaServer
-      run: sleep 3 && killall -2 MediaServer
       
