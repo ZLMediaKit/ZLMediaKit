@@ -20,5 +20,8 @@ jobs:
       run: mkdir -p linux_build && cd linux_build && cmake .. && make -j4
 
     - name: 运行MediaServer
-      run: pwd && cd release/linux/Debug && ./MediaServer -h
+      run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
+
+    - name: 关闭MediaServer
+      run: sleep 3 && killall -2 MediaServer
       
