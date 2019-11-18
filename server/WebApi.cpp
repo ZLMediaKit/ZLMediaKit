@@ -517,6 +517,28 @@ void installWebApi() {
         session->safeShutdown();
     });
 
+
+    //批量断开tcp连接，比如说可以断开rtsp、rtmp播放器等
+    //测试url http://127.0.0.1/index/api/kick_sessions?local_port=1935
+    API_REGIST(api,kick_sessions,{
+        CHECK_SECRET();
+        uint16_t local_port = allArgs["local_port"].as<uint16_t>();
+        string &peer_ip = allArgs["peer_ip"];
+        uint64_t count_hit = 0;
+
+        SessionMap::Instance().for_each_session([&](const string &id,const TcpSession::Ptr &session){
+            if(local_port != 0 && local_port != session->get_local_port()){
+                return;
+            }
+            if(!peer_ip.empty() && peer_ip != session->get_peer_ip()){
+                return;
+            }
+            session->safeShutdown();
+            ++count_hit;
+        });
+        val["count_hit"] = (Json::UInt64)count_hit;
+    });
+
     static auto addStreamProxy = [](const string &vhost,
                                     const string &app,
                                     const string &stream,
