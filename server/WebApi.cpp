@@ -488,7 +488,7 @@ void installWebApi() {
         string &peer_ip = allArgs["peer_ip"];
 
         SessionMap::Instance().for_each_session([&](const string &id,const TcpSession::Ptr &session){
-            if(local_port != API::Success && local_port != session->get_local_port()){
+            if(local_port != 0 && local_port != session->get_local_port()){
                 return;
             }
             if(!peer_ip.empty() && peer_ip != session->get_peer_ip()){
