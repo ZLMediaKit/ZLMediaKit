@@ -437,10 +437,10 @@ void installWebApi() {
                                      allArgs["stream"]);
         if(src){
             bool flag = src->close(allArgs["force"].as<bool>());
-            val["code"] = flag ? 0 : -1;
+            val["result"] = flag ? 0 : -1;
             val["msg"] = flag ? "success" : "close failed";
         }else{
-            val["code"] = -2;
+            val["result"] = -2;
             val["msg"] = "can not find the stream";
         }
     });
