@@ -445,6 +445,39 @@ void installWebApi() {
         }
     });
 
+    //批量主动关断流，包括关断拉流、推流
+    //测试url http://127.0.0.1/index/api/close_streams?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
+    API_REGIST(api,close_streams,{
+        CHECK_SECRET();
+        //筛选命中个数
+        int count_hit = 0;
+        int count_closed = 0;
+        MediaSource::for_each_media([&](const string &schema,
+                                        const string &vhost,
+                                        const string &app,
+                                        const string &stream,
+                                        const MediaSource::Ptr &media){
+            if(!allArgs["schema"].empty() && allArgs["schema"] != schema){
+                return;
+            }
+            if(!allArgs["vhost"].empty() && allArgs["vhost"] != vhost){
+                return;
+            }
+            if(!allArgs["app"].empty() && allArgs["app"] != app){
+                return;
+            }
+            if(!allArgs["stream"].empty() && allArgs["stream"] != stream){
+                return;
+            }
+            ++count_hit;
+            if(media->close(allArgs["force"].as<bool>())){
+                ++count_closed;
+            }
+        });
+        val["count_hit"] = count_hit;
+        val["count_closed"] = count_closed;
+    });
+
     //获取所有TcpSession列表信息
     //可以根据本地端口和远端ip来筛选
     //测试url(筛选某端口下的tcp会话) http://127.0.0.1/index/api/getAllSession?local_port=1935
