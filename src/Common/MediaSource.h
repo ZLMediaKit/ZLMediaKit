@@ -167,8 +167,13 @@ public:
         }
         listener->onNoneReader(*this);
     }
+
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _listener = listener;
+    }
+
+    std::weak_ptr<MediaSourceEvent> getListener(){
+        return _listener;
     }
 
     template <typename FUN>
