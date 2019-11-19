@@ -452,6 +452,7 @@ void installWebApi() {
         //筛选命中个数
         int count_hit = 0;
         int count_closed = 0;
+        list<MediaSource::Ptr> media_list;
         MediaSource::for_each_media([&](const string &schema,
                                         const string &vhost,
                                         const string &app,
@@ -470,10 +471,15 @@ void installWebApi() {
                 return;
             }
             ++count_hit;
-            if(media->close(allArgs["force"].as<bool>())){
+            media_list.emplace_back(media);
+        });
+
+        bool force = allArgs["force"].as<bool>();
+        for(auto &media : media_list){
+            if(media->close(force)){
                 ++count_closed;
             }
-        });
+        }
         val["count_hit"] = count_hit;
         val["count_closed"] = count_closed;
     });
@@ -526,6 +532,7 @@ void installWebApi() {
         string &peer_ip = allArgs["peer_ip"];
         uint64_t count_hit = 0;
 
+        list<TcpSession::Ptr> session_list;
         SessionMap::Instance().for_each_session([&](const string &id,const TcpSession::Ptr &session){
             if(local_port != 0 && local_port != session->get_local_port()){
                 return;
@@ -533,9 +540,13 @@ void installWebApi() {
             if(!peer_ip.empty() && peer_ip != session->get_peer_ip()){
                 return;
             }
-            session->safeShutdown();
+            session_list.emplace_back(session);
             ++count_hit;
         });
+
+        for(auto &session : session_list){
+            session->safeShutdown();
+        }
         val["count_hit"] = (Json::UInt64)count_hit;
     });
 
