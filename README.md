@@ -8,12 +8,11 @@
 
 ## Why ZLMediaKit?
 - Developed based on C++ 11, the code is stable and reliable, avoiding the use of raw pointers, cross-platform porting is simple and convenient, and the code is clear and concise.
-- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV`),and support Inter-protocol conversion.
+- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV/Websocket-flv`),and support Inter-protocol conversion.
 - Multiplexing asynchronous network IO based on epoll and multi thread，extreme performance.
 - Well performance and stable test,can be used commercially.
 - Support linux, macos, ios, android, Windows Platforms.
 - Very low latency(lower then one second), video opened immediately.
-- **Now Support websocket-flv!**
 
 ## Features
 
@@ -118,18 +117,18 @@
 - Apple OSX(Darwin), both 32 and 64bits.
 - All hardware with x86/x86_64/arm/mips cpu.
 - Windows.
+
+## How to build
+
+It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumbersome, and some features are not compiled by default.
+
+### Before build
 - **You must use git to clone the complete code. Do not download the source code by downloading zip package. Otherwise, the sub-module code will not be downloaded by default.You can do it like this:**
 ```
 git clone https://github.com/zlmediakit/ZLMediaKit.git
 cd ZLMediaKit
 git submodule update --init
 ```
-
-
-
-## How to build
-
-It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumbersome, and some features are not compiled by default.
 
 ### Build on linux
 
@@ -307,6 +306,17 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 	});
 	
 	```
+## Docker Image
+You can pull a pre-built docker image from Docker Hub and run with
+```bash
+docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
+```
+
+Dockerfile is also supplied to build images on Ubuntu 16.04
+```bash
+cd docker
+docker build -t zlmediakit .
+```
 
 ## Mirrors
 

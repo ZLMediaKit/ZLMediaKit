@@ -105,7 +105,7 @@ void RtspPlayer::play(const string &strUrl){
 }
 
 void RtspPlayer::play(bool isSSL,const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType ) {
-	DebugL   << strUrl << " "
+	DebugL  << strUrl << " "
 			<< (strUser.size() ? strUser : "null") << " "
 			<< (strPwd.size() ? strPwd:"null") << " "
 			<< eType;
@@ -122,7 +122,7 @@ void RtspPlayer::play(bool isSSL,const string &strUrl, const string &strUser, co
 	_eType = eType;
 
 	auto ip = FindField(strUrl.data(), "://", "/");
-	if (!ip.size()) {
+	if (ip.empty()) {
 		ip = split(FindField(strUrl.data(), "://", NULL),"?")[0];
 	}
 	auto port = atoi(FindField(ip.data(), ":", NULL).data());
@@ -132,6 +132,11 @@ void RtspPlayer::play(bool isSSL,const string &strUrl, const string &strUser, co
 	} else {
 		//服务器域名
 		ip = FindField(ip.data(), NULL, ":");
+	}
+
+	if(ip.empty()){
+		onPlayResult_l(SockException(Err_other,StrPrinter << "illegal rtsp url:" << strUrl));
+		return;
 	}
 
 	_strUrl = strUrl;
@@ -271,6 +276,13 @@ void RtspPlayer::createUdpSockIfNecessary(int track_idx){
 			rtcpSockRef.reset();
 			throw std::runtime_error("open rtcp sock failed");
 		}
+	}
+
+	if(rtpSockRef->get_local_port() % 2 != 0){
+		//如果rtp端口不是偶数，那么与rtcp端口互换，目的是兼容一些要求严格的服务器
+		Socket::Ptr tmp = rtpSockRef;
+		rtpSockRef = rtcpSockRef;
+		rtcpSockRef = tmp;
 	}
 }
 

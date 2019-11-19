@@ -39,7 +39,7 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-class FFmpegSource : public std::enable_shared_from_this<FFmpegSource>{
+class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public MediaSourceEvent{
 public:
     typedef shared_ptr<FFmpegSource> Ptr;
     typedef function<void(const SockException &ex)> onPlay;
@@ -55,6 +55,10 @@ public:
 private:
     void findAsync(int maxWaitMS ,const function<void(const MediaSource::Ptr &src)> &cb);
     void startTimer(int timeout_ms);
+    void onGetMediaSource(const MediaSource::Ptr &src);
+
+    bool close(MediaSource &sender,bool force) override;
+    void onNoneReader(MediaSource &sender) override ;
 private:
     Process _process;
     Timer::Ptr _timer;
@@ -63,6 +67,7 @@ private:
     string _src_url;
     string _dst_url;
     function<void()> _onClose;
+    std::weak_ptr<MediaSourceEvent> _listener;
 };
 
 

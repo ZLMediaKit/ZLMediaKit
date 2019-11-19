@@ -93,13 +93,14 @@ void HlsMaker::delOldSegment() {
         return;
     }
     //在hls m3u8索引文件中,我们保存的切片个数跟_seg_number相关设置一致
-    if (_file_index >= _seg_number + 2) {
+    if (_file_index > _seg_number) {
         _seg_dur_list.pop_front();
     }
 
-    //但是实际保存的切片个数比m3u8所述多两个,这样做的目的是防止播放器在切片删除前能下载完毕
-    if (_file_index >= _seg_number + 4) {
-        onDelSegment(_file_index - _seg_number - 4);
+    GET_CONFIG(uint32_t,segRetain,Hls::kSegmentRetain);
+    //但是实际保存的切片个数比m3u8所述多若干个,这样做的目的是防止播放器在切片删除前能下载完毕
+    if (_file_index > _seg_number + segRetain) {
+        onDelSegment(_file_index - _seg_number - segRetain - 1);
     }
 }
 

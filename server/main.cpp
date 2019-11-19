@@ -148,7 +148,7 @@ public:
                              Option::ArgRequired,/*该选项后面必须跟值*/
                              (exeDir() + "ssl.p12").data(),/*该选项默认值*/
                              false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
-                             "ssl证书路径,支持p12/pem类型",/*该选项说明文字*/
+                             "ssl证书文件或文件夹,支持p12/pem类型",/*该选项说明文字*/
                              nullptr);
 
         (*_parser) << Option('t',/*该选项简称，如果是\x00则说明无简称*/
@@ -205,6 +205,8 @@ static void inline listen_shell_input(){
 }
 #endif//!defined(_WIN32)
 
+//全局变量，在WebApi中用于保存配置文件用
+string g_ini_file;
 
 int start_main(int argc,char *argv[]) {
     {
@@ -219,7 +221,7 @@ int start_main(int argc,char *argv[]) {
         bool bDaemon = cmd_main.hasKey("daemon");
         LogLevel logLevel = (LogLevel) cmd_main["level"].as<int>();
         logLevel = MIN(MAX(logLevel, LTrace), LError);
-        static string ini_file = cmd_main["config"];
+        g_ini_file = cmd_main["config"];
         string ssl_file = cmd_main["ssl"];
         int threads = cmd_main["threads"];
 
@@ -244,14 +246,21 @@ int start_main(int argc,char *argv[]) {
         //启动异步日志线程
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
         //加载配置文件，如果配置文件不存在就创建一个
-        loadIniConfig(ini_file.data());
+        loadIniConfig(g_ini_file.data());
 
-        //加载证书，证书包含公钥和私钥
-        SSL_Initor::Instance().loadCertificate(ssl_file.data());
-        //信任某个自签名证书
-        SSL_Initor::Instance().trustCertificate(ssl_file.data());
-        //不忽略无效证书证书(例如自签名或过期证书)
-        SSL_Initor::Instance().ignoreInvalidCertificate(true);
+        if(!File::is_dir(ssl_file.data())){
+            //不是文件夹，加载证书，证书包含公钥和私钥
+            SSL_Initor::Instance().loadCertificate(ssl_file.data());
+        }else{
+            //加载文件夹下的所有证书
+            File::scanDir(ssl_file,[](const string &path, bool isDir){
+                if(!isDir){
+                    //最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
+                    SSL_Initor::Instance().loadCertificate(path.data());
+                }
+                return true;
+            });
+        }
 
         uint16_t shellPort = mINI::Instance()[Shell::kPort];
         uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
@@ -306,7 +315,7 @@ int start_main(int argc,char *argv[]) {
         });// 设置退出信号
 
 #if !defined(_WIN32)
-        signal(SIGHUP, [](int) { mediakit::loadIniConfig(ini_file.data()); });
+        signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });
 #endif
         sem.wait();
     }

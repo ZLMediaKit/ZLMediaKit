@@ -182,6 +182,12 @@ extern const string kAddMuteAudio;
 //拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
 //如果不删除将会接着上一次的数据继续写(录制hls/mp4时会继续在前一个文件后面写)
 extern const string kResetWhenRePlay;
+//是否默认推流时转换成rtsp或rtmp，hook接口(on_publish)中可以覆盖该设置
+extern const string kPublishToRtxp ;
+//是否默认推流时转换成hls，hook接口(on_publish)中可以覆盖该设置
+extern const string kPublishToHls ;
+//是否默认推流时mp4录像，hook接口(on_publish)中可以覆盖该设置
+extern const string kPublishToMP4 ;
 }//namespace General
 
 
@@ -283,8 +289,10 @@ extern const string kFileRepeat;
 namespace Hls {
 //HLS切片时长,单位秒
 extern const string kSegmentDuration;
-//HLS切片个数，如果设置为0，则不删除切片，而是保存为点播
+//m3u8文件中HLS切片个数，如果设置为0，则不删除切片，而是保存为点播
 extern const string kSegmentNum;
+//HLS切片从m3u8文件中移除后，继续保留在磁盘上的个数
+extern const string kSegmentRetain;
 //HLS文件写缓存大小
 extern const string kFileBufSize;
 //录制文件路径
