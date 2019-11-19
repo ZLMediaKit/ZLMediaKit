@@ -61,7 +61,7 @@ protected:
 	void seekToMilliSecond(uint32_t ms);
 protected:
 	void onMediaData_l(const RtmpPacket::Ptr &chunkData);
-	void onPlayResult_l(const SockException &ex);
+	void onPlayResult_l(const SockException &ex, bool handshakeCompleted);
 
 	//form Tcpclient
 	void onRecv(const Buffer::Ptr &pBuf) override;
@@ -103,9 +103,6 @@ private:
 	recursive_mutex _mtxOnResultCB;
 	deque<function<void(AMFValue &dec)> > _dqOnStatusCB;
 	recursive_mutex _mtxOnStatusCB;
-
-	typedef void (RtmpPlayer::*rtmpCMDHandle)(AMFDecoder &dec);
-	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
 
 	//超时功能实现
 	Ticker _mediaTicker;
