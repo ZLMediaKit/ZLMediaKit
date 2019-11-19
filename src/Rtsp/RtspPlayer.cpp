@@ -277,6 +277,13 @@ void RtspPlayer::createUdpSockIfNecessary(int track_idx){
 			throw std::runtime_error("open rtcp sock failed");
 		}
 	}
+
+	if(rtpSockRef->get_local_port() % 2 != 0){
+		//如果rtp端口不是偶数，那么与rtcp端口互换，目的是兼容一些要求严格的服务器
+		Socket::Ptr tmp = rtpSockRef;
+		rtpSockRef = rtcpSockRef;
+		rtcpSockRef = tmp;
+	}
 }
 
 
