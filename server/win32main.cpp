@@ -106,6 +106,14 @@ onceToken token1([](){
 
 class CMD_main;
 
+TcpServer* shellSrv = 0;
+TcpServer* rtspSrv = 0;
+TcpServer* rtmpSrv = 0;
+TcpServer* httpSrv = 0;
+//如果支持ssl，还可以开启https服务器
+TcpServer* httpsSrv = 0;
+//支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
+TcpServer* rtspSSLSrv = 0;
 static MediaServer_ServerState sServerState = MediaServerStartingUpState;
 const char* theXMLFilePath = 0;
 char* theServerName = "";
@@ -614,10 +622,10 @@ MediaServer_ServerState StartServer(CMD_main& cmd_main) {
 
 	//简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
 	//测试方法:telnet 127.0.0.1 9000
-	TcpServer::Ptr shellSrv(new TcpServer());
-	TcpServer::Ptr rtspSrv(new TcpServer());
-	TcpServer::Ptr rtmpSrv(new TcpServer());
-	TcpServer::Ptr httpSrv(new TcpServer());
+	shellSrv = new TcpServer();
+	rtspSrv = new TcpServer();
+	rtmpSrv = new TcpServer();
+	httpSrv = new TcpServer();
 
 	shellSrv->start<ShellSession>(shellPort);
 	rtspSrv->start<RtspSession>(rtspPort);//默认10554
@@ -626,12 +634,12 @@ MediaServer_ServerState StartServer(CMD_main& cmd_main) {
 	httpSrv->start<HttpSession>(httpPort);//默认80
 
 	//如果支持ssl，还可以开启https服务器
-	TcpServer::Ptr httpsSrv(new TcpServer());
+	httpsSrv = new TcpServer();
 	//https服务器,支持websocket
 	httpsSrv->start<HttpsSession>(httpsPort);//默认443
 
 	//支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
-	TcpServer::Ptr rtspSSLSrv(new TcpServer());
+	rtspSSLSrv = new TcpServer();
 	rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);//默认322
 
 	installWebApi();
@@ -660,6 +668,14 @@ void RunServer() {
 	
 	unInstallWebApi();
 	unInstallWebHook();
+
+	if (shellSrv) delete shellSrv; shellSrv = 0;
+	if (rtspSrv) delete rtspSrv; rtspSrv = 0;
+	if (rtmpSrv) delete  rtmpSrv;  rtmpSrv = 0;
+	if (httpSrv) delete httpSrv;  httpSrv = 0;
+	if (httpsSrv) delete httpsSrv; httpsSrv = 0;
+	if (rtspSSLSrv) delete rtspSSLSrv; rtspSSLSrv = 0;
+
 	//休眠1秒再退出，防止资源释放顺序错误
 	InfoL << "程序退出中,请等待...";
 	sleep(1);
