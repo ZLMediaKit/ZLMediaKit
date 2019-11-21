@@ -64,7 +64,7 @@ PlayerBase::PlayerBase() {
 	this->mINI::operator[](kTimeoutMS) = 10000;
 	this->mINI::operator[](kMediaTimeoutMS) = 5000;
 	this->mINI::operator[](kBeatIntervalMS) = 5000;
-	this->mINI::operator[](kMaxAnalysisMS) = 2000;
+	this->mINI::operator[](kMaxAnalysisMS) = 5000;
 }
 
 ///////////////////////////Demuxer//////////////////////////////
