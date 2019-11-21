@@ -433,8 +433,9 @@ static string findIndexFile(const string &dir){
     while ((pDirent = readdir(pDir)) != NULL) {
         static set<const char *,StrCaseCompare> indexSet = {"index.html","index.htm","index"};
         if(indexSet.find(pDirent->d_name) !=  indexSet.end()){
+            string ret = pDirent->d_name;
             closedir(pDir);
-            return pDirent->d_name;
+            return ret;
         }
     }
     closedir(pDir);
