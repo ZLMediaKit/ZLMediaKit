@@ -69,12 +69,18 @@ PlayerBase::PlayerBase() {
 
 ///////////////////////////Demuxer//////////////////////////////
 bool Demuxer::isInited(int analysisMs) {
-	if(_ticker.createdTime() < analysisMs){
-		//analysisMs毫秒内判断条件
-		//如果音视频都准备好了 ，说明Track全部就绪
-		return (_videoTrack &&  _videoTrack->ready() && _audioTrack && _audioTrack->ready());
+	if(analysisMs && _ticker.createdTime() > analysisMs){
+		//analysisMs毫秒后强制初始化完毕
+		return true;
 	}
-	//analysisMs毫秒后强制初始化完毕
+	if (_videoTrack && !_videoTrack->ready()) {
+		//视频未准备好
+		return false;
+	}
+	if (_audioTrack && !_audioTrack->ready()) {
+		//音频未准备好
+		return false;
+	}
 	return true;
 }
 
