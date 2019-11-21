@@ -87,7 +87,7 @@ private:
     //如果超过这个时间还未获取成功，那么会强制触发onPlayResult事件(虽然此时有些track还未初始化成功)
     void onPlayResult(const SockException &ex) override {
         //isInited判断条件：无超时
-        if(_parser->isInited(0)){
+        if(ex || _parser->isInited(0)){
             //已经初始化成功，说明sdp里面有完善的信息
             PlayerImp<RtspPlayer,RtspDemuxer>::onPlayResult(ex);
         }else{
