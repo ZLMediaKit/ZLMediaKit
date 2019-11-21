@@ -61,6 +61,7 @@ protected:
 	void seekToMilliSecond(uint32_t ms);
 protected:
 	void onMediaData_l(const RtmpPacket::Ptr &chunkData);
+	//在获取config帧后才触发onPlayResult_l(而不是收到play命令回复)，所以此时所有track都初始化完毕了
 	void onPlayResult_l(const SockException &ex, bool handshakeCompleted);
 
 	//form Tcpclient

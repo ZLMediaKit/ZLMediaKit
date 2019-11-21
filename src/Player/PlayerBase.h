@@ -236,18 +236,10 @@ protected:
 	}
 
 	void onPlayResult(const SockException &ex) override {
-		if(!_playResultCB){
-			return;
-		}
-		if(ex){
-			//播放失败，则立即回调
+		if(_playResultCB) {
 			_playResultCB(ex);
 			_playResultCB = nullptr;
-			return;
 		}
-		//播放成功
-		_playResultCB(ex);
-		_playResultCB = nullptr;
 	}
 
 	void onResume() override{
