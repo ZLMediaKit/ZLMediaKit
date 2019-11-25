@@ -30,7 +30,7 @@
 #include <memory>
 #include "Player/PlayerBase.h"
 #include "Common/MediaSink.h"
-#include "Mp4Maker.h"
+#include "MP4Recorder.h"
 #include "HlsRecorder.h"
 
 using namespace toolkit;
@@ -51,22 +51,27 @@ public:
      * 输入frame
      * @param frame
      */
-	void inputFrame(const Frame::Ptr &frame) override ;
+	void inputFrame(const Frame::Ptr &frame) override;
 
 	/**
      * 添加track，内部会调用Track的clone方法
      * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
      * @param track
      */
-	void addTrack(const Track::Ptr & track) override;
+	void addTrack(const Track::Ptr &track) override;
+
+	/**
+	 * 重置track
+	 */
+	void resetTracks() override;
 private:
 #if defined(ENABLE_HLS)
-	std::shared_ptr<HlsRecorder> _hlsMaker;
+	std::shared_ptr<HlsRecorder> _hlsRecorder;
 #endif //defined(ENABLE_HLS)
 
-#if defined(ENABLE_MP4V2)
-	std::shared_ptr<Mp4Maker> _mp4Maker;
-#endif //defined(ENABLE_MP4V2)
+#if defined(ENABLE_MP4RECORD)
+	std::shared_ptr<MP4Recorder> _mp4Recorder;
+#endif //defined(ENABLE_MP4RECORD)
 };
 
 } /* namespace mediakit */

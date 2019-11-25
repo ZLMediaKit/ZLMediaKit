@@ -124,11 +124,11 @@ int main(int argc,char *argv[]){
 
 	//开启http服务器
 	TcpServer::Ptr httpSrv(new TcpServer());
-	httpSrv->start<EchoWebSocketSession>(mINI::Instance()[Http::kPort]);//默认80
+	httpSrv->start<HttpSession>(mINI::Instance()[Http::kPort]);//默认80
 
     //如果支持ssl，还可以开启https服务器
 	TcpServer::Ptr httpsSrv(new TcpServer());
-	httpsSrv->start<SSLEchoWebSocketSession>(mINI::Instance()[Http::kSSLPort]);//默认443
+	httpsSrv->start<HttpsSession>(mINI::Instance()[Http::kSSLPort]);//默认443
 
 	InfoL << "你可以在浏览器输入:http://127.0.0.1/api/my_api?key0=val0&key1=参数1" << endl;
 

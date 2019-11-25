@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -40,17 +40,22 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
     _path_hls = m3u8_file;
     _params = params;
     _buf_size = bufSize;
+    _is_vod = seg_number == 0;
     _file_buf.reset(new char[bufSize],[](char *ptr){
         delete[] ptr;
     });
 }
 
 HlsMakerImp::~HlsMakerImp() {
-    _file.reset();
-    File::delete_file(_path_prefix.data());
+    //录制完了
+    flushLastSegment(true);
+    if(!_is_vod){
+        //hls直播才删除文件
+        File::delete_file(_path_prefix.data());
+    }
 }
 
-string HlsMakerImp::onOpenFile(int index) {
+string HlsMakerImp::onOpenSegment(int index) {
     auto full_path = fullPath(index);
     _file = makeFile(full_path, true);
     if(!_file){
@@ -63,12 +68,12 @@ string HlsMakerImp::onOpenFile(int index) {
     return StrPrinter << index << ".ts" << "?" << _params;
 }
 
-void HlsMakerImp::onDelFile(int index) {
+void HlsMakerImp::onDelSegment(int index) {
     //WarnL << index;
     File::delete_file(fullPath(index).data());
 }
 
-void HlsMakerImp::onWriteFile(const char *data, int len) {
+void HlsMakerImp::onWriteSegment(const char *data, int len) {
     if (_file) {
         fwrite(data, len, 1, _file.get());
     }

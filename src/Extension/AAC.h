@@ -48,7 +48,7 @@ string 	makeAdtsConfig(const uint8_t *pcAdts);
 void 	getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel);
 
 
-    /**
+/**
  * aac帧，包含adts头
  */
 class AACFrame : public Frame {
@@ -77,6 +77,10 @@ public:
     }
 
     bool keyFrame() const override {
+        return false;
+    }
+
+    bool configFrame() const override{
         return false;
     }
 public:
@@ -127,6 +131,10 @@ public:
     bool keyFrame() const override {
         return false;
     }
+
+    bool configFrame() const override{
+        return false;
+    }
 } ;
 
 
@@ -148,10 +156,10 @@ public:
      * @param aac_cfg aac两个字节的配置信息
      */
     AACTrack(const string &aac_cfg){
-        if(aac_cfg.size() != 2){
-            throw std::invalid_argument("adts配置必须为2个字节");
+        if(aac_cfg.size() < 2){
+            throw std::invalid_argument("adts配置必须最少2个字节");
         }
-        _cfg = aac_cfg;
+        _cfg = aac_cfg.substr(0,2);
         onReady();
     }
 

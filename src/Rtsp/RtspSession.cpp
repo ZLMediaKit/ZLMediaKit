@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -71,7 +71,6 @@ namespace mediakit {
 static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
 //对g_mapGetter上锁保护
 static recursive_mutex g_mtxGetter;
-static int kSockFlags = SOCKET_DEFAULE_FLAGS | FLAG_MORE;
 
 RtspSession::RtspSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
     DebugP(this);
@@ -86,7 +85,13 @@ RtspSession::~RtspSession() {
 }
 
 void RtspSession::onError(const SockException& err) {
-	WarnP(this) << err.what();
+    bool isPlayer = !_pushSrc;
+    WarnP(this) << (isPlayer ? "播放器(" : "推流器(")
+                << _mediaInfo._vhost << "/"
+                << _mediaInfo._app << "/"
+                << _mediaInfo._streamid
+                << ")断开:" << err.what();
+
 	if (_rtpType == Rtsp::RTP_MULTICAST) {
 		//取消UDP端口监听
 		UDPServer::Instance().stopListenPeer(get_peer_ip().data(), this);
@@ -101,7 +106,6 @@ void RtspSession::onError(const SockException& err) {
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
     if(_ui64TotalBytes > iFlowThreshold * 1024){
-        bool isPlayer = !_pushSrc;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
 										   _mediaInfo,
 										   _ui64TotalBytes,
@@ -113,7 +117,7 @@ void RtspSession::onError(const SockException& err) {
 }
 
 void RtspSession::onManager() {
-    GET_CONFIG(uint32_t,handshake_sec,Rtsp::kKeepAliveSecond);
+    GET_CONFIG(uint32_t,handshake_sec,Rtsp::kHandshakeSecond);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtsp::kKeepAliveSecond);
 
     if (_ticker.createdTime() > handshake_sec * 1000) {
@@ -143,6 +147,12 @@ void RtspSession::onRecv(const Buffer::Ptr &pBuf) {
 	}
 }
 
+//字符串是否以xx结尾
+static inline bool end_of(const string &str, const string &substr){
+    auto pos = str.rfind(substr);
+    return pos != string::npos && pos == str.size() - substr.size();
+};
+
 void RtspSession::onWholeRtspPacket(Parser &parser) {
 	string strCmd = parser.Method(); //提取出请求命令字
 	_iCseq = atoi(parser["CSeq"].data());
@@ -153,24 +163,24 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
     }
 
 	typedef void (RtspSession::*rtsp_request_handler)(const Parser &parser);
-	static unordered_map<string, rtsp_request_handler> s_handler_map;
+	static unordered_map<string, rtsp_request_handler> s_cmd_functions;
 	static onceToken token( []() {
-		s_handler_map.emplace("OPTIONS",&RtspSession::handleReq_Options);
-		s_handler_map.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
-		s_handler_map.emplace("ANNOUNCE",&RtspSession::handleReq_ANNOUNCE);
-		s_handler_map.emplace("RECORD",&RtspSession::handleReq_RECORD);
-		s_handler_map.emplace("SETUP",&RtspSession::handleReq_Setup);
-		s_handler_map.emplace("PLAY",&RtspSession::handleReq_Play);
-		s_handler_map.emplace("PAUSE",&RtspSession::handleReq_Pause);
-		s_handler_map.emplace("TEARDOWN",&RtspSession::handleReq_Teardown);
-		s_handler_map.emplace("GET",&RtspSession::handleReq_Get);
-		s_handler_map.emplace("POST",&RtspSession::handleReq_Post);
-		s_handler_map.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
-		s_handler_map.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
+		s_cmd_functions.emplace("OPTIONS",&RtspSession::handleReq_Options);
+		s_cmd_functions.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
+		s_cmd_functions.emplace("ANNOUNCE",&RtspSession::handleReq_ANNOUNCE);
+		s_cmd_functions.emplace("RECORD",&RtspSession::handleReq_RECORD);
+		s_cmd_functions.emplace("SETUP",&RtspSession::handleReq_Setup);
+		s_cmd_functions.emplace("PLAY",&RtspSession::handleReq_Play);
+		s_cmd_functions.emplace("PAUSE",&RtspSession::handleReq_Pause);
+		s_cmd_functions.emplace("TEARDOWN",&RtspSession::handleReq_Teardown);
+		s_cmd_functions.emplace("GET",&RtspSession::handleReq_Get);
+		s_cmd_functions.emplace("POST",&RtspSession::handleReq_Post);
+		s_cmd_functions.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
+		s_cmd_functions.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
 	}, []() {});
 
-	auto it = s_handler_map.find(strCmd);
-	if (it == s_handler_map.end()) {
+	auto it = s_cmd_functions.find(strCmd);
+	if (it == s_cmd_functions.end()) {
         sendRtspResponse("403 Forbidden");
         shutdown(SockException(Err_shutdown,StrPrinter << "403 Forbidden:" << strCmd));
         return;
@@ -242,14 +252,22 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 		throw SockException(Err_shutdown,err);
 	}
 
-	_strSession = makeRandStr(12);
-    _strSdp = parser.Content();
-    _aTrackInfo = SdpParser(_strSdp).getAvailableTrack();
+    auto full_url = parser.FullUrl();
+    if(end_of(full_url,".sdp")){
+        //去除.sdp后缀，防止EasyDarwin推流器强制添加.sdp后缀
+        full_url = full_url.substr(0,full_url.length() - 4);
+        _mediaInfo.parse(full_url);
+    }
+
+    SdpParser sdpParser(parser.Content());
+    _strSession = makeRandStr(12);
+    _aTrackInfo = sdpParser.getAvailableTrack();
 
 	_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
-	_pushSrc->onGetSDP(_strSdp);
-	sendRtspResponse("200 OK");
+	_pushSrc->onGetSDP(sdpParser.toString());
+
+	sendRtspResponse("200 OK",{"Content-Base",_strContentBase + "/"});
 }
 
 void RtspSession::handleReq_RECORD(const Parser &parser){
@@ -257,13 +275,16 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 		send_SessionNotFound();
         throw SockException(Err_shutdown,_aTrackInfo.empty() ? "can not find any availabe track when record" : "session not found when record");
 	}
-	auto onRes = [this](const string &err){
+	auto onRes = [this](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
 		bool authSuccess = err.empty();
 		if(!authSuccess){
 			sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
 			shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << err));
 			return;
 		}
+
+        //设置转协议
+        _pushSrc->setProtocolTranslation(enableRtxp,enableHls,enableMP4);
 
 		_StrPrinter rtp_info;
 		for(auto &track : _aTrackInfo){
@@ -277,26 +298,25 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 
 		rtp_info.pop_back();
 		sendRtspResponse("200 OK", {"RTP-Info",rtp_info});
-		SockUtil::setNoDelay(_sock->rawFD(),false);
 		if(_rtpType == Rtsp::RTP_TCP){
 			//如果是rtsp推流服务器，并且是TCP推流，那么加大TCP接收缓存，这样能提升接收性能
 			_sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+            setSocketFlags();
 		}
-		(*this) << SocketFlags(kSockFlags);
 	};
 
 	weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-	Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
+	Broadcast::PublishAuthInvoker invoker = [weakSelf,onRes](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
 		auto strongSelf = weakSelf.lock();
 		if(!strongSelf){
 			return;
 		}
-		strongSelf->async([weakSelf,onRes,err](){
+		strongSelf->async([weakSelf,onRes,err,enableRtxp,enableHls,enableMP4](){
 			auto strongSelf = weakSelf.lock();
 			if(!strongSelf){
 				return;
 			}
-			onRes(err);
+			onRes(err,enableRtxp,enableHls,enableMP4);
 		});
 	};
 
@@ -304,8 +324,11 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 	auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,_mediaInfo,invoker,*this);
 	if(!flag){
 		//该事件无人监听,默认不鉴权
-		onRes("");
-	}
+        GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
+        GET_CONFIG(bool,toHls,General::kPublishToHls);
+        GET_CONFIG(bool,toMP4,General::kPublishToMP4);
+        onRes("",toRtxp,toHls,toMP4);
+    }
 }
 
 void RtspSession::handleReq_Describe(const Parser &parser) {
@@ -361,14 +384,13 @@ void RtspSession::onAuthSuccess() {
             strongSelf->shutdown(SockException(Err_shutdown,err));
             return;
         }
-        //找到了响应的rtsp流
-        strongSelf->_strSdp = rtsp_src->getSdp();
-        SdpParser sdpParser(strongSelf->_strSdp);
-        strongSelf->_aTrackInfo = sdpParser.getAvailableTrack();
+        //找到了相应的rtsp流
+        strongSelf->_aTrackInfo = SdpParser(rtsp_src->getSdp()).getAvailableTrack();
         if (strongSelf->_aTrackInfo.empty()) {
             //该流无效
+			DebugL << "无trackInfo，该流无效";
             strongSelf->send_StreamNotFound();
-            strongSelf->shutdown(SockException(Err_shutdown,"can not find any availabe track in sdp"));
+            strongSelf->shutdown(SockException(Err_shutdown,"can not find any available track in sdp"));
             return;
         }
         strongSelf->_strSession = makeRandStr(12);
@@ -383,7 +405,7 @@ void RtspSession::onAuthSuccess() {
                                      {"Content-Base",strongSelf->_strContentBase + "/",
                                       "x-Accept-Retransmit","our-retransmit",
                                       "x-Accept-Dynamic-Rate","1"
-                                     },strongSelf->_strSdp);
+                                     },rtsp_src->getSdp());
     });
 }
 void RtspSession::onAuthFailed(const string &realm,const string &why,bool close) {
@@ -572,7 +594,7 @@ inline void RtspSession::send_SessionNotFound() {
 
 void RtspSession::handleReq_Setup(const Parser &parser) {
 //处理setup命令，该函数可能进入多次
-    auto controlSuffix = split(parser.Url(),"/").back();// parser.FullUrl().substr(_strContentBase.size());
+    auto controlSuffix = split(parser.FullUrl(),"/").back();// parser.FullUrl().substr(_strContentBase.size());
     if(controlSuffix.front() == '/'){
 		controlSuffix = controlSuffix.substr(1);
     }
@@ -675,14 +697,14 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 	}
 		break;
 	case Rtsp::RTP_MULTICAST: {
-		if(!_pBrdcaster){
-			_pBrdcaster = RtpBroadCaster::get(getPoller(),get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
-			if (!_pBrdcaster) {
+		if(!_multicaster){
+			_multicaster = RtpMultiCaster::get(getPoller(),get_local_ip(),_mediaInfo._vhost, _mediaInfo._app, _mediaInfo._streamid);
+			if (!_multicaster) {
 				send_NotAcceptable();
                 throw SockException(Err_shutdown, "can not get a available udp multicast socket");
             }
 			weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-			_pBrdcaster->setDetachCB(this, [weakSelf]() {
+			_multicaster->setDetachCB(this, [weakSelf]() {
 				auto strongSelf = weakSelf.lock();
 				if(!strongSelf) {
 					return;
@@ -690,7 +712,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 				strongSelf->safeShutdown(SockException(Err_shutdown,"ring buffer detached"));
 			});
 		}
-		int iSrvPort = _pBrdcaster->getPort(trackRef->_type);
+		int iSrvPort = _multicaster->getPort(trackRef->_type);
 		//我们用trackIdx区分rtp和rtcp包
 		//由于组播udp端口是共享的，而rtcp端口为组播udp端口+1，所以rtcp端口需要改成共享端口
 		auto pSockRtcp = UDPServer::Instance().getSock(getPoller(),get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
@@ -704,7 +726,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 
 		sendRtspResponse("200 OK",
 						 {"Transport",StrPrinter << "RTP/AVP;multicast;"
-												 << "destination=" << _pBrdcaster->getIP() << ";"
+												 << "destination=" << _multicaster->getIP() << ";"
 												 << "source=" << get_local_ip() << ";"
 												 << "port=" << iSrvPort << "-" << pSockRtcp->get_local_port() << ";"
 												 << "ttl=" << udpTTL << ";"
@@ -781,10 +803,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
 						 });
 
 		_enableSendRtp = true;
-
-		//提高发送性能
-		SockUtil::setNoDelay(_sock->rawFD(),false);
-		(*this) << SocketFlags(kSockFlags);
+        setSocketFlags();
 
 		if (!_pRtpReader && _rtpType != Rtsp::RTP_MULTICAST) {
 			weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
@@ -918,6 +937,12 @@ inline void RtspSession::send_NotAcceptable() {
 
 
 void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
+    GET_CONFIG(bool,modify_stamp,Rtsp::kModifyStamp);
+    if(modify_stamp){
+        int64_t dts_out;
+        _stamp[trackidx].revise(0, 0, dts_out, dts_out, true);
+        rtppt->timeStamp = dts_out;
+    }
 	_pushSrc->onWrite(rtppt, false);
 }
 inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {
@@ -1222,6 +1247,16 @@ void RtspSession::sendSenderReport(bool overTcp,int iTrackIndex) {
         send(obtainBuffer((char *) aui8Rtcp, sizeof(aui8Rtcp)));
     }else {
         _apRtcpSock[iTrackIndex]->send((char *) aui8Rtcp + 4, sizeof(aui8Rtcp) - 4);
+    }
+}
+
+void RtspSession::setSocketFlags(){
+    GET_CONFIG(bool,ultraLowDelay,General::kUltraLowDelay);
+    if(!ultraLowDelay) {
+        //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
+        SockUtil::setNoDelay(_sock->rawFD(), false);
+        //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
+        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }
 }
 

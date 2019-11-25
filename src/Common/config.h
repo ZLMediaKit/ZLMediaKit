@@ -92,13 +92,20 @@ extern const string kBroadcastOnGetRtspRealm;
 extern const string kBroadcastOnRtspAuth;
 #define BroadcastOnRtspAuthArgs const MediaInfo &args,const string &realm,const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker,TcpSession &sender
 
-//鉴权结果回调对象
+//推流鉴权结果回调对象
 //如果errMessage为空则代表鉴权成功
-typedef std::function<void(const string &errMessage)> AuthInvoker;
+//enableHls: 是否允许转换hls
+//enableMP4: 是否运行MP4录制
+//enableRtxp: rtmp推流时是否运行转rtsp；rtsp推流时，是否允许转rtmp
+typedef std::function<void(const string &errMessage,bool enableRtxp,bool enableHls,bool enableMP4)> PublishAuthInvoker;
 
 //收到rtsp/rtmp推流事件广播，通过该事件控制推流鉴权
 extern const string kBroadcastMediaPublish;
-#define BroadcastMediaPublishArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
+#define BroadcastMediaPublishArgs const MediaInfo &args,const Broadcast::PublishAuthInvoker &invoker,TcpSession &sender
+
+//播放鉴权结果回调对象
+//如果errMessage为空则代表鉴权成功
+typedef std::function<void(const string &errMessage)> AuthInvoker;
 
 //播放rtsp/rtmp/http-flv事件广播，通过该事件控制播放鉴权
 extern const string kBroadcastMediaPlayed;
@@ -168,6 +175,19 @@ extern const string kStreamNoneReaderDelayMS;
 extern const string kMaxStreamWaitTimeMS;
 //是否启动虚拟主机
 extern const string kEnableVhost;
+//超低延时模式，默认打开，打开后会降低延时但是转发性能会稍差
+extern const string kUltraLowDelay;
+//拉流代理时是否添加静音音频
+extern const string kAddMuteAudio;
+//拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
+//如果不删除将会接着上一次的数据继续写(录制hls/mp4时会继续在前一个文件后面写)
+extern const string kResetWhenRePlay;
+//是否默认推流时转换成rtsp或rtmp，hook接口(on_publish)中可以覆盖该设置
+extern const string kPublishToRtxp ;
+//是否默认推流时转换成hls，hook接口(on_publish)中可以覆盖该设置
+extern const string kPublishToHls ;
+//是否默认推流时mp4录像，hook接口(on_publish)中可以覆盖该设置
+extern const string kPublishToMP4 ;
 }//namespace General
 
 
@@ -209,6 +229,8 @@ extern const string kKeepAliveSecond;
 //假定您的拉流源地址不是264或265或AAC，那么你可以使用直接代理的方式来支持rtsp代理
 //默认开启rtsp直接代理，rtmp由于没有这些问题，是强制开启直接代理的
 extern const string kDirectProxy;
+//rtsp推流是否修改时间戳
+extern const string kModifyStamp;
 } //namespace Rtsp
 
 ////////////RTMP服务器配置///////////
@@ -255,14 +277,22 @@ extern const string kSampleMS;
 extern const string kFileSecond;
 //录制文件路径
 extern const string kFilePath;
+//mp4文件写缓存大小
+extern const string kFileBufSize;
+//mp4录制完成后是否进行二次关键帧索引写入头部
+extern const string kFastStart;
+//mp4文件是否重头循环读取
+extern const string kFileRepeat;
 } //namespace Record
 
 ////////////HLS相关配置///////////
 namespace Hls {
 //HLS切片时长,单位秒
 extern const string kSegmentDuration;
-//HLS切片个数
+//m3u8文件中HLS切片个数，如果设置为0，则不删除切片，而是保存为点播
 extern const string kSegmentNum;
+//HLS切片从m3u8文件中移除后，继续保留在磁盘上的个数
+extern const string kSegmentRetain;
 //HLS文件写缓存大小
 extern const string kFileBufSize;
 //录制文件路径

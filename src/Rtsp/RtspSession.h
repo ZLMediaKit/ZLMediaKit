@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -36,7 +36,7 @@
 #include "Common/config.h"
 #include "Network/TcpSession.h"
 #include "Player/PlayerBase.h"
-#include "RtpBroadCaster.h"
+#include "RtpMultiCaster.h"
 #include "RtspMediaSource.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
@@ -76,6 +76,7 @@ public:
 
 	RtspSession(const Socket::Ptr &pSock);
 	virtual ~RtspSession();
+	////TcpSession override////
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onError(const SockException &err) override;
 	void onManager() override;
@@ -119,60 +120,102 @@ protected:
      */
     virtual void onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
 private:
-    void handleReq_Options(const Parser &parser); //处理options方法
-    void handleReq_Describe(const Parser &parser); //处理describe方法
-    void handleReq_ANNOUNCE(const Parser &parser); //处理options方法
-    void handleReq_RECORD(const Parser &parser); //处理options方法
-    void handleReq_Setup(const Parser &parser); //处理setup方法
-    void handleReq_Play(const Parser &parser); //处理play方法
-    void handleReq_Pause(const Parser &parser); //处理pause方法
-    void handleReq_Teardown(const Parser &parser); //处理teardown方法
-    void handleReq_Get(const Parser &parser); //处理Get方法
-    void handleReq_Post(const Parser &parser); //处理Post方法
-    void handleReq_SET_PARAMETER(const Parser &parser); //处理SET_PARAMETER方法
+	//处理options方法,获取服务器能力
+    void handleReq_Options(const Parser &parser);
+	//处理describe方法，请求服务器rtsp sdp信息
+    void handleReq_Describe(const Parser &parser);
+	//处理ANNOUNCE方法，请求推流，附带sdp
+    void handleReq_ANNOUNCE(const Parser &parser);
+	//处理record方法，开始推流
+    void handleReq_RECORD(const Parser &parser);
+	//处理setup方法，播放和推流协商rtp传输方式用
+    void handleReq_Setup(const Parser &parser);
+	//处理play方法，开始或恢复播放
+    void handleReq_Play(const Parser &parser);
+	//处理pause方法，暂停播放
+    void handleReq_Pause(const Parser &parser);
+	//处理teardown方法，结束播放
+    void handleReq_Teardown(const Parser &parser);
+	//处理Get方法,rtp over http才用到
+    void handleReq_Get(const Parser &parser);
+	//处理Post方法，rtp over http才用到
+    void handleReq_Post(const Parser &parser);
+	//处理SET_PARAMETER、GET_PARAMETER方法，一般用于心跳
+    void handleReq_SET_PARAMETER(const Parser &parser);
 
-	void inline send_StreamNotFound(); //rtsp资源未找到
-	void inline send_UnsupportedTransport(); //不支持的传输模式
-	void inline send_SessionNotFound(); //会话id错误
-	void inline send_NotAcceptable(); //rtsp同时播放数限制
+	//rtsp资源未找到
+	void inline send_StreamNotFound();
+	//不支持的传输模式
+	void inline send_UnsupportedTransport();
+	//会话id错误
+	void inline send_SessionNotFound();
+	//一般rtsp服务器打开端口失败时触发
+	void inline send_NotAcceptable();
+	//ssrc转字符串
 	inline string printSSRC(uint32_t ui32Ssrc);
+
+	//获取track下标
 	inline int getTrackIndexByTrackType(TrackType type);
     inline int getTrackIndexByControlSuffix(const string &controlSuffix);
 	inline int getTrackIndexByInterleaved(int interleaved);
 
+	//一般用于接收udp打洞包，也用于rtsp推流
 	inline void onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBuf, const struct sockaddr &addr);
+	//配合onRcvPeerUdpData使用
 	inline void startListenPeerUdpData(int iTrackIdx);
 
-    //认证相关
+    ////rtsp专有认证相关////
+	//认证成功
     void onAuthSuccess();
+	//认证失败
     void onAuthFailed(const string &realm,const string &why,bool close = true);
+	//开始走rtsp专有认证流程
     void onAuthUser(const string &realm,const string &authorization);
+	//校验base64方式的认证加密
     void onAuthBasic(const string &realm,const string &strBase64);
+	//校验md5方式的认证加密
     void onAuthDigest(const string &realm,const string &strMd5);
 
+	//发送rtp给客户端
     void sendRtpPacket(const RtpPacket::Ptr &pkt);
+	//回复客户端
 	bool sendRtspResponse(const string &res_code,const std::initializer_list<string> &header, const string &sdp = "" , const char *protocol = "RTSP/1.0");
 	bool sendRtspResponse(const string &res_code,const StrCaseMap &header = StrCaseMap(), const string &sdp = "",const char *protocol = "RTSP/1.0");
+	//服务器发送rtcp
 	void sendSenderReport(bool overTcp,int iTrackIndex);
+	//设置socket标志
+	void setSocketFlags();
 private:
+	//用于判断客户端是否超时
 	Ticker _ticker;
+	//收到的seq，回复时一致
 	int _iCseq = 0;
+	//ContentBase
 	string _strContentBase;
-	string _strSdp;
+	//Session号
 	string _strSession;
+	//是否第一次播放，第一次播放需要鉴权，第二次播放属于暂停恢复
 	bool _bFirstPlay = true;
+	//url解析后保存的相关信息
     MediaInfo _mediaInfo;
+	//rtsp播放器绑定的直播源
 	std::weak_ptr<RtspMediaSource> _pMediaSrc;
+	//直播源读取器
 	RingBuffer<RtpPacket::Ptr>::RingReader::Ptr _pRtpReader;
+	//推流或拉流客户端采用的rtp传输方式
 	Rtsp::eRtpType _rtpType = Rtsp::RTP_Invalid;
+	//sdp里面有效的track,包含音频或视频
 	vector<SdpTrack::Ptr> _aTrackInfo;
-
-	//RTP over udp
-	Socket::Ptr _apRtpSock[2]; //RTP端口,trackid idx 为数组下标
-	Socket::Ptr _apRtcpSock[2];//RTCP端口,trackid idx 为数组下标
+	////////RTP over udp////////
+	//RTP端口,trackid idx 为数组下标
+	Socket::Ptr _apRtpSock[2];
+	//RTCP端口,trackid idx 为数组下标
+	Socket::Ptr _apRtcpSock[2];
+	//标记是否收到播放的udp打洞包,收到播放的udp打洞包后才能知道其外网udp端口号
     unordered_set<int> _udpSockConnected;
-	//RTP over udp_multicast
-	RtpBroadCaster::Ptr _pBrdcaster;
+	////////RTP over udp_multicast////////
+	//共享的rtp组播对象
+	RtpMultiCaster::Ptr _multicaster;
 
 	//登录认证
     string _strNonce;
@@ -184,13 +227,16 @@ private:
 	//一次发送 get 一次发送post，需要通过x-sessioncookie关联起来
 	string _http_x_sessioncookie;
 	function<void(const Buffer::Ptr &pBuf)> _onRecv;
+	//是否开始发送rtp
     bool _enableSendRtp;
-
     //rtsp推流相关
 	RtspToRtmpMediaSource::Ptr _pushSrc;
-
-	RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
-	Ticker _aRtcpTicker[2]; //rtcp发送时间,trackid idx 为数组下标
+	//rtcp统计,trackid idx 为数组下标
+	RtcpCounter _aRtcpCnt[2];
+	//rtcp发送时间,trackid idx 为数组下标
+	Ticker _aRtcpTicker[2];
+    //时间戳修整器
+    Stamp _stamp[2];
 };
 
 /**

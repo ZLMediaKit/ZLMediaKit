@@ -40,13 +40,14 @@
 #include "Network/TcpClient.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
+#include "MediaFile/Stamp.h"
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-//实现了rtsp播放器协议部分的功能
+//实现了rtsp播放器协议部分的功能，及数据接收功能
 class RtspPlayer: public PlayerBase,public TcpClient, public RtspSplitter, public RtpReceiver {
 public:
 	typedef std::shared_ptr<RtspPlayer> Ptr;
@@ -59,7 +60,7 @@ public:
 	float getPacketLossRate(TrackType type) const override;
 protected:
 	//派生类回调函数
-	virtual bool onCheckSDP(const string &strSdp, const SdpParser &parser) = 0;
+	virtual bool onCheckSDP(const string &strSdp) = 0;
 	virtual void onRecvRTP(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track) = 0;
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
@@ -100,22 +101,21 @@ protected:
 	void onErr(const SockException &ex) override;
 private:
 	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
-	void onPlayResult_l(const SockException &ex);
+	void onPlayResult_l(const SockException &ex , bool handshakeCompleted);
 
     int getTrackIndexByControlSuffix(const string &controlSuffix) const;
     int getTrackIndexByInterleaved(int interleaved) const;
 	int getTrackIndexByTrackType(TrackType trackType) const;
 
-	void play(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType);
+	void play(bool isSSL,const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType);
 	void handleResSETUP(const Parser &parser, unsigned int uiTrackIndex);
 	void handleResDESCRIBE(const Parser &parser);
 	bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
-	void handleResPAUSE(const Parser &parser, bool bPause);
+	void handleResPAUSE(const Parser &parser, int type);
 
 	//发送SETUP命令
 	void sendSetup(unsigned int uiTrackIndex);
-	void sendPause(bool bPause,uint32_t ms);
-	void sendOptions();
+	void sendPause(int type , uint32_t ms);
 	void sendDescribe();
 
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
@@ -124,7 +124,6 @@ private:
 	void createUdpSockIfNecessary(int track_idx);
 private:
 	string _strUrl;
-	SdpParser _sdpParser;
 	vector<SdpTrack::Ptr> _aTrackInfo;
 	function<void(const Parser&)> _onHandshake;
     Socket::Ptr _apRtpSock[2]; //RTP端口,trackid idx 为数组下标
@@ -149,12 +148,8 @@ private:
 	std::shared_ptr<Timer> _pPlayTimer;
 	std::shared_ptr<Timer> _pRtpTimer;
 
-    //播放进度控制,单位毫秒
-    uint32_t _iSeekTo = 0;
-
-    //单位毫秒
-	uint32_t _aiFistStamp[2] = {0,0};
-	uint32_t _aiNowStamp[2] = {0,0};
+	//时间戳
+	Stamp _stamp[2];
 
 	//rtcp相关
     RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标

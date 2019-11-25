@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -74,7 +74,7 @@ const string kOnHttpAccess = HOOK_FIELD"on_http_access";
 const string kAdminParams = HOOK_FIELD"admin_params";
 
 onceToken token([](){
-    mINI::Instance()[kEnable] = true;
+    mINI::Instance()[kEnable] = false;
     mINI::Instance()[kTimeoutSec] = 10;
     mINI::Instance()[kOnPublish] = "https://127.0.0.1/index/hook/on_publish";
     mINI::Instance()[kOnPlay] = "https://127.0.0.1/index/hook/on_play";
@@ -195,7 +195,10 @@ void installWebHook(){
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
         if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1"){
-            invoker("");
+            GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
+            GET_CONFIG(bool,toHls,General::kPublishToHls);
+            GET_CONFIG(bool,toMP4,General::kPublishToMP4);
+            invoker("",toRtxp,toHls,toMP4);
             return;
         }
         //异步执行该hook api，防止阻塞NoticeCenter
@@ -205,7 +208,31 @@ void installWebHook(){
         body["id"] = sender.getIdentifier();
         //执行hook
         do_http_hook(hook_publish,body,[invoker](const Value &obj,const string &err){
-            invoker(err);
+            if(err.empty()){
+                //推流鉴权成功
+                bool enableRtxp = true;
+                bool enableHls = true;
+                bool enableMP4 = false;
+
+                //兼容用户不传递enableRtxp、enableHls、enableMP4参数
+                if(obj.isMember("enableRtxp")){
+                    enableRtxp = obj["enableRtxp"].asBool();
+                }
+
+                if(obj.isMember("enableHls")){
+                    enableHls = obj["enableHls"].asBool();
+                }
+
+                if(obj.isMember("enableMP4")){
+                    enableMP4 = obj["enableMP4"].asBool();
+                }
+
+                invoker(err,enableRtxp,enableHls,enableMP4);
+            }else{
+                //推流鉴权失败
+                invoker(err,false, false, false);
+            }
+
         });
     });
 
@@ -318,7 +345,7 @@ void installWebHook(){
         do_http_hook(hook_stream_not_found,body, nullptr);
     });
 
-#ifdef ENABLE_MP4V2
+#ifdef ENABLE_MP4RECORD
     //录制mp4文件成功后广播
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRecordMP4,[](BroadcastRecordMP4Args){
         if(!hook_enable || hook_record_mp4.empty()){
@@ -338,7 +365,7 @@ void installWebHook(){
         //执行hook
         do_http_hook(hook_record_mp4,body, nullptr);
     });
-#endif //ENABLE_MP4V2
+#endif //ENABLE_MP4RECORD
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
         if(!hook_enable || hook_shell_login.empty() || sender.get_peer_ip() == "127.0.0.1"){

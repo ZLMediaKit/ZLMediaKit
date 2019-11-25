@@ -52,7 +52,7 @@ public:
      * 输入frame
      * @param frame
      */
-    void inputFrame(const Frame::Ptr &frame) override ;
+    void inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 添加track，内部会调用Track的clone方法
@@ -61,21 +61,24 @@ public:
      */
     virtual void addTrack(const Track::Ptr & track);
 
+    /**
+     * 重置track
+     */
+    virtual void resetTracks();
 
     /**
      * 全部Track是否都准备好了
      * @return
      */
-    bool isAllTrackReady() const ;
-
+    bool isAllTrackReady() const;
 
     /**
      * 获取特定类型的Track
      * @param type track类型
-	 * @param trackReady 是否获取已经准备好的Track
+     * @param trackReady 是否获取已经准备好的Track
      * @return
      */
-    Track::Ptr getTrack(TrackType type,bool trackReady = true) const ;
+    Track::Ptr getTrack(TrackType type,bool trackReady = true) const;
 protected:
     /**
      * 某track已经准备好，其ready()状态返回true，
@@ -99,6 +102,7 @@ private:
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
     bool _allTrackReady = false;
+    bool _anyTrackUnReady = false;
     Ticker _ticker;
 };
 

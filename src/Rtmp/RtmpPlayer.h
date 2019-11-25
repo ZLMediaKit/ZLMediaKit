@@ -44,7 +44,7 @@ using namespace toolkit;
 using namespace mediakit::Client;
 
 namespace mediakit {
-
+//实现了rtmp播放器协议部分的功能，及数据接收功能
 class RtmpPlayer:public PlayerBase, public TcpClient,  public RtmpProtocol{
 public:
 	typedef std::shared_ptr<RtmpPlayer> Ptr;
@@ -55,23 +55,20 @@ public:
 	void pause(bool bPause) override;
 	void teardown() override;
 protected:
-	virtual bool onCheckMeta(AMFValue &val) =0;
+	virtual bool onCheckMeta(const AMFValue &val) =0;
 	virtual void onMediaData(const RtmpPacket::Ptr &chunkData) =0;
 	uint32_t getProgressMilliSecond() const;
 	void seekToMilliSecond(uint32_t ms);
 protected:
-	void onMediaData_l(const RtmpPacket::Ptr &chunkData) {
-		_mediaTicker.resetTime();
-		onMediaData(chunkData);
-	}
+	void onMediaData_l(const RtmpPacket::Ptr &chunkData);
+	//在获取config帧后才触发onPlayResult_l(而不是收到play命令回复)，所以此时所有track都初始化完毕了
+	void onPlayResult_l(const SockException &ex, bool handshakeCompleted);
 
-	void onPlayResult_l(const SockException &ex);
-
-	//for Tcpclient
+	//form Tcpclient
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onConnect(const SockException &err) override;
 	void onErr(const SockException &ex) override;
-	//fro RtmpProtocol
+	//from RtmpProtocol
 	void onRtmpChunk(RtmpPacket &chunkData) override;
 	void onStreamDry(uint32_t ui32StreamId) override;
     void onSendRawData(const Buffer::Ptr &buffer) override{
@@ -97,7 +94,7 @@ protected:
 	inline void send_createStream();
 	inline void send_play();
 	inline void send_pause(bool bPause);
-
+private:
 	string _strApp;
 	string _strStream;
 	string _strTcUrl;
@@ -107,9 +104,6 @@ protected:
 	recursive_mutex _mtxOnResultCB;
 	deque<function<void(AMFValue &dec)> > _dqOnStatusCB;
 	recursive_mutex _mtxOnStatusCB;
-
-	typedef void (RtmpPlayer::*rtmpCMDHandle)(AMFDecoder &dec);
-	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
 
 	//超时功能实现
 	Ticker _mediaTicker;
@@ -123,6 +117,7 @@ protected:
 	uint32_t _aiFistStamp[2] = { 0, 0 };
 	uint32_t _aiNowStamp[2] = { 0, 0 };
 	Ticker _aNowStampTicker[2];
+	bool _metadata_got = false;
 };
 
 } /* namespace mediakit */

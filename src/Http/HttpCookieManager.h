@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -30,6 +30,7 @@
 #include <memory>
 #include <unordered_map>
 #include "Util/mini.h"
+#include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Network/Socket.h"
 #include "Common/Parser.h"
@@ -47,7 +48,7 @@ class HttpCookieManager;
 /**
  * cookie对象，用于保存cookie的一些相关属性
  */
-class HttpServerCookie : public map<string,string> , public noncopyable{
+class HttpServerCookie : public AnyStorage , public noncopyable{
 public:
     typedef std::shared_ptr<HttpServerCookie> Ptr;
     /**
@@ -108,6 +109,8 @@ public:
      * @return
      */
     std::shared_ptr<lock_guard<mutex> > getLock();
+
+
 private:
     string cookieExpireTime() const ;
 private:

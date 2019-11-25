@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -27,7 +27,7 @@
 #define IPTV_PROCESS_H
 
 #include <sys/wait.h>
-#include <sys/fcntl.h>
+#include <fcntl.h>
 #include <string>
 using namespace std;
 
@@ -36,7 +36,7 @@ public:
     Process();
     ~Process();
     void run(const string &cmd,const string &log_file);
-    void kill(int max_delay);
+    void kill(int max_delay,bool force = false);
     bool wait(bool block = true);
     int exit_code();
 private:

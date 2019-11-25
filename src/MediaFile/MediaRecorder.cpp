@@ -56,30 +56,33 @@ MediaRecorder::MediaRecorder(const string &strVhost_tmp,
 #if defined(ENABLE_HLS)
     if(enableHls) {
         string m3u8FilePath;
+        string params;
         if(enableVhost){
-            m3u8FilePath = hlsPath + "/" + strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
-            _hlsMaker.reset(new HlsRecorder(m3u8FilePath,string(VHOST_KEY) + "=" + strVhost ,hlsBufSize, hlsDuration, hlsNum));
+            m3u8FilePath = strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
+            params = string(VHOST_KEY) + "=" + strVhost;
         }else{
-            m3u8FilePath = hlsPath + "/" + strApp + "/" + strId + "/hls.m3u8";
-            _hlsMaker.reset(new HlsRecorder(m3u8FilePath,"",hlsBufSize, hlsDuration, hlsNum));
+            m3u8FilePath = strApp + "/" + strId + "/hls.m3u8";
         }
+        m3u8FilePath = File::absolutePath(m3u8FilePath,hlsPath);
+        _hlsRecorder.reset(new HlsRecorder(m3u8FilePath,params,hlsBufSize, hlsDuration, hlsNum));
     }
 #endif //defined(ENABLE_HLS)
 
-#if defined(ENABLE_MP4V2)
+#if defined(ENABLE_MP4RECORD)
     GET_CONFIG(string,recordPath,Record::kFilePath);
     GET_CONFIG(string,recordAppName,Record::kAppName);
 
     if(enableMp4){
         string mp4FilePath;
         if(enableVhost){
-            mp4FilePath = recordPath + "/" + strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
+            mp4FilePath = strVhost + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
         } else {
-            mp4FilePath = recordPath + "/" + recordAppName + "/" + strApp + "/"  + strId + "/";
+            mp4FilePath = recordAppName + "/" + strApp + "/"  + strId + "/";
         }
-        _mp4Maker.reset(new Mp4Maker(mp4FilePath,strVhost,strApp,strId));
+        mp4FilePath = File::absolutePath(mp4FilePath,recordPath);
+        _mp4Recorder.reset(new MP4Recorder(mp4FilePath,strVhost,strApp,strId));
     }
-#endif //defined(ENABLE_MP4V2)
+#endif //defined(ENABLE_MP4RECORD)
 }
 
 MediaRecorder::~MediaRecorder() {
@@ -87,30 +90,44 @@ MediaRecorder::~MediaRecorder() {
 
 void MediaRecorder::inputFrame(const Frame::Ptr &frame) {
 #if defined(ENABLE_HLS)
-    if (_hlsMaker) {
-        _hlsMaker->inputFrame(frame);
+    if (_hlsRecorder) {
+        _hlsRecorder->inputFrame(frame);
     }
 #endif //defined(ENABLE_HLS)
 
-#if defined(ENABLE_MP4V2)
-    if (_mp4Maker) {
-        _mp4Maker->inputFrame(frame);
+#if defined(ENABLE_MP4RECORD)
+    if (_mp4Recorder) {
+        _mp4Recorder->inputFrame(frame);
     }
-#endif //defined(ENABLE_MP4V2)
+#endif //defined(ENABLE_MP4RECORD)
 }
 
 void MediaRecorder::addTrack(const Track::Ptr &track) {
 #if defined(ENABLE_HLS)
-    if (_hlsMaker) {
-        _hlsMaker->addTrack(track);
+    if (_hlsRecorder) {
+        _hlsRecorder->addTrack(track);
     }
 #endif //defined(ENABLE_HLS)
 
-#if defined(ENABLE_MP4V2)
-    if (_mp4Maker) {
-        _mp4Maker->addTrack(track);
+#if defined(ENABLE_MP4RECORD)
+    if (_mp4Recorder) {
+        _mp4Recorder->addTrack(track);
     }
-#endif //defined(ENABLE_MP4V2)
+#endif //defined(ENABLE_MP4RECORD)
+}
+
+void MediaRecorder::resetTracks() {
+#if defined(ENABLE_HLS)
+    if (_hlsRecorder) {
+        _hlsRecorder->resetTracks();
+    }
+#endif //defined(ENABLE_HLS)
+
+#if defined(ENABLE_MP4RECORD)
+    if (_mp4Recorder) {
+        _mp4Recorder->resetTracks();
+    }
+#endif //defined(ENABLE_MP4RECORD)
 }
 
 } /* namespace mediakit */

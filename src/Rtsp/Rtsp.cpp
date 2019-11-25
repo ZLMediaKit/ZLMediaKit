@@ -30,6 +30,61 @@
 
 namespace mediakit{
 
+static void getAttrSdp(const map<string, string> &attr, _StrPrinter &printer){
+	const map<string, string>::value_type *ptr = nullptr;
+	for(auto &pr : attr){
+		if(pr.first == "control"){
+			ptr = &pr;
+			continue;
+		}
+		if(pr.second.empty()){
+			printer << "a=" << pr.first << "\r\n";
+		}else{
+			printer << "a=" << pr.first << ":" << pr.second << "\r\n";
+		}
+	}
+	if(ptr){
+		printer << "a=" << ptr->first << ":" << ptr->second << "\r\n";
+	}
+}
+string SdpTrack::toString() const {
+	_StrPrinter _printer;
+	switch (_type){
+		case TrackTitle:{
+			_printer << "v=" << 0 << "\r\n";
+			if(!_o.empty()){
+				_printer << "o="<< _o << "\r\n";
+			}
+			if(!_c.empty()){
+				_printer << "c=" << _c << "\r\n";
+			}
+			if(!_t.empty()){
+				_printer << "t=" << _t << "\r\n";
+			}
+
+			_printer << "s=RTSP Session, streamed by the ZLMediaKit\r\n";
+			_printer << "i=ZLMediaKit Live Stream\r\n";
+			getAttrSdp(_attr,_printer);
+		}
+			break;
+		case TrackAudio:
+		case TrackVideo:{
+			if(_type == TrackAudio){
+				_printer << "m=audio 0 RTP/AVP " << _pt << "\r\n";
+			}else{
+				_printer << "m=video 0 RTP/AVP " << _pt << "\r\n";
+			}
+			if(!_b.empty()){
+				_printer << "b=" <<_b << "\r\n";
+			}
+			getAttrSdp(_attr,_printer);
+		}
+			break;
+		default:
+			break;
+	}
+	return _printer;
+}
 void SdpParser::load(const string &sdp) {
 	_track_map.clear();
 	string key;
@@ -162,6 +217,29 @@ vector<SdpTrack::Ptr> SdpParser::getAvailableTrack() const {
 		ret.emplace_back(audio);
 	}
 	return ret;
+}
+
+string SdpParser::toString() const {
+	string title,audio,video;
+	for(auto &pr : _track_map){
+		switch (pr.second->_type){
+			case TrackTitle:{
+				title = pr.second->toString();
+			}
+				break;
+			case TrackVideo:{
+				video = pr.second->toString();
+			}
+				break;
+			case TrackAudio:{
+				audio = pr.second->toString();
+			}
+				break;
+			default:
+				break;
+		}
+	}
+	return title + video + audio;
 }
 
 }//namespace mediakit

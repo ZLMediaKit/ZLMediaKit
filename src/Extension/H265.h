@@ -36,6 +36,8 @@ using namespace toolkit;
 
 namespace mediakit {
 
+bool getHEVCInfo(const string &strVps, const string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps);
+
 /**
 * 265帧类
 */
@@ -83,6 +85,10 @@ public:
         return timeStamp;
     }
 
+    uint32_t pts() const override {
+        return ptsStamp ? ptsStamp : timeStamp;
+    }
+
     uint32_t prefixSize() const override {
         return iPrefixSize;
     }
@@ -96,7 +102,18 @@ public:
     }
 
     bool keyFrame() const override {
-        return isKeyFrame(type);
+        return isKeyFrame(H265_TYPE(buffer[iPrefixSize]));
+    }
+
+    bool configFrame() const override{
+        switch(H265_TYPE(buffer[iPrefixSize])){
+            case H265Frame::NAL_VPS:
+            case H265Frame::NAL_SPS:
+            case H265Frame::NAL_PPS:
+                return true;
+            default:
+                return false;
+        }
     }
 
     static bool isKeyFrame(int type) {
@@ -114,9 +131,8 @@ public:
     }
 
 public:
-    uint16_t sequence;
     uint32_t timeStamp;
-    unsigned char type;
+    uint32_t ptsStamp = 0;
     string buffer;
     uint32_t iPrefixSize = 4;
 };
@@ -143,8 +159,18 @@ public:
     }
 
     bool keyFrame() const override {
-        int type = H265_TYPE(((uint8_t *) _ptr)[_prefixSize]);
-        return H265Frame::isKeyFrame(type);
+        return H265Frame::isKeyFrame(H265_TYPE(((uint8_t *) _ptr)[_prefixSize]));
+    }
+
+    bool configFrame() const override{
+        switch(H265_TYPE(((uint8_t *) _ptr)[_prefixSize])){
+            case H265Frame::NAL_VPS:
+            case H265Frame::NAL_SPS:
+            case H265Frame::NAL_PPS:
+                return true;
+            default:
+                return false;
+        }
     }
 };
 
@@ -176,6 +202,7 @@ public:
         _vps = vps.substr(vps_prefix_len);
         _sps = sps.substr(sps_prefix_len);
         _pps = pps.substr(pps_prefix_len);
+		onReady();
     }
 
     /**
@@ -206,6 +233,30 @@ public:
         return CodecH265;
     }
 
+    /**
+     * 返回视频高度
+     * @return
+     */
+    int getVideoHeight() const override{
+        return _height ;
+    }
+
+    /**
+     * 返回视频宽度
+     * @return
+     */
+    int getVideoWidth() const override{
+        return _width;
+    }
+
+    /**
+     * 返回视频fps
+     * @return
+     */
+    float getVideoFps() const override{
+        return _fps;
+    }
+
     bool ready() override {
         return !_vps.empty() && !_sps.empty() && !_pps.empty();
     }
@@ -216,8 +267,10 @@ public:
     * @param frame 数据帧
     */
     void inputFrame(const Frame::Ptr &frame) override{
-        bool  first_frame = true;
-        splitH264(frame->data() + frame->prefixSize(),
+		int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
+        if(type == H265Frame::NAL_VPS){
+	        bool  first_frame = true;
+	        splitH264(frame->data() + frame->prefixSize(),
                   frame->size() - frame->prefixSize(),
                   [&](const char *ptr, int len){
                       if(first_frame){
@@ -235,6 +288,9 @@ public:
                           inputFrame_l(sub_frame);
                       }
                   });
+        	}else{
+				inputFrame_l(frame);
+			}
     }
 
 private:
@@ -280,6 +336,12 @@ private:
         }
     }
 
+	/**
+     * 解析sps获取宽高fps
+     */
+    void onReady(){
+        getHEVCInfo(_vps, _sps, _width, _height, _fps);
+    }
     Track::Ptr clone() override {
         return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this);
     }
@@ -294,7 +356,6 @@ private:
         }
         if(!_vps.empty()){
             auto vpsFrame = std::make_shared<H265Frame>();
-            vpsFrame->type = H265Frame::NAL_VPS;
             vpsFrame->iPrefixSize = 4;
             vpsFrame->buffer.assign("\x0\x0\x0\x1", 4);
             vpsFrame->buffer.append(_vps);
@@ -303,7 +364,6 @@ private:
         }
         if (!_sps.empty()) {
             auto spsFrame = std::make_shared<H265Frame>();
-            spsFrame->type = H265Frame::NAL_SPS;
             spsFrame->iPrefixSize = 4;
             spsFrame->buffer.assign("\x0\x0\x0\x1", 4);
             spsFrame->buffer.append(_sps);
@@ -313,7 +373,6 @@ private:
 
         if (!_pps.empty()) {
             auto ppsFrame = std::make_shared<H265Frame>();
-            ppsFrame->type = H265Frame::NAL_PPS;
             ppsFrame->iPrefixSize = 4;
             ppsFrame->buffer.assign("\x0\x0\x0\x1", 4);
             ppsFrame->buffer.append(_pps);
@@ -325,6 +384,9 @@ private:
     string _vps;
     string _sps;
     string _pps;
+    int _width = 0;
+    int _height = 0;	
+    float _fps = 0;
     bool _last_frame_is_idr = false;
 };
 

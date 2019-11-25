@@ -4,13 +4,13 @@
 
 ## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
-- 打包多种流媒体协议(RTSP/RTMP/HLS），支持协议间的互相转换，提供一站式的服务。
+- 打包多种流媒体协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV），支持协议间的互相转换，提供一站式的服务。
 - 使用epoll+线程池+异步网络IO模式开发，并发性能优越。
 - 已实现主流的的H264/H265+AAC流媒体方案，代码精简,脉络清晰，适合学习。
 - 编码格式与框架代码解耦，方便自由简洁的添加支持其他编码格式
 - 代码经过大量的稳定性、性能测试，可满足商用服务器项目。
 - 支持linux、macos、ios、android、windows平台
-- 支持画面秒开(GOP缓存)、极低延时(1秒内)
+- 支持画面秒开(GOP缓存)、极低延时([500毫秒内，最低可达100毫秒](https://github.com/zlmediakit/ZLMediaKit/wiki/%E5%BB%B6%E6%97%B6%E6%B5%8B%E8%AF%95))
 - [ZLMediaKit高并发实现原理](https://github.com/xiongziliang/ZLMediaKit/wiki/ZLMediaKit%E9%AB%98%E5%B9%B6%E5%8F%91%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)
 
 ## 项目定位
@@ -50,7 +50,7 @@
   - 完整HTTP API服务器，可以作为web后台开发框架。
   - 支持跨域访问。
   - 支持http客户端、服务器cookie
-  - 支持WebSocket服务器
+  - 支持WebSocket服务器和客户端
   - 支持http文件访问鉴权
 
 - 其他
@@ -78,7 +78,7 @@
     |         RTMP --> RTSP[S]         |  Y   |  N   |  Y   |   N   |
     |         RTSP[S] --> HLS          |  Y   |  Y   |  Y   |   N   |
     |           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
-    |         RTSP[S] --> MP4          |  Y   |  N   |  Y   |   N   |
+    |         RTSP[S] --> MP4          |  Y   |  Y   |  Y   |   N   |
     |           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
     |         MP4 --> RTSP[S]          |  Y   |  N   |  Y   |   N   |
     |           MP4 --> RTMP           |  Y   |  N   |  Y   |   N   |
@@ -88,9 +88,9 @@
   |          功能/编码格式             | H264 | H265 | AAC  | other |
   | :------------------------------: | :--: | :--: | :--: | :---: |
   | RTSP[S]推流 |  Y   |  Y  |  Y   |   Y   |
-  |         RTSP拉流代理         |  Y   |  Y  |  Y   |   N   |
+  |         RTSP拉流代理         |  Y   |  Y  |  Y   |   Y   |
   |   RTMP推流    |  Y   |  Y   |  Y   |   Y   |
-  | RTMP拉流代理  |  Y   |  N   |  Y   |   N   |
+  | RTMP拉流代理  |  Y   |  Y   |  Y   |   Y   |
 
 - RTP传输方式:
 
@@ -109,7 +109,7 @@
   | RTSP[S] Play Server |  Y   |
   | RTSP[S] Push Server |  Y   |
   |        RTMP         |  Y   |
-  |  HTTP[S]/WebSocket  |  Y   |
+  |  HTTP[S]/WebSocket[S]  |  Y   |
 
 - 支持的客户端类型
 
@@ -120,6 +120,7 @@
   | RTMP Player |  Y   |
   | RTMP Pusher |  Y   |
   |   HTTP[S]   |  Y   |
+  | WebSocket[S] |  Y  |
 
 ## 后续任务
 - 完善支持H265
@@ -127,7 +128,15 @@
 ## 编译要求
 - 编译器支持C++11，GCC4.8/Clang3.3/VC2015或以上
 - cmake3.2或以上
-- **必须使用git下载完整的代码，不要使用下载zip包的方式下载源码，否则子模块代码默认不下载！**
+
+## 编译前必看！！！
+
+- **必须使用git下载完整的代码，不要使用下载zip包的方式下载源码，否则子模块代码默认不下载！你可以像以下这样操作:**
+```
+git clone https://github.com/zlmediakit/ZLMediaKit.git
+cd ZLMediaKit
+git submodule update --init
+```
 
 ## 编译(Linux)
 - 我的编译环境
@@ -219,7 +228,7 @@
 ```
 ## 使用方法
 - 作为服务器：
-	```
+	```cpp
 	TcpServer::Ptr rtspSrv(new TcpServer());
 	TcpServer::Ptr rtmpSrv(new TcpServer());
 	TcpServer::Ptr httpSrv(new TcpServer());
@@ -232,7 +241,7 @@
 	```
 
 - 作为播放器：
-	```
+	```cpp
     MediaPlayer::Ptr player(new MediaPlayer());
     weak_ptr<MediaPlayer> weakPlayer = player;
     player->setOnPlayResult([weakPlayer](const SockException &ex) {
@@ -261,7 +270,7 @@
     player->play("rtsp://admin:jzan123456@192.168.0.122/");
 	```
 - 作为代理服务器：
-	```
+	```cpp
 	//support rtmp and rtsp url
 	//just support H264+AAC
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
@@ -285,7 +294,7 @@
 	```
 	
 - 作为推流客户端器：
-	```
+	```cpp
 	PlayerProxy::Ptr player(new PlayerProxy("app","stream"));
 	//拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
 	//你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请研读MediaReader代码）

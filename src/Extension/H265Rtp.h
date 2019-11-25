@@ -37,6 +37,8 @@ namespace mediakit{
 
 /**
  * h265 rtp解码类
+ * 将 h265 over rtsp-rtp 解复用出 h265-Frame
+ * 《草案（H265-over-RTP）draft-ietf-payload-rtp-h265-07.pdf》
  */
 class H265RtpDecoder : public RtpCodec , public ResourcePoolHelper<H265Frame> {
 public:
@@ -65,6 +67,7 @@ private:
     H265Frame::Ptr obtainFrame();
 private:
     H265Frame::Ptr _h265frame;
+    int _lastSeq = 0;
 };
 
 /**
@@ -95,8 +98,6 @@ public:
     void inputFrame(const Frame::Ptr &frame) override;
 private:
     void makeH265Rtp(int nal_type,const void *pData, unsigned int uiLen, bool bMark, bool first_packet,uint32_t uiStamp);
-private:
-    unsigned char _aucSectionBuf[1600];
 };
 
 }//namespace mediakit{

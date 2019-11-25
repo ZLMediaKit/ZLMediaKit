@@ -43,11 +43,7 @@ public:
     RtspToRtmpMediaSource(const string &vhost,
                           const string &app,
                           const string &id,
-                          bool bEnableHls = true,
-                          bool bEnableMp4 = false,
                           int ringSize = 0) : RtspMediaSource(vhost, app, id,ringSize) {
-        _bEnableHls = bEnableHls;
-        _bEnableMp4 = bEnableMp4;
     }
 
     virtual ~RtspToRtmpMediaSource() {}
@@ -66,9 +62,9 @@ public:
                                                                  getId(),
                                                                  _demuxer->getDuration(),
                                                                  false,//不重复生成rtsp
-                                                                 true,//转rtmp
-                                                                 _bEnableHls,
-                                                                 _bEnableMp4);
+                                                                 _enableRtmp,
+                                                                 _enableHls,
+                                                                 _enableMP4);
                 for (auto &track : _demuxer->getTracks(false)) {
                     _muxer->addTrack(track);
                     track->addDelegate(_muxer);
@@ -88,11 +84,36 @@ public:
     int readerCount() override {
         return RtspMediaSource::readerCount() + (_muxer ? _muxer->readerCount() : 0);
     }
+
+    /**
+     * 获取track
+     * @return
+     */
+    vector<Track::Ptr> getTracks(bool trackReady) const override {
+        if(!_demuxer){
+            return this->RtspMediaSource::getTracks(trackReady);
+        }
+        return _demuxer->getTracks(trackReady);
+    }
+
+    /**
+	 * 设置协议转换
+	 * @param enableRtmp 是否转换成rtmp
+	 * @param enableHls  是否转换成hls
+	 * @param enableMP4  是否mp4录制
+	 */
+    void setProtocolTranslation(bool enableRtmp,bool enableHls,bool enableMP4){
+//        DebugL << enableRtmp << " " << enableHls << " " << enableMP4;
+        _enableRtmp = enableRtmp;
+        _enableHls = enableHls;
+        _enableMP4 = enableMP4;
+    }
 private:
     RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
-    bool _bEnableHls;
-    bool _bEnableMp4;
+    bool _enableHls = true;
+    bool _enableMP4 = false;
+    bool _enableRtmp = true;
 };
 
 } /* namespace mediakit */

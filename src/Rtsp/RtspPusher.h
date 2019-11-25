@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by xzl on 2019/3/27.
 //
 
@@ -67,6 +67,7 @@ private:
     void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header,const string &sdp = "");
 
     void createUdpSockIfNecessary(int track_idx);
+    void setSocketFlags();
 private:
     //rtsp鉴权相关
     string _rtspMd5Nonce;

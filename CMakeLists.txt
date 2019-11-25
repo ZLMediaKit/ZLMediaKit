@@ -2,17 +2,38 @@
 cmake_minimum_required(VERSION 3.1.3)
 #使能c++11
 set(CMAKE_CXX_STANDARD 11)
-
 #加载自定义模块
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
-#设置库文件路径
-set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-#设置可执行程序路径
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+#set(CMAKE_BUILD_TYPE "Release")
+
+if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+    message(STATUS "Release版本")
+    set(BuildType "Release")
+else()
+    set(BuildType "Debug")
+    message(STATUS "Debug版本")
+endif()
+
+#设置bin和lib库目录
+set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release)
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
+elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/windows/${BuildType})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/windows/${BuildType})
+elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/mac/${BuildType})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/mac/${BuildType})
+endif ()
+
+LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
+
 
 #设置工程源码根目录
-set(ToolKit_Root ${CMAKE_SOURCE_DIR}/3rdpart/ZLToolKit/src)
-set(MediaKit_Root ${CMAKE_SOURCE_DIR}/src)
+set(ToolKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/ZLToolKit/src)
+set(MediaKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
@@ -32,21 +53,28 @@ endif ()
 
 set(ENABLE_HLS true)
 set(ENABLE_OPENSSL true)
-set(ENABLE_MYSQL true)
+set(ENABLE_MYSQL false)
 set(ENABLE_MP4V2 true)
-set(ENABLE_FAAC true)
-set(ENABLE_X264 true)
+set(ENABLE_FAAC false)
+set(ENABLE_X264 false)
+set(ENABLE_MP4RECORD true)
 
 #添加两个静态库
 if(ENABLE_HLS)
     message(STATUS "ENABLE_HLS defined")
     add_definitions(-DENABLE_HLS)
-    set(MediaServer_Root ${CMAKE_SOURCE_DIR}/3rdpart/media-server)
+    set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
     set(LINK_LIB_LIST zlmediakit zltoolkit mpeg)
 else()
     set(LINK_LIB_LIST zlmediakit zltoolkit)
 endif()
 
+if(ENABLE_MP4RECORD)
+    message(STATUS "ENABLE_MP4RECORD defined")
+    add_definitions(-DENABLE_MP4RECORD)
+    set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
+	list(APPEND LINK_LIB_LIST mov flv)
+endif()
 #查找openssl是否安装
 find_package(OpenSSL QUIET)
 if (OPENSSL_FOUND AND ENABLE_OPENSSL)
@@ -99,7 +127,7 @@ add_library(zltoolkit STATIC ${ToolKit_src_list})
 add_library(zlmediakit STATIC ${MediaKit_src_list})
 
 			
-set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573 /utf-8" )
+set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573" )
 #libmpeg
 if(ENABLE_HLS)
     aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
@@ -109,6 +137,30 @@ if(ENABLE_HLS)
 	if(WIN32)
 		set_target_properties(mpeg PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
 	endif(WIN32)
+endif()
+
+if(ENABLE_MP4RECORD)
+    aux_source_directory(${MediaServer_Root}/libmov/include src_mov)
+    aux_source_directory(${MediaServer_Root}/libmov/source src_mov)	
+	include_directories(${MediaServer_Root}/libmov/include)
+    aux_source_directory(${MediaServer_Root}/libflv/include src_flv)
+    aux_source_directory(${MediaServer_Root}/libflv/source src_flv)	
+	include_directories(${MediaServer_Root}/libflv/include)
+	add_library(mov STATIC ${src_mov})
+	add_library(flv STATIC ${src_flv})
+	if(WIN32)
+		set_target_properties(mov flv PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
+	endif(WIN32)
+endif()
+
+if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+    #查找jemalloc是否安装
+    find_package(JEMALLOC QUIET)
+    if(JEMALLOC_FOUND)
+        message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
+        include_directories(${JEMALLOC_INCLUDE_DIR})
+        list(APPEND  LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
+    endif()
 endif()
 
 if (WIN32)

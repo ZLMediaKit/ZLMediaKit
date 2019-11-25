@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -47,5 +47,7 @@ extern const string kPort;
 
 void installWebApi();
 void unInstallWebApi();
+//配置文件路径
+extern string g_ini_file;
 
 #endif //ZLMEDIAKIT_WEBAPI_H

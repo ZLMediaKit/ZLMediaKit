@@ -58,12 +58,11 @@ public:
         seekToMilliSecond(fProgress * getDuration() * 1000);
     };
     void play(const string &strUrl) override {
-        _analysisMs = (*this)[kMaxAnalysisMS].as<int>();
         PlayerImp<RtmpPlayer,RtmpDemuxer>::play(strUrl);
     }
 private:
     //派生类回调函数
-    bool onCheckMeta(AMFValue &val)  override {
+    bool onCheckMeta(const AMFValue &val) override {
         _pRtmpMediaSrc = dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc);
         if(_pRtmpMediaSrc){
             _pRtmpMediaSrc->onGetMetaData(val);
@@ -76,16 +75,13 @@ private:
             _pRtmpMediaSrc->onWrite(chunkData);
         }
         if(!_parser){
-    	    //这个流没有metedata，那么尝试在音视频包里面还原出相关信息
+    	    //这个流没有metadata
             _parser.reset(new RtmpDemuxer());
-            onPlayResult_l(SockException(Err_success,"play rtmp success"));
         }
         _parser->inputRtmp(chunkData);
-        checkInited(_analysisMs);
     }
 private:
     RtmpMediaSource::Ptr _pRtmpMediaSrc;
-    int _analysisMs;
 };
 
 

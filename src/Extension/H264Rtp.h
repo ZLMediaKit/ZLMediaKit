@@ -36,6 +36,8 @@ namespace mediakit{
 
 /**
  * h264 rtp解码类
+ * 将 h264 over rtsp-rtp 解复用出 h264-Frame
+ * rfc3984
  */
 class H264RtpDecoder : public RtpCodec , public ResourcePoolHelper<H264Frame> {
 public:
@@ -64,6 +66,7 @@ private:
     H264Frame::Ptr obtainFrame();
 private:
     H264Frame::Ptr _h264frame;
+    int _lastSeq = 0;
 };
 
 /**
@@ -94,8 +97,6 @@ public:
     void inputFrame(const Frame::Ptr &frame) override;
 private:
     void makeH264Rtp(int nal_type,const void *pData, unsigned int uiLen, bool bMark,  bool first_packet, uint32_t uiStamp);
-private:
-    unsigned char _aucSectionBuf[1600];
 };
 
 }//namespace mediakit{

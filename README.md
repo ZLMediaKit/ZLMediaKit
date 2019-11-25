@@ -8,7 +8,7 @@
 
 ## Why ZLMediaKit?
 - Developed based on C++ 11, the code is stable and reliable, avoiding the use of raw pointers, cross-platform porting is simple and convenient, and the code is clear and concise.
-- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV`),and support Inter-protocol conversion.
+- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV/Websocket-flv`),and support Inter-protocol conversion.
 - Multiplexing asynchronous network IO based on epoll and multi thread，extreme performance.
 - Well performance and stable test,can be used commercially.
 - Support linux, macos, ios, android, Windows Platforms.
@@ -41,7 +41,7 @@
   - HTTP server,suppor directory meun、RESTful http api.
   - HTTP client,downloader,uploader,and http api requester.
   - Cookie supported.
-  - WebSocket Server.
+  - WebSocket Server and Client.
   - File access authentication.
   
 - Others
@@ -63,7 +63,7 @@
 |         RTMP --> RTSP[S]         |  Y   |  N   |  Y   |   N   |
 |         RTSP[S] --> HLS          |  Y   |  Y   |  Y   |   N   |
 |           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
-|         RTSP[S] --> MP4          |  Y   |  N   |  Y   |   N   |
+|         RTSP[S] --> MP4          |  Y   |  Y   |  Y   |   N   |
 |           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
 |         MP4 --> RTSP[S]          |  Y   |  N   |  Y   |   N   |
 |           MP4 --> RTMP           |  Y   |  N   |  Y   |   N   |
@@ -73,9 +73,9 @@
 | feature/codec | H264 | H265 | AAC  | other |
 | :-----------: | :--: | :--: | :--: | :---: |
 | RTSP[S] push  |  Y   |  Y   |  Y   |   Y   |
-|  RTSP proxy   |  Y   |  Y   |  Y   |   N   |
+|  RTSP proxy   |  Y   |  Y   |  Y   |   Y   |
 |   RTMP push   |  Y   |  Y   |  Y   |   Y   |
-|  RTMP proxy   |  Y   |  N   |  Y   |   N   |
+|  RTMP proxy   |  Y   |  Y   |  Y   |   Y   |
 
 - RTP transport:
 
@@ -94,7 +94,7 @@
 | RTSP[S] Play Server |  Y   |
 | RTSP[S] Push Server |  Y   |
 |        RTMP         |  Y   |
-|  HTTP[S]/WebSocket  |  Y   |
+| HTTP[S]/WebSocket[S] |  Y   |
 
 - Client supported:
 
@@ -105,6 +105,7 @@
 | RTMP Player |  Y   |
 | RTMP Pusher |  Y   |
 |   HTTP[S]   |  Y   |
+| WebSocket[S] |  Y   |
 
 
 
@@ -116,13 +117,18 @@
 - Apple OSX(Darwin), both 32 and 64bits.
 - All hardware with x86/x86_64/arm/mips cpu.
 - Windows.
-- **You must use git to clone the complete code. Do not download the source code by downloading zip package. Otherwise, the sub-module code will not be downloaded by default.**
-
-
 
 ## How to build
 
 It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumbersome, and some features are not compiled by default.
+
+### Before build
+- **You must use git to clone the complete code. Do not download the source code by downloading zip package. Otherwise, the sub-module code will not be downloaded by default.You can do it like this:**
+```
+git clone https://github.com/zlmediakit/ZLMediaKit.git
+cd ZLMediaKit
+git submodule update --init
+```
 
 ### Build on linux
 
@@ -231,7 +237,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 ## Usage
 
 - As server：
-	```
+	```cpp
 	TcpServer::Ptr rtspSrv(new TcpServer());
 	TcpServer::Ptr rtmpSrv(new TcpServer());
 	TcpServer::Ptr httpSrv(new TcpServer());
@@ -244,7 +250,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 	```
 
 - As player：
-	```
+	```cpp
     MediaPlayer::Ptr player(new MediaPlayer());
     weak_ptr<MediaPlayer> weakPlayer = player;
     player->setOnPlayResult([weakPlayer](const SockException &ex) {
@@ -273,7 +279,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
     player->play("rtsp://admin:jzan123456@192.168.0.122/");
 	```
 - As proxy server：
-	```
+	```cpp
 	//support rtmp and rtsp url
 	//just support H264+AAC
 	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
@@ -288,7 +294,7 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 	```
 	
 - As puser：
-	```
+	```cpp
 	PlayerProxy::Ptr player(new PlayerProxy("app","stream"));
 	player->play("rtmp://live.hkstv.hk.lxdns.com/live/hks");
 	
@@ -300,6 +306,17 @@ It is recommended to compile on Ubuntu or MacOS，compiling on windows is cumber
 	});
 	
 	```
+## Docker Image
+You can pull a pre-built docker image from Docker Hub and run with
+```bash
+docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
+```
+
+Dockerfile is also supplied to build images on Ubuntu 16.04
+```bash
+cd docker
+docker build -t zlmediakit .
+```
 
 ## Mirrors
 

@@ -51,6 +51,8 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
         //缓存sps pps，后续插入到I帧之前
         _sps = pkt->getH264SPS();
         _pps  = pkt->getH264PPS();
+        onGetH264(_sps.data(), _sps.size(), pkt->timeStamp , pkt->timeStamp);
+        onGetH264(_pps.data(), _pps.size(), pkt->timeStamp , pkt->timeStamp);
         return false;
     }
 
@@ -69,47 +71,15 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
             if(iFrameLen + iOffset > iTotalLen){
                 break;
             }
-            onGetH264_l(pkt->strBuf.data() + iOffset, iFrameLen, pkt->timeStamp , pts);
+            onGetH264(pkt->strBuf.data() + iOffset, iFrameLen, pkt->timeStamp , pts);
             iOffset += iFrameLen;
         }
     }
     return  pkt->isVideoKeyFrame();
 }
 
-
-inline void H264RtmpDecoder::onGetH264_l(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
-    switch (H264_TYPE(pcData[0])) {
-        case H264Frame::NAL_IDR: {
-            //I frame
-            if(_sps.length()){
-                onGetH264(_sps.data(), _sps.length(), dts , pts);
-            }
-            if(_pps.length()){
-                onGetH264(_pps.data(), _pps.length(), dts , pts);
-            }
-            onGetH264(pcData, iLen, dts , pts);
-        }
-            break;
-        case H264Frame::NAL_B_P: {
-            //I or P or B frame
-            onGetH264(pcData, iLen, dts , pts);
-        }
-            break;
-        case H264Frame::NAL_SPS: {
-            _sps.assign(pcData, iLen);
-        }
-            break;
-        case H264Frame::NAL_PPS:{
-            _pps.assign(pcData, iLen);
-        }
-            break;
-        default:
-            break;
-    }
-}
 inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
 #if 1
-    _h264frame->type = H264_TYPE(pcData[0]);
     _h264frame->timeStamp = dts;
     _h264frame->ptsStamp = pts;
     _h264frame->buffer.assign("\x0\x0\x0\x1", 4);  //添加264头

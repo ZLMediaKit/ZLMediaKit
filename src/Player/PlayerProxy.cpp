@@ -122,7 +122,13 @@ void PlayerProxy::play(const string &strUrlTmp) {
 			for (auto & track : tracks){
 				track->delDelegate(strongSelf->_mediaMuxer.get());
 			}
-			strongSelf->_mediaMuxer.reset();
+
+			GET_CONFIG(bool,resetWhenRePlay,General::kResetWhenRePlay);
+			if (resetWhenRePlay) {
+				strongSelf->_mediaMuxer.reset();
+			} else {
+				strongSelf->_mediaMuxer->resetTracks();
+			}
 		}
 		//播放异常中断，延时重试播放
 		if(*piFailedCnt < strongSelf->_iRetryCount || strongSelf->_iRetryCount < 0) {
@@ -138,7 +144,7 @@ void PlayerProxy::play(const string &strUrlTmp) {
 		if(directProxy && _bEnableRtsp){
 			mediaSource = std::make_shared<RtspMediaSource>(_strVhost,_strApp,_strSrc);
 		}
-	}else if(dynamic_pointer_cast<RtmpPlayer>(_parser)){
+	} else if(dynamic_pointer_cast<RtmpPlayer>(_parser)){
 		//rtmp拉流
 		if(_bEnableRtmp){
 			mediaSource = std::make_shared<RtmpMediaSource>(_strVhost,_strApp,_strSrc);
@@ -154,7 +160,7 @@ PlayerProxy::~PlayerProxy() {
 	_timer.reset();
 }
 void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
-	auto iDelay = MAX(2 * 1000, MIN(iFailedCnt * 3000,60*1000));
+	auto iDelay = MAX(2 * 1000, MIN(iFailedCnt * 3000, 60*1000));
 	weak_ptr<PlayerProxy> weakSelf = shared_from_this();
 	_timer = std::make_shared<Timer>(iDelay / 1000.0f,[weakSelf,strUrl,iFailedCnt]() {
 		//播放失败次数越多，则延时越长
@@ -213,7 +219,7 @@ public:
 			if(_iAudioIndex != iAudioIndex){
 				_iAudioIndex = iAudioIndex;
 				auto aacFrame = std::make_shared<AACFrameNoCacheAble>((char *)MUTE_ADTS_DATA,
-																	 MUTE_ADTS_DATA_LEN,
+																	  MUTE_ADTS_DATA_LEN,
 																	  _iAudioIndex * MUTE_ADTS_DATA_MS);
 				FrameRingInterfaceDelegate::inputFrame(aacFrame);
 			}
@@ -224,15 +230,22 @@ private:
 };
 
 void PlayerProxy::onPlaySuccess() {
+	GET_CONFIG(bool,resetWhenRePlay,General::kResetWhenRePlay);
 	if (dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc)) {
 		//rtsp拉流代理
-		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), false, _bEnableRtmp, _bEnableHls, _bEnableMp4));
+		if (resetWhenRePlay || !_mediaMuxer) {
+			_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), false, _bEnableRtmp, _bEnableHls, _bEnableMp4));
+		}
 	} else if (dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc)) {
 		//rtmp拉流代理
-		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableRtsp, false, _bEnableHls, _bEnableMp4));
+		if (resetWhenRePlay || !_mediaMuxer) {
+			_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableRtsp, false, _bEnableHls, _bEnableMp4));
+		}
 	} else {
 		//其他拉流代理
-		_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableRtsp, _bEnableRtmp, _bEnableHls, _bEnableMp4));
+		if (resetWhenRePlay || !_mediaMuxer) {
+			_mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableRtsp, _bEnableRtmp, _bEnableHls, _bEnableMp4));
+		}
 	}
 	_mediaMuxer->setListener(shared_from_this());
 
@@ -244,13 +257,16 @@ void PlayerProxy::onPlaySuccess() {
 		videoTrack->addDelegate(_mediaMuxer);
 	}
 
+	//是否添加静音音频
+	GET_CONFIG(bool,addMuteAudio,General::kAddMuteAudio);
+
 	auto audioTrack = getTrack(TrackAudio, false);
 	if(audioTrack){
 		//添加音频
 		_mediaMuxer->addTrack(audioTrack);
 		//音频数据写入_mediaMuxer
         audioTrack->addDelegate(_mediaMuxer);
-    }else if(videoTrack){
+    }else if(addMuteAudio && videoTrack){
 		//没有音频信息，产生一个静音音频
 		MuteAudioMaker::Ptr audioMaker = std::make_shared<MuteAudioMaker>();
 		//videoTrack把数据写入MuteAudioMaker

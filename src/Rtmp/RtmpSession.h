@@ -37,6 +37,8 @@
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Network/TcpSession.h"
+#include "MediaFile/Stamp.h"
+
 using namespace toolkit;
 
 namespace mediakit {
@@ -83,16 +85,20 @@ private:
 
     bool close(MediaSource &sender,bool force) override ;
     void onNoneReader(MediaSource &sender) override;
+	void setSocketFlags();
+	string getStreamId(const string &str);
+	void dumpMetadata(const AMFValue &metadata);
 private:
+	bool _metadata_got = false;
 	std::string _strTcUrl;
 	MediaInfo _mediaInfo;
 	double _dNowReqID = 0;
 	Ticker _ticker;//数据接收时间
-	SmoothTicker _stampTicker[2];//时间戳生产器
 	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr _pRingReader;
-	std::shared_ptr<RtmpMediaSource> _pPublisherSrc;
+	std::shared_ptr<RtmpToRtspMediaSource> _pPublisherSrc;
 	std::weak_ptr<RtmpMediaSource> _pPlayerSrc;
-	uint32_t _aui32FirstStamp[2] = {0};
+	//时间戳修整器
+	Stamp _stamp[2];
 	//消耗的总流量
 	uint64_t _ui64TotalBytes = 0;
 

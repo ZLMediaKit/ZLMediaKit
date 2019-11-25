@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -36,7 +36,6 @@ using namespace toolkit;
 namespace mediakit{
 
 bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
 void splitH264(const char *ptr, int len, const std::function<void(const char *, int)> &cb);
 
 /**
@@ -80,13 +79,21 @@ public:
     }
 
     bool keyFrame() const override {
-        return type == NAL_IDR;
+        return H264_TYPE(buffer[iPrefixSize]) == H264Frame::NAL_IDR;
+    }
+
+    bool configFrame() const override{
+        switch(H264_TYPE(buffer[iPrefixSize]) ){
+            case H264Frame::NAL_SPS:
+            case H264Frame::NAL_PPS:
+                return true;
+            default:
+                return false;
+        }
     }
 public:
-    uint16_t sequence;
     uint32_t timeStamp;
     uint32_t ptsStamp = 0;
-    unsigned char type;
     string buffer;
     uint32_t iPrefixSize = 4;
 };
@@ -119,6 +126,16 @@ public:
 
     bool keyFrame() const override {
         return H264_TYPE(_ptr[_prefixSize]) == H264Frame::NAL_IDR;
+    }
+
+    bool configFrame() const override{
+        switch(H264_TYPE(_ptr[_prefixSize])){
+            case H264Frame::NAL_SPS:
+            case H264Frame::NAL_PPS:
+                return true;
+            default:
+                return false;
+        }
     }
 };
 
@@ -326,7 +343,6 @@ private:
 
         if(!_sps.empty()){
             auto spsFrame = std::make_shared<H264Frame>();
-            spsFrame->type = H264Frame::NAL_SPS;
             spsFrame->iPrefixSize = 4;
             spsFrame->buffer.assign("\x0\x0\x0\x1",4);
             spsFrame->buffer.append(_sps);
@@ -336,7 +352,6 @@ private:
 
         if(!_pps.empty()){
             auto ppsFrame = std::make_shared<H264Frame>();
-            ppsFrame->type = H264Frame::NAL_PPS;
             ppsFrame->iPrefixSize = 4;
             ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
             ppsFrame->buffer.append(_pps);
@@ -375,7 +390,7 @@ public:
         _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
         _printer << "a=rtpmap:" << playload_type << " H264/" << 90000 << "\r\n";
-        _printer << "a=fmtp:" << playload_type << " packetization-mode=1;profile-level-id=";
+        _printer << "a=fmtp:" << playload_type << " packetization-mode=1; profile-level-id=";
 
         char strTemp[100];
         uint32_t profile_level_id = 0;
@@ -387,7 +402,7 @@ public:
         memset(strTemp, 0, 100);
         sprintf(strTemp, "%06X", profile_level_id);
         _printer << strTemp;
-        _printer << ";sprop-parameter-sets=";
+        _printer << "; sprop-parameter-sets=";
         memset(strTemp, 0, 100);
         av_base64_encode(strTemp, 100, (uint8_t *) strSPS.data(), strSPS.size());
         _printer << strTemp << ",";

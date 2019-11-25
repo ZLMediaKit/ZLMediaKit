@@ -157,7 +157,7 @@ void initEventListener() {
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaPublish, [](BroadcastMediaPublishArgs) {
             DebugL << "推流鉴权：" << args._schema << " " << args._vhost << " " << args._app << " " << args._streamid << " "
                    << args._param_strs;
-            invoker("");//鉴权成功
+            invoker("", true, true, false);//鉴权成功
             //invoker("this is auth failed message");//鉴权失败
         });
 
@@ -239,8 +239,7 @@ int main(int argc,char *argv[]) {
 
     //这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
     //如果是其他不识别的音视频将会被忽略(譬如说h264+adpcm转发后会去除音频)
-    auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks1",
-                    "rtmp://live.hkstv.hk.lxdns.com/live/hks2"
+    auto urlList = {"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov"
             //rtsp链接支持输入用户名密码
             /*"rtsp://admin:jzan123456@192.168.0.122/"*/};
     map<string, PlayerProxy::Ptr> proxyMap;
@@ -301,13 +300,13 @@ int main(int argc,char *argv[]) {
     shellSrv->start<ShellSession>(shellPort);
     rtspSrv->start<RtspSession>(rtspPort);//默认554
     rtmpSrv->start<RtmpSession>(rtmpPort);//默认1935
-    //http服务器,支持websocket
-    httpSrv->start<EchoWebSocketSession>(httpPort);//默认80
+    //http服务器
+    httpSrv->start<HttpSession>(httpPort);//默认80
 
     //如果支持ssl，还可以开启https服务器
     TcpServer::Ptr httpsSrv(new TcpServer());
-    //https服务器,支持websocket
-    httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);//默认443
+    //https服务器
+    httpsSrv->start<HttpsSession>(httpsPort);//默认443
 
     //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
     TcpServer::Ptr rtspSSLSrv(new TcpServer());
@@ -333,12 +332,12 @@ int main(int argc,char *argv[]) {
         }
         if(httpPort != mINI::Instance()[Http::kPort].as<uint16_t>()){
             httpPort = mINI::Instance()[Http::kPort];
-            httpSrv->start<EchoWebSocketSession>(httpPort);
+            httpSrv->start<HttpSession>(httpPort);
             InfoL << "重启http服务器" << httpPort;
         }
         if(httpsPort != mINI::Instance()[Http::kSSLPort].as<uint16_t>()){
             httpsPort = mINI::Instance()[Http::kSSLPort];
-            httpsSrv->start<SSLEchoWebSocketSession>(httpsPort);
+            httpsSrv->start<HttpsSession>(httpsPort);
             InfoL << "重启https服务器" << httpsPort;
         }
 

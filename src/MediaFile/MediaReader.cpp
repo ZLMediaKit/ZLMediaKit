@@ -30,6 +30,7 @@
 #include "Http/HttpSession.h"
 #include "Extension/AAC.h"
 #include "Extension/H264.h"
+#include "Thread/WorkThreadPool.h"
 
 using namespace toolkit;
 
@@ -37,16 +38,17 @@ namespace mediakit {
 
 #ifdef ENABLE_MP4V2
 MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
-	_poller = EventPollerPool::Instance().getPoller();
+	_poller = WorkThreadPool::Instance().getPoller();
     auto strFileName = filePath;
     if(strFileName.empty()){
 		GET_CONFIG(string,recordPath,Record::kFilePath);
         GET_CONFIG(bool,enableVhost,General::kEnableVhost);
         if(enableVhost){
-            strFileName = recordPath + "/" + strVhost + "/" + strApp + "/" + strId;
+            strFileName = strVhost + "/" + strApp + "/" + strId;
         }else{
-            strFileName = recordPath + "/" + strApp + "/" + strId;
+            strFileName = strApp + "/" + strId;
         }
+		strFileName = File::absolutePath(strFileName,recordPath);
     }
 
 	_hMP4File = MP4Read(strFileName.data());
@@ -199,6 +201,11 @@ bool MediaReader::readSample(int iTimeInc,bool justSeekSyncFrame) {
 	auto bFlag2 = _mediaMuxer->readerCount() > 0;//读取者大于0
 	if((bFlag0 || bFlag1) && bFlag2){
 		_alive.resetTime();
+	}
+	//重头开始循环读取
+	GET_CONFIG(bool,fileRepeat,Record::kFileRepeat);
+	if (fileRepeat && !bFlag0 && !bFlag1) {
+		seek(0);
 	}
 	//DebugL << "alive ...";
 	//3秒延时关闭

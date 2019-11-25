@@ -18,8 +18,6 @@ public class MainActivity extends AppCompatActivity {
             "android.permission.WRITE_EXTERNAL_STORAGE",
             "android.permission.INTERNET"};
 
-    private ZLMediaKit.MediaPlayer _player;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,14 +34,18 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        String ini = Environment.getExternalStoragePublicDirectory("").toString();
+        String sd_dir = Environment.getExternalStoragePublicDirectory("").toString();
         if(permissionSuccess){
-            Toast.makeText(this,"你可以修改配置文件再启动：" + ini + "/zlmediakit.jni" ,Toast.LENGTH_LONG).show();
-            ZLMediaKit.startDemo(ini);
+            Toast.makeText(this,"你可以修改配置文件再启动：" + sd_dir + "/zlmediakit.ini" ,Toast.LENGTH_LONG).show();
+            Toast.makeText(this,"SSL证书请放置在：" + sd_dir + "/zlmediakit.pem" ,Toast.LENGTH_LONG).show();
         }else{
             Toast.makeText(this,"请给予我权限，否则无法启动测试！" ,Toast.LENGTH_LONG).show();
         }
+        ZLMediaKit.startDemo(sd_dir);
+    }
 
+    private ZLMediaKit.MediaPlayer _player;
+    private void test_player(){
         _player = new ZLMediaKit.MediaPlayer("rtmp://live.hkstv.hk.lxdns.com/live/hks1", new ZLMediaKit.MediaPlayerCallBack() {
             @Override
             public void onPlayResult(int code, String msg) {
@@ -67,7 +69,6 @@ public class MainActivity extends AppCompatActivity {
                         + frame.data.length);
             }
         });
-
     }
 
 }

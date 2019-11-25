@@ -76,8 +76,6 @@ void FlvMuxer::start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &
 }
 
 void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
-    CLEAR_ARR(_aui32FirstStamp);
-
     //发送flv文件头
     char flv_file_header[] = "FLV\x1\x5\x0\x0\x0\x9"; // have audio and have video
     bool is_have_audio = false,is_have_video = false;
@@ -108,10 +106,15 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     //PreviousTagSize0 Always 0
     onWrite(std::make_shared<BufferRaw>((char *)&size,4));
 
-    //metadata
-    AMFEncoder invoke;
-    invoke << "onMetaData" << mediaSrc->getMetaData();
-    onWriteFlvTag(MSG_DATA, std::make_shared<BufferString>(invoke.data()), 0);
+
+    auto &metadata = mediaSrc->getMetaData();
+    if(metadata){
+        //在有metadata的情况下才发送metadata
+        //其实metadata没什么用，有些推流器不产生metadata
+        AMFEncoder invoke;
+        invoke << "onMetaData" << metadata;
+        onWriteFlvTag(MSG_DATA, std::make_shared<BufferString>(invoke.data()), 0);
+    }
 
     //config frame
     mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
@@ -158,20 +161,9 @@ void FlvMuxer::onWriteFlvTag(uint8_t ui8Type, const Buffer::Ptr &buffer, uint32_
 }
 
 void FlvMuxer::onWriteRtmp(const RtmpPacket::Ptr &pkt) {
-    auto modifiedStamp = pkt->timeStamp;
-    auto &firstStamp = _aui32FirstStamp[pkt->typeId % 2];
-    if(!firstStamp){
-        firstStamp = modifiedStamp;
-    }
-    if(modifiedStamp >= firstStamp){
-        //计算时间戳增量
-        modifiedStamp -= firstStamp;
-    }else{
-        //发生回环，重新计算时间戳增量
-        CLEAR_ARR(_aui32FirstStamp);
-        modifiedStamp = 0;
-    }
-    onWriteFlvTag(pkt, modifiedStamp);
+    int64_t dts_out;
+    _stamp[pkt->typeId % 2].revise(pkt->timeStamp, 0, dts_out, dts_out);
+    onWriteFlvTag(pkt, dts_out);
 }
 
 void FlvMuxer::stop() {

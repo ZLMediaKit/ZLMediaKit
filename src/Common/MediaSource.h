@@ -167,8 +167,13 @@ public:
         }
         listener->onNoneReader(*this);
     }
+
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _listener = listener;
+    }
+
+    std::weak_ptr<MediaSourceEvent> getListener(){
+        return _listener;
     }
 
     template <typename FUN>
@@ -186,6 +191,14 @@ public:
     }
 
     virtual int readerCount() = 0;
+
+    /**
+     * 获取track
+     * @return
+     */
+    virtual vector<Track::Ptr> getTracks(bool trackReady) const{
+        return vector<Track::Ptr>(0);
+    }
 protected:
     void regist() ;
     bool unregist() ;

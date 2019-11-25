@@ -36,6 +36,7 @@ using namespace toolkit;
 namespace mediakit{
 /**
  * h264 Rtmp解码类
+ * 将 h264 over rtmp 解复用出 h264-Frame
  */
 class H264RtmpDecoder : public RtmpCodec ,public ResourcePoolHelper<H264Frame> {
 public:
@@ -60,7 +61,6 @@ public:
     }
 protected:
     bool decodeRtmp(const RtmpPacket::Ptr &Rtmp);
-    void onGetH264_l(const char *pcData, int iLen, uint32_t dts,uint32_t pts);
     void onGetH264(const char *pcData, int iLen, uint32_t dts,uint32_t pts);
     H264Frame::Ptr obtainFrame();
 protected:

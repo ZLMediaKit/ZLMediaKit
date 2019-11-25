@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -32,7 +32,7 @@
 
 namespace mediakit {
 
-class HlsRecorder : public HlsMakerImp , public TsMuxer  {
+class HlsRecorder : public HlsMakerImp, public TsMuxer {
 public:
     template<typename ...ArgsType>
     HlsRecorder(ArgsType &&...args):HlsMakerImp(std::forward<ArgsType>(args)...){}
