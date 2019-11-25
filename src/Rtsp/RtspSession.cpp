@@ -1105,6 +1105,9 @@ inline int RtspSession::getTrackIndexByTrackType(TrackType type) {
 			return i;
 		}
 	}
+    if(_aTrackInfo.size() == 1){
+        return 0;
+    }
 	return -1;
 }
 inline int RtspSession::getTrackIndexByControlSuffix(const string &controlSuffix) {
@@ -1125,6 +1128,9 @@ inline int RtspSession::getTrackIndexByInterleaved(int interleaved){
 			return i;
 		}
 	}
+    if(_aTrackInfo.size() == 1){
+        return 0;
+    }
 	return -1;
 }
 

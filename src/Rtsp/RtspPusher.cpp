@@ -351,6 +351,9 @@ inline int RtspPusher::getTrackIndexByTrackType(TrackType type) {
             return i;
         }
     }
+    if(_aTrackInfo.size() == 1){
+        return 0;
+    }
     return -1;
 }
 
