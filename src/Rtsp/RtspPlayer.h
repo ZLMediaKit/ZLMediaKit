@@ -103,7 +103,6 @@ private:
 	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
 	void onPlayResult_l(const SockException &ex , bool handshakeCompleted);
 
-    int getTrackIndexByControlSuffix(const string &controlSuffix) const;
     int getTrackIndexByInterleaved(int interleaved) const;
 	int getTrackIndexByTrackType(TrackType trackType) const;
 

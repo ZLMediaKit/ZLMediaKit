@@ -823,20 +823,14 @@ void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshakeComplete
     }
 }
 
-int RtspPlayer::getTrackIndexByControlSuffix(const string &controlSuffix) const{
-	for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
-		auto pos = _aTrackInfo[i]->_control_surffix.find(controlSuffix);
-		if (pos == 0) {
-			return i;
-		}
-	}
-	return -1;
-}
 int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const{
 	for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
 		if (_aTrackInfo[i]->_interleaved == interleaved) {
 			return i;
 		}
+	}
+	if(_aTrackInfo.size() == 1){
+		return 0;
 	}
 	return -1;
 }
@@ -846,6 +840,9 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
 		if (_aTrackInfo[i]->_type == trackType) {
 			return i;
 		}
+	}
+	if(_aTrackInfo.size() == 1){
+		return 0;
 	}
 	return -1;
 }
