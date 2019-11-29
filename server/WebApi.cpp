@@ -840,6 +840,12 @@ void installWebApi() {
     });
 
 
+    API_REGIST(hook,on_server_started,{
+        //服务器重启报告
+        throw SuccessException();
+    });
+
+
 }
 
 void unInstallWebApi(){

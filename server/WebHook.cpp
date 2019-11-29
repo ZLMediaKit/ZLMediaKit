@@ -71,6 +71,7 @@ const string kOnRecordMp4 = HOOK_FIELD"on_record_mp4";
 const string kOnShellLogin = HOOK_FIELD"on_shell_login";
 const string kOnStreamNoneReader = HOOK_FIELD"on_stream_none_reader";
 const string kOnHttpAccess = HOOK_FIELD"on_http_access";
+const string kOnServerStarted = HOOK_FIELD"on_server_started";
 const string kAdminParams = HOOK_FIELD"admin_params";
 
 onceToken token([](){
@@ -87,6 +88,7 @@ onceToken token([](){
     mINI::Instance()[kOnShellLogin] = "https://127.0.0.1/index/hook/on_shell_login";
     mINI::Instance()[kOnStreamNoneReader] = "https://127.0.0.1/index/hook/on_stream_none_reader";
     mINI::Instance()[kOnHttpAccess] = "https://127.0.0.1/index/hook/on_http_access";
+    mINI::Instance()[kOnServerStarted] = "https://127.0.0.1/index/hook/on_server_started";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
 },nullptr);
 }//namespace Hook
@@ -177,6 +179,20 @@ static ArgsType make_json(const MediaInfo &args){
     return std::move(body);
 }
 
+static void reportServerStarted(){
+    GET_CONFIG(bool,hook_enable,Hook::kEnable);
+    GET_CONFIG(string,hook_server_started,Hook::kOnServerStarted);
+    if(!hook_enable || hook_server_started.empty()){
+        return;
+    }
+
+    ArgsType body;
+    for (auto &pr : mINI::Instance()) {
+        body[pr.first] = (string &) pr.second;
+    }
+    //执行hook
+    do_http_hook(hook_server_started,body, nullptr);
+}
 
 void installWebHook(){
     GET_CONFIG(bool,hook_enable,Hook::kEnable);
@@ -459,6 +475,9 @@ void installWebHook(){
             invoker(obj["err"].asString(),obj["path"].asString(),obj["second"].asInt());
         });
     });
+
+    //汇报服务器重新启动
+    reportServerStarted();
 }
 
 void unInstallWebHook(){
