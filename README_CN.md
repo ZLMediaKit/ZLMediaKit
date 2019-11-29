@@ -2,6 +2,13 @@
 # 一个基于C++11的高性能运营级流媒体服务框架
  [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
+
+## 国内用户请使用gitee镜像下载
+```
+git clone --depth 1 https://gitee.com/xiahcu/ZLMediaKit
+cd ZLMediaKit
+git submodule update --init
+```
 ## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
 - 打包多种流媒体协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV），支持协议间的互相转换，提供一站式的服务。
