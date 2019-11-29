@@ -84,6 +84,7 @@ public:
     int64_t getRelativeStamp() const ;
 private:
     int64_t _relativeStamp = 0;
+    int64_t _last_dts = -1;
     SmoothTicker _ticker;
 };
 
