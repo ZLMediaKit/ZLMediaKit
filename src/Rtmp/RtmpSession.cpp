@@ -493,7 +493,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 		GET_CONFIG(bool,rtmp_modify_stamp,Rtmp::kModifyStamp);
         if(rtmp_modify_stamp){
             int64_t dts_out;
-            _stamp[chunkData.typeId % 2].revise(0, 0, dts_out, dts_out, true);
+            _stamp[chunkData.typeId % 2].revise(chunkData.timeStamp, chunkData.timeStamp, dts_out, dts_out, true);
             chunkData.timeStamp = dts_out;
         }
         if(!_metadata_got && !chunkData.isCfgFrame()){
