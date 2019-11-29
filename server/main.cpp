@@ -235,6 +235,7 @@ int start_main(int argc,char *argv[]) {
 #endif//
 
 #if !defined(_WIN32)
+        pid_t pid = getpid();
         if (bDaemon) {
             //启动守护进程
             System::startDaemon();
@@ -278,21 +279,35 @@ int start_main(int argc,char *argv[]) {
         TcpServer::Ptr rtspSrv(new TcpServer());
         TcpServer::Ptr rtmpSrv(new TcpServer());
         TcpServer::Ptr httpSrv(new TcpServer());
-
-        shellSrv->start<ShellSession>(shellPort);
-        rtspSrv->start<RtspSession>(rtspPort);//默认554
-        rtmpSrv->start<RtmpSession>(rtmpPort);//默认1935
-        //http服务器
-        httpSrv->start<HttpSession>(httpPort);//默认80
-
         //如果支持ssl，还可以开启https服务器
         TcpServer::Ptr httpsSrv(new TcpServer());
-        //https服务器,支持websocket
-        httpsSrv->start<HttpsSession>(httpsPort);//默认443
-
         //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
         TcpServer::Ptr rtspSSLSrv(new TcpServer());
-        rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);//默认322
+
+        try {
+            //rtsp服务器，端口默认554
+            rtspSrv->start<RtspSession>(rtspPort);//默认554
+            //rtsps服务器，端口默认322
+            rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);
+            //rtmp服务器，端口默认1935
+            rtmpSrv->start<RtmpSession>(rtmpPort);
+            //http服务器，端口默认80
+            httpSrv->start<HttpSession>(httpPort);
+            //https服务器，端口默认443
+            httpsSrv->start<HttpsSession>(httpsPort);
+            //telnet远程调试服务器
+            shellSrv->start<ShellSession>(shellPort);
+        }catch (std::exception &ex){
+            WarnL << "端口占用或无权限:" << ex.what() << endl;
+            ErrorL << "程序启动失败，请修改配置文件中端口号后重试!" << endl;
+            sleep(1);
+#if !defined(_WIN32)
+            if(pid != getpid()){
+                kill(pid,SIGINT);
+            }
+#endif
+            return -1;
+        }
 
         installWebApi();
         InfoL << "已启动http api 接口";
