@@ -299,9 +299,7 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
             if (!strongSelf) {
                 return;
             }
-            strongSelf->sendResponse(status_code.data(), bClose,
-                                     content_type.empty() ? nullptr : content_type.data(),
-                                     responseHeader, body);
+            strongSelf->sendResponse(status_code.data(), bClose, content_type.data(), responseHeader, body);
         });
     });
 }
