@@ -123,7 +123,6 @@ private:
 	string _origin;
     Parser _parser;
     Ticker _ticker;
-    uint32_t _iReqCnt = 0;
     //消耗的总流量
     uint64_t _ui64TotalBytes = 0;
     //flv over http

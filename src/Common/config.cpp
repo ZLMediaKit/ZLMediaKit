@@ -107,8 +107,6 @@ const string kSendBufSize = HTTP_FIELD"sendBufSize";
 const string kMaxReqSize = HTTP_FIELD"maxReqSize";
 //http keep-alive秒数
 const string kKeepAliveSecond = HTTP_FIELD"keepAliveSecond";
-//http keep-alive最大请求数
-const string kMaxReqCount = HTTP_FIELD"maxReqCount";
 //http 字符编码
 const string kCharSet = HTTP_FIELD"charSet";
 //http 服务器根目录
@@ -120,8 +118,6 @@ onceToken token([](){
 	mINI::Instance()[kSendBufSize] = 64 * 1024;
 	mINI::Instance()[kMaxReqSize] = 4*1024;
 	mINI::Instance()[kKeepAliveSecond] = 15;
-	mINI::Instance()[kMaxReqCount] = 100;
-
 #if defined(_WIN32)
 	mINI::Instance()[kCharSet] = "gb2312";
 #else
