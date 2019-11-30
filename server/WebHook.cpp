@@ -427,7 +427,7 @@ void installWebHook(){
     /**
      * kBroadcastHttpAccess事件触发机制
      * 1、根据http请求头查找cookie，找到进入步骤3
-     * 2、根据http url参数(如果没有根据ip+端口号)查找cookie，如果还是未找到cookie则进入步骤5
+     * 2、根据http url参数查找cookie，如果还是未找到cookie则进入步骤5
      * 3、cookie标记是否有权限访问文件，如果有权限，直接返回文件
      * 4、cookie中记录的url参数是否跟本次url参数一致，如果一致直接返回客户端错误码
      * 5、触发kBroadcastHttpAccess事件
