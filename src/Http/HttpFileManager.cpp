@@ -284,9 +284,9 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
 
     bool is_hls = end_of(path,kHlsSuffix);
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
-    auto accessPathInvoker = [callback, uid, path, is_dir, is_hls](const string &errMsg,
-                                                                   const string &cookie_path_in,
-                                                                   int cookieLifeSecond) {
+    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls]( const string &errMsg,
+                                                                                                  const string &cookie_path_in,
+                                                                                                  int cookieLifeSecond) {
         HttpServerCookie::Ptr cookie;
         if (cookieLifeSecond) {
             //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
