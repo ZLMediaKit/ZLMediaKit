@@ -350,7 +350,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             if (cookie) {
                 headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
             }
-            cb("401 Unauthorized", "", headerOut, std::make_shared<HttpStringBody>(errMsg));
+            cb("401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
             return;
         }
 
@@ -380,7 +380,7 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
     auto strFile = File::absolutePath(enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
 
     //访问的是文件夹
-    if (strFile.back() == '/' || File::is_dir(strFile.data())) {
+    if (File::is_dir(strFile.data())) {
         auto indexFile = searchIndexFile(strFile);
         if (!indexFile.empty()) {
             //发现该文件夹下有index文件
