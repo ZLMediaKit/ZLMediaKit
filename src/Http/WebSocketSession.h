@@ -28,6 +28,7 @@
 #define ZLMEDIAKIT_WEBSOCKETSESSION_H
 
 #include "HttpSession.h"
+#include "Network/TcpServer.h"
 
 /**
 * 通过该模板类可以透明化WebSocket协议，
