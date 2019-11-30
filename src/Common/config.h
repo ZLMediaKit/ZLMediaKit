@@ -199,8 +199,6 @@ extern const string kSendBufSize;
 extern const string kMaxReqSize;
 //http keep-alive秒数
 extern const string kKeepAliveSecond;
-//http keep-alive最大请求数
-extern const string kMaxReqCount;
 //http 字符编码
 extern const string kCharSet;
 //http 服务器根目录

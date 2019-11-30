@@ -194,9 +194,7 @@ bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
         return false;
 	}
     _mediaInfo._streamid.erase(_mediaInfo._streamid.size() - 4);//去除.flv后缀
-
-    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
-    bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
+    bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
 
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
     MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,bClose,this,cb](const MediaSource::Ptr &src){
@@ -284,8 +282,7 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
         return;
     }
 
-    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
-    bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
+    bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
 
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
     HttpFileManager::onAccessPath(*this, _parser, [weakSelf, bClose](const string &status_code, const string &content_type,
@@ -319,7 +316,6 @@ void HttpSession::sendResponse(const char *pcStatus,
                                bool set_content_len ){
     GET_CONFIG(string,charSet,Http::kCharSet);
     GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
-    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
 
     //body默认为空
     int64_t size = 0;
@@ -343,7 +339,7 @@ void HttpSession::sendResponse(const char *pcStatus,
     headerOut.emplace("Server", SERVER_NAME);
     headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
     if(!bClose){
-        headerOut.emplace("Keep-Alive",StrPrinter << "timeout=" << keepAliveSec << ", max=" << reqCnt << endl);
+        headerOut.emplace("Keep-Alive",StrPrinter << "timeout=" << keepAliveSec << ", max=100" << endl);
     }
 
     if(!_origin.empty()){
@@ -463,10 +459,7 @@ void HttpSession::urlDecode(Parser &parser){
 }
 
 bool HttpSession::emitHttpEvent(bool doInvoke){
-	///////////////////是否断开本链接///////////////////////
-    GET_CONFIG(uint32_t,reqCnt,Http::kMaxReqCount);
-
-    bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > reqCnt);
+    bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
 	/////////////////////异步回复Invoker///////////////////////////////
 	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
 	HttpResponseInvoker invoker = [weakSelf,bClose](const string &codeOut, const KeyValue &headerOut, const HttpBody::Ptr &body){
@@ -495,7 +488,6 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
 
 void HttpSession::Handle_Req_POST(int64_t &content_len) {
 	GET_CONFIG(uint64_t,maxReqSize,Http::kMaxReqSize);
-    GET_CONFIG(int,maxReqCnt,Http::kMaxReqCount);
 
     int64_t totalContentLen = _parser["Content-Length"].empty() ? -1 : atoll(_parser["Content-Length"].data());
 
@@ -535,7 +527,7 @@ void HttpSession::Handle_Req_POST(int64_t &content_len) {
 		content_len = -1;
 		auto parserCopy = _parser;
 		std::shared_ptr<uint64_t> recvedContentLen = std::make_shared<uint64_t>(0);
-		bool bClose = (strcasecmp(_parser["Connection"].data(),"close") == 0) || ( ++_iReqCnt > maxReqCnt);
+		bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
 
 		_contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const char *data,uint64_t len){
 		    *(recvedContentLen) += len;

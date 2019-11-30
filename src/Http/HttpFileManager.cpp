@@ -35,12 +35,17 @@
 
 namespace mediakit {
 
-static int kHlsCookieSecond = 10 * 60;
+// hls的播放cookie缓存时间默认60秒，
+// 每次访问一次该cookie，那么将重新刷新cookie有效期
+// 假如播放器在60秒内都未访问该cookie，那么将重新触发hls播放鉴权
+static int kHlsCookieSecond = 60;
 static const string kCookieName = "ZL_COOKIE";
 static const string kCookiePathKey = "kCookiePathKey";
 static const string kAccessErrKey = "kAccessErrKey";
+static const string kAccessHls = "kAccessHls";
+static const string kHlsSuffix = "/hls.m3u8";
 
-static const string &getMimeType(const char *name) {
+static const string &getContentType(const char *name) {
     const char *dot;
     dot = strrchr(name, '.');
     static StrCaseMap mapType;
@@ -211,11 +216,7 @@ static bool end_of(const string &str, const string &substr){
 };
 
 //拦截hls的播放请求
-static bool checkHls(BroadcastHttpAccessArgs){
-    if(!end_of(args._streamid,("/hls.m3u8"))) {
-        //不是hls
-        return false;
-    }
+static bool emitHlsPlayed(BroadcastHttpAccessArgs){
     //访问的hls.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
     Broadcast::AuthInvoker mediaAuthInvoker = [invoker,path](const string &err){
         //cookie有效期为kHlsCookieSecond
@@ -223,7 +224,7 @@ static bool checkHls(BroadcastHttpAccessArgs){
     };
 
     auto args_copy = args;
-    replace(args_copy._streamid,"/hls.m3u8","");
+    replace(args_copy._streamid,kHlsSuffix,"");
     return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,args_copy,mediaAuthInvoker,sender);
 }
 
@@ -257,10 +258,16 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
         auto lck = cookie->getLock();
         auto accessErr = (*cookie)[kAccessErrKey].get<string>();
         auto cookiePath = (*cookie)[kCookiePathKey].get<string>();
+        auto is_hls = (*cookie)[kAccessHls].get<bool>();
         if (path.find(cookiePath) == 0) {
             //上次cookie是限定本目录
             if (accessErr.empty()) {
                 //上次鉴权成功
+                if(is_hls){
+                    //如果播放的是hls，那么刷新hls的cookie
+                    cookie->updateTime();
+                    cookie_from_header = false;
+                }
                 callback("", cookie_from_header ? nullptr : cookie);
                 return;
             }
@@ -275,10 +282,11 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
         HttpCookieManager::Instance().delCookie(cookie);
     }
 
+    bool is_hls = end_of(path,kHlsSuffix);
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
-    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir](const string &errMsg,
-                                                                                         const string &cookie_path_in,
-                                                                                         int cookieLifeSecond) {
+    auto accessPathInvoker = [callback, uid, path, is_dir, is_hls](const string &errMsg,
+                                                                   const string &cookie_path_in,
+                                                                   int cookieLifeSecond) {
         HttpServerCookie::Ptr cookie;
         if (cookieLifeSecond) {
             //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
@@ -295,11 +303,13 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             (*cookie)[kCookiePathKey].set<string>(cookie_path);
             //记录能否访问
             (*cookie)[kAccessErrKey].set<string>(errMsg);
+            //记录访问的是否为hls
+            (*cookie)[kAccessHls].set<bool>(is_hls);
         }
         callback(errMsg, cookie);
     };
 
-    if (checkHls(parser, mediaInfo, path, is_dir, accessPathInvoker, sender)) {
+    if (is_hls && emitHlsPlayed(parser, mediaInfo, path, is_dir, accessPathInvoker, sender)) {
         //是hls的播放鉴权,拦截之
         return;
     }
@@ -359,7 +369,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
         }
         HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
-            cb(codeOut.data(), getMimeType(strFile.data()), headerOut, body);
+            cb(codeOut.data(), getContentType(strFile.data()), headerOut, body);
         };
         invoker.responseFile(parser.getValues(), httpHeader, strFile);
     });
