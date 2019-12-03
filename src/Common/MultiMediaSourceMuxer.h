@@ -132,7 +132,7 @@ protected:
             _rtmp->onAllTrackReady();
         }
         if(_rtsp) {
-            _rtmp->setTrackSource(shared_from_this());
+            _rtsp->setTrackSource(shared_from_this());
             _rtsp->onAllTrackReady();
         }
     }
