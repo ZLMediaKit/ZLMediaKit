@@ -49,14 +49,9 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
         _ticker.resetTime();
     }
 
-    weak_ptr<MediaSink> weakSelf = shared_from_this();
-    track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([weakSelf](const Frame::Ptr &frame){
-        auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
-            return;
-        }
-        if(!strongSelf->_anyTrackUnReady){
-            strongSelf->onTrackFrame(frame);
+    track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame){
+        if(!_anyTrackUnReady){
+            onTrackFrame(frame);
         }
     }));
 }
