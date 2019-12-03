@@ -52,7 +52,8 @@ public:
 	RtmpToRtspMediaSource(const string &vhost,
                           const string &app,
                           const string &id,
-						  int ringSize = 0) : RtmpMediaSource(vhost, app, id,ringSize){
+						  int ringSize = 0) :
+            RtmpMediaSource(vhost, app, id,ringSize){
 	}
 	virtual ~RtmpToRtspMediaSource(){}
 
@@ -83,7 +84,7 @@ public:
 				_muxer->addTrack(track);
 				track->addDelegate(_muxer);
 			}
-			_muxer->setListener(_listener);
+			_muxer->setListener(getListener());
 		}
 		RtmpMediaSource::onWrite(pkt,key_pos);
 	}

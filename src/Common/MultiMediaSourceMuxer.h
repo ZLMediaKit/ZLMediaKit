@@ -31,7 +31,7 @@
 #include "Rtmp/RtmpMediaSourceMuxer.h"
 #include "MediaFile/MediaRecorder.h"
 
-class MultiMediaSourceMuxer : public MediaSink{
+class MultiMediaSourceMuxer : public MediaSink , public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
 
@@ -128,9 +128,11 @@ protected:
      */
     void onAllTrackReady() override{
         if(_rtmp) {
+            _rtmp->setTrackSource(shared_from_this());
             _rtmp->onAllTrackReady();
         }
         if(_rtsp) {
+            _rtmp->setTrackSource(shared_from_this());
             _rtsp->onAllTrackReady();
         }
     }

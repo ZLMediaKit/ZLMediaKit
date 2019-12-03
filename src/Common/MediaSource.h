@@ -45,7 +45,7 @@ using namespace toolkit;
 
 namespace toolkit{
     class TcpSession;
-}//namespace toolkit
+}// namespace toolkit
 
 namespace mediakit {
 
@@ -54,17 +54,18 @@ class MediaSourceEvent{
 public:
     MediaSourceEvent(){};
     virtual ~MediaSourceEvent(){};
-public:
+
+    // 通知拖动进度条
     virtual bool seekTo(MediaSource &sender,uint32_t ui32Stamp){
-        //拖动进度条
         return false;
     }
 
+    // 通知其停止推流
     virtual bool close(MediaSource &sender,bool force) {
-        //通知其停止推流
         return false;
     }
 
+    // 通知无人观看
     virtual void onNoneReader(MediaSource &sender);
 };
 
@@ -92,6 +93,9 @@ public:
     string _param_strs;
 };
 
+/**
+ * 媒体源，任何rtsp/rtmp的直播流都源自该对象
+ */
 class MediaSource: public TrackSource, public enable_shared_from_this<MediaSource> {
 public:
     typedef std::shared_ptr<MediaSource> Ptr;
@@ -100,152 +104,59 @@ public:
     typedef unordered_map<string, AppStreamMap > VhostAppStreamMap;
     typedef unordered_map<string, VhostAppStreamMap > SchemaVhostAppStreamMap;
 
-    MediaSource(const string &strSchema,
-                const string &strVhost,
-                const string &strApp,
-                const string &strId) :
-            _strSchema(strSchema),
-            _strApp(strApp),
-            _strId(strId) {
-        if(strVhost.empty()){
-            _strVhost = DEFAULT_VHOST;
-        }else{
-            _strVhost = strVhost;
-        }
-    }
-    virtual ~MediaSource() {
-        unregist();
-    }
+    MediaSource(const string &strSchema, const string &strVhost, const string &strApp, const string &strId) ;
+    virtual ~MediaSource() ;
 
-    static Ptr find(const string &schema,
-                    const string &vhost,
-                    const string &app,
-                    const string &id,
-                    bool bMake = true) ;
+    // 获取协议类型
+    const string& getSchema() const;
+    // 虚拟主机
+    const string& getVhost() const;
+    // 应用名
+    const string& getApp() const;
+    // 流id
+    const string& getId() const;
+    // 获取所有Track
+    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
+    // 获取监听者
+    const std::weak_ptr<MediaSourceEvent>& getListener() const;
 
-    static void findAsync(const MediaInfo &info,
-                          const std::shared_ptr<TcpSession> &session,
-                          bool retry,
-                          const function<void(const MediaSource::Ptr &src)> &cb);
-
-    const string& getSchema() const {
-        return _strSchema;
-    }
-    const string& getVhost() const {
-        return _strVhost;
-    }
-    const string& getApp() const {
-        //获取该源的id
-        return _strApp;
-    }
-    const string& getId() const {
-        return _strId;
-    }
-
-    bool seekTo(uint32_t ui32Stamp) {
-        auto listener = _listener.lock();
-        if(!listener){
-            return false;
-        }
-        return listener->seekTo(*this,ui32Stamp);
-    }
-
+    // 设置TrackSource
+    void setTrackSource(const std::weak_ptr<TrackSource> &track_src);
+    // 设置监听者
+    virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
+    // 获取观看者个数
+    virtual int readerCount() = 0;
+    // 获取流当前时间戳
     virtual uint32_t getTimeStamp(TrackType trackType) = 0;
 
-    bool close(bool force) {
-        auto listener = _listener.lock();
-        if(!listener){
-            return false;
-        }
-        return listener->close(*this,force);
-    }
+    // 拖动进度条
+    bool seekTo(uint32_t ui32Stamp);
+    // 关闭该流
+    bool close(bool force);
+    // 该流无人观看
+    void onNoneReader();
 
-    void onNoneReader(){
-        auto listener = _listener.lock();
-        if(!listener){
-            return;
-        }
-        listener->onNoneReader(*this);
-    }
+    // 同步查找流
+    static Ptr find(const string &schema, const string &vhost, const string &app, const string &id, bool bMake = true) ;
+    // 异步查找流
+    static void findAsync(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, const function<void(const Ptr &src)> &cb);
+    // 遍历所有流
+    static void for_each_media(const function<void(const Ptr &src)> &cb);
 
-    virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-        _listener = listener;
-    }
-
-    std::weak_ptr<MediaSourceEvent> getListener(){
-        return _listener;
-    }
-
-    template <typename FUN>
-    static void for_each_media(FUN && fun){
-        lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-        for (auto &pr0 : g_mapMediaSrc){
-            for(auto &pr1 : pr0.second){
-                for(auto &pr2 : pr1.second){
-                    for(auto &pr3 : pr2.second){
-                        fun(pr0.first,pr1.first,pr2.first,pr3.first,pr3.second.lock());
-                    }
-                }
-            }
-        }
-    }
-
-    virtual int readerCount() = 0;
 protected:
     void regist() ;
     bool unregist() ;
-private:
-        template <typename FUN>
-        static bool searchMedia(const string &schema,
-                                const string &vhost,
-                                const string &app,
-                                const string &id,
-                                FUN &&fun){
-        auto it0 = g_mapMediaSrc.find(schema);
-        if (it0 == g_mapMediaSrc.end()) {
-            //未找到协议
-            return false;
-        }
-        auto it1 = it0->second.find(vhost);
-        if(it1 == it0->second.end()){
-            //未找到vhost
-            return false;
-        }
-        auto it2 = it1->second.find(app);
-        if(it2 == it1->second.end()){
-            //未找到app
-            return false;
-        }
-        auto it3 = it2->second.find(id);
-        if(it3 == it2->second.end()){
-            //未找到streamId
-            return false;
-        }
-        return fun(it0,it1,it2,it3);
-    }
-    template <typename IT0,typename IT1,typename IT2>
-    static void eraseIfEmpty(IT0 it0,IT1 it1,IT2 it2){
-        if(it2->second.empty()){
-            it1->second.erase(it2);
-            if(it1->second.empty()){
-                it0->second.erase(it1);
-                if(it0->second.empty()){
-                    g_mapMediaSrc.erase(it0);
-                }
-            }
-        }
-    };
-
     void unregisted();
-protected:
-    std::weak_ptr<MediaSourceEvent> _listener;
+
 private:
-    string _strSchema;//协议类型
-    string _strVhost; //vhost
-    string _strApp; //媒体app
-    string _strId; //媒体id
-    static SchemaVhostAppStreamMap g_mapMediaSrc; //静态的媒体源表
-    static recursive_mutex g_mtxMediaSrc; //访问静态的媒体源表的互斥锁
+    string _strSchema;
+    string _strVhost;
+    string _strApp;
+    string _strId;
+    std::weak_ptr<MediaSourceEvent> _listener;
+    weak_ptr<TrackSource> _track_source;
+    static SchemaVhostAppStreamMap g_mapMediaSrc;
+    static recursive_mutex g_mtxMediaSrc;
 };
 
 } /* namespace mediakit */
