@@ -38,11 +38,29 @@ using namespace toolkit;
 
 namespace mediakit{
 
+class MediaSinkInterface : public FrameWriterInterface {
+public:
+    MediaSinkInterface(){};
+    virtual ~MediaSinkInterface(){};
+
+    /**
+     * 添加track，内部会调用Track的clone方法
+     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
+     * @param track
+     */
+    virtual void addTrack(const Track::Ptr & track) = 0;
+
+    /**
+     * 重置track
+     */
+    virtual void resetTracks() = 0;
+};
+
 /**
  * 该类的作用是等待Track ready()返回true也就是就绪后再通知派生类进行下一步的操作
  * 目的是输入Frame前由Track截取处理下，以便获取有效的信息（譬如sps pps aa_cfg）
  */
-class MediaSink : public FrameWriterInterface , public std::enable_shared_from_this<MediaSink>{
+class MediaSink : public MediaSinkInterface , public TrackSource , public std::enable_shared_from_this<MediaSink>{
 public:
     typedef std::shared_ptr<MediaSink> Ptr;
     MediaSink(){}
@@ -59,26 +77,18 @@ public:
      * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
      * @param track
      */
-    virtual void addTrack(const Track::Ptr & track);
+    void addTrack(const Track::Ptr & track) override;
 
     /**
      * 重置track
      */
-    virtual void resetTracks();
+    void resetTracks() override;
 
     /**
-     * 全部Track是否都准备好了
-     * @return
-     */
-    bool isAllTrackReady() const;
-
-    /**
-     * 获取特定类型的Track
-     * @param type track类型
+     * 获取所有Track
      * @param trackReady 是否获取已经准备好的Track
-     * @return
      */
-    Track::Ptr getTrack(TrackType type,bool trackReady = true) const;
+    vector<Track::Ptr> getTracks(bool trackReady = true) const override ;
 protected:
     /**
      * 某track已经准备好，其ready()状态返回true，

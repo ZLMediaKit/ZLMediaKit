@@ -50,7 +50,7 @@ typedef enum {
     TrackVideo = 0,
     TrackAudio,
     TrackTitle,
-    TrackMax = 0x7FFF
+    TrackMax = 3
 } TrackType;
 
 /**

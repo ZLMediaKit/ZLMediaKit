@@ -31,7 +31,7 @@
 #include "Rtmp/RtmpMediaSourceMuxer.h"
 #include "MediaFile/MediaRecorder.h"
 
-class MultiMediaSourceMuxer : public FrameWriterInterface{
+class MultiMediaSourceMuxer : public MediaSink{
 public:
     typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
 
@@ -54,25 +54,10 @@ public:
     }
     virtual ~MultiMediaSourceMuxer(){}
 
-
-    /**
-     * 添加音视频媒体
-     * @param track 媒体描述
-     */
-    void addTrack(const Track::Ptr & track) {
-        if(_rtmp){
-            _rtmp->addTrack(track);
-        }
-        if(_rtsp){
-            _rtsp->addTrack(track);
-        }
-        _record->addTrack(track);
-    }
-
     /**
      * 重置音视频媒体
      */
-    void resetTracks() {
+    void resetTracks() override{
         if(_rtmp){
             _rtmp->resetTracks();
         }
@@ -80,20 +65,6 @@ public:
             _rtsp->resetTracks();
         }
         _record->resetTracks();
-    }
-
-    /**
-     * 写入帧数据然后打包rtmp
-     * @param frame 帧数据
-     */
-    void inputFrame(const Frame::Ptr &frame) override {
-        if(_rtmp) {
-            _rtmp->inputFrame(frame);
-        }
-        if(_rtsp) {
-            _rtsp->inputFrame(frame);
-        }
-        _record->inputFrame(frame);
     }
 
     /**
@@ -120,6 +91,47 @@ public:
     void setTimeStamp(uint32_t stamp){
         if(_rtsp){
             _rtsp->setTimeStamp(stamp);
+        }
+    }
+
+protected:
+    /**
+     * 添加音视频媒体
+     * @param track 媒体描述
+     */
+    void onTrackReady(const Track::Ptr & track) override {
+        if(_rtmp){
+            _rtmp->addTrack(track);
+        }
+        if(_rtsp){
+            _rtsp->addTrack(track);
+        }
+        _record->addTrack(track);
+    }
+
+    /**
+     * 写入帧数据然后打包rtmp
+     * @param frame 帧数据
+     */
+    void onTrackFrame(const Frame::Ptr &frame) override {
+        if(_rtmp) {
+            _rtmp->inputFrame(frame);
+        }
+        if(_rtsp) {
+            _rtsp->inputFrame(frame);
+        }
+        _record->inputFrame(frame);
+    }
+
+    /**
+     * 所有Track都准备就绪，触发媒体注册事件
+     */
+    void onAllTrackReady() override{
+        if(_rtmp) {
+            _rtmp->onAllTrackReady();
+        }
+        if(_rtsp) {
+            _rtsp->onAllTrackReady();
         }
     }
 private:

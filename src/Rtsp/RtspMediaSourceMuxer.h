@@ -48,14 +48,16 @@ public:
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _mediaSouce->setListener(listener);
     }
+
     int readerCount() const{
         return _mediaSouce->readerCount();
     }
+
     void setTimeStamp(uint32_t stamp){
         _mediaSouce->setTimeStamp(stamp);
     }
-private:
-    void onAllTrackReady() override {
+
+    void onAllTrackReady(){
         _mediaSouce->onGetSDP(getSdp());
     }
 private:

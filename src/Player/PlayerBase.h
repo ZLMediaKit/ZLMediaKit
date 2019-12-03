@@ -41,7 +41,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class DemuxerBase {
+class DemuxerBase : public TrackSource{
 public:
 	typedef std::shared_ptr<DemuxerBase> Ptr;
 
@@ -57,29 +57,6 @@ public:
 	 * @return
 	 */
 	virtual bool isInited(int analysisMs) { return true; }
-
-	/**
-	 * 获取全部的Track
-	 * @param trackReady 是否获取全部已经准备好的Track
-	 * @return
-	 */
-	virtual vector<Track::Ptr> getTracks(bool trackReady = true) const { return vector<Track::Ptr>();}
-
-	/**
-	 * 获取特定Track
-	 * @param type track类型
-	 * @param trackReady 是否获取全部已经准备好的Track
-	 * @return
-	 */
-	virtual Track::Ptr getTrack(TrackType type , bool trackReady = true) const {
-		auto tracks = getTracks(trackReady);
-		for(auto &track : tracks){
-			if(track->getTrackType() == type){
-				return track;
-			}
-		}
-		return nullptr;
-	}
 };
 
 
@@ -274,14 +251,14 @@ public:
 	bool isInited(int analysisMs) override;
 
 	/**
-	 * 获取所有可用Track，请在isInited()返回true时调用
-	 * @return
+	 * 获取所有Track
+	 * @return 所有Track
 	 */
 	vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 
 	/**
 	 * 获取节目总时长
-	 * @return
+	 * @return 节目总时长,单位秒
 	 */
 	float getDuration() const override;
 protected:

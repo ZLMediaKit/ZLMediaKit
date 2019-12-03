@@ -37,7 +37,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class MediaRecorder : public MediaSink{
+class MediaRecorder : public MediaSinkInterface{
 public:
 	typedef std::shared_ptr<MediaRecorder> Ptr;
 	MediaRecorder(const string &strVhost,

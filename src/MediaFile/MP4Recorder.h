@@ -55,7 +55,7 @@ public:
 	string strStreamId;//流ID
 	string strVhost;//vhost
 };
-class MP4Recorder : public MediaSink{
+class MP4Recorder : public MediaSinkInterface{
 public:
 	typedef std::shared_ptr<MP4Recorder> Ptr;
 	MP4Recorder(const string &strPath,
@@ -68,19 +68,16 @@ public:
 	 * 重置所有Track
 	 */
 	void resetTracks() override;
-private:
+
 	/**
-     * 某Track输出frame，在onAllTrackReady触发后才会调用此方法
-     * @param frame
+     * 输入frame
      */
-	void onTrackFrame(const Frame::Ptr &frame) override ;
+	void inputFrame(const Frame::Ptr &frame) override;
 
     /**
-     * 某track已经准备好，其ready()状态返回true，
-     * 此时代表可以获取其例如sps pps等相关信息了
-     * @param track
+     * 添加ready状态的track
      */
-    void onTrackReady(const Track::Ptr & track) override;
+    void addTrack(const Track::Ptr & track) override;
 private:
     void createFile();
     void closeFile();

@@ -57,23 +57,24 @@ protected:
     std::shared_ptr<mov_writer_t> _mov_writter;
 };
 
-class MP4Muxer : public MediaSink , public MP4MuxerBase{
+class MP4Muxer : public MediaSinkInterface , public MP4MuxerBase{
 public:
     MP4Muxer() = default;
     ~MP4Muxer() override = default;
-protected:
-    /**
-     * 某track已经准备好，其ready()状态返回true，
-     * 此时代表可以获取其例如sps pps等相关信息了
-     * @param track
-     */
-    void onTrackReady(const Track::Ptr & track) override;
 
     /**
-     * 某Track输出frame，在onAllTrackReady触发后才会调用此方法
-     * @param frame
+     * 添加已经ready状态的track
      */
-    void onTrackFrame(const Frame::Ptr &frame) override;
+    void addTrack(const Track::Ptr & track) override;
+    /**
+     * 输入帧
+     */
+    void inputFrame(const Frame::Ptr &frame) override;
+
+    /**
+     * 重置所有track
+     */
+    void resetTracks() override ;
 private:
     struct track_info{
         int track_id = -1;
@@ -89,13 +90,16 @@ public:
     typedef std::shared_ptr<MP4MuxerFile> Ptr;
     MP4MuxerFile(const char *file);
     ~MP4MuxerFile();
+    void resetTracks() override ;
 protected:
     int onRead(void* data, uint64_t bytes) override;
     int onWrite(const void* data, uint64_t bytes) override;
     int onSeek( uint64_t offset) override;
     uint64_t onTell() override ;
+    void openFile(const char *file);
 private:
     std::shared_ptr<FILE> _file;
+    string _file_name;
 };
 
 }//namespace mediakit

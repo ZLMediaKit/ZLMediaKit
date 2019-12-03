@@ -92,7 +92,7 @@ public:
     string _param_strs;
 };
 
-class MediaSource: public enable_shared_from_this<MediaSource> {
+class MediaSource: public TrackSource, public enable_shared_from_this<MediaSource> {
 public:
     typedef std::shared_ptr<MediaSource> Ptr;
     typedef unordered_map<string, weak_ptr<MediaSource> > StreamMap;
@@ -191,14 +191,6 @@ public:
     }
 
     virtual int readerCount() = 0;
-
-    /**
-     * 获取track
-     * @return
-     */
-    virtual vector<Track::Ptr> getTracks(bool trackReady) const{
-        return vector<Track::Ptr>(0);
-    }
 protected:
     void regist() ;
     bool unregist() ;
