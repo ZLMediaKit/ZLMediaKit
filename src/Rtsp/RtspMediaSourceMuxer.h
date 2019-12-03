@@ -60,6 +60,11 @@ public:
     void onAllTrackReady(){
         _mediaSouce->onGetSDP(getSdp());
     }
+
+    // 设置TrackSource
+    void setTrackSource(const std::weak_ptr<TrackSource> &track_src){
+        _mediaSouce->setTrackSource(track_src);
+    }
 private:
     RtspMediaSource::Ptr _mediaSouce;
 };

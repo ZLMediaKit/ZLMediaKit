@@ -127,6 +127,13 @@ public:
      * @return
      */
 	virtual float getPacketLossRate(TrackType trackType) const {return 0; }
+
+    /**
+     * 获取所有track
+     */
+    vector<Track::Ptr> getTracks(bool trackReady = true) const override{
+        return vector<Track::Ptr>();
+    }
 protected:
     virtual void onShutdown(const SockException &ex) {}
     virtual void onPlayResult(const SockException &ex) {}
@@ -136,9 +143,8 @@ protected:
     virtual void onResume(){};
 };
 
-template<typename Parent,typename Parser>
-class PlayerImp : public Parent
-{
+template<typename Parent,typename Delegate>
+class PlayerImp : public Parent {
 public:
 	typedef std::shared_ptr<PlayerImp> Ptr;
 
@@ -147,62 +153,62 @@ public:
 
 	virtual ~PlayerImp(){}
 	void setOnShutdown(const function<void(const SockException &)> &cb) override {
-		if (_parser) {
-			_parser->setOnShutdown(cb);
+		if (_delegate) {
+			_delegate->setOnShutdown(cb);
 		}
 		_shutdownCB = cb;
 	}
 	void setOnPlayResult(const function<void(const SockException &ex)> &cb) override {
-		if (_parser) {
-			_parser->setOnPlayResult(cb);
+		if (_delegate) {
+			_delegate->setOnPlayResult(cb);
 		}
 		_playResultCB = cb;
 	}
 
     void setOnResume(const function<void()> &cb) override {
-        if (_parser) {
-            _parser->setOnResume(cb);
+        if (_delegate) {
+            _delegate->setOnResume(cb);
         }
         _resumeCB = cb;
     }
 
     bool isInited(int analysisMs) override{
-        if (_parser) {
-            return _parser->isInited(analysisMs);
+        if (_delegate) {
+            return _delegate->isInited(analysisMs);
         }
-        return PlayerBase::isInited(analysisMs);
+        return Parent::isInited(analysisMs);
     }
 	float getDuration() const override {
-		if (_parser) {
-			return _parser->getDuration();
+		if (_delegate) {
+			return _delegate->getDuration();
 		}
-		return PlayerBase::getDuration();
+		return Parent::getDuration();
 	}
     float getProgress() const override{
-        if (_parser) {
-            return _parser->getProgress();
+        if (_delegate) {
+            return _delegate->getProgress();
         }
-        return PlayerBase::getProgress();
+        return Parent::getProgress();
     }
     void seekTo(float fProgress) override{
-        if (_parser) {
-            return _parser->seekTo(fProgress);
+        if (_delegate) {
+            return _delegate->seekTo(fProgress);
         }
-        return PlayerBase::seekTo(fProgress);
+        return Parent::seekTo(fProgress);
     }
 
     void setMediaSouce(const MediaSource::Ptr & src) override {
-		if (_parser) {
-			_parser->setMediaSouce(src);
+		if (_delegate) {
+			_delegate->setMediaSouce(src);
 		}
 		_pMediaSrc = src;
     }
 
     vector<Track::Ptr> getTracks(bool trackReady = true) const override{
-		if (_parser) {
-			return _parser->getTracks(trackReady);
+		if (_delegate) {
+			return _delegate->getTracks(trackReady);
 		}
-		return PlayerBase::getTracks(trackReady);
+		return Parent::getTracks(trackReady);
 	}
 protected:
 	void onShutdown(const SockException &ex) override {
@@ -228,7 +234,7 @@ protected:
 	function<void(const SockException &ex)> _shutdownCB;
 	function<void(const SockException &ex)> _playResultCB;
     function<void()> _resumeCB;
-    std::shared_ptr<Parser> _parser;
+    std::shared_ptr<Delegate> _delegate;
 	MediaSource::Ptr _pMediaSrc;
 };
 

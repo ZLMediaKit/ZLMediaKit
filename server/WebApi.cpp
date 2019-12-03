@@ -395,25 +395,21 @@ void installWebApi() {
     API_REGIST(api,getMediaList,{
         CHECK_SECRET();
         //获取所有MediaSource列表
-        MediaSource::for_each_media([&](const string &schema,
-                                        const string &vhost,
-                                        const string &app,
-                                        const string &stream,
-                                        const MediaSource::Ptr &media){
-            if(!allArgs["schema"].empty() && allArgs["schema"] != schema){
+        MediaSource::for_each_media([&](const MediaSource::Ptr &media){
+            if(!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()){
                 return;
             }
-            if(!allArgs["vhost"].empty() && allArgs["vhost"] != vhost){
+            if(!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()){
                 return;
             }
-            if(!allArgs["app"].empty() && allArgs["app"] != app){
+            if(!allArgs["app"].empty() && allArgs["app"] != media->getApp()){
                 return;
             }
             Value item;
-            item["schema"] = schema;
-            item["vhost"] = vhost;
-            item["app"] = app;
-            item["stream"] = stream;
+            item["schema"] = media->getSchema();
+            item["vhost"] = media->getVhost();
+            item["app"] = media->getApp();
+            item["stream"] = media->getId();
             val["data"].append(item);
         });
     });
@@ -453,21 +449,17 @@ void installWebApi() {
         int count_hit = 0;
         int count_closed = 0;
         list<MediaSource::Ptr> media_list;
-        MediaSource::for_each_media([&](const string &schema,
-                                        const string &vhost,
-                                        const string &app,
-                                        const string &stream,
-                                        const MediaSource::Ptr &media){
-            if(!allArgs["schema"].empty() && allArgs["schema"] != schema){
+        MediaSource::for_each_media([&](const MediaSource::Ptr &media){
+            if(!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()){
                 return;
             }
-            if(!allArgs["vhost"].empty() && allArgs["vhost"] != vhost){
+            if(!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()){
                 return;
             }
-            if(!allArgs["app"].empty() && allArgs["app"] != app){
+            if(!allArgs["app"].empty() && allArgs["app"] != media->getApp()){
                 return;
             }
-            if(!allArgs["stream"].empty() && allArgs["stream"] != stream){
+            if(!allArgs["stream"].empty() && allArgs["stream"] != media->getId()){
                 return;
             }
             ++count_hit;

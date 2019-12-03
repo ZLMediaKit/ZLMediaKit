@@ -66,16 +66,16 @@ private:
 		if(_pRtspMediaSrc){
 			_pRtspMediaSrc->onGetSDP(sdp);
 		}
-        _parser.reset(new RtspDemuxer(sdp));
+        _delegate.reset(new RtspDemuxer(sdp));
         return true;
 	}
 	void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {
         if(_pRtspMediaSrc){
             _pRtspMediaSrc->onWrite(rtp,true);
         }
-        _parser->inputRtp(rtp);
+        _delegate->inputRtp(rtp);
 
-        if(_maxAnalysisMS && _parser->isInited(_maxAnalysisMS)){
+        if(_maxAnalysisMS && _delegate->isInited(_maxAnalysisMS)){
             PlayerImp<RtspPlayer,RtspDemuxer>::onPlayResult(SockException(Err_success,"play rtsp success"));
             _maxAnalysisMS = 0;
         }
@@ -87,7 +87,7 @@ private:
     //如果超过这个时间还未获取成功，那么会强制触发onPlayResult事件(虽然此时有些track还未初始化成功)
     void onPlayResult(const SockException &ex) override {
         //isInited判断条件：无超时
-        if(ex || _parser->isInited(0)){
+        if(ex || _delegate->isInited(0)){
             //已经初始化成功，说明sdp里面有完善的信息
             PlayerImp<RtspPlayer,RtspDemuxer>::onPlayResult(ex);
         }else{

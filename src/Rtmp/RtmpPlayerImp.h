@@ -67,18 +67,18 @@ private:
         if(_pRtmpMediaSrc){
             _pRtmpMediaSrc->onGetMetaData(val);
         }
-        _parser.reset(new RtmpDemuxer(val));
+        _delegate.reset(new RtmpDemuxer(val));
         return true;
     }
     void onMediaData(const RtmpPacket::Ptr &chunkData) override {
     	if(_pRtmpMediaSrc){
             _pRtmpMediaSrc->onWrite(chunkData);
         }
-        if(!_parser){
+        if(!_delegate){
     	    //这个流没有metadata
-            _parser.reset(new RtmpDemuxer());
+            _delegate.reset(new RtmpDemuxer());
         }
-        _parser->inputRtmp(chunkData);
+        _delegate->inputRtmp(chunkData);
     }
 private:
     RtmpMediaSource::Ptr _pRtmpMediaSrc;

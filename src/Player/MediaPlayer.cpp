@@ -42,13 +42,13 @@ MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
 MediaPlayer::~MediaPlayer() {
 }
 void MediaPlayer::play(const string &strUrl) {
-	_parser = PlayerBase::createPlayer(_poller,strUrl);
-	_parser->setOnShutdown(_shutdownCB);
-	_parser->setOnPlayResult(_playResultCB);
-    _parser->setOnResume(_resumeCB);
-    _parser->setMediaSouce(_pMediaSrc);
-	_parser->mINI::operator=(*this);
-	_parser->play(strUrl);
+	_delegate = PlayerBase::createPlayer(_poller,strUrl);
+	_delegate->setOnShutdown(_shutdownCB);
+	_delegate->setOnPlayResult(_playResultCB);
+    _delegate->setOnResume(_resumeCB);
+    _delegate->setMediaSouce(_pMediaSrc);
+	_delegate->mINI::operator=(*this);
+	_delegate->play(strUrl);
 }
 
 EventPoller::Ptr MediaPlayer::getPoller(){
@@ -56,14 +56,14 @@ EventPoller::Ptr MediaPlayer::getPoller(){
 }
 
 void MediaPlayer::pause(bool bPause) {
-	if (_parser) {
-		_parser->pause(bPause);
+	if (_delegate) {
+		_delegate->pause(bPause);
 	}
 }
 
 void MediaPlayer::teardown() {
-	if (_parser) {
-		_parser->teardown();
+	if (_delegate) {
+		_delegate->teardown();
 	}
 }
 

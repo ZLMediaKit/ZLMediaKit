@@ -141,9 +141,7 @@ public:
 	 * @param trackReady 是否获取全部已经准备好的Track
 	 * @return
 	 */
-    virtual vector<Track::Ptr> getTracks(bool trackReady = true) const {
-        return vector<Track::Ptr>();
-    }
+    virtual vector<Track::Ptr> getTracks(bool trackReady = true) const = 0;
 
     /**
      * 获取特定Track
