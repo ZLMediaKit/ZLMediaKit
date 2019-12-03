@@ -111,21 +111,16 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
     }
 }
 
-bool MediaSink::isAllTrackReady() const {
-    return _allTrackReady;
-}
-
-Track::Ptr MediaSink::getTrack(TrackType type,bool trackReady) const {
+vector<Track::Ptr> MediaSink::getTracks(bool trackReady) const{
+    vector<Track::Ptr> ret;
     lock_guard<recursive_mutex> lck(_mtx);
     for (auto &pr : _track_map){
-        if(pr.second->getTrackType() == type){
-            if(!trackReady){
-                return pr.second;
-            }
-            return pr.second->ready() ? pr.second : nullptr;
+        if(trackReady && !pr.second->ready()){
+            continue;
         }
+        ret.emplace_back(pr.second);
     }
-    return nullptr;
+    return std::move(ret);
 }
 
 

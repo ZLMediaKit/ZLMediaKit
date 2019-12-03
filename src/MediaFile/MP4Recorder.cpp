@@ -128,7 +128,7 @@ void MP4Recorder::closeFile() {
 	}
 }
 
-void MP4Recorder::onTrackFrame(const Frame::Ptr &frame) {
+void MP4Recorder::inputFrame(const Frame::Ptr &frame) {
 	GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
 	if(!_muxer || ((_createFileTicker.elapsedTime() > recordSec * 1000) &&
 			      (!_haveVideo || (_haveVideo && frame->keyFrame()))) ){
@@ -145,7 +145,7 @@ void MP4Recorder::onTrackFrame(const Frame::Ptr &frame) {
 	}
 }
 
-void MP4Recorder::onTrackReady(const Track::Ptr & track){
+void MP4Recorder::addTrack(const Track::Ptr & track){
 	//保存所有的track，为创建MP4MuxerFile做准备
 	_tracks.emplace_back(track);
 	if(track->getTrackType() == TrackVideo){
@@ -158,7 +158,6 @@ void MP4Recorder::resetTracks() {
 	_tracks.clear();
 	_haveVideo = false;
 	_createFileTicker.resetTime();
-	MediaSink::resetTracks();
 }
 
 } /* namespace mediakit */

@@ -48,11 +48,12 @@ public:
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _mediaSouce->setListener(listener);
     }
+
     int readerCount() const{
         return _mediaSouce->readerCount();
     }
-private:
-    void onAllTrackReady() override {
+
+    void onAllTrackReady(){
         _mediaSouce->onGetMetaData(getMetadata());
     }
 private:
