@@ -104,7 +104,7 @@ vector<Track::Ptr> Demuxer::getTracks(bool trackReady) const {
 			ret.emplace_back(_audioTrack);
 		}
 	}
-	return ret;
+	return std::move(ret);
 }
 
 float Demuxer::getDuration() const {
