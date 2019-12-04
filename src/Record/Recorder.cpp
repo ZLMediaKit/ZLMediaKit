@@ -240,19 +240,9 @@ private:
             return;
         }
 
-        auto &helper = it->second;
-        if(!helper){
-            // 对象不存在,创建之
-            auto recorder = MediaSinkInterface::Ptr(createRecorder(vhost, app, stream));
-            if (recorder) {
-                _recorder_map[key] = std::make_shared<RecorderHelper>(recorder, std::move(tracks), false, schema);
-            }
-            return;
-        }
-
-        if(helper->getSchema() == schema){
-            // 对象存在且绑定的协议一致,替换tracks
-            helper->attachTracks(std::move(tracks));
+        if(it->second->getSchema() == schema){
+            // 绑定的协议一致,替换tracks
+            it->second->attachTracks(std::move(tracks));
         }
 
     }
