@@ -33,7 +33,7 @@
 #include "Rtmp/RtmpPusher.h"
 #include "Common/config.h"
 #include "Pusher/MediaPusher.h"
-#include "MediaFile/MediaReader.h"
+#include "Record/MP4Reader.h"
 
 using namespace std;
 using namespace toolkit;
@@ -63,7 +63,7 @@ void createPusher(const EventPoller::Ptr &poller,
 				  const string &filePath,
 				  const string &url) {
 	//不限制APP名，并且指定文件绝对路径
-	auto src = MediaReader::onMakeMediaSource(schema,vhost,app,stream,filePath, false);
+	auto src = MP4Reader::onMakeMediaSource(schema,vhost,app,stream,filePath, false);
     if(!src){
         //文件不存在
         WarnL << "MP4文件不存在:" << filePath;
