@@ -42,7 +42,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class Mp4Info {
+class MP4Info {
 public:
 	time_t ui64StartedTime; //GMT标准时间，单位秒
 	time_t ui64TimeLen;//录像长度，单位秒
@@ -55,13 +55,15 @@ public:
 	string strStreamId;//流ID
 	string strVhost;//vhost
 };
+
 class MP4Recorder : public MediaSinkInterface{
 public:
 	typedef std::shared_ptr<MP4Recorder> Ptr;
+
 	MP4Recorder(const string &strPath,
-			 const string &strVhost ,
-			 const string &strApp,
-			 const string &strStreamId);
+				const string &strVhost,
+				const string &strApp,
+				const string &strStreamId);
 	virtual ~MP4Recorder();
 
 	/**
@@ -87,7 +89,7 @@ private:
 	string _strFile;
 	string _strFileTmp;
 	Ticker _createFileTicker;
-	Mp4Info _info;
+	MP4Info _info;
 	bool _haveVideo = false;
 	MP4MuxerFile::Ptr _muxer;
 	list<Track::Ptr> _tracks;

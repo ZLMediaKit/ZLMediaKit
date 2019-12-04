@@ -37,8 +37,25 @@ class MediaSinkInterface;
 
 class Recorder{
 public:
-	static MediaSinkInterface *createHlsRecorder(const string &strVhost, const string &strApp, const string &strId);
-	static MediaSinkInterface *createMP4Recorder(const string &strVhost, const string &strApp, const string &strId);
+	typedef enum {
+		// 未录制
+		status_not_record = 0,
+		// 等待MediaSource注册，注册成功后立即开始录制
+		status_wait_record = 1,
+		// MediaSource已注册，并且正在录制
+		status_recording = 2,
+	} status;
+
+	typedef enum {
+		// 录制hls
+		type_hls = 0,
+		// 录制MP4
+		type_mp4 = 1
+	} type;
+
+	static status getRecordStatus(type type, const string &vhost, const string &app, const string &stream_id);
+	static int startRecord(type type, const string &vhost, const string &app, const string &stream_id,bool waitForRecord, bool continueRecord);
+	static void stopRecord(type type, const string &vhost, const string &app, const string &stream_id);
 private:
 	Recorder() = delete;
 	~Recorder() = delete;
