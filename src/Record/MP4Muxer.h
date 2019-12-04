@@ -39,7 +39,7 @@
 #include "Extension/AAC.h"
 #include "Extension/H264.h"
 #include "Extension/H265.h"
-#include "Stamp.h"
+#include "Common/Stamp.h"
 
 namespace mediakit{
 

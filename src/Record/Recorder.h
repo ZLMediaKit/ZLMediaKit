@@ -24,25 +24,26 @@
  * SOFTWARE.
  */
 
-#ifndef HLSRECORDER_H
-#define HLSRECORDER_H
+#ifndef SRC_MEDIAFILE_RECORDER_H_
+#define SRC_MEDIAFILE_RECORDER_H_
 
-#include "HlsMakerImp.h"
-#include "TsMuxer.h"
+#include <memory>
+#include <string>
+using namespace std;
 
 namespace mediakit {
 
-class HlsRecorder : public HlsMakerImp, public TsMuxer {
+class MediaSinkInterface;
+
+class Recorder{
 public:
-    template<typename ...ArgsType>
-    HlsRecorder(ArgsType &&...args):HlsMakerImp(std::forward<ArgsType>(args)...){}
-    ~HlsRecorder(){};
-protected:
-    void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) override {
-        inputData((char *)packet,bytes,timestamp);
-    };
+	static MediaSinkInterface *createHlsRecorder(const string &strVhost, const string &strApp, const string &strId);
+	static MediaSinkInterface *createMP4Recorder(const string &strVhost, const string &strApp, const string &strId);
+private:
+	Recorder() = delete;
+	~Recorder() = delete;
 };
 
-}//namespace mediakit
+} /* namespace mediakit */
 
-#endif //HLSRECORDER_H
+#endif /* SRC_MEDIAFILE_RECORDER_H_ */

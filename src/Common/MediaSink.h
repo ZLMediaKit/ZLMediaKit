@@ -40,6 +40,8 @@ namespace mediakit{
 
 class MediaSinkInterface : public FrameWriterInterface {
 public:
+    typedef std::shared_ptr<MediaSinkInterface> Ptr;
+
     MediaSinkInterface(){};
     virtual ~MediaSinkInterface(){};
 

@@ -40,7 +40,7 @@
 #include "Network/TcpClient.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
-#include "MediaFile/Stamp.h"
+#include "Common/Stamp.h"
 
 using namespace std;
 using namespace toolkit;

@@ -37,10 +37,10 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class MediaReader : public std::enable_shared_from_this<MediaReader> ,public MediaSourceEvent{
+class MP4Reader : public std::enable_shared_from_this<MP4Reader> ,public MediaSourceEvent{
 public:
-	typedef std::shared_ptr<MediaReader> Ptr;
-	virtual ~MediaReader();
+	typedef std::shared_ptr<MP4Reader> Ptr;
+	virtual ~MP4Reader();
 
 	/**
 	 * 流化一个mp4文件，使之转换成RtspMediaSource和RtmpMediaSource
@@ -49,10 +49,10 @@ public:
 	 * @param strId 流id
 	 * @param filePath 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
 	 */
-	MediaReader(const string &strVhost,const string &strApp, const string &strId,const string &filePath = "");
+	MP4Reader(const string &strVhost,const string &strApp, const string &strId,const string &filePath = "");
 	/**
-	 * 开始流化MP4文件，需要指出的是，MediaReader对象一经过调用startReadMP4方法，它的强引用会自持有，
-	 * 意思是在文件流化结束之前或中断之前,MediaReader对象是不会被销毁的(不管有没有被外部对象持有)
+	 * 开始流化MP4文件，需要指出的是，MP4Reader对象一经过调用startReadMP4方法，它的强引用会自持有，
+	 * 意思是在文件流化结束之前或中断之前,MP4Reader对象是不会被销毁的(不管有没有被外部对象持有)
 	 */
 	void startReadMP4();
 
@@ -64,13 +64,13 @@ public:
 	bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override;
 
 	/**
-	 * 关闭MediaReader的流化进程，会触发该对象放弃自持有
+	 * 关闭MP4Reader的流化进程，会触发该对象放弃自持有
 	 * @return
 	 */
 	bool close(MediaSource &sender,bool force) override;
 
 	/**
-	 * 自动生成MediaReader对象然后查找相关的MediaSource对象
+	 * 自动生成MP4Reader对象然后查找相关的MediaSource对象
 	 * @param strSchema 协议名
  	 * @param strVhost 虚拟主机
 	 * @param strApp 应用名
