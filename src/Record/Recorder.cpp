@@ -97,8 +97,7 @@ public:
     RecorderHelper(const MediaSinkInterface::Ptr &recorder, vector<Track::Ptr> &&tracks , bool bContinueRecord, const string &schema) {
         _recorder = recorder;
         _continueRecord = bContinueRecord;
-        _schema = schema;
-        attachTracks(std::move(tracks));
+        attachTracks(std::move(tracks),schema);
     }
 
     ~RecorderHelper() {
@@ -106,12 +105,13 @@ public:
     }
 
     // 附则于track上
-    void attachTracks(vector<Track::Ptr> &&tracks){
+    void attachTracks(vector<Track::Ptr> &&tracks, const string &schema){
         if(isTracksSame(tracks)){
             return;
         }
         resetTracks();
         _tracks = std::move(tracks);
+        _schema = schema;
         for (auto &track : _tracks) {
             _recorder->addTrack(track);
             track->addDelegate(_recorder);
@@ -240,9 +240,9 @@ private:
             return;
         }
 
-        if(it->second->getSchema() == schema){
+        if(!it->second->isRecording() || it->second->getSchema() == schema){
             // 绑定的协议一致,替换tracks
-            it->second->attachTracks(std::move(tracks));
+            it->second->attachTracks(std::move(tracks),schema);
         }
 
     }
