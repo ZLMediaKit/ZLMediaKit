@@ -266,16 +266,12 @@ private:
             return;
         }
 
-        if(!it->second){
-            // 录像对象为空,已经停止录制
-            return;
-        }
         if(it->second->continueRecord()){
             // 如果可以继续录制，那么只重置tracks,不删除对象
             it->second->resetTracks();
         }else{
             // 删除对象(意味着可能删除hls临时文件)
-            it->second.reset();
+            _recorder_map.erase(it);
         }
     }
 
@@ -284,11 +280,7 @@ private:
         if (it == _recorder_map.end()) {
             return Recorder::status_not_record;
         }
-        if (it->second && it->second->isRecording()) {
-            return Recorder::status_recording;
-        }
-
-        return Recorder::status_wait_record;
+        return it->second->isRecording() ? Recorder::status_recording : Recorder::status_wait_record;
     }
 
     // 查找MediaSource以便录制
