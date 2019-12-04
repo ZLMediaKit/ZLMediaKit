@@ -348,21 +348,6 @@ void MediaSource::unregisted(){
                                        _strApp,
                                        _strId,
                                        *this);
-
-    weak_ptr<MediaSource> weakPtr = shared_from_this();
-    EventPollerPool::Instance().getPoller()->async([weakPtr,this](){
-        auto strongPtr = weakPtr.lock();
-        if (!strongPtr) {
-            return;
-        }
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
-                                           true,
-                                           _strSchema,
-                                           _strVhost,
-                                           _strApp,
-                                           _strId,
-                                           *this);
-    },false);
 }
 
 
