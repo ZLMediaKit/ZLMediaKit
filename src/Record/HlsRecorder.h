@@ -24,56 +24,33 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_MEDIAFILE_MEDIARECORDER_H_
-#define SRC_MEDIAFILE_MEDIARECORDER_H_
+#ifndef HLSRECORDER_H
+#define HLSRECORDER_H
 
-#include <memory>
-#include "Player/PlayerBase.h"
-#include "Common/MediaSink.h"
-#include "MP4Recorder.h"
-#include "HlsRecorder.h"
-
-using namespace toolkit;
+#include "HlsMakerImp.h"
+#include "TsMuxer.h"
 
 namespace mediakit {
 
-class MediaRecorder : public MediaSinkInterface{
+class HlsRecorder : public TsMuxer {
 public:
-	typedef std::shared_ptr<MediaRecorder> Ptr;
-	MediaRecorder(const string &strVhost,
-                  const string &strApp,
-                  const string &strId,
-                  bool enableHls = true,
-                  bool enableMp4 = false);
-	virtual ~MediaRecorder();
-
-	/**
-     * 输入frame
-     * @param frame
-     */
-	void inputFrame(const Frame::Ptr &frame) override;
-
-	/**
-     * 添加track，内部会调用Track的clone方法
-     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
-     * @param track
-     */
-	void addTrack(const Track::Ptr &track) override;
-
-	/**
-	 * 重置track
-	 */
-	void resetTracks() override;
+    HlsRecorder(const string &m3u8_file, const string &params){
+        GET_CONFIG(uint32_t,hlsNum,Hls::kSegmentNum);
+        GET_CONFIG(uint32_t,hlsBufSize,Hls::kFileBufSize);
+        GET_CONFIG(uint32_t,hlsDuration,Hls::kSegmentDuration);
+        _hls = new HlsMakerImp(m3u8_file,params,hlsBufSize,hlsDuration,hlsNum);
+    }
+    ~HlsRecorder(){
+        delete _hls;
+    }
+protected:
+    void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) override {
+        _hls->inputData((char *)packet,bytes,timestamp);
+    };
 private:
-#if defined(ENABLE_HLS)
-	std::shared_ptr<HlsRecorder> _hlsRecorder;
-#endif //defined(ENABLE_HLS)
-
-#if defined(ENABLE_MP4RECORD)
-	std::shared_ptr<MP4Recorder> _mp4Recorder;
-#endif //defined(ENABLE_MP4RECORD)
+    HlsMakerImp *_hls;
 };
 
-} /* namespace mediakit */
+}//namespace mediakit
 
-#endif /* SRC_MEDIAFILE_MEDIARECORDER_H_ */
+#endif //HLSRECORDER_H

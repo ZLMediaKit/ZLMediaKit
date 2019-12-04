@@ -39,6 +39,7 @@
 #include "Rtsp/RtspSession.h"
 #include "Http/HttpSession.h"
 #include "WebHook.h"
+#include "Record/MP4Recorder.h"
 
 using namespace Json;
 using namespace toolkit;

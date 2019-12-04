@@ -32,7 +32,7 @@
 #include "Extension/Track.h"
 #include "Util/File.h"
 #include "Common/MediaSink.h"
-#include "Stamp.h"
+#include "Common/Stamp.h"
 
 using namespace toolkit;
 

@@ -26,7 +26,7 @@
 
 
 #include "MediaSource.h"
-#include "MediaFile/MediaReader.h"
+#include "Record/MP4Reader.h"
 #include "Util/util.h"
 #include "Network/sockutil.h"
 #include "Network/TcpSession.h"
@@ -278,7 +278,7 @@ MediaSource::Ptr MediaSource::find(
     });
     if(!ret && bMake){
         //未查找媒体源，则创建一个
-        ret = MediaReader::onMakeMediaSource(schema, vhost,app,id);
+        ret = MP4Reader::onMakeMediaSource(schema, vhost,app,id);
     }
     return ret;
 }

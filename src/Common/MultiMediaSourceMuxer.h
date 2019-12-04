@@ -29,7 +29,7 @@
 
 #include "Rtsp/RtspMediaSourceMuxer.h"
 #include "Rtmp/RtmpMediaSourceMuxer.h"
-#include "MediaFile/MediaRecorder.h"
+#include "Record/Recorder.h"
 
 class MultiMediaSourceMuxer : public MediaSink , public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
@@ -42,15 +42,19 @@ public:
                           bool bEanbleRtsp = true,
                           bool bEanbleRtmp = true,
                           bool bEanbleHls = true,
-                          bool bEnableMp4 = false
-                          ){
+                          bool bEnableMp4 = false){
         if (bEanbleRtmp) {
             _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleMeta>(dur_sec));
         }
         if (bEanbleRtsp) {
             _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleSdp>(dur_sec));
         }
-        _record = std::make_shared<MediaRecorder>(vhost,strApp,strId,bEanbleHls,bEnableMp4);
+        if(bEanbleHls){
+            _hls.reset(Recorder::createHlsRecorder(vhost, strApp, strId));
+        }
+        if(bEnableMp4){
+            _mp4.reset(Recorder::createMP4Recorder(vhost, strApp, strId));
+        }
     }
     virtual ~MultiMediaSourceMuxer(){}
 
@@ -64,7 +68,12 @@ public:
         if(_rtsp){
             _rtsp->resetTracks();
         }
-        _record->resetTracks();
+        if(_hls){
+            _hls->resetTracks();
+        }
+        if(_mp4){
+            _mp4->resetTracks();
+        }
     }
 
     /**
@@ -106,7 +115,12 @@ protected:
         if(_rtsp){
             _rtsp->addTrack(track);
         }
-        _record->addTrack(track);
+        if(_hls){
+            _hls->addTrack(track);
+        }
+        if(_mp4){
+            _mp4->addTrack(track);
+        }
     }
 
     /**
@@ -120,7 +134,12 @@ protected:
         if(_rtsp) {
             _rtsp->inputFrame(frame);
         }
-        _record->inputFrame(frame);
+        if(_hls){
+            _hls->inputFrame(frame);
+        }
+        if(_mp4){
+            _mp4->inputFrame(frame);
+        }
     }
 
     /**
@@ -139,7 +158,8 @@ protected:
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
-    MediaRecorder::Ptr _record;
+    MediaSinkInterface::Ptr _hls;
+    MediaSinkInterface::Ptr _mp4;
 };
 
 

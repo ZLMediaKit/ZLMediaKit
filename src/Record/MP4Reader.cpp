@@ -24,9 +24,10 @@
  * SOFTWARE.
  */
 
-#include "MediaReader.h"
+#include "MP4Reader.h"
 #include "Common/config.h"
 #include "Util/mini.h"
+#include "Util/File.h"
 #include "Http/HttpSession.h"
 #include "Extension/AAC.h"
 #include "Extension/H264.h"
@@ -37,7 +38,7 @@ using namespace toolkit;
 namespace mediakit {
 
 #ifdef ENABLE_MP4V2
-MediaReader::MediaReader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
+MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
 	_poller = WorkThreadPool::Instance().getPoller();
     auto strFileName = filePath;
     if(strFileName.empty()){
@@ -153,7 +154,7 @@ MediaReader::MediaReader(const string &strVhost,const string &strApp, const stri
 }
 
 
-MediaReader::~MediaReader() {
+MP4Reader::~MP4Reader() {
 	if (_hMP4File != MP4_INVALID_FILE_HANDLE) {
 		MP4Close(_hMP4File);
 		_hMP4File = MP4_INVALID_FILE_HANDLE;
@@ -161,7 +162,7 @@ MediaReader::~MediaReader() {
 }
 
 
-void MediaReader::startReadMP4() {
+void MP4Reader::startReadMP4() {
 	auto strongSelf = shared_from_this();
     GET_CONFIG(uint32_t,sampleMS,Record::kSampleMS);
 
@@ -173,11 +174,11 @@ void MediaReader::startReadMP4() {
 	readSample(sampleMS, false);
 	_mediaMuxer->setListener(strongSelf);
 }
- bool MediaReader::seekTo(MediaSource &sender,uint32_t ui32Stamp){
+ bool MP4Reader::seekTo(MediaSource &sender,uint32_t ui32Stamp){
 	 seek(ui32Stamp);
 	 return true;
 }
-bool MediaReader::close(MediaSource &sender,bool force){
+bool MP4Reader::close(MediaSource &sender,bool force){
     if(!_mediaMuxer || (!force && _mediaMuxer->readerCount() != 0)){
         return false;
     }
@@ -186,14 +187,14 @@ bool MediaReader::close(MediaSource &sender,bool force){
     return true;
 }
 
-void MediaReader::onNoneReader(MediaSource &sender) {
+void MP4Reader::onNoneReader(MediaSource &sender) {
     if(!_mediaMuxer || _mediaMuxer->readerCount() != 0){
         return;
     }
     MediaSourceEvent::onNoneReader(sender);
 }
 
-bool MediaReader::readSample(int iTimeInc,bool justSeekSyncFrame) {
+bool MP4Reader::readSample(int iTimeInc,bool justSeekSyncFrame) {
 	TimeTicker();
 	lock_guard<recursive_mutex> lck(_mtx);
 	auto bFlag0 = readVideoSample(iTimeInc,justSeekSyncFrame);//数据没读完
@@ -211,7 +212,7 @@ bool MediaReader::readSample(int iTimeInc,bool justSeekSyncFrame) {
 	//3秒延时关闭
 	return  _alive.elapsedTime() <  3 * 1000;
 }
-inline bool MediaReader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
+inline bool MP4Reader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
 	if (_video_trId != MP4_INVALID_TRACK_ID) {
 		auto iNextSample = getVideoSampleId(iTimeInc);
 		MP4SampleId iIdx = _video_current;
@@ -245,7 +246,7 @@ inline bool MediaReader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
 	return false;
 }
 
-inline bool MediaReader::readAudioSample(int iTimeInc,bool justSeekSyncFrame) {
+inline bool MP4Reader::readAudioSample(int iTimeInc,bool justSeekSyncFrame) {
 	if (_audio_trId != MP4_INVALID_TRACK_ID) {
 		auto iNextSample = getAudioSampleId(iTimeInc);
 		for (auto i = _audio_current; i < iNextSample; i++) {
@@ -267,27 +268,27 @@ inline bool MediaReader::readAudioSample(int iTimeInc,bool justSeekSyncFrame) {
 	return false;
 }
 
-inline void MediaReader::writeH264(uint8_t *pucData,int iLen,uint32_t dts,uint32_t pts) {
+inline void MP4Reader::writeH264(uint8_t *pucData,int iLen,uint32_t dts,uint32_t pts) {
 	_mediaMuxer->inputFrame(std::make_shared<H264FrameNoCacheAble>((char*)pucData,iLen,dts,pts));
 }
 
-inline void MediaReader::writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp) {
+inline void MP4Reader::writeAAC(uint8_t *pucData,int iLen,uint32_t uiStamp) {
 	_mediaMuxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char*)pucData,iLen,uiStamp));
 }
 
-inline MP4SampleId MediaReader::getVideoSampleId(int iTimeInc ) {
+inline MP4SampleId MP4Reader::getVideoSampleId(int iTimeInc ) {
 	MP4SampleId video_current = (double)_video_num_samples *  (_iSeekTime + _ticker.elapsedTime() + iTimeInc) / _video_ms;
 	video_current = MAX(0,MIN(_video_num_samples, video_current));
 	return video_current;
 
 }
 
-inline MP4SampleId MediaReader::getAudioSampleId(int iTimeInc) {
+inline MP4SampleId MP4Reader::getAudioSampleId(int iTimeInc) {
 	MP4SampleId audio_current = (double)_audio_num_samples * (_iSeekTime + _ticker.elapsedTime() + iTimeInc)  / _audio_ms ;
 	audio_current = MAX(0,MIN(_audio_num_samples,audio_current));
 	return audio_current;
 }
-inline void MediaReader::setSeekTime(uint32_t iSeekTime){
+inline void MP4Reader::setSeekTime(uint32_t iSeekTime){
 	_iSeekTime = MAX(0, MIN(iSeekTime,_iDuration));
 	_ticker.resetTime();
 	if (_audio_trId != MP4_INVALID_TRACK_ID) {
@@ -298,10 +299,10 @@ inline void MediaReader::setSeekTime(uint32_t iSeekTime){
 	}
 }
 
-inline uint32_t MediaReader::getVideoCurrentTime(){
+inline uint32_t MP4Reader::getVideoCurrentTime(){
 	return (double)_video_current * _video_ms /_video_num_samples;
 }
-void MediaReader::seek(uint32_t iSeekTime,bool bReStart){
+void MP4Reader::seek(uint32_t iSeekTime,bool bReStart){
 	lock_guard<recursive_mutex> lck(_mtx);
 	if(iSeekTime == 0 || _video_trId == MP4_INVALID_TRACK_ID){
 		setSeekTime(iSeekTime);
@@ -331,7 +332,7 @@ void MediaReader::seek(uint32_t iSeekTime,bool bReStart){
 
 
 
-MediaSource::Ptr MediaReader::onMakeMediaSource(const string &strSchema,
+MediaSource::Ptr MP4Reader::onMakeMediaSource(const string &strSchema,
 												const string &strVhost,
 												const string &strApp,
 												const string &strId,
@@ -343,7 +344,7 @@ MediaSource::Ptr MediaReader::onMakeMediaSource(const string &strSchema,
 		return nullptr;
 	}
 	try {
-		MediaReader::Ptr pReader(new MediaReader(strVhost,strApp, strId,filePath));
+		MP4Reader::Ptr pReader(new MP4Reader(strVhost,strApp, strId,filePath));
 		pReader->startReadMP4();
 		return MediaSource::find(strSchema,strVhost,strApp, strId, false);
 	} catch (std::exception &ex) {
