@@ -56,6 +56,7 @@ public:
 	static status getRecordStatus(type type, const string &vhost, const string &app, const string &stream_id);
 	static int startRecord(type type, const string &vhost, const string &app, const string &stream_id,bool waitForRecord, bool continueRecord);
 	static void stopRecord(type type, const string &vhost, const string &app, const string &stream_id);
+	static void stopAll();
 private:
 	Recorder() = delete;
 	~Recorder() = delete;
