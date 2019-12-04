@@ -256,6 +256,10 @@ private:
             return;
         }
 
+        if(it->second->getSchema() != schema){
+            // 绑定的协议不一致
+            return;
+        }
         if(it->second->continueRecord()){
             // 如果可以继续录制，那么只重置tracks,不删除对象
             it->second->resetTracks();
