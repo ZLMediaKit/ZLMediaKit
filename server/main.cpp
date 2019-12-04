@@ -336,6 +336,7 @@ int start_main(int argc,char *argv[]) {
     }
     unInstallWebApi();
     unInstallWebHook();
+    Recorder::stopAll();
     //休眠1秒再退出，防止资源释放顺序错误
     InfoL << "程序退出中,请等待...";
     sleep(1);

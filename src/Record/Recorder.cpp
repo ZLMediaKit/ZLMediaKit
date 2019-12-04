@@ -206,6 +206,11 @@ public:
         _recorder_map.erase(getRecorderKey(vhost, app, stream_id));
     }
 
+    void stopAll(){
+        lock_guard<decltype(_recorder_mtx)> lck(_recorder_mtx);
+        _recorder_map.clear();
+    }
+
 private:
     MediaSourceWatcher(){
         NoticeCenter::Instance().addListener(this,Broadcast::kBroadcastMediaChanged,[this](BroadcastMediaChangedArgs){
@@ -350,6 +355,11 @@ void Recorder::stopRecord(Recorder::type type, const string &vhost, const string
         case type_hls:
             return MediaSourceWatcher<type_hls>::Instance().stopRecord(vhost,app,stream_id);
     }
+}
+
+void Recorder::stopAll() {
+    MediaSourceWatcher<type_hls>::Instance().stopAll();
+    MediaSourceWatcher<type_mp4>::Instance().stopAll();
 }
 
 } /* namespace mediakit */
