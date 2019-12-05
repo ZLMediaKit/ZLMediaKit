@@ -716,7 +716,7 @@ void installWebApi() {
     });
 
     // 获取hls或MP4录制状态
-    API_REGIST(api,stopRecord,{
+    API_REGIST(api,getRecordStatus,{
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
         auto status = Recorder::getRecordStatus((Recorder::type)allArgs["type"].as<int>(),
