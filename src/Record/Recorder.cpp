@@ -26,6 +26,7 @@
 
 #include "Recorder.h"
 #include "Common/config.h"
+#include "Common/MediaSource.h"
 #include "MP4Recorder.h"
 #include "HlsRecorder.h"
 
@@ -94,10 +95,9 @@ public:
      * 构建函数
      * @param bContinueRecord false表明hls录制从头开始录制(意味着hls临时文件在媒体反注册时会被删除)
      */
-    RecorderHelper(const MediaSinkInterface::Ptr &recorder, vector<Track::Ptr> &&tracks , bool bContinueRecord, const string &schema) {
+    RecorderHelper(const MediaSinkInterface::Ptr &recorder, bool bContinueRecord) {
         _recorder = recorder;
         _continueRecord = bContinueRecord;
-        attachTracks(std::move(tracks),schema);
     }
 
     ~RecorderHelper() {
@@ -197,7 +197,11 @@ public:
             // 创建录制器失败
             return -2;
         }
-        _recorder_map[key] = std::make_shared<RecorderHelper>(recorder, std::move(tracks), continueRecord, schema);
+        auto helper = std::make_shared<RecorderHelper>(recorder, continueRecord);
+        if(tracks.size()){
+            helper->attachTracks(std::move(tracks),schema);
+        }
+        _recorder_map[key] = std::move(helper);
         return 0;
     }
 
@@ -239,32 +243,24 @@ private:
             return;
         }
 
-        auto tracks = sender.getTracks(true);
-        if (tracks.empty()) {
-            // 无有效的tracks
-            return;
-        }
-
         if(!it->second->isRecording() || it->second->getSchema() == schema){
-            // 绑定的协议一致,替换tracks
-            it->second->attachTracks(std::move(tracks),schema);
+            // 绑定的协议一致或者并未正在录制则替换tracks
+            auto tracks = sender.getTracks(true);
+            if (!tracks.empty()) {
+                it->second->attachTracks(std::move(tracks),schema);
+            }
         }
-
     }
 
     void onUnRegist(const string &schema,const string &vhost,const string &app,const string &stream,MediaSource &sender){
         auto key = getRecorderKey(vhost,app,stream);
         lock_guard<decltype(_recorder_mtx)> lck(_recorder_mtx);
         auto it = _recorder_map.find(key);
-        if(it == _recorder_map.end()){
-            // 录像记录不存在
+        if(it == _recorder_map.end() || it->second->getSchema() != schema){
+            // 录像记录不存在或绑定的协议不一致
             return;
         }
 
-        if(it->second->getSchema() != schema){
-            // 绑定的协议不一致
-            return;
-        }
         if(it->second->continueRecord()){
             // 如果可以继续录制，那么只重置tracks,不删除对象
             it->second->resetTracks();
@@ -318,7 +314,7 @@ private:
                 break;
         }
         if(!ret){
-            WarnL << "can not recorder of: " << type;
+            WarnL << "can not create recorder of type: " << type;
         }
         return ret;
     }
@@ -345,6 +341,7 @@ int Recorder::startRecord(Recorder::type type, const string &vhost, const string
         case type_hls:
             return MediaSourceWatcher<type_hls>::Instance().startRecord(vhost,app,stream_id,waitForRecord,continueRecord);
     }
+    WarnL << "unknown record type: " << type;
     return -3;
 }
 
