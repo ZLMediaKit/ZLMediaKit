@@ -205,9 +205,9 @@ public:
         return 0;
     }
 
-    void stopRecord(const string &vhost, const string &app, const string &stream_id) {
+    bool stopRecord(const string &vhost, const string &app, const string &stream_id) {
         lock_guard<decltype(_recorder_mtx)> lck(_recorder_mtx);
-        _recorder_map.erase(getRecorderKey(vhost, app, stream_id));
+        return _recorder_map.erase(getRecorderKey(vhost, app, stream_id));
     }
 
     void stopAll(){
@@ -345,13 +345,14 @@ int Recorder::startRecord(Recorder::type type, const string &vhost, const string
     return -3;
 }
 
-void Recorder::stopRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id) {
+bool Recorder::stopRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id) {
     switch (type){
         case type_mp4:
             return MediaSourceWatcher<type_mp4>::Instance().stopRecord(vhost,app,stream_id);
         case type_hls:
             return MediaSourceWatcher<type_hls>::Instance().stopRecord(vhost,app,stream_id);
     }
+    return false;
 }
 
 void Recorder::stopAll() {
