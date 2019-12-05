@@ -46,6 +46,7 @@
 #include "WebApi.h"
 #include "WebHook.h"
 #include "Thread/WorkThreadPool.h"
+#include "Rtp/RtpSelector.h"
 
 #if !defined(_WIN32)
 #include "FFmpegSource.h"
@@ -690,6 +691,19 @@ void installWebApi() {
     API_REGIST_INVOKER(api,downloadBin,{
         CHECK_SECRET();
         invoker.responseFile(headerIn,StrCaseMap(),exePath());
+    });
+
+    API_REGIST(api,getSsrcInfo,{
+        CHECK_SECRET();
+        CHECK_ARGS("ssrc");
+        auto process = RtpSelector::Instance().getProcess(allArgs["ssrc"],false);
+        if(!process){
+            val["exist"] = false;
+            return;
+        }
+        val["exist"] = true;
+        val["peer_ip"] = process->get_peer_ip();
+        val["peer_port"] = process->get_peer_port();
     });
 
     // 开始录制hls或MP4
