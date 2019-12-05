@@ -70,7 +70,7 @@ public:
      * @param app 应用名
      * @param stream_id 流id
 	 * @param waitForRecord 是否等待流注册后再录制，未注册时，置false将返回失败
-	 * @param continueRecord 流注销时是否继续等待录制还是立即停止注册
+	 * @param continueRecord 流注销时是否继续等待录制还是立即停止录制
 	 * @return 0代表成功，负数代表失败
 	 */
 	static int startRecord(type type, const string &vhost, const string &app, const string &stream_id,bool waitForRecord, bool continueRecord);
