@@ -50,31 +50,16 @@ public:
             _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleSdp>(dur_sec));
         }
 
-        _recordFunc = [bEanbleHls,bEnableMp4,vhost, strApp, strId](bool start){
-            if(bEanbleHls){
-                if(start){
-                    Recorder::startRecord(Recorder::type_hls,vhost, strApp, strId, true, false);
-                }else{
-                    Recorder::stopRecord(Recorder::type_hls,vhost, strApp, strId);
-                }
-            }
-
-            if(bEnableMp4){
-                if(start){
-                    Recorder::startRecord(Recorder::type_mp4,vhost, strApp, strId, true, false);
-                }else{
-                    Recorder::stopRecord(Recorder::type_mp4,vhost, strApp, strId);
-                }
-            }
-        };
-
-        _recordFunc(true);
-    }
-    virtual ~MultiMediaSourceMuxer(){
-        if(_recordFunc){
-            _recordFunc(false);
+        if(bEanbleHls){
+            Recorder::startRecord(Recorder::type_hls,vhost, strApp, strId, true, false);
         }
+
+        if(bEnableMp4){
+            Recorder::startRecord(Recorder::type_mp4,vhost, strApp, strId, true, false);
+        }
+
     }
+    virtual ~MultiMediaSourceMuxer(){}
 
     /**
      * 重置音视频媒体
@@ -158,7 +143,6 @@ protected:
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
-    function<void(bool)> _recordFunc;
 };
 
 
