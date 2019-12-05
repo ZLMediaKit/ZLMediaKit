@@ -709,10 +709,11 @@ void installWebApi() {
     API_REGIST(api,stopRecord,{
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
-        Recorder::stopRecord((Recorder::type)allArgs["type"].as<int>(),
-                              allArgs["vhost"],
-                              allArgs["app"],
-                              allArgs["stream"]);
+        int result = Recorder::stopRecord((Recorder::type)allArgs["type"].as<int>(),
+                                          allArgs["vhost"],
+                                          allArgs["app"],
+                                          allArgs["stream"]);
+        val["result"] = result;
     });
 
     // 获取hls或MP4录制状态

@@ -82,7 +82,7 @@ public:
      * @param app 应用名
      * @param stream_id 流id
 	 */
-	static void stopRecord(type type, const string &vhost, const string &app, const string &stream_id);
+	static bool stopRecord(type type, const string &vhost, const string &app, const string &stream_id);
 
 	/**
 	 * 停止所有录制，一般程序退出时调用
