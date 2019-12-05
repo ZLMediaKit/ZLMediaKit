@@ -693,7 +693,7 @@ void installWebApi() {
     });
 
     // 开始录制hls或MP4
-    API_REGIST_INVOKER(api,startRecord,{
+    API_REGIST(api,startRecord,{
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream","wait_for_record","continue_record");
         int result = Recorder::startRecord((Recorder::type)allArgs["type"].as<int>(),
@@ -706,7 +706,7 @@ void installWebApi() {
     });
 
     // 停止录制hls或MP4
-    API_REGIST_INVOKER(api,stopRecord,{
+    API_REGIST(api,stopRecord,{
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
         Recorder::stopRecord((Recorder::type)allArgs["type"].as<int>(),
@@ -716,7 +716,7 @@ void installWebApi() {
     });
 
     // 获取hls或MP4录制状态
-    API_REGIST_INVOKER(api,stopRecord,{
+    API_REGIST(api,stopRecord,{
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
         auto status = Recorder::getRecordStatus((Recorder::type)allArgs["type"].as<int>(),
