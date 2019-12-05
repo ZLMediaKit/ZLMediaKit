@@ -692,6 +692,40 @@ void installWebApi() {
         invoker.responseFile(headerIn,StrCaseMap(),exePath());
     });
 
+    // 开始录制hls或MP4
+    API_REGIST_INVOKER(api,startRecord,{
+        CHECK_SECRET();
+        CHECK_ARGS("type","vhost","app","stream","wait_for_record","continue_record");
+        int result = Recorder::startRecord((Recorder::type)allArgs["type"].as<int>(),
+                                           allArgs["vhost"],
+                                           allArgs["app"],
+                                           allArgs["stream"],
+                                           allArgs["wait_for_record"],
+                                           allArgs["continue_record"]);
+        val["result"] = result;
+    });
+
+    // 停止录制hls或MP4
+    API_REGIST_INVOKER(api,stopRecord,{
+        CHECK_SECRET();
+        CHECK_ARGS("type","vhost","app","stream");
+        Recorder::stopRecord((Recorder::type)allArgs["type"].as<int>(),
+                              allArgs["vhost"],
+                              allArgs["app"],
+                              allArgs["stream"]);
+    });
+
+    // 获取hls或MP4录制状态
+    API_REGIST_INVOKER(api,stopRecord,{
+        CHECK_SECRET();
+        CHECK_ARGS("type","vhost","app","stream");
+        auto status = Recorder::getRecordStatus((Recorder::type)allArgs["type"].as<int>(),
+                                                allArgs["vhost"],
+                                                allArgs["app"],
+                                                allArgs["stream"]);
+        val["status"] = (int)status;
+    });
+
     ////////////以下是注册的Hook API////////////
     API_REGIST(hook,on_publish,{
         //开始推流事件
