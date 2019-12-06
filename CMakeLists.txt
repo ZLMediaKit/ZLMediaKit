@@ -30,28 +30,14 @@ endif ()
 
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
-
 #设置工程源码根目录
 set(ToolKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/ZLToolKit/src)
 set(MediaKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
 
-
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
 INCLUDE_DIRECTORIES(${MediaKit_Root})
-
-#收集源代码
-file(GLOB ToolKit_src_list ${ToolKit_Root}/*/*.cpp ${ToolKit_Root}/*/*.h ${ToolKit_Root}/*/*.c)
-file(GLOB MediaKit_src_list ${MediaKit_Root}/*/*.cpp ${MediaKit_Root}/*/*.h ${MediaKit_Root}/*/*.c)
-
-#去除win32的适配代码
-if (NOT WIN32)
-    list(REMOVE_ITEM ToolKit_src_list ${ToolKit_Root}/win32/getopt.c)
-else()
-     #防止Windows.h包含Winsock.h
-    add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS)
-endif ()
 
 set(ENABLE_HLS true)
 set(ENABLE_OPENSSL true)
@@ -60,6 +46,7 @@ set(ENABLE_MP4V2 true)
 set(ENABLE_FAAC false)
 set(ENABLE_X264 false)
 set(ENABLE_MP4RECORD true)
+set(ENABLE_RTPPROXY true)
 
 set(LINK_LIB_LIST zlmediakit zltoolkit)
 
@@ -109,6 +96,15 @@ if (FAAC_FOUND AND ENABLE_FAAC)
     list(APPEND LINK_LIB_LIST ${FAAC_LIBRARIES})
 endif ()
 
+if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+    #查找jemalloc是否安装
+    find_package(JEMALLOC QUIET)
+    if(JEMALLOC_FOUND)
+        message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
+        include_directories(${JEMALLOC_INCLUDE_DIR})
+        list(APPEND  LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
+    endif()
+endif()
 
 set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573" )
 
@@ -151,24 +147,28 @@ if(ENABLE_MP4RECORD)
 	endif(WIN32)
 endif()
 
-if(${CMAKE_BUILD_TYPE} MATCHES "Release")
-    #查找jemalloc是否安装
-    find_package(JEMALLOC QUIET)
-    if(JEMALLOC_FOUND)
-        message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
-        include_directories(${JEMALLOC_INCLUDE_DIR})
-        list(APPEND  LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
-    endif()
+if(ENABLE_RTPPROXY)
+    #添加rtp库用于rtp转ps/ts
+    aux_source_directory(${MediaServer_Root}/librtp/include src_rtp)
+    aux_source_directory(${MediaServer_Root}/librtp/source src_rtp)
+    aux_source_directory(${MediaServer_Root}/librtp/payload src_rtp)
+    include_directories(${MediaServer_Root}/librtp/include)
+    add_library(rtp STATIC ${src_rtp})
+    add_definitions(-DENABLE_RTPPROXY)
+    list(APPEND LINK_LIB_LIST rtp)
 endif()
 
+#收集源代码
+file(GLOB ToolKit_src_list ${ToolKit_Root}/*/*.cpp ${ToolKit_Root}/*/*.h ${ToolKit_Root}/*/*.c)
+file(GLOB MediaKit_src_list ${MediaKit_Root}/*/*.cpp ${MediaKit_Root}/*/*.h ${MediaKit_Root}/*/*.c)
 
-#添加rtp库用于rtp转ps/ts
-aux_source_directory(${MediaServer_Root}/librtp/include src_rtp)
-aux_source_directory(${MediaServer_Root}/librtp/source src_rtp)
-aux_source_directory(${MediaServer_Root}/librtp/payload src_rtp)
-include_directories(${MediaServer_Root}/librtp/include)
-add_library(rtp STATIC ${src_rtp})
-list(APPEND LINK_LIB_LIST rtp)
+#去除win32的适配代码
+if (NOT WIN32)
+    list(REMOVE_ITEM ToolKit_src_list ${ToolKit_Root}/win32/getopt.c)
+else()
+    #防止Windows.h包含Winsock.h
+    add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS)
+endif ()
 
 #添加库
 add_library(zltoolkit STATIC ${ToolKit_src_list})
@@ -182,34 +182,8 @@ elseif(NOT ANDROID OR IOS)
     list(APPEND LINK_LIB_LIST pthread)
 endif ()
 
-
 #测试程序
 add_subdirectory(tests)
 
 #主服务器
 add_subdirectory(server)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

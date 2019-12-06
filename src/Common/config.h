@@ -159,11 +159,6 @@ extern const string kBroadcastReloadConfig;
         static type arg = mINI::Instance()[key]; \
         LISTEN_RELOAD_KEY(arg,key);
 
-
-//兼容老代码
-#define GET_CONFIG_AND_REGISTER GET_CONFIG
-#define BroadcastRtmpPublishArgs BroadcastMediaPublishArgs
-#define kBroadcastRtmpPublish kBroadcastMediaPublish
 } //namespace Broadcast
 
 ////////////通用配置///////////
@@ -301,6 +296,17 @@ extern const string kFileBufSize;
 extern const string kFilePath;
 } //namespace Hls
 
+////////////Rtp代理相关配置///////////
+namespace RtpProxy {
+//rtp调试数据保存目录,置空则不生成
+extern const string kDumpDir;
+//是否限制udp数据来源ip和端口
+extern const string kCheckSource;
+//rtp类型，支持MP2P/MP4V-ES
+extern const string kRtpType;
+//rtp接收超时时间
+extern const string kTimeoutSec;
+} //namespace RtpProxy
 
 /**
  * rtsp/rtmp播放器、推流器相关设置名，
