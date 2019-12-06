@@ -67,7 +67,7 @@ void RtpSession::onManager() {
 
 void RtpSession::onRtpPacket(const char *data, uint64_t len) {
     if(!_ssrc){
-        _ssrc = RtpSelector::getSSRC(data,len);
+        _ssrc = RtpSelector::getSSRC(data + 2,len - 2);
         _process = RtpSelector::Instance().getProcess(_ssrc, true);
     }
     _process->inputRtp(data + 2,len - 2,&addr);
