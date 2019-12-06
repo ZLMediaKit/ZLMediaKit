@@ -219,7 +219,8 @@ inline bool MP4Reader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
 		for (; iIdx < iNextSample; iIdx++) {
 			uint8_t *pBytes = _pcVideoSample.get();
 			uint32_t numBytes = _video_sample_max_size;
-			if(MP4ReadSample(_hMP4File, _video_trId, iIdx + 1, &pBytes, &numBytes,NULL,NULL,NULL,&_bSyncSample)){
+			MP4Duration pRenderingOffset;
+			if(MP4ReadSample(_hMP4File, _video_trId, iIdx + 1, &pBytes, &numBytes,NULL,NULL,&pRenderingOffset,&_bSyncSample)){
 				if (!justSeekSyncFrame) {
 					uint32_t iOffset = 0;
 					while (iOffset < numBytes) {
@@ -230,7 +231,8 @@ inline bool MP4Reader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
                             break;
                         }
 						memcpy(pBytes + iOffset, "\x0\x0\x0\x1", 4);
-						writeH264(pBytes + iOffset, iFrameLen + 4, (double) _video_ms * iIdx / _video_num_samples, 0);
+						uint32_t dts = (double) _video_ms * iIdx / _video_num_samples;
+						writeH264(pBytes + iOffset, iFrameLen + 4, dts, dts + pRenderingOffset / 90);
 						iOffset += (iFrameLen + 4);
 					}
 				}else if(_bSyncSample){
