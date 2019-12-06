@@ -693,6 +693,7 @@ void installWebApi() {
         invoker.responseFile(headerIn,StrCaseMap(),exePath());
     });
 
+#if defined(ENABLE_RTPPROXY)
     API_REGIST(api,getSsrcInfo,{
         CHECK_SECRET();
         CHECK_ARGS("ssrc");
@@ -705,6 +706,7 @@ void installWebApi() {
         val["peer_ip"] = process->get_peer_ip();
         val["peer_port"] = process->get_peer_port();
     });
+#endif//ENABLE_RTPPROXY
 
     // 开始录制hls或MP4
     API_REGIST(api,startRecord,{

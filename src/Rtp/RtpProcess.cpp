@@ -1,57 +1,37 @@
 ﻿/*
-* MIT License
-*
-* Copyright (c) 2016-2019 Gemfield <gemfield@civilnet.cn>
-*
-* This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+ * MIT License
+ *
+ * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 
+#if defined(ENABLE_RTPPROXY)
+#include "mpeg-ps.h"
 #include "RtpProcess.h"
 #include "Util/File.h"
-#include "Util/logger.h"
 #include "Extension/H265.h"
-#include "Extension/H264.h"
 #include "Extension/AAC.h"
 
-using namespace toolkit;
-
-namespace dump {
-const string kEnable = "dump.enable";
-const string kDir = "dump.dir";
-const string kChcekSource = "dump.checkSource";
-onceToken token([](){
-    mINI::Instance()[kEnable] = 0;
-    mINI::Instance()[kDir] = "./dump/";
-    mINI::Instance()[kChcekSource] = 1;
-});
-}//namespace dump
-
-namespace Rtp {
-const string kRtpType = "rtp.rtp_type";
-const string kTimeoutSec = "rtp.timeoutSec";
-onceToken token([](){
-    mINI::Instance()[kRtpType] = "MP2P";
-    mINI::Instance()[kTimeoutSec] = 15;
-});
-}//namespace dump
+namespace mediakit{
 
 /**
  * 合并一些时间戳相同的frame
@@ -106,10 +86,9 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     DebugL << printSSRC(_ssrc);
     _muxer = std::make_shared<MultiMediaSourceMuxer>(DEFAULT_VHOST,"rtp",printSSRC(_ssrc));
 
-    GET_CONFIG(bool,dump_enable,dump::kEnable);
-    GET_CONFIG(string,dump_dir,dump::kDir);
+    GET_CONFIG(string,dump_dir,RtpProxy::kDumpDir);
     {
-        FILE *fp = dump_enable ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".rtp",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".rtp",dump_dir).data(),"wb") : nullptr;
         if(fp){
             _save_file_rtp.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -118,7 +97,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     }
 
     {
-        FILE *fp = dump_enable ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".mp2",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".mp2",dump_dir).data(),"wb") : nullptr;
         if(fp){
             _save_file_ps.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -127,7 +106,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     }
 
     {
-        FILE *fp = dump_enable ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".video",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".video",dump_dir).data(),"wb") : nullptr;
         if(fp){
             _save_file_video.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -147,7 +126,7 @@ RtpProcess::~RtpProcess() {
 }
 
 bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *addr) {
-    GET_CONFIG(bool,check_source,dump::kChcekSource);
+    GET_CONFIG(bool,check_source,RtpProxy::kCheckSource);
     //检查源是否合法
     if(!_addr){
         _addr = new struct sockaddr;
@@ -177,7 +156,7 @@ void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
         fwrite((uint8_t *) rtp->data() + 4, rtp->size() - 4, 1, _save_file_rtp.get());
     }
 
-    GET_CONFIG(string,rtp_type,::Rtp::kRtpType);
+    GET_CONFIG(string,rtp_type,::RtpProxy::kRtpType);
     decodeRtp(rtp->data() + 4 ,rtp->size() - 4,rtp_type.data());
 }
 
@@ -198,7 +177,7 @@ void RtpProcess::onPSDecode(int stream,
                        int64_t pts,
                        int64_t dts,
                        const void *data,
-                       size_t bytes) {
+                       int bytes) {
 
     switch (codecid) {
         case STREAM_VIDEO_H264: {
@@ -270,7 +249,7 @@ void RtpProcess::onPSDecode(int stream,
 }
 
 bool RtpProcess::alive() {
-    GET_CONFIG(int,timeoutSec,::Rtp::kTimeoutSec)
+    GET_CONFIG(int,timeoutSec,RtpProxy::kTimeoutSec)
     if(_last_rtp_time.elapsedTime() / 1000 < timeoutSec){
         return true;
     }
@@ -284,3 +263,6 @@ string RtpProcess::get_peer_ip() {
 uint16_t RtpProcess::get_peer_port() {
     return ntohs(((struct sockaddr_in *) _addr)->sin_port);
 }
+
+}//namespace mediakit
+#endif//defined(ENABLE_RTPPROXY)

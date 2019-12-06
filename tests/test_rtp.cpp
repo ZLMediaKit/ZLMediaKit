@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2016-2019 Gemfield <gemfield@civilnet.cn>
+ * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -36,29 +36,78 @@
 #include "Rtsp/RtspSession.h"
 #include "Rtmp/RtmpSession.h"
 #include "Http/HttpSession.h"
-#include "Rtp/RtpFileLoader.h"
+#include "Rtp/RtpSelector.h"
 
 using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-int main(int argc,char *argv[]) {
-    {
-        //设置日志
-        Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel"));
-        //启动异步日志线程
-        Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
-        loadIniConfig((exeDir() + "config.ini").data());
-        TcpServer::Ptr rtspSrv(new TcpServer());
-        TcpServer::Ptr rtmpSrv(new TcpServer());
-        TcpServer::Ptr httpSrv(new TcpServer());
-        rtspSrv->start<RtspSession>(554);//默认554
-        rtmpSrv->start<RtmpSession>(1935);//默认1935
-        httpSrv->start<HttpSession>(80);//默认80
-        RtpFileLoader::loadFile(argv[1]);
+#if defined(ENABLE_RTPPROXY)
+static bool loadFile(const char *path){
+    FILE *fp = fopen(path, "rb");
+    if (!fp) {
+        WarnL << "open file failed:" << path;
+        return false;
     }
+
+    uint32_t timeStamp_last = 0;
+    uint16_t len;
+    char rtp[2 * 1024];
+    while (true) {
+        if (2 != fread(&len, 1, 2, fp)) {
+            WarnL;
+            break;
+        }
+        len = ntohs(len);
+        if (len < 12 || len > sizeof(rtp)) {
+            WarnL << len;
+            break;
+        }
+
+        if (len != fread(rtp, 1, len, fp)) {
+            WarnL;
+            break;
+        }
+
+        uint32_t timeStamp;
+        memcpy(&timeStamp, rtp + 4, 4);
+        timeStamp = ntohl(timeStamp);
+        timeStamp /= 90;
+
+        if(timeStamp_last){
+            auto diff = timeStamp - timeStamp_last;
+            if(diff > 0){
+                usleep(diff * 1000);
+            }
+        }
+
+        timeStamp_last = timeStamp;
+
+        RtpSelector::Instance().inputRtp(rtp,len, nullptr);
+    }
+    fclose(fp);
+    return true;
+}
+#endif//#if defined(ENABLE_RTPPROXY)
+
+int main(int argc,char *argv[]) {
+    //设置日志
+    Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel"));
+#if defined(ENABLE_RTPPROXY)
+    //启动异步日志线程
+    Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
+    loadIniConfig((exeDir() + "config.ini").data());
+    TcpServer::Ptr rtspSrv(new TcpServer());
+    TcpServer::Ptr rtmpSrv(new TcpServer());
+    TcpServer::Ptr httpSrv(new TcpServer());
+    rtspSrv->start<RtspSession>(554);//默认554
+    rtmpSrv->start<RtmpSession>(1935);//默认1935
+    httpSrv->start<HttpSession>(80);//默认80
+    loadFile(argv[1]);
+#else
+    ErrorL << "please ENABLE_RTPPROXY and then test";
+#endif//#if defined(ENABLE_RTPPROXY)
     return 0;
 }
-
 
 

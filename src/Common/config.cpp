@@ -275,6 +275,28 @@ onceToken token([](){
 },nullptr);
 } //namespace Hls
 
+
+////////////Rtp代理相关配置///////////
+namespace RtpProxy {
+#define RTP_PROXY_FIELD "rtp_proxy."
+//rtp调试数据保存目录
+const string kDumpDir = RTP_PROXY_FIELD"dumpDir";
+//是否限制udp数据来源ip和端口
+const string kCheckSource = RTP_PROXY_FIELD"checkSource";
+//rtp类型，支持MP2P/MP4V-ES
+const string kRtpType = RTP_PROXY_FIELD"rtp_type";
+//rtp接收超时时间
+const string kTimeoutSec = RTP_PROXY_FIELD"timeoutSec";
+
+onceToken token([](){
+	mINI::Instance()[kDumpDir] = "";
+	mINI::Instance()[kCheckSource] = 1;
+	mINI::Instance()[kRtpType] = "MP2P";
+	mINI::Instance()[kTimeoutSec] = 15;
+},nullptr);
+} //namespace RtpProxy
+
+
 namespace Client {
 const string kNetAdapter = "net_adapter";
 const string kRtpType = "rtp_type";
