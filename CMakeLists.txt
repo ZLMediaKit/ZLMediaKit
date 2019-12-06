@@ -147,8 +147,9 @@ if(ENABLE_MP4RECORD)
 	endif(WIN32)
 endif()
 
+#添加rtp库用于rtp转ps/ts
 if(ENABLE_RTPPROXY)
-    #添加rtp库用于rtp转ps/ts
+    message(STATUS "ENABLE_RTPPROXY defined")
     aux_source_directory(${MediaServer_Root}/librtp/include src_rtp)
     aux_source_directory(${MediaServer_Root}/librtp/source src_rtp)
     aux_source_directory(${MediaServer_Root}/librtp/payload src_rtp)
