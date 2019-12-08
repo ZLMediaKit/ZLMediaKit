@@ -66,28 +66,38 @@ private:
 		if(_pRtspMediaSrc){
 			_pRtspMediaSrc->onGetSDP(sdp);
 		}
-        _parser.reset(new RtspDemuxer(sdp));
+        _delegate.reset(new RtspDemuxer(sdp));
         return true;
 	}
 	void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {
         if(_pRtspMediaSrc){
             _pRtspMediaSrc->onWrite(rtp,true);
         }
-        _parser->inputRtp(rtp);
+        _delegate->inputRtp(rtp);
 
-        //由于我们重载isInited方法强制认为一旦获取sdp那么就初始化Track成功，
-        //所以我们不需要在后续检验是否初始化成功
-        //checkInited(0);
+        if(_maxAnalysisMS && _delegate->isInited(_maxAnalysisMS)){
+            PlayerImp<RtspPlayer,RtspDemuxer>::onPlayResult(SockException(Err_success,"play rtsp success"));
+            _maxAnalysisMS = 0;
+        }
     }
 
-    bool isInited(int analysisMs) override{
-	    //rtsp是通过sdp来完成track的初始化的，所以我们强制返回true，
-        //认为已经初始化完毕，这样可以提高rtsp打开速度
-        return true;
+    //在RtspPlayer中触发onPlayResult事件只是代表收到play回复了，
+    //并不代表所有track初始化成功了(这跟rtmp播放器不一样)
+    //如果sdp里面信息不完整，只能尝试延后从rtp中恢复关键信息并初始化track
+    //如果超过这个时间还未获取成功，那么会强制触发onPlayResult事件(虽然此时有些track还未初始化成功)
+    void onPlayResult(const SockException &ex) override {
+        //isInited判断条件：无超时
+        if(ex || _delegate->isInited(0)){
+            //已经初始化成功，说明sdp里面有完善的信息
+            PlayerImp<RtspPlayer,RtspDemuxer>::onPlayResult(ex);
+        }else{
+            //还没初始化成功，说明sdp里面信息不完善，还有一些track未初始化成功
+            _maxAnalysisMS = (*this)[Client::kMaxAnalysisMS];
+        }
     }
 private:
 	RtspMediaSource::Ptr _pRtspMediaSrc;
-    
+    int _maxAnalysisMS = 0;
 };
 
 } /* namespace mediakit */

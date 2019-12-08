@@ -107,7 +107,7 @@ void MP4Recorder::asyncClose() {
 	auto info = _info;
 	WorkThreadPool::Instance().getExecutor()->async([muxer,strFileTmp,strFile,info]() {
 		//获取文件录制时间，放在关闭mp4之前是为了忽略关闭mp4执行时间
-		const_cast<Mp4Info&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
+		const_cast<MP4Info&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
 		//关闭mp4非常耗时，所以要放在后台线程执行
 		const_cast<MP4MuxerFile::Ptr &>(muxer).reset();
 		//临时文件名改成正式文件名，防止mp4未完成时被访问
@@ -115,7 +115,7 @@ void MP4Recorder::asyncClose() {
 		//获取文件大小
 		struct stat fileData;
 		stat(strFile.data(), &fileData);
-		const_cast<Mp4Info&>(info).ui64FileSize = fileData.st_size;
+		const_cast<MP4Info&>(info).ui64FileSize = fileData.st_size;
 		/////record 业务逻辑//////
 		NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4,info);
 	});
@@ -128,7 +128,7 @@ void MP4Recorder::closeFile() {
 	}
 }
 
-void MP4Recorder::onTrackFrame(const Frame::Ptr &frame) {
+void MP4Recorder::inputFrame(const Frame::Ptr &frame) {
 	GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
 	if(!_muxer || ((_createFileTicker.elapsedTime() > recordSec * 1000) &&
 			      (!_haveVideo || (_haveVideo && frame->keyFrame()))) ){
@@ -145,7 +145,7 @@ void MP4Recorder::onTrackFrame(const Frame::Ptr &frame) {
 	}
 }
 
-void MP4Recorder::onTrackReady(const Track::Ptr & track){
+void MP4Recorder::addTrack(const Track::Ptr & track){
 	//保存所有的track，为创建MP4MuxerFile做准备
 	_tracks.emplace_back(track);
 	if(track->getTrackType() == TrackVideo){
@@ -158,7 +158,6 @@ void MP4Recorder::resetTracks() {
 	_tracks.clear();
 	_haveVideo = false;
 	_createFileTicker.resetTime();
-	MediaSink::resetTracks();
 }
 
 } /* namespace mediakit */

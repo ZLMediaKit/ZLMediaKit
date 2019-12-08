@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,44 +24,35 @@
  * SOFTWARE.
  */
 
-#ifndef TSMUXER_H
-#define TSMUXER_H
+#if defined(ENABLE_RTPPROXY)
+#include "RtpSplitter.h"
+namespace mediakit{
 
-#include <unordered_map>
-#include "Extension/Frame.h"
-#include "Extension/Track.h"
-#include "Util/File.h"
-#include "Common/MediaSink.h"
-#include "Stamp.h"
+RtpSplitter::RtpSplitter() {
+}
 
-using namespace toolkit;
+RtpSplitter::~RtpSplitter() {
+}
 
-namespace mediakit {
+const char *RtpSplitter::onSearchPacketTail(const char *data, int len) {
+    //这是rtp包
+    if(len < 2){
+        //数据不够
+        return nullptr;
+    }
+    uint16_t length = (((uint8_t *)data)[0] << 8) | ((uint8_t *)data)[1];
+    if(len < length + 2){
+        //数据不够
+        return nullptr;
+    }
+    //返回rtp包末尾
+    return data + 2 + length;
+}
 
-class TsMuxer : public MediaSink {
-public:
-    TsMuxer();
-    virtual ~TsMuxer();
-    void addTrack(const Track::Ptr &track) override;
-    void resetTracks() override;
-    void inputFrame(const Frame::Ptr &frame) override;
-protected:
-    virtual void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) = 0;
-private:
-    void init();
-    void uninit();
-private:
-    void  *_context = nullptr;
-    char *_tsbuf[188];
-    uint32_t _timestamp = 0;
-
-    struct track_info{
-        int track_id = -1;
-        Stamp stamp;
-    };
-    unordered_map<int,track_info> _codec_to_trackid;
-    List<Frame::Ptr> _frameCached;
-};
+int64_t RtpSplitter::onRecvHeader(const char *data, uint64_t len) {
+    onRtpPacket(data,len);
+    return 0;
+}
 
 }//namespace mediakit
-#endif //TSMUXER_H
+#endif//defined(ENABLE_RTPPROXY)

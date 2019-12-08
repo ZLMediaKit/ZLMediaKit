@@ -46,6 +46,7 @@
 #include "WebApi.h"
 #include "WebHook.h"
 #include "Thread/WorkThreadPool.h"
+#include "Rtp/RtpSelector.h"
 
 #if !defined(_WIN32)
 #include "FFmpegSource.h"
@@ -395,25 +396,21 @@ void installWebApi() {
     API_REGIST(api,getMediaList,{
         CHECK_SECRET();
         //获取所有MediaSource列表
-        MediaSource::for_each_media([&](const string &schema,
-                                        const string &vhost,
-                                        const string &app,
-                                        const string &stream,
-                                        const MediaSource::Ptr &media){
-            if(!allArgs["schema"].empty() && allArgs["schema"] != schema){
+        MediaSource::for_each_media([&](const MediaSource::Ptr &media){
+            if(!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()){
                 return;
             }
-            if(!allArgs["vhost"].empty() && allArgs["vhost"] != vhost){
+            if(!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()){
                 return;
             }
-            if(!allArgs["app"].empty() && allArgs["app"] != app){
+            if(!allArgs["app"].empty() && allArgs["app"] != media->getApp()){
                 return;
             }
             Value item;
-            item["schema"] = schema;
-            item["vhost"] = vhost;
-            item["app"] = app;
-            item["stream"] = stream;
+            item["schema"] = media->getSchema();
+            item["vhost"] = media->getVhost();
+            item["app"] = media->getApp();
+            item["stream"] = media->getId();
             val["data"].append(item);
         });
     });
@@ -453,21 +450,17 @@ void installWebApi() {
         int count_hit = 0;
         int count_closed = 0;
         list<MediaSource::Ptr> media_list;
-        MediaSource::for_each_media([&](const string &schema,
-                                        const string &vhost,
-                                        const string &app,
-                                        const string &stream,
-                                        const MediaSource::Ptr &media){
-            if(!allArgs["schema"].empty() && allArgs["schema"] != schema){
+        MediaSource::for_each_media([&](const MediaSource::Ptr &media){
+            if(!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()){
                 return;
             }
-            if(!allArgs["vhost"].empty() && allArgs["vhost"] != vhost){
+            if(!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()){
                 return;
             }
-            if(!allArgs["app"].empty() && allArgs["app"] != app){
+            if(!allArgs["app"].empty() && allArgs["app"] != media->getApp()){
                 return;
             }
-            if(!allArgs["stream"].empty() && allArgs["stream"] != stream){
+            if(!allArgs["stream"].empty() && allArgs["stream"] != media->getId()){
                 return;
             }
             ++count_hit;
@@ -700,6 +693,56 @@ void installWebApi() {
         invoker.responseFile(headerIn,StrCaseMap(),exePath());
     });
 
+#if defined(ENABLE_RTPPROXY)
+    API_REGIST(api,getSsrcInfo,{
+        CHECK_SECRET();
+        CHECK_ARGS("ssrc");
+        auto process = RtpSelector::Instance().getProcess(allArgs["ssrc"],false);
+        if(!process){
+            val["exist"] = false;
+            return;
+        }
+        val["exist"] = true;
+        val["peer_ip"] = process->get_peer_ip();
+        val["peer_port"] = process->get_peer_port();
+    });
+#endif//ENABLE_RTPPROXY
+
+    // 开始录制hls或MP4
+    API_REGIST(api,startRecord,{
+        CHECK_SECRET();
+        CHECK_ARGS("type","vhost","app","stream","wait_for_record","continue_record");
+        int result = Recorder::startRecord((Recorder::type)allArgs["type"].as<int>(),
+                                           allArgs["vhost"],
+                                           allArgs["app"],
+                                           allArgs["stream"],
+                                           allArgs["wait_for_record"],
+                                           allArgs["continue_record"]);
+        val["result"] = result;
+    });
+
+    // 停止录制hls或MP4
+    API_REGIST(api,stopRecord,{
+        CHECK_SECRET();
+        CHECK_ARGS("type","vhost","app","stream");
+        int result = Recorder::stopRecord((Recorder::type)allArgs["type"].as<int>(),
+                                          allArgs["vhost"],
+                                          allArgs["app"],
+                                          allArgs["stream"]);
+        val["result"] = result;
+    });
+
+    // 获取hls或MP4录制状态
+    API_REGIST(api,getRecordStatus,{
+        CHECK_SECRET();
+        CHECK_ARGS("type","vhost","app","stream");
+        auto status = Recorder::getRecordStatus((Recorder::type)allArgs["type"].as<int>(),
+                                                allArgs["vhost"],
+                                                allArgs["app"],
+                                                allArgs["stream"]);
+        val["status"] = (int)status;
+    });
+
     ////////////以下是注册的Hook API////////////
     API_REGIST(hook,on_publish,{
         //开始推流事件
@@ -837,6 +880,12 @@ void installWebApi() {
         val["path"] = "";
         //该http客户端用户被授予10分钟的访问权限，该权限仅限访问当前目录
         val["second"] = 10 * 60;
+    });
+
+
+    API_REGIST(hook,on_server_started,{
+        //服务器重启报告
+        throw SuccessException();
     });
 
 

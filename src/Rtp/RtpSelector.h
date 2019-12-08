@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,48 +24,35 @@
  * SOFTWARE.
  */
 
-#include <algorithm>
-#include "MediaPlayer.h"
-#include "Rtmp/RtmpPlayerImp.h"
-#include "Rtsp/RtspPlayerImp.h"
-using namespace toolkit;
+#ifndef ZLMEDIAKIT_RTPSELECTOR_H
+#define ZLMEDIAKIT_RTPSELECTOR_H
 
-namespace mediakit {
+#if defined(ENABLE_RTPPROXY)
+#include <stdint.h>
+#include <mutex>
+#include <unordered_map>
+#include "RtpProcess.h"
 
-MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
-    _poller = poller;
-    if(!_poller){
-        _poller = EventPollerPool::Instance().getPoller();
-    }
-}
+namespace mediakit{
 
-MediaPlayer::~MediaPlayer() {
-}
-void MediaPlayer::play(const string &strUrl) {
-	_delegate = PlayerBase::createPlayer(_poller,strUrl);
-	_delegate->setOnShutdown(_shutdownCB);
-	_delegate->setOnPlayResult(_playResultCB);
-    _delegate->setOnResume(_resumeCB);
-    _delegate->setMediaSouce(_pMediaSrc);
-	_delegate->mINI::operator=(*this);
-	_delegate->play(strUrl);
-}
+class RtpSelector : public std::enable_shared_from_this<RtpSelector>{
+public:
+    RtpSelector();
+    ~RtpSelector();
 
-EventPoller::Ptr MediaPlayer::getPoller(){
-	return _poller;
-}
+    static RtpSelector &Instance();
+    bool inputRtp(const char *data,int data_len,const struct sockaddr *addr);
+    static uint32_t getSSRC(const char *data,int data_len);
+    RtpProcess::Ptr getProcess(uint32_t ssrc,bool makeNew);
+    void delProcess(uint32_t ssrc,const RtpProcess *ptr);
+private:
+    void onManager();
+private:
+    unordered_map<uint32_t,RtpProcess::Ptr> _map_rtp_process;
+    recursive_mutex _mtx_map;
+    Ticker _last_rtp_time;
+};
 
-void MediaPlayer::pause(bool bPause) {
-	if (_delegate) {
-		_delegate->pause(bPause);
-	}
-}
-
-void MediaPlayer::teardown() {
-	if (_delegate) {
-		_delegate->teardown();
-	}
-}
-
-
-} /* namespace mediakit */
+}//namespace mediakit
+#endif//defined(ENABLE_RTPPROXY)
+#endif //ZLMEDIAKIT_RTPSELECTOR_H

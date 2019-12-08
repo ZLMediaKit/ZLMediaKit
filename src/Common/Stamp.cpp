@@ -60,8 +60,11 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
     //pts和dts的差值
     int pts_dts_diff = pts - dts;
 
-    //相对时间戳
-    _relativeStamp += deltaStamp(modifyStamp ? _ticker.elapsedTime() : dts);
+    if(_last_dts != dts){
+        //时间戳发生变更
+        _relativeStamp += deltaStamp(modifyStamp ? _ticker.elapsedTime() : dts);
+        _last_dts = dts;
+    }
     dts_out = _relativeStamp;
 
     //////////////以下是播放时间戳的计算//////////////////

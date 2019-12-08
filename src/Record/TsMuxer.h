@@ -24,56 +24,44 @@
  * SOFTWARE.
  */
 
-#ifndef SRC_MEDIAFILE_MEDIARECORDER_H_
-#define SRC_MEDIAFILE_MEDIARECORDER_H_
+#ifndef TSMUXER_H
+#define TSMUXER_H
 
-#include <memory>
-#include "Player/PlayerBase.h"
+#include <unordered_map>
+#include "Extension/Frame.h"
+#include "Extension/Track.h"
+#include "Util/File.h"
 #include "Common/MediaSink.h"
-#include "MP4Recorder.h"
-#include "HlsRecorder.h"
+#include "Common/Stamp.h"
 
 using namespace toolkit;
 
 namespace mediakit {
 
-class MediaRecorder : public MediaSink{
+class TsMuxer : public MediaSinkInterface {
 public:
-	typedef std::shared_ptr<MediaRecorder> Ptr;
-	MediaRecorder(const string &strVhost,
-                  const string &strApp,
-                  const string &strId,
-                  bool enableHls = true,
-                  bool enableMp4 = false);
-	virtual ~MediaRecorder();
-
-	/**
-     * 输入frame
-     * @param frame
-     */
-	void inputFrame(const Frame::Ptr &frame) override;
-
-	/**
-     * 添加track，内部会调用Track的clone方法
-     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
-     * @param track
-     */
-	void addTrack(const Track::Ptr &track) override;
-
-	/**
-	 * 重置track
-	 */
-	void resetTracks() override;
+    TsMuxer();
+    virtual ~TsMuxer();
+    void addTrack(const Track::Ptr &track) override;
+    void resetTracks() override;
+    void inputFrame(const Frame::Ptr &frame) override;
+protected:
+    virtual void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) = 0;
 private:
-#if defined(ENABLE_HLS)
-	std::shared_ptr<HlsRecorder> _hlsRecorder;
-#endif //defined(ENABLE_HLS)
+    void init();
+    void uninit();
+private:
+    void  *_context = nullptr;
+    char *_tsbuf[188];
+    uint32_t _timestamp = 0;
 
-#if defined(ENABLE_MP4RECORD)
-	std::shared_ptr<MP4Recorder> _mp4Recorder;
-#endif //defined(ENABLE_MP4RECORD)
+    struct track_info{
+        int track_id = -1;
+        Stamp stamp;
+    };
+    unordered_map<int,track_info> _codec_to_trackid;
+    List<Frame::Ptr> _frameCached;
 };
 
-} /* namespace mediakit */
-
-#endif /* SRC_MEDIAFILE_MEDIARECORDER_H_ */
+}//namespace mediakit
+#endif //TSMUXER_H

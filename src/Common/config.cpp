@@ -55,6 +55,7 @@ bool loadIniConfig(const char *ini_path){
 ////////////广播名称///////////
 namespace Broadcast {
 const string kBroadcastMediaChanged = "kBroadcastMediaChanged";
+const string kBroadcastMediaResetTracks = "kBroadcastMediaResetTracks";
 const string kBroadcastRecordMP4 = "kBroadcastRecordMP4";
 const string kBroadcastHttpRequest = "kBroadcastHttpRequest";
 const string kBroadcastHttpAccess = "kBroadcastHttpAccess";
@@ -107,8 +108,6 @@ const string kSendBufSize = HTTP_FIELD"sendBufSize";
 const string kMaxReqSize = HTTP_FIELD"maxReqSize";
 //http keep-alive秒数
 const string kKeepAliveSecond = HTTP_FIELD"keepAliveSecond";
-//http keep-alive最大请求数
-const string kMaxReqCount = HTTP_FIELD"maxReqCount";
 //http 字符编码
 const string kCharSet = HTTP_FIELD"charSet";
 //http 服务器根目录
@@ -120,8 +119,6 @@ onceToken token([](){
 	mINI::Instance()[kSendBufSize] = 64 * 1024;
 	mINI::Instance()[kMaxReqSize] = 4*1024;
 	mINI::Instance()[kKeepAliveSecond] = 15;
-	mINI::Instance()[kMaxReqCount] = 100;
-
 #if defined(_WIN32)
 	mINI::Instance()[kCharSet] = "gb2312";
 #else
@@ -277,6 +274,28 @@ onceToken token([](){
 	mINI::Instance()[kFilePath] = "./httpRoot";
 },nullptr);
 } //namespace Hls
+
+
+////////////Rtp代理相关配置///////////
+namespace RtpProxy {
+#define RTP_PROXY_FIELD "rtp_proxy."
+//rtp调试数据保存目录
+const string kDumpDir = RTP_PROXY_FIELD"dumpDir";
+//是否限制udp数据来源ip和端口
+const string kCheckSource = RTP_PROXY_FIELD"checkSource";
+//rtp类型，支持MP2P/MP4V-ES
+const string kRtpType = RTP_PROXY_FIELD"rtp_type";
+//rtp接收超时时间
+const string kTimeoutSec = RTP_PROXY_FIELD"timeoutSec";
+
+onceToken token([](){
+	mINI::Instance()[kDumpDir] = "";
+	mINI::Instance()[kCheckSource] = 1;
+	mINI::Instance()[kRtpType] = "MP2P";
+	mINI::Instance()[kTimeoutSec] = 15;
+},nullptr);
+} //namespace RtpProxy
+
 
 namespace Client {
 const string kNetAdapter = "net_adapter";

@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,25 +24,30 @@
  * SOFTWARE.
  */
 
-#ifndef HLSRECORDER_H
-#define HLSRECORDER_H
+#ifndef ZLMEDIAKIT_RTPSPLITTER_H
+#define ZLMEDIAKIT_RTPSPLITTER_H
 
-#include "HlsMakerImp.h"
-#include "TsMuxer.h"
+#if defined(ENABLE_RTPPROXY)
+#include "Http/HttpRequestSplitter.h"
 
-namespace mediakit {
+namespace mediakit{
 
-class HlsRecorder : public HlsMakerImp, public TsMuxer {
+class RtpSplitter : public HttpRequestSplitter{
 public:
-    template<typename ...ArgsType>
-    HlsRecorder(ArgsType &&...args):HlsMakerImp(std::forward<ArgsType>(args)...){}
-    ~HlsRecorder(){};
+    RtpSplitter();
+    virtual ~RtpSplitter();
 protected:
-    void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) override {
-        inputData((char *)packet,bytes,timestamp);
-    };
+    /**
+     * 收到rtp包回调
+     * @param data
+     * @param len
+     */
+    virtual void onRtpPacket(const char *data,uint64_t len) = 0;
+protected:
+    const char *onSearchPacketTail(const char *data,int len) override ;
+    int64_t onRecvHeader(const char *data,uint64_t len) override;
 };
 
 }//namespace mediakit
-
-#endif //HLSRECORDER_H
+#endif//defined(ENABLE_RTPPROXY)
+#endif //ZLMEDIAKIT_RTPSPLITTER_H

@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,48 +24,32 @@
  * SOFTWARE.
  */
 
-#include <algorithm>
-#include "MediaPlayer.h"
-#include "Rtmp/RtmpPlayerImp.h"
-#include "Rtsp/RtspPlayerImp.h"
-using namespace toolkit;
+#ifndef ZLMEDIAKIT_PSDECODER_H
+#define ZLMEDIAKIT_PSDECODER_H
 
-namespace mediakit {
+#if defined(ENABLE_RTPPROXY)
+#include <stdint.h>
 
-MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
-    _poller = poller;
-    if(!_poller){
-        _poller = EventPollerPool::Instance().getPoller();
-    }
-}
+namespace mediakit{
 
-MediaPlayer::~MediaPlayer() {
-}
-void MediaPlayer::play(const string &strUrl) {
-	_delegate = PlayerBase::createPlayer(_poller,strUrl);
-	_delegate->setOnShutdown(_shutdownCB);
-	_delegate->setOnPlayResult(_playResultCB);
-    _delegate->setOnResume(_resumeCB);
-    _delegate->setMediaSouce(_pMediaSrc);
-	_delegate->mINI::operator=(*this);
-	_delegate->play(strUrl);
-}
+class PSDecoder {
+public:
+    PSDecoder();
+    virtual ~PSDecoder();
+    int decodePS(const uint8_t *data, int bytes);
+protected:
+    virtual void onPSDecode(int stream,
+                            int codecid,
+                            int flags,
+                            int64_t pts,
+                            int64_t dts,
+                            const void *data,
+                            int bytes) = 0;
+private:
+    void *_ps_demuxer = nullptr;
+};
 
-EventPoller::Ptr MediaPlayer::getPoller(){
-	return _poller;
-}
+}//namespace mediakit
 
-void MediaPlayer::pause(bool bPause) {
-	if (_delegate) {
-		_delegate->pause(bPause);
-	}
-}
-
-void MediaPlayer::teardown() {
-	if (_delegate) {
-		_delegate->teardown();
-	}
-}
-
-
-} /* namespace mediakit */
+#endif//defined(ENABLE_RTPPROXY)
+#endif //ZLMEDIAKIT_PSDECODER_H

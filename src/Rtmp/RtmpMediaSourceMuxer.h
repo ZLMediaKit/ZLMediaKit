@@ -48,12 +48,18 @@ public:
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _mediaSouce->setListener(listener);
     }
+
     int readerCount() const{
         return _mediaSouce->readerCount();
     }
-private:
-    void onAllTrackReady() override {
+
+    void onAllTrackReady(){
         _mediaSouce->onGetMetaData(getMetadata());
+    }
+
+    // 设置TrackSource
+    void setTrackSource(const std::weak_ptr<TrackSource> &track_src){
+        _mediaSouce->setTrackSource(track_src);
     }
 private:
     RtmpMediaSource::Ptr _mediaSouce;

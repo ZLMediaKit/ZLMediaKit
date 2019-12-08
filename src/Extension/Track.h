@@ -131,6 +131,35 @@ public:
 };
 
 
+class TrackSource{
+public:
+    TrackSource(){}
+    virtual ~TrackSource(){}
+
+    /**
+	 * 获取全部的Track
+	 * @param trackReady 是否获取全部已经准备好的Track
+	 * @return
+	 */
+    virtual vector<Track::Ptr> getTracks(bool trackReady = true) const = 0;
+
+    /**
+     * 获取特定Track
+     * @param type track类型
+     * @param trackReady 是否获取全部已经准备好的Track
+     * @return
+     */
+    Track::Ptr getTrack(TrackType type , bool trackReady = true) const {
+        auto tracks = getTracks(trackReady);
+        for(auto &track : tracks){
+            if(track->getTrackType() == type){
+                return track;
+            }
+        }
+        return nullptr;
+    }
+};
+
 }//namespace mediakit
 
 #endif //ZLMEDIAKIT_TRACK_H

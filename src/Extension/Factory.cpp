@@ -63,13 +63,15 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         //a=fmtp:96 packetization-mode=1;profile-level-id=42C01F;sprop-parameter-sets=Z0LAH9oBQBboQAAAAwBAAAAPI8YMqA==,aM48gA==
         auto map = Parser::parseArgs(FindField(track->_fmtp.data()," ", nullptr),";","=");
         auto sps_pps = map["sprop-parameter-sets"];
-        if(sps_pps.empty()){
-            return std::make_shared<H264Track>();
-        }
         string base64_SPS = FindField(sps_pps.data(), NULL, ",");
         string base64_PPS = FindField(sps_pps.data(), ",", NULL);
         auto sps = decodeBase64(base64_SPS);
         auto pps = decodeBase64(base64_PPS);
+        if(sps.empty() || pps.empty()){
+            //如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps
+            return std::make_shared<H264Track>();
+        }
+
         return std::make_shared<H264Track>(sps,pps,0,0);
     }
 
@@ -79,6 +81,10 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         auto vps = decodeBase64(map["sprop-vps"]);
         auto sps = decodeBase64(map["sprop-sps"]);
         auto pps = decodeBase64(map["sprop-pps"]);
+        if(sps.empty() || pps.empty()){
+            //如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps
+            return std::make_shared<H265Track>();
+        }
         return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
     }
 

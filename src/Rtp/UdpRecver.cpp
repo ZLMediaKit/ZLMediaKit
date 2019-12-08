@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,48 +24,33 @@
  * SOFTWARE.
  */
 
-#include <algorithm>
-#include "MediaPlayer.h"
-#include "Rtmp/RtmpPlayerImp.h"
-#include "Rtsp/RtspPlayerImp.h"
-using namespace toolkit;
+#if defined(ENABLE_RTPPROXY)
+#include "UdpRecver.h"
+#include "RtpSelector.h"
+namespace mediakit{
 
-namespace mediakit {
-
-MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
-    _poller = poller;
-    if(!_poller){
-        _poller = EventPollerPool::Instance().getPoller();
-    }
+UdpRecver::UdpRecver() {
 }
 
-MediaPlayer::~MediaPlayer() {
-}
-void MediaPlayer::play(const string &strUrl) {
-	_delegate = PlayerBase::createPlayer(_poller,strUrl);
-	_delegate->setOnShutdown(_shutdownCB);
-	_delegate->setOnPlayResult(_playResultCB);
-    _delegate->setOnResume(_resumeCB);
-    _delegate->setMediaSouce(_pMediaSrc);
-	_delegate->mINI::operator=(*this);
-	_delegate->play(strUrl);
+UdpRecver::~UdpRecver() {
 }
 
-EventPoller::Ptr MediaPlayer::getPoller(){
-	return _poller;
+bool UdpRecver::initSock(uint16_t local_port,const char *local_ip) {
+    _sock.reset(new Socket(nullptr, false));
+    onceToken token(nullptr,[&](){
+        SockUtil::setRecvBuf(_sock->rawFD(),4 * 1024 * 1024);
+    });
+
+    auto &ref = RtpSelector::Instance();
+    _sock->setOnRead([&ref](const Buffer::Ptr &buf, struct sockaddr *addr, int ){
+        ref.inputRtp(buf->data(),buf->size(),addr);
+    });
+    return _sock->bindUdpSock(local_port,local_ip);
 }
 
-void MediaPlayer::pause(bool bPause) {
-	if (_delegate) {
-		_delegate->pause(bPause);
-	}
+EventPoller::Ptr UdpRecver::getPoller() {
+    return _sock->getPoller();
 }
 
-void MediaPlayer::teardown() {
-	if (_delegate) {
-		_delegate->teardown();
-	}
-}
-
-
-} /* namespace mediakit */
+}//namespace mediakit
+#endif//defined(ENABLE_RTPPROXY)

@@ -71,9 +71,13 @@ namespace Broadcast {
 extern const string kBroadcastMediaChanged;
 #define BroadcastMediaChangedArgs const bool &bRegist, const string &schema,const string &vhost,const string &app,const string &stream,MediaSource &sender
 
+//MediaSource重置Track事件
+extern const string kBroadcastMediaResetTracks;
+#define BroadcastMediaResetTracksArgs const string &schema,const string &vhost,const string &app,const string &stream,MediaSource &sender
+
 //录制mp4文件成功后广播
 extern const string kBroadcastRecordMP4;
-#define BroadcastRecordMP4Args const Mp4Info &info
+#define BroadcastRecordMP4Args const MP4Info &info
 
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;
@@ -155,11 +159,6 @@ extern const string kBroadcastReloadConfig;
         static type arg = mINI::Instance()[key]; \
         LISTEN_RELOAD_KEY(arg,key);
 
-
-//兼容老代码
-#define GET_CONFIG_AND_REGISTER GET_CONFIG
-#define BroadcastRtmpPublishArgs BroadcastMediaPublishArgs
-#define kBroadcastRtmpPublish kBroadcastMediaPublish
 } //namespace Broadcast
 
 ////////////通用配置///////////
@@ -199,8 +198,6 @@ extern const string kSendBufSize;
 extern const string kMaxReqSize;
 //http keep-alive秒数
 extern const string kKeepAliveSecond;
-//http keep-alive最大请求数
-extern const string kMaxReqCount;
 //http 字符编码
 extern const string kCharSet;
 //http 服务器根目录
@@ -299,6 +296,17 @@ extern const string kFileBufSize;
 extern const string kFilePath;
 } //namespace Hls
 
+////////////Rtp代理相关配置///////////
+namespace RtpProxy {
+//rtp调试数据保存目录,置空则不生成
+extern const string kDumpDir;
+//是否限制udp数据来源ip和端口
+extern const string kCheckSource;
+//rtp类型，支持MP2P/MP4V-ES
+extern const string kRtpType;
+//rtp接收超时时间
+extern const string kTimeoutSec;
+} //namespace RtpProxy
 
 /**
  * rtsp/rtmp播放器、推流器相关设置名，

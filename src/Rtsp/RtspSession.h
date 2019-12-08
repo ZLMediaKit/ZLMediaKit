@@ -41,6 +41,7 @@
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
 #include "RtspToRtmpMediaSource.h"
+#include "Common/Stamp.h"
 
 using namespace std;
 using namespace toolkit;

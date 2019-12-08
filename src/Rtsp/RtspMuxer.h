@@ -35,7 +35,7 @@ namespace mediakit{
 /**
 * rtsp生成器
 */
-class RtspMuxer : public MediaSink{
+class RtspMuxer : public MediaSinkInterface{
 public:
     typedef std::shared_ptr<RtspMuxer> Ptr;
 
@@ -57,16 +57,26 @@ public:
      * @return
      */
     RtpRingInterface::RingType::Ptr getRtpRing() const;
-protected:
+
     /**
-    * 某track已经准备好，其ready()状态返回true，
-    * 此时代表可以获取其例如sps pps等相关信息了
-    * @param track
-    */
-    void onTrackReady(const Track::Ptr & track) override ;
+     * 添加ready状态的track
+     */
+    void addTrack(const Track::Ptr & track) override;
+
+    /**
+     * 写入帧数据
+     * @param frame 帧
+     */
+    void inputFrame(const Frame::Ptr &frame) override;
+
+    /**
+     * 重置所有track
+     */
+    void resetTracks() override ;
 private:
-    RtpRingInterface::RingType::Ptr _rtpRing;
     string _sdp;
+    RtpCodec::Ptr _encoder[TrackMax];
+    RtpRingInterface::RingType::Ptr _rtpRing;
 };
 
 

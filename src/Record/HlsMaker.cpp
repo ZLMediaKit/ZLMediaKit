@@ -110,8 +110,8 @@ void HlsMaker::addNewSegment(uint32_t) {
         return;
     }
 
-    //关闭并保存上一个切片
-    flushLastSegment();
+    //关闭并保存上一个切片，如果_seg_number==0,那么是点播。
+    flushLastSegment(_seg_number == 0);
     //新增切片
     _last_file_name = onOpenSegment(_file_index++);
     //重置切片计时器

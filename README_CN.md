@@ -2,6 +2,13 @@
 # 一个基于C++11的高性能运营级流媒体服务框架
  [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
+
+## 国内用户请使用gitee镜像下载
+```
+git clone --depth 1 https://gitee.com/xiahcu/ZLMediaKit
+cd ZLMediaKit
+git submodule update --init
+```
 ## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
 - 打包多种流媒体协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV），支持协议间的互相转换，提供一站式的服务。
@@ -352,9 +359,16 @@ git submodule update --init
 ## 联系方式
  - 邮箱：<771730766@qq.com>(本项目相关或流媒体相关问题请走issue流程，否则恕不邮件答复)
  - QQ群：542509000
+ 
+## 怎么提问？
+如果要对项目有相关疑问，建议您这么做：
+ - 1、仔细看下readme、wiki，如果有必要可以查看下issue.
+ - 2、如果您的问题还没解决，可以提issue.
+ - 3、有些问题，如果不具备参考性的，无需在issue提的，可以在qq群提.
+ - 4、QQ私聊一般不接受无偿技术咨询和支持(谈谈人生理想还是可以的😂)，毕竟精力有限，谢谢理解.
 
 ## 捐赠
-如果本项目能切实帮助您减少重复开发的工作量，您可以在自愿的基础上支持下作者，谢谢！
+欢迎捐赠以便更好的推动项目的发展，谢谢您的支持!
 
 [支付宝](https://raw.githubusercontent.com/xiongziliang/other/master/IMG_3919.JPG)
 

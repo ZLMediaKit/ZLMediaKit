@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,48 +24,34 @@
  * SOFTWARE.
  */
 
-#include <algorithm>
-#include "MediaPlayer.h"
-#include "Rtmp/RtmpPlayerImp.h"
-#include "Rtsp/RtspPlayerImp.h"
+#ifndef ZLMEDIAKIT_RTPSESSION_H
+#define ZLMEDIAKIT_RTPSESSION_H
+
+#if defined(ENABLE_RTPPROXY)
+#include "Network/TcpSession.h"
+#include "RtpSplitter.h"
+#include "RtpProcess.h"
+#include "Util/TimeTicker.h"
 using namespace toolkit;
 
-namespace mediakit {
+namespace mediakit{
 
-MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
-    _poller = poller;
-    if(!_poller){
-        _poller = EventPollerPool::Instance().getPoller();
-    }
-}
+class RtpSession : public TcpSession , public RtpSplitter{
+public:
+    RtpSession(const Socket::Ptr &sock);
+    ~RtpSession() override;
+    void onRecv(const Buffer::Ptr &) override;
+    void onError(const SockException &err) override;
+    void onManager() override;
+private:
+    void onRtpPacket(const char *data,uint64_t len) override;
+private:
+    uint32_t _ssrc = 0;
+    RtpProcess::Ptr _process;
+    Ticker _ticker;
+    struct sockaddr addr;
+};
 
-MediaPlayer::~MediaPlayer() {
-}
-void MediaPlayer::play(const string &strUrl) {
-	_delegate = PlayerBase::createPlayer(_poller,strUrl);
-	_delegate->setOnShutdown(_shutdownCB);
-	_delegate->setOnPlayResult(_playResultCB);
-    _delegate->setOnResume(_resumeCB);
-    _delegate->setMediaSouce(_pMediaSrc);
-	_delegate->mINI::operator=(*this);
-	_delegate->play(strUrl);
-}
-
-EventPoller::Ptr MediaPlayer::getPoller(){
-	return _poller;
-}
-
-void MediaPlayer::pause(bool bPause) {
-	if (_delegate) {
-		_delegate->pause(bPause);
-	}
-}
-
-void MediaPlayer::teardown() {
-	if (_delegate) {
-		_delegate->teardown();
-	}
-}
-
-
-} /* namespace mediakit */
+}//namespace mediakit
+#endif//defined(ENABLE_RTPPROXY)
+#endif //ZLMEDIAKIT_RTPSESSION_H

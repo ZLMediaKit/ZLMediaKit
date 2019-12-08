@@ -38,11 +38,11 @@
 #include "Common/config.h"
 #include "Rtsp/UDPServer.h"
 #include "Rtsp/RtspSession.h"
+#include "Rtp/RtpSession.h"
 #include "Rtmp/RtmpSession.h"
 #include "Shell/ShellSession.h"
-#include "Rtmp/FlvMuxer.h"
-#include "Player/PlayerProxy.h"
 #include "Http/WebSocketSession.h"
+#include "Rtp/UdpRecver.h"
 #include "WebApi.h"
 #include "WebHook.h"
 
@@ -58,36 +58,31 @@ namespace mediakit {
 ////////////HTTP配置///////////
 namespace Http {
 #define HTTP_FIELD "http."
-#define HTTP_PORT 80
 const string kPort = HTTP_FIELD"port";
-#define HTTPS_PORT 443
 const string kSSLPort = HTTP_FIELD"sslport";
 onceToken token1([](){
-    mINI::Instance()[kPort] = HTTP_PORT;
-    mINI::Instance()[kSSLPort] = HTTPS_PORT;
+    mINI::Instance()[kPort] = 80;
+    mINI::Instance()[kSSLPort] = 443;
 },nullptr);
 }//namespace Http
 
 ////////////SHELL配置///////////
 namespace Shell {
 #define SHELL_FIELD "shell."
-#define SHELL_PORT 9000
 const string kPort = SHELL_FIELD"port";
 onceToken token1([](){
-    mINI::Instance()[kPort] = SHELL_PORT;
+    mINI::Instance()[kPort] = 9000;
 },nullptr);
 } //namespace Shell
 
 ////////////RTSP服务器配置///////////
 namespace Rtsp {
 #define RTSP_FIELD "rtsp."
-#define RTSP_PORT 554
-#define RTSPS_PORT 322
 const string kPort = RTSP_FIELD"port";
 const string kSSLPort = RTSP_FIELD"sslport";
 onceToken token1([](){
-    mINI::Instance()[kPort] = RTSP_PORT;
-    mINI::Instance()[kSSLPort] = RTSPS_PORT;
+    mINI::Instance()[kPort] = 554;
+    mINI::Instance()[kSSLPort] = 332;
 },nullptr);
 
 } //namespace Rtsp
@@ -95,12 +90,21 @@ onceToken token1([](){
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
 #define RTMP_FIELD "rtmp."
-#define RTMP_PORT 1935
 const string kPort = RTMP_FIELD"port";
 onceToken token1([](){
-    mINI::Instance()[kPort] = RTMP_PORT;
+    mINI::Instance()[kPort] = 1935;
 },nullptr);
 } //namespace RTMP
+
+////////////Rtp代理相关配置///////////
+namespace RtpProxy {
+#define RTP_PROXY_FIELD "rtp_proxy."
+const string kPort = RTP_PROXY_FIELD"port";
+onceToken token1([](){
+    mINI::Instance()[kPort] = 10000;
+},nullptr);
+} //namespace RtpProxy
+
 }  // namespace mediakit
 
 
@@ -235,6 +239,7 @@ int start_main(int argc,char *argv[]) {
 #endif//
 
 #if !defined(_WIN32)
+        pid_t pid = getpid();
         if (bDaemon) {
             //启动守护进程
             System::startDaemon();
@@ -268,6 +273,7 @@ int start_main(int argc,char *argv[]) {
         uint16_t rtmpPort = mINI::Instance()[Rtmp::kPort];
         uint16_t httpPort = mINI::Instance()[Http::kPort];
         uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
+        uint16_t rtp_proxy = mINI::Instance()[RtpProxy::kPort];
 
         //设置poller线程数,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
         EventPollerPool::setPoolSize(threads);
@@ -278,21 +284,48 @@ int start_main(int argc,char *argv[]) {
         TcpServer::Ptr rtspSrv(new TcpServer());
         TcpServer::Ptr rtmpSrv(new TcpServer());
         TcpServer::Ptr httpSrv(new TcpServer());
-
-        shellSrv->start<ShellSession>(shellPort);
-        rtspSrv->start<RtspSession>(rtspPort);//默认554
-        rtmpSrv->start<RtmpSession>(rtmpPort);//默认1935
-        //http服务器
-        httpSrv->start<HttpSession>(httpPort);//默认80
-
         //如果支持ssl，还可以开启https服务器
         TcpServer::Ptr httpsSrv(new TcpServer());
-        //https服务器,支持websocket
-        httpsSrv->start<HttpsSession>(httpsPort);//默认443
-
         //支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
         TcpServer::Ptr rtspSSLSrv(new TcpServer());
-        rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);//默认322
+
+#if defined(ENABLE_RTPPROXY)
+        UdpRecver recver;
+        TcpServer::Ptr tcpRtpServer(new TcpServer());
+#endif//defined(ENABLE_RTPPROXY)
+
+        try {
+            //rtsp服务器，端口默认554
+            rtspSrv->start<RtspSession>(rtspPort);//默认554
+            //rtsps服务器，端口默认322
+            rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort);
+            //rtmp服务器，端口默认1935
+            rtmpSrv->start<RtmpSession>(rtmpPort);
+            //http服务器，端口默认80
+            httpSrv->start<HttpSession>(httpPort);
+            //https服务器，端口默认443
+            httpsSrv->start<HttpsSession>(httpsPort);
+            //telnet远程调试服务器
+            shellSrv->start<ShellSession>(shellPort);
+
+#if defined(ENABLE_RTPPROXY)
+            //创建rtp udp服务器
+            recver.initSock(rtp_proxy);
+            //创建rtp tcp服务器
+            tcpRtpServer->start<RtpSession>(rtp_proxy);
+#endif//defined(ENABLE_RTPPROXY)
+
+        }catch (std::exception &ex){
+            WarnL << "端口占用或无权限:" << ex.what() << endl;
+            ErrorL << "程序启动失败，请修改配置文件中端口号后重试!" << endl;
+            sleep(1);
+#if !defined(_WIN32)
+            if(pid != getpid()){
+                kill(pid,SIGINT);
+            }
+#endif
+            return -1;
+        }
 
         installWebApi();
         InfoL << "已启动http api 接口";
@@ -321,6 +354,7 @@ int start_main(int argc,char *argv[]) {
     }
     unInstallWebApi();
     unInstallWebHook();
+    Recorder::stopAll();
     //休眠1秒再退出，防止资源释放顺序错误
     InfoL << "程序退出中,请等待...";
     sleep(1);

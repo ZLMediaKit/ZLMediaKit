@@ -67,8 +67,12 @@ void MP4MuxerBase::init(int flags) {
 }
 
 ///////////////////////////////////
+void MP4Muxer::resetTracks() {
+    _codec_to_trackid.clear();
+    _started = false;
+}
 
-void MP4Muxer::onTrackFrame(const Frame::Ptr &frame) {
+void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
     if(frame->configFrame()){
         //忽略配置帧
         return;
@@ -117,7 +121,7 @@ void MP4Muxer::onTrackFrame(const Frame::Ptr &frame) {
                        with_nalu_size);
 }
 
-void MP4Muxer::onTrackReady(const Track::Ptr &track) {
+void MP4Muxer::addTrack(const Track::Ptr &track) {
     switch (track->getCodecId()) {
         case CodecAAC: {
             auto aac_track = dynamic_pointer_cast<AACTrack>(track);
@@ -210,7 +214,12 @@ void MP4Muxer::onTrackReady(const Track::Ptr &track) {
     }
 }
 
-MP4MuxerFile::MP4MuxerFile(const char *file) {
+MP4MuxerFile::MP4MuxerFile(const char *file){
+    _file_name = file;
+    openFile(file);
+}
+
+void MP4MuxerFile::openFile(const char *file) {
     //创建文件
     auto fp = File::createfile_file(file,"wb+");
     if(!fp){
@@ -237,7 +246,6 @@ MP4MuxerFile::MP4MuxerFile(const char *file) {
     });
 
     GET_CONFIG(bool, mp4FastStart, Record::kFastStart);
-
     init(mp4FastStart ? MOV_FLAG_FASTSTART : 0);
 }
 
@@ -262,6 +270,12 @@ int MP4MuxerFile::onSeek(uint64_t offset) {
 
 uint64_t MP4MuxerFile::onTell() {
     return ftell64(_file.get());
+}
+
+
+void MP4MuxerFile::resetTracks(){
+    MP4Muxer::resetTracks();
+    openFile(_file_name.data());
 }
 
 }//namespace mediakit

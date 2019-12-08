@@ -319,7 +319,7 @@ void RtmpSession::doPlayResponse(const string &err,const std::function<void(bool
 
     //鉴权成功，查找媒体源并回复
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf,cb](const MediaSource::Ptr &src){
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(),[weakSelf,cb](const MediaSource::Ptr &src){
         auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
         auto strongSelf = weakSelf.lock();
         if(strongSelf){
@@ -493,7 +493,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 		GET_CONFIG(bool,rtmp_modify_stamp,Rtmp::kModifyStamp);
         if(rtmp_modify_stamp){
             int64_t dts_out;
-            _stamp[chunkData.typeId % 2].revise(0, 0, dts_out, dts_out, true);
+            _stamp[chunkData.typeId % 2].revise(chunkData.timeStamp, chunkData.timeStamp, dts_out, dts_out, true);
             chunkData.timeStamp = dts_out;
         }
         if(!_metadata_got && !chunkData.isCfgFrame()){

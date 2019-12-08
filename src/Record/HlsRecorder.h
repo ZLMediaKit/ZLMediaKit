@@ -24,51 +24,33 @@
  * SOFTWARE.
  */
 
-#ifndef ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
-#define ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
+#ifndef HLSRECORDER_H
+#define HLSRECORDER_H
 
-#include "RtspMuxer.h"
-#include "Rtsp/RtspMediaSource.h"
+#include "HlsMakerImp.h"
+#include "TsMuxer.h"
 
 namespace mediakit {
 
-class RtspMediaSourceMuxer : public RtspMuxer {
+class HlsRecorder : public TsMuxer {
 public:
-    typedef std::shared_ptr<RtspMediaSourceMuxer> Ptr;
-
-    RtspMediaSourceMuxer(const string &vhost,
-                         const string &strApp,
-                         const string &strId,
-                         const TitleSdp::Ptr &title = nullptr) : RtspMuxer(title){
-        _mediaSouce = std::make_shared<RtspMediaSource>(vhost,strApp,strId);
-        getRtpRing()->setDelegate(_mediaSouce);
+    HlsRecorder(const string &m3u8_file, const string &params){
+        GET_CONFIG(uint32_t,hlsNum,Hls::kSegmentNum);
+        GET_CONFIG(uint32_t,hlsBufSize,Hls::kFileBufSize);
+        GET_CONFIG(uint32_t,hlsDuration,Hls::kSegmentDuration);
+        _hls = new HlsMakerImp(m3u8_file,params,hlsBufSize,hlsDuration,hlsNum);
     }
-    virtual ~RtspMediaSourceMuxer(){}
-
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-        _mediaSouce->setListener(listener);
+    ~HlsRecorder(){
+        delete _hls;
     }
-
-    int readerCount() const{
-        return _mediaSouce->readerCount();
-    }
-
-    void setTimeStamp(uint32_t stamp){
-        _mediaSouce->setTimeStamp(stamp);
-    }
-
-    void onAllTrackReady(){
-        _mediaSouce->onGetSDP(getSdp());
-    }
-
-    // 设置TrackSource
-    void setTrackSource(const std::weak_ptr<TrackSource> &track_src){
-        _mediaSouce->setTrackSource(track_src);
-    }
+protected:
+    void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) override {
+        _hls->inputData((char *)packet,bytes,timestamp);
+    };
 private:
-    RtspMediaSource::Ptr _mediaSouce;
+    HlsMakerImp *_hls;
 };
 
-
 }//namespace mediakit
-#endif //ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
+
+#endif //HLSRECORDER_H

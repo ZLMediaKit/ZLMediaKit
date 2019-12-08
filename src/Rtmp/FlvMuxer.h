@@ -30,7 +30,7 @@
 #include "Rtmp/Rtmp.h"
 #include "Rtmp/RtmpMediaSource.h"
 #include "Network/Socket.h"
-#include "MediaFile/Stamp.h"
+#include "Common/Stamp.h"
 using namespace toolkit;
 
 namespace mediakit {

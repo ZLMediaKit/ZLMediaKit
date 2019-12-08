@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,48 +24,34 @@
  * SOFTWARE.
  */
 
-#include <algorithm>
-#include "MediaPlayer.h"
-#include "Rtmp/RtmpPlayerImp.h"
-#include "Rtsp/RtspPlayerImp.h"
-using namespace toolkit;
+#if defined(ENABLE_RTPPROXY)
+#include "PSDecoder.h"
+#include "mpeg-ps.h"
 
-namespace mediakit {
+namespace mediakit{
 
-MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
-    _poller = poller;
-    if(!_poller){
-        _poller = EventPollerPool::Instance().getPoller();
-    }
+PSDecoder::PSDecoder() {
+    _ps_demuxer = ps_demuxer_create([](void* param,
+                                       int stream,
+                                       int codecid,
+                                       int flags,
+                                       int64_t pts,
+                                       int64_t dts,
+                                       const void* data,
+                                       size_t bytes){
+        PSDecoder *thiz = (PSDecoder *)param;
+        thiz->onPSDecode(stream, codecid, flags, pts, dts, data, bytes);
+    },this);
 }
 
-MediaPlayer::~MediaPlayer() {
-}
-void MediaPlayer::play(const string &strUrl) {
-	_delegate = PlayerBase::createPlayer(_poller,strUrl);
-	_delegate->setOnShutdown(_shutdownCB);
-	_delegate->setOnPlayResult(_playResultCB);
-    _delegate->setOnResume(_resumeCB);
-    _delegate->setMediaSouce(_pMediaSrc);
-	_delegate->mINI::operator=(*this);
-	_delegate->play(strUrl);
+PSDecoder::~PSDecoder() {
+    ps_demuxer_destroy((struct ps_demuxer_t*)_ps_demuxer);
 }
 
-EventPoller::Ptr MediaPlayer::getPoller(){
-	return _poller;
+int PSDecoder::decodePS(const uint8_t *data, int bytes) {
+    return ps_demuxer_input((struct ps_demuxer_t*)_ps_demuxer,data,bytes);
 }
 
-void MediaPlayer::pause(bool bPause) {
-	if (_delegate) {
-		_delegate->pause(bPause);
-	}
-}
+}//namespace mediakit
 
-void MediaPlayer::teardown() {
-	if (_delegate) {
-		_delegate->teardown();
-	}
-}
-
-
-} /* namespace mediakit */
+#endif//#if defined(ENABLE_RTPPROXY)

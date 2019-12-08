@@ -371,7 +371,7 @@ void RtspSession::handleReq_Describe(const Parser &parser) {
 void RtspSession::onAuthSuccess() {
     TraceP(this);
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    MediaSource::findAsync(_mediaInfo,weakSelf.lock(), true,[weakSelf](const MediaSource::Ptr &src){
+    MediaSource::findAsync(_mediaInfo,weakSelf.lock(),[weakSelf](const MediaSource::Ptr &src){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
@@ -940,7 +940,7 @@ void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
     GET_CONFIG(bool,modify_stamp,Rtsp::kModifyStamp);
     if(modify_stamp){
         int64_t dts_out;
-        _stamp[trackidx].revise(0, 0, dts_out, dts_out, true);
+        _stamp[trackidx].revise(rtppt->timeStamp, rtppt->timeStamp, dts_out, dts_out, true);
         rtppt->timeStamp = dts_out;
     }
 	_pushSrc->onWrite(rtppt, false);
@@ -1105,6 +1105,9 @@ inline int RtspSession::getTrackIndexByTrackType(TrackType type) {
 			return i;
 		}
 	}
+    if(_aTrackInfo.size() == 1){
+        return 0;
+    }
 	return -1;
 }
 inline int RtspSession::getTrackIndexByControlSuffix(const string &controlSuffix) {
@@ -1125,6 +1128,9 @@ inline int RtspSession::getTrackIndexByInterleaved(int interleaved){
 			return i;
 		}
 	}
+    if(_aTrackInfo.size() == 1){
+        return 0;
+    }
 	return -1;
 }
 

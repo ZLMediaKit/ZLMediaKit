@@ -29,9 +29,9 @@
 
 #include "Rtsp/RtspMediaSourceMuxer.h"
 #include "Rtmp/RtmpMediaSourceMuxer.h"
-#include "MediaFile/MediaRecorder.h"
+#include "Record/Recorder.h"
 
-class MultiMediaSourceMuxer : public FrameWriterInterface{
+class MultiMediaSourceMuxer : public MediaSink , public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
 
@@ -42,58 +42,35 @@ public:
                           bool bEanbleRtsp = true,
                           bool bEanbleRtmp = true,
                           bool bEanbleHls = true,
-                          bool bEnableMp4 = false
-                          ){
+                          bool bEnableMp4 = false){
         if (bEanbleRtmp) {
             _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleMeta>(dur_sec));
         }
         if (bEanbleRtsp) {
             _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleSdp>(dur_sec));
         }
-        _record = std::make_shared<MediaRecorder>(vhost,strApp,strId,bEanbleHls,bEnableMp4);
+
+        if(bEanbleHls){
+            Recorder::startRecord(Recorder::type_hls,vhost, strApp, strId, true, false);
+        }
+
+        if(bEnableMp4){
+            Recorder::startRecord(Recorder::type_mp4,vhost, strApp, strId, true, false);
+        }
+
     }
     virtual ~MultiMediaSourceMuxer(){}
-
-
-    /**
-     * 添加音视频媒体
-     * @param track 媒体描述
-     */
-    void addTrack(const Track::Ptr & track) {
-        if(_rtmp){
-            _rtmp->addTrack(track);
-        }
-        if(_rtsp){
-            _rtsp->addTrack(track);
-        }
-        _record->addTrack(track);
-    }
 
     /**
      * 重置音视频媒体
      */
-    void resetTracks() {
+    void resetTracks() override{
         if(_rtmp){
             _rtmp->resetTracks();
         }
         if(_rtsp){
             _rtsp->resetTracks();
         }
-        _record->resetTracks();
-    }
-
-    /**
-     * 写入帧数据然后打包rtmp
-     * @param frame 帧数据
-     */
-    void inputFrame(const Frame::Ptr &frame) override {
-        if(_rtmp) {
-            _rtmp->inputFrame(frame);
-        }
-        if(_rtsp) {
-            _rtsp->inputFrame(frame);
-        }
-        _record->inputFrame(frame);
     }
 
     /**
@@ -122,10 +99,50 @@ public:
             _rtsp->setTimeStamp(stamp);
         }
     }
+
+protected:
+    /**
+     * 添加音视频媒体
+     * @param track 媒体描述
+     */
+    void onTrackReady(const Track::Ptr & track) override {
+        if(_rtmp){
+            _rtmp->addTrack(track);
+        }
+        if(_rtsp){
+            _rtsp->addTrack(track);
+        }
+    }
+
+    /**
+     * 写入帧数据然后打包rtmp
+     * @param frame 帧数据
+     */
+    void onTrackFrame(const Frame::Ptr &frame) override {
+        if(_rtmp) {
+            _rtmp->inputFrame(frame);
+        }
+        if(_rtsp) {
+            _rtsp->inputFrame(frame);
+        }
+    }
+
+    /**
+     * 所有Track都准备就绪，触发媒体注册事件
+     */
+    void onAllTrackReady() override{
+        if(_rtmp) {
+            _rtmp->setTrackSource(shared_from_this());
+            _rtmp->onAllTrackReady();
+        }
+        if(_rtsp) {
+            _rtsp->setTrackSource(shared_from_this());
+            _rtsp->onAllTrackReady();
+        }
+    }
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
-    MediaRecorder::Ptr _record;
 };
 
 

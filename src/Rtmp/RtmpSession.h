@@ -37,7 +37,7 @@
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Network/TcpSession.h"
-#include "MediaFile/Stamp.h"
+#include "Common/Stamp.h"
 
 using namespace toolkit;
 

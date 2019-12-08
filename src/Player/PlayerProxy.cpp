@@ -138,13 +138,13 @@ void PlayerProxy::play(const string &strUrlTmp) {
 	MediaPlayer::play(strUrlTmp);
 
 	MediaSource::Ptr mediaSource;
-	if(dynamic_pointer_cast<RtspPlayer>(_parser)){
+	if(dynamic_pointer_cast<RtspPlayer>(_delegate)){
 		//rtsp拉流
 		GET_CONFIG(bool,directProxy,Rtsp::kDirectProxy);
 		if(directProxy && _bEnableRtsp){
 			mediaSource = std::make_shared<RtspMediaSource>(_strVhost,_strApp,_strSrc);
 		}
-	} else if(dynamic_pointer_cast<RtmpPlayer>(_parser)){
+	} else if(dynamic_pointer_cast<RtmpPlayer>(_delegate)){
 		//rtmp拉流
 		if(_bEnableRtmp){
 			mediaSource = std::make_shared<RtmpMediaSource>(_strVhost,_strApp,_strSrc);

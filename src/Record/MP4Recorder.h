@@ -42,7 +42,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class Mp4Info {
+class MP4Info {
 public:
 	time_t ui64StartedTime; //GMT标准时间，单位秒
 	time_t ui64TimeLen;//录像长度，单位秒
@@ -55,32 +55,31 @@ public:
 	string strStreamId;//流ID
 	string strVhost;//vhost
 };
-class MP4Recorder : public MediaSink{
+
+class MP4Recorder : public MediaSinkInterface{
 public:
 	typedef std::shared_ptr<MP4Recorder> Ptr;
+
 	MP4Recorder(const string &strPath,
-			 const string &strVhost ,
-			 const string &strApp,
-			 const string &strStreamId);
+				const string &strVhost,
+				const string &strApp,
+				const string &strStreamId);
 	virtual ~MP4Recorder();
 
 	/**
 	 * 重置所有Track
 	 */
 	void resetTracks() override;
-private:
+
 	/**
-     * 某Track输出frame，在onAllTrackReady触发后才会调用此方法
-     * @param frame
+     * 输入frame
      */
-	void onTrackFrame(const Frame::Ptr &frame) override ;
+	void inputFrame(const Frame::Ptr &frame) override;
 
     /**
-     * 某track已经准备好，其ready()状态返回true，
-     * 此时代表可以获取其例如sps pps等相关信息了
-     * @param track
+     * 添加ready状态的track
      */
-    void onTrackReady(const Track::Ptr & track) override;
+    void addTrack(const Track::Ptr & track) override;
 private:
     void createFile();
     void closeFile();
@@ -90,7 +89,7 @@ private:
 	string _strFile;
 	string _strFileTmp;
 	Ticker _createFileTicker;
-	Mp4Info _info;
+	MP4Info _info;
 	bool _haveVideo = false;
 	MP4MuxerFile::Ptr _muxer;
 	list<Track::Ptr> _tracks;
