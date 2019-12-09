@@ -84,7 +84,12 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     _track->_type = TrackVideo;
     _track->_ssrc = _ssrc;
     DebugL << printSSRC(_ssrc);
-    _muxer = std::make_shared<MultiMediaSourceMuxer>(DEFAULT_VHOST,"rtp",printSSRC(_ssrc));
+
+    GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
+    GET_CONFIG(bool,toHls,General::kPublishToHls);
+    GET_CONFIG(bool,toMP4,General::kPublishToMP4);
+
+    _muxer = std::make_shared<MultiMediaSourceMuxer>(DEFAULT_VHOST,"rtp",printSSRC(_ssrc),0,toRtxp,toRtxp,toHls,toMP4);
 
     GET_CONFIG(string,dump_dir,RtpProxy::kDumpDir);
     {
