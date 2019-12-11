@@ -257,6 +257,9 @@ private:
      * 解析2个字节的aac配置
      */
     void onReady(){
+        if(_cfg.size() < 2){
+            return;
+        }
         AACFrame aacFrame;
         makeAdtsHeader(_cfg,aacFrame);
         getAACInfo(aacFrame,_sampleRate,_channel);
