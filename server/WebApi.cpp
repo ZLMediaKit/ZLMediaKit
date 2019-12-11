@@ -697,7 +697,11 @@ void installWebApi() {
     API_REGIST(api,getSsrcInfo,{
         CHECK_SECRET();
         CHECK_ARGS("ssrc");
-        auto process = RtpSelector::Instance().getProcess(allArgs["ssrc"],false);
+        uint32_t ssrc = 0;
+        stringstream ss(allArgs["ssrc"]);
+        ss >> std::hex >> ssrc;
+
+        auto process = RtpSelector::Instance().getProcess(ssrc,false);
         if(!process){
             val["exist"] = false;
             return;
