@@ -49,9 +49,9 @@ protected:
     void onWriteSegment(const char *data, int len) override;
     void onWriteHls(const char *data, int len) override;
 private:
-    string fullPath(int index);
     std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
 private:
+    map<int /*index*/,string/*file_path*/> _segment_file_paths;
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
     string _path_prefix;

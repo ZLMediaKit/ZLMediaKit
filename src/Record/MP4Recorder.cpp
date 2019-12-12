@@ -29,29 +29,11 @@
 #include <sys/stat.h>
 #include "Common/config.h"
 #include "MP4Recorder.h"
-#include "Util/util.h"
-#include "Util/NoticeCenter.h"
 #include "Thread/WorkThreadPool.h"
 
 using namespace toolkit;
 
 namespace mediakit {
-
-string timeStr(const char *fmt) {
-	std::tm tm_snapshot;
-	auto time = ::time(NULL);
-#if defined(_WIN32)
-	localtime_s(&tm_snapshot, &time); // thread-safe
-#else
-	localtime_r(&time, &tm_snapshot); // POSIX
-#endif
-	const size_t size = 1024;
-	char buffer[size];
-	auto success = std::strftime(buffer, size, fmt, &tm_snapshot);
-	if (0 == success)
-		return string(fmt);
-	return buffer;
-}
 
 MP4Recorder::MP4Recorder(const string& strPath,
 				   const string &strVhost,
@@ -70,8 +52,8 @@ MP4Recorder::~MP4Recorder() {
 
 void MP4Recorder::createFile() {
 	closeFile();
-	auto strDate = timeStr("%Y-%m-%d");
-	auto strTime = timeStr("%H-%M-%S");
+	auto strDate = getTimeStr("%Y-%m-%d");
+	auto strTime = getTimeStr("%H-%M-%S");
 	auto strFileTmp = _strPath + strDate + "/." + strTime + ".mp4";
 	auto strFile =	_strPath + strDate + "/" + strTime + ".mp4";
 
