@@ -180,6 +180,9 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
         if(str == "mp4a"){
             return CodecAAC;
         }
+        if(str == "hev1" || str == "hvc1"){
+            return CodecH265;
+        }
         WarnL << "暂不支持该Amf:" << str;
         return CodecInvalid;
     }
@@ -187,12 +190,9 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
     if (val.type() != AMF_NULL){
         auto type_id = val.as_integer();
         switch (type_id){
-            case 7:{
-                return CodecH264;
-            }
-            case 10:{
-                return CodecAAC;
-            }
+            case 7: return CodecH264;
+            case 10: return CodecAAC;
+            case 12: return CodecH265;
             default:
                 WarnL << "暂不支持该Amf:" << type_id;
                 return CodecInvalid;
@@ -219,14 +219,10 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
 
 AMFValue Factory::getAmfByCodecId(CodecId codecId) {
     switch (codecId){
-        case CodecAAC:{
-            return AMFValue("mp4a");
-        }
-        case CodecH264:{
-            return AMFValue("avc1");
-        }
-        default:
-            return AMFValue(AMF_NULL);
+        case CodecAAC: return AMFValue("mp4a");
+        case CodecH264: return AMFValue("avc1");
+        case CodecH265: return AMFValue(12);
+        default: return AMFValue(AMF_NULL);
     }
 }
 
