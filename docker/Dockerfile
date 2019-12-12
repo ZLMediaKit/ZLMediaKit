@@ -1,18 +1,22 @@
 FROM ubuntu:16.04
-#shell,rtmp,rtsp,rtsps,http,https
+#shell,rtmp,rtsp,rtsps,http,https,rtp
 EXPOSE 9000/tcp
 EXPOSE 1935/tcp
 EXPOSE 554/tcp
 EXPOSE 322/tcp
 EXPOSE 80/tcp
 EXPOSE 443/tcp
+EXPOSE 10000/udp
+EXPOSE 10000/tcp
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
          build-essential \
          cmake \
          git \
          curl \
+         vim \
          ca-certificates \
+         tzdata \
          libssl-dev \
          libmysqlclient-dev \
          libx264-dev \
