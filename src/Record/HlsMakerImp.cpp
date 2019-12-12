@@ -56,21 +56,31 @@ HlsMakerImp::~HlsMakerImp() {
 }
 
 string HlsMakerImp::onOpenSegment(int index) {
-    auto full_path = fullPath(index);
-    _file = makeFile(full_path, true);
+    string segment_name , segment_path;
+    {
+        auto strDate = getTimeStr("%Y-%m-%d");
+        auto strTime = getTimeStr("%H-%M-%S");
+        segment_name = StrPrinter << strDate + "/" + strTime << "_" << index << ".ts";
+        segment_path = _path_prefix + "/" +  segment_name;
+        _segment_file_paths.emplace(index,segment_path);
+    }
+    _file = makeFile(segment_path, true);
     if(!_file){
-        WarnL << "create file falied," << full_path << " " <<  get_uv_errmsg();
+        WarnL << "create file falied," << segment_path << " " <<  get_uv_errmsg();
     }
-    //DebugL << index << " " << full_path;
     if(_params.empty()){
-        return StrPrinter << index << ".ts";
+        return std::move(segment_name);
     }
-    return StrPrinter << index << ".ts" << "?" << _params;
+    return std::move(segment_name + "?" + _params);
 }
 
 void HlsMakerImp::onDelSegment(int index) {
-    //WarnL << index;
-    File::delete_file(fullPath(index).data());
+    auto it = _segment_file_paths.find(index);
+    if(it == _segment_file_paths.end()){
+        return;
+    }
+    File::delete_file(it->second.data());
+    _segment_file_paths.erase(it);
 }
 
 void HlsMakerImp::onWriteSegment(const char *data, int len) {
@@ -90,9 +100,6 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
     //DebugL << "\r\n"  << string(data,len);
 }
 
-string HlsMakerImp::fullPath(int index) {
-    return StrPrinter << _path_prefix << "/" << index << ".ts";
-}
 
 std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file,bool setbuf) {
     auto ret= shared_ptr<FILE>(File::createfile_file(file.data(), "wb"), [](FILE *fp) {
