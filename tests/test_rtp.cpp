@@ -105,6 +105,9 @@ int main(int argc,char *argv[]) {
     httpSrv->start<HttpSession>(80);//默认80
     //此处可以选择MP4V-ES或MP2P
     mINI::Instance()[RtpProxy::kRtpType] = "MP4V-ES";
+    //此处选择是否导出调试文件
+//    mINI::Instance()[RtpProxy::kDumpDir] = "/Users/xzl/Desktop/";
+
     loadFile(argv[1]);
 #else
     ErrorL << "please ENABLE_RTPPROXY and then test";
