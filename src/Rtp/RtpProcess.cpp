@@ -183,6 +183,9 @@ void RtpProcess::onPSDecode(int stream,
                        int64_t dts,
                        const void *data,
                        int bytes) {
+    pts /= 90;
+    dts /= 90;
+    _stamps[codecid].revise(dts,pts,dts,pts,false);
 
     switch (codecid) {
         case STREAM_VIDEO_H264: {
@@ -202,7 +205,7 @@ void RtpProcess::onPSDecode(int stream,
             if(_save_file_video){
                 fwrite((uint8_t *)data,bytes, 1, _save_file_video.get());
             }
-            auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, dts / 90, pts / 90,0);
+            auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, dts, pts,0);
             _merger->inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
                 _muxer->inputFrame(std::make_shared<H264FrameNoCacheAble>(buffer->data(), buffer->size(), dts, pts,4));
             });
@@ -224,7 +227,7 @@ void RtpProcess::onPSDecode(int stream,
             if(_save_file_video){
                 fwrite((uint8_t *)data,bytes, 1, _save_file_video.get());
             }
-            auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, dts / 90, pts / 90, 0);
+            auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, dts, pts, 0);
             _merger->inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
                 _muxer->inputFrame(std::make_shared<H265FrameNoCacheAble>(buffer->data(), buffer->size(), dts, pts, 4));
             });
@@ -244,7 +247,7 @@ void RtpProcess::onPSDecode(int stream,
                 WarnL << "audio track change to AAC from codecid:" << _codecid_audio;
                 return;
             }
-            _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts / 90, 7));
+            _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 7));
             break;
         }
         default:

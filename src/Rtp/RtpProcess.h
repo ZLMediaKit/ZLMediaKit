@@ -33,6 +33,7 @@
 #include "RtpDecoder.h"
 #include "PSDecoder.h"
 #include "Common/Device.h"
+#include "Common/Stamp.h"
 using namespace mediakit;
 
 namespace mediakit{
@@ -72,6 +73,7 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
     std::shared_ptr<FrameMerger> _merger;
     Ticker _last_rtp_time;
+    map<int,Stamp> _stamps;
 };
 
 }//namespace mediakit
