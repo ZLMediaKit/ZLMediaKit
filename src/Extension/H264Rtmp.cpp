@@ -144,44 +144,35 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         }
     }
 
-    switch (type){
-        case H264Frame::NAL_IDR:
-        case H264Frame::NAL_B_P:{
-            if(_lastPacket && _lastPacket->timeStamp != frame->stamp()) {
-                RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
-                _lastPacket = nullptr;
-            }
-
-            if(!_lastPacket) {
-                //I or P or B frame
-                int8_t flags = 7; //h.264
-                bool is_config = false;
-                flags |= ((frame->keyFrame() ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
-
-                _lastPacket = ResourcePoolHelper<RtmpPacket>::obtainObj();
-                _lastPacket->strBuf.clear();
-                _lastPacket->strBuf.push_back(flags);
-                _lastPacket->strBuf.push_back(!is_config);
-                auto cts = frame->pts() - frame->dts();
-                cts = htonl(cts);
-                _lastPacket->strBuf.append((char *)&cts + 1, 3);
-
-                _lastPacket->chunkId = CHUNK_VIDEO;
-                _lastPacket->streamId = STREAM_MEDIA;
-                _lastPacket->timeStamp = frame->stamp();
-                _lastPacket->typeId = MSG_VIDEO;
-
-            }
-            auto size = htonl(iLen);
-            _lastPacket->strBuf.append((char *) &size, 4);
-            _lastPacket->strBuf.append(pcData, iLen);
-            _lastPacket->bodySize = _lastPacket->strBuf.size();
-        }
-            break;
-
-        default:
-            break;
+    if(_lastPacket && _lastPacket->timeStamp != frame->stamp()) {
+        RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
+        _lastPacket = nullptr;
     }
+
+    if(!_lastPacket) {
+        //I or P or B frame
+        int8_t flags = 7; //h.264
+        bool is_config = false;
+        flags |= ((frame->keyFrame() ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
+
+        _lastPacket = ResourcePoolHelper<RtmpPacket>::obtainObj();
+        _lastPacket->strBuf.clear();
+        _lastPacket->strBuf.push_back(flags);
+        _lastPacket->strBuf.push_back(!is_config);
+        auto cts = frame->pts() - frame->dts();
+        cts = htonl(cts);
+        _lastPacket->strBuf.append((char *)&cts + 1, 3);
+
+        _lastPacket->chunkId = CHUNK_VIDEO;
+        _lastPacket->streamId = STREAM_MEDIA;
+        _lastPacket->timeStamp = frame->stamp();
+        _lastPacket->typeId = MSG_VIDEO;
+
+    }
+    auto size = htonl(iLen);
+    _lastPacket->strBuf.append((char *) &size, 4);
+    _lastPacket->strBuf.append(pcData, iLen);
+    _lastPacket->bodySize = _lastPacket->strBuf.size();
 }
 
 
