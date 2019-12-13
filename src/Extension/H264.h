@@ -49,7 +49,6 @@ public:
         NAL_SPS = 7,
         NAL_PPS = 8,
         NAL_IDR = 5,
-        NAL_B_P = 1
     } NalType;
 
     char *data() const override{
@@ -315,18 +314,15 @@ private:
                 //I
                 insertConfigFrame(frame);
                 VideoTrack::inputFrame(frame);
-                _last_frame_is_idr = true;
             }
                 break;
 
-            case H264Frame::NAL_B_P:{
-                //B or P
+            default:
                 VideoTrack::inputFrame(frame);
-                _last_frame_is_idr = false;
-            }
                 break;
         }
 
+        _last_frame_is_idr = type == H264Frame::NAL_IDR;
         if(_width == 0 && ready()){
             onReady();
         }
