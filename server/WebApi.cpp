@@ -411,6 +411,14 @@ void installWebApi() {
             item["vhost"] = media->getVhost();
             item["app"] = media->getApp();
             item["stream"] = media->getId();
+            item["readerCount"] = media->readerCount();
+            for(auto &track : media->getTracks()){
+                Value obj;
+                obj["codec_id"] = track->getCodecId();
+                obj["codec_type"] = track->getTrackType();
+                obj["ready"] = track->ready();
+                item["tracks"].append(obj);
+            }
             val["data"].append(item);
         });
     });
@@ -420,6 +428,26 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
         val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"],false));
+    });
+
+    //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
+    API_REGIST(api,getMediaInfo,{
+        CHECK_SECRET();
+        CHECK_ARGS("schema","vhost","app","stream");
+        auto src = MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"],false);
+        if(!src){
+            val["online"] = false;
+            return;
+        }
+        val["online"] = true;
+        val["readerCount"] = src->readerCount();
+        for(auto &track : src->getTracks()){
+            Value obj;
+            obj["codec_id"] = track->getCodecId();
+            obj["codec_type"] = track->getTrackType();
+            obj["ready"] = track->ready();
+            val["tracks"].append(obj);
+        }
     });
 
     //主动关断流，包括关断拉流、推流
