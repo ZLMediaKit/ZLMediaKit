@@ -33,6 +33,35 @@
 
 namespace mediakit{
 
+
+/**
+* 合并一些时间戳相同的frame
+*/
+class FrameMerger {
+public:
+    FrameMerger() = default;
+    virtual ~FrameMerger() = default;
+
+    void inputFrame(const Frame::Ptr &frame,const function<void(uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer)> &cb){
+        if (!_frameCached.empty() && _frameCached.back()->dts() != frame->dts()) {
+            Frame::Ptr back = _frameCached.back();
+            Buffer::Ptr merged_frame = back;
+            if(_frameCached.size() != 1){
+                string merged;
+                _frameCached.for_each([&](const Frame::Ptr &frame){
+                    merged.append(frame->data(),frame->size());
+                });
+                merged_frame = std::make_shared<BufferString>(std::move(merged));
+            }
+            cb(back->dts(),back->pts(),merged_frame);
+            _frameCached.clear();
+        }
+        _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
+    }
+private:
+    List<Frame::Ptr> _frameCached;
+};
+
 string printSSRC(uint32_t ui32Ssrc) {
     char tmp[9] = { 0 };
     ui32Ssrc = htonl(ui32Ssrc);
@@ -90,6 +119,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
             });
         }
     }
+    _merger = std::make_shared<FrameMerger>();
 }
 
 RtpProcess::~RtpProcess() {
@@ -101,7 +131,7 @@ RtpProcess::~RtpProcess() {
     }
 }
 
-bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *addr) {
+bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
     GET_CONFIG(bool,check_source,RtpProxy::kCheckSource);
     //检查源是否合法
     if(!_addr){
@@ -116,7 +146,11 @@ bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *
     }
 
     _last_rtp_time.resetTime();
-    return handleOneRtp(0,_track,(unsigned char *)data,data_len);
+    bool ret = handleOneRtp(0,_track,(unsigned char *)data,data_len);
+    if(dts_out){
+        *dts_out = _dts;
+    }
+    return ret;
 }
 
 void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
@@ -156,6 +190,7 @@ void RtpProcess::onPSDecode(int stream,
                        int bytes) {
     pts /= 90;
     dts /= 90;
+    _dts = dts;
     _stamps[codecid].revise(dts,pts,dts,pts,false);
 
     switch (codecid) {
@@ -176,8 +211,10 @@ void RtpProcess::onPSDecode(int stream,
             if(_save_file_video){
                 fwrite((uint8_t *)data,bytes, 1, _save_file_video.get());
             }
-            auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, dts, pts,4);
-            _muxer->inputFrame(frame);
+            auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, dts, pts,0);
+            _merger->inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
+                _muxer->inputFrame(std::make_shared<H264FrameNoCacheAble>(buffer->data(), buffer->size(), dts, pts,4));
+            });
             break;
         }
 
@@ -196,8 +233,10 @@ void RtpProcess::onPSDecode(int stream,
             if(_save_file_video){
                 fwrite((uint8_t *)data,bytes, 1, _save_file_video.get());
             }
-            auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, dts, pts, 4);
-            _muxer->inputFrame(frame);
+            auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, dts, pts, 0);
+            _merger->inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
+                _muxer->inputFrame(std::make_shared<H265FrameNoCacheAble>(buffer->data(), buffer->size(), dts, pts, 4));
+            });
             break;
         }
 

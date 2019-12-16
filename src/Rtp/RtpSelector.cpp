@@ -31,7 +31,7 @@ namespace mediakit{
 
 INSTANCE_IMP(RtpSelector);
 
-bool RtpSelector::inputRtp(const char *data, int data_len,const struct sockaddr *addr) {
+bool RtpSelector::inputRtp(const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
     if(_last_rtp_time.elapsedTime() > 3000){
         _last_rtp_time.resetTime();
         onManager();
@@ -43,7 +43,7 @@ bool RtpSelector::inputRtp(const char *data, int data_len,const struct sockaddr 
     }
     auto process = getProcess(ssrc, true);
     if(process){
-        return process->inputRtp(data,data_len, addr);
+        return process->inputRtp(data,data_len, addr,dts_out);
     }
     return false;
 }

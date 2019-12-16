@@ -41,7 +41,7 @@ public:
     ~RtpSelector();
 
     static RtpSelector &Instance();
-    bool inputRtp(const char *data,int data_len,const struct sockaddr *addr);
+    bool inputRtp(const char *data,int data_len,const struct sockaddr *addr ,uint32_t *dts_out = nullptr );
     static uint32_t getSSRC(const char *data,int data_len);
     RtpProcess::Ptr getProcess(uint32_t ssrc,bool makeNew);
     void delProcess(uint32_t ssrc,const RtpProcess *ptr);
