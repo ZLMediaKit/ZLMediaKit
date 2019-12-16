@@ -26,6 +26,8 @@
 
 #include "Stamp.h"
 
+#define MAX_DELTA_STAMP 300
+
 namespace mediakit {
 
 int64_t DeltaStamp::deltaStamp(int64_t stamp) {
@@ -39,7 +41,8 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp) {
     if(ret >= 0){
         //时间戳增量为正，返回之
         _last_stamp = stamp;
-        return ret;
+        //在直播情况下，时间戳增量不得大于MAX_DELTA_STAMP
+        return  ret < MAX_DELTA_STAMP ? ret : (_playback ? ret : 0);
     }
 
     //时间戳增量为负，说明时间戳回环了或回退了
@@ -72,8 +75,8 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
     dts_out = _relativeStamp;
 
     //////////////以下是播放时间戳的计算//////////////////
-    if(pts_dts_diff > 200 || pts_dts_diff < -200){
-        //如果差值大于200毫秒，则认为由于回环导致时间戳错乱了
+    if(pts_dts_diff > MAX_DELTA_STAMP || pts_dts_diff < -MAX_DELTA_STAMP){
+        //如果差值太大，则认为由于回环导致时间戳错乱了
         pts_dts_diff = 0;
     }
 
