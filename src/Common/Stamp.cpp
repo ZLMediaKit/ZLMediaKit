@@ -62,7 +62,11 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
 
     if(_last_dts != dts){
         //时间戳发生变更
-        _relativeStamp += deltaStamp(modifyStamp ? _ticker.elapsedTime() : dts);
+        if(modifyStamp){
+            _relativeStamp = _ticker.elapsedTime();
+        }else{
+            _relativeStamp += deltaStamp(dts);
+        }
         _last_dts = dts;
     }
     dts_out = _relativeStamp;
