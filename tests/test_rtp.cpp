@@ -71,19 +71,14 @@ static bool loadFile(const char *path){
         }
 
         uint32_t timeStamp;
-        memcpy(&timeStamp, rtp + 4, 4);
-        timeStamp = ntohl(timeStamp);
-        timeStamp /= 90;
-
+        RtpSelector::Instance().inputRtp(rtp,len, &addr,&timeStamp);
         if(timeStamp_last){
             auto diff = timeStamp - timeStamp_last;
             if(diff > 0){
                 usleep(diff * 1000);
             }
         }
-
         timeStamp_last = timeStamp;
-        RtpSelector::Instance().inputRtp(rtp,len, &addr);
     }
     fclose(fp);
     return true;

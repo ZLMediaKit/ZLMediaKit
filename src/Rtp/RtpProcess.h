@@ -39,13 +39,13 @@ using namespace mediakit;
 namespace mediakit{
 
 string printSSRC(uint32_t ui32Ssrc);
-
+class FrameMerger;
 class RtpProcess : public RtpReceiver , public RtpDecoder , public PSDecoder {
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     RtpProcess(uint32_t ssrc);
     ~RtpProcess();
-    bool inputRtp(const char *data,int data_len, const struct sockaddr *addr);
+    bool inputRtp(const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
     bool alive();
     string get_peer_ip();
     uint16_t get_peer_port();
@@ -70,8 +70,10 @@ private:
     int _codecid_video = 0;
     int _codecid_audio = 0;
     MultiMediaSourceMuxer::Ptr _muxer;
+    std::shared_ptr<FrameMerger> _merger;
     Ticker _last_rtp_time;
     map<int,Stamp> _stamps;
+    uint32_t _dts = 0;
 };
 
 }//namespace mediakit
