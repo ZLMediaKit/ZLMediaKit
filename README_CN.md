@@ -196,14 +196,14 @@ git submodule update --init
   cd ZLMediaKit
   ./build_for_ios.sh
   ```
-- 你也可以生成Xcode工程再编译：
+- 你也可以生成Xcode工程再编译,[了解更多](https://github.com/leetal/ios-cmake):
 
   ```
   cd ZLMediaKit
   mkdir -p build
   cd build
   # 生成Xcode工程，工程文件在build目录下
-  cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/iOS.cmake -DIOS_PLATFORM=SIMULATOR64 -G "Xcode"
+  cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake  -DPLATFORM=OS64COMBINED
   ```
   
 ## 编译(Android)
