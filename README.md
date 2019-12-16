@@ -184,21 +184,15 @@ git submodule update --init
 
   Same with Build on macOS
 
-- Guidance
   
-  ```
-  cd ZLMediaKit
-  ./build_for_ios.sh
-  ```
-  
-- You can also generate Xcode projects and recompile them:
+- You can generate Xcode projects and recompile them , [learn more](https://github.com/leetal/ios-cmake):
 
   ```
   cd ZLMediaKit
   mkdir -p build
   cd build
   # Generate Xcode project, project file is in build directory
-  cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/iOS.cmake -DIOS_PLATFORM=SIMULATOR64 -G "Xcode"
+  cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake  -DPLATFORM=OS64COMBINED
   ```
   
 
