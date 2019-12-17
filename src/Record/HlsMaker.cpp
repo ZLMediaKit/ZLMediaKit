@@ -134,4 +134,8 @@ void HlsMaker::flushLastSegment(bool eof){
     _last_file_name.clear();
 }
 
+bool HlsMaker::isLive() {
+    return _seg_number != 0;
+}
+
 }//namespace mediakit
