@@ -187,6 +187,9 @@ elseif(NOT ANDROID OR IOS)
     list(APPEND LINK_LIB_LIST pthread)
 endif ()
 
+#添加c库
+add_subdirectory(api)
+
 if (NOT IOS)
     #测试程序
     add_subdirectory(tests)
