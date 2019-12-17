@@ -161,6 +161,10 @@ endif()
 
 #收集源代码
 file(GLOB ToolKit_src_list ${ToolKit_Root}/*/*.cpp ${ToolKit_Root}/*/*.h ${ToolKit_Root}/*/*.c)
+if(IOS)
+    list(APPEND ToolKit_src_list ${ToolKit_Root}/Network/Socket_ios.mm)
+endif()
+
 file(GLOB MediaKit_src_list ${MediaKit_Root}/*/*.cpp ${MediaKit_Root}/*/*.h ${MediaKit_Root}/*/*.c)
 
 #去除win32的适配代码
@@ -183,8 +187,9 @@ elseif(NOT ANDROID OR IOS)
     list(APPEND LINK_LIB_LIST pthread)
 endif ()
 
-#测试程序
-add_subdirectory(tests)
-
-#主服务器
-add_subdirectory(server)
+if (NOT IOS)
+    #测试程序
+    add_subdirectory(tests)
+    #主服务器
+    add_subdirectory(server)
+endif ()
