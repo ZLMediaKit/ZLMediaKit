@@ -248,6 +248,9 @@ void PlayerProxy::onPlaySuccess() {
 		}
 	}
 	_mediaMuxer->setListener(shared_from_this());
+	if(_pMediaSrc){
+		_pMediaSrc->setTrackSource(_mediaMuxer);
+	}
 
 	auto videoTrack = getTrack(TrackVideo,false);
 	if(videoTrack){
