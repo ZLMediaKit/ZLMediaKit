@@ -248,9 +248,6 @@ void PlayerProxy::onPlaySuccess() {
 		}
 	}
 	_mediaMuxer->setListener(shared_from_this());
-	if(_pMediaSrc){
-		_pMediaSrc->setTrackSource(_mediaMuxer);
-	}
 
 	auto videoTrack = getTrack(TrackVideo,false);
 	if(videoTrack){
@@ -279,6 +276,10 @@ void PlayerProxy::onPlaySuccess() {
 		//MuteAudioMaker生成静音音频然后写入_mediaMuxer；
 		audioMaker->addDelegate(_mediaMuxer);
 	}
+
+    if(_pMediaSrc){
+        _pMediaSrc->setTrackSource(_mediaMuxer);
+    }
 }
 
 
