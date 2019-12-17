@@ -87,6 +87,11 @@ protected:
      * @param eof
      */
     void flushLastSegment(bool eof = false);
+
+    /**
+     * 是否为直播
+     */
+    bool isLive();
 private:
     /**
      * 生成m3u8文件

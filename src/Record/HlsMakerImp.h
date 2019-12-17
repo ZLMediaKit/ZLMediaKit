@@ -58,8 +58,6 @@ private:
     string _path_hls;
     string _params;
     int _buf_size;
-    //是否为点播
-    bool _is_vod;
 };
 
 }//namespace mediakit

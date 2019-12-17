@@ -40,7 +40,6 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
     _path_hls = m3u8_file;
     _params = params;
     _buf_size = bufSize;
-    _is_vod = seg_number == 0;
     _file_buf.reset(new char[bufSize],[](char *ptr){
         delete[] ptr;
     });
@@ -49,7 +48,7 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
 HlsMakerImp::~HlsMakerImp() {
     //录制完了
     flushLastSegment(true);
-    if(!_is_vod){
+    if(isLive()){
         //hls直播才删除文件
         File::delete_file(_path_prefix.data());
     }
@@ -62,7 +61,9 @@ string HlsMakerImp::onOpenSegment(int index) {
         auto strTime = getTimeStr("%H-%M-%S");
         segment_name = StrPrinter << strDate + "/" + strTime << "_" << index << ".ts";
         segment_path = _path_prefix + "/" +  segment_name;
-        _segment_file_paths.emplace(index,segment_path);
+        if(isLive()){
+            _segment_file_paths.emplace(index,segment_path);
+        }
     }
     _file = makeFile(segment_path, true);
     if(!_file){
