@@ -88,7 +88,7 @@ API_EXPORT void API_CALL mk_set_option(const char *key, const char *val) {
 API_EXPORT uint16_t API_CALL mk_http_server_start(uint16_t port, int ssl) {
     ssl = MAX(0,MIN(ssl,1));
     try {
-        http_server[ssl].reset(new TcpServer());
+        http_server[ssl] = std::make_shared<TcpServer>();
         if(ssl){
             http_server[ssl]->start<TcpSessionWithSSL<HttpSession> >(port);
         } else{
@@ -105,7 +105,7 @@ API_EXPORT uint16_t API_CALL mk_http_server_start(uint16_t port, int ssl) {
 API_EXPORT uint16_t API_CALL mk_rtsp_server_start(uint16_t port, int ssl) {
     ssl = MAX(0,MIN(ssl,1));
     try {
-        rtsp_server[ssl].reset(new TcpServer());
+        rtsp_server[ssl] = std::make_shared<TcpServer>();
         if(ssl){
             rtsp_server[ssl]->start<TcpSessionWithSSL<RtspSession> >(port);
         }else{
@@ -122,7 +122,7 @@ API_EXPORT uint16_t API_CALL mk_rtsp_server_start(uint16_t port, int ssl) {
 API_EXPORT uint16_t API_CALL mk_rtmp_server_start(uint16_t port, int ssl) {
     ssl = MAX(0,MIN(ssl,1));
     try {
-        rtmp_server[ssl].reset(new TcpServer());
+        rtmp_server[ssl] = std::make_shared<TcpServer>();
         if(ssl){
             rtmp_server[ssl]->start<TcpSessionWithSSL<RtmpSession> >(port);
         }else{
