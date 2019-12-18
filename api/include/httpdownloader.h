@@ -41,7 +41,7 @@ typedef void *mk_http_downloader;
  * @param err_msg 错误提示
  * @param file_path 文件保存路径
  */
-typedef void(API_CALL *on_download_complete)(void *user_data, int code, const char *err_msg, const char *file_path);
+typedef void(API_CALL *on_mk_download_complete)(void *user_data, int code, const char *err_msg, const char *file_path);
 
 /**
  * 创建http[s]下载器
@@ -63,7 +63,7 @@ API_EXPORT void API_CALL mk_http_downloader_release(mk_http_downloader ctx);
  * @param cb 回调函数
  * @param user_data 用户数据指针
  */
-API_EXPORT void API_CALL mk_http_downloader_start(mk_http_downloader ctx, const char *url, const char *file, on_download_complete cb, void *user_data);
+API_EXPORT void API_CALL mk_http_downloader_start(mk_http_downloader ctx, const char *url, const char *file, on_mk_download_complete cb, void *user_data);
 
 
 #ifdef __cplusplus
