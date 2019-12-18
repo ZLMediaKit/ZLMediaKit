@@ -43,6 +43,13 @@ static TcpServer::Ptr rtsp_server[2];
 static TcpServer::Ptr rtmp_server[2];
 static TcpServer::Ptr http_server[2];
 
+#ifdef ENABLE_RTPPROXY
+#include "Rtp/UdpRecver.h"
+#include "Rtp/RtpSession.h"
+static std::shared_ptr<UdpRecver> udpRtpServer;
+static TcpServer::Ptr tcpRtpServer(new TcpServer());
+#endif
+
 //////////////////////////environment init///////////////////////////
 API_EXPORT void API_CALL mk_env_init(const config *cfg) {
     assert(cfg);
@@ -127,6 +134,28 @@ API_EXPORT uint16_t API_CALL mk_rtmp_server_start(uint16_t port, int ssl) {
         WarnL << ex.what();
         return 0;
     }
+}
+
+API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port){
+#ifdef ENABLE_RTPPROXY
+    try {
+        //创建rtp tcp服务器
+        tcpRtpServer->start<RtpSession>(port);
+        auto ret = tcpRtpServer->getPort();
+        udpRtpServer = std::make_shared<UdpRecver>();
+        //创建rtp udp服务器
+        udpRtpServer->initSock(port);
+        return ret;
+    } catch (std::exception &ex) {
+        tcpRtpServer.reset();
+        udpRtpServer.reset();
+        WarnL << ex.what();
+        return 0;
+    }
+#else
+    WarnL << "未启用该功能!";
+    return 0;
+#endif
 }
 
 API_EXPORT void API_CALL mk_log_printf(int level, const char *file, const char *function, int line, const char *fmt, ...) {

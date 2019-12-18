@@ -53,7 +53,6 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, co
  */
 API_EXPORT void API_CALL mk_proxy_player_release(mk_proxy_player ctx);
 
-
 /**
  * 设置代理播放器配置选项
  * @param ctx 代理播放器指针

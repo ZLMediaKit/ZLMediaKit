@@ -103,6 +103,13 @@ API_EXPORT uint16_t API_CALL mk_rtsp_server_start(uint16_t port, int ssl);
 API_EXPORT uint16_t API_CALL mk_rtmp_server_start(uint16_t port, int ssl);
 
 /**
+ * 创建rtp服务器
+ * @param port rtp监听端口(包括udp/tcp)
+ * @return 0:失败,非0:端口号
+ */
+API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port);
+
+/**
  * 打印日志
  * @param level 日志级别,支持0~4
  * @param file __FILE__
