@@ -129,6 +129,10 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                 WarnL << "不是AAC Track";
                 return;
             }
+            if(!aac_track->ready()){
+                WarnL << "AAC Track未就绪";
+                return;
+            }
             auto track_id = mov_writer_add_audio(_mov_writter.get(),
                                                  MOV_OBJECT_AAC,
                                                  aac_track->getAudioChannel(),
@@ -146,6 +150,10 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
             auto h264_track = dynamic_pointer_cast<H264Track>(track);
             if (!h264_track) {
                 WarnL << "不是H264 Track";
+                return;
+            }
+            if(!h264_track->ready()){
+                WarnL << "H264 Track未就绪";
                 return;
             }
 
@@ -179,6 +187,10 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
             auto h265_track = dynamic_pointer_cast<H265Track>(track);
             if (!h265_track) {
                 WarnL << "不是H265 Track";
+                return;
+            }
+            if(!h265_track->ready()){
+                WarnL << "H265 Track未就绪";
                 return;
             }
 
