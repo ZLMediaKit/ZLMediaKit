@@ -140,10 +140,12 @@ API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port){
 #ifdef ENABLE_RTPPROXY
     try {
         //创建rtp tcp服务器
+        tcpRtpServer = std::make_shared<TcpServer>();
         tcpRtpServer->start<RtpSession>(port);
+
+        //创建rtp udp服务器
         auto ret = tcpRtpServer->getPort();
         udpRtpServer = std::make_shared<UdpRecver>();
-        //创建rtp udp服务器
         udpRtpServer->initSock(port);
         return ret;
     } catch (std::exception &ex) {
