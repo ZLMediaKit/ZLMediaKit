@@ -56,7 +56,7 @@ typedef void(API_CALL *on_mk_play_event)(void *user_data,int err_code,const char
 typedef void(API_CALL *on_mk_play_data)(void *user_data,int track_type,int codec_id,void *data,int len,uint32_t dts,uint32_t pts);
 
 /**
- * 创建一个播放器,支持rtmp/rtsp
+ * 创建一个播放器,支持rtmp[s]/rtsp[s]
  * @return 播放器指针
  */
 API_EXPORT mk_player API_CALL mk_player_create();
@@ -78,7 +78,7 @@ API_EXPORT void API_CALL mk_player_set_option(mk_player ctx, const char *key, co
 /**
  * 开始播放url
  * @param ctx 播放器指针
- * @param url rtsp/rtmp url
+ * @param url rtsp[s]/rtmp[s] url
  */
 API_EXPORT void API_CALL mk_player_play(mk_player ctx, const char *url);
 
@@ -99,7 +99,7 @@ API_EXPORT void API_CALL mk_player_seekto(mk_player ctx, float progress);
 /**
  * 设置播放器开启播放结果回调函数
  * @param ctx 播放器指针
- * @param cb 回调函数指针
+ * @param cb 回调函数指针,不得为null
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_player_set_on_result(mk_player ctx, on_mk_play_event cb, void *user_data);

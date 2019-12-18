@@ -37,6 +37,7 @@ typedef void *mk_media;
 
 /**
  * 创建一个媒体源
+ * @param vhost 虚拟主机名，一般为__defaultVhost__
  * @param app 应用名，推荐为live
  * @param stream 流id，例如camera
  * @param duration 时长(单位秒)，直播则为0
@@ -44,7 +45,7 @@ typedef void *mk_media;
  * @param mp4_enabled 是否生成mp4
  * @return 对象指针
  */
-API_EXPORT mk_media API_CALL mk_media_create(const char *app, const char *stream, float duration, int hls_enabled, int mp4_enabled);
+API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream, float duration, int hls_enabled, int mp4_enabled);
 
 /**
  * 销毁媒体源

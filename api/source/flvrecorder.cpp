@@ -34,13 +34,14 @@ API_EXPORT mk_flv_recorder API_CALL mk_flv_recorder_create(){
     return ret;
 }
 API_EXPORT void API_CALL mk_flv_recorder_release(mk_flv_recorder ctx){
+    assert(ctx);
     FlvRecorder::Ptr *record = (FlvRecorder::Ptr *)(ctx);
     delete record;
 }
 API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *app, const char *stream, const char *file_path){
-    DebugL << app << " " << stream << " " << file_path;
-    FlvRecorder::Ptr *record = (FlvRecorder::Ptr *)(ctx);
+    assert(ctx && app && stream && file_path);
     try {
+        FlvRecorder::Ptr *record = (FlvRecorder::Ptr *)(ctx);
         (*record)->startRecord(EventPollerPool::Instance().getPoller(), DEFAULT_VHOST,app,stream,file_path);
         return 0;
     }catch (std::exception &ex){

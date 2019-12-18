@@ -33,5 +33,6 @@
 #include "proxyplayer.h"
 #include "flvrecorder.h"
 #include "player.h"
+#include "pusher.h"
 
 #endif /* MK_API_H_ */

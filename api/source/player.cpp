@@ -42,9 +42,7 @@ API_EXPORT void API_CALL mk_player_release(mk_player ctx) {
 }
 
 API_EXPORT void API_CALL mk_player_set_option(mk_player ctx,const char* key,const char *val){
-	assert(ctx);
-	assert(key);
-	assert(val);
+	assert(ctx && key && val);
 	MediaPlayer::Ptr &player = *((MediaPlayer::Ptr *)ctx);
 	string key_str(key), val_str(val);
 	player->getPoller()->async([key_str,val_str,player](){
@@ -53,8 +51,7 @@ API_EXPORT void API_CALL mk_player_set_option(mk_player ctx,const char* key,cons
 	});
 }
 API_EXPORT void API_CALL mk_player_play(mk_player ctx, const char *url) {
-	assert(ctx);
-	assert(url);
+	assert(ctx && url);
 	MediaPlayer::Ptr &player = *((MediaPlayer::Ptr *)ctx);
 	string url_str(url);
 	player->getPoller()->async([url_str,player](){
@@ -82,8 +79,7 @@ API_EXPORT void API_CALL mk_player_seekto(mk_player ctx, float progress) {
 }
 
 static void mk_player_set_on_event(mk_player ctx, on_mk_play_event cb, void *user_data, int type) {
-	assert(ctx);
-	assert(cb);
+	assert(ctx && cb);
 	MediaPlayer::Ptr &player = *((MediaPlayer::Ptr *)ctx);
 	player->getPoller()->async([cb,user_data,type,player](){
 		//切换线程后再操作
@@ -108,8 +104,7 @@ API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_eve
 }
 
 API_EXPORT void API_CALL mk_player_set_on_data(mk_player ctx, on_mk_play_data cb, void *user_data) {
-	assert(ctx);
-	assert(cb);
+	assert(ctx && cb);
 	MediaPlayer::Ptr &player = *((MediaPlayer::Ptr *)ctx);
 	player->getPoller()->async([player,cb,user_data](){
 		//切换线程后再操作

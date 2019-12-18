@@ -32,17 +32,20 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-API_EXPORT mk_media API_CALL mk_media_create(const char *app, const char *stream, float duration, int hls_enabled, int mp4_enabled) {
-    DevChannel::Ptr *obj(new DevChannel::Ptr(new DevChannel(DEFAULT_VHOST, app, stream, duration, true, true, hls_enabled, mp4_enabled)));
+API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream, float duration, int hls_enabled, int mp4_enabled) {
+    assert(vhost && app && stream);
+    DevChannel::Ptr *obj(new DevChannel::Ptr(new DevChannel(vhost, app, stream, duration, true, true, hls_enabled, mp4_enabled)));
     return (mk_media) obj;
 }
 
 API_EXPORT void API_CALL mk_media_release(mk_media ctx) {
+    assert(ctx);
     DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
     delete obj;
 }
 
 API_EXPORT void API_CALL mk_media_init_h264(mk_media ctx, int width, int height, int frameRate) {
+    assert(ctx);
     DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
     VideoInfo info;
     info.iFrameRate = frameRate;
@@ -52,6 +55,7 @@ API_EXPORT void API_CALL mk_media_init_h264(mk_media ctx, int width, int height,
 }
 
 API_EXPORT void API_CALL mk_media_init_h265(mk_media ctx, int width, int height, int frameRate) {
+    assert(ctx);
     DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
     VideoInfo info;
     info.iFrameRate = frameRate;
@@ -61,6 +65,7 @@ API_EXPORT void API_CALL mk_media_init_h265(mk_media ctx, int width, int height,
 }
 
 API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample_bit, int sample_rate, int profile) {
+    assert(ctx);
     DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
     AudioInfo info;
     info.iSampleRate = sample_rate;
@@ -71,21 +76,25 @@ API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample
 }
 
 API_EXPORT void API_CALL mk_media_input_h264(mk_media ctx, void *data, int len, uint32_t dts, uint32_t pts) {
+    assert(ctx && data && len > 0);
     DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
     (*obj)->inputH264((char *) data, len, dts, pts);
 }
 
 API_EXPORT void API_CALL mk_media_input_h265(mk_media ctx, void *data, int len, uint32_t dts, uint32_t pts) {
+    assert(ctx && data && len > 0);
     DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
     (*obj)->inputH265((char *) data, len, dts, pts);
 }
 
 API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, uint32_t dts, int with_adts_header) {
+    assert(ctx && data && len > 0);
     DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
     (*obj)->inputAAC((char *) data, len, dts, with_adts_header);
 }
 
 API_EXPORT void API_CALL mk_media_input_aac1(mk_media ctx, void *data, int len, uint32_t dts, void *adts) {
+    assert(ctx && data && len > 0 && adts);
     DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
     (*obj)->inputAAC((char *) data, len, dts, (char *) adts);
 }
