@@ -48,6 +48,8 @@ API_EXPORT void API_CALL mk_env_init(const config *cfg) {
     assert(cfg != nullptr);
     static onceToken token([&]() {
         Logger::Instance().add(std::make_shared<ConsoleChannel>("console", (LogLevel) cfg->log_level));
+        Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
+
         EventPollerPool::setPoolSize(cfg->thread_num);
         WorkThreadPool::setPoolSize(cfg->thread_num);
 
