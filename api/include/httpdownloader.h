@@ -65,7 +65,6 @@ API_EXPORT void API_CALL mk_http_downloader_release(mk_http_downloader ctx);
  */
 API_EXPORT void API_CALL mk_http_downloader_start(mk_http_downloader ctx, const char *url, const char *file, on_mk_download_complete cb, void *user_data);
 
-
 #ifdef __cplusplus
 }
 #endif
