@@ -30,18 +30,34 @@
 using namespace toolkit;
 using namespace mediakit;
 
-API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *app, const char *stream, int rtp_type, int hls_enabled, int mp4_enabled) {
-    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(DEFAULT_VHOST, app, stream, true, true, hls_enabled, mp4_enabled)));
-    (**obj)[Client::kRtpType] = rtp_type;
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled) {
+    assert(vhost && app && stream);
+    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, true, true, hls_enabled, mp4_enabled)));
     return (mk_proxy_player) obj;
 }
 
 API_EXPORT void API_CALL mk_proxy_player_release(mk_proxy_player ctx) {
+    assert(ctx);
     PlayerProxy::Ptr *obj = (PlayerProxy::Ptr *) ctx;
     delete obj;
 }
 
+API_EXPORT void API_CALL mk_proxy_player_set_option(mk_proxy_player ctx, const char *key, const char *val){
+    assert(ctx && key && val);
+    PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *) ctx);
+    string key_str(key),val_str(val);
+    obj->getPoller()->async([obj,key_str,val_str](){
+        //切换线程再操作
+        (*obj)[key_str] = val_str;
+    });
+}
+
 API_EXPORT void API_CALL mk_proxy_player_play(mk_proxy_player ctx, const char *url) {
-    PlayerProxy::Ptr *obj = (PlayerProxy::Ptr *) ctx;
-    (*obj)->play(url);
+    assert(ctx && url);
+    PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *) ctx);
+    string url_str(url);
+    obj->getPoller()->async([obj,url_str](){
+        //切换线程再操作
+        obj->play(url_str);
+    });
 }

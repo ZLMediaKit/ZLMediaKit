@@ -45,7 +45,7 @@ static TcpServer::Ptr http_server[2];
 
 //////////////////////////environment init///////////////////////////
 API_EXPORT void API_CALL mk_env_init(const config *cfg) {
-    assert(cfg != nullptr);
+    assert(cfg);
     static onceToken token([&]() {
         Logger::Instance().add(std::make_shared<ConsoleChannel>("console", (LogLevel) cfg->log_level));
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
@@ -70,6 +70,7 @@ API_EXPORT void API_CALL mk_env_init(const config *cfg) {
 }
 
 API_EXPORT void API_CALL mk_set_option(const char *key, const char *val) {
+    assert(key && val);
     if (mINI::Instance().find(key) == mINI::Instance().end()) {
         WarnL << "key:" << key << " not existed!";
         return;
@@ -129,6 +130,7 @@ API_EXPORT uint16_t API_CALL mk_rtmp_server_start(uint16_t port, int ssl) {
 }
 
 API_EXPORT void API_CALL mk_log_printf(int level, const char *file, const char *function, int line, const char *fmt, ...) {
+    assert(file && function && fmt);
     LogContextCapturer info(Logger::Instance(), (LogLevel) level, file, function, line);
     va_list pArg;
     va_start(pArg, fmt);
