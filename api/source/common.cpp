@@ -51,7 +51,7 @@ static TcpServer::Ptr tcpRtpServer(new TcpServer());
 #endif
 
 //////////////////////////environment init///////////////////////////
-API_EXPORT void API_CALL mk_env_init(const config *cfg) {
+API_EXPORT void API_CALL mk_env_init(const mk_config *cfg) {
     assert(cfg);
     static onceToken token([&]() {
         Logger::Instance().add(std::make_shared<ConsoleChannel>("console", (LogLevel) cfg->log_level));
