@@ -63,13 +63,13 @@ typedef struct {
     const char *ssl;
     // 证书密码，可以为NULL
     const char *ssl_pwd;
-} config;
+} mk_config;
 
 /**
  * 初始化环境，调用该库前需要先调用此函数
  * @param cfg 库运行相关参数
  */
-API_EXPORT void API_CALL mk_env_init(const config *cfg);
+API_EXPORT void API_CALL mk_env_init(const mk_config *cfg);
 
 /**
  * 设置配置项
