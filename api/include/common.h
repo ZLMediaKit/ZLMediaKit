@@ -72,6 +72,24 @@ typedef struct {
 API_EXPORT void API_CALL mk_env_init(const mk_config *cfg);
 
 /**
+ * 基础类型参数版本的mk_env_init，为了方便其他语言调用
+ */
+API_EXPORT void API_CALL mk_env_init1( // 线程数
+                                        int thread_num,
+                                        // 日志级别,支持0~4
+                                        int log_level,
+                                        // 配置文件是内容还是路径
+                                        int ini_is_path,
+                                        // 配置文件内容或路径，可以为NULL
+                                        const char *ini,
+                                        // ssl证书是内容还是路径
+                                        int ssl_is_path,
+                                        // ssl证书内容或路径，可以为NULL
+                                        const char *ssl,
+                                        // 证书密码，可以为NULL
+                                        const char *ssl_pwd);
+
+/**
  * 设置配置项
  * @param key 配置项名
  * @param val 配置项值

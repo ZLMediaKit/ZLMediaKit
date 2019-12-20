@@ -53,25 +53,42 @@ static TcpServer::Ptr tcpRtpServer(new TcpServer());
 //////////////////////////environment init///////////////////////////
 API_EXPORT void API_CALL mk_env_init(const mk_config *cfg) {
     assert(cfg);
+    mk_env_init1(cfg->thread_num,
+                 cfg->log_level,
+                 cfg->ini_is_path,
+                 cfg->ini,
+                 cfg->ssl_is_path,
+                 cfg->ssl,
+                 cfg->ssl_pwd);
+}
+
+API_EXPORT void API_CALL mk_env_init1(  int thread_num,
+                                        int log_level,
+                                        int ini_is_path,
+                                        const char *ini,
+                                        int ssl_is_path,
+                                        const char *ssl,
+                                        const char *ssl_pwd) {
+
     static onceToken token([&]() {
-        Logger::Instance().add(std::make_shared<ConsoleChannel>("console", (LogLevel) cfg->log_level));
+        Logger::Instance().add(std::make_shared<ConsoleChannel>("console", (LogLevel) log_level));
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-        EventPollerPool::setPoolSize(cfg->thread_num);
-        WorkThreadPool::setPoolSize(cfg->thread_num);
+        EventPollerPool::setPoolSize(thread_num);
+        WorkThreadPool::setPoolSize(thread_num);
 
-        if (cfg->ini) {
+        if (ini && ini[0]) {
             //设置配置文件
-            if (cfg->ini_is_path) {
-                mINI::Instance().parseFile(cfg->ini);
+            if (ini_is_path) {
+                mINI::Instance().parseFile(ini);
             } else {
-                mINI::Instance().parse(cfg->ini);
+                mINI::Instance().parse(ini);
             }
         }
 
-        if (cfg->ssl) {
+        if (ssl && ssl[0]) {
             //设置ssl证书
-            SSL_Initor::Instance().loadCertificate(cfg->ssl, true, cfg->ssl_pwd ? cfg->ssl_pwd : "", cfg->ssl_is_path);
+            SSL_Initor::Instance().loadCertificate(ssl, true, ssl_pwd ? ssl_pwd : "", ssl_is_path);
         }
     });
 }
