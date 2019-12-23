@@ -54,7 +54,7 @@ typedef struct {
 
     // 配置文件是内容还是路径
     int ini_is_path;
-    // 配置文件内容或路径，可以为NULL
+    // 配置文件内容或路径，可以为NULL,如果该文件不存在，那么将导出默认配置至该文件
     const char *ini;
 
     // ssl证书是内容还是路径
@@ -78,20 +78,20 @@ API_EXPORT void API_CALL mk_stop_all_server();
 
 /**
  * 基础类型参数版本的mk_env_init，为了方便其他语言调用
+ * @param thread_num 线程数
+ * @param log_level 日志级别,支持0~4
+ * @param ini_is_path 配置文件是内容还是路径
+ * @param ini 配置文件内容或路径，可以为NULL,如果该文件不存在，那么将导出默认配置至该文件
+ * @param ssl_is_path ssl证书是内容还是路径
+ * @param ssl ssl证书内容或路径，可以为NULL
+ * @param ssl_pwd 证书密码，可以为NULL
  */
-API_EXPORT void API_CALL mk_env_init1( // 线程数
-                                        int thread_num,
-                                        // 日志级别,支持0~4
+API_EXPORT void API_CALL mk_env_init1( int thread_num,
                                         int log_level,
-                                        // 配置文件是内容还是路径
                                         int ini_is_path,
-                                        // 配置文件内容或路径，可以为NULL
                                         const char *ini,
-                                        // ssl证书是内容还是路径
                                         int ssl_is_path,
-                                        // ssl证书内容或路径，可以为NULL
                                         const char *ssl,
-                                        // 证书密码，可以为NULL
                                         const char *ssl_pwd);
 
 /**
