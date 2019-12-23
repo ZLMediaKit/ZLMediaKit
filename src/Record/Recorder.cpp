@@ -217,21 +217,23 @@ public:
 
 private:
     MediaSourceWatcher(){
-        NoticeCenter::Instance().addListener(this,Broadcast::kBroadcastMediaChanged,[this](BroadcastMediaChangedArgs){
+        //保存NoticeCenter的强引用，防止在MediaSourceWatcher单例释放前释放NoticeCenter单例
+        _notice_center = NoticeCenter::Instance().shared_from_this();
+        _notice_center->addListener(this,Broadcast::kBroadcastMediaChanged,[this](BroadcastMediaChangedArgs){
             if(bRegist){
                 onRegist(schema,vhost,app,stream,sender);
             }else{
                 onUnRegist(schema,vhost,app,stream,sender);
             }
         });
-        NoticeCenter::Instance().addListener(this,Broadcast::kBroadcastMediaResetTracks,[this](BroadcastMediaResetTracksArgs){
+        _notice_center->addListener(this,Broadcast::kBroadcastMediaResetTracks,[this](BroadcastMediaResetTracksArgs){
             onRegist(schema,vhost,app,stream,sender);
         });
     }
 
     ~MediaSourceWatcher(){
-        NoticeCenter::Instance().delListener(this,Broadcast::kBroadcastMediaChanged);
-        NoticeCenter::Instance().delListener(this,Broadcast::kBroadcastMediaResetTracks);
+        _notice_center->delListener(this,Broadcast::kBroadcastMediaChanged);
+        _notice_center->delListener(this,Broadcast::kBroadcastMediaResetTracks);
     }
 
     void onRegist(const string &schema,const string &vhost,const string &app,const string &stream,MediaSource &sender){
@@ -320,6 +322,7 @@ private:
     }
 private:
     recursive_mutex _recorder_mtx;
+    NoticeCenter::Ptr _notice_center;
     unordered_map<string, RecorderHelper::Ptr> _recorder_map;
 };
 

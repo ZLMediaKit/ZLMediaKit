@@ -72,6 +72,11 @@ typedef struct {
 API_EXPORT void API_CALL mk_env_init(const mk_config *cfg);
 
 /**
+ * 关闭所有服务器，请在main函数退出时调用
+ */
+API_EXPORT void API_CALL mk_stop_all_server();
+
+/**
  * 基础类型参数版本的mk_env_init，为了方便其他语言调用
  */
 API_EXPORT void API_CALL mk_env_init1( // 线程数

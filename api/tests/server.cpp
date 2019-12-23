@@ -11,11 +11,11 @@ int main(int argc,char *argv[]){
     mk_rtsp_server_start(554,false);
     mk_rtmp_server_start(1935,false);
     mk_rtp_server_start(10000);
-
     static bool flag = true;
     signal(SIGINT, [](int) { flag = false; });// 设置退出信号
-
     while (flag){
         sleep(1);
     }
+    mk_stop_all_server();
+    return 0;
 }
