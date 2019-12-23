@@ -47,7 +47,7 @@ static TcpServer::Ptr http_server[2];
 #include "Rtp/UdpRecver.h"
 #include "Rtp/RtpSession.h"
 static std::shared_ptr<UdpRecver> udpRtpServer;
-static TcpServer::Ptr tcpRtpServer(new TcpServer());
+static TcpServer::Ptr tcpRtpServer;
 #endif
 
 //////////////////////////environment init///////////////////////////
