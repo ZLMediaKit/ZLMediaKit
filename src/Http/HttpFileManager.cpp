@@ -375,6 +375,14 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
     });
 }
 
+static string getFilePath(const Parser &parser,const MediaInfo &mediaInfo, TcpSession &sender){
+    GET_CONFIG(bool, enableVhost, General::kEnableVhost);
+    GET_CONFIG(string, rootPath, Http::kRootPath);
+    auto ret = File::absolutePath(enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, mediaInfo, ret, sender);
+    return std::move(ret);
+}
+
 /**
  * 访问文件或文件夹
  * @param sender 事件触发者
@@ -384,11 +392,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
 void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const HttpFileManager::invoker &cb) {
     auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.FullUrl();
     MediaInfo mediaInfo(fullUrl);
-
-    GET_CONFIG(bool, enableVhost, General::kEnableVhost);
-    GET_CONFIG(string, rootPath, Http::kRootPath);
-    auto strFile = File::absolutePath(enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
-
+    auto strFile = getFilePath(parser, mediaInfo, sender);
     //访问的是文件夹
     if (File::is_dir(strFile.data())) {
         auto indexFile = searchIndexFile(strFile);

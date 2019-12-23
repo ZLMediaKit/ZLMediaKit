@@ -68,6 +68,7 @@ const string kBroadcastReloadConfig = "kBroadcastReloadConfig";
 const string kBroadcastShellLogin = "kBroadcastShellLogin";
 const string kBroadcastNotFoundStream = "kBroadcastNotFoundStream";
 const string kBroadcastStreamNoneReader = "kBroadcastStreamNoneReader";
+const string kBroadcastHttpBeforeAccess = "kBroadcastHttpBeforeAccess";
 } //namespace Broadcast
 
 //通用配置项目
