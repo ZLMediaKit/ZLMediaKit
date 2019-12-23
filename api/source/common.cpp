@@ -62,6 +62,14 @@ API_EXPORT void API_CALL mk_env_init(const mk_config *cfg) {
                  cfg->ssl_pwd);
 }
 
+API_EXPORT void API_CALL mk_stop_all_server(){
+    CLEAR_ARR(rtsp_server);
+    CLEAR_ARR(rtmp_server);
+    CLEAR_ARR(http_server);
+    udpRtpServer = nullptr;
+    tcpRtpServer = nullptr;
+}
+
 API_EXPORT void API_CALL mk_env_init1(  int thread_num,
                                         int log_level,
                                         int ini_is_path,
