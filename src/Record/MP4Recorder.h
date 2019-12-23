@@ -27,8 +27,6 @@
 #ifndef MP4MAKER_H_
 #define MP4MAKER_H_
 
-#ifdef ENABLE_MP4RECORD
-
 #include <mutex>
 #include <memory>
 #include "Player/PlayerBase.h"
@@ -56,6 +54,7 @@ public:
 	string strVhost;//vhost
 };
 
+#ifdef ENABLE_MP4RECORD
 class MP4Recorder : public MediaSinkInterface{
 public:
 	typedef std::shared_ptr<MP4Recorder> Ptr;
@@ -95,8 +94,8 @@ private:
 	list<Track::Ptr> _tracks;
 };
 
-} /* namespace mediakit */
-
 #endif ///ENABLE_MP4RECORD
+
+} /* namespace mediakit */
 
 #endif /* MP4MAKER_H_ */

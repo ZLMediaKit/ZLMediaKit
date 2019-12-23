@@ -24,16 +24,4 @@
  * SOFTWARE.
  */
 
-#ifndef MK_API_H_
-#define MK_API_H_
-
-#include "common.h"
-#include "httpdownloader.h"
-#include "media.h"
-#include "proxyplayer.h"
-#include "flvrecorder.h"
-#include "player.h"
-#include "pusher.h"
 #include "mk_event.h"
-
-#endif /* MK_API_H_ */
