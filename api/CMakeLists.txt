@@ -7,5 +7,7 @@ if(WIN32)
 endif()
 
 target_link_libraries(api ${LINK_LIB_LIST})
+add_subdirectory(tests)
+
 
 
