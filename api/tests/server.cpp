@@ -25,14 +25,17 @@
  */
 
 #include <csignal>
+#include <string>
 #include "mediakit.h"
 #ifdef _WIN32
 #include "windows.h"
 #else
 #include "unistd.h"
 #endif
+
+using namespace std;
 int main(int argc,char *argv[]){
-    mk_env_init1(0,0,0, nullptr,0, nullptr, nullptr);
+    mk_env_init1(0,0,1, (string(argv[0]) + ".ini").data(),0, nullptr, nullptr);
     mk_http_server_start(80,false);
     mk_rtsp_server_start(554,false);
     mk_rtmp_server_start(1935,false);

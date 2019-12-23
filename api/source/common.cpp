@@ -88,7 +88,12 @@ API_EXPORT void API_CALL mk_env_init1(  int thread_num,
         if (ini && ini[0]) {
             //设置配置文件
             if (ini_is_path) {
-                mINI::Instance().parseFile(ini);
+                try{
+                    mINI::Instance().parseFile(ini);
+                }catch (std::exception &ex) {
+                    InfoL << "dump ini file to:" << ini;
+                    mINI::Instance().dumpFile(ini);
+                }
             } else {
                 mINI::Instance().parse(ini);
             }
