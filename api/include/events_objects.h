@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MIT License
  *
  * Copyright (c) 2019 xiongziliang <771730766@qq.com>
@@ -33,7 +33,7 @@ extern "C" {
 
 ///////////////////////////////////////////MP4Info/////////////////////////////////////////////
 //MP4Info对象的C映射
-typedef void *mk_mp4_info;
+typedef void* mk_mp4_info;
 //MP4Info::ui64StartedTime
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx);
 //MP4Info::ui64TimeLen
