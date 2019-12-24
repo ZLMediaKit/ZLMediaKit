@@ -24,14 +24,16 @@
  * SOFTWARE.
  */
 
-#ifndef MK_FLV_RECORDER_API_H_
-#define MK_FLV_RECORDER_API_H_
+#ifndef MK_RECORDER_API_H_
+#define MK_RECORDER_API_H_
 
 #include "common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+///////////////////////////////////////////flv录制/////////////////////////////////////////////
 
 typedef void* mk_flv_recorder;
 
@@ -57,8 +59,48 @@ API_EXPORT void API_CALL mk_flv_recorder_release(mk_flv_recorder ctx);
  */
 API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *app, const char *stream, const char *file_path);
 
+
+///////////////////////////////////////////hls/mp4录制/////////////////////////////////////////////
+
+/**
+ * 获取录制状态
+ * @param type 0:hls,1:MP4
+ * @param vhost 虚拟主机
+ * @param app 应用名
+ * @param stream 流id
+ * @return 录制状态,0:未录制,1:等待MediaSource注册，注册成功后立即开始录制,2:MediaSource已注册，并且正在录制
+ */
+API_EXPORT int mk_recorder_status(int type, const char *vhost, const char *app, const char *stream);
+
+/**
+ * 开始录制
+ * @param type 0:hls,1:MP4
+ * @param vhost 虚拟主机
+ * @param app 应用名
+ * @param stream 流id
+ * @param wait_for_record 是否等待流注册后再录制，未注册时，置false将返回失败
+ * @param continue_record 流注销时是否继续等待录制还是立即停止录制
+ * @return 0代表成功，负数代表失败
+ */
+API_EXPORT int mk_recorder_start(int type, const char *vhost, const char *app, const char *stream,bool wait_for_record, bool continue_record);
+
+/**
+ * 停止录制
+ * @param type 0:hls,1:MP4
+ * @param vhost 虚拟主机
+ * @param app 应用名
+ * @param stream 流id
+ * @return 1:成功，0：失败
+ */
+API_EXPORT int mk_recorder_stop(int type, const char *vhost, const char *app, const char *stream);
+
+/**
+ * 停止所有录制，一般程序退出时调用
+ */
+API_EXPORT void mk_recorder_stop_all();
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MK_FLV_RECORDER_API_H_ */
+#endif /* MK_RECORDER_API_H_ */
