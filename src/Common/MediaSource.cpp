@@ -86,12 +86,7 @@ void MediaSource::setTrackSource(const std::weak_ptr<TrackSource> &track_src) {
         if (!strongPtr) {
             return;
         }
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaResetTracks,
-                                           _strSchema,
-                                           _strVhost,
-                                           _strApp,
-                                           _strId,
-                                           *this);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaResetTracks, *this);
     },false);
 }
 
@@ -228,7 +223,11 @@ void findAsync_l(const MediaInfo &info,
             return;
         }
 
-        if(!bRegist || schema != info._schema || vhost != info._vhost || app != info._app ||stream != info._streamid){
+        if (!bRegist ||
+            sender.getSchema() != info._schema ||
+            sender.getVhost() != info._vhost ||
+            sender.getApp() != info._app ||
+            sender.getId() != info._streamid) {
             //不是自己感兴趣的事件，忽略之
             return;
         }
@@ -312,13 +311,7 @@ void MediaSource::regist() {
         if (!strongPtr) {
             return;
         }
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
-                                           true,
-                                           _strSchema,
-                                           _strVhost,
-                                           _strApp,
-                                           _strId,
-                                           *this);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, true, *this);
     },false);
 }
 bool MediaSource::unregist() {
@@ -341,13 +334,7 @@ bool MediaSource::unregist() {
 }
 void MediaSource::unregisted(){
     InfoL <<  "" <<  _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged,
-                                       false,
-                                       _strSchema,
-                                       _strVhost,
-                                       _strApp,
-                                       _strId,
-                                       *this);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, false, *this);
 }
 
 

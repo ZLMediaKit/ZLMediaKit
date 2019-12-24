@@ -69,11 +69,11 @@ namespace Broadcast {
 
 //注册或反注册MediaSource事件广播
 extern const string kBroadcastMediaChanged;
-#define BroadcastMediaChangedArgs const bool &bRegist, const string &schema,const string &vhost,const string &app,const string &stream,MediaSource &sender
+#define BroadcastMediaChangedArgs const bool &bRegist, MediaSource &sender
 
 //MediaSource重置Track事件
 extern const string kBroadcastMediaResetTracks;
-#define BroadcastMediaResetTracksArgs const string &schema,const string &vhost,const string &app,const string &stream,MediaSource &sender
+#define BroadcastMediaResetTracksArgs MediaSource &sender
 
 //录制mp4文件成功后广播
 extern const string kBroadcastRecordMP4;

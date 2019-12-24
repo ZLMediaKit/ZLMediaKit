@@ -99,8 +99,8 @@ int domain(const string &playUrl, const string &pushUrl) {
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged,
                                          [pushUrl,poller](BroadcastMediaChangedArgs) {
                                              //媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
-                                             if(bRegist && pushUrl.find(schema) == 0){
-                                                 createPusher(poller,schema,vhost,app, stream, pushUrl);
+                                             if(bRegist && pushUrl.find(sender.getSchema()) == 0){
+                                                 createPusher(poller,sender.getSchema(),sender.getVhost(),sender.getApp(), sender.getId(), pushUrl);
                                              }
                                          });
 
