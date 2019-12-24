@@ -178,23 +178,23 @@ void initEventListener() {
 
         //监听rtsp、rtmp源注册或注销事件；此处用于测试rtmp保存为flv录像，保存在http根目录下
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged, [](BroadcastMediaChangedArgs) {
-            if (schema == RTMP_SCHEMA && app == "live") {
+            if (sender.getSchema() == RTMP_SCHEMA && sender.getApp() == "live") {
                 lock_guard<mutex> lck(s_mtxFlvRecorder);
                 if (bRegist) {
-                    DebugL << "开始录制RTMP：" << schema << " " << vhost << " " << app << " " << stream;
+                    DebugL << "开始录制RTMP：" << sender.getSchema() << " " << sender.getVhost() << " " << sender.getApp() << " " << sender.getId();
                     GET_CONFIG(string, http_root, Http::kRootPath);
                     auto path =
-                            http_root + "/" + vhost + "/" + app + "/" + stream + "_" + to_string(time(NULL)) + ".flv";
+                            http_root + "/" + sender.getVhost() + "/" + sender.getApp() + "/" + sender.getId() + "_" + to_string(time(NULL)) + ".flv";
                     FlvRecorder::Ptr recorder(new FlvRecorder);
                     try {
                         recorder->startRecord(EventPollerPool::Instance().getPoller(),
                                               dynamic_pointer_cast<RtmpMediaSource>(sender.shared_from_this()), path);
-                        s_mapFlvRecorder[vhost + "/" + app + "/" + stream] = recorder;
+                        s_mapFlvRecorder[sender.getVhost() + "/" + sender.getApp() + "/" + sender.getId()] = recorder;
                     } catch (std::exception &ex) {
                         WarnL << ex.what();
                     }
                 } else {
-                    s_mapFlvRecorder.erase(vhost + "/" + app + "/" + stream);
+                    s_mapFlvRecorder.erase(sender.getVhost() + "/" + sender.getApp() + "/" + sender.getId());
                 }
             }
         });

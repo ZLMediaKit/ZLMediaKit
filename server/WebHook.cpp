@@ -341,10 +341,10 @@ void installWebHook(){
         }
         ArgsType body;
         body["regist"] = bRegist;
-        body["schema"] = schema;
-        body["vhost"] = vhost;
-        body["app"] = app;
-        body["stream"] = stream;
+        body["schema"] = sender.getSchema();
+        body["vhost"] = sender.getVhost();
+        body["app"] = sender.getApp();
+        body["stream"] = sender.getId();
         //执行hook
         do_http_hook(hook_stream_chaned,body, nullptr);
     });

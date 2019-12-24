@@ -147,11 +147,11 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
             return;
         }
 
-        if(!bRegist ||
-           schema != strongSelf->_media_info._schema ||
-           vhost != strongSelf->_media_info._vhost ||
-           app != strongSelf->_media_info._app ||
-           stream != strongSelf->_media_info._streamid){
+        if (!bRegist ||
+            sender.getSchema() != strongSelf->_media_info._schema ||
+            sender.getVhost() != strongSelf->_media_info._vhost ||
+            sender.getApp() != strongSelf->_media_info._app ||
+            sender.getId() != strongSelf->_media_info._streamid) {
             //不是自己感兴趣的事件，忽略之
             return;
         }
