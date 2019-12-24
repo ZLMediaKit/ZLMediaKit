@@ -25,6 +25,7 @@
  */
 
 #include <csignal>
+#include <cstring>
 #include <string>
 #include "mediakit.h"
 
@@ -174,7 +175,7 @@ void API_CALL on_mk_http_request(const mk_parser parser,
                mk_parser_get_content(parser));
 
     const char *url = mk_parser_get_url(parser);
-    if(strcasecmp(url,"/api/test") != 0){
+    if(strcmp(url,"/api/test") != 0){
         *consumed = false;
         return;
     }
