@@ -161,7 +161,16 @@ API_EXPORT void API_CALL mk_http_response_invoker_do_file(const mk_http_response
                                                           const mk_parser request_parser,
                                                           const char *response_header[],
                                                           const char *response_file_path);
+/**
+* 克隆mk_http_response_invoker对象，通过克隆对象为堆对象，可以实现跨线程异步执行mk_http_response_invoker_do
+* 如果是同步执行mk_http_response_invoker_do，那么没必要克隆对象
+*/
+API_EXPORT mk_http_response_invoker API_CALL mk_http_response_invoker_clone(const mk_http_response_invoker ctx);
 
+/**
+ * 销毁堆上的克隆对象
+ */
+API_EXPORT void API_CALL mk_http_response_invoker_clone_release(const mk_http_response_invoker ctx);
 
 ///////////////////////////////////////////HttpAccessPathInvoker/////////////////////////////////////////////
 //HttpSession::HttpAccessPathInvoker对象的C映射
@@ -177,6 +186,17 @@ API_EXPORT void API_CALL mk_http_access_path_invoker_do(const mk_http_access_pat
                                                         const char *access_path,
                                                         int cookie_life_second);
 
+/**
+* 克隆mk_http_access_path_invoker对象，通过克隆对象为堆对象，可以实现跨线程异步执行mk_http_access_path_invoker_do
+* 如果是同步执行mk_http_access_path_invoker_do，那么没必要克隆对象
+*/
+API_EXPORT mk_http_access_path_invoker API_CALL mk_http_access_path_invoker_clone(const mk_http_access_path_invoker ctx);
+
+/**
+ * 销毁堆上的克隆对象
+ */
+API_EXPORT void API_CALL mk_http_access_path_invoker_clone_release(const mk_http_access_path_invoker ctx);
+
 ///////////////////////////////////////////RtspSession::onGetRealm/////////////////////////////////////////////
 //RtspSession::onGetRealm对象的C映射
 typedef void* mk_rtsp_get_realm_invoker;
@@ -186,6 +206,17 @@ typedef void* mk_rtsp_get_realm_invoker;
  */
 API_EXPORT void API_CALL mk_rtsp_get_realm_invoker_do(const mk_rtsp_get_realm_invoker ctx,
                                                       const char *realm);
+
+/**
+* 克隆mk_rtsp_get_realm_invoker对象，通过克隆对象为堆对象，可以实现跨线程异步执行mk_rtsp_get_realm_invoker_do
+* 如果是同步执行mk_rtsp_get_realm_invoker_do，那么没必要克隆对象
+*/
+API_EXPORT mk_rtsp_get_realm_invoker API_CALL mk_rtsp_get_realm_invoker_clone(const mk_rtsp_get_realm_invoker ctx);
+
+/**
+ * 销毁堆上的克隆对象
+ */
+API_EXPORT void API_CALL mk_rtsp_get_realm_invoker_clone_release(const mk_rtsp_get_realm_invoker ctx);
 
 ///////////////////////////////////////////RtspSession::onAuth/////////////////////////////////////////////
 //RtspSession::onAuth对象的C映射
@@ -200,6 +231,16 @@ API_EXPORT void API_CALL mk_rtsp_auth_invoker_do(const mk_rtsp_auth_invoker ctx,
                                                  int encrypted,
                                                  const char *pwd_or_md5);
 
+/**
+ * 克隆mk_rtsp_auth_invoker对象，通过克隆对象为堆对象，可以实现跨线程异步执行mk_rtsp_auth_invoker_do
+ * 如果是同步执行mk_rtsp_auth_invoker_do，那么没必要克隆对象
+ */
+API_EXPORT mk_rtsp_auth_invoker API_CALL mk_rtsp_auth_invoker_clone(const mk_rtsp_auth_invoker ctx);
+
+/**
+ * 销毁堆上的克隆对象
+ */
+API_EXPORT void API_CALL mk_rtsp_auth_invoker_clone_release(const mk_rtsp_auth_invoker ctx);
 
 ///////////////////////////////////////////Broadcast::PublishAuthInvoker/////////////////////////////////////////////
 //Broadcast::PublishAuthInvoker对象的C映射
@@ -218,6 +259,17 @@ API_EXPORT void API_CALL mk_publish_auth_invoker_do(const mk_publish_auth_invoke
                                                     int enable_hls,
                                                     int enable_mp4);
 
+/**
+ * 克隆mk_publish_auth_invoker对象，通过克隆对象为堆对象，可以实现跨线程异步执行mk_publish_auth_invoker_do
+ * 如果是同步执行mk_publish_auth_invoker_do，那么没必要克隆对象
+ */
+API_EXPORT mk_publish_auth_invoker API_CALL mk_publish_auth_invoker_clone(const mk_publish_auth_invoker ctx);
+
+/**
+ * 销毁堆上的克隆对象
+ */
+API_EXPORT void API_CALL mk_publish_auth_invoker_clone_release(const mk_publish_auth_invoker ctx);
+
 ///////////////////////////////////////////Broadcast::AuthInvoker/////////////////////////////////////////////
 //Broadcast::AuthInvoker对象的C映射
 typedef void* mk_auth_invoker;
@@ -228,6 +280,16 @@ typedef void* mk_auth_invoker;
  */
 API_EXPORT void API_CALL mk_auth_invoker_do(const mk_auth_invoker ctx, const char *err_msg);
 
+/**
+ * 克隆mk_auth_invoker对象，通过克隆对象为堆对象，可以实现跨线程异步执行mk_auth_invoker_do
+ * 如果是同步执行mk_auth_invoker_do，那么没必要克隆对象
+ */
+API_EXPORT mk_auth_invoker API_CALL mk_auth_invoker_clone(const mk_auth_invoker ctx);
+
+/**
+ * 销毁堆上的克隆对象
+ */
+API_EXPORT void API_CALL mk_auth_invoker_clone_relase(const mk_auth_invoker ctx);
 
 #ifdef __cplusplus
 }
