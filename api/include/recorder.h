@@ -70,7 +70,7 @@ API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *a
  * @param stream 流id
  * @return 录制状态,0:未录制,1:等待MediaSource注册，注册成功后立即开始录制,2:MediaSource已注册，并且正在录制
  */
-API_EXPORT int mk_recorder_status(int type, const char *vhost, const char *app, const char *stream);
+API_EXPORT int API_CALL mk_recorder_status(int type, const char *vhost, const char *app, const char *stream);
 
 /**
  * 开始录制
@@ -82,7 +82,7 @@ API_EXPORT int mk_recorder_status(int type, const char *vhost, const char *app, 
  * @param continue_record 流注销时是否继续等待录制还是立即停止录制
  * @return 0代表成功，负数代表失败
  */
-API_EXPORT int mk_recorder_start(int type, const char *vhost, const char *app, const char *stream,bool wait_for_record, bool continue_record);
+API_EXPORT int API_CALL mk_recorder_start(int type, const char *vhost, const char *app, const char *stream,bool wait_for_record, bool continue_record);
 
 /**
  * 停止录制
@@ -92,12 +92,12 @@ API_EXPORT int mk_recorder_start(int type, const char *vhost, const char *app, c
  * @param stream 流id
  * @return 1:成功，0：失败
  */
-API_EXPORT int mk_recorder_stop(int type, const char *vhost, const char *app, const char *stream);
+API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char *app, const char *stream);
 
 /**
  * 停止所有录制，一般程序退出时调用
  */
-API_EXPORT void mk_recorder_stop_all();
+API_EXPORT void API_CALL mk_recorder_stop_all();
 
 #ifdef __cplusplus
 }
