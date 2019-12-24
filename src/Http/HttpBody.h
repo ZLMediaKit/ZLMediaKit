@@ -52,14 +52,14 @@ public:
     virtual ~HttpBody(){}
 
     /**
-     * 剩余数据大小
+     * 剩余数据大小，如果返回>=INT64_MAX, 那么就不设置content-length
      */
     virtual uint64_t remainSize() { return 0;};
 
     /**
      * 读取一定字节数，返回大小可能小于size
      * @param size 请求大小
-     * @return 字节对象
+     * @return 字节对象,如果读完了，那么请返回nullptr
      */
     virtual Buffer::Ptr readData(uint32_t size) { return nullptr;};
 };
