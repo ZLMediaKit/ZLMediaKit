@@ -14,11 +14,13 @@ git submodule update --init
 - 打包多种流媒体协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV），支持协议间的互相转换，提供一站式的服务。
 - 使用epoll+线程池+异步网络IO模式开发，并发性能优越。
 - 已实现主流的的H264/H265+AAC流媒体方案，代码精简,脉络清晰，适合学习。
-- 编码格式与框架代码解耦，方便自由简洁的添加支持其他编码格式
+- 编码格式与框架代码解耦，方便自由简洁的添加支持其他编码格式。
 - 代码经过大量的稳定性、性能测试，可满足商用服务器项目。
-- 支持linux、macos、ios、android、windows平台
-- 支持画面秒开(GOP缓存)、极低延时([500毫秒内，最低可达100毫秒](https://github.com/zlmediakit/ZLMediaKit/wiki/%E5%BB%B6%E6%97%B6%E6%B5%8B%E8%AF%95))
-- [ZLMediaKit高并发实现原理](https://github.com/xiongziliang/ZLMediaKit/wiki/ZLMediaKit%E9%AB%98%E5%B9%B6%E5%8F%91%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)
+- 支持linux、macos、ios、android、windows平台。
+- 支持画面秒开(GOP缓存)、极低延时([500毫秒内，最低可达100毫秒](https://github.com/zlmediakit/ZLMediaKit/wiki/%E5%BB%B6%E6%97%B6%E6%B5%8B%E8%AF%95))。
+- [ZLMediaKit高并发实现原理](https://github.com/xiongziliang/ZLMediaKit/wiki/ZLMediaKit%E9%AB%98%E5%B9%B6%E5%8F%91%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)。
+- 提供完善的标准C API,可以作SDK用，或供其他语言调用。
+- 提供完整的MediaServer服务器，可以直接部署为商用服务器。
 
 ## 项目定位
 - 移动嵌入式跨平台流媒体解决方案。
