@@ -396,6 +396,7 @@ int main(int argc, char *argv[]) {
     mk_http_server_start(80, false);
     mk_rtsp_server_start(554, false);
     mk_rtmp_server_start(1935, false);
+    mk_shell_server_start(9000);
     mk_rtp_server_start(10000);
 
     mk_events events = {

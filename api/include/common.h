@@ -133,6 +133,13 @@ API_EXPORT uint16_t API_CALL mk_rtmp_server_start(uint16_t port, int ssl);
 API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port);
 
 /**
+ * 创建shell服务器
+ * @param port shell监听端口
+ * @return 0:失败,非0:端口号
+ */
+API_EXPORT uint16_t API_CALL mk_shell_server_start(uint16_t port);
+
+/**
  * 打印日志
  * @param level 日志级别,支持0~4
  * @param file __FILE__
