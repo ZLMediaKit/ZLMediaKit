@@ -24,8 +24,9 @@
  * SOFTWARE.
  */
 
-#include "flvrecorder.h"
+#include "recorder.h"
 #include "Rtmp/FlvMuxer.h"
+#include "Record/Recorder.h"
 using namespace toolkit;
 using namespace mediakit;
 
@@ -48,4 +49,24 @@ API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *a
         WarnL << ex.what();
         return -1;
     }
+}
+
+///////////////////////////////////////////hls/mp4录制/////////////////////////////////////////////
+API_EXPORT int mk_recorder_status(int type, const char *vhost, const char *app, const char *stream){
+    assert(vhost && app && stream);
+    return Recorder::getRecordStatus((Recorder::type)type,vhost,app,stream);
+}
+
+API_EXPORT int mk_recorder_start(int type, const char *vhost, const char *app, const char *stream,bool wait_for_record, bool continue_record){
+    assert(vhost && app && stream);
+    return Recorder::startRecord((Recorder::type)type,vhost,app,stream,wait_for_record,continue_record);
+}
+
+API_EXPORT int mk_recorder_stop(int type, const char *vhost, const char *app, const char *stream){
+    assert(vhost && app && stream);
+    return Recorder::stopRecord((Recorder::type)type,vhost,app,stream);
+}
+
+API_EXPORT void mk_recorder_stop_all(){
+    Recorder::stopAll();
 }
