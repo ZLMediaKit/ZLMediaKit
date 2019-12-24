@@ -75,6 +75,8 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                            is_dir,
                                            (mk_http_access_path_invoker)&invoker,
                                            (mk_tcp_session)&sender);
+            } else{
+                invoker("","",0);
             }
         });
 
@@ -96,6 +98,8 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_rtsp_get_realm((mk_media_info) &args,
                                               (mk_rtsp_get_realm_invoker) &invoker,
                                               (mk_tcp_session) &sender);
+            }else{
+                invoker("");
             }
         });
 
@@ -115,6 +119,11 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_media_publish((mk_media_info) &args,
                                              (mk_publish_auth_invoker) &invoker,
                                              (mk_tcp_session) &sender);
+            }else{
+                GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
+                GET_CONFIG(bool,toHls,General::kPublishToHls);
+                GET_CONFIG(bool,toMP4,General::kPublishToMP4);
+                invoker("",toRtxp,toHls,toMP4);
             }
         });
 
@@ -123,6 +132,8 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_media_play((mk_media_info) &args,
                                           (mk_auth_invoker) &invoker,
                                           (mk_tcp_session) &sender);
+            }else{
+                invoker("");
             }
         });
 
@@ -132,6 +143,8 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                            passwd.c_str(),
                                            (mk_auth_invoker) &invoker,
                                            (mk_tcp_session) &sender);
+            }else{
+                invoker("");
             }
         });
 
