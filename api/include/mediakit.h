@@ -34,6 +34,6 @@
 #include "flvrecorder.h"
 #include "player.h"
 #include "pusher.h"
-#include "mk_event.h"
+#include "events.h"
 
 #endif /* MK_API_H_ */
