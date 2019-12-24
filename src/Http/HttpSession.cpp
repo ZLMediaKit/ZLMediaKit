@@ -156,7 +156,7 @@ bool HttpSession::checkWebSocket(){
 
     auto res_cb = [this,headerOut](){
         _flv_over_websocket = true;
-        sendResponse("101 Switching Protocols",false,nullptr,headerOut,nullptr,false);
+        sendResponse("101 Switching Protocols",false,nullptr,headerOut,nullptr, true);
     };
 
     //判断是否为websocket-flv
@@ -219,7 +219,7 @@ bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
 
             if(!cb) {
                 //找到rtmp源，发送http头，负载后续发送
-                sendResponse("200 OK", false, "video/x-flv",KeyValue(),nullptr,false);
+                sendResponse("200 OK", false, "video/x-flv",KeyValue(),nullptr,true);
             }else{
                 cb();
             }
@@ -313,7 +313,7 @@ void HttpSession::sendResponse(const char *pcStatus,
                                const char *pcContentType,
                                const HttpSession::KeyValue &header,
                                const HttpBody::Ptr &body,
-                               bool set_content_len ){
+                               bool is_http_flv ){
     GET_CONFIG(string,charSet,Http::kCharSet);
     GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
 
@@ -322,16 +322,14 @@ void HttpSession::sendResponse(const char *pcStatus,
     if (body && body->remainSize()) {
         //有body，获取body大小
         size = body->remainSize();
-        if (size >= INT64_MAX) {
-            //不固定长度的body，那么不设置content-length字段
-            size = -1;
-        }
     }
 
-    if(!set_content_len || size == -1){
-        //如果是不定长度body，或者不设置conten-length,
-        //那么一定是Keep-Alive类型
+    if(is_http_flv){
+        //http-flv直播是Keep-Alive类型
         bClose = false;
+    }else if(size >= INT64_MAX){
+        //不固定长度的body，那么发送完body后应该关闭socket，以便浏览器做下载完毕的判断
+        bClose = true;
     }
 
     HttpSession::KeyValue &headerOut = const_cast<HttpSession::KeyValue &>(header);
@@ -348,8 +346,8 @@ void HttpSession::sendResponse(const char *pcStatus,
         headerOut.emplace("Access-Control-Allow-Credentials", "true");
     }
 
-    if(set_content_len && size >= 0){
-        //文件长度为定值或者,且不是http-flv强制设置Content-Length
+    if(!is_http_flv && size >= 0 && size < INT64_MAX){
+        //文件长度为固定值,且不是http-flv强制设置Content-Length
         headerOut["Content-Length"] = StrPrinter << size << endl;
     }
 

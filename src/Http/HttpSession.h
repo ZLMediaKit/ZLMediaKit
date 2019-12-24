@@ -115,7 +115,7 @@ private:
 	void sendNotFound(bool bClose);
 	void sendResponse(const char *pcStatus, bool bClose, const char *pcContentType = nullptr,
 					  const HttpSession::KeyValue &header = HttpSession::KeyValue(),
-                      const HttpBody::Ptr &body = nullptr,bool set_content_len = true);
+                      const HttpBody::Ptr &body = nullptr,bool is_http_flv = false);
 
 	//设置socket标志
 	void setSocketFlags();
