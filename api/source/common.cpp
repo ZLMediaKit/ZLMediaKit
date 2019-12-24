@@ -35,6 +35,7 @@
 #include "Rtsp/RtspSession.h"
 #include "Rtmp/RtmpSession.h"
 #include "Http/HttpSession.h"
+#include "Shell/ShellSession.h"
 using namespace std;
 using namespace toolkit;
 using namespace mediakit;
@@ -42,6 +43,7 @@ using namespace mediakit;
 static TcpServer::Ptr rtsp_server[2];
 static TcpServer::Ptr rtmp_server[2];
 static TcpServer::Ptr http_server[2];
+static TcpServer::Ptr shell_server;
 
 #ifdef ENABLE_RTPPROXY
 #include "Rtp/UdpRecver.h"
@@ -188,6 +190,18 @@ API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port){
     WarnL << "未启用该功能!";
     return 0;
 #endif
+}
+
+API_EXPORT uint16_t API_CALL mk_shell_server_start(uint16_t port){
+    try {
+        shell_server =  std::make_shared<TcpServer>();
+        shell_server->start<ShellSession>(port);
+        return shell_server->getPort();
+    } catch (std::exception &ex) {
+        shell_server.reset();
+        WarnL << ex.what();
+        return 0;
+    }
 }
 
 API_EXPORT void API_CALL mk_log_printf(int level, const char *file, const char *function, int line, const char *fmt, ...) {
