@@ -90,7 +90,7 @@ protected:
 };
 
 
-class RtmpCodec : public RtmpRing, public FrameRingInterfaceDelegate , public CodecInfo{
+class RtmpCodec : public RtmpRing, public FrameDispatcher , public CodecInfo{
 public:
     typedef std::shared_ptr<RtmpCodec> Ptr;
     RtmpCodec(){}

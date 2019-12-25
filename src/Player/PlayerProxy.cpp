@@ -207,7 +207,7 @@ void PlayerProxy::onNoneReader(MediaSource &sender) {
     MediaSourceEvent::onNoneReader(sender);
 }
 
-class MuteAudioMaker : public FrameRingInterfaceDelegate{
+class MuteAudioMaker : public FrameDispatcher{
 public:
 	typedef std::shared_ptr<MuteAudioMaker> Ptr;
 
@@ -221,7 +221,7 @@ public:
 				auto aacFrame = std::make_shared<AACFrameNoCacheAble>((char *)MUTE_ADTS_DATA,
 																	  MUTE_ADTS_DATA_LEN,
 																	  _iAudioIndex * MUTE_ADTS_DATA_MS);
-				FrameRingInterfaceDelegate::inputFrame(aacFrame);
+				FrameDispatcher::inputFrame(aacFrame);
 			}
 		}
 	}

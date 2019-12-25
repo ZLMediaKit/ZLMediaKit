@@ -199,78 +199,14 @@ private:
 
 
 /**
- * 帧环形缓存接口类
- */
-class FrameRingInterface : public FrameWriterInterface{
-public:
-    typedef RingBuffer<Frame::Ptr> RingType;
-    typedef std::shared_ptr<FrameRingInterface> Ptr;
-
-    FrameRingInterface(){}
-    virtual ~FrameRingInterface(){}
-
-    /**
-     * 获取帧环形缓存
-     * @return
-     */
-    virtual RingType::Ptr getFrameRing() const = 0;
-
-    /**
-     * 设置帧环形缓存
-     * @param ring
-     */
-    virtual void setFrameRing(const RingType::Ptr &ring)  = 0;
-};
-
-/**
- * 帧环形缓存
- */
-class FrameRing : public FrameRingInterface{
-public:
-    typedef std::shared_ptr<FrameRing> Ptr;
-
-    FrameRing(){
-    }
-    virtual ~FrameRing(){}
-
-    /**
-     * 获取帧环形缓存
-     * @return
-     */
-    RingType::Ptr getFrameRing() const override {
-        return _frameRing;
-    }
-
-    /**
-     * 设置帧环形缓存
-     * @param ring
-     */
-    void setFrameRing(const RingType::Ptr &ring) override {
-        _frameRing = ring;
-    }
-
-    /**
-     * 输入数据帧
-     * @param frame
-     */
-    void inputFrame(const Frame::Ptr &frame) override{
-        if(_frameRing){
-            _frameRing->write(frame,frame->keyFrame());
-        }
-    }
-protected:
-    RingType::Ptr _frameRing;
-};
-
-/**
  * 支持代理转发的帧环形缓存
  */
-class FrameRingInterfaceDelegate : public FrameRing {
+class FrameDispatcher : public FrameWriterInterface {
 public:
-    typedef std::shared_ptr<FrameRingInterfaceDelegate> Ptr;
+    typedef std::shared_ptr<FrameDispatcher> Ptr;
 
-    FrameRingInterfaceDelegate(){}
-    virtual ~FrameRingInterfaceDelegate(){}
+    FrameDispatcher(){}
+    virtual ~FrameDispatcher(){}
 
     void addDelegate(const FrameWriterInterface::Ptr &delegate){
         lock_guard<mutex> lck(_mtx);
@@ -287,7 +223,6 @@ public:
      * @param frame 帧
      */
     void inputFrame(const Frame::Ptr &frame) override{
-        FrameRing::inputFrame(frame);
         lock_guard<mutex> lck(_mtx);
         for(auto &pr : _delegateMap){
             pr.second->inputFrame(frame);

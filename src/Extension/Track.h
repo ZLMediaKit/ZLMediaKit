@@ -39,7 +39,7 @@ namespace mediakit{
 /**
  * 媒体通道描述类，也支持帧输入输出
  */
-class Track : public FrameRingInterfaceDelegate , public CodecInfo{
+class Track : public FrameDispatcher , public CodecInfo{
 public:
     typedef std::shared_ptr<Track> Ptr;
     Track(){}
