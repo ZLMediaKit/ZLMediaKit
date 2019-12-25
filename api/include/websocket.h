@@ -88,7 +88,7 @@ API_EXPORT void API_CALL mk_websocket_session_set_user_data(mk_tcp_session sessi
  * @param session websocket会话对象
  * @return 用户数据指针
  */
-API_EXPORT void* API_CALL mk_websocket_session_get_user_data(mk_tcp_session session,void *user_data);
+API_EXPORT void* API_CALL mk_websocket_session_get_user_data(mk_tcp_session session);
 
 /**
  * 开启websocket服务器,需要指出的是，websocket服务器包含了Http服务器的所有功能

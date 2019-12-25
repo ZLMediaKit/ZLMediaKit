@@ -64,12 +64,15 @@ API_EXPORT void API_CALL mk_env_init(const mk_config *cfg) {
                  cfg->ssl_pwd);
 }
 
+extern void mk_websocket_server_stop();
+
 API_EXPORT void API_CALL mk_stop_all_server(){
     CLEAR_ARR(rtsp_server);
     CLEAR_ARR(rtmp_server);
     CLEAR_ARR(http_server);
     udpRtpServer = nullptr;
     tcpRtpServer = nullptr;
+    mk_websocket_server_stop();
 }
 
 API_EXPORT void API_CALL mk_env_init1(  int thread_num,
