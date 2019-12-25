@@ -35,5 +35,6 @@
 #include "player.h"
 #include "pusher.h"
 #include "events.h"
+#include "websocket.h"
 
 #endif /* MK_API_H_ */
