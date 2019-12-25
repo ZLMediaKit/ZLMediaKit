@@ -53,6 +53,7 @@ void HttpRequester::onResponseCompleted() {
     
 void HttpRequester::onDisconnect(const SockException &ex){
     if(_onResult){
+        const_cast<Parser &>(response()).setContent(_strRecvBody);
         _onResult(ex,responseStatus(),responseHeader(),_strRecvBody);
         _onResult = nullptr;
     }
@@ -67,6 +68,10 @@ void HttpRequester::clear() {
     HttpClientImp::clear();
     _strRecvBody.clear();
     _onResult = nullptr;
+}
+
+void HttpRequester::setOnResult(const HttpRequesterResult &onResult) {
+    _onResult = onResult;
 }
 
 

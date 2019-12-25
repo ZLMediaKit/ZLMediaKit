@@ -30,6 +30,8 @@
 #include "Record/MP4Recorder.h"
 #include "Network/TcpSession.h"
 #include "Http/HttpSession.h"
+#include "Http/HttpBody.h"
+#include "Http/HttpClient.h"
 #include "Rtsp/RtspSession.h"
 using namespace mediakit;
 
@@ -130,9 +132,12 @@ API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const c
     Parser *parser = (Parser *)ctx;
     return parser->getValues()[key].c_str();
 }
-API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx){
+API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, int *length){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
+    if(length){
+        *length = parser->Content().size();
+    }
     return parser->Content().c_str();
 }
 
@@ -250,9 +255,23 @@ API_EXPORT uint16_t API_CALL mk_tcp_session_local_port(const mk_tcp_session ctx)
     return session->get_local_port();
 }
 
-///////////////////////////////////////////HttpResponseInvoker/////////////////////////////////////////////
-static StrCaseMap get_http_header( const char *response_header[]){
-    StrCaseMap header;
+///////////////////////////////////////////HttpBody/////////////////////////////////////////////
+API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str,int len){
+    assert(str);
+    if(!len){
+        len = strlen(str);
+    }
+    return new HttpBody::Ptr(new HttpStringBody(string(str,len)));
+}
+
+API_EXPORT mk_http_body API_CALL mk_http_body_from_file(const char *file_path){
+    assert(file_path);
+    return new HttpBody::Ptr(new HttpFileBody(file_path));
+}
+
+template <typename C = StrCaseMap>
+static C get_http_header( const char *response_header[]){
+    C header;
     for (int i = 0; response_header[i] != NULL;) {
         auto key = response_header[i];
         auto value = response_header[i + 1];
@@ -265,10 +284,23 @@ static StrCaseMap get_http_header( const char *response_header[]){
     }
     return std::move(header);
 }
-API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invoker ctx,
-                                                     const char *response_code,
-                                                     const char *response_header[],
-                                                     const char *response_content){
+
+API_EXPORT mk_http_body API_CALL mk_http_body_from_multi_form(const char *key_val[],const char *file_path){
+    assert(key_val && file_path);
+    return new HttpBody::Ptr(new HttpMultiFormBody(get_http_header<HttpArgs>(key_val),file_path));
+}
+
+API_EXPORT void API_CALL mk_http_body_release(mk_http_body ctx){
+    assert(ctx);
+    HttpBody::Ptr *ptr = (HttpBody::Ptr *)ctx;
+    delete ptr;
+}
+
+///////////////////////////////////////////HttpResponseInvoker/////////////////////////////////////////////
+API_EXPORT void API_CALL mk_http_response_invoker_do_string(const mk_http_response_invoker ctx,
+                                                            const char *response_code,
+                                                            const char **response_header,
+                                                            const char *response_content){
     assert(ctx && response_code && response_header && response_content);
     auto header = get_http_header(response_header);
     HttpSession::HttpResponseInvoker *invoker = (HttpSession::HttpResponseInvoker *)ctx;
@@ -283,6 +315,17 @@ API_EXPORT void API_CALL mk_http_response_invoker_do_file(const mk_http_response
     auto header = get_http_header(response_header);
     HttpSession::HttpResponseInvoker *invoker = (HttpSession::HttpResponseInvoker *)ctx;
     (*invoker).responseFile(((Parser*)(request_parser))->getValues(),header,response_file_path);
+}
+
+API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invoker ctx,
+                                                     const char *response_code,
+                                                     const char **response_header,
+                                                     const mk_http_body response_body){
+    assert(ctx && response_code && response_header && response_body);
+    auto header = get_http_header(response_header);
+    HttpSession::HttpResponseInvoker *invoker = (HttpSession::HttpResponseInvoker *)ctx;
+    HttpBody::Ptr *body = (HttpBody::Ptr*) response_body;
+    (*invoker)(response_code,header,*body);
 }
 
 API_EXPORT mk_http_response_invoker API_CALL mk_http_response_invoker_clone(const mk_http_response_invoker ctx){

@@ -169,7 +169,7 @@ void API_CALL on_mk_http_request(const mk_parser parser,
                mk_parser_get_url_params(parser),
                mk_parser_get_tail(parser),
                mk_parser_get_header(parser, "User-Agent"),
-               mk_parser_get_content(parser));
+               mk_parser_get_content(parser,NULL));
 
     const char *url = mk_parser_get_url(parser);
     if(strcmp(url,"/api/test") != 0){
@@ -190,7 +190,9 @@ void API_CALL on_mk_http_request(const mk_parser parser,
                     "<center>""ZLMediaKit-4.0</center>"
                     "</body>"
                     "</html>";
-    mk_http_response_invoker_do(invoker,"200 OK",response_header,content);
+    mk_http_body body = mk_http_body_from_string(content,0);
+    mk_http_response_invoker_do(invoker, "200 OK", response_header, body);
+    mk_http_body_release(body);
 }
 
 /**
@@ -224,7 +226,7 @@ void API_CALL on_mk_http_access(const mk_parser parser,
                mk_parser_get_url_params(parser),
                mk_parser_get_tail(parser),
                mk_parser_get_header(parser,"User-Agent"),
-               mk_parser_get_content(parser));
+               mk_parser_get_content(parser,NULL));
 
     //有访问权限,每次访问文件都需要鉴权
     mk_http_access_path_invoker_do(invoker, NULL, NULL, 0);
@@ -257,7 +259,7 @@ void API_CALL on_mk_http_before_access(const mk_parser parser,
                mk_parser_get_url_params(parser),
                mk_parser_get_tail(parser),
                mk_parser_get_header(parser, "User-Agent"),
-               mk_parser_get_content(parser));
+               mk_parser_get_content(parser,NULL));
     //覆盖path的值可以重定向文件
 }
 

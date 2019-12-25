@@ -38,6 +38,7 @@ public:
     typedef std::function<void(const SockException &ex,const string &status,const HttpHeader &header,const string &strRecvBody)> HttpRequesterResult;
     HttpRequester();
     virtual ~HttpRequester();
+    void setOnResult(const HttpRequesterResult &onResult);
     void startRequester(const string &url,const HttpRequesterResult &onResult,float timeOutSecond = 10);
     void clear() override ;
 private:
