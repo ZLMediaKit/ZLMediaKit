@@ -103,7 +103,7 @@ API_EXPORT void API_CALL mk_http_requester_clear(mk_http_requester ctx);
 API_EXPORT void API_CALL mk_http_requester_release(mk_http_requester ctx);
 
 /**
- * 设置HTTP方法，批量GET/POST
+ * 设置HTTP方法，譬如GET/POST
  */
 API_EXPORT void API_CALL mk_http_requester_set_method(mk_http_requester ctx,const char *method);
 
