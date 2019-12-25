@@ -438,7 +438,7 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
 	}
     auto metadata = dec.load<AMFValue>();
 //    dumpMetadata(metadata);
-	_pPublisherSrc->onGetMetaData(metadata);
+    _pPublisherSrc->setMetaData(metadata);
 }
 
 void RtmpSession::onProcessCmd(AMFDecoder &dec) {

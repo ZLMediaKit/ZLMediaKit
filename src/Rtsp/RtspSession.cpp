@@ -265,7 +265,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 
 	_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
-	_pushSrc->onGetSDP(sdpParser.toString());
+    _pushSrc->setSdp(sdpParser.toString());
 
 	sendRtspResponse("200 OK",{"Content-Base",_strContentBase + "/"});
 }

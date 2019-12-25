@@ -64,7 +64,7 @@ private:
 	bool onCheckSDP(const string &sdp) override {
 		_pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
 		if(_pRtspMediaSrc){
-			_pRtspMediaSrc->onGetSDP(sdp);
+            _pRtspMediaSrc->setSdp(sdp);
 		}
         _delegate.reset(new RtspDemuxer(sdp));
         return true;

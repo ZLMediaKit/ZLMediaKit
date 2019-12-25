@@ -65,7 +65,7 @@ private:
     bool onCheckMeta(const AMFValue &val) override {
         _pRtmpMediaSrc = dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc);
         if(_pRtmpMediaSrc){
-            _pRtmpMediaSrc->onGetMetaData(val);
+            _pRtmpMediaSrc->setMetaData(val);
         }
         _delegate.reset(new RtmpDemuxer(val));
         return true;
