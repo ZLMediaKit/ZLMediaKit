@@ -147,7 +147,7 @@ protected:
     uint32_t _ui32TimeStamp = 0;
 };
 
-class RtpCodec : public RtpRing, public FrameRingInterfaceDelegate , public CodecInfo{
+class RtpCodec : public RtpRing, public FrameDispatcher , public CodecInfo{
 public:
     typedef std::shared_ptr<RtpCodec> Ptr;
     RtpCodec(){}
