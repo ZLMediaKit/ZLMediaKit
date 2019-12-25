@@ -49,9 +49,9 @@ public:
 
     virtual ~RtspToRtmpMediaSource() {}
 
-    virtual void onGetSDP(const string &strSdp) override {
+    virtual void setSdp(const string &strSdp) override {
         _demuxer = std::make_shared<RtspDemuxer>(strSdp);
-        RtspMediaSource::onGetSDP(strSdp);
+        RtspMediaSource::setSdp(strSdp);
     }
 
     virtual void onWrite(const RtpPacket::Ptr &rtp, bool bKeyPos) override {

@@ -54,7 +54,7 @@ public:
     }
 
     void onAllTrackReady(){
-        _mediaSouce->onGetMetaData(getMetadata());
+        _mediaSouce->setMetaData(getMetadata());
     }
 
     // 设置TrackSource

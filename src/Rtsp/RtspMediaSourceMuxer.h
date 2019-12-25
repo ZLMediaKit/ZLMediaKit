@@ -58,7 +58,7 @@ public:
     }
 
     void onAllTrackReady(){
-        _mediaSouce->onGetSDP(getSdp());
+        _mediaSouce->setSdp(getSdp());
     }
 
     // 设置TrackSource

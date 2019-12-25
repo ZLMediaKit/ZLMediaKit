@@ -57,12 +57,12 @@ public:
 	}
 	virtual ~RtmpToRtspMediaSource(){}
 
-	void onGetMetaData(const AMFValue &metadata) override {
+	void setMetaData(const AMFValue &metadata) override {
 		if(!_demuxer){
 			//在未调用onWrite前，设置Metadata能触发生成RtmpDemuxer
 			_demuxer = std::make_shared<RtmpDemuxer>(metadata);
 		}
-		RtmpMediaSource::onGetMetaData(metadata);
+		RtmpMediaSource::setMetaData(metadata);
 	}
 
 	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos = true) override {
