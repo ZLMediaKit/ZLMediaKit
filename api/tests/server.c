@@ -24,9 +24,8 @@
  * SOFTWARE.
  */
 
-#include <csignal>
-#include <cstring>
-#include <string>
+#include <signal.h>
+#include <string.h>
 #include "mediakit.h"
 
 #ifdef _WIN32
@@ -36,8 +35,6 @@
 #include "unistd.h"
 
 #endif
-
-using namespace std;
 
 #define LOG_LEV 4
 
@@ -80,7 +77,7 @@ void API_CALL on_mk_media_publish(const mk_media_info url_info,
                mk_media_info_get_params(url_info));
 
     //允许推流，并且允许转rtxp/hls/mp4
-    mk_publish_auth_invoker_do(invoker, nullptr, 1, 1, true);
+    mk_publish_auth_invoker_do(invoker, NULL, 1, 1, 1);
 }
 
 /**
@@ -108,7 +105,7 @@ void API_CALL on_mk_media_play(const mk_media_info url_info,
                mk_media_info_get_params(url_info));
 
     //允许播放
-    mk_auth_invoker_do(invoker, nullptr);
+    mk_auth_invoker_do(invoker, NULL);
 }
 
 /**
@@ -176,12 +173,12 @@ void API_CALL on_mk_http_request(const mk_parser parser,
 
     const char *url = mk_parser_get_url(parser);
     if(strcmp(url,"/api/test") != 0){
-        *consumed = false;
+        *consumed = 0;
         return;
     }
 
     //只拦截api: /api/test
-    *consumed = true;
+    *consumed = 1;
     const char *response_header[] = {"Content-Type","text/html",NULL};
     const char *content =
                     "<html>"
@@ -230,7 +227,7 @@ void API_CALL on_mk_http_access(const mk_parser parser,
                mk_parser_get_content(parser));
 
     //有访问权限,每次访问文件都需要鉴权
-    mk_http_access_path_invoker_do(invoker, nullptr, nullptr, 0);
+    mk_http_access_path_invoker_do(invoker, NULL, NULL, 0);
 }
 
 /**
@@ -291,12 +288,12 @@ void API_CALL on_mk_rtsp_get_realm(const mk_media_info url_info,
 }
 
 /**
- * 请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
+ * 请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为1，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
  * 获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码
  * @param url_info 请求rtsp url相关信息
  * @param realm rtsp认证realm
  * @param user_name rtsp认证用户名
- * @param must_no_encrypt 如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
+ * @param must_no_encrypt 如果为1，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
  * @param invoker  执行invoker返回rtsp专属认证的密码
  * @param sender rtsp客户端信息
  */
@@ -323,7 +320,7 @@ void API_CALL on_mk_rtsp_auth(const mk_media_info url_info,
                realm,user_name,(int)must_no_encrypt);
 
     //rtsp播放用户名跟密码一致
-    mk_rtsp_auth_invoker_do(invoker,false,user_name);
+    mk_rtsp_auth_invoker_do(invoker,0,user_name);
 }
 
 /**
@@ -368,7 +365,7 @@ void API_CALL on_mk_shell_login(const char *user_name,
               mk_tcp_session_peer_port(sender),
               user_name, passwd);
     //允许登录shell
-    mk_auth_invoker_do(invoker, nullptr);
+    mk_auth_invoker_do(invoker, NULL);
 }
 
 /**
@@ -392,11 +389,19 @@ void API_CALL on_mk_flow_report(const mk_media_info url_info,
               (int)total_bytes, (int)total_seconds, (int)is_player);
 }
 
+static int flag = 1;
+static void on_exit(int sig){
+    flag = 0;
+}
 int main(int argc, char *argv[]) {
-    mk_env_init1(0, 0, 1, (string(argv[0]) + ".ini").data(), 0, nullptr, nullptr);
-    mk_http_server_start(80, false);
-    mk_rtsp_server_start(554, false);
-    mk_rtmp_server_start(1935, false);
+    char ini_path[2048] = {0};
+    strcpy(ini_path,argv[0]);
+    strcat(ini_path,".ini");
+
+    mk_env_init1(0, 0, 1, ini_path, 0, NULL, NULL);
+    mk_http_server_start(80, 0);
+    mk_rtsp_server_start(554, 0);
+    mk_rtmp_server_start(1935, 0);
     mk_shell_server_start(9000);
     mk_rtp_server_start(10000);
 
@@ -417,8 +422,8 @@ int main(int argc, char *argv[]) {
     };
     mk_events_listen(&events);
 
-    static bool flag = true;
-    signal(SIGINT, [](int) { flag = false; });// 设置退出信号
+
+    signal(SIGINT, on_exit );// 设置退出信号
     while (flag) {
 #ifdef _WIN32
         Sleep(1000);
