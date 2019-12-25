@@ -73,7 +73,7 @@ API_EXPORT const char* API_CALL mk_parser_get_tail(const mk_parser ctx);
 //Parser::getValues()["key"],获取HTTP头中特定字段
 API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const char *key);
 //Parser::Content(),获取HTTP body
-API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx);
+API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, int *length);
 
 ///////////////////////////////////////////MediaInfo/////////////////////////////////////////////
 //MediaInfo对象的C映射
@@ -137,9 +137,48 @@ API_EXPORT uint16_t API_CALL mk_tcp_session_peer_port(const mk_tcp_session ctx);
 //TcpSession::get_local_port()
 API_EXPORT uint16_t API_CALL mk_tcp_session_local_port(const mk_tcp_session ctx);
 
+///////////////////////////////////////////HttpBody/////////////////////////////////////////////
+//HttpBody对象的C映射
+typedef void* mk_http_body;
+/**
+ * 生成HttpStringBody
+ * @param str 字符串指针
+ * @param len 字符串长度，为0则用strlen获取
+ */
+API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str,int len);
+
+/**
+ * 生成HttpFileBody
+ * @param file_path 文件完整路径
+ */
+API_EXPORT mk_http_body API_CALL mk_http_body_from_file(const char *file_path);
+
+/**
+ * 生成HttpMultiFormBody
+ * @param key_val 参数key-value
+ * @param file_path 文件完整路径
+ */
+API_EXPORT mk_http_body API_CALL mk_http_body_from_multi_form(const char *key_val[],const char *file_path);
+
+/**
+ * 销毁HttpBody
+ */
+API_EXPORT void API_CALL mk_http_body_release(mk_http_body ctx);
+
 ///////////////////////////////////////////HttpResponseInvoker/////////////////////////////////////////////
 //HttpSession::HttpResponseInvoker对象的C映射
 typedef void* mk_http_response_invoker;
+
+/**
+ * HttpSession::HttpResponseInvoker(const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body);
+ * @param response_code 譬如200 OK
+ * @param response_header 返回的http头，譬如 {"Content-Type","text/html",NULL} 必须以NULL结尾
+ * @param response_body body对象
+ */
+API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invoker ctx,
+                                                     const char *response_code,
+                                                     const char **response_header,
+                                                     const mk_http_body response_body);
 
 /**
  * HttpSession::HttpResponseInvoker(const string &codeOut, const StrCaseMap &headerOut, const string &body);
@@ -147,13 +186,13 @@ typedef void* mk_http_response_invoker;
  * @param response_header 返回的http头，譬如 {"Content-Type","text/html",NULL} 必须以NULL结尾
  * @param response_content 返回的content部分，譬如一个网页内容
  */
-API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invoker ctx,
-                                                     const char *response_code,
-                                                     const char *response_header[],
-                                                     const char *response_content);
+API_EXPORT void API_CALL mk_http_response_invoker_do_string(const mk_http_response_invoker ctx,
+                                                            const char *response_code,
+                                                            const char **response_header,
+                                                            const char *response_content);
 /**
  * HttpSession::HttpResponseInvoker(const StrCaseMap &requestHeader,const StrCaseMap &responseHeader,const string &filePath);
- * @param request_parser 请求事件中的mk_parser对象，用于提取其中http头中的Range字段
+ * @param request_parser 请求事件中的mk_parser对象，用于提取其中http头中的Range字段，通过该字段先fseek然后再发送文件部分片段
  * @param response_header 返回的http头，譬如 {"Content-Type","text/html",NULL} 必须以NULL结尾
  * @param response_file_path 返回的content部分，譬如/path/to/html/file
  */

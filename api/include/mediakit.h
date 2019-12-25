@@ -28,7 +28,7 @@
 #define MK_API_H_
 
 #include "common.h"
-#include "httpdownloader.h"
+#include "httpclient.h"
 #include "media.h"
 #include "proxyplayer.h"
 #include "recorder.h"
