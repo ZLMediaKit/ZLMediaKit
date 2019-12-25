@@ -136,6 +136,10 @@ API_EXPORT const char* API_CALL mk_tcp_session_local_ip(const mk_tcp_session ctx
 API_EXPORT uint16_t API_CALL mk_tcp_session_peer_port(const mk_tcp_session ctx);
 //TcpSession::get_local_port()
 API_EXPORT uint16_t API_CALL mk_tcp_session_local_port(const mk_tcp_session ctx);
+//TcpSession::send()
+API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx,const char *data,int len);
+//切换到该对象所在线程后再TcpSession::send()
+API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const char *data,int len);
 
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
 //HttpBody对象的C映射
