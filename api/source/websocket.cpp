@@ -81,7 +81,7 @@ API_EXPORT void API_CALL mk_websocket_session_set_user_data(mk_tcp_session sessi
     obj->_user_data = user_data;
 }
 
-API_EXPORT void* API_CALL mk_websocket_session_get_user_data(mk_tcp_session session,void *user_data){
+API_EXPORT void* API_CALL mk_websocket_session_get_user_data(mk_tcp_session session){
     assert(session);
     WebSocketSessionImp *obj = (WebSocketSessionImp *)session;
     return obj->_user_data;
@@ -103,3 +103,8 @@ API_EXPORT uint16_t API_CALL mk_websocket_server_start(uint16_t port, int ssl){
         return 0;
     }
 }
+
+void mk_websocket_server_stop(){
+    CLEAR_ARR(websocket_server);
+}
+
