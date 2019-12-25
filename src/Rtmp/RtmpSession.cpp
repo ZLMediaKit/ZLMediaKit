@@ -437,8 +437,7 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
 		throw std::runtime_error("can only set metadata");
 	}
     auto metadata = dec.load<AMFValue>();
-    //dumpMetadata(metadata);
-    _metadata_got = true;
+//    dumpMetadata(metadata);
 	_pPublisherSrc->onGetMetaData(metadata);
 }
 
@@ -495,11 +494,6 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
             int64_t dts_out;
             _stamp[chunkData.typeId % 2].revise(chunkData.timeStamp, chunkData.timeStamp, dts_out, dts_out, true);
             chunkData.timeStamp = dts_out;
-        }
-        if(!_metadata_got && !chunkData.isCfgFrame()){
-            //有些rtmp推流客户端不产生metadata，我们产生一个默认的metadata，目的是为了触发注册操作
-            _metadata_got = true;
-            _pPublisherSrc->onGetMetaData(TitleMeta().getMetadata());
         }
         _pPublisherSrc->onWrite(std::make_shared<RtmpPacket>(std::move(chunkData)));
 	}
