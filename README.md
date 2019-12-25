@@ -22,8 +22,8 @@ git submodule update --init
 - 支持linux、macos、ios、android、windows平台。
 - 支持画面秒开(GOP缓存)、极低延时([500毫秒内，最低可达100毫秒](https://github.com/zlmediakit/ZLMediaKit/wiki/%E5%BB%B6%E6%97%B6%E6%B5%8B%E8%AF%95))。
 - [ZLMediaKit高并发实现原理](https://github.com/xiongziliang/ZLMediaKit/wiki/ZLMediaKit%E9%AB%98%E5%B9%B6%E5%8F%91%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)。
-- 提供完善的标准C API,可以作SDK用，或供其他语言调用。
-- 提供完整的MediaServer服务器，可以免开发直接部署为商用服务器。
+- 提供完善的标准[C API](https://github.com/xiongziliang/ZLMediaKit/tree/master/api/include),可以作SDK用，或供其他语言调用。
+- 提供完整的[MediaServer](https://github.com/xiongziliang/ZLMediaKit/tree/master/server)服务器，可以免开发直接部署为商用服务器。
 
 ## 项目定位
 - 移动嵌入式跨平台流媒体解决方案。
