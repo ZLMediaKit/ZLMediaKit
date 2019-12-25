@@ -96,7 +96,7 @@ void API_CALL on_mk_websocket_session_err(mk_tcp_session session,int code,const 
 }
 
 static int flag = 1;
-static void on_exit(int sig){
+static void s_on_exit(int sig){
     flag = 0;
 }
 int main(int argc, char *argv[]) {
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     mk_websocket_events_listen(&events);
     mk_websocket_server_start(80,0);
 
-    signal(SIGINT, on_exit );// 设置退出信号
+    signal(SIGINT, s_on_exit );// 设置退出信号
     while (flag) {
 #ifdef _WIN32
         Sleep(1000);
