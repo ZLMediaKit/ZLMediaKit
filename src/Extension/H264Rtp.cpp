@@ -76,9 +76,7 @@ H264Frame::Ptr  H264RtpDecoder::obtainFrame() {
 }
 
 bool H264RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
-    key_pos = decodeRtp(rtp);
-    RtpCodec::inputRtp(rtp, key_pos);
-    return key_pos;
+    return decodeRtp(rtp);
 }
 
 bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
@@ -232,8 +230,6 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ui32Ssrc,
 }
 
 void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    RtpCodec::inputFrame(frame);
-
     GET_CONFIG(uint32_t,cycleMS,Rtp::kCycleMS);
     auto pcData = frame->data() + frame->prefixSize();
     auto uiStamp = frame->stamp();

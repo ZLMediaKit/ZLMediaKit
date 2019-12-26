@@ -41,9 +41,7 @@ H264Frame::Ptr  H264RtmpDecoder::obtainFrame() {
 }
 
 bool H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos) {
-    key_pos = decodeRtmp(rtmp);
-    RtmpCodec::inputRtmp(rtmp, key_pos);
-    return key_pos;
+    return decodeRtmp(rtmp);
 }
 
 bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
@@ -105,8 +103,6 @@ H264RtmpEncoder::H264RtmpEncoder(const Track::Ptr &track) {
 }
 
 void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
-    RtmpCodec::inputFrame(frame);
-
     auto pcData = frame->data() + frame->prefixSize();
     auto iLen = frame->size() - frame->prefixSize();
     auto type = H264_TYPE(((uint8_t*)pcData)[0]);

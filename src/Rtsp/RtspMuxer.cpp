@@ -35,7 +35,7 @@ RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title){
     } else{
         _sdp = title->getSdp();
     }
-    _rtpRing = std::make_shared<RtpRingInterface::RingType>();
+    _rtpRing = std::make_shared<RtpRing::RingType>();
 }
 
 void RtspMuxer::addTrack(const Track::Ptr &track) {
@@ -69,7 +69,7 @@ string RtspMuxer::getSdp() {
     return _sdp;
 }
 
-RtpRingInterface::RingType::Ptr RtspMuxer::getRtpRing() const {
+RtpRing::RingType::Ptr RtspMuxer::getRtpRing() const {
     return _rtpRing;
 }
 

@@ -35,7 +35,7 @@ RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
     }else{
         _metadata = title->getMetadata();
     }
-    _rtmpRing = std::make_shared<RtmpRingInterface::RingType>();
+    _rtmpRing = std::make_shared<RtmpRing::RingType>();
 }
 
 void RtmpMuxer::addTrack(const Track::Ptr &track) {
@@ -82,7 +82,7 @@ const AMFValue &RtmpMuxer::getMetadata() const {
     return _metadata;
 }
 
-RtmpRingInterface::RingType::Ptr RtmpMuxer::getRtmpRing() const {
+RtmpRing::RingType::Ptr RtmpMuxer::getRtmpRing() const {
     return _rtmpRing;
 }
 
