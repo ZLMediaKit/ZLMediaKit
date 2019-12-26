@@ -106,6 +106,10 @@ public:
 		_muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), enableRtsp, false, enableHls, enableMP4);
 		_muxer->setListener(getListener());
 		_muxer->setTrackListener(this);
+        for(auto &track : _demuxer->getTracks(false)){
+            _muxer->addTrack(track);
+            track->addDelegate(_muxer);
+        }
 	}
 
 	/**
