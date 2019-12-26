@@ -156,7 +156,7 @@ protected:
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
-    Listener *_listener;
+    Listener *_listener = nullptr;
 };
 
 

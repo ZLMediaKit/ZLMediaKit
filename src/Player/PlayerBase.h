@@ -282,7 +282,7 @@ public:
 protected:
 	void onAddTrack(const Track::Ptr &track);
 protected:
-	Listener *_listener;
+	Listener *_listener = nullptr;
 	AudioTrack::Ptr _audioTrack;
 	VideoTrack::Ptr _videoTrack;
 	Ticker _ticker;
