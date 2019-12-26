@@ -40,8 +40,6 @@ AACFrame::Ptr AACRtmpDecoder::obtainFrame() {
 }
 
 bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool key_pos) {
-    RtmpCodec::inputRtmp(pkt, false);
-
     if (pkt->isCfgFrame()) {
         _aac_cfg = pkt->getAacCfg();
         return false;
@@ -79,8 +77,6 @@ AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track) {
 }
 
 void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
-    RtmpCodec::inputFrame(frame);
-
     if(_aac_cfg.empty()){
         if(frame->prefixSize() >= 7){
             //包含adts头,从adts头获取aac配置信息

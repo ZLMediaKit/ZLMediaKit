@@ -40,8 +40,6 @@ AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
 }
 
 void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    RtpCodec::inputFrame(frame);
-
     GET_CONFIG(uint32_t, cycleMS, Rtp::kCycleMS);
     auto uiStamp = frame->stamp();
     auto pcData = frame->data() + frame->prefixSize();
@@ -102,8 +100,6 @@ AACFrame::Ptr AACRtpDecoder::obtainFrame() {
 }
 
 bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
-    RtpCodec::inputRtp(rtppack, false);
-
 	// 获取rtp数据长度
     int length = rtppack->size() - rtppack->offset;
 

@@ -76,9 +76,7 @@ H265Frame::Ptr  H265RtpDecoder::obtainFrame() {
 }
 
 bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
-    key_pos = decodeRtp(rtp);
-    RtpCodec::inputRtp(rtp, key_pos);
-    return key_pos;
+    return decodeRtp(rtp);
 }
 
 bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
@@ -167,8 +165,6 @@ H265RtpEncoder::H265RtpEncoder(uint32_t ui32Ssrc,
 }
 
 void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    RtpCodec::inputFrame(frame);
-
     GET_CONFIG(uint32_t,cycleMS,Rtp::kCycleMS);
     uint8_t *pcData = (uint8_t*)frame->data() + frame->prefixSize();
     auto uiStamp = frame->stamp();

@@ -56,7 +56,7 @@ public:
      * 获取rtp环形缓存
      * @return
      */
-    RtpRingInterface::RingType::Ptr getRtpRing() const;
+    RtpRing::RingType::Ptr getRtpRing() const;
 
     /**
      * 添加ready状态的track
@@ -76,7 +76,7 @@ public:
 private:
     string _sdp;
     RtpCodec::Ptr _encoder[TrackMax];
-    RtpRingInterface::RingType::Ptr _rtpRing;
+    RtpRing::RingType::Ptr _rtpRing;
 };
 
 
