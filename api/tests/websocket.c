@@ -48,6 +48,7 @@ typedef struct {
 void API_CALL on_mk_websocket_session_create(mk_tcp_session session){
     log_printf(LOG_LEV,"%s %d",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session));
     websocket_user_data *user_data = malloc(sizeof(websocket_user_data));
+    user_data->_session = session;
     mk_websocket_session_set_user_data(session,user_data);
 }
 
