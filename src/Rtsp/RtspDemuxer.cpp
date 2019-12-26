@@ -34,7 +34,7 @@ using namespace std;
 
 namespace mediakit {
 
-RtspDemuxer::RtspDemuxer(const string& sdp) {
+void RtspDemuxer::loadSdp(const string &sdp){
 	loadSdp(SdpParser(sdp));
 }
 

@@ -62,10 +62,18 @@ public:
 	~RtmpMediaSourceImp() = default;
 
 	/**
+	 * 设置metadata
+	 */
+	void setMetaData(const AMFValue &metadata) override{
+		_demuxer->loadMetaData(metadata);
+		RtmpMediaSource::setMetaData(metadata);
+	}
+
+	/**
 	 * 输入rtmp并解析
 	 */
 	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos = true) override {
-		_demuxer->inputRtmp(pkt);
+		key_pos = _demuxer->inputRtmp(pkt);
 		RtmpMediaSource::onWrite(pkt,key_pos);
 	}
 
@@ -95,7 +103,7 @@ public:
 	 */
 	void setProtocolTranslation(bool enableRtsp, bool enableHls, bool enableMP4) {
 		//不重复生成rtmp
-		_muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), 0, enableRtsp, false, enableHls, enableMP4);
+		_muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), enableRtsp, false, enableHls, enableMP4);
 		_muxer->setListener(getListener());
 		_muxer->setTrackListener(this);
 	}
