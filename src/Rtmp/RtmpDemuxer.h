@@ -43,11 +43,10 @@ class RtmpDemuxer : public Demuxer{
 public:
 	typedef std::shared_ptr<RtmpDemuxer> Ptr;
 
-	/**
-	 * 等效于RtmpDemuxer(AMFValue(AMF_NULL))
-	 */
-	RtmpDemuxer(){}
-	virtual ~RtmpDemuxer(){};
+	RtmpDemuxer() = default;
+	virtual ~RtmpDemuxer() = default;
+
+	void loadMetaData(const AMFValue &metadata);
 
 	/**
 	 * 开始解复用

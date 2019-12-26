@@ -29,6 +29,21 @@
 
 namespace mediakit {
 
+void RtmpDemuxer::loadMetaData(const AMFValue &val){
+    try {
+        makeVideoTrack(val["videocodecid"]);
+        makeAudioTrack(val["audiocodecid"]);
+        val.object_for_each([&](const string &key, const AMFValue &val) {
+            if (key == "duration") {
+                _fDuration = val.as_number();
+                return;
+            }
+        });
+    }catch (std::exception &ex){
+        WarnL << ex.what();
+    }
+}
+
 bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->typeId) {
         case MSG_VIDEO: {
