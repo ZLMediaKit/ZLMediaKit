@@ -89,7 +89,7 @@ onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
     mINI::Instance()[kStreamNoneReaderDelayMS] = 5 * 1000;
     mINI::Instance()[kMaxStreamWaitTimeMS] = 5 * 1000;
-    mINI::Instance()[kEnableVhost] = 1;
+    mINI::Instance()[kEnableVhost] = 0;
 	mINI::Instance()[kUltraLowDelay] = 1;
 	mINI::Instance()[kAddMuteAudio] = 1;
 	mINI::Instance()[kResetWhenRePlay] = 1;
