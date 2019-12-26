@@ -36,7 +36,7 @@
 #endif
 
 #define LOG_LEV 4
-#define TCP_TYPE mk_type_wss
+#define TCP_TYPE mk_type_ws
 
 static int flag = 1;
 static void s_on_exit(int sig){
@@ -190,7 +190,7 @@ void test_client(){
 
     mk_tcp_client_connect(client, "121.40.165.18", 8800, 3);
     //你可以连接127.0.0.1 80测试
-    //mk_tcp_client_connect(client, "127.0.0.1", 80, 3);
+//    mk_tcp_client_connect(client, "127.0.0.1", 80, 3);
 }
 
 int main(int argc, char *argv[]) {
