@@ -241,6 +241,13 @@ protected:
 
 class Demuxer : public PlayerBase{
 public:
+	class Listener{
+	public:
+		Listener() = default;
+		virtual ~Listener() = default;
+		virtual void onAddTrack(const Track::Ptr &track) = 0;
+	};
+
 	Demuxer(){};
 	virtual ~Demuxer(){};
 
@@ -267,7 +274,15 @@ public:
 	 * @return 节目总时长,单位秒
 	 */
 	float getDuration() const override;
+
+	/**
+	 * 设置track监听器
+	 */
+	void setTrackListener(Listener *listener);
 protected:
+	void onAddTrack(const Track::Ptr &track);
+protected:
+	Listener *_listener;
 	AudioTrack::Ptr _audioTrack;
 	VideoTrack::Ptr _videoTrack;
 	Ticker _ticker;

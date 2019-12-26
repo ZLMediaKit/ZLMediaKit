@@ -169,7 +169,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             shutdown(SockException(Err_shutdown,errMsg));
             return;
         }
-        _pPublisherSrc.reset(new RtmpToRtspMediaSource(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid));
+        _pPublisherSrc.reset(new RtmpMediaSourceImp(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid));
         _pPublisherSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
         //设置转协议
         _pPublisherSrc->setProtocolTranslation(enableRtxp,enableHls,enableMP4);

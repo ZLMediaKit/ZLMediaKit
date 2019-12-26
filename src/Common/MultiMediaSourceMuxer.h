@@ -33,8 +33,14 @@
 
 class MultiMediaSourceMuxer : public MediaSink , public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
-    typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
+    class Listener{
+    public:
+        Listener() = default;
+        virtual ~Listener() = default;
+        virtual void onAllTrackReady() = 0;
+    };
 
+    typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
     MultiMediaSourceMuxer(const string &vhost,
                           const string &strApp,
                           const string &strId,
@@ -100,6 +106,9 @@ public:
         }
     }
 
+    void setTrackListener(Listener *listener){
+        _listener = listener;
+    }
 protected:
     /**
      * 添加音视频媒体
@@ -139,10 +148,15 @@ protected:
             _rtsp->setTrackSource(shared_from_this());
             _rtsp->onAllTrackReady();
         }
+
+        if(_listener){
+            _listener->onAllTrackReady();
+        }
     }
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
+    Listener *_listener;
 };
 
 

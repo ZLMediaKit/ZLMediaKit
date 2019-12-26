@@ -40,7 +40,7 @@
 #include "RtspMediaSource.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
-#include "RtspToRtmpMediaSource.h"
+#include "RtspMediaSourceImp.h"
 #include "Common/Stamp.h"
 
 using namespace std;
@@ -231,7 +231,7 @@ private:
 	//是否开始发送rtp
     bool _enableSendRtp;
     //rtsp推流相关
-	RtspToRtmpMediaSource::Ptr _pushSrc;
+	RtspMediaSourceImp::Ptr _pushSrc;
 	//rtcp统计,trackid idx 为数组下标
 	RtcpCounter _aRtcpCnt[2];
 	//rtcp发送时间,trackid idx 为数组下标
