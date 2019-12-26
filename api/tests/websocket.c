@@ -37,7 +37,7 @@
 #define LOG_LEV 4
 
 typedef struct {
-    mk_tcp_session *_session;
+    mk_tcp_session _session;
     //下面你可以夹杂你的私货数据
     char your_some_useful_data[1024];
 } websocket_user_data;
