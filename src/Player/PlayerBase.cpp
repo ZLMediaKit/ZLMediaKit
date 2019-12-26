@@ -110,4 +110,15 @@ vector<Track::Ptr> Demuxer::getTracks(bool trackReady) const {
 float Demuxer::getDuration() const {
 	return _fDuration;
 }
+
+void Demuxer::onAddTrack(const Track::Ptr &track){
+	if(_listener){
+		_listener->onAddTrack(track);
+	}
+}
+
+void Demuxer::setTrackListener(Demuxer::Listener *listener) {
+	_listener = listener;
+}
+
 } /* namespace mediakit */

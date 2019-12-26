@@ -220,14 +220,12 @@ private:
         //保存NoticeCenter的强引用，防止在MediaSourceWatcher单例释放前释放NoticeCenter单例
         _notice_center = NoticeCenter::Instance().shared_from_this();
         _notice_center->addListener(this,Broadcast::kBroadcastMediaChanged,[this](BroadcastMediaChangedArgs){
-            if(bRegist){
-                onRegist(sender);
-            }else{
-                onUnRegist(sender);
+            if(!bRegist){
+                removeRecorder(sender);
             }
         });
         _notice_center->addListener(this,Broadcast::kBroadcastMediaResetTracks,[this](BroadcastMediaResetTracksArgs){
-            onRegist(sender);
+            addRecorder(sender);
         });
     }
 
@@ -236,7 +234,7 @@ private:
         _notice_center->delListener(this,Broadcast::kBroadcastMediaResetTracks);
     }
 
-    void onRegist(MediaSource &sender){
+    void addRecorder(MediaSource &sender){
         auto key = getRecorderKey(sender.getVhost(),sender.getApp(),sender.getId());
         lock_guard<decltype(_recorder_mtx)> lck(_recorder_mtx);
         auto it = _recorder_map.find(key);
@@ -247,14 +245,14 @@ private:
 
         if(!it->second->isRecording() || it->second->getSchema() == sender.getSchema()){
             // 绑定的协议一致或者并未正在录制则替换tracks
-            auto tracks = sender.getTracks(true);
+            auto tracks = sender.getTracks(needTrackReady());
             if (!tracks.empty()) {
                 it->second->attachTracks(std::move(tracks),sender.getSchema());
             }
         }
     }
 
-    void onUnRegist(MediaSource &sender){
+    void removeRecorder(MediaSource &sender){
         auto key = getRecorderKey(sender.getVhost(),sender.getApp(),sender.getId());
         lock_guard<decltype(_recorder_mtx)> lck(_recorder_mtx);
         auto it = _recorder_map.find(key);
@@ -284,7 +282,7 @@ private:
     vector<Track::Ptr> findTracks(const string &vhost, const string &app, const string &stream_id,string &schema) {
         auto src = MediaSource::find(RTMP_SCHEMA, vhost, app, stream_id);
         if (src) {
-            auto ret = src->getTracks(true);
+            auto ret = src->getTracks(needTrackReady());
             if (!ret.empty()) {
                 schema = RTMP_SCHEMA;
                 return std::move(ret);
@@ -294,7 +292,7 @@ private:
         src = MediaSource::find(RTSP_SCHEMA, vhost, app, stream_id);
         if (src) {
             schema = RTSP_SCHEMA;
-            return src->getTracks(true);
+            return src->getTracks(needTrackReady());
         }
         return vector<Track::Ptr>();
     }
@@ -319,6 +317,20 @@ private:
             WarnL << "can not create recorder of type: " << type;
         }
         return ret;
+    }
+
+    /**
+     * 有些录制类型不需要track就绪即可录制
+     */
+    bool needTrackReady(){
+        switch (type){
+            case Recorder::type_hls:
+                return false;
+            case Recorder::type_mp4:
+                return true;
+            default:
+                return true;
+        }
     }
 private:
     recursive_mutex _recorder_mtx;

@@ -31,70 +31,58 @@
 #include "RtspMediaSource.h"
 #include "RtspDemuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
-
 using namespace toolkit;
 
 namespace mediakit {
-
-class RtspToRtmpMediaSource : public RtspMediaSource {
+class RtspMediaSourceImp : public RtspMediaSource, public Demuxer::Listener , public MultiMediaSourceMuxer::Listener  {
 public:
-    typedef std::shared_ptr<RtspToRtmpMediaSource> Ptr;
+    typedef std::shared_ptr<RtspMediaSourceImp> Ptr;
 
-    RtspToRtmpMediaSource(const string &vhost,
-                          const string &app,
-                          const string &id,
-                          int ringSize = 0)
-            : RtspMediaSource(vhost, app, id,ringSize) {
-    }
+    /**
+	 * 构造函数
+	 * @param vhost 虚拟主机
+	 * @param app 应用名
+	 * @param id 流id
+	 * @param ringSize 环形缓存大小
+	 */
+    RtspMediaSourceImp(const string &vhost, const string &app, const string &id, int ringSize = 0) : RtspMediaSource(vhost, app, id,ringSize) {}
+    ~RtspMediaSourceImp() = default;
 
-    virtual ~RtspToRtmpMediaSource() {}
-
-    virtual void setSdp(const string &strSdp) override {
+    /**
+     * 设置sdp
+     */
+    void setSdp(const string &strSdp) override {
         _demuxer = std::make_shared<RtspDemuxer>(strSdp);
+        _demuxer->setTrackListener(this);
         RtspMediaSource::setSdp(strSdp);
     }
 
-    virtual void onWrite(const RtpPacket::Ptr &rtp, bool bKeyPos) override {
+    /**
+     * 输入rtp并解析
+     */
+    void onWrite(const RtpPacket::Ptr &rtp, bool key_pos) override {
         if (_demuxer) {
-            bKeyPos = _demuxer->inputRtp(rtp);
-            if (!_muxer && _demuxer->isInited(2000)) {
-                _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(),
-                                                                 getApp(),
-                                                                 getId(),
-                                                                 _demuxer->getDuration(),
-                                                                 false,//不重复生成rtsp
-                                                                 _enableRtmp,
-                                                                 _enableHls,
-                                                                 _enableMP4);
-                for (auto &track : _demuxer->getTracks(false)) {
-                    _muxer->addTrack(track);
-                    track->addDelegate(_muxer);
-                }
-                _muxer->setListener(getListener());
-            }
+            key_pos = _demuxer->inputRtp(rtp);
         }
-        RtspMediaSource::onWrite(rtp, bKeyPos);
+        RtspMediaSource::onWrite(rtp, key_pos);
     }
 
+    /**
+	 * 设置监听器
+	 * @param listener
+	 */
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override {
         RtspMediaSource::setListener(listener);
         if(_muxer){
             _muxer->setListener(listener);
         }
     }
-    int readerCount() override {
-        return RtspMediaSource::readerCount() + (_muxer ? _muxer->readerCount() : 0);
-    }
 
     /**
-     * 获取track
-     * @return
-     */
-    vector<Track::Ptr> getTracks(bool trackReady) const override {
-        if(!_demuxer){
-            return this->RtspMediaSource::getTracks(trackReady);
-        }
-        return _demuxer->getTracks(trackReady);
+	 * 播放器总数
+	 */
+    int readerCount() override {
+        return RtspMediaSource::readerCount() + (_muxer ? _muxer->readerCount() : 0);
     }
 
     /**
@@ -104,19 +92,32 @@ public:
 	 * @param enableMP4  是否mp4录制
 	 */
     void setProtocolTranslation(bool enableRtmp,bool enableHls,bool enableMP4){
-//        DebugL << enableRtmp << " " << enableHls << " " << enableMP4;
-        _enableRtmp = enableRtmp;
-        _enableHls = enableHls;
-        _enableMP4 = enableMP4;
+        //不重复生成rtsp
+        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), 0, false, enableRtmp, enableHls, enableMP4);
+        _muxer->setListener(getListener());
+        _muxer->setTrackListener(this);
+    }
+
+    /**
+	 * _demuxer触发的添加Track事件
+	 */
+    void onAddTrack(const Track::Ptr &track) override {
+        if(_muxer){
+            _muxer->addTrack(track);
+            track->addDelegate(_muxer);
+        }
+    }
+
+    /**
+     * _muxer触发的所有Track就绪的事件
+     */
+    void onAllTrackReady() override{
+        setTrackSource(_muxer);
     }
 private:
     RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
-    bool _enableHls = true;
-    bool _enableMP4 = false;
-    bool _enableRtmp = true;
 };
-
 } /* namespace mediakit */
 
 #endif /* SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_ */

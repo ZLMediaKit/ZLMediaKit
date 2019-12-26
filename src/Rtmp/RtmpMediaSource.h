@@ -122,9 +122,9 @@ public:
 	/**
 	 * 输入rtmp包
 	 * @param pkt rtmp包
-	 * @param isKey 是否为关键帧
+	 * @param key 是否为关键帧
 	 */
-	void onWrite(const RtmpPacket::Ptr &pkt, bool isKey = true) override {
+	void onWrite(const RtmpPacket::Ptr &pkt, bool key = true) override {
 		lock_guard<recursive_mutex> lock(_mtx);
 		if (pkt->isCfgFrame()) {
 			_config_frame_map[pkt->typeId] = pkt;

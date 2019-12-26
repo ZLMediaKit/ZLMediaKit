@@ -263,7 +263,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     _strSession = makeRandStr(12);
     _aTrackInfo = sdpParser.getAvailableTrack();
 
-	_pushSrc = std::make_shared<RtspToRtmpMediaSource>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
+	_pushSrc = std::make_shared<RtspMediaSourceImp>(_mediaInfo._vhost,_mediaInfo._app,_mediaInfo._streamid);
 	_pushSrc->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
     _pushSrc->setSdp(sdpParser.toString());
 
