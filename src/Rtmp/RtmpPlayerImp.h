@@ -67,6 +67,8 @@ private:
         if(_pRtmpMediaSrc){
             _pRtmpMediaSrc->setMetaData(val);
         }
+        _delegate.reset(new RtmpDemuxer);
+        _delegate->loadMetaData(val);
         return true;
     }
     void onMediaData(const RtmpPacket::Ptr &chunkData) override {
