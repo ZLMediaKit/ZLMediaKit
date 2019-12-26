@@ -27,6 +27,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "mediakit.h"
 #ifdef _WIN32
 #include "windows.h"
@@ -35,42 +36,37 @@
 #endif
 
 #define LOG_LEV 4
+#define TCP_TYPE mk_type_wss
 
+static int flag = 1;
+static void s_on_exit(int sig){
+    flag = 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 typedef struct {
     mk_tcp_session _session;
     //下面你可以夹杂你的私货数据
     char your_some_useful_data[1024];
-} websocket_user_data;
+} tcp_session_user_data;
 /**
- * 当websocket客户端连接服务器时触发
+ * 当tcp客户端连接服务器时触发
  * @param session 会话处理对象
  */
-void API_CALL on_mk_websocket_session_create(mk_tcp_session session){
+void API_CALL on_mk_tcp_session_create(uint16_t server_port,mk_tcp_session session){
     log_printf(LOG_LEV,"%s %d",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session));
-    websocket_user_data *user_data = malloc(sizeof(websocket_user_data));
+    tcp_session_user_data *user_data = malloc(sizeof(tcp_session_user_data));
     user_data->_session = session;
-    mk_websocket_session_set_user_data(session,user_data);
+    mk_tcp_session_set_user_data(session,user_data);
 }
 
 /**
- * session会话对象销毁时触发
- * 请在本回调中清理释放你的用户数据
- * 本事件中不能调用mk_tcp_session_send/mk_tcp_session_send_safe函数
- * @param session 会话处理对象
- */
-void API_CALL on_mk_websocket_session_destory(mk_tcp_session session){
-    log_printf(LOG_LEV,"%s %d",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session));
-    websocket_user_data *user_data = (websocket_user_data *)mk_websocket_session_get_user_data(session);
-    free(user_data);
-}
-
-/**
- * 收到websocket客户端发过来的数据
+ * 收到tcp客户端发过来的数据
  * @param session 会话处理对象
  * @param data 数据指针
  * @param len 数据长度
  */
-void API_CALL on_mk_websocket_session_data(mk_tcp_session session,const char *data,int len){
+void API_CALL on_mk_tcp_session_data(uint16_t server_port,mk_tcp_session session,const char *data,int len){
     log_printf(LOG_LEV,"from %s %d, data[%d]: %s",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session), len,data);
     mk_tcp_session_send(session,"echo:",0);
     mk_tcp_session_send(session,data,len);
@@ -80,42 +76,132 @@ void API_CALL on_mk_websocket_session_data(mk_tcp_session session,const char *da
  * 每隔2秒的定时器，用于管理超时等任务
  * @param session 会话处理对象
  */
-void API_CALL on_mk_websocket_session_manager(mk_tcp_session session){
+void API_CALL on_mk_tcp_session_manager(uint16_t server_port,mk_tcp_session session){
     log_printf(LOG_LEV,"%s %d",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session));
 }
 
 /**
- * on_mk_websocket_session_destory之前触发on_mk_websocket_session_err
  * 一般由于客户端断开tcp触发
  * 本事件中可以调用mk_tcp_session_send_safe函数
  * @param session 会话处理对象
  * @param code 错误代码
  * @param msg 错误提示
  */
-void API_CALL on_mk_websocket_session_err(mk_tcp_session session,int code,const char *msg){
-    log_printf(LOG_LEV,"%s %d will destory: %d %s",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session),code,msg);
+void API_CALL on_mk_tcp_session_disconnect(uint16_t server_port,mk_tcp_session session,int code,const char *msg){
+    log_printf(LOG_LEV,"%s %d: %d %s",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session),code,msg);
+    tcp_session_user_data *user_data = (tcp_session_user_data *)mk_tcp_session_get_user_data(session);
+    free(user_data);
 }
 
-static int flag = 1;
-static void s_on_exit(int sig){
-    flag = 0;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+typedef struct {
+    mk_tcp_client client;
+    //下面你可以夹杂你的私货数据
+    char your_some_useful_data[1024];
+    int count;
+} tcp_client_user_data;
+
+/**
+ * tcp客户端连接服务器成功或失败回调
+ * @param client tcp客户端
+ * @param code 0为连接成功，否则为失败原因
+ * @param msg 连接失败错误提示
+ */
+void API_CALL on_mk_tcp_client_connect(mk_tcp_client client,int code,const char *msg){
+    log_printf(LOG_LEV,"connect result:%d %s",code,msg);
+    if(code == 0){
+        //连接上后我们发送一个hello world测试数据
+        mk_tcp_client_send(client,"hello world",0);
+    }else{
+        tcp_client_user_data *user_data = mk_tcp_client_get_user_data(client);
+        mk_tcp_client_release(client);
+        free(user_data);
+    }
 }
+
+/**
+ * tcp客户端与tcp服务器之间断开回调
+ * 一般是eof事件导致
+ * @param client tcp客户端
+ * @param code 错误代码
+ * @param msg 错误提示
+ */
+void API_CALL on_mk_tcp_client_disconnect(mk_tcp_client client,int code,const char *msg){
+    log_printf(LOG_LEV,"disconnect:%d %s",code,msg);
+    //服务器主动断开了，我们销毁对象
+    tcp_client_user_data *user_data = mk_tcp_client_get_user_data(client);
+    mk_tcp_client_release(client);
+    free(user_data);
+}
+
+/**
+ * 收到tcp服务器发来的数据
+ * @param client tcp客户端
+ * @param data 数据指针
+ * @param len 数据长度
+ */
+void API_CALL on_mk_tcp_client_data(mk_tcp_client client,const char *data,int len){
+    log_printf(LOG_LEV,"data[%d]:%s",len,data);
+}
+
+/**
+ * 每隔2秒的定时器，用于管理超时等任务
+ * @param client tcp客户端
+ */
+void API_CALL on_mk_tcp_client_manager(mk_tcp_client client){
+    tcp_client_user_data *user_data = mk_tcp_client_get_user_data(client);
+    char buf[1024];
+    sprintf(buf,"on_mk_tcp_client_manager:%d",user_data->count);
+    mk_tcp_client_send(client,buf,0);
+
+    if(++user_data->count == 5){
+        //发送5遍后主动释放对象
+        mk_tcp_client_release(client);
+        free(user_data);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void test_server(){
+    mk_tcp_session_events events_server = {
+            .on_mk_tcp_session_create = on_mk_tcp_session_create,
+            .on_mk_tcp_session_data = on_mk_tcp_session_data,
+            .on_mk_tcp_session_manager = on_mk_tcp_session_manager,
+            .on_mk_tcp_session_disconnect = on_mk_tcp_session_disconnect
+    };
+
+    mk_tcp_server_events_listen(&events_server);
+    mk_tcp_server_server_start(80,TCP_TYPE);
+}
+
+void test_client(){
+    mk_tcp_client_events events_clent = {
+            .on_mk_tcp_client_connect = on_mk_tcp_client_connect,
+            .on_mk_tcp_client_data = on_mk_tcp_client_data,
+            .on_mk_tcp_client_disconnect = on_mk_tcp_client_disconnect,
+            .on_mk_tcp_client_manager = on_mk_tcp_client_manager,
+    };
+    mk_tcp_client client = mk_tcp_client_create(&events_clent, TCP_TYPE);
+
+    tcp_client_user_data *user_data = (tcp_client_user_data *)malloc(sizeof(tcp_client_user_data));
+    user_data->client = client;
+    user_data->count = 0;
+    mk_tcp_client_set_user_data(client,user_data);
+
+    mk_tcp_client_connect(client, "121.40.165.18", 8800, 3);
+    //你可以连接127.0.0.1 80测试
+    //mk_tcp_client_connect(client, "127.0.0.1", 80, 3);
+}
+
 int main(int argc, char *argv[]) {
     char ini_path[2048] = {0};
     strcpy(ini_path,argv[0]);
     strcat(ini_path,".ini");
 
     mk_env_init1(0, 0, 1, ini_path, 0, NULL, NULL);
-    mk_websocket_events events = {
-            .on_mk_websocket_session_create = on_mk_websocket_session_create,
-            .on_mk_websocket_session_destory = on_mk_websocket_session_destory,
-            .on_mk_websocket_session_data = on_mk_websocket_session_data,
-            .on_mk_websocket_session_manager = on_mk_websocket_session_manager,
-            .on_mk_websocket_session_err = on_mk_websocket_session_err
-    };
 
-    mk_websocket_events_listen(&events);
-    mk_websocket_server_start(80,0);
+    test_server();
+    test_client();
 
     signal(SIGINT, s_on_exit );// 设置退出信号
     while (flag) {

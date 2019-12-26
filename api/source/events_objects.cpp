@@ -228,60 +228,6 @@ API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_s
     });
 }
 
-///////////////////////////////////////////TcpSession/////////////////////////////////////////////
-API_EXPORT void API_CALL mk_tcp_session_shutdown(const mk_tcp_session ctx,int err,const char *err_msg){
-    assert(ctx);
-    TcpSession *session = (TcpSession *)ctx;
-    session->safeShutdown(SockException((ErrCode)err,err_msg));
-}
-API_EXPORT const char* API_CALL mk_tcp_session_peer_ip(const mk_tcp_session ctx){
-    assert(ctx);
-    TcpSession *session = (TcpSession *)ctx;
-    return session->get_peer_ip().c_str();
-}
-API_EXPORT const char* API_CALL mk_tcp_session_local_ip(const mk_tcp_session ctx){
-    assert(ctx);
-    TcpSession *session = (TcpSession *)ctx;
-    return session->get_local_ip().c_str();
-}
-API_EXPORT uint16_t API_CALL mk_tcp_session_peer_port(const mk_tcp_session ctx){
-    assert(ctx);
-    TcpSession *session = (TcpSession *)ctx;
-    return session->get_peer_port();
-}
-API_EXPORT uint16_t API_CALL mk_tcp_session_local_port(const mk_tcp_session ctx){
-    assert(ctx);
-    TcpSession *session = (TcpSession *)ctx;
-    return session->get_local_port();
-}
-API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx,const char *data,int len){
-    assert(ctx && data);
-    if(!len){
-        len = strlen(data);
-    }
-    TcpSession *session = (TcpSession *)ctx;
-    session->send(data,len);
-}
-
-API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const char *data,int len){
-    assert(ctx && data);
-    if(!len){
-        len = strlen(data);
-    }
-    try {
-        weak_ptr<TcpSession> weak_session = ((TcpSession *)ctx)->shared_from_this();
-        string str = string(data,len);
-        ((TcpSession *)ctx)->async([weak_session,str](){
-            auto session_session = weak_session.lock();
-            if(session_session){
-                session_session->send(str);
-            }
-        });
-    }catch (std::exception &ex){
-        WarnL << "can not got the strong pionter of this mk_tcp_session:" << ex.what();
-    }
-}
-
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
 API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str,int len){
     assert(str);
