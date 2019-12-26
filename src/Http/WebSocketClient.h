@@ -348,19 +348,23 @@ public:
     /**
      * 重载startConnect方法，
      * 目的是替换TcpClient的连接服务器行为，使之先完成WebSocket握手
-     * @param strUrl websocket服务器ip或域名
+     * @param host websocket服务器ip或域名
      * @param iPort websocket服务器端口
      * @param fTimeOutSec 超时时间
      */
-    void startConnect(const string &strUrl, uint16_t iPort, float fTimeOutSec = 3) override {
+    void startConnect(const string &host, uint16_t iPort, float fTimeOutSec = 3) override {
         string ws_url;
         if(useWSS){
             //加密的ws
-            ws_url = StrPrinter << "wss://" + strUrl << ":" << iPort << "/" ;
+            ws_url = StrPrinter << "wss://" + host << ":" << iPort << "/" ;
         }else{
             //明文ws
-            ws_url = StrPrinter << "ws://" + strUrl << ":" << iPort << "/" ;
+            ws_url = StrPrinter << "ws://" + host << ":" << iPort << "/" ;
         }
+        _wsClient->startWsClient(ws_url,fTimeOutSec);
+    }
+
+    void startWebSocket(const string &ws_url,float fTimeOutSec = 3){
         _wsClient->startWsClient(ws_url,fTimeOutSec);
     }
 private:

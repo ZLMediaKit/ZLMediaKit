@@ -27,6 +27,7 @@
 #ifndef MK_EVENT_OBJECTS_H
 #define MK_EVENT_OBJECTS_H
 #include "common.h"
+#include "tcp.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -122,24 +123,6 @@ API_EXPORT void API_CALL mk_media_source_find(const char *schema,
                                               on_mk_media_source_find_cb cb);
 //MediaSource::for_each_media()
 API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_source_find_cb cb);
-
-///////////////////////////////////////////TcpSession/////////////////////////////////////////////
-//TcpSession对象的C映射
-typedef void* mk_tcp_session;
-//TcpSession::safeShutdown()
-API_EXPORT void API_CALL mk_tcp_session_shutdown(const mk_tcp_session ctx,int err,const char *err_msg);
-//TcpSession::get_peer_ip()
-API_EXPORT const char* API_CALL mk_tcp_session_peer_ip(const mk_tcp_session ctx);
-//TcpSession::get_local_ip()
-API_EXPORT const char* API_CALL mk_tcp_session_local_ip(const mk_tcp_session ctx);
-//TcpSession::get_peer_port()
-API_EXPORT uint16_t API_CALL mk_tcp_session_peer_port(const mk_tcp_session ctx);
-//TcpSession::get_local_port()
-API_EXPORT uint16_t API_CALL mk_tcp_session_local_port(const mk_tcp_session ctx);
-//TcpSession::send()
-API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx,const char *data,int len);
-//切换到该对象所在线程后再TcpSession::send()
-API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const char *data,int len);
 
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
 //HttpBody对象的C映射
