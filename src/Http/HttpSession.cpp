@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MIT License
  *
  * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
@@ -308,6 +308,16 @@ static string dateStr() {
     return buf;
 }
 
+static const string kDate = "Date";
+static const string kServer = "Server";
+static const string kConnection = "Connection";
+static const string kKeepAlive = "Keep-Alive";
+static const string kContentType = "Content-Type";
+static const string kContentLength = "Content-Length";
+static const string kAccessControlAllowOrigin = "Access-Control-Allow-Origin";
+static const string kAccessControlAllowCredentials = "Access-Control-Allow-Credentials";
+static const string kServerName = SERVER_NAME;
+
 void HttpSession::sendResponse(const char *pcStatus,
                                bool bClose,
                                const char *pcContentType,
@@ -333,22 +343,25 @@ void HttpSession::sendResponse(const char *pcStatus,
     }
 
     HttpSession::KeyValue &headerOut = const_cast<HttpSession::KeyValue &>(header);
-    headerOut.emplace("Date", dateStr());
-    headerOut.emplace("Server", SERVER_NAME);
-    headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
+    headerOut.emplace(kDate, dateStr());
+    headerOut.emplace(kServer, kServerName);
+    headerOut.emplace(kConnection, bClose ? "close" : "keep-alive");
     if(!bClose){
-        headerOut.emplace("Keep-Alive",StrPrinter << "timeout=" << keepAliveSec << ", max=100" << endl);
+        string keepAliveString = "timeout=";
+        keepAliveString += to_string(keepAliveSec);
+        keepAliveString += ", max=100";
+        headerOut.emplace(kKeepAlive,std::move(keepAliveString));
     }
 
     if(!_origin.empty()){
         //设置跨域
-        headerOut.emplace("Access-Control-Allow-Origin",_origin);
-        headerOut.emplace("Access-Control-Allow-Credentials", "true");
+        headerOut.emplace(kAccessControlAllowOrigin,_origin);
+        headerOut.emplace(kAccessControlAllowCredentials, "true");
     }
 
     if(!is_http_flv && size >= 0 && size < INT64_MAX){
         //文件长度为固定值,且不是http-flv强制设置Content-Length
-        headerOut["Content-Length"] = StrPrinter << size << endl;
+        headerOut[kContentLength] = to_string(size);
     }
 
     if(size && !pcContentType){
@@ -358,19 +371,26 @@ void HttpSession::sendResponse(const char *pcStatus,
 
     if(size && pcContentType){
         //有body时，设置文件类型
-        auto strContentType = StrPrinter << pcContentType << "; charset=" << charSet << endl;
-        headerOut.emplace("Content-Type",strContentType);
+        string strContentType = pcContentType;
+        strContentType += "; charset=";
+        strContentType += charSet;
+        headerOut.emplace(kContentType,std::move(strContentType));
     }
 
     //发送http头
-    _StrPrinter printer;
-    printer << "HTTP/1.1 " << pcStatus << "\r\n";
+    string str;
+    str.reserve(256);
+    str += "HTTP/1.1 " ;
+    str += pcStatus ;
+    str += "\r\n";
     for (auto &pr : header) {
-        printer << pr.first << ": " << pr.second << "\r\n";
+        str += pr.first ;
+        str += ": ";
+        str += pr.second;
+        str += "\r\n";
     }
-
-    printer << "\r\n";
-    send(printer << endl);
+    str += "\r\n";
+    send(std::move(str));
     _ticker.resetTime();
 
     if(!size){
