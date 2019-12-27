@@ -27,7 +27,7 @@
 #ifndef MK_RECORDER_API_H_
 #define MK_RECORDER_API_H_
 
-#include "common.h"
+#include "mk_common.h"
 
 #ifdef __cplusplus
 extern "C" {

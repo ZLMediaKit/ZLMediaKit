@@ -139,25 +139,6 @@ API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port);
  */
 API_EXPORT uint16_t API_CALL mk_shell_server_start(uint16_t port);
 
-/**
- * 打印日志
- * @param level 日志级别,支持0~4
- * @param file __FILE__
- * @param function __FUNCTION__
- * @param line __LINE__
- * @param fmt printf类型的格式控制字符串
- * @param ... 不定长参数
- */
-API_EXPORT void API_CALL mk_log_printf(int level, const char *file, const char *function, int line, const char *fmt, ...);
-
-// 以下宏可以替换printf使用
-#define log_trace(fmt,...) mk_log_printf(0,__FILE__,__FUNCTION__,__LINE__,fmt,##__VA_ARGS__)
-#define log_debug(fmt,...) mk_log_printf(1,__FILE__,__FUNCTION__,__LINE__,fmt,##__VA_ARGS__)
-#define log_info(fmt,...) mk_log_printf(2,__FILE__,__FUNCTION__,__LINE__,fmt,##__VA_ARGS__)
-#define log_warn(fmt,...) mk_log_printf(3,__FILE__,__FUNCTION__,__LINE__,fmt,##__VA_ARGS__)
-#define log_error(fmt,...) mk_log_printf(4,__FILE__,__FUNCTION__,__LINE__,fmt,##__VA_ARGS__)
-#define log_printf(lev,fmt,...) mk_log_printf(lev,__FILE__,__FUNCTION__,__LINE__,fmt,##__VA_ARGS__)
-
 #ifdef __cplusplus
 }
 #endif

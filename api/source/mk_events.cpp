@@ -24,7 +24,7 @@
  * SOFTWARE.
  */
 
-#include "events.h"
+#include "mk_events.h"
 #include "Common/config.h"
 #include "Common/MediaSource.h"
 #include "Http/HttpSession.h"

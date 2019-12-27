@@ -24,7 +24,7 @@
  * SOFTWARE.
  */
 
-#include "proxyplayer.h"
+#include "mk_proxyplayer.h"
 #include "Player/PlayerProxy.h"
 
 using namespace toolkit;

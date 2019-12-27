@@ -27,7 +27,7 @@
 #ifndef MK_TCP_H
 #define MK_TCP_H
 
-#include "common.h"
+#include "mk_common.h"
 
 #ifdef __cplusplus
 extern "C" {
