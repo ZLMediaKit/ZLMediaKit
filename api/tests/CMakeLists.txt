@@ -9,7 +9,7 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
 		set_target_properties(${exe_name} PROPERTIES COMPILE_FLAGS ${VS_FALGS} )
 	endif(WIN32)
 
-    target_link_libraries(${exe_name} api)
+    target_link_libraries(${exe_name} mk_api)
 endforeach()
 
 
