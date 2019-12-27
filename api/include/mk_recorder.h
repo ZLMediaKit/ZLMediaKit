@@ -52,12 +52,13 @@ API_EXPORT void API_CALL mk_flv_recorder_release(mk_flv_recorder ctx);
 /**
  * 开始录制flv
  * @param ctx flv录制器
+ * @param vhost 虚拟主机
  * @param app 绑定的RtmpMediaSource的 app名
  * @param stream 绑定的RtmpMediaSource的 stream名
  * @param file_path 文件存放地址
  * @return 0:开始超过，-1:失败,打开文件失败或该RtmpMediaSource不存在
  */
-API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *app, const char *stream, const char *file_path);
+API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *vhost, const char *app, const char *stream, const char *file_path);
 
 
 ///////////////////////////////////////////hls/mp4录制/////////////////////////////////////////////
