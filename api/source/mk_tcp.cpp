@@ -25,8 +25,7 @@
  */
 
 #include "mk_tcp.h"
-#include "Network/TcpSession.h"
-#include "Network/TcpClient.h"
+#include "mk_tcp_private.h"
 #include "Http/WebSocketClient.h"
 #include "Http/WebSocketSession.h"
 using namespace mediakit;
@@ -88,17 +87,6 @@ API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const
 ////////////////////////////////////////TcpSessionForC////////////////////////////////////////////////
 static TcpServer::Ptr s_tcp_server[4];
 static mk_tcp_session_events s_events_server = {0};
-
-class TcpSessionForC : public TcpSession {
-public:
-    TcpSessionForC(const Socket::Ptr &pSock) ;
-    ~TcpSessionForC() override = default;
-    void onRecv(const Buffer::Ptr &buffer) override ;
-    void onError(const SockException &err) override;
-    void onManager() override;
-    void *_user_data;
-    uint16_t _local_port;
-};
 
 TcpSessionForC::TcpSessionForC(const Socket::Ptr &pSock) : TcpSession(pSock) {
     _local_port = get_local_port();
@@ -178,22 +166,6 @@ API_EXPORT uint16_t API_CALL mk_tcp_server_server_start(uint16_t port, mk_tcp_ty
 }
 
 ///////////////////////////////////////////////////TcpClientForC/////////////////////////////////////////////////////////
-class TcpClientForC : public TcpClient {
-public:
-    typedef std::shared_ptr<TcpClientForC> Ptr;
-    TcpClientForC(mk_tcp_client_events *events) ;
-    ~TcpClientForC() override ;
-    void onRecv(const Buffer::Ptr &pBuf) override;
-    void onErr(const SockException &ex) override;
-    void onManager() override;
-    void onConnect(const SockException &ex) override;
-    void setClient(mk_tcp_client client);
-    void *_user_data;
-private:
-    mk_tcp_client_events _events;
-    mk_tcp_client _client;
-};
-
 TcpClientForC::TcpClientForC(mk_tcp_client_events *events){
     _events = *events;
 }
