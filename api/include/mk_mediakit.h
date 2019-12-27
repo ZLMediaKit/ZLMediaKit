@@ -37,5 +37,6 @@
 #include "mk_events.h"
 #include "mk_tcp.h"
 #include "mk_util.h"
+#include "mk_thread.h"
 
 #endif /* MK_API_H_ */
