@@ -26,6 +26,7 @@
 
 #include "mk_util.h"
 #include <stdarg.h>
+#include <assert.h>
 #include "Util/logger.h"
 using namespace std;
 using namespace toolkit;
