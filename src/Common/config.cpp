@@ -126,7 +126,7 @@ onceToken token([](){
 	mINI::Instance()[kCharSet] ="utf-8";
 #endif
 
-	mINI::Instance()[kRootPath] = "./httpRoot";
+	mINI::Instance()[kRootPath] = "./www";
 	mINI::Instance()[kNotFound] =
 					"<html>"
 					"<head><title>404 Not Found</title></head>"
@@ -246,7 +246,7 @@ onceToken token([](){
 	mINI::Instance()[kAppName] = "record";
 	mINI::Instance()[kSampleMS] = 500;
 	mINI::Instance()[kFileSecond] = 60*60;
-	mINI::Instance()[kFilePath] = "./httpRoot";
+	mINI::Instance()[kFilePath] = "./www";
 	mINI::Instance()[kFileBufSize] = 64 * 1024;
 	mINI::Instance()[kFastStart] = false;
 	mINI::Instance()[kFileRepeat] = false;
@@ -272,7 +272,7 @@ onceToken token([](){
 	mINI::Instance()[kSegmentNum] = 3;
 	mINI::Instance()[kSegmentRetain] = 5;
 	mINI::Instance()[kFileBufSize] = 64 * 1024;
-	mINI::Instance()[kFilePath] = "./httpRoot";
+	mINI::Instance()[kFilePath] = "./www";
 },nullptr);
 } //namespace Hls
 
