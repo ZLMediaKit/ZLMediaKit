@@ -24,7 +24,7 @@
  * SOFTWARE.
  */
 
-#include "media.h"
+#include "mk_media.h"
 #include "Util/logger.h"
 #include "Common/Device.h"
 

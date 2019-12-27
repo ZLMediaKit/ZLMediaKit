@@ -24,7 +24,7 @@
  * SOFTWARE.
  */
 
-#include "common.h"
+#include "mk_common.h"
 #include <stdarg.h>
 #include <unordered_map>
 #include "Util/logger.h"
@@ -206,16 +206,3 @@ API_EXPORT uint16_t API_CALL mk_shell_server_start(uint16_t port){
         return 0;
     }
 }
-
-API_EXPORT void API_CALL mk_log_printf(int level, const char *file, const char *function, int line, const char *fmt, ...) {
-    assert(file && function && fmt);
-    LogContextCapturer info(Logger::Instance(), (LogLevel) level, file, function, line);
-    va_list pArg;
-    va_start(pArg, fmt);
-    char buf[4096];
-    int n = vsprintf(buf, fmt, pArg);
-    buf[n] = '\0';
-    va_end(pArg);
-    info << buf;
-}
-

@@ -25,7 +25,7 @@
  */
 
 #include <assert.h>
-#include "events_objects.h"
+#include "mk_events_objects.h"
 #include "Common/config.h"
 #include "Record/MP4Recorder.h"
 #include "Network/TcpSession.h"

@@ -26,8 +26,8 @@
 
 #ifndef MK_EVENT_OBJECTS_H
 #define MK_EVENT_OBJECTS_H
-#include "common.h"
-#include "tcp.h"
+#include "mk_common.h"
+#include "mk_tcp.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

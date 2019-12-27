@@ -27,7 +27,7 @@
 #ifndef MK_MEDIA_H_
 #define MK_MEDIA_H_
 
-#include "common.h"
+#include "mk_common.h"
 
 #ifdef __cplusplus
 extern "C" {

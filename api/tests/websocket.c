@@ -28,7 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "mediakit.h"
+#include "mk_mediakit.h"
 #ifdef _WIN32
 #include "windows.h"
 #else
@@ -36,6 +36,7 @@
 #endif
 
 #define LOG_LEV 4
+//修改此宏，可以选择协议类型
 #define TCP_TYPE mk_type_ws
 
 static int flag = 1;
@@ -194,11 +195,21 @@ void test_client(){
 }
 
 int main(int argc, char *argv[]) {
-    char ini_path[2048] = {0};
-    strcpy(ini_path,argv[0]);
-    strcat(ini_path,".ini");
+    char *ini_path = mk_uitl_get_exe_dir("c_api.ini");
+    char *ssl_path = mk_uitl_get_exe_dir("ssl.p12");
 
-    mk_env_init1(0, 0, 1, ini_path, 0, NULL, NULL);
+    mk_config config = {
+            .ini = ini_path,
+            .ini_is_path = 1,
+            .log_level = 0,
+            .ssl = ssl_path,
+            .ssl_is_path = 1,
+            .ssl_pwd = NULL,
+            .thread_num = 0
+    };
+    mk_env_init(&config);
+    free(ini_path);
+    free(ssl_path);
 
     test_server();
     test_client();

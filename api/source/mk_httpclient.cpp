@@ -23,7 +23,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "httpclient.h"
+#include "mk_httpclient.h"
 
 #include "Util/logger.h"
 #include "Http/HttpDownloader.h"

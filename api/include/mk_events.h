@@ -27,8 +27,8 @@
 #ifndef MK_EVENTS_H
 #define MK_EVENTS_H
 
-#include "common.h"
-#include "events_objects.h"
+#include "mk_common.h"
+#include "mk_events_objects.h"
 
 #ifdef __cplusplus
 extern "C" {

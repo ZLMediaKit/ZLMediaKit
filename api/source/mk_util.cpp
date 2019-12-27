@@ -24,17 +24,46 @@
  * SOFTWARE.
  */
 
-#ifndef MK_API_H_
-#define MK_API_H_
+#include "mk_util.h"
+#include <stdarg.h>
+#include "Util/logger.h"
+using namespace std;
+using namespace toolkit;
 
-#include "common.h"
-#include "httpclient.h"
-#include "media.h"
-#include "proxyplayer.h"
-#include "recorder.h"
-#include "player.h"
-#include "pusher.h"
-#include "events.h"
-#include "tcp.h"
+API_EXPORT char* API_CALL mk_util_get_exe_path(){
+    return strdup(exePath().data());
+}
 
-#endif /* MK_API_H_ */
+API_EXPORT char* API_CALL mk_uitl_get_exe_dir(const char *relative_path){
+    if(relative_path){
+        return strdup((exeDir() + relative_path).data());
+    }
+    return strdup(exeDir().data());
+}
+
+API_EXPORT uint64_t API_CALL mk_uitl_get_current_millisecond(){
+    return getCurrentMillisecond();
+}
+
+API_EXPORT char* API_CALL mk_uitl_get_current_time_string(const char *fmt){
+    assert(fmt);
+    return strdup(getTimeStr(fmt).data());
+}
+
+API_EXPORT char* API_CALL mk_uitl_hex_dump(const void *buf, int len){
+    assert(buf && len > 0);
+    return strdup(hexdump(buf,len).data());
+}
+
+API_EXPORT void API_CALL mk_log_printf(int level, const char *file, const char *function, int line, const char *fmt, ...) {
+    assert(file && function && fmt);
+    LogContextCapturer info(Logger::Instance(), (LogLevel) level, file, function, line);
+    va_list pArg;
+    va_start(pArg, fmt);
+    char buf[4096];
+    int n = vsprintf(buf, fmt, pArg);
+    buf[n] = '\0';
+    va_end(pArg);
+    info << buf;
+}
+

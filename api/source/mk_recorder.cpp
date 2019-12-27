@@ -24,7 +24,7 @@
  * SOFTWARE.
  */
 
-#include "recorder.h"
+#include "mk_recorder.h"
 #include "Rtmp/FlvMuxer.h"
 #include "Record/Recorder.h"
 using namespace toolkit;
