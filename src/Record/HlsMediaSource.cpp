@@ -24,62 +24,29 @@
  * SOFTWARE.
  */
 
-
-#ifndef ZLMEDIAKIT_HLSMANAGER_H
-#define ZLMEDIAKIT_HLSMANAGER_H
-
-#include <memory>
-#include <string>
-#include <mutex>
-#include "Common/MediaSource.h"
-using namespace std;
+#include "HlsMediaSource.h"
 
 namespace mediakit{
 
-class HlsManager;
-class HlsCookieData{
-public:
-    HlsCookieData(const MediaInfo &info);
-    ~HlsCookieData();
-    void addByteUsage(uint64_t bytes);
-private:
-    uint64_t _bytes = 0;
-    MediaInfo _info;
-    std::shared_ptr<HlsManager> _manager;
-};
+HlsCookieData::HlsCookieData(const MediaInfo &info) {
+    _info = info;
+    auto src = dynamic_pointer_cast<HlsMediaSource>(MediaSource::find(HLS_SCHEMA,_info._vhost,_info._app,_info._streamid));
+    if(src){
+        src->modifyCount(true);
+    }
+}
 
+HlsCookieData::~HlsCookieData() {
+    auto src = dynamic_pointer_cast<HlsMediaSource>(MediaSource::find(HLS_SCHEMA,_info._vhost,_info._app,_info._streamid));
+    if(src){
+        src->modifyCount(false);
+    }
+}
 
-class HlsManager : public std::enable_shared_from_this<HlsManager>{
-public:
-    friend class HlsCookieData;
-    ~HlsManager();
-    static HlsManager& Instance();
+void HlsCookieData::addByteUsage(uint64_t bytes) {
+    _bytes += bytes;
+}
 
-    /**
-     * 获取hls播放器个数
-     * @param vhost 虚拟主机
-     * @param app 应用名
-     * @param stream 流id
-     * @return 播放器个数
-     */
-    int hlsPlayerCount(const string &vhost,const string &app,const string &stream);
-private:
-    void onAddHlsPlayer(const MediaInfo &info);
-    void onDelHlsPlayer(const MediaInfo &info);
-    HlsManager();
-private:
-    class HlsPlayerCounter{
-    private:
-        friend class HlsManager;
-        int _count = 0;
-    };
-private:
-    recursive_mutex _mtx;
-    unordered_map<string/*vhost*/,unordered_map<string/*app*/,
-            unordered_map<string/*stream*/,HlsPlayerCounter> > > _player_counter;
-
-
-};
 
 }//namespace mediakit
-#endif //ZLMEDIAKIT_HLSMANAGER_H
+

@@ -31,6 +31,7 @@
 #include <string>
 #include <stdlib.h>
 #include "HlsMaker.h"
+#include "HlsMediaSource.h"
 using namespace std;
 
 namespace mediakit {
@@ -43,6 +44,14 @@ public:
                 float seg_duration = 5,
                 uint32_t seg_number = 3);
     virtual ~HlsMakerImp();
+
+    /**
+     * 设置媒体信息
+     * @param vhost 虚拟主机
+     * @param app 应用名
+     * @param stream_id 流id
+     */
+    void setMediaInfo(const string &vhost, const string &app, const string &stream_id);
 protected:
     string onOpenSegment(int index) override ;
     void onDelSegment(int index) override;
@@ -51,6 +60,7 @@ protected:
 private:
     std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
 private:
+    HlsMediaSource::Ptr _media_src;
     map<int /*index*/,string/*file_path*/> _segment_file_paths;
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;

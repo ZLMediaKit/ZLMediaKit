@@ -39,9 +39,7 @@ recursive_mutex MediaSource::g_mtxMediaSrc;
 MediaSource::SchemaVhostAppStreamMap MediaSource::g_mapMediaSrc;
 
 MediaSource::MediaSource(const string &strSchema, const string &strVhost, const string &strApp, const string &strId) :
-        _strSchema(strSchema),
-        _strApp(strApp),
-        _strId(strId) {
+        _strSchema(strSchema), _strApp(strApp), _strId(strId) {
     if (strVhost.empty()) {
         _strVhost = DEFAULT_VHOST;
     } else {
@@ -146,12 +144,7 @@ void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src
 }
 
 template<typename MAP, typename FUNC>
-static bool searchMedia(MAP &map,
-                        const string &schema,
-                        const string &vhost,
-                        const string &app,
-                        const string &id,
-                        FUNC &&func) {
+static bool searchMedia(MAP &map, const string &schema, const string &vhost, const string &app, const string &id, FUNC &&func) {
     auto it0 = map.find(schema);
     if (it0 == map.end()) {
         //未找到协议
@@ -188,16 +181,9 @@ static void eraseIfEmpty(MAP &map, IT0 it0, IT1 it1, IT2 it2) {
     }
 };
 
-void findAsync_l(const MediaInfo &info,
-                            const std::shared_ptr<TcpSession> &session,
-                            bool retry,
-                            const function<void(const MediaSource::Ptr &src)> &cb){
-
-    auto src = MediaSource::find(info._schema,
-                                 info._vhost,
-                                 info._app,
-                                 info._streamid,
-                                 true);
+void findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, bool retry,
+                 const function<void(const MediaSource::Ptr &src)> &cb){
+    auto src = MediaSource::find(info._schema, info._vhost, info._app, info._streamid, true);
     if(src || !retry){
         cb(src);
         return;
@@ -263,12 +249,7 @@ void MediaSource::findAsync(const MediaInfo &info, const std::shared_ptr<TcpSess
     return findAsync_l(info, session, true, cb);
 }
 
-MediaSource::Ptr MediaSource::find(
-        const string &schema,
-        const string &vhost_tmp,
-        const string &app,
-        const string &id,
-        bool bMake) {
+MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost_tmp, const string &app, const string &id, bool bMake) {
     string vhost = vhost_tmp;
     if(vhost.empty()){
         vhost = DEFAULT_VHOST;

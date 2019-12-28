@@ -54,7 +54,9 @@ MediaSinkInterface *createHlsRecorder(const string &strVhost_tmp, const string &
         m3u8FilePath = strApp + "/" + strId + "/hls.m3u8";
     }
     m3u8FilePath = File::absolutePath(m3u8FilePath, hlsPath);
-    return new HlsRecorder(m3u8FilePath, params);
+    auto ret = new HlsRecorder(m3u8FilePath, params);
+    ret->setMediaInfo(strVhost,strApp,strId);
+    return ret;
 #else
     return nullptr;
 #endif //defined(ENABLE_HLS)

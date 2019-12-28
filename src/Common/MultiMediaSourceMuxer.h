@@ -30,7 +30,7 @@
 #include "Rtsp/RtspMediaSourceMuxer.h"
 #include "Rtmp/RtmpMediaSourceMuxer.h"
 #include "Record/Recorder.h"
-#include "Record/HlsManager.h"
+#include "Record/HlsMediaSource.h"
 
 class MultiMediaSourceMuxer : public MediaSink , public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
@@ -66,7 +66,8 @@ public:
         }
 
         _get_hls_player = [vhost,strApp,strId](){
-            return HlsManager::Instance().hlsPlayerCount(vhost,strApp,strId);
+            auto src = MediaSource::find(HLS_SCHEMA,vhost,strApp,strId);
+            return src ? src->readerCount() : 0;
         };
     }
     virtual ~MultiMediaSourceMuxer(){}

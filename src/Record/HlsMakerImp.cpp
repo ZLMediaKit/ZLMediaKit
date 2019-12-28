@@ -95,6 +95,9 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
     if(hls){
         fwrite(data,len,1,hls.get());
         hls.reset();
+        if(_media_src){
+            _media_src->registHls();
+        }
     } else{
         WarnL << "create hls file falied," << _path_hls << " " <<  get_uv_errmsg();
     }
@@ -113,6 +116,10 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file,bool setbuf) {
         setvbuf(ret.get(), _file_buf.get(), _IOFBF, _buf_size);
     }
     return ret;
+}
+
+void HlsMakerImp::setMediaInfo(const string &vhost, const string &app, const string &stream_id) {
+    _media_src = std::make_shared<HlsMediaSource>(vhost, app, stream_id);
 }
 
 }//namespace mediakit
