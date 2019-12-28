@@ -412,6 +412,7 @@ void installWebApi() {
             item["app"] = media->getApp();
             item["stream"] = media->getId();
             item["readerCount"] = media->readerCount();
+            item["totalReaderCount"] = media->totalReaderCount();
             for(auto &track : media->getTracks()){
                 Value obj;
                 obj["codec_id"] = track->getCodecId();
@@ -441,6 +442,7 @@ void installWebApi() {
         }
         val["online"] = true;
         val["readerCount"] = src->readerCount();
+        val["totalReaderCount"] = src->totalReaderCount();
         for(auto &track : src->getTracks()){
             Value obj;
             obj["codec_id"] = track->getCodecId();

@@ -199,6 +199,13 @@ API_EXPORT int API_CALL mk_media_source_get_reader_count(const mk_media_source c
     MediaSource *src = (MediaSource *)ctx;
     return src->readerCount();
 }
+
+API_EXPORT int API_CALL mk_media_source_get_total_reader_count(const mk_media_source ctx){
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return src->totalReaderCount();
+}
+
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
