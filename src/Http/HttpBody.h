@@ -32,6 +32,7 @@
 #include "Network/Buffer.h"
 #include "Util/ResourcePool.h"
 #include "Util/logger.h"
+#include "Thread/WorkThreadPool.h"
 
 using namespace std;
 using namespace toolkit;
@@ -45,10 +46,12 @@ namespace mediakit {
 /**
  * http content部分基类定义
  */
-class HttpBody{
+class HttpBody : public std::enable_shared_from_this<HttpBody>{
 public:
     typedef std::shared_ptr<HttpBody> Ptr;
-    HttpBody(){}
+    HttpBody(){
+        _async_read_thread = WorkThreadPool::Instance().getPoller();
+    }
     virtual ~HttpBody(){}
 
     /**
@@ -62,6 +65,29 @@ public:
      * @return 字节对象,如果读完了，那么请返回nullptr
      */
     virtual Buffer::Ptr readData(uint32_t size) { return nullptr;};
+
+    /**
+     * 异步请求读取一定字节数，返回大小可能小于size
+     * @param size 请求大小
+     * @param cb 回调函数
+     */
+    virtual void readDataAsync(uint32_t size,const function<void(const Buffer::Ptr &buf)> &cb){
+        if(size >= remainSize()){
+            //假如剩余数据很小，那么同步获取(为了优化性能)
+            cb(readData(size));
+            return;
+        }
+        //如果是大文件，那么后台读取
+        weak_ptr<HttpBody> weakSelf = shared_from_this();
+        _async_read_thread->async([cb,size,weakSelf](){
+            auto strongSelf = weakSelf.lock();
+            if(strongSelf){
+                cb(strongSelf->readData(size));
+            }
+        });
+    }
+private:
+    EventPoller::Ptr _async_read_thread;
 };
 
 /**
