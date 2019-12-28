@@ -302,7 +302,7 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         strongSelf->shutdown(SockException(Err_shutdown,"rtmp ring buffer detached"));
     });
     _pPlayerSrc = src;
-    if (src->readerCount() == 1) {
+    if (src->totalReaderCount() == 1) {
         src->seekTo(0);
     }
     //提高服务器发送性能
