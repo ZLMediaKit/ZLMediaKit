@@ -47,7 +47,7 @@ class HttpSession: public TcpSession,
 public:
 	typedef StrCaseMap KeyValue;
 	typedef HttpResponseInvokerImp HttpResponseInvoker;
-
+	friend class AsyncSender;
 	/**
 	 * @param errMsg 如果为空，则代表鉴权通过，否则为错误提示
 	 * @param accessPath 运行或禁止访问的根目录
