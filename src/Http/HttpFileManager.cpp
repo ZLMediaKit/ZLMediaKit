@@ -32,6 +32,7 @@
 #include "HttpFileManager.h"
 #include "Util/File.h"
 #include "HttpSession.h"
+#include "Record/HlsManager.h"
 
 namespace mediakit {
 
@@ -44,6 +45,7 @@ static const string kCookiePathKey = "kCookiePathKey";
 static const string kAccessErrKey = "kAccessErrKey";
 static const string kAccessHls = "kAccessHls";
 static const string kHlsSuffix = "/hls.m3u8";
+static const string kHlsData = "kHlsData";
 
 static const string &getContentType(const char *name) {
     const char *dot;
@@ -284,9 +286,8 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
 
     bool is_hls = end_of(path,kHlsSuffix);
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
-    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls]( const string &errMsg,
-                                                                                                  const string &cookie_path_in,
-                                                                                                  int cookieLifeSecond) {
+        HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, mediaInfo]
+                (const string &errMsg, const string &cookie_path_in, int cookieLifeSecond) {
         HttpServerCookie::Ptr cookie;
         if (cookieLifeSecond) {
             //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
@@ -305,8 +306,15 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             (*cookie)[kAccessErrKey].set<string>(errMsg);
             //记录访问的是否为hls
             (*cookie)[kAccessHls].set<bool>(is_hls);
+            if(is_hls){
+                //hls相关信息
+                replace(const_cast<string &>(mediaInfo._streamid),kHlsSuffix,"");
+                (*cookie)[kHlsData].set<HlsCookieData>(mediaInfo);
+            }
+            callback(errMsg, cookie);
+        }else{
+            callback(errMsg, nullptr);
         }
-        callback(errMsg, cookie);
     };
 
     if (is_hls && emitHlsPlayed(parser, mediaInfo, path, is_dir, accessPathInvoker, sender)) {
@@ -369,6 +377,12 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
         }
         HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
+            if(cookie){
+                auto is_hls = (*cookie)[kAccessHls].get<bool>();
+                if(is_hls){
+                    (*cookie)[kHlsData].get<HlsCookieData>().addByteUsage(body->remainSize());
+                }
+            }
             cb(codeOut.data(), getContentType(strFile.data()), headerOut, body);
         };
         invoker.responseFile(parser.getValues(), httpHeader, strFile);

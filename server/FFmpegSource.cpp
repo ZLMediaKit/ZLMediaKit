@@ -232,6 +232,14 @@ void FFmpegSource::onNoneReader(MediaSource &sender) {
     }
 }
 
+int FFmpegSource::totalReaderCount(MediaSource &sender) {
+    auto listener = _listener.lock();
+    if(listener){
+        return listener->totalReaderCount(sender);
+    }
+    return 0;
+}
+
 void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
     _listener = src->getListener();
     src->setListener(shared_from_this());

@@ -80,10 +80,10 @@ public:
     }
 
     /**
-	 * 播放器总数
-	 */
-    int readerCount() override {
-        return RtspMediaSource::readerCount() + (_muxer ? _muxer->readerCount() : 0);
+     * 获取观看总人数，包括(hls/rtsp/rtmp)
+     */
+    int totalReaderCount() override{
+        return readerCount() + (_muxer ? _muxer->totalReaderCount() : 0);
     }
 
     /**

@@ -83,8 +83,11 @@ private:
 		sendResponse(MSG_CMD, invoke.data());
 	}
 
-    bool close(MediaSource &sender,bool force) override ;
+	//MediaSourceEvent override
+	bool close(MediaSource &sender,bool force) override ;
     void onNoneReader(MediaSource &sender) override;
+	int totalReaderCount(MediaSource &sender) override;
+
 	void setSocketFlags();
 	string getStreamId(const string &str);
 	void dumpMetadata(const AMFValue &metadata);

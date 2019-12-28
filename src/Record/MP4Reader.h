@@ -57,19 +57,6 @@ public:
 	void startReadMP4();
 
 	/**
-	 * 设置时移偏移量
-	 * @param ui32Stamp 偏移量，单位毫秒
-	 * @return
-	 */
-	bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override;
-
-	/**
-	 * 关闭MP4Reader的流化进程，会触发该对象放弃自持有
-	 * @return
-	 */
-	bool close(MediaSource &sender,bool force) override;
-
-	/**
 	 * 自动生成MP4Reader对象然后查找相关的MediaSource对象
 	 * @param strSchema 协议名
  	 * @param strVhost 虚拟主机
@@ -87,7 +74,11 @@ public:
 											  bool checkApp = true);
 
 private:
+	//MediaSourceEvent override
+	bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override;
+	bool close(MediaSource &sender,bool force) override;
     void onNoneReader(MediaSource &sender) override;
+	int totalReaderCount(MediaSource &sender) override;
 #ifdef ENABLE_MP4V2
     void seek(uint32_t iSeekTime,bool bReStart = true);
 	inline void setSeekTime(uint32_t iSeekTime);

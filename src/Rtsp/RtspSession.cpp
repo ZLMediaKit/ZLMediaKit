@@ -1136,7 +1136,7 @@ inline int RtspSession::getTrackIndexByInterleaved(int interleaved){
 
 bool RtspSession::close(MediaSource &sender,bool force) {
     //此回调在其他线程触发
-    if(!_pushSrc || (!force && _pushSrc->readerCount() != 0)){
+    if(!_pushSrc || (!force && _pushSrc->totalReaderCount())){
         return false;
     }
 	string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
@@ -1147,12 +1147,15 @@ bool RtspSession::close(MediaSource &sender,bool force) {
 
 void RtspSession::onNoneReader(MediaSource &sender){
     //此回调在其他线程触发
-    if(!_pushSrc || _pushSrc->readerCount() != 0){
+    if(!_pushSrc || _pushSrc->totalReaderCount()){
         return;
     }
     MediaSourceEvent::onNoneReader(sender);
 }
 
+int RtspSession::totalReaderCount(MediaSource &sender) {
+    return _pushSrc ? _pushSrc->totalReaderCount() : sender.readerCount();
+}
 
 void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
     //InfoP(this) <<(int)pkt.Interleaved;
