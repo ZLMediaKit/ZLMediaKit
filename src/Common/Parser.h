@@ -28,27 +28,26 @@ class StrCaseMap : public multimap<string, string, StrCaseCompare>{
     StrCaseMap() = default;
     ~StrCaseMap() = default;
 
-    template <class K>
-    string &operator[](K &&k){
-        auto it = find(std::forward<K>(k));
+    string &operator[](const string &k){
+        auto it = find(k);
         if(it == end()){
-            it = Super::emplace(std::forward<K>(k),"");
+            it = Super::emplace(k,"");
         }
         return it->second;
     }
 
-    template <class K,class V>
-    void emplace(K &&k , V &&v) {
-        auto it = find(std::forward<K>(k));
+    template <typename V>
+    void emplace(const string &k, V &&v) {
+        auto it = find(k);
         if(it != end()){
             return;
         }
-        Super::emplace(std::forward<K>(k),std::forward<V>(v));
+        Super::emplace(k,std::forward<V>(v));
     }
 
-    template <class K,class V>
-    void emplace_force(K &&k , V &&v) {
-        Super::emplace(std::forward<K>(k),std::forward<V>(v));
+    template <typename V>
+    void emplace_force(const string k , V &&v) {
+        Super::emplace(k,std::forward<V>(v));
     }
 };
 

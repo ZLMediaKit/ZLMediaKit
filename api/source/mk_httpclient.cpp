@@ -88,7 +88,7 @@ static C get_http_header( const char *response_header[]){
         auto value = response_header[i + 1];
         if (key && value) {
             i += 2;
-            header[key] = value;
+            header.emplace(key,value);
             continue;
         }
         break;
