@@ -174,12 +174,8 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 	}, getPoller());
 }
 
-int PlayerProxy::readerCount(){
-	return (_mediaMuxer ? _mediaMuxer->readerCount() : 0) + (_pMediaSrc ? _pMediaSrc->readerCount() : 0);
-}
-
 bool PlayerProxy::close(MediaSource &sender,bool force) {
-    if(!force && readerCount() != 0){
+    if(!force && totalReaderCount()){
         return false;
     }
 
@@ -201,10 +197,18 @@ bool PlayerProxy::close(MediaSource &sender,bool force) {
 }
 
 void PlayerProxy::onNoneReader(MediaSource &sender) {
-    if(!_mediaMuxer || _mediaMuxer->readerCount() != 0){
+    if(!_mediaMuxer || totalReaderCount()){
         return;
     }
     MediaSourceEvent::onNoneReader(sender);
+}
+
+int PlayerProxy::totalReaderCount(){
+    return (_mediaMuxer ? _mediaMuxer->totalReaderCount() : 0) + (_pMediaSrc ? _pMediaSrc->readerCount() : 0);
+}
+
+int PlayerProxy::totalReaderCount(MediaSource &sender) {
+	return totalReaderCount();
 }
 
 class MuteAudioMaker : public FrameDispatcher{

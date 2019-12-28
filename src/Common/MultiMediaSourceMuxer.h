@@ -30,6 +30,7 @@
 #include "Rtsp/RtspMediaSourceMuxer.h"
 #include "Rtmp/RtmpMediaSourceMuxer.h"
 #include "Record/Recorder.h"
+#include "Record/HlsManager.h"
 
 class MultiMediaSourceMuxer : public MediaSink , public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
@@ -64,6 +65,9 @@ public:
             Recorder::startRecord(Recorder::type_mp4,vhost, strApp, strId, true, false);
         }
 
+        _get_hls_player = [vhost,strApp,strId](){
+            return HlsManager::Instance().hlsPlayerCount(vhost,strApp,strId);
+        };
     }
     virtual ~MultiMediaSourceMuxer(){}
 
@@ -96,8 +100,8 @@ public:
      * 返回总的消费者个数
      * @return
      */
-    int readerCount() const{
-        return (_rtsp ? _rtsp->readerCount() : 0) + (_rtmp ? _rtmp->readerCount() : 0);
+    int totalReaderCount() const{
+        return (_rtsp ? _rtsp->readerCount() : 0) + (_rtmp ? _rtmp->readerCount() : 0) + _get_hls_player();
     }
 
     void setTimeStamp(uint32_t stamp){
@@ -157,6 +161,7 @@ private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
     Listener *_listener = nullptr;
+    function<int()> _get_hls_player;
 };
 
 

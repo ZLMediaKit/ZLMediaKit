@@ -108,8 +108,9 @@ protected:
 	//MediaSourceEvent override
 	bool close(MediaSource &sender,bool force) override ;
     void onNoneReader(MediaSource &sender) override;
+	int totalReaderCount(MediaSource &sender) override;
 
-    //TcpSession override
+	//TcpSession override
     int send(const Buffer::Ptr &pkt) override;
 
     /**

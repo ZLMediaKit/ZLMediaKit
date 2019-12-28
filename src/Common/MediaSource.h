@@ -67,6 +67,9 @@ public:
 
     // 通知无人观看
     virtual void onNoneReader(MediaSource &sender);
+
+    // 观看总人数
+    virtual int totalReaderCount(MediaSource &sender) = 0;
 };
 
 class MediaInfo{
@@ -124,8 +127,10 @@ public:
     void setTrackSource(const std::weak_ptr<TrackSource> &track_src);
     // 设置监听者
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
-    // 获取观看者个数
+    // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
     virtual int readerCount() = 0;
+    // 观看者个数，包括(hls/rtsp/rtmp)
+    virtual int totalReaderCount();
     // 获取流当前时间戳
     virtual uint32_t getTimeStamp(TrackType trackType) = 0;
 

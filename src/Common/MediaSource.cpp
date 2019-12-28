@@ -98,6 +98,13 @@ const std::weak_ptr<MediaSourceEvent>& MediaSource::getListener() const{
     return _listener;
 }
 
+int MediaSource::totalReaderCount(){
+    auto listener = _listener.lock();
+    if(!listener){
+        return readerCount();
+    }
+    return listener->totalReaderCount(*this);
+}
 bool MediaSource::seekTo(uint32_t ui32Stamp) {
     auto listener = _listener.lock();
     if(!listener){

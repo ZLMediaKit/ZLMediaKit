@@ -532,7 +532,7 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 
 bool RtmpSession::close(MediaSource &sender,bool force)  {
     //此回调在其他线程触发
-    if(!_pPublisherSrc || (!force && _pPublisherSrc->readerCount() != 0)){
+    if(!_pPublisherSrc || (!force && _pPublisherSrc->totalReaderCount())){
         return false;
     }
     string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
@@ -542,10 +542,14 @@ bool RtmpSession::close(MediaSource &sender,bool force)  {
 
 void RtmpSession::onNoneReader(MediaSource &sender) {
     //此回调在其他线程触发
-    if(!_pPublisherSrc || _pPublisherSrc->readerCount() != 0){
+    if(!_pPublisherSrc || _pPublisherSrc->totalReaderCount()){
         return;
     }
     MediaSourceEvent::onNoneReader(sender);
+}
+
+int RtmpSession::totalReaderCount(MediaSource &sender) {
+    return _pPublisherSrc ? _pPublisherSrc->totalReaderCount() : sender.readerCount();
 }
 
 void RtmpSession::setSocketFlags(){

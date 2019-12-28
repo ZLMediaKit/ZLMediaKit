@@ -179,7 +179,7 @@ void MP4Reader::startReadMP4() {
 	 return true;
 }
 bool MP4Reader::close(MediaSource &sender,bool force){
-    if(!_mediaMuxer || (!force && _mediaMuxer->readerCount() != 0)){
+    if(!_mediaMuxer || (!force && _mediaMuxer->totalReaderCount())){
         return false;
     }
 	_timer.reset();
@@ -188,10 +188,14 @@ bool MP4Reader::close(MediaSource &sender,bool force){
 }
 
 void MP4Reader::onNoneReader(MediaSource &sender) {
-    if(!_mediaMuxer || _mediaMuxer->readerCount() != 0){
+    if(!_mediaMuxer || _mediaMuxer->totalReaderCount()){
         return;
     }
     MediaSourceEvent::onNoneReader(sender);
+}
+
+int MP4Reader::totalReaderCount(MediaSource &sender) {
+	return _mediaMuxer ? _mediaMuxer->totalReaderCount() : sender.readerCount();
 }
 
 bool MP4Reader::readSample(int iTimeInc,bool justSeekSyncFrame) {
@@ -199,7 +203,7 @@ bool MP4Reader::readSample(int iTimeInc,bool justSeekSyncFrame) {
 	lock_guard<recursive_mutex> lck(_mtx);
 	auto bFlag0 = readVideoSample(iTimeInc,justSeekSyncFrame);//数据没读完
 	auto bFlag1 = readAudioSample(iTimeInc,justSeekSyncFrame);//数据没读完
-	auto bFlag2 = _mediaMuxer->readerCount() > 0;//读取者大于0
+	auto bFlag2 = _mediaMuxer->totalReaderCount() > 0;//读取者大于0
 	if((bFlag0 || bFlag1) && bFlag2){
 		_alive.resetTime();
 	}
