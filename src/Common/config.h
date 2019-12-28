@@ -62,6 +62,7 @@ bool loadIniConfig(const char *ini_path = nullptr);
 #define HTTP_SCHEMA "http"
 #define RTSP_SCHEMA "rtsp"
 #define RTMP_SCHEMA "rtmp"
+#define HLS_SCHEMA "hls"
 #define DEFAULT_VHOST "__defaultVhost__"
 
 ////////////广播名称///////////

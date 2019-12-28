@@ -32,7 +32,7 @@
 #include "HttpFileManager.h"
 #include "Util/File.h"
 #include "HttpSession.h"
-#include "Record/HlsManager.h"
+#include "Record/HlsMediaSource.h"
 
 namespace mediakit {
 

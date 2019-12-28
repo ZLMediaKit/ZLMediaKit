@@ -43,6 +43,9 @@ public:
     ~HlsRecorder(){
         delete _hls;
     }
+    void setMediaInfo(const string &vhost, const string &app, const string &stream_id){
+        _hls->setMediaInfo(vhost,app,stream_id);
+    }
 protected:
     void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) override {
         _hls->inputData((char *)packet,bytes,timestamp);

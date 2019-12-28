@@ -132,7 +132,7 @@ public:
     // 观看者个数，包括(hls/rtsp/rtmp)
     virtual int totalReaderCount();
     // 获取流当前时间戳
-    virtual uint32_t getTimeStamp(TrackType trackType) = 0;
+    virtual uint32_t getTimeStamp(TrackType trackType) { return 0; };
 
     // 拖动进度条
     bool seekTo(uint32_t ui32Stamp);
