@@ -178,7 +178,7 @@ const string kHandshakeSecond = RTMP_FIELD"handshakeSecond";
 const string kKeepAliveSecond = RTMP_FIELD"keepAliveSecond";
 
 onceToken token([](){
-	mINI::Instance()[kModifyStamp] = true;
+	mINI::Instance()[kModifyStamp] = false;
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
 },nullptr);
