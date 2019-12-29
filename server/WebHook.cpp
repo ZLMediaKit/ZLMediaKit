@@ -276,13 +276,6 @@ void installWebHook(){
         body["totalBytes"] = (Json::UInt64)totalBytes;
         body["duration"] = (Json::UInt64)totalDuration;
         body["player"] = isPlayer;
-
-        body["schema"] = args._schema;
-        body["vhost"] = args._vhost;
-        body["app"] = args._app;
-        body["stream"] = args._streamid;
-        body["params"] = args._param_strs;
-
         //执行hook
         do_http_hook(hook_flowreport,body, nullptr);
     });
