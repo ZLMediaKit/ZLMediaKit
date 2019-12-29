@@ -70,6 +70,7 @@ private:
     string _dst_url;
     function<void()> _onClose;
     std::weak_ptr<MediaSourceEvent> _listener;
+    Ticker _replay_ticker;
 };
 
 
