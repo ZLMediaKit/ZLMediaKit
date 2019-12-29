@@ -376,14 +376,14 @@ void API_CALL on_mk_shell_login(const char *user_name,
 void API_CALL on_mk_flow_report(const mk_media_info url_info,
                                 uint64_t total_bytes,
                                 uint64_t total_seconds,
-                                int is_player,
-                                const mk_tcp_session sender) {
-    log_printf(LOG_LEV,"client info, local: %s:%d, peer: %s:%d\n"
+                                int is_player) {
+    log_printf(LOG_LEV,"%s/%s/%s/%s, url params: %s,"
               "total_bytes: %d, total_seconds: %d, is_player: %d",
-              mk_tcp_session_local_ip(sender),
-              mk_tcp_session_local_port(sender),
-              mk_tcp_session_peer_ip(sender),
-              mk_tcp_session_peer_port(sender),
+               mk_media_info_get_schema(url_info),
+               mk_media_info_get_vhost(url_info),
+               mk_media_info_get_app(url_info),
+               mk_media_info_get_stream(url_info),
+               mk_media_info_get_params(url_info),
               (int)total_bytes, (int)total_seconds, (int)is_player);
 }
 

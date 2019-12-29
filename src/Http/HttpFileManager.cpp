@@ -46,6 +46,7 @@ static const string kAccessErrKey = "kAccessErrKey";
 static const string kAccessHls = "kAccessHls";
 static const string kHlsSuffix = "/hls.m3u8";
 static const string kHlsData = "kHlsData";
+static const string kHlsHaveFindMediaSource = "kHlsHaveFindMediaSource";
 
 static const string &getContentType(const char *name) {
     const char *dot;
@@ -306,6 +307,8 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             if(is_hls){
                 //hls相关信息
                 (*cookie)[kHlsData].set<HlsCookieData>(mediaInfo);
+                //hls未查找MediaSource
+                (*cookie)[kHlsHaveFindMediaSource].set<bool>(false);
             }
             callback(errMsg, cookie);
         }else{
@@ -370,49 +373,64 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
     weak_ptr<TcpSession> weakSession = sender.shared_from_this();
     //判断是否有权限访问该文件
     canAccessPath(sender, parser, mediaInfo, false, [cb, strFile, parser, is_hls, mediaInfo, weakSession , file_exist](const string &errMsg, const HttpServerCookie::Ptr &cookie) {
-            if (!errMsg.empty()) {
-                //文件鉴权失败
-                StrCaseMap headerOut;
+        auto strongSession = weakSession.lock();
+        if(!strongSession){
+            //http客户端已经断开，不需要回复
+            return;
+        }
+        if (!errMsg.empty()) {
+            //文件鉴权失败
+            StrCaseMap headerOut;
+            if (cookie) {
+                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+            }
+            cb("401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
+            return;
+        }
+
+        auto response_file = [](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
+            StrCaseMap httpHeader;
+            if (cookie) {
+                httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+            }
+            HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
                 if (cookie) {
-                    headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+                    cookie->getLock();
+                    auto is_hls = (*cookie)[kAccessHls].get<bool>();
+                    if (is_hls) {
+                        (*cookie)[kHlsData].get<HlsCookieData>().addByteUsage(body->remainSize());
+                    }
                 }
-                cb("401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
+                cb(codeOut.data(), getContentType(strFile.data()), headerOut, body);
+            };
+            invoker.responseFile(parser.getValues(), httpHeader, strFile);
+        };
+
+        //如果程序未正常退出，会残余上次的hls文件，所以判断hls直播是否存在的关键不是文件存在与否
+        //而是应该判断HlsMediaSource是否已注册，但是这样会每次获取m3u8文件时都会用MediaSource::findAsync判断一次
+        //会导致程序性能低下，所以我们应该在cookie声明周期的第一次判断HlsMediaSource是否已经注册，后续通过文件存在与否判断
+        if (!is_hls) {
+            //不是hls,直接回复文件或404
+            response_file(cookie, cb, strFile, parser);
+        } else  {
+            bool have_find_media_src = false;
+            if(cookie){
+                have_find_media_src = (*cookie)[kHlsHaveFindMediaSource].get<bool>();
+                if(!have_find_media_src){
+                    (*cookie)[kHlsHaveFindMediaSource].set<bool>(true);
+                }
+            }
+            if(have_find_media_src){
+                //之前该cookie已经通过MediaSource::findAsync查找过了，所以现在只以文件系统查找结果为准
+                response_file(cookie, cb, strFile, parser);
                 return;
             }
-
-            auto response_file = [](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
-                    StrCaseMap httpHeader;
-                    if (cookie) {
-                        httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
-                    }
-                    HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
-                        if (cookie) {
-                            cookie->getLock();
-                            auto is_hls = (*cookie)[kAccessHls].get<bool>();
-                            if (is_hls) {
-                                (*cookie)[kHlsData].get<HlsCookieData>().addByteUsage(body->remainSize());
-                            }
-                        }
-                        cb(codeOut.data(), getContentType(strFile.data()), headerOut, body);
-                    };
-                    invoker.responseFile(parser.getValues(), httpHeader, strFile);
-            };
-
-            if (file_exist || !is_hls) {
-                //不是hls或者文件存在，直接回复文件或404
+            //hls文件不存在，我们等待其生成并延后回复
+            MediaSource::findAsync(mediaInfo, strongSession, [response_file, cookie, cb, strFile, parser](const MediaSource::Ptr &src) {
+                //hls已经生成或者超时后仍未生成，那么不管怎么样都返回客户端
                 response_file(cookie, cb, strFile, parser);
-            } else  {
-                //hls文件不存在，我们等待其生成并延后回复
-                auto strongSession = weakSession.lock();
-                if(!strongSession){
-                    //http客户端已经断开，不需要回复
-                    return;
-                }
-                MediaSource::findAsync(mediaInfo, strongSession, [response_file, cookie, cb, strFile, parser](const MediaSource::Ptr &src) {
-                    //hls已经生成或者超时后仍未生成，那么不管怎么样都返回客户端
-                    response_file(cookie, cb, strFile, parser);
-                });
-            }
+            });
+        }
     });
 }
 
