@@ -72,6 +72,7 @@ public:
      * @param cb 回调函数
      */
     virtual void readDataAsync(uint32_t size,const function<void(const Buffer::Ptr &buf)> &cb){
+#if 0
         if(size >= remainSize()){
             //假如剩余数据很小，那么同步获取(为了优化性能)
             cb(readData(size));
@@ -85,6 +86,12 @@ public:
                 cb(strongSelf->readData(size));
             }
         });
+#else
+        //由于unix和linux是通过mmap的方式读取文件，所以把读文件操作放在后台线程并不能提高性能
+        //反而会由于频繁的线程切换导致性能降低以及延时增加，所以我们默认同步获取文件内容
+        //(其实并没有读，拷贝文件数据时在内核态完成文件读)
+        cb(readData(size));
+#endif
     }
 private:
     EventPoller::Ptr _async_read_thread;
