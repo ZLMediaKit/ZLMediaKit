@@ -198,14 +198,12 @@ void API_CALL on_mk_http_request(const mk_parser parser,
 /**
  * 在http文件服务器中,收到http访问文件或目录的广播,通过该事件控制访问http目录的权限
  * @param parser http请求内容对象
- * @param url_info 请求url相关信息
  * @param path 文件绝对路径
  * @param is_dir path是否为文件夹
  * @param invoker 执行invoker返回本次访问文件的结果
  * @param sender http客户端相关信息
  */
 void API_CALL on_mk_http_access(const mk_parser parser,
-                                const mk_media_info url_info,
                                 const char *path,
                                 int is_dir,
                                 const mk_http_access_path_invoker invoker,
@@ -236,12 +234,10 @@ void API_CALL on_mk_http_access(const mk_parser parser,
  * 在http文件服务器中,收到http访问文件或目录前的广播,通过该事件可以控制http url到文件路径的映射
  * 在该事件中通过自行覆盖path参数，可以做到譬如根据虚拟主机或者app选择不同http根目录的目的
  * @param parser http请求内容对象
- * @param url_info 请求url相关信息
  * @param path 文件绝对路径,覆盖之可以重定向到其他文件
  * @param sender http客户端相关信息
  */
 void API_CALL on_mk_http_before_access(const mk_parser parser,
-                                       const mk_media_info url_info,
                                        char *path,
                                        const mk_tcp_session sender) {
     log_printf(LOG_LEV,

@@ -70,7 +70,6 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
         NoticeCenter::Instance().addListener(&s_tag,Broadcast::kBroadcastHttpAccess,[](BroadcastHttpAccessArgs){
             if(s_events.on_mk_http_access){
                 s_events.on_mk_http_access((mk_parser)&parser,
-                                           (mk_media_info)&args,
                                            path.c_str(),
                                            is_dir,
                                            (mk_http_access_path_invoker)&invoker,
@@ -85,7 +84,6 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 char path_c[4 * 1024] = {0};
                 strcpy(path_c,path.c_str());
                 s_events.on_mk_http_before_access((mk_parser) &parser,
-                                                  (mk_media_info) &args,
                                                   path_c,
                                                   (mk_tcp_session) &sender);
                 path = path_c;

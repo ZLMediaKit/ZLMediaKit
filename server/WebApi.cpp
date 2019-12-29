@@ -834,7 +834,7 @@ void installWebApi() {
                 << allArgs["stream"] << "?vhost="
                 << allArgs["vhost"];
 
-        addFFmpegSource("http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
+        addFFmpegSource("http://hls-ott-zhibo.wasu.tv/live/272/index.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
                         dst_url,
                         (1000 * timeout_sec) - 500,
                         [invoker,val,headerOut](const SockException &ex,const string &key){
