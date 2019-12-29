@@ -258,13 +258,13 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
         auto lck = cookie->getLock();
         auto accessErr = (*cookie)[kAccessErrKey].get<string>();
         auto cookiePath = (*cookie)[kCookiePathKey].get<string>();
-        auto is_hls = (*cookie)[kAccessHls].get<bool>();
+        auto cookie_is_hls = (*cookie)[kAccessHls].get<bool>();
         if (path.find(cookiePath) == 0) {
             //上次cookie是限定本目录
             if (accessErr.empty()) {
                 //上次鉴权成功
-                if(is_hls){
-                    //如果播放的是hls，那么刷新hls的cookie
+                if(cookie_is_hls){
+                    //如果播放的是hls，那么刷新hls的cookie(获取ts文件也会刷新)
                     cookie->updateTime();
                     cookie_from_header = false;
                 }
@@ -284,8 +284,8 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
 
     bool is_hls = mediaInfo._schema == HLS_SCHEMA;
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
-        HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, mediaInfo]
-                (const string &errMsg, const string &cookie_path_in, int cookieLifeSecond) {
+    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, mediaInfo]
+            (const string &errMsg, const string &cookie_path_in, int cookieLifeSecond) {
         HttpServerCookie::Ptr cookie;
         if (cookieLifeSecond) {
             //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
@@ -388,13 +388,13 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             return;
         }
 
-        auto response_file = [](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
+        auto response_file = [file_exist](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
             StrCaseMap httpHeader;
             if (cookie) {
                 httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
             }
             HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
-                if (cookie) {
+                if (cookie && file_exist) {
                     cookie->getLock();
                     auto is_hls = (*cookie)[kAccessHls].get<bool>();
                     if (is_hls) {

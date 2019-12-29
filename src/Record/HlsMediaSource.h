@@ -31,31 +31,24 @@
 #include "Common/MediaSource.h"
 namespace mediakit{
 
-class HlsMediaSource;
-class HlsCookieData{
-public:
-    HlsCookieData(const MediaInfo &info);
-    ~HlsCookieData();
-    void addByteUsage(uint64_t bytes);
-private:
-    void addReaderCount();
-private:
-    uint64_t _bytes = 0;
-    MediaInfo _info;
-    bool _added = false;
-    weak_ptr<HlsMediaSource> _src;
-    Ticker _ticker;
-};
-
 class HlsMediaSource : public MediaSource {
 public:
     friend class HlsCookieData;
+    typedef RingBuffer<string> RingType;
     typedef std::shared_ptr<HlsMediaSource> Ptr;
     HlsMediaSource(const string &vhost, const string &app, const string &stream_id) : MediaSource(HLS_SCHEMA, vhost, app, stream_id){
         _readerCount = 0;
+        _ring = std::make_shared<RingType>();
     }
 
     virtual ~HlsMediaSource() = default;
+
+    /**
+	 * 	获取媒体源的环形缓冲
+	 */
+    const RingType::Ptr &getRing() const {
+        return _ring;
+    }
 
     /**
 	 * 获取播放器个数
@@ -93,6 +86,23 @@ private:
 private:
     atomic_int _readerCount;
     bool _registed = false;
+    RingType::Ptr _ring;
+};
+
+class HlsCookieData{
+public:
+    HlsCookieData(const MediaInfo &info);
+    ~HlsCookieData();
+    void addByteUsage(uint64_t bytes);
+private:
+    void addReaderCount();
+private:
+    uint64_t _bytes = 0;
+    MediaInfo _info;
+    std::shared_ptr<bool> _added;
+    weak_ptr<HlsMediaSource> _src;
+    Ticker _ticker;
+    HlsMediaSource::RingType::RingReader::Ptr _ring_reader;
 };
 
 
