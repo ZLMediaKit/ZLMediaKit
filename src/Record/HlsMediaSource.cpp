@@ -30,22 +30,29 @@ namespace mediakit{
 
 HlsCookieData::HlsCookieData(const MediaInfo &info) {
     _info = info;
+    _added = std::make_shared<bool>(false);
     addReaderCount();
 }
 
 void HlsCookieData::addReaderCount(){
-    if(!_added){
+    if(!*_added){
         auto src = dynamic_pointer_cast<HlsMediaSource>(MediaSource::find(HLS_SCHEMA,_info._vhost,_info._app,_info._streamid));
         if(src){
             src->modifyReaderCount(true);
-            _added = true;
+            *_added = true;
             _src = src;
+            _ring_reader = src->getRing()->attach(EventPollerPool::Instance().getPoller());
+            auto added = _added;
+            _ring_reader->setDetachCB([added](){
+                //HlsMediaSource已经销毁
+                *added = false;
+            });
         }
     }
 }
 
 HlsCookieData::~HlsCookieData() {
-    if (_added) {
+    if (*_added) {
         auto src = _src.lock();
         if (src) {
             src->modifyReaderCount(false);
