@@ -27,6 +27,7 @@
 #define ZLMEDIAKIT_HLSMEDIASOURCE_H
 
 #include <atomic>
+#include "Util/TimeTicker.h"
 #include "Common/MediaSource.h"
 namespace mediakit{
 
@@ -43,6 +44,7 @@ private:
     MediaInfo _info;
     bool _added = false;
     weak_ptr<HlsMediaSource> _src;
+    Ticker _ticker;
 };
 
 class HlsMediaSource : public MediaSource {

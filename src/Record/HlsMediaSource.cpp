@@ -42,14 +42,19 @@ void HlsCookieData::addReaderCount(){
             _src = src;
         }
     }
-
 }
 
 HlsCookieData::~HlsCookieData() {
-    if(_added){
+    if (_added) {
         auto src = _src.lock();
-        if(src){
+        if (src) {
             src->modifyReaderCount(false);
+        }
+        auto duration = (_ticker.createdTime() - _ticker.elapsedTime()) / 1000;
+        WarnL << "HLS播放器(" << _info._vhost << "/" << _info._app << "/" << _info._streamid << ")断开,播放时间:" << duration;
+        GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
+        if (_bytes > iFlowThreshold * 1024) {
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, _bytes, duration, true);
         }
     }
 }
@@ -57,6 +62,7 @@ HlsCookieData::~HlsCookieData() {
 void HlsCookieData::addByteUsage(uint64_t bytes) {
     addReaderCount();
     _bytes += bytes;
+    _ticker.resetTime();
 }
 
 

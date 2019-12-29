@@ -166,8 +166,7 @@ typedef struct {
     void (API_CALL *on_mk_flow_report)(const mk_media_info url_info,
                                        uint64_t total_bytes,
                                        uint64_t total_seconds,
-                                       int is_player,
-                                       const mk_tcp_session sender);
+                                       int is_player);
 } mk_events;
 
 

@@ -86,7 +86,7 @@ RtspSession::~RtspSession() {
 
 void RtspSession::onError(const SockException& err) {
     bool isPlayer = !_pushSrc;
-    WarnP(this) << (isPlayer ? "播放器(" : "推流器(")
+    WarnP(this) << (isPlayer ? "RTSP播放器(" : "RTSP推流器(")
                 << _mediaInfo._vhost << "/"
                 << _mediaInfo._app << "/"
                 << _mediaInfo._streamid
@@ -106,12 +106,7 @@ void RtspSession::onError(const SockException& err) {
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
     if(_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
-										   _mediaInfo,
-										   _ui64TotalBytes,
-										   _ticker.createdTime()/1000,
-                                           isPlayer,
-										   *this);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, _ticker.createdTime()/1000, isPlayer);
     }
 
 }

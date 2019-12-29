@@ -45,7 +45,7 @@ RtmpSession::~RtmpSession() {
 
 void RtmpSession::onError(const SockException& err) {
     bool isPlayer = !_pPublisherSrc;
-    WarnP(this) << (isPlayer ? "播放器(" : "推流器(")
+    WarnP(this) << (isPlayer ? "RTMP播放器(" : "RTMP推流器(")
                 << _mediaInfo._vhost << "/"
                 << _mediaInfo._app << "/"
                 << _mediaInfo._streamid
@@ -55,12 +55,7 @@ void RtmpSession::onError(const SockException& err) {
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
 
     if(_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
-                                           _mediaInfo,
-                                           _ui64TotalBytes,
-                                           _ticker.createdTime()/1000,
-                                           isPlayer,
-                                           *this);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, _ticker.createdTime()/1000, isPlayer);
     }
 }
 

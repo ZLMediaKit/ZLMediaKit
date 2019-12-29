@@ -104,7 +104,7 @@ void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 void HttpSession::onError(const SockException& err) {
     if(_is_flv_stream){
         //flv播放器
-        WarnP(this) << "播放器("
+        WarnP(this) << "FLV播放器("
                     << _mediaInfo._vhost << "/"
                     << _mediaInfo._app << "/"
                     << _mediaInfo._streamid
@@ -112,12 +112,7 @@ void HttpSession::onError(const SockException& err) {
 
         GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
         if(_ui64TotalBytes > iFlowThreshold * 1024){
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport,
-                                               _mediaInfo,
-                                               _ui64TotalBytes,
-                                               _ticker.createdTime()/1000,
-                                               true,
-                                               *this);
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, _ticker.createdTime()/1000, true);
         }
         return;
     }
