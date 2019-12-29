@@ -354,7 +354,8 @@ static string pathCat(const string &a, const string &b){
  */
 static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo &mediaInfo, const string &strFile, const HttpFileManager::invoker &cb) {
     bool is_hls = end_of(strFile, kHlsSuffix);
-    if (!is_hls && !File::is_file(strFile.data())) {
+    bool file_exist = File::is_file(strFile.data());
+    if (!is_hls && !file_exist) {
         //文件不存在且不是hls,那么直接返回404
         sendNotFound(cb);
         return;
@@ -368,7 +369,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
 
     weak_ptr<TcpSession> weakSession = sender.shared_from_this();
     //判断是否有权限访问该文件
-    canAccessPath(sender, parser, mediaInfo, false, [cb, strFile, parser, is_hls, mediaInfo, weakSession](const string &errMsg, const HttpServerCookie::Ptr &cookie) {
+    canAccessPath(sender, parser, mediaInfo, false, [cb, strFile, parser, is_hls, mediaInfo, weakSession , file_exist](const string &errMsg, const HttpServerCookie::Ptr &cookie) {
             if (!errMsg.empty()) {
                 //文件鉴权失败
                 StrCaseMap headerOut;
@@ -397,11 +398,11 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                     invoker.responseFile(parser.getValues(), httpHeader, strFile);
             };
 
-            if (!is_hls) {
-                //不是hls，直接回复
+            if (file_exist || !is_hls) {
+                //不是hls或者文件存在，直接回复文件或404
                 response_file(cookie, cb, strFile, parser);
-            } else {
-                //文件不存在，那么说明是hls，我们等待其生成并延后回复
+            } else  {
+                //hls文件不存在，我们等待其生成并延后回复
                 auto strongSession = weakSession.lock();
                 if(!strongSession){
                     //http客户端已经断开，不需要回复
