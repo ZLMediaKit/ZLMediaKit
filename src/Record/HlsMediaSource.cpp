@@ -39,6 +39,7 @@ void HlsCookieData::addReaderCount(){
         if(src){
             src->modifyReaderCount(true);
             _added = true;
+            _src = src;
         }
     }
 
@@ -46,7 +47,7 @@ void HlsCookieData::addReaderCount(){
 
 HlsCookieData::~HlsCookieData() {
     if(_added){
-        auto src = dynamic_pointer_cast<HlsMediaSource>(MediaSource::find(HLS_SCHEMA,_info._vhost,_info._app,_info._streamid));
+        auto src = _src.lock();
         if(src){
             src->modifyReaderCount(false);
         }
