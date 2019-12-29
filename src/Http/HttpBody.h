@@ -50,7 +50,7 @@ class HttpBody : public std::enable_shared_from_this<HttpBody>{
 public:
     typedef std::shared_ptr<HttpBody> Ptr;
     HttpBody(){
-        _async_read_thread = WorkThreadPool::Instance().getPoller();
+//        _async_read_thread = WorkThreadPool::Instance().getPoller();
     }
     virtual ~HttpBody(){}
 
@@ -94,7 +94,7 @@ public:
 #endif
     }
 private:
-    EventPoller::Ptr _async_read_thread;
+//    EventPoller::Ptr _async_read_thread;
 };
 
 /**
