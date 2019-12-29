@@ -55,7 +55,7 @@ MediaSinkInterface *createHlsRecorder(const string &strVhost_tmp, const string &
     }
     m3u8FilePath = File::absolutePath(m3u8FilePath, hlsPath);
     auto ret = new HlsRecorder(m3u8FilePath, params);
-    ret->setMediaInfo(strVhost,strApp,strId);
+    ret->setMediaSource(strVhost, strApp, strId);
     return ret;
 #else
     return nullptr;
@@ -159,6 +159,10 @@ public:
     const string &getSchema() const{
         return _schema;
     }
+
+    const MediaSinkInterface::Ptr& getRecorder() const{
+        return _recorder;
+    }
 private:
     MediaSinkInterface::Ptr _recorder;
     vector<Track::Ptr> _tracks;
@@ -179,6 +183,16 @@ public:
         return getRecordStatus_l(getRecorderKey(vhost, app, stream_id));
     }
 
+    MediaSinkInterface::Ptr getRecorder(const string &vhost, const string &app, const string &stream_id) const{
+        auto key = getRecorderKey(vhost, app, stream_id);
+        lock_guard<decltype(_recorder_mtx)> lck(_recorder_mtx);
+        auto it = _recorder_map.find(key);
+        if (it == _recorder_map.end()) {
+            return nullptr;
+        }
+        return it->second->getRecorder();
+    }
+
     int startRecord(const string &vhost, const string &app, const string &stream_id, bool waitForRecord, bool continueRecord) {
         auto key = getRecorderKey(vhost, app, stream_id);
         lock_guard<decltype(_recorder_mtx)> lck(_recorder_mtx);
@@ -187,9 +201,8 @@ public:
             return 0;
         }
 
-        string schema;
-        auto tracks = findTracks(vhost, app, stream_id,schema);
-        if (!waitForRecord && tracks.empty()) {
+        auto src = findMediaSource(vhost, app, stream_id);
+        if (!waitForRecord && !src) {
             // 暂时无法开启录制
             return -1;
         }
@@ -200,9 +213,17 @@ public:
             return -2;
         }
         auto helper = std::make_shared<RecorderHelper>(recorder, continueRecord);
-        if(tracks.size()){
-            helper->attachTracks(std::move(tracks),schema);
+        if(src){
+            auto tracks = src->getTracks(needTrackReady());
+            if(tracks.size()){
+                helper->attachTracks(std::move(tracks),src->getSchema());
+            }
+            auto hls_recorder = dynamic_pointer_cast<HlsRecorder>(recorder);
+            if(hls_recorder){
+                hls_recorder->getMediaSource()->setListener(src->getListener());
+            }
         }
+
         _recorder_map[key] = std::move(helper);
         return 0;
     }
@@ -281,25 +302,27 @@ private:
     }
 
     // 查找MediaSource以便录制
-    vector<Track::Ptr> findTracks(const string &vhost, const string &app, const string &stream_id,string &schema) {
+    MediaSource::Ptr findMediaSource(const string &vhost, const string &app, const string &stream_id) {
+        bool need_ready = needTrackReady();
         auto src = MediaSource::find(RTMP_SCHEMA, vhost, app, stream_id);
         if (src) {
-            auto ret = src->getTracks(needTrackReady());
+            auto ret = src->getTracks(need_ready);
             if (!ret.empty()) {
-                schema = RTMP_SCHEMA;
-                return std::move(ret);
+                return std::move(src);
             }
         }
 
         src = MediaSource::find(RTSP_SCHEMA, vhost, app, stream_id);
         if (src) {
-            schema = RTSP_SCHEMA;
-            return src->getTracks(needTrackReady());
+            auto ret = src->getTracks(need_ready);
+            if (!ret.empty()) {
+                return std::move(src);
+            }
         }
-        return vector<Track::Ptr>();
+        return nullptr;
     }
 
-    string getRecorderKey(const string &vhost, const string &app, const string &stream_id) {
+    string getRecorderKey(const string &vhost, const string &app, const string &stream_id) const{
         return vhost + "/" + app + "/" + stream_id;
     }
 
@@ -335,7 +358,7 @@ private:
         }
     }
 private:
-    recursive_mutex _recorder_mtx;
+    mutable recursive_mutex _recorder_mtx;
     NoticeCenter::Ptr _notice_center;
     unordered_map<string, RecorderHelper::Ptr> _recorder_map;
 };
@@ -350,6 +373,17 @@ Recorder::status Recorder::getRecordStatus(Recorder::type type, const string &vh
     }
     return status_not_record;
 }
+
+std::shared_ptr<MediaSinkInterface> Recorder::getRecorder(type type, const string &vhost, const string &app, const string &stream_id){
+    switch (type){
+        case type_mp4:
+            return MediaSourceWatcher<type_mp4>::Instance().getRecorder(vhost,app,stream_id);
+        case type_hls:
+            return MediaSourceWatcher<type_hls>::Instance().getRecorder(vhost,app,stream_id);
+    }
+    return nullptr;
+}
+
 
 int Recorder::startRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id, bool waitForRecord, bool continueRecord) {
     switch (type){

@@ -81,8 +81,6 @@ API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, int *
 typedef void* mk_media_info;
 //MediaInfo::_param_strs
 API_EXPORT const char* API_CALL mk_media_info_get_params(const mk_media_info ctx);
-//MediaInfo["key"]
-API_EXPORT const char* API_CALL mk_media_info_get_param(const mk_media_info ctx,const char *key);
 //MediaInfo::_schema
 API_EXPORT const char* API_CALL mk_media_info_get_schema(const mk_media_info ctx);
 //MediaInfo::_vhost

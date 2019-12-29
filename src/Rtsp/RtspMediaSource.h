@@ -140,7 +140,7 @@ public:
 	/**
 	 * 更新时间戳
 	 */
-	virtual void setTimeStamp(uint32_t uiStamp) {
+	 void setTimeStamp(uint32_t uiStamp) override {
 		auto tracks = _sdp_parser.getAvailableTrack();
 		for (auto &track : tracks) {
 			track->_time_stamp = uiStamp;

@@ -51,7 +51,13 @@ public:
      * @param app 应用名
      * @param stream_id 流id
      */
-    void setMediaInfo(const string &vhost, const string &app, const string &stream_id);
+    void setMediaSource(const string &vhost, const string &app, const string &stream_id);
+
+    /**
+     * 获取MediaSource
+     * @return
+     */
+     MediaSource::Ptr getMediaSource() const;
 protected:
     string onOpenSegment(int index) override ;
     void onDelSegment(int index) override;

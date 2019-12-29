@@ -147,11 +147,7 @@ API_EXPORT const char* API_CALL mk_media_info_get_params(const mk_media_info ctx
     MediaInfo *info = (MediaInfo *)ctx;
     return info->_param_strs.c_str();
 }
-API_EXPORT const char* API_CALL mk_media_info_get_param(const mk_media_info ctx,const char *key){
-    assert(ctx && key);
-    MediaInfo *info = (MediaInfo *)ctx;
-    return info->_params[key].c_str();
-}
+
 API_EXPORT const char* API_CALL mk_media_info_get_schema(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
