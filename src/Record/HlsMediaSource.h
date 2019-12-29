@@ -36,8 +36,11 @@ public:
     ~HlsCookieData();
     void addByteUsage(uint64_t bytes);
 private:
+    void addReaderCount();
+private:
     uint64_t _bytes = 0;
     MediaInfo _info;
+    bool _added = false;
 };
 
 class HlsMediaSource : public MediaSource {
@@ -73,7 +76,7 @@ private:
      * 修改观看者个数
      * @param add 添加海思删除
      */
-    void modifyCount(bool add) {
+    void modifyReaderCount(bool add) {
         if (add) {
             ++_readerCount;
             return;
