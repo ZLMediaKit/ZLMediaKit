@@ -87,8 +87,8 @@ const string kPublishToMP4 = GENERAL_FIELD"publishToMP4";
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
-    mINI::Instance()[kStreamNoneReaderDelayMS] = 5 * 1000;
-    mINI::Instance()[kMaxStreamWaitTimeMS] = 5 * 1000;
+    mINI::Instance()[kStreamNoneReaderDelayMS] = 20 * 1000;
+    mINI::Instance()[kMaxStreamWaitTimeMS] = 15 * 1000;
     mINI::Instance()[kEnableVhost] = 0;
 	mINI::Instance()[kUltraLowDelay] = 1;
 	mINI::Instance()[kAddMuteAudio] = 1;

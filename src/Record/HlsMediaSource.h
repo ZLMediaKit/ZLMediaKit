@@ -44,10 +44,7 @@ class HlsMediaSource : public MediaSource {
 public:
     friend class HlsCookieData;
     typedef std::shared_ptr<HlsMediaSource> Ptr;
-    HlsMediaSource(const string &vhost,
-                   const string &app,
-                   const string &stream_id) :
-            MediaSource(HLS_SCHEMA, vhost, app, stream_id){
+    HlsMediaSource(const string &vhost, const string &app, const string &stream_id) : MediaSource(HLS_SCHEMA, vhost, app, stream_id){
         _readerCount = 0;
     }
 

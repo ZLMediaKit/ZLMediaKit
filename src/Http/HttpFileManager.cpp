@@ -218,16 +218,13 @@ static bool end_of(const string &str, const string &substr){
 };
 
 //拦截hls的播放请求
-static bool emitHlsPlayed(BroadcastHttpAccessArgs){
+static bool emitHlsPlayed(const Parser &parser, const MediaInfo &mediaInfo, const HttpSession::HttpAccessPathInvoker &invoker,TcpSession &sender){
     //访问的hls.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
-    Broadcast::AuthInvoker mediaAuthInvoker = [invoker,path](const string &err){
+    Broadcast::AuthInvoker mediaAuthInvoker = [invoker](const string &err){
         //cookie有效期为kHlsCookieSecond
         invoker(err,"",kHlsCookieSecond);
     };
-
-    auto args_copy = args;
-    replace(args_copy._streamid,kHlsSuffix,"");
-    return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,args_copy,mediaAuthInvoker,sender);
+    return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,mediaInfo,mediaAuthInvoker,sender);
 }
 
 
@@ -284,7 +281,7 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
         HttpCookieManager::Instance().delCookie(cookie);
     }
 
-    bool is_hls = end_of(path,kHlsSuffix);
+    bool is_hls = mediaInfo._schema == HLS_SCHEMA;
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
         HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, mediaInfo]
                 (const string &errMsg, const string &cookie_path_in, int cookieLifeSecond) {
@@ -308,7 +305,6 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             (*cookie)[kAccessHls].set<bool>(is_hls);
             if(is_hls){
                 //hls相关信息
-                replace(const_cast<string &>(mediaInfo._streamid),kHlsSuffix,"");
                 (*cookie)[kHlsData].set<HlsCookieData>(mediaInfo);
             }
             callback(errMsg, cookie);
@@ -317,13 +313,13 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
         }
     };
 
-    if (is_hls && emitHlsPlayed(parser, mediaInfo, path, is_dir, accessPathInvoker, sender)) {
+    if (is_hls && emitHlsPlayed(parser, mediaInfo, accessPathInvoker, sender)) {
         //是hls的播放鉴权,拦截之
         return;
     }
 
     //事件未被拦截，则认为是http下载请求
-    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess, parser, mediaInfo, path, is_dir, accessPathInvoker, sender);
+    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, sender);
     if (!flag) {
         //此事件无人监听，我们默认都有权限访问
         callback("", nullptr);
@@ -357,35 +353,65 @@ static string pathCat(const string &a, const string &b){
  * @param cb 回调对象
  */
 static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo &mediaInfo, const string &strFile, const HttpFileManager::invoker &cb) {
-    if (!File::is_file(strFile.data())) {
+    bool is_hls = end_of(strFile, kHlsSuffix);
+    if (!is_hls && !File::is_file(strFile.data())) {
+        //文件不存在且不是hls,那么直接返回404
         sendNotFound(cb);
         return;
     }
-    //判断是否有权限访问该文件
-    canAccessPath(sender, parser, mediaInfo, false, [cb, strFile, parser](const string &errMsg, const HttpServerCookie::Ptr &cookie) {
-        if (!errMsg.empty()) {
-            StrCaseMap headerOut;
-            if (cookie) {
-                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
-            }
-            cb("401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
-            return;
-        }
 
-        StrCaseMap httpHeader;
-        if (cookie) {
-            httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
-        }
-        HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
-            if(cookie){
-                auto is_hls = (*cookie)[kAccessHls].get<bool>();
-                if(is_hls){
-                    (*cookie)[kHlsData].get<HlsCookieData>().addByteUsage(body->remainSize());
+    if(is_hls){
+        //hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS
+        const_cast<string &>(mediaInfo._schema) = HLS_SCHEMA;
+        replace(const_cast<string &>(mediaInfo._streamid), kHlsSuffix, "");
+    }
+
+    weak_ptr<TcpSession> weakSession = sender.shared_from_this();
+    //判断是否有权限访问该文件
+    canAccessPath(sender, parser, mediaInfo, false, [cb, strFile, parser, is_hls, mediaInfo, weakSession](const string &errMsg, const HttpServerCookie::Ptr &cookie) {
+            if (!errMsg.empty()) {
+                //文件鉴权失败
+                StrCaseMap headerOut;
+                if (cookie) {
+                    headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
                 }
+                cb("401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
+                return;
             }
-            cb(codeOut.data(), getContentType(strFile.data()), headerOut, body);
-        };
-        invoker.responseFile(parser.getValues(), httpHeader, strFile);
+
+            auto response_file = [](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
+                    StrCaseMap httpHeader;
+                    if (cookie) {
+                        httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+                    }
+                    HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
+                        if (cookie) {
+                            cookie->getLock();
+                            auto is_hls = (*cookie)[kAccessHls].get<bool>();
+                            if (is_hls) {
+                                (*cookie)[kHlsData].get<HlsCookieData>().addByteUsage(body->remainSize());
+                            }
+                        }
+                        cb(codeOut.data(), getContentType(strFile.data()), headerOut, body);
+                    };
+                    invoker.responseFile(parser.getValues(), httpHeader, strFile);
+            };
+
+            if (!is_hls) {
+                //不是hls，直接回复
+                response_file(cookie, cb, strFile, parser);
+            } else {
+                //文件不存在，那么说明是hls，我们等待其生成并延后回复
+                auto strongSession = weakSession.lock();
+                if(!strongSession){
+                    //http客户端已经断开，不需要回复
+                    return;
+                }
+                MediaSource::findAsync(mediaInfo, strongSession, [response_file, cookie, cb, strFile, parser](const MediaSource::Ptr &src) {
+                    //hls已经生成或者超时后仍未生成，那么不管怎么样都返回客户端
+                    response_file(cookie, cb, strFile, parser);
+                });
+            }
     });
 }
 
@@ -393,7 +419,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &mediaInfo, TcpSe
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     GET_CONFIG(string, rootPath, Http::kRootPath);
     auto ret = File::absolutePath(enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, mediaInfo, ret, sender);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, sender);
     return std::move(ret);
 }
 
