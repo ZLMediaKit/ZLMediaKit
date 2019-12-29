@@ -30,6 +30,7 @@
 #include "Common/MediaSource.h"
 namespace mediakit{
 
+class HlsMediaSource;
 class HlsCookieData{
 public:
     HlsCookieData(const MediaInfo &info);
@@ -41,6 +42,7 @@ private:
     uint64_t _bytes = 0;
     MediaInfo _info;
     bool _added = false;
+    weak_ptr<HlsMediaSource> _src;
 };
 
 class HlsMediaSource : public MediaSource {
