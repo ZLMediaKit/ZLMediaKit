@@ -34,6 +34,7 @@ namespace mediakit {
 
 class HlsRecorder : public TsMuxer {
 public:
+    typedef std::shared_ptr<HlsRecorder> Ptr;
     HlsRecorder(const string &m3u8_file, const string &params){
         GET_CONFIG(uint32_t,hlsNum,Hls::kSegmentNum);
         GET_CONFIG(uint32_t,hlsBufSize,Hls::kFileBufSize);
@@ -43,8 +44,12 @@ public:
     ~HlsRecorder(){
         delete _hls;
     }
-    void setMediaInfo(const string &vhost, const string &app, const string &stream_id){
-        _hls->setMediaInfo(vhost,app,stream_id);
+    void setMediaSource(const string &vhost, const string &app, const string &stream_id){
+        _hls->setMediaSource(vhost, app, stream_id);
+    }
+
+    MediaSource::Ptr getMediaSource() const{
+        return _hls->getMediaSource();
     }
 protected:
     void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) override {

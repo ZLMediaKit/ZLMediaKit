@@ -88,6 +88,15 @@ public:
 	 * 停止所有录制，一般程序退出时调用
 	 */
 	static void stopAll();
+
+	/**
+	 * 获取录制对象
+	 * @param type hls还是MP4录制
+     * @param vhost 虚拟主机
+     * @param app 应用名
+     * @param stream_id 流id
+	 */
+	static std::shared_ptr<MediaSinkInterface> getRecorder(type type, const string &vhost, const string &app, const string &stream_id);
 private:
 	Recorder() = delete;
 	~Recorder() = delete;

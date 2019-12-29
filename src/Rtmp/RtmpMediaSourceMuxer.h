@@ -49,6 +49,10 @@ public:
         _mediaSouce->setListener(listener);
     }
 
+    void setTimeStamp(uint32_t stamp){
+        _mediaSouce->setTimeStamp(stamp);
+    }
+
     int readerCount() const{
         return _mediaSouce->readerCount();
     }

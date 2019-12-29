@@ -135,30 +135,29 @@ public:
 //获取HTTP请求中url参数、content参数
 static ApiArgsType getAllArgs(const Parser &parser) {
     ApiArgsType allArgs;
-    if(parser["Content-Type"].find("application/x-www-form-urlencoded") == 0){
+    if (parser["Content-Type"].find("application/x-www-form-urlencoded") == 0) {
         auto contentArgs = parser.parseArgs(parser.Content());
         for (auto &pr : contentArgs) {
             allArgs[pr.first] = HttpSession::urlDecode(pr.second);
         }
-    }else if(parser["Content-Type"].find("application/json") == 0){
+    } else if (parser["Content-Type"].find("application/json") == 0) {
         try {
             stringstream ss(parser.Content());
             Value jsonArgs;
             ss >> jsonArgs;
             auto keys = jsonArgs.getMemberNames();
-            for (auto key = keys.begin(); key != keys.end(); ++key){
+            for (auto key = keys.begin(); key != keys.end(); ++key) {
                 allArgs[*key] = jsonArgs[*key].asString();
             }
-        }catch (std::exception &ex){
+        } catch (std::exception &ex) {
             WarnL << ex.what();
         }
-    }else if(!parser["Content-Type"].empty()){
+    } else if (!parser["Content-Type"].empty()) {
         WarnL << "invalid Content-Type:" << parser["Content-Type"];
     }
 
-    auto &urlArgs = parser.getUrlArgs();
-    for (auto &pr : urlArgs) {
-        allArgs[pr.first] = HttpSession::urlDecode(pr.second);
+    for (auto &pr :  parser.getUrlArgs()) {
+        allArgs[pr.first] = pr.second;
     }
     return std::move(allArgs);
 }

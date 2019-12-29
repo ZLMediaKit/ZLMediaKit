@@ -118,8 +118,12 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file,bool setbuf) {
     return ret;
 }
 
-void HlsMakerImp::setMediaInfo(const string &vhost, const string &app, const string &stream_id) {
+void HlsMakerImp::setMediaSource(const string &vhost, const string &app, const string &stream_id) {
     _media_src = std::make_shared<HlsMediaSource>(vhost, app, stream_id);
+}
+
+MediaSource::Ptr HlsMakerImp::getMediaSource() const{
+    return _media_src;
 }
 
 }//namespace mediakit
