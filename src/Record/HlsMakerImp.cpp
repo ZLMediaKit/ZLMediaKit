@@ -55,12 +55,18 @@ HlsMakerImp::~HlsMakerImp() {
 }
 
 string HlsMakerImp::onOpenSegment(int index) {
-    string segment_name , segment_path;
+    string segment_name , segment_dir, segment_path;
     {
         auto strDate = getTimeStr("%Y-%m-%d");
-        auto strTime = getTimeStr("%H-%M-%S");
-        segment_name = StrPrinter << strDate + "/" + strTime << "_" << index << ".ts";
-        segment_path = _path_prefix + "/" +  segment_name;
+        auto strHour = getTimeStr("%H");
+        auto strTime = getTimeStr("%M-%S");
+        //We generate index file every hour.
+        segment_dir = StrPrinter << strDate + "/" + strHour;
+        string m3u8_name = segment_dir + "/hls.m3u8";
+        _path_hls = _path_prefix + "/" + m3u8_name;
+ 
+        segment_name = StrPrinter << strTime << "_" << index << ".ts";
+        segment_path = _path_prefix + "/" + segment_dir + "/"  +  segment_name;
         if(isLive()){
             _segment_file_paths.emplace(index,segment_path);
         }

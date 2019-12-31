@@ -34,7 +34,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MediaSinkInterface *createHlsRecorder(const string &strVhost_tmp, const string &strApp, const string &strId) {
+MediaSinkInterface *createHlsRecorder(const string &strVhost_tmp, const string &strApp, const string &strId, const string &customized_path) {
 #if defined(ENABLE_HLS)
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     GET_CONFIG(string, hlsPath, Hls::kFilePath);
@@ -53,6 +53,10 @@ MediaSinkInterface *createHlsRecorder(const string &strVhost_tmp, const string &
     } else {
         m3u8FilePath = strApp + "/" + strId + "/hls.m3u8";
     }
+    //Here we use the customized file path.
+    if(!customized_path.empty()){
+        m3u8FilePath = customized_path + "/hls.m3u8";
+    }
     m3u8FilePath = File::absolutePath(m3u8FilePath, hlsPath);
     auto ret = new HlsRecorder(m3u8FilePath, params);
     ret->setMediaSource(strVhost, strApp, strId);
@@ -62,7 +66,7 @@ MediaSinkInterface *createHlsRecorder(const string &strVhost_tmp, const string &
 #endif //defined(ENABLE_HLS)
 }
 
-MediaSinkInterface *createMP4Recorder(const string &strVhost_tmp, const string &strApp, const string &strId) {
+MediaSinkInterface *createMP4Recorder(const string &strVhost_tmp, const string &strApp, const string &strId, const string &customized_path) {
 #if defined(ENABLE_MP4RECORD)
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     GET_CONFIG(string, recordPath, Record::kFilePath);
@@ -79,6 +83,10 @@ MediaSinkInterface *createMP4Recorder(const string &strVhost_tmp, const string &
         mp4FilePath = strVhost + "/" + recordAppName + "/" + strApp + "/" + strId + "/";
     } else {
         mp4FilePath = recordAppName + "/" + strApp + "/" + strId + "/";
+    }
+    //Here we use the customized file path.
+    if(!customized_path.empty()){
+        mp4FilePath = customized_path + "/";
     }
     mp4FilePath = File::absolutePath(mp4FilePath, recordPath);
     return new MP4Recorder(mp4FilePath, strVhost, strApp, strId);
@@ -193,7 +201,7 @@ public:
         return it->second->getRecorder();
     }
 
-    int startRecord(const string &vhost, const string &app, const string &stream_id, bool waitForRecord, bool continueRecord) {
+    int startRecord(const string &vhost, const string &app, const string &stream_id, const string &customized_path, bool waitForRecord, bool continueRecord) {
         auto key = getRecorderKey(vhost, app, stream_id);
         lock_guard<decltype(_recorder_mtx)> lck(_recorder_mtx);
         if (getRecordStatus_l(key) != Recorder::status_not_record) {
@@ -207,7 +215,7 @@ public:
             return -1;
         }
 
-        auto recorder = MediaSinkInterface::Ptr(createRecorder(vhost, app, stream_id));
+        auto recorder = MediaSinkInterface::Ptr(createRecorder(vhost, app, stream_id, customized_path));
         if (!recorder) {
             // 创建录制器失败
             return -2;
@@ -326,14 +334,14 @@ private:
         return vhost + "/" + app + "/" + stream_id;
     }
 
-    MediaSinkInterface *createRecorder(const string &vhost, const string &app, const string &stream_id) {
+    MediaSinkInterface *createRecorder(const string &vhost, const string &app, const string &stream_id, const string &customized_path) {
         MediaSinkInterface *ret = nullptr;
         switch (type) {
             case Recorder::type_hls:
-                ret = createHlsRecorder(vhost, app, stream_id);
+                ret = createHlsRecorder(vhost, app, stream_id,customized_path);
                 break;
             case Recorder::type_mp4:
-                ret = createMP4Recorder(vhost, app, stream_id);
+                ret = createMP4Recorder(vhost, app, stream_id,customized_path);
                 break;
             default:
                 break;
@@ -385,12 +393,12 @@ std::shared_ptr<MediaSinkInterface> Recorder::getRecorder(type type, const strin
 }
 
 
-int Recorder::startRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id, bool waitForRecord, bool continueRecord) {
+int Recorder::startRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path, bool waitForRecord, bool continueRecord) {
     switch (type){
         case type_mp4:
-            return MediaSourceWatcher<type_mp4>::Instance().startRecord(vhost,app,stream_id,waitForRecord,continueRecord);
+            return MediaSourceWatcher<type_mp4>::Instance().startRecord(vhost,app,stream_id,customized_path,waitForRecord,continueRecord);
         case type_hls:
-            return MediaSourceWatcher<type_hls>::Instance().startRecord(vhost,app,stream_id,waitForRecord,continueRecord);
+            return MediaSourceWatcher<type_hls>::Instance().startRecord(vhost,app,stream_id,customized_path,waitForRecord,continueRecord);
     }
     WarnL << "unknown record type: " << type;
     return -3;
