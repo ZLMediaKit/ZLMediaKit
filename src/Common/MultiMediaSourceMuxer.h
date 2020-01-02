@@ -53,11 +53,11 @@ public:
         }
 
         if(enable_hls){
-            Recorder::startRecord(Recorder::type_hls,vhost, app, stream, true, false);
+            Recorder::startRecord(Recorder::type_hls,vhost, app, stream, "", true, false);
         }
 
         if(enable_mp4){
-            Recorder::startRecord(Recorder::type_mp4,vhost, app, stream, true, false);
+            Recorder::startRecord(Recorder::type_mp4,vhost, app, stream, "", true, false);
         }
 
         _get_hls_media_source = [vhost,app,stream](){

@@ -73,7 +73,7 @@ public:
 	 * @param continueRecord 流注销时是否继续等待录制还是立即停止录制
 	 * @return 0代表成功，负数代表失败
 	 */
-	static int startRecord(type type, const string &vhost, const string &app, const string &stream_id,bool waitForRecord, bool continueRecord);
+	static int startRecord(type type, const string &vhost, const string &app, const string &stream_id,const string &customized_path,bool waitForRecord, bool continueRecord);
 
 	/**
 	 * 停止录制
