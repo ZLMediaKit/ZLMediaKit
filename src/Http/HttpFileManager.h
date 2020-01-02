@@ -69,6 +69,13 @@ public:
      * @param cb 回调对象
     */
     static void onAccessPath(TcpSession &sender, Parser &parser, const invoker &cb);
+
+    /**
+     * 获取mime值
+     * @param name 文件后缀
+     * @return mime值
+     */
+    static const string &getContentType(const char *name);
 private:
     HttpFileManager() = delete;
     ~HttpFileManager() = delete;
