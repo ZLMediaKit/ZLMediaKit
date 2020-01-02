@@ -91,6 +91,7 @@ private:
 
 class HlsCookieData{
 public:
+    typedef std::shared_ptr<HlsCookieData> Ptr;
     HlsCookieData(const MediaInfo &info);
     ~HlsCookieData();
     void addByteUsage(uint64_t bytes);
