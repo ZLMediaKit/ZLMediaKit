@@ -41,12 +41,27 @@ namespace mediakit {
 // 假如播放器在60秒内都未访问该cookie，那么将重新触发hls播放鉴权
 static int kHlsCookieSecond = 60;
 static const string kCookieName = "ZL_COOKIE";
-static const string kCookiePathKey = "kCookiePathKey";
-static const string kAccessErrKey = "kAccessErrKey";
-static const string kAccessHls = "kAccessHls";
 static const string kHlsSuffix = "/hls.m3u8";
-static const string kHlsData = "kHlsData";
-static const string kHlsHaveFindMediaSource = "kHlsHaveFindMediaSource";
+
+class HttpCookieAttachment{
+public:
+    HttpCookieAttachment() {};
+    ~HttpCookieAttachment() {};
+public:
+    //cookie生效作用域，本cookie只对该目录下的文件生效
+    string _path;
+    //上次鉴权失败信息,为空则上次鉴权成功
+    string _err_msg;
+    //本cookie是否为hls直播的
+    bool _is_hls = false;
+    //hls直播时的其他一些信息，主要用于播放器个数计数以及流量计数
+    HlsCookieData::Ptr _hls_data;
+    //如果是hls直播，那么判断该cookie是否使用过MediaSource::findAsync查找过
+    //如果程序未正常退出，会残余上次的hls文件，所以判断hls直播是否存在的关键不是文件存在与否
+    //而是应该判断HlsMediaSource是否已注册，但是这样会每次获取m3u8文件时都会用MediaSource::findAsync判断一次
+    //会导致程序性能低下，所以我们应该在cookie声明周期的第一次判断HlsMediaSource是否已经注册，后续通过文件存在与否判断
+    bool _have_find_media_source = false;
+};
 
 static const string &getContentType(const char *name) {
     const char *dot;
@@ -256,14 +271,12 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
     if (cookie) {
         //找到了cookie，对cookie上锁先
         auto lck = cookie->getLock();
-        auto accessErr = (*cookie)[kAccessErrKey].get<string>();
-        auto cookiePath = (*cookie)[kCookiePathKey].get<string>();
-        auto cookie_is_hls = (*cookie)[kAccessHls].get<bool>();
-        if (path.find(cookiePath) == 0) {
+        auto attachment = (*cookie)[kCookieName].get<HttpCookieAttachment>();
+        if (path.find(attachment._path) == 0) {
             //上次cookie是限定本目录
-            if (accessErr.empty()) {
+            if (attachment._err_msg.empty()) {
                 //上次鉴权成功
-                if(cookie_is_hls){
+                if(attachment._is_hls){
                     //如果播放的是hls，那么刷新hls的cookie(获取ts文件也会刷新)
                     cookie->updateTime();
                     cookie_from_header = false;
@@ -274,7 +287,7 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             //上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下
             if (parser.Params().empty() || parser.Params() == cookie->getUid()) {
                 //url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限
-                callback(accessErr, cookie_from_header ? nullptr : cookie);
+                callback(attachment._err_msg, cookie_from_header ? nullptr : cookie);
                 return;
             }
         }
@@ -298,18 +311,20 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             cookie = HttpCookieManager::Instance().addCookie(kCookieName, uid, cookieLifeSecond);
             //对cookie上锁
             auto lck = cookie->getLock();
+            HttpCookieAttachment attachment;
             //记录用户能访问的路径
-            (*cookie)[kCookiePathKey].set<string>(cookie_path);
+            attachment._path = cookie_path;
             //记录能否访问
-            (*cookie)[kAccessErrKey].set<string>(errMsg);
+            attachment._err_msg = errMsg;
             //记录访问的是否为hls
-            (*cookie)[kAccessHls].set<bool>(is_hls);
+            attachment._is_hls = is_hls;
             if(is_hls){
                 //hls相关信息
-                (*cookie)[kHlsData].set<HlsCookieData>(mediaInfo);
+                attachment._hls_data = std::make_shared<HlsCookieData>(mediaInfo);
                 //hls未查找MediaSource
-                (*cookie)[kHlsHaveFindMediaSource].set<bool>(false);
+                attachment._have_find_media_source = false;
             }
+            (*cookie)[kCookieName].set<HttpCookieAttachment>(std::move(attachment));
             callback(errMsg, cookie);
         }else{
             callback(errMsg, nullptr);
@@ -382,7 +397,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             //文件鉴权失败
             StrCaseMap headerOut;
             if (cookie) {
-                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
             }
             cb("401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
             return;
@@ -391,14 +406,14 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
         auto response_file = [file_exist](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
             StrCaseMap httpHeader;
             if (cookie) {
-                httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+                httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
             }
             HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
                 if (cookie && file_exist) {
                     cookie->getLock();
-                    auto is_hls = (*cookie)[kAccessHls].get<bool>();
+                    auto is_hls = (*cookie)[kCookieName].get<HttpCookieAttachment>()._is_hls;
                     if (is_hls) {
-                        (*cookie)[kHlsData].get<HlsCookieData>().addByteUsage(body->remainSize());
+                        (*cookie)[kCookieName].get<HttpCookieAttachment>()._hls_data->addByteUsage(body->remainSize());
                     }
                 }
                 cb(codeOut.data(), getContentType(strFile.data()), headerOut, body);
@@ -406,18 +421,16 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             invoker.responseFile(parser.getValues(), httpHeader, strFile);
         };
 
-        //如果程序未正常退出，会残余上次的hls文件，所以判断hls直播是否存在的关键不是文件存在与否
-        //而是应该判断HlsMediaSource是否已注册，但是这样会每次获取m3u8文件时都会用MediaSource::findAsync判断一次
-        //会导致程序性能低下，所以我们应该在cookie声明周期的第一次判断HlsMediaSource是否已经注册，后续通过文件存在与否判断
         if (!is_hls) {
             //不是hls,直接回复文件或404
             response_file(cookie, cb, strFile, parser);
         } else  {
+            //是hls直播，判断是否存在
             bool have_find_media_src = false;
             if(cookie){
-                have_find_media_src = (*cookie)[kHlsHaveFindMediaSource].get<bool>();
+                have_find_media_src = (*cookie)[kCookieName].get<HttpCookieAttachment>()._have_find_media_source;
                 if(!have_find_media_src){
-                    (*cookie)[kHlsHaveFindMediaSource].set<bool>(true);
+                    (*cookie)[kCookieName].get<HttpCookieAttachment>()._have_find_media_source = true;
                 }
             }
             if(have_find_media_src){
@@ -476,7 +489,7 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
             }
             StrCaseMap headerOut;
             if (cookie) {
-                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
             }
             cb(errMsg.empty() ? "200 OK" : "401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(strMenu));
         });
