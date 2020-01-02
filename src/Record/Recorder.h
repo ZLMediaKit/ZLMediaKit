@@ -69,6 +69,7 @@ public:
      * @param vhost 虚拟主机
      * @param app 应用名
      * @param stream_id 流id
+     * @param customized_path 录像文件保存自定义目录，默认为空则自动生成
 	 * @param waitForRecord 是否等待流注册后再录制，未注册时，置false将返回失败
 	 * @param continueRecord 流注销时是否继续等待录制还是立即停止录制
 	 * @return 0代表成功，负数代表失败

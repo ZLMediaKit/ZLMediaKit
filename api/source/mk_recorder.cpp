@@ -59,7 +59,7 @@ API_EXPORT int API_CALL mk_recorder_status(int type, const char *vhost, const ch
 
 API_EXPORT int API_CALL mk_recorder_start(int type, const char *vhost, const char *app, const char *stream,const char *customized_path,int wait_for_record, int continue_record){
     assert(vhost && app && stream);
-    return Recorder::startRecord((Recorder::type)type,vhost,app,stream,customized_path,wait_for_record,continue_record);
+    return Recorder::startRecord((Recorder::type)type,vhost,app,stream,customized_path ? customized_path : "",wait_for_record,continue_record);
 }
 
 API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char *app, const char *stream){

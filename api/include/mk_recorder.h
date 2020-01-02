@@ -79,6 +79,7 @@ API_EXPORT int API_CALL mk_recorder_status(int type, const char *vhost, const ch
  * @param vhost 虚拟主机
  * @param app 应用名
  * @param stream 流id
+ * @param customized_path 录像文件保存自定义目录，默认为空或null则自动生成
  * @param wait_for_record 是否等待流注册后再录制，未注册时，置false将返回失败
  * @param continue_record 流注销时是否继续等待录制还是立即停止录制
  * @return 0代表成功，负数代表失败
