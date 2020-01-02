@@ -58,8 +58,9 @@ string HlsMakerImp::onOpenSegment(int index) {
     string segment_name , segment_path;
     {
         auto strDate = getTimeStr("%Y-%m-%d");
-        auto strTime = getTimeStr("%H-%M-%S");
-        segment_name = StrPrinter << strDate + "/" + strTime << "_" << index << ".ts";
+        auto strHour = getTimeStr("%H");
+        auto strTime = getTimeStr("%M-%S");
+        segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << ".ts";
         segment_path = _path_prefix + "/" +  segment_name;
         if(isLive()){
             _segment_file_paths.emplace(index,segment_path);

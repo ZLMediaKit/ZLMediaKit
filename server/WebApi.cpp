@@ -745,10 +745,12 @@ void installWebApi() {
     API_REGIST(api,startRecord,{
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream","wait_for_record","continue_record");
+
         int result = Recorder::startRecord((Recorder::type)allArgs["type"].as<int>(),
                                            allArgs["vhost"],
                                            allArgs["app"],
                                            allArgs["stream"],
+                                           allArgs["customized_path"],
                                            allArgs["wait_for_record"],
                                            allArgs["continue_record"]);
         val["result"] = result;

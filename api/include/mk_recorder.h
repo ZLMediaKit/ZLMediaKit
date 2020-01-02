@@ -83,7 +83,7 @@ API_EXPORT int API_CALL mk_recorder_status(int type, const char *vhost, const ch
  * @param continue_record 流注销时是否继续等待录制还是立即停止录制
  * @return 0代表成功，负数代表失败
  */
-API_EXPORT int API_CALL mk_recorder_start(int type, const char *vhost, const char *app, const char *stream,int wait_for_record, int continue_record);
+API_EXPORT int API_CALL mk_recorder_start(int type, const char *vhost, const char *app, const char *stream, const char *customized_path, int wait_for_record, int continue_record);
 
 /**
  * 停止录制
