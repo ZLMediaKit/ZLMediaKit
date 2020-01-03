@@ -82,6 +82,7 @@ private:
     };
     unordered_map<int,track_info> _codec_to_trackid;
     bool _started = false;
+    List<Frame::Ptr> _frameCached;
 };
 
 

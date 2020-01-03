@@ -73,10 +73,6 @@ void MP4Muxer::resetTracks() {
 }
 
 void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
-    if(frame->configFrame()){
-        //忽略配置帧
-        return;
-    }
     auto it = _codec_to_trackid.find(frame->getCodecId());
     if(it == _codec_to_trackid.end()){
         //该Track不存在或初始化失败
@@ -93,32 +89,66 @@ void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
         _started = true;
     }
 
-    int with_nalu_size ;
-    switch (frame->getCodecId()){
-        case CodecH264:
-        case CodecH265:
-            //我们输入264、265是没有头四个字节表明数据长度的
-            with_nalu_size = 0;
-            break;
-        default:
-            //aac或其他类型frame不用添加4个nalu_size的字节
-            with_nalu_size = 1;
-            break;
-    }
-
     //mp4文件时间戳需要从0开始
     auto &track_info = it->second;
     int64_t dts_out, pts_out;
-    track_info.stamp.revise(frame->dts(),frame->pts(),dts_out,pts_out);
 
-    mov_writer_write_l(_mov_writter.get(),
-                       track_info.track_id,
-                       frame->data() + frame->prefixSize(),
-                       frame->size() - frame->prefixSize(),
-                       pts_out,
-                       dts_out,
-                       frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
-                       with_nalu_size);
+    switch (frame->getCodecId()) {
+        case CodecH264:
+        case CodecH265: {
+            //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
+            if (!_frameCached.empty() && _frameCached.back()->dts() != frame->dts()) {
+                Frame::Ptr back = _frameCached.back();
+                //求相对时间戳
+                track_info.stamp.revise(back->dts(), back->pts(), dts_out, pts_out);
+
+                if (_frameCached.size() != 1) {
+                    //缓存中有多帧，需要按照mp4格式合并一起
+                    string merged;
+                    _frameCached.for_each([&](const Frame::Ptr &frame) {
+                        uint32_t nalu_size = frame->size() - frame->prefixSize();
+                        nalu_size = htonl(nalu_size);
+                        merged.append((char *) &nalu_size, 4);
+                        merged.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+                    });
+                    mov_writer_write_l(_mov_writter.get(),
+                                       track_info.track_id,
+                                       merged.data(),
+                                       merged.size(),
+                                       pts_out,
+                                       dts_out,
+                                       back->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
+                                       1/*我们合并时已经生成了4个字节的MP4格式start code*/);
+                } else {
+                    //缓存中只有一帧视频
+                    mov_writer_write_l(_mov_writter.get(),
+                                       track_info.track_id,
+                                       back->data() + back->prefixSize(),
+                                       back->size() - back->prefixSize(),
+                                       pts_out,
+                                       dts_out,
+                                       back->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
+                                       0/*需要生成头4个字节的MP4格式start code*/);
+                }
+                _frameCached.clear();
+            }
+            //缓存帧，时间戳相同的帧合并一起写入mp4
+            _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
+        }
+            break;
+        default: {
+            track_info.stamp.revise(frame->dts(), frame->pts(), dts_out, pts_out);
+            mov_writer_write_l(_mov_writter.get(),
+                               track_info.track_id,
+                               frame->data() + frame->prefixSize(),
+                               frame->size() - frame->prefixSize(),
+                               pts_out,
+                               dts_out,
+                               frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
+                               1/*aac或其他类型frame不用添加4个nalu_size的字节*/);
+        }
+            break;
+    }
 }
 
 void MP4Muxer::addTrack(const Track::Ptr &track) {
