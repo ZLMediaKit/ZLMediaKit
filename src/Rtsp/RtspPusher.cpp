@@ -43,25 +43,46 @@ void RtspPusher::teardown() {
 }
 
 void RtspPusher::publish(const string &strUrl) {
-    auto userAndPwd = FindField(strUrl.data(),"://","@");
-    Rtsp::eRtpType eType = (Rtsp::eRtpType)(int)(*this)[ kRtpType];
-    if(userAndPwd.empty()){
-        publish(strUrl,"","",eType);
+    RtspUrl url;
+    if(!url.parse(strUrl)){
+        onPublishResult(SockException(Err_other,StrPrinter << "illegal rtsp url:" << strUrl),false);
         return;
     }
-    auto suffix = FindField(strUrl.data(),"@",nullptr);
-    auto url = StrPrinter << "rtsp://" << suffix << endl;
-    if(userAndPwd.find(":") == string::npos){
-        publish(url,userAndPwd,"",eType);
-        return;
+
+    teardown();
+
+    if (url._user.size()) {
+        (*this)[kRtspUser] = url._user;
     }
-    auto user = FindField(userAndPwd.data(),nullptr,":");
-    auto pwd = FindField(userAndPwd.data(),":",nullptr);
-    publish(url,user,pwd,eType);
+    if (url._passwd.size()) {
+        (*this)[kRtspPwd] = url._passwd;
+        (*this)[kRtspPwdIsMD5] = false;
+    }
+
+    _strUrl = strUrl;
+    _eType = (Rtsp::eRtpType)(int)(*this)[kRtpType];
+    DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _eType;
+
+    weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
+    float publishTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
+    _pPublishTimer.reset( new Timer(publishTimeOutSec,  [weakSelf]() {
+        auto strongSelf=weakSelf.lock();
+        if(!strongSelf) {
+            return false;
+        }
+        strongSelf->onPublishResult(SockException(Err_timeout,"publish rtsp timeout"),false);
+        return false;
+    },getPoller()));
+
+    if(!(*this)[kNetAdapter].empty()){
+        setNetAdapter((*this)[kNetAdapter]);
+    }
+
+    startConnect(url._host, url._port, publishTimeOutSec);
 }
 
-void RtspPusher::onPublishResult(const SockException &ex) {
-    if(_pPublishTimer){
+void RtspPusher::onPublishResult(const SockException &ex, bool handshakeCompleted) {
+    if(!handshakeCompleted){
         //播放结果回调
         _pPublishTimer.reset();
         if(_onPublished){
@@ -79,62 +100,14 @@ void RtspPusher::onPublishResult(const SockException &ex) {
     }
 }
 
-void RtspPusher::publish(const string & strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType ) {
-    DebugL   << strUrl << " "
-             << (strUser.size() ? strUser : "null") << " "
-             << (strPwd.size() ? strPwd:"null") << " "
-             << eType;
-    teardown();
-
-    if(strUser.size()){
-        (*this)[kRtspUser] = strUser;
-    }
-    if(strPwd.size()){
-        (*this)[kRtspPwd] = strPwd;
-        (*this)[kRtspPwdIsMD5] = false;
-    }
-
-    _eType = eType;
-
-    auto ip = FindField(strUrl.data(), "://", "/");
-    if (!ip.size()) {
-        ip = FindField(strUrl.data(), "://", NULL);
-    }
-    auto port = atoi(FindField(ip.data(), ":", NULL).data());
-    if (port <= 0) {
-        //rtsp 默认端口554
-        port = 554;
-    } else {
-        //服务器域名
-        ip = FindField(ip.data(), NULL, ":");
-    }
-
-    _strUrl = strUrl;
-
-    weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
-    float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
-    _pPublishTimer.reset( new Timer(playTimeOutSec,  [weakSelf]() {
-        auto strongSelf=weakSelf.lock();
-        if(!strongSelf) {
-            return false;
-        }
-        strongSelf->onPublishResult(SockException(Err_timeout,"publish rtsp timeout"));
-        return false;
-    },getPoller()));
-
-    if(!(*this)[kNetAdapter].empty()){
-        setNetAdapter((*this)[kNetAdapter]);
-    }
-    startConnect(ip, port , playTimeOutSec);
-}
-
 void RtspPusher::onErr(const SockException &ex) {
-    onPublishResult(ex);
+    //定时器_pPublishTimer为空后表明握手结束了
+    onPublishResult(ex,!_pPublishTimer);
 }
 
 void RtspPusher::onConnect(const SockException &err) {
     if(err) {
-        onPublishResult(err);
+        onPublishResult(err,false);
         return;
     }
     //推流器不需要多大的接收缓存，节省内存占用
@@ -147,7 +120,8 @@ void RtspPusher::onRecv(const Buffer::Ptr &pBuf){
         input(pBuf->data(), pBuf->size());
     } catch (exception &e) {
         SockException ex(Err_other, e.what());
-        onPublishResult(ex);
+        //定时器_pPublishTimer为空后表明握手结束了
+        onPublishResult(ex,!_pPublishTimer);
     }
 }
 
@@ -377,7 +351,7 @@ void RtspPusher::sendRecord() {
         _pRtspReader->setDetachCB([weakSelf](){
             auto strongSelf = weakSelf.lock();
             if(strongSelf){
-                strongSelf->onPublishResult(SockException(Err_other,"媒体源被释放"));
+                strongSelf->onPublishResult(SockException(Err_other,"媒体源被释放"), !strongSelf->_pPublishTimer);
             }
         });
         if(_eType != Rtsp::RTP_TCP){
@@ -392,7 +366,7 @@ void RtspPusher::sendRecord() {
                 return true;
             },getPoller()));
         }
-        onPublishResult(SockException(Err_success,"success"));
+        onPublishResult(SockException(Err_success,"success"), false);
         //提升发送性能
         setSocketFlags();
     };
