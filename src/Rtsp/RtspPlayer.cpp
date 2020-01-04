@@ -81,70 +81,25 @@ void RtspPlayer::teardown(){
 }
 
 void RtspPlayer::play(const string &strUrl){
-	Rtsp::eRtpType eType = (Rtsp::eRtpType)(int)(*this)[kRtpType];
-	auto schema = FindField(strUrl.data(), nullptr,"://");
-	bool isSSL = strcasecmp(schema.data(),"rtsps") == 0;
-	//查找"://"与"/"之间的字符串，用于提取用户名密码
-	auto middle_url = FindField(strUrl.data(),"://","/");
-	if(middle_url.empty()){
-		middle_url = FindField(strUrl.data(),"://", nullptr);
-	}
-    auto pos = middle_url.rfind('@');
-	if(pos == string::npos){
-        //并没有用户名密码
-        play(isSSL,strUrl,"","",eType);
-        return;
-	}
-
-    //包含用户名密码
-    auto user_pwd = middle_url.substr(0,pos);
-	auto suffix = strUrl.substr(schema.size() + 3 + pos + 1);
-	auto url = StrPrinter << "rtsp://" << suffix << endl;
-	if(user_pwd.find(":") == string::npos){
-		play(isSSL,url,user_pwd,"",eType);
-		return;
-	}
-	auto user = FindField(user_pwd.data(),nullptr,":");
-	auto pwd = FindField(user_pwd.data(),":",nullptr);
-	play(isSSL,url,user,pwd,eType);
-}
-
-void RtspPlayer::play(bool isSSL,const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType ) {
-	DebugL  << strUrl << " "
-			<< (strUser.size() ? strUser : "null") << " "
-			<< (strPwd.size() ? strPwd:"null") << " "
-			<< eType;
-	teardown();
-
-	if(strUser.size()){
-        (*this)[kRtspUser] = strUser;
-    }
-    if(strPwd.size()){
-        (*this)[kRtspPwd] = strPwd;
-		(*this)[kRtspPwdIsMD5] = false;
-    }
-
-	_eType = eType;
-
-	auto ip = FindField(strUrl.data(), "://", "/");
-	if (ip.empty()) {
-		ip = split(FindField(strUrl.data(), "://", NULL),"?")[0];
-	}
-	auto port = atoi(FindField(ip.data(), ":", NULL).data());
-	if (port <= 0) {
-		//rtsp 默认端口554
-		port = isSSL ? 322 : 554;
-	} else {
-		//服务器域名
-		ip = FindField(ip.data(), NULL, ":");
-	}
-
-	if(ip.empty()){
+	RtspUrl url;
+	if(!url.parse(strUrl)){
 		onPlayResult_l(SockException(Err_other,StrPrinter << "illegal rtsp url:" << strUrl),false);
 		return;
 	}
 
-	_strUrl = strUrl;
+	teardown();
+
+	if (url._user.size()) {
+		(*this)[kRtspUser] = url._user;
+	}
+	if (url._passwd.size()) {
+		(*this)[kRtspPwd] = url._passwd;
+		(*this)[kRtspPwdIsMD5] = false;
+	}
+
+	_strUrl = url._url;
+	_eType = (Rtsp::eRtpType)(int)(*this)[kRtpType];
+	DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _eType;
 
 	weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
 	float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
@@ -160,8 +115,9 @@ void RtspPlayer::play(bool isSSL,const string &strUrl, const string &strUser, co
 	if(!(*this)[kNetAdapter].empty()){
 		setNetAdapter((*this)[kNetAdapter]);
 	}
-	startConnect(ip, port , playTimeOutSec);
+	startConnect(url._host, url._port, playTimeOutSec);
 }
+
 void RtspPlayer::onConnect(const SockException &err){
 	if(err.getErrCode() != Err_success) {
 		onPlayResult_l(err,false);
