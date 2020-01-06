@@ -67,14 +67,14 @@ git submodule update --init
   - 支持http文件访问鉴权
 
 - GB28181
-  - 支持国标RTP推流，可以UDP/TCP国标RTP推流，可以转换成RTSP/RTMP/HLS等协议
+  - 支持UDP/TCP国标RTP推流，可以转换成RTSP/RTMP/HLS等协议
  
 - 点播
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
  
 - 其他
-  - 支持丰富的restful api已经web hook事件 
+  - 支持丰富的restful api以及web hook事件 
   - 支持简单的telnet调试
   - 支持配置文件热加载
   - 支持流量统计、推拉流鉴权等事件
