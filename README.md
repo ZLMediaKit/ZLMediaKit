@@ -33,50 +33,55 @@ git submodule update --init
 
 ## 功能清单
 - RTSP
-  - RTSP 服务器，支持RTMP/MP4转RTSP。
+  - RTSP 服务器，支持RTMP/MP4转RTSP
   - RTSPS 服务器，支持亚马逊echo show这样的设备
   - RTSP 播放器，支持RTSP代理，支持生成静音音频
   - RTSP 推流客户端与服务器
-  - 支持 `rtp over udp` `rtp over tcp` `rtp over http` `rtp组播`  四种RTP传输方式 。
-  - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口。
+  - 支持 `rtp over udp` `rtp over tcp` `rtp over http` `rtp组播`  四种RTP传输方式 
+  - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口
   - 支持H265编码
   - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
   - 支持任意编码格式的rtsp推流，只是除H264/H265+AAC外无法转协议
 
 - RTMP
-  - RTMP 播放服务器，支持RTSP/MP4转RTMP。
-  - RTMP 发布服务器，支持录制发布流。
+  - RTMP 播放服务器，支持RTSP/MP4转RTMP
+  - RTMP 发布服务器，支持录制发布流
   - RTMP 播放器，支持RTMP代理，支持生成静音音频
-  - RTMP 推流客户端。
-  - 支持http-flv直播。
-  - 支持https-flv直播。
+  - RTMP 推流客户端
+  - 支持http[s]-flv直播
+  - 支持websocket-flv直播
   - 支持任意编码格式的rtmp推流，只是除H264/H265+AAC外无法转协议
 
 - HLS
-  - 支持HLS文件生成，自带HTTP文件服务器。
-  - 支持播放鉴权，鉴权结果可以缓存为cookie
+  - 支持HLS文件生成，自带HTTP文件服务器
+  - 通过cookie追踪技术，可以模拟HLS播放为长连接，实现丰富的业务逻辑
+  - 支持完备的HLS用户追踪、播放统计等业务功能，可以实现HLS按需拉流等业务
 
 - HTTP[S]
-  - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`。
-  - 客户端提供`文件下载器(支持断点续传)`,`接口请求器`,`文件上传器`。
-  - 完整HTTP API服务器，可以作为web后台开发框架。
-  - 支持跨域访问。
+  - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`
+  - 客户端提供`文件下载器(支持断点续传)`,`接口请求器`,`文件上传器`
+  - 完整HTTP API服务器，可以作为web后台开发框架
+  - 支持跨域访问
   - 支持http客户端、服务器cookie
   - 支持WebSocket服务器和客户端
   - 支持http文件访问鉴权
 
+- GB28181
+  - 支持国标RTP推流，可以UDP/TCP国标RTP推流，可以转换成RTSP/RTMP/HLS等协议
+ 
+- 点播
+  - 支持录制为FLV/HLS/MP4
+  - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
+ 
 - 其他
-  - 支持输入YUV+PCM自动生成RTSP/RTMP/HLS/MP4.
-  - 支持简单的telnet调试。
-  - 支持H264的解析，支持B帧的POC计算排序。
+  - 支持丰富的restful api已经web hook事件 
+  - 支持简单的telnet调试
   - 支持配置文件热加载
-  - 支持流量统计、推流播放鉴权等事件
-  - 支持rtsp/rtmp/http虚拟主机
-  - 支持flv、mp4文件录制
-  - 支持rtps/rtmp协议的mp4点播，支持seek
+  - 支持流量统计、推拉流鉴权等事件
+  - 支持虚拟主机,可以隔离不同域名
   - 支持按需拉流，无人观看自动关断拉流
   - 支持先拉流后推流，提高及时推流画面打开率
-  - 支持rtsp/rtmp/http-flv/hls播放鉴权(url参数方式)
+  - 提供c api sdk
  
 
 
