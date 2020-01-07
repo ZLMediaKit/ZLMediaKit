@@ -47,10 +47,7 @@
 #include "WebHook.h"
 #include "Thread/WorkThreadPool.h"
 #include "Rtp/RtpSelector.h"
-
-#if !defined(_WIN32)
 #include "FFmpegSource.h"
-#endif//!defined(_WIN32)
 
 using namespace Json;
 using namespace toolkit;
@@ -268,10 +265,8 @@ static inline string getProxyKey(const string &vhost,const string &app,const str
     return vhost + "/" + app + "/" + stream;
 }
 
-#if !defined(_WIN32)
 static unordered_map<string ,FFmpegSource::Ptr> s_ffmpegMap;
 static recursive_mutex s_ffmpegMapMtx;
-#endif//#if !defined(_WIN32)
 
 /**
  * 安装api接口
@@ -646,7 +641,6 @@ void installWebApi() {
         val["data"]["flag"] = s_proxyMap.erase(allArgs["key"]) == 1;
     });
 
-#if !defined(_WIN32)
     static auto addFFmpegSource = [](const string &src_url,
                                      const string &dst_url,
                                      int timeout_ms,
@@ -713,7 +707,6 @@ void installWebApi() {
     API_REGIST(api,delFFmepgSource,{
         api_delFFmpegSource(API_ARGS_VALUE);
     });
-#endif
 
     //新增http api下载可执行程序文件接口
     //测试url http://127.0.0.1/index/api/downloadBin
@@ -932,10 +925,8 @@ void unInstallWebApi(){
         s_proxyMap.clear();
     }
 
-#if !defined(_WIN32)
     {
         lock_guard<recursive_mutex> lck(s_ffmpegMapMtx);
         s_ffmpegMap.clear();
     }
-#endif
 }

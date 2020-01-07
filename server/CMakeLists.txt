@@ -3,12 +3,7 @@ file(GLOB jsoncpp_src_list ../3rdpart/jsoncpp/*.cpp ../3rdpart/jsoncpp/*.h )
 add_library(jsoncpp STATIC ${jsoncpp_src_list})
 
 
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-	set(MediaServer_src_list ./WebApi.cpp ./WebHook.cpp main.cpp)
-else()
-	file(GLOB MediaServer_src_list ./*.cpp ./*.h)
-endif()
-
+file(GLOB MediaServer_src_list ./*.cpp ./*.h)
 #message(STATUS ${MediaServer_src_list})
 
 add_executable(MediaServer ${MediaServer_src_list})
