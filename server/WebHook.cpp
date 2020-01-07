@@ -227,20 +227,24 @@ void installWebHook(){
         do_http_hook(hook_publish,body,[invoker](const Value &obj,const string &err){
             if(err.empty()){
                 //推流鉴权成功
+                bool enableRtxp = toRtxp;
+                bool enableHls = toHls;
+                bool enableMP4 = toMP4;
+
                 //兼容用户不传递enableRtxp、enableHls、enableMP4参数
                 if(obj.isMember("enableRtxp")){
-                    toRtxp = obj["enableRtxp"].asBool();
+                    enableRtxp = obj["enableRtxp"].asBool();
                 }
 
                 if(obj.isMember("enableHls")){
-                    toHls = obj["enableHls"].asBool();
+                    enableHls = obj["enableHls"].asBool();
                 }
 
                 if(obj.isMember("enableMP4")){
-                    toMP4 = obj["enableMP4"].asBool();
+                    enableMP4 = obj["enableMP4"].asBool();
                 }
 
-                invoker(err,toRtxp,toHls,toMP4);
+                invoker(err,enableRtxp,enableHls,enableMP4);
             }else{
                 //推流鉴权失败
                 invoker(err,false, false, false);
