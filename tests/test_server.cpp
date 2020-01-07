@@ -239,7 +239,7 @@ int main(int argc,char *argv[]) {
 
     //这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
     //如果是其他不识别的音视频将会被忽略(譬如说h264+adpcm转发后会去除音频)
-    auto urlList = {"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov"
+    auto urlList = {"rtsp://admin:admin123@192.168.1.64:554/cam/realmonitor?channel=1&subtype=1"
             //rtsp链接支持输入用户名密码
             /*"rtsp://admin:jzan123456@192.168.0.122/"*/};
     map<string, PlayerProxy::Ptr> proxyMap;
@@ -258,7 +258,7 @@ int main(int argc,char *argv[]) {
         //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
         //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 
-        PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "live", to_string(i).data()));
+        PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "live", std::string("chn") + to_string(i).data()));
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = Rtsp::RTP_TCP;
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，重试次数在配置文件中配置，默认一直重试

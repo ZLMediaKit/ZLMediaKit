@@ -26,9 +26,16 @@
 #ifndef IPTV_PROCESS_H
 #define IPTV_PROCESS_H
 
+
+#ifdef _WIN32
+typedef int pid_t;
+#else
 #include <sys/wait.h>
+#endif // _WIN32
+
 #include <fcntl.h>
 #include <string>
+
 using namespace std;
 
 class Process {

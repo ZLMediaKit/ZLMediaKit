@@ -37,9 +37,15 @@ const char kCmd[] = FFmpeg_FIELD"cmd";
 const char kLog[] = FFmpeg_FIELD"log";
 
 onceToken token([]() {
-    mINI::Instance()[kBin] = trim(System::execute("which ffmpeg"));
-    mINI::Instance()[kCmd] = "%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
-    mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";
+#ifdef _WIN32
+	string strFFmpeg = "where ffmpeg";
+#else
+	string strFFmpeg = "which ffmpeg";
+#endif
+
+    mINI::Instance()[kBin] = trim(System::execute(strFFmpeg));	//todo：暂定如此：配置文件无此配置的话，改为环境变量的ffmpeg
+    mINI::Instance()[kCmd] = "%s -re -i \"%s\" -loglevel quiet -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";	//防止url中特殊字符
+    mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";				//win下建议使用ffmpeg/ffmpeg.log
 });
 }
 
@@ -51,7 +57,6 @@ FFmpegSource::~FFmpegSource() {
     DebugL;
 }
 
-
 void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_ms,const onPlay &cb) {
     GET_CONFIG(string,ffmpeg_bin,FFmpeg::kBin);
     GET_CONFIG(string,ffmpeg_cmd,FFmpeg::kCmd);
@@ -62,8 +67,8 @@ void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_
     _media_info.parse(dst_url);
 
     char cmd[1024] = {0};
-    snprintf(cmd, sizeof(cmd),ffmpeg_cmd.data(),ffmpeg_bin.data(),src_url.data(),dst_url.data());
-    _process.run(cmd,File::absolutePath("",ffmpeg_log));
+	snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(), ffmpeg_bin.data(), src_url.data(), dst_url.data());
+	_process.run(cmd, ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log));
     InfoL << cmd;
 
     if(_media_info._host == "127.0.0.1"){
