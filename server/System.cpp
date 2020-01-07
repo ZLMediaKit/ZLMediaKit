@@ -27,14 +27,19 @@
 #include "System.h"
 #include <stdlib.h>
 #include <signal.h>
-#include <arpa/inet.h>
 #include <limits.h>
+#ifdef _WIN32
+
+#else
+#include <arpa/inet.h>
 #include <sys/resource.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#ifndef ANDROID
+#ifndef ANDROID 
 #include <execinfo.h>
 #endif
+#endif
+
 #include <map>
 #include <string>
 #include <iostream>
@@ -247,16 +252,38 @@ bool System::getNetworkUsage(vector<NetworkUsage> &usage) {
 
 
 bool System::getTcpUsage(System::TcpUsage &usage) {
-    usage.established =  atoi(trim(System::execute("netstat -na|grep ESTABLISHED|wc -l")).data());
-    usage.syn_recv =  atoi(trim(System::execute("netstat -na|grep SYN_RECV|wc -l")).data());
-    usage.time_wait =  atoi(trim(System::execute("netstat -na|grep TIME_WAIT|wc -l")).data());
-    usage.close_wait =  atoi(trim(System::execute("netstat -na|grep CLOSE_WAIT|wc -l")).data());
+    string strEstab;
+    string strSynRecv;
+    string strTimeWait;
+	string strCloseWait;
+#ifdef _WIN32
+    //使用R"()" 可以不用转义
+	strEstab = R"(netstat -na|find /i /c "ESTABLISHED")";
+    strSynRecv = R"(netstat -na|find /i /c "SYN_RECV")";
+    strTimeWait = R"(netstat -na|find /i /c "TIME_WAIT")";
+    strCloseWait = R"(netstat -na|find /i /c "CLOSE_WAIT")";
+#else
+    strEstab = "netstat -na|grep ESTABLISHED|wc -l";
+    strSynRecv = "netstat -na|grep SYN_RECV|wc -l";
+    strTimeWait = "netstat -na|grep TIME_WAIT|wc -l";
+    strCloseWait = "netstat -na|grep CLOSE_WAIT|wc -l";
+#endif
+    usage.established =  atoi(trim(System::execute(strEstab)).data());
+    usage.syn_recv =  atoi(trim(System::execute(strSynRecv)).data());
+    usage.time_wait =  atoi(trim(System::execute(strTimeWait)).data());
+    usage.close_wait =  atoi(trim(System::execute(strCloseWait)).data());
+
     return true;
 }
 
 string System::execute(const string &cmd) {
 //    DebugL << cmd;
-    FILE *fPipe = popen(cmd.data(), "r");
+    FILE *fPipe = NULL;
+#ifdef _WIN32
+    fPipe = _popen(cmd.data(), "r");
+#else 
+    fPipe = popen(cmd.data(), "r");
+#endif
     if(!fPipe){
         return "";
     }
@@ -265,7 +292,12 @@ string System::execute(const string &cmd) {
     while(fgets(buff, sizeof(buff) - 1, fPipe)){
         ret.append(buff);
     }
+#ifdef _WIN32
+    _pclose(fPipe);
+#else
     pclose(fPipe);
+#endif
+    
     return ret;
 }
 
@@ -274,8 +306,11 @@ static string addr2line(const string &address) {
     return System::execute(cmd);
 }
 
-#ifndef ANDROID
 static void sig_crash(int sig) {
+#ifdef _WIN32
+
+#else	
+#ifndef ANDROID 
     signal(sig, SIG_DFL);
     void *array[MAX_STACK_FRAMES];
     int size = backtrace(array, MAX_STACK_FRAMES);
@@ -296,12 +331,14 @@ static void sig_crash(int sig) {
     free(strings);
 
     NoticeCenter::Instance().emitEvent(kBroadcastOnCrashDump,sig,stack);
+#endif//#ifndef ANDROID
+#endif // _WIN32
 }
 
-#endif//#ifndef ANDROID
-
-
 void System::startDaemon() {
+#ifdef _WIN32
+
+#else 
     static pid_t pid;
     do{
         pid = fork();
@@ -336,14 +373,17 @@ void System::startDaemon() {
             DebugL << "waitpid被中断:" << get_uv_errmsg();
         }while (true);
     }while (true);
+#endif // _WIN32
 }
-
-
 
 static string currentDateTime(){
     time_t ts = time(NULL);
     std::tm tm_snapshot;
-    localtime_r(&ts, &tm_snapshot);
+#ifndef _WIN32
+	localtime_r(&ts, &tm_snapshot);
+#else
+	localtime_s(&tm_snapshot, &ts);
+#endif // !_WIN32    
 
     char buffer[1024] = {0};
     std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &tm_snapshot);
@@ -351,6 +391,9 @@ static string currentDateTime(){
 }
 
 void System::systemSetup(){
+#ifdef _WIN32
+
+#else
     struct rlimit rlim,rlim_new;
     if (getrlimit(RLIMIT_CORE, &rlim)==0) {
         rlim_new.rlim_cur = rlim_new.rlim_max = RLIM_INFINITY;
@@ -394,5 +437,6 @@ void System::systemSetup(){
 
         cerr << stack_info << endl;
     });
+#endif
 }
 
