@@ -32,13 +32,22 @@
 
 namespace FFmpeg {
 #define FFmpeg_FIELD "ffmpeg."
-const char kBin[] = FFmpeg_FIELD"bin";
-const char kCmd[] = FFmpeg_FIELD"cmd";
-const char kLog[] = FFmpeg_FIELD"log";
+const string kBin = FFmpeg_FIELD"bin";
+const string kCmd = FFmpeg_FIELD"cmd";
+const string kLog = FFmpeg_FIELD"log";
 
 onceToken token([]() {
-    mINI::Instance()[kBin] = trim(System::execute("which ffmpeg"));
-    mINI::Instance()[kCmd] = "%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
+#ifdef _WIN32
+    string ffmpeg_bin = System::execute("where ffmpeg");
+    //windows下先关闭FFmpeg日志(目前不支持日志重定向)
+    mINI::Instance()[kCmd] = "%s -re -i \"%s\" -loglevel quiet -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
+#else
+	string ffmpeg_bin = System::execute("which ffmpeg");
+    mINI::Instance()[kCmd] = "%s -re -i \"%s\" -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
+#endif
+    //默认ffmpeg命令路径为环境变量中路径
+    mINI::Instance()[kBin] = ffmpeg_bin.empty() ? "ffmpeg" : ffmpeg_bin;
+    //ffmpeg日志保存路径
     mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";
 });
 }
