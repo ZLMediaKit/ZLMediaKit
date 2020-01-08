@@ -149,7 +149,6 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
 			memcpy(_adts->buffer + _adts->aac_frame_length, rtp_packet_payload + next_aac_payload_offset, cur_aac_payload_len);
 			_adts->aac_frame_length += (cur_aac_payload_len);
 			if (rtppack->mark == true) {
-				_adts->sequence = rtppack->sequence;
 				_adts->timeStamp = rtppack->timeStamp;
 				writeAdtsHeader(*_adts, _adts->buffer);
 				onGetAAC(_adts);
