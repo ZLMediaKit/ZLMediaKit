@@ -452,7 +452,7 @@ void RtmpSession::onProcessCmd(AMFDecoder &dec) {
     std::string method = dec.load<std::string>();
 	auto it = s_cmd_functions.find(method);
 	if (it == s_cmd_functions.end()) {
-		TraceP(this) << "can not support cmd:" << method;
+//		TraceP(this) << "can not support cmd:" << method;
 		return;
 	}
 	_dNowReqID = dec.load<double>();
