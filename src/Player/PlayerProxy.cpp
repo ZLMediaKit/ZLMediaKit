@@ -222,13 +222,23 @@ public:
 			auto iAudioIndex = frame->stamp() / MUTE_ADTS_DATA_MS;
 			if(_iAudioIndex != iAudioIndex){
 				_iAudioIndex = iAudioIndex;
-				auto aacFrame = std::make_shared<AACFrameNoCacheAble>((char *)MUTE_ADTS_DATA,
-																	  MUTE_ADTS_DATA_LEN,
-																	  _iAudioIndex * MUTE_ADTS_DATA_MS);
+				auto aacFrame = std::make_shared<AACFrameCacheAble>((char *)MUTE_ADTS_DATA, MUTE_ADTS_DATA_LEN, _iAudioIndex * MUTE_ADTS_DATA_MS);
 				FrameDispatcher::inputFrame(aacFrame);
 			}
 		}
 	}
+
+private:
+	class AACFrameCacheAble : public AACFrameNoCacheAble{
+	public:
+		template <typename ... ARGS>
+		AACFrameCacheAble(ARGS && ...args) : AACFrameNoCacheAble(std::forward<ARGS>(args)...){};
+		virtual ~AACFrameCacheAble() = default;
+
+		bool cacheAble() const override {
+			return true;
+		}
+	};
 private:
 	int _iAudioIndex = 0;
 };

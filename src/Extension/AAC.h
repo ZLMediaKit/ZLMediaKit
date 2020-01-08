@@ -104,7 +104,6 @@ public:
 //表示说ADTS帧中有一个AAC数据块并不是说没有。(一个AAC原始帧包含一段时间内1024个采样及相关数据)
     unsigned int no_raw_data_blocks_in_frame;    //2 uimsfb
     unsigned char buffer[2 * 1024 + 7];
-    uint16_t sequence;
     uint32_t timeStamp;
     uint32_t iPrefixSize = 7;
 } ;

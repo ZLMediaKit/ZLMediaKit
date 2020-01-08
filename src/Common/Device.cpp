@@ -104,7 +104,13 @@ void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t dts,uint32
     } else {
         prefixeSize = 0;
     }
-    inputFrame(std::make_shared<H264FrameNoCacheAble>((char *)pcData,iDataLen,dts,pts,prefixeSize));
+
+	H264Frame::Ptr frame = std::make_shared<H264Frame>();
+	frame->timeStamp = dts;
+	frame->ptsStamp = pts;
+	frame->buffer.assign("\x00\x00\x00\x01",4);
+	frame->buffer.append(pcData + prefixeSize, iDataLen - prefixeSize);
+    inputFrame(frame);
 }
 
 void DevChannel::inputH265(const char* pcData, int iDataLen, uint32_t dts,uint32_t pts) {
@@ -122,7 +128,13 @@ void DevChannel::inputH265(const char* pcData, int iDataLen, uint32_t dts,uint32
 	} else {
 		prefixeSize = 0;
 	}
-	inputFrame(std::make_shared<H265FrameNoCacheAble>((char *)pcData,iDataLen,dts,pts,prefixeSize));
+
+	H265Frame::Ptr frame = std::make_shared<H265Frame>();
+	frame->timeStamp = dts;
+	frame->ptsStamp = pts;
+	frame->buffer.assign("\x00\x00\x00\x01",4);
+	frame->buffer.append(pcData + prefixeSize, iDataLen - prefixeSize);
+	inputFrame(frame);
 }
 
 void DevChannel::inputAAC(const char* pcData, int iDataLen, uint32_t uiStamp,bool withAdtsHeader) {
