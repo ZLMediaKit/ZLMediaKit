@@ -473,10 +473,11 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 	case MSG_DATA3: {
 		AMFDecoder dec(chunkData.strBuf, chunkData.typeId == MSG_CMD3 ? 1 : 0);
 		std::string type = dec.load<std::string>();
-		TraceP(this) << "notify:" << type;
 		if (type == "@setDataFrame") {
 			setMetaData(dec);
-		}
+		}else{
+            TraceP(this) << "unknown notify:" << type;
+        }
 	}
 		break;
 	case MSG_AUDIO:
