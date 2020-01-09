@@ -438,7 +438,7 @@ void installWebHook(){
     //如果没有url参数，客户端又不支持cookie，那么会根据ip和端口追踪用户
     //追踪用户的目的是为了缓存上次鉴权结果，减少鉴权次数，提高性能
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpAccess,[](BroadcastHttpAccessArgs){
-        if(sender.get_peer_ip() == "127.0.0.1" && parser.Params() == hook_adminparams){
+        if(sender.get_peer_ip() == "127.0.0.1" || parser.Params() == hook_adminparams){
             //如果是本机或超级管理员访问，那么不做访问鉴权；权限有效期1个小时
             invoker("","",60 * 60);
             return;
