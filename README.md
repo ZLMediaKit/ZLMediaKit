@@ -376,6 +376,25 @@ git submodule update --init
  - 2、如果您的问题还没解决，可以提issue.
  - 3、有些问题，如果不具备参考性的，无需在issue提的，可以在qq群提.
  - 4、QQ私聊一般不接受无偿技术咨询和支持(谈谈人生理想还是可以的😂)，毕竟精力有限，谢谢理解.
+ 
+## 致谢
+感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：
+
+[老陈](https://github.com/ireader)
+[Gemfield](https://github.com/gemfield)
+[南冠彤](https://github.com/nanguantong2)
+[凹凸慢](https://github.com/tsingeye)
+[chenxiaolei](https://github.com/chenxiaolei)
+[史前小虫](https://github.com/zqsong)
+[清涩绿茶](https://github.com/baiyfcu)
+[3503207480](https://github.com/3503207480)
+[DroidChow](https://github.com/DroidChow)
+[阿塞](https://github.com/HuoQiShuai)
+[火宣](https://github.com/ChinaCCF)
+[γ瑞γミ](https://github.com/JerryLinGd)
+[linkingvision](https://www.linkingvision.com/)
+[茄子](https://github.com/taotaobujue2008)
+[好心情](<409257224@qq.com>)
 
 ## 捐赠
 欢迎捐赠以便更好的推动项目的发展，谢谢您的支持!
