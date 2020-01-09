@@ -87,7 +87,7 @@ API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample
  * @param data 单帧H264数据
  * @param len 单帧H264数据字节数
  * @param dts 解码时间戳，单位毫秒
- * @param dts 播放时间戳，单位毫秒
+ * @param pts 播放时间戳，单位毫秒
  */
 API_EXPORT void API_CALL mk_media_input_h264(mk_media ctx, void *data, int len, uint32_t dts, uint32_t pts);
 
@@ -97,7 +97,7 @@ API_EXPORT void API_CALL mk_media_input_h264(mk_media ctx, void *data, int len, 
  * @param data 单帧H265数据
  * @param len 单帧H265数据字节数
  * @param dts 解码时间戳，单位毫秒
- * @param dts 播放时间戳，单位毫秒
+ * @param pts 播放时间戳，单位毫秒
  */
 API_EXPORT void API_CALL mk_media_input_h265(mk_media ctx, void *data, int len, uint32_t dts, uint32_t pts);
 
