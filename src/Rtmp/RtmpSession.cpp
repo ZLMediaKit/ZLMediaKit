@@ -434,6 +434,7 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
     auto metadata = dec.load<AMFValue>();
 //    dumpMetadata(metadata);
     _pPublisherSrc->setMetaData(metadata);
+    _set_meta_data = true;
 }
 
 void RtmpSession::onProcessCmd(AMFDecoder &dec) {
@@ -490,6 +491,11 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
             int64_t dts_out;
             _stamp[chunkData.typeId % 2].revise(chunkData.timeStamp, chunkData.timeStamp, dts_out, dts_out, true);
             chunkData.timeStamp = dts_out;
+        }
+
+        if(!_set_meta_data && !chunkData.isCfgFrame()){
+            _set_meta_data = true;
+            _pPublisherSrc->setMetaData(TitleMeta().getMetadata());
         }
         _pPublisherSrc->onWrite(std::make_shared<RtmpPacket>(std::move(chunkData)));
 	}
