@@ -49,6 +49,7 @@ public:
         NAL_SPS = 7,
         NAL_PPS = 8,
         NAL_IDR = 5,
+        NAL_SEI = 6,
     } NalType;
 
     char *data() const override{

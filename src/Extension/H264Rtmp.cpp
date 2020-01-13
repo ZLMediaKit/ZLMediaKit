@@ -140,6 +140,10 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         }
     }
 
+    if(type == H264Frame::NAL_SEI){
+        return;
+    }
+
     if(_lastPacket && _lastPacket->timeStamp != frame->stamp()) {
         RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
         _lastPacket = nullptr;
@@ -149,7 +153,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         //I or P or B frame
         int8_t flags = 7; //h.264
         bool is_config = false;
-        flags |= ((frame->keyFrame() ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
+        flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
 
         _lastPacket = ResourcePoolHelper<RtmpPacket>::obtainObj();
         _lastPacket->strBuf.clear();
