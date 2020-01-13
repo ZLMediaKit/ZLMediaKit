@@ -66,6 +66,7 @@ private:
         _pRtmpMediaSrc = dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc);
         if(_pRtmpMediaSrc){
             _pRtmpMediaSrc->setMetaData(val);
+            _set_meta_data = true;
         }
         _delegate.reset(new RtmpDemuxer);
         _delegate->loadMetaData(val);
@@ -73,6 +74,10 @@ private:
     }
     void onMediaData(const RtmpPacket::Ptr &chunkData) override {
     	if(_pRtmpMediaSrc){
+            if(!_set_meta_data && !chunkData->isCfgFrame()){
+                _set_meta_data = true;
+                _pRtmpMediaSrc->setMetaData(TitleMeta().getMetadata());
+            }
             _pRtmpMediaSrc->onWrite(chunkData);
         }
         if(!_delegate){
@@ -83,6 +88,7 @@ private:
     }
 private:
     RtmpMediaSource::Ptr _pRtmpMediaSrc;
+    bool _set_meta_data = false;
 };
 
 

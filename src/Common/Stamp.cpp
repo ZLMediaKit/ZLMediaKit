@@ -26,7 +26,8 @@
 
 #include "Stamp.h"
 
-#define MAX_DELTA_STAMP 300
+#define MAX_DELTA_STAMP 1000
+#define MAX_CTS 500
 #define ABS(x) ((x) > 0 ? (x) : (-x))
 
 namespace mediakit {
@@ -77,7 +78,7 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
     dts_out = _relativeStamp;
 
     //////////////以下是播放时间戳的计算//////////////////
-    if(pts_dts_diff > MAX_DELTA_STAMP || pts_dts_diff < -MAX_DELTA_STAMP){
+    if(ABS(pts_dts_diff) > MAX_CTS){
         //如果差值太大，则认为由于回环导致时间戳错乱了
         pts_dts_diff = 0;
     }
