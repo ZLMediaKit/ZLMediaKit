@@ -122,11 +122,16 @@ bool DtsGenerator::getDts(uint32_t pts, uint32_t &dts){
 }
 
 bool DtsGenerator::getDts_l(uint32_t pts, uint32_t &dts){
+    if(_sorter_max_size == 1){
+        //没有B帧
+        dts = pts;
+        return true;
+    }
+
     if(pts > _last_max_pts){
         if(!_sorter_max_size && _frames_since_last_max_pts && _count_sorter_max_size++ > 0){
             _sorter_max_size = _frames_since_last_max_pts;
             _dts_pts_offset = (pts - _last_max_pts) / 2;
-            InfoL << _sorter_max_size << " " << _dts_pts_offset;
         }
         _frames_since_last_max_pts = 0;
         _last_max_pts = pts;
