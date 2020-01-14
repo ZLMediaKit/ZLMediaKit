@@ -30,6 +30,7 @@
 #include "Rtsp/RtpCodec.h"
 #include "Util/ResourcePool.h"
 #include "Extension/H264.h"
+#include "Common/Stamp.h"
 using namespace toolkit;
 
 namespace mediakit{
@@ -66,6 +67,7 @@ private:
     H264Frame::Ptr obtainFrame();
 private:
     H264Frame::Ptr _h264frame;
+    DtsGenerator _dts_generator;
     int _lastSeq = 0;
 };
 

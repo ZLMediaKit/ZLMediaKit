@@ -72,7 +72,6 @@ public:
 					const string &stream_id,
 					int ring_size = 0) :
 			MediaSource(RTMP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {
-		_metadata = TitleMeta().getMetadata();
 	}
 
 	virtual ~RtmpMediaSource() {}
@@ -117,6 +116,9 @@ public:
 	virtual void setMetaData(const AMFValue &metadata) {
 		lock_guard<recursive_mutex> lock(_mtx);
 		_metadata = metadata;
+		if(_ring){
+			regist();
+		}
 	}
 
 	/**
@@ -143,10 +145,9 @@ public:
 			_ring = std::make_shared<RingType>(_ring_size, std::move(lam));
 			onReaderChanged(0);
 
-			//如果输入了非config帧，
-			//那么说明不再可能获取config帧以及metadata,
-			//所以我们强制其为已注册
-			regist();
+			if(_metadata){
+				regist();
+			}
 		}
 		_track_stamps_map[pkt->typeId] = pkt->timeStamp;
 		_ring->write(pkt, pkt->isVideoKeyFrame());

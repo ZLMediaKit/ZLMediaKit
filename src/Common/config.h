@@ -232,8 +232,6 @@ extern const string kKeepAliveSecond;
 //假定您的拉流源地址不是264或265或AAC，那么你可以使用直接代理的方式来支持rtsp代理
 //默认开启rtsp直接代理，rtmp由于没有这些问题，是强制开启直接代理的
 extern const string kDirectProxy;
-//rtsp推流是否修改时间戳
-extern const string kModifyStamp;
 } //namespace Rtsp
 
 ////////////RTMP服务器配置///////////

@@ -434,6 +434,7 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
     auto metadata = dec.load<AMFValue>();
 //    dumpMetadata(metadata);
     _pPublisherSrc->setMetaData(metadata);
+    _set_meta_data = true;
 }
 
 void RtmpSession::onProcessCmd(AMFDecoder &dec) {
@@ -452,7 +453,7 @@ void RtmpSession::onProcessCmd(AMFDecoder &dec) {
     std::string method = dec.load<std::string>();
 	auto it = s_cmd_functions.find(method);
 	if (it == s_cmd_functions.end()) {
-		TraceP(this) << "can not support cmd:" << method;
+//		TraceP(this) << "can not support cmd:" << method;
 		return;
 	}
 	_dNowReqID = dec.load<double>();
@@ -473,10 +474,11 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 	case MSG_DATA3: {
 		AMFDecoder dec(chunkData.strBuf, chunkData.typeId == MSG_CMD3 ? 1 : 0);
 		std::string type = dec.load<std::string>();
-		TraceP(this) << "notify:" << type;
 		if (type == "@setDataFrame") {
 			setMetaData(dec);
-		}
+		}else{
+            TraceP(this) << "unknown notify:" << type;
+        }
 	}
 		break;
 	case MSG_AUDIO:
@@ -489,6 +491,11 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
             int64_t dts_out;
             _stamp[chunkData.typeId % 2].revise(chunkData.timeStamp, chunkData.timeStamp, dts_out, dts_out, true);
             chunkData.timeStamp = dts_out;
+        }
+
+        if(!_set_meta_data && !chunkData.isCfgFrame()){
+            _set_meta_data = true;
+            _pPublisherSrc->setMetaData(TitleMeta().getMetadata());
         }
         _pPublisherSrc->onWrite(std::make_shared<RtmpPacket>(std::move(chunkData)));
 	}

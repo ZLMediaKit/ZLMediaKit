@@ -110,11 +110,12 @@ protected:
      */
     virtual void onTrackFrame(const Frame::Ptr &frame) {};
 private:
+    void emitAllTrackReady();
+private:
     mutable recursive_mutex _mtx;
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
     bool _allTrackReady = false;
-    bool _anyTrackUnReady = false;
     Ticker _ticker;
 };
 
