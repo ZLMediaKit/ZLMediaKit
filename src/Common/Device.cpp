@@ -106,11 +106,11 @@ void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t dts,uint32
     }
 
 	H264Frame::Ptr frame = std::make_shared<H264Frame>();
-	frame->timeStamp = dts;
-	frame->ptsStamp = pts;
-	frame->buffer.assign("\x00\x00\x00\x01",4);
-	frame->buffer.append(pcData + prefixeSize, iDataLen - prefixeSize);
-	frame->iPrefixSize = 4;
+	frame->_dts = dts;
+	frame->_pts = pts;
+	frame->_buffer.assign("\x00\x00\x00\x01",4);
+	frame->_buffer.append(pcData + prefixeSize, iDataLen - prefixeSize);
+	frame->_prefix_size = 4;
     inputFrame(frame);
 }
 
@@ -131,11 +131,11 @@ void DevChannel::inputH265(const char* pcData, int iDataLen, uint32_t dts,uint32
 	}
 
 	H265Frame::Ptr frame = std::make_shared<H265Frame>();
-	frame->timeStamp = dts;
-	frame->ptsStamp = pts;
-	frame->buffer.assign("\x00\x00\x00\x01",4);
-	frame->buffer.append(pcData + prefixeSize, iDataLen - prefixeSize);
-	frame->iPrefixSize = 4;
+	frame->_dts = dts;
+	frame->_pts = pts;
+	frame->_buffer.assign("\x00\x00\x00\x01",4);
+	frame->_buffer.append(pcData + prefixeSize, iDataLen - prefixeSize);
+	frame->_prefix_size = 4;
 	inputFrame(frame);
 }
 

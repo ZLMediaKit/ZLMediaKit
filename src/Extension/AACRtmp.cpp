@@ -102,7 +102,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         rtmpPkt->bodySize = rtmpPkt->strBuf.size();
         rtmpPkt->chunkId = CHUNK_AUDIO;
         rtmpPkt->streamId = STREAM_MEDIA;
-        rtmpPkt->timeStamp = frame->stamp();
+        rtmpPkt->timeStamp = frame->dts();
         rtmpPkt->typeId = MSG_AUDIO;
         RtmpCodec::inputRtmp(rtmpPkt, false);
     }

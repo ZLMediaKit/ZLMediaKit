@@ -70,8 +70,8 @@ H265RtpDecoder::H265RtpDecoder() {
 H265Frame::Ptr  H265RtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<H265Frame>::obtainObj();
-    frame->buffer.clear();
-    frame->iPrefixSize = 4;
+    frame->_buffer.clear();
+    frame->_prefix_size = 4;
     return frame;
 }
 
@@ -99,11 +99,11 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             MakeFU(frame[2], fu);
             if (fu.S) {
                 //该帧的第一个rtp包
-                _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
-                _h265frame->buffer.push_back(fu.type << 1);
-                _h265frame->buffer.push_back(0x01);
-                _h265frame->buffer.append((char *) frame + 3, length - 3);
-                _h265frame->timeStamp = rtppack->timeStamp;
+                _h265frame->_buffer.assign("\x0\x0\x0\x1", 4);
+                _h265frame->_buffer.push_back(fu.type << 1);
+                _h265frame->_buffer.push_back(0x01);
+                _h265frame->_buffer.append((char *) frame + 3, length - 3);
+                _h265frame->_pts = rtppack->timeStamp;
                 //该函数return时，保存下当前sequence,以便下次对比seq是否连续
                 _lastSeq = rtppack->sequence;
                 return (_h265frame->keyFrame()); //i frame
@@ -111,22 +111,22 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
             if (rtppack->sequence != _lastSeq + 1 && rtppack->sequence != 0) {
                 //中间的或末尾的rtp包，其seq必须连续(如果回环了则判定为连续)，否则说明rtp丢包，那么该帧不完整，必须得丢弃
-                _h265frame->buffer.clear();
+                _h265frame->_buffer.clear();
                 WarnL << "rtp sequence不连续: " << rtppack->sequence << " != " << _lastSeq << " + 1,该帧被废弃";
                 return false;
             }
 
             if (!fu.E) {
                 //该帧的中间rtp包
-                _h265frame->buffer.append((char *) frame + 3, length - 3);
+                _h265frame->_buffer.append((char *) frame + 3, length - 3);
                 //该函数return时，保存下当前sequence,以便下次对比seq是否连续
                 _lastSeq = rtppack->sequence;
                 return false;
             }
 
             //该帧最后一个rtp包
-            _h265frame->buffer.append((char *) frame + 3, length - 3);
-            _h265frame->timeStamp = rtppack->timeStamp;
+            _h265frame->_buffer.append((char *) frame + 3, length - 3);
+            _h265frame->_pts = rtppack->timeStamp;
             auto key = _h265frame->keyFrame();
             onGetH265(_h265frame);
             return key;
@@ -134,9 +134,9 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
         default: // 4.4.1. Single NAL Unit Packets (p24)
             //a full frame
-            _h265frame->buffer.assign("\x0\x0\x0\x1", 4);
-            _h265frame->buffer.append((char *)frame, length);
-            _h265frame->timeStamp = rtppack->timeStamp;
+            _h265frame->_buffer.assign("\x0\x0\x0\x1", 4);
+            _h265frame->_buffer.append((char *)frame, length);
+            _h265frame->_pts = rtppack->timeStamp;
             auto key = _h265frame->keyFrame();
             onGetH265(_h265frame);
             return key;
@@ -144,8 +144,12 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 }
 
 void H265RtpDecoder::onGetH265(const H265Frame::Ptr &frame) {
-    //写入环形缓存
-    RtpCodec::inputFrame(frame);
+    //计算dts
+    auto flag = _dts_generator.getDts(frame->_pts,frame->_dts);
+    if(flag){
+        //写入环形缓存
+        RtpCodec::inputFrame(frame);
+    }
     _h265frame = obtainFrame();
 }
 
@@ -167,7 +171,7 @@ H265RtpEncoder::H265RtpEncoder(uint32_t ui32Ssrc,
 void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     GET_CONFIG(uint32_t,cycleMS,Rtp::kCycleMS);
     uint8_t *pcData = (uint8_t*)frame->data() + frame->prefixSize();
-    auto uiStamp = frame->stamp();
+    auto uiStamp = frame->pts();
     auto iLen = frame->size() - frame->prefixSize();
     unsigned char naluType = H265_TYPE(pcData[0]); //获取NALU的5bit 帧类型
     uiStamp %= cycleMS;
