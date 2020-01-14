@@ -122,7 +122,7 @@ public:
 	vector<SdpTrack::Ptr> getAvailableTrack() const;
 	string toString() const ;
 private:
-	map<string, SdpTrack::Ptr> _track_map;
+	vector<SdpTrack::Ptr> _track_vec;
 };
 
 /**
