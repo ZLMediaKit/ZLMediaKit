@@ -127,9 +127,8 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             //该帧最后一个rtp包
             _h265frame->_buffer.append((char *) frame + 3, length - 3);
             _h265frame->_pts = rtppack->timeStamp;
-            auto key = _h265frame->keyFrame();
             onGetH265(_h265frame);
-            return key;
+            return false;
         }
 
         default: // 4.4.1. Single NAL Unit Packets (p24)
@@ -146,6 +145,12 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 void H265RtpDecoder::onGetH265(const H265Frame::Ptr &frame) {
     //计算dts
     auto flag = _dts_generator.getDts(frame->_pts,frame->_dts);
+    if(!flag){
+        if(frame->configFrame() || frame->keyFrame()){
+            flag = true;
+            frame->_dts = frame->_pts;
+        }
+    }
     if(flag){
         //写入环形缓存
         RtpCodec::inputFrame(frame);
