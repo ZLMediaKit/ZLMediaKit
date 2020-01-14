@@ -128,18 +128,19 @@ bool DtsGenerator::getDts_l(uint32_t pts, uint32_t &dts){
         return true;
     }
 
-    if(pts > _last_max_pts){
-        if(!_sorter_max_size && _frames_since_last_max_pts && _count_sorter_max_size++ > 0){
-            _sorter_max_size = _frames_since_last_max_pts;
-            _dts_pts_offset = (pts - _last_max_pts) / 2;
+    if(!_sorter_max_size){
+        if(pts > _last_max_pts){
+            if(_frames_since_last_max_pts && _count_sorter_max_size++ > 0){
+                _sorter_max_size = _frames_since_last_max_pts;
+                _dts_pts_offset = (pts - _last_max_pts) / 2;
+            }
+            _frames_since_last_max_pts = 0;
+            _last_max_pts = pts;
         }
-        _frames_since_last_max_pts = 0;
-        _last_max_pts = pts;
+        ++_frames_since_last_max_pts;
     }
 
     _pts_sorter.emplace(pts);
-    ++_frames_since_last_max_pts;
-
     if(_sorter_max_size && _pts_sorter.size() >  _sorter_max_size){
         auto it = _pts_sorter.begin();
         dts = *it + _dts_pts_offset;
