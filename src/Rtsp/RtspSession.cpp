@@ -932,12 +932,6 @@ inline void RtspSession::send_NotAcceptable() {
 
 
 void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) {
-    GET_CONFIG(bool,modify_stamp,Rtsp::kModifyStamp);
-    if(modify_stamp){
-        int64_t dts_out;
-        _stamp[trackidx].revise(rtppt->timeStamp, rtppt->timeStamp, dts_out, dts_out, true);
-        rtppt->timeStamp = dts_out;
-    }
 	_pushSrc->onWrite(rtppt, false);
 }
 inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBuf, const struct sockaddr& addr) {

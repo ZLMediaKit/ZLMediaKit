@@ -27,8 +27,9 @@
 #ifndef ZLMEDIAKIT_STAMP_H
 #define ZLMEDIAKIT_STAMP_H
 
-#include "Util/TimeTicker.h"
+#include <set>
 #include <cstdint>
+#include "Util/TimeTicker.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -86,6 +87,27 @@ private:
     int64_t _relativeStamp = 0;
     int64_t _last_dts = -1;
     SmoothTicker _ticker;
+};
+
+
+class DtsGenerator{
+public:
+    DtsGenerator() = default;
+    ~DtsGenerator() = default;
+    bool getDts(uint32_t pts, uint32_t &dts);
+private:
+    bool getDts_l(uint32_t pts, uint32_t &dts);
+private:
+    uint32_t _dts_pts_offset = 0;
+    uint32_t _last_dts = 0;
+    uint32_t _last_pts = 0;
+    uint32_t _last_max_pts = 0;
+    int _frames_since_last_max_pts = 0;
+    int _sorter_max_size = 0;
+    int _count_sorter_max_size = 0;
+    set<uint32_t> _pts_sorter;
+
+
 };
 
 }//namespace mediakit

@@ -26,7 +26,11 @@
 #include "MediaSink.h"
 
 //最多等待未初始化的Track 10秒，超时之后会忽略未初始化的Track
-#define MAX_WAIT_MS 10000
+#define MAX_WAIT_MS_READY 10000
+
+//如果添加Track，最多等待3秒
+#define MAX_WAIT_MS_ADD_TRACK 3000
+
 
 namespace mediakit{
 
@@ -34,23 +38,16 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
     lock_guard<recursive_mutex> lck(_mtx);
     //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
-
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
-    auto lam = [this,track](){
+    _allTrackReady = false;
+    _trackReadyCallback[codec_id] = [this, track]() {
         onTrackReady(track);
     };
-    if(track->ready()){
-        lam();
-    }else{
-        _anyTrackUnReady = true;
-        _allTrackReady = false;
-        _trackReadyCallback[codec_id] = lam;
-        _ticker.resetTime();
-    }
+    _ticker.resetTime();
 
-    track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame){
-        if(!_anyTrackUnReady){
+    track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
+        if (_allTrackReady) {
             onTrackFrame(frame);
         }
     }));
@@ -58,7 +55,6 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
 
 void MediaSink::resetTracks() {
     lock_guard<recursive_mutex> lck(_mtx);
-    _anyTrackUnReady = false;
     _allTrackReady = false;
     _track_map.clear();
     _trackReadyCallback.clear();
@@ -83,26 +79,50 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
         }
     }
 
-    if(!_allTrackReady && (_trackReadyCallback.empty() || _ticker.elapsedTime() > MAX_WAIT_MS)){
-        _allTrackReady = true;
-        _anyTrackUnReady = false;
-        if(!_trackReadyCallback.empty()){
-            //这是超时强制忽略未准备好的Track
-            _trackReadyCallback.clear();
-            //移除未准备好的Track
-            for(auto it = _track_map.begin() ; it != _track_map.end() ; ){
-                if(!it->second->ready()){
-                    it = _track_map.erase(it);
-                    continue;
-                }
-                ++it;
-            }
+    if(!_allTrackReady){
+        if(_ticker.elapsedTime() > MAX_WAIT_MS_READY){
+            //如果超过规定时间，那么不再等待并忽略未准备好的Track
+            emitAllTrackReady();
+            return;
         }
 
-        if(!_track_map.empty()){
-            //最少有一个有效的Track
-            onAllTrackReady();
+        if(!_trackReadyCallback.empty()){
+            //在超时时间内，如果存在未准备好的Track，那么继续等待
+            return;
         }
+
+        if(_track_map.size() == 2){
+            //如果已经添加了音视频Track，并且不存在未准备好的Track，那么说明所有Track都准备好了
+            emitAllTrackReady();
+            return;
+        }
+
+        if(_track_map.size() == 1 && _ticker.elapsedTime() > MAX_WAIT_MS_ADD_TRACK){
+            //如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
+            emitAllTrackReady();
+            return;
+        }
+    }
+}
+
+void MediaSink::emitAllTrackReady() {
+    _allTrackReady = true;
+    if(!_trackReadyCallback.empty()){
+        //这是超时强制忽略未准备好的Track
+        _trackReadyCallback.clear();
+        //移除未准备好的Track
+        for(auto it = _track_map.begin() ; it != _track_map.end() ; ){
+            if(!it->second->ready()){
+                it = _track_map.erase(it);
+                continue;
+            }
+            ++it;
+        }
+    }
+
+    if(!_track_map.empty()){
+        //最少有一个有效的Track
+        onAllTrackReady();
     }
 }
 

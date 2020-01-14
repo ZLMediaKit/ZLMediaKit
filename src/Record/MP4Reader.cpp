@@ -225,8 +225,10 @@ inline bool MP4Reader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
 			uint32_t numBytes = _video_sample_max_size;
 			MP4Duration pRenderingOffset;
 			if(MP4ReadSample(_hMP4File, _video_trId, iIdx + 1, &pBytes, &numBytes,NULL,NULL,&pRenderingOffset,&_bSyncSample)){
-				if (!justSeekSyncFrame) {
-					uint32_t iOffset = 0;
+                if (!justSeekSyncFrame) {
+                    uint32_t dts = (double) _video_ms * iIdx / _video_num_samples;
+                    uint32_t pts = dts + pRenderingOffset / 90;
+                    uint32_t iOffset = 0;
 					while (iOffset < numBytes) {
 						uint32_t iFrameLen;
 						memcpy(&iFrameLen,pBytes + iOffset,4);
@@ -235,8 +237,7 @@ inline bool MP4Reader::readVideoSample(int iTimeInc,bool justSeekSyncFrame) {
                             break;
                         }
 						memcpy(pBytes + iOffset, "\x0\x0\x0\x1", 4);
-						uint32_t dts = (double) _video_ms * iIdx / _video_num_samples;
-						writeH264(pBytes + iOffset, iFrameLen + 4, dts, dts + pRenderingOffset / 90);
+						writeH264(pBytes + iOffset, iFrameLen + 4, dts, pts);
 						iOffset += (iFrameLen + 4);
 					}
 				}else if(_bSyncSample){
@@ -260,9 +261,10 @@ inline bool MP4Reader::readAudioSample(int iTimeInc,bool justSeekSyncFrame) {
 			uint8_t *pBytes = _adts.buffer + 7;
 			if(MP4ReadSample(_hMP4File, _audio_trId, i + 1, &pBytes, &numBytes)){
 				if (!justSeekSyncFrame) {
+					uint32_t dts = (double) _audio_ms * i / _audio_num_samples;
 					_adts.aac_frame_length = 7 + numBytes;
 					writeAdtsHeader(_adts, _adts.buffer);
-					writeAAC(_adts.buffer, _adts.aac_frame_length, (double) _audio_ms * i / _audio_num_samples);
+					writeAAC(_adts.buffer, _adts.aac_frame_length, dts);
 				}
 			}else{
 				ErrorL << "读取音频失败:" << i+ 1;

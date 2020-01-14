@@ -95,6 +95,7 @@ private:
 	std::string _strTcUrl;
 	MediaInfo _mediaInfo;
 	double _dNowReqID = 0;
+	bool _set_meta_data = false;
 	Ticker _ticker;//数据接收时间
 	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr _pRingReader;
 	std::shared_ptr<RtmpMediaSourceImp> _pPublisherSrc;

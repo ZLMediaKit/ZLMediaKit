@@ -81,13 +81,6 @@ class Frame : public Buffer, public CodecInfo {
 public:
     typedef std::shared_ptr<Frame> Ptr;
     virtual ~Frame(){}
-    /**
-     * 时间戳,已经废弃，请使用dts() 、pts()接口
-     */
-    inline uint32_t stamp() const {
-        return dts();
-    };
-
 
     /**
      * 返回解码时间戳，单位毫秒

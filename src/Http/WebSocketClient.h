@@ -303,7 +303,7 @@ private:
             //拦截websocket数据接收
             _onRecv = [this](const Buffer::Ptr &pBuf){
                 //解析websocket数据包
-                WebSocketSplitter::decode((uint8_t*)pBuf->data(),pBuf->size());
+                this->WebSocketSplitter::decode((uint8_t*)pBuf->data(),pBuf->size());
             };
             return;
         }

@@ -35,8 +35,8 @@ H264RtmpDecoder::H264RtmpDecoder() {
 H264Frame::Ptr  H264RtmpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = obtainObj();
-    frame->buffer.clear();
-    frame->iPrefixSize = 4;
+    frame->_buffer.clear();
+    frame->_prefix_size = 4;
     return frame;
 }
 
@@ -78,10 +78,10 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
 
 inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
 #if 1
-    _h264frame->timeStamp = dts;
-    _h264frame->ptsStamp = pts;
-    _h264frame->buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
-    _h264frame->buffer.append(pcData, iLen);
+    _h264frame->_dts = dts;
+    _h264frame->_pts = pts;
+    _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
+    _h264frame->_buffer.append(pcData, iLen);
 
     //写入环形缓存
     RtmpCodec::inputFrame(_h264frame);
@@ -140,7 +140,11 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         }
     }
 
-    if(_lastPacket && _lastPacket->timeStamp != frame->stamp()) {
+    if(type == H264Frame::NAL_SEI){
+        return;
+    }
+
+    if(_lastPacket && _lastPacket->timeStamp != frame->dts()) {
         RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
         _lastPacket = nullptr;
     }
@@ -149,7 +153,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         //I or P or B frame
         int8_t flags = 7; //h.264
         bool is_config = false;
-        flags |= ((frame->keyFrame() ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
+        flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
 
         _lastPacket = ResourcePoolHelper<RtmpPacket>::obtainObj();
         _lastPacket->strBuf.clear();
@@ -161,7 +165,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 
         _lastPacket->chunkId = CHUNK_VIDEO;
         _lastPacket->streamId = STREAM_MEDIA;
-        _lastPacket->timeStamp = frame->stamp();
+        _lastPacket->timeStamp = frame->dts();
         _lastPacket->typeId = MSG_VIDEO;
 
     }
