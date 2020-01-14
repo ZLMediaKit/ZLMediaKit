@@ -70,8 +70,10 @@ API_EXPORT void API_CALL mk_stop_all_server(){
     CLEAR_ARR(rtsp_server);
     CLEAR_ARR(rtmp_server);
     CLEAR_ARR(http_server);
+#ifdef ENABLE_RTPPROXY
     udpRtpServer = nullptr;
     tcpRtpServer = nullptr;
+#endif
     stopAllTcpServer();
 }
 
