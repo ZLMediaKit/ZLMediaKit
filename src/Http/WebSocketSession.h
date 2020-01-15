@@ -31,15 +31,79 @@
 #include "Network/TcpServer.h"
 
 /**
+ * 数据发送拦截器
+ */
+class SendInterceptor{
+public:
+    typedef function<int(const Buffer::Ptr &buf)> onBeforeSendCB;
+    SendInterceptor() = default;
+    virtual ~SendInterceptor() = default;
+    virtual void setOnBeforeSendCB(const onBeforeSendCB &cb) = 0;
+};
+
+/**
+ * 该类实现了TcpSession派生类发送数据的截取
+ * 目的是发送业务数据前进行websocket协议的打包
+ */
+template <typename TcpSessionType>
+class TcpSessionTypeImp : public TcpSessionType, public SendInterceptor{
+public:
+    typedef std::shared_ptr<TcpSessionTypeImp> Ptr;
+
+    TcpSessionTypeImp(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock) :
+            _identifier(parent.getIdentifier()), TcpSessionType(pSock) {}
+
+    ~TcpSessionTypeImp() {}
+
+    /**
+     * 设置发送数据截取回调函数
+     * @param cb 截取回调函数
+     */
+    void setOnBeforeSendCB(const onBeforeSendCB &cb) override {
+        _beforeSendCB = cb;
+    }
+
+protected:
+    /**
+     * 重载send函数截取数据
+     * @param buf 需要截取的数据
+     * @return 数据字节数
+     */
+    int send(const Buffer::Ptr &buf) override {
+        if (_beforeSendCB) {
+            return _beforeSendCB(buf);
+        }
+        return TcpSessionType::send(buf);
+    }
+
+    string getIdentifier() const override {
+        return _identifier;
+    }
+
+private:
+    onBeforeSendCB _beforeSendCB;
+    string _identifier;
+};
+
+template <typename TcpSessionType>
+class TcpSessionCreator {
+public:
+    //返回的TcpSession必须派生于SendInterceptor，可以返回null
+    TcpSession::Ptr operator()(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock){
+        return std::make_shared<TcpSessionTypeImp<TcpSessionType> >(header,parent,pSock);
+    }
+};
+
+
+/**
 * 通过该模板类可以透明化WebSocket协议，
 * 用户只要实现WebSock协议下的具体业务协议，譬如基于WebSocket协议的Rtmp协议等
-* @tparam SessionType 业务协议的TcpSession类
 */
-template <class SessionType,class HttpSessionType = HttpSession,WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
-class WebSocketSession : public HttpSessionType {
+template<typename Creator, typename HttpSessionType = HttpSession, WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
+class WebSocketSessionBase : public HttpSessionType {
 public:
-    WebSocketSession(const Socket::Ptr &pSock) : HttpSessionType(pSock){}
-    virtual ~WebSocketSession(){}
+    WebSocketSessionBase(const Socket::Ptr &pSock) : HttpSessionType(pSock){}
+    virtual ~WebSocketSessionBase(){}
 
     //收到eof或其他导致脱离TcpServer事件的回调
     void onError(const SockException &err) override{
@@ -69,23 +133,27 @@ protected:
      */
     bool onWebSocketConnect(const Parser &header) override{
         //创建websocket session类
-        _session = std::make_shared<SessionImp>(HttpSessionType::getIdentifier(),HttpSessionType::_sock);
+        _session = _creator(header, *this,HttpSessionType::_sock);
+        if(!_session){
+            //此url不允许创建websocket连接
+            return false;
+        }
         auto strongServer = _weakServer.lock();
         if(strongServer){
             _session->attachServer(*strongServer);
         }
 
         //此处截取数据并进行websocket协议打包
-        weak_ptr<WebSocketSession> weakSelf = dynamic_pointer_cast<WebSocketSession>(HttpSessionType::shared_from_this());
-        _session->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf){
+        weak_ptr<WebSocketSessionBase> weakSelf = dynamic_pointer_cast<WebSocketSessionBase>(HttpSessionType::shared_from_this());
+        dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf) {
             auto strongSelf = weakSelf.lock();
-            if(strongSelf){
+            if (strongSelf) {
                 WebSocketHeader header;
                 header._fin = true;
                 header._reserved = 0;
                 header._opcode = DataType;
                 header._mask_flag = false;
-                strongSelf->WebSocketSplitter::encode(header,buf);
+                strongSelf->WebSocketSplitter::encode(header, buf);
             }
             return buf->size();
         });
@@ -156,49 +224,18 @@ protected:
         SocketHelper::send(buffer);
     }
 private:
-    typedef function<int(const Buffer::Ptr &buf)> onBeforeSendCB;
-    /**
-     * 该类实现了TcpSession派生类发送数据的截取
-     * 目的是发送业务数据前进行websocket协议的打包
-     */
-    class SessionImp : public SessionType{
-    public:
-        SessionImp(const string &identifier,const Socket::Ptr &pSock) :
-                _identifier(identifier),SessionType(pSock){}
-
-        ~SessionImp(){}
-
-        /**
-         * 设置发送数据截取回调函数
-         * @param cb 截取回调函数
-         */
-        void setOnBeforeSendCB(const onBeforeSendCB &cb){
-            _beforeSendCB = cb;
-        }
-    protected:
-        /**
-         * 重载send函数截取数据
-         * @param buf 需要截取的数据
-         * @return 数据字节数
-         */
-        int send(const Buffer::Ptr &buf) override {
-            if(_beforeSendCB){
-                return _beforeSendCB(buf);
-            }
-            return SessionType::send(buf);
-        }
-        string getIdentifier() const override{
-            return _identifier;
-        }
-    private:
-        onBeforeSendCB _beforeSendCB;
-        string _identifier;
-    };
-private:
     string _remian_data;
     weak_ptr<TcpServer> _weakServer;
-    std::shared_ptr<SessionImp> _session;
+    TcpSession::Ptr _session;
+    Creator _creator;
 };
 
+
+template<typename TcpSessionType,typename HttpSessionType = HttpSession,WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
+class WebSocketSession : public WebSocketSessionBase<TcpSessionCreator<TcpSessionType>,HttpSessionType,DataType>{
+public:
+    WebSocketSession(const Socket::Ptr &pSock) : WebSocketSessionBase<TcpSessionCreator<TcpSessionType>,HttpSessionType,DataType>(pSock){}
+    virtual ~WebSocketSession(){}
+};
 
 #endif //ZLMEDIAKIT_WEBSOCKETSESSION_H
