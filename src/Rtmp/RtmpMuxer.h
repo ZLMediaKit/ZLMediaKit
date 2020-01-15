@@ -71,6 +71,11 @@ public:
      * 重置所有track
      */
     void resetTracks() override ;
+
+    /**
+     * 生成config包
+     */
+     void makeConfigPacket();
 private:
     RtmpRing::RingType::Ptr _rtmpRing;
     AMFValue _metadata;

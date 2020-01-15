@@ -78,6 +78,14 @@ void RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
     }
 }
 
+void RtmpMuxer::makeConfigPacket(){
+    for(auto &encoder : _encoder){
+        if(encoder){
+            encoder->makeConfigPacket();
+        }
+    }
+}
+
 const AMFValue &RtmpMuxer::getMetadata() const {
     return _metadata;
 }

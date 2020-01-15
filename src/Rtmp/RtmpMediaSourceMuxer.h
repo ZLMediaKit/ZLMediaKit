@@ -58,6 +58,7 @@ public:
     }
 
     void onAllTrackReady(){
+        makeConfigPacket();
         _mediaSouce->setMetaData(getMetadata());
     }
 

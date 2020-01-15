@@ -80,6 +80,7 @@ public:
     typedef std::shared_ptr<RtmpCodec> Ptr;
     RtmpCodec(){}
     virtual ~RtmpCodec(){}
+    virtual void makeConfigPacket() {};
 };
 
 
