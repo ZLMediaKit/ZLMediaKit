@@ -99,7 +99,20 @@ inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dt
 
 H264RtmpEncoder::H264RtmpEncoder(const Track::Ptr &track) {
     _track = dynamic_pointer_cast<H264Track>(track);
+}
 
+void H264RtmpEncoder::makeConfigPacket(){
+    if (_track && _track->ready()) {
+        //尝试从track中获取sps pps信息
+        _sps = _track->getSps();
+        _pps = _track->getPps();
+    }
+
+    if (!_sps.empty() && !_pps.empty()) {
+        //获取到sps/pps
+        makeVideoConfigPkt();
+        _gotSpsPps = true;
+    }
 }
 
 void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
@@ -107,36 +120,23 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto iLen = frame->size() - frame->prefixSize();
     auto type = H264_TYPE(((uint8_t*)pcData)[0]);
 
-    if(!_gotSpsPps){
+    if (!_gotSpsPps) {
         //尝试从frame中获取sps pps
-        switch (type){
-            case H264Frame::NAL_SPS:{
+        switch (type) {
+            case H264Frame::NAL_SPS: {
                 //sps
-                if(_sps.empty()){
-                    _sps = string(pcData,iLen);
-                }
-            }
+                _sps = string(pcData, iLen);
+                makeConfigPacket();
                 break;
-            case H264Frame::NAL_PPS:{
+            }
+            case H264Frame::NAL_PPS: {
                 //pps
-                if(_pps.empty()){
-                    _pps = string(pcData,iLen);
-                }
-            }
+                _pps = string(pcData, iLen);
+                makeConfigPacket();
                 break;
+            }
             default:
                 break;
-        }
-
-        if(_track && _track->ready()){
-            //尝试从track中获取sps pps信息
-            _sps = _track->getSps();
-            _pps = _track->getPps();
-        }
-
-        if(!_sps.empty() && !_pps.empty()){
-            _gotSpsPps = true;
-            makeVideoConfigPkt();
         }
     }
 
