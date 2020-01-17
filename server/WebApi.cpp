@@ -48,37 +48,9 @@
 #include "Thread/WorkThreadPool.h"
 #include "Rtp/RtpSelector.h"
 #include "FFmpegSource.h"
-
 using namespace Json;
 using namespace toolkit;
 using namespace mediakit;
-
-
-typedef map<string,variant,StrCaseCompare> ApiArgsType;
-
-
-#define API_ARGS TcpSession &sender, \
-                 HttpSession::KeyValue &headerIn, \
-                 HttpSession::KeyValue &headerOut, \
-                 ApiArgsType &allArgs, \
-                 Json::Value &val
-
-#define API_REGIST(field, name, ...) \
-    s_map_api.emplace("/index/"#field"/"#name,[](API_ARGS,const HttpSession::HttpResponseInvoker &invoker){ \
-         static auto lam = [&](API_ARGS) __VA_ARGS__ ;  \
-         lam(sender,headerIn, headerOut, allArgs, val); \
-         invoker("200 OK", headerOut, val.toStyledString()); \
-     });
-
-#define API_ARGS_VALUE sender,headerIn,headerOut,allArgs,val,invoker
-
-#define API_REGIST_INVOKER(field, name, ...) \
-    s_map_api.emplace("/index/"#field"/"#name,[](API_ARGS,const HttpSession::HttpResponseInvoker &invoker) __VA_ARGS__);
-
-//异步http api lambad定义
-typedef std::function<void(API_ARGS,const HttpSession::HttpResponseInvoker &invoker)> AsyncHttpApi;
-//api列表
-static map<string, AsyncHttpApi> s_map_api;
 
 namespace API {
 typedef enum {
@@ -128,6 +100,27 @@ public:
     ~SuccessException() = default;
 };
 
+#define API_ARGS1 TcpSession &sender,HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, ApiArgsType &allArgs, Json::Value &val
+#define API_ARGS2 API_ARGS1, const HttpSession::HttpResponseInvoker &invoker
+#define API_ARGS_VALUE1 sender,headerIn,headerOut,allArgs,val
+#define API_ARGS_VALUE2 API_ARGS_VALUE1, invoker
+
+typedef map<string, variant, StrCaseCompare> ApiArgsType;
+//http api列表
+static map<string, std::function<void(API_ARGS2)> > s_map_api;
+
+template<typename FUNC>
+static void api_regist1(const string &api_path, FUNC &&func) {
+    s_map_api.emplace(api_path, [func](API_ARGS2) {
+        func(API_ARGS_VALUE1);
+        invoker("200 OK", headerOut, val.toStyledString());
+    });
+}
+
+template<typename FUNC>
+static void api_regist2(const string &api_path, FUNC &&func) {
+    s_map_api.emplace(api_path, std::forward<FUNC>(func));
+}
 
 //获取HTTP请求中url参数、content参数
 static ApiArgsType getAllArgs(const Parser &parser) {
@@ -275,12 +268,11 @@ static recursive_mutex s_ffmpegMapMtx;
  */
 void installWebApi() {
     addHttpListener();
-
     GET_CONFIG(string,api_secret,API::kSecret);
 
     //获取线程负载
     //测试url http://127.0.0.1/index/api/getThreadsLoad
-    API_REGIST_INVOKER(api, getThreadsLoad, {
+    api_regist2("/index/api/getThreadsLoad",[](API_ARGS2){
         EventPollerPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
             auto vec = EventPollerPool::Instance().getExecutorLoad();
@@ -298,7 +290,7 @@ void installWebApi() {
 
     //获取后台工作线程负载
     //测试url http://127.0.0.1/index/api/getWorkThreadsLoad
-    API_REGIST_INVOKER(api, getWorkThreadsLoad, {
+    api_regist2("/index/api/getWorkThreadsLoad", [](API_ARGS2){
         WorkThreadPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
             auto vec = WorkThreadPool::Instance().getExecutorLoad();
@@ -316,7 +308,7 @@ void installWebApi() {
 
     //获取服务器配置
     //测试url http://127.0.0.1/index/api/getServerConfig
-    API_REGIST(api, getServerConfig, {
+    api_regist1("/index/api/getServerConfig",[](API_ARGS1){
         CHECK_SECRET();
         Value obj;
         for (auto &pr : mINI::Instance()) {
@@ -328,7 +320,7 @@ void installWebApi() {
     //设置服务器配置
     //测试url(比如关闭http api调试) http://127.0.0.1/index/api/setServerConfig?api.apiDebug=0
     //你也可以通过http post方式传参，可以通过application/x-www-form-urlencoded或application/json方式传参
-    API_REGIST(api, setServerConfig, {
+    api_regist1("/index/api/setServerConfig",[](API_ARGS1){
         CHECK_SECRET();
         auto &ini = mINI::Instance();
         int changed = API::Success;
@@ -352,19 +344,29 @@ void installWebApi() {
     });
 
 
-    //获取服务器api列表
-    //测试url http://127.0.0.1/index/api/getApiList
-    API_REGIST(api,getApiList,{
+    static auto s_get_api_list = [](API_ARGS1){
         CHECK_SECRET();
         for(auto &pr : s_map_api){
             val["data"].append(pr.first);
         }
+    };
+
+    //获取服务器api列表
+    //测试url http://127.0.0.1/index/api/getApiList
+    api_regist1("/index/api/getApiList",[](API_ARGS1){
+        s_get_api_list(API_ARGS_VALUE1);
+    });
+
+    //获取服务器api列表
+    //测试url http://127.0.0.1/index/
+    api_regist1("/index/",[](API_ARGS1){
+        s_get_api_list(API_ARGS_VALUE1);
     });
 
 #if !defined(_WIN32)
     //重启服务器,只有Daemon方式才能重启，否则是直接关闭！
     //测试url http://127.0.0.1/index/api/restartServer
-    API_REGIST(api,restartServer,{
+    api_regist1("/index/api/restartServer",[](API_ARGS1){
         CHECK_SECRET();
         EventPollerPool::Instance().getPoller()->doDelayTask(1000,[](){
             //尝试正常退出
@@ -387,7 +389,7 @@ void installWebApi() {
     //测试url0(获取所有流) http://127.0.0.1/index/api/getMediaList
     //测试url1(获取虚拟主机为"__defaultVost__"的流) http://127.0.0.1/index/api/getMediaList?vhost=__defaultVost__
     //测试url2(获取rtsp类型的流) http://127.0.0.1/index/api/getMediaList?schema=rtsp
-    API_REGIST(api,getMediaList,{
+    api_regist1("/index/api/getMediaList",[](API_ARGS1){
         CHECK_SECRET();
         //获取所有MediaSource列表
         MediaSource::for_each_media([&](const MediaSource::Ptr &media){
@@ -419,14 +421,14 @@ void installWebApi() {
     });
 
     //测试url http://127.0.0.1/index/api/isMediaOnline?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
-    API_REGIST(api,isMediaOnline,{
+    api_regist1("/index/api/isMediaOnline",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
         val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"],false));
     });
 
     //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
-    API_REGIST(api,getMediaInfo,{
+    api_regist1("/index/api/getMediaInfo",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
         auto src = MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"],false);
@@ -448,7 +450,7 @@ void installWebApi() {
 
     //主动关断流，包括关断拉流、推流
     //测试url http://127.0.0.1/index/api/close_stream?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
-    API_REGIST(api,close_stream,{
+    api_regist1("/index/api/close_stream",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
         //踢掉推流器
@@ -468,7 +470,7 @@ void installWebApi() {
 
     //批量主动关断流，包括关断拉流、推流
     //测试url http://127.0.0.1/index/api/close_streams?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
-    API_REGIST(api,close_streams,{
+    api_regist1("/index/api/close_streams",[](API_ARGS1){
         CHECK_SECRET();
         //筛选命中个数
         int count_hit = 0;
@@ -504,7 +506,7 @@ void installWebApi() {
     //获取所有TcpSession列表信息
     //可以根据本地端口和远端ip来筛选
     //测试url(筛选某端口下的tcp会话) http://127.0.0.1/index/api/getAllSession?local_port=1935
-    API_REGIST(api,getAllSession,{
+    api_regist1("/index/api/getAllSession",[](API_ARGS1){
         CHECK_SECRET();
         Value jsession;
         uint16_t local_port = allArgs["local_port"].as<uint16_t>();
@@ -529,7 +531,7 @@ void installWebApi() {
 
     //断开tcp连接，比如说可以断开rtsp、rtmp播放器等
     //测试url http://127.0.0.1/index/api/kick_session?id=123456
-    API_REGIST(api,kick_session,{
+    api_regist1("/index/api/kick_session",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("id");
         //踢掉tcp会话
@@ -543,7 +545,7 @@ void installWebApi() {
 
     //批量断开tcp连接，比如说可以断开rtsp、rtmp播放器等
     //测试url http://127.0.0.1/index/api/kick_sessions?local_port=1935
-    API_REGIST(api,kick_sessions,{
+    api_regist1("/index/api/kick_sessions",[](API_ARGS1){
         CHECK_SECRET();
         uint16_t local_port = allArgs["local_port"].as<uint16_t>();
         string &peer_ip = allArgs["peer_ip"];
@@ -609,7 +611,7 @@ void installWebApi() {
 
     //动态添加rtsp/rtmp拉流代理
     //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&enable_rtsp=1&enable_rtmp=1&stream=0&url=rtmp://127.0.0.1/live/obs
-    API_REGIST_INVOKER(api,addStreamProxy,{
+    api_regist2("/index/api/addStreamProxy",[](API_ARGS2){
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream","url","enable_rtsp","enable_rtmp");
         addStreamProxy(allArgs["vhost"],
@@ -634,7 +636,7 @@ void installWebApi() {
 
     //关闭拉流代理
     //测试url http://127.0.0.1/index/api/delStreamProxy?key=__defaultVhost__/proxy/0
-    API_REGIST(api,delStreamProxy,{
+    api_regist1("/index/api/delStreamProxy",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("key");
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
@@ -671,7 +673,7 @@ void installWebApi() {
 
     //动态添加rtsp/rtmp拉流代理
     //测试url http://127.0.0.1/index/api/addFFmpegSource?src_url=http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8&dst_url=rtmp://127.0.0.1/live/hks2&timeout_ms=10000
-    API_REGIST_INVOKER(api,addFFmpegSource,{
+    api_regist2("/index/api/addFFmpegSource",[](API_ARGS2){
         CHECK_SECRET();
         CHECK_ARGS("src_url","dst_url","timeout_ms");
         auto src_url = allArgs["src_url"];
@@ -690,7 +692,7 @@ void installWebApi() {
     });
 
 
-    static auto api_delFFmpegSource = [](API_ARGS,const HttpSession::HttpResponseInvoker &invoker){
+    static auto api_delFFmpegSource = [](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("key");
         lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
@@ -699,24 +701,24 @@ void installWebApi() {
 
     //关闭拉流代理
     //测试url http://127.0.0.1/index/api/delFFmepgSource?key=key
-    API_REGIST(api,delFFmpegSource,{
-        api_delFFmpegSource(API_ARGS_VALUE);
+    api_regist1("/index/api/delFFmpegSource",[](API_ARGS1){
+        api_delFFmpegSource(API_ARGS_VALUE1);
     });
 
     //此处为了兼容之前的拼写错误
-    API_REGIST(api,delFFmepgSource,{
-        api_delFFmpegSource(API_ARGS_VALUE);
+    api_regist1("/index/api/delFFmepgSource",[](API_ARGS1){
+        api_delFFmpegSource(API_ARGS_VALUE1);
     });
 
     //新增http api下载可执行程序文件接口
     //测试url http://127.0.0.1/index/api/downloadBin
-    API_REGIST_INVOKER(api,downloadBin,{
+    api_regist2("/index/api/downloadBin",[](API_ARGS2){
         CHECK_SECRET();
         invoker.responseFile(headerIn,StrCaseMap(),exePath());
     });
 
 #if defined(ENABLE_RTPPROXY)
-    API_REGIST(api,getSsrcInfo,{
+    api_regist1("/index/api/getSsrcInfo",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("ssrc");
         uint32_t ssrc = 0;
@@ -735,7 +737,7 @@ void installWebApi() {
 #endif//ENABLE_RTPPROXY
 
     // 开始录制hls或MP4
-    API_REGIST(api,startRecord,{
+    api_regist1("/index/api/startRecord",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream","wait_for_record","continue_record");
 
@@ -750,7 +752,7 @@ void installWebApi() {
     });
 
     // 停止录制hls或MP4
-    API_REGIST(api,stopRecord,{
+    api_regist1("/index/api/stopRecord",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
         int result = Recorder::stopRecord((Recorder::type)allArgs["type"].as<int>(),
@@ -761,7 +763,7 @@ void installWebApi() {
     });
 
     // 获取hls或MP4录制状态
-    API_REGIST(api,getRecordStatus,{
+    api_regist1("/index/api/getRecordStatus",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
         auto status = Recorder::getRecordStatus((Recorder::type)allArgs["type"].as<int>(),
@@ -772,7 +774,7 @@ void installWebApi() {
     });
 
     ////////////以下是注册的Hook API////////////
-    API_REGIST(hook,on_publish,{
+    api_regist1("/index/hook/on_publish",[](API_ARGS1){
         //开始推流事件
         //转换成rtsp或rtmp
         val["enableRtxp"] = true;
@@ -782,23 +784,23 @@ void installWebApi() {
         val["enableMP4"] = false;
     });
 
-    API_REGIST(hook,on_play,{
+    api_regist1("/index/hook/on_play",[](API_ARGS1){
         //开始播放事件
         throw SuccessException();
     });
 
-    API_REGIST(hook,on_flow_report,{
+    api_regist1("/index/hook/on_flow_report",[](API_ARGS1){
         //流量统计hook api
         throw SuccessException();
     });
 
-    API_REGIST(hook,on_rtsp_realm,{
+    api_regist1("/index/hook/on_rtsp_realm",[](API_ARGS1){
         //rtsp是否需要鉴权，默认需要鉴权
         val["code"] = API::Success;
         val["realm"] = "zlmediakit_reaml";
     });
 
-    API_REGIST(hook,on_rtsp_auth,{
+    api_regist1("/index/hook/on_rtsp_auth",[](API_ARGS1){
         //rtsp鉴权密码，密码等于用户名
         //rtsp可以有双重鉴权！后面还会触发on_play事件
         CHECK_ARGS("user_name");
@@ -807,14 +809,14 @@ void installWebApi() {
         val["passwd"] = allArgs["user_name"].data();
     });
 
-    API_REGIST(hook,on_stream_changed,{
+    api_regist1("/index/hook/on_stream_changed",[](API_ARGS1){
         //媒体注册或反注册事件
         throw SuccessException();
     });
 
 
 #if !defined(_WIN32)
-    API_REGIST_INVOKER(hook,on_stream_not_found_ffmpeg,{
+    api_regist2("/index/hook/on_stream_not_found_ffmpeg",[](API_ARGS2){
         //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream");
@@ -844,7 +846,7 @@ void installWebApi() {
     });
 #endif//!defined(_WIN32)
 
-    API_REGIST_INVOKER(hook,on_stream_not_found,{
+    api_regist2("/index/hook/on_stream_not_found",[](API_ARGS2){
         //媒体未找到事件,我们都及时拉流hks作为替代品，目的是为了测试按需拉流
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream");
@@ -870,17 +872,17 @@ void installWebApi() {
                        });
     });
 
-    API_REGIST(hook,on_record_mp4,{
+    api_regist1("/index/hook/on_record_mp4",[](API_ARGS1){
         //录制mp4分片完毕事件
         throw SuccessException();
     });
 
-    API_REGIST(hook,on_shell_login,{
+    api_regist1("/index/hook/on_shell_login",[](API_ARGS1){
         //shell登录调试事件
         throw SuccessException();
     });
 
-    API_REGIST(hook,on_stream_none_reader,{
+    api_regist1("/index/hook/on_stream_none_reader",[](API_ARGS1){
         //无人观看流默认关闭
         val["close"] = true;
     });
@@ -890,7 +892,7 @@ void installWebApi() {
         return true;
     };
 
-    API_REGIST(hook,on_http_access,{
+    api_regist1("/index/hook/on_http_access",[](API_ARGS1){
         //在这里根据allArgs["params"](url参数)来判断该http客户端是否有权限访问该文件
         if(!checkAccess(allArgs["params"])){
             //无访问权限
@@ -911,7 +913,7 @@ void installWebApi() {
     });
 
 
-    API_REGIST(hook,on_server_started,{
+    api_regist1("/index/hook/on_server_started",[](API_ARGS1){
         //服务器重启报告
         throw SuccessException();
     });
