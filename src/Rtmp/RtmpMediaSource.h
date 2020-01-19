@@ -142,7 +142,11 @@ public:
 				}
 				strongSelf->onReaderChanged(size);
 			};
-			_ring = std::make_shared<RingType>(_ring_size, std::move(lam));
+
+			//rtmp包缓存最大允许512个，如果是纯视频(25fps)大概为20秒数据
+			//但是这个是GOP缓存的上限值，真实的GOP缓存大小等于两个I帧之间的包数的两倍
+			//而且每次遇到I帧，则会清空GOP缓存，所以真实的GOP缓存远小于此值
+			_ring = std::make_shared<RingType>(_ring_size,512,std::move(lam));
 			onReaderChanged(0);
 
 			if(_metadata){

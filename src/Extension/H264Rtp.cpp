@@ -189,9 +189,8 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             //该帧最后一个rtp包  FU-A end
             _h264frame->_buffer.append((char *)frame + 2, length - 2);
             _h264frame->_pts = rtppack->timeStamp;
-            auto key = _h264frame->keyFrame();
             onGetH264(_h264frame);
-            return key;
+            return false;
         }
 
         default:{
@@ -209,8 +208,15 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 }
 
 void H264RtpDecoder::onGetH264(const H264Frame::Ptr &frame) {
-    //根据pts计算dts
     auto flag = _dts_generator.getDts(frame->_pts,frame->_dts);
+    if(!flag){
+        if(frame->configFrame() || frame->keyFrame()){
+            flag = true;
+            frame->_dts = frame->_pts;
+        }
+    }
+
+    //根据pts计算dts
     if(flag){
         //写入环形缓存
         RtpCodec::inputFrame(frame);
