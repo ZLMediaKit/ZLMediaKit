@@ -771,6 +771,60 @@ void installWebApi() {
         val["status"] = (int)status;
     });
 
+	//获取录像列表（按月）
+	//http://127.0.0.1/index/api/getMp4RecordMonthly?app=pzstll&stream=stream_4&period=2020-01
+	API_REGIST(api, getMp4RecordMonthly, {
+		CHECK_SECRET();
+		CHECK_ARGS("app", "stream", "period");
+
+		GET_CONFIG(string, recordAppName, Record::kAppName);
+		GET_CONFIG(string, recordPath, Record::kFilePath);
+		GET_CONFIG(bool, enableVhost, General::kEnableVhost);
+
+		auto _vhost = allArgs["vhost"];
+		auto _app = allArgs["app"];
+		auto _stream = allArgs["stream"];
+		auto _period = allArgs["period"];
+		
+		//TODO:判断日期格式
+
+		//Vhost为空的话，存储路径不一样
+		if (_vhost.empty())
+		{
+			_vhost = DEFAULT_VHOST;
+		}
+
+		string strMp4RecordPath;
+		if (enableVhost)
+		{
+			strMp4RecordPath = recordPath + "/" + _vhost + "/" + recordAppName + "/" + _app + "/" + _stream;
+		}
+		else
+		{
+			strMp4RecordPath = recordPath + "/" + recordAppName + "/" + _app + "/" + _stream;
+		}
+		DebugL << strMp4RecordPath;
+
+		Json::Value nVal;
+		nVal["vhost"] = _vhost.data();
+		nVal["app"] = _app.data();
+		nVal["stream"] = _stream.data();
+		nVal["app"] = _app.data();
+
+		val["data"] = nVal;
+
+	});
+
+	//获取录像列表（按天）
+	//http://127.0.0.1/index/api/getMp4RecordDaily?app=pzstll&stream=stream_4&period=2020-01-17
+	API_REGIST(api, getMp4RecordDaily, {
+		CHECK_SECRET();
+		CHECK_ARGS("app", "stream", "period");
+
+
+
+		});
+
     ////////////以下是注册的Hook API////////////
     API_REGIST(hook,on_publish,{
         //开始推流事件
