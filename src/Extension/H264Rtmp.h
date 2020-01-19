@@ -90,6 +90,11 @@ public:
      * @param frame 帧数据
      */
     void inputFrame(const Frame::Ptr &frame) override;
+
+    /**
+     * 生成config包
+     */
+    void makeConfigPacket() override;
 private:
     void makeVideoConfigPkt();
 private:

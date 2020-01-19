@@ -1,4 +1,5 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
+LABEL maintainer "Gemfield <gemfield@civilnet.cn>"
 #shell,rtmp,rtsp,rtsps,http,https,rtp
 EXPOSE 9000/tcp
 EXPOSE 1935/tcp
@@ -9,7 +10,9 @@ EXPOSE 443/tcp
 EXPOSE 10000/udp
 EXPOSE 10000/tcp
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+         DEBIAN_FRONTEND="noninteractive" \
+         apt-get install -y --no-install-recommends \
          build-essential \
          cmake \
          git \
@@ -22,6 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          libx264-dev \
          libfaac-dev \
          libmp4v2-dev && \
+         apt autoremove -y && \
+         apt clean -y && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/media
@@ -35,6 +40,5 @@ WORKDIR /opt/media/ZLMediaKit/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release .. && \
     make -j4
 
-ENV PATH /opt/media/ZLMediaKit/release/linux/Release/:$PATH
-
+ENV PATH /opt/media/ZLMediaKit/release/linux/Release:$PATH
 CMD MediaServer
