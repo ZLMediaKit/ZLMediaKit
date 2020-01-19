@@ -53,7 +53,7 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
 	ZeroMemory(&si, sizeof(si));			//结构体初始化；
 	ZeroMemory(&pi, sizeof(pi));
 
-	LPTSTR lpDir = const_cast<char*>(cmd .data());
+	LPTSTR lpDir = const_cast<char*>(cmd.data());
 
 	if (CreateProcess(NULL, lpDir, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
 		//下面两行关闭句柄，解除本进程和新进程的关系，不然有可能 不小心调用TerminateProcess函数关掉子进程 
