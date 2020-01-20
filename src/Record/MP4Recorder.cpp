@@ -53,9 +53,10 @@ MP4Recorder::~MP4Recorder() {
 void MP4Recorder::createFile() {
 	closeFile();
 	auto strDate = getTimeStr("%Y-%m-%d");
+	auto strDay = getTimeStr("%Y-%m-%d");
 	auto strTime = getTimeStr("%H-%M-%S");
-	auto strFileTmp = _strPath + strDate + "/." + strTime + ".mp4";
-	auto strFile =	_strPath + strDate + "/" + strTime + ".mp4";
+	auto strFileTmp = _strPath + strDate + "/" + strDay + "/." + strTime + ".mp4";
+	auto strFile =	_strPath + strDate + "/" + strDay + "/" + strTime + ".mp4";
 
 	/////record 业务逻辑//////
 	_info.ui64StartedTime = ::time(NULL);
@@ -66,6 +67,7 @@ void MP4Recorder::createFile() {
                    + _info.strAppName + "/"
                    + _info.strStreamId + "/"
                    + strDate + "/"
+ 				   + strDay + "/"
                    + strTime + ".mp4";
 
 	try {
