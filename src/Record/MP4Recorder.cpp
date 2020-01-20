@@ -52,7 +52,7 @@ MP4Recorder::~MP4Recorder() {
 
 void MP4Recorder::createFile() {
 	closeFile();
-	auto strDate = getTimeStr("%Y-%m-%d");
+	auto strDate = getTimeStr("%Y-%m");
 	auto strDay = getTimeStr("%Y-%m-%d");
 	auto strTime = getTimeStr("%H-%M-%S");
 	auto strFileTmp = _strPath + strDate + "/" + strDay + "/." + strTime + ".mp4";
