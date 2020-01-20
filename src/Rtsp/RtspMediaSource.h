@@ -35,16 +35,16 @@
 #include "Common/config.h"
 #include "Common/MediaSource.h"
 #include "RtpCodec.h"
-
 #include "Util/logger.h"
 #include "Util/RingBuffer.h"
 #include "Util/TimeTicker.h"
 #include "Util/ResourcePool.h"
 #include "Util/NoticeCenter.h"
 #include "Thread/ThreadPool.h"
-
 using namespace std;
 using namespace toolkit;
+
+#define RTP_GOP_SIZE 2048
 
 namespace mediakit {
 
@@ -70,7 +70,7 @@ public:
 	RtspMediaSource(const string &vhost,
 					const string &app,
 					const string &stream_id,
-					int ring_size = 0) :
+					int ring_size = RTP_GOP_SIZE) :
 			MediaSource(RTSP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
 
 	virtual ~RtspMediaSource() {}
@@ -182,7 +182,7 @@ public:
             //rtp包缓存最大允许2048个，大概最多3MB数据
             //但是这个是GOP缓存的上限值，真实的GOP缓存大小等于两个I帧之间的包数的两倍
             //而且每次遇到I帧，则会清空GOP缓存，所以真实的GOP缓存远小于此值
-			_ring = std::make_shared<RingType>(_ring_size,2048, std::move(lam));
+			_ring = std::make_shared<RingType>(_ring_size, std::move(lam));
 			onReaderChanged(0);
 			if (!_sdp.empty()) {
 				regist();

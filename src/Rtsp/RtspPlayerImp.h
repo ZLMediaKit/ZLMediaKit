@@ -72,6 +72,8 @@ private:
 	}
 	void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {
         if(_pRtspMediaSrc){
+            // rtsp直接代理是无法判断该rtp是否是I帧，所以GOP缓存基本是无效的
+            // 为了减少内存使用，那么我们设置为一直关键帧以便清空GOP缓存
             _pRtspMediaSrc->onWrite(rtp,true);
         }
         _delegate->inputRtp(rtp);
