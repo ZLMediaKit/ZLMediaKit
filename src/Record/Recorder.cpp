@@ -266,6 +266,7 @@ private:
     }
 
     void addRecorder(MediaSource &sender){
+        auto tracks = sender.getTracks(needTrackReady());
         auto key = getRecorderKey(sender.getVhost(),sender.getApp(),sender.getId());
         lock_guard<decltype(_recorder_mtx)> lck(_recorder_mtx);
         auto it = _recorder_map.find(key);
@@ -276,7 +277,6 @@ private:
 
         if(!it->second->isRecording() || it->second->getSchema() == sender.getSchema()){
             // 绑定的协议一致或者并未正在录制则替换tracks
-            auto tracks = sender.getTracks(needTrackReady());
             if (!tracks.empty()) {
                 it->second->attachTracks(std::move(tracks),sender.getSchema());
             }
