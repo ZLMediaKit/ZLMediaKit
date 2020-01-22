@@ -82,7 +82,7 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
     if(!_allTrackReady){
         if(_ticker.elapsedTime() > MAX_WAIT_MS_READY){
             //如果超过规定时间，那么不再等待并忽略未准备好的Track
-            emitAllTrackReady();
+            addTrackCompleted();
             return;
         }
 
@@ -93,26 +93,29 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
 
         if(_track_map.size() == 2){
             //如果已经添加了音视频Track，并且不存在未准备好的Track，那么说明所有Track都准备好了
-            emitAllTrackReady();
+            addTrackCompleted();
             return;
         }
 
         if(_track_map.size() == 1 && _ticker.elapsedTime() > MAX_WAIT_MS_ADD_TRACK){
             //如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
-            emitAllTrackReady();
+            addTrackCompleted();
             return;
         }
     }
 }
 
-void MediaSink::emitAllTrackReady() {
-    _allTrackReady = true;
-    if(!_trackReadyCallback.empty()){
+void MediaSink::addTrackCompleted() {
+    if (_allTrackReady) {
+        return;
+    }
+
+    if (!_trackReadyCallback.empty()) {
         //这是超时强制忽略未准备好的Track
         _trackReadyCallback.clear();
         //移除未准备好的Track
-        for(auto it = _track_map.begin() ; it != _track_map.end() ; ){
-            if(!it->second->ready()){
+        for (auto it = _track_map.begin(); it != _track_map.end();) {
+            if (!it->second->ready()) {
                 it = _track_map.erase(it);
                 continue;
             }
@@ -120,8 +123,9 @@ void MediaSink::emitAllTrackReady() {
         }
     }
 
-    if(!_track_map.empty()){
+    if (!_track_map.empty()) {
         //最少有一个有效的Track
+        _allTrackReady = true;
         onAllTrackReady();
     }
 }
