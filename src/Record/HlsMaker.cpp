@@ -75,14 +75,16 @@ void HlsMaker::makeIndexFile(bool eof) {
 }
 
 
-void HlsMaker::inputData(void *data, uint32_t len, uint32_t timestamp) {
-    //分片数据中断结束
+void HlsMaker::inputData(void *data, uint32_t len, uint32_t timestamp, bool is_idr_fast_packet) {
     if (data && len) {
-        addNewSegment(timestamp);
+        if(is_idr_fast_packet){
+            addNewSegment(timestamp);
+        }
         onWriteSegment((char *) data, len);
         //记录上次写入数据时间
         _ticker_last_data.resetTime();
     } else {
+        //resetTracks时触发此逻辑
         flushLastSegment(true);
     }
 }

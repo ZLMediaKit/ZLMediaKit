@@ -56,8 +56,8 @@ public:
     }
 #if defined(ENABLE_HLS)
 protected:
-    void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) override {
-        _hls->inputData((char *)packet,bytes,timestamp);
+    void onTs(const void *packet, int bytes,uint32_t timestamp,bool is_idr_fast_packet) override {
+        _hls->inputData((char *)packet,bytes,timestamp, is_idr_fast_packet);
     };
 #endif
 private:

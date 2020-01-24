@@ -40,16 +40,21 @@ TsMuxer::~TsMuxer() {
 }
 
 void TsMuxer::addTrack(const Track::Ptr &track) {
-    switch (track->getCodecId()){
+    switch (track->getCodecId()) {
         case CodecH264: {
+            _have_video = true;
             _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H264, nullptr, 0);
-        } break;
+        }
+            break;
         case CodecH265: {
+            _have_video = true;
             _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H265, nullptr, 0);
-        }break;
+        }
+            break;
         case CodecAAC: {
             _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AAC, nullptr, 0);
-        }break;
+        }
+            break;
         default:
             break;
     }
@@ -63,7 +68,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
     //mp4文件时间戳需要从0开始
     auto &track_info = it->second;
     int64_t dts_out, pts_out;
-
+    _is_idr_fast_packet = !_have_video;
     switch (frame->getCodecId()){
         case CodecH265:
         case CodecH264: {
@@ -79,6 +84,9 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
                         } else{
                             merged.append("\x00\x00\x00\x01",4);
                             merged.append(frame->data(),frame->size());
+                        }
+                        if(frame->keyFrame()){
+                            _is_idr_fast_packet = true;
                         }
                     });
                     merged_frame = std::make_shared<BufferString>(std::move(merged));
@@ -101,6 +109,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
 }
 
 void TsMuxer::resetTracks() {
+    _have_video = false;
     //通知片段中断
     onTs(nullptr, 0, 0, 0);
     uninit();
@@ -119,7 +128,8 @@ void TsMuxer::init() {
             },
             [](void* param, const void* packet, size_t bytes){
                 TsMuxer *muxer = (TsMuxer *)param;
-                muxer->onTs(packet, bytes,muxer->_timestamp,0);
+                muxer->onTs(packet, bytes,muxer->_timestamp,muxer->_is_idr_fast_packet);
+                muxer->_is_idr_fast_packet = false;
             }
     };
     if(_context == nullptr){

@@ -52,8 +52,9 @@ public:
      * @param data 数据
      * @param len 数据长度
      * @param timestamp 毫秒时间戳
+     * @param is_idr_fast_packet 是否为关键帧第一个包
      */
-    void inputData(void *data, uint32_t len, uint32_t timestamp);
+    void inputData(void *data, uint32_t len, uint32_t timestamp, bool is_idr_fast_packet);
 protected:
     /**
      * 创建ts切片文件回调
