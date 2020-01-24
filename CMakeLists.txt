@@ -1,4 +1,4 @@
-﻿project(ZLMediaKit)
+project(ZLMediaKit)
 cmake_minimum_required(VERSION 3.1.3)
 #使能c++11
 set(CMAKE_CXX_STANDARD 11)
@@ -149,7 +149,7 @@ if(ENABLE_MP4RECORD)
 endif()
 
 #添加rtp库用于rtp转ps/ts
-if(ENABLE_RTPPROXY)
+if(ENABLE_RTPPROXY AND ENABLE_HLS)
     message(STATUS "ENABLE_RTPPROXY defined")
     aux_source_directory(${MediaServer_Root}/librtp/include src_rtp)
     aux_source_directory(${MediaServer_Root}/librtp/source src_rtp)

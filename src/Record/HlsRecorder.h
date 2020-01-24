@@ -29,10 +29,13 @@
 
 #include "HlsMakerImp.h"
 #include "TsMuxer.h"
-
 namespace mediakit {
 
-class HlsRecorder : public TsMuxer {
+class HlsRecorder
+#if defined(ENABLE_HLS)
+: public TsMuxer
+#endif
+        {
 public:
     typedef std::shared_ptr<HlsRecorder> Ptr;
     HlsRecorder(const string &m3u8_file, const string &params){
@@ -51,14 +54,14 @@ public:
     MediaSource::Ptr getMediaSource() const{
         return _hls->getMediaSource();
     }
+#if defined(ENABLE_HLS)
 protected:
     void onTs(const void *packet, int bytes,uint32_t timestamp,int flags) override {
         _hls->inputData((char *)packet,bytes,timestamp);
     };
+#endif
 private:
     HlsMakerImp *_hls;
 };
-
 }//namespace mediakit
-
 #endif //HLSRECORDER_H
