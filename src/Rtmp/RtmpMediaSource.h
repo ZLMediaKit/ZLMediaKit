@@ -129,6 +129,10 @@ public:
 	 */
 	void onWrite(const RtmpPacket::Ptr &pkt, bool key = true) override {
 		lock_guard<recursive_mutex> lock(_mtx);
+		if(pkt->typeId == MSG_VIDEO){
+		    //有视频，那么启用GOP缓存
+            _have_video = true;
+		}
 		if (pkt->isCfgFrame()) {
 			_config_frame_map[pkt->typeId] = pkt;
 			return;
@@ -155,7 +159,8 @@ public:
 			}
 		}
 		_track_stamps_map[pkt->typeId] = pkt->timeStamp;
-		_ring->write(pkt, pkt->isVideoKeyFrame());
+		//不存在视频，为了减少缓存延时，那么关闭GOP缓存
+		_ring->write(pkt, _have_video ? pkt->isVideoKeyFrame() : true);
 		checkNoneReader();
 	}
 
@@ -203,6 +208,7 @@ private:
 protected:
 	int _ring_size;
 	bool _async_emit_none_reader = false;
+	bool _have_video = false;
 	mutable recursive_mutex _mtx;
 	Ticker _reader_changed_ticker;
 	AMFValue _metadata;
