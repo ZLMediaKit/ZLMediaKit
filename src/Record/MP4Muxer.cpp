@@ -70,6 +70,7 @@ void MP4MuxerBase::init(int flags) {
 void MP4Muxer::resetTracks() {
     _codec_to_trackid.clear();
     _started = false;
+    _have_video = false;
 }
 
 void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
@@ -79,14 +80,18 @@ void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
         return;
     }
 
-    if(!_started){
+    if (!_started) {
         //还没开始
-        if(frame->getTrackType() != TrackVideo || !frame->keyFrame()){
-            //如果首帧是音频或者是视频但是不是i帧，那么不能开始写文件
-            return;
+        if (!_have_video) {
+            _started = true;
+        } else {
+            if (frame->getTrackType() != TrackVideo || !frame->keyFrame()) {
+                //如果首帧是音频或者是视频但是不是i帧，那么不能开始写文件
+                return;
+            }
+            //开始写文件
+            _started = true;
         }
-        //开始写文件
-        _started = true;
     }
 
     //mp4文件时间戳需要从0开始
@@ -211,6 +216,7 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                 return;
             }
             _codec_to_trackid[track->getCodecId()].track_id = track_id;
+            _have_video = true;
         }
             break;
         case CodecH265: {
@@ -248,6 +254,7 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                 return;
             }
             _codec_to_trackid[track->getCodecId()].track_id = track_id;
+            _have_video = true;
         }
             break;
         default:
