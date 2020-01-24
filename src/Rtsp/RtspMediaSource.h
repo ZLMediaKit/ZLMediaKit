@@ -153,6 +153,7 @@ public:
 	virtual void setSdp(const string &sdp) {
 		_sdp = sdp;
 		_sdp_parser.load(sdp);
+		_have_video = (bool)_sdp_parser.getTrack(TrackVideo);
 		if (_ring) {
 			regist();
 		}
@@ -188,7 +189,8 @@ public:
 				regist();
 			}
 		}
-		_ring->write(rtp, keyPos);
+		//不存在视频，为了减少缓存延时，那么关闭GOP缓存
+		_ring->write(rtp, _have_video ? keyPos : true);
 		checkNoneReader();
 	}
 private:
@@ -220,6 +222,7 @@ private:
 protected:
 	int _ring_size;
 	bool _async_emit_none_reader = false;
+	bool _have_video = false;
 	Ticker _reader_changed_ticker;
 	SdpParser _sdp_parser;
 	string _sdp;
