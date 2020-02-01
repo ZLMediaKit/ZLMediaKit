@@ -1330,7 +1330,7 @@ int hevcDecodeShortTermRps(T_GetBitContext *pvBuf,
         int iDeltaRps;
         unsigned int uiAbsDeltaRps;
         uint8_t u8UseDeltaFlag = 0;
-        uint8_t u8DeltaRpsSign;
+        uint8_t u8DeltaRpsSign = 0;
 
         if (is_slice_header) {
             unsigned int uiDeltaIdx = parseUe(pvBuf) + 1;
