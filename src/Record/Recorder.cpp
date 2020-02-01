@@ -34,67 +34,42 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MediaSinkInterface *createHlsRecorder(const string &strVhost_tmp, const string &strApp, const string &strId, const string &customized_path) {
-#if defined(ENABLE_HLS)
+string Recorder::getRecordPath(Recorder::type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path) {
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
-    GET_CONFIG(string, hlsPath, Hls::kFilePath);
-
-    string strVhost = strVhost_tmp;
-    if (trim(strVhost).empty()) {
-        //如果strVhost为空，则强制为默认虚拟主机
-        strVhost = DEFAULT_VHOST;
+    switch (type) {
+        case Recorder::type_hls: {
+            GET_CONFIG(string, hlsPath, Hls::kFilePath);
+            string m3u8FilePath;
+            if (enableVhost) {
+                m3u8FilePath = vhost + "/" + app + "/" + stream_id + "/hls.m3u8";
+            } else {
+                m3u8FilePath = app + "/" + stream_id + "/hls.m3u8";
+            }
+            //Here we use the customized file path.
+            if (!customized_path.empty()) {
+                m3u8FilePath = customized_path + "/hls.m3u8";
+            }
+            return File::absolutePath(m3u8FilePath, hlsPath);
+        }
+        case Recorder::type_mp4: {
+            GET_CONFIG(string, recordPath, Record::kFilePath);
+            GET_CONFIG(string, recordAppName, Record::kAppName);
+            string mp4FilePath;
+            if (enableVhost) {
+                mp4FilePath = vhost + "/" + recordAppName + "/" + app + "/" + stream_id + "/";
+            } else {
+                mp4FilePath = recordAppName + "/" + app + "/" + stream_id + "/";
+            }
+            //Here we use the customized file path.
+            if (!customized_path.empty()) {
+                mp4FilePath = customized_path + "/";
+            }
+            return File::absolutePath(mp4FilePath, recordPath);
+        }
+        default:
+            return "";
     }
-
-    string m3u8FilePath;
-    string params;
-    if (enableVhost) {
-        m3u8FilePath = strVhost + "/" + strApp + "/" + strId + "/hls.m3u8";
-        params = string(VHOST_KEY) + "=" + strVhost;
-    } else {
-        m3u8FilePath = strApp + "/" + strId + "/hls.m3u8";
-    }
-    //Here we use the customized file path.
-    if(!customized_path.empty()){
-        m3u8FilePath = customized_path + "/hls.m3u8";
-    }
-    m3u8FilePath = File::absolutePath(m3u8FilePath, hlsPath);
-    auto ret = new HlsRecorder(m3u8FilePath, params);
-    ret->setMediaSource(strVhost, strApp, strId);
-    return ret;
-#else
-    return nullptr;
-#endif //defined(ENABLE_HLS)
 }
-
-MediaSinkInterface *createMP4Recorder(const string &strVhost_tmp, const string &strApp, const string &strId, const string &customized_path) {
-#if defined(ENABLE_MP4RECORD)
-    GET_CONFIG(bool, enableVhost, General::kEnableVhost);
-    GET_CONFIG(string, recordPath, Record::kFilePath);
-    GET_CONFIG(string, recordAppName, Record::kAppName);
-
-    string strVhost = strVhost_tmp;
-    if (trim(strVhost).empty()) {
-        //如果strVhost为空，则强制为默认虚拟主机
-        strVhost = DEFAULT_VHOST;
-    }
-
-    string mp4FilePath;
-    if (enableVhost) {
-        mp4FilePath = strVhost + "/" + recordAppName + "/" + strApp + "/" + strId + "/";
-    } else {
-        mp4FilePath = recordAppName + "/" + strApp + "/" + strId + "/";
-    }
-    //Here we use the customized file path.
-    if(!customized_path.empty()){
-        mp4FilePath = customized_path + "/";
-    }
-    mp4FilePath = File::absolutePath(mp4FilePath, recordPath);
-    return new MP4Recorder(mp4FilePath, strVhost, strApp, strId);
-#else
-    return nullptr;
-#endif //defined(ENABLE_MP4RECORD)
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////
 
 class RecorderHelper {
@@ -215,9 +190,10 @@ public:
             return -1;
         }
 
-        auto recorder = MediaSinkInterface::Ptr(createRecorder(vhost, app, stream_id, customized_path));
+        auto recorder = Recorder::createRecorder(type, vhost, app, stream_id, customized_path);
         if (!recorder) {
             // 创建录制器失败
+            WarnL << "不支持该录制类型:" << type;
             return -2;
         }
         auto helper = std::make_shared<RecorderHelper>(recorder, continueRecord);
@@ -334,23 +310,6 @@ private:
         return vhost + "/" + app + "/" + stream_id;
     }
 
-    MediaSinkInterface *createRecorder(const string &vhost, const string &app, const string &stream_id, const string &customized_path) {
-        MediaSinkInterface *ret = nullptr;
-        switch (type) {
-            case Recorder::type_hls:
-                ret = createHlsRecorder(vhost, app, stream_id,customized_path);
-                break;
-            case Recorder::type_mp4:
-                ret = createMP4Recorder(vhost, app, stream_id,customized_path);
-                break;
-            default:
-                break;
-        }
-        if(!ret){
-            WarnL << "can not create recorder of type: " << type;
-        }
-        return ret;
-    }
 
     /**
      * 有些录制类型不需要track就绪即可录制
@@ -392,6 +351,29 @@ std::shared_ptr<MediaSinkInterface> Recorder::getRecorder(type type, const strin
     return nullptr;
 }
 
+std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path){
+    auto path = Recorder::getRecordPath(type, vhost, app, stream_id);
+    switch (type) {
+        case Recorder::type_hls: {
+#if defined(ENABLE_HLS)
+            auto ret = std::make_shared<HlsRecorder>(path, string(VHOST_KEY) + "=" + vhost);
+            ret->setMediaSource(vhost, app, stream_id);
+            return ret;
+#endif
+            return nullptr;
+        }
+
+        case Recorder::type_mp4: {
+#if defined(ENABLE_MP4RECORD)
+            return std::make_shared<MP4Recorder>(path, vhost, app, stream_id);
+#endif
+            return nullptr;
+        }
+
+        default:
+            return nullptr;
+    }
+}
 
 int Recorder::startRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path, bool waitForRecord, bool continueRecord) {
     switch (type){

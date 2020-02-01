@@ -53,6 +53,17 @@ public:
 		type_mp4 = 1
 	} type;
 
+	/**
+	 * 获取录制文件绝对路径
+	 * @param type hls还是MP4录制
+     * @param vhost 虚拟主机
+     * @param app 应用名
+     * @param stream_id 流id
+     * @param customized_path 录像文件保存自定义目录，默认为空则自动生成
+	 * @return  录制文件绝对路径
+	 */
+	static string getRecordPath(type type, const string &vhost, const string &app, const string &stream_id,const string &customized_path = "");
+
     /**
      * 获取录制状态
      * @param type hls还是MP4录制
@@ -98,6 +109,17 @@ public:
      * @param stream_id 流id
 	 */
 	static std::shared_ptr<MediaSinkInterface> getRecorder(type type, const string &vhost, const string &app, const string &stream_id);
+
+	/**
+	 * 创建录制器对象
+	 * @param type hls还是MP4录制
+     * @param vhost 虚拟主机
+     * @param app 应用名
+     * @param stream_id 流id
+     * @param customized_path 录像文件保存自定义目录，默认为空则自动生成
+	 * @return 对象指针，可能为nullptr
+	 */
+    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path);
 private:
 	Recorder() = delete;
 	~Recorder() = delete;
