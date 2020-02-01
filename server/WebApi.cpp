@@ -774,117 +774,41 @@ void installWebApi() {
         val["status"] = (int)status;
     });
 
-	//获取录像列表（按月）,返回天
-	//http://127.0.0.1/index/api/getMp4RecordMonthly?app=live&stream=onvif&period=2020-01
-	api_regist1("/index/api/getMp4RecordMonthly", [](API_ARGS1){
-		CHECK_SECRET();
-		CHECK_ARGS("app", "stream", "period");
+	//获取录像文件夹列表或mp4文件列表
+	//http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
+	api_regist1("/index/api/getMp4RecordFile", [](API_ARGS1){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream");
+        auto record_path = Recorder::getRecordPath(Recorder::type_mp4, allArgs["vhost"], allArgs["app"],allArgs["stream"]);
+        auto period = allArgs["period"];
 
-		GET_CONFIG(string, recordAppName, Record::kAppName);
-		GET_CONFIG(string, recordPath, Record::kFilePath);
-		GET_CONFIG(bool, enableVhost, General::kEnableVhost);
+        //判断是获取mp4文件列表还是获取文件夹列表
+        bool search_mp4 = period.size() == sizeof("2020-02-01") - 1;
+        if (search_mp4) {
+            record_path = record_path + period + "/";
+        }
 
-		auto _vhost = allArgs["vhost"];
-		auto _app = allArgs["app"];
-		auto _stream = allArgs["stream"];
-		auto _period = allArgs["period"];
+        Json::Value paths(arrayValue);
+        //这是筛选日期，获取文件夹列表
+        File::scanDir(record_path, [&](const string &path, bool isDir) {
+            int pos = path.rfind('/');
+            if (pos != string::npos) {
+                string relative_path = path.substr(pos + 1);
+                if (search_mp4) {
+                    if (!isDir) {
+                        //我们只收集mp4文件，对文件夹不感兴趣
+                        paths.append(relative_path);
+                    }
+                } else if (isDir && relative_path.find(period) == 0) {
+                    //匹配到对应日期的文件夹
+                    paths.append(relative_path);
+                }
+            }
+            return true;
+        }, false);
 
-		//TODO:判断日期格式
-
-		//Vhost为空的话，存储路径不一样
-		if (_vhost.empty()) {
-			_vhost = DEFAULT_VHOST;
-		}
-
-		string strMp4RecordPath = "";
-		if (enableVhost) {
-			strMp4RecordPath = recordPath + "/" + _vhost + "/" + recordAppName + "/" + _app + "/" + _stream + "/" + _period;
-		} else {
-			strMp4RecordPath = recordPath + "/" + recordAppName + "/" + _app + "/" + _stream + "/" + _period;
-		}
-
-		//录像相对路径转绝对路径， 不然vs调试需要设置
-		strMp4RecordPath = File::absolutePath(strMp4RecordPath, "");
-		string strMp4Path = "";
-		File::scanDir(strMp4RecordPath, [&strMp4Path](const string &path, bool isDir) {
-			if (isDir) {
-				//DebugL << "dir:" << path.data();
-				int iPost = path.rfind('/');
-				if (iPost != string::npos)
-				{
-					string strPath = path.substr(iPost + 1);
-					strMp4Path += strPath + ",";
-				}
-			}
-			return true;
-		},false);
-
-		//去掉strMp4Path最后一个 ‘,’
-		strMp4Path = strMp4Path.substr(0, strMp4Path.length() - 1);
-
-		Json::Value nVal;
-		nVal["vhost"] = _vhost.data();
-		nVal["app"] = _app.data();
-		nVal["stream"] = _stream.data();
-		nVal["app"] = _app.data();
-		nVal["path"] = strMp4Path;
-
-		val["data"] = nVal;
-	});
-
-	//获取录像列表（按天）
-	//http://127.0.0.1/index/api/getMp4RecordDaily?app=live&stream=onvif&period=2020-01-17
-	api_regist1("/index/api/getMp4RecordDaily",[](API_ARGS1) {
-		CHECK_SECRET();
-		CHECK_ARGS("app", "stream", "period");
-
-		GET_CONFIG(string, recordAppName, Record::kAppName);
-		GET_CONFIG(string, recordPath, Record::kFilePath);
-		GET_CONFIG(bool, enableVhost, General::kEnableVhost);
-
-		auto _vhost = allArgs["vhost"];
-		auto _app = allArgs["app"];
-		auto _stream = allArgs["stream"];
-		auto _period = allArgs["period"];
-
-		//TODO:判断日期格式
-
-		//Vhost为空的话，存储路径不一样
-		if (_vhost.empty()) {
-			_vhost = DEFAULT_VHOST;
-		}
-
-		string strMp4RecordPath = "";
-		//取录上一级目录,默认前7位位上级目录
-		string strParentPeriod = string(_period).substr(0, 7);
-		if (enableVhost) {
-			strMp4RecordPath = recordPath + "/" + _vhost + "/" + recordAppName + "/" + _app + "/" + _stream + "/" + strParentPeriod + "/" + _period;
-		}
-		else {
-			strMp4RecordPath = recordPath + "/" + recordAppName + "/" + _app + "/" + _stream + "/" + strParentPeriod + "/" + _period;
-		}
-
-		//录像相对路径转绝对路径， 不然vs调试需要设置
-		strMp4RecordPath = File::absolutePath(strMp4RecordPath, "");
-		Json::Value nVal;
-		DebugL << recordPath;
-		File::scanDir(strMp4RecordPath, [&](const string &path, bool isDir) {
-			if (!isDir) {
-				//去掉绝对路径，从record开始返回
-				int iPos = path.find(recordAppName);
-				string strPath = path.substr(iPos);
-
-				nVal["path"].append(strPath);
-			}
-			return true;
-		}, false);
-		
-		nVal["vhost"] = _vhost.data();
-		nVal["app"] = _app.data();
-		nVal["stream"] = _stream.data();
-		nVal["app"] = _app.data();
-
-		val["data"] = nVal;
+        val["data"]["rootPath"] = record_path;
+        val["data"]["paths"] = paths;
 	});
 
     ////////////以下是注册的Hook API////////////
