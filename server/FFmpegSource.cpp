@@ -34,7 +34,6 @@ namespace FFmpeg {
 #define FFmpeg_FIELD "ffmpeg."
 const string kBin = FFmpeg_FIELD"bin";
 const string kCmd = FFmpeg_FIELD"cmd";
-const string kSnap = FFmpeg_FIELD"snap";
 const string kLog = FFmpeg_FIELD"log";
 
 onceToken token([]() {
@@ -42,12 +41,9 @@ onceToken token([]() {
     string ffmpeg_bin = System::execute("where ffmpeg");
     //windows下先关闭FFmpeg日志(目前不支持日志重定向)
     mINI::Instance()[kCmd] = "%s -re -i \"%s\" -loglevel quiet -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
-	//利用ffmpeg进行抓拍
-	mINI::Instance()[kSnap] = "%s -i \"%s\" -loglevel quiet -y -f mjpeg -t 0.001 -s 720*576 %s ";
 #else
 	string ffmpeg_bin = System::execute("which ffmpeg");
     mINI::Instance()[kCmd] = "%s -re -i \"%s\" -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
-	mINI::Instance()[kSnap] = "%s -i \"%s\" -y -f mjpeg -t 0.001 -s 720*576 %s ";
 #endif
     //默认ffmpeg命令路径为环境变量中路径
     mINI::Instance()[kBin] = ffmpeg_bin.empty() ? "ffmpeg" : ffmpeg_bin;
@@ -68,7 +64,6 @@ FFmpegSource::~FFmpegSource() {
 void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_ms,const onPlay &cb) {
     GET_CONFIG(string,ffmpeg_bin,FFmpeg::kBin);
     GET_CONFIG(string,ffmpeg_cmd,FFmpeg::kCmd);
-	GET_CONFIG(string, ffmpeg_snap, FFmpeg::kSnap);
     GET_CONFIG(string,ffmpeg_log,FFmpeg::kLog);
 
     _src_url = src_url;
