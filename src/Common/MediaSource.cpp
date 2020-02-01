@@ -78,14 +78,7 @@ vector<Track::Ptr> MediaSource::getTracks(bool trackReady) const {
 
 void MediaSource::setTrackSource(const std::weak_ptr<TrackSource> &track_src) {
     _track_source = track_src;
-    weak_ptr<MediaSource> weakPtr = shared_from_this();
-    EventPollerPool::Instance().getPoller()->async([weakPtr,this](){
-        auto strongPtr = weakPtr.lock();
-        if (!strongPtr) {
-            return;
-        }
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaResetTracks, *this);
-    },false);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaResetTracks, *this);
 }
 
 void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
@@ -293,14 +286,7 @@ void MediaSource::regist() {
         g_mapMediaSrc[_strSchema][_strVhost][_strApp][_strId] =  shared_from_this();
     }
     InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
-    weak_ptr<MediaSource> weakPtr = shared_from_this();
-    EventPollerPool::Instance().getPoller()->async([weakPtr,this](){
-        auto strongPtr = weakPtr.lock();
-        if (!strongPtr) {
-            return;
-        }
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, true, *this);
-    },false);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, true, *this);
 }
 bool MediaSource::unregist() {
     //反注册该源
