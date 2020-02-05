@@ -200,13 +200,7 @@ git submodule update --init
 
 ## 编译(iOS)
 - 编译环境:`请参考macOS的编译指导。`
-- 编译
-  
-  ```
-  cd ZLMediaKit
-  ./build_for_ios.sh
-  ```
-- 你也可以生成Xcode工程再编译,[了解更多](https://github.com/leetal/ios-cmake):
+- 生成Xcode工程再编译,[了解更多](https://github.com/leetal/ios-cmake):
 
   ```
   cd ZLMediaKit
@@ -243,6 +237,19 @@ git submodule update --init
    4 选择编译Release 版本.
    5 找到目标文件并运行测试用例.
 ```
+
+## Docker Image
+You can pull a pre-built docker image from Docker Hub and run with
+```bash
+docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
+```
+
+Dockerfile is also supplied to build images on Ubuntu 16.04
+```bash
+cd docker
+docker build -t zlmediakit .
+```
+
 ## 使用方法
 - 作为服务器：
 	```cpp

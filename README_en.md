@@ -176,14 +176,6 @@ git submodule update --init
   ```
 
 ### Build on iOS
-
-  This build method is no longer recommended.It is recommended that make Xcode project by yourself.
-
-- My environment
-
-  Same with Build on macOS
-
-  
 - You can generate Xcode projects and recompile them , [learn more](https://github.com/leetal/ios-cmake):
 
   ```
