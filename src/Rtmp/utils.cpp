@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -30,9 +30,7 @@
 #include <stdarg.h>
 #include "Util/util.h"
 #include "Network/sockutil.h"
-
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace toolkit;
 
 /*
  * Used to do unaligned loads on archs that don't support them. GCC can mostly

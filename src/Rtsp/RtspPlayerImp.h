@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -31,57 +31,78 @@
 #include <algorithm>
 #include <functional>
 #include "Common/config.h"
-#include "RtpParser.h"
 #include "RtspPlayer.h"
+#include "RtspDemuxer.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Player;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtsp {
+namespace mediakit {
 
-class RtspPlayerImp: public PlayerImp<RtspPlayer,RtpParser> {
+class RtspPlayerImp: public PlayerImp<RtspPlayer,RtspDemuxer> {
 public:
 	typedef std::shared_ptr<RtspPlayerImp> Ptr;
-	RtspPlayerImp(){};
+	RtspPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtspPlayer,RtspDemuxer>(poller){}
 	virtual ~RtspPlayerImp(){
         DebugL<<endl;
-        teardown();
     };
     float getProgress() const override{
         if(getDuration() > 0){
-            return getProgressTime() / getDuration();
+            return getProgressMilliSecond() / (getDuration() * 1000);
         }
         return PlayerBase::getProgress();
         
     };
     void seekTo(float fProgress) override{
         fProgress = MAX(float(0),MIN(fProgress,float(1.0)));
-        seekToTime(fProgress * getDuration());
+        seekToMilliSecond(fProgress * getDuration() * 1000);
     };
 private:
 	//派生类回调函数
-	bool onCheckSDP(const string &sdp, const RtspTrack *track, int trackCnt) override {
-		try {
-			m_parser.reset(new RtpParser(sdp));
-			m_parser->setOnVideoCB(m_onGetVideoCB);
-			m_parser->setOnAudioCB(m_onGetAudioCB);
-			return true;
-		} catch (std::exception &ex) {
-			WarnL << ex.what();
-			return false;
+	bool onCheckSDP(const string &sdp) override {
+		_pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
+		if(_pRtspMediaSrc){
+            _pRtspMediaSrc->setSdp(sdp);
 		}
+        _delegate.reset(new RtspDemuxer);
+        _delegate->loadSdp(sdp);
+        return true;
 	}
-	void onRecvRTP(const RtpPacket::Ptr &rtppt, const RtspTrack &track) override {
-		m_parser->inputRtp(*rtppt);
-	}
-    
+	void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {
+        if(_pRtspMediaSrc){
+            // rtsp直接代理是无法判断该rtp是否是I帧，所以GOP缓存基本是无效的
+            // 为了减少内存使用，那么我们设置为一直关键帧以便清空GOP缓存
+            _pRtspMediaSrc->onWrite(rtp,true);
+        }
+        _delegate->inputRtp(rtp);
+
+        if(_maxAnalysisMS && _delegate->isInited(_maxAnalysisMS)){
+            PlayerImp<RtspPlayer,RtspDemuxer>::onPlayResult(SockException(Err_success,"play rtsp success"));
+            _maxAnalysisMS = 0;
+        }
+    }
+
+    //在RtspPlayer中触发onPlayResult事件只是代表收到play回复了，
+    //并不代表所有track初始化成功了(这跟rtmp播放器不一样)
+    //如果sdp里面信息不完整，只能尝试延后从rtp中恢复关键信息并初始化track
+    //如果超过这个时间还未获取成功，那么会强制触发onPlayResult事件(虽然此时有些track还未初始化成功)
+    void onPlayResult(const SockException &ex) override {
+        //isInited判断条件：无超时
+        if(ex || _delegate->isInited(0)){
+            //已经初始化成功，说明sdp里面有完善的信息
+            PlayerImp<RtspPlayer,RtspDemuxer>::onPlayResult(ex);
+        }else{
+            //还没初始化成功，说明sdp里面信息不完善，还有一些track未初始化成功
+            _maxAnalysisMS = (*this)[Client::kMaxAnalysisMS];
+        }
+    }
+private:
+	RtspMediaSource::Ptr _pRtspMediaSrc;
+    int _maxAnalysisMS = 0;
 };
 
-} /* namespace Rtsp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTP_RTPPARSERTESTER_H_ */

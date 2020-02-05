@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -29,9 +29,8 @@
 
 #include "HttpClientImp.h"
 
-namespace ZL{
-namespace Http{
-    
+namespace mediakit{
+
 class HttpRequester : public HttpClientImp
 {
 public:
@@ -39,21 +38,19 @@ public:
     typedef std::function<void(const SockException &ex,const string &status,const HttpHeader &header,const string &strRecvBody)> HttpRequesterResult;
     HttpRequester();
     virtual ~HttpRequester();
-    
+    void setOnResult(const HttpRequesterResult &onResult);
     void startRequester(const string &url,const HttpRequesterResult &onResult,float timeOutSecond = 10);
+    void clear() override ;
 private:
-    void onResponseHeader(const string &status,const HttpHeader &headers) override;
-    void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize)  override;
+    int64_t onResponseHeader(const string &status,const HttpHeader &headers) override;
+    void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize)  override;
     void onResponseCompleted() override;
     void onDisconnect(const SockException &ex) override;
-    void onManager() override;
+private:
     string _strRecvBody;
     HttpRequesterResult _onResult;
-    Ticker _resTicker;
-    float _timeOutSecond;
 };
 
-}//namespace Http
-}//namespace ZL
+}//namespace mediakit
 
 #endif /* Htt_HttpRequester_h */

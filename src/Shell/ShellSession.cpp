@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -25,64 +25,68 @@
  */
 
 #include "ShellSession.h"
-#include "Common/config.h"
 #include "Util/CMD.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
+#include "Common/config.h"
+#include "ShellCMD.h"
+using namespace toolkit;
 
-using namespace Config;
-using namespace ZL::Util;
+namespace mediakit {
 
-namespace ZL {
-namespace Shell {
+static onceToken s_token([]() {
+    REGIST_CMD(media);
+}, nullptr);
 
-ShellSession::ShellSession(const std::shared_ptr<ThreadPool> &_th,
-                           const Socket::Ptr &_sock) :
-        TcpSession(_th, _sock) {
+ShellSession::ShellSession(const Socket::Ptr &_sock) : TcpSession(_sock) {
+    DebugP(this);
     pleaseInputUser();
 }
 
 ShellSession::~ShellSession() {
+    DebugP(this);
 }
 
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
 	//DebugL << hexdump(buf->data(), buf->size());
-    GET_CONFIG_AND_REGISTER(uint32_t,maxReqSize,Config::Shell::kMaxReqSize);
-    if (m_strRecvBuf.size() + buf->size() >= maxReqSize) {
-		WarnL << "接收缓冲区溢出!";
-		shutdown();
+    GET_CONFIG(uint32_t,maxReqSize,Shell::kMaxReqSize);
+    if (_strRecvBuf.size() + buf->size() >= maxReqSize) {
+		shutdown(SockException(Err_other,"recv buffer overflow"));
 		return;
 	}
-	m_beatTicker.resetTime();
-	m_strRecvBuf.append(buf->data(), buf->size());
-	if (m_strRecvBuf.find("\xff\xf4\xff\0xfd\x06") != std::string::npos) {
-		WarnL << "收到Ctrl+C.";
+	_beatTicker.resetTime();
+	_strRecvBuf.append(buf->data(), buf->size());
+	if (_strRecvBuf.find("\xff\xf4\xff\0xfd\x06") != std::string::npos) {
 		send("\033[0m\r\n	Bye bye!\r\n");
-		shutdown();
+		shutdown(SockException(Err_other,"received Ctrl+C"));
 		return;
 	}
 	size_t index;
 	string line;
-	while ((index = m_strRecvBuf.find("\r\n")) != std::string::npos) {
-		line = m_strRecvBuf.substr(0, index);
-		m_strRecvBuf.erase(0, index + 2);
+	while ((index = _strRecvBuf.find("\r\n")) != std::string::npos) {
+		line = _strRecvBuf.substr(0, index);
+		_strRecvBuf.erase(0, index + 2);
 		if (!onCommandLine(line)) {
-			shutdown();
+			shutdown(SockException(Err_other,"exit cmd"));
 			return;
 		}
 	}
 }
 
+void ShellSession::onError(const SockException &err){
+    WarnP(this) << err.what();
+}
+
 void ShellSession::onManager() {
-	if (m_beatTicker.elapsedTime() > 1000 * 60 * 5) {
+	if (_beatTicker.elapsedTime() > 1000 * 60 * 5) {
 		//5 miniutes for alive
-		shutdown();
+        shutdown(SockException(Err_timeout,"session timeout"));
 		return;
 	}
 }
 
 inline bool ShellSession::onCommandLine(const string& line) {
-    auto loginInterceptor = m_loginInterceptor;
+    auto loginInterceptor = _loginInterceptor;
     if (loginInterceptor) {
 		bool ret = loginInterceptor(line);
 		return ret;
@@ -104,15 +108,15 @@ inline bool ShellSession::onCommandLine(const string& line) {
 inline void ShellSession::pleaseInputUser() {
 	send("\033[0m");
 	send(StrPrinter << SERVER_NAME << " login: " << endl);
-	m_loginInterceptor = [this](const string &user_name) {
-		m_strUserName=user_name;
+	_loginInterceptor = [this](const string &user_name) {
+		_strUserName=user_name;
         pleaseInputPasswd();
 		return true;
 	};
 }
 inline void ShellSession::pleaseInputPasswd() {
 	send("Password: \033[8m");
-	m_loginInterceptor = [this](const string &passwd) {
+	_loginInterceptor = [this](const string &passwd) {
         auto onAuth = [this](const string &errMessage){
             if(!errMessage.empty()){
                 //鉴权失败
@@ -120,7 +124,7 @@ inline void ShellSession::pleaseInputPasswd() {
                      <<"\033[0mAuth failed("
                      << errMessage
                      <<"), please try again.\r\n"
-                     <<m_strUserName<<"@"<<SERVER_NAME
+                     <<_strUserName<<"@"<<SERVER_NAME
                      <<"'s password: \033[8m"
                      <<endl);
                 return;
@@ -130,7 +134,7 @@ inline void ShellSession::pleaseInputPasswd() {
             send(StrPrinter<<"欢迎来到"<<SERVER_NAME<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
             send("-----------------------------------------\r\n");
             printShellPrefix();
-            m_loginInterceptor=nullptr;
+            _loginInterceptor=nullptr;
         };
 
         weak_ptr<ShellSession> weakSelf = dynamic_pointer_cast<ShellSession>(shared_from_this());
@@ -148,7 +152,7 @@ inline void ShellSession::pleaseInputPasswd() {
             });
         };
 
-        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastShellLogin,m_strUserName,passwd,invoker,*this);
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastShellLogin,_strUserName,passwd,invoker,*this);
         if(!flag){
             //如果无人监听shell登录事件，那么默认shell无法登录
             onAuth("please listen kBroadcastShellLogin event");
@@ -158,8 +162,7 @@ inline void ShellSession::pleaseInputPasswd() {
 }
 
 inline void ShellSession::printShellPrefix() {
-	send(StrPrinter << m_strUserName << "@" << SERVER_NAME << "# " << endl);
+	send(StrPrinter << _strUserName << "@" << SERVER_NAME << "# " << endl);
 }
 
-}/* namespace Shell */
-} /* namespace ZL */
+}/* namespace mediakit */

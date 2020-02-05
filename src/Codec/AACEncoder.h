@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -28,8 +28,7 @@
 #ifndef CODEC_AACENCODER_H_
 #define CODEC_AACENCODER_H_
 
-namespace ZL {
-namespace Codec {
+namespace mediakit {
 
 class AACEncoder {
 public:
@@ -39,19 +38,18 @@ public:
 	int inputData(char *pcData, int iLen, unsigned char **ppucOutBuffer);
 
 private:
-	unsigned char *m_pucPcmBuf = nullptr;
-	unsigned int m_uiPcmLen = 0;
+	unsigned char *_pucPcmBuf = nullptr;
+	unsigned int _uiPcmLen = 0;
 
-	unsigned char *m_pucAacBuf = nullptr;
-	void *m_hEncoder = nullptr;
+	unsigned char *_pucAacBuf = nullptr;
+	void *_hEncoder = nullptr;
 
-	unsigned long m_ulInputSamples = 0;
-	unsigned long m_ulMaxInputBytes = 0;
-	unsigned long m_ulMaxOutputBytes = 0;
+	unsigned long _ulInputSamples = 0;
+	unsigned long _ulMaxInputBytes = 0;
+	unsigned long _ulMaxOutputBytes = 0;
 
 };
 
-} /* namespace Codec */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* CODEC_AACENCODER_H_ */

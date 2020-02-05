@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -33,41 +33,25 @@
 #include "utils.h"
 #include "Common/config.h"
 #include "RtmpProtocol.h"
-#include "RtmpToRtspMediaSource.h"
+#include "RtmpMediaSourceImp.h"
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Network/TcpSession.h"
+#include "Common/Stamp.h"
 
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
 class RtmpSession: public TcpSession ,public  RtmpProtocol , public MediaSourceEvent{
 public:
 	typedef std::shared_ptr<RtmpSession> Ptr;
-	RtmpSession(const std::shared_ptr<ThreadPool> &_th, const Socket::Ptr &_sock);
+	RtmpSession(const Socket::Ptr &_sock);
 	virtual ~RtmpSession();
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onError(const SockException &err) override;
 	void onManager() override;
 private:
-    std::string m_strTcUrl;
-    MediaInfo m_mediaInfo;
-	double m_dNowReqID = 0;
-	Ticker m_ticker;//数据接收时间
-	SmoothTicker m_stampTicker[2];//时间戳生产器
-	typedef void (RtmpSession::*rtmpCMDHandle)(AMFDecoder &dec);
-	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
-
-	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
-	std::shared_ptr<RtmpMediaSource> m_pPublisherSrc;
-	bool m_bPublisherSrcRegisted = false;
-    std::weak_ptr<RtmpMediaSource> m_pPlayerSrc;
-    uint32_t m_aui32FirstStamp[2] = {0};
-    //消耗的总流量
-    uint64_t m_ui64TotalBytes = 0;
 	void onProcessCmd(AMFDecoder &dec);
 	void onCmd_connect(AMFDecoder &dec);
 	void onCmd_createStream(AMFDecoder &dec);
@@ -78,42 +62,51 @@ private:
 	void onCmd_play(AMFDecoder &dec);
 	void onCmd_play2(AMFDecoder &dec);
 	void doPlay(AMFDecoder &dec);
-    void doPlayResponse(const string &err,bool tryDelay);
+	void doPlayResponse(const string &err,const std::function<void(bool)> &cb);
+	void sendPlayResponse(const string &err,const RtmpMediaSource::Ptr &src);
+
 	void onCmd_seek(AMFDecoder &dec);
 	void onCmd_pause(AMFDecoder &dec);
 	void setMetaData(AMFDecoder &dec);
 
 	void onSendMedia(const RtmpPacket::Ptr &pkt);
-	void onSendRawData(const char *pcRawData,int iSize) override{
-        m_ui64TotalBytes += iSize;
-		send(pcRawData, iSize);
-	}
-	void onSendRawData(const Buffer::Ptr &buffer,int flags) override{
-        m_ui64TotalBytes += buffer->size();
-        _sock->send(buffer,flags);
+	void onSendRawData(const Buffer::Ptr &buffer) override{
+        _ui64TotalBytes += buffer->size();
+		send(buffer);
 	}
 	void onRtmpChunk(RtmpPacket &chunkData) override;
 
 	template<typename first, typename second>
 	inline void sendReply(const char *str, const first &reply, const second &status) {
 		AMFEncoder invoke;
-		invoke << str << m_dNowReqID << reply << status;
+		invoke << str << _dNowReqID << reply << status;
 		sendResponse(MSG_CMD, invoke.data());
 	}
 
-    bool shutDown() override {
-        InfoL << "kick out:" << m_mediaInfo.m_vhost << " " << m_mediaInfo.m_app << " " << m_mediaInfo.m_streamid;
-        safeShutdown();
-        return true;
-    }
+	//MediaSourceEvent override
+	bool close(MediaSource &sender,bool force) override ;
+    void onNoneReader(MediaSource &sender) override;
+	int totalReaderCount(MediaSource &sender) override;
 
-    void doDelay(int delaySec,const std::function<void()> &fun);
-    std::function<void()> m_delayTask;
-    uint32_t m_iTaskTimeLine = 0;
+	void setSocketFlags();
+	string getStreamId(const string &str);
+	void dumpMetadata(const AMFValue &metadata);
+private:
+	std::string _strTcUrl;
+	MediaInfo _mediaInfo;
+	double _dNowReqID = 0;
+	bool _set_meta_data = false;
+	Ticker _ticker;//数据接收时间
+	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr _pRingReader;
+	std::shared_ptr<RtmpMediaSourceImp> _pPublisherSrc;
+	std::weak_ptr<RtmpMediaSource> _pPlayerSrc;
+	//时间戳修整器
+	Stamp _stamp[2];
+	//消耗的总流量
+	uint64_t _ui64TotalBytes = 0;
 
 };
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPSESSION_H_ */

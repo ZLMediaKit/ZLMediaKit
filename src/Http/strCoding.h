@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -32,16 +32,12 @@
 
 using namespace std;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class strCoding {
 public:
-	static string UrlUTF8Encode(const string &str); //urlutf8 编码
-	static string UrlUTF8Decode(const string &str); //urlutf8解码
-
-	static string UrlGB2312Encode(const string &str); //urlgb2312编码 
-	static string UrlGB2312Decode(const string &str); //urlgb2312解码 
+	static string UrlEncode(const string &str); //urlutf8 编码
+	static string UrlDecode(const string &str); //urlutf8解码
 #if defined(_WIN32)
 	static string UTF8ToGB2312(const string &str);//utf_8转为gb2312 
 	static string GB2312ToUTF8(const string &str); //gb2312 转utf_8 
@@ -51,7 +47,6 @@ private:
 	virtual ~strCoding(void);
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_STRCODING_H_ */

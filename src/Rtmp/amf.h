@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -31,6 +31,10 @@
 #include <vector>
 #include <unordered_map>
 #include <map>
+#include <stdexcept>
+#include <functional>
+using namespace std;
+
 enum AMFType {
 	AMF_NUMBER,
 	AMF_INTEGER,
@@ -47,6 +51,9 @@ class AMFValue;
 
 class AMFValue {
 public:
+    friend class AMFEncoder;
+    typedef std::map<std::string, AMFValue> mapType;
+    typedef std::vector<AMFValue> arrayType;
 
 	AMFValue(AMFType type = AMF_NULL);
 	AMFValue(const char *s);
@@ -60,116 +67,25 @@ public:
 	AMFValue &operator =(AMFValue &&from);
 	~AMFValue();
 
-	void clear() {
-		switch (m_type) {
-		case AMF_STRING:
-			m_value.string->clear();
-			break;
-		case AMF_OBJECT:
-		case AMF_ECMA_ARRAY:
-			m_value.object->clear();
-			break;
-		default:
-			break;
-		}
-	}
-
-	AMFType type() const {
-		return m_type;
-	}
-
-	const std::string &as_string() const {
-		if(m_type != AMF_STRING){
-			throw std::runtime_error("AMF not a string");
-		}
-		return *m_value.string;
-	}
-	double as_number() const {
-		switch (m_type) {
-		case AMF_NUMBER:
-			return m_value.number;
-		case AMF_INTEGER:
-			return m_value.integer;
-		case AMF_BOOLEAN:
-			return m_value.boolean;
-			break;
-		default:
-			throw std::runtime_error("AMF not a number");
-			break;
-		}
-	}
-	int as_integer() const {
-		switch (m_type) {
-		case AMF_NUMBER:
-			return m_value.number;
-		case AMF_INTEGER:
-			return m_value.integer;
-		case AMF_BOOLEAN:
-			return m_value.boolean;
-			break;
-		default:
-			throw std::runtime_error("AMF not a integer");
-			break;
-		}
-	}
-	bool as_boolean() const {
-		switch (m_type) {
-		case AMF_NUMBER:
-			return m_value.number;
-		case AMF_INTEGER:
-			return m_value.integer;
-		case AMF_BOOLEAN:
-			return m_value.boolean;
-			break;
-		default:
-			throw std::runtime_error("AMF not a boolean");
-			break;
-		}
-	}
-
-	const AMFValue &operator[](const char *str) const {
-		if (m_type != AMF_OBJECT && m_type != AMF_ECMA_ARRAY) {
-			throw std::runtime_error("AMF not a object");
-		}
-		auto i = m_value.object->find(str);
-		if (i == m_value.object->end()) {
-			static AMFValue val(AMF_NULL);
-			return val;
-		}
-		return i->second;
-	}
-	template<typename FUN>
-	void object_for_each(const FUN &fun) const {
-		if (m_type != AMF_OBJECT && m_type != AMF_ECMA_ARRAY) {
-			throw std::runtime_error("AMF not a object");
-		}
-		for (auto & pr : *(m_value.object)) {
-			fun(pr.first, pr.second);
-		}
-	}
-
-	operator bool() const{
-		return m_type != AMF_NULL;
-	}
-	void set(const std::string &s, const AMFValue &val) {
-		if (m_type != AMF_OBJECT && m_type != AMF_ECMA_ARRAY) {
-			throw std::runtime_error("AMF not a object");
-		}
-		m_value.object->emplace(s, val);
-	}
-	void add(const AMFValue &val) {
-		if (m_type != AMF_STRICT_ARRAY) {
-			throw std::runtime_error("AMF not a array");
-		}
-		assert(m_type == AMF_STRICT_ARRAY);
-		m_value.array->push_back(val);
-	}
-
+	void clear();
+	AMFType type() const ;
+	const std::string &as_string() const;
+	double as_number() const;
+	int as_integer() const;
+    bool as_boolean() const;
+	string to_string() const;
+	const AMFValue &operator[](const char *str) const;
+	void object_for_each(const function<void(const string &key, const AMFValue &val)> &fun) const ;
+	operator bool() const;
+	void set(const std::string &s, const AMFValue &val);
+	void add(const AMFValue &val);
 private:
-	typedef std::map<std::string, AMFValue> mapType;
-	typedef std::vector<AMFValue> arrayType;
-
-	AMFType m_type;
+    const mapType &getMap() const;
+    const arrayType &getArr() const;
+    void destroy();
+    void init();
+private:
+	AMFType _type;
 	union {
 		std::string *string;
 		double number;
@@ -177,51 +93,25 @@ private:
 		bool boolean;
 		mapType *object;
 		arrayType *array;
-	} m_value;
-
-	friend class AMFEncoder;
-	const mapType &getMap() const {
-		if (m_type != AMF_OBJECT && m_type != AMF_ECMA_ARRAY) {
-			throw std::runtime_error("AMF not a object");
-		}
-		return *m_value.object;
-	}
-	const arrayType &getArr() const {
-		if (m_type != AMF_STRICT_ARRAY) {
-			throw std::runtime_error("AMF not a array");
-		}
-		return *m_value.array;
-	}
-	inline void destroy();
-	inline void init();
+	} _value;
 };
 
 class AMFDecoder {
 public:
-	AMFDecoder(const std::string &_buf, size_t _pos, int _version = 0) :
-			buf(_buf), pos(_pos), version(_version) {
-	}
-
-	int getVersion() const {
-		return version;
-	}
-
+	AMFDecoder(const std::string &buf, size_t pos, int version = 0);
 	template<typename TP>
 	TP load();
-
-
-
 private:
-	const std::string &buf;
-	size_t pos;
-	int version;
-
 	std::string load_key();
 	AMFValue load_object();
 	AMFValue load_ecma();
 	AMFValue load_arr();
 	uint8_t front();
 	uint8_t pop_front();
+private:
+	const std::string &buf;
+	size_t pos;
+	int version;
 };
 
 class AMFEncoder {
@@ -233,16 +123,13 @@ public:
 	AMFEncoder & operator <<(const double n);
 	AMFEncoder & operator <<(const bool b);
 	AMFEncoder & operator <<(const AMFValue &value);
-	const std::string data() const {
-		return buf;
-	}
-	void clear() {
-		buf.clear();
-	}
+	const std::string& data() const ;
+	void clear() ;
 private:
 	void write_key(const std::string &s);
 	AMFEncoder &write_undefined();
-	std::string buf;
+private:
+    std::string buf;
 };
 
 

@@ -30,3 +30,14 @@
 
 
 *.DS_Store
+
+/cmake-build-debug/
+/cmake-build-release/
+/linux/
+/.vs/
+/.idea/
+/c_wrapper/.idea/
+/release/
+/Android/.idea/
+/Android/app/src/main/cpp/libs_export/
+/3rdpart/media-server/.idea/

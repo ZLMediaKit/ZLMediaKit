@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -25,99 +25,133 @@
  */
 
 #include "RtmpPlayer.h"
-#include "Rtsp/Rtsp.h"
 #include "Rtmp/utils.h"
 #include "Util/util.h"
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
+using namespace toolkit;
+using namespace mediakit::Client;
 
-using namespace ZL::Util;
+namespace mediakit {
 
-namespace ZL {
-namespace Rtmp {
-
-unordered_map<string, RtmpPlayer::rtmpCMDHandle> RtmpPlayer::g_mapCmd;
-RtmpPlayer::RtmpPlayer() {
-	static onceToken token([]() {
-		g_mapCmd.emplace("_error",&RtmpPlayer::onCmd_result);
-		g_mapCmd.emplace("_result",&RtmpPlayer::onCmd_result);
-		g_mapCmd.emplace("onStatus",&RtmpPlayer::onCmd_onStatus);
-		g_mapCmd.emplace("onMetaData",&RtmpPlayer::onCmd_onMetaData);
-		}, []() {});
-
+RtmpPlayer::RtmpPlayer(const EventPoller::Ptr &poller) : TcpClient(poller) {
 }
 
 RtmpPlayer::~RtmpPlayer() {
-	teardown();
 	DebugL << endl;
 }
+
 void RtmpPlayer::teardown() {
 	if (alive()) {
-		m_strApp.clear();
-		m_strStream.clear();
-		m_strTcUrl.clear();
-
-		{
-			lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
-			m_mapOnResultCB.clear();
-		}
-        {
-            lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
-            m_dqOnStatusCB.clear();
-        }
-		m_pBeatTimer.reset();
-		m_pPlayTimer.reset();
-		m_pMediaTimer.reset();
-        m_fSeekTo = 0;
-        CLEAR_ARR(m_adFistStamp);
-        CLEAR_ARR(m_adNowStamp);
-        reset();
-        shutdown();
+		shutdown(SockException(Err_shutdown,"teardown"));
 	}
+	_strApp.clear();
+	_strStream.clear();
+	_strTcUrl.clear();
+	_pBeatTimer.reset();
+	_pPlayTimer.reset();
+	_pMediaTimer.reset();
+	_iSeekTo = 0;
+	RtmpProtocol::reset();
+
+	CLEAR_ARR(_aiFistStamp);
+	CLEAR_ARR(_aiNowStamp);
+
+	lock_guard<recursive_mutex> lck(_mtxOnResultCB);
+	_mapOnResultCB.clear();
+	lock_guard<recursive_mutex> lck2(_mtxOnStatusCB);
+	_dqOnStatusCB.clear();
 }
 
-void RtmpPlayer::play(const char* strUrl)  {
+void RtmpPlayer::play(const string &strUrl)  {
 	teardown();
-	string strHost = FindField(strUrl, "://", "/");
-	m_strApp = 	FindField(strUrl, (strHost + "/").data(), "/");
-    m_strStream = FindField(strUrl, (strHost + "/" + m_strApp + "/").data(), NULL);
-    m_strTcUrl = string("rtmp://") + strHost + "/" + m_strApp;
+	string strHost = FindField(strUrl.data(), "://", "/");
+	_strApp = 	FindField(strUrl.data(), (strHost + "/").data(), "/");
+    _strStream = FindField(strUrl.data(), (strHost + "/" + _strApp + "/").data(), NULL);
+    _strTcUrl = string("rtmp://") + strHost + "/" + _strApp;
 
-    if (!m_strApp.size() || !m_strStream.size()) {
-        _onPlayResult(SockException(Err_other,"rtmp url非法"));
+    if (!_strApp.size() || !_strStream.size()) {
+        onPlayResult_l(SockException(Err_other,"rtmp url非法"),false);
         return;
     }
-	DebugL << strHost << " " << m_strApp << " " << m_strStream;
+	DebugL << strHost << " " << _strApp << " " << _strStream;
 
-	auto iPort = atoi(FindField(strHost.c_str(), ":", NULL).c_str());
+	auto iPort = atoi(FindField(strHost.data(), ":", NULL).data());
 	if (iPort <= 0) {
         //rtmp 默认端口1935
 		iPort = 1935;
 	} else {
         //服务器域名
-		strHost = FindField(strHost.c_str(), NULL, ":");
+		strHost = FindField(strHost.data(), NULL, ":");
 	}
-	startConnect(strHost, iPort);
-}
-void RtmpPlayer::onErr(const SockException &ex){
-	_onShutdown(ex);
-}
-void RtmpPlayer::onConnect(const SockException &err){
-	if(err.getErrCode()!=Err_success) {
-		_onPlayResult(err);
-		return;
+	if(!(*this)[kNetAdapter].empty()){
+		setNetAdapter((*this)[kNetAdapter]);
 	}
 
 	weak_ptr<RtmpPlayer> weakSelf= dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-	m_pPlayTimer.reset( new Timer(10, [weakSelf]() {
+	float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
+	_pPlayTimer.reset( new Timer(playTimeOutSec, [weakSelf]() {
 		auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
 			return false;
 		}
-		strongSelf->_onPlayResult(SockException(Err_timeout,"play rtmp timeout"));
-		strongSelf->teardown();
+		strongSelf->onPlayResult_l(SockException(Err_timeout,"play rtmp timeout"),false);
 		return false;
-	}));
+	},getPoller()));
+
+	_metadata_got = false;
+	startConnect(strHost, iPort , playTimeOutSec);
+}
+void RtmpPlayer::onErr(const SockException &ex){
+    //定时器_pPlayTimer为空后表明握手结束了
+	onPlayResult_l(ex, !_pPlayTimer);
+}
+
+void RtmpPlayer::onPlayResult_l(const SockException &ex , bool handshakeCompleted) {
+	WarnL << ex.getErrCode() << " " << ex.what();
+
+    if(!ex){
+        //播放成功，恢复rtmp接收超时定时器
+        _mediaTicker.resetTime();
+        weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+        int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
+		//创建rtmp数据接收超时检测定时器
+        _pMediaTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
+            auto strongSelf=weakSelf.lock();
+            if(!strongSelf) {
+                return false;
+            }
+            if(strongSelf->_mediaTicker.elapsedTime()> timeoutMS) {
+                //接收rtmp媒体数据超时
+                strongSelf->onPlayResult_l(SockException(Err_timeout,"receive rtmp timeout"),true);
+                return false;
+            }
+            return true;
+        },getPoller()));
+    }
+
+	if (!handshakeCompleted) {
+	    //开始播放阶段
+		_pPlayTimer.reset();
+		onPlayResult(ex);
+	} else if (ex) {
+		//播放成功后异常断开回调
+		onShutdown(ex);
+	} else {
+		//恢复播放
+		onResume();
+	}
+
+	if(ex){
+		teardown();
+	}
+}
+void RtmpPlayer::onConnect(const SockException &err){
+	if(err.getErrCode() != Err_success) {
+		onPlayResult_l(err, false);
+		return;
+	}
+	weak_ptr<RtmpPlayer> weakSelf= dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
 	startClientSession([weakSelf](){
         auto strongSelf=weakSelf.lock();
 		if(!strongSelf) {
@@ -131,9 +165,8 @@ void RtmpPlayer::onRecv(const Buffer::Ptr &pBuf){
 		onParseRtmp(pBuf->data(), pBuf->size());
 	} catch (exception &e) {
 		SockException ex(Err_other, e.what());
-		_onPlayResult(ex);
-		_onShutdown(ex);
-		teardown();
+        //定时器_pPlayTimer为空后表明握手结束了
+		onPlayResult_l(ex, !_pPlayTimer);
 	}
 }
 
@@ -143,8 +176,8 @@ void RtmpPlayer::pause(bool bPause) {
 
 inline void RtmpPlayer::send_connect() {
 	AMFValue obj(AMF_OBJECT);
-	obj.set("app", m_strApp);
-	obj.set("tcUrl", m_strTcUrl);
+	obj.set("app", _strApp);
+	obj.set("tcUrl", _strTcUrl);
 	//未使用代理
 	obj.set("fpad", false);
 	//参考librtmp,什么作用?
@@ -175,14 +208,14 @@ inline void RtmpPlayer::send_createStream() {
 	addOnResultCB([this](AMFDecoder &dec){
 		//TraceL << "createStream result";
 		dec.load<AMFValue>();
-		m_ui32StreamId = dec.load<int>();
+		_ui32StreamId = dec.load<int>();
 		send_play();
 	});
 }
 
 inline void RtmpPlayer::send_play() {
 	AMFEncoder enc;
-	enc << "play" << ++m_iReqID  << nullptr << m_strStream << (double)m_ui32StreamId;
+	enc << "play" << ++_iReqID  << nullptr << _strStream << (double)_ui32StreamId;
 	sendRequest(MSG_CMD, enc.data());
 	auto fun = [this](AMFValue &val){
 		//TraceL << "play onStatus";
@@ -198,7 +231,7 @@ inline void RtmpPlayer::send_play() {
 
 inline void RtmpPlayer::send_pause(bool bPause) {
 	AMFEncoder enc;
-	enc << "pause" << ++m_iReqID  << nullptr << bPause;
+	enc << "pause" << ++_iReqID  << nullptr << bPause;
 	sendRequest(MSG_CMD, enc.data());
 	auto fun = [this,bPause](AMFValue &val){
         //TraceL << "pause onStatus";
@@ -209,21 +242,21 @@ inline void RtmpPlayer::send_pause(bool bPause) {
                 throw std::runtime_error(StrPrinter <<"pause 恢复播放失败:" << level << " " << code << endl);
             }
         }else{
-            m_bPaused = bPause;
+            _bPaused = bPause;
             if(!bPause){
-                _onPlayResult(SockException(Err_success, "rtmp resum success"));
+                onPlayResult_l(SockException(Err_success, "resum rtmp success"), true);
             }else{
                 //暂停播放
-                m_pMediaTimer.reset();
+                _pMediaTimer.reset();
             }
         }
 	};
 	addOnStatusCB(fun);
 
-	m_pBeatTimer.reset();
+	_pBeatTimer.reset();
 	if(bPause){
 		weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-		m_pBeatTimer.reset(new Timer(3,[weakSelf](){
+		_pBeatTimer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0,[weakSelf](){
 			auto strongSelf = weakSelf.lock();
 			if (!strongSelf){
 				return false;
@@ -231,17 +264,17 @@ inline void RtmpPlayer::send_pause(bool bPause) {
 			uint32_t timeStamp = ::time(NULL);
 			strongSelf->sendUserControl(CONTROL_PING_REQUEST, timeStamp);
 			return true;
-		}));
+		},getPoller()));
 	}
 }
 
 void RtmpPlayer::onCmd_result(AMFDecoder &dec){
 	auto iReqId = dec.load<int>();
-	lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
-	auto it = m_mapOnResultCB.find(iReqId);
-	if(it != m_mapOnResultCB.end()){
+	lock_guard<recursive_mutex> lck(_mtxOnResultCB);
+	auto it = _mapOnResultCB.find(iReqId);
+	if(it != _mapOnResultCB.end()){
 		it->second(dec);
-		m_mapOnResultCB.erase(it);
+		_mapOnResultCB.erase(it);
 	}else{
 		WarnL << "unhandled _result";
 	}
@@ -258,10 +291,10 @@ void RtmpPlayer::onCmd_onStatus(AMFDecoder &dec) {
 		throw std::runtime_error("onStatus:the result object was not found");
 	}
     
-    lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
-	if(m_dqOnStatusCB.size()){
-		m_dqOnStatusCB.front()(val);
-		m_dqOnStatusCB.pop_front();
+    lock_guard<recursive_mutex> lck(_mtxOnStatusCB);
+	if(_dqOnStatusCB.size()){
+		_dqOnStatusCB.front()(val);
+		_dqOnStatusCB.pop_front();
 	}else{
 		auto level = val["level"];
 		auto code = val["code"].as_string();
@@ -278,18 +311,46 @@ void RtmpPlayer::onCmd_onMetaData(AMFDecoder &dec) {
 	//TraceL;
 	auto val = dec.load<AMFValue>();
 	if(!onCheckMeta(val)){
-		throw std::runtime_error("onCheckMeta faied");
+		throw std::runtime_error("onCheckMeta failed");
 	}
-	_onPlayResult(SockException(Err_success,"play rtmp success"));
+	_metadata_got = true;
 }
 
 void RtmpPlayer::onStreamDry(uint32_t ui32StreamId) {
 	//TraceL << ui32StreamId;
-	_onShutdown(SockException(Err_other,"rtmp stream dry"));
+	onPlayResult_l(SockException(Err_other,"rtmp stream dry"), true);
+}
+
+void RtmpPlayer::onMediaData_l(const RtmpPacket::Ptr &packet) {
+	_mediaTicker.resetTime();
+	if(!_pPlayTimer){
+		//已经触发了onPlayResult事件，直接触发onMediaData事件
+		onMediaData(packet);
+		return;
+	}
+
+	if(packet->isCfgFrame()){
+		//输入配置帧以便初始化完成各个track
+		onMediaData(packet);
+	}else{
+		//先触发onPlayResult事件，这个时候解码器才能初始化完毕
+		onPlayResult_l(SockException(Err_success,"play rtmp success"), false);
+		//触发onPlayResult事件后，再把帧数据输入到解码器
+		onMediaData(packet);
+	}
 }
 
 
 void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
+	typedef void (RtmpPlayer::*rtmp_func_ptr)(AMFDecoder &dec);
+	static unordered_map<string, rtmp_func_ptr> s_func_map;
+	static onceToken token([]() {
+		s_func_map.emplace("_error",&RtmpPlayer::onCmd_result);
+		s_func_map.emplace("_result",&RtmpPlayer::onCmd_result);
+		s_func_map.emplace("onStatus",&RtmpPlayer::onCmd_onStatus);
+		s_func_map.emplace("onMetaData",&RtmpPlayer::onCmd_onMetaData);
+	}, []() {});
+
 	switch (chunkData.typeId) {
 		case MSG_CMD:
 		case MSG_CMD3:
@@ -297,8 +358,8 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
 		case MSG_DATA3: {
 			AMFDecoder dec(chunkData.strBuf, 0);
 			std::string type = dec.load<std::string>();
-			auto it = g_mapCmd.find(type);
-			if(it != g_mapCmd.end()){
+			auto it = s_func_map.find(type);
+			if(it != s_func_map.end()){
 				auto fun = it->second;
 				(this->*fun)(dec);
 			}else{
@@ -309,10 +370,17 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
 		case MSG_AUDIO:
 		case MSG_VIDEO: {
             auto idx = chunkData.typeId%2;
-            if (m_aNowStampTicker[idx].elapsedTime() > 500) {
-                m_adNowStamp[idx] = chunkData.timeStamp;
+            if (_aNowStampTicker[idx].elapsedTime() > 500) {
+				//计算播放进度时间轴用
+                _aiNowStamp[idx] = chunkData.timeStamp;
             }
-			_onMediaData(std::make_shared<RtmpPacket>(chunkData));
+			if(!_metadata_got){
+				if(!onCheckMeta(TitleMeta().getMetadata())){
+					throw std::runtime_error("onCheckMeta failed");
+				}
+				_metadata_got = true;
+			}
+			onMediaData_l(std::make_shared<RtmpPacket>(std::move(chunkData)));
 		}
 			break;
 		default:
@@ -321,34 +389,33 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
 		}
 }
 
-float RtmpPlayer::getProgressTime() const{
-    double iTime[2] = {0,0};
+uint32_t RtmpPlayer::getProgressMilliSecond() const{
+	uint32_t iTime[2] = {0,0};
     for(auto i = 0 ;i < 2 ;i++){
-        iTime[i] = (m_adNowStamp[i] - m_adFistStamp[i]) / 1000.0;
+        iTime[i] = _aiNowStamp[i] - _aiFistStamp[i];
     }
-    return m_fSeekTo + MAX(iTime[0],iTime[1]);
+    return _iSeekTo + MAX(iTime[0],iTime[1]);
 }
-void RtmpPlayer::seekToTime(float fTime){
-    if (m_bPaused) {
+void RtmpPlayer::seekToMilliSecond(uint32_t seekMS){
+    if (_bPaused) {
         pause(false);
     }
     AMFEncoder enc;
-    enc << "seek" << ++m_iReqID << nullptr << fTime * 1000.0;
+    enc << "seek" << ++_iReqID << nullptr << seekMS * 1.0;
     sendRequest(MSG_CMD, enc.data());
-    addOnStatusCB([this,fTime](AMFValue &val) {
+    addOnStatusCB([this,seekMS](AMFValue &val) {
         //TraceL << "seek result";
-        m_aNowStampTicker[0].resetTime();
-        m_aNowStampTicker[1].resetTime();
-        float iTimeInc = fTime - getProgressTime();
+        _aNowStampTicker[0].resetTime();
+        _aNowStampTicker[1].resetTime();
+		int iTimeInc = seekMS - getProgressMilliSecond();
         for(auto i = 0 ;i < 2 ;i++){
-            m_adFistStamp[i] = m_adNowStamp[i] + iTimeInc * 1000.0;
-            m_adNowStamp[i] = m_adFistStamp[i];
+            _aiFistStamp[i] = _aiNowStamp[i] + iTimeInc;
+            _aiNowStamp[i] = _aiFistStamp[i];
         }
-        m_fSeekTo = fTime;
+        _iSeekTo = seekMS;
     });
 
 }
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 

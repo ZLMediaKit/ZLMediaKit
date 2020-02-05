@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -31,21 +31,17 @@
 #include "Common/config.h"
 #include "Util/TimeTicker.h"
 #include "Network/TcpSession.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Network;
-
-namespace ZL {
-namespace Shell {
+namespace mediakit {
 
 class ShellSession: public TcpSession {
 public:
-	ShellSession(const std::shared_ptr<ThreadPool> &_th, const Socket::Ptr &_sock);
+	ShellSession(const Socket::Ptr &_sock);
 	virtual ~ShellSession();
 
 	void onRecv(const Buffer::Ptr &) override;
-    void onError(const SockException &err) override {};
+    void onError(const SockException &err) override;
 	void onManager() override;
 
 private:
@@ -54,13 +50,12 @@ private:
 	inline void pleaseInputPasswd();
 	inline void printShellPrefix();
 
-	function<bool(const string &)> m_loginInterceptor;
-	string m_strRecvBuf;
-	Ticker m_beatTicker;
-	string m_strUserName;
+	function<bool(const string &)> _loginInterceptor;
+	string _strRecvBuf;
+	Ticker _beatTicker;
+	string _strUserName;
 };
 
-} /* namespace Shell */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_SHELL_SHELLSESSION_H_ */

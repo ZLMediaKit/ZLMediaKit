@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -38,8 +38,7 @@ extern "C" {
 }
 #endif //__cplusplus
 
-namespace ZL {
-namespace Codec {
+namespace mediakit {
 
 class H264Encoder {
 public:
@@ -54,13 +53,12 @@ public:
 	bool init(int iWidth, int iHeight, int iFps);
 	int inputData(char *apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H264Frame **ppFrame);
 private:
-	x264_t* m_pX264Handle = nullptr;
-	x264_picture_t* m_pPicIn = nullptr;
-	x264_picture_t* m_pPicOut = nullptr;
-	H264Frame m_aFrames[10];
+	x264_t* _pX264Handle = nullptr;
+	x264_picture_t* _pPicIn = nullptr;
+	x264_picture_t* _pPicOut = nullptr;
+	H264Frame _aFrames[10];
 };
 
-} /* namespace Codec */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* CODEC_H264ENCODER_H_ */

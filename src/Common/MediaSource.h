@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -34,65 +34,67 @@
 #include <functional>
 #include <unordered_map>
 #include "Common/config.h"
+#include "Common/Parser.h"
 #include "Util/logger.h"
 #include "Util/TimeTicker.h"
 #include "Util/NoticeCenter.h"
-#include "Rtsp/Rtsp.h"
+#include "Extension/Track.h"
 
 using namespace std;
-using namespace Config;
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace ZL {
-namespace Media {
+namespace toolkit{
+    class TcpSession;
+}// namespace toolkit
 
-class MediaSourceEvent
-{
+namespace mediakit {
+
+class MediaSource;
+class MediaSourceEvent{
 public:
     MediaSourceEvent(){};
     virtual ~MediaSourceEvent(){};
-public:
-    virtual bool seekTo(uint32_t ui32Stamp){
-        //拖动进度条
+
+    // 通知拖动进度条
+    virtual bool seekTo(MediaSource &sender,uint32_t ui32Stamp){
         return false;
     }
-    virtual uint32_t getStamp() {
-        //获取时间戳
-        return 0;
-    }
-    virtual bool shutDown() {
-        //通知其停止推流
+
+    // 通知其停止推流
+    virtual bool close(MediaSource &sender,bool force) {
         return false;
     }
+
+    // 通知无人观看
+    virtual void onNoneReader(MediaSource &sender);
+
+    // 观看总人数
+    virtual int totalReaderCount(MediaSource &sender) = 0;
 };
-class MediaInfo
-{
+
+/**
+ * 解析url获取媒体相关信息
+ */
+class MediaInfo{
 public:
     MediaInfo(){}
-    MediaInfo(const string &url){
-        parse(url);
-    }
     ~MediaInfo(){}
-
+    MediaInfo(const string &url){ parse(url); }
     void parse(const string &url);
-
-    string &operator[](const string &key){
-        return m_params[key];
-    }
 public:
-    string m_schema;
-    string m_host;
-    string m_port;
-    string m_vhost;
-    string m_app;
-    string m_streamid;
-    StrCaseMap m_params;
-    string m_param_strs;
-
+    string _schema;
+    string _host;
+    string _port;
+    string _vhost;
+    string _app;
+    string _streamid;
+    string _param_strs;
 };
 
-
-class MediaSource: public enable_shared_from_this<MediaSource> {
+/**
+ * 媒体源，任何rtsp/rtmp的直播流都源自该对象
+ */
+class MediaSource: public TrackSource, public enable_shared_from_this<MediaSource> {
 public:
     typedef std::shared_ptr<MediaSource> Ptr;
     typedef unordered_map<string, weak_ptr<MediaSource> > StreamMap;
@@ -100,141 +102,68 @@ public:
     typedef unordered_map<string, AppStreamMap > VhostAppStreamMap;
     typedef unordered_map<string, VhostAppStreamMap > SchemaVhostAppStreamMap;
 
-    MediaSource(const string &strSchema,
-                const string &strVhost,
-                const string &strApp,
-                const string &strId) :
-            m_strSchema(strSchema),
-            m_strApp(strApp),
-            m_strId(strId) {
-        if(strVhost.empty()){
-            m_strVhost = DEFAULT_VHOST;
-        }else{
-            m_strVhost = strVhost;
-        }
-    }
-    virtual ~MediaSource() {
-        unregist();
-    }
+    MediaSource(const string &strSchema, const string &strVhost, const string &strApp, const string &strId) ;
+    virtual ~MediaSource() ;
 
-    virtual bool regist() ;
-    virtual bool unregist() ;
+    // 获取协议类型
+    const string& getSchema() const;
+    // 虚拟主机
+    const string& getVhost() const;
+    // 应用名
+    const string& getApp() const;
+    // 流id
+    const string& getId() const;
 
-    static Ptr find(const string &schema,
-                    const string &vhost,
-                    const string &app,
-                    const string &id,
-                    bool bMake = true) ;
+    // 设置TrackSource
+    void setTrackSource(const std::weak_ptr<TrackSource> &track_src);
+    // 获取所有Track
+    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 
-    const string& getSchema() const {
-        return m_strSchema;
-    }
-    const string& getVhost() const {
-        return m_strVhost;
-    }
-    const string& getApp() const {
-        //获取该源的id
-        return m_strApp;
-    }
-    const string& getId() const {
-        return m_strId;
-    }
+    // 设置监听者
+    virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
+    // 获取监听者
+    const std::weak_ptr<MediaSourceEvent>& getListener() const;
 
-    bool seekTo(uint32_t ui32Stamp) {
-        auto listener = m_listener.lock();
-        if(!listener){
-            return false;
-        }
-        return listener->seekTo(ui32Stamp);
-    }
 
-    uint32_t getStamp() {
-        auto listener = m_listener.lock();
-        if(!listener){
-            return 0;
-        }
-        return listener->getStamp();
-    }
-    bool shutDown() {
-        auto listener = m_listener.lock();
-        if(!listener){
-            return false;
-        }
-        return listener->shutDown();
-    }
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-        m_listener = listener;
-    }
+    // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
+    virtual int readerCount() = 0;
+    // 观看者个数，包括(hls/rtsp/rtmp)
+    virtual int totalReaderCount();
 
-    template <typename FUN>
-    static void for_each_media(FUN && fun){
-        lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-        for (auto &pr0 : g_mapMediaSrc){
-            for(auto &pr1 : pr0.second){
-                for(auto &pr2 : pr1.second){
-                    for(auto &pr3 : pr2.second){
-                        fun(pr0.first,pr1.first,pr2.first,pr3.first,pr3.second.lock());
-                    }
-                }
-            }
-        }
-    }
-private:
-        template <typename FUN>
-        static bool searchMedia(const string &schema,
-                                const string &vhost,
-                                const string &app,
-                                const string &id,
-                                FUN &&fun){
-        auto it0 = g_mapMediaSrc.find(schema);
-        if (it0 == g_mapMediaSrc.end()) {
-            //未找到协议
-            return false;
-        }
-        auto it1 = it0->second.find(vhost);
-        if(it1 == it0->second.end()){
-            //未找到vhost
-            return false;
-        }
-        auto it2 = it1->second.find(app);
-        if(it2 == it1->second.end()){
-            //未找到app
-            return false;
-        }
-        auto it3 = it2->second.find(id);
-        if(it3 == it2->second.end()){
-            //未找到streamId
-            return false;
-        }
-        return fun(it0,it1,it2,it3);
-    }
-    template <typename IT0,typename IT1,typename IT2>
-    static void eraseIfEmpty(IT0 it0,IT1 it1,IT2 it2){
-        if(it2->second.empty()){
-            it1->second.erase(it2);
-            if(it1->second.empty()){
-                it0->second.erase(it1);
-                if(it0->second.empty()){
-                    g_mapMediaSrc.erase(it0);
-                }
-            }
-        }
-    };
+    // 获取流当前时间戳
+    virtual uint32_t getTimeStamp(TrackType trackType) { return 0; };
+    // 设置时间戳
+    virtual void setTimeStamp(uint32_t uiStamp) {};
 
-    void unregisted();
+    // 拖动进度条
+    bool seekTo(uint32_t ui32Stamp);
+    // 关闭该流
+    bool close(bool force);
+    // 该流无人观看
+    void onNoneReader();
+
+    // 同步查找流
+    static Ptr find(const string &schema, const string &vhost, const string &app, const string &id, bool bMake = true) ;
+    // 异步查找流
+    static void findAsync(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, const function<void(const Ptr &src)> &cb);
+    // 遍历所有流
+    static void for_each_media(const function<void(const Ptr &src)> &cb);
 protected:
-    std::weak_ptr<MediaSourceEvent> m_listener;
+    void regist() ;
+    bool unregist() ;
+    void unregisted();
 private:
-    string m_strSchema;//协议类型
-    string m_strVhost; //vhost
-    string m_strApp; //媒体app
-    string m_strId; //媒体id
-    static SchemaVhostAppStreamMap g_mapMediaSrc; //静态的媒体源表
-    static recursive_mutex g_mtxMediaSrc; //访问静态的媒体源表的互斥锁
+    string _strSchema;
+    string _strVhost;
+    string _strApp;
+    string _strId;
+    std::weak_ptr<MediaSourceEvent> _listener;
+    weak_ptr<TrackSource> _track_source;
+    static SchemaVhostAppStreamMap g_mapMediaSrc;
+    static recursive_mutex g_mtxMediaSrc;
 };
 
-} /* namespace Media */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 
 #endif //ZLMEDIAKIT_MEDIASOURCE_H

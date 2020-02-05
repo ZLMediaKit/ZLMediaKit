@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -27,8 +27,7 @@
 #include "DeviceHK.h"
 #include "Util/TimeTicker.h"
 #include "Util/MD5.h"
-namespace ZL {
-namespace DEV {
+namespace mediakit {
 
 #define HK_APP_NAME  "live"
 
@@ -261,7 +260,6 @@ void DevChannelHK::onGetDecData(char* pBuf, int nSize, FRAME_INFO* pFrameInfo) {
 	}
 }
 
-} /* namespace DEV */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif //ENABLE_HKDEVICE

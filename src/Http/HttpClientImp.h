@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -28,40 +28,21 @@
 #define SRC_HTTP_HTTPCLIENTIMP_H_
 
 #include "HttpClient.h"
-#ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
-using namespace ZL::Util;
-#endif //ENABLE_OPENSSL
 
-namespace ZL {
-namespace Http {
+using namespace toolkit;
 
-class HttpClientImp: public HttpClient {
+namespace mediakit {
+
+class HttpClientImp: public TcpClientWithSSL<HttpClient> {
 public:
 	typedef std::shared_ptr<HttpClientImp> Ptr;
-	HttpClientImp();
-	virtual ~HttpClientImp();
-	virtual void sendRequest(const string &url,float fTimeOutSec) override;
-
-#if defined(__GNUC__) && (__GNUC__ < 5)
-	void public_onRecvBytes(const char *data,int len){
-		HttpClient::onRecvBytes(data,len);
-	}
-	void public_send(const char *data, uint32_t len){
-		HttpClient::send(data,len);
-	}
-#endif //defined(__GNUC__) && (__GNUC__ < 5)
-private:
-#ifdef ENABLE_OPENSSL
-	virtual void onRecvBytes(const char *data,int size) override;
-	virtual int send(const string &str) override;
-	virtual int send(string &&str) override;
-	virtual int send(const char *str, int len) override;
-	std::shared_ptr<SSL_Box> _sslBox;
-#endif //ENABLE_OPENSSL
+	HttpClientImp() {}
+	virtual ~HttpClientImp() {}
+protected:
+	void onConnect(const SockException &ex)  override ;
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_HTTPCLIENTIMP_H_ */

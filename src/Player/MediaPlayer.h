@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -29,33 +29,28 @@
 
 #include <memory>
 #include <string>
-#include "Player.h"
 #include "PlayerBase.h"
 #include "Rtsp/RtspPlayer.h"
 #include "Rtmp/RtmpPlayer.h"
+#include "Thread/TaskExecutor.h"
+using namespace toolkit;
 
-using namespace std;
-using namespace ZL::Rtsp;
-using namespace ZL::Rtmp;
-
-namespace ZL {
-namespace Player {
+namespace mediakit {
 
 class MediaPlayer : public PlayerImp<PlayerBase,PlayerBase> {
 public:
 	typedef std::shared_ptr<MediaPlayer> Ptr;
 
-	MediaPlayer();
+	MediaPlayer(const EventPoller::Ptr &poller = nullptr);
 	virtual ~MediaPlayer();
-	void play(const char* strUrl) override;
+	void play(const string &strUrl) override;
 	void pause(bool bPause) override;
 	void teardown() override;
+	EventPoller::Ptr getPoller();
 private:
-	string m_strPrefix;
-
+	EventPoller::Ptr _poller;
 };
 
-} /* namespace Player */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_PLAYER_MEDIAPLAYER_H_ */

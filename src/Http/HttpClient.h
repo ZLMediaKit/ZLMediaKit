@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -27,22 +27,25 @@
 #ifndef Http_HttpClient_h
 #define Http_HttpClient_h
 
+#include <stdio.h>
 #include <string.h>
 #include <functional>
 #include <memory>
-#include "Rtsp/Rtsp.h"
 #include "Util/util.h"
+#include "Util/mini.h"
 #include "Network/TcpClient.h"
-
+#include "Common/Parser.h"
+#include "HttpRequestSplitter.h"
+#include "HttpCookie.h"
+#include "HttpChunkedSplitter.h"
+#include "strCoding.h"
+#include "HttpBody.h"
 using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
-class HttpArgs : public StrCaseMap
-{
+class HttpArgs : public map<string, variant, StrCaseCompare>  {
 public:
     HttpArgs(){}
     virtual ~HttpArgs(){}
@@ -51,7 +54,7 @@ public:
         for(auto &pr : *this){
             ret.append(pr.first);
             ret.append("=");
-            ret.append(pr.second);
+            ret.append(strCoding::UrlEncode(pr.second));
             ret.append("&");
         }
         if(ret.size()){
@@ -60,8 +63,8 @@ public:
         return ret;
     }
 };
-    
-class HttpClient : public TcpClient
+
+class HttpClient : public TcpClient , public HttpRequestSplitter
 {
 public:
     typedef StrCaseMap HttpHeader;
@@ -69,81 +72,129 @@ public:
     HttpClient();
     virtual ~HttpClient();
     virtual void sendRequest(const string &url,float fTimeOutSec);
-    void clear(){
+
+    virtual void clear(){
         _header.clear();
-        _body.clear();
+        _body.reset();
         _method.clear();
         _path.clear();
-        _recvedResponse.clear();
         _parser.Clear();
+        _recvedBodySize = 0;
+        _totalBodySize = 0;
+        _aliveTicker.resetTime();
+        _chunkedSplitter.reset();
+        HttpRequestSplitter::reset();
     }
+
     void setMethod(const string &method){
         _method = method;
     }
     void setHeader(const HttpHeader &header){
         _header = header;
     }
-    void addHeader(const string &key,const string &val){
-        _header.emplace(key,val);
+    HttpClient & addHeader(const string &key,const string &val,bool force = false){
+        if(!force){
+            _header.emplace(key,val);
+        }else{
+            _header[key] = val;
+        }
+        return *this;
     }
     void setBody(const string &body){
+        _body.reset(new HttpStringBody(body));
+    }
+    void setBody(const HttpBody::Ptr &body){
         _body = body;
     }
-    const string &responseStatus(){
+    const string &responseStatus() const{
         return _parser.Url();
     }
-    const HttpHeader &responseHeader(){
+    const HttpHeader &responseHeader() const{
         return _parser.getValues();
     }
+    const Parser& response() const{
+        return _parser;
+    }
+
+    const string &getUrl() const{
+        return _url;
+    }
 protected:
-    bool _isHttps;
-    
-    virtual void onResponseHeader(const string &status,const HttpHeader &headers){
+    /**
+     * 收到http回复头
+     * @param status 状态码，譬如:200 OK
+     * @param headers http头
+     * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
+     *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
+     */
+    virtual int64_t onResponseHeader(const string &status,const HttpHeader &headers){
         DebugL << status;
+        //无Content-Length字段时默认后面全是content
+        return -1;
     };
-    virtual void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize){
+
+    /**
+     * 收到http conten数据
+     * @param buf 数据指针
+     * @param size 数据大小
+     * @param recvedSize 已收数据大小(包含本次数据大小),当其等于totalSize时将触发onResponseCompleted回调
+     * @param totalSize 总数据大小
+     */
+    virtual void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize){
         DebugL << size << " " <<  recvedSize << " " << totalSize;
     };
+
+    /**
+     * 接收http回复完毕,
+     */
     virtual void onResponseCompleted(){
     	DebugL;
     }
-    virtual void onRecvBytes(const char *data,int size);
+
+    /**
+     * http链接断开回调
+     * @param ex 断开原因
+     */
     virtual void onDisconnect(const SockException &ex){}
-private:
+
+    /**
+     * 重定向事件
+     * @param url 重定向url
+     * @param temporary 是否为临时重定向
+     * @return 是否继续
+     */
+    virtual bool onRedirectUrl(const string &url,bool temporary){ return true;};
+
+    //HttpRequestSplitter override
+    int64_t onRecvHeader(const char *data,uint64_t len) override ;
+    void onRecvContent(const char *data,uint64_t len) override;
+protected:
     virtual void onConnect(const SockException &ex) override;
     virtual void onRecv(const Buffer::Ptr &pBuf) override;
     virtual void onErr(const SockException &ex) override;
-    
-    //send
+    virtual void onFlush() override;
+    virtual void onManager() override;
+private:
+    void onResponseCompleted_l();
+    void checkCookie(HttpHeader &headers );
+protected:
+    bool _isHttps;
+private:
+    string _url;
     HttpHeader _header;
-    string _body;
+    HttpBody::Ptr _body;
     string _method;
     string _path;
-    
     //recv
-    string _recvedResponse;
-    size_t _recvedBodySize;
-    size_t _totalBodySize;
+    int64_t _recvedBodySize;
+    int64_t _totalBodySize;
     Parser _parser;
-    
     string _lastHost;
+    Ticker _aliveTicker;
+    float _fTimeOutSec = 0;
+    std::shared_ptr<HttpChunkedSplitter> _chunkedSplitter;
 };
 
-
-
-
-
-
-
-
-} /* namespace Http */
-} /* namespace ZL */
-
-
-
-
-
-
-
+} /* namespace mediakit */
 
 #endif /* Http_HttpClient_h */

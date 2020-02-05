@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -29,13 +29,12 @@
 
 #include "HttpClientImp.h"
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
 class HttpDownloader: public HttpClientImp {
 public:
 	typedef std::shared_ptr<HttpDownloader> Ptr;
-	typedef std::function<void(ErrCode code,const char *errMsg,const char *filePath)> onDownloadResult;
+	typedef std::function<void(ErrCode code,const string &errMsg,const string &filePath)> onDownloadResult;
 	HttpDownloader();
 	virtual ~HttpDownloader();
 	//开始下载文件,默认断点续传方式下载
@@ -48,23 +47,18 @@ public:
 		_onResult = cb;
 	}
 private:
-	void onResponseHeader(const string &status,const HttpHeader &headers) override;
-	void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override;
+	int64_t onResponseHeader(const string &status,const HttpHeader &headers) override;
+	void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize) override;
 	void onResponseCompleted() override;
 	void onDisconnect(const SockException &ex) override;
-    void onManager() override;
-
     void closeFile();
-
+private:
 	FILE *_saveFile = nullptr;
 	string _filePath;
 	onDownloadResult _onResult;
-    uint32_t _timeOutSecond;
 	bool _bDownloadSuccess = false;
-    Ticker _downloadTicker;
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_HTTPDOWNLOADER_H_ */

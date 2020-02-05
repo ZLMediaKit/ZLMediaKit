@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,84 +24,17 @@
  * SOFTWARE.
  */
 
-#include <Http/HttpClientImp.h>
+#include "Http/HttpClientImp.h"
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
-HttpClientImp::HttpClientImp() {
-	// TODO Auto-generated constructor stub
-
-}
-
-HttpClientImp::~HttpClientImp() {
-}
-
-void HttpClientImp::sendRequest(const string& url,float fTimeOutSec) {
-	HttpClient::sendRequest(url,fTimeOutSec);
-	if(_isHttps){
-#ifndef ENABLE_OPENSSL
-		shutdown();
-		throw std::invalid_argument("不支持HTTPS协议");
-#else
-		_sslBox.reset(new SSL_Box(false));
-		_sslBox->setOnDecData([this](const char *data, uint32_t len){
-#if defined(__GNUC__) && (__GNUC__ < 5)
-			public_onRecvBytes(data,len);
-#else//defined(__GNUC__) && (__GNUC__ < 5)
-			HttpClient::onRecvBytes(data,len);
-#endif//defined(__GNUC__) && (__GNUC__ < 5)
-		});
-		_sslBox->setOnEncData([this](const char *data, uint32_t len){
-
-#if defined(__GNUC__) && (__GNUC__ < 5)
-			public_send(data,len);
-#else//defined(__GNUC__) && (__GNUC__ < 5)
-			HttpClient::send(data,len);
-#endif//defined(__GNUC__) && (__GNUC__ < 5)
-		});
-#endif //ENABLE_OPENSSL
-
-	}else{
-#ifdef ENABLE_OPENSSL
-		_sslBox.reset();
-#endif //ENABLE_OPENSSL
+void HttpClientImp::onConnect(const SockException &ex) {
+	if(!_isHttps){
+		HttpClient::onConnect(ex);
+	} else {
+		TcpClientWithSSL<HttpClient>::onConnect(ex);
 	}
-}
-
-#ifdef ENABLE_OPENSSL
-void HttpClientImp::onRecvBytes(const char* data, int size) {
-	if(_sslBox){
-		_sslBox->onRecv(data,size);
-	}else{
-		HttpClient::onRecvBytes(data,size);
-	}
-}
-
-int HttpClientImp::send(const string& str) {
-	if(_sslBox){
-		_sslBox->onSend(str.data(),str.size());
-		return str.size();
-	}
-	return HttpClient::send(str);
-}
-int HttpClientImp::send(string &&str){
-	if(_sslBox){
-		_sslBox->onSend(str.data(),str.size());
-		return str.size();
-	}
-	return HttpClient::send(std::move(str));
-}
-
-int HttpClientImp::send(const char* str, int len) {
-	if(_sslBox){
-		_sslBox->onSend(str,len);
-		return len;
-	}
-	return HttpClient::send(str,len);
 
 }
-#endif //ENABLE_OPENSSL
 
-} /* namespace Http */
-} /* namespace ZL */
+} /* namespace mediakit */

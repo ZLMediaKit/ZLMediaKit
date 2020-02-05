@@ -38,9 +38,11 @@ extern "C" {
 #pragma comment(lib,"SDL2.lib")
 #endif //defined(_WIN32)
 
-using namespace ZL::Util;
+using namespace toolkit;
+using namespace mediakit;
 
 #define REFRESH_EVENT   (SDL_USEREVENT + 1)
+
 
 class SDLDisplayerHelper
 {
@@ -63,46 +65,50 @@ public:
         SDL_PushEvent(&event);
     }
 
+	void runLoop(){
+		bool flag = true;
+		std::function<bool ()> task;
+		SDL_Event event;
+		while(flag){
+			SDL_WaitEvent(&event);
+			switch (event.type){
+                case REFRESH_EVENT:{
+                    {
+                        lock_guard<mutex> lck(_mtxTask);
+                        if(_taskList.empty()){
+                            //not reachable
+                            continue;
+                        }
+                        task = _taskList.front();
+                        _taskList.pop_front();
+                    }
+                    flag = task();
+                    break;
+                case SDL_QUIT:
+                    InfoL << event.type;
+                    return;
+                }
+                default:
+                    break;
+            }
+		}
+	}
 
+	void shutdown(){
+		doTask([](){return false;});
+	}
 private:
     SDLDisplayerHelper(){
-        _loopThread.reset(new std::thread(&SDLDisplayerHelper::runLoop,this));
     };
     ~SDLDisplayerHelper(){
-        doTask([](){return false;});
-        _loopThread->join();
-        _loopThread.reset();
+		shutdown();
     };
-
-    void runLoop(){
-        bool flag = true;
-        std::function<bool ()> task;
-        SDL_Event event;
-        while(flag){
-            SDL_WaitEvent(&event);
-            if (event.type == REFRESH_EVENT)
-            {
-                {
-                    lock_guard<mutex> lck(_mtxTask);
-                    if(_taskList.empty()){
-                        //not reachable
-                        continue;
-                    }
-                    task = _taskList.front();
-                    _taskList.pop_front();
-                }
-                flag = task();
-            }
-
-        }
-    }
-
-
+private:
     std::deque<std::function<bool ()> > _taskList;
-    std::shared_ptr<thread> _loopThread;
     std::mutex _mtxTask;
 
 };
+
 
 class YuvDisplayer {
 public:

@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -28,13 +28,15 @@
 
 #include <memory>
 #include <string>
+#include <cstdlib>
 #include "Util/util.h"
 #include "Util/logger.h"
+#include "Network/Buffer.h"
 #include "Network/sockutil.h"
+#include "amf.h"
+#include "Extension/Track.h"
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Network;
+using namespace toolkit;
 
 #define PORT	1935
 #define DEFAULT_CHUNK_LEN	128
@@ -85,6 +87,7 @@ using namespace ZL::Network;
 #define FLV_KEY_FRAME				1
 #define FLV_INTER_FRAME				2
 
+namespace mediakit {
 
 #if defined(_WIN32)
 #pragma pack(push, 1)
@@ -129,7 +132,7 @@ public:
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-class RtmpPacket {
+class RtmpPacket : public Buffer{
 public:
     typedef std::shared_ptr<RtmpPacket> Ptr;
     uint8_t typeId;
@@ -141,6 +144,30 @@ public:
     uint32_t streamId;
     uint32_t chunkId;
     std::string strBuf;
+public:
+    char *data() const override{
+        return (char*)strBuf.data();
+    }
+    uint32_t size() const override {
+        return strBuf.size();
+    };
+public:
+    RtmpPacket() = default;
+    RtmpPacket(const RtmpPacket &that) = delete;
+    RtmpPacket &operator=(const RtmpPacket &that) = delete;
+    RtmpPacket &operator=(RtmpPacket &&that) = delete;
+
+    RtmpPacket(RtmpPacket &&that){
+        typeId = that.typeId;
+        bodySize = that.bodySize;
+        timeStamp = that.timeStamp;
+        hasAbsStamp = that.hasAbsStamp;
+        hasExtStamp = that.hasExtStamp;
+        deltaStamp = that.deltaStamp;
+        streamId = that.streamId;
+        chunkId = that.chunkId;
+        strBuf = std::move(that.strBuf);
+    }
     bool isVideoKeyFrame() const {
         return typeId == MSG_VIDEO && (uint8_t) strBuf[0] >> 4 == FLV_KEY_FRAME
         && (uint8_t) strBuf[1] == 1;
@@ -188,6 +215,11 @@ public:
         const static int channel[] = { 1, 2 };
         return channel[flvStereoOrMono];
     }
+
+    /**
+     * 返回不带0x00 00 00 01头的sps
+     * @return
+     */
     string getH264SPS() const {
         string ret;
         if (getMediaType() != 7) {
@@ -210,6 +242,11 @@ public:
         ret.assign(strBuf.data() + 13, sps_size);
         return ret;
     }
+
+    /**
+     * 返回不带0x00 00 00 01头的pps
+     * @return
+     */
     string getH264PPS() const {
         string ret;
         if (getMediaType() != 7) {
@@ -257,5 +294,117 @@ public:
         return ret;
     }
 };
+
+
+
+/**
+ * rtmp metadata基类，用于描述rtmp格式信息
+ */
+class Metadata : public CodecInfo{
+public:
+    typedef std::shared_ptr<Metadata> Ptr;
+
+    Metadata():_metadata(AMF_OBJECT){}
+    virtual ~Metadata(){}
+    const AMFValue &getMetadata() const{
+        return _metadata;
+    }
+protected:
+    AMFValue _metadata;
+};
+
+/**
+* metadata中除音视频外的其他描述部分
+*/
+class TitleMeta : public Metadata{
+public:
+    typedef std::shared_ptr<TitleMeta> Ptr;
+
+    TitleMeta(float dur_sec = 0,
+              uint64_t fileSize = 0,
+              const map<string,string> &header = map<string,string>()){
+        _metadata.set("duration", dur_sec);
+        _metadata.set("fileSize", 0);
+        _metadata.set("server","ZLMediaKit");
+        for (auto &pr : header){
+            _metadata.set(pr.first, pr.second);
+        }
+    }
+
+    /**
+     * 返回音频或视频类型
+     * @return
+     */
+    TrackType getTrackType() const override {
+        return TrackTitle;
+    }
+
+    /**
+     * 返回编码器id
+     * @return
+     */
+    CodecId getCodecId() const override{
+        return CodecInvalid;
+    }
+};
+
+class VideoMeta : public Metadata{
+public:
+    typedef std::shared_ptr<VideoMeta> Ptr;
+
+    VideoMeta(const VideoTrack::Ptr &video,int datarate = 5000);
+    virtual ~VideoMeta(){}
+
+    /**
+     * 返回音频或视频类型
+     * @return
+     */
+    TrackType getTrackType() const override {
+        return TrackVideo;
+    }
+
+    /**
+     * 返回编码器id
+     * @return
+     */
+    CodecId getCodecId() const override{
+        return _codecId;
+    }
+private:
+    CodecId _codecId;
+};
+
+
+class AudioMeta : public Metadata{
+public:
+    typedef std::shared_ptr<AudioMeta> Ptr;
+
+    AudioMeta(const AudioTrack::Ptr &audio,int datarate = 160);
+
+    virtual ~AudioMeta(){}
+
+    /**
+     * 返回音频或视频类型
+     * @return
+     */
+    TrackType getTrackType() const override {
+        return TrackAudio;
+    }
+
+    /**
+     * 返回编码器id
+     * @return
+     */
+    CodecId getCodecId() const override{
+        return _codecId;
+    }
+private:
+    CodecId _codecId;
+};
+
+
+}//namespace mediakit
+
+
 
 #endif

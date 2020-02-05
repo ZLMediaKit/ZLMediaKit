@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -32,22 +32,19 @@
 #include "Rtsp/UDPServer.h"
 #include "Network/sockutil.h"
 #include "Poller/EventPoller.h"
-#include "Device/PlayerProxy.h"
-#include "Thread/WorkThreadPool.h"
+#include "Player/PlayerProxy.h"
 
 using namespace std;
-using namespace ZL::DEV;
-using namespace ZL::Util;
-using namespace ZL::Rtsp;
-using namespace ZL::Thread;
-using namespace ZL::Network;
-
+using namespace toolkit;
+using namespace mediakit;
 
 int main(int argc, char *argv[]) {
     //设置退出信号处理函数
-    signal(SIGINT, [](int) { EventPoller::Instance().shutdown(); });
+    static semaphore sem;
+    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
+
     //设置日志
-    Logger::Instance().add(std::make_shared<ConsoleChannel>("stdout", LTrace));
+    Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
     if (argc != 5) {
@@ -55,46 +52,37 @@ int main(int argc, char *argv[]) {
                << "例如你想每隔50毫秒启动共计100个播放器（tcp方式播放rtsp://127.0.0.1/live/0 ）可以输入以下命令:\r\n"
                << "./test_benchmark 100 50 rtsp://127.0.0.1/live/0 0\r\n"
                << endl;
-        Logger::Destory();
         return 0;
 
     }
-    {
-        list<MediaPlayer::Ptr> playerList;
-        auto playerCnt = atoi(argv[1]);//启动的播放器个数
-        atomic_int alivePlayerCnt(0);
-        //每隔若干毫秒启动一个播放器（如果一次性全部启动，服务器和客户端可能都承受不了）
-        AsyncTaskThread::Instance().DoTaskDelay(0, atoi(argv[2]), [&]() {
-            MediaPlayer::Ptr player(new MediaPlayer());
-            player->setOnPlayResult([&](const SockException &ex) {
-                if (!ex) {
-                    ++alivePlayerCnt;
-                }
-            });
-            player->setOnShutdown([&](const SockException &ex) {
-                --alivePlayerCnt;
-            });
-            (*player)[RtspPlayer::kRtpType] = atoi(argv[4]);
-            player->play(argv[3]);
-            playerList.push_back(player);
-            return playerCnt--;
-        });
+    list<MediaPlayer::Ptr> playerList;
+    auto playerCnt = atoi(argv[1]);//启动的播放器个数
+    atomic_int alivePlayerCnt(0);
 
-        AsyncTaskThread::Instance().DoTaskDelay(0, 1000, [&]() {
-            InfoL << "存活播放器个数:" << alivePlayerCnt.load();
-            return true;
+    //每隔若干毫秒启动一个播放器（如果一次性全部启动，服务器和客户端可能都承受不了）
+    Timer timer0(atoi(argv[2])/1000.0f,[&]() {
+        MediaPlayer::Ptr player(new MediaPlayer());
+        player->setOnPlayResult([&](const SockException &ex) {
+            if (!ex) {
+                ++alivePlayerCnt;
+            }
         });
-        EventPoller::Instance().runLoop();
-        AsyncTaskThread::Instance().CancelTask(0);
-    }
+        player->setOnShutdown([&](const SockException &ex) {
+            --alivePlayerCnt;
+        });
+        (*player)[kRtpType] = atoi(argv[4]);
+        player->play(argv[3]);
+        playerList.push_back(player);
+        return playerCnt--;
+    }, nullptr);
 
-    static onceToken token(nullptr, []() {
-        WorkThreadPool::Instance();
-        UDPServer::Destory();
-        EventPoller::Destory();
-        AsyncTaskThread::Destory();
-        Logger::Destory();
-    });
+
+    Timer timer1(1,[&]() {
+        InfoL << "存活播放器个数:" << alivePlayerCnt.load();
+        return true;
+    }, nullptr);
+
+    sem.wait();
     return 0;
 }
 

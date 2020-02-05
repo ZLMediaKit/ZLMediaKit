@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -27,78 +27,115 @@
 #define SRC_HTTP_HTTPSESSION_H_
 
 #include <functional>
-#include "Common/config.h"
-#include "Rtsp/Rtsp.h"
 #include "Network/TcpSession.h"
 #include "Rtmp/RtmpMediaSource.h"
+#include "Rtmp/FlvMuxer.h"
+#include "HttpRequestSplitter.h"
+#include "WebSocketSplitter.h"
+#include "HttpCookieManager.h"
+#include "HttpFileManager.h"
 
 using namespace std;
-using namespace ZL::Rtmp;
-using namespace ZL::Network;
+using namespace toolkit;
 
-namespace ZL {
-namespace Http {
+namespace mediakit {
 
-
-class HttpSession: public TcpSession {
+class HttpSession: public TcpSession,
+                   public FlvMuxer,
+                   public HttpRequestSplitter,
+                   public WebSocketSplitter {
 public:
 	typedef StrCaseMap KeyValue;
-	typedef std::function<void(const string &codeOut,
-							   const KeyValue &headerOut,
-							   const string &contentOut)>  HttpResponseInvoker;
+	typedef HttpResponseInvokerImp HttpResponseInvoker;
+	friend class AsyncSender;
+	/**
+	 * @param errMsg 如果为空，则代表鉴权通过，否则为错误提示
+	 * @param accessPath 运行或禁止访问的根目录
+	 * @param cookieLifeSecond 鉴权cookie有效期
+	 **/
+	typedef std::function<void(const string &errMsg,const string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
 
-	HttpSession(const std::shared_ptr<ThreadPool> &pTh, const Socket::Ptr &pSock);
+	HttpSession(const Socket::Ptr &pSock);
 	virtual ~HttpSession();
 
 	virtual void onRecv(const Buffer::Ptr &) override;
 	virtual void onError(const SockException &err) override;
 	virtual void onManager() override;
-
 	static string urlDecode(const string &str);
 protected:
-	void onRecv(const char *data,int size);
+	//FlvMuxer override
+	void onWrite(const Buffer::Ptr &data) override ;
+	void onDetach() override;
+	std::shared_ptr<FlvMuxer> getSharedPtr() override;
+
+	//HttpRequestSplitter override
+	int64_t onRecvHeader(const char *data,uint64_t len) override;
+	void onRecvContent(const char *data,uint64_t len) override;
+
+	/**
+	 * 重载之用于处理不定长度的content
+	 * 这个函数可用于处理大文件上传、http-flv推流
+	 * @param header http请求头
+	 * @param data content分片数据
+	 * @param len content分片数据大小
+	 * @param totalSize content总大小,如果为0则是不限长度content
+	 * @param recvedSize 已收数据大小
+	 */
+	virtual void onRecvUnlimitedContent(const Parser &header,
+										const char *data,
+										uint64_t len,
+										uint64_t totalSize,
+										uint64_t recvedSize){
+        shutdown(SockException(Err_shutdown,"http post content is too huge,default closed"));
+	}
+
+	/**
+     * websocket客户端连接上事件
+     * @param header http头
+     * @return true代表允许websocket连接，否则拒绝
+     */
+    virtual bool onWebSocketConnect(const Parser &header){
+        WarnL << "http server do not support websocket default";
+        return false;
+    }
+
+	//WebSocketSplitter override
+	/**
+     * 发送数据进行websocket协议打包后回调
+     * @param buffer websocket协议数据
+     */
+	void onWebSocketEncodeData(const Buffer::Ptr &buffer) override;
 private:
-	typedef enum
-	{
-		Http_success = 0,
-		Http_failed = 1,
-		Http_moreData = 2,
-	} HttpCode;
-	typedef HttpSession::HttpCode (HttpSession::*HttpCMDHandle)();
-	static unordered_map<string, HttpCMDHandle> g_mapCmdIndex;
+	void Handle_Req_GET(int64_t &content_len);
+	void Handle_Req_POST(int64_t &content_len);
+	bool checkLiveFlvStream(const function<void()> &cb = nullptr);
+	bool checkWebSocket();
+	bool emitHttpEvent(bool doInvoke);
+	void urlDecode(Parser &parser);
+	void sendNotFound(bool bClose);
+	void sendResponse(const char *pcStatus, bool bClose, const char *pcContentType = nullptr,
+					  const HttpSession::KeyValue &header = HttpSession::KeyValue(),
+                      const HttpBody::Ptr &body = nullptr,bool is_http_flv = false);
 
-	Parser m_parser;
-	string m_strPath;
-	string m_strRcvBuf;
-	Ticker m_ticker;
-	uint32_t m_iReqCnt = 0;
-
-	//flv over http
-	uint32_t m_aui32FirstStamp[2] = {0};
-	uint32_t m_previousTagSize = 0;
-    MediaInfo m_mediaInfo;
-	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr m_pRingReader;
-
-	void onSendMedia(const RtmpPacket::Ptr &pkt);
-	void sendRtmp(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp);
-	void sendRtmp(uint8_t ui8Type, const std::string& strBuf, uint32_t ui32TimeStamp);
-
-	inline HttpCode parserHttpReq(const string &);
-	inline HttpCode Handle_Req_GET();
-	inline HttpCode Handle_Req_POST();
-	inline bool checkLiveFlvStream();
-	inline bool emitHttpEvent(bool doInvoke);
-	inline void urlDecode(Parser &parser);
-	inline bool makeMeun(const string &strFullPath,const string &vhost, string &strRet);
-	inline void sendNotFound(bool bClose);
-	inline void sendResponse(const char *pcStatus,const KeyValue &header,const string &strContent);
-	inline static KeyValue makeHttpHeader(bool bClose=false,int64_t iContentSize=-1,const char *pcContentType="text/html");
-	void responseDelay(const string &Origin,bool bClose,
-					   const string &codeOut,const KeyValue &headerOut,
-					   const string &contentOut);
+	//设置socket标志
+	void setSocketFlags();
+private:
+	string _origin;
+    Parser _parser;
+    Ticker _ticker;
+    //消耗的总流量
+    uint64_t _ui64TotalBytes = 0;
+    //flv over http
+    MediaInfo _mediaInfo;
+    //处理content数据的callback
+    function<bool (const char *data,uint64_t len) > _contentCallBack;
+	bool _flv_over_websocket = false;
+	bool _is_flv_stream = false;
 };
 
-} /* namespace Http */
-} /* namespace ZL */
+
+typedef TcpSessionWithSSL<HttpSession> HttpsSession;
+
+} /* namespace mediakit */
 
 #endif /* SRC_HTTP_HTTPSESSION_H_ */

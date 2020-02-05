@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -31,56 +31,67 @@
 #include <functional>
 #include "Common/config.h"
 #include "RtmpPlayer.h"
-#include "RtmpParser.h"
+#include "RtmpMediaSource.h"
+#include "RtmpDemuxer.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
+using namespace toolkit;
+using namespace mediakit::Client;
 
-using namespace std;
-using namespace ZL::Util;
-using namespace ZL::Player;
+namespace mediakit {
 
-namespace ZL {
-namespace Rtmp {
-class RtmpPlayerImp: public PlayerImp<RtmpPlayer,RtmpParser> {
+class RtmpPlayerImp: public PlayerImp<RtmpPlayer,RtmpDemuxer> {
 public:
     typedef std::shared_ptr<RtmpPlayerImp> Ptr;
-    RtmpPlayerImp(){};
+    RtmpPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtmpPlayer,RtmpDemuxer>(poller){};
     virtual ~RtmpPlayerImp(){
         DebugL<<endl;
-        teardown();
     };
     float getProgress() const override{
         if(getDuration() > 0){
-            return getProgressTime() / getDuration();
+            return getProgressMilliSecond() / (getDuration() * 1000);
         }
         return PlayerBase::getProgress();
     };
     void seekTo(float fProgress) override{
         fProgress = MAX(float(0),MIN(fProgress,float(1.0)));
-        seekToTime(fProgress * getDuration());
+        seekToMilliSecond(fProgress * getDuration() * 1000);
     };
+    void play(const string &strUrl) override {
+        PlayerImp<RtmpPlayer,RtmpDemuxer>::play(strUrl);
+    }
 private:
     //派生类回调函数
-    bool onCheckMeta(AMFValue &val)  override {
-        try {
-            m_parser.reset(new RtmpParser(val));
-            m_parser->setOnVideoCB(m_onGetVideoCB);
-            m_parser->setOnAudioCB(m_onGetAudioCB);
-            return true;
-        } catch (std::exception &ex) {
-            WarnL << ex.what();
-            return false;
+    bool onCheckMeta(const AMFValue &val) override {
+        _pRtmpMediaSrc = dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc);
+        if(_pRtmpMediaSrc){
+            _pRtmpMediaSrc->setMetaData(val);
+            _set_meta_data = true;
         }
+        _delegate.reset(new RtmpDemuxer);
+        _delegate->loadMetaData(val);
+        return true;
     }
     void onMediaData(const RtmpPacket::Ptr &chunkData) override {
-    	if(m_parser){
-    		m_parser->inputRtmp(chunkData);
-    	}
+    	if(_pRtmpMediaSrc){
+            if(!_set_meta_data && !chunkData->isCfgFrame()){
+                _set_meta_data = true;
+                _pRtmpMediaSrc->setMetaData(TitleMeta().getMetadata());
+            }
+            _pRtmpMediaSrc->onWrite(chunkData);
+        }
+        if(!_delegate){
+    	    //这个流没有metadata
+            _delegate.reset(new RtmpDemuxer());
+        }
+        _delegate->inputRtmp(chunkData);
     }
+private:
+    RtmpMediaSource::Ptr _pRtmpMediaSrc;
+    bool _set_meta_data = false;
 };
-                    
-                    
-} /* namespace Rtmp */
-} /* namespace ZL */
-                
+
+
+} /* namespace mediakit */
+
 #endif /* SRC_RTMP_RTMPPLAYERIMP_H_ */

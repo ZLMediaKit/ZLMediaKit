@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -25,8 +25,7 @@
  */
 #include "HttpRequester.h"
 
-namespace ZL{
-namespace Http{
+namespace mediakit{
 
 HttpRequester::HttpRequester(){
     
@@ -35,11 +34,13 @@ HttpRequester::~HttpRequester(){
     
 }
 
-void HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
+int64_t HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
     _strRecvBody.clear();
+    //无Content-Length字段时默认后面没有content
+    return 0;
 }
     
-void HttpRequester::onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) {
+void HttpRequester::onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize) {
     _strRecvBody.append(buf,size);
 }
     
@@ -52,6 +53,7 @@ void HttpRequester::onResponseCompleted() {
     
 void HttpRequester::onDisconnect(const SockException &ex){
     if(_onResult){
+        const_cast<Parser &>(response()).setContent(_strRecvBody);
         _onResult(ex,responseStatus(),responseHeader(),_strRecvBody);
         _onResult = nullptr;
     }
@@ -59,19 +61,18 @@ void HttpRequester::onDisconnect(const SockException &ex){
     
 void HttpRequester::startRequester(const string &url,const HttpRequesterResult &onResult , float timeOutSecond){
     _onResult = onResult;
-    _resTicker.resetTime();
-    _timeOutSecond = timeOutSecond;
     sendRequest(url,timeOutSecond);
 }
 
-void HttpRequester::onManager(){
-    if(_onResult && _resTicker.elapsedTime() > _timeOutSecond * 1000){
-        //超时
-        onDisconnect(SockException(Err_timeout,"wait http response timeout"));
-        shutdown();
-    }
+void HttpRequester::clear() {
+    HttpClientImp::clear();
+    _strRecvBody.clear();
+    _onResult = nullptr;
+}
+
+void HttpRequester::setOnResult(const HttpRequesterResult &onResult) {
+    _onResult = onResult;
 }
 
 
-}//namespace Http
-}//namespace ZL
+}//namespace mediakit

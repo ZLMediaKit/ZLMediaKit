@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -35,10 +35,9 @@
 #include "Util/logger.h"
 #include "Util/TimeTicker.h"
 
-using namespace ZL::Util;
+using namespace toolkit;
 
-namespace ZL {
-namespace DEV {
+namespace mediakit {
 
 class connectInfo {
 public:
@@ -130,7 +129,6 @@ protected:
 	bool m_bAudioSeted = false;
 };
 
-} /* namespace DEV */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* DEVICE_DEVICEHK_H_ */

@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -30,68 +30,50 @@
 #include "RtmpProtocol.h"
 #include "RtmpMediaSource.h"
 #include "Network/TcpClient.h"
+#include "Pusher/PusherBase.h"
 
-namespace ZL {
-namespace Rtmp {
+namespace mediakit {
 
-class RtmpPusher: public RtmpProtocol , public TcpClient{
+class RtmpPusher: public RtmpProtocol , public TcpClient , public PusherBase{
 public:
 	typedef std::shared_ptr<RtmpPusher> Ptr;
-	typedef std::function<void(const SockException &ex)> Event;
-	RtmpPusher(const char *strVhost,const char *strApp,const char *strStream);
-	RtmpPusher(const RtmpMediaSource::Ptr  &src);
+	RtmpPusher(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &src);
 	virtual ~RtmpPusher();
 
-	void publish(const char* strUrl);
-	void teardown();
+	void publish(const string &strUrl) override ;
 
-	void setOnPublished(Event onPublished) {
-		m_onPublished = onPublished;
+	void teardown() override;
+
+	void setOnPublished(const Event &cb) override {
+		_onPublished = cb;
 	}
 
-	void setOnShutdown(Event onShutdown) {
-		m_onShutdown = onShutdown;
+	void setOnShutdown(const Event &cb) override{
+		_onShutdown = cb;
 	}
-
 protected:
-
-	//for Tcpclient
+	//for Tcpclient override
 	void onRecv(const Buffer::Ptr &pBuf) override;
 	void onConnect(const SockException &err) override;
 	void onErr(const SockException &ex) override;
 
-	//fro RtmpProtocol
+	//for RtmpProtocol override
 	void onRtmpChunk(RtmpPacket &chunkData) override;
-	void onSendRawData(const char *pcRawData, int iSize) override {
-		send(pcRawData, iSize);
-	}
-	void onSendRawData(const Buffer::Ptr &buffer,int flags) override{
-		_sock->send(buffer,flags);
+	void onSendRawData(const Buffer::Ptr &buffer) override{
+		send(buffer);
 	}
 private:
-    void init(const RtmpMediaSource::Ptr  &src);
-	void onShutdown(const SockException &ex) {
-		m_pPublishTimer.reset();
-		if(m_onShutdown){
-			m_onShutdown(ex);
-		}
-	}
-	void onPublishResult(const SockException &ex) {
-		m_pPublishTimer.reset();
-		if(m_onPublished){
-			m_onPublished(ex);
-		}
-	}
+	void onPublishResult(const SockException &ex,bool handshakeCompleted);
 
 	template<typename FUN>
 	inline void addOnResultCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(m_mtxOnResultCB);
-		m_mapOnResultCB.emplace(m_iReqID, fun);
+		lock_guard<recursive_mutex> lck(_mtxOnResultCB);
+		_mapOnResultCB.emplace(_iReqID, fun);
 	}
 	template<typename FUN>
 	inline void addOnStatusCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(m_mtxOnStatusCB);
-		m_dqOnStatusCB.emplace_back(fun);
+		lock_guard<recursive_mutex> lck(_mtxOnStatusCB);
+		_dqOnStatusCB.emplace_back(fun);
 	}
 
 	void onCmd_result(AMFDecoder &dec);
@@ -102,31 +84,26 @@ private:
 	inline void send_createStream();
 	inline void send_publish();
 	inline void send_metaData();
+	void setSocketFlags();
+private:
+	string _strApp;
+	string _strStream;
+	string _strTcUrl;
 
-	string m_strApp;
-	string m_strStream;
-	string m_strTcUrl;
-
-	unordered_map<int, function<void(AMFDecoder &dec)> > m_mapOnResultCB;
-	recursive_mutex m_mtxOnResultCB;
-	deque<function<void(AMFValue &dec)> > m_dqOnStatusCB;
-	recursive_mutex m_mtxOnStatusCB;
-
-	typedef void (RtmpPusher::*rtmpCMDHandle)(AMFDecoder &dec);
-	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
-
+	unordered_map<int, function<void(AMFDecoder &dec)> > _mapOnResultCB;
+	recursive_mutex _mtxOnResultCB;
+	deque<function<void(AMFValue &dec)> > _dqOnStatusCB;
+	recursive_mutex _mtxOnStatusCB;
 	//超时功能实现
-	std::shared_ptr<Timer> m_pPublishTimer;
-    
+	std::shared_ptr<Timer> _pPublishTimer;
     //源
-    std::weak_ptr<RtmpMediaSource> m_pMediaSrc;
-    RtmpMediaSource::RingType::RingReader::Ptr m_pRtmpReader;
+    std::weak_ptr<RtmpMediaSource> _pMediaSrc;
+    RtmpMediaSource::RingType::RingReader::Ptr _pRtmpReader;
     //事件监听
-    Event m_onShutdown;
-    Event m_onPublished;
+    Event _onShutdown;
+    Event _onPublished;
 };
 
-} /* namespace Rtmp */
-} /* namespace ZL */
+} /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPPUSHER_H_ */
