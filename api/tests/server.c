@@ -372,19 +372,23 @@ void API_CALL on_mk_shell_login(const char *user_name,
  * @param total_bytes 耗费上下行总流量，单位字节数
  * @param total_seconds 本次tcp会话时长，单位秒
  * @param is_player 客户端是否为播放器
+ * @param peer_ip 客户端ip
+ * @param peer_port 客户端端口号
  */
 void API_CALL on_mk_flow_report(const mk_media_info url_info,
                                 uint64_t total_bytes,
                                 uint64_t total_seconds,
-                                int is_player) {
+                                int is_player,
+                                const char *peer_ip,
+                                uint16_t peer_port) {
     log_printf(LOG_LEV,"%s/%s/%s/%s, url params: %s,"
-              "total_bytes: %d, total_seconds: %d, is_player: %d",
+              "total_bytes: %d, total_seconds: %d, is_player: %d, peer_ip:%s, peer_port:%d",
                mk_media_info_get_schema(url_info),
                mk_media_info_get_vhost(url_info),
                mk_media_info_get_app(url_info),
                mk_media_info_get_stream(url_info),
                mk_media_info_get_params(url_info),
-              (int)total_bytes, (int)total_seconds, (int)is_player);
+              (int)total_bytes, (int)total_seconds, (int)is_player,peer_ip, (int)peer_port);
 }
 
 static int flag = 1;

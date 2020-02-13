@@ -92,7 +92,7 @@ private:
 class HlsCookieData{
 public:
     typedef std::shared_ptr<HlsCookieData> Ptr;
-    HlsCookieData(const MediaInfo &info);
+    HlsCookieData(const MediaInfo &info, const string &peer_ip, uint16_t peer_port);
     ~HlsCookieData();
     void addByteUsage(uint64_t bytes);
 private:
@@ -100,6 +100,8 @@ private:
 private:
     uint64_t _bytes = 0;
     MediaInfo _info;
+    string _peer_ip;
+    uint16_t _peer_port;
     std::shared_ptr<bool> _added;
     weak_ptr<HlsMediaSource> _src;
     Ticker _ticker;

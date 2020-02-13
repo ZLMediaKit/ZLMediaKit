@@ -162,11 +162,15 @@ typedef struct {
      * @param total_bytes 耗费上下行总流量，单位字节数
      * @param total_seconds 本次tcp会话时长，单位秒
      * @param is_player 客户端是否为播放器
+     * @param peer_ip 客户端ip
+     * @param peer_port 客户端端口号
      */
     void (API_CALL *on_mk_flow_report)(const mk_media_info url_info,
                                        uint64_t total_bytes,
                                        uint64_t total_seconds,
-                                       int is_player);
+                                       int is_player,
+                                       const char *peer_ip,
+                                       uint16_t peer_port);
 } mk_events;
 
 

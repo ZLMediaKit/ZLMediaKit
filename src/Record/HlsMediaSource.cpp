@@ -28,8 +28,10 @@
 
 namespace mediakit{
 
-HlsCookieData::HlsCookieData(const MediaInfo &info) {
+HlsCookieData::HlsCookieData(const MediaInfo &info, const string &peer_ip, uint16_t peer_port) {
     _info = info;
+    _peer_ip = peer_ip;
+    _peer_port = peer_port;
     _added = std::make_shared<bool>(false);
     addReaderCount();
 }
@@ -61,7 +63,7 @@ HlsCookieData::~HlsCookieData() {
         WarnL << "HLS播放器(" << _info._vhost << "/" << _info._app << "/" << _info._streamid << ")断开,播放时间:" << duration;
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
         if (_bytes > iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, _bytes, duration, true);
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, _bytes, duration, true, _peer_ip, _peer_port);
         }
     }
 }
