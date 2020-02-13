@@ -269,13 +269,15 @@ void installWebHook(){
     });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastFlowReport,[](BroadcastFlowReportArgs){
-        if(!hook_enable || args._param_strs == hook_adminparams || hook_flowreport.empty()){
+        if(!hook_enable || args._param_strs == hook_adminparams || hook_flowreport.empty() || peerIP == "127.0.0.1"){
             return;
         }
         auto body = make_json(args);
         body["totalBytes"] = (Json::UInt64)totalBytes;
         body["duration"] = (Json::UInt64)totalDuration;
         body["player"] = isPlayer;
+        body["ip"] = peerIP;
+        body["port"] = peerPort;
         //执行hook
         do_http_hook(hook_flowreport,body, nullptr);
     });

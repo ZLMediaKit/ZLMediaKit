@@ -112,7 +112,7 @@ void HttpSession::onError(const SockException& err) {
 
         GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
         if(_ui64TotalBytes > iFlowThreshold * 1024){
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, _ticker.createdTime()/1000, true);
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, _ticker.createdTime()/1000, true, get_peer_ip(), get_peer_port());
         }
         return;
     }

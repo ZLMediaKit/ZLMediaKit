@@ -151,7 +151,9 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_flow_report((mk_media_info) &args,
                                            totalBytes,
                                            totalDuration,
-                                           isPlayer);
+                                           isPlayer,
+                                           peerIP.c_str(),
+                                           peerPort);
             }
         });
 
