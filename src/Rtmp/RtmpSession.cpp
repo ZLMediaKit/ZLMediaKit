@@ -45,17 +45,19 @@ RtmpSession::~RtmpSession() {
 
 void RtmpSession::onError(const SockException& err) {
     bool isPlayer = !_pPublisherSrc;
+    uint64_t duration = _ticker.createdTime()/1000;
     WarnP(this) << (isPlayer ? "RTMP播放器(" : "RTMP推流器(")
                 << _mediaInfo._vhost << "/"
                 << _mediaInfo._app << "/"
                 << _mediaInfo._streamid
-                << ")断开:" << err.what();
+                << ")断开:" << err.what()
+                << ",耗时(s):" << duration;
 
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
 
     if(_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, _ticker.createdTime()/1000, isPlayer, get_peer_ip(), get_peer_port());
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, duration, isPlayer, getIdentifier(), get_peer_ip(), get_peer_port());
     }
 }
 
@@ -206,7 +208,7 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
 	status.set("code", "NetStream.Unpublish.Success");
 	status.set("description", "Stop publishing.");
 	sendReply("onStatus", nullptr, status);
-	throw std::runtime_error(StrPrinter << "Stop publishing." << endl);
+	throw std::runtime_error(StrPrinter << "Stop publishing" << endl);
 }
 
 

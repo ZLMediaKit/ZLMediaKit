@@ -278,6 +278,7 @@ void installWebHook(){
         body["player"] = isPlayer;
         body["ip"] = peerIP;
         body["port"] = peerPort;
+        body["id"] = sessionIdentifier;
         //执行hook
         do_http_hook(hook_flowreport,body, nullptr);
     });

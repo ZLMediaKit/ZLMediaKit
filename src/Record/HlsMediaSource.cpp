@@ -28,8 +28,9 @@
 
 namespace mediakit{
 
-HlsCookieData::HlsCookieData(const MediaInfo &info, const string &peer_ip, uint16_t peer_port) {
+HlsCookieData::HlsCookieData(const MediaInfo &info, const string &sessionIdentifier, const string &peer_ip, uint16_t peer_port) {
     _info = info;
+    _sessionIdentifier = sessionIdentifier;
     _peer_ip = peer_ip;
     _peer_port = peer_port;
     _added = std::make_shared<bool>(false);
@@ -59,11 +60,14 @@ HlsCookieData::~HlsCookieData() {
         if (src) {
             src->modifyReaderCount(false);
         }
-        auto duration = (_ticker.createdTime() - _ticker.elapsedTime()) / 1000;
-        WarnL << "HLS播放器(" << _info._vhost << "/" << _info._app << "/" << _info._streamid << ")断开,播放时间:" << duration;
+        uint64_t duration = (_ticker.createdTime() - _ticker.elapsedTime()) / 1000;
+        WarnL << _sessionIdentifier << "(" << _peer_ip << ":" << _peer_port << ") "
+              << "HLS播放器(" << _info._vhost << "/" << _info._app << "/" << _info._streamid
+              << ")断开,耗时(s):" << duration;
+
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
         if (_bytes > iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, _bytes, duration, true, _peer_ip, _peer_port);
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, _bytes, duration, true, _sessionIdentifier, _peer_ip, _peer_port);
         }
     }
 }
