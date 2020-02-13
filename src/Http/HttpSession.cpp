@@ -103,16 +103,18 @@ void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 
 void HttpSession::onError(const SockException& err) {
     if(_is_flv_stream){
+        uint64_t duration = _ticker.createdTime()/1000;
         //flv播放器
         WarnP(this) << "FLV播放器("
                     << _mediaInfo._vhost << "/"
                     << _mediaInfo._app << "/"
                     << _mediaInfo._streamid
-                    << ")断开:" << err.what();
+                    << ")断开:" << err.what()
+                    << ",耗时(s):" << duration;
 
         GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
         if(_ui64TotalBytes > iFlowThreshold * 1024){
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, _ticker.createdTime()/1000, true, get_peer_ip(), get_peer_port());
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, duration , true, getIdentifier(), get_peer_ip(), get_peer_port());
         }
         return;
     }

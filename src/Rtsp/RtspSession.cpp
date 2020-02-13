@@ -86,11 +86,13 @@ RtspSession::~RtspSession() {
 
 void RtspSession::onError(const SockException& err) {
     bool isPlayer = !_pushSrc;
+    uint64_t duration = _ticker.createdTime()/1000;
     WarnP(this) << (isPlayer ? "RTSP播放器(" : "RTSP推流器(")
                 << _mediaInfo._vhost << "/"
                 << _mediaInfo._app << "/"
                 << _mediaInfo._streamid
-                << ")断开:" << err.what();
+                << ")断开:" << err.what()
+                << ",耗时(s):" << duration;
 
 	if (_rtpType == Rtsp::RTP_MULTICAST) {
 		//取消UDP端口监听
@@ -106,7 +108,7 @@ void RtspSession::onError(const SockException& err) {
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
     if(_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, _ticker.createdTime()/1000, isPlayer, get_peer_ip(), get_peer_port());
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, duration, isPlayer, getIdentifier(), get_peer_ip(), get_peer_port());
     }
 
 }
