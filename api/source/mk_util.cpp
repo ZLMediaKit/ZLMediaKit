@@ -35,23 +35,23 @@ API_EXPORT char* API_CALL mk_util_get_exe_path(){
     return strdup(exePath().data());
 }
 
-API_EXPORT char* API_CALL mk_uitl_get_exe_dir(const char *relative_path){
+API_EXPORT char* API_CALL mk_util_get_exe_dir(const char *relative_path){
     if(relative_path){
         return strdup((exeDir() + relative_path).data());
     }
     return strdup(exeDir().data());
 }
 
-API_EXPORT uint64_t API_CALL mk_uitl_get_current_millisecond(){
+API_EXPORT uint64_t API_CALL mk_util_get_current_millisecond(){
     return getCurrentMillisecond();
 }
 
-API_EXPORT char* API_CALL mk_uitl_get_current_time_string(const char *fmt){
+API_EXPORT char* API_CALL mk_util_get_current_time_string(const char *fmt){
     assert(fmt);
     return strdup(getTimeStr(fmt).data());
 }
 
-API_EXPORT char* API_CALL mk_uitl_hex_dump(const void *buf, int len){
+API_EXPORT char* API_CALL mk_util_hex_dump(const void *buf, int len){
     assert(buf && len > 0);
     return strdup(hexdump(buf,len).data());
 }
