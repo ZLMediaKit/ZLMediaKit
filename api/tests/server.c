@@ -396,8 +396,8 @@ static void s_on_exit(int sig){
     flag = 0;
 }
 int main(int argc, char *argv[]) {
-    char *ini_path = mk_uitl_get_exe_dir("c_api.ini");
-    char *ssl_path = mk_uitl_get_exe_dir("ssl.p12");
+    char *ini_path = mk_util_get_exe_dir("c_api.ini");
+    char *ssl_path = mk_util_get_exe_dir("ssl.p12");
 
     mk_config config = {
             .ini = ini_path,

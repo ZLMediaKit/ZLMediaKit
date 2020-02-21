@@ -45,20 +45,20 @@ API_EXPORT char* API_CALL mk_util_get_exe_path();
  * @param relative_path 同目录下文件的路径相对,可以为null
  * @return 文件路径，使用完后需要自己free
  */
-API_EXPORT char* API_CALL mk_uitl_get_exe_dir(const char *relative_path);
+API_EXPORT char* API_CALL mk_util_get_exe_dir(const char *relative_path);
 
 /**
  * 获取unix标准的系统时间戳
  * @return 当前系统时间戳
  */
-API_EXPORT uint64_t API_CALL mk_uitl_get_current_millisecond();
+API_EXPORT uint64_t API_CALL mk_util_get_current_millisecond();
 
 /**
  * 获取时间字符串
  * @param fmt 时间格式，譬如%Y-%m-%d %H:%M:%S
  * @return 时间字符串，使用完后需要自己free
  */
-API_EXPORT char* API_CALL mk_uitl_get_current_time_string(const char *fmt);
+API_EXPORT char* API_CALL mk_util_get_current_time_string(const char *fmt);
 
 /**
  * 打印二进制为字符串
@@ -66,7 +66,7 @@ API_EXPORT char* API_CALL mk_uitl_get_current_time_string(const char *fmt);
  * @param len 数据长度
  * @return 可打印的调试信息，使用完后需要自己free
  */
-API_EXPORT char* API_CALL mk_uitl_hex_dump(const void *buf, int len);
+API_EXPORT char* API_CALL mk_util_hex_dump(const void *buf, int len);
 ///////////////////////////////////////////日志/////////////////////////////////////////////
 
 /**
