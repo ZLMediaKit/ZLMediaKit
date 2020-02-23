@@ -36,7 +36,7 @@ RtpSession::RtpSession(const Socket::Ptr &sock) : TcpSession(sock) {
 }
 RtpSession::~RtpSession() {
     DebugP(this);
-    if(_ssrc){
+    if(_process){
         RtpSelector::Instance().delProcess(_ssrc,_process.get());
     }
 }
@@ -66,11 +66,13 @@ void RtpSession::onManager() {
 }
 
 void RtpSession::onRtpPacket(const char *data, uint64_t len) {
-    if(!_ssrc){
-        _ssrc = RtpSelector::getSSRC(data + 2,len - 2);
+    if (!_process) {
+        if (!RtpSelector::getSSRC(data + 2, len - 2, _ssrc)) {
+            return;
+        }
         _process = RtpSelector::Instance().getProcess(_ssrc, true);
     }
-    _process->inputRtp(data + 2,len - 2,&addr);
+    _process->inputRtp(data + 2, len - 2, &addr);
     _ticker.resetTime();
 }
 
