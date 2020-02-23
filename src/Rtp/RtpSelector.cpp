@@ -36,8 +36,8 @@ bool RtpSelector::inputRtp(const char *data, int data_len,const struct sockaddr 
         _last_rtp_time.resetTime();
         onManager();
     }
-    auto ssrc = getSSRC(data,data_len);
-    if(!ssrc){
+    uint32_t ssrc = 0;
+    if(!getSSRC(data,data_len,ssrc)){
         WarnL << "get ssrc from rtp failed:" << data_len;
         return false;
     }
@@ -48,12 +48,13 @@ bool RtpSelector::inputRtp(const char *data, int data_len,const struct sockaddr 
     return false;
 }
 
-uint32_t RtpSelector::getSSRC(const char *data, int data_len) {
+bool RtpSelector::getSSRC(const char *data,int data_len, uint32_t &ssrc){
     if(data_len < 12){
-        return 0;
+        return false;
     }
     uint32_t *ssrc_ptr = (uint32_t *)(data + 8);
-    return ntohl(*ssrc_ptr);
+    ssrc = ntohl(*ssrc_ptr);
+    return true;
 }
 
 RtpProcess::Ptr RtpSelector::getProcess(uint32_t ssrc,bool makeNew) {
