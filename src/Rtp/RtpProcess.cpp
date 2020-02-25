@@ -181,6 +181,25 @@ void RtpProcess::onRtpDecode(const void *packet, int bytes, uint32_t, int flags)
     }
 }
 
+#define SWITCH_CASE(codec_id) case codec_id : return #codec_id
+static const char *getCodecName(int codec_id) {
+    switch (codec_id) {
+        SWITCH_CASE(STREAM_VIDEO_MPEG4);
+        SWITCH_CASE(STREAM_VIDEO_H264);
+        SWITCH_CASE(STREAM_VIDEO_H265);
+        SWITCH_CASE(STREAM_VIDEO_SVAC);
+        SWITCH_CASE(STREAM_AUDIO_MP3);
+        SWITCH_CASE(STREAM_AUDIO_AAC);
+        SWITCH_CASE(STREAM_AUDIO_G711);
+        SWITCH_CASE(STREAM_AUDIO_G722);
+        SWITCH_CASE(STREAM_AUDIO_G723);
+        SWITCH_CASE(STREAM_AUDIO_G729);
+        SWITCH_CASE(STREAM_AUDIO_SVAC);
+        default:
+            return "unknown codec";
+    }
+}
+
 void RtpProcess::onPSDecode(int stream,
                        int codecid,
                        int flags,
@@ -204,7 +223,7 @@ void RtpProcess::onPSDecode(int stream,
             }
 
             if (codecid != _codecid_video) {
-                WarnL << "video track change to H264 from codecid:" << _codecid_video;
+                WarnL << "video track change to H264 from codecid:" << getCodecName(_codecid_video);
                 return;
             }
 
@@ -227,7 +246,7 @@ void RtpProcess::onPSDecode(int stream,
                 _muxer->addTrack(track);
             }
             if (codecid != _codecid_video) {
-                WarnL << "video track change to H265 from codecid:" << _codecid_video;
+                WarnL << "video track change to H265 from codecid:" << getCodecName(_codecid_video);
                 return;
             }
             if(_save_file_video){
@@ -250,14 +269,16 @@ void RtpProcess::onPSDecode(int stream,
             }
 
             if (codecid != _codecid_audio) {
-                WarnL << "audio track change to AAC from codecid:" << _codecid_audio;
+                WarnL << "audio track change to AAC from codecid:" << getCodecName(_codecid_audio);
                 return;
             }
             _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 7));
             break;
         }
         default:
-            WarnL << "unsupported codec type:" << codecid;
+            if(codecid != 0){
+                WarnL << "unsupported codec type:" << getCodecName(codecid);
+            }
             return;
     }
 }
