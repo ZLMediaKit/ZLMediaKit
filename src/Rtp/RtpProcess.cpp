@@ -190,8 +190,8 @@ void RtpProcess::onPSDecode(int stream,
                        int bytes) {
     pts /= 90;
     dts /= 90;
-    _dts = dts;
     _stamps[codecid].revise(dts,pts,dts,pts,false);
+    _dts = dts;
 
     switch (codecid) {
         case STREAM_VIDEO_H264: {
