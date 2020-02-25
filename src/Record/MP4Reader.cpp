@@ -151,6 +151,9 @@ MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &
 		H264Track::Ptr track = std::make_shared<H264Track>(_strSps,_strPps);
 		_mediaMuxer->addTrack(track);
 	}
+
+    //添加完毕所有track，防止单track情况下最大等待3秒
+    _mediaMuxer->addTrackCompleted();
 }
 
 
