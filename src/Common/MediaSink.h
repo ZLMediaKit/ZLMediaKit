@@ -117,11 +117,17 @@ protected:
      */
     virtual void onTrackFrame(const Frame::Ptr &frame) {};
 private:
+    /**
+     * 触发onAllTrackReady事件
+     */
+    void emitAllTrackReady();
+private:
     mutable recursive_mutex _mtx;
     map<int,Track::Ptr> _track_map;
     map<int,function<void()> > _trackReadyCallback;
     bool _allTrackReady = false;
     Ticker _ticker;
+    int _max_track_size = 2;
 };
 
 

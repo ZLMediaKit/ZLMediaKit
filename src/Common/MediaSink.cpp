@@ -59,6 +59,7 @@ void MediaSink::resetTracks() {
     _track_map.clear();
     _trackReadyCallback.clear();
     _ticker.resetTime();
+    _max_track_size = 2;
 }
 
 void MediaSink::inputFrame(const Frame::Ptr &frame) {
@@ -82,7 +83,7 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
     if(!_allTrackReady){
         if(_ticker.elapsedTime() > MAX_WAIT_MS_READY){
             //如果超过规定时间，那么不再等待并忽略未准备好的Track
-            addTrackCompleted();
+            emitAllTrackReady();
             return;
         }
 
@@ -91,21 +92,26 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
             return;
         }
 
-        if(_track_map.size() == 2){
+        if(_track_map.size() == _max_track_size){
             //如果已经添加了音视频Track，并且不存在未准备好的Track，那么说明所有Track都准备好了
-            addTrackCompleted();
+            emitAllTrackReady();
             return;
         }
 
         if(_track_map.size() == 1 && _ticker.elapsedTime() > MAX_WAIT_MS_ADD_TRACK){
             //如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
-            addTrackCompleted();
+            emitAllTrackReady();
             return;
         }
     }
 }
 
-void MediaSink::addTrackCompleted() {
+void MediaSink::addTrackCompleted(){
+    lock_guard<recursive_mutex> lck(_mtx);
+    _max_track_size = _track_map.size();
+}
+
+void MediaSink::emitAllTrackReady() {
     if (_allTrackReady) {
         return;
     }

@@ -291,6 +291,9 @@ void PlayerProxy::onPlaySuccess() {
 		audioMaker->addDelegate(_mediaMuxer);
 	}
 
+	//添加完毕所有track，防止单track情况下最大等待3秒
+    _mediaMuxer->addTrackCompleted();
+
     if(_pMediaSrc){
         _pMediaSrc->setTrackSource(_mediaMuxer);
     }
