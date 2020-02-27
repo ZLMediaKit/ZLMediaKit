@@ -64,19 +64,31 @@ void MediaSink::resetTracks() {
 
 void MediaSink::inputFrame(const Frame::Ptr &frame) {
     lock_guard<recursive_mutex> lck(_mtx);
-    auto codec_id = frame->getCodecId();
-    auto it = _track_map.find(codec_id);
+    auto it = _track_map.find(frame->getCodecId());
     if (it == _track_map.end()) {
         return;
     }
     it->second->inputFrame(frame);
+    checkTrackIfReady(it->second);
+}
 
-    if(!_allTrackReady && !_trackReadyCallback.empty() && it->second->ready()){
-        //Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
-        auto it_callback = _trackReadyCallback.find(codec_id);
-        if(it_callback != _trackReadyCallback.end()){
-            it_callback->second();
-            _trackReadyCallback.erase(it_callback);
+void MediaSink::checkTrackIfReady_l(const Track::Ptr &track){
+    //Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
+    auto it_callback = _trackReadyCallback.find(track->getCodecId());
+    if (it_callback != _trackReadyCallback.end() && track->ready()) {
+        it_callback->second();
+        _trackReadyCallback.erase(it_callback);
+    }
+}
+
+void MediaSink::checkTrackIfReady(const Track::Ptr &track){
+    if (!_allTrackReady && !_trackReadyCallback.empty()) {
+        if (track) {
+            checkTrackIfReady_l(track);
+        } else {
+            for (auto &pr : _track_map) {
+                checkTrackIfReady_l(pr.second);
+            }
         }
     }
 
@@ -107,8 +119,11 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
 }
 
 void MediaSink::addTrackCompleted(){
-    lock_guard<recursive_mutex> lck(_mtx);
-    _max_track_size = _track_map.size();
+    {
+        lock_guard<recursive_mutex> lck(_mtx);
+        _max_track_size = _track_map.size();
+    }
+    checkTrackIfReady(nullptr);
 }
 
 void MediaSink::emitAllTrackReady() {
