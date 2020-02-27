@@ -75,6 +75,12 @@ API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample
     (*obj)->initAudio(info);
 }
 
+API_EXPORT void API_CALL mk_media_init_complete(mk_media ctx){
+    assert(ctx);
+    DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
+    (*obj)->addTrackCompleted();
+}
+
 API_EXPORT void API_CALL mk_media_input_h264(mk_media ctx, void *data, int len, uint32_t dts, uint32_t pts) {
     assert(ctx && data && len > 0);
     DevChannel::Ptr *obj = (DevChannel::Ptr *) ctx;
