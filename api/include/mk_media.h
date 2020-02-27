@@ -82,6 +82,14 @@ API_EXPORT void API_CALL mk_media_init_h265(mk_media ctx, int width, int height,
 API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample_bit, int sample_rate, int profile);
 
 /**
+ * 初始化h264/h265/aac完毕后调用此函数，
+ * 在单track(只有音频或视频)时，因为ZLMediaKit不知道后续是否还要添加track，所以会多等待3秒钟
+ * 如果产生的流是单Track类型，请调用此函数以便加快流生成速度，当然不调用该函数，影响也不大(会多等待3秒)
+ * @param ctx 对象指针
+ */
+API_EXPORT void API_CALL mk_media_init_complete(mk_media ctx);
+
+/**
  * 输入单帧H264视频，帧起始字节00 00 01,00 00 00 01均可
  * @param ctx 对象指针
  * @param data 单帧H264数据
