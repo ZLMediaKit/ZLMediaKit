@@ -114,6 +114,7 @@ API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_eve
 
 /**
  * 设置音视频数据回调函数
+ * 该接口只能在播放成功事件触发后才能调用
  * @param ctx 播放器指针
  * @param cb 回调函数指针,不得为null
  * @param user_data 用户数据指针
