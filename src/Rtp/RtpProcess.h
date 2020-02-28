@@ -49,6 +49,9 @@ public:
     bool alive();
     string get_peer_ip();
     uint16_t get_peer_port();
+
+    int totalReaderCount();
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
     void onRtpDecode(const void *packet, int bytes, uint32_t timestamp, int flags) override;

@@ -299,5 +299,13 @@ uint16_t RtpProcess::get_peer_port() {
     return ntohs(((struct sockaddr_in *) _addr)->sin_port);
 }
 
+int RtpProcess::totalReaderCount(){
+    return _muxer->totalReaderCount();
+}
+
+void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
+    _muxer->setListener(listener);
+}
+
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)

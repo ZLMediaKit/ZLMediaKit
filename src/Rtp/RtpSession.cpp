@@ -71,9 +71,33 @@ void RtpSession::onRtpPacket(const char *data, uint64_t len) {
             return;
         }
         _process = RtpSelector::Instance().getProcess(_ssrc, true);
+        _process->setListener(dynamic_pointer_cast<RtpSession>(shared_from_this()));
     }
     _process->inputRtp(data + 2, len - 2, &addr);
     _ticker.resetTime();
+}
+
+bool RtpSession::close(MediaSource &sender, bool force) {
+    //此回调在其他线程触发
+    if(!_process || (!force && _process->totalReaderCount())){
+        return false;
+    }
+    string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    safeShutdown(SockException(Err_shutdown,err));
+    return true;
+}
+
+void RtpSession::onNoneReader(MediaSource &sender) {
+    //此回调在其他线程触发
+    if(!_process || _process->totalReaderCount()){
+        return;
+    }
+    MediaSourceEvent::onNoneReader(sender);
+}
+
+int RtpSession::totalReaderCount(MediaSource &sender) {
+    //此回调在其他线程触发
+    return _process ? _process->totalReaderCount() : sender.totalReaderCount();
 }
 
 }//namespace mediakit
