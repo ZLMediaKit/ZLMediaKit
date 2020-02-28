@@ -363,7 +363,7 @@ docker build -t zlmediakit .
  - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
  - [IOS rtmp/rtsp播放器，视频推流器](https://gitee.com/xiahcu/IOSPlayer)
  - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xiongziliang/ZLMediaPlayer)
-
+ - [配套的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
    上述工程可能在最新的代码的情况下编译不过，请手动修改
 
 
