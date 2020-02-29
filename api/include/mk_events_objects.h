@@ -315,7 +315,7 @@ API_EXPORT mk_auth_invoker API_CALL mk_auth_invoker_clone(const mk_auth_invoker 
 /**
  * 销毁堆上的克隆对象
  */
-API_EXPORT void API_CALL mk_auth_invoker_clone_relase(const mk_auth_invoker ctx);
+API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx);
 
 #ifdef __cplusplus
 }

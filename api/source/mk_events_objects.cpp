@@ -417,7 +417,7 @@ API_EXPORT mk_auth_invoker API_CALL mk_auth_invoker_clone(const mk_auth_invoker 
     return new Broadcast::AuthInvoker(*invoker);
 }
 
-API_EXPORT void API_CALL mk_auth_invoker_clone_relase(const mk_auth_invoker ctx){
+API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx){
     assert(ctx);
     Broadcast::AuthInvoker *invoker = (Broadcast::AuthInvoker *)ctx;
     delete invoker;
