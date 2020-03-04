@@ -98,8 +98,6 @@ int main(int argc,char *argv[]) {
     rtspSrv->start<RtspSession>(554);//默认554
     rtmpSrv->start<RtmpSession>(1935);//默认1935
     httpSrv->start<HttpSession>(80);//默认80
-    //此处可以选择MP4V-ES或MP2P
-    mINI::Instance()[RtpProxy::kRtpType] = "MP4V-ES";
     //此处选择是否导出调试文件
 //    mINI::Instance()[RtpProxy::kDumpDir] = "/Users/xzl/Desktop/";
 

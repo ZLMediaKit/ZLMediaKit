@@ -306,8 +306,6 @@ namespace RtpProxy {
 extern const string kDumpDir;
 //是否限制udp数据来源ip和端口
 extern const string kCheckSource;
-//rtp类型，支持MP2P/MP4V-ES
-extern const string kRtpType;
 //rtp接收超时时间
 extern const string kTimeoutSec;
 } //namespace RtpProxy
