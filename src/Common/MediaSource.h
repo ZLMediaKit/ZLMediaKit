@@ -151,7 +151,6 @@ public:
 protected:
     void regist() ;
     bool unregist() ;
-    void unregisted();
 private:
     string _strSchema;
     string _strVhost;
