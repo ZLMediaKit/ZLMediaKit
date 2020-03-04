@@ -33,6 +33,7 @@
 
 namespace mediakit{
 
+static const vector<string> kRtpTypes = {"MP2P","MP4V-ES"};
 
 /**
 * 合并一些时间戳相同的frame
@@ -84,6 +85,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     _track->_samplerate = 90000;
     _track->_type = TrackVideo;
     _track->_ssrc = _ssrc;
+    getNextRtpType();
     DebugL << printSSRC(_ssrc);
 
     GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
@@ -153,6 +155,14 @@ bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *
     return ret;
 }
 
+void RtpProcess::getNextRtpType(){
+    _rtp_type = kRtpTypes[_rtp_type_idx++];
+    _rtp_dec_failed_cnt = 0;
+    if(_rtp_type_idx == kRtpTypes.size()){
+        _rtp_type_idx = 0;
+    }
+}
+
 void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
     if(rtp->sequence != _sequence + 1){
         WarnL << rtp->sequence << " != " << _sequence << "+1";
@@ -166,8 +176,7 @@ void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
         fwrite((uint8_t *) rtp->data() + 4, rtp->size() - 4, 1, _save_file_rtp.get());
     }
 
-    GET_CONFIG(string,rtp_type,::RtpProxy::kRtpType);
-    decodeRtp(rtp->data() + 4 ,rtp->size() - 4,rtp_type.data());
+    decodeRtp(rtp->data() + 4 ,rtp->size() - 4,_rtp_type);
 }
 
 void RtpProcess::onRtpDecode(const void *packet, int bytes, uint32_t, int flags) {
@@ -178,6 +187,12 @@ void RtpProcess::onRtpDecode(const void *packet, int bytes, uint32_t, int flags)
     auto ret = decodePS((uint8_t *)packet,bytes);
     if(ret != bytes){
         WarnL << ret << " != " << bytes << " " << flags;
+        if(++_rtp_dec_failed_cnt == 10){
+            getNextRtpType();
+            InfoL << "rtp of ssrc " << printSSRC(_ssrc) << " change to type: " << _rtp_type ;
+        }
+    } else{
+        _rtp_dec_failed_cnt = 0;
     }
 }
 
@@ -306,6 +321,7 @@ int RtpProcess::totalReaderCount(){
 void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
     _muxer->setListener(listener);
 }
+
 
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)

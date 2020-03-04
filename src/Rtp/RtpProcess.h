@@ -63,6 +63,8 @@ protected:
                     const void *data,
                     int bytes) override ;
 private:
+    void getNextRtpType();
+private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
     std::shared_ptr<FILE> _save_file_video;
@@ -77,6 +79,9 @@ private:
     Ticker _last_rtp_time;
     map<int,Stamp> _stamps;
     uint32_t _dts = 0;
+    int _rtp_type_idx = 0;
+    string _rtp_type;
+    int _rtp_dec_failed_cnt = 0;
 };
 
 }//namespace mediakit

@@ -282,15 +282,12 @@ namespace RtpProxy {
 const string kDumpDir = RTP_PROXY_FIELD"dumpDir";
 //是否限制udp数据来源ip和端口
 const string kCheckSource = RTP_PROXY_FIELD"checkSource";
-//rtp类型，支持MP2P/MP4V-ES
-const string kRtpType = RTP_PROXY_FIELD"rtp_type";
 //rtp接收超时时间
 const string kTimeoutSec = RTP_PROXY_FIELD"timeoutSec";
 
 onceToken token([](){
 	mINI::Instance()[kDumpDir] = "";
 	mINI::Instance()[kCheckSource] = 1;
-	mINI::Instance()[kRtpType] = "MP2P";
 	mINI::Instance()[kTimeoutSec] = 15;
 },nullptr);
 } //namespace RtpProxy
