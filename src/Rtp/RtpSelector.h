@@ -69,10 +69,11 @@ public:
     void delProcess(uint32_t ssrc,const RtpProcess *ptr);
 private:
     void onManager();
+    void createTimer();
 private:
     unordered_map<uint32_t,RtpProcessHelper::Ptr> _map_rtp_process;
     recursive_mutex _mtx_map;
-    Ticker _last_rtp_time;
+    Timer::Ptr _timer;
 };
 
 }//namespace mediakit

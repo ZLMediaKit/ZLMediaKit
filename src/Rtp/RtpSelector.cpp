@@ -32,10 +32,6 @@ namespace mediakit{
 INSTANCE_IMP(RtpSelector);
 
 bool RtpSelector::inputRtp(const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
-    if(_last_rtp_time.elapsedTime() > 3000){
-        _last_rtp_time.resetTime();
-        onManager();
-    }
     uint32_t ssrc = 0;
     if(!getSSRC(data,data_len,ssrc)){
         WarnL << "get ssrc from rtp failed:" << data_len;
@@ -67,8 +63,24 @@ RtpProcess::Ptr RtpSelector::getProcess(uint32_t ssrc,bool makeNew) {
     if(!ref){
         ref = std::make_shared<RtpProcessHelper>(ssrc,shared_from_this());
         ref->attachEvent();
+        createTimer();
     }
     return ref->getProcess();
+}
+
+void RtpSelector::createTimer() {
+    if (!_timer) {
+        //创建超时管理定时器
+        weak_ptr<RtpSelector> weakSelf = shared_from_this();
+        _timer = std::make_shared<Timer>(3.0, [weakSelf] {
+            auto strongSelf = weakSelf.lock();
+            if (!strongSelf) {
+                return false;
+            }
+            strongSelf->onManager();
+            return true;
+        }, EventPollerPool::Instance().getPoller());
+    }
 }
 
 void RtpSelector::delProcess(uint32_t ssrc,const RtpProcess *ptr) {
