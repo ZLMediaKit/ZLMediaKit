@@ -138,13 +138,13 @@ void PlayerProxy::play(const string &strUrlTmp) {
 	MediaPlayer::play(strUrlTmp);
 
 	MediaSource::Ptr mediaSource;
-	if(dynamic_pointer_cast<RtspPlayer>(_parser)){
+	if(dynamic_pointer_cast<RtspPlayer>(_delegate)){
 		//rtsp拉流
 		GET_CONFIG(bool,directProxy,Rtsp::kDirectProxy);
 		if(directProxy && _bEnableRtsp){
 			mediaSource = std::make_shared<RtspMediaSource>(_strVhost,_strApp,_strSrc);
 		}
-	} else if(dynamic_pointer_cast<RtmpPlayer>(_parser)){
+	} else if(dynamic_pointer_cast<RtmpPlayer>(_delegate)){
 		//rtmp拉流
 		if(_bEnableRtmp){
 			mediaSource = std::make_shared<RtmpMediaSource>(_strVhost,_strApp,_strSrc);
@@ -174,12 +174,8 @@ void PlayerProxy::rePlay(const string &strUrl,int iFailedCnt){
 	}, getPoller());
 }
 
-int PlayerProxy::readerCount(){
-	return (_mediaMuxer ? _mediaMuxer->readerCount() : 0) + (_pMediaSrc ? _pMediaSrc->readerCount() : 0);
-}
-
 bool PlayerProxy::close(MediaSource &sender,bool force) {
-    if(!force && readerCount() != 0){
+    if(!force && totalReaderCount()){
         return false;
     }
 
@@ -201,13 +197,21 @@ bool PlayerProxy::close(MediaSource &sender,bool force) {
 }
 
 void PlayerProxy::onNoneReader(MediaSource &sender) {
-    if(!_mediaMuxer || _mediaMuxer->readerCount() != 0){
+    if(!_mediaMuxer || totalReaderCount()){
         return;
     }
     MediaSourceEvent::onNoneReader(sender);
 }
 
-class MuteAudioMaker : public FrameRingInterfaceDelegate{
+int PlayerProxy::totalReaderCount(){
+    return (_mediaMuxer ? _mediaMuxer->totalReaderCount() : 0) + (_pMediaSrc ? _pMediaSrc->readerCount() : 0);
+}
+
+int PlayerProxy::totalReaderCount(MediaSource &sender) {
+	return totalReaderCount();
+}
+
+class MuteAudioMaker : public FrameDispatcher{
 public:
 	typedef std::shared_ptr<MuteAudioMaker> Ptr;
 
@@ -215,16 +219,26 @@ public:
 	virtual ~MuteAudioMaker(){}
 	void inputFrame(const Frame::Ptr &frame) override {
 		if(frame->getTrackType() == TrackVideo){
-			auto iAudioIndex = frame->stamp() / MUTE_ADTS_DATA_MS;
+			auto iAudioIndex = frame->dts() / MUTE_ADTS_DATA_MS;
 			if(_iAudioIndex != iAudioIndex){
 				_iAudioIndex = iAudioIndex;
-				auto aacFrame = std::make_shared<AACFrameNoCacheAble>((char *)MUTE_ADTS_DATA,
-																	  MUTE_ADTS_DATA_LEN,
-																	  _iAudioIndex * MUTE_ADTS_DATA_MS);
-				FrameRingInterfaceDelegate::inputFrame(aacFrame);
+				auto aacFrame = std::make_shared<AACFrameCacheAble>((char *)MUTE_ADTS_DATA, MUTE_ADTS_DATA_LEN, _iAudioIndex * MUTE_ADTS_DATA_MS);
+				FrameDispatcher::inputFrame(aacFrame);
 			}
 		}
 	}
+
+private:
+	class AACFrameCacheAble : public AACFrameNoCacheAble{
+	public:
+		template <typename ... ARGS>
+		AACFrameCacheAble(ARGS && ...args) : AACFrameNoCacheAble(std::forward<ARGS>(args)...){};
+		virtual ~AACFrameCacheAble() = default;
+
+		bool cacheAble() const override {
+			return true;
+		}
+	};
 private:
 	int _iAudioIndex = 0;
 };
@@ -276,6 +290,13 @@ void PlayerProxy::onPlaySuccess() {
 		//MuteAudioMaker生成静音音频然后写入_mediaMuxer；
 		audioMaker->addDelegate(_mediaMuxer);
 	}
+
+	//添加完毕所有track，防止单track情况下最大等待3秒
+    _mediaMuxer->addTrackCompleted();
+
+    if(_pMediaSrc){
+        _pMediaSrc->setTrackSource(_mediaMuxer);
+    }
 }
 
 

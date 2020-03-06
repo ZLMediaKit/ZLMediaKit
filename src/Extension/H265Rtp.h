@@ -30,6 +30,7 @@
 #include "Rtsp/RtpCodec.h"
 #include "Util/ResourcePool.h"
 #include "Extension/H265.h"
+#include "Common/Stamp.h"
 
 using namespace toolkit;
 
@@ -67,6 +68,7 @@ private:
     H265Frame::Ptr obtainFrame();
 private:
     H265Frame::Ptr _h265frame;
+    DtsGenerator _dts_generator;
     int _lastSeq = 0;
 };
 

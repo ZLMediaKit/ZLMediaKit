@@ -34,25 +34,29 @@ using namespace toolkit;
 
 namespace mediakit{
 
-class RtpRingInterface {
+class RtpRing{
 public:
+    typedef std::shared_ptr<RtpRing> Ptr;
     typedef RingBuffer<RtpPacket::Ptr> RingType;
-    typedef std::shared_ptr<RtpRingInterface> Ptr;
 
-    RtpRingInterface(){}
-    virtual ~RtpRingInterface(){}
+    RtpRing(){}
+    virtual ~RtpRing(){}
 
     /**
      * 获取rtp环形缓存
      * @return
      */
-    virtual RingType::Ptr getRtpRing() const = 0;
+    virtual RingType::Ptr getRtpRing() const {
+        return _rtpRing;
+    }
 
     /**
      * 设置rtp环形缓存
      * @param ring
      */
-    virtual void setRtpRing(const RingType::Ptr &ring) = 0;
+    virtual void setRtpRing(const RingType::Ptr &ring){
+        _rtpRing = ring;
+    }
 
     /**
      * 输入rtp包
@@ -60,26 +64,7 @@ public:
      * @param key_pos 是否为关键帧第一个rtp包
      * @return 是否为关键帧第一个rtp包
      */
-    virtual bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) = 0;
-};
-
-class RtpRing : public RtpRingInterface {
-public:
-    typedef std::shared_ptr<RtpRing> Ptr;
-
-    RtpRing(){
-    }
-    virtual ~RtpRing(){}
-
-    RingType::Ptr getRtpRing() const override {
-        return _rtpRing;
-    }
-
-    void setRtpRing(const RingType::Ptr &ring) override {
-        _rtpRing = ring;
-    }
-
-    bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) override{
+    virtual bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos){
         if(_rtpRing){
             _rtpRing->write(rtp,key_pos);
         }
@@ -147,7 +132,7 @@ protected:
     uint32_t _ui32TimeStamp = 0;
 };
 
-class RtpCodec : public RtpRing, public FrameRingInterfaceDelegate , public CodecInfo{
+class RtpCodec : public RtpRing, public FrameDispatcher , public CodecInfo{
 public:
     typedef std::shared_ptr<RtpCodec> Ptr;
     RtpCodec(){}

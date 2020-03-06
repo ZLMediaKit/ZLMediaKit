@@ -43,17 +43,10 @@ class RtmpDemuxer : public Demuxer{
 public:
 	typedef std::shared_ptr<RtmpDemuxer> Ptr;
 
-	/**
-	 * 等效于RtmpDemuxer(AMFValue(AMF_NULL))
-	 */
-	RtmpDemuxer(){}
-	/**
-	 * 构造rtmp解复用器
-	 * @param val rtmp的metadata，可以传入null类型，
-	 * 这样就会在inputRtmp时异步探测媒体编码格式
-	 */
-	RtmpDemuxer(const AMFValue &val);
-	virtual ~RtmpDemuxer(){};
+	RtmpDemuxer() = default;
+	virtual ~RtmpDemuxer() = default;
+
+	void loadMetaData(const AMFValue &metadata);
 
 	/**
 	 * 开始解复用

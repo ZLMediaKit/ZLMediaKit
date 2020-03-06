@@ -122,9 +122,27 @@ public:
 	vector<SdpTrack::Ptr> getAvailableTrack() const;
 	string toString() const ;
 private:
-	map<string, SdpTrack::Ptr> _track_map;
+	vector<SdpTrack::Ptr> _track_vec;
 };
 
+/**
+ * 解析rtsp url的工具类
+ */
+class RtspUrl{
+public:
+	string _url;
+	string _user;
+	string _passwd;
+	string _host;
+	uint16_t _port;
+	bool _is_ssl;
+public:
+	RtspUrl() = default;
+	~RtspUrl() = default;
+	bool parse(const string &url);
+private:
+	bool setup(bool,const string &, const string &, const string &);
+};
 
 /**
 * rtsp sdp基类

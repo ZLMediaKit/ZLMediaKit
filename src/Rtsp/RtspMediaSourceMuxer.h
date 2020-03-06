@@ -48,15 +48,22 @@ public:
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _mediaSouce->setListener(listener);
     }
+
     int readerCount() const{
         return _mediaSouce->readerCount();
     }
+
     void setTimeStamp(uint32_t stamp){
         _mediaSouce->setTimeStamp(stamp);
     }
-private:
-    void onAllTrackReady() override {
-        _mediaSouce->onGetSDP(getSdp());
+
+    void onAllTrackReady(){
+        _mediaSouce->setSdp(getSdp());
+    }
+
+    // 设置TrackSource
+    void setTrackSource(const std::weak_ptr<TrackSource> &track_src){
+        _mediaSouce->setTrackSource(track_src);
     }
 private:
     RtspMediaSource::Ptr _mediaSouce;

@@ -34,7 +34,7 @@ using namespace std;
 
 namespace mediakit {
 
-RtspDemuxer::RtspDemuxer(const string& sdp) {
+void RtspDemuxer::loadSdp(const string &sdp){
 	loadSdp(SdpParser(sdp));
 }
 
@@ -89,6 +89,7 @@ void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
 		if(_audioRtpDecoder){
 			//设置rtp解码器代理，生成的frame写入该Track
 			_audioRtpDecoder->addDelegate(_audioTrack);
+			onAddTrack(_audioTrack);
 		} else{
 			//找不到相应的rtp解码器，该track无效
 			_audioTrack.reset();
@@ -105,6 +106,7 @@ void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
 		if(_videoRtpDecoder){
 			//设置rtp解码器代理，生成的frame写入该Track
 			_videoRtpDecoder->addDelegate(_videoTrack);
+			onAddTrack(_videoTrack);
 		}else{
 			//找不到相应的rtp解码器，该track无效
 			_videoTrack.reset();

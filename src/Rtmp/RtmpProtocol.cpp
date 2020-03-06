@@ -332,7 +332,7 @@ void RtmpProtocol::handle_C0C1() {
 		//complex handsharke
 		handle_C1_complex();
 #else
-		WarnL << "未打开ENABLE_OPENSSL宏，复杂握手采用简单方式处理！";
+		WarnL << "未打开ENABLE_OPENSSL宏，复杂握手采用简单方式处理，flash播放器可能无法播放！";
 		handle_C1_simple();
 #endif//ENABLE_OPENSSL
 	}
@@ -372,10 +372,10 @@ void RtmpProtocol::handle_C1_complex(){
 		check_C1_Digest(digest,c1_joined);
 
 		send_complex_S0S1S2(0,digest);
-		InfoL << "schema0";
+//		InfoL << "schema0";
 	}catch(std::exception &ex){
 		//貌似flash从来都不用schema1
-		WarnL << "try rtmp complex schema0 failed:" <<  ex.what();
+//		WarnL << "try rtmp complex schema0 failed:" <<  ex.what();
 		try{
 			/* c1s1 schema1
 			time: 4bytes
@@ -389,9 +389,9 @@ void RtmpProtocol::handle_C1_complex(){
 			check_C1_Digest(digest,c1_joined);
 
 			send_complex_S0S1S2(1,digest);
-			InfoL << "schema1";
+//			InfoL << "schema1";
 		}catch(std::exception &ex){
-			WarnL << "try rtmp complex schema1 failed:" <<  ex.what();
+//			WarnL << "try rtmp complex schema1 failed:" <<  ex.what();
 			handle_C1_simple();
 		}
 	}

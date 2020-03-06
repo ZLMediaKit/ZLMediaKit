@@ -39,7 +39,7 @@ namespace mediakit{
 /**
  * 媒体通道描述类，也支持帧输入输出
  */
-class Track : public FrameRingInterfaceDelegate , public CodecInfo{
+class Track : public FrameDispatcher , public CodecInfo{
 public:
     typedef std::shared_ptr<Track> Ptr;
     Track(){}
@@ -130,6 +130,35 @@ public:
     virtual int getAudioChannel() const {return 0;};
 };
 
+
+class TrackSource{
+public:
+    TrackSource(){}
+    virtual ~TrackSource(){}
+
+    /**
+	 * 获取全部的Track
+	 * @param trackReady 是否获取全部已经准备好的Track
+	 * @return
+	 */
+    virtual vector<Track::Ptr> getTracks(bool trackReady = true) const = 0;
+
+    /**
+     * 获取特定Track
+     * @param type track类型
+     * @param trackReady 是否获取全部已经准备好的Track
+     * @return
+     */
+    Track::Ptr getTrack(TrackType type , bool trackReady = true) const {
+        auto tracks = getTracks(trackReady);
+        for(auto &track : tracks){
+            if(track->getTrackType() == type){
+                return track;
+            }
+        }
+        return nullptr;
+    }
+};
 
 }//namespace mediakit
 

@@ -85,74 +85,84 @@ string SdpTrack::toString() const {
 	}
 	return _printer;
 }
-void SdpParser::load(const string &sdp) {
-	_track_map.clear();
-	string key;
-	SdpTrack::Ptr track = std::make_shared<SdpTrack>();
 
-	auto lines = split(sdp,"\n");
-	for (auto &line : lines){
-		trim(line);
-		if(line.size() < 2 || line[1] != '='){
-			continue;
-		}
-		char opt = line[0];
-		string opt_val = line.substr(2);
-		switch (opt){
-			case 'o':
-				track->_o = opt_val;
-				break;
-			case 's':
-				track->_s = opt_val;
-				break;
-			case 'i':
-				track->_i = opt_val;
-				break;
-			case 'c':
-				track->_c = opt_val;
-				break;
-			case 't':
-				track->_t = opt_val;
-				break;
-			case 'b':
-				track->_b = opt_val;
-				break;
-			case 'm':{
-				_track_map[key] = track;
-				track = std::make_shared<SdpTrack>();
-				key = FindField(opt_val.data(), nullptr," ");
-				track->_m = opt_val;
-			}
-				break;
-			case 'a':{
-				string attr = FindField(opt_val.data(), nullptr,":");
-				if(attr.empty()){
-					track->_attr[opt_val] = "";
-				}else{
-					track->_attr[attr] = FindField(opt_val.data(),":", nullptr);
-				}
-			}
-				break;
-			default:
-				track->_other[opt] = opt_val;
-				break;
-		}
+static TrackType toTrackType(const string &str) {
+	if (str == "") {
+		return TrackTitle;
 	}
-	_track_map[key] = track;
 
+	if (str == "video") {
+		return TrackVideo;
+	}
 
-	for (auto &pr : _track_map) {
-		auto &track = *pr.second;
-		if (pr.first == "") {
-			track._type = TrackTitle;
-		} else if (pr.first == "video") {
-			track._type = TrackVideo;
-		} else if (pr.first == "audio") {
-			track._type = TrackAudio;
-		} else {
-			track._type = TrackInvalid;
+	if (str == "audio") {
+		return TrackAudio;
+	}
+
+	return TrackInvalid;
+}
+
+void SdpParser::load(const string &sdp) {
+	{
+		_track_vec.clear();
+		string key;
+		SdpTrack::Ptr track = std::make_shared<SdpTrack>();
+
+		auto lines = split(sdp, "\n");
+		for (auto &line : lines) {
+			trim(line);
+			if (line.size() < 2 || line[1] != '=') {
+				continue;
+			}
+			char opt = line[0];
+			string opt_val = line.substr(2);
+			switch (opt) {
+				case 'o':
+					track->_o = opt_val;
+					break;
+				case 's':
+					track->_s = opt_val;
+					break;
+				case 'i':
+					track->_i = opt_val;
+					break;
+				case 'c':
+					track->_c = opt_val;
+					break;
+				case 't':
+					track->_t = opt_val;
+					break;
+				case 'b':
+					track->_b = opt_val;
+					break;
+				case 'm': {
+					track->_type = toTrackType(key);
+					_track_vec.emplace_back(track);
+					track = std::make_shared<SdpTrack>();
+					key = FindField(opt_val.data(), nullptr, " ");
+					track->_m = opt_val;
+				}
+					break;
+				case 'a': {
+					string attr = FindField(opt_val.data(), nullptr, ":");
+					if (attr.empty()) {
+						track->_attr[opt_val] = "";
+					} else {
+						track->_attr[attr] = FindField(opt_val.data(), ":", nullptr);
+					}
+				}
+					break;
+				default:
+					track->_other[opt] = opt_val;
+					break;
+			}
 		}
+		track->_type = toTrackType(key);
+		_track_vec.emplace_back(track);
+	}
 
+	for (auto &track_ptr : _track_vec) {
+		auto &track = *track_ptr;
 		auto it = track._attr.find("range");
 		if (it != track._attr.end()) {
 			char name[16] = {0}, start[16] = {0}, end[16] = {0};
@@ -198,9 +208,9 @@ bool SdpParser::available() const {
 }
 
 SdpTrack::Ptr SdpParser::getTrack(TrackType type) const {
-	for (auto &pr : _track_map){
-		if(pr.second->_type == type){
-			return pr.second;
+	for (auto &track : _track_vec){
+		if(track->_type == type){
+			return track;
 		}
 	}
 	return nullptr;
@@ -208,31 +218,42 @@ SdpTrack::Ptr SdpParser::getTrack(TrackType type) const {
 
 vector<SdpTrack::Ptr> SdpParser::getAvailableTrack() const {
 	vector<SdpTrack::Ptr> ret;
-	auto video = getTrack(TrackVideo);
-	if(video){
-		ret.emplace_back(video);
+	bool audio_added = false;
+	bool video_added = false;
+	for (auto &track : _track_vec){
+		if(track->_type == TrackAudio ){
+			if(!audio_added){
+				ret.emplace_back(track);
+				audio_added = true;
+			}
+			continue;
+		}
+
+		if(track->_type == TrackVideo ){
+			if(!video_added){
+				ret.emplace_back(track);
+				video_added = true;
+			}
+			continue;
+		}
 	}
-	auto audio = getTrack(TrackAudio);
-	if(audio){
-		ret.emplace_back(audio);
-	}
-	return ret;
+	return std::move(ret);
 }
 
 string SdpParser::toString() const {
 	string title,audio,video;
-	for(auto &pr : _track_map){
-		switch (pr.second->_type){
+	for(auto &track : _track_vec){
+		switch (track->_type){
 			case TrackTitle:{
-				title = pr.second->toString();
+				title = track->toString();
 			}
 				break;
 			case TrackVideo:{
-				video = pr.second->toString();
+				video = track->toString();
 			}
 				break;
 			case TrackAudio:{
-				audio = pr.second->toString();
+				audio = track->toString();
 			}
 				break;
 			default:
@@ -240,6 +261,59 @@ string SdpParser::toString() const {
 		}
 	}
 	return title + video + audio;
+}
+
+bool RtspUrl::parse(const string &strUrl) {
+	auto schema = FindField(strUrl.data(), nullptr, "://");
+	bool isSSL = strcasecmp(schema.data(), "rtsps") == 0;
+	//查找"://"与"/"之间的字符串，用于提取用户名密码
+	auto middle_url = FindField(strUrl.data(), "://", "/");
+	if (middle_url.empty()) {
+		middle_url = FindField(strUrl.data(), "://", nullptr);
+	}
+	auto pos = middle_url.rfind('@');
+	if (pos == string::npos) {
+		//并没有用户名密码
+		return setup(isSSL, strUrl, "", "");
+	}
+
+	//包含用户名密码
+	auto user_pwd = middle_url.substr(0, pos);
+	auto suffix = strUrl.substr(schema.size() + 3 + pos + 1);
+	auto url = StrPrinter << "rtsp://" << suffix << endl;
+	if (user_pwd.find(":") == string::npos) {
+		return setup(isSSL, url, user_pwd, "");
+	}
+	auto user = FindField(user_pwd.data(), nullptr, ":");
+	auto pwd = FindField(user_pwd.data(), ":", nullptr);
+	return setup(isSSL, url, user, pwd);
+}
+
+bool RtspUrl::setup(bool isSSL, const string &strUrl, const string &strUser, const string &strPwd) {
+	auto ip = FindField(strUrl.data(), "://", "/");
+	if (ip.empty()) {
+		ip = split(FindField(strUrl.data(), "://", NULL), "?")[0];
+	}
+	auto port = atoi(FindField(ip.data(), ":", NULL).data());
+	if (port <= 0 || port > UINT16_MAX) {
+		//rtsp 默认端口554
+		port = isSSL ? 322 : 554;
+	} else {
+		//服务器域名
+		ip = FindField(ip.data(), NULL, ":");
+	}
+
+	if (ip.empty()) {
+		return false;
+	}
+
+	_url = std::move(strUrl);
+	_user = std::move(strUser);
+	_passwd = std::move(strPwd);
+	_host = std::move(ip);
+	_port = port;
+	_is_ssl = isSSL;
+	return true;
 }
 
 }//namespace mediakit

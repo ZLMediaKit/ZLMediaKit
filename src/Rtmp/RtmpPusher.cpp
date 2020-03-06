@@ -60,8 +60,8 @@ void RtmpPusher::teardown() {
 	}
 }
 
-void RtmpPusher::onPublishResult(const SockException &ex) {
-	if(_pPublishTimer){
+void RtmpPusher::onPublishResult(const SockException &ex,bool handshakeCompleted) {
+	if(!handshakeCompleted){
 		//播放结果回调
 		_pPublishTimer.reset();
 		if(_onPublished){
@@ -87,7 +87,7 @@ void RtmpPusher::publish(const string &strUrl)  {
     _strTcUrl = string("rtmp://") + strHost + "/" + _strApp;
 
     if (!_strApp.size() || !_strStream.size()) {
-        onPublishResult(SockException(Err_other,"rtmp url非法"));
+        onPublishResult(SockException(Err_other,"rtmp url非法"),false);
         return;
     }
 	DebugL << strHost << " " << _strApp << " " << _strStream;
@@ -102,13 +102,13 @@ void RtmpPusher::publish(const string &strUrl)  {
 	}
 
     weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
-    float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
-    _pPublishTimer.reset( new Timer(playTimeOutSec,  [weakSelf]() {
+    float publishTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
+    _pPublishTimer.reset( new Timer(publishTimeOutSec,  [weakSelf]() {
         auto strongSelf=weakSelf.lock();
         if(!strongSelf) {
             return false;
         }
-        strongSelf->onPublishResult(SockException(Err_timeout,"publish rtmp timeout"));
+        strongSelf->onPublishResult(SockException(Err_timeout,"publish rtmp timeout"), false);
         return false;
     },getPoller()));
 
@@ -120,11 +120,12 @@ void RtmpPusher::publish(const string &strUrl)  {
 }
 
 void RtmpPusher::onErr(const SockException &ex){
-	onPublishResult(ex);
+	//定时器_pPublishTimer为空后表明握手结束了
+	onPublishResult(ex,!_pPublishTimer);
 }
 void RtmpPusher::onConnect(const SockException &err){
 	if(err) {
-		onPublishResult(err);
+		onPublishResult(err,false);
 		return;
 	}
 	//推流器不需要多大的接收缓存，节省内存占用
@@ -146,7 +147,8 @@ void RtmpPusher::onRecv(const Buffer::Ptr &pBuf){
 		onParseRtmp(pBuf->data(), pBuf->size());
 	} catch (exception &e) {
 		SockException ex(Err_other, e.what());
-		onPublishResult(ex);
+		//定时器_pPublishTimer为空后表明握手结束了
+		onPublishResult(ex,!_pPublishTimer);
 	}
 }
 
@@ -223,10 +225,10 @@ inline void RtmpPusher::send_metaData(){
     _pRtmpReader->setDetachCB([weakSelf](){
         auto strongSelf = weakSelf.lock();
         if(strongSelf){
-            strongSelf->onPublishResult(SockException(Err_other,"媒体源被释放"));
+            strongSelf->onPublishResult(SockException(Err_other,"媒体源被释放"), !strongSelf->_pPublishTimer);
         }
     });
-    onPublishResult(SockException(Err_success,"success"));
+    onPublishResult(SockException(Err_success,"success"), false);
 	//提升发送性能
 	setSocketFlags();
 }

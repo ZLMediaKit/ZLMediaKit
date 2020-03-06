@@ -63,7 +63,7 @@ protected:
 		send(buffer);
 	}
 private:
-	void onPublishResult(const SockException &ex);
+	void onPublishResult(const SockException &ex,bool handshakeCompleted);
 
 	template<typename FUN>
 	inline void addOnResultCB(const FUN &fun) {

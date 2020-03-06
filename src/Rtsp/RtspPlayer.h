@@ -40,7 +40,7 @@
 #include "Network/TcpClient.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
-#include "MediaFile/Stamp.h"
+#include "Common/Stamp.h"
 
 using namespace std;
 using namespace toolkit;
@@ -101,22 +101,19 @@ protected:
 	void onErr(const SockException &ex) override;
 private:
 	void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
-	void onPlayResult_l(const SockException &ex);
+	void onPlayResult_l(const SockException &ex , bool handshakeCompleted);
 
-    int getTrackIndexByControlSuffix(const string &controlSuffix) const;
     int getTrackIndexByInterleaved(int interleaved) const;
 	int getTrackIndexByTrackType(TrackType trackType) const;
 
-	void play(bool isSSL,const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType);
 	void handleResSETUP(const Parser &parser, unsigned int uiTrackIndex);
 	void handleResDESCRIBE(const Parser &parser);
 	bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
-	void handleResPAUSE(const Parser &parser, bool bPause);
+	void handleResPAUSE(const Parser &parser, int type);
 
 	//发送SETUP命令
 	void sendSetup(unsigned int uiTrackIndex);
-	void sendPause(bool bPause,uint32_t ms, bool range);
-	void sendOptions();
+	void sendPause(int type , uint32_t ms);
 	void sendDescribe();
 
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());

@@ -75,18 +75,15 @@ public:
      * @param strUrl
      */
     void play(const string &strUrl) override;
-
-
-    /**
-     * 被主动关闭
-     * @return
-     */
-    bool close(MediaSource &sender,bool force) override;
 private:
+	//MediaSourceEvent override
+	bool close(MediaSource &sender,bool force) override;
     void onNoneReader(MediaSource &sender) override;
+	int totalReaderCount(MediaSource &sender) override;
+	int totalReaderCount() ;
+
 	void rePlay(const string &strUrl,int iFailedCnt);
 	void onPlaySuccess();
-	int readerCount() ;
 private:
     bool _bEnableRtsp;
     bool _bEnableRtmp;

@@ -48,8 +48,7 @@ protected:
     void onWholeRtspPacket(Parser &parser) override ;
     void onRtpPacket(const char *data,uint64_t len) override {};
 private:
-    void publish(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType );
-    void onPublishResult(const SockException &ex);
+    void onPublishResult(const SockException &ex, bool handshakeCompleted);
 
     void sendAnnounce();
     void sendSetup(unsigned int uiTrackIndex);

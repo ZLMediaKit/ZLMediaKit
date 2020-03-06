@@ -76,8 +76,8 @@ bool HttpServerCookie::isExpired() {
     return _ticker.elapsedTime() > _max_elapsed * 1000;
 }
 
-std::shared_ptr<lock_guard<mutex> > HttpServerCookie::getLock(){
-    return std::make_shared<lock_guard<mutex> >(_mtx);
+std::shared_ptr<lock_guard<recursive_mutex> > HttpServerCookie::getLock(){
+    return std::make_shared<lock_guard<recursive_mutex> >(_mtx);
 }
 
 string HttpServerCookie::cookieExpireTime() const{

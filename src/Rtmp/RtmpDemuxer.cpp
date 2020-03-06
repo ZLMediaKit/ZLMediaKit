@@ -29,8 +29,7 @@
 
 namespace mediakit {
 
-
-RtmpDemuxer::RtmpDemuxer(const AMFValue &val) {
+void RtmpDemuxer::loadMetaData(const AMFValue &val){
     try {
         makeVideoTrack(val["videocodecid"]);
         makeAudioTrack(val["audiocodecid"]);
@@ -44,7 +43,6 @@ RtmpDemuxer::RtmpDemuxer(const AMFValue &val) {
         WarnL << ex.what();
     }
 }
-
 
 bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->typeId) {
@@ -86,6 +84,7 @@ void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec) {
         if (_videoRtmpDecoder) {
             //设置rtmp解码器代理，生成的frame写入该Track
             _videoRtmpDecoder->addDelegate(_videoTrack);
+            onAddTrack(_videoTrack);
         } else {
             //找不到相应的rtmp解码器，该track无效
             _videoTrack.reset();
@@ -102,6 +101,7 @@ void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec) {
         if (_audioRtmpDecoder) {
             //设置rtmp解码器代理，生成的frame写入该Track
             _audioRtmpDecoder->addDelegate(_audioTrack);
+            onAddTrack(_audioTrack);
         } else {
             //找不到相应的rtmp解码器，该track无效
             _audioTrack.reset();

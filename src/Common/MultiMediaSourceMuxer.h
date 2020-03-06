@@ -29,71 +29,57 @@
 
 #include "Rtsp/RtspMediaSourceMuxer.h"
 #include "Rtmp/RtmpMediaSourceMuxer.h"
-#include "MediaFile/MediaRecorder.h"
+#include "Record/Recorder.h"
+#include "Record/HlsMediaSource.h"
+#include "Record/HlsRecorder.h"
 
-class MultiMediaSourceMuxer : public FrameWriterInterface{
+class MultiMediaSourceMuxer : public MediaSink , public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
-    typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
+    class Listener{
+    public:
+        Listener() = default;
+        virtual ~Listener() = default;
+        virtual void onAllTrackReady() = 0;
+    };
 
-    MultiMediaSourceMuxer(const string &vhost,
-                          const string &strApp,
-                          const string &strId,
-                          float dur_sec = 0.0,
-                          bool bEanbleRtsp = true,
-                          bool bEanbleRtmp = true,
-                          bool bEanbleHls = true,
-                          bool bEnableMp4 = false
-                          ){
-        if (bEanbleRtmp) {
-            _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleMeta>(dur_sec));
+    typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
+    MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec = 0.0,
+                          bool enable_rtsp = true, bool enable_rtmp = true, bool enable_hls = true, bool enable_mp4 = false){
+        if (enable_rtmp) {
+            _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleMeta>(dur_sec));
         }
-        if (bEanbleRtsp) {
-            _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, strApp, strId, std::make_shared<TitleSdp>(dur_sec));
+        if (enable_rtsp) {
+            _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleSdp>(dur_sec));
         }
-        _record = std::make_shared<MediaRecorder>(vhost,strApp,strId,bEanbleHls,bEnableMp4);
+
+        if(enable_hls){
+            Recorder::startRecord(Recorder::type_hls,vhost, app, stream, "", true, false);
+        }
+
+        if(enable_mp4){
+            Recorder::startRecord(Recorder::type_mp4,vhost, app, stream, "", true, false);
+        }
+
+        _get_hls_media_source = [vhost,app,stream](){
+            auto recorder = dynamic_pointer_cast<HlsRecorder>(Recorder::getRecorder(Recorder::type_hls,vhost,app,stream));
+            if(recorder){
+                return recorder->getMediaSource();
+            }
+            return MediaSource::Ptr();
+        };
     }
     virtual ~MultiMediaSourceMuxer(){}
-
-
-    /**
-     * 添加音视频媒体
-     * @param track 媒体描述
-     */
-    void addTrack(const Track::Ptr & track) {
-        if(_rtmp){
-            _rtmp->addTrack(track);
-        }
-        if(_rtsp){
-            _rtsp->addTrack(track);
-        }
-        _record->addTrack(track);
-    }
 
     /**
      * 重置音视频媒体
      */
-    void resetTracks() {
+    void resetTracks() override{
         if(_rtmp){
             _rtmp->resetTracks();
         }
         if(_rtsp){
             _rtsp->resetTracks();
         }
-        _record->resetTracks();
-    }
-
-    /**
-     * 写入帧数据然后打包rtmp
-     * @param frame 帧数据
-     */
-    void inputFrame(const Frame::Ptr &frame) override {
-        if(_rtmp) {
-            _rtmp->inputFrame(frame);
-        }
-        if(_rtsp) {
-            _rtsp->inputFrame(frame);
-        }
-        _record->inputFrame(frame);
     }
 
     /**
@@ -104,8 +90,14 @@ public:
         if(_rtmp) {
             _rtmp->setListener(listener);
         }
+
         if(_rtsp) {
             _rtsp->setListener(listener);
+        }
+
+        auto hls_src = _get_hls_media_source();
+        if(hls_src){
+            hls_src->setListener(listener);
         }
     }
 
@@ -113,19 +105,78 @@ public:
      * 返回总的消费者个数
      * @return
      */
-    int readerCount() const{
-        return (_rtsp ? _rtsp->readerCount() : 0) + (_rtmp ? _rtmp->readerCount() : 0);
+    int totalReaderCount() const{
+        auto hls_src = _get_hls_media_source();
+        return (_rtsp ? _rtsp->readerCount() : 0) + (_rtmp ? _rtmp->readerCount() : 0) + (hls_src ? hls_src->readerCount() : 0);
     }
 
     void setTimeStamp(uint32_t stamp){
+        if(_rtmp){
+            _rtmp->setTimeStamp(stamp);
+        }
+
         if(_rtsp){
             _rtsp->setTimeStamp(stamp);
+        }
+    }
+
+    void setTrackListener(Listener *listener){
+        _listener = listener;
+    }
+protected:
+    /**
+     * 添加音视频媒体
+     * @param track 媒体描述
+     */
+    void onTrackReady(const Track::Ptr & track) override {
+        if(_rtmp){
+            _rtmp->addTrack(track);
+        }
+        if(_rtsp){
+            _rtsp->addTrack(track);
+        }
+    }
+
+    /**
+     * 写入帧数据然后打包rtmp
+     * @param frame 帧数据
+     */
+    void onTrackFrame(const Frame::Ptr &frame) override {
+        if(_rtmp) {
+            _rtmp->inputFrame(frame);
+        }
+        if(_rtsp) {
+            _rtsp->inputFrame(frame);
+        }
+    }
+
+    /**
+     * 所有Track都准备就绪，触发媒体注册事件
+     */
+    void onAllTrackReady() override{
+        if(_rtmp) {
+            _rtmp->setTrackSource(shared_from_this());
+            _rtmp->onAllTrackReady();
+        }
+        if(_rtsp) {
+            _rtsp->setTrackSource(shared_from_this());
+            _rtsp->onAllTrackReady();
+        }
+
+        auto hls_src = _get_hls_media_source();
+        if(hls_src){
+            hls_src->setTrackSource(shared_from_this());
+        }
+
+        if(_listener){
+            _listener->onAllTrackReady();
         }
     }
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
-    MediaRecorder::Ptr _record;
+    Listener *_listener = nullptr;
+    function<MediaSource::Ptr ()> _get_hls_media_source;
 };
 
 

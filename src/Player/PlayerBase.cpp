@@ -64,17 +64,23 @@ PlayerBase::PlayerBase() {
 	this->mINI::operator[](kTimeoutMS) = 10000;
 	this->mINI::operator[](kMediaTimeoutMS) = 5000;
 	this->mINI::operator[](kBeatIntervalMS) = 5000;
-	this->mINI::operator[](kMaxAnalysisMS) = 2000;
+	this->mINI::operator[](kMaxAnalysisMS) = 5000;
 }
 
 ///////////////////////////Demuxer//////////////////////////////
 bool Demuxer::isInited(int analysisMs) {
-	if(_ticker.createdTime() < analysisMs){
-		//analysisMs毫秒内判断条件
-		//如果音视频都准备好了 ，说明Track全部就绪
-		return (_videoTrack &&  _videoTrack->ready() && _audioTrack && _audioTrack->ready());
+	if(analysisMs && _ticker.createdTime() > analysisMs){
+		//analysisMs毫秒后强制初始化完毕
+		return true;
 	}
-	//analysisMs毫秒后强制初始化完毕
+	if (_videoTrack && !_videoTrack->ready()) {
+		//视频未准备好
+		return false;
+	}
+	if (_audioTrack && !_audioTrack->ready()) {
+		//音频未准备好
+		return false;
+	}
 	return true;
 }
 
@@ -98,10 +104,21 @@ vector<Track::Ptr> Demuxer::getTracks(bool trackReady) const {
 			ret.emplace_back(_audioTrack);
 		}
 	}
-	return ret;
+	return std::move(ret);
 }
 
 float Demuxer::getDuration() const {
 	return _fDuration;
 }
+
+void Demuxer::onAddTrack(const Track::Ptr &track){
+	if(_listener){
+		_listener->onAddTrack(track);
+	}
+}
+
+void Demuxer::setTrackListener(Demuxer::Listener *listener) {
+	_listener = listener;
+}
+
 } /* namespace mediakit */
