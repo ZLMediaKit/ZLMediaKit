@@ -35,16 +35,10 @@ RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
     }else{
         _metadata = title->getMetadata();
     }
-    _rtmpRing = std::make_shared<RtmpRingInterface::RingType>();
+    _rtmpRing = std::make_shared<RtmpRing::RingType>();
 }
 
-void RtmpMuxer::onTrackReady(const Track::Ptr &track) {
-    //生成rtmp编码器
-    //克隆该Track，防止循环引用
-    auto encoder = Factory::getRtmpCodecByTrack(track->clone());
-    if (!encoder) {
-        return;
-    }
+void RtmpMuxer::addTrack(const Track::Ptr &track) {
     //根据track生产metadata
     Metadata::Ptr metadata;
     switch (track->getTrackType()){
@@ -57,31 +51,55 @@ void RtmpMuxer::onTrackReady(const Track::Ptr &track) {
         }
             break;
         default:
-            return;;
+            return;
 
     }
+
+    auto &encoder = _encoder[track->getTrackType()];
+    //生成rtmp编码器,克隆该Track，防止循环引用
+    encoder = Factory::getRtmpCodecByTrack(track->clone());
+    if (!encoder) {
+        return;
+    }
+
+    //设置rtmp输出环形缓存
+    encoder->setRtmpRing(_rtmpRing);
+
     //添加其metadata
     metadata->getMetadata().object_for_each([&](const std::string &key, const AMFValue &value){
         _metadata.set(key,value);
     });
-    //设置Track的代理，这样输入frame至Track时，最终数据将输出到RtmpEncoder中
-    track->addDelegate(encoder);
-    //Rtmp编码器共用同一个环形缓存
-    encoder->setRtmpRing(_rtmpRing);
 }
 
+void RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
+    auto &encoder = _encoder[frame->getTrackType()];
+    if(encoder){
+        encoder->inputFrame(frame);
+    }
+}
+
+void RtmpMuxer::makeConfigPacket(){
+    for(auto &encoder : _encoder){
+        if(encoder){
+            encoder->makeConfigPacket();
+        }
+    }
+}
 
 const AMFValue &RtmpMuxer::getMetadata() const {
-    if(!isAllTrackReady()){
-        //尚未就绪
-        static AMFValue s_amf;
-        return s_amf;
-    }
     return _metadata;
 }
 
-RtmpRingInterface::RingType::Ptr RtmpMuxer::getRtmpRing() const {
+RtmpRing::RingType::Ptr RtmpMuxer::getRtmpRing() const {
     return _rtmpRing;
 }
+
+void RtmpMuxer::resetTracks() {
+    _metadata.clear();
+    for(auto &encoder : _encoder){
+        encoder = nullptr;
+    }
+}
+
 
 }/* namespace mediakit */

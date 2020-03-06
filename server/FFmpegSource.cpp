@@ -32,13 +32,22 @@
 
 namespace FFmpeg {
 #define FFmpeg_FIELD "ffmpeg."
-const char kBin[] = FFmpeg_FIELD"bin";
-const char kCmd[] = FFmpeg_FIELD"cmd";
-const char kLog[] = FFmpeg_FIELD"log";
+const string kBin = FFmpeg_FIELD"bin";
+const string kCmd = FFmpeg_FIELD"cmd";
+const string kLog = FFmpeg_FIELD"log";
 
 onceToken token([]() {
-    mINI::Instance()[kBin] = trim(System::execute("which ffmpeg"));
-    mINI::Instance()[kCmd] = "%s -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
+#ifdef _WIN32
+    string ffmpeg_bin = System::execute("where ffmpeg");
+    //windows下先关闭FFmpeg日志(目前不支持日志重定向)
+    mINI::Instance()[kCmd] = "%s -re -i \"%s\" -loglevel quiet -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
+#else
+	string ffmpeg_bin = System::execute("which ffmpeg");
+    mINI::Instance()[kCmd] = "%s -re -i \"%s\" -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
+#endif
+    //默认ffmpeg命令路径为环境变量中路径
+    mINI::Instance()[kBin] = ffmpeg_bin.empty() ? "ffmpeg" : ffmpeg_bin;
+    //ffmpeg日志保存路径
     mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";
 });
 }
@@ -48,7 +57,6 @@ FFmpegSource::FFmpegSource() {
 }
 
 FFmpegSource::~FFmpegSource() {
-    NoticeCenter::Instance().delListener(this, Broadcast::kBroadcastStreamNoneReader);
     DebugL;
 }
 
@@ -64,7 +72,7 @@ void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_
 
     char cmd[1024] = {0};
     snprintf(cmd, sizeof(cmd),ffmpeg_cmd.data(),ffmpeg_bin.data(),src_url.data(),dst_url.data());
-    _process.run(cmd,File::absolutePath("",ffmpeg_log));
+    _process.run(cmd,ffmpeg_log.empty() ? "" : File::absolutePath("",ffmpeg_log));
     InfoL << cmd;
 
     if(_media_info._host == "127.0.0.1"){
@@ -83,6 +91,7 @@ void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_
             if(src){
                 //推流给自己成功
                 cb(SockException());
+                strongSelf->onGetMediaSource(src);
                 strongSelf->startTimer(timeout_ms);
                 return;
             }
@@ -147,11 +156,11 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
             return;
         }
 
-        if(!bRegist ||
-           schema != strongSelf->_media_info._schema ||
-           vhost != strongSelf->_media_info._vhost ||
-           app != strongSelf->_media_info._app ||
-           stream != strongSelf->_media_info._streamid){
+        if (!bRegist ||
+            sender.getSchema() != strongSelf->_media_info._schema ||
+            sender.getVhost() != strongSelf->_media_info._vhost ||
+            sender.getApp() != strongSelf->_media_info._app ||
+            sender.getId() != strongSelf->_media_info._streamid) {
             //不是自己感兴趣的事件，忽略之
             return;
         }
@@ -192,8 +201,11 @@ void FFmpegSource::startTimer(int timeout_ms) {
                 //同步查找流
                 if (!src) {
                     //流不在线，重新拉流
-                    strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms,
-                                     [](const SockException &) {});
+                    if(strongSelf->_replay_ticker.elapsedTime() > 10 * 1000){
+                        //上次重试时间超过10秒，那么再重试FFmpeg拉流
+                        strongSelf->_replay_ticker.resetTime();
+                        strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [](const SockException &) {});
+                    }
                 }
             });
         } else {
@@ -205,29 +217,43 @@ void FFmpegSource::startTimer(int timeout_ms) {
         }
         return true;
     }, _poller);
-
-    NoticeCenter::Instance().delListener(this, Broadcast::kBroadcastStreamNoneReader);
-    NoticeCenter::Instance().addListener(this, Broadcast::kBroadcastStreamNoneReader,[weakSelf](BroadcastStreamNoneReaderArgs) {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
-            //自身已经销毁
-            return;
-        }
-
-        if(sender.getVhost() != strongSelf->_media_info._vhost ||
-           sender.getApp() != strongSelf->_media_info._app ||
-           sender.getId() != strongSelf->_media_info._streamid){
-            //不是自己感兴趣的事件，忽略之
-            return;
-        }
-
-        //该流无人观看，我们停止吧
-        if(strongSelf->_onClose){
-            strongSelf->_onClose();
-        }
-    });
 }
 
 void FFmpegSource::setOnClose(const function<void()> &cb){
     _onClose = cb;
+}
+
+bool FFmpegSource::close(MediaSource &sender, bool force) {
+    auto listener = _listener.lock();
+    if(listener && !listener->close(sender,force)){
+        //关闭失败
+        return false;
+    }
+    //该流无人观看，我们停止吧
+    if(_onClose){
+        _onClose();
+    }
+    return true;
+}
+
+void FFmpegSource::onNoneReader(MediaSource &sender) {
+    auto listener = _listener.lock();
+    if(listener){
+        listener->onNoneReader(sender);
+    }else{
+        MediaSourceEvent::onNoneReader(sender);
+    }
+}
+
+int FFmpegSource::totalReaderCount(MediaSource &sender) {
+    auto listener = _listener.lock();
+    if(listener){
+        return listener->totalReaderCount(sender);
+    }
+    return 0;
+}
+
+void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
+    _listener = src->getListener();
+    src->setListener(shared_from_this());
 }

@@ -23,10 +23,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef IPTV_PROCESS_H
-#define IPTV_PROCESS_H
+#ifndef ZLMEDIAKIT_PROCESS_H
+#define ZLMEDIAKIT_PROCESS_H
 
+#ifdef _WIN32
+typedef int pid_t;
+#else
 #include <sys/wait.h>
+#endif // _WIN32
+
 #include <fcntl.h>
 #include <string>
 using namespace std;
@@ -45,4 +50,4 @@ private:
 };
 
 
-#endif //IPTV_PROCESS_H
+#endif //ZLMEDIAKIT_PROCESS_H

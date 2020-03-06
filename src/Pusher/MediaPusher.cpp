@@ -52,11 +52,11 @@ MediaPusher::MediaPusher(const string &schema,
 MediaPusher::~MediaPusher() {
 }
 void MediaPusher::publish(const string &strUrl) {
-    _parser = PusherBase::createPusher(_poller,_src.lock(),strUrl);
-    _parser->setOnShutdown(_shutdownCB);
-    _parser->setOnPublished(_publishCB);
-    _parser->mINI::operator=(*this);
-    _parser->publish(strUrl);
+    _delegate = PusherBase::createPusher(_poller,_src.lock(),strUrl);
+    _delegate->setOnShutdown(_shutdownCB);
+    _delegate->setOnPublished(_publishCB);
+    _delegate->mINI::operator=(*this);
+    _delegate->publish(strUrl);
 }
 
 EventPoller::Ptr MediaPusher::getPoller(){

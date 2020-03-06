@@ -75,7 +75,7 @@ public:
     virtual void setOnShutdown(const Event &cb) = 0;
 };
 
-template<typename Parent,typename Parser>
+template<typename Parent,typename Delegate>
 class PusherImp : public Parent {
 public:
     typedef std::shared_ptr<PusherImp> Ptr;
@@ -90,8 +90,8 @@ public:
      * @param strUrl 推流url，支持rtsp/rtmp
      */
     void publish(const string &strUrl) override{
-        if (_parser) {
-            _parser->publish(strUrl);
+        if (_delegate) {
+            _delegate->publish(strUrl);
         }
     }
 
@@ -99,8 +99,8 @@ public:
      * 中断推流
      */
     void teardown() override{
-        if (_parser) {
-            _parser->teardown();
+        if (_delegate) {
+            _delegate->teardown();
         }
     }
 
@@ -109,8 +109,8 @@ public:
      * @param onPublished
      */
     void setOnPublished(const PusherBase::Event &cb) override{
-        if (_parser) {
-            _parser->setOnPublished(cb);
+        if (_delegate) {
+            _delegate->setOnPublished(cb);
         }
         _publishCB = cb;
     }
@@ -120,15 +120,15 @@ public:
      * @param onShutdown
      */
     void setOnShutdown(const PusherBase::Event &cb) override{
-        if (_parser) {
-            _parser->setOnShutdown(cb);
+        if (_delegate) {
+            _delegate->setOnShutdown(cb);
         }
         _shutdownCB = cb;
     }
 protected:
     PusherBase::Event _shutdownCB;
     PusherBase::Event _publishCB;
-    std::shared_ptr<Parser> _parser;
+    std::shared_ptr<Delegate> _delegate;
 };
 
 

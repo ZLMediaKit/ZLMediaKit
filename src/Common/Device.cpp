@@ -32,6 +32,7 @@
 #include "Util/TimeTicker.h"
 #include "Extension/AAC.h"
 #include "Extension/H264.h"
+#include "Extension/H265.h"
 
 using namespace toolkit;
 
@@ -103,7 +104,39 @@ void DevChannel::inputH264(const char* pcData, int iDataLen, uint32_t dts,uint32
     } else {
         prefixeSize = 0;
     }
-    inputFrame(std::make_shared<H264FrameNoCacheAble>((char *)pcData,iDataLen,dts,pts,prefixeSize));
+
+	H264Frame::Ptr frame = std::make_shared<H264Frame>();
+	frame->_dts = dts;
+	frame->_pts = pts;
+	frame->_buffer.assign("\x00\x00\x00\x01",4);
+	frame->_buffer.append(pcData + prefixeSize, iDataLen - prefixeSize);
+	frame->_prefix_size = 4;
+    inputFrame(frame);
+}
+
+void DevChannel::inputH265(const char* pcData, int iDataLen, uint32_t dts,uint32_t pts) {
+	if(dts == 0){
+		dts = (uint32_t)_aTicker[0].elapsedTime();
+	}
+	if(pts == 0){
+		pts = dts;
+	}
+	int prefixeSize;
+	if (memcmp("\x00\x00\x00\x01", pcData, 4) == 0) {
+		prefixeSize = 4;
+	} else if (memcmp("\x00\x00\x01", pcData, 3) == 0) {
+		prefixeSize = 3;
+	} else {
+		prefixeSize = 0;
+	}
+
+	H265Frame::Ptr frame = std::make_shared<H265Frame>();
+	frame->_dts = dts;
+	frame->_pts = pts;
+	frame->_buffer.assign("\x00\x00\x00\x01",4);
+	frame->_buffer.append(pcData + prefixeSize, iDataLen - prefixeSize);
+	frame->_prefix_size = 4;
+	inputFrame(frame);
 }
 
 void DevChannel::inputAAC(const char* pcData, int iDataLen, uint32_t uiStamp,bool withAdtsHeader) {
@@ -133,6 +166,11 @@ void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t u
 void DevChannel::initVideo(const VideoInfo& info) {
 	_video = std::make_shared<VideoInfo>(info);
 	addTrack(std::make_shared<H264Track>());
+}
+
+void DevChannel::initH265Video(const VideoInfo &info){
+	_video = std::make_shared<VideoInfo>(info);
+	addTrack(std::make_shared<H265Track>());
 }
 
 void DevChannel::initAudio(const AudioInfo& info) {

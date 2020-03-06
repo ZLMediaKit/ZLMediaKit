@@ -88,6 +88,12 @@ public:
 	 */
     void initVideo(const VideoInfo &info);
 
+	/**
+	 * 初始化h265视频Track
+	 * @param info
+	 */
+	void initH265Video(const VideoInfo &info);
+
     /**
      * 初始化aac音频Track
      * 相当于MultiMediaSourceMuxer::addTrack(AACTrack::Ptr );
@@ -103,6 +109,15 @@ public:
 	 * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
 	 */
 	void inputH264(const char *pcData, int iDataLen, uint32_t dts,uint32_t pts = 0);
+
+	/**
+	 * 输入265帧
+	 * @param pcData 265单帧数据指针
+	 * @param iDataLen 数据指针长度
+	 * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
+	 * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
+	 */
+	void inputH265(const char *pcData, int iDataLen, uint32_t dts,uint32_t pts = 0);
 
 	/**
 	 * 输入可能带adts头的aac帧

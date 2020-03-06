@@ -1,0 +1,25 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: 下载submodule源码
+      run: git submodule update --init
+
+    - name: apt-get安装依赖库(非必选)
+      run: sudo apt-get update && sudo apt-get install -y cmake  libssl-dev libmp4v2-dev libsdl-dev libavcodec-dev libavutil-dev
+
+    - name: 编译
+      run: mkdir -p linux_build && cd linux_build && cmake .. && make -j4
+
+    - name: 运行MediaServer
+      run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
+
+      

@@ -35,15 +35,13 @@ H264RtmpDecoder::H264RtmpDecoder() {
 H264Frame::Ptr  H264RtmpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = obtainObj();
-    frame->buffer.clear();
-    frame->iPrefixSize = 4;
+    frame->_buffer.clear();
+    frame->_prefix_size = 4;
     return frame;
 }
 
 bool H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos) {
-    key_pos = decodeRtmp(rtmp);
-    RtmpCodec::inputRtmp(rtmp, key_pos);
-    return key_pos;
+    return decodeRtmp(rtmp);
 }
 
 bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
@@ -80,10 +78,10 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
 
 inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
 #if 1
-    _h264frame->timeStamp = dts;
-    _h264frame->ptsStamp = pts;
-    _h264frame->buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
-    _h264frame->buffer.append(pcData, iLen);
+    _h264frame->_dts = dts;
+    _h264frame->_pts = pts;
+    _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
+    _h264frame->_buffer.append(pcData, iLen);
 
     //写入环形缓存
     RtmpCodec::inputFrame(_h264frame);
@@ -101,87 +99,80 @@ inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dt
 
 H264RtmpEncoder::H264RtmpEncoder(const Track::Ptr &track) {
     _track = dynamic_pointer_cast<H264Track>(track);
+}
 
+void H264RtmpEncoder::makeConfigPacket(){
+    if (_track && _track->ready()) {
+        //尝试从track中获取sps pps信息
+        _sps = _track->getSps();
+        _pps = _track->getPps();
+    }
+
+    if (!_sps.empty() && !_pps.empty()) {
+        //获取到sps/pps
+        makeVideoConfigPkt();
+        _gotSpsPps = true;
+    }
 }
 
 void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
-    RtmpCodec::inputFrame(frame);
-
     auto pcData = frame->data() + frame->prefixSize();
     auto iLen = frame->size() - frame->prefixSize();
     auto type = H264_TYPE(((uint8_t*)pcData)[0]);
 
-    if(!_gotSpsPps){
+    if (!_gotSpsPps) {
         //尝试从frame中获取sps pps
-        switch (type){
-            case H264Frame::NAL_SPS:{
+        switch (type) {
+            case H264Frame::NAL_SPS: {
                 //sps
-                if(_sps.empty()){
-                    _sps = string(pcData,iLen);
-                }
-            }
+                _sps = string(pcData, iLen);
+                makeConfigPacket();
                 break;
-            case H264Frame::NAL_PPS:{
+            }
+            case H264Frame::NAL_PPS: {
                 //pps
-                if(_pps.empty()){
-                    _pps = string(pcData,iLen);
-                }
-            }
+                _pps = string(pcData, iLen);
+                makeConfigPacket();
                 break;
+            }
             default:
                 break;
         }
-
-        if(_track && _track->ready()){
-            //尝试从track中获取sps pps信息
-            _sps = _track->getSps();
-            _pps = _track->getPps();
-        }
-
-        if(!_sps.empty() && !_pps.empty()){
-            _gotSpsPps = true;
-            makeVideoConfigPkt();
-        }
     }
 
-    switch (type){
-        case H264Frame::NAL_IDR:
-        case H264Frame::NAL_B_P:{
-            if(_lastPacket && _lastPacket->timeStamp != frame->stamp()) {
-                RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
-                _lastPacket = nullptr;
-            }
-
-            if(!_lastPacket) {
-                //I or P or B frame
-                int8_t flags = 7; //h.264
-                bool is_config = false;
-                flags |= ((frame->keyFrame() ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
-
-                _lastPacket = ResourcePoolHelper<RtmpPacket>::obtainObj();
-                _lastPacket->strBuf.clear();
-                _lastPacket->strBuf.push_back(flags);
-                _lastPacket->strBuf.push_back(!is_config);
-                auto cts = frame->pts() - frame->dts();
-                cts = htonl(cts);
-                _lastPacket->strBuf.append((char *)&cts + 1, 3);
-
-                _lastPacket->chunkId = CHUNK_VIDEO;
-                _lastPacket->streamId = STREAM_MEDIA;
-                _lastPacket->timeStamp = frame->stamp();
-                _lastPacket->typeId = MSG_VIDEO;
-
-            }
-            auto size = htonl(iLen);
-            _lastPacket->strBuf.append((char *) &size, 4);
-            _lastPacket->strBuf.append(pcData, iLen);
-            _lastPacket->bodySize = _lastPacket->strBuf.size();
-        }
-            break;
-
-        default:
-            break;
+    if(type == H264Frame::NAL_SEI){
+        return;
     }
+
+    if(_lastPacket && _lastPacket->timeStamp != frame->dts()) {
+        RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
+        _lastPacket = nullptr;
+    }
+
+    if(!_lastPacket) {
+        //I or P or B frame
+        int8_t flags = 7; //h.264
+        bool is_config = false;
+        flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
+
+        _lastPacket = ResourcePoolHelper<RtmpPacket>::obtainObj();
+        _lastPacket->strBuf.clear();
+        _lastPacket->strBuf.push_back(flags);
+        _lastPacket->strBuf.push_back(!is_config);
+        auto cts = frame->pts() - frame->dts();
+        cts = htonl(cts);
+        _lastPacket->strBuf.append((char *)&cts + 1, 3);
+
+        _lastPacket->chunkId = CHUNK_VIDEO;
+        _lastPacket->streamId = STREAM_MEDIA;
+        _lastPacket->timeStamp = frame->dts();
+        _lastPacket->typeId = MSG_VIDEO;
+
+    }
+    auto size = htonl(iLen);
+    _lastPacket->strBuf.append((char *) &size, 4);
+    _lastPacket->strBuf.append(pcData, iLen);
+    _lastPacket->bodySize = _lastPacket->strBuf.size();
 }
 
 

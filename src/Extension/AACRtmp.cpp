@@ -40,8 +40,6 @@ AACFrame::Ptr AACRtmpDecoder::obtainFrame() {
 }
 
 bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool key_pos) {
-    RtmpCodec::inputRtmp(pkt, false);
-
     if (pkt->isCfgFrame()) {
         _aac_cfg = pkt->getAacCfg();
         return false;
@@ -78,19 +76,24 @@ AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track) {
     _track = dynamic_pointer_cast<AACTrack>(track);
 }
 
-void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
-    RtmpCodec::inputFrame(frame);
+void AACRtmpEncoder::makeConfigPacket() {
+    if (_track && _track->ready()) {
+        //从track中和获取aac配置信息
+        _aac_cfg = _track->getAacCfg();
+    }
 
-    if(_aac_cfg.empty()){
-        if(frame->prefixSize() >= 7){
+    if (!_aac_cfg.empty()) {
+        makeAudioConfigPkt();
+    }
+}
+
+void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
+    if (_aac_cfg.empty()) {
+        if (frame->prefixSize() >= 7) {
             //包含adts头,从adts头获取aac配置信息
             _aac_cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
-            makeAudioConfigPkt();
-        } else if(_track && _track->ready()){
-            //从track中和获取aac配置信息
-            _aac_cfg = _track->getAacCfg();
-            makeAudioConfigPkt();
         }
+        makeConfigPacket();
     }
 
     if(!_aac_cfg.empty()){
@@ -106,7 +109,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         rtmpPkt->bodySize = rtmpPkt->strBuf.size();
         rtmpPkt->chunkId = CHUNK_AUDIO;
         rtmpPkt->streamId = STREAM_MEDIA;
-        rtmpPkt->timeStamp = frame->stamp();
+        rtmpPkt->timeStamp = frame->dts();
         rtmpPkt->typeId = MSG_AUDIO;
         RtmpCodec::inputRtmp(rtmpPkt, false);
     }
