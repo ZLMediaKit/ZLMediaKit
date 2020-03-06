@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
+ * Copyright (c) 2020 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -25,37 +25,17 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
+#include "Decoder.h"
 #include "PSDecoder.h"
-#include "mpeg-ps.h"
-namespace mediakit{
-
-PSDecoder::PSDecoder() {
-    _ps_demuxer = ps_demuxer_create([](void* param,
-                                       int stream,
-                                       int codecid,
-                                       int flags,
-                                       int64_t pts,
-                                       int64_t dts,
-                                       const void* data,
-                                       size_t bytes){
-        PSDecoder *thiz = (PSDecoder *)param;
-        if(thiz->_on_decode){
-            thiz->_on_decode(stream, codecid, flags, pts, dts, data, bytes);
-        }
-    },this);
-}
-
-PSDecoder::~PSDecoder() {
-    ps_demuxer_destroy((struct ps_demuxer_t*)_ps_demuxer);
-}
-
-int PSDecoder::input(const uint8_t *data, int bytes) {
-    return ps_demuxer_input((struct ps_demuxer_t*)_ps_demuxer,data,bytes);
-}
-
-void PSDecoder::setOnDecode(const Decoder::onDecode &decode) {
-    _on_decode = decode;
+#include "TSDecoder.h"
+namespace mediakit {
+Decoder::Ptr Decoder::createDecoder(Decoder::Type type) {
+    switch (type){
+        case decoder_ps : return std::make_shared<PSDecoder>();
+        case decoder_ts : return std::make_shared<TSDecoder>();
+        default : return nullptr;
+    }
 }
 
 }//namespace mediakit
-#endif//#if defined(ENABLE_RTPPROXY)
+#endif//defined(ENABLE_RTPPROXY)

@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
+ * Copyright (c) 2020 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,38 +24,45 @@
  * SOFTWARE.
  */
 
+#ifndef ZLMEDIAKIT_TSDECODER_H
+#define ZLMEDIAKIT_TSDECODER_H
+
 #if defined(ENABLE_RTPPROXY)
-#include "PSDecoder.h"
-#include "mpeg-ps.h"
-namespace mediakit{
+#include "Util/logger.h"
+#include "Http/HttpRequestSplitter.h"
+#include "Decoder.h"
 
-PSDecoder::PSDecoder() {
-    _ps_demuxer = ps_demuxer_create([](void* param,
-                                       int stream,
-                                       int codecid,
-                                       int flags,
-                                       int64_t pts,
-                                       int64_t dts,
-                                       const void* data,
-                                       size_t bytes){
-        PSDecoder *thiz = (PSDecoder *)param;
-        if(thiz->_on_decode){
-            thiz->_on_decode(stream, codecid, flags, pts, dts, data, bytes);
-        }
-    },this);
-}
+using namespace toolkit;
+namespace mediakit {
 
-PSDecoder::~PSDecoder() {
-    ps_demuxer_destroy((struct ps_demuxer_t*)_ps_demuxer);
-}
+//ts包拆分器
+class TSSegment : public HttpRequestSplitter {
+public:
+    typedef std::function<void(const char *data,uint64_t len)> onSegment;
+    TSSegment(int size = 188) : _size(size){}
+    ~TSSegment(){}
+    void setOnSegment(const onSegment &cb);
+protected:
+    int64_t onRecvHeader(const char *data, uint64_t len) override ;
+    const char *onSearchPacketTail(const char *data, int len) override ;
+private:
+    int _size;
+    onSegment _onSegment;
+};
 
-int PSDecoder::input(const uint8_t *data, int bytes) {
-    return ps_demuxer_input((struct ps_demuxer_t*)_ps_demuxer,data,bytes);
-}
-
-void PSDecoder::setOnDecode(const Decoder::onDecode &decode) {
-    _on_decode = decode;
-}
+//ts解析器
+class TSDecoder : public Decoder {
+public:
+    TSDecoder();
+    ~TSDecoder();
+    int input(const uint8_t* data, int bytes) override ;
+    void setOnDecode(const onDecode &decode) override;
+private:
+    TSSegment _ts_segment;
+    struct ts_demuxer_t* _demuxer_ctx = nullptr;
+    onDecode _on_decode;
+};
 
 }//namespace mediakit
-#endif//#if defined(ENABLE_RTPPROXY)
+#endif//defined(ENABLE_RTPPROXY)
+#endif //ZLMEDIAKIT_TSDECODER_H

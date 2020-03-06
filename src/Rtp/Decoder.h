@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
+ * Copyright (c) 2020 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,38 +24,34 @@
  * SOFTWARE.
  */
 
+#ifndef ZLMEDIAKIT_DECODER_H
+#define ZLMEDIAKIT_DECODER_H
+
 #if defined(ENABLE_RTPPROXY)
-#include "PSDecoder.h"
-#include "mpeg-ps.h"
-namespace mediakit{
+#include <stdint.h>
+#include <memory>
+#include <functional>
+#include "Decoder.h"
+using namespace std;
+namespace mediakit {
 
-PSDecoder::PSDecoder() {
-    _ps_demuxer = ps_demuxer_create([](void* param,
-                                       int stream,
-                                       int codecid,
-                                       int flags,
-                                       int64_t pts,
-                                       int64_t dts,
-                                       const void* data,
-                                       size_t bytes){
-        PSDecoder *thiz = (PSDecoder *)param;
-        if(thiz->_on_decode){
-            thiz->_on_decode(stream, codecid, flags, pts, dts, data, bytes);
-        }
-    },this);
-}
+class Decoder {
+public:
+    typedef std::shared_ptr<Decoder> Ptr;
+    typedef enum {
+        decoder_ts = 0,
+        decoder_ps
+    }Type;
 
-PSDecoder::~PSDecoder() {
-    ps_demuxer_destroy((struct ps_demuxer_t*)_ps_demuxer);
-}
-
-int PSDecoder::input(const uint8_t *data, int bytes) {
-    return ps_demuxer_input((struct ps_demuxer_t*)_ps_demuxer,data,bytes);
-}
-
-void PSDecoder::setOnDecode(const Decoder::onDecode &decode) {
-    _on_decode = decode;
-}
+    typedef std::function<void(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes)> onDecode;
+    virtual int input(const uint8_t *data, int bytes) = 0;
+    virtual void setOnDecode(const onDecode &decode) = 0;
+    static Ptr createDecoder(Type type);
+protected:
+    Decoder() = default;
+    virtual ~Decoder() = default;
+};
 
 }//namespace mediakit
-#endif//#if defined(ENABLE_RTPPROXY)
+#endif//defined(ENABLE_RTPPROXY)
+#endif //ZLMEDIAKIT_DECODER_H

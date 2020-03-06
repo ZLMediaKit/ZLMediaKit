@@ -63,7 +63,7 @@ void RtpDecoder::decodeRtp(const void *data, int bytes,const string &type_name) 
                 },
                 [](void* param, const void *packet, int bytes, uint32_t timestamp, int flags){
                     RtpDecoder *obj = (RtpDecoder *)param;
-                    obj->onRtpDecode(packet, bytes, timestamp, flags);
+                    obj->onRtpDecode((uint8_t *)packet, bytes, timestamp, flags);
                 }
         };
 

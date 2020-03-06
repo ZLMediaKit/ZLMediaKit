@@ -179,12 +179,26 @@ void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
     decodeRtp(rtp->data() + 4 ,rtp->size() - 4,_rtp_type);
 }
 
-void RtpProcess::onRtpDecode(const void *packet, int bytes, uint32_t, int flags) {
+void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t, int flags) {
     if(_save_file_ps){
         fwrite((uint8_t *)packet,bytes, 1, _save_file_ps.get());
     }
 
-    auto ret = decodePS((uint8_t *)packet,bytes);
+    if(!_decoder){
+        //创建解码器
+        if(bytes % 188 == 0 || packet[0] == 0x47){
+            //猜测是ts负载
+            _decoder = Decoder::createDecoder(Decoder::decoder_ts);
+        }else{
+            //猜测是ps负载
+            _decoder = Decoder::createDecoder(Decoder::decoder_ps);
+        }
+        _decoder->setOnDecode([this](int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes){
+            onDecode(stream,codecid,flags,pts,dts,data,bytes);
+        });
+    }
+
+    auto ret = _decoder->input((uint8_t *)packet,bytes);
     if(ret != bytes){
         WarnL << ret << " != " << bytes << " " << flags;
         if(++_rtp_dec_failed_cnt == 10){
@@ -215,13 +229,7 @@ static const char *getCodecName(int codec_id) {
     }
 }
 
-void RtpProcess::onPSDecode(int stream,
-                       int codecid,
-                       int flags,
-                       int64_t pts,
-                       int64_t dts,
-                       const void *data,
-                       int bytes) {
+void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {
     pts /= 90;
     dts /= 90;
     _stamps[codecid].revise(dts,pts,dts,pts,false);
