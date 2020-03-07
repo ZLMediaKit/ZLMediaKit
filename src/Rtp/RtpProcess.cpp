@@ -186,7 +186,7 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t, int fla
 
     if(!_decoder){
         //创建解码器
-        if(bytes % 188 == 0 || packet[0] == 0x47){
+        if(bytes % 188 == 0 && packet[0] == 0x47){
             //猜测是ts负载
             _decoder = Decoder::createDecoder(Decoder::decoder_ts);
         }else{
