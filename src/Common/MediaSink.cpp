@@ -137,6 +137,7 @@ void MediaSink::emitAllTrackReady() {
         //移除未准备好的Track
         for (auto it = _track_map.begin(); it != _track_map.end();) {
             if (!it->second->ready()) {
+                WarnL << "该track长时间未被初始化,已忽略:" << it->second->getCodecName();
                 it = _track_map.erase(it);
                 continue;
             }
