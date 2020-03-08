@@ -180,9 +180,11 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
         //创建解码器
         if(checkTS(packet, bytes)){
             //猜测是ts负载
+            InfoL << "judged to be TS: " << printSSRC(_ssrc);
             _decoder = Decoder::createDecoder(Decoder::decoder_ts);
         }else{
             //猜测是ps负载
+            InfoL << "judged to be PS: " << printSSRC(_ssrc);
             _decoder = Decoder::createDecoder(Decoder::decoder_ps);
         }
         _decoder->setOnDecode([this](int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes){
