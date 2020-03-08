@@ -49,7 +49,6 @@ public:
     bool alive();
     string get_peer_ip();
     uint16_t get_peer_port();
-
     int totalReaderCount();
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 protected:
@@ -73,9 +72,6 @@ private:
     Ticker _last_rtp_time;
     map<int,Stamp> _stamps;
     uint32_t _dts = 0;
-    int _rtp_type_idx = 0;
-    string _rtp_type;
-    int _rtp_dec_failed_cnt = 0;
     Decoder::Ptr _decoder;
 };
 

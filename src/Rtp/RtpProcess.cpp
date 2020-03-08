@@ -33,8 +33,6 @@
 
 namespace mediakit{
 
-static const vector<string> kRtpTypes = {"MP2P","MP4V-ES"};
-
 /**
 * 合并一些时间戳相同的frame
 */
@@ -85,7 +83,6 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     _track->_samplerate = 90000;
     _track->_type = TrackVideo;
     _track->_ssrc = _ssrc;
-    getNextRtpType();
     DebugL << printSSRC(_ssrc);
 
     GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
@@ -155,12 +152,9 @@ bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *
     return ret;
 }
 
-void RtpProcess::getNextRtpType(){
-    _rtp_type = kRtpTypes[_rtp_type_idx++];
-    _rtp_dec_failed_cnt = 0;
-    if(_rtp_type_idx == kRtpTypes.size()){
-        _rtp_type_idx = 0;
-    }
+//判断是否为ts负载
+static inline bool checkTS(const uint8_t *packet, int bytes){
+    return bytes % 188 == 0 && packet[0] == 0x47;
 }
 
 void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
@@ -168,25 +162,23 @@ void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
         WarnL << rtp->sequence << " != " << _sequence << "+1";
     }
     _sequence = rtp->sequence;
-
     if(_save_file_rtp){
         uint16_t  size = rtp->size() - 4;
         size = htons(size);
         fwrite((uint8_t *) &size, 2, 1, _save_file_rtp.get());
         fwrite((uint8_t *) rtp->data() + 4, rtp->size() - 4, 1, _save_file_rtp.get());
     }
-
-    decodeRtp(rtp->data() + 4 ,rtp->size() - 4,_rtp_type);
+    decodeRtp(rtp->data() + 4 ,rtp->size() - 4);
 }
 
-void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t, int flags) {
+void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) {
     if(_save_file_ps){
         fwrite((uint8_t *)packet,bytes, 1, _save_file_ps.get());
     }
 
     if(!_decoder){
         //创建解码器
-        if(bytes % 188 == 0 && packet[0] == 0x47){
+        if(checkTS(packet, bytes)){
             //猜测是ts负载
             _decoder = Decoder::createDecoder(Decoder::decoder_ts);
         }else{
@@ -201,12 +193,6 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t, int fla
     auto ret = _decoder->input((uint8_t *)packet,bytes);
     if(ret != bytes){
         WarnL << ret << " != " << bytes << " " << flags;
-        if(++_rtp_dec_failed_cnt == 10){
-            getNextRtpType();
-            InfoL << "rtp of ssrc " << printSSRC(_ssrc) << " change to type: " << _rtp_type ;
-        }
-    } else{
-        _rtp_dec_failed_cnt = 0;
     }
 }
 

@@ -38,12 +38,11 @@ public:
     RtpDecoder();
     virtual ~RtpDecoder();
 protected:
-    void decodeRtp(const void *data, int bytes,const string &type_name);
+    void decodeRtp(const void *data, int bytes);
     virtual void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) = 0;
 private:
     void *_rtp_decoder = nullptr;
     BufferRaw::Ptr _buffer;
-    string _rtp_type;
 };
 
 }//namespace mediakit

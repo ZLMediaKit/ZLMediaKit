@@ -155,7 +155,7 @@ RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
         case CodecAAC:
             return std::make_shared<AACRtpDecoder>(track->clone());
         default:
-            WarnL << "暂不支持该CodecId:" << track->getCodecId();
+            WarnL << "暂不支持该CodecId:" << track->getCodecName();
             return nullptr;
     }
 }
@@ -212,7 +212,7 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
         case CodecAAC:
             return std::make_shared<AACRtmpEncoder>(track);
         default:
-            WarnL << "暂不支持该CodecId:" << track->getCodecId();
+            WarnL << "暂不支持该CodecId:" << track->getCodecName();
             return nullptr;
     }
 }
