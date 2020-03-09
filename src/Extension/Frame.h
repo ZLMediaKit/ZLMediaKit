@@ -77,7 +77,7 @@ public:
      * 获取编码器名称
      * @return 编码器名称
      */
-    char *getCodecName();
+    const char *getCodecName();
 };
 
 /**
