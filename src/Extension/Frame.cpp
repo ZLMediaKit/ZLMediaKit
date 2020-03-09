@@ -39,7 +39,7 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
 }
 
 #define SWITCH_CASE(codec_id) case codec_id : return #codec_id
-char *CodecInfo::getCodecName() {
+const char *CodecInfo::getCodecName() {
     switch (getCodecId()) {
         SWITCH_CASE(CodecH264);
         SWITCH_CASE(CodecH265);
