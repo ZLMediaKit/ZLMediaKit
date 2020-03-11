@@ -53,20 +53,32 @@ HttpSession::~HttpSession() {
     TraceP(this);
 }
 
+void HttpSession::Handle_Req_OPTIONS(int64_t &content_len){
+    KeyValue header;
+    header.emplace("Allow","GET, POST, OPTIONS");
+    header.emplace("Access-Control-Allow-Origin","*");
+    header.emplace("Access-Control-Allow-Credentials","true");
+    header.emplace("Access-Control-Request-Methods","GET, POST, OPTIONS");
+    header.emplace("Access-Control-Request-Headers","Accept,Accept-Language,Content-Language,Content-Type");
+    sendResponse( "200 OK" , true, nullptr,header);
+}
+
 int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
 	typedef void (HttpSession::*HttpCMDHandle)(int64_t &);
 	static unordered_map<string, HttpCMDHandle> s_func_map;
 	static onceToken token([]() {
 		s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
 		s_func_map.emplace("POST",&HttpSession::Handle_Req_POST);
-	}, nullptr);
+        s_func_map.emplace("OPTIONS",&HttpSession::Handle_Req_OPTIONS);
+    }, nullptr);
 
 	_parser.Parse(header);
 	urlDecode(_parser);
 	string cmd = _parser.Method();
 	auto it = s_func_map.find(cmd);
 	if (it == s_func_map.end()) {
-		sendResponse("403 Forbidden", true);
+	    WarnL << "不支持该命令:" << cmd;
+		sendResponse("405 Not Allowed", true);
         return 0;
 	}
 
