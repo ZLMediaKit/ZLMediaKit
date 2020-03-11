@@ -56,8 +56,8 @@ public:
 protected:
     AACRtpDecoder();
 private:
-    void onGetAAC(const AACFrame::Ptr &frame);
     AACFrame::Ptr obtainFrame();
+    void flushData();
 private:
     AACFrame::Ptr _adts;
     string _aac_cfg;
