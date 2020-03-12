@@ -71,14 +71,14 @@ char StrToBin(const char *str)
 string strCoding::UrlEncode(const string &str) {
 	string out;
     size_t len = str.size();
-	for (size_t i = 0; i <  len; ++i) {
+	for (size_t i = 0; i < len; ++i) {
         char ch = str[i];
 		if (isalnum((uint8_t)ch)) {
             out.push_back(ch);
 		}else {
-			char tempbuff[4];
-			sprintf(tempbuff, "%%%X%X", (uint8_t)str[i] >> 4,(uint8_t)str[i] % 16);
-            out.append(tempbuff);
+			char buf[4];
+			sprintf(buf, "%%%X%X", (uint8_t)ch >> 4,(uint8_t)ch & 0x0F);
+            out.append(buf);
 		}
 	}
 	return out;
