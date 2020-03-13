@@ -113,7 +113,10 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
 
     static const uint32_t max_size = sizeof(AACFrame::buffer) - ADTS_HEADER_LEN;
     while (ptr < end) {
-        auto size = std::min(max_size, (uint32_t) (end - ptr));
+        auto size = (uint32_t) (end - ptr);
+        if(size > max_size){
+            size = max_size;
+        }
         if (_adts->aac_frame_length + size > sizeof(AACFrame::buffer)) {
             //数据太多了，先清空
             flushData();
