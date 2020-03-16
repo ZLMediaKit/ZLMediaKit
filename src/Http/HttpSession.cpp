@@ -53,14 +53,11 @@ HttpSession::~HttpSession() {
     TraceP(this);
 }
 
-void HttpSession::Handle_Req_OPTIONS(int64_t &content_len){
-    KeyValue header;
-    header.emplace("Allow","GET, POST, OPTIONS");
-    header.emplace("Access-Control-Allow-Origin","*");
-    header.emplace("Access-Control-Allow-Credentials","true");
-    header.emplace("Access-Control-Request-Methods","GET, POST, OPTIONS");
-    header.emplace("Access-Control-Request-Headers","Accept,Accept-Language,Content-Language,Content-Type");
-    sendResponse( "200 OK" , true, nullptr,header);
+void HttpSession::Handle_Req_HEAD(int64_t &content_len){
+    //暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
+    //如果直接返回404，那么又会导致按需生成流的逻辑失效，所以HTTP HEAD在静态文件或者已存在资源时才有效
+    //对于按需生成流的直播场景并不适用
+    sendResponse("200 OK", true);
 }
 
 int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
@@ -69,7 +66,7 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
 	static onceToken token([]() {
 		s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
 		s_func_map.emplace("POST",&HttpSession::Handle_Req_POST);
-        s_func_map.emplace("OPTIONS",&HttpSession::Handle_Req_OPTIONS);
+        s_func_map.emplace("HEAD",&HttpSession::Handle_Req_HEAD);
     }, nullptr);
 
 	_parser.Parse(header);
@@ -268,8 +265,11 @@ bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
     return true;
 }
 
-
 void HttpSession::Handle_Req_GET(int64_t &content_len) {
+    Handle_Req_GET_l(content_len, true);
+}
+
+void HttpSession::Handle_Req_GET_l(int64_t &content_len, bool sendBody) {
 	//先看看是否为WebSocket请求
 	if(checkWebSocket()){
 		content_len = -1;
