@@ -340,6 +340,12 @@ void MediaInfo::parse(const string &url){
         } else{
             _host = _vhost = vhost;
         }
+
+        if(_vhost == "localhost" || INADDR_NONE != inet_addr(_vhost.data())){
+            //如果访问的是localhost或ip，那么则为默认虚拟主机
+            _vhost = DEFAULT_VHOST;
+        }
+
     }
     if(split_vec.size() > 1){
         _app = split_vec[1];
@@ -366,7 +372,8 @@ void MediaInfo::parse(const string &url){
     }
 
     GET_CONFIG(bool,enableVhost,General::kEnableVhost);
-    if(!enableVhost || _vhost.empty() || _vhost == "localhost" || INADDR_NONE != inet_addr(_vhost.data())){
+    if(!enableVhost || _vhost.empty()){
+        //如果关闭虚拟主机或者虚拟主机为空，则设置虚拟主机为默认
         _vhost = DEFAULT_VHOST;
     }
 }

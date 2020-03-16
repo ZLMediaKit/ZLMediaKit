@@ -33,6 +33,10 @@
 #include "Record/HlsMediaSource.h"
 #include "Record/HlsRecorder.h"
 
+/**
+ * 使用该对象时，应该使用setListener方法来绑定MediaSource相关的事件
+ * 否则多种不同类型的MediaSource(rtsp/rtmp/hls)将无法产生关联
+ */
 class MultiMediaSourceMuxer : public MediaSink , public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     class Listener{

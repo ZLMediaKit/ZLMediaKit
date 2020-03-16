@@ -130,17 +130,18 @@ API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, u
 API_EXPORT void API_CALL mk_media_input_aac1(mk_media ctx, void *data, int len, uint32_t dts, void *adts);
 
 /**
- * 在调用对应的MediaSource.close()时会触发该回调
- * 你可以在该事件中做清理工作（比如说关闭摄像头，同时调用mk_media_release函数销毁该对象）
+ * MediaSource.close()回调事件
+ * 在选择关闭一个关联的MediaSource时，将会最终触发到该回调
+ * 你应该通过该事件调用mk_media_release函数并且释放其他资源
+ * 如果你不调用mk_media_release函数，那么MediaSource.close()操作将无效
  * @param user_data 用户数据指针，通过mk_media_set_on_close函数设置
- * @return 返回0告知事件触发者关闭媒体失败，非0代表成功
  */
-typedef int(API_CALL *on_mk_media_close)(void *user_data);
+typedef void(API_CALL *on_mk_media_close)(void *user_data);
 
 /**
  * 监听MediaSource.close()事件
- * 在选择关闭一个MediaSource时，将会最终触发到该回调
- * 你可以通过该事件选择删除对象，当然你在该事件中也可以什么都不做
+ * 在选择关闭一个关联的MediaSource时，将会最终触发到该回调
+ * 你应该通过该事件调用mk_media_release函数并且释放其他资源
  * @param ctx 对象指针
  * @param cb 回调指针
  * @param user_data 用户数据指针

@@ -69,24 +69,19 @@ char StrToBin(const char *str)
 }
 
 string strCoding::UrlEncode(const string &str) {
-	string dd;
-	size_t len = str.size();
-	for (size_t i = 0; i < len; i++) {
-		if (isalnum((uint8_t)str[i])) {
-			char tempbuff[2];
-			sprintf(tempbuff, "%c", str[i]);
-			dd.append(tempbuff);
-		}
-		else if (isspace((uint8_t)str[i])) {
-			dd.append("+");
-		}
-		else {
-			char tempbuff[4];
-			sprintf(tempbuff, "%%%X%X", (uint8_t)str[i] >> 4,(uint8_t)str[i] % 16);
-			dd.append(tempbuff);
+	string out;
+    size_t len = str.size();
+	for (size_t i = 0; i < len; ++i) {
+        char ch = str[i];
+		if (isalnum((uint8_t)ch)) {
+            out.push_back(ch);
+		}else {
+			char buf[4];
+			sprintf(buf, "%%%X%X", (uint8_t)ch >> 4,(uint8_t)ch & 0x0F);
+            out.append(buf);
 		}
 	}
-	return dd;
+	return out;
 }
 string strCoding::UrlDecode(const string &str) {
 	string output = "";
@@ -94,16 +89,18 @@ string strCoding::UrlDecode(const string &str) {
 	int i = 0, len = str.length();
 	while (i < len) {
 		if (str[i] == '%') {
+		    if(i > len - 3){
+		        //防止内存溢出
+                break;
+		    }
 			tmp[0] = str[i + 1];
 			tmp[1] = str[i + 2];
 			output += StrToBin(tmp);
 			i = i + 3;
-		}
-		else if (str[i] == '+') {
+		} else if (str[i] == '+') {
 			output += ' ';
 			i++;
-		}
-		else {
+		} else {
 			output += str[i];
 			i++;
 		}

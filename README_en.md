@@ -51,7 +51,7 @@
   - Auto close stream when nobody played.  
   - Play and push authentication.
   - Pull stream on Demand.
-
+  - Support TS / PS streaming push through RTP,and it can be converted to RTSP / RTMP / HLS / FLV.
 
 
 - Protocol conversion:
