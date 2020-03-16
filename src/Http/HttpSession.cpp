@@ -53,20 +53,29 @@ HttpSession::~HttpSession() {
     TraceP(this);
 }
 
+void HttpSession::Handle_Req_HEAD(int64_t &content_len){
+    //暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
+    //如果直接返回404，那么又会导致按需生成流的逻辑失效，所以HTTP HEAD在静态文件或者已存在资源时才有效
+    //对于按需生成流的直播场景并不适用
+    sendResponse("200 OK", true);
+}
+
 int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
 	typedef void (HttpSession::*HttpCMDHandle)(int64_t &);
 	static unordered_map<string, HttpCMDHandle> s_func_map;
 	static onceToken token([]() {
 		s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
 		s_func_map.emplace("POST",&HttpSession::Handle_Req_POST);
-	}, nullptr);
+        s_func_map.emplace("HEAD",&HttpSession::Handle_Req_HEAD);
+    }, nullptr);
 
 	_parser.Parse(header);
 	urlDecode(_parser);
 	string cmd = _parser.Method();
 	auto it = s_func_map.find(cmd);
 	if (it == s_func_map.end()) {
-		sendResponse("403 Forbidden", true);
+	    WarnL << "不支持该命令:" << cmd;
+		sendResponse("405 Not Allowed", true);
         return 0;
 	}
 
@@ -256,8 +265,11 @@ bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
     return true;
 }
 
-
 void HttpSession::Handle_Req_GET(int64_t &content_len) {
+    Handle_Req_GET_l(content_len, true);
+}
+
+void HttpSession::Handle_Req_GET_l(int64_t &content_len, bool sendBody) {
 	//先看看是否为WebSocket请求
 	if(checkWebSocket()){
 		content_len = -1;

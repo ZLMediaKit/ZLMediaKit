@@ -38,5 +38,16 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
     return std::make_shared<FrameCacheAble>(frame);
 }
 
+#define SWITCH_CASE(codec_id) case codec_id : return #codec_id
+const char *CodecInfo::getCodecName() {
+    switch (getCodecId()) {
+        SWITCH_CASE(CodecH264);
+        SWITCH_CASE(CodecH265);
+        SWITCH_CASE(CodecAAC);
+        default:
+            return "unknown codec";
+    }
+}
+
 }//namespace mediakit
 

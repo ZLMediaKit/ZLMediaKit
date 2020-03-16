@@ -62,14 +62,11 @@ protected:
         }
         if(!_cb){
             //未设置回调，没法关闭
+            WarnL << "请使用mk_media_set_on_close函数设置回调函数!";
             return false;
         }
-        if(!_cb(_user_data)){
-            //回调选择返回不关闭该视频
-            return false;
-        }
-
-        //回调中已经关闭该视频
+        //请在回调中调用mk_media_release函数释放资源,否则MediaSource::close()操作不会生效
+        _cb(_user_data);
         WarnL << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
         return true;
     }

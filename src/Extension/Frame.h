@@ -72,6 +72,12 @@ public:
      * 获取编解码器类型
      */
     virtual CodecId getCodecId() const = 0;
+
+    /**
+     * 获取编码器名称
+     * @return 编码器名称
+     */
+    const char *getCodecName();
 };
 
 /**

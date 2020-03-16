@@ -25,7 +25,6 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
-#include <assert.h>
 #include "Util/logger.h"
 #include "RtpDecoder.h"
 #include "rtp-payload.h"
@@ -44,13 +43,7 @@ RtpDecoder::~RtpDecoder() {
     }
 }
 
-void RtpDecoder::decodeRtp(const void *data, int bytes,const string &type_name) {
-    if(_rtp_type != type_name && _rtp_decoder){
-        //rtp类型发生变化，切换之
-        rtp_payload_decode_destroy(_rtp_decoder);
-        _rtp_decoder = nullptr;
-    }
-
+void RtpDecoder::decodeRtp(const void *data, int bytes) {
     if(!_rtp_decoder){
         static rtp_payload_t s_func= {
                 [](void* param, int bytes){
@@ -69,11 +62,9 @@ void RtpDecoder::decodeRtp(const void *data, int bytes,const string &type_name) 
 
         uint8_t rtp_type = 0x7F & ((uint8_t *) data)[1];
         InfoL << "rtp type:" << (int) rtp_type;
-        _rtp_decoder = rtp_payload_decode_create(rtp_type, type_name.data(), &s_func, this);
+        _rtp_decoder = rtp_payload_decode_create(rtp_type, "MP2P", &s_func, this);
         if (!_rtp_decoder) {
             WarnL << "unsupported rtp type:" << (int) rtp_type << ",size:" << bytes << ",hexdump" << hexdump(data, bytes > 16 ? 16 : bytes);
-        }else{
-            _rtp_type = type_name;
         }
     }
 
