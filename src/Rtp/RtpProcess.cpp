@@ -33,7 +33,6 @@
 
 namespace mediakit{
 
-
 /**
 * 合并一些时间戳相同的frame
 */
@@ -153,29 +152,47 @@ bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *
     return ret;
 }
 
+//判断是否为ts负载
+static inline bool checkTS(const uint8_t *packet, int bytes){
+    return bytes % 188 == 0 && packet[0] == 0x47;
+}
+
 void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
     if(rtp->sequence != _sequence + 1){
         WarnL << rtp->sequence << " != " << _sequence << "+1";
     }
     _sequence = rtp->sequence;
-
     if(_save_file_rtp){
         uint16_t  size = rtp->size() - 4;
         size = htons(size);
         fwrite((uint8_t *) &size, 2, 1, _save_file_rtp.get());
         fwrite((uint8_t *) rtp->data() + 4, rtp->size() - 4, 1, _save_file_rtp.get());
     }
-
-    GET_CONFIG(string,rtp_type,::RtpProxy::kRtpType);
-    decodeRtp(rtp->data() + 4 ,rtp->size() - 4,rtp_type.data());
+    decodeRtp(rtp->data() + 4 ,rtp->size() - 4);
 }
 
-void RtpProcess::onRtpDecode(const void *packet, int bytes, uint32_t, int flags) {
+void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) {
     if(_save_file_ps){
         fwrite((uint8_t *)packet,bytes, 1, _save_file_ps.get());
     }
 
-    auto ret = decodePS((uint8_t *)packet,bytes);
+    if(!_decoder){
+        //创建解码器
+        if(checkTS(packet, bytes)){
+            //猜测是ts负载
+            InfoL << "judged to be TS: " << printSSRC(_ssrc);
+            _decoder = Decoder::createDecoder(Decoder::decoder_ts);
+        }else{
+            //猜测是ps负载
+            InfoL << "judged to be PS: " << printSSRC(_ssrc);
+            _decoder = Decoder::createDecoder(Decoder::decoder_ps);
+        }
+        _decoder->setOnDecode([this](int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes){
+            onDecode(stream,codecid,flags,pts,dts,data,bytes);
+        });
+    }
+
+    auto ret = _decoder->input((uint8_t *)packet,bytes);
     if(ret != bytes){
         WarnL << ret << " != " << bytes << " " << flags;
     }
@@ -200,13 +217,7 @@ static const char *getCodecName(int codec_id) {
     }
 }
 
-void RtpProcess::onPSDecode(int stream,
-                       int codecid,
-                       int flags,
-                       int64_t pts,
-                       int64_t dts,
-                       const void *data,
-                       int bytes) {
+void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {
     pts /= 90;
     dts /= 90;
     _stamps[codecid].revise(dts,pts,dts,pts,false);
@@ -298,6 +309,15 @@ string RtpProcess::get_peer_ip() {
 uint16_t RtpProcess::get_peer_port() {
     return ntohs(((struct sockaddr_in *) _addr)->sin_port);
 }
+
+int RtpProcess::totalReaderCount(){
+    return _muxer->totalReaderCount();
+}
+
+void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
+    _muxer->setListener(listener);
+}
+
 
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)

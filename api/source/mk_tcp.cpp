@@ -137,7 +137,7 @@ API_EXPORT void API_CALL mk_tcp_server_events_listen(const mk_tcp_session_events
     }
 }
 
-API_EXPORT uint16_t API_CALL mk_tcp_server_server_start(uint16_t port, mk_tcp_type type){
+API_EXPORT uint16_t API_CALL mk_tcp_server_start(uint16_t port, mk_tcp_type type){
     type = MAX(mk_type_tcp, MIN(type, mk_type_wss));
     try {
         s_tcp_server[type] = std::make_shared<TcpServer>();

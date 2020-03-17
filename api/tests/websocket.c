@@ -172,7 +172,7 @@ void test_server(){
     };
 
     mk_tcp_server_events_listen(&events_server);
-    mk_tcp_server_server_start(80,TCP_TYPE);
+    mk_tcp_server_start(80, TCP_TYPE);
 }
 
 void test_client(){

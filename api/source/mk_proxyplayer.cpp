@@ -61,3 +61,22 @@ API_EXPORT void API_CALL mk_proxy_player_play(mk_proxy_player ctx, const char *u
         obj->play(url_str);
     });
 }
+
+API_EXPORT void API_CALL mk_proxy_player_set_on_close(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data){
+    assert(ctx);
+    PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *) ctx);
+    obj->getPoller()->async([obj,cb,user_data](){
+        //切换线程再操作
+        obj->setOnClose([cb,user_data](){
+            if(cb){
+                cb(user_data);
+            }
+        });
+    });
+}
+
+API_EXPORT int API_CALL mk_proxy_player_total_reader_count(mk_proxy_player ctx){
+    assert(ctx);
+    PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *) ctx);
+    return obj->totalReaderCount();
+}

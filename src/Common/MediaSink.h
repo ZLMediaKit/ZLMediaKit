@@ -121,6 +121,12 @@ private:
      * 触发onAllTrackReady事件
      */
     void emitAllTrackReady();
+
+    /**
+     * 检查track是否准备完毕
+     */
+    void checkTrackIfReady(const Track::Ptr &track);
+    void checkTrackIfReady_l(const Track::Ptr &track);
 private:
     mutable recursive_mutex _mtx;
     map<int,Track::Ptr> _track_map;

@@ -258,7 +258,7 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
         }
             break;
         default:
-            WarnL << "MP4录制不支持该编码格式:" << track->getCodecId();
+            WarnL << "MP4录制不支持该编码格式:" << track->getCodecName();
             break;
     }
 }

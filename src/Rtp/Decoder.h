@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2020 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,30 +24,34 @@
  * SOFTWARE.
  */
 
-#include "Frame.h"
+#ifndef ZLMEDIAKIT_DECODER_H
+#define ZLMEDIAKIT_DECODER_H
 
+#if defined(ENABLE_RTPPROXY)
+#include <stdint.h>
+#include <memory>
+#include <functional>
+#include "Decoder.h"
 using namespace std;
-using namespace toolkit;
+namespace mediakit {
 
-namespace mediakit{
+class Decoder {
+public:
+    typedef std::shared_ptr<Decoder> Ptr;
+    typedef enum {
+        decoder_ts = 0,
+        decoder_ps
+    }Type;
 
-Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
-    if(frame->cacheAble()){
-        return frame;
-    }
-    return std::make_shared<FrameCacheAble>(frame);
-}
-
-#define SWITCH_CASE(codec_id) case codec_id : return #codec_id
-const char *CodecInfo::getCodecName() {
-    switch (getCodecId()) {
-        SWITCH_CASE(CodecH264);
-        SWITCH_CASE(CodecH265);
-        SWITCH_CASE(CodecAAC);
-        default:
-            return "unknown codec";
-    }
-}
+    typedef std::function<void(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes)> onDecode;
+    virtual int input(const uint8_t *data, int bytes) = 0;
+    virtual void setOnDecode(const onDecode &decode) = 0;
+    static Ptr createDecoder(Type type);
+protected:
+    Decoder() = default;
+    virtual ~Decoder() = default;
+};
 
 }//namespace mediakit
-
+#endif//defined(ENABLE_RTPPROXY)
+#endif //ZLMEDIAKIT_DECODER_H

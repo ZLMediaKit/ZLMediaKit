@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2020 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,30 +24,18 @@
  * SOFTWARE.
  */
 
-#include "Frame.h"
-
-using namespace std;
-using namespace toolkit;
-
-namespace mediakit{
-
-Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
-    if(frame->cacheAble()){
-        return frame;
-    }
-    return std::make_shared<FrameCacheAble>(frame);
-}
-
-#define SWITCH_CASE(codec_id) case codec_id : return #codec_id
-const char *CodecInfo::getCodecName() {
-    switch (getCodecId()) {
-        SWITCH_CASE(CodecH264);
-        SWITCH_CASE(CodecH265);
-        SWITCH_CASE(CodecAAC);
-        default:
-            return "unknown codec";
+#if defined(ENABLE_RTPPROXY)
+#include "Decoder.h"
+#include "PSDecoder.h"
+#include "TSDecoder.h"
+namespace mediakit {
+Decoder::Ptr Decoder::createDecoder(Decoder::Type type) {
+    switch (type){
+        case decoder_ps : return std::make_shared<PSDecoder>();
+        case decoder_ts : return std::make_shared<TSDecoder>();
+        default : return nullptr;
     }
 }
 
 }//namespace mediakit
-
+#endif//defined(ENABLE_RTPPROXY)

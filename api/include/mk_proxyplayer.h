@@ -68,6 +68,32 @@ API_EXPORT void API_CALL mk_proxy_player_set_option(mk_proxy_player ctx, const c
  */
 API_EXPORT void API_CALL mk_proxy_player_play(mk_proxy_player ctx, const char *url);
 
+/**
+ * MediaSource.close()回调事件
+ * 在选择关闭一个关联的MediaSource时，将会最终触发到该回调
+ * 你应该通过该事件调用mk_proxy_player_release函数并且释放其他资源
+ * 如果你不调用mk_proxy_player_release函数，那么MediaSource.close()操作将无效
+ * @param user_data 用户数据指针，通过mk_proxy_player_set_on_close函数设置
+ */
+typedef void(API_CALL *on_mk_proxy_player_close)(void *user_data);
+
+/**
+ * 监听MediaSource.close()事件
+ * 在选择关闭一个关联的MediaSource时，将会最终触发到该回调
+ * 你应该通过该事件调用mk_proxy_player_release函数并且释放其他资源
+ * @param ctx 对象指针
+ * @param cb 回调指针
+ * @param user_data 用户数据指针
+ */
+API_EXPORT void API_CALL mk_proxy_player_set_on_close(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data);
+
+/**
+ * 获取总的观看人数
+ * @param ctx 对象指针
+ * @return 观看人数
+ */
+API_EXPORT int API_CALL mk_proxy_player_total_reader_count(mk_proxy_player ctx);
+
 #ifdef __cplusplus
 }
 #endif

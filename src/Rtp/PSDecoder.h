@@ -29,27 +29,21 @@
 
 #if defined(ENABLE_RTPPROXY)
 #include <stdint.h>
-
+#include "Decoder.h"
 namespace mediakit{
 
-class PSDecoder {
+//ps解析器
+class PSDecoder : public Decoder {
 public:
     PSDecoder();
-    virtual ~PSDecoder();
-    int decodePS(const uint8_t *data, int bytes);
-protected:
-    virtual void onPSDecode(int stream,
-                            int codecid,
-                            int flags,
-                            int64_t pts,
-                            int64_t dts,
-                            const void *data,
-                            int bytes) = 0;
+    ~PSDecoder();
+    int input(const uint8_t* data, int bytes) override;
+    void setOnDecode(const onDecode &decode) override;
 private:
     void *_ps_demuxer = nullptr;
+    onDecode _on_decode;
 };
 
 }//namespace mediakit
-
 #endif//defined(ENABLE_RTPPROXY)
 #endif //ZLMEDIAKIT_PSDECODER_H

@@ -107,8 +107,11 @@ protected:
 	void onWebSocketEncodeData(const Buffer::Ptr &buffer) override;
 private:
 	void Handle_Req_GET(int64_t &content_len);
-	void Handle_Req_POST(int64_t &content_len);
-	bool checkLiveFlvStream(const function<void()> &cb = nullptr);
+    void Handle_Req_GET_l(int64_t &content_len, bool sendBody);
+    void Handle_Req_POST(int64_t &content_len);
+    void Handle_Req_HEAD(int64_t &content_len);
+
+    bool checkLiveFlvStream(const function<void()> &cb = nullptr);
 	bool checkWebSocket();
 	bool emitHttpEvent(bool doInvoke);
 	void urlDecode(Parser &parser);

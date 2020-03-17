@@ -109,7 +109,20 @@ API_EXPORT const char* API_CALL mk_media_source_get_stream(const mk_media_source
 API_EXPORT int API_CALL mk_media_source_get_reader_count(const mk_media_source ctx);
 //MediaSource::totalReaderCount()
 API_EXPORT int API_CALL mk_media_source_get_total_reader_count(const mk_media_source ctx);
-//MediaSource::close()
+/**
+ * 直播源在ZLMediaKit中被称作为MediaSource，
+ * 目前支持3种，分别是RtmpMediaSource、RtspMediaSource、HlsMediaSource
+ * 源的产生有被动和主动方式:
+ * 被动方式分别是rtsp/rtmp/rtp推流、mp4点播
+ * 主动方式包括mk_media_create创建的对象(DevChannel)、mk_proxy_player_create创建的对象(PlayerProxy)
+ * 被动方式你不用做任何处理，ZLMediaKit已经默认适配了MediaSource::close()事件，都会关闭直播流
+ * 主动方式你要设置这个事件的回调，你要自己选择删除对象
+ * 通过mk_proxy_player_set_on_close、mk_media_set_on_close函数可以设置回调,
+ * 请在回调中删除对象来完成媒体的关闭，否则又为什么要调用mk_media_source_close函数？
+ * @param ctx 对象
+ * @param force 是否强制关闭，如果强制关闭，在有人观看的情况下也会关闭
+ * @return 0代表失败，1代表成功
+ */
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force);
 //MediaSource::seekTo()
 API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32_t stamp);
@@ -315,7 +328,7 @@ API_EXPORT mk_auth_invoker API_CALL mk_auth_invoker_clone(const mk_auth_invoker 
 /**
  * 销毁堆上的克隆对象
  */
-API_EXPORT void API_CALL mk_auth_invoker_clone_relase(const mk_auth_invoker ctx);
+API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx);
 
 #ifdef __cplusplus
 }

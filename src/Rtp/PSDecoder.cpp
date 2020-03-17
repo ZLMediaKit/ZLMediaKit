@@ -27,7 +27,6 @@
 #if defined(ENABLE_RTPPROXY)
 #include "PSDecoder.h"
 #include "mpeg-ps.h"
-
 namespace mediakit{
 
 PSDecoder::PSDecoder() {
@@ -40,7 +39,9 @@ PSDecoder::PSDecoder() {
                                        const void* data,
                                        size_t bytes){
         PSDecoder *thiz = (PSDecoder *)param;
-        thiz->onPSDecode(stream, codecid, flags, pts, dts, data, bytes);
+        if(thiz->_on_decode){
+            thiz->_on_decode(stream, codecid, flags, pts, dts, data, bytes);
+        }
     },this);
 }
 
@@ -48,10 +49,13 @@ PSDecoder::~PSDecoder() {
     ps_demuxer_destroy((struct ps_demuxer_t*)_ps_demuxer);
 }
 
-int PSDecoder::decodePS(const uint8_t *data, int bytes) {
+int PSDecoder::input(const uint8_t *data, int bytes) {
     return ps_demuxer_input((struct ps_demuxer_t*)_ps_demuxer,data,bytes);
 }
 
-}//namespace mediakit
+void PSDecoder::setOnDecode(const Decoder::onDecode &decode) {
+    _on_decode = decode;
+}
 
+}//namespace mediakit
 #endif//#if defined(ENABLE_RTPPROXY)

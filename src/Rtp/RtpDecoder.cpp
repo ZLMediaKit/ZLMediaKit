@@ -25,11 +25,9 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
-#include <assert.h>
 #include "Util/logger.h"
 #include "RtpDecoder.h"
 #include "rtp-payload.h"
-
 using namespace toolkit;
 
 namespace mediakit{
@@ -45,7 +43,7 @@ RtpDecoder::~RtpDecoder() {
     }
 }
 
-void RtpDecoder::decodeRtp(const void *data, int bytes,const char *type_name) {
+void RtpDecoder::decodeRtp(const void *data, int bytes) {
     if(!_rtp_decoder){
         static rtp_payload_t s_func= {
                 [](void* param, int bytes){
@@ -58,17 +56,18 @@ void RtpDecoder::decodeRtp(const void *data, int bytes,const char *type_name) {
                 },
                 [](void* param, const void *packet, int bytes, uint32_t timestamp, int flags){
                     RtpDecoder *obj = (RtpDecoder *)param;
-                    obj->onRtpDecode(packet, bytes, timestamp, flags);
+                    obj->onRtpDecode((uint8_t *)packet, bytes, timestamp, flags);
                 }
         };
 
         uint8_t rtp_type = 0x7F & ((uint8_t *) data)[1];
         InfoL << "rtp type:" << (int) rtp_type;
-        _rtp_decoder = rtp_payload_decode_create(rtp_type, type_name, &s_func, this);
+        _rtp_decoder = rtp_payload_decode_create(rtp_type, "MP2P", &s_func, this);
         if (!_rtp_decoder) {
             WarnL << "unsupported rtp type:" << (int) rtp_type << ",size:" << bytes << ",hexdump" << hexdump(data, bytes > 16 ? 16 : bytes);
         }
     }
+
     if(_rtp_decoder){
         rtp_payload_decode_input(_rtp_decoder,data,bytes);
     }

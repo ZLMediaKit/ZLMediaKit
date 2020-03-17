@@ -31,7 +31,7 @@
 
 #include "Rtsp/RtpReceiver.h"
 #include "RtpDecoder.h"
-#include "PSDecoder.h"
+#include "Decoder.h"
 #include "Common/Device.h"
 #include "Common/Stamp.h"
 using namespace mediakit;
@@ -40,7 +40,7 @@ namespace mediakit{
 
 string printSSRC(uint32_t ui32Ssrc);
 class FrameMerger;
-class RtpProcess : public RtpReceiver , public RtpDecoder , public PSDecoder {
+class RtpProcess : public RtpReceiver , public RtpDecoder{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     RtpProcess(uint32_t ssrc);
@@ -49,16 +49,14 @@ public:
     bool alive();
     string get_peer_ip();
     uint16_t get_peer_port();
+    int totalReaderCount();
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
-    void onRtpDecode(const void *packet, int bytes, uint32_t timestamp, int flags) override;
-    void onPSDecode(int stream,
-                    int codecid,
-                    int flags,
-                    int64_t pts,
-                    int64_t dts,
-                    const void *data,
-                    int bytes) override ;
+    void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) override;
+    void onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts, const void *data,int bytes);
+private:
+    void getNextRtpType();
 private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
@@ -74,6 +72,7 @@ private:
     Ticker _last_rtp_time;
     map<int,Stamp> _stamps;
     uint32_t _dts = 0;
+    Decoder::Ptr _decoder;
 };
 
 }//namespace mediakit

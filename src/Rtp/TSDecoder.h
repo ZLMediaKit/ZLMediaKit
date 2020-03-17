@@ -1,7 +1,7 @@
 ﻿/*
  * MIT License
  *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2020 xiongziliang <771730766@qq.com>
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
@@ -24,30 +24,45 @@
  * SOFTWARE.
  */
 
-#include "Frame.h"
+#ifndef ZLMEDIAKIT_TSDECODER_H
+#define ZLMEDIAKIT_TSDECODER_H
 
-using namespace std;
+#if defined(ENABLE_RTPPROXY)
+#include "Util/logger.h"
+#include "Http/HttpRequestSplitter.h"
+#include "Decoder.h"
+
 using namespace toolkit;
+namespace mediakit {
 
-namespace mediakit{
+//ts包拆分器
+class TSSegment : public HttpRequestSplitter {
+public:
+    typedef std::function<void(const char *data,uint64_t len)> onSegment;
+    TSSegment(int size = 188) : _size(size){}
+    ~TSSegment(){}
+    void setOnSegment(const onSegment &cb);
+protected:
+    int64_t onRecvHeader(const char *data, uint64_t len) override ;
+    const char *onSearchPacketTail(const char *data, int len) override ;
+private:
+    int _size;
+    onSegment _onSegment;
+};
 
-Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
-    if(frame->cacheAble()){
-        return frame;
-    }
-    return std::make_shared<FrameCacheAble>(frame);
-}
-
-#define SWITCH_CASE(codec_id) case codec_id : return #codec_id
-const char *CodecInfo::getCodecName() {
-    switch (getCodecId()) {
-        SWITCH_CASE(CodecH264);
-        SWITCH_CASE(CodecH265);
-        SWITCH_CASE(CodecAAC);
-        default:
-            return "unknown codec";
-    }
-}
+//ts解析器
+class TSDecoder : public Decoder {
+public:
+    TSDecoder();
+    ~TSDecoder();
+    int input(const uint8_t* data, int bytes) override ;
+    void setOnDecode(const onDecode &decode) override;
+private:
+    TSSegment _ts_segment;
+    struct ts_demuxer_t* _demuxer_ctx = nullptr;
+    onDecode _on_decode;
+};
 
 }//namespace mediakit
-
+#endif//defined(ENABLE_RTPPROXY)
+#endif //ZLMEDIAKIT_TSDECODER_H

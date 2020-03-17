@@ -120,7 +120,7 @@ API_EXPORT void* API_CALL mk_tcp_session_get_user_data(mk_tcp_session session);
  * @param port 监听端口号，0则为随机
  * @param type 服务器类型
  */
-API_EXPORT uint16_t API_CALL mk_tcp_server_server_start(uint16_t port, mk_tcp_type type);
+API_EXPORT uint16_t API_CALL mk_tcp_server_start(uint16_t port, mk_tcp_type type);
 
 /**
  * 监听tcp服务器事件

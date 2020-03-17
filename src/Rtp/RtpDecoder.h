@@ -38,8 +38,8 @@ public:
     RtpDecoder();
     virtual ~RtpDecoder();
 protected:
-    void decodeRtp(const void *data, int bytes,const char *type_name);
-    virtual void onRtpDecode(const void *packet, int bytes, uint32_t timestamp, int flags) = 0;
+    void decodeRtp(const void *data, int bytes);
+    virtual void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) = 0;
 private:
     void *_rtp_decoder = nullptr;
     BufferRaw::Ptr _buffer;
