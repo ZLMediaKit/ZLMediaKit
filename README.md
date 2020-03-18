@@ -139,112 +139,15 @@ git submodule update --init
   |   HTTP[S]   |  Y   |
   | WebSocket[S] |  Y  |
 
-## 后续任务
-- 完善支持H265
+## 编译以及测试
+请参考wiki:[快速开始](https://github.com/xiongziliang/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
 
-## 编译要求
-- 编译器支持C++11，GCC4.8/Clang3.3/VC2015或以上
-- cmake3.2或以上
-
-## 编译前必看！！！
-
-- **必须使用git下载完整的代码，不要使用下载zip包的方式下载源码，否则子模块代码默认不下载！你可以像以下这样操作:**
-```
-git clone https://github.com/zlmediakit/ZLMediaKit.git
-cd ZLMediaKit
-git submodule update --init
-```
-
-## 编译(Linux)
-- 我的编译环境
-  - Ubuntu16.04 64 bit + gcc5.4
-  - cmake 3.5.1
-- 编译
-  
-  ```
-	//如果是centos6.x,需要先安装较新版本的gcc以及cmake，然后打开脚本build_for_linux.sh手动编译
-	//如果是ubuntu这样的比较新的系统版本可以直接操作第4步
-
-	1、安装GCC5.2(如果gcc版本高于4.7可以跳过此步骤)
-	sudo yum install centos-release-scl -y
-	sudo yum install devtoolset-4-toolchain -y
-	scl enable devtoolset-4 bash
-
-	2、安装cmake
-	#需要安装新版本cmake,当然你也可以通过yum或者apt-get方式安装(前提是版本够新)
-	tar -xvf cmake-3.10.0-rc4.tar.gz
-	cd cmake-3.10.0-rc4
-	./configure
-	make -j4
-	sudo make install
-
-	3、切换高版本gcc
-	scl enable devtoolset-4 bash
-
-	4、编译
-	cd ZLMediaKit
-	./build_for_linux.sh
-  ```
-
-## 编译(macOS)
-- 我的编译环境
-  - macOS Sierra(10.12.1) + xcode8.3.1
-  - Homebrew 1.1.3
-  - cmake 3.8.0
-- 编译
-  
-  ```
-  cd ZLMediaKit
-  ./build_for_mac.sh
-  ```
-
-## 编译(iOS)
-- 编译环境:`请参考macOS的编译指导。`
-- 生成Xcode工程再编译,[了解更多](https://github.com/leetal/ios-cmake):
-
-  ```
-  cd ZLMediaKit
-  mkdir -p build
-  cd build
-  # 生成Xcode工程，工程文件在build目录下
-  cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake  -DPLATFORM=OS64COMBINED
-  ```
-  
-## 编译(Android)
-- 我的编译环境
-  - macOS Sierra(10.12.1) + xcode8.3.1
-  - Homebrew 1.1.3
-  - cmake 3.8.0
-  - [android-ndk-r14b](https://dl.google.com/android/repository/android-ndk-r14b-darwin-x86_64.zip)
-- 编译
-
-  ```
-  cd ZLMediaKit
-  export ANDROID_NDK_ROOT=/path/to/ndk
-  ./build_for_android.sh
-  ```
-## 编译(Windows)
-- 我的编译环境
-  - windows 10
-  - visual studio 2017
-  - [cmake-gui](https://cmake.org/files/v3.10/cmake-3.10.0-rc1-win32-x86.msi)
-  
-- 编译
-```
-   1 进入ZLMediaKit目录执行 git submodule update --init 以下载ZLToolKit的代码
-   2 使用cmake-gui打开工程并生成vs工程文件.
-   3 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
-   4 选择编译Release 版本.
-   5 找到目标文件并运行测试用例.
-```
-
-## Docker Image
-You can pull a pre-built docker image from Docker Hub and run with
+## Docker 镜像
+你可以从Docker Hub下载已经编译好的镜像并启动它：
 ```bash
 docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
 ```
-
-Dockerfile is also supplied to build images on Ubuntu 16.04
+你要可以在Ubuntu 16.04下根据Dockerfile编译镜像：
 ```bash
 cd docker
 docker build -t zlmediakit .
