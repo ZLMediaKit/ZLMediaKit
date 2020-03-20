@@ -6,12 +6,6 @@
  [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
 
-## 国内用户请使用gitee镜像下载
-```
-git clone --depth 1 https://gitee.com/xiahcu/ZLMediaKit
-cd ZLMediaKit
-git submodule update --init
-```
 ## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
 - 打包多种流媒体协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV），支持协议间的互相转换，提供一站式的服务。
@@ -85,7 +79,7 @@ git submodule update --init
  
 
 
-## 其他功能细节表
+## 细节列表
 
 - 转协议:
 
@@ -240,27 +234,6 @@ docker build -t zlmediakit .
 	});
 
 	```
-## QA
-- 怎么测试服务器性能？
-
-    ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。
-
-    这里是测试报告：[benchmark.md](https://github.com/xiongziliang/ZLMediaKit/blob/master/benchmark.md)
-
-- github下载太慢了，有其他下载方式吗？
-
-    你可以在通过开源中国获取最新的代码，地址为：
-
-    [ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
-
-    [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
-
-
-- 在windows下编译很多错误？
-
-    由于本项目主体代码在macOS/linux下开发，部分源码采用的是无bom头的UTF-8编码；由于windows对于utf-8支持不甚友好，所以如果发现编译错误请先尝试添     加bom头再编译。
-    也可以通过参考这篇博客解决:
-    [vs2015:/utf-8选项解决UTF-8 without BOM 源码中文输出乱码问题](https://blog.csdn.net/10km/article/details/80203286)
 
 ## 参考案例
  - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
