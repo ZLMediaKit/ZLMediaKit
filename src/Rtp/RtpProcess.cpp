@@ -78,7 +78,6 @@ static string printAddress(const struct sockaddr *addr){
 RtpProcess::RtpProcess(uint32_t ssrc) {
     _ssrc = ssrc;
     _track = std::make_shared<SdpTrack>();
-    _track = std::make_shared<SdpTrack>();
     _track->_interleaved = 0;
     _track->_samplerate = 90000;
     _track->_type = TrackVideo;
