@@ -43,9 +43,9 @@ namespace mediakit {
 
 class RtspPlayerImp: public PlayerImp<RtspPlayer,RtspDemuxer> {
 public:
-	typedef std::shared_ptr<RtspPlayerImp> Ptr;
-	RtspPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtspPlayer,RtspDemuxer>(poller){}
-	virtual ~RtspPlayerImp(){
+    typedef std::shared_ptr<RtspPlayerImp> Ptr;
+    RtspPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtspPlayer,RtspDemuxer>(poller){}
+    virtual ~RtspPlayerImp(){
         DebugL<<endl;
     };
     float getProgress() const override{
@@ -60,17 +60,17 @@ public:
         seekToMilliSecond(fProgress * getDuration() * 1000);
     };
 private:
-	//派生类回调函数
-	bool onCheckSDP(const string &sdp) override {
-		_pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
-		if(_pRtspMediaSrc){
+    //派生类回调函数
+    bool onCheckSDP(const string &sdp) override {
+        _pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
+        if(_pRtspMediaSrc){
             _pRtspMediaSrc->setSdp(sdp);
-		}
+        }
         _delegate.reset(new RtspDemuxer);
         _delegate->loadSdp(sdp);
         return true;
-	}
-	void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {
+    }
+    void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {
         if(_pRtspMediaSrc){
             // rtsp直接代理是无法判断该rtp是否是I帧，所以GOP缓存基本是无效的
             // 为了减少内存使用，那么我们设置为一直关键帧以便清空GOP缓存
@@ -99,7 +99,7 @@ private:
         }
     }
 private:
-	RtspMediaSource::Ptr _pRtspMediaSrc;
+    RtspMediaSource::Ptr _pRtspMediaSrc;
     int _maxAnalysisMS = 0;
 };
 

@@ -202,7 +202,7 @@ public:
         _vps = vps.substr(vps_prefix_len);
         _sps = sps.substr(sps_prefix_len);
         _pps = pps.substr(pps_prefix_len);
-		onReady();
+        onReady();
     }
 
     /**
@@ -267,10 +267,10 @@ public:
     * @param frame 数据帧
     */
     void inputFrame(const Frame::Ptr &frame) override{
-		int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
+        int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
         if(type == H265Frame::NAL_VPS){
-	        bool  first_frame = true;
-	        splitH264(frame->data() + frame->prefixSize(),
+            bool  first_frame = true;
+            splitH264(frame->data() + frame->prefixSize(),
                   frame->size() - frame->prefixSize(),
                   [&](const char *ptr, int len){
                       if(first_frame){
@@ -288,9 +288,9 @@ public:
                           inputFrame_l(sub_frame);
                       }
                   });
-        	}else{
-				inputFrame_l(frame);
-			}
+            }else{
+                inputFrame_l(frame);
+            }
     }
 
 private:
@@ -336,7 +336,7 @@ private:
         }
     }
 
-	/**
+    /**
      * 解析sps获取宽高fps
      */
     void onReady(){

@@ -39,24 +39,24 @@ using namespace toolkit;
 namespace mediakit {
 
 class PlayerProxy :public MediaPlayer,
-				   public std::enable_shared_from_this<PlayerProxy> ,
-				   public MediaSourceEvent{
+                   public std::enable_shared_from_this<PlayerProxy> ,
+                   public MediaSourceEvent{
 public:
-	typedef std::shared_ptr<PlayerProxy> Ptr;
+    typedef std::shared_ptr<PlayerProxy> Ptr;
 
     //如果iRetryCount<0,则一直重试播放；否则重试iRetryCount次数
     //默认一直重试
-	PlayerProxy(const string &strVhost,
+    PlayerProxy(const string &strVhost,
                 const string &strApp,
                 const string &strSrc,
-				bool bEnableRtsp = true,
-				bool bEnableRtmp = true,
+                bool bEnableRtsp = true,
+                bool bEnableRtmp = true,
                 bool bEnableHls = true,
                 bool bEnableMp4 = false,
                 int iRetryCount = -1,
-				const EventPoller::Ptr &poller = nullptr);
+                const EventPoller::Ptr &poller = nullptr);
 
-	virtual ~PlayerProxy();
+    virtual ~PlayerProxy();
 
     /**
      * 设置play结果回调，只触发一次；在play执行之前有效
@@ -81,19 +81,19 @@ public:
      */
     int totalReaderCount() ;
 private:
-	//MediaSourceEvent override
-	bool close(MediaSource &sender,bool force) override;
+    //MediaSourceEvent override
+    bool close(MediaSource &sender,bool force) override;
     void onNoneReader(MediaSource &sender) override;
-	int totalReaderCount(MediaSource &sender) override;
-	void rePlay(const string &strUrl,int iFailedCnt);
-	void onPlaySuccess();
+    int totalReaderCount(MediaSource &sender) override;
+    void rePlay(const string &strUrl,int iFailedCnt);
+    void onPlaySuccess();
 private:
     bool _bEnableRtsp;
     bool _bEnableRtmp;
-	bool _bEnableHls;
-	bool _bEnableMp4;
+    bool _bEnableHls;
+    bool _bEnableMp4;
     int _iRetryCount;
-	MultiMediaSourceMuxer::Ptr _mediaMuxer;
+    MultiMediaSourceMuxer::Ptr _mediaMuxer;
     string _strVhost;
     string _strApp;
     string _strSrc;

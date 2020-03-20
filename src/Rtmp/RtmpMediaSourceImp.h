@@ -45,46 +45,46 @@ using namespace toolkit;
 namespace mediakit {
 class RtmpMediaSourceImp: public RtmpMediaSource, public Demuxer::Listener , public MultiMediaSourceMuxer::Listener {
 public:
-	typedef std::shared_ptr<RtmpMediaSourceImp> Ptr;
+    typedef std::shared_ptr<RtmpMediaSourceImp> Ptr;
 
-	/**
-	 * 构造函数
-	 * @param vhost 虚拟主机
-	 * @param app 应用名
-	 * @param id 流id
-	 * @param ringSize 环形缓存大小
-	 */
-	RtmpMediaSourceImp(const string &vhost, const string &app, const string &id, int ringSize = RTMP_GOP_SIZE) : RtmpMediaSource(vhost, app, id, ringSize) {
-		_demuxer = std::make_shared<RtmpDemuxer>();
-		_demuxer->setTrackListener(this);
-	}
+    /**
+     * 构造函数
+     * @param vhost 虚拟主机
+     * @param app 应用名
+     * @param id 流id
+     * @param ringSize 环形缓存大小
+     */
+    RtmpMediaSourceImp(const string &vhost, const string &app, const string &id, int ringSize = RTMP_GOP_SIZE) : RtmpMediaSource(vhost, app, id, ringSize) {
+        _demuxer = std::make_shared<RtmpDemuxer>();
+        _demuxer->setTrackListener(this);
+    }
 
-	~RtmpMediaSourceImp() = default;
+    ~RtmpMediaSourceImp() = default;
 
-	/**
-	 * 设置metadata
-	 */
-	void setMetaData(const AMFValue &metadata) override{
-		_demuxer->loadMetaData(metadata);
-		RtmpMediaSource::setMetaData(metadata);
-	}
+    /**
+     * 设置metadata
+     */
+    void setMetaData(const AMFValue &metadata) override{
+        _demuxer->loadMetaData(metadata);
+        RtmpMediaSource::setMetaData(metadata);
+    }
 
-	/**
-	 * 输入rtmp并解析
-	 */
-	void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos = true) override {
-		key_pos = _demuxer->inputRtmp(pkt);
-		RtmpMediaSource::onWrite(pkt,key_pos);
-	}
+    /**
+     * 输入rtmp并解析
+     */
+    void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos = true) override {
+        key_pos = _demuxer->inputRtmp(pkt);
+        RtmpMediaSource::onWrite(pkt,key_pos);
+    }
 
-	/**
-	 * 设置监听器
-	 * @param listener
-	 */
-	void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override {
+    /**
+     * 设置监听器
+     * @param listener
+     */
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override {
         RtmpMediaSource::setListener(listener);
         if(_muxer){
-			_muxer->setListener(listener);
+            _muxer->setListener(listener);
         }
     }
 
@@ -95,42 +95,42 @@ public:
         return readerCount() + (_muxer ? _muxer->totalReaderCount() : 0);
     }
 
-	/**
-	 * 设置协议转换
-	 * @param enableRtsp 是否转换成rtsp
-	 * @param enableHls  是否转换成hls
-	 * @param enableMP4  是否mp4录制
-	 */
-	void setProtocolTranslation(bool enableRtsp, bool enableHls, bool enableMP4) {
-		//不重复生成rtmp
-		_muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), enableRtsp, false, enableHls, enableMP4);
-		_muxer->setListener(getListener());
-		_muxer->setTrackListener(this);
+    /**
+     * 设置协议转换
+     * @param enableRtsp 是否转换成rtsp
+     * @param enableHls  是否转换成hls
+     * @param enableMP4  是否mp4录制
+     */
+    void setProtocolTranslation(bool enableRtsp, bool enableHls, bool enableMP4) {
+        //不重复生成rtmp
+        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), enableRtsp, false, enableHls, enableMP4);
+        _muxer->setListener(getListener());
+        _muxer->setTrackListener(this);
         for(auto &track : _demuxer->getTracks(false)){
             _muxer->addTrack(track);
             track->addDelegate(_muxer);
         }
-	}
+    }
 
-	/**
-	 * _demuxer触发的添加Track事件
-	 */
-	void onAddTrack(const Track::Ptr &track) override {
-		if(_muxer){
-			_muxer->addTrack(track);
-			track->addDelegate(_muxer);
-		}
-	}
+    /**
+     * _demuxer触发的添加Track事件
+     */
+    void onAddTrack(const Track::Ptr &track) override {
+        if(_muxer){
+            _muxer->addTrack(track);
+            track->addDelegate(_muxer);
+        }
+    }
 
-	/**
-	 * _muxer触发的所有Track就绪的事件
-	 */
-	void onAllTrackReady() override{
-		setTrackSource(_muxer);
-	}
+    /**
+     * _muxer触发的所有Track就绪的事件
+     */
+    void onAllTrackReady() override{
+        setTrackSource(_muxer);
+    }
 private:
-	RtmpDemuxer::Ptr _demuxer;
-	MultiMediaSourceMuxer::Ptr _muxer;
+    RtmpDemuxer::Ptr _demuxer;
+    MultiMediaSourceMuxer::Ptr _muxer;
 };
 } /* namespace mediakit */
 

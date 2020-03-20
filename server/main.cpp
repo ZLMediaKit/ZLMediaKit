@@ -359,7 +359,7 @@ int start_main(int argc,char *argv[]) {
     InfoL << "程序退出中,请等待...";
     sleep(1);
     InfoL << "程序退出完毕!";
-	return 0;
+    return 0;
 }
 
 #ifndef DISABLE_MAIN

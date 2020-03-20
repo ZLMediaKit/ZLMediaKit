@@ -28,9 +28,9 @@
 #include "RtpReceiver.h"
 
 #define POP_HEAD(trackidx) \
-		auto it = _rtp_sort_cache_map[trackidx].begin(); \
-		onRtpSorted(it->second, trackidx); \
-		_rtp_sort_cache_map[trackidx].erase(it);
+        auto it = _rtp_sort_cache_map[trackidx].begin(); \
+        onRtpSorted(it->second, trackidx); \
+        _rtp_sort_cache_map[trackidx].erase(it);
 
 #define AV_RB16(x)                           \
     ((((const uint8_t*)(x))[0] << 8) |          \

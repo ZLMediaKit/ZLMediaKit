@@ -42,15 +42,15 @@ bool loadIniConfig(const char *ini_path){
     }else{
         ini = exePath() + ".ini";
     }
-	try{
+    try{
         mINI::Instance().parseFile(ini);
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
         return true;
-	}catch (std::exception &ex) {
-		InfoL << "dump ini file to:" << ini;
+    }catch (std::exception &ex) {
+        InfoL << "dump ini file to:" << ini;
         mINI::Instance().dumpFile(ini);
         return false;
-	}
+    }
 }
 ////////////广播名称///////////
 namespace Broadcast {
@@ -90,12 +90,12 @@ onceToken token([](){
     mINI::Instance()[kStreamNoneReaderDelayMS] = 20 * 1000;
     mINI::Instance()[kMaxStreamWaitTimeMS] = 15 * 1000;
     mINI::Instance()[kEnableVhost] = 0;
-	mINI::Instance()[kUltraLowDelay] = 1;
-	mINI::Instance()[kAddMuteAudio] = 1;
-	mINI::Instance()[kResetWhenRePlay] = 1;
-	mINI::Instance()[kPublishToRtxp] = 1;
-	mINI::Instance()[kPublishToHls] = 1;
-	mINI::Instance()[kPublishToMP4] = 0;
+    mINI::Instance()[kUltraLowDelay] = 1;
+    mINI::Instance()[kAddMuteAudio] = 1;
+    mINI::Instance()[kResetWhenRePlay] = 1;
+    mINI::Instance()[kPublishToRtxp] = 1;
+    mINI::Instance()[kPublishToHls] = 1;
+    mINI::Instance()[kPublishToMP4] = 0;
 },nullptr);
 
 }//namespace General
@@ -117,26 +117,26 @@ const string kRootPath = HTTP_FIELD"rootPath";
 const string kNotFound = HTTP_FIELD"notFound";
 
 onceToken token([](){
-	mINI::Instance()[kSendBufSize] = 64 * 1024;
-	mINI::Instance()[kMaxReqSize] = 4*1024;
-	mINI::Instance()[kKeepAliveSecond] = 15;
+    mINI::Instance()[kSendBufSize] = 64 * 1024;
+    mINI::Instance()[kMaxReqSize] = 4*1024;
+    mINI::Instance()[kKeepAliveSecond] = 15;
 #if defined(_WIN32)
-	mINI::Instance()[kCharSet] = "gb2312";
+    mINI::Instance()[kCharSet] = "gb2312";
 #else
-	mINI::Instance()[kCharSet] ="utf-8";
+    mINI::Instance()[kCharSet] ="utf-8";
 #endif
 
-	mINI::Instance()[kRootPath] = "./www";
-	mINI::Instance()[kNotFound] =
-					"<html>"
-					"<head><title>404 Not Found</title></head>"
-					"<body bgcolor=\"white\">"
-					"<center><h1>您访问的资源不存在！</h1></center>"
-					"<hr><center>"
-					SERVER_NAME
-					"</center>"
-					"</body>"
-					"</html>";
+    mINI::Instance()[kRootPath] = "./www";
+    mINI::Instance()[kNotFound] =
+                    "<html>"
+                    "<head><title>404 Not Found</title></head>"
+                    "<body bgcolor=\"white\">"
+                    "<center><h1>您访问的资源不存在！</h1></center>"
+                    "<hr><center>"
+                    SERVER_NAME
+                    "</center>"
+                    "</body>"
+                    "</html>";
 },nullptr);
 
 }//namespace Http
@@ -147,7 +147,7 @@ namespace Shell {
 const string kMaxReqSize = SHELL_FIELD"maxReqSize";
 
 onceToken token([](){
-	mINI::Instance()[kMaxReqSize] = 1024;
+    mINI::Instance()[kMaxReqSize] = 1024;
 },nullptr);
 } //namespace Shell
 
@@ -160,11 +160,11 @@ const string kKeepAliveSecond = RTSP_FIELD"keepAliveSecond";
 const string kDirectProxy = RTSP_FIELD"directProxy";
 
 onceToken token([](){
-	//默认Md5方式认证
-	mINI::Instance()[kAuthBasic] = 0;
+    //默认Md5方式认证
+    mINI::Instance()[kAuthBasic] = 0;
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
-	mINI::Instance()[kDirectProxy] = 1;
+    mINI::Instance()[kDirectProxy] = 1;
 },nullptr);
 } //namespace Rtsp
 
@@ -176,7 +176,7 @@ const string kHandshakeSecond = RTMP_FIELD"handshakeSecond";
 const string kKeepAliveSecond = RTMP_FIELD"keepAliveSecond";
 
 onceToken token([](){
-	mINI::Instance()[kModifyStamp] = false;
+    mINI::Instance()[kModifyStamp] = false;
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
 },nullptr);
@@ -197,11 +197,11 @@ const string kClearCount = RTP_FIELD"clearCount";
 const string kCycleMS = RTP_FIELD"cycleMS";
 
 onceToken token([](){
-	mINI::Instance()[kVideoMtuSize] = 1400;
-	mINI::Instance()[kAudioMtuSize] = 600;
-	mINI::Instance()[kMaxRtpCount] = 50;
-	mINI::Instance()[kClearCount] = 10;
-	mINI::Instance()[kCycleMS] = 13*60*60*1000;
+    mINI::Instance()[kVideoMtuSize] = 1400;
+    mINI::Instance()[kAudioMtuSize] = 600;
+    mINI::Instance()[kMaxRtpCount] = 50;
+    mINI::Instance()[kClearCount] = 10;
+    mINI::Instance()[kCycleMS] = 13*60*60*1000;
 },nullptr);
 } //namespace Rtsp
 
@@ -216,9 +216,9 @@ const string kAddrMax = MULTI_FIELD"addrMax";
 const string kUdpTTL = MULTI_FIELD"udpTTL";
 
 onceToken token([](){
-	mINI::Instance()[kAddrMin] = "239.0.0.0";
-	mINI::Instance()[kAddrMax] = "239.255.255.255";
-	mINI::Instance()[kUdpTTL] = 64;
+    mINI::Instance()[kAddrMin] = "239.0.0.0";
+    mINI::Instance()[kAddrMax] = "239.255.255.255";
+    mINI::Instance()[kUdpTTL] = 64;
 },nullptr);
 } //namespace MultiCast
 
@@ -241,13 +241,13 @@ const string kFastStart = RECORD_FIELD"fastStart";
 const string kFileRepeat = RECORD_FIELD"fileRepeat";
 
 onceToken token([](){
-	mINI::Instance()[kAppName] = "record";
-	mINI::Instance()[kSampleMS] = 500;
-	mINI::Instance()[kFileSecond] = 60*60;
-	mINI::Instance()[kFilePath] = "./www";
-	mINI::Instance()[kFileBufSize] = 64 * 1024;
-	mINI::Instance()[kFastStart] = false;
-	mINI::Instance()[kFileRepeat] = false;
+    mINI::Instance()[kAppName] = "record";
+    mINI::Instance()[kSampleMS] = 500;
+    mINI::Instance()[kFileSecond] = 60*60;
+    mINI::Instance()[kFilePath] = "./www";
+    mINI::Instance()[kFileBufSize] = 64 * 1024;
+    mINI::Instance()[kFastStart] = false;
+    mINI::Instance()[kFileRepeat] = false;
 },nullptr);
 } //namespace Record
 
@@ -266,11 +266,11 @@ const string kFileBufSize = HLS_FIELD"fileBufSize";
 const string kFilePath = HLS_FIELD"filePath";
 
 onceToken token([](){
-	mINI::Instance()[kSegmentDuration] = 2;
-	mINI::Instance()[kSegmentNum] = 3;
-	mINI::Instance()[kSegmentRetain] = 5;
-	mINI::Instance()[kFileBufSize] = 64 * 1024;
-	mINI::Instance()[kFilePath] = "./www";
+    mINI::Instance()[kSegmentDuration] = 2;
+    mINI::Instance()[kSegmentNum] = 3;
+    mINI::Instance()[kSegmentRetain] = 5;
+    mINI::Instance()[kFileBufSize] = 64 * 1024;
+    mINI::Instance()[kFilePath] = "./www";
 },nullptr);
 } //namespace Hls
 
@@ -286,9 +286,9 @@ const string kCheckSource = RTP_PROXY_FIELD"checkSource";
 const string kTimeoutSec = RTP_PROXY_FIELD"timeoutSec";
 
 onceToken token([](){
-	mINI::Instance()[kDumpDir] = "";
-	mINI::Instance()[kCheckSource] = 1;
-	mINI::Instance()[kTimeoutSec] = 15;
+    mINI::Instance()[kDumpDir] = "";
+    mINI::Instance()[kCheckSource] = 1;
+    mINI::Instance()[kTimeoutSec] = 15;
 },nullptr);
 } //namespace RtpProxy
 

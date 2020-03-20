@@ -73,7 +73,7 @@ private:
         return true;
     }
     void onMediaData(const RtmpPacket::Ptr &chunkData) override {
-    	if(_pRtmpMediaSrc){
+        if(_pRtmpMediaSrc){
             if(!_set_meta_data && !chunkData->isCfgFrame()){
                 _set_meta_data = true;
                 _pRtmpMediaSrc->setMetaData(TitleMeta().getMetadata());
@@ -81,7 +81,7 @@ private:
             _pRtmpMediaSrc->onWrite(chunkData);
         }
         if(!_delegate){
-    	    //这个流没有metadata
+            //这个流没有metadata
             _delegate.reset(new RtmpDemuxer());
         }
         _delegate->inputRtmp(chunkData);

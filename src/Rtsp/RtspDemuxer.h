@@ -39,8 +39,8 @@ namespace mediakit {
 
 class RtspDemuxer : public Demuxer{
 public:
-	typedef std::shared_ptr<RtspDemuxer> Ptr;
-	RtspDemuxer() = default;
+    typedef std::shared_ptr<RtspDemuxer> Ptr;
+    RtspDemuxer() = default;
     virtual ~RtspDemuxer() = default;
 
     /**
@@ -48,19 +48,19 @@ public:
      */
     void loadSdp(const string &sdp);
 
-	/**
-	 * 开始解复用
-	 * @param rtp rtp包
-	 * @return true 代表是i帧第一个rtp包
-	 */
-	bool inputRtp(const RtpPacket::Ptr &rtp);
+    /**
+     * 开始解复用
+     * @param rtp rtp包
+     * @return true 代表是i帧第一个rtp包
+     */
+    bool inputRtp(const RtpPacket::Ptr &rtp);
 private:
-	void makeAudioTrack(const SdpTrack::Ptr &audio);
-	void makeVideoTrack(const SdpTrack::Ptr &video);
-	void loadSdp(const SdpParser &parser);
+    void makeAudioTrack(const SdpTrack::Ptr &audio);
+    void makeVideoTrack(const SdpTrack::Ptr &video);
+    void loadSdp(const SdpParser &parser);
 private:
-	RtpCodec::Ptr _audioRtpDecoder;
-	RtpCodec::Ptr _videoRtpDecoder;
+    RtpCodec::Ptr _audioRtpDecoder;
+    RtpCodec::Ptr _videoRtpDecoder;
 };
 
 } /* namespace mediakit */

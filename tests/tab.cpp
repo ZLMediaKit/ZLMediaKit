@@ -1,18 +1,9 @@
-﻿#include <stdlib.h>
-#include <memory.h>
-
-#if !defined(_WIN32)
-
-#include <dirent.h>
-
-#endif //!defined(_WIN32)
-
+﻿#include <memory.h>
 #include <set>
 #include "Util/CMD.h"
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Util/File.h"
-#include "Util/uv_errno.h"
 
 using namespace std;
 using namespace toolkit;
@@ -41,17 +32,40 @@ public:
     virtual ~CMD_main() {}
 };
 
+vector<string> split(const string& s, const char *delim) {
+    vector<string> ret;
+    int last = 0;
+    int index = s.find(delim, last);
+    while (index != string::npos) {
+        if (index - last >= 0) {
+            ret.push_back(s.substr(last, index - last));
+        }
+        last = index + strlen(delim);
+        index = s.find(delim, last);
+    }
+    if (!s.size() || s.size() - last >= 0) {
+        ret.push_back(s.substr(last));
+    }
+    return ret;
+}
+
 void process_file(const char *file) {
     auto str = File::loadFile(file);
     if (str.empty()) {
         return;
     }
-    auto lines = split(str, "\n");
+    auto lines = ::split(str, "\n");
     deque<string> lines_copy;
     for (auto &line : lines) {
+        if(line.empty()){
+            lines_copy.push_back("");
+            continue;
+        }
         string line_copy;
         bool flag = false;
+        int i = 0;
         for (auto &ch : line) {
+            ++i;
             switch (ch) {
                 case '\t' :
                     line_copy.append("    ");
@@ -65,6 +79,7 @@ void process_file(const char *file) {
                     break;
             }
             if (flag) {
+                line_copy.append(line.substr(i));
                 break;
             }
         }
@@ -75,9 +90,13 @@ void process_file(const char *file) {
         str.append(line);
         str.push_back('\n');
     }
+    if(!lines_copy.empty()){
+        str.pop_back();
+    }
     File::saveFile(str, file);
 }
 
+/// 这个程序是为了统一替换tab为4个空格
 int main(int argc, char *argv[]) {
     CMD_main cmd_main;
     try {
@@ -87,10 +106,9 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    bool rm_bom = cmd_main.hasKey("rm");
     string path = cmd_main["in"];
     string filter = cmd_main["filter"];
-    auto vec = split(filter, ",");
+    auto vec = ::split(filter, ",");
 
     set<string> filter_set;
     for (auto ext : vec) {
@@ -100,6 +118,8 @@ int main(int argc, char *argv[]) {
     bool no_filter = filter_set.find("*") != filter_set.end();
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
+    path = File::absolutePath(path, "");
+    DebugL << path;
     File::scanDir(path, [&](const string &path, bool isDir) {
         if (isDir) {
             return true;

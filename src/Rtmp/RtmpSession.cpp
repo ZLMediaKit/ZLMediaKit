@@ -32,7 +32,7 @@
 namespace mediakit {
 
 RtmpSession::RtmpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
-	DebugP(this);
+    DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtmp::kKeepAliveSecond);
     pSock->setSendTimeOutSecond(keep_alive_sec);
     //起始接收buffer缓存设置为4K，节省内存
@@ -65,42 +65,42 @@ void RtmpSession::onManager() {
     GET_CONFIG(uint32_t,handshake_sec,Rtmp::kHandshakeSecond);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtmp::kKeepAliveSecond);
 
-	if (_ticker.createdTime() > handshake_sec * 1000) {
-		if (!_pRingReader && !_pPublisherSrc) {
-			shutdown(SockException(Err_timeout,"illegal connection"));
-		}
-	}
-	if (_pPublisherSrc) {
-		//publisher
-		if (_ticker.elapsedTime() > keep_alive_sec * 1000) {
-			shutdown(SockException(Err_timeout,"recv data from rtmp pusher timeout"));
-		}
-	}
+    if (_ticker.createdTime() > handshake_sec * 1000) {
+        if (!_pRingReader && !_pPublisherSrc) {
+            shutdown(SockException(Err_timeout,"illegal connection"));
+        }
+    }
+    if (_pPublisherSrc) {
+        //publisher
+        if (_ticker.elapsedTime() > keep_alive_sec * 1000) {
+            shutdown(SockException(Err_timeout,"recv data from rtmp pusher timeout"));
+        }
+    }
 }
 
 void RtmpSession::onRecv(const Buffer::Ptr &pBuf) {
-	_ticker.resetTime();
-	try {
+    _ticker.resetTime();
+    try {
         _ui64TotalBytes += pBuf->size();
-		onParseRtmp(pBuf->data(), pBuf->size());
-	} catch (exception &e) {
-		shutdown(SockException(Err_shutdown, e.what()));
-	}
+        onParseRtmp(pBuf->data(), pBuf->size());
+    } catch (exception &e) {
+        shutdown(SockException(Err_shutdown, e.what()));
+    }
 }
 
 void RtmpSession::onCmd_connect(AMFDecoder &dec) {
-	auto params = dec.load<AMFValue>();
-	double amfVer = 0;
-	AMFValue objectEncoding = params["objectEncoding"];
-	if(objectEncoding){
-		amfVer = objectEncoding.as_number();
-	}
-	///////////set chunk size////////////////
-	sendChunkSize(60000);
-	////////////window Acknowledgement size/////
-	sendAcknowledgementSize(5000000);
-	///////////set peerBandwidth////////////////
-	sendPeerBandwidth(5000000);
+    auto params = dec.load<AMFValue>();
+    double amfVer = 0;
+    AMFValue objectEncoding = params["objectEncoding"];
+    if(objectEncoding){
+        amfVer = objectEncoding.as_number();
+    }
+    ///////////set chunk size////////////////
+    sendChunkSize(60000);
+    ////////////window Acknowledgement size/////
+    sendAcknowledgementSize(5000000);
+    ///////////set peerBandwidth////////////////
+    sendPeerBandwidth(5000000);
 
     _mediaInfo._app = params["app"].as_string();
     _strTcUrl = params["tcUrl"].as_string();
@@ -108,27 +108,27 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
         //defaultVhost:默认vhost
         _strTcUrl = string(RTMP_SCHEMA) + "://" + DEFAULT_VHOST + "/" + _mediaInfo._app;
     }
-	bool ok = true; //(app == APP_NAME);
-	AMFValue version(AMF_OBJECT);
-	version.set("fmsVer", "FMS/3,0,1,123");
-	version.set("capabilities", 31.0);
-	AMFValue status(AMF_OBJECT);
-	status.set("level", ok ? "status" : "error");
-	status.set("code", ok ? "NetConnection.Connect.Success" : "NetConnection.Connect.InvalidApp");
-	status.set("description", ok ? "Connection succeeded." : "InvalidApp.");
-	status.set("objectEncoding", amfVer);
-	sendReply(ok ? "_result" : "_error", version, status);
-	if (!ok) {
-		throw std::runtime_error("Unsupported application: " + _mediaInfo._app);
-	}
+    bool ok = true; //(app == APP_NAME);
+    AMFValue version(AMF_OBJECT);
+    version.set("fmsVer", "FMS/3,0,1,123");
+    version.set("capabilities", 31.0);
+    AMFValue status(AMF_OBJECT);
+    status.set("level", ok ? "status" : "error");
+    status.set("code", ok ? "NetConnection.Connect.Success" : "NetConnection.Connect.InvalidApp");
+    status.set("description", ok ? "Connection succeeded." : "InvalidApp.");
+    status.set("objectEncoding", amfVer);
+    sendReply(ok ? "_result" : "_error", version, status);
+    if (!ok) {
+        throw std::runtime_error("Unsupported application: " + _mediaInfo._app);
+    }
 
-	AMFEncoder invoke;
-	invoke << "onBWDone" << 0.0 << nullptr;
-	sendResponse(MSG_CMD, invoke.data());
+    AMFEncoder invoke;
+    invoke << "onBWDone" << 0.0 << nullptr;
+    sendResponse(MSG_CMD, invoke.data());
 }
 
 void RtmpSession::onCmd_createStream(AMFDecoder &dec) {
-	sendReply("_result", nullptr, double(STREAM_MEDIA));
+    sendReply("_result", nullptr, double(STREAM_MEDIA));
 }
 
 void RtmpSession::onCmd_publish(AMFDecoder &dec) {
@@ -140,7 +140,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             DebugP(strongSelf.get()) << "publish 回复时间:" << pTicker->elapsedTime() << "ms";
         }
     }));
-	dec.load<AMFValue>();/* NULL */
+    dec.load<AMFValue>();/* NULL */
     _mediaInfo.parse(_strTcUrl + "/" + getStreamId(dec.load<std::string>()));
     _mediaInfo._schema = RTMP_SCHEMA;
 
@@ -203,12 +203,12 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
 }
 
 void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
-	AMFValue status(AMF_OBJECT);
-	status.set("level", "status");
-	status.set("code", "NetStream.Unpublish.Success");
-	status.set("description", "Stop publishing.");
-	sendReply("onStatus", nullptr, status);
-	throw std::runtime_error(StrPrinter << "Stop publishing" << endl);
+    AMFValue status(AMF_OBJECT);
+    status.set("level", "status");
+    status.set("code", "NetStream.Unpublish.Success");
+    status.set("description", "Stop publishing.");
+    sendReply("onStatus", nullptr, status);
+    throw std::runtime_error(StrPrinter << "Stop publishing" << endl);
 }
 
 
@@ -355,7 +355,7 @@ void RtmpSession::doPlay(AMFDecoder &dec){
     }
 }
 void RtmpSession::onCmd_play2(AMFDecoder &dec) {
-	doPlay(dec);
+    doPlay(dec);
 }
 
 string RtmpSession::getStreamId(const string &str){
@@ -390,49 +390,49 @@ string RtmpSession::getStreamId(const string &str){
 }
 
 void RtmpSession::onCmd_play(AMFDecoder &dec) {
-	dec.load<AMFValue>();/* NULL */
+    dec.load<AMFValue>();/* NULL */
     _mediaInfo.parse(_strTcUrl + "/" + getStreamId(dec.load<std::string>()));
     _mediaInfo._schema = RTMP_SCHEMA;
-	doPlay(dec);
+    doPlay(dec);
 }
 
 void RtmpSession::onCmd_pause(AMFDecoder &dec) {
-	dec.load<AMFValue>();/* NULL */
-	bool paused = dec.load<bool>();
-	TraceP(this) << paused;
-	AMFValue status(AMF_OBJECT);
-	status.set("level", "status");
-	status.set("code", paused ? "NetStream.Pause.Notify" : "NetStream.Unpause.Notify");
-	status.set("description", paused ? "Paused stream." : "Unpaused stream.");
-	sendReply("onStatus", nullptr, status);
+    dec.load<AMFValue>();/* NULL */
+    bool paused = dec.load<bool>();
+    TraceP(this) << paused;
+    AMFValue status(AMF_OBJECT);
+    status.set("level", "status");
+    status.set("code", paused ? "NetStream.Pause.Notify" : "NetStream.Unpause.Notify");
+    status.set("description", paused ? "Paused stream." : "Unpaused stream.");
+    sendReply("onStatus", nullptr, status);
 //streamBegin
-	sendUserControl(paused ? CONTROL_STREAM_EOF : CONTROL_STREAM_BEGIN,
-	STREAM_MEDIA);
-	if (!_pRingReader) {
-		throw std::runtime_error("Rtmp not started yet!");
-	}
-	if (paused) {
-		_pRingReader->setReadCB(nullptr);
-	} else {
-		weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-		_pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
-			auto strongSelf = weakSelf.lock();
-			if(!strongSelf) {
-				return;
-			}
+    sendUserControl(paused ? CONTROL_STREAM_EOF : CONTROL_STREAM_BEGIN,
+    STREAM_MEDIA);
+    if (!_pRingReader) {
+        throw std::runtime_error("Rtmp not started yet!");
+    }
+    if (paused) {
+        _pRingReader->setReadCB(nullptr);
+    } else {
+        weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+        _pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf) {
+                return;
+            }
             strongSelf->onSendMedia(pkt);
-		});
-	}
+        });
+    }
 }
 
 void RtmpSession::setMetaData(AMFDecoder &dec) {
-	if (!_pPublisherSrc) {
-		throw std::runtime_error("not a publisher");
-	}
-	std::string type = dec.load<std::string>();
-	if (type != "onMetaData") {
-		throw std::runtime_error("can only set metadata");
-	}
+    if (!_pPublisherSrc) {
+        throw std::runtime_error("not a publisher");
+    }
+    std::string type = dec.load<std::string>();
+    if (type != "onMetaData") {
+        throw std::runtime_error("can only set metadata");
+    }
     auto metadata = dec.load<AMFValue>();
 //    dumpMetadata(metadata);
     _pPublisherSrc->setMetaData(metadata);
@@ -453,42 +453,42 @@ void RtmpSession::onProcessCmd(AMFDecoder &dec) {
         s_cmd_functions.emplace("pause",&RtmpSession::onCmd_pause);}, []() {});
 
     std::string method = dec.load<std::string>();
-	auto it = s_cmd_functions.find(method);
-	if (it == s_cmd_functions.end()) {
+    auto it = s_cmd_functions.find(method);
+    if (it == s_cmd_functions.end()) {
 //		TraceP(this) << "can not support cmd:" << method;
-		return;
-	}
-	_dNowReqID = dec.load<double>();
-	auto fun = it->second;
-	(this->*fun)(dec);
+        return;
+    }
+    _dNowReqID = dec.load<double>();
+    auto fun = it->second;
+    (this->*fun)(dec);
 }
 
 void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
-	switch (chunkData.typeId) {
-	case MSG_CMD:
-	case MSG_CMD3: {
-		AMFDecoder dec(chunkData.strBuf, chunkData.typeId == MSG_CMD3 ? 1 : 0);
-		onProcessCmd(dec);
-	}
-		break;
+    switch (chunkData.typeId) {
+    case MSG_CMD:
+    case MSG_CMD3: {
+        AMFDecoder dec(chunkData.strBuf, chunkData.typeId == MSG_CMD3 ? 1 : 0);
+        onProcessCmd(dec);
+    }
+        break;
 
-	case MSG_DATA:
-	case MSG_DATA3: {
-		AMFDecoder dec(chunkData.strBuf, chunkData.typeId == MSG_CMD3 ? 1 : 0);
-		std::string type = dec.load<std::string>();
-		if (type == "@setDataFrame") {
-			setMetaData(dec);
-		}else{
+    case MSG_DATA:
+    case MSG_DATA3: {
+        AMFDecoder dec(chunkData.strBuf, chunkData.typeId == MSG_CMD3 ? 1 : 0);
+        std::string type = dec.load<std::string>();
+        if (type == "@setDataFrame") {
+            setMetaData(dec);
+        }else{
             TraceP(this) << "unknown notify:" << type;
         }
-	}
-		break;
-	case MSG_AUDIO:
-	case MSG_VIDEO: {
-		if (!_pPublisherSrc) {
-			throw std::runtime_error("Not a rtmp publisher!");
-		}
-		GET_CONFIG(bool,rtmp_modify_stamp,Rtmp::kModifyStamp);
+    }
+        break;
+    case MSG_AUDIO:
+    case MSG_VIDEO: {
+        if (!_pPublisherSrc) {
+            throw std::runtime_error("Not a rtmp publisher!");
+        }
+        GET_CONFIG(bool,rtmp_modify_stamp,Rtmp::kModifyStamp);
         if(rtmp_modify_stamp){
             int64_t dts_out;
             _stamp[chunkData.typeId % 2].revise(chunkData.timeStamp, chunkData.timeStamp, dts_out, dts_out, true);
@@ -500,12 +500,12 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
             _pPublisherSrc->setMetaData(TitleMeta().getMetadata());
         }
         _pPublisherSrc->onWrite(std::make_shared<RtmpPacket>(std::move(chunkData)));
-	}
-		break;
-	default:
-		WarnP(this) << "unhandled message:" << (int) chunkData.typeId << hexdump(chunkData.strBuf.data(), chunkData.strBuf.size());
-		break;
-	}
+    }
+        break;
+    default:
+        WarnP(this) << "unhandled message:" << (int) chunkData.typeId << hexdump(chunkData.strBuf.data(), chunkData.strBuf.size());
+        break;
+    }
 }
 
 void RtmpSession::onCmd_seek(AMFDecoder &dec) {
@@ -518,12 +518,12 @@ void RtmpSession::onCmd_seek(AMFDecoder &dec) {
         _stamp[1].setPlayBack();
         stongSrc->seekTo(milliSeconds);
     }
-	AMFValue status(AMF_OBJECT);
-	AMFEncoder invoke;
-	status.set("level", "status");
-	status.set("code", "NetStream.Seek.Notify");
-	status.set("description", "Seeking.");
-	sendReply("onStatus", nullptr, status);
+    AMFValue status(AMF_OBJECT);
+    AMFEncoder invoke;
+    status.set("level", "status");
+    status.set("code", "NetStream.Seek.Notify");
+    status.set("description", "Seeking.");
+    sendReply("onStatus", nullptr, status);
 }
 
 void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {

@@ -38,21 +38,21 @@ H264Encoder::H264Encoder() {
 }
 
 H264Encoder::~H264Encoder() {
-	//* 清除图像区域
-	if (_pPicIn) {
-		delete _pPicIn;
-		_pPicIn = nullptr;
-	}
-	if (_pPicOut) {
-		delete _pPicOut;
-		_pPicOut = nullptr;
-	}
+    //* 清除图像区域
+    if (_pPicIn) {
+        delete _pPicIn;
+        _pPicIn = nullptr;
+    }
+    if (_pPicOut) {
+        delete _pPicOut;
+        _pPicOut = nullptr;
+    }
 
-	//* 关闭编码器句柄
-	if (_pX264Handle) {
-		x264_encoder_close(_pX264Handle);
-		_pX264Handle = nullptr;
-	}
+    //* 关闭编码器句柄
+    if (_pX264Handle) {
+        x264_encoder_close(_pX264Handle);
+        _pX264Handle = nullptr;
+    }
 }
 
 
@@ -229,122 +229,122 @@ Value的值就是fps。
 } x264_param_t;*/
 
 bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
-	if (_pX264Handle) {
-		return true;
-	}
-	x264_param_t X264Param, *pX264Param = &X264Param;
-	//* 配置参数
-	//* 使用默认参数
-	x264_param_default_preset(pX264Param, "ultrafast", "zerolatency");
+    if (_pX264Handle) {
+        return true;
+    }
+    x264_param_t X264Param, *pX264Param = &X264Param;
+    //* 配置参数
+    //* 使用默认参数
+    x264_param_default_preset(pX264Param, "ultrafast", "zerolatency");
 
-	//* cpuFlags
-	pX264Param->i_threads = X264_SYNC_LOOKAHEAD_AUTO;		//* 取空缓冲区继续使用不死锁的保证.
-	//* video Properties
-	pX264Param->i_width = iWidth; //* 宽度.
-	pX264Param->i_height = iHeight; //* 高度
-	pX264Param->i_frame_total = 0; //* 编码总帧数.不知道用0.
-	pX264Param->i_keyint_max = iFps * 3; //ffmpeg:gop_size 关键帧最大间隔
-	pX264Param->i_keyint_min = iFps * 1; //ffmpeg:keyint_min 关键帧最小间隔
-	//* Rate control Parameters
-	pX264Param->rc.i_bitrate = 5000;		//* 码率(比特率,单位Kbps)
-	pX264Param->rc.i_qp_step = 1;	//最大的在帧与帧之间进行切变的量化因子的变化量。ffmpeg:max_qdiff
-	pX264Param->rc.i_qp_min = 10;	//ffmpeg:qmin;最小的量化因子。取值范围1-51。建议在10-30之间。
-	pX264Param->rc.i_qp_max = 41;	//ffmpeg:qmax;最大的量化因子。取值范围1-51。建议在10-30之间。
-	pX264Param->rc.f_qcompress = 0.6;//ffmpeg:qcompress 量化器压缩比率0-1.越小则比特率越区域固定，但是越高越使量化器参数越固定
-	pX264Param->analyse.i_me_range = 16;		//ffmpeg:me_range 运动侦测的半径
-	pX264Param->i_frame_reference = 3;		//ffmpeg:refsB和P帧向前预测参考的帧数。取值范围1-16。
-											//该值不影响解码的速度，但是越大解码
-											//所需的内存越大。这个值在一般情况下
-											//越大效果越好，但是超过6以后效果就
-											//不明显了。
+    //* cpuFlags
+    pX264Param->i_threads = X264_SYNC_LOOKAHEAD_AUTO;		//* 取空缓冲区继续使用不死锁的保证.
+    //* video Properties
+    pX264Param->i_width = iWidth; //* 宽度.
+    pX264Param->i_height = iHeight; //* 高度
+    pX264Param->i_frame_total = 0; //* 编码总帧数.不知道用0.
+    pX264Param->i_keyint_max = iFps * 3; //ffmpeg:gop_size 关键帧最大间隔
+    pX264Param->i_keyint_min = iFps * 1; //ffmpeg:keyint_min 关键帧最小间隔
+    //* Rate control Parameters
+    pX264Param->rc.i_bitrate = 5000;		//* 码率(比特率,单位Kbps)
+    pX264Param->rc.i_qp_step = 1;	//最大的在帧与帧之间进行切变的量化因子的变化量。ffmpeg:max_qdiff
+    pX264Param->rc.i_qp_min = 10;	//ffmpeg:qmin;最小的量化因子。取值范围1-51。建议在10-30之间。
+    pX264Param->rc.i_qp_max = 41;	//ffmpeg:qmax;最大的量化因子。取值范围1-51。建议在10-30之间。
+    pX264Param->rc.f_qcompress = 0.6;//ffmpeg:qcompress 量化器压缩比率0-1.越小则比特率越区域固定，但是越高越使量化器参数越固定
+    pX264Param->analyse.i_me_range = 16;		//ffmpeg:me_range 运动侦测的半径
+    pX264Param->i_frame_reference = 3;		//ffmpeg:refsB和P帧向前预测参考的帧数。取值范围1-16。
+                                            //该值不影响解码的速度，但是越大解码
+                                            //所需的内存越大。这个值在一般情况下
+                                            //越大效果越好，但是超过6以后效果就
+                                            //不明显了。
 
-	pX264Param->analyse.i_trellis = 1;							//ffmpeg:trellis
-	//pX264Param->analyse.i_me_method=X264_ME_DIA;//ffmpeg:me_method ME_ZERO 运动侦测的方式
-	pX264Param->rc.f_qblur = 0.5;		//ffmpeg:qblur
+    pX264Param->analyse.i_trellis = 1;							//ffmpeg:trellis
+    //pX264Param->analyse.i_me_method=X264_ME_DIA;//ffmpeg:me_method ME_ZERO 运动侦测的方式
+    pX264Param->rc.f_qblur = 0.5;		//ffmpeg:qblur
 
-	//* bitstream parameters
-	/*open-GOP
-	 码流里面包含B帧的时候才会出现open-GOP。
-	 一个GOP里面的某一帧在解码时要依赖于前一个GOP的某些帧，
-	 这个GOP就称为open-GOP。
-	 有些解码器不能完全支持open-GOP码流，
-	 例如蓝光解码器，因此在x264里面open-GOP是默认关闭的。
-	 对于解码端，接收到的码流如果如下:I0 B0 B1 P0 B2 B3...这就是一个open-GOP码流（I帧后面紧跟B帧）。
-	 因此B0 B1的解码需要用到I0前面一个GOP的数据，B0 B1的dts是小于I0的。
-	 如果码流如下: I0 P0 B0 B1 P1 B2 B3...这就是一个close-GOP码流，
-	 I0后面所有帧的解码不依赖于I0前面的帧，I0后面所有帧的dts都比I0的大。
-	 如果码流是IDR0 B0 B1 P0 B2 B3...那个这个GOP是close-GOP，B0,B1虽然dst比IDR0小，
-	 但编解码端都刷新了参考缓冲，B0,B1参考不到前向GOP帧。
-	 对于编码端，如果编码帧类型决定如下: ...P0 B1 B2 P3 B4 B5 I6这就会输出open-Gop码流 （P0 P3 B1 B2 I6 B4 B5...），
-	 B4 B5的解码依赖P3。
-	 如果编码帧类型决定如下...P0 B1 B2 P3 B4 P5 I6这样就不会输出open-GOP码流（P0 P3 B1 B2 P5 B4 I6...）。
-	 两者区别在于I6前面的第5帧是设置为B帧还是P帧，
-	 如果一个GOP的最后一帧（上例中是第5帧）设置为B帧，
-	 这个码流就是open-GOP,设置为P帧就是close-GOP。
-	 由于B帧压缩性能好于P帧，因此open-GOP在编码性能上稍微优于close-GOP，
-	 但为了兼容性和少一些麻烦，还是把opne-GOP关闭的好。*/
-	pX264Param->b_open_gop = 0;
-	pX264Param->i_bframe = 0;		//最大B帧数.
-	pX264Param->i_bframe_pyramid = 0;
-	pX264Param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
-	//* Log
-	pX264Param->i_log_level = X264_LOG_ERROR;
+    //* bitstream parameters
+    /*open-GOP
+     码流里面包含B帧的时候才会出现open-GOP。
+     一个GOP里面的某一帧在解码时要依赖于前一个GOP的某些帧，
+     这个GOP就称为open-GOP。
+     有些解码器不能完全支持open-GOP码流，
+     例如蓝光解码器，因此在x264里面open-GOP是默认关闭的。
+     对于解码端，接收到的码流如果如下:I0 B0 B1 P0 B2 B3...这就是一个open-GOP码流（I帧后面紧跟B帧）。
+     因此B0 B1的解码需要用到I0前面一个GOP的数据，B0 B1的dts是小于I0的。
+     如果码流如下: I0 P0 B0 B1 P1 B2 B3...这就是一个close-GOP码流，
+     I0后面所有帧的解码不依赖于I0前面的帧，I0后面所有帧的dts都比I0的大。
+     如果码流是IDR0 B0 B1 P0 B2 B3...那个这个GOP是close-GOP，B0,B1虽然dst比IDR0小，
+     但编解码端都刷新了参考缓冲，B0,B1参考不到前向GOP帧。
+     对于编码端，如果编码帧类型决定如下: ...P0 B1 B2 P3 B4 B5 I6这就会输出open-Gop码流 （P0 P3 B1 B2 I6 B4 B5...），
+     B4 B5的解码依赖P3。
+     如果编码帧类型决定如下...P0 B1 B2 P3 B4 P5 I6这样就不会输出open-GOP码流（P0 P3 B1 B2 P5 B4 I6...）。
+     两者区别在于I6前面的第5帧是设置为B帧还是P帧，
+     如果一个GOP的最后一帧（上例中是第5帧）设置为B帧，
+     这个码流就是open-GOP,设置为P帧就是close-GOP。
+     由于B帧压缩性能好于P帧，因此open-GOP在编码性能上稍微优于close-GOP，
+     但为了兼容性和少一些麻烦，还是把opne-GOP关闭的好。*/
+    pX264Param->b_open_gop = 0;
+    pX264Param->i_bframe = 0;		//最大B帧数.
+    pX264Param->i_bframe_pyramid = 0;
+    pX264Param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
+    //* Log
+    pX264Param->i_log_level = X264_LOG_ERROR;
 
-	//* muxing parameters
-	pX264Param->i_fps_den = 1; //* 帧率分母
-	pX264Param->i_fps_num = iFps; //* 帧率分子
-	pX264Param->i_timebase_den = pX264Param->i_fps_num;
-	pX264Param->i_timebase_num = pX264Param->i_fps_den;
+    //* muxing parameters
+    pX264Param->i_fps_den = 1; //* 帧率分母
+    pX264Param->i_fps_num = iFps; //* 帧率分子
+    pX264Param->i_timebase_den = pX264Param->i_fps_num;
+    pX264Param->i_timebase_num = pX264Param->i_fps_den;
 
-	pX264Param->analyse.i_subpel_refine = 1; //这个参数控制在运动估算过程中质量和速度的权衡。Subq=5可以压缩>10%于subq=1。1-7
-	pX264Param->analyse.b_fast_pskip = 1; //在P帧内执行早期快速跳跃探测。这个经常在没有任何损失的前提下提高了速度。
+    pX264Param->analyse.i_subpel_refine = 1; //这个参数控制在运动估算过程中质量和速度的权衡。Subq=5可以压缩>10%于subq=1。1-7
+    pX264Param->analyse.b_fast_pskip = 1; //在P帧内执行早期快速跳跃探测。这个经常在没有任何损失的前提下提高了速度。
 
-	pX264Param->b_annexb = 1; //1前面为0x00000001,0为nal长度
-	pX264Param->b_repeat_headers = 1; //关键帧前面是否放sps跟pps帧，0 否 1，放
+    pX264Param->b_annexb = 1; //1前面为0x00000001,0为nal长度
+    pX264Param->b_repeat_headers = 1; //关键帧前面是否放sps跟pps帧，0 否 1，放
 
-	//* 设置Profile.使用baseline
-	x264_param_apply_profile(pX264Param, "high");
+    //* 设置Profile.使用baseline
+    x264_param_apply_profile(pX264Param, "high");
 
-	//* 打开编码器句柄,通过x264_encoder_parameters得到设置给X264
-	//* 的参数.通过x264_encoder_reconfig更新X264的参数
-	_pX264Handle = x264_encoder_open(pX264Param);
-	if (!_pX264Handle) {
-		return false;
-	}
-	_pPicIn = new x264_picture_t;
-	_pPicOut = new x264_picture_t;
-	x264_picture_init(_pPicIn);
-	x264_picture_init(_pPicOut);
-	_pPicIn->img.i_csp = X264_CSP_I420;
-	_pPicIn->img.i_plane = 3;
-	return true;
+    //* 打开编码器句柄,通过x264_encoder_parameters得到设置给X264
+    //* 的参数.通过x264_encoder_reconfig更新X264的参数
+    _pX264Handle = x264_encoder_open(pX264Param);
+    if (!_pX264Handle) {
+        return false;
+    }
+    _pPicIn = new x264_picture_t;
+    _pPicOut = new x264_picture_t;
+    x264_picture_init(_pPicIn);
+    x264_picture_init(_pPicOut);
+    _pPicIn->img.i_csp = X264_CSP_I420;
+    _pPicIn->img.i_plane = 3;
+    return true;
 }
 
 int H264Encoder::inputData(char* apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H264Frame** ppFrame) {
-	//TimeTicker1(5);
-	_pPicIn->img.i_stride[0] = aiYuvLen[0];
-	_pPicIn->img.i_stride[1] = aiYuvLen[1];
-	_pPicIn->img.i_stride[2] = aiYuvLen[2];
-	_pPicIn->img.plane[0] = (uint8_t *) apcYuv[0];
-	_pPicIn->img.plane[1] = (uint8_t *) apcYuv[1];
-	_pPicIn->img.plane[2] = (uint8_t *) apcYuv[2];
-	_pPicIn->i_pts = i64Pts;
-	int iNal;
-	x264_nal_t* pNals;
+    //TimeTicker1(5);
+    _pPicIn->img.i_stride[0] = aiYuvLen[0];
+    _pPicIn->img.i_stride[1] = aiYuvLen[1];
+    _pPicIn->img.i_stride[2] = aiYuvLen[2];
+    _pPicIn->img.plane[0] = (uint8_t *) apcYuv[0];
+    _pPicIn->img.plane[1] = (uint8_t *) apcYuv[1];
+    _pPicIn->img.plane[2] = (uint8_t *) apcYuv[2];
+    _pPicIn->i_pts = i64Pts;
+    int iNal;
+    x264_nal_t* pNals;
 
-	int iResult = x264_encoder_encode(_pX264Handle, &pNals, &iNal, _pPicIn,
-			_pPicOut);
-	if (iResult <= 0) {
-		return 0;
-	}
-	for (int i = 0; i < iNal; i++) {
-		x264_nal_t pNal = pNals[i];
-		_aFrames[i].iType = pNal.i_type;
-		_aFrames[i].iLength = pNal.i_payload;
-		_aFrames[i].pucData = pNal.p_payload;
-	}
-	*ppFrame = _aFrames;
-	return iNal;
+    int iResult = x264_encoder_encode(_pX264Handle, &pNals, &iNal, _pPicIn,
+            _pPicOut);
+    if (iResult <= 0) {
+        return 0;
+    }
+    for (int i = 0; i < iNal; i++) {
+        x264_nal_t pNal = pNals[i];
+        _aFrames[i].iType = pNal.i_type;
+        _aFrames[i].iLength = pNal.i_payload;
+        _aFrames[i].pucData = pNal.p_payload;
+    }
+    *ppFrame = _aFrames;
+    return iNal;
 }
 
 } /* namespace mediakit */

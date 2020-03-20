@@ -31,12 +31,12 @@
 
 #if defined(_WIN32)
 #if defined(MediaKitApi_EXPORTS)
-		#define API_EXPORT __declspec(dllexport)
-	#else
-		#define API_EXPORT __declspec(dllimport)
-	#endif
+        #define API_EXPORT __declspec(dllexport)
+    #else
+        #define API_EXPORT __declspec(dllimport)
+    #endif
 
-	#define API_CALL __cdecl
+    #define API_CALL __cdecl
 #else
 #define API_EXPORT
 #define API_CALL

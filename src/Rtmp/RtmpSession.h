@@ -45,65 +45,65 @@ namespace mediakit {
 
 class RtmpSession: public TcpSession ,public  RtmpProtocol , public MediaSourceEvent{
 public:
-	typedef std::shared_ptr<RtmpSession> Ptr;
-	RtmpSession(const Socket::Ptr &_sock);
-	virtual ~RtmpSession();
-	void onRecv(const Buffer::Ptr &pBuf) override;
-	void onError(const SockException &err) override;
-	void onManager() override;
+    typedef std::shared_ptr<RtmpSession> Ptr;
+    RtmpSession(const Socket::Ptr &_sock);
+    virtual ~RtmpSession();
+    void onRecv(const Buffer::Ptr &pBuf) override;
+    void onError(const SockException &err) override;
+    void onManager() override;
 private:
-	void onProcessCmd(AMFDecoder &dec);
-	void onCmd_connect(AMFDecoder &dec);
-	void onCmd_createStream(AMFDecoder &dec);
+    void onProcessCmd(AMFDecoder &dec);
+    void onCmd_connect(AMFDecoder &dec);
+    void onCmd_createStream(AMFDecoder &dec);
 
-	void onCmd_publish(AMFDecoder &dec);
-	void onCmd_deleteStream(AMFDecoder &dec);
+    void onCmd_publish(AMFDecoder &dec);
+    void onCmd_deleteStream(AMFDecoder &dec);
 
-	void onCmd_play(AMFDecoder &dec);
-	void onCmd_play2(AMFDecoder &dec);
-	void doPlay(AMFDecoder &dec);
-	void doPlayResponse(const string &err,const std::function<void(bool)> &cb);
-	void sendPlayResponse(const string &err,const RtmpMediaSource::Ptr &src);
+    void onCmd_play(AMFDecoder &dec);
+    void onCmd_play2(AMFDecoder &dec);
+    void doPlay(AMFDecoder &dec);
+    void doPlayResponse(const string &err,const std::function<void(bool)> &cb);
+    void sendPlayResponse(const string &err,const RtmpMediaSource::Ptr &src);
 
-	void onCmd_seek(AMFDecoder &dec);
-	void onCmd_pause(AMFDecoder &dec);
-	void setMetaData(AMFDecoder &dec);
+    void onCmd_seek(AMFDecoder &dec);
+    void onCmd_pause(AMFDecoder &dec);
+    void setMetaData(AMFDecoder &dec);
 
-	void onSendMedia(const RtmpPacket::Ptr &pkt);
-	void onSendRawData(const Buffer::Ptr &buffer) override{
+    void onSendMedia(const RtmpPacket::Ptr &pkt);
+    void onSendRawData(const Buffer::Ptr &buffer) override{
         _ui64TotalBytes += buffer->size();
-		send(buffer);
-	}
-	void onRtmpChunk(RtmpPacket &chunkData) override;
+        send(buffer);
+    }
+    void onRtmpChunk(RtmpPacket &chunkData) override;
 
-	template<typename first, typename second>
-	inline void sendReply(const char *str, const first &reply, const second &status) {
-		AMFEncoder invoke;
-		invoke << str << _dNowReqID << reply << status;
-		sendResponse(MSG_CMD, invoke.data());
-	}
+    template<typename first, typename second>
+    inline void sendReply(const char *str, const first &reply, const second &status) {
+        AMFEncoder invoke;
+        invoke << str << _dNowReqID << reply << status;
+        sendResponse(MSG_CMD, invoke.data());
+    }
 
-	//MediaSourceEvent override
-	bool close(MediaSource &sender,bool force) override ;
+    //MediaSourceEvent override
+    bool close(MediaSource &sender,bool force) override ;
     void onNoneReader(MediaSource &sender) override;
-	int totalReaderCount(MediaSource &sender) override;
+    int totalReaderCount(MediaSource &sender) override;
 
-	void setSocketFlags();
-	string getStreamId(const string &str);
-	void dumpMetadata(const AMFValue &metadata);
+    void setSocketFlags();
+    string getStreamId(const string &str);
+    void dumpMetadata(const AMFValue &metadata);
 private:
-	std::string _strTcUrl;
-	MediaInfo _mediaInfo;
-	double _dNowReqID = 0;
-	bool _set_meta_data = false;
-	Ticker _ticker;//数据接收时间
-	RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr _pRingReader;
-	std::shared_ptr<RtmpMediaSourceImp> _pPublisherSrc;
-	std::weak_ptr<RtmpMediaSource> _pPlayerSrc;
-	//时间戳修整器
-	Stamp _stamp[2];
-	//消耗的总流量
-	uint64_t _ui64TotalBytes = 0;
+    std::string _strTcUrl;
+    MediaInfo _mediaInfo;
+    double _dNowReqID = 0;
+    bool _set_meta_data = false;
+    Ticker _ticker;//数据接收时间
+    RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr _pRingReader;
+    std::shared_ptr<RtmpMediaSourceImp> _pPublisherSrc;
+    std::weak_ptr<RtmpMediaSource> _pPlayerSrc;
+    //时间戳修整器
+    Stamp _stamp[2];
+    //消耗的总流量
+    uint64_t _ui64TotalBytes = 0;
 
 };
 
