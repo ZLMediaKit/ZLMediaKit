@@ -33,30 +33,30 @@ namespace mediakit {
 
 class HttpDownloader: public HttpClientImp {
 public:
-	typedef std::shared_ptr<HttpDownloader> Ptr;
-	typedef std::function<void(ErrCode code,const string &errMsg,const string &filePath)> onDownloadResult;
-	HttpDownloader();
-	virtual ~HttpDownloader();
-	//开始下载文件,默认断点续传方式下载
-	void startDownload(const string &url,const string &filePath = "",bool bAppend = false, float timeOutSecond = 10 );
-	void startDownload(const string &url,const onDownloadResult &cb,float timeOutSecond = 10){
-		setOnResult(cb);
-		startDownload(url,"",false,timeOutSecond);
-	}
-	void setOnResult(const onDownloadResult &cb){
-		_onResult = cb;
-	}
+    typedef std::shared_ptr<HttpDownloader> Ptr;
+    typedef std::function<void(ErrCode code,const string &errMsg,const string &filePath)> onDownloadResult;
+    HttpDownloader();
+    virtual ~HttpDownloader();
+    //开始下载文件,默认断点续传方式下载
+    void startDownload(const string &url,const string &filePath = "",bool bAppend = false, float timeOutSecond = 10 );
+    void startDownload(const string &url,const onDownloadResult &cb,float timeOutSecond = 10){
+        setOnResult(cb);
+        startDownload(url,"",false,timeOutSecond);
+    }
+    void setOnResult(const onDownloadResult &cb){
+        _onResult = cb;
+    }
 private:
-	int64_t onResponseHeader(const string &status,const HttpHeader &headers) override;
-	void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize) override;
-	void onResponseCompleted() override;
-	void onDisconnect(const SockException &ex) override;
+    int64_t onResponseHeader(const string &status,const HttpHeader &headers) override;
+    void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize) override;
+    void onResponseCompleted() override;
+    void onDisconnect(const SockException &ex) override;
     void closeFile();
 private:
-	FILE *_saveFile = nullptr;
-	string _filePath;
-	onDownloadResult _onResult;
-	bool _bDownloadSuccess = false;
+    FILE *_saveFile = nullptr;
+    string _filePath;
+    onDownloadResult _onResult;
+    bool _bDownloadSuccess = false;
 };
 
 } /* namespace mediakit */

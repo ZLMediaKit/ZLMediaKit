@@ -42,21 +42,21 @@ namespace mediakit {
 
 class H264Encoder {
 public:
-	typedef struct {
-		int iType;
-		int iLength;
-		uint8_t *pucData;
-	} H264Frame;
+    typedef struct {
+        int iType;
+        int iLength;
+        uint8_t *pucData;
+    } H264Frame;
 
-	H264Encoder(void);
-	virtual ~H264Encoder(void);
-	bool init(int iWidth, int iHeight, int iFps);
-	int inputData(char *apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H264Frame **ppFrame);
+    H264Encoder(void);
+    virtual ~H264Encoder(void);
+    bool init(int iWidth, int iHeight, int iFps);
+    int inputData(char *apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H264Frame **ppFrame);
 private:
-	x264_t* _pX264Handle = nullptr;
-	x264_picture_t* _pPicIn = nullptr;
-	x264_picture_t* _pPicOut = nullptr;
-	H264Frame _aFrames[10];
+    x264_t* _pX264Handle = nullptr;
+    x264_picture_t* _pPicIn = nullptr;
+    x264_picture_t* _pPicOut = nullptr;
+    H264Frame _aFrames[10];
 };
 
 } /* namespace mediakit */

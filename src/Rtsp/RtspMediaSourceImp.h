@@ -39,12 +39,12 @@ public:
     typedef std::shared_ptr<RtspMediaSourceImp> Ptr;
 
     /**
-	 * 构造函数
-	 * @param vhost 虚拟主机
-	 * @param app 应用名
-	 * @param id 流id
-	 * @param ringSize 环形缓存大小
-	 */
+     * 构造函数
+     * @param vhost 虚拟主机
+     * @param app 应用名
+     * @param id 流id
+     * @param ringSize 环形缓存大小
+     */
     RtspMediaSourceImp(const string &vhost, const string &app, const string &id, int ringSize = RTP_GOP_SIZE) : RtspMediaSource(vhost, app, id,ringSize) {
         _demuxer = std::make_shared<RtspDemuxer>();
         _demuxer->setTrackListener(this);
@@ -69,9 +69,9 @@ public:
     }
 
     /**
-	 * 设置监听器
-	 * @param listener
-	 */
+     * 设置监听器
+     * @param listener
+     */
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override {
         RtspMediaSource::setListener(listener);
         if(_muxer){
@@ -87,11 +87,11 @@ public:
     }
 
     /**
-	 * 设置协议转换
-	 * @param enableRtmp 是否转换成rtmp
-	 * @param enableHls  是否转换成hls
-	 * @param enableMP4  是否mp4录制
-	 */
+     * 设置协议转换
+     * @param enableRtmp 是否转换成rtmp
+     * @param enableHls  是否转换成hls
+     * @param enableMP4  是否mp4录制
+     */
     void setProtocolTranslation(bool enableRtmp,bool enableHls,bool enableMP4){
         //不重复生成rtsp
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), false, enableRtmp, enableHls, enableMP4);
@@ -104,8 +104,8 @@ public:
     }
 
     /**
-	 * _demuxer触发的添加Track事件
-	 */
+     * _demuxer触发的添加Track事件
+     */
     void onAddTrack(const Track::Ptr &track) override {
         if(_muxer){
             _muxer->addTrack(track);

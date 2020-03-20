@@ -36,11 +36,11 @@ namespace mediakit {
 
 class HttpClientImp: public TcpClientWithSSL<HttpClient> {
 public:
-	typedef std::shared_ptr<HttpClientImp> Ptr;
-	HttpClientImp() {}
-	virtual ~HttpClientImp() {}
+    typedef std::shared_ptr<HttpClientImp> Ptr;
+    HttpClientImp() {}
+    virtual ~HttpClientImp() {}
 protected:
-	void onConnect(const SockException &ex)  override ;
+    void onConnect(const SockException &ex)  override ;
 };
 
 } /* namespace mediakit */

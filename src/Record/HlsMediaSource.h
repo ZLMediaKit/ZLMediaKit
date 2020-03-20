@@ -44,16 +44,16 @@ public:
     virtual ~HlsMediaSource() = default;
 
     /**
-	 * 	获取媒体源的环形缓冲
-	 */
+     * 	获取媒体源的环形缓冲
+     */
     const RingType::Ptr &getRing() const {
         return _ring;
     }
 
     /**
-	 * 获取播放器个数
-	 * @return
-	 */
+     * 获取播放器个数
+     * @return
+     */
     int readerCount() override {
         return _readerCount.load();
     }

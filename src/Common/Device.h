@@ -51,16 +51,16 @@ namespace mediakit {
 
 class VideoInfo {
 public:
-	int iWidth;
-	int iHeight;
-	float iFrameRate;
+    int iWidth;
+    int iHeight;
+    float iFrameRate;
 };
 class AudioInfo {
 public:
-	int iChannel;
-	int iSampleBit;
-	int iSampleRate;
-	int iProfile;
+    int iChannel;
+    int iSampleBit;
+    int iSampleRate;
+    int iProfile;
 };
 
 /**
@@ -68,82 +68,82 @@ public:
  */
 class DevChannel  : public MultiMediaSourceMuxer{
 public:
-	typedef std::shared_ptr<DevChannel> Ptr;
+    typedef std::shared_ptr<DevChannel> Ptr;
     //fDuration<=0为直播，否则为点播
     DevChannel(const string &strVhost,
                const string &strApp,
                const string &strId,
                float fDuration = 0,
-			   bool bEanbleRtsp = true,
-			   bool bEanbleRtmp = true,
+               bool bEanbleRtsp = true,
+               bool bEanbleRtmp = true,
                bool bEanbleHls = true,
                bool bEnableMp4 = false);
 
-	virtual ~DevChannel();
+    virtual ~DevChannel();
 
-	/**
-	 * 初始化h264视频Track
-	 * 相当于MultiMediaSourceMuxer::addTrack(H264Track::Ptr );
-	 * @param info
-	 */
+    /**
+     * 初始化h264视频Track
+     * 相当于MultiMediaSourceMuxer::addTrack(H264Track::Ptr );
+     * @param info
+     */
     void initVideo(const VideoInfo &info);
 
-	/**
-	 * 初始化h265视频Track
-	 * @param info
-	 */
-	void initH265Video(const VideoInfo &info);
+    /**
+     * 初始化h265视频Track
+     * @param info
+     */
+    void initH265Video(const VideoInfo &info);
 
     /**
      * 初始化aac音频Track
      * 相当于MultiMediaSourceMuxer::addTrack(AACTrack::Ptr );
      * @param info
      */
-	void initAudio(const AudioInfo &info);
+    void initAudio(const AudioInfo &info);
 
-	/**
-	 * 输入264帧
-	 * @param pcData 264单帧数据指针
-	 * @param iDataLen 数据指针长度
-	 * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
-	 * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
-	 */
-	void inputH264(const char *pcData, int iDataLen, uint32_t dts,uint32_t pts = 0);
+    /**
+     * 输入264帧
+     * @param pcData 264单帧数据指针
+     * @param iDataLen 数据指针长度
+     * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
+     * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
+     */
+    void inputH264(const char *pcData, int iDataLen, uint32_t dts,uint32_t pts = 0);
 
-	/**
-	 * 输入265帧
-	 * @param pcData 265单帧数据指针
-	 * @param iDataLen 数据指针长度
-	 * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
-	 * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
-	 */
-	void inputH265(const char *pcData, int iDataLen, uint32_t dts,uint32_t pts = 0);
+    /**
+     * 输入265帧
+     * @param pcData 265单帧数据指针
+     * @param iDataLen 数据指针长度
+     * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
+     * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
+     */
+    void inputH265(const char *pcData, int iDataLen, uint32_t dts,uint32_t pts = 0);
 
-	/**
-	 * 输入可能带adts头的aac帧
-	 * @param pcDataWithAdts 可能带adts头的aac帧
-	 * @param iDataLen 帧数据长度
-	 * @param uiStamp 时间戳，单位毫秒，等于0时内部会自动生成时间戳
-	 * @param withAdtsHeader 是否带adts头
-	 */
-	void inputAAC(const char *pcDataWithAdts, int iDataLen, uint32_t uiStamp, bool withAdtsHeader = true);
+    /**
+     * 输入可能带adts头的aac帧
+     * @param pcDataWithAdts 可能带adts头的aac帧
+     * @param iDataLen 帧数据长度
+     * @param uiStamp 时间戳，单位毫秒，等于0时内部会自动生成时间戳
+     * @param withAdtsHeader 是否带adts头
+     */
+    void inputAAC(const char *pcDataWithAdts, int iDataLen, uint32_t uiStamp, bool withAdtsHeader = true);
 
-	/**
-	 * 输入不带adts头的aac帧
-	 * @param pcDataWithoutAdts 不带adts头的aac帧
-	 * @param iDataLen 帧数据长度
-	 * @param uiStamp 时间戳，单位毫秒
-	 * @param pcAdtsHeader adts头
-	 */
-	void inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,const char *pcAdtsHeader);
+    /**
+     * 输入不带adts头的aac帧
+     * @param pcDataWithoutAdts 不带adts头的aac帧
+     * @param iDataLen 帧数据长度
+     * @param uiStamp 时间戳，单位毫秒
+     * @param pcAdtsHeader adts头
+     */
+    void inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,const char *pcAdtsHeader);
 
 #ifdef ENABLE_X264
-	/**
-	 * 输入yuv420p视频帧，内部会完成编码并调用inputH264方法
-	 * @param apcYuv
-	 * @param aiYuvLen
-	 * @param uiStamp
-	 */
+    /**
+     * 输入yuv420p视频帧，内部会完成编码并调用inputH264方法
+     * @param apcYuv
+     * @param aiYuvLen
+     * @param uiStamp
+     */
     void inputYUV(char *apcYuv[3], int aiYuvLen[3], uint32_t uiStamp);
 #endif //ENABLE_X264
 
@@ -160,11 +160,11 @@ public:
 
 private:
 #ifdef ENABLE_X264
-	std::shared_ptr<H264Encoder> _pH264Enc;
+    std::shared_ptr<H264Encoder> _pH264Enc;
 #endif //ENABLE_X264
 
 #ifdef ENABLE_FAAC
-	std::shared_ptr<AACEncoder> _pAacEnc;
+    std::shared_ptr<AACEncoder> _pAacEnc;
 #endif //ENABLE_FAAC
     std::shared_ptr<VideoInfo> _video;
     std::shared_ptr<AudioInfo> _audio;

@@ -357,6 +357,6 @@ int main(int argc,char *argv[]) {
     Recorder::stopAll();
     lock_guard<mutex> lck(s_mtxFlvRecorder);
     s_mapFlvRecorder.clear();
-	return 0;
+    return 0;
 }
 

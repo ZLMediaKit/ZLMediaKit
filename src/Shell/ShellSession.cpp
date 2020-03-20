@@ -48,29 +48,29 @@ ShellSession::~ShellSession() {
 }
 
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
-	//DebugL << hexdump(buf->data(), buf->size());
+    //DebugL << hexdump(buf->data(), buf->size());
     GET_CONFIG(uint32_t,maxReqSize,Shell::kMaxReqSize);
     if (_strRecvBuf.size() + buf->size() >= maxReqSize) {
-		shutdown(SockException(Err_other,"recv buffer overflow"));
-		return;
-	}
-	_beatTicker.resetTime();
-	_strRecvBuf.append(buf->data(), buf->size());
-	if (_strRecvBuf.find("\xff\xf4\xff\0xfd\x06") != std::string::npos) {
-		send("\033[0m\r\n	Bye bye!\r\n");
-		shutdown(SockException(Err_other,"received Ctrl+C"));
-		return;
-	}
-	size_t index;
-	string line;
-	while ((index = _strRecvBuf.find("\r\n")) != std::string::npos) {
-		line = _strRecvBuf.substr(0, index);
-		_strRecvBuf.erase(0, index + 2);
-		if (!onCommandLine(line)) {
-			shutdown(SockException(Err_other,"exit cmd"));
-			return;
-		}
-	}
+        shutdown(SockException(Err_other,"recv buffer overflow"));
+        return;
+    }
+    _beatTicker.resetTime();
+    _strRecvBuf.append(buf->data(), buf->size());
+    if (_strRecvBuf.find("\xff\xf4\xff\0xfd\x06") != std::string::npos) {
+        send("\033[0m\r\n	Bye bye!\r\n");
+        shutdown(SockException(Err_other,"received Ctrl+C"));
+        return;
+    }
+    size_t index;
+    string line;
+    while ((index = _strRecvBuf.find("\r\n")) != std::string::npos) {
+        line = _strRecvBuf.substr(0, index);
+        _strRecvBuf.erase(0, index + 2);
+        if (!onCommandLine(line)) {
+            shutdown(SockException(Err_other,"exit cmd"));
+            return;
+        }
+    }
 }
 
 void ShellSession::onError(const SockException &err){
@@ -78,19 +78,19 @@ void ShellSession::onError(const SockException &err){
 }
 
 void ShellSession::onManager() {
-	if (_beatTicker.elapsedTime() > 1000 * 60 * 5) {
-		//5 miniutes for alive
+    if (_beatTicker.elapsedTime() > 1000 * 60 * 5) {
+        //5 miniutes for alive
         shutdown(SockException(Err_timeout,"session timeout"));
-		return;
-	}
+        return;
+    }
 }
 
 inline bool ShellSession::onCommandLine(const string& line) {
     auto loginInterceptor = _loginInterceptor;
     if (loginInterceptor) {
-		bool ret = loginInterceptor(line);
-		return ret;
-	}
+        bool ret = loginInterceptor(line);
+        return ret;
+    }
     try {
         std::shared_ptr<stringstream> ss(new stringstream);
         CMDRegister::Instance()(line,ss);
@@ -102,21 +102,21 @@ inline bool ShellSession::onCommandLine(const string& line) {
         send("\r\n");
     }
     printShellPrefix();
-	return true;
+    return true;
 }
 
 inline void ShellSession::pleaseInputUser() {
-	send("\033[0m");
-	send(StrPrinter << SERVER_NAME << " login: " << endl);
-	_loginInterceptor = [this](const string &user_name) {
-		_strUserName=user_name;
+    send("\033[0m");
+    send(StrPrinter << SERVER_NAME << " login: " << endl);
+    _loginInterceptor = [this](const string &user_name) {
+        _strUserName=user_name;
         pleaseInputPasswd();
-		return true;
-	};
+        return true;
+    };
 }
 inline void ShellSession::pleaseInputPasswd() {
-	send("Password: \033[8m");
-	_loginInterceptor = [this](const string &passwd) {
+    send("Password: \033[8m");
+    _loginInterceptor = [this](const string &passwd) {
         auto onAuth = [this](const string &errMessage){
             if(!errMessage.empty()){
                 //鉴权失败
@@ -157,12 +157,12 @@ inline void ShellSession::pleaseInputPasswd() {
             //如果无人监听shell登录事件，那么默认shell无法登录
             onAuth("please listen kBroadcastShellLogin event");
         }
-		return true;
-	};
+        return true;
+    };
 }
 
 inline void ShellSession::printShellPrefix() {
-	send(StrPrinter << _strUserName << "@" << SERVER_NAME << "# " << endl);
+    send(StrPrinter << _strUserName << "@" << SERVER_NAME << "# " << endl);
 }
 
 }/* namespace mediakit */

@@ -137,10 +137,10 @@ public:
     virtual ~TrackSource(){}
 
     /**
-	 * 获取全部的Track
-	 * @param trackReady 是否获取全部已经准备好的Track
-	 * @return
-	 */
+     * 获取全部的Track
+     * @param trackReady 是否获取全部已经准备好的Track
+     * @return
+     */
     virtual vector<Track::Ptr> getTracks(bool trackReady = true) const = 0;
 
     /**

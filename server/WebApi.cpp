@@ -774,9 +774,9 @@ void installWebApi() {
         val["status"] = (int)status;
     });
 
-	//获取录像文件夹列表或mp4文件列表
-	//http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
-	api_regist1("/index/api/getMp4RecordFile", [](API_ARGS1){
+    //获取录像文件夹列表或mp4文件列表
+    //http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
+    api_regist1("/index/api/getMp4RecordFile", [](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, allArgs["vhost"], allArgs["app"],allArgs["stream"]);
@@ -809,7 +809,7 @@ void installWebApi() {
 
         val["data"]["rootPath"] = record_path;
         val["data"]["paths"] = paths;
-	});
+    });
 
     ////////////以下是注册的Hook API////////////
     api_regist1("/index/hook/on_publish",[](API_ARGS1){

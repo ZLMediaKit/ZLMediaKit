@@ -45,8 +45,8 @@ HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
     TraceP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Http::kKeepAliveSecond);
     pSock->setSendTimeOutSecond(keep_alive_sec);
-	//起始接收buffer缓存设置为4K，节省内存
-	pSock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
+    //起始接收buffer缓存设置为4K，节省内存
+    pSock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
 }
 
 HttpSession::~HttpSession() {
@@ -61,48 +61,48 @@ void HttpSession::Handle_Req_HEAD(int64_t &content_len){
 }
 
 int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
-	typedef void (HttpSession::*HttpCMDHandle)(int64_t &);
-	static unordered_map<string, HttpCMDHandle> s_func_map;
-	static onceToken token([]() {
-		s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
-		s_func_map.emplace("POST",&HttpSession::Handle_Req_POST);
+    typedef void (HttpSession::*HttpCMDHandle)(int64_t &);
+    static unordered_map<string, HttpCMDHandle> s_func_map;
+    static onceToken token([]() {
+        s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
+        s_func_map.emplace("POST",&HttpSession::Handle_Req_POST);
         s_func_map.emplace("HEAD",&HttpSession::Handle_Req_HEAD);
     }, nullptr);
 
-	_parser.Parse(header);
-	urlDecode(_parser);
-	string cmd = _parser.Method();
-	auto it = s_func_map.find(cmd);
-	if (it == s_func_map.end()) {
-	    WarnL << "不支持该命令:" << cmd;
-		sendResponse("405 Not Allowed", true);
+    _parser.Parse(header);
+    urlDecode(_parser);
+    string cmd = _parser.Method();
+    auto it = s_func_map.find(cmd);
+    if (it == s_func_map.end()) {
+        WarnL << "不支持该命令:" << cmd;
+        sendResponse("405 Not Allowed", true);
         return 0;
-	}
+    }
 
     //跨域
     _origin = _parser["Origin"];
 
     //默认后面数据不是content而是header
-	int64_t content_len = 0;
-	auto &fun = it->second;
+    int64_t content_len = 0;
+    auto &fun = it->second;
     try {
         (this->*fun)(content_len);
     }catch (exception &ex){
         shutdown(SockException(Err_shutdown,ex.what()));
     }
 
-	//清空解析器节省内存
-	_parser.Clear();
-	//返回content长度
-	return content_len;
+    //清空解析器节省内存
+    _parser.Clear();
+    //返回content长度
+    return content_len;
 }
 
 void HttpSession::onRecvContent(const char *data,uint64_t len) {
-	if(_contentCallBack){
-		if(!_contentCallBack(data,len)){
-			_contentCallBack = nullptr;
-		}
-	}
+    if(_contentCallBack){
+        if(!_contentCallBack(data,len)){
+            _contentCallBack = nullptr;
+        }
+    }
 }
 
 void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
@@ -140,25 +140,25 @@ void HttpSession::onManager() {
     GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
 
     if(_ticker.elapsedTime() > keepAliveSec * 1000){
-		//1分钟超时
-		shutdown(SockException(Err_timeout,"session timeouted"));
-	}
+        //1分钟超时
+        shutdown(SockException(Err_timeout,"session timeouted"));
+    }
 }
 
 bool HttpSession::checkWebSocket(){
-	auto Sec_WebSocket_Key = _parser["Sec-WebSocket-Key"];
-	if(Sec_WebSocket_Key.empty()){
-		return false;
-	}
-	auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
+    auto Sec_WebSocket_Key = _parser["Sec-WebSocket-Key"];
+    if(Sec_WebSocket_Key.empty()){
+        return false;
+    }
+    auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
-	KeyValue headerOut;
-	headerOut["Upgrade"] = "websocket";
-	headerOut["Connection"] = "Upgrade";
-	headerOut["Sec-WebSocket-Accept"] = Sec_WebSocket_Accept;
-	if(!_parser["Sec-WebSocket-Protocol"].empty()){
-		headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
-	}
+    KeyValue headerOut;
+    headerOut["Upgrade"] = "websocket";
+    headerOut["Connection"] = "Upgrade";
+    headerOut["Sec-WebSocket-Accept"] = Sec_WebSocket_Accept;
+    if(!_parser["Sec-WebSocket-Protocol"].empty()){
+        headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
+    }
 
     auto res_cb = [this,headerOut](){
         _flv_over_websocket = true;
@@ -177,28 +177,28 @@ bool HttpSession::checkWebSocket(){
         return true;
     }
     sendResponse("101 Switching Protocols",false, nullptr,headerOut);
-	return true;
+    return true;
 }
 
 //http-flv 链接格式:http://vhost-url:port/app/streamid.flv?key1=value1&key2=value2
 //如果url(除去?以及后面的参数)后缀是.flv,那么表明该url是一个http-flv直播。
 bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
-	auto pos = strrchr(_parser.Url().data(),'.');
-	if(!pos){
-		//未找到".flv"后缀
-		return false;
-	}
-	if(strcasecmp(pos,".flv") != 0){
-		//未找到".flv"后缀
-		return false;
-	}
-
-	//这是个.flv的流
-    _mediaInfo.parse(string(RTMP_SCHEMA) + "://" + _parser["Host"] + _parser.FullUrl());
-	if(_mediaInfo._app.empty() || _mediaInfo._streamid.size() < 5){
-	    //url不合法
+    auto pos = strrchr(_parser.Url().data(),'.');
+    if(!pos){
+        //未找到".flv"后缀
         return false;
-	}
+    }
+    if(strcasecmp(pos,".flv") != 0){
+        //未找到".flv"后缀
+        return false;
+    }
+
+    //这是个.flv的流
+    _mediaInfo.parse(string(RTMP_SCHEMA) + "://" + _parser["Host"] + _parser.FullUrl());
+    if(_mediaInfo._app.empty() || _mediaInfo._streamid.size() < 5){
+        //url不合法
+        return false;
+    }
     _mediaInfo._streamid.erase(_mediaInfo._streamid.size() - 4);//去除.flv后缀
     bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
 
@@ -270,21 +270,21 @@ void HttpSession::Handle_Req_GET(int64_t &content_len) {
 }
 
 void HttpSession::Handle_Req_GET_l(int64_t &content_len, bool sendBody) {
-	//先看看是否为WebSocket请求
-	if(checkWebSocket()){
-		content_len = -1;
-		_contentCallBack = [this](const char *data,uint64_t len){
+    //先看看是否为WebSocket请求
+    if(checkWebSocket()){
+        content_len = -1;
+        _contentCallBack = [this](const char *data,uint64_t len){
             WebSocketSplitter::decode((uint8_t *)data,len);
-			//_contentCallBack是可持续的，后面还要处理后续数据
-			return true;
-		};
-		return;
-	}
+            //_contentCallBack是可持续的，后面还要处理后续数据
+            return true;
+        };
+        return;
+    }
 
-	if(emitHttpEvent(false)){
+    if(emitHttpEvent(false)){
         //拦截http api事件
-		return;
-	}
+        return;
+    }
 
     if(checkLiveFlvStream()){
         //拦截http-flv播放器
@@ -498,111 +498,111 @@ void HttpSession::sendResponse(const char *pcStatus,
 }
 
 string HttpSession::urlDecode(const string &str){
-	auto ret = strCoding::UrlDecode(str);
+    auto ret = strCoding::UrlDecode(str);
 #ifdef _WIN32
     GET_CONFIG(string,charSet,Http::kCharSet);
-	bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
-	if (isGb2312) {
-		ret = strCoding::UTF8ToGB2312(ret);
-	}
+    bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
+    if (isGb2312) {
+        ret = strCoding::UTF8ToGB2312(ret);
+    }
 #endif // _WIN32
     return ret;
 }
 
 void HttpSession::urlDecode(Parser &parser){
-	parser.setUrl(urlDecode(parser.Url()));
-	for(auto &pr : _parser.getUrlArgs()){
-		const_cast<string &>(pr.second) = urlDecode(pr.second);
-	}
+    parser.setUrl(urlDecode(parser.Url()));
+    for(auto &pr : _parser.getUrlArgs()){
+        const_cast<string &>(pr.second) = urlDecode(pr.second);
+    }
 }
 
 bool HttpSession::emitHttpEvent(bool doInvoke){
     bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
-	/////////////////////异步回复Invoker///////////////////////////////
-	weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-	HttpResponseInvoker invoker = [weakSelf,bClose](const string &codeOut, const KeyValue &headerOut, const HttpBody::Ptr &body){
-		auto strongSelf = weakSelf.lock();
-		if(!strongSelf) {
-			return;
-		}
-		strongSelf->async([weakSelf,bClose,codeOut,headerOut,body]() {
-			auto strongSelf = weakSelf.lock();
-			if(!strongSelf) {
+    /////////////////////异步回复Invoker///////////////////////////////
+    weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+    HttpResponseInvoker invoker = [weakSelf,bClose](const string &codeOut, const KeyValue &headerOut, const HttpBody::Ptr &body){
+        auto strongSelf = weakSelf.lock();
+        if(!strongSelf) {
+            return;
+        }
+        strongSelf->async([weakSelf,bClose,codeOut,headerOut,body]() {
+            auto strongSelf = weakSelf.lock();
+            if(!strongSelf) {
                 //本对象已经销毁
-				return;
-			}
+                return;
+            }
             strongSelf->sendResponse(codeOut.data(), bClose, nullptr, headerOut, body);
-		});
-	};
-	///////////////////广播HTTP事件///////////////////////////
-	bool consumed = false;//该事件是否被消费
-	NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,*this);
-	if(!consumed && doInvoke){
-		//该事件无人消费，所以返回404
-		invoker("404 Not Found",KeyValue(), HttpBody::Ptr());
-	}
-	return consumed;
+        });
+    };
+    ///////////////////广播HTTP事件///////////////////////////
+    bool consumed = false;//该事件是否被消费
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,*this);
+    if(!consumed && doInvoke){
+        //该事件无人消费，所以返回404
+        invoker("404 Not Found",KeyValue(), HttpBody::Ptr());
+    }
+    return consumed;
 }
 
 void HttpSession::Handle_Req_POST(int64_t &content_len) {
-	GET_CONFIG(uint64_t,maxReqSize,Http::kMaxReqSize);
+    GET_CONFIG(uint64_t,maxReqSize,Http::kMaxReqSize);
 
     int64_t totalContentLen = _parser["Content-Length"].empty() ? -1 : atoll(_parser["Content-Length"].data());
 
-	if(totalContentLen == 0){
-		//content为空
-		//emitHttpEvent内部会选择是否关闭连接
-		emitHttpEvent(true);
-		return;
-	}
+    if(totalContentLen == 0){
+        //content为空
+        //emitHttpEvent内部会选择是否关闭连接
+        emitHttpEvent(true);
+        return;
+    }
 
     //根据Content-Length设置接收缓存大小
     if(totalContentLen > 0){
         _sock->setReadBuffer(std::make_shared<BufferRaw>(MIN(totalContentLen + 1,256 * 1024)));
     }else{
-	    //不定长度的Content-Length
+        //不定长度的Content-Length
         _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
-	}
+    }
 
     if(totalContentLen > 0 && totalContentLen < maxReqSize ){
-		//返回固定长度的content
-		content_len = totalContentLen;
-		auto parserCopy = _parser;
-		_contentCallBack = [this,parserCopy](const char *data,uint64_t len){
-			//恢复http头
-			_parser = parserCopy;
-			//设置content
-			_parser.setContent(string(data,len));
-			//触发http事件，emitHttpEvent内部会选择是否关闭连接
-			emitHttpEvent(true);
-			//清空数据,节省内存
-			_parser.Clear();
-			//content已经接收完毕
-			return false;
-		};
-	}else{
-		//返回不固定长度的content
-		content_len = -1;
-		auto parserCopy = _parser;
-		std::shared_ptr<uint64_t> recvedContentLen = std::make_shared<uint64_t>(0);
-		bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
+        //返回固定长度的content
+        content_len = totalContentLen;
+        auto parserCopy = _parser;
+        _contentCallBack = [this,parserCopy](const char *data,uint64_t len){
+            //恢复http头
+            _parser = parserCopy;
+            //设置content
+            _parser.setContent(string(data,len));
+            //触发http事件，emitHttpEvent内部会选择是否关闭连接
+            emitHttpEvent(true);
+            //清空数据,节省内存
+            _parser.Clear();
+            //content已经接收完毕
+            return false;
+        };
+    }else{
+        //返回不固定长度的content
+        content_len = -1;
+        auto parserCopy = _parser;
+        std::shared_ptr<uint64_t> recvedContentLen = std::make_shared<uint64_t>(0);
+        bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
 
-		_contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const char *data,uint64_t len){
-		    *(recvedContentLen) += len;
+        _contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const char *data,uint64_t len){
+            *(recvedContentLen) += len;
 
-		    onRecvUnlimitedContent(parserCopy,data,len,totalContentLen,*(recvedContentLen));
+            onRecvUnlimitedContent(parserCopy,data,len,totalContentLen,*(recvedContentLen));
 
-			if(*(recvedContentLen) < totalContentLen){
-			    //数据还没接收完毕
+            if(*(recvedContentLen) < totalContentLen){
+                //数据还没接收完毕
                 //_contentCallBack是可持续的，后面还要处理后续content数据
                 return true;
-			}
+            }
 
-			//数据接收完毕
+            //数据接收完毕
             if(!bClose){
-			    //keep-alive类型连接
-				//content接收完毕，后续都是http header
-				setContentLen(0);
+                //keep-alive类型连接
+                //content接收完毕，后续都是http header
+                setContentLen(0);
                 //content已经接收完毕
                 return false;
             }
@@ -611,9 +611,9 @@ void HttpSession::Handle_Req_POST(int64_t &content_len) {
             shutdown(SockException(Err_shutdown,"recv http content completed"));
             //content已经接收完毕
             return false ;
-		};
-	}
-	//有后续content数据要处理,暂时不关闭连接
+        };
+    }
+    //有后续content数据要处理,暂时不关闭连接
 }
 
 void HttpSession::sendNotFound(bool bClose) {
@@ -632,7 +632,7 @@ void HttpSession::setSocketFlags(){
 }
 
 void HttpSession::onWrite(const Buffer::Ptr &buffer) {
-	_ticker.resetTime();
+    _ticker.resetTime();
     if(!_flv_over_websocket){
         _ui64TotalBytes += buffer->size();
         send(buffer);
@@ -653,11 +653,11 @@ void HttpSession::onWebSocketEncodeData(const Buffer::Ptr &buffer){
 }
 
 void HttpSession::onDetach() {
-	shutdown(SockException(Err_shutdown,"rtmp ring buffer detached"));
+    shutdown(SockException(Err_shutdown,"rtmp ring buffer detached"));
 }
 
 std::shared_ptr<FlvMuxer> HttpSession::getSharedPtr(){
-	return dynamic_pointer_cast<FlvMuxer>(shared_from_this());
+    return dynamic_pointer_cast<FlvMuxer>(shared_from_this());
 }
 
 } /* namespace mediakit */

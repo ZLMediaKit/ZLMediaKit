@@ -41,27 +41,27 @@ namespace mediakit {
 
 class RtmpDemuxer : public Demuxer{
 public:
-	typedef std::shared_ptr<RtmpDemuxer> Ptr;
+    typedef std::shared_ptr<RtmpDemuxer> Ptr;
 
-	RtmpDemuxer() = default;
-	virtual ~RtmpDemuxer() = default;
+    RtmpDemuxer() = default;
+    virtual ~RtmpDemuxer() = default;
 
-	void loadMetaData(const AMFValue &metadata);
+    void loadMetaData(const AMFValue &metadata);
 
-	/**
-	 * 开始解复用
-	 * @param pkt rtmp包
-	 * @return true 代表是i帧
-	 */
-	bool inputRtmp(const RtmpPacket::Ptr &pkt);
+    /**
+     * 开始解复用
+     * @param pkt rtmp包
+     * @return true 代表是i帧
+     */
+    bool inputRtmp(const RtmpPacket::Ptr &pkt);
 private:
-	void makeVideoTrack(const AMFValue &val);
-	void makeAudioTrack(const AMFValue &val);
+    void makeVideoTrack(const AMFValue &val);
+    void makeAudioTrack(const AMFValue &val);
 private:
-	bool _tryedGetVideoTrack = false;
-	bool _tryedGetAudioTrack = false;
-	RtmpCodec::Ptr _audioRtmpDecoder;
-	RtmpCodec::Ptr _videoRtmpDecoder;
+    bool _tryedGetVideoTrack = false;
+    bool _tryedGetAudioTrack = false;
+    RtmpCodec::Ptr _audioRtmpDecoder;
+    RtmpCodec::Ptr _videoRtmpDecoder;
 };
 
 } /* namespace mediakit */
