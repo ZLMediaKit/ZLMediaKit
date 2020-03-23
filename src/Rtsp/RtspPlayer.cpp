@@ -198,13 +198,13 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
     //解析sdp
     _aTrackInfo = sdpParser.getAvailableTrack();
     auto title = sdpParser.getTrack(TrackTitle);
-    bool isPlayback = false;
+    _is_play_back = false;
     if(title && title->_duration ){
-        isPlayback = true;
+        _is_play_back = true;
     }
 
     for(auto &stamp : _stamp){
-        stamp.setPlayBack(isPlayback);
+        stamp.setPlayBack(_is_play_back);
         stamp.setRelativeStamp(0);
     }
 
@@ -377,7 +377,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
     }
     //所有setup命令发送完毕
     //发送play命令
-    sendPause(type_play, 0);
+    sendPause(_is_play_back ? type_seek : type_play, 0);
 }
 
 void RtspPlayer::sendDescribe() {
