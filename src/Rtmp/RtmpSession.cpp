@@ -544,14 +544,6 @@ bool RtmpSession::close(MediaSource &sender,bool force)  {
     return true;
 }
 
-void RtmpSession::onNoneReader(MediaSource &sender) {
-    //此回调在其他线程触发
-    if(!_pPublisherSrc || _pPublisherSrc->totalReaderCount()){
-        return;
-    }
-    MediaSourceEvent::onNoneReader(sender);
-}
-
 int RtmpSession::totalReaderCount(MediaSource &sender) {
     return _pPublisherSrc ? _pPublisherSrc->totalReaderCount() : sender.readerCount();
 }

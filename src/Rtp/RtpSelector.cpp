@@ -142,13 +142,6 @@ bool RtpProcessHelper::close(MediaSource &sender, bool force) {
     return true;
 }
 
-void RtpProcessHelper::onNoneReader(MediaSource &sender) {
-    if(!_process || _process->totalReaderCount()){
-        return;
-    }
-    MediaSourceEvent::onNoneReader(sender);
-}
-
 int RtpProcessHelper::totalReaderCount(MediaSource &sender) {
     return _process ? _process->totalReaderCount() : sender.totalReaderCount();
 }

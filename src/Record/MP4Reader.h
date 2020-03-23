@@ -77,7 +77,6 @@ private:
     //MediaSourceEvent override
     bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override;
     bool close(MediaSource &sender,bool force) override;
-    void onNoneReader(MediaSource &sender) override;
     int totalReaderCount(MediaSource &sender) override;
 #ifdef ENABLE_MP4V2
     void seek(uint32_t iSeekTime,bool bReStart = true);

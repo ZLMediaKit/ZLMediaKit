@@ -117,7 +117,9 @@ void MediaSource::onNoneReader(){
     if(!listener){
         return;
     }
-    listener->onNoneReader(*this);
+    if (listener->totalReaderCount(*this) == 0) {
+        listener->onNoneReader(*this);
+    }
 }
 
 void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src)> &cb) {
@@ -382,16 +384,31 @@ void MediaInfo::parse(const string &url){
 
 void MediaSourceEvent::onNoneReader(MediaSource &sender){
     //没有任何读取器消费该源，表明该源可以关闭了
-    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
-    weak_ptr<MediaSource> weakPtr = sender.shared_from_this();
+    GET_CONFIG(int, stream_none_reader_delay, General::kStreamNoneReaderDelayMS);
 
-    //异步广播该事件，防止同步调用sender.close()导致在接收rtp或rtmp包时清空包缓存等操作
-    EventPollerPool::Instance().getPoller()->async([weakPtr](){
-        auto strongPtr = weakPtr.lock();
-        if(strongPtr){
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader,*strongPtr);
+    weak_ptr<MediaSource> weakSender = sender.shared_from_this();
+    _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0, [weakSender]() {
+        auto strongSender = weakSender.lock();
+        if (!strongSender) {
+            //对象已经销毁
+            return false;
         }
-    },false);
+
+        if (strongSender->totalReaderCount() != 0) {
+            //还有人消费
+            return false;
+        }
+
+        WarnL << "onNoneReader:"
+              << strongSender->getSchema() << "/"
+              << strongSender->getVhost() << "/"
+              << strongSender->getApp() << "/"
+              << strongSender->getId();
+
+        //触发消息广播
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strongSender);
+        return false;
+    }, nullptr);
 }
 
 

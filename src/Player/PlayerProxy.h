@@ -83,7 +83,6 @@ public:
 private:
     //MediaSourceEvent override
     bool close(MediaSource &sender,bool force) override;
-    void onNoneReader(MediaSource &sender) override;
     int totalReaderCount(MediaSource &sender) override;
     void rePlay(const string &strUrl,int iFailedCnt);
     void onPlaySuccess();
