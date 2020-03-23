@@ -46,8 +46,6 @@ public:
 protected:
     // 通知其停止推流
     bool close(MediaSource &sender,bool force) override;
-    // 通知无人观看
-    void onNoneReader(MediaSource &sender) override;
     // 观看总人数
     int totalReaderCount(MediaSource &sender) override;
     void onRtpPacket(const char *data,uint64_t len) override;

@@ -191,39 +191,19 @@ public:
         }
         //不存在视频，为了减少缓存延时，那么关闭GOP缓存
         _ring->write(rtp, _have_video ? keyPos : true);
-        checkNoneReader();
     }
 private:
     /**
      * 每次增减消费者都会触发该函数
      */
     void onReaderChanged(int size) {
-        //我们记录最后一次活动时间
-        _reader_changed_ticker.resetTime();
-        if (size != 0 || totalReaderCount() != 0) {
-            //还有消费者正在观看该流
-            _async_emit_none_reader = false;
-            return;
-        }
-        _async_emit_none_reader = true;
-    }
-
-    /**
-     * 检查是否无人消费该流，
-     * 如果无人消费且超过一定时间会触发onNoneReader事件
-     */
-    void checkNoneReader() {
-        GET_CONFIG(int, stream_none_reader_delay, General::kStreamNoneReaderDelayMS);
-        if (_async_emit_none_reader && _reader_changed_ticker.elapsedTime() > stream_none_reader_delay) {
-            _async_emit_none_reader = false;
+        if (size == 0) {
             onNoneReader();
         }
     }
-protected:
+private:
     int _ring_size;
-    bool _async_emit_none_reader = false;
     bool _have_video = false;
-    Ticker _reader_changed_ticker;
     SdpParser _sdp_parser;
     string _sdp;
     RingType::Ptr _ring;

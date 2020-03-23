@@ -52,24 +52,21 @@ namespace mediakit {
 class MediaSource;
 class MediaSourceEvent{
 public:
+    friend class MediaSource;
     MediaSourceEvent(){};
     virtual ~MediaSourceEvent(){};
 
     // 通知拖动进度条
-    virtual bool seekTo(MediaSource &sender,uint32_t ui32Stamp){
-        return false;
-    }
-
+    virtual bool seekTo(MediaSource &sender,uint32_t ui32Stamp){ return false; }
     // 通知其停止推流
-    virtual bool close(MediaSource &sender,bool force) {
-        return false;
-    }
-
-    // 通知无人观看
-    virtual void onNoneReader(MediaSource &sender);
-
+    virtual bool close(MediaSource &sender,bool force) { return false;}
     // 观看总人数
     virtual int totalReaderCount(MediaSource &sender) = 0;
+private:
+    // 通知无人观看
+    void onNoneReader(MediaSource &sender);
+private:
+    Timer::Ptr _async_close_timer;
 };
 
 /**

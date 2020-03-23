@@ -196,13 +196,6 @@ bool PlayerProxy::close(MediaSource &sender,bool force) {
     return true;
 }
 
-void PlayerProxy::onNoneReader(MediaSource &sender) {
-    if(!_mediaMuxer || totalReaderCount()){
-        return;
-    }
-    MediaSourceEvent::onNoneReader(sender);
-}
-
 int PlayerProxy::totalReaderCount(){
     return (_mediaMuxer ? _mediaMuxer->totalReaderCount() : 0) + (_pMediaSrc ? _pMediaSrc->readerCount() : 0);
 }

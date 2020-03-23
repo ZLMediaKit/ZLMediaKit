@@ -71,15 +71,6 @@ protected:
         return true;
     }
 
-    // 通知无人观看
-    void onNoneReader(MediaSource &sender) override{
-        if(_channel->totalReaderCount()){
-            //统计有误，还有人在看
-            return;
-        }
-        MediaSourceEvent::onNoneReader(sender);
-    }
-
     // 观看总人数
     int totalReaderCount(MediaSource &sender) override{
         return _channel->totalReaderCount();

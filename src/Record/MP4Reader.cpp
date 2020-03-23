@@ -190,13 +190,6 @@ bool MP4Reader::close(MediaSource &sender,bool force){
     return true;
 }
 
-void MP4Reader::onNoneReader(MediaSource &sender) {
-    if(!_mediaMuxer || _mediaMuxer->totalReaderCount()){
-        return;
-    }
-    MediaSourceEvent::onNoneReader(sender);
-}
-
 int MP4Reader::totalReaderCount(MediaSource &sender) {
     return _mediaMuxer ? _mediaMuxer->totalReaderCount() : sender.readerCount();
 }

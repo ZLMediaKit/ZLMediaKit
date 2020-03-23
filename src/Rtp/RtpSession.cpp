@@ -87,14 +87,6 @@ bool RtpSession::close(MediaSource &sender, bool force) {
     return true;
 }
 
-void RtpSession::onNoneReader(MediaSource &sender) {
-    //此回调在其他线程触发
-    if(!_process || _process->totalReaderCount()){
-        return;
-    }
-    MediaSourceEvent::onNoneReader(sender);
-}
-
 int RtpSession::totalReaderCount(MediaSource &sender) {
     //此回调在其他线程触发
     return _process ? _process->totalReaderCount() : sender.totalReaderCount();

@@ -1135,15 +1135,6 @@ bool RtspSession::close(MediaSource &sender,bool force) {
     return true;
 }
 
-
-void RtspSession::onNoneReader(MediaSource &sender){
-    //此回调在其他线程触发
-    if(!_pushSrc || _pushSrc->totalReaderCount()){
-        return;
-    }
-    MediaSourceEvent::onNoneReader(sender);
-}
-
 int RtspSession::totalReaderCount(MediaSource &sender) {
     return _pushSrc ? _pushSrc->totalReaderCount() : sender.readerCount();
 }

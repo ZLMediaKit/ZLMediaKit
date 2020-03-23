@@ -79,7 +79,7 @@ private:
             return;
         }
 
-        if (--_readerCount == 0 && totalReaderCount() == 0) {
+        if (--_readerCount == 0) {
             onNoneReader();
         }
     }
