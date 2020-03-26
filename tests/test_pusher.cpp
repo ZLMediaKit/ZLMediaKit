@@ -90,7 +90,15 @@ int domain(const string &playUrl, const string &pushUrl) {
 
     //拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
     //你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请查看test_rtmpPusherMp4.cpp代码）
-    PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "app", "stream",true,true,false,false,-1 , poller));
+    MediaInfo info(pushUrl);
+    bool enable_rtsp = true;
+    bool enable_rtmp = true;
+    if(info._schema == RTSP_SCHEMA){
+        enable_rtmp = false;
+    }else if(info._schema == RTMP_SCHEMA){
+        enable_rtsp = false;
+    }
+    PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "app", "stream",enable_rtsp,enable_rtmp,false,false,-1 , poller));
     //可以指定rtsp拉流方式，支持tcp和udp方式，默认tcp
 //    (*player)[Client::kRtpType] = Rtsp::RTP_UDP;
     player->play(playUrl.data());
