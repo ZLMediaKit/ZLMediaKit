@@ -47,6 +47,40 @@ typedef enum {
     RTP_UDP = 1,
     RTP_MULTICAST = 2,
 } eRtpType;
+
+#define RTP_PT_MAP(XX) \
+    XX(PCMU, TrackAudio, 0, 8000, 1) \
+    XX(GSM, TrackAudio , 3, 8000, 1) \
+    XX(G723, TrackAudio, 4, 8000, 1) \
+    XX(DVI4_8000, TrackAudio, 5, 8000, 1) \
+    XX(DVI4_16000, TrackAudio, 6, 16000, 1) \
+    XX(LPC, TrackAudio, 7, 8000, 1) \
+    XX(PCMA, TrackAudio, 8, 8000, 1) \
+    XX(G722, TrackAudio, 9, 8000, 1) \
+    XX(L16_Stereo, TrackAudio, 10, 44100, 2) \
+    XX(L16_Mono, TrackAudio, 11, 44100, 1) \
+    XX(QCELP, TrackAudio, 12, 8000, 1) \
+    XX(CN, TrackAudio, 13, 8000, 1) \
+    XX(MPA, TrackAudio, 14, 90000, 1) \
+    XX(G728, TrackAudio, 15, 8000, 1) \
+    XX(DVI4_11025, TrackAudio, 16, 11025, 1) \
+    XX(DVI4_22050, TrackAudio, 17, 22050, 1) \
+    XX(G729, TrackAudio, 18, 8000, 1) \
+    XX(CelB, TrackVideo, 25, 90000, 1) \
+    XX(JPEG, TrackVideo, 26, 90000, 1) \
+    XX(nv, TrackVideo, 28, 90000, 1) \
+    XX(H261, TrackVideo, 31, 90000, 1) \
+    XX(MPV, TrackVideo, 32, 90000, 1) \
+    XX(MP2T, TrackVideo, 33, 90000, 1) \
+    XX(H263, TrackVideo, 34, 90000, 1) \
+
+typedef enum {
+#define ENUM_DEF(name, type, value, clock_rate, channel) PT_ ## name = value,
+    RTP_PT_MAP(ENUM_DEF)
+#undef ENUM_DEF
+    PT_MAX = 128
+} PayloadType;
+
 };
 
 class RtpPacket : public BufferRaw{
@@ -61,6 +95,17 @@ public:
     uint32_t ssrc;
     uint32_t offset;
     TrackType type;
+};
+
+class RtpPayload{
+public:
+    static int getClockRate(int pt);
+    static TrackType getTrackType(int pt);
+    static int getAudioChannel(int pt);
+    static const char *getName(int pt);
+private:
+    RtpPayload() = delete;
+    ~RtpPayload() = delete;
 };
 
 class RtcpCounter {
@@ -83,6 +128,7 @@ public:
     string _c;
     string _t;
     string _b;
+    uint16_t _port;
 
     float _duration = 0;
     float _start = 0;
@@ -92,6 +138,7 @@ public:
     map<string, string> _attr;
 
     string toString() const;
+    string getName() const;
 public:
     int _pt;
     string _codec;
