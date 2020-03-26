@@ -88,8 +88,7 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
     }
 
-
-    WarnL << "暂不支持该sdp:" << track->_codec << " " << track->_fmtp;
+    WarnL << "暂不支持该sdp:" << track->getName();
     return nullptr;
 }
 

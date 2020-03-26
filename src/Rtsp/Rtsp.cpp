@@ -30,6 +30,42 @@
 
 namespace mediakit{
 
+int RtpPayload::getClockRate(int pt){
+    switch (pt){
+#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return clock_rate;
+        RTP_PT_MAP(SWITCH_CASE)
+#undef SWITCH_CASE
+        default: return 90000;
+    }
+}
+
+TrackType RtpPayload::getTrackType(int pt){
+    switch (pt){
+#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return type;
+        RTP_PT_MAP(SWITCH_CASE)
+#undef SWITCH_CASE
+        default: return TrackInvalid;
+    }
+}
+
+int RtpPayload::getAudioChannel(int pt){
+    switch (pt){
+#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return channel;
+        RTP_PT_MAP(SWITCH_CASE)
+#undef SWITCH_CASE
+        default: return 1;
+    }
+}
+
+const char * RtpPayload::getName(int pt){
+    switch (pt){
+#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return #name;
+        RTP_PT_MAP(SWITCH_CASE)
+#undef SWITCH_CASE
+        default: return "unknown payload type";
+    }
+}
+
 static void getAttrSdp(const map<string, string> &attr, _StrPrinter &printer){
     const map<string, string>::value_type *ptr = nullptr;
     for(auto &pr : attr){
@@ -47,6 +83,16 @@ static void getAttrSdp(const map<string, string> &attr, _StrPrinter &printer){
         printer << "a=" << ptr->first << ":" << ptr->second << "\r\n";
     }
 }
+
+string SdpTrack::getName() const{
+    switch (_pt){
+#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return #name;
+        RTP_PT_MAP(SWITCH_CASE)
+#undef SWITCH_CASE
+        default: return _codec;
+    }
+}
+
 string SdpTrack::toString() const {
     _StrPrinter _printer;
     switch (_type){
@@ -105,8 +151,9 @@ static TrackType toTrackType(const string &str) {
 void SdpParser::load(const string &sdp) {
     {
         _track_vec.clear();
-        string key;
         SdpTrack::Ptr track = std::make_shared<SdpTrack>();
+        track->_type = TrackTitle;
+        _track_vec.emplace_back(track);
 
         auto lines = split(sdp, "\n");
         for (auto &line : lines) {
@@ -136,11 +183,17 @@ void SdpParser::load(const string &sdp) {
                     track->_b = opt_val;
                     break;
                 case 'm': {
-                    track->_type = toTrackType(key);
-                    _track_vec.emplace_back(track);
                     track = std::make_shared<SdpTrack>();
-                    key = FindField(opt_val.data(), nullptr, " ");
-                    track->_m = opt_val;
+                    int pt, port;
+                    char rtp[16] = {0}, type[16];
+                    if (4 == sscanf(opt_val.data(), " %15[^ ] %d %15[^ ] %d", type, &port, rtp, &pt)) {
+                        track->_pt = pt;
+                        track->_samplerate = RtpPayload::getClockRate(pt) ;
+                        track->_type = toTrackType(type);
+                        track->_m = opt_val;
+                        track->_port = port;
+                        _track_vec.emplace_back(track);
+                    }
                 }
                     break;
                 case 'a': {
@@ -157,8 +210,6 @@ void SdpParser::load(const string &sdp) {
                     break;
             }
         }
-        track->_type = toTrackType(key);
-        _track_vec.emplace_back(track);
     }
 
     for (auto &track_ptr : _track_vec) {
