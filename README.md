@@ -256,7 +256,7 @@ docker build -t zlmediakit .
  - 1、仔细看下readme、wiki，如果有必要可以查看下issue.
  - 2、如果您的问题还没解决，可以提issue.
  - 3、有些问题，如果不具备参考性的，无需在issue提的，可以在qq群提.
- - 4、QQ私聊一般不接受无偿技术咨询和支持(谈谈人生理想还是可以的😂)，毕竟精力有限，谢谢理解.
+ - 4、QQ私聊一般不接受无偿技术咨询和支持([为什么不提倡QQ私聊](https://github.com/xiongziliang/ZLMediaKit/wiki/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%BB%BA%E8%AE%AEQQ%E7%A7%81%E8%81%8A%E5%92%A8%E8%AF%A2%E9%97%AE%E9%A2%98%EF%BC%9F)).
  
 ## 致谢
 感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：
