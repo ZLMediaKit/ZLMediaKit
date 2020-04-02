@@ -88,8 +88,8 @@ protected:
     }
 private:
     DevChannel::Ptr _channel;
-    on_mk_media_close _on_close;
-    on_mk_media_seek _on_seek;
+    on_mk_media_close _on_close = nullptr;
+    on_mk_media_seek _on_seek = nullptr;
     void *_on_seek_data;
     void *_on_close_data;
 };
