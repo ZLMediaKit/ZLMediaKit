@@ -80,7 +80,7 @@ protected:
         if(!_on_seek){
             return false;
         }
-        return _on_seek(_on_seek_data);
+        return _on_seek(_on_seek_data,ui32Stamp);
     }
     // 观看总人数
     int totalReaderCount(MediaSource &sender) override{
