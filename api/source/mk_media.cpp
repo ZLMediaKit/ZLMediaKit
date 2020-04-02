@@ -49,9 +49,14 @@ public:
         return _channel;
     }
 
-    void setCallBack(on_mk_media_close cb, void *user_data){
-        _cb = cb;
-        _user_data = user_data;
+    void setOnClose(on_mk_media_close cb, void *user_data){
+        _on_close = cb;
+        _on_close_data = user_data;
+    }
+
+    void setOnSeek(on_mk_media_seek cb, void *user_data){
+        _on_seek = cb;
+        _on_seek_data = user_data;
     }
 protected:
     // 通知其停止推流
@@ -60,31 +65,45 @@ protected:
             //非强制关闭且正有人在观看该视频
             return false;
         }
-        if(!_cb){
+        if(!_on_close){
             //未设置回调，没法关闭
             WarnL << "请使用mk_media_set_on_close函数设置回调函数!";
             return false;
         }
         //请在回调中调用mk_media_release函数释放资源,否则MediaSource::close()操作不会生效
-        _cb(_user_data);
+        _on_close(_on_close_data);
         WarnL << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
         return true;
     }
 
+    bool seekTo(MediaSource &sender,uint32_t ui32Stamp){
+        if(!_on_seek){
+            return false;
+        }
+        return _on_seek(_on_seek_data);
+    }
     // 观看总人数
     int totalReaderCount(MediaSource &sender) override{
         return _channel->totalReaderCount();
     }
 private:
     DevChannel::Ptr _channel;
-    on_mk_media_close _cb;
-    void *_user_data;
+    on_mk_media_close _on_close;
+    on_mk_media_seek _on_seek;
+    void *_on_seek_data;
+    void *_on_close_data;
 };
 
 API_EXPORT void API_CALL mk_media_set_on_close(mk_media ctx, on_mk_media_close cb, void *user_data){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    (*obj)->setCallBack(cb,user_data);
+    (*obj)->setOnClose(cb, user_data);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb, void *user_data){
+    assert(ctx);
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
+    (*obj)->setOnSeek(cb, user_data);
 }
 
 API_EXPORT int API_CALL mk_media_total_reader_count(mk_media ctx){
