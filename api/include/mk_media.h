@@ -149,6 +149,22 @@ typedef void(API_CALL *on_mk_media_close)(void *user_data);
 API_EXPORT void API_CALL mk_media_set_on_close(mk_media ctx, on_mk_media_close cb, void *user_data);
 
 /**
+ * 收到客户端的seek请求时触发该回调
+ * @param user_data 用户数据指针,通过mk_media_set_on_seek设置
+ * @param stamp_ms seek至的时间轴位置，单位毫秒
+ * @return 1代表将处理seek请求，0代表忽略该请求
+ */
+typedef int(API_CALL *on_mk_media_seek)(void *user_data,uint32_t stamp_ms);
+
+/**
+ * 监听播放器seek请求事件
+ * @param ctx 对象指针
+ * @param cb 回调指针
+ * @param user_data 用户数据指针
+ */
+API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb, void *user_data);
+
+/**
  * 获取总的观看人数
  * @param ctx 对象指针
  * @return 观看人数
