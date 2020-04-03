@@ -63,7 +63,7 @@ void createPusher(const EventPoller::Ptr &poller,
                   const string &filePath,
                   const string &url) {
     //不限制APP名，并且指定文件绝对路径
-    auto src = MP4Reader::onMakeMediaSource(schema,vhost,app,stream,filePath, false);
+    auto src = onMakeMediaSource(schema,vhost,app,stream,filePath, false);
     if(!src){
         //文件不存在
         WarnL << "MP4文件不存在:" << filePath;
@@ -134,7 +134,7 @@ int domain(const string & filePath,const string & pushUrl){
 int main(int argc,char *argv[]){
     //可以使用test_server生成的mp4文件
     //文件使用绝对路径，推流url支持rtsp和rtmp
-    return domain("/Users/xzl/Desktop/bear-1280x720-long.mp4","rtsp://127.0.0.1/live/rtsp_push");
+    return domain("/Users/xzl/git/ZLMediaKit/release/mac/Debug/www/record/live/rtsp_test1/2020-04-03/15-32-24.mp4","rtsp://127.0.0.1/live/rtsp_push");
 }
 
 

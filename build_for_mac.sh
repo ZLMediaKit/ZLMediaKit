@@ -10,7 +10,6 @@ brew install mysql
 brew install openssl
 brew install x264
 brew install faac
-brew install mp4v2
 brew install sdl
 brew install ffmpeg
 
