@@ -27,40 +27,21 @@
 #ifndef ZLMEDIAKIT_MP4MUXER_H
 #define ZLMEDIAKIT_MP4MUXER_H
 
-#ifdef ENABLE_MP4RECORD
+#ifdef ENABLE_MP4
 
 #include "Common/MediaSink.h"
-#include "mov-writer.h"
-#include "mpeg4-hevc.h"
-#include "mpeg4-avc.h"
-#include "mpeg4-aac.h"
-#include "mov-buffer.h"
-#include "mov-format.h"
 #include "Extension/AAC.h"
 #include "Extension/H264.h"
 #include "Extension/H265.h"
 #include "Common/Stamp.h"
+#include "MP4.h"
 
 namespace mediakit{
 
-class MP4MuxerBase{
+class MP4Muxer : public MediaSinkInterface, public MP4File{
 public:
-    MP4MuxerBase() = default;
-    virtual ~MP4MuxerBase() = default;
-protected:
-    virtual int onRead(void* data, uint64_t bytes) = 0;
-    virtual int onWrite(const void* data, uint64_t bytes) = 0;
-    virtual int onSeek( uint64_t offset) = 0;
-    virtual uint64_t onTell() = 0;
-    void init(int flags);
-protected:
-    std::shared_ptr<mov_writer_t> _mov_writter;
-};
-
-class MP4Muxer : public MediaSinkInterface , public MP4MuxerBase{
-public:
-    MP4Muxer() = default;
-    ~MP4Muxer() override = default;
+    MP4Muxer(const char *file);
+    ~MP4Muxer() override;
 
     /**
      * 添加已经ready状态的track
@@ -75,6 +56,11 @@ public:
      * 重置所有track
      */
     void resetTracks() override ;
+
+private:
+    void openMP4();
+    void closeMP4();
+
 private:
     struct track_info{
         int track_id = -1;
@@ -84,28 +70,10 @@ private:
     List<Frame::Ptr> _frameCached;
     bool _started = false;
     bool _have_video = false;
-};
-
-
-class MP4MuxerFile : public MP4Muxer {
-public:
-    typedef std::shared_ptr<MP4MuxerFile> Ptr;
-    MP4MuxerFile(const char *file);
-    ~MP4MuxerFile();
-    void resetTracks() override ;
-protected:
-    int onRead(void* data, uint64_t bytes) override;
-    int onWrite(const void* data, uint64_t bytes) override;
-    int onSeek( uint64_t offset) override;
-    uint64_t onTell() override ;
-    void openFile(const char *file);
-private:
-    std::shared_ptr<FILE> _file;
+    MP4File::Writer _mov_writter;
     string _file_name;
 };
 
 }//namespace mediakit
-
-#endif//#ifdef ENABLE_MP4RECORD
-
+#endif//#ifdef ENABLE_MP4
 #endif //ZLMEDIAKIT_MP4MUXER_H

@@ -282,7 +282,7 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 WarnL << "audio track change to AAC from codecid:" << getCodecName(_codecid_audio);
                 return;
             }
-            _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 7));
+            _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 0, 7));
             break;
         }
         default:

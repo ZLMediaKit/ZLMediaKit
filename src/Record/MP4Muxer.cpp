@@ -24,53 +24,35 @@
  * SOFTWARE.
  */
 
-#ifdef ENABLE_MP4RECORD
-
+#ifdef ENABLE_MP4
 #include "MP4Muxer.h"
 #include "Util/File.h"
-#include "Common/config.h"
-
 namespace mediakit{
 
-#if defined(_WIN32) || defined(_WIN64)
-    #define fseek64 _fseeki64
-    #define ftell64 _ftelli64
-#else
-    #define fseek64 fseek
-    #define ftell64 ftell
-#endif
-
-void MP4MuxerBase::init(int flags) {
-    static struct mov_buffer_t s_io = {
-            [](void* ctx, void* data, uint64_t bytes) {
-                MP4MuxerBase *thiz = (MP4MuxerBase *)ctx;
-                return thiz->onRead(data,bytes);
-            },
-            [](void* ctx, const void* data, uint64_t bytes){
-                MP4MuxerBase *thiz = (MP4MuxerBase *)ctx;
-                return thiz->onWrite(data,bytes);
-            },
-            [](void* ctx, uint64_t offset) {
-                MP4MuxerBase *thiz = (MP4MuxerBase *)ctx;
-                return thiz->onSeek(offset);
-            },
-            [](void* ctx){
-                MP4MuxerBase *thiz = (MP4MuxerBase *)ctx;
-                return thiz->onTell();
-            }
-    };
-    _mov_writter.reset(mov_writer_create(&s_io,this,flags),[](mov_writer_t *ptr){
-        if(ptr){
-            mov_writer_destroy(ptr);
-        }
-    });
+MP4Muxer::MP4Muxer(const char *file) {
+    _file_name = file;
+    openMP4();
 }
 
-///////////////////////////////////
+MP4Muxer::~MP4Muxer() {
+    closeMP4();
+}
+
+void MP4Muxer::openMP4(){
+    closeMP4();
+    openFile(_file_name.data(), "wb+");
+    _mov_writter = createWriter();
+}
+void MP4Muxer::closeMP4(){
+    _mov_writter = nullptr;
+    closeFile();
+}
+
 void MP4Muxer::resetTracks() {
     _codec_to_trackid.clear();
     _started = false;
     _have_video = false;
+    openMP4();
 }
 
 void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
@@ -263,70 +245,5 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
     }
 }
 
-MP4MuxerFile::MP4MuxerFile(const char *file){
-    _file_name = file;
-    openFile(file);
-}
-
-void MP4MuxerFile::openFile(const char *file) {
-    //创建文件
-    auto fp = File::createfile_file(file,"wb+");
-    if(!fp){
-        throw std::runtime_error(string("打开文件失败:") + file);
-    }
-
-    GET_CONFIG(uint32_t,mp4BufSize,Record::kFileBufSize);
-
-    //新建文件io缓存
-    std::shared_ptr<char> file_buf(new char[mp4BufSize],[](char *ptr){
-        if(ptr){
-            delete [] ptr;
-        }
-    });
-
-    if(file_buf){
-        //设置文件io缓存
-        setvbuf(fp, file_buf.get(), _IOFBF, mp4BufSize);
-    }
-
-    //创建智能指针
-    _file.reset(fp,[file_buf](FILE *fp) {
-        fclose(fp);
-    });
-
-    GET_CONFIG(bool, mp4FastStart, Record::kFastStart);
-    init(mp4FastStart ? MOV_FLAG_FASTSTART : 0);
-}
-
-MP4MuxerFile::~MP4MuxerFile() {
-    _mov_writter = nullptr;
-}
-
-int MP4MuxerFile::onRead(void *data, uint64_t bytes) {
-    if (bytes == fread(data, 1, bytes, _file.get())){
-        return 0;
-    }
-    return 0 != ferror(_file.get()) ? ferror(_file.get()) : -1 /*EOF*/;
-}
-
-int MP4MuxerFile::onWrite(const void *data, uint64_t bytes) {
-    return bytes == fwrite(data, 1, bytes, _file.get()) ? 0 : ferror(_file.get());
-}
-
-int MP4MuxerFile::onSeek(uint64_t offset) {
-    return fseek64(_file.get(), offset, SEEK_SET);
-}
-
-uint64_t MP4MuxerFile::onTell() {
-    return ftell64(_file.get());
-}
-
-
-void MP4MuxerFile::resetTracks(){
-    MP4Muxer::resetTracks();
-    openFile(_file_name.data());
-}
-
 }//namespace mediakit
-
-#endif//#ifdef ENABLE_MP4RECORD
+#endif//#ifdef ENABLE_MP4

@@ -276,7 +276,7 @@ MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost_tmp
 
     if(!ret && bMake){
         //未查找媒体源，则创建一个
-        ret = MP4Reader::onMakeMediaSource(schema, vhost,app,id);
+        ret = onMakeMediaSource(schema, vhost,app,id);
     }
     return ret;
 }
