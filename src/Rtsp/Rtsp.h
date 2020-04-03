@@ -268,7 +268,8 @@ public:
         if(dur_sec <= 0){
             _printer << "a=range:npt=now-\r\n";
         }else{
-            _printer << "a=range:npt=now-" << dur_sec  << "\r\n";
+            //点播情况下,vlc不支持支持npt=now-xxx, 但是貌似echo show只支持npt=now-xxx ?
+            _printer << "a=range:npt=0-" << dur_sec  << "\r\n";
         }
         _printer << "a=control:*\r\n";
     }
