@@ -47,7 +47,11 @@ MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &
 
     _demuxer = std::make_shared<MP4Demuxer>(strFileName.data());
     _mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost, strApp, strId, _demuxer->getDurationMS() / 1000.0, true, true, false, false));
-    for(auto &track : _demuxer->getTracks(false)){
+    auto tracks = _demuxer->getTracks(false);
+    if(tracks.empty()){
+        throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << strFileName);
+    }
+    for(auto &track : tracks){
         _mediaMuxer->addTrack(track);
         if(track->getTrackType() == TrackVideo){
             _have_video = true;
@@ -59,8 +63,9 @@ MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &
 
 bool MP4Reader::readSample() {
     bool eof = false;
+    bool keyFrame = false;
     while (!eof) {
-        auto frame = _demuxer->readFrame(false, &eof);
+        auto frame = _demuxer->readFrame(keyFrame, eof);
         if (!frame) {
             break;
         }
@@ -139,12 +144,13 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp){
     }
     //搜索到下一帧关键帧
     bool eof = false;
+    bool keyFrame = false;
     while (!eof) {
-        auto frame = _demuxer->readFrame(false, &eof);
+        auto frame = _demuxer->readFrame(keyFrame, eof);
         if(!frame){
             break;
         }
-        if(frame->keyFrame() || frame->configFrame()){
+        if(keyFrame || frame->keyFrame() || frame->configFrame()){
             //定位到key帧
             _mediaMuxer->inputFrame(frame);
             setNextStampForStop(frame->dts());

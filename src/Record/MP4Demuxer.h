@@ -38,7 +38,7 @@ public:
     MP4Demuxer(const char *file);
     ~MP4Demuxer() override;
     int64_t seekTo(int64_t stamp_ms);
-    Frame::Ptr readFrame(bool seekKeyFrame = false, bool *eof = nullptr);
+    Frame::Ptr readFrame(bool &keyFrame, bool &eof);
     vector<Track::Ptr> getTracks(bool trackReady) const override ;
     uint64_t getDurationMS() const;
 private:

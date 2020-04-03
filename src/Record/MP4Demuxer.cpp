@@ -158,7 +158,7 @@ struct Context{
     BufferRaw::Ptr buffer;
 };
 
-Frame::Ptr MP4Demuxer::readFrame(bool seekKeyFrame, bool *eof) {
+Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     static mov_reader_onread mov_reader_onread = [](void *param, uint32_t track_id, const void *buffer, size_t bytes, int64_t pts, int64_t dts, int flags) {
         Context *ctx = (Context *) param;
         ctx->pts = pts;
@@ -179,23 +179,19 @@ Frame::Ptr MP4Demuxer::readFrame(bool seekKeyFrame, bool *eof) {
     auto ret = mov_reader_read2(_mov_reader.get(), mov_onalloc, mov_reader_onread, &ctx);
     switch (ret) {
         case 0 : {
-            if(eof){
-                *eof = true;
-            }
+            eof = true;
             WarnL << "读取mp4文件完毕";
         }
             break;
 
         case 1 : {
-            if (seekKeyFrame && !(ctx.flags & MOV_AV_FLAG_KEYFREAME)) {
-                //请求key帧，但是这个帧不是
-                return nullptr;
-            }
+            keyFrame = ctx.flags & MOV_AV_FLAG_KEYFREAME;
             return makeFrame(ctx.track_id,ctx.buffer, ctx.pts, ctx.dts);
         }
             break;
 
         default:
+            eof = true;
             WarnL << "读取mp4文件数据失败:" << ret;
             break;
     }
