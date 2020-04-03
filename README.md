@@ -91,7 +91,7 @@
     |           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
     |         RTSP[S] --> MP4          |  Y   |  Y   |  Y   |   N   |
     |           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
-    |         MP4 --> RTSP[S]          |  Y   |  N   |  Y   |   N   |
+    |         MP4 --> RTSP[S]          |  Y   |  Y   |  Y   |   N   |
     |           MP4 --> RTMP           |  Y   |  N   |  Y   |   N   |
 
 - 流生成：
