@@ -266,9 +266,9 @@ public:
         }
 
         if(dur_sec <= 0){
-            _printer << "a=range:npt=0-\r\n";
+            _printer << "a=range:npt=now-\r\n";
         }else{
-            _printer << "a=range:npt=0-" << dur_sec  << "\r\n";
+            _printer << "a=range:npt=now-" << dur_sec  << "\r\n";
         }
         _printer << "a=control:*\r\n";
     }
