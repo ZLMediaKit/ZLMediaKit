@@ -229,12 +229,12 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 iOffset += (iFrameLen + 4);
             }
             if (codec == CodecH264) {
-                return std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, pts, dts,4);
+                return std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, pts, dts, 4);
             }
-            return std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, pts, dts,4);
+            return std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, pts, dts, 4);
         }
         case CodecAAC :
-            return std::make_shared<FrameWrapper < AACFrameNoCacheAble> > (buf, pts, dts, 0);
+            return std::make_shared<FrameWrapper<AACFrameNoCacheAble> >(buf, pts, dts, 0);
         default:
             return nullptr;
     }
