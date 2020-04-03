@@ -152,12 +152,12 @@ void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t u
         uiStamp = (uint32_t)_aTicker[1].elapsedTime();
     }
     if(pcAdtsHeader + 7 == pcDataWithoutAdts){
-        inputFrame(std::make_shared<AACFrameNoCacheAble>((char *)pcDataWithoutAdts - 7,iDataLen + 7,uiStamp,7));
+        inputFrame(std::make_shared<AACFrameNoCacheAble>((char *)pcDataWithoutAdts - 7,iDataLen + 7,uiStamp,0,7));
     } else {
         char *dataWithAdts = new char[iDataLen + 7];
         memcpy(dataWithAdts,pcAdtsHeader,7);
         memcpy(dataWithAdts + 7 , pcDataWithoutAdts , iDataLen);
-        inputFrame(std::make_shared<AACFrameNoCacheAble>(dataWithAdts,iDataLen + 7,uiStamp,7));
+        inputFrame(std::make_shared<AACFrameNoCacheAble>(dataWithAdts,iDataLen + 7,uiStamp,0,7));
         delete [] dataWithAdts;
     }
 }

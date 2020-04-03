@@ -268,7 +268,7 @@ public:
     */
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-        if(type == H265Frame::NAL_VPS){
+        if(frame->configFrame()){
             bool  first_frame = true;
             splitH264(frame->data() + frame->prefixSize(),
                   frame->size() - frame->prefixSize(),

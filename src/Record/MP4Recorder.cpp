@@ -24,7 +24,7 @@
  * SOFTWARE.
  */
 
-#ifdef ENABLE_MP4RECORD
+#ifdef ENABLE_MP4
 #include <ctime>
 #include <sys/stat.h>
 #include "Common/config.h"
@@ -69,7 +69,7 @@ void MP4Recorder::createFile() {
                    + strTime + ".mp4";
 
     try {
-        _muxer = std::make_shared<MP4MuxerFile>(strFileTmp.data());
+        _muxer = std::make_shared<MP4Muxer>(strFileTmp.data());
         for(auto &track :_tracks){
             //添加track
             _muxer->addTrack(track);
@@ -91,7 +91,7 @@ void MP4Recorder::asyncClose() {
         //获取文件录制时间，放在关闭mp4之前是为了忽略关闭mp4执行时间
         const_cast<MP4Info&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
         //关闭mp4非常耗时，所以要放在后台线程执行
-        const_cast<MP4MuxerFile::Ptr &>(muxer).reset();
+        const_cast<MP4Muxer::Ptr &>(muxer).reset();
         //临时文件名改成正式文件名，防止mp4未完成时被访问
         rename(strFileTmp.data(),strFile.data());
         //获取文件大小
@@ -145,4 +145,4 @@ void MP4Recorder::resetTracks() {
 } /* namespace mediakit */
 
 
-#endif //ENABLE_MP4RECORD
+#endif //ENABLE_MP4

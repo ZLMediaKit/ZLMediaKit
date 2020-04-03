@@ -364,7 +364,7 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
         }
 
         case Recorder::type_mp4: {
-#if defined(ENABLE_MP4RECORD)
+#if defined(ENABLE_MP4)
             return std::make_shared<MP4Recorder>(path, vhost, app, stream_id);
 #endif
             return nullptr;

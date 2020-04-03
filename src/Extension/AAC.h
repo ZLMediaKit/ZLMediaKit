@@ -112,7 +112,7 @@ class AACFrameNoCacheAble : public FrameNoCacheAble {
 public:
     typedef std::shared_ptr<AACFrameNoCacheAble> Ptr;
 
-    AACFrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts,int prefixeSize = 7){
+    AACFrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts,uint32_t pts = 0,int prefixeSize = 7){
         _ptr = ptr;
         _size = size;
         _dts = dts;

@@ -54,7 +54,7 @@ public:
     string strVhost;//vhost
 };
 
-#ifdef ENABLE_MP4RECORD
+#ifdef ENABLE_MP4
 class MP4Recorder : public MediaSinkInterface{
 public:
     typedef std::shared_ptr<MP4Recorder> Ptr;
@@ -90,11 +90,11 @@ private:
     Ticker _createFileTicker;
     MP4Info _info;
     bool _haveVideo = false;
-    MP4MuxerFile::Ptr _muxer;
+    MP4Muxer::Ptr _muxer;
     list<Track::Ptr> _tracks;
 };
 
-#endif ///ENABLE_MP4RECORD
+#endif ///ENABLE_MP4
 
 } /* namespace mediakit */
 
