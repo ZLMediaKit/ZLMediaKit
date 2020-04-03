@@ -76,7 +76,7 @@ protected:
         return true;
     }
 
-    bool seekTo(MediaSource &sender,uint32_t ui32Stamp){
+    bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override{
         if(!_on_seek){
             return false;
         }
