@@ -62,32 +62,27 @@ MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &
 }
 
 bool MP4Reader::readSample() {
-    bool eof = false;
     bool keyFrame = false;
-    while (!eof) {
-        auto frame = _demuxer->readFrame(keyFrame, eof);
+    bool eof = false;
+    while (true) {
+        auto frame = _demuxer->readFrame(keyFrame);
         if (!frame) {
+            eof = true;
             break;
         }
         _mediaMuxer->inputFrame(frame);
-        if (frame->dts() > nextStampForStop()) {
+        if (frame->dts() > getCurrentStamp()) {
             break;
         }
     }
 
-    if(!eof && _mediaMuxer->totalReaderCount() > 0){
-        //文件未看完且观看者大于0个
-        _alive.resetTime();
-    }
-
-    //重头开始循环读取
-    GET_CONFIG(bool,fileRepeat,Record::kFileRepeat);
-    if(eof && fileRepeat){
-        //文件看完了，且需要从头开始看
+    GET_CONFIG(bool, fileRepeat, Record::kFileRepeat);
+    if (eof && fileRepeat) {
+        //需要从头开始看
         seekTo(0);
     }
-    //读取mp4完毕后10秒才销毁对象
-    return _alive.elapsedTime() < 10 * 1000;
+
+    return !eof;
 }
 
 void MP4Reader::startReadMP4() {
@@ -97,9 +92,8 @@ void MP4Reader::startReadMP4() {
 
     //先获取关键帧
     seekTo(0);
-    //设置下次读取停止事件
-    setNextStampForStop(_seek_to + sampleMS);
     //读sampleMS毫秒的数据用于产生MediaSource
+    setCurrentStamp(getCurrentStamp() + sampleMS);
     readSample();
 
     //启动定时器
@@ -109,14 +103,14 @@ void MP4Reader::startReadMP4() {
     }, _poller);
 }
 
-uint32_t MP4Reader::nextStampForStop() {
+uint32_t MP4Reader::getCurrentStamp() {
     return _seek_to + _seek_ticker.elapsedTime();
 }
 
-void MP4Reader::setNextStampForStop(uint32_t ui32Stamp){
+void MP4Reader::setCurrentStamp(uint32_t ui32Stamp){
     _seek_to = ui32Stamp;
     _seek_ticker.resetTime();
-    _alive.resetTime();
+    _mediaMuxer->setTimeStamp(ui32Stamp);
 }
 
 bool MP4Reader::seekTo(MediaSource &sender,uint32_t ui32Stamp){
@@ -134,26 +128,27 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp){
         //seek失败
         return false;
     }
-    InfoL << stamp;
-    //设置当前时间戳
-    setNextStampForStop(stamp);
 
     if(!_have_video){
         //没有视频，不需要搜索关键帧
+        //设置当前时间戳
+        setCurrentStamp(stamp);
         return true;
     }
     //搜索到下一帧关键帧
     bool eof = false;
     bool keyFrame = false;
     while (!eof) {
-        auto frame = _demuxer->readFrame(keyFrame, eof);
+        auto frame = _demuxer->readFrame(keyFrame);
         if(!frame){
+            eof = true;
             break;
         }
         if(keyFrame || frame->keyFrame() || frame->configFrame()){
             //定位到key帧
             _mediaMuxer->inputFrame(frame);
-            setNextStampForStop(frame->dts());
+            //设置当前时间戳
+            setCurrentStamp(frame->dts());
             return true;
         }
     }
