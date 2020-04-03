@@ -37,7 +37,6 @@ endif ()
 set(ENABLE_HLS true)
 set(ENABLE_OPENSSL true)
 set(ENABLE_MYSQL false)
-set(ENABLE_MP4V2 true)
 set(ENABLE_FAAC false)
 set(ENABLE_X264 false)
 set(ENABLE_MP4 true)
@@ -65,16 +64,6 @@ if (ENABLE_OPENSSL)
     LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/../../../libs/${ANDROID_ABI}/)
     list(APPEND LINK_LIB_LIST ssl crypto)
 endif ()
-
-#查找MP4V2是否安装
-find_package(MP4V2 QUIET)
-if (MP4V2_FOUND AND ENABLE_MP4V2)
-    include_directories(${MP4V2_INCLUDE_DIR})
-    list(APPEND LINK_LIB_LIST ${MP4V2_LIBRARY})
-    add_definitions(-DENABLE_MP4V2)
-    message(STATUS "found library:${MP4V2_LIBRARY},ENABLE_MP4V2 defined")
-endif ()
-
 
 #libmpeg
 if(ENABLE_HLS)

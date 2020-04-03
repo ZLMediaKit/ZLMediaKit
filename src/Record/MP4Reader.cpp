@@ -151,7 +151,6 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp){
             return true;
         }
     }
-    return false;
 }
 
 bool MP4Reader::close(MediaSource &sender,bool force){
