@@ -257,7 +257,7 @@ public:
     */
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-        if(type == H264Frame::NAL_SPS){
+        if(type == H264Frame::NAL_SPS || type == H264Frame::NAL_SEI){
             //有些设备会把SPS PPS IDR帧当做一个帧打包，所以我们要split一下
             bool  first_frame = true;
             splitH264(frame->data() + frame->prefixSize(),
