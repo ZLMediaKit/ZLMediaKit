@@ -136,13 +136,12 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp){
         return true;
     }
     //搜索到下一帧关键帧
-    bool eof = false;
     bool keyFrame = false;
-    while (!eof) {
+    while (true) {
         auto frame = _demuxer->readFrame(keyFrame);
         if(!frame){
-            eof = true;
-            break;
+            //文件读完了都未找到下一帧关键帧
+            return false;
         }
         if(keyFrame || frame->keyFrame() || frame->configFrame()){
             //定位到key帧
