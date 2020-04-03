@@ -58,15 +58,14 @@ private:
     int totalReaderCount(MediaSource &sender) override;
 
     bool readSample();
-    uint32_t nextStampForStop();
-    void setNextStampForStop(uint32_t ui32Stamp);
+    uint32_t getCurrentStamp();
+    void setCurrentStamp(uint32_t ui32Stamp);
     bool seekTo(uint32_t ui32Stamp);
 private:
     recursive_mutex _mtx;
     MultiMediaSourceMuxer::Ptr _mediaMuxer;
     uint32_t _seek_to;
     Ticker _seek_ticker;
-    Ticker _alive;
     Timer::Ptr _timer;
     EventPoller::Ptr _poller;
     MP4Demuxer::Ptr _demuxer;
