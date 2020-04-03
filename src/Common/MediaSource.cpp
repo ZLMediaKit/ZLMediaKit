@@ -383,11 +383,17 @@ void MediaInfo::parse(const string &url){
 /////////////////////////////////////MediaSourceEvent//////////////////////////////////////
 
 void MediaSourceEvent::onNoneReader(MediaSource &sender){
-    //没有任何读取器消费该源，表明该源可以关闭了
+    GET_CONFIG(string, recordApp, Record::kAppName);
     GET_CONFIG(int, stream_none_reader_delay, General::kStreamNoneReaderDelayMS);
 
+    //如果mp4点播, 无人观看时我们强制关闭点播
+    bool is_mp4_vod = sender.getApp() == recordApp;
+    //无人观看mp4点播时，3秒后自动关闭
+    auto close_delay = is_mp4_vod ? 3.0 : stream_none_reader_delay / 1000.0;
+
+    //没有任何人观看该视频源，表明该源可以关闭了
     weak_ptr<MediaSource> weakSender = sender.shared_from_this();
-    _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0, [weakSender]() {
+    _async_close_timer = std::make_shared<Timer>(close_delay, [weakSender,is_mp4_vod]() {
         auto strongSender = weakSender.lock();
         if (!strongSender) {
             //对象已经销毁
@@ -399,14 +405,24 @@ void MediaSourceEvent::onNoneReader(MediaSource &sender){
             return false;
         }
 
-        WarnL << "onNoneReader:"
-              << strongSender->getSchema() << "/"
-              << strongSender->getVhost() << "/"
-              << strongSender->getApp() << "/"
-              << strongSender->getId();
+        if(!is_mp4_vod){
+            //直播时触发无人观看事件，让开发者自行选择是否关闭
+            WarnL << "无人观看事件:"
+                  << strongSender->getSchema() << "/"
+                  << strongSender->getVhost() << "/"
+                  << strongSender->getApp() << "/"
+                  << strongSender->getId();
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strongSender);
+        }else{
+            //这个是mp4点播，我们自动关闭
+            WarnL << "MP4点播无人观看,自动关闭:"
+                  << strongSender->getSchema() << "/"
+                  << strongSender->getVhost() << "/"
+                  << strongSender->getApp() << "/"
+                  << strongSender->getId();
+            strongSender->close(false);
+        }
 
-        //触发消息广播
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strongSender);
         return false;
     }, nullptr);
 }
