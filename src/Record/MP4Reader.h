@@ -73,25 +73,5 @@ private:
 };
 
 } /* namespace mediakit */
-
 #endif //ENABLE_MP4
-
-namespace mediakit {
-/**
- * 自动生成MP4Reader对象然后查找相关的MediaSource对象
- * @param strSchema 协议名
- * @param strVhost 虚拟主机
- * @param strApp 应用名
- * @param strId 流id
- * @param filePath 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
- * @param checkApp 是否检查app，防止服务器上文件被乱访问
- * @return MediaSource
- */
-MediaSource::Ptr onMakeMediaSource(const string &strSchema,
-                                   const string &strVhost,
-                                   const string &strApp,
-                                   const string &strId,
-                                   const string &filePath = "",
-                                   bool checkApp = true);
-} /* namespace mediakit */
 #endif /* SRC_MEDIAFILE_MEDIAREADER_H_ */

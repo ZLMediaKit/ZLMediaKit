@@ -276,7 +276,7 @@ MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost_tmp
 
     if(!ret && bMake){
         //未查找媒体源，则创建一个
-        ret = onMakeMediaSource(schema, vhost,app,id);
+        ret = createFromMP4(schema, vhost, app, id);
     }
     return ret;
 }
@@ -427,5 +427,24 @@ void MediaSourceEvent::onNoneReader(MediaSource &sender){
     }, nullptr);
 }
 
+MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &filePath , bool checkApp){
+#ifdef ENABLE_MP4
+    GET_CONFIG(string, appName, Record::kAppName);
+    if (checkApp && app != appName) {
+        return nullptr;
+    }
+    try {
+        MP4Reader::Ptr pReader(new MP4Reader(vhost, app, stream, filePath));
+        pReader->startReadMP4();
+        return MediaSource::find(schema, vhost, app, stream, false);
+    } catch (std::exception &ex) {
+        WarnL << ex.what();
+        return nullptr;
+    }
+#else
+    WarnL << "创建MP4点播失败，请编译时打开\"ENABLE_MP4\"选项";
+    return nullptr;
+#endif //ENABLE_MP4
+}
 
 } /* namespace mediakit */

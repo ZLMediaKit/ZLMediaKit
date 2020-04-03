@@ -63,7 +63,7 @@ void createPusher(const EventPoller::Ptr &poller,
                   const string &filePath,
                   const string &url) {
     //不限制APP名，并且指定文件绝对路径
-    auto src = onMakeMediaSource(schema,vhost,app,stream,filePath, false);
+    auto src = MediaSource::createFromMP4(schema,vhost,app,stream,filePath, false);
     if(!src){
         //文件不存在
         WarnL << "MP4文件不存在:" << filePath;
