@@ -145,6 +145,9 @@ public:
     static void findAsync(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, const function<void(const Ptr &src)> &cb);
     // 遍历所有流
     static void for_each_media(const function<void(const Ptr &src)> &cb);
+
+    // 从mp4文件生成MediaSource
+    static MediaSource::Ptr createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &filePath = "", bool checkApp = true);
 protected:
     void regist() ;
     bool unregist() ;

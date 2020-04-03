@@ -168,30 +168,3 @@ int MP4Reader::totalReaderCount(MediaSource &sender) {
 
 } /* namespace mediakit */
 #endif //ENABLE_MP4
-
-
-namespace mediakit {
-MediaSource::Ptr onMakeMediaSource(const string &strSchema,
-                                   const string &strVhost,
-                                   const string &strApp,
-                                   const string &strId,
-                                   const string &filePath,
-                                   bool checkApp) {
-#ifdef ENABLE_MP4
-    GET_CONFIG(string, appName, Record::kAppName);
-    if (checkApp && strApp != appName) {
-        return nullptr;
-    }
-    try {
-        MP4Reader::Ptr pReader(new MP4Reader(strVhost, strApp, strId, filePath));
-        pReader->startReadMP4();
-        return MediaSource::find(strSchema, strVhost, strApp, strId, false);
-    } catch (std::exception &ex) {
-        WarnL << ex.what();
-        return nullptr;
-    }
-#else
-    return nullptr;
-#endif //ENABLE_MP4
-}
-}//namespace mediakit
