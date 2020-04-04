@@ -428,11 +428,11 @@ void MediaSourceEvent::onNoneReader(MediaSource &sender){
 }
 
 MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &filePath , bool checkApp){
-#ifdef ENABLE_MP4
     GET_CONFIG(string, appName, Record::kAppName);
     if (checkApp && app != appName) {
         return nullptr;
     }
+#ifdef ENABLE_MP4
     try {
         MP4Reader::Ptr pReader(new MP4Reader(vhost, app, stream, filePath));
         pReader->startReadMP4();
