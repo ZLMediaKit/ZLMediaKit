@@ -80,6 +80,7 @@ bool MP4Reader::readSample() {
     if (eof && fileRepeat) {
         //需要从头开始看
         seekTo(0);
+        return true;
     }
 
     return !eof;
