@@ -9,6 +9,7 @@
  */
 
 #include "AACRtmp.h"
+#include "Rtmp/Rtmp.h"
 
 namespace mediakit{
 
@@ -24,9 +25,25 @@ AACFrame::Ptr AACRtmpDecoder::obtainFrame() {
     return frame;
 }
 
+static string getAacCfg(const RtmpPacket &thiz) {
+    string ret;
+    if (thiz.getMediaType() != FLV_CODEC_AAC) {
+        return ret;
+    }
+    if (!thiz.isCfgFrame()) {
+        return ret;
+    }
+    if (thiz.strBuf.size() < 4) {
+        WarnL << "bad aac cfg!";
+        return ret;
+    }
+    ret = thiz.strBuf.substr(2, 2);
+    return ret;
+}
+
 bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool key_pos) {
     if (pkt->isCfgFrame()) {
-        _aac_cfg = pkt->getAacCfg();
+        _aac_cfg = getAacCfg(*pkt);
         return false;
     }
     if (!_aac_cfg.empty()) {
@@ -126,7 +143,7 @@ void AACRtmpEncoder::makeAudioConfigPkt() {
             break;
     }
     uint8_t flvSampleBit = iSampleBit == 16;
-    uint8_t flvAudioType = 10; //aac
+    uint8_t flvAudioType = FLV_CODEC_AAC;
 
     _ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
 

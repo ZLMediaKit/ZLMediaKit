@@ -72,6 +72,10 @@ using namespace toolkit;
 #define FLV_KEY_FRAME				1
 #define FLV_INTER_FRAME				2
 
+#define FLV_CODEC_AAC 10
+#define FLV_CODEC_H264 7
+#define FLV_CODEC_H265 12
+
 namespace mediakit {
 
 #if defined(_WIN32)
@@ -199,84 +203,6 @@ public:
         int flvStereoOrMono = (uint8_t) strBuf[0] & 0x01;
         const static int channel[] = { 1, 2 };
         return channel[flvStereoOrMono];
-    }
-
-    /**
-     * 返回不带0x00 00 00 01头的sps
-     * @return
-     */
-    string getH264SPS() const {
-        string ret;
-        if (getMediaType() != 7) {
-            return ret;
-        }
-        if (!isCfgFrame()) {
-            return ret;
-        }
-        if (strBuf.size() < 13) {
-            WarnL << "bad H264 cfg!";
-            return ret;
-        }
-        uint16_t sps_size ;
-        memcpy(&sps_size,strBuf.data() + 11,2);
-        sps_size = ntohs(sps_size);
-        if ((int) strBuf.size() < 13 + sps_size) {
-            WarnL << "bad H264 cfg!";
-            return ret;
-        }
-        ret.assign(strBuf.data() + 13, sps_size);
-        return ret;
-    }
-
-    /**
-     * 返回不带0x00 00 00 01头的pps
-     * @return
-     */
-    string getH264PPS() const {
-        string ret;
-        if (getMediaType() != 7) {
-            return ret;
-        }
-        if (!isCfgFrame()) {
-            return ret;
-        }
-        if (strBuf.size() < 13) {
-            WarnL << "bad H264 cfg!";
-            return ret;
-        }
-        uint16_t sps_size ;
-        memcpy(&sps_size,strBuf.data() + 11,2);
-        sps_size = ntohs(sps_size);
-        
-        if ((int) strBuf.size() < 13 + sps_size + 1 + 2) {
-            WarnL << "bad H264 cfg!";
-            return ret;
-        }
-        uint16_t pps_size ;
-        memcpy(&pps_size,strBuf.data() + 13 + sps_size + 1,2);
-        pps_size = ntohs(pps_size);
-        
-        if ((int) strBuf.size() < 13 + sps_size + 1 + 2 + pps_size) {
-            WarnL << "bad H264 cfg!";
-            return ret;
-        }
-        ret.assign(strBuf.data() + 13 + sps_size + 1 + 2, pps_size);
-        return ret;
-    }
-    string getAacCfg() const {
-        string ret;
-        if (getMediaType() != 10) {
-            return ret;
-        }
-        if (!isCfgFrame()) {
-            return ret;
-        }
-        if (strBuf.size() < 4) {
-            WarnL << "bad aac cfg!";
-            return ret;
-        }
-        ret = strBuf.substr(2, 2);
-        return ret;
     }
 };
 
