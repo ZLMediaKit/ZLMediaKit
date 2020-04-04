@@ -274,6 +274,12 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         invoke.clear();
         invoke << "onMetaData" << metadata;
         sendResponse(MSG_DATA, invoke.data());
+        auto duration = metadata["duration"].as_number();
+        if(duration > 0){
+            //这是点播，使用绝对时间戳
+            _stamp[0].setPlayBack();
+            _stamp[1].setPlayBack();
+        }
     }
 
 
@@ -510,20 +516,19 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunkData) {
 
 void RtmpSession::onCmd_seek(AMFDecoder &dec) {
     dec.load<AMFValue>();/* NULL */
-    auto milliSeconds = dec.load<AMFValue>().as_number();
-    InfoP(this) << "rtmp seekTo(ms):" << milliSeconds;
-    auto stongSrc = _pPlayerSrc.lock();
-    if (stongSrc) {
-        _stamp[0].setPlayBack();
-        _stamp[1].setPlayBack();
-        stongSrc->seekTo(milliSeconds);
-    }
     AMFValue status(AMF_OBJECT);
     AMFEncoder invoke;
     status.set("level", "status");
     status.set("code", "NetStream.Seek.Notify");
     status.set("description", "Seeking.");
     sendReply("onStatus", nullptr, status);
+
+    auto milliSeconds = dec.load<AMFValue>().as_number();
+    InfoP(this) << "rtmp seekTo(ms):" << milliSeconds;
+    auto stongSrc = _pPlayerSrc.lock();
+    if (stongSrc) {
+        stongSrc->seekTo(milliSeconds);
+    }
 }
 
 void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {

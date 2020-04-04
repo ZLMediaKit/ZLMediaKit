@@ -46,15 +46,15 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp) {
         //时间戳增量为正，返回之
         _last_stamp = stamp;
         //在直播情况下，时间戳增量不得大于MAX_DELTA_STAMP
-        return  ret < MAX_DELTA_STAMP ? ret : (_playback ? ret : 0);
+        return  ret < MAX_DELTA_STAMP ? ret : 0;
     }
 
     //时间戳增量为负，说明时间戳回环了或回退了
     _last_stamp = stamp;
-    return _playback ? ret : 0;
+    return 0;
 }
 
-void DeltaStamp::setPlayBack(bool playback) {
+void Stamp::setPlayBack(bool playback) {
     _playback = playback;
 }
 
@@ -62,6 +62,14 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
     if(!pts){
         //没有播放时间戳,使其赋值为解码时间戳
         pts = dts;
+    }
+
+    if(_playback){
+        //这是点播
+        dts_out = dts;
+        pts_out = pts;
+        _relativeStamp = dts_out;
+        return;
     }
 
     //pts和dts的差值

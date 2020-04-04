@@ -45,15 +45,8 @@ public:
      * @return 时间戳增量
      */
     int64_t deltaStamp(int64_t stamp);
-
-    /**
-     * 设置是否为回放模式，回放模式运行时间戳回退
-     * @param playback 是否为回放模式
-     */
-    void setPlayBack(bool playback = true);
 private:
     int64_t _last_stamp = 0;
-    bool _playback = false;
 };
 //该类解决时间戳回环、回退问题
 //计算相对时间戳或者产生平滑时间戳
@@ -83,10 +76,17 @@ public:
      * @return
      */
     int64_t getRelativeStamp() const ;
+
+    /**
+     * 设置是否为回放模式，回放模式运行时间戳回退
+     * @param playback 是否为回放模式
+     */
+    void setPlayBack(bool playback = true);
 private:
     int64_t _relativeStamp = 0;
     int64_t _last_dts = -1;
     SmoothTicker _ticker;
+    bool _playback = false;
 };
 
 
