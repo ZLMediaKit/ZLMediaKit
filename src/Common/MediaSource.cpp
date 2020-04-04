@@ -78,7 +78,6 @@ vector<Track::Ptr> MediaSource::getTracks(bool trackReady) const {
 
 void MediaSource::setTrackSource(const std::weak_ptr<TrackSource> &track_src) {
     _track_source = track_src;
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaResetTracks, *this);
 }
 
 void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){

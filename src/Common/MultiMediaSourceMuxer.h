@@ -57,20 +57,12 @@ public:
         }
 
         if(enable_hls){
-            Recorder::startRecord(Recorder::type_hls,vhost, app, stream, "", true, false);
+            _hls = Recorder::createRecorder(Recorder::type_hls,vhost, app, stream);
         }
 
         if(enable_mp4){
-            Recorder::startRecord(Recorder::type_mp4,vhost, app, stream, "", true, false);
+            _mp4 = Recorder::createRecorder(Recorder::type_mp4,vhost, app, stream);
         }
-
-        _get_hls_media_source = [vhost,app,stream](){
-            auto recorder = dynamic_pointer_cast<HlsRecorder>(Recorder::getRecorder(Recorder::type_hls,vhost,app,stream));
-            if(recorder){
-                return recorder->getMediaSource();
-            }
-            return MediaSource::Ptr();
-        };
     }
     virtual ~MultiMediaSourceMuxer(){}
 
@@ -83,6 +75,12 @@ public:
         }
         if(_rtsp){
             _rtsp->resetTracks();
+        }
+        if(_hls){
+            _hls->resetTracks();
+        }
+        if(_mp4){
+            _mp4->resetTracks();
         }
     }
 
@@ -99,7 +97,7 @@ public:
             _rtsp->setListener(listener);
         }
 
-        auto hls_src = _get_hls_media_source();
+        auto hls_src = getHlsMediaSource();
         if(hls_src){
             hls_src->setListener(listener);
         }
@@ -110,7 +108,7 @@ public:
      * @return
      */
     int totalReaderCount() const{
-        auto hls_src = _get_hls_media_source();
+        auto hls_src = getHlsMediaSource();
         return (_rtsp ? _rtsp->readerCount() : 0) + (_rtmp ? _rtmp->readerCount() : 0) + (hls_src ? hls_src->readerCount() : 0);
     }
 
@@ -118,7 +116,6 @@ public:
         if(_rtmp){
             _rtmp->setTimeStamp(stamp);
         }
-
         if(_rtsp){
             _rtsp->setTimeStamp(stamp);
         }
@@ -139,6 +136,12 @@ protected:
         if(_rtsp){
             _rtsp->addTrack(track);
         }
+        if(_hls){
+            _hls->addTrack(track);
+        }
+        if(_mp4){
+            _mp4->addTrack(track);
+        }
     }
 
     /**
@@ -151,6 +154,12 @@ protected:
         }
         if(_rtsp) {
             _rtsp->inputFrame(frame);
+        }
+        if(_hls){
+            _hls->inputFrame(frame);
+        }
+        if(_mp4){
+            _mp4->inputFrame(frame);
         }
     }
 
@@ -167,7 +176,7 @@ protected:
             _rtsp->onAllTrackReady();
         }
 
-        auto hls_src = _get_hls_media_source();
+        auto hls_src = getHlsMediaSource();
         if(hls_src){
             hls_src->setTrackSource(shared_from_this());
         }
@@ -176,11 +185,20 @@ protected:
             _listener->onAllTrackReady();
         }
     }
+
+    MediaSource::Ptr getHlsMediaSource() const{
+        auto recorder = dynamic_pointer_cast<HlsRecorder>(_hls);
+        if(recorder){
+            return recorder->getMediaSource();
+        }
+        return nullptr;
+    }
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
+    MediaSinkInterface::Ptr _hls;
+    MediaSinkInterface::Ptr _mp4;
     Listener *_listener = nullptr;
-    function<MediaSource::Ptr ()> _get_hls_media_source;
 };
 
 
