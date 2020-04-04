@@ -72,10 +72,6 @@ namespace Broadcast {
 extern const string kBroadcastMediaChanged;
 #define BroadcastMediaChangedArgs const bool &bRegist, MediaSource &sender
 
-//MediaSource重置Track事件
-extern const string kBroadcastMediaResetTracks;
-#define BroadcastMediaResetTracksArgs MediaSource &sender
-
 //录制mp4文件成功后广播
 extern const string kBroadcastRecordMP4;
 #define BroadcastRecordMP4Args const MP4Info &info

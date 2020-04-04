@@ -354,7 +354,6 @@ int main(int argc,char *argv[]) {
     signal(SIGHUP, [](int) { loadIniConfig(); });
     sem.wait();
 
-    Recorder::stopAll();
     lock_guard<mutex> lck(s_mtxFlvRecorder);
     s_mapFlvRecorder.clear();
     return 0;
