@@ -258,17 +258,17 @@ public:
                 _printer << pr.first << "=" << pr.second << "\r\n";
             }
         } else {
-            _printer << "o=- 1383190487994921 1 IN IP4 0.0.0.0\r\n";
-            _printer << "s=RTSP Session, streamed by the ZLMediaKit\r\n";
-            _printer << "i=ZLMediaKit Live Stream\r\n";
+            _printer << "o=- 0 0 IN IP4 0.0.0.0\r\n";
+            _printer << "s=Streamed by " << SERVER_NAME << "\r\n";
             _printer << "c=IN IP4 0.0.0.0\r\n";
             _printer << "t=0 0\r\n";
         }
 
         if(dur_sec <= 0){
+            //直播
             _printer << "a=range:npt=now-\r\n";
         }else{
-            //点播情况下,vlc不支持支持npt=now-xxx, 但是貌似echo show只支持npt=now-xxx ?
+            //点播
             _printer << "a=range:npt=0-" << dur_sec  << "\r\n";
         }
         _printer << "a=control:*\r\n";

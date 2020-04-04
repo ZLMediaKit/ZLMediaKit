@@ -133,7 +133,7 @@ public:
             case 1:
                 return tracks[0]->_time_stamp;
             default:
-                return MAX(tracks[0]->_time_stamp, tracks[1]->_time_stamp);
+                return MIN(tracks[0]->_time_stamp, tracks[1]->_time_stamp);
         }
     }
 

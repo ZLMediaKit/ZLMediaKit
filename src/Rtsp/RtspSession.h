@@ -236,8 +236,6 @@ private:
     RtcpCounter _aRtcpCnt[2];
     //rtcp发送时间,trackid idx 为数组下标
     Ticker _aRtcpTicker[2];
-    //时间戳修整器
-    Stamp _stamp[2];
 };
 
 /**

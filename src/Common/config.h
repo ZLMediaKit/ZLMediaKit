@@ -57,7 +57,7 @@ bool loadIniConfig(const char *ini_path = nullptr);
 #define CLEAR_ARR(arr) for(auto &item : arr){ item = 0;}
 #endif //CLEAR_ARR
 
-#define SERVER_NAME "ZLMediaKit-4.0"
+#define SERVER_NAME "ZLMediaKit-4.0(build in " __DATE__ " " __TIME__ ")"
 #define VHOST_KEY "vhost"
 #define HTTP_SCHEMA "http"
 #define RTSP_SCHEMA "rtsp"

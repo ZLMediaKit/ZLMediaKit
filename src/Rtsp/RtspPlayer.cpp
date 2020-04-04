@@ -668,7 +668,7 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
 void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrCaseMap &header_const) {
     auto header = header_const;
     header.emplace("CSeq",StrPrinter << _uiCseq++);
-    header.emplace("User-Agent",SERVER_NAME "(build in " __DATE__ " " __TIME__ ")");
+    header.emplace("User-Agent",SERVER_NAME);
 
     if(!_strSession.empty()){
         header.emplace("Session",_strSession);

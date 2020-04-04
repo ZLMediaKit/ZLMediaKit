@@ -398,7 +398,6 @@ static const string kContentType = "Content-Type";
 static const string kContentLength = "Content-Length";
 static const string kAccessControlAllowOrigin = "Access-Control-Allow-Origin";
 static const string kAccessControlAllowCredentials = "Access-Control-Allow-Credentials";
-static const string kServerName = SERVER_NAME;
 
 void HttpSession::sendResponse(const char *pcStatus,
                                bool bClose,
@@ -426,7 +425,7 @@ void HttpSession::sendResponse(const char *pcStatus,
 
     HttpSession::KeyValue &headerOut = const_cast<HttpSession::KeyValue &>(header);
     headerOut.emplace(kDate, dateStr());
-    headerOut.emplace(kServer, kServerName);
+    headerOut.emplace(kServer, SERVER_NAME);
     headerOut.emplace(kConnection, bClose ? "close" : "keep-alive");
     if(!bClose){
         string keepAliveString = "timeout=";
