@@ -71,7 +71,7 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
         host = FindField(host.data(), NULL, ":");
     }
     _header.emplace("Host", host);
-    _header.emplace("Tools", "ZLMediaKit");
+    _header.emplace("Tools", SERVER_NAME);
     _header.emplace("Connection", "keep-alive");
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");

@@ -108,8 +108,7 @@ string SdpTrack::toString() const {
                 _printer << "t=" << _t << "\r\n";
             }
 
-            _printer << "s=RTSP Session, streamed by the ZLMediaKit\r\n";
-            _printer << "i=ZLMediaKit Live Stream\r\n";
+            _printer << "s=Streamed by " << SERVER_NAME << "\r\n";
             getAttrSdp(_attr,_printer);
         }
             break;

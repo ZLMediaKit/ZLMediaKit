@@ -795,7 +795,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         rtp_info.pop_back();
 
         sendRtspResponse("200 OK",
-                         {"Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) <<  pMediaSrc->getTimeStamp(TrackInvalid) / 1000.0,
+                         {"Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) <<  pMediaSrc->getTimeStamp(TrackInvalid) / 1000.0 << "-",
                           "RTP-Info",rtp_info
                          });
 
@@ -1033,7 +1033,7 @@ bool RtspSession::sendRtspResponse(const string &res_code,
         header.emplace("Session",_strSession);
     }
 
-    header.emplace("Server",SERVER_NAME "(build in " __DATE__ " " __TIME__ ")");
+    header.emplace("Server",SERVER_NAME);
     header.emplace("Date",dateStr());
 
     if(!sdp.empty()){
