@@ -45,6 +45,7 @@
   - 支持http[s]-flv直播
   - 支持websocket-flv直播
   - 支持任意编码格式的rtmp推流，只是除H264/H265+AAC外无法转协议
+  - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
 
 - HLS
   - 支持HLS文件生成，自带HTTP文件服务器
@@ -85,14 +86,14 @@
 
     |          功能/编码格式           | H264 | H265 | AAC  | other |
     | :------------------------------: | :--: | :--: | :--: | :---: |
-    | RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  N   |  Y   |   N   |
-    |         RTMP --> RTSP[S]         |  Y   |  N   |  Y   |   N   |
+    | RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  Y   |  Y   |   N   |
+    |         RTMP --> RTSP[S]         |  Y   |  Y   |  Y   |   N   |
     |         RTSP[S] --> HLS          |  Y   |  Y   |  Y   |   N   |
-    |           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
+    |           RTMP --> HLS           |  Y   |  Y   |  Y   |   N   |
     |         RTSP[S] --> MP4          |  Y   |  Y   |  Y   |   N   |
-    |           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
+    |           RTMP --> MP4           |  Y   |  Y   |  Y   |   N   |
     |         MP4 --> RTSP[S]          |  Y   |  Y   |  Y   |   N   |
-    |           MP4 --> RTMP           |  Y   |  N   |  Y   |   N   |
+    |           MP4 --> RTMP           |  Y   |  Y   |  Y   |   N   |
 
 - 流生成：
 
