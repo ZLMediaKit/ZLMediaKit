@@ -9,7 +9,9 @@
  */
 
 #include "Factory.h"
+#include "Rtmp/Rtmp.h"
 #include "H264Rtmp.h"
+#include "H265Rtmp.h"
 #include "AACRtmp.h"
 #include "H264Rtp.h"
 #include "AACRtp.h"
@@ -173,9 +175,9 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
     if (val.type() != AMF_NULL){
         auto type_id = val.as_integer();
         switch (type_id){
-            case 7: return CodecH264;
-            case 10: return CodecAAC;
-            case 12: return CodecH265;
+            case FLV_CODEC_H264: return CodecH264;
+            case FLV_CODEC_AAC: return CodecAAC;
+            case FLV_CODEC_H265: return CodecH265;
             default:
                 WarnL << "暂不支持该Amf:" << type_id;
                 return CodecInvalid;
@@ -194,6 +196,8 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
             return std::make_shared<H264RtmpEncoder>(track);
         case CodecAAC:
             return std::make_shared<AACRtmpEncoder>(track);
+        case CodecH265:
+            return std::make_shared<H265RtmpEncoder>(track);
         default:
             WarnL << "暂不支持该CodecId:" << track->getCodecName();
             return nullptr;
@@ -204,7 +208,7 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
     switch (codecId){
         case CodecAAC: return AMFValue("mp4a");
         case CodecH264: return AMFValue("avc1");
-        case CodecH265: return AMFValue(12);
+        case CodecH265: return AMFValue(FLV_CODEC_H265);
         default: return AMFValue(AMF_NULL);
     }
 }
