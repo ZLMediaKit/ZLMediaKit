@@ -55,9 +55,8 @@ static bool getH265ConfigFrame(const RtmpPacket &thiz,string &frame) {
     if (mpeg4_hevc_decoder_configuration_record_load((uint8_t *) extra, bytes, &hevc) > 0) {
         uint8_t config[1024] = {0};
         int size = mpeg4_hevc_to_nalu(&hevc, config, sizeof(config));
-        if (size > 0) {
-            DebugL << hexdump((char *) config, size);
-            frame.assign((char *) config, size);
+        if (size > 4) {
+            frame.assign((char *) config + 4, size - 4);
             return true;
         }
     }
@@ -74,7 +73,7 @@ bool H265RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
             onGetH265(config.data(), config.size(), pkt->timeStamp , pkt->timeStamp);
         }
 #else
-        WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265-RTMP支持不完善"
+        WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265-RTMP支持不完善";
 #endif
         return false;
     }
@@ -245,7 +244,7 @@ void H265RtmpEncoder::makeVideoConfigPkt() {
     rtmpPkt->typeId = MSG_VIDEO;
     RtmpCodec::inputRtmp(rtmpPkt, false);
 #else
-    WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265-RTMP支持不完善"
+    WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265-RTMP支持不完善";
 #endif
 }
 
