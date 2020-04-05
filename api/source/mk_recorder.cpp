@@ -34,3 +34,19 @@ API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *v
         return -1;
     }
 }
+
+///////////////////////////////////////////hls/mp4录制/////////////////////////////////////////////
+API_EXPORT int API_CALL mk_recorder_is_recording(int type, const char *vhost, const char *app, const char *stream){
+    assert(vhost && app && stream);
+    return Recorder::isRecording((Recorder::type)type,vhost,app,stream);
+}
+
+API_EXPORT int API_CALL mk_recorder_start(int type, const char *vhost, const char *app, const char *stream,const char *customized_path){
+    assert(vhost && app && stream);
+    return Recorder::startRecord((Recorder::type)type,vhost,app,stream,customized_path ? customized_path : "");
+}
+
+API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char *app, const char *stream){
+    assert(vhost && app && stream);
+    return Recorder::stopRecord((Recorder::type)type,vhost,app,stream);
+}

@@ -26,7 +26,7 @@ public:
     ~MediaHelper(){}
 
     void attachEvent(){
-        _channel->setListener(shared_from_this());
+        _channel->setMediaListener(shared_from_this());
     }
 
     DevChannel::Ptr &getChannel(){

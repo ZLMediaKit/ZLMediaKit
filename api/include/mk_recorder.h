@@ -44,6 +44,39 @@ API_EXPORT void API_CALL mk_flv_recorder_release(mk_flv_recorder ctx);
  */
 API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *vhost, const char *app, const char *stream, const char *file_path);
 
+///////////////////////////////////////////hls/mp4录制/////////////////////////////////////////////
+
+/**
+ * 获取录制状态
+ * @param type 0:hls,1:MP4
+ * @param vhost 虚拟主机
+ * @param app 应用名
+ * @param stream 流id
+ * @return 录制状态,0:未录制, 1:正在录制
+ */
+API_EXPORT int API_CALL mk_recorder_is_recording(int type, const char *vhost, const char *app, const char *stream);
+
+/**
+ * 开始录制
+ * @param type 0:hls,1:MP4
+ * @param vhost 虚拟主机
+ * @param app 应用名
+ * @param stream 流id
+ * @param customized_path 录像文件保存自定义目录，默认为空或null则自动生成
+ * @return 1代表成功，0代表失败
+ */
+API_EXPORT int API_CALL mk_recorder_start(int type, const char *vhost, const char *app, const char *stream, const char *customized_path);
+
+/**
+ * 停止录制
+ * @param type 0:hls,1:MP4
+ * @param vhost 虚拟主机
+ * @param app 应用名
+ * @param stream 流id
+ * @return 1:成功，0：失败
+ */
+API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char *app, const char *stream);
+
 #ifdef __cplusplus
 }
 #endif

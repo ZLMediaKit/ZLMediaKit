@@ -68,7 +68,7 @@ public:
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override {
         RtmpMediaSource::setListener(listener);
         if(_muxer){
-            _muxer->setListener(listener);
+            _muxer->setMediaListener(listener);
         }
     }
 
@@ -88,7 +88,7 @@ public:
     void setProtocolTranslation(bool enableRtsp, bool enableHls, bool enableMP4) {
         //不重复生成rtmp
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), enableRtsp, false, enableHls, enableMP4);
-        _muxer->setListener(getListener());
+        _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(this);
         for(auto &track : _demuxer->getTracks(false)){
             _muxer->addTrack(track);

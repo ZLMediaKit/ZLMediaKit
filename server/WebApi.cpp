@@ -721,6 +721,37 @@ void installWebApi() {
     });
 #endif//ENABLE_RTPPROXY
 
+    // 开始录制hls或MP4
+    api_regist1("/index/api/startRecord",[](API_ARGS1){
+        CHECK_SECRET();
+        CHECK_ARGS("type","vhost","app","stream");
+        val["result"] = Recorder::startRecord((Recorder::type) allArgs["type"].as<int>(),
+                                              allArgs["vhost"],
+                                              allArgs["app"],
+                                              allArgs["stream"],
+                                              allArgs["customized_path"]);
+    });
+
+    // 停止录制hls或MP4
+    api_regist1("/index/api/stopRecord",[](API_ARGS1){
+        CHECK_SECRET();
+        CHECK_ARGS("type","vhost","app","stream");
+        val["result"] = Recorder::stopRecord((Recorder::type) allArgs["type"].as<int>(),
+                                             allArgs["vhost"],
+                                             allArgs["app"],
+                                             allArgs["stream"]);
+    });
+
+    // 获取hls或MP4录制状态
+    api_regist1("/index/api/isRecording",[](API_ARGS1){
+        CHECK_SECRET();
+        CHECK_ARGS("type","vhost","app","stream");
+        val["status"] = Recorder::isRecording((Recorder::type) allArgs["type"].as<int>(),
+                                              allArgs["vhost"],
+                                              allArgs["app"],
+                                              allArgs["stream"]);
+    });
+
     //获取录像文件夹列表或mp4文件列表
     //http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
     api_regist1("/index/api/getMp4RecordFile", [](API_ARGS1){

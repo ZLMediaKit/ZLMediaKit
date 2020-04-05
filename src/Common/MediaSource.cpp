@@ -13,9 +13,7 @@
 #include "Util/util.h"
 #include "Network/sockutil.h"
 #include "Network/TcpSession.h"
-
 using namespace toolkit;
-
 namespace mediakit {
 
 recursive_mutex MediaSource::g_mtxMediaSrc;
@@ -102,6 +100,22 @@ void MediaSource::onNoneReader(){
     if (listener->totalReaderCount(*this) == 0) {
         listener->onNoneReader(*this);
     }
+}
+
+bool MediaSource::setupRecord(Recorder::type type, bool start, const string &custom_path){
+    auto listener = _listener.lock();
+    if (!listener) {
+        return false;
+    }
+    return listener->setupRecord(*this, type, start, custom_path);
+}
+
+bool MediaSource::isRecording(Recorder::type type){
+    auto listener = _listener.lock();
+    if(!listener){
+        return false;
+    }
+    return listener->isRecording(*this, type);
 }
 
 void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src)> &cb) {

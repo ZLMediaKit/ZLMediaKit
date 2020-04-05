@@ -73,7 +73,7 @@ bool MP4Reader::readSample() {
 void MP4Reader::startReadMP4() {
     GET_CONFIG(uint32_t, sampleMS, Record::kSampleMS);
     auto strongSelf = shared_from_this();
-    _mediaMuxer->setListener(strongSelf);
+    _mediaMuxer->setMediaListener(strongSelf);
 
     //先获取关键帧
     seekTo(0);
