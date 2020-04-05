@@ -238,7 +238,7 @@ void PlayerProxy::onPlaySuccess() {
             _mediaMuxer.reset(new MultiMediaSourceMuxer(_strVhost, _strApp, _strSrc, getDuration(), _bEnableRtsp, _bEnableRtmp, _bEnableHls, _bEnableMp4));
         }
     }
-    _mediaMuxer->setListener(shared_from_this());
+    _mediaMuxer->setMediaListener(shared_from_this());
 
     auto videoTrack = getTrack(TrackVideo,false);
     if(videoTrack){

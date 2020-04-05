@@ -298,7 +298,7 @@ int RtpProcess::totalReaderCount(){
 }
 
 void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-    _muxer->setListener(listener);
+    _muxer->setMediaListener(listener);
 }
 
 

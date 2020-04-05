@@ -22,6 +22,7 @@
 #include "Util/TimeTicker.h"
 #include "Util/NoticeCenter.h"
 #include "Extension/Track.h"
+#include "Record/Recorder.h"
 
 using namespace std;
 using namespace toolkit;
@@ -45,6 +46,10 @@ public:
     virtual bool close(MediaSource &sender,bool force) { return false;}
     // 观看总人数
     virtual int totalReaderCount(MediaSource &sender) = 0;
+    // 开启或关闭录制
+    virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) { return false; };
+    // 获取录制状态
+    virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
 private:
     // 通知无人观看
     void onNoneReader(MediaSource &sender);
@@ -104,7 +109,6 @@ public:
     // 获取监听者
     const std::weak_ptr<MediaSourceEvent>& getListener() const;
 
-
     // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
     virtual int readerCount() = 0;
     // 观看者个数，包括(hls/rtsp/rtmp)
@@ -121,6 +125,10 @@ public:
     bool close(bool force);
     // 该流无人观看
     void onNoneReader();
+    // 开启或关闭录制
+    bool setupRecord(Recorder::type type, bool start, const string &custom_path);
+    // 获取录制状态
+    bool isRecording(Recorder::type type);
 
     // 同步查找流
     static Ptr find(const string &schema, const string &vhost, const string &app, const string &id, bool bMake = true) ;

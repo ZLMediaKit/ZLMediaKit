@@ -79,4 +79,36 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
     }
 }
 
+static MediaSource::Ptr getMediaSource(const string &vhost, const string &app, const string &stream_id){
+    auto src = MediaSource::find(RTMP_SCHEMA, vhost, app, stream_id, false);
+    if(src){
+        return src;
+    }
+    return MediaSource::find(RTSP_SCHEMA, vhost, app, stream_id, false);
+}
+
+bool Recorder::isRecording(type type, const string &vhost, const string &app, const string &stream_id){
+    auto src = getMediaSource(vhost, app, stream_id);
+    if(!src){
+        return false;
+    }
+    return src->isRecording(type);
+}
+
+bool Recorder::startRecord(type type, const string &vhost, const string &app, const string &stream_id,const string &customized_path){
+    auto src = getMediaSource(vhost, app, stream_id);
+    if(!src){
+        return false;
+    }
+    return src->setupRecord(type,true,customized_path);
+}
+
+bool Recorder::stopRecord(type type, const string &vhost, const string &app, const string &stream_id){
+    auto src = getMediaSource(vhost, app, stream_id);
+    if(!src){
+        return false;
+    }
+    return src->setupRecord(type, false, "");
+}
+
 } /* namespace mediakit */
