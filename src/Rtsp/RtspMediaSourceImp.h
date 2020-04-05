@@ -71,6 +71,33 @@ public:
     }
 
     /**
+     * 设置录制状态
+     * @param type 录制类型
+     * @param start 开始或停止
+     * @param custom_path 开启录制时，指定自定义路径
+     * @return 是否设置成功
+     */
+    bool setupRecord(Recorder::type type, bool start, const string &custom_path) override{
+        if(_muxer){
+            return _muxer->setupRecord(*this,type, start, custom_path);
+        }
+        return RtspMediaSource::setupRecord(type, start, custom_path);
+    }
+
+    /**
+     * 获取录制状态
+     * @param type 录制类型
+     * @return 录制状态
+     */
+    bool isRecording(Recorder::type type) override{
+        if(_muxer){
+            return _muxer->isRecording(*this,type);
+        }
+        return RtspMediaSource::isRecording(type);
+    }
+
+
+    /**
      * 设置协议转换
      * @param enableRtmp 是否转换成rtmp
      * @param enableHls  是否转换成hls

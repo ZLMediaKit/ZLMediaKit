@@ -126,9 +126,9 @@ public:
     // 该流无人观看
     void onNoneReader();
     // 开启或关闭录制
-    bool setupRecord(Recorder::type type, bool start, const string &custom_path);
+    virtual bool setupRecord(Recorder::type type, bool start, const string &custom_path);
     // 获取录制状态
-    bool isRecording(Recorder::type type);
+    virtual bool isRecording(Recorder::type type);
 
     // 同步查找流
     static Ptr find(const string &schema, const string &vhost, const string &app, const string &id, bool bMake = true) ;
