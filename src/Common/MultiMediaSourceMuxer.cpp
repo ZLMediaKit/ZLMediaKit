@@ -96,6 +96,7 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
                 if (hls_src) {
                     //设置HlsMediaSource的事件监听器
                     hls_src->setListener(_meida_listener);
+                    hls_src->setTrackSource(shared_from_this());
                 }
             } else if (!start && _hls) {
                 //停止录制
