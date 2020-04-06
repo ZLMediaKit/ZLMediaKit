@@ -6,10 +6,7 @@ git submodule init
 git submodule update
 
 brew install cmake
-brew install mysql
 brew install openssl
-brew install x264
-brew install faac
 brew install sdl
 brew install ffmpeg
 
