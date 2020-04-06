@@ -192,13 +192,17 @@ public:
     virtual ~FrameDispatcher(){}
 
     void addDelegate(const FrameWriterInterface::Ptr &delegate){
+        //_delegates_write可能多线程同时操作
         lock_guard<mutex> lck(_mtx);
-        _delegateMap.emplace(delegate.get(),delegate);
+        _delegates_write.emplace(delegate.get(),delegate);
+        _need_update = true;
     }
 
     void delDelegate(void *ptr){
+        //_delegates_write可能多线程同时操作
         lock_guard<mutex> lck(_mtx);
-        _delegateMap.erase(ptr);
+        _delegates_write.erase(ptr);
+        _need_update = true;
     }
 
     /**
@@ -206,14 +210,23 @@ public:
      * @param frame 帧
      */
     void inputFrame(const Frame::Ptr &frame) override{
-        lock_guard<mutex> lck(_mtx);
-        for(auto &pr : _delegateMap){
+        //_delegates_read能确保是单线程操作的
+        for(auto &pr : _delegates_read){
             pr.second->inputFrame(frame);
+        }
+
+        if(_need_update){
+            //发现代理列表发生变化了，这里同步一次
+            lock_guard<mutex> lck(_mtx);
+            _delegates_read = _delegates_write;
+            _need_update = false;
         }
     }
 private:
     mutex _mtx;
-    map<void *,FrameWriterInterface::Ptr>  _delegateMap;
+    map<void *,FrameWriterInterface::Ptr>  _delegates_read;
+    map<void *,FrameWriterInterface::Ptr>  _delegates_write;
+    bool _need_update = false;
 };
 
 /**
