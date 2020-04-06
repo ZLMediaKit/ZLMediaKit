@@ -119,8 +119,15 @@ bool MediaSource::isRecording(Recorder::type type){
 }
 
 void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src)> &cb) {
-    lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-    for (auto &pr0 : g_mapMediaSrc) {
+    decltype(g_mapMediaSrc) copy;
+    {
+        //拷贝g_mapMediaSrc后再遍历，考虑到是高频使用的全局单例锁，并且在上锁时会执行回调代码
+        //很容易导致多个锁交叉死锁的情况，而且该函数使用频率不高，拷贝开销相对来说是可以接受的
+        lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
+        copy = g_mapMediaSrc;
+    }
+
+    for (auto &pr0 : copy) {
         for (auto &pr1 : pr0.second) {
             for (auto &pr2 : pr1.second) {
                 for (auto &pr3 : pr2.second) {
