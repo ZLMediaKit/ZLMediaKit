@@ -210,17 +210,18 @@ public:
      * @param frame 帧
      */
     void inputFrame(const Frame::Ptr &frame) override{
-        //_delegates_read能确保是单线程操作的
-        for(auto &pr : _delegates_read){
-            pr.second->inputFrame(frame);
-        }
-
         if(_need_update){
             //发现代理列表发生变化了，这里同步一次
             lock_guard<mutex> lck(_mtx);
             _delegates_read = _delegates_write;
             _need_update = false;
         }
+
+        //_delegates_read能确保是单线程操作的
+        for(auto &pr : _delegates_read){
+            pr.second->inputFrame(frame);
+        }
+
     }
 private:
     mutex _mtx;
