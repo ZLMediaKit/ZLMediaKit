@@ -361,7 +361,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
     }
     //所有setup命令发送完毕
     //发送play命令
-    sendPause(_is_play_back ? type_seek : type_play, 0);
+    sendPause(type_play, 0);
 }
 
 void RtspPlayer::sendDescribe() {
