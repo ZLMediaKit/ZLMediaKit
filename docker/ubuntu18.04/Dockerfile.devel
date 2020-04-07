@@ -24,9 +24,10 @@ RUN apt-get update && \
          libmysqlclient-dev \
          libx264-dev \
          libfaac-dev \
+         ffmpeg \
          libmp4v2-dev && \
-         apt autoremove -y && \
-         apt clean -y && \
+         apt-get autoremove -y && \
+         apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/media
@@ -38,7 +39,7 @@ RUN git clone --depth=1 https://github.com/xiongziliang/ZLMediaKit && \
 
 WORKDIR /opt/media/ZLMediaKit/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release .. && \
-    make -j4
+    make
 
 ENV PATH /opt/media/ZLMediaKit/release/linux/Release:$PATH
 CMD MediaServer
