@@ -113,8 +113,8 @@ private:
     void checkTrackIfReady_l(const Track::Ptr &track);
 private:
     mutable recursive_mutex _mtx;
-    map<int,Track::Ptr> _track_map;
-    map<int,function<void()> > _trackReadyCallback;
+    unordered_map<int,Track::Ptr> _track_map;
+    unordered_map<int,function<void()> > _trackReadyCallback;
     bool _allTrackReady = false;
     Ticker _ticker;
     int _max_track_size = 2;
