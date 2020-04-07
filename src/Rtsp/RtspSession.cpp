@@ -796,7 +796,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
                 }
                 strongSelf->shutdown(SockException(Err_shutdown,"rtsp ring buffer detached"));
             });
-            _pRtpReader->setReadCB([weakSelf](const RtpPacket::Ptr &pack) {
+            _pRtpReader->setReadCB([weakSelf](const RtspMediaSource::RingDataType &pack) {
                 auto strongSelf = weakSelf.lock();
                 if(!strongSelf) {
                     return;
@@ -1123,23 +1123,36 @@ int RtspSession::totalReaderCount(MediaSource &sender) {
     return _pushSrc ? _pushSrc->totalReaderCount() : sender.readerCount();
 }
 
-void RtspSession::sendRtpPacket(const RtpPacket::Ptr & pkt) {
+void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
     //InfoP(this) <<(int)pkt.Interleaved;
     switch (_rtpType) {
         case Rtsp::RTP_TCP: {
-            send(pkt);
+            int i = 0;
+            int size = pkt->size();
+            setSendFlushFlag(false);
+            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                if (++i == size) {
+                    setSendFlushFlag(true);
+                }
+                send(rtp);
+            });
         }
             break;
         case Rtsp::RTP_UDP: {
-            int iTrackIndex = getTrackIndexByTrackType(pkt->type);
-            auto &pSock = _apRtpSock[iTrackIndex];
-            if (!pSock) {
-                shutdown(SockException(Err_shutdown,"udp sock not opened yet"));
-                return;
-            }
-            BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
-            _ui64TotalBytes += buffer->size();
-            pSock->send(buffer);
+            int i = 0;
+            int size = pkt->size();
+            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                int iTrackIndex = getTrackIndexByTrackType(rtp->type);
+                auto &pSock = _apRtpSock[iTrackIndex];
+                if (!pSock) {
+                    shutdown(SockException(Err_shutdown, "udp sock not opened yet"));
+                    return;
+                }
+
+                BufferRtp::Ptr buffer(new BufferRtp(rtp, 4));
+                _ui64TotalBytes += buffer->size();
+                pSock->send(buffer, nullptr, 0, ++i == size);
+            });
         }
             break;
         default:

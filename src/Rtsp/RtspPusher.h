@@ -67,7 +67,7 @@ private:
 
     inline int getTrackIndexByTrackType(TrackType type);
 
-    void sendRtpPacket(const RtpPacket::Ptr & pkt) ;
+    void sendRtpPacket(const RtspMediaSource::RingDataType & pkt) ;
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap(),const string &sdp = "" );
     void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header,const string &sdp = "");
 

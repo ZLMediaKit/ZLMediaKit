@@ -301,23 +301,36 @@ void RtspPusher::sendOptions() {
     sendRtspRequest("OPTIONS",_strContentBase);
 }
 
-inline void RtspPusher::sendRtpPacket(const RtpPacket::Ptr & pkt) {
+inline void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
     //InfoL<<(int)pkt.Interleaved;
     switch (_eType) {
         case Rtsp::RTP_TCP: {
-            BufferRtp::Ptr buffer(new BufferRtp(pkt));
-            send(buffer);
+            int i = 0;
+            int size = pkt->size();
+            setSendFlushFlag(false);
+            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                if (++i == size) {
+                    setSendFlushFlag(true);
+                }
+                BufferRtp::Ptr buffer(new BufferRtp(rtp));
+                send(buffer);
+            });
         }
             break;
         case Rtsp::RTP_UDP: {
-            int iTrackIndex = getTrackIndexByTrackType(pkt->type);
-            auto &pSock = _apUdpSock[iTrackIndex];
-            if (!pSock) {
-                shutdown(SockException(Err_shutdown,"udp sock not opened yet"));
-                return;
-            }
-            BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
-            pSock->send(buffer);
+            int i = 0;
+            int size = pkt->size();
+            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                int iTrackIndex = getTrackIndexByTrackType(rtp->type);
+                auto &pSock = _apUdpSock[iTrackIndex];
+                if (!pSock) {
+                    shutdown(SockException(Err_shutdown,"udp sock not opened yet"));
+                    return;
+                }
+
+                BufferRtp::Ptr buffer(new BufferRtp(rtp,4));
+                pSock->send(buffer, nullptr, 0, ++i == size);
+            });
         }
             break;
         default:
@@ -337,7 +350,6 @@ inline int RtspPusher::getTrackIndexByTrackType(TrackType type) {
     return -1;
 }
 
-
 void RtspPusher::sendRecord() {
     _onHandshake = [this](const Parser& parser){
         auto src = _pMediaSrc.lock();
@@ -347,7 +359,7 @@ void RtspPusher::sendRecord() {
 
         _pRtspReader = src->getRing()->attach(getPoller());
         weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
-        _pRtspReader->setReadCB([weakSelf](const RtpPacket::Ptr &pkt){
+        _pRtspReader->setReadCB([weakSelf](const RtspMediaSource::RingDataType &pkt){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf) {
                 return;

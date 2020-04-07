@@ -162,7 +162,7 @@ private:
     void onAuthDigest(const string &realm,const string &strMd5);
 
     //发送rtp给客户端
-    void sendRtpPacket(const RtpPacket::Ptr &pkt);
+    void sendRtpPacket(const RtspMediaSource::RingDataType &pkt);
     //回复客户端
     bool sendRtspResponse(const string &res_code,const std::initializer_list<string> &header, const string &sdp = "" , const char *protocol = "RTSP/1.0");
     bool sendRtspResponse(const string &res_code,const StrCaseMap &header = StrCaseMap(), const string &sdp = "",const char *protocol = "RTSP/1.0");
@@ -186,7 +186,7 @@ private:
     //rtsp播放器绑定的直播源
     std::weak_ptr<RtspMediaSource> _pMediaSrc;
     //直播源读取器
-    RingBuffer<RtpPacket::Ptr>::RingReader::Ptr _pRtpReader;
+    RtspMediaSource::RingType::RingReader::Ptr _pRtpReader;
     //推流或拉流客户端采用的rtp传输方式
     Rtsp::eRtpType _rtpType = Rtsp::RTP_Invalid;
     //sdp里面有效的track,包含音频或视频
