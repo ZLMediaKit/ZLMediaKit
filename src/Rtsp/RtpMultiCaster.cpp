@@ -109,13 +109,18 @@ RtpMultiCaster::RtpMultiCaster(const EventPoller::Ptr &poller,const string &strL
         _apUdpSock[i]->setSendPeerAddr((struct sockaddr *)&peerAddr);
     }
     _pReader = src->getRing()->attach(poller);
-    _pReader->setReadCB([this](const RtpPacket::Ptr &pkt){
-        int i = (int)(pkt->type);
-        auto &pSock = _apUdpSock[i];
-        auto &peerAddr = _aPeerUdpAddr[i];
-        BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
-        pSock->send(buffer);
+    _pReader->setReadCB([this](const RtspMediaSource::RingDataType &pkt){
+        int i = 0;
+        int size = pkt->size();
+        pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+            int i = (int) (rtp->type);
+            auto &pSock = _apUdpSock[i];
+            auto &peerAddr = _aPeerUdpAddr[i];
+            BufferRtp::Ptr buffer(new BufferRtp(rtp, 4));
+            pSock->send(buffer, nullptr, 0, ++i == size);
+        });
     });
+
     _pReader->setDetachCB([this](){
         unordered_map<void * , onDetach > _mapDetach_copy;
         {
