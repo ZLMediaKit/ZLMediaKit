@@ -40,8 +40,6 @@ protected:
     void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) override;
     void onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts, const void *data,int bytes);
 private:
-    void getNextRtpType();
-private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
     std::shared_ptr<FILE> _save_file_video;
@@ -54,7 +52,7 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
     std::shared_ptr<FrameMerger> _merger;
     Ticker _last_rtp_time;
-    map<int,Stamp> _stamps;
+    unordered_map<int,Stamp> _stamps;
     uint32_t _dts = 0;
     Decoder::Ptr _decoder;
 };
