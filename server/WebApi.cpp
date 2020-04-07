@@ -32,6 +32,7 @@
 #include "Thread/WorkThreadPool.h"
 #include "Rtp/RtpSelector.h"
 #include "FFmpegSource.h"
+#include "StreamProxyPusher.h"
 using namespace Json;
 using namespace toolkit;
 using namespace mediakit;
@@ -237,7 +238,7 @@ bool checkArgs(Args &&args,First &&first,KeyTypes && ...keys){
         } \
     }
 
-static unordered_map<string ,PlayerProxy::Ptr> s_proxyMap;
+static unordered_map<string ,StreamProxyPusher::Ptr> s_proxyMap;
 static recursive_mutex s_proxyMapMtx;
 static inline string getProxyKey(const string &vhost,const string &app,const string &stream){
     return vhost + "/" + app + "/" + stream;
@@ -563,7 +564,8 @@ void installWebApi() {
                                     bool enable_hls,
                                     bool enable_mp4,
                                     int rtp_type,
-                                    const function<void(const SockException &ex,const string &key)> &cb){
+                                    const function<void(const SockException &ex,const string &key)> &cb,
+                                    const string &dst_url = ""){
         auto key = getProxyKey(vhost,app,stream);
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         if(s_proxyMap.find(key) != s_proxyMap.end()){
@@ -571,31 +573,27 @@ void installWebApi() {
             cb(SockException(Err_success),key);
             return;
         }
-        //添加拉流代理
-        PlayerProxy::Ptr player(new PlayerProxy(vhost,app,stream,enable_rtsp,enable_rtmp,enable_hls,enable_mp4));
-        s_proxyMap[key] = player;
-        
-        //指定RTP over TCP(播放rtsp时有效)
-        (*player)[kRtpType] = rtp_type;
-        //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
-        player->setPlayCallbackOnce([cb,key](const SockException &ex){
+
+        StreamProxyPusher::Ptr streamProxyPusher = std::make_shared<StreamProxyPusher>();
+        s_proxyMap[key] = streamProxyPusher;
+
+        streamProxyPusher->setOnClose([key](){
+            lock_guard<decltype(s_proxyMapMtx)> lck(s_proxyMapMtx);
+            s_proxyMap.erase(key);
+        });
+        streamProxyPusher->play(vhost, app, stream, url, enable_rtsp,
+        enable_rtmp,enable_hls, enable_mp4,
+        rtp_type, [cb , key](const SockException &ex){
             if(ex){
-                lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+                lock_guard<decltype(s_proxyMapMtx)> lck(s_proxyMapMtx);
                 s_proxyMap.erase(key);
             }
             cb(ex,key);
-        });
-
-        //被主动关闭拉流
-        player->setOnClose([key](){
-            lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-            s_proxyMap.erase(key);
-        });
-        player->play(url);
+        },dst_url);
     };
 
     //动态添加rtsp/rtmp拉流代理
-    //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&enable_rtsp=1&enable_rtmp=1&stream=0&url=rtmp://127.0.0.1/live/obs
+    //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&enable_rtsp=1&enable_rtmp=1&stream=0&url=rtmp://127.0.0.1/live/obs&dst_url=rtmp://127.0.0.1/live/obs1
     api_regist2("/index/api/addStreamProxy",[](API_ARGS2){
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream","url","enable_rtsp","enable_rtmp");
@@ -616,7 +614,7 @@ void installWebApi() {
                                const_cast<Value &>(val)["data"]["key"] = key;
                            }
                            invoker("200 OK", headerOut, val.toStyledString());
-                       });
+                       },allArgs["dst_url"]);
     });
 
     //关闭拉流代理
