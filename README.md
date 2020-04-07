@@ -140,12 +140,11 @@
 ## Docker 镜像
 你可以从Docker Hub下载已经编译好的镜像并启动它：
 ```bash
-docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
+docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit:20.04-runtime-ubuntu18.04
 ```
-你要可以在Ubuntu 16.04下根据Dockerfile编译镜像：
+你也可以根据Dockerfile编译镜像：
 ```bash
-cd docker
-docker build -t zlmediakit .
+bash build_docker_images.sh
 ```
 
 ## 使用方法
