@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_FRAME_H
@@ -72,6 +56,12 @@ public:
      * 获取编解码器类型
      */
     virtual CodecId getCodecId() const = 0;
+
+    /**
+     * 获取编码器名称
+     * @return 编码器名称
+     */
+    const char *getCodecName();
 };
 
 /**
@@ -81,13 +71,6 @@ class Frame : public Buffer, public CodecInfo {
 public:
     typedef std::shared_ptr<Frame> Ptr;
     virtual ~Frame(){}
-    /**
-     * 时间戳,已经废弃，请使用dts() 、pts()接口
-     */
-    inline uint32_t stamp() const {
-        return dts();
-    };
-
 
     /**
      * 返回解码时间戳，单位毫秒
@@ -199,87 +182,27 @@ private:
 
 
 /**
- * 帧环形缓存接口类
- */
-class FrameRingInterface : public FrameWriterInterface{
-public:
-    typedef RingBuffer<Frame::Ptr> RingType;
-    typedef std::shared_ptr<FrameRingInterface> Ptr;
-
-    FrameRingInterface(){}
-    virtual ~FrameRingInterface(){}
-
-    /**
-     * 获取帧环形缓存
-     * @return
-     */
-    virtual RingType::Ptr getFrameRing() const = 0;
-
-    /**
-     * 设置帧环形缓存
-     * @param ring
-     */
-    virtual void setFrameRing(const RingType::Ptr &ring)  = 0;
-};
-
-/**
- * 帧环形缓存
- */
-class FrameRing : public FrameRingInterface{
-public:
-    typedef std::shared_ptr<FrameRing> Ptr;
-
-    FrameRing(){
-    }
-    virtual ~FrameRing(){}
-
-    /**
-     * 获取帧环形缓存
-     * @return
-     */
-    RingType::Ptr getFrameRing() const override {
-        return _frameRing;
-    }
-
-    /**
-     * 设置帧环形缓存
-     * @param ring
-     */
-    void setFrameRing(const RingType::Ptr &ring) override {
-        _frameRing = ring;
-    }
-
-    /**
-     * 输入数据帧
-     * @param frame
-     */
-    void inputFrame(const Frame::Ptr &frame) override{
-        if(_frameRing){
-            _frameRing->write(frame,frame->keyFrame());
-        }
-    }
-protected:
-    RingType::Ptr _frameRing;
-};
-
-/**
  * 支持代理转发的帧环形缓存
  */
-class FrameRingInterfaceDelegate : public FrameRing {
+class FrameDispatcher : public FrameWriterInterface {
 public:
-    typedef std::shared_ptr<FrameRingInterfaceDelegate> Ptr;
+    typedef std::shared_ptr<FrameDispatcher> Ptr;
 
-    FrameRingInterfaceDelegate(){}
-    virtual ~FrameRingInterfaceDelegate(){}
+    FrameDispatcher(){}
+    virtual ~FrameDispatcher(){}
 
     void addDelegate(const FrameWriterInterface::Ptr &delegate){
+        //_delegates_write可能多线程同时操作
         lock_guard<mutex> lck(_mtx);
-        _delegateMap.emplace(delegate.get(),delegate);
+        _delegates_write.emplace(delegate.get(),delegate);
+        _need_update = true;
     }
 
     void delDelegate(void *ptr){
+        //_delegates_write可能多线程同时操作
         lock_guard<mutex> lck(_mtx);
-        _delegateMap.erase(ptr);
+        _delegates_write.erase(ptr);
+        _need_update = true;
     }
 
     /**
@@ -287,15 +210,24 @@ public:
      * @param frame 帧
      */
     void inputFrame(const Frame::Ptr &frame) override{
-        FrameRing::inputFrame(frame);
-        lock_guard<mutex> lck(_mtx);
-        for(auto &pr : _delegateMap){
+        if(_need_update){
+            //发现代理列表发生变化了，这里同步一次
+            lock_guard<mutex> lck(_mtx);
+            _delegates_read = _delegates_write;
+            _need_update = false;
+        }
+
+        //_delegates_read能确保是单线程操作的
+        for(auto &pr : _delegates_read){
             pr.second->inputFrame(frame);
         }
+
     }
 private:
     mutex _mtx;
-    map<void *,FrameWriterInterface::Ptr>  _delegateMap;
+    map<void *,FrameWriterInterface::Ptr>  _delegates_read;
+    map<void *,FrameWriterInterface::Ptr>  _delegates_write;
+    bool _need_update = false;
 };
 
 /**

@@ -234,16 +234,16 @@ static const T_AVRational sg_atVuiSar[] = {
 
 static inline int getBitsLeft(void *pvHandle)
 {
-	int iResLen = 0;
-	T_GetBitContext *ptPtr = (T_GetBitContext *)pvHandle;
-	if(ptPtr->iBufSize <= 0 || ptPtr->iTotalBit <= 0)
-	{
-		RPT(RPT_WRN, "buffer size is zero");
-		return 0;
-	}
+    int iResLen = 0;
+    T_GetBitContext *ptPtr = (T_GetBitContext *)pvHandle;
+    if(ptPtr->iBufSize <= 0 || ptPtr->iTotalBit <= 0)
+    {
+        RPT(RPT_WRN, "buffer size is zero");
+        return 0;
+    }
 
 
-	iResLen = ptPtr->iTotalBit - ptPtr->iBitPos;
+    iResLen = ptPtr->iTotalBit - ptPtr->iBitPos;
     return iResLen;
 }
 
@@ -264,7 +264,7 @@ static int getOneBit(void *pvHandle)
     int iRet = 0;
     uint8_t *pu8CurChar = NULL;
     uint8_t u8Shift;
-	int iResoLen = 0;
+    int iResoLen = 0;
 
     if(NULL == ptPtr)
     {
@@ -272,12 +272,12 @@ static int getOneBit(void *pvHandle)
         iRet = -1;
         goto exit;
     }
-	iResoLen = getBitsLeft(ptPtr);
-	if(iResoLen < 1)
-	{
+    iResoLen = getBitsLeft(ptPtr);
+    if(iResoLen < 1)
+    {
         iRet = -1;
         goto exit;
-	}
+    }
 
     pu8CurChar = ptPtr->pu8Buf + (ptPtr->iBitPos >> 3);
     u8Shift = 7 - (ptPtr->iCurBitPos);
@@ -307,7 +307,7 @@ static int getBits(void *pvHandle, int iN)
     uint8_t u8Shift;
     uint32_t u32Result = 0;
     int iRet = 0;
-	int iResoLen = 0;
+    int iResoLen = 0;
 
     if(NULL == ptPtr)
     {
@@ -321,12 +321,12 @@ static int getBits(void *pvHandle, int iN)
         iN = MAX_LEN;
     }
 
-	iResoLen = getBitsLeft(ptPtr);
-	if(iResoLen < iN)
-	{
+    iResoLen = getBitsLeft(ptPtr);
+    if(iResoLen < iN)
+    {
         iRet = -1;
         goto exit;
-	}
+    }
 
 
     if((ptPtr->iBitPos + iN) > ptPtr->iTotalBit)
@@ -374,7 +374,7 @@ static inline unsigned int showBits(void *pvHandle, int iN)
     uint8_t u8Shift;
     uint32_t u32Result = 0;
     int iRet = 0;
-	int iResoLen = 0;
+    int iResoLen = 0;
 
     if(NULL == ptPtr)
     {
@@ -388,12 +388,12 @@ static inline unsigned int showBits(void *pvHandle, int iN)
         iN = MAX_LEN;
     }
 
-	iResoLen = getBitsLeft(ptPtr);
-	if(iResoLen < iN)
-	{
+    iResoLen = getBitsLeft(ptPtr);
+    if(iResoLen < iN)
+    {
         iRet = -1;
         goto exit;
-	}
+    }
 
 
     if((ptPtr->iBitPos + iN) > ptPtr->iTotalBit)
@@ -435,7 +435,7 @@ exit:
  */
 static inline unsigned int showBitsLong(void *pvHandle, int iN)
 {
-	T_GetBitContext *ptPtr = (T_GetBitContext *)pvHandle;
+    T_GetBitContext *ptPtr = (T_GetBitContext *)pvHandle;
 
     if (iN <= 32) {
         return showBits(ptPtr, iN);
@@ -611,23 +611,23 @@ static void decodeScalingList(void *pvBuf, uint8_t *pu8Factors, int iSize,
                                 const uint8_t *pu8FallbackList)
 {
     int i;
-	int iLast = 8;
-	int iNext = 8;
+    int iLast = 8;
+    int iNext = 8;
     const uint8_t *pu8Scan = iSize == 16 ? sg_au8ZigzagScan : g_au8FfZigzagDirect;
 
     if (!getOneBit(pvBuf)) /* matrix not written, we use the predicted one */
         memcpy(pu8Factors, pu8FallbackList, iSize * sizeof(uint8_t));
     else
         for (i = 0; i < iSize; i++)
-		{
+        {
             if (iNext)
             {
 
                 iNext = (iLast + parseSe(pvBuf)) & 0xff;
             }
             if (!i && !iNext)
-			{
-				/* matrix not written, we use the preset one */
+            {
+                /* matrix not written, we use the preset one */
                 memcpy(pu8Factors, pu8JvtList, iSize * sizeof(uint8_t));
                 break;
             }
@@ -652,49 +652,49 @@ static void decodeScalingList(void *pvBuf, uint8_t *pu8Factors, int iSize,
         ptSps->iScalingMatrixPresent |= iIsSps;
         decodeScalingList(pvBuf, pau8ScalingMatrix4[0], 16, sg_aau8DefaultScaling4[0], pau8Fallback[0]);        // Intra, Y
         decodeScalingList(pvBuf, pau8ScalingMatrix4[1], 16, sg_aau8DefaultScaling4[0], pau8ScalingMatrix4[0]); // Intra, Cr
-		decodeScalingList(pvBuf, pau8ScalingMatrix4[2], 16, sg_aau8DefaultScaling4[0], pau8ScalingMatrix4[1]); // Intra, Cb
+        decodeScalingList(pvBuf, pau8ScalingMatrix4[2], 16, sg_aau8DefaultScaling4[0], pau8ScalingMatrix4[1]); // Intra, Cb
 
-		decodeScalingList(pvBuf, pau8ScalingMatrix4[3], 16, sg_aau8DefaultScaling4[1], pau8Fallback[1]);        // Inter, Y
+        decodeScalingList(pvBuf, pau8ScalingMatrix4[3], 16, sg_aau8DefaultScaling4[1], pau8Fallback[1]);        // Inter, Y
 
-		decodeScalingList(pvBuf, pau8ScalingMatrix4[4], 16, sg_aau8DefaultScaling4[1], pau8ScalingMatrix4[3]); // Inter, Cr
+        decodeScalingList(pvBuf, pau8ScalingMatrix4[4], 16, sg_aau8DefaultScaling4[1], pau8ScalingMatrix4[3]); // Inter, Cr
 
-		decodeScalingList(pvBuf, pau8ScalingMatrix4[5], 16, sg_aau8DefaultScaling4[1], pau8ScalingMatrix4[4]); // Inter, Cb
+        decodeScalingList(pvBuf, pau8ScalingMatrix4[5], 16, sg_aau8DefaultScaling4[1], pau8ScalingMatrix4[4]); // Inter, Cb
 
 
         if (iIsSps || ptPps->iTransform8x8Mode)
-		{
+        {
             decodeScalingList(pvBuf, pau8ScalingMatrix8[0], 64, sg_aau8DefaultScaling8[0], pau8Fallback[2]); // Intra, Y
             decodeScalingList(pvBuf, pau8ScalingMatrix8[3], 64, sg_aau8DefaultScaling8[1], pau8Fallback[3]); // Inter, Y
             if (ptSps->iChromaFormatIdc == 3) {
                 decodeScalingList(pvBuf, pau8ScalingMatrix8[1], 64, sg_aau8DefaultScaling8[0], pau8ScalingMatrix8[0]); // Intra, Cr
-				decodeScalingList(pvBuf, pau8ScalingMatrix8[4], 64, sg_aau8DefaultScaling8[1], pau8ScalingMatrix8[3]); // Inter, Cr
-				decodeScalingList(pvBuf, pau8ScalingMatrix8[2], 64, sg_aau8DefaultScaling8[0], pau8ScalingMatrix8[1]); // Intra, Cb
-				decodeScalingList(pvBuf, pau8ScalingMatrix8[5], 64, sg_aau8DefaultScaling8[1], pau8ScalingMatrix8[4]); // Inter, Cb
-			}
+                decodeScalingList(pvBuf, pau8ScalingMatrix8[4], 64, sg_aau8DefaultScaling8[1], pau8ScalingMatrix8[3]); // Inter, Cr
+                decodeScalingList(pvBuf, pau8ScalingMatrix8[2], 64, sg_aau8DefaultScaling8[0], pau8ScalingMatrix8[1]); // Intra, Cb
+                decodeScalingList(pvBuf, pau8ScalingMatrix8[5], 64, sg_aau8DefaultScaling8[1], pau8ScalingMatrix8[4]); // Inter, Cb
+            }
         }
     }
-	return 0;
+    return 0;
 }
 
 static  int decodeHrdPAarameters(void *pvBuf, T_SPS *ptSps)
 {
     int iCpbCount = 0;
-	int i;
+    int i;
     iCpbCount = parseUe(pvBuf);
 
     if (iCpbCount > 32U)
-	{
-		RPT(RPT_ERR,"iCpbCount %d invalid\n", iCpbCount);
-		return -1;
+    {
+        RPT(RPT_ERR,"iCpbCount %d invalid\n", iCpbCount);
+        return -1;
 
     }
 
     getBits(pvBuf, 4); /* bit_rate_scale */
     getBits(pvBuf, 4); /* cpb_size_scale */
     for (i = 0; i < iCpbCount; i++)
-	{
-		parseUe(pvBuf);
-		parseUe(pvBuf);
+    {
+        parseUe(pvBuf);
+        parseUe(pvBuf);
         //get_ue_golomb_long(&h->gb); /* bit_rate_value_minus1 */
         //get_ue_golomb_long(&h->gb); /* cpb_size_value_minus1 */
         getOneBit(pvBuf);          /* cbr_flag */
@@ -712,7 +712,7 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
 {
     int iAspectRatioInfoPresentFlag;
     unsigned int uiAspectRatioIdc;
-	int iChromaSampleLocation;
+    int iChromaSampleLocation;
 
     iAspectRatioInfoPresentFlag = getOneBit(pvBuf);
 
@@ -725,7 +725,7 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
             ptSps->tSar = sg_atFfH264PixelSspect[uiAspectRatioIdc];
         } else
         {
-        	RPT(RPT_ERR,"illegal aspect ratio\n");
+            RPT(RPT_ERR,"illegal aspect ratio\n");
             return -1;
         }
     } else
@@ -758,15 +758,15 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
 
     /* chroma_location_info_present_flag */
     if (getOneBit(pvBuf))
-	{
+    {
         /* chroma_sample_location_type_top_field */
         iChromaSampleLocation = parseUe(pvBuf);
         parseUe(pvBuf);  /* chroma_sample_location_type_bottom_field */
     }
-	if(getBitsLeft(pvBuf) < 10)
-	{
-		return 0;
-	}
+    if(getBitsLeft(pvBuf) < 10)
+    {
+        return 0;
+    }
 
 
     ptSps->iTimingInfoPresentFlag = getOneBit(pvBuf);
@@ -775,7 +775,7 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
         unsigned u32TimeScale        = getBits(pvBuf, 32);
         if (!u32NumUnitsInTick || !u32TimeScale) {
 
-			RPT(RPT_ERR,"u32TimeScale/u32NumUnitsInTick invalid or unsupported (%u/%u)\n",u32TimeScale, u32NumUnitsInTick);
+            RPT(RPT_ERR,"u32TimeScale/u32NumUnitsInTick invalid or unsupported (%u/%u)\n",u32TimeScale, u32NumUnitsInTick);
             ptSps->iTimingInfoPresentFlag = 0;
         } else {
             ptSps->u32NumUnitsInTick = u32NumUnitsInTick;
@@ -797,12 +797,12 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
         getOneBit(pvBuf);     /* low_delay_hrd_flag */
     ptSps->iPicStructPresentFlag = getOneBit(pvBuf);
 
-	if(getBitsLeft(pvBuf) == 0)
-		return 0;
+    if(getBitsLeft(pvBuf) == 0)
+        return 0;
     ptSps->iBitstreamRestrictionFlag = getOneBit(pvBuf);
     if (ptSps->iBitstreamRestrictionFlag) {
         getOneBit(pvBuf);     	 /* motion_vectors_over_pic_boundaries_flag */
-		parseUe(pvBuf);
+        parseUe(pvBuf);
         //get_ue_golomb(&h->gb); /* max_bytes_per_pic_denom */
         parseUe(pvBuf);
         //get_ue_golomb(&h->gb); /* max_bits_per_mb_denom */
@@ -812,11 +812,11 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
         //get_ue_golomb(&h->gb); /* log2_max_mv_length_vertical */
         ptSps->iNumReorderFrames = parseUe(pvBuf);
 
-		parseUe(pvBuf);
+        parseUe(pvBuf);
         //get_ue_golomb(&h->gb); /*max_dec_frame_buffering*/
 
         if (getBitsLeft(pvBuf) < 0)
-		{
+        {
             ptSps->iNumReorderFrames         = 0;
             ptSps->iBitstreamRestrictionFlag = 0;
         }
@@ -824,7 +824,7 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
         if (ptSps->iNumReorderFrames > 16U
             /* max_dec_frame_buffering || max_dec_frame_buffering > 16 */)
         {
-			RPT(RPT_DBG, "Clipping illegal iNumReorderFrames %d\n",
+            RPT(RPT_DBG, "Clipping illegal iNumReorderFrames %d\n",
                    ptSps->iNumReorderFrames);
             ptSps->iNumReorderFrames = 16;
             return -1;
@@ -838,10 +838,10 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
 int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
 {
     int iLevelIdc;
-	int iConstraintSetFlags = 0;
+    int iConstraintSetFlags = 0;
     unsigned int uiSpsId;
     int i;
-	int iLog2MaxFrameNumMinus4;
+    int iLog2MaxFrameNumMinus4;
 
     int iRet = 0;
     int iProfileIdc = 0;
@@ -910,44 +910,44 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
         ptSps->iProfileIdc == 144) {  // old High444 profile
         ptSps->iChromaFormatIdc = parseUe(pvBuf);
         if (ptSps->iChromaFormatIdc > 3U)
-		{
+        {
             RPT(RPT_ERR, "iChromaFormatIdc %u",ptSps->iChromaFormatIdc);
-        	iRet = -1;
-        	goto exit;
+            iRet = -1;
+            goto exit;
         }
-		else if (ptSps->iChromaFormatIdc == 3)
-		{
+        else if (ptSps->iChromaFormatIdc == 3)
+        {
             ptSps->iResidualColorTransformFlag = getOneBit(pvBuf);
             if (ptSps->iResidualColorTransformFlag)
-			{
-				RPT(RPT_ERR, "separate color planes are not supported\n");
-				iRet = -1;
-				goto exit;
+            {
+                RPT(RPT_ERR, "separate color planes are not supported\n");
+                iRet = -1;
+                goto exit;
 
             }
         }
         ptSps->iBitDepthLuma   = parseUe(pvBuf) + 8;
         ptSps->iBitDepthChroma = parseUe(pvBuf) + 8;
         if (ptSps->iBitDepthChroma != ptSps->iBitDepthLuma)
-		{
-			RPT(RPT_ERR, "Different chroma and luma bit depth");
-			iRet = -1;
-			goto exit;
+        {
+            RPT(RPT_ERR, "Different chroma and luma bit depth");
+            iRet = -1;
+            goto exit;
 
         }
         if (ptSps->iBitDepthLuma   < 8 || ptSps->iBitDepthLuma   > 14 ||
             ptSps->iBitDepthChroma < 8 || ptSps->iBitDepthChroma > 14)
         {
-			RPT(RPT_ERR, "illegal bit depth value (%d, %d)\n",ptSps->iBitDepthLuma, ptSps->iBitDepthChroma);
-			iRet = -1;
-			goto exit;
+            RPT(RPT_ERR, "illegal bit depth value (%d, %d)\n",ptSps->iBitDepthLuma, ptSps->iBitDepthChroma);
+            iRet = -1;
+            goto exit;
         }
         ptSps->iTransformBypass = getOneBit(pvBuf);
         decodeScalingMatrices(pvBuf, ptSps, NULL, 1,
                                 ptSps->aau8ScalingMatrix4, ptSps->aau8ScalingMatrix8);
     }
-	else
-	{
+    else
+    {
 
         ptSps->iChromaFormatIdc = 1;
         ptSps->iBitDepthLuma    = 8;
@@ -959,9 +959,9 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
     if (iLog2MaxFrameNumMinus4 < MIN_LOG2_MAX_FRAME_NUM - 4 ||
         iLog2MaxFrameNumMinus4 > MAX_LOG2_MAX_FRAME_NUM - 4)
     {
-		RPT(RPT_ERR, "iLog2MaxFrameNumMinus4 out of range (0-12): %d\n", iLog2MaxFrameNumMinus4);
-		iRet = -1;
-		goto exit;
+        RPT(RPT_ERR, "iLog2MaxFrameNumMinus4 out of range (0-12): %d\n", iLog2MaxFrameNumMinus4);
+        iRet = -1;
+        goto exit;
 
     }
     ptSps->iLog2MaxFrameNum = iLog2MaxFrameNumMinus4 + 4;
@@ -969,21 +969,21 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
     ptSps->iPocType = parseUe(pvBuf);
 
     if (ptSps->iPocType == 0)
-	{
-		// FIXME #define
+    {
+        // FIXME #define
         unsigned t = parseUe(pvBuf);
         if (t>12)
-		{
-			RPT(RPT_ERR, "iLog2MaxPocLsb (%d) is out of range\n", t);
-			iRet = -1;
-			goto exit;
+        {
+            RPT(RPT_ERR, "iLog2MaxPocLsb (%d) is out of range\n", t);
+            iRet = -1;
+            goto exit;
 
         }
         ptSps->iLog2MaxPocLsb = t + 4;
     }
-	else if (ptSps->iPocType == 1)
-	{
-		// FIXME #define
+    else if (ptSps->iPocType == 1)
+    {
+        // FIXME #define
         ptSps->iDeltaPicOrderAlwaysZeroFlag = getOneBit(pvBuf);
         ptSps->iOffsetForNonRefPic           = parseSe(pvBuf);
         ptSps->iOffsetForTopToBottomField   = parseSe(pvBuf);
@@ -991,20 +991,20 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
 
         if ((unsigned)ptSps->iPocCycleLength >= FF_ARRAY_ELEMS(ptSps->asOffsetForRefFrame))
         {
-			RPT(RPT_ERR, "iPocCycleLength overflow %d\n", ptSps->iPocCycleLength);
-			iRet = -1;
-			goto exit;
+            RPT(RPT_ERR, "iPocCycleLength overflow %d\n", ptSps->iPocCycleLength);
+            iRet = -1;
+            goto exit;
 
         }
 
         for (i = 0; i < ptSps->iPocCycleLength; i++)
             ptSps->asOffsetForRefFrame[i] = parseSe(pvBuf);
     }
-	else if (ptSps->iPocType != 2)
-	{
-		RPT(RPT_ERR, "illegal POC type %d\n", ptSps->iPocType);
-		iRet = -1;
-		goto exit;
+    else if (ptSps->iPocType != 2)
+    {
+        RPT(RPT_ERR, "illegal POC type %d\n", ptSps->iPocType);
+        iRet = -1;
+        goto exit;
 
     }
 
@@ -1012,9 +1012,9 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
     if (ptSps->iRefFrameCount > H264_MAX_PICTURE_COUNT - 2 ||
         ptSps->iRefFrameCount > 16U)
     {
-		RPT(RPT_ERR, "too many reference frames %d\n", ptSps->iRefFrameCount);
-		iRet = -1;
-		goto exit;
+        RPT(RPT_ERR, "too many reference frames %d\n", ptSps->iRefFrameCount);
+        iRet = -1;
+        goto exit;
 
     }
     ptSps->iGapsInFrameNumAllowedFlag = getOneBit(pvBuf);
@@ -1039,8 +1039,8 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
         int iWidth  = 16 * ptSps->iMbWidth;
         int iHeight = 16 * ptSps->iMbHeight * (2 - ptSps->iFrameMbsOnlyFlag);
 
-		if(1)
-		{
+        if(1)
+        {
             int vsub   = (ptSps->iChromaFormatIdc == 1) ? 1 : 0;
             int hsub   = (ptSps->iChromaFormatIdc == 1 ||
                           ptSps->iChromaFormatIdc == 2) ? 1 : 0;
@@ -1048,7 +1048,7 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
             int step_y = (2 - ptSps->iFrameMbsOnlyFlag) << vsub;
 
             if (uiCropLeft & (0x1F >> (ptSps->iBitDepthLuma > 8)))
-			{
+            {
                 uiCropLeft &= ~(0x1F >> (ptSps->iBitDepthLuma > 8));
             }
 
@@ -1060,9 +1060,9 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
                 (uiCropTop  + uiCropBottom) * step_y >= iHeight
             )
             {
-				RPT(RPT_ERR, "crop values invalid %d %d %d %d / %d %d\n", uiCropLeft, uiCropRight, uiCropTop, uiCropBottom, iWidth, iHeight);
-				iRet = -1;
-				goto exit;
+                RPT(RPT_ERR, "crop values invalid %d %d %d %d / %d %d\n", uiCropLeft, uiCropRight, uiCropTop, uiCropBottom, iWidth, iHeight);
+                iRet = -1;
+                goto exit;
             }
 
             ptSps->uiCropLeft   = uiCropLeft   * step_x;
@@ -1071,8 +1071,8 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
             ptSps->uiCropBottom = uiCropBottom * step_y;
         }
     }
-	else
-	{
+    else
+    {
         ptSps->uiCropLeft   =
         ptSps->uiCropRight  =
         ptSps->uiCropTop    =
@@ -1088,9 +1088,9 @@ int h264DecSeqParameterSet(void *pvBufSrc, T_SPS *ptSps)
     }
 
     if (getBitsLeft(pvBuf) < 0)
-	{
-		RPT(RPT_ERR, "Overread %s by %d bits\n", ptSps->iVuiParametersPresentFlag ? "VUI" : "SPS", -getBitsLeft(pvBuf));
-		iRet = -1;
+    {
+        RPT(RPT_ERR, "Overread %s by %d bits\n", ptSps->iVuiParametersPresentFlag ? "VUI" : "SPS", -getBitsLeft(pvBuf));
+        iRet = -1;
     }
 
     if (!ptSps->tSar.den)
@@ -1102,7 +1102,7 @@ exit:
 #ifdef SPS_PPS_DEBUG
 
     if (1)
-	{
+    {
         static const char csp[4][5] = { "Gray", "420", "422", "444" };
         RPT(RPT_DBG,
                "ptSps:%u profile:%d/%d poc:%d ref:%d %dx%d %s %s crop:%u/%u/%u/%u %s %s %d/%d b%d reo:%d\n",
@@ -1168,7 +1168,7 @@ static int decodeProfileTierLevel(T_GetBitContext *pvBuf, T_PTLCommon *tPtl)
 
     return 0;
 }
-									  
+                                      
 
 static int parsePtl(T_GetBitContext *pvBuf, T_PTL *tPtl, int max_num_sub_layers)
 {
@@ -1208,7 +1208,7 @@ static int parsePtl(T_GetBitContext *pvBuf, T_PTL *tPtl, int max_num_sub_layers)
 
     return 0;
 }
-					  
+                      
 
 static void setDefaultScalingListData(T_ScalingList *sl)
 {
@@ -1330,7 +1330,7 @@ int hevcDecodeShortTermRps(T_GetBitContext *pvBuf,
         int iDeltaRps;
         unsigned int uiAbsDeltaRps;
         uint8_t u8UseDeltaFlag = 0;
-        uint8_t u8DeltaRpsSign;
+        uint8_t u8DeltaRpsSign = 0;
 
         if (is_slice_header) {
             unsigned int uiDeltaIdx = parseUe(pvBuf) + 1;
@@ -1536,7 +1536,7 @@ static int decodeHrd(T_GetBitContext *pvBuf, int common_inf_present,
     return 0;
 }
 
-					   
+                       
 
 static void decodeVui(T_GetBitContext *pvBuf, T_HEVCSPS *ptSps)
 {
@@ -1702,16 +1702,16 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
     ptSps->uiVpsId = getBits(pvBuf, 4);
     if (ptSps->uiVpsId >= HEVC_MAX_VPS_COUNT) {
         RPT(RPT_ERR, "VPS id out of range: %d\n", ptSps->uiVpsId);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
 
     ptSps->iMaxSubLayers = getBits(pvBuf, 3) + 1;
     if (ptSps->iMaxSubLayers > HEVC_MAX_SUB_LAYERS) {
         RPT(RPT_ERR, "sps_max_sub_layers out of range: %d\n",
                ptSps->iMaxSubLayers);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
 
     ptSps->u8temporalIdNestingFlag = getBits(pvBuf, 1);
@@ -1721,15 +1721,15 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
     int sps_id = parseUe(pvBuf);
     if (sps_id >= HEVC_MAX_SPS_COUNT) {
         RPT(RPT_ERR, "SPS id out of range: %d\n", sps_id);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
 
     ptSps->iChromaFormatIdc = parseUe(pvBuf);
     if (ptSps->iChromaFormatIdc > 3U) {
         RPT(RPT_ERR, "iChromaFormatIdc %d is invalid\n", ptSps->iChromaFormatIdc);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
 
     if (ptSps->iChromaFormatIdc == 3)
@@ -1754,14 +1754,14 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
 
     ptSps->iBitDepth   = parseUe(pvBuf) + 8;
     iBitDepthChroma = parseUe(pvBuf) + 8;
-	
+    
     if (ptSps->iChromaFormatIdc && iBitDepthChroma != ptSps->iBitDepth) {
         RPT(RPT_ERR,
                "Luma bit depth (%d) is different from chroma bit depth (%d), "
                "this is unsupported.\n",
                ptSps->iBitDepth, iBitDepthChroma);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
     ptSps->iBitDepthChroma = iBitDepthChroma;
 
@@ -1769,8 +1769,8 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
     if (ptSps->uiLog2MaxPocLsb > 16) {
         RPT(RPT_ERR, "log2_max_pic_order_cnt_lsb_minus4 out range: %d\n",
                ptSps->uiLog2MaxPocLsb - 4);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
 
     iSublayerOrderingInfo = getOneBit(pvBuf);
@@ -1782,15 +1782,15 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
         if (ptSps->stTemporalLayer[i].iMaxDecPicBuffering > (unsigned)HEVC_MAX_DPB_SIZE) {
             RPT(RPT_ERR, "sps_max_dec_pic_buffering_minus1 out of range: %d\n",
                    ptSps->stTemporalLayer[i].iMaxDecPicBuffering - 1U);
-			iRet = -1;
-			goto exit;
+            iRet = -1;
+            goto exit;
         }
         if (ptSps->stTemporalLayer[i].iNumReorderPics > ptSps->stTemporalLayer[i].iMaxDecPicBuffering - 1) {
             RPT(RPT_WRN, "sps_max_num_reorder_pics out of range: %d\n",
                    ptSps->stTemporalLayer[i].iNumReorderPics);
             if (ptSps->stTemporalLayer[i].iNumReorderPics > HEVC_MAX_DPB_SIZE - 1) {
-				iRet = -1;
-				goto exit;
+                iRet = -1;
+                goto exit;
             }
             ptSps->stTemporalLayer[i].iMaxDecPicBuffering = ptSps->stTemporalLayer[i].iNumReorderPics + 1;
         }
@@ -1813,33 +1813,33 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
 
     if (ptSps->uiLog2MinCbSize < 3 || ptSps->uiLog2MinCbSize > 30) {
         RPT(RPT_ERR, "Invalid value %d for uiLog2MinCbSize", ptSps->uiLog2MinCbSize);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
 
     if (ptSps->uiLog2DiffMaxMinCodingBlockSize > 30) {
         RPT(RPT_ERR, "Invalid value %d for uiLog2DiffMaxMinCodingBlockSize", ptSps->uiLog2DiffMaxMinCodingBlockSize);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
 
     if (ptSps->uiLog2MinTbSize >= ptSps->uiLog2MinCbSize || ptSps->uiLog2MinTbSize < 2) {
         RPT(RPT_ERR, "Invalid value for uiLog2MinTbSize");
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
 
     if (iLog2DiffMaxMinTransformBlockSize < 0 || iLog2DiffMaxMinTransformBlockSize > 30) {
         RPT(RPT_ERR, "Invalid value %d for iLog2DiffMaxMinTransformBlockSize", iLog2DiffMaxMinTransformBlockSize);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
 
     ptSps->iMaxTransformHierarchyDepthInter = parseUe(pvBuf);
     ptSps->iMaxTransformHierarchyDepthIntra = parseUe(pvBuf);
 
     ptSps->u8ScalingListEnableFlag = getOneBit(pvBuf);
-	
+    
     if (ptSps->u8ScalingListEnableFlag) {
         setDefaultScalingListData(&ptSps->tScalingList);
 
@@ -1854,7 +1854,7 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
     ptSps->u8SaoEnabled      = getOneBit(pvBuf);
 
     ptSps->iPcmEnabledFlag = getOneBit(pvBuf);
-	
+    
     if (ptSps->iPcmEnabledFlag) {
         ptSps->pcm.u8BitDepth   = getBits(pvBuf, 4) + 1;
         ptSps->pcm.u8BitDepthChroma = getBits(pvBuf, 4) + 1;
@@ -1865,8 +1865,8 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
             RPT(RPT_ERR,
                    "PCM bit depth (%d, %d) is greater than normal bit depth (%d)\n",
                    ptSps->pcm.u8BitDepth, ptSps->pcm.u8BitDepthChroma, ptSps->iBitDepth);
-			iRet = -1;
-			goto exit;
+            iRet = -1;
+            goto exit;
         }
 
         ptSps->pcm.u8LoopFilterDisableFlag = getOneBit(pvBuf);
@@ -1876,8 +1876,8 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
     if (ptSps->uiNbStRps > HEVC_MAX_SHORT_TERM_REF_PIC_SETS) {
         RPT(RPT_ERR, "Too many short term RPS: %d.\n",
                ptSps->uiNbStRps);
-		iRet = -1;
-		goto exit;
+        iRet = -1;
+        goto exit;
     }
     for (i = 0; i < ptSps->uiNbStRps; i++) {
         if ((iRet = hevcDecodeShortTermRps(pvBuf, &ptSps->atStRps[i],
@@ -1891,8 +1891,8 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
         if (ptSps->u8NumLongTermRefPicsSps > HEVC_MAX_LONG_TERM_REF_PICS) {
             RPT(RPT_ERR, "Too many long term ref pics: %d.\n",
                    ptSps->u8NumLongTermRefPicsSps);
-			iRet = -1;
-			goto exit;
+            iRet = -1;
+            goto exit;
         }
         for (i = 0; i < ptSps->u8NumLongTermRefPicsSps; i++) {
             ptSps->au16LtRefPicPocLsbSps[i]       = getBits(pvBuf, ptSps->uiLog2MaxPocLsb);
@@ -1962,14 +1962,14 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
     if (ptSps->uiLog2CtbSize > HEVC_MAX_LOG2_CTB_SIZE) {
         RPT(RPT_ERR, "CTB size out of range: 2^%d\n", ptSps->uiLog2CtbSize);
         iRet = -1;
-		goto exit;
+        goto exit;
     }
     if (ptSps->uiLog2CtbSize < 4) {
         RPT(RPT_ERR,
                "uiLog2CtbSize %d differs from the bounds of any known profile\n",
                ptSps->uiLog2CtbSize);
         iRet = -1;
-		goto exit;
+        goto exit;
     }
 
     ptSps->iCtbWidth  = (ptSps->iWidth  + (1 << ptSps->uiLog2CtbSize) - 1) >> ptSps->uiLog2CtbSize;
@@ -1990,201 +1990,201 @@ int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps )
         avModUintp2c(ptSps->iHeight, ptSps->uiLog2MinCbSize)) {
         RPT(RPT_ERR, "Invalid coded frame dimensions.\n");
         iRet = -1;
-		goto exit;
+        goto exit;
     }
 
     if (ptSps->iMaxTransformHierarchyDepthInter > ptSps->uiLog2CtbSize - ptSps->uiLog2MinTbSize) {
         RPT(RPT_ERR, "iMaxTransformHierarchyDepthInter out of range: %d\n",
                ptSps->iMaxTransformHierarchyDepthInter);
         iRet = -1;
-		goto exit;
+        goto exit;
     }
     if (ptSps->iMaxTransformHierarchyDepthIntra > ptSps->uiLog2CtbSize - ptSps->uiLog2MinTbSize) {
         RPT(RPT_ERR, "iMaxTransformHierarchyDepthIntra out of range: %d\n",
                ptSps->iMaxTransformHierarchyDepthIntra);
         iRet = -1;
-		goto exit;
+        goto exit;
     }
     if (ptSps->uiLog2MaxTrafoSize > FFMIN(ptSps->uiLog2CtbSize, 5)) {
         RPT(RPT_ERR,
                "max transform block size out of range: %d\n",
                ptSps->uiLog2MaxTrafoSize);
         iRet = -1;
-		goto exit;
+        goto exit;
     }
 
     if (getBitsLeft(pvBuf) < 0) {
         RPT(RPT_ERR,
                "Overread SPS by %d bits\n", -getBitsLeft(pvBuf));
         iRet = -1;
-		goto exit;
+        goto exit;
     }
 
-	
+    
 exit:
 
-	getBitContextFree(pvBuf);
-	return iRet;
+    getBitContextFree(pvBuf);
+    return iRet;
 
 }
 
 
 int h265DecVideoParameterSet( void *pvBufSrc, T_HEVCVPS *ptVps )
 {
-	int iRet = 0;
+    int iRet = 0;
     int i,j;
     int uiVpsId = 0;
-	
-	void *pvBuf = NULL;
-	if(NULL == pvBufSrc || NULL == ptVps)
-	{
-		RPT(RPT_ERR,"ERR null pointer\n");
-		iRet = -1;
-		goto exit;
-	}
+    
+    void *pvBuf = NULL;
+    if(NULL == pvBufSrc || NULL == ptVps)
+    {
+        RPT(RPT_ERR,"ERR null pointer\n");
+        iRet = -1;
+        goto exit;
+    }
 
-	memset((void *)ptVps, 0, sizeof(T_HEVCVPS));
+    memset((void *)ptVps, 0, sizeof(T_HEVCVPS));
 
-	pvBuf = deEmulationPrevention(pvBufSrc);
-	if(NULL == pvBuf)
-	{
-		RPT(RPT_ERR,"ERR null pointer\n");
-		iRet = -1;
-		goto exit;
-	}
+    pvBuf = deEmulationPrevention(pvBufSrc);
+    if(NULL == pvBuf)
+    {
+        RPT(RPT_ERR,"ERR null pointer\n");
+        iRet = -1;
+        goto exit;
+    }
 
-	RPT(RPT_DBG, "Decoding VPS\n");
+    RPT(RPT_DBG, "Decoding VPS\n");
 
-	uiVpsId = getBits(pvBuf, 4);
-	if (uiVpsId >= HEVC_MAX_VPS_COUNT) {
-		RPT(RPT_ERR, "VPS id out of range: %d\n", uiVpsId);
-		iRet = -1;
-		goto exit;
-	}
+    uiVpsId = getBits(pvBuf, 4);
+    if (uiVpsId >= HEVC_MAX_VPS_COUNT) {
+        RPT(RPT_ERR, "VPS id out of range: %d\n", uiVpsId);
+        iRet = -1;
+        goto exit;
+    }
 
-	if (getBits(pvBuf, 2) != 3) { // vps_reserved_three_2bits
-		RPT(RPT_ERR, "vps_reserved_three_2bits is not three\n");
-		iRet = -1;
-		goto exit;
-	}
+    if (getBits(pvBuf, 2) != 3) { // vps_reserved_three_2bits
+        RPT(RPT_ERR, "vps_reserved_three_2bits is not three\n");
+        iRet = -1;
+        goto exit;
+    }
 
-	ptVps->iVpsMaxLayers 			  = getBits(pvBuf, 6) + 1;
-	ptVps->iVpsMaxSubLayers 		  = getBits(pvBuf, 3) + 1;
-	ptVps->u8VpsTemporalIdNestingFlag = getOneBit(pvBuf);
+    ptVps->iVpsMaxLayers 			  = getBits(pvBuf, 6) + 1;
+    ptVps->iVpsMaxSubLayers 		  = getBits(pvBuf, 3) + 1;
+    ptVps->u8VpsTemporalIdNestingFlag = getOneBit(pvBuf);
 
-	if (getBits(pvBuf, 16) != 0xffff) { // vps_reserved_ffff_16bits
-		RPT(RPT_ERR, "vps_reserved_ffff_16bits is not 0xffff\n");
-		iRet = -1;
-		goto exit;
-	}
+    if (getBits(pvBuf, 16) != 0xffff) { // vps_reserved_ffff_16bits
+        RPT(RPT_ERR, "vps_reserved_ffff_16bits is not 0xffff\n");
+        iRet = -1;
+        goto exit;
+    }
 
-	if (ptVps->iVpsMaxSubLayers > HEVC_MAX_SUB_LAYERS) {
-		RPT(RPT_ERR, "iVpsMaxSubLayers out of range: %d\n",
-			   ptVps->iVpsMaxSubLayers);
-		iRet = -1;
-		goto exit;
-	}
+    if (ptVps->iVpsMaxSubLayers > HEVC_MAX_SUB_LAYERS) {
+        RPT(RPT_ERR, "iVpsMaxSubLayers out of range: %d\n",
+               ptVps->iVpsMaxSubLayers);
+        iRet = -1;
+        goto exit;
+    }
 
-	if (parsePtl(pvBuf, &ptVps->tPtl, ptVps->iVpsMaxSubLayers) < 0){
-		iRet = -1;
-		goto exit;
-	}
+    if (parsePtl(pvBuf, &ptVps->tPtl, ptVps->iVpsMaxSubLayers) < 0){
+        iRet = -1;
+        goto exit;
+    }
 
-	ptVps->iVpsSubLayerOrderingInfoPresentFlag = getOneBit(pvBuf);
+    ptVps->iVpsSubLayerOrderingInfoPresentFlag = getOneBit(pvBuf);
 
-	i = ptVps->iVpsSubLayerOrderingInfoPresentFlag ? 0 : ptVps->iVpsMaxSubLayers - 1;
-	for (; i < ptVps->iVpsMaxSubLayers; i++) {
-		ptVps->uiVpsMaxDecPicBuffering[i] = parseUe(pvBuf) + 1;
-		ptVps->auiVpsNumReorderPics[i]	  = parseUe(pvBuf);
-		ptVps->auiVpsMaxLatencyIncrease[i]  = parseUe(pvBuf) - 1;
+    i = ptVps->iVpsSubLayerOrderingInfoPresentFlag ? 0 : ptVps->iVpsMaxSubLayers - 1;
+    for (; i < ptVps->iVpsMaxSubLayers; i++) {
+        ptVps->uiVpsMaxDecPicBuffering[i] = parseUe(pvBuf) + 1;
+        ptVps->auiVpsNumReorderPics[i]	  = parseUe(pvBuf);
+        ptVps->auiVpsMaxLatencyIncrease[i]  = parseUe(pvBuf) - 1;
 
-		if (ptVps->uiVpsMaxDecPicBuffering[i] > HEVC_MAX_DPB_SIZE || !ptVps->uiVpsMaxDecPicBuffering[i]) {
-			RPT(RPT_ERR, "vps_max_dec_pic_buffering_minus1 out of range: %d\n",
-				   ptVps->uiVpsMaxDecPicBuffering[i] - 1);
-			iRet = -1;
-			goto exit;
-		}
-		if (ptVps->auiVpsNumReorderPics[i] > ptVps->uiVpsMaxDecPicBuffering[i] - 1) {
-			RPT(RPT_WRN, "vps_max_num_reorder_pics out of range: %d\n",
-				   ptVps->auiVpsNumReorderPics[i]);
-		}
-	}
+        if (ptVps->uiVpsMaxDecPicBuffering[i] > HEVC_MAX_DPB_SIZE || !ptVps->uiVpsMaxDecPicBuffering[i]) {
+            RPT(RPT_ERR, "vps_max_dec_pic_buffering_minus1 out of range: %d\n",
+                   ptVps->uiVpsMaxDecPicBuffering[i] - 1);
+            iRet = -1;
+            goto exit;
+        }
+        if (ptVps->auiVpsNumReorderPics[i] > ptVps->uiVpsMaxDecPicBuffering[i] - 1) {
+            RPT(RPT_WRN, "vps_max_num_reorder_pics out of range: %d\n",
+                   ptVps->auiVpsNumReorderPics[i]);
+        }
+    }
 
-	ptVps->iVpsMaxLayerId	= getBits(pvBuf, 6);
-	ptVps->iVpsNumLayerSets = parseUe(pvBuf) + 1;
-	if (ptVps->iVpsNumLayerSets < 1 || ptVps->iVpsNumLayerSets > 1024 ||
-		(ptVps->iVpsNumLayerSets - 1LL) * (ptVps->iVpsMaxLayerId + 1LL) > getBitsLeft(pvBuf)) {
-		RPT(RPT_ERR, "too many layer_id_included_flags\n");
-		iRet = -1;
-		goto exit;
-	}
+    ptVps->iVpsMaxLayerId	= getBits(pvBuf, 6);
+    ptVps->iVpsNumLayerSets = parseUe(pvBuf) + 1;
+    if (ptVps->iVpsNumLayerSets < 1 || ptVps->iVpsNumLayerSets > 1024 ||
+        (ptVps->iVpsNumLayerSets - 1LL) * (ptVps->iVpsMaxLayerId + 1LL) > getBitsLeft(pvBuf)) {
+        RPT(RPT_ERR, "too many layer_id_included_flags\n");
+        iRet = -1;
+        goto exit;
+    }
 
-	for (i = 1; i < ptVps->iVpsNumLayerSets; i++)
-		for (j = 0; j <= ptVps->iVpsMaxLayerId; j++)
-			getBits(pvBuf, 1);  // layer_id_included_flag[i][j]
+    for (i = 1; i < ptVps->iVpsNumLayerSets; i++)
+        for (j = 0; j <= ptVps->iVpsMaxLayerId; j++)
+            getBits(pvBuf, 1);  // layer_id_included_flag[i][j]
 
-	ptVps->u8VpsTimingInfoPresentFlag = getOneBit(pvBuf);
-	if (ptVps->u8VpsTimingInfoPresentFlag) {
-		ptVps->u32VpsNumUnitsInTick				 = getBits(pvBuf, 32);
-		ptVps->u32VpsTimeScale 					 = getBits(pvBuf, 32);
-		ptVps->u8VpsPocProportionalToTimingFlag = getOneBit(pvBuf);
-		if (ptVps->u8VpsPocProportionalToTimingFlag)
-			ptVps->iVpsNumTicksPocDiffOne = parseUe(pvBuf) + 1;
-		ptVps->iVpsNumHrdParameters = parseUe(pvBuf);
-		if (ptVps->iVpsNumHrdParameters > (unsigned)ptVps->iVpsNumLayerSets) {
-			RPT(RPT_ERR,
-				   "iVpsNumHrdParameters %d is invalid\n", ptVps->iVpsNumHrdParameters);
-			iRet = -1;
-			goto exit;
-		}
-		for (i = 0; i < ptVps->iVpsNumHrdParameters; i++) {
-			int common_inf_present = 1;
+    ptVps->u8VpsTimingInfoPresentFlag = getOneBit(pvBuf);
+    if (ptVps->u8VpsTimingInfoPresentFlag) {
+        ptVps->u32VpsNumUnitsInTick				 = getBits(pvBuf, 32);
+        ptVps->u32VpsTimeScale 					 = getBits(pvBuf, 32);
+        ptVps->u8VpsPocProportionalToTimingFlag = getOneBit(pvBuf);
+        if (ptVps->u8VpsPocProportionalToTimingFlag)
+            ptVps->iVpsNumTicksPocDiffOne = parseUe(pvBuf) + 1;
+        ptVps->iVpsNumHrdParameters = parseUe(pvBuf);
+        if (ptVps->iVpsNumHrdParameters > (unsigned)ptVps->iVpsNumLayerSets) {
+            RPT(RPT_ERR,
+                   "iVpsNumHrdParameters %d is invalid\n", ptVps->iVpsNumHrdParameters);
+            iRet = -1;
+            goto exit;
+        }
+        for (i = 0; i < ptVps->iVpsNumHrdParameters; i++) {
+            int common_inf_present = 1;
 
-			parseUe(pvBuf); // hrd_layer_set_idx
-			if (i)
-				common_inf_present = getOneBit(pvBuf);
-			decodeHrd(pvBuf, common_inf_present, ptVps->iVpsMaxSubLayers);
-		}
-	}
-	getOneBit(pvBuf); /* vps_extension_flag */
+            parseUe(pvBuf); // hrd_layer_set_idx
+            if (i)
+                common_inf_present = getOneBit(pvBuf);
+            decodeHrd(pvBuf, common_inf_present, ptVps->iVpsMaxSubLayers);
+        }
+    }
+    getOneBit(pvBuf); /* vps_extension_flag */
 
-	if (getBitsLeft(pvBuf) < 0) {
-		RPT(RPT_ERR,
-			   "Overread VPS by %d bits\n", -getBitsLeft(pvBuf));
-		
-		iRet = -1;
-		goto exit;
-	}
+    if (getBitsLeft(pvBuf) < 0) {
+        RPT(RPT_ERR,
+               "Overread VPS by %d bits\n", -getBitsLeft(pvBuf));
+        
+        iRet = -1;
+        goto exit;
+    }
 
 
 exit:
 
-	getBitContextFree(pvBuf);
-	return iRet;
+    getBitContextFree(pvBuf);
+    return iRet;
 
 }
-	
+    
 void h264GetWidthHeight(T_SPS *ptSps, int *piWidth, int *piHeight)
 {
-	// ¿í¸ß¼ÆËã¹«Ê½
-	int iCodeWidth = 0;
-	int iCodedHeight = 0;
-	iCodeWidth	= 16 * ptSps->iMbWidth;
-	iCodedHeight = 16 * ptSps->iMbHeight;
-	*piWidth		 = iCodeWidth  - (ptSps->uiCropRight + ptSps->uiCropLeft);
-	*piHeight		 = iCodedHeight - (ptSps->uiCropTop	+ ptSps->uiCropBottom);
-	 if (*piWidth <= 0 || *piHeight <= 0) {
-		 *piWidth  = iCodeWidth;
-		 *piHeight = iCodedHeight;
-	 }
+    // ¿í¸ß¼ÆËã¹«Ê½
+    int iCodeWidth = 0;
+    int iCodedHeight = 0;
+    iCodeWidth	= 16 * ptSps->iMbWidth;
+    iCodedHeight = 16 * ptSps->iMbHeight;
+    *piWidth		 = iCodeWidth  - (ptSps->uiCropRight + ptSps->uiCropLeft);
+    *piHeight		 = iCodedHeight - (ptSps->uiCropTop	+ ptSps->uiCropBottom);
+     if (*piWidth <= 0 || *piHeight <= 0) {
+         *piWidth  = iCodeWidth;
+         *piHeight = iCodedHeight;
+     }
 
-	RPT(RPT_DBG, "iCodeWidth:%d, iCodedHeight:%d\n", iCodeWidth, iCodedHeight);
+    RPT(RPT_DBG, "iCodeWidth:%d, iCodedHeight:%d\n", iCodeWidth, iCodedHeight);
 
-	RPT(RPT_DBG, "*piWidth:%d, *piHeight:%d\n", *piWidth, *piHeight);
+    RPT(RPT_DBG, "*piWidth:%d, *piHeight:%d\n", *piWidth, *piHeight);
 
-	RPT(RPT_DBG, "ptSps->uiCropRight:%d, ptSps->uiCropLeft:%d\n", ptSps->uiCropRight, ptSps->uiCropLeft);
+    RPT(RPT_DBG, "ptSps->uiCropRight:%d, ptSps->uiCropLeft:%d\n", ptSps->uiCropRight, ptSps->uiCropLeft);
 
-	RPT(RPT_DBG, "ptSps->uiCropTop:%d, ptSps->uiCropBottom:%d\n", ptSps->uiCropTop, ptSps->uiCropBottom);
+    RPT(RPT_DBG, "ptSps->uiCropTop:%d, ptSps->uiCropBottom:%d\n", ptSps->uiCropTop, ptSps->uiCropBottom);
 
 }
 
@@ -2213,43 +2213,43 @@ void h264GeFramerate(T_SPS *ptSps, float *pfFramerate)
     switch(iFrInt)
     {
         case 23:// 23.98
-			RPT(RPT_DBG, "frame rate:23.98");
+            RPT(RPT_DBG, "frame rate:23.98");
             break;
         case 24:
-			RPT(RPT_DBG, "frame rate:24");
+            RPT(RPT_DBG, "frame rate:24");
             break;
         case 25:
-			RPT(RPT_DBG, "frame rate:25");
+            RPT(RPT_DBG, "frame rate:25");
             break;
         case 29://29.97
-        	RPT(RPT_DBG, "frame rate:29.97");
+            RPT(RPT_DBG, "frame rate:29.97");
             break;
         case 30:
-			RPT(RPT_DBG, "frame rate:30");
+            RPT(RPT_DBG, "frame rate:30");
             break;
         case 50:
-			RPT(RPT_DBG, "frame rate:50");
+            RPT(RPT_DBG, "frame rate:50");
             break;
         case 59://59.94
-        	RPT(RPT_DBG, "frame rate:59.94");
+            RPT(RPT_DBG, "frame rate:59.94");
             break;
         case 60:
-			RPT(RPT_DBG, "frame rate:60");
+            RPT(RPT_DBG, "frame rate:60");
             break;
         case 6:
-			RPT(RPT_DBG, "frame rate:6");
+            RPT(RPT_DBG, "frame rate:6");
             break;
         case 8:
-			RPT(RPT_DBG, "frame rate:8");
+            RPT(RPT_DBG, "frame rate:8");
             break;
         case 12:
-			RPT(RPT_DBG, "frame rate:12");
+            RPT(RPT_DBG, "frame rate:12");
             break;
         case 15:
-			RPT(RPT_DBG, "frame rate:15");
+            RPT(RPT_DBG, "frame rate:15");
             break;
         case 10:
-			RPT(RPT_DBG, "frame rate:10");
+            RPT(RPT_DBG, "frame rate:10");
             break;
 
         default:
@@ -2266,21 +2266,21 @@ void h264GeFramerate(T_SPS *ptSps, float *pfFramerate)
 void h265GetWidthHeight(T_HEVCSPS *ptSps, int *piWidth, int *piHeight)
 {
 #if 1
-	int iCodeWidth = 0;
-	int iCodedHeight = 0;
-	iCodeWidth	= ptSps->iWidth;
-	iCodedHeight = ptSps->iHeight;
-	*piWidth		 = ptSps->iWidth  - ptSps->tOutputWindow.uiLeftOffset - ptSps->tOutputWindow.uiRightOffset;
-	*piHeight		 = ptSps->iHeight - ptSps->tOutputWindow.uiTopOffset  - ptSps->tOutputWindow.uiBottomOffset;
+    int iCodeWidth = 0;
+    int iCodedHeight = 0;
+    iCodeWidth	= ptSps->iWidth;
+    iCodedHeight = ptSps->iHeight;
+    *piWidth		 = ptSps->iWidth  - ptSps->tOutputWindow.uiLeftOffset - ptSps->tOutputWindow.uiRightOffset;
+    *piHeight		 = ptSps->iHeight - ptSps->tOutputWindow.uiTopOffset  - ptSps->tOutputWindow.uiBottomOffset;
 
 
-	RPT(RPT_DBG, "iCodeWidth:%d, iCodedHeight:%d\n", iCodeWidth, iCodedHeight);
+    RPT(RPT_DBG, "iCodeWidth:%d, iCodedHeight:%d\n", iCodeWidth, iCodedHeight);
 
-	RPT(RPT_DBG, "*piWidth:%d, *piHeight:%d\n", *piWidth, *piHeight);
+    RPT(RPT_DBG, "*piWidth:%d, *piHeight:%d\n", *piWidth, *piHeight);
 
-	RPT(RPT_DBG, "ptSps->tOutputWindow.uiRightOffset:%d, ptSps->tOutputWindow.uiLeftOffset:%d\n", ptSps->tOutputWindow.uiRightOffset, ptSps->tOutputWindow.uiLeftOffset);
+    RPT(RPT_DBG, "ptSps->tOutputWindow.uiRightOffset:%d, ptSps->tOutputWindow.uiLeftOffset:%d\n", ptSps->tOutputWindow.uiRightOffset, ptSps->tOutputWindow.uiLeftOffset);
 
-	RPT(RPT_DBG, "ptSps->tOutputWindow.uiTopOffset:%d, ptSps->tOutputWindow.uiBottomOffset:%d\n", ptSps->tOutputWindow.uiTopOffset, ptSps->tOutputWindow.uiBottomOffset);
+    RPT(RPT_DBG, "ptSps->tOutputWindow.uiTopOffset:%d, ptSps->tOutputWindow.uiBottomOffset:%d\n", ptSps->tOutputWindow.uiTopOffset, ptSps->tOutputWindow.uiBottomOffset);
 #endif
 
 }
@@ -2290,15 +2290,15 @@ void h265GetWidthHeight(T_HEVCSPS *ptSps, int *piWidth, int *piHeight)
 void h265GeFramerate(T_HEVCVPS *ptVps, T_HEVCSPS *ptSps,float *pfFramerate)
 {
     if (ptVps && ptVps->u8VpsTimingInfoPresentFlag) {
-		*pfFramerate = (float)(ptVps->u32VpsTimeScale) / (float)(ptVps->u32VpsNumUnitsInTick);
-	
+        *pfFramerate = (float)(ptVps->u32VpsTimeScale) / (float)(ptVps->u32VpsNumUnitsInTick);
+    
     } else if (ptSps && ptSps->tVui.iVuiTimingInfoPresentFlag && ptSps->iVuiPresent) {
-		*pfFramerate = (float)(ptSps->tVui.u32VuiTimeScale) / (float)(ptSps->tVui.u32VuiNumUnitsInTick);
+        *pfFramerate = (float)(ptSps->tVui.u32VuiTimeScale) / (float)(ptSps->tVui.u32VuiNumUnitsInTick);
     }
-	else{
-		//vps sps可能不包含帧率
-		*pfFramerate = 0.0F;
-		RPT(RPT_WRN, "frame rate:0");
-	}
+    else{
+        //vps sps可能不包含帧率
+        *pfFramerate = 0.0F;
+        RPT(RPT_WRN, "frame rate:0");
+    }
 }
 

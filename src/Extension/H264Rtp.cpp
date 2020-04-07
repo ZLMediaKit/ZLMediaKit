@@ -1,28 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
- * Copyright (c) 2019 火宣 <459502659@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "H264Rtp.h"
@@ -70,15 +53,13 @@ H264RtpDecoder::H264RtpDecoder() {
 H264Frame::Ptr  H264RtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<H264Frame>::obtainObj();
-    frame->buffer.clear();
-    frame->iPrefixSize = 4;
+    frame->_buffer.clear();
+    frame->_prefix_size = 4;
     return frame;
 }
 
 bool H264RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
-    key_pos = decodeRtp(rtp);
-    RtpCodec::inputRtp(rtp, key_pos);
-    return key_pos;
+    return decodeRtp(rtp);
 }
 
 bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
@@ -90,24 +71,24 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
      * Type==7:SPS frame
      * Type==8:PPS frame
      */
-	/*
-	RTF3984 5.2节  Common Structure of the RTP Payload Format
+    /*
+    RTF3984 5.2节  Common Structure of the RTP Payload Format
     Table 1.  Summary of NAL unit types and their payload structures
 
-	   Type   Packet    Type name                        Section
-	   ---------------------------------------------------------
-	   0      undefined                                    -
-	   1-23   NAL unit  Single NAL unit packet per H.264   5.6
-	   24     STAP-A    Single-time aggregation packet     5.7.1
-	   25     STAP-B    Single-time aggregation packet     5.7.1
-	   26     MTAP16    Multi-time aggregation packet      5.7.2
-	   27     MTAP24    Multi-time aggregation packet      5.7.2
-	   28     FU-A      Fragmentation unit                 5.8
-	   29     FU-B      Fragmentation unit                 5.8
-	   30-31  undefined                                    -
+       Type   Packet    Type name                        Section
+       ---------------------------------------------------------
+       0      undefined                                    -
+       1-23   NAL unit  Single NAL unit packet per H.264   5.6
+       24     STAP-A    Single-time aggregation packet     5.7.1
+       25     STAP-B    Single-time aggregation packet     5.7.1
+       26     MTAP16    Multi-time aggregation packet      5.7.2
+       27     MTAP24    Multi-time aggregation packet      5.7.2
+       28     FU-A      Fragmentation unit                 5.8
+       29     FU-B      Fragmentation unit                 5.8
+       30-31  undefined                                    -
 
 
-	*/
+    */
     const uint8_t *frame = (uint8_t *) rtppack->data() + rtppack->offset;
     int length = rtppack->size() - rtppack->offset;
     NALU nal;
@@ -115,9 +96,9 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
     if (nal.type >= 0 && nal.type < 24) {
         //a full frame
-        _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
-        _h264frame->buffer.append((char *)frame, length);
-        _h264frame->timeStamp = rtppack->timeStamp;
+        _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
+        _h264frame->_buffer.append((char *)frame, length);
+        _h264frame->_pts = rtppack->timeStamp;
         auto key = _h264frame->keyFrame();
         onGetH264(_h264frame);
         return (key); //i frame
@@ -144,9 +125,9 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
                     //过小的帧丢弃
                     NALU nal;
                     MakeNalu(ptr[0], nal);
-                    _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
-                    _h264frame->buffer.append((char *)ptr, len);
-                    _h264frame->timeStamp = rtppack->timeStamp;
+                    _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
+                    _h264frame->_buffer.append((char *)ptr, len);
+                    _h264frame->_pts = rtppack->timeStamp;
                     if(nal.type == H264Frame::NAL_IDR){
                         haveIDR = true;
                     }
@@ -164,10 +145,10 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             if (fu.S) {
                 //该帧的第一个rtp包  FU-A start
                 char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
-                _h264frame->buffer.assign("\x0\x0\x0\x1", 4);
-                _h264frame->buffer.push_back(tmp);
-                _h264frame->buffer.append((char *)frame + 2, length - 2);
-                _h264frame->timeStamp = rtppack->timeStamp;
+                _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
+                _h264frame->_buffer.push_back(tmp);
+                _h264frame->_buffer.append((char *)frame + 2, length - 2);
+                _h264frame->_pts = rtppack->timeStamp;
                 //该函数return时，保存下当前sequence,以便下次对比seq是否连续
                 _lastSeq = rtppack->sequence;
                 return _h264frame->keyFrame();
@@ -175,25 +156,24 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
             if (rtppack->sequence != _lastSeq + 1 && rtppack->sequence != 0) {
                 //中间的或末尾的rtp包，其seq必须连续(如果回环了则判定为连续)，否则说明rtp丢包，那么该帧不完整，必须得丢弃
-                _h264frame->buffer.clear();
+                _h264frame->_buffer.clear();
                 WarnL << "rtp sequence不连续: " << rtppack->sequence << " != " << _lastSeq << " + 1,该帧被废弃";
                 return false;
             }
 
             if (!fu.E) {
                 //该帧的中间rtp包  FU-A mid
-                _h264frame->buffer.append((char *)frame + 2, length - 2);
+                _h264frame->_buffer.append((char *)frame + 2, length - 2);
                 //该函数return时，保存下当前sequence,以便下次对比seq是否连续
                 _lastSeq = rtppack->sequence;
                 return false;
             }
 
             //该帧最后一个rtp包  FU-A end
-            _h264frame->buffer.append((char *)frame + 2, length - 2);
-            _h264frame->timeStamp = rtppack->timeStamp;
-            auto key = _h264frame->keyFrame();
+            _h264frame->_buffer.append((char *)frame + 2, length - 2);
+            _h264frame->_pts = rtppack->timeStamp;
             onGetH264(_h264frame);
-            return key;
+            return false;
         }
 
         default:{
@@ -211,8 +191,19 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 }
 
 void H264RtpDecoder::onGetH264(const H264Frame::Ptr &frame) {
-    //写入环形缓存
-    RtpCodec::inputFrame(frame);
+    auto flag = _dts_generator.getDts(frame->_pts,frame->_dts);
+    if(!flag){
+        if(frame->configFrame() || frame->keyFrame()){
+            flag = true;
+            frame->_dts = frame->_pts;
+        }
+    }
+
+    //根据pts计算dts
+    if(flag){
+        //写入环形缓存
+        RtpCodec::inputFrame(frame);
+    }
     _h264frame = obtainFrame();
 }
 
@@ -232,11 +223,9 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ui32Ssrc,
 }
 
 void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    RtpCodec::inputFrame(frame);
-
     GET_CONFIG(uint32_t,cycleMS,Rtp::kCycleMS);
     auto pcData = frame->data() + frame->prefixSize();
-    auto uiStamp = frame->stamp();
+    auto uiStamp = frame->pts();
     auto iLen = frame->size() - frame->prefixSize();
     //获取NALU的5bit 帧类型
     unsigned char naluType =  H264_TYPE(pcData[0]);

@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_FILEREADER_H
@@ -32,6 +16,7 @@
 #include "Network/Buffer.h"
 #include "Util/ResourcePool.h"
 #include "Util/logger.h"
+#include "Thread/WorkThreadPool.h"
 
 using namespace std;
 using namespace toolkit;
@@ -45,23 +30,55 @@ namespace mediakit {
 /**
  * http content部分基类定义
  */
-class HttpBody{
+class HttpBody : public std::enable_shared_from_this<HttpBody>{
 public:
     typedef std::shared_ptr<HttpBody> Ptr;
-    HttpBody(){}
+    HttpBody(){
+//        _async_read_thread = WorkThreadPool::Instance().getPoller();
+    }
     virtual ~HttpBody(){}
 
     /**
-     * 剩余数据大小
+     * 剩余数据大小，如果返回>=INT64_MAX, 那么就不设置content-length
      */
     virtual uint64_t remainSize() { return 0;};
 
     /**
      * 读取一定字节数，返回大小可能小于size
      * @param size 请求大小
-     * @return 字节对象
+     * @return 字节对象,如果读完了，那么请返回nullptr
      */
     virtual Buffer::Ptr readData(uint32_t size) { return nullptr;};
+
+    /**
+     * 异步请求读取一定字节数，返回大小可能小于size
+     * @param size 请求大小
+     * @param cb 回调函数
+     */
+    virtual void readDataAsync(uint32_t size,const function<void(const Buffer::Ptr &buf)> &cb){
+#if 0
+        if(size >= remainSize()){
+            //假如剩余数据很小，那么同步获取(为了优化性能)
+            cb(readData(size));
+            return;
+        }
+        //如果是大文件，那么后台读取
+        weak_ptr<HttpBody> weakSelf = shared_from_this();
+        _async_read_thread->async([cb,size,weakSelf](){
+            auto strongSelf = weakSelf.lock();
+            if(strongSelf){
+                cb(strongSelf->readData(size));
+            }
+        });
+#else
+        //由于unix和linux是通过mmap的方式读取文件，所以把读文件操作放在后台线程并不能提高性能
+        //反而会由于频繁的线程切换导致性能降低以及延时增加，所以我们默认同步获取文件内容
+        //(其实并没有读，拷贝文件数据时在内核态完成文件读)
+        cb(readData(size));
+#endif
+    }
+private:
+//    EventPoller::Ptr _async_read_thread;
 };
 
 /**

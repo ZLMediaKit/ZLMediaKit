@@ -1,6 +1,12 @@
-﻿//
-// Created by xzl on 2019/3/27.
-//
+﻿/*
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+ */
 
 #include "Util/MD5.h"
 #include "Util/base64.h"
@@ -43,25 +49,46 @@ void RtspPusher::teardown() {
 }
 
 void RtspPusher::publish(const string &strUrl) {
-    auto userAndPwd = FindField(strUrl.data(),"://","@");
-    Rtsp::eRtpType eType = (Rtsp::eRtpType)(int)(*this)[ kRtpType];
-    if(userAndPwd.empty()){
-        publish(strUrl,"","",eType);
+    RtspUrl url;
+    if(!url.parse(strUrl)){
+        onPublishResult(SockException(Err_other,StrPrinter << "illegal rtsp url:" << strUrl),false);
         return;
     }
-    auto suffix = FindField(strUrl.data(),"@",nullptr);
-    auto url = StrPrinter << "rtsp://" << suffix << endl;
-    if(userAndPwd.find(":") == string::npos){
-        publish(url,userAndPwd,"",eType);
-        return;
+
+    teardown();
+
+    if (url._user.size()) {
+        (*this)[kRtspUser] = url._user;
     }
-    auto user = FindField(userAndPwd.data(),nullptr,":");
-    auto pwd = FindField(userAndPwd.data(),":",nullptr);
-    publish(url,user,pwd,eType);
+    if (url._passwd.size()) {
+        (*this)[kRtspPwd] = url._passwd;
+        (*this)[kRtspPwdIsMD5] = false;
+    }
+
+    _strUrl = strUrl;
+    _eType = (Rtsp::eRtpType)(int)(*this)[kRtpType];
+    DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _eType;
+
+    weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
+    float publishTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
+    _pPublishTimer.reset( new Timer(publishTimeOutSec,  [weakSelf]() {
+        auto strongSelf=weakSelf.lock();
+        if(!strongSelf) {
+            return false;
+        }
+        strongSelf->onPublishResult(SockException(Err_timeout,"publish rtsp timeout"),false);
+        return false;
+    },getPoller()));
+
+    if(!(*this)[kNetAdapter].empty()){
+        setNetAdapter((*this)[kNetAdapter]);
+    }
+
+    startConnect(url._host, url._port, publishTimeOutSec);
 }
 
-void RtspPusher::onPublishResult(const SockException &ex) {
-    if(_pPublishTimer){
+void RtspPusher::onPublishResult(const SockException &ex, bool handshakeCompleted) {
+    if(!handshakeCompleted){
         //播放结果回调
         _pPublishTimer.reset();
         if(_onPublished){
@@ -79,62 +106,14 @@ void RtspPusher::onPublishResult(const SockException &ex) {
     }
 }
 
-void RtspPusher::publish(const string & strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType ) {
-    DebugL   << strUrl << " "
-             << (strUser.size() ? strUser : "null") << " "
-             << (strPwd.size() ? strPwd:"null") << " "
-             << eType;
-    teardown();
-
-    if(strUser.size()){
-        (*this)[kRtspUser] = strUser;
-    }
-    if(strPwd.size()){
-        (*this)[kRtspPwd] = strPwd;
-        (*this)[kRtspPwdIsMD5] = false;
-    }
-
-    _eType = eType;
-
-    auto ip = FindField(strUrl.data(), "://", "/");
-    if (!ip.size()) {
-        ip = FindField(strUrl.data(), "://", NULL);
-    }
-    auto port = atoi(FindField(ip.data(), ":", NULL).data());
-    if (port <= 0) {
-        //rtsp 默认端口554
-        port = 554;
-    } else {
-        //服务器域名
-        ip = FindField(ip.data(), NULL, ":");
-    }
-
-    _strUrl = strUrl;
-
-    weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
-    float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
-    _pPublishTimer.reset( new Timer(playTimeOutSec,  [weakSelf]() {
-        auto strongSelf=weakSelf.lock();
-        if(!strongSelf) {
-            return false;
-        }
-        strongSelf->onPublishResult(SockException(Err_timeout,"publish rtsp timeout"));
-        return false;
-    },getPoller()));
-
-    if(!(*this)[kNetAdapter].empty()){
-        setNetAdapter((*this)[kNetAdapter]);
-    }
-    startConnect(ip, port , playTimeOutSec);
-}
-
 void RtspPusher::onErr(const SockException &ex) {
-    onPublishResult(ex);
+    //定时器_pPublishTimer为空后表明握手结束了
+    onPublishResult(ex,!_pPublishTimer);
 }
 
 void RtspPusher::onConnect(const SockException &err) {
     if(err) {
-        onPublishResult(err);
+        onPublishResult(err,false);
         return;
     }
     //推流器不需要多大的接收缓存，节省内存占用
@@ -147,7 +126,8 @@ void RtspPusher::onRecv(const Buffer::Ptr &pBuf){
         input(pBuf->data(), pBuf->size());
     } catch (exception &e) {
         SockException ex(Err_other, e.what());
-        onPublishResult(ex);
+        //定时器_pPublishTimer为空后表明握手结束了
+        onPublishResult(ex,!_pPublishTimer);
     }
 }
 
@@ -321,23 +301,36 @@ void RtspPusher::sendOptions() {
     sendRtspRequest("OPTIONS",_strContentBase);
 }
 
-inline void RtspPusher::sendRtpPacket(const RtpPacket::Ptr & pkt) {
+inline void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
     //InfoL<<(int)pkt.Interleaved;
     switch (_eType) {
         case Rtsp::RTP_TCP: {
-            BufferRtp::Ptr buffer(new BufferRtp(pkt));
-            send(buffer);
+            int i = 0;
+            int size = pkt->size();
+            setSendFlushFlag(false);
+            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                if (++i == size) {
+                    setSendFlushFlag(true);
+                }
+                BufferRtp::Ptr buffer(new BufferRtp(rtp));
+                send(buffer);
+            });
         }
             break;
         case Rtsp::RTP_UDP: {
-            int iTrackIndex = getTrackIndexByTrackType(pkt->type);
-            auto &pSock = _apUdpSock[iTrackIndex];
-            if (!pSock) {
-                shutdown(SockException(Err_shutdown,"udp sock not opened yet"));
-                return;
-            }
-            BufferRtp::Ptr buffer(new BufferRtp(pkt,4));
-            pSock->send(buffer);
+            int i = 0;
+            int size = pkt->size();
+            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                int iTrackIndex = getTrackIndexByTrackType(rtp->type);
+                auto &pSock = _apUdpSock[iTrackIndex];
+                if (!pSock) {
+                    shutdown(SockException(Err_shutdown,"udp sock not opened yet"));
+                    return;
+                }
+
+                BufferRtp::Ptr buffer(new BufferRtp(rtp,4));
+                pSock->send(buffer, nullptr, 0, ++i == size);
+            });
         }
             break;
         default:
@@ -357,7 +350,6 @@ inline int RtspPusher::getTrackIndexByTrackType(TrackType type) {
     return -1;
 }
 
-
 void RtspPusher::sendRecord() {
     _onHandshake = [this](const Parser& parser){
         auto src = _pMediaSrc.lock();
@@ -367,7 +359,7 @@ void RtspPusher::sendRecord() {
 
         _pRtspReader = src->getRing()->attach(getPoller());
         weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
-        _pRtspReader->setReadCB([weakSelf](const RtpPacket::Ptr &pkt){
+        _pRtspReader->setReadCB([weakSelf](const RtspMediaSource::RingDataType &pkt){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf) {
                 return;
@@ -377,7 +369,7 @@ void RtspPusher::sendRecord() {
         _pRtspReader->setDetachCB([weakSelf](){
             auto strongSelf = weakSelf.lock();
             if(strongSelf){
-                strongSelf->onPublishResult(SockException(Err_other,"媒体源被释放"));
+                strongSelf->onPublishResult(SockException(Err_other,"媒体源被释放"), !strongSelf->_pPublishTimer);
             }
         });
         if(_eType != Rtsp::RTP_TCP){
@@ -392,7 +384,7 @@ void RtspPusher::sendRecord() {
                 return true;
             },getPoller()));
         }
-        onPublishResult(SockException(Err_success,"success"));
+        onPublishResult(SockException(Err_success,"success"), false);
         //提升发送性能
         setSocketFlags();
     };
@@ -424,7 +416,7 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url, const std
 void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrCaseMap &header_const,const string &sdp ) {
     auto header = header_const;
     header.emplace("CSeq",StrPrinter << _uiCseq++);
-    header.emplace("User-Agent",SERVER_NAME "(build in " __DATE__ " " __TIME__ ")");
+    header.emplace("User-Agent",SERVER_NAME);
 
     if(!_strSession.empty()){
         header.emplace("Session",_strSession);

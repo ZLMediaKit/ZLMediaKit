@@ -1,29 +1,15 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
+
 #include "AACRtmp.h"
+#include "Rtmp/Rtmp.h"
 
 namespace mediakit{
 
@@ -39,11 +25,25 @@ AACFrame::Ptr AACRtmpDecoder::obtainFrame() {
     return frame;
 }
 
-bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool key_pos) {
-    RtmpCodec::inputRtmp(pkt, false);
+static string getAacCfg(const RtmpPacket &thiz) {
+    string ret;
+    if (thiz.getMediaType() != FLV_CODEC_AAC) {
+        return ret;
+    }
+    if (!thiz.isCfgFrame()) {
+        return ret;
+    }
+    if (thiz.strBuf.size() < 4) {
+        WarnL << "bad aac cfg!";
+        return ret;
+    }
+    ret = thiz.strBuf.substr(2, 2);
+    return ret;
+}
 
+bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool key_pos) {
     if (pkt->isCfgFrame()) {
-        _aac_cfg = pkt->getAacCfg();
+        _aac_cfg = getAacCfg(*pkt);
         return false;
     }
     if (!_aac_cfg.empty()) {
@@ -78,19 +78,24 @@ AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track) {
     _track = dynamic_pointer_cast<AACTrack>(track);
 }
 
-void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
-    RtmpCodec::inputFrame(frame);
+void AACRtmpEncoder::makeConfigPacket() {
+    if (_track && _track->ready()) {
+        //从track中和获取aac配置信息
+        _aac_cfg = _track->getAacCfg();
+    }
 
-    if(_aac_cfg.empty()){
-        if(frame->prefixSize() >= 7){
+    if (!_aac_cfg.empty()) {
+        makeAudioConfigPkt();
+    }
+}
+
+void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
+    if (_aac_cfg.empty()) {
+        if (frame->prefixSize() >= 7) {
             //包含adts头,从adts头获取aac配置信息
             _aac_cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
-            makeAudioConfigPkt();
-        } else if(_track && _track->ready()){
-            //从track中和获取aac配置信息
-            _aac_cfg = _track->getAacCfg();
-            makeAudioConfigPkt();
         }
+        makeConfigPacket();
     }
 
     if(!_aac_cfg.empty()){
@@ -106,7 +111,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         rtmpPkt->bodySize = rtmpPkt->strBuf.size();
         rtmpPkt->chunkId = CHUNK_AUDIO;
         rtmpPkt->streamId = STREAM_MEDIA;
-        rtmpPkt->timeStamp = frame->stamp();
+        rtmpPkt->timeStamp = frame->dts();
         rtmpPkt->typeId = MSG_AUDIO;
         RtmpCodec::inputRtmp(rtmpPkt, false);
     }
@@ -138,7 +143,7 @@ void AACRtmpEncoder::makeAudioConfigPkt() {
             break;
     }
     uint8_t flvSampleBit = iSampleBit == 16;
-    uint8_t flvAudioType = 10; //aac
+    uint8_t flvAudioType = FLV_CODEC_AAC;
 
     _ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
 

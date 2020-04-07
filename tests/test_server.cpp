@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include <map>
@@ -178,23 +162,23 @@ void initEventListener() {
 
         //监听rtsp、rtmp源注册或注销事件；此处用于测试rtmp保存为flv录像，保存在http根目录下
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged, [](BroadcastMediaChangedArgs) {
-            if (schema == RTMP_SCHEMA && app == "live") {
+            if (sender.getSchema() == RTMP_SCHEMA && sender.getApp() == "live") {
                 lock_guard<mutex> lck(s_mtxFlvRecorder);
                 if (bRegist) {
-                    DebugL << "开始录制RTMP：" << schema << " " << vhost << " " << app << " " << stream;
+                    DebugL << "开始录制RTMP：" << sender.getSchema() << " " << sender.getVhost() << " " << sender.getApp() << " " << sender.getId();
                     GET_CONFIG(string, http_root, Http::kRootPath);
                     auto path =
-                            http_root + "/" + vhost + "/" + app + "/" + stream + "_" + to_string(time(NULL)) + ".flv";
+                            http_root + "/" + sender.getVhost() + "/" + sender.getApp() + "/" + sender.getId() + "_" + to_string(time(NULL)) + ".flv";
                     FlvRecorder::Ptr recorder(new FlvRecorder);
                     try {
                         recorder->startRecord(EventPollerPool::Instance().getPoller(),
                                               dynamic_pointer_cast<RtmpMediaSource>(sender.shared_from_this()), path);
-                        s_mapFlvRecorder[vhost + "/" + app + "/" + stream] = recorder;
+                        s_mapFlvRecorder[sender.getVhost() + "/" + sender.getApp() + "/" + sender.getId()] = recorder;
                     } catch (std::exception &ex) {
                         WarnL << ex.what();
                     }
                 } else {
-                    s_mapFlvRecorder.erase(vhost + "/" + app + "/" + stream);
+                    s_mapFlvRecorder.erase(sender.getVhost() + "/" + sender.getApp() + "/" + sender.getId());
                 }
             }
         });
@@ -239,7 +223,7 @@ int main(int argc,char *argv[]) {
 
     //这里是拉流地址，支持rtmp/rtsp协议，负载必须是H264+AAC
     //如果是其他不识别的音视频将会被忽略(譬如说h264+adpcm转发后会去除音频)
-    auto urlList = {"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov"
+    auto urlList = {"rtsp://admin:admin123@192.168.1.64:554/cam/realmonitor?channel=1&subtype=1"
             //rtsp链接支持输入用户名密码
             /*"rtsp://admin:jzan123456@192.168.0.122/"*/};
     map<string, PlayerProxy::Ptr> proxyMap;
@@ -258,7 +242,7 @@ int main(int argc,char *argv[]) {
         //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
         //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
 
-        PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "live", to_string(i).data()));
+        PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "live", std::string("chn") + to_string(i).data()));
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = Rtsp::RTP_TCP;
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，重试次数在配置文件中配置，默认一直重试
@@ -354,9 +338,8 @@ int main(int argc,char *argv[]) {
     signal(SIGHUP, [](int) { loadIniConfig(); });
     sem.wait();
 
-    Recorder::stopAll();
     lock_guard<mutex> lck(s_mtxFlvRecorder);
     s_mapFlvRecorder.clear();
-	return 0;
+    return 0;
 }
 

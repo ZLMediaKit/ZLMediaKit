@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_WebSocketClient_H
@@ -89,6 +73,7 @@ public:
 
     HttpWsClient(ClientTypeImp<ClientType,DataType> &delegate) : _delegate(delegate){
         _Sec_WebSocket_Key = encodeBase64(SHA1::encode_bin(makeRandStr(16, false)));
+        setPoller(delegate.getPoller());
     }
     ~HttpWsClient(){}
 
@@ -302,7 +287,7 @@ private:
             //拦截websocket数据接收
             _onRecv = [this](const Buffer::Ptr &pBuf){
                 //解析websocket数据包
-                WebSocketSplitter::decode((uint8_t*)pBuf->data(),pBuf->size());
+                this->WebSocketSplitter::decode((uint8_t*)pBuf->data(),pBuf->size());
             };
             return;
         }
@@ -348,19 +333,23 @@ public:
     /**
      * 重载startConnect方法，
      * 目的是替换TcpClient的连接服务器行为，使之先完成WebSocket握手
-     * @param strUrl websocket服务器ip或域名
+     * @param host websocket服务器ip或域名
      * @param iPort websocket服务器端口
      * @param fTimeOutSec 超时时间
      */
-    void startConnect(const string &strUrl, uint16_t iPort, float fTimeOutSec = 3) override {
+    void startConnect(const string &host, uint16_t iPort, float fTimeOutSec = 3) override {
         string ws_url;
         if(useWSS){
             //加密的ws
-            ws_url = StrPrinter << "wss://" + strUrl << ":" << iPort << "/" ;
+            ws_url = StrPrinter << "wss://" + host << ":" << iPort << "/" ;
         }else{
             //明文ws
-            ws_url = StrPrinter << "ws://" + strUrl << ":" << iPort << "/" ;
+            ws_url = StrPrinter << "ws://" + host << ":" << iPort << "/" ;
         }
+        _wsClient->startWsClient(ws_url,fTimeOutSec);
+    }
+
+    void startWebSocket(const string &ws_url,float fTimeOutSec = 3){
         _wsClient->startWsClient(ws_url,fTimeOutSec);
     }
 private:

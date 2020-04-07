@@ -1,6 +1,12 @@
-﻿//
-// Created by xzl on 2019/3/27.
-//
+﻿/*
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+ */
 
 #ifndef ZLMEDIAKIT_RTSPPUSHER_H
 #define ZLMEDIAKIT_RTSPPUSHER_H
@@ -48,8 +54,7 @@ protected:
     void onWholeRtspPacket(Parser &parser) override ;
     void onRtpPacket(const char *data,uint64_t len) override {};
 private:
-    void publish(const string &strUrl, const string &strUser, const string &strPwd,  Rtsp::eRtpType eType );
-    void onPublishResult(const SockException &ex);
+    void onPublishResult(const SockException &ex, bool handshakeCompleted);
 
     void sendAnnounce();
     void sendSetup(unsigned int uiTrackIndex);
@@ -62,7 +67,7 @@ private:
 
     inline int getTrackIndexByTrackType(TrackType type);
 
-    void sendRtpPacket(const RtpPacket::Ptr & pkt) ;
+    void sendRtpPacket(const RtspMediaSource::RingDataType & pkt) ;
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap(),const string &sdp = "" );
     void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header,const string &sdp = "");
 

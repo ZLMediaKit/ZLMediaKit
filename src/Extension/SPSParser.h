@@ -434,7 +434,7 @@ typedef struct T_HEVCSPS {
 
     int iQpBdOffset;
 
-	int iVuiPresent;
+    int iVuiPresent;
 }T_HEVCSPS;
 
 

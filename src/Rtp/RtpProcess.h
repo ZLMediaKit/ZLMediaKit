@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_RTPPROCESS_H
@@ -31,34 +15,30 @@
 
 #include "Rtsp/RtpReceiver.h"
 #include "RtpDecoder.h"
-#include "PSDecoder.h"
+#include "Decoder.h"
 #include "Common/Device.h"
+#include "Common/Stamp.h"
 using namespace mediakit;
 
 namespace mediakit{
 
 string printSSRC(uint32_t ui32Ssrc);
-
 class FrameMerger;
-class RtpProcess : public RtpReceiver , public RtpDecoder , public PSDecoder {
+class RtpProcess : public RtpReceiver , public RtpDecoder{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     RtpProcess(uint32_t ssrc);
     ~RtpProcess();
-    bool inputRtp(const char *data,int data_len, const struct sockaddr *addr);
+    bool inputRtp(const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
     bool alive();
     string get_peer_ip();
     uint16_t get_peer_port();
+    int totalReaderCount();
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
-    void onRtpDecode(const void *packet, int bytes, uint32_t timestamp, int flags) override;
-    void onPSDecode(int stream,
-                    int codecid,
-                    int flags,
-                    int64_t pts,
-                    int64_t dts,
-                    const void *data,
-                    int bytes) override ;
+    void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) override;
+    void onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts, const void *data,int bytes);
 private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
@@ -72,6 +52,9 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
     std::shared_ptr<FrameMerger> _merger;
     Ticker _last_rtp_time;
+    unordered_map<int,Stamp> _stamps;
+    uint32_t _dts = 0;
+    Decoder::Ptr _decoder;
 };
 
 }//namespace mediakit

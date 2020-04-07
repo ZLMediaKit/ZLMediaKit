@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "FFmpegSource.h"
@@ -32,13 +16,22 @@
 
 namespace FFmpeg {
 #define FFmpeg_FIELD "ffmpeg."
-const char kBin[] = FFmpeg_FIELD"bin";
-const char kCmd[] = FFmpeg_FIELD"cmd";
-const char kLog[] = FFmpeg_FIELD"log";
+const string kBin = FFmpeg_FIELD"bin";
+const string kCmd = FFmpeg_FIELD"cmd";
+const string kLog = FFmpeg_FIELD"log";
 
 onceToken token([]() {
-    mINI::Instance()[kBin] = trim(System::execute("which ffmpeg"));
-    mINI::Instance()[kCmd] = "%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
+#ifdef _WIN32
+    string ffmpeg_bin = System::execute("where ffmpeg");
+    //windows下先关闭FFmpeg日志(目前不支持日志重定向)
+    mINI::Instance()[kCmd] = "%s -re -i \"%s\" -loglevel quiet -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
+#else
+    string ffmpeg_bin = System::execute("which ffmpeg");
+    mINI::Instance()[kCmd] = "%s -re -i \"%s\" -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
+#endif
+    //默认ffmpeg命令路径为环境变量中路径
+    mINI::Instance()[kBin] = ffmpeg_bin.empty() ? "ffmpeg" : ffmpeg_bin;
+    //ffmpeg日志保存路径
     mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";
 });
 }
@@ -63,7 +56,7 @@ void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_
 
     char cmd[1024] = {0};
     snprintf(cmd, sizeof(cmd),ffmpeg_cmd.data(),ffmpeg_bin.data(),src_url.data(),dst_url.data());
-    _process.run(cmd,File::absolutePath("",ffmpeg_log));
+    _process.run(cmd,ffmpeg_log.empty() ? "" : File::absolutePath("",ffmpeg_log));
     InfoL << cmd;
 
     if(_media_info._host == "127.0.0.1"){
@@ -147,11 +140,11 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
             return;
         }
 
-        if(!bRegist ||
-           schema != strongSelf->_media_info._schema ||
-           vhost != strongSelf->_media_info._vhost ||
-           app != strongSelf->_media_info._app ||
-           stream != strongSelf->_media_info._streamid){
+        if (!bRegist ||
+            sender.getSchema() != strongSelf->_media_info._schema ||
+            sender.getVhost() != strongSelf->_media_info._vhost ||
+            sender.getApp() != strongSelf->_media_info._app ||
+            sender.getId() != strongSelf->_media_info._streamid) {
             //不是自己感兴趣的事件，忽略之
             return;
         }
@@ -192,7 +185,11 @@ void FFmpegSource::startTimer(int timeout_ms) {
                 //同步查找流
                 if (!src) {
                     //流不在线，重新拉流
-                    strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [](const SockException &) {});
+                    if(strongSelf->_replay_ticker.elapsedTime() > 10 * 1000){
+                        //上次重试时间超过10秒，那么再重试FFmpeg拉流
+                        strongSelf->_replay_ticker.resetTime();
+                        strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [](const SockException &) {});
+                    }
                 }
             });
         } else {
@@ -223,13 +220,12 @@ bool FFmpegSource::close(MediaSource &sender, bool force) {
     return true;
 }
 
-void FFmpegSource::onNoneReader(MediaSource &sender) {
+int FFmpegSource::totalReaderCount(MediaSource &sender) {
     auto listener = _listener.lock();
     if(listener){
-        listener->onNoneReader(sender);
-    }else{
-        MediaSourceEvent::onNoneReader(sender);
+        return listener->totalReaderCount(sender);
     }
+    return sender.readerCount();
 }
 
 void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {

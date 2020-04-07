@@ -1,29 +1,12 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
-
 
 #ifndef ZLMEDIAKIT_MEDIASOURCE_H
 #define ZLMEDIAKIT_MEDIASOURCE_H
@@ -39,6 +22,7 @@
 #include "Util/TimeTicker.h"
 #include "Util/NoticeCenter.h"
 #include "Extension/Track.h"
+#include "Record/Recorder.h"
 
 using namespace std;
 using namespace toolkit;
@@ -52,36 +36,36 @@ namespace mediakit {
 class MediaSource;
 class MediaSourceEvent{
 public:
+    friend class MediaSource;
     MediaSourceEvent(){};
     virtual ~MediaSourceEvent(){};
 
     // 通知拖动进度条
-    virtual bool seekTo(MediaSource &sender,uint32_t ui32Stamp){
-        return false;
-    }
-
+    virtual bool seekTo(MediaSource &sender,uint32_t ui32Stamp){ return false; }
     // 通知其停止推流
-    virtual bool close(MediaSource &sender,bool force) {
-        return false;
-    }
-
+    virtual bool close(MediaSource &sender,bool force) { return false;}
+    // 观看总人数
+    virtual int totalReaderCount(MediaSource &sender) = 0;
+    // 开启或关闭录制
+    virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) { return false; };
+    // 获取录制状态
+    virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
+private:
     // 通知无人观看
-    virtual void onNoneReader(MediaSource &sender);
+    void onNoneReader(MediaSource &sender);
+private:
+    Timer::Ptr _async_close_timer;
 };
 
+/**
+ * 解析url获取媒体相关信息
+ */
 class MediaInfo{
 public:
     MediaInfo(){}
-    MediaInfo(const string &url){
-        parse(url);
-    }
     ~MediaInfo(){}
-
+    MediaInfo(const string &url){ parse(url); }
     void parse(const string &url);
-
-    string &operator[](const string &key){
-        return _params[key];
-    }
 public:
     string _schema;
     string _host;
@@ -89,7 +73,6 @@ public:
     string _vhost;
     string _app;
     string _streamid;
-    StrCaseMap _params;
     string _param_strs;
 };
 
@@ -115,19 +98,26 @@ public:
     const string& getApp() const;
     // 流id
     const string& getId() const;
-    // 获取所有Track
-    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
-    // 获取监听者
-    const std::weak_ptr<MediaSourceEvent>& getListener() const;
 
     // 设置TrackSource
     void setTrackSource(const std::weak_ptr<TrackSource> &track_src);
+    // 获取所有Track
+    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
+
     // 设置监听者
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
-    // 获取观看者个数
+    // 获取监听者
+    const std::weak_ptr<MediaSourceEvent>& getListener() const;
+
+    // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
     virtual int readerCount() = 0;
+    // 观看者个数，包括(hls/rtsp/rtmp)
+    virtual int totalReaderCount();
+
     // 获取流当前时间戳
-    virtual uint32_t getTimeStamp(TrackType trackType) = 0;
+    virtual uint32_t getTimeStamp(TrackType trackType) { return 0; };
+    // 设置时间戳
+    virtual void setTimeStamp(uint32_t uiStamp) {};
 
     // 拖动进度条
     bool seekTo(uint32_t ui32Stamp);
@@ -135,6 +125,10 @@ public:
     bool close(bool force);
     // 该流无人观看
     void onNoneReader();
+    // 开启或关闭录制
+    virtual bool setupRecord(Recorder::type type, bool start, const string &custom_path);
+    // 获取录制状态
+    virtual bool isRecording(Recorder::type type);
 
     // 同步查找流
     static Ptr find(const string &schema, const string &vhost, const string &app, const string &id, bool bMake = true) ;
@@ -143,11 +137,11 @@ public:
     // 遍历所有流
     static void for_each_media(const function<void(const Ptr &src)> &cb);
 
+    // 从mp4文件生成MediaSource
+    static MediaSource::Ptr createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &filePath = "", bool checkApp = true);
 protected:
     void regist() ;
     bool unregist() ;
-    void unregisted();
-
 private:
     string _strSchema;
     string _strVhost;

@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "HlsMaker.h"
@@ -75,14 +59,16 @@ void HlsMaker::makeIndexFile(bool eof) {
 }
 
 
-void HlsMaker::inputData(void *data, uint32_t len, uint32_t timestamp) {
-    //分片数据中断结束
+void HlsMaker::inputData(void *data, uint32_t len, uint32_t timestamp, bool is_idr_fast_packet) {
     if (data && len) {
-        addNewSegment(timestamp);
+        if(is_idr_fast_packet){
+            addNewSegment(timestamp);
+        }
         onWriteSegment((char *) data, len);
         //记录上次写入数据时间
         _ticker_last_data.resetTime();
     } else {
+        //resetTracks时触发此逻辑
         flushLastSegment(true);
     }
 }
@@ -132,6 +118,10 @@ void HlsMaker::flushLastSegment(bool eof){
     delOldSegment();
     makeIndexFile(eof);
     _last_file_name.clear();
+}
+
+bool HlsMaker::isLive() {
+    return _seg_number != 0;
 }
 
 }//namespace mediakit

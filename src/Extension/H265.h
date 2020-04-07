@@ -1,28 +1,12 @@
 ﻿/*
-* MIT License
-*
-* Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
-*
-* This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+ */
 
 #ifndef ZLMEDIAKIT_H265_H
 #define ZLMEDIAKIT_H265_H
@@ -74,23 +58,23 @@ public:
     } NaleType;
 
     char *data() const override {
-        return (char *) buffer.data();
+        return (char *) _buffer.data();
     }
 
     uint32_t size() const override {
-        return buffer.size();
+        return _buffer.size();
     }
 
     uint32_t dts() const override {
-        return timeStamp;
+        return _dts;
     }
 
     uint32_t pts() const override {
-        return ptsStamp ? ptsStamp : timeStamp;
+        return _pts ? _pts : _dts;
     }
 
     uint32_t prefixSize() const override {
-        return iPrefixSize;
+        return _prefix_size;
     }
 
     TrackType getTrackType() const override {
@@ -102,11 +86,11 @@ public:
     }
 
     bool keyFrame() const override {
-        return isKeyFrame(H265_TYPE(buffer[iPrefixSize]));
+        return isKeyFrame(H265_TYPE(_buffer[_prefix_size]));
     }
 
     bool configFrame() const override{
-        switch(H265_TYPE(buffer[iPrefixSize])){
+        switch(H265_TYPE(_buffer[_prefix_size])){
             case H265Frame::NAL_VPS:
             case H265Frame::NAL_SPS:
             case H265Frame::NAL_PPS:
@@ -131,10 +115,10 @@ public:
     }
 
 public:
-    uint32_t timeStamp;
-    uint32_t ptsStamp = 0;
-    string buffer;
-    uint32_t iPrefixSize = 4;
+    uint32_t _dts = 0;
+    uint32_t _pts = 0;
+    uint32_t _prefix_size = 4;
+    string _buffer;
 };
 
 
@@ -202,7 +186,7 @@ public:
         _vps = vps.substr(vps_prefix_len);
         _sps = sps.substr(sps_prefix_len);
         _pps = pps.substr(pps_prefix_len);
-		onReady();
+        onReady();
     }
 
     /**
@@ -267,10 +251,10 @@ public:
     * @param frame 数据帧
     */
     void inputFrame(const Frame::Ptr &frame) override{
-		int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-        if(type == H265Frame::NAL_VPS){
-	        bool  first_frame = true;
-	        splitH264(frame->data() + frame->prefixSize(),
+        int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
+        if(frame->configFrame()){
+            bool  first_frame = true;
+            splitH264(frame->data() + frame->prefixSize(),
                   frame->size() - frame->prefixSize(),
                   [&](const char *ptr, int len){
                       if(first_frame){
@@ -288,9 +272,9 @@ public:
                           inputFrame_l(sub_frame);
                       }
                   });
-        	}else{
-				inputFrame_l(frame);
-			}
+            }else{
+                inputFrame_l(frame);
+            }
     }
 
 private:
@@ -336,7 +320,7 @@ private:
         }
     }
 
-	/**
+    /**
      * 解析sps获取宽高fps
      */
     void onReady(){
@@ -356,27 +340,27 @@ private:
         }
         if(!_vps.empty()){
             auto vpsFrame = std::make_shared<H265Frame>();
-            vpsFrame->iPrefixSize = 4;
-            vpsFrame->buffer.assign("\x0\x0\x0\x1", 4);
-            vpsFrame->buffer.append(_vps);
-            vpsFrame->timeStamp = frame->stamp();
+            vpsFrame->_prefix_size = 4;
+            vpsFrame->_buffer.assign("\x0\x0\x0\x1", 4);
+            vpsFrame->_buffer.append(_vps);
+            vpsFrame->_dts = frame->dts();
             VideoTrack::inputFrame(vpsFrame);
         }
         if (!_sps.empty()) {
             auto spsFrame = std::make_shared<H265Frame>();
-            spsFrame->iPrefixSize = 4;
-            spsFrame->buffer.assign("\x0\x0\x0\x1", 4);
-            spsFrame->buffer.append(_sps);
-            spsFrame->timeStamp = frame->stamp();
+            spsFrame->_prefix_size = 4;
+            spsFrame->_buffer.assign("\x0\x0\x0\x1", 4);
+            spsFrame->_buffer.append(_sps);
+            spsFrame->_dts = frame->dts();
             VideoTrack::inputFrame(spsFrame);
         }
 
         if (!_pps.empty()) {
             auto ppsFrame = std::make_shared<H265Frame>();
-            ppsFrame->iPrefixSize = 4;
-            ppsFrame->buffer.assign("\x0\x0\x0\x1", 4);
-            ppsFrame->buffer.append(_pps);
-            ppsFrame->timeStamp = frame->stamp();
+            ppsFrame->_prefix_size = 4;
+            ppsFrame->_buffer.assign("\x0\x0\x0\x1", 4);
+            ppsFrame->_buffer.append(_pps);
+            ppsFrame->_dts = frame->dts();
             VideoTrack::inputFrame(ppsFrame);
         }
     }

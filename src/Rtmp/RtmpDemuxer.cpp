@@ -1,36 +1,19 @@
 ﻿/*
-* MIT License
-*
-* Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
-*
-* This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+ */
 
 #include "RtmpDemuxer.h"
 #include "Extension/Factory.h"
 
 namespace mediakit {
 
-
-RtmpDemuxer::RtmpDemuxer(const AMFValue &val) {
+void RtmpDemuxer::loadMetaData(const AMFValue &val){
     try {
         makeVideoTrack(val["videocodecid"]);
         makeAudioTrack(val["audiocodecid"]);
@@ -44,7 +27,6 @@ RtmpDemuxer::RtmpDemuxer(const AMFValue &val) {
         WarnL << ex.what();
     }
 }
-
 
 bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->typeId) {
@@ -86,6 +68,7 @@ void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec) {
         if (_videoRtmpDecoder) {
             //设置rtmp解码器代理，生成的frame写入该Track
             _videoRtmpDecoder->addDelegate(_videoTrack);
+            onAddTrack(_videoTrack);
         } else {
             //找不到相应的rtmp解码器，该track无效
             _videoTrack.reset();
@@ -102,6 +85,7 @@ void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec) {
         if (_audioRtmpDecoder) {
             //设置rtmp解码器代理，生成的frame写入该Track
             _audioRtmpDecoder->addDelegate(_audioTrack);
+            onAddTrack(_audioTrack);
         } else {
             //找不到相应的rtmp解码器，该track无效
             _audioTrack.reset();

@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_MEDIASINK_H
@@ -82,6 +66,13 @@ public:
     void addTrack(const Track::Ptr & track) override;
 
     /**
+     * 添加Track完毕，如果是单Track，会最多等待3秒才会触发onAllTrackReady
+     * 这样会增加生成流的延时，如果添加了音视频双Track，那么可以不调用此方法
+     * 否则为了降低流注册延时，请手动调用此方法
+     */
+    void addTrackCompleted();
+
+    /**
      * 重置track
      */
     void resetTracks() override;
@@ -110,12 +101,23 @@ protected:
      */
     virtual void onTrackFrame(const Frame::Ptr &frame) {};
 private:
+    /**
+     * 触发onAllTrackReady事件
+     */
+    void emitAllTrackReady();
+
+    /**
+     * 检查track是否准备完毕
+     */
+    void checkTrackIfReady(const Track::Ptr &track);
+    void checkTrackIfReady_l(const Track::Ptr &track);
+private:
     mutable recursive_mutex _mtx;
-    map<int,Track::Ptr> _track_map;
-    map<int,function<void()> > _trackReadyCallback;
+    unordered_map<int,Track::Ptr> _track_map;
+    unordered_map<int,function<void()> > _trackReadyCallback;
     bool _allTrackReady = false;
-    bool _anyTrackUnReady = false;
     Ticker _ticker;
+    int _max_track_size = 2;
 };
 
 

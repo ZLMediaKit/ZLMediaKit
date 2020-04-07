@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include <sys/stat.h>
@@ -32,6 +16,7 @@
 #include "HttpFileManager.h"
 #include "Util/File.h"
 #include "HttpSession.h"
+#include "Record/HlsMediaSource.h"
 
 namespace mediakit {
 
@@ -40,51 +25,150 @@ namespace mediakit {
 // 假如播放器在60秒内都未访问该cookie，那么将重新触发hls播放鉴权
 static int kHlsCookieSecond = 60;
 static const string kCookieName = "ZL_COOKIE";
-static const string kCookiePathKey = "kCookiePathKey";
-static const string kAccessErrKey = "kAccessErrKey";
-static const string kAccessHls = "kAccessHls";
 static const string kHlsSuffix = "/hls.m3u8";
 
-static const string &getContentType(const char *name) {
+class HttpCookieAttachment{
+public:
+    HttpCookieAttachment() {};
+    ~HttpCookieAttachment() {};
+public:
+    //cookie生效作用域，本cookie只对该目录下的文件生效
+    string _path;
+    //上次鉴权失败信息,为空则上次鉴权成功
+    string _err_msg;
+    //本cookie是否为hls直播的
+    bool _is_hls = false;
+    //hls直播时的其他一些信息，主要用于播放器个数计数以及流量计数
+    HlsCookieData::Ptr _hls_data;
+    //如果是hls直播，那么判断该cookie是否使用过MediaSource::findAsync查找过
+    //如果程序未正常退出，会残余上次的hls文件，所以判断hls直播是否存在的关键不是文件存在与否
+    //而是应该判断HlsMediaSource是否已注册，但是这样会每次获取m3u8文件时都会用MediaSource::findAsync判断一次
+    //会导致程序性能低下，所以我们应该在cookie声明周期的第一次判断HlsMediaSource是否已经注册，后续通过文件存在与否判断
+    bool _have_find_media_source = false;
+};
+
+static const char *s_mime_src[][2] = {
+        {"html", "text/html"},
+        {"htm", "text/html"},
+        {"shtml", "text/html"},
+        {"css", "text/css"},
+        {"xml", "text/xml"},
+        {"gif", "image/gif"},
+        {"jpeg", "image/jpeg"},
+        {"jpg", "image/jpeg"},
+        {"js", "application/javascript"},
+        {"map", "application/javascript" },
+        {"atom", "application/atom+xml"},
+        {"rss", "application/rss+xml"},
+        {"mml", "text/mathml"},
+        {"txt", "text/plain"},
+        {"jad", "text/vnd.sun.j2me.app-descriptor"},
+        {"wml", "text/vnd.wap.wml"},
+        {"htc", "text/x-component"},
+        {"png", "image/png"},
+        {"tif", "image/tiff"},
+        {"tiff", "image/tiff"},
+        {"wbmp", "image/vnd.wap.wbmp"},
+        {"ico", "image/x-icon"},
+        {"jng", "image/x-jng"},
+        {"bmp", "image/x-ms-bmp"},
+        {"svg", "image/svg+xml"},
+        {"svgz", "image/svg+xml"},
+        {"webp", "image/webp"},
+        {"woff", "application/font-woff"},
+        {"woff2","application/font-woff" },
+        {"jar", "application/java-archive"},
+        {"war", "application/java-archive"},
+        {"ear", "application/java-archive"},
+        {"json", "application/json"},
+        {"hqx", "application/mac-binhex40"},
+        {"doc", "application/msword"},
+        {"pdf", "application/pdf"},
+        {"ps", "application/postscript"},
+        {"eps", "application/postscript"},
+        {"ai", "application/postscript"},
+        {"rtf", "application/rtf"},
+        {"m3u8", "application/vnd.apple.mpegurl"},
+        {"xls", "application/vnd.ms-excel"},
+        {"eot", "application/vnd.ms-fontobject"},
+        {"ppt", "application/vnd.ms-powerpoint"},
+        {"wmlc", "application/vnd.wap.wmlc"},
+        {"kml", "application/vnd.google-earth.kml+xml"},
+        {"kmz", "application/vnd.google-earth.kmz"},
+        {"7z", "application/x-7z-compressed"},
+        {"cco", "application/x-cocoa"},
+        {"jardiff", "application/x-java-archive-diff"},
+        {"jnlp", "application/x-java-jnlp-file"},
+        {"run", "application/x-makeself"},
+        {"pl", "application/x-perl"},
+        {"pm", "application/x-perl"},
+        {"prc", "application/x-pilot"},
+        {"pdb", "application/x-pilot"},
+        {"rar", "application/x-rar-compressed"},
+        {"rpm", "application/x-redhat-package-manager"},
+        {"sea", "application/x-sea"},
+        {"swf", "application/x-shockwave-flash"},
+        {"sit", "application/x-stuffit"},
+        {"tcl", "application/x-tcl"},
+        {"tk", "application/x-tcl"},
+        {"der", "application/x-x509-ca-cert"},
+        {"pem", "application/x-x509-ca-cert"},
+        {"crt", "application/x-x509-ca-cert"},
+        {"xpi", "application/x-xpinstall"},
+        {"xhtml", "application/xhtml+xml"},
+        {"xspf", "application/xspf+xml"},
+        {"zip", "application/zip"},
+        {"bin", "application/octet-stream"},
+        {"exe", "application/octet-stream"},
+        {"dll", "application/octet-stream"},
+        {"deb", "application/octet-stream"},
+        {"dmg", "application/octet-stream"},
+        {"iso", "application/octet-stream"},
+        {"img", "application/octet-stream"},
+        {"msi", "application/octet-stream"},
+        {"msp", "application/octet-stream"},
+        {"msm", "application/octet-stream"},
+        {"docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+        {"xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+        {"pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"},
+        {"mid", "audio/midi"},
+        {"midi", "audio/midi"},
+        {"kar", "audio/midi"},
+        {"mp3", "audio/mpeg"},
+        {"ogg", "audio/ogg"},
+        {"m4a", "audio/x-m4a"},
+        {"ra", "audio/x-realaudio"},
+        {"3gpp", "video/3gpp"},
+        {"3gp", "video/3gpp"},
+        {"ts", "video/mp2t"},
+        {"mp4", "video/mp4"},
+        {"mpeg", "video/mpeg"},
+        {"mpg", "video/mpeg"},
+        {"mov", "video/quicktime"},
+        {"webm", "video/webm"},
+        {"flv", "video/x-flv"},
+        {"m4v", "video/x-m4v"},
+        {"mng", "video/x-mng"},
+        {"asx", "video/x-ms-asf"},
+        {"asf", "video/x-ms-asf"},
+        {"wmv", "video/x-ms-wmv"},
+        {"avi", "video/x-msvideo"},
+};
+
+const string &HttpFileManager::getContentType(const char *name) {
     const char *dot;
     dot = strrchr(name, '.');
     static StrCaseMap mapType;
     static onceToken token([&]() {
-        mapType.emplace(".html", "text/html");
-        mapType.emplace(".htm", "text/html");
-        mapType.emplace(".mp4", "video/mp4");
-        mapType.emplace(".mkv", "video/x-matroska");
-        mapType.emplace(".rmvb", "application/vnd.rn-realmedia");
-        mapType.emplace(".rm", "application/vnd.rn-realmedia");
-        mapType.emplace(".m3u8", "application/vnd.apple.mpegurl");
-        mapType.emplace(".jpg", "image/jpeg");
-        mapType.emplace(".jpeg", "image/jpeg");
-        mapType.emplace(".gif", "image/gif");
-        mapType.emplace(".png", "image/png");
-        mapType.emplace(".ico", "image/x-icon");
-        mapType.emplace(".css", "text/css");
-        mapType.emplace(".js", "application/javascript");
-        mapType.emplace(".au", "audio/basic");
-        mapType.emplace(".wav", "audio/wav");
-        mapType.emplace(".avi", "video/x-msvideo");
-        mapType.emplace(".mov", "video/quicktime");
-        mapType.emplace(".qt", "video/quicktime");
-        mapType.emplace(".mpeg", "video/mpeg");
-        mapType.emplace(".mpe", "video/mpeg");
-        mapType.emplace(".vrml", "model/vrml");
-        mapType.emplace(".wrl", "model/vrml");
-        mapType.emplace(".midi", "audio/midi");
-        mapType.emplace(".mid", "audio/midi");
-        mapType.emplace(".mp3", "audio/mpeg");
-        mapType.emplace(".ogg", "application/ogg");
-        mapType.emplace(".pac", "application/x-ns-proxy-autoconfig");
-        mapType.emplace(".flv", "video/x-flv");
+        for (unsigned int i = 0; i < sizeof (s_mime_src) / sizeof (s_mime_src[0]); ++i) {
+            mapType.emplace(s_mime_src[i][0], s_mime_src[i][1]);
+        }
     });
     static string defaultType = "text/plain";
     if (!dot) {
         return defaultType;
     }
-    auto it = mapType.find(dot);
+    auto it = mapType.find(dot + 1);
     if (it == mapType.end()) {
         return defaultType;
     }
@@ -216,16 +300,13 @@ static bool end_of(const string &str, const string &substr){
 };
 
 //拦截hls的播放请求
-static bool emitHlsPlayed(BroadcastHttpAccessArgs){
+static bool emitHlsPlayed(const Parser &parser, const MediaInfo &mediaInfo, const HttpSession::HttpAccessPathInvoker &invoker,TcpSession &sender){
     //访问的hls.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
-    Broadcast::AuthInvoker mediaAuthInvoker = [invoker,path](const string &err){
+    Broadcast::AuthInvoker mediaAuthInvoker = [invoker](const string &err){
         //cookie有效期为kHlsCookieSecond
         invoker(err,"",kHlsCookieSecond);
     };
-
-    auto args_copy = args;
-    replace(args_copy._streamid,kHlsSuffix,"");
-    return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,args_copy,mediaAuthInvoker,sender);
+    return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,mediaInfo,mediaAuthInvoker,sender);
 }
 
 
@@ -256,15 +337,13 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
     if (cookie) {
         //找到了cookie，对cookie上锁先
         auto lck = cookie->getLock();
-        auto accessErr = (*cookie)[kAccessErrKey].get<string>();
-        auto cookiePath = (*cookie)[kCookiePathKey].get<string>();
-        auto is_hls = (*cookie)[kAccessHls].get<bool>();
-        if (path.find(cookiePath) == 0) {
+        auto attachment = (*cookie)[kCookieName].get<HttpCookieAttachment>();
+        if (path.find(attachment._path) == 0) {
             //上次cookie是限定本目录
-            if (accessErr.empty()) {
+            if (attachment._err_msg.empty()) {
                 //上次鉴权成功
-                if(is_hls){
-                    //如果播放的是hls，那么刷新hls的cookie
+                if(attachment._is_hls){
+                    //如果播放的是hls，那么刷新hls的cookie(获取ts文件也会刷新)
                     cookie->updateTime();
                     cookie_from_header = false;
                 }
@@ -274,7 +353,7 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             //上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下
             if (parser.Params().empty() || parser.Params() == cookie->getUid()) {
                 //url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限
-                callback(accessErr, cookie_from_header ? nullptr : cookie);
+                callback(attachment._err_msg, cookie_from_header ? nullptr : cookie);
                 return;
             }
         }
@@ -282,11 +361,14 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
         HttpCookieManager::Instance().delCookie(cookie);
     }
 
-    bool is_hls = end_of(path,kHlsSuffix);
+    bool is_hls = mediaInfo._schema == HLS_SCHEMA;
+    string identifier = sender.getIdentifier();
+    string peer_ip = sender.get_peer_ip();
+    uint16_t peer_port = sender.get_peer_port();
+
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
-    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls]( const string &errMsg,
-                                                                                                  const string &cookie_path_in,
-                                                                                                  int cookieLifeSecond) {
+    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, mediaInfo, identifier, peer_ip, peer_port]
+            (const string &errMsg, const string &cookie_path_in, int cookieLifeSecond) {
         HttpServerCookie::Ptr cookie;
         if (cookieLifeSecond) {
             //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
@@ -299,23 +381,33 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             cookie = HttpCookieManager::Instance().addCookie(kCookieName, uid, cookieLifeSecond);
             //对cookie上锁
             auto lck = cookie->getLock();
+            HttpCookieAttachment attachment;
             //记录用户能访问的路径
-            (*cookie)[kCookiePathKey].set<string>(cookie_path);
+            attachment._path = cookie_path;
             //记录能否访问
-            (*cookie)[kAccessErrKey].set<string>(errMsg);
+            attachment._err_msg = errMsg;
             //记录访问的是否为hls
-            (*cookie)[kAccessHls].set<bool>(is_hls);
+            attachment._is_hls = is_hls;
+            if(is_hls){
+                //hls相关信息
+                attachment._hls_data = std::make_shared<HlsCookieData>(mediaInfo, identifier, peer_ip, peer_port);
+                //hls未查找MediaSource
+                attachment._have_find_media_source = false;
+            }
+            (*cookie)[kCookieName].set<HttpCookieAttachment>(std::move(attachment));
+            callback(errMsg, cookie);
+        }else{
+            callback(errMsg, nullptr);
         }
-        callback(errMsg, cookie);
     };
 
-    if (is_hls && emitHlsPlayed(parser, mediaInfo, path, is_dir, accessPathInvoker, sender)) {
+    if (is_hls && emitHlsPlayed(parser, mediaInfo, accessPathInvoker, sender)) {
         //是hls的播放鉴权,拦截之
         return;
     }
 
     //事件未被拦截，则认为是http下载请求
-    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess, parser, mediaInfo, path, is_dir, accessPathInvoker, sender);
+    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, sender);
     if (!flag) {
         //此事件无人监听，我们默认都有权限访问
         callback("", nullptr);
@@ -349,30 +441,88 @@ static string pathCat(const string &a, const string &b){
  * @param cb 回调对象
  */
 static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo &mediaInfo, const string &strFile, const HttpFileManager::invoker &cb) {
-    if (!File::is_file(strFile.data())) {
+    bool is_hls = end_of(strFile, kHlsSuffix);
+    bool file_exist = File::is_file(strFile.data());
+    if (!is_hls && !file_exist) {
+        //文件不存在且不是hls,那么直接返回404
         sendNotFound(cb);
         return;
     }
+
+    if(is_hls){
+        //hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS
+        const_cast<string &>(mediaInfo._schema) = HLS_SCHEMA;
+        replace(const_cast<string &>(mediaInfo._streamid), kHlsSuffix, "");
+    }
+
+    weak_ptr<TcpSession> weakSession = sender.shared_from_this();
     //判断是否有权限访问该文件
-    canAccessPath(sender, parser, mediaInfo, false, [cb, strFile, parser](const string &errMsg, const HttpServerCookie::Ptr &cookie) {
+    canAccessPath(sender, parser, mediaInfo, false, [cb, strFile, parser, is_hls, mediaInfo, weakSession , file_exist](const string &errMsg, const HttpServerCookie::Ptr &cookie) {
+        auto strongSession = weakSession.lock();
+        if(!strongSession){
+            //http客户端已经断开，不需要回复
+            return;
+        }
         if (!errMsg.empty()) {
+            //文件鉴权失败
             StrCaseMap headerOut;
             if (cookie) {
-                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
             }
             cb("401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
             return;
         }
 
-        StrCaseMap httpHeader;
-        if (cookie) {
-            httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
-        }
-        HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
-            cb(codeOut.data(), getContentType(strFile.data()), headerOut, body);
+        auto response_file = [file_exist](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
+            StrCaseMap httpHeader;
+            if (cookie) {
+                httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
+            }
+            HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
+                if (cookie && file_exist) {
+                    cookie->getLock();
+                    auto is_hls = (*cookie)[kCookieName].get<HttpCookieAttachment>()._is_hls;
+                    if (is_hls) {
+                        (*cookie)[kCookieName].get<HttpCookieAttachment>()._hls_data->addByteUsage(body->remainSize());
+                    }
+                }
+                cb(codeOut.data(), HttpFileManager::getContentType(strFile.data()), headerOut, body);
+            };
+            invoker.responseFile(parser.getValues(), httpHeader, strFile);
         };
-        invoker.responseFile(parser.getValues(), httpHeader, strFile);
+
+        if (!is_hls) {
+            //不是hls,直接回复文件或404
+            response_file(cookie, cb, strFile, parser);
+        } else  {
+            //是hls直播，判断是否存在
+            bool have_find_media_src = false;
+            if(cookie){
+                have_find_media_src = (*cookie)[kCookieName].get<HttpCookieAttachment>()._have_find_media_source;
+                if(!have_find_media_src){
+                    (*cookie)[kCookieName].get<HttpCookieAttachment>()._have_find_media_source = true;
+                }
+            }
+            if(have_find_media_src){
+                //之前该cookie已经通过MediaSource::findAsync查找过了，所以现在只以文件系统查找结果为准
+                response_file(cookie, cb, strFile, parser);
+                return;
+            }
+            //hls文件不存在，我们等待其生成并延后回复
+            MediaSource::findAsync(mediaInfo, strongSession, [response_file, cookie, cb, strFile, parser](const MediaSource::Ptr &src) {
+                //hls已经生成或者超时后仍未生成，那么不管怎么样都返回客户端
+                response_file(cookie, cb, strFile, parser);
+            });
+        }
     });
+}
+
+static string getFilePath(const Parser &parser,const MediaInfo &mediaInfo, TcpSession &sender){
+    GET_CONFIG(bool, enableVhost, General::kEnableVhost);
+    GET_CONFIG(string, rootPath, Http::kRootPath);
+    auto ret = File::absolutePath(enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, sender);
+    return std::move(ret);
 }
 
 /**
@@ -384,11 +534,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
 void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const HttpFileManager::invoker &cb) {
     auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.FullUrl();
     MediaInfo mediaInfo(fullUrl);
-
-    GET_CONFIG(bool, enableVhost, General::kEnableVhost);
-    GET_CONFIG(string, rootPath, Http::kRootPath);
-    auto strFile = File::absolutePath(enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
-
+    auto strFile = getFilePath(parser, mediaInfo, sender);
     //访问的是文件夹
     if (File::is_dir(strFile.data())) {
         auto indexFile = searchIndexFile(strFile);
@@ -413,7 +559,7 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
             }
             StrCaseMap headerOut;
             if (cookie) {
-                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookiePathKey].get<string>());
+                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
             }
             cb(errMsg.empty() ? "200 OK" : "401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(strMenu));
         });

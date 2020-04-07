@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "HlsMakerImp.h"
@@ -40,7 +24,6 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
     _path_hls = m3u8_file;
     _params = params;
     _buf_size = bufSize;
-    _is_vod = seg_number == 0;
     _file_buf.reset(new char[bufSize],[](char *ptr){
         delete[] ptr;
     });
@@ -49,28 +32,41 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
 HlsMakerImp::~HlsMakerImp() {
     //录制完了
     flushLastSegment(true);
-    if(!_is_vod){
+    if(isLive()){
         //hls直播才删除文件
         File::delete_file(_path_prefix.data());
     }
 }
 
 string HlsMakerImp::onOpenSegment(int index) {
-    auto full_path = fullPath(index);
-    _file = makeFile(full_path, true);
+    string segment_name , segment_path;
+    {
+        auto strDate = getTimeStr("%Y-%m-%d");
+        auto strHour = getTimeStr("%H");
+        auto strTime = getTimeStr("%M-%S");
+        segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << ".ts";
+        segment_path = _path_prefix + "/" +  segment_name;
+        if(isLive()){
+            _segment_file_paths.emplace(index,segment_path);
+        }
+    }
+    _file = makeFile(segment_path, true);
     if(!_file){
-        WarnL << "create file falied," << full_path << " " <<  get_uv_errmsg();
+        WarnL << "create file falied," << segment_path << " " <<  get_uv_errmsg();
     }
-    //DebugL << index << " " << full_path;
     if(_params.empty()){
-        return StrPrinter << index << ".ts";
+        return std::move(segment_name);
     }
-    return StrPrinter << index << ".ts" << "?" << _params;
+    return std::move(segment_name + "?" + _params);
 }
 
 void HlsMakerImp::onDelSegment(int index) {
-    //WarnL << index;
-    File::delete_file(fullPath(index).data());
+    auto it = _segment_file_paths.find(index);
+    if(it == _segment_file_paths.end()){
+        return;
+    }
+    File::delete_file(it->second.data());
+    _segment_file_paths.erase(it);
 }
 
 void HlsMakerImp::onWriteSegment(const char *data, int len) {
@@ -84,18 +80,19 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
     if(hls){
         fwrite(data,len,1,hls.get());
         hls.reset();
+        if(_media_src){
+            _media_src->registHls();
+        }
     } else{
         WarnL << "create hls file falied," << _path_hls << " " <<  get_uv_errmsg();
     }
     //DebugL << "\r\n"  << string(data,len);
 }
 
-string HlsMakerImp::fullPath(int index) {
-    return StrPrinter << _path_prefix << "/" << index << ".ts";
-}
 
 std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file,bool setbuf) {
-    auto ret= shared_ptr<FILE>(File::createfile_file(file.data(), "wb"), [](FILE *fp) {
+    auto file_buf = _file_buf;
+    auto ret= shared_ptr<FILE>(File::createfile_file(file.data(), "wb"), [file_buf](FILE *fp) {
         if (fp) {
             fclose(fp);
         }
@@ -104,6 +101,14 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file,bool setbuf) {
         setvbuf(ret.get(), _file_buf.get(), _IOFBF, _buf_size);
     }
     return ret;
+}
+
+void HlsMakerImp::setMediaSource(const string &vhost, const string &app, const string &stream_id) {
+    _media_src = std::make_shared<HlsMediaSource>(vhost, app, stream_id);
+}
+
+MediaSource::Ptr HlsMakerImp::getMediaSource() const{
+    return _media_src;
 }
 
 }//namespace mediakit

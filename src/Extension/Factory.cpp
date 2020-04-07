@@ -1,31 +1,17 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "Factory.h"
+#include "Rtmp/Rtmp.h"
 #include "H264Rtmp.h"
+#include "H265Rtmp.h"
 #include "AACRtmp.h"
 #include "H264Rtp.h"
 #include "AACRtp.h"
@@ -88,8 +74,7 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
     }
 
-
-    WarnL << "暂不支持该sdp:" << track->_codec << " " << track->_fmtp;
+    WarnL << "暂不支持该sdp:" << track->getName();
     return nullptr;
 }
 
@@ -155,7 +140,7 @@ RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
         case CodecAAC:
             return std::make_shared<AACRtpDecoder>(track->clone());
         default:
-            WarnL << "暂不支持该CodecId:" << track->getCodecId();
+            WarnL << "暂不支持该CodecId:" << track->getCodecName();
             return nullptr;
     }
 }
@@ -180,6 +165,9 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
         if(str == "mp4a"){
             return CodecAAC;
         }
+        if(str == "hev1" || str == "hvc1"){
+            return CodecH265;
+        }
         WarnL << "暂不支持该Amf:" << str;
         return CodecInvalid;
     }
@@ -187,12 +175,9 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
     if (val.type() != AMF_NULL){
         auto type_id = val.as_integer();
         switch (type_id){
-            case 7:{
-                return CodecH264;
-            }
-            case 10:{
-                return CodecAAC;
-            }
+            case FLV_CODEC_H264: return CodecH264;
+            case FLV_CODEC_AAC: return CodecAAC;
+            case FLV_CODEC_H265: return CodecH265;
             default:
                 WarnL << "暂不支持该Amf:" << type_id;
                 return CodecInvalid;
@@ -211,22 +196,20 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
             return std::make_shared<H264RtmpEncoder>(track);
         case CodecAAC:
             return std::make_shared<AACRtmpEncoder>(track);
+        case CodecH265:
+            return std::make_shared<H265RtmpEncoder>(track);
         default:
-            WarnL << "暂不支持该CodecId:" << track->getCodecId();
+            WarnL << "暂不支持该CodecId:" << track->getCodecName();
             return nullptr;
     }
 }
 
 AMFValue Factory::getAmfByCodecId(CodecId codecId) {
     switch (codecId){
-        case CodecAAC:{
-            return AMFValue("mp4a");
-        }
-        case CodecH264:{
-            return AMFValue("avc1");
-        }
-        default:
-            return AMFValue(AMF_NULL);
+        case CodecAAC: return AMFValue("mp4a");
+        case CodecH264: return AMFValue("avc1");
+        case CodecH265: return AMFValue(FLV_CODEC_H265);
+        default: return AMFValue(AMF_NULL);
     }
 }
 

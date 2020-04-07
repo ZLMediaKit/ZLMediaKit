@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_H264_H
@@ -49,25 +33,25 @@ public:
         NAL_SPS = 7,
         NAL_PPS = 8,
         NAL_IDR = 5,
-        NAL_B_P = 1
+        NAL_SEI = 6,
     } NalType;
 
     char *data() const override{
-        return (char *)buffer.data();
+        return (char *)_buffer.data();
     }
     uint32_t size() const override {
-        return buffer.size();
+        return _buffer.size();
     }
     uint32_t dts() const override {
-        return timeStamp;
+        return _dts;
     }
 
     uint32_t pts() const override {
-        return ptsStamp ? ptsStamp : timeStamp;
+        return _pts ? _pts : _dts;
     }
 
     uint32_t prefixSize() const override{
-        return iPrefixSize;
+        return _prefix_size;
     }
 
     TrackType getTrackType() const override{
@@ -79,11 +63,11 @@ public:
     }
 
     bool keyFrame() const override {
-        return H264_TYPE(buffer[iPrefixSize]) == H264Frame::NAL_IDR;
+        return H264_TYPE(_buffer[_prefix_size]) == H264Frame::NAL_IDR;
     }
 
     bool configFrame() const override{
-        switch(H264_TYPE(buffer[iPrefixSize]) ){
+        switch(H264_TYPE(_buffer[_prefix_size]) ){
             case H264Frame::NAL_SPS:
             case H264Frame::NAL_PPS:
                 return true;
@@ -92,10 +76,10 @@ public:
         }
     }
 public:
-    uint32_t timeStamp;
-    uint32_t ptsStamp = 0;
-    string buffer;
-    uint32_t iPrefixSize = 4;
+    uint32_t _dts = 0;
+    uint32_t _pts = 0;
+    uint32_t _prefix_size = 4;
+    string _buffer;
 };
 
 
@@ -257,7 +241,7 @@ public:
     */
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-        if(type == H264Frame::NAL_SPS){
+        if(type == H264Frame::NAL_SPS || type == H264Frame::NAL_SEI){
             //有些设备会把SPS PPS IDR帧当做一个帧打包，所以我们要split一下
             bool  first_frame = true;
             splitH264(frame->data() + frame->prefixSize(),
@@ -315,18 +299,15 @@ private:
                 //I
                 insertConfigFrame(frame);
                 VideoTrack::inputFrame(frame);
-                _last_frame_is_idr = true;
             }
                 break;
 
-            case H264Frame::NAL_B_P:{
-                //B or P
+            default:
                 VideoTrack::inputFrame(frame);
-                _last_frame_is_idr = false;
-            }
                 break;
         }
 
+        _last_frame_is_idr = type == H264Frame::NAL_IDR;
         if(_width == 0 && ready()){
             onReady();
         }
@@ -343,19 +324,19 @@ private:
 
         if(!_sps.empty()){
             auto spsFrame = std::make_shared<H264Frame>();
-            spsFrame->iPrefixSize = 4;
-            spsFrame->buffer.assign("\x0\x0\x0\x1",4);
-            spsFrame->buffer.append(_sps);
-            spsFrame->timeStamp = frame->stamp();
+            spsFrame->_prefix_size = 4;
+            spsFrame->_buffer.assign("\x0\x0\x0\x1",4);
+            spsFrame->_buffer.append(_sps);
+            spsFrame->_dts = frame->dts();
             VideoTrack::inputFrame(spsFrame);
         }
 
         if(!_pps.empty()){
             auto ppsFrame = std::make_shared<H264Frame>();
-            ppsFrame->iPrefixSize = 4;
-            ppsFrame->buffer.assign("\x0\x0\x0\x1",4);
-            ppsFrame->buffer.append(_pps);
-            ppsFrame->timeStamp = frame->stamp();
+            ppsFrame->_prefix_size = 4;
+            ppsFrame->_buffer.assign("\x0\x0\x0\x1",4);
+            ppsFrame->_buffer.append(_pps);
+            ppsFrame->_dts = frame->dts();
             VideoTrack::inputFrame(ppsFrame);
         }
     }
