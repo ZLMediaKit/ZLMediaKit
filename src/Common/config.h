@@ -315,6 +315,8 @@ extern const string kMediaTimeoutMS;
 extern const string kBeatIntervalMS;
 //Track编码格式探测最大时间，单位毫秒，默认2000
 extern const string kMaxAnalysisMS;
+//是否为性能测试模式，性能测试模式开启后不会解析rtp或rtmp包
+extern const string kBenchmarkMode;
 }
 }  // namespace mediakit
 
