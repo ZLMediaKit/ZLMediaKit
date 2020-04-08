@@ -140,6 +140,20 @@ API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample
     (*obj)->getChannel()->initAudio(info);
 }
 
+
+API_EXPORT void API_CALL mk_media_init_g711(mk_media ctx, int au, int sample_bit, int sample_rate)
+{
+    assert(ctx);
+    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    AudioInfo info;
+    info.iSampleRate = sample_rate;
+    info.iChannel = 1;
+    info.iSampleBit = sample_bit;
+    info.iProfile = 0;
+    info.codecId = (CodecId)au;
+    (*obj)->getChannel()->initAudio(info);
+}
+
 API_EXPORT void API_CALL mk_media_init_complete(mk_media ctx){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
@@ -170,6 +184,12 @@ API_EXPORT void API_CALL mk_media_input_aac1(mk_media ctx, void *data, int len, 
     (*obj)->getChannel()->inputAAC((char *) data, len, dts, (char *) adts);
 }
 
+API_EXPORT void API_CALL mk_media_input_g711(mk_media ctx, void* data, int len, uint32_t dts)
+{
+    assert(ctx && data && len > 0);
+    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    (*obj)->getChannel()->inputG711((char*)data, len, dts);
+}
 
 
 

@@ -13,8 +13,10 @@
 #include "H264Rtmp.h"
 #include "H265Rtmp.h"
 #include "AACRtmp.h"
+#include "G711Rtmp.h"
 #include "H264Rtp.h"
 #include "AACRtp.h"
+#include "G711Rtp.h"
 #include "H265Rtp.h"
 #include "Common/Parser.h"
 
@@ -43,6 +45,14 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         aac_cfg.push_back(cfg2);
 
         return std::make_shared<AACTrack>(aac_cfg);
+    }
+
+    if (strcasecmp(track->_codec.data(), "PCMA") == 0) {
+        return std::make_shared<G711Track>(CodecG711A);
+    }
+
+    if (strcasecmp(track->_codec.data(), "PCMU") == 0) {
+        return std::make_shared<G711Track>(CodecG711U);
     }
 
     if (strcasecmp(track->_codec.data(), "h264") == 0) {
@@ -90,6 +100,12 @@ Track::Ptr Factory::getTrackByCodecId(CodecId codecId) {
         case CodecAAC:{
             return std::make_shared<AACTrack>();
         }
+        case CodecG711A: {
+            return std::make_shared<G711Track>(CodecG711A);
+        }
+        case CodecG711U: {
+            return std::make_shared<G711Track>(CodecG711U);
+        }
         default:
             WarnL << "暂不支持该CodecId:" << codecId;
             return nullptr;
@@ -125,6 +141,9 @@ RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
             return std::make_shared<H265RtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
         case CodecAAC:
             return std::make_shared<AACRtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
+        case CodecG711A:
+        case CodecG711U:
+            return std::make_shared<G711RtpEncoder>(ssrc, mtu, sample_rate, pt, interleaved);
         default:
             WarnL << "暂不支持该CodecId:" << codec_id;
             return nullptr;
@@ -139,6 +158,9 @@ RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
             return std::make_shared<H265RtpDecoder>();
         case CodecAAC:
             return std::make_shared<AACRtpDecoder>(track->clone());
+        case CodecG711A:
+        case CodecG711U:
+            return std::make_shared<G711RtpDecoder>(track->clone());
         default:
             WarnL << "暂不支持该CodecId:" << track->getCodecName();
             return nullptr;
@@ -198,6 +220,9 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
             return std::make_shared<AACRtmpEncoder>(track);
         case CodecH265:
             return std::make_shared<H265RtmpEncoder>(track);
+	    case CodecG711A:
+        case CodecG711U:
+            return std::make_shared<G711RtmpEncoder>(track);
         default:
             WarnL << "暂不支持该CodecId:" << track->getCodecName();
             return nullptr;
@@ -209,6 +234,8 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
         case CodecAAC: return AMFValue("mp4a");
         case CodecH264: return AMFValue("avc1");
         case CodecH265: return AMFValue(FLV_CODEC_H265);
+        case CodecG711A: return AMFValue(7);
+        case CodecG711U: return AMFValue(8);
         default: return AMFValue(AMF_NULL);
     }
 }
