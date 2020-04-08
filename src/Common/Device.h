@@ -41,10 +41,11 @@ public:
 };
 class AudioInfo {
 public:
-    int iChannel;
-    int iSampleBit;
-    int iSampleRate;
-    int iProfile;
+    CodecId codecId;
+	int iChannel;
+	int iSampleBit;
+	int iSampleRate;
+	int iProfile;
 };
 
 /**
@@ -121,6 +122,13 @@ public:
      */
     void inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t uiStamp,const char *pcAdtsHeader);
 
+    /**
+     * G711音频帧
+     * @param pcData 音频帧
+     * @param iDataLen 帧数据长度
+     * @param uiStamp 时间戳，单位毫秒
+     */
+    void inputG711(const char* pcData, int iDataLen, uint32_t uiStamp);
 #ifdef ENABLE_X264
     /**
      * 输入yuv420p视频帧，内部会完成编码并调用inputH264方法

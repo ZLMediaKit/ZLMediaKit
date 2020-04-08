@@ -16,6 +16,7 @@
 #include "Util/base64.h"
 #include "Util/TimeTicker.h"
 #include "Extension/AAC.h"
+#include "Extension/G711.h"
 #include "Extension/H264.h"
 #include "Extension/H265.h"
 
@@ -148,6 +149,14 @@ void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t u
 }
 
 
+void DevChannel::inputG711(const char* pcData, int iDataLen, uint32_t uiStamp)
+{
+    if (uiStamp == 0) {
+        uiStamp = (uint32_t)_aTicker[1].elapsedTime();
+    }
+    inputFrame(std::make_shared<G711FrameNoCacheAble>(_audio->codecId, (char*)pcData, iDataLen, uiStamp, 0));
+}
+
 void DevChannel::initVideo(const VideoInfo& info) {
     _video = std::make_shared<VideoInfo>(info);
     addTrack(std::make_shared<H264Track>());
@@ -159,32 +168,39 @@ void DevChannel::initH265Video(const VideoInfo &info){
 }
 
 void DevChannel::initAudio(const AudioInfo& info) {
-    _audio = std::make_shared<AudioInfo>(info);
-    addTrack(std::make_shared<AACTrack>());
+	_audio = std::make_shared<AudioInfo>(info);
+    if (info.codecId == CodecAAC)
+    {
+        addTrack(std::make_shared<AACTrack>());
 
-    AACFrame adtsHeader;
-    adtsHeader.syncword = 0x0FFF;
-    adtsHeader.id = 0;
-    adtsHeader.layer = 0;
-    adtsHeader.protection_absent = 1;
-    adtsHeader.profile =  info.iProfile;//audioObjectType - 1;
-    int i = 0;
-    for(auto rate : samplingFrequencyTable){
-        if(rate == info.iSampleRate){
-            adtsHeader.sf_index = i;
-        };
-        ++i;
+        AACFrame adtsHeader;
+        adtsHeader.syncword = 0x0FFF;
+        adtsHeader.id = 0;
+        adtsHeader.layer = 0;
+        adtsHeader.protection_absent = 1;
+        adtsHeader.profile = info.iProfile;//audioObjectType - 1;
+        int i = 0;
+        for (auto rate : samplingFrequencyTable) {
+            if (rate == info.iSampleRate) {
+                adtsHeader.sf_index = i;
+            };
+            ++i;
+        }
+        adtsHeader.private_bit = 0;
+        adtsHeader.channel_configuration = info.iChannel;
+        adtsHeader.original = 0;
+        adtsHeader.home = 0;
+        adtsHeader.copyright_identification_bit = 0;
+        adtsHeader.copyright_identification_start = 0;
+        adtsHeader.aac_frame_length = 7;
+        adtsHeader.adts_buffer_fullness = 2047;
+        adtsHeader.no_raw_data_blocks_in_frame = 0;
+        writeAdtsHeader(adtsHeader, _adtsHeader);
     }
-    adtsHeader.private_bit = 0;
-    adtsHeader.channel_configuration = info.iChannel;
-    adtsHeader.original = 0;
-    adtsHeader.home = 0;
-    adtsHeader.copyright_identification_bit = 0;
-    adtsHeader.copyright_identification_start = 0;
-    adtsHeader.aac_frame_length = 7;
-    adtsHeader.adts_buffer_fullness = 2047;
-    adtsHeader.no_raw_data_blocks_in_frame = 0;
-    writeAdtsHeader(adtsHeader,_adtsHeader);
+    else if (info.codecId == CodecG711A || info.codecId == CodecG711U)
+    {
+        addTrack(std::make_shared<G711Track>(info.codecId, info.iSampleBit, info.iSampleRate));
+    }
 }
 
 } /* namespace mediakit */

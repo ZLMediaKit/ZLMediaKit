@@ -66,6 +66,16 @@ API_EXPORT void API_CALL mk_media_init_h265(mk_media ctx, int width, int height,
 API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample_bit, int sample_rate, int profile);
 
 /**
+ * 添加g711音频轨道
+ * @param ctx 对象指针
+ * @param au 1.G711A 2.G711U
+ * @param channel 通道数
+ * @param sample_bit 采样位数，只支持16
+ * @param sample_rate 采样率
+ */
+API_EXPORT void API_CALL mk_media_init_g711(mk_media ctx, int au, int sample_bit, int sample_rate);
+
+/**
  * 初始化h264/h265/aac完毕后调用此函数，
  * 在单track(只有音频或视频)时，因为ZLMediaKit不知道后续是否还要添加track，所以会多等待3秒钟
  * 如果产生的流是单Track类型，请调用此函数以便加快流生成速度，当然不调用该函数，影响也不大(会多等待3秒)
@@ -112,6 +122,15 @@ API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, u
  * @param adts adts头
  */
 API_EXPORT void API_CALL mk_media_input_aac1(mk_media ctx, void *data, int len, uint32_t dts, void *adts);
+
+/**
+ * 输入单帧G711音频
+ * @param ctx 对象指针
+ * @param data 单帧G711数据
+ * @param len 单帧G711数据字节数
+ * @param dts 时间戳，毫秒
+ */
+API_EXPORT void API_CALL mk_media_input_g711(mk_media ctx, void* data, int len, uint32_t dts);
 
 /**
  * MediaSource.close()回调事件
