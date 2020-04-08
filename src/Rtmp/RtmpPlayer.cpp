@@ -118,6 +118,8 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex , bool handshakeComplete
         //开始播放阶段
         _pPlayTimer.reset();
         onPlayResult(ex);
+        //是否为性能测试模式
+        _benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
     } else if (ex) {
         //播放成功后异常断开回调
         onShutdown(ex);
@@ -146,6 +148,11 @@ void RtmpPlayer::onConnect(const SockException &err){
 }
 void RtmpPlayer::onRecv(const Buffer::Ptr &pBuf){
     try {
+        if(_benchmark_mode && !_pPlayTimer){
+            //在性能测试模式下，如果rtmp握手完毕后，不再解析rtmp包
+            _mediaTicker.resetTime();
+            return;
+        }
         onParseRtmp(pBuf->data(), pBuf->size());
     } catch (exception &e) {
         SockException ex(Err_other, e.what());

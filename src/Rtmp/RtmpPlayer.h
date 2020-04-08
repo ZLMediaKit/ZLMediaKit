@@ -102,6 +102,8 @@ private:
     uint32_t _aiNowStamp[2] = { 0, 0 };
     Ticker _aNowStampTicker[2];
     bool _metadata_got = false;
+    //是否为性能测试模式
+    bool _benchmark_mode = false;
 };
 
 } /* namespace mediakit */
