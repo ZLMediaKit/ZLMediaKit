@@ -1,28 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
- * Copyright (c) 2019 火宣 <459502659@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "H264Rtp.h"
@@ -88,24 +71,24 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
      * Type==7:SPS frame
      * Type==8:PPS frame
      */
-	/*
-	RTF3984 5.2节  Common Structure of the RTP Payload Format
+    /*
+    RTF3984 5.2节  Common Structure of the RTP Payload Format
     Table 1.  Summary of NAL unit types and their payload structures
 
-	   Type   Packet    Type name                        Section
-	   ---------------------------------------------------------
-	   0      undefined                                    -
-	   1-23   NAL unit  Single NAL unit packet per H.264   5.6
-	   24     STAP-A    Single-time aggregation packet     5.7.1
-	   25     STAP-B    Single-time aggregation packet     5.7.1
-	   26     MTAP16    Multi-time aggregation packet      5.7.2
-	   27     MTAP24    Multi-time aggregation packet      5.7.2
-	   28     FU-A      Fragmentation unit                 5.8
-	   29     FU-B      Fragmentation unit                 5.8
-	   30-31  undefined                                    -
+       Type   Packet    Type name                        Section
+       ---------------------------------------------------------
+       0      undefined                                    -
+       1-23   NAL unit  Single NAL unit packet per H.264   5.6
+       24     STAP-A    Single-time aggregation packet     5.7.1
+       25     STAP-B    Single-time aggregation packet     5.7.1
+       26     MTAP16    Multi-time aggregation packet      5.7.2
+       27     MTAP24    Multi-time aggregation packet      5.7.2
+       28     FU-A      Fragmentation unit                 5.8
+       29     FU-B      Fragmentation unit                 5.8
+       30-31  undefined                                    -
 
 
-	*/
+    */
     const uint8_t *frame = (uint8_t *) rtppack->data() + rtppack->offset;
     int length = rtppack->size() - rtppack->offset;
     NALU nal;

@@ -1,28 +1,12 @@
 ﻿/*
-* MIT License
-*
-* Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
-*
-* This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+ */
 
 #ifndef SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
 #define SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
@@ -39,12 +23,12 @@ public:
     typedef std::shared_ptr<RtspMediaSourceImp> Ptr;
 
     /**
-	 * 构造函数
-	 * @param vhost 虚拟主机
-	 * @param app 应用名
-	 * @param id 流id
-	 * @param ringSize 环形缓存大小
-	 */
+     * 构造函数
+     * @param vhost 虚拟主机
+     * @param app 应用名
+     * @param id 流id
+     * @param ringSize 环形缓存大小
+     */
     RtspMediaSourceImp(const string &vhost, const string &app, const string &id, int ringSize = RTP_GOP_SIZE) : RtspMediaSource(vhost, app, id,ringSize) {
         _demuxer = std::make_shared<RtspDemuxer>();
         _demuxer->setTrackListener(this);
@@ -69,13 +53,13 @@ public:
     }
 
     /**
-	 * 设置监听器
-	 * @param listener
-	 */
+     * 设置监听器
+     * @param listener
+     */
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override {
         RtspMediaSource::setListener(listener);
         if(_muxer){
-            _muxer->setListener(listener);
+            _muxer->setMediaListener(listener);
         }
     }
 
@@ -87,15 +71,42 @@ public:
     }
 
     /**
-	 * 设置协议转换
-	 * @param enableRtmp 是否转换成rtmp
-	 * @param enableHls  是否转换成hls
-	 * @param enableMP4  是否mp4录制
-	 */
+     * 设置录制状态
+     * @param type 录制类型
+     * @param start 开始或停止
+     * @param custom_path 开启录制时，指定自定义路径
+     * @return 是否设置成功
+     */
+    bool setupRecord(Recorder::type type, bool start, const string &custom_path) override{
+        if(_muxer){
+            return _muxer->setupRecord(*this,type, start, custom_path);
+        }
+        return RtspMediaSource::setupRecord(type, start, custom_path);
+    }
+
+    /**
+     * 获取录制状态
+     * @param type 录制类型
+     * @return 录制状态
+     */
+    bool isRecording(Recorder::type type) override{
+        if(_muxer){
+            return _muxer->isRecording(*this,type);
+        }
+        return RtspMediaSource::isRecording(type);
+    }
+
+
+    /**
+     * 设置协议转换
+     * @param enableRtmp 是否转换成rtmp
+     * @param enableHls  是否转换成hls
+     * @param enableMP4  是否mp4录制
+     */
     void setProtocolTranslation(bool enableRtmp,bool enableHls,bool enableMP4){
         //不重复生成rtsp
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), false, enableRtmp, enableHls, enableMP4);
-        _muxer->setListener(getListener());
+        _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(this);
         for(auto &track : _demuxer->getTracks(false)){
             _muxer->addTrack(track);
@@ -104,8 +115,8 @@ public:
     }
 
     /**
-	 * _demuxer触发的添加Track事件
-	 */
+     * _demuxer触发的添加Track事件
+     */
     void onAddTrack(const Track::Ptr &track) override {
         if(_muxer){
             _muxer->addTrack(track);

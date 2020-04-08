@@ -31,6 +31,7 @@
   - H264/AAC codec.
   - Recorded as flv or mp4.
   - Vod of mp4.
+  - support [RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
   
 - HLS
   - RTSP RTMP can be converted into HLS,built-in HTTP server.
@@ -58,14 +59,14 @@
 
 |          protocol/codec          | H264 | H265 | AAC  | other |
 | :------------------------------: | :--: | :--: | :--: | :---: |
-| RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  N   |  Y   |   N   |
-|         RTMP --> RTSP[S]         |  Y   |  N   |  Y   |   N   |
+| RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  Y   |  Y   |   N   |
+|         RTMP --> RTSP[S]         |  Y   |  Y   |  Y   |   N   |
 |         RTSP[S] --> HLS          |  Y   |  Y   |  Y   |   N   |
-|           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
+|           RTMP --> HLS           |  Y   |  Y   |  Y   |   N   |
 |         RTSP[S] --> MP4          |  Y   |  Y   |  Y   |   N   |
-|           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
-|         MP4 --> RTSP[S]          |  Y   |  N   |  Y   |   N   |
-|           MP4 --> RTMP           |  Y   |  N   |  Y   |   N   |
+|           RTMP --> MP4           |  Y   |  Y   |  Y   |   N   |
+|         MP4 --> RTSP[S]          |  Y   |  Y   |  Y   |   N   |
+|           MP4 --> RTMP           |  Y   |  Y   |  Y   |   N   |
 
 - Stream generation：
 

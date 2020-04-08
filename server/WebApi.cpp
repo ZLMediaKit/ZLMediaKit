@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include <signal.h>
@@ -740,43 +724,37 @@ void installWebApi() {
     // 开始录制hls或MP4
     api_regist1("/index/api/startRecord",[](API_ARGS1){
         CHECK_SECRET();
-        CHECK_ARGS("type","vhost","app","stream","wait_for_record","continue_record");
-
-        int result = Recorder::startRecord((Recorder::type)allArgs["type"].as<int>(),
-                                           allArgs["vhost"],
-                                           allArgs["app"],
-                                           allArgs["stream"],
-                                           allArgs["customized_path"],
-                                           allArgs["wait_for_record"],
-                                           allArgs["continue_record"]);
-        val["result"] = result;
+        CHECK_ARGS("type","vhost","app","stream");
+        val["result"] = Recorder::startRecord((Recorder::type) allArgs["type"].as<int>(),
+                                              allArgs["vhost"],
+                                              allArgs["app"],
+                                              allArgs["stream"],
+                                              allArgs["customized_path"]);
     });
 
     // 停止录制hls或MP4
     api_regist1("/index/api/stopRecord",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
-        int result = Recorder::stopRecord((Recorder::type)allArgs["type"].as<int>(),
-                                          allArgs["vhost"],
-                                          allArgs["app"],
-                                          allArgs["stream"]);
-        val["result"] = result;
+        val["result"] = Recorder::stopRecord((Recorder::type) allArgs["type"].as<int>(),
+                                             allArgs["vhost"],
+                                             allArgs["app"],
+                                             allArgs["stream"]);
     });
 
     // 获取hls或MP4录制状态
-    api_regist1("/index/api/getRecordStatus",[](API_ARGS1){
+    api_regist1("/index/api/isRecording",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
-        auto status = Recorder::getRecordStatus((Recorder::type)allArgs["type"].as<int>(),
-                                                allArgs["vhost"],
-                                                allArgs["app"],
-                                                allArgs["stream"]);
-        val["status"] = (int)status;
+        val["status"] = Recorder::isRecording((Recorder::type) allArgs["type"].as<int>(),
+                                              allArgs["vhost"],
+                                              allArgs["app"],
+                                              allArgs["stream"]);
     });
 
-	//获取录像文件夹列表或mp4文件列表
-	//http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
-	api_regist1("/index/api/getMp4RecordFile", [](API_ARGS1){
+    //获取录像文件夹列表或mp4文件列表
+    //http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
+    api_regist1("/index/api/getMp4RecordFile", [](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, allArgs["vhost"], allArgs["app"],allArgs["stream"]);
@@ -809,7 +787,7 @@ void installWebApi() {
 
         val["data"]["rootPath"] = record_path;
         val["data"]["paths"] = paths;
-	});
+    });
 
     ////////////以下是注册的Hook API////////////
     api_regist1("/index/hook/on_publish",[](API_ARGS1){
