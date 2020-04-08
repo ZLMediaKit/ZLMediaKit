@@ -1,8 +1,4 @@
-﻿//
-// Created by xzl on 2018/11/6.
-//
-
-#ifndef ZLMEDIAKIT_STRPTIME_WIN_H
+﻿#ifndef ZLMEDIAKIT_STRPTIME_WIN_H
 #define ZLMEDIAKIT_STRPTIME_WIN_H
 
 #include <time.h>

@@ -1,38 +1,19 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
-
 
 #include "MediaSource.h"
 #include "Record/MP4Reader.h"
 #include "Util/util.h"
 #include "Network/sockutil.h"
 #include "Network/TcpSession.h"
-
 using namespace toolkit;
-
 namespace mediakit {
 
 recursive_mutex MediaSource::g_mtxMediaSrc;
@@ -78,7 +59,6 @@ vector<Track::Ptr> MediaSource::getTracks(bool trackReady) const {
 
 void MediaSource::setTrackSource(const std::weak_ptr<TrackSource> &track_src) {
     _track_source = track_src;
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaResetTracks, *this);
 }
 
 void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
@@ -117,12 +97,37 @@ void MediaSource::onNoneReader(){
     if(!listener){
         return;
     }
-    listener->onNoneReader(*this);
+    if (listener->totalReaderCount(*this) == 0) {
+        listener->onNoneReader(*this);
+    }
+}
+
+bool MediaSource::setupRecord(Recorder::type type, bool start, const string &custom_path){
+    auto listener = _listener.lock();
+    if (!listener) {
+        return false;
+    }
+    return listener->setupRecord(*this, type, start, custom_path);
+}
+
+bool MediaSource::isRecording(Recorder::type type){
+    auto listener = _listener.lock();
+    if(!listener){
+        return false;
+    }
+    return listener->isRecording(*this, type);
 }
 
 void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src)> &cb) {
-    lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-    for (auto &pr0 : g_mapMediaSrc) {
+    decltype(g_mapMediaSrc) copy;
+    {
+        //拷贝g_mapMediaSrc后再遍历，考虑到是高频使用的全局单例锁，并且在上锁时会执行回调代码
+        //很容易导致多个锁交叉死锁的情况，而且该函数使用频率不高，拷贝开销相对来说是可以接受的
+        lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
+        copy = g_mapMediaSrc;
+    }
+
+    for (auto &pr0 : copy) {
         for (auto &pr1 : pr0.second) {
             for (auto &pr2 : pr1.second) {
                 for (auto &pr3 : pr2.second) {
@@ -274,7 +279,7 @@ MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost_tmp
 
     if(!ret && bMake){
         //未查找媒体源，则创建一个
-        ret = MP4Reader::onMakeMediaSource(schema, vhost,app,id);
+        ret = createFromMP4(schema, vhost, app, id);
     }
     return ret;
 }
@@ -381,18 +386,68 @@ void MediaInfo::parse(const string &url){
 /////////////////////////////////////MediaSourceEvent//////////////////////////////////////
 
 void MediaSourceEvent::onNoneReader(MediaSource &sender){
-    //没有任何读取器消费该源，表明该源可以关闭了
-    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId();
-    weak_ptr<MediaSource> weakPtr = sender.shared_from_this();
+    GET_CONFIG(string, recordApp, Record::kAppName);
+    GET_CONFIG(int, stream_none_reader_delay, General::kStreamNoneReaderDelayMS);
 
-    //异步广播该事件，防止同步调用sender.close()导致在接收rtp或rtmp包时清空包缓存等操作
-    EventPollerPool::Instance().getPoller()->async([weakPtr](){
-        auto strongPtr = weakPtr.lock();
-        if(strongPtr){
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader,*strongPtr);
+    //如果mp4点播, 无人观看时我们强制关闭点播
+    bool is_mp4_vod = sender.getApp() == recordApp;
+    //无人观看mp4点播时，3秒后自动关闭
+    auto close_delay = is_mp4_vod ? 3.0 : stream_none_reader_delay / 1000.0;
+
+    //没有任何人观看该视频源，表明该源可以关闭了
+    weak_ptr<MediaSource> weakSender = sender.shared_from_this();
+    _async_close_timer = std::make_shared<Timer>(close_delay, [weakSender,is_mp4_vod]() {
+        auto strongSender = weakSender.lock();
+        if (!strongSender) {
+            //对象已经销毁
+            return false;
         }
-    },false);
+
+        if (strongSender->totalReaderCount() != 0) {
+            //还有人消费
+            return false;
+        }
+
+        if(!is_mp4_vod){
+            //直播时触发无人观看事件，让开发者自行选择是否关闭
+            WarnL << "无人观看事件:"
+                  << strongSender->getSchema() << "/"
+                  << strongSender->getVhost() << "/"
+                  << strongSender->getApp() << "/"
+                  << strongSender->getId();
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strongSender);
+        }else{
+            //这个是mp4点播，我们自动关闭
+            WarnL << "MP4点播无人观看,自动关闭:"
+                  << strongSender->getSchema() << "/"
+                  << strongSender->getVhost() << "/"
+                  << strongSender->getApp() << "/"
+                  << strongSender->getId();
+            strongSender->close(false);
+        }
+
+        return false;
+    }, nullptr);
 }
 
+MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &filePath , bool checkApp){
+    GET_CONFIG(string, appName, Record::kAppName);
+    if (checkApp && app != appName) {
+        return nullptr;
+    }
+#ifdef ENABLE_MP4
+    try {
+        MP4Reader::Ptr pReader(new MP4Reader(vhost, app, stream, filePath));
+        pReader->startReadMP4();
+        return MediaSource::find(schema, vhost, app, stream, false);
+    } catch (std::exception &ex) {
+        WarnL << ex.what();
+        return nullptr;
+    }
+#else
+    WarnL << "创建MP4点播失败，请编译时打开\"ENABLE_MP4\"选项";
+    return nullptr;
+#endif //ENABLE_MP4
+}
 
 } /* namespace mediakit */

@@ -1,28 +1,12 @@
 ﻿/*
-* MIT License
-*
-* Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
-*
-* This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+ */
 
 #ifndef ZLMEDIAKIT_H265_H
 #define ZLMEDIAKIT_H265_H
@@ -202,7 +186,7 @@ public:
         _vps = vps.substr(vps_prefix_len);
         _sps = sps.substr(sps_prefix_len);
         _pps = pps.substr(pps_prefix_len);
-		onReady();
+        onReady();
     }
 
     /**
@@ -267,10 +251,10 @@ public:
     * @param frame 数据帧
     */
     void inputFrame(const Frame::Ptr &frame) override{
-		int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-        if(type == H265Frame::NAL_VPS){
-	        bool  first_frame = true;
-	        splitH264(frame->data() + frame->prefixSize(),
+        int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
+        if(frame->configFrame()){
+            bool  first_frame = true;
+            splitH264(frame->data() + frame->prefixSize(),
                   frame->size() - frame->prefixSize(),
                   [&](const char *ptr, int len){
                       if(first_frame){
@@ -288,9 +272,9 @@ public:
                           inputFrame_l(sub_frame);
                       }
                   });
-        	}else{
-				inputFrame_l(frame);
-			}
+            }else{
+                inputFrame_l(frame);
+            }
     }
 
 private:
@@ -336,7 +320,7 @@ private:
         }
     }
 
-	/**
+    /**
      * 解析sps获取宽高fps
      */
     void onReady(){

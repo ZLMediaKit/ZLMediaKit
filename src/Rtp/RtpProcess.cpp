@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #if defined(ENABLE_RTPPROXY)
@@ -77,7 +61,6 @@ static string printAddress(const struct sockaddr *addr){
 
 RtpProcess::RtpProcess(uint32_t ssrc) {
     _ssrc = ssrc;
-    _track = std::make_shared<SdpTrack>();
     _track = std::make_shared<SdpTrack>();
     _track->_interleaved = 0;
     _track->_samplerate = 90000;
@@ -283,7 +266,7 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 WarnL << "audio track change to AAC from codecid:" << getCodecName(_codecid_audio);
                 return;
             }
-            _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 7));
+            _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 0, 7));
             break;
         }
         default:
@@ -315,7 +298,7 @@ int RtpProcess::totalReaderCount(){
 }
 
 void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-    _muxer->setListener(listener);
+    _muxer->setMediaListener(listener);
 }
 
 

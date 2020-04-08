@@ -6,12 +6,6 @@
  [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
 
-## 国内用户请使用gitee镜像下载
-```
-git clone --depth 1 https://gitee.com/xiahcu/ZLMediaKit
-cd ZLMediaKit
-git submodule update --init
-```
 ## 项目特点
 - 基于C++11开发，避免使用裸指针，代码稳定可靠；同时跨平台移植简单方便，代码清晰简洁。
 - 打包多种流媒体协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV），支持协议间的互相转换，提供一站式的服务。
@@ -51,6 +45,7 @@ git submodule update --init
   - 支持http[s]-flv直播
   - 支持websocket-flv直播
   - 支持任意编码格式的rtmp推流，只是除H264/H265+AAC外无法转协议
+  - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
 
 - HLS
   - 支持HLS文件生成，自带HTTP文件服务器
@@ -85,20 +80,20 @@ git submodule update --init
  
 
 
-## 其他功能细节表
+## 细节列表
 
 - 转协议:
 
     |          功能/编码格式           | H264 | H265 | AAC  | other |
     | :------------------------------: | :--: | :--: | :--: | :---: |
-    | RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  N   |  Y   |   N   |
-    |         RTMP --> RTSP[S]         |  Y   |  N   |  Y   |   N   |
+    | RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  Y   |  Y   |   N   |
+    |         RTMP --> RTSP[S]         |  Y   |  Y   |  Y   |   N   |
     |         RTSP[S] --> HLS          |  Y   |  Y   |  Y   |   N   |
-    |           RTMP --> HLS           |  Y   |  N   |  Y   |   N   |
+    |           RTMP --> HLS           |  Y   |  Y   |  Y   |   N   |
     |         RTSP[S] --> MP4          |  Y   |  Y   |  Y   |   N   |
-    |           RTMP --> MP4           |  Y   |  N   |  Y   |   N   |
-    |         MP4 --> RTSP[S]          |  Y   |  N   |  Y   |   N   |
-    |           MP4 --> RTMP           |  Y   |  N   |  Y   |   N   |
+    |           RTMP --> MP4           |  Y   |  Y   |  Y   |   N   |
+    |         MP4 --> RTSP[S]          |  Y   |  Y   |  Y   |   N   |
+    |           MP4 --> RTMP           |  Y   |  Y   |  Y   |   N   |
 
 - 流生成：
 
@@ -139,115 +134,17 @@ git submodule update --init
   |   HTTP[S]   |  Y   |
   | WebSocket[S] |  Y  |
 
-## 后续任务
-- 完善支持H265
+## 编译以及测试
+请参考wiki:[快速开始](https://github.com/xiongziliang/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
 
-## 编译要求
-- 编译器支持C++11，GCC4.8/Clang3.3/VC2015或以上
-- cmake3.2或以上
-
-## 编译前必看！！！
-
-- **必须使用git下载完整的代码，不要使用下载zip包的方式下载源码，否则子模块代码默认不下载！你可以像以下这样操作:**
-```
-git clone https://github.com/zlmediakit/ZLMediaKit.git
-cd ZLMediaKit
-git submodule update --init
-```
-
-## 编译(Linux)
-- 我的编译环境
-  - Ubuntu16.04 64 bit + gcc5.4
-  - cmake 3.5.1
-- 编译
-  
-  ```
-	//如果是centos6.x,需要先安装较新版本的gcc以及cmake，然后打开脚本build_for_linux.sh手动编译
-	//如果是ubuntu这样的比较新的系统版本可以直接操作第4步
-
-	1、安装GCC5.2(如果gcc版本高于4.7可以跳过此步骤)
-	sudo yum install centos-release-scl -y
-	sudo yum install devtoolset-4-toolchain -y
-	scl enable devtoolset-4 bash
-
-	2、安装cmake
-	#需要安装新版本cmake,当然你也可以通过yum或者apt-get方式安装(前提是版本够新)
-	tar -xvf cmake-3.10.0-rc4.tar.gz
-	cd cmake-3.10.0-rc4
-	./configure
-	make -j4
-	sudo make install
-
-	3、切换高版本gcc
-	scl enable devtoolset-4 bash
-
-	4、编译
-	cd ZLMediaKit
-	./build_for_linux.sh
-  ```
-
-## 编译(macOS)
-- 我的编译环境
-  - macOS Sierra(10.12.1) + xcode8.3.1
-  - Homebrew 1.1.3
-  - cmake 3.8.0
-- 编译
-  
-  ```
-  cd ZLMediaKit
-  ./build_for_mac.sh
-  ```
-
-## 编译(iOS)
-- 编译环境:`请参考macOS的编译指导。`
-- 生成Xcode工程再编译,[了解更多](https://github.com/leetal/ios-cmake):
-
-  ```
-  cd ZLMediaKit
-  mkdir -p build
-  cd build
-  # 生成Xcode工程，工程文件在build目录下
-  cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake  -DPLATFORM=OS64COMBINED
-  ```
-  
-## 编译(Android)
-- 我的编译环境
-  - macOS Sierra(10.12.1) + xcode8.3.1
-  - Homebrew 1.1.3
-  - cmake 3.8.0
-  - [android-ndk-r14b](https://dl.google.com/android/repository/android-ndk-r14b-darwin-x86_64.zip)
-- 编译
-
-  ```
-  cd ZLMediaKit
-  export ANDROID_NDK_ROOT=/path/to/ndk
-  ./build_for_android.sh
-  ```
-## 编译(Windows)
-- 我的编译环境
-  - windows 10
-  - visual studio 2017
-  - [cmake-gui](https://cmake.org/files/v3.10/cmake-3.10.0-rc1-win32-x86.msi)
-  
-- 编译
-```
-   1 进入ZLMediaKit目录执行 git submodule update --init 以下载ZLToolKit的代码
-   2 使用cmake-gui打开工程并生成vs工程文件.
-   3 找到工程文件(ZLMediaKit.sln),双击用vs2017打开.
-   4 选择编译Release 版本.
-   5 找到目标文件并运行测试用例.
-```
-
-## Docker Image
-You can pull a pre-built docker image from Docker Hub and run with
+## Docker 镜像
+你可以从Docker Hub下载已经编译好的镜像并启动它：
 ```bash
-docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
+docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit:20.04-runtime-ubuntu18.04
 ```
-
-Dockerfile is also supplied to build images on Ubuntu 16.04
+你也可以根据Dockerfile编译镜像：
 ```bash
-cd docker
-docker build -t zlmediakit .
+bash build_docker_images.sh
 ```
 
 ## 使用方法
@@ -337,27 +234,6 @@ docker build -t zlmediakit .
 	});
 
 	```
-## QA
-- 怎么测试服务器性能？
-
-    ZLMediaKit提供了测试性能的示例，代码在tests/test_benchmark.cpp。
-
-    这里是测试报告：[benchmark.md](https://github.com/xiongziliang/ZLMediaKit/blob/master/benchmark.md)
-
-- github下载太慢了，有其他下载方式吗？
-
-    你可以在通过开源中国获取最新的代码，地址为：
-
-    [ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
-
-    [ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
-
-
-- 在windows下编译很多错误？
-
-    由于本项目主体代码在macOS/linux下开发，部分源码采用的是无bom头的UTF-8编码；由于windows对于utf-8支持不甚友好，所以如果发现编译错误请先尝试添     加bom头再编译。
-    也可以通过参考这篇博客解决:
-    [vs2015:/utf-8选项解决UTF-8 without BOM 源码中文输出乱码问题](https://blog.csdn.net/10km/article/details/80203286)
 
 ## 参考案例
  - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
@@ -380,7 +256,7 @@ docker build -t zlmediakit .
  - 1、仔细看下readme、wiki，如果有必要可以查看下issue.
  - 2、如果您的问题还没解决，可以提issue.
  - 3、有些问题，如果不具备参考性的，无需在issue提的，可以在qq群提.
- - 4、QQ私聊一般不接受无偿技术咨询和支持(谈谈人生理想还是可以的😂)，毕竟精力有限，谢谢理解.
+ - 4、QQ私聊一般不接受无偿技术咨询和支持([为什么不提倡QQ私聊](https://github.com/xiongziliang/ZLMediaKit/wiki/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%BB%BA%E8%AE%AEQQ%E7%A7%81%E8%81%8A%E5%92%A8%E8%AF%A2%E9%97%AE%E9%A2%98%EF%BC%9F)).
  
 ## 致谢
 感谢以下各位对本项目包括但不限于代码贡献、问题反馈、资金捐赠等各种方式的支持！以下排名不分先后：

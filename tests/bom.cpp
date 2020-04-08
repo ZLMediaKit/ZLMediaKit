@@ -1,4 +1,14 @@
-﻿#include <stdlib.h>
+﻿/*
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+ */
+
+#include <stdlib.h>
 #include <memory.h>
 #if !defined(_WIN32)
 #include <dirent.h>
@@ -126,6 +136,7 @@ void process_file(const char *file,bool rm_bom){
     InfoL << (rm_bom ? "删除" : "添加") << "bom:" << file;
 }
 
+/// 这个程序是为了统一添加或删除utf-8 bom头
 int main(int argc, char *argv[]) {
     CMD_main cmd_main;
     try {
@@ -148,7 +159,7 @@ int main(int argc, char *argv[]) {
     bool no_filter = filter_set.find("*") != filter_set.end();
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
-
+    path = File::absolutePath(path, "");
     for_each_file(path.data(),[&](const char *path){
         if(!no_filter){
             //开启了过滤器

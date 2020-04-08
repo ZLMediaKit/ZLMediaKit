@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "Stamp.h"
@@ -46,15 +30,15 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp) {
         //时间戳增量为正，返回之
         _last_stamp = stamp;
         //在直播情况下，时间戳增量不得大于MAX_DELTA_STAMP
-        return  ret < MAX_DELTA_STAMP ? ret : (_playback ? ret : 0);
+        return  ret < MAX_DELTA_STAMP ? ret : 0;
     }
 
     //时间戳增量为负，说明时间戳回环了或回退了
     _last_stamp = stamp;
-    return _playback ? ret : 0;
+    return 0;
 }
 
-void DeltaStamp::setPlayBack(bool playback) {
+void Stamp::setPlayBack(bool playback) {
     _playback = playback;
 }
 
@@ -62,6 +46,14 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
     if(!pts){
         //没有播放时间戳,使其赋值为解码时间戳
         pts = dts;
+    }
+
+    if(_playback){
+        //这是点播
+        dts_out = dts;
+        pts_out = pts;
+        _relativeStamp = dts_out;
+        return;
     }
 
     //pts和dts的差值

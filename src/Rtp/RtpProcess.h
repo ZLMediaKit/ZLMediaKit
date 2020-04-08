@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
- *
- * Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_RTPPROCESS_H
@@ -56,8 +40,6 @@ protected:
     void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) override;
     void onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts, const void *data,int bytes);
 private:
-    void getNextRtpType();
-private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
     std::shared_ptr<FILE> _save_file_video;
@@ -70,7 +52,7 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
     std::shared_ptr<FrameMerger> _merger;
     Ticker _last_rtp_time;
-    map<int,Stamp> _stamps;
+    unordered_map<int,Stamp> _stamps;
     uint32_t _dts = 0;
     Decoder::Ptr _decoder;
 };
