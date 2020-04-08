@@ -154,7 +154,8 @@ static inline void addHttpListener(){
         HttpSession::KeyValue headerOut;
         auto allArgs = getAllArgs(parser);
         HttpSession::KeyValue &headerIn = parser.getValues();
-        headerOut["Content-Type"] = "application/json; charset=utf-8";
+        GET_CONFIG(string,charSet,Http::kCharSet);
+        headerOut["Content-Type"] = StrPrinter << "application/json; charset=" << charSet;
         if(api_debug){
             auto newInvoker = [invoker,parser,allArgs](const string &codeOut,
                                                        const HttpSession::KeyValue &headerOut,
