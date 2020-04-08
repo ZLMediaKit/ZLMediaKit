@@ -779,7 +779,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         rtp_info.pop_back();
 
 		sendRtspResponse("200 OK",
-						 {"Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << (useBuf? iStartTime / 1000:pMediaSrc->getTimeStamp(TrackInvalid) / 1000.0),
+						 {"Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << (useBuf? pMediaSrc->getTimeStamp(TrackInvalid) / 1000.0 : iStartTime / 1000),
 						  "RTP-Info",rtp_info
 						 });
 
