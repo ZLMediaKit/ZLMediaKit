@@ -240,7 +240,7 @@ bash build_docker_images.sh
  - [IOS rtmp/rtsp播放器，视频推流器](https://gitee.com/xiahcu/IOSPlayer)
  - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xiongziliang/ZLMediaPlayer)
  - [配套的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
- - [DotNetCore的RESTFul api客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
+ - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
  
 ## 授权协议
 
