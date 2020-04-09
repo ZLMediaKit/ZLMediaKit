@@ -10,7 +10,7 @@
 ## 项目特点
 
 - 基于C++11开发，避免使用裸指针，代码稳定可靠，性能优越。
-- 打包多种流媒体协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV/GB28181/MP4），支持协议间的互相转换，提供一站式的服务。
+- 支持多种协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV/GB28181/MP4),支持协议互转。
 - 使用多路复用/多线程/异步网络IO模式开发，并发性能优越，支持海量客户端连接。
 - 代码经过长期大量的稳定性、性能测试，已经在线上商用验证已久。
 - 支持linux、macos、ios、android、windows全平台。
