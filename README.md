@@ -277,6 +277,7 @@ bash build_docker_images.sh
 [linkingvision](https://www.linkingvision.com/)
 [茄子](https://github.com/taotaobujue2008)
 [好心情](<409257224@qq.com>)
+[浮沉](https://github.com/MingZhuLiu)
 
 ## 捐赠
 欢迎捐赠以便更好的推动项目的发展，谢谢您的支持!
