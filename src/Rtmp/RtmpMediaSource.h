@@ -33,6 +33,9 @@ using namespace toolkit;
 #define RTMP_GOP_SIZE 512
 namespace mediakit {
 
+typedef VideoPacketCache<RtmpPacket> RtmpVideoCache;
+typedef AudioPacketCache<RtmpPacket> RtmpAudioCache;
+
 /**
  * rtmp媒体源的数据抽象
  * rtmp有关键的三要素，分别是metadata、config帧，普通帧
@@ -40,10 +43,11 @@ namespace mediakit {
  * 只要生成了这三要素，那么要实现rtmp推流、rtmp服务器就很简单了
  * rtmp推拉流协议中，先传递metadata，然后传递config帧，然后一直传递普通帧
  */
-class RtmpMediaSource : public MediaSource, public RingDelegate<RtmpPacket::Ptr> {
+class RtmpMediaSource : public MediaSource, public RingDelegate<RtmpPacket::Ptr>, public RtmpVideoCache, public RtmpAudioCache{
 public:
     typedef std::shared_ptr<RtmpMediaSource> Ptr;
-    typedef RingBuffer<RtmpPacket::Ptr> RingType;
+    typedef std::shared_ptr<List<RtmpPacket::Ptr> > RingDataType;
+    typedef RingBuffer<RingDataType> RingType;
 
     /**
      * 构造函数
@@ -122,6 +126,9 @@ public:
             return;
         }
 
+        //保存当前时间戳
+        _track_stamps_map[pkt->typeId] = pkt->timeStamp;
+
         if (!_ring) {
             weak_ptr<RtmpMediaSource> weakSelf = dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
             auto lam = [weakSelf](const EventPoller::Ptr &, int size, bool) {
@@ -142,9 +149,12 @@ public:
                 regist();
             }
         }
-        _track_stamps_map[pkt->typeId] = pkt->timeStamp;
-        //不存在视频，为了减少缓存延时，那么关闭GOP缓存
-        _ring->write(pkt, _have_video ? pkt->isVideoKeyFrame() : true);
+
+        if(pkt->typeId == MSG_VIDEO){
+            RtmpVideoCache::inputVideo(pkt, key);
+        }else{
+            RtmpAudioCache::inputAudio(pkt);
+        }
     }
 
     /**
@@ -163,6 +173,25 @@ public:
     }
 
 private:
+
+    /**
+    * 批量flush时间戳相同的视频rtmp包时触发该函数
+    * @param rtmp_list 时间戳相同的rtmp包列表
+    * @param key_pos 是否包含关键帧
+    */
+    void onFlushVideo(std::shared_ptr<List<RtmpPacket::Ptr> > &rtmp_list, bool key_pos) override {
+        _ring->write(rtmp_list, key_pos);
+    }
+
+    /**
+     * 批量flush一定数量的音频rtmp包时触发该函数
+     * @param rtmp_list rtmp包列表
+     */
+    void onFlushAudio(std::shared_ptr<List<RtmpPacket::Ptr> > &rtmp_list) override{
+        //只有音频的话，就不存在gop缓存的意义
+        _ring->write(rtmp_list, !_have_video);
+    }
+
     /**
      * 每次增减消费者都会触发该函数
      */
@@ -177,7 +206,7 @@ private:
     bool _have_video = false;
     mutable recursive_mutex _mtx;
     AMFValue _metadata;
-    RingBuffer<RtmpPacket::Ptr>::Ptr _ring;
+    RingType::Ptr _ring;
     unordered_map<int, uint32_t> _track_stamps_map;
     unordered_map<int, RtmpPacket::Ptr> _config_frame_map;
 };

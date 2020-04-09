@@ -615,20 +615,29 @@ void HttpSession::setSocketFlags(){
     }
 }
 
-void HttpSession::onWrite(const Buffer::Ptr &buffer) {
+void HttpSession::onWrite(const Buffer::Ptr &buffer, bool flush) {
+    if(flush){
+        //需要flush那么一次刷新缓存
+        HttpSession::setSendFlushFlag(true);
+    }
+
     _ticker.resetTime();
     if(!_flv_over_websocket){
         _ui64TotalBytes += buffer->size();
         send(buffer);
-        return;
+    }else{
+        WebSocketHeader header;
+        header._fin = true;
+        header._reserved = 0;
+        header._opcode = WebSocketHeader::BINARY;
+        header._mask_flag = false;
+        WebSocketSplitter::encode(header,buffer);
     }
 
-    WebSocketHeader header;
-    header._fin = true;
-    header._reserved = 0;
-    header._opcode = WebSocketHeader::BINARY;
-    header._mask_flag = false;
-    WebSocketSplitter::encode(header,buffer);
+    if(flush){
+        //本次刷新缓存后，下次不用刷新缓存
+        HttpSession::setSendFlushFlag(false);
+    }
 }
 
 void HttpSession::onWebSocketEncodeData(const Buffer::Ptr &buffer){

@@ -50,12 +50,17 @@ void FlvMuxer::start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &
         }
         strongSelf->onDetach();
     });
-    _ring_reader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
+    _ring_reader->setReadCB([weakSelf](const RtmpMediaSource::RingDataType &pkt){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
             return;
         }
-        strongSelf->onWriteRtmp(pkt);
+
+        int i = 0;
+        int size = pkt->size();
+        pkt->for_each([&](const RtmpPacket::Ptr &rtmp){
+            strongSelf->onWriteRtmp(rtmp, ++i == size);
+        });
     });
 }
 
@@ -84,11 +89,11 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     }
 
     //flv header
-    onWrite(std::make_shared<BufferRaw>(flv_file_header, sizeof(flv_file_header) - 1));
+    onWrite(std::make_shared<BufferRaw>(flv_file_header, sizeof(flv_file_header) - 1), false);
 
     auto size = htonl(0);
     //PreviousTagSize0 Always 0
-    onWrite(std::make_shared<BufferRaw>((char *)&size,4));
+    onWrite(std::make_shared<BufferRaw>((char *)&size,4), false);
 
 
     auto &metadata = mediaSrc->getMetaData();
@@ -97,12 +102,12 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
         //其实metadata没什么用，有些推流器不产生metadata
         AMFEncoder invoke;
         invoke << "onMetaData" << metadata;
-        onWriteFlvTag(MSG_DATA, std::make_shared<BufferString>(invoke.data()), 0);
+        onWriteFlvTag(MSG_DATA, std::make_shared<BufferString>(invoke.data()), 0, false);
     }
 
     //config frame
     mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-        onWriteRtmp(pkt);
+        onWriteRtmp(pkt, true);
     });
 }
 
@@ -125,29 +130,29 @@ public:
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-void FlvMuxer::onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp) {
-    onWriteFlvTag(pkt->typeId,pkt,ui32TimeStamp);
+void FlvMuxer::onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp , bool flush) {
+    onWriteFlvTag(pkt->typeId,pkt,ui32TimeStamp, flush);
 }
 
-void FlvMuxer::onWriteFlvTag(uint8_t ui8Type, const Buffer::Ptr &buffer, uint32_t ui32TimeStamp) {
+void FlvMuxer::onWriteFlvTag(uint8_t ui8Type, const Buffer::Ptr &buffer, uint32_t ui32TimeStamp, bool flush) {
     RtmpTagHeader header;
     header.type = ui8Type;
     set_be24(header.data_size, buffer->size());
     header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
     set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
     //tag header
-    onWrite(std::make_shared<BufferRaw>((char *)&header, sizeof(header)));
+    onWrite(std::make_shared<BufferRaw>((char *)&header, sizeof(header)), false);
     //tag data
-    onWrite(buffer);
+    onWrite(buffer, false);
     auto size = htonl((buffer->size() + sizeof(header)));
     //PreviousTagSize
-    onWrite(std::make_shared<BufferRaw>((char *)&size,4));
+    onWrite(std::make_shared<BufferRaw>((char *)&size,4), flush);
 }
 
-void FlvMuxer::onWriteRtmp(const RtmpPacket::Ptr &pkt) {
+void FlvMuxer::onWriteRtmp(const RtmpPacket::Ptr &pkt,bool flush) {
     int64_t dts_out;
     _stamp[pkt->typeId % 2].revise(pkt->timeStamp, 0, dts_out, dts_out);
-    onWriteFlvTag(pkt, dts_out);
+    onWriteFlvTag(pkt, dts_out,flush);
 }
 
 void FlvMuxer::stop() {
@@ -187,7 +192,7 @@ void FlvRecorder::startRecord(const EventPoller::Ptr &poller,const RtmpMediaSour
     start(poller,media);
 }
 
-void FlvRecorder::onWrite(const Buffer::Ptr &data) {
+void FlvRecorder::onWrite(const Buffer::Ptr &data, bool flush) {
     lock_guard<recursive_mutex> lck(_file_mtx);
     if(_file){
         fwrite(data->data(),data->size(),1,_file.get());

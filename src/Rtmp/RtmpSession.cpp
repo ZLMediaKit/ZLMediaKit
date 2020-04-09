@@ -272,12 +272,23 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
 
     _pRingReader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-    _pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
+    _pRingReader->setReadCB([weakSelf](const RtmpMediaSource::RingDataType &pkt) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
             return;
         }
-        strongSelf->onSendMedia(pkt);
+        if(strongSelf->_paused){
+            return;
+        }
+        int i = 0;
+        int size = pkt->size();
+        strongSelf->setSendFlushFlag(false);
+        pkt->for_each([&](const RtmpPacket::Ptr &rtmp){
+            if(++i == size){
+                strongSelf->setSendFlushFlag(true);
+            }
+            strongSelf->onSendMedia(rtmp);
+        });
     });
     _pRingReader->setDetachCB([weakSelf]() {
         auto strongSelf = weakSelf.lock();
@@ -393,24 +404,9 @@ void RtmpSession::onCmd_pause(AMFDecoder &dec) {
     status.set("code", paused ? "NetStream.Pause.Notify" : "NetStream.Unpause.Notify");
     status.set("description", paused ? "Paused stream." : "Unpaused stream.");
     sendReply("onStatus", nullptr, status);
-//streamBegin
-    sendUserControl(paused ? CONTROL_STREAM_EOF : CONTROL_STREAM_BEGIN,
-    STREAM_MEDIA);
-    if (!_pRingReader) {
-        throw std::runtime_error("Rtmp not started yet!");
-    }
-    if (paused) {
-        _pRingReader->setReadCB(nullptr);
-    } else {
-        weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
-        _pRingReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt) {
-            auto strongSelf = weakSelf.lock();
-            if(!strongSelf) {
-                return;
-            }
-            strongSelf->onSendMedia(pkt);
-        });
-    }
+    //streamBegin
+    sendUserControl(paused ? CONTROL_STREAM_EOF : CONTROL_STREAM_BEGIN, STREAM_MEDIA);
+    _paused = paused;
 }
 
 void RtmpSession::setMetaData(AMFDecoder &dec) {
