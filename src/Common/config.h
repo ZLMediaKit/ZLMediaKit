@@ -173,6 +173,9 @@ extern const string kPublishToRtxp ;
 extern const string kPublishToHls ;
 //是否默认推流时mp4录像，hook接口(on_publish)中可以覆盖该设置
 extern const string kPublishToMP4 ;
+//合并写缓存大小(单位毫秒)，合并写指服务器缓存一定的数据后才会一次性写入socket，这样能提高性能，但是会提高延时
+//在开启低延时模式后，该参数不起作用
+extern const string kMergeWriteMS ;
 }//namespace General
 
 

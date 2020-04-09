@@ -67,6 +67,7 @@ const string kResetWhenRePlay = GENERAL_FIELD"resetWhenRePlay";
 const string kPublishToRtxp = GENERAL_FIELD"publishToRtxp";
 const string kPublishToHls = GENERAL_FIELD"publishToHls";
 const string kPublishToMP4 = GENERAL_FIELD"publishToMP4";
+const string kMergeWriteMS = GENERAL_FIELD"mergeWriteMS";
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
@@ -79,6 +80,7 @@ onceToken token([](){
     mINI::Instance()[kPublishToRtxp] = 1;
     mINI::Instance()[kPublishToHls] = 1;
     mINI::Instance()[kPublishToMP4] = 0;
+    mINI::Instance()[kMergeWriteMS] = 300;
 },nullptr);
 
 }//namespace General
