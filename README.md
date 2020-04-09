@@ -137,6 +137,12 @@
 ## 编译以及测试
 请参考wiki:[快速开始](https://github.com/xiongziliang/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
 
+## 怎么使用
+ 你有三种方法使用ZLMediaKit，分别是：
+ - 1、使用c api，作为sdk使用，请参考[这里](https://github.com/xiongziliang/ZLMediaKit/tree/master/api/include).
+ - 2、作为独立的流媒体服务器使用，不想做c/c++开发的，可以参考[restful api](https://github.com/xiongziliang/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-API)和[web hook](https://github.com/xiongziliang/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-HOOK-API).
+ - 3、如果想做c/c++开发，添加业务逻辑增加功能，可以参考这里的[测试程序](https://github.com/xiongziliang/ZLMediaKit/tree/master/tests).
+
 ## Docker 镜像
 你可以从Docker Hub下载已经编译好的镜像并启动它：
 ```bash
@@ -146,94 +152,6 @@ docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit:20.04-runtime-ubuntu1
 ```bash
 bash build_docker_images.sh
 ```
-
-## 使用方法
-- 作为服务器：
-	```cpp
-	TcpServer::Ptr rtspSrv(new TcpServer());
-	TcpServer::Ptr rtmpSrv(new TcpServer());
-	TcpServer::Ptr httpSrv(new TcpServer());
-	TcpServer::Ptr httpsSrv(new TcpServer());
-	
-	rtspSrv->start<RtspSession>(mINI::Instance()[Config::Rtsp::kPort]);
-	rtmpSrv->start<RtmpSession>(mINI::Instance()[Config::Rtmp::kPort]);
-	httpSrv->start<HttpSession>(mINI::Instance()[Config::Http::kPort]);
-	httpsSrv->start<HttpsSession>(mINI::Instance()[Config::Http::kSSLPort]);
-	```
-
-- 作为播放器：
-	```cpp
-    MediaPlayer::Ptr player(new MediaPlayer());
-    weak_ptr<MediaPlayer> weakPlayer = player;
-    player->setOnPlayResult([weakPlayer](const SockException &ex) {
-        InfoL << "OnPlayResult:" << ex.what();
-        auto strongPlayer = weakPlayer.lock();
-        if (ex || !strongPlayer) {
-            return;
-        }
-
-        auto viedoTrack = strongPlayer->getTrack(TrackVideo);
-        if (!viedoTrack) {
-            WarnL << "没有视频Track!";
-            return;
-        }
-        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([](const Frame::Ptr &frame) {
-            //此处解码并播放
-        }));
-    });
-
-    player->setOnShutdown([](const SockException &ex) {
-        ErrorL << "OnShutdown:" << ex.what();
-    });
-
-    //支持rtmp、rtsp
-    (*player)[Client::kRtpType] = Rtsp::RTP_TCP;
-    player->play("rtsp://admin:jzan123456@192.168.0.122/");
-	```
-- 作为代理服务器：
-	```cpp
-	//support rtmp and rtsp url
-	//just support H264+AAC
-	auto urlList = {"rtmp://live.hkstv.hk.lxdns.com/live/hks",
-			"rtsp://184.72.239.149/vod/mp4://BigBuckBunny_175k.mov"};
-	map<string , PlayerProxy::Ptr> proxyMap;
-	int i=0;
-	for(auto url : urlList){
-		//PlayerProxy构造函数前两个参数分别为应用名（app）,流id（streamId）
-		//比如说应用为live，流id为0，那么直播地址为：
-		//http://127.0.0.1/live/0/hls.m3u8
-		//rtsp://127.0.0.1/live/0
-		//rtmp://127.0.0.1/live/0
-		//录像地址为：
-		//http://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
-		//rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
-		//rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
-		PlayerProxy::Ptr player(new PlayerProxy("live",to_string(i++).data()));
-		player->play(url);
-		proxyMap.emplace(string(url),player);
-	}
-	```
-	
-- 作为推流客户端器：
-	```cpp
-	PlayerProxy::Ptr player(new PlayerProxy("app","stream"));
-	//拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
-	//你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请研读MediaReader代码）
-	player->play("rtmp://live.hkstv.hk.lxdns.com/live/hks");
-
-	RtmpPusher::Ptr pusher;
-	//监听RtmpMediaSource注册事件,在PlayerProxy播放成功后触发。
-	NoticeCenter::Instance().addListener(nullptr,Config::Broadcast::kBroadcastRtmpSrcRegisted,
-			[&pusher](BroadcastRtmpSrcRegistedArgs){
-		//媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
-		const_cast<RtmpPusher::Ptr &>(pusher).reset(new RtmpPusher(app,stream));
-
-		//推流地址，请改成你自己的服务器。
-		//这个范例地址（也是基于mediakit）是可用的，但是带宽只有1mb，访问可能很卡顿。
-		pusher->publish("rtmp://jizan.iok.la/live/test");
-	});
-
-	```
 
 ## 参考案例
  - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
