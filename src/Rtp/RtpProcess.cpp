@@ -204,10 +204,10 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
     pts /= 90;
     dts /= 90;
     _stamps[codecid].revise(dts,pts,dts,pts,false);
-    _dts = dts;
 
     switch (codecid) {
         case STREAM_VIDEO_H264: {
+            _dts = dts;
             if (!_codecid_video) {
                 //获取到视频
                 _codecid_video = codecid;
@@ -232,6 +232,7 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         case STREAM_VIDEO_H265: {
+            _dts = dts;
             if (!_codecid_video) {
                 //获取到视频
                 _codecid_video = codecid;
@@ -254,6 +255,7 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         case STREAM_AUDIO_AAC: {
+            _dts = dts;
             if (!_codecid_audio) {
                 //获取到音频
                 _codecid_audio = codecid;
