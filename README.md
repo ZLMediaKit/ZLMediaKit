@@ -116,6 +116,7 @@ bash build_docker_images.sh
  - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xiongziliang/ZLMediaPlayer)
  - [配套的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
  - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
+ - [支持GB28181信令服务器、onvif的NVS系统](https://gitee.com/qinqi/JNVS)
 
 ## 授权协议
 
