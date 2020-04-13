@@ -48,11 +48,10 @@ MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &
 bool MP4Reader::readSample() {
     bool keyFrame = false;
     bool eof = false;
-    while (true) {
-        auto frame = _demuxer->readFrame(keyFrame);
+    while (!eof) {
+        auto frame = _demuxer->readFrame(keyFrame, eof);
         if (!frame) {
-            eof = true;
-            break;
+            continue;
         }
         _mediaMuxer->inputFrame(frame);
         if (frame->dts() > getCurrentStamp()) {
@@ -122,11 +121,12 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp){
     }
     //搜索到下一帧关键帧
     bool keyFrame = false;
-    while (true) {
-        auto frame = _demuxer->readFrame(keyFrame);
+    bool eof = false;
+    while (!eof) {
+        auto frame = _demuxer->readFrame(keyFrame, eof);
         if(!frame){
             //文件读完了都未找到下一帧关键帧
-            return false;
+            continue;
         }
         if(keyFrame || frame->keyFrame() || frame->configFrame()){
             //定位到key帧
@@ -136,6 +136,7 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp){
             return true;
         }
     }
+    return false;
 }
 
 bool MP4Reader::close(MediaSource &sender,bool force){
