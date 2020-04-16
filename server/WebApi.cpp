@@ -736,6 +736,7 @@ void installWebApi() {
                                               allArgs["customized_path"]);
         val["result"] = result;
         val["code"] = result ? API::Success : API::OtherFailed;
+        val["msg"] = result ? "success" :  "start record failed";
     });
 
     // 停止录制hls或MP4
@@ -748,6 +749,7 @@ void installWebApi() {
                                              allArgs["stream"]);
         val["result"] = result;
         val["code"] = result ? API::Success : API::OtherFailed;
+        val["msg"] = result ? "success" :  "stop record failed";
     });
 
     // 获取hls或MP4录制状态
