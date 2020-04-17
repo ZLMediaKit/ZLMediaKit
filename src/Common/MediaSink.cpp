@@ -53,8 +53,8 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
     if (it == _track_map.end()) {
         return;
     }
-    it->second->inputFrame(frame);
     checkTrackIfReady(it->second);
+    it->second->inputFrame(frame);
 }
 
 void MediaSink::checkTrackIfReady_l(const Track::Ptr &track){
