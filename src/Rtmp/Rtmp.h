@@ -75,6 +75,9 @@ using namespace toolkit;
 #define FLV_CODEC_AAC 10
 #define FLV_CODEC_H264 7
 #define FLV_CODEC_H265 12
+#define FLV_CODEC_G711A 7
+#define FLV_CODEC_G711U 8
+
 
 namespace mediakit {
 

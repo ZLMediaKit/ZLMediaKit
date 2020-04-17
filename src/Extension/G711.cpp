@@ -15,7 +15,7 @@ namespace mediakit{
 
 Sdp::Ptr G711Track::getSdp() {
     if(!ready()){
-        WarnL << "AAC Track未准备好";
+        WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
     return std::make_shared<G711Sdp>(getCodecId(), getAudioSampleRate(), getCodecId() == CodecG711A ? 8 : 0, getAudioSampleBit());

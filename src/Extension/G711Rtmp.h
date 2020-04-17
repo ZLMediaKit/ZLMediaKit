@@ -51,7 +51,7 @@ protected:
     G711Frame::Ptr obtainFrame();
 protected:
     G711Frame::Ptr _adts;
-    CodecId _codecid = CodecG711A;
+    CodecId _codecid = CodecInvalid;
 
 };
 

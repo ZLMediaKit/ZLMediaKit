@@ -101,6 +101,15 @@ API_EXPORT void API_CALL mk_player_set_on_data(mk_player ctx, on_mk_play_data cb
     });
 }
 
+
+API_EXPORT int API_CALL mk_player_video_codecId(mk_player ctx)
+{
+    assert(ctx);
+    MediaPlayer::Ptr& player = *((MediaPlayer::Ptr*)ctx);
+    auto track = dynamic_pointer_cast<VideoTrack>(player->getTrack(TrackVideo));
+    return track ? track->getCodecId() : CodecInvalid;
+}
+
 API_EXPORT int API_CALL mk_player_video_width(mk_player ctx) {
     assert(ctx);
     MediaPlayer::Ptr &player = *((MediaPlayer::Ptr *)ctx);
@@ -120,6 +129,15 @@ API_EXPORT int API_CALL mk_player_video_fps(mk_player ctx) {
     MediaPlayer::Ptr &player = *((MediaPlayer::Ptr *)ctx);
     auto track = dynamic_pointer_cast<VideoTrack>(player->getTrack(TrackVideo));
     return track ? track->getVideoFps() : 0;
+}
+
+
+API_EXPORT int API_CALL mk_player_audio_codecId(mk_player ctx)
+{
+    assert(ctx);
+    MediaPlayer::Ptr& player = *((MediaPlayer::Ptr*)ctx);
+    auto track = dynamic_pointer_cast<AudioTrack>(player->getTrack(TrackAudio));
+    return track ? track->getCodecId() : CodecInvalid;
 }
 
 API_EXPORT int API_CALL mk_player_audio_samplerate(mk_player ctx) {
