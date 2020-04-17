@@ -44,7 +44,7 @@ private:
     G711Frame::Ptr obtainFrame();
 private:
     G711Frame::Ptr _adts;
-    CodecId _codecid = CodecG711A;
+    CodecId _codecid = CodecInvalid;
 };
 
 

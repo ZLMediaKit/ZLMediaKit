@@ -57,7 +57,7 @@ public:
     }
 
     CodecId getCodecId() const override{
-        return CodecAAC;
+        return _codecId;
     }
 
     bool keyFrame() const override {
@@ -68,6 +68,7 @@ public:
         return false;
     }
 public:
+    CodecId _codecId = CodecG711A;
     unsigned int frameLength; // 一个帧的长度包括 raw data block
     unsigned char buffer[2 * 1024 + 7];
     uint32_t timeStamp;

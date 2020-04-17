@@ -169,7 +169,7 @@ RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
 
 /////////////////////////////rtmp相关///////////////////////////////////////////
 
-Track::Ptr Factory::getTrackByAmf(const AMFValue &amf) {
+Track::Ptr Factory::getVideoTrackByAmf(const AMFValue &amf) {
     CodecId codecId = getCodecIdByAmf(amf);
     if(codecId == CodecInvalid){
         return nullptr;
@@ -177,6 +177,15 @@ Track::Ptr Factory::getTrackByAmf(const AMFValue &amf) {
     return getTrackByCodecId(codecId);
 }
 
+
+mediakit::Track::Ptr Factory::getAudioTrackByAmf(const AMFValue& amf)
+{
+    CodecId codecId = getAudioCodecIdByAmf(amf);
+    if (codecId == CodecInvalid) {
+        return nullptr;
+    }
+    return getTrackByCodecId(codecId);
+}
 
 CodecId Factory::getCodecIdByAmf(const AMFValue &val){
     if (val.type() == AMF_STRING){
@@ -212,6 +221,36 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
 }
 
 
+CodecId Factory::getAudioCodecIdByAmf(const AMFValue& val)
+{
+    if (val.type() == AMF_STRING) {
+        auto str = val.as_string();
+        if (str == "mp4a") {
+            return CodecAAC;
+        }
+        WarnL << "暂不支持该Amf:" << str;
+        return CodecInvalid;
+    }
+
+    if (val.type() != AMF_NULL) {
+        auto type_id = val.as_integer();
+        switch (type_id) {
+        case FLV_CODEC_AAC: return CodecAAC;
+        case FLV_CODEC_G711A: return CodecG711A;
+        case FLV_CODEC_G711U: return CodecG711U;
+
+        default:
+            WarnL << "暂不支持该Amf:" << type_id;
+            return CodecInvalid;
+        }
+    }
+    else {
+        WarnL << "Metadata不存在相应的Track";
+    }
+
+    return CodecInvalid;
+}
+
 RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
     switch (track->getCodecId()){
         case CodecH264:
@@ -234,8 +273,8 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
         case CodecAAC: return AMFValue("mp4a");
         case CodecH264: return AMFValue("avc1");
         case CodecH265: return AMFValue(FLV_CODEC_H265);
-        case CodecG711A: return AMFValue(7);
-        case CodecG711U: return AMFValue(8);
+        case CodecG711A: return AMFValue(FLV_CODEC_G711A);
+        case CodecG711U: return AMFValue(FLV_CODEC_G711U);
         default: return AMFValue(AMF_NULL);
     }
 }

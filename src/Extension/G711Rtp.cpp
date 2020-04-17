@@ -51,12 +51,11 @@ void G711RtpEncoder::makeG711Rtp(const void *data, unsigned int len, bool mark, 
 /////////////////////////////////////////////////////////////////////////////////////
 
 G711RtpDecoder::G711RtpDecoder(const Track::Ptr &track){
-    auto aacTrack = dynamic_pointer_cast<G711Track>(track);
-    _codecid = aacTrack->getCodecId();
-    if(!aacTrack || !aacTrack->ready()){
+    auto g711Track = dynamic_pointer_cast<G711Track>(track);
+    _codecid = g711Track->getCodecId();
+    if(!g711Track || !g711Track->ready()){
         WarnL << "该g711 track无效!";
     }else{
-        //_aac_cfg = aacTrack->getAacCfg();
     }
     _adts = obtainFrame();
 }
@@ -81,6 +80,7 @@ bool G711RtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
 
     _adts->frameLength = length;
     memcpy(_adts->buffer, rtp_packet_buf, length);
+    _adts->_codecId = _codecid;
     if (rtppack->mark == true) {
         _adts->timeStamp = rtppack->timeStamp;
         onGetG711(_adts);
