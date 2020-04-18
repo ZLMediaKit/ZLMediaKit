@@ -62,7 +62,7 @@ public:
      */
     void inputFrame(const Frame::Ptr &frame) override;
 private:
-    uint8_t _g711_flags = 0;
+    uint8_t _audio_flv_flags = 0;
 };
 
 }//namespace mediakit

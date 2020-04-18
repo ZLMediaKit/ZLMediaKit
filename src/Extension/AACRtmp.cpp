@@ -104,7 +104,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 
         //header
         uint8_t is_config = false;
-        rtmpPkt->strBuf.push_back(_ui8AudioFlags);
+        rtmpPkt->strBuf.push_back(_audio_flv_flags);
         rtmpPkt->strBuf.push_back(!is_config);
 
         //aac data
@@ -117,44 +117,16 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         rtmpPkt->typeId = MSG_AUDIO;
         RtmpCodec::inputRtmp(rtmpPkt, false);
     }
-
 }
 
 void AACRtmpEncoder::makeAudioConfigPkt() {
-    makeAdtsHeader(_aac_cfg,*_adts);
-    int iSampleRate , iChannel , iSampleBit = 16;
-    getAACInfo(*_adts,iSampleRate,iChannel);
-
-    uint8_t flvStereoOrMono = (iChannel > 1);
-    uint8_t flvSampleRate;
-    switch (iSampleRate) {
-        case 48000:
-        case 44100:
-            flvSampleRate = 3;
-            break;
-        case 24000:
-        case 22050:
-            flvSampleRate = 2;
-            break;
-        case 12000:
-        case 11025:
-            flvSampleRate = 1;
-            break;
-        default:
-            flvSampleRate = 0;
-            break;
-    }
-    uint8_t flvSampleBit = iSampleBit == 16;
-    uint8_t flvAudioType = FLV_CODEC_AAC;
-
-    _ui8AudioFlags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
-
+    _audio_flv_flags = getAudioRtmpFlags(std::make_shared<AACTrack>(_aac_cfg));
     RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
     rtmpPkt->strBuf.clear();
 
     //header
     uint8_t is_config = true;
-    rtmpPkt->strBuf.push_back(_ui8AudioFlags);
+    rtmpPkt->strBuf.push_back(_audio_flv_flags);
     rtmpPkt->strBuf.push_back(!is_config);
     //aac config
     rtmpPkt->strBuf.append(_aac_cfg);

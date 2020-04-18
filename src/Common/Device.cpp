@@ -196,7 +196,7 @@ void DevChannel::initAudio(const AudioInfo& info) {
         }
 
         case CodecG711A :
-        case CodecG711U : addTrack(std::make_shared<G711Track>(info.codecId)); break;
+        case CodecG711U : addTrack(std::make_shared<G711Track>(info.codecId, info.iSampleRate, info.iChannel, info.iSampleBit)); break;
         default: WarnL << "不支持该类型的音频编码类型:" << info.codecId; break;
     }
 }

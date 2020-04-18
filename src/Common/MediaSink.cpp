@@ -42,8 +42,8 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
         if (_allTrackReady) {
             //运行至这里说明Track状态由未就绪切换为已就绪状态,那么这帧就不应该丢弃
             onTrackFrame(frame);
-        } else {
-            ErrorL << "some track is unready，drop frame of: " << frame->getCodecName();
+        } else if(frame->keyFrame()){
+            WarnL << "some track is unready，drop key frame of: " << frame->getCodecName();
         }
     }));
 }

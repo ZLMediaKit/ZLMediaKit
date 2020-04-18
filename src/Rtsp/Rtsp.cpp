@@ -172,6 +172,7 @@ void SdpParser::load(const string &sdp) {
                     if (4 == sscanf(opt_val.data(), " %15[^ ] %d %15[^ ] %d", type, &port, rtp, &pt)) {
                         track->_pt = pt;
                         track->_samplerate = RtpPayload::getClockRate(pt) ;
+                        track->_channel = RtpPayload::getAudioChannel(pt);
                         track->_type = toTrackType(type);
                         track->_m = opt_val;
                         track->_port = port;
@@ -214,9 +215,14 @@ void SdpParser::load(const string &sdp) {
         it = track._attr.find("rtpmap");
         if(it != track._attr.end()){
             auto rtpmap = it->second;
-            int pt, samplerate;
+            int pt, samplerate, channel;
             char codec[16] = {0};
-            if (3 == sscanf(rtpmap.data(), "%d %15[^/]/%d", &pt, codec, &samplerate)) {
+            if (4 == sscanf(rtpmap.data(), "%d %15[^/]/%d/%d", &pt, codec, &samplerate, &channel)) {
+                track._pt = pt;
+                track._codec = codec;
+                track._samplerate = samplerate;
+                track._channel = channel;
+            }else if (3 == sscanf(rtpmap.data(), "%d %15[^/]/%d", &pt, codec, &samplerate)) {
                 track._pt = pt;
                 track._codec = codec;
                 track._samplerate = samplerate;

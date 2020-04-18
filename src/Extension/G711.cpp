@@ -12,13 +12,12 @@
 
 namespace mediakit{
 
-
 Sdp::Ptr G711Track::getSdp() {
     if(!ready()){
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<G711Sdp>(getCodecId());
+    return std::make_shared<G711Sdp>(getCodecId(), getAudioSampleRate(), getAudioChannel());
 }
 
 }//namespace mediakit
