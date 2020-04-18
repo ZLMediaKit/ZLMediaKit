@@ -25,11 +25,14 @@ typedef void *mk_media;
  * @param app 应用名，推荐为live
  * @param stream 流id，例如camera
  * @param duration 时长(单位秒)，直播则为0
+ * @param rtsp_enabled 是否启用rtsp协议
+ * @param rtmp_enabled 是否启用rtmp协议
  * @param hls_enabled 是否生成hls
  * @param mp4_enabled 是否生成mp4
  * @return 对象指针
  */
-API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream, float duration, int hls_enabled, int mp4_enabled);
+API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream, float duration,
+                                             int rtsp_enabled, int rtmp_enabled, int hls_enabled, int mp4_enabled);
 
 /**
  * 销毁媒体源
