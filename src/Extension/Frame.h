@@ -26,6 +26,8 @@ typedef enum {
     CodecH264 = 0,
     CodecH265,
     CodecAAC,
+    CodecG711A,
+    CodecG711U,
     CodecMax = 0x7FFF
 } CodecId;
 

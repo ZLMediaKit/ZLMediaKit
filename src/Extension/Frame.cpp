@@ -28,6 +28,8 @@ const char *CodecInfo::getCodecName() {
         SWITCH_CASE(CodecH264);
         SWITCH_CASE(CodecH265);
         SWITCH_CASE(CodecAAC);
+        SWITCH_CASE(CodecG711A);
+        SWITCH_CASE(CodecG711U);
         default:
             return "unknown codec";
     }
