@@ -109,50 +109,25 @@ API_EXPORT void API_CALL mk_media_release(mk_media ctx) {
     delete obj;
 }
 
-API_EXPORT void API_CALL mk_media_init_h264(mk_media ctx, int width, int height, int frameRate) {
+API_EXPORT void API_CALL mk_media_init_video(mk_media ctx, int track_id, int width, int height, int fps){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     VideoInfo info;
-    info.codecId = CodecH264;
-    info.iFrameRate = frameRate;
+    info.codecId = (CodecId)track_id;
+    info.iFrameRate = fps;
     info.iWidth = width;
     info.iHeight = height;
     (*obj)->getChannel()->initVideo(info);
 }
 
-API_EXPORT void API_CALL mk_media_init_h265(mk_media ctx, int width, int height, int frameRate) {
-    assert(ctx);
-    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    VideoInfo info;
-    info.codecId = CodecH265;
-    info.iFrameRate = frameRate;
-    info.iWidth = width;
-    info.iHeight = height;
-    (*obj)->getChannel()->initVideo(info);
-}
-
-API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample_bit, int sample_rate, int profile) {
+API_EXPORT void API_CALL mk_media_init_audio(mk_media ctx, int track_id, int sample_rate, int channels, int sample_bit){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     AudioInfo info;
-    info.codecId = CodecAAC;
+    info.codecId = (CodecId)track_id;
     info.iSampleRate = sample_rate;
-    info.iChannel = channel;
+    info.iChannel = channels;
     info.iSampleBit = sample_bit;
-    info.iProfile = profile;
-    (*obj)->getChannel()->initAudio(info);
-}
-
-API_EXPORT void API_CALL mk_media_init_g711(mk_media ctx, int au, int sample_bit, int sample_rate){
-    assert(ctx);
-    assert(au == CodecG711A || au == CodecG711U);
-    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
-    AudioInfo info;
-    info.codecId = (CodecId)au;
-    info.iSampleRate = sample_rate;
-    info.iChannel = 1;
-    info.iSampleBit = sample_bit;
-    info.iProfile = 0;
     (*obj)->getChannel()->initAudio(info);
 }
 
@@ -174,13 +149,7 @@ API_EXPORT void API_CALL mk_media_input_h265(mk_media ctx, void *data, int len, 
     (*obj)->getChannel()->inputH265((char *) data, len, dts, pts);
 }
 
-API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, uint32_t dts, int with_adts_header) {
-    assert(ctx && data && len > 0);
-    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    (*obj)->getChannel()->inputAAC((char *) data, len, dts, with_adts_header);
-}
-
-API_EXPORT void API_CALL mk_media_input_aac1(mk_media ctx, void *data, int len, uint32_t dts, void *adts) {
+API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, uint32_t dts, void *adts) {
     assert(ctx && data && len > 0 && adts);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->getChannel()->inputAAC((char *) data, len, dts, (char *) adts);
