@@ -56,11 +56,18 @@ public:
     ////////////////////////////////rtmp相关//////////////////////////////////
 
     /**
-     * 根据amf对象获取响应的Track
-     * @param amf rtmp metadata中的videocodecid或audiocodecid的值
+     * 根据amf对象获取视频相应的Track
+     * @param amf rtmp metadata中的videocodecid的值
      * @return
      */
-    static Track::Ptr getTrackByAmf(const AMFValue &amf);
+    static Track::Ptr getVideoTrackByAmf(const AMFValue &amf);
+
+    /**
+     * 根据amf对象获取音频相应的Track
+     * @param amf rtmp metadata中的audiocodecid的值
+     * @return
+     */
+    static Track::Ptr getAudioTrackByAmf(const AMFValue& amf);
 
     /**
      * 根据amf对象获取相应的CodecId
@@ -68,6 +75,13 @@ public:
      * @return
      */
     static CodecId getCodecIdByAmf(const AMFValue &val);
+
+    /**
+     * 根据amf对象获取音频相应的CodecId
+     * @param val rtmp metadata中的audiocodecid的值
+     * @return
+     */
+    static CodecId getAudioCodecIdByAmf(const AMFValue& val);
 
     /**
      * 根据Track获取Rtmp的编解码器

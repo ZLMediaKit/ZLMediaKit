@@ -85,7 +85,10 @@ int main(int argc,char *argv[]) {
     //此处选择是否导出调试文件
 //    mINI::Instance()[RtpProxy::kDumpDir] = "/Users/xzl/Desktop/";
 
-    loadFile(argv[1]);
+    if (argc == 2)
+      loadFile(argv[1]);
+    else
+      ErrorL << "parameter error.";
 #else
     ErrorL << "please ENABLE_RTPPROXY and then test";
 #endif//#if defined(ENABLE_RTPPROXY)

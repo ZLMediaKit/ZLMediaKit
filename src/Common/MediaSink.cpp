@@ -35,6 +35,23 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
         if (_allTrackReady) {
             onTrackFrame(frame);
         }
+        else
+        {
+            if (frame->getTrackType() == TrackVideo)
+            {
+                checkTrackIfReady(nullptr);
+
+                if (_allTrackReady) {
+                    onTrackFrame(frame);
+                }
+                else
+                {
+                    ErrorL << " 还有track未准备好，丢帧 codecName: " << frame->getCodecName();
+                }
+
+            }else
+                ErrorL << " 还有track未准备好，丢帧 codecName: " << frame->getCodecName();
+        }
     }));
 }
 
@@ -116,6 +133,7 @@ void MediaSink::emitAllTrackReady() {
         return;
     }
 
+    DebugL << "all track ready use " << _ticker.elapsedTime() << "ms";
     if (!_trackReadyCallback.empty()) {
         //这是超时强制忽略未准备好的Track
         _trackReadyCallback.clear();

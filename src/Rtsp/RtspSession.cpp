@@ -743,22 +743,22 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         }
 
         bool useBuf = true;
-        _enableSendRtp = false;
-
-        if (strRange.size() && !_bFirstPlay) {
+		_enableSendRtp = false;
+        float iStartTime = 0;
+		if (strRange.size() && !_bFirstPlay) {
             //这个是seek操作
-            auto strStart = FindField(strRange.data(), "npt=", "-");
-            if (strStart == "now") {
-                strStart = "0";
-            }
-            auto iStartTime = 1000 * atof(strStart.data());
-            InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
-            useBuf = !pMediaSrc->seekTo(iStartTime);
-        }else if(pMediaSrc->totalReaderCount() == 0){
-            //第一个消费者
-            pMediaSrc->seekTo(0);
-        }
-        _bFirstPlay = false;
+			auto strStart = FindField(strRange.data(), "npt=", "-");
+			if (strStart == "now") {
+				strStart = "0";
+			}
+			iStartTime = 1000 * atof(strStart.data());
+			InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
+			useBuf = !pMediaSrc->seekTo(iStartTime);
+		}else if(pMediaSrc->totalReaderCount() == 0){
+			//第一个消费者
+			pMediaSrc->seekTo(0);
+		}
+		_bFirstPlay = false;
 
         _StrPrinter rtp_info;
         for(auto &track : _aTrackInfo){
@@ -778,10 +778,10 @@ void RtspSession::handleReq_Play(const Parser &parser) {
 
         rtp_info.pop_back();
 
-        sendRtspResponse("200 OK",
-                         {"Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) <<  pMediaSrc->getTimeStamp(TrackInvalid) / 1000.0 << "-",
-                          "RTP-Info",rtp_info
-                         });
+		sendRtspResponse("200 OK",
+						 {"Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << (useBuf? pMediaSrc->getTimeStamp(TrackInvalid) / 1000.0 : iStartTime / 1000),
+						  "RTP-Info",rtp_info
+						 });
 
         _enableSendRtp = true;
         setSocketFlags();
