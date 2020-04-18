@@ -113,6 +113,7 @@ API_EXPORT void API_CALL mk_media_init_h264(mk_media ctx, int width, int height,
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     VideoInfo info;
+    info.codecId = CodecH264;
     info.iFrameRate = frameRate;
     info.iWidth = width;
     info.iHeight = height;
@@ -123,16 +124,18 @@ API_EXPORT void API_CALL mk_media_init_h265(mk_media ctx, int width, int height,
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     VideoInfo info;
+    info.codecId = CodecH265;
     info.iFrameRate = frameRate;
     info.iWidth = width;
     info.iHeight = height;
-    (*obj)->getChannel()->initH265Video(info);
+    (*obj)->getChannel()->initVideo(info);
 }
 
 API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample_bit, int sample_rate, int profile) {
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     AudioInfo info;
+    info.codecId = CodecAAC;
     info.iSampleRate = sample_rate;
     info.iChannel = channel;
     info.iSampleBit = sample_bit;
@@ -140,17 +143,16 @@ API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample
     (*obj)->getChannel()->initAudio(info);
 }
 
-
-API_EXPORT void API_CALL mk_media_init_g711(mk_media ctx, int au, int sample_bit, int sample_rate)
-{
+API_EXPORT void API_CALL mk_media_init_g711(mk_media ctx, int au, int sample_bit, int sample_rate){
     assert(ctx);
+    assert(au == CodecG711A || au == CodecG711U);
     MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
     AudioInfo info;
+    info.codecId = (CodecId)au;
     info.iSampleRate = sample_rate;
     info.iChannel = 1;
     info.iSampleBit = sample_bit;
     info.iProfile = 0;
-    info.codecId = (CodecId)au;
     (*obj)->getChannel()->initAudio(info);
 }
 
@@ -184,12 +186,8 @@ API_EXPORT void API_CALL mk_media_input_aac1(mk_media ctx, void *data, int len, 
     (*obj)->getChannel()->inputAAC((char *) data, len, dts, (char *) adts);
 }
 
-API_EXPORT void API_CALL mk_media_input_g711(mk_media ctx, void* data, int len, uint32_t dts)
-{
+API_EXPORT void API_CALL mk_media_input_g711(mk_media ctx, void* data, int len, uint32_t dts){
     assert(ctx && data && len > 0);
     MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
     (*obj)->getChannel()->inputG711((char*)data, len, dts);
 }
-
-
-

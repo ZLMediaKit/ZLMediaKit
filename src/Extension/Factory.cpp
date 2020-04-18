@@ -88,7 +88,6 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     return nullptr;
 }
 
-
 Track::Ptr Factory::getTrackByCodecId(CodecId codecId) {
     switch (codecId){
         case CodecH264:{
@@ -169,25 +168,7 @@ RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
 
 /////////////////////////////rtmp相关///////////////////////////////////////////
 
-Track::Ptr Factory::getVideoTrackByAmf(const AMFValue &amf) {
-    CodecId codecId = getCodecIdByAmf(amf);
-    if(codecId == CodecInvalid){
-        return nullptr;
-    }
-    return getTrackByCodecId(codecId);
-}
-
-
-mediakit::Track::Ptr Factory::getAudioTrackByAmf(const AMFValue& amf)
-{
-    CodecId codecId = getAudioCodecIdByAmf(amf);
-    if (codecId == CodecInvalid) {
-        return nullptr;
-    }
-    return getTrackByCodecId(codecId);
-}
-
-CodecId Factory::getCodecIdByAmf(const AMFValue &val){
+static CodecId getVideoCodecIdByAmf(const AMFValue &val){
     if (val.type() == AMF_STRING){
         auto str = val.as_string();
         if(str == "avc1"){
@@ -213,16 +194,20 @@ CodecId Factory::getCodecIdByAmf(const AMFValue &val){
                 WarnL << "暂不支持该Amf:" << type_id;
                 return CodecInvalid;
         }
-    }else{
-        WarnL << "Metadata不存在相应的Track";
     }
 
     return CodecInvalid;
 }
 
+Track::Ptr Factory::getVideoTrackByAmf(const AMFValue &amf) {
+    CodecId codecId = getVideoCodecIdByAmf(amf);
+    if(codecId == CodecInvalid){
+        return nullptr;
+    }
+    return getTrackByCodecId(codecId);
+}
 
-CodecId Factory::getAudioCodecIdByAmf(const AMFValue& val)
-{
+static CodecId getAudioCodecIdByAmf(const AMFValue &val) {
     if (val.type() == AMF_STRING) {
         auto str = val.as_string();
         if (str == "mp4a") {
@@ -235,20 +220,22 @@ CodecId Factory::getAudioCodecIdByAmf(const AMFValue& val)
     if (val.type() != AMF_NULL) {
         auto type_id = val.as_integer();
         switch (type_id) {
-        case FLV_CODEC_AAC: return CodecAAC;
-        case FLV_CODEC_G711A: return CodecG711A;
-        case FLV_CODEC_G711U: return CodecG711U;
-
-        default:
-            WarnL << "暂不支持该Amf:" << type_id;
-            return CodecInvalid;
+            case FLV_CODEC_AAC : return CodecAAC;
+            case FLV_CODEC_G711A : return CodecG711A;
+            case FLV_CODEC_G711U : return CodecG711U;
+            default : WarnL << "暂不支持该Amf:" << type_id; return CodecInvalid;
         }
-    }
-    else {
-        WarnL << "Metadata不存在相应的Track";
     }
 
     return CodecInvalid;
+}
+
+Track::Ptr Factory::getAudioTrackByAmf(const AMFValue& amf){
+    CodecId codecId = getAudioCodecIdByAmf(amf);
+    if (codecId == CodecInvalid) {
+        return nullptr;
+    }
+    return getTrackByCodecId(codecId);
 }
 
 RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
@@ -270,6 +257,7 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
 
 AMFValue Factory::getAmfByCodecId(CodecId codecId) {
     switch (codecId){
+        //此处用string标明rtmp编码类型目的是为了兼容某些android系统
         case CodecAAC: return AMFValue("mp4a");
         case CodecH264: return AMFValue("avc1");
         case CodecH265: return AMFValue(FLV_CODEC_H265);
@@ -278,7 +266,6 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
         default: return AMFValue(AMF_NULL);
     }
 }
-
 
 }//namespace mediakit
 

@@ -18,7 +18,7 @@ Sdp::Ptr G711Track::getSdp() {
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<G711Sdp>(getCodecId(), getAudioSampleRate(), getCodecId() == CodecG711A ? 8 : 0, getAudioSampleBit());
+    return std::make_shared<G711Sdp>(getCodecId());
 }
 
 }//namespace mediakit

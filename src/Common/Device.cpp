@@ -8,13 +8,9 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <stdio.h>
-#include <stdio.h>
 #include "Device.h"
 #include "Util/logger.h"
-#include "Util/util.h"
 #include "Util/base64.h"
-#include "Util/TimeTicker.h"
 #include "Extension/AAC.h"
 #include "Extension/G711.h"
 #include "Extension/H264.h"
@@ -148,9 +144,7 @@ void DevChannel::inputAAC(const char *pcDataWithoutAdts,int iDataLen, uint32_t u
     }
 }
 
-
-void DevChannel::inputG711(const char* pcData, int iDataLen, uint32_t uiStamp)
-{
+void DevChannel::inputG711(const char* pcData, int iDataLen, uint32_t uiStamp){
     if (uiStamp == 0) {
         uiStamp = (uint32_t)_aTicker[1].elapsedTime();
     }
@@ -159,47 +153,51 @@ void DevChannel::inputG711(const char* pcData, int iDataLen, uint32_t uiStamp)
 
 void DevChannel::initVideo(const VideoInfo& info) {
     _video = std::make_shared<VideoInfo>(info);
-    addTrack(std::make_shared<H264Track>());
+    switch (info.codecId){
+        case CodecH265 : addTrack(std::make_shared<H265Track>()); break;
+        case CodecH264 : addTrack(std::make_shared<H264Track>()); break;
+        default: WarnL << "不支持该类型的视频编码类型:" << info.codecId; break;
+    }
 }
 
-void DevChannel::initH265Video(const VideoInfo &info){
-    _video = std::make_shared<VideoInfo>(info);
-    addTrack(std::make_shared<H265Track>());
+static void makeAdtsHeader(int profile, int sampleRate, int channels,uint8_t *out){
+    AACFrame adtsHeader;
+    adtsHeader.syncword = 0x0FFF;
+    adtsHeader.id = 0;
+    adtsHeader.layer = 0;
+    adtsHeader.protection_absent = 1;
+    adtsHeader.profile = profile;//audioObjectType - 1;
+    int i = 0;
+    for (auto rate : samplingFrequencyTable) {
+        if (rate == sampleRate) {
+            adtsHeader.sf_index = i;
+        };
+        ++i;
+    }
+    adtsHeader.private_bit = 0;
+    adtsHeader.channel_configuration = channels;
+    adtsHeader.original = 0;
+    adtsHeader.home = 0;
+    adtsHeader.copyright_identification_bit = 0;
+    adtsHeader.copyright_identification_start = 0;
+    adtsHeader.aac_frame_length = 7;
+    adtsHeader.adts_buffer_fullness = 2047;
+    adtsHeader.no_raw_data_blocks_in_frame = 0;
+    writeAdtsHeader(adtsHeader, out);
 }
 
 void DevChannel::initAudio(const AudioInfo& info) {
-	_audio = std::make_shared<AudioInfo>(info);
-    if (info.codecId == CodecAAC)
-    {
-        addTrack(std::make_shared<AACTrack>());
-
-        AACFrame adtsHeader;
-        adtsHeader.syncword = 0x0FFF;
-        adtsHeader.id = 0;
-        adtsHeader.layer = 0;
-        adtsHeader.protection_absent = 1;
-        adtsHeader.profile = info.iProfile;//audioObjectType - 1;
-        int i = 0;
-        for (auto rate : samplingFrequencyTable) {
-            if (rate == info.iSampleRate) {
-                adtsHeader.sf_index = i;
-            };
-            ++i;
+    _audio = std::make_shared<AudioInfo>(info);
+    switch (info.codecId) {
+        case CodecAAC : {
+            addTrack(std::make_shared<AACTrack>());
+            makeAdtsHeader(info.iProfile, info.iSampleBit, info.iChannel, _adtsHeader);
+            break;
         }
-        adtsHeader.private_bit = 0;
-        adtsHeader.channel_configuration = info.iChannel;
-        adtsHeader.original = 0;
-        adtsHeader.home = 0;
-        adtsHeader.copyright_identification_bit = 0;
-        adtsHeader.copyright_identification_start = 0;
-        adtsHeader.aac_frame_length = 7;
-        adtsHeader.adts_buffer_fullness = 2047;
-        adtsHeader.no_raw_data_blocks_in_frame = 0;
-        writeAdtsHeader(adtsHeader, _adtsHeader);
-    }
-    else if (info.codecId == CodecG711A || info.codecId == CodecG711U)
-    {
-        addTrack(std::make_shared<G711Track>(info.codecId, info.iSampleBit, info.iSampleRate));
+
+        case CodecG711A :
+        case CodecG711U : addTrack(std::make_shared<G711Track>(info.codecId)); break;
+        default: WarnL << "不支持该类型的音频编码类型:" << info.codecId; break;
     }
 }
 

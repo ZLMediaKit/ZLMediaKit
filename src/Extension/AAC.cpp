@@ -98,10 +98,9 @@ void getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel){
     iChannel = adts.channel_configuration;
 }
 
-
 Sdp::Ptr AACTrack::getSdp() {
     if(!ready()){
-        WarnL << "AAC Track未准备好";
+        WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
     return std::make_shared<AACSdp>(getAacCfg(),getAudioSampleRate());
