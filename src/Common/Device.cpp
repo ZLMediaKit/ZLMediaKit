@@ -64,8 +64,8 @@ void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
     if (_pAacEnc) {
         unsigned char *pucOut;
         int iRet = _pAacEnc->inputData(pcData, iDataLen, &pucOut);
-        if (iRet > 0) {
-            inputAAC((char *) pucOut + 7, iRet, uiStamp, pucOut);
+        if (iRet > 7) {
+            inputAAC((char *) pucOut + 7, iRet - 7, uiStamp, (char *)pucOut);
         }
     }
 }
@@ -147,10 +147,10 @@ void DevChannel::inputAAC(const char *data_without_adts, int len, uint32_t dts, 
 
     if(adts_header){
         if(adts_header + 7 == data_without_adts){
-            //adts头和帧再一起
+            //adts头和帧在一起
             inputFrame(std::make_shared<AACFrameNoCacheAble>((char *)data_without_adts - 7, len + 7, dts, 0, 7));
         }else{
-            //adts头和帧不再一起
+            //adts头和帧不在一起
             char *dataWithAdts = new char[len + 7];
             memcpy(dataWithAdts, adts_header, 7);
             memcpy(dataWithAdts + 7 , data_without_adts , len);
