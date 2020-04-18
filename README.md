@@ -39,7 +39,7 @@
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口
   - 支持H265编码
   - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
-  - 支持任意编码格式的rtsp推流，只是除H264/H265+AAC外无法转协议
+  - 支持任意编码格式的rtsp推流，只是除H264/H265/AAC/G711外无法转协议
 
 - RTMP
   - RTMP 播放服务器，支持RTSP/MP4转RTMP
@@ -48,7 +48,7 @@
   - RTMP 推流客户端
   - 支持http[s]-flv直播
   - 支持websocket-flv直播
-  - 支持任意编码格式的rtmp推流，只是除H264/H265+AAC外无法转协议
+  - 支持任意编码格式的rtmp推流，只是除H264/H265/AAC/G711外无法转协议
   - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
 
 - HLS
