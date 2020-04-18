@@ -16,7 +16,7 @@ namespace mediakit{
 
 int RtpPayload::getClockRate(int pt){
     switch (pt){
-#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return clock_rate;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return clock_rate;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return 90000;
@@ -25,7 +25,7 @@ int RtpPayload::getClockRate(int pt){
 
 TrackType RtpPayload::getTrackType(int pt){
     switch (pt){
-#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return type;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return type;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return TrackInvalid;
@@ -34,7 +34,7 @@ TrackType RtpPayload::getTrackType(int pt){
 
 int RtpPayload::getAudioChannel(int pt){
     switch (pt){
-#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return channel;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return channel;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return 1;
@@ -43,10 +43,19 @@ int RtpPayload::getAudioChannel(int pt){
 
 const char * RtpPayload::getName(int pt){
     switch (pt){
-#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return #name;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return #name;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return "unknown payload type";
+    }
+}
+
+CodecId RtpPayload::getCodecId(int pt) {
+    switch (pt) {
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return codec_id;
+        RTP_PT_MAP(SWITCH_CASE)
+#undef SWITCH_CASE
+        default : return CodecInvalid;
     }
 }
 
@@ -70,7 +79,7 @@ static void getAttrSdp(const map<string, string> &attr, _StrPrinter &printer){
 
 string SdpTrack::getName() const{
     switch (_pt){
-#define SWITCH_CASE(name, type, value, clock_rate, channel) case value :  return #name;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return #name;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return _codec;

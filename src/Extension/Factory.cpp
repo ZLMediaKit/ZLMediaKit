@@ -84,6 +84,14 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         return std::make_shared<H265Track>(vps,sps,pps,0,0,0);
     }
 
+    //可以根据传统的payload type 获取编码类型以及采样率等信息
+    CodecId codec_id = RtpPayload::getCodecId(track->_pt);
+    switch (codec_id){
+        case CodecG711A :
+        case CodecG711U : return std::make_shared<G711Track>(codec_id,  track->_samplerate, track->_channel, 16);
+        default : break;
+    }
+
     WarnL << "暂不支持该sdp:" << track->getName();
     return nullptr;
 }
