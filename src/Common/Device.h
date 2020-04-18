@@ -35,13 +35,14 @@ namespace mediakit {
 
 class VideoInfo {
 public:
+    CodecId codecId = CodecH264;
     int iWidth;
     int iHeight;
     float iFrameRate;
 };
 class AudioInfo {
 public:
-    CodecId codecId;
+    CodecId codecId = CodecAAC;
 	int iChannel;
 	int iSampleBit;
 	int iSampleRate;
@@ -69,20 +70,14 @@ public:
     /**
      * 初始化h264视频Track
      * 相当于MultiMediaSourceMuxer::addTrack(H264Track::Ptr );
-     * @param info
+     * @param info 视频相关信息
      */
     void initVideo(const VideoInfo &info);
 
     /**
-     * 初始化h265视频Track
-     * @param info
-     */
-    void initH265Video(const VideoInfo &info);
-
-    /**
      * 初始化aac音频Track
      * 相当于MultiMediaSourceMuxer::addTrack(AACTrack::Ptr );
-     * @param info
+     * @param info 音频相关信息
      */
     void initAudio(const AudioInfo &info);
 

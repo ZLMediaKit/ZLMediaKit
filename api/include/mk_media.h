@@ -68,7 +68,7 @@ API_EXPORT void API_CALL mk_media_init_aac(mk_media ctx, int channel, int sample
 /**
  * 添加g711音频轨道
  * @param ctx 对象指针
- * @param au 1.G711A 2.G711U
+ * @param au 3 : G711A  4: G711U
  * @param channel 通道数
  * @param sample_bit 采样位数，只支持16
  * @param sample_rate 采样率

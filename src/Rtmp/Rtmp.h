@@ -209,8 +209,6 @@ public:
     }
 };
 
-
-
 /**
  * rtmp metadata基类，用于描述rtmp格式信息
  */
