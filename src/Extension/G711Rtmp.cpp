@@ -27,7 +27,7 @@ G711Frame::Ptr G711RtmpDecoder::obtainFrame() {
 
 bool G711RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
     //拷贝G711负载
-    _frame->buffer.assign(pkt->strBuf.data() + 2, pkt->strBuf.size() - 2);
+    _frame->buffer.assign(pkt->strBuf.data() + 1, pkt->strBuf.size() - 1);
     _frame->timeStamp = pkt->timeStamp;
     //写入环形缓存
     RtmpCodec::inputFrame(_frame);
@@ -38,55 +38,17 @@ bool G711RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
 /////////////////////////////////////////////////////////////////////////////////////
 
 G711RtmpEncoder::G711RtmpEncoder(const Track::Ptr &track) : G711RtmpDecoder(track->getCodecId()) {
-    auto g711_track = dynamic_pointer_cast<AudioTrack>(track);
-    if(!g711_track){
-        WarnL << "无效的G711 track, 将忽略打包为RTMP";
-        return;
-    }
-
-    auto iSampleRate = g711_track->getAudioSampleRate() ;
-    auto iChannel =  g711_track->getAudioChannel();
-    auto iSampleBit = g711_track->getAudioSampleBit();
-    uint8_t flvStereoOrMono = (iChannel > 1);
-    uint8_t flvSampleRate;
-    switch (iSampleRate) {
-        case 48000:
-        case 44100:
-            flvSampleRate = 3;
-            break;
-        case 24000:
-        case 22050:
-            flvSampleRate = 2;
-            break;
-        case 12000:
-        case 11025:
-            flvSampleRate = 1;
-            break;
-        default:
-            flvSampleRate = 0;
-            break;
-    }
-    uint8_t flvSampleBit = iSampleBit == 16;
-    uint8_t flvAudioType ;
-    switch (g711_track->getCodecId()){
-        case CodecG711A : flvAudioType = FLV_CODEC_G711A; break;
-        case CodecG711U : flvAudioType = FLV_CODEC_G711U; break;
-        default: WarnL << "无效的G711 track, 将忽略打包为RTMP"; return ;
-    }
-
-    _g711_flags = (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
+    _audio_flv_flags = getAudioRtmpFlags(track);
 }
 
 void G711RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
-    if(!_g711_flags){
+    if(!_audio_flv_flags){
         return;
     }
     RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
     rtmpPkt->strBuf.clear();
     //header
-    uint8_t is_config = false;
-    rtmpPkt->strBuf.push_back(_g711_flags);
-    rtmpPkt->strBuf.push_back(!is_config);
+    rtmpPkt->strBuf.push_back(_audio_flv_flags);
 
     //g711 data
     rtmpPkt->strBuf.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());

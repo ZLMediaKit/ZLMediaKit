@@ -102,8 +102,11 @@ public:
     /**
      * G711A G711U
      */
-    G711Track(CodecId codecId){
+    G711Track(CodecId codecId,int sample_rate, int channels, int sample_bit){
         _codecid = codecId;
+        _sample_rate = sample_rate;
+        _channels = channels;
+        _sample_bit = sample_bit;
     }
 
     /**
@@ -114,7 +117,7 @@ public:
     }
 
     /**
-     * G711的Track不需要初始化
+     * 是否已经初始化
      */
     bool ready() override {
         return true;
@@ -124,21 +127,21 @@ public:
      * 返回音频采样率
      */
     int getAudioSampleRate() const override{
-        return 8000;
+        return _sample_rate;
     }
 
     /**
      * 返回音频采样位数，一般为16或8
      */
     int getAudioSampleBit() const override{
-        return 16;
+        return _sample_bit;
     }
 
     /**
      * 返回音频通道数
      */
     int getAudioChannel() const override{
-        return 1;
+        return _channels;
     }
 
 private:
@@ -149,7 +152,10 @@ private:
     //生成sdp
     Sdp::Ptr getSdp() override ;
 private:
-    CodecId _codecid = CodecG711A;
+    CodecId _codecid;
+    int _sample_rate;
+    int _channels;
+    int _sample_bit;
 };
 
 /**
@@ -160,11 +166,17 @@ public:
     /**
      * G711采样率固定为8000
      * @param codecId G711A G711U
+     * @param sample_rate 音频采样率
+     * @param playload_type rtp playload
+     * @param bitrate 比特率
      */
-    G711Sdp(CodecId codecId) : Sdp(8000,payloadType(codecId)), _codecId(codecId){
-        int pt = payloadType(codecId);
-        _printer << "m=audio 0 RTP/AVP " << pt << "\r\n";
-        _printer << "a=rtpmap:" << pt << (codecId == CodecG711A ? " PCMA/" : " PCMU/") << 8000 << "\r\n";
+    G711Sdp(CodecId codecId,
+            int sample_rate,
+            int channels,
+            int playload_type = 98,
+            int bitrate = 128) : Sdp(sample_rate,playload_type), _codecId(codecId){
+        _printer << "m=audio 0 RTP/AVP " << playload_type << "\r\n";
+        _printer << "a=rtpmap:" << playload_type << (codecId == CodecG711A ? " PCMA/" : " PCMU/") << sample_rate  << "/" << channels << "\r\n";
         _printer << "a=control:trackID=" << getTrackType() << "\r\n";
     }
 
@@ -178,14 +190,6 @@ public:
 
     CodecId getCodecId() const override {
         return _codecId;
-    }
-
-    int payloadType(CodecId codecId){
-        switch (codecId){
-            case CodecG711A : return 8;
-            case CodecG711U : return 0;
-            default : return  -1;
-        }
     }
 
 private:

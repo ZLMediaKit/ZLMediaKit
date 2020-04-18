@@ -161,27 +161,26 @@ public:
         strBuf = std::move(that.strBuf);
     }
     bool isVideoKeyFrame() const {
-        return typeId == MSG_VIDEO && (uint8_t) strBuf[0] >> 4 == FLV_KEY_FRAME
-        && (uint8_t) strBuf[1] == 1;
+        return typeId == MSG_VIDEO && (uint8_t) strBuf[0] >> 4 == FLV_KEY_FRAME && (uint8_t) strBuf[1] == 1;
     }
     bool isCfgFrame() const {
-        return (typeId == MSG_VIDEO || typeId == MSG_AUDIO)
-        && (uint8_t) strBuf[1] == 0;
+        switch (typeId){
+            case MSG_VIDEO : return strBuf[1] == 0;
+            case MSG_AUDIO : {
+                switch (getMediaType()){
+                    case FLV_CODEC_AAC : return strBuf[1] == 0;
+                    default : return false;
+                }
+            }
+            default : return false;
+        }
     }
     int getMediaType() const {
         switch (typeId) {
-            case MSG_VIDEO: {
-                return (uint8_t) strBuf[0] & 0x0F;
-            }
-                break;
-            case MSG_AUDIO: {
-                return (uint8_t) strBuf[0] >> 4;
-            }
-                break;
-            default:
-                break;
+            case MSG_VIDEO : return (uint8_t) strBuf[0] & 0x0F;
+            case MSG_AUDIO : return (uint8_t) strBuf[0] >> 4;
+            default : return 0;
         }
-        return 0;
     }
     int getAudioSampleRate() const {
         if (typeId != MSG_AUDIO) {
@@ -314,6 +313,8 @@ private:
     CodecId _codecId;
 };
 
+//根据音频track获取flags
+uint8_t getAudioRtmpFlags(const Track::Ptr &track);
 
 }//namespace mediakit
 

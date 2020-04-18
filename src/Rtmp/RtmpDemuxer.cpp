@@ -15,14 +15,55 @@ namespace mediakit {
 
 void RtmpDemuxer::loadMetaData(const AMFValue &val){
     try {
-        makeVideoTrack(val["videocodecid"]);
-        makeAudioTrack(val["audiocodecid"]);
+        int audiosamplerate = 0;
+        int audiochannels = 0;
+        int audiosamplesize = 0;
+        const AMFValue *audiocodecid = nullptr;
+        const AMFValue *videocodecid = nullptr;
+
         val.object_for_each([&](const string &key, const AMFValue &val) {
             if (key == "duration") {
                 _fDuration = val.as_number();
                 return;
             }
+
+            if(key == "audiosamplerate"){
+                audiosamplerate = val.as_integer();
+                return;
+            }
+
+            if(key == "audiosamplesize"){
+                audiosamplesize = val.as_integer();
+                return;
+            }
+
+            if(key == "stereo"){
+                audiochannels = val.as_boolean() ? 2 : 1;
+                return;
+            }
+
+            if(key == "videocodecid"){
+                //找到视频
+                videocodecid = &val;
+                return;
+            }
+
+            if(key == "audiocodecid"){
+                //找到音频
+                audiocodecid = &val;
+                return;
+            }
         });
+
+        if(videocodecid){
+            //有视频
+            makeVideoTrack(*videocodecid);
+        }
+
+        if(audiocodecid){
+            //有音频
+            makeAudioTrack(*audiocodecid, audiosamplerate, audiochannels, audiosamplesize);
+        }
     }catch (std::exception &ex){
         WarnL << ex.what();
     }
@@ -46,7 +87,7 @@ bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
             if(!_tryedGetAudioTrack) {
                 _tryedGetAudioTrack = true;
                 auto codec = AMFValue(pkt->getMediaType());
-                makeAudioTrack(codec);
+                makeAudioTrack(codec, pkt->getAudioSampleRate(), pkt->getAudioChannel(), pkt->getAudioSampleBit());
             }
             if(_audioRtmpDecoder){
                 _audioRtmpDecoder->inputRtmp(pkt, false);
@@ -69,6 +110,7 @@ void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec) {
             //设置rtmp解码器代理，生成的frame写入该Track
             _videoRtmpDecoder->addDelegate(_videoTrack);
             onAddTrack(_videoTrack);
+            _tryedGetVideoTrack = true;
         } else {
             //找不到相应的rtmp解码器，该track无效
             _videoTrack.reset();
@@ -76,9 +118,9 @@ void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec) {
     }
 }
 
-void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec) {
+void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec,int sample_rate, int channels, int sample_bit) {
     //生成Track对象
-    _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getAudioTrackByAmf(audioCodec));
+    _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getAudioTrackByAmf(audioCodec, sample_rate, channels, sample_bit));
     if (_audioTrack) {
         //生成rtmpCodec对象以便解码rtmp
         _audioRtmpDecoder = Factory::getRtmpCodecByTrack(_audioTrack);
@@ -86,6 +128,7 @@ void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec) {
             //设置rtmp解码器代理，生成的frame写入该Track
             _audioRtmpDecoder->addDelegate(_audioTrack);
             onAddTrack(_audioTrack);
+            _tryedGetAudioTrack = true;
         } else {
             //找不到相应的rtmp解码器，该track无效
             _audioTrack.reset();

@@ -193,7 +193,6 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
     throw std::runtime_error(StrPrinter << "Stop publishing" << endl);
 }
 
-
 void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr &src){
     bool authSuccess = err.empty();
     bool ok = (src.operator bool() && authSuccess);

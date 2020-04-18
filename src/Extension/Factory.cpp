@@ -48,11 +48,11 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     }
 
     if (strcasecmp(track->_codec.data(), "PCMA") == 0) {
-        return std::make_shared<G711Track>(CodecG711A);
+        return std::make_shared<G711Track>(CodecG711A, track->_samplerate, track->_channel, 16);
     }
 
     if (strcasecmp(track->_codec.data(), "PCMU") == 0) {
-        return std::make_shared<G711Track>(CodecG711U);
+        return std::make_shared<G711Track>(CodecG711U,  track->_samplerate, track->_channel, 16);
     }
 
     if (strcasecmp(track->_codec.data(), "h264") == 0) {
@@ -88,29 +88,6 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     return nullptr;
 }
 
-Track::Ptr Factory::getTrackByCodecId(CodecId codecId) {
-    switch (codecId){
-        case CodecH264:{
-            return std::make_shared<H264Track>();
-        }
-        case CodecH265:{
-            return std::make_shared<H265Track>();
-        }
-        case CodecAAC:{
-            return std::make_shared<AACTrack>();
-        }
-        case CodecG711A: {
-            return std::make_shared<G711Track>(CodecG711A);
-        }
-        case CodecG711U: {
-            return std::make_shared<G711Track>(CodecG711U);
-        }
-        default:
-            WarnL << "暂不支持该CodecId:" << codecId;
-            return nullptr;
-    }
-}
-
 RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
     GET_CONFIG(uint32_t,audio_mtu,Rtp::kAudioMtuSize);
     GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
@@ -134,35 +111,23 @@ RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
     auto interleaved = sdp->getTrackType() * 2;
     auto codec_id = sdp->getCodecId();
     switch (codec_id){
-        case CodecH264:
-            return std::make_shared<H264RtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
-        case CodecH265:
-            return std::make_shared<H265RtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
-        case CodecAAC:
-            return std::make_shared<AACRtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
-        case CodecG711A:
-        case CodecG711U:
-            return std::make_shared<G711RtpEncoder>(ssrc, mtu, sample_rate, pt, interleaved);
-        default:
-            WarnL << "暂不支持该CodecId:" << codec_id;
-            return nullptr;
+        case CodecH264 : return std::make_shared<H264RtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
+        case CodecH265 : return std::make_shared<H265RtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
+        case CodecAAC : return std::make_shared<AACRtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
+        case CodecG711A :
+        case CodecG711U : return std::make_shared<G711RtpEncoder>(ssrc, mtu, sample_rate, pt, interleaved);
+        default : WarnL << "暂不支持该CodecId:" << codec_id; return nullptr;
     }
 }
 
 RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
     switch (track->getCodecId()){
-        case CodecH264:
-            return std::make_shared<H264RtpDecoder>();
-        case CodecH265:
-            return std::make_shared<H265RtpDecoder>();
-        case CodecAAC:
-            return std::make_shared<AACRtpDecoder>(track->clone());
-        case CodecG711A:
-        case CodecG711U:
-            return std::make_shared<G711RtpDecoder>(track->clone());
-        default:
-            WarnL << "暂不支持该CodecId:" << track->getCodecName();
-            return nullptr;
+        case CodecH264 : return std::make_shared<H264RtpDecoder>();
+        case CodecH265 : return std::make_shared<H265RtpDecoder>();
+        case CodecAAC : return std::make_shared<AACRtpDecoder>(track->clone());
+        case CodecG711A :
+        case CodecG711U : return std::make_shared<G711RtpDecoder>(track->clone());
+        default : WarnL << "暂不支持该CodecId:" << track->getCodecName(); return nullptr;
     }
 }
 
@@ -190,13 +155,23 @@ static CodecId getVideoCodecIdByAmf(const AMFValue &val){
             case FLV_CODEC_H264: return CodecH264;
             case FLV_CODEC_AAC: return CodecAAC;
             case FLV_CODEC_H265: return CodecH265;
-            default:
-                WarnL << "暂不支持该Amf:" << type_id;
-                return CodecInvalid;
+            default : WarnL << "暂不支持该Amf:" << type_id; return CodecInvalid;
         }
     }
 
     return CodecInvalid;
+}
+
+
+Track::Ptr getTrackByCodecId(CodecId codecId, int sample_rate = 0, int channels = 0, int sample_bit = 0) {
+    switch (codecId){
+        case CodecH264 : return std::make_shared<H264Track>();
+        case CodecH265 : return std::make_shared<H265Track>();
+        case CodecAAC : return std::make_shared<AACTrack>();
+        case CodecG711A :
+        case CodecG711U : return (sample_rate && channels && sample_bit) ? std::make_shared<G711Track>(codecId, sample_rate, channels, sample_bit) : nullptr;
+        default : WarnL << "暂不支持该CodecId:" << codecId; return nullptr;
+    }
 }
 
 Track::Ptr Factory::getVideoTrackByAmf(const AMFValue &amf) {
@@ -230,28 +205,22 @@ static CodecId getAudioCodecIdByAmf(const AMFValue &val) {
     return CodecInvalid;
 }
 
-Track::Ptr Factory::getAudioTrackByAmf(const AMFValue& amf){
+Track::Ptr Factory::getAudioTrackByAmf(const AMFValue& amf, int sample_rate, int channels, int sample_bit){
     CodecId codecId = getAudioCodecIdByAmf(amf);
     if (codecId == CodecInvalid) {
         return nullptr;
     }
-    return getTrackByCodecId(codecId);
+    return getTrackByCodecId(codecId, sample_rate, channels, sample_bit);
 }
 
 RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
     switch (track->getCodecId()){
-        case CodecH264:
-            return std::make_shared<H264RtmpEncoder>(track);
-        case CodecAAC:
-            return std::make_shared<AACRtmpEncoder>(track);
-        case CodecH265:
-            return std::make_shared<H265RtmpEncoder>(track);
-	    case CodecG711A:
-        case CodecG711U:
-            return std::make_shared<G711RtmpEncoder>(track);
-        default:
-            WarnL << "暂不支持该CodecId:" << track->getCodecName();
-            return nullptr;
+        case CodecH264 : return std::make_shared<H264RtmpEncoder>(track);
+        case CodecAAC : return std::make_shared<AACRtmpEncoder>(track);
+        case CodecH265 : return std::make_shared<H265RtmpEncoder>(track);
+	    case CodecG711A :
+        case CodecG711U : return std::make_shared<G711RtmpEncoder>(track);
+        default : WarnL << "暂不支持该CodecId:" << track->getCodecName(); return nullptr;
     }
 }
 

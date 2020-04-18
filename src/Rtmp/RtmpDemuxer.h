@@ -40,7 +40,7 @@ public:
     bool inputRtmp(const RtmpPacket::Ptr &pkt);
 private:
     void makeVideoTrack(const AMFValue &val);
-    void makeAudioTrack(const AMFValue &val);
+    void makeAudioTrack(const AMFValue &val, int sample_rate, int channels, int sample_bit);
 private:
     bool _tryedGetVideoTrack = false;
     bool _tryedGetAudioTrack = false;

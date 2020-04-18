@@ -128,6 +128,7 @@ public:
     int _pt;
     string _codec;
     int _samplerate;
+    int _channel;
     string _fmtp;
     string _control;
     string _control_surffix;
