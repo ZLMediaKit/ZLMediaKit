@@ -450,4 +450,50 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 #endif //ENABLE_MP4
 }
 
+static bool isFlushAble_default(bool is_audio, uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
+    if (new_stamp < last_stamp) {
+        //时间戳回退(可能seek中)
+        return true;
+    }
+
+    if (!is_audio) {
+        //这是视频,时间戳发送变化或者缓存超过1024个
+        return last_stamp != new_stamp || cache_size >= 1024;
+    }
+
+    //这是音频,缓存超过100ms或者缓存个数超过10个
+    return new_stamp > last_stamp + 100 || cache_size > 10;
+}
+
+static bool isFlushAble_merge(bool is_audio, uint32_t last_stamp, uint32_t new_stamp, int cache_size, int merge_ms) {
+    if (new_stamp < last_stamp) {
+        //时间戳回退(可能seek中)
+        return true;
+    }
+
+    if(new_stamp > last_stamp + merge_ms){
+        //时间戳增量超过合并写阈值
+        return true;
+    }
+
+    if (!is_audio) {
+        //这是视频,缓存数超过1024个,这个逻辑用于避免时间戳异常的流导致的内存暴增问题
+        //而且sendmsg接口一般最多只能发送1024个数据包
+        return cache_size >= 1024;
+    }
+
+    //这是音频，音频缓存超过20个
+    return cache_size > 20;
+}
+
+bool FlushPolicy::isFlushAble(uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
+    GET_CONFIG(bool,ultraLowDelay, General::kUltraLowDelay);
+    GET_CONFIG(int,mergeWriteMS, General::kMergeWriteMS);
+    if(ultraLowDelay || mergeWriteMS <= 0){
+        //关闭了合并写或者合并写阈值小于等于0
+        return isFlushAble_default(_is_audio, last_stamp, new_stamp, cache_size);
+    }
+    return isFlushAble_merge(_is_audio, last_stamp, new_stamp, cache_size,mergeWriteMS);
+}
+
 } /* namespace mediakit */

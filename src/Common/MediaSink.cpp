@@ -34,23 +34,16 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
     track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
         if (_allTrackReady) {
             onTrackFrame(frame);
+            return;
         }
-        else
-        {
-            if (frame->getTrackType() == TrackVideo)
-            {
-                checkTrackIfReady(nullptr);
 
-                if (_allTrackReady) {
-                    onTrackFrame(frame);
-                }
-                else
-                {
-                    ErrorL << " 还有track未准备好，丢帧 codecName: " << frame->getCodecName();
-                }
-
-            }else
-                ErrorL << " 还有track未准备好，丢帧 codecName: " << frame->getCodecName();
+        //还有track未准备好，如果是视频的话，如果直接丢帧可能导致丢失I帧
+        checkTrackIfReady(nullptr);
+        if (_allTrackReady) {
+            //运行至这里说明Track状态由未就绪切换为已就绪状态,那么这帧就不应该丢弃
+            onTrackFrame(frame);
+        } else if(frame->keyFrame()){
+            WarnL << "some track is unready，drop key frame of: " << frame->getCodecName();
         }
     }));
 }
@@ -70,8 +63,8 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
     if (it == _track_map.end()) {
         return;
     }
-    it->second->inputFrame(frame);
     checkTrackIfReady(it->second);
+    it->second->inputFrame(frame);
 }
 
 void MediaSink::checkTrackIfReady_l(const Track::Ptr &track){
@@ -140,7 +133,7 @@ void MediaSink::emitAllTrackReady() {
         //移除未准备好的Track
         for (auto it = _track_map.begin(); it != _track_map.end();) {
             if (!it->second->ready()) {
-                WarnL << "该track长时间未被初始化,已忽略:" << it->second->getCodecName();
+                WarnL << "track not ready for a long time, ignored: " << it->second->getCodecName();
                 it = _track_map.erase(it);
                 continue;
             }

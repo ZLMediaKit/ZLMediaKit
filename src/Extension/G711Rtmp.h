@@ -17,13 +17,13 @@
 
 namespace mediakit{
 /**
- * G711 Rtmp转adts类
+ * G711 Rtmp转G711 Frame类
  */
 class G711RtmpDecoder : public RtmpCodec , public ResourcePoolHelper<G711Frame> {
 public:
     typedef std::shared_ptr<G711RtmpDecoder> Ptr;
 
-    G711RtmpDecoder();
+    G711RtmpDecoder(CodecId codecId);
     ~G711RtmpDecoder() {}
 
     /**
@@ -37,48 +37,32 @@ public:
         return TrackAudio;
     }
 
-    void setCodecId(CodecId codecId)
-    {
-        _codecid = codecId;
-    }
-
     CodecId getCodecId() const override{
-        return _codecid;
+        return _codecId;
     }
-
-protected:
-    void onGetG711(const char* pcData, int iLen, uint32_t ui32TimeStamp);
+private:
     G711Frame::Ptr obtainFrame();
-protected:
-    G711Frame::Ptr _adts;
-    CodecId _codecid = CodecInvalid;
-
+private:
+    G711Frame::Ptr _frame;
+    CodecId _codecId;
 };
 
-
 /**
- * aac adts转Rtmp类
+ * G711 RTMP打包类
  */
 class G711RtmpEncoder : public G711RtmpDecoder ,  public ResourcePoolHelper<RtmpPacket> {
 public:
     typedef std::shared_ptr<G711RtmpEncoder> Ptr;
 
-    /**
-     * 构造函数，track可以为空，此时则在inputFrame时输入adts头
-     * 如果track不为空且包含adts头相关信息，
-     * 那么inputFrame时可以不输入adts头
-     * @param track
-     */
     G711RtmpEncoder(const Track::Ptr &track);
     ~G711RtmpEncoder() {}
 
     /**
-     * 输入aac 数据，可以不带adts头
-     * @param frame aac数据
+     * 输入G711 数据
      */
     void inputFrame(const Frame::Ptr &frame) override;
 private:
-    G711Track::Ptr _track;
+    uint8_t _audio_flv_flags = 0;
 };
 
 }//namespace mediakit

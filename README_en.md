@@ -20,7 +20,7 @@
   - RTSP player and pusher.
   - RTP Transport : `rtp over udp` `rtp over tcp` `rtp over http` `rtp udp multicast` .
   - Basic/Digest/Url Authentication.
-  - H265/H264/AAC codec.
+  - H264/H265/AAC/G711 codec.
   - Recorded as mp4.
   - Vod of mp4.
   
@@ -28,7 +28,7 @@
   - RTMP server,support player and pusher.
   - RTMP player and pusher.
   - Support HTTP-FLV player.
-  - H264/AAC codec.
+  - H264/H265/AAC/G711 codec.
   - Recorded as flv or mp4.
   - Vod of mp4.
   - support [RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)

@@ -24,14 +24,6 @@ namespace mediakit{
 
 class Factory {
 public:
-
-    /**
-     * 根据CodecId获取Track，该Track的ready()状态一般都为false
-     * @param codecId 编解码器id
-     * @return
-     */
-    static Track::Ptr getTrackByCodecId(CodecId codecId);
-
     ////////////////////////////////rtsp相关//////////////////////////////////
     /**
      * 根据sdp生成Track对象
@@ -41,14 +33,11 @@ public:
     /**
      * 根据sdp生成rtp编码器
      * @param sdp sdp对象
-     * @return
      */
     static RtpCodec::Ptr getRtpEncoderBySdp(const Sdp::Ptr &sdp);
 
     /**
      * 根据Track生成Rtp解包器
-     * @param track
-     * @return
      */
     static RtpCodec::Ptr getRtpDecoderByTrack(const Track::Ptr &track);
 
@@ -58,43 +47,23 @@ public:
     /**
      * 根据amf对象获取视频相应的Track
      * @param amf rtmp metadata中的videocodecid的值
-     * @return
      */
     static Track::Ptr getVideoTrackByAmf(const AMFValue &amf);
 
     /**
      * 根据amf对象获取音频相应的Track
      * @param amf rtmp metadata中的audiocodecid的值
-     * @return
      */
-    static Track::Ptr getAudioTrackByAmf(const AMFValue& amf);
-
-    /**
-     * 根据amf对象获取相应的CodecId
-     * @param val rtmp metadata中的videocodecid或audiocodecid的值
-     * @return
-     */
-    static CodecId getCodecIdByAmf(const AMFValue &val);
-
-    /**
-     * 根据amf对象获取音频相应的CodecId
-     * @param val rtmp metadata中的audiocodecid的值
-     * @return
-     */
-    static CodecId getAudioCodecIdByAmf(const AMFValue& val);
+    static Track::Ptr getAudioTrackByAmf(const AMFValue& amf, int sample_rate, int channels, int sample_bit);
 
     /**
      * 根据Track获取Rtmp的编解码器
      * @param track 媒体描述对象
-     * @return
      */
     static RtmpCodec::Ptr getRtmpCodecByTrack(const Track::Ptr &track);
 
-
     /**
      * 根据codecId获取rtmp的codec描述
-     * @param codecId
-     * @return
      */
     static AMFValue getAmfByCodecId(CodecId codecId);
 };

@@ -200,12 +200,21 @@ inline void RtmpPusher::send_metaData(){
     
     _pRtmpReader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
-    _pRtmpReader->setReadCB([weakSelf](const RtmpPacket::Ptr &pkt){
+    _pRtmpReader->setReadCB([weakSelf](const RtmpMediaSource::RingDataType &pkt){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf) {
             return;
         }
-        strongSelf->sendRtmp(pkt->typeId, strongSelf->_ui32StreamId, pkt, pkt->timeStamp, pkt->chunkId);
+
+        int i = 0;
+        int size = pkt->size();
+        strongSelf->setSendFlushFlag(false);
+        pkt->for_each([&](const RtmpPacket::Ptr &rtmp){
+            if(++i == size){
+                strongSelf->setSendFlushFlag(true);
+            }
+            strongSelf->sendRtmp(rtmp->typeId, strongSelf->_ui32StreamId, rtmp, rtmp->timeStamp, rtmp->chunkId);
+        });
     });
     _pRtmpReader->setDetachCB([weakSelf](){
         auto strongSelf = weakSelf.lock();

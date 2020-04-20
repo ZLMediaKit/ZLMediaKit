@@ -112,6 +112,11 @@ void RtspPlayer::onConnect(const SockException &err){
 }
 
 void RtspPlayer::onRecv(const Buffer::Ptr& pBuf) {
+    if(_benchmark_mode && !_pPlayTimer){
+        //在性能测试模式下，如果rtsp握手完毕后，不再解析rtp包
+        _rtpTicker.resetTime();
+        return;
+    }
     input(pBuf->data(),pBuf->size());
 }
 void RtspPlayer::onErr(const SockException &ex) {
@@ -750,6 +755,8 @@ void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshakeComplete
         //开始播放阶段
         _pPlayTimer.reset();
         onPlayResult(ex);
+        //是否为性能测试模式
+        _benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
     } else if (ex) {
         //播放成功后异常断开回调
         onShutdown(ex);

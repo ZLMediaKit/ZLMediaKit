@@ -38,11 +38,12 @@ using namespace mediakit;
 
 namespace API {
 typedef enum {
-    InvalidArgs = -300,
-    SqlFailed = -200,
-    AuthFailed = -100,
-    OtherFailed = -1,
-    Success = 0
+    Exception = -400,//代码抛异常
+    InvalidArgs = -300,//参数不合法
+    SqlFailed = -200,//sql执行失败
+    AuthFailed = -100,//鉴权失败
+    OtherFailed = -1,//业务代码执行失败，
+    Success = 0//执行成功
 } ApiErr;
 
 #define API_FIELD "api."
@@ -154,7 +155,8 @@ static inline void addHttpListener(){
         HttpSession::KeyValue headerOut;
         auto allArgs = getAllArgs(parser);
         HttpSession::KeyValue &headerIn = parser.getValues();
-        headerOut["Content-Type"] = "application/json; charset=utf-8";
+        GET_CONFIG(string,charSet,Http::kCharSet);
+        headerOut["Content-Type"] = StrPrinter << "application/json; charset=" << charSet;
         if(api_debug){
             auto newInvoker = [invoker,parser,allArgs](const string &codeOut,
                                                        const HttpSession::KeyValue &headerOut,
@@ -207,7 +209,7 @@ static inline void addHttpListener(){
         }
 #endif// ENABLE_MYSQL
         catch (std::exception &ex) {
-            val["code"] = API::OtherFailed;
+            val["code"] = API::Exception;
             val["msg"] = ex.what();
             invoker("200 OK", headerOut, val.toStyledString());
         }
@@ -447,9 +449,11 @@ void installWebApi() {
             bool flag = src->close(allArgs["force"].as<bool>());
             val["result"] = flag ? 0 : -1;
             val["msg"] = flag ? "success" : "close failed";
+            val["code"] = API::OtherFailed;
         }else{
             val["result"] = -2;
             val["msg"] = "can not find the stream";
+            val["code"] = API::OtherFailed;
         }
     });
 
@@ -725,21 +729,27 @@ void installWebApi() {
     api_regist1("/index/api/startRecord",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
-        val["result"] = Recorder::startRecord((Recorder::type) allArgs["type"].as<int>(),
+        auto result = Recorder::startRecord((Recorder::type) allArgs["type"].as<int>(),
                                               allArgs["vhost"],
                                               allArgs["app"],
                                               allArgs["stream"],
                                               allArgs["customized_path"]);
+        val["result"] = result;
+        val["code"] = result ? API::Success : API::OtherFailed;
+        val["msg"] = result ? "success" :  "start record failed";
     });
 
     // 停止录制hls或MP4
     api_regist1("/index/api/stopRecord",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
-        val["result"] = Recorder::stopRecord((Recorder::type) allArgs["type"].as<int>(),
+        auto result = Recorder::stopRecord((Recorder::type) allArgs["type"].as<int>(),
                                              allArgs["vhost"],
                                              allArgs["app"],
                                              allArgs["stream"]);
+        val["result"] = result;
+        val["code"] = result ? API::Success : API::OtherFailed;
+        val["msg"] = result ? "success" :  "stop record failed";
     });
 
     // 获取hls或MP4录制状态
@@ -802,12 +812,10 @@ void installWebApi() {
 
     api_regist1("/index/hook/on_play",[](API_ARGS1){
         //开始播放事件
-        throw SuccessException();
     });
 
     api_regist1("/index/hook/on_flow_report",[](API_ARGS1){
         //流量统计hook api
-        throw SuccessException();
     });
 
     api_regist1("/index/hook/on_rtsp_realm",[](API_ARGS1){
@@ -827,7 +835,6 @@ void installWebApi() {
 
     api_regist1("/index/hook/on_stream_changed",[](API_ARGS1){
         //媒体注册或反注册事件
-        throw SuccessException();
     });
 
 
@@ -890,12 +897,10 @@ void installWebApi() {
 
     api_regist1("/index/hook/on_record_mp4",[](API_ARGS1){
         //录制mp4分片完毕事件
-        throw SuccessException();
     });
 
     api_regist1("/index/hook/on_shell_login",[](API_ARGS1){
         //shell登录调试事件
-        throw SuccessException();
     });
 
     api_regist1("/index/hook/on_stream_none_reader",[](API_ARGS1){
@@ -931,7 +936,6 @@ void installWebApi() {
 
     api_regist1("/index/hook/on_server_started",[](API_ARGS1){
         //服务器重启报告
-        throw SuccessException();
     });
 
 

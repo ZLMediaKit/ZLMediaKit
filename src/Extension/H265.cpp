@@ -52,7 +52,7 @@ bool getHEVCInfo(const string &strVps, const string &strSps, int &iVideoWidth, i
 
 Sdp::Ptr H265Track::getSdp() {
     if(!ready()){
-        WarnL << "H265 Track未准备好";
+        WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
     return std::make_shared<H265Sdp>(getVps(),getSps(),getPps());

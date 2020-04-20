@@ -80,13 +80,14 @@ private:
     double _dNowReqID = 0;
     bool _set_meta_data = false;
     Ticker _ticker;//数据接收时间
-    RingBuffer<RtmpPacket::Ptr>::RingReader::Ptr _pRingReader;
+    RtmpMediaSource::RingType::RingReader::Ptr _pRingReader;
     std::shared_ptr<RtmpMediaSourceImp> _pPublisherSrc;
     std::weak_ptr<RtmpMediaSource> _pPlayerSrc;
     //时间戳修整器
     Stamp _stamp[2];
     //消耗的总流量
     uint64_t _ui64TotalBytes = 0;
+    bool _paused = false;
 
 };
 

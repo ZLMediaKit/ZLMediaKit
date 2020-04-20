@@ -79,7 +79,7 @@ public:
 private:
     void makeAudioConfigPkt();
 private:
-    uint8_t _ui8AudioFlags;
+    uint8_t _audio_flv_flags;
     AACTrack::Ptr _track;
 };
 
