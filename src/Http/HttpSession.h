@@ -49,7 +49,7 @@ public:
     static string urlDecode(const string &str);
 protected:
     //FlvMuxer override
-    void onWrite(const Buffer::Ptr &data) override ;
+    void onWrite(const Buffer::Ptr &data, bool flush) override ;
     void onDetach() override;
     std::shared_ptr<FlvMuxer> getSharedPtr() override;
 

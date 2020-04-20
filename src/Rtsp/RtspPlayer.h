@@ -139,6 +139,8 @@ private:
 
     //是否为rtsp点播
     bool _is_play_back;
+    //是否为性能测试模式
+    bool _benchmark_mode = false;
 };
 
 } /* namespace mediakit */

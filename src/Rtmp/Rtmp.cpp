@@ -36,11 +36,68 @@ AudioMeta::AudioMeta(const AudioTrack::Ptr &audio,int datarate){
         _metadata.set("audiosamplesize", audio->getAudioSampleBit());
     }
     if(audio->getAudioChannel() > 0){
-        _metadata.set("audiochannels", audio->getAudioChannel());
         _metadata.set("stereo", audio->getAudioChannel() > 1);
     }
     _codecId = audio->getCodecId();
     _metadata.set("audiocodecid", Factory::getAmfByCodecId(_codecId));
 }
+
+uint8_t getAudioRtmpFlags(const Track::Ptr &track){
+    switch (track->getTrackType()){
+        case TrackAudio : {
+            auto audioTrack = dynamic_pointer_cast<AudioTrack>(track);
+            if (!audioTrack) {
+                WarnL << "获取AudioTrack失败";
+                return 0;
+            }
+            auto iSampleRate = audioTrack->getAudioSampleRate();
+            auto iChannel = audioTrack->getAudioChannel();
+            auto iSampleBit = audioTrack->getAudioSampleBit();
+
+            uint8_t flvAudioType ;
+            switch (track->getCodecId()){
+                case CodecG711A : flvAudioType = FLV_CODEC_G711A; break;
+                case CodecG711U : flvAudioType = FLV_CODEC_G711U; break;
+                case CodecAAC : {
+                    flvAudioType = FLV_CODEC_AAC;
+                    //aac不通过flags获取音频相关信息
+                    iSampleRate = 44100;
+                    iSampleBit = 16;
+                    iChannel = 2;
+                    break;
+                }
+                default: WarnL << "该编码格式不支持转换为RTMP: " << track->getCodecName(); return 0;
+            }
+
+            uint8_t flvSampleRate;
+            switch (iSampleRate) {
+                case 44100:
+                    flvSampleRate = 3;
+                    break;
+                case 22050:
+                    flvSampleRate = 2;
+                    break;
+                case 11025:
+                    flvSampleRate = 1;
+                    break;
+                case 16000: // nellymoser only
+                case 8000: // nellymoser only
+                case 5512: // not MP3
+                    flvSampleRate = 0;
+                    break;
+                default:
+                    WarnL << "FLV does not support sample rate " << iSampleRate << " ,choose from (44100, 22050, 11025)";
+                    return 0;
+            }
+
+            uint8_t flvStereoOrMono = (iChannel > 1);
+            uint8_t flvSampleBit = iSampleBit == 16;
+            return (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
+        }
+
+        default : return 0;
+    }
+}
+
 
 }//namespace mediakit

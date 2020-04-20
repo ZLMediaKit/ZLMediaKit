@@ -31,7 +31,7 @@ typedef void(API_CALL *on_mk_play_event)(void *user_data,int err_code,const char
  * 收到音视频数据回调
  * @param user_data 用户数据指针
  * @param track_type 0：视频，1：音频
- * @param codec_id 0：H264，1：H265，2：AAC
+ * @param codec_id 0：H264，1：H265，2：AAC 3.G711A 4.G711U
  * @param data 数据指针
  * @param len 数据长度
  * @param dts 解码时间戳，单位毫秒
@@ -98,12 +98,14 @@ API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_eve
 
 /**
  * 设置音视频数据回调函数
- * 该接口只能在播放成功事件触发后才能调用
+ * 该接口在播放成功事件触发后才有效
  * @param ctx 播放器指针
  * @param cb 回调函数指针,不得为null
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_player_set_on_data(mk_player ctx, on_mk_play_data cb, void *user_data);
+
+///////////////////////////获取音视频相关信息接口在播放成功回调触发后才有效///////////////////////////////
 
 /**
  * 获取视频codec_id -1：不存在 0：H264，1：H265，2：AAC 3.G711A 4.G711U

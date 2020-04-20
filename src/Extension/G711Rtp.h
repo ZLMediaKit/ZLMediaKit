@@ -10,12 +10,12 @@
 
 #ifndef ZLMEDIAKIT_G711RTPCODEC_H
 #define ZLMEDIAKIT_G711RTPCODEC_H
-
 #include "Rtsp/RtpCodec.h"
 #include "Extension/G711.h"
 namespace mediakit{
+
 /**
- * G711 rtp转adts类
+ * rtp转G711类
  */
 class G711RtpDecoder : public RtpCodec , public ResourcePoolHelper<G711Frame> {
 public:
@@ -34,19 +34,22 @@ public:
     TrackType getTrackType() const override{
         return TrackAudio;
     }
+
     CodecId getCodecId() const override{
         return _codecid;
     }
+
 protected:
-    G711RtpDecoder();
+    G711RtpDecoder() {}
+
 private:
     void onGetG711(const G711Frame::Ptr &frame);
     G711Frame::Ptr obtainFrame();
-private:
-    G711Frame::Ptr _adts;
-    CodecId _codecid = CodecInvalid;
-};
 
+private:
+    G711Frame::Ptr _frame;
+    CodecId _codecid;
+};
 
 /**
  * g711 转rtp类
@@ -63,10 +66,10 @@ public:
      * @param ui8Interleaved rtsp interleaved 值
      */
     G711RtpEncoder(uint32_t ui32Ssrc,
-                  uint32_t ui32MtuSize,
-                  uint32_t ui32SampleRate,
-                  uint8_t ui8PlayloadType = 0,
-                  uint8_t ui8Interleaved = TrackAudio * 2);
+                   uint32_t ui32MtuSize,
+                   uint32_t ui32SampleRate,
+                   uint8_t ui8PlayloadType = 0,
+                   uint8_t ui8Interleaved = TrackAudio * 2);
     ~G711RtpEncoder() {}
 
     /**
@@ -75,8 +78,6 @@ public:
     void inputFrame(const Frame::Ptr &frame) override;
 private:
     void makeG711Rtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
-private:
-    unsigned char _aucSectionBuf[1600];
 };
 
 }//namespace mediakit

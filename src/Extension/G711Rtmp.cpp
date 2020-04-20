@@ -12,57 +12,52 @@
 
 namespace mediakit{
 
-G711RtmpDecoder::G711RtmpDecoder() {
-    _adts = obtainFrame();
+G711RtmpDecoder::G711RtmpDecoder(CodecId codecId) {
+    _frame = obtainFrame();
+    _codecId = codecId;
 }
 
 G711Frame::Ptr G711RtmpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<G711Frame>::obtainObj();
-    frame->frameLength = 0;
-    frame->iPrefixSize = 0;
+    frame->buffer.clear();
+    frame->_codecId = _codecId;
     return frame;
 }
 
-bool G711RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool key_pos) {
-    onGetG711(pkt->strBuf.data() + 2, pkt->strBuf.size() - 2, pkt->timeStamp);
+bool G711RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
+    //拷贝G711负载
+    _frame->buffer.assign(pkt->strBuf.data() + 1, pkt->strBuf.size() - 1);
+    _frame->timeStamp = pkt->timeStamp;
+    //写入环形缓存
+    RtmpCodec::inputFrame(_frame);
+    _frame = obtainFrame();
     return false;
 }
 
-void G711RtmpDecoder::onGetG711(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
-    if(iLen + 7 > sizeof(_adts->buffer)){
-        WarnL << "Illegal adts data, exceeding the length limit.";
-        return;
-    }
-
-    //拷贝aac负载
-    memcpy(_adts->buffer, pcData, iLen);
-    _adts->frameLength = iLen;
-    _adts->timeStamp = ui32TimeStamp;
-
-    //写入环形缓存
-    RtmpCodec::inputFrame(_adts);
-    _adts = obtainFrame();
-}
 /////////////////////////////////////////////////////////////////////////////////////
 
-G711RtmpEncoder::G711RtmpEncoder(const Track::Ptr &track) {
-    _track = dynamic_pointer_cast<G711Track>(track);
+G711RtmpEncoder::G711RtmpEncoder(const Track::Ptr &track) : G711RtmpDecoder(track->getCodecId()) {
+    _audio_flv_flags = getAudioRtmpFlags(track);
 }
 
-void G711RtmpEncoder::inputFrame(const Frame::Ptr& frame) {
-
+void G711RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
+    if(!_audio_flv_flags){
+        return;
+    }
     RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
     rtmpPkt->strBuf.clear();
-    rtmpPkt->strBuf.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+    //header
+    rtmpPkt->strBuf.push_back(_audio_flv_flags);
 
+    //g711 data
+    rtmpPkt->strBuf.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
     rtmpPkt->bodySize = rtmpPkt->strBuf.size();
     rtmpPkt->chunkId = CHUNK_AUDIO;
     rtmpPkt->streamId = STREAM_MEDIA;
     rtmpPkt->timeStamp = frame->dts();
     rtmpPkt->typeId = MSG_AUDIO;
     RtmpCodec::inputRtmp(rtmpPkt, false);
-
 }
 
 }//namespace mediakit
