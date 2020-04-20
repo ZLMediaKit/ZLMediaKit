@@ -147,8 +147,8 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
         }
     }
 
-    checkCookie(_parser.getValues());
-    _totalBodySize = onResponseHeader(_parser.Url(), _parser.getValues());
+    checkCookie(_parser.getHeader());
+    _totalBodySize = onResponseHeader(_parser.Url(), _parser.getHeader());
 
     if(!_parser["Content-Length"].empty()){
         //有Content-Length字段时忽略onResponseHeader的返回值

@@ -114,7 +114,7 @@ API_EXPORT const char* API_CALL mk_parser_get_tail(const mk_parser ctx){
 API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const char *key){
     assert(ctx && key);
     Parser *parser = (Parser *)ctx;
-    return parser->getValues()[key].c_str();
+    return parser->getHeader()[key].c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, int *length){
     assert(ctx);
@@ -274,7 +274,7 @@ API_EXPORT void API_CALL mk_http_response_invoker_do_file(const mk_http_response
     assert(ctx && request_parser && response_header && response_file_path);
     auto header = get_http_header(response_header);
     HttpSession::HttpResponseInvoker *invoker = (HttpSession::HttpResponseInvoker *)ctx;
-    (*invoker).responseFile(((Parser*)(request_parser))->getValues(),header,response_file_path);
+    (*invoker).responseFile(((Parser *) (request_parser))->getHeader(), header, response_file_path);
 }
 
 API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invoker ctx,

@@ -325,7 +325,7 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
     auto path = parser.Url();
 
     //先根据http头中的cookie字段获取cookie
-    HttpServerCookie::Ptr cookie = HttpCookieManager::Instance().getCookie(kCookieName, parser.getValues());
+    HttpServerCookie::Ptr cookie = HttpCookieManager::Instance().getCookie(kCookieName, parser.getHeader());
     //如果不是从http头中找到的cookie,我们让http客户端设置下cookie
     bool cookie_from_header = true;
     if (!cookie && !uid.empty()) {
@@ -488,7 +488,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                 }
                 cb(codeOut.data(), HttpFileManager::getContentType(strFile.data()), headerOut, body);
             };
-            invoker.responseFile(parser.getValues(), httpHeader, strFile);
+            invoker.responseFile(parser.getHeader(), httpHeader, strFile);
         };
 
         if (!is_hls) {
