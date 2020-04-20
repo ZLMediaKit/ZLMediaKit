@@ -154,7 +154,7 @@ static inline void addHttpListener(){
         val["code"] = API::Success;
         HttpSession::KeyValue headerOut;
         auto allArgs = getAllArgs(parser);
-        HttpSession::KeyValue &headerIn = parser.getValues();
+        HttpSession::KeyValue &headerIn = parser.getHeader();
         GET_CONFIG(string,charSet,Http::kCharSet);
         headerOut["Content-Type"] = StrPrinter << "application/json; charset=" << charSet;
         if(api_debug){

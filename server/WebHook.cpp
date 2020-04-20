@@ -444,7 +444,7 @@ void installWebHook(){
         body["path"] = path;
         body["is_dir"] = is_dir;
         body["params"] = parser.Params();
-        for(auto &pr : parser.getValues()){
+        for(auto &pr : parser.getHeader()){
             body[string("header.") + pr.first] = pr.second;
         }
         //执行hook
