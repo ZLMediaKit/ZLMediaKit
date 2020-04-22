@@ -387,6 +387,8 @@ int main(int argc, char *argv[]) {
             .ini = ini_path,
             .ini_is_path = 1,
             .log_level = 0,
+            .log_file_path = NULL,
+            .log_file_days = 0,
             .ssl = ssl_path,
             .ssl_is_path = 1,
             .ssl_pwd = NULL,
