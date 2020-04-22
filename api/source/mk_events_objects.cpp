@@ -12,7 +12,6 @@
 #include "mk_events_objects.h"
 #include "Common/config.h"
 #include "Record/MP4Recorder.h"
-#include "Network/TcpSession.h"
 #include "Http/HttpSession.h"
 #include "Http/HttpBody.h"
 #include "Http/HttpClient.h"
@@ -137,16 +136,31 @@ API_EXPORT const char* API_CALL mk_media_info_get_schema(const mk_media_info ctx
     MediaInfo *info = (MediaInfo *)ctx;
     return info->_schema.c_str();
 }
+
 API_EXPORT const char* API_CALL mk_media_info_get_vhost(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
     return info->_vhost.c_str();
 }
+
+API_EXPORT const char* API_CALL mk_media_info_get_host(const mk_media_info ctx){
+    assert(ctx);
+    MediaInfo *info = (MediaInfo *)ctx;
+    return info->_host.c_str();
+}
+
+API_EXPORT uint16_t API_CALL mk_media_info_get_port(const mk_media_info ctx){
+    assert(ctx);
+    MediaInfo *info = (MediaInfo *)ctx;
+    return std::stoi(info->_port);
+}
+
 API_EXPORT const char* API_CALL mk_media_info_get_app(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
     return info->_app.c_str();
 }
+
 API_EXPORT const char* API_CALL mk_media_info_get_stream(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
