@@ -73,6 +73,10 @@ API_EXPORT const char* API_CALL mk_media_info_get_vhost(const mk_media_info ctx)
 API_EXPORT const char* API_CALL mk_media_info_get_app(const mk_media_info ctx);
 //MediaInfo::_streamid
 API_EXPORT const char* API_CALL mk_media_info_get_stream(const mk_media_info ctx);
+//MediaInfo::_host
+API_EXPORT const char* API_CALL mk_media_info_get_host(const mk_media_info ctx);
+//MediaInfo::_port
+API_EXPORT uint16_t API_CALL mk_media_info_get_port(const mk_media_info ctx);
 
 
 ///////////////////////////////////////////MediaSource/////////////////////////////////////////////
