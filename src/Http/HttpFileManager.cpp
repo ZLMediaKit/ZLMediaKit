@@ -309,6 +309,39 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &mediaInfo, cons
     return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,mediaInfo,mediaAuthInvoker,static_cast<SockInfo &>(sender));
 }
 
+class SockInfoImp : public SockInfo{
+public:
+    typedef std::shared_ptr<SockInfoImp> Ptr;
+    SockInfoImp() = default;
+    ~SockInfoImp() override = default;
+
+    const string &get_local_ip() override{
+        return _local_ip;
+    }
+
+    uint16_t get_local_port() override{
+        return _local_port;
+    }
+
+    const string &get_peer_ip() override{
+        return _peer_ip;
+
+    }
+
+    uint16_t get_peer_port() override{
+        return _peer_port;
+    }
+
+    string getIdentifier() const override{
+        return _identifier;
+    }
+
+    string _local_ip;
+    string _peer_ip;
+    string _identifier;
+    uint16_t _local_port;
+    uint16_t _peer_port;
+};
 
 /**
  * 判断http客户端是否有权限访问文件的逻辑步骤
@@ -362,12 +395,16 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
     }
 
     bool is_hls = mediaInfo._schema == HLS_SCHEMA;
-    string identifier = sender.getIdentifier();
-    string peer_ip = sender.get_peer_ip();
-    uint16_t peer_port = sender.get_peer_port();
+
+    SockInfoImp::Ptr info = std::make_shared<SockInfoImp>();
+    info->_identifier = sender.getIdentifier();
+    info->_peer_ip = sender.get_peer_ip();
+    info->_peer_port = sender.get_peer_port();
+    info->_local_ip = sender.get_local_ip();
+    info->_local_port = sender.get_local_port();
 
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
-    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, mediaInfo, identifier, peer_ip, peer_port]
+    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, mediaInfo, info]
             (const string &errMsg, const string &cookie_path_in, int cookieLifeSecond) {
         HttpServerCookie::Ptr cookie;
         if (cookieLifeSecond) {
@@ -390,7 +427,7 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             attachment._is_hls = is_hls;
             if(is_hls){
                 //hls相关信息
-                attachment._hls_data = std::make_shared<HlsCookieData>(mediaInfo, identifier, peer_ip, peer_port);
+                attachment._hls_data = std::make_shared<HlsCookieData>(mediaInfo, info);
                 //hls未查找MediaSource
                 attachment._have_find_media_source = false;
             }
