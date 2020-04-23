@@ -520,7 +520,6 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
     };
     ///////////////////广播HTTP事件///////////////////////////
     bool consumed = false;//该事件是否被消费
-    TcpSession &session = static_cast<TcpSession &>(*this);
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,static_cast<SockInfo &>(*this));
     if(!consumed && doInvoke){
         //该事件无人消费，所以返回404
