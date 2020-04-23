@@ -129,11 +129,11 @@ bool RtpProcess::inputRtp(const Socket::Ptr &sock, const char *data, int data_le
     //检查源是否合法
     if(!_addr){
         _addr = new struct sockaddr;
+        _sock = sock;
         memcpy(_addr,addr, sizeof(struct sockaddr));
         DebugP(this) << "bind to address:" << printAddress(_addr);
         //推流鉴权
         emitOnPublish();
-        _sock = sock;
     }
 
     if(!_muxer){
