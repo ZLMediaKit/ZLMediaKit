@@ -295,7 +295,7 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
         default:
             if(codecid != 0){
-                WarnL << "unsupported codec type:" << getCodecName(codecid);
+                WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
             }
             return;
     }
