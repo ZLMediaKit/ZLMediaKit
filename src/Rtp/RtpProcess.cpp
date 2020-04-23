@@ -15,6 +15,7 @@
 #include "Extension/H265.h"
 #include "Extension/AAC.h"
 #include "Extension/G711.h"
+#define RTP_APP_NAME "rtp"
 
 namespace mediakit{
 
@@ -57,7 +58,7 @@ string printSSRC(uint32_t ui32Ssrc) {
 }
 
 static string printAddress(const struct sockaddr *addr){
-    return StrPrinter << inet_ntoa(((struct sockaddr_in *) addr)->sin_addr) << ":" << ntohs(((struct sockaddr_in *) addr)->sin_port);
+    return StrPrinter << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr) << ":" << ntohs(((struct sockaddr_in *) addr)->sin_port);
 }
 
 RtpProcess::RtpProcess(uint32_t ssrc) {
@@ -73,7 +74,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     GET_CONFIG(bool,toHls,General::kPublishToHls);
     GET_CONFIG(bool,toMP4,General::kPublishToMP4);
 
-    _muxer = std::make_shared<MultiMediaSourceMuxer>(DEFAULT_VHOST,"rtp",printSSRC(_ssrc),0,toRtxp,toRtxp,toHls,toMP4);
+    _muxer = std::make_shared<MultiMediaSourceMuxer>(DEFAULT_VHOST,RTP_APP_NAME,printSSRC(_ssrc),0,toRtxp,toRtxp,toHls,toMP4);
 
     GET_CONFIG(string,dump_dir,RtpProxy::kDumpDir);
     {
@@ -310,7 +311,7 @@ bool RtpProcess::alive() {
 }
 
 string RtpProcess::get_peer_ip() {
-    return inet_ntoa(((struct sockaddr_in *) _addr)->sin_addr);
+    return SockUtil::inet_ntoa(((struct sockaddr_in *) _addr)->sin_addr);
 }
 
 uint16_t RtpProcess::get_peer_port() {

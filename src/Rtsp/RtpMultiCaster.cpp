@@ -141,7 +141,7 @@ uint16_t RtpMultiCaster::getPort(TrackType trackType){
     return _apUdpSock[trackType]->get_local_port();
 }
 string RtpMultiCaster::getIP(){
-    return inet_ntoa(_aPeerUdpAddr[0].sin_addr);
+    return SockUtil::inet_ntoa(_aPeerUdpAddr[0].sin_addr);
 }
 RtpMultiCaster::Ptr RtpMultiCaster::make(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream){
     try{
