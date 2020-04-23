@@ -107,7 +107,7 @@ extern const string kBroadcastShellLogin;
 
 //停止rtsp/rtmp/http-flv会话后流量汇报事件广播
 extern const string kBroadcastFlowReport;
-#define BroadcastFlowReportArgs const MediaInfo &args,const uint64_t &totalBytes,const uint64_t &totalDuration,const bool &isPlayer, const string &sessionIdentifier, const string &peerIP,const uint16_t &peerPort
+#define BroadcastFlowReportArgs const MediaInfo &args,const uint64_t &totalBytes,const uint64_t &totalDuration,const bool &isPlayer, SockInfo &sender
 
 //未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了
 extern const string kBroadcastNotFoundStream;
