@@ -39,6 +39,14 @@ void TsMuxer::addTrack(const Track::Ptr &track) {
             _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AAC, nullptr, 0);
         }
             break;
+
+        case CodecG711A:
+        case CodecG711U: {
+            //todo 此处未区分G711a和G711u
+            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_G711, nullptr, 0);
+        }
+            break;
+
         default:
             break;
     }
