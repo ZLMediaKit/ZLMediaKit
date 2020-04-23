@@ -372,6 +372,43 @@ void installWebApi() {
 #endif//#if !defined(_WIN32)
 
 
+    static auto makeMediaSourceJson = [](const MediaSource::Ptr &media){
+        Value item;
+        item["schema"] = media->getSchema();
+        item["vhost"] = media->getVhost();
+        item["app"] = media->getApp();
+        item["stream"] = media->getId();
+        item["readerCount"] = media->readerCount();
+        item["totalReaderCount"] = media->totalReaderCount();
+        for(auto &track : media->getTracks()){
+            Value obj;
+            auto codec_type = track->getTrackType();
+            obj["codec_id"] = track->getCodecId();
+            obj["ready"] = track->ready();
+            obj["codec_type"] = codec_type;
+            switch(codec_type){
+                case TrackAudio : {
+                    auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+                    obj["sample_rate"] = audio_track->getAudioSampleRate();
+                    obj["channels"] = audio_track->getAudioChannel();
+                    obj["sample_bit"] = audio_track->getAudioSampleBit();
+                    break;
+                }
+                case TrackVideo : {
+                    auto video_track = dynamic_pointer_cast<VideoTrack>(track);
+                    obj["width"] = video_track->getVideoWidth();
+                    obj["height"] = video_track->getVideoHeight();
+                    obj["fps"] = (int)video_track->getVideoFps();
+                    break;
+                }
+                default:
+                    break;
+            }
+            item["tracks"].append(obj);
+        }
+        return item;
+    };
+
     //获取流列表，可选筛选参数
     //测试url0(获取所有流) http://127.0.0.1/index/api/getMediaList
     //测试url1(获取虚拟主机为"__defaultVost__"的流) http://127.0.0.1/index/api/getMediaList?vhost=__defaultVost__
@@ -389,21 +426,7 @@ void installWebApi() {
             if(!allArgs["app"].empty() && allArgs["app"] != media->getApp()){
                 return;
             }
-            Value item;
-            item["schema"] = media->getSchema();
-            item["vhost"] = media->getVhost();
-            item["app"] = media->getApp();
-            item["stream"] = media->getId();
-            item["readerCount"] = media->readerCount();
-            item["totalReaderCount"] = media->totalReaderCount();
-            for(auto &track : media->getTracks()){
-                Value obj;
-                obj["codec_id"] = track->getCodecId();
-                obj["codec_type"] = track->getTrackType();
-                obj["ready"] = track->ready();
-                item["tracks"].append(obj);
-            }
-            val["data"].append(item);
+            val["data"].append(makeMediaSourceJson(media));
         });
     });
 
@@ -423,16 +446,9 @@ void installWebApi() {
             val["online"] = false;
             return;
         }
+        val = makeMediaSourceJson(src);
         val["online"] = true;
-        val["readerCount"] = src->readerCount();
-        val["totalReaderCount"] = src->totalReaderCount();
-        for(auto &track : src->getTracks()){
-            Value obj;
-            obj["codec_id"] = track->getCodecId();
-            obj["codec_type"] = track->getTrackType();
-            obj["ready"] = track->ready();
-            val["tracks"].append(obj);
-        }
+        val["code"] = API::Success;
     });
 
     //主动关断流，包括关断拉流、推流
