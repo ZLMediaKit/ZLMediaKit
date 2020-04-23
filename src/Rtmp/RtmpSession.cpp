@@ -171,10 +171,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             onRes(err,enableRtxp,enableHls,enableMP4);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,
-                                                   _mediaInfo,
-                                                   invoker,
-                                                   *this);
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,_mediaInfo,invoker,static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听，默认鉴权成功
         GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
@@ -346,7 +343,8 @@ void RtmpSession::doPlay(AMFDecoder &dec){
             strongSelf->doPlayResponse(err,[pToken](bool){});
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
+
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听,默认不鉴权
         doPlayResponse("",[pToken](bool){});

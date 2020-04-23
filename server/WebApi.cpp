@@ -86,7 +86,7 @@ public:
     ~SuccessException() = default;
 };
 
-#define API_ARGS1 TcpSession &sender,HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, ApiArgsType &allArgs, Json::Value &val
+#define API_ARGS1 SockInfo &sender,HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, ApiArgsType &allArgs, Json::Value &val
 #define API_ARGS2 API_ARGS1, const HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_VALUE1 sender,headerIn,headerOut,allArgs,val
 #define API_ARGS_VALUE2 API_ARGS_VALUE1, invoker

@@ -62,25 +62,25 @@ extern const string kBroadcastRecordMP4;
 
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;
-#define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,TcpSession &sender
+#define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,SockInfo &sender
 
 //在http文件服务器中,收到http访问文件或目录的广播,通过该事件控制访问http目录的权限
 extern const string kBroadcastHttpAccess;
-#define BroadcastHttpAccessArgs const Parser &parser,const string &path,const bool &is_dir,const HttpSession::HttpAccessPathInvoker &invoker,TcpSession &sender
+#define BroadcastHttpAccessArgs const Parser &parser,const string &path,const bool &is_dir,const HttpSession::HttpAccessPathInvoker &invoker,SockInfo &sender
 
 //在http文件服务器中,收到http访问文件或目录前的广播,通过该事件可以控制http url到文件路径的映射
 //在该事件中通过自行覆盖path参数，可以做到譬如根据虚拟主机或者app选择不同http根目录的目的
 extern const string kBroadcastHttpBeforeAccess;
-#define BroadcastHttpBeforeAccessArgs const Parser &parser,string &path,TcpSession &sender
+#define BroadcastHttpBeforeAccessArgs const Parser &parser,string &path,SockInfo &sender
 
 //该流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm.如果该事件不监听则不认证
 extern const string kBroadcastOnGetRtspRealm;
-#define BroadcastOnGetRtspRealmArgs const MediaInfo &args,const RtspSession::onGetRealm &invoker,TcpSession &sender
+#define BroadcastOnGetRtspRealmArgs const MediaInfo &args,const RtspSession::onGetRealm &invoker,SockInfo &sender
 
 //请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
 //获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码
 extern const string kBroadcastOnRtspAuth;
-#define BroadcastOnRtspAuthArgs const MediaInfo &args,const string &realm,const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker,TcpSession &sender
+#define BroadcastOnRtspAuthArgs const MediaInfo &args,const string &realm,const string &user_name,const bool &must_no_encrypt,const RtspSession::onAuth &invoker,SockInfo &sender
 
 //推流鉴权结果回调对象
 //如果errMessage为空则代表鉴权成功
@@ -91,7 +91,7 @@ typedef std::function<void(const string &errMessage,bool enableRtxp,bool enableH
 
 //收到rtsp/rtmp推流事件广播，通过该事件控制推流鉴权
 extern const string kBroadcastMediaPublish;
-#define BroadcastMediaPublishArgs const MediaInfo &args,const Broadcast::PublishAuthInvoker &invoker,TcpSession &sender
+#define BroadcastMediaPublishArgs const MediaInfo &args,const Broadcast::PublishAuthInvoker &invoker,SockInfo &sender
 
 //播放鉴权结果回调对象
 //如果errMessage为空则代表鉴权成功
@@ -99,11 +99,11 @@ typedef std::function<void(const string &errMessage)> AuthInvoker;
 
 //播放rtsp/rtmp/http-flv事件广播，通过该事件控制播放鉴权
 extern const string kBroadcastMediaPlayed;
-#define BroadcastMediaPlayedArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,TcpSession &sender
+#define BroadcastMediaPlayedArgs const MediaInfo &args,const Broadcast::AuthInvoker &invoker,SockInfo &sender
 
 //shell登录鉴权
 extern const string kBroadcastShellLogin;
-#define BroadcastShellLoginArgs const string &user_name,const string &passwd,const Broadcast::AuthInvoker &invoker,TcpSession &sender
+#define BroadcastShellLoginArgs const string &user_name,const string &passwd,const Broadcast::AuthInvoker &invoker,SockInfo &sender
 
 //停止rtsp/rtmp/http-flv会话后流量汇报事件广播
 extern const string kBroadcastFlowReport;
@@ -111,7 +111,7 @@ extern const string kBroadcastFlowReport;
 
 //未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了
 extern const string kBroadcastNotFoundStream;
-#define BroadcastNotFoundStreamArgs const MediaInfo &args,TcpSession &sender
+#define BroadcastNotFoundStreamArgs const MediaInfo &args,SockInfo &sender
 
 //某个流无人消费时触发，目的为了实现无人观看时主动断开拉流等业务逻辑
 extern const string kBroadcastStreamNoneReader;

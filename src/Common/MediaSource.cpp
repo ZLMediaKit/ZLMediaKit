@@ -190,7 +190,7 @@ void findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession> &sessi
     void *listener_tag = session.get();
     weak_ptr<TcpSession> weakSession = session;
     //广播未找到流,此时可以立即去拉流，这样还来得及
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info,*session);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info, static_cast<SockInfo &>(*session));
 
     //最多等待一定时间，如果这个时间内，流未注册上，那么返回未找到流
     GET_CONFIG(int,maxWaitMS,General::kMaxStreamWaitTimeMS);
