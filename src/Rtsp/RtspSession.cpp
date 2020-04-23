@@ -955,7 +955,7 @@ inline void RtspSession::startListenPeerUdpData(int trackIdx) {
 
         if (((struct sockaddr_in *) pPeerAddr)->sin_addr.s_addr != srcIP) {
             WarnP(strongSelf.get()) << ((intervaled % 2 == 0) ? "收到其他地址的rtp数据:" : "收到其他地址的rtcp数据:")
-                                    << inet_ntoa(((struct sockaddr_in *) pPeerAddr)->sin_addr);
+                                    << SockUtil::inet_ntoa(((struct sockaddr_in *) pPeerAddr)->sin_addr);
             return true;
         }
 

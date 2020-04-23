@@ -38,7 +38,7 @@ public:
     }
     static string toString(uint32_t iAddr){
         iAddr = htonl(iAddr);
-        return ::inet_ntoa((struct in_addr &)(iAddr));
+        return SockUtil::inet_ntoa((struct in_addr &)(iAddr));
     }
     virtual ~MultiCastAddressMaker(){}
     std::shared_ptr<uint32_t> obtain(uint32_t iTry = 10);
