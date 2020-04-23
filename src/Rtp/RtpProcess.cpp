@@ -14,6 +14,7 @@
 #include "Util/File.h"
 #include "Extension/H265.h"
 #include "Extension/AAC.h"
+#include "Extension/G711.h"
 
 namespace mediakit{
 
@@ -269,6 +270,27 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 return;
             }
             _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 0, 7));
+            break;
+        }
+
+        case STREAM_AUDIO_G711: {
+            _dts = dts;
+            //todo 等待陈大佬更新ts/ps解析库,现在暂时固定为G711A
+            auto codec = CodecG711A;
+            if (!_codecid_audio) {
+                //获取到音频
+                _codecid_audio = codecid;
+                InfoL << "got audio track: G711";
+                //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
+                auto track = std::make_shared<G711Track>(codec, 8000, 1, 16);
+                _muxer->addTrack(track);
+            }
+
+            if (codecid != _codecid_audio) {
+                WarnL << "audio track change to G711 from codecid:" << getCodecName(_codecid_audio);
+                return;
+            }
+            _muxer->inputFrame(std::make_shared<G711FrameNoCacheAble>(codec, (char *) data, bytes, dts));
             break;
         }
         default:
