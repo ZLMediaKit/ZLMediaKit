@@ -15,7 +15,7 @@ namespace mediakit{
 
 INSTANCE_IMP(RtpSelector);
 
-bool RtpSelector::inputRtp(const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
+bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
     uint32_t ssrc = 0;
     if(!getSSRC(data,data_len,ssrc)){
         WarnL << "get ssrc from rtp failed:" << data_len;
@@ -23,7 +23,7 @@ bool RtpSelector::inputRtp(const char *data, int data_len,const struct sockaddr 
     }
     auto process = getProcess(ssrc, true);
     if(process){
-        return process->inputRtp(data,data_len, addr,dts_out);
+        return process->inputRtp(sock, data,data_len, addr,dts_out);
     }
     return false;
 }

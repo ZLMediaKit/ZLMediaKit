@@ -76,7 +76,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
 
     GET_CONFIG(string,dump_dir,RtpProxy::kDumpDir);
     {
-        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".rtp",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(_media_info._streamid + ".rtp",dump_dir).data(),"wb") : nullptr;
         if(fp){
             _save_file_rtp.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -85,7 +85,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".mp2",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(_media_info._streamid + ".mp2",dump_dir).data(),"wb") : nullptr;
         if(fp){
             _save_file_ps.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -94,7 +94,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".video",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(_media_info._streamid + ".video",dump_dir).data(),"wb") : nullptr;
         if(fp){
             _save_file_video.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -124,7 +124,7 @@ RtpProcess::~RtpProcess() {
     }
 }
 
-bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
+bool RtpProcess::inputRtp(const Socket::Ptr &sock, const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
     GET_CONFIG(bool,check_source,RtpProxy::kCheckSource);
     //检查源是否合法
     if(!_addr){
@@ -133,6 +133,7 @@ bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *
         DebugP(this) << "bind to address:" << printAddress(_addr);
         //推流鉴权
         emitOnPublish();
+        _sock = sock;
     }
 
     if(!_muxer){
@@ -182,11 +183,11 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
         //创建解码器
         if(checkTS(packet, bytes)){
             //猜测是ts负载
-            InfoP(this) << "judged to be TS: " << printSSRC(_ssrc);
+            InfoP(this) << "judged to be TS";
             _decoder = Decoder::createDecoder(Decoder::decoder_ts);
         }else{
             //猜测是ps负载
-            InfoP(this) << "judged to be PS: " << printSSRC(_ssrc);
+            InfoP(this) << "judged to be PS";
             _decoder = Decoder::createDecoder(Decoder::decoder_ps);
         }
         _decoder->setOnDecode([this](int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes){
@@ -342,12 +343,16 @@ uint16_t RtpProcess::get_peer_port() {
 }
 
 const string& RtpProcess::get_local_ip() {
-    //todo
+    if(_sock){
+        _local_ip = _sock->get_local_ip();
+    }
     return _local_ip;
 }
 
 uint16_t RtpProcess::get_local_port() {
-    //todo
+    if(_sock){
+       return _sock->get_local_port();
+    }
     return 0;
 }
 
