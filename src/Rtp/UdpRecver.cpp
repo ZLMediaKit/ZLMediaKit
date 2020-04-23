@@ -17,6 +17,7 @@ UdpRecver::UdpRecver() {
 }
 
 UdpRecver::~UdpRecver() {
+    _sock->setOnRead(nullptr);
 }
 
 bool UdpRecver::initSock(uint16_t local_port,const char *local_ip) {
@@ -26,8 +27,9 @@ bool UdpRecver::initSock(uint16_t local_port,const char *local_ip) {
     });
 
     auto &ref = RtpSelector::Instance();
-    _sock->setOnRead([&ref](const Buffer::Ptr &buf, struct sockaddr *addr, int ){
-        ref.inputRtp(buf->data(),buf->size(),addr);
+    auto sock = _sock;
+    _sock->setOnRead([&ref, sock](const Buffer::Ptr &buf, struct sockaddr *addr, int ){
+        ref.inputRtp(sock, buf->data(),buf->size(),addr);
     });
     return _sock->bindUdpSock(local_port,local_ip);
 }

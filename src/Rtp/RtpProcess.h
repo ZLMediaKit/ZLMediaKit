@@ -29,7 +29,7 @@ public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     RtpProcess(uint32_t ssrc);
     ~RtpProcess();
-    bool inputRtp(const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
+    bool inputRtp(const Socket::Ptr &sock, const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
     bool alive();
 
     const string &get_local_ip() override;
@@ -70,6 +70,7 @@ private:
     std::weak_ptr<MediaSourceEvent> _listener;
     MediaInfo _media_info;
     uint64_t _ui64TotalBytes = 0;
+    Socket::Ptr _sock;
 };
 
 }//namespace mediakit
