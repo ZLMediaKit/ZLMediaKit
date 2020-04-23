@@ -24,21 +24,31 @@ namespace mediakit{
 
 string printSSRC(uint32_t ui32Ssrc);
 class FrameMerger;
-class RtpProcess : public RtpReceiver , public RtpDecoder{
+class RtpProcess : public RtpReceiver , public RtpDecoder, public SockInfo, public std::enable_shared_from_this<RtpProcess>{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     RtpProcess(uint32_t ssrc);
     ~RtpProcess();
     bool inputRtp(const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
     bool alive();
-    string get_peer_ip();
-    uint16_t get_peer_port();
+
+    const string &get_local_ip() override;
+    uint16_t get_local_port() override;
+    const string &get_peer_ip() override;
+    uint16_t get_peer_port() override;
+    string getIdentifier() const override;
+
     int totalReaderCount();
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
+
 protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
     void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) override;
     void onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts, const void *data,int bytes);
+
+private:
+    void emitOnPublish();
+
 private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
@@ -55,6 +65,11 @@ private:
     unordered_map<int,Stamp> _stamps;
     uint32_t _dts = 0;
     Decoder::Ptr _decoder;
+    string _peer_ip;
+    string _local_ip;
+    std::weak_ptr<MediaSourceEvent> _listener;
+    MediaInfo _media_info;
+    uint64_t _ui64TotalBytes = 0;
 };
 
 }//namespace mediakit
