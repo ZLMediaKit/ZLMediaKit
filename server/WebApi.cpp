@@ -384,6 +384,7 @@ void installWebApi() {
             Value obj;
             auto codec_type = track->getTrackType();
             obj["codec_id"] = track->getCodecId();
+            obj["codec_id_name"] = track->getCodecName();
             obj["ready"] = track->ready();
             obj["codec_type"] = codec_type;
             switch(codec_type){
