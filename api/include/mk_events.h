@@ -36,7 +36,7 @@ typedef struct {
      */
     void (API_CALL *on_mk_media_publish)(const mk_media_info url_info,
                                          const mk_publish_auth_invoker invoker,
-                                         const mk_tcp_session sender);
+                                         const mk_sock_info sender);
 
     /**
      * 播放rtsp/rtmp/http-flv/hls事件广播，通过该事件控制播放鉴权
@@ -47,7 +47,7 @@ typedef struct {
      */
     void (API_CALL *on_mk_media_play)(const mk_media_info url_info,
                                       const mk_auth_invoker invoker,
-                                      const mk_tcp_session sender);
+                                      const mk_sock_info sender);
 
     /**
      * 未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了
@@ -55,7 +55,7 @@ typedef struct {
      * @param sender 播放客户端相关信息
      */
     void (API_CALL *on_mk_media_not_found)(const mk_media_info url_info,
-                                           const mk_tcp_session sender);
+                                           const mk_sock_info sender);
 
     /**
      * 某个流无人消费时触发，目的为了实现无人观看时主动断开拉流等业务逻辑
@@ -73,7 +73,7 @@ typedef struct {
     void (API_CALL *on_mk_http_request)(const mk_parser parser,
                                         const mk_http_response_invoker invoker,
                                         int *consumed,
-                                        const mk_tcp_session sender);
+                                        const mk_sock_info sender);
 
     /**
      * 在http文件服务器中,收到http访问文件或目录的广播,通过该事件控制访问http目录的权限
@@ -87,7 +87,7 @@ typedef struct {
                                        const char *path,
                                        int is_dir,
                                        const mk_http_access_path_invoker invoker,
-                                       mk_tcp_session sender);
+                                       const mk_sock_info sender);
 
     /**
      * 在http文件服务器中,收到http访问文件或目录前的广播,通过该事件可以控制http url到文件路径的映射
@@ -98,7 +98,7 @@ typedef struct {
      */
     void (API_CALL *on_mk_http_before_access)(const mk_parser parser,
                                               char *path,
-                                              const mk_tcp_session sender);
+                                              const mk_sock_info sender);
 
     /**
      * 该rtsp流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm
@@ -108,7 +108,7 @@ typedef struct {
      */
     void (API_CALL *on_mk_rtsp_get_realm)(const mk_media_info url_info,
                                           const mk_rtsp_get_realm_invoker invoker,
-                                          const mk_tcp_session sender);
+                                          const mk_sock_info sender);
 
     /**
      * 请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
@@ -125,7 +125,7 @@ typedef struct {
                                      const char *user_name,
                                      int must_no_encrypt,
                                      const mk_rtsp_auth_invoker invoker,
-                                     const mk_tcp_session sender);
+                                     const mk_sock_info sender);
 
     /**
      * 录制mp4分片文件成功后广播
@@ -138,7 +138,7 @@ typedef struct {
     void (API_CALL *on_mk_shell_login)(const char *user_name,
                                        const char *passwd,
                                        const mk_auth_invoker invoker,
-                                       const mk_tcp_session sender);
+                                       const mk_sock_info sender);
 
     /**
      * 停止rtsp/rtmp/http-flv会话后流量汇报事件广播

@@ -17,7 +17,7 @@
 using namespace toolkit;
 
 class TcpClientForC : public TcpClient {
-    public:
+public:
     typedef std::shared_ptr<TcpClientForC> Ptr;
     TcpClientForC(mk_tcp_client_events *events) ;
     ~TcpClientForC() override ;
@@ -27,13 +27,13 @@ class TcpClientForC : public TcpClient {
     void onConnect(const SockException &ex) override;
     void setClient(mk_tcp_client client);
     void *_user_data;
-    private:
+private:
     mk_tcp_client_events _events;
     mk_tcp_client _client;
 };
 
 class TcpSessionForC : public TcpSession {
-    public:
+public:
     TcpSessionForC(const Socket::Ptr &pSock) ;
     ~TcpSessionForC() override = default;
     void onRecv(const Buffer::Ptr &buffer) override ;

@@ -241,7 +241,7 @@ bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
                 onRes(err);
             });
         };
-        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,static_cast<SockInfo &>(*this));
         if(!flag){
             //该事件无人监听,默认不鉴权
             onRes("");
@@ -520,7 +520,8 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
     };
     ///////////////////广播HTTP事件///////////////////////////
     bool consumed = false;//该事件是否被消费
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,*this);
+    TcpSession &session = static_cast<TcpSession &>(*this);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,static_cast<SockInfo &>(*this));
     if(!consumed && doInvoke){
         //该事件无人消费，所以返回404
         invoker("404 Not Found",KeyValue(), HttpBody::Ptr());
