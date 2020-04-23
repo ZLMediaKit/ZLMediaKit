@@ -41,7 +41,7 @@ void ShellSession::onRecv(const Buffer::Ptr&buf) {
     _beatTicker.resetTime();
     _strRecvBuf.append(buf->data(), buf->size());
     if (_strRecvBuf.find("\xff\xf4\xff\0xfd\x06") != std::string::npos) {
-        send("\033[0m\r\n	Bye bye!\r\n");
+        SockSender::send("\033[0m\r\n	Bye bye!\r\n");
         shutdown(SockException(Err_other,"received Ctrl+C"));
         return;
     }
@@ -78,20 +78,20 @@ inline bool ShellSession::onCommandLine(const string& line) {
     try {
         std::shared_ptr<stringstream> ss(new stringstream);
         CMDRegister::Instance()(line,ss);
-        send(ss->str());
+        SockSender::send(ss->str());
     }catch(ExitException &ex){
         return false;
     }catch(std::exception &ex){
-        send(ex.what());
-        send("\r\n");
+        SockSender::send(ex.what());
+        SockSender::send("\r\n");
     }
     printShellPrefix();
     return true;
 }
 
 inline void ShellSession::pleaseInputUser() {
-    send("\033[0m");
-    send(StrPrinter << SERVER_NAME << " login: " << endl);
+    SockSender::send("\033[0m");
+    SockSender::send(StrPrinter << SERVER_NAME << " login: " << endl);
     _loginInterceptor = [this](const string &user_name) {
         _strUserName=user_name;
         pleaseInputPasswd();
@@ -99,24 +99,24 @@ inline void ShellSession::pleaseInputUser() {
     };
 }
 inline void ShellSession::pleaseInputPasswd() {
-    send("Password: \033[8m");
+    SockSender::send("Password: \033[8m");
     _loginInterceptor = [this](const string &passwd) {
         auto onAuth = [this](const string &errMessage){
             if(!errMessage.empty()){
                 //鉴权失败
-                send(StrPrinter
-                     <<"\033[0mAuth failed("
-                     << errMessage
-                     <<"), please try again.\r\n"
-                     <<_strUserName<<"@"<<SERVER_NAME
-                     <<"'s password: \033[8m"
-                     <<endl);
+                SockSender::send(StrPrinter
+                                 << "\033[0mAuth failed("
+                                 << errMessage
+                                 << "), please try again.\r\n"
+                                 << _strUserName << "@" << SERVER_NAME
+                                 << "'s password: \033[8m"
+                                 << endl);
                 return;
             }
-            send("\033[0m");
-            send("-----------------------------------------\r\n");
-            send(StrPrinter<<"欢迎来到"<<SERVER_NAME<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
-            send("-----------------------------------------\r\n");
+            SockSender::send("\033[0m");
+            SockSender::send("-----------------------------------------\r\n");
+            SockSender::send(StrPrinter<<"欢迎来到"<<SERVER_NAME<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
+            SockSender::send("-----------------------------------------\r\n");
             printShellPrefix();
             _loginInterceptor=nullptr;
         };
@@ -146,7 +146,7 @@ inline void ShellSession::pleaseInputPasswd() {
 }
 
 inline void ShellSession::printShellPrefix() {
-    send(StrPrinter << _strUserName << "@" << SERVER_NAME << "# " << endl);
+    SockSender::send(StrPrinter << _strUserName << "@" << SERVER_NAME << "# " << endl);
 }
 
 }/* namespace mediakit */

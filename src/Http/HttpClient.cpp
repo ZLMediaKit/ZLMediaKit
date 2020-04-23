@@ -113,7 +113,7 @@ void HttpClient::onConnect(const SockException &ex) {
         printer << pr.first + ": ";
         printer << pr.second + "\r\n";
     }
-    send(printer << "\r\n");
+    SockSender::send(printer << "\r\n");
     onFlush();
 }
 

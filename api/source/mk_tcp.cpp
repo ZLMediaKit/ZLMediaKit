@@ -46,7 +46,7 @@ API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx,const char
         len = strlen(data);
     }
     TcpSession *session = (TcpSession *)ctx;
-    session->send(data,len);
+    session->SockSender::send(data,len);
 }
 
 API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const char *data,int len){
@@ -60,7 +60,7 @@ API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const
         ((TcpSession *)ctx)->async([weak_session,str](){
             auto session_session = weak_session.lock();
             if(session_session){
-                session_session->send(str);
+                session_session->SockSender::send(str);
             }
         });
     }catch (std::exception &ex){
@@ -226,7 +226,7 @@ API_EXPORT void API_CALL mk_tcp_client_connect(mk_tcp_client ctx, const char *ho
 API_EXPORT void API_CALL mk_tcp_client_send(mk_tcp_client ctx, const char *data, int len){
     assert(ctx && data);
     TcpClient::Ptr *client = (TcpClient::Ptr *)ctx;
-    (*client)->send(data,len);
+    (*client)->SockSender::send(data,len);
 }
 
 API_EXPORT void API_CALL mk_tcp_client_send_safe(mk_tcp_client ctx, const char *data, int len){
