@@ -456,7 +456,7 @@ void HttpSession::sendResponse(const char *pcStatus,
         str += "\r\n";
     }
     str += "\r\n";
-    send(std::move(str));
+    SockSender::send(std::move(str));
     _ticker.resetTime();
 
     if(!size){
@@ -611,7 +611,7 @@ void HttpSession::setSocketFlags(){
         //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
         SockUtil::setNoDelay(_sock->rawFD(), false);
         //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
-        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+        setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }
 }
 

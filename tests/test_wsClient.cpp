@@ -36,7 +36,7 @@ protected:
     }
     //tcp连接成功后每2秒触发一次该事件
     void onManager() override {
-        send("echo test!");
+        SockSender::send("echo test!");
         DebugL << "send echo test";
     }
     //连接服务器结果回调

@@ -35,7 +35,7 @@ public:
     }
     void onRecv(const Buffer::Ptr &buffer) override {
         //回显数据
-        send("from EchoSession:");
+        SockSender::send("from EchoSession:");
         send(buffer);
     }
     void onError(const SockException &err) override{
@@ -62,7 +62,7 @@ public:
     }
     void onRecv(const Buffer::Ptr &buffer) override {
         //回显数据
-        send("from EchoSessionWithUrl:");
+        SockSender::send("from EchoSessionWithUrl:");
         send(buffer);
     }
     void onError(const SockException &err) override{
