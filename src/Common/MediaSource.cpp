@@ -293,7 +293,34 @@ void MediaSource::regist() {
         lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
         g_mapMediaSrc[_strSchema][_strVhost][_strApp][_strId] =  shared_from_this();
     }
-    InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
+    _StrPrinter codec_info;
+    auto tracks = getTracks(true);
+    for(auto &track : tracks) {
+        auto codec_type = track->getTrackType();
+        codec_info << track->getCodecName();
+        switch (codec_type) {
+            case TrackAudio : {
+                auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+                codec_info << "["
+                           << audio_track->getAudioSampleRate() << "/"
+                           << audio_track->getAudioChannel() << "/"
+                           << audio_track->getAudioSampleBit() << "] ";
+                break;
+            }
+            case TrackVideo : {
+                auto video_track = dynamic_pointer_cast<VideoTrack>(track);
+                codec_info << "["
+                           << video_track->getVideoWidth() << "/"
+                           << video_track->getVideoHeight() << "/"
+                           << (int) video_track->getVideoFps() << "] ";
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId << " " << codec_info;
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, true, *this);
 }
 
@@ -319,7 +346,7 @@ bool MediaSource::unregist() {
     }
 
     if(ret){
-        InfoL <<  "" <<  _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
+        InfoL <<  _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, false, *this);
     }
     return ret;
