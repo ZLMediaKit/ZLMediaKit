@@ -185,7 +185,7 @@ private:
 template<typename packet, typename policy = FlushPolicy, typename packet_list = List<std::shared_ptr<packet> > >
 class VideoPacketCache {
 public:
-    VideoPacketCache() : _policy(true) {
+    VideoPacketCache() : _policy(false) {
         _cache = std::make_shared<packet_list>();
     }
 
@@ -231,7 +231,7 @@ private:
 template<typename packet, typename policy = FlushPolicy, typename packet_list = List<std::shared_ptr<packet> > >
 class AudioPacketCache {
 public:
-    AudioPacketCache() : _policy(false) {
+    AudioPacketCache() : _policy(true) {
         _cache = std::make_shared<packet_list>();
     }
 

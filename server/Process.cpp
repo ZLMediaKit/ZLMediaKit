@@ -75,7 +75,7 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         int log_fd = -1;
         int flags = O_CREAT | O_WRONLY | O_APPEND;
         mode_t mode = S_IRWXO | S_IRWXG | S_IRWXU;// S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH;
-        File::createfile_path(log_file.data(), mode);
+        File::create_path(log_file.data(), mode);
         if ((log_fd = ::open(log_file.c_str(), flags, mode)) < 0) {
             fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), errno, strerror(errno));
         }

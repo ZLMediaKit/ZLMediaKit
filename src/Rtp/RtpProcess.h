@@ -32,9 +32,9 @@ public:
     bool inputRtp(const Socket::Ptr &sock, const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
     bool alive();
 
-    const string &get_local_ip() override;
+    string get_local_ip() override;
     uint16_t get_local_port() override;
-    const string &get_peer_ip() override;
+    string get_peer_ip() override;
     uint16_t get_peer_port() override;
     string getIdentifier() const override;
 
@@ -65,11 +65,9 @@ private:
     unordered_map<int,Stamp> _stamps;
     uint32_t _dts = 0;
     Decoder::Ptr _decoder;
-    string _peer_ip;
-    string _local_ip;
     std::weak_ptr<MediaSourceEvent> _listener;
     MediaInfo _media_info;
-    uint64_t _ui64TotalBytes = 0;
+    uint64_t _total_bytes = 0;
     Socket::Ptr _sock;
 };
 
