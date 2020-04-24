@@ -486,14 +486,22 @@ static bool isFlushAble_merge(bool is_audio, uint32_t last_stamp, uint32_t new_s
     return cache_size > 20;
 }
 
-bool FlushPolicy::isFlushAble(uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
-    GET_CONFIG(bool,ultraLowDelay, General::kUltraLowDelay);
-    GET_CONFIG(int,mergeWriteMS, General::kMergeWriteMS);
-    if(ultraLowDelay || mergeWriteMS <= 0){
+bool FlushPolicy::isFlushAble(uint32_t new_stamp, int cache_size) {
+    bool ret = false;
+    GET_CONFIG(bool, ultraLowDelay, General::kUltraLowDelay);
+    GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
+    if (ultraLowDelay || mergeWriteMS <= 0) {
         //关闭了合并写或者合并写阈值小于等于0
-        return isFlushAble_default(_is_audio, last_stamp, new_stamp, cache_size);
+        ret = isFlushAble_default(_is_audio, _last_stamp, new_stamp, cache_size);
+    } else {
+        ret = isFlushAble_merge(_is_audio, _last_stamp, new_stamp, cache_size, mergeWriteMS);
     }
-    return isFlushAble_merge(_is_audio, last_stamp, new_stamp, cache_size,mergeWriteMS);
+
+    if (ret) {
+//        DebugL << _is_audio << " " << _last_stamp  << " " << new_stamp;
+        _last_stamp = new_stamp;
+    }
+    return ret;
 }
 
 } /* namespace mediakit */
