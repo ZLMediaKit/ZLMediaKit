@@ -161,7 +161,7 @@ static inline bool checkTS(const uint8_t *packet, int bytes){
 }
 
 void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
-    if(rtp->sequence != _sequence + 1){
+    if(rtp->sequence != _sequence + 1 && rtp->sequence != 0){
         WarnP(this) << rtp->sequence << " != " << _sequence << "+1";
     }
     _sequence = rtp->sequence;
