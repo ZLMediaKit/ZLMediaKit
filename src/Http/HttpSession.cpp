@@ -59,7 +59,7 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
     string cmd = _parser.Method();
     auto it = s_func_map.find(cmd);
     if (it == s_func_map.end()) {
-        WarnL << "不支持该命令:" << cmd;
+        WarnP(this) << "不支持该命令:" << cmd;
         sendResponse("405 Not Allowed", true);
         return 0;
     }

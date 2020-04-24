@@ -92,7 +92,7 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
 
 std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file,bool setbuf) {
     auto file_buf = _file_buf;
-    auto ret= shared_ptr<FILE>(File::createfile_file(file.data(), "wb"), [file_buf](FILE *fp) {
+    auto ret= shared_ptr<FILE>(File::create_file(file.data(), "wb"), [file_buf](FILE *fp) {
         if (fp) {
             fclose(fp);
         }

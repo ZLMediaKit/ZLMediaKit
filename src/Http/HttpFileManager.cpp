@@ -315,7 +315,7 @@ public:
     SockInfoImp() = default;
     ~SockInfoImp() override = default;
 
-    const string &get_local_ip() override{
+    string get_local_ip() override{
         return _local_ip;
     }
 
@@ -323,9 +323,8 @@ public:
         return _local_port;
     }
 
-    const string &get_peer_ip() override{
+    string get_peer_ip() override{
         return _peer_ip;
-
     }
 
     uint16_t get_peer_port() override{

@@ -76,7 +76,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
 
     GET_CONFIG(string,dump_dir,RtpProxy::kDumpDir);
     {
-        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(_media_info._streamid + ".rtp",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".rtp", dump_dir).data(), "wb") : nullptr;
         if(fp){
             _save_file_rtp.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -85,7 +85,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(_media_info._streamid + ".mp2",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".mp2", dump_dir).data(), "wb") : nullptr;
         if(fp){
             _save_file_ps.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -94,7 +94,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(_media_info._streamid + ".video",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".video", dump_dir).data(), "wb") : nullptr;
         if(fp){
             _save_file_video.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -119,8 +119,8 @@ RtpProcess::~RtpProcess() {
 
     //流量统计事件广播
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
-    if (_ui64TotalBytes > iFlowThreshold * 1024) {
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _ui64TotalBytes, duration, false, static_cast<SockInfo &>(*this));
+    if (_total_bytes > iFlowThreshold * 1024) {
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false, static_cast<SockInfo &>(*this));
     }
 }
 
@@ -146,7 +146,7 @@ bool RtpProcess::inputRtp(const Socket::Ptr &sock, const char *data, int data_le
         return false;
     }
 
-    _ui64TotalBytes += data_len;
+    _total_bytes += data_len;
     _last_rtp_time.resetTime();
     bool ret = handleOneRtp(0,_track,(unsigned char *)data,data_len);
     if(dts_out){
@@ -328,11 +328,11 @@ bool RtpProcess::alive() {
     return false;
 }
 
-const string& RtpProcess::get_peer_ip() {
-    if(_peer_ip.empty() && _addr){
-        _peer_ip = SockUtil::inet_ntoa(((struct sockaddr_in *) _addr)->sin_addr);
+string RtpProcess::get_peer_ip() {
+    if(_addr){
+        return SockUtil::inet_ntoa(((struct sockaddr_in *) _addr)->sin_addr);
     }
-    return _peer_ip;
+    return "0.0.0.0";
 }
 
 uint16_t RtpProcess::get_peer_port() {
@@ -342,11 +342,11 @@ uint16_t RtpProcess::get_peer_port() {
     return ntohs(((struct sockaddr_in *) _addr)->sin_port);
 }
 
-const string& RtpProcess::get_local_ip() {
+string RtpProcess::get_local_ip() {
     if(_sock){
-        _local_ip = _sock->get_local_ip();
+        return _sock->get_local_ip();
     }
-    return _local_ip;
+    return "0.0.0.0";
 }
 
 uint16_t RtpProcess::get_local_port() {
