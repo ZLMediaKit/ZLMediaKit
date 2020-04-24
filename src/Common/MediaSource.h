@@ -173,9 +173,10 @@ public:
         return packet->timeStamp;
     }
 
-    bool isFlushAble(uint32_t last_stamp, uint32_t new_stamp, int cache_size);
+    bool isFlushAble(uint32_t new_stamp, int cache_size);
 private:
     bool _is_audio;
+    uint32_t _last_stamp= 0;
 };
 
 /// 视频合并写缓存模板
@@ -192,14 +193,12 @@ public:
     virtual ~VideoPacketCache() = default;
 
     void inputVideo(const std::shared_ptr<packet> &rtp, bool key_pos) {
-        auto new_stamp = _policy.getStamp(rtp);
-        if (_policy.isFlushAble(_last_stamp, new_stamp, _cache->size())) {
+        if (_policy.isFlushAble(_policy.getStamp(rtp), _cache->size())) {
             flushAll();
         }
 
         //追加数据到最后
         _cache->emplace_back(rtp);
-        _last_stamp = new_stamp;
         if (key_pos) {
             _key_pos = key_pos;
         }
@@ -220,7 +219,6 @@ private:
 private:
     policy _policy;
     std::shared_ptr<packet_list> _cache;
-    uint32_t _last_stamp = 0;
     bool _key_pos = false;
 };
 
@@ -238,13 +236,11 @@ public:
     virtual ~AudioPacketCache() = default;
 
     void inputAudio(const std::shared_ptr<packet> &rtp) {
-        auto new_stamp = _policy.getStamp(rtp);
-        if (_policy.isFlushAble(_last_stamp, new_stamp, _cache->size())) {
+        if (_policy.isFlushAble(_policy.getStamp(rtp), _cache->size())) {
             flushAll();
         }
         //追加数据到最后
         _cache->emplace_back(rtp);
-        _last_stamp = new_stamp;
     }
 
     virtual void onFlushAudio(std::shared_ptr<packet_list> &) = 0;
@@ -261,7 +257,6 @@ private:
 private:
     policy _policy;
     std::shared_ptr<packet_list> _cache;
-    uint32_t _last_stamp = 0;
 };
 
 } /* namespace mediakit */
