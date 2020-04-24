@@ -343,7 +343,7 @@ SOFTWARE.
 
 
 ## Contact
- - Email：<771730766@qq.com>
+ - Email：<1213642868@qq.com>
  - QQ chat group：542509000
 
 
