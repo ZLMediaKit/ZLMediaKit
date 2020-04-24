@@ -12,6 +12,7 @@
 #include <functional>
 #include <sstream>
 #include <unordered_map>
+#include <math.h>
 #include "jsoncpp/json.h"
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -399,7 +400,7 @@ void installWebApi() {
                     auto video_track = dynamic_pointer_cast<VideoTrack>(track);
                     obj["width"] = video_track->getVideoWidth();
                     obj["height"] = video_track->getVideoHeight();
-                    obj["fps"] = (int)video_track->getVideoFps();
+                    obj["fps"] = round(video_track->getVideoFps());
                     break;
                 }
                 default:

@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <math.h>
 #include "MediaSource.h"
 #include "Record/MP4Reader.h"
 #include "Util/util.h"
@@ -312,7 +313,7 @@ void MediaSource::regist() {
                 codec_info << "["
                            << video_track->getVideoWidth() << "/"
                            << video_track->getVideoHeight() << "/"
-                           << (int) video_track->getVideoFps() << "] ";
+                           << round(video_track->getVideoFps()) << "] ";
                 break;
             }
             default:
