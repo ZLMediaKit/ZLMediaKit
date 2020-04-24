@@ -22,9 +22,9 @@ extern "C" {
 typedef void* mk_sock_info;
 
 //SockInfo::get_peer_ip()
-API_EXPORT const char* API_CALL mk_sock_info_peer_ip(const mk_sock_info ctx);
+API_EXPORT const char* API_CALL mk_sock_info_peer_ip(const mk_sock_info ctx, char *buf);
 //SockInfo::get_local_ip()
-API_EXPORT const char* API_CALL mk_sock_info_local_ip(const mk_sock_info ctx);
+API_EXPORT const char* API_CALL mk_sock_info_local_ip(const mk_sock_info ctx, char *buf);
 //SockInfo::get_peer_port()
 API_EXPORT uint16_t API_CALL mk_sock_info_peer_port(const mk_sock_info ctx);
 //SockInfo::get_local_port()
@@ -33,14 +33,14 @@ API_EXPORT uint16_t API_CALL mk_sock_info_local_port(const mk_sock_info ctx);
 #ifndef SOCK_INFO_API_RENAME
 #define SOCK_INFO_API_RENAME
 //mk_tcp_session对象转换成mk_sock_info对象后再获取网络相关信息
-#define mk_tcp_session_peer_ip(x) mk_sock_info_peer_ip(mk_tcp_session_get_sock_info(x))
-#define mk_tcp_session_local_ip(x) mk_sock_info_local_ip(mk_tcp_session_get_sock_info(x))
+#define mk_tcp_session_peer_ip(x,buf) mk_sock_info_peer_ip(mk_tcp_session_get_sock_info(x),buf)
+#define mk_tcp_session_local_ip(x,buf) mk_sock_info_local_ip(mk_tcp_session_get_sock_info(x),buf)
 #define mk_tcp_session_peer_port(x) mk_sock_info_peer_port(mk_tcp_session_get_sock_info(x))
 #define mk_tcp_session_local_port(x) mk_sock_info_local_port(mk_tcp_session_get_sock_info(x))
 
 //mk_tcp_client对象转换成mk_sock_info对象后再获取网络相关信息
-#define mk_tcp_client_peer_ip(x) mk_sock_info_peer_ip(mk_tcp_client_get_sock_info(x))
-#define mk_tcp_client_local_ip(x) mk_sock_info_local_ip(mk_tcp_client_get_sock_info(x))
+#define mk_tcp_client_peer_ip(x,buf) mk_sock_info_peer_ip(mk_tcp_client_get_sock_info(x),buf)
+#define mk_tcp_client_local_ip(x,buf) mk_sock_info_local_ip(mk_tcp_client_get_sock_info(x),buf)
 #define mk_tcp_client_peer_port(x) mk_sock_info_peer_port(mk_tcp_client_get_sock_info(x))
 #define mk_tcp_client_local_port(x) mk_sock_info_local_port(mk_tcp_client_get_sock_info(x))
 #endif
