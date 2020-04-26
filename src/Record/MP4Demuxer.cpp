@@ -14,6 +14,7 @@
 #include "Extension/H265.h"
 #include "Extension/H264.h"
 #include "Extension/AAC.h"
+#include "Extension/G711.h"
 using namespace toolkit;
 namespace mediakit {
 
@@ -120,6 +121,12 @@ void MP4Demuxer::onAudioTrack(uint32_t track_id, uint8_t object, int channel_cou
             _track_to_codec.emplace(track_id, audio);
         }
             break;
+        case MOV_OBJECT_G711a:
+        case MOV_OBJECT_G711u:{
+            auto audio = std::make_shared<G711Track>(object == MOV_OBJECT_G711a ? CodecG711A : CodecG711U, sample_rate, channel_count, bit_per_sample / channel_count );
+            _track_to_codec.emplace(track_id, audio);
+        }
+            break;
         default:
             WarnL << "不支持该编码类型的MP4,已忽略:" << getObjectName(object);
             break;
@@ -223,8 +230,16 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
             }
             return std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, pts, dts, 4);
         }
+
         case CodecAAC :
             return std::make_shared<FrameWrapper<AACFrameNoCacheAble> >(buf, pts, dts, 0);
+
+        case CodecG711A:
+        case CodecG711U: {
+            auto frame = std::make_shared<FrameWrapper<G711FrameNoCacheAble> >(buf, pts, dts, 0);
+            frame->setCodec(codec);
+            return frame;
+        }
         default:
             return nullptr;
     }

@@ -94,7 +94,7 @@ public:
         return _parser.Url();
     }
     const HttpHeader &responseHeader() const{
-        return _parser.getValues();
+        return _parser.getHeader();
     }
     const Parser& response() const{
         return _parser;

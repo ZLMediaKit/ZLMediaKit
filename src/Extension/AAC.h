@@ -223,13 +223,13 @@ public:
     * @param frame 数据帧
     */
     void inputFrame(const Frame::Ptr &frame) override{
-        if(_cfg.empty()){
+        if (_cfg.empty()) {
             //未获取到aac_cfg信息
-            if(frame->prefixSize() >= 7) {
+            if (frame->prefixSize() >= 7) {
                 //7个字节的adts头
-                _cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
+                _cfg = makeAdtsConfig((uint8_t *)(frame->data()));
                 onReady();
-            }else{
+            } else {
                 WarnL << "无法获取adts头!";
             }
         }

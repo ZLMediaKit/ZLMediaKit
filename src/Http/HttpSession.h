@@ -41,11 +41,11 @@ public:
     typedef std::function<void(const string &errMsg,const string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
 
     HttpSession(const Socket::Ptr &pSock);
-    virtual ~HttpSession();
+    ~HttpSession() override;
 
-    virtual void onRecv(const Buffer::Ptr &) override;
-    virtual void onError(const SockException &err) override;
-    virtual void onManager() override;
+    void onRecv(const Buffer::Ptr &) override;
+    void onError(const SockException &err) override;
+    void onManager() override;
     static string urlDecode(const string &str);
 protected:
     //FlvMuxer override
@@ -80,7 +80,7 @@ protected:
      * @return true代表允许websocket连接，否则拒绝
      */
     virtual bool onWebSocketConnect(const Parser &header){
-        WarnL << "http server do not support websocket default";
+        WarnP(this) << "http server do not support websocket default";
         return false;
     }
 

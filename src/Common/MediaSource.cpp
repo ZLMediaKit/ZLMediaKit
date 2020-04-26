@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <math.h>
 #include "MediaSource.h"
 #include "Record/MP4Reader.h"
 #include "Util/util.h"
@@ -190,7 +191,7 @@ void findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession> &sessi
     void *listener_tag = session.get();
     weak_ptr<TcpSession> weakSession = session;
     //广播未找到流,此时可以立即去拉流，这样还来得及
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info,*session);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info, static_cast<SockInfo &>(*session));
 
     //最多等待一定时间，如果这个时间内，流未注册上，那么返回未找到流
     GET_CONFIG(int,maxWaitMS,General::kMaxStreamWaitTimeMS);
@@ -293,7 +294,34 @@ void MediaSource::regist() {
         lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
         g_mapMediaSrc[_strSchema][_strVhost][_strApp][_strId] =  shared_from_this();
     }
-    InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
+    _StrPrinter codec_info;
+    auto tracks = getTracks(true);
+    for(auto &track : tracks) {
+        auto codec_type = track->getTrackType();
+        codec_info << track->getCodecName();
+        switch (codec_type) {
+            case TrackAudio : {
+                auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+                codec_info << "["
+                           << audio_track->getAudioSampleRate() << "/"
+                           << audio_track->getAudioChannel() << "/"
+                           << audio_track->getAudioSampleBit() << "] ";
+                break;
+            }
+            case TrackVideo : {
+                auto video_track = dynamic_pointer_cast<VideoTrack>(track);
+                codec_info << "["
+                           << video_track->getVideoWidth() << "/"
+                           << video_track->getVideoHeight() << "/"
+                           << round(video_track->getVideoFps()) << "] ";
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId << " " << codec_info;
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, true, *this);
 }
 
@@ -319,7 +347,7 @@ bool MediaSource::unregist() {
     }
 
     if(ret){
-        InfoL <<  "" <<  _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
+        InfoL <<  _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, false, *this);
     }
     return ret;
@@ -486,14 +514,22 @@ static bool isFlushAble_merge(bool is_audio, uint32_t last_stamp, uint32_t new_s
     return cache_size > 20;
 }
 
-bool FlushPolicy::isFlushAble(uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
-    GET_CONFIG(bool,ultraLowDelay, General::kUltraLowDelay);
-    GET_CONFIG(int,mergeWriteMS, General::kMergeWriteMS);
-    if(ultraLowDelay || mergeWriteMS <= 0){
+bool FlushPolicy::isFlushAble(uint32_t new_stamp, int cache_size) {
+    bool ret = false;
+    GET_CONFIG(bool, ultraLowDelay, General::kUltraLowDelay);
+    GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
+    if (ultraLowDelay || mergeWriteMS <= 0) {
         //关闭了合并写或者合并写阈值小于等于0
-        return isFlushAble_default(_is_audio, last_stamp, new_stamp, cache_size);
+        ret = isFlushAble_default(_is_audio, _last_stamp, new_stamp, cache_size);
+    } else {
+        ret = isFlushAble_merge(_is_audio, _last_stamp, new_stamp, cache_size, mergeWriteMS);
     }
-    return isFlushAble_merge(_is_audio, last_stamp, new_stamp, cache_size,mergeWriteMS);
+
+    if (ret) {
+//        DebugL << _is_audio << " " << _last_stamp  << " " << new_stamp;
+        _last_stamp = new_stamp;
+    }
+    return ret;
 }
 
 } /* namespace mediakit */

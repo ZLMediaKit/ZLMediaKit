@@ -124,22 +124,47 @@ void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
 
 void MP4Muxer::addTrack(const Track::Ptr &track) {
     switch (track->getCodecId()) {
+        case CodecG711A:
+        case CodecG711U: {
+            auto audio_track = dynamic_pointer_cast<G711Track>(track);
+            if (!audio_track) {
+                WarnL << "不是G711 Track";
+                return;
+            }
+            if (!audio_track->ready()) {
+                WarnL << "G711 Track未就绪";
+                return;
+            }
+            auto track_id = mov_writer_add_audio(_mov_writter.get(),
+                                                 track->getCodecId() == CodecG711A ? MOV_OBJECT_G711a : MOV_OBJECT_G711u,
+                                                 audio_track->getAudioChannel(),
+                                                 audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
+                                                 audio_track->getAudioSampleRate(),
+                                                 nullptr, 0);
+            if (track_id < 0) {
+                WarnL << "添加G711 Track失败:" << track_id;
+                return;
+            }
+            _codec_to_trackid[track->getCodecId()].track_id = track_id;
+        }
+            break;
+
         case CodecAAC: {
-            auto aac_track = dynamic_pointer_cast<AACTrack>(track);
-            if (!aac_track) {
+            auto audio_track = dynamic_pointer_cast<AACTrack>(track);
+            if (!audio_track) {
                 WarnL << "不是AAC Track";
                 return;
             }
-            if(!aac_track->ready()){
+            if(!audio_track->ready()){
                 WarnL << "AAC Track未就绪";
                 return;
             }
             auto track_id = mov_writer_add_audio(_mov_writter.get(),
                                                  MOV_OBJECT_AAC,
-                                                 aac_track->getAudioChannel(),
-                                                 aac_track->getAudioSampleBit() * aac_track->getAudioChannel(),
-                                                 aac_track->getAudioSampleRate(),
-                                                 aac_track->getAacCfg().data(), 2);
+                                                 audio_track->getAudioChannel(),
+                                                 audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
+                                                 audio_track->getAudioSampleRate(),
+                                                 audio_track->getAacCfg().data(), 2);
             if(track_id < 0){
                 WarnL << "添加AAC Track失败:" << track_id;
                 return;

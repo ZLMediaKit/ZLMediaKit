@@ -64,6 +64,19 @@ class G711FrameNoCacheAble : public FrameNoCacheAble {
 public:
     typedef std::shared_ptr<G711FrameNoCacheAble> Ptr;
 
+    //兼容通用接口
+    G711FrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts, uint32_t pts = 0,int prefixeSize = 0){
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _prefixSize = prefixeSize;
+    }
+
+    //兼容通用接口
+    void setCodec(CodecId codecId){
+        _codecId = codecId;
+    }
+
     G711FrameNoCacheAble(CodecId codecId, char *ptr,uint32_t size,uint32_t dts,int prefixeSize = 0){
         _codecId = codecId;
         _ptr = ptr;

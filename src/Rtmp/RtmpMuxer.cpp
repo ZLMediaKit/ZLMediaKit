@@ -39,6 +39,28 @@ void RtmpMuxer::addTrack(const Track::Ptr &track) {
 
     }
 
+    switch (track->getCodecId()){
+        case CodecG711A:
+        case CodecG711U:{
+            auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+            if(!audio_track){
+                return;
+            }
+            if (audio_track->getAudioSampleRate() != 8000 ||
+                audio_track->getAudioChannel() != 1 ||
+                audio_track->getAudioSampleBit() != 16) {
+                WarnL << "RTMP只支持8000/1/16规格的G711,目前规格是:"
+                      << audio_track->getAudioSampleRate() << "/"
+                      << audio_track->getAudioChannel() << "/"
+                      << audio_track->getAudioSampleBit()
+                      << ",该音频已被忽略";
+                return;
+            }
+            break;
+        }
+        default : break;
+    }
+
     auto &encoder = _encoder[track->getTrackType()];
     //生成rtmp编码器,克隆该Track，防止循环引用
     encoder = Factory::getRtmpCodecByTrack(track->clone());

@@ -119,10 +119,12 @@ void RtspPlayer::onRecv(const Buffer::Ptr& pBuf) {
     }
     input(pBuf->data(),pBuf->size());
 }
+
 void RtspPlayer::onErr(const SockException &ex) {
     //定时器_pPlayTimer为空后表明握手结束了
     onPlayResult_l(ex,!_pPlayTimer);
 }
+
 // from live555
 bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
     if(!_rtspRealm.empty()){
@@ -155,6 +157,7 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
     }
     return false;
 }
+
 void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
     string authInfo = parser["WWW-Authenticate"];
     //发送DESCRIBE命令后的回复
@@ -236,7 +239,6 @@ void RtspPlayer::createUdpSockIfNecessary(int track_idx){
         rtcpSockRef = tmp;
     }
 }
-
 
 //发送SETUP命令
 void RtspPlayer::sendSetup(unsigned int trackIndex) {
@@ -337,7 +339,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
                 return;
             }
             if (((struct sockaddr_in *) addr)->sin_addr.s_addr != srcIP) {
-                WarnL << "收到其他地址的rtp数据:" << inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
+                WarnL << "收到其他地址的rtp数据:" << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
                 return;
             }
             strongSelf->handleOneRtp(uiTrackIndex, strongSelf->_aTrackInfo[uiTrackIndex], (unsigned char *) buf->data(), buf->size());
@@ -351,7 +353,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
                     return;
                 }
                 if (((struct sockaddr_in *) addr)->sin_addr.s_addr != srcIP) {
-                    WarnL << "收到其他地址的rtcp数据:" << inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
+                    WarnL << "收到其他地址的rtcp数据:" << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
                     return;
                 }
                 strongSelf->onRtcpPacket(uiTrackIndex, strongSelf->_aTrackInfo[uiTrackIndex], (unsigned char *) buf->data(), buf->size());
@@ -394,6 +396,7 @@ void RtspPlayer::sendPause(int type , uint32_t seekMS){
             break;
     }
 }
+
 void RtspPlayer::pause(bool bPause) {
     sendPause(bPause ? type_pause : type_seek, getProgressMilliSecond());
 }
@@ -468,10 +471,8 @@ void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
     }
 }
 
-void RtspPlayer::onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen){
-
-}
-
+//此处预留rtcp处理函数
+void RtspPlayer::onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen){}
 
 #if 0
 //改代码提取自FFmpeg，参考之
@@ -597,7 +598,6 @@ void RtspPlayer::sendReceiverReport(bool overTcp,int iTrackIndex){
     }
 }
 
-
 void RtspPlayer::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx){
     //统计丢包率
     if (_aui16FirstSeq[trackidx] == 0 || rtppt->sequence < _aui16FirstSeq[trackidx]) {
@@ -613,6 +613,7 @@ void RtspPlayer::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx){
     rtppt->timeStamp = dts_out;
     onRecvRTP_l(rtppt,_aTrackInfo[trackidx]);
 }
+
 float RtspPlayer::getPacketLossRate(TrackType type) const{
     int iTrackIdx = getTrackIndexByTrackType(type);
     if(iTrackIdx == -1){
@@ -637,6 +638,7 @@ float RtspPlayer::getPacketLossRate(TrackType type) const{
 uint32_t RtspPlayer::getProgressMilliSecond() const{
     return MAX(_stamp[0].getRelativeStamp(),_stamp[1].getRelativeStamp());
 }
+
 void RtspPlayer::seekToMilliSecond(uint32_t ms) {
     sendPause(type_seek,ms);
 }
@@ -654,6 +656,7 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
     }
     sendRtspRequest(cmd,url,header_map);
 }
+
 void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrCaseMap &header_const) {
     auto header = header_const;
     header.emplace("CSeq",StrPrinter << _uiCseq++);
@@ -701,7 +704,7 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
     for (auto &pr : header){
         printer << pr.first << ": " << pr.second << "\r\n";
     }
-    send(printer << "\r\n");
+    SockSender::send(printer << "\r\n");
 }
 
 void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &track) {
@@ -725,9 +728,8 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &tra
             ticker.resetTime();
         }
     }
-
-
 }
+
 void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshakeCompleted) {
     WarnL << ex.getErrCode() << " " << ex.what();
 
@@ -795,5 +797,3 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
 }
 
 } /* namespace mediakit */
-
-

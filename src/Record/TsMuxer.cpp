@@ -28,17 +28,30 @@ void TsMuxer::addTrack(const Track::Ptr &track) {
         case CodecH264: {
             _have_video = true;
             _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H264, nullptr, 0);
-        }
             break;
+        }
+
         case CodecH265: {
             _have_video = true;
             _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H265, nullptr, 0);
-        }
             break;
+        }
+
         case CodecAAC: {
             _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AAC, nullptr, 0);
-        }
             break;
+        }
+
+        case CodecG711A: {
+            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_G711A, nullptr, 0);
+            break;
+        }
+
+        case CodecG711U: {
+            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_G711U, nullptr, 0);
+            break;
+        }
+
         default:
             break;
     }

@@ -41,6 +41,8 @@ API_EXPORT void API_CALL mk_env_init(const mk_config *cfg) {
     assert(cfg);
     mk_env_init1(cfg->thread_num,
                  cfg->log_level,
+                 cfg->log_file_path,
+                 cfg->log_file_days,
                  cfg->ini_is_path,
                  cfg->ini,
                  cfg->ssl_is_path,
@@ -61,18 +63,29 @@ API_EXPORT void API_CALL mk_stop_all_server(){
     stopAllTcpServer();
 }
 
-API_EXPORT void API_CALL mk_env_init1(  int thread_num,
-                                        int log_level,
-                                        int ini_is_path,
-                                        const char *ini,
-                                        int ssl_is_path,
-                                        const char *ssl,
-                                        const char *ssl_pwd) {
-
+API_EXPORT void API_CALL mk_env_init1(int thread_num,
+                                      int log_level,
+                                      const char *log_file_path,
+                                      int log_file_days,
+                                      int ini_is_path,
+                                      const char *ini,
+                                      int ssl_is_path,
+                                      const char *ssl,
+                                      const char *ssl_pwd) {
+    //确保只初始化一次
     static onceToken token([&]() {
+        //控制台日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("console", (LogLevel) log_level));
+        if(log_file_path && log_file_days){
+            //日志文件
+            auto channel = std::make_shared<FileChannel>("FileChannel", File::absolutePath(log_file_path, ""), (LogLevel) log_level);
+            Logger::Instance().add(channel);
+        }
+
+        //异步日志线程
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
+        //设置线程数
         EventPollerPool::setPoolSize(thread_num);
         WorkThreadPool::setPoolSize(thread_num);
 
