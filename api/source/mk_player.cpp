@@ -45,6 +45,13 @@ public:
         });
     }
 
+    void unset(){
+        lock_guard<recursive_mutex> lck(_mtx);
+        _on_play = nullptr;
+        _on_shutdown = nullptr;
+        _on_data = nullptr;
+    }
+
     void onEvent(bool is_shutdown, const SockException &ex){
         lock_guard<recursive_mutex> lck(_mtx);
         if(is_shutdown){
@@ -125,6 +132,7 @@ API_EXPORT mk_player API_CALL mk_player_create() {
 API_EXPORT void API_CALL mk_player_release(mk_player ctx) {
     assert(ctx);
     MediaPlayerForC::Ptr *obj = (MediaPlayerForC::Ptr *)ctx;
+    (*obj)->unset();
     delete obj;
 }
 
