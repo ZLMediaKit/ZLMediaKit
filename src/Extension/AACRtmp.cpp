@@ -93,7 +93,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     if (_aac_cfg.empty()) {
         if (frame->prefixSize() >= 7) {
             //包含adts头,从adts头获取aac配置信息
-            _aac_cfg = makeAdtsConfig(reinterpret_cast<const uint8_t *>(frame->data()));
+            _aac_cfg = makeAdtsConfig((uint8_t *)(frame->data()));
         }
         makeConfigPacket();
     }
