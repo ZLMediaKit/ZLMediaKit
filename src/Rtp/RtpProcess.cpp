@@ -9,7 +9,7 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
-#include "mpeg-ps.h"
+#include "mpeg-ts-proto.h"
 #include "RtpProcess.h"
 #include "Util/File.h"
 #include "Extension/H265.h"
@@ -204,19 +204,29 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
 #define SWITCH_CASE(codec_id) case codec_id : return #codec_id
 static const char *getCodecName(int codec_id) {
     switch (codec_id) {
-        SWITCH_CASE(STREAM_VIDEO_MPEG4);
-        SWITCH_CASE(STREAM_VIDEO_H264);
-        SWITCH_CASE(STREAM_VIDEO_H265);
-        SWITCH_CASE(STREAM_VIDEO_SVAC);
-        SWITCH_CASE(STREAM_AUDIO_MP3);
-        SWITCH_CASE(STREAM_AUDIO_AAC);
-        SWITCH_CASE(STREAM_AUDIO_G711);
-        SWITCH_CASE(STREAM_AUDIO_G722);
-        SWITCH_CASE(STREAM_AUDIO_G723);
-        SWITCH_CASE(STREAM_AUDIO_G729);
-        SWITCH_CASE(STREAM_AUDIO_SVAC);
-        default:
-            return "unknown codec";
+        SWITCH_CASE(PSI_STREAM_MPEG1);
+        SWITCH_CASE(PSI_STREAM_MPEG2);
+        SWITCH_CASE(PSI_STREAM_AUDIO_MPEG1);
+        SWITCH_CASE(PSI_STREAM_MP3);
+        SWITCH_CASE(PSI_STREAM_AAC);
+        SWITCH_CASE(PSI_STREAM_MPEG4);
+        SWITCH_CASE(PSI_STREAM_MPEG4_AAC_LATM);
+        SWITCH_CASE(PSI_STREAM_H264);
+        SWITCH_CASE(PSI_STREAM_MPEG4_AAC);
+        SWITCH_CASE(PSI_STREAM_H265);
+        SWITCH_CASE(PSI_STREAM_AUDIO_AC3);
+        SWITCH_CASE(PSI_STREAM_AUDIO_EAC3);
+        SWITCH_CASE(PSI_STREAM_AUDIO_DTS);
+        SWITCH_CASE(PSI_STREAM_VIDEO_DIRAC);
+        SWITCH_CASE(PSI_STREAM_VIDEO_VC1);
+        SWITCH_CASE(PSI_STREAM_VIDEO_SVAC);
+        SWITCH_CASE(PSI_STREAM_AUDIO_SVAC);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G711A);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G711U);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G722);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G723);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G729);
+        default : return "unknown codec";
     }
 }
 
@@ -226,7 +236,7 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
     _stamps[codecid].revise(dts,pts,dts,pts,false);
 
     switch (codecid) {
-        case STREAM_VIDEO_H264: {
+        case PSI_STREAM_H264: {
             _dts = dts;
             if (!_codecid_video) {
                 //获取到视频
@@ -251,7 +261,7 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
             break;
         }
 
-        case STREAM_VIDEO_H265: {
+        case PSI_STREAM_H265: {
             _dts = dts;
             if (!_codecid_video) {
                 //获取到视频
@@ -274,7 +284,7 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
             break;
         }
 
-        case STREAM_AUDIO_AAC: {
+        case PSI_STREAM_AAC: {
             _dts = dts;
             if (!_codecid_audio) {
                 //获取到音频
@@ -292,10 +302,10 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
             break;
         }
 
-        case STREAM_AUDIO_G711: {
+        case PSI_STREAM_AUDIO_G711A:
+        case PSI_STREAM_AUDIO_G711U: {
             _dts = dts;
-            //todo 等待陈大佬更新ts/ps解析库,现在暂时固定为G711A
-            auto codec = CodecG711A;
+            auto codec = codecid  == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
             if (!_codecid_audio) {
                 //获取到音频
                 _codecid_audio = codecid;
