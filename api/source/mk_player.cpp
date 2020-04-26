@@ -62,6 +62,16 @@ API_EXPORT void API_CALL mk_player_seekto(mk_player ctx, float progress) {
     });
 }
 
+
+API_EXPORT void API_CALL mk_player_seektoByPos(mk_player ctx, int seekPos)
+{
+    MediaPlayer::Ptr& player = *((MediaPlayer::Ptr*)ctx);
+    player->getPoller()->async([seekPos, player]() {
+        //切换线程后再操作
+        player->seekTo((uint32_t)seekPos);
+        });
+}
+
 static void mk_player_set_on_event(mk_player ctx, on_mk_play_event cb, void *user_data, int type) {
     assert(ctx && cb);
     MediaPlayer::Ptr &player = *((MediaPlayer::Ptr *)ctx);
@@ -167,6 +177,14 @@ API_EXPORT float API_CALL mk_player_progress(mk_player ctx) {
     assert(ctx);
     MediaPlayer::Ptr &player = *((MediaPlayer::Ptr *)ctx);
     return player->getProgress();
+}
+
+
+API_EXPORT int API_CALL mk_player_progress_pos(mk_player ctx)
+{
+    assert(ctx);
+    MediaPlayer::Ptr& player = *((MediaPlayer::Ptr*)ctx);
+    return player->getProgressPos();
 }
 
 API_EXPORT float API_CALL mk_player_loss_rate(mk_player ctx, int track_type) {

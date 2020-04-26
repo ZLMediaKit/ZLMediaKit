@@ -52,7 +52,10 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
         //这是点播
         dts_out = dts;
         pts_out = pts;
-        _relativeStamp = dts_out;
+        _last_dts = dts;
+        if (_dts_base == -1)
+            _dts_base = dts;
+        _relativeStamp = _npt_base + dts - _dts_base;
         return;
     }
 
@@ -84,6 +87,8 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
 }
 
 void Stamp::setRelativeStamp(int64_t relativeStamp) {
+    _dts_base = _last_dts;
+    _npt_base = relativeStamp;
     _relativeStamp = relativeStamp;
 }
 

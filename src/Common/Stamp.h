@@ -71,6 +71,9 @@ private:
     int64_t _last_dts = -1;
     SmoothTicker _ticker;
     bool _playback = false;
+
+    int64_t _dts_base = 0;
+    int64_t _npt_base = 0;
 };
 
 
