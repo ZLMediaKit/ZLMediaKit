@@ -72,7 +72,7 @@ MP4File::Reader MP4File::createReader(){
 
 void MP4File::openFile(const char *file,const char *mode) {
     //创建文件
-    auto fp = File::createfile_file(file,mode);
+    auto fp = File::create_file(file, mode);
     if(!fp){
         throw std::runtime_error(string("打开文件失败:") + file);
     }

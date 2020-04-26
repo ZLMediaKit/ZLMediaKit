@@ -9,11 +9,13 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
-#include "mpeg-ps.h"
+#include "mpeg-ts-proto.h"
 #include "RtpProcess.h"
 #include "Util/File.h"
 #include "Extension/H265.h"
 #include "Extension/AAC.h"
+#include "Extension/G711.h"
+#define RTP_APP_NAME "rtp"
 
 namespace mediakit{
 
@@ -56,7 +58,7 @@ string printSSRC(uint32_t ui32Ssrc) {
 }
 
 static string printAddress(const struct sockaddr *addr){
-    return StrPrinter << inet_ntoa(((struct sockaddr_in *) addr)->sin_addr) << ":" << ntohs(((struct sockaddr_in *) addr)->sin_port);
+    return StrPrinter << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr) << ":" << ntohs(((struct sockaddr_in *) addr)->sin_port);
 }
 
 RtpProcess::RtpProcess(uint32_t ssrc) {
@@ -66,17 +68,15 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     _track->_samplerate = 90000;
     _track->_type = TrackVideo;
     _track->_ssrc = _ssrc;
-    DebugL << printSSRC(_ssrc);
 
-    GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
-    GET_CONFIG(bool,toHls,General::kPublishToHls);
-    GET_CONFIG(bool,toMP4,General::kPublishToMP4);
-
-    _muxer = std::make_shared<MultiMediaSourceMuxer>(DEFAULT_VHOST,"rtp",printSSRC(_ssrc),0,toRtxp,toRtxp,toHls,toMP4);
+    _media_info._schema = RTP_APP_NAME;
+    _media_info._vhost = DEFAULT_VHOST;
+    _media_info._app = RTP_APP_NAME;
+    _media_info._streamid = printSSRC(_ssrc);
 
     GET_CONFIG(string,dump_dir,RtpProxy::kDumpDir);
     {
-        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".rtp",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".rtp", dump_dir).data(), "wb") : nullptr;
         if(fp){
             _save_file_rtp.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -85,7 +85,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".mp2",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".mp2", dump_dir).data(), "wb") : nullptr;
         if(fp){
             _save_file_ps.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -94,7 +94,7 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::createfile_file(File::absolutePath(printSSRC(_ssrc) + ".video",dump_dir).data(),"wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".video", dump_dir).data(), "wb") : nullptr;
         if(fp){
             _save_file_video.reset(fp,[](FILE *fp){
                 fclose(fp);
@@ -105,28 +105,48 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
 }
 
 RtpProcess::~RtpProcess() {
-    if(_addr){
-        DebugL << printSSRC(_ssrc) << " " << printAddress(_addr);
+    DebugP(this);
+    if (_addr) {
         delete _addr;
-    }else{
-        DebugL << printSSRC(_ssrc);
+    }
+
+    uint64_t duration = (_last_rtp_time.createdTime() - _last_rtp_time.elapsedTime()) / 1000;
+    WarnP(this) << "RTP推流器("
+                << _media_info._vhost << "/"
+                << _media_info._app << "/"
+                << _media_info._streamid
+                << ")断开,耗时(s):" << duration;
+
+    //流量统计事件广播
+    GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
+    if (_total_bytes > iFlowThreshold * 1024) {
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false, static_cast<SockInfo &>(*this));
     }
 }
 
-bool RtpProcess::inputRtp(const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
+bool RtpProcess::inputRtp(const Socket::Ptr &sock, const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
     GET_CONFIG(bool,check_source,RtpProxy::kCheckSource);
     //检查源是否合法
     if(!_addr){
         _addr = new struct sockaddr;
+        _sock = sock;
         memcpy(_addr,addr, sizeof(struct sockaddr));
-        DebugL << "RtpProcess(" << printSSRC(_ssrc) << ") bind to address:" << printAddress(_addr);
+        DebugP(this) << "bind to address:" << printAddress(_addr);
+        //推流鉴权
+        emitOnPublish();
     }
 
-    if(check_source && memcmp(_addr,addr,sizeof(struct sockaddr)) != 0){
-        DebugL << "RtpProcess(" << printSSRC(_ssrc) << ") address dismatch:" << printAddress(addr) << " != " << printAddress(_addr);
+    if(!_muxer){
+        //无权限推流
         return false;
     }
 
+    if(check_source && memcmp(_addr,addr,sizeof(struct sockaddr)) != 0){
+        DebugP(this) << "address dismatch:" << printAddress(addr) << " != " << printAddress(_addr);
+        return false;
+    }
+
+    _total_bytes += data_len;
     _last_rtp_time.resetTime();
     bool ret = handleOneRtp(0,_track,(unsigned char *)data,data_len);
     if(dts_out){
@@ -141,8 +161,8 @@ static inline bool checkTS(const uint8_t *packet, int bytes){
 }
 
 void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
-    if(rtp->sequence != _sequence + 1){
-        WarnL << rtp->sequence << " != " << _sequence << "+1";
+    if(rtp->sequence != _sequence + 1 && rtp->sequence != 0){
+        WarnP(this) << rtp->sequence << " != " << _sequence << "+1";
     }
     _sequence = rtp->sequence;
     if(_save_file_rtp){
@@ -163,11 +183,11 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
         //创建解码器
         if(checkTS(packet, bytes)){
             //猜测是ts负载
-            InfoL << "judged to be TS: " << printSSRC(_ssrc);
+            InfoP(this) << "judged to be TS";
             _decoder = Decoder::createDecoder(Decoder::decoder_ts);
         }else{
             //猜测是ps负载
-            InfoL << "judged to be PS: " << printSSRC(_ssrc);
+            InfoP(this) << "judged to be PS";
             _decoder = Decoder::createDecoder(Decoder::decoder_ps);
         }
         _decoder->setOnDecode([this](int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes){
@@ -177,26 +197,36 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
 
     auto ret = _decoder->input((uint8_t *)packet,bytes);
     if(ret != bytes){
-        WarnL << ret << " != " << bytes << " " << flags;
+        WarnP(this) << ret << " != " << bytes << " " << flags;
     }
 }
 
 #define SWITCH_CASE(codec_id) case codec_id : return #codec_id
 static const char *getCodecName(int codec_id) {
     switch (codec_id) {
-        SWITCH_CASE(STREAM_VIDEO_MPEG4);
-        SWITCH_CASE(STREAM_VIDEO_H264);
-        SWITCH_CASE(STREAM_VIDEO_H265);
-        SWITCH_CASE(STREAM_VIDEO_SVAC);
-        SWITCH_CASE(STREAM_AUDIO_MP3);
-        SWITCH_CASE(STREAM_AUDIO_AAC);
-        SWITCH_CASE(STREAM_AUDIO_G711);
-        SWITCH_CASE(STREAM_AUDIO_G722);
-        SWITCH_CASE(STREAM_AUDIO_G723);
-        SWITCH_CASE(STREAM_AUDIO_G729);
-        SWITCH_CASE(STREAM_AUDIO_SVAC);
-        default:
-            return "unknown codec";
+        SWITCH_CASE(PSI_STREAM_MPEG1);
+        SWITCH_CASE(PSI_STREAM_MPEG2);
+        SWITCH_CASE(PSI_STREAM_AUDIO_MPEG1);
+        SWITCH_CASE(PSI_STREAM_MP3);
+        SWITCH_CASE(PSI_STREAM_AAC);
+        SWITCH_CASE(PSI_STREAM_MPEG4);
+        SWITCH_CASE(PSI_STREAM_MPEG4_AAC_LATM);
+        SWITCH_CASE(PSI_STREAM_H264);
+        SWITCH_CASE(PSI_STREAM_MPEG4_AAC);
+        SWITCH_CASE(PSI_STREAM_H265);
+        SWITCH_CASE(PSI_STREAM_AUDIO_AC3);
+        SWITCH_CASE(PSI_STREAM_AUDIO_EAC3);
+        SWITCH_CASE(PSI_STREAM_AUDIO_DTS);
+        SWITCH_CASE(PSI_STREAM_VIDEO_DIRAC);
+        SWITCH_CASE(PSI_STREAM_VIDEO_VC1);
+        SWITCH_CASE(PSI_STREAM_VIDEO_SVAC);
+        SWITCH_CASE(PSI_STREAM_AUDIO_SVAC);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G711A);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G711U);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G722);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G723);
+        SWITCH_CASE(PSI_STREAM_AUDIO_G729);
+        default : return "unknown codec";
     }
 }
 
@@ -206,18 +236,18 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
     _stamps[codecid].revise(dts,pts,dts,pts,false);
 
     switch (codecid) {
-        case STREAM_VIDEO_H264: {
+        case PSI_STREAM_H264: {
             _dts = dts;
             if (!_codecid_video) {
                 //获取到视频
                 _codecid_video = codecid;
-                InfoL << "got video track: H264";
+                InfoP(this) << "got video track: H264";
                 auto track = std::make_shared<H264Track>();
                 _muxer->addTrack(track);
             }
 
             if (codecid != _codecid_video) {
-                WarnL << "video track change to H264 from codecid:" << getCodecName(_codecid_video);
+                WarnP(this) << "video track change to H264 from codecid:" << getCodecName(_codecid_video);
                 return;
             }
 
@@ -231,17 +261,17 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
             break;
         }
 
-        case STREAM_VIDEO_H265: {
+        case PSI_STREAM_H265: {
             _dts = dts;
             if (!_codecid_video) {
                 //获取到视频
                 _codecid_video = codecid;
-                InfoL << "got video track: H265";
+                InfoP(this) << "got video track: H265";
                 auto track = std::make_shared<H265Track>();
                 _muxer->addTrack(track);
             }
             if (codecid != _codecid_video) {
-                WarnL << "video track change to H265 from codecid:" << getCodecName(_codecid_video);
+                WarnP(this) << "video track change to H265 from codecid:" << getCodecName(_codecid_video);
                 return;
             }
             if(_save_file_video){
@@ -254,26 +284,47 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
             break;
         }
 
-        case STREAM_AUDIO_AAC: {
+        case PSI_STREAM_AAC: {
             _dts = dts;
             if (!_codecid_audio) {
                 //获取到音频
                 _codecid_audio = codecid;
-                InfoL << "got audio track: AAC";
+                InfoP(this) << "got audio track: AAC";
                 auto track = std::make_shared<AACTrack>();
                 _muxer->addTrack(track);
             }
 
             if (codecid != _codecid_audio) {
-                WarnL << "audio track change to AAC from codecid:" << getCodecName(_codecid_audio);
+                WarnP(this) << "audio track change to AAC from codecid:" << getCodecName(_codecid_audio);
                 return;
             }
             _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 0, 7));
             break;
         }
+
+        case PSI_STREAM_AUDIO_G711A:
+        case PSI_STREAM_AUDIO_G711U: {
+            _dts = dts;
+            auto codec = codecid  == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
+            if (!_codecid_audio) {
+                //获取到音频
+                _codecid_audio = codecid;
+                InfoP(this) << "got audio track: G711";
+                //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
+                auto track = std::make_shared<G711Track>(codec, 8000, 1, 16);
+                _muxer->addTrack(track);
+            }
+
+            if (codecid != _codecid_audio) {
+                WarnP(this) << "audio track change to G711 from codecid:" << getCodecName(_codecid_audio);
+                return;
+            }
+            _muxer->inputFrame(std::make_shared<G711FrameNoCacheAble>(codec, (char *) data, bytes, dts));
+            break;
+        }
         default:
             if(codecid != 0){
-                WarnL << "unsupported codec type:" << getCodecName(codecid);
+                WarnP(this) << "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
             }
             return;
     }
@@ -288,19 +339,77 @@ bool RtpProcess::alive() {
 }
 
 string RtpProcess::get_peer_ip() {
-    return inet_ntoa(((struct sockaddr_in *) _addr)->sin_addr);
+    if(_addr){
+        return SockUtil::inet_ntoa(((struct sockaddr_in *) _addr)->sin_addr);
+    }
+    return "0.0.0.0";
 }
 
 uint16_t RtpProcess::get_peer_port() {
+    if(!_addr){
+        return 0;
+    }
     return ntohs(((struct sockaddr_in *) _addr)->sin_port);
 }
 
+string RtpProcess::get_local_ip() {
+    if(_sock){
+        return _sock->get_local_ip();
+    }
+    return "0.0.0.0";
+}
+
+uint16_t RtpProcess::get_local_port() {
+    if(_sock){
+       return _sock->get_local_port();
+    }
+    return 0;
+}
+
+string RtpProcess::getIdentifier() const{
+    return _media_info._streamid;
+}
+
 int RtpProcess::totalReaderCount(){
-    return _muxer->totalReaderCount();
+    return _muxer ? _muxer->totalReaderCount() : 0;
 }
 
 void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-    _muxer->setMediaListener(listener);
+    if(_muxer){
+        _muxer->setMediaListener(listener);
+    }else{
+        _listener = listener;
+    }
+}
+
+void RtpProcess::emitOnPublish() {
+    weak_ptr<RtpProcess> weak_self = shared_from_this();
+    Broadcast::PublishAuthInvoker invoker = [weak_self](const string &err, bool enableRtxp, bool enableHls, bool enableMP4) {
+        auto strongSelf = weak_self.lock();
+        if (!strongSelf) {
+            return;
+        }
+        if (err.empty()) {
+            strongSelf->_muxer = std::make_shared<MultiMediaSourceMuxer>(strongSelf->_media_info._vhost,
+                                                                         strongSelf->_media_info._app,
+                                                                         strongSelf->_media_info._streamid, 0,
+                                                                         enableRtxp, enableRtxp, enableHls, enableMP4);
+            strongSelf->_muxer->setMediaListener(strongSelf->_listener);
+            InfoP(strongSelf) << "允许RTP推流";
+        } else {
+            WarnP(strongSelf) << "禁止RTP推流:" << err;
+        }
+    };
+
+    //触发推流鉴权事件
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
+    if(!flag){
+        //该事件无人监听,默认不鉴权
+        GET_CONFIG(bool, toRtxp, General::kPublishToRtxp);
+        GET_CONFIG(bool, toHls, General::kPublishToHls);
+        GET_CONFIG(bool, toMP4, General::kPublishToMP4);
+        invoker("", toRtxp, toHls, toMP4);
+    }
 }
 
 

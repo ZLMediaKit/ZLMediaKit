@@ -39,7 +39,7 @@ void RtmpSession::onError(const SockException& err) {
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
 
     if(_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, duration, isPlayer, getIdentifier(), get_peer_ip(), get_peer_port());
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, duration, isPlayer, static_cast<SockInfo &>(*this));
     }
 }
 
@@ -171,10 +171,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             onRes(err,enableRtxp,enableHls,enableMP4);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,
-                                                   _mediaInfo,
-                                                   invoker,
-                                                   *this);
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,_mediaInfo,invoker,static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听，默认鉴权成功
         GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
@@ -346,7 +343,8 @@ void RtmpSession::doPlay(AMFDecoder &dec){
             strongSelf->doPlayResponse(err,[pToken](bool){});
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
+
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听,默认不鉴权
         doPlayResponse("",[pToken](bool){});
@@ -536,7 +534,7 @@ void RtmpSession::setSocketFlags(){
         //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
         SockUtil::setNoDelay(_sock->rawFD(), false);
         //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
-        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+        setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }
 }
 

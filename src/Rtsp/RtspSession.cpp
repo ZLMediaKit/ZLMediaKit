@@ -92,7 +92,7 @@ void RtspSession::onError(const SockException& err) {
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
     if(_ui64TotalBytes > iFlowThreshold * 1024){
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, duration, isPlayer, getIdentifier(), get_peer_ip(), get_peer_port());
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, duration, isPlayer, static_cast<SockInfo &>(*this));
     }
 
 }
@@ -302,7 +302,7 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
     };
 
     //rtsp推流需要鉴权
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,_mediaInfo,invoker,*this);
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish,_mediaInfo,invoker,static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听,默认不鉴权
         GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
@@ -341,10 +341,7 @@ void RtspSession::handleReq_Describe(const Parser &parser) {
     };
 
     //广播是否需要认证事件
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,
-                                           _mediaInfo,
-                                           invoker,
-                                           *this)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,_mediaInfo,invoker,static_cast<SockInfo &>(*this))){
         //无人监听此事件，说明无需认证
         invoker("");
     }
@@ -446,7 +443,7 @@ void RtspSession::onAuthBasic(const string &realm,const string &strBase64){
     };
 
     //此时必须提供明文密码
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,_mediaInfo,realm,user, true,invoker,*this)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,_mediaInfo,realm,user, true,invoker,static_cast<SockInfo &>(*this))){
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
         WarnP(this) << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
@@ -530,7 +527,7 @@ void RtspSession::onAuthDigest(const string &realm,const string &strMd5){
     };
 
     //此时可以提供明文或md5加密的密码
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,_mediaInfo,realm,username, false,invoker,*this)){
+    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth,_mediaInfo,realm,username, false,invoker,static_cast<SockInfo &>(*this))){
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
         WarnP(this) << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
@@ -824,7 +821,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     };
     if(_bFirstPlay){
         //第一次收到play命令，需要鉴权
-        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,static_cast<SockInfo &>(*this));
         if(!flag){
             //该事件无人监听,默认不鉴权
             onRes("");
@@ -955,7 +952,7 @@ inline void RtspSession::startListenPeerUdpData(int trackIdx) {
 
         if (((struct sockaddr_in *) pPeerAddr)->sin_addr.s_addr != srcIP) {
             WarnP(strongSelf.get()) << ((intervaled % 2 == 0) ? "收到其他地址的rtp数据:" : "收到其他地址的rtcp数据:")
-                                    << inet_ntoa(((struct sockaddr_in *) pPeerAddr)->sin_addr);
+                                    << SockUtil::inet_ntoa(((struct sockaddr_in *) pPeerAddr)->sin_addr);
             return true;
         }
 
@@ -1244,7 +1241,7 @@ void RtspSession::setSocketFlags(){
         //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
         SockUtil::setNoDelay(_sock->rawFD(), false);
         //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
-        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+        setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }
 }
 

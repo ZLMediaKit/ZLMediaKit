@@ -46,7 +46,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_http_request((mk_parser)&parser,
                                             (mk_http_response_invoker)&invoker,
                                             &consumed_int,
-                                            (mk_tcp_session)&sender);
+                                            (mk_sock_info)&sender);
                 consumed = consumed_int;
             }
         });
@@ -57,7 +57,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                            path.c_str(),
                                            is_dir,
                                            (mk_http_access_path_invoker)&invoker,
-                                           (mk_tcp_session)&sender);
+                                           (mk_sock_info)&sender);
             } else{
                 invoker("","",0);
             }
@@ -69,7 +69,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 strcpy(path_c,path.c_str());
                 s_events.on_mk_http_before_access((mk_parser) &parser,
                                                   path_c,
-                                                  (mk_tcp_session) &sender);
+                                                  (mk_sock_info) &sender);
                 path = path_c;
             }
         });
@@ -79,7 +79,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
             if (s_events.on_mk_rtsp_get_realm) {
                 s_events.on_mk_rtsp_get_realm((mk_media_info) &args,
                                               (mk_rtsp_get_realm_invoker) &invoker,
-                                              (mk_tcp_session) &sender);
+                                              (mk_sock_info) &sender);
             }else{
                 invoker("");
             }
@@ -92,7 +92,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                          user_name.c_str(),
                                          must_no_encrypt,
                                          (mk_rtsp_auth_invoker) &invoker,
-                                         (mk_tcp_session) &sender);
+                                         (mk_sock_info) &sender);
             }
         });
 
@@ -100,7 +100,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
             if (s_events.on_mk_media_publish) {
                 s_events.on_mk_media_publish((mk_media_info) &args,
                                              (mk_publish_auth_invoker) &invoker,
-                                             (mk_tcp_session) &sender);
+                                             (mk_sock_info) &sender);
             }else{
                 GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
                 GET_CONFIG(bool,toHls,General::kPublishToHls);
@@ -113,7 +113,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
             if (s_events.on_mk_media_play) {
                 s_events.on_mk_media_play((mk_media_info) &args,
                                           (mk_auth_invoker) &invoker,
-                                          (mk_tcp_session) &sender);
+                                          (mk_sock_info) &sender);
             }else{
                 invoker("");
             }
@@ -124,7 +124,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_shell_login(user_name.c_str(),
                                            passwd.c_str(),
                                            (mk_auth_invoker) &invoker,
-                                           (mk_tcp_session) &sender);
+                                           (mk_sock_info) &sender);
             }else{
                 invoker("");
             }
@@ -136,15 +136,14 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                            totalBytes,
                                            totalDuration,
                                            isPlayer,
-                                           peerIP.c_str(),
-                                           peerPort);
+                                           (mk_sock_info)&sender);
             }
         });
 
         NoticeCenter::Instance().addListener(&s_tag,Broadcast::kBroadcastNotFoundStream,[](BroadcastNotFoundStreamArgs){
             if (s_events.on_mk_media_not_found) {
                 s_events.on_mk_media_not_found((mk_media_info) &args,
-                                               (mk_tcp_session) &sender);
+                                               (mk_sock_info) &sender);
             }
         });
 

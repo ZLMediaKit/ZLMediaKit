@@ -39,7 +39,8 @@ typedef struct {
  * @param session 会话处理对象
  */
 void API_CALL on_mk_tcp_session_create(uint16_t server_port,mk_tcp_session session){
-    log_printf(LOG_LEV,"%s %d",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session));
+    char ip[64];
+    log_printf(LOG_LEV,"%s %d",mk_tcp_session_peer_ip(session,ip),(int)mk_tcp_session_peer_port(session));
     tcp_session_user_data *user_data = malloc(sizeof(tcp_session_user_data));
     user_data->_session = session;
     mk_tcp_session_set_user_data(session,user_data);
@@ -52,7 +53,8 @@ void API_CALL on_mk_tcp_session_create(uint16_t server_port,mk_tcp_session sessi
  * @param len 数据长度
  */
 void API_CALL on_mk_tcp_session_data(uint16_t server_port,mk_tcp_session session,const char *data,int len){
-    log_printf(LOG_LEV,"from %s %d, data[%d]: %s",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session), len,data);
+    char ip[64];
+    log_printf(LOG_LEV,"from %s %d, data[%d]: %s",mk_tcp_session_peer_ip(session,ip),(int)mk_tcp_session_peer_port(session), len,data);
     mk_tcp_session_send(session,"echo:",0);
     mk_tcp_session_send(session,data,len);
 }
@@ -62,7 +64,8 @@ void API_CALL on_mk_tcp_session_data(uint16_t server_port,mk_tcp_session session
  * @param session 会话处理对象
  */
 void API_CALL on_mk_tcp_session_manager(uint16_t server_port,mk_tcp_session session){
-    log_printf(LOG_LEV,"%s %d",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session));
+    char ip[64];
+    log_printf(LOG_LEV,"%s %d",mk_tcp_session_peer_ip(session,ip),(int)mk_tcp_session_peer_port(session));
 }
 
 /**
@@ -73,7 +76,8 @@ void API_CALL on_mk_tcp_session_manager(uint16_t server_port,mk_tcp_session sess
  * @param msg 错误提示
  */
 void API_CALL on_mk_tcp_session_disconnect(uint16_t server_port,mk_tcp_session session,int code,const char *msg){
-    log_printf(LOG_LEV,"%s %d: %d %s",mk_tcp_session_peer_ip(session),(int)mk_tcp_session_peer_port(session),code,msg);
+    char ip[64];
+    log_printf(LOG_LEV,"%s %d: %d %s",mk_tcp_session_peer_ip(session,ip),(int)mk_tcp_session_peer_port(session),code,msg);
     tcp_session_user_data *user_data = (tcp_session_user_data *)mk_tcp_session_get_user_data(session);
     free(user_data);
 }

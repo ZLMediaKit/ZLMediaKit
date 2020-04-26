@@ -12,7 +12,6 @@
 #include "mk_events_objects.h"
 #include "Common/config.h"
 #include "Record/MP4Recorder.h"
-#include "Network/TcpSession.h"
 #include "Http/HttpSession.h"
 #include "Http/HttpBody.h"
 #include "Http/HttpClient.h"
@@ -114,7 +113,7 @@ API_EXPORT const char* API_CALL mk_parser_get_tail(const mk_parser ctx){
 API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const char *key){
     assert(ctx && key);
     Parser *parser = (Parser *)ctx;
-    return parser->getValues()[key].c_str();
+    return parser->getHeader()[key].c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, int *length){
     assert(ctx);
@@ -137,16 +136,31 @@ API_EXPORT const char* API_CALL mk_media_info_get_schema(const mk_media_info ctx
     MediaInfo *info = (MediaInfo *)ctx;
     return info->_schema.c_str();
 }
+
 API_EXPORT const char* API_CALL mk_media_info_get_vhost(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
     return info->_vhost.c_str();
 }
+
+API_EXPORT const char* API_CALL mk_media_info_get_host(const mk_media_info ctx){
+    assert(ctx);
+    MediaInfo *info = (MediaInfo *)ctx;
+    return info->_host.c_str();
+}
+
+API_EXPORT uint16_t API_CALL mk_media_info_get_port(const mk_media_info ctx){
+    assert(ctx);
+    MediaInfo *info = (MediaInfo *)ctx;
+    return std::stoi(info->_port);
+}
+
 API_EXPORT const char* API_CALL mk_media_info_get_app(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
     return info->_app.c_str();
 }
+
 API_EXPORT const char* API_CALL mk_media_info_get_stream(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
@@ -274,7 +288,7 @@ API_EXPORT void API_CALL mk_http_response_invoker_do_file(const mk_http_response
     assert(ctx && request_parser && response_header && response_file_path);
     auto header = get_http_header(response_header);
     HttpSession::HttpResponseInvoker *invoker = (HttpSession::HttpResponseInvoker *)ctx;
-    (*invoker).responseFile(((Parser*)(request_parser))->getValues(),header,response_file_path);
+    (*invoker).responseFile(((Parser *) (request_parser))->getHeader(), header, response_file_path);
 }
 
 API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invoker ctx,

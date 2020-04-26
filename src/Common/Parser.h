@@ -57,122 +57,39 @@ class StrCaseMap : public multimap<string, string, StrCaseCompare>{
     }
 };
 
+//rtsp/http/sip解析类
 class Parser {
-    public:
-    Parser() {}
-
-    virtual ~Parser() {}
-
-    void Parse(const char *buf) {
-        //解析
-        const char *start = buf;
-        Clear();
-        while (true) {
-            auto line = FindField(start, NULL, "\r\n");
-            if (line.size() == 0) {
-                break;
-            }
-            if (start == buf) {
-                _strMethod = FindField(line.data(), NULL, " ");
-                _strFullUrl = FindField(line.data(), " ", " ");
-                auto args_pos = _strFullUrl.find('?');
-                if (args_pos != string::npos) {
-                    _strUrl = _strFullUrl.substr(0, args_pos);
-                    _params = _strFullUrl.substr(args_pos + 1);
-                    _mapUrlArgs = parseArgs(_params);
-                } else {
-                    _strUrl = _strFullUrl;
-                }
-                _strTail = FindField(line.data(), (_strFullUrl + " ").data(), NULL);
-            } else {
-                auto field = FindField(line.data(), NULL, ": ");
-                auto value = FindField(line.data(), ": ", NULL);
-                if (field.size() != 0) {
-                    _mapHeaders.emplace_force(field,value);
-                }
-            }
-            start = start + line.size() + 2;
-            if (strncmp(start, "\r\n", 2) == 0) { //协议解析完毕
-                _strContent = FindField(start, "\r\n", NULL);
-                break;
-            }
-        }
-    }
-
-    const string &Method() const {
-        //rtsp方法
-        return _strMethod;
-    }
-
-    const string &Url() const {
-        //rtsp url
-        return _strUrl;
-    }
-
-    const string &FullUrl() const {
-        //rtsp url with args
-        return _strFullUrl;
-    }
-
-    const string &Tail() const {
-        //RTSP/1.0
-        return _strTail;
-    }
-
-    const string &operator[](const char *name) const {
-        //rtsp field
-        auto it = _mapHeaders.find(name);
-        if (it == _mapHeaders.end()) {
-            return _strNull;
-        }
-        return it->second;
-    }
-
-    const string &Content() const {
-        return _strContent;
-    }
-
-    void Clear() {
-        _strMethod.clear();
-        _strUrl.clear();
-        _strFullUrl.clear();
-        _params.clear();
-        _strTail.clear();
-        _strContent.clear();
-        _mapHeaders.clear();
-        _mapUrlArgs.clear();
-    }
-    const string &Params() const {
-        return _params;
-    }
-
-    void setUrl(const string &url) {
-        this->_strUrl = url;
-    }
-
-    void setContent(const string &content) {
-        this->_strContent = content;
-    }
-
-    StrCaseMap &getValues() const {
-        return _mapHeaders;
-    }
-
-    StrCaseMap &getUrlArgs() const {
-        return _mapUrlArgs;
-    }
-
-    static StrCaseMap parseArgs(const string &str, const char *pair_delim = "&", const char *key_delim = "=") {
-        StrCaseMap ret;
-        auto arg_vec = split(str, pair_delim);
-        for (string &key_val : arg_vec) {
-            auto key = FindField(key_val.data(), NULL, key_delim);
-            auto val = FindField(key_val.data(), key_delim, NULL);
-            ret.emplace_force(trim(key),trim(val));
-        }
-        return ret;
-    }
-
+public:
+    Parser();
+    ~Parser();
+    //解析信令
+    void Parse(const char *buf);
+    //获取命令字
+    const string &Method() const;
+    //获取中间url，不包含?后面的参数
+    const string &Url() const;
+    //获取中间url，包含?后面的参数
+    const string &FullUrl() const;
+    //获取命令协议名
+    const string &Tail() const;
+    //根据header key名，获取请求header value值
+    const string &operator[](const char *name) const;
+    //获取http body或sdp
+    const string &Content() const;
+    //清空，为了重用
+    void Clear();
+    //获取?后面的参数
+    const string &Params() const;
+    //重新设置url
+    void setUrl(const string &url);
+    //重新设置content
+    void setContent(const string &content);
+    //获取header列表
+    StrCaseMap &getHeader() const;
+    //获取url参数列表
+    StrCaseMap &getUrlArgs() const;
+    //解析?后面的参数
+    static StrCaseMap parseArgs(const string &str, const char *pair_delim = "&", const char *key_delim = "=");
 private:
     string _strMethod;
     string _strUrl;

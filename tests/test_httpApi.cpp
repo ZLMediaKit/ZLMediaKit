@@ -64,7 +64,7 @@ void initEventListener(){
             }
             ///////////////header//////////////////
             printer << "\r\nheader:\r\n";
-            for(auto &pr : parser.getValues()){
+            for(auto &pr : parser.getHeader()){
                 printer <<  "\t" << pr.first << " : " << pr.second << "\r\n";
             }
             ////////////////content/////////////////

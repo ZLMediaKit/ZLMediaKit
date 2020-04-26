@@ -25,36 +25,30 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
     auto track = track_in->clone();
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
-    _allTrackReady = false;
-    _trackReadyCallback[codec_id] = [this, track]() {
+    _all_track_ready = false;
+    _track_ready_callback[codec_id] = [this, track]() {
         onTrackReady(track);
     };
     _ticker.resetTime();
 
     track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
-        if (_allTrackReady) {
+        if (_all_track_ready) {
             onTrackFrame(frame);
-            return;
-        }
-
-        //还有track未准备好，如果是视频的话，如果直接丢帧可能导致丢失I帧
-        checkTrackIfReady(nullptr);
-        if (_allTrackReady) {
-            //运行至这里说明Track状态由未就绪切换为已就绪状态,那么这帧就不应该丢弃
-            onTrackFrame(frame);
-        } else if(frame->keyFrame()){
-            WarnL << "some track is unready，drop key frame of: " << frame->getCodecName();
+        } else {
+            //还有Track未就绪，先缓存之
+            _frame_unread[frame->getCodecId()].emplace_back(Frame::getCacheAbleFrame(frame));
         }
     }));
 }
 
 void MediaSink::resetTracks() {
     lock_guard<recursive_mutex> lck(_mtx);
-    _allTrackReady = false;
+    _all_track_ready = false;
     _track_map.clear();
-    _trackReadyCallback.clear();
+    _track_ready_callback.clear();
     _ticker.resetTime();
     _max_track_size = 2;
+    _frame_unread.clear();
 }
 
 void MediaSink::inputFrame(const Frame::Ptr &frame) {
@@ -63,21 +57,21 @@ void MediaSink::inputFrame(const Frame::Ptr &frame) {
     if (it == _track_map.end()) {
         return;
     }
-    checkTrackIfReady(it->second);
     it->second->inputFrame(frame);
+    checkTrackIfReady(nullptr);
 }
 
 void MediaSink::checkTrackIfReady_l(const Track::Ptr &track){
     //Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
-    auto it_callback = _trackReadyCallback.find(track->getCodecId());
-    if (it_callback != _trackReadyCallback.end() && track->ready()) {
+    auto it_callback = _track_ready_callback.find(track->getCodecId());
+    if (it_callback != _track_ready_callback.end() && track->ready()) {
         it_callback->second();
-        _trackReadyCallback.erase(it_callback);
+        _track_ready_callback.erase(it_callback);
     }
 }
 
 void MediaSink::checkTrackIfReady(const Track::Ptr &track){
-    if (!_allTrackReady && !_trackReadyCallback.empty()) {
+    if (!_all_track_ready && !_track_ready_callback.empty()) {
         if (track) {
             checkTrackIfReady_l(track);
         } else {
@@ -87,14 +81,14 @@ void MediaSink::checkTrackIfReady(const Track::Ptr &track){
         }
     }
 
-    if(!_allTrackReady){
+    if(!_all_track_ready){
         if(_ticker.elapsedTime() > MAX_WAIT_MS_READY){
             //如果超过规定时间，那么不再等待并忽略未准备好的Track
             emitAllTrackReady();
             return;
         }
 
-        if(!_trackReadyCallback.empty()){
+        if(!_track_ready_callback.empty()){
             //在超时时间内，如果存在未准备好的Track，那么继续等待
             return;
         }
@@ -114,22 +108,20 @@ void MediaSink::checkTrackIfReady(const Track::Ptr &track){
 }
 
 void MediaSink::addTrackCompleted(){
-    {
-        lock_guard<recursive_mutex> lck(_mtx);
-        _max_track_size = _track_map.size();
-    }
+    lock_guard<recursive_mutex> lck(_mtx);
+    _max_track_size = _track_map.size();
     checkTrackIfReady(nullptr);
 }
 
 void MediaSink::emitAllTrackReady() {
-    if (_allTrackReady) {
+    if (_all_track_ready) {
         return;
     }
 
     DebugL << "all track ready use " << _ticker.elapsedTime() << "ms";
-    if (!_trackReadyCallback.empty()) {
+    if (!_track_ready_callback.empty()) {
         //这是超时强制忽略未准备好的Track
-        _trackReadyCallback.clear();
+        _track_ready_callback.clear();
         //移除未准备好的Track
         for (auto it = _track_map.begin(); it != _track_map.end();) {
             if (!it->second->ready()) {
@@ -143,8 +135,20 @@ void MediaSink::emitAllTrackReady() {
 
     if (!_track_map.empty()) {
         //最少有一个有效的Track
-        _allTrackReady = true;
+        _all_track_ready = true;
         onAllTrackReady();
+
+        //全部Track就绪，我们一次性把之前的帧输出
+        for(auto &pr : _frame_unread){
+            if (_track_map.find(pr.first) == _track_map.end()) {
+                //该Track已经被移除
+                continue;
+            }
+            pr.second.for_each([&](const Frame::Ptr &frame) {
+                onTrackFrame(frame);
+            });
+        }
+        _frame_unread.clear();
     }
 }
 

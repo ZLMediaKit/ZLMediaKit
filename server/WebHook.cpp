@@ -253,16 +253,16 @@ void installWebHook(){
     });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastFlowReport,[](BroadcastFlowReportArgs){
-        if(!hook_enable || args._param_strs == hook_adminparams || hook_flowreport.empty() || peerIP == "127.0.0.1"){
+        if(!hook_enable || args._param_strs == hook_adminparams || hook_flowreport.empty() || sender.get_peer_ip() == "127.0.0.1"){
             return;
         }
         auto body = make_json(args);
         body["totalBytes"] = (Json::UInt64)totalBytes;
         body["duration"] = (Json::UInt64)totalDuration;
         body["player"] = isPlayer;
-        body["ip"] = peerIP;
-        body["port"] = peerPort;
-        body["id"] = sessionIdentifier;
+        body["ip"] = sender.get_peer_ip();
+        body["port"] = sender.get_peer_port();
+        body["id"] = sender.getIdentifier();
         //执行hook
         do_http_hook(hook_flowreport,body, nullptr);
     });
@@ -444,7 +444,7 @@ void installWebHook(){
         body["path"] = path;
         body["is_dir"] = is_dir;
         body["params"] = parser.Params();
-        for(auto &pr : parser.getValues()){
+        for(auto &pr : parser.getHeader()){
             body[string("header.") + pr.first] = pr.second;
         }
         //执行hook

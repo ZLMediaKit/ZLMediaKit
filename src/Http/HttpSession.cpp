@@ -59,7 +59,7 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
     string cmd = _parser.Method();
     auto it = s_func_map.find(cmd);
     if (it == s_func_map.end()) {
-        WarnL << "不支持该命令:" << cmd;
+        WarnP(this) << "不支持该命令:" << cmd;
         sendResponse("405 Not Allowed", true);
         return 0;
     }
@@ -108,7 +108,7 @@ void HttpSession::onError(const SockException& err) {
 
         GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
         if(_ui64TotalBytes > iFlowThreshold * 1024){
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, duration , true, getIdentifier(), get_peer_ip(), get_peer_port());
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _ui64TotalBytes, duration , true, static_cast<SockInfo &>(*this));
         }
         return;
     }
@@ -241,7 +241,7 @@ bool HttpSession::checkLiveFlvStream(const function<void()> &cb){
                 onRes(err);
             });
         };
-        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,*this);
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,static_cast<SockInfo &>(*this));
         if(!flag){
             //该事件无人监听,默认不鉴权
             onRes("");
@@ -456,7 +456,7 @@ void HttpSession::sendResponse(const char *pcStatus,
         str += "\r\n";
     }
     str += "\r\n";
-    send(std::move(str));
+    SockSender::send(std::move(str));
     _ticker.resetTime();
 
     if(!size){
@@ -520,7 +520,7 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
     };
     ///////////////////广播HTTP事件///////////////////////////
     bool consumed = false;//该事件是否被消费
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,*this);
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,static_cast<SockInfo &>(*this));
     if(!consumed && doInvoke){
         //该事件无人消费，所以返回404
         invoker("404 Not Found",KeyValue(), HttpBody::Ptr());
@@ -611,7 +611,7 @@ void HttpSession::setSocketFlags(){
         //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
         SockUtil::setNoDelay(_sock->rawFD(), false);
         //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
-        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+        setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }
 }
 

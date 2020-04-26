@@ -231,7 +231,7 @@ void RtmpPusher::setSocketFlags(){
     GET_CONFIG(bool,ultraLowDelay,General::kUltraLowDelay);
     if(!ultraLowDelay) {
         //提高发送性能
-        (*this) << SocketFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
+        setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
         SockUtil::setNoDelay(_sock->rawFD(), false);
     }
 }
