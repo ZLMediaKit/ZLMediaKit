@@ -83,7 +83,7 @@ API_EXPORT void API_CALL mk_player_seekto(mk_player ctx, float progress);
 /**
  * 设置播放器开启播放结果回调函数
  * @param ctx 播放器指针
- * @param cb 回调函数指针,不得为null
+ * @param cb 回调函数指针,设置null立即取消回调
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_player_set_on_result(mk_player ctx, on_mk_play_event cb, void *user_data);
@@ -91,7 +91,7 @@ API_EXPORT void API_CALL mk_player_set_on_result(mk_player ctx, on_mk_play_event
 /**
  * 设置播放被异常中断的回调
  * @param ctx 播放器指针
- * @param cb 回调函数指针,不得为null
+ * @param cb 回调函数指针,设置null立即取消回调
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_event cb, void *user_data);
@@ -100,7 +100,7 @@ API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_eve
  * 设置音视频数据回调函数
  * 该接口在播放成功事件触发后才有效
  * @param ctx 播放器指针
- * @param cb 回调函数指针,不得为null
+ * @param cb 回调函数指针,设置null立即取消回调
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_player_set_on_data(mk_player ctx, on_mk_play_data cb, void *user_data);
