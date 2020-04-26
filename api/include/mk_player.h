@@ -81,6 +81,13 @@ API_EXPORT void API_CALL mk_player_pause(mk_player ctx, int pause);
 API_EXPORT void API_CALL mk_player_seekto(mk_player ctx, float progress);
 
 /**
+ * 设置点播进度条
+ * @param ctx 对象指针
+ * @param seekPos 取值范围 相对于开始时间增量 单位秒
+ */
+API_EXPORT void API_CALL mk_player_seektoByPos(mk_player ctx, int seekPos);
+
+/**
  * 设置播放器开启播放结果回调函数
  * @param ctx 播放器指针
  * @param cb 回调函数指针,不得为null
@@ -155,9 +162,14 @@ API_EXPORT int API_CALL mk_player_audio_channel(mk_player ctx);
 API_EXPORT float API_CALL mk_player_duration(mk_player ctx);
 
 /**
- * 获取点播播放进度，取值范围未 0.0～1.0
+ * 获取点播播放进度，取值范围 0.0～1.0
  */
 API_EXPORT float API_CALL mk_player_progress(mk_player ctx);
+
+/**
+ * 获取点播播放进度位置，取值范围 相对于开始时间增量 单位秒
+ */
+API_EXPORT int API_CALL mk_player_progress_pos(mk_player ctx);
 
 /**
  * 获取丢包率，rtsp时有效
