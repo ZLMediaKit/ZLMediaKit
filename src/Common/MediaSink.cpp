@@ -77,6 +77,7 @@ void MediaSink::checkTrackIfReady_l(const Track::Ptr &track){
 }
 
 void MediaSink::checkTrackIfReady(const Track::Ptr &track){
+    lock_guard<recursive_mutex> lck(_mtx);
     if (!_allTrackReady && !_trackReadyCallback.empty()) {
         if (track) {
             checkTrackIfReady_l(track);
