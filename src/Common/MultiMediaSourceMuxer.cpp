@@ -77,8 +77,8 @@ int MultiMuxerPrivate::totalReaderCount() const {
     return (_rtsp ? _rtsp->readerCount() : 0) + (_rtmp ? _rtmp->readerCount() : 0) + (hls_src ? hls_src->readerCount() : 0);
 }
 
-static std::shared_ptr<MediaSinkInterface> makeRecorder(const vector<Track::Ptr> &tracks, Recorder::type type, MediaSource &sender){
-    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId());
+static std::shared_ptr<MediaSinkInterface> makeRecorder(const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, MediaSource &sender){
+    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), custom_path);
     for (auto &track : tracks) {
         recorder->addTrack(track);
     }
@@ -91,7 +91,7 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
         case Recorder::type_hls : {
             if (start && !_hls) {
                 //开始录制
-                _hls = makeRecorder(getTracks(true), type, sender);
+                _hls = makeRecorder(getTracks(true), type, custom_path, sender);
                 auto hls_src = getHlsMediaSource();
                 if (hls_src) {
                     //设置HlsMediaSource的事件监听器
@@ -107,7 +107,7 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
         case Recorder::type_mp4 : {
             if (start && !_mp4) {
                 //开始录制
-                _mp4 = makeRecorder(getTracks(true), type, sender);;
+                _mp4 = makeRecorder(getTracks(true), type, custom_path, sender);
             } else if (!start && _mp4) {
                 //停止录制
                 _mp4 = nullptr;
