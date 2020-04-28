@@ -50,6 +50,9 @@ void splitH264(const char *ptr, int len, const std::function<void(const char *, 
     while(true) {
         auto next_nal = memfind(nal + 3,end - nal - 3,"\x0\x0\x1",3);
         if(next_nal){
+            if(*(next_nal - 1) == 0x00){
+                next_nal -= 1;
+            }
             cb(nal,next_nal - nal);
             nal = next_nal;
             continue;
@@ -59,6 +62,18 @@ void splitH264(const char *ptr, int len, const std::function<void(const char *, 
     }
 }
 
+#if 0
+//splitH264函数测试程序
+static onceToken s_token([](){
+    char buf[] = "\x00\x00\x00\x01\x12\x23\x34\x45\x56"
+                 "\x00\x00\x00\x01\x12\x23\x34\x45\x56"
+                 "\x00\x00\x00\x01\x12\x23\x34\x45\x56"
+                 "\x00\x00\x01\x12\x23\x34\x45\x56";
+    splitH264(buf, sizeof(buf) - 1, [](const char *ptr, int len){
+        cout << hexdump(ptr, len) << endl;
+    });
+});
+#endif //0
 
 Sdp::Ptr H264Track::getSdp() {
     if(!ready()){
