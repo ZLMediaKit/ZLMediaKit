@@ -160,8 +160,6 @@ extern const string kStreamNoneReaderDelayMS;
 extern const string kMaxStreamWaitTimeMS;
 //是否启动虚拟主机
 extern const string kEnableVhost;
-//超低延时模式，默认打开，打开后会降低延时但是转发性能会稍差
-extern const string kUltraLowDelay;
 //拉流代理时是否添加静音音频
 extern const string kAddMuteAudio;
 //拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
@@ -174,7 +172,7 @@ extern const string kPublishToHls ;
 //是否默认推流时mp4录像，hook接口(on_publish)中可以覆盖该设置
 extern const string kPublishToMP4 ;
 //合并写缓存大小(单位毫秒)，合并写指服务器缓存一定的数据后才会一次性写入socket，这样能提高性能，但是会提高延时
-//在开启低延时模式后，该参数不起作用
+//开启后会同时关闭TCP_NODELAY并开启MSG_MORE
 extern const string kMergeWriteMS ;
 }//namespace General
 
