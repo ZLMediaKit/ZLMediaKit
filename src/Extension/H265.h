@@ -46,6 +46,9 @@ public:
         NAL_IDR_W_RADL = 19,
         NAL_IDR_N_LP = 20,
         NAL_CRA_NUT = 21,
+        NAL_RSV_IRAP_VCL22 = 22,
+        NAL_RSV_IRAP_VCL23 = 23,
+
         NAL_VPS = 32,
         NAL_SPS = 33,
         NAL_PPS = 34,
@@ -101,17 +104,7 @@ public:
     }
 
     static bool isKeyFrame(int type) {
-        switch (type) {
-            case NAL_BLA_N_LP:
-            case NAL_BLA_W_LP:
-            case NAL_BLA_W_RADL:
-            case NAL_CRA_NUT:
-            case NAL_IDR_N_LP:
-            case NAL_IDR_W_RADL:
-                return true;
-            default:
-                return false;
-        }
+        return type >= NAL_BLA_W_LP && type <= NAL_RSV_IRAP_VCL23;
     }
 
 public:
