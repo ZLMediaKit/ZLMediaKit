@@ -191,19 +191,10 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 }
 
 void H264RtpDecoder::onGetH264(const H264Frame::Ptr &frame) {
-    auto flag = _dts_generator.getDts(frame->_pts,frame->_dts);
-    if(!flag){
-        if(frame->configFrame() || frame->keyFrame()){
-            flag = true;
-            frame->_dts = frame->_pts;
-        }
-    }
-
-    //根据pts计算dts
-    if(flag){
-        //写入环形缓存
-        RtpCodec::inputFrame(frame);
-    }
+    //rtsp没有dts，那么根据pts排序算法生成dts
+    _dts_generator.getDts(frame->_pts,frame->_dts);
+    //写入环形缓存
+    RtpCodec::inputFrame(frame);
     _h264frame = obtainFrame();
 }
 
