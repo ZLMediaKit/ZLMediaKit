@@ -91,27 +91,29 @@ int64_t Stamp::getRelativeStamp() const {
     return _relativeStamp;
 }
 
-
 bool DtsGenerator::getDts(uint32_t pts, uint32_t &dts){
     bool ret = false;
-    if(pts == _last_pts){
+    if (pts == _last_pts) {
         //pts未变，说明dts也不会变，返回上次dts
-        if(_last_dts){
+        if (_last_dts) {
             dts = _last_dts;
             ret = true;
         }
-        return ret;
+    } else {
+        //pts变了，尝试计算dts
+        ret = getDts_l(pts, dts);
+        if (ret) {
+            //获取到了dts，保存本次结果
+            _last_dts = dts;
+        }
     }
 
-    ret = getDts_l(pts,dts);
-    if(ret){
-        //获取到了dts，保存本次结果
-        _last_dts = dts;
-    }else{
+    if (!ret) {
         //pts排序列队长度还不知道，也就是不知道有没有B帧，
         //那么先强制dts == pts，这样可能导致有B帧的情况下，起始画面有几帧回退
         dts = pts;
     }
+
     //记录上次pts
     _last_pts = pts;
     return ret;
