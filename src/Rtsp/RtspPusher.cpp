@@ -392,8 +392,8 @@ void RtspPusher::sendRecord() {
 }
 
 void RtspPusher::setSocketFlags(){
-    GET_CONFIG(bool,ultraLowDelay,General::kUltraLowDelay);
-    if(!ultraLowDelay) {
+    GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
+    if(mergeWriteMS > 0) {
         //提高发送性能
         setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
         SockUtil::setNoDelay(_sock->rawFD(), false);

@@ -57,7 +57,14 @@ public:
      * 输入rtmp并解析
      */
     void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos = true) override {
-        key_pos = _demuxer->inputRtmp(pkt);
+        if(_all_track_ready && !_muxer->isEnabled()){
+            //获取到所有Track后，并且未开启转协议，那么不需要解复用rtmp
+            key_pos = pkt->isVideoKeyFrame();
+        }else{
+            //需要解复用rtmp
+            key_pos = _demuxer->inputRtmp(pkt);
+        }
+
         RtmpMediaSource::onWrite(pkt,key_pos);
     }
 
@@ -138,10 +145,12 @@ public:
      */
     void onAllTrackReady() override{
         setTrackSource(_muxer);
+        _all_track_ready = true;
     }
 private:
     RtmpDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
+    bool _all_track_ready = false;
 };
 } /* namespace mediakit */
 

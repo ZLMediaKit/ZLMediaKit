@@ -91,6 +91,12 @@ private:
 
 };
 
+
+/**
+ * 支持ssl加密的rtmp服务器
+ */
+typedef TcpSessionWithSSL<RtmpSession> RtmpSessionWithSSL;
+
 } /* namespace mediakit */
 
 #endif /* SRC_RTMP_RTMPSESSION_H_ */
