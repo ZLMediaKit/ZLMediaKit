@@ -188,7 +188,7 @@ API_EXPORT void API_CALL mk_player_seektoByPos(mk_player ctx, int seekPos)
 }
 
 static void mk_player_set_on_event(mk_player ctx, on_mk_play_event cb, void *user_data, int type) {
-    assert(ctx && cb);
+    assert(ctx);
     MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
     obj.setOnEvent(cb,user_data, type);
 }
@@ -202,7 +202,7 @@ API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_eve
 }
 
 API_EXPORT void API_CALL mk_player_set_on_data(mk_player ctx, on_mk_play_data cb, void *user_data) {
-    assert(ctx && cb);
+    assert(ctx);
     MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
     obj.setOnData(cb,user_data);
 }

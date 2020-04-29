@@ -56,7 +56,7 @@ string Recorder::getRecordPath(Recorder::type type, const string &vhost, const s
 }
 
 std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path){
-    auto path = Recorder::getRecordPath(type, vhost, app, stream_id);
+    auto path = Recorder::getRecordPath(type, vhost, app, stream_id, customized_path);
     switch (type) {
         case Recorder::type_hls: {
 #if defined(ENABLE_HLS)

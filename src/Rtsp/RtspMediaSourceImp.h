@@ -48,7 +48,14 @@ public:
      * 输入rtp并解析
      */
     void onWrite(const RtpPacket::Ptr &rtp, bool key_pos) override {
-        key_pos = _demuxer->inputRtp(rtp);
+        if(_all_track_ready && !_muxer->isEnabled()){
+            //获取到所有Track后，并且未开启转协议，那么不需要解复用rtp
+            //在关闭rtp解复用后，无法知道是否为关键帧，这样会导致无法秒开，或者开播花屏
+            key_pos = rtp->type == TrackVideo;
+        }else{
+            //需要解复用rtp
+            key_pos = _demuxer->inputRtp(rtp);
+        }
         RtspMediaSource::onWrite(rtp, key_pos);
     }
 
@@ -129,10 +136,12 @@ public:
      */
     void onAllTrackReady() override{
         setTrackSource(_muxer);
+        _all_track_ready = true;
     }
 private:
     RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
+    bool _all_track_ready = false;
 };
 } /* namespace mediakit */
 
