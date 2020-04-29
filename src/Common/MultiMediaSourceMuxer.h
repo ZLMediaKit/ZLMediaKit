@@ -45,6 +45,7 @@ private:
     void setTrackListener(Listener *listener);
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path);
     bool isRecording(MediaSource &sender, Recorder::type type);
+    bool isEnabled();
 private:
     void onTrackReady(const Track::Ptr & track) override;
     void onTrackFrame(const Frame::Ptr &frame) override;
@@ -57,6 +58,8 @@ private:
     MediaSinkInterface::Ptr _mp4;
     Listener *_listener = nullptr;
     std::weak_ptr<MediaSourceEvent> _meida_listener;
+    bool _enable_rtxp = false;
+    bool _enable_record = false;
 };
 
 class MultiMediaSourceMuxer : public MediaSourceEvent, public MediaSinkInterface, public TrackSource, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
@@ -167,6 +170,11 @@ public:
      * @param frame 帧
      */
     void inputFrame(const Frame::Ptr &frame) override;
+
+    /**
+     * 判断是否生效(是否正在转其他协议)
+     */
+    bool isEnabled();
 private:
     MultiMuxerPrivate::Ptr _muxer;
     std::weak_ptr<MediaSourceEvent> _listener;
