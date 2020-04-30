@@ -20,7 +20,7 @@ using namespace toolkit;
 namespace mediakit{
 
 bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-void splitH264(const char *ptr, int len, const std::function<void(const char *, int)> &cb);
+void splitH264(const char *ptr, int len, int prefix, const std::function<void(const char *, int, int)> &cb);
 
 /**
  * 264帧类
@@ -243,25 +243,10 @@ public:
         int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
         if(type == H264Frame::NAL_SPS || type == H264Frame::NAL_SEI){
             //有些设备会把SPS PPS IDR帧当做一个帧打包，所以我们要split一下
-            bool  first_frame = true;
-            splitH264(frame->data() + frame->prefixSize(),
-                      frame->size() - frame->prefixSize(),
-                      [&](const char *ptr, int len){
-                          if(first_frame){
-                              H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame,
-                                                                                                     frame->data(),
-                                                                                                     len + frame->prefixSize(),
-                                                                                                     frame->prefixSize());
-                              inputFrame_l(sub_frame);
-                              first_frame = false;
-                          }else{
-                              H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame,
-                                                                                                     (char *)ptr,
-                                                                                                     len ,
-                                                                                                     3);
-                              inputFrame_l(sub_frame);
-                          }
-                      });
+            splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, int len, int prefix) {
+                H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame, (char *)ptr, len, prefix);
+                inputFrame_l(sub_frame);
+            });
         } else{
             inputFrame_l(frame);
         }
