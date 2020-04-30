@@ -205,7 +205,7 @@ protected:
     * @param buffer
     */
     void onWebSocketEncodeData(const Buffer::Ptr &buffer) override{
-        SocketHelper::send(buffer);
+        HttpSessionType::send(buffer);
     }
 private:
     string _remian_data;
