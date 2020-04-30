@@ -246,28 +246,13 @@ public:
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
         if(frame->configFrame()){
-            bool  first_frame = true;
-            splitH264(frame->data() + frame->prefixSize(),
-                  frame->size() - frame->prefixSize(),
-                  [&](const char *ptr, int len){
-                      if(first_frame){
-                          H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame,
-                                                                                                 frame->data(),
-                                                                                                 len + frame->prefixSize(),
-                                                                                                 frame->prefixSize());
-                          inputFrame_l(sub_frame);
-                          first_frame = false;
-                      }else{
-                          H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame,
-                                                                                                 (char *)ptr,
-                                                                                                 len ,
-                                                                                                 3);
-                          inputFrame_l(sub_frame);
-                      }
-                  });
-            }else{
-                inputFrame_l(frame);
-            }
+            splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, int len, int prefix){
+                H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame, (char*)ptr, len, prefix);
+                inputFrame_l(sub_frame);
+            });
+        } else {
+            inputFrame_l(frame);
+        }
     }
 
 private:
