@@ -276,11 +276,12 @@ public:
      */
     AACSdp(const string &aac_cfg,
            int sample_rate,
+           int channels,
            int playload_type = 98,
            int bitrate = 128) : Sdp(sample_rate,playload_type){
         _printer << "m=audio 0 RTP/AVP " << playload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << " MPEG4-GENERIC/" << sample_rate << "\r\n";
+        _printer << "a=rtpmap:" << playload_type << " MPEG4-GENERIC/" << sample_rate << "/" << channels << "\r\n";
 
         char configStr[32] = {0};
         snprintf(configStr, sizeof(configStr), "%02X%02X", (uint8_t)aac_cfg[0], (uint8_t)aac_cfg[1]);
