@@ -50,6 +50,9 @@ void FlvMuxer::start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &
         }
         strongSelf->onDetach();
     });
+
+    //音频同步于视频
+    _stamp[0].makeRelation( _stamp[1]);
     _ring_reader->setReadCB([weakSelf](const RtmpMediaSource::RingDataType &pkt){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){

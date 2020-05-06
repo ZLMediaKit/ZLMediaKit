@@ -32,6 +32,7 @@ public:
 private:
     int64_t _last_stamp = 0;
 };
+
 //该类解决时间戳回环、回退问题
 //计算相对时间戳或者产生平滑时间戳
 class Stamp : public DeltaStamp{
@@ -66,14 +67,25 @@ public:
      * @param playback 是否为回放模式
      */
     void setPlayBack(bool playback = true);
+
+    /**
+     * 产生关联,用于音视频同步用
+     */
+    void makeRelation(Stamp &other);
+
+private:
+    void revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
 private:
     int64_t _relativeStamp = 0;
-    int64_t _last_dts = -1;
+    int64_t _last_relativeStamp = 0;
+    int64_t _last_dts = 0;
     SmoothTicker _ticker;
     bool _playback = false;
+    Stamp *_related = nullptr;
 };
 
-
+//dts生成器，
+//pts排序后就是dts
 class DtsGenerator{
 public:
     DtsGenerator() = default;
@@ -90,8 +102,6 @@ private:
     int _sorter_max_size = 0;
     int _count_sorter_max_size = 0;
     set<uint32_t> _pts_sorter;
-
-
 };
 
 }//namespace mediakit

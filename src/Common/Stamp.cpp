@@ -42,7 +42,40 @@ void Stamp::setPlayBack(bool playback) {
     _playback = playback;
 }
 
+void Stamp::makeRelation(Stamp &other){
+    _related = &other;
+}
+
 void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp) {
+    revise_l(dts,pts,dts_out,pts_out,modifyStamp);
+    if(modifyStamp || _playback){
+        //自动生成时间戳或回放，不需要做音视频同步
+        return;
+    }
+
+    if(_related && _related->_last_dts){
+        //音视频dts当前时间差
+        int64_t dts_diff = _last_dts - _related->_last_dts;
+        if(ABS(dts_diff) < 5000){
+            //如果绝对时间戳小于5秒，那么说明他们的起始时间戳是一致的，那么强制同步
+            _last_relativeStamp = _relativeStamp;
+            _relativeStamp = _related->_relativeStamp + dts_diff;
+            dts_out += dts_diff;
+            pts_out += dts_diff;
+//            DebugL << "音视频同步事件差:" << dts_diff;
+        }
+        //下次不用再强制同步
+        _related = nullptr;
+    }
+
+    if(dts_out < 0){
+        //相对时间戳小于0，那么说明是同步时间戳导致的,在这个过渡期内，我们一直返回上次的结果(目的是为了防止时间戳回退)
+        pts_out = _last_relativeStamp + (pts_out - dts_out);
+        dts_out = _last_relativeStamp;
+    }
+}
+
+void Stamp::revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp) {
     if(!pts){
         //没有播放时间戳,使其赋值为解码时间戳
         pts = dts;
@@ -53,6 +86,7 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
         dts_out = dts;
         pts_out = pts;
         _relativeStamp = dts_out;
+        _last_dts = dts;
         return;
     }
 
@@ -62,6 +96,7 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
     if(_last_dts != dts){
         //时间戳发生变更
         if(modifyStamp){
+            //内部自己生产时间戳
             _relativeStamp = _ticker.elapsedTime();
         }else{
             _relativeStamp += deltaStamp(dts);
