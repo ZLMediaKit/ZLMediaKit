@@ -50,10 +50,13 @@ typedef enum {
 #define API_FIELD "api."
 const string kApiDebug = API_FIELD"apiDebug";
 const string kSecret = API_FIELD"secret";
+const string kSnapRoot = API_FIELD"snapRoot";
 
 static onceToken token([]() {
     mINI::Instance()[kApiDebug] = "1";
     mINI::Instance()[kSecret] = "035c73f7-bb6b-4889-a715-d9eb2d1925cc";
+    mINI::Instance()[kSnapRoot] = "./www/snap/";
+
 });
 }//namespace API
 
@@ -174,7 +177,7 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
-                if(size < 4 * 1024){
+                if(size && size < 4 * 1024){
                     string contentOut = body->readData(size)->toString();
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
                            << "# content:\r\n" << parser.Content() << "\r\n"
@@ -815,6 +818,63 @@ void installWebApi() {
 
         val["data"]["rootPath"] = record_path;
         val["data"]["paths"] = paths;
+    });
+
+    GET_CONFIG(string, snap_root, API::kSnapRoot);
+
+    //获取截图缓存或者实时截图
+    //http://127.0.0.1/index/api/getSnap?url=rtmp://127.0.0.1/record/robot.mp4&timeout_sec=10&expire_sec=3
+    api_regist2("/index/api/getSnap", [](API_ARGS2){
+        CHECK_SECRET();
+        CHECK_ARGS("url", "timeout_sec", "expire_sec");
+        auto file_prefix = MD5(allArgs["url"]).hexdigest() + "_";
+        string file_path;
+        int expire_sec = allArgs["expire_sec"];
+        File::scanDir(File::absolutePath(snap_root,""),[&](const string &path, bool isDir){
+            if(!isDir){
+                auto pos = path.find(file_prefix);
+                if(pos != string::npos){
+                    //找到截图
+                    auto tm = FindField(path.data() + pos + file_prefix.size(), nullptr, ".jpeg");
+                    if(atoll(tm.data()) + expire_sec < time(NULL)){
+                        //截图已经过期,删除之，后面重新生成
+                        File::delete_file(path.data());
+                    }else{
+                        //截图未过期
+                        file_path = path;
+                    }
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        if(!file_path.empty()){
+            //返回上次生成的截图
+            StrCaseMap headerOut;
+            headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
+            invoker.responseFile(headerIn,headerOut,file_path);
+            return;
+        }
+
+        //无截图或者截图已经过期
+        file_path = File::absolutePath(StrPrinter << file_prefix << time(NULL) << ".jpeg" ,snap_root);
+#if !defined(_WIN32)
+        //创建文件夹
+        File::create_path(file_path.c_str(), S_IRWXO | S_IRWXG | S_IRWXU);
+#else
+        File::create_path(file_path.c_str(),0);
+#endif
+        FFmpegSnap::makeSnap(allArgs["url"],file_path,allArgs["timeout_sec"],[invoker,headerIn,file_path](bool success){
+            if(!success){
+                //生成截图失败，可能残留空文件
+                File::delete_file(file_path.data());
+            }
+
+            StrCaseMap headerOut;
+            headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
+            invoker.responseFile(headerIn, headerOut, file_path);
+        });
     });
 
     ////////////以下是注册的Hook API////////////

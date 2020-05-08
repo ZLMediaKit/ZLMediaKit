@@ -23,6 +23,23 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
+namespace FFmpeg {
+    extern const string kSnap;
+}
+
+class FFmpegSnap {
+public:
+    /// 创建截图
+    /// \param play_url 播放url地址，只要FFmpeg支持即可
+    /// \param save_path 截图jpeg文件保存路径
+    /// \param timeout_sec 生成截图超时时间(防止阻塞太久)
+    /// \param cb 生成截图成功与否回调
+    static void makeSnap(const string &play_url, const string &save_path, float timeout_sec, const function<void(bool)> &cb);
+private:
+    FFmpegSnap() = delete;
+    ~FFmpegSnap() = delete;
+};
+
 class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public MediaSourceEvent{
 public:
     typedef shared_ptr<FFmpegSource> Ptr;
