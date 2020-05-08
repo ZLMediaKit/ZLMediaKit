@@ -13,21 +13,25 @@
 #include "Common/MediaSource.h"
 #include "Util/File.h"
 #include "System.h"
+#include "Thread/WorkThreadPool.h"
 
 namespace FFmpeg {
 #define FFmpeg_FIELD "ffmpeg."
 const string kBin = FFmpeg_FIELD"bin";
 const string kCmd = FFmpeg_FIELD"cmd";
 const string kLog = FFmpeg_FIELD"log";
+const string kSnap = FFmpeg_FIELD"snap";
 
 onceToken token([]() {
 #ifdef _WIN32
     string ffmpeg_bin = System::execute("where ffmpeg");
     //windows下先关闭FFmpeg日志(目前不支持日志重定向)
-    mINI::Instance()[kCmd] = "%s -re -i \"%s\" -loglevel quiet -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
+    mINI::Instance()[kCmd] = "%s -re -i %s -loglevel quiet -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
+    mINI::Instance()[kSnap] = "%s -i %s -loglevel quiet -y -f mjpeg -t 0.001 %s";
 #else
     string ffmpeg_bin = System::execute("which ffmpeg");
-    mINI::Instance()[kCmd] = "%s -re -i \"%s\" -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s ";
+    mINI::Instance()[kCmd] = "%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
+    mINI::Instance()[kSnap] = "%s -i %s -y -f mjpeg -t 0.001 %s";
 #endif
     //默认ffmpeg命令路径为环境变量中路径
     mINI::Instance()[kBin] = ffmpeg_bin.empty() ? "ffmpeg" : ffmpeg_bin;
@@ -232,3 +236,31 @@ void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
     _listener = src->getListener();
     src->setListener(shared_from_this());
 }
+
+void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float timeout_sec,  const function<void(bool)> &cb) {
+    GET_CONFIG(string,ffmpeg_bin,FFmpeg::kBin);
+    GET_CONFIG(string,ffmpeg_snap,FFmpeg::kSnap);
+    GET_CONFIG(string,ffmpeg_log,FFmpeg::kLog);
+
+    std::shared_ptr<Process> process = std::make_shared<Process>();
+    auto delayTask = EventPollerPool::Instance().getPoller()->doDelayTask(timeout_sec * 1000,[process,cb](){
+        if(process->wait(false)){
+            //FFmpeg进程还在运行，超时就关闭它
+            process->kill(2000);
+        }
+        return 0;
+    });
+
+    WorkThreadPool::Instance().getPoller()->async([process,play_url,save_path,delayTask,cb](){
+        char cmd[1024] = {0};
+        snprintf(cmd, sizeof(cmd),ffmpeg_snap.data(),ffmpeg_bin.data(),play_url.data(),save_path.data());
+        process->run(cmd,ffmpeg_log.empty() ? "" : File::absolutePath("",ffmpeg_log));
+        //等待FFmpeg进程退出
+        process->wait(true);
+        //FFmpeg进程退出了可以取消定时器了
+        delayTask->cancel();
+        //执行回调函数
+        cb(process->exit_code() == 0);
+    });
+}
+
