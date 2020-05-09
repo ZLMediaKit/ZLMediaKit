@@ -99,7 +99,7 @@ private:
     void sendSetup(unsigned int uiTrackIndex);
     void sendPause(int type , uint32_t ms);
     void sendDescribe();
-
+    void sendGetParameter();
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
     void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
     void sendReceiverReport(bool overTcp,int iTrackIndex);

@@ -377,6 +377,11 @@ void RtspPlayer::sendDescribe() {
     sendRtspRequest("DESCRIBE",_strUrl,{"Accept","application/sdp"});
 }
 
+void RtspPlayer::sendGetParameter(){
+    _onHandshake = [this](const Parser& parser){};
+    sendRtspRequest("GET_PARAMETER",_strUrl);
+}
+
 void RtspPlayer::sendPause(int type , uint32_t seekMS){
     _onHandshake = std::bind(&RtspPlayer::handleResPAUSE,this, placeholders::_1,type);
     //开启或暂停rtsp
@@ -727,6 +732,9 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &tra
             sendReceiverReport(_eType == Rtsp::RTP_TCP,iTrackIndex);
             ticker.resetTime();
         }
+
+        //有些rtsp服务器需要rtcp保活，有些需要发送信令保活
+        sendGetParameter();
     }
 }
 
