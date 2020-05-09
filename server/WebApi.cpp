@@ -858,12 +858,17 @@ void installWebApi() {
 
         //无截图或者截图已经过期
         snap_path = StrPrinter << scan_path << time(NULL) << ".jpeg";
-#if !defined(_WIN32)
-        //创建文件夹
-        File::create_path(snap_path.c_str(), S_IRWXO | S_IRWXG | S_IRWXU);
-#else
-        File::create_path(snap_path.c_str(),0);
-#endif
+
+        {
+            //生成一个空文件，目的是顺便创建文件夹路径，
+            //同时防止在FFmpeg生成截图途中不停的尝试调用该api启动FFmpeg生成相同的截图
+            //当然，我们可以拷贝一个"正在截图中"的图来替换这个空图，这需要开发者自己实现
+            auto file = File::create_file(snap_path.data(), "wb");
+            if(file){
+                fclose(file);
+            }
+        }
+
         FFmpegSnap::makeSnap(allArgs["url"],snap_path,allArgs["timeout_sec"],[invoker,headerIn,snap_path](bool success){
             if(!success){
                 //生成截图失败，可能残留空文件
