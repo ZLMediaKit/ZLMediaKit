@@ -71,7 +71,7 @@
 - 点播
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
-
+  
 - 其他
   - 支持丰富的restful api以及web hook事件 
   - 支持简单的telnet调试
@@ -81,6 +81,8 @@
   - 支持按需拉流，无人观看自动关断拉流
   - 支持先拉流后推流，提高及时推流画面打开率
   - 提供c api sdk
+  - 支持FFmpeg拉流代理任意格式的流
+  - 支持http api生成并返回实时截图
 
 
 ## 编译以及测试
@@ -114,8 +116,11 @@ bash build_docker_images.sh
  - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
  - [IOS rtmp/rtsp播放器，视频推流器](https://gitee.com/xiahcu/IOSPlayer)
  - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xiongziliang/ZLMediaPlayer)
- - [配套的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
+ - [基于ZLMediaKit分支的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
+ - [基于ZLMediaKit主线的管理WEB网站](https://gitee.com/kkkkk5G/MediaServerUI)
  - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
+ - [GB28181-2016网络视频平台](https://github.com/swwheihei/wvp)
+ 
 
 ## 授权协议
 
