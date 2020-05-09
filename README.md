@@ -71,7 +71,7 @@
 - 点播
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
-
+  
 - 其他
   - 支持丰富的restful api以及web hook事件 
   - 支持简单的telnet调试
@@ -81,6 +81,8 @@
   - 支持按需拉流，无人观看自动关断拉流
   - 支持先拉流后推流，提高及时推流画面打开率
   - 提供c api sdk
+  - 支持FFmpeg拉流代理任意格式的流
+  - 支持http api生成并返回实时截图
 
 
 ## 编译以及测试
