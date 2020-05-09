@@ -827,53 +827,52 @@ void installWebApi() {
     api_regist2("/index/api/getSnap", [](API_ARGS2){
         CHECK_SECRET();
         CHECK_ARGS("url", "timeout_sec", "expire_sec");
-        auto file_prefix = MD5(allArgs["url"]).hexdigest() + "_";
-        string file_path;
         int expire_sec = allArgs["expire_sec"];
-        File::scanDir(File::absolutePath(snap_root,""),[&](const string &path, bool isDir){
-            if(!isDir){
-                auto pos = path.find(file_prefix);
-                if(pos != string::npos){
-                    //找到截图
-                    auto tm = FindField(path.data() + pos + file_prefix.size(), nullptr, ".jpeg");
-                    if(atoll(tm.data()) + expire_sec < time(NULL)){
-                        //截图已经过期,删除之，后面重新生成
-                        File::delete_file(path.data());
-                    }else{
-                        //截图未过期
-                        file_path = path;
-                    }
-                    return false;
-                }
+        auto scan_path = File::absolutePath(MD5(allArgs["url"]).hexdigest(), snap_root) + "/";
+        string snap_path;
+        File::scanDir(scan_path, [&](const string &path, bool isDir) {
+            if (isDir) {
+                //忽略文件夹
+                return true;
             }
-            return true;
+
+            //找到截图
+            auto tm = FindField(path.data() + scan_path.size(), nullptr, ".jpeg");
+            if (atoll(tm.data()) + expire_sec < time(NULL)) {
+                //截图已经过期,删除之，后面重新生成
+                File::delete_file(path.data());
+                return true;
+            }
+
+            //截图未过期,中断遍历，返回上次生成的截图
+            snap_path = path;
+            return false;
         });
 
-        if(!file_path.empty()){
-            //返回上次生成的截图
+        if(!snap_path.empty()){
             StrCaseMap headerOut;
             headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
-            invoker.responseFile(headerIn,headerOut,file_path);
-            return;
+            invoker.responseFile(headerIn,headerOut,snap_path);
+            return ;
         }
 
         //无截图或者截图已经过期
-        file_path = File::absolutePath(StrPrinter << file_prefix << time(NULL) << ".jpeg" ,snap_root);
+        snap_path = StrPrinter << scan_path << time(NULL) << ".jpeg";
 #if !defined(_WIN32)
         //创建文件夹
-        File::create_path(file_path.c_str(), S_IRWXO | S_IRWXG | S_IRWXU);
+        File::create_path(snap_path.c_str(), S_IRWXO | S_IRWXG | S_IRWXU);
 #else
-        File::create_path(file_path.c_str(),0);
+        File::create_path(snap_path.c_str(),0);
 #endif
-        FFmpegSnap::makeSnap(allArgs["url"],file_path,allArgs["timeout_sec"],[invoker,headerIn,file_path](bool success){
+        FFmpegSnap::makeSnap(allArgs["url"],snap_path,allArgs["timeout_sec"],[invoker,headerIn,snap_path](bool success){
             if(!success){
                 //生成截图失败，可能残留空文件
-                File::delete_file(file_path.data());
+                File::delete_file(snap_path.data());
             }
 
             StrCaseMap headerOut;
             headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
-            invoker.responseFile(headerIn, headerOut, file_path);
+            invoker.responseFile(headerIn, headerOut, snap_path);
         });
     });
 
