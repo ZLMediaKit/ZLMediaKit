@@ -25,7 +25,7 @@ void splitH264(const char *ptr, int len, int prefix, const std::function<void(co
 /**
  * 264帧类
  */
-class H264Frame : public Frame {
+class H264Frame : public FrameImp {
 public:
     typedef std::shared_ptr<H264Frame> Ptr;
 
@@ -36,30 +36,8 @@ public:
         NAL_SEI = 6,
     } NalType;
 
-    char *data() const override{
-        return (char *)_buffer.data();
-    }
-    uint32_t size() const override {
-        return _buffer.size();
-    }
-    uint32_t dts() const override {
-        return _dts;
-    }
-
-    uint32_t pts() const override {
-        return _pts ? _pts : _dts;
-    }
-
-    uint32_t prefixSize() const override{
-        return _prefix_size;
-    }
-
-    TrackType getTrackType() const override{
-        return TrackVideo;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecH264;
+    H264Frame(){
+        _codecid = CodecH264;
     }
 
     bool keyFrame() const override {
@@ -69,39 +47,27 @@ public:
     bool configFrame() const override{
         switch(H264_TYPE(_buffer[_prefix_size]) ){
             case H264Frame::NAL_SPS:
-            case H264Frame::NAL_PPS:
-                return true;
-            default:
-                return false;
+            case H264Frame::NAL_PPS:return true;
+            default:return false;
         }
     }
-public:
-    uint32_t _dts = 0;
-    uint32_t _pts = 0;
-    uint32_t _prefix_size = 4;
-    string _buffer;
 };
-
 
 /**
  * 防止内存拷贝的H264类
  * 用户可以通过该类型快速把一个指针无拷贝的包装成Frame类
  * 该类型在DevChannel中有使用
  */
-class H264FrameNoCacheAble : public FrameNoCacheAble {
+class H264FrameNoCacheAble : public FrameFromPtr {
 public:
     typedef std::shared_ptr<H264FrameNoCacheAble> Ptr;
 
-    H264FrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts , uint32_t pts ,int prefixeSize = 4){
+    H264FrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts , uint32_t pts ,int prefix_size = 4){
         _ptr = ptr;
         _size = size;
         _dts = dts;
         _pts = pts;
-        _prefixSize = prefixeSize;
-    }
-
-    TrackType getTrackType() const override{
-        return TrackVideo;
+        _prefix_size = prefix_size;
     }
 
     CodecId getCodecId() const override{
@@ -109,41 +75,16 @@ public:
     }
 
     bool keyFrame() const override {
-        return H264_TYPE(_ptr[_prefixSize]) == H264Frame::NAL_IDR;
+        return H264_TYPE(_ptr[_prefix_size]) == H264Frame::NAL_IDR;
     }
 
     bool configFrame() const override{
-        switch(H264_TYPE(_ptr[_prefixSize])){
+        switch(H264_TYPE(_ptr[_prefix_size])){
             case H264Frame::NAL_SPS:
-            case H264Frame::NAL_PPS:
-                return true;
-            default:
-                return false;
+            case H264Frame::NAL_PPS:return true;
+            default:return false;
         }
     }
-};
-
-/**
- * 一个H264Frame类中可以有多个帧，他们通过 0x 00 00 01 分隔
- * ZLMediaKit会先把这种复合帧split成单个帧然后再处理
- * 一个复合帧可以通过无内存拷贝的方式切割成多个H264FrameSubFrame
- * 提供该类的目的是切换复合帧时防止内存拷贝，提高性能
- */
-template<typename Parent>
-class FrameInternal : public Parent{
-public:
-    typedef std::shared_ptr<FrameInternal> Ptr;
-    FrameInternal(const Frame::Ptr &parent_frame,
-                  char *ptr,
-                  uint32_t size,
-                  int prefixeSize) : Parent(ptr,size,parent_frame->dts(),parent_frame->pts(),prefixeSize){
-        _parent_frame = parent_frame;
-    }
-    bool cacheAble() const override {
-        return _parent_frame->cacheAble();
-    }
-private:
-    Frame::Ptr _parent_frame;
 };
 
 typedef FrameInternal<H264FrameNoCacheAble> H264FrameInternal;
@@ -334,13 +275,11 @@ private:
     bool _last_frame_is_idr = false;
 };
 
-
 /**
 * h264类型sdp
 */
 class H264Sdp : public Sdp {
 public:
-
     /**
      *
      * @param sps 264 sps,不带0x00000001头
@@ -375,15 +314,11 @@ public:
         memset(strTemp, 0, 100);
         av_base64_encode(strTemp, 100, (uint8_t *) strPPS.data(), strPPS.size());
         _printer << strTemp << "\r\n";
-        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
+        _printer << "a=control:trackID=" << (int)TrackVideo << "\r\n";
     }
 
     string getSdp() const override {
         return _printer;
-    }
-
-    TrackType getTrackType() const override {
-        return TrackVideo;
     }
 
     CodecId getCodecId() const override {
@@ -393,8 +328,5 @@ private:
     _StrPrinter _printer;
 };
 
-
 }//namespace mediakit
-
-
 #endif //ZLMEDIAKIT_H264_H

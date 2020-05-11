@@ -21,7 +21,7 @@ AACFrame::Ptr AACRtmpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
     frame->aac_frame_length = 7;
-    frame->iPrefixSize = 7;
+    frame->_prefix_size = 7;
     return frame;
 }
 
@@ -63,7 +63,7 @@ void AACRtmpDecoder::onGetAAC(const char* pcData, int iLen, uint32_t ui32TimeSta
     //拷贝aac负载
     memcpy(_adts->buffer + 7, pcData, iLen);
     _adts->aac_frame_length = 7 + iLen;
-    _adts->timeStamp = ui32TimeStamp;
+    _adts->_dts = ui32TimeStamp;
 
     //adts结构头转成头7个字节
     writeAdtsHeader(*_adts, _adts->buffer);

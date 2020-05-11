@@ -78,7 +78,7 @@ AACFrame::Ptr AACRtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
     frame->aac_frame_length = ADTS_HEADER_LEN;
-    frame->iPrefixSize = ADTS_HEADER_LEN;
+    frame->_prefix_size = ADTS_HEADER_LEN;
     if(frame->syncword == 0 && !_aac_cfg.empty()) {
         makeAdtsHeader(_aac_cfg,*frame);
     }
@@ -109,7 +109,7 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
         //追加aac数据
         memcpy(_adts->buffer + _adts->aac_frame_length, ptr, size);
         _adts->aac_frame_length += size;
-        _adts->timeStamp = rtppack->timeStamp;
+        _adts->_dts = rtppack->timeStamp;
         ptr += size;
     }
 

@@ -20,8 +20,8 @@
 namespace mediakit{
 
 /**
-* 合并一些时间戳相同的frame
-*/
+ * 合并一些时间戳相同的frame
+ */
 class FrameMerger {
 public:
     FrameMerger() = default;
@@ -319,7 +319,9 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 WarnP(this) << "audio track change to G711 from codecid:" << getCodecName(_codecid_audio);
                 return;
             }
-            _muxer->inputFrame(std::make_shared<G711FrameNoCacheAble>(codec, (char *) data, bytes, dts));
+            auto frame = std::make_shared<G711FrameNoCacheAble>((char *) data, bytes, dts);
+            frame->setCodec(codec);
+            _muxer->inputFrame(frame);
             break;
         }
         default:
