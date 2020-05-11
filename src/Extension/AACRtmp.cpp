@@ -20,8 +20,9 @@ AACRtmpDecoder::AACRtmpDecoder() {
 AACFrame::Ptr AACRtmpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
-    frame->aac_frame_length = 7;
-    frame->_prefix_size = 7;
+    frame->_prefix_size = ADTS_HEADER_LEN;
+    //预留7个字节的空位以便后续覆盖
+    frame->_buffer.assign(ADTS_HEADER_LEN,(char)0);
     return frame;
 }
 
@@ -41,7 +42,7 @@ static string getAacCfg(const RtmpPacket &thiz) {
     return ret;
 }
 
-bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool key_pos) {
+bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
     if (pkt->isCfgFrame()) {
         _aac_cfg = getAacCfg(*pkt);
         return false;
@@ -52,26 +53,18 @@ bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool key_pos) {
     return false;
 }
 
-void AACRtmpDecoder::onGetAAC(const char* pcData, int iLen, uint32_t ui32TimeStamp) {
-    if(iLen + 7 > sizeof(_adts->buffer)){
-        WarnL << "Illegal adts data, exceeding the length limit.";
-        return;
-    }
-    //写adts结构头
-    makeAdtsHeader(_aac_cfg,*_adts);
-
-    //拷贝aac负载
-    memcpy(_adts->buffer + 7, pcData, iLen);
-    _adts->aac_frame_length = 7 + iLen;
-    _adts->_dts = ui32TimeStamp;
-
-    //adts结构头转成头7个字节
-    writeAdtsHeader(*_adts, _adts->buffer);
+void AACRtmpDecoder::onGetAAC(const char* data, int len, uint32_t stamp) {
+    _adts->_dts = stamp;
+    //先追加数据
+    _adts->_buffer.append(data, len);
+    //覆盖adts头
+    dumpAacConfig(_aac_cfg, _adts->size(), (uint8_t *) _adts->data());
 
     //写入环形缓存
     RtmpCodec::inputFrame(_adts);
     _adts = obtainFrame();
 }
+
 /////////////////////////////////////////////////////////////////////////////////////
 
 AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track) {
@@ -93,7 +86,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     if (_aac_cfg.empty()) {
         if (frame->prefixSize() >= 7) {
             //包含adts头,从adts头获取aac配置信息
-            _aac_cfg = makeAdtsConfig((uint8_t *)(frame->data()));
+            _aac_cfg = makeAacConfig((uint8_t *) (frame->data()));
         }
         makeConfigPacket();
     }

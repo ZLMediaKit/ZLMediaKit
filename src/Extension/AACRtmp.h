@@ -38,7 +38,7 @@ public:
     }
 
 protected:
-    void onGetAAC(const char* pcData, int iLen, uint32_t ui32TimeStamp);
+    void onGetAAC(const char* data, int len, uint32_t stamp);
     AACFrame::Ptr obtainFrame();
 protected:
     AACFrame::Ptr _adts;

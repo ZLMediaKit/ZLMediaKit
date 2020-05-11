@@ -9,7 +9,7 @@
  */
 
 #include "AACRtp.h"
-#define ADTS_HEADER_LEN 7
+#define AAC_MAX_FRAME_SIZE (2 * 1024)
 
 namespace mediakit{
 
@@ -77,11 +77,9 @@ AACRtpDecoder::AACRtpDecoder() {
 AACFrame::Ptr AACRtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
-    frame->aac_frame_length = ADTS_HEADER_LEN;
     frame->_prefix_size = ADTS_HEADER_LEN;
-    if(frame->syncword == 0 && !_aac_cfg.empty()) {
-        makeAdtsHeader(_aac_cfg,*frame);
-    }
+    //预留7个字节的空位以便后续覆盖
+    frame->_buffer.assign(ADTS_HEADER_LEN,(char)0);
     return frame;
 }
 
@@ -96,19 +94,18 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     //忽略Au-Header区
     ptr += 2 + au_header_count * 2;
 
-    static const uint32_t max_size = sizeof(AACFrame::buffer) - ADTS_HEADER_LEN;
+    static const uint32_t max_size = AAC_MAX_FRAME_SIZE - ADTS_HEADER_LEN;
     while (ptr < end) {
         auto size = (uint32_t) (end - ptr);
         if(size > max_size){
             size = max_size;
         }
-        if (_adts->aac_frame_length + size > sizeof(AACFrame::buffer)) {
+        if (_adts->size() + size > AAC_MAX_FRAME_SIZE) {
             //数据太多了，先清空
             flushData();
         }
         //追加aac数据
-        memcpy(_adts->buffer + _adts->aac_frame_length, ptr, size);
-        _adts->aac_frame_length += size;
+        _adts->_buffer.append((char *)ptr, size);
         _adts->_dts = rtppack->timeStamp;
         ptr += size;
     }
@@ -120,13 +117,14 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     return false;
 }
 
-
 void AACRtpDecoder::flushData() {
-    if(_adts->aac_frame_length == ADTS_HEADER_LEN){
+    if (_adts->size() == ADTS_HEADER_LEN) {
         //没有有效数据
         return;
     }
-    writeAdtsHeader(*_adts, _adts->buffer);
+
+    //覆盖adts头
+    dumpAacConfig(_aac_cfg, _adts->size(), (uint8_t *) _adts->data());
     RtpCodec::inputFrame(_adts);
     _adts = obtainFrame();
 }
