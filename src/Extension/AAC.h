@@ -19,7 +19,6 @@ namespace mediakit{
 
 class AACFrame;
 
-unsigned const samplingFrequencyTable[16] = { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350, 0, 0, 0 };
 string makeAacConfig(const uint8_t *hex);
 void dumpAacConfig(const string &config, int length, uint8_t *out);
 void parseAacConfig(const string &config, int &samplerate, int &channels);
