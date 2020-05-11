@@ -38,10 +38,6 @@ public:
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
 
-    TrackType getTrackType() const override{
-        return TrackVideo;
-    }
-
     CodecId getCodecId() const override{
         return CodecH264;
     }

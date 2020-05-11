@@ -33,10 +33,6 @@ public:
      */
     bool inputRtmp(const RtmpPacket::Ptr &Rtmp, bool key_pos = false) override;
 
-    TrackType getTrackType() const override{
-        return TrackAudio;
-    }
-
     CodecId getCodecId() const override{
         return _codecId;
     }

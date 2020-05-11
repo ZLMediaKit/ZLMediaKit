@@ -65,8 +65,6 @@ class VideoTrack : public Track {
 public:
     typedef std::shared_ptr<VideoTrack> Ptr;
 
-    TrackType getTrackType() const override { return TrackVideo;};
-
     /**
      * 返回视频高度
      * @return
@@ -93,8 +91,6 @@ class AudioTrack : public Track {
 public:
     typedef std::shared_ptr<AudioTrack> Ptr;
 
-    TrackType getTrackType() const override { return TrackAudio;};
-
     /**
      * 返回音频采样率
      * @return
@@ -114,6 +110,64 @@ public:
     virtual int getAudioChannel() const {return 0;};
 };
 
+class AudioTrackImp : public AudioTrack{
+public:
+    typedef std::shared_ptr<AudioTrackImp> Ptr;
+
+    /**
+     * 构造函数
+     * @param codecId 编码类型
+     * @param sample_rate 采样率(HZ)
+     * @param channels 通道数
+     * @param sample_bit 采样位数，一般为16
+     */
+    AudioTrackImp(CodecId codecId,int sample_rate, int channels, int sample_bit){
+        _codecid = codecId;
+        _sample_rate = sample_rate;
+        _channels = channels;
+        _sample_bit = sample_bit;
+    }
+
+    /**
+     * 返回编码类型
+     */
+    CodecId getCodecId() const override{
+        return _codecid;
+    }
+
+    /**
+     * 是否已经初始化
+     */
+    bool ready() override {
+        return true;
+    }
+
+    /**
+     * 返回音频采样率
+     */
+    int getAudioSampleRate() const override{
+        return _sample_rate;
+    }
+
+    /**
+     * 返回音频采样位数，一般为16或8
+     */
+    int getAudioSampleBit() const override{
+        return _sample_bit;
+    }
+
+    /**
+     * 返回音频通道数
+     */
+    int getAudioChannel() const override{
+        return _channels;
+    }
+private:
+    CodecId _codecid;
+    int _sample_rate;
+    int _channels;
+    int _sample_bit;
+};
 
 class TrackSource{
 public:
@@ -123,7 +177,6 @@ public:
     /**
      * 获取全部的Track
      * @param trackReady 是否获取全部已经准备好的Track
-     * @return
      */
     virtual vector<Track::Ptr> getTracks(bool trackReady = true) const = 0;
 
@@ -131,7 +184,6 @@ public:
      * 获取特定Track
      * @param type track类型
      * @param trackReady 是否获取全部已经准备好的Track
-     * @return
      */
     Track::Ptr getTrack(TrackType type , bool trackReady = true) const {
         auto tracks = getTracks(trackReady);
@@ -145,5 +197,4 @@ public:
 };
 
 }//namespace mediakit
-
 #endif //ZLMEDIAKIT_TRACK_H

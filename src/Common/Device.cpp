@@ -163,7 +163,9 @@ void DevChannel::inputG711(const char *data, int len, uint32_t dts){
     if (dts == 0) {
         dts = (uint32_t)_aTicker[1].elapsedTime();
     }
-    inputFrame(std::make_shared<G711FrameNoCacheAble>(_audio->codecId, (char*)data, len, dts, 0));
+    auto frame = std::make_shared<G711FrameNoCacheAble>((char*)data, len, dts, 0);
+    frame->setCodec(_audio->codecId);
+    inputFrame(frame);
 }
 
 void DevChannel::initVideo(const VideoInfo &info) {

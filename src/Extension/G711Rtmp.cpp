@@ -20,15 +20,15 @@ G711RtmpDecoder::G711RtmpDecoder(CodecId codecId) {
 G711Frame::Ptr G711RtmpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<G711Frame>::obtainObj();
-    frame->buffer.clear();
-    frame->_codecId = _codecId;
+    frame->_buffer.clear();
+    frame->_codecid = _codecId;
     return frame;
 }
 
 bool G711RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
     //拷贝G711负载
-    _frame->buffer.assign(pkt->strBuf.data() + 1, pkt->strBuf.size() - 1);
-    _frame->timeStamp = pkt->timeStamp;
+    _frame->_buffer.assign(pkt->strBuf.data() + 1, pkt->strBuf.size() - 1);
+    _frame->_dts = pkt->timeStamp;
     //写入环形缓存
     RtmpCodec::inputFrame(_frame);
     _frame = obtainFrame();

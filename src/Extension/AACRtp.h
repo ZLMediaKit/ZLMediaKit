@@ -31,9 +31,6 @@ public:
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = false) override;
 
-    TrackType getTrackType() const override{
-        return TrackAudio;
-    }
     CodecId getCodecId() const override{
         return CodecAAC;
     }

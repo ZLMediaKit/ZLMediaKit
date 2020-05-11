@@ -20,9 +20,9 @@ G711RtpDecoder::G711RtpDecoder(const Track::Ptr &track){
 G711Frame::Ptr G711RtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<G711Frame>::obtainObj();
-    frame->buffer.clear();
-    frame->_codecId = _codecid;
-    frame->timeStamp = 0;
+    frame->_buffer.clear();
+    frame->_codecid = _codecid;
+    frame->_dts = 0;
     return frame;
 }
 
@@ -32,17 +32,17 @@ bool G711RtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool) {
     // 获取rtp数据
     const char *rtp_packet_buf = rtppack->data() + rtppack->offset;
 
-    if (rtppack->timeStamp != _frame->timeStamp) {
+    if (rtppack->timeStamp != _frame->_dts) {
         //时间戳变更，清空上一帧
         onGetG711(_frame);
     }
 
     //追加数据
-    _frame->buffer.append(rtp_packet_buf, length);
+    _frame->_buffer.append(rtp_packet_buf, length);
     //赋值时间戳
-    _frame->timeStamp = rtppack->timeStamp;
+    _frame->_dts = rtppack->timeStamp;
 
-    if (rtppack->mark || _frame->buffer.size() > 10 * 1024) {
+    if (rtppack->mark || _frame->_buffer.size() > 10 * 1024) {
         //标记为mark时，或者内存快溢出时，我们认为这是该帧最后一个包
         onGetG711(_frame);
     }
@@ -50,7 +50,7 @@ bool G711RtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool) {
 }
 
 void G711RtpDecoder::onGetG711(const G711Frame::Ptr &frame) {
-    if(!frame->buffer.empty()){
+    if(!frame->_buffer.empty()){
         //写入环形缓存
         RtpCodec::inputFrame(frame);
         _frame = obtainFrame();
@@ -96,6 +96,3 @@ void G711RtpEncoder::makeG711Rtp(const void *data, unsigned int len, bool mark, 
 }
 
 }//namespace mediakit
-
-
-

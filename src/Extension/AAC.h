@@ -18,19 +18,11 @@ namespace mediakit{
 
 class AACFrame;
 
-unsigned const samplingFrequencyTable[16] = { 96000, 88200,
-                                              64000, 48000,
-                                              44100, 32000,
-                                              24000, 22050,
-                                              16000, 12000,
-                                              11025, 8000,
-                                              7350, 0, 0, 0 };
-
-void	makeAdtsHeader(const string &strAudioCfg,AACFrame &adts);
-void 	writeAdtsHeader(const AACFrame &adts, uint8_t *pcAdts) ;
-string 	makeAdtsConfig(const uint8_t *pcAdts);
-void 	getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel);
-
+unsigned const samplingFrequencyTable[16] = { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350, 0, 0, 0 };
+void makeAdtsHeader(const string &strAudioCfg,AACFrame &adts);
+void writeAdtsHeader(const AACFrame &adts, uint8_t *pcAdts) ;
+string makeAdtsConfig(const uint8_t *pcAdts);
+void getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel);
 
 /**
  * aac帧，包含adts头
@@ -46,14 +38,10 @@ public:
         return aac_frame_length;
     }
     uint32_t dts() const override {
-        return timeStamp;
+        return _dts;
     }
     uint32_t prefixSize() const override{
-        return iPrefixSize;
-    }
-
-    TrackType getTrackType() const override{
-        return TrackAudio;
+        return _prefix_size;
     }
 
     CodecId getCodecId() const override{
@@ -83,16 +71,16 @@ public:
     unsigned int copyright_identification_start; //1 bslbf
     unsigned int aac_frame_length; // 13 bslbf  一个ADTS帧的长度包括ADTS头和raw data block
     unsigned int adts_buffer_fullness;           //11 bslbf     0x7FF 说明是码率可变的码流
-//no_raw_data_blocks_in_frame 表示ADTS帧中有number_of_raw_data_blocks_in_frame + 1个AAC原始帧.
-//所以说number_of_raw_data_blocks_in_frame == 0
-//表示说ADTS帧中有一个AAC数据块并不是说没有。(一个AAC原始帧包含一段时间内1024个采样及相关数据)
+    //no_raw_data_blocks_in_frame 表示ADTS帧中有number_of_raw_data_blocks_in_frame + 1个AAC原始帧.
+    //所以说number_of_raw_data_blocks_in_frame == 0
+    //表示说ADTS帧中有一个AAC数据块并不是说没有。(一个AAC原始帧包含一段时间内1024个采样及相关数据)
     unsigned int no_raw_data_blocks_in_frame;    //2 uimsfb
     unsigned char buffer[2 * 1024 + 7];
-    uint32_t timeStamp;
-    uint32_t iPrefixSize = 7;
-} ;
+    uint32_t _dts;
+    uint32_t _prefix_size = 7;
+};
 
-class AACFrameNoCacheAble : public FrameNoCacheAble {
+class AACFrameNoCacheAble : public FrameFromPtr {
 public:
     typedef std::shared_ptr<AACFrameNoCacheAble> Ptr;
 
@@ -100,11 +88,7 @@ public:
         _ptr = ptr;
         _size = size;
         _dts = dts;
-        _prefixSize = prefixeSize;
-    }
-
-    TrackType getTrackType() const override{
-        return TrackAudio;
+        _prefix_size = prefixeSize;
     }
 
     CodecId getCodecId() const override{
@@ -118,8 +102,7 @@ public:
     bool configFrame() const override{
         return false;
     }
-} ;
-
+};
 
 /**
  * aac音频通道
@@ -173,7 +156,6 @@ public:
 
     /**
      * 获取aac两个字节的配置
-     * @return
      */
     const string &getAacCfg() const{
         return _cfg;
@@ -181,7 +163,6 @@ public:
 
     /**
      * 返回编码类型
-     * @return
      */
     CodecId getCodecId() const override{
         return CodecAAC;
@@ -189,39 +170,36 @@ public:
 
     /**
      * 在获取aac_cfg前是无效的Track
-     * @return
      */
     bool ready() override {
         return !_cfg.empty();
     }
 
-
     /**
-    * 返回音频采样率
-    * @return
-    */
+     * 返回音频采样率
+     */
     int getAudioSampleRate() const override{
         return _sampleRate;
     }
+
     /**
      * 返回音频采样位数，一般为16或8
-     * @return
      */
     int getAudioSampleBit() const override{
         return _sampleBit;
     }
+
     /**
      * 返回音频通道数
-     * @return
      */
     int getAudioChannel() const override{
         return _channel;
     }
 
     /**
-    * 输入数据帧,并获取aac_cfg
-    * @param frame 数据帧
-    */
+     * 输入数据帧,并获取aac_cfg
+     * @param frame 数据帧
+     */
     void inputFrame(const Frame::Ptr &frame) override{
         if (_cfg.empty()) {
             //未获取到aac_cfg信息
@@ -247,6 +225,7 @@ private:
         makeAdtsHeader(_cfg,aacFrame);
         getAACInfo(aacFrame,_sampleRate,_channel);
     }
+
     Track::Ptr clone() override {
         return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
     }
@@ -260,15 +239,13 @@ private:
     int _channel = 0;
 };
 
-
 /**
-* aac类型SDP
-*/
+ * aac类型SDP
+ */
 class AACSdp : public Sdp {
 public:
-
     /**
-     *
+     * 构造函数
      * @param aac_cfg aac两个字节的配置描述
      * @param sample_rate 音频采样率
      * @param playload_type rtp playload type 默认98
@@ -288,16 +265,13 @@ public:
         _printer << "a=fmtp:" << playload_type << " streamtype=5;profile-level-id=1;mode=AAC-hbr;"
                  << "sizelength=13;indexlength=3;indexdeltalength=3;config="
                  << configStr << "\r\n";
-        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
+        _printer << "a=control:trackID=" << (int)TrackAudio << "\r\n";
     }
 
     string getSdp() const override {
         return _printer;
     }
 
-    TrackType getTrackType() const override {
-        return TrackAudio;
-    }
     CodecId getCodecId() const override {
         return CodecAAC;
     }
@@ -306,6 +280,4 @@ private:
 };
 
 }//namespace mediakit
-
-
 #endif //ZLMEDIAKIT_AAC_H

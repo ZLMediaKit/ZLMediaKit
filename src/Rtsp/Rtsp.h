@@ -263,18 +263,7 @@ public:
     string getSdp() const override {
         return _printer;
     }
-    /**
-     * 返回音频或视频类型
-     * @return
-     */
-    TrackType getTrackType() const override {
-        return TrackTitle;
-    }
 
-    /**
-     * 返回编码器id
-     * @return
-     */
     CodecId getCodecId() const override{
         return CodecInvalid;
     }
@@ -283,5 +272,4 @@ private:
 };
 
 } //namespace mediakit
-
 #endif //RTSP_RTSP_H_
