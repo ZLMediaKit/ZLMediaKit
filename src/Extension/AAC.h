@@ -13,71 +13,26 @@
 
 #include "Frame.h"
 #include "Track.h"
+#define ADTS_HEADER_LEN 7
 
 namespace mediakit{
 
 class AACFrame;
 
 unsigned const samplingFrequencyTable[16] = { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350, 0, 0, 0 };
-void makeAdtsHeader(const string &strAudioCfg,AACFrame &adts);
-void writeAdtsHeader(const AACFrame &adts, uint8_t *pcAdts) ;
-string makeAdtsConfig(const uint8_t *pcAdts);
-void getAACInfo(const AACFrame &adts,int &iSampleRate,int &iChannel);
+string makeAacConfig(const uint8_t *hex);
+void dumpAacConfig(const string &config, int length, uint8_t *out);
+void parseAacConfig(const string &config, int &samplerate, int &channels);
 
 /**
  * aac帧，包含adts头
  */
-class AACFrame : public Frame {
+class AACFrame : public FrameImp {
 public:
     typedef std::shared_ptr<AACFrame> Ptr;
-
-    char *data() const override{
-        return (char *)buffer;
+    AACFrame(){
+        _codecid = CodecAAC;
     }
-    uint32_t size() const override {
-        return aac_frame_length;
-    }
-    uint32_t dts() const override {
-        return _dts;
-    }
-    uint32_t prefixSize() const override{
-        return _prefix_size;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecAAC;
-    }
-
-    bool keyFrame() const override {
-        return false;
-    }
-
-    bool configFrame() const override{
-        return false;
-    }
-public:
-    unsigned int syncword = 0; //12 bslbf 同步字The bit string ‘1111 1111 1111’，说明一个ADTS帧的开始
-    unsigned int id;        //1 bslbf   MPEG 标示符, 设置为1
-    unsigned int layer;    //2 uimsbf Indicates which layer is used. Set to ‘00’
-    unsigned int protection_absent;  //1 bslbf  表示是否误码校验
-    unsigned int profile; //2 uimsbf  表示使用哪个级别的AAC，如01 Low Complexity(LC)--- AACLC
-    unsigned int sf_index;           //4 uimsbf  表示使用的采样率下标
-    unsigned int private_bit;        //1 bslbf
-    unsigned int channel_configuration;  //3 uimsbf  表示声道数
-    unsigned int original;               //1 bslbf
-    unsigned int home;                   //1 bslbf
-    //下面的为改变的参数即每一帧都不同
-    unsigned int copyright_identification_bit;   //1 bslbf
-    unsigned int copyright_identification_start; //1 bslbf
-    unsigned int aac_frame_length; // 13 bslbf  一个ADTS帧的长度包括ADTS头和raw data block
-    unsigned int adts_buffer_fullness;           //11 bslbf     0x7FF 说明是码率可变的码流
-    //no_raw_data_blocks_in_frame 表示ADTS帧中有number_of_raw_data_blocks_in_frame + 1个AAC原始帧.
-    //所以说number_of_raw_data_blocks_in_frame == 0
-    //表示说ADTS帧中有一个AAC数据块并不是说没有。(一个AAC原始帧包含一段时间内1024个采样及相关数据)
-    unsigned int no_raw_data_blocks_in_frame;    //2 uimsfb
-    unsigned char buffer[2 * 1024 + 7];
-    uint32_t _dts;
-    uint32_t _prefix_size = 7;
 };
 
 class AACFrameNoCacheAble : public FrameFromPtr {
@@ -138,7 +93,7 @@ public:
         if(adts_header_len < 7){
             throw std::invalid_argument("adts头必须不少于7个字节");
         }
-        _cfg = makeAdtsConfig((uint8_t*)adts_header);
+        _cfg = makeAacConfig((uint8_t *) adts_header);
         onReady();
     }
 
@@ -150,7 +105,7 @@ public:
         if(aac_frame_with_adts->getCodecId() != CodecAAC || aac_frame_with_adts->prefixSize() < 7){
             throw std::invalid_argument("必须输入带adts头的aac帧");
         }
-        _cfg = makeAdtsConfig((uint8_t*)aac_frame_with_adts->data());
+        _cfg = makeAacConfig((uint8_t *) aac_frame_with_adts->data());
         onReady();
     }
 
@@ -205,7 +160,7 @@ public:
             //未获取到aac_cfg信息
             if (frame->prefixSize() >= 7) {
                 //7个字节的adts头
-                _cfg = makeAdtsConfig((uint8_t *)(frame->data()));
+                _cfg = makeAacConfig((uint8_t *) (frame->data()));
                 onReady();
             } else {
                 WarnL << "无法获取adts头!";
@@ -218,12 +173,10 @@ private:
      * 解析2个字节的aac配置
      */
     void onReady(){
-        if(_cfg.size() < 2){
+        if (_cfg.size() < 2) {
             return;
         }
-        AACFrame aacFrame;
-        makeAdtsHeader(_cfg,aacFrame);
-        getAACInfo(aacFrame,_sampleRate,_channel);
+        parseAacConfig(_cfg, _sampleRate, _channel);
     }
 
     Track::Ptr clone() override {
