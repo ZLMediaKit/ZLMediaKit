@@ -627,29 +627,18 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
     }
         break;
     case Rtsp::RTP_UDP: {
-        //我们用trackIdx区分rtp和rtcp包
-        auto pSockRtp = std::make_shared<Socket>(_sock->getPoller());
-        if (!pSockRtp->bindUdpSock(0,get_local_ip().data())) {
+        std::pair<Socket::Ptr, Socket::Ptr> pr;
+        try{
+            pr = makeSockPair(_sock->getPoller(), get_local_ip());
+        }catch(std::exception &ex) {
             //分配端口失败
             send_NotAcceptable();
-            throw SockException(Err_shutdown, "open rtp socket failed");
-        }
-        auto pSockRtcp = std::make_shared<Socket>(_sock->getPoller());
-        if (!pSockRtcp->bindUdpSock(pSockRtp->get_local_port() + 1,get_local_ip().data())) {
-            //分配端口失败
-            send_NotAcceptable();
-            throw SockException(Err_shutdown, "open rtcp socket failed");
+            throw SockException(Err_shutdown, ex.what());
         }
 
-        if(pSockRtp->get_local_port() % 2 != 0){
-            //如果rtp端口不是偶数，那么与rtcp端口互换，目的是兼容一些要求严格的播放器
-            Socket::Ptr tmp = pSockRtp;
-            pSockRtp = pSockRtcp;
-            pSockRtcp = tmp;
-        }
+        _apRtpSock[trackIdx] = pr.first;
+        _apRtcpSock[trackIdx] = pr.second;
 
-        _apRtpSock[trackIdx] = pSockRtp;
-        _apRtcpSock[trackIdx] = pSockRtcp;
         //设置客户端内网端口信息
         string strClientPort = FindField(parser["Transport"].data(), "client_port=", NULL);
         uint16_t ui16RtpPort = atoi( FindField(strClientPort.data(), NULL, "-").data());
@@ -661,24 +650,24 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         peerAddr.sin_port = htons(ui16RtpPort);
         peerAddr.sin_addr.s_addr = inet_addr(get_peer_ip().data());
         bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
-        pSockRtp->setSendPeerAddr((struct sockaddr *)(&peerAddr));
+        pr.first->setSendPeerAddr((struct sockaddr *)(&peerAddr));
 
         //设置rtcp发送目标地址
         peerAddr.sin_family = AF_INET;
         peerAddr.sin_port = htons(ui16RtcpPort);
         peerAddr.sin_addr.s_addr = inet_addr(get_peer_ip().data());
         bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
-        pSockRtcp->setSendPeerAddr((struct sockaddr *)(&peerAddr));
+        pr.second->setSendPeerAddr((struct sockaddr *)(&peerAddr));
 
         //尝试获取客户端nat映射地址
         startListenPeerUdpData(trackIdx);
         //InfoP(this) << "分配端口:" << srv_port;
 
         sendRtspResponse("200 OK",
-                         {"Transport",StrPrinter << "RTP/AVP/UDP;unicast;"
-                                                 << "client_port=" << strClientPort << ";"
-                                                 << "server_port=" << pSockRtp->get_local_port() << "-" << pSockRtcp->get_local_port() << ";"
-                                                 << "ssrc=" << printSSRC(trackRef->_ssrc)
+                         {"Transport", StrPrinter << "RTP/AVP/UDP;unicast;"
+                                                  << "client_port=" << strClientPort << ";"
+                                                  << "server_port=" << pr.first->get_local_port() << "-" << pr.second->get_local_port() << ";"
+                                                  << "ssrc=" << printSSRC(trackRef->_ssrc)
                          });
     }
         break;

@@ -214,29 +214,10 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
 void RtspPlayer::createUdpSockIfNecessary(int track_idx){
     auto &rtpSockRef = _apRtpSock[track_idx];
     auto &rtcpSockRef = _apRtcpSock[track_idx];
-    if(!rtpSockRef){
-        rtpSockRef.reset(new Socket(getPoller()));
-        //rtp随机端口
-        if (!rtpSockRef->bindUdpSock(0, get_local_ip().data())) {
-            rtpSockRef.reset();
-            throw std::runtime_error("open rtp sock failed");
-        }
-    }
-
-    if(!rtcpSockRef){
-        rtcpSockRef.reset(new Socket(getPoller()));
-        //rtcp端口为rtp端口+1，目的是为了兼容某些服务器，其实更推荐随机端口
-        if (!rtcpSockRef->bindUdpSock(rtpSockRef->get_local_port() + 1, get_local_ip().data())) {
-            rtcpSockRef.reset();
-            throw std::runtime_error("open rtcp sock failed");
-        }
-    }
-
-    if(rtpSockRef->get_local_port() % 2 != 0){
-        //如果rtp端口不是偶数，那么与rtcp端口互换，目的是兼容一些要求严格的服务器
-        Socket::Ptr tmp = rtpSockRef;
-        rtpSockRef = rtcpSockRef;
-        rtcpSockRef = tmp;
+    if (!rtpSockRef || !rtcpSockRef) {
+        auto pr = makeSockPair(getPoller(), get_local_ip());
+        rtpSockRef = pr.first;
+        rtcpSockRef = pr.second;
     }
 }
 
