@@ -373,7 +373,7 @@ std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &polle
     }
 
     //是否是偶数
-    bool even_numbers = pSockRtp->get_local_port() % 2 != 0;
+    bool even_numbers = pSockRtp->get_local_port() % 2 == 0;
     auto pSockRtcp = std::make_shared<Socket>(poller);
     if (!pSockRtcp->bindUdpSock(pSockRtp->get_local_port() + (even_numbers ? 1 : -1), local_ip.data())) {
         //分配端口失败
