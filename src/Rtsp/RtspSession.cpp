@@ -640,6 +640,14 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
             send_NotAcceptable();
             throw SockException(Err_shutdown, "open rtcp socket failed");
         }
+
+        if(pSockRtp->get_local_port() % 2 != 0){
+            //如果rtp端口不是偶数，那么与rtcp端口互换，目的是兼容一些要求严格的播放器
+            Socket::Ptr tmp = pSockRtp;
+            pSockRtp = pSockRtcp;
+            pSockRtcp = tmp;
+        }
+
         _apRtpSock[trackIdx] = pSockRtp;
         _apRtcpSock[trackIdx] = pSockRtcp;
         //设置客户端内网端口信息
