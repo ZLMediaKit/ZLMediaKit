@@ -271,5 +271,7 @@ private:
     _StrPrinter _printer;
 };
 
+std::pair<Socket::Ptr, Socket::Ptr> makeSockPair(const EventPoller::Ptr &poller, const string &local_ip);
+
 } //namespace mediakit
 #endif //RTSP_RTSP_H_
