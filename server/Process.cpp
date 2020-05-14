@@ -143,7 +143,7 @@ static bool s_wait(pid_t pid,int *exit_code_ptr,bool block) {
     pid_t p = waitpid(pid, &status, block ? 0 : WNOHANG);
     int exit_code = (status & 0xFF00) >> 8;
     if (exit_code_ptr) {
-        *exit_code_ptr = (status & 0xFF00) >> 8;
+        *exit_code_ptr = exit_code;
     }
     if (p < 0) {
         WarnL << "waitpid failed, pid=" << pid << ", err=" << get_uv_errmsg();
