@@ -134,6 +134,26 @@ static uint8_t getObject(CodecId codecId){
     }
 }
 
+void MP4Muxer::stampSync(){
+    if(_codec_to_trackid.size() < 2){
+        return;
+    }
+
+    Stamp *audio = nullptr, *video = nullptr;
+    for(auto &pr : _codec_to_trackid){
+        switch (getTrackType((CodecId) pr.first)){
+            case TrackAudio : audio = &pr.second.stamp; break;
+            case TrackVideo : video = &pr.second.stamp; break;
+            default : break;
+        }
+    }
+
+    if(audio && video){
+        //音频时间戳同步于视频，因为音频时间戳被修改后不影响播放
+        audio->syncTo(*video);
+    }
+}
+
 void MP4Muxer::addTrack(const Track::Ptr &track) {
     auto mp4_object = getObject(track->getCodecId());
     if (!mp4_object) {
@@ -261,6 +281,9 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
 
         default: WarnL << "MP4录制不支持该编码格式:" << track->getCodecName(); break;
     }
+
+    //尝试音视频同步
+    stampSync();
 }
 
 }//namespace mediakit

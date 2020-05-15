@@ -69,9 +69,10 @@ public:
     void setPlayBack(bool playback = true);
 
     /**
-     * 产生关联,用于音视频同步用
+     * 音视频同步用，音频应该同步于视频(只修改音频时间戳)
+     * 因为音频时间戳修改后不影响播放速度
      */
-    void makeRelation(Stamp &other);
+    void syncTo(Stamp &other);
 
 private:
     void revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
@@ -81,7 +82,7 @@ private:
     int64_t _last_dts = 0;
     SmoothTicker _ticker;
     bool _playback = false;
-    Stamp *_related = nullptr;
+    Stamp *_sync_master = nullptr;
 };
 
 //dts生成器，
