@@ -105,40 +105,40 @@ private:
     void sendReceiverReport(bool overTcp,int iTrackIndex);
     void createUdpSockIfNecessary(int track_idx);
 private:
-    string _strUrl;
-    vector<SdpTrack::Ptr> _aTrackInfo;
-    function<void(const Parser&)> _onHandshake;
-    Socket::Ptr _apRtpSock[2]; //RTP端口,trackid idx 为数组下标
-    Socket::Ptr _apRtcpSock[2];//RTCP端口,trackid idx 为数组下标
+    string _play_url;
+    vector<SdpTrack::Ptr> _sdp_track;
+    function<void(const Parser&)> _on_response;
+    //RTP端口,trackid idx 为数组下标
+    Socket::Ptr _rtp_sock[2];
+    //RTCP端口,trackid idx 为数组下标
+    Socket::Ptr _rtcp_sock[2];
 
     //rtsp鉴权相关
-    string _rtspMd5Nonce;
-    string _rtspRealm;
+    string _md5_nonce;
+    string _realm;
     //rtsp info
-    string _strSession;
-    unsigned int _uiCseq = 1;
-    string _strContentBase;
-    Rtsp::eRtpType _eType = Rtsp::RTP_TCP;
+    string _session_id;
+    uint32_t _cseq_send = 1;
+    string _content_base;
+    Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
     /* 丢包率统计需要用到的参数 */
-    uint16_t _aui16FirstSeq[2] = { 0 , 0};
-    uint16_t _aui16NowSeq[2] = { 0 , 0 };
-    uint64_t _aui64RtpRecv[2] = { 0 , 0};
+    uint16_t _rtp_seq_start[2] = {0, 0};
+    uint16_t _rtp_seq_now[2] = {0, 0};
+    uint64_t _rtp_recv_count[2] = {0, 0};
+    //当前rtp时间戳
+    uint32_t _stamp[2] = {0, 0};
 
     //超时功能实现
-    Ticker _rtpTicker;
-    std::shared_ptr<Timer> _pPlayTimer;
-    std::shared_ptr<Timer> _pRtpTimer;
+    Ticker _rtp_recv_ticker;
+    std::shared_ptr<Timer> _play_check_timer;
+    std::shared_ptr<Timer> _rtp_check_timer;
 
-    //时间戳
-    Stamp _stamp[2];
+    //rtcp统计,trackid idx 为数组下标
+    RtcpCounter _rtcp_counter[2];
+    //rtcp发送时间,trackid idx 为数组下标
+    Ticker _rtcp_send_ticker[2];
 
-    //rtcp相关
-    RtcpCounter _aRtcpCnt[2]; //rtcp统计,trackid idx 为数组下标
-    Ticker _aRtcpTicker[2]; //rtcp发送时间,trackid idx 为数组下标
-
-    //是否为rtsp点播
-    bool _is_play_back;
     //是否为性能测试模式
     bool _benchmark_mode = false;
 
