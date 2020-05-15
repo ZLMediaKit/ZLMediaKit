@@ -264,7 +264,7 @@ public:
     void addDelegate(const FrameWriterInterface::Ptr &delegate){
         //_delegates_write可能多线程同时操作
         lock_guard<mutex> lck(_mtx);
-        _delegates_write.emplace(delegate.get(),delegate);
+        _delegates_write.emplace((void *)delegate.get(),delegate);
         _need_update = true;
     }
 
