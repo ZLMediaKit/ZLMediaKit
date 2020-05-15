@@ -233,11 +233,10 @@ static const char *getCodecName(int codec_id) {
 void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {
     pts /= 90;
     dts /= 90;
-    _stamps[codecid].revise(dts,pts,dts,pts,false);
+    _dts = dts;
 
     switch (codecid) {
         case PSI_STREAM_H264: {
-            _dts = dts;
             if (!_codecid_video) {
                 //获取到视频
                 _codecid_video = codecid;
@@ -262,7 +261,6 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         case PSI_STREAM_H265: {
-            _dts = dts;
             if (!_codecid_video) {
                 //获取到视频
                 _codecid_video = codecid;
@@ -285,7 +283,6 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         case PSI_STREAM_AAC: {
-            _dts = dts;
             if (!_codecid_audio) {
                 //获取到音频
                 _codecid_audio = codecid;
@@ -304,7 +301,6 @@ void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
 
         case PSI_STREAM_AUDIO_G711A:
         case PSI_STREAM_AUDIO_G711U: {
-            _dts = dts;
             auto codec = codecid  == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
             if (!_codecid_audio) {
                 //获取到音频
