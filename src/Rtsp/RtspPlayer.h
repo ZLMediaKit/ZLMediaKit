@@ -95,11 +95,11 @@ private:
     bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
     void handleResPAUSE(const Parser &parser, int type);
 
-    //发送SETUP命令
+    void sendOptions();
     void sendSetup(unsigned int uiTrackIndex);
     void sendPause(int type , uint32_t ms);
     void sendDescribe();
-    void sendGetParameter();
+    void sendKeepAlive();
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
     void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
     void sendReceiverReport(bool overTcp,int iTrackIndex);
@@ -141,6 +141,9 @@ private:
     bool _is_play_back;
     //是否为性能测试模式
     bool _benchmark_mode = false;
+
+    //服务器支持的命令
+    set<string> _supported_cmd;
 };
 
 } /* namespace mediakit */
