@@ -107,8 +107,7 @@ void RtspPlayer::onConnect(const SockException &err){
         onPlayResult_l(err,false);
         return;
     }
-
-    sendDescribe();
+    sendOptions();
 }
 
 void RtspPlayer::onRecv(const Buffer::Ptr& pBuf) {
@@ -162,7 +161,7 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
     string authInfo = parser["WWW-Authenticate"];
     //发送DESCRIBE命令后的回复
     if ((parser.Url() == "401") && handleAuthenticationFailure(authInfo)) {
-        sendDescribe();
+        sendOptions();
         return;
     }
     if(parser.Url() == "302" || parser.Url() == "301"){
@@ -358,9 +357,33 @@ void RtspPlayer::sendDescribe() {
     sendRtspRequest("DESCRIBE",_strUrl,{"Accept","application/sdp"});
 }
 
-void RtspPlayer::sendGetParameter(){
+void RtspPlayer::sendOptions(){
+    _onHandshake = [this](const Parser& parser){
+        if (parser.Url() != "200") {
+            throw std::runtime_error(StrPrinter << "OPTIONS:" << parser.Url() << " " << parser.Tail() << endl);
+        }
+        //获取服务器支持的命令
+        _supported_cmd.clear();
+        auto public_val = split(parser["Public"],",");
+        for(auto &cmd : public_val){
+            trim(cmd);
+            _supported_cmd.emplace(cmd);
+        }
+        //发送Describe请求，获取sdp
+        sendDescribe();
+    };
+    sendRtspRequest("OPTIONS",_strUrl);
+}
+
+void RtspPlayer::sendKeepAlive(){
     _onHandshake = [this](const Parser& parser){};
-    sendRtspRequest("GET_PARAMETER",_strUrl);
+    if(_supported_cmd.find("GET_PARAMETER") != _supported_cmd.end()){
+        //支持GET_PARAMETER，用此命令保活
+        sendRtspRequest("GET_PARAMETER",_strUrl);
+    }else{
+        //不支持GET_PARAMETER，用OPTIONS命令保活
+        sendRtspRequest("OPTIONS",_strUrl);
+    }
 }
 
 void RtspPlayer::sendPause(int type , uint32_t seekMS){
@@ -695,10 +718,10 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
 
 void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &track) {
     _rtpTicker.resetTime();
-    onRecvRTP(pkt,track);
+    onRecvRTP(pkt, track);
 
     int iTrackIndex = getTrackIndexByInterleaved(pkt->interleaved);
-    if(iTrackIndex == -1){
+    if (iTrackIndex == -1) {
         return;
     }
     RtcpCounter &counter = _aRtcpCnt[iTrackIndex];
@@ -708,14 +731,17 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &tra
         //send rtcp every 5 second
         counter.lastTimeStamp = counter.timeStamp;
         //直接保存网络字节序
-        memcpy(&counter.timeStamp, pkt->data() + 8 , 4);
-        if(counter.lastTimeStamp != 0){
-            sendReceiverReport(_eType == Rtsp::RTP_TCP,iTrackIndex);
+        memcpy(&counter.timeStamp, pkt->data() + 8, 4);
+        if (counter.lastTimeStamp != 0) {
+            sendReceiverReport(_eType == Rtsp::RTP_TCP, iTrackIndex);
             ticker.resetTime();
         }
 
         //有些rtsp服务器需要rtcp保活，有些需要发送信令保活
-        sendGetParameter();
+        if (iTrackIndex == 0) {
+            //只需要发送一次心跳信令包
+            sendKeepAlive();
+        }
     }
 }
 
