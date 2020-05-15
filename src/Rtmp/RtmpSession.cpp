@@ -267,7 +267,7 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
     });
 
     //音频同步于视频
-    _stamp[0].makeRelation( _stamp[1]);
+    _stamp[0].syncTo(_stamp[1]);
     _pRingReader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
     _pRingReader->setReadCB([weakSelf](const RtmpMediaSource::RingDataType &pkt) {

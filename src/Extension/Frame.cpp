@@ -76,8 +76,8 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
 }
 
 #define SWITCH_CASE(codec_id) case codec_id : return #codec_id
-const char *CodecInfo::getCodecName() {
-    switch (getCodecId()) {
+const char *getCodecName(CodecId codecId) {
+    switch (codecId) {
         SWITCH_CASE(CodecH264);
         SWITCH_CASE(CodecH265);
         SWITCH_CASE(CodecAAC);
@@ -88,8 +88,8 @@ const char *CodecInfo::getCodecName() {
     }
 }
 
-TrackType CodecInfo::getTrackType(){
-    switch (getCodecId()){
+TrackType getTrackType(CodecId codecId){
+    switch (codecId){
         case CodecH264:
         case CodecH265: return TrackVideo;
         case CodecAAC:
@@ -100,4 +100,11 @@ TrackType CodecInfo::getTrackType(){
     }
 }
 
+const char *CodecInfo::getCodecName() {
+    return mediakit::getCodecName(getCodecId());
+}
+
+TrackType CodecInfo::getTrackType() {
+    return mediakit::getTrackType(getCodecId());
+}
 }//namespace mediakit

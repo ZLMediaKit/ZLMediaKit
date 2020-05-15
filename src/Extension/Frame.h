@@ -41,6 +41,16 @@ typedef enum {
 } TrackType;
 
 /**
+ * 获取编码器名称
+ */
+const char *getCodecName(CodecId codecId);
+
+/**
+ * 获取音视频类型
+ */
+TrackType getTrackType(CodecId codecId);
+
+/**
  * 编码信息的抽象接口
  */
 class CodecInfo {

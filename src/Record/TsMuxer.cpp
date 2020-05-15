@@ -23,6 +23,26 @@ TsMuxer::~TsMuxer() {
     uninit();
 }
 
+void TsMuxer::stampSync(){
+    if(_codec_to_trackid.size() < 2){
+        return;
+    }
+
+    Stamp *audio = nullptr, *video = nullptr;
+    for(auto &pr : _codec_to_trackid){
+        switch (getTrackType((CodecId) pr.first)){
+            case TrackAudio : audio = &pr.second.stamp; break;
+            case TrackVideo : video = &pr.second.stamp; break;
+            default : break;
+        }
+    }
+
+    if(audio && video){
+        //音频时间戳同步于视频，因为音频时间戳被修改后不影响播放
+        audio->syncTo(*video);
+    }
+}
+
 void TsMuxer::addTrack(const Track::Ptr &track) {
     switch (track->getCodecId()) {
         case CodecH264: {
@@ -52,9 +72,11 @@ void TsMuxer::addTrack(const Track::Ptr &track) {
             break;
         }
 
-        default:
-            break;
+        default: WarnL << "mpeg-ts 不支持该编码格式,已忽略:" << track->getCodecName(); break;
     }
+
+    //尝试音视频同步
+    stampSync();
 }
 
 void TsMuxer::inputFrame(const Frame::Ptr &frame) {
