@@ -62,7 +62,6 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
     std::shared_ptr<FrameMerger> _merger;
     Ticker _last_rtp_time;
-    unordered_map<int,Stamp> _stamps;
     uint32_t _dts = 0;
     Decoder::Ptr _decoder;
     std::weak_ptr<MediaSourceEvent> _listener;
