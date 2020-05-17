@@ -228,6 +228,11 @@ private:
             }
                 break;
 
+            case H264Frame::NAL_SEI:{
+                //忽略SEI
+                break;
+            }
+
             default:
                 VideoTrack::inputFrame(frame);
                 break;
