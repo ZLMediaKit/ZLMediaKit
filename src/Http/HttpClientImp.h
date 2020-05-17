@@ -13,9 +13,7 @@
 
 #include "HttpClient.h"
 #include "Util/SSLBox.h"
-
 using namespace toolkit;
-
 namespace mediakit {
 
 class HttpClientImp: public TcpClientWithSSL<HttpClient> {
@@ -28,5 +26,4 @@ protected:
 };
 
 } /* namespace mediakit */
-
 #endif /* SRC_HTTP_HTTPCLIENTIMP_H_ */

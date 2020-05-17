@@ -12,9 +12,16 @@
 #include "PlayerBase.h"
 #include "Rtsp/RtspPlayerImp.h"
 #include "Rtmp/RtmpPlayerImp.h"
+#include "Http/HlsPlayer.h"
 using namespace toolkit;
 
 namespace mediakit {
+
+//字符串是否以xx结尾
+static bool end_of(const string &str, const string &substr){
+    auto pos = str.rfind(substr);
+    return pos != string::npos && pos == str.size() - substr.size();
+}
 
 PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const string &strUrl) {
     static auto releasePlayer = [](PlayerBase *ptr){
@@ -39,6 +46,10 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const st
 
     if (strcasecmp("rtmp",prefix.data()) == 0) {
         return PlayerBase::Ptr(new RtmpPlayerImp(poller),releasePlayer);
+    }
+
+    if (strcasecmp("http",prefix.data()) == 0 && end_of(strUrl, ".m3u8")) {
+        return PlayerBase::Ptr(new HlsPlayerImp(poller),releasePlayer);
     }
 
     return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
