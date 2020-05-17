@@ -8,34 +8,38 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#if defined(ENABLE_RTPPROXY)
-#include "mpeg-ts.h"
 #include "TSDecoder.h"
-#define TS_PACKET_SIZE 188
 namespace mediakit {
+
+bool TSSegment::isTSPacket(const char *data, int len){
+    return len == TS_PACKET_SIZE && ((uint8_t*)data)[0] == TS_SYNC_BYTE;
+}
 
 void TSSegment::setOnSegment(const TSSegment::onSegment &cb) {
     _onSegment = cb;
 }
 
 int64_t TSSegment::onRecvHeader(const char *data, uint64_t len) {
+    if (!isTSPacket(data, len)) {
+        WarnL << "不是ts包:" << (int) (data[0]) << " " << len;
+        return 0;
+    }
     _onSegment(data, len);
     return 0;
 }
 
 const char *TSSegment::onSearchPacketTail(const char *data, int len) {
     if (len < _size + 1) {
-        if (len == _size && ((uint8_t *) data)[0] == 0x47) {
+        if (len == _size && ((uint8_t *) data)[0] == TS_SYNC_BYTE) {
             return data + _size;
         }
         return nullptr;
     }
     //下一个包头
-    if (((uint8_t *) data)[_size] == 0x47) {
+    if (((uint8_t *) data)[_size] == TS_SYNC_BYTE) {
         return data + _size;
     }
-
-    auto pos = memchr(data + _size, 0x47, len - _size);
+    auto pos = memchr(data + _size, TS_SYNC_BYTE, len - _size);
     if (pos) {
         return (char *) pos;
     }
@@ -44,12 +48,10 @@ const char *TSSegment::onSearchPacketTail(const char *data, int len) {
 
 ////////////////////////////////////////////////////////////////
 
-TSDecoder::TSDecoder() : _ts_segment(TS_PACKET_SIZE) {
+#if defined(ENABLE_HLS)
+#include "mpeg-ts.h"
+TSDecoder::TSDecoder() : _ts_segment() {
     _ts_segment.setOnSegment([this](const char *data,uint64_t len){
-        if(((uint8_t*)data)[0] != 0x47 || len != TS_PACKET_SIZE ){
-            WarnL << "不是ts包:" << (int)(data[0]) << " " << len;
-            return;
-        }
         ts_demuxer_input(_demuxer_ctx,(uint8_t*)data,len);
     });
     _demuxer_ctx = ts_demuxer_create([](void* param, int program, int stream, int codecid, int flags, int64_t pts, int64_t dts, const void* data, size_t bytes){
@@ -66,8 +68,8 @@ TSDecoder::~TSDecoder() {
 }
 
 int TSDecoder::input(const uint8_t *data, int bytes) {
-    if(bytes == TS_PACKET_SIZE && ((uint8_t*)data)[0] == 0x47){
-        return ts_demuxer_input(_demuxer_ctx,(uint8_t*)data,bytes);
+    if (TSSegment::isTSPacket((char *)data, bytes)) {
+        return ts_demuxer_input(_demuxer_ctx, (uint8_t *) data, bytes);
     }
     _ts_segment.input((char*)data,bytes);
     return bytes;
@@ -76,6 +78,6 @@ int TSDecoder::input(const uint8_t *data, int bytes) {
 void TSDecoder::setOnDecode(const Decoder::onDecode &decode) {
     _on_decode = decode;
 }
+#endif//defined(ENABLE_HLS)
 
 }//namespace mediakit
-#endif//defined(ENABLE_RTPPROXY)
