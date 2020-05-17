@@ -254,7 +254,9 @@ void HlsPlayerImp::onAllTrackReady() {
 }
 
 void HlsPlayerImp::onPlayResult(const SockException &ex) {
-
+    if(ex){
+        PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(ex);
+    }
 }
 
 vector<Track::Ptr> HlsPlayerImp::getTracks(bool trackReady) const {
