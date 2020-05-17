@@ -116,7 +116,8 @@ int main(int argc, char *argv[]) {
         }
 
         AnyStorage::Ptr storage(new AnyStorage);
-        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([storage](const Frame::Ptr &frame) {
+        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([storage](const Frame::Ptr &frame_in) {
+            auto frame = Frame::getCacheAbleFrame(frame_in);
             SDLDisplayerHelper::Instance().doTask([frame,storage]() {
                 auto &decoder = (*storage)["decoder"];
                 auto &displayer = (*storage)["displayer"];
