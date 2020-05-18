@@ -48,7 +48,7 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const st
         return PlayerBase::Ptr(new RtmpPlayerImp(poller),releasePlayer);
     }
 
-    if (strcasecmp("http",prefix.data()) == 0 && end_of(strUrl, ".m3u8")) {
+    if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0) && end_of(strUrl, ".m3u8")) {
         return PlayerBase::Ptr(new HlsPlayerImp(poller),releasePlayer);
     }
 
