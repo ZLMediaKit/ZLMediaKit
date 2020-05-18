@@ -226,7 +226,7 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
         case CodecH264 : return std::make_shared<H264RtmpEncoder>(track);
         case CodecAAC : return std::make_shared<AACRtmpEncoder>(track);
         case CodecH265 : return std::make_shared<H265RtmpEncoder>(track);
-	    case CodecG711A :
+        case CodecG711A :
         case CodecG711U : return std::make_shared<G711RtmpEncoder>(track);
         default : WarnL << "暂不支持该CodecId:" << track->getCodecName(); return nullptr;
     }
