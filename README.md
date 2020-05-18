@@ -30,22 +30,21 @@
 
 ## 功能清单
 
-- RTSP
-  - RTSP 服务器，支持RTMP/MP4转RTSP
-  - RTSPS 服务器，支持亚马逊echo show这样的设备
-  - RTSP 播放器，支持RTSP代理，支持生成静音音频
-  - RTSP 推流客户端与服务器
+- RTSP[S]
+  - RTSP[S] 服务器，支持RTMP/MP4/HLS转RTSP[S],支持亚马逊echo show这样的设备
+  - RTSP[S] 播放器，支持RTSP代理，支持生成静音音频
+  - RTSP[S] 推流客户端与服务器
   - 支持 `rtp over udp` `rtp over tcp` `rtp over http` `rtp组播`  四种RTP传输方式 
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口
   - 支持H265编码
   - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
   - 支持任意编码格式的rtsp推流，只是除H264/H265/AAC/G711外无法转协议
 
-- RTMP
-  - RTMP 播放服务器，支持RTSP/MP4转RTMP
-  - RTMP 发布服务器，支持录制发布流
-  - RTMP 播放器，支持RTMP代理，支持生成静音音频
-  - RTMP 推流客户端
+- RTMP[S]
+  - RTMP[S] 播放服务器，支持RTSP/MP4/HLS转RTMP
+  - RTMP[S] 发布服务器，支持录制发布流
+  - RTMP[S] 播放器，支持RTMP代理，支持生成静音音频
+  - RTMP[S] 推流客户端
   - 支持http[s]-flv直播
   - 支持websocket-flv直播
   - 支持任意编码格式的rtmp推流，只是除H264/H265/AAC/G711外无法转协议
@@ -55,6 +54,7 @@
   - 支持HLS文件生成，自带HTTP文件服务器
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，实现丰富的业务逻辑
   - 支持完备的HLS用户追踪、播放统计等业务功能，可以实现HLS按需拉流等业务
+  - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
 
 - HTTP[S]
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`
