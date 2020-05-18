@@ -61,40 +61,6 @@ public:
     }
 };
 
-void get_file_path(const char *path, const char *file_name, char *file_path) {
-    strcpy(file_path, path);
-    if (file_path[strlen(file_path) - 1] != '/') {
-        strcat(file_path, "/");
-    }
-    strcat(file_path, file_name);
-}
-
-template <typename FUNC>
-void for_each_file(const char *path, FUNC &&func){
-    DIR *dir;
-    dirent *dir_info;
-    char file_path[PATH_MAX];
-    if (File::is_file(path)) {
-        func(path);
-        return;
-    }
-    if (File::is_dir(path)) {
-        if ((dir = opendir(path)) == NULL) {
-            closedir(dir);
-            return;
-        }
-        while ((dir_info = readdir(dir)) != NULL) {
-            if (File::is_special_dir(dir_info->d_name)) {
-                continue;
-            }
-            get_file_path(path, dir_info->d_name, file_path);
-            for_each_file(file_path,std::forward<FUNC>(func));
-        }
-        closedir(dir);
-        return;
-    }
-}
-
 static const char s_bom[] = "\xEF\xBB\xBF";
 
 void add_or_rm_bom(const char *file,bool rm_bom){
@@ -159,23 +125,26 @@ int main(int argc, char *argv[]) {
     bool no_filter = filter_set.find("*") != filter_set.end();
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
-    path = File::absolutePath(path, "");
-    for_each_file(path.data(),[&](const char *path){
-        if(!no_filter){
+    File::scanDir(path, [&](const string &path, bool isDir) {
+        if (isDir) {
+            return true;
+        }
+        if (!no_filter) {
             //开启了过滤器
-            auto pos = strstr(path,".");
-            if(pos == nullptr){
+            auto pos = strstr(path.data(), ".");
+            if (pos == nullptr) {
                 //没有后缀
-                return;
+                return true;
             }
             auto ext = pos + 1;
-            if(filter_set.find(ext) == filter_set.end()){
+            if (filter_set.find(ext) == filter_set.end()) {
                 //后缀不匹配
-                return;
+                return true;
             }
         }
         //该文件匹配
-        process_file(path,rm_bom);
-    });
+        process_file(path.data(), rm_bom);
+        return true;
+    }, true);
     return 0;
 }

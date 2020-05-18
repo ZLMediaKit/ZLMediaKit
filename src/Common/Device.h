@@ -43,9 +43,9 @@ public:
 class AudioInfo {
 public:
     CodecId codecId = CodecAAC;
-	int iChannel;
-	int iSampleBit;
-	int iSampleRate;
+    int iChannel;
+    int iSampleBit;
+    int iSampleRate;
 };
 
 /**
