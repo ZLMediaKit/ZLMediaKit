@@ -94,6 +94,7 @@ private:
     void handleResDESCRIBE(const Parser &parser);
     bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
     void handleResPAUSE(const Parser &parser, int type);
+    bool handleResponse(const string &cmd, const Parser &parser);
 
     void sendOptions();
     void sendSetup(unsigned int uiTrackIndex);
