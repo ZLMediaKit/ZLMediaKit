@@ -154,12 +154,12 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
     return false;
 }
 
-void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
+bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser){
     string authInfo = parser["WWW-Authenticate"];
     //发送DESCRIBE命令后的回复
     if ((parser.Url() == "401") && handleAuthenticationFailure(authInfo)) {
         sendOptions();
-        return;
+        return false;
     }
     if(parser.Url() == "302" || parser.Url() == "301"){
         auto newUrl = parser["Location"];
@@ -167,14 +167,19 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
             throw std::runtime_error("未找到Location字段(跳转url)");
         }
         play(newUrl);
-        return;
+        return false;
     }
     if (parser.Url() != "200") {
-        throw std::runtime_error(
-        StrPrinter << "DESCRIBE:" << parser.Url() << " " << parser.Tail() << endl);
+        throw std::runtime_error(StrPrinter << cmd << ":" << parser.Url() << " " << parser.Tail() << endl);
+    }
+    return true;
+}
+
+void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
+    if (!handleResponse("DESCRIBE", parser)) {
+        return;
     }
     _content_base = parser["Content-Base"];
-
     if(_content_base.empty()){
         _content_base = _play_url;
     }
@@ -351,8 +356,8 @@ void RtspPlayer::sendDescribe() {
 
 void RtspPlayer::sendOptions(){
     _on_response = [this](const Parser& parser){
-        if (parser.Url() != "200") {
-            throw std::runtime_error(StrPrinter << "OPTIONS:" << parser.Url() << " " << parser.Tail() << endl);
+        if (!handleResponse("OPTIONS", parser)) {
+            return;
         }
         //获取服务器支持的命令
         _supported_cmd.clear();
