@@ -53,7 +53,7 @@ public:
     typedef std::shared_ptr<DecoderImp> Ptr;
     ~DecoderImp() = default;
 
-    static Ptr createDecoder(Type type, const MediaSinkInterface::Ptr &sink);
+    static Ptr createDecoder(Type type, MediaSinkInterface *sink);
     int input(const uint8_t *data, int bytes);
 
 protected:
@@ -61,12 +61,12 @@ protected:
     void onFrame(const Frame::Ptr &frame);
 
 private:
-    DecoderImp(const Decoder::Ptr &decoder, const MediaSinkInterface::Ptr &sink);
+    DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink);
     void onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes);
 
 private:
     Decoder::Ptr _decoder;
-    MediaSinkInterface::Ptr _sink;
+    MediaSinkInterface *_sink;
     FrameMerger _merger;
     int _codecid_video = 0;
     int _codecid_audio = 0;
