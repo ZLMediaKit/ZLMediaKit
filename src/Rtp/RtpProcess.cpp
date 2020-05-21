@@ -152,11 +152,11 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
         if (checkTS(packet, bytes)) {
             //猜测是ts负载
             InfoP(this) << "judged to be TS";
-            _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, shared_from_this());
+            _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, this);
         } else {
             //猜测是ps负载
             InfoP(this) << "judged to be PS";
-            _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ps, shared_from_this());
+            _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ps, this);
         }
     }
 

@@ -241,7 +241,7 @@ void HlsPlayerImp::onPacket(const char *data,uint64_t len) {
     }
 
     if (!_decoder) {
-        _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, dynamic_pointer_cast<HlsPlayerImp>(shared_from_this()));
+        _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, this);
     }
 
     if (_decoder) {

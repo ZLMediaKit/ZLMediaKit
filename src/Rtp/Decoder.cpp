@@ -42,7 +42,7 @@ static Decoder::Ptr createDecoder_l(DecoderImp::Type type) {
 
 /////////////////////////////////////////////////////////////
 
-DecoderImp::Ptr DecoderImp::createDecoder(Type type, const MediaSinkInterface::Ptr &sink){
+DecoderImp::Ptr DecoderImp::createDecoder(Type type, MediaSinkInterface *sink){
     auto decoder =  createDecoder_l(type);
     if(!decoder){
         return nullptr;
@@ -54,7 +54,7 @@ int DecoderImp::input(const uint8_t *data, int bytes){
     return _decoder->input(data, bytes);
 }
 
-DecoderImp::DecoderImp(const Decoder::Ptr &decoder,const MediaSinkInterface::Ptr &sink){
+DecoderImp::DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink){
     _decoder = decoder;
     _sink = sink;
     _decoder->setOnDecode([this](int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes){
