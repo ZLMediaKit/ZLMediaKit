@@ -199,7 +199,7 @@ public:
      */
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-        if(frame->configFrame()){
+        if(frame->configFrame() || type == H265Frame::NAL_SEI_PREFIX){
             splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, int len, int prefix){
                 H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame, (char*)ptr, len, prefix);
                 inputFrame_l(sub_frame);
