@@ -39,6 +39,10 @@ set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
 INCLUDE_DIRECTORIES(${MediaKit_Root})
+INCLUDE_DIRECTORIES(${MediaServer_Root}/libmpeg/include)
+INCLUDE_DIRECTORIES(${MediaServer_Root}/libmov/include)
+INCLUDE_DIRECTORIES(${MediaServer_Root}/libflv/include)
+INCLUDE_DIRECTORIES(${MediaServer_Root}/librtp/include)
 
 set(ENABLE_HLS true)
 set(ENABLE_OPENSSL true)
@@ -106,7 +110,6 @@ if(ENABLE_HLS)
 
     aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
     aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
-    include_directories(${MediaServer_Root}/libmpeg/include)
 
     add_library(mpeg STATIC ${src_mpeg})
     list(APPEND LINK_LIB_LIST mpeg)
@@ -123,11 +126,9 @@ if(ENABLE_MP4)
 
     aux_source_directory(${MediaServer_Root}/libmov/include src_mov)
     aux_source_directory(${MediaServer_Root}/libmov/source src_mov)	
-	include_directories(${MediaServer_Root}/libmov/include)
 
     aux_source_directory(${MediaServer_Root}/libflv/include src_flv)
     aux_source_directory(${MediaServer_Root}/libflv/source src_flv)	
-	include_directories(${MediaServer_Root}/libflv/include)
 
     add_library(mov STATIC ${src_mov})
 	add_library(flv STATIC ${src_flv})
@@ -144,7 +145,6 @@ if(ENABLE_RTPPROXY AND ENABLE_HLS)
     aux_source_directory(${MediaServer_Root}/librtp/include src_rtp)
     aux_source_directory(${MediaServer_Root}/librtp/source src_rtp)
     aux_source_directory(${MediaServer_Root}/librtp/payload src_rtp)
-    include_directories(${MediaServer_Root}/librtp/include)
     add_library(rtp STATIC ${src_rtp})
     add_definitions(-DENABLE_RTPPROXY)
     list(APPEND LINK_LIB_LIST rtp)
