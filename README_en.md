@@ -15,18 +15,18 @@
 
 ## Features
 
-- RTSP
+- RTSP[S]
   - RTSP[S] server,support rtsp push.
-  - RTSP player and pusher.
+  - RTSP[S] player and pusher.
   - RTP Transport : `rtp over udp` `rtp over tcp` `rtp over http` `rtp udp multicast` .
   - Basic/Digest/Url Authentication.
   - H264/H265/AAC/G711 codec.
   - Recorded as mp4.
   - Vod of mp4.
   
-- RTMP
-  - RTMP server,support player and pusher.
-  - RTMP player and pusher.
+- RTMP[S]
+  - RTMP[S] server,support player and pusher.
+  - RTMP[S] player and pusher.
   - Support HTTP-FLV player.
   - H264/H265/AAC/G711 codec.
   - Recorded as flv or mp4.
@@ -36,6 +36,7 @@
 - HLS
   - RTSP RTMP can be converted into HLS,built-in HTTP server.
   - Play authentication based on cookie.
+  - Support HLS player, support streaming HLS proxy to RTSP / RTMP / MP4.
 
 - HTTP[S]
   - HTTP server,suppor directory meun、RESTful http api.
@@ -53,6 +54,7 @@
   - Play and push authentication.
   - Pull stream on Demand.
   - Support TS / PS streaming push through RTP,and it can be converted to RTSP / RTMP / HLS / FLV.
+  - Support real-time online screenshot http api.
 
 
 - Protocol conversion:
@@ -67,6 +69,7 @@
 |           RTMP --> MP4           |  Y   |  Y   |  Y   |   N   |
 |         MP4 --> RTSP[S]          |  Y   |  Y   |  Y   |   N   |
 |           MP4 --> RTMP           |  Y   |  Y   |  Y   |   N   |
+|           HLS --> RTSP/RTMP/MP4  |  Y   |  Y   |  Y   |   N   |
 
 - Stream generation：
 
@@ -106,7 +109,7 @@
 | RTMP Pusher |  Y   |
 |   HTTP[S]   |  Y   |
 | WebSocket[S] |  Y   |
-
+| HLS player |  Y   |
 
 
 ## System Requirements
