@@ -765,7 +765,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 void RtspSession::handleReq_Play(const Parser &parser) {
     if (_aTrackInfo.empty() || parser["Session"] != _strSession) {
         send_SessionNotFound();
-        throw SockException(Err_shutdown,_aTrackInfo.empty() ? "can not find any availabe track when play" : "session not found when play");
+        throw SockException(Err_shutdown,_aTrackInfo.empty() ? "can not find any available track when play" : "session not found when play");
     }
     auto pMediaSrc = _pMediaSrc.lock();
     if(!pMediaSrc){
