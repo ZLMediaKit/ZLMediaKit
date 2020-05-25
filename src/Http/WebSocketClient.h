@@ -193,7 +193,7 @@ protected:
     //WebSocketSplitter override
 
     /**
-     * 收到一个webSocket数据包包头，后续将继续触发onWebSocketDecodePlayload回调
+     * 收到一个webSocket数据包包头，后续将继续触发onWebSocketDecodePayload回调
      * @param header 数据包头
      */
     void onWebSocketDecodeHeader(const WebSocketHeader &header) override{
@@ -205,9 +205,9 @@ protected:
      * @param header 数据包包头
      * @param ptr 负载数据指针
      * @param len 负载数据长度
-     * @param recved 已接收数据长度(包含本次数据长度)，等于header._playload_len时则接受完毕
+     * @param recved 已接收数据长度(包含本次数据长度)，等于header._payload_len时则接受完毕
      */
-    void onWebSocketDecodePlayload(const WebSocketHeader &header, const uint8_t *ptr, uint64_t len, uint64_t recved) override{
+    void onWebSocketDecodePayload(const WebSocketHeader &header, const uint8_t *ptr, uint64_t len, uint64_t recved) override{
         _payload.append((char *)ptr,len);
     }
 

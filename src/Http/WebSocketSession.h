@@ -161,7 +161,7 @@ protected:
      * @param len
      * @param recved
      */
-    void onWebSocketDecodePlayload(const WebSocketHeader &packet,const uint8_t *ptr,uint64_t len,uint64_t recved) override {
+    void onWebSocketDecodePayload(const WebSocketHeader &packet,const uint8_t *ptr,uint64_t len,uint64_t recved) override {
         _remian_data.append((char *)ptr,len);
     }
 

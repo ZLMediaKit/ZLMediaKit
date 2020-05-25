@@ -115,7 +115,7 @@ RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
     }
     auto mtu = (sdp->getTrackType() == TrackVideo ? video_mtu : audio_mtu);
     auto sample_rate = sdp->getSampleRate();
-    auto pt = sdp->getPlayloadType();
+    auto pt = sdp->getPayloadType();
     auto interleaved = sdp->getTrackType() * 2;
     auto codec_id = sdp->getCodecId();
     switch (codec_id){

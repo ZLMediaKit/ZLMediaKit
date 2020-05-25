@@ -173,21 +173,21 @@ public:
      * 构造函数
      * @param aac_cfg aac两个字节的配置描述
      * @param sample_rate 音频采样率
-     * @param playload_type rtp playload type 默认98
+     * @param payload_type rtp payload type 默认98
      * @param bitrate 比特率
      */
     AACSdp(const string &aac_cfg,
            int sample_rate,
            int channels,
-           int playload_type = 98,
-           int bitrate = 128) : Sdp(sample_rate,playload_type){
-        _printer << "m=audio 0 RTP/AVP " << playload_type << "\r\n";
+           int payload_type = 98,
+           int bitrate = 128) : Sdp(sample_rate,payload_type){
+        _printer << "m=audio 0 RTP/AVP " << payload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << " MPEG4-GENERIC/" << sample_rate << "/" << channels << "\r\n";
+        _printer << "a=rtpmap:" << payload_type << " MPEG4-GENERIC/" << sample_rate << "/" << channels << "\r\n";
 
         char configStr[32] = {0};
         snprintf(configStr, sizeof(configStr), "%02X%02X", (uint8_t)aac_cfg[0], (uint8_t)aac_cfg[1]);
-        _printer << "a=fmtp:" << playload_type << " streamtype=5;profile-level-id=1;mode=AAC-hbr;"
+        _printer << "a=fmtp:" << payload_type << " streamtype=5;profile-level-id=1;mode=AAC-hbr;"
                  << "sizelength=13;indexlength=3;indexdeltalength=3;config=" << configStr << "\r\n";
         _printer << "a=control:trackID=" << (int)TrackAudio << "\r\n";
     }

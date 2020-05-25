@@ -83,16 +83,16 @@ public:
      * G711采样率固定为8000
      * @param codecId G711A G711U
      * @param sample_rate 音频采样率
-     * @param playload_type rtp playload
+     * @param payload_type rtp payload
      * @param bitrate 比特率
      */
     G711Sdp(CodecId codecId,
             int sample_rate,
             int channels,
-            int playload_type = 98,
-            int bitrate = 128) : Sdp(sample_rate,playload_type), _codecId(codecId){
-        _printer << "m=audio 0 RTP/AVP " << playload_type << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << (codecId == CodecG711A ? " PCMA/" : " PCMU/") << sample_rate  << "/" << channels << "\r\n";
+            int payload_type = 98,
+            int bitrate = 128) : Sdp(sample_rate,payload_type), _codecId(codecId){
+        _printer << "m=audio 0 RTP/AVP " << payload_type << "\r\n";
+        _printer << "a=rtpmap:" << payload_type << (codecId == CodecG711A ? " PCMA/" : " PCMU/") << sample_rate  << "/" << channels << "\r\n";
         _printer << "a=control:trackID=" << (int)TrackAudio << "\r\n";
     }
 

@@ -188,11 +188,11 @@ public:
     /**
      * 构造sdp
      * @param sample_rate 采样率
-     * @param playload_type pt类型
+     * @param payload_type pt类型
      */
-    Sdp(uint32_t sample_rate, uint8_t playload_type){
+    Sdp(uint32_t sample_rate, uint8_t payload_type){
         _sample_rate = sample_rate;
-        _playload_type = playload_type;
+        _payload_type = payload_type;
     }
 
     virtual ~Sdp(){}
@@ -207,8 +207,8 @@ public:
      * 获取pt
      * @return
      */
-    uint8_t getPlayloadType() const{
-        return _playload_type;
+    uint8_t getPayloadType() const{
+        return _payload_type;
     }
 
     /**
@@ -219,7 +219,7 @@ public:
         return _sample_rate;
     }
 private:
-    uint8_t _playload_type;
+    uint8_t _payload_type;
     uint32_t _sample_rate;
 };
 
