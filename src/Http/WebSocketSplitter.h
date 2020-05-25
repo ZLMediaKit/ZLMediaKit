@@ -44,7 +44,12 @@ public:
         CONTROL_RSVF = 0xF
     } Type;
 public:
-    WebSocketHeader() : _mask(4){}
+    WebSocketHeader() : _mask(4){
+        //获取_mask内部buffer的内存地址，该内存是malloc开辟的，地址为随机
+        uint64_t ptr = (uint64_t)(&_mask[0]);
+        //根据内存地址设置掩码随机数
+        _mask.assign((uint8_t*)(&ptr), (uint8_t*)(&ptr) + 4);
+    }
     virtual ~WebSocketHeader(){}
 public:
     bool _fin;
