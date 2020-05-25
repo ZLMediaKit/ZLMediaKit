@@ -318,38 +318,80 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
     }
 }
 
-void RtspSession::handleReq_Describe(const Parser &parser) {
+void RtspSession::emitOnPlay(){
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    //url鉴权回调
+    auto onRes = [weakSelf](const string &err) {
+        auto strongSelf = weakSelf.lock();
+        if (!strongSelf) {
+            return;
+        }
+        if (!err.empty()) {
+            //播放url鉴权失败
+            strongSelf->sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
+            strongSelf->shutdown(SockException(Err_shutdown, StrPrinter << "401 Unauthorized:" << err));
+            return;
+        }
+        strongSelf->onAuthSuccess();
+    };
+
+    Broadcast::AuthInvoker invoker = [weakSelf, onRes](const string &err) {
+        auto strongSelf = weakSelf.lock();
+        if (!strongSelf) {
+            return;
+        }
+        strongSelf->async([onRes, err, weakSelf]() {
+            onRes(err);
+        });
+    };
+
+    //广播通用播放url鉴权事件
+    auto flag = _emit_on_play ? false : NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _mediaInfo, invoker, static_cast<SockInfo &>(*this));
+    if (!flag) {
+        //该事件无人监听,默认不鉴权
+        onRes("");
+    }
+    //已经鉴权过了
+    _emit_on_play = true;
+}
+
+void RtspSession::handleReq_Describe(const Parser &parser) {
     //该请求中的认证信息
     auto authorization = parser["Authorization"];
-    onGetRealm invoker = [weakSelf,authorization](const string &realm){
+    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    //rtsp专属鉴权是否开启事件回调
+    onGetRealm invoker = [weakSelf, authorization](const string &realm) {
         auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
+        if (!strongSelf) {
             //本对象已经销毁
             return;
         }
         //切换到自己的线程然后执行
-        strongSelf->async([weakSelf,realm,authorization](){
+        strongSelf->async([weakSelf, realm, authorization]() {
             auto strongSelf = weakSelf.lock();
-            if(!strongSelf){
+            if (!strongSelf) {
                 //本对象已经销毁
                 return;
             }
-            if(realm.empty()){
-                //无需认证,回复sdp
-                strongSelf->onAuthSuccess();
+            if (realm.empty()) {
+                //无需rtsp专属认证, 那么继续url通用鉴权认证(on_play)
+                strongSelf->emitOnPlay();
                 return;
             }
-            //该流需要认证
-            strongSelf->onAuthUser(realm,authorization);
+            //该流需要rtsp专属认证，开启rtsp专属认证后，将不再触发url通用鉴权认证(on_play)
+            strongSelf->_rtsp_realm = realm;
+            strongSelf->onAuthUser(realm, authorization);
         });
-
     };
 
-    //广播是否需要认证事件
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm,_mediaInfo,invoker,static_cast<SockInfo &>(*this))){
-        //无人监听此事件，说明无需认证
-        invoker("");
+    if(_rtsp_realm.empty()){
+        //广播是否需要rtsp专属认证事件
+        if (!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm, _mediaInfo, invoker, static_cast<SockInfo &>(*this))) {
+            //无人监听此事件，说明无需认证
+            invoker("");
+        }
+    }else{
+        invoker(_rtsp_realm);
     }
 }
 void RtspSession::onAuthSuccess() {
@@ -725,113 +767,75 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         send_SessionNotFound();
         throw SockException(Err_shutdown,_aTrackInfo.empty() ? "can not find any availabe track when play" : "session not found when play");
     }
+    auto pMediaSrc = _pMediaSrc.lock();
+    if(!pMediaSrc){
+        send_StreamNotFound();
+        shutdown(SockException(Err_shutdown,"rtsp stream released"));
+        return;
+    }
+
+    bool useBuf = true;
+    _enableSendRtp = false;
+    float iStartTime = 0;
     auto strRange = parser["Range"];
-    auto onRes = [this,strRange](const string &err){
-        bool authSuccess = err.empty();
-        if(!authSuccess){
-            //第一次play是播放，否则是恢复播放。只对播放鉴权
-            sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
-            shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << err));
+    if (strRange.size()) {
+        //这个是seek操作
+        auto strStart = FindField(strRange.data(), "npt=", "-");
+        if (strStart == "now") {
+            strStart = "0";
+        }
+        iStartTime = 1000 * atof(strStart.data());
+        InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
+        useBuf = !pMediaSrc->seekTo(iStartTime);
+    } else if (pMediaSrc->totalReaderCount() == 0) {
+        //第一个消费者
+        pMediaSrc->seekTo(0);
+    }
+
+    _StrPrinter rtp_info;
+    for (auto &track : _aTrackInfo) {
+        if (track->_inited == false) {
+            //还有track没有setup
+            shutdown(SockException(Err_shutdown, "track not setuped"));
             return;
         }
+        track->_ssrc = pMediaSrc->getSsrc(track->_type);
+        track->_seq = pMediaSrc->getSeqence(track->_type);
+        track->_time_stamp = pMediaSrc->getTimeStamp(track->_type);
 
-        auto pMediaSrc = _pMediaSrc.lock();
-        if(!pMediaSrc){
-            send_StreamNotFound();
-            shutdown(SockException(Err_shutdown,"rtsp stream released"));
-            return;
-        }
+        rtp_info << "url=" << _strContentBase << "/" << track->_control_surffix << ";"
+                 << "seq=" << track->_seq << ";"
+                 << "rtptime=" << (int) (track->_time_stamp * (track->_samplerate / 1000)) << ",";
+    }
 
-        bool useBuf = true;
-        _enableSendRtp = false;
-        float iStartTime = 0;
-        if (strRange.size() && !_bFirstPlay) {
-            //这个是seek操作
-            auto strStart = FindField(strRange.data(), "npt=", "-");
-            if (strStart == "now") {
-                strStart = "0";
-            }
-            iStartTime = 1000 * atof(strStart.data());
-            InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
-            useBuf = !pMediaSrc->seekTo(iStartTime);
-        }else if(pMediaSrc->totalReaderCount() == 0){
-            //第一个消费者
-            pMediaSrc->seekTo(0);
-        }
-        _bFirstPlay = false;
+    rtp_info.pop_back();
+    sendRtspResponse("200 OK",
+                     {"Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << (useBuf? pMediaSrc->getTimeStamp(TrackInvalid) / 1000.0 : iStartTime / 1000),
+                      "RTP-Info",rtp_info
+                     });
 
-        _StrPrinter rtp_info;
-        for(auto &track : _aTrackInfo){
-            if (track->_inited == false) {
-                //还有track没有setup
-                shutdown(SockException(Err_shutdown,"track not setuped"));
-                return;
-            }
-            track->_ssrc = pMediaSrc->getSsrc(track->_type);
-            track->_seq = pMediaSrc->getSeqence(track->_type);
-            track->_time_stamp = pMediaSrc->getTimeStamp(track->_type);
+    _enableSendRtp = true;
+    setSocketFlags();
 
-            rtp_info << "url=" << _strContentBase << "/" << track->_control_surffix << ";"
-                     << "seq=" << track->_seq << ";"
-                     << "rtptime=" << (int)(track->_time_stamp * (track->_samplerate / 1000)) << ",";
-        }
-
-        rtp_info.pop_back();
-
-        sendRtspResponse("200 OK",
-                         {"Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << (useBuf? pMediaSrc->getTimeStamp(TrackInvalid) / 1000.0 : iStartTime / 1000),
-                          "RTP-Info",rtp_info
-                         });
-
-        _enableSendRtp = true;
-        setSocketFlags();
-
-        if (!_pRtpReader && _rtpType != Rtsp::RTP_MULTICAST) {
-            weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-            _pRtpReader = pMediaSrc->getRing()->attach(getPoller(),useBuf);
-            _pRtpReader->setDetachCB([weakSelf]() {
-                auto strongSelf = weakSelf.lock();
-                if(!strongSelf) {
-                    return;
-                }
-                strongSelf->shutdown(SockException(Err_shutdown,"rtsp ring buffer detached"));
-            });
-            _pRtpReader->setReadCB([weakSelf](const RtspMediaSource::RingDataType &pack) {
-                auto strongSelf = weakSelf.lock();
-                if(!strongSelf) {
-                    return;
-                }
-                if(strongSelf->_enableSendRtp) {
-                    strongSelf->sendRtpPacket(pack);
-                }
-            });
-        }
-    };
-
-    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weakSelf,onRes](const string &err){
-        auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
-            return;
-        }
-        strongSelf->async([weakSelf,onRes,err](){
+    if (!_pRtpReader && _rtpType != Rtsp::RTP_MULTICAST) {
+        weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+        _pRtpReader = pMediaSrc->getRing()->attach(getPoller(), useBuf);
+        _pRtpReader->setDetachCB([weakSelf]() {
             auto strongSelf = weakSelf.lock();
-            if(!strongSelf){
+            if (!strongSelf) {
                 return;
             }
-            onRes(err);
+            strongSelf->shutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
-    };
-    if(_bFirstPlay){
-        //第一次收到play命令，需要鉴权
-        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,_mediaInfo,invoker,static_cast<SockInfo &>(*this));
-        if(!flag){
-            //该事件无人监听,默认不鉴权
-            onRes("");
-        }
-    }else{
-        //后面是seek或恢复命令，不需要鉴权
-        onRes("");
+        _pRtpReader->setReadCB([weakSelf](const RtspMediaSource::RingDataType &pack) {
+            auto strongSelf = weakSelf.lock();
+            if (!strongSelf) {
+                return;
+            }
+            if (strongSelf->_enableSendRtp) {
+                strongSelf->sendRtpPacket(pack);
+            }
+        });
     }
 }
 
