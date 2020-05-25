@@ -96,26 +96,28 @@ int main(int argc, char *argv[]) {
 
     SSL_Initor::Instance().loadCertificate((exeDir() + "ssl.p12").data());
 
-    TcpServer::Ptr httpSrv(new TcpServer());
-    //http服务器,支持websocket
-    httpSrv->start<WebSocketSessionBase<EchoSessionCreator,HttpSession> >(80);//默认80
+    {
+        TcpServer::Ptr httpSrv(new TcpServer());
+        //http服务器,支持websocket
+        httpSrv->start<WebSocketSessionBase<EchoSessionCreator, HttpSession> >(80);//默认80
 
-    TcpServer::Ptr httpsSrv(new TcpServer());
-    //https服务器,支持websocket
-    httpsSrv->start<WebSocketSessionBase<EchoSessionCreator,HttpsSession> >(443);//默认443
+        TcpServer::Ptr httpsSrv(new TcpServer());
+        //https服务器,支持websocket
+        httpsSrv->start<WebSocketSessionBase<EchoSessionCreator, HttpsSession> >(443);//默认443
 
-    TcpServer::Ptr httpSrvOld(new TcpServer());
-    //兼容之前的代码(但是不支持根据url选择生成TcpSession类型)
-    httpSrvOld->start<WebSocketSession<EchoSession,HttpSession> >(8080);
+        TcpServer::Ptr httpSrvOld(new TcpServer());
+        //兼容之前的代码(但是不支持根据url选择生成TcpSession类型)
+        httpSrvOld->start<WebSocketSession<EchoSession, HttpSession> >(8080);
 
-    DebugL << "请打开网页:http://www.websocket-test.com/,进行测试";
-    DebugL << "连接 ws://127.0.0.1/xxxx，ws://127.0.0.1/ 测试的效果将不同，支持根据url选择不同的处理逻辑";
+        DebugL << "请打开网页:http://www.websocket-test.com/,进行测试";
+        DebugL << "连接 ws://127.0.0.1/xxxx，ws://127.0.0.1/ 测试的效果将不同，支持根据url选择不同的处理逻辑";
 
+        //设置退出信号处理函数
+        static semaphore sem;
+        signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
+        sem.wait();
+    }
 
-    //设置退出信号处理函数
-    static semaphore sem;
-    signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
-    sem.wait();
     return 0;
 }
 
