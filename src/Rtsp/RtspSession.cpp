@@ -240,6 +240,12 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         _mediaInfo.parse(full_url);
     }
 
+    if(_mediaInfo._app.empty() || _mediaInfo._streamid.empty()){
+        //推流rtsp url必须最少两级(rtsp://host/app/stream_id)，不允许莫名其妙的推流url
+        sendRtspResponse("403 Forbidden", {"Content-Type", "text/plain"}, "rtsp推流url非法,最少确保两级rtsp url");
+        throw SockException(Err_shutdown,StrPrinter << "rtsp推流url非法:" << full_url);
+    }
+
     SdpParser sdpParser(parser.Content());
     _strSession = makeRandStr(12);
     _aTrackInfo = sdpParser.getAvailableTrack();

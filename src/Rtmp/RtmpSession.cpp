@@ -158,6 +158,12 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         setSocketFlags();
     };
 
+    if(_mediaInfo._app.empty() || _mediaInfo._streamid.empty()){
+        //不允许莫名其妙的推流url
+        onRes("rtmp推流url非法", false, false, false);
+        return;
+    }
+
     Broadcast::PublishAuthInvoker invoker = [weakSelf,onRes,pToken](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
