@@ -94,6 +94,20 @@ public:
         _onRecv = nullptr;
         sendRequest(http_url,fTimeOutSec);
     }
+
+    void closeWsClient(){
+        if(!_onRecv){
+            //未连接
+            return;
+        }
+        WebSocketHeader header;
+        header._fin = true;
+        header._reserved = 0;
+        header._opcode = CLOSE;
+        //客户端需要加密
+        header._mask_flag = true;
+        WebSocketSplitter::encode(header, nullptr);
+    }
 protected:
     //HttpClientImp override
 
@@ -328,7 +342,9 @@ public:
     WebSocketClient(ArgsType &&...args) : ClientTypeImp<ClientType,DataType>(std::forward<ArgsType>(args)...){
         _wsClient.reset(new HttpWsClient<ClientType,DataType>(*this));
     }
-    ~WebSocketClient() override {}
+    ~WebSocketClient() override {
+        _wsClient->closeWsClient();
+    }
 
     /**
      * 重载startConnect方法，
