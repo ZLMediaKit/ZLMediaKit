@@ -178,6 +178,7 @@ public:
 private:
     MultiMuxerPrivate::Ptr _muxer;
     std::weak_ptr<MediaSourceEvent> _listener;
+    Stamp _stamp[2];
 };
 
 }//namespace mediakit
