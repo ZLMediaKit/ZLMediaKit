@@ -62,13 +62,13 @@ public:
      * @param ui32Ssrc ssrc
      * @param ui32MtuSize mtu大小
      * @param ui32SampleRate 采样率，强制为90000
-     * @param ui8PlayloadType pt类型
+     * @param ui8PayloadType pt类型
      * @param ui8Interleaved rtsp interleaved
      */
     H264RtpEncoder(uint32_t ui32Ssrc,
                    uint32_t ui32MtuSize = 1400,
                    uint32_t ui32SampleRate = 90000,
-                   uint8_t ui8PlayloadType = 96,
+                   uint8_t ui8PayloadType = 96,
                    uint8_t ui8Interleaved = TrackVideo * 2);
     ~H264RtpEncoder() {}
 

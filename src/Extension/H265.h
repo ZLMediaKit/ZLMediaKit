@@ -315,19 +315,19 @@ public:
      * 构造函数
      * @param sps 265 sps,不带0x00000001头
      * @param pps 265 pps,不带0x00000001头
-     * @param playload_type  rtp playload type 默认96
+     * @param payload_type  rtp payload type 默认96
      * @param bitrate 比特率
      */
     H265Sdp(const string &strVPS,
             const string &strSPS,
             const string &strPPS,
-            int playload_type = 96,
-            int bitrate = 4000) : Sdp(90000,playload_type) {
+            int payload_type = 96,
+            int bitrate = 4000) : Sdp(90000,payload_type) {
         //视频通道
-        _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
+        _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << " H265/" << 90000 << "\r\n";
-        _printer << "a=fmtp:" << playload_type << " ";
+        _printer << "a=rtpmap:" << payload_type << " H265/" << 90000 << "\r\n";
+        _printer << "a=fmtp:" << payload_type << " ";
         _printer << "sprop-vps=";
         _printer << encodeBase64(strVPS) << "; ";
         _printer << "sprop-sps=";

@@ -72,16 +72,16 @@ begin_decode:
 
         CHECK_LEN(1);
         _mask_flag = (*ptr & 0x80) >> 7;
-        _playload_len = (*ptr & 0x7F);
+        _payload_len = (*ptr & 0x7F);
         ptr += 1;
 
-        if (_playload_len == 126) {
+        if (_payload_len == 126) {
             CHECK_LEN(2);
-            _playload_len = (*ptr << 8) | *(ptr + 1);
+            _payload_len = (*ptr << 8) | *(ptr + 1);
             ptr += 2;
-        } else if (_playload_len == 127) {
+        } else if (_payload_len == 127) {
             CHECK_LEN(8);
-            _playload_len = ((uint64_t) ptr[0] << (8 * 7)) |
+            _payload_len = ((uint64_t) ptr[0] << (8 * 7)) |
                             ((uint64_t) ptr[1] << (8 * 6)) |
                             ((uint64_t) ptr[2] << (8 * 5)) |
                             ((uint64_t) ptr[3] << (8 * 4)) |
@@ -98,9 +98,9 @@ begin_decode:
         }
         _got_header = true;
         _mask_offset = 0;
-        _playload_offset = 0;
+        _payload_offset = 0;
         onWebSocketDecodeHeader(*this);
-        if(_playload_len == 0){
+        if(_payload_len == 0){
             onWebSocketDecodeComplete(*this);
         }
     }
@@ -109,19 +109,19 @@ begin_decode:
 
     uint64_t remain = len - (ptr - data);
     if(remain > 0){
-        uint64_t playload_slice_len = remain;
-        if(playload_slice_len + _playload_offset > _playload_len){
-            playload_slice_len = _playload_len - _playload_offset;
+        uint64_t payload_slice_len = remain;
+        if(payload_slice_len + _payload_offset > _payload_len){
+            payload_slice_len = _payload_len - _payload_offset;
         }
-        _playload_offset += playload_slice_len;
-        onPlayloadData(ptr,playload_slice_len);
+        _payload_offset += payload_slice_len;
+        onPayloadData(ptr, payload_slice_len);
 
-        if(_playload_offset == _playload_len){
+        if(_payload_offset == _payload_len){
             onWebSocketDecodeComplete(*this);
 
             //这是下一个包
-            remain -= playload_slice_len;
-            ptr += playload_slice_len;
+            remain -= payload_slice_len;
+            ptr += payload_slice_len;
             _got_header = false;
 
             if(remain > 0){
@@ -138,14 +138,14 @@ begin_decode:
     _remain_data.clear();
 }
 
-void WebSocketSplitter::onPlayloadData(uint8_t *ptr, uint64_t len) {
+void WebSocketSplitter::onPayloadData(uint8_t *data, uint64_t len) {
     if(_mask_flag){
-        for(int i = 0; i < len ; ++i,++ptr){
-            *(ptr) ^= _mask[(i + _mask_offset) % 4];
+        for(int i = 0; i < len ; ++i,++data){
+            *(data) ^= _mask[(i + _mask_offset) % 4];
         }
         _mask_offset = (_mask_offset + len) % 4;
     }
-    onWebSocketDecodePlayload(*this, _mask_flag ? ptr - len : ptr, len, _playload_offset);
+    onWebSocketDecodePayload(*this, _mask_flag ? data - len : data, len, _payload_offset);
 }
 
 void WebSocketSplitter::encode(const WebSocketHeader &header,const Buffer::Ptr &buffer) {
