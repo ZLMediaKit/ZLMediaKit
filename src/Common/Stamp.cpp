@@ -44,12 +44,15 @@ void Stamp::setPlayBack(bool playback) {
 
 void Stamp::syncTo(Stamp &other){
     _sync_master = &other;
+    _sync_finished = false;
 }
 
 void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp) {
     revise_l(dts,pts,dts_out,pts_out,modifyStamp);
-    if(modifyStamp || _playback){
-        //自动生成时间戳或回放，不需要做音视频同步
+    if(_sync_finished || modifyStamp || _playback){
+        //自动生成时间戳或回放或同步完毕
+        if(dts_out < 0) { dts_out = 0; }
+        if(pts_out < 0) { pts_out = 0; }
         return;
     }
 
@@ -65,11 +68,18 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
         _sync_master = nullptr;
     }
 
-    if(dts_out < 0 || dts_out < _last_relativeStamp){
+    if (dts_out < 0 || dts_out < _last_relativeStamp) {
         //相对时间戳小于0，或者小于上次的时间戳，
         //那么说明是同步时间戳导致的,在这个过渡期内，我们一直返回上次的结果(目的是为了防止时间戳回退)
         pts_out = _last_relativeStamp + (pts_out - dts_out);
         dts_out = _last_relativeStamp;
+    } else if(!_sync_master){
+        //音视频同步过渡期完毕
+        _sync_finished = true;
+    }
+
+    if(pts_out < 0){
+        pts_out = dts_out;
     }
 }
 
@@ -110,10 +120,6 @@ void Stamp::revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_ou
     }
 
     pts_out = dts_out + pts_dts_diff;
-    if(pts_out < 0){
-        //时间戳不能小于0
-        pts_out = 0;
-    }
 }
 
 void Stamp::setRelativeStamp(int64_t relativeStamp) {
