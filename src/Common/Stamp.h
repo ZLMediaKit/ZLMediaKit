@@ -83,6 +83,7 @@ private:
     SmoothTicker _ticker;
     bool _playback = false;
     Stamp *_sync_master = nullptr;
+    bool _sync_finished = true;
 };
 
 //dts生成器，
