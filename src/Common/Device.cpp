@@ -78,14 +78,6 @@ void DevChannel::inputH264(const char *data, int len, uint32_t dts, uint32_t pts
     if(pts == 0){
         pts = dts;
     }
-    int prefixeSize;
-    if (memcmp("\x00\x00\x00\x01", data, 4) == 0) {
-        prefixeSize = 4;
-    } else if (memcmp("\x00\x00\x01", data, 3) == 0) {
-        prefixeSize = 3;
-    } else {
-        prefixeSize = 0;
-    }
 
     //由于rtmp/hls/mp4需要缓存时间戳相同的帧，
     //所以使用FrameNoCacheAble类型的帧反而会在转换成FrameCacheAble时多次内存拷贝
@@ -93,9 +85,8 @@ void DevChannel::inputH264(const char *data, int len, uint32_t dts, uint32_t pts
     H264Frame::Ptr frame = std::make_shared<H264Frame>();
     frame->_dts = dts;
     frame->_pts = pts;
-    frame->_buffer.assign("\x00\x00\x00\x01",4);
-    frame->_buffer.append(data + prefixeSize, len - prefixeSize);
-    frame->_prefix_size = 4;
+    frame->_buffer.assign(data, len);
+    frame->_prefix_size = prefixSize(data,len);
     inputFrame(frame);
 }
 
@@ -106,14 +97,6 @@ void DevChannel::inputH265(const char *data, int len, uint32_t dts, uint32_t pts
     if(pts == 0){
         pts = dts;
     }
-    int prefixeSize;
-    if (memcmp("\x00\x00\x00\x01", data, 4) == 0) {
-        prefixeSize = 4;
-    } else if (memcmp("\x00\x00\x01", data, 3) == 0) {
-        prefixeSize = 3;
-    } else {
-        prefixeSize = 0;
-    }
 
     //由于rtmp/hls/mp4需要缓存时间戳相同的帧，
     //所以使用FrameNoCacheAble类型的帧反而会在转换成FrameCacheAble时多次内存拷贝
@@ -121,9 +104,8 @@ void DevChannel::inputH265(const char *data, int len, uint32_t dts, uint32_t pts
     H265Frame::Ptr frame = std::make_shared<H265Frame>();
     frame->_dts = dts;
     frame->_pts = pts;
-    frame->_buffer.assign("\x00\x00\x00\x01",4);
-    frame->_buffer.append(data + prefixeSize, len - prefixeSize);
-    frame->_prefix_size = 4;
+    frame->_buffer.assign(data, len);
+    frame->_prefix_size = prefixSize(data,len);
     inputFrame(frame);
 }
 

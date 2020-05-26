@@ -74,6 +74,21 @@ void splitH264(const char *ptr, int len, int prefix, const std::function<void(co
     }
 }
 
+int prefixSize(const char *ptr, int len){
+    if (len < 4) {
+        return 0;
+    }
+
+    if (memcmp("\x00\x00\x01", ptr, 3) == 0) {
+        return 3;
+    }
+
+    if (memcmp("\x00\x00\x00\x01", ptr, 4) == 0) {
+        return 4;
+    }
+    return 0;
+}
+
 #if 0
 //splitH264函数测试程序
 static onceToken s_token([](){

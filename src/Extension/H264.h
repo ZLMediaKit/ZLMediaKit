@@ -21,7 +21,7 @@ namespace mediakit{
 
 bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
 void splitH264(const char *ptr, int len, int prefix, const std::function<void(const char *, int, int)> &cb);
-
+int prefixSize(const char *ptr, int len);
 /**
  * 264帧类
  */
