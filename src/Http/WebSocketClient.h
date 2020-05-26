@@ -124,7 +124,8 @@ protected:
             if(Sec_WebSocket_Accept == const_cast<HttpHeader &>(headers)["Sec-WebSocket-Accept"]){
                 //success
                 onWebSocketException(SockException());
-                return 0;
+                //后续全是websocket负载数据
+                return -1;
             }
             shutdown(SockException(Err_shutdown,StrPrinter << "Sec-WebSocket-Accept mismatch"));
             return 0;
@@ -138,6 +139,16 @@ protected:
      * 接收http回复完毕,
      */
     void onResponseCompleted() override {}
+
+    /**
+     * 接收websocket负载数据
+     */
+    void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize) override{
+        if(_onRecv){
+            //完成websocket握手后，拦截websocket数据并解析
+            _onRecv(buf, size);
+        }
+    };
 
     //TcpClient override
 
@@ -179,20 +190,6 @@ protected:
         }
         //开始websocket握手
         HttpClientImp::onConnect(ex);
-    }
-
-    /**
-     * tcp收到数据
-     * @param pBuf
-     */
-    void onRecv(const Buffer::Ptr &pBuf) override{
-        if(_onRecv){
-            //完成websocket握手后，拦截websocket数据并解析
-            _onRecv(pBuf);
-        }else{
-            //websocket握手数据
-            HttpClientImp::onRecv(pBuf);
-        }
     }
 
     /**
@@ -299,9 +296,9 @@ private:
             //触发连接成功事件
             _delegate.onConnect(ex);
             //拦截websocket数据接收
-            _onRecv = [this](const Buffer::Ptr &pBuf){
+            _onRecv = [this](const char *data, int len){
                 //解析websocket数据包
-                this->WebSocketSplitter::decode((uint8_t*)pBuf->data(),pBuf->size());
+                this->WebSocketSplitter::decode((uint8_t *)data, len);
             };
             return;
         }
@@ -320,7 +317,7 @@ private:
 
 private:
     string _Sec_WebSocket_Key;
-    function<void(const Buffer::Ptr &pBuf)> _onRecv;
+    function<void(const char *data, int len)> _onRecv;
     ClientTypeImp<ClientType,DataType> &_delegate;
     string _payload;
 };
