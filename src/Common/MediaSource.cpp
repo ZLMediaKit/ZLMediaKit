@@ -180,9 +180,8 @@ static void eraseIfEmpty(MAP &map, IT0 it0, IT1 it1, IT2 it2) {
     }
 };
 
-void findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, bool retry,
-                 const function<void(const MediaSource::Ptr &src)> &cb){
-    auto src = MediaSource::find(info._schema, info._vhost, info._app, info._streamid, true);
+void MediaSource::findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, bool retry, const function<void(const MediaSource::Ptr &src)> &cb){
+    auto src = MediaSource::find_l(info._schema, info._vhost, info._app, info._streamid, true);
     if(src || !retry){
         cb(src);
         return;
@@ -248,7 +247,11 @@ void MediaSource::findAsync(const MediaInfo &info, const std::shared_ptr<TcpSess
     return findAsync_l(info, session, true, cb);
 }
 
-MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost_tmp, const string &app, const string &id, bool bMake) {
+MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost, const string &app, const string &id) {
+    return find_l(schema, vhost, app, id, false);
+}
+
+MediaSource::Ptr MediaSource::find_l(const string &schema, const string &vhost_tmp, const string &app, const string &id, bool bMake) {
     string vhost = vhost_tmp;
     if(vhost.empty()){
         vhost = DEFAULT_VHOST;
@@ -419,12 +422,10 @@ void MediaSourceEvent::onNoneReader(MediaSource &sender){
 
     //如果mp4点播, 无人观看时我们强制关闭点播
     bool is_mp4_vod = sender.getApp() == recordApp;
-    //无人观看mp4点播时，3秒后自动关闭
-    auto close_delay = is_mp4_vod ? 3.0 : stream_none_reader_delay / 1000.0;
 
     //没有任何人观看该视频源，表明该源可以关闭了
     weak_ptr<MediaSource> weakSender = sender.shared_from_this();
-    _async_close_timer = std::make_shared<Timer>(close_delay, [weakSender,is_mp4_vod]() {
+    _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0, [weakSender,is_mp4_vod]() {
         auto strongSender = weakSender.lock();
         if (!strongSender) {
             //对象已经销毁
@@ -467,7 +468,7 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
     try {
         MP4Reader::Ptr pReader(new MP4Reader(vhost, app, stream, filePath));
         pReader->startReadMP4();
-        return MediaSource::find(schema, vhost, app, stream, false);
+        return MediaSource::find(schema, vhost, app, stream);
     } catch (std::exception &ex) {
         WarnL << ex.what();
         return nullptr;

@@ -439,14 +439,14 @@ void installWebApi() {
     api_regist1("/index/api/isMediaOnline",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
-        val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"],false));
+        val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"]));
     });
 
     //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
     api_regist1("/index/api/getMediaInfo",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
-        auto src = MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"],false);
+        auto src = MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"]);
         if(!src){
             val["online"] = false;
             return;

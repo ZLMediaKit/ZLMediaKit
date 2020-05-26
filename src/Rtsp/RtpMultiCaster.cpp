@@ -81,6 +81,7 @@ RtpMultiCaster::~RtpMultiCaster() {
     _pReader->setDetachCB(nullptr);
     DebugL;
 }
+
 RtpMultiCaster::RtpMultiCaster(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
     auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA,strVhost,strApp, strStream));
     if(!src){

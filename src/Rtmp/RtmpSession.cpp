@@ -130,8 +130,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
                                                                            _mediaInfo._vhost,
                                                                            _mediaInfo._app,
-                                                                           _mediaInfo._streamid,
-                                                                           false));
+                                                                           _mediaInfo._streamid));
         bool authSuccess = err.empty();
         bool ok = (!src && !_pPublisherSrc && authSuccess);
         AMFValue status(AMF_OBJECT);

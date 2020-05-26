@@ -221,8 +221,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTSP_SCHEMA,
                                                                        _mediaInfo._vhost,
                                                                        _mediaInfo._app,
-                                                                       _mediaInfo._streamid,
-                                                                       false));
+                                                                       _mediaInfo._streamid));
     if(src){
         sendRtspResponse("406 Not Acceptable", {"Content-Type", "text/plain"}, "Already publishing.");
         string err = StrPrinter << "ANNOUNCE:"

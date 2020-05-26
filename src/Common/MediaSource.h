@@ -134,7 +134,7 @@ public:
     virtual bool isRecording(Recorder::type type);
 
     // 同步查找流
-    static Ptr find(const string &schema, const string &vhost, const string &app, const string &id, bool bMake = true) ;
+    static Ptr find(const string &schema, const string &vhost, const string &app, const string &id);
     // 异步查找流
     static void findAsync(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, const function<void(const Ptr &src)> &cb);
     // 遍历所有流
@@ -142,9 +142,14 @@ public:
 
     // 从mp4文件生成MediaSource
     static MediaSource::Ptr createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &filePath = "", bool checkApp = true);
+
 protected:
     void regist() ;
-    bool unregist() ;
+    bool unregist();
+
+private:
+    static Ptr find_l(const string &schema, const string &vhost, const string &app, const string &id, bool bMake);
+    static void findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, bool retry, const function<void(const MediaSource::Ptr &src)> &cb);
 private:
     string _strSchema;
     string _strVhost;
