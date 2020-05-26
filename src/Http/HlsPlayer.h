@@ -135,9 +135,16 @@ private:
     void onAllTrackReady() override;
     void onPlayResult(const SockException &ex) override;
     vector<Track::Ptr> getTracks(bool trackReady = true) const override;
+    void inputFrame(const Frame::Ptr &frame) override;
+    void onShutdown(const SockException &ex) override;
+    void onTick();
 private:
     TSSegment::onSegment _on_ts;
     DecoderImp::Ptr _decoder;
+    multimap<int64_t, Frame::Ptr> _frame_cache;
+    Timer::Ptr _timer;
+    Ticker _ticker;
+    Stamp _stamp[2];
 };
 
 }//namespace mediakit 
