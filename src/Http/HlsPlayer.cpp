@@ -256,11 +256,61 @@ void HlsPlayerImp::onAllTrackReady() {
 void HlsPlayerImp::onPlayResult(const SockException &ex) {
     if(ex){
         PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(ex);
+    }else{
+        _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
+        _ticker.resetTime();
+        weak_ptr<HlsPlayerImp> weakSelf = dynamic_pointer_cast<HlsPlayerImp>(shared_from_this());
+        //每50毫秒执行一次
+        _timer = std::make_shared<Timer>(0.05, [weakSelf]() {
+            auto strongSelf = weakSelf.lock();
+            if (!strongSelf) {
+                return false;
+            }
+            strongSelf->onTick();
+            return true;
+        }, getPoller());
     }
+}
+
+void HlsPlayerImp::onShutdown(const SockException &ex) {
+    PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
+    _timer = nullptr;
 }
 
 vector<Track::Ptr> HlsPlayerImp::getTracks(bool trackReady) const {
     return MediaSink::getTracks(trackReady);
+}
+
+void HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
+    //计算相对时间戳
+    int64_t dts, pts;
+    _stamp[frame->getTrackType()].revise(frame->dts(), frame->pts(), dts, pts);
+    //根据时间戳缓存frame
+    _frame_cache.emplace(dts, Frame::getCacheAbleFrame(frame));
+
+    while (!_frame_cache.empty()) {
+        if (_frame_cache.rbegin()->first - _frame_cache.begin()->first > 30 * 1000) {
+            //缓存超过30秒，强制消费掉
+            MediaSink::inputFrame(_frame_cache.begin()->second);
+            _frame_cache.erase(_frame_cache.begin());
+            continue;
+        }
+        //缓存小于30秒
+        break;
+    }
+}
+
+void HlsPlayerImp::onTick() {
+    auto it = _frame_cache.begin();
+    while (it != _frame_cache.end()) {
+        if (it->first > _ticker.elapsedTime()) {
+            //这些帧还未到时间播放
+            break;
+        }
+        //消费掉已经到期的帧
+        MediaSink::inputFrame(it->second);
+        it = _frame_cache.erase(it);
+    }
 }
 
 
