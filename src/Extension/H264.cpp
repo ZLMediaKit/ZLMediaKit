@@ -79,12 +79,19 @@ int prefixSize(const char *ptr, int len){
         return 0;
     }
 
-    if (memcmp("\x00\x00\x01", ptr, 3) == 0) {
-        return 3;
+    if (ptr[0] != 0x00 || ptr[1] != 0x00) {
+        //不是0x00 00开头
+        return 0;
     }
 
-    if (memcmp("\x00\x00\x00\x01", ptr, 4) == 0) {
+    if (ptr[2] == 0x00 && ptr[3] == 0x01) {
+        //是0x00 00 00 01
         return 4;
+    }
+
+    if (ptr[2] == 0x01) {
+        //是0x00 00 01
+        return 3;
     }
     return 0;
 }
