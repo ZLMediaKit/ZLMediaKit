@@ -118,8 +118,7 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
     auto src = MediaSource::find(_media_info._schema,
                                  _media_info._vhost,
                                  _media_info._app,
-                                 _media_info._streamid,
-                                 false);
+                                 _media_info._streamid);
     if(src || !maxWaitMS){
         cb(src);
         return;
