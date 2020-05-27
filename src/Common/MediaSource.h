@@ -164,10 +164,7 @@ private:
 ///缓存刷新策略类
 class FlushPolicy {
 public:
-    FlushPolicy(bool is_audio) {
-        _is_audio = is_audio;
-    };
-
+    FlushPolicy() = default;
     ~FlushPolicy() = default;
 
     uint32_t getStamp(const RtpPacket::Ptr &packet) {
@@ -178,45 +175,45 @@ public:
         return packet->timeStamp;
     }
 
-    bool isFlushAble(uint32_t new_stamp, int cache_size);
+    bool isFlushAble(bool is_video, bool is_key, uint32_t new_stamp, int cache_size);
+
 private:
-    bool _is_audio;
-    uint32_t _last_stamp= 0;
+    uint32_t _last_stamp[2] = {0, 0};
 };
 
-/// 视频合并写缓存模板
+/// 合并写缓存模板
 /// \tparam packet 包类型
 /// \tparam policy 刷新缓存策略
 /// \tparam packet_list 包缓存类型
 template<typename packet, typename policy = FlushPolicy, typename packet_list = List<std::shared_ptr<packet> > >
-class VideoPacketCache {
+class PacketCache {
 public:
-    VideoPacketCache() : _policy(false) {
+    PacketCache(){
         _cache = std::make_shared<packet_list>();
     }
 
-    virtual ~VideoPacketCache() = default;
+    virtual ~PacketCache() = default;
 
-    void inputVideo(const std::shared_ptr<packet> &rtp, bool key_pos) {
-        if (_policy.isFlushAble(_policy.getStamp(rtp), _cache->size())) {
+    void inputPacket(bool is_video, const std::shared_ptr<packet> &pkt, bool key_pos) {
+        if (_policy.isFlushAble(is_video, key_pos, _policy.getStamp(pkt), _cache->size())) {
             flushAll();
         }
 
         //追加数据到最后
-        _cache->emplace_back(rtp);
+        _cache->emplace_back(pkt);
         if (key_pos) {
             _key_pos = key_pos;
         }
     }
 
-    virtual void onFlushVideo(std::shared_ptr<packet_list> &, bool key_pos) = 0;
+    virtual void onFlush(std::shared_ptr<packet_list> &, bool key_pos) = 0;
 
 private:
     void flushAll() {
         if (_cache->empty()) {
             return;
         }
-        onFlushVideo(_cache, _key_pos);
+        onFlush(_cache, _key_pos);
         _cache = std::make_shared<packet_list>();
         _key_pos = false;
     }
@@ -227,44 +224,5 @@ private:
     bool _key_pos = false;
 };
 
-/// 音频频合并写缓存模板
-/// \tparam packet 包类型
-/// \tparam policy 刷新缓存策略
-/// \tparam packet_list 包缓存类型
-template<typename packet, typename policy = FlushPolicy, typename packet_list = List<std::shared_ptr<packet> > >
-class AudioPacketCache {
-public:
-    AudioPacketCache() : _policy(true) {
-        _cache = std::make_shared<packet_list>();
-    }
-
-    virtual ~AudioPacketCache() = default;
-
-    void inputAudio(const std::shared_ptr<packet> &rtp) {
-        if (_policy.isFlushAble(_policy.getStamp(rtp), _cache->size())) {
-            flushAll();
-        }
-        //追加数据到最后
-        _cache->emplace_back(rtp);
-    }
-
-    virtual void onFlushAudio(std::shared_ptr<packet_list> &) = 0;
-
-private:
-    void flushAll() {
-        if (_cache->empty()) {
-            return;
-        }
-        onFlushAudio(_cache);
-        _cache = std::make_shared<packet_list>();
-    }
-
-private:
-    policy _policy;
-    std::shared_ptr<packet_list> _cache;
-};
-
 } /* namespace mediakit */
-
-
 #endif //ZLMEDIAKIT_MEDIASOURCE_H

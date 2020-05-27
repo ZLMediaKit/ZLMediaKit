@@ -479,57 +479,52 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 #endif //ENABLE_MP4
 }
 
-static bool isFlushAble_default(bool is_audio, uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
+static bool isFlushAble_default(bool is_video, uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
     if (new_stamp < last_stamp) {
         //时间戳回退(可能seek中)
         return true;
     }
 
-    if (!is_audio) {
-        //这是视频,时间戳发送变化或者缓存超过1024个
-        return last_stamp != new_stamp || cache_size >= 1024;
-    }
-
-    //这是音频,缓存超过100ms或者缓存个数超过10个
-    return new_stamp > last_stamp + 100 || cache_size > 10;
+    //时间戳发送变化或者缓存超过1024个,sendmsg接口一般最多只能发送1024个数据包
+    return last_stamp != new_stamp || cache_size >= 1024;
 }
 
-static bool isFlushAble_merge(bool is_audio, uint32_t last_stamp, uint32_t new_stamp, int cache_size, int merge_ms) {
+static bool isFlushAble_merge(bool is_video, uint32_t last_stamp, uint32_t new_stamp, int cache_size, int merge_ms) {
     if (new_stamp < last_stamp) {
         //时间戳回退(可能seek中)
         return true;
     }
 
-    if(new_stamp > last_stamp + merge_ms){
+    if (new_stamp > last_stamp + merge_ms) {
         //时间戳增量超过合并写阈值
         return true;
     }
 
-    if (!is_audio) {
-        //这是视频,缓存数超过1024个,这个逻辑用于避免时间戳异常的流导致的内存暴增问题
-        //而且sendmsg接口一般最多只能发送1024个数据包
-        return cache_size >= 1024;
-    }
-
-    //这是音频，音频缓存超过20个
-    return cache_size > 20;
+    //缓存数超过1024个,这个逻辑用于避免时间戳异常的流导致的内存暴增问题
+    //而且sendmsg接口一般最多只能发送1024个数据包
+    return cache_size >= 1024;
 }
 
-bool FlushPolicy::isFlushAble(uint32_t new_stamp, int cache_size) {
-    bool ret = false;
-    GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
-    if (mergeWriteMS <= 0) {
-        //关闭了合并写或者合并写阈值小于等于0
-        ret = isFlushAble_default(_is_audio, _last_stamp, new_stamp, cache_size);
+bool FlushPolicy::isFlushAble(bool is_video, bool is_key, uint32_t new_stamp, int cache_size) {
+    bool flush_flag = false;
+    if (is_key && is_video) {
+        //遇到关键帧flush掉前面的数据，确保关键帧为该组数据的第一帧，确保GOP缓存有效
+        flush_flag = true;
     } else {
-        ret = isFlushAble_merge(_is_audio, _last_stamp, new_stamp, cache_size, mergeWriteMS);
+        GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
+        if (mergeWriteMS <= 0) {
+            //关闭了合并写或者合并写阈值小于等于0
+            flush_flag = isFlushAble_default(is_video, _last_stamp[is_video], new_stamp, cache_size);
+        } else {
+            flush_flag = isFlushAble_merge(is_video, _last_stamp[is_video], new_stamp, cache_size, mergeWriteMS);
+        }
     }
 
-    if (ret) {
-//        DebugL << _is_audio << " " << _last_stamp  << " " << new_stamp;
-        _last_stamp = new_stamp;
+    if (flush_flag) {
+//        DebugL << is_video << " " << _last_stamp[is_video] << " " << new_stamp;
+        _last_stamp[is_video] = new_stamp;
     }
-    return ret;
+    return flush_flag;
 }
 
 } /* namespace mediakit */
