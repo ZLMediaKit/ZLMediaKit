@@ -30,16 +30,13 @@ using namespace toolkit;
 #define RTP_GOP_SIZE 512
 namespace mediakit {
 
-typedef VideoPacketCache<RtpPacket> RtpVideoCache;
-typedef AudioPacketCache<RtpPacket> RtpAudioCache;
-
-    /**
+/**
  * rtsp媒体源的数据抽象
  * rtsp有关键的两要素，分别是sdp、rtp包
  * 只要生成了这两要素，那么要实现rtsp推流、rtsp服务器就很简单了
  * rtsp推拉流协议中，先传递sdp，然后再协商传输方式(tcp/udp/组播)，最后一直传递rtp
  */
-class RtspMediaSource : public MediaSource, public RingDelegate<RtpPacket::Ptr>, public RtpVideoCache, public RtpAudioCache {
+class RtspMediaSource : public MediaSource, public RingDelegate<RtpPacket::Ptr>, public PacketCache<RtpPacket> {
 public:
     typedef ResourcePool<RtpPacket> PoolType;
     typedef std::shared_ptr<RtspMediaSource> Ptr;
@@ -175,32 +172,19 @@ public:
                 regist();
             }
         }
-
-        if(rtp->type == TrackVideo){
-            RtpVideoCache::inputVideo(rtp, keyPos);
-        }else{
-            RtpAudioCache::inputAudio(rtp);
-        }
+        PacketCache<RtpPacket>::inputPacket(rtp->type == TrackVideo, rtp, keyPos);
     }
 
 private:
 
     /**
-     * 批量flush时间戳相同的视频rtp包时触发该函数
-     * @param rtp_list 时间戳相同的rtp包列表
+     * 批量flush rtp包时触发该函数
+     * @param rtp_list rtp包列表
      * @param key_pos 是否包含关键帧
      */
-    void onFlushVideo(std::shared_ptr<List<RtpPacket::Ptr> > &rtp_list, bool key_pos) override {
-        _ring->write(rtp_list, key_pos);
-    }
-
-    /**
-     * 批量flush一定数量的音频rtp包时触发该函数
-     * @param rtp_list rtp包列表
-     */
-    void onFlushAudio(std::shared_ptr<List<RtpPacket::Ptr> > &rtp_list) override{
-        //只有音频的话，就不存在gop缓存的意义
-        _ring->write(rtp_list, !_have_video);
+    void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > &rtp_list, bool key_pos) override {
+        //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
+        _ring->write(rtp_list, _have_video ? key_pos : true);
     }
 
     /**
