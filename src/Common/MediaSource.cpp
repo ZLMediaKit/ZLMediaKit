@@ -480,8 +480,8 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 }
 
 static bool isFlushAble_default(bool is_video, uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
-    if (new_stamp < last_stamp) {
-        //时间戳回退(可能seek中)
+    if (new_stamp + 500 < last_stamp) {
+        //时间戳回退比较大(可能seek中)，由于rtp中时间戳是pts，是可能存在一定程度的回退的
         return true;
     }
 
@@ -490,8 +490,8 @@ static bool isFlushAble_default(bool is_video, uint32_t last_stamp, uint32_t new
 }
 
 static bool isFlushAble_merge(bool is_video, uint32_t last_stamp, uint32_t new_stamp, int cache_size, int merge_ms) {
-    if (new_stamp < last_stamp) {
-        //时间戳回退(可能seek中)
+    if (new_stamp + 500 < last_stamp) {
+        //时间戳回退比较大(可能seek中)，由于rtp中时间戳是pts，是可能存在一定程度的回退的
         return true;
     }
 
@@ -521,7 +521,6 @@ bool FlushPolicy::isFlushAble(bool is_video, bool is_key, uint32_t new_stamp, in
     }
 
     if (flush_flag) {
-//        DebugL << is_video << " " << _last_stamp[is_video] << " " << new_stamp;
         _last_stamp[is_video] = new_stamp;
     }
     return flush_flag;
