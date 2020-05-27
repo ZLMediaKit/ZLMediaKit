@@ -89,8 +89,7 @@
 
 
 ## 编译以及测试
-
-请参考wiki:[快速开始](https://github.com/xiongziliang/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
+**编译前务必仔细参考wiki:[快速开始](https://github.com/xiongziliang/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)操作**，由于不看wiki导致源码缺失编译失败的问题将被直接移出QQ群，或无回复直接关闭issue!!!
 
 ## 怎么使用
 
