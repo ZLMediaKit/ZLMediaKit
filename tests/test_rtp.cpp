@@ -58,7 +58,7 @@ static bool loadFile(const char *path){
         RtpSelector::Instance().inputRtp(nullptr,rtp,len, &addr,&timeStamp);
         if(timeStamp_last){
             auto diff = timeStamp - timeStamp_last;
-            if(diff > 0){
+            if(diff > 0 && diff < 500){
                 usleep(diff * 1000);
             }
         }
