@@ -30,7 +30,7 @@ public:
     RtmpDemuxer() = default;
     virtual ~RtmpDemuxer() = default;
 
-    void loadMetaData(const AMFValue &metadata);
+    bool loadMetaData(const AMFValue &metadata);
 
     /**
      * 开始解复用

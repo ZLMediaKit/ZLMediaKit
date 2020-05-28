@@ -221,13 +221,27 @@ Track::Ptr Factory::getAudioTrackByAmf(const AMFValue& amf, int sample_rate, int
     return getTrackByCodecId(codecId, sample_rate, channels, sample_bit);
 }
 
-RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track) {
+RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track, bool is_encode) {
     switch (track->getCodecId()){
         case CodecH264 : return std::make_shared<H264RtmpEncoder>(track);
         case CodecAAC : return std::make_shared<AACRtmpEncoder>(track);
         case CodecH265 : return std::make_shared<H265RtmpEncoder>(track);
         case CodecG711A :
-        case CodecG711U : return std::make_shared<G711RtmpEncoder>(track);
+        case CodecG711U : {
+            auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+            if (is_encode && (audio_track->getAudioSampleRate() != 8000 ||
+                              audio_track->getAudioChannel() != 1 ||
+                              audio_track->getAudioSampleBit() != 16)) {
+                //rtmp对g711只支持8000/1/16规格，但是ZLMediaKit可以解析其他规格的G711
+                WarnL << "RTMP只支持8000/1/16规格的G711,目前规格是:"
+                      << audio_track->getAudioSampleRate() << "/"
+                      << audio_track->getAudioChannel() << "/"
+                      << audio_track->getAudioSampleBit()
+                      << ",该音频已被忽略";
+                return nullptr;
+            }
+            return std::make_shared<G711RtmpEncoder>(track);
+        }
         default : WarnL << "暂不支持该CodecId:" << track->getCodecName(); return nullptr;
     }
 }
