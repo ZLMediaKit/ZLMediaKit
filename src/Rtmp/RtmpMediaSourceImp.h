@@ -49,8 +49,13 @@ public:
      * 设置metadata
      */
     void setMetaData(const AMFValue &metadata) override{
-        _demuxer->loadMetaData(metadata);
-        RtmpMediaSource::setMetaData(metadata);
+        if(!_demuxer->loadMetaData(metadata)){
+            //该metadata无效，需要重新生成
+            _metadata = metadata;
+            _recreate_metadata = true;
+        }else{
+            RtmpMediaSource::setMetaData(metadata);
+        }
     }
 
     /**
@@ -138,6 +143,11 @@ public:
             _muxer->addTrack(track);
             track->addDelegate(_muxer);
         }
+
+        if(_recreate_metadata){
+            //需要重新生成metadata
+            Metadata::addTrack(_metadata,track);
+        }
     }
 
     /**
@@ -146,11 +156,19 @@ public:
     void onAllTrackReady() override{
         setTrackSource(_muxer);
         _all_track_ready = true;
+
+        if(_recreate_metadata){
+            //需要重新生成metadata
+            RtmpMediaSource::setMetaData(_metadata);
+        }
     }
+
 private:
     RtmpDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
+    AMFValue _metadata;
     bool _all_track_ready = false;
+    bool _recreate_metadata = false;
 };
 } /* namespace mediakit */
 

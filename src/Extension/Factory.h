@@ -59,8 +59,9 @@ public:
     /**
      * 根据Track获取Rtmp的编解码器
      * @param track 媒体描述对象
+     * @param is_encode 是否为编码器还是解码器
      */
-    static RtmpCodec::Ptr getRtmpCodecByTrack(const Track::Ptr &track);
+    static RtmpCodec::Ptr getRtmpCodecByTrack(const Track::Ptr &track, bool is_encode);
 
     /**
      * 根据codecId获取rtmp的codec描述

@@ -220,6 +220,8 @@ public:
     const AMFValue &getMetadata() const{
         return _metadata;
     }
+
+    static void addTrack(AMFValue &metadata, const Track::Ptr &track);
 protected:
     AMFValue _metadata;
 };
@@ -260,7 +262,6 @@ public:
 private:
     CodecId _codecId;
 };
-
 
 class AudioMeta : public Metadata{
 public:
