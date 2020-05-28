@@ -108,6 +108,14 @@ public:
     }
 
     /**
+     * 更新metadata
+     */
+    void updateMetaData(const AMFValue &metadata) {
+        lock_guard<recursive_mutex> lock(_mtx);
+        _metadata = metadata;
+    }
+
+    /**
      * 输入rtmp包
      * @param pkt rtmp包
      * @param key 是否为关键帧
