@@ -53,9 +53,8 @@ public:
             //该metadata无效，需要重新生成
             _metadata = metadata;
             _recreate_metadata = true;
-        }else{
-            RtmpMediaSource::setMetaData(metadata);
         }
+        RtmpMediaSource::setMetaData(metadata);
     }
 
     /**
@@ -158,8 +157,8 @@ public:
         _all_track_ready = true;
 
         if(_recreate_metadata){
-            //需要重新生成metadata
-            RtmpMediaSource::setMetaData(_metadata);
+            //更新metadata
+            RtmpMediaSource::updateMetaData(_metadata);
         }
     }
 
