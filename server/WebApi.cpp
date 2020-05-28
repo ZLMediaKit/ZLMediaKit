@@ -148,7 +148,6 @@ static inline void addHttpListener(){
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastHttpRequest, [](BroadcastHttpRequestArgs) {
         auto it = s_map_api.find(parser.Url());
         if (it == s_map_api.end()) {
-            consumed = false;
             return;
         }
         //该api已被消费
