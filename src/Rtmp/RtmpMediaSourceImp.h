@@ -142,11 +142,6 @@ public:
             _muxer->addTrack(track);
             track->addDelegate(_muxer);
         }
-
-        if(_recreate_metadata){
-            //需要重新生成metadata
-            Metadata::addTrack(_metadata,track);
-        }
     }
 
     /**
@@ -156,8 +151,11 @@ public:
         setTrackSource(_muxer);
         _all_track_ready = true;
 
-        if(_recreate_metadata){
+        if (_recreate_metadata) {
             //更新metadata
+            for (auto &track : _muxer->getTracks()) {
+                Metadata::addTrack(_metadata, track);
+            }
             RtmpMediaSource::updateMetaData(_metadata);
         }
     }
