@@ -26,6 +26,8 @@
     #endif
 
     #define assert(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__);
+#else
+    #define	assert(e)	((void)0)
 #endif//NDEBUG
 
 #endif //ZLMEDIAKIT_ASSERT_H
