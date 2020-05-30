@@ -115,7 +115,6 @@ bool RtpProcess::inputRtp(const Socket::Ptr &sock, const char *data, int data_le
     }
 
     _total_bytes += data_len;
-    _last_rtp_time.resetTime();
     bool ret = handleOneRtp(0,_track,(unsigned char *)data,data_len);
     if(dts_out){
         *dts_out = _dts;
@@ -169,6 +168,7 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
 }
 
 void  RtpProcess::inputFrame(const Frame::Ptr &frame){
+    _last_rtp_time.resetTime();
     _dts = frame->dts();
     if (_save_file_video && frame->getTrackType() == TrackVideo) {
         fwrite((uint8_t *) frame->data(), frame->size(), 1, _save_file_video.get());
