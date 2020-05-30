@@ -43,6 +43,7 @@ INCLUDE_DIRECTORIES(${MediaServer_Root}/libmpeg/include)
 INCLUDE_DIRECTORIES(${MediaServer_Root}/libmov/include)
 INCLUDE_DIRECTORIES(${MediaServer_Root}/libflv/include)
 INCLUDE_DIRECTORIES(${MediaServer_Root}/librtp/include)
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/3rdpart)
 
 set(ENABLE_HLS true)
 set(ENABLE_OPENSSL true)

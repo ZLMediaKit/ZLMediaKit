@@ -295,3 +295,10 @@ const string kBenchmarkMode = "benchmark_mode";
 }  // namespace mediakit
 
 
+void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line){
+    if(failed) {
+        _StrPrinter printer;
+        printer << "Assertion failed: (" << exp << "), function " << func << ", file " << file << ", line " << line << ".";
+        throw std::runtime_error(printer);
+    }
+}
