@@ -10,7 +10,6 @@
 
 #include <limits.h>
 #include <sys/stat.h>
-
 #ifndef _WIN32
 #include <sys/resource.h>
 #include <unistd.h>
@@ -56,30 +55,27 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
     }
     if (_pid == 0) {
         //子进程关闭core文件生成
-        struct rlimit rlim = { 0,0 };
+        struct rlimit rlim = {0, 0};
         setrlimit(RLIMIT_CORE, &rlim);
 
         //在启动子进程时，暂时禁用SIGINT、SIGTERM信号
-        // ignore the SIGINT and SIGTERM
         signal(SIGINT, SIG_IGN);
         signal(SIGTERM, SIG_IGN);
 
         string log_file;
         if (log_file_tmp.empty()) {
+            //未指定子进程日志文件时，重定向至/dev/null
             log_file = "/dev/null";
-        }
-        else {
+        } else {
             log_file = StrPrinter << log_file_tmp << "." << getpid();
         }
 
-        int log_fd = -1;
-        int flags = O_CREAT | O_WRONLY | O_APPEND;
-        mode_t mode = S_IRWXO | S_IRWXG | S_IRWXU;// S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH;
-        File::create_path(log_file.data(), mode);
-        if ((log_fd = ::open(log_file.c_str(), flags, mode)) < 0) {
+        //重定向shell日志至文件
+        auto fp = File::create_file(log_file.data(), "ab");
+        if (!fp) {
             fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), errno, strerror(errno));
-        }
-        else {
+        } else {
+            auto log_fd = fileno(fp);
             // dup to stdout and stderr.
             if (dup2(log_fd, STDOUT_FILENO) < 0) {
                 fprintf(stderr, "dup2 stdout file %s failed:%d(%s)\r\n", log_file.data(), errno, strerror(errno));
@@ -87,13 +83,12 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
             if (dup2(log_fd, STDERR_FILENO) < 0) {
                 fprintf(stderr, "dup2 stderr file  %s failed:%d(%s)\r\n", log_file.data(), errno, strerror(errno));
             }
-            // close log fd
-            ::close(log_fd);
+            // 关闭日志文件
+            ::fclose(fp);
         }
         fprintf(stderr, "\r\n\r\n#### pid=%d,cmd=%s #####\r\n\r\n", getpid(), cmd.data());
 
-        // close other fds
-        // TODO: do in right way.
+        //关闭父进程继承的fd
         for (int i = 3; i < 1024; i++) {
             ::close(i);
         }
@@ -101,9 +96,9 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         auto params = split(cmd, " ");
         // memory leak in child process, it's ok.
         char **charpv_params = new char *[params.size() + 1];
-        for (int i = 0; i < (int)params.size(); i++) {
+        for (int i = 0; i < (int) params.size(); i++) {
             std::string &p = params[i];
-            charpv_params[i] = (char *)p.data();
+            charpv_params[i] = (char *) p.data();
         }
         // EOF: NULL
         charpv_params[params.size()] = NULL;
