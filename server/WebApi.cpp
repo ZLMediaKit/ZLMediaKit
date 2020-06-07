@@ -13,6 +13,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <math.h>
+#include <sys/stat.h>
 #include "jsoncpp/json.h"
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -868,17 +869,35 @@ void installWebApi() {
             }
         }
 
-        FFmpegSnap::makeSnap(allArgs["url"],snap_path,allArgs["timeout_sec"],[invoker,headerIn,snap_path](bool success){
-            if(!success){
-                //生成截图失败，可能残留空文件
-                File::delete_file(snap_path.data());
-            }
-
-            StrCaseMap headerOut;
-            headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
-            invoker.responseFile(headerIn, headerOut, snap_path);
-        });
-    });
+		FFmpegSnap::makeSnap(allArgs["url"], snap_path, allArgs["timeout_sec"], [invoker, headerIn, snap_path](bool success) {
+			if (!success) {
+				//生成截图失败，可能残留空文件
+				File::delete_file(snap_path.data());
+			}
+			struct stat buf;
+			clock_t delayStart = clock();
+			clock_t timeoutStart = clock();
+			long snapFileSize = 0;
+			while (clock() < timeoutStart + 4 * CLOCKS_PER_SEC) {
+				if (clock() < delayStart + 0.5 * CLOCKS_PER_SEC) {
+					continue;
+				}
+				delayStart = clock();
+				stat(snap_path.data(), &buf);
+				if (buf.st_size >0) {
+					if (buf.st_size == snapFileSize) {
+						break;
+					}
+					else {
+						snapFileSize = buf.st_size;
+					}
+				}
+			}
+			StrCaseMap headerOut;
+			headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
+			invoker.responseFile(headerIn, headerOut, snap_path);
+			});
+		});
 
     ////////////以下是注册的Hook API////////////
     api_regist1("/index/hook/on_publish",[](API_ARGS1){
