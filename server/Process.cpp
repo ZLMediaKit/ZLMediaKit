@@ -165,10 +165,10 @@ static void s_kill(pid_t pid,int max_delay,bool force){
         WarnL << "\nOpen Process fAiled: " << GetLastError();
         return;
     }
-    DWORD ret = TerminateProcess(hProcess, 0);	//结束目标进程
-    if (ret == 0) {
-        WarnL << GetLastError;
-    }
+    //DWORD ret = TerminateProcess(hProcess, 0);	//结束目标进程
+    //if (ret == 0) {
+    //    WarnL << GetLastError;
+    //}
 #else
     if (::kill(pid, force ? SIGKILL : SIGTERM) == -1) {
         //进程可能已经退出了
