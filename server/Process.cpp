@@ -151,7 +151,7 @@ static bool s_wait(pid_t pid,int *exit_code_ptr,bool block) {
     HANDLE hProcess = NULL;
     hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);	//打开目标进程
     if (!hProcess) {
-        WarnL << "OpenProcess failed:" << get_uv_errmsg();
+        //子进程不在线
         return false;
     }
 
@@ -166,7 +166,7 @@ static bool s_wait(pid_t pid,int *exit_code_ptr,bool block) {
     if(code == WAIT_FAILED || code == WAIT_OBJECT_0){
         //子进程已经退出了,获取子进程退出代码
         DWORD exitCode = 0;
-        if(GetExitCodeProcess(hProcess, &exitCode) && exit_code_ptr){
+        if(exit_code_ptr && GetExitCodeProcess(hProcess, &exitCode)){
             *exit_code_ptr = exitCode;
         }
         CloseHandle(hProcess);
@@ -244,6 +244,9 @@ static void s_kill(pid_t pid,int max_delay,bool force){
 		//子进程可能已经推出了
         return;
     }
+    //windows下目前没有比较好的手段往子进程发送SIGTERM或信号
+    //所以杀死子进程的方式全部强制为立即关闭
+    force = true;
     if(force){
         //强制关闭
         DWORD ret = TerminateProcess(hProcess, 0);	//结束目标进程
