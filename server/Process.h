@@ -31,6 +31,7 @@ public:
     int exit_code();
 private:
     pid_t _pid = -1;
+    void *_handle = nullptr;
     int _exit_code = 0;
 };
 
