@@ -196,7 +196,19 @@ void FFmpegSource::startTimer(int timeout_ms) {
             //推流给其他服务器的，我们通过判断FFmpeg进程是否在线，如果FFmpeg推流中断，那么它应该会自动退出
             if (!strongSelf->_process.wait(false)) {
                 //ffmpeg不在线，重新拉流
-                strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [](const SockException &) {});
+                strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [weakSelf](const SockException &ex) {
+                    if(!ex){
+                        //没有错误
+                        return;
+                    }
+                    auto strongSelf = weakSelf.lock();
+                    if (!strongSelf) {
+                        //自身已经销毁
+                        return;
+                    }
+                    //上次重试时间超过10秒，那么再重试FFmpeg拉流
+                    strongSelf->startTimer(10 * 1000);
+                });
             }
         }
         return true;
