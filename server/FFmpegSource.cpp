@@ -24,19 +24,16 @@ const string kSnap = FFmpeg_FIELD"snap";
 
 onceToken token([]() {
 #ifdef _WIN32
-    string ffmpeg_bin = System::execute("where ffmpeg");
-    //windows下先关闭FFmpeg日志(目前不支持日志重定向)
-    mINI::Instance()[kCmd] = "%s -re -i %s -loglevel quiet -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
-    mINI::Instance()[kSnap] = "%s -i %s -loglevel quiet -y -f mjpeg -t 0.001 %s";
+    string ffmpeg_bin = trim(System::execute("where ffmpeg"));
 #else
-    string ffmpeg_bin = System::execute("which ffmpeg");
-    mINI::Instance()[kCmd] = "%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
-    mINI::Instance()[kSnap] = "%s -i %s -y -f mjpeg -t 0.001 %s";
+    string ffmpeg_bin = trim(System::execute("which ffmpeg"));
 #endif
     //默认ffmpeg命令路径为环境变量中路径
     mINI::Instance()[kBin] = ffmpeg_bin.empty() ? "ffmpeg" : ffmpeg_bin;
     //ffmpeg日志保存路径
     mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";
+    mINI::Instance()[kCmd] = "%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
+    mINI::Instance()[kSnap] = "%s -i %s -y -f mjpeg -t 0.001 %s";
 });
 }
 
