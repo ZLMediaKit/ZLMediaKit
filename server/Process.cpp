@@ -38,15 +38,14 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
     if (log_file_tmp.empty()) {
         //未指定子进程日志文件时，重定向至/dev/null
         log_file = "NUL";
-    }
-    else {
+    } else {
         log_file = StrPrinter << log_file_tmp << "." << getCurrentMillisecond();
     }
 
     //重定向shell日志至文件
     auto fp = File::create_file(log_file.data(), "ab");
     if (!fp) {
-        fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), errno, strerror(errno));
+        fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), get_uv_error(), get_uv_errmsg());
     } else {
         auto log_fd = (HANDLE)(_get_osfhandle(fileno(fp)));
         // dup to stdout and stderr.
@@ -65,15 +64,23 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         _pid = pi.dwProcessId;
         _handle = pi.hProcess;
         fprintf(fp, "\r\n\r\n#### pid=%d,cmd=%s #####\r\n\r\n", _pid, cmd.data());
-        InfoL << "start child proces " << _pid << ", log file:" << log_file;
+        InfoL << "start child process " << _pid << ", log file:" << log_file;
     } else {
-        WarnL << "start child proces fail: " << get_uv_errmsg();
+        WarnL << "start child process fail: " << get_uv_errmsg();
     }
     fclose(fp);
 #else
+    string log_file;
+    if (log_file_tmp.empty()) {
+        //未指定子进程日志文件时，重定向至/dev/null
+        log_file = "/dev/null";
+    } else {
+        log_file = StrPrinter << log_file_tmp << "." << getpid();
+    }
+
     _pid = fork();
     if (_pid < 0) {
-        throw std::runtime_error(StrPrinter << "fork child process falied,err:" << get_uv_errmsg());
+        throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
     }
     if (_pid == 0) {
         //子进程关闭core文件生成
@@ -84,26 +91,18 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         signal(SIGINT, SIG_IGN);
         signal(SIGTERM, SIG_IGN);
 
-        string log_file;
-        if (log_file_tmp.empty()) {
-            //未指定子进程日志文件时，重定向至/dev/null
-            log_file = "/dev/null";
-        } else {
-            log_file = StrPrinter << log_file_tmp << "." << getpid();
-        }
-
         //重定向shell日志至文件
         auto fp = File::create_file(log_file.data(), "ab");
         if (!fp) {
-            fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), errno, strerror(errno));
+            fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), get_uv_error(), get_uv_errmsg());
         } else {
             auto log_fd = fileno(fp);
             // dup to stdout and stderr.
             if (dup2(log_fd, STDOUT_FILENO) < 0) {
-                fprintf(stderr, "dup2 stdout file %s failed:%d(%s)\r\n", log_file.data(), errno, strerror(errno));
+                fprintf(stderr, "dup2 stdout file %s failed:%d(%s)\r\n", log_file.data(), get_uv_error(), get_uv_errmsg());
             }
             if (dup2(log_fd, STDERR_FILENO) < 0) {
-                fprintf(stderr, "dup2 stderr file  %s failed:%d(%s)\r\n", log_file.data(), errno, strerror(errno));
+                fprintf(stderr, "dup2 stderr file  %s failed:%d(%s)\r\n", log_file.data(), get_uv_error(), get_uv_errmsg());
             }
             // 关闭日志文件
             ::fclose(fp);
@@ -125,15 +124,15 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         // EOF: NULL
         charpv_params[params.size()] = NULL;
 
-        InfoL << "start child proces " << _pid << ", log file:" << log_file;
-
         // TODO: execv or execvp
         auto ret = execv(params[0].c_str(), charpv_params);
         if (ret < 0) {
-            fprintf(stderr, "fork process failed, errno=%d(%s)\r\n", errno, strerror(errno));
+            fprintf(stderr, "fork process failed:%d(%s)\r\n", get_uv_error(), get_uv_errmsg());
         }
         exit(ret);
     }
+
+    InfoL << "start child process " << _pid << ", log file:" << log_file;
 #endif // _WIN32
 }
 
