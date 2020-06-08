@@ -61,16 +61,16 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
     LPTSTR lpDir = const_cast<char*>(cmd.data());
     if (CreateProcess(NULL, lpDir, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)){
         //下面两行关闭句柄，解除本进程和新进程的关系，不然有可能 不小心调用TerminateProcess函数关掉子进程 
-        CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         _pid = pi.dwProcessId;
-		fprintf(fp, "\r\n\r\n#### pid=%d,cmd=%s #####\r\n\r\n", _pid, cmd.data());
-        InfoL << "start child proces " << _pid;
+        _handle = pi.hProcess;
+        fprintf(fp, "\r\n\r\n#### pid=%d,cmd=%s #####\r\n\r\n", _pid, cmd.data());
+        InfoL << "start child proces " << _pid << ", log file:" << log_file;
     } else {
         WarnL << "start child proces fail: " << get_uv_errmsg();
     }
-	fclose(fp);
-#else	
+    fclose(fp);
+#else
     _pid = fork();
     if (_pid < 0) {
         throw std::runtime_error(StrPrinter << "fork child process falied,err:" << get_uv_errmsg());
@@ -125,6 +125,8 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         // EOF: NULL
         charpv_params[params.size()] = NULL;
 
+        InfoL << "start child proces " << _pid << ", log file:" << log_file;
+
         // TODO: execv or execvp
         auto ret = execv(params[0].c_str(), charpv_params);
         if (ret < 0) {
@@ -132,7 +134,6 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         }
         exit(ret);
     }
-    InfoL << "start child proces " << _pid;
 #endif // _WIN32
 }
 
@@ -143,42 +144,33 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
  * @param block 是否阻塞等待
  * @return 进程是否还在运行
  */
-static bool s_wait(pid_t pid,int *exit_code_ptr,bool block) {
+static bool s_wait(pid_t pid, void *handle, int *exit_code_ptr, bool block) {
     if (pid <= 0) {
         return false;
     }
 #ifdef _WIN32
-    HANDLE hProcess = NULL;
-    hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);	//打开目标进程
-    if (!hProcess) {
-        //子进程不在线
-        return false;
-    }
-
     DWORD code = 0;
     if (block) {
         //一直等待
-        code = WaitForSingleObject(hProcess, INFINITE);
+        code = WaitForSingleObject(handle, INFINITE);
     } else {
-        code = WaitForSingleObject(hProcess, 0);
+        code = WaitForSingleObject(handle, 0);
     }
-	
+
     if(code == WAIT_FAILED || code == WAIT_OBJECT_0){
         //子进程已经退出了,获取子进程退出代码
         DWORD exitCode = 0;
-        if(exit_code_ptr && GetExitCodeProcess(hProcess, &exitCode)){
+        if(exit_code_ptr && GetExitCodeProcess(handle, &exitCode)){
             *exit_code_ptr = exitCode;
         }
-        CloseHandle(hProcess);
         return false;
     }
 
-    CloseHandle(hProcess);
     if(code == WAIT_TIMEOUT){
         //子进程还在线
         return true;
     }
-	//不太可能运行到此处
+    //不太可能运行到此处
     WarnL << "WaitForSingleObject ret:" << code;
     return false;
 #else
@@ -232,30 +224,20 @@ bool signalCtrl(DWORD dwProcessId, DWORD dwCtrlEvent){
 }
 #endif // _WIN32
 
-static void s_kill(pid_t pid,int max_delay,bool force){
+static void s_kill(pid_t pid, void *handle, int max_delay, bool force) {
     if (pid <= 0) {
         //pid无效
         return;
     }
 #ifdef _WIN32
-    HANDLE hProcess = NULL;
-    hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pid);	//打开目标进程
-    if (!hProcess) {
-		//子进程可能已经推出了
-        return;
-    }
     //windows下目前没有比较好的手段往子进程发送SIGTERM或信号
     //所以杀死子进程的方式全部强制为立即关闭
     force = true;
     if(force){
-        //强制关闭
-        DWORD ret = TerminateProcess(hProcess, 0);	//结束目标进程
-        CloseHandle(hProcess);
-        if (ret == 0) {
-            WarnL << "TerminateProcess " << pid << " failed:" << get_uv_errmsg();
-        }
+        //强制关闭子进程
+        TerminateProcess(handle, 0);
     }else{
-        //非强制关闭，发生Ctr+C信号
+        //非强制关闭，发送Ctr+C信号
         signalCtrl(pid, CTRL_C_EVENT);
     }
 #else
@@ -266,32 +248,38 @@ static void s_kill(pid_t pid,int max_delay,bool force){
     }
 #endif // _WIN32
 
-    if(force){
+    if (force) {
         //发送SIGKILL信号后，阻塞等待退出
-        s_wait(pid, NULL, true);
+        s_wait(pid, handle, nullptr, true);
         DebugL << "force kill " << pid << " success!";
         return;
     }
 
     //发送SIGTERM信号后，2秒后检查子进程是否已经退出
-    WorkThreadPool::Instance().getPoller()->doDelayTask(max_delay,[pid](){
-        if (!s_wait(pid, nullptr, false)) {
+    WorkThreadPool::Instance().getPoller()->doDelayTask(max_delay, [pid, handle]() {
+        if (!s_wait(pid, handle, nullptr, false)) {
             //进程已经退出了
             return 0;
         }
         //进程还在运行
         WarnL << "process still working,force kill it:" << pid;
-        s_kill(pid,0, true);
+        s_kill(pid, handle, 0, true);
         return 0;
     });
 }
 
-void Process::kill(int max_delay,bool force) {
+void Process::kill(int max_delay, bool force) {
     if (_pid <= 0) {
         return;
     }
-    s_kill(_pid,max_delay,force);
+    s_kill(_pid, _handle, max_delay, force);
     _pid = -1;
+#ifdef _WIN32
+    if(_handle){
+        CloseHandle(_handle);
+        _handle = nullptr;
+    }
+#endif
 }
 
 Process::~Process() {
@@ -301,7 +289,7 @@ Process::~Process() {
 Process::Process() {}
 
 bool Process::wait(bool block) {
-    return s_wait(_pid,&_exit_code,block);
+    return s_wait(_pid, _handle, &_exit_code, block);
 }
 
 int Process::exit_code() {
