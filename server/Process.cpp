@@ -16,6 +16,7 @@
 #else
 //#include <TlHelp32.h>
 #include <windows.h>
+#include <io.h>
 #endif
 
 #include <stdexcept>
@@ -31,23 +32,44 @@ using namespace toolkit;
 void Process::run(const string &cmd, const string &log_file_tmp) {
     kill(2000);
 #ifdef _WIN32
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-    ZeroMemory(&si, sizeof(si));			//结构体初始化；
-    ZeroMemory(&pi, sizeof(pi));
+    STARTUPINFO si = {0};
+    PROCESS_INFORMATION pi = {0};
+    string log_file;
+    if (log_file_tmp.empty()) {
+        //未指定子进程日志文件时，重定向至/dev/null
+        log_file = "NUL";
+    }
+    else {
+        log_file = StrPrinter << log_file_tmp << "." << getCurrentMillisecond();
+    }
+
+    //重定向shell日志至文件
+    auto fp = File::create_file(log_file.data(), "ab");
+    if (!fp) {
+        fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), errno, strerror(errno));
+    } else {
+        auto log_fd = (HANDLE)(_get_osfhandle(fileno(fp)));
+        // dup to stdout and stderr.
+        si.wShowWindow = SW_HIDE;
+        // STARTF_USESHOWWINDOW:The wShowWindow member contains additional information.   
+        // STARTF_USESTDHANDLES:The hStdInput, hStdOutput, and hStdError members contain additional information.    
+        si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+        si.hStdError = log_fd;
+        si.hStdOutput = log_fd;
+    }
 
     LPTSTR lpDir = const_cast<char*>(cmd.data());
-
-    if (CreateProcess(NULL, lpDir, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
+    if (CreateProcess(NULL, lpDir, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)){
         //下面两行关闭句柄，解除本进程和新进程的关系，不然有可能 不小心调用TerminateProcess函数关掉子进程 
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
-
         _pid = pi.dwProcessId;
+		fprintf(fp, "\r\n\r\n#### pid=%d,cmd=%s #####\r\n\r\n", _pid, cmd.data());
         InfoL << "start child proces " << _pid;
     } else {
-        WarnL << "start child proces fail: " << GetLastError();
+        WarnL << "start child proces fail: " << get_uv_errmsg();
     }
+	fclose(fp);
 #else	
     _pid = fork();
     if (_pid < 0) {
@@ -125,16 +147,42 @@ static bool s_wait(pid_t pid,int *exit_code_ptr,bool block) {
     if (pid <= 0) {
         return false;
     }
-    int status = 0;
 #ifdef _WIN32
     HANDLE hProcess = NULL;
-    hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pid);	//打开目标进程
-    if (hProcess == NULL) {
+    hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);	//打开目标进程
+    if (!hProcess) {
+        WarnL << "OpenProcess failed:" << get_uv_errmsg();
+        return false;
+    }
+
+    DWORD code = 0;
+    if (block) {
+        //一直等待
+        code = WaitForSingleObject(hProcess, INFINITE);
+    } else {
+        code = WaitForSingleObject(hProcess, 0);
+    }
+	
+    if(code == WAIT_FAILED || code == WAIT_OBJECT_0){
+        //子进程已经退出了,获取子进程退出代码
+        DWORD exitCode = 0;
+        if(GetExitCodeProcess(hProcess, &exitCode) && exit_code_ptr){
+            *exit_code_ptr = exitCode;
+        }
+        CloseHandle(hProcess);
         return false;
     }
 
     CloseHandle(hProcess);
+    if(code == WAIT_TIMEOUT){
+        //子进程还在线
+        return true;
+    }
+	//不太可能运行到此处
+    WarnL << "WaitForSingleObject ret:" << code;
+    return false;
 #else
+    int status = 0;
     pid_t p = waitpid(pid, &status, block ? 0 : WNOHANG);
     int exit_code = (status & 0xFF00) >> 8;
     if (exit_code_ptr) {
@@ -148,10 +196,41 @@ static bool s_wait(pid_t pid,int *exit_code_ptr,bool block) {
         InfoL << "process terminated, pid=" << pid << ", exit code=" << exit_code;
         return false;
     }
-#endif // _WIN32
-
     return true;
+#endif // _WIN32
 }
+
+#ifdef _WIN32
+// Inspired from http://stackoverflow.com/a/15281070/1529139
+// and http://stackoverflow.com/q/40059902/1529139
+bool signalCtrl(DWORD dwProcessId, DWORD dwCtrlEvent){
+    bool success = false;
+    DWORD thisConsoleId = GetCurrentProcessId();
+    // Leave current console if it exists
+    // (otherwise AttachConsole will return ERROR_ACCESS_DENIED)
+    bool consoleDetached = (FreeConsole() != FALSE);
+
+    if (AttachConsole(dwProcessId) != FALSE){
+        // Add a fake Ctrl-C handler for avoid instant kill is this console
+        // WARNING: do not revert it or current program will be also killed
+        SetConsoleCtrlHandler(nullptr, true);
+        success = (GenerateConsoleCtrlEvent(dwCtrlEvent, 0) != FALSE);
+        FreeConsole();
+    }
+
+    if (consoleDetached){
+        // Create a new console if previous was deleted by OS
+        if (AttachConsole(thisConsoleId) == FALSE){
+            int errorCode = GetLastError();
+            if (errorCode == 31){
+                // 31=ERROR_GEN_FAILURE
+                AllocConsole();
+            }
+        }
+    }
+    return success;
+}
+#endif // _WIN32
 
 static void s_kill(pid_t pid,int max_delay,bool force){
     if (pid <= 0) {
@@ -161,13 +240,20 @@ static void s_kill(pid_t pid,int max_delay,bool force){
 #ifdef _WIN32
     HANDLE hProcess = NULL;
     hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pid);	//打开目标进程
-    if (hProcess == NULL) {
-        WarnL << "\nOpen Process fAiled: " << GetLastError();
+    if (!hProcess) {
+		//子进程可能已经推出了
         return;
     }
-    DWORD ret = TerminateProcess(hProcess, 0);	//结束目标进程
-    if (ret == 0) {
-        WarnL << GetLastError;
+    if(force){
+        //强制关闭
+        DWORD ret = TerminateProcess(hProcess, 0);	//结束目标进程
+        CloseHandle(hProcess);
+        if (ret == 0) {
+            WarnL << "TerminateProcess " << pid << " failed:" << get_uv_errmsg();
+        }
+    }else{
+        //非强制关闭，发生Ctr+C信号
+        signalCtrl(pid, CTRL_C_EVENT);
     }
 #else
     if (::kill(pid, force ? SIGKILL : SIGTERM) == -1) {
@@ -176,7 +262,6 @@ static void s_kill(pid_t pid,int max_delay,bool force){
         return;
     }
 #endif // _WIN32
-
 
     if(force){
         //发送SIGKILL信号后，阻塞等待退出
