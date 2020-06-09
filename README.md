@@ -122,7 +122,7 @@ bash build_docker_images.sh
  - [基于ZLMediaKit主线的管理WEB网站](https://gitee.com/kkkkk5G/MediaServerUI)
  - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
  - [GB28181-2016网络视频平台](https://github.com/swwheihei/wvp)
- - [node-js版本的GB28181平台]https://gitee.com/hfwudao/GB28181_Node_Http
+ - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
  
 
 ## 授权协议
