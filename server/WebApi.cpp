@@ -821,13 +821,31 @@ void installWebApi() {
         val["data"]["paths"] = paths;
     });
 
-    GET_CONFIG(string, snap_root, API::kSnapRoot);
+    static auto responseSnap = [](const string &snap_path,
+                                  const HttpSession::KeyValue &headerIn,
+                                  const HttpSession::HttpResponseInvoker &invoker) {
+        StrCaseMap headerOut;
+        struct stat statbuf = {0};
+        GET_CONFIG(string, defaultSnap, API::kDefaultSnap);
+        if (!(stat(snap_path.data(), &statbuf) == 0 && statbuf.st_size != 0) && !defaultSnap.empty()) {
+            //空文件且设置了预设图，则返回预设图片(也就是FFmpeg生成截图中空档期的默认图片)
+            const_cast<string&>(snap_path) = File::absolutePath(defaultSnap, "");
+            headerOut["Content-Type"] = HttpFileManager::getContentType(snap_path.data());
+        } else {
+            //之前生成的截图文件，我们默认为jpeg格式
+            headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
+        }
+        //返回图片给http客户端
+        invoker.responseFile(headerIn, headerOut, snap_path);
+    };
 
     //获取截图缓存或者实时截图
     //http://127.0.0.1/index/api/getSnap?url=rtmp://127.0.0.1/record/robot.mp4&timeout_sec=10&expire_sec=3
     api_regist2("/index/api/getSnap", [](API_ARGS2){
         CHECK_SECRET();
         CHECK_ARGS("url", "timeout_sec", "expire_sec");
+        GET_CONFIG(string, snap_root, API::kSnapRoot);
+
         int expire_sec = allArgs["expire_sec"];
         auto scan_path = File::absolutePath(MD5(allArgs["url"]).hexdigest(), snap_root) + "/";
         string snap_path;
@@ -851,19 +869,7 @@ void installWebApi() {
         });
 
         if(!snap_path.empty()){
-            StrCaseMap headerOut;
-            struct stat statbuf = {0};
-            GET_CONFIG(string, defaultSnap, API::kDefaultSnap);
-            if (!defaultSnap.empty() && !(stat(snap_path.data(), &statbuf) == 0 && statbuf.st_size != 0)) {
-                //空文件，则返回预设图片(也就是FFmpeg生成截图中空档期的默认图片)
-                snap_path = File::absolutePath(defaultSnap, "");
-                headerOut["Content-Type"] = HttpFileManager::getContentType(snap_path.data());
-            } else {
-                //之前生成的截图文件，我们默认为jpeg格式
-                headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
-            }
-            //返回图片给http客户端
-            invoker.responseFile(headerIn,headerOut,snap_path);
+            responseSnap(snap_path, headerIn, invoker);
             return;
         }
 
@@ -883,10 +889,7 @@ void installWebApi() {
                 //生成截图失败，可能残留空文件
                 File::delete_file(snap_path.data());
             }
-
-            StrCaseMap headerOut;
-            headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
-            invoker.responseFile(headerIn, headerOut, snap_path);
+            responseSnap(snap_path, headerIn, invoker);
         });
     });
 
