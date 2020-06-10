@@ -8,11 +8,12 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <sys/stat.h>
+#include <math.h>
 #include <signal.h>
 #include <functional>
 #include <sstream>
 #include <unordered_map>
-#include <math.h>
 #include "jsoncpp/json.h"
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -51,12 +52,13 @@ typedef enum {
 const string kApiDebug = API_FIELD"apiDebug";
 const string kSecret = API_FIELD"secret";
 const string kSnapRoot = API_FIELD"snapRoot";
+const string kDefaultSnap = API_FIELD"defaultSnap";
 
 static onceToken token([]() {
     mINI::Instance()[kApiDebug] = "1";
     mINI::Instance()[kSecret] = "035c73f7-bb6b-4889-a715-d9eb2d1925cc";
     mINI::Instance()[kSnapRoot] = "./www/snap/";
-
+    mINI::Instance()[kDefaultSnap] = "./www/logo.png";
 });
 }//namespace API
 
@@ -850,24 +852,32 @@ void installWebApi() {
 
         if(!snap_path.empty()){
             StrCaseMap headerOut;
-            headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
+            struct stat statbuf = {0};
+            GET_CONFIG(string, defaultSnap, API::kDefaultSnap);
+            if (!defaultSnap.empty() && !(stat(snap_path.data(), &statbuf) == 0 && statbuf.st_size != 0)) {
+                //空文件，则返回预设图片(也就是FFmpeg生成截图中空档期的默认图片)
+                snap_path = File::absolutePath(defaultSnap, "");
+                headerOut["Content-Type"] = HttpFileManager::getContentType(snap_path.data());
+            } else {
+                //之前生成的截图文件，我们默认为jpeg格式
+                headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
+            }
+            //返回图片给http客户端
             invoker.responseFile(headerIn,headerOut,snap_path);
-            return ;
+            return;
         }
 
         //无截图或者截图已经过期
         snap_path = StrPrinter << scan_path << time(NULL) << ".jpeg";
 
-        {
-            //生成一个空文件，目的是顺便创建文件夹路径，
-            //同时防止在FFmpeg生成截图途中不停的尝试调用该api启动FFmpeg生成相同的截图
-            //当然，我们可以拷贝一个"正在截图中"的图来替换这个空图，这需要开发者自己实现
-            auto file = File::create_file(snap_path.data(), "wb");
-            if(file){
-                fclose(file);
-            }
+        //生成一个空文件，目的是顺便创建文件夹路径，
+        //同时防止在FFmpeg生成截图途中不停的尝试调用该api启动FFmpeg生成相同的截图
+        auto file = File::create_file(snap_path.data(), "wb");
+        if (file) {
+            fclose(file);
         }
 
+        //启动FFmpeg进程，开始截图
         FFmpegSnap::makeSnap(allArgs["url"],snap_path,allArgs["timeout_sec"],[invoker,headerIn,snap_path](bool success){
             if(!success){
                 //生成截图失败，可能残留空文件

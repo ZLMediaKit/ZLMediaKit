@@ -1,4 +1,4 @@
-![logo](https://raw.githubusercontent.com/zlmediakit/ZLMediaKit/master/logo.png)
+![logo](https://raw.githubusercontent.com/zlmediakit/ZLMediaKit/master/www/logo.png)
 
 # A lightweight ,high performance and stable stream server and client framework based on C++11.
 
