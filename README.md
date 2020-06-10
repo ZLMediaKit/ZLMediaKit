@@ -1,4 +1,4 @@
-![logo](https://raw.githubusercontent.com/zlmediakit/ZLMediaKit/master/logo.png)
+![logo](https://raw.githubusercontent.com/zlmediakit/ZLMediaKit/master/www/logo.png)
 
 [english readme](https://github.com/xiongziliang/ZLMediaKit/blob/master/README_en.md)
 
