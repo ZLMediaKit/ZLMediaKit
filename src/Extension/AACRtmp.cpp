@@ -13,8 +13,9 @@
 
 namespace mediakit{
 
-AACRtmpDecoder::AACRtmpDecoder() {
-    _adts = obtainFrame();
+AACRtmpDecoder::AACRtmpDecoder(const Track::Ptr &track) {
+    _frame = obtainFrame();
+    _track = dynamic_pointer_cast<AACTrack>(track);
 }
 
 AACFrame::Ptr AACRtmpDecoder::obtainFrame() {
@@ -38,13 +39,19 @@ static string getAacCfg(const RtmpPacket &thiz) {
         WarnL << "bad aac cfg!";
         return ret;
     }
-    ret = thiz.strBuf.substr(2, 2);
+    ret = thiz.strBuf.substr(2);
     return ret;
 }
 
 bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
     if (pkt->isCfgFrame()) {
         _aac_cfg = getAacCfg(*pkt);
+        if (_track) {
+            //设置aac config
+            _track->setAacCfg(_aac_cfg);
+            //不再强引用
+            _track = nullptr;
+        }
         return false;
     }
     if (!_aac_cfg.empty()) {
@@ -54,20 +61,20 @@ bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
 }
 
 void AACRtmpDecoder::onGetAAC(const char* data, int len, uint32_t stamp) {
-    _adts->_dts = stamp;
+    _frame->_dts = stamp;
     //先追加数据
-    _adts->_buffer.append(data, len);
+    _frame->_buffer.append(data, len);
     //覆盖adts头
-    dumpAacConfig(_aac_cfg, _adts->size(), (uint8_t *) _adts->data());
+    dumpAacConfig(_aac_cfg, _frame->size(), (uint8_t *) _frame->data());
 
     //写入环形缓存
-    RtmpCodec::inputFrame(_adts);
-    _adts = obtainFrame();
+    RtmpCodec::inputFrame(_frame);
+    _frame = obtainFrame();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track) {
+AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track): AACRtmpDecoder(track) {
     _track = dynamic_pointer_cast<AACTrack>(track);
 }
 
