@@ -17,9 +17,9 @@
 
 namespace mediakit{
 
-string makeAacConfig(const uint8_t *hex);
-void dumpAacConfig(const string &config, int length, uint8_t *out);
-void parseAacConfig(const string &config, int &samplerate, int &channels);
+string makeAacConfig(const uint8_t *hex, int length);
+int dumpAacConfig(const string &config, int length, uint8_t *out, int out_size);
+bool parseAacConfig(const string &config, int &samplerate, int &channels);
 
 /**
  * aac帧，包含adts头
@@ -137,9 +137,9 @@ public:
     void inputFrame(const Frame::Ptr &frame) override{
         if (_cfg.empty()) {
             //未获取到aac_cfg信息
-            if (frame->prefixSize() >= ADTS_HEADER_LEN) {
+            if (frame->prefixSize()) {
                 //7个字节的adts头
-                _cfg = makeAacConfig((uint8_t *) (frame->data()));
+                _cfg = makeAacConfig((uint8_t *) (frame->data()), frame->prefixSize());
                 onReady();
             } else {
                 WarnL << "无法获取adts头!";
