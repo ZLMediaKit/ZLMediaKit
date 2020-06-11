@@ -202,7 +202,8 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                                                  audio_track->getAudioChannel(),
                                                  audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
                                                  audio_track->getAudioSampleRate(),
-                                                 audio_track->getAacCfg().data(), 2);
+                                                 audio_track->getAacCfg().data(),
+                                                 audio_track->getAacCfg().size());
             if(track_id < 0){
                 WarnL << "添加AAC Track失败:" << track_id;
                 return;

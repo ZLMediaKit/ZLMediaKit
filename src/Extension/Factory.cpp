@@ -33,17 +33,12 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
             return nullptr;
         }
         string aac_cfg;
-
-        unsigned int cfg1;
-        sscanf(aac_cfg_str.substr(0, 2).data(), "%02X", &cfg1);
-        cfg1 &= 0x00FF;
-        aac_cfg.push_back(cfg1);
-
-        unsigned int cfg2;
-        sscanf(aac_cfg_str.substr(2, 2).data(), "%02X", &cfg2);
-        cfg2 &= 0x00FF;
-        aac_cfg.push_back(cfg2);
-
+        for(int i = 0 ; i < aac_cfg_str.size() / 2 ; ++i ){
+            unsigned int cfg;
+            sscanf(aac_cfg_str.substr(i * 2, 2).data(), "%02X", &cfg);
+            cfg &= 0x00FF;
+            aac_cfg.push_back((char)cfg);
+        }
         return std::make_shared<AACTrack>(aac_cfg);
     }
 
