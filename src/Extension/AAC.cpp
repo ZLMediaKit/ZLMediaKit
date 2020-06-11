@@ -9,6 +9,9 @@
  */
 
 #include "AAC.h"
+#ifdef ENABLE_MP4
+#include "mpeg4-aac.h"
+#endif
 
 namespace mediakit{
 
@@ -89,7 +92,8 @@ static void parseAacConfig(const string &config, AdtsHeader &adts) {
     adts.no_raw_data_blocks_in_frame = 0;
 }
 
-string 	makeAacConfig(const uint8_t *hex){
+string makeAacConfig(const uint8_t *hex, int length){
+#ifndef ENABLE_MP4
     if (!(hex[0] == 0xFF && (hex[1] & 0xF0) == 0xF0)) {
         return "";
     }
@@ -112,20 +116,58 @@ string 	makeAacConfig(const uint8_t *hex){
     audioSpecificConfig[0] = (audioObjectType << 3) | (sampling_frequency_index >> 1);
     audioSpecificConfig[1] = (sampling_frequency_index << 7) | (channel_configuration << 3);
     return string((char *)audioSpecificConfig,2);
+#else
+    struct mpeg4_aac_t aac = {0};
+    if (mpeg4_aac_adts_load(hex, length, &aac) > 0) {
+        char buf[32] = {0};
+        int len = mpeg4_aac_audio_specific_config_save(&aac, (uint8_t *) buf, sizeof(buf));
+        if (len > 0) {
+            return string(buf, len);
+        }
+    }
+    WarnL << "生成aac config失败, adts header:" << hexdump(hex, length);
+    return "";
+#endif
 }
 
-void dumpAacConfig(const string &config, int length, uint8_t *out){
+int dumpAacConfig(const string &config, int length, uint8_t *out, int out_size) {
+#ifndef ENABLE_MP4
     AdtsHeader header;
     parseAacConfig(config, header);
     header.aac_frame_length = length;
     dumpAdtsHeader(header, out);
+    return ADTS_HEADER_LEN;
+#else
+    struct mpeg4_aac_t aac = {0};
+    int ret = mpeg4_aac_audio_specific_config_load((uint8_t *) config.data(), config.size(), &aac);
+    if (ret > 0) {
+        ret = mpeg4_aac_adts_save(&aac, length, out, out_size);
+    }
+    if (ret < 0) {
+        WarnL << "生成adts头失败:" << ret << ", aac config:" << hexdump(config.data(), config.size());
+    }
+    return ret;
+#endif
 }
 
-void parseAacConfig(const string &config, int &samplerate, int &channels){
+bool parseAacConfig(const string &config, int &samplerate, int &channels){
+#ifndef ENABLE_MP4
     AdtsHeader header;
     parseAacConfig(config, header);
     samplerate = samplingFrequencyTable[header.sf_index];
     channels = header.channel_configuration;
+    return true;
+#else
+    struct mpeg4_aac_t aac = {0};
+    int ret = mpeg4_aac_audio_specific_config_load((uint8_t *) config.data(), config.size(), &aac);
+    if (ret > 0) {
+        samplerate = aac.sampling_frequency;
+        channels = aac.channels;
+        return true;
+    }
+    WarnL << "获取aac采样率、声道数失败:" << hexdump(config.data(), config.size());
+    return false;
+#endif
 }
 
 Sdp::Ptr AACTrack::getSdp() {

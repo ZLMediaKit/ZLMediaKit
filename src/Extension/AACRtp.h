@@ -31,16 +31,19 @@ public:
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = false) override;
 
-    CodecId getCodecId() const override{
+    CodecId getCodecId() const override {
         return CodecAAC;
     }
+
 protected:
     AACRtpDecoder();
+
 private:
     AACFrame::Ptr obtainFrame();
     void flushData();
+
 private:
-    AACFrame::Ptr _adts;
+    AACFrame::Ptr _frame;
     string _aac_cfg;
 };
 
@@ -71,8 +74,10 @@ public:
      * @param frame 带dats头的aac数据
      */
     void inputFrame(const Frame::Ptr &frame) override;
+
 private:
     void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
+
 private:
     unsigned char _aucSectionBuf[1600];
 };

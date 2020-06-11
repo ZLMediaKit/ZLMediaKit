@@ -13,20 +13,6 @@
 
 namespace mediakit{
 
-AACRtmpDecoder::AACRtmpDecoder(const Track::Ptr &track) {
-    _frame = obtainFrame();
-    _track = dynamic_pointer_cast<AACTrack>(track);
-}
-
-AACFrame::Ptr AACRtmpDecoder::obtainFrame() {
-    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
-    frame->_prefix_size = ADTS_HEADER_LEN;
-    //预留7个字节的空位以便后续覆盖
-    frame->_buffer.assign(ADTS_HEADER_LEN,(char)0);
-    return frame;
-}
-
 static string getAacCfg(const RtmpPacket &thiz) {
     string ret;
     if (thiz.getMediaType() != FLV_CODEC_AAC) {
@@ -46,12 +32,6 @@ static string getAacCfg(const RtmpPacket &thiz) {
 bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
     if (pkt->isCfgFrame()) {
         _aac_cfg = getAacCfg(*pkt);
-        if (_track) {
-            //设置aac config
-            _track->setAacCfg(_aac_cfg);
-            //不再强引用
-            _track = nullptr;
-        }
         return false;
     }
     if (!_aac_cfg.empty()) {
@@ -61,20 +41,30 @@ bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
 }
 
 void AACRtmpDecoder::onGetAAC(const char* data, int len, uint32_t stamp) {
-    _frame->_dts = stamp;
-    //先追加数据
-    _frame->_buffer.append(data, len);
-    //覆盖adts头
-    dumpAacConfig(_aac_cfg, _frame->size(), (uint8_t *) _frame->data());
+    auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
+
+    //生成adts头
+    char adts_header[32] = {0};
+    auto size = dumpAacConfig(_aac_cfg, len, (uint8_t *) adts_header, sizeof(adts_header));
+    if (size > 0) {
+        frame->_buffer.assign(adts_header, size);
+        frame->_prefix_size = size;
+    } else {
+        frame->_buffer.clear();
+        frame->_prefix_size = 0;
+    }
+
+    //追加负载数据
+    frame->_buffer.append(data, len);
+    frame->_dts = stamp;
 
     //写入环形缓存
-    RtmpCodec::inputFrame(_frame);
-    _frame = obtainFrame();
+    RtmpCodec::inputFrame(frame);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track): AACRtmpDecoder(track) {
+AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track) {
     _track = dynamic_pointer_cast<AACTrack>(track);
 }
 
@@ -91,9 +81,9 @@ void AACRtmpEncoder::makeConfigPacket() {
 
 void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     if (_aac_cfg.empty()) {
-        if (frame->prefixSize() >= 7) {
+        if (frame->prefixSize()) {
             //包含adts头,从adts头获取aac配置信息
-            _aac_cfg = makeAacConfig((uint8_t *) (frame->data()));
+            _aac_cfg = makeAacConfig((uint8_t *) (frame->data()), frame->prefixSize());
         }
         makeConfigPacket();
     }
