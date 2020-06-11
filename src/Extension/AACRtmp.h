@@ -23,7 +23,7 @@ class AACRtmpDecoder : public RtmpCodec , public ResourcePoolHelper<AACFrame> {
 public:
     typedef std::shared_ptr<AACRtmpDecoder> Ptr;
 
-    AACRtmpDecoder();
+    AACRtmpDecoder(const Track::Ptr &track);
     ~AACRtmpDecoder() {}
 
     /**
@@ -38,10 +38,12 @@ public:
     }
 
 protected:
-    void onGetAAC(const char* data, int len, uint32_t stamp);
+    void onGetAAC(const char *data, int len, uint32_t stamp);
     AACFrame::Ptr obtainFrame();
+
 protected:
-    AACFrame::Ptr _adts;
+    AACFrame::Ptr _frame;
+    AACTrack::Ptr _track;
     string _aac_cfg;
 };
 
@@ -72,11 +74,12 @@ public:
      * 生成config包
      */
     void makeConfigPacket() override;
+
 private:
     void makeAudioConfigPkt();
+
 private:
     uint8_t _audio_flv_flags;
-    AACTrack::Ptr _track;
 };
 
 }//namespace mediakit

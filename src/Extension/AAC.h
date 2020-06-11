@@ -71,10 +71,17 @@ public:
 
     /**
      * 构造aac类型的媒体
-     * @param aac_cfg aac两个字节的配置信息
+     * @param aac_cfg aac配置信息
      */
     AACTrack(const string &aac_cfg){
-        if(aac_cfg.size() < 2){
+        setAacCfg(aac_cfg);
+    }
+
+    /**
+     * 设置aac 配置信息
+     */
+    void setAacCfg(const string &aac_cfg){
+        if (aac_cfg.size() < 2) {
             throw std::invalid_argument("adts配置必须最少2个字节");
         }
         _cfg = aac_cfg;
@@ -82,7 +89,7 @@ public:
     }
 
     /**
-     * 获取aac两个字节的配置
+     * 获取aac 配置信息
      */
     const string &getAacCfg() const{
         return _cfg;
