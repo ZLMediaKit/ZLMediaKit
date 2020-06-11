@@ -175,7 +175,7 @@ bool DtsGenerator::getDts_l(uint32_t pts, uint32_t &dts){
                 //已经出现多次非B帧的情况，那么我们就能知道P帧间B帧的个数
                 _sorter_max_size = _frames_since_last_max_pts;
                 //我们记录P帧间时间间隔(也就是多个B帧时间戳增量累计)
-                _dts_pts_offset = (pts - _last_max_pts) / 2;
+                _dts_pts_offset = (pts - _last_max_pts);
             }
             //遇到P帧或关键帧，连续B帧计数清零
             _frames_since_last_max_pts = 0;
