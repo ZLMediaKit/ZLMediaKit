@@ -70,19 +70,18 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
     }
     fclose(fp);
 #else
-    string log_file;
-    if (log_file_tmp.empty()) {
-        //未指定子进程日志文件时，重定向至/dev/null
-        log_file = "/dev/null";
-    } else {
-        log_file = StrPrinter << log_file_tmp << "." << getpid();
-    }
-
     _pid = fork();
     if (_pid < 0) {
         throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
     }
     if (_pid == 0) {
+        string log_file;
+        if (log_file_tmp.empty()) {
+            //未指定子进程日志文件时，重定向至/dev/null
+            log_file = "/dev/null";
+        } else {
+            log_file = StrPrinter << log_file_tmp << "." << getpid();
+        }
         //子进程关闭core文件生成
         struct rlimit rlim = {0, 0};
         setrlimit(RLIMIT_CORE, &rlim);
@@ -132,6 +131,13 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         exit(ret);
     }
 
+    string log_file;
+    if (log_file_tmp.empty()) {
+        //未指定子进程日志文件时，重定向至/dev/null
+        log_file = "/dev/null";
+    } else {
+        log_file = StrPrinter << log_file_tmp << "." << _pid;
+    }
     InfoL << "start child process " << _pid << ", log file:" << log_file;
 #endif // _WIN32
 }
