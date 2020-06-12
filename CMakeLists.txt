@@ -39,10 +39,6 @@ set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
 INCLUDE_DIRECTORIES(${MediaKit_Root})
-INCLUDE_DIRECTORIES(${MediaServer_Root}/libmpeg/include)
-INCLUDE_DIRECTORIES(${MediaServer_Root}/libmov/include)
-INCLUDE_DIRECTORIES(${MediaServer_Root}/libflv/include)
-INCLUDE_DIRECTORIES(${MediaServer_Root}/librtp/include)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/3rdpart)
 
 set(ENABLE_HLS true)
@@ -62,6 +58,8 @@ if (OPENSSL_FOUND AND ENABLE_OPENSSL)
     include_directories(${OPENSSL_INCLUDE_DIR})
     add_definitions(-DENABLE_OPENSSL)
     list(APPEND LINK_LIB_LIST ${OPENSSL_LIBRARIES})
+else()
+    message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效")
 endif ()
 
 #查找mysql是否安装
@@ -109,6 +107,7 @@ if(ENABLE_HLS)
     message(STATUS "ENABLE_HLS defined")
     add_definitions(-DENABLE_HLS)
 
+    include_directories(${MediaServer_Root}/libmpeg/include)
     aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
     aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
 
@@ -124,6 +123,9 @@ endif()
 if(ENABLE_MP4)
     message(STATUS "ENABLE_MP4 defined")
     add_definitions(-DENABLE_MP4)
+
+    include_directories(${MediaServer_Root}/libmov/include)
+    include_directories(${MediaServer_Root}/libflv/include)
 
     aux_source_directory(${MediaServer_Root}/libmov/include src_mov)
     aux_source_directory(${MediaServer_Root}/libmov/source src_mov)	
@@ -143,6 +145,8 @@ endif()
 #添加rtp库用于rtp转ps/ts
 if(ENABLE_RTPPROXY AND ENABLE_HLS)
     message(STATUS "ENABLE_RTPPROXY defined")
+    include_directories(${MediaServer_Root}/librtp/include)
+
     aux_source_directory(${MediaServer_Root}/librtp/include src_rtp)
     aux_source_directory(${MediaServer_Root}/librtp/source src_rtp)
     aux_source_directory(${MediaServer_Root}/librtp/payload src_rtp)
