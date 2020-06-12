@@ -11,11 +11,14 @@
 #include "Decoder.h"
 #include "PSDecoder.h"
 #include "TSDecoder.h"
-#include "mpeg-ts-proto.h"
 #include "Extension/H264.h"
 #include "Extension/H265.h"
 #include "Extension/AAC.h"
 #include "Extension/G711.h"
+
+#if defined(ENABLE_RTPPROXY) || defined(ENABLE_HLS)
+#include "mpeg-ts-proto.h"
+#endif
 
 namespace mediakit {
 static Decoder::Ptr createDecoder_l(DecoderImp::Type type) {
@@ -62,6 +65,7 @@ DecoderImp::DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink){
     });
 }
 
+#if defined(ENABLE_RTPPROXY) || defined(ENABLE_HLS)
 #define SWITCH_CASE(codec_id) case codec_id : return #codec_id
 static const char *getCodecName(int codec_id) {
     switch (codec_id) {
@@ -198,6 +202,9 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
             break;
     }
 }
+#else
+void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {}
+#endif
 
 void DecoderImp::onTrack(const Track::Ptr &track) {
     _sink->addTrack(track);
@@ -208,3 +215,4 @@ void DecoderImp::onFrame(const Frame::Ptr &frame) {
 }
 
 }//namespace mediakit
+
