@@ -11,7 +11,6 @@
 #ifndef ZLMEDIAKIT_TSDECODER_H
 #define ZLMEDIAKIT_TSDECODER_H
 
-#if defined(ENABLE_RTPPROXY)
 #include "Util/logger.h"
 #include "Http/HttpRequestSplitter.h"
 #include "Decoder.h"
@@ -19,13 +18,17 @@
 using namespace toolkit;
 namespace mediakit {
 
-//ts包拆分器
+#define TS_PACKET_SIZE		188
+#define TS_SYNC_BYTE        0x47
+
+//TS包分割器，用于split一个一个的ts包
 class TSSegment : public HttpRequestSplitter {
 public:
     typedef std::function<void(const char *data,uint64_t len)> onSegment;
-    TSSegment(int size = 188) : _size(size){}
+    TSSegment(int size = TS_PACKET_SIZE) : _size(size){}
     ~TSSegment(){}
     void setOnSegment(const onSegment &cb);
+    static bool isTSPacket(const char *data, int len);
 protected:
     int64_t onRecvHeader(const char *data, uint64_t len) override ;
     const char *onSearchPacketTail(const char *data, int len) override ;
@@ -34,6 +37,7 @@ private:
     onSegment _onSegment;
 };
 
+#if defined(ENABLE_HLS)
 //ts解析器
 class TSDecoder : public Decoder {
 public:
@@ -46,7 +50,7 @@ private:
     struct ts_demuxer_t* _demuxer_ctx = nullptr;
     onDecode _on_decode;
 };
+#endif//defined(ENABLE_HLS)
 
 }//namespace mediakit
-#endif//defined(ENABLE_RTPPROXY)
 #endif //ZLMEDIAKIT_TSDECODER_H

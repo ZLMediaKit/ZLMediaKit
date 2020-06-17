@@ -23,9 +23,9 @@ namespace mediakit {
 bool getHEVCInfo(const string &strVps, const string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps);
 
 /**
-* 265帧类
-*/
-class H265Frame : public Frame {
+ * 265帧类
+ */
+class H265Frame : public FrameImp {
 public:
     typedef std::shared_ptr<H265Frame> Ptr;
 
@@ -60,32 +60,8 @@ public:
         NAL_SEI_SUFFIX = 40,
     } NaleType;
 
-    char *data() const override {
-        return (char *) _buffer.data();
-    }
-
-    uint32_t size() const override {
-        return _buffer.size();
-    }
-
-    uint32_t dts() const override {
-        return _dts;
-    }
-
-    uint32_t pts() const override {
-        return _pts ? _pts : _dts;
-    }
-
-    uint32_t prefixSize() const override {
-        return _prefix_size;
-    }
-
-    TrackType getTrackType() const override {
-        return TrackVideo;
-    }
-
-    CodecId getCodecId() const override {
-        return CodecH265;
+    H265Frame(){
+        _codecid = CodecH265;
     }
 
     bool keyFrame() const override {
@@ -96,39 +72,26 @@ public:
         switch(H265_TYPE(_buffer[_prefix_size])){
             case H265Frame::NAL_VPS:
             case H265Frame::NAL_SPS:
-            case H265Frame::NAL_PPS:
-                return true;
-            default:
-                return false;
+            case H265Frame::NAL_PPS : return true;
+            default : return false;
         }
     }
 
     static bool isKeyFrame(int type) {
         return type >= NAL_BLA_W_LP && type <= NAL_RSV_IRAP_VCL23;
     }
-
-public:
-    uint32_t _dts = 0;
-    uint32_t _pts = 0;
-    uint32_t _prefix_size = 4;
-    string _buffer;
 };
 
-
-class H265FrameNoCacheAble : public FrameNoCacheAble {
+class H265FrameNoCacheAble : public FrameFromPtr {
 public:
     typedef std::shared_ptr<H265FrameNoCacheAble> Ptr;
 
-    H265FrameNoCacheAble(char *ptr, uint32_t size, uint32_t dts,uint32_t pts, int prefixeSize = 4) {
+    H265FrameNoCacheAble(char *ptr, uint32_t size, uint32_t dts,uint32_t pts, int prefix_size = 4) {
         _ptr = ptr;
         _size = size;
         _dts = dts;
         _pts = pts;
-        _prefixSize = prefixeSize;
-    }
-
-    TrackType getTrackType() const override {
-        return TrackVideo;
+        _prefix_size = prefix_size;
     }
 
     CodecId getCodecId() const override {
@@ -136,17 +99,15 @@ public:
     }
 
     bool keyFrame() const override {
-        return H265Frame::isKeyFrame(H265_TYPE(((uint8_t *) _ptr)[_prefixSize]));
+        return H265Frame::isKeyFrame(H265_TYPE(((uint8_t *) _ptr)[_prefix_size]));
     }
 
     bool configFrame() const override{
-        switch(H265_TYPE(((uint8_t *) _ptr)[_prefixSize])){
+        switch(H265_TYPE(((uint8_t *) _ptr)[_prefix_size])){
             case H265Frame::NAL_VPS:
             case H265Frame::NAL_SPS:
-            case H265Frame::NAL_PPS:
-                return true;
-            default:
-                return false;
+            case H265Frame::NAL_PPS:return true;
+            default:return false;
         }
     }
 };
@@ -184,7 +145,6 @@ public:
 
     /**
      * 返回不带0x00 00 00 01头的vps
-     * @return
      */
     const string &getVps() const {
         return _vps;
@@ -192,7 +152,6 @@ public:
 
     /**
      * 返回不带0x00 00 00 01头的sps
-     * @return
      */
     const string &getSps() const {
         return _sps;
@@ -200,7 +159,6 @@ public:
 
     /**
      * 返回不带0x00 00 00 01头的pps
-     * @return
      */
     const string &getPps() const {
         return _pps;
@@ -212,7 +170,6 @@ public:
 
     /**
      * 返回视频高度
-     * @return
      */
     int getVideoHeight() const override{
         return _height ;
@@ -220,7 +177,6 @@ public:
 
     /**
      * 返回视频宽度
-     * @return
      */
     int getVideoWidth() const override{
         return _width;
@@ -228,7 +184,6 @@ public:
 
     /**
      * 返回视频fps
-     * @return
      */
     float getVideoFps() const override{
         return _fps;
@@ -238,36 +193,20 @@ public:
         return !_vps.empty() && !_sps.empty() && !_pps.empty();
     }
 
-
     /**
-    * 输入数据帧,并获取sps pps
-    * @param frame 数据帧
-    */
+     * 输入数据帧,并获取sps pps
+     * @param frame 数据帧
+     */
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-        if(frame->configFrame()){
-            bool  first_frame = true;
-            splitH264(frame->data() + frame->prefixSize(),
-                  frame->size() - frame->prefixSize(),
-                  [&](const char *ptr, int len){
-                      if(first_frame){
-                          H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame,
-                                                                                                 frame->data(),
-                                                                                                 len + frame->prefixSize(),
-                                                                                                 frame->prefixSize());
-                          inputFrame_l(sub_frame);
-                          first_frame = false;
-                      }else{
-                          H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame,
-                                                                                                 (char *)ptr,
-                                                                                                 len ,
-                                                                                                 3);
-                          inputFrame_l(sub_frame);
-                      }
-                  });
-            }else{
-                inputFrame_l(frame);
-            }
+        if(frame->configFrame() || type == H265Frame::NAL_SEI_PREFIX){
+            splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, int len, int prefix){
+                H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame, (char*)ptr, len, prefix);
+                inputFrame_l(sub_frame);
+            });
+        } else {
+            inputFrame_l(frame);
+        }
     }
 
 private:
@@ -367,45 +306,39 @@ private:
     bool _last_frame_is_idr = false;
 };
 
-
 /**
 * h265类型sdp
 */
 class H265Sdp : public Sdp {
 public:
-
     /**
-     *
+     * 构造函数
      * @param sps 265 sps,不带0x00000001头
      * @param pps 265 pps,不带0x00000001头
-     * @param playload_type  rtp playload type 默认96
+     * @param payload_type  rtp payload type 默认96
      * @param bitrate 比特率
      */
     H265Sdp(const string &strVPS,
             const string &strSPS,
             const string &strPPS,
-            int playload_type = 96,
-            int bitrate = 4000) : Sdp(90000,playload_type) {
+            int payload_type = 96,
+            int bitrate = 4000) : Sdp(90000,payload_type) {
         //视频通道
-        _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
+        _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << " H265/" << 90000 << "\r\n";
-        _printer << "a=fmtp:" << playload_type << " ";
+        _printer << "a=rtpmap:" << payload_type << " H265/" << 90000 << "\r\n";
+        _printer << "a=fmtp:" << payload_type << " ";
         _printer << "sprop-vps=";
         _printer << encodeBase64(strVPS) << "; ";
         _printer << "sprop-sps=";
         _printer << encodeBase64(strSPS) << "; ";
         _printer << "sprop-pps=";
         _printer << encodeBase64(strPPS) << "\r\n";
-        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
+        _printer << "a=control:trackID=" << (int)TrackVideo << "\r\n";
     }
 
     string getSdp() const override {
         return _printer;
-    }
-
-    TrackType getTrackType() const override {
-        return TrackVideo;
     }
 
     CodecId getCodecId() const override {
@@ -415,9 +348,5 @@ private:
     _StrPrinter _printer;
 };
 
-
-    
 }//namespace mediakit
-
-
 #endif //ZLMEDIAKIT_H265_H

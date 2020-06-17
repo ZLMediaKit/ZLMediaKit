@@ -40,6 +40,7 @@ public:
     typedef std::map<std::string, AMFValue> mapType;
     typedef std::vector<AMFValue> arrayType;
 
+    ~AMFValue();
     AMFValue(AMFType type = AMF_NULL);
     AMFValue(const char *s);
     AMFValue(const std::string &s);
@@ -47,10 +48,7 @@ public:
     AMFValue(int i);
     AMFValue(bool b);
     AMFValue(const AMFValue &from);
-    AMFValue(AMFValue &&from);
-    AMFValue &operator =(const AMFValue &from);
-    AMFValue &operator =(AMFValue &&from);
-    ~AMFValue();
+    AMFValue &operator = (const AMFValue &from);
 
     void clear();
     AMFType type() const ;

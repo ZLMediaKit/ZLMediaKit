@@ -100,4 +100,23 @@ uint8_t getAudioRtmpFlags(const Track::Ptr &track){
 }
 
 
+void Metadata::addTrack(AMFValue &metadata, const Track::Ptr &track) {
+    Metadata::Ptr new_metadata;
+    switch (track->getTrackType()) {
+        case TrackVideo: {
+            new_metadata = std::make_shared<VideoMeta>(dynamic_pointer_cast<VideoTrack>(track));
+        }
+            break;
+        case TrackAudio: {
+            new_metadata = std::make_shared<AudioMeta>(dynamic_pointer_cast<AudioTrack>(track));
+        }
+            break;
+        default:
+            return;
+    }
+
+    new_metadata->getMetadata().object_for_each([&](const std::string &key, const AMFValue &value) {
+        metadata.set(key, value);
+    });
+}
 }//namespace mediakit

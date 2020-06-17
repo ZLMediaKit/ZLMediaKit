@@ -220,6 +220,8 @@ public:
     const AMFValue &getMetadata() const{
         return _metadata;
     }
+
+    static void addTrack(AMFValue &metadata, const Track::Ptr &track);
 protected:
     AMFValue _metadata;
 };
@@ -242,18 +244,6 @@ public:
         }
     }
 
-    /**
-     * 返回音频或视频类型
-     * @return
-     */
-    TrackType getTrackType() const override {
-        return TrackTitle;
-    }
-
-    /**
-     * 返回编码器id
-     * @return
-     */
     CodecId getCodecId() const override{
         return CodecInvalid;
     }
@@ -266,25 +256,12 @@ public:
     VideoMeta(const VideoTrack::Ptr &video,int datarate = 5000);
     virtual ~VideoMeta(){}
 
-    /**
-     * 返回音频或视频类型
-     * @return
-     */
-    TrackType getTrackType() const override {
-        return TrackVideo;
-    }
-
-    /**
-     * 返回编码器id
-     * @return
-     */
     CodecId getCodecId() const override{
         return _codecId;
     }
 private:
     CodecId _codecId;
 };
-
 
 class AudioMeta : public Metadata{
 public:
@@ -294,18 +271,6 @@ public:
 
     virtual ~AudioMeta(){}
 
-    /**
-     * 返回音频或视频类型
-     * @return
-     */
-    TrackType getTrackType() const override {
-        return TrackAudio;
-    }
-
-    /**
-     * 返回编码器id
-     * @return
-     */
     CodecId getCodecId() const override{
         return _codecId;
     }
@@ -317,7 +282,4 @@ private:
 uint8_t getAudioRtmpFlags(const Track::Ptr &track);
 
 }//namespace mediakit
-
-
-
-#endif
+#endif//__rtmp_h

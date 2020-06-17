@@ -160,6 +160,8 @@ private:
     void onAuthBasic(const string &realm,const string &strBase64);
     //校验md5方式的认证加密
     void onAuthDigest(const string &realm,const string &strMd5);
+    //触发url鉴权事件
+    void emitOnPlay();
 
     //发送rtp给客户端
     void sendRtpPacket(const RtspMediaSource::RingDataType &pkt);
@@ -179,8 +181,10 @@ private:
     string _strContentBase;
     //Session号
     string _strSession;
-    //是否第一次播放，第一次播放需要鉴权，第二次播放属于暂停恢复
-    bool _bFirstPlay = true;
+    //记录是否需要rtsp专属鉴权，防止重复触发事件
+    string _rtsp_realm;
+    //是否已经触发on_play事件
+    bool _emit_on_play = false;
     //url解析后保存的相关信息
     MediaInfo _mediaInfo;
     //rtsp播放器绑定的直播源

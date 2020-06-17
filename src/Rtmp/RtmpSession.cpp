@@ -130,8 +130,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,
                                                                            _mediaInfo._vhost,
                                                                            _mediaInfo._app,
-                                                                           _mediaInfo._streamid,
-                                                                           false));
+                                                                           _mediaInfo._streamid));
         bool authSuccess = err.empty();
         bool ok = (!src && !_pPublisherSrc && authSuccess);
         AMFValue status(AMF_OBJECT);
@@ -157,6 +156,12 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
         setSocketFlags();
     };
+
+    if(_mediaInfo._app.empty() || _mediaInfo._streamid.empty()){
+        //不允许莫名其妙的推流url
+        onRes("rtmp推流url非法", false, false, false);
+        return;
+    }
 
     Broadcast::PublishAuthInvoker invoker = [weakSelf,onRes,pToken](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
         auto strongSelf = weakSelf.lock();
@@ -266,6 +271,8 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         onSendMedia(pkt);
     });
 
+    //音频同步于视频
+    _stamp[0].syncTo(_stamp[1]);
     _pRingReader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
     _pRingReader->setReadCB([weakSelf](const RtmpMediaSource::RingDataType &pkt) {

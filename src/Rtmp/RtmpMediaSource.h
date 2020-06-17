@@ -33,9 +33,6 @@ using namespace toolkit;
 #define RTMP_GOP_SIZE 512
 namespace mediakit {
 
-typedef VideoPacketCache<RtmpPacket> RtmpVideoCache;
-typedef AudioPacketCache<RtmpPacket> RtmpAudioCache;
-
 /**
  * rtmp媒体源的数据抽象
  * rtmp有关键的三要素，分别是metadata、config帧，普通帧
@@ -43,7 +40,7 @@ typedef AudioPacketCache<RtmpPacket> RtmpAudioCache;
  * 只要生成了这三要素，那么要实现rtmp推流、rtmp服务器就很简单了
  * rtmp推拉流协议中，先传递metadata，然后传递config帧，然后一直传递普通帧
  */
-class RtmpMediaSource : public MediaSource, public RingDelegate<RtmpPacket::Ptr>, public RtmpVideoCache, public RtmpAudioCache{
+class RtmpMediaSource : public MediaSource, public RingDelegate<RtmpPacket::Ptr>, public PacketCache<RtmpPacket>{
 public:
     typedef std::shared_ptr<RtmpMediaSource> Ptr;
     typedef std::shared_ptr<List<RtmpPacket::Ptr> > RingDataType;
@@ -111,6 +108,14 @@ public:
     }
 
     /**
+     * 更新metadata
+     */
+    void updateMetaData(const AMFValue &metadata) {
+        lock_guard<recursive_mutex> lock(_mtx);
+        _metadata = metadata;
+    }
+
+    /**
      * 输入rtmp包
      * @param pkt rtmp包
      * @param key 是否为关键帧
@@ -149,12 +154,7 @@ public:
                 regist();
             }
         }
-
-        if(pkt->typeId == MSG_VIDEO){
-            RtmpVideoCache::inputVideo(pkt, key);
-        }else{
-            RtmpAudioCache::inputAudio(pkt);
-        }
+        PacketCache<RtmpPacket>::inputPacket(pkt->typeId == MSG_VIDEO, pkt, key);
     }
 
     /**
@@ -175,21 +175,13 @@ public:
 private:
 
     /**
-    * 批量flush时间戳相同的视频rtmp包时触发该函数
-    * @param rtmp_list 时间戳相同的rtmp包列表
+    * 批量flush rtmp包时触发该函数
+    * @param rtmp_list rtmp包列表
     * @param key_pos 是否包含关键帧
     */
-    void onFlushVideo(std::shared_ptr<List<RtmpPacket::Ptr> > &rtmp_list, bool key_pos) override {
-        _ring->write(rtmp_list, key_pos);
-    }
-
-    /**
-     * 批量flush一定数量的音频rtmp包时触发该函数
-     * @param rtmp_list rtmp包列表
-     */
-    void onFlushAudio(std::shared_ptr<List<RtmpPacket::Ptr> > &rtmp_list) override{
-        //只有音频的话，就不存在gop缓存的意义
-        _ring->write(rtmp_list, !_have_video);
+    void onFlush(std::shared_ptr<List<RtmpPacket::Ptr> > &rtmp_list, bool key_pos) override {
+        //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
+        _ring->write(rtmp_list, _have_video ? key_pos : true);
     }
 
     /**

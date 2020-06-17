@@ -80,11 +80,11 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
 }
 
 static MediaSource::Ptr getMediaSource(const string &vhost, const string &app, const string &stream_id){
-    auto src = MediaSource::find(RTMP_SCHEMA, vhost, app, stream_id, false);
+    auto src = MediaSource::find(RTMP_SCHEMA, vhost, app, stream_id);
     if(src){
         return src;
     }
-    return MediaSource::find(RTSP_SCHEMA, vhost, app, stream_id, false);
+    return MediaSource::find(RTSP_SCHEMA, vhost, app, stream_id);
 }
 
 bool Recorder::isRecording(type type, const string &vhost, const string &app, const string &stream_id){

@@ -31,19 +31,19 @@ public:
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = false) override;
 
-    TrackType getTrackType() const override{
-        return TrackAudio;
-    }
-    CodecId getCodecId() const override{
+    CodecId getCodecId() const override {
         return CodecAAC;
     }
+
 protected:
     AACRtpDecoder();
+
 private:
     AACFrame::Ptr obtainFrame();
     void flushData();
+
 private:
-    AACFrame::Ptr _adts;
+    AACFrame::Ptr _frame;
     string _aac_cfg;
 };
 
@@ -59,13 +59,13 @@ public:
      * @param ui32Ssrc ssrc
      * @param ui32MtuSize mtu 大小
      * @param ui32SampleRate 采样率
-     * @param ui8PlayloadType pt类型
+     * @param ui8PayloadType pt类型
      * @param ui8Interleaved rtsp interleaved 值
      */
     AACRtpEncoder(uint32_t ui32Ssrc,
                   uint32_t ui32MtuSize,
                   uint32_t ui32SampleRate,
-                  uint8_t ui8PlayloadType = 97,
+                  uint8_t ui8PayloadType = 97,
                   uint8_t ui8Interleaved = TrackAudio * 2);
     ~AACRtpEncoder() {}
 
@@ -74,8 +74,10 @@ public:
      * @param frame 带dats头的aac数据
      */
     void inputFrame(const Frame::Ptr &frame) override;
+
 private:
     void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
+
 private:
     unsigned char _aucSectionBuf[1600];
 };

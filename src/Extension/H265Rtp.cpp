@@ -96,7 +96,7 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             if (rtppack->sequence != _lastSeq + 1 && rtppack->sequence != 0) {
                 //中间的或末尾的rtp包，其seq必须连续(如果回环了则判定为连续)，否则说明rtp丢包，那么该帧不完整，必须得丢弃
                 _h265frame->_buffer.clear();
-                WarnL << "rtp sequence不连续: " << rtppack->sequence << " != " << _lastSeq << " + 1,该帧被废弃";
+                WarnL << "rtp丢包: " << rtppack->sequence << " != " << _lastSeq << " + 1,该帧被废弃";
                 return false;
             }
 
@@ -140,12 +140,12 @@ void H265RtpDecoder::onGetH265(const H265Frame::Ptr &frame) {
 H265RtpEncoder::H265RtpEncoder(uint32_t ui32Ssrc,
                                uint32_t ui32MtuSize,
                                uint32_t ui32SampleRate,
-                               uint8_t ui8PlayloadType,
+                               uint8_t ui8PayloadType,
                                uint8_t ui8Interleaved) :
         RtpInfo(ui32Ssrc,
                 ui32MtuSize,
                 ui32SampleRate,
-                ui8PlayloadType,
+                ui8PayloadType,
                 ui8Interleaved) {
 }
 

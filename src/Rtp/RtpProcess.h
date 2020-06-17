@@ -23,8 +23,7 @@ using namespace mediakit;
 namespace mediakit{
 
 string printSSRC(uint32_t ui32Ssrc);
-class FrameMerger;
-class RtpProcess : public RtpReceiver , public RtpDecoder, public SockInfo, public std::enable_shared_from_this<RtpProcess>{
+class RtpProcess : public RtpReceiver , public RtpDecoder, public SockInfo, public MediaSinkInterface, public std::enable_shared_from_this<RtpProcess>{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     RtpProcess(uint32_t ssrc);
@@ -44,7 +43,9 @@ public:
 protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
     void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) override;
-    void onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts, const void *data,int bytes);
+    void inputFrame(const Frame::Ptr &frame) override;
+    void addTrack(const Track::Ptr & track) override;
+    void resetTracks() override {};
 
 private:
     void emitOnPublish();
@@ -57,14 +58,10 @@ private:
     SdpTrack::Ptr _track;
     struct sockaddr *_addr = nullptr;
     uint16_t _sequence = 0;
-    int _codecid_video = 0;
-    int _codecid_audio = 0;
     MultiMediaSourceMuxer::Ptr _muxer;
-    std::shared_ptr<FrameMerger> _merger;
     Ticker _last_rtp_time;
-    unordered_map<int,Stamp> _stamps;
     uint32_t _dts = 0;
-    Decoder::Ptr _decoder;
+    DecoderImp::Ptr _decoder;
     std::weak_ptr<MediaSourceEvent> _listener;
     MediaInfo _media_info;
     uint64_t _total_bytes = 0;

@@ -67,6 +67,7 @@ const string kPublishToRtxp = GENERAL_FIELD"publishToRtxp";
 const string kPublishToHls = GENERAL_FIELD"publishToHls";
 const string kPublishToMP4 = GENERAL_FIELD"publishToMP4";
 const string kMergeWriteMS = GENERAL_FIELD"mergeWriteMS";
+const string kModifyStamp = GENERAL_FIELD"modifyStamp";
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
@@ -79,6 +80,7 @@ onceToken token([](){
     mINI::Instance()[kPublishToHls] = 1;
     mINI::Instance()[kPublishToMP4] = 0;
     mINI::Instance()[kMergeWriteMS] = 0;
+    mINI::Instance()[kModifyStamp] = 0;
 },nullptr);
 
 }//namespace General
@@ -293,3 +295,10 @@ const string kBenchmarkMode = "benchmark_mode";
 }  // namespace mediakit
 
 
+void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line){
+    if(failed) {
+        _StrPrinter printer;
+        printer << "Assertion failed: (" << exp << "), function " << func << ", file " << file << ", line " << line << ".";
+        throw std::runtime_error(printer);
+    }
+}

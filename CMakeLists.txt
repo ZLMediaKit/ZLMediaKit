@@ -39,6 +39,7 @@ set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
 #设置头文件目录
 INCLUDE_DIRECTORIES(${ToolKit_Root})
 INCLUDE_DIRECTORIES(${MediaKit_Root})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/3rdpart)
 
 set(ENABLE_HLS true)
 set(ENABLE_OPENSSL true)
@@ -57,6 +58,8 @@ if (OPENSSL_FOUND AND ENABLE_OPENSSL)
     include_directories(${OPENSSL_INCLUDE_DIR})
     add_definitions(-DENABLE_OPENSSL)
     list(APPEND LINK_LIB_LIST ${OPENSSL_LIBRARIES})
+else()
+    message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效")
 endif ()
 
 #查找mysql是否安装
@@ -104,9 +107,9 @@ if(ENABLE_HLS)
     message(STATUS "ENABLE_HLS defined")
     add_definitions(-DENABLE_HLS)
 
+    include_directories(${MediaServer_Root}/libmpeg/include)
     aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
     aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
-    include_directories(${MediaServer_Root}/libmpeg/include)
 
     add_library(mpeg STATIC ${src_mpeg})
     list(APPEND LINK_LIB_LIST mpeg)
@@ -121,13 +124,14 @@ if(ENABLE_MP4)
     message(STATUS "ENABLE_MP4 defined")
     add_definitions(-DENABLE_MP4)
 
+    include_directories(${MediaServer_Root}/libmov/include)
+    include_directories(${MediaServer_Root}/libflv/include)
+
     aux_source_directory(${MediaServer_Root}/libmov/include src_mov)
     aux_source_directory(${MediaServer_Root}/libmov/source src_mov)	
-	include_directories(${MediaServer_Root}/libmov/include)
 
     aux_source_directory(${MediaServer_Root}/libflv/include src_flv)
     aux_source_directory(${MediaServer_Root}/libflv/source src_flv)	
-	include_directories(${MediaServer_Root}/libflv/include)
 
     add_library(mov STATIC ${src_mov})
 	add_library(flv STATIC ${src_flv})
@@ -141,10 +145,11 @@ endif()
 #添加rtp库用于rtp转ps/ts
 if(ENABLE_RTPPROXY AND ENABLE_HLS)
     message(STATUS "ENABLE_RTPPROXY defined")
+    include_directories(${MediaServer_Root}/librtp/include)
+
     aux_source_directory(${MediaServer_Root}/librtp/include src_rtp)
     aux_source_directory(${MediaServer_Root}/librtp/source src_rtp)
     aux_source_directory(${MediaServer_Root}/librtp/payload src_rtp)
-    include_directories(${MediaServer_Root}/librtp/include)
     add_library(rtp STATIC ${src_rtp})
     add_definitions(-DENABLE_RTPPROXY)
     list(APPEND LINK_LIB_LIST rtp)

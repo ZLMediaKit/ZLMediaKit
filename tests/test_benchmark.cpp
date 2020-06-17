@@ -44,6 +44,10 @@ int main(int argc, char *argv[]) {
     auto playerCnt = atoi(argv[1]);//启动的播放器个数
     atomic_int alivePlayerCnt(0);
 
+    //由于所有播放器都是再一个timer里面创建的，默认情况下所有播放器会绑定该timer所在的poller线程
+    //为了提高性能，poller分配策略关闭优先返回当前线程的策略
+    EventPollerPool::Instance().preferCurrentThread(false);
+
     //每隔若干毫秒启动一个播放器（如果一次性全部启动，服务器和客户端可能都承受不了）
     Timer timer0(atoi(argv[2])/1000.0f,[&]() {
         MediaPlayer::Ptr player(new MediaPlayer());

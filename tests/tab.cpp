@@ -128,8 +128,6 @@ int main(int argc, char *argv[]) {
     bool no_filter = filter_set.find("*") != filter_set.end();
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
-    path = File::absolutePath(path, "");
-    DebugL << path;
     File::scanDir(path, [&](const string &path, bool isDir) {
         if (isDir) {
             return true;

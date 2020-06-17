@@ -17,7 +17,9 @@ UdpRecver::UdpRecver() {
 }
 
 UdpRecver::~UdpRecver() {
-    _sock->setOnRead(nullptr);
+    if(_sock){
+        _sock->setOnRead(nullptr);
+    }
 }
 
 bool UdpRecver::initSock(uint16_t local_port,const char *local_ip) {

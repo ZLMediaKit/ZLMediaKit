@@ -34,11 +34,11 @@ bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned ch
     }
 
     uint8_t padding = 0;
-    if (rtp_raw_ptr[0] & 0x40) {
+    if (rtp_raw_ptr[0] & 0x20) {
         //获取padding大小
         padding = rtp_raw_ptr[rtp_raw_len - 1];
         //移除padding flag
-        rtp_raw_ptr[0] &= ~0x40;
+        rtp_raw_ptr[0] &= ~0x20;
         //移除padding字节
         rtp_raw_len -= padding;
     }

@@ -28,18 +28,18 @@ RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, unsigned int l
     pucRtp[2] = ui16RtpLen >> 8;
     pucRtp[3] = ui16RtpLen & 0x00FF;
     pucRtp[4] = 0x80;
-    pucRtp[5] = (mark << 7) | _ui8PlayloadType;
+    pucRtp[5] = (mark << 7) | _ui8PayloadType;
     memcpy(&pucRtp[6], &sq, 2);
     memcpy(&pucRtp[8], &ts, 4);
     //ssrc
     memcpy(&pucRtp[12], &sc, 4);
 
     if(data){
-        //playload
+        //payload
         memcpy(&pucRtp[16], data, len);
     }
 
-    rtppkt->PT = _ui8PlayloadType;
+    rtppkt->PT = _ui8PayloadType;
     rtppkt->interleaved = _ui8Interleaved;
     rtppkt->mark = mark;
     rtppkt->sequence = _ui16Sequence;

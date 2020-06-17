@@ -20,12 +20,12 @@ using namespace toolkit;
 namespace mediakit{
 
 bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-void splitH264(const char *ptr, int len, const std::function<void(const char *, int)> &cb);
-
+void splitH264(const char *ptr, int len, int prefix, const std::function<void(const char *, int, int)> &cb);
+int prefixSize(const char *ptr, int len);
 /**
  * 264帧类
  */
-class H264Frame : public Frame {
+class H264Frame : public FrameImp {
 public:
     typedef std::shared_ptr<H264Frame> Ptr;
 
@@ -36,30 +36,8 @@ public:
         NAL_SEI = 6,
     } NalType;
 
-    char *data() const override{
-        return (char *)_buffer.data();
-    }
-    uint32_t size() const override {
-        return _buffer.size();
-    }
-    uint32_t dts() const override {
-        return _dts;
-    }
-
-    uint32_t pts() const override {
-        return _pts ? _pts : _dts;
-    }
-
-    uint32_t prefixSize() const override{
-        return _prefix_size;
-    }
-
-    TrackType getTrackType() const override{
-        return TrackVideo;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecH264;
+    H264Frame(){
+        _codecid = CodecH264;
     }
 
     bool keyFrame() const override {
@@ -69,39 +47,27 @@ public:
     bool configFrame() const override{
         switch(H264_TYPE(_buffer[_prefix_size]) ){
             case H264Frame::NAL_SPS:
-            case H264Frame::NAL_PPS:
-                return true;
-            default:
-                return false;
+            case H264Frame::NAL_PPS:return true;
+            default:return false;
         }
     }
-public:
-    uint32_t _dts = 0;
-    uint32_t _pts = 0;
-    uint32_t _prefix_size = 4;
-    string _buffer;
 };
-
 
 /**
  * 防止内存拷贝的H264类
  * 用户可以通过该类型快速把一个指针无拷贝的包装成Frame类
  * 该类型在DevChannel中有使用
  */
-class H264FrameNoCacheAble : public FrameNoCacheAble {
+class H264FrameNoCacheAble : public FrameFromPtr {
 public:
     typedef std::shared_ptr<H264FrameNoCacheAble> Ptr;
 
-    H264FrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts , uint32_t pts ,int prefixeSize = 4){
+    H264FrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts , uint32_t pts ,int prefix_size = 4){
         _ptr = ptr;
         _size = size;
         _dts = dts;
         _pts = pts;
-        _prefixSize = prefixeSize;
-    }
-
-    TrackType getTrackType() const override{
-        return TrackVideo;
+        _prefix_size = prefix_size;
     }
 
     CodecId getCodecId() const override{
@@ -109,41 +75,16 @@ public:
     }
 
     bool keyFrame() const override {
-        return H264_TYPE(_ptr[_prefixSize]) == H264Frame::NAL_IDR;
+        return H264_TYPE(_ptr[_prefix_size]) == H264Frame::NAL_IDR;
     }
 
     bool configFrame() const override{
-        switch(H264_TYPE(_ptr[_prefixSize])){
+        switch(H264_TYPE(_ptr[_prefix_size])){
             case H264Frame::NAL_SPS:
-            case H264Frame::NAL_PPS:
-                return true;
-            default:
-                return false;
+            case H264Frame::NAL_PPS:return true;
+            default:return false;
         }
     }
-};
-
-/**
- * 一个H264Frame类中可以有多个帧，他们通过 0x 00 00 01 分隔
- * ZLMediaKit会先把这种复合帧split成单个帧然后再处理
- * 一个复合帧可以通过无内存拷贝的方式切割成多个H264FrameSubFrame
- * 提供该类的目的是切换复合帧时防止内存拷贝，提高性能
- */
-template<typename Parent>
-class FrameInternal : public Parent{
-public:
-    typedef std::shared_ptr<FrameInternal> Ptr;
-    FrameInternal(const Frame::Ptr &parent_frame,
-                  char *ptr,
-                  uint32_t size,
-                  int prefixeSize) : Parent(ptr,size,parent_frame->dts(),parent_frame->pts(),prefixeSize){
-        _parent_frame = parent_frame;
-    }
-    bool cacheAble() const override {
-        return _parent_frame->cacheAble();
-    }
-private:
-    Frame::Ptr _parent_frame;
 };
 
 typedef FrameInternal<H264FrameNoCacheAble> H264FrameInternal;
@@ -243,25 +184,10 @@ public:
         int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
         if(type == H264Frame::NAL_SPS || type == H264Frame::NAL_SEI){
             //有些设备会把SPS PPS IDR帧当做一个帧打包，所以我们要split一下
-            bool  first_frame = true;
-            splitH264(frame->data() + frame->prefixSize(),
-                      frame->size() - frame->prefixSize(),
-                      [&](const char *ptr, int len){
-                          if(first_frame){
-                              H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame,
-                                                                                                     frame->data(),
-                                                                                                     len + frame->prefixSize(),
-                                                                                                     frame->prefixSize());
-                              inputFrame_l(sub_frame);
-                              first_frame = false;
-                          }else{
-                              H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame,
-                                                                                                     (char *)ptr,
-                                                                                                     len ,
-                                                                                                     3);
-                              inputFrame_l(sub_frame);
-                          }
-                      });
+            splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, int len, int prefix) {
+                H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame, (char *)ptr, len, prefix);
+                inputFrame_l(sub_frame);
+            });
         } else{
             inputFrame_l(frame);
         }
@@ -301,6 +227,11 @@ private:
                 VideoTrack::inputFrame(frame);
             }
                 break;
+
+            case H264Frame::NAL_SEI:{
+                //忽略SEI
+                break;
+            }
 
             default:
                 VideoTrack::inputFrame(frame);
@@ -349,29 +280,27 @@ private:
     bool _last_frame_is_idr = false;
 };
 
-
 /**
 * h264类型sdp
 */
 class H264Sdp : public Sdp {
 public:
-
     /**
      *
      * @param sps 264 sps,不带0x00000001头
      * @param pps 264 pps,不带0x00000001头
-     * @param playload_type  rtp playload type 默认96
+     * @param payload_type  rtp payload type 默认96
      * @param bitrate 比特率
      */
     H264Sdp(const string &strSPS,
             const string &strPPS,
-            int playload_type = 96,
-            int bitrate = 4000) : Sdp(90000,playload_type) {
+            int payload_type = 96,
+            int bitrate = 4000) : Sdp(90000,payload_type) {
         //视频通道
-        _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
+        _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
         _printer << "b=AS:" << bitrate << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << " H264/" << 90000 << "\r\n";
-        _printer << "a=fmtp:" << playload_type << " packetization-mode=1; profile-level-id=";
+        _printer << "a=rtpmap:" << payload_type << " H264/" << 90000 << "\r\n";
+        _printer << "a=fmtp:" << payload_type << " packetization-mode=1; profile-level-id=";
 
         char strTemp[100];
         uint32_t profile_level_id = 0;
@@ -390,15 +319,11 @@ public:
         memset(strTemp, 0, 100);
         av_base64_encode(strTemp, 100, (uint8_t *) strPPS.data(), strPPS.size());
         _printer << strTemp << "\r\n";
-        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
+        _printer << "a=control:trackID=" << (int)TrackVideo << "\r\n";
     }
 
     string getSdp() const override {
         return _printer;
-    }
-
-    TrackType getTrackType() const override {
-        return TrackVideo;
     }
 
     CodecId getCodecId() const override {
@@ -408,8 +333,5 @@ private:
     _StrPrinter _printer;
 };
 
-
 }//namespace mediakit
-
-
 #endif //ZLMEDIAKIT_H264_H

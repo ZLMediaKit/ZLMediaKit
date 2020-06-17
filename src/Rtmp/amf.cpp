@@ -44,6 +44,7 @@ inline void AMFValue::destroy() {
         break;
     }
 }
+
 inline void AMFValue::init() {
     switch (_type) {
     case AMF_OBJECT:
@@ -60,13 +61,12 @@ inline void AMFValue::init() {
     default:
         break;
     }
-
 }
+
 AMFValue::AMFValue(AMFType type) :
         _type(type) {
     init();
 }
-
 
 AMFValue::~AMFValue() {
     destroy();
@@ -77,7 +77,6 @@ AMFValue::AMFValue(const char *s) :
     init();
     *_value.string = s;
 }
-
 
 AMFValue::AMFValue(const std::string &s) :
         _type(AMF_STRING) {
@@ -108,15 +107,7 @@ AMFValue::AMFValue(const AMFValue &from) :
     *this = from;
 }
 
-AMFValue::AMFValue(AMFValue &&from) {
-    *this = std::forward<AMFValue>(from);
-}
-
-AMFValue& AMFValue::operator =(const AMFValue &from) {
-    return *this = const_cast<AMFValue &&>(from);
-
-}
-AMFValue& AMFValue::operator =(AMFValue &&from) {
+AMFValue& AMFValue::operator = (const AMFValue &from) {
     destroy();
     _type = from._type;
     init();
@@ -144,7 +135,6 @@ AMFValue& AMFValue::operator =(AMFValue &&from) {
         break;
     }
     return *this;
-
 }
 
 void AMFValue::clear() {
@@ -235,7 +225,6 @@ string AMFValue::to_string() const{
             throw std::runtime_error("can not convert to string ");
     }
 }
-
 
 const AMFValue& AMFValue::operator[](const char *str) const {
     if (_type != AMF_OBJECT && _type != AMF_ECMA_ARRAY) {
@@ -338,6 +327,7 @@ AMFEncoder & AMFEncoder::operator <<(const char *s) {
     }
     return *this;
 }
+
 AMFEncoder & AMFEncoder::operator <<(const std::string &s) {
     if (!s.empty()) {
         buf += char(AMF0_STRING);
@@ -349,18 +339,22 @@ AMFEncoder & AMFEncoder::operator <<(const std::string &s) {
     }
     return *this;
 }
+
 AMFEncoder & AMFEncoder::operator <<(std::nullptr_t) {
     buf += char(AMF0_NULL);
     return *this;
 }
+
 AMFEncoder & AMFEncoder::write_undefined() {
     buf += char(AMF0_UNDEFINED);
     return *this;
 
 }
+
 AMFEncoder & AMFEncoder::operator <<(const int n){
     return (*this) << (double)n;
 }
+
 AMFEncoder & AMFEncoder::operator <<(const double n) {
     buf += char(AMF0_NUMBER);
     uint64_t encoded = 0;

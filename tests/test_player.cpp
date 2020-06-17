@@ -12,13 +12,12 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include <iostream>
-#include "Poller/EventPoller.h"
 #include "Rtsp/UDPServer.h"
 #include "Player/MediaPlayer.h"
 #include "Util/onceToken.h"
-#include "H264Decoder.h"
+#include "FFMpegDecoder.h"
 #include "YuvDisplayer.h"
-#include "Network/sockutil.h"
+#include "Extension/H265.h"
 
 using namespace std;
 using namespace toolkit;
@@ -111,36 +110,34 @@ int main(int argc, char *argv[]) {
         }
 
         auto viedoTrack = strongPlayer->getTrack(TrackVideo);
-        if (!viedoTrack || viedoTrack->getCodecId() != CodecH264) {
-            WarnL << "没有视频或者视频不是264编码!";
+        if (!viedoTrack) {
+            WarnL << "没有视频!";
             return;
         }
 
         AnyStorage::Ptr storage(new AnyStorage);
-        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([storage](const Frame::Ptr &frame) {
+        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([storage](const Frame::Ptr &frame_in) {
+            auto frame = Frame::getCacheAbleFrame(frame_in);
             SDLDisplayerHelper::Instance().doTask([frame,storage]() {
                 auto &decoder = (*storage)["decoder"];
                 auto &displayer = (*storage)["displayer"];
                 auto &merger = (*storage)["merger"];
                 if(!decoder){
-                    decoder.set<H264Decoder>();
+                    decoder.set<FFMpegDecoder>(frame->getCodecId());
                 }
                 if(!displayer){
                     displayer.set<YuvDisplayer>(nullptr,url);
                 }
                 if(!merger){
                     merger.set<FrameMerger>();
-                };
-
+                }
                 merger.get<FrameMerger>().inputFrame(frame,[&](uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer){
                     AVFrame *pFrame = nullptr;
-                    bool flag = decoder.get<H264Decoder>().inputVideo((unsigned char *) buffer->data(), buffer->size(), dts, &pFrame);
+                    bool flag = decoder.get<FFMpegDecoder>().inputVideo((unsigned char *) buffer->data(), buffer->size(), dts, &pFrame);
                     if (flag) {
                         displayer.get<YuvDisplayer>().displayYUV(pFrame);
                     }
                 });
-
-
                 return true;
             });
         }));

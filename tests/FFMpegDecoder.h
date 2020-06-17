@@ -13,6 +13,7 @@
 #include <string>
 #include <memory>
 #include <stdexcept>
+#include "Extension/Frame.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -27,14 +28,24 @@ using namespace std;
 
 namespace mediakit {
 
-class H264Decoder
-{
+class FFMpegDecoder{
 public:
-    H264Decoder(void){
+    FFMpegDecoder(int codec_id){
+        auto ff_codec_id = AV_CODEC_ID_H264;
+        switch (codec_id){
+            case CodecH264:
+                ff_codec_id = AV_CODEC_ID_H264;
+                break;
+            case CodecH265:
+                ff_codec_id = AV_CODEC_ID_H265;
+                break;
+            default:
+                throw std::invalid_argument("不支持该编码格式");
+        }
         avcodec_register_all();
-        AVCodec *pCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
+        AVCodec *pCodec = avcodec_find_decoder(ff_codec_id);
         if (!pCodec) {
-            throw std::runtime_error("未找到H264解码器");
+            throw std::runtime_error("未找到解码器");
         }
         m_pContext.reset(avcodec_alloc_context3(pCodec), [](AVCodecContext *pCtx) {
             avcodec_close(pCtx);
@@ -57,7 +68,7 @@ public:
             throw std::runtime_error("创建帧缓存失败");
         }
     }
-    virtual ~H264Decoder(void){}
+    virtual ~FFMpegDecoder(void){}
     bool inputVideo(unsigned char* data,unsigned int dataSize,uint32_t ui32Stamp,AVFrame **ppFrame){
         AVPacket pkt;
         av_init_packet(&pkt);

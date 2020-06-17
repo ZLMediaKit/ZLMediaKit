@@ -44,14 +44,19 @@ public:
         CONTROL_RSVF = 0xF
     } Type;
 public:
-    WebSocketHeader() : _mask(4){}
+    WebSocketHeader() : _mask(4){
+        //获取_mask内部buffer的内存地址，该内存是malloc开辟的，地址为随机
+        uint64_t ptr = (uint64_t)(&_mask[0]);
+        //根据内存地址设置掩码随机数
+        _mask.assign((uint8_t*)(&ptr), (uint8_t*)(&ptr) + 4);
+    }
     virtual ~WebSocketHeader(){}
 public:
     bool _fin;
     uint8_t _reserved;
     Type _opcode;
     bool _mask_flag;
-    uint64_t _playload_len;
+    uint64_t _payload_len;
     vector<uint8_t > _mask;
 };
 
@@ -62,7 +67,7 @@ public:
 
     /**
      * 输入数据以便解包webSocket数据以及处理粘包问题
-     * 可能触发onWebSocketDecodeHeader和onWebSocketDecodePlayload回调
+     * 可能触发onWebSocketDecodeHeader和onWebSocketDecodePayload回调
      * @param data 需要解包的数据，可能是不完整的包或多个包
      * @param len 数据长度
      */
@@ -77,7 +82,7 @@ public:
     void encode(const WebSocketHeader &header,const Buffer::Ptr &buffer);
 protected:
     /**
-     * 收到一个webSocket数据包包头，后续将继续触发onWebSocketDecodePlayload回调
+     * 收到一个webSocket数据包包头，后续将继续触发onWebSocketDecodePayload回调
      * @param header 数据包头
      */
     virtual void onWebSocketDecodeHeader(const WebSocketHeader &header) {};
@@ -87,9 +92,9 @@ protected:
      * @param header 数据包包头
      * @param ptr 负载数据指针
      * @param len 负载数据长度
-     * @param recved 已接收数据长度(包含本次数据长度)，等于header._playload_len时则接受完毕
+     * @param recved 已接收数据长度(包含本次数据长度)，等于header._payload_len时则接受完毕
      */
-    virtual void onWebSocketDecodePlayload(const WebSocketHeader &header, const uint8_t *ptr, uint64_t len, uint64_t recved) {};
+    virtual void onWebSocketDecodePayload(const WebSocketHeader &header, const uint8_t *ptr, uint64_t len, uint64_t recved) {};
 
 
     /**
@@ -105,12 +110,12 @@ protected:
      */
     virtual void onWebSocketEncodeData(const Buffer::Ptr &buffer){};
 private:
-    void onPlayloadData(uint8_t *data,uint64_t len);
+    void onPayloadData(uint8_t *data, uint64_t len);
 private:
     string _remain_data;
     int _mask_offset = 0;
     bool _got_header = false;
-    uint64_t _playload_offset = 0;
+    uint64_t _payload_offset = 0;
 };
 
 } /* namespace mediakit */

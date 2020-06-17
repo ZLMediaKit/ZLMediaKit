@@ -12,18 +12,31 @@
 #include "PlayerBase.h"
 #include "Rtsp/RtspPlayerImp.h"
 #include "Rtmp/RtmpPlayerImp.h"
+#include "Http/HlsPlayer.h"
 using namespace toolkit;
 
 namespace mediakit {
 
-PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const string &strUrl) {
+//字符串是否以xx结尾
+static bool end_of(const string &str, const string &substr){
+    auto pos = str.rfind(substr);
+    return pos != string::npos && pos == str.size() - substr.size();
+}
+
+PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const string &url_in) {
     static auto releasePlayer = [](PlayerBase *ptr){
         onceToken token(nullptr,[&](){
             delete  ptr;
         });
         ptr->teardown();
     };
-    string prefix = FindField(strUrl.data(), NULL, "://");
+    string url = url_in;
+    string prefix = FindField(url.data(), NULL, "://");
+    auto pos = url.find('?');
+    if (pos != string::npos) {
+        //去除？后面的字符串
+        url = url.substr(0, pos);
+    }
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
         return PlayerBase::Ptr(new TcpClientWithSSL<RtspPlayerImp>(poller),releasePlayer);
@@ -39,6 +52,10 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const st
 
     if (strcasecmp("rtmp",prefix.data()) == 0) {
         return PlayerBase::Ptr(new RtmpPlayerImp(poller),releasePlayer);
+    }
+
+    if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0) && end_of(url, ".m3u8")) {
+        return PlayerBase::Ptr(new HlsPlayerImp(poller),releasePlayer);
     }
 
     return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);

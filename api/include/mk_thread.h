@@ -36,6 +36,22 @@ API_EXPORT mk_thread API_CALL mk_thread_from_tcp_session(mk_tcp_session ctx);
  */
 API_EXPORT mk_thread API_CALL mk_thread_from_tcp_client(mk_tcp_client ctx);
 
+/**
+ * 根据负载均衡算法，从事件线程池中随机获取一个事件线程
+ * 如果在事件线程内执行此函数将返回本事件线程
+ * 事件线程指的是定时器、网络io事件线程
+ * @return 事件线程
+ */
+API_EXPORT mk_thread API_CALL mk_thread_from_pool();
+
+/**
+ * 根据负载均衡算法，从后台线程池中随机获取一个线程
+ * 后台线程本质与事件线程相同，只是优先级更低，同时可以执行短时间的阻塞任务
+ * ZLMediaKit中后台线程用于dns解析、mp4点播时的文件解复用
+ * @return 后台线程
+ */
+API_EXPORT mk_thread API_CALL mk_thread_from_pool_work();
+
 ///////////////////////////////////////////线程切换/////////////////////////////////////////////
 typedef void (API_CALL *on_mk_async)(void *user_data);
 

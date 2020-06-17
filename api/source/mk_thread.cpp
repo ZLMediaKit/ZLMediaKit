@@ -12,6 +12,7 @@
 #include "mk_tcp_private.h"
 #include "Util/logger.h"
 #include "Poller/EventPoller.h"
+#include "Thread/WorkThreadPool.h"
 using namespace std;
 using namespace toolkit;
 
@@ -25,6 +26,14 @@ API_EXPORT mk_thread API_CALL mk_thread_from_tcp_client(mk_tcp_client ctx){
     assert(ctx);
     TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
     return (*client)->getPoller().get();
+}
+
+API_EXPORT mk_thread API_CALL mk_thread_from_pool(){
+    return EventPollerPool::Instance().getPoller().get();
+}
+
+API_EXPORT mk_thread API_CALL mk_thread_from_pool_work(){
+    return WorkThreadPool::Instance().getPoller().get();
 }
 
 API_EXPORT void API_CALL mk_async_do(mk_thread ctx,on_mk_async cb, void *user_data){
