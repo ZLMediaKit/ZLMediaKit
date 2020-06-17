@@ -365,5 +365,43 @@ bool RtspUrl::setup(bool isSSL, const string &strUrl, const string &strUser, con
     return true;
 }
 
-}//namespace mediakit
+std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &poller, const string &local_ip){
+    auto pSockRtp = std::make_shared<Socket>(poller);
+    if (!pSockRtp->bindUdpSock(0, local_ip.data())) {
+        //分配端口失败
+        throw runtime_error("open udp socket failed");
+    }
 
+    //是否是偶数
+    bool even_numbers = pSockRtp->get_local_port() % 2 == 0;
+    auto pSockRtcp = std::make_shared<Socket>(poller);
+    if (!pSockRtcp->bindUdpSock(pSockRtp->get_local_port() + (even_numbers ? 1 : -1), local_ip.data())) {
+        //分配端口失败
+        throw runtime_error("open udp socket failed");
+    }
+
+    if (!even_numbers) {
+        //如果rtp端口不是偶数，那么与rtcp端口互换，目的是兼容一些要求严格的播放器或服务器
+        Socket::Ptr tmp = pSockRtp;
+        pSockRtp = pSockRtcp;
+        pSockRtcp = tmp;
+    }
+
+    return std::make_pair(pSockRtp, pSockRtcp);
+}
+
+std::pair<Socket::Ptr, Socket::Ptr> makeSockPair(const EventPoller::Ptr &poller, const string &local_ip){
+    int try_count = 0;
+    while (true) {
+        try {
+            return makeSockPair_l(poller, local_ip);
+        } catch (...) {
+            if (++try_count == 3) {
+                throw;
+            }
+            WarnL << "open udp socket failed, retry: " << try_count;
+        }
+    }
+}
+
+}//namespace mediakit

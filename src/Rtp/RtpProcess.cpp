@@ -9,43 +9,12 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
-#include "mpeg-ts-proto.h"
 #include "RtpProcess.h"
 #include "Util/File.h"
-#include "Extension/H265.h"
-#include "Extension/AAC.h"
-#include "Extension/G711.h"
+#include "Http/HttpTSPlayer.h"
 #define RTP_APP_NAME "rtp"
 
 namespace mediakit{
-
-/**
-* 合并一些时间戳相同的frame
-*/
-class FrameMerger {
-public:
-    FrameMerger() = default;
-    virtual ~FrameMerger() = default;
-
-    void inputFrame(const Frame::Ptr &frame,const function<void(uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer)> &cb){
-        if (!_frameCached.empty() && _frameCached.back()->dts() != frame->dts()) {
-            Frame::Ptr back = _frameCached.back();
-            Buffer::Ptr merged_frame = back;
-            if(_frameCached.size() != 1){
-                string merged;
-                _frameCached.for_each([&](const Frame::Ptr &frame){
-                    merged.append(frame->data(),frame->size());
-                });
-                merged_frame = std::make_shared<BufferString>(std::move(merged));
-            }
-            cb(back->dts(),back->pts(),merged_frame);
-            _frameCached.clear();
-        }
-        _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
-    }
-private:
-    List<Frame::Ptr> _frameCached;
-};
 
 string printSSRC(uint32_t ui32Ssrc) {
     char tmp[9] = { 0 };
@@ -101,7 +70,6 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
             });
         }
     }
-    _merger = std::make_shared<FrameMerger>();
 }
 
 RtpProcess::~RtpProcess() {
@@ -147,7 +115,6 @@ bool RtpProcess::inputRtp(const Socket::Ptr &sock, const char *data, int data_le
     }
 
     _total_bytes += data_len;
-    _last_rtp_time.resetTime();
     bool ret = handleOneRtp(0,_track,(unsigned char *)data,data_len);
     if(dts_out){
         *dts_out = _dts;
@@ -157,12 +124,12 @@ bool RtpProcess::inputRtp(const Socket::Ptr &sock, const char *data, int data_le
 
 //判断是否为ts负载
 static inline bool checkTS(const uint8_t *packet, int bytes){
-    return bytes % 188 == 0 && packet[0] == 0x47;
+    return bytes % TS_PACKET_SIZE == 0 && packet[0] == TS_SYNC_BYTE;
 }
 
 void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
-    if(rtp->sequence != _sequence + 1 && rtp->sequence != 0){
-        WarnP(this) << rtp->sequence << " != " << _sequence << "+1";
+    if(rtp->sequence != _sequence + 1 && _sequence != 0){
+        WarnP(this) << "rtp丢包:" << rtp->sequence << " != " << _sequence << "+1" << ",公网环境下请使用tcp方式推流";
     }
     _sequence = rtp->sequence;
     if(_save_file_rtp){
@@ -179,155 +146,38 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
         fwrite((uint8_t *)packet,bytes, 1, _save_file_ps.get());
     }
 
-    if(!_decoder){
+    if (!_decoder) {
         //创建解码器
-        if(checkTS(packet, bytes)){
+        if (checkTS(packet, bytes)) {
             //猜测是ts负载
             InfoP(this) << "judged to be TS";
-            _decoder = Decoder::createDecoder(Decoder::decoder_ts);
-        }else{
+            _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, this);
+        } else {
             //猜测是ps负载
             InfoP(this) << "judged to be PS";
-            _decoder = Decoder::createDecoder(Decoder::decoder_ps);
+            _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ps, this);
         }
-        _decoder->setOnDecode([this](int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes){
-            onDecode(stream,codecid,flags,pts,dts,data,bytes);
-        });
     }
 
-    auto ret = _decoder->input((uint8_t *)packet,bytes);
-    if(ret != bytes){
-        WarnP(this) << ret << " != " << bytes << " " << flags;
-    }
-}
-
-#define SWITCH_CASE(codec_id) case codec_id : return #codec_id
-static const char *getCodecName(int codec_id) {
-    switch (codec_id) {
-        SWITCH_CASE(PSI_STREAM_MPEG1);
-        SWITCH_CASE(PSI_STREAM_MPEG2);
-        SWITCH_CASE(PSI_STREAM_AUDIO_MPEG1);
-        SWITCH_CASE(PSI_STREAM_MP3);
-        SWITCH_CASE(PSI_STREAM_AAC);
-        SWITCH_CASE(PSI_STREAM_MPEG4);
-        SWITCH_CASE(PSI_STREAM_MPEG4_AAC_LATM);
-        SWITCH_CASE(PSI_STREAM_H264);
-        SWITCH_CASE(PSI_STREAM_MPEG4_AAC);
-        SWITCH_CASE(PSI_STREAM_H265);
-        SWITCH_CASE(PSI_STREAM_AUDIO_AC3);
-        SWITCH_CASE(PSI_STREAM_AUDIO_EAC3);
-        SWITCH_CASE(PSI_STREAM_AUDIO_DTS);
-        SWITCH_CASE(PSI_STREAM_VIDEO_DIRAC);
-        SWITCH_CASE(PSI_STREAM_VIDEO_VC1);
-        SWITCH_CASE(PSI_STREAM_VIDEO_SVAC);
-        SWITCH_CASE(PSI_STREAM_AUDIO_SVAC);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G711A);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G711U);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G722);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G723);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G729);
-        default : return "unknown codec";
+    if (_decoder) {
+        auto ret = _decoder->input((uint8_t *) packet, bytes);
+        if (ret != bytes) {
+            WarnP(this) << ret << " != " << bytes << " " << flags;
+        }
     }
 }
 
-void RtpProcess::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {
-    pts /= 90;
-    dts /= 90;
-    _stamps[codecid].revise(dts,pts,dts,pts,false);
-
-    switch (codecid) {
-        case PSI_STREAM_H264: {
-            _dts = dts;
-            if (!_codecid_video) {
-                //获取到视频
-                _codecid_video = codecid;
-                InfoP(this) << "got video track: H264";
-                auto track = std::make_shared<H264Track>();
-                _muxer->addTrack(track);
-            }
-
-            if (codecid != _codecid_video) {
-                WarnP(this) << "video track change to H264 from codecid:" << getCodecName(_codecid_video);
-                return;
-            }
-
-            if(_save_file_video){
-                fwrite((uint8_t *)data,bytes, 1, _save_file_video.get());
-            }
-            auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, dts, pts,0);
-            _merger->inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
-                _muxer->inputFrame(std::make_shared<H264FrameNoCacheAble>(buffer->data(), buffer->size(), dts, pts,4));
-            });
-            break;
-        }
-
-        case PSI_STREAM_H265: {
-            _dts = dts;
-            if (!_codecid_video) {
-                //获取到视频
-                _codecid_video = codecid;
-                InfoP(this) << "got video track: H265";
-                auto track = std::make_shared<H265Track>();
-                _muxer->addTrack(track);
-            }
-            if (codecid != _codecid_video) {
-                WarnP(this) << "video track change to H265 from codecid:" << getCodecName(_codecid_video);
-                return;
-            }
-            if(_save_file_video){
-                fwrite((uint8_t *)data,bytes, 1, _save_file_video.get());
-            }
-            auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, dts, pts, 0);
-            _merger->inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
-                _muxer->inputFrame(std::make_shared<H265FrameNoCacheAble>(buffer->data(), buffer->size(), dts, pts, 4));
-            });
-            break;
-        }
-
-        case PSI_STREAM_AAC: {
-            _dts = dts;
-            if (!_codecid_audio) {
-                //获取到音频
-                _codecid_audio = codecid;
-                InfoP(this) << "got audio track: AAC";
-                auto track = std::make_shared<AACTrack>();
-                _muxer->addTrack(track);
-            }
-
-            if (codecid != _codecid_audio) {
-                WarnP(this) << "audio track change to AAC from codecid:" << getCodecName(_codecid_audio);
-                return;
-            }
-            _muxer->inputFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 0, 7));
-            break;
-        }
-
-        case PSI_STREAM_AUDIO_G711A:
-        case PSI_STREAM_AUDIO_G711U: {
-            _dts = dts;
-            auto codec = codecid  == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
-            if (!_codecid_audio) {
-                //获取到音频
-                _codecid_audio = codecid;
-                InfoP(this) << "got audio track: G711";
-                //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
-                auto track = std::make_shared<G711Track>(codec, 8000, 1, 16);
-                _muxer->addTrack(track);
-            }
-
-            if (codecid != _codecid_audio) {
-                WarnP(this) << "audio track change to G711 from codecid:" << getCodecName(_codecid_audio);
-                return;
-            }
-            _muxer->inputFrame(std::make_shared<G711FrameNoCacheAble>(codec, (char *) data, bytes, dts));
-            break;
-        }
-        default:
-            if(codecid != 0){
-                WarnP(this) << "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
-            }
-            return;
+void  RtpProcess::inputFrame(const Frame::Ptr &frame){
+    _last_rtp_time.resetTime();
+    _dts = frame->dts();
+    if (_save_file_video && frame->getTrackType() == TrackVideo) {
+        fwrite((uint8_t *) frame->data(), frame->size(), 1, _save_file_video.get());
     }
+    _muxer->inputFrame(frame);
+}
+
+void  RtpProcess::addTrack(const Track::Ptr & track){
+    _muxer->addTrack(track);
 }
 
 bool RtpProcess::alive() {
@@ -411,7 +261,6 @@ void RtpProcess::emitOnPublish() {
         invoker("", toRtxp, toHls, toMP4);
     }
 }
-
 
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)

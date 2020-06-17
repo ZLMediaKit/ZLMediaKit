@@ -8,11 +8,12 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <sys/stat.h>
+#include <math.h>
 #include <signal.h>
 #include <functional>
 #include <sstream>
 #include <unordered_map>
-#include <math.h>
 #include "jsoncpp/json.h"
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -50,10 +51,14 @@ typedef enum {
 #define API_FIELD "api."
 const string kApiDebug = API_FIELD"apiDebug";
 const string kSecret = API_FIELD"secret";
+const string kSnapRoot = API_FIELD"snapRoot";
+const string kDefaultSnap = API_FIELD"defaultSnap";
 
 static onceToken token([]() {
     mINI::Instance()[kApiDebug] = "1";
     mINI::Instance()[kSecret] = "035c73f7-bb6b-4889-a715-d9eb2d1925cc";
+    mINI::Instance()[kSnapRoot] = "./www/snap/";
+    mINI::Instance()[kDefaultSnap] = "./www/logo.png";
 });
 }//namespace API
 
@@ -145,7 +150,6 @@ static inline void addHttpListener(){
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastHttpRequest, [](BroadcastHttpRequestArgs) {
         auto it = s_map_api.find(parser.Url());
         if (it == s_map_api.end()) {
-            consumed = false;
             return;
         }
         //该api已被消费
@@ -174,7 +178,7 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
-                if(size < 4 * 1024){
+                if(size && size < 4 * 1024){
                     string contentOut = body->readData(size)->toString();
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
                            << "# content:\r\n" << parser.Content() << "\r\n"
@@ -436,14 +440,14 @@ void installWebApi() {
     api_regist1("/index/api/isMediaOnline",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
-        val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"],false));
+        val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"]));
     });
 
     //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
     api_regist1("/index/api/getMediaInfo",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("schema","vhost","app","stream");
-        auto src = MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"],false);
+        auto src = MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"]);
         if(!src){
             val["online"] = false;
             return;
@@ -815,6 +819,78 @@ void installWebApi() {
 
         val["data"]["rootPath"] = record_path;
         val["data"]["paths"] = paths;
+    });
+
+    static auto responseSnap = [](const string &snap_path,
+                                  const HttpSession::KeyValue &headerIn,
+                                  const HttpSession::HttpResponseInvoker &invoker) {
+        StrCaseMap headerOut;
+        struct stat statbuf = {0};
+        GET_CONFIG(string, defaultSnap, API::kDefaultSnap);
+        if (!(stat(snap_path.data(), &statbuf) == 0 && statbuf.st_size != 0) && !defaultSnap.empty()) {
+            //空文件且设置了预设图，则返回预设图片(也就是FFmpeg生成截图中空档期的默认图片)
+            const_cast<string&>(snap_path) = File::absolutePath(defaultSnap, "");
+            headerOut["Content-Type"] = HttpFileManager::getContentType(snap_path.data());
+        } else {
+            //之前生成的截图文件，我们默认为jpeg格式
+            headerOut["Content-Type"] = HttpFileManager::getContentType(".jpeg");
+        }
+        //返回图片给http客户端
+        invoker.responseFile(headerIn, headerOut, snap_path);
+    };
+
+    //获取截图缓存或者实时截图
+    //http://127.0.0.1/index/api/getSnap?url=rtmp://127.0.0.1/record/robot.mp4&timeout_sec=10&expire_sec=3
+    api_regist2("/index/api/getSnap", [](API_ARGS2){
+        CHECK_SECRET();
+        CHECK_ARGS("url", "timeout_sec", "expire_sec");
+        GET_CONFIG(string, snap_root, API::kSnapRoot);
+
+        int expire_sec = allArgs["expire_sec"];
+        auto scan_path = File::absolutePath(MD5(allArgs["url"]).hexdigest(), snap_root) + "/";
+        string snap_path;
+        File::scanDir(scan_path, [&](const string &path, bool isDir) {
+            if (isDir) {
+                //忽略文件夹
+                return true;
+            }
+
+            //找到截图
+            auto tm = FindField(path.data() + scan_path.size(), nullptr, ".jpeg");
+            if (atoll(tm.data()) + expire_sec < time(NULL)) {
+                //截图已经过期,删除之，后面重新生成
+                File::delete_file(path.data());
+                return true;
+            }
+
+            //截图未过期,中断遍历，返回上次生成的截图
+            snap_path = path;
+            return false;
+        });
+
+        if(!snap_path.empty()){
+            responseSnap(snap_path, headerIn, invoker);
+            return;
+        }
+
+        //无截图或者截图已经过期
+        snap_path = StrPrinter << scan_path << time(NULL) << ".jpeg";
+
+        //生成一个空文件，目的是顺便创建文件夹路径，
+        //同时防止在FFmpeg生成截图途中不停的尝试调用该api启动FFmpeg生成相同的截图
+        auto file = File::create_file(snap_path.data(), "wb");
+        if (file) {
+            fclose(file);
+        }
+
+        //启动FFmpeg进程，开始截图
+        FFmpegSnap::makeSnap(allArgs["url"],snap_path,allArgs["timeout_sec"],[invoker,headerIn,snap_path](bool success){
+            if(!success){
+                //生成截图失败，可能残留空文件
+                File::delete_file(snap_path.data());
+            }
+            responseSnap(snap_path, headerIn, invoker);
+        });
     });
 
     ////////////以下是注册的Hook API////////////

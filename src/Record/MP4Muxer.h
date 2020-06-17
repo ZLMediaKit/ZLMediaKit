@@ -45,13 +45,14 @@ public:
 private:
     void openMP4();
     void closeMP4();
+    void stampSync();
 
 private:
-    struct track_info{
+    struct track_info {
         int track_id = -1;
         Stamp stamp;
     };
-    unordered_map<int,track_info> _codec_to_trackid;
+    unordered_map<int, track_info> _codec_to_trackid;
     List<Frame::Ptr> _frameCached;
     bool _started = false;
     bool _have_video = false;

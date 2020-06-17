@@ -23,47 +23,9 @@ RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
 }
 
 void RtmpMuxer::addTrack(const Track::Ptr &track) {
-    //根据track生产metadata
-    Metadata::Ptr metadata;
-    switch (track->getTrackType()){
-        case TrackVideo:{
-            metadata = std::make_shared<VideoMeta>(dynamic_pointer_cast<VideoTrack>(track));
-        }
-            break;
-        case TrackAudio:{
-            metadata = std::make_shared<AudioMeta>(dynamic_pointer_cast<AudioTrack>(track));
-        }
-            break;
-        default:
-            return;
-
-    }
-
-    switch (track->getCodecId()){
-        case CodecG711A:
-        case CodecG711U:{
-            auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
-            if(!audio_track){
-                return;
-            }
-            if (audio_track->getAudioSampleRate() != 8000 ||
-                audio_track->getAudioChannel() != 1 ||
-                audio_track->getAudioSampleBit() != 16) {
-                WarnL << "RTMP只支持8000/1/16规格的G711,目前规格是:"
-                      << audio_track->getAudioSampleRate() << "/"
-                      << audio_track->getAudioChannel() << "/"
-                      << audio_track->getAudioSampleBit()
-                      << ",该音频已被忽略";
-                return;
-            }
-            break;
-        }
-        default : break;
-    }
-
     auto &encoder = _encoder[track->getTrackType()];
     //生成rtmp编码器,克隆该Track，防止循环引用
-    encoder = Factory::getRtmpCodecByTrack(track->clone());
+    encoder = Factory::getRtmpCodecByTrack(track->clone(), true);
     if (!encoder) {
         return;
     }
@@ -71,10 +33,8 @@ void RtmpMuxer::addTrack(const Track::Ptr &track) {
     //设置rtmp输出环形缓存
     encoder->setRtmpRing(_rtmpRing);
 
-    //添加其metadata
-    metadata->getMetadata().object_for_each([&](const std::string &key, const AMFValue &value){
-        _metadata.set(key,value);
-    });
+    //添加metadata
+    Metadata::addTrack(_metadata,track);
 }
 
 void RtmpMuxer::inputFrame(const Frame::Ptr &frame) {

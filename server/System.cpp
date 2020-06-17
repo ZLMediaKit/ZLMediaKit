@@ -52,7 +52,7 @@ string System::execute(const string &cmd) {
 
 #if !defined(ANDROID) && !defined(_WIN32)
 static string addr2line(const string &address) {
-    string cmd = StrPrinter << "addr2line -e " << exePath() << " " << address;
+    string cmd = StrPrinter << "addr2line -C -f -e " << exePath() << " " << address;
     return System::execute(cmd);
 }
 

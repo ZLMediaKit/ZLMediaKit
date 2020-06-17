@@ -122,27 +122,68 @@ void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
     }
 }
 
+static uint8_t getObject(CodecId codecId){
+    switch (codecId){
+        case CodecG711A : return MOV_OBJECT_G711a;
+        case CodecG711U : return MOV_OBJECT_G711u;
+        case CodecOpus : return MOV_OBJECT_OPUS;
+        case CodecAAC : return MOV_OBJECT_AAC;
+        case CodecH264 : return MOV_OBJECT_H264;
+        case CodecH265 : return MOV_OBJECT_HEVC;
+        default : return 0;
+    }
+}
+
+void MP4Muxer::stampSync(){
+    if(_codec_to_trackid.size() < 2){
+        return;
+    }
+
+    Stamp *audio = nullptr, *video = nullptr;
+    for(auto &pr : _codec_to_trackid){
+        switch (getTrackType((CodecId) pr.first)){
+            case TrackAudio : audio = &pr.second.stamp; break;
+            case TrackVideo : video = &pr.second.stamp; break;
+            default : break;
+        }
+    }
+
+    if(audio && video){
+        //音频时间戳同步于视频，因为音频时间戳被修改后不影响播放
+        audio->syncTo(*video);
+    }
+}
+
 void MP4Muxer::addTrack(const Track::Ptr &track) {
+    auto mp4_object = getObject(track->getCodecId());
+    if (!mp4_object) {
+        WarnL << "MP4录制不支持该编码格式:" << track->getCodecName();
+        return;
+    }
+
+    if (!track->ready()) {
+        WarnL << "Track[" << track->getCodecName() << "]未就绪";
+        return;
+    }
+
     switch (track->getCodecId()) {
         case CodecG711A:
-        case CodecG711U: {
-            auto audio_track = dynamic_pointer_cast<G711Track>(track);
+        case CodecG711U:
+        case CodecOpus: {
+            auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
             if (!audio_track) {
-                WarnL << "不是G711 Track";
+                WarnL << "不是音频Track:" << track->getCodecName();
                 return;
             }
-            if (!audio_track->ready()) {
-                WarnL << "G711 Track未就绪";
-                return;
-            }
+
             auto track_id = mov_writer_add_audio(_mov_writter.get(),
-                                                 track->getCodecId() == CodecG711A ? MOV_OBJECT_G711a : MOV_OBJECT_G711u,
+                                                 mp4_object,
                                                  audio_track->getAudioChannel(),
                                                  audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
                                                  audio_track->getAudioSampleRate(),
                                                  nullptr, 0);
             if (track_id < 0) {
-                WarnL << "添加G711 Track失败:" << track_id;
+                WarnL << "添加Track[" << track->getCodecName() << "]失败:" << track_id;
                 return;
             }
             _codec_to_trackid[track->getCodecId()].track_id = track_id;
@@ -155,16 +196,14 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                 WarnL << "不是AAC Track";
                 return;
             }
-            if(!audio_track->ready()){
-                WarnL << "AAC Track未就绪";
-                return;
-            }
+
             auto track_id = mov_writer_add_audio(_mov_writter.get(),
-                                                 MOV_OBJECT_AAC,
+                                                 mp4_object,
                                                  audio_track->getAudioChannel(),
                                                  audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
                                                  audio_track->getAudioSampleRate(),
-                                                 audio_track->getAacCfg().data(), 2);
+                                                 audio_track->getAacCfg().data(),
+                                                 audio_track->getAacCfg().size());
             if(track_id < 0){
                 WarnL << "添加AAC Track失败:" << track_id;
                 return;
@@ -176,10 +215,6 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
             auto h264_track = dynamic_pointer_cast<H264Track>(track);
             if (!h264_track) {
                 WarnL << "不是H264 Track";
-                return;
-            }
-            if(!h264_track->ready()){
-                WarnL << "H264 Track未就绪";
                 return;
             }
 
@@ -196,7 +231,7 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
             }
 
             auto track_id = mov_writer_add_video(_mov_writter.get(),
-                                                 MOV_OBJECT_H264,
+                                                 mp4_object,
                                                  h264_track->getVideoWidth(),
                                                  h264_track->getVideoHeight(),
                                                  extra_data,
@@ -216,10 +251,6 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                 WarnL << "不是H265 Track";
                 return;
             }
-            if(!h265_track->ready()){
-                WarnL << "H265 Track未就绪";
-                return;
-            }
 
             struct mpeg4_hevc_t hevc = {0};
             string vps_sps_pps = string("\x00\x00\x00\x01", 4) + h265_track->getVps() +
@@ -235,7 +266,7 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
             }
 
             auto track_id = mov_writer_add_video(_mov_writter.get(),
-                                                 MOV_OBJECT_HEVC,
+                                                 mp4_object,
                                                  h265_track->getVideoWidth(),
                                                  h265_track->getVideoHeight(),
                                                  extra_data,
@@ -248,10 +279,12 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
             _have_video = true;
         }
             break;
-        default:
-            WarnL << "MP4录制不支持该编码格式:" << track->getCodecName();
-            break;
+
+        default: WarnL << "MP4录制不支持该编码格式:" << track->getCodecName(); break;
     }
+
+    //尝试音视频同步
+    stampSync();
 }
 
 }//namespace mediakit

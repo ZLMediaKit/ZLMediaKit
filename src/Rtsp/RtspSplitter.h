@@ -48,6 +48,7 @@ protected:
     virtual int64_t getContentLength(Parser &parser);
 protected:
     const char *onSearchPacketTail(const char *data,int len) override ;
+    const char *onSearchPacketTail_l(const char *data,int len) ;
     int64_t onRecvHeader(const char *data,uint64_t len) override;
     void onRecvContent(const char *data,uint64_t len) override;
 private:

@@ -144,10 +144,12 @@ API_EXPORT uint16_t API_CALL mk_tcp_server_start(uint16_t port, mk_tcp_type type
                 s_tcp_server[type]->start<TcpSessionWithSSL<TcpSessionForC> >(port);
                 break;
             case mk_type_ws:
-                s_tcp_server[type]->start<WebSocketSession<TcpSessionForC, HttpSession>>(port);
+                //此处你也可以修改WebSocketHeader::BINARY
+                s_tcp_server[type]->start<WebSocketSession<TcpSessionForC, HttpSession, WebSocketHeader::TEXT> >(port);
                 break;
             case mk_type_wss:
-                s_tcp_server[type]->start<WebSocketSession<TcpSessionForC, HttpsSession>>(port);
+                //此处你也可以修改WebSocketHeader::BINARY
+                s_tcp_server[type]->start<WebSocketSession<TcpSessionForC, HttpsSession, WebSocketHeader::TEXT> >(port);
                 break;
             default:
                 return 0;
@@ -208,8 +210,10 @@ TcpClientForC::Ptr *mk_tcp_client_create_l(mk_tcp_client_events *events, mk_tcp_
         case mk_type_ssl:
             return (TcpClientForC::Ptr *)new shared_ptr<TcpSessionWithSSL<TcpClientForC> >(new TcpSessionWithSSL<TcpClientForC>(events));
         case mk_type_ws:
+            //此处你也可以修改WebSocketHeader::BINARY
             return (TcpClientForC::Ptr *)new shared_ptr<WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, false> >(new WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, false>(events));
         case mk_type_wss:
+            //此处你也可以修改WebSocketHeader::BINARY
             return (TcpClientForC::Ptr *)new shared_ptr<WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, true> >(new WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, true>(events));
         default:
             return nullptr;

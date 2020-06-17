@@ -13,8 +13,6 @@ namespace mediakit {
 
 HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number) {
     //最小允许设置为0，0个切片代表点播
-    seg_number = MAX(0,seg_number);
-    seg_duration = MAX(1,seg_duration);
     _seg_number = seg_number;
     _seg_duration = seg_duration;
 }
@@ -34,6 +32,8 @@ void HlsMaker::makeIndexFile(bool eof) {
         }
     }
 
+    auto sequence =  _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
+
     string m3u8;
     snprintf(file_content,sizeof(file_content),
           "#EXTM3U\n"
@@ -42,7 +42,7 @@ void HlsMaker::makeIndexFile(bool eof) {
           "#EXT-X-TARGETDURATION:%u\n"
           "#EXT-X-MEDIA-SEQUENCE:%llu\n",
           (maxSegmentDuration + 999) / 1000,
-          _seg_number ? _file_index : 0);
+          sequence);
 
     m3u8.assign(file_content);
 

@@ -10,10 +10,29 @@
 
 #include <cstdlib>
 #include "RtspSplitter.h"
+#include "Util/logger.h"
+#include "Util/util.h"
 
 namespace mediakit{
 
 const char *RtspSplitter::onSearchPacketTail(const char *data, int len) {
+    auto ret = onSearchPacketTail_l(data, len);
+    if(ret){
+        return ret;
+    }
+
+    if (len > 256 * 1024) {
+        //rtp大于256KB
+        ret = (char *) memchr(data, '$', len);
+        if (!ret) {
+            WarnL << "rtp缓存溢出:" << hexdump(data, 1024);
+            reset();
+        }
+    }
+    return ret;
+}
+
+const char *RtspSplitter::onSearchPacketTail_l(const char *data, int len) {
     if(!_enableRecvRtp || data[0] != '$'){
         //这是rtsp包
         _isRtpPacket = false;

@@ -174,6 +174,8 @@ extern const string kPublishToMP4 ;
 //合并写缓存大小(单位毫秒)，合并写指服务器缓存一定的数据后才会一次性写入socket，这样能提高性能，但是会提高延时
 //开启后会同时关闭TCP_NODELAY并开启MSG_MORE
 extern const string kMergeWriteMS ;
+//全局的时间戳覆盖开关，在转协议时，对frame进行时间戳覆盖
+extern const string kModifyStamp;
 }//namespace General
 
 
@@ -217,6 +219,7 @@ extern const string kDirectProxy;
 
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
+//rtmp推流时间戳覆盖开关
 extern const string kModifyStamp;
 //握手超时时间，默认15秒
 extern const string kHandshakeSecond;

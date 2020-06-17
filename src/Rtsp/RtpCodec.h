@@ -66,7 +66,7 @@ public:
     RtpInfo(uint32_t ui32Ssrc,
             uint32_t ui32MtuSize,
             uint32_t ui32SampleRate,
-            uint8_t ui8PlayloadType,
+            uint8_t ui8PayloadType,
             uint8_t ui8Interleaved) {
         if(ui32Ssrc == 0){
             ui32Ssrc = ((uint64_t)this) & 0xFFFFFFFF;
@@ -74,7 +74,7 @@ public:
         _ui32Ssrc = ui32Ssrc;
         _ui32SampleRate = ui32SampleRate;
         _ui32MtuSize = ui32MtuSize;
-        _ui8PlayloadType = ui8PlayloadType;
+        _ui8PayloadType = ui8PayloadType;
         _ui8Interleaved = ui8Interleaved;
     }
 
@@ -84,8 +84,8 @@ public:
         return _ui8Interleaved;
     }
 
-    int getPlayloadType() const {
-        return _ui8PlayloadType;
+    int getPayloadType() const {
+        return _ui8PayloadType;
     }
 
     int getSampleRate() const {
@@ -110,7 +110,7 @@ protected:
     uint32_t _ui32Ssrc;
     uint32_t _ui32SampleRate;
     uint32_t _ui32MtuSize;
-    uint8_t _ui8PlayloadType;
+    uint8_t _ui8PayloadType;
     uint8_t _ui8Interleaved;
     uint16_t _ui16Sequence = 0;
     uint32_t _ui32TimeStamp = 0;

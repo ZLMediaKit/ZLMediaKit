@@ -48,8 +48,7 @@ public:
     }
 };
 
-class HttpClient : public TcpClient , public HttpRequestSplitter
-{
+class HttpClient : public TcpClient , public HttpRequestSplitter{
 public:
     typedef StrCaseMap HttpHeader;
     typedef std::shared_ptr<HttpClient> Ptr;

@@ -50,6 +50,9 @@ void FlvMuxer::start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &
         }
         strongSelf->onDetach();
     });
+
+    //音频同步于视频
+    _stamp[0].syncTo(_stamp[1]);
     _ring_reader->setReadCB([weakSelf](const RtmpMediaSource::RingDataType &pkt){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf){
@@ -164,7 +167,7 @@ void FlvMuxer::stop() {
 
 ///////////////////////////////////////////////////////FlvRecorder/////////////////////////////////////////////////////
 void FlvRecorder::startRecord(const EventPoller::Ptr &poller,const string &vhost, const string &app, const string &stream,const string &file_path) {
-    startRecord(poller,dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,vhost,app,stream,false)),file_path);
+    startRecord(poller,dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTMP_SCHEMA,vhost,app,stream)),file_path);
 }
 
 void FlvRecorder::startRecord(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &media, const string &file_path) {

@@ -180,9 +180,8 @@ static void eraseIfEmpty(MAP &map, IT0 it0, IT1 it1, IT2 it2) {
     }
 };
 
-void findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, bool retry,
-                 const function<void(const MediaSource::Ptr &src)> &cb){
-    auto src = MediaSource::find(info._schema, info._vhost, info._app, info._streamid, true);
+void MediaSource::findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, bool retry, const function<void(const MediaSource::Ptr &src)> &cb){
+    auto src = MediaSource::find_l(info._schema, info._vhost, info._app, info._streamid, true);
     if(src || !retry){
         cb(src);
         return;
@@ -248,7 +247,11 @@ void MediaSource::findAsync(const MediaInfo &info, const std::shared_ptr<TcpSess
     return findAsync_l(info, session, true, cb);
 }
 
-MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost_tmp, const string &app, const string &id, bool bMake) {
+MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost, const string &app, const string &id) {
+    return find_l(schema, vhost, app, id, false);
+}
+
+MediaSource::Ptr MediaSource::find_l(const string &schema, const string &vhost_tmp, const string &app, const string &id, bool bMake) {
     string vhost = vhost_tmp;
     if(vhost.empty()){
         vhost = DEFAULT_VHOST;
@@ -419,12 +422,10 @@ void MediaSourceEvent::onNoneReader(MediaSource &sender){
 
     //如果mp4点播, 无人观看时我们强制关闭点播
     bool is_mp4_vod = sender.getApp() == recordApp;
-    //无人观看mp4点播时，3秒后自动关闭
-    auto close_delay = is_mp4_vod ? 3.0 : stream_none_reader_delay / 1000.0;
 
     //没有任何人观看该视频源，表明该源可以关闭了
     weak_ptr<MediaSource> weakSender = sender.shared_from_this();
-    _async_close_timer = std::make_shared<Timer>(close_delay, [weakSender,is_mp4_vod]() {
+    _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0, [weakSender,is_mp4_vod]() {
         auto strongSender = weakSender.lock();
         if (!strongSender) {
             //对象已经销毁
@@ -467,7 +468,7 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
     try {
         MP4Reader::Ptr pReader(new MP4Reader(vhost, app, stream, filePath));
         pReader->startReadMP4();
-        return MediaSource::find(schema, vhost, app, stream, false);
+        return MediaSource::find(schema, vhost, app, stream);
     } catch (std::exception &ex) {
         WarnL << ex.what();
         return nullptr;
@@ -478,57 +479,51 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 #endif //ENABLE_MP4
 }
 
-static bool isFlushAble_default(bool is_audio, uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
-    if (new_stamp < last_stamp) {
-        //时间戳回退(可能seek中)
+static bool isFlushAble_default(bool is_video, uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
+    if (new_stamp + 500 < last_stamp) {
+        //时间戳回退比较大(可能seek中)，由于rtp中时间戳是pts，是可能存在一定程度的回退的
         return true;
     }
 
-    if (!is_audio) {
-        //这是视频,时间戳发送变化或者缓存超过1024个
-        return last_stamp != new_stamp || cache_size >= 1024;
-    }
-
-    //这是音频,缓存超过100ms或者缓存个数超过10个
-    return new_stamp > last_stamp + 100 || cache_size > 10;
+    //时间戳发送变化或者缓存超过1024个,sendmsg接口一般最多只能发送1024个数据包
+    return last_stamp != new_stamp || cache_size >= 1024;
 }
 
-static bool isFlushAble_merge(bool is_audio, uint32_t last_stamp, uint32_t new_stamp, int cache_size, int merge_ms) {
-    if (new_stamp < last_stamp) {
-        //时间戳回退(可能seek中)
+static bool isFlushAble_merge(bool is_video, uint32_t last_stamp, uint32_t new_stamp, int cache_size, int merge_ms) {
+    if (new_stamp + 500 < last_stamp) {
+        //时间戳回退比较大(可能seek中)，由于rtp中时间戳是pts，是可能存在一定程度的回退的
         return true;
     }
 
-    if(new_stamp > last_stamp + merge_ms){
+    if (new_stamp > last_stamp + merge_ms) {
         //时间戳增量超过合并写阈值
         return true;
     }
 
-    if (!is_audio) {
-        //这是视频,缓存数超过1024个,这个逻辑用于避免时间戳异常的流导致的内存暴增问题
-        //而且sendmsg接口一般最多只能发送1024个数据包
-        return cache_size >= 1024;
-    }
-
-    //这是音频，音频缓存超过20个
-    return cache_size > 20;
+    //缓存数超过1024个,这个逻辑用于避免时间戳异常的流导致的内存暴增问题
+    //而且sendmsg接口一般最多只能发送1024个数据包
+    return cache_size >= 1024;
 }
 
-bool FlushPolicy::isFlushAble(uint32_t new_stamp, int cache_size) {
-    bool ret = false;
-    GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
-    if (mergeWriteMS <= 0) {
-        //关闭了合并写或者合并写阈值小于等于0
-        ret = isFlushAble_default(_is_audio, _last_stamp, new_stamp, cache_size);
+bool FlushPolicy::isFlushAble(bool is_video, bool is_key, uint32_t new_stamp, int cache_size) {
+    bool flush_flag = false;
+    if (is_key && is_video) {
+        //遇到关键帧flush掉前面的数据，确保关键帧为该组数据的第一帧，确保GOP缓存有效
+        flush_flag = true;
     } else {
-        ret = isFlushAble_merge(_is_audio, _last_stamp, new_stamp, cache_size, mergeWriteMS);
+        GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
+        if (mergeWriteMS <= 0) {
+            //关闭了合并写或者合并写阈值小于等于0
+            flush_flag = isFlushAble_default(is_video, _last_stamp[is_video], new_stamp, cache_size);
+        } else {
+            flush_flag = isFlushAble_merge(is_video, _last_stamp[is_video], new_stamp, cache_size, mergeWriteMS);
+        }
     }
 
-    if (ret) {
-//        DebugL << _is_audio << " " << _last_stamp  << " " << new_stamp;
-        _last_stamp = new_stamp;
+    if (flush_flag) {
+        _last_stamp[is_video] = new_stamp;
     }
-    return ret;
+    return flush_flag;
 }
 
 } /* namespace mediakit */

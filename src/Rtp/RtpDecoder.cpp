@@ -16,8 +16,9 @@ using namespace toolkit;
 
 namespace mediakit{
 
-RtpDecoder::RtpDecoder() {
+RtpDecoder::RtpDecoder(const char *codec) {
     _buffer = std::make_shared<BufferRaw>();
+    _codec = codec;
 }
 
 RtpDecoder::~RtpDecoder() {
@@ -46,7 +47,7 @@ void RtpDecoder::decodeRtp(const void *data, int bytes) {
 
         uint8_t rtp_type = 0x7F & ((uint8_t *) data)[1];
         InfoL << "rtp type:" << (int) rtp_type;
-        _rtp_decoder = rtp_payload_decode_create(rtp_type, "MP2P", &s_func, this);
+        _rtp_decoder = rtp_payload_decode_create(rtp_type, _codec.data(), &s_func, this);
         if (!_rtp_decoder) {
             WarnL << "unsupported rtp type:" << (int) rtp_type << ",size:" << bytes << ",hexdump" << hexdump(data, bytes > 16 ? 16 : bytes);
         }

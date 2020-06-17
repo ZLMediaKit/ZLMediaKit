@@ -19,14 +19,15 @@ namespace mediakit{
 
 class RtpDecoder {
 public:
-    RtpDecoder();
+    RtpDecoder(const char *codec = "MP2P");
     virtual ~RtpDecoder();
-protected:
     void decodeRtp(const void *data, int bytes);
+protected:
     virtual void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) = 0;
 private:
     void *_rtp_decoder = nullptr;
     BufferRaw::Ptr _buffer;
+    string _codec;
 };
 
 }//namespace mediakit

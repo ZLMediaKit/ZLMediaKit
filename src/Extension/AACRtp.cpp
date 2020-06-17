@@ -9,19 +9,19 @@
  */
 
 #include "AACRtp.h"
-#define ADTS_HEADER_LEN 7
+#define AAC_MAX_FRAME_SIZE (2 * 1024)
 
 namespace mediakit{
 
 AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
                              uint32_t ui32MtuSize,
                              uint32_t ui32SampleRate,
-                             uint8_t ui8PlayloadType,
+                             uint8_t ui8PayloadType,
                              uint8_t ui8Interleaved) :
         RtpInfo(ui32Ssrc,
                 ui32MtuSize,
                 ui32SampleRate,
-                ui8PlayloadType,
+                ui8PayloadType,
                 ui8Interleaved){
 }
 
@@ -56,32 +56,30 @@ void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
 }
 
 void AACRtpEncoder::makeAACRtp(const void *data, unsigned int len, bool mark, uint32_t uiStamp) {
-    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp), false);
+    RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, mark, uiStamp), false);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-AACRtpDecoder::AACRtpDecoder(const Track::Ptr &track){
+AACRtpDecoder::AACRtpDecoder(const Track::Ptr &track) {
     auto aacTrack = dynamic_pointer_cast<AACTrack>(track);
-    if(!aacTrack || !aacTrack->ready()){
+    if (!aacTrack || !aacTrack->ready()) {
         WarnL << "该aac track无效!";
-    }else{
+    } else {
         _aac_cfg = aacTrack->getAacCfg();
     }
-    _adts = obtainFrame();
+    _frame = obtainFrame();
 }
+
 AACRtpDecoder::AACRtpDecoder() {
-    _adts = obtainFrame();
+    _frame = obtainFrame();
 }
 
 AACFrame::Ptr AACRtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
     auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
-    frame->aac_frame_length = ADTS_HEADER_LEN;
-    frame->iPrefixSize = ADTS_HEADER_LEN;
-    if(frame->syncword == 0 && !_aac_cfg.empty()) {
-        makeAdtsHeader(_aac_cfg,*frame);
-    }
+    frame->_prefix_size = 0;
+    frame->_buffer.clear();
     return frame;
 }
 
@@ -96,20 +94,18 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     //忽略Au-Header区
     ptr += 2 + au_header_count * 2;
 
-    static const uint32_t max_size = sizeof(AACFrame::buffer) - ADTS_HEADER_LEN;
     while (ptr < end) {
         auto size = (uint32_t) (end - ptr);
-        if(size > max_size){
-            size = max_size;
+        if (size > AAC_MAX_FRAME_SIZE) {
+            size = AAC_MAX_FRAME_SIZE;
         }
-        if (_adts->aac_frame_length + size > sizeof(AACFrame::buffer)) {
+        if (_frame->size() + size > AAC_MAX_FRAME_SIZE) {
             //数据太多了，先清空
             flushData();
         }
         //追加aac数据
-        memcpy(_adts->buffer + _adts->aac_frame_length, ptr, size);
-        _adts->aac_frame_length += size;
-        _adts->timeStamp = rtppack->timeStamp;
+        _frame->_buffer.append((char *) ptr, size);
+        _frame->_dts = rtppack->timeStamp;
         ptr += size;
     }
 
@@ -120,15 +116,22 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     return false;
 }
 
-
 void AACRtpDecoder::flushData() {
-    if(_adts->aac_frame_length == ADTS_HEADER_LEN){
+    if (_frame->_buffer.empty()) {
         //没有有效数据
         return;
     }
-    writeAdtsHeader(*_adts, _adts->buffer);
-    RtpCodec::inputFrame(_adts);
-    _adts = obtainFrame();
+
+    //插入adts头
+    char adts_header[32] = {0};
+    auto size = dumpAacConfig(_aac_cfg, _frame->_buffer.size(), (uint8_t *) adts_header, sizeof(adts_header));
+    if (size > 0) {
+        //插入adts头
+        _frame->_buffer.insert(0, adts_header, size);
+        _frame->_prefix_size = size;
+    }
+    RtpCodec::inputFrame(_frame);
+    _frame = obtainFrame();
 }
 
 
