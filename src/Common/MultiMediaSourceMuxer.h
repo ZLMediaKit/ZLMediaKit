@@ -132,6 +132,12 @@ public:
     int totalReaderCount(MediaSource &sender) override;
 
     /**
+     * 触发无人观看事件
+     * @param sender 触发者
+     */
+    void onNoneReader(MediaSource &sender) override;
+
+    /**
      * 设置录制状态
      * @param type 录制类型
      * @param start 开始或停止
