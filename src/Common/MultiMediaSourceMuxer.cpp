@@ -278,6 +278,15 @@ int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
     return listener->totalReaderCount(sender);
 }
 
+void MultiMediaSourceMuxer::onNoneReader(MediaSource &sender){
+    auto listener = _listener.lock();
+    if (!listener) {
+        MediaSourceEvent::onNoneReader(sender);
+        return;
+    }
+    listener->onNoneReader(sender);
+}
+
 bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) {
     return _muxer->setupRecord(sender,type,start,custom_path);
 }
