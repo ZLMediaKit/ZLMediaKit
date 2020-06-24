@@ -119,6 +119,17 @@ API_EXPORT void API_CALL mk_set_option(const char *key, const char *val) {
     mINI::Instance()[key] = val;
 }
 
+API_EXPORT const char * API_CALL mk_get_option(const char *key)
+{
+    assert(key);
+    if (mINI::Instance().find(key) == mINI::Instance().end()) {
+        WarnL << "key:" << key << " not existed!";
+        return nullptr;
+    }
+    return mINI::Instance()[key].data();
+}
+
+
 API_EXPORT uint16_t API_CALL mk_http_server_start(uint16_t port, int ssl) {
     ssl = MAX(0,MIN(ssl,1));
     try {

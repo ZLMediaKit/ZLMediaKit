@@ -98,6 +98,16 @@ API_EXPORT void API_CALL mk_media_input_h265(mk_media ctx, void *data, int len, 
  */
 API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, uint32_t dts, void *adts);
 
+#ifdef ENABLE_FAAC
+/**
+ * 输入单帧PCM音频
+ * @param ctx 对象指针
+ * @param data 单帧PCM数据
+ * @param len 单帧PCM数据字节数
+ * @param dts 时间戳，毫秒
+ */
+API_EXPORT void API_CALL mk_media_input_PCM(mk_media ctx, void *Data, int len, uint32_t pts);
+#endif //ENABLE_FAAC
 /**
  * 输入单帧G711音频
  * @param ctx 对象指针
