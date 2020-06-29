@@ -158,6 +158,11 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         case PSI_STREAM_AAC: {
+            uint8_t *ptr = (uint8_t *)data;
+            if(!(bytes > 7 && ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0)){
+                //这不是aac
+                break;
+            }
             if (!_codecid_audio) {
                 //获取到音频
                 _codecid_audio = codecid;
