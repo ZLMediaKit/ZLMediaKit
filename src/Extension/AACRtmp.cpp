@@ -55,13 +55,13 @@ void AACRtmpDecoder::onGetAAC(const char* data, int len, uint32_t stamp) {
         frame->_prefix_size = 0;
     }
 
-    if(len){
+    if(len > 0){
         //追加负载数据
         frame->_buffer.append(data, len);
         frame->_dts = stamp;
     }
 
-    if(size || len){
+    if(size > 0 || len > 0){
         //有adts头或者实际aac负载
         RtmpCodec::inputFrame(frame);
     }
