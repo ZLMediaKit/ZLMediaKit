@@ -100,11 +100,15 @@ const string kCharSet = HTTP_FIELD"charSet";
 const string kRootPath = HTTP_FIELD"rootPath";
 //http 404错误提示内容
 const string kNotFound = HTTP_FIELD"notFound";
+//是否显示文件夹菜单
+const string kDirMenu = HTTP_FIELD"dirMenu";
 
 onceToken token([](){
     mINI::Instance()[kSendBufSize] = 64 * 1024;
     mINI::Instance()[kMaxReqSize] = 4*1024;
     mINI::Instance()[kKeepAliveSecond] = 15;
+    mINI::Instance()[kDirMenu] = true;
+
 #if defined(_WIN32)
     mINI::Instance()[kCharSet] = "gb2312";
 #else
