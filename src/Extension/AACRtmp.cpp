@@ -32,7 +32,6 @@ static string getAacCfg(const RtmpPacket &thiz) {
 bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
     if (pkt->isCfgFrame()) {
         _aac_cfg = getAacCfg(*pkt);
-        return false;
     }
     if (!_aac_cfg.empty()) {
         onGetAAC(pkt->strBuf.data() + 2, pkt->strBuf.size() - 2, pkt->timeStamp);
@@ -42,7 +41,6 @@ bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
 
 void AACRtmpDecoder::onGetAAC(const char* data, int len, uint32_t stamp) {
     auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
-
     //生成adts头
     char adts_header[32] = {0};
     auto size = dumpAacConfig(_aac_cfg, len, (uint8_t *) adts_header, sizeof(adts_header));
@@ -54,12 +52,16 @@ void AACRtmpDecoder::onGetAAC(const char* data, int len, uint32_t stamp) {
         frame->_prefix_size = 0;
     }
 
-    //追加负载数据
-    frame->_buffer.append(data, len);
-    frame->_dts = stamp;
+    if(len){
+        //追加负载数据
+        frame->_buffer.append(data, len);
+        frame->_dts = stamp;
+    }
 
-    //写入环形缓存
-    RtmpCodec::inputFrame(frame);
+    if(size || len){
+        //有adts头或者实际aac负载
+        RtmpCodec::inputFrame(frame);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

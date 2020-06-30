@@ -138,14 +138,18 @@ public:
         if (_cfg.empty()) {
             //未获取到aac_cfg信息
             if (frame->prefixSize()) {
-                //7个字节的adts头
+                //根据7个字节的adts头生成aac config
                 _cfg = makeAacConfig((uint8_t *) (frame->data()), frame->prefixSize());
                 onReady();
             } else {
                 WarnL << "无法获取adts头!";
             }
         }
-        AudioTrack::inputFrame(frame);
+
+        if (frame->size() > frame->prefixSize()) {
+            //除adts头外，有实际负载
+            AudioTrack::inputFrame(frame);
+        }
     }
 private:
     /**
