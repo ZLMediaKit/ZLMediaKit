@@ -32,7 +32,10 @@ static string getAacCfg(const RtmpPacket &thiz) {
 bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
     if (pkt->isCfgFrame()) {
         _aac_cfg = getAacCfg(*pkt);
+        onGetAAC(nullptr, 0, 0);
+        return false;
     }
+
     if (!_aac_cfg.empty()) {
         onGetAAC(pkt->strBuf.data() + 2, pkt->strBuf.size() - 2, pkt->timeStamp);
     }
