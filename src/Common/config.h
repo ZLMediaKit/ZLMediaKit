@@ -193,6 +193,8 @@ extern const string kCharSet;
 extern const string kRootPath;
 //http 404错误提示内容
 extern const string kNotFound;
+//是否显示文件夹菜单
+extern const string kDirMenu;
 }//namespace Http
 
 ////////////SHELL配置///////////

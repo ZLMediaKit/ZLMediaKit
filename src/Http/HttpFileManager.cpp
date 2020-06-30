@@ -195,6 +195,11 @@ static string searchIndexFile(const string &dir){
 }
 
 static bool makeFolderMenu(const string &httpPath, const string &strFullPath, string &strRet) {
+    GET_CONFIG(bool, dirMenu, Http::kDirMenu);
+    if(!dirMenu){
+        //不允许浏览文件夹
+        return false;
+    }
     string strPathPrefix(strFullPath);
     string last_dir_name;
     if(strPathPrefix.back() == '/'){
