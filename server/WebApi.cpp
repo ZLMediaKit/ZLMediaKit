@@ -779,6 +779,14 @@ void installWebApi() {
         val["hit"] = (int)s_rtpServerMap.erase(allArgs["port"].as<uint16_t>());
     });
 
+    api_regist1("/index/api/listRtpServer",[](API_ARGS1){
+        CHECK_SECRET();
+
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        for(auto &pr : s_rtpServerMap){
+            val["data"].append(pr.first);
+        }
+    });
 
 #endif//ENABLE_RTPPROXY
 
