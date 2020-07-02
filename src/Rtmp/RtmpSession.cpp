@@ -257,8 +257,8 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         invoke.clear();
         invoke << "onMetaData" << metadata;
         sendResponse(MSG_DATA, invoke.data());
-        auto duration = metadata["duration"].as_number();
-        if(duration > 0){
+        auto duration = metadata["duration"];
+        if(duration && duration.as_number() > 0){
             //这是点播，使用绝对时间戳
             _stamp[0].setPlayBack();
             _stamp[1].setPlayBack();
