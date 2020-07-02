@@ -295,7 +295,7 @@ void MediaSource::regist() {
     //注册该源，注册后服务器才能找到该源
     {
         lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-        g_mapMediaSrc[_strSchema][_strVhost][_strApp][_strId] =  shared_from_this();
+        g_mapMediaSrc[_strSchema][_strVhost][_strApp][_strId] = shared_from_this();
     }
     _StrPrinter codec_info;
     auto tracks = getTracks(true);
@@ -326,6 +326,11 @@ void MediaSource::regist() {
 
     InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId << " " << codec_info;
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, true, *this);
+
+    auto listener = _listener.lock();
+    if (listener) {
+        listener->onRegist(*this, true);
+    }
 }
 
 //反注册该源
@@ -352,6 +357,11 @@ bool MediaSource::unregist() {
     if(ret){
         InfoL <<  _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, false, *this);
+
+        auto listener = _listener.lock();
+        if (listener) {
+            listener->onRegist(*this, false);
+        }
     }
     return ret;
 }

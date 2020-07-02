@@ -55,6 +55,8 @@ public:
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
     // 通知无人观看
     virtual void onNoneReader(MediaSource &sender);
+    //流注册或注销事件
+    virtual void onRegist(MediaSource &sender, bool regist) {};
 
 private:
     Timer::Ptr _async_close_timer;
