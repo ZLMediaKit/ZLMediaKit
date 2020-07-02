@@ -34,6 +34,9 @@
 #include "Thread/WorkThreadPool.h"
 #include "Rtp/RtpSelector.h"
 #include "FFmpegSource.h"
+#if defined(ENABLE_RTPPROXY)
+#include "Rtp/RtpServer.h"
+#endif
 using namespace Json;
 using namespace toolkit;
 using namespace mediakit;
@@ -244,14 +247,23 @@ bool checkArgs(Args &&args,First &&first,KeyTypes && ...keys){
         } \
     }
 
+//拉流代理器列表
 static unordered_map<string ,PlayerProxy::Ptr> s_proxyMap;
 static recursive_mutex s_proxyMapMtx;
+
+//FFmpeg拉流代理器列表
+static unordered_map<string ,FFmpegSource::Ptr> s_ffmpegMap;
+static recursive_mutex s_ffmpegMapMtx;
+
+#if defined(ENABLE_RTPPROXY)
+//rtp服务器列表
+static unordered_map<uint16_t, RtpServer::Ptr> s_rtpServerMap;
+static recursive_mutex s_rtpServerMapMtx;
+#endif
+
 static inline string getProxyKey(const string &vhost,const string &app,const string &stream){
     return vhost + "/" + app + "/" + stream;
 }
-
-static unordered_map<string ,FFmpegSource::Ptr> s_ffmpegMap;
-static recursive_mutex s_ffmpegMapMtx;
 
 /**
  * 安装api接口
@@ -745,6 +757,29 @@ void installWebApi() {
         val["peer_ip"] = process->get_peer_ip();
         val["peer_port"] = process->get_peer_port();
     });
+
+    api_regist1("/index/api/openRtpServer",[](API_ARGS1){
+        CHECK_SECRET();
+        CHECK_ARGS("port", "enable_tcp");
+
+        RtpServer::Ptr server = std::make_shared<RtpServer>();
+        server->start(allArgs["port"], allArgs["enable_tcp"].as<bool>());
+        val["port"] = server->getPort();
+
+        //保存对象
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        s_rtpServerMap.emplace(server->getPort(), server);
+    });
+
+    api_regist1("/index/api/closeRtpServer",[](API_ARGS1){
+        CHECK_SECRET();
+        CHECK_ARGS("port");
+
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        val["hit"] = (int)s_rtpServerMap.erase(allArgs["port"].as<uint16_t>());
+    });
+
+
 #endif//ENABLE_RTPPROXY
 
     // 开始录制hls或MP4
@@ -1044,5 +1079,11 @@ void unInstallWebApi(){
     {
         lock_guard<recursive_mutex> lck(s_ffmpegMapMtx);
         s_ffmpegMap.clear();
+    }
+    {
+#if defined(ENABLE_RTPPROXY)
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        s_rtpServerMap.clear();
+#endif
     }
 }
