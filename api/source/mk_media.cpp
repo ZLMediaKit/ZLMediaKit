@@ -42,6 +42,12 @@ public:
         _on_seek = cb;
         _on_seek_data = user_data;
     }
+
+    void setOnRegist(on_mk_media_source_regist cb, void *user_data){
+        _on_regist = cb;
+        _on_regist_data = user_data;
+    }
+
 protected:
     // 通知其停止推流
     bool close(MediaSource &sender,bool force) override{
@@ -70,12 +76,21 @@ protected:
     int totalReaderCount(MediaSource &sender) override{
         return _channel->totalReaderCount();
     }
+
+    void onRegist(MediaSource &sender, bool regist) override{
+        if (_on_regist) {
+            _on_regist(_on_regist_data, &sender, regist);
+        }
+    }
+
 private:
     DevChannel::Ptr _channel;
     on_mk_media_close _on_close = nullptr;
     on_mk_media_seek _on_seek = nullptr;
+    on_mk_media_source_regist _on_regist = nullptr;
     void *_on_seek_data;
     void *_on_close_data;
+    void *_on_regist_data;
 };
 
 API_EXPORT void API_CALL mk_media_set_on_close(mk_media ctx, on_mk_media_close cb, void *user_data){
@@ -88,6 +103,12 @@ API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb,
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->setOnSeek(cb, user_data);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_regist(mk_media ctx, on_mk_media_source_regist cb, void *user_data){
+    assert(ctx);
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
+    (*obj)->setOnRegist(cb, user_data);
 }
 
 API_EXPORT int API_CALL mk_media_total_reader_count(mk_media ctx){
