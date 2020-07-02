@@ -73,11 +73,6 @@ RtpProcess::RtpProcess(uint32_t ssrc) {
 }
 
 RtpProcess::~RtpProcess() {
-    DebugP(this);
-    if (_addr) {
-        delete _addr;
-    }
-
     uint64_t duration = (_last_rtp_time.createdTime() - _last_rtp_time.elapsedTime()) / 1000;
     WarnP(this) << "RTP推流器("
                 << _media_info._vhost << "/"
@@ -89,6 +84,11 @@ RtpProcess::~RtpProcess() {
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_total_bytes > iFlowThreshold * 1024) {
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false, static_cast<SockInfo &>(*this));
+    }
+
+    if (_addr) {
+        delete _addr;
+        _addr = nullptr;
     }
 }
 

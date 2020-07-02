@@ -243,9 +243,8 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track, bool is_enc
 
 AMFValue Factory::getAmfByCodecId(CodecId codecId) {
     switch (codecId){
-        //此处用string标明rtmp编码类型目的是为了兼容某些android系统
-        case CodecAAC: return AMFValue("mp4a");
-        case CodecH264: return AMFValue("avc1");
+        case CodecAAC: return AMFValue(FLV_CODEC_AAC);
+        case CodecH264: return AMFValue(FLV_CODEC_H264);
         case CodecH265: return AMFValue(FLV_CODEC_H265);
         case CodecG711A: return AMFValue(FLV_CODEC_G711A);
         case CodecG711U: return AMFValue(FLV_CODEC_G711U);
