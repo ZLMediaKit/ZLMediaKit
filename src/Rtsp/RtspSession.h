@@ -136,8 +136,6 @@ private:
     void inline send_SessionNotFound();
     //一般rtsp服务器打开端口失败时触发
     void inline send_NotAcceptable();
-    //ssrc转字符串
-    inline string printSSRC(uint32_t ui32Ssrc);
 
     //获取track下标
     inline int getTrackIndexByTrackType(TrackType type);
