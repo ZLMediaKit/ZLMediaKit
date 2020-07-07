@@ -22,11 +22,10 @@ using namespace mediakit;
 
 namespace mediakit{
 
-string printSSRC(uint32_t ui32Ssrc);
 class RtpProcess : public RtpReceiver , public RtpDecoder, public SockInfo, public MediaSinkInterface, public std::enable_shared_from_this<RtpProcess>{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
-    RtpProcess(uint32_t ssrc);
+    RtpProcess(const string &stream_id);
     ~RtpProcess();
     bool inputRtp(const Socket::Ptr &sock, const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
     bool alive();
@@ -54,7 +53,6 @@ private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
     std::shared_ptr<FILE> _save_file_video;
-    uint32_t _ssrc;
     SdpTrack::Ptr _track;
     struct sockaddr *_addr = nullptr;
     uint16_t _sequence = 0;
