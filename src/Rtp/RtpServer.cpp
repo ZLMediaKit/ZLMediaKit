@@ -22,12 +22,12 @@ RtpServer::~RtpServer() {
     }
 }
 
-void RtpServer::start(uint16_t local_port,  bool enable_tcp, const char *local_ip) {
+void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable_tcp, const char *local_ip) {
     _udp_server.reset(new Socket(nullptr, false));
     auto &ref = RtpSelector::Instance();
     auto sock = _udp_server;
-    _udp_server->setOnRead([&ref, sock](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
-        ref.inputRtp(sock, buf->data(), buf->size(), addr);
+    _udp_server->setOnRead([&ref, sock, stream_id](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
+        ref.inputRtp(sock, const_cast<string &>(stream_id), buf->data(), buf->size(), addr);
     });
 
     //创建udp服务器
@@ -43,6 +43,7 @@ void RtpServer::start(uint16_t local_port,  bool enable_tcp, const char *local_i
         try {
             //创建tcp服务器
             _tcp_server = std::make_shared<TcpServer>(_udp_server->getPoller());
+            (*_tcp_server)[RtpSession::kStreamID] = stream_id;
             _tcp_server->start<RtpSession>(_udp_server->get_local_port(), local_ip);
         } catch (...) {
             _tcp_server = nullptr;

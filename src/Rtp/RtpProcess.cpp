@@ -16,32 +16,21 @@
 
 namespace mediakit{
 
-string printSSRC(uint32_t ui32Ssrc) {
-    char tmp[9] = { 0 };
-    ui32Ssrc = htonl(ui32Ssrc);
-    uint8_t *pSsrc = (uint8_t *) &ui32Ssrc;
-    for (int i = 0; i < 4; i++) {
-        sprintf(tmp + 2 * i, "%02X", pSsrc[i]);
-    }
-    return tmp;
-}
-
 static string printAddress(const struct sockaddr *addr){
     return StrPrinter << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr) << ":" << ntohs(((struct sockaddr_in *) addr)->sin_port);
 }
 
-RtpProcess::RtpProcess(uint32_t ssrc) {
-    _ssrc = ssrc;
+RtpProcess::RtpProcess(const string &stream_id) {
     _track = std::make_shared<SdpTrack>();
     _track->_interleaved = 0;
     _track->_samplerate = 90000;
     _track->_type = TrackVideo;
-    _track->_ssrc = _ssrc;
+    _track->_ssrc = 0;
 
     _media_info._schema = RTP_APP_NAME;
     _media_info._vhost = DEFAULT_VHOST;
     _media_info._app = RTP_APP_NAME;
-    _media_info._streamid = printSSRC(_ssrc);
+    _media_info._streamid = stream_id;
 
     GET_CONFIG(string,dump_dir,RtpProxy::kDumpDir);
     {

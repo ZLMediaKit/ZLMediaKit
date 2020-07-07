@@ -741,15 +741,12 @@ void installWebApi() {
     });
 
 #if defined(ENABLE_RTPPROXY)
-    api_regist1("/index/api/getSsrcInfo",[](API_ARGS1){
+    api_regist1("/index/api/getRtpInfo",[](API_ARGS1){
         CHECK_SECRET();
-        CHECK_ARGS("ssrc");
-        uint32_t ssrc = 0;
-        stringstream ss(allArgs["ssrc"]);
-        ss >> std::hex >> ssrc;
+        CHECK_ARGS("stream_id");
 
-        auto process = RtpSelector::Instance().getProcess(ssrc,false);
-        if(!process){
+        auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        if (!process) {
             val["exist"] = false;
             return;
         }
@@ -760,10 +757,10 @@ void installWebApi() {
 
     api_regist1("/index/api/openRtpServer",[](API_ARGS1){
         CHECK_SECRET();
-        CHECK_ARGS("port", "enable_tcp");
+        CHECK_ARGS("port", "enable_tcp", "stream_id");
 
         RtpServer::Ptr server = std::make_shared<RtpServer>();
-        server->start(allArgs["port"], allArgs["enable_tcp"].as<bool>());
+        server->start(allArgs["port"], allArgs["stream_id"], allArgs["enable_tcp"].as<bool>());
         val["port"] = server->getPort();
 
         //保存对象

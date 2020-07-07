@@ -38,6 +38,7 @@ static bool loadFile(const char *path){
     uint16_t len;
     char rtp[2 * 1024];
     struct sockaddr addr = {0};
+    string stream_id;
     while (true) {
         if (2 != fread(&len, 1, 2, fp)) {
             WarnL;
@@ -55,7 +56,7 @@ static bool loadFile(const char *path){
         }
 
         uint32_t timeStamp;
-        RtpSelector::Instance().inputRtp(nullptr,rtp,len, &addr,&timeStamp);
+        RtpSelector::Instance().inputRtp(nullptr, stream_id, rtp, len, &addr, &timeStamp);
         if(timeStamp_last){
             auto diff = timeStamp - timeStamp_last;
             if(diff > 0 && diff < 500){

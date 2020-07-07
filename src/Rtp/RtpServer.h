@@ -36,10 +36,11 @@ public:
     /**
      * 开启服务器，可能抛异常
      * @param local_port 本地端口，0时为随机端口
+     * @param stream_id 流id，置空则使用ssrc
      * @param enable_tcp 是否启用tcp服务器
      * @param local_ip 绑定的本地网卡ip
      */
-    void start(uint16_t local_port, bool enable_tcp = true, const char *local_ip = "0.0.0.0");
+    void start(uint16_t local_port, const string &stream_id = "", bool enable_tcp = true, const char *local_ip = "0.0.0.0");
 
     /**
      * 获取绑定的本地端口
