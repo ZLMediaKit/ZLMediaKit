@@ -27,9 +27,24 @@ public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     RtpProcess(const string &stream_id);
     ~RtpProcess();
+
+    /**
+     * 输入rtp
+     * @param sock 本地监听的socket
+     * @param data rtp数据指针
+     * @param data_len rtp数据长度
+     * @param addr 数据源地址
+     * @param dts_out 解析出最新的dts
+     * @return 是否解析成功
+     */
     bool inputRtp(const Socket::Ptr &sock, const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
+
+    /**
+     * 是否超时，用于超时移除对象
+     */
     bool alive();
 
+    /// SockInfo override
     string get_local_ip() override;
     uint16_t get_local_port() override;
     string get_peer_ip() override;
