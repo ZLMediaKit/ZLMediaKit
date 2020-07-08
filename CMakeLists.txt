@@ -117,6 +117,7 @@ if(ENABLE_HLS)
 
     add_library(mpeg STATIC ${src_mpeg})
     list(APPEND LINK_LIB_LIST mpeg)
+    list(APPEND CXX_API_TARGETS mpeg)
 
 	if(WIN32)
 		set_target_properties(mpeg PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
@@ -140,6 +141,7 @@ if(ENABLE_MP4)
     add_library(mov STATIC ${src_mov})
 	add_library(flv STATIC ${src_flv})
     list(APPEND LINK_LIB_LIST mov flv)
+    list(APPEND CXX_API_TARGETS mov flv)
 
 	if(WIN32)
 		set_target_properties(mov flv PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
@@ -157,6 +159,7 @@ if(ENABLE_RTPPROXY AND ENABLE_HLS)
     add_library(rtp STATIC ${src_rtp})
     add_definitions(-DENABLE_RTPPROXY)
     list(APPEND LINK_LIB_LIST rtp)
+    list(APPEND CXX_API_TARGETS rtp)
 endif()
 
 #收集源代码
@@ -178,6 +181,7 @@ endif ()
 #添加库
 add_library(zltoolkit STATIC ${ToolKit_src_list})
 add_library(zlmediakit STATIC ${MediaKit_src_list})
+list(APPEND CXX_API_TARGETS zltoolkit zlmediakit)
 
 #安装目录
 if (WIN32)
@@ -192,7 +196,7 @@ if(ENABLE_CXX_API)
     # 保留目录结构
     install(DIRECTORY ${ToolKit_Root}/  DESTINATION ${INSTALL_PATH_INCLUDE}/ZLToolKit  REGEX "(.*[.](md|cpp)|win32)$" EXCLUDE)
     install(DIRECTORY ${MediaKit_Root}/ DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit REGEX ".*[.](md|cpp)$" EXCLUDE)
-    install(TARGETS zltoolkit zlmediakit DESTINATION ${INSTALL_PATH_LIB})
+    install(TARGETS ${CXX_API_TARGETS} DESTINATION ${INSTALL_PATH_LIB})
 endif()
 
 if (WIN32)
