@@ -464,14 +464,10 @@ void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
     uint8_t interleaved = data[1];
     if(interleaved %2 == 0){
         trackIdx = getTrackIndexByInterleaved(interleaved);
-        if (trackIdx != -1) {
-            handleOneRtp(trackIdx, _sdp_track[trackIdx], (unsigned char *)data + 4, len - 4);
-        }
+        handleOneRtp(trackIdx, _sdp_track[trackIdx], (unsigned char *)data + 4, len - 4);
     }else{
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
-        if (trackIdx != -1) {
-            onRtcpPacket(trackIdx, _sdp_track[trackIdx], (unsigned char *) data + 4, len - 4);
-        }
+        onRtcpPacket(trackIdx, _sdp_track[trackIdx], (unsigned char *) data + 4, len - 4);
     }
 }
 
@@ -713,9 +709,6 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &tra
     onRecvRTP(pkt, track);
 
     int iTrackIndex = getTrackIndexByInterleaved(pkt->interleaved);
-    if (iTrackIndex == -1) {
-        return;
-    }
     RtcpCounter &counter = _rtcp_counter[iTrackIndex];
     counter.pktCnt = pkt->sequence;
     auto &ticker = _rtcp_send_ticker[iTrackIndex];
@@ -788,7 +781,7 @@ int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const {
     if (_sdp_track.size() == 1) {
         return 0;
     }
-    return -1;
+    throw SockException(Err_shutdown, StrPrinter << "no such track with interleaved:" << interleaved);
 }
 
 int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
@@ -800,7 +793,7 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
     if (_sdp_track.size() == 1) {
         return 0;
     }
-    return -1;
+    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << (int) trackType);
 }
 
 } /* namespace mediakit */
