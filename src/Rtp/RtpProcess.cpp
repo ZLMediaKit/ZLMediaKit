@@ -177,6 +177,16 @@ bool RtpProcess::alive() {
     return false;
 }
 
+void RtpProcess::onDetach(){
+    if(_on_detach){
+        _on_detach();
+    }
+}
+
+void RtpProcess::setOnDetach(const function<void()> &cb) {
+    _on_detach = cb;
+}
+
 string RtpProcess::get_peer_ip() {
     if(_addr){
         return SockUtil::inet_ntoa(((struct sockaddr_in *) _addr)->sin_addr);

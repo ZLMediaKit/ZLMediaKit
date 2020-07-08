@@ -52,9 +52,15 @@ public:
      */
     EventPoller::Ptr getPoller();
 
+    /**
+     * 设置RtpProcess onDetach事件回调
+     */
+    void setOnDetach(const function<void()> &cb);
+
 protected:
     Socket::Ptr _udp_server;
     TcpServer::Ptr _tcp_server;
+    RtpProcess::Ptr _rtp_process;
     function<void()> _on_clearup;
 };
 
