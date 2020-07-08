@@ -55,6 +55,7 @@ public:
 protected:
     Socket::Ptr _udp_server;
     TcpServer::Ptr _tcp_server;
+    function<void()> _on_clearup;
 };
 
 }//namespace mediakit

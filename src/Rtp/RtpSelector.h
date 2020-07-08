@@ -49,10 +49,31 @@ public:
     static bool getSSRC(const char *data,int data_len, uint32_t &ssrc);
     static RtpSelector &Instance();
 
-    bool inputRtp(const Socket::Ptr &sock, string &stream_id, const char *data, int data_len,
+    /**
+     * 输入多个rtp流，根据ssrc分流
+     * @param sock 本地socket
+     * @param data 收到的数据
+     * @param data_len 收到的数据长度
+     * @param addr rtp流源地址
+     * @param dts_out 解析出最新的dts
+     * @return 是否成功
+     */
+    bool inputRtp(const Socket::Ptr &sock, const char *data, int data_len,
                   const struct sockaddr *addr, uint32_t *dts_out = nullptr);
 
+    /**
+     * 获取一个rtp处理器
+     * @param stream_id 流id
+     * @param makeNew 不存在时是否新建
+     * @return rtp处理器
+     */
     RtpProcess::Ptr getProcess(const string &stream_id, bool makeNew);
+
+    /**
+     * 删除rtp处理器
+     * @param stream_id 流id
+     * @param ptr rtp处理器指针
+     */
     void delProcess(const string &stream_id, const RtpProcess *ptr);
 
 private:

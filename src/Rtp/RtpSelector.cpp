@@ -15,20 +15,17 @@ namespace mediakit{
 
 INSTANCE_IMP(RtpSelector);
 
-bool RtpSelector::inputRtp(const Socket::Ptr &sock, string &stream_id, const char *data, int data_len,
+bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, int data_len,
                            const struct sockaddr *addr,uint32_t *dts_out) {
-    if (stream_id.empty()) {
-        //未指定流id，那么使用ssrc为流id
-        uint32_t ssrc = 0;
-        if (!getSSRC(data, data_len, ssrc)) {
-            WarnL << "get ssrc from rtp failed:" << data_len;
-            return false;
-        }
-        stream_id = printSSRC(ssrc);
+    //使用ssrc为流id
+    uint32_t ssrc = 0;
+    if (!getSSRC(data, data_len, ssrc)) {
+        WarnL << "get ssrc from rtp failed:" << data_len;
+        return false;
     }
 
     //假定指定了流id，那么通过流id来区分是否为一路流(哪怕可能同时收到多路流)
-    auto process = getProcess(stream_id, true);
+    auto process = getProcess(printSSRC(ssrc), true);
     if (process) {
         return process->inputRtp(sock, data, data_len, addr, dts_out);
     }
