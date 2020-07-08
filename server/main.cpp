@@ -20,13 +20,11 @@
 #include "Network/TcpServer.h"
 #include "Poller/EventPoller.h"
 #include "Common/config.h"
-#include "Rtsp/UDPServer.h"
 #include "Rtsp/RtspSession.h"
-#include "Rtp/RtpSession.h"
 #include "Rtmp/RtmpSession.h"
 #include "Shell/ShellSession.h"
 #include "Http/WebSocketSession.h"
-#include "Rtp/UdpRecver.h"
+#include "Rtp/RtpServer.h"
 #include "WebApi.h"
 #include "WebHook.h"
 
@@ -283,8 +281,7 @@ int start_main(int argc,char *argv[]) {
 
 #if defined(ENABLE_RTPPROXY)
         //GB28181 rtp推流端口，支持UDP/TCP
-        UdpRecver recver;
-        TcpServer::Ptr tcpRtpServer(new TcpServer());
+        RtpServer::Ptr rtpServer = std::make_shared<RtpServer>();
 #endif//defined(ENABLE_RTPPROXY)
 
         try {
@@ -307,12 +304,8 @@ int start_main(int argc,char *argv[]) {
             if(shellPort) { shellSrv->start<ShellSession>(shellPort); }
 
 #if defined(ENABLE_RTPPROXY)
-            if(rtpPort){
-                //创建rtp udp服务器
-                recver.initSock(rtpPort);
-                //创建rtp tcp服务器
-                tcpRtpServer->start<RtpSession>(rtpPort);
-            }
+            //创建rtp服务器
+            if(rtpPort){ rtpServer->start(rtpPort); }
 #endif//defined(ENABLE_RTPPROXY)
 
         }catch (std::exception &ex){

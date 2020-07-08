@@ -218,7 +218,7 @@ void RtspSession::handleReq_Options(const Parser &parser) {
 }
 
 void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
-    auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTSP_SCHEMA,
+    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA,
                                                                        _mediaInfo._vhost,
                                                                        _mediaInfo._app,
                                                                        _mediaInfo._streamid));
@@ -1068,15 +1068,6 @@ bool RtspSession::sendRtspResponse(const string &res_code,
     return sendRtspResponse(res_code,header_map,sdp,protocol);
 }
 
-inline string RtspSession::printSSRC(uint32_t ui32Ssrc) {
-    char tmp[9] = { 0 };
-    ui32Ssrc = htonl(ui32Ssrc);
-    uint8_t *pSsrc = (uint8_t *) &ui32Ssrc;
-    for (int i = 0; i < 4; i++) {
-        sprintf(tmp + 2 * i, "%02X", pSsrc[i]);
-    }
-    return tmp;
-}
 inline int RtspSession::getTrackIndexByTrackType(TrackType type) {
     for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
         if (type == _aTrackInfo[i]->_type) {
