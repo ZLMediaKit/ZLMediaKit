@@ -708,7 +708,7 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &tra
     _rtp_recv_ticker.resetTime();
     onRecvRTP(pkt, track);
 
-    int iTrackIndex = getTrackIndexByInterleaved(pkt->interleaved);
+    int iTrackIndex = getTrackIndexByTrackType(pkt->type);
     RtcpCounter &counter = _rtcp_counter[iTrackIndex];
     counter.pktCnt = pkt->sequence;
     auto &ticker = _rtcp_send_ticker[iTrackIndex];
