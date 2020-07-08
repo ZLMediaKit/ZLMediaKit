@@ -189,7 +189,7 @@ void RtspSession::onRtpPacket(const char *data, uint64_t len) {
     uint8_t interleaved = data[1];
     if(interleaved %2 == 0){
         trackIdx = getTrackIndexByInterleaved(interleaved);
-        handleOneRtp(trackIdx,_aTrackInfo[trackIdx],(unsigned char *)data + 4, len - 4);
+        handleOneRtp(trackIdx, _aTrackInfo[trackIdx]->_type, _aTrackInfo[trackIdx]->_samplerate, (unsigned char *) data + 4, len - 4);
     }else{
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
         onRtcpPacket(trackIdx, _aTrackInfo[trackIdx], (unsigned char *) data + 4, len - 4);
@@ -922,7 +922,8 @@ inline void RtspSession::onRcvPeerUdpData(int intervaled, const Buffer::Ptr &pBu
     if(intervaled % 2 == 0){
         if(_pushSrc){
             //这是rtsp推流上来的rtp包
-            handleOneRtp(intervaled / 2,_aTrackInfo[intervaled / 2],( unsigned char *)pBuf->data(),pBuf->size());
+            auto &ref = _aTrackInfo[intervaled / 2];
+            handleOneRtp(intervaled / 2, ref->_type, ref->_samplerate, (unsigned char *) pBuf->data(), pBuf->size());
         }else if(!_udpSockConnected.count(intervaled)){
             //这是rtsp播放器的rtp打洞包
             _udpSockConnected.emplace(intervaled);
