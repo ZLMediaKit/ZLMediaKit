@@ -189,14 +189,10 @@ void RtspSession::onRtpPacket(const char *data, uint64_t len) {
     uint8_t interleaved = data[1];
     if(interleaved %2 == 0){
         trackIdx = getTrackIndexByInterleaved(interleaved);
-        if (trackIdx != -1) {
-            handleOneRtp(trackIdx,_aTrackInfo[trackIdx],(unsigned char *)data + 4, len - 4);
-        }
+        handleOneRtp(trackIdx,_aTrackInfo[trackIdx],(unsigned char *)data + 4, len - 4);
     }else{
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
-        if (trackIdx != -1) {
-            onRtcpPacket(trackIdx, _aTrackInfo[trackIdx], (unsigned char *) data + 4, len - 4);
-        }
+        onRtcpPacket(trackIdx, _aTrackInfo[trackIdx], (unsigned char *) data + 4, len - 4);
     }
 }
 
@@ -624,10 +620,6 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         controlSuffix = controlSuffix.substr(1);
     }
     int trackIdx = getTrackIndexByControlSuffix(controlSuffix);
-    if (trackIdx == -1) {
-        //未找到相应track
-        throw SockException(Err_shutdown, StrPrinter << "can not find any track by control suffix:" << controlSuffix);
-    }
     SdpTrack::Ptr &trackRef = _aTrackInfo[trackIdx];
     if (trackRef->_inited) {
         //已经初始化过该Track
@@ -1077,7 +1069,7 @@ inline int RtspSession::getTrackIndexByTrackType(TrackType type) {
     if(_aTrackInfo.size() == 1){
         return 0;
     }
-    return -1;
+    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << (int) type);
 }
 inline int RtspSession::getTrackIndexByControlSuffix(const string &controlSuffix) {
     for (unsigned int i = 0; i < _aTrackInfo.size(); i++) {
@@ -1088,7 +1080,7 @@ inline int RtspSession::getTrackIndexByControlSuffix(const string &controlSuffix
     if(_aTrackInfo.size() == 1){
         return 0;
     }
-    return -1;
+    throw SockException(Err_shutdown, StrPrinter << "no such track with suffix:" << controlSuffix);
 }
 
 inline int RtspSession::getTrackIndexByInterleaved(int interleaved){
@@ -1100,7 +1092,7 @@ inline int RtspSession::getTrackIndexByInterleaved(int interleaved){
     if(_aTrackInfo.size() == 1){
         return 0;
     }
-    return -1;
+    throw SockException(Err_shutdown, StrPrinter << "no such track with interleaved:" << interleaved);
 }
 
 bool RtspSession::close(MediaSource &sender,bool force) {
@@ -1155,9 +1147,6 @@ void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
 
 #if RTSP_SERVER_SEND_RTCP
     int iTrackIndex = getTrackIndexByTrackType(pkt->type);
-    if(iTrackIndex == -1){
-        return;
-    }
     RtcpCounter &counter = _aRtcpCnt[iTrackIndex];
     counter.pktCnt += 1;
     counter.octCount += (pkt->length - pkt->offset);
