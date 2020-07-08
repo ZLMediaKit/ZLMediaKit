@@ -218,7 +218,7 @@ void RtspSession::handleReq_Options(const Parser &parser) {
 }
 
 void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
-    auto src = dynamic_pointer_cast<RtmpMediaSource>(MediaSource::find(RTSP_SCHEMA,
+    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA,
                                                                        _mediaInfo._vhost,
                                                                        _mediaInfo._app,
                                                                        _mediaInfo._streamid));
