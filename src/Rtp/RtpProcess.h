@@ -44,6 +44,16 @@ public:
      */
     bool alive();
 
+    /**
+     * 超时时被RtpSelector移除时触发
+     */
+    void onDetach();
+
+    /**
+     * 设置onDetach事件回调
+     */
+    void setOnDetach(const function<void()> &cb);
+
     /// SockInfo override
     string get_local_ip() override;
     uint16_t get_local_port() override;
@@ -79,6 +89,7 @@ private:
     MediaInfo _media_info;
     uint64_t _total_bytes = 0;
     Socket::Ptr _sock;
+    function<void()> _on_detach;
 };
 
 }//namespace mediakit

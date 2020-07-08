@@ -91,7 +91,9 @@ void RtpSelector::onManager() {
             continue;
         }
         WarnL << "RtpProcess timeout:" << it->first;
+        auto process = it->second->getProcess();
         it = _map_rtp_process.erase(it);
+        process->onDetach();
     }
 }
 

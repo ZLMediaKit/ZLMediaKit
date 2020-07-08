@@ -69,6 +69,13 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable
 
     _tcp_server = tcp_server;
     _udp_server = udp_server;
+    _rtp_process = process;
+}
+
+void RtpServer::setOnDetach(const function<void()> &cb){
+    if(_rtp_process){
+        _rtp_process->setOnDetach(cb);
+    }
 }
 
 EventPoller::Ptr RtpServer::getPoller() {

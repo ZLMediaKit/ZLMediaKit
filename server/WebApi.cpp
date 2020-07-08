@@ -761,11 +761,20 @@ void installWebApi() {
 
         RtpServer::Ptr server = std::make_shared<RtpServer>();
         server->start(allArgs["port"], allArgs["stream_id"], allArgs["enable_tcp"].as<bool>());
-        val["port"] = server->getPort();
+
+        auto port = server->getPort();
+        server->setOnDetach([port]() {
+            //设置rtp超时移除事件
+            lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+            s_rtpServerMap.erase(port);
+        });
 
         //保存对象
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        s_rtpServerMap.emplace(server->getPort(), server);
+        s_rtpServerMap.emplace(port, server);
+
+        //回复json
+        val["port"] = port;
     });
 
     api_regist1("/index/api/closeRtpServer",[](API_ARGS1){
