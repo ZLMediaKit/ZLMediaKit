@@ -11,7 +11,14 @@
 #if defined(ENABLE_RTPPROXY)
 #include "RtpSession.h"
 #include "RtpSelector.h"
+#include "Network/TcpServer.h"
 namespace mediakit{
+
+const string RtpSession::kStreamID = "stream_id";
+
+void RtpSession::attachServer(const TcpServer &server) {
+    _stream_id = const_cast<TcpServer &>(server)[kStreamID];
+}
 
 RtpSession::RtpSession(const Socket::Ptr &sock) : TcpSession(sock) {
     DebugP(this);
@@ -21,7 +28,7 @@ RtpSession::RtpSession(const Socket::Ptr &sock) : TcpSession(sock) {
 RtpSession::~RtpSession() {
     DebugP(this);
     if(_process){
-        RtpSelector::Instance().delProcess(_ssrc,_process.get());
+        RtpSelector::Instance().delProcess(_stream_id,_process.get());
     }
 }
 
@@ -36,7 +43,7 @@ void RtpSession::onRecv(const Buffer::Ptr &data) {
 }
 
 void RtpSession::onError(const SockException &err) {
-    WarnL << _ssrc << " " << err.what();
+    WarnL << _stream_id << " " << err.what();
 }
 
 void RtpSession::onManager() {
@@ -51,13 +58,19 @@ void RtpSession::onManager() {
 
 void RtpSession::onRtpPacket(const char *data, uint64_t len) {
     if (!_process) {
-        if (!RtpSelector::getSSRC(data + 2, len - 2, _ssrc)) {
+        uint32_t ssrc;
+        if (!RtpSelector::getSSRC(data + 2, len - 2, ssrc)) {
             return;
         }
-        _process = RtpSelector::Instance().getProcess(_ssrc, true);
+        if (_stream_id.empty()) {
+            //未指定流id就使用ssrc为流id
+            _stream_id = printSSRC(ssrc);
+        }
+        //tcp情况下，一个tcp链接只可能是一路流，不需要通过多个ssrc来区分，所以不需要频繁getProcess
+        _process = RtpSelector::Instance().getProcess(_stream_id, true);
         _process->setListener(dynamic_pointer_cast<RtpSession>(shared_from_this()));
     }
-    _process->inputRtp(_sock,data + 2, len - 2, &addr);
+    _process->inputRtp(_sock, data + 2, len - 2, &addr);
     _ticker.resetTime();
 }
 

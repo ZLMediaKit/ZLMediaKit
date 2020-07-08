@@ -138,6 +138,13 @@ public:
     void onNoneReader(MediaSource &sender) override;
 
     /**
+     * 媒体注册注销事件
+     * @param sender 触发者
+     * @param regist 是否为注册事件
+     */
+    void onRegist(MediaSource &sender, bool regist) override;
+
+    /**
      * 设置录制状态
      * @param type 录制类型
      * @param start 开始或停止

@@ -272,6 +272,7 @@ private:
 };
 
 std::pair<Socket::Ptr, Socket::Ptr> makeSockPair(const EventPoller::Ptr &poller, const string &local_ip);
+string printSSRC(uint32_t ui32Ssrc);
 
 } //namespace mediakit
 #endif //RTSP_RTSP_H_
