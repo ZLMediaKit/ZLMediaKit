@@ -21,12 +21,6 @@ static string printAddress(const struct sockaddr *addr){
 }
 
 RtpProcess::RtpProcess(const string &stream_id) {
-    _track = std::make_shared<SdpTrack>();
-    _track->_interleaved = 0;
-    _track->_samplerate = 90000;
-    _track->_type = TrackVideo;
-    _track->_ssrc = 0;
-
     _media_info._schema = RTP_APP_NAME;
     _media_info._vhost = DEFAULT_VHOST;
     _media_info._app = RTP_APP_NAME;
@@ -104,7 +98,7 @@ bool RtpProcess::inputRtp(const Socket::Ptr &sock, const char *data, int data_le
     }
 
     _total_bytes += data_len;
-    bool ret = handleOneRtp(0,_track,(unsigned char *)data,data_len);
+    bool ret = handleOneRtp(0, TrackVideo, 90000, (unsigned char *) data, data_len);
     if(dts_out){
         *dts_out = _dts;
     }
