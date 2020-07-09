@@ -319,7 +319,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
                 WarnL << "收到其他地址的rtp数据:" << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
                 return;
             }
-            strongSelf->handleOneRtp(uiTrackIndex, strongSelf->_sdp_track[uiTrackIndex], (unsigned char *) buf->data(), buf->size());
+            strongSelf->handleOneRtp(uiTrackIndex, strongSelf->_sdp_track[uiTrackIndex]->_type,
+                                     strongSelf->_sdp_track[uiTrackIndex]->_samplerate, (unsigned char *) buf->data(), buf->size());
         });
 
         if(pRtcpSockRef) {
@@ -464,14 +465,10 @@ void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
     uint8_t interleaved = data[1];
     if(interleaved %2 == 0){
         trackIdx = getTrackIndexByInterleaved(interleaved);
-        if (trackIdx != -1) {
-            handleOneRtp(trackIdx, _sdp_track[trackIdx], (unsigned char *)data + 4, len - 4);
-        }
+        handleOneRtp(trackIdx, _sdp_track[trackIdx]->_type, _sdp_track[trackIdx]->_samplerate, (unsigned char *)data + 4, len - 4);
     }else{
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
-        if (trackIdx != -1) {
-            onRtcpPacket(trackIdx, _sdp_track[trackIdx], (unsigned char *) data + 4, len - 4);
-        }
+        onRtcpPacket(trackIdx, _sdp_track[trackIdx], (unsigned char *) data + 4, len - 4);
     }
 }
 
@@ -712,10 +709,7 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &tra
     _rtp_recv_ticker.resetTime();
     onRecvRTP(pkt, track);
 
-    int iTrackIndex = getTrackIndexByInterleaved(pkt->interleaved);
-    if (iTrackIndex == -1) {
-        return;
-    }
+    int iTrackIndex = getTrackIndexByTrackType(pkt->type);
     RtcpCounter &counter = _rtcp_counter[iTrackIndex];
     counter.pktCnt = pkt->sequence;
     auto &ticker = _rtcp_send_ticker[iTrackIndex];
@@ -788,7 +782,7 @@ int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const {
     if (_sdp_track.size() == 1) {
         return 0;
     }
-    return -1;
+    throw SockException(Err_shutdown, StrPrinter << "no such track with interleaved:" << interleaved);
 }
 
 int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
@@ -800,7 +794,7 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType trackType) const {
     if (_sdp_track.size() == 1) {
         return 0;
     }
-    return -1;
+    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << (int) trackType);
 }
 
 } /* namespace mediakit */

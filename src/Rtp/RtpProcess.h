@@ -78,7 +78,6 @@ private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
     std::shared_ptr<FILE> _save_file_video;
-    SdpTrack::Ptr _track;
     struct sockaddr *_addr = nullptr;
     uint16_t _sequence = 0;
     MultiMediaSourceMuxer::Ptr _muxer;
