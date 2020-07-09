@@ -753,6 +753,8 @@ void installWebApi() {
         val["exist"] = true;
         val["peer_ip"] = process->get_peer_ip();
         val["peer_port"] = process->get_peer_port();
+        val["local_port"] = process->get_local_port();
+        val["local_ip"] = process->get_local_ip();
     });
 
     api_regist1("/index/api/openRtpServer",[](API_ARGS1){
