@@ -1,0 +1,1093 @@
+{
+	"info": {
+		"_postman_id": "ff20487b-d269-40c3-b811-44bc643a3b74",
+		"name": "ZLMediaKit",
+		"description": "媒体服务器",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "获取服务器api列表(getApiList)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getApiList?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getApiList"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取网络线程负载(getThreadsLoad)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getThreadsLoad?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getThreadsLoad"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取后台线程负载(getWorkThreadsLoad)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getWorkThreadsLoad?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getWorkThreadsLoad"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取服务器配置(getServerConfig)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getServerConfig?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getServerConfig"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "设置服务器配置(setServerConfig)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/setServerConfig?secret={{ZLMediaKit_secret}}&api.apiDebug=0",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"setServerConfig"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "api.apiDebug",
+							"value": "0",
+							"description": "配置键与配置项值"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "重启服务器(restartServer)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/restartServer?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"restartServer"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取流列表(getMediaList)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getMediaList?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getMediaList"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "schema",
+							"value": "rtmp",
+							"description": "筛选协议，例如 rtsp或rtmp",
+							"disabled": true
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "筛选虚拟主机，例如__defaultVhost__",
+							"disabled": true
+						},
+						{
+							"key": "app",
+							"value": null,
+							"description": "筛选应用名，例如 live",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "关断单个流(close_stream)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/close_stream?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"close_stream"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "schema",
+							"value": "rtsp",
+							"description": "协议，例如 rtsp或rtmp"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id，例如 test"
+						},
+						{
+							"key": "force",
+							"value": "1",
+							"description": "是否强制关闭(有人在观看是否还关闭)",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "批量关断流(close_streams)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/close_streams?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"close_streams"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "schema",
+							"value": "rtsp",
+							"description": "协议，例如 rtsp或rtmp"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id，例如 test"
+						},
+						{
+							"key": "force",
+							"value": "1",
+							"description": "是否强制关闭(有人在观看是否还关闭)",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取TcpSession列表(getAllSession)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getAllSession?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getAllSession"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "local_port",
+							"value": "",
+							"description": "筛选本机端口，例如筛选rtsp链接：554",
+							"disabled": true
+						},
+						{
+							"key": "peer_ip",
+							"value": null,
+							"description": "筛选客户端ip",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "断开tcp连接(kick_session)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/kick_session?secret={{ZLMediaKit_secret}}&id=123456",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"kick_session"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "id",
+							"value": "123456",
+							"description": "客户端唯一id，可以通过getAllSession接口获取"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "批量断开tcp连接(kick_sessions)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/kick_sessions?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"kick_sessions"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "local_port",
+							"value": "",
+							"description": "筛选本机端口，例如筛选rtsp链接：554",
+							"disabled": true
+						},
+						{
+							"key": "peer_ip",
+							"value": null,
+							"description": "筛选客户端ip",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "添加rtsp/rtmp/hls拉流代理(addStreamProxy)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/addStreamProxy?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&url=rtmp://live.hkstv.hk.lxdns.com/live/hks2&enable_rtsp=1&enable_rtmp=1",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"addStreamProxy"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "添加的流的虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "添加的流的应用名，例如live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "添加的流的id名，例如test"
+						},
+						{
+							"key": "url",
+							"value": "rtmp://live.hkstv.hk.lxdns.com/live/hks2",
+							"description": "拉流地址，例如rtmp://live.hkstv.hk.lxdns.com/live/hks2"
+						},
+						{
+							"key": "enable_rtsp",
+							"value": "1",
+							"description": "是否转rtsp"
+						},
+						{
+							"key": "enable_rtmp",
+							"value": "1",
+							"description": "是否转rtmp"
+						},
+						{
+							"key": "enable_hls",
+							"value": null,
+							"description": "是否转hls",
+							"disabled": true
+						},
+						{
+							"key": "enable_mp4",
+							"value": null,
+							"description": "是否mp4录制",
+							"disabled": true
+						},
+						{
+							"key": "rtp_type",
+							"value": null,
+							"description": "rtsp拉流时，拉流方式，0：tcp，1：udp，2：组播",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "关闭拉流代理(delStreamProxy)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/delStreamProxy?secret={{ZLMediaKit_secret}}&key=__defaultVhost__/live/1",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"delStreamProxy"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "key",
+							"value": "__defaultVhost__/live/1",
+							"description": "addStreamProxy接口返回的key"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "添加FFmpeg拉流代理(addFFmpegSource)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/addFFmpegSource?secret={{ZLMediaKit_secret}}&src_url=http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8&dst_url=rtmp://10.8.9.115:8554/live/hks2&timeout_ms=10000",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"addFFmpegSource"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "src_url",
+							"value": "http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8",
+							"description": "FFmpeg拉流地址,支持任意协议或格式(只要FFmpeg支持即可)"
+						},
+						{
+							"key": "dst_url",
+							"value": "rtmp://10.8.9.115:8554/live/hks2",
+							"description": "FFmpeg rtmp推流地址，一般都是推给自己，例如rtmp://127.0.0.1/live/stream_form_ffmpeg"
+						},
+						{
+							"key": "timeout_ms",
+							"value": "10000",
+							"description": "FFmpeg推流成功超时时间,单位毫秒"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "关闭FFmpeg拉流代理(delFFmpegSource)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/delFFmpegSource?secret={{ZLMediaKit_secret}}&key=5f748d2ef9712e4b2f6f970c1d44d93a",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"delFFmpegSource"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "key",
+							"value": "5f748d2ef9712e4b2f6f970c1d44d93a"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "流是否在线(isMediaOnline)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/isMediaOnline?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=proxy&stream=1",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"isMediaOnline"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "schema",
+							"value": "rtsp",
+							"description": "协议，例如 rtsp或rtmp"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "proxy",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "1",
+							"description": "流id，例如 test"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取流信息(getMediaInfo)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getMediaInfo?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=live&stream=mym9",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getMediaInfo"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "schema",
+							"value": "rtsp",
+							"description": "协议，例如 rtsp或rtmp"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "mym9",
+							"description": "流id，例如 test"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取流信息(getMp4RecordFile)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getMp4RecordFile?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&period=2020-05-26",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getMp4RecordFile"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "proxy",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "2",
+							"description": "流id，例如 test"
+						},
+						{
+							"key": "period",
+							"value": "2020-05-26",
+							"description": "流的录像日期，格式为2020-02-01,如果不是完整的日期，那么是搜索录像文件夹列表，否则搜索对应日期下的mp4文件列表"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "开始录制(startRecord)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/startRecord?secret={{ZLMediaKit_secret}}&type=1&vhost={{defaultVhost}}&app=live&stream=obs&customized_path",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"startRecord"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "type",
+							"value": "1",
+							"description": "0为hls，1为mp4"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "obs",
+							"description": "流id，例如 obs"
+						},
+						{
+							"key": "customized_path",
+							"value": null,
+							"description": "录像保存目录"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "停止录制(stopRecord)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/stopRecord?secret={{ZLMediaKit_secret}}&type=1&vhost={{defaultVhost}}&app=live&stream=obs",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"stopRecord"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "type",
+							"value": "1",
+							"description": "0为hls，1为mp4"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "obs",
+							"description": "流id，例如 obs"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "是否正在录制(isRecording)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/isRecording?secret={{ZLMediaKit_secret}}&type=1&vhost={{defaultVhost}}&app=live&stream=obs",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"isRecording"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "type",
+							"value": "1",
+							"description": "0为hls，1为mp4"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "obs",
+							"description": "流id，例如 obs"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取截图(getSnap)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getSnap?secret={{ZLMediaKit_secret}}&url=rtsp://www.mym9.com/101065?from=2019-06-28/01:12:13&timeout_sec=10&expire_sec=1",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getSnap"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "url",
+							"value": "rtsp://www.mym9.com/101065?from=2019-06-28/01:12:13",
+							"description": "需要截图的url，可以是本机的，也可以是远程主机的"
+						},
+						{
+							"key": "timeout_sec",
+							"value": "10",
+							"description": "截图失败超时时间，防止FFmpeg一直等待截图"
+						},
+						{
+							"key": "expire_sec",
+							"value": "1",
+							"description": "截图的过期时间，该时间内产生的截图都会作为缓存返回"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取rtp推流信息(getRtpInfo)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getRtpInfo?secret={{ZLMediaKit_secret}}&stream_id=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getRtpInfo"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "stream_id",
+							"value": "test",
+							"description": "流id"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "创建RTP服务器(openRtpServer)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServer?secret={{ZLMediaKit_secret}}&port=0&enable_tcp=1&stream_id=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"openRtpServer"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "port",
+							"value": "0",
+							"description": "绑定的端口，0时为随机端口"
+						},
+						{
+							"key": "enable_tcp",
+							"value": "1",
+							"description": "创建 udp端口时是否同时监听tcp端口"
+						},
+						{
+							"key": "stream_id",
+							"value": "test",
+							"description": "该端口绑定的流id\n"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "关闭RTP服务器(closeRtpServer)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/closeRtpServer?secret={{ZLMediaKit_secret}}&stream_id=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"closeRtpServer"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "stream_id",
+							"value": "test",
+							"description": "该端口绑定的流id"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取RTP服务器列表(listRtpServer)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listRtpServer?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listRtpServer"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "90757ea3-58c0-4f84-8000-513ed7088bbc",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "0ddf2b8e-9932-409d-a055-1ab3b7765600",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "0e272976-965b-4f25-8b9e-5916c59234d7",
+			"key": "ZLMediaKit_URL",
+			"value": "zlmediakit.com:8880"
+		},
+		{
+			"id": "321374c3-3357-4405-915e-9cb524d95fbc",
+			"key": "ZLMediaKit_secret",
+			"value": "035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+		},
+		{
+			"id": "468ce1f6-ec79-44d2-819e-5cb9f42cd396",
+			"key": "defaultVhost",
+			"value": "__defaultVhost__"
+		}
+	],
+	"protocolProfileBehavior": {}
+}
