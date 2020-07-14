@@ -12,8 +12,8 @@
 
 namespace mediakit{
 
-G711RtpDecoder::G711RtpDecoder(const Track::Ptr &track){
-    _codecid = track->getCodecId();
+G711RtpDecoder::G711RtpDecoder(CodecId codecid){
+    _codecid = codecid;
     _frame = obtainFrame();
 }
 
@@ -59,16 +59,10 @@ void G711RtpDecoder::onGetG711(const G711Frame::Ptr &frame) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-G711RtpEncoder::G711RtpEncoder(uint32_t ui32Ssrc,
-                               uint32_t ui32MtuSize,
-                               uint32_t ui32SampleRate,
-                               uint8_t ui8PayloadType,
-                               uint8_t ui8Interleaved) :
-        RtpInfo(ui32Ssrc,
-                ui32MtuSize,
-                ui32SampleRate,
-                ui8PayloadType,
-                ui8Interleaved) {
+G711RtpEncoder::G711RtpEncoder(CodecId codecid, uint32_t ui32Ssrc, uint32_t ui32MtuSize,
+                               uint32_t ui32SampleRate, uint8_t ui8PayloadType, uint8_t ui8Interleaved) :
+                               G711RtpDecoder(codecid),
+                               RtpInfo(ui32Ssrc, ui32MtuSize, ui32SampleRate, ui8PayloadType, ui8Interleaved) {
 }
 
 void G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {

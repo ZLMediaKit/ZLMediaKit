@@ -257,7 +257,7 @@ static recursive_mutex s_ffmpegMapMtx;
 
 #if defined(ENABLE_RTPPROXY)
 //rtp服务器列表
-static unordered_map<uint16_t, RtpServer::Ptr> s_rtpServerMap;
+static unordered_map<string, RtpServer::Ptr> s_rtpServerMap;
 static recursive_mutex s_rtpServerMapMtx;
 #endif
 
@@ -753,44 +753,53 @@ void installWebApi() {
         val["exist"] = true;
         val["peer_ip"] = process->get_peer_ip();
         val["peer_port"] = process->get_peer_port();
+        val["local_port"] = process->get_local_port();
+        val["local_ip"] = process->get_local_ip();
     });
 
     api_regist1("/index/api/openRtpServer",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("port", "enable_tcp", "stream_id");
 
-        RtpServer::Ptr server = std::make_shared<RtpServer>();
-        server->start(allArgs["port"], allArgs["stream_id"], allArgs["enable_tcp"].as<bool>());
+        auto stream_id = allArgs["stream_id"];
 
-        auto port = server->getPort();
-        server->setOnDetach([port]() {
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        if(s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
+            //为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的stream_id
+            throw InvalidArgsException("该stream_id已存在");
+        }
+
+        RtpServer::Ptr server = std::make_shared<RtpServer>();
+        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>());
+        server->setOnDetach([stream_id]() {
             //设置rtp超时移除事件
             lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-            s_rtpServerMap.erase(port);
+            s_rtpServerMap.erase(stream_id);
         });
 
         //保存对象
-        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        s_rtpServerMap.emplace(port, server);
-
+        s_rtpServerMap.emplace(stream_id, server);
         //回复json
-        val["port"] = port;
+        val["port"] = server->getPort();
     });
 
     api_regist1("/index/api/closeRtpServer",[](API_ARGS1){
         CHECK_SECRET();
-        CHECK_ARGS("port");
+        CHECK_ARGS("stream_id");
 
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        val["hit"] = (int)s_rtpServerMap.erase(allArgs["port"].as<uint16_t>());
+        val["hit"] = (int) s_rtpServerMap.erase(allArgs["stream_id"]);
     });
 
     api_regist1("/index/api/listRtpServer",[](API_ARGS1){
         CHECK_SECRET();
 
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        for(auto &pr : s_rtpServerMap){
-            val["data"].append(pr.first);
+        for (auto &pr : s_rtpServerMap) {
+            Value obj;
+            obj["stream_id"] = pr.first;
+            obj["port"] = pr.second->getPort();
+            val["data"].append(obj);
         }
     });
 

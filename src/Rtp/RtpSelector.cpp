@@ -80,7 +80,9 @@ void RtpSelector::delProcess(const string &stream_id,const RtpProcess *ptr) {
     if (it->second->getProcess().get() != ptr) {
         return;
     }
+    auto process = it->second->getProcess();
     _map_rtp_process.erase(it);
+    process->onDetach();
 }
 
 void RtpSelector::onManager() {
