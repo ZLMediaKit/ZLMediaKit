@@ -157,6 +157,8 @@ private:
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_Invalid;
     //收到的seq，回复时一致
     int _cseq = 0;
+    //rtsp推流起始时间戳，目的是为了同步
+    int64_t _start_stamp[2] = {-1, -1};
     //消耗的总流量
     uint64_t _bytes_usage = 0;
     //ContentBase
