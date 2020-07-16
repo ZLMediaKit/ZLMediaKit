@@ -25,6 +25,8 @@ namespace mediakit{
 
 class MP4Muxer : public MediaSinkInterface, public MP4File{
 public:
+    typedef std::shared_ptr<MP4Muxer> Ptr;
+
     MP4Muxer(const char *file);
     ~MP4Muxer() override;
 
@@ -42,9 +44,13 @@ public:
      */
     void resetTracks() override ;
 
+    /**
+     * 手动关闭文件(对象析构时会自动关闭)
+     */
+    void closeMP4();
+
 private:
     void openMP4();
-    void closeMP4();
     void stampSync();
 
 private:
