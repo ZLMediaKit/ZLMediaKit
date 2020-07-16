@@ -913,7 +913,13 @@ inline void RtspSession::send_NotAcceptable() {
     sendRtspResponse("406 Not Acceptable",{"Connection","Close"});
 }
 
-void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
+void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) {
+    if (_start_stamp[track_idx] == -1) {
+        //记录起始时间戳
+        _start_stamp[track_idx] = rtp->timeStamp;
+    }
+    //时间戳增量
+    rtp->timeStamp -= _start_stamp[track_idx];
     _push_src->onWrite(rtp, false);
 }
 
@@ -937,8 +943,7 @@ inline void RtspSession::onRcvPeerUdpData(int interleaved, const Buffer::Ptr &bu
             _udp_connected_flags.emplace(interleaved);
             _rtcp_socks[(interleaved - 1) / 2]->setSendPeerAddr(&addr);
         }
-        onRtcpPacket((interleaved - 1) / 2, _sdp_track[(interleaved - 1) / 2], (unsigned char *) buf->data(),
-                     buf->size());
+        onRtcpPacket((interleaved - 1) / 2, _sdp_track[(interleaved - 1) / 2], (unsigned char *) buf->data(), buf->size());
     }
 }
 
