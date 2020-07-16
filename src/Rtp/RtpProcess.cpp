@@ -111,7 +111,7 @@ static inline bool checkTS(const uint8_t *packet, int bytes){
 }
 
 void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
-    if(rtp->sequence != _sequence + 1 && _sequence != 0){
+    if(rtp->sequence != _sequence + (uint16_t)1 && _sequence != 0){
         WarnP(this) << "rtp丢包:" << rtp->sequence << " != " << _sequence << "+1" << ",公网环境下请使用tcp方式推流";
     }
     _sequence = rtp->sequence;
