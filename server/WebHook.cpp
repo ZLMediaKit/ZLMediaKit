@@ -336,6 +336,7 @@ void installWebHook(){
     //监听播放失败(未找到特定的流)事件
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastNotFoundStream,[](BroadcastNotFoundStreamArgs){
         if(!hook_enable || hook_stream_not_found.empty()){
+            closePlayer();
             return;
         }
         auto body = make_json(args);
