@@ -234,7 +234,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         bool mark = false;
         int nOffset = 1;
         while (!mark) {
-            if (iLen < nOffset + iSize) {
+            if (iLen <= nOffset + iSize) {
                 //已经拆分结束
                 iSize = iLen - nOffset;
                 mark = true;
