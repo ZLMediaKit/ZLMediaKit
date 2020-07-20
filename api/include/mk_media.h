@@ -12,6 +12,7 @@
 #define MK_MEDIA_H_
 
 #include "mk_common.h"
+#include "mk_events_objects.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -99,6 +100,15 @@ API_EXPORT void API_CALL mk_media_input_h265(mk_media ctx, void *data, int len, 
 API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, uint32_t dts, void *adts);
 
 /**
+ * 输入单帧PCM音频,启用ENABLE_FAAC编译时，该函数才有效
+ * @param ctx 对象指针
+ * @param data 单帧PCM数据
+ * @param len 单帧PCM数据字节数
+ * @param dts 时间戳，毫秒
+ */
+API_EXPORT void API_CALL mk_media_input_pcm(mk_media ctx, void *data, int len, uint32_t pts);
+
+/**
  * 输入单帧G711音频
  * @param ctx 对象指针
  * @param data 单帧G711数据
@@ -148,6 +158,22 @@ API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb,
  * @return 观看人数
  */
 API_EXPORT int API_CALL mk_media_total_reader_count(mk_media ctx);
+
+/**
+ * 生成的MediaSource注册或注销事件
+ * @param user_data 设置回调时的用户数据指针
+ * @param sender 生成的MediaSource对象
+ * @param regist 1为注册事件，0为注销事件
+ */
+typedef void(API_CALL *on_mk_media_source_regist)(void *user_data, mk_media_source sender, int regist);
+
+/**
+ * 设置MediaSource注册或注销事件回调函数
+ * @param ctx 对象指针
+ * @param cb 回调指针
+ * @param user_data 用户数据指针
+ */
+API_EXPORT void API_CALL mk_media_set_on_regist(mk_media ctx, on_mk_media_source_regist cb, void *user_data);
 
 #ifdef __cplusplus
 }

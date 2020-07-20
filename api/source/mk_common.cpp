@@ -30,10 +30,8 @@ static TcpServer::Ptr http_server[2];
 static TcpServer::Ptr shell_server;
 
 #ifdef ENABLE_RTPPROXY
-#include "Rtp/UdpRecver.h"
-#include "Rtp/RtpSession.h"
-static std::shared_ptr<UdpRecver> udpRtpServer;
-static TcpServer::Ptr tcpRtpServer;
+#include "Rtp/RtpServer.h"
+static std::shared_ptr<RtpServer> rtpServer;
 #endif
 
 //////////////////////////environment init///////////////////////////
@@ -57,8 +55,7 @@ API_EXPORT void API_CALL mk_stop_all_server(){
     CLEAR_ARR(rtmp_server);
     CLEAR_ARR(http_server);
 #ifdef ENABLE_RTPPROXY
-    udpRtpServer = nullptr;
-    tcpRtpServer = nullptr;
+    rtpServer = nullptr;
 #endif
     stopAllTcpServer();
 }
@@ -119,6 +116,17 @@ API_EXPORT void API_CALL mk_set_option(const char *key, const char *val) {
     mINI::Instance()[key] = val;
 }
 
+API_EXPORT const char * API_CALL mk_get_option(const char *key)
+{
+    assert(key);
+    if (mINI::Instance().find(key) == mINI::Instance().end()) {
+        WarnL << "key:" << key << " not existed!";
+        return nullptr;
+    }
+    return mINI::Instance()[key].data();
+}
+
+
 API_EXPORT uint16_t API_CALL mk_http_server_start(uint16_t port, int ssl) {
     ssl = MAX(0,MIN(ssl,1));
     try {
@@ -173,18 +181,12 @@ API_EXPORT uint16_t API_CALL mk_rtmp_server_start(uint16_t port, int ssl) {
 API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port){
 #ifdef ENABLE_RTPPROXY
     try {
-        //创建rtp tcp服务器
-        tcpRtpServer = std::make_shared<TcpServer>();
-        tcpRtpServer->start<RtpSession>(port);
-
-        //创建rtp udp服务器
-        auto ret = tcpRtpServer->getPort();
-        udpRtpServer = std::make_shared<UdpRecver>();
-        udpRtpServer->initSock(port);
-        return ret;
+        //创建rtp 服务器
+        rtpServer = std::make_shared<RtpServer>();
+        rtpServer->start(port);
+        return rtpServer->getPort();
     } catch (std::exception &ex) {
-        tcpRtpServer.reset();
-        udpRtpServer.reset();
+        rtpServer.reset();
         WarnL << ex.what();
         return 0;
     }

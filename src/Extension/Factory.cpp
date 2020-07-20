@@ -118,7 +118,7 @@ RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
         case CodecH265 : return std::make_shared<H265RtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
         case CodecAAC : return std::make_shared<AACRtpEncoder>(ssrc,mtu,sample_rate,pt,interleaved);
         case CodecG711A :
-        case CodecG711U : return std::make_shared<G711RtpEncoder>(ssrc, mtu, sample_rate, pt, interleaved);
+        case CodecG711U : return std::make_shared<G711RtpEncoder>(codec_id, ssrc, mtu, sample_rate, pt, interleaved);
         default : WarnL << "暂不支持该CodecId:" << codec_id; return nullptr;
     }
 }
@@ -129,7 +129,7 @@ RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
         case CodecH265 : return std::make_shared<H265RtpDecoder>();
         case CodecAAC : return std::make_shared<AACRtpDecoder>(track->clone());
         case CodecG711A :
-        case CodecG711U : return std::make_shared<G711RtpDecoder>(track->clone());
+        case CodecG711U : return std::make_shared<G711RtpDecoder>(track->getCodecId());
         default : WarnL << "暂不支持该CodecId:" << track->getCodecName(); return nullptr;
     }
 }
@@ -243,9 +243,8 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track, bool is_enc
 
 AMFValue Factory::getAmfByCodecId(CodecId codecId) {
     switch (codecId){
-        //此处用string标明rtmp编码类型目的是为了兼容某些android系统
-        case CodecAAC: return AMFValue("mp4a");
-        case CodecH264: return AMFValue("avc1");
+        case CodecAAC: return AMFValue(FLV_CODEC_AAC);
+        case CodecH264: return AMFValue(FLV_CODEC_H264);
         case CodecH265: return AMFValue(FLV_CODEC_H265);
         case CodecG711A: return AMFValue(FLV_CODEC_G711A);
         case CodecG711U: return AMFValue(FLV_CODEC_G711U);

@@ -347,7 +347,7 @@ inline int RtspPusher::getTrackIndexByTrackType(TrackType type) {
     if(_aTrackInfo.size() == 1){
         return 0;
     }
-    return -1;
+    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << (int) type);
 }
 
 void RtspPusher::sendRecord() {

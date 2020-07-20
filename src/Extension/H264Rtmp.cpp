@@ -166,6 +166,9 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto pcData = frame->data() + frame->prefixSize();
     auto iLen = frame->size() - frame->prefixSize();
     auto type = H264_TYPE(((uint8_t*)pcData)[0]);
+    if(type == H264Frame::NAL_SEI){
+        return;
+    }
 
     if (!_gotSpsPps) {
         //尝试从frame中获取sps pps
@@ -185,10 +188,6 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
             default:
                 break;
         }
-    }
-
-    if(type == H264Frame::NAL_SEI){
-        return;
     }
 
     if(_lastPacket && _lastPacket->timeStamp != frame->dts()) {

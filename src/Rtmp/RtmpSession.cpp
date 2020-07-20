@@ -257,8 +257,8 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         invoke.clear();
         invoke << "onMetaData" << metadata;
         sendResponse(MSG_DATA, invoke.data());
-        auto duration = metadata["duration"].as_number();
-        if(duration > 0){
+        auto duration = metadata["duration"];
+        if(duration && duration.as_number() > 0){
             //这是点播，使用绝对时间戳
             _stamp[0].setPlayBack();
             _stamp[1].setPlayBack();
@@ -380,7 +380,12 @@ string RtmpSession::getStreamId(const string &str){
         //vlc和ffplay在播放 rtmp://127.0.0.1/record/0.mp4时，
         //传过来的url会是rtmp://127.0.0.1/record/mp4:0,
         //我们在这里还原成0.mp4
-        stream_id = stream_id.substr(pos + 1) + "." + stream_id.substr(0,pos);
+        //实际使用时发现vlc，mpv等会传过来rtmp://127.0.0.1/record/mp4:0.mp4,这里做个判断
+        auto ext = stream_id.substr(0,pos);
+        stream_id = stream_id.substr(pos + 1);
+        if(stream_id.find(ext) == string::npos){
+            stream_id = stream_id + "." + ext;
+        }
     }
 
     if(params.empty()){

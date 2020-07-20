@@ -15,37 +15,41 @@ namespace mediakit{
 
 INSTANCE_IMP(RtpSelector);
 
-bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, int data_len,const struct sockaddr *addr,uint32_t *dts_out) {
+bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, int data_len,
+                           const struct sockaddr *addr,uint32_t *dts_out) {
+    //使用ssrc为流id
     uint32_t ssrc = 0;
-    if(!getSSRC(data,data_len,ssrc)){
+    if (!getSSRC(data, data_len, ssrc)) {
         WarnL << "get ssrc from rtp failed:" << data_len;
         return false;
     }
-    auto process = getProcess(ssrc, true);
-    if(process){
-        return process->inputRtp(sock, data,data_len, addr,dts_out);
+
+    //假定指定了流id，那么通过流id来区分是否为一路流(哪怕可能同时收到多路流)
+    auto process = getProcess(printSSRC(ssrc), true);
+    if (process) {
+        return process->inputRtp(sock, data, data_len, addr, dts_out);
     }
     return false;
 }
 
 bool RtpSelector::getSSRC(const char *data,int data_len, uint32_t &ssrc){
-    if(data_len < 12){
+    if (data_len < 12) {
         return false;
     }
-    uint32_t *ssrc_ptr = (uint32_t *)(data + 8);
+    uint32_t *ssrc_ptr = (uint32_t *) (data + 8);
     ssrc = ntohl(*ssrc_ptr);
     return true;
 }
 
-RtpProcess::Ptr RtpSelector::getProcess(uint32_t ssrc,bool makeNew) {
+RtpProcess::Ptr RtpSelector::getProcess(const string &stream_id,bool makeNew) {
     lock_guard<decltype(_mtx_map)> lck(_mtx_map);
-    auto it = _map_rtp_process.find(ssrc);
-    if(it == _map_rtp_process.end() && !makeNew){
+    auto it = _map_rtp_process.find(stream_id);
+    if (it == _map_rtp_process.end() && !makeNew) {
         return nullptr;
     }
-    RtpProcessHelper::Ptr &ref = _map_rtp_process[ssrc];
-    if(!ref){
-        ref = std::make_shared<RtpProcessHelper>(ssrc,shared_from_this());
+    RtpProcessHelper::Ptr &ref = _map_rtp_process[stream_id];
+    if (!ref) {
+        ref = std::make_shared<RtpProcessHelper>(stream_id, shared_from_this());
         ref->attachEvent();
         createTimer();
     }
@@ -67,18 +71,18 @@ void RtpSelector::createTimer() {
     }
 }
 
-void RtpSelector::delProcess(uint32_t ssrc,const RtpProcess *ptr) {
+void RtpSelector::delProcess(const string &stream_id,const RtpProcess *ptr) {
     lock_guard<decltype(_mtx_map)> lck(_mtx_map);
-    auto it = _map_rtp_process.find(ssrc);
-    if(it == _map_rtp_process.end()){
+    auto it = _map_rtp_process.find(stream_id);
+    if (it == _map_rtp_process.end()) {
         return;
     }
-
-    if(it->second->getProcess().get() != ptr){
+    if (it->second->getProcess().get() != ptr) {
         return;
     }
-
+    auto process = it->second->getProcess();
     _map_rtp_process.erase(it);
+    process->onDetach();
 }
 
 void RtpSelector::onManager() {
@@ -88,8 +92,10 @@ void RtpSelector::onManager() {
             ++it;
             continue;
         }
-        WarnL << "RtpProcess timeout:" << printSSRC(it->first);
+        WarnL << "RtpProcess timeout:" << it->first;
+        auto process = it->second->getProcess();
         it = _map_rtp_process.erase(it);
+        process->onDetach();
     }
 }
 
@@ -99,10 +105,10 @@ RtpSelector::RtpSelector() {
 RtpSelector::~RtpSelector() {
 }
 
-RtpProcessHelper::RtpProcessHelper(uint32_t ssrc, const weak_ptr<RtpSelector> &parent) {
-    _ssrc = ssrc;
+RtpProcessHelper::RtpProcessHelper(const string &stream_id, const weak_ptr<RtpSelector> &parent) {
+    _stream_id = stream_id;
     _parent = parent;
-    _process = std::make_shared<RtpProcess>(_ssrc);
+    _process = std::make_shared<RtpProcess>(stream_id);
 }
 
 RtpProcessHelper::~RtpProcessHelper() {
@@ -114,14 +120,14 @@ void RtpProcessHelper::attachEvent() {
 
 bool RtpProcessHelper::close(MediaSource &sender, bool force) {
     //此回调在其他线程触发
-    if(!_process || (!force && _process->totalReaderCount())){
+    if (!_process || (!force && _process->totalReaderCount())) {
         return false;
     }
     auto parent = _parent.lock();
-    if(!parent){
+    if (!parent) {
         return false;
     }
-    parent->delProcess(_ssrc,_process.get());
+    parent->delProcess(_stream_id, _process.get());
     WarnL << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
     return true;
 }

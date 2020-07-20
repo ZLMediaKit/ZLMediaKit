@@ -11,6 +11,7 @@
 #ifdef ENABLE_MP4
 #include "MP4Muxer.h"
 #include "Util/File.h"
+#include "Extension/H264.h"
 namespace mediakit{
 
 MP4Muxer::MP4Muxer(const char *file) {
@@ -65,7 +66,12 @@ void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
     int64_t dts_out, pts_out;
 
     switch (frame->getCodecId()) {
-        case CodecH264:
+        case CodecH264: {
+            int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
+            if(type == H264Frame::NAL_SEI){
+                break;
+            }
+        }
         case CodecH265: {
             //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
             if (!_frameCached.empty() && _frameCached.back()->dts() != frame->dts()) {

@@ -61,6 +61,9 @@ private:
     //MediaSourceEvent override
     bool close(MediaSource &sender,bool force) override;
     int totalReaderCount(MediaSource &sender) override;
+    void onNoneReader(MediaSource &sender) override;
+    void onRegist(MediaSource &sender, bool regist) override;
+
 private:
     Process _process;
     Timer::Ptr _timer;

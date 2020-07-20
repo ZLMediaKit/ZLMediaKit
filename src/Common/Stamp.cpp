@@ -176,6 +176,8 @@ bool DtsGenerator::getDts_l(uint32_t pts, uint32_t &dts){
                 _sorter_max_size = _frames_since_last_max_pts;
                 //我们记录P帧间时间间隔(也就是多个B帧时间戳增量累计)
                 _dts_pts_offset = (pts - _last_max_pts);
+                //除以2，防止dts大于pts
+                _dts_pts_offset /= 2;
             }
             //遇到P帧或关键帧，连续B帧计数清零
             _frames_since_last_max_pts = 0;

@@ -22,15 +22,39 @@ using namespace mediakit;
 
 namespace mediakit{
 
-string printSSRC(uint32_t ui32Ssrc);
 class RtpProcess : public RtpReceiver , public RtpDecoder, public SockInfo, public MediaSinkInterface, public std::enable_shared_from_this<RtpProcess>{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
-    RtpProcess(uint32_t ssrc);
+    RtpProcess(const string &stream_id);
     ~RtpProcess();
+
+    /**
+     * 输入rtp
+     * @param sock 本地监听的socket
+     * @param data rtp数据指针
+     * @param data_len rtp数据长度
+     * @param addr 数据源地址
+     * @param dts_out 解析出最新的dts
+     * @return 是否解析成功
+     */
     bool inputRtp(const Socket::Ptr &sock, const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
+
+    /**
+     * 是否超时，用于超时移除对象
+     */
     bool alive();
 
+    /**
+     * 超时时被RtpSelector移除时触发
+     */
+    void onDetach();
+
+    /**
+     * 设置onDetach事件回调
+     */
+    void setOnDetach(const function<void()> &cb);
+
+    /// SockInfo override
     string get_local_ip() override;
     uint16_t get_local_port() override;
     string get_peer_ip() override;
@@ -54,8 +78,6 @@ private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
     std::shared_ptr<FILE> _save_file_video;
-    uint32_t _ssrc;
-    SdpTrack::Ptr _track;
     struct sockaddr *_addr = nullptr;
     uint16_t _sequence = 0;
     MultiMediaSourceMuxer::Ptr _muxer;
@@ -66,6 +88,7 @@ private:
     MediaInfo _media_info;
     uint64_t _total_bytes = 0;
     Socket::Ptr _sock;
+    function<void()> _on_detach;
 };
 
 }//namespace mediakit

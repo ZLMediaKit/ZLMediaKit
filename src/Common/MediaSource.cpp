@@ -178,39 +178,44 @@ static void eraseIfEmpty(MAP &map, IT0 it0, IT1 it1, IT2 it2) {
             }
         }
     }
-};
+}
 
 void MediaSource::findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, bool retry, const function<void(const MediaSource::Ptr &src)> &cb){
     auto src = MediaSource::find_l(info._schema, info._vhost, info._app, info._streamid, true);
-    if(src || !retry){
+    if (src || !retry) {
         cb(src);
         return;
     }
 
     void *listener_tag = session.get();
     weak_ptr<TcpSession> weakSession = session;
-    //广播未找到流,此时可以立即去拉流，这样还来得及
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream,info, static_cast<SockInfo &>(*session));
 
-    //最多等待一定时间，如果这个时间内，流未注册上，那么返回未找到流
-    GET_CONFIG(int,maxWaitMS,General::kMaxStreamWaitTimeMS);
-
-    //若干秒后执行等待媒体注册超时回调
-    auto onRegistTimeout = session->getPoller()->doDelayTask(maxWaitMS,[cb,listener_tag](){
-        //取消监听该事件
-        NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
+    GET_CONFIG(int, maxWaitMS, General::kMaxStreamWaitTimeMS);
+    auto onTimeout = session->getPoller()->doDelayTask(maxWaitMS, [cb, listener_tag]() {
+        //最多等待一定时间，如果这个时间内，流未注册上，那么返回未找到流
+        NoticeCenter::Instance().delListener(listener_tag, Broadcast::kBroadcastMediaChanged);
         cb(nullptr);
         return 0;
     });
 
-    auto onRegist = [listener_tag,weakSession,info,cb,onRegistTimeout](BroadcastMediaChangedArgs) {
+    auto cancelAll = [onTimeout, listener_tag]() {
+        //取消延时任务，防止多次回调
+        onTimeout->cancel();
+        //取消媒体注册事件监听
+        NoticeCenter::Instance().delListener(listener_tag, Broadcast::kBroadcastMediaChanged);
+    };
+
+    function<void()> closePlayer = [cb, cancelAll]() {
+        cancelAll();
+        //告诉播放器，流不存在，这样会立即断开播放器
+        cb(nullptr);
+    };
+
+    auto onRegist = [weakSession, info, cb, cancelAll](BroadcastMediaChangedArgs) {
         auto strongSession = weakSession.lock();
-        if(!strongSession) {
+        if (!strongSession) {
             //自己已经销毁
-            //取消延时任务，防止多次回调
-            onRegistTimeout->cancel();
-            //取消事件监听
-            NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
+            cancelAll();
             return;
         }
 
@@ -223,24 +228,24 @@ void MediaSource::findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSe
             return;
         }
 
-        //取消延时任务，防止多次回调
-        onRegistTimeout->cancel();
-        //取消事件监听
-        NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
+        cancelAll();
 
         //播发器请求的流终于注册上了，切换到自己的线程再回复
-        strongSession->async([weakSession,info,cb](){
+        strongSession->async([weakSession, info, cb]() {
             auto strongSession = weakSession.lock();
-            if(!strongSession) {
+            if (!strongSession) {
                 return;
             }
             DebugL << "收到媒体注册事件,回复播放器:" << info._schema << "/" << info._vhost << "/" << info._app << "/" << info._streamid;
             //再找一遍媒体源，一般能找到
-            findAsync_l(info,strongSession,false,cb);
+            findAsync_l(info, strongSession, false, cb);
         }, false);
     };
+
     //监听媒体注册事件
     NoticeCenter::Instance().addListener(listener_tag, Broadcast::kBroadcastMediaChanged, onRegist);
+    //广播未找到流,此时可以立即去拉流，这样还来得及
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream, info, static_cast<SockInfo &>(*session), closePlayer);
 }
 
 void MediaSource::findAsync(const MediaInfo &info, const std::shared_ptr<TcpSession> &session,const function<void(const Ptr &src)> &cb){
@@ -295,7 +300,7 @@ void MediaSource::regist() {
     //注册该源，注册后服务器才能找到该源
     {
         lock_guard<recursive_mutex> lock(g_mtxMediaSrc);
-        g_mapMediaSrc[_strSchema][_strVhost][_strApp][_strId] =  shared_from_this();
+        g_mapMediaSrc[_strSchema][_strVhost][_strApp][_strId] = shared_from_this();
     }
     _StrPrinter codec_info;
     auto tracks = getTracks(true);
@@ -326,6 +331,11 @@ void MediaSource::regist() {
 
     InfoL << _strSchema << " " << _strVhost << " " << _strApp << " " << _strId << " " << codec_info;
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, true, *this);
+
+    auto listener = _listener.lock();
+    if (listener) {
+        listener->onRegist(*this, true);
+    }
 }
 
 //反注册该源
@@ -352,6 +362,11 @@ bool MediaSource::unregist() {
     if(ret){
         InfoL <<  _strSchema << " " << _strVhost << " " << _strApp << " " << _strId;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, false, *this);
+
+        auto listener = _listener.lock();
+        if (listener) {
+            listener->onRegist(*this, false);
+        }
     }
     return ret;
 }
