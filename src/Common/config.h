@@ -111,7 +111,7 @@ extern const string kBroadcastFlowReport;
 
 //未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了
 extern const string kBroadcastNotFoundStream;
-#define BroadcastNotFoundStreamArgs const MediaInfo &args,SockInfo &sender
+#define BroadcastNotFoundStreamArgs const MediaInfo &args,SockInfo &sender, const function<void()> &closePlayer
 
 //某个流无人消费时触发，目的为了实现无人观看时主动断开拉流等业务逻辑
 extern const string kBroadcastStreamNoneReader;
@@ -193,6 +193,8 @@ extern const string kCharSet;
 extern const string kRootPath;
 //http 404错误提示内容
 extern const string kNotFound;
+//是否显示文件夹菜单
+extern const string kDirMenu;
 }//namespace Http
 
 ////////////SHELL配置///////////

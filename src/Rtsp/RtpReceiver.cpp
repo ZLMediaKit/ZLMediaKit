@@ -27,7 +27,7 @@ namespace mediakit {
 RtpReceiver::RtpReceiver() {}
 RtpReceiver::~RtpReceiver() {}
 
-bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len) {
+bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len) {
     if(rtp_raw_len < 12){
         WarnL << "rtp包太小:" << rtp_raw_len;
         return false;
@@ -46,8 +46,8 @@ bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned ch
     auto rtp_ptr = _rtp_pool.obtain();
     auto &rtp = *rtp_ptr;
 
-    rtp.type = track->_type;
-    rtp.interleaved = 2 * track->_type;
+    rtp.type = type;
+    rtp.interleaved = 2 * type;
     rtp.mark = rtp_raw_ptr[1] >> 7;
     rtp.PT = rtp_raw_ptr[1] & 0x7F;
 
@@ -59,29 +59,29 @@ bool RtpReceiver::handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned ch
     memcpy(&rtp.timeStamp, rtp_raw_ptr + 4, 4);
     rtp.timeStamp = ntohl(rtp.timeStamp);
 
-    if(!track->_samplerate){
+    if(!samplerate){
         //无法把时间戳转换成毫秒
         return false;
     }
     //时间戳转换成毫秒
-    rtp.timeStamp = rtp.timeStamp * 1000LL / track->_samplerate;
+    rtp.timeStamp = rtp.timeStamp * 1000LL / samplerate;
 
     //ssrc,内存对齐
     memcpy(&rtp.ssrc, rtp_raw_ptr + 8, 4);
     rtp.ssrc = ntohl(rtp.ssrc);
 
-    if (track->_ssrc != rtp.ssrc) {
-        if (track->_ssrc == 0) {
+    if (_ssrc[track_index] != rtp.ssrc) {
+        if (_ssrc[track_index] == 0) {
             //保存SSRC至track对象
-            track->_ssrc = rtp.ssrc;
+            _ssrc[track_index] = rtp.ssrc;
         }else{
             //ssrc错误
-            WarnL << "ssrc错误:" << rtp.ssrc << " != " << track->_ssrc;
+            WarnL << "ssrc错误:" << rtp.ssrc << " != " << _ssrc[track_index];
             if (_ssrc_err_count[track_index]++ > 10) {
                 //ssrc切换后清除老数据
-                WarnL << "ssrc更换:" << track->_ssrc << " -> " << rtp.ssrc;
+                WarnL << "ssrc更换:" << _ssrc[track_index] << " -> " << rtp.ssrc;
                 _rtp_sort_cache_map[track_index].clear();
-                track->_ssrc = rtp.ssrc;
+                _ssrc[track_index] = rtp.ssrc;
             }
             return false;
         }
@@ -168,11 +168,12 @@ void RtpReceiver::sortRtp(const RtpPacket::Ptr &rtp,int track_index){
 }
 
 void RtpReceiver::clear() {
-    CLEAR_ARR(_last_seq)
-    CLEAR_ARR(_ssrc_err_count)
-    CLEAR_ARR(_seq_ok_count)
-    CLEAR_ARR(_sort_started)
-    CLEAR_ARR(_seq_cycle_count)
+    CLEAR_ARR(_last_seq);
+    CLEAR_ARR(_ssrc);
+    CLEAR_ARR(_ssrc_err_count);
+    CLEAR_ARR(_seq_ok_count);
+    CLEAR_ARR(_sort_started);
+    CLEAR_ARR(_seq_cycle_count);
 
     _rtp_sort_cache_map[0].clear();
     _rtp_sort_cache_map[1].clear();

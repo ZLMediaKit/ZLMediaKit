@@ -53,9 +53,11 @@ public:
     virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) { return false; };
     // 获取录制状态
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
-private:
     // 通知无人观看
-    void onNoneReader(MediaSource &sender);
+    virtual void onNoneReader(MediaSource &sender);
+    //流注册或注销事件
+    virtual void onRegist(MediaSource &sender, bool regist) {};
+
 private:
     Timer::Ptr _async_close_timer;
 };

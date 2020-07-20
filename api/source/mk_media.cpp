@@ -42,6 +42,12 @@ public:
         _on_seek = cb;
         _on_seek_data = user_data;
     }
+
+    void setOnRegist(on_mk_media_source_regist cb, void *user_data){
+        _on_regist = cb;
+        _on_regist_data = user_data;
+    }
+
 protected:
     // 通知其停止推流
     bool close(MediaSource &sender,bool force) override{
@@ -70,12 +76,21 @@ protected:
     int totalReaderCount(MediaSource &sender) override{
         return _channel->totalReaderCount();
     }
+
+    void onRegist(MediaSource &sender, bool regist) override{
+        if (_on_regist) {
+            _on_regist(_on_regist_data, &sender, regist);
+        }
+    }
+
 private:
     DevChannel::Ptr _channel;
     on_mk_media_close _on_close = nullptr;
     on_mk_media_seek _on_seek = nullptr;
+    on_mk_media_source_regist _on_regist = nullptr;
     void *_on_seek_data;
     void *_on_close_data;
+    void *_on_regist_data;
 };
 
 API_EXPORT void API_CALL mk_media_set_on_close(mk_media ctx, on_mk_media_close cb, void *user_data){
@@ -88,6 +103,12 @@ API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb,
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->setOnSeek(cb, user_data);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_regist(mk_media ctx, on_mk_media_source_regist cb, void *user_data){
+    assert(ctx);
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
+    (*obj)->setOnRegist(cb, user_data);
 }
 
 API_EXPORT int API_CALL mk_media_total_reader_count(mk_media ctx){
@@ -155,6 +176,16 @@ API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, u
     assert(ctx && data && len > 0 && adts);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->getChannel()->inputAAC((char *) data, len, dts, (char *) adts);
+}
+
+API_EXPORT void API_CALL mk_media_input_pcm(mk_media ctx, void *data , int len, uint32_t pts){
+#ifdef ENABLE_FAAC
+	assert(ctx && data && len > 0);
+	MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+	(*obj)->getChannel()->inputPCM((char*)data, len, pts);
+#else
+    WarnL << "aac编码未启用,该方法无效,编译时请打开ENABLE_FAAC选项";
+#endif //ENABLE_FAAC
 }
 
 API_EXPORT void API_CALL mk_media_input_g711(mk_media ctx, void* data, int len, uint32_t dts){

@@ -32,12 +32,13 @@ protected:
     /**
      * 输入数据指针生成并排序rtp包
      * @param track_index track下标索引
-     * @param track  sdp track相关信息
+     * @param type track类型
+     * @param samplerate rtp时间戳基准时钟，视频为90000，音频为采样率
      * @param rtp_raw_ptr rtp数据指针
      * @param rtp_raw_len rtp数据指针长度
      * @return 解析成功返回true
      */
-    bool handleOneRtp(int track_index,SdpTrack::Ptr &track, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len);
+    bool handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len);
 
     /**
      * rtp数据包排序后输出
@@ -49,9 +50,12 @@ protected:
     void setPoolSize(int size);
     int getJitterSize(int track_index);
     int getCycleCount(int track_index);
+
 private:
     void sortRtp(const RtpPacket::Ptr &rtp , int track_index);
+
 private:
+    uint32_t _ssrc[2] = { 0, 0 };
     //ssrc不匹配计数
     uint32_t _ssrc_err_count[2] = { 0, 0 };
     //上次seq

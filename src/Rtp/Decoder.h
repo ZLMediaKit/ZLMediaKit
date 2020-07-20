@@ -14,7 +14,6 @@
 #include <stdint.h>
 #include <memory>
 #include <functional>
-#include "Decoder.h"
 #include "Common/MediaSink.h"
 
 using namespace std;

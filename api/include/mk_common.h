@@ -102,6 +102,13 @@ API_EXPORT void API_CALL mk_env_init1(int thread_num,
 API_EXPORT void API_CALL mk_set_option(const char *key, const char *val);
 
 /**
+ * 获取配置项的值
+ * @param key 配置项名
+ */
+API_EXPORT const char * API_CALL mk_get_option(const char *key);
+
+
+/**
  * 创建http[s]服务器
  * @param port htt监听端口，推荐80，传入0则随机分配
  * @param ssl 是否为ssl类型服务器

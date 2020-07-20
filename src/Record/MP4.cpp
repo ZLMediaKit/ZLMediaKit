@@ -93,6 +93,7 @@ void MP4File::openFile(const char *file,const char *mode) {
 
     //创建智能指针
     _file.reset(fp,[file_buf](FILE *fp) {
+        fflush(fp);
         fclose(fp);
     });
 }

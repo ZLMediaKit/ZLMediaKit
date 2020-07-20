@@ -41,13 +41,17 @@ INCLUDE_DIRECTORIES(${ToolKit_Root})
 INCLUDE_DIRECTORIES(${MediaKit_Root})
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/3rdpart)
 
-set(ENABLE_HLS true)
-set(ENABLE_OPENSSL true)
-set(ENABLE_MYSQL false)
-set(ENABLE_FAAC false)
-set(ENABLE_X264 false)
-set(ENABLE_MP4 true)
-set(ENABLE_RTPPROXY true)
+option(ENABLE_HLS "Enable HLS" true)
+option(ENABLE_OPENSSL "Enable OpenSSL" true)
+option(ENABLE_MYSQL "Enable MySQL" false)
+option(ENABLE_FAAC "Enable FAAC" false)
+option(ENABLE_X264 "Enable x264" false)
+option(ENABLE_MP4 "Enable MP4" true)
+option(ENABLE_RTPPROXY "Enable RTPPROXY" true)
+option(ENABLE_API "Enable C API SDK" true)
+option(ENABLE_CXX_API "Enable C++ API SDK" false)
+option(ENABLE_TESTS "Enable Tests" true)
+option(ENABLE_SERVER "Enable Server" true)
 
 set(LINK_LIB_LIST zlmediakit zltoolkit)
 
@@ -113,6 +117,7 @@ if(ENABLE_HLS)
 
     add_library(mpeg STATIC ${src_mpeg})
     list(APPEND LINK_LIB_LIST mpeg)
+    list(APPEND CXX_API_TARGETS mpeg)
 
 	if(WIN32)
 		set_target_properties(mpeg PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
@@ -136,6 +141,7 @@ if(ENABLE_MP4)
     add_library(mov STATIC ${src_mov})
 	add_library(flv STATIC ${src_flv})
     list(APPEND LINK_LIB_LIST mov flv)
+    list(APPEND CXX_API_TARGETS mov flv)
 
 	if(WIN32)
 		set_target_properties(mov flv PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
@@ -153,6 +159,7 @@ if(ENABLE_RTPPROXY AND ENABLE_HLS)
     add_library(rtp STATIC ${src_rtp})
     add_definitions(-DENABLE_RTPPROXY)
     list(APPEND LINK_LIB_LIST rtp)
+    list(APPEND CXX_API_TARGETS rtp)
 endif()
 
 #收集源代码
@@ -174,6 +181,23 @@ endif ()
 #添加库
 add_library(zltoolkit STATIC ${ToolKit_src_list})
 add_library(zlmediakit STATIC ${MediaKit_src_list})
+list(APPEND CXX_API_TARGETS zltoolkit zlmediakit)
+
+#安装目录
+if (WIN32)
+    set(INSTALL_PATH_LIB $ENV{HOME}/${CMAKE_PROJECT_NAME}/lib)
+    set(INSTALL_PATH_INCLUDE $ENV{HOME}/${CMAKE_PROJECT_NAME}/include)
+else ()
+    set(INSTALL_PATH_LIB lib)
+    set(INSTALL_PATH_INCLUDE include)
+endif ()
+
+if(ENABLE_CXX_API)
+    # 保留目录结构
+    install(DIRECTORY ${ToolKit_Root}/  DESTINATION ${INSTALL_PATH_INCLUDE}/ZLToolKit  REGEX "(.*[.](md|cpp)|win32)$" EXCLUDE)
+    install(DIRECTORY ${MediaKit_Root}/ DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit REGEX ".*[.](md|cpp)$" EXCLUDE)
+    install(TARGETS ${CXX_API_TARGETS} DESTINATION ${INSTALL_PATH_LIB})
+endif()
 
 if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
@@ -188,11 +212,17 @@ execute_process(COMMAND cp -r ${CMAKE_CURRENT_SOURCE_DIR}/www ${EXECUTABLE_OUTPU
 execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini ${EXECUTABLE_OUTPUT_PATH}/)
 
 #添加c库
-add_subdirectory(api)
+if(ENABLE_API)
+    add_subdirectory(api)
+endif()
 
 if (NOT IOS)
     #测试程序
-    add_subdirectory(tests)
+    if(ENABLE_TESTS)
+        add_subdirectory(tests)
+    endif()
     #主服务器
-    add_subdirectory(server)
+    if(ENABLE_SERVER)
+        add_subdirectory(server)
+    endif()
 endif ()

@@ -22,22 +22,26 @@ namespace mediakit{
 
 class RtpSession : public TcpSession , public RtpSplitter , public MediaSourceEvent{
 public:
+    static const string kStreamID;
     RtpSession(const Socket::Ptr &sock);
     ~RtpSession() override;
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
+    void attachServer(const TcpServer &server) override;
+
 protected:
     // 通知其停止推流
     bool close(MediaSource &sender,bool force) override;
     // 观看总人数
     int totalReaderCount(MediaSource &sender) override;
     void onRtpPacket(const char *data,uint64_t len) override;
+
 private:
-    uint32_t _ssrc = 0;
     RtpProcess::Ptr _process;
     Ticker _ticker;
     struct sockaddr addr;
+    string _stream_id;
 };
 
 }//namespace mediakit
