@@ -9,7 +9,6 @@
  */
 
 #include "AACRtp.h"
-#define AAC_MAX_FRAME_SIZE (2 * 1024)
 
 namespace mediakit{
 
@@ -87,32 +86,42 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
     //rtp数据开始部分
     uint8_t *ptr = (uint8_t *) rtppack->data() + rtppack->offset;
     //rtp数据末尾
-    const uint8_t *end = (uint8_t *) rtppack->data() + rtppack->size();
-
+    uint8_t *end = (uint8_t *) rtppack->data() + rtppack->size();
     //首2字节表示Au-Header的个数，单位bit，所以除以16得到Au-Header个数
-    const uint16_t au_header_count = ((ptr[0] << 8) | ptr[1]) >> 4;
-    //忽略Au-Header区
-    ptr += 2 + au_header_count * 2;
+    uint16_t au_header_count = ((ptr[0] << 8) | ptr[1]) >> 4;
+    //记录au_header起始指针
+    uint8_t *au_header_ptr = ptr + 2;
+    ptr = au_header_ptr +  au_header_count * 2;
 
-    while (ptr < end) {
-        auto size = (uint32_t) (end - ptr);
-        if (size > AAC_MAX_FRAME_SIZE) {
-            size = AAC_MAX_FRAME_SIZE;
-        }
-        if (_frame->size() + size > AAC_MAX_FRAME_SIZE) {
-            //数据太多了，先清空
-            flushData();
-        }
-        //追加aac数据
-        _frame->_buffer.append((char *) ptr, size);
-        _frame->_dts = rtppack->timeStamp;
-        ptr += size;
+    if (end < ptr) {
+        //数据不够
+        return false;
     }
 
-    if (rtppack->mark) {
-        //最后一个rtp分片
+    //每个audio unit时间戳增量
+    auto dts_inc = (rtppack->timeStamp - _last_dts) / au_header_count;
+    if(dts_inc < 0 && dts_inc > 100){
+        //时间戳增量异常
+        dts_inc = 0;
+    }
+
+    for (int i = 0; i < au_header_count; ++i) {
+        // 之后的2字节是AU_HEADER,其中高13位表示一帧AAC负载的字节长度，低3位无用
+        uint16_t size = ((au_header_ptr[0] << 8) | au_header_ptr[1]) >> 3;
+        if (ptr + size > end) {
+            //数据不够
+            break;
+        }
+        //设置aac数据
+        _frame->_buffer.assign((char *) ptr, size);
+        //设置当前audio unit时间戳
+        _frame->_dts = _last_dts + i * dts_inc;
+        ptr += size;
+        au_header_ptr += 2;
         flushData();
     }
+    //记录上次时间戳
+    _last_dts = rtppack->timeStamp;
     return false;
 }
 

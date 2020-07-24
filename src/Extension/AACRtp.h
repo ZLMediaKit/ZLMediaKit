@@ -45,6 +45,7 @@ private:
 private:
     AACFrame::Ptr _frame;
     string _aac_cfg;
+    uint32_t _last_dts = 0;
 };
 
 
