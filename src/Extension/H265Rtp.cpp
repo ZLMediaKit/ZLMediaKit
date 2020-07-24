@@ -166,7 +166,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         bool mark = false;
         int nOffset = 2;
         while (!mark) {
-            if (iLen < nOffset + maxSize) {			//是否拆分结束
+            if (iLen <= nOffset + maxSize) {			//是否拆分结束
                 maxSize = iLen - nOffset;
                 mark = true;
                 //FU end
