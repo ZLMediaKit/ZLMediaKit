@@ -98,10 +98,15 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
         return false;
     }
 
+    if (!_last_dts) {
+        //记录第一个时间戳
+        _last_dts = rtppack->timeStamp;
+    }
+
     //每个audio unit时间戳增量
     auto dts_inc = (rtppack->timeStamp - _last_dts) / au_header_count;
-    if(dts_inc < 0 && dts_inc > 100){
-        //时间戳增量异常
+    if (dts_inc < 0 && dts_inc > 100) {
+        //时间戳增量异常，忽略
         dts_inc = 0;
     }
 
@@ -112,13 +117,16 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
             //数据不够
             break;
         }
-        //设置aac数据
-        _frame->_buffer.assign((char *) ptr, size);
-        //设置当前audio unit时间戳
-        _frame->_dts = _last_dts + i * dts_inc;
-        ptr += size;
-        au_header_ptr += 2;
-        flushData();
+
+        if (size) {
+            //设置aac数据
+            _frame->_buffer.assign((char *) ptr, size);
+            //设置当前audio unit时间戳
+            _frame->_dts = _last_dts + i * dts_inc;
+            ptr += size;
+            au_header_ptr += 2;
+            flushData();
+        }
     }
     //记录上次时间戳
     _last_dts = rtppack->timeStamp;
@@ -126,11 +134,6 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
 }
 
 void AACRtpDecoder::flushData() {
-    if (_frame->_buffer.empty()) {
-        //没有有效数据
-        return;
-    }
-
     //插入adts头
     char adts_header[32] = {0};
     auto size = dumpAacConfig(_aac_cfg, _frame->_buffer.size(), (uint8_t *) adts_header, sizeof(adts_header));
