@@ -1,10 +1,10 @@
-![logo](https://raw.githubusercontent.com/zlmediakit/ZLMediaKit/master/www/logo.png)
+![logo](https://raw.githubusercontent.com/xia-chu/ZLMediaKit/master/www/logo.png)
 
-[english readme](https://github.com/xiongziliang/ZLMediaKit/blob/master/README_en.md)
+[english readme](https://github.com/xia-chu/ZLMediaKit/blob/master/README_en.md)
 
 # 一个基于C++11的高性能运营级流媒体服务框架
 
- [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
+ [![Build Status](https://travis-ci.org/xia-chu/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
 
 ## 项目特点
@@ -14,10 +14,10 @@
 - 使用多路复用/多线程/异步网络IO模式开发，并发性能优越，支持海量客户端连接。
 - 代码经过长期大量的稳定性、性能测试，已经在线上商用验证已久。
 - 支持linux、macos、ios、android、windows全平台。
-- 支持画面秒开、极低延时([500毫秒内，最低可达100毫秒](https://github.com/zlmediakit/ZLMediaKit/wiki/%E5%BB%B6%E6%97%B6%E6%B5%8B%E8%AF%95))。
-- 提供完善的标准[C API](https://github.com/xiongziliang/ZLMediaKit/tree/master/api/include),可以作SDK用，或供其他语言调用。
-- 提供完整的[MediaServer](https://github.com/xiongziliang/ZLMediaKit/tree/master/server)服务器，可以免开发直接部署为商用服务器。
-- 提供完善的[restful api](https://github.com/xiongziliang/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-API)以及[web hook](https://github.com/xiongziliang/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-HOOK-API)，支持丰富的业务逻辑。
+- 支持画面秒开、极低延时([500毫秒内，最低可达100毫秒](https://github.com/xia-chu/ZLMediaKit/wiki/%E5%BB%B6%E6%97%B6%E6%B5%8B%E8%AF%95))。
+- 提供完善的标准[C API](https://github.com/xia-chu/ZLMediaKit/tree/master/api/include),可以作SDK用，或供其他语言调用。
+- 提供完整的[MediaServer](https://github.com/xia-chu/ZLMediaKit/tree/master/server)服务器，可以免开发直接部署为商用服务器。
+- 提供完善的[restful api](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-API)以及[web hook](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-HOOK-API)，支持丰富的业务逻辑。
 - 打通了视频监控协议栈与直播协议栈，对RTSP/RTMP支持都很完善。
 - 全面支持H265/H264/AAC/G711。
 
@@ -89,15 +89,15 @@
 
 
 ## 编译以及测试
-**编译前务必仔细参考wiki:[快速开始](https://github.com/xiongziliang/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)操作!!!**
+**编译前务必仔细参考wiki:[快速开始](https://github.com/xia-chu/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)操作!!!**
 
 ## 怎么使用
 
  你有三种方法使用ZLMediaKit，分别是：
 
- - 1、使用c api，作为sdk使用，请参考[这里](https://github.com/xiongziliang/ZLMediaKit/tree/master/api/include).
- - 2、作为独立的流媒体服务器使用，不想做c/c++开发的，可以参考[restful api](https://github.com/xiongziliang/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-API)和[web hook](https://github.com/xiongziliang/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-HOOK-API).
- - 3、如果想做c/c++开发，添加业务逻辑增加功能，可以参考这里的[测试程序](https://github.com/xiongziliang/ZLMediaKit/tree/master/tests).
+ - 1、使用c api，作为sdk使用，请参考[这里](https://github.com/xia-chu/ZLMediaKit/tree/master/api/include).
+ - 2、作为独立的流媒体服务器使用，不想做c/c++开发的，可以参考[restful api](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-API)和[web hook](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-HOOK-API).
+ - 3、如果想做c/c++开发，添加业务逻辑增加功能，可以参考这里的[测试程序](https://github.com/xia-chu/ZLMediaKit/tree/master/tests).
 
 ## Docker 镜像
 
@@ -115,9 +115,9 @@ bash build_docker_images.sh
 
 ## 参考案例
 
- - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xiahcu/IOSMedia)
- - [IOS rtmp/rtsp播放器，视频推流器](https://gitee.com/xiahcu/IOSPlayer)
- - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xiongziliang/ZLMediaPlayer)
+ - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xia-chu/IOSMedia)
+ - [IOS rtmp/rtsp播放器，视频推流器](https://gitee.com/xia-chu/IOSPlayer)
+ - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xia-chu/ZLMediaPlayer)
  - [基于ZLMediaKit分支的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
  - [基于ZLMediaKit主线的管理WEB网站](https://gitee.com/kkkkk5G/MediaServerUI)
  - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
@@ -143,7 +143,7 @@ bash build_docker_images.sh
  - 1、仔细看下readme、wiki，如果有必要可以查看下issue.
  - 2、如果您的问题还没解决，可以提issue.
  - 3、有些问题，如果不具备参考性的，无需在issue提的，可以在qq群提.
- - 4、QQ私聊一般不接受无偿技术咨询和支持([为什么不提倡QQ私聊](https://github.com/xiongziliang/ZLMediaKit/wiki/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%BB%BA%E8%AE%AEQQ%E7%A7%81%E8%81%8A%E5%92%A8%E8%AF%A2%E9%97%AE%E9%A2%98%EF%BC%9F)).
+ - 4、QQ私聊一般不接受无偿技术咨询和支持([为什么不提倡QQ私聊](https://github.com/xia-chu/ZLMediaKit/wiki/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%BB%BA%E8%AE%AEQQ%E7%A7%81%E8%81%8A%E5%92%A8%E8%AF%A2%E9%97%AE%E9%A2%98%EF%BC%9F)).
 
 ## 致谢
 
