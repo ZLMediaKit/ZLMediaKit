@@ -170,6 +170,6 @@ bash build_docker_images.sh
 
 欢迎捐赠以便更好的推动项目的发展，谢谢您的支持!
 
-[支付宝](https://gitee.com/xiahcu/other/raw/master/IMG_3919.JPG)
+[支付宝](https://gitee.com/xia-chu/other/raw/master/IMG_3919.JPG)
 
-[微信](https://gitee.com/xiahcu/other/raw/master/IMG_3920.JPG)
+[微信](https://gitee.com/xia-chu/other/raw/master/IMG_3920.JPG)
