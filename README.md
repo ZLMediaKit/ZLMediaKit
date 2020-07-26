@@ -4,7 +4,7 @@
 
 # 一个基于C++11的高性能运营级流媒体服务框架
 
- [![Build Status](https://travis-ci.org/xia-chu/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
+ [![Build Status](https://travis-ci.org/xia-chu/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xia-chu/ZLMediaKit)
 
 
 ## 项目特点
