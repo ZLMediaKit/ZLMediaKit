@@ -27,7 +27,7 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const st
     return createPlayer(poller, url_in, nullptr);
 }
 
-PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const string &url_in, PlayerBase::Ptr _socket) {
+PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const string &url_in, Socket::Ptr socket) {
     static auto releasePlayer = [](PlayerBase *ptr){
         onceToken token(nullptr,[&](){
             delete  ptr;
@@ -43,41 +43,43 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const st
     }
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
-        if (_socket)
-            return _socket;
+        if (socket)
+            return PlayerBase::Ptr(new TcpClientWithSSL<RtspPlayerImp>(poller, socket),releasePlayer);
         else
             return PlayerBase::Ptr(new TcpClientWithSSL<RtspPlayerImp>(poller),releasePlayer);
     }
 
     if (strcasecmp("rtsp",prefix.data()) == 0) {
-        if (_socket)
-            return _socket;
+        if (socket)
+            return PlayerBase::Ptr(new RtspPlayerImp(poller, socket),releasePlayer);
         else
             return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
     }
 
     if (strcasecmp("rtmps",prefix.data()) == 0) {
-        if (_socket)
-            return _socket;
+        if (socket)
+            return PlayerBase::Ptr(new TcpClientWithSSL<RtmpPlayerImp>(poller, socket),releasePlayer);
         else
             return PlayerBase::Ptr(new TcpClientWithSSL<RtmpPlayerImp>(poller),releasePlayer);
     }
 
     if (strcasecmp("rtmp",prefix.data()) == 0) {
-        if (_socket)
-            return _socket;
+        if (socket)
+            return PlayerBase::Ptr(new RtmpPlayerImp(poller, socket),releasePlayer);
         else
             return PlayerBase::Ptr(new RtmpPlayerImp(poller),releasePlayer);
     }
 
     if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0) && end_of(url, ".m3u8")) {
-        if (_socket)
-            return _socket;
+        if (socket)
+            return PlayerBase::Ptr(new HlsPlayerImp(socket, poller),releasePlayer);
         else
             return PlayerBase::Ptr(new HlsPlayerImp(poller),releasePlayer);
     }
-
-    return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
+    if (socket)
+        return PlayerBase::Ptr(new RtspPlayerImp(poller, socket),releasePlayer);
+    else
+        return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
 }
 
 PlayerBase::PlayerBase() {

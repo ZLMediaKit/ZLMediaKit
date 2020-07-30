@@ -32,6 +32,7 @@ enum PlayType {
 RtspPlayer::RtspPlayer(const EventPoller::Ptr &poller) : TcpClient(poller){
     RtpReceiver::setPoolSize(64);
 }
+
 RtspPlayer::~RtspPlayer(void) {
     DebugL << endl;
 }
@@ -280,7 +281,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int uiTrackIndex)
         if (_rtp_type == Rtsp::RTP_MULTICAST) {
             //udp组播
             auto multiAddr = FindField((strTransport + ";").data(), "destination=", ";");
-            pRtpSockRef.reset(new Socket(getPoller()));
+            //pRtpSockRef.reset(new Socket(getPoller()));
+            pRtpSockRef.reset(_sock->clone());
             if (!pRtpSockRef->bindUdpSock(rtp_port, multiAddr.data())) {
                 pRtpSockRef.reset();
                 throw std::runtime_error("open udp sock err");

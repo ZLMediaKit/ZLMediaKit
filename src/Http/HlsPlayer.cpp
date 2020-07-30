@@ -231,6 +231,10 @@ HlsPlayerImp::HlsPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<HlsPlayer
 
 }
 
+HlsPlayerImp::HlsPlayerImp(Socket::Ptr sock, const EventPoller::Ptr &poller): PlayerImp<HlsPlayer, PlayerBase>(poller) {
+    _sock = sock;
+}
+
 void HlsPlayerImp::setOnPacket(const TSSegment::onSegment &cb){
     _on_ts = cb;
 }

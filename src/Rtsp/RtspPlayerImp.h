@@ -29,6 +29,8 @@ class RtspPlayerImp: public PlayerImp<RtspPlayer,RtspDemuxer> {
 public:
     typedef std::shared_ptr<RtspPlayerImp> Ptr;
     RtspPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtspPlayer,RtspDemuxer>(poller){}
+    RtspPlayerImp(const EventPoller::Ptr &poller,  Socket::Ptr sock) : PlayerImp<RtspPlayer,RtspDemuxer>(poller){_sock = sock}
+
     virtual ~RtspPlayerImp(){
         DebugL<<endl;
     };

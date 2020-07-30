@@ -365,8 +365,9 @@ bool RtspUrl::setup(bool isSSL, const string &strUrl, const string &strUser, con
     return true;
 }
 
-std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &poller, const string &local_ip){
-    auto pSockRtp = std::make_shared<Socket>(poller);
+std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &poller, const string &local_ip, Socket::Ptr socket){
+    //auto pSockRtp = std::make_shared<Socket>(poller);
+    auto pSockRtp = std::make_shared<Socket>(socket->clone(poller));
     if (!pSockRtp->bindUdpSock(0, local_ip.data())) {
         //分配端口失败
         throw runtime_error("open udp socket failed");
@@ -374,7 +375,7 @@ std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &polle
 
     //是否是偶数
     bool even_numbers = pSockRtp->get_local_port() % 2 == 0;
-    auto pSockRtcp = std::make_shared<Socket>(poller);
+    auto pSockRtcp = std::make_shared<Socket>(socket->clone(poller));
     if (!pSockRtcp->bindUdpSock(pSockRtp->get_local_port() + (even_numbers ? 1 : -1), local_ip.data())) {
         //分配端口失败
         throw runtime_error("open udp socket failed");
@@ -390,11 +391,11 @@ std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &polle
     return std::make_pair(pSockRtp, pSockRtcp);
 }
 
-std::pair<Socket::Ptr, Socket::Ptr> makeSockPair(const EventPoller::Ptr &poller, const string &local_ip){
+std::pair<Socket::Ptr, Socket::Ptr> makeSockPair(const EventPoller::Ptr &poller, const string &local_ip, Socket::Ptr socket){
     int try_count = 0;
     while (true) {
         try {
-            return makeSockPair_l(poller, local_ip);
+            return makeSockPair_l(poller, local_ip, socket);
         } catch (...) {
             if (++try_count == 3) {
                 throw;

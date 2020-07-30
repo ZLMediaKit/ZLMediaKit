@@ -49,7 +49,7 @@ public:
     typedef std::shared_ptr<PlayerBase> Ptr;
     
     static Ptr createPlayer(const EventPoller::Ptr &poller,const string &strUrl);
-    static Ptr createPlayer(const EventPoller::Ptr &poller,const string &strUrl, PlayerBase::Ptr _socket);
+    static Ptr createPlayer(const EventPoller::Ptr &poller,const string &strUrl, Socket::Ptr socket);
 
     PlayerBase();
 

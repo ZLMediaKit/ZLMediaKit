@@ -37,7 +37,6 @@ public:
     typedef std::shared_ptr<RtspPlayer> Ptr;
 
     RtspPlayer(const EventPoller::Ptr &poller);
-    RtspPlayer(const EventPoller::Ptr &poller) ;
 
     virtual ~RtspPlayer(void);
     void play(const string &strUrl) override;

@@ -27,6 +27,7 @@ namespace mediakit {
 class HlsPlayer : public  HttpClientImp , public PlayerBase , public HlsParser{
 public:
     HlsPlayer(const EventPoller::Ptr &poller);
+
     ~HlsPlayer() override;
 
     /**
@@ -127,6 +128,8 @@ class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase> , public MediaSink{
 public:
     typedef std::shared_ptr<HlsPlayerImp> Ptr;
     HlsPlayerImp(const EventPoller::Ptr &poller = nullptr);
+    HlsPlayerImp(Socket::Ptr sock, const EventPoller::Ptr &poller = nullptr);
+
     ~HlsPlayerImp() override {};
     void setOnPacket(const TSSegment::onSegment &cb);
 
