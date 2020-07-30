@@ -669,7 +669,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
     case Rtsp::RTP_UDP: {
         std::pair<Socket::Ptr, Socket::Ptr> pr;
         try{
-            pr = makeSockPair(_sock->getPoller(), get_local_ip());
+            pr = makeSockPair(_sock->getPoller(), get_local_ip(), nullptr);
         }catch(std::exception &ex) {
             //分配端口失败
             send_NotAcceptable();

@@ -271,7 +271,7 @@ private:
     _StrPrinter _printer;
 };
 
-std::pair<Socket::Ptr, Socket::Ptr> makeSockPair(const EventPoller::Ptr &poller, const string &local_ip);
+std::pair<Socket::Ptr, Socket::Ptr> makeSockPair(const EventPoller::Ptr &poller, const string &local_ip, Socket::Ptr socket);
 string printSSRC(uint32_t ui32Ssrc);
 
 } //namespace mediakit

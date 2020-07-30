@@ -212,7 +212,7 @@ void RtspPlayer::createUdpSockIfNecessary(int track_idx){
     auto &rtpSockRef = _rtp_sock[track_idx];
     auto &rtcpSockRef = _rtcp_sock[track_idx];
     if (!rtpSockRef || !rtcpSockRef) {
-        auto pr = makeSockPair(getPoller(), get_local_ip());
+        auto pr = makeSockPair(getPoller(), get_local_ip(), nullptr);
         rtpSockRef = pr.first;
         rtcpSockRef = pr.second;
     }

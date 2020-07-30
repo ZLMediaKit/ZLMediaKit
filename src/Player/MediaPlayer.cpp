@@ -23,7 +23,7 @@ MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
     }
 }
 
-MediaPlayer::MediaPlayer(PlayerBase::Ptr socket, const EventPoller::Ptr &poller) {
+MediaPlayer::MediaPlayer(Socket::Ptr socket, const EventPoller::Ptr &poller) {
     _poller = poller;
     if(!_poller){
         _poller = EventPollerPool::Instance().getPoller();
