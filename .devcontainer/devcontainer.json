@@ -1,0 +1,14 @@
+{
+	"name": "ZL Environment",
+	"dockerFile": "Dockerfile",
+	"extensions": [
+		"dracula-theme.theme-dracula",
+		"vadimcn.vscode-lldb",
+		"ms-vscode.cpptools",
+		"ms-vscode.cmake-tools",
+		"twxs.cmake",
+		"mhutchie.git-graph",
+		"eamodio.gitlens",
+		"ms-azuretools.vscode-docker"
+	],
+}

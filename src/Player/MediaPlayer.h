@@ -26,6 +26,8 @@ public:
     typedef std::shared_ptr<MediaPlayer> Ptr;
 
     MediaPlayer(const EventPoller::Ptr &poller = nullptr);
+    MediaPlayer(PlayerBase::Ptr socket, const EventPoller::Ptr &poller = nullptr);
+
     virtual ~MediaPlayer();
     void play(const string &strUrl) override;
     void pause(bool bPause) override;
@@ -33,6 +35,7 @@ public:
     EventPoller::Ptr getPoller();
 private:
     EventPoller::Ptr _poller;
+    PlayerBase::Ptr _socket;
 };
 
 } /* namespace mediakit */

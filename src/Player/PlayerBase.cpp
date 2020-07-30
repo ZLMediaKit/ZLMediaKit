@@ -24,6 +24,10 @@ static bool end_of(const string &str, const string &substr){
 }
 
 PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const string &url_in) {
+    return createPlayer(poller, url_in, nullptr);
+}
+
+PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const string &url_in, PlayerBase::Ptr _socket) {
     static auto releasePlayer = [](PlayerBase *ptr){
         onceToken token(nullptr,[&](){
             delete  ptr;
@@ -39,23 +43,38 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const st
     }
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
-        return PlayerBase::Ptr(new TcpClientWithSSL<RtspPlayerImp>(poller),releasePlayer);
+        if (_socket)
+            return _socket;
+        else
+            return PlayerBase::Ptr(new TcpClientWithSSL<RtspPlayerImp>(poller),releasePlayer);
     }
 
     if (strcasecmp("rtsp",prefix.data()) == 0) {
-        return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
+        if (_socket)
+            return _socket;
+        else
+            return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
     }
 
     if (strcasecmp("rtmps",prefix.data()) == 0) {
-        return PlayerBase::Ptr(new TcpClientWithSSL<RtmpPlayerImp>(poller),releasePlayer);
+        if (_socket)
+            return _socket;
+        else
+            return PlayerBase::Ptr(new TcpClientWithSSL<RtmpPlayerImp>(poller),releasePlayer);
     }
 
     if (strcasecmp("rtmp",prefix.data()) == 0) {
-        return PlayerBase::Ptr(new RtmpPlayerImp(poller),releasePlayer);
+        if (_socket)
+            return _socket;
+        else
+            return PlayerBase::Ptr(new RtmpPlayerImp(poller),releasePlayer);
     }
 
     if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0) && end_of(url, ".m3u8")) {
-        return PlayerBase::Ptr(new HlsPlayerImp(poller),releasePlayer);
+        if (_socket)
+            return _socket;
+        else
+            return PlayerBase::Ptr(new HlsPlayerImp(poller),releasePlayer);
     }
 
     return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);

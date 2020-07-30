@@ -47,9 +47,12 @@ public:
 class PlayerBase : public DemuxerBase, public mINI{
 public:
     typedef std::shared_ptr<PlayerBase> Ptr;
+    
     static Ptr createPlayer(const EventPoller::Ptr &poller,const string &strUrl);
+    static Ptr createPlayer(const EventPoller::Ptr &poller,const string &strUrl, PlayerBase::Ptr _socket);
 
     PlayerBase();
+
     virtual ~PlayerBase(){}
 
     /**

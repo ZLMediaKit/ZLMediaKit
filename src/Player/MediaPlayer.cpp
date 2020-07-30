@@ -23,10 +23,18 @@ MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
     }
 }
 
+MediaPlayer::MediaPlayer(PlayerBase::Ptr socket, const EventPoller::Ptr &poller) {
+    _poller = poller;
+    if(!_poller){
+        _poller = EventPollerPool::Instance().getPoller();
+    }
+}
+
 MediaPlayer::~MediaPlayer() {
 }
+
 void MediaPlayer::play(const string &strUrl) {
-    _delegate = PlayerBase::createPlayer(_poller,strUrl);
+    _delegate = PlayerBase::createPlayer(_poller,strUrl,_socket);
     _delegate->setOnShutdown(_shutdownCB);
     _delegate->setOnPlayResult(_playResultCB);
     _delegate->setOnResume(_resumeCB);
@@ -50,6 +58,5 @@ void MediaPlayer::teardown() {
         _delegate->teardown();
     }
 }
-
 
 } /* namespace mediakit */
