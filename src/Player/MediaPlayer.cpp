@@ -24,6 +24,7 @@ MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
 }
 
 MediaPlayer::MediaPlayer(Socket::Ptr socket, const EventPoller::Ptr &poller) {
+    _socket = socket;
     _poller = poller;
     if(!_poller){
         _poller = EventPollerPool::Instance().getPoller();
