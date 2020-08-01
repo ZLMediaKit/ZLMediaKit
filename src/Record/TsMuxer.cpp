@@ -73,6 +73,11 @@ void TsMuxer::addTrack(const Track::Ptr &track) {
             break;
         }
 
+        case CodecOpus: {
+            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_OPUS, nullptr, 0);
+            break;
+        }
+
         default: WarnL << "mpeg-ts 不支持该编码格式,已忽略:" << track->getCodecName(); break;
     }
 

@@ -19,7 +19,7 @@
 - 提供完整的[MediaServer](https://github.com/xia-chu/ZLMediaKit/tree/master/server)服务器，可以免开发直接部署为商用服务器。
 - 提供完善的[restful api](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-API)以及[web hook](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-HOOK-API)，支持丰富的业务逻辑。
 - 打通了视频监控协议栈与直播协议栈，对RTSP/RTMP支持都很完善。
-- 全面支持H265/H264/AAC/G711。
+- 全面支持H265/H264/AAC/G711/OPUS。
 
 ## 项目定位
 
@@ -55,7 +55,7 @@
   - 支持HLS文件生成，自带HTTP文件服务器
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
-  - 支持H264/H265/AAC/G711编码
+  - 支持H264/H265/AAC/G711/OPUS编码
 
 - HTTP[S]与WebSocket
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`
@@ -68,7 +68,7 @@
 
 - GB28181与RTP推流
   - 支持UDP/TCP国标RTP(PS或TS)推流，可以转换成RTSP/RTMP/HLS等协议
-  - 支持H264/H265/AAC/G711编码
+  - 支持H264/H265/AAC/G711/OPUS编码
 
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4

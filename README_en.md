@@ -20,7 +20,7 @@
   - RTSP[S] player and pusher.
   - RTP Transport : `rtp over udp` `rtp over tcp` `rtp over http` `rtp udp multicast` .
   - Basic/Digest/Url Authentication.
-  - H264/H265/AAC/G711 codec.
+  - H265/H264/AAC/G711/OPUS codec.
   - Recorded as mp4.
   - Vod of mp4.
   
@@ -28,7 +28,7 @@
   - RTMP[S] server,support player and pusher.
   - RTMP[S] player and pusher.
   - Support HTTP-FLV player.
-  - H264/H265/AAC/G711 codec.
+  - H265/H264/AAC/G711/OPUS codec.
   - Recorded as flv or mp4.
   - Vod of mp4.
   - support [RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
@@ -55,62 +55,6 @@
   - Pull stream on Demand.
   - Support TS / PS streaming push through RTP,and it can be converted to RTSP / RTMP / HLS / FLV.
   - Support real-time online screenshot http api.
-
-
-- Protocol conversion:
-
-|          protocol/codec          | H264 | H265 | AAC  | other |
-| :------------------------------: | :--: | :--: | :--: | :---: |
-| RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  Y   |  Y   |   N   |
-|         RTMP --> RTSP[S]         |  Y   |  Y   |  Y   |   N   |
-|         RTSP[S] --> HLS          |  Y   |  Y   |  Y   |   N   |
-|           RTMP --> HLS           |  Y   |  Y   |  Y   |   N   |
-|         RTSP[S] --> MP4          |  Y   |  Y   |  Y   |   N   |
-|           RTMP --> MP4           |  Y   |  Y   |  Y   |   N   |
-|         MP4 --> RTSP[S]          |  Y   |  Y   |  Y   |   N   |
-|           MP4 --> RTMP           |  Y   |  Y   |  Y   |   N   |
-|           HLS --> RTSP/RTMP/MP4  |  Y   |  Y   |  Y   |   N   |
-
-- Stream generation：
-
-| feature/codec | H264 | H265 | AAC  | other |
-| :-----------: | :--: | :--: | :--: | :---: |
-| RTSP[S] push  |  Y   |  Y   |  Y   |   Y   |
-|  RTSP proxy   |  Y   |  Y   |  Y   |   Y   |
-|   RTMP push   |  Y   |  Y   |  Y   |   Y   |
-|  RTMP proxy   |  Y   |  Y   |  Y   |   Y   |
-
-- RTP transport:
-
-|  feature/transport  | tcp  | udp  | http | udp_multicast |
-| :-----------------: | :--: | :--: | :--: | :-----------: |
-| RTSP[S] Play Server |  Y   |  Y   |  Y   |       Y       |
-| RTSP[S] Push Server |  Y   |  Y   |  N   |       N       |
-|     RTSP Player     |  Y   |  Y   |  N   |       Y       |
-|     RTSP Pusher     |  Y   |  Y   |  N   |       N       |
-
-
-- Server supported:
-
-|       Server        | Y/N  |
-| :-----------------: | :--: |
-| RTSP[S] Play Server |  Y   |
-| RTSP[S] Push Server |  Y   |
-|        RTMP         |  Y   |
-| HTTP[S]/WebSocket[S] |  Y   |
-
-- Client supported:
-
-|   Client    | Y/N  |
-| :---------: | :--: |
-| RTSP Player |  Y   |
-| RTSP Pusher |  Y   |
-| RTMP Player |  Y   |
-| RTMP Pusher |  Y   |
-|   HTTP[S]   |  Y   |
-| WebSocket[S] |  Y   |
-| HLS player |  Y   |
-
 
 ## System Requirements
 
@@ -190,8 +134,6 @@ git submodule update --init
   cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake  -DPLATFORM=OS64COMBINED
   ```
   
-
-
 
 ### Build on Android
 
