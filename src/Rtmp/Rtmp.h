@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
@@ -74,10 +74,12 @@ using namespace toolkit;
 
 #define FLV_CODEC_AAC 10
 #define FLV_CODEC_H264 7
+//金山扩展: https://github.com/ksvc/FFmpeg/wiki
 #define FLV_CODEC_H265 12
 #define FLV_CODEC_G711A 7
 #define FLV_CODEC_G711U 8
-
+//参考学而思网校: https://github.com/notedit/rtmp/commit/6e314ac5b29611431f8fb5468596b05815743c10
+#define FLV_CODEC_OPUS 13
 
 namespace mediakit {
 
