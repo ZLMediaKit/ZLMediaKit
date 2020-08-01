@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
             return;
         }
 
-        auto viedoTrack = strongPlayer->getTrack(TrackVideo);
+        auto viedoTrack = strongPlayer->getTrack(TrackVideo, false);
         if (!viedoTrack) {
             WarnL << "没有视频!";
             return;
