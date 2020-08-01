@@ -148,7 +148,7 @@ public:
     }
 
     CodecId getCodecId() const override{
-        return _codecid;
+        return _codec_id;
     }
 
     bool keyFrame() const override {
@@ -160,7 +160,7 @@ public:
     }
 
 public:
-    CodecId _codecid = CodecInvalid;
+    CodecId _codec_id = CodecInvalid;
     string _buffer;
     uint32_t _dts = 0;
     uint32_t _pts = 0;
@@ -314,9 +314,19 @@ private:
 class FrameFromPtr : public Frame{
 public:
     typedef std::shared_ptr<FrameFromPtr> Ptr;
+    FrameFromPtr(CodecId codec_id, char *ptr, uint32_t size, uint32_t dts, uint32_t pts = 0, int prefix_size = 0){
+        _codec_id = codec_id;
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _pts = pts;
+        _prefix_size = prefix_size;
+    }
+
     char *data() const override{
         return _ptr;
     }
+
     uint32_t size() const override {
         return _size;
     }
@@ -336,12 +346,29 @@ public:
     bool cacheAble() const override {
         return false;
     }
+
+    CodecId getCodecId() const override{
+        return _codec_id;
+    }
+
+    bool keyFrame() const override {
+        return false;
+    }
+
+    bool configFrame() const override{
+        return false;
+    }
+
+protected:
+    FrameFromPtr() {}
+
 protected:
     char *_ptr;
     uint32_t _size;
     uint32_t _dts;
     uint32_t _pts = 0;
     uint32_t _prefix_size;
+    CodecId _codec_id = CodecInvalid;
 };
 
 }//namespace mediakit

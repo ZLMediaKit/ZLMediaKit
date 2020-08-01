@@ -17,7 +17,7 @@ namespace mediakit{
 /**
  * aac rtp转adts类
  */
-class AACRtpDecoder : public RtpCodec , public ResourcePoolHelper<AACFrame> {
+class AACRtpDecoder : public RtpCodec , public ResourcePoolHelper<FrameImp> {
 public:
     typedef std::shared_ptr<AACRtpDecoder> Ptr;
 
@@ -39,11 +39,11 @@ protected:
     AACRtpDecoder();
 
 private:
-    AACFrame::Ptr obtainFrame();
+    void obtainFrame();
     void flushData();
 
 private:
-    AACFrame::Ptr _frame;
+    FrameImp::Ptr _frame;
     string _aac_cfg;
     uint32_t _last_dts = 0;
 };

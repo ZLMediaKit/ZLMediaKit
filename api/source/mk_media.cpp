@@ -188,8 +188,8 @@ API_EXPORT void API_CALL mk_media_input_pcm(mk_media ctx, void *data , int len, 
 #endif //ENABLE_FAAC
 }
 
-API_EXPORT void API_CALL mk_media_input_g711(mk_media ctx, void* data, int len, uint32_t dts){
+API_EXPORT void API_CALL mk_media_input_audio(mk_media ctx, void* data, int len, uint32_t dts){
     assert(ctx && data && len > 0);
     MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
-    (*obj)->getChannel()->inputG711((char*)data, len, dts);
+    (*obj)->getChannel()->inputAudio((char*)data, len, dts);
 }

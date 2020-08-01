@@ -43,7 +43,9 @@ bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
 }
 
 void AACRtmpDecoder::onGetAAC(const char* data, int len, uint32_t stamp) {
-    auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
+    auto frame = ResourcePoolHelper<FrameImp>::obtainObj();
+    frame->_codec_id = CodecAAC;
+
     //生成adts头
     char adts_header[32] = {0};
     auto size = dumpAacConfig(_aac_cfg, len, (uint8_t *) adts_header, sizeof(adts_header));

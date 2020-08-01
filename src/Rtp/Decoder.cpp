@@ -175,7 +175,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 WarnL<< "audio track change to AAC from codecid:" << getCodecName(_codecid_audio);
                 return;
             }
-            onFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 0, 7));
+            onFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data, bytes, dts, 0, ADTS_HEADER_LEN));
             break;
         }
 
@@ -195,9 +195,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 WarnL<< "audio track change to G711 from codecid:" << getCodecName(_codecid_audio);
                 return;
             }
-            auto frame = std::make_shared<G711FrameNoCacheAble>((char *) data, bytes, dts);
-            frame->setCodec(codec);
-            onFrame(frame);
+            onFrame(std::make_shared<FrameFromPtr>(codec, (char *) data, bytes, dts));
             break;
         }
         default:

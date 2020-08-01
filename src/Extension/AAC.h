@@ -22,41 +22,6 @@ int dumpAacConfig(const string &config, int length, uint8_t *out, int out_size);
 bool parseAacConfig(const string &config, int &samplerate, int &channels);
 
 /**
- * aac帧，包含adts头
- */
-class AACFrame : public FrameImp {
-public:
-    typedef std::shared_ptr<AACFrame> Ptr;
-    AACFrame(){
-        _codecid = CodecAAC;
-    }
-};
-
-class AACFrameNoCacheAble : public FrameFromPtr {
-public:
-    typedef std::shared_ptr<AACFrameNoCacheAble> Ptr;
-
-    AACFrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts,uint32_t pts = 0,int prefix_size = ADTS_HEADER_LEN){
-        _ptr = ptr;
-        _size = size;
-        _dts = dts;
-        _prefix_size = prefix_size;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecAAC;
-    }
-
-    bool keyFrame() const override {
-        return false;
-    }
-
-    bool configFrame() const override{
-        return false;
-    }
-};
-
-/**
  * aac音频通道
  */
 class AACTrack : public AudioTrack{

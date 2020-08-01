@@ -31,7 +31,7 @@ typedef void(API_CALL *on_mk_play_event)(void *user_data,int err_code,const char
  * 收到音视频数据回调
  * @param user_data 用户数据指针
  * @param track_type 0：视频，1：音频
- * @param codec_id 0：H264，1：H265，2：AAC 3.G711A 4.G711U
+ * @param codec_id 0：H264，1：H265，2：AAC 3.G711A 4.G711U 5.OPUS
  * @param data 数据指针
  * @param len 数据长度
  * @param dts 解码时间戳，单位毫秒
