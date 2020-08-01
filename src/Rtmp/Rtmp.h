@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
@@ -130,8 +130,6 @@ public:
     uint8_t typeId;
     uint32_t bodySize = 0;
     uint32_t timeStamp = 0;
-    bool hasAbsStamp = false;
-    bool hasExtStamp = false;
     uint32_t deltaStamp = 0;
     uint32_t streamId;
     uint32_t chunkId;
@@ -153,8 +151,6 @@ public:
         typeId = that.typeId;
         bodySize = that.bodySize;
         timeStamp = that.timeStamp;
-        hasAbsStamp = that.hasAbsStamp;
-        hasExtStamp = that.hasExtStamp;
         deltaStamp = that.deltaStamp;
         streamId = that.streamId;
         chunkId = that.chunkId;
