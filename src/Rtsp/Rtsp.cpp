@@ -368,9 +368,9 @@ bool RtspUrl::setup(bool isSSL, const string &strUrl, const string &strUser, con
 std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &poller, const string &local_ip, Socket::Ptr socket){
     std::shared_ptr<Socket> pSockRtp;
     if (socket) 
-        pSockRtp = std::make_shared<Socket>(poller);
-    else
         pSockRtp = std::shared_ptr<Socket>(socket->clone(poller));
+    else
+        pSockRtp = std::make_shared<Socket>(poller);
 
     if (!pSockRtp->bindUdpSock(0, local_ip.data())) {
         //分配端口失败
@@ -381,9 +381,9 @@ std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &polle
     bool even_numbers = pSockRtp->get_local_port() % 2 == 0;
     std::shared_ptr<Socket> pSockRtcp;
     if (socket)
-        pSockRtcp = std::make_shared<Socket>(poller);
-    else
         pSockRtcp = std::shared_ptr<Socket>(socket->clone(poller));
+    else
+        pSockRtcp = std::make_shared<Socket>(poller);
     if (!pSockRtcp->bindUdpSock(pSockRtp->get_local_port() + (even_numbers ? 1 : -1), local_ip.data())) {
         //分配端口失败
         throw runtime_error("open udp socket failed");
