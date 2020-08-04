@@ -554,20 +554,22 @@ void RtmpProtocol::handle_rtmp() {
         chunkData.chunkId = _iNowChunkID;
         switch (iHeaderLen) {
             case 12:
+                chunkData.hasAbsStamp = true;
                 chunkData.streamId = load_le32(header.streamId);
             case 8:
                 chunkData.bodySize = load_be24(header.bodySize);
                 chunkData.typeId = header.typeId;
             case 4:
-                chunkData.deltaStamp = load_be24(header.timeStamp);
+                chunkData.tsField = load_be24(header.timeStamp);
         }
 
-        if (chunkData.deltaStamp == 0xFFFFFF) {
+        auto timeStamp = chunkData.tsField;
+        if (chunkData.tsField == 0xFFFFFF) {
             if (_strRcvBuf.size() < iHeaderLen + iOffset + 4) {
                 //need more data
                 return;
             }
-            chunkData.deltaStamp = load_be32(_strRcvBuf.data() + iOffset + iHeaderLen);
+            timeStamp = load_be32(_strRcvBuf.data() + iOffset + iHeaderLen);
             iOffset += 4;
         }
 
@@ -580,24 +582,17 @@ void RtmpProtocol::handle_rtmp() {
             //need more data
             return;
         }
-
-        if (iHeaderLen == 12) {
-            //绝对时间戳
-            chunkData.timeStamp = chunkData.deltaStamp;
-        } else {
-            //时间戳增量
-            chunkData.timeStamp += chunkData.deltaStamp;
-        }
-
         chunkData.strBuf.append(_strRcvBuf, iHeaderLen + iOffset, iMore);
         _strRcvBuf.erase(0, iHeaderLen + iOffset + iMore);
         if (chunkData.strBuf.size() == chunkData.bodySize) {
             //frame is ready
             _iNowStreamID = chunkData.streamId;
-            if (chunkData.bodySize) {
+            chunkData.timeStamp = timeStamp + (chunkData.hasAbsStamp ? 0 : chunkData.timeStamp);
+            if(chunkData.bodySize){
                 handle_rtmpChunk(chunkData);
             }
             chunkData.strBuf.clear();
+            chunkData.hasAbsStamp = false;
         }
     }
 }
