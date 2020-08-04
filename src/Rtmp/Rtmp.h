@@ -132,7 +132,8 @@ public:
     uint8_t typeId;
     uint32_t bodySize = 0;
     uint32_t timeStamp = 0;
-    uint32_t deltaStamp = 0;
+    bool hasAbsStamp = false;
+    uint32_t tsField = 0;
     uint32_t streamId;
     uint32_t chunkId;
     std::string strBuf;
@@ -153,7 +154,8 @@ public:
         typeId = that.typeId;
         bodySize = that.bodySize;
         timeStamp = that.timeStamp;
-        deltaStamp = that.deltaStamp;
+        hasAbsStamp = that.hasAbsStamp;
+        tsField = that.tsField;
         streamId = that.streamId;
         chunkId = that.chunkId;
         strBuf = std::move(that.strBuf);
