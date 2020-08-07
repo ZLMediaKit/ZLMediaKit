@@ -55,6 +55,10 @@ option(ENABLE_SERVER "Enable Server" true)
 
 set(LINK_LIB_LIST zlmediakit zltoolkit)
 
+if(ANDROID)
+    list(APPEND LINK_LIB_LIST log)
+endif(ANDROID)
+
 #查找openssl是否安装
 find_package(OpenSSL QUIET)
 if (OPENSSL_FOUND AND ENABLE_OPENSSL)
