@@ -15,6 +15,7 @@
 #include "Extension/H265.h"
 #include "Extension/AAC.h"
 #include "Extension/G711.h"
+#include "Extension/Opus.h"
 
 #if defined(ENABLE_RTPPROXY) || defined(ENABLE_HLS)
 #include "mpeg-ts-proto.h"
@@ -91,6 +92,7 @@ static const char *getCodecName(int codec_id) {
         SWITCH_CASE(PSI_STREAM_AUDIO_G722);
         SWITCH_CASE(PSI_STREAM_AUDIO_G723);
         SWITCH_CASE(PSI_STREAM_AUDIO_G729);
+        SWITCH_CASE(PSI_STREAM_AUDIO_OPUS);
         default : return "unknown codec";
     }
 }
@@ -175,7 +177,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 WarnL<< "audio track change to AAC from codecid:" << getCodecName(_codecid_audio);
                 return;
             }
-            onFrame(std::make_shared<AACFrameNoCacheAble>((char *) data, bytes, dts, 0, 7));
+            onFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data, bytes, dts, 0, ADTS_HEADER_LEN));
             break;
         }
 
@@ -195,11 +197,27 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 WarnL<< "audio track change to G711 from codecid:" << getCodecName(_codecid_audio);
                 return;
             }
-            auto frame = std::make_shared<G711FrameNoCacheAble>((char *) data, bytes, dts);
-            frame->setCodec(codec);
-            onFrame(frame);
+            onFrame(std::make_shared<FrameFromPtr>(codec, (char *) data, bytes, dts));
             break;
         }
+
+        case PSI_STREAM_AUDIO_OPUS: {
+            if (!_codecid_audio) {
+                //获取到音频
+                _codecid_audio = codecid;
+                InfoL << "got audio track: opus";
+                auto track = std::make_shared<OpusTrack>();
+                onTrack(track);
+            }
+
+            if (codecid != _codecid_audio) {
+                WarnL << "audio track change to opus from codecid:" << getCodecName(_codecid_audio);
+                return;
+            }
+            onFrame(std::make_shared<FrameFromPtr>(CodecOpus, (char *) data, bytes, dts));
+            break;
+        }
+
         default:
             if(codecid != 0){
                 WarnL<< "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;

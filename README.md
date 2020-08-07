@@ -19,7 +19,7 @@
 - 提供完整的[MediaServer](https://github.com/xia-chu/ZLMediaKit/tree/master/server)服务器，可以免开发直接部署为商用服务器。
 - 提供完善的[restful api](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-API)以及[web hook](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-HOOK-API)，支持丰富的业务逻辑。
 - 打通了视频监控协议栈与直播协议栈，对RTSP/RTMP支持都很完善。
-- 全面支持H265/H264/AAC/G711。
+- 全面支持H265/H264/AAC/G711/OPUS。
 
 ## 项目定位
 
@@ -38,7 +38,7 @@
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口
   - 支持H265编码
   - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
-  - 支持任意编码格式的rtsp推流，只是除H264/H265/AAC/G711外无法转协议
+  - 支持H264/H265/AAC/G711/OPUS编码，其他编码能转发但不能转协议
 
 - RTMP[S]
   - RTMP[S] 播放服务器，支持RTSP/MP4/HLS转RTMP
@@ -47,16 +47,17 @@
   - RTMP[S] 推流客户端
   - 支持http[s]-flv直播
   - 支持websocket-flv直播
-  - 支持任意编码格式的rtmp推流，只是除H264/H265/AAC/G711外无法转协议
+  - 支持H264/H265/AAC/G711/OPUS编码，其他编码能转发但不能转协议
   - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
+  - 支持[RTMP-OPUS](https://github.com/xia-chu/ZLMediaKit/wiki/RTMP%E5%AF%B9H265%E5%92%8COPUS%E7%9A%84%E6%94%AF%E6%8C%81)
 
 - HLS
   - 支持HLS文件生成，自带HTTP文件服务器
-  - 通过cookie追踪技术，可以模拟HLS播放为长连接，实现丰富的业务逻辑
-  - 支持完备的HLS用户追踪、播放统计等业务功能，可以实现HLS按需拉流等业务
+  - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
+  - 支持H264/H265/AAC/G711/OPUS编码
 
-- HTTP[S]
+- HTTP[S]与WebSocket
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`
   - 客户端提供`文件下载器(支持断点续传)`,`接口请求器`,`文件上传器`
   - 完整HTTP API服务器，可以作为web后台开发框架
@@ -65,12 +66,14 @@
   - 支持WebSocket服务器和客户端
   - 支持http文件访问鉴权
 
-- GB28181
+- GB28181与RTP推流
   - 支持UDP/TCP国标RTP(PS或TS)推流，可以转换成RTSP/RTMP/HLS等协议
+  - 支持H264/H265/AAC/G711/OPUS编码
 
-- 点播
+- MP4点播与录制
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
+  - 支持H264/H265/AAC/G711/OPUS编码
   
 - 其他
   - 支持丰富的restful api以及web hook事件 
@@ -123,6 +126,7 @@ bash build_docker_images.sh
  - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
  - [GB28181-2016网络视频平台](https://github.com/swwheihei/wvp)
  - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
+ - [基于C SDK实现的推流客户端](https://github.com/hctym1995/ZLM_ApiDemo)
  
 
 ## 授权协议

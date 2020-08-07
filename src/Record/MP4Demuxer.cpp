@@ -15,6 +15,7 @@
 #include "Extension/H264.h"
 #include "Extension/AAC.h"
 #include "Extension/G711.h"
+#include "Extension/Opus.h"
 using namespace toolkit;
 namespace mediakit {
 
@@ -119,14 +120,22 @@ void MP4Demuxer::onAudioTrack(uint32_t track_id, uint8_t object, int channel_cou
         case MOV_OBJECT_AAC:{
             auto audio = std::make_shared<AACTrack>(bytes > 0 ? string((char *)extra,bytes) : "");
             _track_to_codec.emplace(track_id, audio);
-        }
             break;
+        }
+
         case MOV_OBJECT_G711a:
         case MOV_OBJECT_G711u:{
             auto audio = std::make_shared<G711Track>(object == MOV_OBJECT_G711a ? CodecG711A : CodecG711U, sample_rate, channel_count, bit_per_sample / channel_count );
             _track_to_codec.emplace(track_id, audio);
-        }
             break;
+        }
+
+        case MOV_OBJECT_OPUS: {
+            auto audio = std::make_shared<OpusTrack>();
+            _track_to_codec.emplace(track_id, audio);
+            break;
+        }
+
         default:
             WarnL << "不支持该编码类型的MP4,已忽略:" << getObjectName(object);
             break;
@@ -196,6 +205,11 @@ public:
     FrameWrapper(const Buffer::Ptr &buf, int64_t pts, int64_t dts, int prefix) : Parent(buf->data(), buf->size(), dts, pts, prefix){
         _buf = buf;
     }
+
+    FrameWrapper(CodecId codec,const Buffer::Ptr &buf, int64_t pts, int64_t dts, int prefix) : Parent(codec, buf->data(), buf->size(), dts, pts, prefix){
+        _buf = buf;
+    }
+
     bool cacheAble() const override {
         return true;
     }
@@ -231,14 +245,11 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
             return std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, pts, dts, 4);
         }
 
-        case CodecAAC :
-            return std::make_shared<FrameWrapper<AACFrameNoCacheAble> >(buf, pts, dts, 0);
-
+        case CodecOpus:
+        case CodecAAC:
         case CodecG711A:
         case CodecG711U: {
-            auto frame = std::make_shared<FrameWrapper<G711FrameNoCacheAble> >(buf, pts, dts, 0);
-            frame->setCodec(codec);
-            return frame;
+            return std::make_shared<FrameWrapper<FrameFromPtr> >(codec, buf, pts, dts, 0);
         }
         default:
             return nullptr;

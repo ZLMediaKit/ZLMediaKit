@@ -37,7 +37,7 @@ public:
     } NalType;
 
     H264Frame(){
-        _codecid = CodecH264;
+        _codec_id = CodecH264;
     }
 
     bool keyFrame() const override {

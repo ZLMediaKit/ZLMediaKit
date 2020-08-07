@@ -106,6 +106,7 @@ public:
         return _ui32MtuSize;
     }
     RtpPacket::Ptr makeRtp(TrackType type,const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
+
 protected:
     uint32_t _ui32Ssrc;
     uint32_t _ui32SampleRate;

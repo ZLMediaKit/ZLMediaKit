@@ -103,8 +103,8 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
                 if (off + len > length) {
                     break;
                 }
-                if (len > 4) {
-                    //过小的帧丢弃
+                if (len > 0) {
+                    //有有效数据
                     _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
                     _h264frame->_buffer.append((char *) ptr, len);
                     _h264frame->_pts = rtppack->timeStamp;

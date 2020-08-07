@@ -67,19 +67,19 @@ AACRtpDecoder::AACRtpDecoder(const Track::Ptr &track) {
     } else {
         _aac_cfg = aacTrack->getAacCfg();
     }
-    _frame = obtainFrame();
+    obtainFrame();
 }
 
 AACRtpDecoder::AACRtpDecoder() {
-    _frame = obtainFrame();
+    obtainFrame();
 }
 
-AACFrame::Ptr AACRtpDecoder::obtainFrame() {
+void AACRtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    auto frame = ResourcePoolHelper<AACFrame>::obtainObj();
-    frame->_prefix_size = 0;
-    frame->_buffer.clear();
-    return frame;
+    _frame = ResourcePoolHelper<FrameImp>::obtainObj();
+    _frame->_prefix_size = 0;
+    _frame->_buffer.clear();
+    _frame->_codec_id = CodecAAC;
 }
 
 bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
@@ -143,11 +143,7 @@ void AACRtpDecoder::flushData() {
         _frame->_prefix_size = size;
     }
     RtpCodec::inputFrame(_frame);
-    _frame = obtainFrame();
+    obtainFrame();
 }
 
-
 }//namespace mediakit
-
-
-

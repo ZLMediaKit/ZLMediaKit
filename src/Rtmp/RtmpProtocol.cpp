@@ -514,35 +514,35 @@ void RtmpProtocol::handle_rtmp() {
     while (!_strRcvBuf.empty()) {
         uint8_t flags = _strRcvBuf[0];
         int iOffset = 0;
-        static const size_t HEADER_LENGTH[] = { 12, 8, 4, 1 };
+        static const size_t HEADER_LENGTH[] = {12, 8, 4, 1};
         size_t iHeaderLen = HEADER_LENGTH[flags >> 6];
         _iNowChunkID = flags & 0x3f;
         switch (_iNowChunkID) {
-        case 0: {
-            //0 值表示二字节形式，并且 ID 范围 64 - 319
-            //(第二个字节 + 64)。
-            if (_strRcvBuf.size() < 2) {
-                //need more data
-                return;
+            case 0: {
+                //0 值表示二字节形式，并且 ID 范围 64 - 319
+                //(第二个字节 + 64)。
+                if (_strRcvBuf.size() < 2) {
+                    //need more data
+                    return;
+                }
+                _iNowChunkID = 64 + (uint8_t) (_strRcvBuf[1]);
+                iOffset = 1;
             }
-            _iNowChunkID = 64 + (uint8_t) (_strRcvBuf[1]);
-            iOffset = 1;
-        }
-            break;
-        case 1: {
-            //1 值表示三字节形式，并且 ID 范围为 64 - 65599
-            //((第三个字节) * 256 + 第二个字节 + 64)。
-            if (_strRcvBuf.size() < 3) {
-                //need more data
-                return;
+                break;
+            case 1: {
+                //1 值表示三字节形式，并且 ID 范围为 64 - 65599
+                //((第三个字节) * 256 + 第二个字节 + 64)。
+                if (_strRcvBuf.size() < 3) {
+                    //need more data
+                    return;
+                }
+                _iNowChunkID = 64 + ((uint8_t) (_strRcvBuf[2]) << 8) + (uint8_t) (_strRcvBuf[1]);
+                iOffset = 2;
             }
-            _iNowChunkID = 64 + ((uint8_t) (_strRcvBuf[2]) << 8) + (uint8_t) (_strRcvBuf[1]);
-            iOffset = 2;
-        }
-            break;
-        default:
-            //带有 2 值的块流 ID 被保留，用于下层协议控制消息和命令。
-            break;
+                break;
+            default:
+                //带有 2 值的块流 ID 被保留，用于下层协议控制消息和命令。
+                break;
         }
 
         if (_strRcvBuf.size() < iHeaderLen + iOffset) {
@@ -553,51 +553,46 @@ void RtmpProtocol::handle_rtmp() {
         auto &chunkData = _mapChunkData[_iNowChunkID];
         chunkData.chunkId = _iNowChunkID;
         switch (iHeaderLen) {
-        case 12:
-            chunkData.hasAbsStamp = true;
-            chunkData.streamId = load_le32(header.streamId);
-        case 8:
-            chunkData.bodySize = load_be24(header.bodySize);
-            chunkData.typeId = header.typeId;
-        case 4:
-            chunkData.deltaStamp = load_be24(header.timeStamp);
-            chunkData.hasExtStamp = chunkData.deltaStamp == 0xFFFFFF;
+            case 12:
+                chunkData.hasAbsStamp = true;
+                chunkData.streamId = load_le32(header.streamId);
+            case 8:
+                chunkData.bodySize = load_be24(header.bodySize);
+                chunkData.typeId = header.typeId;
+            case 4:
+                chunkData.tsField = load_be24(header.timeStamp);
         }
-        
-        if (chunkData.hasExtStamp) {
+
+        auto timeStamp = chunkData.tsField;
+        if (chunkData.tsField == 0xFFFFFF) {
             if (_strRcvBuf.size() < iHeaderLen + iOffset + 4) {
                 //need more data
                 return;
             }
-            chunkData.deltaStamp = load_be32(_strRcvBuf.data() + iOffset + iHeaderLen);
+            timeStamp = load_be32(_strRcvBuf.data() + iOffset + iHeaderLen);
             iOffset += 4;
         }
-        
+
         if (chunkData.bodySize < chunkData.strBuf.size()) {
             throw std::runtime_error("非法的bodySize");
         }
-        
+
         auto iMore = min(_iChunkLenIn, chunkData.bodySize - chunkData.strBuf.size());
         if (_strRcvBuf.size() < iHeaderLen + iOffset + iMore) {
             //need more data
             return;
         }
-        
         chunkData.strBuf.append(_strRcvBuf, iHeaderLen + iOffset, iMore);
         _strRcvBuf.erase(0, iHeaderLen + iOffset + iMore);
-        
         if (chunkData.strBuf.size() == chunkData.bodySize) {
             //frame is ready
             _iNowStreamID = chunkData.streamId;
-            chunkData.timeStamp = chunkData.deltaStamp + (chunkData.hasAbsStamp ? 0 : chunkData.timeStamp);
-            
+            chunkData.timeStamp = timeStamp + (chunkData.hasAbsStamp ? 0 : chunkData.timeStamp);
             if(chunkData.bodySize){
                 handle_rtmpChunk(chunkData);
             }
             chunkData.strBuf.clear();
             chunkData.hasAbsStamp = false;
-            chunkData.hasExtStamp = false;
-            chunkData.deltaStamp = 0;
         }
     }
 }

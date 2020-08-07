@@ -74,10 +74,12 @@ using namespace toolkit;
 
 #define FLV_CODEC_AAC 10
 #define FLV_CODEC_H264 7
+//金山扩展: https://github.com/ksvc/FFmpeg/wiki
 #define FLV_CODEC_H265 12
 #define FLV_CODEC_G711A 7
 #define FLV_CODEC_G711U 8
-
+//参考学而思网校: https://github.com/notedit/rtmp/commit/6e314ac5b29611431f8fb5468596b05815743c10
+#define FLV_CODEC_OPUS 13
 
 namespace mediakit {
 
@@ -131,8 +133,7 @@ public:
     uint32_t bodySize = 0;
     uint32_t timeStamp = 0;
     bool hasAbsStamp = false;
-    bool hasExtStamp = false;
-    uint32_t deltaStamp = 0;
+    uint32_t tsField = 0;
     uint32_t streamId;
     uint32_t chunkId;
     std::string strBuf;
@@ -154,8 +155,7 @@ public:
         bodySize = that.bodySize;
         timeStamp = that.timeStamp;
         hasAbsStamp = that.hasAbsStamp;
-        hasExtStamp = that.hasExtStamp;
-        deltaStamp = that.deltaStamp;
+        tsField = that.tsField;
         streamId = that.streamId;
         chunkId = that.chunkId;
         strBuf = std::move(that.strBuf);

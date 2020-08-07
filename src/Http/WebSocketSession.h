@@ -177,6 +177,7 @@ protected:
         switch (header._opcode){
             case WebSocketHeader::CLOSE:{
                 HttpSessionType::encode(header,nullptr);
+                HttpSessionType::shutdown(SockException(Err_shutdown, "recv close request from client"));
             }
                 break;
             case WebSocketHeader::PING:{

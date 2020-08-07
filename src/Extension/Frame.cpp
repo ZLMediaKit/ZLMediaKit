@@ -35,22 +35,18 @@ public:
         _dts = frame->dts();
         _pts = frame->pts();
         _prefix_size = frame->prefixSize();
-        _codecid = frame->getCodecId();
+        _codec_id = frame->getCodecId();
         _key = frame->keyFrame();
         _config = frame->configFrame();
     }
 
-    virtual ~FrameCacheAble() = default;
+    ~FrameCacheAble() override = default;
 
     /**
      * 可以被缓存
      */
     bool cacheAble() const override {
         return true;
-    }
-
-    CodecId getCodecId() const override{
-        return _codecid;
     }
 
     bool keyFrame() const override{
@@ -60,10 +56,10 @@ public:
     bool configFrame() const override{
         return _config;
     }
+
 private:
     Frame::Ptr _frame;
     BufferRaw::Ptr _buffer;
-    CodecId _codecid;
     bool _key;
     bool _config;
 };

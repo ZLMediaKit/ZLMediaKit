@@ -17,51 +17,12 @@
 namespace mediakit{
 
 /**
- * Opus帧
- */
-class OpusFrame : public FrameImp {
-public:
-    typedef std::shared_ptr<OpusFrame> Ptr;
-
-    OpusFrame(){
-        _codecid = CodecOpus;
-    }
-};
-
-/**
- * 不可缓存的Opus帧
- */
-class OpusFrameNoCacheAble : public FrameFromPtr {
-public:
-    typedef std::shared_ptr<OpusFrameNoCacheAble> Ptr;
-
-    OpusFrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts, uint32_t pts = 0,int prefix_size = 0){
-        _ptr = ptr;
-        _size = size;
-        _dts = dts;
-        _prefix_size = prefix_size;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecOpus;
-    }
-
-    bool keyFrame() const override {
-        return false;
-    }
-
-    bool configFrame() const override{
-        return false;
-    }
-};
-
-/**
  * Opus帧音频通道
  */
 class OpusTrack : public AudioTrackImp{
 public:
     typedef std::shared_ptr<OpusTrack> Ptr;
-    OpusTrack(int sample_rate, int channels, int sample_bit) : AudioTrackImp(CodecOpus,sample_rate,channels,sample_bit){}
+    OpusTrack() : AudioTrackImp(CodecOpus,48000,2,16){}
 
 private:
     //克隆该Track
