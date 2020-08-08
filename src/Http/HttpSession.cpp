@@ -132,36 +132,37 @@ void HttpSession::onManager() {
 
 bool HttpSession::checkWebSocket(){
     auto Sec_WebSocket_Key = _parser["Sec-WebSocket-Key"];
-    if(Sec_WebSocket_Key.empty()){
+    if (Sec_WebSocket_Key.empty()) {
         return false;
     }
-    auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
+    auto Sec_WebSocket_Accept = encodeBase64(
+            SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
     KeyValue headerOut;
     headerOut["Upgrade"] = "websocket";
     headerOut["Connection"] = "Upgrade";
     headerOut["Sec-WebSocket-Accept"] = Sec_WebSocket_Accept;
-    if(!_parser["Sec-WebSocket-Protocol"].empty()){
+    if (!_parser["Sec-WebSocket-Protocol"].empty()) {
         headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
     }
 
-    auto res_cb = [this,headerOut](){
+    auto res_cb = [this, headerOut]() {
         _flv_over_websocket = true;
-        sendResponse("101 Switching Protocols",false,nullptr,headerOut,nullptr, true);
+        sendResponse("101 Switching Protocols", false, nullptr, headerOut, nullptr, true);
     };
 
     //判断是否为websocket-flv
-    if(checkLiveFlvStream(res_cb)){
+    if (checkLiveFlvStream(res_cb)) {
         //这里是websocket-flv直播请求
         return true;
     }
 
     //如果checkLiveFlvStream返回false,则代表不是websocket-flv，而是普通的websocket连接
-    if(!onWebSocketConnect(_parser)){
-        sendResponse("501 Not Implemented",true, nullptr, headerOut);
+    if (!onWebSocketConnect(_parser)) {
+        sendResponse("501 Not Implemented", true, nullptr, headerOut);
         return true;
     }
-    sendResponse("101 Switching Protocols",false, nullptr,headerOut);
+    sendResponse("101 Switching Protocols", false, nullptr, headerOut, nullptr, true);
     return true;
 }
 
@@ -389,7 +390,7 @@ void HttpSession::sendResponse(const char *pcStatus,
                                const char *pcContentType,
                                const HttpSession::KeyValue &header,
                                const HttpBody::Ptr &body,
-                               bool is_http_flv ){
+                               bool no_content_length ){
     GET_CONFIG(string,charSet,Http::kCharSet);
     GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
 
@@ -400,7 +401,7 @@ void HttpSession::sendResponse(const char *pcStatus,
         size = body->remainSize();
     }
 
-    if(is_http_flv){
+    if(no_content_length){
         //http-flv直播是Keep-Alive类型
         bClose = false;
     }else if(size >= INT64_MAX){
@@ -425,7 +426,7 @@ void HttpSession::sendResponse(const char *pcStatus,
         headerOut.emplace(kAccessControlAllowCredentials, "true");
     }
 
-    if(!is_http_flv && size >= 0 && size < INT64_MAX){
+    if(!no_content_length && size >= 0 && size < INT64_MAX){
         //文件长度为固定值,且不是http-flv强制设置Content-Length
         headerOut[kContentLength] = to_string(size);
     }
@@ -643,6 +644,21 @@ void HttpSession::onWrite(const Buffer::Ptr &buffer, bool flush) {
 void HttpSession::onWebSocketEncodeData(const Buffer::Ptr &buffer){
     _ui64TotalBytes += buffer->size();
     send(buffer);
+}
+
+void HttpSession::onWebSocketDecodeComplete(const WebSocketHeader &header_in){
+    WebSocketHeader& header = const_cast<WebSocketHeader&>(header_in);
+    header._mask_flag = false;
+
+    switch (header._opcode) {
+        case WebSocketHeader::CLOSE: {
+            encode(header, nullptr);
+            shutdown(SockException(Err_shutdown, "recv close request from client"));
+            break;
+        }
+
+        default : break;
+    }
 }
 
 void HttpSession::onDetach() {
