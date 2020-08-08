@@ -111,7 +111,7 @@ static inline bool checkTS(const uint8_t *packet, int bytes){
 }
 
 void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
-    if(rtp->sequence != _sequence + (uint16_t)1 && _sequence != 0){
+    if(rtp->sequence != (uint16_t)(_sequence + 1) && _sequence != 0){
         WarnP(this) << "rtp丢包:" << rtp->sequence << " != " << _sequence << "+1" << ",公网环境下请使用tcp方式推流";
     }
     _sequence = rtp->sequence;
@@ -122,6 +122,21 @@ void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
         fwrite((uint8_t *) rtp->data() + 4, rtp->size() - 4, 1, _save_file_rtp.get());
     }
     decodeRtp(rtp->data() + 4 ,rtp->size() - 4);
+}
+
+const char *RtpProcess::onSearchPacketTail(const char *packet,int bytes){
+    try {
+        auto ret = _decoder->input((uint8_t *) packet, bytes);
+        if (ret > 0) {
+            return packet + ret;
+        }
+        return nullptr;
+    } catch (std::exception &ex) {
+        InfoL << "解析ps或ts异常: bytes=" << bytes
+              << " ,exception=" << ex.what()
+              << " ,hex=" << hexdump((uint8_t *) packet, bytes);
+        return nullptr;
+    }
 }
 
 void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) {
@@ -143,10 +158,7 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
     }
 
     if (_decoder) {
-        auto ret = _decoder->input((uint8_t *) packet, bytes);
-        if (ret != bytes) {
-            WarnP(this) << ret << " != " << bytes << " " << flags;
-        }
+        HttpRequestSplitter::input((char *) packet, bytes);
     }
 }
 
