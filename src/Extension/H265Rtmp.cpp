@@ -53,14 +53,14 @@ static bool getH265ConfigFrame(const RtmpPacket &thiz,string &frame) {
 
     struct mpeg4_hevc_t hevc = {0};
     if (mpeg4_hevc_decoder_configuration_record_load((uint8_t *) extra, bytes, &hevc) > 0) {
-        uint8_t config[1024] = {0};
-        int size = mpeg4_hevc_to_nalu(&hevc, config, sizeof(config));
+        uint8_t *config = new uint8_t[bytes * 2];
+        int size = mpeg4_hevc_to_nalu(&hevc, config, bytes * 2);
         if (size > 4) {
             frame.assign((char *) config + 4, size - 4);
-            return true;
         }
+        delete [] config;
+        return size > 4;
     }
-
     return false;
 }
 #endif
