@@ -68,10 +68,7 @@ public:
         _dts = dts;
         _pts = pts;
         _prefix_size = prefix_size;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecH264;
+        _codec_id = CodecH264;
     }
 
     bool keyFrame() const override {
