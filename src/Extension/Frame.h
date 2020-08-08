@@ -314,8 +314,13 @@ private:
 class FrameFromPtr : public Frame{
 public:
     typedef std::shared_ptr<FrameFromPtr> Ptr;
-    FrameFromPtr(CodecId codec_id, char *ptr, uint32_t size, uint32_t dts, uint32_t pts = 0, int prefix_size = 0){
+
+    FrameFromPtr(CodecId codec_id, char *ptr, uint32_t size, uint32_t dts, uint32_t pts = 0, int prefix_size = 0)
+            : FrameFromPtr(ptr, size, dts, pts, prefix_size) {
         _codec_id = codec_id;
+    }
+
+    FrameFromPtr(char *ptr, uint32_t size, uint32_t dts, uint32_t pts = 0, int prefix_size = 0){
         _ptr = ptr;
         _size = size;
         _dts = dts;
@@ -347,8 +352,15 @@ public:
         return false;
     }
 
-    CodecId getCodecId() const override{
+    CodecId getCodecId() const override {
+        if (_codec_id == CodecInvalid) {
+            throw std::invalid_argument("FrameFromPtr对象未设置codec类型");
+        }
         return _codec_id;
+    }
+
+    void setCodecId(CodecId codec_id) {
+        _codec_id = codec_id;
     }
 
     bool keyFrame() const override {
