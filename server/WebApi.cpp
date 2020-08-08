@@ -788,7 +788,14 @@ void installWebApi() {
         CHECK_ARGS("stream_id");
 
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        val["hit"] = (int) s_rtpServerMap.erase(allArgs["stream_id"]);
+        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
+        if(it == s_rtpServerMap.end()){
+            val["hit"] = 0;
+            return;
+        }
+        auto server = it->second;
+        s_rtpServerMap.erase(it);
+        val["hit"] = 1;
     });
 
     api_regist1("/index/api/listRtpServer",[](API_ARGS1){
