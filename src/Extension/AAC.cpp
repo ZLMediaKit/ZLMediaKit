@@ -92,6 +92,16 @@ static void parseAacConfig(const string &config, AdtsHeader &adts) {
     adts.no_raw_data_blocks_in_frame = 0;
 }
 
+int getAacFrameLength(const uint8_t *data, int bytes) {
+    uint16_t len;
+    if (bytes < 7) return -1;
+    if (0xFF != data[0] || 0xF0 != (data[1] & 0xF0)) {
+        return -1;
+    }
+    len = ((uint16_t) (data[3] & 0x03) << 11) | ((uint16_t) data[4] << 3) | ((uint16_t) (data[5] >> 5) & 0x07);
+    return len;
+}
+
 string makeAacConfig(const uint8_t *hex, int length){
 #ifndef ENABLE_MP4
     if (!(hex[0] == 0xFF && (hex[1] & 0xF0) == 0xF0)) {
