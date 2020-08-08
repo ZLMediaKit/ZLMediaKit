@@ -47,6 +47,7 @@ public:
     void onError(const SockException &err) override;
     void onManager() override;
     static string urlDecode(const string &str);
+
 protected:
     //FlvMuxer override
     void onWrite(const Buffer::Ptr &data, bool flush) override ;
@@ -90,6 +91,13 @@ protected:
      * @param buffer websocket协议数据
      */
     void onWebSocketEncodeData(const Buffer::Ptr &buffer) override;
+
+    /**
+     * 接收到完整的一个webSocket数据包后回调
+     * @param header 数据包包头
+     */
+    void onWebSocketDecodeComplete(const WebSocketHeader &header_in) override;
+
 private:
     void Handle_Req_GET(int64_t &content_len);
     void Handle_Req_GET_l(int64_t &content_len, bool sendBody);
@@ -103,10 +111,11 @@ private:
     void sendNotFound(bool bClose);
     void sendResponse(const char *pcStatus, bool bClose, const char *pcContentType = nullptr,
                       const HttpSession::KeyValue &header = HttpSession::KeyValue(),
-                      const HttpBody::Ptr &body = nullptr,bool is_http_flv = false);
+                      const HttpBody::Ptr &body = nullptr, bool no_content_length = false);
 
     //设置socket标志
     void setSocketFlags();
+
 private:
     string _origin;
     Parser _parser;
