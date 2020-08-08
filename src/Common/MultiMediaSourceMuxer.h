@@ -27,17 +27,12 @@ public:
         virtual ~Listener() = default;
         virtual void onAllTrackReady() = 0;
     };
-    ~MultiMuxerPrivate() override ;
-private:
-    MultiMuxerPrivate(const string &vhost,
-                      const string &app,
-                      const string &stream,
-                      float dur_sec,
-                      bool enable_rtsp,
-                      bool enable_rtmp,
-                      bool enable_hls,
-                      bool enable_mp4);
 
+    ~MultiMuxerPrivate() override;
+
+private:
+    MultiMuxerPrivate(const string &vhost,const string &app, const string &stream,float dur_sec,
+                      bool enable_rtsp, bool enable_rtmp, bool enable_hls, bool enable_mp4);
     void resetTracks() override;
     void setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener);
     int totalReaderCount() const;
@@ -46,11 +41,11 @@ private:
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path);
     bool isRecording(MediaSource &sender, Recorder::type type);
     bool isEnabled();
-private:
     void onTrackReady(const Track::Ptr & track) override;
     void onTrackFrame(const Frame::Ptr &frame) override;
     void onAllTrackReady() override;
     MediaSource::Ptr getHlsMediaSource() const;
+
 private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
@@ -62,30 +57,29 @@ private:
     bool _enable_record = false;
 };
 
-class MultiMediaSourceMuxer : public MediaSourceEvent, public MediaSinkInterface, public TrackSource, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
+class MultiMediaSourceMuxer : public MediaSourceEvent, public MediaSinkInterface, public TrackSource, public MultiMuxerPrivate::Listener, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     typedef MultiMuxerPrivate::Listener Listener;
     typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
 
     ~MultiMediaSourceMuxer() override;
-    MultiMediaSourceMuxer(const string &vhost,
-                          const string &app,
-                          const string &stream,
-                          float dur_sec = 0.0,
-                          bool enable_rtsp = true,
-                          bool enable_rtmp = true,
-                          bool enable_hls = true,
-                          bool enable_mp4 = false);
+    MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec = 0.0,
+                          bool enable_rtsp = true, bool enable_rtmp = true, bool enable_hls = true, bool enable_mp4 = false);
 
     /**
      * 设置事件监听器
-     * @param listener
+     * @param listener 监听器
      */
     void setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
+     /**
+      * 随着Track就绪事件监听器
+      * @param listener 事件监听器
+     */
+    void setTrackListener(const std::weak_ptr<MultiMuxerPrivate::Listener> &listener);
+
     /**
      * 返回总的消费者个数
-     * @return
      */
     int totalReaderCount() const;
 
@@ -94,12 +88,6 @@ public:
      * @param stamp 时间戳
      */
     void setTimeStamp(uint32_t stamp);
-
-    /**
-     * 随着Track就绪事件监听器
-     * @param listener 事件监听器
-     */
-    void setTrackListener(Listener *listener);
 
     /**
      * 获取所有Track
@@ -163,15 +151,19 @@ public:
     /**
     * 添加track，内部会调用Track的clone方法
     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
-    * @param track
+    * @param track 添加音频或视频轨道
     */
     void addTrack(const Track::Ptr & track) override;
 
     /**
      * 添加track完毕
-     * @param track
      */
     void addTrackCompleted();
+
+    /**
+     * 所有track全部就绪
+     */
+    void onAllTrackReady() override;
 
     /**
      * 重置track
@@ -188,9 +180,11 @@ public:
      * 判断是否生效(是否正在转其他协议)
      */
     bool isEnabled();
+
 private:
     MultiMuxerPrivate::Ptr _muxer;
     std::weak_ptr<MediaSourceEvent> _listener;
+    std::weak_ptr<MultiMuxerPrivate::Listener> _track_listener;
     Stamp _stamp[2];
 };
 

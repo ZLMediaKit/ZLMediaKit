@@ -231,11 +231,16 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost,
                                              bool enable_hls,
                                              bool enable_mp4) {
     _muxer.reset(new MultiMuxerPrivate(vhost, app, stream, dur_sec, enable_rtsp, enable_rtmp, enable_hls, enable_mp4));
+    _muxer->setTrackListener(this);
 }
 
 void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener) {
     _muxer->setMediaListener(shared_from_this());
     _listener = listener;
+}
+
+void MultiMediaSourceMuxer::setTrackListener(const std::weak_ptr<MultiMuxerPrivate::Listener> &listener) {
+    _track_listener = listener;
 }
 
 int MultiMediaSourceMuxer::totalReaderCount() const {
@@ -244,10 +249,6 @@ int MultiMediaSourceMuxer::totalReaderCount() const {
 
 void MultiMediaSourceMuxer::setTimeStamp(uint32_t stamp) {
     _muxer->setTimeStamp(stamp);
-}
-
-void MultiMediaSourceMuxer::setTrackListener(Listener *listener) {
-    _muxer->setTrackListener(listener);
 }
 
 vector<Track::Ptr> MultiMediaSourceMuxer::getTracks(bool trackReady) const {
@@ -308,6 +309,14 @@ void MultiMediaSourceMuxer::addTrack(const Track::Ptr &track) {
 
 void MultiMediaSourceMuxer::addTrackCompleted() {
     _muxer->addTrackCompleted();
+}
+
+void MultiMediaSourceMuxer::onAllTrackReady(){
+    _muxer->setMediaListener(shared_from_this());
+    auto track_listener = _track_listener.lock();
+    if(track_listener){
+        track_listener->onAllTrackReady();
+    }
 }
 
 void MultiMediaSourceMuxer::resetTracks() {

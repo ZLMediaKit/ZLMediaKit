@@ -127,7 +127,7 @@ public:
         //不重复生成rtmp
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), enableRtsp, false, enableHls, enableMP4);
         _muxer->setMediaListener(getListener());
-        _muxer->setTrackListener(this);
+        _muxer->setTrackListener(static_pointer_cast<RtmpMediaSourceImp>(shared_from_this()));
         for(auto &track : _demuxer->getTracks(false)){
             _muxer->addTrack(track);
             track->addDelegate(_muxer);

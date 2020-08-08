@@ -106,6 +106,7 @@ void MediaSource::onNoneReader(){
 bool MediaSource::setupRecord(Recorder::type type, bool start, const string &custom_path){
     auto listener = _listener.lock();
     if (!listener) {
+        WarnL << "未设置MediaSource的事件监听者，setupRecord失败:" << getSchema() << "/" << getVhost() << "/" << getApp() << "/" << getId();
         return false;
     }
     return listener->setupRecord(*this, type, start, custom_path);
