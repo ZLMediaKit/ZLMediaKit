@@ -12,20 +12,27 @@
 #include "RtpSplitter.h"
 namespace mediakit{
 
-RtpSplitter::RtpSplitter() {
-}
+RtpSplitter::RtpSplitter() {}
 
-RtpSplitter::~RtpSplitter() {
-}
+RtpSplitter::~RtpSplitter() {}
 
 const char *RtpSplitter::onSearchPacketTail(const char *data, int len) {
+    if (data[0] == '$') {
+        //可能是4个字节的rtp头
+        return onSearchPacketTail_l(data + 2, len - 2);
+    }
+    //两个字节的rtp头
+    return onSearchPacketTail_l(data, len);
+}
+
+const char *RtpSplitter::onSearchPacketTail_l(const char *data, int len) {
     //这是rtp包
-    if(len < 2){
+    if (len < 2) {
         //数据不够
         return nullptr;
     }
-    uint16_t length = (((uint8_t *)data)[0] << 8) | ((uint8_t *)data)[1];
-    if(len < length + 2){
+    uint16_t length = (((uint8_t *) data)[0] << 8) | ((uint8_t *) data)[1];
+    if (len < length + 2) {
         //数据不够
         return nullptr;
     }
