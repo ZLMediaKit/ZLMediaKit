@@ -129,6 +129,14 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
             _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
         }
             break;
+
+        case CodecAAC: {
+            if (frame->prefixSize() == 0) {
+                WarnL << "必须提供adts头才能mpegts打包";
+                break;
+            }
+        }
+
         default: {
             track_info.stamp.revise(frame->dts(),frame->pts(),dts_out,pts_out);
             _timestamp = dts_out;
