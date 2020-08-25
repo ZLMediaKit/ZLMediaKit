@@ -197,7 +197,7 @@ public:
             auto audio_idx = frame->dts() / MUTE_ADTS_DATA_MS;
             if(_audio_idx != audio_idx){
                 _audio_idx = audio_idx;
-                auto aacFrame = std::make_shared<FrameFromStaticPtr>(CodecAAC, (char *)MUTE_ADTS_DATA, MUTE_ADTS_DATA_LEN, _audio_idx * MUTE_ADTS_DATA_MS);
+                auto aacFrame = std::make_shared<FrameFromStaticPtr>(CodecAAC, (char *)MUTE_ADTS_DATA, MUTE_ADTS_DATA_LEN, _audio_idx * MUTE_ADTS_DATA_MS, 0 ,ADTS_HEADER_LEN);
                 FrameDispatcher::inputFrame(aacFrame);
             }
         }

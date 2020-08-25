@@ -38,11 +38,10 @@ public:
     template<typename ...ArgsType>
     ClientTypeImp(ArgsType &&...args): ClientType(std::forward<ArgsType>(args)...){}
     ~ClientTypeImp() override {};
+
 protected:
     /**
      * 发送前拦截并打包为websocket协议
-     * @param buf
-     * @return
      */
     int send(const Buffer::Ptr &buf) override{
         if(_beforeSendCB){
@@ -50,6 +49,7 @@ protected:
         }
         return ClientType::send(buf);
     }
+
     /**
      * 设置发送数据截取回调函数
      * @param cb 截取回调函数
@@ -57,6 +57,7 @@ protected:
     void setOnBeforeSendCB(const onBeforeSendCB &cb){
         _beforeSendCB = cb;
     }
+
 private:
     onBeforeSendCB _beforeSendCB;
 };
@@ -108,6 +109,7 @@ public:
         header._mask_flag = true;
         WebSocketSplitter::encode(header, nullptr);
     }
+
 protected:
     //HttpClientImp override
 
@@ -124,6 +126,8 @@ protected:
             if(Sec_WebSocket_Accept == const_cast<HttpHeader &>(headers)["Sec-WebSocket-Accept"]){
                 //success
                 onWebSocketException(SockException());
+                //防止ws服务器返回Content-Length
+                const_cast<HttpHeader &>(headers).erase("Content-Length");
                 //后续全是websocket负载数据
                 return -1;
             }
@@ -180,7 +184,6 @@ protected:
 
     /**
      * tcp连接结果
-     * @param ex
      */
     void onConnect(const SockException &ex) override{
         if(ex){
@@ -194,7 +197,6 @@ protected:
 
     /**
      * tcp连接断开
-     * @param ex
      */
     void onErr(const SockException &ex) override{
         //tcp断开或者shutdown导致的断开
@@ -208,7 +210,7 @@ protected:
      * @param header 数据包头
      */
     void onWebSocketDecodeHeader(const WebSocketHeader &header) override{
-        _payload.clear();
+        _payload_section.clear();
     }
 
     /**
@@ -219,9 +221,8 @@ protected:
      * @param recved 已接收数据长度(包含本次数据长度)，等于header._payload_len时则接受完毕
      */
     void onWebSocketDecodePayload(const WebSocketHeader &header, const uint8_t *ptr, uint64_t len, uint64_t recved) override{
-        _payload.append((char *)ptr,len);
+        _payload_section.append((char *)ptr,len);
     }
-
 
     /**
      * 接收到完整的一个webSocket数据包后回调
@@ -238,28 +239,46 @@ protected:
                 //服务器主动关闭
                 WebSocketSplitter::encode(header,nullptr);
                 shutdown(SockException(Err_eof,"websocket server close the connection"));
-            }
                 break;
+            }
+
             case WebSocketHeader::PING:{
                 //心跳包
                 header._opcode = WebSocketHeader::PONG;
-                WebSocketSplitter::encode(header,std::make_shared<BufferString>(std::move(_payload)));
-            }
+                WebSocketSplitter::encode(header,std::make_shared<BufferString>(std::move(_payload_section)));
                 break;
-            case WebSocketHeader::CONTINUATION:{
+            }
 
-            }
-                break;
+            case WebSocketHeader::CONTINUATION:
             case WebSocketHeader::TEXT:
             case WebSocketHeader::BINARY:{
-                //接收完毕websocket数据包，触发onRecv事件
-                _delegate.onRecv(std::make_shared<BufferString>(std::move(_payload)));
+                if (!header._fin) {
+                    //还有后续分片数据, 我们先缓存数据，所有分片收集完成才一次性输出
+                    _payload_cache.append(std::move(_payload_section));
+                    if (_payload_cache.size() < MAX_WS_PACKET) {
+                        //还有内存容量缓存分片数据
+                        break;
+                    }
+                    //分片缓存太大，需要清空
+                }
+
+                //最后一个包
+                if (_payload_cache.empty()) {
+                    //这个包是唯一个分片
+                    _delegate.onRecv(std::make_shared<WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_section)));
+                    break;
+                }
+
+                //这个包由多个分片组成
+                _payload_cache.append(std::move(_payload_section));
+                _delegate.onRecv(std::make_shared<WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_cache)));
+                _payload_cache.clear();
+                break;
             }
-                break;
-            default:
-                break;
+
+            default: break;
         }
-        _payload.clear();
+        _payload_section.clear();
         header._mask_flag = flag;
     }
 
@@ -271,6 +290,7 @@ protected:
     void onWebSocketEncodeData(const Buffer::Ptr &buffer) override{
         HttpClientImp::send(buffer);
     }
+
 private:
     void onWebSocketException(const SockException &ex){
         if(!ex){
@@ -319,9 +339,9 @@ private:
     string _Sec_WebSocket_Key;
     function<void(const char *data, int len)> _onRecv;
     ClientTypeImp<ClientType,DataType> &_delegate;
-    string _payload;
+    string _payload_section;
+    string _payload_cache;
 };
-
 
 /**
  * Tcp客户端转WebSocket客户端模板，
@@ -365,6 +385,7 @@ public:
     void startWebSocket(const string &ws_url,float fTimeOutSec = 3){
         _wsClient->startWsClient(ws_url,fTimeOutSec);
     }
+
 private:
     typename HttpWsClient<ClientType,DataType>::Ptr _wsClient;
 };
