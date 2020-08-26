@@ -50,11 +50,10 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const st
     }
 
     if (strcasecmp("rtsp",prefix.data()) == 0) {
-        if (socket) {
+        if (socket)
             return PlayerBase::Ptr(new RtspPlayerImp(poller, socket),releasePlayer);
-        }else{
+        else
             return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
-        }
     }
 
     if (strcasecmp("rtmps",prefix.data()) == 0) {

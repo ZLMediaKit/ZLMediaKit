@@ -114,6 +114,7 @@ void RtspPlayer::onRecv(const Buffer::Ptr& pBuf) {
         _rtp_recv_ticker.resetTime();
         return;
     }
+    //std::cout << "gonna send size " << pBuf->size() << " which when converted gives " << (uint64_t) pBuf->size() << std::endl;
     input(pBuf->data(),pBuf->size());
 }
 
@@ -469,9 +470,11 @@ void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
     int trackIdx = -1;
     uint8_t interleaved = data[1];
     if(interleaved %2 == 0){
+        //std::cout << "#" << std::flush;
         trackIdx = getTrackIndexByInterleaved(interleaved);
         handleOneRtp(trackIdx, _sdp_track[trackIdx]->_type, _sdp_track[trackIdx]->_samplerate, (unsigned char *)data + 4, len - 4);
     }else{
+        //std::cout << "@" << std::flush;
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
         onRtcpPacket(trackIdx, _sdp_track[trackIdx], (unsigned char *) data + 4, len - 4);
     }
@@ -738,7 +741,7 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &pkt, const SdpTrack::Ptr &tra
 
 void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshakeCompleted) {
     WarnL << ex.getErrCode() << " " << ex.what();
-
+    
     if(!ex){
         //播放成功，恢复rtp接收超时定时器
         _rtp_recv_ticker.resetTime();
