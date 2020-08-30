@@ -270,8 +270,18 @@ void FFmpegSource::onRegist(MediaSource &sender, bool regist){
 }
 
 void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
-    _listener = src->getListener();
-    src->setListener(shared_from_this());
+    auto listener = src->getListener();
+    if (listener.lock().get() != this) {
+        //防止多次进入onGetMediaSource函数导致无效递归调用的bug
+        src->setListener(shared_from_this());
+        _listener = listener;
+    } else {
+        WarnL << "多次触发onGetMediaSource事件:"
+              << src->getSchema() << "/"
+              << src->getVhost() << "/"
+              << src->getApp() << "/"
+              << src->getId();
+    }
 }
 
 void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float timeout_sec,  const function<void(bool)> &cb) {
