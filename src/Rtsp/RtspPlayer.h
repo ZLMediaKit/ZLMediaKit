@@ -87,7 +87,7 @@ protected:
 
 private:
     void onRecvRTP_l(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track);
-    void onPlayResult_l(const SockException &ex , bool handshakeCompleted);
+    void onPlayResult_l(const SockException &ex , bool handshake_done);
 
     int getTrackIndexByInterleaved(int interleaved) const;
     int getTrackIndexByTrackType(TrackType track_type) const;

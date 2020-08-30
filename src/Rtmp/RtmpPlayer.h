@@ -41,34 +41,34 @@ public:
     void teardown() override;
 
 protected:
-    virtual bool onCheckMeta(const AMFValue &val) =0;
-    virtual void onMediaData(const RtmpPacket::Ptr &chunkData) =0;
+    virtual bool onCheckMeta(const AMFValue &val) = 0;
+    virtual void onMediaData(const RtmpPacket::Ptr &chunk_data) = 0;
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
 
 protected:
-    void onMediaData_l(const RtmpPacket::Ptr &chunkData);
+    void onMediaData_l(const RtmpPacket::Ptr &chunk_data);
     //在获取config帧后才触发onPlayResult_l(而不是收到play命令回复)，所以此时所有track都初始化完毕了
-    void onPlayResult_l(const SockException &ex, bool handshakeCompleted);
+    void onPlayResult_l(const SockException &ex, bool handshake_done);
 
     //form Tcpclient
-    void onRecv(const Buffer::Ptr &pBuf) override;
+    void onRecv(const Buffer::Ptr &buf) override;
     void onConnect(const SockException &err) override;
     void onErr(const SockException &ex) override;
     //from RtmpProtocol
-    void onRtmpChunk(RtmpPacket &chunkData) override;
-    void onStreamDry(uint32_t ui32StreamId) override;
-    void onSendRawData(const Buffer::Ptr &buffer) override{
+    void onRtmpChunk(RtmpPacket &chunk_data) override;
+    void onStreamDry(uint32_t stream_index) override;
+    void onSendRawData(const Buffer::Ptr &buffer) override {
         send(buffer);
     }
 
     template<typename FUNC>
-    inline void addOnResultCB(const FUNC &func) {
+    void addOnResultCB(const FUNC &func) {
         lock_guard<recursive_mutex> lck(_mtx_on_result);
         _map_on_result.emplace(_send_req_id, func);
     }
     template<typename FUNC>
-    inline void addOnStatusCB(const FUNC &func) {
+    void addOnStatusCB(const FUNC &func) {
         lock_guard<recursive_mutex> lck(_mtx_on_status);
         _deque_on_status.emplace_back(func);
     }
@@ -77,10 +77,10 @@ protected:
     void onCmd_onStatus(AMFDecoder &dec);
     void onCmd_onMetaData(AMFDecoder &dec);
 
-    inline void send_connect();
-    inline void send_createStream();
-    inline void send_play();
-    inline void send_pause(bool bPause);
+    void send_connect();
+    void send_createStream();
+    void send_play();
+    void send_pause(bool pause);
 
 private:
     string _app;
