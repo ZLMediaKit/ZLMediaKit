@@ -174,7 +174,7 @@ public:
     }
 
     uint32_t getStamp(const RtmpPacket::Ptr &packet) {
-        return packet->timeStamp;
+        return packet->time_stamp;
     }
 
     bool isFlushAble(bool is_video, bool is_key, uint32_t new_stamp, int cache_size);

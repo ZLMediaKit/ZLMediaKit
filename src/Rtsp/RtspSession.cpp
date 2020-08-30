@@ -1123,7 +1123,7 @@ inline void RtspSession::onSendRtpPacket(const RtpPacket::Ptr &pkt){
         //send rtcp every 5 second
         ticker.resetTime();
         //直接保存网络字节序
-        memcpy(&counter.timeStamp, pkt->data() + 8, 4);
+        memcpy(&counter.time_stamp, pkt->data() + 8, 4);
         sendSenderReport(_rtp_type == Rtsp::RTP_TCP, track_index);
     }
 #endif

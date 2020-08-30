@@ -39,18 +39,18 @@ static string getH264SPS(const RtmpPacket &thiz) {
     if (!thiz.isCfgFrame()) {
         return ret;
     }
-    if (thiz.strBuf.size() < 13) {
+    if (thiz.buffer.size() < 13) {
         WarnL << "bad H264 cfg!";
         return ret;
     }
     uint16_t sps_size ;
-    memcpy(&sps_size, thiz.strBuf.data() + 11,2);
+    memcpy(&sps_size, thiz.buffer.data() + 11, 2);
     sps_size = ntohs(sps_size);
-    if ((int) thiz.strBuf.size() < 13 + sps_size) {
+    if ((int) thiz.buffer.size() < 13 + sps_size) {
         WarnL << "bad H264 cfg!";
         return ret;
     }
-    ret.assign(thiz.strBuf.data() + 13, sps_size);
+    ret.assign(thiz.buffer.data() + 13, sps_size);
     return ret;
 }
 
@@ -66,27 +66,27 @@ static string getH264PPS(const RtmpPacket &thiz) {
     if (!thiz.isCfgFrame()) {
         return ret;
     }
-    if (thiz.strBuf.size() < 13) {
+    if (thiz.buffer.size() < 13) {
         WarnL << "bad H264 cfg!";
         return ret;
     }
     uint16_t sps_size ;
-    memcpy(&sps_size,thiz.strBuf.data() + 11,2);
+    memcpy(&sps_size, thiz.buffer.data() + 11, 2);
     sps_size = ntohs(sps_size);
 
-    if ((int) thiz.strBuf.size() < 13 + sps_size + 1 + 2) {
+    if ((int) thiz.buffer.size() < 13 + sps_size + 1 + 2) {
         WarnL << "bad H264 cfg!";
         return ret;
     }
     uint16_t pps_size ;
-    memcpy(&pps_size, thiz.strBuf.data() + 13 + sps_size + 1,2);
+    memcpy(&pps_size, thiz.buffer.data() + 13 + sps_size + 1, 2);
     pps_size = ntohs(pps_size);
 
-    if ((int) thiz.strBuf.size() < 13 + sps_size + 1 + 2 + pps_size) {
+    if ((int) thiz.buffer.size() < 13 + sps_size + 1 + 2 + pps_size) {
         WarnL << "bad H264 cfg!";
         return ret;
     }
-    ret.assign(thiz.strBuf.data() + 13 + sps_size + 1 + 2, pps_size);
+    ret.assign(thiz.buffer.data() + 13 + sps_size + 1 + 2, pps_size);
     return ret;
 }
 
@@ -95,27 +95,27 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
         //缓存sps pps，后续插入到I帧之前
         _sps = getH264SPS(*pkt);
         _pps  = getH264PPS(*pkt);
-        onGetH264(_sps.data(), _sps.size(), pkt->timeStamp , pkt->timeStamp);
-        onGetH264(_pps.data(), _pps.size(), pkt->timeStamp , pkt->timeStamp);
+        onGetH264(_sps.data(), _sps.size(), pkt->time_stamp , pkt->time_stamp);
+        onGetH264(_pps.data(), _pps.size(), pkt->time_stamp , pkt->time_stamp);
         return false;
     }
 
-    if (pkt->strBuf.size() > 9) {
-        uint32_t iTotalLen = pkt->strBuf.size();
+    if (pkt->buffer.size() > 9) {
+        uint32_t iTotalLen = pkt->buffer.size();
         uint32_t iOffset = 5;
-        uint8_t *cts_ptr = (uint8_t *) (pkt->strBuf.data() + 2);
+        uint8_t *cts_ptr = (uint8_t *) (pkt->buffer.data() + 2);
         int32_t cts = (((cts_ptr[0] << 16) | (cts_ptr[1] << 8) | (cts_ptr[2])) + 0xff800000) ^ 0xff800000;
-        auto pts = pkt->timeStamp + cts;
+        auto pts = pkt->time_stamp + cts;
 
         while(iOffset + 4 < iTotalLen){
             uint32_t iFrameLen;
-            memcpy(&iFrameLen, pkt->strBuf.data() + iOffset, 4);
+            memcpy(&iFrameLen, pkt->buffer.data() + iOffset, 4);
             iFrameLen = ntohl(iFrameLen);
             iOffset += 4;
             if(iFrameLen + iOffset > iTotalLen){
                 break;
             }
-            onGetH264(pkt->strBuf.data() + iOffset, iFrameLen, pkt->timeStamp , pts);
+            onGetH264(pkt->buffer.data() + iOffset, iFrameLen, pkt->time_stamp , pts);
             iOffset += iFrameLen;
         }
     }
@@ -190,7 +190,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         }
     }
 
-    if(_lastPacket && _lastPacket->timeStamp != frame->dts()) {
+    if(_lastPacket && _lastPacket->time_stamp != frame->dts()) {
         RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
         _lastPacket = nullptr;
     }
@@ -202,23 +202,23 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
 
         _lastPacket = ResourcePoolHelper<RtmpPacket>::obtainObj();
-        _lastPacket->strBuf.clear();
-        _lastPacket->strBuf.push_back(flags);
-        _lastPacket->strBuf.push_back(!is_config);
+        _lastPacket->buffer.clear();
+        _lastPacket->buffer.push_back(flags);
+        _lastPacket->buffer.push_back(!is_config);
         auto cts = frame->pts() - frame->dts();
         cts = htonl(cts);
-        _lastPacket->strBuf.append((char *)&cts + 1, 3);
+        _lastPacket->buffer.append((char *)&cts + 1, 3);
 
-        _lastPacket->chunkId = CHUNK_VIDEO;
-        _lastPacket->streamId = STREAM_MEDIA;
-        _lastPacket->timeStamp = frame->dts();
-        _lastPacket->typeId = MSG_VIDEO;
+        _lastPacket->chunk_id = CHUNK_VIDEO;
+        _lastPacket->stream_index = STREAM_MEDIA;
+        _lastPacket->time_stamp = frame->dts();
+        _lastPacket->type_id = MSG_VIDEO;
 
     }
     auto size = htonl(iLen);
-    _lastPacket->strBuf.append((char *) &size, 4);
-    _lastPacket->strBuf.append(pcData, iLen);
-    _lastPacket->bodySize = _lastPacket->strBuf.size();
+    _lastPacket->buffer.append((char *) &size, 4);
+    _lastPacket->buffer.append(pcData, iLen);
+    _lastPacket->body_size = _lastPacket->buffer.size();
 }
 
 void H264RtmpEncoder::makeVideoConfigPkt() {
@@ -227,38 +227,38 @@ void H264RtmpEncoder::makeVideoConfigPkt() {
     bool is_config = true;
 
     RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
-    rtmpPkt->strBuf.clear();
+    rtmpPkt->buffer.clear();
 
     //header
-    rtmpPkt->strBuf.push_back(flags);
-    rtmpPkt->strBuf.push_back(!is_config);
+    rtmpPkt->buffer.push_back(flags);
+    rtmpPkt->buffer.push_back(!is_config);
     //cts
-    rtmpPkt->strBuf.append("\x0\x0\x0", 3);
+    rtmpPkt->buffer.append("\x0\x0\x0", 3);
 
     //AVCDecoderConfigurationRecord start
-    rtmpPkt->strBuf.push_back(1); // version
-    rtmpPkt->strBuf.push_back(_sps[1]); // profile
-    rtmpPkt->strBuf.push_back(_sps[2]); // compat
-    rtmpPkt->strBuf.push_back(_sps[3]); // level
-    rtmpPkt->strBuf.push_back(0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
-    rtmpPkt->strBuf.push_back(0xe1); // 3 bits reserved + 5 bits number of sps (00001)
+    rtmpPkt->buffer.push_back(1); // version
+    rtmpPkt->buffer.push_back(_sps[1]); // profile
+    rtmpPkt->buffer.push_back(_sps[2]); // compat
+    rtmpPkt->buffer.push_back(_sps[3]); // level
+    rtmpPkt->buffer.push_back(0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
+    rtmpPkt->buffer.push_back(0xe1); // 3 bits reserved + 5 bits number of sps (00001)
     //sps
     uint16_t size = _sps.size();
     size = htons(size);
-    rtmpPkt->strBuf.append((char *) &size, 2);
-    rtmpPkt->strBuf.append(_sps);
+    rtmpPkt->buffer.append((char *) &size, 2);
+    rtmpPkt->buffer.append(_sps);
     //pps
-    rtmpPkt->strBuf.push_back(1); // version
+    rtmpPkt->buffer.push_back(1); // version
     size = _pps.size();
     size = htons(size);
-    rtmpPkt->strBuf.append((char *) &size, 2);
-    rtmpPkt->strBuf.append(_pps);
+    rtmpPkt->buffer.append((char *) &size, 2);
+    rtmpPkt->buffer.append(_pps);
 
-    rtmpPkt->bodySize = rtmpPkt->strBuf.size();
-    rtmpPkt->chunkId = CHUNK_VIDEO;
-    rtmpPkt->streamId = STREAM_MEDIA;
-    rtmpPkt->timeStamp = 0;
-    rtmpPkt->typeId = MSG_VIDEO;
+    rtmpPkt->body_size = rtmpPkt->buffer.size();
+    rtmpPkt->chunk_id = CHUNK_VIDEO;
+    rtmpPkt->stream_index = STREAM_MEDIA;
+    rtmpPkt->time_stamp = 0;
+    rtmpPkt->type_id = MSG_VIDEO;
     RtmpCodec::inputRtmp(rtmpPkt, false);
 }
 

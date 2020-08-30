@@ -8,8 +8,8 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef SRC_RTMP_RtmpPlayer2_H_
-#define SRC_RTMP_RtmpPlayer2_H_
+#ifndef SRC_RTMP_RtmpPlayer_H_
+#define SRC_RTMP_RtmpPlayer_H_
 
 #include <memory>
 #include <string>
@@ -28,21 +28,24 @@ using namespace toolkit;
 using namespace mediakit::Client;
 
 namespace mediakit {
+
 //实现了rtmp播放器协议部分的功能，及数据接收功能
-class RtmpPlayer:public PlayerBase, public TcpClient,  public RtmpProtocol{
+class RtmpPlayer : public PlayerBase, public TcpClient, public RtmpProtocol {
 public:
     typedef std::shared_ptr<RtmpPlayer> Ptr;
     RtmpPlayer(const EventPoller::Ptr &poller);
-    virtual ~RtmpPlayer();
+    ~RtmpPlayer() override;
 
     void play(const string &strUrl) override;
     void pause(bool bPause) override;
     void teardown() override;
+
 protected:
     virtual bool onCheckMeta(const AMFValue &val) =0;
     virtual void onMediaData(const RtmpPacket::Ptr &chunkData) =0;
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
+
 protected:
     void onMediaData_l(const RtmpPacket::Ptr &chunkData);
     //在获取config帧后才触发onPlayResult_l(而不是收到play命令回复)，所以此时所有track都初始化完毕了
@@ -59,15 +62,15 @@ protected:
         send(buffer);
     }
 
-    template<typename FUN>
-    inline void addOnResultCB(const FUN &fun) {
-        lock_guard<recursive_mutex> lck(_mtxOnResultCB);
-        _mapOnResultCB.emplace(_iReqID, fun);
+    template<typename FUNC>
+    inline void addOnResultCB(const FUNC &func) {
+        lock_guard<recursive_mutex> lck(_mtx_on_result);
+        _map_on_result.emplace(_send_req_id, func);
     }
-    template<typename FUN>
-    inline void addOnStatusCB(const FUN &fun) {
-        lock_guard<recursive_mutex> lck(_mtxOnStatusCB);
-        _dqOnStatusCB.emplace_back(fun);
+    template<typename FUNC>
+    inline void addOnStatusCB(const FUNC &func) {
+        lock_guard<recursive_mutex> lck(_mtx_on_status);
+        _deque_on_status.emplace_back(func);
     }
 
     void onCmd_result(AMFDecoder &dec);
@@ -78,34 +81,37 @@ protected:
     inline void send_createStream();
     inline void send_play();
     inline void send_pause(bool bPause);
+
 private:
-    string _strApp;
-    string _strStream;
-    string _strTcUrl;
-    bool _bPaused = false;
+    string _app;
+    string _stream_id;
+    string _tc_url;
 
-    unordered_map<int, function<void(AMFDecoder &dec)> > _mapOnResultCB;
-    recursive_mutex _mtxOnResultCB;
-    deque<function<void(AMFValue &dec)> > _dqOnStatusCB;
-    recursive_mutex _mtxOnStatusCB;
-
-    //超时功能实现
-    Ticker _mediaTicker;
-    std::shared_ptr<Timer> _pMediaTimer;
-    std::shared_ptr<Timer> _pPlayTimer;
-    //心跳定时器
-    std::shared_ptr<Timer> _pBeatTimer;
-
-    //播放进度控制
-    uint32_t _iSeekTo = 0;
-    uint32_t _aiFistStamp[2] = { 0, 0 };
-    uint32_t _aiNowStamp[2] = { 0, 0 };
-    Ticker _aNowStampTicker[2];
+    bool _paused = false;
     bool _metadata_got = false;
     //是否为性能测试模式
     bool _benchmark_mode = false;
+
+    //播放进度控制
+    uint32_t _seek_ms = 0;
+    uint32_t _fist_stamp[2] = {0, 0};
+    uint32_t _now_stamp[2] = {0, 0};
+    Ticker _now_stamp_ticker[2];
+
+    recursive_mutex _mtx_on_result;
+    recursive_mutex _mtx_on_status;
+    deque<function<void(AMFValue &dec)> > _deque_on_status;
+    unordered_map<int, function<void(AMFDecoder &dec)> > _map_on_result;
+
+    //rtmp接收超时计时器
+    Ticker _rtmp_recv_ticker;
+    //心跳发送定时器
+    std::shared_ptr<Timer> _beat_timer;
+    //播放超时定时器
+    std::shared_ptr<Timer> _play_timer;
+    //rtmp接收超时定时器
+    std::shared_ptr<Timer> _rtmp_recv_timer;
 };
 
 } /* namespace mediakit */
-
-#endif /* SRC_RTMP_RtmpPlayer2_H_ */
+#endif /* SRC_RTMP_RtmpPlayer_H_ */
