@@ -50,6 +50,7 @@ public:
         if(!_registed){
             regist();
             _registed = true;
+            onNoneReader();
         }
     }
 
