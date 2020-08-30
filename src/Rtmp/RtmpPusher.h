@@ -52,7 +52,7 @@ private:
     template<typename FUN>
     inline void addOnResultCB(const FUN &fun) {
         lock_guard<recursive_mutex> lck(_mtxOnResultCB);
-        _mapOnResultCB.emplace(_iReqID, fun);
+        _mapOnResultCB.emplace(_send_req_id, fun);
     }
     template<typename FUN>
     inline void addOnStatusCB(const FUN &fun) {

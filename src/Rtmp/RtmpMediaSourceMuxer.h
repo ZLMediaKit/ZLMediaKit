@@ -24,34 +24,35 @@ public:
                          const string &strApp,
                          const string &strId,
                          const TitleMeta::Ptr &title = nullptr) : RtmpMuxer(title){
-        _mediaSouce = std::make_shared<RtmpMediaSource>(vhost,strApp,strId);
-        getRtmpRing()->setDelegate(_mediaSouce);
+        _media_src = std::make_shared<RtmpMediaSource>(vhost, strApp, strId);
+        getRtmpRing()->setDelegate(_media_src);
     }
     virtual ~RtmpMediaSourceMuxer(){}
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-        _mediaSouce->setListener(listener);
+        _media_src->setListener(listener);
     }
 
     void setTimeStamp(uint32_t stamp){
-        _mediaSouce->setTimeStamp(stamp);
+        _media_src->setTimeStamp(stamp);
     }
 
     int readerCount() const{
-        return _mediaSouce->readerCount();
+        return _media_src->readerCount();
     }
 
     void onAllTrackReady(){
         makeConfigPacket();
-        _mediaSouce->setMetaData(getMetadata());
+        _media_src->setMetaData(getMetadata());
     }
 
     // 设置TrackSource
     void setTrackSource(const std::weak_ptr<TrackSource> &track_src){
-        _mediaSouce->setTrackSource(track_src);
+        _media_src->setTrackSource(track_src);
     }
+
 private:
-    RtmpMediaSource::Ptr _mediaSouce;
+    RtmpMediaSource::Ptr _media_src;
 };
 
 

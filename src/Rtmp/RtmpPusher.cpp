@@ -164,13 +164,13 @@ inline void RtmpPusher::send_createStream() {
     addOnResultCB([this](AMFDecoder &dec){
         //TraceL << "createStream result";
         dec.load<AMFValue>();
-        _ui32StreamId = dec.load<int>();
+        _stream_index = dec.load<int>();
         send_publish();
     });
 }
 inline void RtmpPusher::send_publish() {
     AMFEncoder enc;
-    enc << "publish" << ++_iReqID << nullptr << _strStream << _strApp ;
+    enc << "publish" << ++_send_req_id << nullptr << _strStream << _strApp ;
     sendRequest(MSG_CMD, enc.data());
 
     addOnStatusCB([this](AMFValue &val) {
@@ -195,7 +195,7 @@ inline void RtmpPusher::send_metaData(){
     sendRequest(MSG_DATA, enc.data());
     
     src->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-        sendRtmp(pkt->typeId, _ui32StreamId, pkt, pkt->timeStamp, pkt->chunkId );
+        sendRtmp(pkt->type_id, _stream_index, pkt, pkt->time_stamp, pkt->chunk_id );
     });
     
     _pRtmpReader = src->getRing()->attach(getPoller());
@@ -213,7 +213,7 @@ inline void RtmpPusher::send_metaData(){
             if(++i == size){
                 strongSelf->setSendFlushFlag(true);
             }
-            strongSelf->sendRtmp(rtmp->typeId, strongSelf->_ui32StreamId, rtmp, rtmp->timeStamp, rtmp->chunkId);
+            strongSelf->sendRtmp(rtmp->type_id, strongSelf->_stream_index, rtmp, rtmp->time_stamp, rtmp->chunk_id);
         });
     });
     _pRtmpReader->setDetachCB([weakSelf](){
@@ -275,7 +275,7 @@ void RtmpPusher::onCmd_onStatus(AMFDecoder &dec) {
 }
 
 void RtmpPusher::onRtmpChunk(RtmpPacket &chunkData) {
-    switch (chunkData.typeId) {
+    switch (chunkData.type_id) {
         case MSG_CMD:
         case MSG_CMD3: {
             typedef void (RtmpPusher::*rtmpCMDHandle)(AMFDecoder &dec);
@@ -284,9 +284,9 @@ void RtmpPusher::onRtmpChunk(RtmpPacket &chunkData) {
                 g_mapCmd.emplace("_error",&RtmpPusher::onCmd_result);
                 g_mapCmd.emplace("_result",&RtmpPusher::onCmd_result);
                 g_mapCmd.emplace("onStatus",&RtmpPusher::onCmd_onStatus);
-            }, []() {});
+            });
 
-            AMFDecoder dec(chunkData.strBuf, 0);
+            AMFDecoder dec(chunkData.buffer, 0);
             std::string type = dec.load<std::string>();
             auto it = g_mapCmd.find(type);
             if(it != g_mapCmd.end()){
@@ -298,7 +298,7 @@ void RtmpPusher::onRtmpChunk(RtmpPacket &chunkData) {
         }
             break;
         default:
-            //WarnL << "unhandled message:" << (int) chunkData.typeId << hexdump(chunkData.strBuf.data(), chunkData.strBuf.size());
+            //WarnL << "unhandled message:" << (int) chunkData.type_id << hexdump(chunkData.buffer.data(), chunkData.buffer.size());
             break;
         }
 }

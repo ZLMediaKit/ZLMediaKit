@@ -122,17 +122,17 @@ public:
      */
     void onWrite(const RtmpPacket::Ptr &pkt, bool key = true) override {
         lock_guard<recursive_mutex> lock(_mtx);
-        if(pkt->typeId == MSG_VIDEO){
+        if(pkt->type_id == MSG_VIDEO){
             //有视频，那么启用GOP缓存
             _have_video = true;
         }
         if (pkt->isCfgFrame()) {
-            _config_frame_map[pkt->typeId] = pkt;
+            _config_frame_map[pkt->type_id] = pkt;
             return;
         }
 
         //保存当前时间戳
-        _track_stamps_map[pkt->typeId] = pkt->timeStamp;
+        _track_stamps_map[pkt->type_id] = pkt->time_stamp;
 
         if (!_ring) {
             weak_ptr<RtmpMediaSource> weakSelf = dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
@@ -154,7 +154,7 @@ public:
                 regist();
             }
         }
-        PacketCache<RtmpPacket>::inputPacket(pkt->typeId == MSG_VIDEO, pkt, key);
+        PacketCache<RtmpPacket>::inputPacket(pkt->type_id == MSG_VIDEO, pkt, key);
     }
 
     /**

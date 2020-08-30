@@ -161,11 +161,12 @@ public:
     }
 
 private:
-    RtmpDemuxer::Ptr _demuxer;
-    MultiMediaSourceMuxer::Ptr _muxer;
-    AMFValue _metadata;
     bool _all_track_ready = false;
     bool _recreate_metadata = false;
+    AMFValue _metadata;
+    RtmpDemuxer::Ptr _demuxer;
+    MultiMediaSourceMuxer::Ptr _muxer;
+
 };
 } /* namespace mediakit */
 

@@ -61,7 +61,7 @@ public:
      */
      void makeConfigPacket();
 private:
-    RtmpRing::RingType::Ptr _rtmpRing;
+    RtmpRing::RingType::Ptr _rtmp_ring;
     AMFValue _metadata;
     RtmpCodec::Ptr _encoder[TrackMax];
 };
