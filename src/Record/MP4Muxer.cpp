@@ -48,17 +48,13 @@ void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
     }
 
     if (!_started) {
-        //还没开始
-        if (!_have_video) {
-            _started = true;
-        } else {
-            if (frame->getTrackType() != TrackVideo || !frame->keyFrame()) {
-                //如果首帧是音频或者是视频但是不是i帧，那么不能开始写文件
-                return;
-            }
-            //开始写文件
-            _started = true;
+        //该逻辑确保含有视频时，第一帧为关键帧
+        if (_have_video && !frame->keyFrame()) {
+            //含有视频，但是不是关键帧，那么前面的帧丢弃
+            return;
         }
+        //开始写文件
+        _started = true;
     }
 
     //mp4文件时间戳需要从0开始
