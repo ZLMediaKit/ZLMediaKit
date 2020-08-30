@@ -91,14 +91,14 @@ void RtmpPlayer::onErr(const SockException &ex){
     onPlayResult_l(ex, !_play_timer);
 }
 
-void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshakeCompleted) {
+void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
     if (ex.getErrCode() == Err_shutdown) {
         //主动shutdown的，不触发回调
         return;
     }
 
     WarnL << ex.getErrCode() << " " << ex.what();
-    if (!handshakeCompleted) {
+    if (!handshake_done) {
         //开始播放阶段
         _play_timer.reset();
         //是否为性能测试模式
@@ -152,14 +152,14 @@ void RtmpPlayer::onConnect(const SockException &err){
     });
 }
 
-void RtmpPlayer::onRecv(const Buffer::Ptr &pBuf){
+void RtmpPlayer::onRecv(const Buffer::Ptr &buf){
     try {
         if (_benchmark_mode && !_play_timer) {
             //在性能测试模式下，如果rtmp握手完毕后，不再解析rtmp包
             _rtmp_recv_ticker.resetTime();
             return;
         }
-        onParseRtmp(pBuf->data(), pBuf->size());
+        onParseRtmp(buf->data(), buf->size());
     } catch (exception &e) {
         SockException ex(Err_other, e.what());
         //定时器_pPlayTimer为空后表明握手结束了
@@ -226,21 +226,21 @@ inline void RtmpPlayer::send_play() {
     addOnStatusCB(fun);
 }
 
-inline void RtmpPlayer::send_pause(bool bPause) {
+inline void RtmpPlayer::send_pause(bool pause) {
     AMFEncoder enc;
-    enc << "pause" << ++_send_req_id << nullptr << bPause;
+    enc << "pause" << ++_send_req_id << nullptr << pause;
     sendRequest(MSG_CMD, enc.data());
-    auto fun = [this, bPause](AMFValue &val) {
+    auto fun = [this, pause](AMFValue &val) {
         //TraceL << "pause onStatus";
         auto level = val["level"].as_string();
         auto code = val["code"].as_string();
         if (level != "status") {
-            if (!bPause) {
+            if (!pause) {
                 throw std::runtime_error(StrPrinter << "pause 恢复播放失败:" << level << " " << code << endl);
             }
         } else {
-            _paused = bPause;
-            if (!bPause) {
+            _paused = pause;
+            if (!pause) {
                 onPlayResult_l(SockException(Err_success, "resum rtmp success"), true);
             } else {
                 //暂停播放
@@ -251,7 +251,7 @@ inline void RtmpPlayer::send_pause(bool bPause) {
     addOnStatusCB(fun);
 
     _beat_timer.reset();
-    if (bPause) {
+    if (pause) {
         weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
         _beat_timer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0, [weakSelf]() {
             auto strongSelf = weakSelf.lock();
@@ -314,32 +314,32 @@ void RtmpPlayer::onCmd_onMetaData(AMFDecoder &dec) {
     _metadata_got = true;
 }
 
-void RtmpPlayer::onStreamDry(uint32_t stream_id) {
-    //TraceL << stream_id;
+void RtmpPlayer::onStreamDry(uint32_t stream_index) {
+    //TraceL << stream_index;
     onPlayResult_l(SockException(Err_other, "rtmp stream dry"), true);
 }
 
-void RtmpPlayer::onMediaData_l(const RtmpPacket::Ptr &packet) {
+void RtmpPlayer::onMediaData_l(const RtmpPacket::Ptr &chunk_data) {
     _rtmp_recv_ticker.resetTime();
     if (!_play_timer) {
         //已经触发了onPlayResult事件，直接触发onMediaData事件
-        onMediaData(packet);
+        onMediaData(chunk_data);
         return;
     }
 
-    if (packet->isCfgFrame()) {
+    if (chunk_data->isCfgFrame()) {
         //输入配置帧以便初始化完成各个track
-        onMediaData(packet);
+        onMediaData(chunk_data);
     } else {
         //先触发onPlayResult事件，这个时候解码器才能初始化完毕
         onPlayResult_l(SockException(Err_success, "play rtmp success"), false);
         //触发onPlayResult事件后，再把帧数据输入到解码器
-        onMediaData(packet);
+        onMediaData(chunk_data);
     }
 }
 
 
-void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
+void RtmpPlayer::onRtmpChunk(RtmpPacket &chunk_data) {
     typedef void (RtmpPlayer::*rtmp_func_ptr)(AMFDecoder &dec);
     static unordered_map<string, rtmp_func_ptr> s_func_map;
     static onceToken token([]() {
@@ -349,12 +349,12 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
         s_func_map.emplace("onMetaData", &RtmpPlayer::onCmd_onMetaData);
     });
 
-    switch (chunkData.type_id) {
+    switch (chunk_data.type_id) {
         case MSG_CMD:
         case MSG_CMD3:
         case MSG_DATA:
         case MSG_DATA3: {
-            AMFDecoder dec(chunkData.buffer, 0);
+            AMFDecoder dec(chunk_data.buffer, 0);
             std::string type = dec.load<std::string>();
             auto it = s_func_map.find(type);
             if (it != s_func_map.end()) {
@@ -368,10 +368,10 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
 
         case MSG_AUDIO:
         case MSG_VIDEO: {
-            auto idx = chunkData.type_id % 2;
+            auto idx = chunk_data.type_id % 2;
             if (_now_stamp_ticker[idx].elapsedTime() > 500) {
                 //计算播放进度时间轴用
-                _now_stamp[idx] = chunkData.time_stamp;
+                _now_stamp[idx] = chunk_data.time_stamp;
             }
             if (!_metadata_got) {
                 if (!onCheckMeta(TitleMeta().getMetadata())) {
@@ -379,7 +379,7 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket &chunkData) {
                 }
                 _metadata_got = true;
             }
-            onMediaData_l(std::make_shared<RtmpPacket>(std::move(chunkData)));
+            onMediaData_l(std::make_shared<RtmpPacket>(std::move(chunk_data)));
             break;
         }
 

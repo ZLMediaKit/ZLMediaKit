@@ -15,11 +15,6 @@
 #include "Thread/ThreadPool.h"
 using namespace toolkit;
 
-#ifdef ENABLE_OPENSSL
-#include "Util/SSLBox.h"
-#include <openssl/hmac.h>
-#include <openssl/opensslv.h>
-
 #define C1_DIGEST_SIZE 32
 #define C1_KEY_SIZE 128
 #define C1_SCHEMA_SIZE 764
@@ -28,6 +23,11 @@ using namespace toolkit;
 #define S1_FMS_KEY_SIZE 36
 #define S2_FMS_KEY_SIZE 68
 #define C1_OFFSET_SIZE 4
+
+#ifdef ENABLE_OPENSSL
+#include "Util/SSLBox.h"
+#include <openssl/hmac.h>
+#include <openssl/opensslv.h>
 
 static string openssl_HMACsha256(const void *key, unsigned int key_len, const void *data,unsigned int data_len){
     std::shared_ptr<char> out(new char[32], [](char *ptr) { delete[] ptr; });

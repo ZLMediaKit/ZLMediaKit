@@ -732,14 +732,14 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &tra
     }
 }
 
-void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshakeCompleted) {
+void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshake_done) {
     if (ex.getErrCode() == Err_shutdown) {
         //主动shutdown的，不触发回调
         return;
     }
 
     WarnL << ex.getErrCode() << " " << ex.what();
-    if (!handshakeCompleted) {
+    if (!handshake_done) {
         //开始播放阶段
         _play_check_timer.reset();
         onPlayResult(ex);
