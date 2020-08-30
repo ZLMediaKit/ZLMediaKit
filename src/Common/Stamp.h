@@ -29,6 +29,7 @@ public:
      * @return 时间戳增量
      */
     int64_t deltaStamp(int64_t stamp);
+
 private:
     int64_t _last_stamp = 0;
 };
@@ -41,7 +42,7 @@ public:
     ~Stamp() = default;
 
     /**
-     * 修正时间戳
+     * 求取相对时间戳,同时实现了音视频同步、限制dts回退等功能
      * @param dts 输入dts，如果为0则根据系统时间戳生成
      * @param pts 输入pts，如果为0则等于dts
      * @param dts_out 输出dts
@@ -75,15 +76,20 @@ public:
     void syncTo(Stamp &other);
 
 private:
+    //主要实现音视频时间戳同步功能
     void revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
+
+    //主要实现获取相对时间戳功能
+    void revise_l2(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
+
 private:
-    int64_t _relativeStamp = 0;
-    int64_t _last_relativeStamp = 0;
-    int64_t _last_dts = 0;
+    int64_t _relative_stamp = 0;
+    int64_t _last_dts_in = 0;
+    int64_t _last_dts_out = 0;
+    int64_t _last_pts_out = 0;
     SmoothTicker _ticker;
     bool _playback = false;
     Stamp *_sync_master = nullptr;
-    bool _sync_finished = true;
 };
 
 //dts生成器，
@@ -93,8 +99,10 @@ public:
     DtsGenerator() = default;
     ~DtsGenerator() = default;
     bool getDts(uint32_t pts, uint32_t &dts);
+
 private:
     bool getDts_l(uint32_t pts, uint32_t &dts);
+
 private:
     uint32_t _dts_pts_offset = 0;
     uint32_t _last_dts = 0;

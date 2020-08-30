@@ -44,77 +44,79 @@ void Stamp::setPlayBack(bool playback) {
 
 void Stamp::syncTo(Stamp &other){
     _sync_master = &other;
-    _sync_finished = false;
 }
 
+//限制dts回退
 void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp) {
-    revise_l(dts,pts,dts_out,pts_out,modifyStamp);
-    if(_sync_finished || modifyStamp || _playback){
-        //自动生成时间戳或回放或同步完毕
-        if(dts_out < 0) { dts_out = 0; }
-        if(pts_out < 0) { pts_out = 0; }
+    revise_l(dts, pts, dts_out, pts_out, modifyStamp);
+    if (_playback) {
+        //回放允许时间戳回退
         return;
     }
 
-    if(_sync_master && _sync_master->_last_dts){
+    if (dts_out < _last_dts_out) {
+        WarnL << "dts回退:" << dts_out << " < " << _last_dts_out;
+        dts_out = _last_dts_out;
+        pts_out = _last_pts_out;
+        return;
+    }
+    _last_dts_out = dts_out;
+    _last_pts_out = pts_out;
+}
+
+//音视频时间戳同步
+void Stamp::revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp) {
+    revise_l2(dts, pts, dts_out, pts_out, modifyStamp);
+    if (!_sync_master || modifyStamp || _playback) {
+        //自动生成时间戳或回放或同步完毕
+        return;
+    }
+
+    if (_sync_master && _sync_master->_last_dts_in) {
         //音视频dts当前时间差
-        int64_t dts_diff = _last_dts - _sync_master->_last_dts;
-        if(ABS(dts_diff) < 5000){
+        int64_t dts_diff = _last_dts_in - _sync_master->_last_dts_in;
+        if (ABS(dts_diff) < 5000) {
             //如果绝对时间戳小于5秒，那么说明他们的起始时间戳是一致的，那么强制同步
-            _last_relativeStamp = _relativeStamp;
-            _relativeStamp = _sync_master->_relativeStamp + dts_diff;
+            _relative_stamp = _sync_master->_relative_stamp + dts_diff;
         }
         //下次不用再强制同步
         _sync_master = nullptr;
     }
-
-    if (dts_out < 0 || dts_out < _last_relativeStamp) {
-        //相对时间戳小于0，或者小于上次的时间戳，
-        //那么说明是同步时间戳导致的,在这个过渡期内，我们一直返回上次的结果(目的是为了防止时间戳回退)
-        pts_out = _last_relativeStamp + (pts_out - dts_out);
-        dts_out = _last_relativeStamp;
-    } else if(!_sync_master){
-        //音视频同步过渡期完毕
-        _sync_finished = true;
-    }
-
-    if(pts_out < 0){
-        pts_out = dts_out;
-    }
 }
 
-void Stamp::revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp) {
-    if(!pts){
+//求取相对时间戳
+void Stamp::revise_l2(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp) {
+    if (!pts) {
         //没有播放时间戳,使其赋值为解码时间戳
         pts = dts;
     }
 
-    if(_playback){
+    if (_playback) {
         //这是点播
         dts_out = dts;
         pts_out = pts;
-        _relativeStamp = dts_out;
-        _last_dts = dts;
+        _relative_stamp = dts_out;
+        _last_dts_in = dts;
         return;
     }
 
     //pts和dts的差值
     int pts_dts_diff = pts - dts;
 
-    if(_last_dts != dts){
+    if (_last_dts_in != dts) {
         //时间戳发生变更
-        if(modifyStamp){
+        if (modifyStamp) {
             //内部自己生产时间戳
-            _relativeStamp = _ticker.elapsedTime();
-        }else{
-            _relativeStamp += deltaStamp(dts);
+            _relative_stamp = _ticker.elapsedTime();
+        } else {
+            _relative_stamp += deltaStamp(dts);
         }
-        _last_dts = dts;
+        _last_dts_in = dts;
     }
-    dts_out = _relativeStamp;
+    dts_out = _relative_stamp;
 
     //////////////以下是播放时间戳的计算//////////////////
-    if(ABS(pts_dts_diff) > MAX_CTS){
+    if (ABS(pts_dts_diff) > MAX_CTS) {
         //如果差值太大，则认为由于回环导致时间戳错乱了
         pts_dts_diff = 0;
     }
@@ -123,11 +125,11 @@ void Stamp::revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_ou
 }
 
 void Stamp::setRelativeStamp(int64_t relativeStamp) {
-    _relativeStamp = relativeStamp;
+    _relative_stamp = relativeStamp;
 }
 
 int64_t Stamp::getRelativeStamp() const {
-    return _relativeStamp;
+    return _relative_stamp;
 }
 
 bool DtsGenerator::getDts(uint32_t pts, uint32_t &dts){
