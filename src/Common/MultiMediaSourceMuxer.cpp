@@ -96,7 +96,6 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
                 if (hls_src) {
                     //设置HlsMediaSource的事件监听器
                     hls_src->setListener(_listener);
-                    hls_src->setTrackSource(shared_from_this());
                 }
             } else if (!start && _hls) {
                 //停止录制
@@ -189,17 +188,10 @@ void MultiMuxerPrivate::onTrackFrame(const Frame::Ptr &frame) {
 
 void MultiMuxerPrivate::onAllTrackReady() {
     if (_rtmp) {
-        _rtmp->setTrackSource(shared_from_this());
         _rtmp->onAllTrackReady();
     }
     if (_rtsp) {
-        _rtsp->setTrackSource(shared_from_this());
         _rtsp->onAllTrackReady();
-    }
-
-    auto hls_src = getHlsMediaSource();
-    if (hls_src) {
-        hls_src->setTrackSource(shared_from_this());
     }
 
     if (_track_listener) {
@@ -243,7 +235,7 @@ void MultiMediaSourceMuxer::setTimeStamp(uint32_t stamp) {
     _muxer->setTimeStamp(stamp);
 }
 
-vector<Track::Ptr> MultiMediaSourceMuxer::getTracks(bool trackReady) const {
+vector<Track::Ptr> MultiMediaSourceMuxer::getTracks(MediaSource &sender, bool trackReady) const {
     return _muxer->getTracks(trackReady);
 }
 

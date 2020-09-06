@@ -54,15 +54,11 @@ const string& MediaSource::getId() const {
 }
 
 vector<Track::Ptr> MediaSource::getTracks(bool ready) const {
-    auto strongPtr = _track_source.lock();
-    if(strongPtr){
-        return strongPtr->getTracks(ready);
+    auto listener = _listener.lock();
+    if(!listener){
+        return vector<Track::Ptr>();
     }
-    return vector<Track::Ptr>();
-}
-
-void MediaSource::setTrackSource(const std::weak_ptr<TrackSource> &track_src) {
-    _track_source = track_src;
+    return listener->getTracks(const_cast<MediaSource &>(*this), ready);
 }
 
 void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
@@ -547,6 +543,14 @@ bool MediaSourceEventInterceptor::isRecording(MediaSource &sender, Recorder::typ
         return false;
     }
     return listener->isRecording(sender, type);
+}
+
+vector<Track::Ptr> MediaSourceEventInterceptor::getTracks(MediaSource &sender, bool trackReady) const {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return vector<Track::Ptr>();
+    }
+    return listener->getTracks(sender, trackReady);
 }
 
 /////////////////////////////////////FlushPolicy//////////////////////////////////////

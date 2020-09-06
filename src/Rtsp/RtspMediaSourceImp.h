@@ -100,9 +100,9 @@ public:
      * _muxer触发的所有Track就绪的事件
      */
     void onAllTrackReady() override{
-        setTrackSource(_muxer);
         _all_track_ready = true;
     }
+
 private:
     RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
