@@ -837,7 +837,9 @@ void installWebApi() {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
 
-        val["result"] = src->stopSendRtp();
+        if (!src->stopSendRtp()) {
+            throw ApiRetException("尚未开始推流,停止失败", API::OtherFailed);
+        }
     });
 
 
