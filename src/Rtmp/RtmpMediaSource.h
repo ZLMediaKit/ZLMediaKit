@@ -100,9 +100,8 @@ public:
      * 设置metadata
      */
     virtual void setMetaData(const AMFValue &metadata) {
-        lock_guard<recursive_mutex> lock(_mtx);
         _metadata = metadata;
-        if(_ring){
+        if (_ring) {
             regist();
         }
     }
@@ -121,18 +120,18 @@ public:
      * @param key 是否为关键帧
      */
     void onWrite(const RtmpPacket::Ptr &pkt, bool key = true) override {
-        lock_guard<recursive_mutex> lock(_mtx);
-        if(pkt->type_id == MSG_VIDEO){
-            //有视频，那么启用GOP缓存
-            _have_video = true;
+        //保存当前时间戳
+        switch (pkt->type_id) {
+            case MSG_VIDEO : _track_stamps[TrackVideo] = pkt->time_stamp, _have_video = true; break;
+            case MSG_AUDIO : _track_stamps[TrackAudio] = pkt->time_stamp; break;
+            default :  break;
         }
+
         if (pkt->isCfgFrame()) {
+            lock_guard<recursive_mutex> lock(_mtx);
             _config_frame_map[pkt->type_id] = pkt;
             return;
         }
-
-        //保存当前时间戳
-        _track_stamps_map[pkt->type_id] = pkt->time_stamp;
 
         if (!_ring) {
             weak_ptr<RtmpMediaSource> weakSelf = dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
@@ -144,9 +143,8 @@ public:
                 strongSelf->onReaderChanged(size);
             };
 
-            //rtmp包缓存最大允许512个，如果是纯视频(25fps)大概为20秒数据
-            //但是这个是GOP缓存的上限值，真实的GOP缓存大小等于两个I帧之间的包数的两倍
-            //而且每次遇到I帧，则会清空GOP缓存，所以真实的GOP缓存远小于此值
+            //GOP默认缓冲512组RTMP包，每组RTMP包时间戳相同(如果开启合并写了，那么每组为合并写时间内的RTMP包),
+            //每次遇到关键帧第一个RTMP包，则会清空GOP缓存(因为有新的关键帧了，同样可以实现秒开)
             _ring = std::make_shared<RingType>(_ring_size,std::move(lam));
             onReaderChanged(0);
 
@@ -161,19 +159,23 @@ public:
      * 获取当前时间戳
      */
     uint32_t getTimeStamp(TrackType trackType) override {
-        lock_guard<recursive_mutex> lock(_mtx);
-        switch (trackType) {
-            case TrackVideo:
-                return _track_stamps_map[MSG_VIDEO];
-            case TrackAudio:
-                return _track_stamps_map[MSG_AUDIO];
-            default:
-                return MAX(_track_stamps_map[MSG_VIDEO], _track_stamps_map[MSG_AUDIO]);
+        assert(trackType >= TrackInvalid && trackType < TrackMax);
+        if (trackType != TrackInvalid) {
+            //获取某track的时间戳
+            return _track_stamps[trackType];
         }
+
+        //获取所有track的最小时间戳
+        uint32_t ret = UINT32_MAX;
+        for (auto &stamp : _track_stamps) {
+            if (stamp > 0 && stamp < ret) {
+                ret = stamp;
+            }
+        }
+        return ret;
     }
 
 private:
-
     /**
     * 批量flush rtmp包时触发该函数
     * @param rtmp_list rtmp包列表
@@ -194,12 +196,13 @@ private:
     }
 
 private:
-    int _ring_size;
     bool _have_video = false;
-    mutable recursive_mutex _mtx;
+    int _ring_size;
+    uint32_t _track_stamps[TrackMax] = {0};
     AMFValue _metadata;
     RingType::Ptr _ring;
-    unordered_map<int, uint32_t> _track_stamps_map;
+
+    mutable recursive_mutex _mtx;
     unordered_map<int, RtmpPacket::Ptr> _config_frame_map;
 };
 
