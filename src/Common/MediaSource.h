@@ -175,6 +175,10 @@ public:
 
     // 同步查找流
     static Ptr find(const string &schema, const string &vhost, const string &app, const string &id);
+
+    // 忽略类型，同步查找流，可能返回rtmp/rtsp/hls类型
+    static Ptr find(const string &vhost, const string &app, const string &stream_id);
+
     // 异步查找流
     static void findAsync(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, const function<void(const Ptr &src)> &cb);
     // 遍历所有流

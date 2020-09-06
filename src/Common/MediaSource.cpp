@@ -307,6 +307,18 @@ MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost, co
     return find_l(schema, vhost, app, id, false);
 }
 
+MediaSource::Ptr MediaSource::find(const string &vhost, const string &app, const string &stream_id){
+    auto src = MediaSource::find(RTMP_SCHEMA, vhost, app, stream_id);
+    if (src) {
+        return src;
+    }
+    src = MediaSource::find(RTSP_SCHEMA, vhost, app, stream_id);
+    if (src) {
+        return src;
+    }
+    return MediaSource::find(HLS_SCHEMA, vhost, app, stream_id);
+}
+
 static string getTrackInfoStr(const TrackSource *track_src){
     _StrPrinter codec_info;
     auto tracks = track_src->getTracks(true);
