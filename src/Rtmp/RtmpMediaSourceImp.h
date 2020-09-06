@@ -112,12 +112,11 @@ public:
      * _muxer触发的所有Track就绪的事件
      */
     void onAllTrackReady() override{
-        setTrackSource(_muxer);
         _all_track_ready = true;
 
         if (_recreate_metadata) {
             //更新metadata
-            for (auto &track : _muxer->getTracks()) {
+            for (auto &track : _muxer->getTracks(*this)) {
                 Metadata::addTrack(_metadata, track);
             }
             RtmpMediaSource::updateMetaData(_metadata);

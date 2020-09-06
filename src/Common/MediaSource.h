@@ -59,6 +59,8 @@ public:
     virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) { return false; };
     // 获取录制状态
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
+    // 获取所有track相关信息
+    virtual vector<Track::Ptr> getTracks(MediaSource &sender, bool trackReady = true) const { return vector<Track::Ptr>(); };
 
 private:
     Timer::Ptr _async_close_timer;
@@ -74,9 +76,10 @@ public:
     bool close(MediaSource &sender, bool force) override;
     int totalReaderCount(MediaSource &sender) override;
     void onNoneReader(MediaSource &sender) override;
-    void onRegist(MediaSource &sender, bool regist) override;;
+    void onRegist(MediaSource &sender, bool regist) override;
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) override;
     bool isRecording(MediaSource &sender, Recorder::type type) override;
+    vector<Track::Ptr> getTracks(MediaSource &sender, bool trackReady = true) const override;
 
 protected:
     std::weak_ptr<MediaSourceEvent> _listener;
@@ -116,6 +119,8 @@ public:
     MediaSource(const string &schema, const string &vhost, const string &app, const string &stream_id) ;
     virtual ~MediaSource() ;
 
+    ////////////////获取MediaSource相关信息////////////////
+
     // 获取协议类型
     const string& getSchema() const;
     // 虚拟主机
@@ -125,10 +130,15 @@ public:
     // 流id
     const string& getId() const;
 
-    // 设置TrackSource
-    void setTrackSource(const std::weak_ptr<TrackSource> &track_src);
     // 获取所有Track
     vector<Track::Ptr> getTracks(bool ready = true) const override;
+
+    // 获取流当前时间戳
+    virtual uint32_t getTimeStamp(TrackType type) { return 0; };
+    // 设置时间戳
+    virtual void setTimeStamp(uint32_t stamp) {};
+
+    ////////////////MediaSourceEvent相关接口实现////////////////
 
     // 设置监听者
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
@@ -140,11 +150,6 @@ public:
     // 观看者个数，包括(hls/rtsp/rtmp)
     virtual int totalReaderCount();
 
-    // 获取流当前时间戳
-    virtual uint32_t getTimeStamp(TrackType type) { return 0; };
-    // 设置时间戳
-    virtual void setTimeStamp(uint32_t stamp) {};
-
     // 拖动进度条
     bool seekTo(uint32_t stamp);
     // 关闭该流
@@ -155,6 +160,8 @@ public:
     bool setupRecord(Recorder::type type, bool start, const string &custom_path);
     // 获取录制状态
     bool isRecording(Recorder::type type);
+
+    ////////////////static方法，查找或生成MediaSource////////////////
 
     // 同步查找流
     static Ptr find(const string &schema, const string &vhost, const string &app, const string &id);
@@ -180,7 +187,6 @@ private:
     string _vhost;
     string _app;
     string _stream_id;
-    weak_ptr<TrackSource> _track_source;
     std::weak_ptr<MediaSourceEvent> _listener;
 };
 

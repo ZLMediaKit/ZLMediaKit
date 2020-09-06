@@ -46,11 +46,6 @@ public:
         _media_src->setMetaData(getMetadata());
     }
 
-    // 设置TrackSource
-    void setTrackSource(const std::weak_ptr<TrackSource> &track_src){
-        _media_src->setTrackSource(track_src);
-    }
-
 private:
     RtmpMediaSource::Ptr _media_src;
 };

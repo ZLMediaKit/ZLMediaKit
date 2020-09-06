@@ -57,7 +57,7 @@ private:
     std::weak_ptr<MediaSourceEvent> _listener;
 };
 
-class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSinkInterface, public TrackSource, public MultiMuxerPrivate::Listener, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
+class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSinkInterface, public MultiMuxerPrivate::Listener, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     typedef MultiMuxerPrivate::Listener Listener;
     typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
@@ -94,16 +94,14 @@ public:
      */
     void setTimeStamp(uint32_t stamp);
 
-    /////////////////////////////////TrackSource override/////////////////////////////////
+    /////////////////////////////////MediaSourceEvent override/////////////////////////////////
 
     /**
      * 获取所有Track
      * @param trackReady 是否筛选过滤未就绪的track
      * @return 所有Track
      */
-    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
-
-    /////////////////////////////////MediaSourceEvent override/////////////////////////////////
+    vector<Track::Ptr> getTracks(MediaSource &sender, bool trackReady = true) const override;
 
     /**
      * 观看总人数

@@ -96,7 +96,7 @@ void PlayerProxy::play(const string &strUrlTmp) {
             return;
         }
         if(strongSelf->_muxer) {
-            auto tracks = strongSelf->getTracks(false);
+            auto tracks = strongSelf->MediaPlayer::getTracks(false);
             for (auto & track : tracks){
                 track->delDelegate(strongSelf->_muxer.get());
             }
@@ -271,7 +271,6 @@ void PlayerProxy::onPlaySuccess() {
     _muxer->addTrackCompleted();
 
     if (_pMediaSrc) {
-        _pMediaSrc->setTrackSource(_muxer);
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
         _pMediaSrc->setListener(_muxer);
     }
