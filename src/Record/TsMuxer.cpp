@@ -90,7 +90,6 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
     if(it == _codec_to_trackid.end()){
         return;
     }
-    //mp4文件时间戳需要从0开始
     auto &track_info = it->second;
     int64_t dts_out, pts_out;
     _is_idr_fast_packet = !_have_video;
@@ -132,7 +131,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
 
         case CodecAAC: {
             if (frame->prefixSize() == 0) {
-                WarnL << "必须提供adts头才能mpegts打包";
+                WarnL << "必须提供adts头才能mpeg-ts打包";
                 break;
             }
         }
@@ -155,18 +154,18 @@ void TsMuxer::resetTracks() {
 }
 
 void TsMuxer::init() {
-    static mpeg_ts_func_t s_func= {
-            [](void* param, size_t bytes){
-                TsMuxer *muxer = (TsMuxer *)param;
+    static mpeg_ts_func_t s_func = {
+            [](void *param, size_t bytes) {
+                TsMuxer *muxer = (TsMuxer *) param;
                 assert(sizeof(TsMuxer::_tsbuf) >= bytes);
-                return (void *)muxer->_tsbuf;
+                return (void *) muxer->_tsbuf;
             },
-            [](void* param, void* packet){
+            [](void *param, void *packet) {
                 //do nothing
             },
-            [](void* param, const void* packet, size_t bytes){
-                TsMuxer *muxer = (TsMuxer *)param;
-                muxer->onTs(packet, bytes,muxer->_timestamp,muxer->_is_idr_fast_packet);
+            [](void *param, const void *packet, size_t bytes) {
+                TsMuxer *muxer = (TsMuxer *) param;
+                muxer->onTs(packet, bytes, muxer->_timestamp, muxer->_is_idr_fast_packet);
                 muxer->_is_idr_fast_packet = false;
             }
     };
@@ -176,7 +175,7 @@ void TsMuxer::init() {
 }
 
 void TsMuxer::uninit() {
-    if(_context){
+    if (_context) {
         mpeg_ts_destroy(_context);
         _context = nullptr;
     }
