@@ -245,30 +245,6 @@ bool FFmpegSource::close(MediaSource &sender, bool force) {
     return true;
 }
 
-int FFmpegSource::totalReaderCount(MediaSource &sender) {
-    auto listener = _listener.lock();
-    if(listener){
-        return listener->totalReaderCount(sender);
-    }
-    return sender.readerCount();
-}
-
-void FFmpegSource::onNoneReader(MediaSource &sender){
-    auto listener = _listener.lock();
-    if(listener){
-        listener->onNoneReader(sender);
-        return;
-    }
-    MediaSourceEvent::onNoneReader(sender);
-}
-
-void FFmpegSource::onRegist(MediaSource &sender, bool regist){
-    auto listener = _listener.lock();
-    if(listener){
-        listener->onRegist(sender, regist);
-    }
-}
-
 void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
     auto listener = src->getListener();
     if (listener.lock().get() != this) {

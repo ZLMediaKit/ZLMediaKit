@@ -40,7 +40,7 @@ private:
     ~FFmpegSnap() = delete;
 };
 
-class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public MediaSourceEvent{
+class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public MediaSourceEventInterceptor{
 public:
     typedef shared_ptr<FFmpegSource> Ptr;
     typedef function<void(const SockException &ex)> onPlay;
@@ -60,9 +60,6 @@ private:
 
     //MediaSourceEvent override
     bool close(MediaSource &sender,bool force) override;
-    int totalReaderCount(MediaSource &sender) override;
-    void onNoneReader(MediaSource &sender) override;
-    void onRegist(MediaSource &sender, bool regist) override;
 
 private:
     Process _process;
@@ -72,7 +69,6 @@ private:
     string _src_url;
     string _dst_url;
     function<void()> _onClose;
-    std::weak_ptr<MediaSourceEvent> _listener;
     Ticker _replay_ticker;
 };
 

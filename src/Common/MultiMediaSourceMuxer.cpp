@@ -11,15 +11,11 @@
 #include "MultiMediaSourceMuxer.h"
 namespace mediakit {
 
+///////////////////////////////MultiMuxerPrivate//////////////////////////////////
+
 MultiMuxerPrivate::~MultiMuxerPrivate() {}
-MultiMuxerPrivate::MultiMuxerPrivate(const string &vhost,
-                                     const string &app,
-                                     const string &stream,
-                                     float dur_sec,
-                                     bool enable_rtsp,
-                                     bool enable_rtmp,
-                                     bool enable_hls,
-                                     bool enable_mp4) {
+MultiMuxerPrivate::MultiMuxerPrivate(const string &vhost, const string &app, const string &stream, float dur_sec,
+                                     bool enable_rtsp, bool enable_rtmp, bool enable_hls, bool enable_mp4) {
     if (enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleMeta>(dur_sec));
         _enable_rtxp = true;
@@ -73,7 +69,7 @@ void MultiMuxerPrivate::setMediaListener(const std::weak_ptr<MediaSourceEvent> &
     if (hls_src) {
         hls_src->setListener(listener);
     }
-    _meida_listener = listener;
+    _listener = listener;
 }
 
 int MultiMuxerPrivate::totalReaderCount() const {
@@ -99,7 +95,7 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
                 auto hls_src = getHlsMediaSource();
                 if (hls_src) {
                     //设置HlsMediaSource的事件监听器
-                    hls_src->setListener(_meida_listener);
+                    hls_src->setListener(_listener);
                     hls_src->setTrackSource(shared_from_this());
                 }
             } else if (!start && _hls) {
@@ -146,7 +142,7 @@ void MultiMuxerPrivate::setTimeStamp(uint32_t stamp) {
 }
 
 void MultiMuxerPrivate::setTrackListener(Listener *listener) {
-    _listener = listener;
+    _track_listener = listener;
 }
 
 void MultiMuxerPrivate::onTrackReady(const Track::Ptr &track) {
@@ -206,8 +202,8 @@ void MultiMuxerPrivate::onAllTrackReady() {
         hls_src->setTrackSource(shared_from_this());
     }
 
-    if (_listener) {
-        _listener->onAllTrackReady();
+    if (_track_listener) {
+        _track_listener->onAllTrackReady();
     }
 }
 
@@ -219,22 +215,18 @@ MediaSource::Ptr MultiMuxerPrivate::getHlsMediaSource() const {
     return nullptr;
 }
 
-/////////////////////////////////////////////////////////////////
+///////////////////////////////MultiMediaSourceMuxer//////////////////////////////////
 
 MultiMediaSourceMuxer::~MultiMediaSourceMuxer() {}
-MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost,
-                                             const string &app,
-                                             const string &stream,
-                                             float dur_sec,
-                                             bool enable_rtsp,
-                                             bool enable_rtmp,
-                                             bool enable_hls,
-                                             bool enable_mp4) {
+
+MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec,
+                                             bool enable_rtsp, bool enable_rtmp, bool enable_hls, bool enable_mp4) {
     _muxer.reset(new MultiMuxerPrivate(vhost, app, stream, dur_sec, enable_rtsp, enable_rtmp, enable_hls, enable_mp4));
     _muxer->setTrackListener(this);
 }
 
 void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener) {
+    //拦截事件
     _muxer->setMediaListener(shared_from_this());
     _listener = listener;
 }
@@ -255,44 +247,12 @@ vector<Track::Ptr> MultiMediaSourceMuxer::getTracks(bool trackReady) const {
     return _muxer->getTracks(trackReady);
 }
 
-bool MultiMediaSourceMuxer::seekTo(MediaSource &sender, uint32_t ui32Stamp) {
-    auto listener = _listener.lock();
-    if (!listener) {
-        return false;
-    }
-    return listener->seekTo(sender, ui32Stamp);
-}
-
-bool MultiMediaSourceMuxer::close(MediaSource &sender, bool force) {
-    auto listener = _listener.lock();
-    if (!listener) {
-        return false;
-    }
-    return listener->close(sender, force);
-}
-
 int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
     auto listener = _listener.lock();
     if (!listener) {
-        return _muxer->totalReaderCount();
+        return totalReaderCount();
     }
     return listener->totalReaderCount(sender);
-}
-
-void MultiMediaSourceMuxer::onNoneReader(MediaSource &sender){
-    auto listener = _listener.lock();
-    if (!listener) {
-        MediaSourceEvent::onNoneReader(sender);
-        return;
-    }
-    listener->onNoneReader(sender);
-}
-
-void MultiMediaSourceMuxer::onRegist(MediaSource &sender, bool regist){
-    auto listener = _listener.lock();
-    if (listener) {
-        listener->onRegist(sender, regist);
-    }
 }
 
 bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) {
@@ -313,9 +273,9 @@ void MultiMediaSourceMuxer::addTrackCompleted() {
 
 void MultiMediaSourceMuxer::onAllTrackReady(){
     _muxer->setMediaListener(shared_from_this());
-    auto track_listener = _track_listener.lock();
-    if(track_listener){
-        track_listener->onAllTrackReady();
+    auto listener = _track_listener.lock();
+    if(listener){
+        listener->onAllTrackReady();
     }
 }
 
@@ -370,19 +330,19 @@ public:
         return _frame->getCodecId();
     }
 private:
-    Frame::Ptr _frame;
     int64_t _dts;
     int64_t _pts;
+    Frame::Ptr _frame;
 };
 
 void MultiMediaSourceMuxer::inputFrame(const Frame::Ptr &frame) {
-    GET_CONFIG(bool,modify_stamp,General::kModifyStamp);
-    if(!modify_stamp){
+    GET_CONFIG(bool, modify_stamp, General::kModifyStamp);
+    if (!modify_stamp) {
         //未开启时间戳覆盖
         _muxer->inputFrame(frame);
-    }else{
+    } else {
         //开启了时间戳覆盖
-        FrameModifyStamp::Ptr new_frame = std::make_shared<FrameModifyStamp>(frame,_stamp[frame->getTrackType()]);
+        FrameModifyStamp::Ptr new_frame = std::make_shared<FrameModifyStamp>(frame, _stamp[frame->getTrackType()]);
         //输入时间戳覆盖后的帧
         _muxer->inputFrame(new_frame);
     }
