@@ -29,7 +29,7 @@ void CommonRtmpDecoder::obtainFrame() {
     _frame->_prefix_size = 0;
 }
 
-bool CommonRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp, bool) {
+void CommonRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp) {
     //拷贝负载
     _frame->_buffer.assign(rtmp->buffer.data() + 1, rtmp->buffer.size() - 1);
     _frame->_dts = rtmp->time_stamp;
@@ -37,7 +37,6 @@ bool CommonRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp, bool) {
     RtmpCodec::inputFrame(_frame);
     //创建下一帧
     obtainFrame();
-    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -61,7 +60,7 @@ void CommonRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     rtmp->stream_index = STREAM_MEDIA;
     rtmp->time_stamp = frame->dts();
     rtmp->type_id = MSG_AUDIO;
-    RtmpCodec::inputRtmp(rtmp, false);
+    RtmpCodec::inputRtmp(rtmp);
 }
 
 }//namespace mediakit

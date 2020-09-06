@@ -35,9 +35,8 @@ public:
     /**
      * 开始解复用
      * @param pkt rtmp包
-     * @return true 代表是i帧
      */
-    bool inputRtmp(const RtmpPacket::Ptr &pkt);
+    void inputRtmp(const RtmpPacket::Ptr &pkt);
 
 private:
     void makeVideoTrack(const AMFValue &val);

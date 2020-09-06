@@ -39,9 +39,8 @@ public:
     /**
      * 输入Rtmp并解码
      * @param rtmp Rtmp数据包
-     * @param key_pos 此参数内部强制转换为false,请忽略之
      */
-    bool inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos = false) override;
+    void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
 
 private:
     void obtainFrame();

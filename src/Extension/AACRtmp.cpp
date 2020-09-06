@@ -29,17 +29,16 @@ static string getAacCfg(const RtmpPacket &thiz) {
     return ret;
 }
 
-bool AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt, bool) {
+void AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     if (pkt->isCfgFrame()) {
         _aac_cfg = getAacCfg(*pkt);
         onGetAAC(nullptr, 0, 0);
-        return false;
+        return;
     }
 
     if (!_aac_cfg.empty()) {
         onGetAAC(pkt->buffer.data() + 2, pkt->buffer.size() - 2, pkt->time_stamp);
     }
-    return false;
 }
 
 void AACRtmpDecoder::onGetAAC(const char* data, int len, uint32_t stamp) {
@@ -112,7 +111,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         rtmpPkt->stream_index = STREAM_MEDIA;
         rtmpPkt->time_stamp = frame->dts();
         rtmpPkt->type_id = MSG_AUDIO;
-        RtmpCodec::inputRtmp(rtmpPkt, false);
+        RtmpCodec::inputRtmp(rtmpPkt);
     }
 }
 
@@ -133,7 +132,7 @@ void AACRtmpEncoder::makeAudioConfigPkt() {
     rtmpPkt->stream_index = STREAM_MEDIA;
     rtmpPkt->time_stamp = 0;
     rtmpPkt->type_id = MSG_AUDIO;
-    RtmpCodec::inputRtmp(rtmpPkt, false);
+    RtmpCodec::inputRtmp(rtmpPkt);
 }
 
 }//namespace mediakit
