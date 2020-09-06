@@ -37,6 +37,11 @@ public:
     virtual void addTrack(const Track::Ptr & track) = 0;
 
     /**
+     * 添加所有Track完毕
+     */
+    virtual void addTrackCompleted() {}
+
+    /**
      * 重置track
      */
     virtual void resetTracks() = 0;
@@ -70,7 +75,7 @@ public:
      * 这样会增加生成流的延时，如果添加了音视频双Track，那么可以不调用此方法
      * 否则为了降低流注册延时，请手动调用此方法
      */
-    void addTrackCompleted();
+    void addTrackCompleted() override;
 
     /**
      * 重置track

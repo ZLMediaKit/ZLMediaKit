@@ -17,7 +17,7 @@
 #include "Record/HlsRecorder.h"
 namespace mediakit{
 
-class MultiMuxerPrivate : public MediaSink , public std::enable_shared_from_this<MultiMuxerPrivate>{
+class MultiMuxerPrivate : public MediaSink, public std::enable_shared_from_this<MultiMuxerPrivate>{
 public:
     friend class MultiMediaSourceMuxer;
     typedef std::shared_ptr<MultiMuxerPrivate> Ptr;
@@ -47,17 +47,17 @@ private:
     MediaSource::Ptr getHlsMediaSource() const;
 
 private:
+    bool _enable_rtxp = false;
+    bool _enable_record = false;
+    Listener *_track_listener = nullptr;
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
     MediaSinkInterface::Ptr _hls;
     MediaSinkInterface::Ptr _mp4;
-    Listener *_listener = nullptr;
-    std::weak_ptr<MediaSourceEvent> _meida_listener;
-    bool _enable_rtxp = false;
-    bool _enable_record = false;
+    std::weak_ptr<MediaSourceEvent> _listener;
 };
 
-class MultiMediaSourceMuxer : public MediaSourceEvent, public MediaSinkInterface, public TrackSource, public MultiMuxerPrivate::Listener, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
+class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSinkInterface, public TrackSource, public MultiMuxerPrivate::Listener, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     typedef MultiMuxerPrivate::Listener Listener;
     typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
@@ -84,10 +84,17 @@ public:
     int totalReaderCount() const;
 
     /**
+     * 判断是否生效(是否正在转其他协议)
+     */
+    bool isEnabled();
+
+    /**
      * 设置MediaSource时间戳
      * @param stamp 时间戳
      */
     void setTimeStamp(uint32_t stamp);
+
+    /////////////////////////////////TrackSource override/////////////////////////////////
 
     /**
      * 获取所有Track
@@ -96,21 +103,7 @@ public:
      */
     vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 
-    /**
-     * 通知拖动进度条
-     * @param sender 事件发送者
-     * @param ui32Stamp 目标时间戳
-     * @return 是否成功
-     */
-    bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override;
-
-    /**
-     * 通知停止流生成
-     * @param sender 事件发送者
-     * @param force 是否强制关闭
-     * @return 成功与否
-     */
-    bool close(MediaSource &sender,bool force) override;
+    /////////////////////////////////MediaSourceEvent override/////////////////////////////////
 
     /**
      * 观看总人数
@@ -118,19 +111,6 @@ public:
      * @return 观看总人数
      */
     int totalReaderCount(MediaSource &sender) override;
-
-    /**
-     * 触发无人观看事件
-     * @param sender 触发者
-     */
-    void onNoneReader(MediaSource &sender) override;
-
-    /**
-     * 媒体注册注销事件
-     * @param sender 触发者
-     * @param regist 是否为注册事件
-     */
-    void onRegist(MediaSource &sender, bool regist) override;
 
     /**
      * 设置录制状态
@@ -148,6 +128,8 @@ public:
      */
     bool isRecording(MediaSource &sender, Recorder::type type) override;
 
+    /////////////////////////////////MediaSinkInterface override/////////////////////////////////
+
     /**
     * 添加track，内部会调用Track的clone方法
     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
@@ -158,12 +140,7 @@ public:
     /**
      * 添加track完毕
      */
-    void addTrackCompleted();
-
-    /**
-     * 所有track全部就绪
-     */
-    void onAllTrackReady() override;
+    void addTrackCompleted() override;
 
     /**
      * 重置track
@@ -176,16 +153,17 @@ public:
      */
     void inputFrame(const Frame::Ptr &frame) override;
 
+    /////////////////////////////////MultiMuxerPrivate::Listener override/////////////////////////////////
+
     /**
-     * 判断是否生效(是否正在转其他协议)
+     * 所有track全部就绪
      */
-    bool isEnabled();
+    void onAllTrackReady() override;
 
 private:
-    MultiMuxerPrivate::Ptr _muxer;
-    std::weak_ptr<MediaSourceEvent> _listener;
-    std::weak_ptr<MultiMuxerPrivate::Listener> _track_listener;
     Stamp _stamp[2];
+    MultiMuxerPrivate::Ptr _muxer;
+    std::weak_ptr<MultiMuxerPrivate::Listener> _track_listener;
 };
 
 }//namespace mediakit
