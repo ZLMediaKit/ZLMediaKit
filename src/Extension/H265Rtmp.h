@@ -32,17 +32,17 @@ public:
     /**
      * 输入265 Rtmp包
      * @param rtmp Rtmp包
-     * @param key_pos 此参数忽略之
      */
-    bool inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos = true) override;
+    void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
 
     CodecId getCodecId() const override{
         return CodecH265;
     }
+
 protected:
-    bool decodeRtmp(const RtmpPacket::Ptr &Rtmp);
     void onGetH265(const char *pcData, int iLen, uint32_t dts,uint32_t pts);
     H265Frame::Ptr obtainFrame();
+
 protected:
     H265Frame::Ptr _h265frame;
 };

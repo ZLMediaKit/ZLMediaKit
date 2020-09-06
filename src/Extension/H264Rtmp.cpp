@@ -23,10 +23,6 @@ H264Frame::Ptr  H264RtmpDecoder::obtainFrame() {
     return frame;
 }
 
-bool H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos) {
-    return decodeRtmp(rtmp);
-}
-
 /**
  * 返回不带0x00 00 00 01头的sps
  * @return
@@ -90,14 +86,14 @@ static string getH264PPS(const RtmpPacket &thiz) {
     return ret;
 }
 
-bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
+void H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     if (pkt->isCfgFrame()) {
         //缓存sps pps，后续插入到I帧之前
         _sps = getH264SPS(*pkt);
         _pps  = getH264PPS(*pkt);
         onGetH264(_sps.data(), _sps.size(), pkt->time_stamp , pkt->time_stamp);
         onGetH264(_pps.data(), _pps.size(), pkt->time_stamp , pkt->time_stamp);
-        return false;
+        return;
     }
 
     if (pkt->buffer.size() > 9) {
@@ -119,7 +115,6 @@ bool H264RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
             iOffset += iFrameLen;
         }
     }
-    return  pkt->isVideoKeyFrame();
 }
 
 inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
@@ -191,7 +186,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 
     if(_lastPacket && _lastPacket->time_stamp != frame->dts()) {
-        RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
+        RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
     }
 
@@ -259,7 +254,7 @@ void H264RtmpEncoder::makeVideoConfigPkt() {
     rtmpPkt->stream_index = STREAM_MEDIA;
     rtmpPkt->time_stamp = 0;
     rtmpPkt->type_id = MSG_VIDEO;
-    RtmpCodec::inputRtmp(rtmpPkt, false);
+    RtmpCodec::inputRtmp(rtmpPkt);
 }
 
 }//namespace mediakit

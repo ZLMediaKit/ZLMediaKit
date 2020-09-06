@@ -117,9 +117,8 @@ public:
     /**
      * 输入rtmp包
      * @param pkt rtmp包
-     * @param key 是否为关键帧
      */
-    void onWrite(const RtmpPacket::Ptr &pkt, bool key = true) override {
+    void onWrite(const RtmpPacket::Ptr &pkt, bool = true) override {
         //保存当前时间戳
         switch (pkt->type_id) {
             case MSG_VIDEO : _track_stamps[TrackVideo] = pkt->time_stamp, _have_video = true; break;
@@ -152,7 +151,7 @@ public:
                 regist();
             }
         }
-        PacketCache<RtmpPacket>::inputPacket(pkt->type_id == MSG_VIDEO, pkt, key);
+        PacketCache<RtmpPacket>::inputPacket(pkt->type_id == MSG_VIDEO, pkt, pkt->isVideoKeyFrame());
     }
 
     /**

@@ -65,34 +65,32 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
     return ret;
 }
 
-bool RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
+void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->type_id) {
         case MSG_VIDEO: {
-            if(!_try_get_video_track){
+            if (!_try_get_video_track) {
                 _try_get_video_track = true;
                 auto codec = AMFValue(pkt->getMediaType());
                 makeVideoTrack(codec);
             }
-            if(_video_rtmp_decoder){
-                return _video_rtmp_decoder->inputRtmp(pkt, true);
+            if (_video_rtmp_decoder) {
+                _video_rtmp_decoder->inputRtmp(pkt);
             }
-            return false;
+            break;
         }
 
         case MSG_AUDIO: {
-            if(!_try_get_audio_track) {
+            if (!_try_get_audio_track) {
                 _try_get_audio_track = true;
                 auto codec = AMFValue(pkt->getMediaType());
                 makeAudioTrack(codec, pkt->getAudioSampleRate(), pkt->getAudioChannel(), pkt->getAudioSampleBit());
             }
-            if(_audio_rtmp_decoder){
-                _audio_rtmp_decoder->inputRtmp(pkt, false);
-                return false;
+            if (_audio_rtmp_decoder) {
+                _audio_rtmp_decoder->inputRtmp(pkt);
             }
-            return false;
+            break;
         }
-        default:
-            return false;
+        default : break;
     }
 }
 

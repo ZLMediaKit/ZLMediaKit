@@ -45,14 +45,11 @@ public:
     /**
      * 输入rtmp包
      * @param rtmp rtmp包
-     * @param key_pos 是否为关键帧
-     * @return 是否为关键帧
      */
-    virtual bool inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos) {
+    virtual void inputRtmp(const RtmpPacket::Ptr &rtmp) {
         if (_rtmpRing) {
-            _rtmpRing->write(rtmp, key_pos);
+            _rtmpRing->write(rtmp, rtmp->isVideoKeyFrame());
         }
-        return key_pos;
     }
 
 protected:

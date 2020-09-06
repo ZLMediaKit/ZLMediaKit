@@ -27,10 +27,6 @@ H265Frame::Ptr  H265RtmpDecoder::obtainFrame() {
     return frame;
 }
 
-bool H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos) {
-    return decodeRtmp(rtmp);
-}
-
 #ifdef ENABLE_MP4
 /**
  * 返回不带0x00 00 00 01头的sps
@@ -65,7 +61,7 @@ static bool getH265ConfigFrame(const RtmpPacket &thiz,string &frame) {
 }
 #endif
 
-bool H265RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
+void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     if (pkt->isCfgFrame()) {
 #ifdef ENABLE_MP4
         string config;
@@ -75,7 +71,7 @@ bool H265RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
 #else
         WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265-RTMP支持不完善";
 #endif
-        return false;
+        return;
     }
 
     if (pkt->buffer.size() > 9) {
@@ -97,7 +93,6 @@ bool H265RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
             iOffset += iFrameLen;
         }
     }
-    return  pkt->isVideoKeyFrame();
 }
 
 inline void H265RtmpDecoder::onGetH265(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
@@ -177,7 +172,7 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 
     if(_lastPacket && _lastPacket->time_stamp != frame->dts()) {
-        RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
+        RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
     }
 
@@ -242,7 +237,7 @@ void H265RtmpEncoder::makeVideoConfigPkt() {
     rtmpPkt->stream_index = STREAM_MEDIA;
     rtmpPkt->time_stamp = 0;
     rtmpPkt->type_id = MSG_VIDEO;
-    RtmpCodec::inputRtmp(rtmpPkt, false);
+    RtmpCodec::inputRtmp(rtmpPkt);
 #else
     WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265-RTMP支持不完善";
 #endif
