@@ -30,12 +30,14 @@ PSRtpSender::~PSRtpSender() {
 }
 
 void PSRtpSender::onPS(uint32_t stamp, void *packet, size_t bytes) {
+    //此函数在其他线程执行
     _rtp_encoder->inputFrame(std::make_shared<FrameFromPtr>((char *) packet, bytes, stamp));
 }
 
 void PSRtpSender::startSend(const string &dst_url, uint16_t dst_port, bool is_udp, const function<void(const SockException &ex)> &cb){
     _is_udp = is_udp;
-    _socket = std::make_shared<Socket>();
+    //确保Socket对象的线程安全
+    _socket = std::make_shared<Socket>(_poller, true);
     _dst_url = dst_url;
     _dst_port = dst_port;
     weak_ptr<PSRtpSender> weak_self = shared_from_this();
@@ -89,6 +91,7 @@ void PSRtpSender::onConnect(){
 }
 
 void PSRtpSender::onRtp(const RtpPacket::Ptr &rtp, bool) {
+    //此函数在其他线程执行
     if(!_is_connect){
         return;
     }
@@ -98,6 +101,7 @@ void PSRtpSender::onRtp(const RtpPacket::Ptr &rtp, bool) {
 }
 
 void PSRtpSender::onFlush(shared_ptr<List<RtpPacket::Ptr>> &rtp_list, bool key_pos) {
+    //此函数在其他线程执行
     int i = 0;
     int size = rtp_list->size();
     rtp_list->for_each([&](const RtpPacket::Ptr &packet) {
