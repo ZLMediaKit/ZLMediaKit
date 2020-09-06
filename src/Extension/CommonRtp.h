@@ -28,8 +28,9 @@ public:
     /**
      * 构造函数
      * @param codec 编码id
+     * @param max_frame_size 允许的最大帧大小
      */
-    CommonRtpDecoder(CodecId codec);
+    CommonRtpDecoder(CodecId codec, int max_frame_size = 2 * 1024);
 
     /**
      * 返回编码类型ID
@@ -47,10 +48,11 @@ private:
     void obtainFrame();
 
 private:
+    bool _drop_flag = false;
+    uint16_t _last_seq = 0;
+    int _max_frame_size;
     CodecId _codec;
     FrameImp::Ptr _frame;
-    uint16_t _last_seq = 0;
-    bool _drop_flag = false;
 };
 
 /**
