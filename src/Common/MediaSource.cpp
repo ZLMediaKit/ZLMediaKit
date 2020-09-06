@@ -120,6 +120,23 @@ bool MediaSource::isRecording(Recorder::type type){
     return listener->isRecording(*this, type);
 }
 
+void MediaSource::startSendRtp(const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb){
+    auto listener = _listener.lock();
+    if (!listener) {
+        cb(SockException(Err_other, "尚未设置事件监听器"));
+        return;
+    }
+    return listener->startSendRtp(*this, dst_url, dst_port, ssrc, is_udp, cb);
+}
+
+bool MediaSource::stopSendRtp() {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return false;
+    }
+    return listener->stopSendRtp(*this);
+}
+
 void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src)> &cb) {
     decltype(s_media_source_map) copy;
     {
@@ -551,6 +568,23 @@ vector<Track::Ptr> MediaSourceEventInterceptor::getTracks(MediaSource &sender, b
         return vector<Track::Ptr>();
     }
     return listener->getTracks(sender, trackReady);
+}
+
+void MediaSourceEventInterceptor::startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb){
+    auto listener = _listener.lock();
+    if (listener) {
+        listener->startSendRtp(sender, dst_url, dst_port, ssrc, is_udp, cb);
+    } else {
+        MediaSourceEvent::startSendRtp(sender, dst_url, dst_port, ssrc, is_udp, cb);
+    }
+}
+
+bool MediaSourceEventInterceptor::stopSendRtp(MediaSource &sender){
+    auto listener = _listener.lock();
+    if (listener) {
+        return listener->stopSendRtp(sender);
+    }
+    return false;
 }
 
 /////////////////////////////////////FlushPolicy//////////////////////////////////////

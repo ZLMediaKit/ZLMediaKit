@@ -810,6 +810,45 @@ void installWebApi() {
         }
     });
 
+    static auto getMediaSource = [](const string &vhost, const string &app, const string &stream_id){
+        auto src = MediaSource::find(RTMP_SCHEMA, vhost, app, stream_id);
+        if(src){
+            return src;
+        }
+        return MediaSource::find(RTSP_SCHEMA, vhost, app, stream_id);
+    };
+
+    api_regist2("/index/api/startSendRtp",[](API_ARGS2){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
+
+        auto src = getMediaSource(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("该媒体流不存在", API::OtherFailed);
+        }
+
+        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], [val, headerOut, invoker](const SockException &ex){
+            if (ex) {
+                const_cast<Value &>(val)["code"] = API::OtherFailed;
+                const_cast<Value &>(val)["msg"] = ex.what();
+            }
+            invoker("200 OK", headerOut, val.toStyledString());
+        });
+    });
+
+    api_regist1("/index/api/stopSendRtp",[](API_ARGS1){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream");
+
+        auto src = getMediaSource(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("该媒体流不存在", API::OtherFailed);
+        }
+
+        val["result"] = src->stopSendRtp();
+    });
+
+
 #endif//ENABLE_RTPPROXY
 
     // 开始录制hls或MP4

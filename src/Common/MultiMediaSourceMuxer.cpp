@@ -255,6 +255,37 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
     return _muxer->isRecording(sender,type);
 }
 
+void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb){
+#if defined(ENABLE_RTPPROXY)
+    auto ps_rtp_sender = std::make_shared<PSRtpSender>(ssrc);
+    weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
+    ps_rtp_sender->startSend(dst_url, dst_port, is_udp, [weak_self, ps_rtp_sender, cb](const SockException &ex) {
+        cb(ex);
+        auto strong_self = weak_self.lock();
+        if (!strong_self || ex) {
+            return;
+        }
+        for (auto &track : strong_self->_muxer->getTracks(false)) {
+            ps_rtp_sender->addTrack(track);
+        }
+        ps_rtp_sender->addTrackCompleted();
+        strong_self->_ps_rtp_sender = ps_rtp_sender;
+    });
+#else
+    cb(SockException(Err_other, "该功能未启用，编译时请打开ENABLE_RTPPROXY宏"));
+#endif//ENABLE_RTPPROXY
+}
+
+bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender){
+#if defined(ENABLE_RTPPROXY)
+    if (_ps_rtp_sender) {
+        _ps_rtp_sender = nullptr;
+        return true;
+    }
+#endif//ENABLE_RTPPROXY
+    return false;
+}
+
 void MultiMediaSourceMuxer::addTrack(const Track::Ptr &track) {
     _muxer->addTrack(track);
 }
@@ -327,21 +358,26 @@ private:
     Frame::Ptr _frame;
 };
 
-void MultiMediaSourceMuxer::inputFrame(const Frame::Ptr &frame) {
+void MultiMediaSourceMuxer::inputFrame(const Frame::Ptr &frame_in) {
     GET_CONFIG(bool, modify_stamp, General::kModifyStamp);
-    if (!modify_stamp) {
-        //未开启时间戳覆盖
-        _muxer->inputFrame(frame);
-    } else {
+    auto frame = frame_in;
+    if (modify_stamp) {
         //开启了时间戳覆盖
-        FrameModifyStamp::Ptr new_frame = std::make_shared<FrameModifyStamp>(frame, _stamp[frame->getTrackType()]);
-        //输入时间戳覆盖后的帧
-        _muxer->inputFrame(new_frame);
+        frame = std::make_shared<FrameModifyStamp>(frame, _stamp[frame->getTrackType()]);
     }
+    _muxer->inputFrame(frame);
+
+#if defined(ENABLE_RTPPROXY)
+    auto ps_rtp_sender = _ps_rtp_sender;
+    if (ps_rtp_sender) {
+        ps_rtp_sender->inputFrame(frame);
+    }
+#endif //ENABLE_RTPPROXY
+
 }
 
 bool MultiMediaSourceMuxer::isEnabled(){
-    return _muxer->isEnabled();
+    return _muxer->isEnabled() || _ps_rtp_sender;
 }
 
 
