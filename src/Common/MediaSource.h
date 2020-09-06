@@ -131,7 +131,7 @@ public:
     vector<Track::Ptr> getTracks(bool ready = true) const override;
 
     // 设置监听者
-    virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
     // 获取监听者
     const std::weak_ptr<MediaSourceEvent>& getListener() const;
 
@@ -152,9 +152,9 @@ public:
     // 该流无人观看
     void onNoneReader();
     // 开启或关闭录制
-    virtual bool setupRecord(Recorder::type type, bool start, const string &custom_path);
+    bool setupRecord(Recorder::type type, bool start, const string &custom_path);
     // 获取录制状态
-    virtual bool isRecording(Recorder::type type);
+    bool isRecording(Recorder::type type);
 
     // 同步查找流
     static Ptr find(const string &schema, const string &vhost, const string &app, const string &id);
