@@ -53,6 +53,10 @@ RtpProcess::RtpProcess(const string &stream_id) {
             });
         }
     }
+    _rtp_decoder = std::make_shared<CommonRtpDecoder>(CodecInvalid,  256 * 1024);
+    _rtp_decoder->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame){
+        onRtpDecode((uint8_t *) frame->data(), frame->size(), frame->dts());
+    }));
 }
 
 RtpProcess::~RtpProcess() {
@@ -121,7 +125,7 @@ void RtpProcess::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
         fwrite((uint8_t *) &size, 2, 1, _save_file_rtp.get());
         fwrite((uint8_t *) rtp->data() + 4, rtp->size() - 4, 1, _save_file_rtp.get());
     }
-    decodeRtp(rtp->data() + 4 ,rtp->size() - 4);
+    _rtp_decoder->inputRtp(rtp);
 }
 
 const char *RtpProcess::onSearchPacketTail(const char *packet,int bytes){
@@ -139,7 +143,7 @@ const char *RtpProcess::onSearchPacketTail(const char *packet,int bytes){
     }
 }
 
-void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) {
+void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp) {
     if(_save_file_ps){
         fwrite((uint8_t *)packet,bytes, 1, _save_file_ps.get());
     }
