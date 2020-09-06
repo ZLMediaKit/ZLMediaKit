@@ -272,6 +272,8 @@ void PlayerProxy::onPlaySuccess() {
 
     if (_pMediaSrc) {
         _pMediaSrc->setTrackSource(_muxer);
+        //让_muxer对象拦截一部分事件(比如说录像相关事件)
+        _pMediaSrc->setListener(_muxer);
     }
 }
 
