@@ -254,14 +254,18 @@ void HlsPlayerImp::onAllTrackReady() {
 }
 
 void HlsPlayerImp::onPlayResult(const SockException &ex) {
-    if(ex){
+    if (ex) {
         PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(ex);
-    }else{
+    } else {
+        _frame_cache.clear();
+        _stamp[TrackAudio].setRelativeStamp(0);
+        _stamp[TrackVideo].setRelativeStamp(0);
         _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
-        _ticker.resetTime();
+        setPlayPosition(0);
+
         weak_ptr<HlsPlayerImp> weakSelf = dynamic_pointer_cast<HlsPlayerImp>(shared_from_this());
-        //每50毫秒执行一次
-        _timer = std::make_shared<Timer>(0.05, [weakSelf]() {
+        //每20毫秒执行一次
+        _timer = std::make_shared<Timer>(0.02, [weakSelf]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return false;
@@ -288,22 +292,37 @@ void HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
     //根据时间戳缓存frame
     _frame_cache.emplace(dts, Frame::getCacheAbleFrame(frame));
 
-    while (!_frame_cache.empty()) {
-        if (_frame_cache.rbegin()->first - _frame_cache.begin()->first > 30 * 1000) {
-            //缓存超过30秒，强制消费掉
+    if (getBufferMS() > 30 * 1000) {
+        //缓存超过30秒，强制消费至15秒(减少延时或内存占用)
+        while (getBufferMS() > 15 * 1000) {
             MediaSink::inputFrame(_frame_cache.begin()->second);
             _frame_cache.erase(_frame_cache.begin());
-            continue;
         }
-        //缓存小于30秒
-        break;
+        //接着播放缓存中最早的帧
+        setPlayPosition(_frame_cache.begin()->first);
     }
+}
+
+int64_t HlsPlayerImp::getPlayPosition(){
+    return _ticker.elapsedTime() + _ticker_offset;
+}
+
+int64_t HlsPlayerImp::getBufferMS(){
+    if(_frame_cache.empty()){
+        return 0;
+    }
+    return _frame_cache.rbegin()->first - _frame_cache.begin()->first;
+}
+
+void HlsPlayerImp::setPlayPosition(int64_t pos){
+    _ticker.resetTime();
+    _ticker_offset = pos;
 }
 
 void HlsPlayerImp::onTick() {
     auto it = _frame_cache.begin();
     while (it != _frame_cache.end()) {
-        if (it->first > _ticker.elapsedTime()) {
+        if (it->first > getPlayPosition()) {
             //这些帧还未到时间播放
             break;
         }
