@@ -1048,6 +1048,108 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "开始发送rtp(startSendRtp)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/startSendRtp?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=obs&ssrc=1&dst_url=127.0.0.1&dst_port=10000&is_udp=0",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"startSendRtp"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "obs",
+							"description": "流id，例如 obs"
+						},
+						{
+							"key": "ssrc",
+							"value": "1",
+							"description": "rtp的ssrc"
+						},
+						{
+							"key": "dst_url",
+							"value": "127.0.0.1",
+							"description": "目标ip或域名"
+						},
+						{
+							"key": "dst_port",
+							"value": "10000",
+							"description": "目标端口"
+						},
+						{
+							"key": "is_udp",
+							"value": "0",
+							"description": "是否为udp模式,否则为tcp模式"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "停止 发送rtp(stopSendRtp)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/stopSendRtp?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=obs",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"stopSendRtp"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "obs",
+							"description": "流id，例如 obs"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"event": [
@@ -1074,17 +1176,17 @@
 	],
 	"variable": [
 		{
-			"id": "0e272976-965b-4f25-8b9e-5916c59234d7",
+			"id": "ce426571-eb1e-4067-8901-01978c982fed",
 			"key": "ZLMediaKit_URL",
 			"value": "zlmediakit.com:8880"
 		},
 		{
-			"id": "321374c3-3357-4405-915e-9cb524d95fbc",
+			"id": "2d3dfd4a-a39c-47d8-a3e9-37d80352ea5f",
 			"key": "ZLMediaKit_secret",
 			"value": "035c73f7-bb6b-4889-a715-d9eb2d1925cc"
 		},
 		{
-			"id": "468ce1f6-ec79-44d2-819e-5cb9f42cd396",
+			"id": "0aacc473-3a2e-4ef9-b415-e86ce71e0c42",
 			"key": "defaultVhost",
 			"value": "__defaultVhost__"
 		}

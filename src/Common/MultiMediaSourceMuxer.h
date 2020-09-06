@@ -15,6 +15,8 @@
 #include "Record/Recorder.h"
 #include "Record/HlsMediaSource.h"
 #include "Record/HlsRecorder.h"
+#include "Rtp/PSRtpSender.h"
+
 namespace mediakit{
 
 class MultiMuxerPrivate : public MediaSink, public std::enable_shared_from_this<MultiMuxerPrivate>{
@@ -126,6 +128,22 @@ public:
      */
     bool isRecording(MediaSource &sender, Recorder::type type) override;
 
+    /**
+     * 开始发送ps-rtp流
+     * @param dst_url 目标ip或域名
+     * @param dst_port 目标端口
+     * @param ssrc rtp的ssrc
+     * @param is_udp 是否为udp
+     * @param cb 启动成功或失败回调
+     */
+    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) override;
+
+    /**
+     * 停止ps-rtp发送
+     * @return 是否成功
+     */
+    bool stopSendRtp(MediaSource &sender) override;
+
     /////////////////////////////////MediaSinkInterface override/////////////////////////////////
 
     /**
@@ -133,7 +151,7 @@ public:
     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
     * @param track 添加音频或视频轨道
     */
-    void addTrack(const Track::Ptr & track) override;
+    void addTrack(const Track::Ptr &track) override;
 
     /**
      * 添加track完毕
@@ -162,6 +180,9 @@ private:
     Stamp _stamp[2];
     MultiMuxerPrivate::Ptr _muxer;
     std::weak_ptr<MultiMuxerPrivate::Listener> _track_listener;
+#if defined(ENABLE_RTPPROXY)
+    PSRtpSender::Ptr _ps_rtp_sender;
+#endif //ENABLE_RTPPROXY
 };
 
 }//namespace mediakit
