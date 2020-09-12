@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#if defined(ENABLE_RTPPROXY)
 #include "PSRtpSender.h"
 #include "Rtsp/RtspSession.h"
 #include "Thread/WorkThreadPool.h"
@@ -163,3 +164,4 @@ void PSRtpSender::onErr(const SockException &ex, bool is_connect) {
 }
 
 }//namespace mediakit
+#endif// defined(ENABLE_RTPPROXY)

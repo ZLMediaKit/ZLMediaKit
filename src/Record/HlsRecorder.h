@@ -15,11 +15,7 @@
 #include "TsMuxer.h"
 namespace mediakit {
 
-class HlsRecorder : public MediaSourceEventInterceptor,  public std::enable_shared_from_this<HlsRecorder>
-#if defined(ENABLE_HLS)
- , public TsMuxer
-#endif
-        {
+class HlsRecorder : public MediaSourceEventInterceptor, public TsMuxer, public std::enable_shared_from_this<HlsRecorder> {
 public:
     typedef std::shared_ptr<HlsRecorder> Ptr;
     HlsRecorder(const string &m3u8_file, const string &params){
@@ -63,7 +59,6 @@ public:
         return _clear_cache ? true : _enabled;
     }
 
-#if defined(ENABLE_HLS)
     void inputFrame(const Frame::Ptr &frame) override{
         if (_clear_cache) {
             _clear_cache = false;
@@ -78,7 +73,6 @@ private:
     void onTs(const void *packet, int bytes, uint32_t timestamp, bool is_idr_fast_packet) override {
         _hls->inputData((char *) packet, bytes, timestamp, is_idr_fast_packet);
     }
-#endif
 
 private:
     //默认不生成hls文件，有播放器时再生成

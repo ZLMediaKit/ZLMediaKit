@@ -11,6 +11,7 @@
 #ifndef TSMUXER_H
 #define TSMUXER_H
 
+#if defined(ENABLE_HLS)
 #include <unordered_map>
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
@@ -72,4 +73,25 @@ private:
 };
 
 }//namespace mediakit
+
+#else
+
+#include "Common/MediaSink.h"
+
+namespace mediakit {
+class TsMuxer : public MediaSinkInterface {
+public:
+    TsMuxer() {}
+    ~TsMuxer() override {}
+    void addTrack(const Track::Ptr &track) override {}
+    void resetTracks() override {}
+    void inputFrame(const Frame::Ptr &frame) override {}
+
+protected:
+    virtual void onTs(const void *packet, int bytes,uint32_t timestamp,bool is_idr_fast_packet) = 0;
+};
+}//namespace mediakit
+
+#endif// defined(ENABLE_HLS)
+
 #endif //TSMUXER_H
