@@ -264,8 +264,8 @@ void HlsPlayerImp::onPlayResult(const SockException &ex) {
         setPlayPosition(0);
 
         weak_ptr<HlsPlayerImp> weakSelf = dynamic_pointer_cast<HlsPlayerImp>(shared_from_this());
-        //每20毫秒执行一次
-        _timer = std::make_shared<Timer>(0.02, [weakSelf]() {
+        //每50毫秒执行一次
+        _timer = std::make_shared<Timer>(0.05, [weakSelf]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return false;
@@ -326,6 +326,13 @@ void HlsPlayerImp::onTick() {
             //这些帧还未到时间播放
             break;
         }
+
+        if (getBufferMS() < 3 * 1000) {
+            //缓存小于3秒,那么降低定时器消费速度(让剩余的数据在3秒后消费完毕)
+            //目的是为了防止定时器长时间干等后，数据瞬间消费完毕
+            setPlayPosition(_frame_cache.begin()->first);
+        }
+
         //消费掉已经到期的帧
         MediaSink::inputFrame(it->second);
         it = _frame_cache.erase(it);
