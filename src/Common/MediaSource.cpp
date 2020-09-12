@@ -8,7 +8,6 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <math.h>
 #include "MediaSource.h"
 #include "Record/MP4Reader.h"
 #include "Util/util.h"
@@ -316,36 +315,6 @@ MediaSource::Ptr MediaSource::find(const string &vhost, const string &app, const
     return MediaSource::find(HLS_SCHEMA, vhost, app, stream_id);
 }
 
-static string getTrackInfoStr(const TrackSource *track_src){
-    _StrPrinter codec_info;
-    auto tracks = track_src->getTracks(true);
-    for (auto &track : tracks) {
-        auto codec_type = track->getTrackType();
-        codec_info << track->getCodecName();
-        switch (codec_type) {
-            case TrackAudio : {
-                auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
-                codec_info << "["
-                           << audio_track->getAudioSampleRate() << "/"
-                           << audio_track->getAudioChannel() << "/"
-                           << audio_track->getAudioSampleBit() << "] ";
-                break;
-            }
-            case TrackVideo : {
-                auto video_track = dynamic_pointer_cast<VideoTrack>(track);
-                codec_info << "["
-                           << video_track->getVideoWidth() << "/"
-                           << video_track->getVideoHeight() << "/"
-                           << round(video_track->getVideoFps()) << "] ";
-                break;
-            }
-            default:
-                break;
-        }
-    }
-    return codec_info;
-}
-
 void MediaSource::emitEvent(bool regist){
     auto listener = _listener.lock();
     if (listener) {
@@ -354,7 +323,7 @@ void MediaSource::emitEvent(bool regist){
     }
     //触发广播
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, regist, *this);
-    InfoL << (regist ? "媒体注册:" : "媒体注销:") << _schema << " " << _vhost << " " << _app << " " << _stream_id << " " << getTrackInfoStr(this);
+    InfoL << (regist ? "媒体注册:" : "媒体注销:") << _schema << " " << _vhost << " " << _app << " " << _stream_id;
 }
 
 void MediaSource::regist() {

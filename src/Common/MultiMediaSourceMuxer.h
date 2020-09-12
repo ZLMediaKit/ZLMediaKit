@@ -46,13 +46,13 @@ private:
     void onTrackReady(const Track::Ptr & track) override;
     void onTrackFrame(const Frame::Ptr &frame) override;
     void onAllTrackReady() override;
-    MediaSource::Ptr getHlsMediaSource() const;
 
 private:
+    string _stream_url;
     Listener *_track_listener = nullptr;
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
-    MediaSinkInterface::Ptr _hls;
+    HlsRecorder::Ptr _hls;
     MediaSinkInterface::Ptr _mp4;
     std::weak_ptr<MediaSourceEvent> _listener;
 };

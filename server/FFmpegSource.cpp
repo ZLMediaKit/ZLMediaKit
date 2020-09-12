@@ -249,8 +249,8 @@ void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
     auto listener = src->getListener();
     if (listener.lock().get() != this) {
         //防止多次进入onGetMediaSource函数导致无效递归调用的bug
-        src->setListener(shared_from_this());
         _listener = listener;
+        src->setListener(shared_from_this());
     } else {
         WarnL << "多次触发onGetMediaSource事件:"
               << src->getSchema() << "/"

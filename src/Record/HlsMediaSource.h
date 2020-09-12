@@ -22,7 +22,7 @@ public:
     typedef RingBuffer<string> RingType;
     typedef std::shared_ptr<HlsMediaSource> Ptr;
     HlsMediaSource(const string &vhost, const string &app, const string &stream_id) : MediaSource(HLS_SCHEMA, vhost, app, stream_id){
-        _readerCount = 0;
+        _reader_count = 0;
         _ring = std::make_shared<RingType>();
     }
 
@@ -40,18 +40,34 @@ public:
      * @return
      */
     int readerCount() override {
-        return _readerCount.load();
+        return _reader_count.load();
     }
 
     /**
-     * 注册hls
+     * 生成m3u8文件时触发
      */
     void registHls(){
-        if (!_registed) {
-            _registed = true;
+        if (!_is_regist) {
+            _is_regist = true;
             onReaderChanged(0);
             regist();
         }
+
+        //m3u8文件生成，发送给播放器
+        decltype(_list_cb) copy;
+        {
+            lock_guard<mutex> lck(_mtx_cb);
+            copy.swap(_list_cb);
+        }
+        copy.for_each([](const function<void()> &cb) {
+            cb();
+        });
+    }
+
+    void waitForHls(function<void()> cb){
+        //等待生成m3u8文件
+        lock_guard<mutex> lck(_mtx_cb);
+        _list_cb.emplace_back(std::move(cb));
     }
 
 private:
@@ -61,16 +77,19 @@ private:
      */
     void modifyReaderCount(bool add) {
         if (add) {
-            ++_readerCount;
+            ++_reader_count;
         } else {
-            --_readerCount;
+            --_reader_count;
         }
-        onReaderChanged(_readerCount);
+        onReaderChanged(_reader_count);
     }
+
 private:
-    atomic_int _readerCount;
-    bool _registed = false;
+    bool _is_regist = false;
+    atomic_int _reader_count;
     RingType::Ptr _ring;
+    mutex _mtx_cb;
+    List<function<void()> > _list_cb;
 };
 
 class HlsCookieData{

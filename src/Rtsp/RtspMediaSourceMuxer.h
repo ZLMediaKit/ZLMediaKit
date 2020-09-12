@@ -33,6 +33,7 @@ public:
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _listener = listener;
+        _media_src->setListener(shared_from_this());
     }
 
     int readerCount() const{
@@ -44,7 +45,6 @@ public:
     }
 
     void onAllTrackReady(){
-        _media_src->setListener(shared_from_this());
         _media_src->setSdp(getSdp());
     }
 
