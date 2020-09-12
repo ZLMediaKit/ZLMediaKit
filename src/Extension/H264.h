@@ -35,6 +35,7 @@ public:
         NAL_SPS = 7,
         NAL_PPS = 8,
         NAL_AUD = 9,
+        NAL_B_P = 1,
     } NalType;
 
     H264Frame(){
@@ -180,9 +181,8 @@ public:
     */
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-        if(type == H264Frame::NAL_SPS || type == H264Frame::NAL_PPS || type == H264Frame::NAL_SEI ||
-           type == H264Frame::NAL_AUD){
-            //有些设备会把SPS PPS IDR帧当做一个帧打包，所以我们要split一下
+        if(type != H264Frame::NAL_B_P && type != H264Frame::NAL_IDR){
+            //非I/B/P帧情况下，split一下，防止多个帧粘合在一起
             splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, int len, int prefix) {
                 H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame, (char *)ptr, len, prefix);
                 inputFrame_l(sub_frame);
