@@ -8,8 +8,8 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "TsMuxer.h"
 #if defined(ENABLE_HLS)
+#include "TsMuxer.h"
 #include "mpeg-ts-proto.h"
 #include "mpeg-ts.h"
 #include "Extension/H264.h"
@@ -183,5 +183,4 @@ void TsMuxer::uninit() {
 }
 
 }//namespace mediakit
-
 #endif// defined(ENABLE_HLS)
