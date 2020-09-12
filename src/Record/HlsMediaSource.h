@@ -21,11 +21,7 @@ public:
     friend class HlsCookieData;
     typedef RingBuffer<string> RingType;
     typedef std::shared_ptr<HlsMediaSource> Ptr;
-    HlsMediaSource(const string &vhost, const string &app, const string &stream_id) : MediaSource(HLS_SCHEMA, vhost, app, stream_id){
-        _reader_count = 0;
-        _ring = std::make_shared<RingType>();
-    }
-
+    HlsMediaSource(const string &vhost, const string &app, const string &stream_id) : MediaSource(HLS_SCHEMA, vhost, app, stream_id){}
     ~HlsMediaSource() override = default;
 
     /**
@@ -37,10 +33,9 @@ public:
 
     /**
      * 获取播放器个数
-     * @return
      */
     int readerCount() override {
-        return _reader_count.load();
+        return _ring ? _ring->readerCount() : 0;
     }
 
     /**
@@ -50,6 +45,15 @@ public:
     void registHls(bool file_created){
         if (!_is_regist) {
             _is_regist = true;
+            weak_ptr<HlsMediaSource> weakSelf = dynamic_pointer_cast<HlsMediaSource>(shared_from_this());
+            auto lam = [weakSelf](int size) {
+                auto strongSelf = weakSelf.lock();
+                if (!strongSelf) {
+                    return;
+                }
+                strongSelf->onReaderChanged(size);
+            };
+            _ring = std::make_shared<RingType>(0, std::move(lam));
             onReaderChanged(0);
             regist();
         }
@@ -69,29 +73,14 @@ public:
         });
     }
 
-    void waitForFile(function<void()> cb){
+    void waitForFile(function<void()> cb) {
         //等待生成m3u8文件
         lock_guard<mutex> lck(_mtx_cb);
         _list_cb.emplace_back(std::move(cb));
     }
 
 private:
-    /**
-     * 修改观看者个数
-     * @param add 添加海思删除
-     */
-    void modifyReaderCount(bool add) {
-        if (add) {
-            ++_reader_count;
-        } else {
-            --_reader_count;
-        }
-        onReaderChanged(_reader_count);
-    }
-
-private:
     bool _is_regist = false;
-    atomic_int _reader_count;
     RingType::Ptr _ring;
     mutex _mtx_cb;
     List<function<void()> > _list_cb;
@@ -111,7 +100,6 @@ private:
     atomic<uint64_t> _bytes {0};
     MediaInfo _info;
     std::shared_ptr<bool> _added;
-    weak_ptr<HlsMediaSource> _src;
     Ticker _ticker;
     std::shared_ptr<SockInfo> _sock_info;
     HlsMediaSource::RingType::RingReader::Ptr _ring_reader;
