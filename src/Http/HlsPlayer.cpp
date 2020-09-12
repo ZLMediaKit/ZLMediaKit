@@ -13,7 +13,7 @@ namespace mediakit {
 
 HlsPlayer::HlsPlayer(const EventPoller::Ptr &poller){
     _segment.setOnSegment([this](const char *data, uint64_t len) { onPacket(data, len); });
-    _poller = poller ? poller : EventPollerPool::Instance().getPoller();
+    setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 
 HlsPlayer::~HlsPlayer() {}
@@ -63,6 +63,15 @@ void HlsPlayer::playNextTs(bool force){
     std::shared_ptr<Ticker> ticker(new Ticker);
 
     _http_ts_player = std::make_shared<HttpTSPlayer>(getPoller(), false);
+
+    _http_ts_player->setOnCreateSocket([weakSelf](const EventPoller::Ptr &poller) {
+        auto strongSelf = weakSelf.lock();
+        if (strongSelf) {
+            return strongSelf->createSocket();
+        }
+        return Socket::createSocket(poller, true);
+    });
+
     _http_ts_player->setOnDisconnect([weakSelf, ticker, ts_duration](const SockException &err) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -84,6 +93,7 @@ void HlsPlayer::playNextTs(bool force){
             }, strongSelf->getPoller()));
         }
     });
+
     _http_ts_player->setOnPacket([weakSelf](const char *data, uint64_t len) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -94,9 +104,10 @@ void HlsPlayer::playNextTs(bool force){
     });
 
     _http_ts_player->setMethod("GET");
-    if(!(*this)[kNetAdapter].empty()) {
+    if (!(*this)[kNetAdapter].empty()) {
         _http_ts_player->setNetAdapter((*this)[Client::kNetAdapter]);
     }
+
     _http_ts_player->sendRequest(_ts_list.front().url, 2 * _ts_list.front().duration);
     _ts_list.pop_front();
 }

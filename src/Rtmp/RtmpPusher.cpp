@@ -120,7 +120,7 @@ void RtmpPusher::onConnect(const SockException &err){
         return;
     }
     //推流器不需要多大的接收缓存，节省内存占用
-    _sock->setReadBuffer(std::make_shared<BufferRaw>(1 * 1024));
+    getSock()->setReadBuffer(std::make_shared<BufferRaw>(1 * 1024));
 
     weak_ptr<RtmpPusher> weak_self = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
     startClientSession([weak_self]() {
@@ -239,7 +239,7 @@ void RtmpPusher::setSocketFlags(){
     if (mergeWriteMS > 0) {
         //提高发送性能
         setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
-        SockUtil::setNoDelay(_sock->rawFD(), false);
+        SockUtil::setNoDelay(getSock()->rawFD(), false);
     }
 }
 

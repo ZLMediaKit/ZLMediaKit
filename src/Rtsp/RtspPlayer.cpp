@@ -211,7 +211,8 @@ void RtspPlayer::createUdpSockIfNecessary(int track_idx){
     auto &rtpSockRef = _rtp_sock[track_idx];
     auto &rtcpSockRef = _rtcp_sock[track_idx];
     if (!rtpSockRef || !rtcpSockRef) {
-        auto pr = makeSockPair(getPoller(), get_local_ip());
+        std::pair<Socket::Ptr, Socket::Ptr> pr = std::make_pair(createSocket(), createSocket());
+        makeSockPair(pr, get_local_ip());
         rtpSockRef = pr.first;
         rtcpSockRef = pr.second;
     }
@@ -280,7 +281,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
         if (_rtp_type == Rtsp::RTP_MULTICAST) {
             //udp组播
             auto multiAddr = FindField((strTransport + ";").data(), "destination=", ";");
-            pRtpSockRef.reset(new Socket(getPoller()));
+            pRtpSockRef = createSocket();
             if (!pRtpSockRef->bindUdpSock(rtp_port, multiAddr.data())) {
                 pRtpSockRef.reset();
                 throw std::runtime_error("open udp sock err");

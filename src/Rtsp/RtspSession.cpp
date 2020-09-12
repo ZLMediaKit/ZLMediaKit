@@ -277,7 +277,7 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
         sendRtspResponse("200 OK", {"RTP-Info",rtp_info});
         if(_rtp_type == Rtsp::RTP_TCP){
             //如果是rtsp推流服务器，并且是TCP推流，那么加大TCP接收缓存，这样能提升接收性能
-            _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+            getSock()->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
             setSocketFlags();
         }
     };
@@ -667,10 +667,10 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         break;
 
     case Rtsp::RTP_UDP: {
-        std::pair<Socket::Ptr, Socket::Ptr> pr;
-        try{
-            pr = makeSockPair(_sock->getPoller(), get_local_ip());
-        }catch(std::exception &ex) {
+        std::pair<Socket::Ptr, Socket::Ptr> pr = std::make_pair(createSocket(),createSocket());
+        try {
+            makeSockPair(pr, get_local_ip());
+        } catch (std::exception &ex) {
             //分配端口失败
             send_NotAcceptable();
             throw SockException(Err_shutdown, ex.what());
@@ -681,8 +681,8 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 
         //设置客户端内网端口信息
         string strClientPort = FindField(parser["Transport"].data(), "client_port=", NULL);
-        uint16_t ui16RtpPort = atoi( FindField(strClientPort.data(), NULL, "-").data());
-        uint16_t ui16RtcpPort = atoi( FindField(strClientPort.data(), "-" , NULL).data());
+        uint16_t ui16RtpPort = atoi(FindField(strClientPort.data(), NULL, "-").data());
+        uint16_t ui16RtcpPort = atoi(FindField(strClientPort.data(), "-", NULL).data());
 
         struct sockaddr_in peerAddr;
         //设置rtp发送目标地址
@@ -690,14 +690,14 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         peerAddr.sin_port = htons(ui16RtpPort);
         peerAddr.sin_addr.s_addr = inet_addr(get_peer_ip().data());
         bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
-        pr.first->setSendPeerAddr((struct sockaddr *)(&peerAddr));
+        pr.first->setSendPeerAddr((struct sockaddr *) (&peerAddr));
 
         //设置rtcp发送目标地址
         peerAddr.sin_family = AF_INET;
         peerAddr.sin_port = htons(ui16RtcpPort);
         peerAddr.sin_addr.s_addr = inet_addr(get_peer_ip().data());
         bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
-        pr.second->setSendPeerAddr((struct sockaddr *)(&peerAddr));
+        pr.second->setSendPeerAddr((struct sockaddr *) (&peerAddr));
 
         //尝试获取客户端nat映射地址
         startListenPeerUdpData(trackIdx);
@@ -714,7 +714,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         break;
     case Rtsp::RTP_MULTICAST: {
         if(!_multicaster){
-            _multicaster = RtpMultiCaster::get(getPoller(), get_local_ip(), _media_info._vhost, _media_info._app, _media_info._streamid);
+            _multicaster = RtpMultiCaster::get(*this, get_local_ip(), _media_info._vhost, _media_info._app, _media_info._streamid);
             if (!_multicaster) {
                 send_NotAcceptable();
                 throw SockException(Err_shutdown, "can not get a available udp multicast socket");
@@ -728,10 +728,10 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
                 strongSelf->safeShutdown(SockException(Err_shutdown,"ring buffer detached"));
             });
         }
-        int iSrvPort = _multicaster->getPort(trackRef->_type);
+        int iSrvPort = _multicaster->getMultiCasterPort(trackRef->_type);
         //我们用trackIdx区分rtp和rtcp包
         //由于组播udp端口是共享的，而rtcp端口为组播udp端口+1，所以rtcp端口需要改成共享端口
-        auto pSockRtcp = UDPServer::Instance().getSock(getPoller(),get_local_ip().data(),2*trackIdx + 1,iSrvPort + 1);
+        auto pSockRtcp = UDPServer::Instance().getSock(*this, get_local_ip().data(), 2 * trackIdx + 1, iSrvPort + 1);
         if (!pSockRtcp) {
             //分配端口失败
             send_NotAcceptable();
@@ -742,7 +742,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 
         sendRtspResponse("200 OK",
                          {"Transport", StrPrinter << "RTP/AVP;multicast;"
-                                                  << "destination=" << _multicaster->getIP() << ";"
+                                                  << "destination=" << _multicaster->getMultiCasterIP() << ";"
                                                   << "source=" << get_local_ip() << ";"
                                                   << "port=" << iSrvPort << "-" << pSockRtcp->get_local_port() << ";"
                                                   << "ttl=" << udpTTL << ";"
@@ -1230,7 +1230,7 @@ void RtspSession::setSocketFlags(){
     GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
     if(mergeWriteMS > 0) {
         //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
-        SockUtil::setNoDelay(_sock->rawFD(), false);
+        SockUtil::setNoDelay(getSock()->rawFD(), false);
         //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
         setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }
