@@ -45,14 +45,19 @@ public:
 
     /**
      * 生成m3u8文件时触发
+     * @param file_created 是否产生了hls文件
      */
-    void registHls(){
+    void registHls(bool file_created){
         if (!_is_regist) {
             _is_regist = true;
             onReaderChanged(0);
             regist();
         }
 
+        if (!file_created) {
+            //没产生文件
+            return;
+        }
         //m3u8文件生成，发送给播放器
         decltype(_list_cb) copy;
         {
@@ -64,7 +69,7 @@ public:
         });
     }
 
-    void waitForHls(function<void()> cb){
+    void waitForFile(function<void()> cb){
         //等待生成m3u8文件
         lock_guard<mutex> lck(_mtx_cb);
         _list_cb.emplace_back(std::move(cb));
