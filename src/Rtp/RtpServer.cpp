@@ -24,7 +24,7 @@ RtpServer::~RtpServer() {
 
 void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable_tcp, const char *local_ip) {
     //创建udp服务器
-    Socket::Ptr udp_server = std::make_shared<Socket>(nullptr, false);
+    Socket::Ptr udp_server = Socket::createSocket(nullptr, false);
     if (!udp_server->bindUdpSock(local_port, local_ip)) {
         throw std::runtime_error(StrPrinter << "bindUdpSock on " << local_ip << ":" << local_port << " failed:" << get_uv_errmsg(true));
     }
@@ -33,14 +33,10 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable
 
     TcpServer::Ptr tcp_server;
     if (enable_tcp) {
-        try {
-            //创建tcp服务器
-            tcp_server = std::make_shared<TcpServer>(udp_server->getPoller());
-            (*tcp_server)[RtpSession::kStreamID] = stream_id;
-            tcp_server->start<RtpSession>(udp_server->get_local_port(), local_ip);
-        } catch (...) {
-            throw;
-        }
+        //创建tcp服务器
+        tcp_server = std::make_shared<TcpServer>(udp_server->getPoller());
+        (*tcp_server)[RtpSession::kStreamID] = stream_id;
+        tcp_server->start<RtpSession>(udp_server->get_local_port(), local_ip);
     }
 
     RtpProcess::Ptr process;

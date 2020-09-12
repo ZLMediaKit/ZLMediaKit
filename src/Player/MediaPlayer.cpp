@@ -17,31 +17,43 @@ using namespace toolkit;
 namespace mediakit {
 
 MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
-    _poller = poller;
-    if(!_poller){
-        _poller = EventPollerPool::Instance().getPoller();
-    }
+    _poller = poller ? poller : EventPollerPool::Instance().getPoller();
 }
 
 MediaPlayer::~MediaPlayer() {
 }
-void MediaPlayer::play(const string &strUrl) {
-    _delegate = PlayerBase::createPlayer(_poller,strUrl);
+
+static void setOnCreateSocket_l(const std::shared_ptr<PlayerBase> &delegate, const Socket::onCreateSocket &cb){
+    auto helper = dynamic_pointer_cast<SocketHelper>(delegate);
+    if (helper) {
+        helper->setOnCreateSocket(cb);
+    }
+}
+
+void MediaPlayer::play(const string &url) {
+    _delegate = PlayerBase::createPlayer(_poller, url);
+    assert(_delegate);
+    setOnCreateSocket_l(_delegate, _on_create_socket);
     _delegate->setOnShutdown(_shutdownCB);
     _delegate->setOnPlayResult(_playResultCB);
     _delegate->setOnResume(_resumeCB);
     _delegate->setMediaSouce(_pMediaSrc);
     _delegate->mINI::operator=(*this);
-    _delegate->play(strUrl);
+    _delegate->play(url);
 }
 
 EventPoller::Ptr MediaPlayer::getPoller(){
     return _poller;
 }
 
-void MediaPlayer::pause(bool bPause) {
+void MediaPlayer::setOnCreateSocket(Socket::onCreateSocket cb){
+    setOnCreateSocket_l(_delegate, cb);
+    _on_create_socket = std::move(cb);
+}
+
+void MediaPlayer::pause(bool pause) {
     if (_delegate) {
-        _delegate->pause(bPause);
+        _delegate->pause(pause);
     }
 }
 

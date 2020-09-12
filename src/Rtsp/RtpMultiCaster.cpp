@@ -25,153 +25,177 @@ MultiCastAddressMaker &MultiCastAddressMaker::Instance() {
     return instance;
 }
 
-static uint32_t addressToInt(const string &ip){
-    struct in_addr addr;
-    bzero(&addr,sizeof(addr));
-    addr.s_addr =  inet_addr(ip.data());
-    return (uint32_t)ntohl((uint32_t &)addr.s_addr);
+bool MultiCastAddressMaker::isMultiCastAddress(uint32_t addr) {
+    static uint32_t addrMin = mINI::Instance()[MultiCast::kAddrMin].as<uint32_t>();
+    static uint32_t addrMax = mINI::Instance()[MultiCast::kAddrMax].as<uint32_t>();
+    return addr >= addrMin && addr <= addrMax;
 }
 
-std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t iTry) {
+string MultiCastAddressMaker::toString(uint32_t addr) {
+    addr = htonl(addr);
+    return SockUtil::inet_ntoa((struct in_addr &) (addr));
+}
+
+static uint32_t addressToInt(const string &ip){
+    struct in_addr addr;
+    bzero(&addr, sizeof(addr));
+    addr.s_addr = inet_addr(ip.data());
+    return (uint32_t) ntohl((uint32_t &) addr.s_addr);
+}
+
+std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t max_try) {
     lock_guard<recursive_mutex> lck(_mtx);
-    GET_CONFIG(string,addrMinStr,MultiCast::kAddrMin);
-    GET_CONFIG(string,addrMaxStr,MultiCast::kAddrMax);
+    GET_CONFIG(string, addrMinStr, MultiCast::kAddrMin);
+    GET_CONFIG(string, addrMaxStr, MultiCast::kAddrMax);
     uint32_t addrMin = addressToInt(addrMinStr);
     uint32_t addrMax = addressToInt(addrMaxStr);
 
-    if(_iAddr > addrMax || _iAddr == 0){
-        _iAddr = addrMin;
+    if (_addr > addrMax || _addr == 0) {
+        _addr = addrMin;
     }
-    auto iGotAddr =  _iAddr++;
-    if(_setBadAddr.find(iGotAddr) != _setBadAddr.end()){
+    auto iGotAddr = _addr++;
+    if (_used_addr.find(iGotAddr) != _used_addr.end()) {
         //已经分配过了
-        if(iTry){
-            return obtain(--iTry);
+        if (max_try) {
+            return obtain(--max_try);
         }
         //分配完了,应该不可能到这里
         ErrorL;
         return nullptr;
     }
-    _setBadAddr.emplace(iGotAddr);
-    std::shared_ptr<uint32_t> ret(new uint32_t(iGotAddr),[](uint32_t *ptr){
+    _used_addr.emplace(iGotAddr);
+    std::shared_ptr<uint32_t> ret(new uint32_t(iGotAddr), [](uint32_t *ptr) {
         MultiCastAddressMaker::Instance().release(*ptr);
         delete ptr;
     });
     return ret;
 }
-void MultiCastAddressMaker::release(uint32_t iAddr){
+
+void MultiCastAddressMaker::release(uint32_t addr){
     lock_guard<recursive_mutex> lck(_mtx);
-    _setBadAddr.erase(iAddr);
+    _used_addr.erase(addr);
 }
 
+////////////////////////////////////////////////////////////////////////////////////
 
-recursive_mutex RtpMultiCaster::g_mtx;
-unordered_map<string, weak_ptr<RtpMultiCaster> > RtpMultiCaster::g_mapBroadCaster;
+recursive_mutex g_mtx;
+unordered_map<string, weak_ptr<RtpMultiCaster> > g_multi_caster_map;
 
 void RtpMultiCaster::setDetachCB(void* listener, const onDetach& cb) {
     lock_guard<recursive_mutex> lck(_mtx);
-    if(cb){
-        _mapDetach.emplace(listener,cb);
-    }else{
-        _mapDetach.erase(listener);
+    if (cb) {
+        _detach_map.emplace(listener, cb);
+    } else {
+        _detach_map.erase(listener);
     }
 }
+
 RtpMultiCaster::~RtpMultiCaster() {
-    _pReader->setReadCB(nullptr);
-    _pReader->setDetachCB(nullptr);
+    _rtp_reader->setReadCB(nullptr);
+    _rtp_reader->setDetachCB(nullptr);
     DebugL;
 }
 
-RtpMultiCaster::RtpMultiCaster(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
-    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA,strVhost,strApp, strStream));
-    if(!src){
-        auto strErr = StrPrinter << "未找到媒体源:" << strVhost << " " << strApp << " " << strStream << endl;
-        throw std::runtime_error(strErr);
+RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, const string &vhost, const string &app, const string &stream) {
+    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, vhost, app, stream));
+    if (!src) {
+        auto err = StrPrinter << "未找到媒体源:" << vhost << " " << app << " " << stream << endl;
+        throw std::runtime_error(err);
     }
-    _multiAddr = MultiCastAddressMaker::Instance().obtain();
-    for(auto i = 0; i < 2; i++){
-        _apUdpSock[i].reset(new Socket(poller));
-        if(!_apUdpSock[i]->bindUdpSock(0, strLocalIp.data())){
-            auto strErr = StrPrinter << "绑定UDP端口失败:" << strLocalIp << endl;
-            throw std::runtime_error(strErr);
-        }
-        auto fd = _apUdpSock[i]->rawFD();
-        GET_CONFIG(uint32_t,udpTTL,MultiCast::kUdpTTL);
+    _multicast_ip = MultiCastAddressMaker::Instance().obtain();
+    if (!_multicast_ip) {
+        throw std::runtime_error("获取组播地址失败");
+    }
 
+    for (auto i = 0; i < 2; ++i) {
+        //创建udp socket, 数组下标为TrackType
+        _udp_sock[i] = helper.createSocket();
+        if (!_udp_sock[i]->bindUdpSock(0, local_ip.data())) {
+            auto err = StrPrinter << "绑定UDP端口失败:" << local_ip << endl;
+            throw std::runtime_error(err);
+        }
+        auto fd = _udp_sock[i]->rawFD();
+        GET_CONFIG(uint32_t, udpTTL, MultiCast::kUdpTTL);
         SockUtil::setMultiTTL(fd, udpTTL);
         SockUtil::setMultiLOOP(fd, false);
-        SockUtil::setMultiIF(fd, strLocalIp.data());
+        SockUtil::setMultiIF(fd, local_ip.data());
 
-        struct sockaddr_in &peerAddr = _aPeerUdpAddr[i];
-        peerAddr.sin_family = AF_INET;
-        peerAddr.sin_port = htons(_apUdpSock[i]->get_local_port());
-        peerAddr.sin_addr.s_addr = htonl(*_multiAddr);
-        bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
-        _apUdpSock[i]->setSendPeerAddr((struct sockaddr *)&peerAddr);
+        struct sockaddr_in peer;
+        peer.sin_family = AF_INET;
+        //组播目标端口为本地发送端口
+        peer.sin_port = htons(_udp_sock[i]->get_local_port());
+        //组播目标地址
+        peer.sin_addr.s_addr = htonl(*_multicast_ip);
+        bzero(&(peer.sin_zero), sizeof peer.sin_zero);
+        _udp_sock[i]->setSendPeerAddr((struct sockaddr *) &peer);
     }
-    _pReader = src->getRing()->attach(poller);
-    _pReader->setReadCB([this](const RtspMediaSource::RingDataType &pkt){
+
+    _rtp_reader = src->getRing()->attach(helper.getPoller());
+    _rtp_reader->setReadCB([this](const RtspMediaSource::RingDataType &pkt) {
         int i = 0;
         int size = pkt->size();
         pkt->for_each([&](const RtpPacket::Ptr &rtp) {
-            auto &pSock = _apUdpSock[rtp->type];
-            auto &peerAddr = _aPeerUdpAddr[rtp->type];
-            BufferRtp::Ptr buffer(new BufferRtp(rtp, 4));
-            pSock->send(buffer, nullptr, 0, ++i == size);
+            auto &sock = _udp_sock[rtp->type];
+            sock->send(std::make_shared<BufferRtp>(rtp, 4), nullptr, 0, ++i == size);
         });
     });
 
-    _pReader->setDetachCB([this](){
-        unordered_map<void * , onDetach > _mapDetach_copy;
+    _rtp_reader->setDetachCB([this]() {
+        unordered_map<void *, onDetach> _detach_map_copy;
         {
             lock_guard<recursive_mutex> lck(_mtx);
-            _mapDetach_copy = std::move(_mapDetach);
+            _detach_map_copy = std::move(_detach_map);
         }
-        for(auto &pr : _mapDetach_copy){
+        for (auto &pr : _detach_map_copy) {
             pr.second();
         }
     });
-    DebugL << MultiCastAddressMaker::toString(*_multiAddr) << " "
-            << _apUdpSock[0]->get_local_port() << " "
-            << _apUdpSock[1]->get_local_port() << " "
-            << strVhost << " "
-            << strApp << " " << strStream;
-}
-uint16_t RtpMultiCaster::getPort(TrackType trackType){
-    return _apUdpSock[trackType]->get_local_port();
-}
-string RtpMultiCaster::getIP(){
-    return SockUtil::inet_ntoa(_aPeerUdpAddr[0].sin_addr);
-}
-RtpMultiCaster::Ptr RtpMultiCaster::make(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream){
-    try{
-        auto ret = Ptr(new RtpMultiCaster(poller,strLocalIp,strVhost,strApp,strStream),[poller](RtpMultiCaster *ptr){
-            poller->async([ptr]() {
-                delete ptr;
-            });
-        });
-        lock_guard<recursive_mutex> lck(g_mtx);
-        string strKey = StrPrinter << strLocalIp << " "  << strVhost << " " << strApp << " " << strStream << endl;
-        weak_ptr<RtpMultiCaster> weakPtr = ret;
-        g_mapBroadCaster.emplace(strKey,weakPtr);
-        return ret;
-    }catch (std::exception &ex) {
-        WarnL << ex.what();
-        return nullptr;
-    }
+
+    DebugL << MultiCastAddressMaker::toString(*_multicast_ip) << " "
+           << _udp_sock[0]->get_local_port() << " "
+           << _udp_sock[1]->get_local_port() << " "
+           << vhost << " " << app << " " << stream;
 }
 
-RtpMultiCaster::Ptr RtpMultiCaster::get(const EventPoller::Ptr &poller,const string &strLocalIp,const string &strVhost,const string &strApp,const string &strStream) {
-    string strKey = StrPrinter << strLocalIp << " " << strVhost << " " << strApp << " " << strStream << endl;
+uint16_t RtpMultiCaster::getMultiCasterPort(TrackType trackType) {
+    return _udp_sock[trackType]->get_local_port();
+}
+
+string RtpMultiCaster::getMultiCasterIP() {
+    struct in_addr addr;
+    addr.s_addr = htonl(*_multicast_ip);
+    return SockUtil::inet_ntoa(addr);
+}
+
+RtpMultiCaster::Ptr RtpMultiCaster::get(SocketHelper &helper, const string &local_ip, const string &vhost, const string &app, const string &stream) {
+    static auto on_create = [](SocketHelper &helper, const string &local_ip, const string &vhost, const string &app, const string &stream){
+        try {
+            auto poller = helper.getPoller();
+            auto ret = RtpMultiCaster::Ptr(new RtpMultiCaster(helper, local_ip, vhost, app, stream), [poller](RtpMultiCaster *ptr) {
+                poller->async([ptr]() {
+                    delete ptr;
+                });
+            });
+            lock_guard<recursive_mutex> lck(g_mtx);
+            string strKey = StrPrinter << local_ip << " " << vhost << " " << app << " " << stream << endl;
+            g_multi_caster_map.emplace(strKey, ret);
+            return ret;
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+            return RtpMultiCaster::Ptr();
+        }
+    };
+
+    string strKey = StrPrinter << local_ip << " " << vhost << " " << app << " " << stream << endl;
     lock_guard<recursive_mutex> lck(g_mtx);
-    auto it = g_mapBroadCaster.find(strKey);
-    if (it == g_mapBroadCaster.end()) {
-        return make(poller,strLocalIp,strVhost,strApp, strStream);
+    auto it = g_multi_caster_map.find(strKey);
+    if (it == g_multi_caster_map.end()) {
+        return on_create(helper, local_ip, vhost, app, stream);
     }
     auto ret = it->second.lock();
     if (!ret) {
-        g_mapBroadCaster.erase(it);
-        return make(poller,strLocalIp,strVhost,strApp, strStream);
+        g_multi_caster_map.erase(it);
+        return on_create(helper, local_ip, vhost, app, stream);
     }
     return ret;
 }

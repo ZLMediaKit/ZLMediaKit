@@ -122,7 +122,7 @@ void RtspPusher::onConnect(const SockException &err) {
         return;
     }
     //推流器不需要多大的接收缓存，节省内存占用
-    _sock->setReadBuffer(std::make_shared<BufferRaw>(1 * 1024));
+    getSock()->setReadBuffer(std::make_shared<BufferRaw>(1 * 1024));
     sendAnnounce();
 }
 
@@ -228,7 +228,7 @@ bool RtspPusher::handleAuthenticationFailure(const string &params_str) {
 void RtspPusher::createUdpSockIfNecessary(int track_idx){
     auto &rtp_sock = _udp_socks[track_idx];
     if (!rtp_sock) {
-        rtp_sock.reset(new Socket(getPoller()));
+        rtp_sock = createSocket();
         //rtp随机端口
         if (!rtp_sock->bindUdpSock(0, get_local_ip().data())) {
             rtp_sock.reset();
@@ -400,7 +400,7 @@ void RtspPusher::setSocketFlags(){
     if (merge_write_ms > 0) {
         //提高发送性能
         setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
-        SockUtil::setNoDelay(_sock->rawFD(), false);
+        SockUtil::setNoDelay(getSock()->rawFD(), false);
     }
 }
 

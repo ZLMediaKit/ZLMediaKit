@@ -31,7 +31,7 @@ PSRtpSender::~PSRtpSender() {
 
 void PSRtpSender::startSend(const string &dst_url, uint16_t dst_port, bool is_udp, const function<void(const SockException &ex)> &cb){
     _is_udp = is_udp;
-    _socket = std::make_shared<Socket>(_poller, false);
+    _socket = Socket::createSocket(_poller, false);
     _dst_url = dst_url;
     _dst_port = dst_port;
     weak_ptr<PSRtpSender> weak_self = shared_from_this();

@@ -74,7 +74,7 @@ public:
 
     HttpWsClient(ClientTypeImp<ClientType,DataType> &delegate) : _delegate(delegate){
         _Sec_WebSocket_Key = encodeBase64(SHA1::encode_bin(makeRandStr(16, false)));
-        _poller = delegate.getPoller();
+        setPoller(delegate.getPoller());
     }
     ~HttpWsClient(){}
 
@@ -312,7 +312,7 @@ private:
             });
 
             //设置sock，否则shutdown等接口都无效
-            _delegate.setSock(HttpClientImp::_sock);
+            _delegate.setSock(HttpClientImp::getSock());
             //触发连接成功事件
             _delegate.onConnect(ex);
             //拦截websocket数据接收

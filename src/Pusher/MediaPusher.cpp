@@ -19,34 +19,44 @@ namespace mediakit {
 MediaPusher::MediaPusher(const MediaSource::Ptr &src,
                          const EventPoller::Ptr &poller) {
     _src = src;
-    _poller = poller;
-    if(!_poller){
-        _poller = EventPollerPool::Instance().getPoller();
-    }
+    _poller = poller ? poller : EventPollerPool::Instance().getPoller();
 }
 
 MediaPusher::MediaPusher(const string &schema,
-                         const string &strVhost,
-                         const string &strApp,
-                         const string &strStream,
+                         const string &vhost,
+                         const string &app,
+                         const string &stream,
                          const EventPoller::Ptr &poller) :
-        MediaPusher(MediaSource::find(schema,strVhost,strApp,strStream),poller){
+        MediaPusher(MediaSource::find(schema, vhost, app, stream), poller){
 }
 
 MediaPusher::~MediaPusher() {
 }
-void MediaPusher::publish(const string &strUrl) {
-    _delegate = PusherBase::createPusher(_poller,_src.lock(),strUrl);
+
+static void setOnCreateSocket_l(const std::shared_ptr<PusherBase> &delegate, const Socket::onCreateSocket &cb){
+    auto helper = dynamic_pointer_cast<SocketHelper>(delegate);
+    if (helper) {
+        helper->setOnCreateSocket(cb);
+    }
+}
+
+void MediaPusher::publish(const string &url) {
+    _delegate = PusherBase::createPusher(_poller, _src.lock(), url);
+    assert(_delegate);
+    setOnCreateSocket_l(_delegate, _on_create_socket);
     _delegate->setOnShutdown(_shutdownCB);
     _delegate->setOnPublished(_publishCB);
     _delegate->mINI::operator=(*this);
-    _delegate->publish(strUrl);
+    _delegate->publish(url);
 }
 
 EventPoller::Ptr MediaPusher::getPoller(){
     return _poller;
 }
 
-
+void MediaPusher::setOnCreateSocket(Socket::onCreateSocket cb){
+    setOnCreateSocket_l(_delegate, cb);
+    _on_create_socket = std::move(cb);
+}
 
 } /* namespace mediakit */

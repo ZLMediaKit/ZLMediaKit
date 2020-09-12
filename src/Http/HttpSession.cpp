@@ -476,7 +476,7 @@ void HttpSession::sendResponse(const char *pcStatus,
 
     //发送http body
     AsyncSenderData::Ptr data = std::make_shared<AsyncSenderData>(shared_from_this(),body,bClose);
-    _sock->setOnFlush([data](){
+    getSock()->setOnFlush([data](){
         return AsyncSender::onSocketFlushed(data);
     });
     AsyncSender::onSocketFlushed(data);
@@ -543,10 +543,10 @@ void HttpSession::Handle_Req_POST(int64_t &content_len) {
 
     //根据Content-Length设置接收缓存大小
     if(totalContentLen > 0){
-        _sock->setReadBuffer(std::make_shared<BufferRaw>(MIN(totalContentLen + 1,256 * 1024)));
+        getSock()->setReadBuffer(std::make_shared<BufferRaw>(MIN(totalContentLen + 1,256 * 1024)));
     }else{
         //不定长度的Content-Length
-        _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+        getSock()->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
     }
 
     if(totalContentLen > 0 && totalContentLen < maxReqSize ){
@@ -610,7 +610,7 @@ void HttpSession::setSocketFlags(){
     GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
     if(mergeWriteMS > 0) {
         //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
-        SockUtil::setNoDelay(_sock->rawFD(), false);
+        SockUtil::setNoDelay(getSock()->rawFD(), false);
         //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
         setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }

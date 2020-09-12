@@ -27,12 +27,15 @@ public:
 
     MediaPlayer(const EventPoller::Ptr &poller = nullptr);
     virtual ~MediaPlayer();
-    void play(const string &strUrl) override;
-    void pause(bool bPause) override;
+    void play(const string &url) override;
+    void pause(bool pause) override;
     void teardown() override;
     EventPoller::Ptr getPoller();
+    void setOnCreateSocket(Socket::onCreateSocket cb);
+
 private:
     EventPoller::Ptr _poller;
+    Socket::onCreateSocket _on_create_socket;
 };
 
 } /* namespace mediakit */

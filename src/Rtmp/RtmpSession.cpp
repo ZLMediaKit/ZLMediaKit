@@ -153,7 +153,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         _publisher_src->setProtocolTranslation(enableRtxp, enableHls, enableMP4);
 
         //如果是rtmp推流客户端，那么加大TCP接收缓存，这样能提升接收性能
-        _sock->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+        getSock()->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
         setSocketFlags();
     };
 
@@ -548,7 +548,7 @@ void RtmpSession::setSocketFlags(){
     GET_CONFIG(int, merge_write_ms, General::kMergeWriteMS);
     if (merge_write_ms > 0) {
         //推流模式下，关闭TCP_NODELAY会增加推流端的延时，但是服务器性能将提高
-        SockUtil::setNoDelay(_sock->rawFD(), false);
+        SockUtil::setNoDelay(getSock()->rawFD(), false);
         //播放模式下，开启MSG_MORE会增加延时，但是能提高发送性能
         setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }
