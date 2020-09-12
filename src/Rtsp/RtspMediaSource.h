@@ -56,7 +56,7 @@ public:
                     int ring_size = RTP_GOP_SIZE) :
             MediaSource(RTSP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
 
-    virtual ~RtspMediaSource() {}
+    ~RtspMediaSource() override{}
 
     /**
      * 获取媒体源的环形缓冲
@@ -166,7 +166,7 @@ public:
         }
         if (!_ring) {
             weak_ptr<RtspMediaSource> weakSelf = dynamic_pointer_cast<RtspMediaSource>(shared_from_this());
-            auto lam = [weakSelf](const EventPoller::Ptr &, int size, bool) {
+            auto lam = [weakSelf](int size) {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
                     return;
@@ -184,6 +184,11 @@ public:
         PacketCache<RtpPacket>::inputPacket(rtp->type == TrackVideo, rtp, keyPos);
     }
 
+    void clearCache() override{
+        PacketCache<RtpPacket>::clearCache();
+        _ring->clearCache();
+    }
+
 private:
     /**
      * 批量flush rtp包时触发该函数
@@ -193,15 +198,6 @@ private:
     void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > &rtp_list, bool key_pos) override {
         //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
         _ring->write(rtp_list, _have_video ? key_pos : true);
-    }
-
-    /**
-     * 每次增减消费者都会触发该函数
-     */
-    void onReaderChanged(int size) {
-        if (size == 0) {
-            onNoneReader();
-        }
     }
 
 private:

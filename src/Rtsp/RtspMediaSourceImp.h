@@ -68,13 +68,12 @@ public:
 
     /**
      * 设置协议转换
-     * @param enableRtmp 是否转换成rtmp
      * @param enableHls  是否转换成hls
      * @param enableMP4  是否mp4录制
      */
-    void setProtocolTranslation(bool enableRtmp,bool enableHls,bool enableMP4){
+    void setProtocolTranslation(bool enableHls,bool enableMP4){
         //不重复生成rtsp
-        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), false, enableRtmp, enableHls, enableMP4);
+        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), false, true, enableHls, enableMP4);
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)

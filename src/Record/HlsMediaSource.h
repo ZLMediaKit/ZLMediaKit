@@ -26,7 +26,7 @@ public:
         _ring = std::make_shared<RingType>();
     }
 
-    virtual ~HlsMediaSource() = default;
+    ~HlsMediaSource() override = default;
 
     /**
      * 	获取媒体源的环形缓冲
@@ -47,10 +47,10 @@ public:
      * 注册hls
      */
     void registHls(){
-        if(!_registed){
-            regist();
+        if (!_registed) {
             _registed = true;
-            onNoneReader();
+            onReaderChanged(0);
+            regist();
         }
     }
 
@@ -62,12 +62,10 @@ private:
     void modifyReaderCount(bool add) {
         if (add) {
             ++_readerCount;
-            return;
+        } else {
+            --_readerCount;
         }
-
-        if (--_readerCount == 0) {
-            onNoneReader();
-        }
+        onReaderChanged(_readerCount);
     }
 private:
     atomic_int _readerCount;

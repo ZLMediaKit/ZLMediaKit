@@ -93,13 +93,10 @@ bool MediaSource::close(bool force) {
     return listener->close(*this,force);
 }
 
-void MediaSource::onNoneReader(){
+void MediaSource::onReaderChanged(int size) {
     auto listener = _listener.lock();
-    if(!listener){
-        return;
-    }
-    if (listener->totalReaderCount(*this) == 0) {
-        listener->onNoneReader(*this);
+    if (listener) {
+        listener->onReaderChanged(*this, size);
     }
 }
 
@@ -475,45 +472,47 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 
 /////////////////////////////////////MediaSourceEvent//////////////////////////////////////
 
-void MediaSourceEvent::onNoneReader(MediaSource &sender){
+void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
+    if (size || totalReaderCount(sender)) {
+        //还有人观看该视频，不触发关闭事件
+        return;
+    }
+    //没有任何人观看该视频源，表明该源可以关闭了
     GET_CONFIG(string, record_app, Record::kAppName);
     GET_CONFIG(int, stream_none_reader_delay, General::kStreamNoneReaderDelayMS);
-
     //如果mp4点播, 无人观看时我们强制关闭点播
     bool is_mp4_vod = sender.getApp() == record_app;
+    weak_ptr<MediaSource> weak_sender = sender.shared_from_this();
 
-    //没有任何人观看该视频源，表明该源可以关闭了
-    weak_ptr<MediaSource> weakSender = sender.shared_from_this();
-    _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0, [weakSender,is_mp4_vod]() {
-        auto strongSender = weakSender.lock();
-        if (!strongSender) {
+    _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0, [weak_sender, is_mp4_vod]() {
+        auto strong_sender = weak_sender.lock();
+        if (!strong_sender) {
             //对象已经销毁
             return false;
         }
 
-        if (strongSender->totalReaderCount() != 0) {
-            //还有人消费
+        if (strong_sender->totalReaderCount()) {
+            //还有人观看该视频，不触发关闭事件
             return false;
         }
 
-        if(!is_mp4_vod){
+        if (!is_mp4_vod) {
             //直播时触发无人观看事件，让开发者自行选择是否关闭
             WarnL << "无人观看事件:"
-                  << strongSender->getSchema() << "/"
-                  << strongSender->getVhost() << "/"
-                  << strongSender->getApp() << "/"
-                  << strongSender->getId();
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strongSender);
-        }else{
+                  << strong_sender->getSchema() << "/"
+                  << strong_sender->getVhost() << "/"
+                  << strong_sender->getApp() << "/"
+                  << strong_sender->getId();
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strong_sender);
+        } else {
             //这个是mp4点播，我们自动关闭
             WarnL << "MP4点播无人观看,自动关闭:"
-                  << strongSender->getSchema() << "/"
-                  << strongSender->getVhost() << "/"
-                  << strongSender->getApp() << "/"
-                  << strongSender->getId();
-            strongSender->close(false);
+                  << strong_sender->getSchema() << "/"
+                  << strong_sender->getVhost() << "/"
+                  << strong_sender->getApp() << "/"
+                  << strong_sender->getId();
+            strong_sender->close(false);
         }
-
         return false;
     }, nullptr);
 }
@@ -542,13 +541,13 @@ int MediaSourceEventInterceptor::totalReaderCount(MediaSource &sender) {
     return listener->totalReaderCount(sender);
 }
 
-void MediaSourceEventInterceptor::onNoneReader(MediaSource &sender) {
+void MediaSourceEventInterceptor::onReaderChanged(MediaSource &sender, int size) {
     auto listener = _listener.lock();
     if (!listener) {
-        MediaSourceEvent::onNoneReader(sender);
-        return;
+        MediaSourceEvent::onReaderChanged(sender, size);
+    } else {
+        listener->onReaderChanged(sender, size);
     }
-    listener->onNoneReader(sender);
 }
 
 void MediaSourceEventInterceptor::onRegist(MediaSource &sender, bool regist) {

@@ -86,8 +86,7 @@ extern const string kBroadcastOnRtspAuth;
 //如果errMessage为空则代表鉴权成功
 //enableHls: 是否允许转换hls
 //enableMP4: 是否运行MP4录制
-//enableRtxp: rtmp推流时是否运行转rtsp；rtsp推流时，是否允许转rtmp
-typedef std::function<void(const string &errMessage,bool enableRtxp,bool enableHls,bool enableMP4)> PublishAuthInvoker;
+typedef std::function<void(const string &errMessage, bool enableHls, bool enableMP4)> PublishAuthInvoker;
 
 //收到rtsp/rtmp推流事件广播，通过该事件控制推流鉴权
 extern const string kBroadcastMediaPublish;
@@ -165,8 +164,6 @@ extern const string kAddMuteAudio;
 //拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
 //如果不删除将会接着上一次的数据继续写(录制hls/mp4时会继续在前一个文件后面写)
 extern const string kResetWhenRePlay;
-//是否默认推流时转换成rtsp或rtmp，hook接口(on_publish)中可以覆盖该设置
-extern const string kPublishToRtxp ;
 //是否默认推流时转换成hls，hook接口(on_publish)中可以覆盖该设置
 extern const string kPublishToHls ;
 //是否默认推流时mp4录像，hook接口(on_publish)中可以覆盖该设置
