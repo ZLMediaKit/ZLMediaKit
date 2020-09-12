@@ -103,10 +103,12 @@ public:
     HlsCookieData(const MediaInfo &info, const std::shared_ptr<SockInfo> &sock_info);
     ~HlsCookieData();
     void addByteUsage(uint64_t bytes);
+
 private:
     void addReaderCount();
+
 private:
-    uint64_t _bytes = 0;
+    atomic<uint64_t> _bytes {0};
     MediaInfo _info;
     std::shared_ptr<bool> _added;
     weak_ptr<HlsMediaSource> _src;
