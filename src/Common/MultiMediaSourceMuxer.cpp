@@ -18,21 +18,17 @@ MultiMuxerPrivate::MultiMuxerPrivate(const string &vhost, const string &app, con
                                      bool enable_rtsp, bool enable_rtmp, bool enable_hls, bool enable_mp4) {
     if (enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleMeta>(dur_sec));
-        _enable_rtxp = true;
     }
     if (enable_rtsp) {
         _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleSdp>(dur_sec));
-        _enable_rtxp = true;
     }
 
     if (enable_hls) {
         _hls = Recorder::createRecorder(Recorder::type_hls, vhost, app, stream);
-        _enable_record = true;
     }
 
     if (enable_mp4) {
         _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream);
-        _enable_record = true;
     }
 }
 
@@ -101,7 +97,6 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
                 //停止录制
                 _hls = nullptr;
             }
-            _enable_record = _hls || _mp4;
             return true;
         }
         case Recorder::type_mp4 : {
@@ -112,7 +107,6 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
                 //停止录制
                 _mp4 = nullptr;
             }
-            _enable_record = _hls || _mp4;
             return true;
         }
         default : return false;
@@ -164,7 +158,7 @@ void MultiMuxerPrivate::onTrackReady(const Track::Ptr &track) {
 }
 
 bool MultiMuxerPrivate::isEnabled(){
-    return _enable_rtxp || _enable_record;
+    return (_rtmp ? _rtmp->isEnabled() : false) || (_rtsp ? _rtsp->isEnabled() : false) || _hls || _mp4;
 }
 
 void MultiMuxerPrivate::onTrackFrame(const Frame::Ptr &frame) {

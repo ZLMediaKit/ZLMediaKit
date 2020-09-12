@@ -276,13 +276,11 @@ typedef void* mk_publish_auth_invoker;
 /**
  * 执行Broadcast::PublishAuthInvoker
  * @param err_msg 为空或null则代表鉴权成功
- * @param enable_rtxp rtmp推流时是否运行转rtsp；rtsp推流时，是否允许转rtmp
  * @param enable_hls 是否允许转换hls
  * @param enable_mp4 是否运行MP4录制
  */
 API_EXPORT void API_CALL mk_publish_auth_invoker_do(const mk_publish_auth_invoker ctx,
                                                     const char *err_msg,
-                                                    int enable_rtxp,
                                                     int enable_hls,
                                                     int enable_mp4);
 

@@ -49,8 +49,6 @@ private:
     MediaSource::Ptr getHlsMediaSource() const;
 
 private:
-    bool _enable_rtxp = false;
-    bool _enable_record = false;
     Listener *_track_listener = nullptr;
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;

@@ -252,7 +252,7 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
         send_SessionNotFound();
         throw SockException(Err_shutdown, _sdp_track.empty() ? "can not find any availabe track when record" : "session not found when record");
     }
-    auto onRes = [this](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
+    auto onRes = [this](const string &err, bool enableHls, bool enableMP4){
         bool authSuccess = err.empty();
         if(!authSuccess){
             sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
@@ -261,7 +261,7 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
         }
 
         //设置转协议
-        _push_src->setProtocolTranslation(enableRtxp, enableHls, enableMP4);
+        _push_src->setProtocolTranslation(enableHls, enableMP4);
 
         _StrPrinter rtp_info;
         for(auto &track : _sdp_track){
@@ -283,17 +283,17 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
     };
 
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    Broadcast::PublishAuthInvoker invoker = [weakSelf,onRes](const string &err,bool enableRtxp,bool enableHls,bool enableMP4){
+    Broadcast::PublishAuthInvoker invoker = [weakSelf, onRes](const string &err, bool enableHls, bool enableMP4) {
         auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
+        if (!strongSelf) {
             return;
         }
-        strongSelf->async([weakSelf,onRes,err,enableRtxp,enableHls,enableMP4](){
+        strongSelf->async([weakSelf, onRes, err, enableHls, enableMP4]() {
             auto strongSelf = weakSelf.lock();
-            if(!strongSelf){
+            if (!strongSelf) {
                 return;
             }
-            onRes(err,enableRtxp,enableHls,enableMP4);
+            onRes(err, enableHls, enableMP4);
         });
     };
 
@@ -301,10 +301,9 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听,默认不鉴权
-        GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
         GET_CONFIG(bool,toHls,General::kPublishToHls);
         GET_CONFIG(bool,toMP4,General::kPublishToMP4);
-        onRes("",toRtxp,toHls,toMP4);
+        onRes("",toHls,toMP4);
     }
 }
 

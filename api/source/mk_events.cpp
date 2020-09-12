@@ -101,11 +101,10 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_media_publish((mk_media_info) &args,
                                              (mk_publish_auth_invoker) &invoker,
                                              (mk_sock_info) &sender);
-            }else{
-                GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
-                GET_CONFIG(bool,toHls,General::kPublishToHls);
-                GET_CONFIG(bool,toMP4,General::kPublishToMP4);
-                invoker("",toRtxp,toHls,toMP4);
+            } else {
+                GET_CONFIG(bool, toHls, General::kPublishToHls);
+                GET_CONFIG(bool, toMP4, General::kPublishToMP4);
+                invoker("", toHls, toMP4);
             }
         });
 

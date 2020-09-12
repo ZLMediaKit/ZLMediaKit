@@ -49,8 +49,8 @@ public:
     virtual bool close(MediaSource &sender, bool force) { return false; }
     // 获取观看总人数
     virtual int totalReaderCount(MediaSource &sender) = 0;
-    // 通知无人观看
-    virtual void onNoneReader(MediaSource &sender);
+    // 通知观看人数变化
+    virtual void onReaderChanged(MediaSource &sender, int size);
     //流注册或注销事件
     virtual void onRegist(MediaSource &sender, bool regist) {};
 
@@ -79,7 +79,7 @@ public:
     bool seekTo(MediaSource &sender, uint32_t stamp) override;
     bool close(MediaSource &sender, bool force) override;
     int totalReaderCount(MediaSource &sender) override;
-    void onNoneReader(MediaSource &sender) override;
+    void onReaderChanged(MediaSource &sender, int size) override;
     void onRegist(MediaSource &sender, bool regist) override;
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) override;
     bool isRecording(MediaSource &sender, Recorder::type type) override;
@@ -160,8 +160,8 @@ public:
     bool seekTo(uint32_t stamp);
     // 关闭该流
     bool close(bool force);
-    // 该流无人观看
-    void onNoneReader();
+    // 该流观看人数变化
+    void onReaderChanged(int size);
     // 开启或关闭录制
     bool setupRecord(Recorder::type type, bool start, const string &custom_path);
     // 获取录制状态
@@ -247,6 +247,10 @@ public:
         if (key_pos) {
             _key_pos = key_pos;
         }
+    }
+
+    virtual void clearCache() {
+        _cache->clear();
     }
 
     virtual void onFlush(std::shared_ptr<packet_list> &, bool key_pos) = 0;

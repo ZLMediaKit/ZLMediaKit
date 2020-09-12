@@ -243,7 +243,7 @@ void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
 
 void RtpProcess::emitOnPublish() {
     weak_ptr<RtpProcess> weak_self = shared_from_this();
-    Broadcast::PublishAuthInvoker invoker = [weak_self](const string &err, bool enableRtxp, bool enableHls, bool enableMP4) {
+    Broadcast::PublishAuthInvoker invoker = [weak_self](const string &err, bool enableHls, bool enableMP4) {
         auto strongSelf = weak_self.lock();
         if (!strongSelf) {
             return;
@@ -252,7 +252,7 @@ void RtpProcess::emitOnPublish() {
             strongSelf->_muxer = std::make_shared<MultiMediaSourceMuxer>(strongSelf->_media_info._vhost,
                                                                          strongSelf->_media_info._app,
                                                                          strongSelf->_media_info._streamid, 0,
-                                                                         enableRtxp, enableRtxp, enableHls, enableMP4);
+                                                                         true, true, enableHls, enableMP4);
             strongSelf->_muxer->setMediaListener(strongSelf->_listener);
             InfoP(strongSelf) << "允许RTP推流";
         } else {
@@ -264,10 +264,9 @@ void RtpProcess::emitOnPublish() {
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听,默认不鉴权
-        GET_CONFIG(bool, toRtxp, General::kPublishToRtxp);
         GET_CONFIG(bool, toHls, General::kPublishToHls);
         GET_CONFIG(bool, toMP4, General::kPublishToMP4);
-        invoker("", toRtxp, toHls, toMP4);
+        invoker("", toHls, toMP4);
     }
 }
 

@@ -195,11 +195,10 @@ void installWebHook(){
     GET_CONFIG(string,hook_http_access,Hook::kOnHttpAccess);
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
-        GET_CONFIG(bool,toRtxp,General::kPublishToRtxp);
         GET_CONFIG(bool,toHls,General::kPublishToHls);
         GET_CONFIG(bool,toMP4,General::kPublishToMP4);
         if(!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1"){
-            invoker("",toRtxp,toHls,toMP4);
+            invoker("", toHls, toMP4);
             return;
         }
         //异步执行该hook api，防止阻塞NoticeCenter
@@ -211,27 +210,20 @@ void installWebHook(){
         do_http_hook(hook_publish,body,[invoker](const Value &obj,const string &err){
             if(err.empty()){
                 //推流鉴权成功
-                bool enableRtxp = toRtxp;
                 bool enableHls = toHls;
                 bool enableMP4 = toMP4;
 
-                //兼容用户不传递enableRtxp、enableHls、enableMP4参数
-                if(obj.isMember("enableRtxp")){
-                    enableRtxp = obj["enableRtxp"].asBool();
-                }
-
-                if(obj.isMember("enableHls")){
+                //兼容用户不传递enableHls、enableMP4参数
+                if (obj.isMember("enableHls")) {
                     enableHls = obj["enableHls"].asBool();
                 }
-
-                if(obj.isMember("enableMP4")){
+                if (obj.isMember("enableMP4")) {
                     enableMP4 = obj["enableMP4"].asBool();
                 }
-
-                invoker(err,enableRtxp,enableHls,enableMP4);
-            }else{
+                invoker(err, enableHls, enableMP4);
+            } else {
                 //推流鉴权失败
-                invoker(err,false, false, false);
+                invoker(err, false, false);
             }
 
         });
