@@ -311,7 +311,12 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &mediaInfo, cons
         //cookie有效期为kHlsCookieSecond
         invoker(err,"",kHlsCookieSecond);
     };
-    return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,mediaInfo,mediaAuthInvoker,static_cast<SockInfo &>(sender));
+    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,mediaInfo,mediaAuthInvoker,static_cast<SockInfo &>(sender));
+    if(!flag){
+        //未开启鉴权，那么允许播放
+        mediaAuthInvoker("");
+    }
+    return flag;
 }
 
 class SockInfoImp : public SockInfo{
@@ -442,8 +447,9 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
         }
     };
 
-    if (is_hls && emitHlsPlayed(parser, mediaInfo, accessPathInvoker, sender)) {
+    if (is_hls) {
         //是hls的播放鉴权,拦截之
+        emitHlsPlayed(parser, mediaInfo, accessPathInvoker, sender);
         return;
     }
 
