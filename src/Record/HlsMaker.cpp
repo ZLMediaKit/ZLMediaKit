@@ -124,4 +124,13 @@ bool HlsMaker::isLive() {
     return _seg_number != 0;
 }
 
+void HlsMaker::clear(){
+    _seg_dur_list.clear();
+    _last_file_name.clear();
+    _ticker_last_data.resetTime();
+    _ticker.resetTime();
+    _file_index = 0;
+}
+
+
 }//namespace mediakit

@@ -39,6 +39,17 @@ public:
      * @param is_idr_fast_packet 是否为关键帧第一个包
      */
     void inputData(void *data, uint32_t len, uint32_t timestamp, bool is_idr_fast_packet);
+
+    /**
+     * 是否为直播
+     */
+    bool isLive();
+
+    /**
+     * 清空记录
+     */
+    void clear();
+
 protected:
     /**
      * 创建ts切片文件回调
@@ -73,10 +84,6 @@ protected:
      */
     void flushLastSegment(bool eof = false);
 
-    /**
-     * 是否为直播
-     */
-    bool isLive();
 private:
     /**
      * 生成m3u8文件
@@ -94,6 +101,7 @@ private:
      * @param timestamp
      */
     void addNewSegment(uint32_t timestamp);
+
 private:
     uint32_t _seg_number = 0;
     float _seg_duration = 0;

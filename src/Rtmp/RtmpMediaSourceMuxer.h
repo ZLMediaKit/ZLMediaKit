@@ -33,6 +33,7 @@ public:
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         _listener = listener;
+        _media_src->setListener(shared_from_this());
     }
 
     void setTimeStamp(uint32_t stamp){
@@ -45,7 +46,6 @@ public:
 
     void onAllTrackReady(){
         makeConfigPacket();
-        _media_src->setListener(shared_from_this());
         _media_src->setMetaData(getMetadata());
     }
 
