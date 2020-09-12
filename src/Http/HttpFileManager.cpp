@@ -557,6 +557,10 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             }
             //hls文件不存在，我们等待其生成并延后回复
             MediaSource::findAsync(mediaInfo, strongSession, [response_file, cookie, cb, strFile, parser](const MediaSource::Ptr &src) {
+                if(cookie){
+                    //尝试添加HlsMediaSource的观看人数
+                    (*cookie)[kCookieName].get<HttpCookieAttachment>()._hls_data->addByteUsage(0);
+                }
                 if (src && File::is_file(strFile.data())) {
                     //流和m3u8文件都存在，那么直接返回文件
                     response_file(cookie, cb, strFile, parser);
@@ -570,7 +574,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                 }
 
                 //流存在，但是m3u8文件不存在，那么等待生成m3u8文件
-                hls->waitForHls([response_file, cookie, cb, strFile, parser]() {
+                hls->waitForFile([response_file, cookie, cb, strFile, parser]() {
                     response_file(cookie, cb, strFile, parser);
                 });
             });

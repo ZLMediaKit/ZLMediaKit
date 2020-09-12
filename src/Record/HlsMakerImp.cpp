@@ -89,7 +89,7 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
         fwrite(data, len, 1, hls.get());
         hls.reset();
         if (_media_src) {
-            _media_src->registHls();
+            _media_src->registHls(true);
         }
     } else {
         WarnL << "create hls file failed," << _path_hls << " " << get_uv_errmsg();
