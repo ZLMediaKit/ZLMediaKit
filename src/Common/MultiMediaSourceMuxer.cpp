@@ -378,7 +378,7 @@ void MultiMediaSourceMuxer::inputFrame(const Frame::Ptr &frame_in) {
 
 bool MultiMediaSourceMuxer::isEnabled(){
 #if defined(ENABLE_RTPPROXY)
-    return _muxer->isEnabled() || _ps_rtp_sender
+    return (_muxer->isEnabled() || _ps_rtp_sender);
 #endif //ENABLE_RTPPROXY
     return _muxer->isEnabled();
 }
