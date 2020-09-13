@@ -54,6 +54,7 @@ protected:
     void onDelSegment(int index) override;
     void onWriteSegment(const char *data, int len) override;
     void onWriteHls(const char *data, int len) override;
+    void onFlushLastSegment(uint32_t duration) override;
 
 private:
     std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
@@ -66,6 +67,7 @@ private:
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
+    TsInfo _info;
     map<int /*index*/,string/*file_path*/> _segment_file_paths;
 };
 

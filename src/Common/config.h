@@ -60,6 +60,10 @@ extern const string kBroadcastMediaChanged;
 extern const string kBroadcastRecordMP4;
 #define BroadcastRecordMP4Args const MP4Info &info
 
+// 录制 ts 文件后广播
+extern const string kBroadcastRecordTs;
+#define BroadcastRecordTsArgs const TsInfo &info
+
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;
 #define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,SockInfo &sender
