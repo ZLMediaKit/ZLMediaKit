@@ -63,9 +63,9 @@ string HlsMakerImp::onOpenSegment(int index) {
         WarnL << "create file failed," << segment_path << " " << get_uv_errmsg();
     }
     if (_params.empty()) {
-        return std::move(segment_name);
+        return segment_name;
     }
-    return std::move(segment_name + "?" + _params);
+    return segment_name + "?" + _params;
 }
 
 void HlsMakerImp::onDelSegment(int index) {
