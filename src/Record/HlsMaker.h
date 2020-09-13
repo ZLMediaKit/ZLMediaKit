@@ -22,6 +22,20 @@ using namespace toolkit;
 
 namespace mediakit {
 
+class TsInfo {
+public:
+    time_t ui64StartedTime; // GMT 标准时间，单位秒
+    time_t ui64TimeLen;     // 录像长度，单位毫秒
+    off_t  ui64FileSize;    // 文件大小，单位 BYTE
+    string strFilePath;     // 文件路径
+    string strFileName;     // 文件名称
+    string strFolder;       // 文件夹路径
+    string strUrl;          // 播放路径
+    string strAppName;      // 应用名称
+    string strStreamId;     // 流 ID
+    string strVhost;        // vhost
+};
+
 class HlsMaker {
 public:
     /**
@@ -84,6 +98,12 @@ protected:
      * @param eof
      */
     void flushLastSegment(uint32_t timestamp, bool eof = false);
+
+    /**
+     * 上一个 ts 切片写入完成, 可在这里进行通知处理
+     * @param duration 上一个 ts 切片的时长, 单位为毫秒
+     */
+    virtual void onFlushLastSegment(uint32_t duration);
 
 private:
     /**

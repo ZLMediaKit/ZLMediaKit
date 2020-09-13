@@ -40,6 +40,7 @@ bool loadIniConfig(const char *ini_path){
 namespace Broadcast {
 const string kBroadcastMediaChanged = "kBroadcastMediaChanged";
 const string kBroadcastRecordMP4 = "kBroadcastRecordMP4";
+const string kBroadcastRecordTs = "kBroadcastRecoredTs";
 const string kBroadcastHttpRequest = "kBroadcastHttpRequest";
 const string kBroadcastHttpAccess = "kBroadcastHttpAccess";
 const string kBroadcastOnGetRtspRealm = "kBroadcastOnGetRtspRealm";

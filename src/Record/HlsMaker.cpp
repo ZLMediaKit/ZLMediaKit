@@ -120,6 +120,11 @@ void HlsMaker::flushLastSegment(uint32_t timestamp, bool eof){
     delOldSegment();
     makeIndexFile(eof);
     _last_file_name.clear();
+
+    onFlushLastSegment(seg_dur);
+}
+
+void HlsMaker::onFlushLastSegment(uint32_t) {
 }
 
 bool HlsMaker::isLive() {
