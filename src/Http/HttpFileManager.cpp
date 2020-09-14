@@ -311,7 +311,12 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &mediaInfo, cons
         //cookie有效期为kHlsCookieSecond
         invoker(err,"",kHlsCookieSecond);
     };
-    return NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,mediaInfo,mediaAuthInvoker,static_cast<SockInfo &>(sender));
+    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed,mediaInfo,mediaAuthInvoker,static_cast<SockInfo &>(sender));
+    if(!flag){
+        //未开启鉴权，那么允许播放
+        mediaAuthInvoker("");
+    }
+    return flag;
 }
 
 class SockInfoImp : public SockInfo{
@@ -442,8 +447,9 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
         }
     };
 
-    if (is_hls && emitHlsPlayed(parser, mediaInfo, accessPathInvoker, sender)) {
+    if (is_hls) {
         //是hls的播放鉴权,拦截之
+        emitHlsPlayed(parser, mediaInfo, accessPathInvoker, sender);
         return;
     }
 
@@ -551,8 +557,26 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             }
             //hls文件不存在，我们等待其生成并延后回复
             MediaSource::findAsync(mediaInfo, strongSession, [response_file, cookie, cb, strFile, parser](const MediaSource::Ptr &src) {
-                //hls已经生成或者超时后仍未生成，那么不管怎么样都返回客户端
-                response_file(cookie, cb, strFile, parser);
+                if(cookie){
+                    //尝试添加HlsMediaSource的观看人数
+                    (*cookie)[kCookieName].get<HttpCookieAttachment>()._hls_data->addByteUsage(0);
+                }
+                if (src && File::is_file(strFile.data())) {
+                    //流和m3u8文件都存在，那么直接返回文件
+                    response_file(cookie, cb, strFile, parser);
+                    return;
+                }
+                auto hls = dynamic_pointer_cast<HlsMediaSource>(src);
+                if (!hls) {
+                    //流不存在，那么直接返回文件
+                    response_file(cookie, cb, strFile, parser);
+                    return;
+                }
+
+                //流存在，但是m3u8文件不存在，那么等待生成m3u8文件
+                hls->waitForFile([response_file, cookie, cb, strFile, parser]() {
+                    response_file(cookie, cb, strFile, parser);
+                });
             });
         }
     });

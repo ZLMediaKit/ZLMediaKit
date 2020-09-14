@@ -67,7 +67,8 @@
   - 支持http文件访问鉴权
 
 - GB28181与RTP推流
-  - 支持UDP/TCP国标RTP(PS或TS)推流，可以转换成RTSP/RTMP/HLS等协议
+  - 支持UDP/TCP国标RTP(PS或TS)推流服务器，可以转换成RTSP/RTMP/HLS等协议
+  - 支持RTSP/RTMP/HLS转国标推流客户端，支持TCP/UDP模式，提供相应restful api
   - 支持H264/H265/AAC/G711/OPUS编码
 
 - MP4点播与录制
@@ -86,6 +87,7 @@
   - 提供c api sdk
   - 支持FFmpeg拉流代理任意格式的流
   - 支持http api生成并返回实时截图
+  - 支持按需解复用、转协议，当有人观看时才开启转协议
   
 ## 更新日志
   - 2020/5/17 新增支持hls播发器，支持hls拉流代理
@@ -124,9 +126,11 @@ bash build_docker_images.sh
  - [基于ZLMediaKit分支的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
  - [基于ZLMediaKit主线的管理WEB网站](https://gitee.com/kkkkk5G/MediaServerUI)
  - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
+ - [C#版本的Http API与Hook](https://github.com/chengxiaosheng/ZLMediaKit.HttpApi)
  - [GB28181-2016网络视频平台](https://github.com/swwheihei/wvp)
  - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
  - [基于C SDK实现的推流客户端](https://github.com/hctym1995/ZLM_ApiDemo)
+ - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
  
 
 ## 授权协议

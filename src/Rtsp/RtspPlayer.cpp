@@ -211,7 +211,8 @@ void RtspPlayer::createUdpSockIfNecessary(int track_idx){
     auto &rtpSockRef = _rtp_sock[track_idx];
     auto &rtcpSockRef = _rtcp_sock[track_idx];
     if (!rtpSockRef || !rtcpSockRef) {
-        auto pr = makeSockPair(getPoller(), get_local_ip());
+        std::pair<Socket::Ptr, Socket::Ptr> pr = std::make_pair(createSocket(), createSocket());
+        makeSockPair(pr, get_local_ip());
         rtpSockRef = pr.first;
         rtcpSockRef = pr.second;
     }
@@ -280,7 +281,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
         if (_rtp_type == Rtsp::RTP_MULTICAST) {
             //udp组播
             auto multiAddr = FindField((strTransport + ";").data(), "destination=", ";");
-            pRtpSockRef.reset(new Socket(getPoller()));
+            pRtpSockRef = createSocket();
             if (!pRtpSockRef->bindUdpSock(rtp_port, multiAddr.data())) {
                 pRtpSockRef.reset();
                 throw std::runtime_error("open udp sock err");
@@ -732,30 +733,14 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &tra
     }
 }
 
-void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshakeCompleted) {
-    WarnL << ex.getErrCode() << " " << ex.what();
-
-    if(!ex){
-        //播放成功，恢复rtp接收超时定时器
-        _rtp_recv_ticker.resetTime();
-        weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-        int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
-        //创建rtp数据接收超时检测定时器
-        _rtp_check_timer.reset(new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
-            auto strongSelf=weakSelf.lock();
-            if(!strongSelf) {
-                return false;
-            }
-            if(strongSelf->_rtp_recv_ticker.elapsedTime() > timeoutMS) {
-                //接收rtp媒体数据包超时
-                strongSelf->onPlayResult_l(SockException(Err_timeout,"receive rtp timeout"), true);
-                return false;
-            }
-            return true;
-        }, getPoller()));
+void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshake_done) {
+    if (ex.getErrCode() == Err_shutdown) {
+        //主动shutdown的，不触发回调
+        return;
     }
 
-    if (!handshakeCompleted) {
+    WarnL << ex.getErrCode() << " " << ex.what();
+    if (!handshake_done) {
         //开始播放阶段
         _play_check_timer.reset();
         onPlayResult(ex);
@@ -769,7 +754,26 @@ void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshakeComplete
         onResume();
     }
 
-    if(ex){
+    if (!ex) {
+        //播放成功，恢复rtp接收超时定时器
+        _rtp_recv_ticker.resetTime();
+        int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
+        weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
+        auto lam = [weakSelf, timeoutMS]() {
+            auto strongSelf = weakSelf.lock();
+            if (!strongSelf) {
+                return false;
+            }
+            if (strongSelf->_rtp_recv_ticker.elapsedTime() > timeoutMS) {
+                //接收rtp媒体数据包超时
+                strongSelf->onPlayResult_l(SockException(Err_timeout, "receive rtp timeout"), true);
+                return false;
+            }
+            return true;
+        };
+        //创建rtp数据接收超时检测定时器
+        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0, lam, getPoller());
+    } else {
         teardown();
     }
 }

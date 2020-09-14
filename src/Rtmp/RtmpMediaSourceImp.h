@@ -60,27 +60,12 @@ public:
     /**
      * 输入rtmp并解析
      */
-    void onWrite(const RtmpPacket::Ptr &pkt,bool key_pos = true) override {
-        if(_all_track_ready && !_muxer->isEnabled()){
-            //获取到所有Track后，并且未开启转协议，那么不需要解复用rtmp
-            key_pos = pkt->isVideoKeyFrame();
-        }else{
-            //需要解复用rtmp
-            key_pos = _demuxer->inputRtmp(pkt);
+    void onWrite(const RtmpPacket::Ptr &pkt, bool = true) override {
+        if (!_all_track_ready || _muxer->isEnabled()) {
+            //未获取到所有Track后，或者开启转协议，那么需要解复用rtmp
+            _demuxer->inputRtmp(pkt);
         }
-
-        RtmpMediaSource::onWrite(pkt,key_pos);
-    }
-
-    /**
-     * 设置监听器
-     * @param listener
-     */
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override {
-        RtmpMediaSource::setListener(listener);
-        if(_muxer){
-            _muxer->setMediaListener(listener);
-        }
+        RtmpMediaSource::onWrite(pkt);
     }
 
     /**
@@ -91,43 +76,18 @@ public:
     }
 
     /**
-     * 设置录制状态
-     * @param type 录制类型
-     * @param start 开始或停止
-     * @param custom_path 开启录制时，指定自定义路径
-     * @return 是否设置成功
-     */
-    bool setupRecord(Recorder::type type, bool start, const string &custom_path) override{
-        if(_muxer){
-            return _muxer->setupRecord(*this,type, start, custom_path);
-        }
-        return RtmpMediaSource::setupRecord(type, start, custom_path);
-    }
-
-    /**
-     * 获取录制状态
-     * @param type 录制类型
-     * @return 录制状态
-     */
-    bool isRecording(Recorder::type type) override{
-        if(_muxer){
-            return _muxer->isRecording(*this,type);
-        }
-        return RtmpMediaSource::isRecording(type);
-    }
-
-
-    /**
      * 设置协议转换
-     * @param enableRtsp 是否转换成rtsp
      * @param enableHls  是否转换成hls
      * @param enableMP4  是否mp4录制
      */
-    void setProtocolTranslation(bool enableRtsp, bool enableHls, bool enableMP4) {
+    void setProtocolTranslation(bool enableHls, bool enableMP4) {
         //不重复生成rtmp
-        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), enableRtsp, false, enableHls, enableMP4);
+        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), true, false, enableHls, enableMP4);
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(static_pointer_cast<RtmpMediaSourceImp>(shared_from_this()));
+        //让_muxer对象拦截一部分事件(比如说录像相关事件)
+        setListener(_muxer);
+
         for(auto &track : _demuxer->getTracks(false)){
             _muxer->addTrack(track);
             track->addDelegate(_muxer);
@@ -148,12 +108,11 @@ public:
      * _muxer触发的所有Track就绪的事件
      */
     void onAllTrackReady() override{
-        setTrackSource(_muxer);
         _all_track_ready = true;
 
         if (_recreate_metadata) {
             //更新metadata
-            for (auto &track : _muxer->getTracks()) {
+            for (auto &track : _muxer->getTracks(*this)) {
                 Metadata::addTrack(_metadata, track);
             }
             RtmpMediaSource::updateMetaData(_metadata);
@@ -161,11 +120,12 @@ public:
     }
 
 private:
-    RtmpDemuxer::Ptr _demuxer;
-    MultiMediaSourceMuxer::Ptr _muxer;
-    AMFValue _metadata;
     bool _all_track_ready = false;
     bool _recreate_metadata = false;
+    AMFValue _metadata;
+    RtmpDemuxer::Ptr _demuxer;
+    MultiMediaSourceMuxer::Ptr _muxer;
+
 };
 } /* namespace mediakit */
 

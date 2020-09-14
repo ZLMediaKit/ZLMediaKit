@@ -382,12 +382,11 @@ API_EXPORT void API_CALL mk_rtsp_auth_invoker_clone_release(const mk_rtsp_auth_i
 ///////////////////////////////////////////Broadcast::PublishAuthInvoker/////////////////////////////////////////////
 API_EXPORT void API_CALL mk_publish_auth_invoker_do(const mk_publish_auth_invoker ctx,
                                                     const char *err_msg,
-                                                    int enable_rtxp,
                                                     int enable_hls,
                                                     int enable_mp4){
     assert(ctx);
     Broadcast::PublishAuthInvoker *invoker = (Broadcast::PublishAuthInvoker *)ctx;
-    (*invoker)(err_msg ? err_msg : "", enable_rtxp, enable_hls, enable_mp4);
+    (*invoker)(err_msg ? err_msg : "", enable_hls, enable_mp4);
 }
 
 API_EXPORT mk_publish_auth_invoker API_CALL mk_publish_auth_invoker_clone(const mk_publish_auth_invoker ctx){

@@ -12,9 +12,9 @@
 namespace mediakit {
 
 HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller, bool split_ts){
-    _segment.setOnSegment([this](const char *data, uint64_t len) { onPacket(data, len); });
-    _poller = poller ? poller : EventPollerPool::Instance().getPoller();
     _split_ts = split_ts;
+    _segment.setOnSegment([this](const char *data, uint64_t len) { onPacket(data, len); });
+    setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 
 HttpTSPlayer::~HttpTSPlayer() {}
@@ -25,8 +25,8 @@ int64_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::H
         shutdown(SockException(Err_other, StrPrinter << "bad http status code:" + status));
         return 0;
     }
-    auto contet_type = const_cast< HttpClient::HttpHeader &>(headers)["Content-Type"];
-    if (contet_type.find("video/mp2t") == 0 || contet_type.find("video/mpeg") == 0) {
+    auto content_type = const_cast< HttpClient::HttpHeader &>(headers)["Content-Type"];
+    if (content_type.find("video/mp2t") == 0 || content_type.find("video/mpeg") == 0) {
         _is_ts_content = true;
     }
 

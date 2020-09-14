@@ -144,7 +144,7 @@ int dumpAacConfig(const string &config, int length, uint8_t *out, int out_size) 
 #ifndef ENABLE_MP4
     AdtsHeader header;
     parseAacConfig(config, header);
-    header.aac_frame_length = length;
+    header.aac_frame_length = ADTS_HEADER_LEN + length;
     dumpAdtsHeader(header, out);
     return ADTS_HEADER_LEN;
 #else

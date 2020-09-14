@@ -151,15 +151,7 @@ endif()
 #添加rtp库用于rtp转ps/ts
 if(ENABLE_RTPPROXY AND ENABLE_HLS)
     message(STATUS "ENABLE_RTPPROXY defined")
-    include_directories(${MediaServer_Root}/librtp/include)
-
-    aux_source_directory(${MediaServer_Root}/librtp/include src_rtp)
-    aux_source_directory(${MediaServer_Root}/librtp/source src_rtp)
-    aux_source_directory(${MediaServer_Root}/librtp/payload src_rtp)
-    add_library(rtp STATIC ${src_rtp})
     add_definitions(-DENABLE_RTPPROXY)
-    list(APPEND LINK_LIB_LIST rtp)
-    list(APPEND CXX_API_TARGETS rtp)
 endif()
 
 #收集源代码

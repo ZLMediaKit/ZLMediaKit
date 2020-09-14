@@ -28,24 +28,25 @@ public:
     typedef std::shared_ptr<RtmpDemuxer> Ptr;
 
     RtmpDemuxer() = default;
-    virtual ~RtmpDemuxer() = default;
+    ~RtmpDemuxer() override = default;
 
     bool loadMetaData(const AMFValue &metadata);
 
     /**
      * 开始解复用
      * @param pkt rtmp包
-     * @return true 代表是i帧
      */
-    bool inputRtmp(const RtmpPacket::Ptr &pkt);
+    void inputRtmp(const RtmpPacket::Ptr &pkt);
+
 private:
     void makeVideoTrack(const AMFValue &val);
     void makeAudioTrack(const AMFValue &val, int sample_rate, int channels, int sample_bit);
+
 private:
-    bool _tryedGetVideoTrack = false;
-    bool _tryedGetAudioTrack = false;
-    RtmpCodec::Ptr _audioRtmpDecoder;
-    RtmpCodec::Ptr _videoRtmpDecoder;
+    bool _try_get_video_track = false;
+    bool _try_get_audio_track = false;
+    RtmpCodec::Ptr _audio_rtmp_decoder;
+    RtmpCodec::Ptr _video_rtmp_decoder;
 };
 
 } /* namespace mediakit */

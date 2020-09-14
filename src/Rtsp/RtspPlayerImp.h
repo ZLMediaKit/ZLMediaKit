@@ -25,46 +25,51 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class RtspPlayerImp: public PlayerImp<RtspPlayer,RtspDemuxer> {
+class RtspPlayerImp : public PlayerImp<RtspPlayer,RtspDemuxer> {
 public:
     typedef std::shared_ptr<RtspPlayerImp> Ptr;
-    RtspPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtspPlayer,RtspDemuxer>(poller){}
-    virtual ~RtspPlayerImp(){
-        DebugL<<endl;
-    };
-    float getProgress() const override{
-        if(getDuration() > 0){
+
+    RtspPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtspPlayer, RtspDemuxer>(poller) {}
+    ~RtspPlayerImp() override{
+        DebugL << endl;
+    }
+
+    float getProgress() const override {
+        if (getDuration() > 0) {
             return getProgressMilliSecond() / (getDuration() * 1000);
         }
         return PlayerBase::getProgress();
-        
-    };
-    void seekTo(float fProgress) override{
-        fProgress = MAX(float(0),MIN(fProgress,float(1.0)));
+
+    }
+
+    void seekTo(float fProgress) override {
+        fProgress = MAX(float(0), MIN(fProgress, float(1.0)));
         seekToMilliSecond(fProgress * getDuration() * 1000);
-    };
+    }
+
 private:
     //派生类回调函数
     bool onCheckSDP(const string &sdp) override {
-        _pRtspMediaSrc = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
-        if(_pRtspMediaSrc){
-            _pRtspMediaSrc->setSdp(sdp);
+        _rtsp_media_src = dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc);
+        if (_rtsp_media_src) {
+            _rtsp_media_src->setSdp(sdp);
         }
         _delegate.reset(new RtspDemuxer);
         _delegate->loadSdp(sdp);
         return true;
     }
+
     void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {
-        if(_pRtspMediaSrc){
+        if (_rtsp_media_src) {
             // rtsp直接代理是无法判断该rtp是否是I帧，所以GOP缓存基本是无效的
             // 为了减少内存使用，那么我们设置为一直关键帧以便清空GOP缓存
-            _pRtspMediaSrc->onWrite(rtp,true);
+            _rtsp_media_src->onWrite(rtp, true);
         }
         _delegate->inputRtp(rtp);
 
-        if(_maxAnalysisMS && _delegate->isInited(_maxAnalysisMS)){
-            PlayerImp<RtspPlayer,RtspDemuxer>::onPlayResult(SockException(Err_success,"play rtsp success"));
-            _maxAnalysisMS = 0;
+        if (_max_analysis_ms && _delegate->isInited(_max_analysis_ms)) {
+            PlayerImp<RtspPlayer, RtspDemuxer>::onPlayResult(SockException(Err_success, "play rtsp success"));
+            _max_analysis_ms = 0;
         }
     }
 
@@ -74,17 +79,18 @@ private:
     //如果超过这个时间还未获取成功，那么会强制触发onPlayResult事件(虽然此时有些track还未初始化成功)
     void onPlayResult(const SockException &ex) override {
         //isInited判断条件：无超时
-        if(ex || _delegate->isInited(0)){
+        if (ex || _delegate->isInited(0)) {
             //已经初始化成功，说明sdp里面有完善的信息
-            PlayerImp<RtspPlayer,RtspDemuxer>::onPlayResult(ex);
-        }else{
+            PlayerImp<RtspPlayer, RtspDemuxer>::onPlayResult(ex);
+        } else {
             //还没初始化成功，说明sdp里面信息不完善，还有一些track未初始化成功
-            _maxAnalysisMS = (*this)[Client::kMaxAnalysisMS];
+            _max_analysis_ms = (*this)[Client::kMaxAnalysisMS];
         }
     }
+
 private:
-    RtspMediaSource::Ptr _pRtspMediaSrc;
-    int _maxAnalysisMS = 0;
+    int _max_analysis_ms = 0;
+    RtspMediaSource::Ptr _rtsp_media_src;
 };
 
 } /* namespace mediakit */

@@ -39,6 +39,17 @@ public:
      * @param is_idr_fast_packet 是否为关键帧第一个包
      */
     void inputData(void *data, uint32_t len, uint32_t timestamp, bool is_idr_fast_packet);
+
+    /**
+     * 是否为直播
+     */
+    bool isLive();
+
+    /**
+     * 清空记录
+     */
+    void clear();
+
 protected:
     /**
      * 创建ts切片文件回调
@@ -69,14 +80,11 @@ protected:
 
     /**
      * 关闭上个ts切片并且写入m3u8索引
+     * @param timestamp 毫秒时间戳
      * @param eof
      */
-    void flushLastSegment(bool eof = false);
+    void flushLastSegment(uint32_t timestamp, bool eof = false);
 
-    /**
-     * 是否为直播
-     */
-    bool isLive();
 private:
     /**
      * 生成m3u8文件
@@ -94,12 +102,12 @@ private:
      * @param timestamp
      */
     void addNewSegment(uint32_t timestamp);
+
 private:
-    uint32_t _seg_number = 0;
     float _seg_duration = 0;
+    uint32_t _seg_number = 0;
+    uint32_t _last_seg_timestamp = 0;
     uint64_t _file_index = 0;
-    Ticker _ticker;
-    Ticker _ticker_last_data;
     string _last_file_name;
     std::deque<tuple<int,string> > _seg_dur_list;
 };

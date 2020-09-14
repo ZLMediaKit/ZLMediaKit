@@ -10,10 +10,9 @@
 
 #include "CommonRtp.h"
 
-#define MAX_FRAME_SIZE 2 * 1024
-
-CommonRtpDecoder::CommonRtpDecoder(CodecId codec){
+CommonRtpDecoder::CommonRtpDecoder(CodecId codec, int max_frame_size ){
     _codec = codec;
+    _max_frame_size = max_frame_size;
     obtainFrame();
 }
 
@@ -37,7 +36,7 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
         return false;
     }
 
-    if (_frame->_dts != rtp->timeStamp || _frame->_buffer.size() > MAX_FRAME_SIZE) {
+    if (_frame->_dts != rtp->timeStamp || _frame->_buffer.size() > _max_frame_size) {
         //时间戳发生变化或者缓存超过MAX_FRAME_SIZE，则清空上帧数据
         if (!_frame->_buffer.empty()) {
             //有有效帧，则输出
@@ -48,7 +47,7 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
         obtainFrame();
         _frame->_dts = rtp->timeStamp;
         _drop_flag = false;
-    } else if (_last_seq != 0 && _last_seq + (uint16_t) 1 != rtp->sequence) {
+    } else if (_last_seq != 0 && (uint16_t)(_last_seq + 1) != rtp->sequence) {
         //时间戳未发生变化，但是seq却不连续，说明中间rtp丢包了，那么整帧应该废弃
         WarnL << "rtp丢包:" << _last_seq << " -> " << rtp->sequence;
         _drop_flag = true;

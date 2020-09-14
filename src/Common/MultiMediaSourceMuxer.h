@@ -10,14 +10,18 @@
 
 #ifndef ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
 #define ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
+
+#include "Common/Stamp.h"
+#include "Rtp/PSRtpSender.h"
+#include "Record/Recorder.h"
+#include "Record/HlsRecorder.h"
+#include "Record/HlsMediaSource.h"
 #include "Rtsp/RtspMediaSourceMuxer.h"
 #include "Rtmp/RtmpMediaSourceMuxer.h"
-#include "Record/Recorder.h"
-#include "Record/HlsMediaSource.h"
-#include "Record/HlsRecorder.h"
+
 namespace mediakit{
 
-class MultiMuxerPrivate : public MediaSink , public std::enable_shared_from_this<MultiMuxerPrivate>{
+class MultiMuxerPrivate : public MediaSink, public std::enable_shared_from_this<MultiMuxerPrivate>{
 public:
     friend class MultiMediaSourceMuxer;
     typedef std::shared_ptr<MultiMuxerPrivate> Ptr;
@@ -44,20 +48,18 @@ private:
     void onTrackReady(const Track::Ptr & track) override;
     void onTrackFrame(const Frame::Ptr &frame) override;
     void onAllTrackReady() override;
-    MediaSource::Ptr getHlsMediaSource() const;
 
 private:
+    string _stream_url;
+    Listener *_track_listener = nullptr;
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
-    MediaSinkInterface::Ptr _hls;
+    HlsRecorder::Ptr _hls;
     MediaSinkInterface::Ptr _mp4;
-    Listener *_listener = nullptr;
-    std::weak_ptr<MediaSourceEvent> _meida_listener;
-    bool _enable_rtxp = false;
-    bool _enable_record = false;
+    std::weak_ptr<MediaSourceEvent> _listener;
 };
 
-class MultiMediaSourceMuxer : public MediaSourceEvent, public MediaSinkInterface, public TrackSource, public MultiMuxerPrivate::Listener, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
+class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSinkInterface, public MultiMuxerPrivate::Listener, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     typedef MultiMuxerPrivate::Listener Listener;
     typedef std::shared_ptr<MultiMediaSourceMuxer> Ptr;
@@ -84,33 +86,24 @@ public:
     int totalReaderCount() const;
 
     /**
+     * 判断是否生效(是否正在转其他协议)
+     */
+    bool isEnabled();
+
+    /**
      * 设置MediaSource时间戳
      * @param stamp 时间戳
      */
     void setTimeStamp(uint32_t stamp);
+
+    /////////////////////////////////MediaSourceEvent override/////////////////////////////////
 
     /**
      * 获取所有Track
      * @param trackReady 是否筛选过滤未就绪的track
      * @return 所有Track
      */
-    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
-
-    /**
-     * 通知拖动进度条
-     * @param sender 事件发送者
-     * @param ui32Stamp 目标时间戳
-     * @return 是否成功
-     */
-    bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override;
-
-    /**
-     * 通知停止流生成
-     * @param sender 事件发送者
-     * @param force 是否强制关闭
-     * @return 成功与否
-     */
-    bool close(MediaSource &sender,bool force) override;
+    vector<Track::Ptr> getTracks(MediaSource &sender, bool trackReady = true) const override;
 
     /**
      * 观看总人数
@@ -118,19 +111,6 @@ public:
      * @return 观看总人数
      */
     int totalReaderCount(MediaSource &sender) override;
-
-    /**
-     * 触发无人观看事件
-     * @param sender 触发者
-     */
-    void onNoneReader(MediaSource &sender) override;
-
-    /**
-     * 媒体注册注销事件
-     * @param sender 触发者
-     * @param regist 是否为注册事件
-     */
-    void onRegist(MediaSource &sender, bool regist) override;
 
     /**
      * 设置录制状态
@@ -149,21 +129,34 @@ public:
     bool isRecording(MediaSource &sender, Recorder::type type) override;
 
     /**
+     * 开始发送ps-rtp流
+     * @param dst_url 目标ip或域名
+     * @param dst_port 目标端口
+     * @param ssrc rtp的ssrc
+     * @param is_udp 是否为udp
+     * @param cb 启动成功或失败回调
+     */
+    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) override;
+
+    /**
+     * 停止ps-rtp发送
+     * @return 是否成功
+     */
+    bool stopSendRtp(MediaSource &sender) override;
+
+    /////////////////////////////////MediaSinkInterface override/////////////////////////////////
+
+    /**
     * 添加track，内部会调用Track的clone方法
     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
     * @param track 添加音频或视频轨道
     */
-    void addTrack(const Track::Ptr & track) override;
+    void addTrack(const Track::Ptr &track) override;
 
     /**
      * 添加track完毕
      */
-    void addTrackCompleted();
-
-    /**
-     * 所有track全部就绪
-     */
-    void onAllTrackReady() override;
+    void addTrackCompleted() override;
 
     /**
      * 重置track
@@ -176,16 +169,20 @@ public:
      */
     void inputFrame(const Frame::Ptr &frame) override;
 
+    /////////////////////////////////MultiMuxerPrivate::Listener override/////////////////////////////////
+
     /**
-     * 判断是否生效(是否正在转其他协议)
+     * 所有track全部就绪
      */
-    bool isEnabled();
+    void onAllTrackReady() override;
 
 private:
-    MultiMuxerPrivate::Ptr _muxer;
-    std::weak_ptr<MediaSourceEvent> _listener;
-    std::weak_ptr<MultiMuxerPrivate::Listener> _track_listener;
     Stamp _stamp[2];
+    MultiMuxerPrivate::Ptr _muxer;
+    std::weak_ptr<MultiMuxerPrivate::Listener> _track_listener;
+#if defined(ENABLE_RTPPROXY)
+    PSRtpSender::Ptr _ps_rtp_sender;
+#endif //ENABLE_RTPPROXY
 };
 
 }//namespace mediakit

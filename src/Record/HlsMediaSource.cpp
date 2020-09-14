@@ -23,9 +23,7 @@ void HlsCookieData::addReaderCount(){
     if(!*_added){
         auto src = dynamic_pointer_cast<HlsMediaSource>(MediaSource::find(HLS_SCHEMA,_info._vhost,_info._app,_info._streamid));
         if(src){
-            src->modifyReaderCount(true);
             *_added = true;
-            _src = src;
             _ring_reader = src->getRing()->attach(EventPollerPool::Instance().getPoller());
             auto added = _added;
             _ring_reader->setDetachCB([added](){
@@ -38,18 +36,15 @@ void HlsCookieData::addReaderCount(){
 
 HlsCookieData::~HlsCookieData() {
     if (*_added) {
-        auto src = _src.lock();
-        if (src) {
-            src->modifyReaderCount(false);
-        }
         uint64_t duration = (_ticker.createdTime() - _ticker.elapsedTime()) / 1000;
         WarnL << _sock_info->getIdentifier() << "(" << _sock_info->get_peer_ip() << ":" << _sock_info->get_peer_port() << ") "
               << "HLS播放器(" << _info._vhost << "/" << _info._app << "/" << _info._streamid
               << ")断开,耗时(s):" << duration;
 
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
-        if (_bytes > iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, _bytes, duration, true, static_cast<SockInfo&>(*_sock_info));
+        uint64_t bytes = _bytes.load();
+        if (bytes > iFlowThreshold * 1024) {
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, bytes, duration, true, static_cast<SockInfo&>(*_sock_info));
         }
     }
 }
