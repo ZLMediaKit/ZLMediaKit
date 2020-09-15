@@ -109,14 +109,18 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
 }
 
 void HlsMakerImp::onFlushLastSegment(uint32_t duration) {
-    auto info = _info;
-    info.ui64TimeLen = duration;
-    WorkThreadPool::Instance().getExecutor()->async([info]() {
-        struct stat fileData;
-        stat(info.strFilePath.data(), &fileData);
-        const_cast<TsInfo&>(info).ui64FileSize = fileData.st_size;
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordTs, info);
-    });
+    GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);
+
+    if (broadcastRecordTs) {
+        auto info = _info;
+        info.ui64TimeLen = duration;
+        WorkThreadPool::Instance().getExecutor()->async([info]() {
+            struct stat fileData;
+            stat(info.strFilePath.data(), &fileData);
+            const_cast<TsInfo&>(info).ui64FileSize = fileData.st_size;
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordTs, info);
+        });
+    }
 }
 
 
