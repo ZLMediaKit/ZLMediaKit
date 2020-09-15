@@ -285,6 +285,8 @@ extern const string kSegmentRetain;
 extern const string kFileBufSize;
 //录制文件路径
 extern const string kFilePath;
+// 是否广播 ts 切片完成通知
+extern const string kBroadcastRecordTs;
 } //namespace Hls
 
 ////////////Rtp代理相关配置///////////

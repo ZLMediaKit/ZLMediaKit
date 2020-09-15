@@ -252,6 +252,8 @@ const string kSegmentRetain = HLS_FIELD"segRetain";
 const string kFileBufSize = HLS_FIELD"fileBufSize";
 //录制文件路径
 const string kFilePath = HLS_FIELD"filePath";
+// 是否广播 ts 切片完成通知
+const string kBroadcastRecordTs = HLS_FIELD"broadcastRecordTs";
 
 onceToken token([](){
     mINI::Instance()[kSegmentDuration] = 2;
@@ -259,6 +261,7 @@ onceToken token([](){
     mINI::Instance()[kSegmentRetain] = 5;
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kFilePath] = "./www";
+    mINI::Instance()[kBroadcastRecordTs] = false;
 },nullptr);
 } //namespace Hls
 
