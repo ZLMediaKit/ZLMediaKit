@@ -117,7 +117,7 @@ void HlsMakerImp::onFlushLastSegment(uint32_t duration) {
         WorkThreadPool::Instance().getExecutor()->async([info]() {
             struct stat fileData;
             stat(info.strFilePath.data(), &fileData);
-            const_cast<TsInfo&>(info).ui64FileSize = fileData.st_size;
+            const_cast<RecordInfo&>(info).ui64FileSize = fileData.st_size;
             NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordTs, info);
         });
     }

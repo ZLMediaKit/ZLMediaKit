@@ -58,11 +58,11 @@ extern const string kBroadcastMediaChanged;
 
 //录制mp4文件成功后广播
 extern const string kBroadcastRecordMP4;
-#define BroadcastRecordMP4Args const MP4Info &info
+#define BroadcastRecordMP4Args const RecordInfo &info
 
 // 录制 ts 文件后广播
 extern const string kBroadcastRecordTs;
-#define BroadcastRecordTsArgs const TsInfo &info
+#define BroadcastRecordTsArgs const RecordInfo &info
 
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;

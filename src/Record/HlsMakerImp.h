@@ -16,6 +16,8 @@
 #include <stdlib.h>
 #include "HlsMaker.h"
 #include "HlsMediaSource.h"
+#include "RecordInfo.h"
+
 using namespace std;
 
 namespace mediakit {
@@ -67,7 +69,7 @@ private:
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
-    TsInfo _info;
+    RecordInfo _info;
     map<int /*index*/,string/*file_path*/> _segment_file_paths;
 };
 
