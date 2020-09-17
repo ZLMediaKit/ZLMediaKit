@@ -18,12 +18,12 @@ namespace mediakit {
 class HlsRecorder : public MediaSourceEventInterceptor, public TsMuxer, public std::enable_shared_from_this<HlsRecorder> {
 public:
     typedef std::shared_ptr<HlsRecorder> Ptr;
-    HlsRecorder(const string &m3u8_file, const string &params){
-        GET_CONFIG(uint32_t, hlsNum, Hls::kSegmentNum);
-        GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
-        GET_CONFIG(uint32_t, hlsDuration, Hls::kSegmentDuration);
-        _hls = std::make_shared<HlsMakerImp>(m3u8_file, params, hlsBufSize, hlsDuration, hlsNum);
-        //清空上次的残余文件
+    HlsRecorder(const string &m3u8_file, const string &params,int record_type){
+        GET_CONFIG(uint32_t,hlsNum,Hls::kSegmentNum);
+        GET_CONFIG(uint32_t,hlsBufSize,Hls::kFileBufSize);
+        GET_CONFIG(uint32_t,hlsDuration,Hls::kSegmentDuration);
+        _hls = std::make_shared<HlsMakerImp>(m3u8_file,params,hlsBufSize,hlsDuration,hlsNum,record_type);
+		//清空上次的残余文件
         _hls->clearCache();
     }
 

@@ -60,6 +60,14 @@ extern const string kBroadcastMediaChanged;
 extern const string kBroadcastRecordMP4;
 #define BroadcastRecordMP4Args const MP4Info &info
 
+//录制hls文件成功后广播
+extern const string kBroadcastRecordHls;
+#define BroadcastRecordHlsArgs const HlsInfo &info
+
+//转推流失败后广播
+extern const string kBroadcaseProxyPusherFailed;
+#define BroadcaseProxyPusherFailedArgs const ProxyPusherInfo &info
+
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;
 #define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,SockInfo &sender

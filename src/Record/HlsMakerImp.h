@@ -20,14 +20,23 @@ using namespace std;
 
 namespace mediakit {
 
+class HlsInfo {
+public:
+    string strFilePath;//m3u8文件路径
+    string strAppName;//应用名称
+    string strStreamId;//流ID
+    time_t ui64StartedTime; //GMT标准时间，单位秒
+    time_t ui64TimeLen;//录像长度，单位秒
+};
+
 class HlsMakerImp : public HlsMaker{
 public:
     HlsMakerImp(const string &m3u8_file,
                 const string &params,
                 uint32_t bufSize  = 64 * 1024,
                 float seg_duration = 5,
-                uint32_t seg_number = 3);
-
+                uint32_t seg_number = 3,
+				int record_type = 0);
     ~HlsMakerImp() override;
 
     /**
@@ -54,10 +63,11 @@ protected:
     void onDelSegment(int index) override;
     void onWriteSegment(const char *data, int len) override;
     void onWriteHls(const char *data, int len) override;
+    void onWriteRecordM3u8(const char *header, int hlen, const char *body, int blen) override;
 
 private:
     std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
-
+    std::shared_ptr<FILE> makeRecordM3u8(const string &file,const string &mode,bool setbuf = false);
 private:
     int _buf_size;
     string _params;
@@ -67,6 +77,7 @@ private:
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
     map<int /*index*/,string/*file_path*/> _segment_file_paths;
+    time_t _ui64StartedTime;
 };
 
 }//namespace mediakit

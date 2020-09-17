@@ -109,6 +109,25 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
             }
             return true;
         }
+        case Recorder::type_hls_record : {
+            if (start && !_hls_record) {
+                //开始录制
+                auto hls_record = dynamic_pointer_cast<HlsRecorder>(makeRecorder(getTracks(true), type, custom_path, sender));
+                if (hls_record) {
+                    //设置HlsMediaSource的事件监听器
+                    InfoL << "find record hls ms ";
+                    hls_record->setListener(_listener);
+                    //hls_src->setTrackSource(shared_from_this());
+                }
+                _hls_record = hls_record;
+            } else if (!start && _hls_record) {
+                //停止录制
+                InfoL << "stop record hls";
+                _hls_record = nullptr;
+            }
+
+            return true;
+        }
         default : return false;
     }
 }
@@ -120,6 +139,8 @@ bool MultiMuxerPrivate::isRecording(MediaSource &sender, Recorder::type type){
             return _hls ? true : false;
         case Recorder::type_mp4 :
             return _mp4 ? true : false;
+        case Recorder::type_hls_record :
+            return _hls_record ? true : false;
         default:
             return false;
     }
@@ -155,6 +176,11 @@ void MultiMuxerPrivate::onTrackReady(const Track::Ptr &track) {
     if (mp4) {
         mp4->addTrack(track);
     }
+
+    auto rhls = _hls_record;
+    if (rhls) {
+        rhls->addTrack(track);
+    }
 }
 
 bool MultiMuxerPrivate::isEnabled(){
@@ -180,6 +206,11 @@ void MultiMuxerPrivate::onTrackFrame(const Frame::Ptr &frame) {
     auto mp4 = _mp4;
     if (mp4) {
         mp4->inputFrame(frame);
+    }
+
+    auto rhls = _hls_record;
+    if (rhls) {
+        rhls->inputFrame(frame);
     }
 }
 
@@ -212,6 +243,7 @@ static string getTrackInfoStr(const TrackSource *track_src){
     }
     return codec_info;
 }
+
 
 void MultiMuxerPrivate::onAllTrackReady() {
     if (_rtmp) {

@@ -219,8 +219,9 @@ static MediaSource::Ptr find_l(const string &schema, const string &vhost_in, con
         });
     }
 
-    if(!ret && create_new){
+    if(!ret && create_new && schema != HLS_SCHEMA){
         //未查找媒体源，则创建一个
+        //播放hls不触发mp4点播(因为HLS也可以用于录像，不是纯粹的直播)
         ret = MediaSource::createFromMP4(schema, vhost, app, id);
     }
     return ret;

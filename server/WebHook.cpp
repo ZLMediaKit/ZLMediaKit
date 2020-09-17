@@ -24,6 +24,8 @@
 #include "Http/HttpSession.h"
 #include "WebHook.h"
 #include "Record/MP4Recorder.h"
+#include "WebApi.h"
+#include "Util/base64.h"
 
 using namespace Json;
 using namespace toolkit;
@@ -58,6 +60,8 @@ const string kOnStreamNoneReader = HOOK_FIELD"on_stream_none_reader";
 const string kOnHttpAccess = HOOK_FIELD"on_http_access";
 const string kOnServerStarted = HOOK_FIELD"on_server_started";
 const string kAdminParams = HOOK_FIELD"admin_params";
+const string kOnRecordHls = HOOK_FIELD"on_record_hls";
+const string kOnProxyPusherFailed = HOOK_FIELD"on_proxy_pusher_failed";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = false;
@@ -75,9 +79,10 @@ onceToken token([](){
     mINI::Instance()[kOnHttpAccess] = "https://127.0.0.1/index/hook/on_http_access";
     mINI::Instance()[kOnServerStarted] = "https://127.0.0.1/index/hook/on_server_started";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
+    mINI::Instance()[kOnRecordHls] = "https://127.0.0.1/index/hook/on_record_hls";
+    mINI::Instance()[kOnProxyPusherFailed] = "https://127.0.0.1/index/hook/on_proxy_pusher_failed";
 },nullptr);
 }//namespace Hook
-
 
 static void parse_http_response(const SockException &ex,
                                 const string &status,
@@ -193,6 +198,37 @@ void installWebHook(){
     GET_CONFIG(string,hook_shell_login,Hook::kOnShellLogin);
     GET_CONFIG(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
     GET_CONFIG(string,hook_http_access,Hook::kOnHttpAccess);
+    GET_CONFIG(string,hook_record_hls,Hook::kOnRecordHls);
+    GET_CONFIG(string,hook_proxy_pusher_failed, Hook::kOnProxyPusherFailed);
+
+    //录制hls文件成功后广播
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRecordHls,[](BroadcastRecordHlsArgs){
+        if(!hook_enable || hook_record_hls.empty()){
+            return;
+        }
+        ArgsType body;
+        body["file_path"] = info.strFilePath;
+        body["app"] = info.strAppName;
+        body["stream"] = info.strStreamId;
+        body["start_time"] = (Json::UInt64)info.ui64StartedTime;
+        body["time_len"] = (Json::UInt64)info.ui64TimeLen;
+
+        //执行hook
+        do_http_hook(hook_record_hls,body, nullptr);
+    });
+
+    //转推流失败后广播
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcaseProxyPusherFailed, [](BroadcaseProxyPusherFailedArgs){
+        if(!hook_enable || hook_proxy_pusher_failed.empty()){
+            return;
+        }
+        ArgsType body;
+        body["key"] = info.key;
+        body["proxy_pusher_url"] = encodeBase64(info.proxy_pusher_url);
+
+        //执行hook
+        do_http_hook(hook_proxy_pusher_failed, body, nullptr);
+    });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
         GET_CONFIG(bool,toHls,General::kPublishToHls);

@@ -13,6 +13,7 @@
 #include "Common/MediaSource.h"
 #include "MP4Recorder.h"
 #include "HlsRecorder.h"
+#include "Util/logger.h"
 
 using namespace toolkit;
 
@@ -50,6 +51,22 @@ string Recorder::getRecordPath(Recorder::type type, const string &vhost, const s
             }
             return File::absolutePath(mp4FilePath, recordPath);
         }
+
+        case Recorder::type_hls_record: {
+            GET_CONFIG(string, hlsPath, Record::kFilePath);
+            string m3u8FilePath;
+            if (enableVhost) {
+                m3u8FilePath = vhost + "/" + app + "/" + stream_id + "/hls.m3u8";
+            } else {
+                m3u8FilePath = app + "/" + stream_id + "/hls.m3u8";
+            }
+            //Here we use the customized file path.
+            if (!customized_path.empty()) {
+                m3u8FilePath = customized_path + "/hls.m3u8";
+            }
+            return File::absolutePath(m3u8FilePath, hlsPath);
+        }
+
         default:
             return "";
     }
@@ -57,10 +74,12 @@ string Recorder::getRecordPath(Recorder::type type, const string &vhost, const s
 
 std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path){
     auto path = Recorder::getRecordPath(type, vhost, app, stream_id, customized_path);
+    InfoL << "createRecorder type " << type << " path " <<  path;
     switch (type) {
         case Recorder::type_hls: {
 #if defined(ENABLE_HLS)
-            auto ret = std::make_shared<HlsRecorder>(path, string(VHOST_KEY) + "=" + vhost);
+            auto ret = std::make_shared<HlsRecorder>(path, string(VHOST_KEY) + "=" + vhost, 0);
+            InfoL << "create Hls Record ret "<<ret;
             ret->setMediaSource(vhost, app, stream_id);
             return ret;
 #endif
@@ -70,6 +89,16 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
         case Recorder::type_mp4: {
 #if defined(ENABLE_MP4)
             return std::make_shared<MP4Recorder>(path, vhost, app, stream_id);
+#endif
+            return nullptr;
+        }
+
+        case Recorder::type_hls_record: {
+#if defined(ENABLE_HLS)
+            auto ret = std::make_shared<HlsRecorder>(path, string(VHOST_KEY) + "=" + vhost, 2);
+            InfoL << "create Hls Record ret "<<ret;
+            ret->setMediaSource(vhost, app, stream_id);
+            return ret;
 #endif
             return nullptr;
         }

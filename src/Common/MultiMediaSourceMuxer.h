@@ -56,6 +56,7 @@ private:
     RtspMediaSourceMuxer::Ptr _rtsp;
     HlsRecorder::Ptr _hls;
     MediaSinkInterface::Ptr _mp4;
+    MediaSinkInterface::Ptr _hls_record;
     std::weak_ptr<MediaSourceEvent> _listener;
 };
 

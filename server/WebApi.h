@@ -34,4 +34,10 @@ void unInstallWebApi();
 //配置文件路径
 extern string g_ini_file;
 
+class ProxyPusherInfo {
+public:
+    string key; //流id的key
+    string proxy_pusher_url;//转推地址
+};
+
 #endif //ZLMEDIAKIT_WEBAPI_H

@@ -9,17 +9,18 @@
  */
 
 #include "HlsMaker.h"
+using namespace toolkit;
 namespace mediakit {
 
-HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number) {
+HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number, int record_type) {
     //最小允许设置为0，0个切片代表点播
     _seg_number = seg_number;
     _seg_duration = seg_duration;
+    _hls_record_type =  record_type;
 }
 
 HlsMaker::~HlsMaker() {
 }
-
 
 void HlsMaker::makeIndexFile(bool eof) {
     char file_content[1024];
@@ -32,32 +33,46 @@ void HlsMaker::makeIndexFile(bool eof) {
         }
     }
 
-    auto sequence = _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
+    auto sequence =  _hls_record_type == 0 ? ( _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL): 0LL;
 
     string m3u8;
-    snprintf(file_content, sizeof(file_content),
-             "#EXTM3U\n"
-             "#EXT-X-VERSION:3\n"
-             "#EXT-X-ALLOW-CACHE:NO\n"
-             "#EXT-X-TARGETDURATION:%u\n"
-             "#EXT-X-MEDIA-SEQUENCE:%llu\n",
-             (maxSegmentDuration + 999) / 1000,
-             sequence);
+    snprintf(file_content,sizeof(file_content),
+          "#EXTM3U\n"
+          "#EXT-X-VERSION:3\n"
+          "#EXT-X-ALLOW-CACHE:NO\n"
+          "#EXT-X-TARGETDURATION:%u\n"
+          "#EXT-X-MEDIA-SEQUENCE:%llu\n",
+          (maxSegmentDuration + 999) / 1000,
+          sequence);
 
     m3u8.assign(file_content);
+    string rm3u8 = m3u8;
+    string rcontent;
 
-    for (auto &tp : _seg_dur_list) {
-        snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
-        m3u8.append(file_content);
+    if (_hls_record_type == 2) {
+    	auto &tp = _seg_dur_list.back();
+        snprintf(file_content,sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
+        rcontent.assign(file_content);
+    }else{
+        for (auto &tp : _seg_dur_list) {
+            snprintf(file_content,sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
+            m3u8.append(file_content);
+        }
     }
 
     if (eof) {
-        snprintf(file_content, sizeof(file_content), "#EXT-X-ENDLIST\n");
+        snprintf(file_content, sizeof(file_content),"#EXT-X-ENDLIST\n");
         m3u8.append(file_content);
+        rcontent.append(file_content);
     }
-    onWriteHls(m3u8.data(), m3u8.size());
-}
 
+    if (_hls_record_type == 2) {
+        onWriteRecordM3u8(rm3u8.data(), rm3u8.size(), rcontent.data(), rcontent.size());
+    }else{
+    	 onWriteHls(m3u8.data(), m3u8.size());
+    }
+
+}
 
 void HlsMaker::inputData(void *data, uint32_t len, uint32_t timestamp, bool is_idr_fast_packet) {
     if (data && len) {
@@ -68,16 +83,17 @@ void HlsMaker::inputData(void *data, uint32_t len, uint32_t timestamp, bool is_i
         if (!_last_file_name.empty()) {
             //存在切片才写入ts数据
             onWriteSegment((char *) data, len);
+            _last_timestamp = timestamp;
         }
     } else {
         //resetTracks时触发此逻辑
-        flushLastSegment(timestamp, true);
+        flushLastSegment(true);
     }
 }
 
 void HlsMaker::delOldSegment() {
-    if (_seg_number == 0) {
-        //如果设置为保留0个切片，则认为是保存为点播
+    if(_seg_number == 0 || _hls_record_type == 2){
+        //如果设置为保留0个切片，则认为是保存为点播 ,record_type为2则是hls录制
         return;
     }
     //在hls m3u8索引文件中,我们保存的切片个数跟_seg_number相关设置一致
@@ -99,31 +115,33 @@ void HlsMaker::addNewSegment(uint32_t stamp) {
     }
 
     //关闭并保存上一个切片，如果_seg_number==0,那么是点播。
-    flushLastSegment(stamp, _seg_number == 0);
+    flushLastSegment((_seg_number == 0 || _hls_record_type == 2));
     //新增切片
     _last_file_name = onOpenSegment(_file_index++);
     //记录本次切片的起始时间戳
     _last_seg_timestamp = stamp;
 }
 
-void HlsMaker::flushLastSegment(uint32_t timestamp, bool eof){
+void HlsMaker::flushLastSegment(bool eof){
     if (_last_file_name.empty()) {
         //不存在上个切片
         return;
     }
+
     //文件创建到最后一次数据写入的时间即为切片长度
-    auto seg_dur = timestamp - _last_seg_timestamp;
+    auto seg_dur = _last_timestamp - _last_seg_timestamp;
     if (seg_dur <= 0) {
         seg_dur = 100;
     }
-    _seg_dur_list.push_back(std::make_tuple(seg_dur, _last_file_name));
+
+    _seg_dur_list.push_back(std::make_tuple(seg_dur, std::move(_last_file_name)));
     delOldSegment();
     makeIndexFile(eof);
     _last_file_name.clear();
 }
 
 bool HlsMaker::isLive() {
-    return _seg_number != 0;
+    return _seg_number != 0 && _hls_record_type == 0;
 }
 
 void HlsMaker::clear() {
