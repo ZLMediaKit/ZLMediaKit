@@ -250,19 +250,26 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
 
         //直播牺牲延时提升发送性能
         setSocketFlags();
-        weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
+        weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
         _ts_reader = ts_src->getRing()->attach(getPoller());
-        _ts_reader->setReadCB([weakSelf](const TSMediaSource::RingDataType &ts_list) {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        _ts_reader->setDetachCB([weak_self](){
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                //本对象已经销毁
+                return;
+            }
+            strong_self->shutdown(SockException(Err_shutdown,"ts ring buffer detached"));
+        });
+        _ts_reader->setReadCB([weak_self](const TSMediaSource::RingDataType &ts_list) {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 //本对象已经销毁
                 return;
             }
             int i = 0;
             int size = ts_list->size();
-            strongSelf->setSendFlushFlag(false);
             ts_list->for_each([&](const TSPacket::Ptr &ts) {
-                strongSelf->onWrite(ts, ++i == size);
+                strong_self->onWrite(ts, ++i == size);
             });
         });
     });
