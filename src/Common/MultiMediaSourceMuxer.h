@@ -18,6 +18,7 @@
 #include "Record/HlsMediaSource.h"
 #include "Rtsp/RtspMediaSourceMuxer.h"
 #include "Rtmp/RtmpMediaSourceMuxer.h"
+#include "TS/TSMediaSourceMuxer.h"
 
 namespace mediakit{
 
@@ -56,6 +57,7 @@ private:
     RtspMediaSourceMuxer::Ptr _rtsp;
     HlsRecorder::Ptr _hls;
     MediaSinkInterface::Ptr _mp4;
+    TSMediaSourceMuxer::Ptr _ts;
     std::weak_ptr<MediaSourceEvent> _listener;
 };
 

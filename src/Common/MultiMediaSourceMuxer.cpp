@@ -32,6 +32,8 @@ MultiMuxerPrivate::MultiMuxerPrivate(const string &vhost, const string &app, con
     if (enable_mp4) {
         _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream);
     }
+
+    _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
 }
 
 void MultiMuxerPrivate::resetTracks() {
@@ -40,6 +42,9 @@ void MultiMuxerPrivate::resetTracks() {
     }
     if (_rtsp) {
         _rtsp->resetTracks();
+    }
+    if (_ts) {
+        _ts->resetTracks();
     }
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
@@ -62,6 +67,9 @@ void MultiMuxerPrivate::setMediaListener(const std::weak_ptr<MediaSourceEvent> &
     if (_rtsp) {
         _rtsp->setListener(listener);
     }
+    if (_ts) {
+        _ts->setListener(listener);
+    }
     auto hls = _hls;
     if (hls) {
         hls->setListener(listener);
@@ -70,7 +78,10 @@ void MultiMuxerPrivate::setMediaListener(const std::weak_ptr<MediaSourceEvent> &
 
 int MultiMuxerPrivate::totalReaderCount() const {
     auto hls = _hls;
-    return (_rtsp ? _rtsp->readerCount() : 0) + (_rtmp ? _rtmp->readerCount() : 0) + (hls ? hls->readerCount() : 0);
+    return (_rtsp ? _rtsp->readerCount() : 0) +
+           (_rtmp ? _rtmp->readerCount() : 0) +
+           (_ts ? _ts->readerCount() : 0) +
+           (hls ? hls->readerCount() : 0) ;
 }
 
 static std::shared_ptr<MediaSinkInterface> makeRecorder(const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, MediaSource &sender){
@@ -145,6 +156,9 @@ void MultiMuxerPrivate::onTrackReady(const Track::Ptr &track) {
     if (_rtsp) {
         _rtsp->addTrack(track);
     }
+    if (_ts) {
+        _ts->addTrack(track);
+    }
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     auto hls = _hls;
@@ -161,6 +175,7 @@ bool MultiMuxerPrivate::isEnabled(){
     auto hls = _hls;
     return (_rtmp ? _rtmp->isEnabled() : false) ||
            (_rtsp ? _rtsp->isEnabled() : false) ||
+           (_ts ? _ts->isEnabled() : false) ||
            (hls ? hls->isEnabled() : false) || _mp4;
 }
 
@@ -171,6 +186,10 @@ void MultiMuxerPrivate::onTrackFrame(const Frame::Ptr &frame) {
     if (_rtsp) {
         _rtsp->inputFrame(frame);
     }
+    if (_ts) {
+        _ts->inputFrame(frame);
+    }
+
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     //此处使用智能指针拷贝来确保线程安全，比互斥锁性能更优
     auto hls = _hls;
