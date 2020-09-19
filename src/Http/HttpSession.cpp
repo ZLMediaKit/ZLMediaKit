@@ -166,13 +166,9 @@ bool HttpSession::checkWebSocket(){
 }
 
 bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffix, const function<void(const MediaSource::Ptr &src)> &cb){
-    auto pos = strrchr(_parser.Url().data(), '.');
-    if (!pos) {
+    auto pos = strcasestr(_parser.Url().data(), url_suffix.data());
+    if (!pos || pos + url_suffix.size() != 1 + &_parser.Url().back()) {
         //未找到后缀
-        return false;
-    }
-    if (strcasecmp(pos, url_suffix.data()) != 0) {
-        //未找到直播流后缀
         return false;
     }
 
@@ -238,10 +234,10 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
     return true;
 }
 
-//http-ts 链接格式:http://vhost-url:port/app/streamid.ts?key1=value1&key2=value2
+//http-ts 链接格式:http://vhost-url:port/app/streamid.live.ts?key1=value1&key2=value2
 //如果url(除去?以及后面的参数)后缀是.ts,那么表明该url是一个http-ts直播。
 bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
-    return checkLiveStream(TS_SCHEMA, ".ts", [this, cb](const MediaSource::Ptr &src) {
+    return checkLiveStream(TS_SCHEMA, ".live.ts", [this, cb](const MediaSource::Ptr &src) {
         auto ts_src = dynamic_pointer_cast<TSMediaSource>(src);
         assert(ts_src);
         if (!cb) {
