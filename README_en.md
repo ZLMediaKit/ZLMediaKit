@@ -244,7 +244,7 @@ git submodule update --init
 ## Docker Image
 You can pull a pre-built docker image from Docker Hub and run with
 ```bash
-docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
+docker run -id -p 1935:1935 -p 8080:80 -p 8554:554 -p 10000:10000 -p 10000:10000/udp panjjo/zlmediakit
 ```
 
 Dockerfile is also supplied to build images on Ubuntu 16.04
