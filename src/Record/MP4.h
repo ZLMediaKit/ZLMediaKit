@@ -117,6 +117,33 @@ private:
     std::shared_ptr<FILE> _file;
 };
 
+class MP4FileMemory : public MP4FileIO{
+public:
+    using Ptr = std::shared_ptr<MP4FileMemory>;
+    MP4FileMemory() = default;
+    ~MP4FileMemory() override = default;
+
+    /**
+     * 获取文件大小
+     */
+    uint64_t fileSize() const;
+
+    /**
+     * 获取并清空文件缓存
+     */
+    string getAndClearMemory();
+
+protected:
+    uint64_t onTell() override;
+    int onSeek(uint64_t offset) override;
+    int onRead(void *data, uint64_t bytes) override;
+    int onWrite(const void *data, uint64_t bytes) override;
+
+private:
+    uint64_t _offset = 0;
+    string _memory;
+};
+
 }//namespace mediakit
 #endif //NABLE_MP4RECORD
 #endif //ZLMEDIAKIT_MP4_H

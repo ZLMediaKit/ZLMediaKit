@@ -21,26 +21,50 @@ MP4Muxer::~MP4Muxer() {
 }
 
 void MP4Muxer::openMP4(const string &file){
-    _file_name = file;
     closeMP4();
-    openFile(_file_name.data(), "wb+");
+    _file_name = file;
+    _mp4_file = std::make_shared<MP4FileDisk>();
+    _mp4_file->openFile(_file_name.data(), "wb+");
+}
+
+MP4FileIO::Writer MP4Muxer::createWriter(){
     GET_CONFIG(bool, mp4FastStart, Record::kFastStart);
-    _mov_writter = createWriter(mp4FastStart ? MOV_FLAG_FASTSTART : 0, false);
+    return _mp4_file->createWriter(mp4FastStart ? MOV_FLAG_FASTSTART : 0, false);
 }
 
 void MP4Muxer::closeMP4(){
-    _mov_writter = nullptr;
-    closeFile();
+    MP4MuxerInterface::resetTracks();
+    _mp4_file = nullptr;
 }
 
 void MP4Muxer::resetTracks() {
-    _codec_to_trackid.clear();
-    _started = false;
-    _have_video = false;
+    MP4MuxerInterface::resetTracks();
     openMP4(_file_name);
 }
 
-void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
+/////////////////////////////////////////// MP4MuxerInterface /////////////////////////////////////////////
+
+void MP4MuxerInterface::saveSegment(){
+    mp4_writer_save_segment(_mov_writter.get());
+}
+
+void MP4MuxerInterface::initSegment(){
+    mp4_writer_init_segment(_mov_writter.get());
+}
+
+bool MP4MuxerInterface::haveVideo() const{
+    return _have_video;
+}
+
+void MP4MuxerInterface::resetTracks() {
+    _started = false;
+    _have_video = false;
+    _mov_writter = nullptr;
+    _frameCached.clear();
+    _codec_to_trackid.clear();
+}
+
+void MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
     auto it = _codec_to_trackid.find(frame->getCodecId());
     if(it == _codec_to_trackid.end()){
         //该Track不存在或初始化失败
@@ -134,7 +158,7 @@ static uint8_t getObject(CodecId codecId){
     }
 }
 
-void MP4Muxer::stampSync(){
+void MP4MuxerInterface::stampSync(){
     if(_codec_to_trackid.size() < 2){
         return;
     }
@@ -154,7 +178,10 @@ void MP4Muxer::stampSync(){
     }
 }
 
-void MP4Muxer::addTrack(const Track::Ptr &track) {
+void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
+    if (!_mov_writter) {
+        _mov_writter = createWriter();
+    }
     auto mp4_object = getObject(track->getCodecId());
     if (!mp4_object) {
         WarnL << "MP4录制不支持该编码格式:" << track->getCodecName();
@@ -286,6 +313,55 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
     //尝试音视频同步
     stampSync();
 }
+
+/////////////////////////////////////////// MP4MuxerMemory /////////////////////////////////////////////
+
+MP4MuxerMemory::MP4MuxerMemory() {
+    _memory_file = std::make_shared<MP4FileMemory>();
+}
+
+MP4FileIO::Writer MP4MuxerMemory::createWriter() {
+    return _memory_file->createWriter(MOV_FLAG_SEGMENT, true);
+}
+
+const string &MP4MuxerMemory::getInitSegment(){
+    if (_init_segment.empty()) {
+        initSegment();
+        saveSegment();
+        _init_segment = _memory_file->getAndClearMemory();
+    }
+    return _init_segment;
+}
+
+void MP4MuxerMemory::resetTracks(){
+    MP4MuxerInterface::resetTracks();
+    _memory_file = std::make_shared<MP4FileMemory>();
+    _init_segment.clear();
+}
+
+void MP4MuxerMemory::inputFrame(const Frame::Ptr &frame){
+    if (_init_segment.empty()) {
+        //尚未生成init segment
+        return;
+    }
+
+    bool key_frame = frame->keyFrame();
+    if (_ticker.elapsedTime() > 50 || key_frame) {
+        //遇到关键帧或者超过50ms则切片
+        _ticker.resetTime();
+        //flush切片
+        saveSegment();
+        //输出切片数据
+        onSegmentData(_memory_file->getAndClearMemory(), frame->dts(), _key_frame);
+        _key_frame = false;
+    }
+
+    if (key_frame) {
+        _key_frame = true;
+    }
+    MP4MuxerInterface::inputFrame(frame);
+}
+
 
 }//namespace mediakit
 #endif//#ifdef ENABLE_MP4

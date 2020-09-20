@@ -93,7 +93,7 @@ void HttpSession::onError(const SockException& err) {
     if(_is_live_stream){
         uint64_t duration = _ticker.createdTime()/1000;
         //flv/ts播放器
-        WarnP(this) << "FLV/TS播放器("
+        WarnP(this) << "FLV/TS/FMP4播放器("
                     << _mediaInfo._vhost << "/"
                     << _mediaInfo._app << "/"
                     << _mediaInfo._streamid
@@ -153,6 +153,12 @@ bool HttpSession::checkWebSocket(){
     //判断是否为websocket-ts
     if (checkLiveStreamTS(res_cb)) {
         //这里是websocket-ts直播请求
+        return true;
+    }
+
+    //判断是否为websocket-fmp4
+    if (checkLiveStreamFMP4(res_cb)) {
+        //这里是websocket-fmp4直播请求
         return true;
     }
 
@@ -234,15 +240,55 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
     return true;
 }
 
+//http-fmp4 链接格式:http://vhost-url:port/app/streamid.live.mp4?key1=value1&key2=value2
+bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb){
+    return checkLiveStream(FMP4_SCHEMA, ".live.mp4", [this, cb](const MediaSource::Ptr &src) {
+        auto fmp4_src = dynamic_pointer_cast<FMP4MediaSource>(src);
+        assert(fmp4_src);
+        if (!cb) {
+            //找到源，发送http头，负载后续发送
+            sendResponse("200 OK", false, HttpFileManager::getContentType(".mp4").data(), KeyValue(), nullptr, true);
+        } else {
+            //自定义发送http头
+            cb();
+        }
+
+        //直播牺牲延时提升发送性能
+        setSocketFlags();
+        onWrite(std::make_shared<BufferString>(fmp4_src->getInitSegment()), true);
+        weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+        _fmp4_reader = fmp4_src->getRing()->attach(getPoller());
+        _fmp4_reader->setDetachCB([weak_self]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                //本对象已经销毁
+                return;
+            }
+            strong_self->shutdown(SockException(Err_shutdown, "fmp4 ring buffer detached"));
+        });
+        _fmp4_reader->setReadCB([weak_self](const FMP4MediaSource::RingDataType &fmp4_list) {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                //本对象已经销毁
+                return;
+            }
+            int i = 0;
+            int size = fmp4_list->size();
+            fmp4_list->for_each([&](const FMP4Packet::Ptr &ts) {
+                strong_self->onWrite(ts, ++i == size);
+            });
+        });
+    });
+}
+
 //http-ts 链接格式:http://vhost-url:port/app/streamid.live.ts?key1=value1&key2=value2
-//如果url(除去?以及后面的参数)后缀是.ts,那么表明该url是一个http-ts直播。
 bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
     return checkLiveStream(TS_SCHEMA, ".live.ts", [this, cb](const MediaSource::Ptr &src) {
         auto ts_src = dynamic_pointer_cast<TSMediaSource>(src);
         assert(ts_src);
         if (!cb) {
             //找到源，发送http头，负载后续发送
-            sendResponse("200 OK", false, "video/mp2t", KeyValue(), nullptr, true);
+            sendResponse("200 OK", false, HttpFileManager::getContentType(".ts").data(), KeyValue(), nullptr, true);
         } else {
             //自定义发送http头
             cb();
@@ -276,14 +322,13 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
 }
 
 //http-flv 链接格式:http://vhost-url:port/app/streamid.flv?key1=value1&key2=value2
-//如果url(除去?以及后面的参数)后缀是.flv,那么表明该url是一个http-flv直播。
 bool HttpSession::checkLiveStreamFlv(const function<void()> &cb){
     return checkLiveStream(RTMP_SCHEMA, ".flv", [this, cb](const MediaSource::Ptr &src) {
         auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
         assert(rtmp_src);
         if (!cb) {
             //找到源，发送http头，负载后续发送
-            sendResponse("200 OK", false, "video/x-flv", KeyValue(), nullptr, true);
+            sendResponse("200 OK", false, HttpFileManager::getContentType(".flv").data(), KeyValue(), nullptr, true);
         } else {
             //自定义发送http头
             cb();
@@ -322,6 +367,11 @@ void HttpSession::Handle_Req_GET_l(int64_t &content_len, bool sendBody) {
 
     if (checkLiveStreamTS()) {
         //拦截http-ts播放器
+        return;
+    }
+
+    if (checkLiveStreamFMP4()) {
+        //拦截http-fmp4播放器
         return;
     }
 
