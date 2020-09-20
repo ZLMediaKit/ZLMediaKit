@@ -11,7 +11,6 @@
 #include <ctime>
 #include <sys/stat.h>
 #include "HlsMakerImp.h"
-#include "Thread/WorkThreadPool.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
 
@@ -32,7 +31,7 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
         delete[] ptr;
     });
 
-    _info.strFolder = _path_prefix;
+    _info.folder = _path_prefix;
 }
 
 HlsMakerImp::~HlsMakerImp() {
@@ -65,10 +64,11 @@ string HlsMakerImp::onOpenSegment(int index) {
     }
     _file = makeFile(segment_path, true);
 
-    _info.ui64StartedTime = ::time(NULL);
-    _info.strFileName = segment_name;
-    _info.strFilePath = segment_path;
-    _info.strUrl = _info.strAppName + "/" + _info.strStreamId + "/" + segment_name;
+    //保存本切片的元数据
+    _info.start_time = ::time(NULL);
+    _info.file_name = segment_name;
+    _info.file_path = segment_path;
+    _info.url = _info.app + "/" + _info.stream + "/" + segment_name;
 
     if (!_file) {
         WarnL << "create file failed," << segment_path << " " << get_uv_errmsg();
@@ -108,21 +108,18 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
     //DebugL << "\r\n"  << string(data,len);
 }
 
-void HlsMakerImp::onFlushLastSegment(uint32_t duration) {
+void HlsMakerImp::onFlushLastSegment(uint32_t duration_ms) {
     GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);
-
     if (broadcastRecordTs) {
-        auto info = _info;
-        info.ui64TimeLen = duration;
-        WorkThreadPool::Instance().getExecutor()->async([info]() {
-            struct stat fileData;
-            stat(info.strFilePath.data(), &fileData);
-            const_cast<RecordInfo&>(info).ui64FileSize = fileData.st_size;
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordTs, info);
-        });
+        //关闭ts文件以便获取正确的文件大小
+        _file = nullptr;
+        _info.time_len = duration_ms / 1000.0;
+        struct stat fileData;
+        stat(_info.file_path.data(), &fileData);
+        _info.file_size = fileData.st_size;
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordTs, _info);
     }
 }
-
 
 std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
     auto file_buf = _file_buf;
@@ -139,9 +136,9 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
 
 void HlsMakerImp::setMediaSource(const string &vhost, const string &app, const string &stream_id) {
     _media_src = std::make_shared<HlsMediaSource>(vhost, app, stream_id);
-    _info.strAppName = app;
-    _info.strStreamId = stream_id;
-    _info.strVhost = vhost;
+    _info.app = app;
+    _info.stream = stream_id;
+    _info.vhost = vhost;
 }
 
 HlsMediaSource::Ptr HlsMakerImp::getMediaSource() const {
