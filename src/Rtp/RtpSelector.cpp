@@ -72,31 +72,40 @@ void RtpSelector::createTimer() {
 }
 
 void RtpSelector::delProcess(const string &stream_id,const RtpProcess *ptr) {
-    lock_guard<decltype(_mtx_map)> lck(_mtx_map);
-    auto it = _map_rtp_process.find(stream_id);
-    if (it == _map_rtp_process.end()) {
-        return;
+    RtpProcess::Ptr process;
+    {
+        lock_guard<decltype(_mtx_map)> lck(_mtx_map);
+        auto it = _map_rtp_process.find(stream_id);
+        if (it == _map_rtp_process.end()) {
+            return;
+        }
+        if (it->second->getProcess().get() != ptr) {
+            return;
+        }
+        process = it->second->getProcess();
+        _map_rtp_process.erase(it);
     }
-    if (it->second->getProcess().get() != ptr) {
-        return;
-    }
-    auto process = it->second->getProcess();
-    _map_rtp_process.erase(it);
     process->onDetach();
 }
 
 void RtpSelector::onManager() {
-    lock_guard<decltype(_mtx_map)> lck(_mtx_map);
-    for (auto it = _map_rtp_process.begin(); it != _map_rtp_process.end();) {
-        if (it->second->getProcess()->alive()) {
-            ++it;
-            continue;
+    List<RtpProcess::Ptr> clear_list;
+    {
+        lock_guard<decltype(_mtx_map)> lck(_mtx_map);
+        for (auto it = _map_rtp_process.begin(); it != _map_rtp_process.end();) {
+            if (it->second->getProcess()->alive()) {
+                ++it;
+                continue;
+            }
+            WarnL << "RtpProcess timeout:" << it->first;
+            clear_list.emplace_back(it->second->getProcess());
+            it = _map_rtp_process.erase(it);
         }
-        WarnL << "RtpProcess timeout:" << it->first;
-        auto process = it->second->getProcess();
-        it = _map_rtp_process.erase(it);
-        process->onDetach();
     }
+
+    clear_list.for_each([](const RtpProcess::Ptr &process) {
+        process->onDetach();
+    });
 }
 
 RtpSelector::RtpSelector() {
