@@ -80,10 +80,9 @@ protected:
 
     /**
      * 关闭上个ts切片并且写入m3u8索引
-     * @param timestamp 毫秒时间戳
-     * @param eof
+     * @param eof HLS直播是否已结束
      */
-    void flushLastSegment(uint32_t timestamp, bool eof = false);
+    void flushLastSegment(bool eof);
 
 private:
     /**
@@ -106,6 +105,7 @@ private:
 private:
     float _seg_duration = 0;
     uint32_t _seg_number = 0;
+    uint32_t _last_timestamp = 0;
     uint32_t _last_seg_timestamp = 0;
     uint64_t _file_index = 0;
     string _last_file_name;
