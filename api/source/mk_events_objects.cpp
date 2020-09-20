@@ -18,64 +18,64 @@
 #include "Rtsp/RtspSession.h"
 using namespace mediakit;
 
-///////////////////////////////////////////MP4Info/////////////////////////////////////////////
+///////////////////////////////////////////RecordInfo/////////////////////////////////////////////
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->ui64StartedTime;
 }
 
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->ui64TimeLen;
 }
 
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->ui64FileSize;
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_path(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->strFilePath.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_name(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->strFileName.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_folder(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->strFolder.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_url(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->strUrl.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_vhost(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->strVhost.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_app(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->strAppName.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
+    RecordInfo *info = (RecordInfo *)ctx;
     return info->strStreamId.c_str();
 }
 
