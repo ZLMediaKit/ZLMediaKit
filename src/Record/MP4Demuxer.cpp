@@ -19,16 +19,18 @@
 using namespace toolkit;
 namespace mediakit {
 
-MP4Demuxer::MP4Demuxer(const char *file) {
-    openFile(file,"rb+");
-    _mov_reader = createReader();
-    getAllTracks();
-    _duration_ms = mov_reader_getduration(_mov_reader.get());
-}
+MP4Demuxer::MP4Demuxer() {}
 
 MP4Demuxer::~MP4Demuxer() {
     _mov_reader = nullptr;
     closeFile();
+}
+
+void MP4Demuxer::openMP4(const string &file){
+    openFile(file.data(),"rb+");
+    _mov_reader = createReader();
+    getAllTracks();
+    _duration_ms = mov_reader_getduration(_mov_reader.get());
 }
 
 int MP4Demuxer::getAllTracks() {
