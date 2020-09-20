@@ -20,7 +20,6 @@
 #include "Util/TimeTicker.h"
 #include "Common/MediaSink.h"
 #include "MP4Muxer.h"
-#include "RecordInfo.h"
 
 using namespace toolkit;
 

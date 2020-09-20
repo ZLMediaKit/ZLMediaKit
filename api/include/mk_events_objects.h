@@ -19,25 +19,25 @@ extern "C" {
 ///////////////////////////////////////////MP4Info/////////////////////////////////////////////
 //MP4Info对象的C映射
 typedef void* mk_mp4_info;
-//MP4Info::ui64StartedTime
+// GMT 标准时间，单位秒
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx);
-//MP4Info::ui64TimeLen
-API_EXPORT uint64_t API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx);
-//MP4Info::ui64FileSize
+// 录像长度，单位秒
+API_EXPORT float API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx);
+// 文件大小，单位 BYTE
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx);
-//MP4Info::strFilePath
+// 文件路径
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_path(const mk_mp4_info ctx);
-//MP4Info::strFileName
+// 文件名称
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_name(const mk_mp4_info ctx);
-//MP4Info::strFolder
+// 文件夹路径
 API_EXPORT const char* API_CALL mk_mp4_info_get_folder(const mk_mp4_info ctx);
-//MP4Info::strUrl
+// 播放路径
 API_EXPORT const char* API_CALL mk_mp4_info_get_url(const mk_mp4_info ctx);
-//MP4Info::strVhost
+// 应用名称
 API_EXPORT const char* API_CALL mk_mp4_info_get_vhost(const mk_mp4_info ctx);
-//MP4Info::strAppName
+// 流 ID
 API_EXPORT const char* API_CALL mk_mp4_info_get_app(const mk_mp4_info ctx);
-//MP4Info::strStreamId
+// 虚拟主机
 API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx);
 
 ///////////////////////////////////////////Parser/////////////////////////////////////////////

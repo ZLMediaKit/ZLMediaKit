@@ -342,25 +342,29 @@ void installWebHook(){
         do_http_hook(hook_stream_not_found,body, nullptr);
     });
 
+    static auto getRecordInfo = [](const RecordInfo &info) {
+        ArgsType body;
+        body["start_time"] = (Json::UInt64) info.start_time;
+        body["file_size"] = (Json::UInt64) info.file_size;
+        body["time_len"] = info.time_len;
+        body["file_path"] = info.file_path;
+        body["file_name"] = info.file_name;
+        body["folder"] = info.folder;
+        body["url"] = info.url;
+        body["app"] = info.app;
+        body["stream"] = info.stream;
+        body["vhost"] = info.vhost;
+        return body;
+    };
+
 #ifdef ENABLE_MP4
     //录制mp4文件成功后广播
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRecordMP4,[](BroadcastRecordMP4Args){
-        if(!hook_enable || hook_record_mp4.empty()){
+        if (!hook_enable || hook_record_mp4.empty()) {
             return;
         }
-        ArgsType body;
-        body["start_time"] = (Json::UInt64)info.ui64StartedTime;
-        body["time_len"] = (Json::UInt64)info.ui64TimeLen;
-        body["file_size"] = (Json::UInt64)info.ui64FileSize;
-        body["file_path"] = info.strFilePath;
-        body["file_name"] = info.strFileName;
-        body["folder"] = info.strFolder;
-        body["url"] = info.strUrl;
-        body["app"] = info.strAppName;
-        body["stream"] = info.strStreamId;
-        body["vhost"] = info.strVhost;
         //执行hook
-        do_http_hook(hook_record_mp4,body, nullptr);
+        do_http_hook(hook_record_mp4, getRecordInfo(info), nullptr);
     });
 #endif //ENABLE_MP4
 
@@ -368,19 +372,8 @@ void installWebHook(){
         if (!hook_enable || hook_record_ts.empty()) {
             return;
         }
-        ArgsType body;
-        body["start_time"] = (Json::UInt64)info.ui64StartedTime;
-        body["time_len"] = (Json::UInt64)info.ui64TimeLen;
-        body["file_size"] = (Json::UInt64)info.ui64FileSize;
-        body["file_path"] = info.strFilePath;
-        body["file_name"] = info.strFileName;
-        body["folder"] = info.strFolder;
-        body["url"] = info.strUrl;
-        body["app"] = info.strAppName;
-        body["stream"] = info.strStreamId;
-        body["vhost"] = info.strVhost;
         // 执行 hook
-        do_http_hook(hook_record_ts, body, nullptr);
+        do_http_hook(hook_record_ts, getRecordInfo(info), nullptr);
     });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
@@ -421,7 +414,6 @@ void installWebHook(){
             }
             strongSrc->close(false);
         });
-
     });
 
     /**
