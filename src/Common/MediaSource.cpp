@@ -364,8 +364,14 @@ bool MediaSource::unregist() {
 
 /////////////////////////////////////MediaInfo//////////////////////////////////////
 
-void MediaInfo::parse(const string &url){
-    //string url = "rtsp://127.0.0.1:8554/live/id?key=val&a=1&&b=2&vhost=vhost.com";
+void MediaInfo::parse(const string &url_in){
+    string url = url_in;
+    auto pos = url.find("?");
+    if (pos != string::npos) {
+        _param_strs = url.substr(pos + 1);
+        url.erase(pos);
+    }
+
     auto schema_pos = url.find("://");
     if (schema_pos != string::npos) {
         _schema = url.substr(0, schema_pos);
@@ -382,12 +388,10 @@ void MediaInfo::parse(const string &url){
         } else {
             _host = _vhost = vhost;
         }
-
         if (_vhost == "localhost" || INADDR_NONE != inet_addr(_vhost.data())) {
             //如果访问的是localhost或ip，那么则为默认虚拟主机
             _vhost = DEFAULT_VHOST;
         }
-
     }
     if (split_vec.size() > 1) {
         _app = split_vec[1];
@@ -400,17 +404,12 @@ void MediaInfo::parse(const string &url){
         if (stream_id.back() == '/') {
             stream_id.pop_back();
         }
-        auto pos = stream_id.find("?");
-        if (pos != string::npos) {
-            _streamid = stream_id.substr(0, pos);
-            _param_strs = stream_id.substr(pos + 1);
-            auto params = Parser::parseArgs(_param_strs);
-            if (params.find(VHOST_KEY) != params.end()) {
-                _vhost = params[VHOST_KEY];
-            }
-        } else {
-            _streamid = stream_id;
-        }
+        _streamid = stream_id;
+    }
+
+    auto params = Parser::parseArgs(_param_strs);
+    if (params.find(VHOST_KEY) != params.end()) {
+        _vhost = params[VHOST_KEY];
     }
 
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
