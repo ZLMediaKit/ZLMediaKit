@@ -22,5 +22,6 @@
 #include "mk_tcp.h"
 #include "mk_util.h"
 #include "mk_thread.h"
+#include "mk_rtp_server.h"
 
 #endif /* MK_API_H_ */
