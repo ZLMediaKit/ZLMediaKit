@@ -53,15 +53,16 @@ void MP4Recorder::createFile() {
                 + strTime + ".mp4";
 
     try {
-        _muxer = std::make_shared<MP4Muxer>(strFileTmp.data());
-        for(auto &track :_tracks){
+        _muxer = std::make_shared<MP4Muxer>();
+        _muxer->openMP4(strFileTmp);
+        for (auto &track :_tracks) {
             //添加track
             _muxer->addTrack(track);
         }
         _strFileTmp = strFileTmp;
         _strFile = strFile;
         _createFileTicker.resetTime();
-    }catch(std::exception &ex) {
+    } catch (std::exception &ex) {
         WarnL << ex.what();
     }
 }

@@ -14,21 +14,20 @@
 #include "Extension/H264.h"
 namespace mediakit{
 
-MP4Muxer::MP4Muxer(const char *file) {
-    _file_name = file;
-    openMP4();
-}
+MP4Muxer::MP4Muxer() {}
 
 MP4Muxer::~MP4Muxer() {
     closeMP4();
 }
 
-void MP4Muxer::openMP4(){
+void MP4Muxer::openMP4(const string &file){
+    _file_name = file;
     closeMP4();
     openFile(_file_name.data(), "wb+");
     GET_CONFIG(bool, mp4FastStart, Record::kFastStart);
     _mov_writter = createWriter(mp4FastStart ? MOV_FLAG_FASTSTART : 0, false);
 }
+
 void MP4Muxer::closeMP4(){
     _mov_writter = nullptr;
     closeFile();
@@ -38,7 +37,7 @@ void MP4Muxer::resetTracks() {
     _codec_to_trackid.clear();
     _started = false;
     _have_video = false;
-    openMP4();
+    openMP4(_file_name);
 }
 
 void MP4Muxer::inputFrame(const Frame::Ptr &frame) {

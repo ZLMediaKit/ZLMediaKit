@@ -23,11 +23,11 @@
 
 namespace mediakit{
 
-class MP4Muxer : public MediaSinkInterface, public MP4File{
+class MP4Muxer : public MediaSinkInterface, public MP4FileDisk{
 public:
     typedef std::shared_ptr<MP4Muxer> Ptr;
 
-    MP4Muxer(const char *file);
+    MP4Muxer();
     ~MP4Muxer() override;
 
     /**
@@ -45,12 +45,17 @@ public:
     void resetTracks() override ;
 
     /**
+     * 打开mp4
+     * @param file 文件完整路径
+     */
+    void openMP4(const string &file);
+
+    /**
      * 手动关闭文件(对象析构时会自动关闭)
      */
     void closeMP4();
 
 private:
-    void openMP4();
     void stampSync();
 
 private:
@@ -62,8 +67,8 @@ private:
     List<Frame::Ptr> _frameCached;
     bool _started = false;
     bool _have_video = false;
-    MP4File::Writer _mov_writter;
     string _file_name;
+    Writer _mov_writter;
 };
 
 }//namespace mediakit

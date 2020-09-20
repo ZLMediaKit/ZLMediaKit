@@ -18,6 +18,8 @@
 using namespace toolkit;
 namespace mediakit {
 
+/////////////////////////////////////////////////mp4_writer_t/////////////////////////////////////////////////
+
 struct mp4_writer_t {
     int is_fmp4;
     union {
@@ -102,28 +104,32 @@ int mp4_writer_init_segment(mp4_writer_t* mp4){
     }
 }
 
+/////////////////////////////////////////////////MP4FileIO/////////////////////////////////////////////////
+
 static struct mov_buffer_t s_io = {
         [](void *ctx, void *data, uint64_t bytes) {
-            MP4File *thiz = (MP4File *) ctx;
+            MP4FileIO *thiz = (MP4FileIO *) ctx;
             return thiz->onRead(data, bytes);
         },
         [](void *ctx, const void *data, uint64_t bytes) {
-            MP4File *thiz = (MP4File *) ctx;
+            MP4FileIO *thiz = (MP4FileIO *) ctx;
             return thiz->onWrite(data, bytes);
         },
         [](void *ctx, uint64_t offset) {
-            MP4File *thiz = (MP4File *) ctx;
+            MP4FileIO *thiz = (MP4FileIO *) ctx;
             return thiz->onSeek(offset);
         },
         [](void *ctx) {
-            MP4File *thiz = (MP4File *) ctx;
+            MP4FileIO *thiz = (MP4FileIO *) ctx;
             return thiz->onTell();
         }
 };
 
-MP4File::Writer MP4File::createWriter(int flags, bool is_fmp4){
+MP4FileIO::Writer MP4FileIO::createWriter(int flags, bool is_fmp4){
     Writer writer;
-    writer.reset(mp4_writer_create(is_fmp4, &s_io,this, flags),[](mp4_writer_t *ptr){
+    Ptr self = shared_from_this();
+    //保存自己的强引用，防止提前释放
+    writer.reset(mp4_writer_create(is_fmp4, &s_io,this, flags),[self](mp4_writer_t *ptr){
         if(ptr){
             mp4_writer_destroy(ptr);
         }
@@ -134,9 +140,11 @@ MP4File::Writer MP4File::createWriter(int flags, bool is_fmp4){
     return writer;
 }
 
-MP4File::Reader MP4File::createReader(){
+MP4FileIO::Reader MP4FileIO::createReader(){
     Reader reader;
-    reader.reset(mov_reader_create(&s_io,this),[](mov_reader_t *ptr){
+    Ptr self = shared_from_this();
+    //保存自己的强引用，防止提前释放
+    reader.reset(mov_reader_create(&s_io,this),[self](mov_reader_t *ptr){
         if(ptr){
             mov_reader_destroy(ptr);
         }
@@ -147,15 +155,17 @@ MP4File::Reader MP4File::createReader(){
     return reader;
 }
 
+/////////////////////////////////////////////////////MP4FileDisk/////////////////////////////////////////////////////////
+
 #if defined(_WIN32) || defined(_WIN64)
     #define fseek64 _fseeki64
-#define ftell64 _ftelli64
+    #define ftell64 _ftelli64
 #else
-#define fseek64 fseek
-#define ftell64 ftell
+    #define fseek64 fseek
+    #define ftell64 ftell
 #endif
 
-void MP4File::openFile(const char *file,const char *mode) {
+void MP4FileDisk::openFile(const char *file, const char *mode) {
     //创建文件
     auto fp = File::create_file(file, mode);
     if(!fp){
@@ -183,26 +193,26 @@ void MP4File::openFile(const char *file,const char *mode) {
     });
 }
 
-void MP4File::closeFile() {
+void MP4FileDisk::closeFile() {
     _file = nullptr;
 }
 
-int MP4File::onRead(void *data, uint64_t bytes) {
+int MP4FileDisk::onRead(void *data, uint64_t bytes) {
     if (bytes == fread(data, 1, bytes, _file.get())){
         return 0;
     }
     return 0 != ferror(_file.get()) ? ferror(_file.get()) : -1 /*EOF*/;
 }
 
-int MP4File::onWrite(const void *data, uint64_t bytes) {
+int MP4FileDisk::onWrite(const void *data, uint64_t bytes) {
     return bytes == fwrite(data, 1, bytes, _file.get()) ? 0 : ferror(_file.get());
 }
 
-int MP4File::onSeek(uint64_t offset) {
+int MP4FileDisk::onSeek(uint64_t offset) {
     return fseek64(_file.get(), offset, SEEK_SET);
 }
 
-uint64_t MP4File::onTell() {
+uint64_t MP4FileDisk::onTell() {
     return ftell64(_file.get());
 }
 
