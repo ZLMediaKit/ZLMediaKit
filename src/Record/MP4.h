@@ -23,15 +23,26 @@
 using namespace std;
 namespace mediakit {
 
+typedef struct mp4_writer_t mp4_writer_t;
+mp4_writer_t* mp4_writer_create(int is_fmp4, const struct mov_buffer_t *buffer, void* param, int flags);
+void mp4_writer_destroy(mp4_writer_t* mp4);
+int mp4_writer_add_audio(mp4_writer_t* mp4, uint8_t object, int channel_count, int bits_per_sample, int sample_rate, const void* extra_data, size_t extra_data_size);
+int mp4_writer_add_video(mp4_writer_t* mp4, uint8_t object, int width, int height, const void* extra_data, size_t extra_data_size);
+int mp4_writer_add_subtitle(mp4_writer_t* mp4, uint8_t object, const void* extra_data, size_t extra_data_size);
+int mp4_writer_write(mp4_writer_t* mp4, int track, const void* data, size_t bytes, int64_t pts, int64_t dts, int flags);
+int mp4_writer_write_l(mp4_writer_t* mp4, int track, const void* data, size_t bytes, int64_t pts, int64_t dts, int flags, int add_nalu_size);
+int mp4_writer_save_segment(mp4_writer_t* mp4);
+int mp4_writer_init_segment(mp4_writer_t* mp4);
+
 class MP4File {
 public:
     friend struct mov_buffer_t;
-    typedef std::shared_ptr<mov_writer_t> Writer;
+    typedef std::shared_ptr<mp4_writer_t> Writer;
     typedef std::shared_ptr<mov_reader_t> Reader;
     MP4File() = default;
     virtual ~MP4File() = default;
 
-    Writer createWriter();
+    Writer createWriter(int flags, bool is_fmp4 = false);
     Reader createReader();
     void openFile(const char *file,const char *mode);
     void closeFile();
