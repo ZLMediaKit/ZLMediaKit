@@ -73,7 +73,7 @@ void MP4Recorder::asyncClose() {
     auto info = _info;
     WorkThreadPool::Instance().getExecutor()->async([muxer,strFileTmp,strFile,info]() {
         //获取文件录制时间，放在关闭mp4之前是为了忽略关闭mp4执行时间
-        const_cast<MP4Info&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
+        const_cast<RecordInfo&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
         //关闭mp4非常耗时，所以要放在后台线程执行
         muxer->closeMP4();
         //临时文件名改成正式文件名，防止mp4未完成时被访问
@@ -81,7 +81,7 @@ void MP4Recorder::asyncClose() {
         //获取文件大小
         struct stat fileData;
         stat(strFile.data(), &fileData);
-        const_cast<MP4Info&>(info).ui64FileSize = fileData.st_size;
+        const_cast<RecordInfo&>(info).ui64FileSize = fileData.st_size;
         /////record 业务逻辑//////
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4,info);
     });

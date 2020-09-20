@@ -8,7 +8,10 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <ctime>
+#include <sys/stat.h>
 #include "HlsMakerImp.h"
+#include "Thread/WorkThreadPool.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
 
@@ -28,6 +31,8 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
     _file_buf.reset(new char[bufSize], [](char *ptr) {
         delete[] ptr;
     });
+
+    _info.strFolder = _path_prefix;
 }
 
 HlsMakerImp::~HlsMakerImp() {
@@ -59,13 +64,19 @@ string HlsMakerImp::onOpenSegment(int index) {
         }
     }
     _file = makeFile(segment_path, true);
+
+    _info.ui64StartedTime = ::time(NULL);
+    _info.strFileName = segment_name;
+    _info.strFilePath = segment_path;
+    _info.strUrl = _info.strAppName + "/" + _info.strStreamId + "/" + segment_name;
+
     if (!_file) {
         WarnL << "create file failed," << segment_path << " " << get_uv_errmsg();
     }
     if (_params.empty()) {
-        return std::move(segment_name);
+        return segment_name;
     }
-    return std::move(segment_name + "?" + _params);
+    return segment_name + "?" + _params;
 }
 
 void HlsMakerImp::onDelSegment(int index) {
@@ -97,6 +108,21 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
     //DebugL << "\r\n"  << string(data,len);
 }
 
+void HlsMakerImp::onFlushLastSegment(uint32_t duration) {
+    GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);
+
+    if (broadcastRecordTs) {
+        auto info = _info;
+        info.ui64TimeLen = duration;
+        WorkThreadPool::Instance().getExecutor()->async([info]() {
+            struct stat fileData;
+            stat(info.strFilePath.data(), &fileData);
+            const_cast<RecordInfo&>(info).ui64FileSize = fileData.st_size;
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordTs, info);
+        });
+    }
+}
+
 
 std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
     auto file_buf = _file_buf;
@@ -113,6 +139,9 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
 
 void HlsMakerImp::setMediaSource(const string &vhost, const string &app, const string &stream_id) {
     _media_src = std::make_shared<HlsMediaSource>(vhost, app, stream_id);
+    _info.strAppName = app;
+    _info.strStreamId = stream_id;
+    _info.strVhost = vhost;
 }
 
 HlsMediaSource::Ptr HlsMakerImp::getMediaSource() const {
