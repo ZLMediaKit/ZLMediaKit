@@ -26,7 +26,8 @@ MP4Muxer::~MP4Muxer() {
 void MP4Muxer::openMP4(){
     closeMP4();
     openFile(_file_name.data(), "wb+");
-    _mov_writter = createWriter();
+    GET_CONFIG(bool, mp4FastStart, Record::kFastStart);
+    _mov_writter = createWriter(mp4FastStart ? MOV_FLAG_FASTSTART : 0, false);
 }
 void MP4Muxer::closeMP4(){
     _mov_writter = nullptr;
@@ -84,24 +85,23 @@ void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
                         merged.append((char *) &nalu_size, 4);
                         merged.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
                     });
-                    mov_writer_write_l(_mov_writter.get(),
+                    mp4_writer_write(_mov_writter.get(),
                                        track_info.track_id,
                                        merged.data(),
                                        merged.size(),
                                        pts_out,
                                        dts_out,
-                                       back->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
-                                       1/*我们合并时已经生成了4个字节的MP4格式start code*/);
+                                       back->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0);
                 } else {
                     //缓存中只有一帧视频
-                    mov_writer_write_l(_mov_writter.get(),
+                    mp4_writer_write_l(_mov_writter.get(),
                                        track_info.track_id,
                                        back->data() + back->prefixSize(),
                                        back->size() - back->prefixSize(),
                                        pts_out,
                                        dts_out,
                                        back->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
-                                       0/*需要生成头4个字节的MP4格式start code*/);
+                                       1/*需要生成头4个字节的MP4格式start code*/);
                 }
                 _frameCached.clear();
             }
@@ -111,14 +111,13 @@ void MP4Muxer::inputFrame(const Frame::Ptr &frame) {
             break;
         default: {
             track_info.stamp.revise(frame->dts(), frame->pts(), dts_out, pts_out);
-            mov_writer_write_l(_mov_writter.get(),
-                               track_info.track_id,
-                               frame->data() + frame->prefixSize(),
-                               frame->size() - frame->prefixSize(),
-                               pts_out,
-                               dts_out,
-                               frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0,
-                               1/*aac或其他类型frame不用添加4个nalu_size的字节*/);
+            mp4_writer_write(_mov_writter.get(),
+                             track_info.track_id,
+                             frame->data() + frame->prefixSize(),
+                             frame->size() - frame->prefixSize(),
+                             pts_out,
+                             dts_out,
+                             frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0);
         }
             break;
     }
@@ -178,7 +177,7 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                 return;
             }
 
-            auto track_id = mov_writer_add_audio(_mov_writter.get(),
+            auto track_id = mp4_writer_add_audio(_mov_writter.get(),
                                                  mp4_object,
                                                  audio_track->getAudioChannel(),
                                                  audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
@@ -199,7 +198,7 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                 return;
             }
 
-            auto track_id = mov_writer_add_audio(_mov_writter.get(),
+            auto track_id = mp4_writer_add_audio(_mov_writter.get(),
                                                  mp4_object,
                                                  audio_track->getAudioChannel(),
                                                  audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
@@ -232,7 +231,7 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                 return;
             }
 
-            auto track_id = mov_writer_add_video(_mov_writter.get(),
+            auto track_id = mp4_writer_add_video(_mov_writter.get(),
                                                  mp4_object,
                                                  h264_track->getVideoWidth(),
                                                  h264_track->getVideoHeight(),
@@ -267,7 +266,7 @@ void MP4Muxer::addTrack(const Track::Ptr &track) {
                 return;
             }
 
-            auto track_id = mov_writer_add_video(_mov_writter.get(),
+            auto track_id = mp4_writer_add_video(_mov_writter.get(),
                                                  mp4_object,
                                                  h265_track->getVideoWidth(),
                                                  h265_track->getVideoHeight(),
