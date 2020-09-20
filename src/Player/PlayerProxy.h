@@ -27,7 +27,7 @@ public:
     //如果retry_count<0,则一直重试播放；否则重试retry_count次数
     //默认一直重试
     PlayerProxy(const string &vhost, const string &app, const string &stream_id,
-                bool enable_rtsp = true, bool enable_rtmp = true, bool enable_hls = true, bool enable_mp4 = false,
+                bool enable_hls = true, bool enable_mp4 = false,
                 int retry_count = -1, const EventPoller::Ptr &poller = nullptr);
 
     ~PlayerProxy() override;
@@ -63,8 +63,6 @@ private:
     void onPlaySuccess();
 
 private:
-    bool _enable_rtsp;
-    bool _enable_rtmp;
     bool _enable_hls;
     bool _enable_mp4;
     int _retry_count;
