@@ -112,7 +112,7 @@
 你可以从Docker Hub下载已经编译好的镜像并启动它：
 
 ```bash
-docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit:20.04-runtime-ubuntu18.04
+docker run -id -p 1935:1935 -p 8080:80 -p 8554:554 -p 10000:10000 -p 10000:10000/udp panjjo/zlmediakit
 ```
 
 你也可以根据Dockerfile编译镜像：
