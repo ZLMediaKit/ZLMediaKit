@@ -184,6 +184,12 @@ bash build_docker_images.sh
 [茄子](https://github.com/taotaobujue2008)
 [好心情](<409257224@qq.com>)
 [浮沉](https://github.com/MingZhuLiu)
+[Xiaofeng Wang](https://github.com/wasphin)
+[doodoocoder](https://github.com/doodoocoder)
+[qingci](https://github.com/Colibrow)
+[swwheihei](https://github.com/swwheihei)
+[KKKKK5G](https://gitee.com/kkkkk5G)
+
 
 ## 捐赠
 
