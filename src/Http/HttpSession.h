@@ -20,6 +20,7 @@
 #include "HttpCookieManager.h"
 #include "HttpFileManager.h"
 #include "TS/TSMediaSource.h"
+#include "FMP4/FMP4MediaSource.h"
 
 using namespace std;
 using namespace toolkit;
@@ -109,6 +110,7 @@ private:
 
     bool checkLiveStreamFlv(const function<void()> &cb = nullptr);
     bool checkLiveStreamTS(const function<void()> &cb = nullptr);
+    bool checkLiveStreamFMP4(const function<void()> &fmp4_list = nullptr);
 
     bool checkWebSocket();
     bool emitHttpEvent(bool doInvoke);
@@ -131,6 +133,7 @@ private:
     Ticker _ticker;
     MediaInfo _mediaInfo;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
+    FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
     //处理content数据的callback
     function<bool (const char *data,uint64_t len) > _contentCallBack;
 };

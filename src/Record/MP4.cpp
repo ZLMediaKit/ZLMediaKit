@@ -216,5 +216,51 @@ uint64_t MP4FileDisk::onTell() {
     return ftell64(_file.get());
 }
 
+/////////////////////////////////////////////////////MP4FileMemory/////////////////////////////////////////////////////////
+
+string MP4FileMemory::getAndClearMemory(){
+    string ret;
+    ret.swap(_memory);
+    _offset = 0;
+    return ret;
+}
+
+uint64_t MP4FileMemory::fileSize() const{
+    return _memory.size();
+}
+
+uint64_t MP4FileMemory::onTell(){
+    return _offset;
+}
+
+int MP4FileMemory::onSeek(uint64_t offset){
+    if (offset > _memory.size()) {
+        return -1;
+    }
+    _offset = offset;
+    return 0;
+}
+
+int MP4FileMemory::onRead(void *data, uint64_t bytes){
+    if (_offset >= _memory.size()) {
+        //EOF
+        return -1;
+    }
+    bytes = MIN(bytes, _memory.size() - _offset);
+    memcpy(data, _memory.data(), bytes);
+    _offset += bytes;
+    return 0;
+}
+
+int MP4FileMemory::onWrite(const void *data, uint64_t bytes){
+    if (_offset + bytes > _memory.size()) {
+        //需要扩容
+        _memory.resize(_offset + bytes);
+    }
+    memcpy((uint8_t *) _memory.data() + _offset, data, bytes);
+    _offset += bytes;
+    return 0;
+}
+
 }//namespace mediakit
 #endif //NABLE_MP4RECORD

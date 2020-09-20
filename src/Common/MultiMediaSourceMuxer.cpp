@@ -34,6 +34,7 @@ MultiMuxerPrivate::MultiMuxerPrivate(const string &vhost, const string &app, con
     }
 
     _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
+    _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(vhost, app, stream);
 }
 
 void MultiMuxerPrivate::resetTracks() {
@@ -45,6 +46,9 @@ void MultiMuxerPrivate::resetTracks() {
     }
     if (_ts) {
         _ts->resetTracks();
+    }
+    if (_fmp4) {
+        _fmp4->resetTracks();
     }
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
@@ -70,6 +74,9 @@ void MultiMuxerPrivate::setMediaListener(const std::weak_ptr<MediaSourceEvent> &
     if (_ts) {
         _ts->setListener(listener);
     }
+    if (_fmp4) {
+        _fmp4->setListener(listener);
+    }
     auto hls = _hls;
     if (hls) {
         hls->setListener(listener);
@@ -81,7 +88,8 @@ int MultiMuxerPrivate::totalReaderCount() const {
     return (_rtsp ? _rtsp->readerCount() : 0) +
            (_rtmp ? _rtmp->readerCount() : 0) +
            (_ts ? _ts->readerCount() : 0) +
-           (hls ? hls->readerCount() : 0) ;
+           (_fmp4 ? _fmp4->readerCount() : 0) +
+           (hls ? hls->readerCount() : 0);
 }
 
 static std::shared_ptr<MediaSinkInterface> makeRecorder(const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, MediaSource &sender){
@@ -159,6 +167,9 @@ void MultiMuxerPrivate::onTrackReady(const Track::Ptr &track) {
     if (_ts) {
         _ts->addTrack(track);
     }
+    if (_fmp4) {
+        _fmp4->addTrack(track);
+    }
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     auto hls = _hls;
@@ -176,6 +187,7 @@ bool MultiMuxerPrivate::isEnabled(){
     return (_rtmp ? _rtmp->isEnabled() : false) ||
            (_rtsp ? _rtsp->isEnabled() : false) ||
            (_ts ? _ts->isEnabled() : false) ||
+           (_fmp4 ? _fmp4->isEnabled() : false) ||
            (hls ? hls->isEnabled() : false) || _mp4;
 }
 
@@ -188,6 +200,9 @@ void MultiMuxerPrivate::onTrackFrame(const Frame::Ptr &frame) {
     }
     if (_ts) {
         _ts->inputFrame(frame);
+    }
+    if (_fmp4) {
+        _fmp4->inputFrame(frame);
     }
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
@@ -238,6 +253,9 @@ void MultiMuxerPrivate::onAllTrackReady() {
     }
     if (_rtsp) {
         _rtsp->onAllTrackReady();
+    }
+    if (_fmp4) {
+        _fmp4->onAllTrackReady();
     }
     if (_track_listener) {
         _track_listener->onAllTrackReady();
