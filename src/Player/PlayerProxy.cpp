@@ -47,13 +47,11 @@ static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 
 #define MUTE_ADTS_DATA_MS 130
 
 PlayerProxy::PlayerProxy(const string &vhost, const string &app, const string &stream_id,
-                         bool enable_rtsp, bool enable_rtmp, bool enable_hls, bool enable_mp4,
-                         int retry_count, const EventPoller::Ptr &poller) : MediaPlayer(poller){
+                         bool enable_hls, bool enable_mp4, int retry_count, const EventPoller::Ptr &poller)
+                        : MediaPlayer(poller) {
     _vhost = vhost;
     _app = app;
     _stream_id = stream_id;
-    _enable_rtsp = enable_rtsp;
-    _enable_rtmp = enable_rtmp;
     _enable_hls = enable_hls;
     _enable_mp4 = enable_mp4;
     _retry_count = retry_count;
@@ -119,15 +117,12 @@ void PlayerProxy::play(const string &strUrlTmp) {
     if(dynamic_pointer_cast<RtspPlayer>(_delegate)){
         //rtsp拉流
         GET_CONFIG(bool,directProxy,Rtsp::kDirectProxy);
-        if(directProxy && _enable_rtsp){
+        if(directProxy){
             mediaSource = std::make_shared<RtspMediaSource>(_vhost, _app, _stream_id);
         }
     } else if(dynamic_pointer_cast<RtmpPlayer>(_delegate)){
-        //rtmp拉流
-        if(_enable_rtmp){
-            //rtmp强制直接代理
-            mediaSource = std::make_shared<RtmpMediaSource>(_vhost, _app, _stream_id);
-        }
+        //rtmp拉流,rtmp强制直接代理
+        mediaSource = std::make_shared<RtmpMediaSource>(_vhost, _app, _stream_id);
     }
     if(mediaSource){
         setMediaSouce(mediaSource);
@@ -224,17 +219,17 @@ void PlayerProxy::onPlaySuccess() {
     if (dynamic_pointer_cast<RtspMediaSource>(_pMediaSrc)) {
         //rtsp拉流代理
         if (resetWhenRePlay || !_muxer) {
-            _muxer.reset(new MultiMediaSourceMuxer(_vhost, _app, _stream_id, getDuration(), false, _enable_rtmp, _enable_hls, _enable_mp4));
+            _muxer.reset(new MultiMediaSourceMuxer(_vhost, _app, _stream_id, getDuration(), false, true, _enable_hls, _enable_mp4));
         }
     } else if (dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc)) {
         //rtmp拉流代理
         if (resetWhenRePlay || !_muxer) {
-            _muxer.reset(new MultiMediaSourceMuxer(_vhost, _app, _stream_id, getDuration(), _enable_rtsp, false, _enable_hls, _enable_mp4));
+            _muxer.reset(new MultiMediaSourceMuxer(_vhost, _app, _stream_id, getDuration(), true, false, _enable_hls, _enable_mp4));
         }
     } else {
         //其他拉流代理
         if (resetWhenRePlay || !_muxer) {
-            _muxer.reset(new MultiMediaSourceMuxer(_vhost, _app, _stream_id, getDuration(), _enable_rtsp, _enable_rtmp, _enable_hls, _enable_mp4));
+            _muxer.reset(new MultiMediaSourceMuxer(_vhost, _app, _stream_id, getDuration(), true, true, _enable_hls, _enable_mp4));
         }
     }
     _muxer->setMediaListener(shared_from_this());

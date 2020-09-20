@@ -53,8 +53,8 @@ class DevChannel  : public MultiMediaSourceMuxer{
 public:
     typedef std::shared_ptr<DevChannel> Ptr;
     //fDuration<=0为直播，否则为点播
-    DevChannel(const string &vhost, const string &app, const string &stream_id, float duration = 0,
-               bool enable_rtsp = true, bool enable_rtmp = true, bool enable_hls = true, bool enable_mp4 = false);
+    DevChannel(const string &vhost, const string &app, const string &stream_id,
+               float duration = 0, bool enable_hls = true, bool enable_mp4 = false);
 
     ~DevChannel() override ;
 
