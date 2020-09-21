@@ -383,5 +383,49 @@ protected:
     CodecId _codec_id = CodecInvalid;
 };
 
+/**
+ * 该对象可以把Buffer对象转换成可缓存的Frame对象
+ */
+template <typename Parent>
+class FrameWrapper : public Parent{
+public:
+    ~FrameWrapper() = default;
+
+    /**
+     * 构造frame
+     * @param buf 数据缓存
+     * @param dts 解码时间戳
+     * @param pts 显示时间戳
+     * @param prefix 帧前缀长度
+     * @param offset buffer有效数据偏移量
+     */
+    FrameWrapper(const Buffer::Ptr &buf, int64_t dts, int64_t pts, int prefix, int offset) : Parent(buf->data() + offset, buf->size() - offset, dts, pts, prefix){
+        _buf = buf;
+    }
+
+    /**
+     * 构造frame
+     * @param buf 数据缓存
+     * @param dts 解码时间戳
+     * @param pts 显示时间戳
+     * @param prefix 帧前缀长度
+     * @param offset buffer有效数据偏移量
+     * @param codec 帧类型
+     */
+    FrameWrapper(const Buffer::Ptr &buf, int64_t dts, int64_t pts, int prefix, int offset, CodecId codec) : Parent(codec, buf->data() + offset, buf->size() - offset, dts, pts, prefix){
+        _buf = buf;
+    }
+
+    /**
+     * 该帧可缓存
+     */
+    bool cacheAble() const override {
+        return true;
+    }
+
+private:
+    Buffer::Ptr _buf;
+};
+
 }//namespace mediakit
 #endif //ZLMEDIAKIT_FRAME_H
