@@ -256,7 +256,7 @@ static C get_http_header( const char *response_header[]){
         }
         break;
     }
-    return std::move(header);
+    return header;
 }
 
 API_EXPORT mk_http_body API_CALL mk_http_body_from_multi_form(const char *key_val[],const char *file_path){
