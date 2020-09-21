@@ -135,7 +135,7 @@ Buffer::Ptr HttpFileBody::readData(uint32_t size) {
             //读到数据了
             ret->setSize(iRead);
             _offset += iRead;
-            return std::move(ret);
+            return ret;
         }
         //读取文件异常，文件真实长度小于声明长度
         _offset = _max_size;
@@ -146,7 +146,7 @@ Buffer::Ptr HttpFileBody::readData(uint32_t size) {
     //mmap模式
     auto ret = std::make_shared<BufferMmap>(_map_addr,_offset,size);
     _offset += size;
-    return std::move(ret);
+    return ret;
 }
 
 //////////////////////////////////////////////////////////////////

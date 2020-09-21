@@ -163,7 +163,7 @@ static ArgsType make_json(const MediaInfo &args){
     body["app"] = args._app;
     body["stream"] = args._streamid;
     body["params"] = args._param_strs;
-    return std::move(body);
+    return body;
 }
 
 static void reportServerStarted(){
