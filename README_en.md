@@ -11,7 +11,7 @@
 
 ## Why ZLMediaKit?
 - Developed based on C++ 11, the code is stable and reliable, avoiding the use of raw pointers, cross-platform porting is simple and convenient, and the code is clear and concise.
-- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV/Websocket-flv`),and support Inter-protocol conversion.
+- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV/WebSocket-flv/HTTP-TS/WebSocket-TS/HTTP-fMP4/Websocket-fMP4/MP4`),and support Inter-protocol conversion.
 - Multiplexing asynchronous network IO based on epoll and multi thread，extreme performance.
 - Well performance and stable test,can be used commercially.
 - Support linux, macos, ios, android, Windows Platforms.
@@ -31,7 +31,7 @@
 - RTMP[S]
   - RTMP[S] server,support player and pusher.
   - RTMP[S] player and pusher.
-  - Support HTTP-FLV player.
+  - Support HTTP-FLV/WebSocket-FLV sever.
   - H265/H264/AAC/G711/OPUS codec.
   - Recorded as flv or mp4.
   - Vod of mp4.
@@ -41,6 +41,12 @@
   - RTSP RTMP can be converted into HLS,built-in HTTP server.
   - Play authentication based on cookie.
   - Support HLS player, support streaming HLS proxy to RTSP / RTMP / MP4.
+  
+- TS
+  - Support HTTP-TS/WebSocket-TS sever.
+  
+- fMP4
+  - Support HTTP-fMP4/WebSocket-fMP4 sever.
 
 - HTTP[S]
   - HTTP server,suppor directory meun、RESTful http api.
@@ -244,7 +250,7 @@ git submodule update --init
 ## Docker Image
 You can pull a pre-built docker image from Docker Hub and run with
 ```bash
-docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
+docker run -id -p 1935:1935 -p 8080:80 -p 8554:554 -p 10000:10000 -p 10000:10000/udp panjjo/zlmediakit
 ```
 
 Dockerfile is also supplied to build images on Ubuntu 16.04

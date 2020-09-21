@@ -79,13 +79,19 @@ protected:
     virtual void onWriteHls(const char *data, int len) = 0;
 
     /**
-     * 关闭上个ts切片并且写入m3u8索引
-     * @param timestamp 毫秒时间戳
-     * @param eof HLS直播是否已结束
+     * 上一个 ts 切片写入完成, 可在这里进行通知处理
+     * @param duration_ms 上一个 ts 切片的时长, 单位为毫秒
      */
-    void flushLastSegment(bool eof = false);
+    virtual void onFlushLastSegment(uint32_t duration_ms) {};
+
 
     virtual void onWriteRecordM3u8(const char *header, int hlen,const char *body,int blen) = 0;
+
+    /**
+     * 关闭上个ts切片并且写入m3u8索引
+     * @param eof HLS直播是否已结束
+     */
+    void flushLastSegment(bool eof);
 
 private:
     /**

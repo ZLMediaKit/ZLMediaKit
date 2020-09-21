@@ -135,9 +135,10 @@ void HlsMaker::flushLastSegment(bool eof){
     }
 
     _seg_dur_list.push_back(std::make_tuple(seg_dur, std::move(_last_file_name)));
+    _last_file_name.clear();
     delOldSegment();
     makeIndexFile(eof);
-    _last_file_name.clear();
+    onFlushLastSegment(seg_dur);
 }
 
 bool HlsMaker::isLive() {

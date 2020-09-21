@@ -13,7 +13,7 @@
 ## 项目特点
 
 - 基于C++11开发，避免使用裸指针，代码稳定可靠，性能优越。
-- 支持多种协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV/GB28181/MP4),支持协议互转。
+- 支持多种协议(RTSP/RTMP/HLS/HTTP-FLV/Websocket-FLV/GB28181/HTTP-TS/Websocket-TS/HTTP-fMP4/Websocket-fMP4/MP4),支持协议互转。
 - 使用多路复用/多线程/异步网络IO模式开发，并发性能优越，支持海量客户端连接。
 - 代码经过长期大量的稳定性、性能测试，已经在线上商用验证已久。
 - 支持linux、macos、ios、android、windows全平台。
@@ -59,6 +59,14 @@
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
   - 支持H264/H265/AAC/G711/OPUS编码
+  
+- TS
+  - 支持http[s]-ts直播
+  - 支持ws[s]-ts直播
+  
+- fMP4
+  - 支持http[s]-fmp4直播
+  - 支持ws[s]-fmp4直播
 
 - HTTP[S]与WebSocket
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`
@@ -112,7 +120,7 @@
 你可以从Docker Hub下载已经编译好的镜像并启动它：
 
 ```bash
-docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit:20.04-runtime-ubuntu18.04
+docker run -id -p 1935:1935 -p 8080:80 -p 8554:554 -p 10000:10000 -p 10000:10000/udp panjjo/zlmediakit
 ```
 
 你也可以根据Dockerfile编译镜像：
@@ -176,6 +184,12 @@ bash build_docker_images.sh
 [茄子](https://github.com/taotaobujue2008)
 [好心情](<409257224@qq.com>)
 [浮沉](https://github.com/MingZhuLiu)
+[Xiaofeng Wang](https://github.com/wasphin)
+[doodoocoder](https://github.com/doodoocoder)
+[qingci](https://github.com/Colibrow)
+[swwheihei](https://github.com/swwheihei)
+[KKKKK5G](https://gitee.com/kkkkk5G)
+
 
 ## 捐赠
 

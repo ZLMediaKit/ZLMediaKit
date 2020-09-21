@@ -55,6 +55,7 @@ const string kOnRtspAuth = HOOK_FIELD"on_rtsp_auth";
 const string kOnStreamChanged = HOOK_FIELD"on_stream_changed";
 const string kOnStreamNotFound = HOOK_FIELD"on_stream_not_found";
 const string kOnRecordMp4 = HOOK_FIELD"on_record_mp4";
+const string kOnRecordTs = HOOK_FIELD"on_record_ts";
 const string kOnShellLogin = HOOK_FIELD"on_shell_login";
 const string kOnStreamNoneReader = HOOK_FIELD"on_stream_none_reader";
 const string kOnHttpAccess = HOOK_FIELD"on_http_access";
@@ -74,6 +75,7 @@ onceToken token([](){
     mINI::Instance()[kOnStreamChanged] = "https://127.0.0.1/index/hook/on_stream_changed";
     mINI::Instance()[kOnStreamNotFound] = "https://127.0.0.1/index/hook/on_stream_not_found";
     mINI::Instance()[kOnRecordMp4] = "https://127.0.0.1/index/hook/on_record_mp4";
+    mINI::Instance()[kOnRecordTs] = "https://127.0.0.1/index/hook/on_record_ts";
     mINI::Instance()[kOnShellLogin] = "https://127.0.0.1/index/hook/on_shell_login";
     mINI::Instance()[kOnStreamNoneReader] = "https://127.0.0.1/index/hook/on_stream_none_reader";
     mINI::Instance()[kOnHttpAccess] = "https://127.0.0.1/index/hook/on_http_access";
@@ -195,6 +197,7 @@ void installWebHook(){
     GET_CONFIG(string,hook_stream_chaned,Hook::kOnStreamChanged);
     GET_CONFIG(string,hook_stream_not_found,Hook::kOnStreamNotFound);
     GET_CONFIG(string,hook_record_mp4,Hook::kOnRecordMp4);
+    GET_CONFIG(string,hook_record_ts,Hook::kOnRecordTs);
     GET_CONFIG(string,hook_shell_login,Hook::kOnShellLogin);
     GET_CONFIG(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
     GET_CONFIG(string,hook_http_access,Hook::kOnHttpAccess);
@@ -375,27 +378,39 @@ void installWebHook(){
         do_http_hook(hook_stream_not_found,body, nullptr);
     });
 
+    static auto getRecordInfo = [](const RecordInfo &info) {
+        ArgsType body;
+        body["start_time"] = (Json::UInt64) info.start_time;
+        body["file_size"] = (Json::UInt64) info.file_size;
+        body["time_len"] = info.time_len;
+        body["file_path"] = info.file_path;
+        body["file_name"] = info.file_name;
+        body["folder"] = info.folder;
+        body["url"] = info.url;
+        body["app"] = info.app;
+        body["stream"] = info.stream;
+        body["vhost"] = info.vhost;
+        return body;
+    };
+
 #ifdef ENABLE_MP4
     //录制mp4文件成功后广播
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRecordMP4,[](BroadcastRecordMP4Args){
-        if(!hook_enable || hook_record_mp4.empty()){
+        if (!hook_enable || hook_record_mp4.empty()) {
             return;
         }
-        ArgsType body;
-        body["start_time"] = (Json::UInt64)info.ui64StartedTime;
-        body["time_len"] = (Json::UInt64)info.ui64TimeLen;
-        body["file_size"] = (Json::UInt64)info.ui64FileSize;
-        body["file_path"] = info.strFilePath;
-        body["file_name"] = info.strFileName;
-        body["folder"] = info.strFolder;
-        body["url"] = info.strUrl;
-        body["app"] = info.strAppName;
-        body["stream"] = info.strStreamId;
-        body["vhost"] = info.strVhost;
         //执行hook
-        do_http_hook(hook_record_mp4,body, nullptr);
+        do_http_hook(hook_record_mp4, getRecordInfo(info), nullptr);
     });
 #endif //ENABLE_MP4
+
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastRecordTs, [](BroadcastRecordTsArgs) {
+        if (!hook_enable || hook_record_ts.empty()) {
+            return;
+        }
+        // 执行 hook
+        do_http_hook(hook_record_ts, getRecordInfo(info), nullptr);
+    });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
         if(!hook_enable || hook_shell_login.empty() || sender.get_peer_ip() == "127.0.0.1"){
@@ -435,7 +450,6 @@ void installWebHook(){
             }
             strongSrc->close(false);
         });
-
     });
 
     /**

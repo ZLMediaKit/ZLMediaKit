@@ -47,6 +47,8 @@ bool loadIniConfig(const char *ini_path = nullptr);
 #define RTSP_SCHEMA "rtsp"
 #define RTMP_SCHEMA "rtmp"
 #define HLS_SCHEMA "hls"
+#define TS_SCHEMA "ts"
+#define FMP4_SCHEMA "fmp4"
 #define DEFAULT_VHOST "__defaultVhost__"
 
 ////////////广播名称///////////
@@ -58,7 +60,11 @@ extern const string kBroadcastMediaChanged;
 
 //录制mp4文件成功后广播
 extern const string kBroadcastRecordMP4;
-#define BroadcastRecordMP4Args const MP4Info &info
+#define BroadcastRecordMP4Args const RecordInfo &info
+
+// 录制 ts 文件后广播
+extern const string kBroadcastRecordTs;
+#define BroadcastRecordTsArgs const RecordInfo &info
 
 //录制hls文件成功后广播
 extern const string kBroadcastRecordHls;
@@ -289,6 +295,8 @@ extern const string kSegmentRetain;
 extern const string kFileBufSize;
 //录制文件路径
 extern const string kFilePath;
+// 是否广播 ts 切片完成通知
+extern const string kBroadcastRecordTs;
 } //namespace Hls
 
 ////////////Rtp代理相关配置///////////

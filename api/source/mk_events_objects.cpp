@@ -18,65 +18,65 @@
 #include "Rtsp/RtspSession.h"
 using namespace mediakit;
 
-///////////////////////////////////////////MP4Info/////////////////////////////////////////////
+///////////////////////////////////////////RecordInfo/////////////////////////////////////////////
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->ui64StartedTime;
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->start_time;
 }
 
-API_EXPORT uint64_t API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx){
+API_EXPORT float API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->ui64TimeLen;
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->time_len;
 }
 
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->ui64FileSize;
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->file_size;
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_path(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strFilePath.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->file_path.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_name(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strFileName.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->file_name.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_folder(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strFolder.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->folder.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_url(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strUrl.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->url.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_vhost(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strVhost.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->vhost.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_app(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strAppName.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->app.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strStreamId.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->stream.c_str();
 }
 
 ///////////////////////////////////////////Parser/////////////////////////////////////////////
