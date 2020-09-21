@@ -189,6 +189,7 @@ bash build_docker_images.sh
 [qingci](https://github.com/Colibrow)
 [swwheihei](https://github.com/swwheihei)
 [KKKKK5G](https://gitee.com/kkkkk5G)
+[Zhou Weimin](<zhouweimin@supremind.com>)
 
 
 ## 捐赠
