@@ -592,7 +592,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &mediaInfo, TcpSe
     GET_CONFIG(string, rootPath, Http::kRootPath);
     auto ret = File::absolutePath(enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, static_cast<SockInfo &>(sender));
-    return std::move(ret);
+    return ret;
 }
 
 /**

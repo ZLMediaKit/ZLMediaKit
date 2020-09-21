@@ -161,7 +161,7 @@ vector<Track::Ptr> MediaSink::getTracks(bool trackReady) const{
         }
         ret.emplace_back(pr.second);
     }
-    return std::move(ret);
+    return ret;
 }
 
 

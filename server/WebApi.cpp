@@ -144,7 +144,7 @@ static ApiArgsType getAllArgs(const Parser &parser) {
     for (auto &pr :  parser.getUrlArgs()) {
         allArgs[pr.first] = pr.second;
     }
-    return std::move(allArgs);
+    return allArgs;
 }
 
 static inline void addHttpListener(){

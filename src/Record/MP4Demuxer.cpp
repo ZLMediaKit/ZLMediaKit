@@ -275,7 +275,7 @@ vector<Track::Ptr> MP4Demuxer::getTracks(bool trackReady) const {
         }
         ret.push_back(pr.second);
     }
-    return std::move(ret);
+    return ret;
 }
 
 uint64_t MP4Demuxer::getDurationMS() const {
