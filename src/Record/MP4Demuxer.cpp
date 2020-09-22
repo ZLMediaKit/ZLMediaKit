@@ -202,25 +202,6 @@ Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     }
 }
 
-template <typename Parent>
-class FrameWrapper : public Parent{
-public:
-    ~FrameWrapper() = default;
-    FrameWrapper(const Buffer::Ptr &buf, int64_t pts, int64_t dts, int prefix, int offset) : Parent(buf->data() + offset, buf->size() - offset, dts, pts, prefix){
-        _buf = buf;
-    }
-
-    FrameWrapper(const Buffer::Ptr &buf, int64_t pts, int64_t dts, int prefix, int offset, CodecId codec) : Parent(codec, buf->data() + offset, buf->size() - offset, dts, pts, prefix){
-        _buf = buf;
-    }
-
-    bool cacheAble() const override {
-        return true;
-    }
-private:
-    Buffer::Ptr _buf;
-};
-
 Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int64_t pts, int64_t dts) {
     auto it = _track_to_codec.find(track_id);
     if (it == _track_to_codec.end()) {
@@ -244,9 +225,9 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 offset += (frame_len + 4);
             }
             if (codec == CodecH264) {
-                return std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, pts, dts, 4, DATA_OFFSET);
+                return std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, dts, pts, 4, DATA_OFFSET);
             }
-            return std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, pts, dts, 4, DATA_OFFSET);
+            return std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, dts, pts, 4, DATA_OFFSET);
         }
 
         case CodecAAC: {
@@ -254,13 +235,13 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
             assert(track);
             //加上adts头
             dumpAacConfig(track->getAacCfg(), buf->size() - DATA_OFFSET, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
-            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, pts, dts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
+            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, dts, pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
         }
 
         case CodecOpus:
         case CodecG711A:
         case CodecG711U: {
-            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, pts, dts, 0, DATA_OFFSET, codec);
+            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, dts, pts, 0, DATA_OFFSET, codec);
         }
 
         default: return nullptr;
