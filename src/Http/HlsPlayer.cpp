@@ -13,7 +13,7 @@ namespace mediakit {
 
 HlsPlayer::HlsPlayer(const EventPoller::Ptr &poller){
     _segment.setOnSegment([this](const char *data, uint64_t len) { onPacket(data, len); });
-    _poller = poller ? poller : EventPollerPool::Instance().getPoller();
+    setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 
 HlsPlayer::~HlsPlayer() {}
@@ -63,6 +63,15 @@ void HlsPlayer::playNextTs(bool force){
     std::shared_ptr<Ticker> ticker(new Ticker);
 
     _http_ts_player = std::make_shared<HttpTSPlayer>(getPoller(), false);
+
+    _http_ts_player->setOnCreateSocket([weakSelf](const EventPoller::Ptr &poller) {
+        auto strongSelf = weakSelf.lock();
+        if (strongSelf) {
+            return strongSelf->createSocket();
+        }
+        return Socket::createSocket(poller, true);
+    });
+
     _http_ts_player->setOnDisconnect([weakSelf, ticker, ts_duration](const SockException &err) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -84,6 +93,7 @@ void HlsPlayer::playNextTs(bool force){
             }, strongSelf->getPoller()));
         }
     });
+
     _http_ts_player->setOnPacket([weakSelf](const char *data, uint64_t len) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -94,9 +104,10 @@ void HlsPlayer::playNextTs(bool force){
     });
 
     _http_ts_player->setMethod("GET");
-    if(!(*this)[kNetAdapter].empty()) {
+    if (!(*this)[kNetAdapter].empty()) {
         _http_ts_player->setNetAdapter((*this)[Client::kNetAdapter]);
     }
+
     _http_ts_player->sendRequest(_ts_list.front().url, 2 * _ts_list.front().duration);
     _ts_list.pop_front();
 }
@@ -254,11 +265,15 @@ void HlsPlayerImp::onAllTrackReady() {
 }
 
 void HlsPlayerImp::onPlayResult(const SockException &ex) {
-    if(ex){
+    if (ex) {
         PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(ex);
-    }else{
+    } else {
+        _frame_cache.clear();
+        _stamp[TrackAudio].setRelativeStamp(0);
+        _stamp[TrackVideo].setRelativeStamp(0);
         _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
-        _ticker.resetTime();
+        setPlayPosition(0);
+
         weak_ptr<HlsPlayerImp> weakSelf = dynamic_pointer_cast<HlsPlayerImp>(shared_from_this());
         //每50毫秒执行一次
         _timer = std::make_shared<Timer>(0.05, [weakSelf]() {
@@ -288,25 +303,47 @@ void HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
     //根据时间戳缓存frame
     _frame_cache.emplace(dts, Frame::getCacheAbleFrame(frame));
 
-    while (!_frame_cache.empty()) {
-        if (_frame_cache.rbegin()->first - _frame_cache.begin()->first > 30 * 1000) {
-            //缓存超过30秒，强制消费掉
+    if (getBufferMS() > 30 * 1000) {
+        //缓存超过30秒，强制消费至15秒(减少延时或内存占用)
+        while (getBufferMS() > 15 * 1000) {
             MediaSink::inputFrame(_frame_cache.begin()->second);
             _frame_cache.erase(_frame_cache.begin());
-            continue;
         }
-        //缓存小于30秒
-        break;
+        //接着播放缓存中最早的帧
+        setPlayPosition(_frame_cache.begin()->first);
     }
+}
+
+int64_t HlsPlayerImp::getPlayPosition(){
+    return _ticker.elapsedTime() + _ticker_offset;
+}
+
+int64_t HlsPlayerImp::getBufferMS(){
+    if(_frame_cache.empty()){
+        return 0;
+    }
+    return _frame_cache.rbegin()->first - _frame_cache.begin()->first;
+}
+
+void HlsPlayerImp::setPlayPosition(int64_t pos){
+    _ticker.resetTime();
+    _ticker_offset = pos;
 }
 
 void HlsPlayerImp::onTick() {
     auto it = _frame_cache.begin();
     while (it != _frame_cache.end()) {
-        if (it->first > _ticker.elapsedTime()) {
+        if (it->first > getPlayPosition()) {
             //这些帧还未到时间播放
             break;
         }
+
+        if (getBufferMS() < 3 * 1000) {
+            //缓存小于3秒,那么降低定时器消费速度(让剩余的数据在3秒后消费完毕)
+            //目的是为了防止定时器长时间干等后，数据瞬间消费完毕
+            setPlayPosition(_frame_cache.begin()->first);
+        }
+
         //消费掉已经到期的帧
         MediaSink::inputFrame(it->second);
         it = _frame_cache.erase(it);

@@ -24,20 +24,24 @@ public:
     typedef std::shared_ptr<MediaPusher> Ptr;
 
     MediaPusher(const string &schema,
-                const string &strVhost,
-                const string &strApp,
-                const string &strStream,
+                const string &vhost,
+                const string &app,
+                const string &stream,
                 const EventPoller::Ptr &poller = nullptr);
 
     MediaPusher(const MediaSource::Ptr &src,
                 const EventPoller::Ptr &poller = nullptr);
 
     virtual ~MediaPusher();
-    void publish(const string &strUrl) override;
+
+    void publish(const string &url) override;
     EventPoller::Ptr getPoller();
+    void setOnCreateSocket(Socket::onCreateSocket cb);
+
 private:
     std::weak_ptr<MediaSource> _src;
     EventPoller::Ptr _poller;
+    Socket::onCreateSocket _on_create_socket;
 };
 
 } /* namespace mediakit */

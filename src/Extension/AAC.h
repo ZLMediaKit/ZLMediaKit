@@ -18,43 +18,9 @@
 namespace mediakit{
 
 string makeAacConfig(const uint8_t *hex, int length);
+int getAacFrameLength(const uint8_t *hex, int length);
 int dumpAacConfig(const string &config, int length, uint8_t *out, int out_size);
 bool parseAacConfig(const string &config, int &samplerate, int &channels);
-
-/**
- * aac帧，包含adts头
- */
-class AACFrame : public FrameImp {
-public:
-    typedef std::shared_ptr<AACFrame> Ptr;
-    AACFrame(){
-        _codecid = CodecAAC;
-    }
-};
-
-class AACFrameNoCacheAble : public FrameFromPtr {
-public:
-    typedef std::shared_ptr<AACFrameNoCacheAble> Ptr;
-
-    AACFrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts,uint32_t pts = 0,int prefix_size = ADTS_HEADER_LEN){
-        _ptr = ptr;
-        _size = size;
-        _dts = dts;
-        _prefix_size = prefix_size;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecAAC;
-    }
-
-    bool keyFrame() const override {
-        return false;
-    }
-
-    bool configFrame() const override{
-        return false;
-    }
-};
 
 /**
  * aac音频通道
@@ -135,6 +101,28 @@ public:
      * @param frame 数据帧
      */
     void inputFrame(const Frame::Ptr &frame) override{
+        if (frame->prefixSize()) {
+            //有adts头，尝试分帧
+            auto ptr = frame->data();
+            auto end = frame->data() + frame->size();
+            while (ptr < end) {
+                auto frame_len = getAacFrameLength((uint8_t *) ptr, end - ptr);
+                if (frame_len < ADTS_HEADER_LEN) {
+                    break;
+                }
+
+                auto sub_frame = std::make_shared<FrameInternal<FrameFromPtr> >(frame, (char *) ptr, frame_len, ADTS_HEADER_LEN);
+                ptr += frame_len;
+                sub_frame->setCodecId(CodecAAC);
+                inputFrame_l(sub_frame);
+            }
+        } else {
+            inputFrame_l(frame);
+        }
+    }
+
+private:
+    void inputFrame_l(const Frame::Ptr &frame) {
         if (_cfg.empty()) {
             //未获取到aac_cfg信息
             if (frame->prefixSize()) {
@@ -151,7 +139,6 @@ public:
             AudioTrack::inputFrame(frame);
         }
     }
-private:
     /**
      * 解析2个字节的aac配置
      */

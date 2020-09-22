@@ -31,45 +31,42 @@ class RtmpProtocol {
 public:
     RtmpProtocol();
     virtual ~RtmpProtocol();
+
+    void onParseRtmp(const char *data, int size);
     //作为客户端发送c0c1，等待s0s1s2并且回调
     void startClientSession(const function<void()> &cb);
-    void onParseRtmp(const char *pcRawData,int iSize);
-    void reset();
+
 protected:
     virtual void onSendRawData(const Buffer::Ptr &buffer) = 0;
-    virtual void onRtmpChunk(RtmpPacket &chunkData) = 0;
-    virtual void onStreamBegin(uint32_t ui32StreamId){
-        _ui32StreamId = ui32StreamId;
+    virtual void onRtmpChunk(RtmpPacket &chunk_data) = 0;
+    virtual void onStreamBegin(uint32_t stream_index){
+        _stream_index = stream_index;
     }
-    virtual void onStreamEof(uint32_t ui32StreamId){};
-    virtual void onStreamDry(uint32_t ui32StreamId){};
-protected:
-    void sendAcknowledgement(uint32_t ui32Size);
-    void sendAcknowledgementSize(uint32_t ui32Size);
-    void sendPeerBandwidth(uint32_t ui32Size);
-    void sendChunkSize(uint32_t ui32Size);
-    void sendPingRequest(uint32_t ui32TimeStamp = ::time(NULL));
-    void sendPingResponse(uint32_t ui32TimeStamp = ::time(NULL));
-    void sendSetBufferLength(uint32_t ui32StreamId, uint32_t ui32Length);
-    void sendUserControl(uint16_t ui16EventType, uint32_t ui32EventData);
-    void sendUserControl(uint16_t ui16EventType, const string &strEventData);
+    virtual void onStreamEof(uint32_t stream_index){};
+    virtual void onStreamDry(uint32_t stream_index){};
 
-    void sendInvoke(const string &strCmd, const AMFValue &val);
-    void sendRequest(int iCmd, const string &str);
-    void sendResponse(int iType, const string &str);
-    void sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId, const std::string &strBuf, uint32_t ui32TimeStamp, int iChunkID);
-    void sendRtmp(uint8_t ui8Type, uint32_t ui32StreamId, const Buffer::Ptr &buffer, uint32_t ui32TimeStamp, int iChunkID);
 protected:
-    int _iReqID = 0;
-    uint32_t _ui32StreamId = STREAM_CONTROL;
-    int _iNowStreamID = 0;
-    int _iNowChunkID = 0;
-    bool _bDataStarted = false;
-    inline BufferRaw::Ptr obtainBuffer();
-    inline BufferRaw::Ptr obtainBuffer(const void *data, int len);
-    //ResourcePool<BufferRaw,MAX_SEND_PKT> _bufferPool;
+    void reset();
+    BufferRaw::Ptr obtainBuffer();
+    BufferRaw::Ptr obtainBuffer(const void *data, int len);
+
+    void sendAcknowledgement(uint32_t size);
+    void sendAcknowledgementSize(uint32_t size);
+    void sendPeerBandwidth(uint32_t size);
+    void sendChunkSize(uint32_t size);
+    void sendPingRequest(uint32_t ti = ::time(NULL));
+    void sendPingResponse(uint32_t time_stamp = ::time(NULL));
+    void sendSetBufferLength(uint32_t stream_index, uint32_t len);
+    void sendUserControl(uint16_t event_type, uint32_t event_data);
+    void sendUserControl(uint16_t event_type, const string &event_data);
+    void sendInvoke(const string &cmd, const AMFValue &val);
+    void sendRequest(int cmd, const string &str);
+    void sendResponse(int type, const string &str);
+    void sendRtmp(uint8_t type, uint32_t stream_index, const std::string &buffer, uint32_t stamp, int chunk_id);
+    void sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::Ptr &buffer, uint32_t stamp, int chunk_id);
+
 private:
-    void handle_S0S1S2(const function<void()> &cb);
+    void handle_S0S1S2(const function<void()> &func);
     void handle_C0C1();
     void handle_C1_simple();
 #ifdef ENABLE_OPENSSL
@@ -82,26 +79,32 @@ private:
 
     void handle_C2();
     void handle_rtmp();
-    void handle_rtmpChunk(RtmpPacket &chunkData);
+    void handle_rtmpChunk(RtmpPacket &chunk_data);
+
+protected:
+    int _send_req_id = 0;
+    uint32_t _stream_index = STREAM_CONTROL;
 
 private:
+    int _now_stream_index = 0;
+    int _now_chunk_id = 0;
+    bool _data_started = false;
     ////////////ChunkSize////////////
-    size_t _iChunkLenIn = DEFAULT_CHUNK_LEN;
-    size_t _iChunkLenOut = DEFAULT_CHUNK_LEN;
+    size_t _chunk_size_in = DEFAULT_CHUNK_LEN;
+    size_t _chunk_size_out = DEFAULT_CHUNK_LEN;
     ////////////Acknowledgement////////////
-    uint32_t _ui32ByteSent = 0;
-    uint32_t _ui32LastSent = 0;
-    uint32_t _ui32WinSize = 0;
+    uint32_t _bytes_sent = 0;
+    uint32_t _bytes_sent_last = 0;
+    uint32_t _windows_size = 0;
     ///////////PeerBandwidth///////////
-    uint32_t _ui32Bandwidth = 2500000;
-    uint8_t _ui8LimitType = 2;
-    ////////////Chunk////////////
-    unordered_map<int, RtmpPacket> _mapChunkData;
+    uint32_t _bandwidth = 2500000;
+    uint8_t _band_limit_type = 2;
     //////////Rtmp parser//////////
-    string _strRcvBuf;
-    function<void()> _nextHandle;
+    string _recv_data_buf;
+    function<void()> _next_step_func;
+    ////////////Chunk////////////
+    unordered_map<int, RtmpPacket> _map_chunk_data;
 };
 
 } /* namespace mediakit */
-
 #endif /* SRC_RTMP_RTMPPROTOCOL_H_ */

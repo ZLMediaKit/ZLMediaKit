@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include "HlsMaker.h"
 #include "HlsMediaSource.h"
+
 using namespace std;
 
 namespace mediakit {
@@ -27,7 +28,8 @@ public:
                 uint32_t bufSize  = 64 * 1024,
                 float seg_duration = 5,
                 uint32_t seg_number = 3);
-    virtual ~HlsMakerImp();
+
+    ~HlsMakerImp() override;
 
     /**
      * 设置媒体信息
@@ -41,23 +43,33 @@ public:
      * 获取MediaSource
      * @return
      */
-     MediaSource::Ptr getMediaSource() const;
+    HlsMediaSource::Ptr getMediaSource() const;
+
+     /**
+      * 清空缓存
+      */
+     void clearCache();
+
 protected:
     string onOpenSegment(int index) override ;
     void onDelSegment(int index) override;
     void onWriteSegment(const char *data, int len) override;
     void onWriteHls(const char *data, int len) override;
+    void onFlushLastSegment(uint32_t duration_ms) override;
+
 private:
     std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
+
 private:
-    HlsMediaSource::Ptr _media_src;
-    map<int /*index*/,string/*file_path*/> _segment_file_paths;
+    int _buf_size;
+    string _params;
+    string _path_hls;
+    string _path_prefix;
+    RecordInfo _info;
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
-    string _path_prefix;
-    string _path_hls;
-    string _params;
-    int _buf_size;
+    HlsMediaSource::Ptr _media_src;
+    map<int /*index*/,string/*file_path*/> _segment_file_paths;
 };
 
 }//namespace mediakit

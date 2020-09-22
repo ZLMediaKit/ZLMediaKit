@@ -80,7 +80,7 @@ public:
                 strong_self->onData(frame);
             }
         });
-        for (auto &track : _player->getTracks()) {
+        for (auto &track : _player->getTracks(false)) {
             track->addDelegate(delegate);
         }
     }

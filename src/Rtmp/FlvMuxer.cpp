@@ -73,10 +73,10 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     bool is_have_audio = false,is_have_video = false;
 
     mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt){
-        if(pkt->typeId == MSG_VIDEO){
+        if(pkt->type_id == MSG_VIDEO){
             is_have_video = true;
         }
-        if(pkt->typeId == MSG_AUDIO){
+        if(pkt->type_id == MSG_AUDIO){
             is_have_audio = true;
         }
     });
@@ -133,16 +133,16 @@ public:
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-void FlvMuxer::onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t ui32TimeStamp , bool flush) {
-    onWriteFlvTag(pkt->typeId,pkt,ui32TimeStamp, flush);
+void FlvMuxer::onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t time_stamp , bool flush) {
+    onWriteFlvTag(pkt->type_id, pkt, time_stamp, flush);
 }
 
-void FlvMuxer::onWriteFlvTag(uint8_t ui8Type, const Buffer::Ptr &buffer, uint32_t ui32TimeStamp, bool flush) {
+void FlvMuxer::onWriteFlvTag(uint8_t type, const Buffer::Ptr &buffer, uint32_t time_stamp, bool flush) {
     RtmpTagHeader header;
-    header.type = ui8Type;
+    header.type = type;
     set_be24(header.data_size, buffer->size());
-    header.timestamp_ex = (uint8_t) ((ui32TimeStamp >> 24) & 0xff);
-    set_be24(header.timestamp,ui32TimeStamp & 0xFFFFFF);
+    header.timestamp_ex = (uint8_t) ((time_stamp >> 24) & 0xff);
+    set_be24(header.timestamp, time_stamp & 0xFFFFFF);
     //tag header
     onWrite(std::make_shared<BufferRaw>((char *)&header, sizeof(header)), false);
     //tag data
@@ -154,7 +154,7 @@ void FlvMuxer::onWriteFlvTag(uint8_t ui8Type, const Buffer::Ptr &buffer, uint32_
 
 void FlvMuxer::onWriteRtmp(const RtmpPacket::Ptr &pkt,bool flush) {
     int64_t dts_out;
-    _stamp[pkt->typeId % 2].revise(pkt->timeStamp, 0, dts_out, dts_out);
+    _stamp[pkt->type_id % 2].revise(pkt->time_stamp, 0, dts_out, dts_out);
     onWriteFlvTag(pkt, dts_out,flush);
 }
 

@@ -138,13 +138,19 @@ private:
     void inputFrame(const Frame::Ptr &frame) override;
     void onShutdown(const SockException &ex) override;
     void onTick();
+
+    int64_t getPlayPosition();
+    void setPlayPosition(int64_t pos);
+    int64_t getBufferMS();
+
 private:
-    TSSegment::onSegment _on_ts;
-    DecoderImp::Ptr _decoder;
-    multimap<int64_t, Frame::Ptr> _frame_cache;
-    Timer::Ptr _timer;
+    int64_t _ticker_offset = 0;
     Ticker _ticker;
     Stamp _stamp[2];
+    Timer::Ptr _timer;
+    DecoderImp::Ptr _decoder;
+    TSSegment::onSegment _on_ts;
+    multimap<int64_t, Frame::Ptr> _frame_cache;
 };
 
 }//namespace mediakit 

@@ -61,8 +61,8 @@ void API_CALL on_mk_media_publish(const mk_media_info url_info,
                mk_media_info_get_stream(url_info),
                mk_media_info_get_params(url_info));
 
-    //允许推流，并且允许转rtxp/hls/mp4
-    mk_publish_auth_invoker_do(invoker, NULL, 1, 1, 1);
+    //允许推流，并且允许转hls/mp4
+    mk_publish_auth_invoker_do(invoker, NULL, 1, 1);
 }
 
 /**

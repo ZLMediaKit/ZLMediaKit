@@ -30,18 +30,20 @@ public:
     typedef function< bool(int intervaled, const Buffer::Ptr &buffer, struct sockaddr *peer_addr)> onRecvData;
     ~UDPServer();
     static UDPServer &Instance();
-    Socket::Ptr getSock(const EventPoller::Ptr &poller,const char *strLocalIp, int intervaled,uint16_t iLocalPort = 0);
-    void listenPeer(const char *strPeerIp, void *pSelf, const onRecvData &cb);
-    void stopListenPeer(const char *strPeerIp, void *pSelf);
+    Socket::Ptr getSock(SocketHelper &helper, const char *local_ip, int interleaved, uint16_t local_port = 0);
+    void listenPeer(const char *peer_ip, void *obj, const onRecvData &cb);
+    void stopListenPeer(const char *peer_ip, void *obj);
+
 private:
     UDPServer();
-    void onRcvData(int intervaled, const Buffer::Ptr &pBuf,struct sockaddr *pPeerAddr);
+    void onRecv(int interleaved, const Buffer::Ptr &buf, struct sockaddr *peer_addr);
     void onErr(const string &strKey,const SockException &err);
-    unordered_map<string, Socket::Ptr> _mapUpdSock;
-    mutex _mtxUpdSock;
 
-    unordered_map<string, unordered_map<void *, onRecvData> > _mapDataHandler;
-    mutex _mtxDataHandler;
+private:
+    mutex _mtx_udp_sock;
+    mutex _mtx_on_recv;
+    unordered_map<string, Socket::Ptr> _udp_sock_map;
+    unordered_map<string, unordered_map<void *, onRecvData> > _on_recv_map;
 };
 
 } /* namespace mediakit */

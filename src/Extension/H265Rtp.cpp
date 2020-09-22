@@ -200,7 +200,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
             bFirst = false;
         }
     } else {
-        makeH265Rtp(naluType,pcData, iLen, true, true, uiStamp);
+        makeH265Rtp(naluType,pcData, iLen, false, true, uiStamp);
     }
 }
 

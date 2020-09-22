@@ -16,9 +16,11 @@
 #include <vector>
 #include <memory>
 #include "Network/Buffer.h"
-
 using namespace std;
 using namespace toolkit;
+
+//websocket组合包最大不得超过4MB(防止内存爆炸)
+#define MAX_WS_PACKET (4 * 1024 * 1024)
 
 namespace mediakit {
 
@@ -44,6 +46,7 @@ public:
         CONTROL_RSVF = 0xF
     } Type;
 public:
+
     WebSocketHeader() : _mask(4){
         //获取_mask内部buffer的内存地址，该内存是malloc开辟的，地址为随机
         uint64_t ptr = (uint64_t)(&_mask[0]);
@@ -51,6 +54,7 @@ public:
         _mask.assign((uint8_t*)(&ptr), (uint8_t*)(&ptr) + 4);
     }
     virtual ~WebSocketHeader(){}
+
 public:
     bool _fin;
     uint8_t _reserved;
@@ -58,6 +62,26 @@ public:
     bool _mask_flag;
     uint64_t _payload_len;
     vector<uint8_t > _mask;
+};
+
+//websocket协议收到的字符串类型缓存，用户协议层获取该数据传输的方式
+class WebSocketBuffer : public BufferString {
+public:
+    typedef std::shared_ptr<WebSocketBuffer> Ptr;
+
+    template<typename ...ARGS>
+    WebSocketBuffer(WebSocketHeader::Type headType, bool fin, ARGS &&...args)
+            : _head_type(headType), _fin(fin), BufferString(std::forward<ARGS>(args)...) {}
+
+    ~WebSocketBuffer() override {}
+
+    WebSocketHeader::Type headType() const { return _head_type; }
+
+    bool isFinished() const { return _fin; };
+
+private:
+    WebSocketHeader::Type _head_type;
+    bool _fin;
 };
 
 class WebSocketSplitter : public WebSocketHeader{
@@ -80,6 +104,7 @@ public:
      * @param buffer 负载数据
      */
     void encode(const WebSocketHeader &header,const Buffer::Ptr &buffer);
+
 protected:
     /**
      * 收到一个webSocket数据包包头，后续将继续触发onWebSocketDecodePayload回调
@@ -96,7 +121,6 @@ protected:
      */
     virtual void onWebSocketDecodePayload(const WebSocketHeader &header, const uint8_t *ptr, uint64_t len, uint64_t recved) {};
 
-
     /**
      * 接收到完整的一个webSocket数据包后回调
      * @param header 数据包包头
@@ -109,8 +133,10 @@ protected:
      * @param len 数据指针长度
      */
     virtual void onWebSocketEncodeData(const Buffer::Ptr &buffer){};
+
 private:
     void onPayloadData(uint8_t *data, uint64_t len);
+
 private:
     string _remain_data;
     int _mask_offset = 0;

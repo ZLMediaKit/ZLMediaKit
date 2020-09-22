@@ -117,11 +117,10 @@ API_EXPORT int API_CALL mk_media_total_reader_count(mk_media ctx){
     return (*obj)->getChannel()->totalReaderCount();
 }
 
-API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream, float duration,
-                                             int rtsp_enabled, int rtmp_enabled, int hls_enabled, int mp4_enabled) {
+API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream,
+                                             float duration, int hls_enabled, int mp4_enabled) {
     assert(vhost && app && stream);
-    MediaHelper::Ptr *obj(new MediaHelper::Ptr(new MediaHelper(vhost, app, stream, duration,
-                                                               rtsp_enabled, rtmp_enabled, hls_enabled, mp4_enabled)));
+    MediaHelper::Ptr *obj(new MediaHelper::Ptr(new MediaHelper(vhost, app, stream, duration, hls_enabled, mp4_enabled)));
     (*obj)->attachEvent();
     return (mk_media) obj;
 }
@@ -188,8 +187,8 @@ API_EXPORT void API_CALL mk_media_input_pcm(mk_media ctx, void *data , int len, 
 #endif //ENABLE_FAAC
 }
 
-API_EXPORT void API_CALL mk_media_input_g711(mk_media ctx, void* data, int len, uint32_t dts){
+API_EXPORT void API_CALL mk_media_input_audio(mk_media ctx, void* data, int len, uint32_t dts){
     assert(ctx && data && len > 0);
     MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
-    (*obj)->getChannel()->inputG711((char*)data, len, dts);
+    (*obj)->getChannel()->inputAudio((char*)data, len, dts);
 }

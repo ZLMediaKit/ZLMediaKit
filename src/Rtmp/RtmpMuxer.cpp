@@ -19,7 +19,7 @@ RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
     }else{
         _metadata = title->getMetadata();
     }
-    _rtmpRing = std::make_shared<RtmpRing::RingType>();
+    _rtmp_ring = std::make_shared<RtmpRing::RingType>();
 }
 
 void RtmpMuxer::addTrack(const Track::Ptr &track) {
@@ -31,7 +31,7 @@ void RtmpMuxer::addTrack(const Track::Ptr &track) {
     }
 
     //设置rtmp输出环形缓存
-    encoder->setRtmpRing(_rtmpRing);
+    encoder->setRtmpRing(_rtmp_ring);
 
     //添加metadata
     Metadata::addTrack(_metadata,track);
@@ -57,7 +57,7 @@ const AMFValue &RtmpMuxer::getMetadata() const {
 }
 
 RtmpRing::RingType::Ptr RtmpMuxer::getRtmpRing() const {
-    return _rtmpRing;
+    return _rtmp_ring;
 }
 
 void RtmpMuxer::resetTracks() {
