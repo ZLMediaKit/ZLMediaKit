@@ -47,6 +47,8 @@ bool loadIniConfig(const char *ini_path = nullptr);
 #define RTSP_SCHEMA "rtsp"
 #define RTMP_SCHEMA "rtmp"
 #define HLS_SCHEMA "hls"
+#define TS_SCHEMA "ts"
+#define FMP4_SCHEMA "fmp4"
 #define DEFAULT_VHOST "__defaultVhost__"
 
 ////////////广播名称///////////
@@ -58,7 +60,11 @@ extern const string kBroadcastMediaChanged;
 
 //录制mp4文件成功后广播
 extern const string kBroadcastRecordMP4;
-#define BroadcastRecordMP4Args const MP4Info &info
+#define BroadcastRecordMP4Args const RecordInfo &info
+
+// 录制 ts 文件后广播
+extern const string kBroadcastRecordTs;
+#define BroadcastRecordTsArgs const RecordInfo &info
 
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;
@@ -86,8 +92,7 @@ extern const string kBroadcastOnRtspAuth;
 //如果errMessage为空则代表鉴权成功
 //enableHls: 是否允许转换hls
 //enableMP4: 是否运行MP4录制
-//enableRtxp: rtmp推流时是否运行转rtsp；rtsp推流时，是否允许转rtmp
-typedef std::function<void(const string &errMessage,bool enableRtxp,bool enableHls,bool enableMP4)> PublishAuthInvoker;
+typedef std::function<void(const string &errMessage, bool enableHls, bool enableMP4)> PublishAuthInvoker;
 
 //收到rtsp/rtmp推流事件广播，通过该事件控制推流鉴权
 extern const string kBroadcastMediaPublish;
@@ -165,8 +170,6 @@ extern const string kAddMuteAudio;
 //拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
 //如果不删除将会接着上一次的数据继续写(录制hls/mp4时会继续在前一个文件后面写)
 extern const string kResetWhenRePlay;
-//是否默认推流时转换成rtsp或rtmp，hook接口(on_publish)中可以覆盖该设置
-extern const string kPublishToRtxp ;
 //是否默认推流时转换成hls，hook接口(on_publish)中可以覆盖该设置
 extern const string kPublishToHls ;
 //是否默认推流时mp4录像，hook接口(on_publish)中可以覆盖该设置
@@ -284,6 +287,8 @@ extern const string kSegmentRetain;
 extern const string kFileBufSize;
 //录制文件路径
 extern const string kFilePath;
+// 是否广播 ts 切片完成通知
+extern const string kBroadcastRecordTs;
 } //namespace Hls
 
 ////////////Rtp代理相关配置///////////

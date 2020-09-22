@@ -29,7 +29,8 @@ MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &
         strFileName = File::absolutePath(strFileName,recordPath);
     }
 
-    _demuxer = std::make_shared<MP4Demuxer>(strFileName.data());
+    _demuxer = std::make_shared<MP4Demuxer>();
+    _demuxer->openMP4(strFileName);
     _mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost, strApp, strId, _demuxer->getDurationMS() / 1000.0, true, true, false, false));
     auto tracks = _demuxer->getTracks(false);
     if(tracks.empty()){

@@ -36,16 +36,18 @@ class RtspPlayer: public PlayerBase,public TcpClient, public RtspSplitter, publi
 public:
     typedef std::shared_ptr<RtspPlayer> Ptr;
 
-    RtspPlayer(const EventPoller::Ptr &poller) ;
-    virtual ~RtspPlayer(void);
+    RtspPlayer(const EventPoller::Ptr &poller);
+    ~RtspPlayer() override;
+
     void play(const string &strUrl) override;
-    void pause(bool bPause) override;
+    void pause(bool pause_flag) override;
     void teardown() override;
     float getPacketLossRate(TrackType type) const override;
+
 protected:
     //派生类回调函数
-    virtual bool onCheckSDP(const string &strSdp) = 0;
-    virtual void onRecvRTP(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track) = 0;
+    virtual bool onCheckSDP(const string &sdp) = 0;
+    virtual void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) = 0;
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
 
@@ -64,47 +66,48 @@ protected:
 
     /**
      * rtp数据包排序后输出
-     * @param rtppt rtp数据包
-     * @param trackidx track索引
+     * @param rtp rtp数据包
+     * @param track_idx track索引
      */
-    void onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx) override;
-
+    void onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) override;
 
     /**
      * 收到RTCP包回调
-     * @param iTrackidx
-     * @param track
-     * @param pucData
-     * @param uiLen
+     * @param track_idx track索引
+     * @param track sdp相关信息
+     * @param data rtcp内容
+     * @param len rtcp内容长度
      */
-    virtual void onRtcpPacket(int iTrackidx, SdpTrack::Ptr &track, unsigned char *pucData, unsigned int uiLen);
+    virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, unsigned int len);
 
     /////////////TcpClient override/////////////
     void onConnect(const SockException &err) override;
-    void onRecv(const Buffer::Ptr &pBuf) override;
+    void onRecv(const Buffer::Ptr &buf) override;
     void onErr(const SockException &ex) override;
+
 private:
-    void onRecvRTP_l(const RtpPacket::Ptr &pRtppt, const SdpTrack::Ptr &track);
-    void onPlayResult_l(const SockException &ex , bool handshakeCompleted);
+    void onRecvRTP_l(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track);
+    void onPlayResult_l(const SockException &ex , bool handshake_done);
 
     int getTrackIndexByInterleaved(int interleaved) const;
-    int getTrackIndexByTrackType(TrackType trackType) const;
+    int getTrackIndexByTrackType(TrackType track_type) const;
 
-    void handleResSETUP(const Parser &parser, unsigned int uiTrackIndex);
+    void handleResSETUP(const Parser &parser, unsigned int track_idx);
     void handleResDESCRIBE(const Parser &parser);
     bool handleAuthenticationFailure(const string &wwwAuthenticateParamsStr);
     void handleResPAUSE(const Parser &parser, int type);
     bool handleResponse(const string &cmd, const Parser &parser);
 
     void sendOptions();
-    void sendSetup(unsigned int uiTrackIndex);
+    void sendSetup(unsigned int track_idx);
     void sendPause(int type , uint32_t ms);
     void sendDescribe();
     void sendKeepAlive();
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
     void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
-    void sendReceiverReport(bool overTcp,int iTrackIndex);
+    void sendReceiverReport(bool over_tcp, int track_idx);
     void createUdpSockIfNecessary(int track_idx);
+
 private:
     string _play_url;
     vector<SdpTrack::Ptr> _sdp_track;
@@ -148,5 +151,4 @@ private:
 };
 
 } /* namespace mediakit */
-
 #endif /* SRC_RTSPPLAYER_RTSPPLAYER_H_TXT_ */

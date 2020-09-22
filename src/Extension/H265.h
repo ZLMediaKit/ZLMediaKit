@@ -61,7 +61,7 @@ public:
     } NaleType;
 
     H265Frame(){
-        _codecid = CodecH265;
+        _codec_id = CodecH265;
     }
 
     bool keyFrame() const override {
@@ -92,10 +92,7 @@ public:
         _dts = dts;
         _pts = pts;
         _prefix_size = prefix_size;
-    }
-
-    CodecId getCodecId() const override {
-        return CodecH265;
+        _codec_id = CodecH265;
     }
 
     bool keyFrame() const override {

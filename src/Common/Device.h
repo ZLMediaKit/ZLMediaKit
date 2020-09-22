@@ -17,10 +17,8 @@
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Common/MultiMediaSourceMuxer.h"
-
 using namespace std;
 using namespace toolkit;
-
 
 #ifdef ENABLE_FAAC
 #include "Codec/AACEncoder.h"
@@ -55,16 +53,10 @@ class DevChannel  : public MultiMediaSourceMuxer{
 public:
     typedef std::shared_ptr<DevChannel> Ptr;
     //fDuration<=0为直播，否则为点播
-    DevChannel(const string &vhost,
-               const string &app,
-               const string &stream_id,
-               float duration = 0,
-               bool enable_rtsp = true,
-               bool enable_rtmp = true,
-               bool enable_hls = true,
-               bool enable_mp4 = false);
+    DevChannel(const string &vhost, const string &app, const string &stream_id,
+               float duration = 0, bool enable_hls = true, bool enable_mp4 = false);
 
-    virtual ~DevChannel();
+    ~DevChannel() override ;
 
     /**
      * 初始化视频Track
@@ -108,12 +100,12 @@ public:
     void inputAAC(const char *data_without_adts, int len, uint32_t dts, const char *adts_header);
 
     /**
-     * G711音频帧
+     * 输入OPUS/G711音频帧
      * @param data 音频帧
      * @param len 帧数据长度
      * @param dts 时间戳，单位毫秒
      */
-    void inputG711(const char* data, int len, uint32_t dts);
+    void inputAudio(const char *data, int len, uint32_t dts);
 
 #ifdef ENABLE_X264
     /**

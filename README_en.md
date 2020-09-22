@@ -2,12 +2,16 @@
 
 # A lightweight ,high performance and stable stream server and client framework based on C++11.
 
- [![Build Status](https://travis-ci.org/xiongziliang/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xiongziliang/ZLMediaKit)
 
+[![license](http://img.shields.io/badge/license-MIT-green.svg)](https://github.com/xia-chu/ZLMediaKit/blob/master/LICENSE)
+[![C++](https://img.shields.io/badge/language-c++-red.svg)](https://en.cppreference.com/)
+[![platform](https://img.shields.io/badge/platform-linux%20|%20macos%20|%20windows-blue.svg)](https://github.com/xia-chu/ZLMediaKit)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-yellow.svg)](https://github.com/xia-chu/ZLMediaKit/pulls)
+[![Build Status](https://travis-ci.org/xia-chu/ZLMediaKit.svg?branch=master)](https://travis-ci.org/xia-chu/ZLMediaKit)
 
 ## Why ZLMediaKit?
 - Developed based on C++ 11, the code is stable and reliable, avoiding the use of raw pointers, cross-platform porting is simple and convenient, and the code is clear and concise.
-- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV/Websocket-flv`),and support Inter-protocol conversion.
+- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV/WebSocket-flv/HTTP-TS/WebSocket-TS/HTTP-fMP4/Websocket-fMP4/MP4`),and support Inter-protocol conversion.
 - Multiplexing asynchronous network IO based on epoll and multi thread，extreme performance.
 - Well performance and stable test,can be used commercially.
 - Support linux, macos, ios, android, Windows Platforms.
@@ -20,15 +24,15 @@
   - RTSP[S] player and pusher.
   - RTP Transport : `rtp over udp` `rtp over tcp` `rtp over http` `rtp udp multicast` .
   - Basic/Digest/Url Authentication.
-  - H264/H265/AAC/G711 codec.
+  - H265/H264/AAC/G711/OPUS codec.
   - Recorded as mp4.
   - Vod of mp4.
   
 - RTMP[S]
   - RTMP[S] server,support player and pusher.
   - RTMP[S] player and pusher.
-  - Support HTTP-FLV player.
-  - H264/H265/AAC/G711 codec.
+  - Support HTTP-FLV/WebSocket-FLV sever.
+  - H265/H264/AAC/G711/OPUS codec.
   - Recorded as flv or mp4.
   - Vod of mp4.
   - support [RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
@@ -37,6 +41,12 @@
   - RTSP RTMP can be converted into HLS,built-in HTTP server.
   - Play authentication based on cookie.
   - Support HLS player, support streaming HLS proxy to RTSP / RTMP / MP4.
+  
+- TS
+  - Support HTTP-TS/WebSocket-TS sever.
+  
+- fMP4
+  - Support HTTP-fMP4/WebSocket-fMP4 sever.
 
 - HTTP[S]
   - HTTP server,suppor directory meun、RESTful http api.
@@ -55,62 +65,6 @@
   - Pull stream on Demand.
   - Support TS / PS streaming push through RTP,and it can be converted to RTSP / RTMP / HLS / FLV.
   - Support real-time online screenshot http api.
-
-
-- Protocol conversion:
-
-|          protocol/codec          | H264 | H265 | AAC  | other |
-| :------------------------------: | :--: | :--: | :--: | :---: |
-| RTSP[S] --> RTMP/HTTP[S]-FLV/FLV |  Y   |  Y   |  Y   |   N   |
-|         RTMP --> RTSP[S]         |  Y   |  Y   |  Y   |   N   |
-|         RTSP[S] --> HLS          |  Y   |  Y   |  Y   |   N   |
-|           RTMP --> HLS           |  Y   |  Y   |  Y   |   N   |
-|         RTSP[S] --> MP4          |  Y   |  Y   |  Y   |   N   |
-|           RTMP --> MP4           |  Y   |  Y   |  Y   |   N   |
-|         MP4 --> RTSP[S]          |  Y   |  Y   |  Y   |   N   |
-|           MP4 --> RTMP           |  Y   |  Y   |  Y   |   N   |
-|           HLS --> RTSP/RTMP/MP4  |  Y   |  Y   |  Y   |   N   |
-
-- Stream generation：
-
-| feature/codec | H264 | H265 | AAC  | other |
-| :-----------: | :--: | :--: | :--: | :---: |
-| RTSP[S] push  |  Y   |  Y   |  Y   |   Y   |
-|  RTSP proxy   |  Y   |  Y   |  Y   |   Y   |
-|   RTMP push   |  Y   |  Y   |  Y   |   Y   |
-|  RTMP proxy   |  Y   |  Y   |  Y   |   Y   |
-
-- RTP transport:
-
-|  feature/transport  | tcp  | udp  | http | udp_multicast |
-| :-----------------: | :--: | :--: | :--: | :-----------: |
-| RTSP[S] Play Server |  Y   |  Y   |  Y   |       Y       |
-| RTSP[S] Push Server |  Y   |  Y   |  N   |       N       |
-|     RTSP Player     |  Y   |  Y   |  N   |       Y       |
-|     RTSP Pusher     |  Y   |  Y   |  N   |       N       |
-
-
-- Server supported:
-
-|       Server        | Y/N  |
-| :-----------------: | :--: |
-| RTSP[S] Play Server |  Y   |
-| RTSP[S] Push Server |  Y   |
-|        RTMP         |  Y   |
-| HTTP[S]/WebSocket[S] |  Y   |
-
-- Client supported:
-
-|   Client    | Y/N  |
-| :---------: | :--: |
-| RTSP Player |  Y   |
-| RTSP Pusher |  Y   |
-| RTMP Player |  Y   |
-| RTMP Pusher |  Y   |
-|   HTTP[S]   |  Y   |
-| WebSocket[S] |  Y   |
-| HLS player |  Y   |
-
 
 ## System Requirements
 
@@ -190,8 +144,6 @@ git submodule update --init
   cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake  -DPLATFORM=OS64COMBINED
   ```
   
-
-
 
 ### Build on Android
 
@@ -298,7 +250,7 @@ git submodule update --init
 ## Docker Image
 You can pull a pre-built docker image from Docker Hub and run with
 ```bash
-docker run -id -p 1935:1935 -p 8080:80 gemfield/zlmediakit
+docker run -id -p 1935:1935 -p 8080:80 -p 8554:554 -p 10000:10000 -p 10000:10000/udp panjjo/zlmediakit
 ```
 
 Dockerfile is also supplied to build images on Ubuntu 16.04
@@ -306,44 +258,6 @@ Dockerfile is also supplied to build images on Ubuntu 16.04
 cd docker
 docker build -t zlmediakit .
 ```
-
-## Mirrors
-
-[ZLToolKit](http://git.oschina.net/xiahcu/ZLToolKit)
-
-[ZLMediaKit](http://git.oschina.net/xiahcu/ZLMediaKit)
-
-
-## Licence
-
-```
-MIT License
-
-Copyright (c) 2016-2019 xiongziliang <771730766@qq.com>
-Copyright (c) 2019 Gemfield <gemfield@civilnet.cn>
-Copyright (c) 2018 huohuo <913481084@qq.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-```
-
-
 
 ## Contact
  - Email：<1213642868@qq.com>

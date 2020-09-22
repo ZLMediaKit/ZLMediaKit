@@ -12,13 +12,6 @@
 
 namespace mediakit{
 
-
-typedef struct {
-    unsigned forbidden_zero_bit :1;
-    unsigned nal_ref_idc :2;
-    unsigned type :5;
-} NALU;
-
 typedef struct {
     unsigned S :1;
     unsigned E :1;
@@ -26,15 +19,6 @@ typedef struct {
     unsigned type :5;
 } FU;
 
-static bool MakeNalu(uint8_t in, NALU &nal) {
-    nal.forbidden_zero_bit = in >> 7;
-    if (nal.forbidden_zero_bit) {
-        return false;
-    }
-    nal.nal_ref_idc = (in & 0x60) >> 5;
-    nal.type = in & 0x1f;
-    return true;
-}
 static bool MakeFU(uint8_t in, FU &fu) {
     fu.S = in >> 7;
     fu.E = (in >> 6) & 0x01;
@@ -86,30 +70,28 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
        28     FU-A      Fragmentation unit                 5.8
        29     FU-B      Fragmentation unit                 5.8
        30-31  undefined                                    -
-
-
     */
     const uint8_t *frame = (uint8_t *) rtppack->data() + rtppack->offset;
     int length = rtppack->size() - rtppack->offset;
-    NALU nal;
-    MakeNalu(*frame, nal);
+    int nal_type = *frame & 0x1F;
+    int nal_suffix = *frame & (~0x1F);
 
-    if (nal.type >= 0 && nal.type < 24) {
+    if (nal_type >= 0 && nal_type < 24) {
         //a full frame
         _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
-        _h264frame->_buffer.append((char *)frame, length);
+        _h264frame->_buffer.append((char *) frame, length);
         _h264frame->_pts = rtppack->timeStamp;
         auto key = _h264frame->keyFrame();
         onGetH264(_h264frame);
         return (key); //i frame
     }
 
-    switch (nal.type){
+    switch (nal_type){
         case 24:{
             // 24 STAP-A   单一时间的组合包
             bool haveIDR = false;
             auto ptr = frame + 1;
-            while(true){
+            while (true) {
                 int off = ptr - frame;
                 if (off >= length) {
                     break;
@@ -121,14 +103,12 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
                 if (off + len > length) {
                     break;
                 }
-                if(len >= 10){
-                    //过小的帧丢弃
-                    NALU nal;
-                    MakeNalu(ptr[0], nal);
+                if (len > 0) {
+                    //有有效数据
                     _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
-                    _h264frame->_buffer.append((char *)ptr, len);
+                    _h264frame->_buffer.append((char *) ptr, len);
                     _h264frame->_pts = rtppack->timeStamp;
-                    if(nal.type == H264Frame::NAL_IDR){
+                    if ((ptr[0] & 0x1F) == H264Frame::NAL_IDR) {
                         haveIDR = true;
                     }
                     onGetH264(_h264frame);
@@ -144,10 +124,9 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             MakeFU(frame[1], fu);
             if (fu.S) {
                 //该帧的第一个rtp包  FU-A start
-                char tmp = (nal.forbidden_zero_bit << 7 | nal.nal_ref_idc << 5 | fu.type);
                 _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
-                _h264frame->_buffer.push_back(tmp);
-                _h264frame->_buffer.append((char *)frame + 2, length - 2);
+                _h264frame->_buffer.push_back(nal_suffix | fu.type);
+                _h264frame->_buffer.append((char *) frame + 2, length - 2);
                 _h264frame->_pts = rtppack->timeStamp;
                 //该函数return时，保存下当前sequence,以便下次对比seq是否连续
                 _lastSeq = rtppack->sequence;
@@ -163,20 +142,20 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
 
             if (!fu.E) {
                 //该帧的中间rtp包  FU-A mid
-                _h264frame->_buffer.append((char *)frame + 2, length - 2);
+                _h264frame->_buffer.append((char *) frame + 2, length - 2);
                 //该函数return时，保存下当前sequence,以便下次对比seq是否连续
                 _lastSeq = rtppack->sequence;
                 return false;
             }
 
             //该帧最后一个rtp包  FU-A end
-            _h264frame->_buffer.append((char *)frame + 2, length - 2);
+            _h264frame->_buffer.append((char *) frame + 2, length - 2);
             _h264frame->_pts = rtppack->timeStamp;
             onGetH264(_h264frame);
             return false;
         }
 
-        default:{
+        default: {
             // 29 FU-B     单NAL单元B模式
             // 25 STAP-B   单一时间的组合包
             // 26 MTAP16   多个时间的组合包
@@ -184,7 +163,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             // 0 udef
             // 30 udef
             // 31 udef
-            WarnL << "不支持的rtp类型:" << (int)nal.type << " " << rtppack->sequence;
+            WarnL << "不支持的rtp类型:" << (int) nal_type << " " << rtppack->sequence;
             return false;
         }
     }
@@ -215,63 +194,62 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ui32Ssrc,
 
 void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     GET_CONFIG(uint32_t,cycleMS,Rtp::kCycleMS);
-    auto pcData = frame->data() + frame->prefixSize();
-    auto uiStamp = frame->pts();
-    auto iLen = frame->size() - frame->prefixSize();
-    //获取NALU的5bit 帧类型
-    unsigned char naluType =  H264_TYPE(pcData[0]);
+    auto ptr = frame->data() + frame->prefixSize();
+    auto pts = frame->pts() % cycleMS;
+    auto len = frame->size() - frame->prefixSize();
+    auto nal_type = H264_TYPE(ptr[0]);
+    auto max_rtp_size = _ui32MtuSize - 2;
 
-    uiStamp %= cycleMS;
-    int iSize = _ui32MtuSize - 2;
     //超过MTU则按照FU-A模式打包
-    if (iLen > iSize) {
+    if (len > max_rtp_size) {
         //最高位bit为forbidden_zero_bit,
         //后面2bit为nal_ref_idc(帧重要程度),00:可以丢,11:不能丢
         //末尾5bit为nalu type，固定为28(FU-A)
-        unsigned char f_nri_flags = (*((unsigned char *) pcData) & 0x60) | 28;
+        unsigned char nal_fu_a = (*((unsigned char *) ptr) & (~0x1F)) | 28;
         unsigned char s_e_r_flags;
-        bool bFirst = true;
-        bool mark = false;
-        int nOffset = 1;
-        while (!mark) {
-            if (iLen <= nOffset + iSize) {
+        bool fu_a_start = true;
+        bool mark_bit = false;
+        int offset = 1;
+        while (!mark_bit) {
+            if (len <= offset + max_rtp_size) {
                 //已经拆分结束
-                iSize = iLen - nOffset;
-                mark = true;
+                max_rtp_size = len - offset;
+                mark_bit = true;
                 //FU-A end
-                s_e_r_flags = (1 << 6) | naluType;
-            } else if (bFirst) {
+                s_e_r_flags = (1 << 6) | nal_type;
+            } else if (fu_a_start) {
                 //FU-A start
-                s_e_r_flags = (1 << 7) | naluType;
+                s_e_r_flags = (1 << 7) | nal_type;
             } else {
                 //FU-A mid
-                s_e_r_flags = naluType;
+                s_e_r_flags = nal_type;
             }
 
             {
                 //传入nullptr先不做payload的内存拷贝
-                auto rtp = makeRtp(getTrackType(), nullptr, iSize + 2, mark, uiStamp);
+                auto rtp = makeRtp(getTrackType(), nullptr, max_rtp_size + 2, mark_bit, pts);
                 //rtp payload 负载部分
                 uint8_t *payload = (uint8_t*)rtp->data() + rtp->offset;
                 //FU-A 第1个字节
-                payload[0] = f_nri_flags;
+                payload[0] = nal_fu_a;
                 //FU-A 第2个字节
                 payload[1] = s_e_r_flags;
                 //H264 数据
-                memcpy(payload + 2, (unsigned char *) pcData + nOffset, iSize);
+                memcpy(payload + 2, (unsigned char *) ptr + offset, max_rtp_size);
                 //输入到rtp环形缓存
-                RtpCodec::inputRtp(rtp,bFirst && naluType == H264Frame::NAL_IDR);
+                RtpCodec::inputRtp(rtp, fu_a_start && nal_type == H264Frame::NAL_IDR);
             }
-            nOffset += iSize;
-            bFirst = false;
+            offset += max_rtp_size;
+            fu_a_start = false;
         }
     } else {
-        makeH264Rtp(naluType,pcData, iLen, true, true, uiStamp);
+        //如果帧长度不超过mtu, 则按照Single NAL unit packet per H.264 方式打包
+        makeH264Rtp(ptr, len, false, false, pts);
     }
 }
 
-void H264RtpEncoder::makeH264Rtp(int nal_type,const void* data, unsigned int len, bool mark, bool first_packet, uint32_t uiStamp) {
-    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),first_packet && nal_type == H264Frame::NAL_IDR);
+void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, bool gop_pos, uint32_t uiStamp) {
+    RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, mark, uiStamp), gop_pos);
 }
 
 }//namespace mediakit

@@ -27,10 +27,6 @@ H265Frame::Ptr  H265RtmpDecoder::obtainFrame() {
     return frame;
 }
 
-bool H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp, bool key_pos) {
-    return decodeRtmp(rtmp);
-}
-
 #ifdef ENABLE_MP4
 /**
  * 返回不带0x00 00 00 01头的sps
@@ -43,61 +39,60 @@ static bool getH265ConfigFrame(const RtmpPacket &thiz,string &frame) {
     if (!thiz.isCfgFrame()) {
         return false;
     }
-    if (thiz.strBuf.size() < 6) {
+    if (thiz.buffer.size() < 6) {
         WarnL << "bad H265 cfg!";
         return false;
     }
 
-    auto extra = thiz.strBuf.data() + 5;
-    auto bytes = thiz.strBuf.size() - 5;
+    auto extra = thiz.buffer.data() + 5;
+    auto bytes = thiz.buffer.size() - 5;
 
     struct mpeg4_hevc_t hevc = {0};
     if (mpeg4_hevc_decoder_configuration_record_load((uint8_t *) extra, bytes, &hevc) > 0) {
-        uint8_t config[1024] = {0};
-        int size = mpeg4_hevc_to_nalu(&hevc, config, sizeof(config));
+        uint8_t *config = new uint8_t[bytes * 2];
+        int size = mpeg4_hevc_to_nalu(&hevc, config, bytes * 2);
         if (size > 4) {
             frame.assign((char *) config + 4, size - 4);
-            return true;
         }
+        delete [] config;
+        return size > 4;
     }
-
     return false;
 }
 #endif
 
-bool H265RtmpDecoder::decodeRtmp(const RtmpPacket::Ptr &pkt) {
+void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     if (pkt->isCfgFrame()) {
 #ifdef ENABLE_MP4
         string config;
         if(getH265ConfigFrame(*pkt,config)){
-            onGetH265(config.data(), config.size(), pkt->timeStamp , pkt->timeStamp);
+            onGetH265(config.data(), config.size(), pkt->time_stamp , pkt->time_stamp);
         }
 #else
         WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265-RTMP支持不完善";
 #endif
-        return false;
+        return;
     }
 
-    if (pkt->strBuf.size() > 9) {
-        uint32_t iTotalLen = pkt->strBuf.size();
+    if (pkt->buffer.size() > 9) {
+        uint32_t iTotalLen = pkt->buffer.size();
         uint32_t iOffset = 5;
-        uint8_t *cts_ptr = (uint8_t *) (pkt->strBuf.data() + 2);
+        uint8_t *cts_ptr = (uint8_t *) (pkt->buffer.data() + 2);
         int32_t cts = (((cts_ptr[0] << 16) | (cts_ptr[1] << 8) | (cts_ptr[2])) + 0xff800000) ^ 0xff800000;
-        auto pts = pkt->timeStamp + cts;
+        auto pts = pkt->time_stamp + cts;
 
         while(iOffset + 4 < iTotalLen){
             uint32_t iFrameLen;
-            memcpy(&iFrameLen, pkt->strBuf.data() + iOffset, 4);
+            memcpy(&iFrameLen, pkt->buffer.data() + iOffset, 4);
             iFrameLen = ntohl(iFrameLen);
             iOffset += 4;
             if(iFrameLen + iOffset > iTotalLen){
                 break;
             }
-            onGetH265(pkt->strBuf.data() + iOffset, iFrameLen, pkt->timeStamp , pts);
+            onGetH265(pkt->buffer.data() + iOffset, iFrameLen, pkt->time_stamp , pts);
             iOffset += iFrameLen;
         }
     }
-    return  pkt->isVideoKeyFrame();
 }
 
 inline void H265RtmpDecoder::onGetH265(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
@@ -176,8 +171,8 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         return;
     }
 
-    if(_lastPacket && _lastPacket->timeStamp != frame->dts()) {
-        RtmpCodec::inputRtmp(_lastPacket, _lastPacket->isVideoKeyFrame());
+    if(_lastPacket && _lastPacket->time_stamp != frame->dts()) {
+        RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
     }
 
@@ -188,23 +183,23 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
 
         _lastPacket = ResourcePoolHelper<RtmpPacket>::obtainObj();
-        _lastPacket->strBuf.clear();
-        _lastPacket->strBuf.push_back(flags);
-        _lastPacket->strBuf.push_back(!is_config);
+        _lastPacket->buffer.clear();
+        _lastPacket->buffer.push_back(flags);
+        _lastPacket->buffer.push_back(!is_config);
         auto cts = frame->pts() - frame->dts();
         cts = htonl(cts);
-        _lastPacket->strBuf.append((char *)&cts + 1, 3);
+        _lastPacket->buffer.append((char *)&cts + 1, 3);
 
-        _lastPacket->chunkId = CHUNK_VIDEO;
-        _lastPacket->streamId = STREAM_MEDIA;
-        _lastPacket->timeStamp = frame->dts();
-        _lastPacket->typeId = MSG_VIDEO;
+        _lastPacket->chunk_id = CHUNK_VIDEO;
+        _lastPacket->stream_index = STREAM_MEDIA;
+        _lastPacket->time_stamp = frame->dts();
+        _lastPacket->type_id = MSG_VIDEO;
 
     }
     auto size = htonl(iLen);
-    _lastPacket->strBuf.append((char *) &size, 4);
-    _lastPacket->strBuf.append(pcData, iLen);
-    _lastPacket->bodySize = _lastPacket->strBuf.size();
+    _lastPacket->buffer.append((char *) &size, 4);
+    _lastPacket->buffer.append(pcData, iLen);
+    _lastPacket->body_size = _lastPacket->buffer.size();
 }
 
 void H265RtmpEncoder::makeVideoConfigPkt() {
@@ -214,13 +209,13 @@ void H265RtmpEncoder::makeVideoConfigPkt() {
     bool is_config = true;
 
     RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
-    rtmpPkt->strBuf.clear();
+    rtmpPkt->buffer.clear();
 
     //header
-    rtmpPkt->strBuf.push_back(flags);
-    rtmpPkt->strBuf.push_back(!is_config);
+    rtmpPkt->buffer.push_back(flags);
+    rtmpPkt->buffer.push_back(!is_config);
     //cts
-    rtmpPkt->strBuf.append("\x0\x0\x0", 3);
+    rtmpPkt->buffer.append("\x0\x0\x0", 3);
 
     struct mpeg4_hevc_t hevc = {0};
     string vps_sps_pps = string("\x00\x00\x00\x01", 4) + _vps +
@@ -235,14 +230,14 @@ void H265RtmpEncoder::makeVideoConfigPkt() {
     }
 
     //HEVCDecoderConfigurationRecord
-    rtmpPkt->strBuf.append((char *)extra_data, extra_data_size);
+    rtmpPkt->buffer.append((char *)extra_data, extra_data_size);
 
-    rtmpPkt->bodySize = rtmpPkt->strBuf.size();
-    rtmpPkt->chunkId = CHUNK_VIDEO;
-    rtmpPkt->streamId = STREAM_MEDIA;
-    rtmpPkt->timeStamp = 0;
-    rtmpPkt->typeId = MSG_VIDEO;
-    RtmpCodec::inputRtmp(rtmpPkt, false);
+    rtmpPkt->body_size = rtmpPkt->buffer.size();
+    rtmpPkt->chunk_id = CHUNK_VIDEO;
+    rtmpPkt->stream_index = STREAM_MEDIA;
+    rtmpPkt->time_stamp = 0;
+    rtmpPkt->type_id = MSG_VIDEO;
+    RtmpCodec::inputRtmp(rtmpPkt);
 #else
     WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265-RTMP支持不完善";
 #endif

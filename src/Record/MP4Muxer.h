@@ -23,17 +23,16 @@
 
 namespace mediakit{
 
-class MP4Muxer : public MediaSinkInterface, public MP4File{
+class MP4MuxerInterface : public MediaSinkInterface {
 public:
-    typedef std::shared_ptr<MP4Muxer> Ptr;
-
-    MP4Muxer(const char *file);
-    ~MP4Muxer() override;
+    MP4MuxerInterface() = default;
+    ~MP4MuxerInterface() override = default;
 
     /**
      * 添加已经ready状态的track
      */
-    void addTrack(const Track::Ptr & track) override;
+    void addTrack(const Track::Ptr &track) override;
+
     /**
      * 输入帧
      */
@@ -42,29 +41,111 @@ public:
     /**
      * 重置所有track
      */
-    void resetTracks() override ;
+    void resetTracks() override;
+
+    /**
+     * 是否包含视频
+     */
+    bool haveVideo() const;
+
+    /**
+     * 保存fmp4分片
+     */
+    void saveSegment();
+
+    /**
+     * 创建新切片
+     */
+    void initSegment();
+
+protected:
+    virtual MP4FileIO::Writer createWriter() = 0;
+
+private:
+    void stampSync();
+
+private:
+    bool _started = false;
+    bool _have_video = false;
+    MP4FileIO::Writer _mov_writter;
+    struct track_info {
+        int track_id = -1;
+        Stamp stamp;
+    };
+    List<Frame::Ptr> _frameCached;
+    unordered_map<int, track_info> _codec_to_trackid;
+};
+
+class MP4Muxer : public MP4MuxerInterface{
+public:
+    typedef std::shared_ptr<MP4Muxer> Ptr;
+
+    MP4Muxer();
+    ~MP4Muxer() override;
+
+    /**
+     * 重置所有track
+     */
+    void resetTracks() override;
+
+    /**
+     * 打开mp4
+     * @param file 文件完整路径
+     */
+    void openMP4(const string &file);
 
     /**
      * 手动关闭文件(对象析构时会自动关闭)
      */
     void closeMP4();
 
-private:
-    void openMP4();
-    void stampSync();
+protected:
+    MP4FileIO::Writer createWriter() override;
 
 private:
-    struct track_info {
-        int track_id = -1;
-        Stamp stamp;
-    };
-    unordered_map<int, track_info> _codec_to_trackid;
-    List<Frame::Ptr> _frameCached;
-    bool _started = false;
-    bool _have_video = false;
-    MP4File::Writer _mov_writter;
     string _file_name;
+    MP4FileDisk::Ptr _mp4_file;
 };
+
+class MP4MuxerMemory : public MP4MuxerInterface{
+public:
+    MP4MuxerMemory();
+    ~MP4MuxerMemory() override = default;
+
+    /**
+     * 重置所有track
+     */
+    void resetTracks() override;
+
+    /**
+     * 输入帧
+     */
+    void inputFrame(const Frame::Ptr &frame) override;
+
+    /**
+     * 获取fmp4 init segment
+     */
+    const string &getInitSegment();
+
+protected:
+    /**
+     * 输出fmp4切片回调函数
+     * @param string 切片内容
+     * @param stamp 切片末尾时间戳
+     * @param key_frame 是否有关键帧
+     */
+    virtual void onSegmentData(const string &string, uint32_t stamp, bool key_frame) = 0;
+
+protected:
+    MP4FileIO::Writer createWriter() override;
+
+private:
+    bool _key_frame = false;
+    Ticker _ticker;
+    string _init_segment;
+    MP4FileMemory::Ptr _memory_file;
+};
+
 
 }//namespace mediakit
 #endif//#ifdef ENABLE_MP4

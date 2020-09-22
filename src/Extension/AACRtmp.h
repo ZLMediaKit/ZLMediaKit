@@ -19,7 +19,7 @@ namespace mediakit{
 /**
  * aac Rtmp转adts类
  */
-class AACRtmpDecoder : public RtmpCodec , public ResourcePoolHelper<AACFrame> {
+class AACRtmpDecoder : public RtmpCodec , public ResourcePoolHelper<FrameImp> {
 public:
     typedef std::shared_ptr<AACRtmpDecoder> Ptr;
 
@@ -28,10 +28,9 @@ public:
 
     /**
      * 输入Rtmp并解码
-     * @param Rtmp Rtmp数据包
-     * @param key_pos 此参数内部强制转换为false,请忽略之
+     * @param rtmp Rtmp数据包
      */
-    bool inputRtmp(const RtmpPacket::Ptr &Rtmp, bool key_pos = false) override;
+    void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
 
     CodecId getCodecId() const override{
         return CodecAAC;

@@ -27,51 +27,59 @@ namespace mediakit {
 class RtmpPlayerImp: public PlayerImp<RtmpPlayer,RtmpDemuxer> {
 public:
     typedef std::shared_ptr<RtmpPlayerImp> Ptr;
-    RtmpPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtmpPlayer,RtmpDemuxer>(poller){};
-    virtual ~RtmpPlayerImp(){
-        DebugL<<endl;
-    };
-    float getProgress() const override{
-        if(getDuration() > 0){
+
+    RtmpPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtmpPlayer, RtmpDemuxer>(poller) {};
+
+    ~RtmpPlayerImp() override {
+        DebugL << endl;
+    }
+
+    float getProgress() const override {
+        if (getDuration() > 0) {
             return getProgressMilliSecond() / (getDuration() * 1000);
         }
         return PlayerBase::getProgress();
-    };
-    void seekTo(float fProgress) override{
-        fProgress = MAX(float(0),MIN(fProgress,float(1.0)));
-        seekToMilliSecond(fProgress * getDuration() * 1000);
-    };
-    void play(const string &strUrl) override {
-        PlayerImp<RtmpPlayer,RtmpDemuxer>::play(strUrl);
     }
+
+    void seekTo(float fProgress) override {
+        fProgress = MAX(float(0), MIN(fProgress, float(1.0)));
+        seekToMilliSecond(fProgress * getDuration() * 1000);
+    }
+
+    void play(const string &strUrl) override {
+        PlayerImp<RtmpPlayer, RtmpDemuxer>::play(strUrl);
+    }
+
 private:
     //派生类回调函数
     bool onCheckMeta(const AMFValue &val) override {
-        _pRtmpMediaSrc = dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc);
-        if(_pRtmpMediaSrc){
-            _pRtmpMediaSrc->setMetaData(val);
+        _rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc);
+        if (_rtmp_src) {
+            _rtmp_src->setMetaData(val);
             _set_meta_data = true;
         }
         _delegate.reset(new RtmpDemuxer);
         _delegate->loadMetaData(val);
         return true;
     }
+
     void onMediaData(const RtmpPacket::Ptr &chunkData) override {
-        if(_pRtmpMediaSrc){
-            if(!_set_meta_data && !chunkData->isCfgFrame()){
+        if (_rtmp_src) {
+            if (!_set_meta_data && !chunkData->isCfgFrame()) {
                 _set_meta_data = true;
-                _pRtmpMediaSrc->setMetaData(TitleMeta().getMetadata());
+                _rtmp_src->setMetaData(TitleMeta().getMetadata());
             }
-            _pRtmpMediaSrc->onWrite(chunkData);
+            _rtmp_src->onWrite(chunkData);
         }
-        if(!_delegate){
+        if (!_delegate) {
             //这个流没有metadata
             _delegate.reset(new RtmpDemuxer());
         }
         _delegate->inputRtmp(chunkData);
     }
+
 private:
-    RtmpMediaSource::Ptr _pRtmpMediaSrc;
+    RtmpMediaSource::Ptr _rtmp_src;
     bool _set_meta_data = false;
 };
 

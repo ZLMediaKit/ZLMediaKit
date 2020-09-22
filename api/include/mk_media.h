@@ -26,14 +26,12 @@ typedef void *mk_media;
  * @param app 应用名，推荐为live
  * @param stream 流id，例如camera
  * @param duration 时长(单位秒)，直播则为0
- * @param rtsp_enabled 是否启用rtsp协议
- * @param rtmp_enabled 是否启用rtmp协议
  * @param hls_enabled 是否生成hls
  * @param mp4_enabled 是否生成mp4
  * @return 对象指针
  */
-API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream, float duration,
-                                             int rtsp_enabled, int rtmp_enabled, int hls_enabled, int mp4_enabled);
+API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream,
+                                             float duration, int hls_enabled, int mp4_enabled);
 
 /**
  * 销毁媒体源
@@ -54,7 +52,7 @@ API_EXPORT void API_CALL mk_media_init_video(mk_media ctx, int track_id, int wid
 /**
  * 添加音频轨道
  * @param ctx 对象指针
- * @param track_id  2:CodecAAC/3:CodecG711A/4:CodecG711U
+ * @param track_id  2:CodecAAC/3:CodecG711A/4:CodecG711U/5:OPUS
  * @param channel 通道数
  * @param sample_bit 采样位数，只支持16
  * @param sample_rate 采样率
@@ -95,7 +93,7 @@ API_EXPORT void API_CALL mk_media_input_h265(mk_media ctx, void *data, int len, 
  * @param data 不包含adts头的单帧AAC数据
  * @param len 单帧AAC数据字节数
  * @param dts 时间戳，毫秒
- * @param adts adts头
+ * @param adts adts头，可以为null
  */
 API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, uint32_t dts, void *adts);
 
@@ -109,13 +107,13 @@ API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, u
 API_EXPORT void API_CALL mk_media_input_pcm(mk_media ctx, void *data, int len, uint32_t pts);
 
 /**
- * 输入单帧G711音频
+ * 输入单帧OPUS/G711音频帧
  * @param ctx 对象指针
- * @param data 单帧G711数据
- * @param len 单帧G711数据字节数
+ * @param data 单帧音频数据
+ * @param len  单帧音频数据字节数
  * @param dts 时间戳，毫秒
  */
-API_EXPORT void API_CALL mk_media_input_g711(mk_media ctx, void* data, int len, uint32_t dts);
+API_EXPORT void API_CALL mk_media_input_audio(mk_media ctx, void* data, int len, uint32_t dts);
 
 /**
  * MediaSource.close()回调事件

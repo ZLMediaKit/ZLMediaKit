@@ -17,47 +17,6 @@
 namespace mediakit{
 
 /**
- * G711帧
- */
-class G711Frame : public FrameImp {
-public:
-    G711Frame(){
-        _codecid = CodecG711A;
-    }
-};
-
-class G711FrameNoCacheAble : public FrameFromPtr {
-public:
-    typedef std::shared_ptr<G711FrameNoCacheAble> Ptr;
-
-    G711FrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts, uint32_t pts = 0,int prefix_size = 0){
-        _ptr = ptr;
-        _size = size;
-        _dts = dts;
-        _prefix_size = prefix_size;
-    }
-
-    void setCodec(CodecId codecId){
-        _codecId = codecId;
-    }
-
-    CodecId getCodecId() const override{
-        return _codecId;
-    }
-
-    bool keyFrame() const override {
-        return false;
-    }
-
-    bool configFrame() const override{
-        return false;
-    }
-
-private:
-    CodecId _codecId;
-};
-
-/**
  * G711音频通道
  */
 class G711Track : public AudioTrackImp{

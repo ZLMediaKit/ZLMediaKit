@@ -14,15 +14,16 @@
 #if defined(ENABLE_RTPPROXY)
 
 #include "Rtsp/RtpReceiver.h"
-#include "RtpDecoder.h"
 #include "Decoder.h"
 #include "Common/Device.h"
 #include "Common/Stamp.h"
+#include "Http/HttpRequestSplitter.h"
+#include "Extension/CommonRtp.h"
 using namespace mediakit;
 
 namespace mediakit{
 
-class RtpProcess : public RtpReceiver , public RtpDecoder, public SockInfo, public MediaSinkInterface, public std::enable_shared_from_this<RtpProcess>{
+class RtpProcess : public HttpRequestSplitter, public RtpReceiver, public SockInfo, public MediaSinkInterface, public std::enable_shared_from_this<RtpProcess>{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     RtpProcess(const string &stream_id);
@@ -66,15 +67,19 @@ public:
 
 protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
-    void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp, int flags) override;
     void inputFrame(const Frame::Ptr &frame) override;
     void addTrack(const Track::Ptr & track) override;
     void resetTracks() override {};
 
-private:
-    void emitOnPublish();
+    const char *onSearchPacketTail(const char *data,int len) override;
+    int64_t onRecvHeader(const char *data,uint64_t len) override { return 0; };
 
 private:
+    void emitOnPublish();
+    void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp);
+
+private:
+    std::shared_ptr<CommonRtpDecoder> _rtp_decoder;
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_ps;
     std::shared_ptr<FILE> _save_file_video;

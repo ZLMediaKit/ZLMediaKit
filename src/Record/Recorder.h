@@ -16,6 +16,20 @@ using namespace std;
 namespace mediakit {
 class MediaSinkInterface;
 
+class RecordInfo {
+public:
+    time_t start_time;  // GMT 标准时间，单位秒
+    float time_len;     // 录像长度，单位秒
+    off_t file_size;    // 文件大小，单位 BYTE
+    string file_path;   // 文件路径
+    string file_name;   // 文件名称
+    string folder;      // 文件夹路径
+    string url;         // 播放路径
+    string app;         // 应用名称
+    string stream;      // 流 ID
+    string vhost;       // 虚拟主机
+};
+
 class Recorder{
 public:
     typedef enum {

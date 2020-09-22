@@ -286,7 +286,7 @@ vector<SdpTrack::Ptr> SdpParser::getAvailableTrack() const {
             continue;
         }
     }
-    return std::move(ret);
+    return ret;
 }
 
 string SdpParser::toString() const {
@@ -365,8 +365,10 @@ bool RtspUrl::setup(bool isSSL, const string &strUrl, const string &strUser, con
     return true;
 }
 
-std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &poller, const string &local_ip){
-    auto pSockRtp = std::make_shared<Socket>(poller);
+static void makeSockPair_l(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip){
+    auto &pSockRtp = pair.first;
+    auto &pSockRtcp = pair.second;
+
     if (!pSockRtp->bindUdpSock(0, local_ip.data())) {
         //分配端口失败
         throw runtime_error("open udp socket failed");
@@ -374,7 +376,6 @@ std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &polle
 
     //是否是偶数
     bool even_numbers = pSockRtp->get_local_port() % 2 == 0;
-    auto pSockRtcp = std::make_shared<Socket>(poller);
     if (!pSockRtcp->bindUdpSock(pSockRtp->get_local_port() + (even_numbers ? 1 : -1), local_ip.data())) {
         //分配端口失败
         throw runtime_error("open udp socket failed");
@@ -386,22 +387,21 @@ std::pair<Socket::Ptr, Socket::Ptr> makeSockPair_l(const EventPoller::Ptr &polle
         pSockRtp = pSockRtcp;
         pSockRtcp = tmp;
     }
-
-    return std::make_pair(pSockRtp, pSockRtcp);
 }
 
-std::pair<Socket::Ptr, Socket::Ptr> makeSockPair(const EventPoller::Ptr &poller, const string &local_ip){
-    int try_count = 0;
-    while (true) {
-        try {
-            return makeSockPair_l(poller, local_ip);
-        } catch (...) {
-            if (++try_count == 3) {
-                throw;
-            }
-            WarnL << "open udp socket failed, retry: " << try_count;
-        }
-    }
+ void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip){
+     int try_count = 0;
+     while (true) {
+         try {
+             makeSockPair_l(pair, local_ip);
+             break;
+         } catch (...) {
+             if (++try_count == 3) {
+                 throw;
+             }
+             WarnL << "open udp socket failed, retry: " << try_count;
+         }
+     }
 }
 
 string printSSRC(uint32_t ui32Ssrc) {
