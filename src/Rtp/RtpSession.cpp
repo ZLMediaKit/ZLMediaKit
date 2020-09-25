@@ -70,7 +70,7 @@ void RtpSession::onRtpPacket(const char *data, uint64_t len) {
         _process = RtpSelector::Instance().getProcess(_stream_id, true);
         _process->setListener(dynamic_pointer_cast<RtpSession>(shared_from_this()));
     }
-    _process->inputRtp(_sock, data + 2, len - 2, &addr);
+    _process->inputRtp(_sock, data + 4, len - 4, &addr);
     _ticker.resetTime();
 }
 

@@ -53,7 +53,7 @@ RtpProcess::RtpProcess(const string &stream_id) {
             });
         }
     }
-    _rtp_decoder = std::make_shared<CommonRtpDecoder>(CodecInvalid,  256 * 1024);
+    _rtp_decoder = std::make_shared<CommonRtpDecoder>(CodecInvalid,  64 * 1024);
     _rtp_decoder->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame){
         onRtpDecode((uint8_t *) frame->data(), frame->size(), frame->dts());
     }));
@@ -102,7 +102,13 @@ bool RtpProcess::inputRtp(const Socket::Ptr &sock, const char *data, int data_le
     }
 
     _total_bytes += data_len;
-    bool ret = handleOneRtp(0, TrackVideo, 90000, (unsigned char *) data, data_len);
+
+    std::string rtpStr(data, data_len);
+    if (rtpStr.data()[12] == 0x0d) {
+        rtpStr.erase(12, 1);
+    }
+
+    bool ret = handleOneRtp(0, TrackVideo, 90000, (unsigned char *) rtpStr.data(), rtpStr.size());
     if(dts_out){
         *dts_out = _dts;
     }
@@ -147,7 +153,6 @@ void RtpProcess::onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestam
     if(_save_file_ps){
         fwrite((uint8_t *)packet,bytes, 1, _save_file_ps.get());
     }
-
     if (!_decoder) {
         //创建解码器
         if (checkTS(packet, bytes)) {

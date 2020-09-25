@@ -10,6 +10,7 @@
 
 #if defined(ENABLE_RTPPROXY)
 #include "RtpSplitter.h"
+#include <string.h>
 namespace mediakit{
 
 RtpSplitter::RtpSplitter() {}
@@ -17,6 +18,16 @@ RtpSplitter::RtpSplitter() {}
 RtpSplitter::~RtpSplitter() {}
 
 const char *RtpSplitter::onSearchPacketTail(const char *data, int len) {
+    if (len < 256) {
+        //数据不够
+        return nullptr;
+    }
+    char hikHeader[4] = {0x01,0x00,0x01,0x00};
+
+    if (!strncmp(hikHeader, data, 4)) {
+        data = data + 256;
+        len = len - 256;
+    }
     if (data[0] == '$') {
         //可能是4个字节的rtp头
         return onSearchPacketTail_l(data + 2, len - 2);
@@ -41,6 +52,13 @@ const char *RtpSplitter::onSearchPacketTail_l(const char *data, int len) {
 }
 
 int64_t RtpSplitter::onRecvHeader(const char *data, uint64_t len) {
+    char hikHeader[4] = {0x01,0x00,0x01,0x00};
+
+    if (!strncmp(hikHeader, data, 4)) {
+        data = data + 258;
+        len = len - 258;
+    }
+
     onRtpPacket(data,len);
     return 0;
 }
