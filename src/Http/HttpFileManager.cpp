@@ -298,12 +298,6 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
     return true;
 }
 
-//字符串是否以xx结尾
-static bool end_of(const string &str, const string &substr){
-    auto pos = str.rfind(substr);
-    return pos != string::npos && pos == str.size() - substr.size();
-};
-
 //拦截hls的播放请求
 static bool emitHlsPlayed(const Parser &parser, const MediaInfo &mediaInfo, const HttpSession::HttpAccessPathInvoker &invoker,TcpSession &sender){
     //访问的hls.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
@@ -488,7 +482,7 @@ static string pathCat(const string &a, const string &b){
  * @param cb 回调对象
  */
 static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo &mediaInfo, const string &strFile, const HttpFileManager::invoker &cb) {
-    bool is_hls = end_of(strFile, kHlsSuffix);
+    bool is_hls = end_with(strFile, kHlsSuffix);
     bool file_exist = File::is_file(strFile.data());
     if (!is_hls && !file_exist) {
         //文件不存在且不是hls,那么直接返回404
