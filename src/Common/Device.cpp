@@ -166,5 +166,9 @@ void DevChannel::initAudio(const AudioInfo &info) {
     }
 }
 
+MediaOriginType DevChannel::getOriginType(MediaSource &sender) const {
+    return MediaOriginType::device_chn;
+}
+
 } /* namespace mediakit */
 

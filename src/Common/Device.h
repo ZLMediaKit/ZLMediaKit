@@ -129,6 +129,9 @@ public:
 #endif //ENABLE_FAAC
 
 private:
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+
+private:
 
 #ifdef ENABLE_X264
     std::shared_ptr<H264Encoder> _pH264Enc;

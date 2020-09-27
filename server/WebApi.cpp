@@ -397,6 +397,20 @@ void installWebApi() {
         item["stream"] = media->getId();
         item["readerCount"] = media->readerCount();
         item["totalReaderCount"] = media->totalReaderCount();
+        item["originType"] = (int) media->getOriginType();
+        item["originTypeStr"] = getOriginTypeString(media->getOriginType());
+        item["originUrl"] = media->getOriginUrl();
+        auto originSock = media->getOriginSock();
+        if (originSock) {
+            item["originSock"]["local_ip"] = originSock->get_local_ip();
+            item["originSock"]["local_port"] = originSock->get_local_port();
+            item["originSock"]["peer_ip"] = originSock->get_peer_ip();
+            item["originSock"]["peer_port"] = originSock->get_peer_port();
+            item["originSock"]["identifier"] = originSock->getIdentifier();
+        } else {
+            item["originSock"] = Json::nullValue;
+        }
+
         for(auto &track : media->getTracks()){
             Value obj;
             auto codec_type = track->getTrackType();

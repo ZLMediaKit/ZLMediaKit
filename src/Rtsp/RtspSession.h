@@ -74,11 +74,22 @@ protected:
     void onRtpPacket(const char *data, uint64_t len) override;
     //从rtsp头中获取Content长度
     int64_t getContentLength(Parser &parser) override;
+
     ////RtpReceiver override////
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) override;
-    ////MediaSourceEvent override////
-    bool close(MediaSource &sender, bool force) override ;
+
+    ///////MediaSourceEvent override///////
+    // 关闭
+    bool close(MediaSource &sender, bool force) override;
+    // 播放总人数
     int totalReaderCount(MediaSource &sender) override;
+    // 获取媒体源类型
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    // 获取媒体源url或者文件路径
+    string getOriginUrl(MediaSource &sender) const override;
+    // 获取媒体源客户端相关信息
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+
     /////TcpSession override////
     int send(const Buffer::Ptr &pkt) override;
     //收到RTCP包回调

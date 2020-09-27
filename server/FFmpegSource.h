@@ -58,8 +58,15 @@ private:
     void startTimer(int timeout_ms);
     void onGetMediaSource(const MediaSource::Ptr &src);
 
-    //MediaSourceEvent override
+    ///////MediaSourceEvent override///////
+    // 关闭
     bool close(MediaSource &sender,bool force) override;
+    // 获取媒体源类型
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    //获取媒体源url或者文件路径
+    string getOriginUrl(MediaSource &sender) const override;
+    // 获取媒体源客户端相关信息
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
 private:
     Process _process;
