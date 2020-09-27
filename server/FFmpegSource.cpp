@@ -245,6 +245,18 @@ bool FFmpegSource::close(MediaSource &sender, bool force) {
     return true;
 }
 
+MediaOriginType FFmpegSource::getOriginType(MediaSource &sender) const{
+    return MediaOriginType::ffmpeg_pull;
+}
+
+string FFmpegSource::getOriginUrl(MediaSource &sender) const{
+    return _src_url;
+}
+
+std::shared_ptr<SockInfo> FFmpegSource::getOriginSock(MediaSource &sender) const {
+    return nullptr;
+}
+
 void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
     auto listener = src->getListener();
     if (listener.lock().get() != this) {

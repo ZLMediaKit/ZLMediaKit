@@ -543,6 +543,18 @@ int RtmpSession::totalReaderCount(MediaSource &sender) {
     return _publisher_src ? _publisher_src->totalReaderCount() : sender.readerCount();
 }
 
+MediaOriginType RtmpSession::getOriginType(MediaSource &sender) const{
+    return MediaOriginType::rtmp_push;
+}
+
+string RtmpSession::getOriginUrl(MediaSource &sender) const {
+    return _media_info._full_url;
+}
+
+std::shared_ptr<SockInfo> RtmpSession::getOriginSock(MediaSource &sender) const {
+    return const_cast<RtmpSession *>(this)->shared_from_this();
+}
+
 void RtmpSession::setSocketFlags(){
     GET_CONFIG(int, merge_write_ms, General::kMergeWriteMS);
     if (merge_write_ms > 0) {

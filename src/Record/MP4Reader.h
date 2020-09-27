@@ -41,6 +41,8 @@ private:
     bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override;
     bool close(MediaSource &sender,bool force) override;
     int totalReaderCount(MediaSource &sender) override;
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    string getOriginUrl(MediaSource &sender) const override;
 
     bool readSample();
     uint32_t getCurrentStamp();
@@ -50,6 +52,7 @@ private:
 private:
     bool _have_video = false;
     uint32_t _seek_to;
+    string _file_path;
     recursive_mutex _mtx;
     Ticker _seek_ticker;
     Timer::Ptr _timer;

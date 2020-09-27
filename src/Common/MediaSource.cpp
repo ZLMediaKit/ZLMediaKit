@@ -19,6 +19,20 @@ namespace mediakit {
 recursive_mutex s_media_source_mtx;
 MediaSource::SchemaVhostAppStreamMap s_media_source_map;
 
+string getOriginTypeString(MediaOriginType type){
+#define SWITCH_CASE(type) case type : return #type
+    switch (type) {
+        SWITCH_CASE(MediaOriginType::unknown);
+        SWITCH_CASE(MediaOriginType::rtmp_push);
+        SWITCH_CASE(MediaOriginType::rtsp_push);
+        SWITCH_CASE(MediaOriginType::rtp_push);
+        SWITCH_CASE(MediaOriginType::pull);
+        SWITCH_CASE(MediaOriginType::ffmpeg_pull);
+        SWITCH_CASE(MediaOriginType::mp4_vod);
+        SWITCH_CASE(MediaOriginType::device_chn);
+    }
+}
+
 MediaSource::MediaSource(const string &schema, const string &vhost, const string &app, const string &stream_id){
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     if (!enableVhost) {
@@ -74,6 +88,30 @@ int MediaSource::totalReaderCount(){
         return readerCount();
     }
     return listener->totalReaderCount(*this);
+}
+
+MediaOriginType MediaSource::getOriginType() const {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return MediaOriginType::unknown;
+    }
+    return listener->getOriginType(const_cast<MediaSource &>(*this));
+}
+
+string MediaSource::getOriginUrl() const {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return "";
+    }
+    return listener->getOriginUrl(const_cast<MediaSource &>(*this));
+}
+
+std::shared_ptr<SockInfo> MediaSource::getOriginSock() const {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return nullptr;
+    }
+    return listener->getOriginSock(const_cast<MediaSource &>(*this));
 }
 
 bool MediaSource::seekTo(uint32_t stamp) {
@@ -365,6 +403,7 @@ bool MediaSource::unregist() {
 /////////////////////////////////////MediaInfo//////////////////////////////////////
 
 void MediaInfo::parse(const string &url_in){
+    _full_url = url_in;
     string url = url_in;
     auto pos = url.find("?");
     if (pos != string::npos) {
@@ -484,6 +523,30 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
         }
         return false;
     }, nullptr);
+}
+
+MediaOriginType MediaSourceEventInterceptor::getOriginType(MediaSource &sender) const {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return MediaOriginType::unknown;
+    }
+    return listener->getOriginType(sender);
+}
+
+string MediaSourceEventInterceptor::getOriginUrl(MediaSource &sender) const {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return "";
+    }
+    return listener->getOriginUrl(sender);
+}
+
+std::shared_ptr<SockInfo> MediaSourceEventInterceptor::getOriginSock(MediaSource &sender) const {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return nullptr;
+    }
+    return listener->getOriginSock(sender);
 }
 
 bool MediaSourceEventInterceptor::seekTo(MediaSource &sender, uint32_t stamp) {

@@ -194,6 +194,11 @@ public:
         }
         return Parent::getTracks(trackReady);
     }
+
+    std::shared_ptr<SockInfo> getSockInfo() const{
+        return dynamic_pointer_cast<SockInfo>(_delegate);
+    }
+
 protected:
     void onShutdown(const SockException &ex) override {
         if (_shutdownCB) {
