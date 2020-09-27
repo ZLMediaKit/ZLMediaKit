@@ -112,6 +112,7 @@ void PlayerProxy::play(const string &strUrlTmp) {
         }
     });
     MediaPlayer::play(strUrlTmp);
+    _pull_url = strUrlTmp;
 
     MediaSource::Ptr mediaSource;
     if(dynamic_pointer_cast<RtspPlayer>(_delegate)){
@@ -178,6 +179,18 @@ int PlayerProxy::totalReaderCount(){
 
 int PlayerProxy::totalReaderCount(MediaSource &sender) {
     return totalReaderCount();
+}
+
+MediaOriginType PlayerProxy::getOriginType(MediaSource &sender) const{
+    return MediaOriginType::pull;
+}
+
+string PlayerProxy::getOriginUrl(MediaSource &sender) const{
+    return _pull_url;
+}
+
+std::shared_ptr<SockInfo> PlayerProxy::getOriginSock(MediaSource &sender) const{
+    return getSockInfo();
 }
 
 class MuteAudioMaker : public FrameDispatcher{

@@ -1105,6 +1105,18 @@ int RtspSession::totalReaderCount(MediaSource &sender) {
     return _push_src ? _push_src->totalReaderCount() : sender.readerCount();
 }
 
+MediaOriginType RtspSession::getOriginType(MediaSource &sender) const{
+    return MediaOriginType::rtsp_push;
+}
+
+string RtspSession::getOriginUrl(MediaSource &sender) const {
+    return _media_info._full_url;
+}
+
+std::shared_ptr<SockInfo> RtspSession::getOriginSock(MediaSource &sender) const {
+    return const_cast<RtspSession *>(this)->shared_from_this();
+}
+
 inline void RtspSession::onSendRtpPacket(const RtpPacket::Ptr &pkt){
 #if RTSP_SERVER_SEND_RTCP
     int track_index = getTrackIndexByTrackType(pkt->type);

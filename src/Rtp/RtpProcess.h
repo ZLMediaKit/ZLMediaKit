@@ -26,6 +26,7 @@ namespace mediakit{
 class RtpProcess : public HttpRequestSplitter, public RtpReceiver, public SockInfo, public MediaSinkInterface, public std::enable_shared_from_this<RtpProcess>{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
+    friend class RtpProcessHelper;
     RtpProcess(const string &stream_id);
     ~RtpProcess();
 

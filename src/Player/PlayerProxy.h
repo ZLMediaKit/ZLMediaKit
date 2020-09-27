@@ -59,6 +59,10 @@ private:
     //MediaSourceEvent override
     bool close(MediaSource &sender,bool force) override;
     int totalReaderCount(MediaSource &sender) override;
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    string getOriginUrl(MediaSource &sender) const override;
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+
     void rePlay(const string &strUrl,int iFailedCnt);
     void onPlaySuccess();
 
@@ -69,6 +73,7 @@ private:
     string _vhost;
     string _app;
     string _stream_id;
+    string _pull_url;
     Timer::Ptr _timer;
     function<void()> _on_close;
     function<void(const SockException &ex)> _on_play;

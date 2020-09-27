@@ -22,6 +22,7 @@
 #include "Util/TimeTicker.h"
 #include "Util/NoticeCenter.h"
 #include "Util/List.h"
+#include "Network/Socket.h"
 #include "Rtsp/Rtsp.h"
 #include "Rtmp/Rtmp.h"
 #include "Extension/Track.h"
@@ -36,12 +37,32 @@ namespace toolkit{
 
 namespace mediakit {
 
+enum class MediaOriginType : uint8_t {
+    unknown = 0,
+    rtmp_push ,
+    rtsp_push,
+    rtp_push,
+    pull,
+    ffmpeg_pull,
+    mp4_vod,
+    device_chn
+};
+
+string getOriginTypeString(MediaOriginType type);
+
 class MediaSource;
 class MediaSourceEvent{
 public:
     friend class MediaSource;
     MediaSourceEvent(){};
     virtual ~MediaSourceEvent(){};
+
+    // 获取媒体源类型
+    virtual MediaOriginType getOriginType(MediaSource &sender) const { return MediaOriginType::unknown; }
+    // 获取媒体源url或者文件路径
+    virtual string getOriginUrl(MediaSource &sender) const { return ""; }
+    // 获取媒体源客户端相关信息
+    virtual std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const { return nullptr; }
 
     // 通知拖动进度条
     virtual bool seekTo(MediaSource &sender, uint32_t stamp) { return false; }
@@ -76,6 +97,10 @@ public:
     MediaSourceEventInterceptor(){}
     ~MediaSourceEventInterceptor() override {}
 
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    string getOriginUrl(MediaSource &sender) const override;
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+
     bool seekTo(MediaSource &sender, uint32_t stamp) override;
     bool close(MediaSource &sender, bool force) override;
     int totalReaderCount(MediaSource &sender) override;
@@ -102,6 +127,7 @@ public:
     void parse(const string &url);
 
 public:
+    string _full_url;
     string _schema;
     string _host;
     string _port;
@@ -155,6 +181,13 @@ public:
     virtual int readerCount() = 0;
     // 观看者个数，包括(hls/rtsp/rtmp)
     virtual int totalReaderCount();
+
+    // 获取媒体源类型
+    MediaOriginType getOriginType() const;
+    // 获取媒体源url或者文件路径
+    string getOriginUrl() const;
+    // 获取媒体源客户端相关信息
+    std::shared_ptr<SockInfo> getOriginSock() const;
 
     // 拖动进度条
     bool seekTo(uint32_t stamp);

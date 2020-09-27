@@ -109,6 +109,11 @@ public:
         }
         _shutdownCB = cb;
     }
+
+    std::shared_ptr<SockInfo> getSockInfo() const{
+        return dynamic_pointer_cast<SockInfo>(_delegate);
+    }
+
 protected:
     PusherBase::Event _shutdownCB;
     PusherBase::Event _publishCB;
