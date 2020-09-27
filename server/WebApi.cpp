@@ -903,6 +903,20 @@ void installWebApi() {
         val["local_ip"] = process->get_local_ip();
     });
 
+    api_regist1("/index/api/setRtpPause", [](API_ARGS1){
+        CHECK_SECRET();
+        CHECK_ARGS("stream_id", "pause");
+
+        auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        if (!process) {
+            val["code"] = "-1";
+            return;
+        }
+
+        auto pause = allArgs["pause"];
+        process->setRtpPause(pause);
+    });
+
     api_regist1("/index/api/openRtpServer",[](API_ARGS1){
         CHECK_SECRET();
         CHECK_ARGS("port", "enable_tcp", "stream_id");

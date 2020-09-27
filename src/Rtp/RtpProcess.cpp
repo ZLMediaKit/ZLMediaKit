@@ -180,6 +180,15 @@ void  RtpProcess::addTrack(const Track::Ptr & track){
 }
 
 bool RtpProcess::alive() {
+    if(_paused) {
+        if(_pause_rtp_time.elapsedTime()/ 1000 < 180){
+            return true;
+        }else {
+            WarnL << _media_info._streamid << ", pause timeout.";
+            return false;
+        }
+    }
+
     GET_CONFIG(int,timeoutSec,RtpProxy::kTimeoutSec)
     if(_last_rtp_time.elapsedTime() / 1000 < timeoutSec){
         return true;
@@ -239,6 +248,12 @@ void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
     }else{
         _listener = listener;
     }
+}
+
+void RtpProcess::setRtpPause(bool pause)
+{
+    _paused = pause;
+    _pause_rtp_time.resetTime();
 }
 
 void RtpProcess::emitOnPublish() {

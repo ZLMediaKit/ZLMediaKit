@@ -66,6 +66,11 @@ public:
     int totalReaderCount();
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
+    /*
+     * 设置rtp流暂停
+     */
+    void setRtpPause(bool pause);
+
 protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
     void inputFrame(const Frame::Ptr &frame) override;
@@ -95,6 +100,9 @@ private:
     uint64_t _total_bytes = 0;
     Socket::Ptr _sock;
     function<void()> _on_detach;
+
+    bool _paused = false;
+    Ticker _pause_rtp_time;
 };
 
 }//namespace mediakit
