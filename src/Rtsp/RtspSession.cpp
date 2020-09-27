@@ -126,12 +126,6 @@ void RtspSession::onRecv(const Buffer::Ptr &buf) {
     }
 }
 
-//字符串是否以xx结尾
-static inline bool end_of(const string &str, const string &substr){
-    auto pos = str.rfind(substr);
-    return pos != string::npos && pos == str.size() - substr.size();
-}
-
 void RtspSession::onWholeRtspPacket(Parser &parser) {
     string method = parser.Method(); //提取出请求命令字
     _cseq = atoi(parser["CSeq"].data());
@@ -224,7 +218,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     }
 
     auto full_url = parser.FullUrl();
-    if(end_of(full_url,".sdp")){
+    if(end_with(full_url,".sdp")){
         //去除.sdp后缀，防止EasyDarwin推流器强制添加.sdp后缀
         full_url = full_url.substr(0,full_url.length() - 4);
         _media_info.parse(full_url);

@@ -32,6 +32,8 @@
 
 
 ## 功能清单
+### 功能一览
+<img width="800" alt="图片" src="https://user-images.githubusercontent.com/11495632/93857284-f15b5f00-fcec-11ea-894d-83eb656dc235.png">
 
 - RTSP[S]
   - RTSP[S] 服务器，支持RTMP/MP4/HLS转RTSP[S],支持亚马逊echo show这样的设备
