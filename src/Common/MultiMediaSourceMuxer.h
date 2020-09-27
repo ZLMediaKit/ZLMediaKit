@@ -59,7 +59,9 @@ private:
     HlsRecorder::Ptr _hls;
     MediaSinkInterface::Ptr _mp4;
     TSMediaSourceMuxer::Ptr _ts;
+#if defined(ENABLE_MP4)
     FMP4MediaSourceMuxer::Ptr _fmp4;
+#endif
     std::weak_ptr<MediaSourceEvent> _listener;
 };
 

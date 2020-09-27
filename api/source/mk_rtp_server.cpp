@@ -9,6 +9,10 @@
  */
 
 #include "mk_rtp_server.h"
+#include "Util/logger.h"
+using namespace toolkit;
+
+#if defined(ENABLE_RTPPROXY)
 #include "Rtp/RtpServer.h"
 using namespace mediakit;
 
@@ -38,3 +42,25 @@ API_EXPORT void API_CALL mk_rtp_server_set_on_detach(mk_rtp_server ctx, on_mk_rt
         (*server)->setOnDetach(nullptr);
     }
 }
+
+#else
+
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int enable_tcp, const char *stream_id){
+    WarnL << "请打开ENABLE_RTPPROXY后再编译";
+    return nullptr;
+}
+
+API_EXPORT void API_CALL mk_rtp_server_release(mk_rtp_server ctx){
+    WarnL << "请打开ENABLE_RTPPROXY后再编译";
+}
+
+API_EXPORT uint16_t API_CALL mk_rtp_server_port(mk_rtp_server ctx){
+    WarnL << "请打开ENABLE_RTPPROXY后再编译";
+    return 0;
+}
+
+API_EXPORT void API_CALL mk_rtp_server_set_on_detach(mk_rtp_server ctx, on_mk_rtp_server_detach cb, void *user_data){
+    WarnL << "请打开ENABLE_RTPPROXY后再编译";
+}
+
+#endif

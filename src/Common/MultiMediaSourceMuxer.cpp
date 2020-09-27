@@ -34,7 +34,10 @@ MultiMuxerPrivate::MultiMuxerPrivate(const string &vhost, const string &app, con
     }
 
     _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
+
+#if defined(ENABLE_MP4)
     _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(vhost, app, stream);
+#endif
 }
 
 void MultiMuxerPrivate::resetTracks() {
@@ -47,9 +50,11 @@ void MultiMuxerPrivate::resetTracks() {
     if (_ts) {
         _ts->resetTracks();
     }
+#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->resetTracks();
     }
+#endif
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     auto hls = _hls;
@@ -74,9 +79,11 @@ void MultiMuxerPrivate::setMediaListener(const std::weak_ptr<MediaSourceEvent> &
     if (_ts) {
         _ts->setListener(listener);
     }
+#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->setListener(listener);
     }
+#endif
     auto hls = _hls;
     if (hls) {
         hls->setListener(listener);
@@ -88,7 +95,9 @@ int MultiMuxerPrivate::totalReaderCount() const {
     return (_rtsp ? _rtsp->readerCount() : 0) +
            (_rtmp ? _rtmp->readerCount() : 0) +
            (_ts ? _ts->readerCount() : 0) +
+#if defined(ENABLE_MP4)
            (_fmp4 ? _fmp4->readerCount() : 0) +
+#endif
            (hls ? hls->readerCount() : 0);
 }
 
@@ -167,9 +176,11 @@ void MultiMuxerPrivate::onTrackReady(const Track::Ptr &track) {
     if (_ts) {
         _ts->addTrack(track);
     }
+#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->addTrack(track);
     }
+#endif
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     auto hls = _hls;
@@ -187,7 +198,9 @@ bool MultiMuxerPrivate::isEnabled(){
     return (_rtmp ? _rtmp->isEnabled() : false) ||
            (_rtsp ? _rtsp->isEnabled() : false) ||
            (_ts ? _ts->isEnabled() : false) ||
+#if defined(ENABLE_MP4)
            (_fmp4 ? _fmp4->isEnabled() : false) ||
+#endif
            (hls ? hls->isEnabled() : false) || _mp4;
 }
 
@@ -201,9 +214,11 @@ void MultiMuxerPrivate::onTrackFrame(const Frame::Ptr &frame) {
     if (_ts) {
         _ts->inputFrame(frame);
     }
+#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->inputFrame(frame);
     }
+#endif
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     //此处使用智能指针拷贝来确保线程安全，比互斥锁性能更优
@@ -254,9 +269,11 @@ void MultiMuxerPrivate::onAllTrackReady() {
     if (_rtsp) {
         _rtsp->onAllTrackReady();
     }
+#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->onAllTrackReady();
     }
+#endif
     if (_track_listener) {
         _track_listener->onAllTrackReady();
     }
