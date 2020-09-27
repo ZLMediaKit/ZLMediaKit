@@ -11,6 +11,8 @@
 #ifndef ZLMEDIAKIT_FMP4MEDIASOURCEMUXER_H
 #define ZLMEDIAKIT_FMP4MEDIASOURCEMUXER_H
 
+#if defined(ENABLE_MP4)
+
 #include "FMP4MediaSource.h"
 #include "Record/MP4Muxer.h"
 
@@ -82,4 +84,6 @@ private:
 };
 
 }//namespace mediakit
+
+#endif// defined(ENABLE_MP4)
 #endif //ZLMEDIAKIT_FMP4MEDIASOURCEMUXER_H
