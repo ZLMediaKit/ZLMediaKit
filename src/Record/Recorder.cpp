@@ -46,8 +46,15 @@ string Recorder::getRecordPath(Recorder::type type, const string &vhost, const s
             }
             //Here we use the customized file path.
             if (!customized_path.empty()) {
-                mp4FilePath = customized_path + "/";
+                /*开始删除*/
+                // mp4FilePath = customized_path + "/";
+                /*删除结束*/
+                /*开始添加*/
+				//@子悦，你上次说这里为了安全不能跳出目录，但实际操作过程中因为存储挂载位置不由流媒体决定，为了方便保存到挂载存储上，我这边做成可以跳出自已目录，你看是否合适，或者有其他办法可以处理这事
+                return  customized_path + "/"+mp4FilePath;
+                /*开始添加*/
             }
+
             return File::absolutePath(mp4FilePath, recordPath);
         }
         default:
