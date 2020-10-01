@@ -18,25 +18,6 @@
 using namespace toolkit;
 
 namespace mediakit {
-    string generalGuid() {
-        srand(time(0));
-        std::string random_str("");
-        for (int i = 0; i < 6; ++i) {
-            for (int j = 0; j < 8; j++)
-                switch (rand() % 2) {
-                    case 1:
-                        random_str += ('A' + rand() % 26);
-                        break;
-                    default:
-                        random_str += ('0' + rand() % 10);
-                        break;
-                }
-            if (i < 5)
-                random_str += "-";
-        }
-
-        return random_str;
-    }
 
 bool loadIniConfig(const char *ini_path){
     string ini;
@@ -100,7 +81,7 @@ onceToken token([](){
     mINI::Instance()[kPublishToMP4] = 0;
     mINI::Instance()[kMergeWriteMS] = 0;
     mINI::Instance()[kModifyStamp] = 0;
-    mINI::Instance()[kMediaServerId] = generalGuid();
+    mINI::Instance()[kMediaServerId] = makeRandStr(16);
 },nullptr);
 
 }//namespace General
