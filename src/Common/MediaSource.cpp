@@ -66,6 +66,10 @@ const string& MediaSource::getId() const {
     return _stream_id;
 }
 
+int MediaSource::getBytesSpeed(){
+    return _speed.getSpeed();
+}
+
 vector<Track::Ptr> MediaSource::getTracks(bool ready) const {
     auto listener = _listener.lock();
     if(!listener){

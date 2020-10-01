@@ -395,6 +395,7 @@ void installWebApi() {
         item["vhost"] = media->getVhost();
         item["app"] = media->getApp();
         item["stream"] = media->getId();
+        item["bytes_speed"] = media->getBytesSpeed();
         item["readerCount"] = media->readerCount();
         item["totalReaderCount"] = media->totalReaderCount();
         item["originType"] = (int) media->getOriginType();

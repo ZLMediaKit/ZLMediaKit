@@ -99,6 +99,7 @@ public:
         if (key) {
             _have_video = true;
         }
+        _speed += packet->size();
         PacketCache<FMP4Packet, FMP4FlushPolicy>::inputPacket(true, packet, key);
     }
 
