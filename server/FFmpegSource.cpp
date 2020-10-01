@@ -276,20 +276,27 @@ void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float
     GET_CONFIG(string,ffmpeg_bin,FFmpeg::kBin);
     GET_CONFIG(string,ffmpeg_snap,FFmpeg::kSnap);
     GET_CONFIG(string,ffmpeg_log,FFmpeg::kLog);
-
-    std::shared_ptr<Process> process = std::make_shared<Process>();
-    auto delayTask = EventPollerPool::Instance().getPoller()->doDelayTask(timeout_sec * 1000,[process,cb](){
-        if(process->wait(false)){
-            //FFmpeg进程还在运行，超时就关闭它
-            process->kill(2000);
+    Ticker ticker;
+    WorkThreadPool::Instance().getPoller()->async([timeout_sec, play_url,save_path,cb, ticker](){
+        auto elapsed_ms = ticker.elapsedTime();
+        if (elapsed_ms > timeout_sec * 1000) {
+            //超时，后台线程负载太高，当代太久才启动该任务
+            cb(false);
+            return;
         }
-        return 0;
-    });
-
-    WorkThreadPool::Instance().getPoller()->async([process,play_url,save_path,delayTask,cb](){
         char cmd[1024] = {0};
         snprintf(cmd, sizeof(cmd),ffmpeg_snap.data(),ffmpeg_bin.data(),play_url.data(),save_path.data());
+        std::shared_ptr<Process> process = std::make_shared<Process>();
         process->run(cmd,ffmpeg_log.empty() ? "" : File::absolutePath("",ffmpeg_log));
+        //定时器延时应该减去后台任务启动的延时
+        auto delayTask = EventPollerPool::Instance().getPoller()->doDelayTask(timeout_sec * 1000 - elapsed_ms,[process,cb](){
+            if(process->wait(false)){
+                //FFmpeg进程还在运行，超时就关闭它
+                process->kill(2000);
+            }
+            return 0;
+        });
+
         //等待FFmpeg进程退出
         process->wait(true);
         //FFmpeg进程退出了可以取消定时器了
