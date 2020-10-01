@@ -20,12 +20,9 @@
 namespace mediakit {
 
 RtpReceiver::RtpReceiver() {
-    GET_CONFIG(uint32_t, clearCount, Rtp::kClearCount);
-    GET_CONFIG(uint32_t, maxRtpCount, Rtp::kMaxRtpCount);
     int index = 0;
     for (auto &sortor : _rtp_sortor) {
-        sortor.setup(maxRtpCount, clearCount);
-        sortor.setOnSort([this, index](uint16_t seq, const RtpPacket::Ptr &packet) {
+        sortor.setOnSort([this, index](uint16_t seq, RtpPacket::Ptr &packet) {
             onRtpSorted(packet, index);
         });
         ++index;
@@ -34,7 +31,7 @@ RtpReceiver::RtpReceiver() {
 RtpReceiver::~RtpReceiver() {}
 
 bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len) {
-    if(rtp_raw_len < 12){
+    if (rtp_raw_len < 12) {
         WarnL << "rtp包太小:" << rtp_raw_len;
         return false;
     }
@@ -65,7 +62,7 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     memcpy(&rtp.timeStamp, rtp_raw_ptr + 4, 4);
     rtp.timeStamp = ntohl(rtp.timeStamp);
 
-    if(!samplerate){
+    if (!samplerate) {
         //无法把时间戳转换成毫秒
         return false;
     }
@@ -80,7 +77,7 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
         if (_ssrc[track_index] == 0) {
             //保存SSRC至track对象
             _ssrc[track_index] = rtp.ssrc;
-        }else{
+        } else {
             //ssrc错误
             WarnL << "ssrc错误:" << rtp.ssrc << " != " << _ssrc[track_index];
             if (_ssrc_err_count[track_index]++ > 10) {
@@ -97,22 +94,22 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     _ssrc_err_count[track_index] = 0;
 
     //获取rtp中媒体数据偏移量
-    rtp.offset 	= 12 + 4;
-    int csrc     	= rtp_raw_ptr[0] & 0x0f;
-    int ext      	= rtp_raw_ptr[0] & 0x10;
-    rtp.offset 	+= 4 * csrc;
+    rtp.offset = 12 + 4;
+    int csrc = rtp_raw_ptr[0] & 0x0f;
+    int ext = rtp_raw_ptr[0] & 0x10;
+    rtp.offset += 4 * csrc;
     if (ext && rtp_raw_len >= rtp.offset) {
         /* calculate the header extension length (stored as number of 32-bit words) */
         ext = (AV_RB16(rtp_raw_ptr + rtp.offset - 2) + 1) << 2;
         rtp.offset += ext;
     }
 
-    if(rtp_raw_len + 4 <= rtp.offset){
-        WarnL << "无有效负载的rtp包:" << rtp_raw_len << " <= " << (int)rtp.offset;
+    if (rtp_raw_len + 4 <= rtp.offset) {
+        WarnL << "无有效负载的rtp包:" << rtp_raw_len << " <= " << (int) rtp.offset;
         return false;
     }
 
-    if(rtp_raw_len > RTP_MAX_SIZE){
+    if (rtp_raw_len > RTP_MAX_SIZE) {
         WarnL << "超大的rtp包:" << rtp_raw_len << " > " << RTP_MAX_SIZE;
         return false;
     }
@@ -120,7 +117,7 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     //设置rtp负载长度
     rtp.setCapacity(rtp_raw_len + 4);
     rtp.setSize(rtp_raw_len + 4);
-    uint8_t *payload_ptr = (uint8_t *)rtp.data();
+    uint8_t *payload_ptr = (uint8_t *) rtp.data();
     payload_ptr[0] = '$';
     payload_ptr[1] = rtp.interleaved;
     payload_ptr[2] = rtp_raw_len >> 8;
@@ -128,7 +125,7 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     //拷贝rtp负载
     memcpy(payload_ptr + 4, rtp_raw_ptr, rtp_raw_len);
     //排序rtp
-    sortRtp(rtp_ptr,track_index);
+    sortRtp(std::move(rtp_ptr), track_index);
     return true;
 }
 
