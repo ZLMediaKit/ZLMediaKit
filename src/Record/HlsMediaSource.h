@@ -79,6 +79,10 @@ public:
         _list_cb.emplace_back(std::move(cb));
     }
 
+    void onSegmentSize(uint64_t bytes) {
+        _speed += bytes;
+    }
+
 private:
     bool _is_regist = false;
     RingType::Ptr _ring;

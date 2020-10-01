@@ -76,6 +76,7 @@ public:
      * @param key 是否为关键帧第一个包
      */
     void onWrite(const TSPacket::Ptr &packet, bool key) override {
+        _speed += packet->size();
         if (!_ring) {
             createRing();
         }
