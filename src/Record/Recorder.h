@@ -45,7 +45,7 @@ public:
      * @param vhost 虚拟主机
      * @param app 应用名
      * @param stream_id 流id
-     * @param customized_path 录像文件保存自定义目录，默认为空则自动生成
+     * @param customized_path 录像文件保存自定义根目录，为空则采用配置文件设置
      * @return  录制文件绝对路径
      */
     static string getRecordPath(type type, const string &vhost, const string &app, const string &stream_id,const string &customized_path = "");
@@ -56,7 +56,7 @@ public:
      * @param vhost 虚拟主机
      * @param app 应用名
      * @param stream_id 流id
-     * @param customized_path 录像文件保存自定义目录，默认为空则自动生成
+     * @param customized_path 录像文件保存自定义根目录，为空则采用配置文件设置
      * @return 对象指针，可能为nullptr
      */
     static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path = "");
@@ -77,7 +77,7 @@ public:
      * @param vhost 虚拟主机
      * @param app 应用名
      * @param stream_id 流id
-     * @param customized_path 录像文件保存自定义目录，默认为空则自动生成
+     * @param customized_path 录像文件保存自定义根目录，为空则采用配置文件设置
      * @return 成功与否
      */
     static bool startRecord(type type, const string &vhost, const string &app, const string &stream_id,const string &customized_path);
