@@ -144,6 +144,8 @@ bash build_docker_images.sh
  - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
  - [基于C SDK实现的推流客户端](https://github.com/hctym1995/ZLM_ApiDemo)
  - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
+ - [一个非常漂亮的可视化后台管理系统](https://github.com/MingZhuLiu/ZLMediaServerManagent)
+ - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/StreamNode)
  
 
 ## 授权协议
