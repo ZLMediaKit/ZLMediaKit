@@ -154,6 +154,8 @@ extern const string kBroadcastReloadConfig;
 
 ////////////通用配置///////////
 namespace General{
+//每个流媒体服务器的ID（GUID）
+extern const string kMediaServerId;
 //流量汇报事件流量阈值,单位KB，默认1MB
 extern const string kFlowThreshold;
 //流无人观看并且超过若干时间后才触发kBroadcastStreamNoneReader事件

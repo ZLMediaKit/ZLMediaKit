@@ -198,7 +198,8 @@ void FFmpegSource::startTimer(int timeout_ms) {
                 //同步查找流
                 if (!src) {
                     //流不在线，重新拉流
-                    if(strongSelf->_replay_ticker.elapsedTime() > 10 * 1000){
+					//@子悦，这里原先是10秒超时，实际发现10秒不够，我改成20秒了
+                    if(strongSelf->_replay_ticker.elapsedTime() > 20 * 1000){
                         //上次重试时间超过10秒，那么再重试FFmpeg拉流
                         strongSelf->_replay_ticker.resetTime();
                         strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [](const SockException &) {});
