@@ -130,7 +130,7 @@ const char *getContentType(const HttpArgs &value){
 
 static void do_http_hook(const string &url,const ArgsType &body,const function<void(const Value &,const string &)> &fun){
     GET_CONFIG(string,mediaServerId,General::kMediaServerId);
-    const_cast<ArgsType &>(body)["mediaserverid"] =  mediaServerId;
+    const_cast<ArgsType &>(body)["mediaServerId"] =  mediaServerId;
 
     GET_CONFIG(float,hook_timeoutSec,Hook::kTimeoutSec);
     HttpRequester::Ptr requester(new HttpRequester);
