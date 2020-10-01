@@ -133,20 +133,21 @@ bash build_docker_images.sh
 
 ## 参考案例
 
- - [IOS摄像头实时录制,生成rtsp/rtmp/hls/http-flv](https://gitee.com/xia-chu/IOSMedia)
- - [IOS rtmp/rtsp播放器，视频推流器](https://gitee.com/xia-chu/IOSPlayer)
- - [支持linux、windows、mac的rtmp/rtsp播放器](https://github.com/xia-chu/ZLMediaPlayer)
- - [基于ZLMediaKit分支的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
- - [基于ZLMediaKit主线的管理WEB网站](https://gitee.com/kkkkk5G/MediaServerUI)
- - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
- - [C#版本的Http API与Hook](https://github.com/chengxiaosheng/ZLMediaKit.HttpApi)
- - [GB28181-2016网络视频平台](https://github.com/swwheihei/wvp)
- - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
- - [基于C SDK实现的推流客户端](https://github.com/hctym1995/ZLM_ApiDemo)
- - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
- - [一个非常漂亮的可视化后台管理系统](https://github.com/MingZhuLiu/ZLMediaServerManagent)
- - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/StreamNode)
- 
+ - 可视化管理网站
+    - [一个非常漂亮的可视化后台管理系统](https://github.com/MingZhuLiu/ZLMediaServerManagent)
+    - [基于ZLMediaKit主线的管理WEB网站](https://gitee.com/kkkkk5G/MediaServerUI) 
+    - [基于ZLMediaKit分支的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
+    
+ - 流媒体管理平台
+   - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/StreamNode)
+   - [GB28181-2016网络视频平台](https://github.com/swwheihei/wvp)
+   - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
+   - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
+
+ - 客户端
+   - [基于C SDK实现的推流客户端](https://github.com/hctym1995/ZLM_ApiDemo)
+   - [C#版本的Http API与Hook](https://github.com/chengxiaosheng/ZLMediaKit.HttpApi)
+   - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
 
 ## 授权协议
 
