@@ -11,11 +11,6 @@
 #include "Common/config.h"
 #include "RtpReceiver.h"
 
-#define POP_HEAD(trackidx) \
-        auto it = _rtp_sort_cache_map[trackidx].begin(); \
-        onRtpSorted(it->second, trackidx); \
-        _rtp_sort_cache_map[trackidx].erase(it);
-
 #define AV_RB16(x)                           \
     ((((const uint8_t*)(x))[0] << 8) |          \
       ((const uint8_t*)(x))[1])
@@ -24,7 +19,18 @@
 
 namespace mediakit {
 
-RtpReceiver::RtpReceiver() {}
+RtpReceiver::RtpReceiver() {
+    GET_CONFIG(uint32_t, clearCount, Rtp::kClearCount);
+    GET_CONFIG(uint32_t, maxRtpCount, Rtp::kMaxRtpCount);
+    int index = 0;
+    for (auto &sortor : _rtp_sortor) {
+        sortor.setup(maxRtpCount, clearCount);
+        sortor.setOnSort([this, index](uint16_t seq, const RtpPacket::Ptr &packet) {
+            onRtpSorted(packet, index);
+        });
+        ++index;
+    }
+}
 RtpReceiver::~RtpReceiver() {}
 
 bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len) {
@@ -80,7 +86,7 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
             if (_ssrc_err_count[track_index]++ > 10) {
                 //ssrc切换后清除老数据
                 WarnL << "ssrc更换:" << _ssrc[track_index] << " -> " << rtp.ssrc;
-                _rtp_sort_cache_map[track_index].clear();
+                _rtp_sortor[track_index].clear();
                 _ssrc[track_index] = rtp.ssrc;
             }
             return false;
@@ -127,56 +133,15 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
 }
 
 void RtpReceiver::sortRtp(const RtpPacket::Ptr &rtp,int track_index){
-    if(rtp->sequence != _last_seq[track_index] + 1 && _last_seq[track_index] != 0){
-        //包乱序或丢包
-        _seq_ok_count[track_index] = 0;
-        _sort_started[track_index] = true;
-        if(_last_seq[track_index] > rtp->sequence && _last_seq[track_index] - rtp->sequence > 0xFF){
-            //sequence回环，清空所有排序缓存
-            while (_rtp_sort_cache_map[track_index].size()) {
-                POP_HEAD(track_index)
-            }
-            ++_seq_cycle_count[track_index];
-        }
-    }else{
-        //正确序列的包
-        _seq_ok_count[track_index]++;
-    }
-
-    _last_seq[track_index] = rtp->sequence;
-
-    //开始排序缓存
-    if (_sort_started[track_index]) {
-        _rtp_sort_cache_map[track_index].emplace(rtp->sequence, rtp);
-        GET_CONFIG(uint32_t,clearCount,Rtp::kClearCount);
-        GET_CONFIG(uint32_t,maxRtpCount,Rtp::kMaxRtpCount);
-        if (_seq_ok_count[track_index] >= clearCount) {
-            //网络环境改善，需要清空排序缓存
-            _seq_ok_count[track_index] = 0;
-            _sort_started[track_index] = false;
-            while (_rtp_sort_cache_map[track_index].size()) {
-                POP_HEAD(track_index)
-            }
-        } else if (_rtp_sort_cache_map[track_index].size() >= maxRtpCount) {
-            //排序缓存溢出
-            POP_HEAD(track_index)
-        }
-    }else{
-        //正确序列
-        onRtpSorted(rtp, track_index);
-    }
+    _rtp_sortor[track_index].sortPacket(rtp->sequence, rtp);
 }
 
 void RtpReceiver::clear() {
-    CLEAR_ARR(_last_seq);
     CLEAR_ARR(_ssrc);
     CLEAR_ARR(_ssrc_err_count);
-    CLEAR_ARR(_seq_ok_count);
-    CLEAR_ARR(_sort_started);
-    CLEAR_ARR(_seq_cycle_count);
-
-    _rtp_sort_cache_map[0].clear();
-    _rtp_sort_cache_map[1].clear();
+    for (auto &sortor : _rtp_sortor) {
+        sortor.clear();
+    }
 }
 
 void RtpReceiver::setPoolSize(int size) {
@@ -184,11 +149,11 @@ void RtpReceiver::setPoolSize(int size) {
 }
 
 int RtpReceiver::getJitterSize(int track_index){
-    return _rtp_sort_cache_map[track_index].size();
+    return _rtp_sortor[track_index].getJitterSize();
 }
 
 int RtpReceiver::getCycleCount(int track_index){
-    return _seq_cycle_count[track_index];
+    return _rtp_sortor[track_index].getCycleCount();
 }
 
 
