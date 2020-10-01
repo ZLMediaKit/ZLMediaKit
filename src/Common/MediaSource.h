@@ -218,6 +218,10 @@ public:
 
     // 获取数据速率，单位bytes/s
     int getBytesSpeed();
+    // 获取流创建GMT unix时间戳，单位秒
+    uint64_t getCreateStamp() const;
+    // 获取流上线时间，单位秒
+    uint64_t getAliveSecond() const;
 
     ////////////////MediaSourceEvent相关接口实现////////////////
 
@@ -282,6 +286,8 @@ protected:
     BytesSpeed _speed;
 
 private:
+    time_t _create_stamp;
+    Ticker _ticker;
     string _schema;
     string _vhost;
     string _app;
