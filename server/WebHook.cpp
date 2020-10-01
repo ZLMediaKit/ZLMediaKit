@@ -158,6 +158,8 @@ static void do_http_hook(const string &url,const ArgsType &body,const function<v
 
 static ArgsType make_json(const MediaInfo &args){
     ArgsType body;
+    GET_CONFIG(string,mediaServerId,General::kMediaServerId);
+    body["mediaserverid"] =  mediaServerId;
     body["schema"] = args._schema;
     body["vhost"] = args._vhost;
     body["app"] = args._app;
@@ -319,6 +321,8 @@ void installWebHook(){
             return;
         }
         ArgsType body;
+        GET_CONFIG(string,mediaServerId,General::kMediaServerId);
+        body["mediaserverid"] =  mediaServerId;
         body["regist"] = bRegist;
         body["schema"] = sender.getSchema();
         body["vhost"] = sender.getVhost();
@@ -344,6 +348,8 @@ void installWebHook(){
 
     static auto getRecordInfo = [](const RecordInfo &info) {
         ArgsType body;
+		GET_CONFIG(string,mediaServerId,General::kMediaServerId);
+    	body["mediaserverid"] =  mediaServerId;
         body["start_time"] = (Json::UInt64) info.start_time;
         body["file_size"] = (Json::UInt64) info.file_size;
         body["time_len"] = info.time_len;
@@ -382,6 +388,8 @@ void installWebHook(){
             return;
         }
         ArgsType body;
+        GET_CONFIG(string,mediaServerId,General::kMediaServerId);
+        body["mediaserverid"] =  mediaServerId;
         body["ip"] = sender.get_peer_ip();
         body["port"] = sender.get_peer_port();
         body["id"] = sender.getIdentifier();
@@ -400,6 +408,8 @@ void installWebHook(){
         }
 
         ArgsType body;
+        GET_CONFIG(string,mediaServerId,General::kMediaServerId);
+        body["mediaserverid"] =  mediaServerId;
         body["schema"] = sender.getSchema();
         body["vhost"] = sender.getVhost();
         body["app"] = sender.getApp();
@@ -445,6 +455,8 @@ void installWebHook(){
         }
 
         ArgsType body;
+        GET_CONFIG(string,mediaServerId,General::kMediaServerId);
+        body["mediaserverid"] =  mediaServerId;
         body["ip"] = sender.get_peer_ip();
         body["port"] = sender.get_peer_port();
         body["id"] = sender.getIdentifier();
