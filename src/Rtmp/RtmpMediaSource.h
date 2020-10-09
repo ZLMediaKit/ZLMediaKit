@@ -119,6 +119,7 @@ public:
      * @param pkt rtmp包
      */
     void onWrite(const RtmpPacket::Ptr &pkt, bool = true) override {
+        _speed += pkt->size();
         //保存当前时间戳
         switch (pkt->type_id) {
             case MSG_VIDEO : _track_stamps[TrackVideo] = pkt->time_stamp, _have_video = true; break;

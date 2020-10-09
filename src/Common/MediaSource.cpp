@@ -43,6 +43,7 @@ MediaSource::MediaSource(const string &schema, const string &vhost, const string
     _schema = schema;
     _app = app;
     _stream_id = stream_id;
+    _create_stamp = time(NULL);
 }
 
 MediaSource::~MediaSource() {
@@ -64,6 +65,19 @@ const string& MediaSource::getApp() const {
 
 const string& MediaSource::getId() const {
     return _stream_id;
+}
+
+int MediaSource::getBytesSpeed(){
+    return _speed.getSpeed();
+}
+
+uint64_t MediaSource::getCreateStamp() const {
+    return _create_stamp;
+}
+
+uint64_t MediaSource::getAliveSecond() const {
+    //使用Ticker对象获取存活时间的目的是防止修改系统时间导致回退
+    return _ticker.createdTime() / 1000;
 }
 
 vector<Track::Ptr> MediaSource::getTracks(bool ready) const {

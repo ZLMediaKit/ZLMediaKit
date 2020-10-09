@@ -403,6 +403,9 @@ void installWebApi() {
         item["vhost"] = media->getVhost();
         item["app"] = media->getApp();
         item["stream"] = media->getId();
+        item["createStamp"] = (Json::UInt64) media->getCreateStamp();
+        item["aliveSecond"] = (Json::UInt64) media->getAliveSecond();
+        item["bytesSpeed"] = media->getBytesSpeed();
         item["readerCount"] = media->readerCount();
         item["totalReaderCount"] = media->totalReaderCount();
         item["originType"] = (int) media->getOriginType();

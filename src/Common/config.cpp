@@ -60,6 +60,7 @@ const string kBroadcaseProxyPusherFailed = "kBroadcaseProxyPusherFailed";
 //通用配置项目
 namespace General{
 #define GENERAL_FIELD "general."
+const string kMediaServerId = GENERAL_FIELD"mediaServerId";
 const string kFlowThreshold = GENERAL_FIELD"flowThreshold";
 const string kStreamNoneReaderDelayMS = GENERAL_FIELD"streamNoneReaderDelayMS";
 const string kMaxStreamWaitTimeMS = GENERAL_FIELD"maxStreamWaitMS";
@@ -82,6 +83,7 @@ onceToken token([](){
     mINI::Instance()[kPublishToMP4] = 0;
     mINI::Instance()[kMergeWriteMS] = 0;
     mINI::Instance()[kModifyStamp] = 0;
+    mINI::Instance()[kMediaServerId] = makeRandStr(16);
 },nullptr);
 
 }//namespace General

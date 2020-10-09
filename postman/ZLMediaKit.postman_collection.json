@@ -464,16 +464,6 @@
 							"description": "拉流地址，例如rtmp://live.hkstv.hk.lxdns.com/live/hks2"
 						},
 						{
-							"key": "enable_rtsp",
-							"value": "1",
-							"description": "是否转rtsp"
-						},
-						{
-							"key": "enable_rtmp",
-							"value": "1",
-							"description": "是否转rtmp"
-						},
-						{
 							"key": "enable_hls",
 							"value": null,
 							"description": "是否转hls",
@@ -555,7 +545,7 @@
 						},
 						{
 							"key": "dst_url",
-							"value": "rtmp://10.8.9.115:8554/live/hks2",
+							"value": "rtmp://127.0.0.1/live/hks2",
 							"description": "FFmpeg rtmp推流地址，一般都是推给自己，例如rtmp://127.0.0.1/live/stream_form_ffmpeg"
 						},
 						{
@@ -780,7 +770,7 @@
 						{
 							"key": "customized_path",
 							"value": null,
-							"description": "录像保存目录"
+							"description": "录像文件保存自定义根目录，为空则采用配置文件设置"
 						}
 					]
 				}

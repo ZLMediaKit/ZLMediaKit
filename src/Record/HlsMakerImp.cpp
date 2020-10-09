@@ -105,6 +105,9 @@ void HlsMakerImp::onWriteSegment(const char *data, int len) {
     if (_file) {
         fwrite(data, len, 1, _file.get());
     }
+    if (_media_src) {
+        _media_src->onSegmentSize(len);
+    }
 }
 
 void HlsMakerImp::onWriteHls(const char *data, int len) {
