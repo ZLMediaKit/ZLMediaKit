@@ -21,23 +21,13 @@ using namespace toolkit;
 
 namespace mediakit {
 
-template<typename T, typename SEQ = uint16_t>
+template<typename T, typename SEQ = uint16_t, uint32_t kMax = 256, uint32_t kMin = 10>
 class PacketSortor {
 public:
     PacketSortor() = default;
     ~PacketSortor() = default;
 
-    /**
-     * 设置参数
-     * @param max_sort_size 最大排序缓存长度
-     * @param clear_sort_size seq连续次数超过该值后，清空并关闭排序缓存
-     */
-    void setup(uint32_t max_sort_size, uint32_t clear_sort_size) {
-        _max_sort_size = max_sort_size;
-        _clear_sort_size = clear_sort_size;
-    }
-
-    void setOnSort(function<void(SEQ seq, const T &packet)> cb){
+    void setOnSort(function<void(SEQ seq, T &packet)> cb) {
         _cb = std::move(cb);
     }
 
@@ -45,24 +35,23 @@ public:
      * 清空状态
      */
     void clear() {
-        _last_seq = 0;
-        _seq_ok_count = 0;
-        _sort_started = 0;
         _seq_cycle_count = 0;
         _rtp_sort_cache_map.clear();
+        _next_seq_out = 0;
+        _max_sort_size = kMin;
     }
 
     /**
      * 获取排序缓存长度
      */
-    int getJitterSize(){
+    int getJitterSize() {
         return _rtp_sort_cache_map.size();
     }
 
     /**
      * 获取seq回环次数
      */
-    int getCycleCount(){
+    int getCycleCount() {
         return _seq_cycle_count;
     }
 
@@ -71,73 +60,62 @@ public:
      * @param seq 序列号
      * @param packet 包负载
      */
-    void sortPacket(SEQ seq, const T &packet){
-        if (seq != _last_seq + 1 && _last_seq != 0) {
-            //包乱序或丢包
-            _seq_ok_count = 0;
-            _sort_started = true;
-            if (_last_seq > seq && _last_seq - seq > 0xFF) {
-                //sequence回环，清空所有排序缓存
-                while (_rtp_sort_cache_map.size()) {
-                    popPacket();
-                }
-                ++_seq_cycle_count;
-            }
-        } else {
-            //正确序列的包
-            _seq_ok_count++;
+    void sortPacket(SEQ seq, T packet) {
+        if (seq < _next_seq_out && _next_seq_out - seq > kMax) {
+            //回环
+            ++_seq_cycle_count;
         }
-
-        _last_seq = seq;
-
-        //开始排序缓存
-        if (_sort_started) {
-            _rtp_sort_cache_map.emplace(seq, packet);
-            if (_seq_ok_count >= _clear_sort_size) {
-                //网络环境改善，需要清空排序缓存
-                _seq_ok_count = 0;
-                _sort_started = false;
-                while (_rtp_sort_cache_map.size()) {
-                    popPacket();
-                }
-            } else if (_rtp_sort_cache_map.size() >= _max_sort_size) {
-                //排序缓存溢出
-                popPacket();
-            }
-        } else {
-            //正确序列
-            onPacketSorted(seq, packet);
-        }
+        //放入排序缓存
+        _rtp_sort_cache_map.emplace(seq, std::move(packet));
+        //尝试输出排序后的包
+        tryPopPacket();
     }
 
 private:
     void popPacket() {
         auto it = _rtp_sort_cache_map.begin();
-        onPacketSorted(it->first, it->second);
+        _cb(it->first, it->second);
+        _next_seq_out = it->first + 1;
         _rtp_sort_cache_map.erase(it);
     }
 
-    void onPacketSorted(SEQ seq, const T &packet) {
-        _cb(seq, packet);
+    void tryPopPacket() {
+        bool flag = false;
+        while ((!_rtp_sort_cache_map.empty() && _rtp_sort_cache_map.begin()->first == _next_seq_out)) {
+            //找到下个包，直接输出
+            popPacket();
+            flag = true;
+        }
+
+        if (flag) {
+            setSortSize();
+        } else if (_rtp_sort_cache_map.size() > _max_sort_size) {
+            //排序缓存溢出，不再继续排序
+            popPacket();
+            setSortSize();
+        }
+    }
+
+    void setSortSize() {
+        _max_sort_size = 2 * _rtp_sort_cache_map.size();
+        if (_max_sort_size > kMax) {
+            _max_sort_size = kMax;
+        } else if (_max_sort_size < kMin) {
+            _max_sort_size = kMin;
+        }
     }
 
 private:
-    //是否开始seq排序
-    bool _sort_started = false;
-    //上次seq
-    SEQ _last_seq = 0;
-    //seq连续次数计数
-    uint32_t _seq_ok_count = 0;
+    //下次应该输出的SEQ
+    SEQ _next_seq_out = 0;
     //seq回环次数计数
     uint32_t _seq_cycle_count = 0;
     //排序缓存长度
-    uint32_t _max_sort_size;
-    //seq连续次数超过该值后，清空并关闭排序缓存
-    uint32_t _clear_sort_size;
+    uint32_t _max_sort_size = kMin;
     //rtp排序缓存，根据seq排序
     map<SEQ, T> _rtp_sort_cache_map;
     //回调
-    function<void(SEQ seq, const T &packet)> _cb;
+    function<void(SEQ seq, T &packet)> _cb;
 };
 
 class RtpReceiver {
@@ -162,7 +140,7 @@ protected:
      * @param rtp rtp数据包
      * @param track_index track索引
      */
-    virtual void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index){}
+    virtual void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) {}
 
     void clear();
     void setPoolSize(int size);
@@ -173,9 +151,9 @@ private:
     void sortRtp(const RtpPacket::Ptr &rtp , int track_index);
 
 private:
-    uint32_t _ssrc[2] = { 0, 0 };
+    uint32_t _ssrc[2] = {0, 0};
     //ssrc不匹配计数
-    uint32_t _ssrc_err_count[2] = { 0, 0 };
+    uint32_t _ssrc_err_count[2] = {0, 0};
     //rtp排序缓存，根据seq排序
     PacketSortor<RtpPacket::Ptr> _rtp_sortor[2];
     //rtp循环池
