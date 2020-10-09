@@ -912,7 +912,7 @@ void installWebApi() {
 
         auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
         if (!process) {
-            val["code"] = "-1";
+            val["code"] = -1;
             return;
         }
 
