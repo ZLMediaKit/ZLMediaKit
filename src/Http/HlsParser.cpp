@@ -9,6 +9,7 @@
  */
 
 #include <cstdlib>
+#include <inttypes.h>
 #include "HlsParser.h"
 #include "Util/util.h"
 #include "Common/Parser.h"
@@ -90,7 +91,7 @@ bool HlsParser::parse(const string &http_url, const string &m3u8) {
         }
 
         if (line.find("#EXT-X-MEDIA-SEQUENCE:") == 0) {
-            sscanf(line.data(), "#EXT-X-MEDIA-SEQUENCE:%lld", &_sequence);
+            sscanf(line.data(), "#EXT-X-MEDIA-SEQUENCE:%" PRId64, &_sequence);
             continue;
         }
 
