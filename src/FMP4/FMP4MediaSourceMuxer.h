@@ -74,7 +74,7 @@ protected:
         }
         FMP4Packet::Ptr packet = std::make_shared<FMP4Packet>(std::move(string));
         packet->time_stamp = stamp;
-        _media_src->onWrite(packet, key_frame);
+        _media_src->onWrite(std::move(packet), key_frame);
     }
 
 private:

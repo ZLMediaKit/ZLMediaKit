@@ -60,12 +60,12 @@ public:
     /**
      * 输入rtmp并解析
      */
-    void onWrite(const RtmpPacket::Ptr &pkt, bool = true) override {
+    void onWrite(RtmpPacket::Ptr pkt, bool = true) override {
         if (!_all_track_ready || _muxer->isEnabled()) {
             //未获取到所有Track后，或者开启转协议，那么需要解复用rtmp
             _demuxer->inputRtmp(pkt);
         }
-        RtmpMediaSource::onWrite(pkt);
+        RtmpMediaSource::onWrite(std::move(pkt));
     }
 
     /**

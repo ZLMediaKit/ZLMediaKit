@@ -156,7 +156,7 @@ public:
      * @param rtp rtp包
      * @param keyPos 该包是否为关键帧的第一个包
      */
-    void onWrite(const RtpPacket::Ptr &rtp, bool keyPos) override {
+    void onWrite(RtpPacket::Ptr rtp, bool keyPos) override {
         _speed += rtp->size();
         assert(rtp->type >= 0 && rtp->type < TrackMax);
         auto track = _tracks[rtp->type];
@@ -182,7 +182,7 @@ public:
                 regist();
             }
         }
-        PacketCache<RtpPacket>::inputPacket(rtp->type == TrackVideo, rtp, keyPos);
+        PacketCache<RtpPacket>::inputPacket(rtp->type == TrackVideo, std::move(rtp), keyPos);
     }
 
     void clearCache() override{
@@ -196,9 +196,9 @@ private:
      * @param rtp_list rtp包列表
      * @param key_pos 是否包含关键帧
      */
-    void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > &rtp_list, bool key_pos) override {
+    void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > rtp_list, bool key_pos) override {
         //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
-        _ring->write(rtp_list, _have_video ? key_pos : true);
+        _ring->write(std::move(rtp_list), _have_video ? key_pos : true);
     }
 
 private:
