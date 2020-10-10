@@ -70,7 +70,7 @@ protected:
         TSPacket::Ptr packet = _pool.obtain();
         packet->assign((char *) data, len);
         packet->time_stamp = timestamp;
-        _media_src->onWrite(packet, is_idr_fast_packet);
+        _media_src->onWrite(std::move(packet), is_idr_fast_packet);
     }
 
 private:

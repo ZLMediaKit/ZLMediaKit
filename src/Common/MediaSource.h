@@ -328,13 +328,13 @@ public:
 
     virtual ~PacketCache() = default;
 
-    void inputPacket(bool is_video, const std::shared_ptr<packet> &pkt, bool key_pos) {
+    void inputPacket(bool is_video, std::shared_ptr<packet> pkt, bool key_pos) {
         if (_policy.isFlushAble(is_video, key_pos, _policy.getStamp(pkt), _cache->size())) {
             flushAll();
         }
 
         //追加数据到最后
-        _cache->emplace_back(pkt);
+        _cache->emplace_back(std::move(pkt));
         if (key_pos) {
             _key_pos = key_pos;
         }
@@ -344,14 +344,14 @@ public:
         _cache->clear();
     }
 
-    virtual void onFlush(std::shared_ptr<packet_list> &, bool key_pos) = 0;
+    virtual void onFlush(std::shared_ptr<packet_list>, bool key_pos) = 0;
 
 private:
     void flushAll() {
         if (_cache->empty()) {
             return;
         }
-        onFlush(_cache, _key_pos);
+        onFlush(std::move(_cache), _key_pos);
         _cache = std::make_shared<packet_list>();
         _key_pos = false;
     }

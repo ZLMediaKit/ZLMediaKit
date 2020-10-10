@@ -113,7 +113,7 @@ void PSRtpSender::onRtp(const RtpPacket::Ptr &rtp, bool) {
 }
 
 //此函数在其他线程执行
-void PSRtpSender::onFlush(shared_ptr<List<RtpPacket::Ptr>> &rtp_list, bool) {
+void PSRtpSender::onFlush(shared_ptr<List<RtpPacket::Ptr> > rtp_list, bool) {
     if(!_is_connect){
         //连接成功后才能发送数据
         return;
