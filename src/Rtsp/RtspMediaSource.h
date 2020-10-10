@@ -182,7 +182,8 @@ public:
                 regist();
             }
         }
-        PacketCache<RtpPacket>::inputPacket(rtp->type == TrackVideo, std::move(rtp), keyPos);
+        bool is_video = rtp->type == TrackVideo;
+        PacketCache<RtpPacket>::inputPacket(is_video, std::move(rtp), keyPos);
     }
 
     void clearCache() override{

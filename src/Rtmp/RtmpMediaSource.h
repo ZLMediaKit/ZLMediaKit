@@ -153,7 +153,8 @@ public:
             }
         }
         bool key = pkt->isVideoKeyFrame();
-        PacketCache<RtmpPacket>::inputPacket(pkt->type_id == MSG_VIDEO, std::move(pkt), key);
+        bool is_video = pkt->type_id == MSG_VIDEO;
+        PacketCache<RtmpPacket>::inputPacket(is_video, std::move(pkt), key);
     }
 
     /**
