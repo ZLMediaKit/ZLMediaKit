@@ -92,7 +92,7 @@ public:
      * @param packet FMP4包
      * @param key 是否为关键帧第一个包
      */
-    void onWrite(const FMP4Packet::Ptr &packet, bool key) override {
+    void onWrite(FMP4Packet::Ptr packet, bool key) override {
         if (!_ring) {
             createRing();
         }
@@ -100,7 +100,7 @@ public:
             _have_video = true;
         }
         _speed += packet->size();
-        PacketCache<FMP4Packet, FMP4FlushPolicy>::inputPacket(true, packet, key);
+        PacketCache<FMP4Packet, FMP4FlushPolicy>::inputPacket(true, std::move(packet), key);
     }
 
     /**
@@ -132,9 +132,9 @@ private:
      * @param packet_list 合并写缓存列队
      * @param key_pos 是否包含关键帧
      */
-    void onFlush(std::shared_ptr<List<FMP4Packet::Ptr> > &packet_list, bool key_pos) override {
+    void onFlush(std::shared_ptr<List<FMP4Packet::Ptr> > packet_list, bool key_pos) override {
         //如果不存在视频，那么就没有存在GOP缓存的意义，所以确保一直清空GOP缓存
-        _ring->write(packet_list, _have_video ? key_pos : true);
+        _ring->write(std::move(packet_list), _have_video ? key_pos : true);
     }
 
 private:

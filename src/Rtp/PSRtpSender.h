@@ -24,7 +24,7 @@ public:
     RingDelegateHelper(onRtp on_rtp){
         _on_rtp = std::move(on_rtp);
     }
-    void onWrite(const RtpPacket::Ptr &in, bool is_key) override{
+    void onWrite(RtpPacket::Ptr in, bool is_key) override{
         _on_rtp(in, is_key);
     }
 
@@ -68,7 +68,7 @@ protected:
      * @param rtp_list rtp包列表
      * @param key_pos 是否包含关键帧
      */
-    void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > &rtp_list, bool key_pos) override;
+    void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > rtp_list, bool key_pos) override;
 
 private:
     //rtp打包后回调

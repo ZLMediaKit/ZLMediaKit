@@ -75,7 +75,7 @@ public:
      * @param packet TS包
      * @param key 是否为关键帧第一个包
      */
-    void onWrite(const TSPacket::Ptr &packet, bool key) override {
+    void onWrite(TSPacket::Ptr packet, bool key) override {
         _speed += packet->size();
         if (!_ring) {
             createRing();
@@ -83,7 +83,7 @@ public:
         if (key) {
             _have_video = true;
         }
-        PacketCache<TSPacket, TSFlushPolicy>::inputPacket(true, packet, key);
+        PacketCache<TSPacket, TSFlushPolicy>::inputPacket(true, std::move(packet), key);
     }
 
     /**
@@ -114,9 +114,9 @@ private:
      * @param packet_list 合并写缓存列队
      * @param key_pos 是否包含关键帧
      */
-    void onFlush(std::shared_ptr<List<TSPacket::Ptr> > &packet_list, bool key_pos) override {
+    void onFlush(std::shared_ptr<List<TSPacket::Ptr> > packet_list, bool key_pos) override {
         //如果不存在视频，那么就没有存在GOP缓存的意义，所以确保一直清空GOP缓存
-        _ring->write(packet_list, _have_video ? key_pos : true);
+        _ring->write(std::move(packet_list), _have_video ? key_pos : true);
     }
 
 private:
