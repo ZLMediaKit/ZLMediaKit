@@ -17,20 +17,22 @@ RtpSplitter::RtpSplitter() {}
 RtpSplitter::~RtpSplitter() {}
 
 const char *RtpSplitter::onSearchPacketTail(const char *data, int len) {
+    if (len < 4) {
+        //数据不够
+        return nullptr;
+    }
     if (data[0] == '$') {
         //可能是4个字节的rtp头
+        _offset = 4;
         return onSearchPacketTail_l(data + 2, len - 2);
     }
     //两个字节的rtp头
+    _offset = 2;
     return onSearchPacketTail_l(data, len);
 }
 
 const char *RtpSplitter::onSearchPacketTail_l(const char *data, int len) {
     //这是rtp包
-    if (len < 2) {
-        //数据不够
-        return nullptr;
-    }
     uint16_t length = (((uint8_t *) data)[0] << 8) | ((uint8_t *) data)[1];
     if (len < length + 2) {
         //数据不够
@@ -41,7 +43,7 @@ const char *RtpSplitter::onSearchPacketTail_l(const char *data, int len) {
 }
 
 int64_t RtpSplitter::onRecvHeader(const char *data, uint64_t len) {
-    onRtpPacket(data,len);
+    onRtpPacket(data + _offset, len - _offset);
     return 0;
 }
 
