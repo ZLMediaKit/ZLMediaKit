@@ -172,6 +172,7 @@ void TsMuxer::init() {
                 TsMuxer *muxer = (TsMuxer *) param;
                 muxer->onTs(packet, bytes, muxer->_timestamp, muxer->_is_idr_fast_packet);
                 muxer->_is_idr_fast_packet = false;
+                return 0;
             }
     };
     if (_context == nullptr) {
