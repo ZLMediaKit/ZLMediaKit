@@ -38,6 +38,7 @@ void PSEncoder::init() {
             [](void *param, int stream, void *packet, size_t bytes) {
                 PSEncoder *thiz = (PSEncoder *) param;
                 thiz->onPS(thiz->_timestamp, packet, bytes);
+                return 0;
             }
     };
 
