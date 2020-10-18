@@ -104,9 +104,6 @@
   - 支持http api生成并返回实时截图
   - 支持按需解复用、转协议，当有人观看时才开启转协议
   
-## 更新日志
-  - 2020/5/17 新增支持hls播发器，支持hls拉流代理
-
 
 ## 编译以及测试
 **编译前务必仔细参考wiki:[快速开始](https://github.com/xia-chu/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)操作!!!**
@@ -142,7 +139,7 @@ bash build_docker_images.sh
     
  - 流媒体管理平台
    - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/StreamNode)
-   - [GB28181-2016网络视频平台](https://github.com/swwheihei/wvp)
+   - [GB28181-2016网络视频平台](https://github.com/648540858/wvp-GB28181)
    - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
    - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
 
