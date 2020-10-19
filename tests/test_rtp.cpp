@@ -10,8 +10,6 @@
 
 #include <map>
 #include <iostream>
-#include "Util/MD5.h"
-#include "Util/File.h"
 #include "Util/logger.h"
 #include "Util/SSLBox.h"
 #include "Util/util.h"
@@ -38,22 +36,26 @@ static bool loadFile(const char *path){
     uint16_t len;
     char rtp[2 * 1024];
     struct sockaddr addr = {0};
+    int rtp_count = 0;
+    int bytes = 0;
     while (true) {
         if (2 != fread(&len, 1, 2, fp)) {
-            WarnL;
+            WarnL << bytes << " " << rtp_count;
             break;
         }
         len = ntohs(len);
         if (len < 12 || len > sizeof(rtp)) {
-            WarnL << len;
+            WarnL << bytes << " " << rtp_count << " " << len;
             break;
         }
 
         if (len != fread(rtp, 1, len, fp)) {
-            WarnL;
+            WarnL << bytes << " " << rtp_count;
             break;
         }
 
+        bytes += 2 + len;
+        ++rtp_count;
         uint32_t timeStamp;
         RtpSelector::Instance().inputRtp(nullptr, rtp, len, &addr, &timeStamp);
         if(timeStamp_last){

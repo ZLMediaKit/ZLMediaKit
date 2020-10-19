@@ -137,8 +137,8 @@ const char *RtpProcess::onSearchPacketTail(const char *packet,int bytes){
         return nullptr;
     } catch (std::exception &ex) {
         InfoL << "解析ps或ts异常: bytes=" << bytes
-              << " ,exception=" << ex.what()
-              << " ,hex=" << hexdump((uint8_t *) packet, bytes);
+              << " ,exception=" << ex.what();
+              //<< " ,hex=" << hexdump((uint8_t *) packet, bytes);
         return nullptr;
     }
 }
