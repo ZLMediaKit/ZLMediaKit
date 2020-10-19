@@ -61,33 +61,75 @@ public:
      * @param packet 包负载
      */
     void sortPacket(SEQ seq, T packet) {
-        if (seq < _next_seq_out && _next_seq_out - seq > kMax) {
-            //回环
-            ++_seq_cycle_count;
+        if (seq < _next_seq_out) {
+            if (_next_seq_out - seq < kMax) {
+                //过滤seq回退包(回环包除外)
+                return;
+            }
+        } else if (_next_seq_out && seq - _next_seq_out > (0xFFFF >> 1)) {
+            //过滤seq跳变非常大的包(防止回环时乱序时收到非常大的seq)
+            return;
         }
+
         //放入排序缓存
         _rtp_sort_cache_map.emplace(seq, std::move(packet));
         //尝试输出排序后的包
         tryPopPacket();
     }
 
+    void flush(){
+        //清空缓存
+        while (!_rtp_sort_cache_map.empty()) {
+            popIterator(_rtp_sort_cache_map.begin());
+        }
+    }
+
 private:
     void popPacket() {
         auto it = _rtp_sort_cache_map.begin();
+        if (it->first >= _next_seq_out) {
+            //过滤回跳包
+            popIterator(it);
+            return;
+        }
+
+        if (_next_seq_out - it->first > (0xFFFF >> 1)) {
+            //产生回环了
+            if (_rtp_sort_cache_map.size() < 2 * kMin) {
+                //等足够多的数据后才处理回环, 因为后面还可能出现大的SEQ
+                return;
+            }
+            ++_seq_cycle_count;
+            //找到大的SEQ并清空掉，然后从小的SEQ重新开始排序
+            auto hit = _rtp_sort_cache_map.upper_bound((SEQ) (_next_seq_out - _rtp_sort_cache_map.size()));
+            while (hit != _rtp_sort_cache_map.end()) {
+                //回环前，清空剩余的大的SEQ的数据
+                _cb(hit->first, hit->second);
+                hit = _rtp_sort_cache_map.erase(hit);
+            }
+            //下一个回环的数据
+            popIterator(_rtp_sort_cache_map.begin());
+            return;
+        }
+        //删除回跳的数据包
+        _rtp_sort_cache_map.erase(it);
+    }
+
+    void popIterator(typename map<SEQ, T>::iterator it) {
         _cb(it->first, it->second);
         _next_seq_out = it->first + 1;
         _rtp_sort_cache_map.erase(it);
     }
 
     void tryPopPacket() {
-        bool flag = false;
+        int count = 0;
         while ((!_rtp_sort_cache_map.empty() && _rtp_sort_cache_map.begin()->first == _next_seq_out)) {
             //找到下个包，直接输出
             popPacket();
-            flag = true;
+            ++count;
         }
 
-        if (flag) {
+        if (count) {
             setSortSize();
         } else if (_rtp_sort_cache_map.size() > _max_sort_size) {
             //排序缓存溢出，不再继续排序
@@ -97,11 +139,9 @@ private:
     }
 
     void setSortSize() {
-        _max_sort_size = 2 * _rtp_sort_cache_map.size();
+        _max_sort_size = kMin + _rtp_sort_cache_map.size();
         if (_max_sort_size > kMax) {
             _max_sort_size = kMax;
-        } else if (_max_sort_size < kMin) {
-            _max_sort_size = kMin;
         }
     }
 

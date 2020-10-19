@@ -26,6 +26,7 @@ PSDecoder::PSDecoder() {
         if(thiz->_on_decode){
             thiz->_on_decode(stream, codecid, flags, pts, dts, data, bytes);
         }
+        return 0;
     },this);
 }
 

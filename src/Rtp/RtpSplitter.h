@@ -31,6 +31,9 @@ protected:
     const char *onSearchPacketTail(const char *data,int len) override ;
     const char *onSearchPacketTail_l(const char *data,int len);
     int64_t onRecvHeader(const char *data,uint64_t len) override;
+
+private:
+    int _offset = 0;
 };
 
 }//namespace mediakit
