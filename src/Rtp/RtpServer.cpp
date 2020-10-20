@@ -25,7 +25,15 @@ RtpServer::~RtpServer() {
 void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable_tcp, const char *local_ip) {
     //创建udp服务器
     Socket::Ptr udp_server = Socket::createSocket(nullptr, false);
-    if (!udp_server->bindUdpSock(local_port, local_ip)) {
+    if (local_port == 0) {
+        //随机端口，rtp端口采用偶数
+        Socket::Ptr rtcp_server = Socket::createSocket(nullptr, false);
+        auto pair = std::make_pair(udp_server, rtcp_server);
+        makeSockPair(pair, local_ip);
+        //取偶数端口
+        udp_server = pair.first;
+    } else if (!udp_server->bindUdpSock(local_port, local_ip)) {
+        //用户指定端口
         throw std::runtime_error(StrPrinter << "bindUdpSock on " << local_ip << ":" << local_port << " failed:" << get_uv_errmsg(true));
     }
     //设置udp socket读缓存
