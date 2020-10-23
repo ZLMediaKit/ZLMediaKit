@@ -136,7 +136,7 @@ const char *RtpProcess::onSearchPacketTail(const char *packet,int bytes){
         }
         return nullptr;
     } catch (std::exception &ex) {
-        InfoL << "解析ps或ts异常: bytes=" << bytes
+        InfoP(this) << "解析ps或ts异常: bytes=" << bytes
               << " ,exception=" << ex.what();
               //<< " ,hex=" << hexdump((uint8_t *) packet, bytes);
         return nullptr;
@@ -184,7 +184,7 @@ bool RtpProcess::alive() {
         if(_pause_rtp_time.elapsedTime()/ 1000 < 180){
             return true;
         }else {
-            WarnL << _media_info._streamid << ", pause timeout.";
+            ErrorP(this) << "Pause timeout.";
             return false;
         }
     }

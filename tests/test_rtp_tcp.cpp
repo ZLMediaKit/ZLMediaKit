@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <signal.h>
 #include <map>
 #include "Network/TcpClient.h"
 using namespace std;
