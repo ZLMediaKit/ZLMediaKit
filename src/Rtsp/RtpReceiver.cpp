@@ -36,7 +36,11 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
         return false;
     }
 
+    uint32_t version = rtp_raw_ptr[0] >> 6;
     uint8_t padding = 0;
+    uint8_t ext = rtp_raw_ptr[0] & 0x10;
+    uint8_t csrc = rtp_raw_ptr[0] & 0x0f;
+
     if (rtp_raw_ptr[0] & 0x20) {
         //获取padding大小
         padding = rtp_raw_ptr[rtp_raw_len - 1];
@@ -44,6 +48,10 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
         rtp_raw_ptr[0] &= ~0x20;
         //移除padding字节
         rtp_raw_len -= padding;
+    }
+
+    if (version != 2) {
+        throw std::invalid_argument("非法的rtp，version != 2");
     }
 
     auto rtp_ptr = _rtp_pool.obtain();
@@ -95,8 +103,6 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
 
     //获取rtp中媒体数据偏移量
     rtp.offset = 12 + 4;
-    int csrc = rtp_raw_ptr[0] & 0x0f;
-    int ext = rtp_raw_ptr[0] & 0x10;
     rtp.offset += 4 * csrc;
     if (ext && rtp_raw_len >= rtp.offset) {
         /* calculate the header extension length (stored as number of 32-bit words) */
