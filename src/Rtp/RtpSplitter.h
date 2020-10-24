@@ -19,18 +19,20 @@ namespace mediakit{
 class RtpSplitter : public HttpRequestSplitter{
 public:
     RtpSplitter();
-    virtual ~RtpSplitter();
+    ~RtpSplitter() override;
 
 protected:
     /**
      * 收到rtp包回调
+     * @param data RTP包数据指针
+     * @param len RTP包数据长度
      */
-    virtual void onRtpPacket(const char *data,uint64_t len) = 0;
+    virtual void onRtpPacket(const char *data, uint64_t len) = 0;
 
 protected:
-    const char *onSearchPacketTail(const char *data,int len) override ;
-    const char *onSearchPacketTail_l(const char *data,int len);
-    int64_t onRecvHeader(const char *data,uint64_t len) override;
+    int64_t onRecvHeader(const char *data, uint64_t len) override;
+    const char *onSearchPacketTail(const char *data, int len) override;
+    const char *onSearchPacketTail_l(const char *data, int len);
 
 private:
     int _offset = 0;
