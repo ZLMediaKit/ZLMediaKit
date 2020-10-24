@@ -30,19 +30,8 @@ public:
     uint32_t time_stamp = 0;
 };
 
-//TS直播合并写策略类
-class TSFlushPolicy : public FlushPolicy{
-public:
-    TSFlushPolicy() = default;
-    ~TSFlushPolicy() = default;
-
-    uint32_t getStamp(const TSPacket::Ptr &packet) {
-        return packet->time_stamp;
-    }
-};
-
 //TS直播源
-class TSMediaSource : public MediaSource, public RingDelegate<TSPacket::Ptr>, public PacketCache<TSPacket, TSFlushPolicy>{
+class TSMediaSource : public MediaSource, public RingDelegate<TSPacket::Ptr>, public PacketCache<TSPacket>{
 public:
     using PoolType = ResourcePool<TSPacket>;
     using Ptr = std::shared_ptr<TSMediaSource>;
@@ -83,14 +72,15 @@ public:
         if (key) {
             _have_video = true;
         }
-        PacketCache<TSPacket, TSFlushPolicy>::inputPacket(true, std::move(packet), key);
+        auto stamp = packet->time_stamp;
+        PacketCache<TSPacket>::inputPacket(stamp, true, std::move(packet), key);
     }
 
     /**
      * 情况GOP缓存
      */
     void clearCache() override {
-        PacketCache<TSPacket, TSFlushPolicy>::clearCache();
+        PacketCache<TSPacket>::clearCache();
         _ring->clearCache();
     }
 
