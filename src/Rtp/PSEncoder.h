@@ -14,6 +14,7 @@
 #include "mpeg-ps.h"
 #include "Common/MediaSink.h"
 #include "Common/Stamp.h"
+#include "Extension/CommonRtp.h"
 namespace mediakit{
 
 //该类实现mpeg-ps容器格式的打包
@@ -63,6 +64,22 @@ private:
     List<Frame::Ptr> _frameCached;
     std::shared_ptr<struct ps_muxer_t> _muxer;
     unordered_map<int, track_info> _codec_to_trackid;
+};
+
+class PSEncoderImp : public PSEncoder{
+public:
+    PSEncoderImp(uint32_t ssrc, uint8_t payload_type = 96);
+    ~PSEncoderImp() override;
+
+protected:
+    //rtp打包后回调
+    virtual void onRTP(Buffer::Ptr rtp) = 0;
+
+protected:
+    void onPS(uint32_t stamp, void *packet, size_t bytes) override;
+
+private:
+    std::shared_ptr<CommonRtpEncoder> _rtp_encoder;
 };
 
 }//namespace mediakit

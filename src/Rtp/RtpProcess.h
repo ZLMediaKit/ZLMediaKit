@@ -12,18 +12,14 @@
 #define ZLMEDIAKIT_RTPPROCESS_H
 
 #if defined(ENABLE_RTPPROXY)
+#include "ProcessInterface.h"
+#include "Common/MultiMediaSourceMuxer.h"
 
-#include "Rtsp/RtpReceiver.h"
-#include "Decoder.h"
-#include "Common/Device.h"
-#include "Common/Stamp.h"
-#include "Http/HttpRequestSplitter.h"
-#include "Extension/CommonRtp.h"
 using namespace mediakit;
 
-namespace mediakit{
+namespace mediakit {
 
-class RtpProcess : public HttpRequestSplitter, public RtpReceiver, public SockInfo, public MediaSinkInterface, public std::enable_shared_from_this<RtpProcess>{
+class RtpProcess : public SockInfo, public MediaSinkInterface, public std::enable_shared_from_this<RtpProcess>{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     friend class RtpProcessHelper;
@@ -32,14 +28,15 @@ public:
 
     /**
      * 输入rtp
+     * @param is_udp 是否为udp模式
      * @param sock 本地监听的socket
      * @param data rtp数据指针
-     * @param data_len rtp数据长度
+     * @param len rtp数据长度
      * @param addr 数据源地址
      * @param dts_out 解析出最新的dts
      * @return 是否解析成功
      */
-    bool inputRtp(const Socket::Ptr &sock, const char *data,int data_len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
+    bool inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, int len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
 
     /**
      * 是否超时，用于超时移除对象
@@ -67,34 +64,26 @@ public:
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
 protected:
-    void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
     void inputFrame(const Frame::Ptr &frame) override;
     void addTrack(const Track::Ptr & track) override;
     void resetTracks() override {};
 
-    const char *onSearchPacketTail(const char *data,int len) override;
-    int64_t onRecvHeader(const char *data,uint64_t len) override { return 0; };
-
 private:
     void emitOnPublish();
-    void onRtpDecode(const uint8_t *packet, int bytes, uint32_t timestamp);
 
 private:
-    std::shared_ptr<CommonRtpDecoder> _rtp_decoder;
-    std::shared_ptr<FILE> _save_file_rtp;
-    std::shared_ptr<FILE> _save_file_ps;
-    std::shared_ptr<FILE> _save_file_video;
-    struct sockaddr *_addr = nullptr;
-    uint16_t _sequence = 0;
-    MultiMediaSourceMuxer::Ptr _muxer;
-    Ticker _last_rtp_time;
     uint32_t _dts = 0;
-    DecoderImp::Ptr _decoder;
-    std::weak_ptr<MediaSourceEvent> _listener;
-    MediaInfo _media_info;
     uint64_t _total_bytes = 0;
+    struct sockaddr *_addr = nullptr;
     Socket::Ptr _sock;
+    MediaInfo _media_info;
+    Ticker _last_frame_time;
     function<void()> _on_detach;
+    std::shared_ptr<FILE> _save_file_rtp;
+    std::shared_ptr<FILE> _save_file_video;
+    std::weak_ptr<MediaSourceEvent> _listener;
+    ProcessInterface::Ptr _process;
+    MultiMediaSourceMuxer::Ptr _muxer;
 };
 
 }//namespace mediakit

@@ -9,33 +9,29 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
-#include "PSRtpSender.h"
+#include "RtpSender.h"
 #include "Rtsp/RtspSession.h"
 #include "Thread/WorkThreadPool.h"
+#include "RtpCache.h"
 
 namespace mediakit{
 
-PSRtpSender::PSRtpSender(uint32_t ssrc, uint8_t payload_type) {
-    GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
-    _rtp_encoder = std::make_shared<CommonRtpEncoder>(CodecInvalid, ssrc, video_mtu, 90000, payload_type, 0);
-    _rtp_encoder->setRtpRing(std::make_shared<RtpRing::RingType>());
-    _rtp_encoder->getRtpRing()->setDelegate(std::make_shared<RingDelegateHelper>([this](const RtpPacket::Ptr &rtp, bool is_key){
-        onRtp(rtp, is_key);
-    }));
+RtpSender::RtpSender(uint32_t ssrc, uint8_t payload_type) {
     _poller = EventPollerPool::Instance().getPoller();
-    InfoL << this << " " << printSSRC(_rtp_encoder->getSsrc());
+    _interface = std::make_shared<RtpCachePS>([this](std::shared_ptr<List<Buffer::Ptr> > list) {
+        onFlushRtpList(std::move(list));
+    }, ssrc, payload_type);
 }
 
-PSRtpSender::~PSRtpSender() {
-    InfoL << this << " " << printSSRC(_rtp_encoder->getSsrc());
+RtpSender::~RtpSender() {
 }
 
-void PSRtpSender::startSend(const string &dst_url, uint16_t dst_port, bool is_udp, const function<void(const SockException &ex)> &cb){
+void RtpSender::startSend(const string &dst_url, uint16_t dst_port, bool is_udp, const function<void(const SockException &ex)> &cb){
     _is_udp = is_udp;
     _socket = Socket::createSocket(_poller, false);
     _dst_url = dst_url;
     _dst_port = dst_port;
-    weak_ptr<PSRtpSender> weak_self = shared_from_this();
+    weak_ptr<RtpSender> weak_self = shared_from_this();
     if (is_udp) {
         _socket->bindUdpSock(0);
         auto poller = _poller;
@@ -73,7 +69,7 @@ void PSRtpSender::startSend(const string &dst_url, uint16_t dst_port, bool is_ud
     }
 }
 
-void PSRtpSender::onConnect(){
+void RtpSender::onConnect(){
     _is_connect = true;
     //加大发送缓存,防止udp丢包之类的问题
     SockUtil::setSendBuf(_socket->rawFD(), 4 * 1024 * 1024);
@@ -83,37 +79,38 @@ void PSRtpSender::onConnect(){
         _socket->setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
     }
     //连接建立成功事件
-    weak_ptr<PSRtpSender> weak_self = shared_from_this();
+    weak_ptr<RtpSender> weak_self = shared_from_this();
     _socket->setOnErr([weak_self](const SockException &err) {
         auto strong_self = weak_self.lock();
         if (strong_self) {
             strong_self->onErr(err);
         }
     });
-    InfoL << "开始发送 ps rtp:" << _socket->get_peer_ip() << ":" << _socket->get_peer_port() << ", 是否为udp方式:" << _is_udp;
+    InfoL << "开始发送 rtp:" << _socket->get_peer_ip() << ":" << _socket->get_peer_port() << ", 是否为udp方式:" << _is_udp;
+}
+
+void RtpSender::addTrack(const Track::Ptr &track){
+    _interface->addTrack(track);
+}
+
+void RtpSender::addTrackCompleted(){
+    _interface->addTrackCompleted();
+}
+
+void RtpSender::resetTracks(){
+    _interface->resetTracks();
 }
 
 //此函数在其他线程执行
-void PSRtpSender::inputFrame(const Frame::Ptr &frame) {
+void RtpSender::inputFrame(const Frame::Ptr &frame) {
     if (_is_connect) {
         //连接成功后才做实质操作(节省cpu资源)
-        PSEncoder::inputFrame(frame);
+        _interface->inputFrame(frame);
     }
 }
 
 //此函数在其他线程执行
-void PSRtpSender::onPS(uint32_t stamp, void *packet, size_t bytes) {
-    _rtp_encoder->inputFrame(std::make_shared<FrameFromPtr>((char *) packet, bytes, stamp));
-}
-
-//此函数在其他线程执行
-void PSRtpSender::onRtp(const RtpPacket::Ptr &rtp, bool) {
-    //开启合并写提高发送性能
-    PacketCache<RtpPacket>::inputPacket(true, rtp, false);
-}
-
-//此函数在其他线程执行
-void PSRtpSender::onFlush(shared_ptr<List<RtpPacket::Ptr> > rtp_list, bool) {
+void RtpSender::onFlushRtpList(shared_ptr<List<Buffer::Ptr> > rtp_list) {
     if(!_is_connect){
         //连接成功后才能发送数据
         return;
@@ -124,29 +121,29 @@ void PSRtpSender::onFlush(shared_ptr<List<RtpPacket::Ptr> > rtp_list, bool) {
     _poller->async([rtp_list, is_udp, socket]() {
         int i = 0;
         int size = rtp_list->size();
-        rtp_list->for_each([&](const RtpPacket::Ptr &packet) {
+        rtp_list->for_each([&](Buffer::Ptr &packet) {
             if (is_udp) {
                 //udp模式，rtp over tcp前4个字节可以忽略
-                socket->send(std::make_shared<BufferRtp>(packet, 4), nullptr, 0, ++i == size);
+                socket->send(std::make_shared<BufferRtp>(std::move(packet), 4), nullptr, 0, ++i == size);
             } else {
                 //tcp模式, rtp over tcp前2个字节可以忽略,只保留后续rtp长度的2个字节
-                socket->send(std::make_shared<BufferRtp>(packet, 2), nullptr, 0, ++i == size);
+                socket->send(std::make_shared<BufferRtp>(std::move(packet), 2), nullptr, 0, ++i == size);
             }
         });
     });
 }
 
-void PSRtpSender::onErr(const SockException &ex, bool is_connect) {
+void RtpSender::onErr(const SockException &ex, bool is_connect) {
     _is_connect = false;
 
     //监听socket断开事件，方便重连
     if (is_connect) {
         WarnL << "重连" << _dst_url << ":" << _dst_port << "失败, 原因为:" << ex.what();
     } else {
-        WarnL << "停止发送 ps rtp:" <<  _dst_url << ":" << _dst_port << ", 原因为:" << ex.what();
+        WarnL << "停止发送 rtp:" <<  _dst_url << ":" << _dst_port << ", 原因为:" << ex.what();
     }
 
-    weak_ptr<PSRtpSender> weak_self = shared_from_this();
+    weak_ptr<RtpSender> weak_self = shared_from_this();
     _connect_timer = std::make_shared<Timer>(10.0, [weak_self]() {
         auto strong_self = weak_self.lock();
         if (!strong_self) {

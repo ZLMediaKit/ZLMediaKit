@@ -12,7 +12,7 @@
 #define ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
 
 #include "Common/Stamp.h"
-#include "Rtp/PSRtpSender.h"
+#include "Rtp/RtpSender.h"
 #include "Record/Recorder.h"
 #include "Record/HlsRecorder.h"
 #include "Record/HlsMediaSource.h"
@@ -142,7 +142,7 @@ public:
      * @param is_udp 是否为udp
      * @param cb 启动成功或失败回调
      */
-    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) override;
+    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) override;
 
     /**
      * 停止ps-rtp发送
@@ -187,7 +187,7 @@ private:
     MultiMuxerPrivate::Ptr _muxer;
     std::weak_ptr<MultiMuxerPrivate::Listener> _track_listener;
 #if defined(ENABLE_RTPPROXY)
-    PSRtpSender::Ptr _ps_rtp_sender;
+    RtpSender::Ptr _rtp_sender;
 #endif //ENABLE_RTPPROXY
 };
 

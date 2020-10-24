@@ -8,42 +8,27 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef ZLMEDIAKIT_PSRTPSENDER_H
-#define ZLMEDIAKIT_PSRTPSENDER_H
+#ifndef ZLMEDIAKIT_RTPSENDER_H
+#define ZLMEDIAKIT_RTPSENDER_H
 #if defined(ENABLE_RTPPROXY)
 #include "PSEncoder.h"
 #include "Extension/CommonRtp.h"
 
 namespace mediakit{
 
-class RingDelegateHelper : public RingDelegate<RtpPacket::Ptr> {
+//rtp发送客户端，支持发送GB28181协议
+class RtpSender : public MediaSinkInterface, public std::enable_shared_from_this<RtpSender>{
 public:
-    typedef function<void(const RtpPacket::Ptr &in, bool is_key)> onRtp;
+    typedef std::shared_ptr<RtpSender> Ptr;
 
-    ~RingDelegateHelper() override{}
-    RingDelegateHelper(onRtp on_rtp){
-        _on_rtp = std::move(on_rtp);
-    }
-    void onWrite(RtpPacket::Ptr in, bool is_key) override{
-        _on_rtp(in, is_key);
-    }
-
-private:
-    onRtp _on_rtp;
-};
-
-//该类在PSEncoder的基础上，实现了mpeg-ps的rtp打包以及发送
-class PSRtpSender : public PSEncoder, public std::enable_shared_from_this<PSRtpSender>, public PacketCache<RtpPacket>{
-public:
-    typedef std::shared_ptr<PSRtpSender> Ptr;
+    ~RtpSender() override;
 
     /**
-     * 构造函数
+     * 构造函数，创建GB28181 RTP发送客户端
      * @param ssrc rtp的ssrc
      * @param payload_type 国标中ps-rtp的pt一般为96
      */
-    PSRtpSender(uint32_t ssrc, uint8_t payload_type = 96);
-    ~PSRtpSender() override;
+    RtpSender(uint32_t ssrc, uint8_t payload_type = 96);
 
     /**
      * 开始发送ps-rtp包
@@ -59,20 +44,26 @@ public:
      */
     void inputFrame(const Frame::Ptr &frame) override;
 
-protected:
-    //mpeg-ps回调
-    void onPS(uint32_t stamp, void *packet, size_t bytes) override;
+    /**
+     * 添加track，内部会调用Track的clone方法
+     * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
+     * @param track
+     */
+    virtual void addTrack(const Track::Ptr & track) override;
 
     /**
-     * 批量flush rtp包时触发该函数
-     * @param rtp_list rtp包列表
-     * @param key_pos 是否包含关键帧
+     * 添加所有Track完毕
      */
-    void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > rtp_list, bool key_pos) override;
+    virtual void addTrackCompleted() override;
+
+    /**
+     * 重置track
+     */
+    virtual void resetTracks() override;
 
 private:
-    //rtp打包后回调
-    void onRtp(const RtpPacket::Ptr &in, bool is_key);
+    //合并写输出
+    void onFlushRtpList(std::shared_ptr<List<Buffer::Ptr> > rtp_list);
     //udp/tcp连接成功回调
     void onConnect();
     //异常断开socket事件
@@ -86,9 +77,9 @@ private:
     Socket::Ptr _socket;
     EventPoller::Ptr _poller;
     Timer::Ptr _connect_timer;
-    std::shared_ptr<CommonRtpEncoder> _rtp_encoder;
+    MediaSinkInterface::Ptr _interface;
 };
 
 }//namespace mediakit
 #endif// defined(ENABLE_RTPPROXY)
-#endif //ZLMEDIAKIT_PSRTPSENDER_H
+#endif //ZLMEDIAKIT_RTPSENDER_H
