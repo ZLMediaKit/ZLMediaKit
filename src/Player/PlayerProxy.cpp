@@ -93,6 +93,10 @@ void PlayerProxy::play(const string &strUrlTmp) {
         if(!strongSelf) {
             return;
         }
+
+        //注销直接拉流代理产生的流：#532
+        strongSelf->setMediaSource(nullptr);
+
         if(strongSelf->_muxer) {
             auto tracks = strongSelf->MediaPlayer::getTracks(false);
             for (auto & track : tracks){
