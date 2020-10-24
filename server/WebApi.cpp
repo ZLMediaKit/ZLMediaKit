@@ -496,12 +496,12 @@ void installWebApi() {
                                      allArgs["vhost"],
                                      allArgs["app"],
                                      allArgs["stream"]);
-        if(src){
+        if (src) {
             bool flag = src->close(allArgs["force"].as<bool>());
             val["result"] = flag ? 0 : -1;
             val["msg"] = flag ? "success" : "close failed";
-            val["code"] = API::OtherFailed;
-        }else{
+            val["code"] = flag ? API::Success : API::OtherFailed;
+        } else {
             val["result"] = -2;
             val["msg"] = "can not find the stream";
             val["code"] = API::OtherFailed;
