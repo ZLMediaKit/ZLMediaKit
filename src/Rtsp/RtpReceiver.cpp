@@ -124,13 +124,11 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     payload_ptr[3] = (rtp_raw_len & 0x00FF);
     //拷贝rtp负载
     memcpy(payload_ptr + 4, rtp_raw_ptr, rtp_raw_len);
-    //排序rtp
-    sortRtp(std::move(rtp_ptr), track_index);
-    return true;
-}
 
-void RtpReceiver::sortRtp(const RtpPacket::Ptr &rtp,int track_index){
-    _rtp_sortor[track_index].sortPacket(rtp->sequence, rtp);
+    //排序rtp
+    auto seq = rtp_ptr->sequence;
+    _rtp_sortor[track_index].sortPacket(seq, std::move(rtp_ptr));
+    return true;
 }
 
 void RtpReceiver::clear() {
