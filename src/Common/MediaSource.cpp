@@ -20,16 +20,16 @@ recursive_mutex s_media_source_mtx;
 MediaSource::SchemaVhostAppStreamMap s_media_source_map;
 
 string getOriginTypeString(MediaOriginType type){
-#define SWITCH_CASE(type) case type : return #type
+#define SWITCH_CASE(type) case MediaOriginType::type : return #type
     switch (type) {
-        SWITCH_CASE(MediaOriginType::unknown);
-        SWITCH_CASE(MediaOriginType::rtmp_push);
-        SWITCH_CASE(MediaOriginType::rtsp_push);
-        SWITCH_CASE(MediaOriginType::rtp_push);
-        SWITCH_CASE(MediaOriginType::pull);
-        SWITCH_CASE(MediaOriginType::ffmpeg_pull);
-        SWITCH_CASE(MediaOriginType::mp4_vod);
-        SWITCH_CASE(MediaOriginType::device_chn);
+        SWITCH_CASE(unknown);
+        SWITCH_CASE(rtmp_push);
+        SWITCH_CASE(rtsp_push);
+        SWITCH_CASE(rtp_push);
+        SWITCH_CASE(pull);
+        SWITCH_CASE(ffmpeg_pull);
+        SWITCH_CASE(mp4_vod);
+        SWITCH_CASE(device_chn);
     }
 }
 
