@@ -34,12 +34,6 @@ protected:
     bool close(MediaSource &sender,bool force) override;
     // 观看总人数
     int totalReaderCount(MediaSource &sender) override;
-    // 获取媒体源类型
-    MediaOriginType getOriginType(MediaSource &sender) const override;
-    // 获取媒体源url或者文件路径
-    string getOriginUrl(MediaSource &sender) const override;
-    // 获取媒体源客户端相关信息
-    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
 private:
     weak_ptr<RtpSelector > _parent;

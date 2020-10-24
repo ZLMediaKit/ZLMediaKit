@@ -154,18 +154,6 @@ int RtpProcessHelper::totalReaderCount(MediaSource &sender) {
     return _process ? _process->totalReaderCount() : sender.totalReaderCount();
 }
 
-MediaOriginType RtpProcessHelper::getOriginType(MediaSource &sender) const{
-    return MediaOriginType::rtp_push;
-}
-
-string RtpProcessHelper::getOriginUrl(MediaSource &sender) const {
-    return _process ? _process->_media_info._full_url : "";
-}
-
-std::shared_ptr<SockInfo> RtpProcessHelper::getOriginSock(MediaSource &sender) const{
-    return _process;
-}
-
 RtpProcess::Ptr &RtpProcessHelper::getProcess() {
     return _process;
 }

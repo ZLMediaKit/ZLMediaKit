@@ -19,7 +19,7 @@ using namespace mediakit;
 
 namespace mediakit {
 
-class RtpProcess : public SockInfo, public MediaSinkInterface, public std::enable_shared_from_this<RtpProcess>{
+class RtpProcess : public SockInfo, public MediaSinkInterface, public MediaSourceEventInterceptor, public std::enable_shared_from_this<RtpProcess>{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     friend class RtpProcessHelper;
@@ -68,6 +68,11 @@ protected:
     void addTrack(const Track::Ptr & track) override;
     void resetTracks() override {};
 
+    //// MediaSourceEvent override ////
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    string getOriginUrl(MediaSource &sender) const override;
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+
 private:
     void emitOnPublish();
 
@@ -81,7 +86,6 @@ private:
     function<void()> _on_detach;
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_video;
-    std::weak_ptr<MediaSourceEvent> _listener;
     ProcessInterface::Ptr _process;
     MultiMediaSourceMuxer::Ptr _muxer;
 };
