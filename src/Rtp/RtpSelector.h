@@ -56,6 +56,11 @@ public:
     static RtpSelector &Instance();
 
     /**
+     * 清空所有对象
+     */
+    void clear();
+
+    /**
      * 输入多个rtp流，根据ssrc分流
      * @param sock 本地socket
      * @param data 收到的数据
