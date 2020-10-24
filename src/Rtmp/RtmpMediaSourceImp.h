@@ -86,7 +86,7 @@ public:
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(static_pointer_cast<RtmpMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
-        setListener(_muxer);
+        MediaSource::setListener(_muxer);
 
         for(auto &track : _demuxer->getTracks(false)){
             _muxer->addTrack(track);
@@ -116,6 +116,20 @@ public:
                 Metadata::addTrack(_metadata, track);
             }
             RtmpMediaSource::updateMetaData(_metadata);
+        }
+    }
+
+    /**
+     * 设置事件监听器
+     * @param listener 监听器
+     */
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override{
+        if (_muxer) {
+            //_muxer对象不能处理的事件再给listener处理
+            _muxer->setMediaListener(listener);
+        } else {
+            //未创建_muxer对象，事件全部给listener处理
+            MediaSource::setListener(listener);
         }
     }
 

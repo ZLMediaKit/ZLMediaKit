@@ -291,7 +291,7 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
 }
 
 void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener) {
-    _listener = listener;
+    setDelegate(listener);
     //拦截事件
     _muxer->setMediaListener(shared_from_this());
 }
@@ -313,7 +313,7 @@ vector<Track::Ptr> MultiMediaSourceMuxer::getTracks(MediaSource &sender, bool tr
 }
 
 int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
-    auto listener = _listener.lock();
+    auto listener = getDelegate();
     if (!listener) {
         return totalReaderCount();
     }

@@ -97,6 +97,9 @@ public:
     MediaSourceEventInterceptor(){}
     ~MediaSourceEventInterceptor() override {}
 
+    void setDelegate(const std::weak_ptr<MediaSourceEvent> &listener);
+    std::shared_ptr<MediaSourceEvent> getDelegate() const;
+
     MediaOriginType getOriginType(MediaSource &sender) const override;
     string getOriginUrl(MediaSource &sender) const override;
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
@@ -112,7 +115,7 @@ public:
     void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) override;
     bool stopSendRtp(MediaSource &sender) override;
 
-protected:
+private:
     std::weak_ptr<MediaSourceEvent> _listener;
 };
 
@@ -226,9 +229,9 @@ public:
     ////////////////MediaSourceEvent相关接口实现////////////////
 
     // 设置监听者
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
+    virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
     // 获取监听者
-    const std::weak_ptr<MediaSourceEvent>& getListener() const;
+    std::weak_ptr<MediaSourceEvent> getListener(bool next = false) const;
 
     // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
     virtual int readerCount() = 0;

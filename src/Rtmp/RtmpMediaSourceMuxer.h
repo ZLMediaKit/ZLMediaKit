@@ -32,7 +32,7 @@ public:
     ~RtmpMediaSourceMuxer() override{}
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-        _listener = listener;
+        setDelegate(listener);
         _media_src->setListener(shared_from_this());
     }
 
