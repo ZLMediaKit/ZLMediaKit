@@ -301,18 +301,10 @@ public:
     FlushPolicy() = default;
     ~FlushPolicy() = default;
 
-    uint32_t getStamp(const RtpPacket::Ptr &packet) {
-        return packet->timeStamp;
-    }
-
-    uint32_t getStamp(const RtmpPacket::Ptr &packet) {
-        return packet->time_stamp;
-    }
-
-    bool isFlushAble(bool is_video, bool is_key, uint32_t new_stamp, int cache_size);
+    bool isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, int cache_size);
 
 private:
-    uint32_t _last_stamp[2] = {0, 0};
+    uint64_t _last_stamp[2] = {0, 0};
 };
 
 /// 合并写缓存模板
@@ -328,8 +320,8 @@ public:
 
     virtual ~PacketCache() = default;
 
-    void inputPacket(bool is_video, std::shared_ptr<packet> pkt, bool key_pos) {
-        if (_policy.isFlushAble(is_video, key_pos, _policy.getStamp(pkt), _cache->size())) {
+    void inputPacket(uint64_t stamp, bool is_video, std::shared_ptr<packet> pkt, bool key_pos) {
+        if (_policy.isFlushAble(is_video, key_pos, stamp, _cache->size())) {
             flushAll();
         }
 

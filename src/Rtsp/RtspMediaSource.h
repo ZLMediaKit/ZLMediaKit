@@ -183,7 +183,8 @@ public:
             }
         }
         bool is_video = rtp->type == TrackVideo;
-        PacketCache<RtpPacket>::inputPacket(is_video, std::move(rtp), keyPos);
+        auto stamp = rtp->timeStamp;
+        PacketCache<RtpPacket>::inputPacket(stamp, is_video, std::move(rtp), keyPos);
     }
 
     void clearCache() override{
