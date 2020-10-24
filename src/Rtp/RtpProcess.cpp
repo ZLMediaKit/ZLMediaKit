@@ -176,11 +176,7 @@ int RtpProcess::totalReaderCount() {
 }
 
 void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
-    if (_muxer) {
-        _muxer->setMediaListener(listener);
-    } else {
-        _listener = listener;
-    }
+    setDelegate(listener);
 }
 
 void RtpProcess::emitOnPublish() {
@@ -195,7 +191,7 @@ void RtpProcess::emitOnPublish() {
                                                                          strongSelf->_media_info._app,
                                                                          strongSelf->_media_info._streamid, 0,
                                                                          true, true, enableHls, enableMP4);
-            strongSelf->_muxer->setMediaListener(strongSelf->_listener);
+            strongSelf->_muxer->setMediaListener(strongSelf);
             InfoP(strongSelf) << "允许RTP推流";
         } else {
             WarnP(strongSelf) << "禁止RTP推流:" << err;
@@ -210,6 +206,18 @@ void RtpProcess::emitOnPublish() {
         GET_CONFIG(bool, toMP4, General::kPublishToMP4);
         invoker("", toHls, toMP4);
     }
+}
+
+MediaOriginType RtpProcess::getOriginType(MediaSource &sender) const{
+    return MediaOriginType::rtp_push;
+}
+
+string RtpProcess::getOriginUrl(MediaSource &sender) const {
+    return _media_info._full_url;
+}
+
+std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const{
+    return const_cast<RtpProcess *>(this)->shared_from_this();
 }
 
 }//namespace mediakit
