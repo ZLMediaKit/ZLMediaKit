@@ -92,8 +92,19 @@ void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
     _listener = listener;
 }
 
-const std::weak_ptr<MediaSourceEvent>& MediaSource::getListener() const{
-    return _listener;
+std::weak_ptr<MediaSourceEvent> MediaSource::getListener(bool next) const{
+    if (!next) {
+        return _listener;
+    }
+    auto listener = dynamic_pointer_cast<MediaSourceEventInterceptor>(_listener.lock());
+    if (!listener) {
+        //不是MediaSourceEventInterceptor对象或者对象已经销毁
+        return _listener;
+    }
+    //获取被拦截的对象
+    auto next_obj = listener->getDelegate();
+    //有则返回之
+    return next_obj ? next_obj : _listener;
 }
 
 int MediaSource::totalReaderCount(){
@@ -642,6 +653,17 @@ bool MediaSourceEventInterceptor::stopSendRtp(MediaSource &sender){
         return listener->stopSendRtp(sender);
     }
     return false;
+}
+
+void MediaSourceEventInterceptor::setDelegate(const std::weak_ptr<MediaSourceEvent> &listener) {
+    if (listener.lock().get() == this) {
+        throw std::invalid_argument("can not set self as a delegate");
+    }
+    _listener = listener;
+}
+
+std::shared_ptr<MediaSourceEvent> MediaSourceEventInterceptor::getDelegate() const{
+    return _listener.lock();
 }
 
 /////////////////////////////////////FlushPolicy//////////////////////////////////////
