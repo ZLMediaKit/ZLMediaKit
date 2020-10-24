@@ -18,10 +18,10 @@ namespace mediakit{
 //44             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //45             |F|   Type    |  LayerId  | TID |
 //46             +-------------+-----------------+
-//48                F       = 0
-//49                Type    = 49 (fragmentation unit (FU))
-//50                LayerId = 0
-//51                TID     = 1
+//48                F       = 0, 1bit
+//49                Type    = 49 (fragmentation unit (FU)), 6bit
+//50                LayerId = 0, 6bit
+//51                TID     = 1, 3bit
 //56         /*
 //57               create the FU header
 //58
@@ -29,7 +29,6 @@ namespace mediakit{
 //60              +-+-+-+-+-+-+-+-+
 //61              |S|E|  FuType   |
 //62              +---------------+
-//63
 //64                 S       = variable
 //65                 E       = variable
 //66                 FuType  = NAL unit type
@@ -150,40 +149,39 @@ H265RtpEncoder::H265RtpEncoder(uint32_t ui32Ssrc,
 }
 
 void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    GET_CONFIG(uint32_t,cycleMS,Rtp::kCycleMS);
-    uint8_t *pcData = (uint8_t*)frame->data() + frame->prefixSize();
-    auto uiStamp = frame->pts();
-    auto iLen = frame->size() - frame->prefixSize();
-    unsigned char naluType = H265_TYPE(pcData[0]); //获取NALU的5bit 帧类型
-    uiStamp %= cycleMS;
+    GET_CONFIG(uint32_t, cycleMS, Rtp::kCycleMS);
+    auto ptr = (uint8_t *) frame->data() + frame->prefixSize();
+    auto len = frame->size() - frame->prefixSize();
+    auto pts = frame->pts() % cycleMS;
+    auto nal_type = H265_TYPE(ptr[0]); //获取NALU的5bit 帧类型
+    auto payload_size = _ui32MtuSize - 3;
 
-    int maxSize = _ui32MtuSize - 3;
     //超过MTU,按照FU方式打包
-    if (iLen > maxSize) {
+    if (len > payload_size + 2) {
         //获取帧头数据，1byte
         unsigned char s_e_flags;
-        bool bFirst = true;
-        bool mark = false;
-        int nOffset = 2;
-        while (!mark) {
-            if (iLen <= nOffset + maxSize) {			//是否拆分结束
-                maxSize = iLen - nOffset;
-                mark = true;
+        bool fu_start = true;
+        bool mark_bit = false;
+        int offset = 2;
+        while (!mark_bit) {
+            if (len <= offset + payload_size) {
                 //FU end
-                s_e_flags = (1 << 6) | naluType;
-            } else if (bFirst) {
+                mark_bit = true;
+                payload_size = len - offset;
+                s_e_flags = (1 << 6) | nal_type;
+            } else if (fu_start) {
                 //FU start
-                s_e_flags = (1 << 7) | naluType;
+                s_e_flags = (1 << 7) | nal_type;
             } else {
                 //FU mid
-                s_e_flags = naluType;
+                s_e_flags = nal_type;
             }
 
             {
                 //传入nullptr先不做payload的内存拷贝
-                auto rtp = makeRtp(getTrackType(), nullptr, maxSize + 3, mark, uiStamp);
+                auto rtp = makeRtp(getTrackType(), nullptr, payload_size + 3, mark_bit, pts);
                 //rtp payload 负载部分
-                uint8_t *payload = (uint8_t*)rtp->data() + rtp->offset;
+                uint8_t *payload = (uint8_t *) rtp->data() + rtp->offset;
                 //FU 第1个字节，表明为FU
                 payload[0] = 49 << 1;
                 //FU 第2个字节貌似固定为1
@@ -191,16 +189,16 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 //FU 第3个字节
                 payload[2] = s_e_flags;
                 //H265 数据
-                memcpy(payload + 3,pcData + nOffset, maxSize);
+                memcpy(payload + 3, ptr + offset, payload_size);
                 //输入到rtp环形缓存
-                RtpCodec::inputRtp(rtp,bFirst && H265Frame::isKeyFrame(naluType));
+                RtpCodec::inputRtp(rtp, fu_start && H265Frame::isKeyFrame(nal_type));
             }
 
-            nOffset += maxSize;
-            bFirst = false;
+            offset += payload_size;
+            fu_start = false;
         }
     } else {
-        makeH265Rtp(naluType,pcData, iLen, false, true, uiStamp);
+        makeH265Rtp(nal_type, ptr, len, false, true, pts);
     }
 }
 
