@@ -126,7 +126,7 @@ void PlayerProxy::play(const string &strUrlTmp) {
         mediaSource = std::make_shared<RtmpMediaSource>(_vhost, _app, _stream_id);
     }
     if(mediaSource){
-        setMediaSouce(mediaSource);
+        setMediaSource(mediaSource);
         mediaSource->setListener(shared_from_this());
     }
 }
@@ -163,7 +163,7 @@ bool PlayerProxy::close(MediaSource &sender,bool force) {
             return;
         }
         strongSelf->_muxer.reset();
-        strongSelf->setMediaSouce(nullptr);
+        strongSelf->setMediaSource(nullptr);
         strongSelf->teardown();
         if (strongSelf->_on_close) {
             strongSelf->_on_close();
