@@ -188,9 +188,6 @@ protected:
     int getCycleCount(int track_index);
 
 private:
-    void sortRtp(const RtpPacket::Ptr &rtp , int track_index);
-
-private:
     uint32_t _ssrc[2] = {0, 0};
     //ssrc不匹配计数
     uint32_t _ssrc_err_count[2] = {0, 0};
