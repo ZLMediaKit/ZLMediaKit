@@ -167,5 +167,43 @@ void PSEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+class RingDelegateHelper : public RingDelegate<RtpPacket::Ptr> {
+public:
+    typedef function<void(RtpPacket::Ptr in, bool is_key)> onRtp;
+
+    ~RingDelegateHelper() override{}
+    RingDelegateHelper(onRtp on_rtp){
+        _on_rtp = std::move(on_rtp);
+    }
+    void onWrite(RtpPacket::Ptr in, bool is_key) override{
+        _on_rtp(std::move(in), is_key);
+    }
+
+private:
+    onRtp _on_rtp;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PSEncoderImp::PSEncoderImp(uint32_t ssrc, uint8_t payload_type) {
+    GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
+    _rtp_encoder = std::make_shared<CommonRtpEncoder>(CodecInvalid, ssrc, video_mtu, 90000, payload_type, 0);
+    _rtp_encoder->setRtpRing(std::make_shared<RtpRing::RingType>());
+    _rtp_encoder->getRtpRing()->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key){
+        onRTP(std::move(rtp));
+    }));
+    InfoL << this << " " << printSSRC(_rtp_encoder->getSsrc());
+}
+
+PSEncoderImp::~PSEncoderImp() {
+    InfoL << this << " " << printSSRC(_rtp_encoder->getSsrc());
+}
+
+void PSEncoderImp::onPS(uint32_t stamp, void *packet, size_t bytes) {
+    _rtp_encoder->inputFrame(std::make_shared<FrameFromPtr>((char *) packet, bytes, stamp));
+}
+
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)
