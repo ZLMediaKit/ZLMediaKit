@@ -15,6 +15,11 @@ namespace mediakit{
 
 INSTANCE_IMP(RtpSelector);
 
+void RtpSelector::clear(){
+    lock_guard<decltype(_mtx_map)> lck(_mtx_map);
+    _map_rtp_process.clear();
+}
+
 bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, int data_len,
                            const struct sockaddr *addr,uint32_t *dts_out) {
     //使用ssrc为流id
