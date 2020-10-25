@@ -504,12 +504,12 @@ void installWebApi() {
                                      allArgs["vhost"],
                                      allArgs["app"],
                                      allArgs["stream"]);
-        if(src){
+        if (src) {
             bool flag = src->close(allArgs["force"].as<bool>());
             val["result"] = flag ? 0 : -1;
             val["msg"] = flag ? "success" : "close failed";
-            val["code"] = API::OtherFailed;
-        }else{
+            val["code"] = flag ? API::Success : API::OtherFailed;
+        } else {
             val["result"] = -2;
             val["msg"] = "can not find the stream";
             val["code"] = API::OtherFailed;
@@ -1309,6 +1309,8 @@ void installWebApi() {
 }
 
 void unInstallWebApi(){
+    RtpSelector::Instance().clear();
+
     {
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         s_proxyMap.clear();
@@ -1318,6 +1320,7 @@ void unInstallWebApi(){
         lock_guard<recursive_mutex> lck(s_ffmpegMapMtx);
         s_ffmpegMap.clear();
     }
+
     {
 #if defined(ENABLE_RTPPROXY)
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);

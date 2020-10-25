@@ -37,7 +37,7 @@ void MediaPlayer::play(const string &url) {
     _delegate->setOnShutdown(_shutdownCB);
     _delegate->setOnPlayResult(_playResultCB);
     _delegate->setOnResume(_resumeCB);
-    _delegate->setMediaSouce(_pMediaSrc);
+    _delegate->setMediaSource(_pMediaSrc);
     _delegate->mINI::operator=(*this);
     _delegate->play(url);
 }

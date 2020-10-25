@@ -83,7 +83,7 @@ public:
     // 获取所有track相关信息
     virtual vector<Track::Ptr> getTracks(MediaSource &sender, bool trackReady = true) const { return vector<Track::Ptr>(); };
     // 开始发送ps-rtp
-    virtual void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) { cb(SockException(Err_other, "not implemented"));};
+    virtual void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) { cb(SockException(Err_other, "not implemented"));};
     // 停止发送ps-rtp
     virtual bool stopSendRtp(MediaSource &sender) {return false; }
 
@@ -97,6 +97,9 @@ public:
     MediaSourceEventInterceptor(){}
     ~MediaSourceEventInterceptor() override {}
 
+    void setDelegate(const std::weak_ptr<MediaSourceEvent> &listener);
+    std::shared_ptr<MediaSourceEvent> getDelegate() const;
+
     MediaOriginType getOriginType(MediaSource &sender) const override;
     string getOriginUrl(MediaSource &sender) const override;
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
@@ -109,10 +112,10 @@ public:
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) override;
     bool isRecording(MediaSource &sender, Recorder::type type) override;
     vector<Track::Ptr> getTracks(MediaSource &sender, bool trackReady = true) const override;
-    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) override;
+    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) override;
     bool stopSendRtp(MediaSource &sender) override;
 
-protected:
+private:
     std::weak_ptr<MediaSourceEvent> _listener;
 };
 
@@ -226,9 +229,9 @@ public:
     ////////////////MediaSourceEvent相关接口实现////////////////
 
     // 设置监听者
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
+    virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
     // 获取监听者
-    const std::weak_ptr<MediaSourceEvent>& getListener() const;
+    std::weak_ptr<MediaSourceEvent> getListener(bool next = false) const;
 
     // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
     virtual int readerCount() = 0;
@@ -253,7 +256,7 @@ public:
     // 获取录制状态
     bool isRecording(Recorder::type type);
     // 开始发送ps-rtp
-    void startSendRtp(const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb);
+    void startSendRtp(const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, const function<void(const SockException &ex)> &cb);
     // 停止发送ps-rtp
     bool stopSendRtp();
 
@@ -301,18 +304,10 @@ public:
     FlushPolicy() = default;
     ~FlushPolicy() = default;
 
-    uint32_t getStamp(const RtpPacket::Ptr &packet) {
-        return packet->timeStamp;
-    }
-
-    uint32_t getStamp(const RtmpPacket::Ptr &packet) {
-        return packet->time_stamp;
-    }
-
-    bool isFlushAble(bool is_video, bool is_key, uint32_t new_stamp, int cache_size);
+    bool isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, int cache_size);
 
 private:
-    uint32_t _last_stamp[2] = {0, 0};
+    uint64_t _last_stamp[2] = {0, 0};
 };
 
 /// 合并写缓存模板
@@ -328,8 +323,8 @@ public:
 
     virtual ~PacketCache() = default;
 
-    void inputPacket(bool is_video, std::shared_ptr<packet> pkt, bool key_pos) {
-        if (_policy.isFlushAble(is_video, key_pos, _policy.getStamp(pkt), _cache->size())) {
+    void inputPacket(uint64_t stamp, bool is_video, std::shared_ptr<packet> pkt, bool key_pos) {
+        if (_policy.isFlushAble(is_video, key_pos, stamp, _cache->size())) {
             flushAll();
         }
 

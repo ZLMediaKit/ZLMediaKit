@@ -233,7 +233,7 @@ void FFmpegSource::setOnClose(const function<void()> &cb){
 }
 
 bool FFmpegSource::close(MediaSource &sender, bool force) {
-    auto listener = _listener.lock();
+    auto listener = getDelegate();
     if(listener && !listener->close(sender,force)){
         //关闭失败
         return false;
@@ -258,17 +258,11 @@ std::shared_ptr<SockInfo> FFmpegSource::getOriginSock(MediaSource &sender) const
 }
 
 void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
-    auto listener = src->getListener();
+    auto listener = src->getListener(true);
     if (listener.lock().get() != this) {
-        //防止多次进入onGetMediaSource函数导致无效递归调用的bug
-        _listener = listener;
+        //防止多次进入onGetMediaSource函数导致无限递归调用的bug
+        setDelegate(listener);
         src->setListener(shared_from_this());
-    } else {
-        WarnL << "多次触发onGetMediaSource事件:"
-              << src->getSchema() << "/"
-              << src->getVhost() << "/"
-              << src->getApp() << "/"
-              << src->getId();
     }
 }
 

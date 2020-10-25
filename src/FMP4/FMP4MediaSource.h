@@ -30,19 +30,8 @@ public:
     uint32_t time_stamp = 0;
 };
 
-//FMP4直播合并写策略类
-class FMP4FlushPolicy : public FlushPolicy{
-public:
-    FMP4FlushPolicy() = default;
-    ~FMP4FlushPolicy() = default;
-
-    uint32_t getStamp(const FMP4Packet::Ptr &packet) {
-        return packet->time_stamp;
-    }
-};
-
 //FMP4直播源
-class FMP4MediaSource : public MediaSource, public RingDelegate<FMP4Packet::Ptr>, public PacketCache<FMP4Packet, FMP4FlushPolicy>{
+class FMP4MediaSource : public MediaSource, public RingDelegate<FMP4Packet::Ptr>, public PacketCache<FMP4Packet>{
 public:
     using Ptr = std::shared_ptr<FMP4MediaSource>;
     using RingDataType = std::shared_ptr<List<FMP4Packet::Ptr> >;
@@ -100,14 +89,15 @@ public:
             _have_video = true;
         }
         _speed += packet->size();
-        PacketCache<FMP4Packet, FMP4FlushPolicy>::inputPacket(true, std::move(packet), key);
+        auto stamp = packet->time_stamp;
+        PacketCache<FMP4Packet>::inputPacket(stamp, true, std::move(packet), key);
     }
 
     /**
      * 情况GOP缓存
      */
     void clearCache() override {
-        PacketCache<FMP4Packet, FMP4FlushPolicy>::clearCache();
+        PacketCache<FMP4Packet>::clearCache();
         _ring->clearCache();
     }
 

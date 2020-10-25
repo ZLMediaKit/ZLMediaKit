@@ -37,17 +37,19 @@ class RtspSession;
 class BufferRtp : public Buffer{
 public:
     typedef std::shared_ptr<BufferRtp> Ptr;
-    BufferRtp(const RtpPacket::Ptr & pkt,uint32_t offset = 0 ):_rtp(pkt),_offset(offset){}
-    virtual ~BufferRtp(){}
+    BufferRtp(Buffer::Ptr pkt, uint32_t offset = 0) : _rtp(std::move(pkt)), _offset(offset) {}
+    ~BufferRtp() override{}
 
     char *data() const override {
         return (char *)_rtp->data() + _offset;
     }
+
     uint32_t size() const override {
         return _rtp->size() - _offset;
     }
+
 private:
-    RtpPacket::Ptr _rtp;
+    Buffer::Ptr _rtp;
     uint32_t _offset;
 };
 

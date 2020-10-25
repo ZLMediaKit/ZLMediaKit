@@ -34,12 +34,6 @@ protected:
     bool close(MediaSource &sender,bool force) override;
     // 观看总人数
     int totalReaderCount(MediaSource &sender) override;
-    // 获取媒体源类型
-    MediaOriginType getOriginType(MediaSource &sender) const override;
-    // 获取媒体源url或者文件路径
-    string getOriginUrl(MediaSource &sender) const override;
-    // 获取媒体源客户端相关信息
-    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
 private:
     weak_ptr<RtpSelector > _parent;
@@ -54,6 +48,11 @@ public:
 
     static bool getSSRC(const char *data,int data_len, uint32_t &ssrc);
     static RtpSelector &Instance();
+
+    /**
+     * 清空所有对象
+     */
+    void clear();
 
     /**
      * 输入多个rtp流，根据ssrc分流

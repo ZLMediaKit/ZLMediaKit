@@ -20,16 +20,16 @@ recursive_mutex s_media_source_mtx;
 MediaSource::SchemaVhostAppStreamMap s_media_source_map;
 
 string getOriginTypeString(MediaOriginType type){
-#define SWITCH_CASE(type) case type : return #type
+#define SWITCH_CASE(type) case MediaOriginType::type : return #type
     switch (type) {
-        SWITCH_CASE(MediaOriginType::unknown);
-        SWITCH_CASE(MediaOriginType::rtmp_push);
-        SWITCH_CASE(MediaOriginType::rtsp_push);
-        SWITCH_CASE(MediaOriginType::rtp_push);
-        SWITCH_CASE(MediaOriginType::pull);
-        SWITCH_CASE(MediaOriginType::ffmpeg_pull);
-        SWITCH_CASE(MediaOriginType::mp4_vod);
-        SWITCH_CASE(MediaOriginType::device_chn);
+        SWITCH_CASE(unknown);
+        SWITCH_CASE(rtmp_push);
+        SWITCH_CASE(rtsp_push);
+        SWITCH_CASE(rtp_push);
+        SWITCH_CASE(pull);
+        SWITCH_CASE(ffmpeg_pull);
+        SWITCH_CASE(mp4_vod);
+        SWITCH_CASE(device_chn);
     }
 }
 
@@ -92,8 +92,19 @@ void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
     _listener = listener;
 }
 
-const std::weak_ptr<MediaSourceEvent>& MediaSource::getListener() const{
-    return _listener;
+std::weak_ptr<MediaSourceEvent> MediaSource::getListener(bool next) const{
+    if (!next) {
+        return _listener;
+    }
+    auto listener = dynamic_pointer_cast<MediaSourceEventInterceptor>(_listener.lock());
+    if (!listener) {
+        //不是MediaSourceEventInterceptor对象或者对象已经销毁
+        return _listener;
+    }
+    //获取被拦截的对象
+    auto next_obj = listener->getDelegate();
+    //有则返回之
+    return next_obj ? next_obj : _listener;
 }
 
 int MediaSource::totalReaderCount(){
@@ -168,7 +179,7 @@ bool MediaSource::isRecording(Recorder::type type){
     return listener->isRecording(*this, type);
 }
 
-void MediaSource::startSendRtp(const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb){
+void MediaSource::startSendRtp(const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, const function<void(const SockException &ex)> &cb){
     auto listener = _listener.lock();
     if (!listener) {
         cb(SockException(Err_other, "尚未设置事件监听器"));
@@ -627,7 +638,7 @@ vector<Track::Ptr> MediaSourceEventInterceptor::getTracks(MediaSource &sender, b
     return listener->getTracks(sender, trackReady);
 }
 
-void MediaSourceEventInterceptor::startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb){
+void MediaSourceEventInterceptor::startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, const function<void(const SockException &ex)> &cb){
     auto listener = _listener.lock();
     if (listener) {
         listener->startSendRtp(sender, dst_url, dst_port, ssrc, is_udp, cb);
@@ -644,9 +655,20 @@ bool MediaSourceEventInterceptor::stopSendRtp(MediaSource &sender){
     return false;
 }
 
+void MediaSourceEventInterceptor::setDelegate(const std::weak_ptr<MediaSourceEvent> &listener) {
+    if (listener.lock().get() == this) {
+        throw std::invalid_argument("can not set self as a delegate");
+    }
+    _listener = listener;
+}
+
+std::shared_ptr<MediaSourceEvent> MediaSourceEventInterceptor::getDelegate() const{
+    return _listener.lock();
+}
+
 /////////////////////////////////////FlushPolicy//////////////////////////////////////
 
-static bool isFlushAble_default(bool is_video, uint32_t last_stamp, uint32_t new_stamp, int cache_size) {
+static bool isFlushAble_default(bool is_video, uint64_t last_stamp, uint64_t new_stamp, int cache_size) {
     if (new_stamp + 500 < last_stamp) {
         //时间戳回退比较大(可能seek中)，由于rtp中时间戳是pts，是可能存在一定程度的回退的
         return true;
@@ -656,7 +678,7 @@ static bool isFlushAble_default(bool is_video, uint32_t last_stamp, uint32_t new
     return last_stamp != new_stamp || cache_size >= 1024;
 }
 
-static bool isFlushAble_merge(bool is_video, uint32_t last_stamp, uint32_t new_stamp, int cache_size, int merge_ms) {
+static bool isFlushAble_merge(bool is_video, uint64_t last_stamp, uint64_t new_stamp, int cache_size, int merge_ms) {
     if (new_stamp + 500 < last_stamp) {
         //时间戳回退比较大(可能seek中)，由于rtp中时间戳是pts，是可能存在一定程度的回退的
         return true;
@@ -672,7 +694,7 @@ static bool isFlushAble_merge(bool is_video, uint32_t last_stamp, uint32_t new_s
     return cache_size >= 1024;
 }
 
-bool FlushPolicy::isFlushAble(bool is_video, bool is_key, uint32_t new_stamp, int cache_size) {
+bool FlushPolicy::isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, int cache_size) {
     bool flush_flag = false;
     if (is_key && is_video) {
         //遇到关键帧flush掉前面的数据，确保关键帧为该组数据的第一帧，确保GOP缓存有效

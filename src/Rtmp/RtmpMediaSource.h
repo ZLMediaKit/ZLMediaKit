@@ -154,7 +154,8 @@ public:
         }
         bool key = pkt->isVideoKeyFrame();
         bool is_video = pkt->type_id == MSG_VIDEO;
-        PacketCache<RtmpPacket>::inputPacket(is_video, std::move(pkt), key);
+        auto stamp  = pkt->time_stamp;
+        PacketCache<RtmpPacket>::inputPacket(stamp, is_video, std::move(pkt), key);
     }
 
     /**
