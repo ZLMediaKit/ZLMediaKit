@@ -77,7 +77,7 @@ const char *GB28181Process::onSearchPacketTail(const char *packet,int bytes){
         }
         return nullptr;
     } catch (std::exception &ex) {
-        InfoL << "解析ps或ts异常: bytes=" << bytes
+        InfoL << _media_info._streamid << " 解析ps或ts异常: bytes=" << bytes
               << " ,exception=" << ex.what()
               << " ,hex=" << hexdump((uint8_t *) packet, bytes);
         if (remainDataSize() > 256 * 1024) {
