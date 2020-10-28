@@ -21,7 +21,8 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
                          const string &params,
                          uint32_t bufSize,
                          float seg_duration,
-                         uint32_t seg_number,int record_type) : HlsMaker(seg_duration, seg_number,record_type) {
+                         uint32_t seg_number,
+                         uint32_t record_type) : HlsMaker(seg_duration, seg_number, record_type) {
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
     _params = params;

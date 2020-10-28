@@ -143,9 +143,7 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
                 auto hls_record = dynamic_pointer_cast<HlsRecorder>(makeRecorder(getTracks(true), type, custom_path, sender));
                 if (hls_record) {
                     //设置HlsMediaSource的事件监听器
-                    InfoL << "find record hls ms ";
                     hls_record->setListener(_listener);
-                    //hls_src->setTrackSource(shared_from_this());
                 }
                 _hls_record = hls_record;
             } else if (!start && _hls_record) {

@@ -37,7 +37,7 @@ public:
                 uint32_t bufSize  = 64 * 1024,
                 float seg_duration = 5,
                 uint32_t seg_number = 3,
-				int record_type = 0);
+                uint32_t record_type = 0);
     ~HlsMakerImp() override;
 
     /**

@@ -28,7 +28,7 @@ public:
      * @param seg_duration 切片文件长度
      * @param seg_number 切片个数
      */
-    HlsMaker(float seg_duration = 5, uint32_t seg_number = 3,  int record_type = 0);
+    HlsMaker(float seg_duration = 5, uint32_t seg_number = 3,  uint32_t record_type = 0);
     virtual ~HlsMaker();
 
     /**
@@ -119,7 +119,7 @@ private:
     uint64_t _file_index = 0;
     string _last_file_name;
     std::deque<tuple<int,string> > _seg_dur_list;
-    int32_t _hls_record_type;
+    uint32_t _hls_record_type;
 };
 
 }//namespace mediakit

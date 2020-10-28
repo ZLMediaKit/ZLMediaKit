@@ -12,7 +12,7 @@
 using namespace toolkit;
 namespace mediakit {
 
-HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number, int record_type) {
+HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number, uint32_t record_type) {
     //最小允许设置为0，0个切片代表点播
     _seg_number = seg_number;
     _seg_duration = seg_duration;
