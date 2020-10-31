@@ -119,9 +119,6 @@ void RtmpPusher::onConnect(const SockException &err){
         onPublishResult(err, false);
         return;
     }
-    //推流器不需要多大的接收缓存，节省内存占用
-    getSock()->setReadBuffer(std::make_shared<BufferRaw>(1 * 1024));
-
     weak_ptr<RtmpPusher> weak_self = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
     startClientSession([weak_self]() {
         auto strong_self = weak_self.lock();

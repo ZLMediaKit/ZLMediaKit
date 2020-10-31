@@ -102,11 +102,12 @@ void FrameMerger::inputFrame(const Frame::Ptr &frame,const function<void(uint32_
         Frame::Ptr back = _frameCached.back();
         Buffer::Ptr merged_frame = back;
         if(_frameCached.size() != 1){
-            string merged;
+            BufferLikeString merged;
+            merged.reserve(back->size() + 1024);
             _frameCached.for_each([&](const Frame::Ptr &frame){
                 merged.append(frame->data(),frame->size());
             });
-            merged_frame = std::make_shared<BufferString>(std::move(merged));
+            merged_frame = std::make_shared<BufferOffset<BufferLikeString> >(std::move(merged));
         }
         cb(back->dts(),back->pts(),merged_frame);
         _frameCached.clear();

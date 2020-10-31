@@ -30,7 +30,7 @@ public:
 protected:
     int64_t onRecvHeader(const char *data,uint64_t len) override;
     void onRecvContent(const char *data,uint64_t len) override;
-    const char *onSearchPacketTail(const char *data,int len) override;
+    const char *onSearchPacketTail(const char *data,uint64_t len) override;
 protected:
     virtual void onRecvChunk(const char *data,uint64_t len){
         if(_onChunkData){

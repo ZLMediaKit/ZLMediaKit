@@ -13,7 +13,7 @@
 
 namespace mediakit{
     
-const char *HttpChunkedSplitter::onSearchPacketTail(const char *data, int len) {
+const char *HttpChunkedSplitter::onSearchPacketTail(const char *data, uint64_t len) {
     auto pos = strstr(data,"\r\n");
     if(!pos){
         return nullptr;

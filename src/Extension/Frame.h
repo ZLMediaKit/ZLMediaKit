@@ -161,7 +161,7 @@ public:
 
 public:
     CodecId _codec_id = CodecInvalid;
-    string _buffer;
+    BufferLikeString _buffer;
     uint32_t _dts = 0;
     uint32_t _pts = 0;
     uint32_t _prefix_size = 0;

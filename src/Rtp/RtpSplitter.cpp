@@ -9,7 +9,6 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
-#include <netinet/in.h>
 #include <string.h>
 #include "RtpSplitter.h"
 namespace mediakit{
@@ -35,14 +34,14 @@ int64_t RtpSplitter::onRecvHeader(const char *data,uint64_t len){
     return 0;
 }
 
-static bool isEhome(const char *data, int len){
+static bool isEhome(const char *data, uint64_t len){
     if (len < 4) {
         return false;
     }
     return memcmp(data, kEHOME_MAGIC, sizeof(kEHOME_MAGIC) - 1) == 0;
 }
 
-const char *RtpSplitter::onSearchPacketTail(const char *data, int len) {
+const char *RtpSplitter::onSearchPacketTail(const char *data, uint64_t len) {
     if (len < 4) {
         //数据不够
         return nullptr;
@@ -70,7 +69,7 @@ const char *RtpSplitter::onSearchPacketTail(const char *data, int len) {
     return onSearchPacketTail_l(data, len);
 }
 
-const char *RtpSplitter::onSearchPacketTail_l(const char *data, int len) {
+const char *RtpSplitter::onSearchPacketTail_l(const char *data, uint64_t len) {
     //这是rtp包
     uint16_t length = (((uint8_t *) data)[0] << 8) | ((uint8_t *) data)[1];
     if (len < length + 2) {

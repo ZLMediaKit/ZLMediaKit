@@ -60,8 +60,6 @@ RtspSession::RtspSession(const Socket::Ptr &sock) : TcpSession(sock) {
     DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtsp::kKeepAliveSecond);
     sock->setSendTimeOutSecond(keep_alive_sec);
-    //起始接收buffer缓存设置为4K，节省内存
-    sock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
 }
 
 RtspSession::~RtspSession() {
@@ -270,8 +268,7 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
         rtp_info.pop_back();
         sendRtspResponse("200 OK", {"RTP-Info",rtp_info});
         if(_rtp_type == Rtsp::RTP_TCP){
-            //如果是rtsp推流服务器，并且是TCP推流，那么加大TCP接收缓存，这样能提升接收性能
-            getSock()->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+            //如果是rtsp推流服务器，并且是TCP推流，设置socket flags,，这样能提升接收性能
             setSocketFlags();
         }
     };
@@ -1030,15 +1027,15 @@ bool RtspSession::sendRtspResponse(const string &res_code, const StrCaseMap &hea
         printer << sdp;
     }
 //	DebugP(this) << printer;
-    return send(std::make_shared<BufferString>(printer)) > 0 ;
+    return send(std::make_shared<BufferString>(std::move(printer))) > 0 ;
 }
 
-int RtspSession::send(const Buffer::Ptr &pkt){
+int RtspSession::send(Buffer::Ptr pkt){
 //	if(!_enableSendRtp){
 //		DebugP(this) << pkt->data();
 //	}
     _bytes_usage += pkt->size();
-    return TcpSession::send(pkt);
+    return TcpSession::send(std::move(pkt));
 }
 
 bool RtspSession::sendRtspResponse(const string &res_code, const std::initializer_list<string> &header, const string &sdp, const char *protocol) {
@@ -1162,7 +1159,7 @@ void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
                 }
                 BufferRtp::Ptr buffer(new BufferRtp(rtp, 4));
                 _bytes_usage += buffer->size();
-                pSock->send(buffer, nullptr, 0, ++i == size);
+                pSock->send(std::move(buffer), nullptr, 0, ++i == size);
             });
         }
             break;

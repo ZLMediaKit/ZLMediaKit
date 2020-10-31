@@ -17,8 +17,6 @@ RtmpSession::RtmpSession(const Socket::Ptr &sock) : TcpSession(sock) {
     DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtmp::kKeepAliveSecond);
     sock->setSendTimeOutSecond(keep_alive_sec);
-    //起始接收buffer缓存设置为4K，节省内存
-    sock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
 }
 
 RtmpSession::~RtmpSession() {
@@ -151,9 +149,6 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         _publisher_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
         //设置转协议
         _publisher_src->setProtocolTranslation(enableHls, enableMP4);
-
-        //如果是rtmp推流客户端，那么加大TCP接收缓存，这样能提升接收性能
-        getSock()->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
         setSocketFlags();
     };
 

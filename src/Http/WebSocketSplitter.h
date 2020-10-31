@@ -132,7 +132,7 @@ protected:
      * @param ptr 数据指针
      * @param len 数据指针长度
      */
-    virtual void onWebSocketEncodeData(const Buffer::Ptr &buffer){};
+    virtual void onWebSocketEncodeData(Buffer::Ptr buffer){};
 
 private:
     void onPayloadData(uint8_t *data, uint64_t len);

@@ -56,9 +56,9 @@ private:
     void setMetaData(AMFDecoder &dec);
 
     void onSendMedia(const RtmpPacket::Ptr &pkt);
-    void onSendRawData(const Buffer::Ptr &buffer) override{
+    void onSendRawData(Buffer::Ptr buffer) override{
         _total_bytes += buffer->size();
-        send(buffer);
+        send(std::move(buffer));
     }
     void onRtmpChunk(RtmpPacket &chunk_data) override;
 

@@ -704,7 +704,8 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
     for (auto &pr : header){
         printer << pr.first << ": " << pr.second << "\r\n";
     }
-    SockSender::send(printer << "\r\n");
+    printer << "\r\n";
+    SockSender::send(std::move(printer));
 }
 
 void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) {
