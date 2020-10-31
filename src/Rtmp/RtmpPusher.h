@@ -43,8 +43,8 @@ protected:
 
     //for RtmpProtocol override
     void onRtmpChunk(RtmpPacket &chunk_data) override;
-    void onSendRawData(const Buffer::Ptr &buffer) override{
-        send(buffer);
+    void onSendRawData(Buffer::Ptr buffer) override{
+        send(std::move(buffer));
     }
 
 private:

@@ -136,7 +136,7 @@ public:
     uint32_t ts_field = 0;
     uint32_t stream_index;
     uint32_t chunk_id;
-    std::string buffer;
+    BufferLikeString buffer;
 
 public:
     char *data() const override{

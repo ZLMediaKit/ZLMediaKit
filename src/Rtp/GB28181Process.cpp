@@ -69,7 +69,7 @@ void GB28181Process::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
     _rtp_decoder->inputRtp(rtp, false);
 }
 
-const char *GB28181Process::onSearchPacketTail(const char *packet,int bytes){
+const char *GB28181Process::onSearchPacketTail(const char *packet,uint64_t bytes){
     try {
         auto ret = _decoder->input((uint8_t *) packet, bytes);
         if (ret > 0) {

@@ -93,7 +93,7 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
     /////TcpSession override////
-    int send(const Buffer::Ptr &pkt) override;
+    int send(Buffer::Ptr pkt) override;
     //收到RTCP包回调
     virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, unsigned int len);
 

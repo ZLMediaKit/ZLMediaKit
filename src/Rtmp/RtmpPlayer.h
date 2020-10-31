@@ -58,8 +58,8 @@ protected:
     //from RtmpProtocol
     void onRtmpChunk(RtmpPacket &chunk_data) override;
     void onStreamDry(uint32_t stream_index) override;
-    void onSendRawData(const Buffer::Ptr &buffer) override {
-        send(buffer);
+    void onSendRawData(Buffer::Ptr buffer) override {
+        send(std::move(buffer));
     }
 
     template<typename FUNC>

@@ -99,9 +99,6 @@ void HttpClient::onConnect(const SockException &ex) {
         return;
     }
 
-    //先假设http客户端只会接收一点点数据（只接受http头，节省内存）
-    getSock()->setReadBuffer(std::make_shared<BufferRaw>(1 * 1024));
-
     _totalBodySize = 0;
     _recvedBodySize = 0;
     HttpRequestSplitter::reset();
@@ -156,9 +153,6 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     }
 
     if(_parser["Transfer-Encoding"] == "chunked"){
-        //我们认为这种情况下后面应该有大量的数据过来，加大接收缓存提高性能
-        getSock()->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
-
         //如果Transfer-Encoding字段等于chunked，则认为后续的content是不限制长度的
         _totalBodySize = -1;
         _chunkedSplitter = std::make_shared<HttpChunkedSplitter>([this](const char *data,uint64_t len){
@@ -183,13 +177,6 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     //但是由于我们没必要等content接收完毕才回调onRecvContent(因为这样浪费内存并且要多次拷贝数据)
     //所以返回-1代表我们接下来分段接收content
     _recvedBodySize = 0;
-    if(_totalBodySize > 0){
-        //根据_totalBodySize设置接收缓存大小
-        getSock()->setReadBuffer(std::make_shared<BufferRaw>(MIN(_totalBodySize + 1,256 * 1024)));
-    }else{
-        getSock()->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
-    }
-
     return -1;
 }
 
