@@ -13,6 +13,7 @@
 #include "Util/File.h"
 #include "Http/HttpTSPlayer.h"
 #include "Extension/CommonRtp.h"
+#include "Extension/H264Rtp.h"
 
 namespace mediakit{
 
@@ -54,6 +55,13 @@ void GB28181Process::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
                 break;
             }
 
+            case 98: {
+                //H264负载
+                _rtp_decoder = std::make_shared<H264RtpDecoder>();
+                _interface->addTrack(std::make_shared<H264Track>());
+                break;
+            }
+
             default:
                 WarnL << "不支持的rtp负载类型:" << (int) rtp->PT;
                 return;
@@ -89,6 +97,12 @@ const char *GB28181Process::onSearchPacketTail(const char *packet,uint64_t bytes
 }
 
 void GB28181Process::onRtpDecode(const Frame::Ptr &frame) {
+    if (frame->getCodecId() == CodecH264) {
+        //这是H264
+        _interface->inputFrame(frame);
+        return;
+    }
+
     //这是TS或PS
     if (_save_file_ps) {
         fwrite(frame->data(), frame->size(), 1, _save_file_ps.get());
