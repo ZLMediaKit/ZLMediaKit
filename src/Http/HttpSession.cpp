@@ -24,8 +24,6 @@ HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
     TraceP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Http::kKeepAliveSecond);
     pSock->setSendTimeOutSecond(keep_alive_sec);
-    //起始接收buffer缓存设置为4K，节省内存
-    pSock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
 }
 
 HttpSession::~HttpSession() {
@@ -638,14 +636,6 @@ void HttpSession::Handle_Req_POST(int64_t &content_len) {
         return;
     }
 
-    //根据Content-Length设置接收缓存大小
-    if(totalContentLen > 0){
-        getSock()->setReadBuffer(std::make_shared<BufferRaw>(MIN(totalContentLen + 1,256 * 1024)));
-    }else{
-        //不定长度的Content-Length
-        getSock()->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
-    }
-
     if(totalContentLen > 0 && totalContentLen < maxReqSize ){
         //返回固定长度的content
         content_len = totalContentLen;
@@ -738,9 +728,9 @@ void HttpSession::onWrite(const Buffer::Ptr &buffer, bool flush) {
     }
 }
 
-void HttpSession::onWebSocketEncodeData(const Buffer::Ptr &buffer){
+void HttpSession::onWebSocketEncodeData(Buffer::Ptr buffer){
     _total_bytes_usage += buffer->size();
-    send(buffer);
+    send(std::move(buffer));
 }
 
 void HttpSession::onWebSocketDecodeComplete(const WebSocketHeader &header_in){

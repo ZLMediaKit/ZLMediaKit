@@ -31,7 +31,7 @@ public:
     static bool isTSPacket(const char *data, int len);
 protected:
     int64_t onRecvHeader(const char *data, uint64_t len) override ;
-    const char *onSearchPacketTail(const char *data, int len) override ;
+    const char *onSearchPacketTail(const char *data, uint64_t len) override ;
 private:
     int _size;
     onSegment _onSegment;

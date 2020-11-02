@@ -92,7 +92,7 @@ protected:
      * 发送数据进行websocket协议打包后回调
      * @param buffer websocket协议数据
      */
-    void onWebSocketEncodeData(const Buffer::Ptr &buffer) override;
+    void onWebSocketEncodeData(Buffer::Ptr buffer) override;
 
     /**
      * 接收到完整的一个webSocket数据包后回调

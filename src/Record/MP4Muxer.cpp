@@ -101,7 +101,8 @@ void MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
 
                 if (_frameCached.size() != 1) {
                     //缓存中有多帧，需要按照mp4格式合并一起
-                    string merged;
+                    BufferLikeString merged;
+                    merged.reserve(back->size() + 1024);
                     _frameCached.for_each([&](const Frame::Ptr &frame) {
                         uint32_t nalu_size = frame->size() - frame->prefixSize();
                         nalu_size = htonl(nalu_size);

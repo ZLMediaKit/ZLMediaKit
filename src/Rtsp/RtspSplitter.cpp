@@ -15,7 +15,7 @@
 
 namespace mediakit{
 
-const char *RtspSplitter::onSearchPacketTail(const char *data, int len) {
+const char *RtspSplitter::onSearchPacketTail(const char *data, uint64_t len) {
     auto ret = onSearchPacketTail_l(data, len);
     if(ret){
         return ret;
@@ -32,7 +32,7 @@ const char *RtspSplitter::onSearchPacketTail(const char *data, int len) {
     return ret;
 }
 
-const char *RtspSplitter::onSearchPacketTail_l(const char *data, int len) {
+const char *RtspSplitter::onSearchPacketTail_l(const char *data, uint64_t len) {
     if(!_enableRecvRtp || data[0] != '$'){
         //这是rtsp包
         _isRtpPacket = false;

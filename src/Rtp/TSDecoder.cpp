@@ -28,7 +28,7 @@ int64_t TSSegment::onRecvHeader(const char *data, uint64_t len) {
     return 0;
 }
 
-const char *TSSegment::onSearchPacketTail(const char *data, int len) {
+const char *TSSegment::onSearchPacketTail(const char *data, uint64_t len) {
     if (len < _size + 1) {
         if (len == _size && ((uint8_t *) data)[0] == TS_SYNC_BYTE) {
             return data + _size;
