@@ -15,6 +15,7 @@
 #include "RtmpMediaSource.h"
 #include "Network/TcpClient.h"
 #include "Pusher/PusherBase.h"
+#include "Common/Stamp.h"
 
 namespace mediakit {
 
@@ -89,6 +90,9 @@ private:
     std::shared_ptr<Timer> _publish_timer;
     std::weak_ptr<RtmpMediaSource> _publish_src;
     RtmpMediaSource::RingType::RingReader::Ptr _rtmp_reader;
+
+    //时间戳修改器
+    Stamp _stamp[2];
 };
 
 } /* namespace mediakit */

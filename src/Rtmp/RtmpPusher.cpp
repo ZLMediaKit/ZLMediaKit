@@ -20,6 +20,7 @@ namespace mediakit {
 
 RtmpPusher::RtmpPusher(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &src) : TcpClient(poller){
     _publish_src = src;
+    _stamp[MSG_AUDIO % 2].syncTo(_stamp[MSG_VIDEO % 2]);
 }
 
 RtmpPusher::~RtmpPusher() {
@@ -199,7 +200,7 @@ inline void RtmpPusher::send_metaData(){
     sendRequest(MSG_DATA, enc.data());
 
     src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
-        sendRtmp(pkt->type_id, _stream_index, pkt, pkt->time_stamp, pkt->chunk_id);
+        sendRtmp(pkt->type_id, _stream_index, pkt, 0, pkt->chunk_id);
     });
 
     _rtmp_reader = src->getRing()->attach(getPoller());
@@ -217,7 +218,9 @@ inline void RtmpPusher::send_metaData(){
             if (++i == size) {
                 strong_self->setSendFlushFlag(true);
             }
-            strong_self->sendRtmp(rtmp->type_id, strong_self->_stream_index, rtmp, rtmp->time_stamp, rtmp->chunk_id);
+            int64_t dts_out;
+            strong_self->_stamp[rtmp->type_id % 2].revise(rtmp->time_stamp, 0, dts_out, dts_out);
+            strong_self->sendRtmp(rtmp->type_id, strong_self->_stream_index, rtmp, dts_out & 0xFFFFFFFF, rtmp->chunk_id);
         });
     });
     _rtmp_reader->setDetachCB([weak_self]() {
