@@ -239,6 +239,9 @@ void RtspPusher::sendSetup(unsigned int track_idx) {
     _on_res_func = std::bind(&RtspPusher::handleResSetup, this, placeholders::_1, track_idx);
     auto &track = _track_vec[track_idx];
     auto base_url = _content_base + "/" + track->_control_surffix;
+    if (track->_control.find("://") != string::npos) {
+        base_url = track->_control;
+    }
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest("SETUP", base_url, {"Transport",

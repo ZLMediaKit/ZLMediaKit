@@ -223,6 +223,9 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
     _on_response = std::bind(&RtspPlayer::handleResSETUP, this, placeholders::_1, track_idx);
     auto &track = _sdp_track[track_idx];
     auto baseUrl = _content_base + "/" + track->_control_surffix;
+    if (track->_control.find("://") != string::npos) {
+        baseUrl = track->_control;
+    }
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest("SETUP",baseUrl,{"Transport",StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1});
