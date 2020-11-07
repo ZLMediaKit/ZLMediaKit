@@ -247,6 +247,9 @@ private:
             }
                 break;
         }
+        if (_width == 0 && ready()) {
+            onReady();
+        }
     }
 
     /**
