@@ -24,7 +24,7 @@ int64_t RtpSplitter::onRecvHeader(const char *data,uint64_t len){
     data += _offset;
     len -= _offset;
 
-    if (_offset == kEHOME_OFFSET + 4 && len > 12 && data[12] == '\r') {
+    if (_is_ehome && len > 12 && data[12] == '\r') {
         //这是ehome,移除第12个字节
         memmove((char *) data + 1, data, 12);
         data += 1;
@@ -55,6 +55,7 @@ const char *RtpSplitter::onSearchPacketTail(const char *data, uint64_t len) {
         }
         //忽略ehome私有头后是rtsp样式的rtp，多4个字节，
         _offset = kEHOME_OFFSET + 4;
+        _is_ehome = true;
         //忽略ehome私有头
         return onSearchPacketTail_l(data + kEHOME_OFFSET + 2, len - kEHOME_OFFSET - 2);
     }

@@ -36,6 +36,7 @@ protected:
 
 private:
     int _offset = 0;
+    bool _is_ehome = false;
 };
 
 }//namespace mediakit
