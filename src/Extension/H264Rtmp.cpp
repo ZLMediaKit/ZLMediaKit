@@ -200,7 +200,10 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         _lastPacket->buffer.clear();
         _lastPacket->buffer.push_back(flags);
         _lastPacket->buffer.push_back(!is_config);
-        auto cts = frame->pts() - frame->dts();
+        int32_t cts = frame->pts() - frame->dts();
+        if (cts < 0) {
+            cts = 0;
+        }
         cts = htonl(cts);
         _lastPacket->buffer.append((char *)&cts + 1, 3);
 
