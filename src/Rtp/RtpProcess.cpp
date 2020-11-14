@@ -101,6 +101,14 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
     if (!_process) {
         _process = std::make_shared<GB28181Process>(_media_info, this);
     }
+
+    GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
+    if (!_muxer->isEnabled() && !dts_out && dump_dir.empty()) {
+        //无人访问、且不取时间戳、不导出调试文件时，我们可以直接丢弃数据
+        _last_frame_time.resetTime();
+        return false;
+    }
+
     bool ret = _process ? _process->inputRtp(is_udp, data, len) : false;
     if (dts_out) {
         *dts_out = _dts;
