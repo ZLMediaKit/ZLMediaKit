@@ -49,26 +49,29 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
-        _enabled = size;
-        if (!size) {
+        GET_CONFIG(bool, rtsp_demand, General::kRtspDemand);
+        _enabled = rtsp_demand ? size : true;
+        if (!size && rtsp_demand) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
     void inputFrame(const Frame::Ptr &frame) override {
-        if (_clear_cache) {
+        GET_CONFIG(bool, rtsp_demand, General::kRtspDemand);
+        if (_clear_cache && rtsp_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
-        if (_enabled) {
+        if (_enabled || !rtsp_demand) {
             RtspMuxer::inputFrame(frame);
         }
     }
 
     bool isEnabled() {
+        GET_CONFIG(bool, rtsp_demand, General::kRtspDemand);
         //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return _clear_cache ? true : _enabled;
+        return rtsp_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
 private:
