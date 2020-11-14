@@ -87,6 +87,12 @@ onceToken token([](){
     mINI::Instance()[kMergeWriteMS] = 0;
     mINI::Instance()[kModifyStamp] = 0;
     mINI::Instance()[kMediaServerId] = makeRandStr(16);
+    mINI::Instance()[kHlsDemand] = 0;
+    mINI::Instance()[kRtspDemand] = 0;
+    mINI::Instance()[kRtmpDemand] = 0;
+    mINI::Instance()[kTSDemand] = 0;
+    mINI::Instance()[kFMP4Demand] = 0;
+
 },nullptr);
 
 }//namespace General
