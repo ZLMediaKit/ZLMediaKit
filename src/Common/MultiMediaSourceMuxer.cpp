@@ -9,6 +9,7 @@
 */
 
 #include <math.h>
+#include "Common/config.h"
 #include "MultiMediaSourceMuxer.h"
 namespace mediakit {
 
@@ -450,11 +451,21 @@ void MultiMediaSourceMuxer::inputFrame(const Frame::Ptr &frame_in) {
 }
 
 bool MultiMediaSourceMuxer::isEnabled(){
+    GET_CONFIG(uint32_t, stream_none_reader_delay_ms, General::kStreamNoneReaderDelayMS);
+    if (!_is_enable || _last_check.elapsedTime() > stream_none_reader_delay_ms) {
+        //无人观看时，每次检查是否真的无人观看
+        //有人观看时，则延迟一定时间检查一遍是否无人观看了(节省性能)
 #if defined(ENABLE_RTPPROXY)
-    return (_muxer->isEnabled() || _rtp_sender);
+        _is_enable = (_muxer->isEnabled() || _rtp_sender);
 #else
-    return _muxer->isEnabled();
+        _is_enable = _muxer->isEnabled();
 #endif //ENABLE_RTPPROXY
+        if (_is_enable) {
+            //无人观看时，不刷新计时器,因为无人观看时每次都会检查一遍，所以刷新计数器无意义且浪费cpu
+            _last_check.resetTime();
+        }
+    }
+    return _is_enable;
 }
 
 
