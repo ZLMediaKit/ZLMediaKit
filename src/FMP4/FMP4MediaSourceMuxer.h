@@ -41,26 +41,29 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
-        _enabled = size;
-        if (!size) {
+        GET_CONFIG(bool, fmp4_demand, General::kFMP4Demand);
+        _enabled = fmp4_demand ? size : true;
+        if (!size && fmp4_demand) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
     void inputFrame(const Frame::Ptr &frame) override {
-        if (_clear_cache) {
+        GET_CONFIG(bool, fmp4_demand, General::kFMP4Demand);
+        if (_clear_cache && fmp4_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
-        if (_enabled) {
+        if (_enabled || !fmp4_demand) {
             MP4MuxerMemory::inputFrame(frame);
         }
     }
 
     bool isEnabled() {
+        GET_CONFIG(bool, fmp4_demand, General::kFMP4Demand);
         //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return _clear_cache ? true : _enabled;
+        return fmp4_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
     void onAllTrackReady() {

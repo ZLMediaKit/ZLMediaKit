@@ -69,6 +69,11 @@ const string kPublishToHls = GENERAL_FIELD"publishToHls";
 const string kPublishToMP4 = GENERAL_FIELD"publishToMP4";
 const string kMergeWriteMS = GENERAL_FIELD"mergeWriteMS";
 const string kModifyStamp = GENERAL_FIELD"modifyStamp";
+const string kHlsDemand = GENERAL_FIELD"hls_demand";
+const string kRtspDemand = GENERAL_FIELD"rtsp_demand";
+const string kRtmpDemand = GENERAL_FIELD"rtmp_demand";
+const string kTSDemand = GENERAL_FIELD"ts_demand";
+const string kFMP4Demand = GENERAL_FIELD"fmp4_demand";
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;

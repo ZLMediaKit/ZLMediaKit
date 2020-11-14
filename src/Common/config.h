@@ -181,6 +181,12 @@ extern const string kPublishToMP4 ;
 extern const string kMergeWriteMS ;
 //全局的时间戳覆盖开关，在转协议时，对frame进行时间戳覆盖
 extern const string kModifyStamp;
+//按需转协议的开关
+extern const string kHlsDemand;
+extern const string kRtspDemand;
+extern const string kRtmpDemand;
+extern const string kTSDemand;
+extern const string kFMP4Demand;
 }//namespace General
 
 
