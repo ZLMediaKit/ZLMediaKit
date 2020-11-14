@@ -169,10 +169,10 @@ bool PlayerProxy::close(MediaSource &sender,bool force) {
         strongSelf->_muxer.reset();
         strongSelf->setMediaSource(nullptr);
         strongSelf->teardown();
-        if (strongSelf->_on_close) {
-            strongSelf->_on_close();
-        }
     });
+    if (_on_close) {
+        _on_close();
+    }
     WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
     return true;
 }
