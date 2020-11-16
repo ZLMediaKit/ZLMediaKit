@@ -40,26 +40,29 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
-        _enabled = size;
-        if (!size) {
+        GET_CONFIG(bool, ts_demand, General::kTSDemand);
+        _enabled = ts_demand ? size : true;
+        if (!size && ts_demand) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
     void inputFrame(const Frame::Ptr &frame) override {
-        if (_clear_cache) {
+        GET_CONFIG(bool, ts_demand, General::kTSDemand);
+        if (_clear_cache && ts_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
-        if (_enabled) {
+        if (_enabled || !ts_demand) {
             TsMuxer::inputFrame(frame);
         }
     }
 
     bool isEnabled() {
+        GET_CONFIG(bool, ts_demand, General::kTSDemand);
         //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return _clear_cache ? true : _enabled;
+        return ts_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
 protected:

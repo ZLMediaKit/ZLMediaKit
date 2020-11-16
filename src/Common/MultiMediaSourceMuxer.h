@@ -184,6 +184,8 @@ public:
     void onAllTrackReady() override;
 
 private:
+    bool _is_enable = false;
+    Ticker _last_check;
     Stamp _stamp[2];
     MultiMuxerPrivate::Ptr _muxer;
     std::weak_ptr<MultiMuxerPrivate::Listener> _track_listener;
