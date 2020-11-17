@@ -146,6 +146,14 @@ public:
                              false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
                              "启动事件触发线程数",/*该选项说明文字*/
                              nullptr);
+
+        (*_parser) << Option('i',/*该选项简称，如果是\x00则说明无简称*/
+                             "mserverid",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
+                             Option::ArgRequired,/*该选项后面必须跟值*/
+                             "",/*该选项默认值*/
+                             false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
+                             "MediaServerId自定义值",/*该选项说明文字*/
+                             nullptr);
     }
 
     virtual ~CMD_main() {}
@@ -212,6 +220,7 @@ int start_main(int argc,char *argv[]) {
         g_ini_file = cmd_main["config"];
         string ssl_file = cmd_main["ssl"];
         int threads = cmd_main["threads"];
+        std::string mid = cmd_main["mserverid"];
 
         //设置日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
@@ -236,6 +245,11 @@ int start_main(int argc,char *argv[]) {
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
         //加载配置文件，如果配置文件不存在就创建一个
         loadIniConfig(g_ini_file.data());
+
+        //如果自定义了mediaserverid，在这里覆盖配置文件
+        if(!mid.empty()) {
+            mINI::Instance()[General::kMediaServerId] = mid;
+        }
 
         if(!File::is_dir(ssl_file.data())){
             //不是文件夹，加载证书，证书包含公钥和私钥
