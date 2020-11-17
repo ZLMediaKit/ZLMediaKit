@@ -220,7 +220,7 @@ int start_main(int argc,char *argv[]) {
         g_ini_file = cmd_main["config"];
         string ssl_file = cmd_main["ssl"];
         int threads = cmd_main["threads"];
-        std::string mid = cmd_main["mserverid"];
+        std::string msid = cmd_main["mserverid"];
 
         //设置日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
@@ -247,8 +247,8 @@ int start_main(int argc,char *argv[]) {
         loadIniConfig(g_ini_file.data());
 
         //如果自定义了mediaserverid，在这里覆盖配置文件
-        if(!mid.empty()) {
-            mINI::Instance()[General::kMediaServerId] = mid;
+        if(!msid.empty()) {
+            mINI::Instance()[General::kMediaServerId] = msid;
         }
 
         if(!File::is_dir(ssl_file.data())){
