@@ -57,7 +57,7 @@ void RtpSession::onManager() {
 }
 
 void RtpSession::onRtpPacket(const char *data, uint64_t len) {
-    if (len > 1024 * 2) {
+    if (len > 1024 * 4) {
         throw SockException(Err_shutdown, "rtp包长度异常，发送端可能缓存溢出并覆盖");
     }
     if (!_process) {

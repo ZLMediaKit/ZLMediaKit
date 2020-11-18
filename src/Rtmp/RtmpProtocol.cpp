@@ -199,6 +199,7 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const std::stri
 }
 
 void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::Ptr &buf, uint32_t stamp, int chunk_id){
+    //InfoL << "this: " << (long)this << ", stream_index: " << stream_index << ", stamp: " << stamp << ", chunk_id: " << chunk_id;
     if (chunk_id < 2 || chunk_id > 63) {
         auto strErr = StrPrinter << "不支持发送该类型的块流 ID:" << chunk_id << endl;
         throw std::runtime_error(strErr);

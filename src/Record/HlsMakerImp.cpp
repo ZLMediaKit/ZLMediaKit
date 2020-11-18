@@ -33,13 +33,20 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
 
     _ui64StartedTime = ::time(nullptr);
     _info.folder = _path_prefix;
+
+    InfoL << "create HlsMakerImp, this: " << (long)this
+        << ", type: " << record_type
+        << ", seg_number: " << seg_number
+        << ", m3u8_file: " << m3u8_file;
 }
 
 HlsMakerImp::~HlsMakerImp() {
+    InfoL << "destroy HlsMakerImp, this: " << (long)this;
     clearCache();
 }
 
 void HlsMakerImp::clearCache() {
+    InfoL << "isLive: " << isLive();
     //录制完了
     flushLastSegment(true);
     if(isLive()){
@@ -122,7 +129,6 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
     } else{
         WarnL << "create hls file failed," << _path_hls << " " << get_uv_errmsg();
     }
-    //DebugL << "\r\n"  << string(data,len);
 }
 
 std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file,bool setbuf) {
@@ -143,30 +149,28 @@ void HlsMakerImp::onWriteRecordM3u8(const char *header, int hlen,const char *bod
     string mode = "r+";
     if (access(_path_hls.c_str(), 0) == -1) {
     	exist = false;
-    	 WarnL << "hls m3u8 not exist" << _path_hls;
     	 mode = "w+";
-    }else{
-    	WarnL << "hls m3u8 exist" << _path_hls;
     }
 
 	auto hls = makeRecordM3u8(_path_hls, mode);
-    InfoL << "makeFile hls " << hls;
 
     if(hls){
         fwrite(header, hlen,1,hls.get());
         if (exist) {
         	fseek(hls.get(),-15L,SEEK_END);
         }
+
         fwrite(body, blen,1,hls.get());
         hls.reset();
         if(_media_src){
             _media_src->registHls(true);
         }
     } else{
-        WarnL << "create hls file falied," << _path_hls << " " <<  get_uv_errmsg();
+        WarnL << "create hls file falied, " << _path_hls << " " <<  get_uv_errmsg();
     }
-    DebugL << "\r\n"  << string(body,blen);
-    DebugL << "_path_hls "  << _path_hls;
+
+    //DebugL << "\r\n"  << string(body, blen);
+    //DebugL << "_path_hls: "  << _path_hls;
 }
 
 void HlsMakerImp::onFlushLastSegment(uint32_t duration_ms) {
