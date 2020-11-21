@@ -10,6 +10,8 @@
 
 #include "RtpCache.h"
 
+#if defined(ENABLE_RTPPROXY)
+
 namespace mediakit{
 
 RtpCache::RtpCache(onFlushed cb) {
@@ -31,3 +33,5 @@ void RtpCachePS::onRTP(Buffer::Ptr buffer) {
 }
 
 }//namespace mediakit
+
+#endif//#if defined(ENABLE_RTPPROXY)

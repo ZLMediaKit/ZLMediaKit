@@ -11,6 +11,8 @@
 #ifndef ZLMEDIAKIT_RTPCACHE_H
 #define ZLMEDIAKIT_RTPCACHE_H
 
+#if defined(ENABLE_RTPPROXY)
+
 #include "PSEncoder.h"
 #include "Extension/CommonRtp.h"
 
@@ -46,4 +48,5 @@ protected:
 };
 
 }//namespace mediakit
+#endif//ENABLE_RTPPROXY
 #endif //ZLMEDIAKIT_RTPCACHE_H

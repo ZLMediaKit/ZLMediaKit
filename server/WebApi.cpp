@@ -1155,8 +1155,6 @@ void installWebApi() {
 }
 
 void unInstallWebApi(){
-    RtpSelector::Instance().clear();
-
     {
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         s_proxyMap.clear();
@@ -1169,6 +1167,7 @@ void unInstallWebApi(){
 
     {
 #if defined(ENABLE_RTPPROXY)
+        RtpSelector::Instance().clear();
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
         s_rtpServerMap.clear();
 #endif
