@@ -192,3 +192,21 @@ API_EXPORT void API_CALL mk_media_input_audio(mk_media ctx, void* data, int len,
     MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
     (*obj)->getChannel()->inputAudio((char*)data, len, dts);
 }
+
+API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data){
+    assert(ctx && dst_url && ssrc);
+    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    //sender参数无用
+    (*obj)->getChannel()->startSendRtp(*(MediaSource *) 1, dst_url, dst_port, ssrc, is_udp, [cb, user_data](const SockException &ex){
+        if (cb) {
+            cb(user_data, ex.getErrCode(), ex.what());
+        }
+    });
+}
+
+API_EXPORT int API_CALL mk_media_stop_send_rtp(mk_media ctx){
+    assert(ctx);
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
+    //sender参数无用
+    return (*obj)->getChannel()->stopSendRtp(*(MediaSource *) 1);
+}

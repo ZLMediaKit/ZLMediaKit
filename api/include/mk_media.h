@@ -173,6 +173,30 @@ typedef void(API_CALL *on_mk_media_source_regist)(void *user_data, mk_media_sour
  */
 API_EXPORT void API_CALL mk_media_set_on_regist(mk_media ctx, on_mk_media_source_regist cb, void *user_data);
 
+/**
+ * rtp推流成功与否的回调(第一次成功后，后面将一直重试)
+ */
+typedef on_mk_media_source_send_rtp_result on_mk_media_send_rtp_result;
+
+/**
+ * 开始发送ps-rtp流
+ * @param ctx 对象指针
+ * @param dst_url 目标ip或域名
+ * @param dst_port 目标端口
+ * @param ssrc rtp的ssrc，10进制的字符串打印
+ * @param is_udp 是否为udp
+ * @param cb 启动成功或失败回调
+ * @param user_data 回调用户指针
+ */
+API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data);
+
+/**
+ * 停止ps-rtp发送
+ * @param ctx 对象指针
+ * @return 1成功，0失败
+ */
+API_EXPORT int API_CALL mk_media_stop_send_rtp(mk_media ctx);
+
 #ifdef __cplusplus
 }
 #endif
