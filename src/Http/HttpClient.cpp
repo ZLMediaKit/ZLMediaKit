@@ -46,6 +46,7 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     if (_path.empty()) {
         _path = "/";
     }
+    auto host_header = host;
     uint16_t port = atoi(FindField(host.data(), ":", NULL).data());
     if (port <= 0) {
         //默认端口
@@ -54,7 +55,7 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
         //服务器域名
         host = FindField(host.data(), NULL, ":");
     }
-    _header.emplace("Host", host);
+    _header.emplace("Host", host_header);
     _header.emplace("Tools", SERVER_NAME);
     _header.emplace("Connection", "keep-alive");
     _header.emplace("Accept", "*/*");
