@@ -211,6 +211,22 @@ API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32
     return src->seekTo(stamp);
 }
 
+API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data){
+    assert(ctx && dst_url && ssrc);
+    MediaSource *src = (MediaSource *)ctx;
+    src->startSendRtp(dst_url, dst_port, ssrc, is_udp, [cb, user_data](const SockException &ex){
+        if (cb) {
+            cb(user_data, ex.getErrCode(), ex.what());
+        }
+    });
+}
+
+API_EXPORT int API_CALL mk_media_source_stop_send_rtp(const mk_media_source ctx){
+    assert(ctx);
+    MediaSource *src = (MediaSource *) ctx;
+    return src->stopSendRtp();
+}
+
 API_EXPORT void API_CALL mk_media_source_find(const char *schema,
                                               const char *vhost,
                                               const char *app,
