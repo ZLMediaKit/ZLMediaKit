@@ -178,13 +178,9 @@ API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, u
 }
 
 API_EXPORT void API_CALL mk_media_input_pcm(mk_media ctx, void *data , int len, uint32_t pts){
-#ifdef ENABLE_FAAC
 	assert(ctx && data && len > 0);
 	MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
 	(*obj)->getChannel()->inputPCM((char*)data, len, pts);
-#else
-    WarnL << "aac编码未启用,该方法无效,编译时请打开ENABLE_FAAC选项";
-#endif //ENABLE_FAAC
 }
 
 API_EXPORT void API_CALL mk_media_input_audio(mk_media ctx, void* data, int len, uint32_t dts){
