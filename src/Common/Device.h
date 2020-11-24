@@ -20,15 +20,10 @@
 using namespace std;
 using namespace toolkit;
 
-#ifdef ENABLE_FAAC
-#include "Codec/AACEncoder.h"
-#endif //ENABLE_FAAC
-
-#ifdef ENABLE_X264
-#include "Codec/H264Encoder.h"
-#endif //ENABLE_X264
-
 namespace mediakit {
+
+class H264Encoder;
+class AACEncoder;
 
 class VideoInfo {
 public:
@@ -107,7 +102,6 @@ public:
      */
     void inputAudio(const char *data, int len, uint32_t dts);
 
-#ifdef ENABLE_X264
     /**
      * 输入yuv420p视频帧，内部会完成编码并调用inputH264方法
      * @param apcYuv
@@ -115,9 +109,7 @@ public:
      * @param uiStamp
      */
     void inputYUV(char *apcYuv[3], int aiYuvLen[3], uint32_t uiStamp);
-#endif //ENABLE_X264
 
-#ifdef ENABLE_FAAC
 
     /**
      * 输入pcm数据，内部会完成编码并调用inputAAC方法
@@ -126,20 +118,13 @@ public:
      * @param uiStamp
      */
     void inputPCM(char *pcData, int iDataLen, uint32_t uiStamp);
-#endif //ENABLE_FAAC
 
 private:
     MediaOriginType getOriginType(MediaSource &sender) const override;
 
 private:
-
-#ifdef ENABLE_X264
     std::shared_ptr<H264Encoder> _pH264Enc;
-#endif //ENABLE_X264
-
-#ifdef ENABLE_FAAC
     std::shared_ptr<AACEncoder> _pAacEnc;
-#endif //ENABLE_FAAC
     std::shared_ptr<VideoInfo> _video;
     std::shared_ptr<AudioInfo> _audio;
     SmoothTicker _aTicker[2];

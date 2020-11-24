@@ -78,7 +78,8 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
     switch (type) {
         case Recorder::type_hls: {
 #if defined(ENABLE_HLS)
-            auto ret = std::make_shared<HlsRecorder>(path, string(VHOST_KEY) + "=" + vhost, 0);
+            GET_CONFIG(bool, enable_vhost, General::kEnableVhost);
+            auto ret = std::make_shared<HlsRecorder>(path, enable_vhost ? string(VHOST_KEY) + "=" + vhost : "", 0);
             InfoL << "create Hls Record ret "<<ret;
             ret->setMediaSource(vhost, app, stream_id);
             return ret;
@@ -95,7 +96,8 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
 
         case Recorder::type_hls_record: {
 #if defined(ENABLE_HLS)
-            auto ret = std::make_shared<HlsRecorder>(path, string(VHOST_KEY) + "=" + vhost, 2);
+            GET_CONFIG(bool, enable_vhost, General::kEnableVhost);
+            auto ret = std::make_shared<HlsRecorder>(path, enable_vhost ? string(VHOST_KEY) + "=" + vhost : "", 2);
             InfoL << "create Hls Record ret "<<ret;
             ret->setMediaSource(vhost, app, stream_id);
             return ret;
