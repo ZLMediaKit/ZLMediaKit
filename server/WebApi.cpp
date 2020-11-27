@@ -825,14 +825,14 @@ void installWebApi() {
 
     api_regist2("/index/api/startSendRtp",[](API_ARGS2){
         CHECK_SECRET();
-        CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
+        CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp", "src_port");
 
         auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
         if (!src) {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
 
-        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], [val, headerOut, invoker](const SockException &ex){
+        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](const SockException &ex){
             if (ex) {
                 const_cast<Value &>(val)["code"] = API::OtherFailed;
                 const_cast<Value &>(val)["msg"] = ex.what();
@@ -843,14 +843,14 @@ void installWebApi() {
 
     api_regist1("/index/api/stopSendRtp",[](API_ARGS1){
         CHECK_SECRET();
-        CHECK_ARGS("vhost", "app", "stream");
+        CHECK_ARGS("vhost", "app", "stream", "ssrc");
 
         auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
         if (!src) {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
 
-        if (!src->stopSendRtp()) {
+        if (!src->stopSendRtp(allArgs["ssrc"])) {
             throw ApiRetException("尚未开始推流,停止失败", API::OtherFailed);
         }
     });
