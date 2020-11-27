@@ -37,7 +37,7 @@ public:
      * @param is_udp 是否采用udp方式发送rtp
      * @param cb 连接目标端口是否成功的回调
      */
-    void startSend(const string &dst_url, uint16_t dst_port, bool is_udp, const function<void(const SockException &ex)> &cb);
+    void startSend(const string &dst_url, uint16_t dst_port, bool is_udp, uint16_t src_port, const function<void(const SockException &ex)> &cb);
 
     /**
      * 输入帧数据
@@ -74,6 +74,7 @@ private:
     bool _is_connect = false;
     string _dst_url;
     uint16_t _dst_port;
+	uint16_t _src_port;
     Socket::Ptr _socket;
     EventPoller::Ptr _poller;
     Timer::Ptr _connect_timer;
