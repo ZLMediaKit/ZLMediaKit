@@ -14,7 +14,7 @@
 #define MAX_WAIT_MS_READY 10000
 
 //如果添加Track，最多等待5秒
-#define MAX_WAIT_MS_ADD_TRACK 5000
+#define MAX_WAIT_MS_ADD_TRACK 1000
 
 namespace mediakit{
 
