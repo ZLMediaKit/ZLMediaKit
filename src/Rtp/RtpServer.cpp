@@ -51,20 +51,28 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable
     if (!stream_id.empty()) {
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
         process = RtpSelector::Instance().getProcess(stream_id, true);
-        udp_server->setOnRead([udp_server, process](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
-            process->inputRtp(true, udp_server, buf->data(), buf->size(), addr);
+		//udp_server->setOnRead([udp_server, process](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
+		//    process->inputRtp(true, udp_server, buf->data(), buf->size(), addr);
+		//});
+		weak_ptr<Socket> weak_sock = udp_server;
+		udp_server->setOnRead([weak_sock, process](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
+			process->inputRtp(true, weak_sock.lock(), buf->data(), buf->size(), addr);
         });
     } else {
         //未指定流id，一个端口多个流，通过ssrc来分流
         auto &ref = RtpSelector::Instance();
-        udp_server->setOnRead([&ref, udp_server](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
-            ref.inputRtp(udp_server, buf->data(), buf->size(), addr);
+		//udp_server->setOnRead([&ref, udp_server](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
+		//    ref.inputRtp(udp_server, buf->data(), buf->size(), addr);
+		//});
+		weak_ptr<Socket> weak_sock = udp_server;
+		udp_server->setOnRead([&ref, weak_sock](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
+			ref.inputRtp(weak_sock.lock(), buf->data(), buf->size(), addr);
         });
     }
 
     _on_clearup = [udp_server, process, stream_id]() {
         //去除循环引用
-        udp_server->setOnRead(nullptr);
+        //udp_server->setOnRead(nullptr);
         if (process) {
             //删除rtp处理器
             RtpSelector::Instance().delProcess(stream_id, process.get());
