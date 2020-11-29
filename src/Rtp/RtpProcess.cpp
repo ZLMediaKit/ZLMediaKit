@@ -129,6 +129,10 @@ void RtpProcess::addTrack(const Track::Ptr &track) {
     _muxer->addTrack(track);
 }
 
+void RtpProcess::addTrackCompleted() {
+    _muxer->addTrackCompleted();
+}
+
 bool RtpProcess::alive() {
     GET_CONFIG(int, timeoutSec, RtpProxy::kTimeoutSec)
     if (_last_frame_time.elapsedTime() / 1000 < timeoutSec) {

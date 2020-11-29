@@ -22,10 +22,13 @@ public:
     PSDecoder();
     ~PSDecoder();
     int input(const uint8_t* data, int bytes) override;
-    void setOnDecode(const onDecode &decode) override;
+    void setOnDecode(onDecode cb) override;
+    void setOnStream(onStream cb) override;
+
 private:
     void *_ps_demuxer = nullptr;
     onDecode _on_decode;
+    onStream _on_stream;
 };
 
 }//namespace mediakit

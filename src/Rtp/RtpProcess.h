@@ -66,6 +66,7 @@ public:
 protected:
     void inputFrame(const Frame::Ptr &frame) override;
     void addTrack(const Track::Ptr & track) override;
+    void addTrackCompleted() override;
     void resetTracks() override {};
 
     //// MediaSourceEvent override ////
