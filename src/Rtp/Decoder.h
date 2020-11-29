@@ -22,9 +22,13 @@ namespace mediakit {
 class Decoder {
 public:
     typedef std::shared_ptr<Decoder> Ptr;
-    typedef std::function<void(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes)> onDecode;
+    typedef std::function<void(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, int bytes)> onDecode;
+    typedef std::function<void(int stream, int codecid, const void *extra, int bytes, int finish)> onStream;
+
     virtual int input(const uint8_t *data, int bytes) = 0;
-    virtual void setOnDecode(const onDecode &decode) = 0;
+    virtual void setOnDecode(onDecode cb) = 0;
+    virtual void setOnStream(onStream cb) = 0;
+
 protected:
     Decoder() = default;
     virtual ~Decoder() = default;
@@ -61,14 +65,13 @@ protected:
 
 private:
     DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink);
-    void onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes);
+    void onDecode(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, int bytes);
+    void onStream(int stream, int codecid, const void *extra, int bytes, int finish);
 
 private:
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;
     FrameMerger _merger;
-    int _codecid_video = 0;
-    int _codecid_audio = 0;
 };
 
 }//namespace mediakit
