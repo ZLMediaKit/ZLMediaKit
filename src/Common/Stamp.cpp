@@ -55,7 +55,7 @@ void Stamp::revise(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,
     }
 
     if (dts_out < _last_dts_out) {
-        WarnL << "dts回退:" << dts_out << " < " << _last_dts_out;
+//        WarnL << "dts回退:" << dts_out << " < " << _last_dts_out;
         dts_out = _last_dts_out;
         pts_out = _last_pts_out;
         return;
