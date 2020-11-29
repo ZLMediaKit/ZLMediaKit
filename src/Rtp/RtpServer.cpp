@@ -24,10 +24,10 @@ RtpServer::~RtpServer() {
 
 void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable_tcp, const char *local_ip) {
     //创建udp服务器
-    Socket::Ptr udp_server = Socket::createSocket(nullptr, false);
+    Socket::Ptr udp_server = Socket::createSocket(nullptr, true);
     if (local_port == 0) {
         //随机端口，rtp端口采用偶数
-        Socket::Ptr rtcp_server = Socket::createSocket(nullptr, false);
+        Socket::Ptr rtcp_server = Socket::createSocket(nullptr, true);
         auto pair = std::make_pair(udp_server, rtcp_server);
         makeSockPair(pair, local_ip);
         //取偶数端口
