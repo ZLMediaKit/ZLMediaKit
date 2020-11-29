@@ -30,6 +30,7 @@ string getOriginTypeString(MediaOriginType type){
         SWITCH_CASE(ffmpeg_pull);
         SWITCH_CASE(mp4_vod);
         SWITCH_CASE(device_chn);
+        default : return "unknown";
     }
 }
 
