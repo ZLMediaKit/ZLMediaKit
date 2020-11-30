@@ -129,6 +129,10 @@ void RtpProcess::addTrack(const Track::Ptr &track) {
     _muxer->addTrack(track);
 }
 
+void RtpProcess::addTrackCompleted() {
+    _muxer->addTrackCompleted();
+}
+
 bool RtpProcess::alive() {
     if(_paused) {
         if(_pause_rtp_time.elapsedTime()/ 1000 < 180){

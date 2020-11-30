@@ -44,11 +44,14 @@ public:
     TSDecoder();
     ~TSDecoder();
     int input(const uint8_t* data, int bytes) override ;
-    void setOnDecode(const onDecode &decode) override;
+    void setOnDecode(onDecode cb) override;
+    void setOnStream(onStream cb) override;
+
 private:
     TSSegment _ts_segment;
     struct ts_demuxer_t* _demuxer_ctx = nullptr;
     onDecode _on_decode;
+    onStream _on_stream;
 };
 #endif//defined(ENABLE_HLS)
 
