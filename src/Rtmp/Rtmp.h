@@ -57,6 +57,7 @@ using namespace toolkit;
 #define CONTROL_STREAM_ISRECORDED	4
 #define CONTROL_PING_REQUEST		6
 #define CONTROL_PING_RESPONSE		7
+#define CONTROL_CUSTOM_FREEZE	    16
 
 #define STREAM_CONTROL				0
 #define STREAM_MEDIA				1

@@ -55,6 +55,7 @@ const string kBroadcastStreamNoneReader = "kBroadcastStreamNoneReader";
 const string kBroadcastHttpBeforeAccess = "kBroadcastHttpBeforeAccess";
 const string kBroadcastRecordHls = "kBroadcastRecordHls";
 const string kBroadcaseProxyPusherFailed = "kBroadcaseProxyPusherFailed";
+const string kBroadcaseProxyPusherNoneReader = "kBroadcaseProxyPusherNoneReader";
 } //namespace Broadcast
 
 //通用配置项目

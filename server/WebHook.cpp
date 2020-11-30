@@ -61,6 +61,7 @@ const string kOnServerStarted = HOOK_FIELD"on_server_started";
 const string kAdminParams = HOOK_FIELD"admin_params";
 const string kOnRecordHls = HOOK_FIELD"on_record_hls";
 const string kOnProxyPusherFailed = HOOK_FIELD"on_proxy_pusher_failed";
+const string kOnProxyPusherNoneReader = HOOK_FIELD"on_proxy_pusher_none_reader";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = false;
@@ -81,6 +82,7 @@ onceToken token([](){
     mINI::Instance()[kOnServerStarted] = "";
     mINI::Instance()[kOnRecordHls] = "";
     mINI::Instance()[kOnProxyPusherFailed] = "";
+    mINI::Instance()[kOnProxyPusherNoneReader] = "";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
 },nullptr);
 }//namespace Hook
@@ -221,6 +223,21 @@ void installWebHook(){
 
         //执行hook
         do_http_hook(hook_proxy_pusher_failed, body, nullptr);
+    });
+
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcaseProxyPusherNoneReader, [](BroadcaseProxyPusherNoneReaderArgs){
+        GET_CONFIG(string,hook_proxy_pusher_none_reader,Hook::kOnProxyPusherNoneReader);
+        if(!hook_enable || hook_proxy_pusher_none_reader.empty()){
+            return;
+        }
+
+        ArgsType body;
+        body["key"] = key;
+
+        InfoL << "Received kBroadcaseProxyPusherNoneReader, Will perform hook, key: " << key;
+
+        //执行hook
+        do_http_hook(hook_proxy_pusher_none_reader, body, nullptr);
     });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){

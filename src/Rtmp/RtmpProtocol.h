@@ -46,6 +46,10 @@ protected:
     virtual void onStreamEof(uint32_t stream_index){};
     virtual void onStreamDry(uint32_t stream_index){};
 
+    //custom rtmo command
+    //MSG_USER_CONTROL(4)下面定义CONTROL_CUSTOM_FREEZE(16)
+    virtual void onStreamFreeze(bool is_freeze){};
+
 protected:
     //// HttpRequestSplitter override ////
     int64_t onRecvHeader(const char *data,uint64_t len) override { return 0; }

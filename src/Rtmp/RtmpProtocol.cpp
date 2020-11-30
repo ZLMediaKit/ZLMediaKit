@@ -699,7 +699,20 @@ void RtmpProtocol::handle_chunk(RtmpPacket& chunk_data) {
                     break;
                 }
 
-                default: /*WarnL << "unhandled user control:" << event_type; */ break;
+                case CONTROL_CUSTOM_FREEZE: {
+                    //无人观看
+                    if (chunk_data.buffer.size() < 4) {
+                        throw std::runtime_error("CONTROL_CUSTOM_FREEZE: Not enough data.");
+                    }
+                    uint32_t is_freeze = load_be32(&chunk_data.buffer[0]);
+                    TraceL << "CONTROL_CUSTOM_FREEZE:" << is_freeze;
+                    onStreamFreeze(is_freeze);
+                }
+
+                default: {
+                    //WarnL << "unhandled user control:" << event_type;
+                    break;
+                }
             }
             break;
         }

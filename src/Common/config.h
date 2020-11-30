@@ -74,6 +74,10 @@ extern const string kBroadcastRecordHls;
 extern const string kBroadcaseProxyPusherFailed;
 #define BroadcaseProxyPusherFailedArgs const ProxyPusherInfo &info
 
+//转推流无人观看广播
+extern const string kBroadcaseProxyPusherNoneReader;
+#define BroadcaseProxyPusherNoneReaderArgs const std::string& key
+
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;
 #define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,SockInfo &sender

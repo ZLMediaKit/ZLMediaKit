@@ -47,6 +47,7 @@ protected:
     void onSendRawData(Buffer::Ptr buffer) override{
         send(std::move(buffer));
     }
+    void onStreamFreeze(bool is_freeze) override;
 
 private:
     void onPublishResult(const SockException &ex, bool handshake_done);
