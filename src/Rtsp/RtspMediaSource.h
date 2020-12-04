@@ -157,7 +157,7 @@ public:
      * @param keyPos 该包是否为关键帧的第一个包
      */
     void onWrite(RtpPacket::Ptr rtp, bool keyPos) override {
-        _speed += rtp->size();
+        _speed[rtp->type] += rtp->size();
         assert(rtp->type >= 0 && rtp->type < TrackMax);
         auto &track = _tracks[rtp->type];
         if (track) {

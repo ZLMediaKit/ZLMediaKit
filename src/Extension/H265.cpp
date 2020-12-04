@@ -55,7 +55,7 @@ Sdp::Ptr H265Track::getSdp() {
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<H265Sdp>(getVps(),getSps(),getPps());
+    return std::make_shared<H265Sdp>(getVps(), getSps(), getPps(), getBitRate() / 1024);
 }
 }//namespace mediakit
 

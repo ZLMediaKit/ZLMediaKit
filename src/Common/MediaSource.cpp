@@ -68,8 +68,11 @@ const string& MediaSource::getId() const {
     return _stream_id;
 }
 
-int MediaSource::getBytesSpeed(){
-    return _speed.getSpeed();
+int MediaSource::getBytesSpeed(TrackType type){
+    if(type == TrackInvalid){
+        return _speed[TrackVideo].getSpeed() + _speed[TrackAudio].getSpeed();
+    }
+    return _speed[type].getSpeed();
 }
 
 uint64_t MediaSource::getCreateStamp() const {
