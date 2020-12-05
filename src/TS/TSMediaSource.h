@@ -65,7 +65,7 @@ public:
      * @param key 是否为关键帧第一个包
      */
     void onWrite(TSPacket::Ptr packet, bool key) override {
-        _speed += packet->size();
+        _speed[TrackVideo] += packet->size();
         if (!_ring) {
             createRing();
         }

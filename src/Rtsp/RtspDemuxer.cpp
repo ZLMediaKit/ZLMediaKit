@@ -63,11 +63,21 @@ bool RtspDemuxer::inputRtp(const RtpPacket::Ptr & rtp) {
     }
 }
 
+static void setBitRate(const SdpTrack::Ptr &sdp, const Track::Ptr &track){
+    if (!sdp->_b.empty()) {
+        int data_rate = 0;
+        sscanf(sdp->_b.data(), "AS:%d", &data_rate);
+        if (data_rate) {
+            track->setBitRate(data_rate * 1024);
+        }
+    }
+}
 
 void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
     //生成Track对象
     _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio));
     if(_audioTrack){
+        setBitRate(audio, _audioTrack);
         //生成RtpCodec对象以便解码rtp
         _audioRtpDecoder = Factory::getRtpDecoderByTrack(_audioTrack);
         if(_audioRtpDecoder){
@@ -85,6 +95,7 @@ void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
     //生成Track对象
     _videoTrack = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video));
     if(_videoTrack){
+        setBitRate(video, _videoTrack);
         //生成RtpCodec对象以便解码rtp
         _videoRtpDecoder = Factory::getRtpDecoderByTrack(_videoTrack);
         if(_videoRtpDecoder){

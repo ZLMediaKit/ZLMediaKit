@@ -46,9 +46,12 @@ public:
      */
     OpusSdp(int sample_rate,
             int channels,
-            int payload_type = 98,
-            int bitrate = 128) : Sdp(sample_rate,payload_type){
+            int bitrate = 128,
+            int payload_type = 98) : Sdp(sample_rate,payload_type){
         _printer << "m=audio 0 RTP/AVP " << payload_type << "\r\n";
+        if (bitrate) {
+            _printer << "b=AS:" << bitrate << "\r\n";
+        }
         _printer << "a=rtpmap:" << payload_type << " opus/" << sample_rate  << "/" << channels << "\r\n";
         _printer << "a=control:trackID=" << (int)TrackAudio << "\r\n";
     }
