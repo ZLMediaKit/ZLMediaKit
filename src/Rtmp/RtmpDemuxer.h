@@ -39,8 +39,8 @@ public:
     void inputRtmp(const RtmpPacket::Ptr &pkt);
 
 private:
-    void makeVideoTrack(const AMFValue &val);
-    void makeAudioTrack(const AMFValue &val, int sample_rate, int channels, int sample_bit);
+    void makeVideoTrack(const AMFValue &val, int bit_rate);
+    void makeAudioTrack(const AMFValue &val, int sample_rate, int channels, int sample_bit, int bit_rate);
 
 private:
     bool _try_get_video_track = false;

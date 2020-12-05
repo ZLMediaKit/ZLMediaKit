@@ -80,7 +80,7 @@ public:
     }
 
     void onSegmentSize(uint64_t bytes) {
-        _speed += bytes;
+        _speed[TrackVideo] += bytes;
     }
 
 private:

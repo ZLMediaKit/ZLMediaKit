@@ -123,7 +123,7 @@ Sdp::Ptr H264Track::getSdp() {
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<H264Sdp>(getSps(),getPps());
+    return std::make_shared<H264Sdp>(getSps(), getPps(), getBitRate() / 1024);
 }
 }//namespace mediakit
 

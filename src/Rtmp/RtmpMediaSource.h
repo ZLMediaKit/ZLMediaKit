@@ -119,7 +119,8 @@ public:
      * @param pkt rtmp包
      */
     void onWrite(RtmpPacket::Ptr pkt, bool = true) override {
-        _speed += pkt->size();
+        bool is_video = pkt->type_id == MSG_VIDEO;
+        _speed[is_video ? TrackVideo : TrackAudio] += pkt->size();
         //保存当前时间戳
         switch (pkt->type_id) {
             case MSG_VIDEO : _track_stamps[TrackVideo] = pkt->time_stamp, _have_video = true; break;
@@ -153,7 +154,6 @@ public:
             }
         }
         bool key = pkt->isVideoKeyFrame();
-        bool is_video = pkt->type_id == MSG_VIDEO;
         auto stamp  = pkt->time_stamp;
         PacketCache<RtmpPacket>::inputPacket(stamp, is_video, std::move(pkt), key);
     }

@@ -220,7 +220,7 @@ public:
     virtual void setTimeStamp(uint32_t stamp) {};
 
     // 获取数据速率，单位bytes/s
-    int getBytesSpeed();
+    int getBytesSpeed(TrackType type = TrackInvalid);
     // 获取流创建GMT unix时间戳，单位秒
     uint64_t getCreateStamp() const;
     // 获取流上线时间，单位秒
@@ -286,7 +286,7 @@ private:
     void emitEvent(bool regist);
 
 protected:
-    BytesSpeed _speed;
+    BytesSpeed _speed[TrackMax];
 
 private:
     time_t _create_stamp;

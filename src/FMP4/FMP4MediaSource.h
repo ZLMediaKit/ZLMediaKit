@@ -88,7 +88,7 @@ public:
         if (key) {
             _have_video = true;
         }
-        _speed += packet->size();
+        _speed[TrackVideo] += packet->size();
         auto stamp = packet->time_stamp;
         PacketCache<FMP4Packet>::inputPacket(stamp, true, std::move(packet), key);
     }

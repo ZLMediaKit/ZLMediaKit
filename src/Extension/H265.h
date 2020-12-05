@@ -321,11 +321,13 @@ public:
     H265Sdp(const string &strVPS,
             const string &strSPS,
             const string &strPPS,
-            int payload_type = 96,
-            int bitrate = 4000) : Sdp(90000,payload_type) {
+            int bitrate = 4000,
+            int payload_type = 96) : Sdp(90000,payload_type) {
         //视频通道
         _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
-        _printer << "b=AS:" << bitrate << "\r\n";
+        if (bitrate) {
+            _printer << "b=AS:" << bitrate << "\r\n";
+        }
         _printer << "a=rtpmap:" << payload_type << " H265/" << 90000 << "\r\n";
         _printer << "a=fmtp:" << payload_type << " ";
         _printer << "sprop-vps=";
