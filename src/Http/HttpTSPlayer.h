@@ -48,6 +48,7 @@ private:
     bool _is_first_packet_ts = false;
     //是否判断是否是ts并split
     bool _split_ts;
+    string _status;
     TSSegment _segment;
     onShutdown _on_disconnect;
     TSSegment::onSegment _on_segment;
