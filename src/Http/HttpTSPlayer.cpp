@@ -20,6 +20,7 @@ HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller, bool split_ts){
 HttpTSPlayer::~HttpTSPlayer() {}
 
 int64_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
+    _status = status;
     if (status != "200" && status != "206") {
         //http状态码不符合预期
         shutdown(SockException(Err_other, StrPrinter << "bad http status code:" + status));
@@ -35,6 +36,9 @@ int64_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::H
 }
 
 void HttpTSPlayer::onResponseBody(const char *buf, int64_t size, int64_t recvedSize, int64_t totalSize) {
+    if (_status != "200" && _status != "206") {
+        return;
+    }
     if (recvedSize == size) {
         //开始接收数据
         if (buf[0] == TS_SYNC_BYTE) {
