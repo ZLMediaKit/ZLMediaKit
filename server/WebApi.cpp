@@ -9,6 +9,7 @@
  */
 
 #include <sys/stat.h>
+#include <math.h>
 #include <signal.h>
 #include <functional>
 #include <unordered_map>
@@ -28,6 +29,7 @@
 #include "Player/PlayerProxy.h"
 #include "Util/MD5.h"
 #include "WebApi.h"
+#include "WebHook.h"
 #include "Thread/WorkThreadPool.h"
 #include "Rtp/RtpSelector.h"
 #include "FFmpegSource.h"
