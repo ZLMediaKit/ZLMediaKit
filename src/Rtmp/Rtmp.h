@@ -262,7 +262,7 @@ class VideoMeta : public Metadata{
 public:
     typedef std::shared_ptr<VideoMeta> Ptr;
 
-    VideoMeta(const VideoTrack::Ptr &video,int datarate = 5000);
+    VideoMeta(const VideoTrack::Ptr &video);
     virtual ~VideoMeta(){}
 
     CodecId getCodecId() const override{
@@ -276,7 +276,7 @@ class AudioMeta : public Metadata{
 public:
     typedef std::shared_ptr<AudioMeta> Ptr;
 
-    AudioMeta(const AudioTrack::Ptr &audio,int datarate = 160);
+    AudioMeta(const AudioTrack::Ptr &audio);
 
     virtual ~AudioMeta(){}
 

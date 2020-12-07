@@ -292,11 +292,13 @@ public:
      */
     H264Sdp(const string &strSPS,
             const string &strPPS,
-            int payload_type = 96,
-            int bitrate = 4000) : Sdp(90000,payload_type) {
+            int bitrate = 4000,
+            int payload_type = 96) : Sdp(90000,payload_type) {
         //视频通道
         _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
-        _printer << "b=AS:" << bitrate << "\r\n";
+        if (bitrate) {
+            _printer << "b=AS:" << bitrate << "\r\n";
+        }
         _printer << "a=rtpmap:" << payload_type << " H264/" << 90000 << "\r\n";
         _printer << "a=fmtp:" << payload_type << " packetization-mode=1; profile-level-id=";
 

@@ -11,6 +11,7 @@
 #ifdef ENABLE_MP4
 #include <ctime>
 #include <sys/stat.h>
+#include "Util/File.h"
 #include "Common/config.h"
 #include "MP4Recorder.h"
 #include "Thread/WorkThreadPool.h"
@@ -77,12 +78,19 @@ void MP4Recorder::asyncClose() {
         const_cast<RecordInfo&>(info).time_len = ::time(NULL) - info.start_time;
         //关闭mp4非常耗时，所以要放在后台线程执行
         muxer->closeMP4();
-        //临时文件名改成正式文件名，防止mp4未完成时被访问
-        rename(strFileTmp.data(),strFile.data());
+
         //获取文件大小
         struct stat fileData;
-        stat(strFile.data(), &fileData);
-        const_cast<RecordInfo&>(info).file_size = fileData.st_size;
+        stat(strFileTmp.data(), &fileData);
+        const_cast<RecordInfo &>(info).file_size = fileData.st_size;
+        if (fileData.st_size < 1024) {
+            //录像文件太小，删除之
+            File::delete_file(strFileTmp.data());
+            return;
+        }
+        //临时文件名改成正式文件名，防止mp4未完成时被访问
+        rename(strFileTmp.data(),strFile.data());
+
         /////record 业务逻辑//////
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4,info);
     });
