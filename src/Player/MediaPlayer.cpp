@@ -26,7 +26,14 @@ MediaPlayer::~MediaPlayer() {
 static void setOnCreateSocket_l(const std::shared_ptr<PlayerBase> &delegate, const Socket::onCreateSocket &cb){
     auto helper = dynamic_pointer_cast<SocketHelper>(delegate);
     if (helper) {
-        helper->setOnCreateSocket(cb);
+        if (cb) {
+            helper->setOnCreateSocket(cb);
+        } else {
+            //客户端，确保开启互斥锁
+            helper->setOnCreateSocket([](const EventPoller::Ptr &poller) {
+                return Socket::createSocket(poller, true);
+            });
+        }
     }
 }
 
