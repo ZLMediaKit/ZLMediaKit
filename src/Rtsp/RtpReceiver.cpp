@@ -101,16 +101,18 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     //ssrc匹配正确，不匹配计数清零
     _ssrc_err_count[track_index] = 0;
 
-    //获取rtp中媒体数据偏移量
-    rtp.offset = 12 + 4;
+    //rtp 12个固定字节头
+    rtp.offset = 12;
+    //rtp有csrc
     rtp.offset += 4 * csrc;
-    if (ext && rtp_raw_len >= rtp.offset) {
-        /* calculate the header extension length (stored as number of 32-bit words) */
-        ext = (AV_RB16(rtp_raw_ptr + rtp.offset - 2) + 1) << 2;
-        rtp.offset += ext;
+    if (ext) {
+        //rtp有ext
+        uint16_t reserved = AV_RB16(rtp_raw_ptr + rtp.offset);
+        uint16_t extlen = AV_RB16(rtp_raw_ptr + rtp.offset + 2) << 2;
+        rtp.offset += extlen + 4;
     }
 
-    if (rtp_raw_len + 4 <= rtp.offset) {
+    if (rtp_raw_len <= rtp.offset) {
         WarnL << "无有效负载的rtp包:" << rtp_raw_len << " <= " << (int) rtp.offset;
         return false;
     }
@@ -128,9 +130,10 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     payload_ptr[1] = rtp.interleaved;
     payload_ptr[2] = rtp_raw_len >> 8;
     payload_ptr[3] = (rtp_raw_len & 0x00FF);
+    //添加rtp over tcp前4个字节的偏移量
+    rtp.offset += 4;
     //拷贝rtp负载
     memcpy(payload_ptr + 4, rtp_raw_ptr, rtp_raw_len);
-
     //排序rtp
     auto seq = rtp_ptr->sequence;
     _rtp_sortor[track_index].sortPacket(seq, std::move(rtp_ptr));

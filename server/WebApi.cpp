@@ -12,7 +12,6 @@
 #include <math.h>
 #include <signal.h>
 #include <functional>
-#include <sstream>
 #include <unordered_map>
 #include "jsoncpp/json.h"
 #include "Util/util.h"
@@ -98,24 +97,57 @@ public:
 #define API_ARGS1 SockInfo &sender,HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, ApiArgsType &allArgs, Json::Value &val
 #define API_ARGS2 API_ARGS1, const HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_VALUE1 sender,headerIn,headerOut,allArgs,val
-#define API_ARGS_VALUE2 API_ARGS_VALUE1, invoker
 
 typedef map<string, variant, StrCaseCompare> ApiArgsType;
+typedef function<void(const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, SockInfo &sender)> HttpApi;
 //http api列表
-static map<string, std::function<void(API_ARGS2)> > s_map_api;
+static map<string, HttpApi> s_map_api;
 
-template<typename FUNC>
-static void api_regist1(const string &api_path, FUNC &&func) {
-    s_map_api.emplace(api_path, [func](API_ARGS2) {
-        func(API_ARGS_VALUE1);
+static void responseApi(const Json::Value &res, const HttpSession::HttpResponseInvoker &invoker){
+    GET_CONFIG(string, charSet, Http::kCharSet);
+    HttpSession::KeyValue headerOut;
+    headerOut["Content-Type"] = string("application/json; charset=") + charSet;
+    invoker("200 OK", headerOut, res.toStyledString());
+};
+
+static void responseApi(int code, const string &msg, const HttpSession::HttpResponseInvoker &invoker){
+    Json::Value res;
+    res["code"] = code;
+    res["msg"] = msg;
+    responseApi(res, invoker);
+}
+
+static ApiArgsType getAllArgs(const Parser &parser);
+
+static HttpApi toApi(const function<void(API_ARGS2)> &cb) {
+    return [cb](const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, SockInfo &sender) {
+        GET_CONFIG(string, charSet, Http::kCharSet);
+        HttpSession::KeyValue headerOut;
+        headerOut["Content-Type"] = string("application/json; charset=") + charSet;
+
+        Json::Value val;
+        val["code"] = API::Success;
+
+        auto args = getAllArgs(parser);
+        cb(sender, parser.getHeader(), headerOut, args, val, invoker);
+    };
+}
+
+static HttpApi toApi(const function<void(API_ARGS1)> &cb) {
+    return toApi([cb](API_ARGS2) {
+        cb(API_ARGS_VALUE1);
         invoker("200 OK", headerOut, val.toStyledString());
     });
 }
 
 template<typename FUNC>
-static void api_regist2(const string &api_path, FUNC &&func) {
-    s_map_api.emplace(api_path, std::forward<FUNC>(func));
+static void api_regist(const string &api_path, FUNC &&func) {
+    s_map_api.emplace(api_path, toApi(std::move(func)));
 }
+
+#define api_regist1 api_regist
+#define api_regist2 api_regist
+
 
 //获取HTTP请求中url参数、content参数
 static ApiArgsType getAllArgs(const Parser &parser) {
@@ -157,22 +189,11 @@ static inline void addHttpListener(){
         }
         //该api已被消费
         consumed = true;
-        //执行API
-        Json::Value val;
-        val["code"] = API::Success;
-        HttpSession::KeyValue headerOut;
-        auto allArgs = getAllArgs(parser);
-        HttpSession::KeyValue &headerIn = parser.getHeader();
-        GET_CONFIG(string,charSet,Http::kCharSet);
-        headerOut["Content-Type"] = StrPrinter << "application/json; charset=" << charSet;
+
         if(api_debug){
-            auto newInvoker = [invoker,parser,allArgs](const string &codeOut,
-                                                       const HttpSession::KeyValue &headerOut,
-                                                       const HttpBody::Ptr &body){
-                stringstream ss;
-                for(auto &pr : allArgs ){
-                    ss << pr.first << " : " << pr.second << "\r\n";
-                }
+            auto newInvoker = [invoker, parser](const string &codeOut,
+                                                const HttpSession::KeyValue &headerOut,
+                                                const HttpBody::Ptr &body) {
 
                 //body默认为空
                 int64_t size = 0;
@@ -181,45 +202,36 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
-                if(size && size < 4 * 1024){
+                if (size && size < 4 * 1024) {
                     string contentOut = body->readData(size)->toString();
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
                            << "# content:\r\n" << parser.Content() << "\r\n"
-                           << "# args:\r\n" << ss.str()
                            << "# response:\r\n"
                            << contentOut << "\r\n";
-                    invoker(codeOut,headerOut,contentOut);
-                } else{
+                    invoker(codeOut, headerOut, contentOut);
+                } else {
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
                            << "# content:\r\n" << parser.Content() << "\r\n"
-                           << "# args:\r\n" << ss.str()
                            << "# response size:"
-                           << size <<"\r\n";
-                    invoker(codeOut,headerOut,body);
+                           << size << "\r\n";
+                    invoker(codeOut, headerOut, body);
                 }
             };
-            ((HttpSession::HttpResponseInvoker &)invoker) = newInvoker;
+            ((HttpSession::HttpResponseInvoker &) invoker) = newInvoker;
         }
 
         try {
-            it->second(sender,headerIn, headerOut, allArgs, val, invoker);
-        }  catch(ApiRetException &ex){
-            val["code"] = ex.code();
-            val["msg"] = ex.what();
-            invoker("200 OK", headerOut, val.toStyledString());
+            it->second(parser, invoker, sender);
+        } catch (ApiRetException &ex) {
+            responseApi(ex.code(), ex.what(), invoker);
         }
 #ifdef ENABLE_MYSQL
         catch(SqlException &ex){
-            val["code"] = API::SqlFailed;
-            val["msg"] = StrPrinter << "操作数据库失败:" << ex.what() << ":" << ex.getSql();
-            WarnL << ex.what() << ":" << ex.getSql();
-            invoker("200 OK", headerOut, val.toStyledString());
+            responseApi(API::SqlFailed, StrPrinter << "操作数据库失败:" << ex.what() << ":" << ex.getSql(), invoker);
         }
 #endif// ENABLE_MYSQL
         catch (std::exception &ex) {
-            val["code"] = API::Exception;
-            val["msg"] = ex.what();
-            invoker("200 OK", headerOut, val.toStyledString());
+            responseApi(API::Exception, ex.what(), invoker);
         }
     });
 }
