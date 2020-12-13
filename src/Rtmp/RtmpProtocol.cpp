@@ -601,7 +601,9 @@ const char* RtmpProtocol::handle_rtmp(const char *data, uint64_t len) {
             //need more data
             return ptr;
         }
-        chunk_data.buffer.append(ptr + header_len + offset, more);
+        if (more) {
+            chunk_data.buffer.append(ptr + header_len + offset, more);
+        }
         ptr += header_len + offset + more;
         len -= header_len + offset + more;
         if (chunk_data.buffer.size() == chunk_data.body_size) {
