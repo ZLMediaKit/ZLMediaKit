@@ -81,7 +81,7 @@ pushd %{_target_platform}
 . /opt/rh/devtoolset-8/enable
 %endif
 
-%cmake \
+%cmake3 \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DENABLE_HLS:BOOL=ON \
     -DENABLE_OPENSSL:BOOL=%{with openssl} \
