@@ -10,8 +10,8 @@ add_executable(MediaServer ${MediaServer_src_list})
 
 if(WIN32)
 	set_target_properties(MediaServer PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
+else()
+	install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_EXECUTABLE})
 endif()
 
 target_link_libraries(MediaServer jsoncpp ${LINK_LIB_LIST})
-
-
