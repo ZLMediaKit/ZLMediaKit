@@ -9,7 +9,7 @@
  */
 
 #include <cstdlib>
-#include <inttypes.h>
+#include <cinttypes>
 #include "HlsParser.h"
 #include "Util/util.h"
 #include "Common/Parser.h"
