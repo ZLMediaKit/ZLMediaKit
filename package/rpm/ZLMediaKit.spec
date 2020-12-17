@@ -1,8 +1,15 @@
 %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 %global use_devtoolset 0
+%bcond_without faac
+%bcond_without x264
 %else
 %global use_devtoolset 1
+%bcond_with faac
+%bcond_with x264
 %endif
+
+%bcond_without openssl
+%bcond_without mysql
 
 Name:		ZLMediaKit
 Version:	5.0.0
@@ -14,10 +21,21 @@ License:	MIT
 URL:		https://github.com/xia-chu/ZLMediaKit
 Source0:	%{name}-%{version}.tar.xz
 
+%if %{with openssl}
 BuildRequires:	openssl-devel
+%endif
+
+%if %{with mysql}
 BuildRequires:	mysql-devel
+%endif
+
+%if %{with faac}
 BuildRequires:	faac-devel
+%endif
+
+%if %{with x264}
 BuildRequires:	x264-devel
+%endif
 
 %if 0%{?use_devtoolset}
 BuildRequires:	devtoolset-8-gcc-c++
@@ -64,11 +82,12 @@ pushd %{_target_platform}
 %endif
 
 %cmake \
+    -DCMAKE_BUILD_TYPE:STRING=Release \
     -DENABLE_HLS:BOOL=ON \
-    -DENABLE_OPENSSL:BOOL=ON \
-    -DENABLE_MYSQL:BOOL=ON \
-    -DENABLE_FAAC:BOOL=ON \
-    -DENABLE_X264:BOOL=ON \
+    -DENABLE_OPENSSL:BOOL=%{with openssl} \
+    -DENABLE_MYSQL:BOOL=%{with mysql} \
+    -DENABLE_FAAC:BOOL=%{with faac} \
+    -DENABLE_X264:BOOL=%{with x264} \
     -DENABLE_MP4:BOOL=ON \
     -DENABLE_RTPPROXY:BOOL=ON \
     -DENABLE_API:BOOL=ON \
