@@ -45,26 +45,26 @@ BuildRequires:	devtoolset-8-gcc-c++
 A lightweight RTSP/RTMP/HTTP/HLS/HTTP-FLV/WebSocket-FLV/HTTP-TS/HTTP-fMP4/WebSocket-TS/WebSocket-fMP4/GB28181 server and client framework based on C++11.
 
 %package media-server
-Requires:	%{name}-%{version}
+Requires:	%{name} = %{version}
 Summary:	A lightweight, high performance and stable stream server
 
 %description media-server
 A lightweight RTSP/RTMP/HTTP/HLS/HTTP-FLV/WebSocket-FLV/HTTP-TS/HTTP-fMP4/WebSocket-TS/WebSocket-fMP4/GB28181 server.
 
 %package c-libs
-Requires:	%{name}-%{version}
+Requires:	%{name} = %{version}
 Summary:	The %{name} C libraries.
 %description c-libs
 The %{name} C libraries.
 
 %package c-devel
-Requires:	%{name}-c-libs-%{version}
+Requires:	%{name}-c-libs = %{version}
 Summary:	The %{name} C API headers.
 %description c-devel
 The %{name} C API headers.
 
 %package cxx-devel
-Requires:	%{name}-%{version}
+Requires:	%{name} = %{version}
 Summary:	The %{name} C++ API headers and development libraries.
 %description cxx-devel
 The %{name} C++ API headers and development libraries.
