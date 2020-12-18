@@ -223,6 +223,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
 }
 #else
 void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {}
+void DecoderImp::onStream(int stream,int codecid,const void *extra,int bytes,int finish) {}
 #endif
 
 void DecoderImp::onTrack(const Track::Ptr &track) {
