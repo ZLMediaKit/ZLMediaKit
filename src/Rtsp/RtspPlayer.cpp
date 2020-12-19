@@ -37,8 +37,10 @@ RtspPlayer::~RtspPlayer(void) {
 }
 void RtspPlayer::teardown(){
     if (alive()) {
-        sendRtspRequest("TEARDOWN" ,_content_base);
-        shutdown(SockException(Err_shutdown,"teardown"));
+        if (!_content_base.empty()) {
+            sendRtspRequest("TEARDOWN", _content_base);
+        }
+        shutdown(SockException(Err_shutdown, "teardown"));
     }
 
     _md5_nonce.clear();
