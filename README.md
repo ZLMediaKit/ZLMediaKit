@@ -140,7 +140,7 @@ bash build_docker_images.sh
     
  - 流媒体管理平台
    - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/StreamNode)
-   - [GB28181-2016网络视频平台](https://github.com/648540858/wvp-GB28181)
+   - [GB28181-2016网络视频平台](https://github.com/648540858/wvp-GB28181-pro)
    - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
    - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
 
