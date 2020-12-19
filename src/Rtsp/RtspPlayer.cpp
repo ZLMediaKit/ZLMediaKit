@@ -234,7 +234,7 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
         }
             break;
         case Rtsp::RTP_MULTICAST: {
-            sendRtspRequest("SETUP",baseUrl,{"Transport","Transport: RTP/AVP;multicast"});
+            sendRtspRequest("SETUP",baseUrl,{"Transport","RTP/AVP;multicast"});
         }
             break;
         case Rtsp::RTP_UDP: {
