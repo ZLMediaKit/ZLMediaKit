@@ -113,7 +113,7 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     }
 
     if (rtp_raw_len <= rtp.offset) {
-        WarnL << "无有效负载的rtp包:" << rtp_raw_len << " <= " << (int) rtp.offset;
+        //无有效负载的rtp包
         return false;
     }
 
