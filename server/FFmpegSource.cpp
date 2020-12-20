@@ -59,6 +59,11 @@ static bool is_local_ip(const string &ip){
     return false;
 }
 
+void FFmpegSource::setupRecord(bool enable_hls, bool enable_mp4){
+    _enable_hls = enable_hls;
+    _enable_mp4 = enable_mp4;
+}
+
 void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_ms,const onPlay &cb) {
     GET_CONFIG(string,ffmpeg_bin,FFmpeg::kBin);
     GET_CONFIG(string,ffmpeg_cmd,FFmpeg::kCmd);
@@ -263,6 +268,12 @@ void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
         //防止多次进入onGetMediaSource函数导致无限递归调用的bug
         setDelegate(listener);
         src->setListener(shared_from_this());
+        if (_enable_hls) {
+            src->setupRecord(Recorder::type_hls, true, "");
+        }
+        if (_enable_mp4) {
+            src->setupRecord(Recorder::type_mp4, true, "");
+        }
     }
 }
 

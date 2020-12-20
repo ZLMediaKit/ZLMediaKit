@@ -428,7 +428,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/addStreamProxy?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&url=rtmp://live.hkstv.hk.lxdns.com/live/hks2&enable_rtsp=1&enable_rtmp=1",
+					"raw": "{{ZLMediaKit_URL}}/index/api/addStreamProxy?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&url=rtmp://live.hkstv.hk.lxdns.com/live/hks2",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -523,7 +523,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/addFFmpegSource?secret={{ZLMediaKit_secret}}&src_url=http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8&dst_url=rtmp://10.8.9.115:8554/live/hks2&timeout_ms=10000",
+					"raw": "{{ZLMediaKit_URL}}/index/api/addFFmpegSource?secret={{ZLMediaKit_secret}}&src_url=http://hefeng.live.tempsource.cjyun.org/videotmp/s10100-hftv.m3u8&dst_url=rtmp://127.0.0.1/live/hks2&timeout_ms=10000&enable_hls=0&enable_mp4=0",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -540,7 +540,7 @@
 						},
 						{
 							"key": "src_url",
-							"value": "http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8",
+							"value": "http://hefeng.live.tempsource.cjyun.org/videotmp/s10100-hftv.m3u8",
 							"description": "FFmpeg拉流地址,支持任意协议或格式(只要FFmpeg支持即可)"
 						},
 						{
@@ -552,6 +552,16 @@
 							"key": "timeout_ms",
 							"value": "10000",
 							"description": "FFmpeg推流成功超时时间,单位毫秒"
+						},
+						{
+							"key": "enable_hls",
+							"value": "0",
+							"description": "是否开启hls录制"
+						},
+						{
+							"key": "enable_mp4",
+							"value": "0",
+							"description": "是否开启mp4录制"
 						}
 					]
 				}
