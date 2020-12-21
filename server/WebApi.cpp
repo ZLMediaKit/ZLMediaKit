@@ -830,28 +830,31 @@ void installWebApi() {
     static auto addFFmpegSource = [](const string &src_url,
                                      const string &dst_url,
                                      int timeout_ms,
-                                     const function<void(const SockException &ex,const string &key)> &cb){
+                                     bool enable_hls,
+                                     bool enable_mp4,
+                                     const function<void(const SockException &ex, const string &key)> &cb) {
         auto key = MD5(dst_url).hexdigest();
         lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
-        if(s_ffmpegMap.find(key) != s_ffmpegMap.end()){
+        if (s_ffmpegMap.find(key) != s_ffmpegMap.end()) {
             //已经在拉流了
-            cb(SockException(Err_success),key);
+            cb(SockException(Err_success), key);
             return;
         }
 
         FFmpegSource::Ptr ffmpeg = std::make_shared<FFmpegSource>();
         s_ffmpegMap[key] = ffmpeg;
 
-        ffmpeg->setOnClose([key](){
+        ffmpeg->setOnClose([key]() {
             lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
             s_ffmpegMap.erase(key);
         });
-        ffmpeg->play(src_url, dst_url,timeout_ms,[cb , key](const SockException &ex){
-            if(ex){
+        ffmpeg->setupRecord(enable_hls, enable_mp4);
+        ffmpeg->play(src_url, dst_url, timeout_ms, [cb, key](const SockException &ex) {
+            if (ex) {
                 lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
                 s_ffmpegMap.erase(key);
             }
-            cb(ex,key);
+            cb(ex, key);
         });
     };
 
@@ -863,12 +866,15 @@ void installWebApi() {
         auto src_url = allArgs["src_url"];
         auto dst_url = allArgs["dst_url"];
         int timeout_ms = allArgs["timeout_ms"];
+        auto enable_hls = allArgs["enable_hls"].as<int>();
+        auto enable_mp4 = allArgs["enable_mp4"].as<int>();
 
-        addFFmpegSource(src_url,dst_url,timeout_ms,[invoker,val,headerOut](const SockException &ex,const string &key){
-            if(ex){
+        addFFmpegSource(src_url, dst_url, timeout_ms, enable_hls, enable_mp4,
+                        [invoker, val, headerOut](const SockException &ex, const string &key) {
+            if (ex) {
                 const_cast<Value &>(val)["code"] = API::OtherFailed;
                 const_cast<Value &>(val)["msg"] = ex.what();
-            }else{
+            } else {
                 const_cast<Value &>(val)["data"]["key"] = key;
             }
             invoker("200 OK", headerOut, val.toStyledString());
@@ -1234,6 +1240,8 @@ void installWebApi() {
         addFFmpegSource("http://hls-ott-zhibo.wasu.tv/live/272/index.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
                         dst_url,
                         (1000 * timeout_sec) - 500,
+                        false,
+                        false,
                         [invoker,val,headerOut](const SockException &ex,const string &key){
                             if(ex){
                                 const_cast<Value &>(val)["code"] = API::OtherFailed;

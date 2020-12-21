@@ -46,13 +46,29 @@ public:
     typedef function<void(const SockException &ex)> onPlay;
 
     FFmpegSource();
-    virtual ~FFmpegSource();
+    ~FFmpegSource();
+
     /**
      * 设置主动关闭回调
-     * @param cb
      */
     void setOnClose(const function<void()> &cb);
-    void play(const string &src_url,const string &dst_url,int timeout_ms,const onPlay &cb);
+
+    /**
+     * 开始播放url
+     * @param src_url FFmpeg拉流地址
+     * @param dst_url FFmpeg推流地址
+     * @param timeout_ms 等待结果超时时间，单位毫秒
+     * @param cb 成功与否回调
+     */
+    void play(const string &src_url, const string &dst_url, int timeout_ms, const onPlay &cb);
+
+    /**
+     * 设置录制
+     * @param enable_hls 是否开启hls直播或录制
+     * @param enable_mp4 是否录制mp4
+     */
+    void setupRecord(bool enable_hls, bool enable_mp4);
+
 private:
     void findAsync(int maxWaitMS ,const function<void(const MediaSource::Ptr &src)> &cb);
     void startTimer(int timeout_ms);
@@ -69,6 +85,8 @@ private:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
 private:
+    bool _enable_hls = false;
+    bool _enable_mp4 = false;
     Process _process;
     Timer::Ptr _timer;
     EventPoller::Ptr _poller;
