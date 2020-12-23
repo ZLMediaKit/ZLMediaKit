@@ -103,7 +103,7 @@ public:
      * 设置一个MediaSource，直接生产rtsp/rtmp代理
      * @param src
      */
-    virtual void setMediaSouce(const MediaSource::Ptr & src) {}
+    virtual void setMediaSource(const MediaSource::Ptr & src) {}
 
     /**
      * 获取丢包率，只支持rtsp
@@ -181,9 +181,9 @@ public:
         return Parent::seekTo(fProgress);
     }
 
-    void setMediaSouce(const MediaSource::Ptr & src) override {
+    void setMediaSource(const MediaSource::Ptr & src) override {
         if (_delegate) {
-            _delegate->setMediaSouce(src);
+            _delegate->setMediaSource(src);
         }
         _pMediaSrc = src;
     }
@@ -194,6 +194,11 @@ public:
         }
         return Parent::getTracks(trackReady);
     }
+
+    std::shared_ptr<SockInfo> getSockInfo() const{
+        return dynamic_pointer_cast<SockInfo>(_delegate);
+    }
+
 protected:
     void onShutdown(const SockException &ex) override {
         if (_shutdownCB) {

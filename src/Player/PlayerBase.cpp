@@ -17,12 +17,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-//字符串是否以xx结尾
-static bool end_of(const string &str, const string &substr){
-    auto pos = str.rfind(substr);
-    return pos != string::npos && pos == str.size() - substr.size();
-}
-
 PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const string &url_in) {
     static auto releasePlayer = [](PlayerBase *ptr){
         onceToken token(nullptr,[&](){
@@ -54,7 +48,7 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const st
         return PlayerBase::Ptr(new RtmpPlayerImp(poller),releasePlayer);
     }
 
-    if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0) && end_of(url, ".m3u8")) {
+    if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0) && end_with(url, ".m3u8")) {
         return PlayerBase::Ptr(new HlsPlayerImp(poller),releasePlayer);
     }
 
@@ -105,7 +99,7 @@ vector<Track::Ptr> Demuxer::getTracks(bool trackReady) const {
             ret.emplace_back(_audioTrack);
         }
     }
-    return std::move(ret);
+    return ret;
 }
 
 float Demuxer::getDuration() const {

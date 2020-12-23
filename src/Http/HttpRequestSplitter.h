@@ -12,7 +12,9 @@
 #define ZLMEDIAKIT_HTTPREQUESTSPLITTER_H
 
 #include <string>
+#include "Network/Buffer.h"
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 
@@ -54,7 +56,7 @@ protected:
      * @param len 数据长度
      * @return nullptr代表未找到包位，否则返回包尾指针
      */
-    virtual const char *onSearchPacketTail(const char *data,int len);
+    virtual const char *onSearchPacketTail(const char *data, uint64_t len);
 
     /**
      * 设置content len
@@ -71,7 +73,7 @@ protected:
       */
      int64_t remainDataSize();
 private:
-    string _remain_data;
+    BufferLikeString _remain_data;
     int64_t _content_len = 0;
     int64_t _remain_data_size = 0;
 };

@@ -539,7 +539,7 @@ std::string AMFDecoder::load<std::string>() {
     if (pos + str_len > buf.size()) {
         throw std::runtime_error("Not enough data");
     }
-    std::string s(buf, pos, str_len);
+    std::string s = buf.substr(pos, str_len);
     pos += str_len;
     return s;
 }
@@ -612,7 +612,7 @@ std::string AMFDecoder::load_key() {
     if (pos + str_len > buf.size()) {
         throw std::runtime_error("Not enough data");
     }
-    std::string s(buf, pos, str_len);
+    std::string s = buf.substr(pos, str_len);
     pos += str_len;
     return s;
 
@@ -680,7 +680,7 @@ AMFValue AMFDecoder::load_arr() {
     return object;
 }
 
-AMFDecoder::AMFDecoder(const std::string &buf_in, size_t pos_in, int version_in) :
+AMFDecoder::AMFDecoder(const BufferLikeString &buf_in, size_t pos_in, int version_in) :
         buf(buf_in), pos(pos_in), version(version_in) {
 }
 

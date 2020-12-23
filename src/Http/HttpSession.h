@@ -19,6 +19,8 @@
 #include "WebSocketSplitter.h"
 #include "HttpCookieManager.h"
 #include "HttpFileManager.h"
+#include "TS/TSMediaSource.h"
+#include "FMP4/FMP4MediaSource.h"
 
 using namespace std;
 using namespace toolkit;
@@ -90,7 +92,7 @@ protected:
      * 发送数据进行websocket协议打包后回调
      * @param buffer websocket协议数据
      */
-    void onWebSocketEncodeData(const Buffer::Ptr &buffer) override;
+    void onWebSocketEncodeData(Buffer::Ptr buffer) override;
 
     /**
      * 接收到完整的一个webSocket数据包后回调
@@ -104,7 +106,12 @@ private:
     void Handle_Req_POST(int64_t &content_len);
     void Handle_Req_HEAD(int64_t &content_len);
 
-    bool checkLiveFlvStream(const function<void()> &cb = nullptr);
+    bool checkLiveStream(const string &schema, const string  &url_suffix, const function<void(const MediaSource::Ptr &src)> &cb);
+
+    bool checkLiveStreamFlv(const function<void()> &cb = nullptr);
+    bool checkLiveStreamTS(const function<void()> &cb = nullptr);
+    bool checkLiveStreamFMP4(const function<void()> &fmp4_list = nullptr);
+
     bool checkWebSocket();
     bool emitHttpEvent(bool doInvoke);
     void urlDecode(Parser &parser);
@@ -117,17 +124,18 @@ private:
     void setSocketFlags();
 
 private:
+    bool _is_live_stream = false;
+    bool _live_over_websocket = false;
+    //消耗的总流量
+    uint64_t _total_bytes_usage = 0;
     string _origin;
     Parser _parser;
     Ticker _ticker;
-    //消耗的总流量
-    uint64_t _ui64TotalBytes = 0;
-    //flv over http
     MediaInfo _mediaInfo;
+    TSMediaSource::RingType::RingReader::Ptr _ts_reader;
+    FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
     //处理content数据的callback
     function<bool (const char *data,uint64_t len) > _contentCallBack;
-    bool _flv_over_websocket = false;
-    bool _is_flv_stream = false;
 };
 
 

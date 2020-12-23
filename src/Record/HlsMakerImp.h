@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include "HlsMaker.h"
 #include "HlsMediaSource.h"
+
 using namespace std;
 
 namespace mediakit {
@@ -54,6 +55,7 @@ protected:
     void onDelSegment(int index) override;
     void onWriteSegment(const char *data, int len) override;
     void onWriteHls(const char *data, int len) override;
+    void onFlushLastSegment(uint32_t duration_ms) override;
 
 private:
     std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
@@ -63,6 +65,7 @@ private:
     string _params;
     string _path_hls;
     string _path_prefix;
+    RecordInfo _info;
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;

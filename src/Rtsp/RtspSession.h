@@ -37,17 +37,19 @@ class RtspSession;
 class BufferRtp : public Buffer{
 public:
     typedef std::shared_ptr<BufferRtp> Ptr;
-    BufferRtp(const RtpPacket::Ptr & pkt,uint32_t offset = 0 ):_rtp(pkt),_offset(offset){}
-    virtual ~BufferRtp(){}
+    BufferRtp(Buffer::Ptr pkt, uint32_t offset = 0) : _rtp(std::move(pkt)), _offset(offset) {}
+    ~BufferRtp() override{}
 
     char *data() const override {
         return (char *)_rtp->data() + _offset;
     }
+
     uint32_t size() const override {
         return _rtp->size() - _offset;
     }
+
 private:
-    RtpPacket::Ptr _rtp;
+    Buffer::Ptr _rtp;
     uint32_t _offset;
 };
 
@@ -74,13 +76,24 @@ protected:
     void onRtpPacket(const char *data, uint64_t len) override;
     //从rtsp头中获取Content长度
     int64_t getContentLength(Parser &parser) override;
+
     ////RtpReceiver override////
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) override;
-    ////MediaSourceEvent override////
-    bool close(MediaSource &sender, bool force) override ;
+
+    ///////MediaSourceEvent override///////
+    // 关闭
+    bool close(MediaSource &sender, bool force) override;
+    // 播放总人数
     int totalReaderCount(MediaSource &sender) override;
+    // 获取媒体源类型
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    // 获取媒体源url或者文件路径
+    string getOriginUrl(MediaSource &sender) const override;
+    // 获取媒体源客户端相关信息
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+
     /////TcpSession override////
-    int send(const Buffer::Ptr &pkt) override;
+    int send(Buffer::Ptr pkt) override;
     //收到RTCP包回调
     virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, unsigned int len);
 

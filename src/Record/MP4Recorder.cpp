@@ -11,6 +11,7 @@
 #ifdef ENABLE_MP4
 #include <ctime>
 #include <sys/stat.h>
+#include "Util/File.h"
 #include "Common/config.h"
 #include "MP4Recorder.h"
 #include "Thread/WorkThreadPool.h"
@@ -25,10 +26,10 @@ MP4Recorder::MP4Recorder(const string& strPath,
                    const string &strStreamId) {
     _strPath = strPath;
     /////record 业务逻辑//////
-    _info.strAppName = strApp;
-    _info.strStreamId = strStreamId;
-    _info.strVhost = strVhost;
-    _info.strFolder = strPath;
+    _info.app = strApp;
+    _info.stream = strStreamId;
+    _info.vhost = strVhost;
+    _info.folder = strPath;
 }
 MP4Recorder::~MP4Recorder() {
     closeFile();
@@ -42,26 +43,27 @@ void MP4Recorder::createFile() {
     auto strFile =	_strPath + strDate + "/" + strTime + ".mp4";
 
     /////record 业务逻辑//////
-    _info.ui64StartedTime = ::time(NULL);
-    _info.strFileName = strTime + ".mp4";
-    _info.strFilePath = strFile;
+    _info.start_time = ::time(NULL);
+    _info.file_name = strTime + ".mp4";
+    _info.file_path = strFile;
     GET_CONFIG(string,appName,Record::kAppName);
-    _info.strUrl = appName + "/"
-                   + _info.strAppName + "/"
-                   + _info.strStreamId + "/"
-                   + strDate + "/"
-                   + strTime + ".mp4";
+    _info.url = appName + "/"
+                + _info.app + "/"
+                + _info.stream + "/"
+                + strDate + "/"
+                + strTime + ".mp4";
 
     try {
-        _muxer = std::make_shared<MP4Muxer>(strFileTmp.data());
-        for(auto &track :_tracks){
+        _muxer = std::make_shared<MP4Muxer>();
+        _muxer->openMP4(strFileTmp);
+        for (auto &track :_tracks) {
             //添加track
             _muxer->addTrack(track);
         }
         _strFileTmp = strFileTmp;
         _strFile = strFile;
         _createFileTicker.resetTime();
-    }catch(std::exception &ex) {
+    } catch (std::exception &ex) {
         WarnL << ex.what();
     }
 }
@@ -73,15 +75,22 @@ void MP4Recorder::asyncClose() {
     auto info = _info;
     WorkThreadPool::Instance().getExecutor()->async([muxer,strFileTmp,strFile,info]() {
         //获取文件录制时间，放在关闭mp4之前是为了忽略关闭mp4执行时间
-        const_cast<MP4Info&>(info).ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
+        const_cast<RecordInfo&>(info).time_len = ::time(NULL) - info.start_time;
         //关闭mp4非常耗时，所以要放在后台线程执行
         muxer->closeMP4();
-        //临时文件名改成正式文件名，防止mp4未完成时被访问
-        rename(strFileTmp.data(),strFile.data());
+
         //获取文件大小
         struct stat fileData;
-        stat(strFile.data(), &fileData);
-        const_cast<MP4Info&>(info).ui64FileSize = fileData.st_size;
+        stat(strFileTmp.data(), &fileData);
+        const_cast<RecordInfo &>(info).file_size = fileData.st_size;
+        if (fileData.st_size < 1024) {
+            //录像文件太小，删除之
+            File::delete_file(strFileTmp.data());
+            return;
+        }
+        //临时文件名改成正式文件名，防止mp4未完成时被访问
+        rename(strFileTmp.data(),strFile.data());
+
         /////record 业务逻辑//////
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4,info);
     });

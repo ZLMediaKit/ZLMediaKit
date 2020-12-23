@@ -12,7 +12,7 @@
 #include "Extension/Factory.h"
 namespace mediakit{
 
-VideoMeta::VideoMeta(const VideoTrack::Ptr &video,int datarate ){
+VideoMeta::VideoMeta(const VideoTrack::Ptr &video){
     if(video->getVideoWidth() > 0 ){
         _metadata.set("width", video->getVideoWidth());
     }
@@ -22,13 +22,17 @@ VideoMeta::VideoMeta(const VideoTrack::Ptr &video,int datarate ){
     if(video->getVideoFps() > 0 ){
         _metadata.set("framerate", video->getVideoFps());
     }
-    _metadata.set("videodatarate", datarate);
+    if (video->getBitRate()) {
+        _metadata.set("videodatarate", video->getBitRate() / 1024);
+    }
     _codecId = video->getCodecId();
     _metadata.set("videocodecid", Factory::getAmfByCodecId(_codecId));
 }
 
-AudioMeta::AudioMeta(const AudioTrack::Ptr &audio,int datarate){
-    _metadata.set("audiodatarate", datarate);
+AudioMeta::AudioMeta(const AudioTrack::Ptr &audio){
+    if (audio->getBitRate()) {
+        _metadata.set("audiodatarate", audio->getBitRate() / 1024);
+    }
     if(audio->getAudioSampleRate() > 0){
         _metadata.set("audiosamplerate", audio->getAudioSampleRate());
     }

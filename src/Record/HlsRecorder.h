@@ -34,7 +34,7 @@ public:
     }
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
-        _listener = listener;
+        setDelegate(listener);
         _hls->getMediaSource()->setListener(shared_from_this());
         //先注册媒体流，后续可以按需生成
         _hls->getMediaSource()->registHls(false);
@@ -45,9 +45,10 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
+        GET_CONFIG(bool, hls_demand, General::kHlsDemand);
         //hls保留切片个数为0时代表为hls录制(不删除切片)，那么不管有无观看者都一直生成hls
-        _enabled = _hls->isLive() ? size : true;
-        if (!size && _hls->isLive()) {
+        _enabled = hls_demand ? (_hls->isLive() ? size : true) : true;
+        if (!size && _hls->isLive() && hls_demand) {
             //hls直播时，如果无人观看就删除视频缓存，目的是为了防止视频跳跃
             _clear_cache = true;
         }
@@ -55,16 +56,18 @@ public:
     }
 
     bool isEnabled() {
+        GET_CONFIG(bool, hls_demand, General::kHlsDemand);
         //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return _clear_cache ? true : _enabled;
+        return hls_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
-    void inputFrame(const Frame::Ptr &frame) override{
-        if (_clear_cache) {
+    void inputFrame(const Frame::Ptr &frame) override {
+        GET_CONFIG(bool, hls_demand, General::kHlsDemand);
+        if (_clear_cache && hls_demand) {
             _clear_cache = false;
             _hls->clearCache();
         }
-        if (_enabled) {
+        if (_enabled || !hls_demand) {
             TsMuxer::inputFrame(frame);
         }
     }

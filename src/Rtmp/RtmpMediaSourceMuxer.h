@@ -32,7 +32,7 @@ public:
     ~RtmpMediaSourceMuxer() override{}
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-        _listener = listener;
+        setDelegate(listener);
         _media_src->setListener(shared_from_this());
     }
 
@@ -50,26 +50,29 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
-        _enabled = size;
-        if (!size) {
+        GET_CONFIG(bool, rtmp_demand, General::kRtmpDemand);
+        _enabled = rtmp_demand ? size : true;
+        if (!size && rtmp_demand) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
     void inputFrame(const Frame::Ptr &frame) override {
-        if (_clear_cache) {
+        GET_CONFIG(bool, rtmp_demand, General::kRtmpDemand);
+        if (_clear_cache && rtmp_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
-        if (_enabled) {
+        if (_enabled || !rtmp_demand) {
             RtmpMuxer::inputFrame(frame);
         }
     }
 
     bool isEnabled() {
+        GET_CONFIG(bool, rtmp_demand, General::kRtmpDemand);
         //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return _clear_cache ? true : _enabled;
+        return rtmp_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
 private:

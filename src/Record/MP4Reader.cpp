@@ -17,23 +17,24 @@ namespace mediakit {
 
 MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
     _poller = WorkThreadPool::Instance().getPoller();
-    auto strFileName = filePath;
-    if(strFileName.empty()){
+    _file_path = filePath;
+    if(_file_path.empty()){
         GET_CONFIG(string,recordPath,Record::kFilePath);
         GET_CONFIG(bool,enableVhost,General::kEnableVhost);
         if(enableVhost){
-            strFileName = strVhost + "/" + strApp + "/" + strId;
+            _file_path = strVhost + "/" + strApp + "/" + strId;
         }else{
-            strFileName = strApp + "/" + strId;
+            _file_path = strApp + "/" + strId;
         }
-        strFileName = File::absolutePath(strFileName,recordPath);
+        _file_path = File::absolutePath(_file_path,recordPath);
     }
 
-    _demuxer = std::make_shared<MP4Demuxer>(strFileName.data());
+    _demuxer = std::make_shared<MP4Demuxer>();
+    _demuxer->openMP4(_file_path);
     _mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost, strApp, strId, _demuxer->getDurationMS() / 1000.0, true, true, false, false));
     auto tracks = _demuxer->getTracks(false);
     if(tracks.empty()){
-        throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << strFileName);
+        throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << _file_path);
     }
     for(auto &track : tracks){
         _mediaMuxer->addTrack(track);
@@ -150,6 +151,14 @@ bool MP4Reader::close(MediaSource &sender,bool force){
 
 int MP4Reader::totalReaderCount(MediaSource &sender) {
     return _mediaMuxer ? _mediaMuxer->totalReaderCount() : sender.readerCount();
+}
+
+MediaOriginType MP4Reader::getOriginType(MediaSource &sender) const {
+    return MediaOriginType::mp4_vod;
+}
+
+string MP4Reader::getOriginUrl(MediaSource &sender) const {
+    return _file_path;
 }
 
 } /* namespace mediakit */

@@ -56,9 +56,9 @@ private:
     void setMetaData(AMFDecoder &dec);
 
     void onSendMedia(const RtmpPacket::Ptr &pkt);
-    void onSendRawData(const Buffer::Ptr &buffer) override{
+    void onSendRawData(Buffer::Ptr buffer) override{
         _total_bytes += buffer->size();
-        send(buffer);
+        send(std::move(buffer));
     }
     void onRtmpChunk(RtmpPacket &chunk_data) override;
 
@@ -69,9 +69,17 @@ private:
         sendResponse(MSG_CMD, invoke.data());
     }
 
-    //MediaSourceEvent override
-    bool close(MediaSource &sender,bool force) override ;
+    ///////MediaSourceEvent override///////
+    // 关闭
+    bool close(MediaSource &sender, bool force) override;
+    // 播放总人数
     int totalReaderCount(MediaSource &sender) override;
+    // 获取媒体源类型
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    // 获取媒体源url或者文件路径
+    string getOriginUrl(MediaSource &sender) const override;
+    // 获取媒体源客户端相关信息
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
     void setSocketFlags();
     string getStreamId(const string &str);

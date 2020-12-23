@@ -18,7 +18,9 @@
 #include <map>
 #include <stdexcept>
 #include <functional>
+#include "Network/Buffer.h"
 using namespace std;
+using namespace toolkit;
 
 enum AMFType {
     AMF_NUMBER,
@@ -81,7 +83,7 @@ private:
 
 class AMFDecoder {
 public:
-    AMFDecoder(const std::string &buf, size_t pos, int version = 0);
+    AMFDecoder(const BufferLikeString &buf, size_t pos, int version = 0);
     template<typename TP>
     TP load();
 private:
@@ -92,7 +94,7 @@ private:
     uint8_t front();
     uint8_t pop_front();
 private:
-    const std::string &buf;
+    const BufferLikeString &buf;
     size_t pos;
     int version;
 };

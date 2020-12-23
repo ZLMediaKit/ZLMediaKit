@@ -37,8 +37,10 @@ RtspPlayer::~RtspPlayer(void) {
 }
 void RtspPlayer::teardown(){
     if (alive()) {
-        sendRtspRequest("TEARDOWN" ,_content_base);
-        shutdown(SockException(Err_shutdown,"teardown"));
+        if (!_content_base.empty()) {
+            sendRtspRequest("TEARDOWN", _content_base);
+        }
+        shutdown(SockException(Err_shutdown, "teardown"));
     }
 
     _md5_nonce.clear();
@@ -223,13 +225,16 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
     _on_response = std::bind(&RtspPlayer::handleResSETUP, this, placeholders::_1, track_idx);
     auto &track = _sdp_track[track_idx];
     auto baseUrl = _content_base + "/" + track->_control_surffix;
+    if (track->_control.find("://") != string::npos) {
+        baseUrl = track->_control;
+    }
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest("SETUP",baseUrl,{"Transport",StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1});
         }
             break;
         case Rtsp::RTP_MULTICAST: {
-            sendRtspRequest("SETUP",baseUrl,{"Transport","Transport: RTP/AVP;multicast"});
+            sendRtspRequest("SETUP",baseUrl,{"Transport","RTP/AVP;multicast"});
         }
             break;
         case Rtsp::RTP_UDP: {
@@ -704,7 +709,8 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
     for (auto &pr : header){
         printer << pr.first << ": " << pr.second << "\r\n";
     }
-    SockSender::send(printer << "\r\n");
+    printer << "\r\n";
+    SockSender::send(std::move(printer));
 }
 
 void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) {

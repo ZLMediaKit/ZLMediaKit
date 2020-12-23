@@ -13,19 +13,21 @@
 //最多等待未初始化的Track 10秒，超时之后会忽略未初始化的Track
 #define MAX_WAIT_MS_READY 10000
 
-//如果添加Track，最多等待3秒
-#define MAX_WAIT_MS_ADD_TRACK 3000
-
+//如果添加Track，最多等待5秒
+#define MAX_WAIT_MS_ADD_TRACK 5000
 
 namespace mediakit{
 
 void MediaSink::addTrack(const Track::Ptr &track_in) {
     lock_guard<recursive_mutex> lck(_mtx);
+    if (_all_track_ready) {
+        WarnL << "all track is ready, add this track too late!";
+        return;
+    }
     //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
     auto codec_id = track->getCodecId();
     _track_map[codec_id] = track;
-    _all_track_ready = false;
     _track_ready_callback[codec_id] = [this, track]() {
         onTrackReady(track);
     };
@@ -161,7 +163,7 @@ vector<Track::Ptr> MediaSink::getTracks(bool trackReady) const{
         }
         ret.emplace_back(pr.second);
     }
-    return std::move(ret);
+    return ret;
 }
 
 

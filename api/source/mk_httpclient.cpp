@@ -78,7 +78,7 @@ static C get_http_header( const char *response_header[]){
         }
         break;
     }
-    return std::move(header);
+    return header;
 }
 
 API_EXPORT void API_CALL mk_http_requester_set_body(mk_http_requester ctx, mk_http_body body){

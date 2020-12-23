@@ -38,6 +38,7 @@ void PSEncoder::init() {
             [](void *param, int stream, void *packet, size_t bytes) {
                 PSEncoder *thiz = (PSEncoder *) param;
                 thiz->onPS(thiz->_timestamp, packet, bytes);
+                return 0;
             }
     };
 
@@ -128,7 +129,8 @@ void PSEncoder::inputFrame(const Frame::Ptr &frame) {
                 Frame::Ptr back = _frameCached.back();
                 Buffer::Ptr merged_frame = back;
                 if (_frameCached.size() != 1) {
-                    string merged;
+                    BufferLikeString merged;
+                    merged.reserve(back->size() + 1024);
                     _frameCached.for_each([&](const Frame::Ptr &frame) {
                         if (frame->prefixSize()) {
                             merged.append(frame->data(), frame->size());
@@ -137,7 +139,7 @@ void PSEncoder::inputFrame(const Frame::Ptr &frame) {
                             merged.append(frame->data(), frame->size());
                         }
                     });
-                    merged_frame = std::make_shared<BufferString>(std::move(merged));
+                    merged_frame = std::make_shared<BufferOffset<BufferLikeString> >(std::move(merged));
                 }
                 track_info.stamp.revise(back->dts(), back->pts(), dts_out, pts_out);
                 _timestamp = dts_out;
@@ -164,6 +166,44 @@ void PSEncoder::inputFrame(const Frame::Ptr &frame) {
         }
             break;
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+class RingDelegateHelper : public RingDelegate<RtpPacket::Ptr> {
+public:
+    typedef function<void(RtpPacket::Ptr in, bool is_key)> onRtp;
+
+    ~RingDelegateHelper() override{}
+    RingDelegateHelper(onRtp on_rtp){
+        _on_rtp = std::move(on_rtp);
+    }
+    void onWrite(RtpPacket::Ptr in, bool is_key) override{
+        _on_rtp(std::move(in), is_key);
+    }
+
+private:
+    onRtp _on_rtp;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PSEncoderImp::PSEncoderImp(uint32_t ssrc, uint8_t payload_type) {
+    GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
+    _rtp_encoder = std::make_shared<CommonRtpEncoder>(CodecInvalid, ssrc, video_mtu, 90000, payload_type, 0);
+    _rtp_encoder->setRtpRing(std::make_shared<RtpRing::RingType>());
+    _rtp_encoder->getRtpRing()->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key){
+        onRTP(std::move(rtp));
+    }));
+    InfoL << this << " " << printSSRC(_rtp_encoder->getSsrc());
+}
+
+PSEncoderImp::~PSEncoderImp() {
+    InfoL << this << " " << printSSRC(_rtp_encoder->getSsrc());
+}
+
+void PSEncoderImp::onPS(uint32_t stamp, void *packet, size_t bytes) {
+    _rtp_encoder->inputFrame(std::make_shared<FrameFromPtr>((char *) packet, bytes, stamp));
 }
 
 }//namespace mediakit

@@ -107,7 +107,8 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
                 Frame::Ptr back = _frameCached.back();
                 Buffer::Ptr merged_frame = back;
                 if (_frameCached.size() != 1) {
-                    string merged;
+                    BufferLikeString merged;
+                    merged.reserve(back->size() + 1024);
                     _frameCached.for_each([&](const Frame::Ptr &frame) {
                         if (frame->prefixSize()) {
                             merged.append(frame->data(), frame->size());
@@ -119,7 +120,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
                             _is_idr_fast_packet = true;
                         }
                     });
-                    merged_frame = std::make_shared<BufferString>(std::move(merged));
+                    merged_frame = std::make_shared<BufferOffset<BufferLikeString> >(std::move(merged));
                 }
                 track_info.stamp.revise(back->dts(), back->pts(), dts_out, pts_out);
                 //取视频时间戳为TS的时间戳
@@ -172,6 +173,7 @@ void TsMuxer::init() {
                 TsMuxer *muxer = (TsMuxer *) param;
                 muxer->onTs(packet, bytes, muxer->_timestamp, muxer->_is_idr_fast_packet);
                 muxer->_is_idr_fast_packet = false;
+                return 0;
             }
     };
     if (_context == nullptr) {

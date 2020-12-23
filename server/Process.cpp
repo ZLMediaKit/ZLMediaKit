@@ -25,7 +25,7 @@
 #include "Util/File.h"
 #include "Util/logger.h"
 #include "Util/uv_errno.h"
-#include "Thread/WorkThreadPool.h"
+#include "Poller/EventPoller.h"
 #include "Process.h"
 using namespace toolkit;
 
@@ -261,7 +261,7 @@ static void s_kill(pid_t pid, void *handle, int max_delay, bool force) {
     }
 
     //发送SIGTERM信号后，2秒后检查子进程是否已经退出
-    WorkThreadPool::Instance().getPoller()->doDelayTask(max_delay, [pid, handle]() {
+    EventPollerPool::Instance().getPoller()->doDelayTask(max_delay, [pid, handle]() {
         if (!s_wait(pid, handle, nullptr, false)) {
             //进程已经退出了
             return 0;

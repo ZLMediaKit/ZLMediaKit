@@ -286,7 +286,7 @@ vector<SdpTrack::Ptr> SdpParser::getAvailableTrack() const {
             continue;
         }
     }
-    return std::move(ret);
+    return ret;
 }
 
 string SdpParser::toString() const {

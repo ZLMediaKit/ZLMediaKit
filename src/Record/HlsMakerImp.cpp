@@ -8,6 +8,8 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <ctime>
+#include <sys/stat.h>
 #include "HlsMakerImp.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
@@ -28,6 +30,8 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
     _file_buf.reset(new char[bufSize], [](char *ptr) {
         delete[] ptr;
     });
+
+    _info.folder = _path_prefix;
 }
 
 HlsMakerImp::~HlsMakerImp() {
@@ -59,13 +63,20 @@ string HlsMakerImp::onOpenSegment(int index) {
         }
     }
     _file = makeFile(segment_path, true);
+
+    //保存本切片的元数据
+    _info.start_time = ::time(NULL);
+    _info.file_name = segment_name;
+    _info.file_path = segment_path;
+    _info.url = _info.app + "/" + _info.stream + "/" + segment_name;
+
     if (!_file) {
         WarnL << "create file failed," << segment_path << " " << get_uv_errmsg();
     }
     if (_params.empty()) {
-        return std::move(segment_name);
+        return segment_name;
     }
-    return std::move(segment_name + "?" + _params);
+    return segment_name + "?" + _params;
 }
 
 void HlsMakerImp::onDelSegment(int index) {
@@ -80,6 +91,9 @@ void HlsMakerImp::onDelSegment(int index) {
 void HlsMakerImp::onWriteSegment(const char *data, int len) {
     if (_file) {
         fwrite(data, len, 1, _file.get());
+    }
+    if (_media_src) {
+        _media_src->onSegmentSize(len);
     }
 }
 
@@ -97,6 +111,18 @@ void HlsMakerImp::onWriteHls(const char *data, int len) {
     //DebugL << "\r\n"  << string(data,len);
 }
 
+void HlsMakerImp::onFlushLastSegment(uint32_t duration_ms) {
+    GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);
+    if (broadcastRecordTs) {
+        //关闭ts文件以便获取正确的文件大小
+        _file = nullptr;
+        _info.time_len = duration_ms / 1000.0;
+        struct stat fileData;
+        stat(_info.file_path.data(), &fileData);
+        _info.file_size = fileData.st_size;
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordTs, _info);
+    }
+}
 
 std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
     auto file_buf = _file_buf;
@@ -113,6 +139,9 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
 
 void HlsMakerImp::setMediaSource(const string &vhost, const string &app, const string &stream_id) {
     _media_src = std::make_shared<HlsMediaSource>(vhost, app, stream_id);
+    _info.app = app;
+    _info.stream = stream_id;
+    _info.vhost = vhost;
 }
 
 HlsMediaSource::Ptr HlsMakerImp::getMediaSource() const {

@@ -60,8 +60,6 @@ RtspSession::RtspSession(const Socket::Ptr &sock) : TcpSession(sock) {
     DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtsp::kKeepAliveSecond);
     sock->setSendTimeOutSecond(keep_alive_sec);
-    //起始接收buffer缓存设置为4K，节省内存
-    sock->setReadBuffer(std::make_shared<BufferRaw>(4 * 1024));
 }
 
 RtspSession::~RtspSession() {
@@ -124,12 +122,6 @@ void RtspSession::onRecv(const Buffer::Ptr &buf) {
     } else {
         input(buf->data(), buf->size());
     }
-}
-
-//字符串是否以xx结尾
-static inline bool end_of(const string &str, const string &substr){
-    auto pos = str.rfind(substr);
-    return pos != string::npos && pos == str.size() - substr.size();
 }
 
 void RtspSession::onWholeRtspPacket(Parser &parser) {
@@ -224,7 +216,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     }
 
     auto full_url = parser.FullUrl();
-    if(end_of(full_url,".sdp")){
+    if(end_with(full_url,".sdp")){
         //去除.sdp后缀，防止EasyDarwin推流器强制添加.sdp后缀
         full_url = full_url.substr(0,full_url.length() - 4);
         _media_info.parse(full_url);
@@ -276,8 +268,7 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
         rtp_info.pop_back();
         sendRtspResponse("200 OK", {"RTP-Info",rtp_info});
         if(_rtp_type == Rtsp::RTP_TCP){
-            //如果是rtsp推流服务器，并且是TCP推流，那么加大TCP接收缓存，这样能提升接收性能
-            getSock()->setReadBuffer(std::make_shared<BufferRaw>(256 * 1024));
+            //如果是rtsp推流服务器，并且是TCP推流，设置socket flags,，这样能提升接收性能
             setSocketFlags();
         }
     };
@@ -1036,15 +1027,15 @@ bool RtspSession::sendRtspResponse(const string &res_code, const StrCaseMap &hea
         printer << sdp;
     }
 //	DebugP(this) << printer;
-    return send(std::make_shared<BufferString>(printer)) > 0 ;
+    return send(std::make_shared<BufferString>(std::move(printer))) > 0 ;
 }
 
-int RtspSession::send(const Buffer::Ptr &pkt){
+int RtspSession::send(Buffer::Ptr pkt){
 //	if(!_enableSendRtp){
 //		DebugP(this) << pkt->data();
 //	}
     _bytes_usage += pkt->size();
-    return TcpSession::send(pkt);
+    return TcpSession::send(std::move(pkt));
 }
 
 bool RtspSession::sendRtspResponse(const string &res_code, const std::initializer_list<string> &header, const string &sdp, const char *protocol) {
@@ -1111,6 +1102,18 @@ int RtspSession::totalReaderCount(MediaSource &sender) {
     return _push_src ? _push_src->totalReaderCount() : sender.readerCount();
 }
 
+MediaOriginType RtspSession::getOriginType(MediaSource &sender) const{
+    return MediaOriginType::rtsp_push;
+}
+
+string RtspSession::getOriginUrl(MediaSource &sender) const {
+    return _media_info._full_url;
+}
+
+std::shared_ptr<SockInfo> RtspSession::getOriginSock(MediaSource &sender) const {
+    return const_cast<RtspSession *>(this)->shared_from_this();
+}
+
 inline void RtspSession::onSendRtpPacket(const RtpPacket::Ptr &pkt){
 #if RTSP_SERVER_SEND_RTCP
     int track_index = getTrackIndexByTrackType(pkt->type);
@@ -1156,7 +1159,7 @@ void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
                 }
                 BufferRtp::Ptr buffer(new BufferRtp(rtp, 4));
                 _bytes_usage += buffer->size();
-                pSock->send(buffer, nullptr, 0, ++i == size);
+                pSock->send(std::move(buffer), nullptr, 0, ++i == size);
             });
         }
             break;

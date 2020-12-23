@@ -28,7 +28,7 @@ int64_t TSSegment::onRecvHeader(const char *data, uint64_t len) {
     return 0;
 }
 
-const char *TSSegment::onSearchPacketTail(const char *data, int len) {
+const char *TSSegment::onSearchPacketTail(const char *data, uint64_t len) {
     if (len < _size + 1) {
         if (len == _size && ((uint8_t *) data)[0] == TS_SYNC_BYTE) {
             return data + _size;
@@ -61,6 +61,16 @@ TSDecoder::TSDecoder() : _ts_segment() {
         }
         return 0;
     },this);
+
+    ts_demuxer_notify_t notify = {
+            [](void *param, int stream, int codecid, const void *extra, int bytes, int finish) {
+                TSDecoder *thiz = (TSDecoder *) param;
+                if (thiz->_on_stream) {
+                    thiz->_on_stream(stream, codecid, extra, bytes, finish);
+                }
+            }
+    };
+    ts_demuxer_set_notify((struct ts_demuxer_t *) _demuxer_ctx, &notify, this);
 }
 
 TSDecoder::~TSDecoder() {
@@ -75,9 +85,14 @@ int TSDecoder::input(const uint8_t *data, int bytes) {
     return bytes;
 }
 
-void TSDecoder::setOnDecode(const Decoder::onDecode &decode) {
-    _on_decode = decode;
+void TSDecoder::setOnDecode(Decoder::onDecode cb) {
+    _on_decode = std::move(cb);
 }
+
+void TSDecoder::setOnStream(Decoder::onStream cb) {
+    _on_stream = std::move(cb);
+}
+
 #endif//defined(ENABLE_HLS)
 
 }//namespace mediakit

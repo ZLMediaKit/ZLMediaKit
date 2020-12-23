@@ -12,7 +12,6 @@
 #include <math.h>
 #include <signal.h>
 #include <functional>
-#include <sstream>
 #include <unordered_map>
 #include "jsoncpp/json.h"
 #include "Util/util.h"
@@ -98,24 +97,57 @@ public:
 #define API_ARGS1 SockInfo &sender,HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, ApiArgsType &allArgs, Json::Value &val
 #define API_ARGS2 API_ARGS1, const HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_VALUE1 sender,headerIn,headerOut,allArgs,val
-#define API_ARGS_VALUE2 API_ARGS_VALUE1, invoker
 
 typedef map<string, variant, StrCaseCompare> ApiArgsType;
+typedef function<void(const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, SockInfo &sender)> HttpApi;
 //http api列表
-static map<string, std::function<void(API_ARGS2)> > s_map_api;
+static map<string, HttpApi> s_map_api;
 
-template<typename FUNC>
-static void api_regist1(const string &api_path, FUNC &&func) {
-    s_map_api.emplace(api_path, [func](API_ARGS2) {
-        func(API_ARGS_VALUE1);
+static void responseApi(const Json::Value &res, const HttpSession::HttpResponseInvoker &invoker){
+    GET_CONFIG(string, charSet, Http::kCharSet);
+    HttpSession::KeyValue headerOut;
+    headerOut["Content-Type"] = string("application/json; charset=") + charSet;
+    invoker("200 OK", headerOut, res.toStyledString());
+};
+
+static void responseApi(int code, const string &msg, const HttpSession::HttpResponseInvoker &invoker){
+    Json::Value res;
+    res["code"] = code;
+    res["msg"] = msg;
+    responseApi(res, invoker);
+}
+
+static ApiArgsType getAllArgs(const Parser &parser);
+
+static HttpApi toApi(const function<void(API_ARGS2)> &cb) {
+    return [cb](const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, SockInfo &sender) {
+        GET_CONFIG(string, charSet, Http::kCharSet);
+        HttpSession::KeyValue headerOut;
+        headerOut["Content-Type"] = string("application/json; charset=") + charSet;
+
+        Json::Value val;
+        val["code"] = API::Success;
+
+        auto args = getAllArgs(parser);
+        cb(sender, parser.getHeader(), headerOut, args, val, invoker);
+    };
+}
+
+static HttpApi toApi(const function<void(API_ARGS1)> &cb) {
+    return toApi([cb](API_ARGS2) {
+        cb(API_ARGS_VALUE1);
         invoker("200 OK", headerOut, val.toStyledString());
     });
 }
 
 template<typename FUNC>
-static void api_regist2(const string &api_path, FUNC &&func) {
-    s_map_api.emplace(api_path, std::forward<FUNC>(func));
+static void api_regist(const string &api_path, FUNC &&func) {
+    s_map_api.emplace(api_path, toApi(std::move(func)));
 }
+
+#define api_regist1 api_regist
+#define api_regist2 api_regist
+
 
 //获取HTTP请求中url参数、content参数
 static ApiArgsType getAllArgs(const Parser &parser) {
@@ -144,7 +176,7 @@ static ApiArgsType getAllArgs(const Parser &parser) {
     for (auto &pr :  parser.getUrlArgs()) {
         allArgs[pr.first] = pr.second;
     }
-    return std::move(allArgs);
+    return allArgs;
 }
 
 static inline void addHttpListener(){
@@ -157,22 +189,11 @@ static inline void addHttpListener(){
         }
         //该api已被消费
         consumed = true;
-        //执行API
-        Json::Value val;
-        val["code"] = API::Success;
-        HttpSession::KeyValue headerOut;
-        auto allArgs = getAllArgs(parser);
-        HttpSession::KeyValue &headerIn = parser.getHeader();
-        GET_CONFIG(string,charSet,Http::kCharSet);
-        headerOut["Content-Type"] = StrPrinter << "application/json; charset=" << charSet;
+
         if(api_debug){
-            auto newInvoker = [invoker,parser,allArgs](const string &codeOut,
-                                                       const HttpSession::KeyValue &headerOut,
-                                                       const HttpBody::Ptr &body){
-                stringstream ss;
-                for(auto &pr : allArgs ){
-                    ss << pr.first << " : " << pr.second << "\r\n";
-                }
+            auto newInvoker = [invoker, parser](const string &codeOut,
+                                                const HttpSession::KeyValue &headerOut,
+                                                const HttpBody::Ptr &body) {
 
                 //body默认为空
                 int64_t size = 0;
@@ -181,45 +202,36 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
-                if(size && size < 4 * 1024){
+                if (size && size < 4 * 1024) {
                     string contentOut = body->readData(size)->toString();
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
                            << "# content:\r\n" << parser.Content() << "\r\n"
-                           << "# args:\r\n" << ss.str()
                            << "# response:\r\n"
                            << contentOut << "\r\n";
-                    invoker(codeOut,headerOut,contentOut);
-                } else{
+                    invoker(codeOut, headerOut, contentOut);
+                } else {
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
                            << "# content:\r\n" << parser.Content() << "\r\n"
-                           << "# args:\r\n" << ss.str()
                            << "# response size:"
-                           << size <<"\r\n";
-                    invoker(codeOut,headerOut,body);
+                           << size << "\r\n";
+                    invoker(codeOut, headerOut, body);
                 }
             };
-            ((HttpSession::HttpResponseInvoker &)invoker) = newInvoker;
+            ((HttpSession::HttpResponseInvoker &) invoker) = newInvoker;
         }
 
         try {
-            it->second(sender,headerIn, headerOut, allArgs, val, invoker);
-        }  catch(ApiRetException &ex){
-            val["code"] = ex.code();
-            val["msg"] = ex.what();
-            invoker("200 OK", headerOut, val.toStyledString());
+            it->second(parser, invoker, sender);
+        } catch (ApiRetException &ex) {
+            responseApi(ex.code(), ex.what(), invoker);
         }
 #ifdef ENABLE_MYSQL
         catch(SqlException &ex){
-            val["code"] = API::SqlFailed;
-            val["msg"] = StrPrinter << "操作数据库失败:" << ex.what() << ":" << ex.getSql();
-            WarnL << ex.what() << ":" << ex.getSql();
-            invoker("200 OK", headerOut, val.toStyledString());
+            responseApi(API::SqlFailed, StrPrinter << "操作数据库失败:" << ex.what() << ":" << ex.getSql(), invoker);
         }
 #endif// ENABLE_MYSQL
         catch (std::exception &ex) {
-            val["code"] = API::Exception;
-            val["msg"] = ex.what();
-            invoker("200 OK", headerOut, val.toStyledString());
+            responseApi(API::Exception, ex.what(), invoker);
         }
     });
 }
@@ -395,8 +407,25 @@ void installWebApi() {
         item["vhost"] = media->getVhost();
         item["app"] = media->getApp();
         item["stream"] = media->getId();
+        item["createStamp"] = (Json::UInt64) media->getCreateStamp();
+        item["aliveSecond"] = (Json::UInt64) media->getAliveSecond();
+        item["bytesSpeed"] = media->getBytesSpeed();
         item["readerCount"] = media->readerCount();
         item["totalReaderCount"] = media->totalReaderCount();
+        item["originType"] = (int) media->getOriginType();
+        item["originTypeStr"] = getOriginTypeString(media->getOriginType());
+        item["originUrl"] = media->getOriginUrl();
+        auto originSock = media->getOriginSock();
+        if (originSock) {
+            item["originSock"]["local_ip"] = originSock->get_local_ip();
+            item["originSock"]["local_port"] = originSock->get_local_port();
+            item["originSock"]["peer_ip"] = originSock->get_peer_ip();
+            item["originSock"]["peer_port"] = originSock->get_peer_port();
+            item["originSock"]["identifier"] = originSock->getIdentifier();
+        } else {
+            item["originSock"] = Json::nullValue;
+        }
+
         for(auto &track : media->getTracks()){
             Value obj;
             auto codec_type = track->getTrackType();
@@ -479,12 +508,12 @@ void installWebApi() {
                                      allArgs["vhost"],
                                      allArgs["app"],
                                      allArgs["stream"]);
-        if(src){
+        if (src) {
             bool flag = src->close(allArgs["force"].as<bool>());
             val["result"] = flag ? 0 : -1;
             val["msg"] = flag ? "success" : "close failed";
-            val["code"] = API::OtherFailed;
-        }else{
+            val["code"] = flag ? API::Success : API::OtherFailed;
+        } else {
             val["result"] = -2;
             val["msg"] = "can not find the stream";
             val["code"] = API::OtherFailed;
@@ -596,8 +625,6 @@ void installWebApi() {
                                     const string &app,
                                     const string &stream,
                                     const string &url,
-                                    bool enable_rtsp,
-                                    bool enable_rtmp,
                                     bool enable_hls,
                                     bool enable_mp4,
                                     int rtp_type,
@@ -610,7 +637,7 @@ void installWebApi() {
             return;
         }
         //添加拉流代理
-        PlayerProxy::Ptr player(new PlayerProxy(vhost,app,stream,enable_rtsp,enable_rtmp,enable_hls,enable_mp4));
+        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4));
         s_proxyMap[key] = player;
         
         //指定RTP over TCP(播放rtsp时有效)
@@ -636,13 +663,11 @@ void installWebApi() {
     //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&enable_rtsp=1&enable_rtmp=1&stream=0&url=rtmp://127.0.0.1/live/obs
     api_regist2("/index/api/addStreamProxy",[](API_ARGS2){
         CHECK_SECRET();
-        CHECK_ARGS("vhost","app","stream","url","enable_rtsp","enable_rtmp");
+        CHECK_ARGS("vhost","app","stream","url");
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
                        allArgs["stream"],
                        allArgs["url"],
-                       allArgs["enable_rtsp"],/* 是否rtsp转发 */
-                       allArgs["enable_rtmp"],/* 是否rtmp转发 */
                        allArgs["enable_hls"],/* 是否hls转发 */
                        allArgs["enable_mp4"],/* 是否MP4录制 */
                        allArgs["rtp_type"],
@@ -669,28 +694,31 @@ void installWebApi() {
     static auto addFFmpegSource = [](const string &src_url,
                                      const string &dst_url,
                                      int timeout_ms,
-                                     const function<void(const SockException &ex,const string &key)> &cb){
+                                     bool enable_hls,
+                                     bool enable_mp4,
+                                     const function<void(const SockException &ex, const string &key)> &cb) {
         auto key = MD5(dst_url).hexdigest();
         lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
-        if(s_ffmpegMap.find(key) != s_ffmpegMap.end()){
+        if (s_ffmpegMap.find(key) != s_ffmpegMap.end()) {
             //已经在拉流了
-            cb(SockException(Err_success),key);
+            cb(SockException(Err_success), key);
             return;
         }
 
         FFmpegSource::Ptr ffmpeg = std::make_shared<FFmpegSource>();
         s_ffmpegMap[key] = ffmpeg;
 
-        ffmpeg->setOnClose([key](){
+        ffmpeg->setOnClose([key]() {
             lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
             s_ffmpegMap.erase(key);
         });
-        ffmpeg->play(src_url, dst_url,timeout_ms,[cb , key](const SockException &ex){
-            if(ex){
+        ffmpeg->setupRecord(enable_hls, enable_mp4);
+        ffmpeg->play(src_url, dst_url, timeout_ms, [cb, key](const SockException &ex) {
+            if (ex) {
                 lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
                 s_ffmpegMap.erase(key);
             }
-            cb(ex,key);
+            cb(ex, key);
         });
     };
 
@@ -702,12 +730,15 @@ void installWebApi() {
         auto src_url = allArgs["src_url"];
         auto dst_url = allArgs["dst_url"];
         int timeout_ms = allArgs["timeout_ms"];
+        auto enable_hls = allArgs["enable_hls"].as<int>();
+        auto enable_mp4 = allArgs["enable_mp4"].as<int>();
 
-        addFFmpegSource(src_url,dst_url,timeout_ms,[invoker,val,headerOut](const SockException &ex,const string &key){
-            if(ex){
+        addFFmpegSource(src_url, dst_url, timeout_ms, enable_hls, enable_mp4,
+                        [invoker, val, headerOut](const SockException &ex, const string &key) {
+            if (ex) {
                 const_cast<Value &>(val)["code"] = API::OtherFailed;
                 const_cast<Value &>(val)["msg"] = ex.what();
-            }else{
+            } else {
                 const_cast<Value &>(val)["data"]["key"] = key;
             }
             invoker("200 OK", headerOut, val.toStyledString());
@@ -944,50 +975,60 @@ void installWebApi() {
         CHECK_ARGS("url", "timeout_sec", "expire_sec");
         GET_CONFIG(string, snap_root, API::kSnapRoot);
 
+        bool have_old_snap = false, res_old_snap = false;
         int expire_sec = allArgs["expire_sec"];
         auto scan_path = File::absolutePath(MD5(allArgs["url"]).hexdigest(), snap_root) + "/";
-        string snap_path;
+        string new_snap = StrPrinter << scan_path << time(NULL) << ".jpeg";
+
         File::scanDir(scan_path, [&](const string &path, bool isDir) {
-            if (isDir) {
-                //忽略文件夹
+            if (isDir || !end_with(path, ".jpeg")) {
+                //忽略文件夹或其他类型的文件
                 return true;
             }
 
             //找到截图
             auto tm = FindField(path.data() + scan_path.size(), nullptr, ".jpeg");
             if (atoll(tm.data()) + expire_sec < time(NULL)) {
-                //截图已经过期,删除之，后面重新生成
-                File::delete_file(path.data());
+                //截图已经过期，改名，以便再次请求时，可以返回老截图
+                rename(path.data(), new_snap.data());
+                have_old_snap = true;
                 return true;
             }
 
-            //截图未过期,中断遍历，返回上次生成的截图
-            snap_path = path;
+            //截图存在，且未过期，那么返回之
+            res_old_snap = true;
+            responseSnap(path, headerIn, invoker);
+            //中断遍历
             return false;
         });
 
-        if(!snap_path.empty()){
-            responseSnap(snap_path, headerIn, invoker);
+        if (res_old_snap) {
+            //已经回复了旧的截图
             return;
         }
 
         //无截图或者截图已经过期
-        snap_path = StrPrinter << scan_path << time(NULL) << ".jpeg";
-
-        //生成一个空文件，目的是顺便创建文件夹路径，
-        //同时防止在FFmpeg生成截图途中不停的尝试调用该api启动FFmpeg生成相同的截图
-        auto file = File::create_file(snap_path.data(), "wb");
-        if (file) {
-            fclose(file);
+        if (!have_old_snap) {
+            //无过期截图，生成一个空文件，目的是顺便创建文件夹路径
+            //同时防止在FFmpeg生成截图途中不停的尝试调用该api多次启动FFmpeg进程
+            auto file = File::create_file(new_snap.data(), "wb");
+            if (file) {
+                fclose(file);
+            }
         }
 
-        //启动FFmpeg进程，开始截图
-        FFmpegSnap::makeSnap(allArgs["url"],snap_path,allArgs["timeout_sec"],[invoker,headerIn,snap_path](bool success){
-            if(!success){
+        //启动FFmpeg进程，开始截图，生成临时文件，截图成功后替换为正式文件
+        auto new_snap_tmp = new_snap + ".tmp";
+        FFmpegSnap::makeSnap(allArgs["url"], new_snap_tmp, allArgs["timeout_sec"], [invoker, headerIn, new_snap, new_snap_tmp](bool success) {
+            if (!success) {
                 //生成截图失败，可能残留空文件
-                File::delete_file(snap_path.data());
+                File::delete_file(new_snap_tmp.data());
+            } else {
+                //临时文件改成正式文件
+                File::delete_file(new_snap.data());
+                rename(new_snap_tmp.data(), new_snap.data());
             }
-            responseSnap(snap_path, headerIn, invoker);
+            responseSnap(new_snap, headerIn, invoker);
         });
     });
 
@@ -1049,6 +1090,8 @@ void installWebApi() {
         addFFmpegSource("http://hls-ott-zhibo.wasu.tv/live/272/index.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
                         dst_url,
                         (1000 * timeout_sec) - 500,
+                        false,
+                        false,
                         [invoker,val,headerOut](const SockException &ex,const string &key){
                             if(ex){
                                 const_cast<Value &>(val)["code"] = API::OtherFailed;
@@ -1071,8 +1114,6 @@ void installWebApi() {
                        allArgs["stream"],
                        /** 支持rtsp和rtmp方式拉流 ，rtsp支持h265/h264/aac,rtmp仅支持h264/aac **/
                        "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
-                       true,/* 开启rtsp转发 */
-                       true,/* 开启rtmp转发 */
                        true,/* 开启hls转发 */
                        false,/* 禁用MP4录制 */
                        0,//rtp over tcp方式拉流
@@ -1143,8 +1184,10 @@ void unInstallWebApi(){
         lock_guard<recursive_mutex> lck(s_ffmpegMapMtx);
         s_ffmpegMap.clear();
     }
+
     {
 #if defined(ENABLE_RTPPROXY)
+        RtpSelector::Instance().clear();
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
         s_rtpServerMap.clear();
 #endif

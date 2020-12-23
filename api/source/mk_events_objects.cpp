@@ -18,65 +18,65 @@
 #include "Rtsp/RtspSession.h"
 using namespace mediakit;
 
-///////////////////////////////////////////MP4Info/////////////////////////////////////////////
+///////////////////////////////////////////RecordInfo/////////////////////////////////////////////
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->ui64StartedTime;
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->start_time;
 }
 
-API_EXPORT uint64_t API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx){
+API_EXPORT float API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->ui64TimeLen;
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->time_len;
 }
 
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->ui64FileSize;
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->file_size;
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_path(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strFilePath.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->file_path.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_name(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strFileName.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->file_name.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_folder(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strFolder.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->folder.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_url(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strUrl.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->url.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_vhost(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strVhost.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->vhost.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_app(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strAppName.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->app.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx){
     assert(ctx);
-    MP4Info *info = (MP4Info *)ctx;
-    return info->strStreamId.c_str();
+    RecordInfo *info = (RecordInfo *)ctx;
+    return info->stream.c_str();
 }
 
 ///////////////////////////////////////////Parser/////////////////////////////////////////////
@@ -211,6 +211,22 @@ API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32
     return src->seekTo(stamp);
 }
 
+API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data){
+    assert(ctx && dst_url && ssrc);
+    MediaSource *src = (MediaSource *)ctx;
+    src->startSendRtp(dst_url, dst_port, ssrc, is_udp, [cb, user_data](const SockException &ex){
+        if (cb) {
+            cb(user_data, ex.getErrCode(), ex.what());
+        }
+    });
+}
+
+API_EXPORT int API_CALL mk_media_source_stop_send_rtp(const mk_media_source ctx){
+    assert(ctx);
+    MediaSource *src = (MediaSource *) ctx;
+    return src->stopSendRtp();
+}
+
 API_EXPORT void API_CALL mk_media_source_find(const char *schema,
                                               const char *vhost,
                                               const char *app,
@@ -256,7 +272,7 @@ static C get_http_header( const char *response_header[]){
         }
         break;
     }
-    return std::move(header);
+    return header;
 }
 
 API_EXPORT mk_http_body API_CALL mk_http_body_from_multi_form(const char *key_val[],const char *file_path){

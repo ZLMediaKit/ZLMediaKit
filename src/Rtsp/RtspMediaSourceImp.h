@@ -47,7 +47,7 @@ public:
     /**
      * 输入rtp并解析
      */
-    void onWrite(const RtpPacket::Ptr &rtp, bool key_pos) override {
+    void onWrite(RtpPacket::Ptr rtp, bool key_pos) override {
         if (_all_track_ready && !_muxer->isEnabled()) {
             //获取到所有Track后，并且未开启转协议，那么不需要解复用rtp
             //在关闭rtp解复用后，无法知道是否为关键帧，这样会导致无法秒开，或者开播花屏
@@ -56,7 +56,7 @@ public:
             //需要解复用rtp
             key_pos = _demuxer->inputRtp(rtp);
         }
-        RtspMediaSource::onWrite(rtp, key_pos);
+        RtspMediaSource::onWrite(std::move(rtp), key_pos);
     }
 
     /**
@@ -77,7 +77,7 @@ public:
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
-        setListener(_muxer);
+        MediaSource::setListener(_muxer);
 
         for(auto &track : _demuxer->getTracks(false)){
             _muxer->addTrack(track);
@@ -100,6 +100,20 @@ public:
      */
     void onAllTrackReady() override{
         _all_track_ready = true;
+    }
+
+    /**
+     * 设置事件监听器
+     * @param listener 监听器
+     */
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override{
+        if (_muxer) {
+            //_muxer对象不能处理的事件再给listener处理
+            _muxer->setMediaListener(listener);
+        } else {
+            //未创建_muxer对象，事件全部给listener处理
+            MediaSource::setListener(listener);
+        }
     }
 
 private:

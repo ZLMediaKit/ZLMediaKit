@@ -47,6 +47,8 @@ bool loadIniConfig(const char *ini_path = nullptr);
 #define RTSP_SCHEMA "rtsp"
 #define RTMP_SCHEMA "rtmp"
 #define HLS_SCHEMA "hls"
+#define TS_SCHEMA "ts"
+#define FMP4_SCHEMA "fmp4"
 #define DEFAULT_VHOST "__defaultVhost__"
 
 ////////////广播名称///////////
@@ -58,7 +60,11 @@ extern const string kBroadcastMediaChanged;
 
 //录制mp4文件成功后广播
 extern const string kBroadcastRecordMP4;
-#define BroadcastRecordMP4Args const MP4Info &info
+#define BroadcastRecordMP4Args const RecordInfo &info
+
+// 录制 ts 文件后广播
+extern const string kBroadcastRecordTs;
+#define BroadcastRecordTsArgs const RecordInfo &info
 
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;
@@ -148,6 +154,8 @@ extern const string kBroadcastReloadConfig;
 
 ////////////通用配置///////////
 namespace General{
+//每个流媒体服务器的ID（GUID）
+extern const string kMediaServerId;
 //流量汇报事件流量阈值,单位KB，默认1MB
 extern const string kFlowThreshold;
 //流无人观看并且超过若干时间后才触发kBroadcastStreamNoneReader事件
@@ -173,6 +181,12 @@ extern const string kPublishToMP4 ;
 extern const string kMergeWriteMS ;
 //全局的时间戳覆盖开关，在转协议时，对frame进行时间戳覆盖
 extern const string kModifyStamp;
+//按需转协议的开关
+extern const string kHlsDemand;
+extern const string kRtspDemand;
+extern const string kRtmpDemand;
+extern const string kTSDemand;
+extern const string kFMP4Demand;
 }//namespace General
 
 
@@ -281,6 +295,8 @@ extern const string kSegmentRetain;
 extern const string kFileBufSize;
 //录制文件路径
 extern const string kFilePath;
+// 是否广播 ts 切片完成通知
+extern const string kBroadcastRecordTs;
 } //namespace Hls
 
 ////////////Rtp代理相关配置///////////

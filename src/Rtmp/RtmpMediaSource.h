@@ -118,7 +118,9 @@ public:
      * 输入rtmp包
      * @param pkt rtmp包
      */
-    void onWrite(const RtmpPacket::Ptr &pkt, bool = true) override {
+    void onWrite(RtmpPacket::Ptr pkt, bool = true) override {
+        bool is_video = pkt->type_id == MSG_VIDEO;
+        _speed[is_video ? TrackVideo : TrackAudio] += pkt->size();
         //保存当前时间戳
         switch (pkt->type_id) {
             case MSG_VIDEO : _track_stamps[TrackVideo] = pkt->time_stamp, _have_video = true; break;
@@ -151,7 +153,9 @@ public:
                 regist();
             }
         }
-        PacketCache<RtmpPacket>::inputPacket(pkt->type_id == MSG_VIDEO, pkt, pkt->isVideoKeyFrame());
+        bool key = pkt->isVideoKeyFrame();
+        auto stamp  = pkt->time_stamp;
+        PacketCache<RtmpPacket>::inputPacket(stamp, is_video, std::move(pkt), key);
     }
 
     /**
@@ -185,9 +189,9 @@ private:
     * @param rtmp_list rtmp包列表
     * @param key_pos 是否包含关键帧
     */
-    void onFlush(std::shared_ptr<List<RtmpPacket::Ptr> > &rtmp_list, bool key_pos) override {
+    void onFlush(std::shared_ptr<List<RtmpPacket::Ptr> > rtmp_list, bool key_pos) override {
         //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
-        _ring->write(rtmp_list, _have_video ? key_pos : true);
+        _ring->write(std::move(rtmp_list), _have_video ? key_pos : true);
     }
 
 private:

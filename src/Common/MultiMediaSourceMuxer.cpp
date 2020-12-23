@@ -9,6 +9,7 @@
 */
 
 #include <math.h>
+#include "Common/config.h"
 #include "MultiMediaSourceMuxer.h"
 namespace mediakit {
 
@@ -32,6 +33,12 @@ MultiMuxerPrivate::MultiMuxerPrivate(const string &vhost, const string &app, con
     if (enable_mp4) {
         _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream);
     }
+
+    _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
+
+#if defined(ENABLE_MP4)
+    _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(vhost, app, stream);
+#endif
 }
 
 void MultiMuxerPrivate::resetTracks() {
@@ -41,6 +48,14 @@ void MultiMuxerPrivate::resetTracks() {
     if (_rtsp) {
         _rtsp->resetTracks();
     }
+    if (_ts) {
+        _ts->resetTracks();
+    }
+#if defined(ENABLE_MP4)
+    if (_fmp4) {
+        _fmp4->resetTracks();
+    }
+#endif
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     auto hls = _hls;
@@ -62,6 +77,14 @@ void MultiMuxerPrivate::setMediaListener(const std::weak_ptr<MediaSourceEvent> &
     if (_rtsp) {
         _rtsp->setListener(listener);
     }
+    if (_ts) {
+        _ts->setListener(listener);
+    }
+#if defined(ENABLE_MP4)
+    if (_fmp4) {
+        _fmp4->setListener(listener);
+    }
+#endif
     auto hls = _hls;
     if (hls) {
         hls->setListener(listener);
@@ -70,7 +93,13 @@ void MultiMuxerPrivate::setMediaListener(const std::weak_ptr<MediaSourceEvent> &
 
 int MultiMuxerPrivate::totalReaderCount() const {
     auto hls = _hls;
-    return (_rtsp ? _rtsp->readerCount() : 0) + (_rtmp ? _rtmp->readerCount() : 0) + (hls ? hls->readerCount() : 0);
+    return (_rtsp ? _rtsp->readerCount() : 0) +
+           (_rtmp ? _rtmp->readerCount() : 0) +
+           (_ts ? _ts->readerCount() : 0) +
+#if defined(ENABLE_MP4)
+           (_fmp4 ? _fmp4->readerCount() : 0) +
+#endif
+           (hls ? hls->readerCount() : 0);
 }
 
 static std::shared_ptr<MediaSinkInterface> makeRecorder(const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, MediaSource &sender){
@@ -145,6 +174,14 @@ void MultiMuxerPrivate::onTrackReady(const Track::Ptr &track) {
     if (_rtsp) {
         _rtsp->addTrack(track);
     }
+    if (_ts) {
+        _ts->addTrack(track);
+    }
+#if defined(ENABLE_MP4)
+    if (_fmp4) {
+        _fmp4->addTrack(track);
+    }
+#endif
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     auto hls = _hls;
@@ -161,6 +198,10 @@ bool MultiMuxerPrivate::isEnabled(){
     auto hls = _hls;
     return (_rtmp ? _rtmp->isEnabled() : false) ||
            (_rtsp ? _rtsp->isEnabled() : false) ||
+           (_ts ? _ts->isEnabled() : false) ||
+#if defined(ENABLE_MP4)
+           (_fmp4 ? _fmp4->isEnabled() : false) ||
+#endif
            (hls ? hls->isEnabled() : false) || _mp4;
 }
 
@@ -171,6 +212,15 @@ void MultiMuxerPrivate::onTrackFrame(const Frame::Ptr &frame) {
     if (_rtsp) {
         _rtsp->inputFrame(frame);
     }
+    if (_ts) {
+        _ts->inputFrame(frame);
+    }
+#if defined(ENABLE_MP4)
+    if (_fmp4) {
+        _fmp4->inputFrame(frame);
+    }
+#endif
+
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     //此处使用智能指针拷贝来确保线程安全，比互斥锁性能更优
     auto hls = _hls;
@@ -220,6 +270,11 @@ void MultiMuxerPrivate::onAllTrackReady() {
     if (_rtsp) {
         _rtsp->onAllTrackReady();
     }
+#if defined(ENABLE_MP4)
+    if (_fmp4) {
+        _fmp4->onAllTrackReady();
+    }
+#endif
     if (_track_listener) {
         _track_listener->onAllTrackReady();
     }
@@ -237,7 +292,7 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
 }
 
 void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener) {
-    _listener = listener;
+    setDelegate(listener);
     //拦截事件
     _muxer->setMediaListener(shared_from_this());
 }
@@ -259,7 +314,7 @@ vector<Track::Ptr> MultiMediaSourceMuxer::getTracks(MediaSource &sender, bool tr
 }
 
 int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
-    auto listener = _listener.lock();
+    auto listener = getDelegate();
     if (!listener) {
         return totalReaderCount();
     }
@@ -274,21 +329,21 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
     return _muxer->isRecording(sender,type);
 }
 
-void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, uint32_t ssrc, bool is_udp, const function<void(const SockException &ex)> &cb){
+void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, const function<void(const SockException &ex)> &cb){
 #if defined(ENABLE_RTPPROXY)
-    auto ps_rtp_sender = std::make_shared<PSRtpSender>(ssrc);
+    RtpSender::Ptr rtp_sender = std::make_shared<RtpSender>(atoi(ssrc.data()));
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
-    ps_rtp_sender->startSend(dst_url, dst_port, is_udp, [weak_self, ps_rtp_sender, cb](const SockException &ex) {
+    rtp_sender->startSend(dst_url, dst_port, is_udp, [weak_self, rtp_sender, cb](const SockException &ex) {
         cb(ex);
         auto strong_self = weak_self.lock();
         if (!strong_self || ex) {
             return;
         }
         for (auto &track : strong_self->_muxer->getTracks(false)) {
-            ps_rtp_sender->addTrack(track);
+            rtp_sender->addTrack(track);
         }
-        ps_rtp_sender->addTrackCompleted();
-        strong_self->_ps_rtp_sender = ps_rtp_sender;
+        rtp_sender->addTrackCompleted();
+        strong_self->_rtp_sender = rtp_sender;
     });
 #else
     cb(SockException(Err_other, "该功能未启用，编译时请打开ENABLE_RTPPROXY宏"));
@@ -297,8 +352,8 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const string &dst_
 
 bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender){
 #if defined(ENABLE_RTPPROXY)
-    if (_ps_rtp_sender) {
-        _ps_rtp_sender = nullptr;
+    if (_rtp_sender) {
+        _rtp_sender = nullptr;
         return true;
     }
 #endif//ENABLE_RTPPROXY
@@ -387,20 +442,30 @@ void MultiMediaSourceMuxer::inputFrame(const Frame::Ptr &frame_in) {
     _muxer->inputFrame(frame);
 
 #if defined(ENABLE_RTPPROXY)
-    auto ps_rtp_sender = _ps_rtp_sender;
-    if (ps_rtp_sender) {
-        ps_rtp_sender->inputFrame(frame);
+    auto rtp_sender = _rtp_sender;
+    if (rtp_sender) {
+        rtp_sender->inputFrame(frame);
     }
 #endif //ENABLE_RTPPROXY
 
 }
 
 bool MultiMediaSourceMuxer::isEnabled(){
+    GET_CONFIG(uint32_t, stream_none_reader_delay_ms, General::kStreamNoneReaderDelayMS);
+    if (!_is_enable || _last_check.elapsedTime() > stream_none_reader_delay_ms) {
+        //无人观看时，每次检查是否真的无人观看
+        //有人观看时，则延迟一定时间检查一遍是否无人观看了(节省性能)
 #if defined(ENABLE_RTPPROXY)
-    return (_muxer->isEnabled() || _ps_rtp_sender);
+        _is_enable = (_muxer->isEnabled() || _rtp_sender);
 #else
-    return _muxer->isEnabled();
+        _is_enable = _muxer->isEnabled();
 #endif //ENABLE_RTPPROXY
+        if (_is_enable) {
+            //无人观看时，不刷新计时器,因为无人观看时每次都会检查一遍，所以刷新计数器无意义且浪费cpu
+            _last_check.resetTime();
+        }
+    }
+    return _is_enable;
 }
 
 

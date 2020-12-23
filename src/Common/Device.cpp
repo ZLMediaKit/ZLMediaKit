@@ -16,18 +16,25 @@
 #include "Extension/G711.h"
 #include "Extension/H264.h"
 #include "Extension/H265.h"
+#ifdef ENABLE_FAAC
+#include "Codec/AACEncoder.h"
+#endif //ENABLE_FAAC
+
+#ifdef ENABLE_X264
+#include "Codec/H264Encoder.h"
+#endif //ENABLE_X264
 using namespace toolkit;
 
 namespace mediakit {
 
-DevChannel::DevChannel(const string &vhost, const string &app, const string &stream_id, float duration,
-                       bool enable_rtsp, bool enable_rtmp, bool enable_hls, bool enable_mp4) :
-        MultiMediaSourceMuxer(vhost, app, stream_id, duration, enable_rtsp, enable_rtmp, enable_hls, enable_mp4) {}
+DevChannel::DevChannel(const string &vhost, const string &app, const string &stream_id,
+                       float duration, bool enable_hls, bool enable_mp4) :
+        MultiMediaSourceMuxer(vhost, app, stream_id, duration, true, true, enable_hls, enable_mp4) {}
 
 DevChannel::~DevChannel() {}
 
-#ifdef ENABLE_X264
 void DevChannel::inputYUV(char* apcYuv[3], int aiYuvLen[3], uint32_t uiStamp) {
+#ifdef ENABLE_X264
     //TimeTicker1(50);
     if (!_pH264Enc) {
         _pH264Enc.reset(new H264Encoder());
@@ -43,11 +50,13 @@ void DevChannel::inputYUV(char* apcYuv[3], int aiYuvLen[3], uint32_t uiStamp) {
             inputH264((char *) pOut[i].pucData, pOut[i].iLength, uiStamp);
         }
     }
-}
+#else
+    WarnL << "h264编码未启用,该方法无效,编译时请打开ENABLE_X264选项";
 #endif //ENABLE_X264
+}
 
-#ifdef ENABLE_FAAC
 void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
+#ifdef ENABLE_FAAC
     if (!_pAacEnc) {
         _pAacEnc.reset(new AACEncoder());
         if (!_pAacEnc->init(_audio->iSampleRate, _audio->iChannel, _audio->iSampleBit)) {
@@ -62,8 +71,10 @@ void DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
             inputAAC((char *) pucOut + 7, iRet - 7, uiStamp, (char *)pucOut);
         }
     }
-}
+#else
+    WarnL << "aac编码未启用,该方法无效,编译时请打开ENABLE_FAAC选项";
 #endif //ENABLE_FAAC
+}
 
 void DevChannel::inputH264(const char *data, int len, uint32_t dts, uint32_t pts) {
     if(dts == 0){
@@ -164,6 +175,10 @@ void DevChannel::initAudio(const AudioInfo &info) {
         case CodecOpus : addTrack(std::make_shared<OpusTrack>()); break;
         default: WarnL << "不支持该类型的音频编码类型:" << info.codecId; break;
     }
+}
+
+MediaOriginType DevChannel::getOriginType(MediaSource &sender) const {
+    return MediaOriginType::device_chn;
 }
 
 } /* namespace mediakit */

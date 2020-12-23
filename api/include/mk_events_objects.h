@@ -19,25 +19,25 @@ extern "C" {
 ///////////////////////////////////////////MP4Info/////////////////////////////////////////////
 //MP4Info对象的C映射
 typedef void* mk_mp4_info;
-//MP4Info::ui64StartedTime
+// GMT 标准时间，单位秒
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx);
-//MP4Info::ui64TimeLen
-API_EXPORT uint64_t API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx);
-//MP4Info::ui64FileSize
+// 录像长度，单位秒
+API_EXPORT float API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx);
+// 文件大小，单位 BYTE
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx);
-//MP4Info::strFilePath
+// 文件路径
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_path(const mk_mp4_info ctx);
-//MP4Info::strFileName
+// 文件名称
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_name(const mk_mp4_info ctx);
-//MP4Info::strFolder
+// 文件夹路径
 API_EXPORT const char* API_CALL mk_mp4_info_get_folder(const mk_mp4_info ctx);
-//MP4Info::strUrl
+// 播放路径
 API_EXPORT const char* API_CALL mk_mp4_info_get_url(const mk_mp4_info ctx);
-//MP4Info::strVhost
+// 应用名称
 API_EXPORT const char* API_CALL mk_mp4_info_get_vhost(const mk_mp4_info ctx);
-//MP4Info::strAppName
+// 流 ID
 API_EXPORT const char* API_CALL mk_mp4_info_get_app(const mk_mp4_info ctx);
-//MP4Info::strStreamId
+// 虚拟主机
 API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx);
 
 ///////////////////////////////////////////Parser/////////////////////////////////////////////
@@ -114,6 +114,16 @@ API_EXPORT int API_CALL mk_media_source_get_total_reader_count(const mk_media_so
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force);
 //MediaSource::seekTo()
 API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32_t stamp);
+
+/**
+ * rtp推流成功与否的回调(第一次成功后，后面将一直重试)
+ */
+typedef void(API_CALL *on_mk_media_source_send_rtp_result)(void *user_data, int err, const char *msg);
+
+//MediaSource::startSendRtp,请参考mk_media_start_send_rtp,注意ctx参数类型不一样
+API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data);
+//MediaSource::stopSendRtp，请参考mk_media_stop_send_rtp,注意ctx参数类型不一样
+API_EXPORT int API_CALL mk_media_source_stop_send_rtp(const mk_media_source ctx);
 
 //MediaSource::find()
 API_EXPORT void API_CALL mk_media_source_find(const char *schema,

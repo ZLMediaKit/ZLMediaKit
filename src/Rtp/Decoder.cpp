@@ -61,8 +61,11 @@ int DecoderImp::input(const uint8_t *data, int bytes){
 DecoderImp::DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink){
     _decoder = decoder;
     _sink = sink;
-    _decoder->setOnDecode([this](int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes){
-        onDecode(stream,codecid,flags,pts,dts,data,bytes);
+    _decoder->setOnDecode([this](int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, int bytes) {
+        onDecode(stream, codecid, flags, pts, dts, data, bytes);
+    });
+    _decoder->setOnStream([this](int stream, int codecid, const void *extra, int bytes, int finish) {
+        onStream(stream, codecid, extra, bytes, finish);
     });
 }
 
@@ -102,16 +105,70 @@ void FrameMerger::inputFrame(const Frame::Ptr &frame,const function<void(uint32_
         Frame::Ptr back = _frameCached.back();
         Buffer::Ptr merged_frame = back;
         if(_frameCached.size() != 1){
-            string merged;
+            BufferLikeString merged;
+            merged.reserve(back->size() + 1024);
             _frameCached.for_each([&](const Frame::Ptr &frame){
                 merged.append(frame->data(),frame->size());
             });
-            merged_frame = std::make_shared<BufferString>(std::move(merged));
+            merged_frame = std::make_shared<BufferOffset<BufferLikeString> >(std::move(merged));
         }
         cb(back->dts(),back->pts(),merged_frame);
         _frameCached.clear();
     }
     _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
+}
+
+void DecoderImp::onStream(int stream, int codecid, const void *extra, int bytes, int finish){
+    switch (codecid) {
+        case PSI_STREAM_H264: {
+            InfoL << "got video track: H264";
+            auto track = std::make_shared<H264Track>();
+            onTrack(track);
+            break;
+        }
+
+        case PSI_STREAM_H265: {
+            InfoL << "got video track: H265";
+            auto track = std::make_shared<H265Track>();
+            onTrack(track);
+            break;
+        }
+
+        case PSI_STREAM_AAC: {
+            InfoL<< "got audio track: AAC";
+            auto track = std::make_shared<AACTrack>();
+            onTrack(track);
+            break;
+        }
+
+        case PSI_STREAM_AUDIO_G711A:
+        case PSI_STREAM_AUDIO_G711U: {
+            auto codec = codecid == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
+            InfoL << "got audio track: G711";
+            //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
+            auto track = std::make_shared<G711Track>(codec, 8000, 1, 16);
+            onTrack(track);
+            break;
+        }
+
+        case PSI_STREAM_AUDIO_OPUS: {
+            InfoL << "got audio track: opus";
+            auto track = std::make_shared<OpusTrack>();
+            onTrack(track);
+            break;
+        }
+
+        default:
+            if(codecid != 0){
+                WarnL<< "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
+            }
+            break;
+    }
+
+    if (finish) {
+        _sink->addTrackCompleted();
+        InfoL << "add track finished";
+    }
 }
 
 void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {
@@ -120,41 +177,17 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
 
     switch (codecid) {
         case PSI_STREAM_H264: {
-            if (!_codecid_video) {
-                //获取到视频
-                _codecid_video = codecid;
-                InfoL<< "got video track: H264";
-                auto track = std::make_shared<H264Track>();
-                onTrack(track);
-            }
-
-            if (codecid != _codecid_video) {
-                WarnL<< "video track change to H264 from codecid:" << getCodecName(_codecid_video);
-                return;
-            }
-
             auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, dts, pts,0);
             _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
-                onFrame(std::make_shared<H264FrameNoCacheAble>(buffer->data(), buffer->size(), dts, pts, prefixSize(buffer->data(), buffer->size())));
+                onFrame(std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
             break;
         }
 
         case PSI_STREAM_H265: {
-            if (!_codecid_video) {
-                //获取到视频
-                _codecid_video = codecid;
-                InfoL<< "got video track: H265";
-                auto track = std::make_shared<H265Track>();
-                onTrack(track);
-            }
-            if (codecid != _codecid_video) {
-                WarnL<< "video track change to H265 from codecid:" << getCodecName(_codecid_video);
-                return;
-            }
             auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, dts, pts, 0);
             _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
-                onFrame(std::make_shared<H265FrameNoCacheAble>(buffer->data(), buffer->size(), dts, pts, prefixSize(buffer->data(), buffer->size())));
+                onFrame(std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
             break;
         }
@@ -165,18 +198,6 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 //这不是aac
                 break;
             }
-            if (!_codecid_audio) {
-                //获取到音频
-                _codecid_audio = codecid;
-                InfoL<< "got audio track: AAC";
-                auto track = std::make_shared<AACTrack>();
-                onTrack(track);
-            }
-
-            if (codecid != _codecid_audio) {
-                WarnL<< "audio track change to AAC from codecid:" << getCodecName(_codecid_audio);
-                return;
-            }
             onFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data, bytes, dts, 0, ADTS_HEADER_LEN));
             break;
         }
@@ -184,36 +205,11 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         case PSI_STREAM_AUDIO_G711A:
         case PSI_STREAM_AUDIO_G711U: {
             auto codec = codecid  == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
-            if (!_codecid_audio) {
-                //获取到音频
-                _codecid_audio = codecid;
-                InfoL<< "got audio track: G711";
-                //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
-                auto track = std::make_shared<G711Track>(codec, 8000, 1, 16);
-                onTrack(track);
-            }
-
-            if (codecid != _codecid_audio) {
-                WarnL<< "audio track change to G711 from codecid:" << getCodecName(_codecid_audio);
-                return;
-            }
             onFrame(std::make_shared<FrameFromPtr>(codec, (char *) data, bytes, dts));
             break;
         }
 
         case PSI_STREAM_AUDIO_OPUS: {
-            if (!_codecid_audio) {
-                //获取到音频
-                _codecid_audio = codecid;
-                InfoL << "got audio track: opus";
-                auto track = std::make_shared<OpusTrack>();
-                onTrack(track);
-            }
-
-            if (codecid != _codecid_audio) {
-                WarnL << "audio track change to opus from codecid:" << getCodecName(_codecid_audio);
-                return;
-            }
             onFrame(std::make_shared<FrameFromPtr>(CodecOpus, (char *) data, bytes, dts));
             break;
         }
@@ -227,6 +223,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
 }
 #else
 void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {}
+void DecoderImp::onStream(int stream,int codecid,const void *extra,int bytes,int finish) {}
 #endif
 
 void DecoderImp::onTrack(const Track::Ptr &track) {

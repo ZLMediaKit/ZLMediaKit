@@ -9,28 +9,69 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
+#include <string.h>
 #include "RtpSplitter.h"
 namespace mediakit{
 
-RtpSplitter::RtpSplitter() {}
+static const char kEHOME_MAGIC[] = "\x01\x00\x01\x00";
+static const int  kEHOME_OFFSET = 256;
 
+RtpSplitter::RtpSplitter() {}
 RtpSplitter::~RtpSplitter() {}
 
-const char *RtpSplitter::onSearchPacketTail(const char *data, int len) {
-    if (data[0] == '$') {
-        //可能是4个字节的rtp头
-        return onSearchPacketTail_l(data + 2, len - 2);
+int64_t RtpSplitter::onRecvHeader(const char *data,uint64_t len){
+    //忽略偏移量
+    data += _offset;
+    len -= _offset;
+
+    if (_is_ehome && len > 12 && data[12] == '\r') {
+        //这是ehome,移除第12个字节
+        memmove((char *) data + 1, data, 12);
+        data += 1;
+        len -= 1;
     }
-    //两个字节的rtp头
-    return onSearchPacketTail_l(data, len);
+    onRtpPacket(data, len);
+    return 0;
 }
 
-const char *RtpSplitter::onSearchPacketTail_l(const char *data, int len) {
-    //这是rtp包
-    if (len < 2) {
+static bool isEhome(const char *data, uint64_t len){
+    if (len < 4) {
+        return false;
+    }
+    return memcmp(data, kEHOME_MAGIC, sizeof(kEHOME_MAGIC) - 1) == 0;
+}
+
+const char *RtpSplitter::onSearchPacketTail(const char *data, uint64_t len) {
+    if (len < 4) {
         //数据不够
         return nullptr;
     }
+
+    if (isEhome(data, len)) {
+        //是ehome协议
+        if (len < kEHOME_OFFSET + 4) {
+            //数据不够
+            return nullptr;
+        }
+        //忽略ehome私有头后是rtsp样式的rtp，多4个字节，
+        _offset = kEHOME_OFFSET + 4;
+        _is_ehome = true;
+        //忽略ehome私有头
+        return onSearchPacketTail_l(data + kEHOME_OFFSET + 2, len - kEHOME_OFFSET - 2);
+    }
+
+    if (data[0] == '$') {
+        //可能是4个字节的rtp头
+        _offset = 4;
+        return onSearchPacketTail_l(data + 2, len - 2);
+    }
+    //两个字节的rtp头
+    _offset = 2;
+    return onSearchPacketTail_l(data, len);
+}
+
+const char *RtpSplitter::onSearchPacketTail_l(const char *data, uint64_t len) {
+    //这是rtp包
     uint16_t length = (((uint8_t *) data)[0] << 8) | ((uint8_t *) data)[1];
     if (len < length + 2) {
         //数据不够
@@ -38,11 +79,6 @@ const char *RtpSplitter::onSearchPacketTail_l(const char *data, int len) {
     }
     //返回rtp包末尾
     return data + 2 + length;
-}
-
-int64_t RtpSplitter::onRecvHeader(const char *data, uint64_t len) {
-    onRtpPacket(data,len);
-    return 0;
 }
 
 }//namespace mediakit

@@ -195,13 +195,13 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ui32Ssrc,
 void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     GET_CONFIG(uint32_t,cycleMS,Rtp::kCycleMS);
     auto ptr = frame->data() + frame->prefixSize();
-    auto pts = frame->pts() % cycleMS;
     auto len = frame->size() - frame->prefixSize();
+    auto pts = frame->pts() % cycleMS;
     auto nal_type = H264_TYPE(ptr[0]);
-    auto max_rtp_size = _ui32MtuSize - 2;
+    auto payload_size = _ui32MtuSize - 2;
 
     //超过MTU则按照FU-A模式打包
-    if (len > max_rtp_size) {
+    if (len > payload_size + 1) {
         //最高位bit为forbidden_zero_bit,
         //后面2bit为nal_ref_idc(帧重要程度),00:可以丢,11:不能丢
         //末尾5bit为nalu type，固定为28(FU-A)
@@ -211,11 +211,10 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         bool mark_bit = false;
         int offset = 1;
         while (!mark_bit) {
-            if (len <= offset + max_rtp_size) {
-                //已经拆分结束
-                max_rtp_size = len - offset;
-                mark_bit = true;
+            if (len <= offset + payload_size) {
                 //FU-A end
+                mark_bit = true;
+                payload_size = len - offset;
                 s_e_r_flags = (1 << 6) | nal_type;
             } else if (fu_a_start) {
                 //FU-A start
@@ -227,7 +226,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
 
             {
                 //传入nullptr先不做payload的内存拷贝
-                auto rtp = makeRtp(getTrackType(), nullptr, max_rtp_size + 2, mark_bit, pts);
+                auto rtp = makeRtp(getTrackType(), nullptr, payload_size + 2, mark_bit, pts);
                 //rtp payload 负载部分
                 uint8_t *payload = (uint8_t*)rtp->data() + rtp->offset;
                 //FU-A 第1个字节
@@ -235,11 +234,11 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 //FU-A 第2个字节
                 payload[1] = s_e_r_flags;
                 //H264 数据
-                memcpy(payload + 2, (unsigned char *) ptr + offset, max_rtp_size);
+                memcpy(payload + 2, (unsigned char *) ptr + offset, payload_size);
                 //输入到rtp环形缓存
                 RtpCodec::inputRtp(rtp, fu_a_start && nal_type == H264Frame::NAL_IDR);
             }
-            offset += max_rtp_size;
+            offset += payload_size;
             fu_a_start = false;
         }
     } else {

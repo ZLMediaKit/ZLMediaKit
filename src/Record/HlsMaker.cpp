@@ -68,10 +68,11 @@ void HlsMaker::inputData(void *data, uint32_t len, uint32_t timestamp, bool is_i
         if (!_last_file_name.empty()) {
             //存在切片才写入ts数据
             onWriteSegment((char *) data, len);
+            _last_timestamp = timestamp;
         }
     } else {
         //resetTracks时触发此逻辑
-        flushLastSegment(timestamp, true);
+        flushLastSegment(true);
     }
 }
 
@@ -99,27 +100,28 @@ void HlsMaker::addNewSegment(uint32_t stamp) {
     }
 
     //关闭并保存上一个切片，如果_seg_number==0,那么是点播。
-    flushLastSegment(stamp, _seg_number == 0);
+    flushLastSegment(_seg_number == 0);
     //新增切片
     _last_file_name = onOpenSegment(_file_index++);
     //记录本次切片的起始时间戳
     _last_seg_timestamp = stamp;
 }
 
-void HlsMaker::flushLastSegment(uint32_t timestamp, bool eof){
+void HlsMaker::flushLastSegment(bool eof){
     if (_last_file_name.empty()) {
         //不存在上个切片
         return;
     }
     //文件创建到最后一次数据写入的时间即为切片长度
-    auto seg_dur = timestamp - _last_seg_timestamp;
+    auto seg_dur = _last_timestamp - _last_seg_timestamp;
     if (seg_dur <= 0) {
         seg_dur = 100;
     }
-    _seg_dur_list.push_back(std::make_tuple(seg_dur, _last_file_name));
+    _seg_dur_list.push_back(std::make_tuple(seg_dur, std::move(_last_file_name)));
+    _last_file_name.clear();
     delOldSegment();
     makeIndexFile(eof);
-    _last_file_name.clear();
+    onFlushLastSegment(seg_dur);
 }
 
 bool HlsMaker::isLive() {

@@ -84,7 +84,7 @@ public:
      */
     virtual uint32_t getSsrc(TrackType trackType) {
         assert(trackType >= 0 && trackType < TrackMax);
-        auto track = _tracks[trackType];
+        auto &track = _tracks[trackType];
         if (!track) {
             return 0;
         }
@@ -96,7 +96,7 @@ public:
      */
     virtual uint16_t getSeqence(TrackType trackType) {
         assert(trackType >= 0 && trackType < TrackMax);
-        auto track = _tracks[trackType];
+        auto &track = _tracks[trackType];
         if (!track) {
             return 0;
         }
@@ -110,7 +110,7 @@ public:
         assert(trackType >= TrackInvalid && trackType < TrackMax);
         if (trackType != TrackInvalid) {
             //获取某track的时间戳
-            auto track = _tracks[trackType];
+            auto &track = _tracks[trackType];
             if (track) {
                 return track->_time_stamp;
             }
@@ -156,9 +156,10 @@ public:
      * @param rtp rtp包
      * @param keyPos 该包是否为关键帧的第一个包
      */
-    void onWrite(const RtpPacket::Ptr &rtp, bool keyPos) override {
+    void onWrite(RtpPacket::Ptr rtp, bool keyPos) override {
+        _speed[rtp->type] += rtp->size();
         assert(rtp->type >= 0 && rtp->type < TrackMax);
-        auto track = _tracks[rtp->type];
+        auto &track = _tracks[rtp->type];
         if (track) {
             track->_seq = rtp->sequence;
             track->_time_stamp = rtp->timeStamp;
@@ -181,7 +182,9 @@ public:
                 regist();
             }
         }
-        PacketCache<RtpPacket>::inputPacket(rtp->type == TrackVideo, rtp, keyPos);
+        bool is_video = rtp->type == TrackVideo;
+        auto stamp = rtp->timeStamp;
+        PacketCache<RtpPacket>::inputPacket(stamp, is_video, std::move(rtp), keyPos);
     }
 
     void clearCache() override{
@@ -195,9 +198,9 @@ private:
      * @param rtp_list rtp包列表
      * @param key_pos 是否包含关键帧
      */
-    void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > &rtp_list, bool key_pos) override {
+    void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > rtp_list, bool key_pos) override {
         //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
-        _ring->write(rtp_list, _have_video ? key_pos : true);
+        _ring->write(std::move(rtp_list), _have_video ? key_pos : true);
     }
 
 private:

@@ -24,8 +24,16 @@ RtpServer::~RtpServer() {
 
 void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable_tcp, const char *local_ip) {
     //创建udp服务器
-    Socket::Ptr udp_server = Socket::createSocket(nullptr, false);
-    if (!udp_server->bindUdpSock(local_port, local_ip)) {
+    Socket::Ptr udp_server = Socket::createSocket(nullptr, true);
+    if (local_port == 0) {
+        //随机端口，rtp端口采用偶数
+        Socket::Ptr rtcp_server = Socket::createSocket(nullptr, true);
+        auto pair = std::make_pair(udp_server, rtcp_server);
+        makeSockPair(pair, local_ip);
+        //取偶数端口
+        udp_server = pair.first;
+    } else if (!udp_server->bindUdpSock(local_port, local_ip)) {
+        //用户指定端口
         throw std::runtime_error(StrPrinter << "bindUdpSock on " << local_ip << ":" << local_port << " failed:" << get_uv_errmsg(true));
     }
     //设置udp socket读缓存
@@ -44,7 +52,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
         process = RtpSelector::Instance().getProcess(stream_id, true);
         udp_server->setOnRead([udp_server, process](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
-            process->inputRtp(udp_server, buf->data(), buf->size(), addr);
+            process->inputRtp(true, udp_server, buf->data(), buf->size(), addr);
         });
     } else {
         //未指定流id，一个端口多个流，通过ssrc来分流

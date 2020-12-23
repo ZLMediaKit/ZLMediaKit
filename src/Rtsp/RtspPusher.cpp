@@ -121,8 +121,6 @@ void RtspPusher::onConnect(const SockException &err) {
         onPublishResult(err, false);
         return;
     }
-    //推流器不需要多大的接收缓存，节省内存占用
-    getSock()->setReadBuffer(std::make_shared<BufferRaw>(1 * 1024));
     sendAnnounce();
 }
 
@@ -241,6 +239,9 @@ void RtspPusher::sendSetup(unsigned int track_idx) {
     _on_res_func = std::bind(&RtspPusher::handleResSetup, this, placeholders::_1, track_idx);
     auto &track = _track_vec[track_idx];
     auto base_url = _content_base + "/" + track->_control_surffix;
+    if (track->_control.find("://") != string::npos) {
+        base_url = track->_control;
+    }
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest("SETUP", base_url, {"Transport",
@@ -318,7 +319,7 @@ inline void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) 
                     setSendFlushFlag(true);
                 }
                 BufferRtp::Ptr buffer(new BufferRtp(rtp));
-                send(buffer);
+                send(std::move(buffer));
             });
             break;
         }
@@ -335,7 +336,7 @@ inline void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) 
                 }
 
                 BufferRtp::Ptr buffer(new BufferRtp(rtp, 4));
-                pSock->send(buffer, nullptr, 0, ++i == size);
+                pSock->send(std::move(buffer), nullptr, 0, ++i == size);
             });
             break;
         }
@@ -475,7 +476,7 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
     if (!sdp.empty()) {
         printer << sdp;
     }
-    SockSender::send(printer);
+    SockSender::send(std::move(printer));
 }
 
 
