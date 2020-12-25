@@ -53,6 +53,11 @@ public:
      */
     void setOnDetach(const function<void()> &cb);
 
+    /**
+     * 设置onDetach事件回调,false检查RTP超时，true停止
+     */
+    void setStopCheckRtp(bool is_check=false);
+
     /// SockInfo override
     string get_local_ip() override;
     uint16_t get_local_port() override;
@@ -89,6 +94,7 @@ private:
     std::shared_ptr<FILE> _save_file_video;
     ProcessInterface::Ptr _process;
     MultiMediaSourceMuxer::Ptr _muxer;
+    std::atomic_bool _stop_rtp_check;
 };
 
 }//namespace mediakit
