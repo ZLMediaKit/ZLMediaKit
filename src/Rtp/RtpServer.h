@@ -61,7 +61,7 @@ public:
      */
     void pauseRtpCheck();
     /**
-     * 暂停Rtp服务的RTP流检测
+     * 恢复Rtp服务的RTP流检测
      */
     void resumeRtpCheck();
 
