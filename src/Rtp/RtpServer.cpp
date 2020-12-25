@@ -90,5 +90,16 @@ uint16_t RtpServer::getPort() {
     return _udp_server ? _udp_server->get_local_port() : 0;
 }
 
+void RtpServer::pauseRtpCheck(){    
+    if(_rtp_process)
+        _rtp_process->setStopCheckRtp(true);
+}
+
+void RtpServer::resumeRtpCheck(){
+    if(_rtp_process)
+        _rtp_process->setStopCheckRtp(false);
+
+}
+
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)
