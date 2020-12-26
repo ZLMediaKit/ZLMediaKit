@@ -73,7 +73,7 @@ public:
      */
     void setProtocolTranslation(bool enableHls,bool enableMP4){
         //不重复生成rtsp
-        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), false, true, enableHls, enableMP4);
+        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), true, false, enableHls, enableMP4);
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
