@@ -361,6 +361,10 @@ bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender){
 }
 
 void MultiMediaSourceMuxer::addTrack(const Track::Ptr &track) {
+    if (CodecL16 == track->getCodecId()) {
+        WarnL << "L16音频格式目前只支持RTSP协议推流拉流!!!";
+        return;
+    }
     _muxer->addTrack(track);
 }
 
