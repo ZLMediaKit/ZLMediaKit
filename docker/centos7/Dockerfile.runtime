@@ -1,0 +1,131 @@
+ARG Version=7
+
+FROM centos:${Version} As build
+
+ARG HTTP_PROXY=${NO_PROXY}
+ARG HTTPS_PROXY=${NO_PROXY}
+ARG PKG_CONFIG_VERSION=0.29.2
+ARG CMAKE_VERSION=3.18
+ARG CMAKE_FULL_VERSION=3.18.4
+ARG YASM_VERSION=1.3.0
+ARG NASM_VERSION=2.15.05
+ARG X265_VERSION=3.4
+
+RUN yum install -y  \
+        gcc \
+        gcc-c++ \
+        kernel-devel \
+        kernel-headers \
+        openssl \
+        openssl-devel \
+        git \
+        wget \
+        which
+    
+WORKDIR /opt
+
+RUN wget -e "https_proxy=${HTTPS_PROXY}" https://pkgconfig.freedesktop.org/releases/pkg-config-${PKG_CONFIG_VERSION}.tar.gz \
+    && tar -zxvf pkg-config-${PKG_CONFIG_VERSION}.tar.gz \
+    && cd pkg-config-${PKG_CONFIG_VERSION} \
+    && ./configure --with-internal-glib \
+    && make -j8 \
+    && make install
+
+RUN wget -e "https_proxy=${HTTPS_PROXY}" https://cmake.org/files/v${CMAKE_VERSION}/cmake-${CMAKE_FULL_VERSION}.tar.gz \
+    && tar -zxvf cmake-${CMAKE_FULL_VERSION}.tar.gz \
+    && cd cmake-${CMAKE_FULL_VERSION} \
+    && ./bootstrap \
+    && gmake -j8 \
+    && gmake install 
+
+RUN cd /opt \
+    &&  wget -e "https_proxy=${HTTPS_PROXY}" http://www.tortall.net/projects/yasm/releases/yasm-${YASM_VERSION}.tar.gz \
+    && tar zxvf yasm-${YASM_VERSION}.tar.gz \
+    && cd yasm-${YASM_VERSION} \
+    &&  ./configure \
+    && make -j8 \
+    && make install
+
+RUN wget  -e "https_proxy=${HTTPS_PROXY}" https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-${NASM_VERSION}.tar.xz \
+    && tar -xvJf nasm-${NASM_VERSION}.tar.xz \
+    && cd nasm-${NASM_VERSION} \
+    && ./configure --disable-shared --enable-static \
+    && make -j8 \
+    && make install
+
+RUN cd /opt \
+    && git clone https://code.videolan.org/videolan/x264.git \
+    && cd x264 \
+    && git checkout -b stable origin/stable \
+    && git pull --rebase \
+    && ./configure --enable-pic --enable-shared --disable-asm \
+    && make -j8 \ 
+    && make install \
+    && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+
+RUN cd /opt \
+    && wget -e "https_proxy=${HTTPS_PROXY}" https://github.com/videolan/x265/archive/Release_${X265_VERSION}.tar.gz  \
+    && tar zxvf Release_${X265_VERSION}.tar.gz \
+    && cd x265-Release_${X265_VERSION}/build/linux \
+    && cmake ../../source \
+    && make -j8 \
+    && make install \
+    && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+
+RUN cd /opt \
+    && git clone https://gitee.com/xia-chu/FFmpeg.git \
+    && cd /opt/FFmpeg \
+    && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH \
+    && ./configure \
+        --disable-debug \
+        --disable-doc  \
+        --disable-shared  \
+        --enable-gpl \
+        --enable-version3 \
+        --enable-static \
+        --enable-nonfree \
+        --enable-pthreads \
+        --enable-libx264 \
+        --enable-libx265 \
+        --enable-small \
+        --pkgconfigdir=/usr/local/lib/pkgconfig \
+	    --pkg-config-flags="--static" \
+    && make -j8 \
+    && make install
+
+RUN cd /opt \
+    && git clone --depth 1 https://github.com/xia-chu/ZLMediaKit.git \
+    && cd ZLMediaKit \
+    && git submodule update --init \
+    && mkdir -p build release/linux/Release/ \
+    && cd build \
+    && cmake -DCMAKE_BUILD_TYPE=Release .. \
+    && make -j8
+
+RUN mkdir -p /opt/build/opt/zlm/ /opt/build/usr/local/bin/ /opt/build/usr/bin/  /opt/build/usr/local/lib/ /opt/build/etc/localtime \
+    && cd /opt/build \
+    && /usr/bin/cp -ip /usr/local/lib/libx26* ./usr/local/lib \
+    && /usr/bin/cp -ip /usr/local/bin/ffmpeg ./usr/local/bin \
+    && /usr/bin/cp -ip /opt/ZLMediaKit/release/linux/Release/MediaServer ./opt/zlm/ \
+    && /usr/bin/cp -irp /opt/ZLMediaKit/release/linux/Release/www ./opt/zlm/ \
+    && /usr/bin/cp -ip /opt/ZLMediaKit/tests/ssl.p12 ./opt/zlm/ \
+    && /usr/bin/cp -ip /usr/bin/which ./usr/bin/
+
+FROM centos:${Version}
+LABEL maintainer="chengxiaosheng <kevin__cheng@outlook.com>" project-url="https://github.com/xia-chu/ZLMediaKit" description="一个基于C++11的高性能运营级流媒体服务框架"
+
+EXPOSE 9000/tcp \
+ 1935/tcp \
+ 19350/tcp \
+ 554/tcp \
+ 322/tcp \
+ 80/tcp \
+ 443/tcp \
+ 10000/udp \
+ 10000/tcp
+
+WORKDIR /opt/zlm
+VOLUME [ "/opt/zlm/conf/","/opt/zlm/log/","opt/zlm/ffmpeg/"]
+COPY --from=build /opt/build /
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH TZ=Asia/Shanghai
+CMD ./MediaServer -c ./conf/config.ini
