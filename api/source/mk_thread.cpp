@@ -77,7 +77,7 @@ public:
         _task->cancel();
     }
 
-    void start(int ms ,EventPoller &poller){
+    void start(uint64_t ms ,EventPoller &poller){
         weak_ptr<TimerForC> weak_self = shared_from_this();
         _task = poller.doDelayTask(ms, [weak_self]() {
             auto strong_self = weak_self.lock();

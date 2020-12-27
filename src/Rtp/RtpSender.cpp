@@ -26,14 +26,15 @@ RtpSender::RtpSender(uint32_t ssrc, uint8_t payload_type) {
 RtpSender::~RtpSender() {
 }
 
-void RtpSender::startSend(const string &dst_url, uint16_t dst_port, bool is_udp, const function<void(const SockException &ex)> &cb){
+void RtpSender::startSend(const string &dst_url, uint16_t dst_port, bool is_udp, uint16_t src_port, const function<void(const SockException &ex)> &cb){
     _is_udp = is_udp;
     _socket = Socket::createSocket(_poller, false);
     _dst_url = dst_url;
     _dst_port = dst_port;
+	_src_port = src_port;
     weak_ptr<RtpSender> weak_self = shared_from_this();
     if (is_udp) {
-        _socket->bindUdpSock(0);
+        _socket->bindUdpSock(src_port);
         auto poller = _poller;
         WorkThreadPool::Instance().getPoller()->async([cb, dst_url, dst_port, weak_self, poller]() {
             struct sockaddr addr;
@@ -65,7 +66,7 @@ void RtpSender::startSend(const string &dst_url, uint16_t dst_port, bool is_udp,
                 //tcp连接成功
                 strong_self->onConnect();
             }
-        });
+        }, 5.0F, "0.0.0.0", src_port);
     }
 }
 
@@ -149,7 +150,7 @@ void RtpSender::onErr(const SockException &ex, bool is_connect) {
         if (!strong_self) {
             return false;
         }
-        strong_self->startSend(strong_self->_dst_url, strong_self->_dst_port, strong_self->_is_udp, [weak_self](const SockException &ex){
+        strong_self->startSend(strong_self->_dst_url, strong_self->_dst_port, strong_self->_is_udp, strong_self->_src_port, [weak_self](const SockException &ex){
             auto strong_self = weak_self.lock();
             if (strong_self && ex) {
                 //连接失败且本对象未销毁，那么重试连接
