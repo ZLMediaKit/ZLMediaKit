@@ -9,9 +9,7 @@
  */
 
 #include <sstream>
-#include "jsoncpp/json.h"
 #include "Util/logger.h"
-#include "Util/util.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
 #include "Common/config.h"
@@ -22,20 +20,8 @@
 #include "Http/HttpSession.h"
 #include "WebHook.h"
 
-using namespace Json;
 using namespace toolkit;
 using namespace mediakit;
-
-
-//支持json或urlencoded方式传输参数
-#define JSON_ARGS
-
-#ifdef JSON_ARGS
-typedef Value ArgsType;
-#else
-typedef HttpArgs ArgsType;
-#endif
-
 
 namespace Hook {
 #define HOOK_FIELD "hook."
@@ -126,35 +112,35 @@ const char *getContentType(const HttpArgs &value){
     return "application/x-www-form-urlencoded";
 }
 
-static void do_http_hook(const string &url,const ArgsType &body,const function<void(const Value &,const string &)> &fun){
-    GET_CONFIG(string,mediaServerId,General::kMediaServerId);
-    const_cast<ArgsType &>(body)["mediaServerId"] =  mediaServerId;
+void do_http_hook(const string &url,const ArgsType &body,const function<void(const Value &,const string &)> &func){
+    GET_CONFIG(string, mediaServerId, General::kMediaServerId);
+    GET_CONFIG(float, hook_timeoutSec, Hook::kTimeoutSec);
 
-    GET_CONFIG(float,hook_timeoutSec,Hook::kTimeoutSec);
+    const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
     HttpRequester::Ptr requester(new HttpRequester);
     requester->setMethod("POST");
     auto bodyStr = to_string(body);
     requester->setBody(bodyStr);
-    requester->addHeader("Content-Type",getContentType(body));
+    requester->addHeader("Content-Type", getContentType(body));
     std::shared_ptr<Ticker> pTicker(new Ticker);
-    requester->startRequester(url,[url,fun,bodyStr,requester,pTicker](const SockException &ex,
-                                                    const string &status,
-                                                    const HttpClient::HttpHeader &header,
-                                                    const string &strRecvBody){
-        onceToken token(nullptr,[&](){
+    requester->startRequester(url, [url, func, bodyStr, requester, pTicker](const SockException &ex,
+                                                                            const string &status,
+                                                                            const HttpClient::HttpHeader &header,
+                                                                            const string &strRecvBody) {
+        onceToken token(nullptr, [&]() {
             const_cast<HttpRequester::Ptr &>(requester).reset();
         });
         parse_http_response(ex,status,header,strRecvBody,[&](const Value &obj,const string &err){
-            if(fun){
-                fun(obj,err);
+            if (func) {
+                func(obj, err);
             }
-            if(!err.empty()) {
-                WarnL << "hook " << url << " " <<pTicker->elapsedTime() << "ms,failed" << err << ":" << bodyStr;
-            }else if(pTicker->elapsedTime() > 500){
-                DebugL << "hook " << url << " " <<pTicker->elapsedTime() << "ms,success:" << bodyStr;
+            if (!err.empty()) {
+                WarnL << "hook " << url << " " << pTicker->elapsedTime() << "ms,failed" << err << ":" << bodyStr;
+            } else if (pTicker->elapsedTime() > 500) {
+                DebugL << "hook " << url << " " << pTicker->elapsedTime() << "ms,success:" << bodyStr;
             }
         });
-    },hook_timeoutSec);
+    }, hook_timeoutSec);
 }
 
 static ArgsType make_json(const MediaInfo &args){
