@@ -29,6 +29,7 @@ typedef enum {
     CodecG711A,
     CodecG711U,
     CodecOpus,
+    CodecL16,
     CodecMax = 0x7FFF
 } CodecId;
 
