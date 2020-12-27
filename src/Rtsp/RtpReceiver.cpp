@@ -152,13 +152,16 @@ void RtpReceiver::setPoolSize(int size) {
     _rtp_pool.setSize(size);
 }
 
-int RtpReceiver::getJitterSize(int track_index){
+int RtpReceiver::getJitterSize(int track_index) const{
     return _rtp_sortor[track_index].getJitterSize();
 }
 
-int RtpReceiver::getCycleCount(int track_index){
+int RtpReceiver::getCycleCount(int track_index) const{
     return _rtp_sortor[track_index].getCycleCount();
 }
 
+uint32_t RtpReceiver::getSSRC(int track_index) const{
+    return _ssrc[track_index];
+}
 
 }//namespace mediakit

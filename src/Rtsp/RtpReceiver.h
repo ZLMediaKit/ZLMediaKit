@@ -44,14 +44,14 @@ public:
     /**
      * 获取排序缓存长度
      */
-    int getJitterSize() {
+    int getJitterSize() const{
         return _rtp_sort_cache_map.size();
     }
 
     /**
      * 获取seq回环次数
      */
-    int getCycleCount() {
+    int getCycleCount() const{
         return _seq_cycle_count;
     }
 
@@ -184,8 +184,9 @@ protected:
 
     void clear();
     void setPoolSize(int size);
-    int getJitterSize(int track_index);
-    int getCycleCount(int track_index);
+    int getJitterSize(int track_index) const;
+    int getCycleCount(int track_index) const;
+    uint32_t getSSRC(int track_index) const;
 
 private:
     uint32_t _ssrc[2] = {0, 0};
