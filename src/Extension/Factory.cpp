@@ -20,6 +20,7 @@
 #include "CommonRtp.h"
 #include "Opus.h"
 #include "G711.h"
+#include "L16.h"
 #include "Common/Parser.h"
 
 namespace mediakit{
@@ -54,6 +55,10 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
 
     if (strcasecmp(track->_codec.data(), "PCMU") == 0) {
         return std::make_shared<G711Track>(CodecG711U,  track->_samplerate, track->_channel, 16);
+    }
+
+    if (strcasecmp(track->_codec.data(), "L16") == 0) {
+        return std::make_shared<L16Track>(track->_samplerate, track->_channel);
     }
 
     if (strcasecmp(track->_codec.data(), "h264") == 0) {
@@ -123,6 +128,7 @@ RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
         case CodecH264 : return std::make_shared<H264RtpEncoder>(ssrc, mtu, sample_rate, pt, interleaved);
         case CodecH265 : return std::make_shared<H265RtpEncoder>(ssrc, mtu, sample_rate, pt, interleaved);
         case CodecAAC : return std::make_shared<AACRtpEncoder>(ssrc, mtu, sample_rate, pt, interleaved);
+        case CodecL16 :
         case CodecOpus :
         case CodecG711A :
         case CodecG711U : return std::make_shared<CommonRtpEncoder>(codec_id, ssrc, mtu, sample_rate, pt, interleaved);
@@ -135,6 +141,7 @@ RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
         case CodecH264 : return std::make_shared<H264RtpDecoder>();
         case CodecH265 : return std::make_shared<H265RtpDecoder>();
         case CodecAAC : return std::make_shared<AACRtpDecoder>(track->clone());
+        case CodecL16 :
         case CodecOpus :
         case CodecG711A :
         case CodecG711U : return std::make_shared<CommonRtpDecoder>(track->getCodecId());

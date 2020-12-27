@@ -80,6 +80,7 @@ const char *getCodecName(CodecId codecId) {
         SWITCH_CASE(CodecG711A);
         SWITCH_CASE(CodecG711U);
         SWITCH_CASE(CodecOpus);
+        SWITCH_CASE(CodecL16);
         default : return "unknown codec";
     }
 }
@@ -91,7 +92,8 @@ TrackType getTrackType(CodecId codecId){
         case CodecAAC:
         case CodecG711A:
         case CodecG711U:
-        case CodecOpus: return TrackAudio;
+        case CodecOpus: 
+        case CodecL16: return TrackAudio;
         default: return TrackInvalid;
     }
 }
