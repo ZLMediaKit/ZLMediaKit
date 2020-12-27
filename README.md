@@ -209,6 +209,18 @@ bash build_docker_images.sh
 [big panda](<2381267071@qq.com>)
 [tanningzhong](https://github.com/tanningzhong)
 [hctym1995](https://github.com/hctym1995)
+[hewenyuan](https://gitee.com/kingyuanyuan)
+[sunhui](<sunhui200475@163.com>)
+[mirs](fangpengcheng@bilibili.com>)
+[Kevin Cheng](kevin__cheng@outlook.com>)
+[Liu Jiang](root@oopy.org>)
+[along](alongl@users.noreply.github.com>)
+[qingci](xpy66swsry@gmail.com>)
+[lyg1949](zh.ghlong@qq.com>)
+[zhlong](zh.ghlong@qq.com>)
+[Luke](automan@easydarwin.org>)
+[大裤衩](3503207480@qq.com>)
+[droid.chow](droid.chow@gmail.com>)
 
 ## 使用案例
 
