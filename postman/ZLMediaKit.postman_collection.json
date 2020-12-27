@@ -1150,7 +1150,7 @@
 						{
 							"key": "ssrc",
 							"value": "1",
-							"description": "rtp的ssrc"
+							"description": "rtp推流的ssrc，ssrc不同时，可以推流到多个上级服务器"
 						},
 						{
 							"key": "dst_url",
@@ -1166,6 +1166,12 @@
 							"key": "is_udp",
 							"value": "0",
 							"description": "是否为udp模式,否则为tcp模式"
+						},
+						{
+							"key": "src_port",
+							"value": "0",
+							"description": "指定tcp/udp客户端使用的本地端口，0时为随机端口，该参数非必选参数，不传时为随机端口。",
+							"disabled": true
 						}
 					]
 				}
@@ -1207,6 +1213,12 @@
 							"key": "stream",
 							"value": "obs",
 							"description": "流id，例如 obs"
+						},
+						{
+							"key": "ssrc",
+							"value": "",
+							"description": "根据ssrc关停某路rtp推流，不传时关闭所有推流",
+							"disabled": true
 						}
 					]
 				}
