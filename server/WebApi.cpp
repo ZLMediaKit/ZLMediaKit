@@ -875,6 +875,37 @@ void installWebApi() {
         }
     });
 
+    api_regist1("/index/api/pauseRtpCheck", [](API_ARGS1) {
+        CHECK_SECRET();
+        CHECK_ARGS("stream_id");
+        //只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
+        if (it == s_rtpServerMap.end())
+        {
+            val["hit"] = 0;
+            return;
+        }
+        auto server = it->second;
+        server->pauseRtpCheck();
+        val["hit"] = 1;
+    });
+
+    api_regist1("/index/api/resumeRtpCheck", [](API_ARGS1) {
+        CHECK_SECRET();
+        CHECK_ARGS("stream_id");
+
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
+        if (it == s_rtpServerMap.end())
+        {
+            val["hit"] = 0;
+            return;
+        }
+        auto server = it->second;
+        server->resumeRtpCheck();
+        val["hit"] = 1;
+    });
 
 #endif//ENABLE_RTPPROXY
 
