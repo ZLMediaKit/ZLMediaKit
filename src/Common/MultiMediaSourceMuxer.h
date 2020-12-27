@@ -142,13 +142,13 @@ public:
      * @param is_udp 是否为udp
      * @param cb 启动成功或失败回调
      */
-    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, const function<void(const SockException &ex)> &cb) override;
+    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(const SockException &ex)> &cb) override;
 
     /**
      * 停止ps-rtp发送
      * @return 是否成功
      */
-    bool stopSendRtp(MediaSource &sender) override;
+    bool stopSendRtp(MediaSource &sender, const string &ssrc) override;
 
     /////////////////////////////////MediaSinkInterface override/////////////////////////////////
 
@@ -189,7 +189,8 @@ private:
     MultiMuxerPrivate::Ptr _muxer;
     std::weak_ptr<MultiMuxerPrivate::Listener> _track_listener;
 #if defined(ENABLE_RTPPROXY)
-    RtpSender::Ptr _rtp_sender;
+    mutex _rtp_sender_mtx;
+	unordered_map<string, RtpSender::Ptr> _rtp_sender;
 #endif //ENABLE_RTPPROXY
 };
 

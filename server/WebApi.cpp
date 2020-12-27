@@ -850,7 +850,8 @@ void installWebApi() {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
 
-        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], [val, headerOut, invoker](const SockException &ex){
+        //src_port为空时，则随机本地端口
+        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](const SockException &ex){
             if (ex) {
                 const_cast<Value &>(val)["code"] = API::OtherFailed;
                 const_cast<Value &>(val)["msg"] = ex.what();
@@ -868,7 +869,8 @@ void installWebApi() {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
 
-        if (!src->stopSendRtp()) {
+        //ssrc如果为空，关闭全部
+        if (!src->stopSendRtp(allArgs["ssrc"])) {
             throw ApiRetException("尚未开始推流,停止失败", API::OtherFailed);
         }
     });
