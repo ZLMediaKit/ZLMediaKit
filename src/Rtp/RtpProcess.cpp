@@ -135,8 +135,10 @@ void RtpProcess::addTrackCompleted() {
 }
 
 bool RtpProcess::alive() {
-    if(_stop_rtp_check.load())
+    if (_stop_rtp_check.load()) {
         return true;
+    }
+
     GET_CONFIG(int, timeoutSec, RtpProxy::kTimeoutSec)
     if (_last_frame_time.elapsedTime() / 1000 < timeoutSec) {
         return true;

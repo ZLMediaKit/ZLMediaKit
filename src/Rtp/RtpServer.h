@@ -56,10 +56,12 @@ public:
      * 设置RtpProcess onDetach事件回调
      */
     void setOnDetach(const function<void()> &cb);
+
     /**
      * 暂停Rtp服务的RTP流检测
      */
     void pauseRtpCheck();
+
     /**
      * 恢复Rtp服务的RTP流检测
      */
