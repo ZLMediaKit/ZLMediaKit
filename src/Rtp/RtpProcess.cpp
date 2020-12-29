@@ -28,6 +28,7 @@ RtpProcess::RtpProcess(const string &stream_id) {
     _media_info._vhost = DEFAULT_VHOST;
     _media_info._app = RTP_APP_NAME;
     _media_info._streamid = stream_id;
+    _stop_rtp_check.store(false);
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
     {
@@ -143,11 +144,19 @@ bool RtpProcess::alive() {
         }
     }
 
+    if (_stop_rtp_check.load()) {
+        return true;
+    }
+
     GET_CONFIG(int,timeoutSec,RtpProxy::kTimeoutSec)
     if(_last_frame_time.elapsedTime() / 1000 < timeoutSec){
         return true;
     }
     return false;
+}
+
+void RtpProcess::setStopCheckRtp(bool is_check){
+    _stop_rtp_check = is_check;
 }
 
 void RtpProcess::onDetach() {

@@ -57,6 +57,16 @@ public:
      */
     void setOnDetach(const function<void()> &cb);
 
+    /**
+     * 暂停Rtp服务的RTP流检测
+     */
+    void pauseRtpCheck();
+
+    /**
+     * 恢复Rtp服务的RTP流检测
+     */
+    void resumeRtpCheck();
+
 protected:
     Socket::Ptr _udp_server;
     TcpServer::Ptr _tcp_server;

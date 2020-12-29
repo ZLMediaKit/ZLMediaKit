@@ -252,40 +252,43 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
 
 void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     if (parser.Url() != "200") {
-        throw std::runtime_error(
-        StrPrinter << "SETUP:" << parser.Url() << " " << parser.Tail() << endl);
+        throw std::runtime_error(StrPrinter << "SETUP:" << parser.Url() << " " << parser.Tail() << endl);
     }
     if (track_idx == 0) {
         _session_id = parser["Session"];
-        _session_id.append(";");
-        _session_id = FindField(_session_id.data(), nullptr, ";");
     }
 
     auto strTransport = parser["Transport"];
-    if(strTransport.find("TCP") != string::npos || strTransport.find("interleaved") != string::npos){
+    if (strTransport.find("TCP") != string::npos || strTransport.find("interleaved") != string::npos) {
         _rtp_type = Rtsp::RTP_TCP;
-    }else if(strTransport.find("multicast") != string::npos){
+    } else if (strTransport.find("multicast") != string::npos) {
         _rtp_type = Rtsp::RTP_MULTICAST;
-    }else{
+    } else {
         _rtp_type = Rtsp::RTP_UDP;
     }
-
+    auto transport_map = Parser::parseArgs(strTransport, ";", "=");
     RtspSplitter::enableRecvRtp(_rtp_type == Rtsp::RTP_TCP);
+    string ssrc = transport_map["ssrc"];
+    if(!ssrc.empty()){
+        sscanf(ssrc.data(), "%x", &_sdp_track[track_idx]->_ssrc);
+    } else{
+        _sdp_track[track_idx]->_ssrc = 0;
+    }
 
-    if(_rtp_type == Rtsp::RTP_TCP)  {
-        string interleaved = FindField( FindField((strTransport + ";").data(), "interleaved=", ";").data(), NULL, "-");
-        _sdp_track[track_idx]->_interleaved = atoi(interleaved.data());
-    }else{
-        const char *strPos = (_rtp_type == Rtsp::RTP_MULTICAST ? "port=" : "server_port=") ;
-        auto port_str = FindField((strTransport + ";").data(), strPos, ";");
-        uint16_t rtp_port = atoi(FindField(port_str.data(), NULL, "-").data());
-        uint16_t rtcp_port = atoi(FindField(port_str.data(), "-",NULL).data());
+    if (_rtp_type == Rtsp::RTP_TCP) {
+        int interleaved_rtp, interleaved_rtcp;
+        sscanf(transport_map["interleaved"].data(), "%d-%d", &interleaved_rtp, &interleaved_rtcp);
+        _sdp_track[track_idx]->_interleaved = interleaved_rtp;
+    } else {
+        auto port_str = transport_map[(_rtp_type == Rtsp::RTP_MULTICAST ? "port" : "server_port")];
+        int rtp_port, rtcp_port;
+        sscanf(port_str.data(), "%d-%d", &rtp_port, &rtcp_port);
         auto &pRtpSockRef = _rtp_sock[track_idx];
         auto &pRtcpSockRef = _rtcp_sock[track_idx];
 
         if (_rtp_type == Rtsp::RTP_MULTICAST) {
             //udp组播
-            auto multiAddr = FindField((strTransport + ";").data(), "destination=", ";");
+            auto multiAddr =  transport_map["destination"];
             pRtpSockRef = createSocket();
             if (!pRtpSockRef->bindUdpSock(rtp_port, multiAddr.data())) {
                 pRtpSockRef.reset();
@@ -383,7 +386,7 @@ void RtspPlayer::sendKeepAlive(){
     _on_response = [this](const Parser& parser){};
     if(_supported_cmd.find("GET_PARAMETER") != _supported_cmd.end()){
         //支持GET_PARAMETER，用此命令保活
-        sendRtspRequest("GET_PARAMETER", _play_url);
+        sendRtspRequest("GET_PARAMETER", _content_base);
     }else{
         //不支持GET_PARAMETER，用OPTIONS命令保活
         sendRtspRequest("OPTIONS", _play_url);
@@ -549,7 +552,7 @@ void RtspPlayer::sendReceiverReport(bool over_tcp, int track_idx){
 
     aui8Rtcp[0] = '$';
     aui8Rtcp[1] = track->_interleaved + 1;
-    aui8Rtcp[2] = (sizeof(aui8Rtcp) - 4) >>  8;
+    aui8Rtcp[2] = (sizeof(aui8Rtcp) - 4) >> 8;
     aui8Rtcp[3] = (sizeof(aui8Rtcp) - 4) & 0xFF;
 
     pui8Rtcp_RR[0] = 0x81;/* 1 report block */
@@ -557,11 +560,13 @@ void RtspPlayer::sendReceiverReport(bool over_tcp, int track_idx){
     pui8Rtcp_RR[2] = 0x00;
     pui8Rtcp_RR[3] = 0x07;/* length in words - 1 */
 
-    uint32_t ssrc=htonl(track->_ssrc + 1);
+    auto track_ssrc = track->_ssrc ? track->_ssrc : getSSRC(track_idx);
     // our own SSRC: we use the server's SSRC + 1 to avoid conflicts
+    uint32_t ssrc = htonl(track_ssrc + 1);
     memcpy(&pui8Rtcp_RR[4], &ssrc, 4);
-    ssrc=htonl(track->_ssrc);
+
     // server SSRC
+    ssrc = htonl(track_ssrc);
     memcpy(&pui8Rtcp_RR[8], &ssrc, 4);
 
     //FIXME: 8 bits of fraction, 24 bits of total packets lost
@@ -577,9 +582,9 @@ void RtspPlayer::sendReceiverReport(bool over_tcp, int track_idx){
     pui8Rtcp_RR[18] = counter.pktCnt >> 8;
     pui8Rtcp_RR[19] = counter.pktCnt & 0xFF;
 
-    uint32_t  jitter = htonl(getJitterSize(track_idx));
+    uint32_t jitter = htonl(getJitterSize(track_idx));
     //FIXME: jitter
-    memcpy(pui8Rtcp_RR + 20, &jitter , 4);
+    memcpy(pui8Rtcp_RR + 20, &jitter, 4);
     /* last SR timestamp */
     memcpy(pui8Rtcp_RR + 24, &counter.lastTimeStamp, 4);
     uint32_t msInc = htonl(ntohl(counter.timeStamp) - ntohl(counter.lastTimeStamp));
