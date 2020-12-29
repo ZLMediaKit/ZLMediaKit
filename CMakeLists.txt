@@ -15,6 +15,40 @@ else()
     message(STATUS "Debug版本")
 endif()
 
+# 添加git版本信息
+set(COMMIT_HASH "Git_NotFound_Unkown_commit")
+set(BRANCH_NAME "Git_NotFound_Unkown_branch")
+set(BUILD_TIME "")
+
+string(TIMESTAMP BUILD_TIME "%Y/%m/%d-%H:%M:%S")
+
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(
+            COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%H
+            OUTPUT_VARIABLE COMMIT_HASH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+    execute_process(
+            COMMAND ${GIT_EXECUTABLE} symbolic-ref --short -q HEAD
+            OUTPUT_VARIABLE BRANCH_NAME
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endif()
+
+message(STATUS "Git version is ${BRANCH_NAME}:${COMMIT_HASH}:${BUILD_TIME}")
+
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/version.h.ini
+        ${CMAKE_BINARY_DIR}/Version.h
+        @ONLY
+)
+include_directories(${CMAKE_BINARY_DIR})
+
 #设置bin和lib库目录
 set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release)
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")

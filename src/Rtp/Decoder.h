@@ -72,6 +72,7 @@ private:
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;
     FrameMerger _merger;
+    Ticker _last_unsported_print;
 };
 
 }//namespace mediakit

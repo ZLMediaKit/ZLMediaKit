@@ -27,6 +27,7 @@
 #include "Rtp/RtpServer.h"
 #include "WebApi.h"
 #include "WebHook.h"
+#include "Version.h"
 
 #if !defined(_WIN32)
 #include "System.h"
@@ -154,6 +155,18 @@ public:
                              false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
                              "MediaServerId自定义值",/*该选项说明文字*/
                              nullptr);
+        (*_parser) << Option('v', "version", Option::ArgNone, nullptr ,false, "显示版本号",
+                             [this](const std::shared_ptr<ostream> &stream, const string &arg){
+                                 //版本信息
+                                 *stream << "当前版本信息:" << std::endl;
+                                 *stream << "编译日期: " << build_time << std::endl;
+                                 *stream << "当前git分支: " << branch_name << std::endl;
+                                 *stream << "当前git hash值: " << commit_hash << std::endl;
+                                 stringstream ss;
+                                 ss << "\n输入\"-h\"选项获取更详细帮助";
+                                 throw std::invalid_argument(ss.str());
+                                 return false;
+                             });
     }
 
     virtual ~CMD_main() {}
