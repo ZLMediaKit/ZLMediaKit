@@ -385,7 +385,7 @@ void RtspPlayer::sendOptions(){
 }
 
 void RtspPlayer::sendKeepAlive(){
-    _on_response = [this](const Parser& parser){};
+    _on_response = [](const Parser &parser) {};
     if(_supported_cmd.find("GET_PARAMETER") != _supported_cmd.end()){
         //支持GET_PARAMETER，用此命令保活
         sendRtspRequest("GET_PARAMETER", _content_base);
@@ -728,20 +728,25 @@ void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &tra
     RtcpCounter &counter = _rtcp_counter[track_idx];
     counter.pktCnt = rtp->sequence;
     auto &ticker = _rtcp_send_ticker[track_idx];
-    if (ticker.elapsedTime() > 5 * 1000) {
-        //send rtcp every 5 second
-        counter.lastTimeStamp = counter.timeStamp;
-        //直接保存网络字节序
-        memcpy(&counter.timeStamp, rtp->data() + 8, 4);
-        if (counter.lastTimeStamp != 0) {
-            sendReceiverReport(_rtp_type == Rtsp::RTP_TCP, track_idx);
-            ticker.resetTime();
-        }
-
-        //有些rtsp服务器需要rtcp保活，有些需要发送信令保活
-        if (track_idx == 0) {
-            //只需要发送一次心跳信令包
-            sendKeepAlive();
+    if (ticker.elapsedTime() > 3 * 1000) {
+        //每3秒发送一次心跳，rtcp与rtsp信令轮流心跳，该特性用于兼容issue:642
+        if (_send_rtcp) {
+            counter.lastTimeStamp = counter.timeStamp;
+            //直接保存网络字节序
+            memcpy(&counter.timeStamp, rtp->data() + 8, 4);
+            if (counter.lastTimeStamp != 0) {
+                sendReceiverReport(_rtp_type == Rtsp::RTP_TCP, track_idx);
+                ticker.resetTime();
+                _send_rtcp = false;
+            }
+        } else {
+            //有些rtsp服务器需要rtcp保活，有些需要发送信令保活
+            if (track_idx == 0) {
+                //只需要发送一次心跳信令包
+                sendKeepAlive();
+                ticker.resetTime();
+                _send_rtcp = true;
+            }
         }
     }
 }
