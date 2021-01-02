@@ -221,6 +221,7 @@ bash build_docker_images.sh
 [Luke](automan@easydarwin.org>)
 [大裤衩](3503207480@qq.com>)
 [droid.chow](droid.chow@gmail.com>)
+[陈晓林](https://github.com/musicwood)
 
 ## 使用案例
 
