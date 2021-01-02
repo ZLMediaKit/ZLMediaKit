@@ -116,7 +116,7 @@ private:
     bool emitHttpEvent(bool doInvoke);
     void urlDecode(Parser &parser);
     void sendNotFound(bool bClose);
-    void sendResponse(const char *pcStatus, bool bClose, const char *pcContentType = nullptr,
+    void sendResponse(int code, bool bClose, const char *pcContentType = nullptr,
                       const HttpSession::KeyValue &header = HttpSession::KeyValue(),
                       const HttpBody::Ptr &body = nullptr, bool no_content_length = false);
 

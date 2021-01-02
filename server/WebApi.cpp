@@ -62,7 +62,7 @@ static void responseApi(const Json::Value &res, const HttpSession::HttpResponseI
     GET_CONFIG(string, charSet, Http::kCharSet);
     HttpSession::KeyValue headerOut;
     headerOut["Content-Type"] = string("application/json; charset=") + charSet;
-    invoker("200 OK", headerOut, res.toStyledString());
+    invoker(200, headerOut, res.toStyledString());
 };
 
 static void responseApi(int code, const string &msg, const HttpSession::HttpResponseInvoker &invoker){
@@ -92,7 +92,7 @@ static HttpApi toApi(const function<void(API_ARGS_MAP_ASYNC)> &cb) {
 static HttpApi toApi(const function<void(API_ARGS_MAP)> &cb) {
     return toApi([cb](API_ARGS_MAP_ASYNC) {
         cb(API_ARGS_VALUE);
-        invoker("200 OK", headerOut, val.toStyledString());
+        invoker(200, headerOut, val.toStyledString());
     });
 }
 
@@ -120,7 +120,7 @@ static HttpApi toApi(const function<void(API_ARGS_JSON_ASYNC)> &cb) {
 static HttpApi toApi(const function<void(API_ARGS_JSON)> &cb) {
     return toApi([cb](API_ARGS_JSON_ASYNC) {
         cb(API_ARGS_VALUE);
-        invoker("200 OK", headerOut, val.toStyledString());
+        invoker(200, headerOut, val.toStyledString());
     });
 }
 
@@ -182,7 +182,7 @@ static inline void addHttpListener(){
         consumed = true;
 
         if(api_debug){
-            auto newInvoker = [invoker, parser](const string &codeOut,
+            auto newInvoker = [invoker, parser](int code,
                                                 const HttpSession::KeyValue &headerOut,
                                                 const HttpBody::Ptr &body) {
 
@@ -199,13 +199,13 @@ static inline void addHttpListener(){
                            << "# content:\r\n" << parser.Content() << "\r\n"
                            << "# response:\r\n"
                            << contentOut << "\r\n";
-                    invoker(codeOut, headerOut, contentOut);
+                    invoker(code, headerOut, contentOut);
                 } else {
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
                            << "# content:\r\n" << parser.Content() << "\r\n"
                            << "# response size:"
                            << size << "\r\n";
-                    invoker(codeOut, headerOut, body);
+                    invoker(code, headerOut, body);
                 }
             };
             ((HttpSession::HttpResponseInvoker &) invoker) = newInvoker;
@@ -268,7 +268,7 @@ void installWebApi() {
                 val["data"].append(obj);
             }
             val["code"] = API::Success;
-            invoker("200 OK", headerOut, val.toStyledString());
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 
@@ -286,7 +286,7 @@ void installWebApi() {
                 val["data"].append(obj);
             }
             val["code"] = API::Success;
-            invoker("200 OK", headerOut, val.toStyledString());
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 
@@ -649,7 +649,7 @@ void installWebApi() {
                            }else{
                                const_cast<Value &>(val)["data"]["key"] = key;
                            }
-                           invoker("200 OK", headerOut, val.toStyledString());
+                           invoker(200, headerOut, val.toStyledString());
                        });
     });
 
@@ -712,7 +712,7 @@ void installWebApi() {
             } else {
                 const_cast<Value &>(val)["data"]["key"] = key;
             }
-            invoker("200 OK", headerOut, val.toStyledString());
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 
@@ -818,7 +818,7 @@ void installWebApi() {
                 const_cast<Value &>(val)["msg"] = ex.what();
             }
             const_cast<Value &>(val)["local_port"] = local_port;
-            invoker("200 OK", headerOut, val.toStyledString());
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 
@@ -1092,7 +1092,7 @@ void installWebApi() {
                             }else{
                                 const_cast<Value &>(val)["data"]["key"] = key;
                             }
-                            invoker("200 OK", headerOut, val.toStyledString());
+                            invoker(200, headerOut, val.toStyledString());
                         });
     });
 #endif//!defined(_WIN32)
@@ -1117,7 +1117,7 @@ void installWebApi() {
                            }else{
                                const_cast<Value &>(val)["data"]["key"] = key;
                            }
-                           invoker("200 OK", headerOut, val.toStyledString());
+                           invoker(200, headerOut, val.toStyledString());
                        });
     });
 
