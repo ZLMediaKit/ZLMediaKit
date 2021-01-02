@@ -83,7 +83,7 @@ public:
     // 获取所有track相关信息
     virtual vector<Track::Ptr> getTracks(MediaSource &sender, bool trackReady = true) const { return vector<Track::Ptr>(); };
     // 开始发送ps-rtp
-    virtual void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(const SockException &ex)> &cb) { cb(SockException(Err_other, "not implemented"));};
+    virtual void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb) { cb(0, SockException(Err_other, "not implemented"));};
     // 停止发送ps-rtp
     virtual bool stopSendRtp(MediaSource &sender, const string &ssrc) {return false; }
 
@@ -112,7 +112,7 @@ public:
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) override;
     bool isRecording(MediaSource &sender, Recorder::type type) override;
     vector<Track::Ptr> getTracks(MediaSource &sender, bool trackReady = true) const override;
-    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(const SockException &ex)> &cb) override;
+    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb) override;
     bool stopSendRtp(MediaSource &sender, const string &ssrc) override;
 
 private:
@@ -256,7 +256,7 @@ public:
     // 获取录制状态
     bool isRecording(Recorder::type type);
     // 开始发送ps-rtp
-    void startSendRtp(const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(const SockException &ex)> &cb);
+    void startSendRtp(const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb);
     // 停止发送ps-rtp
     bool stopSendRtp(const string &ssrc);
 

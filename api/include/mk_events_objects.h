@@ -118,7 +118,7 @@ API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32
 /**
  * rtp推流成功与否的回调(第一次成功后，后面将一直重试)
  */
-typedef void(API_CALL *on_mk_media_source_send_rtp_result)(void *user_data, int err, const char *msg);
+typedef void(API_CALL *on_mk_media_source_send_rtp_result)(void *user_data, uint16_t local_port, int err, const char *msg);
 
 //MediaSource::startSendRtp,请参考mk_media_start_send_rtp,注意ctx参数类型不一样
 API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data);
