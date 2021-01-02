@@ -15,6 +15,7 @@
 #include <iomanip>
 #include "HttpFileManager.h"
 #include "Util/File.h"
+#include "HttpConst.h"
 #include "HttpSession.h"
 #include "Record/HlsMediaSource.h"
 
@@ -47,132 +48,8 @@ public:
     bool _have_find_media_source = false;
 };
 
-static const char *s_mime_src[][2] = {
-        {"html", "text/html"},
-        {"htm", "text/html"},
-        {"shtml", "text/html"},
-        {"css", "text/css"},
-        {"xml", "text/xml"},
-        {"gif", "image/gif"},
-        {"jpeg", "image/jpeg"},
-        {"jpg", "image/jpeg"},
-        {"js", "application/javascript"},
-        {"map", "application/javascript" },
-        {"atom", "application/atom+xml"},
-        {"rss", "application/rss+xml"},
-        {"mml", "text/mathml"},
-        {"txt", "text/plain"},
-        {"jad", "text/vnd.sun.j2me.app-descriptor"},
-        {"wml", "text/vnd.wap.wml"},
-        {"htc", "text/x-component"},
-        {"png", "image/png"},
-        {"tif", "image/tiff"},
-        {"tiff", "image/tiff"},
-        {"wbmp", "image/vnd.wap.wbmp"},
-        {"ico", "image/x-icon"},
-        {"jng", "image/x-jng"},
-        {"bmp", "image/x-ms-bmp"},
-        {"svg", "image/svg+xml"},
-        {"svgz", "image/svg+xml"},
-        {"webp", "image/webp"},
-        {"woff", "application/font-woff"},
-        {"woff2","application/font-woff" },
-        {"jar", "application/java-archive"},
-        {"war", "application/java-archive"},
-        {"ear", "application/java-archive"},
-        {"json", "application/json"},
-        {"hqx", "application/mac-binhex40"},
-        {"doc", "application/msword"},
-        {"pdf", "application/pdf"},
-        {"ps", "application/postscript"},
-        {"eps", "application/postscript"},
-        {"ai", "application/postscript"},
-        {"rtf", "application/rtf"},
-        {"m3u8", "application/vnd.apple.mpegurl"},
-        {"xls", "application/vnd.ms-excel"},
-        {"eot", "application/vnd.ms-fontobject"},
-        {"ppt", "application/vnd.ms-powerpoint"},
-        {"wmlc", "application/vnd.wap.wmlc"},
-        {"kml", "application/vnd.google-earth.kml+xml"},
-        {"kmz", "application/vnd.google-earth.kmz"},
-        {"7z", "application/x-7z-compressed"},
-        {"cco", "application/x-cocoa"},
-        {"jardiff", "application/x-java-archive-diff"},
-        {"jnlp", "application/x-java-jnlp-file"},
-        {"run", "application/x-makeself"},
-        {"pl", "application/x-perl"},
-        {"pm", "application/x-perl"},
-        {"prc", "application/x-pilot"},
-        {"pdb", "application/x-pilot"},
-        {"rar", "application/x-rar-compressed"},
-        {"rpm", "application/x-redhat-package-manager"},
-        {"sea", "application/x-sea"},
-        {"swf", "application/x-shockwave-flash"},
-        {"sit", "application/x-stuffit"},
-        {"tcl", "application/x-tcl"},
-        {"tk", "application/x-tcl"},
-        {"der", "application/x-x509-ca-cert"},
-        {"pem", "application/x-x509-ca-cert"},
-        {"crt", "application/x-x509-ca-cert"},
-        {"xpi", "application/x-xpinstall"},
-        {"xhtml", "application/xhtml+xml"},
-        {"xspf", "application/xspf+xml"},
-        {"zip", "application/zip"},
-        {"bin", "application/octet-stream"},
-        {"exe", "application/octet-stream"},
-        {"dll", "application/octet-stream"},
-        {"deb", "application/octet-stream"},
-        {"dmg", "application/octet-stream"},
-        {"iso", "application/octet-stream"},
-        {"img", "application/octet-stream"},
-        {"msi", "application/octet-stream"},
-        {"msp", "application/octet-stream"},
-        {"msm", "application/octet-stream"},
-        {"docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
-        {"xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
-        {"pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"},
-        {"mid", "audio/midi"},
-        {"midi", "audio/midi"},
-        {"kar", "audio/midi"},
-        {"mp3", "audio/mpeg"},
-        {"ogg", "audio/ogg"},
-        {"m4a", "audio/x-m4a"},
-        {"ra", "audio/x-realaudio"},
-        {"3gpp", "video/3gpp"},
-        {"3gp", "video/3gpp"},
-        {"ts", "video/mp2t"},
-        {"mp4", "video/mp4"},
-        {"mpeg", "video/mpeg"},
-        {"mpg", "video/mpeg"},
-        {"mov", "video/quicktime"},
-        {"webm", "video/webm"},
-        {"flv", "video/x-flv"},
-        {"m4v", "video/x-m4v"},
-        {"mng", "video/x-mng"},
-        {"asx", "video/x-ms-asf"},
-        {"asf", "video/x-ms-asf"},
-        {"wmv", "video/x-ms-wmv"},
-        {"avi", "video/x-msvideo"},
-};
-
 const string &HttpFileManager::getContentType(const char *name) {
-    const char *dot;
-    dot = strrchr(name, '.');
-    static StrCaseMap mapType;
-    static onceToken token([&]() {
-        for (unsigned int i = 0; i < sizeof(s_mime_src) / sizeof(s_mime_src[0]); ++i) {
-            mapType.emplace(s_mime_src[i][0], s_mime_src[i][1]);
-        }
-    });
-    static string defaultType = "text/plain";
-    if (!dot) {
-        return defaultType;
-    }
-    auto it = mapType.find(dot + 1);
-    if (it == mapType.end()) {
-        return defaultType;
-    }
-    return it->second;
+    return getHttpContentType(name);
 }
 
 static string searchIndexFile(const string &dir){
@@ -460,7 +337,7 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
  */
 static void sendNotFound(const HttpFileManager::invoker &cb) {
     GET_CONFIG(string, notFound, Http::kNotFound);
-    cb("404 Not Found", "text/html", StrCaseMap(), std::make_shared<HttpStringBody>(notFound));
+    cb(404, "text/html", StrCaseMap(), std::make_shared<HttpStringBody>(notFound));
 }
 
 /**
@@ -511,7 +388,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                 auto lck = cookie->getLock();
                 headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
             }
-            cb("401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
+            cb(401, "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
             return;
         }
 
@@ -521,7 +398,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                 auto lck = cookie->getLock();
                 httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
             }
-            HttpSession::HttpResponseInvoker invoker = [&](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
+            HttpSession::HttpResponseInvoker invoker = [&](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
                 if (cookie && file_exist) {
                     auto lck = cookie->getLock();
                     auto is_hls = (*cookie)[kCookieName].get<HttpCookieAttachment>()._is_hls;
@@ -529,7 +406,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                         (*cookie)[kCookieName].get<HttpCookieAttachment>()._hls_data->addByteUsage(body->remainSize());
                     }
                 }
-                cb(codeOut.data(), HttpFileManager::getContentType(strFile.data()), headerOut, body);
+                cb(code, HttpFileManager::getContentType(strFile.data()), headerOut, body);
             };
             invoker.responseFile(parser.getHeader(), httpHeader, strFile);
         };
@@ -625,7 +502,7 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
             if (cookie) {
                 headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
             }
-            cb(errMsg.empty() ? "200 OK" : "401 Unauthorized", "text/html", headerOut, std::make_shared<HttpStringBody>(strMenu));
+            cb(errMsg.empty() ? 200 : 401, "text/html", headerOut, std::make_shared<HttpStringBody>(strMenu));
         });
         return;
     }
@@ -637,14 +514,14 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
 
 ////////////////////////////////////HttpResponseInvokerImp//////////////////////////////////////
 
-void HttpResponseInvokerImp::operator()(const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const{
+void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const{
     if (_lambad) {
-        _lambad(codeOut, headerOut, body);
+        _lambad(code, headerOut, body);
     }
 }
 
-void HttpResponseInvokerImp::operator()(const string &codeOut, const StrCaseMap &headerOut, const string &body) const{
-    this->operator()(codeOut, headerOut, std::make_shared<HttpStringBody>(body));
+void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, const string &body) const{
+    this->operator()(code, headerOut, std::make_shared<HttpStringBody>(body));
 }
 
 HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::HttpResponseInvokerLambda0 &lambda){
@@ -656,12 +533,12 @@ HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::Htt
         _lambad = nullptr;
         return;
     }
-    _lambad = [lambda](const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
+    _lambad = [lambda](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
         string str;
         if (body && body->remainSize()) {
             str = body->readData(body->remainSize())->toString();
         }
-        lambda(codeOut, headerOut, str);
+        lambda(code, headerOut, str);
     };
 }
 
@@ -682,7 +559,7 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
 
         auto strContentType = StrPrinter << "text/html; charset=" << charSet << endl;
         httpHeader["Content-Type"] = strContentType;
-        (*this)("404 Not Found", httpHeader, notFound);
+        (*this)(404, httpHeader, notFound);
         return;
     }
 
@@ -691,14 +568,14 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     int64_t iRangeEnd = 0;
     int64_t fileSize = HttpMultiFormBody::fileSize(fp.get());
 
-    const char *pcHttpResult = NULL;
+    int code = NULL;
     if (strRange.size() == 0) {
         //全部下载
-        pcHttpResult = "200 OK";
+        code = 200;
         iRangeEnd = fileSize - 1;
     } else {
         //分节下载
-        pcHttpResult = "206 Partial Content";
+        code = 206;
         iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
         iRangeEnd = atoll(FindField(strRange.data(), "-", "\r\n").data());
         if (iRangeEnd == 0) {
@@ -710,7 +587,7 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
 
     //回复文件
     HttpBody::Ptr fileBody = std::make_shared<HttpFileBody>(fp, iRangeStart, iRangeEnd - iRangeStart + 1);
-    (*this)(pcHttpResult, httpHeader, fileBody);
+    (*this)(code, httpHeader, fileBody);
 }
 
 HttpResponseInvokerImp::operator bool(){

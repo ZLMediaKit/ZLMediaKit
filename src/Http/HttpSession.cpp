@@ -14,6 +14,7 @@
 #include "Common/config.h"
 #include "strCoding.h"
 #include "HttpSession.h"
+#include "HttpConst.h"
 #include "Util/base64.h"
 #include "Util/SHA1.h"
 using namespace toolkit;
@@ -34,7 +35,7 @@ void HttpSession::Handle_Req_HEAD(int64_t &content_len){
     //暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
     //如果直接返回404，那么又会导致按需生成流的逻辑失效，所以HTTP HEAD在静态文件或者已存在资源时才有效
     //对于按需生成流的直播场景并不适用
-    sendResponse("200 OK", true);
+    sendResponse(200, true);
 }
 
 int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
@@ -52,7 +53,7 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
     auto it = s_func_map.find(cmd);
     if (it == s_func_map.end()) {
         WarnP(this) << "不支持该命令:" << cmd;
-        sendResponse("405 Not Allowed", true);
+        sendResponse(405, true);
         return 0;
     }
 
@@ -139,7 +140,7 @@ bool HttpSession::checkWebSocket(){
 
     auto res_cb = [this, headerOut]() {
         _live_over_websocket = true;
-        sendResponse("101 Switching Protocols", false, nullptr, headerOut, nullptr, true);
+        sendResponse(101, false, nullptr, headerOut, nullptr, true);
     };
 
     //判断是否为websocket-flv
@@ -162,10 +163,10 @@ bool HttpSession::checkWebSocket(){
 
     //这是普通的websocket连接
     if (!onWebSocketConnect(_parser)) {
-        sendResponse("501 Not Implemented", true, nullptr, headerOut);
+        sendResponse(501, true, nullptr, headerOut);
         return true;
     }
-    sendResponse("101 Switching Protocols", false, nullptr, headerOut, nullptr, true);
+    sendResponse(101, false, nullptr, headerOut, nullptr, true);
     return true;
 }
 
@@ -198,7 +199,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
 
         if (!err.empty()) {
             //播放鉴权失败
-            strong_self->sendResponse("401 Unauthorized", close_flag, nullptr, KeyValue(), std::make_shared<HttpStringBody>(err));
+            strong_self->sendResponse(401, close_flag, nullptr, KeyValue(), std::make_shared<HttpStringBody>(err));
             return;
         }
 
@@ -245,7 +246,7 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb){
         assert(fmp4_src);
         if (!cb) {
             //找到源，发送http头，负载后续发送
-            sendResponse("200 OK", false, HttpFileManager::getContentType(".mp4").data(), KeyValue(), nullptr, true);
+            sendResponse(200, false, HttpFileManager::getContentType(".mp4").data(), KeyValue(), nullptr, true);
         } else {
             //自定义发送http头
             cb();
@@ -286,7 +287,7 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
         assert(ts_src);
         if (!cb) {
             //找到源，发送http头，负载后续发送
-            sendResponse("200 OK", false, HttpFileManager::getContentType(".ts").data(), KeyValue(), nullptr, true);
+            sendResponse(200, false, HttpFileManager::getContentType(".ts").data(), KeyValue(), nullptr, true);
         } else {
             //自定义发送http头
             cb();
@@ -326,7 +327,7 @@ bool HttpSession::checkLiveStreamFlv(const function<void()> &cb){
         assert(rtmp_src);
         if (!cb) {
             //找到源，发送http头，负载后续发送
-            sendResponse("200 OK", false, HttpFileManager::getContentType(".flv").data(), KeyValue(), nullptr, true);
+            sendResponse(200, false, HttpFileManager::getContentType(".flv").data(), KeyValue(), nullptr, true);
         } else {
             //自定义发送http头
             cb();
@@ -375,18 +376,18 @@ void HttpSession::Handle_Req_GET_l(int64_t &content_len, bool sendBody) {
 
     bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-    HttpFileManager::onAccessPath(*this, _parser, [weakSelf, bClose](const string &status_code, const string &content_type,
+    HttpFileManager::onAccessPath(*this, _parser, [weakSelf, bClose](int code, const string &content_type,
                                                                      const StrCaseMap &responseHeader, const HttpBody::Ptr &body) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
             return;
         }
-        strongSelf->async([weakSelf, bClose, status_code, content_type, responseHeader, body]() {
+        strongSelf->async([weakSelf, bClose, code, content_type, responseHeader, body]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return;
             }
-            strongSelf->sendResponse(status_code.data(), bClose, content_type.data(), responseHeader, body);
+            strongSelf->sendResponse(code, bClose, content_type.data(), responseHeader, body);
         });
     });
 }
@@ -480,7 +481,7 @@ static const string kContentLength = "Content-Length";
 static const string kAccessControlAllowOrigin = "Access-Control-Allow-Origin";
 static const string kAccessControlAllowCredentials = "Access-Control-Allow-Credentials";
 
-void HttpSession::sendResponse(const char *pcStatus,
+void HttpSession::sendResponse(int code,
                                bool bClose,
                                const char *pcContentType,
                                const HttpSession::KeyValue &header,
@@ -543,7 +544,7 @@ void HttpSession::sendResponse(const char *pcStatus,
     string str;
     str.reserve(256);
     str += "HTTP/1.1 " ;
-    str += pcStatus ;
+    str += getHttpStatusMessage(code) ;
     str += "\r\n";
     for (auto &pr : header) {
         str += pr.first ;
@@ -558,7 +559,7 @@ void HttpSession::sendResponse(const char *pcStatus,
     if(!size){
         //没有body
         if(bClose){
-            shutdown(SockException(Err_shutdown,StrPrinter << "close connection after send http header completed with status code:" << pcStatus));
+            shutdown(SockException(Err_shutdown,StrPrinter << "close connection after send http header completed with status code:" << code));
         }
         return;
     }
@@ -600,18 +601,18 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
     bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
     /////////////////////异步回复Invoker///////////////////////////////
     weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-    HttpResponseInvoker invoker = [weakSelf,bClose](const string &codeOut, const KeyValue &headerOut, const HttpBody::Ptr &body){
+    HttpResponseInvoker invoker = [weakSelf,bClose](int code, const KeyValue &headerOut, const HttpBody::Ptr &body){
         auto strongSelf = weakSelf.lock();
         if(!strongSelf) {
             return;
         }
-        strongSelf->async([weakSelf,bClose,codeOut,headerOut,body]() {
+        strongSelf->async([weakSelf, bClose, code, headerOut, body]() {
             auto strongSelf = weakSelf.lock();
-            if(!strongSelf) {
+            if (!strongSelf) {
                 //本对象已经销毁
                 return;
             }
-            strongSelf->sendResponse(codeOut.data(), bClose, nullptr, headerOut, body);
+            strongSelf->sendResponse(code, bClose, nullptr, headerOut, body);
         });
     };
     ///////////////////广播HTTP事件///////////////////////////
@@ -619,7 +620,7 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest,_parser,invoker,consumed,static_cast<SockInfo &>(*this));
     if(!consumed && doInvoke){
         //该事件无人消费，所以返回404
-        invoker("404 Not Found",KeyValue(), HttpBody::Ptr());
+        invoker(404,KeyValue(), HttpBody::Ptr());
     }
     return consumed;
 }
@@ -690,7 +691,7 @@ void HttpSession::Handle_Req_POST(int64_t &content_len) {
 
 void HttpSession::sendNotFound(bool bClose) {
     GET_CONFIG(string,notFound,Http::kNotFound);
-    sendResponse("404 Not Found", bClose,"text/html",KeyValue(),std::make_shared<HttpStringBody>(notFound));
+    sendResponse(404, bClose,"text/html",KeyValue(),std::make_shared<HttpStringBody>(notFound));
 }
 
 void HttpSession::setSocketFlags(){

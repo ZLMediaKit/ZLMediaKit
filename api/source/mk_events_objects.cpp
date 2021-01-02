@@ -288,7 +288,7 @@ API_EXPORT void API_CALL mk_http_body_release(mk_http_body ctx){
 
 ///////////////////////////////////////////HttpResponseInvoker/////////////////////////////////////////////
 API_EXPORT void API_CALL mk_http_response_invoker_do_string(const mk_http_response_invoker ctx,
-                                                            const char *response_code,
+                                                            int response_code,
                                                             const char **response_header,
                                                             const char *response_content){
     assert(ctx && response_code && response_header && response_content);
@@ -308,7 +308,7 @@ API_EXPORT void API_CALL mk_http_response_invoker_do_file(const mk_http_response
 }
 
 API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invoker ctx,
-                                                     const char *response_code,
+                                                     int response_code,
                                                      const char **response_header,
                                                      const mk_http_body response_body){
     assert(ctx && response_code && response_header && response_body);
