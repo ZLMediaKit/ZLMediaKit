@@ -432,13 +432,16 @@ void installWebApi() {
         CHECK_SECRET();
         //获取所有MediaSource列表
         MediaSource::for_each_media([&](const MediaSource::Ptr &media){
-            if(!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()){
+            if (!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()) {
                 return;
             }
-            if(!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()){
+            if (!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()) {
                 return;
             }
-            if(!allArgs["app"].empty() && allArgs["app"] != media->getApp()){
+            if (!allArgs["app"].empty() && allArgs["app"] != media->getApp()) {
+                return;
+            }
+            if (!allArgs["stream"].empty() && allArgs["stream"] != media->getId()) {
                 return;
             }
             val["data"].append(makeMediaSourceJson(media));
