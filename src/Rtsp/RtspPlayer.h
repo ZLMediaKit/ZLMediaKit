@@ -109,6 +109,11 @@ private:
     void createUdpSockIfNecessary(int track_idx);
 
 private:
+    //是否为性能测试模式
+    bool _benchmark_mode = false;
+    //轮流发送rtcp与GET_PARAMETER保活
+    bool _send_rtcp = true;
+
     string _play_url;
     vector<SdpTrack::Ptr> _sdp_track;
     function<void(const Parser&)> _on_response;
@@ -142,9 +147,6 @@ private:
     RtcpCounter _rtcp_counter[2];
     //rtcp发送时间,trackid idx 为数组下标
     Ticker _rtcp_send_ticker[2];
-
-    //是否为性能测试模式
-    bool _benchmark_mode = false;
 
     //服务器支持的命令
     set<string> _supported_cmd;
