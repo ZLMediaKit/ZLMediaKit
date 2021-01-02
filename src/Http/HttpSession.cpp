@@ -544,6 +544,8 @@ void HttpSession::sendResponse(int code,
     string str;
     str.reserve(256);
     str += "HTTP/1.1 " ;
+    str += to_string(code);
+    str += ' ';
     str += getHttpStatusMessage(code) ;
     str += "\r\n";
     for (auto &pr : header) {
