@@ -568,7 +568,7 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     int64_t iRangeEnd = 0;
     int64_t fileSize = HttpMultiFormBody::fileSize(fp.get());
 
-    int code = NULL;
+    int code;
     if (strRange.size() == 0) {
         //全部下载
         code = 200;
