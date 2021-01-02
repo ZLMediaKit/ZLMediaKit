@@ -256,6 +256,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     }
     if (track_idx == 0) {
         _session_id = parser["Session"];
+        _session_id.append(";");
+        _session_id = FindField(_session_id.data(), nullptr, ";");
     }
 
     auto strTransport = parser["Transport"];
