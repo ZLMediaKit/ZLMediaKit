@@ -193,9 +193,9 @@ API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_u
     assert(ctx && dst_url && ssrc);
     MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
     //sender参数无用
-    (*obj)->getChannel()->startSendRtp(*(MediaSource *) 1, dst_url, dst_port, ssrc, is_udp, 0, [cb, user_data](const SockException &ex){
+    (*obj)->getChannel()->startSendRtp(*(MediaSource *) 1, dst_url, dst_port, ssrc, is_udp, 0, [cb, user_data](uint16_t local_port, const SockException &ex){
         if (cb) {
-            cb(user_data, ex.getErrCode(), ex.what());
+            cb(user_data, local_port, ex.getErrCode(), ex.what());
         }
     });
 }
