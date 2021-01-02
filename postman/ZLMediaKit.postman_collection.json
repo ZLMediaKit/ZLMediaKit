@@ -205,6 +205,12 @@
 							"value": null,
 							"description": "筛选应用名，例如 live",
 							"disabled": true
+						},
+						{
+							"key": "stream",
+							"value": null,
+							"description": "筛选流id，例如 test",
+							"disabled": true
 						}
 					]
 				}
