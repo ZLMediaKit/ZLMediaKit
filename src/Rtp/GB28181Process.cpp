@@ -37,11 +37,18 @@ bool GB28181Process::inputRtp(bool, const char *data, int data_len) {
 void GB28181Process::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
     if (!_rtp_decoder) {
         switch (rtp->PT) {
-            case 33:
-            case 96: {
+            case 98: {
+                //H264负载
+                _rtp_decoder = std::make_shared<H264RtpDecoder>();
+                _interface->addTrack(std::make_shared<H264Track>());
+                break;
+            }
+            default: {
+                if (rtp->PT != 33 && rtp->PT != 96) {
+                    WarnL << "rtp payload type未识别(" << (int) rtp->PT << "),已按ts或ps负载处理";
+                }
                 //ts或ps负载
                 _rtp_decoder = std::make_shared<CommonRtpDecoder>(CodecInvalid, 256 * 1024);
-
                 //设置dump目录
                 GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
                 if (!dump_dir.empty()) {
@@ -54,17 +61,6 @@ void GB28181Process::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
                 }
                 break;
             }
-
-            case 98: {
-                //H264负载
-                _rtp_decoder = std::make_shared<H264RtpDecoder>();
-                _interface->addTrack(std::make_shared<H264Track>());
-                break;
-            }
-
-            default:
-                WarnL << "不支持的rtp负载类型:" << (int) rtp->PT;
-                return;
         }
 
         //设置frame回调
