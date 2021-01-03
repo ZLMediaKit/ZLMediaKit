@@ -179,7 +179,7 @@ void API_CALL on_mk_http_request(const mk_parser parser,
                     "</body>"
                     "</html>";
     mk_http_body body = mk_http_body_from_string(content,0);
-    mk_http_response_invoker_do(invoker, "200 OK", response_header, body);
+    mk_http_response_invoker_do(invoker, 200, response_header, body);
     mk_http_body_release(body);
 }
 

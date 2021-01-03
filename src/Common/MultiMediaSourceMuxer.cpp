@@ -347,7 +347,7 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const string &dst_
         strong_self->_rtp_sender[ssrc] = rtp_sender;
     });
 #else
-    cb(SockException(Err_other, "该功能未启用，编译时请打开ENABLE_RTPPROXY宏"));
+    cb(0, SockException(Err_other, "该功能未启用，编译时请打开ENABLE_RTPPROXY宏"));
 #endif//ENABLE_RTPPROXY
 }
 
