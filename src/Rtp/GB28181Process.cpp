@@ -48,7 +48,7 @@ void GB28181Process::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
                     WarnL << "rtp payload type未识别(" << (int) rtp->PT << "),已按ts或ps负载处理";
                 }
                 //ts或ps负载
-                _rtp_decoder = std::make_shared<CommonRtpDecoder>(CodecInvalid, 256 * 1024);
+                _rtp_decoder = std::make_shared<CommonRtpDecoder>(CodecInvalid, 32 * 1024);
                 //设置dump目录
                 GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
                 if (!dump_dir.empty()) {
