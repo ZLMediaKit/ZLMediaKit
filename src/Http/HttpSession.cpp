@@ -334,6 +334,21 @@ bool HttpSession::checkLiveStreamFlv(const function<void()> &cb){
         }
         //直播牺牲延时提升发送性能
         setSocketFlags();
+
+        //非H264/AAC时打印警告日志，防止用户提无效问题
+        auto tracks = src->getTracks(false);
+        for (auto &track : tracks) {
+            switch (track->getCodecId()) {
+                case CodecH264:
+                case CodecAAC:
+                    break;
+                default: {
+                    WarnP(this) << "flv播放器一般只支持H264和AAC编码,该编码格式可能不被播放器支持:" << track->getCodecName();
+                    break;
+                }
+            }
+        }
+
         start(getPoller(), rtmp_src);
     });
 }
