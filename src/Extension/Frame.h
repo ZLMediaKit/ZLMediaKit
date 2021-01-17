@@ -195,8 +195,10 @@ private:
 template <typename T>
 class ResourcePoolHelper{
 public:
-    ResourcePoolHelper(int size = 8){
-        _pool.setSize(size);
+    ResourcePoolHelper(int size = 0){
+        if (size > 0) {
+            _pool.setSize(size);
+        }
     }
     virtual ~ResourcePoolHelper(){}
 
