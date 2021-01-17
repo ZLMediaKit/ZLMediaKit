@@ -133,7 +133,7 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         //创建rtmp数据接收超时检测定时器
         _rtmp_recv_timer = std::make_shared<Timer>(timeout_ms / 2000.0, lam, getPoller());
     } else {
-        teardown();
+        shutdown(SockException(Err_shutdown,"teardown"));
     }
 }
 
