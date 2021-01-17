@@ -102,6 +102,7 @@ private:
     void sendSetup(unsigned int track_idx);
     void sendPause(int type , uint32_t ms);
     void sendDescribe();
+    void sendTeardown();
     void sendKeepAlive();
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
     void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);

@@ -116,9 +116,11 @@ private:
     }
 
     void popIterator(typename map<SEQ, T>::iterator it) {
-        _cb(it->first, it->second);
-        _next_seq_out = it->first + 1;
+        auto seq = it->first;
+        auto data = std::move(it->second);
         _rtp_sort_cache_map.erase(it);
+        _next_seq_out = seq + 1;
+        _cb(seq, data);
     }
 
     void tryPopPacket() {
