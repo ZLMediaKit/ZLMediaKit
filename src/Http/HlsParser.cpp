@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2020 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -129,7 +129,7 @@ int HlsParser::getTargetDur() const {
     return _target_dur;
 }
 
-int HlsParser::getSequence() const {
+int64_t HlsParser::getSequence() const {
     return _sequence;
 }
 

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2020 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -12,7 +12,7 @@
 namespace mediakit {
 
 HlsPlayer::HlsPlayer(const EventPoller::Ptr &poller){
-    _segment.setOnSegment([this](const char *data, uint64_t len) { onPacket(data, len); });
+    _segment.setOnSegment([this](const char *data, size_t len) { onPacket(data, len); });
     setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 
@@ -28,7 +28,7 @@ void HlsPlayer::play_l(){
         teardown_l(SockException(Err_shutdown, "所有hls url都尝试播放失败!"));
         return;
     }
-    float playTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0;
+    float playTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     setMethod("GET");
     if(!(*this)[kNetAdapter].empty()) {
         setNetAdapter((*this)[kNetAdapter]);
@@ -83,7 +83,7 @@ void HlsPlayer::playNextTs(bool force){
             strongSelf->playNextTs(true);
         } else {
             //下一个切片慢点播放
-            strongSelf->_timer_ts.reset(new Timer(delay / 1000.0, [weakSelf, delay]() {
+            strongSelf->_timer_ts.reset(new Timer(delay / 1000.0f, [weakSelf, delay]() {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
                     return false;
@@ -94,7 +94,7 @@ void HlsPlayer::playNextTs(bool force){
         }
     });
 
-    _http_ts_player->setOnPacket([weakSelf](const char *data, uint64_t len) {
+    _http_ts_player->setOnPacket([weakSelf](const char *data, size_t len) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
             return;
@@ -153,7 +153,7 @@ void HlsPlayer::onParsed(bool is_m3u8_inner,int64_t sequence,const map<int,ts_se
     }
 }
 
-int64_t HlsPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
+size_t HlsPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
     if (status != "200" && status != "206") {
         //失败
         teardown_l(SockException(Err_shutdown, StrPrinter << "bad http status code:" + status));
@@ -164,7 +164,7 @@ int64_t HlsPlayer::onResponseHeader(const string &status, const HttpClient::Http
     return -1;
 }
 
-void HlsPlayer::onResponseBody(const char *buf, int64_t size, int64_t recvedSize, int64_t totalSize) {
+void HlsPlayer::onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) {
     if (recvedSize == size) {
         //刚开始
         _m3u8.clear();
@@ -186,9 +186,9 @@ void HlsPlayer::onResponseCompleted() {
 
 float HlsPlayer::delaySecond(){
     if (HlsParser::isM3u8() && HlsParser::getTargetDur() > 0) {
-        return HlsParser::getTargetDur();
+        return (float)HlsParser::getTargetDur();
     }
-    return 1;
+    return 1.0f;
 }
 
 void HlsPlayer::onDisconnect(const SockException &ex) {
@@ -232,7 +232,7 @@ void HlsPlayer::playDelay(){
     }, getPoller()));
 }
 
-void HlsPlayer::onPacket_l(const char *data, uint64_t len){
+void HlsPlayer::onPacket_l(const char *data, size_t len){
     _segment.input(data,len);
 }
 
@@ -246,7 +246,7 @@ void HlsPlayerImp::setOnPacket(const TSSegment::onSegment &cb){
     _on_ts = cb;
 }
 
-void HlsPlayerImp::onPacket(const char *data,uint64_t len) {
+void HlsPlayerImp::onPacket(const char *data,size_t len) {
     if (_on_ts) {
         _on_ts(data, len);
     }
@@ -276,7 +276,7 @@ void HlsPlayerImp::onPlayResult(const SockException &ex) {
 
         weak_ptr<HlsPlayerImp> weakSelf = dynamic_pointer_cast<HlsPlayerImp>(shared_from_this());
         //每50毫秒执行一次
-        _timer = std::make_shared<Timer>(0.05, [weakSelf]() {
+        _timer = std::make_shared<Timer>(0.05f, [weakSelf]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return false;

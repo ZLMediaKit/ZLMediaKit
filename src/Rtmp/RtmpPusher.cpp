@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -92,7 +92,7 @@ void RtmpPusher::publish(const string &url)  {
     }
 
     weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
-    float publishTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
+    float publishTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0f;
     _publish_timer.reset(new Timer(publishTimeOutSec, [weakSelf]() {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -210,8 +210,8 @@ inline void RtmpPusher::send_metaData(){
             return;
         }
 
-        int i = 0;
-        int size = pkt->size();
+        size_t i = 0;
+        auto size = pkt->size();
         strong_self->setSendFlushFlag(false);
         pkt->for_each([&](const RtmpPacket::Ptr &rtmp) {
             if (++i == size) {

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -29,7 +29,7 @@ using namespace toolkit;
 #include <openssl/hmac.h>
 #include <openssl/opensslv.h>
 
-static string openssl_HMACsha256(const void *key, unsigned int key_len, const void *data,unsigned int data_len){
+static string openssl_HMACsha256(const void *key, size_t key_len, const void *data, size_t data_len){
     std::shared_ptr<char> out(new char[32], [](char *ptr) { delete[] ptr; });
     unsigned int out_len;
 
@@ -37,7 +37,7 @@ static string openssl_HMACsha256(const void *key, unsigned int key_len, const vo
     //openssl 1.1.0新增api，老版本api作废
     HMAC_CTX *ctx = HMAC_CTX_new();
     HMAC_CTX_reset(ctx);
-    HMAC_Init_ex(ctx, key, key_len, EVP_sha256(), NULL);
+    HMAC_Init_ex(ctx, key, (int)key_len, EVP_sha256(), NULL);
     HMAC_Update(ctx, (unsigned char*)data, data_len);
     HMAC_Final(ctx, (unsigned char *)out.get(), &out_len);
     HMAC_CTX_reset(ctx);
@@ -57,7 +57,7 @@ static string openssl_HMACsha256(const void *key, unsigned int key_len, const vo
 namespace mediakit {
 
 RtmpProtocol::RtmpProtocol() {
-    _next_step_func = [this](const char *data, uint64_t len) {
+    _next_step_func = [this](const char *data, size_t len) {
         return handle_C0C1(data, len);
     };
 }
@@ -86,7 +86,7 @@ void RtmpProtocol::reset() {
     //////////Rtmp parser//////////
     HttpRequestSplitter::reset();
     _stream_index = STREAM_CONTROL;
-    _next_step_func = [this](const char *data, uint64_t len) {
+    _next_step_func = [this](const char *data, size_t len) {
         return handle_C0C1(data, len);
     };
 }
@@ -172,7 +172,7 @@ void RtmpProtocol::sendRequest(int cmd, const string& str) {
 
 class BufferPartial : public Buffer {
 public:
-    BufferPartial(const Buffer::Ptr &buffer, uint32_t offset, uint32_t size){
+    BufferPartial(const Buffer::Ptr &buffer, size_t offset, size_t size){
         _buffer = buffer;
         _data = buffer->data() + offset;
         _size = size;
@@ -184,13 +184,13 @@ public:
         return _data;
     }
 
-    uint32_t size() const override{
+    size_t size() const override{
         return _size;
     }
 
 private:
     char *_data;
-    uint32_t _size;
+    size_t _size;
     Buffer::Ptr _buffer;
 };
 
@@ -215,7 +215,7 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::P
     header->flags = (chunk_id & 0x3f) | (0 << 6);
     header->type_id = type;
     set_be24(header->time_stamp, ext_stamp ? 0xFFFFFF : stamp);
-    set_be24(header->body_size, buf->size());
+    set_be24(header->body_size, (uint32_t)buf->size());
     set_le32(header->stream_index, stream_index);
     //发送rtmp头
     onSendRawData(std::move(buffer_header));
@@ -237,7 +237,7 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::P
     buffer_flags->data()[0] = (chunk_id & 0x3f) | (3 << 6);
 
     size_t offset = 0;
-    uint32_t totalSize = sizeof(RtmpHeader);
+    size_t totalSize = sizeof(RtmpHeader);
     while (offset < buf->size()) {
         if (offset) {
             onSendRawData(buffer_flags);
@@ -253,18 +253,18 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::P
         totalSize += chunk;
         offset += chunk;
     }
-    _bytes_sent += totalSize;
+    _bytes_sent += (uint32_t)totalSize;
     if (_windows_size > 0 && _bytes_sent - _bytes_sent_last >= _windows_size) {
         _bytes_sent_last = _bytes_sent;
         sendAcknowledgement(_bytes_sent);
     }
 }
 
-void RtmpProtocol::onParseRtmp(const char *data, uint64_t size) {
+void RtmpProtocol::onParseRtmp(const char *data, size_t size) {
     input(data, size);
 }
 
-const char *RtmpProtocol::onSearchPacketTail(const char *data,uint64_t len){
+const char *RtmpProtocol::onSearchPacketTail(const char *data,size_t len){
     //移动拷贝提高性能
     auto next_step_func(std::move(_next_step_func));
     //执行下一步
@@ -283,13 +283,13 @@ void RtmpProtocol::startClientSession(const function<void()> &func) {
     onSendRawData(obtainBuffer(&handshake_head, 1));
     RtmpHandshake c1(0);
     onSendRawData(obtainBuffer((char *) (&c1), sizeof(c1)));
-    _next_step_func = [this, func](const char *data, uint64_t len) {
+    _next_step_func = [this, func](const char *data, size_t len) {
         //等待 S0+S1+S2
         return handle_S0S1S2(data, len, func);
     };
 }
 
-const char* RtmpProtocol::handle_S0S1S2(const char *data, uint64_t len, const function<void()> &func) {
+const char* RtmpProtocol::handle_S0S1S2(const char *data, size_t len, const function<void()> &func) {
     if (len < 1 + 2 * C1_HANDSHARK_SIZE) {
         //数据不够
         return nullptr;
@@ -301,7 +301,7 @@ const char* RtmpProtocol::handle_S0S1S2(const char *data, uint64_t len, const fu
     const char *pcC2 = data + 1;
     onSendRawData(obtainBuffer(pcC2, C1_HANDSHARK_SIZE));
     //握手结束
-    _next_step_func = [this](const char *data, uint64_t len) {
+    _next_step_func = [this](const char *data, size_t len) {
         //握手结束并且开始进入解析命令模式
         return handle_rtmp(data, len);
     };
@@ -310,7 +310,7 @@ const char* RtmpProtocol::handle_S0S1S2(const char *data, uint64_t len, const fu
 }
 
 ////for server ////
-const char * RtmpProtocol::handle_C0C1(const char *data, uint64_t len) {
+const char * RtmpProtocol::handle_C0C1(const char *data, size_t len) {
     if (len < 1 + C1_HANDSHARK_SIZE) {
         //need more data!
         return nullptr;
@@ -343,7 +343,7 @@ void RtmpProtocol::handle_C1_simple(const char *data){
     //发送S2
     onSendRawData(obtainBuffer(data + 1, C1_HANDSHARK_SIZE));
     //等待C2
-    _next_step_func = [this](const char *data, uint64_t len) {
+    _next_step_func = [this](const char *data, size_t len) {
         //握手结束并且开始进入解析命令模式
         return handle_C2(data, len);
     };
@@ -370,7 +370,7 @@ void RtmpProtocol::handle_C1_complex(const char *data){
 
         send_complex_S0S1S2(0, digest);
 //		InfoL << "schema0";
-    } catch (std::exception &ex) {
+    } catch (std::exception &) {
         //貌似flash从来都不用schema1
 //		WarnL << "try rtmp complex schema0 failed:" <<  ex.what();
         try {
@@ -387,7 +387,7 @@ void RtmpProtocol::handle_C1_complex(const char *data){
 
             send_complex_S0S1S2(1, digest);
 //			InfoL << "schema1";
-        } catch (std::exception &ex) {
+        } catch (std::exception &) {
 //			WarnL << "try rtmp complex schema1 failed:" <<  ex.what();
             handle_C1_simple(data);
         }
@@ -506,18 +506,18 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
     memcpy((char *) &s2 + C1_HANDSHARK_SIZE - C1_DIGEST_SIZE, s2_digest.data(), C1_DIGEST_SIZE);
     onSendRawData(obtainBuffer((char *) &s2, sizeof(s2)));
     //等待C2
-    _next_step_func = [this](const char *data, uint64_t len) {
+    _next_step_func = [this](const char *data, size_t len) {
         return handle_C2(data, len);
     };
 }
 #endif //ENABLE_OPENSSL
 
-const char* RtmpProtocol::handle_C2(const char *data, uint64_t len) {
+const char* RtmpProtocol::handle_C2(const char *data, size_t len) {
     if (len < C1_HANDSHARK_SIZE) {
         //need more data!
         return nullptr;
     }
-    _next_step_func = [this](const char *data, uint64_t len) {
+    _next_step_func = [this](const char *data, size_t len) {
         return handle_rtmp(data, len);
     };
 
@@ -527,7 +527,7 @@ const char* RtmpProtocol::handle_C2(const char *data, uint64_t len) {
 
 static const size_t HEADER_LENGTH[] = {12, 8, 4, 1};
 
-const char* RtmpProtocol::handle_rtmp(const char *data, uint64_t len) {
+const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
     auto ptr = data;
     while (len) {
         int offset = 0;
@@ -757,7 +757,7 @@ BufferRaw::Ptr RtmpProtocol::obtainBuffer() {
     return std::make_shared<BufferRaw>() ;//_bufferPool.obtain();
 }
 
-BufferRaw::Ptr RtmpProtocol::obtainBuffer(const void *data, int len) {
+BufferRaw::Ptr RtmpProtocol::obtainBuffer(const void *data, size_t len) {
     auto buffer = obtainBuffer();
     buffer->assign((const char *) data, len);
     return buffer;

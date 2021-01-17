@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -12,12 +12,12 @@
 
 namespace mediakit{
 
-string FindField(const char* buf, const char* start, const char *end ,int bufSize) {
+string FindField(const char* buf, const char* start, const char *end ,size_t bufSize) {
     if(bufSize <=0 ){
         bufSize = strlen(buf);
     }
     const char *msg_start = buf, *msg_end = buf + bufSize;
-    int len = 0;
+    size_t len = 0;
     if (start != NULL) {
         len = strlen(start);
         msg_start = strstr(buf, start);

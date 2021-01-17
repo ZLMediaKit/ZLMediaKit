@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -31,15 +31,15 @@ HttpSession::~HttpSession() {
     TraceP(this);
 }
 
-void HttpSession::Handle_Req_HEAD(int64_t &content_len){
+void HttpSession::Handle_Req_HEAD(size_t &content_len){
     //暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
     //如果直接返回404，那么又会导致按需生成流的逻辑失效，所以HTTP HEAD在静态文件或者已存在资源时才有效
     //对于按需生成流的直播场景并不适用
     sendResponse(200, true);
 }
 
-int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
-    typedef void (HttpSession::*HttpCMDHandle)(int64_t &);
+size_t HttpSession::onRecvHeader(const char *header,size_t len) {
+    typedef void (HttpSession::*HttpCMDHandle)(size_t &);
     static unordered_map<string, HttpCMDHandle> s_func_map;
     static onceToken token([]() {
         s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
@@ -61,7 +61,7 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
     _origin = _parser["Origin"];
 
     //默认后面数据不是content而是header
-    int64_t content_len = 0;
+    size_t content_len = 0;
     auto &fun = it->second;
     try {
         (this->*fun)(content_len);
@@ -75,7 +75,7 @@ int64_t HttpSession::onRecvHeader(const char *header,uint64_t len) {
     return content_len;
 }
 
-void HttpSession::onRecvContent(const char *data,uint64_t len) {
+void HttpSession::onRecvContent(const char *data,size_t len) {
     if(_contentCallBack){
         if(!_contentCallBack(data,len)){
             _contentCallBack = nullptr;
@@ -271,8 +271,8 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb){
                 //本对象已经销毁
                 return;
             }
-            int i = 0;
-            int size = fmp4_list->size();
+            size_t i = 0;
+            auto size = fmp4_list->size();
             fmp4_list->for_each([&](const FMP4Packet::Ptr &ts) {
                 strong_self->onWrite(ts, ++i == size);
             });
@@ -311,8 +311,8 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
                 //本对象已经销毁
                 return;
             }
-            int i = 0;
-            int size = ts_list->size();
+            size_t i = 0;
+            auto size = ts_list->size();
             ts_list->for_each([&](const TSPacket::Ptr &ts) {
                 strong_self->onWrite(ts, ++i == size);
             });
@@ -353,15 +353,15 @@ bool HttpSession::checkLiveStreamFlv(const function<void()> &cb){
     });
 }
 
-void HttpSession::Handle_Req_GET(int64_t &content_len) {
+void HttpSession::Handle_Req_GET(size_t &content_len) {
     Handle_Req_GET_l(content_len, true);
 }
 
-void HttpSession::Handle_Req_GET_l(int64_t &content_len, bool sendBody) {
+void HttpSession::Handle_Req_GET_l(size_t &content_len, bool sendBody) {
     //先看看是否为WebSocket请求
     if (checkWebSocket()) {
         content_len = -1;
-        _contentCallBack = [this](const char *data, uint64_t len) {
+        _contentCallBack = [this](const char *data, size_t len) {
             WebSocketSplitter::decode((uint8_t *) data, len);
             //_contentCallBack是可持续的，后面还要处理后续数据
             return true;
@@ -506,7 +506,7 @@ void HttpSession::sendResponse(int code,
     GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
 
     //body默认为空
-    int64_t size = 0;
+    size_t size = 0;
     if (body && body->remainSize()) {
         //有body，获取body大小
         size = body->remainSize();
@@ -515,7 +515,7 @@ void HttpSession::sendResponse(int code,
     if(no_content_length){
         //http-flv直播是Keep-Alive类型
         bClose = false;
-    }else if(size >= INT64_MAX){
+    }else if(size >= INT64_MAX || size < 0 ){
         //不固定长度的body，那么发送完body后应该关闭socket，以便浏览器做下载完毕的判断
         bClose = true;
     }
@@ -642,10 +642,10 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
     return consumed;
 }
 
-void HttpSession::Handle_Req_POST(int64_t &content_len) {
-    GET_CONFIG(uint64_t,maxReqSize,Http::kMaxReqSize);
+void HttpSession::Handle_Req_POST(size_t &content_len) {
+    GET_CONFIG(size_t,maxReqSize,Http::kMaxReqSize);
 
-    int64_t totalContentLen = _parser["Content-Length"].empty() ? -1 : atoll(_parser["Content-Length"].data());
+    size_t totalContentLen = _parser["Content-Length"].empty() ? -1 : atoll(_parser["Content-Length"].data());
 
     if(totalContentLen == 0){
         //content为空
@@ -658,7 +658,7 @@ void HttpSession::Handle_Req_POST(int64_t &content_len) {
         //返回固定长度的content
         content_len = totalContentLen;
         auto parserCopy = _parser;
-        _contentCallBack = [this,parserCopy](const char *data,uint64_t len){
+        _contentCallBack = [this,parserCopy](const char *data,size_t len){
             //恢复http头
             _parser = parserCopy;
             //设置content
@@ -674,10 +674,10 @@ void HttpSession::Handle_Req_POST(int64_t &content_len) {
         //返回不固定长度的content
         content_len = -1;
         auto parserCopy = _parser;
-        std::shared_ptr<uint64_t> recvedContentLen = std::make_shared<uint64_t>(0);
+        std::shared_ptr<size_t> recvedContentLen = std::make_shared<uint64_t>(0);
         bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
 
-        _contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const char *data,uint64_t len){
+        _contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const char *data,size_t len){
             *(recvedContentLen) += len;
 
             onRecvUnlimitedContent(parserCopy,data,len,totalContentLen,*(recvedContentLen));

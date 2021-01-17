@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -13,7 +13,7 @@
 
 namespace mediakit{
     
-const char *HttpChunkedSplitter::onSearchPacketTail(const char *data, uint64_t len) {
+const char *HttpChunkedSplitter::onSearchPacketTail(const char *data, size_t len) {
     auto pos = strstr(data,"\r\n");
     if(!pos){
         return nullptr;
@@ -21,11 +21,11 @@ const char *HttpChunkedSplitter::onSearchPacketTail(const char *data, uint64_t l
     return pos + 2;
 }
 
-void HttpChunkedSplitter::onRecvContent(const char *data, uint64_t len) {
+void HttpChunkedSplitter::onRecvContent(const char *data, size_t len) {
     onRecvChunk(data,len - 2);
 }
 
-int64_t HttpChunkedSplitter::onRecvHeader(const char *data, uint64_t len) {
+size_t HttpChunkedSplitter::onRecvHeader(const char *data, size_t len) {
     string str(data,len - 2);
     int ret;
     sscanf(str.data(),"%X",&ret);

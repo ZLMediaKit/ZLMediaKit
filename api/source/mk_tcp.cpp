@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -51,7 +51,7 @@ API_EXPORT void API_CALL mk_tcp_session_shutdown(const mk_tcp_session ctx,int er
     session->safeShutdown(SockException((ErrCode)err,err_msg));
 }
 
-API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx,const char *data,int len){
+API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx,const char *data, size_t len){
     assert(ctx && data);
     if(!len){
         len = strlen(data);
@@ -60,7 +60,7 @@ API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx,const char
     session->SockSender::send(data,len);
 }
 
-API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const char *data,int len){
+API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const char *data,size_t len){
     assert(ctx && data);
     if(!len){
         len = strlen(data);

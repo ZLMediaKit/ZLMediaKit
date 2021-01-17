@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -31,22 +31,22 @@ void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto iLen = frame->size() - frame->prefixSize();
 
     uiStamp %= cycleMS;
-    char *ptr = (char *) pcData;
-    int iSize = iLen;
+    auto *ptr = (char *) pcData;
+    auto iSize = iLen;
     while (iSize > 0) {
         if (iSize <= _ui32MtuSize - 20) {
             _aucSectionBuf[0] = 0;
             _aucSectionBuf[1] = 16;
-            _aucSectionBuf[2] = iLen >> 5;
-            _aucSectionBuf[3] = (iLen & 0x1F) << 3;
+            _aucSectionBuf[2] = (iLen >> 5) & 0xFF;
+            _aucSectionBuf[3] = ((iLen & 0x1F) << 3) & 0xFF;
             memcpy(_aucSectionBuf + 4, ptr, iSize);
             makeAACRtp(_aucSectionBuf, iSize + 4, true, uiStamp);
             break;
         }
         _aucSectionBuf[0] = 0;
         _aucSectionBuf[1] = 16;
-        _aucSectionBuf[2] = (iLen) >> 5;
-        _aucSectionBuf[3] = (iLen & 0x1F) << 3;
+        _aucSectionBuf[2] = ((iLen) >> 5) & 0xFF;
+        _aucSectionBuf[3] = ((iLen & 0x1F) << 3) & 0xFF;
         memcpy(_aucSectionBuf + 4, ptr, _ui32MtuSize - 20);
         makeAACRtp(_aucSectionBuf, _ui32MtuSize - 16, false, uiStamp);
         ptr += (_ui32MtuSize - 20);
@@ -54,7 +54,7 @@ void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 }
 
-void AACRtpEncoder::makeAACRtp(const void *data, unsigned int len, bool mark, uint32_t uiStamp) {
+void AACRtpEncoder::makeAACRtp(const void *data, size_t len, bool mark, uint32_t uiStamp) {
     RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, mark, uiStamp), false);
 }
 

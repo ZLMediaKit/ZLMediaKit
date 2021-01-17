@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -218,7 +218,7 @@ API_EXPORT int API_CALL mk_player_video_height(mk_player ctx) {
     return track ? track->getVideoHeight() : 0;
 }
 
-API_EXPORT int API_CALL mk_player_video_fps(mk_player ctx) {
+API_EXPORT float API_CALL mk_player_video_fps(mk_player ctx) {
     assert(ctx);
     MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
     auto track = dynamic_pointer_cast<VideoTrack>(obj->getTrack(TrackVideo));

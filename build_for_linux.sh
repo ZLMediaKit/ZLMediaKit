@@ -1,6 +1,6 @@
 #!/bin/bash
 cd ..
-git clone --depth=1 https://github.com/xiongziliang/ZLMediaKit.git
+git clone --depth=1 https://github.com/xia-chu/ZLMediaKit.git
 cd ZLMediaKit
 git submodule init
 git submodule update

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -19,13 +19,13 @@ HttpRequester::~HttpRequester(){
     
 }
 
-int64_t HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
+size_t HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
     _strRecvBody.clear();
     //无Content-Length字段时默认后面没有content
     return 0;
 }
     
-void HttpRequester::onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize) {
+void HttpRequester::onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) {
     _strRecvBody.append(buf,size);
 }
     

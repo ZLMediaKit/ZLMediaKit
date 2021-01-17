@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -127,8 +127,8 @@ void RtpSender::onFlushRtpList(shared_ptr<List<Buffer::Ptr> > rtp_list) {
     auto is_udp = _is_udp;
     auto socket = _socket;
     _poller->async([rtp_list, is_udp, socket]() {
-        int i = 0;
-        int size = rtp_list->size();
+        size_t i = 0;
+        auto size = rtp_list->size();
         rtp_list->for_each([&](Buffer::Ptr &packet) {
             if (is_udp) {
                 //udp模式，rtp over tcp前4个字节可以忽略
@@ -152,7 +152,7 @@ void RtpSender::onErr(const SockException &ex, bool is_connect) {
     }
 
     weak_ptr<RtpSender> weak_self = shared_from_this();
-    _connect_timer = std::make_shared<Timer>(10.0, [weak_self]() {
+    _connect_timer = std::make_shared<Timer>(10.0f, [weak_self]() {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return false;

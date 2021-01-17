@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -178,7 +178,7 @@ double AMFValue::as_number() const {
 int AMFValue::as_integer() const {
     switch (_type) {
         case AMF_NUMBER:
-            return _value.number;
+            return (int)_value.number;
         case AMF_INTEGER:
             return _value.integer;
         case AMF_BOOLEAN:
@@ -319,7 +319,9 @@ enum {
 AMFEncoder & AMFEncoder::operator <<(const char *s) {
     if (s) {
         buf += char(AMF0_STRING);
-        uint16_t str_len = htons(strlen(s));
+        auto len = strlen(s);
+        assert(len <= 0xFFFF);
+        uint16_t str_len = htons((uint16_t)len);
         buf.append((char *) &str_len, 2);
         buf += s;
     } else {
@@ -331,7 +333,8 @@ AMFEncoder & AMFEncoder::operator <<(const char *s) {
 AMFEncoder & AMFEncoder::operator <<(const std::string &s) {
     if (!s.empty()) {
         buf += char(AMF0_STRING);
-        uint16_t str_len = htons(s.size());
+        assert(s.size() <= 0xFFFF);
+        uint16_t str_len = htons((uint16_t)s.size());
         buf.append((char *) &str_len, 2);
         buf += s;
     } else {
@@ -361,7 +364,7 @@ AMFEncoder & AMFEncoder::operator <<(const double n) {
     memcpy(&encoded, &n, 8);
     uint32_t val = htonl(encoded >> 32);
     buf.append((char *) &val, 4);
-    val = htonl(encoded);
+    val = htonl(encoded & 0xFFFFFFFF);
     buf.append((char *) &val, 4);
     return *this;
 }
@@ -398,7 +401,7 @@ AMFEncoder & AMFEncoder::operator <<(const AMFValue& value) {
         break;
     case AMF_ECMA_ARRAY: {
         buf += char(AMF0_ECMA_ARRAY);
-        uint32_t sz = htonl(value.getMap().size());
+        uint32_t sz = htonl((uint32_t)value.getMap().size());
         buf.append((char *) &sz, 4);
         for (auto &pr : value.getMap()) {
             write_key(pr.first);
@@ -416,7 +419,7 @@ AMFEncoder & AMFEncoder::operator <<(const AMFValue& value) {
         break;
     case AMF_STRICT_ARRAY: {
         buf += char(AMF0_STRICT_ARRAY);
-        uint32_t sz = htonl(value.getArr().size());
+        uint32_t sz = htonl((uint32_t)value.getArr().size());
         buf.append((char *) &sz, 4);
         for (auto &val : value.getArr()) {
             *this << val;
@@ -431,7 +434,8 @@ AMFEncoder & AMFEncoder::operator <<(const AMFValue& value) {
 }
 
 void AMFEncoder::write_key(const std::string& s) {
-    uint16_t str_len = htons(s.size());
+    assert(s.size() <= 0xFFFF);
+    uint16_t str_len = htons((uint16_t)s.size());
     buf.append((char *) &str_len, 2);
     buf += s;
 }
@@ -510,9 +514,9 @@ unsigned int AMFDecoder::load<unsigned int>() {
 template<>
 int AMFDecoder::load<int>() {
     if (version == 3) {
-        return load<unsigned int>();
+        return (int)load<unsigned int>();
     } else {
-        return load<double>();
+        return (int)load<double>();
     }
 }
 

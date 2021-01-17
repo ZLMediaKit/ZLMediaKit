@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -79,7 +79,7 @@ public:
         _list_cb.emplace_back(std::move(cb));
     }
 
-    void onSegmentSize(uint64_t bytes) {
+    void onSegmentSize(size_t bytes) {
         _speed[TrackVideo] += bytes;
     }
 
@@ -95,7 +95,7 @@ public:
     typedef std::shared_ptr<HlsCookieData> Ptr;
     HlsCookieData(const MediaInfo &info, const std::shared_ptr<SockInfo> &sock_info);
     ~HlsCookieData();
-    void addByteUsage(uint64_t bytes);
+    void addByteUsage(size_t bytes);
 
 private:
     void addReaderCount();

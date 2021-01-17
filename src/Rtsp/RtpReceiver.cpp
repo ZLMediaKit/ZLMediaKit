@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -30,7 +30,7 @@ RtpReceiver::RtpReceiver() {
 }
 RtpReceiver::~RtpReceiver() {}
 
-bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len) {
+bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, size_t rtp_raw_len) {
     if (rtp_raw_len < 12) {
         WarnL << "rtp包太小:" << rtp_raw_len;
         return false;
@@ -128,8 +128,8 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     uint8_t *payload_ptr = (uint8_t *) rtp.data();
     payload_ptr[0] = '$';
     payload_ptr[1] = rtp.interleaved;
-    payload_ptr[2] = rtp_raw_len >> 8;
-    payload_ptr[3] = (rtp_raw_len & 0x00FF);
+    payload_ptr[2] = (rtp_raw_len >> 8) & 0xFF;
+    payload_ptr[3] = rtp_raw_len & 0xFF;
     //添加rtp over tcp前4个字节的偏移量
     rtp.offset += 4;
     //拷贝rtp负载
@@ -148,15 +148,15 @@ void RtpReceiver::clear() {
     }
 }
 
-void RtpReceiver::setPoolSize(int size) {
+void RtpReceiver::setPoolSize(size_t size) {
     _rtp_pool.setSize(size);
 }
 
-int RtpReceiver::getJitterSize(int track_index) const{
+size_t RtpReceiver::getJitterSize(int track_index) const{
     return _rtp_sortor[track_index].getJitterSize();
 }
 
-int RtpReceiver::getCycleCount(int track_index) const{
+size_t RtpReceiver::getCycleCount(int track_index) const{
     return _rtp_sortor[track_index].getCycleCount();
 }
 

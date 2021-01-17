@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -21,7 +21,7 @@ class PSDecoder : public Decoder {
 public:
     PSDecoder();
     ~PSDecoder();
-    int input(const uint8_t* data, int bytes) override;
+    size_t input(const uint8_t* data, size_t bytes) override;
     void setOnDecode(onDecode cb) override;
     void setOnStream(onStream cb) override;
 

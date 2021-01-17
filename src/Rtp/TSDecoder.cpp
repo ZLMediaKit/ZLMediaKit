@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -11,7 +11,7 @@
 #include "TSDecoder.h"
 namespace mediakit {
 
-bool TSSegment::isTSPacket(const char *data, int len){
+bool TSSegment::isTSPacket(const char *data, size_t len){
     return len == TS_PACKET_SIZE && ((uint8_t*)data)[0] == TS_SYNC_BYTE;
 }
 
@@ -19,7 +19,7 @@ void TSSegment::setOnSegment(const TSSegment::onSegment &cb) {
     _onSegment = cb;
 }
 
-int64_t TSSegment::onRecvHeader(const char *data, uint64_t len) {
+size_t TSSegment::onRecvHeader(const char *data, size_t len) {
     if (!isTSPacket(data, len)) {
         WarnL << "不是ts包:" << (int) (data[0]) << " " << len;
         return 0;
@@ -28,7 +28,7 @@ int64_t TSSegment::onRecvHeader(const char *data, uint64_t len) {
     return 0;
 }
 
-const char *TSSegment::onSearchPacketTail(const char *data, uint64_t len) {
+const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
     if (len < _size + 1) {
         if (len == _size && ((uint8_t *) data)[0] == TS_SYNC_BYTE) {
             return data + _size;
@@ -51,7 +51,7 @@ const char *TSSegment::onSearchPacketTail(const char *data, uint64_t len) {
 #if defined(ENABLE_HLS)
 #include "mpeg-ts.h"
 TSDecoder::TSDecoder() : _ts_segment() {
-    _ts_segment.setOnSegment([this](const char *data,uint64_t len){
+    _ts_segment.setOnSegment([this](const char *data, size_t len){
         ts_demuxer_input(_demuxer_ctx,(uint8_t*)data,len);
     });
     _demuxer_ctx = ts_demuxer_create([](void* param, int program, int stream, int codecid, int flags, int64_t pts, int64_t dts, const void* data, size_t bytes){
@@ -77,7 +77,7 @@ TSDecoder::~TSDecoder() {
     ts_demuxer_destroy(_demuxer_ctx);
 }
 
-int TSDecoder::input(const uint8_t *data, int bytes) {
+size_t TSDecoder::input(const uint8_t *data, size_t bytes) {
     if (TSSegment::isTSPacket((char *)data, bytes)) {
         return ts_demuxer_input(_demuxer_ctx, (uint8_t *) data, bytes);
     }

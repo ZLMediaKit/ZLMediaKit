@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -15,6 +15,7 @@
 
 namespace mediakit{
 
+#ifndef ENABLE_MP4
 unsigned const samplingFrequencyTable[16] = { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350, 0, 0, 0 };
 
 class AdtsHeader{
@@ -91,8 +92,9 @@ static void parseAacConfig(const string &config, AdtsHeader &adts) {
     adts.adts_buffer_fullness = 2047;
     adts.no_raw_data_blocks_in_frame = 0;
 }
+#endif// ENABLE_MP4
 
-int getAacFrameLength(const uint8_t *data, int bytes) {
+int getAacFrameLength(const uint8_t *data, size_t bytes) {
     uint16_t len;
     if (bytes < 7) return -1;
     if (0xFF != data[0] || 0xF0 != (data[1] & 0xF0)) {
@@ -102,7 +104,7 @@ int getAacFrameLength(const uint8_t *data, int bytes) {
     return len;
 }
 
-string makeAacConfig(const uint8_t *hex, int length){
+string makeAacConfig(const uint8_t *hex, size_t length){
 #ifndef ENABLE_MP4
     if (!(hex[0] == 0xFF && (hex[1] & 0xF0) == 0xF0)) {
         return "";
@@ -140,11 +142,11 @@ string makeAacConfig(const uint8_t *hex, int length){
 #endif
 }
 
-int dumpAacConfig(const string &config, int length, uint8_t *out, int out_size) {
+int dumpAacConfig(const string &config, size_t length, uint8_t *out, size_t out_size) {
 #ifndef ENABLE_MP4
     AdtsHeader header;
     parseAacConfig(config, header);
-    header.aac_frame_length = ADTS_HEADER_LEN + length;
+    header.aac_frame_length = (decltype(header.aac_frame_length))(ADTS_HEADER_LEN + length);
     dumpAdtsHeader(header, out);
     return ADTS_HEADER_LEN;
 #else

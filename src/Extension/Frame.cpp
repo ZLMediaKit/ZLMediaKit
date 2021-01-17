@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -58,10 +58,10 @@ public:
     }
 
 private:
-    Frame::Ptr _frame;
-    BufferRaw::Ptr _buffer;
     bool _key;
     bool _config;
+    Frame::Ptr _frame;
+    BufferRaw::Ptr _buffer;
 };
 
 Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){

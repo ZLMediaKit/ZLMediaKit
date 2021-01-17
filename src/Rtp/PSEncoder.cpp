@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -142,7 +142,7 @@ void PSEncoder::inputFrame(const Frame::Ptr &frame) {
                     merged_frame = std::make_shared<BufferOffset<BufferLikeString> >(std::move(merged));
                 }
                 track_info.stamp.revise(back->dts(), back->pts(), dts_out, pts_out);
-                _timestamp = dts_out;
+                _timestamp = (uint32_t)dts_out;
                 ps_muxer_input(_muxer.get(), track_info.track_id, back->keyFrame() ? 0x0001 : 0, pts_out * 90LL,
                                dts_out * 90LL, merged_frame->data(), merged_frame->size());
                 _frameCached.clear();
@@ -160,7 +160,7 @@ void PSEncoder::inputFrame(const Frame::Ptr &frame) {
 
         default: {
             track_info.stamp.revise(frame->dts(), frame->pts(), dts_out, pts_out);
-            _timestamp = dts_out;
+            _timestamp = (uint32_t)dts_out;
             ps_muxer_input(_muxer.get(), track_info.track_id, frame->keyFrame() ? 0x0001 : 0, pts_out * 90LL,
                            dts_out * 90LL, frame->data(), frame->size());
         }

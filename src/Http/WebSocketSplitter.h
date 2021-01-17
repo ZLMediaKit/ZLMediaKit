@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -60,7 +60,7 @@ public:
     uint8_t _reserved;
     Type _opcode;
     bool _mask_flag;
-    uint64_t _payload_len;
+    size_t _payload_len;
     vector<uint8_t > _mask;
 };
 
@@ -71,7 +71,7 @@ public:
 
     template<typename ...ARGS>
     WebSocketBuffer(WebSocketHeader::Type headType, bool fin, ARGS &&...args)
-            : _head_type(headType), _fin(fin), BufferString(std::forward<ARGS>(args)...) {}
+            :  BufferString(std::forward<ARGS>(args)...), _fin(fin), _head_type(headType){}
 
     ~WebSocketBuffer() override {}
 
@@ -80,8 +80,8 @@ public:
     bool isFinished() const { return _fin; };
 
 private:
-    WebSocketHeader::Type _head_type;
     bool _fin;
+    WebSocketHeader::Type _head_type;
 };
 
 class WebSocketSplitter : public WebSocketHeader{

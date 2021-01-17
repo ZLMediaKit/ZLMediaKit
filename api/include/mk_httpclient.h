@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -129,7 +129,7 @@ API_EXPORT const char* API_CALL mk_http_requester_get_response_header(mk_http_re
  * @param length 返回body长度,可以为null
  * @return body指针
  */
-API_EXPORT const char* API_CALL mk_http_requester_get_response_body(mk_http_requester ctx, int *length);
+API_EXPORT const char* API_CALL mk_http_requester_get_response_body(mk_http_requester ctx, size_t *length);
 
 /**
  * 在收到HTTP回复后可调用该方法获取响应

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -31,7 +31,7 @@ API_EXPORT float API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx){
     return info->time_len;
 }
 
-API_EXPORT uint64_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx){
+API_EXPORT size_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx){
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->file_size;
@@ -115,7 +115,7 @@ API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const c
     Parser *parser = (Parser *)ctx;
     return parser->getHeader()[key].c_str();
 }
-API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, int *length){
+API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, size_t *length){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
     if(length){
@@ -246,7 +246,7 @@ API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_s
 }
 
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
-API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str,int len){
+API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str, size_t len){
     assert(str);
     if(!len){
         len = strlen(str);

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -25,7 +25,7 @@ void HttpCookie::setPath(const string &path){
 void HttpCookie::setHost(const string &host){
     _host = host;
 }
-static uint32_t timeStrToInt(const string &date){
+static time_t timeStrToInt(const string &date){
     struct tm tt;
     strptime(date.data(),"%a, %b %d %Y %H:%M:%S %Z",&tt);
     return mktime(&tt);
@@ -34,7 +34,6 @@ void HttpCookie::setExpires(const string &expires,const string &server_date){
     _expire = timeStrToInt(expires);
     if(!server_date.empty()){
         _expire =  time(NULL) + (_expire - timeStrToInt(server_date));
-//        DebugL <<  (timeStrToInt(expires) - timeStrToInt(server_date)) / 60;
     }
 }
 void HttpCookie::setKeyVal(const string &key,const string &val){

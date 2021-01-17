@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -56,7 +56,7 @@ void RtpSession::onManager() {
     }
 }
 
-void RtpSession::onRtpPacket(const char *data, uint64_t len) {
+void RtpSession::onRtpPacket(const char *data, size_t len) {
     if (len > 1024 * 10) {
         throw SockException(Err_shutdown, StrPrinter << "rtp包长度异常(" << len << ")，发送端可能缓存溢出并覆盖");
     }

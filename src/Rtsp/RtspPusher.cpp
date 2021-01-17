@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -76,7 +76,7 @@ void RtspPusher::publish(const string &url_str) {
            << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
     weak_ptr<RtspPusher> weak_self = dynamic_pointer_cast<RtspPusher>(shared_from_this());
-    float publish_timeout_sec = (*this)[kTimeoutMS].as<int>() / 1000.0;
+    float publish_timeout_sec = (*this)[kTimeoutMS].as<int>() / 1000.0f;
     _publish_timer.reset(new Timer(publish_timeout_sec, [weak_self]() {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -316,8 +316,8 @@ void RtspPusher::sendOptions() {
 inline void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
-            int i = 0;
-            int size = pkt->size();
+            size_t i = 0;
+            auto size = pkt->size();
             setSendFlushFlag(false);
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
                 if (++i == size) {
@@ -330,8 +330,8 @@ inline void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) 
         }
 
         case Rtsp::RTP_UDP: {
-            int i = 0;
-            int size = pkt->size();
+            size_t i = 0;
+            auto size = pkt->size();
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
                 int iTrackIndex = getTrackIndexByTrackType(rtp->type);
                 auto &pSock = _udp_socks[iTrackIndex];
@@ -385,7 +385,7 @@ void RtspPusher::sendRecord() {
         });
         if (_rtp_type != Rtsp::RTP_TCP) {
             /////////////////////////心跳/////////////////////////////////
-            _beat_timer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0, [weak_self]() {
+            _beat_timer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0f, [weak_self]() {
                 auto strong_self = weak_self.lock();
                 if (!strong_self) {
                     return false;
@@ -460,7 +460,7 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
             //base64认证
             string authStr = StrPrinter << (*this)[kRtspUser] << ":" << (*this)[kRtspPwd];
             char authStrBase64[1024] = {0};
-            av_base64_encode(authStrBase64, sizeof(authStrBase64), (uint8_t *) authStr.data(), authStr.size());
+            av_base64_encode(authStrBase64, sizeof(authStrBase64), (uint8_t *) authStr.data(), (int)authStr.size());
             header.emplace("Authorization", StrPrinter << "Basic " << authStrBase64);
         }
     }

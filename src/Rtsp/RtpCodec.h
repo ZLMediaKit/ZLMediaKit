@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -105,7 +105,7 @@ public:
     uint32_t getMtuSize() const {
         return _ui32MtuSize;
     }
-    RtpPacket::Ptr makeRtp(TrackType type,const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
+    RtpPacket::Ptr makeRtp(TrackType type,const void *data, size_t len, bool mark, uint32_t stamp);
 
 protected:
     uint32_t _ui32Ssrc;

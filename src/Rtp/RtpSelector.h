@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -46,7 +46,7 @@ public:
     RtpSelector();
     ~RtpSelector();
 
-    static bool getSSRC(const char *data,int data_len, uint32_t &ssrc);
+    static bool getSSRC(const char *data,size_t data_len, uint32_t &ssrc);
     static RtpSelector &Instance();
 
     /**
@@ -63,7 +63,7 @@ public:
      * @param dts_out 解析出最新的dts
      * @return 是否成功
      */
-    bool inputRtp(const Socket::Ptr &sock, const char *data, int data_len,
+    bool inputRtp(const Socket::Ptr &sock, const char *data, size_t data_len,
                   const struct sockaddr *addr, uint32_t *dts_out = nullptr);
 
     /**
@@ -86,9 +86,9 @@ private:
     void createTimer();
 
 private:
-    unordered_map<string,RtpProcessHelper::Ptr> _map_rtp_process;
-    recursive_mutex _mtx_map;
     Timer::Ptr _timer;
+    recursive_mutex _mtx_map;
+    unordered_map<string,RtpProcessHelper::Ptr> _map_rtp_process;
 };
 
 }//namespace mediakit

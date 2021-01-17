@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -33,12 +33,12 @@ public:
      * @param data_len rtp数据长度
      * @return 是否解析成功
      */
-    bool inputRtp(bool, const char *data, int data_len) override;
+    bool inputRtp(bool, const char *data, size_t data_len) override;
 
 protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
-    const char *onSearchPacketTail(const char *data,uint64_t len) override;
-    int64_t onRecvHeader(const char *data,uint64_t len) override { return 0; };
+    const char *onSearchPacketTail(const char *data,size_t len) override;
+    size_t onRecvHeader(const char *data,size_t len) override { return 0; };
 
 private:
     void onRtpDecode(const Frame::Ptr &frame);

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -54,17 +54,17 @@ DecoderImp::Ptr DecoderImp::createDecoder(Type type, MediaSinkInterface *sink){
     return DecoderImp::Ptr(new DecoderImp(decoder, sink));
 }
 
-int DecoderImp::input(const uint8_t *data, int bytes){
+size_t DecoderImp::input(const uint8_t *data, size_t bytes){
     return _decoder->input(data, bytes);
 }
 
 DecoderImp::DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink){
     _decoder = decoder;
     _sink = sink;
-    _decoder->setOnDecode([this](int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, int bytes) {
+    _decoder->setOnDecode([this](int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, size_t bytes) {
         onDecode(stream, codecid, flags, pts, dts, data, bytes);
     });
-    _decoder->setOnStream([this](int stream, int codecid, const void *extra, int bytes, int finish) {
+    _decoder->setOnStream([this](int stream, int codecid, const void *extra, size_t bytes, int finish) {
         onStream(stream, codecid, extra, bytes, finish);
     });
 }
@@ -118,7 +118,7 @@ void FrameMerger::inputFrame(const Frame::Ptr &frame,const function<void(uint32_
     _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
 }
 
-void DecoderImp::onStream(int stream, int codecid, const void *extra, int bytes, int finish){
+void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t bytes, int finish){
     switch (codecid) {
         case PSI_STREAM_H264: {
             InfoL << "got video track: H264";
@@ -171,13 +171,13 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, int bytes,
     }
 }
 
-void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {
+void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,size_t bytes) {
     pts /= 90;
     dts /= 90;
 
     switch (codecid) {
         case PSI_STREAM_H264: {
-            auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, dts, pts,0);
+            auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, (uint32_t)dts, (uint32_t)pts,0);
             _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
                 onFrame(std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
@@ -185,7 +185,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         case PSI_STREAM_H265: {
-            auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, dts, pts, 0);
+            auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, (uint32_t)dts, (uint32_t)pts, 0);
             _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
                 onFrame(std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
@@ -198,19 +198,19 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 //这不是aac
                 break;
             }
-            onFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data, bytes, dts, 0, ADTS_HEADER_LEN));
+            onFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data, bytes, (uint32_t)dts, 0, ADTS_HEADER_LEN));
             break;
         }
 
         case PSI_STREAM_AUDIO_G711A:
         case PSI_STREAM_AUDIO_G711U: {
             auto codec = codecid  == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
-            onFrame(std::make_shared<FrameFromPtr>(codec, (char *) data, bytes, dts));
+            onFrame(std::make_shared<FrameFromPtr>(codec, (char *) data, bytes, (uint32_t)dts));
             break;
         }
 
         case PSI_STREAM_AUDIO_OPUS: {
-            onFrame(std::make_shared<FrameFromPtr>(CodecOpus, (char *) data, bytes, dts));
+            onFrame(std::make_shared<FrameFromPtr>(CodecOpus, (char *) data, bytes, (uint32_t)dts));
             break;
         }
 
@@ -225,8 +225,8 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
     }
 }
 #else
-void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,int bytes) {}
-void DecoderImp::onStream(int stream,int codecid,const void *extra,int bytes,int finish) {}
+void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,size_t bytes) {}
+void DecoderImp::onStream(int stream,int codecid,const void *extra,size_t bytes,int finish) {}
 #endif
 
 void DecoderImp::onTrack(const Track::Ptr &track) {

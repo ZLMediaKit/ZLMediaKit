@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -27,16 +27,16 @@ protected:
      * @param data RTP包数据指针
      * @param len RTP包数据长度
      */
-    virtual void onRtpPacket(const char *data, uint64_t len) = 0;
+    virtual void onRtpPacket(const char *data, size_t len) = 0;
 
 protected:
-    int64_t onRecvHeader(const char *data, uint64_t len) override;
-    const char *onSearchPacketTail(const char *data, uint64_t len) override;
-    const char *onSearchPacketTail_l(const char *data, uint64_t len);
+    size_t onRecvHeader(const char *data, size_t len) override;
+    const char *onSearchPacketTail(const char *data, size_t len) override;
+    const char *onSearchPacketTail_l(const char *data, size_t len);
 
 private:
-    int _offset = 0;
     bool _is_ehome = false;
+    size_t _offset = 0;
 };
 
 }//namespace mediakit

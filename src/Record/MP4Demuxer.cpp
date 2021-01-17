@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -225,9 +225,9 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 offset += (frame_len + 4);
             }
             if (codec == CodecH264) {
-                return std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, dts, pts, 4, DATA_OFFSET);
+                return std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
             }
-            return std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, dts, pts, 4, DATA_OFFSET);
+            return std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
         }
 
         case CodecAAC: {
@@ -235,13 +235,13 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
             assert(track);
             //加上adts头
             dumpAacConfig(track->getAacCfg(), buf->size() - DATA_OFFSET, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
-            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, dts, pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
+            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
         }
 
         case CodecOpus:
         case CodecG711A:
         case CodecG711U: {
-            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, dts, pts, 0, DATA_OFFSET, codec);
+            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, 0, DATA_OFFSET, codec);
         }
 
         default: return nullptr;

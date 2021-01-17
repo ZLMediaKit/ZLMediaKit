@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -57,8 +57,8 @@ protected:
     std::shared_ptr<FlvMuxer> getSharedPtr() override;
 
     //HttpRequestSplitter override
-    int64_t onRecvHeader(const char *data,uint64_t len) override;
-    void onRecvContent(const char *data,uint64_t len) override;
+    size_t onRecvHeader(const char *data,size_t len) override;
+    void onRecvContent(const char *data,size_t len) override;
 
     /**
      * 重载之用于处理不定长度的content
@@ -71,9 +71,9 @@ protected:
      */
     virtual void onRecvUnlimitedContent(const Parser &header,
                                         const char *data,
-                                        uint64_t len,
-                                        uint64_t totalSize,
-                                        uint64_t recvedSize){
+                                        size_t len,
+                                        size_t totalSize,
+                                        size_t recvedSize){
         shutdown(SockException(Err_shutdown,"http post content is too huge,default closed"));
     }
 
@@ -101,10 +101,10 @@ protected:
     void onWebSocketDecodeComplete(const WebSocketHeader &header_in) override;
 
 private:
-    void Handle_Req_GET(int64_t &content_len);
-    void Handle_Req_GET_l(int64_t &content_len, bool sendBody);
-    void Handle_Req_POST(int64_t &content_len);
-    void Handle_Req_HEAD(int64_t &content_len);
+    void Handle_Req_GET(size_t &content_len);
+    void Handle_Req_GET_l(size_t &content_len, bool sendBody);
+    void Handle_Req_POST(size_t &content_len);
+    void Handle_Req_HEAD(size_t &content_len);
 
     bool checkLiveStream(const string &schema, const string  &url_suffix, const function<void(const MediaSource::Ptr &src)> &cb);
 
@@ -135,7 +135,7 @@ private:
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
     FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
     //处理content数据的callback
-    function<bool (const char *data,uint64_t len) > _contentCallBack;
+    function<bool (const char *data,size_t len) > _contentCallBack;
 };
 
 

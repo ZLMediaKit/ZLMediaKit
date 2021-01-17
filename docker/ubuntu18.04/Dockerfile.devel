@@ -33,7 +33,7 @@ RUN apt-get update && \
 RUN mkdir -p /opt/media
 
 WORKDIR /opt/media
-RUN git clone --depth=1 https://github.com/xiongziliang/ZLMediaKit && \
+RUN git clone --depth=1 https://github.com/xia-chu/ZLMediaKit && \
     cd ZLMediaKit && git submodule update --init --recursive && \
     mkdir -p build release/linux/Release/
 

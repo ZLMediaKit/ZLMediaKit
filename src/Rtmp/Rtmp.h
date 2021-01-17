@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -129,20 +129,20 @@ public:
 class RtmpPacket : public Buffer{
 public:
     typedef std::shared_ptr<RtmpPacket> Ptr;
-    uint8_t type_id;
-    uint32_t body_size = 0;
-    uint32_t time_stamp = 0;
     bool is_abs_stamp = false;
+    uint8_t type_id;
+    uint32_t time_stamp = 0;
     uint32_t ts_field = 0;
     uint32_t stream_index;
     uint32_t chunk_id;
+    size_t body_size = 0;
     BufferLikeString buffer;
 
 public:
     char *data() const override{
         return (char*)buffer.data();
     }
-    uint32_t size() const override {
+    size_t size() const override {
         return buffer.size();
     }
 
@@ -242,7 +242,7 @@ public:
     typedef std::shared_ptr<TitleMeta> Ptr;
 
     TitleMeta(float dur_sec = 0,
-              uint64_t fileSize = 0,
+              size_t fileSize = 0,
               const map<string,string> &header = map<string,string>()){
         _metadata.set("duration", dur_sec);
         _metadata.set("fileSize", 0);

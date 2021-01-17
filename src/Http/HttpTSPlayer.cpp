@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2020 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -13,13 +13,13 @@ namespace mediakit {
 
 HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller, bool split_ts){
     _split_ts = split_ts;
-    _segment.setOnSegment([this](const char *data, uint64_t len) { onPacket(data, len); });
+    _segment.setOnSegment([this](const char *data, size_t len) { onPacket(data, len); });
     setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 
 HttpTSPlayer::~HttpTSPlayer() {}
 
-int64_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
+size_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
     _status = status;
     if (status != "200" && status != "206") {
         //http状态码不符合预期
@@ -35,7 +35,7 @@ int64_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::H
     return -1;
 }
 
-void HttpTSPlayer::onResponseBody(const char *buf, int64_t size, int64_t recvedSize, int64_t totalSize) {
+void HttpTSPlayer::onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) {
     if (_status != "200" && _status != "206") {
         return;
     }
@@ -68,7 +68,7 @@ void HttpTSPlayer::onDisconnect(const SockException &ex) {
     }
 }
 
-void HttpTSPlayer::onPacket(const char *data, uint64_t len) {
+void HttpTSPlayer::onPacket(const char *data, size_t len) {
     if (_on_segment) {
         _on_segment(data, len);
     }

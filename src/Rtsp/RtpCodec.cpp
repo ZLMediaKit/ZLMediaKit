@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -12,44 +12,44 @@
 
 namespace mediakit{
 
-RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, unsigned int len, bool mark, uint32_t uiStamp) {
-    uint16_t ui16RtpLen = len + 12;
-    uint32_t ts = htonl((_ui32SampleRate / 1000) * uiStamp);
+RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, size_t len, bool mark, uint32_t stamp) {
+    uint16_t payload_len = (uint16_t)(len + 12);
+    uint32_t ts = htonl((_ui32SampleRate / 1000) * stamp);
     uint16_t sq = htons(_ui16Sequence);
     uint32_t sc = htonl(_ui32Ssrc);
 
-    auto rtppkt = ResourcePoolHelper<RtpPacket>::obtainObj();
-    rtppkt->setCapacity(len + 16);
-    rtppkt->setSize(len + 16);
+    auto rtp_ptr = ResourcePoolHelper<RtpPacket>::obtainObj();
+    rtp_ptr->setCapacity(len + 16);
+    rtp_ptr->setSize(len + 16);
 
-    unsigned char *pucRtp = (unsigned char *)rtppkt->data();
-    pucRtp[0] = '$';
-    pucRtp[1] = _ui8Interleaved;
-    pucRtp[2] = ui16RtpLen >> 8;
-    pucRtp[3] = ui16RtpLen & 0x00FF;
-    pucRtp[4] = 0x80;
-    pucRtp[5] = (mark << 7) | _ui8PayloadType;
-    memcpy(&pucRtp[6], &sq, 2);
-    memcpy(&pucRtp[8], &ts, 4);
+    auto *rtp = (unsigned char *)rtp_ptr->data();
+    rtp[0] = '$';
+    rtp[1] = _ui8Interleaved;
+    rtp[2] = payload_len >> 8;
+    rtp[3] = payload_len & 0xFF;
+    rtp[4] = 0x80;
+    rtp[5] = (mark << 7) | _ui8PayloadType;
+    memcpy(&rtp[6], &sq, 2);
+    memcpy(&rtp[8], &ts, 4);
     //ssrc
-    memcpy(&pucRtp[12], &sc, 4);
+    memcpy(&rtp[12], &sc, 4);
 
     if(data){
         //payload
-        memcpy(&pucRtp[16], data, len);
+        memcpy(&rtp[16], data, len);
     }
 
-    rtppkt->PT = _ui8PayloadType;
-    rtppkt->interleaved = _ui8Interleaved;
-    rtppkt->mark = mark;
-    rtppkt->sequence = _ui16Sequence;
-    rtppkt->timeStamp = uiStamp;
-    rtppkt->ssrc = _ui32Ssrc;
-    rtppkt->type = type;
-    rtppkt->offset = 16;
+    rtp_ptr->PT = _ui8PayloadType;
+    rtp_ptr->interleaved = _ui8Interleaved;
+    rtp_ptr->mark = mark;
+    rtp_ptr->sequence = _ui16Sequence;
+    rtp_ptr->timeStamp = stamp;
+    rtp_ptr->ssrc = _ui32Ssrc;
+    rtp_ptr->type = type;
+    rtp_ptr->offset = 16;
     _ui16Sequence++;
-    _ui32TimeStamp = uiStamp;
-    return rtppkt;
+    _ui32TimeStamp = stamp;
+    return rtp_ptr;
 }
 
 }//namespace mediakit

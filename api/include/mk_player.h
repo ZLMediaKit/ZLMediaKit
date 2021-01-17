@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -37,7 +37,7 @@ typedef void(API_CALL *on_mk_play_event)(void *user_data,int err_code,const char
  * @param dts 解码时间戳，单位毫秒
  * @param pts 显示时间戳，单位毫秒
  */
-typedef void(API_CALL *on_mk_play_data)(void *user_data,int track_type,int codec_id,void *data,int len,uint32_t dts,uint32_t pts);
+typedef void(API_CALL *on_mk_play_data)(void *user_data,int track_type,int codec_id,void *data,size_t len, uint32_t dts,uint32_t pts);
 
 /**
  * 创建一个播放器,支持rtmp[s]/rtsp[s]
@@ -125,7 +125,7 @@ API_EXPORT int API_CALL mk_player_video_height(mk_player ctx);
 /**
  * 获取视频帧率
  */
-API_EXPORT int API_CALL mk_player_video_fps(mk_player ctx);
+API_EXPORT float API_CALL mk_player_video_fps(mk_player ctx);
 
 /**
  * 获取音频codec_id -1：不存在 0：H264，1：H265，2：AAC 3.G711A 4.G711U

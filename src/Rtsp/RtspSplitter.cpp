@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -15,7 +15,7 @@
 
 namespace mediakit{
 
-const char *RtspSplitter::onSearchPacketTail(const char *data, uint64_t len) {
+const char *RtspSplitter::onSearchPacketTail(const char *data, size_t len) {
     auto ret = onSearchPacketTail_l(data, len);
     if(ret){
         return ret;
@@ -32,7 +32,7 @@ const char *RtspSplitter::onSearchPacketTail(const char *data, uint64_t len) {
     return ret;
 }
 
-const char *RtspSplitter::onSearchPacketTail_l(const char *data, uint64_t len) {
+const char *RtspSplitter::onSearchPacketTail_l(const char *data, size_t len) {
     if(!_enableRecvRtp || data[0] != '$'){
         //这是rtsp包
         _isRtpPacket = false;
@@ -53,7 +53,7 @@ const char *RtspSplitter::onSearchPacketTail_l(const char *data, uint64_t len) {
     return data + 4 + length;
 }
 
-int64_t RtspSplitter::onRecvHeader(const char *data, uint64_t len) {
+size_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
     if(_isRtpPacket){
         onRtpPacket(data,len);
         return 0;
@@ -67,7 +67,7 @@ int64_t RtspSplitter::onRecvHeader(const char *data, uint64_t len) {
     return ret;
 }
 
-void RtspSplitter::onRecvContent(const char *data, uint64_t len) {
+void RtspSplitter::onRecvContent(const char *data, size_t len) {
     _parser.setContent(string(data,len));
     onWholeRtspPacket(_parser);
     _parser.Clear();
@@ -77,7 +77,7 @@ void RtspSplitter::enableRecvRtp(bool enable) {
     _enableRecvRtp = enable;
 }
 
-int64_t RtspSplitter::getContentLength(Parser &parser) {
+size_t RtspSplitter::getContentLength(Parser &parser) {
     return atoi(parser["Content-Length"].data());
 }
 

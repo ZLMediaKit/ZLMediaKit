@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -86,7 +86,7 @@ class H265FrameNoCacheAble : public FrameFromPtr {
 public:
     typedef std::shared_ptr<H265FrameNoCacheAble> Ptr;
 
-    H265FrameNoCacheAble(char *ptr, uint32_t size, uint32_t dts,uint32_t pts, int prefix_size = 4) {
+    H265FrameNoCacheAble(char *ptr, size_t size, uint32_t dts,uint32_t pts, size_t prefix_size = 4) {
         _ptr = ptr;
         _size = size;
         _dts = dts;
@@ -197,7 +197,7 @@ public:
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H265_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
         if(frame->configFrame() || type == H265Frame::NAL_SEI_PREFIX){
-            splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, int len, int prefix){
+            splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix){
                 H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame, (char*)ptr, len, prefix);
                 inputFrame_l(sub_frame);
             });

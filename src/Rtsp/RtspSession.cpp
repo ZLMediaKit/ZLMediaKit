@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -170,7 +170,7 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
     parser.Clear();
 }
 
-void RtspSession::onRtpPacket(const char *data, uint64_t len) {
+void RtspSession::onRtpPacket(const char *data, size_t len) {
     if(!_push_src){
         return;
     }
@@ -181,13 +181,13 @@ void RtspSession::onRtpPacket(const char *data, uint64_t len) {
         handleOneRtp(track_idx, _sdp_track[track_idx]->_type, _sdp_track[track_idx]->_samplerate, (unsigned char *) data + 4, len - 4);
     }else{
         auto track_idx = getTrackIndexByInterleaved(interleaved - 1);
-        onRtcpPacket(track_idx, _sdp_track[track_idx], (unsigned char *) data + 4, len - 4);
+        onRtcpPacket(track_idx, _sdp_track[track_idx], data + 4, len - 4);
     }
 }
 
-void RtspSession::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, unsigned int len){}
+void RtspSession::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, const char *data, size_t len){}
 
-int64_t RtspSession::getContentLength(Parser &parser) {
+size_t RtspSession::getContentLength(Parser &parser) {
     if(parser.Method() == "POST"){
         //http post请求的content数据部分是base64编码后的rtsp请求信令包
         return remainDataSize();
@@ -438,7 +438,7 @@ void RtspSession::onAuthFailed(const string &realm,const string &why,bool close)
 void RtspSession::onAuthBasic(const string &realm,const string &auth_base64){
     //base64认证
     char user_pwd_buf[512];
-    av_base64_decode((uint8_t *) user_pwd_buf, auth_base64.data(), auth_base64.size());
+    av_base64_decode((uint8_t *) user_pwd_buf, auth_base64.data(), (int)auth_base64.size());
     auto user_pwd_vec = split(user_pwd_buf, ":");
     if (user_pwd_vec.size() < 2) {
         //认证信息格式不合法，回复401 Unauthorized
@@ -767,9 +767,9 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         if (strStart == "now") {
             strStart = "0";
         }
-        iStartTime = 1000 * atof(strStart.data());
+        iStartTime = 1000 * (float)atof(strStart.data());
         InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
-        useGOP = !play_src->seekTo(iStartTime);
+        useGOP = !play_src->seekTo((uint32_t)iStartTime);
     } else if (play_src->totalReaderCount() == 0) {
         //第一个消费者
         play_src->seekTo(0);
@@ -933,7 +933,7 @@ inline void RtspSession::onRcvPeerUdpData(int interleaved, const Buffer::Ptr &bu
             _udp_connected_flags.emplace(interleaved);
             _rtcp_socks[(interleaved - 1) / 2]->setSendPeerAddr(&addr);
         }
-        onRtcpPacket((interleaved - 1) / 2, _sdp_track[(interleaved - 1) / 2], (unsigned char *) buf->data(), buf->size());
+        onRtcpPacket((interleaved - 1) / 2, _sdp_track[(interleaved - 1) / 2], buf->data(), buf->size());
     }
 }
 
@@ -1030,7 +1030,7 @@ bool RtspSession::sendRtspResponse(const string &res_code, const StrCaseMap &hea
     return send(std::make_shared<BufferString>(std::move(printer))) > 0 ;
 }
 
-int RtspSession::send(Buffer::Ptr pkt){
+size_t RtspSession::send(Buffer::Ptr pkt){
 //	if(!_enableSendRtp){
 //		DebugP(this) << pkt->data();
 //	}
@@ -1134,8 +1134,8 @@ inline void RtspSession::onSendRtpPacket(const RtpPacket::Ptr &pkt){
 void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
-            int i = 0;
-            int size = pkt->size();
+            size_t i = 0;
+            auto size = pkt->size();
             setSendFlushFlag(false);
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
                 onSendRtpPacket(rtp);
@@ -1147,8 +1147,8 @@ void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
         }
             break;
         case Rtsp::RTP_UDP: {
-            int i = 0;
-            int size = pkt->size();
+            size_t i = 0;
+            auto size = pkt->size();
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
                 onSendRtpPacket(rtp);
                 int track_index = getTrackIndexByTrackType(rtp->type);
@@ -1188,8 +1188,8 @@ void RtspSession::sendSenderReport(bool over_tcp, int track_index) {
     uint32_t ssrc = htonl(track->_ssrc);
     memcpy(&rtcp_sr[4], &ssrc, 4);
 
-    uint64_t msw;
-    uint64_t lsw;
+    uint32_t msw;
+    uint32_t lsw;
     struct timeval tv;
     gettimeofday(&tv, NULL);
     msw = tv.tv_sec + 0x83AA7E80; /* 0x83AA7E80 is the number of seconds from 1900 to 1970 */

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -40,7 +40,7 @@ public:
     }
 
 protected:
-    void onGetH265(const char *pcData, int iLen, uint32_t dts,uint32_t pts);
+    void onGetH265(const char *pcData, size_t iLen, uint32_t dts,uint32_t pts);
     H265Frame::Ptr obtainFrame();
 
 protected:
@@ -73,14 +73,16 @@ public:
      * 生成config包
      */
     void makeConfigPacket() override;
+
 private:
     void makeVideoConfigPkt();
+
 private:
+    bool _gotSpsPps = false;
     string _vps;
     string _sps;
     string _pps;
     H265Track::Ptr _track;
-    bool _gotSpsPps = false;
     RtmpPacket::Ptr _lastPacket;
 };
 

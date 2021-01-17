@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -43,9 +43,9 @@ private:
     void flushData();
 
 private:
-    FrameImp::Ptr _frame;
-    string _aac_cfg;
     uint32_t _last_dts = 0;
+    string _aac_cfg;
+    FrameImp::Ptr _frame;
 };
 
 
@@ -77,7 +77,7 @@ public:
     void inputFrame(const Frame::Ptr &frame) override;
 
 private:
-    void makeAACRtp(const void *pData, unsigned int uiLen, bool bMark, uint32_t uiStamp);
+    void makeAACRtp(const void *pData, size_t uiLen, bool bMark, uint32_t uiStamp);
 
 private:
     unsigned char _aucSectionBuf[1600];

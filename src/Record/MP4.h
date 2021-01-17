@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -62,14 +62,14 @@ public:
     /**
      * 获取文件读写位置
      */
-    virtual uint64_t onTell() = 0;
+    virtual size_t onTell() = 0;
 
     /**
      * seek至文件某处
      * @param offset 文件偏移量
      * @return 是否成功(0成功)
      */
-    virtual int onSeek(uint64_t offset) = 0;
+    virtual int onSeek(size_t offset) = 0;
 
     /**
      * 从文件读取一定数据
@@ -77,7 +77,7 @@ public:
      * @param bytes 指针长度
      * @return 是否成功(0成功)
      */
-    virtual int onRead(void *data, uint64_t bytes) = 0;
+    virtual int onRead(void *data, size_t bytes) = 0;
 
     /**
      * 写入文件一定数据
@@ -85,7 +85,7 @@ public:
      * @param bytes 数据长度
      * @return 是否成功(0成功)
      */
-    virtual int onWrite(const void *data, uint64_t bytes) = 0;
+    virtual int onWrite(const void *data, size_t bytes) = 0;
 };
 
 //磁盘MP4文件类
@@ -108,10 +108,10 @@ public:
     void closeFile();
 
 protected:
-    uint64_t onTell() override;
-    int onSeek(uint64_t offset) override;
-    int onRead(void *data, uint64_t bytes) override;
-    int onWrite(const void *data, uint64_t bytes) override;
+    size_t onTell() override;
+    int onSeek(size_t offset) override;
+    int onRead(void *data, size_t bytes) override;
+    int onWrite(const void *data, size_t bytes) override;
 
 private:
     std::shared_ptr<FILE> _file;
@@ -126,7 +126,7 @@ public:
     /**
      * 获取文件大小
      */
-    uint64_t fileSize() const;
+    size_t fileSize() const;
 
     /**
      * 获取并清空文件缓存
@@ -134,13 +134,13 @@ public:
     string getAndClearMemory();
 
 protected:
-    uint64_t onTell() override;
-    int onSeek(uint64_t offset) override;
-    int onRead(void *data, uint64_t bytes) override;
-    int onWrite(const void *data, uint64_t bytes) override;
+    size_t onTell() override;
+    int onSeek(size_t offset) override;
+    int onRead(void *data, size_t bytes) override;
+    int onWrite(const void *data, size_t bytes) override;
 
 private:
-    uint64_t _offset = 0;
+    size_t _offset = 0;
     string _memory;
 };
 

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -62,7 +62,7 @@ protected:
      * @param data
      * @param len
      */
-    void onRtpPacket(const char *data,uint64_t len) override ;
+    void onRtpPacket(const char *data,size_t len) override ;
 
     /**
      * rtp数据包排序后输出
@@ -78,7 +78,7 @@ protected:
      * @param data rtcp内容
      * @param len rtcp内容长度
      */
-    virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, unsigned int len);
+    virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, size_t len);
 
     /////////////TcpClient override/////////////
     void onConnect(const SockException &err) override;

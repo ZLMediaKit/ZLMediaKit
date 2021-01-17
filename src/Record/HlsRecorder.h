@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -21,7 +21,7 @@ public:
     HlsRecorder(const string &m3u8_file, const string &params){
         GET_CONFIG(uint32_t, hlsNum, Hls::kSegmentNum);
         GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
-        GET_CONFIG(uint32_t, hlsDuration, Hls::kSegmentDuration);
+        GET_CONFIG(float, hlsDuration, Hls::kSegmentDuration);
         _hls = std::make_shared<HlsMakerImp>(m3u8_file, params, hlsBufSize, hlsDuration, hlsNum);
         //清空上次的残余文件
         _hls->clearCache();
@@ -73,7 +73,7 @@ public:
     }
 
 private:
-    void onTs(const void *packet, int bytes, uint32_t timestamp, bool is_idr_fast_packet) override {
+    void onTs(const void *packet, size_t bytes, uint32_t timestamp, bool is_idr_fast_packet) override {
         _hls->inputData((char *) packet, bytes, timestamp, is_idr_fast_packet);
     }
 

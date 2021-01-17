@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -104,7 +104,7 @@ void MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
                     BufferLikeString merged;
                     merged.reserve(back->size() + 1024);
                     _frameCached.for_each([&](const Frame::Ptr &frame) {
-                        uint32_t nalu_size = frame->size() - frame->prefixSize();
+                        uint32_t nalu_size = (uint32_t)(frame->size() - frame->prefixSize());
                         nalu_size = htonl(nalu_size);
                         merged.append((char *) &nalu_size, 4);
                         merged.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
@@ -249,7 +249,7 @@ void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
             struct mpeg4_avc_t avc = {0};
             string sps_pps = string("\x00\x00\x00\x01", 4) + h264_track->getSps() +
                              string("\x00\x00\x00\x01", 4) + h264_track->getPps();
-            h264_annexbtomp4(&avc, sps_pps.data(), sps_pps.size(), NULL, 0, NULL, NULL);
+            h264_annexbtomp4(&avc, sps_pps.data(), (int)sps_pps.size(), NULL, 0, NULL, NULL);
 
             uint8_t extra_data[1024];
             int extra_data_size = mpeg4_avc_decoder_configuration_record_save(&avc, extra_data, sizeof(extra_data));
@@ -284,7 +284,7 @@ void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
             string vps_sps_pps = string("\x00\x00\x00\x01", 4) + h265_track->getVps() +
                                  string("\x00\x00\x00\x01", 4) + h265_track->getSps() +
                                  string("\x00\x00\x00\x01", 4) + h265_track->getPps();
-            h265_annexbtomp4(&hevc, vps_sps_pps.data(), vps_sps_pps.size(), NULL, 0, NULL, NULL);
+            h265_annexbtomp4(&hevc, vps_sps_pps.data(), (int)vps_sps_pps.size(), NULL, 0, NULL, NULL);
 
             uint8_t extra_data[1024];
             int extra_data_size = mpeg4_hevc_decoder_configuration_record_save(&hevc, extra_data, sizeof(extra_data));

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -197,22 +197,22 @@ void MP4FileDisk::closeFile() {
     _file = nullptr;
 }
 
-int MP4FileDisk::onRead(void *data, uint64_t bytes) {
+int MP4FileDisk::onRead(void *data, size_t bytes) {
     if (bytes == fread(data, 1, bytes, _file.get())){
         return 0;
     }
     return 0 != ferror(_file.get()) ? ferror(_file.get()) : -1 /*EOF*/;
 }
 
-int MP4FileDisk::onWrite(const void *data, uint64_t bytes) {
+int MP4FileDisk::onWrite(const void *data, size_t bytes) {
     return bytes == fwrite(data, 1, bytes, _file.get()) ? 0 : ferror(_file.get());
 }
 
-int MP4FileDisk::onSeek(uint64_t offset) {
+int MP4FileDisk::onSeek(size_t offset) {
     return fseek64(_file.get(), offset, SEEK_SET);
 }
 
-uint64_t MP4FileDisk::onTell() {
+size_t MP4FileDisk::onTell() {
     return ftell64(_file.get());
 }
 
@@ -225,15 +225,15 @@ string MP4FileMemory::getAndClearMemory(){
     return ret;
 }
 
-uint64_t MP4FileMemory::fileSize() const{
+size_t MP4FileMemory::fileSize() const{
     return _memory.size();
 }
 
-uint64_t MP4FileMemory::onTell(){
+size_t MP4FileMemory::onTell(){
     return _offset;
 }
 
-int MP4FileMemory::onSeek(uint64_t offset){
+int MP4FileMemory::onSeek(size_t offset){
     if (offset > _memory.size()) {
         return -1;
     }
@@ -241,7 +241,7 @@ int MP4FileMemory::onSeek(uint64_t offset){
     return 0;
 }
 
-int MP4FileMemory::onRead(void *data, uint64_t bytes){
+int MP4FileMemory::onRead(void *data, size_t bytes){
     if (_offset >= _memory.size()) {
         //EOF
         return -1;
@@ -252,7 +252,7 @@ int MP4FileMemory::onRead(void *data, uint64_t bytes){
     return 0;
 }
 
-int MP4FileMemory::onWrite(const void *data, uint64_t bytes){
+int MP4FileMemory::onWrite(const void *data, size_t bytes){
     if (_offset + bytes > _memory.size()) {
         //需要扩容
         _memory.resize(_offset + bytes);

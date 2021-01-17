@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -24,7 +24,7 @@ API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx);
 // 录像长度，单位秒
 API_EXPORT float API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx);
 // 文件大小，单位 BYTE
-API_EXPORT uint64_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx);
+API_EXPORT size_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx);
 // 文件路径
 API_EXPORT const char* API_CALL mk_mp4_info_get_file_path(const mk_mp4_info ctx);
 // 文件名称
@@ -58,7 +58,7 @@ API_EXPORT const char* API_CALL mk_parser_get_tail(const mk_parser ctx);
 //Parser::getValues()["key"],获取HTTP头中特定字段
 API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const char *key);
 //Parser::Content(),获取HTTP body
-API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, int *length);
+API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, size_t *length);
 
 ///////////////////////////////////////////MediaInfo/////////////////////////////////////////////
 //MediaInfo对象的C映射
@@ -143,7 +143,7 @@ typedef void* mk_http_body;
  * @param str 字符串指针
  * @param len 字符串长度，为0则用strlen获取
  */
-API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str,int len);
+API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str,size_t len);
 
 /**
  * 生成HttpFileBody

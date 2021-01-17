@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -21,7 +21,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-template<typename T, typename SEQ = uint16_t, uint32_t kMax = 256, uint32_t kMin = 10>
+template<typename T, typename SEQ = uint16_t, size_t kMax = 256, size_t kMin = 10>
 class PacketSortor {
 public:
     PacketSortor() = default;
@@ -44,14 +44,14 @@ public:
     /**
      * 获取排序缓存长度
      */
-    int getJitterSize() const{
+    size_t getJitterSize() const{
         return _rtp_sort_cache_map.size();
     }
 
     /**
      * 获取seq回环次数
      */
-    int getCycleCount() const{
+    size_t getCycleCount() const{
         return _seq_cycle_count;
     }
 
@@ -151,9 +151,9 @@ private:
     //下次应该输出的SEQ
     SEQ _next_seq_out = 0;
     //seq回环次数计数
-    uint32_t _seq_cycle_count = 0;
+    size_t _seq_cycle_count = 0;
     //排序缓存长度
-    uint32_t _max_sort_size = kMin;
+    size_t _max_sort_size = kMin;
     //rtp排序缓存，根据seq排序
     map<SEQ, T> _rtp_sort_cache_map;
     //回调
@@ -175,7 +175,7 @@ protected:
      * @param rtp_raw_len rtp数据指针长度
      * @return 解析成功返回true
      */
-    bool handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, unsigned int rtp_raw_len);
+    bool handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, size_t rtp_raw_len);
 
     /**
      * rtp数据包排序后输出
@@ -185,15 +185,15 @@ protected:
     virtual void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) {}
 
     void clear();
-    void setPoolSize(int size);
-    int getJitterSize(int track_index) const;
-    int getCycleCount(int track_index) const;
+    void setPoolSize(size_t size);
+    size_t getJitterSize(int track_index) const;
+    size_t getCycleCount(int track_index) const;
     uint32_t getSSRC(int track_index) const;
 
 private:
     uint32_t _ssrc[2] = {0, 0};
     //ssrc不匹配计数
-    uint32_t _ssrc_err_count[2] = {0, 0};
+    size_t _ssrc_err_count[2] = {0, 0};
     //rtp排序缓存，根据seq排序
     PacketSortor<RtpPacket::Ptr> _rtp_sortor[2];
     //rtp循环池

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -110,7 +110,7 @@ void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_
     } else{
         //推流给其他服务器的，通过判断FFmpeg进程是否在线判断是否成功
         weak_ptr<FFmpegSource> weakSelf = shared_from_this();
-        _timer = std::make_shared<Timer>(timeout_ms / 1000,[weakSelf,cb,timeout_ms](){
+        _timer = std::make_shared<Timer>(timeout_ms / 1000.0f,[weakSelf,cb,timeout_ms](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
                 //自身已经销毁
@@ -191,7 +191,7 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
  */
 void FFmpegSource::startTimer(int timeout_ms) {
     weak_ptr<FFmpegSource> weakSelf = shared_from_this();
-    _timer = std::make_shared<Timer>(1, [weakSelf, timeout_ms]() {
+    _timer = std::make_shared<Timer>(1.0f, [weakSelf, timeout_ms]() {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
             //自身已经销毁
@@ -294,7 +294,7 @@ void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float
         std::shared_ptr<Process> process = std::make_shared<Process>();
         process->run(cmd,ffmpeg_log.empty() ? "" : File::absolutePath("",ffmpeg_log));
         //定时器延时应该减去后台任务启动的延时
-        auto delayTask = EventPollerPool::Instance().getPoller()->doDelayTask(timeout_sec * 1000 - elapsed_ms,[process,cb](){
+        auto delayTask = EventPollerPool::Instance().getPoller()->doDelayTask((uint64_t)(timeout_sec * 1000 - elapsed_ms),[process,cb](){
             if(process->wait(false)){
                 //FFmpeg进程还在运行，超时就关闭它
                 process->kill(2000);

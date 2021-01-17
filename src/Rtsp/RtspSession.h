@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -37,20 +37,20 @@ class RtspSession;
 class BufferRtp : public Buffer{
 public:
     typedef std::shared_ptr<BufferRtp> Ptr;
-    BufferRtp(Buffer::Ptr pkt, uint32_t offset = 0) : _rtp(std::move(pkt)), _offset(offset) {}
+    BufferRtp(Buffer::Ptr pkt, size_t offset = 0) : _offset(offset),_rtp(std::move(pkt)) {}
     ~BufferRtp() override{}
 
     char *data() const override {
         return (char *)_rtp->data() + _offset;
     }
 
-    uint32_t size() const override {
+    size_t size() const override {
         return _rtp->size() - _offset;
     }
 
 private:
+    size_t _offset;
     Buffer::Ptr _rtp;
-    uint32_t _offset;
 };
 
 class RtspSession: public TcpSession, public RtspSplitter, public RtpReceiver , public MediaSourceEvent{
@@ -73,9 +73,9 @@ protected:
     //收到完整的rtsp包回调，包括sdp等content数据
     void onWholeRtspPacket(Parser &parser) override;
     //收到rtp包回调
-    void onRtpPacket(const char *data, uint64_t len) override;
+    void onRtpPacket(const char *data, size_t len) override;
     //从rtsp头中获取Content长度
-    int64_t getContentLength(Parser &parser) override;
+    size_t getContentLength(Parser &parser) override;
 
     ////RtpReceiver override////
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) override;
@@ -93,9 +93,9 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
     /////TcpSession override////
-    int send(Buffer::Ptr pkt) override;
+    size_t send(Buffer::Ptr pkt) override;
     //收到RTCP包回调
-    virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, unsigned int len);
+    virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, const char *data, size_t len);
 
 private:
     //处理options方法,获取服务器能力
@@ -171,7 +171,7 @@ private:
     //收到的seq，回复时一致
     int _cseq = 0;
     //rtsp推流起始时间戳，目的是为了同步
-    int64_t _start_stamp[2] = {-1, -1};
+    int32_t _start_stamp[2] = {-1, -1};
     //消耗的总流量
     uint64_t _bytes_usage = 0;
     //ContentBase

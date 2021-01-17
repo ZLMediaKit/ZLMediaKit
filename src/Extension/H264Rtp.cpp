@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -72,7 +72,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
        30-31  undefined                                    -
     */
     const uint8_t *frame = (uint8_t *) rtppack->data() + rtppack->offset;
-    int length = rtppack->size() - rtppack->offset;
+    auto length = rtppack->size() - rtppack->offset;
     int nal_type = *frame & 0x1F;
     int nal_suffix = *frame & (~0x1F);
 
@@ -92,7 +92,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
             bool haveIDR = false;
             auto ptr = frame + 1;
             while (true) {
-                int off = ptr - frame;
+                size_t off = ptr - frame;
                 if (off >= length) {
                     break;
                 }
@@ -198,7 +198,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto len = frame->size() - frame->prefixSize();
     auto pts = frame->pts() % cycleMS;
     auto nal_type = H264_TYPE(ptr[0]);
-    auto payload_size = _ui32MtuSize - 2;
+    size_t payload_size = _ui32MtuSize - 2;
 
     //超过MTU则按照FU-A模式打包
     if (len > payload_size + 1) {
@@ -209,7 +209,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         unsigned char s_e_r_flags;
         bool fu_a_start = true;
         bool mark_bit = false;
-        int offset = 1;
+        size_t offset = 1;
         while (!mark_bit) {
             if (len <= offset + payload_size) {
                 //FU-A end
@@ -247,7 +247,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 }
 
-void H264RtpEncoder::makeH264Rtp(const void* data, unsigned int len, bool mark, bool gop_pos, uint32_t uiStamp) {
+void H264RtpEncoder::makeH264Rtp(const void* data, size_t len, bool mark, bool gop_pos, uint32_t uiStamp) {
     RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, mark, uiStamp), gop_pos);
 }
 

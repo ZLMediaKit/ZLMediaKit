@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -19,7 +19,7 @@
  */
 class SendInterceptor{
 public:
-    typedef function<int(const Buffer::Ptr &buf)> onBeforeSendCB;
+    typedef function<size_t (const Buffer::Ptr &buf)> onBeforeSendCB;
     SendInterceptor() = default;
     virtual ~SendInterceptor() = default;
     virtual void setOnBeforeSendCB(const onBeforeSendCB &cb) = 0;
@@ -35,7 +35,7 @@ public:
     typedef std::shared_ptr<TcpSessionTypeImp> Ptr;
 
     TcpSessionTypeImp(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock) :
-            _identifier(parent.getIdentifier()), TcpSessionType(pSock) {}
+            TcpSessionType(pSock), _identifier(parent.getIdentifier()) {}
 
     ~TcpSessionTypeImp() {}
 
@@ -53,7 +53,7 @@ protected:
      * @param buf 需要截取的数据
      * @return 数据字节数
      */
-    int send(Buffer::Ptr buf) override {
+    size_t send(Buffer::Ptr buf) override {
         if (_beforeSendCB) {
             return _beforeSendCB(buf);
         }
@@ -65,8 +65,8 @@ protected:
     }
 
 private:
-    onBeforeSendCB _beforeSendCB;
     string _identifier;
+    onBeforeSendCB _beforeSendCB;
 };
 
 template <typename TcpSessionType>
@@ -157,7 +157,7 @@ protected:
     /**
      * 收到websocket数据包负载
      */
-    void onWebSocketDecodePayload(const WebSocketHeader &packet,const uint8_t *ptr,uint64_t len,uint64_t recved) override {
+    void onWebSocketDecodePayload(const WebSocketHeader &packet,const uint8_t *ptr,size_t len,size_t recved) override {
         _payload_section.append((char *)ptr,len);
     }
 

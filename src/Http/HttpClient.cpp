@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -129,7 +129,7 @@ void HttpClient::onErr(const SockException &ex) {
     onDisconnect(ex);
 }
 
-int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
+size_t HttpClient::onRecvHeader(const char *data, size_t len) {
     _parser.Parse(data);
     if(_parser.Url() == "302" || _parser.Url() == "301"){
         auto newUrl = _parser["Location"];
@@ -156,7 +156,7 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     if(_parser["Transfer-Encoding"] == "chunked"){
         //如果Transfer-Encoding字段等于chunked，则认为后续的content是不限制长度的
         _totalBodySize = -1;
-        _chunkedSplitter = std::make_shared<HttpChunkedSplitter>([this](const char *data,uint64_t len){
+        _chunkedSplitter = std::make_shared<HttpChunkedSplitter>([this](const char *data,size_t len){
             if(len > 0){
                 auto recvedBodySize = _recvedBodySize + len;
                 onResponseBody(data, len, recvedBodySize, INT64_MAX);
@@ -181,7 +181,7 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     return -1;
 }
 
-void HttpClient::onRecvContent(const char *data, uint64_t len) {
+void HttpClient::onRecvContent(const char *data, size_t len) {
     if(_chunkedSplitter){
         _chunkedSplitter->input(data,len);
         return;
