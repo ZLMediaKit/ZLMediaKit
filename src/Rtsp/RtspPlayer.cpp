@@ -30,19 +30,23 @@ enum PlayType {
 };
 
 RtspPlayer::RtspPlayer(const EventPoller::Ptr &poller) : TcpClient(poller){
-    RtpReceiver::setPoolSize(64);
 }
+
 RtspPlayer::~RtspPlayer(void) {
     DebugL << endl;
 }
-void RtspPlayer::teardown(){
+
+void RtspPlayer::sendTeardown(){
     if (alive()) {
         if (!_content_base.empty()) {
             sendRtspRequest("TEARDOWN", _content_base);
         }
         shutdown(SockException(Err_shutdown, "teardown"));
     }
+}
 
+void RtspPlayer::teardown(){
+    sendTeardown();
     _md5_nonce.clear();
     _realm.clear();
     _sdp_track.clear();
@@ -792,7 +796,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshake_done) {
         //创建rtp数据接收超时检测定时器
         _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0, lam, getPoller());
     } else {
-        teardown();
+        sendTeardown();
     }
 }
 
