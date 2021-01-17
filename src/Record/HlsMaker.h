@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -38,7 +38,7 @@ public:
      * @param timestamp 毫秒时间戳
      * @param is_idr_fast_packet 是否为关键帧第一个包
      */
-    void inputData(void *data, uint32_t len, uint32_t timestamp, bool is_idr_fast_packet);
+    void inputData(void *data, size_t len, uint32_t timestamp, bool is_idr_fast_packet);
 
     /**
      * 是否为直播
@@ -56,27 +56,27 @@ protected:
      * @param index
      * @return
      */
-    virtual string onOpenSegment(int index) = 0;
+    virtual string onOpenSegment(uint64_t index) = 0;
 
     /**
      * 删除ts切片文件回调
      * @param index
      */
-    virtual void onDelSegment(int index) = 0;
+    virtual void onDelSegment(uint64_t index) = 0;
 
     /**
      * 写ts切片文件回调
      * @param data
      * @param len
      */
-    virtual void onWriteSegment(const char *data, int len) = 0;
+    virtual void onWriteSegment(const char *data, size_t len) = 0;
 
     /**
      * 写m3u8文件回调
      * @param data
      * @param len
      */
-    virtual void onWriteHls(const char *data, int len) = 0;
+    virtual void onWriteHls(const char *data, size_t len) = 0;
 
     /**
      * 上一个 ts 切片写入完成, 可在这里进行通知处理

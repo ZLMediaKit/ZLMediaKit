@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -50,7 +50,7 @@ protected:
      * @param timestamp 时间戳，单位毫秒
      * @param is_idr_fast_packet 是否为关键帧的第一个TS包，用于确保ts切片第一帧为关键帧
      */
-    virtual void onTs(const void *packet, int bytes,uint32_t timestamp,bool is_idr_fast_packet) = 0;
+    virtual void onTs(const void *packet, size_t bytes,uint32_t timestamp,bool is_idr_fast_packet) = 0;
 
 private:
     void init();
@@ -88,7 +88,7 @@ public:
     void inputFrame(const Frame::Ptr &frame) override {}
 
 protected:
-    virtual void onTs(const void *packet, int bytes,uint32_t timestamp,bool is_idr_fast_packet) = 0;
+    virtual void onTs(const void *packet, size_t bytes,uint32_t timestamp,bool is_idr_fast_packet) = 0;
 };
 }//namespace mediakit
 

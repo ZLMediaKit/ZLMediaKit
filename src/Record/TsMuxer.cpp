@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -124,7 +124,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
                 }
                 track_info.stamp.revise(back->dts(), back->pts(), dts_out, pts_out);
                 //取视频时间戳为TS的时间戳
-                _timestamp = dts_out;
+                _timestamp = (uint32_t)dts_out;
                 mpeg_ts_write(_context, track_info.track_id, back->keyFrame() ? 0x0001 : 0, pts_out * 90LL,dts_out * 90LL, merged_frame->data(), merged_frame->size());
                 _frameCached.clear();
             }
@@ -143,7 +143,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
             track_info.stamp.revise(frame->dts(), frame->pts(), dts_out, pts_out);
             if(!_have_video){
                 //没有视频时，才以音频时间戳为TS的时间戳
-                _timestamp = dts_out;
+                _timestamp = (uint32_t)dts_out;
             }
             mpeg_ts_write(_context, track_info.track_id, frame->keyFrame() ? 0x0001 : 0, pts_out * 90LL, dts_out * 90LL, frame->data(), frame->size());
             break;

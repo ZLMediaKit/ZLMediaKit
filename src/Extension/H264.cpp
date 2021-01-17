@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -15,13 +15,13 @@ using namespace toolkit;
 
 namespace mediakit{
 
-bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
+static bool getAVCInfo(const char * sps,size_t sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
     T_GetBitContext tGetBitBuf;
     T_SPS tH264SpsInfo;
     memset(&tGetBitBuf,0,sizeof(tGetBitBuf));
     memset(&tH264SpsInfo,0,sizeof(tH264SpsInfo));
     tGetBitBuf.pu8Buf = (uint8_t*)sps + 1;
-    tGetBitBuf.iBufSize = sps_len - 1;
+    tGetBitBuf.iBufSize = (int)(sps_len - 1);
     if(0 != h264DecSeqParameterSet((void *) &tGetBitBuf, &tH264SpsInfo)){
         return false;
     }
@@ -31,11 +31,11 @@ bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight
     return true;
 }
 
-bool getAVCInfo(const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
-    return getAVCInfo(strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
+bool getAVCInfo(const string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {
+    return getAVCInfo(strSps.data(), strSps.size(), iVideoWidth, iVideoHeight, iVideoFps);
 }
 
-const char *memfind(const char *buf, int len, const char *subbuf, int sublen) {
+static const char *memfind(const char *buf, size_t len, const char *subbuf, size_t sublen) {
     for (auto i = 0; i < len - sublen; ++i) {
         if (memcmp(buf + i, subbuf, sublen) == 0) {
             return buf + i;
@@ -44,10 +44,10 @@ const char *memfind(const char *buf, int len, const char *subbuf, int sublen) {
     return NULL;
 }
 
-void splitH264(const char *ptr, int len, int prefix, const std::function<void(const char *, int, int)> &cb) {
+void splitH264(const char *ptr, size_t len, size_t prefix, const std::function<void(const char *, size_t , size_t)> &cb) {
     auto start = ptr + prefix;
     auto end = ptr + len;
-    int next_prefix;
+    size_t next_prefix;
     while (true) {
         auto next_start = memfind(start, end - start, "\x00\x00\x01", 3);
         if (next_start) {
@@ -74,7 +74,7 @@ void splitH264(const char *ptr, int len, int prefix, const std::function<void(co
     }
 }
 
-int prefixSize(const char *ptr, int len){
+size_t prefixSize(const char *ptr, size_t len){
     if (len < 4) {
         return 0;
     }
@@ -95,28 +95,6 @@ int prefixSize(const char *ptr, int len){
     }
     return 0;
 }
-
-#if 0
-//splitH264函数测试程序
-static onceToken s_token([](){
-    {
-        char buf[] = "\x00\x00\x00\x01\x12\x23\x34\x45\x56"
-                     "\x00\x00\x00\x01\x23\x34\x45\x56"
-                     "\x00\x00\x00\x01x34\x45\x56"
-                     "\x00\x00\x01\x12\x23\x34\x45\x56";
-        splitH264(buf, sizeof(buf) - 1, 4, [](const char *ptr, int len, int prefix) {
-            cout << prefix << " " << hexdump(ptr, len) << endl;
-        });
-    }
-
-    {
-        char buf[] = "\x00\x00\x00\x01\x12\x23\x34\x45\x56";
-        splitH264(buf, sizeof(buf) - 1, 4, [](const char *ptr, int len, int prefix) {
-            cout << prefix << " " << hexdump(ptr, len) << endl;
-        });
-    }
-});
-#endif //0
 
 Sdp::Ptr H264Track::getSdp() {
     if(!ready()){

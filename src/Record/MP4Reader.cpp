@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -31,7 +31,7 @@ MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &
 
     _demuxer = std::make_shared<MP4Demuxer>();
     _demuxer->openMP4(_file_path);
-    _mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost, strApp, strId, _demuxer->getDurationMS() / 1000.0, true, true, false, false));
+    _mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost, strApp, strId, _demuxer->getDurationMS() / 1000.0f, true, true, false, false));
     auto tracks = _demuxer->getTracks(false);
     if(tracks.empty()){
         throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << _file_path);
@@ -89,7 +89,7 @@ void MP4Reader::startReadMP4() {
 }
 
 uint32_t MP4Reader::getCurrentStamp() {
-    return _seek_to + _seek_ticker.elapsedTime();
+    return (uint32_t)(_seek_to + _seek_ticker.elapsedTime());
 }
 
 void MP4Reader::setCurrentStamp(uint32_t ui32Stamp){
@@ -117,7 +117,7 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp){
     if(!_have_video){
         //没有视频，不需要搜索关键帧
         //设置当前时间戳
-        setCurrentStamp(stamp);
+        setCurrentStamp((uint32_t)stamp);
         return true;
     }
     //搜索到下一帧关键帧

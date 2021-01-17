@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -117,13 +117,13 @@ private:
     void checkTrackIfReady(const Track::Ptr &track);
     void checkTrackIfReady_l(const Track::Ptr &track);
 private:
+    bool _all_track_ready = false;
+    size_t _max_track_size = 2;
     mutable recursive_mutex _mtx;
     unordered_map<int,Track::Ptr> _track_map;
     unordered_map<int,List<Frame::Ptr> > _frame_unread;
     unordered_map<int,function<void()> > _track_ready_callback;
-    bool _all_track_ready = false;
     Ticker _ticker;
-    int _max_track_size = 2;
 };
 
 

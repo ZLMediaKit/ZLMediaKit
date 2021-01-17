@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -47,7 +47,7 @@ API_EXPORT void API_CALL mk_media_release(mk_media ctx);
  * @param height 视频高度
  * @param fps 视频fps
  */
-API_EXPORT void API_CALL mk_media_init_video(mk_media ctx, int track_id, int width, int height, int fps);
+API_EXPORT void API_CALL mk_media_init_video(mk_media ctx, int track_id, int width, int height, float fps);
 
 /**
  * 添加音频轨道

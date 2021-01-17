@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -41,14 +41,16 @@ public:
     CodecId getCodecId() const override{
         return CodecH264;
     }
+
 private:
     bool decodeRtp(const RtpPacket::Ptr &rtp);
     void onGetH264(const H264Frame::Ptr &frame);
     H264Frame::Ptr obtainFrame();
+
 private:
+    int _lastSeq = 0;
     H264Frame::Ptr _h264frame;
     DtsGenerator _dts_generator;
-    int _lastSeq = 0;
 };
 
 /**
@@ -77,8 +79,9 @@ public:
      * @param frame 帧数据，必须
      */
     void inputFrame(const Frame::Ptr &frame) override;
+
 private:
-    void makeH264Rtp(const void *pData, unsigned int uiLen, bool bMark,  bool gop_pos, uint32_t uiStamp);
+    void makeH264Rtp(const void *pData, size_t uiLen, bool bMark,  bool gop_pos, uint32_t uiStamp);
 };
 
 }//namespace mediakit{

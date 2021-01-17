@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -89,7 +89,7 @@ void RtspPlayer::play(const string &strUrl){
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
     weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-    float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0;
+    float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0f;
     _play_check_timer.reset(new Timer(playTimeOutSec, [weakSelf]() {
         auto strongSelf=weakSelf.lock();
         if(!strongSelf) {
@@ -197,10 +197,6 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
     //解析sdp
     _sdp_track = sdpParser.getAvailableTrack();
     auto title = sdpParser.getTrack(TrackTitle);
-    bool is_play_back = false;
-    if(title && title->_duration ){
-        is_play_back = true;
-    }
 
     if (_sdp_track.empty()) {
         throw std::runtime_error("无有效的Sdp Track");
@@ -455,7 +451,7 @@ void RtspPlayer::handleResPAUSE(const Parser& parser,int type) {
         if (strStart == "now") {
             strStart = "0";
         }
-        iSeekTo = 1000 * atof(strStart.data());
+        iSeekTo = (uint32_t)(1000 * atof(strStart.data()));
         DebugL << "seekTo(ms):" << iSeekTo;
     }
 
@@ -476,7 +472,7 @@ void RtspPlayer::onWholeRtspPacket(Parser &parser) {
     }
 }
 
-void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
+void RtspPlayer::onRtpPacket(const char *data, size_t len) {
     int trackIdx = -1;
     uint8_t interleaved = data[1];
     if(interleaved %2 == 0){
@@ -489,7 +485,7 @@ void RtspPlayer::onRtpPacket(const char *data, uint64_t len) {
 }
 
 //此处预留rtcp处理函数
-void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, unsigned int len){}
+void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, size_t len){}
 
 #if 0
 //改代码提取自FFmpeg，参考之
@@ -582,13 +578,13 @@ void RtspPlayer::sendReceiverReport(bool over_tcp, int track_idx){
     pui8Rtcp_RR[15] = 0x00;
 
     //FIXME: max sequence received
-    int cycleCount = getCycleCount(track_idx);
-    pui8Rtcp_RR[16] = cycleCount >> 8;
+    uint16_t cycleCount = (uint16_t)getCycleCount(track_idx);
+    pui8Rtcp_RR[16] = (cycleCount >> 8) & 0xFF;
     pui8Rtcp_RR[17] = cycleCount & 0xFF;
     pui8Rtcp_RR[18] = counter.pktCnt >> 8;
     pui8Rtcp_RR[19] = counter.pktCnt & 0xFF;
 
-    uint32_t jitter = htonl(getJitterSize(track_idx));
+    uint32_t jitter = htonl((uint32_t)getJitterSize(track_idx));
     //FIXME: jitter
     memcpy(pui8Rtcp_RR + 20, &jitter, 4);
     /* last SR timestamp */
@@ -636,7 +632,7 @@ float RtspPlayer::getPacketLossRate(TrackType type) const{
         if (_rtp_seq_now[track_idx] - _rtp_seq_start[track_idx] + 1 == 0) {
             return 0;
         }
-        return 1.0 - (double) _rtp_recv_count[track_idx] / (_rtp_seq_now[track_idx] - _rtp_seq_start[track_idx] + 1);
+        return (float)(1.0f - (double) _rtp_recv_count[track_idx] / (_rtp_seq_now[track_idx] - _rtp_seq_start[track_idx] + 1));
     } catch (...) {
         uint64_t totalRecv = 0;
         uint64_t totalSend = 0;
@@ -647,7 +643,7 @@ float RtspPlayer::getPacketLossRate(TrackType type) const{
         if (totalSend == 0) {
             return 0;
         }
-        return 1.0 - (double) totalRecv / totalSend;
+        return (float)(1.0f - (double) totalRecv / totalSend);
     }
 }
 
@@ -710,7 +706,7 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
             //base64认证
             string authStr = StrPrinter << (*this)[kRtspUser] << ":" << (*this)[kRtspPwd];
             char authStrBase64[1024] = {0};
-            av_base64_encode(authStrBase64,sizeof(authStrBase64),(uint8_t *)authStr.data(),authStr.size());
+            av_base64_encode(authStrBase64, sizeof(authStrBase64), (uint8_t *) authStr.data(), (int) authStr.size());
             header.emplace("Authorization",StrPrinter << "Basic " << authStrBase64 );
         }
     }
@@ -794,7 +790,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshake_done) {
             return true;
         };
         //创建rtp数据接收超时检测定时器
-        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0, lam, getPoller());
+        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, lam, getPoller());
     } else {
         sendTeardown();
     }

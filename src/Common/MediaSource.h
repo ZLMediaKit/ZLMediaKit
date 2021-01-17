@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -148,7 +148,7 @@ public:
     /**
      * 添加统计字节
      */
-    BytesSpeed& operator += (uint64_t bytes) {
+    BytesSpeed& operator += (size_t bytes) {
         _bytes += bytes;
         if (_bytes > 1024 * 1024) {
             //数据大于1MB就计算一次网速
@@ -169,12 +169,12 @@ public:
     }
 
 private:
-    uint64_t computeSpeed() {
+    int computeSpeed() {
         auto elapsed = _ticker.elapsedTime();
         if (!elapsed) {
             return _speed;
         }
-        _speed = _bytes * 1000 / elapsed;
+        _speed = (int)(_bytes * 1000 / elapsed);
         _ticker.resetTime();
         _bytes = 0;
         return _speed;
@@ -182,7 +182,7 @@ private:
 
 private:
     int _speed = 0;
-    uint64_t _bytes = 0;
+    size_t _bytes = 0;
     Ticker _ticker;
 };
 
@@ -304,7 +304,7 @@ public:
     FlushPolicy() = default;
     ~FlushPolicy() = default;
 
-    bool isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, int cache_size);
+    bool isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, size_t cache_size);
 
 private:
     uint64_t _last_stamp[2] = {0, 0};

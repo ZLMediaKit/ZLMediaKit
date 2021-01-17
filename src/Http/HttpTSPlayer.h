@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2020 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -33,13 +33,13 @@ public:
 
 protected:
     ///HttpClient override///
-    int64_t onResponseHeader(const string &status,const HttpHeader &headers) override;
-    void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize) override;
+    size_t onResponseHeader(const string &status,const HttpHeader &headers) override;
+    void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override;
     void onResponseCompleted() override;
     void onDisconnect(const SockException &ex) override ;
 
     //收到ts包
-    virtual void onPacket(const char *data, uint64_t len);
+    virtual void onPacket(const char *data, size_t len);
 
 private:
     //是否为mpegts负载

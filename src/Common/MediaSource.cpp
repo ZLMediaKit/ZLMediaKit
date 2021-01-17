@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -521,7 +521,7 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
     bool is_mp4_vod = sender.getApp() == record_app;
     weak_ptr<MediaSource> weak_sender = sender.shared_from_this();
 
-    _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0, [weak_sender, is_mp4_vod]() {
+    _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0f, [weak_sender, is_mp4_vod]() {
         auto strong_sender = weak_sender.lock();
         if (!strong_sender) {
             //对象已经销毁
@@ -672,7 +672,7 @@ std::shared_ptr<MediaSourceEvent> MediaSourceEventInterceptor::getDelegate() con
 
 /////////////////////////////////////FlushPolicy//////////////////////////////////////
 
-static bool isFlushAble_default(bool is_video, uint64_t last_stamp, uint64_t new_stamp, int cache_size) {
+static bool isFlushAble_default(bool is_video, uint64_t last_stamp, uint64_t new_stamp, size_t cache_size) {
     if (new_stamp + 500 < last_stamp) {
         //时间戳回退比较大(可能seek中)，由于rtp中时间戳是pts，是可能存在一定程度的回退的
         return true;
@@ -682,7 +682,7 @@ static bool isFlushAble_default(bool is_video, uint64_t last_stamp, uint64_t new
     return last_stamp != new_stamp || cache_size >= 1024;
 }
 
-static bool isFlushAble_merge(bool is_video, uint64_t last_stamp, uint64_t new_stamp, int cache_size, int merge_ms) {
+static bool isFlushAble_merge(bool is_video, uint64_t last_stamp, uint64_t new_stamp, size_t cache_size, int merge_ms) {
     if (new_stamp + 500 < last_stamp) {
         //时间戳回退比较大(可能seek中)，由于rtp中时间戳是pts，是可能存在一定程度的回退的
         return true;
@@ -698,7 +698,7 @@ static bool isFlushAble_merge(bool is_video, uint64_t last_stamp, uint64_t new_s
     return cache_size >= 1024;
 }
 
-bool FlushPolicy::isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, int cache_size) {
+bool FlushPolicy::isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, size_t cache_size) {
     bool flush_flag = false;
     if (is_key && is_video) {
         //遇到关键帧flush掉前面的数据，确保关键帧为该组数据的第一帧，确保GOP缓存有效

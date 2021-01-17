@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -26,11 +26,12 @@ namespace mediakit {
 HttpStringBody::HttpStringBody(const string &str){
     _str = str;
 }
-uint64_t HttpStringBody::remainSize() {
+
+size_t HttpStringBody::remainSize() {
     return _str.size() - _offset;
 }
 
-Buffer::Ptr HttpStringBody::readData(uint32_t size) {
+Buffer::Ptr HttpStringBody::readData(size_t size) {
     size = MIN(remainSize(),size);
     if(!size){
         //没有剩余字节了
@@ -55,11 +56,19 @@ HttpFileBody::HttpFileBody(const string &filePath){
     }
 }
 
-HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, uint64_t offset, uint64_t max_size) {
+HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size) {
     init(fp,offset,max_size);
 }
 
-void HttpFileBody::init(const std::shared_ptr<FILE> &fp,uint64_t offset,uint64_t max_size){
+#if defined(_WIN32) || defined(_WIN64)
+    #define fseek64 _fseeki64
+    #define ftell64 _ftelli64
+#else
+    #define fseek64 fseek
+    #define ftell64 ftell
+#endif
+
+void HttpFileBody::init(const std::shared_ptr<FILE> &fp,size_t offset, size_t max_size){
     _fp = fp;
     _max_size = max_size;
 #ifdef ENABLE_MMAP
@@ -85,7 +94,7 @@ void HttpFileBody::init(const std::shared_ptr<FILE> &fp,uint64_t offset,uint64_t
 #endif
     if(!_map_addr && offset && fp.get()){
         //未映射,那么fseek设置偏移量
-        fseek(fp.get(), offset, SEEK_SET);
+        fseek64(fp.get(), offset, SEEK_SET);
     }
 }
 
@@ -93,30 +102,30 @@ void HttpFileBody::init(const std::shared_ptr<FILE> &fp,uint64_t offset,uint64_t
 class BufferMmap : public Buffer{
 public:
     typedef std::shared_ptr<BufferMmap> Ptr;
-    BufferMmap(const std::shared_ptr<char> &map_addr,uint64_t offset,int size){
+    BufferMmap(const std::shared_ptr<char> &map_addr, size_t offset, size_t size) {
         _map_addr = map_addr;
         _data = map_addr.get() + offset;
         _size = size;
-    };
-    virtual ~BufferMmap(){};
+    }
+    ~BufferMmap() override{};
     //返回数据长度
     char *data() const override {
         return _data;
     }
-    uint32_t size() const override{
+    size_t size() const override{
         return _size;
     }
 private:
     std::shared_ptr<char> _map_addr;
     char *_data;
-    uint32_t _size;
+    size_t _size;
 };
 
-uint64_t HttpFileBody::remainSize() {
+size_t HttpFileBody::remainSize() {
     return _max_size - _offset;
 }
 
-Buffer::Ptr HttpFileBody::readData(uint32_t size) {
+Buffer::Ptr HttpFileBody::readData(size_t size) {
     size = MIN(remainSize(),size);
     if(!size){
         //没有剩余字节了
@@ -124,7 +133,7 @@ Buffer::Ptr HttpFileBody::readData(uint32_t size) {
     }
     if(!_map_addr){
         //fread模式
-        int iRead;
+        size_t iRead;
         auto ret = _pool.obtain();
         ret->setCapacity(size + 1);
         do{
@@ -171,11 +180,11 @@ HttpMultiFormBody::HttpMultiFormBody(const HttpArgs &args,const string &filePath
     _totalSize =  _bodyPrefix.size() + _bodySuffix.size() + _fileBody->remainSize();
 }
 
-uint64_t HttpMultiFormBody::remainSize() {
+size_t HttpMultiFormBody::remainSize() {
     return _totalSize - _offset;
 }
 
-Buffer::Ptr HttpMultiFormBody::readData(uint32_t size){
+Buffer::Ptr HttpMultiFormBody::readData(size_t size){
     if(_bodyPrefix.size()){
         auto ret = std::make_shared<BufferString>(_bodyPrefix);
         _offset += _bodyPrefix.size();
@@ -212,11 +221,11 @@ string HttpMultiFormBody::multiFormBodySuffix(const string &boundary){
     return body;
 }
 
-uint64_t HttpMultiFormBody::fileSize(FILE *fp) {
-    auto current = ftell(fp);
-    fseek(fp,0L,SEEK_END); /* 定位到文件末尾 */
-    auto end  = ftell(fp); /* 得到文件大小 */
-    fseek(fp,current,SEEK_SET);
+size_t HttpMultiFormBody::fileSize(FILE *fp) {
+    auto current = ftell64(fp);
+    fseek64(fp, 0L, SEEK_END); /* 定位到文件末尾 */
+    auto end = ftell64(fp); /* 得到文件大小 */
+    fseek64(fp, current, SEEK_SET);
     return end - current;
 }
 

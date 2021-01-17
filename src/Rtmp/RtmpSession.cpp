@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -277,8 +277,8 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         if(strongSelf->_paused){
             return;
         }
-        int i = 0;
-        int size = pkt->size();
+        size_t i = 0;
+        auto size = pkt->size();
         strongSelf->setSendFlushFlag(false);
         pkt->for_each([&](const RtmpPacket::Ptr &rtmp){
             if(++i == size){
@@ -482,7 +482,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunk_data) {
         if (rtmp_modify_stamp) {
             int64_t dts_out;
             _stamp[chunk_data.type_id % 2].revise(chunk_data.time_stamp, chunk_data.time_stamp, dts_out, dts_out, true);
-            chunk_data.time_stamp = dts_out;
+            chunk_data.time_stamp = (uint32_t)dts_out;
         }
 
         if (!_set_meta_data && !chunk_data.isCfgFrame()) {
@@ -508,7 +508,7 @@ void RtmpSession::onCmd_seek(AMFDecoder &dec) {
     status.set("description", "Seeking.");
     sendReply("onStatus", nullptr, status);
 
-    auto milliSeconds = dec.load<AMFValue>().as_number();
+    auto milliSeconds = (uint32_t)(dec.load<AMFValue>().as_number());
     InfoP(this) << "rtmp seekTo(ms):" << milliSeconds;
     auto strong_src = _player_src.lock();
     if (strong_src) {
@@ -520,7 +520,7 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
     //rtmp播放器时间戳从零开始
     int64_t dts_out;
     _stamp[pkt->type_id % 2].revise(pkt->time_stamp, 0, dts_out, dts_out);
-    sendRtmp(pkt->type_id, pkt->stream_index, pkt, dts_out, pkt->chunk_id);
+    sendRtmp(pkt->type_id, pkt->stream_index, pkt, (uint32_t)dts_out, pkt->chunk_id);
 }
 
 

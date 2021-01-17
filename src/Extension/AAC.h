@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -17,9 +17,9 @@
 
 namespace mediakit{
 
-string makeAacConfig(const uint8_t *hex, int length);
-int getAacFrameLength(const uint8_t *hex, int length);
-int dumpAacConfig(const string &config, int length, uint8_t *out, int out_size);
+string makeAacConfig(const uint8_t *hex, size_t length);
+int getAacFrameLength(const uint8_t *hex, size_t length);
+int dumpAacConfig(const string &config, size_t length, uint8_t *out, size_t out_size);
 bool parseAacConfig(const string &config, int &samplerate, int &channels);
 
 /**

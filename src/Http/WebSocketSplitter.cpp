@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -53,7 +53,7 @@ do{ \
     } \
 }while(0) \
 
-void WebSocketSplitter::decode(uint8_t *data,uint64_t len) {
+void WebSocketSplitter::decode(uint8_t *data,size_t len) {
     uint8_t *ptr = data;
     if(!_got_header) {
         //还没有获取数据头
@@ -107,9 +107,9 @@ begin_decode:
 
     //进入后面逻辑代表已经获取到了webSocket协议头，
 
-    uint64_t remain = len - (ptr - data);
+    auto remain = len - (ptr - data);
     if(remain > 0){
-        uint64_t payload_slice_len = remain;
+        auto payload_slice_len = remain;
         if(payload_slice_len + _payload_offset > _payload_len){
             payload_slice_len = _payload_len - _payload_offset;
         }
@@ -138,7 +138,7 @@ begin_decode:
     _remain_data.clear();
 }
 
-void WebSocketSplitter::onPayloadData(uint8_t *data, uint64_t len) {
+void WebSocketSplitter::onPayloadData(uint8_t *data, size_t len) {
     if(_mask_flag){
         for(int i = 0; i < len ; ++i,++data){
             *(data) ^= _mask[(i + _mask_offset) % 4];
@@ -150,7 +150,7 @@ void WebSocketSplitter::onPayloadData(uint8_t *data, uint64_t len) {
 
 void WebSocketSplitter::encode(const WebSocketHeader &header,const Buffer::Ptr &buffer) {
     string ret;
-    uint64_t len = buffer ? buffer->size() : 0;
+    auto len = buffer ? buffer->size() : 0;
     uint8_t byte = header._fin << 7 | ((header._reserved & 0x07) << 4) | (header._opcode & 0x0F) ;
     ret.push_back(byte);
 
@@ -164,7 +164,7 @@ void WebSocketSplitter::encode(const WebSocketHeader &header,const Buffer::Ptr &
         byte |= 126;
         ret.push_back(byte);
 
-        auto len_low = htons(len);
+        uint16_t len_low = htons((uint16_t)len);
         ret.append((char *)&len_low,2);
     }else{
         byte |= 127;

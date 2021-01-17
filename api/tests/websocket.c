@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -52,7 +52,7 @@ void API_CALL on_mk_tcp_session_create(uint16_t server_port,mk_tcp_session sessi
  * @param data 数据指针
  * @param len 数据长度
  */
-void API_CALL on_mk_tcp_session_data(uint16_t server_port,mk_tcp_session session,const char *data,int len){
+void API_CALL on_mk_tcp_session_data(uint16_t server_port,mk_tcp_session session,const char *data,size_t len){
     char ip[64];
     log_printf(LOG_LEV,"from %s %d, data[%d]: %s",mk_tcp_session_peer_ip(session,ip),(int)mk_tcp_session_peer_port(session), len,data);
     mk_tcp_session_send(session,"echo:",0);
@@ -129,7 +129,7 @@ void API_CALL on_mk_tcp_client_disconnect(mk_tcp_client client,int code,const ch
  * @param data 数据指针
  * @param len 数据长度
  */
-void API_CALL on_mk_tcp_client_data(mk_tcp_client client,const char *data,int len){
+void API_CALL on_mk_tcp_client_data(mk_tcp_client client,const char *data,size_t len){
     log_printf(LOG_LEV,"data[%d]:%s",len,data);
 }
 

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -89,9 +89,9 @@ API_EXPORT void API_CALL mk_env_init1(int thread_num,
         if (ini && ini[0]) {
             //设置配置文件
             if (ini_is_path) {
-                try{
+                try {
                     mINI::Instance().parseFile(ini);
-                }catch (std::exception &ex) {
+                } catch (std::exception &) {
                     InfoL << "dump ini file to:" << ini;
                     mINI::Instance().dumpFile(ini);
                 }

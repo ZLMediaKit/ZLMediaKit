@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -19,7 +19,7 @@ static const int  kEHOME_OFFSET = 256;
 RtpSplitter::RtpSplitter() {}
 RtpSplitter::~RtpSplitter() {}
 
-int64_t RtpSplitter::onRecvHeader(const char *data,uint64_t len){
+size_t RtpSplitter::onRecvHeader(const char *data,size_t len){
     //忽略偏移量
     data += _offset;
     len -= _offset;
@@ -34,14 +34,14 @@ int64_t RtpSplitter::onRecvHeader(const char *data,uint64_t len){
     return 0;
 }
 
-static bool isEhome(const char *data, uint64_t len){
+static bool isEhome(const char *data, size_t len){
     if (len < 4) {
         return false;
     }
     return memcmp(data, kEHOME_MAGIC, sizeof(kEHOME_MAGIC) - 1) == 0;
 }
 
-const char *RtpSplitter::onSearchPacketTail(const char *data, uint64_t len) {
+const char *RtpSplitter::onSearchPacketTail(const char *data, size_t len) {
     if (len < 4) {
         //数据不够
         return nullptr;
@@ -70,7 +70,7 @@ const char *RtpSplitter::onSearchPacketTail(const char *data, uint64_t len) {
     return onSearchPacketTail_l(data, len);
 }
 
-const char *RtpSplitter::onSearchPacketTail_l(const char *data, uint64_t len) {
+const char *RtpSplitter::onSearchPacketTail_l(const char *data, size_t len) {
     //这是rtp包
     uint16_t length = (((uint8_t *) data)[0] << 8) | ((uint8_t *) data)[1];
     if (len < length + 2) {

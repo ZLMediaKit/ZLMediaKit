@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -22,7 +22,7 @@ void RtpSelector::clear(){
     _map_rtp_process.clear();
 }
 
-bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, int data_len,
+bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, size_t data_len,
                            const struct sockaddr *addr,uint32_t *dts_out) {
     uint32_t ssrc = 0;
     if (!getSSRC(data, data_len, ssrc)) {
@@ -41,7 +41,7 @@ bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, int data_l
     return false;
 }
 
-bool RtpSelector::getSSRC(const char *data,int data_len, uint32_t &ssrc){
+bool RtpSelector::getSSRC(const char *data, size_t data_len, uint32_t &ssrc){
     if (data_len < 12) {
         return false;
     }
@@ -69,7 +69,7 @@ void RtpSelector::createTimer() {
     if (!_timer) {
         //创建超时管理定时器
         weak_ptr<RtpSelector> weakSelf = shared_from_this();
-        _timer = std::make_shared<Timer>(3.0, [weakSelf] {
+        _timer = std::make_shared<Timer>(3.0f, [weakSelf] {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return false;

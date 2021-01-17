@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -75,7 +75,7 @@ INSTANCE_IMP(HttpCookieManager);
 
 HttpCookieManager::HttpCookieManager() {
     //定时删除过期的cookie，防止内存膨胀
-    _timer = std::make_shared<Timer>(10,[this](){
+    _timer = std::make_shared<Timer>(10.0f,[this](){
         onManager();
         return true;
     }, nullptr);

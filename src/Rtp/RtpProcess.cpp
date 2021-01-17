@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -70,7 +70,7 @@ RtpProcess::~RtpProcess() {
     }
 }
 
-bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, int len, const struct sockaddr *addr, uint32_t *dts_out) {
+bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint32_t *dts_out) {
     GET_CONFIG(bool, check_source, RtpProxy::kCheckSource);
     //检查源是否合法
     if (!_addr) {
@@ -94,7 +94,7 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
 
     _total_bytes += len;
     if (_save_file_rtp) {
-        uint16_t size = len;
+        uint16_t size = (uint16_t)len;
         size = htons(size);
         fwrite((uint8_t *) &size, 2, 1, _save_file_rtp.get());
         fwrite((uint8_t *) data, len, 1, _save_file_rtp.get());
@@ -210,7 +210,7 @@ void RtpProcess::emitOnPublish() {
         if (err.empty()) {
             strongSelf->_muxer = std::make_shared<MultiMediaSourceMuxer>(strongSelf->_media_info._vhost,
                                                                          strongSelf->_media_info._app,
-                                                                         strongSelf->_media_info._streamid, 0,
+                                                                         strongSelf->_media_info._streamid, 0.0f,
                                                                          true, true, enableHls, enableMP4);
             strongSelf->_muxer->setMediaListener(strongSelf);
             InfoP(strongSelf) << "允许RTP推流";

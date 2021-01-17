@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -22,10 +22,10 @@ namespace mediakit {
 class Decoder {
 public:
     typedef std::shared_ptr<Decoder> Ptr;
-    typedef std::function<void(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, int bytes)> onDecode;
-    typedef std::function<void(int stream, int codecid, const void *extra, int bytes, int finish)> onStream;
+    typedef std::function<void(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, size_t bytes)> onDecode;
+    typedef std::function<void(int stream, int codecid, const void *extra, size_t bytes, int finish)> onStream;
 
-    virtual int input(const uint8_t *data, int bytes) = 0;
+    virtual size_t input(const uint8_t *data, size_t bytes) = 0;
     virtual void setOnDecode(onDecode cb) = 0;
     virtual void setOnStream(onStream cb) = 0;
 
@@ -57,7 +57,7 @@ public:
     ~DecoderImp() = default;
 
     static Ptr createDecoder(Type type, MediaSinkInterface *sink);
-    int input(const uint8_t *data, int bytes);
+    size_t input(const uint8_t *data, size_t bytes);
 
 protected:
     void onTrack(const Track::Ptr &track);
@@ -65,8 +65,8 @@ protected:
 
 private:
     DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink);
-    void onDecode(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, int bytes);
-    void onStream(int stream, int codecid, const void *extra, int bytes, int finish);
+    void onDecode(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, size_t bytes);
+    void onStream(int stream, int codecid, const void *extra, size_t bytes, int finish);
 
 private:
     Decoder::Ptr _decoder;

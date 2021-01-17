@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -110,7 +110,7 @@ protected:
      * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
      *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
      */
-    virtual int64_t onResponseHeader(const string &status,const HttpHeader &headers){
+    virtual size_t onResponseHeader(const string &status,const HttpHeader &headers){
         DebugL << status;
         //无Content-Length字段时默认后面全是content
         return -1;
@@ -123,7 +123,7 @@ protected:
      * @param recvedSize 已收数据大小(包含本次数据大小),当其等于totalSize时将触发onResponseCompleted回调
      * @param totalSize 总数据大小
      */
-    virtual void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize){
+    virtual void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize){
         DebugL << size << " " <<  recvedSize << " " << totalSize;
     };
 
@@ -149,19 +149,23 @@ protected:
     virtual bool onRedirectUrl(const string &url,bool temporary){ return true;};
 
     //HttpRequestSplitter override
-    int64_t onRecvHeader(const char *data,uint64_t len) override ;
-    void onRecvContent(const char *data,uint64_t len) override;
+    size_t onRecvHeader(const char *data,size_t len) override;
+    void onRecvContent(const char *data,size_t len) override;
+
 protected:
     virtual void onConnect(const SockException &ex) override;
     virtual void onRecv(const Buffer::Ptr &pBuf) override;
     virtual void onErr(const SockException &ex) override;
     virtual void onFlush() override;
     virtual void onManager() override;
+
 private:
     void onResponseCompleted_l();
     void checkCookie(HttpHeader &headers );
+
 protected:
     bool _isHttps;
+
 private:
     string _url;
     HttpHeader _header;
@@ -169,8 +173,8 @@ private:
     string _method;
     string _path;
     //recv
-    int64_t _recvedBodySize;
-    int64_t _totalBodySize;
+    size_t _recvedBodySize;
+    size_t _totalBodySize;
     Parser _parser;
     string _lastHost;
     Ticker _aliveTicker;

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -71,15 +71,15 @@ typedef enum {
 class RtpPacket : public BufferRaw{
 public:
     typedef std::shared_ptr<RtpPacket> Ptr;
+    bool mark;
     uint8_t interleaved;
     uint8_t PT;
-    bool mark;
+    TrackType type;
+    uint16_t sequence;
     //时间戳，单位毫秒
     uint32_t timeStamp;
-    uint16_t sequence;
     uint32_t ssrc;
-    uint32_t offset;
-    TrackType type;
+    size_t offset;
 };
 
 class RtpPayload{

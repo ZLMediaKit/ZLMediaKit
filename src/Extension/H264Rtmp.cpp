@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -97,8 +97,8 @@ void H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     }
 
     if (pkt->buffer.size() > 9) {
-        uint32_t iTotalLen = pkt->buffer.size();
-        uint32_t iOffset = 5;
+        auto iTotalLen = pkt->buffer.size();
+        size_t iOffset = 5;
         uint8_t *cts_ptr = (uint8_t *) (pkt->buffer.data() + 2);
         int32_t cts = (((cts_ptr[0] << 16) | (cts_ptr[1] << 8) | (cts_ptr[2])) + 0xff800000) ^ 0xff800000;
         auto pts = pkt->time_stamp + cts;
@@ -117,7 +117,7 @@ void H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     }
 }
 
-inline void H264RtmpDecoder::onGetH264(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
+inline void H264RtmpDecoder::onGetH264(const char* pcData, size_t iLen, uint32_t dts,uint32_t pts) {
     if(iLen == 0){
         return;
     }
@@ -213,7 +213,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         _lastPacket->type_id = MSG_VIDEO;
 
     }
-    auto size = htonl(iLen);
+    uint32_t size = htonl((uint32_t)iLen);
     _lastPacket->buffer.append((char *) &size, 4);
     _lastPacket->buffer.append(pcData, iLen);
     _lastPacket->body_size = _lastPacket->buffer.size();
@@ -238,16 +238,16 @@ void H264RtmpEncoder::makeVideoConfigPkt() {
     rtmpPkt->buffer.push_back(_sps[1]); // profile
     rtmpPkt->buffer.push_back(_sps[2]); // compat
     rtmpPkt->buffer.push_back(_sps[3]); // level
-    rtmpPkt->buffer.push_back(0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
-    rtmpPkt->buffer.push_back(0xe1); // 3 bits reserved + 5 bits number of sps (00001)
+    rtmpPkt->buffer.push_back((char)0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
+    rtmpPkt->buffer.push_back((char)0xe1); // 3 bits reserved + 5 bits number of sps (00001)
     //sps
-    uint16_t size = _sps.size();
+    uint16_t size = (uint16_t)_sps.size();
     size = htons(size);
     rtmpPkt->buffer.append((char *) &size, 2);
     rtmpPkt->buffer.append(_sps);
     //pps
     rtmpPkt->buffer.push_back(1); // version
-    size = _pps.size();
+    size = (uint16_t)_pps.size();
     size = htons(size);
     rtmpPkt->buffer.append((char *) &size, 2);
     rtmpPkt->buffer.append(_pps);

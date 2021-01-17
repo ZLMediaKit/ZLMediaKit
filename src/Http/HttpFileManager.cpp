@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -564,9 +564,9 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     }
 
     auto &strRange = const_cast<StrCaseMap &>(requestHeader)["Range"];
-    int64_t iRangeStart = 0;
-    int64_t iRangeEnd = 0;
-    int64_t fileSize = HttpMultiFormBody::fileSize(fp.get());
+    size_t iRangeStart = 0;
+    size_t iRangeEnd = 0;
+    size_t fileSize = HttpMultiFormBody::fileSize(fp.get());
 
     int code;
     if (strRange.size() == 0) {

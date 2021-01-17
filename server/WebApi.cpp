@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -187,7 +187,7 @@ static inline void addHttpListener(){
                                                 const HttpBody::Ptr &body) {
 
                 //body默认为空
-                int64_t size = 0;
+                size_t size = 0;
                 if (body && body->remainSize()) {
                     //有body，获取body大小
                     size = body->remainSize();
@@ -572,7 +572,7 @@ void installWebApi() {
         CHECK_SECRET();
         uint16_t local_port = allArgs["local_port"].as<uint16_t>();
         string &peer_ip = allArgs["peer_ip"];
-        uint64_t count_hit = 0;
+        size_t count_hit = 0;
 
         list<TcpSession::Ptr> session_list;
         SessionMap::Instance().for_each_session([&](const string &id,const TcpSession::Ptr &session){
@@ -923,7 +923,7 @@ void installWebApi() {
         Json::Value paths(arrayValue);
         //这是筛选日期，获取文件夹列表
         File::scanDir(record_path, [&](const string &path, bool isDir) {
-            int pos = path.rfind('/');
+            auto pos = path.rfind('/');
             if (pos != string::npos) {
                 string relative_path = path.substr(pos + 1);
                 if (search_mp4) {

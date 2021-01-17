@@ -20,13 +20,14 @@ set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release)
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
     SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
-    add_compile_options(-fPIC)
+    add_compile_options(-fPIC -Wall -Wno-sign-compare -Wno-unused-variable -Wno-unused-value)
 elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
     SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/windows/${BuildType})
     SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/windows/${BuildType})
 elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
     SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/mac/${BuildType})
     SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/mac/${BuildType})
+    add_compile_options(-Wall -Wno-sign-compare -Wno-unused-variable -Wno-unused-value)
 endif ()
 
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
@@ -104,7 +105,8 @@ if(${CMAKE_BUILD_TYPE} MATCHES "Release")
     endif()
 endif()
 
-set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573" )
+#set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573 /wd4996" )
+set(VS_FALGS "/wd4018" )
 
 #添加mpeg用于支持ts生成
 if(ENABLE_HLS)
@@ -167,7 +169,7 @@ if (NOT WIN32)
     list(REMOVE_ITEM ToolKit_src_list ${ToolKit_Root}/win32/getopt.c)
 else()
     #防止Windows.h包含Winsock.h
-    add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS -DOS_WINDOWS)
+    add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS -D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif ()
 
 #添加库

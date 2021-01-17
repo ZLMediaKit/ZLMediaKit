@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -75,8 +75,8 @@ void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     }
 
     if (pkt->buffer.size() > 9) {
-        uint32_t iTotalLen = pkt->buffer.size();
-        uint32_t iOffset = 5;
+        auto iTotalLen = pkt->buffer.size();
+        size_t iOffset = 5;
         uint8_t *cts_ptr = (uint8_t *) (pkt->buffer.data() + 2);
         int32_t cts = (((cts_ptr[0] << 16) | (cts_ptr[1] << 8) | (cts_ptr[2])) + 0xff800000) ^ 0xff800000;
         auto pts = pkt->time_stamp + cts;
@@ -95,7 +95,7 @@ void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     }
 }
 
-inline void H265RtmpDecoder::onGetH265(const char* pcData, int iLen, uint32_t dts,uint32_t pts) {
+inline void H265RtmpDecoder::onGetH265(const char* pcData, size_t iLen, uint32_t dts,uint32_t pts) {
     if(iLen == 0){
         return;
     }
@@ -196,7 +196,7 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         _lastPacket->type_id = MSG_VIDEO;
 
     }
-    auto size = htonl(iLen);
+    uint32_t size = htonl((uint32_t)iLen);
     _lastPacket->buffer.append((char *) &size, 4);
     _lastPacket->buffer.append(pcData, iLen);
     _lastPacket->body_size = _lastPacket->buffer.size();
@@ -221,7 +221,7 @@ void H265RtmpEncoder::makeVideoConfigPkt() {
     string vps_sps_pps = string("\x00\x00\x00\x01", 4) + _vps +
                          string("\x00\x00\x00\x01", 4) + _sps +
                          string("\x00\x00\x00\x01", 4) + _pps;
-    h265_annexbtomp4(&hevc, vps_sps_pps.data(), vps_sps_pps.size(), NULL, 0, NULL, NULL);
+    h265_annexbtomp4(&hevc, vps_sps_pps.data(), (int)vps_sps_pps.size(), NULL, 0, NULL, NULL);
     uint8_t extra_data[1024];
     int extra_data_size = mpeg4_hevc_decoder_configuration_record_save(&hevc, extra_data, sizeof(extra_data));
     if (extra_data_size == -1) {

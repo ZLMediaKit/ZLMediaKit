@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -19,9 +19,9 @@ using namespace toolkit;
 
 namespace mediakit{
 
-bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-void splitH264(const char *ptr, int len, int prefix, const std::function<void(const char *, int, int)> &cb);
-int prefixSize(const char *ptr, int len);
+bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float &iVideoFps);
+void splitH264(const char *ptr, size_t len, size_t prefix, const std::function<void(const char *, size_t, size_t)> &cb);
+size_t prefixSize(const char *ptr, size_t len);
 /**
  * 264帧类
  */
@@ -64,7 +64,7 @@ class H264FrameNoCacheAble : public FrameFromPtr {
 public:
     typedef std::shared_ptr<H264FrameNoCacheAble> Ptr;
 
-    H264FrameNoCacheAble(char *ptr,uint32_t size,uint32_t dts , uint32_t pts ,int prefix_size = 4){
+    H264FrameNoCacheAble(char *ptr,size_t size,uint32_t dts , uint32_t pts ,size_t prefix_size = 4){
         _ptr = ptr;
         _size = size;
         _dts = dts;
@@ -183,7 +183,7 @@ public:
         int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
         if(type != H264Frame::NAL_B_P && type != H264Frame::NAL_IDR){
             //非I/B/P帧情况下，split一下，防止多个帧粘合在一起
-            splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, int len, int prefix) {
+            splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
                 H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame, (char *)ptr, len, prefix);
                 inputFrame_l(sub_frame);
             });
@@ -310,14 +310,14 @@ public:
                                (uint8_t(strSPS[3])); // profile_idc|constraint_setN_flag|level_idc
         }
         memset(strTemp, 0, 100);
-        sprintf(strTemp, "%06X", profile_level_id);
+        snprintf(strTemp, sizeof(strTemp), "%06X", profile_level_id);
         _printer << strTemp;
         _printer << "; sprop-parameter-sets=";
         memset(strTemp, 0, 100);
-        av_base64_encode(strTemp, 100, (uint8_t *) strSPS.data(), strSPS.size());
+        av_base64_encode(strTemp, 100, (uint8_t *) strSPS.data(), (int)strSPS.size());
         _printer << strTemp << ",";
         memset(strTemp, 0, 100);
-        av_base64_encode(strTemp, 100, (uint8_t *) strPPS.data(), strPPS.size());
+        av_base64_encode(strTemp, 100, (uint8_t *) strPPS.data(), (int)strPPS.size());
         _printer << strTemp << "\r\n";
         _printer << "a=control:trackID=" << (int)TrackVideo << "\r\n";
     }

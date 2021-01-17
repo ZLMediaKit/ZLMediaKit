@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -70,7 +70,7 @@ string strCoding::UrlEncode(const string &str) {
 string strCoding::UrlDecode(const string &str) {
     string output = "";
     char tmp[2];
-    int i = 0, len = str.length();
+    size_t i = 0, len = str.length();
     while (i < len) {
         if (str[i] == '%') {
             if(i > len - 3){
@@ -138,10 +138,10 @@ string strCoding::GB2312ToUTF8(const string &str) {
     auto len = str.size();
     auto pText = str.data();
     char buf[4] = { 0 };
-    int nLength = len * 3;
+    auto nLength = len * 3;
     char* pOut = new char[nLength];
     memset(pOut, 0, nLength);
-    int i = 0, j = 0;
+    size_t i = 0, j = 0;
     while (i < len)
     {
         //如果是英文直接复制就可以   

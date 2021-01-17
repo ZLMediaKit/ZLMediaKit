@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -33,7 +33,7 @@ public:
     RtmpProtocol();
     virtual ~RtmpProtocol();
 
-    void onParseRtmp(const char *data, uint64_t size);
+    void onParseRtmp(const char *data, size_t size);
     //作为客户端发送c0c1，等待s0s1s2并且回调
     void startClientSession(const function<void()> &cb);
 
@@ -48,13 +48,13 @@ protected:
 
 protected:
     //// HttpRequestSplitter override ////
-    int64_t onRecvHeader(const char *data,uint64_t len) override { return 0; }
-    const char *onSearchPacketTail(const char *data,uint64_t len) override;
+    size_t onRecvHeader(const char *data, size_t len) override { return 0; }
+    const char *onSearchPacketTail(const char *data, size_t len) override;
 
 protected:
     void reset();
     BufferRaw::Ptr obtainBuffer();
-    BufferRaw::Ptr obtainBuffer(const void *data, int len);
+    BufferRaw::Ptr obtainBuffer(const void *data, size_t len);
 
     void sendAcknowledgement(uint32_t size);
     void sendAcknowledgementSize(uint32_t size);
@@ -81,10 +81,10 @@ private:
     void send_complex_S0S1S2(int schemeType,const string &digest);
 #endif //ENABLE_OPENSSL
 
-    const char* handle_S0S1S2(const char *data, uint64_t len, const function<void()> &func);
-    const char* handle_C0C1(const char *data, uint64_t len);
-    const char* handle_C2(const char *data, uint64_t len);
-    const char* handle_rtmp(const char *data, uint64_t len);
+    const char* handle_S0S1S2(const char *data, size_t len, const function<void()> &func);
+    const char* handle_C0C1(const char *data, size_t len);
+    const char* handle_C2(const char *data, size_t len);
+    const char* handle_rtmp(const char *data, size_t len);
     void handle_chunk(RtmpPacket &chunk_data);
 
 protected:
@@ -106,7 +106,7 @@ private:
     uint32_t _bandwidth = 2500000;
     uint8_t _band_limit_type = 2;
     //////////Rtmp parser//////////
-    function<const char * (const char *data, uint64_t len)> _next_step_func;
+    function<const char * (const char *data, size_t len)> _next_step_func;
     ////////////Chunk////////////
     unordered_map<int, RtmpPacket> _map_chunk_data;
 };

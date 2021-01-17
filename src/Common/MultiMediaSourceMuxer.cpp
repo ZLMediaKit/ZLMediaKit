@@ -1,7 +1,7 @@
 ﻿/*
 * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
 *
-* This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+* This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
 *
 * Use of this source code is governed by MIT license that can be found in the
 * LICENSE file in the root of the source tree. All contributing project authors
@@ -404,14 +404,14 @@ public:
     ~FrameModifyStamp() override {}
 
     uint32_t dts() const override{
-        return _dts;
+        return (uint32_t)_dts;
     }
 
     uint32_t pts() const override{
-        return _pts;
+        return (uint32_t)_pts;
     }
 
-    uint32_t prefixSize() const override {
+    size_t prefixSize() const override {
         return _frame->prefixSize();
     }
 
@@ -431,7 +431,7 @@ public:
         return _frame->data();
     }
 
-    uint32_t size() const override {
+    size_t size() const override {
         return _frame->size();
     }
 

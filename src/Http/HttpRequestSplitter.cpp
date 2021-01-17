@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -15,7 +15,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-void HttpRequestSplitter::input(const char *data,uint64_t len) {
+void HttpRequestSplitter::input(const char *data,size_t len) {
     const char *ptr = data;
     if(!_remain_data.empty()){
         _remain_data.append(data,len);
@@ -44,7 +44,7 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
         }
         //_content_len == 0，这是请求头
         const char *header_ptr = ptr;
-        int64_t header_size = index - ptr;
+        auto header_size = index - ptr;
         ptr = index;
         _remain_data_size = len - (ptr - data);
         _content_len = onRecvHeader(header_ptr, header_size);
@@ -101,7 +101,7 @@ void HttpRequestSplitter::input(const char *data,uint64_t len) {
     _remain_data.clear();
 }
 
-void HttpRequestSplitter::setContentLen(int64_t content_len) {
+void HttpRequestSplitter::setContentLen(size_t content_len) {
     _content_len = content_len;
 }
 
@@ -111,7 +111,7 @@ void HttpRequestSplitter::reset() {
     _remain_data.clear();
 }
 
-const char *HttpRequestSplitter::onSearchPacketTail(const char *data,uint64_t len) {
+const char *HttpRequestSplitter::onSearchPacketTail(const char *data,size_t len) {
     auto pos = strstr(data,"\r\n\r\n");
     if(pos == nullptr){
         return nullptr;
@@ -119,7 +119,7 @@ const char *HttpRequestSplitter::onSearchPacketTail(const char *data,uint64_t le
     return  pos + 4;
 }
 
-int64_t HttpRequestSplitter::remainDataSize() {
+size_t HttpRequestSplitter::remainDataSize() {
     return _remain_data_size;
 }
 

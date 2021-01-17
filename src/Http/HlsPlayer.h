@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2020 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -46,7 +46,7 @@ protected:
      * @param data ts数据负载
      * @param len ts包长度
      */
-    virtual void onPacket(const char *data, uint64_t len) = 0;
+    virtual void onPacket(const char *data, size_t len) = 0;
 
 private:
     /**
@@ -63,7 +63,7 @@ private:
      * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
      *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
      */
-    int64_t onResponseHeader(const string &status,const HttpHeader &headers) override;
+    size_t onResponseHeader(const string &status,const HttpHeader &headers) override;
     /**
      * 收到http conten数据
      * @param buf 数据指针
@@ -71,7 +71,7 @@ private:
      * @param recvedSize 已收数据大小(包含本次数据大小),当其等于totalSize时将触发onResponseCompleted回调
      * @param totalSize 总数据大小
      */
-    void onResponseBody(const char *buf,int64_t size,int64_t recvedSize,int64_t totalSize) override;
+    void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override;
 
     /**
      * 接收http回复完毕,
@@ -98,7 +98,7 @@ private:
     void playNextTs(bool force = false);
     void teardown_l(const SockException &ex);
     void play_l();
-    void onPacket_l(const char *data, uint64_t len);
+    void onPacket_l(const char *data, size_t len);
 
 private:
     struct UrlComp {
@@ -131,7 +131,7 @@ public:
     void setOnPacket(const TSSegment::onSegment &cb);
 
 private:
-    void onPacket(const char *data, uint64_t len) override;
+    void onPacket(const char *data, size_t len) override;
     void onAllTrackReady() override;
     void onPlayResult(const SockException &ex) override;
     vector<Track::Ptr> getTracks(bool trackReady = true) const override;
