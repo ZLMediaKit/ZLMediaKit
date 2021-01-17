@@ -683,7 +683,7 @@ void installWebApi() {
             lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
             s_ffmpegMap.erase(key);
         });
-        ffmpeg->setupRecord(enable_hls, enable_mp4);
+        ffmpeg->setupRecordFlag(enable_hls, enable_mp4);
         ffmpeg->play(src_url, dst_url, timeout_ms, [cb, key](const SockException &ex) {
             if (ex) {
                 lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);

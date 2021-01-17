@@ -121,7 +121,7 @@ static struct mov_buffer_t s_io = {
         },
         [](void *ctx) {
             MP4FileIO *thiz = (MP4FileIO *) ctx;
-            return thiz->onTell();
+            return (uint64_t)thiz->onTell();
         }
 };
 

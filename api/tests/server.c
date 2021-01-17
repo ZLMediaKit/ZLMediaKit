@@ -371,8 +371,8 @@ void API_CALL on_mk_shell_login(const char *user_name,
  * @param peer_port 客户端端口号
  */
 void API_CALL on_mk_flow_report(const mk_media_info url_info,
-                                uint64_t total_bytes,
-                                uint64_t total_seconds,
+                                size_t total_bytes,
+                                size_t total_seconds,
                                 int is_player,
                                 const mk_sock_info sender) {
     char ip[64];

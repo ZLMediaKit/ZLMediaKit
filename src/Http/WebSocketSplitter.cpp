@@ -53,7 +53,7 @@ do{ \
     } \
 }while(0) \
 
-void WebSocketSplitter::decode(uint8_t *data,size_t len) {
+void WebSocketSplitter::decode(uint8_t *data, size_t len) {
     uint8_t *ptr = data;
     if(!_got_header) {
         //还没有获取数据头

@@ -95,7 +95,7 @@ public:
      * @param data 需要解包的数据，可能是不完整的包或多个包
      * @param len 数据长度
      */
-    void decode(uint8_t *data,uint64_t len);
+    void decode(uint8_t *data, size_t len);
 
     /**
      * 编码一个数据包
@@ -119,7 +119,7 @@ protected:
      * @param len 负载数据长度
      * @param recved 已接收数据长度(包含本次数据长度)，等于header._payload_len时则接受完毕
      */
-    virtual void onWebSocketDecodePayload(const WebSocketHeader &header, const uint8_t *ptr, uint64_t len, uint64_t recved) {};
+    virtual void onWebSocketDecodePayload(const WebSocketHeader &header, const uint8_t *ptr, size_t len, size_t recved) {};
 
     /**
      * 接收到完整的一个webSocket数据包后回调
@@ -135,13 +135,13 @@ protected:
     virtual void onWebSocketEncodeData(Buffer::Ptr buffer){};
 
 private:
-    void onPayloadData(uint8_t *data, uint64_t len);
+    void onPayloadData(uint8_t *data, size_t len);
 
 private:
-    string _remain_data;
-    int _mask_offset = 0;
     bool _got_header = false;
-    uint64_t _payload_offset = 0;
+    int _mask_offset = 0;
+    size_t _payload_offset = 0;
+    string _remain_data;
 };
 
 } /* namespace mediakit */

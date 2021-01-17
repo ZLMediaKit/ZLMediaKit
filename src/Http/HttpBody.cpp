@@ -144,7 +144,7 @@ Buffer::Ptr HttpFileBody::readData(size_t size) {
             //读到数据了
             ret->setSize(iRead);
             _offset += iRead;
-            return ret;
+            return std::move(ret);
         }
         //读取文件异常，文件真实长度小于声明长度
         _offset = _max_size;
@@ -218,7 +218,7 @@ string HttpMultiFormBody::multiFormBodySuffix(const string &boundary){
     string endMPboundary = MPboundary + "--";
     _StrPrinter body;
     body << "\r\n" << endMPboundary;
-    return body;
+    return std::move(body);
 }
 
 size_t HttpMultiFormBody::fileSize(FILE *fp) {
@@ -244,7 +244,7 @@ string HttpMultiFormBody::multiFormBodyPrefix(const HttpArgs &args,const string 
     body << MPboundary << "\r\n";
     body << "Content-Disposition: form-data; name=\"" << "file" << "\";filename=\"" << fileName << "\"\r\n";
     body << "Content-Type: application/octet-stream\r\n\r\n" ;
-    return body;
+    return std::move(body);
 }
 
 }//namespace mediakit

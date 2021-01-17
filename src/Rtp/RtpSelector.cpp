@@ -138,7 +138,7 @@ void RtpProcessHelper::attachEvent() {
 
 bool RtpProcessHelper::close(MediaSource &sender, bool force) {
     //此回调在其他线程触发
-    if (!_process || (!force && _process->totalReaderCount())) {
+    if (!_process || (!force && _process->getTotalReaderCount())) {
         return false;
     }
     auto parent = _parent.lock();
@@ -151,7 +151,7 @@ bool RtpProcessHelper::close(MediaSource &sender, bool force) {
 }
 
 int RtpProcessHelper::totalReaderCount(MediaSource &sender) {
-    return _process ? _process->totalReaderCount() : sender.totalReaderCount();
+    return _process ? _process->getTotalReaderCount() : sender.totalReaderCount();
 }
 
 RtpProcess::Ptr &RtpProcessHelper::getProcess() {

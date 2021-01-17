@@ -83,7 +83,7 @@ void HlsPlayer::playNextTs(bool force){
             strongSelf->playNextTs(true);
         } else {
             //下一个切片慢点播放
-            strongSelf->_timer_ts.reset(new Timer(delay / 1000.0f, [weakSelf, delay]() {
+            strongSelf->_timer_ts.reset(new Timer(delay / 1000.0f, [weakSelf]() {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
                     return false;

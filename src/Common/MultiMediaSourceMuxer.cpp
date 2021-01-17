@@ -260,7 +260,7 @@ static string getTrackInfoStr(const TrackSource *track_src){
                 break;
         }
     }
-    return codec_info;
+    return std::move(codec_info);
 }
 
 void MultiMuxerPrivate::onAllTrackReady() {

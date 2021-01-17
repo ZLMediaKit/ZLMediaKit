@@ -67,7 +67,7 @@ public:
      * @param enable_hls 是否开启hls直播或录制
      * @param enable_mp4 是否录制mp4
      */
-    void setupRecord(bool enable_hls, bool enable_mp4);
+    void setupRecordFlag(bool enable_hls, bool enable_mp4);
 
 private:
     void findAsync(int maxWaitMS ,const function<void(const MediaSource::Ptr &src)> &cb);

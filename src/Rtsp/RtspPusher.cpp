@@ -309,7 +309,7 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
 }
 
 void RtspPusher::sendOptions() {
-    _on_res_func = [this](const Parser &parser) {};
+    _on_res_func = [](const Parser &parser) {};
     sendRtspRequest("OPTIONS", _content_base);
 }
 

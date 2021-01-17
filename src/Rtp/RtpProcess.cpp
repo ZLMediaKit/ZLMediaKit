@@ -192,7 +192,7 @@ string RtpProcess::getIdentifier() const {
     return _media_info._streamid;
 }
 
-int RtpProcess::totalReaderCount() {
+int RtpProcess::getTotalReaderCount() {
     return _muxer ? _muxer->totalReaderCount() : 0;
 }
 
