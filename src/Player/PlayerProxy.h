@@ -65,6 +65,7 @@ private:
 
     void rePlay(const string &strUrl,int iFailedCnt);
     void onPlaySuccess();
+    void setDirectProxy();
 
 private:
     bool _enable_hls;
