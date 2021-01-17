@@ -26,12 +26,17 @@ RtspPusher::~RtspPusher() {
     DebugL << endl;
 }
 
-void RtspPusher::teardown() {
+void RtspPusher::sendTeardown(){
     if (alive()) {
-        sendRtspRequest("TEARDOWN", _content_base);
+        if (!_content_base.empty()) {
+            sendRtspRequest("TEARDOWN", _content_base);
+        }
         shutdown(SockException(Err_shutdown, "teardown"));
     }
+}
 
+void RtspPusher::teardown() {
+    sendTeardown();
     reset();
     CLEAR_ARR(_udp_socks);
     _nonce.clear();
@@ -107,7 +112,7 @@ void RtspPusher::onPublishResult(const SockException &ex, bool handshake_done) {
     }
 
     if (ex) {
-        teardown();
+        sendTeardown();
     }
 }
 

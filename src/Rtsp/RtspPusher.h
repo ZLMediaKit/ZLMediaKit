@@ -60,6 +60,7 @@ private:
     void sendSetup(unsigned int track_idx);
     void sendRecord();
     void sendOptions();
+    void sendTeardown();
 
     void handleResAnnounce(const Parser &parser);
     void handleResSetup(const Parser &parser, unsigned int track_idx);
