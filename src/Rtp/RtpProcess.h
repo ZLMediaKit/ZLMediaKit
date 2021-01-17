@@ -15,8 +15,6 @@
 #include "ProcessInterface.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
-using namespace mediakit;
-
 namespace mediakit {
 
 class RtpProcess : public SockInfo, public MediaSinkInterface, public MediaSourceEventInterceptor, public std::enable_shared_from_this<RtpProcess>{
@@ -65,7 +63,7 @@ public:
     uint16_t get_peer_port() override;
     string getIdentifier() const override;
 
-    int totalReaderCount();
+    int getTotalReaderCount();
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
 protected:

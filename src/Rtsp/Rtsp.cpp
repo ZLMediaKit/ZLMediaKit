@@ -121,7 +121,7 @@ string SdpTrack::toString() const {
         default:
             break;
     }
-    return _printer;
+    return std::move(_printer);
 }
 
 static TrackType toTrackType(const string &str) {

@@ -79,7 +79,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
 
 bool RtpSession::close(MediaSource &sender, bool force) {
     //此回调在其他线程触发
-    if(!_process || (!force && _process->totalReaderCount())){
+    if(!_process || (!force && _process->getTotalReaderCount())){
         return false;
     }
     string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
@@ -89,7 +89,7 @@ bool RtpSession::close(MediaSource &sender, bool force) {
 
 int RtpSession::totalReaderCount(MediaSource &sender) {
     //此回调在其他线程触发
-    return _process ? _process->totalReaderCount() : sender.totalReaderCount();
+    return _process ? _process->getTotalReaderCount() : sender.totalReaderCount();
 }
 
 }//namespace mediakit

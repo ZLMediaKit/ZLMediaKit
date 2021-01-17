@@ -59,7 +59,7 @@ static bool is_local_ip(const string &ip){
     return false;
 }
 
-void FFmpegSource::setupRecord(bool enable_hls, bool enable_mp4){
+void FFmpegSource::setupRecordFlag(bool enable_hls, bool enable_mp4){
     _enable_hls = enable_hls;
     _enable_mp4 = enable_mp4;
 }
@@ -173,7 +173,7 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
         NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
 
         //切换到自己的线程再回复
-        strongSelf->_poller->async([listener_tag,weakSelf,cb](){
+        strongSelf->_poller->async([weakSelf,cb](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf) {
                 return;

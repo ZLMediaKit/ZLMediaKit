@@ -51,11 +51,6 @@ string System::execute(const string &cmd) {
 }
 
 #if !defined(ANDROID) && !defined(_WIN32)
-static string addr2line(const string &address) {
-    string cmd = StrPrinter << "addr2line -C -f -e " << exePath() << " " << address;
-    return System::execute(cmd);
-}
-
 static void sig_crash(int sig) {
     signal(sig, SIG_DFL);
     void *array[MAX_STACK_FRAMES];
@@ -68,6 +63,10 @@ static void sig_crash(int sig) {
         std::string symbol(strings[i]);
         ref.emplace_back(symbol);
 #if defined(__linux) || defined(__linux__)
+        static auto addr2line = [](const string &address) {
+            string cmd = StrPrinter << "addr2line -C -f -e " << exePath() << " " << address;
+            return System::execute(cmd);
+        };
         size_t pos1 = symbol.find_first_of("[");
         size_t pos2 = symbol.find_last_of("]");
         std::string address = symbol.substr(pos1 + 1, pos2 - pos1 - 1);

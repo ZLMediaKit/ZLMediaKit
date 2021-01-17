@@ -214,7 +214,7 @@ inline void RtmpPlayer::send_play() {
     AMFEncoder enc;
     enc << "play" << ++_send_req_id << nullptr << _stream_id << (double) _stream_index;
     sendRequest(MSG_CMD, enc.data());
-    auto fun = [this](AMFValue &val) {
+    auto fun = [](AMFValue &val) {
         //TraceL << "play onStatus";
         auto level = val["level"].as_string();
         auto code = val["code"].as_string();

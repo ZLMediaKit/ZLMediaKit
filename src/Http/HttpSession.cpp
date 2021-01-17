@@ -674,7 +674,7 @@ void HttpSession::Handle_Req_POST(size_t &content_len) {
         //返回不固定长度的content
         content_len = -1;
         auto parserCopy = _parser;
-        std::shared_ptr<size_t> recvedContentLen = std::make_shared<uint64_t>(0);
+        std::shared_ptr<size_t> recvedContentLen = std::make_shared<size_t>(0);
         bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
 
         _contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const char *data,size_t len){
