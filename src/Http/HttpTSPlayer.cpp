@@ -19,7 +19,7 @@ HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller, bool split_ts){
 
 HttpTSPlayer::~HttpTSPlayer() {}
 
-size_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
+ssize_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
     _status = status;
     if (status != "200" && status != "206") {
         //http状态码不符合预期

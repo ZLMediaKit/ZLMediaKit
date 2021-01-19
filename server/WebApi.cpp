@@ -187,7 +187,7 @@ static inline void addHttpListener(){
                                                 const HttpBody::Ptr &body) {
 
                 //body默认为空
-                size_t size = 0;
+                ssize_t size = 0;
                 if (body && body->remainSize()) {
                     //有body，获取body大小
                     size = body->remainSize();

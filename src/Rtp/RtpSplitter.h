@@ -30,7 +30,7 @@ protected:
     virtual void onRtpPacket(const char *data, size_t len) = 0;
 
 protected:
-    size_t onRecvHeader(const char *data, size_t len) override;
+    ssize_t onRecvHeader(const char *data, size_t len) override;
     const char *onSearchPacketTail(const char *data, size_t len) override;
     const char *onSearchPacketTail_l(const char *data, size_t len);
 

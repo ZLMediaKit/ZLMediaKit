@@ -48,7 +48,7 @@ protected:
 
 protected:
     //// HttpRequestSplitter override ////
-    size_t onRecvHeader(const char *data, size_t len) override { return 0; }
+    ssize_t onRecvHeader(const char *data, size_t len) override { return 0; }
     const char *onSearchPacketTail(const char *data, size_t len) override;
 
 protected:

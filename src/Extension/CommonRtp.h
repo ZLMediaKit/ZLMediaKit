@@ -30,7 +30,7 @@ public:
      * @param codec 编码id
      * @param max_frame_size 允许的最大帧大小
      */
-    CommonRtpDecoder(CodecId codec, int max_frame_size = 2 * 1024);
+    CommonRtpDecoder(CodecId codec, size_t max_frame_size = 2 * 1024);
 
     /**
      * 返回编码类型ID
@@ -50,7 +50,7 @@ private:
 private:
     bool _drop_flag = false;
     uint16_t _last_seq = 0;
-    int _max_frame_size;
+    size_t _max_frame_size;
     CodecId _codec;
     FrameImp::Ptr _frame;
 };

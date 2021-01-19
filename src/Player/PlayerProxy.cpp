@@ -232,7 +232,7 @@ private:
     };
 
 private:
-    int _audio_idx = 0;
+    uint32_t _audio_idx = 0;
 };
 
 void PlayerProxy::onPlaySuccess() {

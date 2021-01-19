@@ -44,7 +44,7 @@ const char *RtspSplitter::onSearchPacketTail_l(const char *data, size_t len) {
         return nullptr;
     }
     uint16_t length = (((uint8_t *)data)[2] << 8) | ((uint8_t *)data)[3];
-    if(len < length + 4){
+    if(len < (size_t)(length + 4)){
         //数据不够
         return nullptr;
     }
@@ -53,7 +53,7 @@ const char *RtspSplitter::onSearchPacketTail_l(const char *data, size_t len) {
     return data + 4 + length;
 }
 
-size_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
+ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
     if(_isRtpPacket){
         onRtpPacket(data,len);
         return 0;
@@ -77,7 +77,7 @@ void RtspSplitter::enableRecvRtp(bool enable) {
     _enableRecvRtp = enable;
 }
 
-size_t RtspSplitter::getContentLength(Parser &parser) {
+ssize_t RtspSplitter::getContentLength(Parser &parser) {
     return atoi(parser["Content-Length"].data());
 }
 

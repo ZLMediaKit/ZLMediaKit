@@ -38,7 +38,7 @@ public:
 protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
     const char *onSearchPacketTail(const char *data,size_t len) override;
-    size_t onRecvHeader(const char *data,size_t len) override { return 0; };
+    ssize_t onRecvHeader(const char *data,size_t len) override { return 0; };
 
 private:
     void onRtpDecode(const Frame::Ptr &frame);

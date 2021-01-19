@@ -27,12 +27,12 @@ HttpStringBody::HttpStringBody(const string &str){
     _str = str;
 }
 
-size_t HttpStringBody::remainSize() {
+ssize_t HttpStringBody::remainSize() {
     return _str.size() - _offset;
 }
 
 Buffer::Ptr HttpStringBody::readData(size_t size) {
-    size = MIN(remainSize(),size);
+    size = MIN((size_t)remainSize(), size);
     if(!size){
         //没有剩余字节了
         return nullptr;
@@ -121,19 +121,19 @@ private:
     size_t _size;
 };
 
-size_t HttpFileBody::remainSize() {
+ssize_t HttpFileBody::remainSize() {
     return _max_size - _offset;
 }
 
 Buffer::Ptr HttpFileBody::readData(size_t size) {
-    size = MIN(remainSize(),size);
+    size = MIN((size_t)remainSize(),size);
     if(!size){
         //没有剩余字节了
         return nullptr;
     }
     if(!_map_addr){
         //fread模式
-        size_t iRead;
+        ssize_t iRead;
         auto ret = _pool.obtain();
         ret->setCapacity(size + 1);
         do{
@@ -180,7 +180,7 @@ HttpMultiFormBody::HttpMultiFormBody(const HttpArgs &args,const string &filePath
     _totalSize =  _bodyPrefix.size() + _bodySuffix.size() + _fileBody->remainSize();
 }
 
-size_t HttpMultiFormBody::remainSize() {
+ssize_t HttpMultiFormBody::remainSize() {
     return _totalSize - _offset;
 }
 

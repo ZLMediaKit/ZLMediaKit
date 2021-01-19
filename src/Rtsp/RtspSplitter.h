@@ -45,12 +45,12 @@ protected:
      * @param parser
      * @return
      */
-    virtual size_t getContentLength(Parser &parser);
+    virtual ssize_t getContentLength(Parser &parser);
 
 protected:
     const char *onSearchPacketTail(const char *data,size_t len) override ;
     const char *onSearchPacketTail_l(const char *data,size_t len) ;
-    size_t onRecvHeader(const char *data,size_t len) override;
+    ssize_t onRecvHeader(const char *data,size_t len) override;
     void onRecvContent(const char *data,size_t len) override;
 
 private:

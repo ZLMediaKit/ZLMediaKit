@@ -32,7 +32,7 @@ class HttpWsClient;
 template <typename ClientType,WebSocketHeader::Type DataType>
 class ClientTypeImp : public ClientType {
 public:
-    typedef function<size_t (const Buffer::Ptr &buf)> onBeforeSendCB;
+    typedef function<ssize_t (const Buffer::Ptr &buf)> onBeforeSendCB;
     friend class HttpWsClient<ClientType,DataType>;
 
     template<typename ...ArgsType>
@@ -43,7 +43,7 @@ protected:
     /**
      * 发送前拦截并打包为websocket协议
      */
-    size_t send(Buffer::Ptr buf) override{
+    ssize_t send(Buffer::Ptr buf) override{
         if(_beforeSendCB){
             return _beforeSendCB(buf);
         }
@@ -120,7 +120,7 @@ protected:
      * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
      *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
      */
-    size_t onResponseHeader(const string &status,const HttpHeader &headers) override {
+    ssize_t onResponseHeader(const string &status,const HttpHeader &headers) override {
         if(status == "101"){
             auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(_Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
             if(Sec_WebSocket_Accept == const_cast<HttpHeader &>(headers)["Sec-WebSocket-Accept"]){

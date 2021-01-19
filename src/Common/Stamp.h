@@ -108,9 +108,9 @@ private:
     uint32_t _last_dts = 0;
     uint32_t _last_pts = 0;
     uint32_t _last_max_pts = 0;
-    int _frames_since_last_max_pts = 0;
-    int _sorter_max_size = 0;
-    int _count_sorter_max_size = 0;
+    size_t _frames_since_last_max_pts = 0;
+    size_t _sorter_max_size = 0;
+    size_t _count_sorter_max_size = 0;
     set<uint32_t> _pts_sorter;
 };
 

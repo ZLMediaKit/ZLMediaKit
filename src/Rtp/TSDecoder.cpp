@@ -19,7 +19,7 @@ void TSSegment::setOnSegment(const TSSegment::onSegment &cb) {
     _onSegment = cb;
 }
 
-size_t TSSegment::onRecvHeader(const char *data, size_t len) {
+ssize_t TSSegment::onRecvHeader(const char *data, size_t len) {
     if (!isTSPacket(data, len)) {
         WarnL << "不是ts包:" << (int) (data[0]) << " " << len;
         return 0;

@@ -29,7 +29,7 @@ public:
     ~HttpChunkedSplitter() override {} ;
 
 protected:
-    size_t onRecvHeader(const char *data,size_t len) override;
+    ssize_t onRecvHeader(const char *data,size_t len) override;
     void onRecvContent(const char *data,size_t len) override;
     const char *onSearchPacketTail(const char *data,size_t len) override;
 

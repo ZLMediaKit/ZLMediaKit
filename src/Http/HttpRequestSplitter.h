@@ -41,7 +41,7 @@ protected:
      *  0 : 代表为后面数据还是请求头,
      *  >0 : 代表后面数据为固定长度content,此时将缓存content并等到所有content接收完毕一次性通过onRecvContent函数回调出去
      */
-    virtual size_t onRecvHeader(const char *data,size_t len) = 0;
+    virtual ssize_t onRecvHeader(const char *data,size_t len) = 0;
 
     /**
      * 收到content分片或全部数据
@@ -62,7 +62,7 @@ protected:
     /**
      * 设置content len
      */
-    void setContentLen(size_t content_len);
+    void setContentLen(ssize_t content_len);
 
     /**
      * 恢复初始设置
@@ -75,7 +75,7 @@ protected:
      size_t remainDataSize();
 
 private:
-    size_t _content_len = 0;
+    ssize_t _content_len = 0;
     size_t _remain_data_size = 0;
     BufferLikeString _remain_data;
 };

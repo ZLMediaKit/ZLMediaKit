@@ -25,7 +25,7 @@ void HttpChunkedSplitter::onRecvContent(const char *data, size_t len) {
     onRecvChunk(data,len - 2);
 }
 
-size_t HttpChunkedSplitter::onRecvHeader(const char *data, size_t len) {
+ssize_t HttpChunkedSplitter::onRecvHeader(const char *data, size_t len) {
     string str(data,len - 2);
     int ret;
     sscanf(str.data(),"%X",&ret);

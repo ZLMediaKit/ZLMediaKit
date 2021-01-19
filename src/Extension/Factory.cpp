@@ -36,7 +36,7 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
             return nullptr;
         }
         string aac_cfg;
-        for(int i = 0 ; i < aac_cfg_str.size() / 2 ; ++i ){
+        for(size_t i = 0 ; i < aac_cfg_str.size() / 2 ; ++i ){
             unsigned int cfg;
             sscanf(aac_cfg_str.substr(i * 2, 2).data(), "%02X", &cfg);
             cfg &= 0x00FF;

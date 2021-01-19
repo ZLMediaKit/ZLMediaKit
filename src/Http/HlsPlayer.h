@@ -63,7 +63,7 @@ private:
      * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
      *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
      */
-    size_t onResponseHeader(const string &status,const HttpHeader &headers) override;
+    ssize_t onResponseHeader(const string &status,const HttpHeader &headers) override;
     /**
      * 收到http conten数据
      * @param buf 数据指针
@@ -71,7 +71,7 @@ private:
      * @param recvedSize 已收数据大小(包含本次数据大小),当其等于totalSize时将触发onResponseCompleted回调
      * @param totalSize 总数据大小
      */
-    void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override;
+    void onResponseBody(const char *buf,size_t size,size_t recvedSize, size_t totalSize) override;
 
     /**
      * 接收http回复完毕,

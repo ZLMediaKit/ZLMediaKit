@@ -47,7 +47,7 @@ void HttpDownloader::startDownload(const string& url, const string& filePath,boo
     sendRequest(url,timeOutSecond);
 }
 
-size_t HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {
+ssize_t HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {
     if(status != "200" && status != "206"){
         //失败
         shutdown(SockException(Err_shutdown,StrPrinter << "Http Status:" << status));

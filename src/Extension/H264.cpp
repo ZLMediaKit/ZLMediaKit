@@ -36,7 +36,7 @@ bool getAVCInfo(const string &strSps, int &iVideoWidth, int &iVideoHeight, float
 }
 
 static const char *memfind(const char *buf, size_t len, const char *subbuf, size_t sublen) {
-    for (auto i = 0; i < len - sublen; ++i) {
+    for (ssize_t i = 0; i < (ssize_t)(len - sublen); ++i) {
         if (memcmp(buf + i, subbuf, sublen) == 0) {
             return buf + i;
         }

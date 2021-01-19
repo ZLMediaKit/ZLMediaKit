@@ -101,7 +101,7 @@ void Stamp::revise_l2(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_o
     }
 
     //pts和dts的差值
-    auto pts_dts_diff = pts - dts;
+    int64_t pts_dts_diff = pts - dts;
 
     if (_last_dts_in != dts) {
         //时间戳发生变更

@@ -75,7 +75,7 @@ protected:
     //收到rtp包回调
     void onRtpPacket(const char *data, size_t len) override;
     //从rtsp头中获取Content长度
-    size_t getContentLength(Parser &parser) override;
+    ssize_t getContentLength(Parser &parser) override;
 
     ////RtpReceiver override////
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) override;
@@ -93,7 +93,7 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
     /////TcpSession override////
-    size_t send(Buffer::Ptr pkt) override;
+    ssize_t send(Buffer::Ptr pkt) override;
     //收到RTCP包回调
     virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, const char *data, size_t len);
 

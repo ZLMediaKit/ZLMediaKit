@@ -26,7 +26,7 @@ public:
     void startRequester(const string &url,const HttpRequesterResult &onResult,float timeOutSecond = 10);
     void clear() override ;
 private:
-    size_t onResponseHeader(const string &status,const HttpHeader &headers) override;
+    ssize_t onResponseHeader(const string &status,const HttpHeader &headers) override;
     void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize)  override;
     void onResponseCompleted() override;
     void onDisconnect(const SockException &ex) override;

@@ -153,7 +153,7 @@ void HlsPlayer::onParsed(bool is_m3u8_inner,int64_t sequence,const map<int,ts_se
     }
 }
 
-size_t HlsPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
+ssize_t HlsPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
     if (status != "200" && status != "206") {
         //失败
         teardown_l(SockException(Err_shutdown, StrPrinter << "bad http status code:" + status));

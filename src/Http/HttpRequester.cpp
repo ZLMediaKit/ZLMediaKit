@@ -19,7 +19,7 @@ HttpRequester::~HttpRequester(){
     
 }
 
-size_t HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
+ssize_t HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
     _strRecvBody.clear();
     //无Content-Length字段时默认后面没有content
     return 0;

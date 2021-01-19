@@ -115,7 +115,7 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
     if (!ex) {
         //播放成功，恢复rtmp接收超时定时器
         _rtmp_recv_ticker.resetTime();
-        int timeout_ms = (*this)[kMediaTimeoutMS].as<int>();
+        auto timeout_ms = (*this)[kMediaTimeoutMS].as<uint64_t>();
         weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
         auto lam = [weakSelf, timeout_ms]() {
             auto strongSelf = weakSelf.lock();

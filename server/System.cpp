@@ -148,7 +148,7 @@ void System::systemSetup(){
         ss << "## exe:       " << exeName() << endl;
         ss << "## signal:    " << sig << endl;
         ss << "## stack:     " << endl;
-        for (int i = 0; i < stack.size(); ++i) {
+        for (size_t i = 0; i < stack.size(); ++i) {
             ss << "[" << i << "]: ";
             for (auto &str : stack[i]){
                 ss << str << endl;

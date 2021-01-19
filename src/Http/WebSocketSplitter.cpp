@@ -140,7 +140,7 @@ begin_decode:
 
 void WebSocketSplitter::onPayloadData(uint8_t *data, size_t len) {
     if(_mask_flag){
-        for(int i = 0; i < len ; ++i,++data){
+        for(size_t i = 0; i < len ; ++i,++data){
             *(data) ^= _mask[(i + _mask_offset) % 4];
         }
         _mask_offset = (_mask_offset + len) % 4;
@@ -184,7 +184,7 @@ void WebSocketSplitter::encode(const WebSocketHeader &header,const Buffer::Ptr &
     if(len > 0){
         if(mask_flag){
             uint8_t *ptr = (uint8_t*)buffer->data();
-            for(int i = 0; i < len ; ++i,++ptr){
+            for(size_t i = 0; i < len ; ++i,++ptr){
                 *(ptr) ^= header._mask[i % 4];
             }
         }

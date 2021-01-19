@@ -49,7 +49,7 @@ private:
     H265Frame::Ptr obtainFrame();
 
 private:
-    int _lastSeq = 0;
+    uint16_t _lastSeq = 0;
     H265Frame::Ptr _h265frame;
     DtsGenerator _dts_generator;
 };
