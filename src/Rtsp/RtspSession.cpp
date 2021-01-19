@@ -187,7 +187,7 @@ void RtspSession::onRtpPacket(const char *data, size_t len) {
 
 void RtspSession::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, const char *data, size_t len){}
 
-size_t RtspSession::getContentLength(Parser &parser) {
+ssize_t RtspSession::getContentLength(Parser &parser) {
     if(parser.Method() == "POST"){
         //http post请求的content数据部分是base64编码后的rtsp请求信令包
         return remainDataSize();
@@ -1030,7 +1030,7 @@ bool RtspSession::sendRtspResponse(const string &res_code, const StrCaseMap &hea
     return send(std::make_shared<BufferString>(std::move(printer))) > 0 ;
 }
 
-size_t RtspSession::send(Buffer::Ptr pkt){
+ssize_t RtspSession::send(Buffer::Ptr pkt){
 //	if(!_enableSendRtp){
 //		DebugP(this) << pkt->data();
 //	}

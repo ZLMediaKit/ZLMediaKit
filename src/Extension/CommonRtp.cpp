@@ -10,7 +10,7 @@
 
 #include "CommonRtp.h"
 
-CommonRtpDecoder::CommonRtpDecoder(CodecId codec, int max_frame_size ){
+CommonRtpDecoder::CommonRtpDecoder(CodecId codec, size_t max_frame_size ){
     _codec = codec;
     _max_frame_size = max_frame_size;
     obtainFrame();

@@ -57,7 +57,7 @@ protected:
     std::shared_ptr<FlvMuxer> getSharedPtr() override;
 
     //HttpRequestSplitter override
-    size_t onRecvHeader(const char *data,size_t len) override;
+    ssize_t onRecvHeader(const char *data,size_t len) override;
     void onRecvContent(const char *data,size_t len) override;
 
     /**
@@ -101,10 +101,10 @@ protected:
     void onWebSocketDecodeComplete(const WebSocketHeader &header_in) override;
 
 private:
-    void Handle_Req_GET(size_t &content_len);
-    void Handle_Req_GET_l(size_t &content_len, bool sendBody);
-    void Handle_Req_POST(size_t &content_len);
-    void Handle_Req_HEAD(size_t &content_len);
+    void Handle_Req_GET(ssize_t &content_len);
+    void Handle_Req_GET_l(ssize_t &content_len, bool sendBody);
+    void Handle_Req_POST(ssize_t &content_len);
+    void Handle_Req_HEAD(ssize_t &content_len);
 
     bool checkLiveStream(const string &schema, const string  &url_suffix, const function<void(const MediaSource::Ptr &src)> &cb);
 

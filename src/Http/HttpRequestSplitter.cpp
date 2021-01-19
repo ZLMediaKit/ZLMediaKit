@@ -44,7 +44,7 @@ void HttpRequestSplitter::input(const char *data,size_t len) {
         }
         //_content_len == 0，这是请求头
         const char *header_ptr = ptr;
-        auto header_size = index - ptr;
+        ssize_t header_size = index - ptr;
         ptr = index;
         _remain_data_size = len - (ptr - data);
         _content_len = onRecvHeader(header_ptr, header_size);
@@ -71,7 +71,7 @@ void HttpRequestSplitter::input(const char *data,size_t len) {
     //已经找到http头了
     if(_content_len > 0){
         //数据按照固定长度content处理
-        if(_remain_data_size < _content_len){
+        if(_remain_data_size < (size_t)_content_len){
             //数据不够，缓存定位到剩余数据部分
             _remain_data.assign(ptr, _remain_data_size);
             return;
@@ -101,7 +101,7 @@ void HttpRequestSplitter::input(const char *data,size_t len) {
     _remain_data.clear();
 }
 
-void HttpRequestSplitter::setContentLen(size_t content_len) {
+void HttpRequestSplitter::setContentLen(ssize_t content_len) {
     _content_len = content_len;
 }
 

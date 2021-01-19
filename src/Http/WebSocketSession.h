@@ -19,7 +19,7 @@
  */
 class SendInterceptor{
 public:
-    typedef function<size_t (const Buffer::Ptr &buf)> onBeforeSendCB;
+    typedef function<ssize_t (const Buffer::Ptr &buf)> onBeforeSendCB;
     SendInterceptor() = default;
     virtual ~SendInterceptor() = default;
     virtual void setOnBeforeSendCB(const onBeforeSendCB &cb) = 0;
@@ -53,7 +53,7 @@ protected:
      * @param buf 需要截取的数据
      * @return 数据字节数
      */
-    size_t send(Buffer::Ptr buf) override {
+    ssize_t send(Buffer::Ptr buf) override {
         if (_beforeSendCB) {
             return _beforeSendCB(buf);
         }

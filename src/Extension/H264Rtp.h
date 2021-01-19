@@ -48,7 +48,7 @@ private:
     H264Frame::Ptr obtainFrame();
 
 private:
-    int _lastSeq = 0;
+    uint16_t _lastSeq = 0;
     H264Frame::Ptr _h264frame;
     DtsGenerator _dts_generator;
 };

@@ -31,15 +31,15 @@ HttpSession::~HttpSession() {
     TraceP(this);
 }
 
-void HttpSession::Handle_Req_HEAD(size_t &content_len){
+void HttpSession::Handle_Req_HEAD(ssize_t &content_len){
     //暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
     //如果直接返回404，那么又会导致按需生成流的逻辑失效，所以HTTP HEAD在静态文件或者已存在资源时才有效
     //对于按需生成流的直播场景并不适用
     sendResponse(200, true);
 }
 
-size_t HttpSession::onRecvHeader(const char *header,size_t len) {
-    typedef void (HttpSession::*HttpCMDHandle)(size_t &);
+ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
+    typedef void (HttpSession::*HttpCMDHandle)(ssize_t &);
     static unordered_map<string, HttpCMDHandle> s_func_map;
     static onceToken token([]() {
         s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
@@ -61,7 +61,7 @@ size_t HttpSession::onRecvHeader(const char *header,size_t len) {
     _origin = _parser["Origin"];
 
     //默认后面数据不是content而是header
-    size_t content_len = 0;
+    ssize_t content_len = 0;
     auto &fun = it->second;
     try {
         (this->*fun)(content_len);
@@ -353,11 +353,11 @@ bool HttpSession::checkLiveStreamFlv(const function<void()> &cb){
     });
 }
 
-void HttpSession::Handle_Req_GET(size_t &content_len) {
+void HttpSession::Handle_Req_GET(ssize_t &content_len) {
     Handle_Req_GET_l(content_len, true);
 }
 
-void HttpSession::Handle_Req_GET_l(size_t &content_len, bool sendBody) {
+void HttpSession::Handle_Req_GET_l(ssize_t &content_len, bool sendBody) {
     //先看看是否为WebSocket请求
     if (checkWebSocket()) {
         content_len = -1;
@@ -506,7 +506,7 @@ void HttpSession::sendResponse(int code,
     GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
 
     //body默认为空
-    size_t size = 0;
+    ssize_t size = 0;
     if (body && body->remainSize()) {
         //有body，获取body大小
         size = body->remainSize();
@@ -515,7 +515,7 @@ void HttpSession::sendResponse(int code,
     if(no_content_length){
         //http-flv直播是Keep-Alive类型
         bClose = false;
-    }else if(size >= INT64_MAX || size < 0 ){
+    }else if(size >= SIZE_MAX || size < 0 ){
         //不固定长度的body，那么发送完body后应该关闭socket，以便浏览器做下载完毕的判断
         bClose = true;
     }
@@ -537,7 +537,7 @@ void HttpSession::sendResponse(int code,
         headerOut.emplace(kAccessControlAllowCredentials, "true");
     }
 
-    if(!no_content_length && size >= 0 && size < INT64_MAX){
+    if(!no_content_length && size >= 0 && size < SIZE_MAX){
         //文件长度为固定值,且不是http-flv强制设置Content-Length
         headerOut[kContentLength] = to_string(size);
     }
@@ -642,10 +642,10 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
     return consumed;
 }
 
-void HttpSession::Handle_Req_POST(size_t &content_len) {
+void HttpSession::Handle_Req_POST(ssize_t &content_len) {
     GET_CONFIG(size_t,maxReqSize,Http::kMaxReqSize);
 
-    size_t totalContentLen = _parser["Content-Length"].empty() ? -1 : atoll(_parser["Content-Length"].data());
+    ssize_t totalContentLen = _parser["Content-Length"].empty() ? -1 : atoll(_parser["Content-Length"].data());
 
     if(totalContentLen == 0){
         //content为空
@@ -654,7 +654,7 @@ void HttpSession::Handle_Req_POST(size_t &content_len) {
         return;
     }
 
-    if(totalContentLen > 0 && totalContentLen < maxReqSize ){
+    if(totalContentLen > 0 && (size_t)totalContentLen < maxReqSize ){
         //返回固定长度的content
         content_len = totalContentLen;
         auto parserCopy = _parser;
@@ -671,7 +671,7 @@ void HttpSession::Handle_Req_POST(size_t &content_len) {
             return false;
         };
     }else{
-        //返回不固定长度的content
+        //返回不固定长度的content或者超过长度限制的content
         content_len = -1;
         auto parserCopy = _parser;
         std::shared_ptr<size_t> recvedContentLen = std::make_shared<size_t>(0);
@@ -679,10 +679,16 @@ void HttpSession::Handle_Req_POST(size_t &content_len) {
 
         _contentCallBack = [this,parserCopy,totalContentLen,recvedContentLen,bClose](const char *data,size_t len){
             *(recvedContentLen) += len;
+            if (totalContentLen < 0) {
+                //不固定长度的content,源源不断接收数据
+                onRecvUnlimitedContent(parserCopy, data, len, SIZE_MAX, *(recvedContentLen));
+                return true;
+            }
 
+            //长度超过限制的content
             onRecvUnlimitedContent(parserCopy,data,len,totalContentLen,*(recvedContentLen));
 
-            if(*(recvedContentLen) < totalContentLen){
+            if(*(recvedContentLen) < (size_t)totalContentLen){
                 //数据还没接收完毕
                 //_contentCallBack是可持续的，后面还要处理后续content数据
                 return true;

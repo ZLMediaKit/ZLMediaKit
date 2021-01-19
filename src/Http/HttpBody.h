@@ -40,7 +40,7 @@ public:
     /**
      * 剩余数据大小，如果返回-1, 那么就不设置content-length
      */
-    virtual size_t remainSize() { return 0;};
+    virtual ssize_t remainSize() { return 0;};
 
     /**
      * 读取一定字节数，返回大小可能小于size
@@ -70,7 +70,7 @@ public:
     typedef std::shared_ptr<HttpStringBody> Ptr;
     HttpStringBody(const string &str);
     virtual ~HttpStringBody(){}
-    size_t remainSize() override;
+    ssize_t remainSize() override;
     Buffer::Ptr readData(size_t size) override ;
 
 private:
@@ -95,7 +95,7 @@ public:
     HttpFileBody(const string &file_path);
     ~HttpFileBody(){};
 
-    size_t remainSize() override ;
+    ssize_t remainSize() override ;
     Buffer::Ptr readData(size_t size) override;
 
 private:
@@ -126,7 +126,7 @@ public:
      */
     HttpMultiFormBody(const HttpArgs &args,const string &filePath,const string &boundary = "0xKhTmLbOuNdArY");
     virtual ~HttpMultiFormBody(){}
-    size_t remainSize() override ;
+    ssize_t remainSize() override ;
     Buffer::Ptr readData(size_t size) override;
 
 public:

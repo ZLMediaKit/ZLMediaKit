@@ -775,7 +775,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshake_done) {
     if (!ex) {
         //播放成功，恢复rtp接收超时定时器
         _rtp_recv_ticker.resetTime();
-        int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
+        auto timeoutMS = (*this)[kMediaTimeoutMS].as<uint64_t>();
         weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
         auto lam = [weakSelf, timeoutMS]() {
             auto strongSelf = weakSelf.lock();

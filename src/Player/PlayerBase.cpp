@@ -64,7 +64,7 @@ PlayerBase::PlayerBase() {
 
 ///////////////////////////Demuxer//////////////////////////////
 bool Demuxer::isInited(int analysisMs) {
-    if(analysisMs && _ticker.createdTime() > analysisMs){
+    if(analysisMs && _ticker.createdTime() > (uint64_t)analysisMs){
         //analysisMs毫秒后强制初始化完毕
         return true;
     }

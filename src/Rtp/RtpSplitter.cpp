@@ -19,7 +19,7 @@ static const int  kEHOME_OFFSET = 256;
 RtpSplitter::RtpSplitter() {}
 RtpSplitter::~RtpSplitter() {}
 
-size_t RtpSplitter::onRecvHeader(const char *data,size_t len){
+ssize_t RtpSplitter::onRecvHeader(const char *data,size_t len){
     //忽略偏移量
     data += _offset;
     len -= _offset;
@@ -73,7 +73,7 @@ const char *RtpSplitter::onSearchPacketTail(const char *data, size_t len) {
 const char *RtpSplitter::onSearchPacketTail_l(const char *data, size_t len) {
     //这是rtp包
     uint16_t length = (((uint8_t *) data)[0] << 8) | ((uint8_t *) data)[1];
-    if (len < length + 2) {
+    if (len < (size_t)(length + 2)) {
         //数据不够
         return nullptr;
     }

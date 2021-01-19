@@ -466,7 +466,7 @@ void MediaInfo::parse(const string &url_in){
     }
     if (split_vec.size() > 2) {
         string stream_id;
-        for (int i = 2; i < split_vec.size(); ++i) {
+        for (size_t i = 2; i < split_vec.size(); ++i) {
             stream_id.append(split_vec[i] + "/");
         }
         if (stream_id.back() == '/') {

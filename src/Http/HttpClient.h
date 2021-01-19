@@ -110,11 +110,11 @@ protected:
      * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
      *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
      */
-    virtual size_t onResponseHeader(const string &status,const HttpHeader &headers){
+    virtual ssize_t onResponseHeader(const string &status,const HttpHeader &headers){
         DebugL << status;
         //无Content-Length字段时默认后面全是content
         return -1;
-    };
+    }
 
     /**
      * 收到http conten数据
@@ -123,9 +123,9 @@ protected:
      * @param recvedSize 已收数据大小(包含本次数据大小),当其等于totalSize时将触发onResponseCompleted回调
      * @param totalSize 总数据大小
      */
-    virtual void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize){
-        DebugL << size << " " <<  recvedSize << " " << totalSize;
-    };
+    virtual void onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) {
+        DebugL << size << " " << recvedSize << " " << totalSize;
+    }
 
     /**
      * 接收http回复完毕,
@@ -149,7 +149,7 @@ protected:
     virtual bool onRedirectUrl(const string &url,bool temporary){ return true;};
 
     //HttpRequestSplitter override
-    size_t onRecvHeader(const char *data,size_t len) override;
+    ssize_t onRecvHeader(const char *data,size_t len) override;
     void onRecvContent(const char *data,size_t len) override;
 
 protected:
@@ -174,7 +174,7 @@ private:
     string _path;
     //recv
     size_t _recvedBodySize;
-    size_t _totalBodySize;
+    ssize_t _totalBodySize;
     Parser _parser;
     string _lastHost;
     Ticker _aliveTicker;
