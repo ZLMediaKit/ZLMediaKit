@@ -1,47 +1,27 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
-
 #include "H264.h"
-#include "H264/SPSParser.h"
+#include "SPSParser.h"
 #include "Util/logger.h"
 using namespace toolkit;
 
 namespace mediakit{
 
-bool getAVCInfo(const string& strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps) {
-    return getAVCInfo(strSps.data(),strSps.size(),iVideoWidth,iVideoHeight,iVideoFps);
-}
-bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
+static bool getAVCInfo(const char * sps,size_t sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
     T_GetBitContext tGetBitBuf;
     T_SPS tH264SpsInfo;
     memset(&tGetBitBuf,0,sizeof(tGetBitBuf));
     memset(&tH264SpsInfo,0,sizeof(tH264SpsInfo));
     tGetBitBuf.pu8Buf = (uint8_t*)sps + 1;
-    tGetBitBuf.iBufSize = sps_len - 1;
+    tGetBitBuf.iBufSize = (int)(sps_len - 1);
     if(0 != h264DecSeqParameterSet((void *) &tGetBitBuf, &tH264SpsInfo)){
         return false;
     }
@@ -51,9 +31,12 @@ bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight
     return true;
 }
 
+bool getAVCInfo(const string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {
+    return getAVCInfo(strSps.data(), strSps.size(), iVideoWidth, iVideoHeight, iVideoFps);
+}
 
-const char *memfind(const char *buf, int len, const char *subbuf, int sublen) {
-    for (auto i = 0; i < len - sublen; ++i) {
+static const char *memfind(const char *buf, size_t len, const char *subbuf, size_t sublen) {
+    for (ssize_t i = 0; i < (ssize_t)(len - sublen); ++i) {
         if (memcmp(buf + i, subbuf, sublen) == 0) {
             return buf + i;
         }
@@ -61,22 +44,65 @@ const char *memfind(const char *buf, int len, const char *subbuf, int sublen) {
     return NULL;
 }
 
-void splitH264(const char *ptr, int len, const std::function<void(const char *, int)> &cb) {
-    auto nal = ptr;
+void splitH264(const char *ptr, size_t len, size_t prefix, const std::function<void(const char *, size_t , size_t)> &cb) {
+    auto start = ptr + prefix;
     auto end = ptr + len;
-    while(true) {
-        auto next_nal = memfind(nal + 3,end - nal - 3,"\x0\x0\x1",3);
-        if(next_nal){
-            cb(nal,next_nal - nal);
-            nal = next_nal;
+    size_t next_prefix;
+    while (true) {
+        auto next_start = memfind(start, end - start, "\x00\x00\x01", 3);
+        if (next_start) {
+            //找到下一帧
+            if (*(next_start - 1) == 0x00) {
+                //这个是00 00 00 01开头
+                next_start -= 1;
+                next_prefix = 4;
+            } else {
+                //这个是00 00 01开头
+                next_prefix = 3;
+            }
+            //记得加上本帧prefix长度
+            cb(start - prefix, next_start - start + prefix, prefix);
+            //搜索下一帧末尾的起始位置
+            start = next_start + next_prefix;
+            //记录下一帧的prefix长度
+            prefix = next_prefix;
             continue;
         }
-        cb(nal,end - nal);
+        //未找到下一帧,这是最后一帧
+        cb(start - prefix, end - start + prefix, prefix);
         break;
     }
 }
 
+size_t prefixSize(const char *ptr, size_t len){
+    if (len < 4) {
+        return 0;
+    }
 
+    if (ptr[0] != 0x00 || ptr[1] != 0x00) {
+        //不是0x00 00开头
+        return 0;
+    }
+
+    if (ptr[2] == 0x00 && ptr[3] == 0x01) {
+        //是0x00 00 00 01
+        return 4;
+    }
+
+    if (ptr[2] == 0x01) {
+        //是0x00 00 01
+        return 3;
+    }
+    return 0;
+}
+
+Sdp::Ptr H264Track::getSdp() {
+    if(!ready()){
+        WarnL << getCodecName() << " Track未准备好";
+        return nullptr;
+    }
+    return std::make_shared<H264Sdp>(getSps(), getPps(), getBitRate() / 1024);
+}
 }//namespace mediakit
 
 

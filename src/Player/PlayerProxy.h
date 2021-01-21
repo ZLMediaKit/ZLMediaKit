@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef SRC_DEVICE_PLAYERPROXY_H_
@@ -31,46 +15,71 @@
 #include "Common/Device.h"
 #include "Player/MediaPlayer.h"
 #include "Util/TimeTicker.h"
-
 using namespace std;
 using namespace toolkit;
 
-
 namespace mediakit {
 
-class PlayerProxy :public MediaPlayer,
-				   public std::enable_shared_from_this<PlayerProxy> ,
-				   public MediaSourceEvent{
+class PlayerProxy : public MediaPlayer, public MediaSourceEvent, public std::enable_shared_from_this<PlayerProxy> {
 public:
-	typedef std::shared_ptr<PlayerProxy> Ptr;
+    typedef std::shared_ptr<PlayerProxy> Ptr;
 
-    //如果iRetryCount<0,则一直重试播放；否则重试iRetryCount次数
+    //如果retry_count<0,则一直重试播放；否则重试retry_count次数
     //默认一直重试
-	PlayerProxy(const char *strVhost,
-                const char *strApp,
-                const char *strSrc,
-                bool bEnableHls = true,
-                bool bEnableMp4 = false,
-                int iRetryCount = -1);
+    PlayerProxy(const string &vhost, const string &app, const string &stream_id,
+                bool enable_hls = true, bool enable_mp4 = false,
+                int retry_count = -1, const EventPoller::Ptr &poller = nullptr);
 
-	virtual ~PlayerProxy();
+    ~PlayerProxy() override;
 
-	void play(const char* strUrl) override;
-    bool close() override;
+    /**
+     * 设置play结果回调，只触发一次；在play执行之前有效
+     * @param cb
+     */
+    void setPlayCallbackOnce(const function<void(const SockException &ex)> &cb);
+
+    /**
+     * 设置主动关闭回调
+     * @param cb
+     */
+    void setOnClose(const function<void()> &cb);
+
+    /**
+     * 开始拉流播放
+     * @param strUrl
+     */
+    void play(const string &strUrl) override;
+
+    /**
+     * 获取观看总人数
+     */
+    int totalReaderCount() ;
+
 private:
-	void rePlay(const string &strUrl,int iFailedCnt);
-	void onPlaySuccess();
+    //MediaSourceEvent override
+    bool close(MediaSource &sender,bool force) override;
+    int totalReaderCount(MediaSource &sender) override;
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    string getOriginUrl(MediaSource &sender) const override;
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+
+    void rePlay(const string &strUrl,int iFailedCnt);
+    void onPlaySuccess();
+    void setDirectProxy();
+
 private:
-    bool _bEnableHls;
-    bool _bEnableMp4;
-    int _iRetryCount;
-	MultiMediaSourceMuxer::Ptr _mediaMuxer;
-    string _strVhost;
-    string _strApp;
-    string _strSrc;
+    bool _enable_hls;
+    bool _enable_mp4;
+    int _retry_count;
+    string _vhost;
+    string _app;
+    string _stream_id;
+    string _pull_url;
     Timer::Ptr _timer;
+    function<void()> _on_close;
+    function<void(const SockException &ex)> _on_play;
+    MultiMediaSourceMuxer::Ptr _muxer;
 };
 
 } /* namespace mediakit */
-
 #endif /* SRC_DEVICE_PLAYERPROXY_H_ */

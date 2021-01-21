@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef SRC_RTMP_RTMPPUSHER_H_
@@ -30,96 +14,81 @@
 #include "RtmpProtocol.h"
 #include "RtmpMediaSource.h"
 #include "Network/TcpClient.h"
+#include "Pusher/PusherBase.h"
 
 namespace mediakit {
 
-class RtmpPusher: public RtmpProtocol , public TcpClient{
+class RtmpPusher : public RtmpProtocol, public TcpClient, public PusherBase {
 public:
-	typedef std::shared_ptr<RtmpPusher> Ptr;
-	typedef std::function<void(const SockException &ex)> Event;
-	RtmpPusher(const char *strVhost,const char *strApp,const char *strStream);
-	RtmpPusher(const RtmpMediaSource::Ptr  &src);
-	virtual ~RtmpPusher();
+    typedef std::shared_ptr<RtmpPusher> Ptr;
+    RtmpPusher(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &src);
+    ~RtmpPusher() override;
 
-	void publish(const char* strUrl);
-	void teardown();
+    void publish(const string &url) override ;
+    void teardown() override;
 
-	void setOnPublished(Event onPublished) {
-		_onPublished = onPublished;
-	}
+    void setOnPublished(const Event &cb) override {
+        _on_published = cb;
+    }
 
-	void setOnShutdown(Event onShutdown) {
-		_onShutdown = onShutdown;
-	}
+    void setOnShutdown(const Event &cb) override{
+        _on_shutdown = cb;
+    }
 
 protected:
-	//for Tcpclient override
-	void onRecv(const Buffer::Ptr &pBuf) override;
-	void onConnect(const SockException &err) override;
-	void onErr(const SockException &ex) override;
+    //for Tcpclient override
+    void onRecv(const Buffer::Ptr &buf) override;
+    void onConnect(const SockException &err) override;
+    void onErr(const SockException &ex) override;
 
-	//for RtmpProtocol override
-	void onRtmpChunk(RtmpPacket &chunkData) override;
-	void onSendRawData(const Buffer::Ptr &buffer) override{
-		send(buffer);
-	}
+    //for RtmpProtocol override
+    void onRtmpChunk(RtmpPacket &chunk_data) override;
+    void onSendRawData(Buffer::Ptr buffer) override{
+        send(std::move(buffer));
+    }
+
 private:
-    void init(const RtmpMediaSource::Ptr  &src);
-	void onShutdown(const SockException &ex) {
-		_pPublishTimer.reset();
-		if(_onShutdown){
-			_onShutdown(ex);
-		}
-		_pRtmpReader.reset();
-	}
-	void onPublishResult(const SockException &ex) {
-		_pPublishTimer.reset();
-		if(_onPublished){
-			_onPublished(ex);
-		}
-	}
+    void onPublishResult(const SockException &ex, bool handshake_done);
 
-	template<typename FUN>
-	inline void addOnResultCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(_mtxOnResultCB);
-		_mapOnResultCB.emplace(_iReqID, fun);
-	}
-	template<typename FUN>
-	inline void addOnStatusCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(_mtxOnStatusCB);
-		_dqOnStatusCB.emplace_back(fun);
-	}
+    template<typename FUN>
+    inline void addOnResultCB(const FUN &fun) {
+        lock_guard<recursive_mutex> lck(_mtx_on_result);
+        _map_on_result.emplace(_send_req_id, fun);
+    }
+    template<typename FUN>
+    inline void addOnStatusCB(const FUN &fun) {
+        lock_guard<recursive_mutex> lck(_mtx_on_status);
+        _deque_on_status.emplace_back(fun);
+    }
 
-	void onCmd_result(AMFDecoder &dec);
-	void onCmd_onStatus(AMFDecoder &dec);
-	void onCmd_onMetaData(AMFDecoder &dec);
+    void onCmd_result(AMFDecoder &dec);
+    void onCmd_onStatus(AMFDecoder &dec);
+    void onCmd_onMetaData(AMFDecoder &dec);
 
-	inline void send_connect();
-	inline void send_createStream();
-	inline void send_publish();
-	inline void send_metaData();
+    inline void send_connect();
+    inline void send_createStream();
+    inline void send_publish();
+    inline void send_metaData();
+    void setSocketFlags();
 
-	string _strApp;
-	string _strStream;
-	string _strTcUrl;
+private:
+    string _app;
+    string _stream_id;
+    string _tc_url;
 
-	unordered_map<int, function<void(AMFDecoder &dec)> > _mapOnResultCB;
-	recursive_mutex _mtxOnResultCB;
-	deque<function<void(AMFValue &dec)> > _dqOnStatusCB;
-	recursive_mutex _mtxOnStatusCB;
+    recursive_mutex _mtx_on_result;
+    recursive_mutex _mtx_on_status;
+    deque<function<void(AMFValue &dec)> > _deque_on_status;
+    unordered_map<int, function<void(AMFDecoder &dec)> > _map_on_result;
 
-	typedef void (RtmpPusher::*rtmpCMDHandle)(AMFDecoder &dec);
-	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
-
-	//超时功能实现
-	std::shared_ptr<Timer> _pPublishTimer;
-    
-    //源
-    std::weak_ptr<RtmpMediaSource> _pMediaSrc;
-    RtmpMediaSource::RingType::RingReader::Ptr _pRtmpReader;
     //事件监听
-    Event _onShutdown;
-    Event _onPublished;
+    Event _on_shutdown;
+    Event _on_published;
+
+    //推流超时定时器
+    std::shared_ptr<Timer> _publish_timer;
+    std::weak_ptr<RtmpMediaSource> _publish_src;
+    RtmpMediaSource::RingType::RingReader::Ptr _rtmp_reader;
 };
 
 } /* namespace mediakit */

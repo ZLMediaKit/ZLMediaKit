@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "WebSocketSplitter.h"
@@ -69,7 +53,7 @@ do{ \
     } \
 }while(0) \
 
-void WebSocketSplitter::decode(uint8_t *data,uint64_t len) {
+void WebSocketSplitter::decode(uint8_t *data, size_t len) {
     uint8_t *ptr = data;
     if(!_got_header) {
         //还没有获取数据头
@@ -88,16 +72,16 @@ begin_decode:
 
         CHECK_LEN(1);
         _mask_flag = (*ptr & 0x80) >> 7;
-        _playload_len = (*ptr & 0x7F);
+        _payload_len = (*ptr & 0x7F);
         ptr += 1;
 
-        if (_playload_len == 126) {
+        if (_payload_len == 126) {
             CHECK_LEN(2);
-            _playload_len = (*ptr << 8) | *(ptr + 1);
+            _payload_len = (*ptr << 8) | *(ptr + 1);
             ptr += 2;
-        } else if (_playload_len == 127) {
+        } else if (_payload_len == 127) {
             CHECK_LEN(8);
-            _playload_len = ((uint64_t) ptr[0] << (8 * 7)) |
+            _payload_len = ((uint64_t) ptr[0] << (8 * 7)) |
                             ((uint64_t) ptr[1] << (8 * 6)) |
                             ((uint64_t) ptr[2] << (8 * 5)) |
                             ((uint64_t) ptr[3] << (8 * 4)) |
@@ -114,30 +98,30 @@ begin_decode:
         }
         _got_header = true;
         _mask_offset = 0;
-        _playload_offset = 0;
+        _payload_offset = 0;
         onWebSocketDecodeHeader(*this);
-        if(_playload_len == 0){
+        if(_payload_len == 0){
             onWebSocketDecodeComplete(*this);
         }
     }
 
     //进入后面逻辑代表已经获取到了webSocket协议头，
 
-    uint64_t remain = len - (ptr - data);
+    auto remain = len - (ptr - data);
     if(remain > 0){
-        uint64_t playload_slice_len = remain;
-        if(playload_slice_len + _playload_offset > _playload_len){
-            playload_slice_len = _playload_len - _playload_offset;
+        auto payload_slice_len = remain;
+        if(payload_slice_len + _payload_offset > _payload_len){
+            payload_slice_len = _payload_len - _payload_offset;
         }
-        _playload_offset += playload_slice_len;
-        onPlayloadData(ptr,playload_slice_len);
+        _payload_offset += payload_slice_len;
+        onPayloadData(ptr, payload_slice_len);
 
-        if(_playload_offset == _playload_len){
+        if(_payload_offset == _payload_len){
             onWebSocketDecodeComplete(*this);
 
             //这是下一个包
-            remain -= playload_slice_len;
-            ptr += playload_slice_len;
+            remain -= payload_slice_len;
+            ptr += payload_slice_len;
             _got_header = false;
 
             if(remain > 0){
@@ -154,19 +138,19 @@ begin_decode:
     _remain_data.clear();
 }
 
-void WebSocketSplitter::onPlayloadData(uint8_t *ptr, uint64_t len) {
+void WebSocketSplitter::onPayloadData(uint8_t *data, size_t len) {
     if(_mask_flag){
-        for(int i = 0; i < len ; ++i,++ptr){
-            *(ptr) ^= _mask[(i + _mask_offset) % 4];
+        for(size_t i = 0; i < len ; ++i,++data){
+            *(data) ^= _mask[(i + _mask_offset) % 4];
         }
         _mask_offset = (_mask_offset + len) % 4;
     }
-    onWebSocketDecodePlayload(*this, _mask_flag ? ptr - len : ptr, len, _playload_offset);
+    onWebSocketDecodePayload(*this, _mask_flag ? data - len : data, len, _payload_offset);
 }
 
-void WebSocketSplitter::encode(const WebSocketHeader &header,uint8_t *data, const uint64_t len) {
+void WebSocketSplitter::encode(const WebSocketHeader &header,const Buffer::Ptr &buffer) {
     string ret;
-
+    auto len = buffer ? buffer->size() : 0;
     uint8_t byte = header._fin << 7 | ((header._reserved & 0x07) << 4) | (header._opcode & 0x0F) ;
     ret.push_back(byte);
 
@@ -180,7 +164,7 @@ void WebSocketSplitter::encode(const WebSocketHeader &header,uint8_t *data, cons
         byte |= 126;
         ret.push_back(byte);
 
-        auto len_low = htons(len);
+        uint16_t len_low = htons((uint16_t)len);
         ret.append((char *)&len_low,2);
     }else{
         byte |= 127;
@@ -195,16 +179,16 @@ void WebSocketSplitter::encode(const WebSocketHeader &header,uint8_t *data, cons
         ret.append((char *)header._mask.data(),4);
     }
 
-    onWebSocketEncodeData((uint8_t*)ret.data(),ret.size());
+    onWebSocketEncodeData(std::make_shared<BufferString>(std::move(ret)));
 
     if(len > 0){
         if(mask_flag){
-            uint8_t *ptr = data;
-            for(int i = 0; i < len ; ++i,++ptr){
+            uint8_t *ptr = (uint8_t*)buffer->data();
+            for(size_t i = 0; i < len ; ++i,++ptr){
                 *(ptr) ^= header._mask[i % 4];
             }
         }
-        onWebSocketEncodeData(data,len);
+        onWebSocketEncodeData(buffer);
     }
 
 }

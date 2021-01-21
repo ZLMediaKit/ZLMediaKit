@@ -1,28 +1,13 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
+
 #include <signal.h>
 #include <atomic>
 #include <iostream>
@@ -59,6 +44,10 @@ int main(int argc, char *argv[]) {
     auto playerCnt = atoi(argv[1]);//启动的播放器个数
     atomic_int alivePlayerCnt(0);
 
+    //由于所有播放器都是再一个timer里面创建的，默认情况下所有播放器会绑定该timer所在的poller线程
+    //为了提高性能，poller分配策略关闭优先返回当前线程的策略
+    EventPollerPool::Instance().preferCurrentThread(false);
+
     //每隔若干毫秒启动一个播放器（如果一次性全部启动，服务器和客户端可能都承受不了）
     Timer timer0(atoi(argv[2])/1000.0f,[&]() {
         MediaPlayer::Ptr player(new MediaPlayer());
@@ -70,7 +59,8 @@ int main(int argc, char *argv[]) {
         player->setOnShutdown([&](const SockException &ex) {
             --alivePlayerCnt;
         });
-        (*player)[RtspPlayer::kRtpType] = atoi(argv[4]);
+        (*player)[kBenchmarkMode] = true;
+        (*player)[kRtpType] = atoi(argv[4]);
         player->play(argv[3]);
         playerList.push_back(player);
         return playerCnt--;

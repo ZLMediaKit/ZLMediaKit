@@ -1,31 +1,15 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef SRC_RTMP_RtmpPlayer2_H_
-#define SRC_RTMP_RtmpPlayer2_H_
+#ifndef SRC_RTMP_RtmpPlayer_H_
+#define SRC_RTMP_RtmpPlayer_H_
 
 #include <memory>
 #include <string>
@@ -39,119 +23,95 @@
 #include "Util/TimeTicker.h"
 #include "Network/Socket.h"
 #include "Network/TcpClient.h"
+
 using namespace toolkit;
+using namespace mediakit::Client;
 
 namespace mediakit {
 
-class RtmpPlayer:public PlayerBase, public TcpClient,  public RtmpProtocol{
+//实现了rtmp播放器协议部分的功能，及数据接收功能
+class RtmpPlayer : public PlayerBase, public TcpClient, public RtmpProtocol {
 public:
-	typedef std::shared_ptr<RtmpPlayer> Ptr;
-	RtmpPlayer();
-	virtual ~RtmpPlayer();
+    typedef std::shared_ptr<RtmpPlayer> Ptr;
+    RtmpPlayer(const EventPoller::Ptr &poller);
+    ~RtmpPlayer() override;
 
-	void play(const char* strUrl) override;
-	void pause(bool bPause) override;
-	void teardown() override;
-protected:
-	virtual bool onCheckMeta(AMFValue &val) =0;
-	virtual void onMediaData(const RtmpPacket::Ptr &chunkData) =0;
-	uint32_t getProgressMilliSecond() const;
-	void seekToMilliSecond(uint32_t ms);
-protected:
-	void onShutdown_l(const SockException &ex) {
-		WarnL << ex.getErrCode() << " " << ex.what();
-		_pPlayTimer.reset();
-		_pMediaTimer.reset();
-		_pBeatTimer.reset();
-		onShutdown(ex);
-	}
-	void onMediaData_l(const RtmpPacket::Ptr &chunkData) {
-		_mediaTicker.resetTime();
-		onMediaData(chunkData);
-	}
-	void onPlayResult_l(const SockException &ex) {
-		WarnL << ex.getErrCode() << " " << ex.what();
-		_pPlayTimer.reset();
-		_pMediaTimer.reset();
-		if (!ex) {
-			_mediaTicker.resetTime();
-			weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-			int timeoutMS = (*this)[kMediaTimeoutMS].as<int>();
-			_pMediaTimer.reset( new Timer(timeoutMS / 2000.0, [weakSelf,timeoutMS]() {
-				auto strongSelf=weakSelf.lock();
-				if(!strongSelf) {
-					return false;
-				}
-				if(strongSelf->_mediaTicker.elapsedTime()> timeoutMS) {
-					//recv media timeout!
-					strongSelf->onShutdown_l(SockException(Err_timeout,"recv rtmp timeout"));
-					strongSelf->teardown();
-					return false;
-				}
-				return true;
-			},getPoller()));
-		}
-		onPlayResult(ex);
-	}
+    void play(const string &strUrl) override;
+    void pause(bool bPause) override;
+    void teardown() override;
 
-	//for Tcpclient
-	void onRecv(const Buffer::Ptr &pBuf) override;
-	void onConnect(const SockException &err) override;
-	void onErr(const SockException &ex) override;
-	//fro RtmpProtocol
-	void onRtmpChunk(RtmpPacket &chunkData) override;
-	void onStreamDry(uint32_t ui32StreamId) override;
-    void onSendRawData(const Buffer::Ptr &buffer) override{
-        send(buffer);
+protected:
+    virtual bool onCheckMeta(const AMFValue &val) = 0;
+    virtual void onMediaData(const RtmpPacket::Ptr &chunk_data) = 0;
+    uint32_t getProgressMilliSecond() const;
+    void seekToMilliSecond(uint32_t ms);
+
+protected:
+    void onMediaData_l(const RtmpPacket::Ptr &chunk_data);
+    //在获取config帧后才触发onPlayResult_l(而不是收到play命令回复)，所以此时所有track都初始化完毕了
+    void onPlayResult_l(const SockException &ex, bool handshake_done);
+
+    //form Tcpclient
+    void onRecv(const Buffer::Ptr &buf) override;
+    void onConnect(const SockException &err) override;
+    void onErr(const SockException &ex) override;
+    //from RtmpProtocol
+    void onRtmpChunk(RtmpPacket &chunk_data) override;
+    void onStreamDry(uint32_t stream_index) override;
+    void onSendRawData(Buffer::Ptr buffer) override {
+        send(std::move(buffer));
     }
 
-	template<typename FUN>
-	inline void addOnResultCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(_mtxOnResultCB);
-		_mapOnResultCB.emplace(_iReqID, fun);
-	}
-	template<typename FUN>
-	inline void addOnStatusCB(const FUN &fun) {
-		lock_guard<recursive_mutex> lck(_mtxOnStatusCB);
-		_dqOnStatusCB.emplace_back(fun);
-	}
+    template<typename FUNC>
+    void addOnResultCB(const FUNC &func) {
+        lock_guard<recursive_mutex> lck(_mtx_on_result);
+        _map_on_result.emplace(_send_req_id, func);
+    }
+    template<typename FUNC>
+    void addOnStatusCB(const FUNC &func) {
+        lock_guard<recursive_mutex> lck(_mtx_on_status);
+        _deque_on_status.emplace_back(func);
+    }
 
-	void onCmd_result(AMFDecoder &dec);
-	void onCmd_onStatus(AMFDecoder &dec);
-	void onCmd_onMetaData(AMFDecoder &dec);
+    void onCmd_result(AMFDecoder &dec);
+    void onCmd_onStatus(AMFDecoder &dec);
+    void onCmd_onMetaData(AMFDecoder &dec);
 
-	inline void send_connect();
-	inline void send_createStream();
-	inline void send_play();
-	inline void send_pause(bool bPause);
+    void send_connect();
+    void send_createStream();
+    void send_play();
+    void send_pause(bool pause);
 
-	string _strApp;
-	string _strStream;
-	string _strTcUrl;
-	bool _bPaused = false;
+private:
+    string _app;
+    string _stream_id;
+    string _tc_url;
 
-	unordered_map<int, function<void(AMFDecoder &dec)> > _mapOnResultCB;
-	recursive_mutex _mtxOnResultCB;
-	deque<function<void(AMFValue &dec)> > _dqOnStatusCB;
-	recursive_mutex _mtxOnStatusCB;
+    bool _paused = false;
+    bool _metadata_got = false;
+    //是否为性能测试模式
+    bool _benchmark_mode = false;
 
-	typedef void (RtmpPlayer::*rtmpCMDHandle)(AMFDecoder &dec);
-	static unordered_map<string, rtmpCMDHandle> g_mapCmd;
+    //播放进度控制
+    uint32_t _seek_ms = 0;
+    uint32_t _fist_stamp[2] = {0, 0};
+    uint32_t _now_stamp[2] = {0, 0};
+    Ticker _now_stamp_ticker[2];
 
-	//超时功能实现
-	Ticker _mediaTicker;
-	std::shared_ptr<Timer> _pMediaTimer;
-	std::shared_ptr<Timer> _pPlayTimer;
-	//心跳定时器
-	std::shared_ptr<Timer> _pBeatTimer;
+    recursive_mutex _mtx_on_result;
+    recursive_mutex _mtx_on_status;
+    deque<function<void(AMFValue &dec)> > _deque_on_status;
+    unordered_map<int, function<void(AMFDecoder &dec)> > _map_on_result;
 
-	//播放进度控制
-	uint32_t _iSeekTo = 0;
-	uint32_t _aiFistStamp[2] = { 0, 0 };
-	uint32_t _aiNowStamp[2] = { 0, 0 };
-	Ticker _aNowStampTicker[2];
+    //rtmp接收超时计时器
+    Ticker _rtmp_recv_ticker;
+    //心跳发送定时器
+    std::shared_ptr<Timer> _beat_timer;
+    //播放超时定时器
+    std::shared_ptr<Timer> _play_timer;
+    //rtmp接收超时定时器
+    std::shared_ptr<Timer> _rtmp_recv_timer;
 };
 
 } /* namespace mediakit */
-
-#endif /* SRC_RTMP_RtmpPlayer2_H_ */
+#endif /* SRC_RTMP_RtmpPlayer_H_ */

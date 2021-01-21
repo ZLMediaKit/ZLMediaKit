@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_FACTORY_H
@@ -30,9 +14,8 @@
 #include <string>
 #include "Rtmp/amf.h"
 #include "Extension/Track.h"
-#include "RtspMuxer/RtspSdp.h"
-#include "RtspMuxer/RtpCodec.h"
-#include "RtmpMuxer/RtmpCodec.h"
+#include "Rtsp/RtpCodec.h"
+#include "Rtmp/RtmpCodec.h"
 
 using namespace std;
 using namespace toolkit;
@@ -41,14 +24,6 @@ namespace mediakit{
 
 class Factory {
 public:
-
-    /**
-     * 根据CodecId获取Track，该Track的ready()状态一般都为false
-     * @param codecId 编解码器id
-     * @return
-     */
-    static Track::Ptr getTrackByCodecId(CodecId codecId);
-
     ////////////////////////////////rtsp相关//////////////////////////////////
     /**
      * 根据sdp生成Track对象
@@ -56,34 +31,13 @@ public:
     static Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track);
 
     /**
-    * 根据Track生成SDP对象
-    * @param track 媒体信息
-    * @return 返回sdp对象
-    */
-    static Sdp::Ptr getSdpByTrack(const Track::Ptr &track);
-
-
-    /**
-     * 根据CodecId生成Rtp打包器
-     * @param codecId
-     * @param ui32Ssrc
-     * @param ui32MtuSize
-     * @param ui32SampleRate
-     * @param ui8PlayloadType
-     * @param ui8Interleaved
-     * @return
+     * 根据sdp生成rtp编码器
+     * @param sdp sdp对象
      */
-    static RtpCodec::Ptr getRtpEncoderById(CodecId codecId,
-                                           uint32_t ui32Ssrc,
-                                           uint32_t ui32MtuSize,
-                                           uint32_t ui32SampleRate,
-                                           uint8_t ui8PlayloadType,
-                                           uint8_t ui8Interleaved);
+    static RtpCodec::Ptr getRtpEncoderBySdp(const Sdp::Ptr &sdp);
 
     /**
      * 根据Track生成Rtp解包器
-     * @param track
-     * @return
      */
     static RtpCodec::Ptr getRtpDecoderByTrack(const Track::Ptr &track);
 
@@ -91,52 +45,29 @@ public:
     ////////////////////////////////rtmp相关//////////////////////////////////
 
     /**
-     * 根据amf对象获取响应的Track
-     * @param amf rtmp metedata中的videocodecid或audiocodecid的值
-     * @return
+     * 根据amf对象获取视频相应的Track
+     * @param amf rtmp metadata中的videocodecid的值
      */
-    static Track::Ptr getTrackByAmf(const AMFValue &amf);
+    static Track::Ptr getVideoTrackByAmf(const AMFValue &amf);
 
     /**
-     * 根据amf对象获取相应的CodecId
-     * @param val rtmp metedata中的videocodecid或audiocodecid的值
-     * @return
+     * 根据amf对象获取音频相应的Track
+     * @param amf rtmp metadata中的audiocodecid的值
      */
-    static CodecId getCodecIdByAmf(const AMFValue &val);
+    static Track::Ptr getAudioTrackByAmf(const AMFValue& amf, int sample_rate, int channels, int sample_bit);
 
     /**
      * 根据Track获取Rtmp的编解码器
      * @param track 媒体描述对象
-     * @return
+     * @param is_encode 是否为编码器还是解码器
      */
-    static RtmpCodec::Ptr getRtmpCodecByTrack(const Track::Ptr &track);
-
+    static RtmpCodec::Ptr getRtmpCodecByTrack(const Track::Ptr &track, bool is_encode);
 
     /**
      * 根据codecId获取rtmp的codec描述
-     * @param codecId
-     * @return
      */
     static AMFValue getAmfByCodecId(CodecId codecId);
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }//namespace mediakit
 

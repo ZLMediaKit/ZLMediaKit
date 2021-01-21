@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_H264_H
@@ -29,108 +13,80 @@
 
 #include "Frame.h"
 #include "Track.h"
-#include "RtspMuxer/RtspSdp.h"
-
-
+#include "Util/base64.h"
+using namespace toolkit;
 #define H264_TYPE(v) ((uint8_t)(v) & 0x1F)
 
 namespace mediakit{
 
-bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-bool getAVCInfo(const char * sps,int sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps);
-void splitH264(const char *ptr, int len, const std::function<void(const char *, int)> &cb);
-
+bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float &iVideoFps);
+void splitH264(const char *ptr, size_t len, size_t prefix, const std::function<void(const char *, size_t, size_t)> &cb);
+size_t prefixSize(const char *ptr, size_t len);
 /**
  * 264帧类
  */
-class H264Frame : public Frame {
+class H264Frame : public FrameImp {
 public:
     typedef std::shared_ptr<H264Frame> Ptr;
 
     typedef enum {
+        NAL_IDR = 5,
+        NAL_SEI = 6,
         NAL_SPS = 7,
         NAL_PPS = 8,
-        NAL_IDR = 5,
-        NAL_B_P = 1
+        NAL_AUD = 9,
+        NAL_B_P = 1,
     } NalType;
 
-    char *data() const override{
-        return (char *)buffer.data();
-    }
-    uint32_t size() const override {
-        return buffer.size();
-    }
-    uint32_t dts() const override {
-        return timeStamp;
-    }
-
-    uint32_t pts() const override {
-        return ptsStamp ? ptsStamp : timeStamp;
-    }
-
-    uint32_t prefixSize() const override{
-        return iPrefixSize;
-    }
-
-    TrackType getTrackType() const override{
-        return TrackVideo;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecH264;
+    H264Frame(){
+        _codec_id = CodecH264;
     }
 
     bool keyFrame() const override {
-        return type == NAL_IDR;
+        return H264_TYPE(_buffer[_prefix_size]) == H264Frame::NAL_IDR;
     }
-public:
-    uint16_t sequence;
-    uint32_t timeStamp;
-    uint32_t ptsStamp = 0;
-    unsigned char type;
-    string buffer;
-    uint32_t iPrefixSize = 4;
+
+    bool configFrame() const override{
+        switch(H264_TYPE(_buffer[_prefix_size]) ){
+            case H264Frame::NAL_SPS:
+            case H264Frame::NAL_PPS:return true;
+            default:return false;
+        }
+    }
 };
 
-
-class H264FrameNoCopyAble : public FrameNoCopyAble {
+/**
+ * 防止内存拷贝的H264类
+ * 用户可以通过该类型快速把一个指针无拷贝的包装成Frame类
+ * 该类型在DevChannel中有使用
+ */
+class H264FrameNoCacheAble : public FrameFromPtr {
 public:
-    typedef std::shared_ptr<H264FrameNoCopyAble> Ptr;
+    typedef std::shared_ptr<H264FrameNoCacheAble> Ptr;
 
-    H264FrameNoCopyAble(char *ptr,uint32_t size,uint32_t stamp,int prefixeSize = 4){
-        buffer_ptr = ptr;
-        buffer_size = size;
-        timeStamp = stamp;
-        iPrefixSize = prefixeSize;
-    }
-
-    TrackType getTrackType() const override{
-        return TrackVideo;
-    }
-
-    CodecId getCodecId() const override{
-        return CodecH264;
+    H264FrameNoCacheAble(char *ptr,size_t size,uint32_t dts , uint32_t pts ,size_t prefix_size = 4){
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _pts = pts;
+        _prefix_size = prefix_size;
+        _codec_id = CodecH264;
     }
 
     bool keyFrame() const override {
-        return H264_TYPE(buffer_ptr[iPrefixSize]) == H264Frame::NAL_IDR;
+        return H264_TYPE(_ptr[_prefix_size]) == H264Frame::NAL_IDR;
+    }
+
+    bool configFrame() const override{
+        switch(H264_TYPE(_ptr[_prefix_size])){
+            case H264Frame::NAL_SPS:
+            case H264Frame::NAL_PPS:return true;
+            default:return false;
+        }
     }
 };
 
-class H264FrameSubFrame : public H264FrameNoCopyAble{
-public:
-    typedef std::shared_ptr<H264FrameSubFrame> Ptr;
-
-    H264FrameSubFrame(const Frame::Ptr &strongRef,
-                           char *ptr,
-                           uint32_t size,
-                           uint32_t stamp,
-                           int prefixeSize) : H264FrameNoCopyAble(ptr,size,stamp,prefixeSize){
-        _strongRef = strongRef;
-    }
-private:
-    Frame::Ptr _strongRef;
-};
+typedef FrameInternal<H264FrameNoCacheAble> H264FrameInternal;
 
 /**
  * 264视频通道
@@ -225,28 +181,11 @@ public:
     */
     void inputFrame(const Frame::Ptr &frame) override{
         int type = H264_TYPE(*((uint8_t *)frame->data() + frame->prefixSize()));
-        if(type == H264Frame::NAL_SPS){
-            //有些设备会把SPS PPS IDR帧当做一个帧打包，所以我们要split一下
-            bool  first_frame = true;
-            splitH264(frame->data() + frame->prefixSize(),
-                      frame->size() - frame->prefixSize(),
-                      [&](const char *ptr, int len){
-                      if(first_frame){
-                          H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
-                                                                                                 frame->data(),
-                                                                                                 len + frame->prefixSize(),
-                                                                                                 frame->stamp(),
-                                                                                                 frame->prefixSize());
-                          inputFrame_l(sub_frame);
-                          first_frame = false;
-                      }else{
-                          H264FrameSubFrame::Ptr sub_frame = std::make_shared<H264FrameSubFrame>(frame,
-                                                                                                 (char *)ptr,
-                                                                                                 len ,
-                                                                                                 frame->stamp(),
-                                                                                                 3);
-                          inputFrame_l(sub_frame);
-                      }
+        if(type != H264Frame::NAL_B_P && type != H264Frame::NAL_IDR){
+            //非I/B/P帧情况下，split一下，防止多个帧粘合在一起
+            splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
+                H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame, (char *)ptr, len, prefix);
+                inputFrame_l(sub_frame);
             });
         } else{
             inputFrame_l(frame);
@@ -283,50 +222,51 @@ private:
 
             case H264Frame::NAL_IDR:{
                 //I
-                if(!_sps.empty() && _last_frame_type != H264Frame::NAL_IDR){
-                    if(!_spsFrame)
-                    {
-                        H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                        insertFrame->type = H264Frame::NAL_SPS;
-                        insertFrame->timeStamp = frame->stamp();
-                        insertFrame->buffer.assign("\x0\x0\x0\x1",4);
-                        insertFrame->buffer.append(_sps);
-                        insertFrame->iPrefixSize = 4;
-                        _spsFrame = insertFrame;
-                    }
-                    _spsFrame->timeStamp = frame->stamp();
-                    VideoTrack::inputFrame(_spsFrame);
-                }
-
-                if(!_pps.empty() && _last_frame_type != H264Frame::NAL_IDR){
-                    if(!_ppsFrame)
-                    {
-                        H264Frame::Ptr insertFrame = std::make_shared<H264Frame>();
-                        insertFrame->type = H264Frame::NAL_PPS;
-                        insertFrame->timeStamp = frame->stamp();
-                        insertFrame->buffer.assign("\x0\x0\x0\x1",4);
-                        insertFrame->buffer.append(_pps);
-                        insertFrame->iPrefixSize = 4;
-                        _ppsFrame = insertFrame;
-                    }
-                    _ppsFrame->timeStamp = frame->stamp();
-                    VideoTrack::inputFrame(_ppsFrame);
-                }
+                insertConfigFrame(frame);
                 VideoTrack::inputFrame(frame);
-                _last_frame_type = type;
+            }
+                break;
+            case H264Frame::NAL_AUD:{
+                //忽略AUD帧;
             }
                 break;
 
-            case H264Frame::NAL_B_P:{
-                //B or P
+            default:
                 VideoTrack::inputFrame(frame);
-                _last_frame_type = type;
-            }
                 break;
         }
 
+        _last_frame_is_idr = type == H264Frame::NAL_IDR;
         if(_width == 0 && ready()){
             onReady();
+        }
+    }
+
+    //生成sdp
+    Sdp::Ptr getSdp() override ;
+private:
+    //在idr帧前插入sps pps帧
+    void insertConfigFrame(const Frame::Ptr &frame){
+        if(_last_frame_is_idr){
+            return;
+        }
+
+        if(!_sps.empty()){
+            auto spsFrame = std::make_shared<H264Frame>();
+            spsFrame->_prefix_size = 4;
+            spsFrame->_buffer.assign("\x0\x0\x0\x1",4);
+            spsFrame->_buffer.append(_sps);
+            spsFrame->_dts = frame->dts();
+            VideoTrack::inputFrame(spsFrame);
+        }
+
+        if(!_pps.empty()){
+            auto ppsFrame = std::make_shared<H264Frame>();
+            ppsFrame->_prefix_size = 4;
+            ppsFrame->_buffer.assign("\x0\x0\x0\x1",4);
+            ppsFrame->_buffer.append(_pps);
+            ppsFrame->_dts = frame->dts();
+            VideoTrack::inputFrame(ppsFrame);
         }
     }
 private:
@@ -335,34 +275,32 @@ private:
     int _width = 0;
     int _height = 0;
     float _fps = 0;
-    int _last_frame_type = -1;
-    H264Frame::Ptr _spsFrame;
-    H264Frame::Ptr _ppsFrame;
+    bool _last_frame_is_idr = false;
 };
-
 
 /**
 * h264类型sdp
 */
 class H264Sdp : public Sdp {
 public:
-
     /**
      *
      * @param sps 264 sps,不带0x00000001头
      * @param pps 264 pps,不带0x00000001头
-     * @param playload_type  rtp playload type 默认96
+     * @param payload_type  rtp payload type 默认96
      * @param bitrate 比特率
      */
     H264Sdp(const string &strSPS,
             const string &strPPS,
-            int playload_type = 96,
-            int bitrate = 4000) : Sdp(90000,playload_type) {
+            int bitrate = 4000,
+            int payload_type = 96) : Sdp(90000,payload_type) {
         //视频通道
-        _printer << "m=video 0 RTP/AVP " << playload_type << "\r\n";
-        _printer << "b=AS:" << bitrate << "\r\n";
-        _printer << "a=rtpmap:" << playload_type << " H264/" << 90000 << "\r\n";
-        _printer << "a=fmtp:" << playload_type << " packetization-mode=1;profile-level-id=";
+        _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
+        if (bitrate) {
+            _printer << "b=AS:" << bitrate << "\r\n";
+        }
+        _printer << "a=rtpmap:" << payload_type << " H264/" << 90000 << "\r\n";
+        _printer << "a=fmtp:" << payload_type << " packetization-mode=1; profile-level-id=";
 
         char strTemp[100];
         uint32_t profile_level_id = 0;
@@ -372,24 +310,20 @@ public:
                                (uint8_t(strSPS[3])); // profile_idc|constraint_setN_flag|level_idc
         }
         memset(strTemp, 0, 100);
-        sprintf(strTemp, "%06X", profile_level_id);
+        snprintf(strTemp, sizeof(strTemp), "%06X", profile_level_id);
         _printer << strTemp;
-        _printer << ";sprop-parameter-sets=";
+        _printer << "; sprop-parameter-sets=";
         memset(strTemp, 0, 100);
-        av_base64_encode(strTemp, 100, (uint8_t *) strSPS.data(), strSPS.size());
+        av_base64_encode(strTemp, 100, (uint8_t *) strSPS.data(), (int)strSPS.size());
         _printer << strTemp << ",";
         memset(strTemp, 0, 100);
-        av_base64_encode(strTemp, 100, (uint8_t *) strPPS.data(), strPPS.size());
+        av_base64_encode(strTemp, 100, (uint8_t *) strPPS.data(), (int)strPPS.size());
         _printer << strTemp << "\r\n";
-        _printer << "a=control:trackID=" << getTrackType() << "\r\n";
+        _printer << "a=control:trackID=" << (int)TrackVideo << "\r\n";
     }
 
     string getSdp() const override {
         return _printer;
-    }
-
-    TrackType getTrackType() const override {
-        return TrackVideo;
     }
 
     CodecId getCodecId() const override {
@@ -399,10 +333,5 @@ private:
     _StrPrinter _printer;
 };
 
-
-
-
 }//namespace mediakit
-
-
 #endif //ZLMEDIAKIT_H264_H

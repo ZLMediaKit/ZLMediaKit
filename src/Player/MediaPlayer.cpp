@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include <algorithm>
@@ -32,38 +16,58 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MediaPlayer::MediaPlayer() {
+MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
+    _poller = poller ? poller : EventPollerPool::Instance().getPoller();
 }
 
 MediaPlayer::~MediaPlayer() {
 }
-void MediaPlayer::play(const char* strUrl) {
-    _parser = PlayerBase::createPlayer(strUrl);
-	_parser->setOnShutdown(_shutdownCB);
-	_parser->setOnPlayResult(_playResultCB);
-    _parser->setMediaSouce(_pMediaSrc);
-	_parser->mINI::operator=(*this);
-	_parser->play(strUrl);
+
+static void setOnCreateSocket_l(const std::shared_ptr<PlayerBase> &delegate, const Socket::onCreateSocket &cb){
+    auto helper = dynamic_pointer_cast<SocketHelper>(delegate);
+    if (helper) {
+        if (cb) {
+            helper->setOnCreateSocket(cb);
+        } else {
+            //客户端，确保开启互斥锁
+            helper->setOnCreateSocket([](const EventPoller::Ptr &poller) {
+                return Socket::createSocket(poller, true);
+            });
+        }
+    }
+}
+
+void MediaPlayer::play(const string &url) {
+    _delegate = PlayerBase::createPlayer(_poller, url);
+    assert(_delegate);
+    setOnCreateSocket_l(_delegate, _on_create_socket);
+    _delegate->setOnShutdown(_shutdownCB);
+    _delegate->setOnPlayResult(_playResultCB);
+    _delegate->setOnResume(_resumeCB);
+    _delegate->setMediaSource(_pMediaSrc);
+    _delegate->mINI::operator=(*this);
+    _delegate->play(url);
 }
 
 EventPoller::Ptr MediaPlayer::getPoller(){
-	auto parser = dynamic_pointer_cast<SocketHelper>(_parser);
-	if(!parser){
-		return nullptr;
-	}
-	return parser->getPoller();
+    return _poller;
 }
 
-void MediaPlayer::pause(bool bPause) {
-	if (_parser) {
-		_parser->pause(bPause);
-	}
+void MediaPlayer::setOnCreateSocket(Socket::onCreateSocket cb){
+    setOnCreateSocket_l(_delegate, cb);
+    _on_create_socket = std::move(cb);
+}
+
+void MediaPlayer::pause(bool pause) {
+    if (_delegate) {
+        _delegate->pause(pause);
+    }
 }
 
 void MediaPlayer::teardown() {
-	if (_parser) {
-		_parser->teardown();
-	}
+    if (_delegate) {
+        _delegate->teardown();
+    }
 }
 
 

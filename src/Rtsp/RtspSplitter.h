@@ -1,33 +1,17 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #ifndef ZLMEDIAKIT_RTSPSPLITTER_H
 #define ZLMEDIAKIT_RTSPSPLITTER_H
 
-#include "Rtsp.h"
+#include "Common/Parser.h"
 #include "Http/HttpRequestSplitter.h"
 
 namespace mediakit{
@@ -54,18 +38,21 @@ protected:
      * @param data
      * @param len
      */
-    virtual void onRtpPacket(const char *data,uint64_t len) = 0;
+    virtual void onRtpPacket(const char *data,size_t len) = 0;
 
     /**
      * 从rtsp头中获取Content长度
      * @param parser
      * @return
      */
-    virtual int64_t getContentLength(Parser &parser);
+    virtual ssize_t getContentLength(Parser &parser);
+
 protected:
-    const char *onSearchPacketTail(const char *data,int len) override ;
-    int64_t onRecvHeader(const char *data,uint64_t len) override;
-    void onRecvContent(const char *data,uint64_t len) override;
+    const char *onSearchPacketTail(const char *data,size_t len) override ;
+    const char *onSearchPacketTail_l(const char *data,size_t len) ;
+    ssize_t onRecvHeader(const char *data,size_t len) override;
+    void onRecvContent(const char *data,size_t len) override;
+
 private:
     bool _enableRecvRtp = false;
     bool _isRtpPacket = false;

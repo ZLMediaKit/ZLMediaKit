@@ -1,27 +1,11 @@
 ﻿/*
- * MIT License
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * Copyright (c) 2016 xiongziliang <771730766@qq.com>
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "HttpCookie.h"
@@ -41,7 +25,7 @@ void HttpCookie::setPath(const string &path){
 void HttpCookie::setHost(const string &host){
     _host = host;
 }
-static uint32_t timeStrToInt(const string &date){
+static time_t timeStrToInt(const string &date){
     struct tm tt;
     strptime(date.data(),"%a, %b %d %Y %H:%M:%S %Z",&tt);
     return mktime(&tt);
@@ -50,7 +34,6 @@ void HttpCookie::setExpires(const string &expires,const string &server_date){
     _expire = timeStrToInt(expires);
     if(!server_date.empty()){
         _expire =  time(NULL) + (_expire - timeStrToInt(server_date));
-//        DebugL <<  (timeStrToInt(expires) - timeStrToInt(server_date)) / 60;
     }
 }
 void HttpCookie::setKeyVal(const string &key,const string &val){
@@ -80,7 +63,7 @@ void HttpCookieStorage::set(const HttpCookie::Ptr &cookie) {
     if(!cookie || !(*cookie)){
         return;
     }
-    _all_cookie[cookie->_host][cookie->_path] = cookie;
+    _all_cookie[cookie->_host][cookie->_path][cookie->_key] = cookie;
 }
 
 vector<HttpCookie::Ptr> HttpCookieStorage::get(const string &host, const string &path) {
@@ -88,29 +71,27 @@ vector<HttpCookie::Ptr> HttpCookieStorage::get(const string &host, const string 
     lock_guard<mutex> lck(_mtx_cookie);
     auto it =  _all_cookie.find(host);
     if(it == _all_cookie.end()){
+        //未找到该host相关记录
         return ret;
     }
-    auto &path_cookie = it->second;
-
-    auto lam = [&](const string &sub_path){
-        auto it_cookie = path_cookie.find(sub_path);
-        if(it_cookie != path_cookie.end()){
-            if(*(it_cookie->second)){
-                ret.emplace_back(it_cookie->second);
-            }else{
-                path_cookie.erase(it_cookie);
-            }
+    //遍历该host下所有path
+    for(auto &pr : it->second){
+        if(path.find(pr.first) != 0){
+            //这个path不匹配
+            continue;
         }
-    };
-
-
-    int pos = 0;
-    do{
-        auto sub_path = path.substr(0,pos + 1);
-        lam(sub_path);
-        pos = path.find('/',1 + pos);
-    }while (pos != string::npos);
-    lam(path);
+        //遍历该path下的各个cookie
+        for(auto it_cookie = pr.second.begin() ; it_cookie != pr.second.end() ; ){
+            if(!*(it_cookie->second)){
+                //该cookie已经过期，移除之
+                it_cookie = pr.second.erase(it_cookie);
+                continue;
+            }
+            //保存有效cookie
+            ret.emplace_back(it_cookie->second);
+            ++it_cookie;
+        }
+    }
     return ret;
 }
 
