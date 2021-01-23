@@ -59,6 +59,32 @@
 			"response": []
 		},
 		{
+			"name": "获取主要对象个数(getStatistic)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getStatistic?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getStatistic"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "获取后台线程负载(getWorkThreadsLoad)",
 			"request": {
 				"method": "GET",
@@ -568,6 +594,12 @@
 							"key": "enable_mp4",
 							"value": "0",
 							"description": "是否开启mp4录制"
+						},
+						{
+							"key": "ffmpeg_cmd_key",
+							"value": "ffmpeg.cmd_hd",
+							"description": "FFmpeg命名参数模板，置空则采用配置项:ffmpeg.cmd",
+							"disabled": true
 						}
 					]
 				}

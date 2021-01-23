@@ -296,6 +296,8 @@ private:
     string _app;
     string _stream_id;
     std::weak_ptr<MediaSourceEvent> _listener;
+    //对象个数统计
+    ObjectStatistic<MediaSource> _statistic;
 };
 
 ///缓存刷新策略类

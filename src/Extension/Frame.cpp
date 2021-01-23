@@ -13,6 +13,11 @@
 using namespace std;
 using namespace toolkit;
 
+namespace toolkit {
+    StatisticImp(mediakit::Frame);
+    StatisticImp(mediakit::FrameImp);
+}
+
 namespace mediakit{
 
 /**

@@ -192,6 +192,8 @@ private:
     mutex _rtp_sender_mtx;
 	unordered_map<string, RtpSender::Ptr> _rtp_sender;
 #endif //ENABLE_RTPPROXY
+    //对象个数统计
+    ObjectStatistic<MultiMediaSourceMuxer> _statistic;
 };
 
 }//namespace mediakit

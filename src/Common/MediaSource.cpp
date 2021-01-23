@@ -14,6 +14,11 @@
 #include "Network/sockutil.h"
 #include "Network/TcpSession.h"
 using namespace toolkit;
+
+namespace toolkit {
+    StatisticImp(mediakit::MediaSource);
+}
+
 namespace mediakit {
 
 recursive_mutex s_media_source_mtx;
