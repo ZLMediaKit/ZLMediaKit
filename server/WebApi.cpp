@@ -662,7 +662,8 @@ void installWebApi() {
         val["data"]["flag"] = s_proxyMap.erase(allArgs["key"]) == 1;
     });
 
-    static auto addFFmpegSource = [](const string &src_url,
+    static auto addFFmpegSource = [](const string &ffmpeg_cmd_key,
+                                     const string &src_url,
                                      const string &dst_url,
                                      int timeout_ms,
                                      bool enable_hls,
@@ -684,7 +685,7 @@ void installWebApi() {
             s_ffmpegMap.erase(key);
         });
         ffmpeg->setupRecordFlag(enable_hls, enable_mp4);
-        ffmpeg->play(src_url, dst_url, timeout_ms, [cb, key](const SockException &ex) {
+        ffmpeg->play(ffmpeg_cmd_key, src_url, dst_url, timeout_ms, [cb, key](const SockException &ex) {
             if (ex) {
                 lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
                 s_ffmpegMap.erase(key);
@@ -704,7 +705,7 @@ void installWebApi() {
         auto enable_hls = allArgs["enable_hls"].as<int>();
         auto enable_mp4 = allArgs["enable_mp4"].as<int>();
 
-        addFFmpegSource(src_url, dst_url, timeout_ms, enable_hls, enable_mp4,
+        addFFmpegSource(allArgs["ffmpeg_cmd_key"], src_url, dst_url, timeout_ms, enable_hls, enable_mp4,
                         [invoker, val, headerOut](const SockException &ex, const string &key) {
             if (ex) {
                 const_cast<Value &>(val)["code"] = API::OtherFailed;
@@ -1080,7 +1081,7 @@ void installWebApi() {
                 << allArgs["stream"] << "?vhost="
                 << allArgs["vhost"];
 
-        addFFmpegSource("http://hls-ott-zhibo.wasu.tv/live/272/index.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
+        addFFmpegSource("", "http://hls-ott-zhibo.wasu.tv/live/272/index.m3u8",/** ffmpeg拉流支持任意编码格式任意协议 **/
                         dst_url,
                         (1000 * timeout_sec) - 500,
                         false,
