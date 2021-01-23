@@ -11,6 +11,11 @@
 #include <math.h>
 #include "Common/config.h"
 #include "MultiMediaSourceMuxer.h"
+
+namespace toolkit {
+    StatisticImp(mediakit::MultiMediaSourceMuxer);
+}
+
 namespace mediakit {
 
 ///////////////////////////////MultiMuxerPrivate//////////////////////////////////

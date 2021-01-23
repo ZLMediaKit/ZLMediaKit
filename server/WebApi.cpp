@@ -1026,6 +1026,24 @@ void installWebApi() {
         });
     });
 
+    api_regist("/index/api/getStatistic",[](API_ARGS_MAP){
+        CHECK_SECRET();
+        val["data"]["MediaSource"] = (Json::UInt64)(ObjectStatistic<MediaSource>::count());
+        val["data"]["MultiMediaSourceMuxer"] = (Json::UInt64)(ObjectStatistic<MultiMediaSourceMuxer>::count());
+
+        val["data"]["TcpSession"] = (Json::UInt64)(ObjectStatistic<TcpSession>::count());
+        val["data"]["TcpClient"] = (Json::UInt64)(ObjectStatistic<TcpClient>::count());
+        val["data"]["Socket"] = (Json::UInt64)(ObjectStatistic<Socket>::count());
+
+        val["data"]["FrameImp"] = (Json::UInt64)(ObjectStatistic<FrameImp>::count());
+        val["data"]["Frame"] = (Json::UInt64)(ObjectStatistic<Frame>::count());
+
+        val["data"]["Buffer"] = (Json::UInt64)(ObjectStatistic<Buffer>::count());
+        val["data"]["BufferRaw"] = (Json::UInt64)(ObjectStatistic<BufferRaw>::count());
+        val["data"]["BufferLikeString"] = (Json::UInt64)(ObjectStatistic<BufferLikeString>::count());
+        val["data"]["BufferList"] = (Json::UInt64)(ObjectStatistic<BufferList>::count());
+    });
+
     ////////////以下是注册的Hook API////////////
     api_regist("/index/hook/on_publish",[](API_ARGS_MAP){
         //开始推流事件
