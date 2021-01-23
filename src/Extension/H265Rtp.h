@@ -44,13 +44,17 @@ public:
     }
 
 private:
-    bool decodeRtp(const RtpPacket::Ptr &rtp);
-    void onGetH265(const H265Frame::Ptr &frame);
+    bool unpackAp(const uint8_t *ptr, ssize_t size, uint32_t stamp);
+    bool mergeFu(const uint8_t *ptr, ssize_t size, uint16_t seq, uint32_t stamp);
+    bool singleFrame(const uint8_t *ptr, ssize_t size, uint32_t stamp);
+
     H265Frame::Ptr obtainFrame();
+    void outputFrame(const H265Frame::Ptr &frame);
 
 private:
-    uint16_t _lastSeq = 0;
-    H265Frame::Ptr _h265frame;
+    bool _using_donl_field = false;
+    uint16_t _last_seq = 0;
+    H265Frame::Ptr _frame;
     DtsGenerator _dts_generator;
 };
 
