@@ -87,6 +87,12 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
     if(_tc_url.empty()){
         //defaultVhost:默认vhost
         _tc_url = string(RTMP_SCHEMA) + "://" + DEFAULT_VHOST + "/" + _media_info._app;
+    } else {
+        auto pos = _tc_url.rfind('?');
+        if (pos != string::npos) {
+            //tc_url 中可能包含?以及参数，参见issue: #692
+            _tc_url = _tc_url.substr(0, pos);
+        }
     }
     bool ok = true; //(app == APP_NAME);
     AMFValue version(AMF_OBJECT);
