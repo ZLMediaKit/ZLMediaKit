@@ -64,17 +64,28 @@ void FFmpegSource::setupRecordFlag(bool enable_hls, bool enable_mp4){
     _enable_mp4 = enable_mp4;
 }
 
-void FFmpegSource::play(const string &src_url,const string &dst_url,int timeout_ms,const onPlay &cb) {
+void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,const string &dst_url,int timeout_ms,const onPlay &cb) {
     GET_CONFIG(string,ffmpeg_bin,FFmpeg::kBin);
-    GET_CONFIG(string,ffmpeg_cmd,FFmpeg::kCmd);
+    GET_CONFIG(string,ffmpeg_cmd_default,FFmpeg::kCmd);
     GET_CONFIG(string,ffmpeg_log,FFmpeg::kLog);
 
     _src_url = src_url;
     _dst_url = dst_url;
+    _ffmpeg_cmd_key = ffmpeg_cmd_key;
     _media_info.parse(dst_url);
 
+    auto ffmpeg_cmd = ffmpeg_cmd_default;
+    if (!ffmpeg_cmd_key.empty()) {
+        auto cmd_it = mINI::Instance().find(ffmpeg_cmd_key);
+        if (cmd_it != mINI::Instance().end()) {
+            ffmpeg_cmd = cmd_it->second;
+        } else{
+            WarnL << "配置文件中,ffmpeg命令模板(" << ffmpeg_cmd_key << ")不存在,已采用默认模板(" << ffmpeg_cmd_default << ")";
+        }
+    }
+
     char cmd[1024] = {0};
-    snprintf(cmd, sizeof(cmd),ffmpeg_cmd.data(),ffmpeg_bin.data(),src_url.data(),dst_url.data());
+    snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(), ffmpeg_bin.data(), src_url.data(), dst_url.data());
     _process.run(cmd,ffmpeg_log.empty() ? "" : File::absolutePath("",ffmpeg_log));
     InfoL << cmd;
 
@@ -206,7 +217,7 @@ void FFmpegSource::startTimer(int timeout_ms) {
                     if(strongSelf->_replay_ticker.elapsedTime() > 20 * 1000){
                         //上次重试时间超过10秒，那么再重试FFmpeg拉流
                         strongSelf->_replay_ticker.resetTime();
-                        strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [](const SockException &) {});
+                        strongSelf->play(strongSelf->_ffmpeg_cmd_key, strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [](const SockException &) {});
                     }
                 }
             });
@@ -214,7 +225,7 @@ void FFmpegSource::startTimer(int timeout_ms) {
             //推流给其他服务器的，我们通过判断FFmpeg进程是否在线，如果FFmpeg推流中断，那么它应该会自动退出
             if (!strongSelf->_process.wait(false)) {
                 //ffmpeg不在线，重新拉流
-                strongSelf->play(strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [weakSelf](const SockException &ex) {
+                strongSelf->play(strongSelf->_ffmpeg_cmd_key, strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [weakSelf](const SockException &ex) {
                     if(!ex){
                         //没有错误
                         return;
