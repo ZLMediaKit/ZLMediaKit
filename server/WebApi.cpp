@@ -1031,6 +1031,7 @@ void installWebApi() {
         val["data"]["MediaSource"] = (Json::UInt64)(ObjectStatistic<MediaSource>::count());
         val["data"]["MultiMediaSourceMuxer"] = (Json::UInt64)(ObjectStatistic<MultiMediaSourceMuxer>::count());
 
+        val["data"]["TcpServer"] = (Json::UInt64)(ObjectStatistic<TcpServer>::count());
         val["data"]["TcpSession"] = (Json::UInt64)(ObjectStatistic<TcpSession>::count());
         val["data"]["TcpClient"] = (Json::UInt64)(ObjectStatistic<TcpClient>::count());
         val["data"]["Socket"] = (Json::UInt64)(ObjectStatistic<Socket>::count());
