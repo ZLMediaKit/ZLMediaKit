@@ -235,8 +235,9 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         sendRtspResponse("403 Forbidden", {"Content-Type", "text/plain"}, err);
         throw SockException(Err_shutdown,StrPrinter << err << ":" << full_url);
     }
+    _rtcp_context.clear();
     for (auto &track : _sdp_track) {
-        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate));
+        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, true));
     }
     _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
     _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
@@ -406,7 +407,7 @@ void RtspSession::onAuthSuccess() {
             return;
         }
         for (auto &track : strongSelf->_sdp_track) {
-            strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate));
+            strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, false));
         }
         strongSelf->_sessionid = makeRandStr(12);
         strongSelf->_play_src = rtsp_src;

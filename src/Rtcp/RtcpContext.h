@@ -23,8 +23,9 @@ public:
     /**
      * 创建rtcp上下文
      * @param sample_rate 音频采用率，视频一般为90000
+     * @param is_receiver 是否为rtp接收者，接收者更消耗性能
      */
-    RtcpContext(uint32_t sample_rate);
+    RtcpContext(uint32_t sample_rate, bool is_receiver);
 
     /**
      * 输出或输入rtp时调用
@@ -82,6 +83,8 @@ private:
     size_t geLostInterval();
 
 private:
+    //是否为接收者
+    bool _is_receiver;
     //时间戳抖动值
     double _jitter = 0;
     //视频默认90000,音频为采样率
