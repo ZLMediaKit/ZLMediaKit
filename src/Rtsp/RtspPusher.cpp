@@ -177,7 +177,7 @@ void RtspPusher::sendAnnounce() {
         throw std::runtime_error("无有效的Sdp Track");
     }
     for (auto &track : _track_vec) {
-        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate));
+        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, false));
     }
     _on_res_func = std::bind(&RtspPusher::handleResAnnounce, this, placeholders::_1);
     sendRtspRequest("ANNOUNCE", _url, {}, src->getSdp());
