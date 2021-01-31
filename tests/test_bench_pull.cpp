@@ -167,14 +167,14 @@ int main(int argc, char *argv[]) {
         //休眠一秒打印
         sleep(1);
 
-        int alive_player = 0;
+        size_t alive_player = 0;
         {
             lock_guard<recursive_mutex> lck(mtx);
             alive_player = player_map.size();
         }
         InfoL << "在线播放器个数:" << alive_player;
-        int re_try = player_count - alive_player;
-        while (re_try--) {
+        size_t re_try = player_count - alive_player;
+        while (!exit_flag && re_try--) {
             //有些播放器播放失败了，那么我们重试添加
             add_player();
         }
