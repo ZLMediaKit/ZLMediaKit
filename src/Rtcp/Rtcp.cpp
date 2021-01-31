@@ -33,7 +33,7 @@ const char *sdesTypeToStr(SdesType type){
 }
 
 static size_t alignSize(size_t bytes) {
-    return 4 * (size_t)((bytes + 3) / 4);
+    return (size_t)((bytes + 3) / 4) << 2;
 }
 
 static void setupHeader(RtcpHeader *rtcp, RtcpType type, size_t report_count, size_t total_bytes) {
@@ -82,7 +82,7 @@ string RtcpHeader::dumpString() const {
             RtcpSdes *rtcp = (RtcpSdes *)this;
             return rtcp->dumpString();
         }
-        default: return StrPrinter << dumpHeader() << hexdump((char *)this + sizeof(*this), length * 4);
+        default: return StrPrinter << dumpHeader() << hexdump((char *)this + sizeof(*this), length << 2);
     }
 }
 
@@ -115,7 +115,7 @@ vector<RtcpHeader *> RtcpHeader::loadFromBytes(char *data, size_t len){
     char *ptr = data;
     while (remain > (ssize_t) sizeof(RtcpHeader)) {
         RtcpHeader *rtcp = (RtcpHeader *) ptr;
-        auto rtcp_len = 4 * (1 + ntohs(rtcp->length));
+        auto rtcp_len = (1 + ntohs(rtcp->length)) << 2;
         try {
             rtcp->net2Host(rtcp_len);
             ret.emplace_back(rtcp);
@@ -133,7 +133,7 @@ class BufferRtcp : public Buffer {
 public:
     BufferRtcp(std::shared_ptr<RtcpHeader> rtcp) {
         _rtcp = std::move(rtcp);
-        _size = (htons(_rtcp->length) + 1) * 4;
+        _size = (htons(_rtcp->length) + 1) << 2;
     }
 
     ~BufferRtcp() override {}
@@ -208,8 +208,8 @@ if (report_count != item_count) { \
     WarnL << rtcpTypeToStr((RtcpType)pt) << " report_count 字段不正确,已修正为:" << (int)report_count << " -> " << item_count; \
     report_count = item_count; \
 } \
-if ((size_t) (length + 1) * 4 != size) { \
-    WarnL << rtcpTypeToStr((RtcpType)pt) << " length字段不正确:" << (size_t) (length + 1) * 4 << " != " << size; \
+if ((size_t) (length + 1) << 2 != size) { \
+    WarnL << rtcpTypeToStr((RtcpType)pt) << " length字段不正确:" << (size_t) (length + 1) << 2 << " != " << size; \
 }
 
 void RtcpSR::net2Host(size_t size) {
