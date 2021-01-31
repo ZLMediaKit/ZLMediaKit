@@ -547,7 +547,7 @@ void HttpSession::sendResponse(int code,
         pcContentType = "text/plain";
     }
 
-    if(size && pcContentType){
+    if((size || no_content_length) && pcContentType){
         //有body时，设置文件类型
         string strContentType = pcContentType;
         strContentType += "; charset=";
