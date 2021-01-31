@@ -82,6 +82,8 @@ public:
     size_t offset;
 };
 
+Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved);
+
 class RtpPayload{
 public:
     static int getClockRate(int pt);

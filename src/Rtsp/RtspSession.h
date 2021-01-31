@@ -26,6 +26,7 @@
 #include "RtpReceiver.h"
 #include "RtspMediaSourceImp.h"
 #include "Common/Stamp.h"
+#include "Rtcp/RtcpContext.h"
 
 using namespace std;
 using namespace toolkit;
@@ -79,6 +80,7 @@ protected:
 
     ////RtpReceiver override////
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) override;
+    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override;
 
     ///////MediaSourceEvent override///////
     // 关闭
@@ -152,12 +154,11 @@ private:
     //发送rtp给客户端
     void sendRtpPacket(const RtspMediaSource::RingDataType &pkt);
     //触发rtcp发送
-    void onSendRtpPacket(const RtpPacket::Ptr &rtp);
+    void updateRtcpContext(const RtpPacket::Ptr &rtp);
     //回复客户端
     bool sendRtspResponse(const string &res_code, const std::initializer_list<string> &header, const string &sdp = "", const char *protocol = "RTSP/1.0");
     bool sendRtspResponse(const string &res_code, const StrCaseMap &header = StrCaseMap(), const string &sdp = "", const char *protocol = "RTSP/1.0");
-    //服务器发送rtcp
-    void sendSenderReport(bool over_tcp, int track_idx);
+
     //设置socket标志
     void setSocketFlags();
 
@@ -196,11 +197,6 @@ private:
     //sdp里面有效的track,包含音频或视频
     vector<SdpTrack::Ptr> _sdp_track;
 
-    //rtcp统计,trackid idx 为数组下标
-    RtcpCounter _rtcp_counter[2];
-    //rtcp发送时间,trackid idx 为数组下标
-    Ticker _rtcp_send_tickers[2];
-
     ////////RTP over udp////////
     //RTP端口,trackid idx 为数组下标
     Socket::Ptr _rtp_socks[2];
@@ -216,6 +212,11 @@ private:
     //一次发送 get 一次发送post，需要通过x-sessioncookie关联起来
     string _http_x_sessioncookie;
     function<void(const Buffer::Ptr &)> _on_recv;
+    ////////// rtcp ////////////////
+    //rtcp发送时间,trackid idx 为数组下标
+    Ticker _rtcp_send_tickers[2];
+    //统计rtp并发送rtcp
+    vector<RtcpContext::Ptr> _rtcp_context;
 };
 
 /**

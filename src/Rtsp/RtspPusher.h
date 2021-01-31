@@ -21,6 +21,7 @@
 #include "Network/TcpClient.h"
 #include "RtspSplitter.h"
 #include "Pusher/PusherBase.h"
+#include "Rtcp/RtcpContext.h"
 
 using namespace std;
 using namespace toolkit;
@@ -51,7 +52,9 @@ protected:
 
     //RtspSplitter override
     void onWholeRtspPacket(Parser &parser) override ;
-    void onRtpPacket(const char *data,size_t len) override {};
+    void onRtpPacket(const char *data,size_t len) override;
+
+    virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data, size_t len);
 
 private:
     void onPublishResult(const SockException &ex, bool handshake_done);
@@ -66,7 +69,8 @@ private:
     void handleResSetup(const Parser &parser, unsigned int track_idx);
     bool handleAuthenticationFailure(const string &params_str);
 
-    inline int getTrackIndexByTrackType(TrackType type);
+    int getTrackIndexByInterleaved(int interleaved) const;
+    int getTrackIndexByTrackType(TrackType type) const;
 
     void sendRtpPacket(const RtspMediaSource::RingDataType & pkt) ;
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap(),const string &sdp = "" );
@@ -74,6 +78,7 @@ private:
 
     void createUdpSockIfNecessary(int track_idx);
     void setSocketFlags();
+    void updateRtcpContext(const RtpPacket::Ptr &pkt);
 
 private:
     unsigned int _cseq = 1;
@@ -87,7 +92,10 @@ private:
     string _content_base;
     SdpParser _sdp_parser;
     vector<SdpTrack::Ptr> _track_vec;
-    Socket::Ptr _udp_socks[2];
+    //RTP端口,trackid idx 为数组下标
+    Socket::Ptr _rtp_sock[2];
+    //RTCP端口,trackid idx 为数组下标
+    Socket::Ptr _rtcp_sock[2];
     //超时功能实现
     std::shared_ptr<Timer> _publish_timer;
     //心跳定时器
@@ -98,6 +106,11 @@ private:
     Event _on_shutdown;
     Event _on_published;
     function<void(const Parser&)> _on_res_func;
+    ////////// rtcp ////////////////
+    //rtcp发送时间,trackid idx 为数组下标
+    Ticker _rtcp_send_ticker[2];
+    //统计rtp并发送rtcp
+    vector<RtcpContext::Ptr> _rtcp_context;
 };
 
 } /* namespace mediakit */

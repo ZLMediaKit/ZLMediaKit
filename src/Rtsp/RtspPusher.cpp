@@ -38,7 +38,8 @@ void RtspPusher::sendTeardown(){
 void RtspPusher::teardown() {
     sendTeardown();
     reset();
-    CLEAR_ARR(_udp_socks);
+    CLEAR_ARR(_rtp_sock);
+    CLEAR_ARR(_rtcp_sock);
     _nonce.clear();
     _realm.clear();
     _track_vec.clear();
@@ -148,6 +149,22 @@ void RtspPusher::onWholeRtspPacket(Parser &parser) {
     parser.Clear();
 }
 
+void RtspPusher::onRtpPacket(const char *data, size_t len) {
+    int trackIdx = -1;
+    uint8_t interleaved = data[1];
+    if (interleaved % 2 != 0) {
+        trackIdx = getTrackIndexByInterleaved(interleaved - 1);
+        onRtcpPacket(trackIdx, _track_vec[trackIdx], (uint8_t *) data + 4, len - 4);
+    }
+}
+
+void RtspPusher::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data, size_t len){
+    auto rtcp_arr = RtcpHeader::loadFromBytes((char *) data, len);
+    for (auto &rtcp : rtcp_arr) {
+        _rtcp_context[track_idx]->onRtcp(rtcp);
+    }
+}
+
 void RtspPusher::sendAnnounce() {
     auto src = _push_src.lock();
     if (!src) {
@@ -156,11 +173,12 @@ void RtspPusher::sendAnnounce() {
     //解析sdp
     _sdp_parser.load(src->getSdp());
     _track_vec = _sdp_parser.getAvailableTrack();
-
     if (_track_vec.empty()) {
         throw std::runtime_error("无有效的Sdp Track");
     }
-
+    for (auto &track : _track_vec) {
+        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate));
+    }
     _on_res_func = std::bind(&RtspPusher::handleResAnnounce, this, placeholders::_1);
     sendRtspRequest("ANNOUNCE", _url, {}, src->getSdp());
 }
@@ -229,14 +247,13 @@ bool RtspPusher::handleAuthenticationFailure(const string &params_str) {
 
 //有必要的情况下创建udp端口
 void RtspPusher::createUdpSockIfNecessary(int track_idx){
-    auto &rtp_sock = _udp_socks[track_idx];
-    if (!rtp_sock) {
-        rtp_sock = createSocket();
-        //rtp随机端口
-        if (!rtp_sock->bindUdpSock(0, get_local_ip().data())) {
-            rtp_sock.reset();
-            throw std::runtime_error("open rtp sock failed");
-        }
+    auto &rtpSockRef = _rtp_sock[track_idx];
+    auto &rtcpSockRef = _rtcp_sock[track_idx];
+    if (!rtpSockRef || !rtcpSockRef) {
+        std::pair<Socket::Ptr, Socket::Ptr> pr = std::make_pair(createSocket(), createSocket());
+        makeSockPair(pr, get_local_ip());
+        rtpSockRef = pr.first;
+        rtcpSockRef = pr.second;
     }
 }
 
@@ -256,7 +273,7 @@ void RtspPusher::sendSetup(unsigned int track_idx) {
             break;
         case Rtsp::RTP_UDP: {
             createUdpSockIfNecessary(track_idx);
-            int port = _udp_socks[track_idx]->get_local_port();
+            int port = _rtp_sock[track_idx]->get_local_port();
             sendRtspRequest("SETUP", base_url,
                             {"Transport", StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1});
         }
@@ -265,7 +282,6 @@ void RtspPusher::sendSetup(unsigned int track_idx) {
             break;
     }
 }
-
 
 void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
     if (parser.Url() != "200") {
@@ -289,12 +305,40 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
         createUdpSockIfNecessary(track_idx);
         const char *strPos = "server_port=";
         auto port_str = FindField((transport + ";").data(), strPos, ";");
-        uint16_t port = atoi(FindField(port_str.data(), NULL, "-").data());
+        uint16_t rtp_port = atoi(FindField(port_str.data(), NULL, "-").data());
+        uint16_t rtcp_port = atoi(FindField(port_str.data(), "-", NULL).data());
+        auto &rtp_sock = _rtp_sock[track_idx];
+        auto &rtcp_sock = _rtcp_sock[track_idx];
+
         struct sockaddr_in rtpto;
-        rtpto.sin_port = ntohs(port);
+        //设置rtp发送目标，为后续发送rtp做准备
+        rtpto.sin_port = ntohs(rtp_port);
         rtpto.sin_family = AF_INET;
         rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-        _udp_socks[track_idx]->setSendPeerAddr((struct sockaddr *) &(rtpto));
+        rtp_sock->setSendPeerAddr((struct sockaddr *) &(rtpto));
+
+        //设置rtcp发送目标，为后续发送rtcp做准备
+        rtpto.sin_port = ntohs(rtcp_port);
+        rtpto.sin_family = AF_INET;
+        rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
+        rtcp_sock->setSendPeerAddr((struct sockaddr *)&(rtpto));
+
+        auto srcIP = inet_addr(get_peer_ip().data());
+        weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
+        if(rtcp_sock) {
+            //设置rtcp over udp接收回调处理函数
+            rtcp_sock->setOnRead([srcIP, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
+                auto strongSelf = weakSelf.lock();
+                if (!strongSelf) {
+                    return;
+                }
+                if (((struct sockaddr_in *) addr)->sin_addr.s_addr != srcIP) {
+                    WarnL << "收到其他地址的rtcp数据:" << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
+                    return;
+                }
+                strongSelf->onRtcpPacket(track_idx, strongSelf->_track_vec[track_idx], (uint8_t *) buf->data(), buf->size());
+            });
+        }
     }
 
     RtspSplitter::enableRecvRtp(_rtp_type == Rtsp::RTP_TCP);
@@ -313,13 +357,42 @@ void RtspPusher::sendOptions() {
     sendRtspRequest("OPTIONS", _content_base);
 }
 
-inline void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
+void RtspPusher::updateRtcpContext(const RtpPacket::Ptr &rtp){
+    int track_index = getTrackIndexByTrackType(rtp->type);
+    auto &ticker = _rtcp_send_ticker[track_index];
+    auto &rtcp_ctx = _rtcp_context[track_index];
+    rtcp_ctx->onRtp(rtp->sequence, rtp->timeStamp, rtp->size() - 4);
+
+    //send rtcp every 5 second
+    if (ticker.elapsedTime() > 5 * 1000) {
+        ticker.resetTime();
+        static auto send_rtcp = [](RtspPusher *thiz, int index, Buffer::Ptr ptr) {
+            if (thiz->_rtp_type == Rtsp::RTP_TCP) {
+                auto &track = thiz->_track_vec[index];
+                thiz->send(makeRtpOverTcpPrefix((uint16_t) (ptr->size()), track->_interleaved + 1));
+                thiz->send(std::move(ptr));
+            } else {
+                thiz->_rtcp_sock[index]->send(std::move(ptr));
+            }
+        };
+
+        auto rtcp = rtcp_ctx->createRtcpSR(rtp->ssrc + 1);
+        auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
+        rtcp_sdes->items.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
+        rtcp_sdes->items.ssrc = htonl(rtp->ssrc);
+        send_rtcp(this, track_index, std::move(rtcp));
+        send_rtcp(this, track_index, RtcpHeader::toBuffer(rtcp_sdes));
+    }
+}
+
+void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
             size_t i = 0;
             auto size = pkt->size();
             setSendFlushFlag(false);
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                updateRtcpContext(rtp);
                 if (++i == size) {
                     setSendFlushFlag(true);
                 }
@@ -333,8 +406,9 @@ inline void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) 
             size_t i = 0;
             auto size = pkt->size();
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                updateRtcpContext(rtp);
                 int iTrackIndex = getTrackIndexByTrackType(rtp->type);
-                auto &pSock = _udp_socks[iTrackIndex];
+                auto &pSock = _rtp_sock[iTrackIndex];
                 if (!pSock) {
                     shutdown(SockException(Err_shutdown, "udp sock not opened yet"));
                     return;
@@ -349,8 +423,20 @@ inline void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) 
     }
 }
 
-inline int RtspPusher::getTrackIndexByTrackType(TrackType type) {
-    for (unsigned int i = 0; i < _track_vec.size(); i++) {
+int RtspPusher::getTrackIndexByInterleaved(int interleaved) const {
+    for (int i = 0; i < (int)_track_vec.size(); ++i) {
+        if (_track_vec[i]->_interleaved == interleaved) {
+            return i;
+        }
+    }
+    if (_track_vec.size() == 1) {
+        return 0;
+    }
+    throw SockException(Err_shutdown, StrPrinter << "no such track with interleaved:" << interleaved);
+}
+
+int RtspPusher::getTrackIndexByTrackType(TrackType type) const{
+    for (int i = 0; i < (int)_track_vec.size(); ++i) {
         if (type == _track_vec[i]->_type) {
             return i;
         }

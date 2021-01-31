@@ -25,6 +25,7 @@
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
 #include "Common/Stamp.h"
+#include "Rtcp/RtcpContext.h"
 
 using namespace std;
 using namespace toolkit;
@@ -72,13 +73,20 @@ protected:
     void onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) override;
 
     /**
+     * 解析出rtp但还未排序
+     * @param rtp rtp数据包
+     * @param track_index track索引
+     */
+    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override;
+
+    /**
      * 收到RTCP包回调
      * @param track_idx track索引
      * @param track sdp相关信息
      * @param data rtcp内容
      * @param len rtcp内容长度
      */
-    virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, size_t len);
+    virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data, size_t len);
 
     /////////////TcpClient override/////////////
     void onConnect(const SockException &err) override;
@@ -86,7 +94,6 @@ protected:
     void onErr(const SockException &ex) override;
 
 private:
-    void onRecvRTP_l(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track);
     void onPlayResult_l(const SockException &ex , bool handshake_done);
 
     int getTrackIndexByInterleaved(int interleaved) const;
@@ -106,14 +113,13 @@ private:
     void sendKeepAlive();
     void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap());
     void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header);
-    void sendReceiverReport(bool over_tcp, int track_idx);
     void createUdpSockIfNecessary(int track_idx);
 
 private:
     //是否为性能测试模式
     bool _benchmark_mode = false;
     //轮流发送rtcp与GET_PARAMETER保活
-    bool _send_rtcp = true;
+    bool _send_rtcp[2] = {true, true};
 
     string _play_url;
     vector<SdpTrack::Ptr> _sdp_track;
@@ -132,10 +138,6 @@ private:
     string _content_base;
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
-    /* 丢包率统计需要用到的参数 */
-    uint16_t _rtp_seq_start[2] = {0, 0};
-    uint16_t _rtp_seq_now[2] = {0, 0};
-    uint64_t _rtp_recv_count[2] = {0, 0};
     //当前rtp时间戳
     uint32_t _stamp[2] = {0, 0};
 
@@ -143,14 +145,13 @@ private:
     Ticker _rtp_recv_ticker;
     std::shared_ptr<Timer> _play_check_timer;
     std::shared_ptr<Timer> _rtp_check_timer;
-
-    //rtcp统计,trackid idx 为数组下标
-    RtcpCounter _rtcp_counter[2];
-    //rtcp发送时间,trackid idx 为数组下标
-    Ticker _rtcp_send_ticker[2];
-
     //服务器支持的命令
     set<string> _supported_cmd;
+    ////////// rtcp ////////////////
+    //rtcp发送时间,trackid idx 为数组下标
+    Ticker _rtcp_send_ticker[2];
+    //统计rtp并发送rtcp
+    vector<RtcpContext::Ptr> _rtcp_context;
 };
 
 } /* namespace mediakit */

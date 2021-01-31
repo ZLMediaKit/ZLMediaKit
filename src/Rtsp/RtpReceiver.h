@@ -175,7 +175,7 @@ protected:
      * @param rtp_raw_len rtp数据指针长度
      * @return 解析成功返回true
      */
-    bool handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, size_t rtp_raw_len);
+    bool handleOneRtp(int track_index, TrackType type, int samplerate, uint8_t *rtp_raw_ptr, size_t rtp_raw_len);
 
     /**
      * rtp数据包排序后输出
@@ -183,6 +183,13 @@ protected:
      * @param track_index track索引
      */
     virtual void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) {}
+
+    /**
+     * 解析出rtp但还未排序
+     * @param rtp rtp数据包
+     * @param track_index track索引
+     */
+    virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) {}
 
     void clear();
     void setPoolSize(size_t size);
