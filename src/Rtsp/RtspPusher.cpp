@@ -176,6 +176,7 @@ void RtspPusher::sendAnnounce() {
     if (_track_vec.empty()) {
         throw std::runtime_error("无有效的Sdp Track");
     }
+    _rtcp_context.clear();
     for (auto &track : _track_vec) {
         _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, false));
     }

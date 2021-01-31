@@ -406,6 +406,7 @@ void RtspSession::onAuthSuccess() {
             strongSelf->shutdown(SockException(Err_shutdown,"can not find any available track in sdp"));
             return;
         }
+        strongSelf->_rtcp_context.clear();
         for (auto &track : strongSelf->_sdp_track) {
             strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, false));
         }

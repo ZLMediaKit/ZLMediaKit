@@ -203,6 +203,7 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
     if (!onCheckSDP(sdpParser.toString())) {
         throw std::runtime_error("onCheckSDP faied");
     }
+    _rtcp_context.clear();
     for (auto &track : _sdp_track) {
         _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, true));
     }
