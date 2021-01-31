@@ -25,32 +25,30 @@ AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
 }
 
 void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    GET_CONFIG(uint32_t, cycleMS, Rtp::kCycleMS);
-    auto uiStamp = frame->dts();
-    auto pcData = frame->data() + frame->prefixSize();
-    auto iLen = frame->size() - frame->prefixSize();
-
-    uiStamp %= cycleMS;
-    auto *ptr = (char *) pcData;
-    auto iSize = iLen;
-    while (iSize > 0) {
-        if (iSize <= _ui32MtuSize - 20) {
-            _aucSectionBuf[0] = 0;
-            _aucSectionBuf[1] = 16;
-            _aucSectionBuf[2] = (iLen >> 5) & 0xFF;
-            _aucSectionBuf[3] = ((iLen & 0x1F) << 3) & 0xFF;
-            memcpy(_aucSectionBuf + 4, ptr, iSize);
-            makeAACRtp(_aucSectionBuf, iSize + 4, true, uiStamp);
+    auto stamp = frame->dts();
+    auto data = frame->data() + frame->prefixSize();
+    auto len = frame->size() - frame->prefixSize();
+    auto ptr = (char *) data;
+    auto remain_size = len;
+    auto max_size = getMaxSize() - 4;
+    while (remain_size > 0) {
+        if (remain_size <= max_size) {
+            _section_buf[0] = 0;
+            _section_buf[1] = 16;
+            _section_buf[2] = (len >> 5) & 0xFF;
+            _section_buf[3] = ((len & 0x1F) << 3) & 0xFF;
+            memcpy(_section_buf + 4, ptr, remain_size);
+            makeAACRtp(_section_buf, remain_size + 4, true, stamp);
             break;
         }
-        _aucSectionBuf[0] = 0;
-        _aucSectionBuf[1] = 16;
-        _aucSectionBuf[2] = ((iLen) >> 5) & 0xFF;
-        _aucSectionBuf[3] = ((iLen & 0x1F) << 3) & 0xFF;
-        memcpy(_aucSectionBuf + 4, ptr, _ui32MtuSize - 20);
-        makeAACRtp(_aucSectionBuf, _ui32MtuSize - 16, false, uiStamp);
-        ptr += (_ui32MtuSize - 20);
-        iSize -= (_ui32MtuSize - 20);
+        _section_buf[0] = 0;
+        _section_buf[1] = 16;
+        _section_buf[2] = ((len) >> 5) & 0xFF;
+        _section_buf[3] = ((len & 0x1F) << 3) & 0xFF;
+        memcpy(_section_buf + 4, ptr, max_size);
+        makeAACRtp(_section_buf, max_size + 4, false, stamp);
+        ptr += max_size;
+        remain_size -= max_size;
     }
 }
 
@@ -82,15 +80,16 @@ void AACRtpDecoder::obtainFrame() {
     _frame->_codec_id = CodecAAC;
 }
 
-bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
+bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
+    auto stamp = rtp->getStampMS();
     //rtp数据开始部分
-    uint8_t *ptr = (uint8_t *) rtppack->data() + rtppack->offset;
+    auto ptr = rtp->getPayload();
     //rtp数据末尾
-    uint8_t *end = (uint8_t *) rtppack->data() + rtppack->size();
+    auto end = ptr + rtp->getPayloadSize();
     //首2字节表示Au-Header的个数，单位bit，所以除以16得到Au-Header个数
-    uint16_t au_header_count = ((ptr[0] << 8) | ptr[1]) >> 4;
+    auto au_header_count = ((ptr[0] << 8) | ptr[1]) >> 4;
     //记录au_header起始指针
-    uint8_t *au_header_ptr = ptr + 2;
+    auto au_header_ptr = ptr + 2;
     ptr = au_header_ptr +  au_header_count * 2;
 
     if (end < ptr) {
@@ -100,11 +99,11 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
 
     if (!_last_dts) {
         //记录第一个时间戳
-        _last_dts = rtppack->timeStamp;
+        _last_dts = stamp;
     }
 
     //每个audio unit时间戳增量
-    auto dts_inc = (rtppack->timeStamp - _last_dts) / au_header_count;
+    auto dts_inc = (stamp - _last_dts) / au_header_count;
     if (dts_inc < 0 && dts_inc > 100) {
         //时间戳增量异常，忽略
         dts_inc = 0;
@@ -129,7 +128,7 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool key_pos) {
         }
     }
     //记录上次时间戳
-    _last_dts = rtppack->timeStamp;
+    _last_dts = stamp;
     return false;
 }
 

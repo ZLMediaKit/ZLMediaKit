@@ -29,14 +29,16 @@ void CommonRtpDecoder::obtainFrame() {
 }
 
 bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
-    auto payload = rtp->data() + rtp->offset;
-    auto size = rtp->size() - rtp->offset;
+    auto payload = rtp->getPayload();
+    auto size = rtp->getPayloadSize();
+    auto stamp = rtp->getStampMS();
+    auto seq = rtp->getSeq();
     if (size <= 0) {
         //无实际负载
         return false;
     }
 
-    if (_frame->_dts != rtp->timeStamp || _frame->_buffer.size() > _max_frame_size) {
+    if (_frame->_dts != stamp || _frame->_buffer.size() > _max_frame_size) {
         //时间戳发生变化或者缓存超过MAX_FRAME_SIZE，则清空上帧数据
         if (!_frame->_buffer.empty()) {
             //有有效帧，则输出
@@ -45,20 +47,20 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
 
         //新的一帧数据
         obtainFrame();
-        _frame->_dts = rtp->timeStamp;
+        _frame->_dts = stamp;
         _drop_flag = false;
-    } else if (_last_seq != 0 && (uint16_t)(_last_seq + 1) != rtp->sequence) {
+    } else if (_last_seq != 0 && (uint16_t)(_last_seq + 1) != seq) {
         //时间戳未发生变化，但是seq却不连续，说明中间rtp丢包了，那么整帧应该废弃
-        WarnL << "rtp丢包:" << _last_seq << " -> " << rtp->sequence;
+        WarnL << "rtp丢包:" << _last_seq << " -> " << seq;
         _drop_flag = true;
         _frame->_buffer.clear();
     }
 
     if (!_drop_flag) {
-        _frame->_buffer.append(payload, size);
+        _frame->_buffer.append((char *)payload, size);
     }
 
-    _last_seq = rtp->sequence;
+    _last_seq = seq;
     return false;
 }
 
@@ -70,18 +72,17 @@ CommonRtpEncoder::CommonRtpEncoder(CodecId codec, uint32_t ssrc, uint32_t mtu_si
 }
 
 void CommonRtpEncoder::inputFrame(const Frame::Ptr &frame){
-    GET_CONFIG(uint32_t, cycleMS, Rtp::kCycleMS);
-    auto stamp = frame->dts() % cycleMS;
+    auto stamp = frame->dts();
     auto ptr = frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
     auto remain_size = len;
-    const auto max_rtp_size = _ui32MtuSize - 20;
+    auto max_size = getMaxSize();
 
     bool mark = false;
     while (remain_size > 0) {
         size_t rtp_size;
-        if (remain_size > max_rtp_size) {
-            rtp_size = max_rtp_size;
+        if (remain_size > max_size) {
+            rtp_size = max_size;
         } else {
             rtp_size = remain_size;
             mark = true;

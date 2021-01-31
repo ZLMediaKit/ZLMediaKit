@@ -168,14 +168,14 @@ public:
 protected:
     /**
      * 输入数据指针生成并排序rtp包
-     * @param track_index track下标索引
+     * @param index track下标索引
      * @param type track类型
      * @param samplerate rtp时间戳基准时钟，视频为90000，音频为采样率
-     * @param rtp_raw_ptr rtp数据指针
-     * @param rtp_raw_len rtp数据指针长度
+     * @param ptr rtp数据指针
+     * @param len rtp数据指针长度
      * @return 解析成功返回true
      */
-    bool handleOneRtp(int track_index, TrackType type, int samplerate, uint8_t *rtp_raw_ptr, size_t rtp_raw_len);
+    bool handleOneRtp(int index, TrackType type, int samplerate, uint8_t *ptr, size_t len);
 
     /**
      * rtp数据包排序后输出
@@ -199,8 +199,6 @@ protected:
 
 private:
     uint32_t _ssrc[2] = {0, 0};
-    //ssrc不匹配计数
-    size_t _ssrc_err_count[2] = {0, 0};
     //rtp排序缓存，根据seq排序
     PacketSortor<RtpPacket::Ptr> _rtp_sortor[2];
     //rtp循环池

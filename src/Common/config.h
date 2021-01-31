@@ -251,8 +251,6 @@ extern const string kAudioMtuSize;
 extern const string kMaxRtpCount;
 //如果RTP序列正确次数累计达到该数字就启动清空排序缓存
 extern const string kClearCount;
-//最大RTP时间为13个小时，每13小时回环一次
-extern const string kCycleMS;
 } //namespace Rtsp
 
 ////////////组播配置///////////

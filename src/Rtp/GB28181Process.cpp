@@ -35,8 +35,9 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
 }
 
 void GB28181Process::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
+    auto pt = rtp->getHeader()->pt;
     if (!_rtp_decoder) {
-        switch (rtp->PT) {
+        switch (pt) {
             case 98: {
                 //H264负载
                 _rtp_decoder = std::make_shared<H264RtpDecoder>();
@@ -44,8 +45,8 @@ void GB28181Process::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
                 break;
             }
             default: {
-                if (rtp->PT != 33 && rtp->PT != 96) {
-                    WarnL << "rtp payload type未识别(" << (int) rtp->PT << "),已按ts或ps负载处理";
+                if (pt != 33 && pt != 96) {
+                    WarnL << "rtp payload type未识别(" << (int) pt << "),已按ts或ps负载处理";
                 }
                 //ts或ps负载
                 _rtp_decoder = std::make_shared<CommonRtpDecoder>(CodecInvalid, 32 * 1024);

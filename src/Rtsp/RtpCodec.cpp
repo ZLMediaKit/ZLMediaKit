@@ -13,43 +13,37 @@
 namespace mediakit{
 
 RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, size_t len, bool mark, uint32_t stamp) {
-    uint16_t payload_len = (uint16_t)(len + 12);
-    uint32_t ts = htonl((_ui32SampleRate / 1000) * stamp);
-    uint16_t sq = htons(_ui16Sequence);
-    uint32_t sc = htonl(_ui32Ssrc);
+    uint16_t payload_len = (uint16_t) (len + RtpPacket::kRtpHeaderSize);
+    auto rtp = ResourcePoolHelper<RtpPacket>::obtainObj();
+    rtp->setCapacity(payload_len + RtpPacket::kRtpTcpHeaderSize);
+    rtp->setSize(payload_len + RtpPacket::kRtpTcpHeaderSize);
+    rtp->sample_rate = _sample_rate;
+    rtp->type = type;
 
-    auto rtp_ptr = ResourcePoolHelper<RtpPacket>::obtainObj();
-    rtp_ptr->setCapacity(len + 16);
-    rtp_ptr->setSize(len + 16);
+    //rtsp over tcp 头
+    auto ptr = (uint8_t *) rtp->data();
+    ptr[0] = '$';
+    ptr[1] = _interleaved;
+    ptr[2] = payload_len >> 8;
+    ptr[3] = payload_len & 0xFF;
 
-    auto *rtp = (unsigned char *)rtp_ptr->data();
-    rtp[0] = '$';
-    rtp[1] = _ui8Interleaved;
-    rtp[2] = payload_len >> 8;
-    rtp[3] = payload_len & 0xFF;
-    rtp[4] = 0x80;
-    rtp[5] = (mark << 7) | _ui8PayloadType;
-    memcpy(&rtp[6], &sq, 2);
-    memcpy(&rtp[8], &ts, 4);
-    //ssrc
-    memcpy(&rtp[12], &sc, 4);
+    //rtp头
+    auto header = rtp->getHeader();
+    header->version = RtpPacket::kRtpVersion;
+    header->padding = 0;
+    header->ext = 0;
+    header->csrc = 0;
+    header->mark = mark;
+    header->pt = _pt;
+    header->seq = htons(_seq++);
+    header->stamp = htonl(uint64_t(stamp) * _sample_rate / 1000);
+    header->ssrc = htonl(_ssrc);
 
-    if(data){
-        //payload
-        memcpy(&rtp[16], data, len);
+    //有效负载
+    if (data) {
+        memcpy(&ptr[RtpPacket::kRtpHeaderSize + RtpPacket::kRtpTcpHeaderSize], data, len);
     }
-
-    rtp_ptr->PT = _ui8PayloadType;
-    rtp_ptr->interleaved = _ui8Interleaved;
-    rtp_ptr->mark = mark;
-    rtp_ptr->sequence = _ui16Sequence;
-    rtp_ptr->timeStamp = stamp;
-    rtp_ptr->ssrc = _ui32Ssrc;
-    rtp_ptr->type = type;
-    rtp_ptr->offset = 16;
-    _ui16Sequence++;
-    _ui32TimeStamp = stamp;
-    return rtp_ptr;
+    return rtp;
 }
 
 }//namespace mediakit
