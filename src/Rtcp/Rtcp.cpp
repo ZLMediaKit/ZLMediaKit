@@ -63,7 +63,7 @@ string RtcpHeader::dumpHeader() const{
     printer << "pt:" << rtcpTypeToStr((RtcpType)pt) << "\r\n";
     printer << "length:" << length << "\r\n";
     printer << "--------\r\n";
-    return printer;
+    return std::move(printer);
 }
 
 string RtcpHeader::dumpString() const {
@@ -194,7 +194,7 @@ string RtcpSR::dumpString() const{
         printer << "---- item:" << i++ << " ----\r\n";
         printer << item->dumpString();
     }
-    return printer;
+    return std::move(printer);
 }
 
 #define CHECK_MIN_SIZE(size, kMinSize) \
@@ -256,7 +256,7 @@ string ReportItem::dumpString() const{
     printer << "jitter:" << jitter << "\r\n";
     printer << "last_sr_stamp:" << last_sr_stamp << "\r\n";
     printer << "delay_since_last_sr:" << delay_since_last_sr << "\r\n";
-    return printer;
+    return std::move(printer);
 }
 
 void ReportItem::net2Host() {
@@ -290,7 +290,7 @@ string RtcpRR::dumpString() const{
         printer << "---- item:" << i++ << " ----\r\n";
         printer << item->dumpString();
     }
-    return printer;
+    return std::move(printer);
 }
 
 void RtcpRR::net2Host(size_t size) {
@@ -339,7 +339,7 @@ string SdesItem::dumpString() const{
     printer << "type:" << sdesTypeToStr((SdesType) type) << "\r\n";
     printer << "length:" << (int) length << "\r\n";
     printer << "text:" << (length ? string(&text, length) : "") << "\r\n";
-    return printer;
+    return std::move(printer);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -375,7 +375,7 @@ string RtcpSdes::dumpString() const {
         printer << "---- item:" << i++ << " ----\r\n";
         printer << item->dumpString();
     }
-    return printer;
+    return std::move(printer);
 }
 
 void RtcpSdes::net2Host(size_t size) {
