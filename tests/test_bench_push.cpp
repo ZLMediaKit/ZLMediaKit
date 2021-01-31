@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
     recursive_mutex mtx;
     unordered_map<void *, MediaPusher::Ptr> pusher_map;
 
-    auto add_pusher = [&](const MediaSource::Ptr &src, const string &rand_str, int index) {
+    auto add_pusher = [&](const MediaSource::Ptr &src, const string &rand_str, size_t index) {
         auto pusher = std::make_shared<MediaPusher>(src);
         auto tag = pusher.get();
         pusher->setOnCreateSocket([](const EventPoller::Ptr &poller) {
