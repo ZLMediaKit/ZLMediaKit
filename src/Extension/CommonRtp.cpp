@@ -77,9 +77,16 @@ void CommonRtpEncoder::inputFrame(const Frame::Ptr &frame){
     auto remain_size = len;
     const auto max_rtp_size = _ui32MtuSize - 20;
 
+    bool mark = false;
     while (remain_size > 0) {
-        auto rtp_size = remain_size > max_rtp_size ? max_rtp_size : remain_size;
-        RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, rtp_size, false, stamp), false);
+        size_t rtp_size;
+        if (remain_size > max_rtp_size) {
+            rtp_size = max_rtp_size;
+        } else {
+            rtp_size = remain_size;
+            mark = true;
+        }
+        RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, rtp_size, mark, stamp), false);
         ptr += rtp_size;
         remain_size -= rtp_size;
     }
