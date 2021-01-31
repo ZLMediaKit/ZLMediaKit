@@ -478,10 +478,10 @@ void RtspPlayer::onRtpPacket(const char *data, size_t len) {
     uint8_t interleaved = data[1];
     if(interleaved %2 == 0){
         trackIdx = getTrackIndexByInterleaved(interleaved);
-        handleOneRtp(trackIdx, _sdp_track[trackIdx]->_type, _sdp_track[trackIdx]->_samplerate, (uint8_t *)data + 4, len - 4);
+        handleOneRtp(trackIdx, _sdp_track[trackIdx]->_type, _sdp_track[trackIdx]->_samplerate, (uint8_t *)data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     }else{
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
-        onRtcpPacket(trackIdx, _sdp_track[trackIdx], (uint8_t *) data + 4, len - 4);
+        onRtcpPacket(trackIdx, _sdp_track[trackIdx], (uint8_t *) data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     }
 }
 
@@ -494,7 +494,7 @@ void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data
 }
 
 void RtspPlayer::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx){
-    _stamp[trackidx] = rtppt->timeStamp;
+    _stamp[trackidx] = rtppt->getStampMS();
     _rtp_recv_ticker.resetTime();
     onRecvRTP(rtppt, _sdp_track[trackidx]);
 }
@@ -593,7 +593,7 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
 
 void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx){
     auto &rtcp_ctx = _rtcp_context[track_idx];
-    rtcp_ctx->onRtp(rtp->sequence, rtp->timeStamp, rtp->size() - 4);
+    rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 
     auto &ticker = _rtcp_send_ticker[track_idx];
     if (ticker.elapsedTime() < 3 * 1000) {
@@ -627,10 +627,11 @@ void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx){
         }
     };
 
-    auto rtcp = rtcp_ctx->createRtcpRR(rtp->ssrc + 1, rtp->ssrc);
+    auto ssrc = rtp->getSSRC();
+    auto rtcp = rtcp_ctx->createRtcpRR(ssrc + 1, ssrc);
     auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
     rtcp_sdes->items.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
-    rtcp_sdes->items.ssrc = htonl(rtp->ssrc);
+    rtcp_sdes->items.ssrc = htonl(ssrc);
     send_rtcp(this, track_idx, std::move(rtcp));
     send_rtcp(this, track_idx, RtcpHeader::toBuffer(rtcp_sdes));
     ticker.resetTime();

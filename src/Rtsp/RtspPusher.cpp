@@ -154,7 +154,7 @@ void RtspPusher::onRtpPacket(const char *data, size_t len) {
     uint8_t interleaved = data[1];
     if (interleaved % 2 != 0) {
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
-        onRtcpPacket(trackIdx, _track_vec[trackIdx], (uint8_t *) data + 4, len - 4);
+        onRtcpPacket(trackIdx, _track_vec[trackIdx], (uint8_t *) data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     }
 }
 
@@ -361,7 +361,7 @@ void RtspPusher::updateRtcpContext(const RtpPacket::Ptr &rtp){
     int track_index = getTrackIndexByTrackType(rtp->type);
     auto &ticker = _rtcp_send_ticker[track_index];
     auto &rtcp_ctx = _rtcp_context[track_index];
-    rtcp_ctx->onRtp(rtp->sequence, rtp->timeStamp, rtp->size() - 4);
+    rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 
     //send rtcp every 5 second
     if (ticker.elapsedTime() > 5 * 1000) {
@@ -376,10 +376,11 @@ void RtspPusher::updateRtcpContext(const RtpPacket::Ptr &rtp){
             }
         };
 
-        auto rtcp = rtcp_ctx->createRtcpSR(rtp->ssrc + 1);
+        auto ssrc = rtp->getSSRC();
+        auto rtcp = rtcp_ctx->createRtcpSR(ssrc + 1);
         auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
         rtcp_sdes->items.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
-        rtcp_sdes->items.ssrc = htonl(rtp->ssrc);
+        rtcp_sdes->items.ssrc = htonl(ssrc);
         send_rtcp(this, track_index, std::move(rtcp));
         send_rtcp(this, track_index, RtcpHeader::toBuffer(rtcp_sdes));
     }

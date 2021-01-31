@@ -160,10 +160,11 @@ public:
         _speed[rtp->type] += rtp->size();
         assert(rtp->type >= 0 && rtp->type < TrackMax);
         auto &track = _tracks[rtp->type];
+        auto stamp = rtp->getStampMS();
         if (track) {
-            track->_seq = rtp->sequence;
-            track->_time_stamp = rtp->timeStamp;
-            track->_ssrc = rtp->ssrc;
+            track->_seq = rtp->getSeq();
+            track->_time_stamp = stamp;
+            track->_ssrc = rtp->getSSRC();
         }
         if (!_ring) {
             weak_ptr<RtspMediaSource> weakSelf = dynamic_pointer_cast<RtspMediaSource>(shared_from_this());
@@ -183,7 +184,6 @@ public:
             }
         }
         bool is_video = rtp->type == TrackVideo;
-        auto stamp = rtp->timeStamp;
         PacketCache<RtpPacket>::inputPacket(stamp, is_video, std::move(rtp), keyPos);
     }
 

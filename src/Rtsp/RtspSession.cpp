@@ -15,7 +15,6 @@
 #include "RtspSession.h"
 #include "Util/MD5.h"
 #include "Util/base64.h"
-#include "Rtcp/Rtcp.h"
 
 using namespace std;
 using namespace toolkit;
@@ -171,10 +170,10 @@ void RtspSession::onRtpPacket(const char *data, size_t len) {
             return;
         }
         auto track_idx = getTrackIndexByInterleaved(interleaved);
-        handleOneRtp(track_idx, _sdp_track[track_idx]->_type, _sdp_track[track_idx]->_samplerate, (uint8_t *) data + 4, len - 4);
+        handleOneRtp(track_idx, _sdp_track[track_idx]->_type, _sdp_track[track_idx]->_samplerate, (uint8_t *) data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     } else {
         auto track_idx = getTrackIndexByInterleaved(interleaved - 1);
-        onRtcpPacket(track_idx, _sdp_track[track_idx], data + 4, len - 4);
+        onRtcpPacket(track_idx, _sdp_track[track_idx], data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     }
 }
 
@@ -913,12 +912,6 @@ void RtspSession::send_NotAcceptable() {
 }
 
 void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) {
-    if (_start_stamp[track_idx] == -1) {
-        //记录起始时间戳
-        _start_stamp[track_idx] = rtp->timeStamp;
-    }
-    //时间戳增量
-    rtp->timeStamp -= _start_stamp[track_idx];
     _push_src->onWrite(rtp, false);
 }
 
@@ -1130,7 +1123,7 @@ void RtspSession::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index){
 void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
     int track_index = getTrackIndexByTrackType(rtp->type);
     auto &rtcp_ctx = _rtcp_context[track_index];
-    rtcp_ctx->onRtp(rtp->sequence, rtp->timeStamp, rtp->size() - 4);
+    rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 
     auto &ticker = _rtcp_send_tickers[track_index];
     //send rtcp every 5 second
@@ -1147,10 +1140,11 @@ void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
             }
         };
 
-        auto rtcp = _push_src ?  rtcp_ctx->createRtcpRR(rtp->ssrc + 1, rtp->ssrc) : rtcp_ctx->createRtcpSR(rtp->ssrc + 1);
+        auto ssrc = rtp->getSSRC();
+        auto rtcp = _push_src ?  rtcp_ctx->createRtcpRR(ssrc + 1, ssrc) : rtcp_ctx->createRtcpSR(ssrc + 1);
         auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
         rtcp_sdes->items.type = (uint8_t)SdesType::RTCP_SDES_CNAME;
-        rtcp_sdes->items.ssrc = htonl(rtp->ssrc);
+        rtcp_sdes->items.ssrc = htonl(ssrc);
         send_rtcp(this, track_index, std::move(rtcp));
         send_rtcp(this, track_index, RtcpHeader::toBuffer(rtcp_sdes));
     }

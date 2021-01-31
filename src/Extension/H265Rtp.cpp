@@ -168,9 +168,11 @@ bool H265RtpDecoder::mergeFu(const uint8_t *ptr, ssize_t size, uint16_t seq, uin
     return false;
 }
 
-bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool ) {
-    const uint8_t *frame = (uint8_t *) rtppack->data() + rtppack->offset;
-    auto length = rtppack->size() - rtppack->offset;
+bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool ) {
+    auto frame = rtp->getPayload();
+    auto length = rtp->getPayloadSize();
+    auto stamp = rtp->getStampMS();
+    auto seq = rtp->getSeq();
     int nal = H265_TYPE(frame[0]);
 
     if (nal > 50){
@@ -185,13 +187,13 @@ bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtppack, bool ) {
             return false;
         case 48:
             // aggregated packet (AP) - with two or more NAL units
-            return unpackAp(frame, length, rtppack->timeStamp);
+            return unpackAp(frame, length, stamp);
         case 49: 
             // fragmentation unit (FU)
-            return mergeFu(frame, length, rtppack->sequence, rtppack->timeStamp);
+            return mergeFu(frame, length, seq, stamp);
         default: 
             // 4.4.1. Single NAL Unit Packets (p24)
-            return singleFrame(frame, length, rtppack->timeStamp);
+            return singleFrame(frame, length, stamp);
     }
 }
 
@@ -228,25 +230,24 @@ H265RtpEncoder::H265RtpEncoder(uint32_t ui32Ssrc,
 }
 
 void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    GET_CONFIG(uint32_t, cycleMS, Rtp::kCycleMS);
     auto ptr = (uint8_t *) frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
-    auto pts = frame->pts() % cycleMS;
+    auto pts = frame->pts();
     auto nal_type = H265_TYPE(ptr[0]); //获取NALU的5bit 帧类型
-    size_t payload_size = _ui32MtuSize - 3;
+    auto max_size = getMaxSize() - 3;
 
     //超过MTU,按照FU方式打包
-    if (len > payload_size + 2) {
+    if (len > max_size + 2) {
         //获取帧头数据，1byte
         unsigned char s_e_flags;
         bool fu_start = true;
         bool mark_bit = false;
         size_t offset = 2;
         while (!mark_bit) {
-            if (len <= offset + payload_size) {
+            if (len <= offset + max_size) {
                 //FU end
                 mark_bit = true;
-                payload_size = len - offset;
+                max_size = len - offset;
                 s_e_flags = (1 << 6) | nal_type;
             } else if (fu_start) {
                 //FU start
@@ -258,9 +259,9 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
 
             {
                 //传入nullptr先不做payload的内存拷贝
-                auto rtp = makeRtp(getTrackType(), nullptr, payload_size + 3, mark_bit, pts);
+                auto rtp = makeRtp(getTrackType(), nullptr, max_size + 3, mark_bit, pts);
                 //rtp payload 负载部分
-                uint8_t *payload = (uint8_t *) rtp->data() + rtp->offset;
+                uint8_t *payload = rtp->getPayload();
                 //FU 第1个字节，表明为FU
                 payload[0] = 49 << 1;
                 //FU 第2个字节貌似固定为1
@@ -268,12 +269,12 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 //FU 第3个字节
                 payload[2] = s_e_flags;
                 //H265 数据
-                memcpy(payload + 3, ptr + offset, payload_size);
+                memcpy(payload + 3, ptr + offset, max_size);
                 //输入到rtp环形缓存
                 RtpCodec::inputRtp(rtp, fu_start && H265Frame::isKeyFrame(nal_type));
             }
 
-            offset += payload_size;
+            offset += max_size;
             fu_start = false;
         }
     } else {

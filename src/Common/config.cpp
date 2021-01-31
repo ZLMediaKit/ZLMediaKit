@@ -194,15 +194,12 @@ const string kAudioMtuSize = RTP_FIELD"audioMtuSize";
 const string kMaxRtpCount = RTP_FIELD"maxRtpCount";
 //如果RTP序列正确次数累计达到该数字就启动清空排序缓存
 const string kClearCount = RTP_FIELD"clearCount";
-//最大RTP时间为13个小时，每13小时回环一次
-const string kCycleMS = RTP_FIELD"cycleMS";
 
 onceToken token([](){
     mINI::Instance()[kVideoMtuSize] = 1400;
     mINI::Instance()[kAudioMtuSize] = 600;
     mINI::Instance()[kMaxRtpCount] = 50;
     mINI::Instance()[kClearCount] = 10;
-    mINI::Instance()[kCycleMS] = 13*60*60*1000;
 },nullptr);
 } //namespace Rtsp
 
