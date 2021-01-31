@@ -30,7 +30,7 @@ RtpReceiver::RtpReceiver() {
 }
 RtpReceiver::~RtpReceiver() {}
 
-bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, unsigned char *rtp_raw_ptr, size_t rtp_raw_len) {
+bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, uint8_t *rtp_raw_ptr, size_t rtp_raw_len) {
     if (rtp_raw_len < 12) {
         WarnL << "rtp包太小:" << rtp_raw_len;
         return false;
@@ -136,6 +136,7 @@ bool RtpReceiver::handleOneRtp(int track_index, TrackType type, int samplerate, 
     memcpy(payload_ptr + 4, rtp_raw_ptr, rtp_raw_len);
     //排序rtp
     auto seq = rtp_ptr->sequence;
+    onBeforeRtpSorted(rtp_ptr, track_index);
     _rtp_sortor[track_index].sortPacket(seq, std::move(rtp_ptr));
     return true;
 }

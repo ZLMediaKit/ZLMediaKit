@@ -414,4 +414,15 @@ string printSSRC(uint32_t ui32Ssrc) {
     return tmp;
 }
 
+Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved){
+    auto rtp_tcp = std::make_shared<BufferRaw>(4);
+    auto ptr = rtp_tcp->data();
+    ptr[0] = '$';
+    ptr[1] = interleaved;
+    ptr[2] = (size >> 8) & 0xFF;
+    ptr[3] = size & 0xFF;
+    rtp_tcp->setSize(4);
+    return rtp_tcp;
+}
+
 }//namespace mediakit

@@ -15,9 +15,8 @@
 #include "Common/config.h"
 #include "RtspPlayer.h"
 #include "Util/MD5.h"
-#include "Util/util.h"
 #include "Util/base64.h"
-#include "Network/sockutil.h"
+#include "Rtcp/Rtcp.h"
 using namespace toolkit;
 using namespace mediakit::Client;
 
@@ -53,13 +52,10 @@ void RtspPlayer::teardown(){
     _session_id.clear();
     _content_base.clear();
     RtpReceiver::clear();
+    _rtcp_context.clear();
 
     CLEAR_ARR(_rtp_sock);
     CLEAR_ARR(_rtcp_sock);
-    CLEAR_ARR(_rtp_seq_start)
-    CLEAR_ARR(_rtp_recv_count)
-    CLEAR_ARR(_rtp_recv_count)
-    CLEAR_ARR(_rtp_seq_now)
 
     _play_check_timer.reset();
     _rtp_check_timer.reset();
@@ -119,7 +115,12 @@ void RtspPlayer::onRecv(const Buffer::Ptr& buf) {
         _rtp_recv_ticker.resetTime();
         return;
     }
-    input(buf->data(), buf->size());
+    try {
+        input(buf->data(), buf->size());
+    } catch (exception &e) {
+        SockException ex(Err_other, e.what());
+        onPlayResult_l(ex, !_play_check_timer);
+    }
 }
 
 void RtspPlayer::onErr(const SockException &ex) {
@@ -196,15 +197,15 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
     SdpParser sdpParser(parser.Content());
     //解析sdp
     _sdp_track = sdpParser.getAvailableTrack();
-    auto title = sdpParser.getTrack(TrackTitle);
-
     if (_sdp_track.empty()) {
         throw std::runtime_error("无有效的Sdp Track");
     }
     if (!onCheckSDP(sdpParser.toString())) {
         throw std::runtime_error("onCheckSDP faied");
     }
-
+    for (auto &track : _sdp_track) {
+        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate));
+    }
     sendSetup(0);
 }
 
@@ -331,7 +332,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
                 return;
             }
             strongSelf->handleOneRtp(track_idx, strongSelf->_sdp_track[track_idx]->_type,
-                                     strongSelf->_sdp_track[track_idx]->_samplerate, (unsigned char *) buf->data(), buf->size());
+                                     strongSelf->_sdp_track[track_idx]->_samplerate, (uint8_t *) buf->data(), buf->size());
         });
 
         if(pRtcpSockRef) {
@@ -345,7 +346,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
                     WarnL << "收到其他地址的rtcp数据:" << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
                     return;
                 }
-                strongSelf->onRtcpPacket(track_idx, strongSelf->_sdp_track[track_idx], (unsigned char *) buf->data(), buf->size());
+                strongSelf->onRtcpPacket(track_idx, strongSelf->_sdp_track[track_idx], (uint8_t *) buf->data(), buf->size());
             });
         }
     }
@@ -477,174 +478,44 @@ void RtspPlayer::onRtpPacket(const char *data, size_t len) {
     uint8_t interleaved = data[1];
     if(interleaved %2 == 0){
         trackIdx = getTrackIndexByInterleaved(interleaved);
-        handleOneRtp(trackIdx, _sdp_track[trackIdx]->_type, _sdp_track[trackIdx]->_samplerate, (unsigned char *)data + 4, len - 4);
+        handleOneRtp(trackIdx, _sdp_track[trackIdx]->_type, _sdp_track[trackIdx]->_samplerate, (uint8_t *)data + 4, len - 4);
     }else{
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
-        onRtcpPacket(trackIdx, _sdp_track[trackIdx], (unsigned char *) data + 4, len - 4);
+        onRtcpPacket(trackIdx, _sdp_track[trackIdx], (uint8_t *) data + 4, len - 4);
     }
 }
 
 //此处预留rtcp处理函数
-void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, unsigned char *data, size_t len){}
-
-#if 0
-//改代码提取自FFmpeg，参考之
-// Receiver Report
-    avio_w8(pb, (RTP_VERSION << 6) + 1); /* 1 report block */
-    avio_w8(pb, RTCP_RR);
-    avio_wb16(pb, 7); /* length in words - 1 */
-    // our own SSRC: we use the server's SSRC + 1 to avoid conflicts
-    avio_wb32(pb, s->ssrc + 1);
-    avio_wb32(pb, s->ssrc); // server SSRC
-    // some placeholders we should really fill...
-    // RFC 1889/p64
-    extended_max          = stats->cycles + stats->max_seq;
-    expected              = extended_max - stats->base_seq;
-    lost                  = expected - stats->received;
-    lost                  = FFMIN(lost, 0xffffff); // clamp it since it's only 24 bits...
-    expected_interval     = expected - stats->expected_prior;
-    stats->expected_prior = expected;
-    received_interval     = stats->received - stats->received_prior;
-    stats->received_prior = stats->received;
-    lost_interval         = expected_interval - received_interval;
-    if (expected_interval == 0 || lost_interval <= 0)
-        fraction = 0;
-    else
-        fraction = (lost_interval << 8) / expected_interval;
-
-    fraction = (fraction << 24) | lost;
-
-    avio_wb32(pb, fraction); /* 8 bits of fraction, 24 bits of total packets lost */
-    avio_wb32(pb, extended_max); /* max sequence received */
-    avio_wb32(pb, stats->jitter >> 4); /* jitter */
-
-    if (s->last_rtcp_ntp_time == AV_NOPTS_VALUE) {
-        avio_wb32(pb, 0); /* last SR timestamp */
-        avio_wb32(pb, 0); /* delay since last SR */
-    } else {
-        uint32_t middle_32_bits   = s->last_rtcp_ntp_time >> 16; // this is valid, right? do we need to handle 64 bit values special?
-        uint32_t delay_since_last = av_rescale(av_gettime_relative() - s->last_rtcp_reception_time,
-                                               65536, AV_TIME_BASE);
-
-        avio_wb32(pb, middle_32_bits); /* last SR timestamp */
-        avio_wb32(pb, delay_since_last); /* delay since last SR */
-    }
-
-    // CNAME
-    avio_w8(pb, (RTP_VERSION << 6) + 1); /* 1 report block */
-    avio_w8(pb, RTCP_SDES);
-    len = strlen(s->hostname);
-    avio_wb16(pb, (7 + len + 3) / 4); /* length in words - 1 */
-    avio_wb32(pb, s->ssrc + 1);
-    avio_w8(pb, 0x01);
-    avio_w8(pb, len);
-    avio_write(pb, s->hostname, len);
-    avio_w8(pb, 0); /* END */
-    // padding
-    for (len = (7 + len) % 4; len % 4; len++)
-        avio_w8(pb, 0);
-#endif
-
-void RtspPlayer::sendReceiverReport(bool over_tcp, int track_idx){
-    static const char s_cname[] = "ZLMediaKitRtsp";
-    uint8_t aui8Rtcp[4 + 32 + 10 + sizeof(s_cname) + 1] = {0};
-    uint8_t *pui8Rtcp_RR = aui8Rtcp + 4, *pui8Rtcp_SDES = pui8Rtcp_RR + 32;
-    auto &track = _sdp_track[track_idx];
-    auto &counter = _rtcp_counter[track_idx];
-
-    aui8Rtcp[0] = '$';
-    aui8Rtcp[1] = track->_interleaved + 1;
-    aui8Rtcp[2] = (sizeof(aui8Rtcp) - 4) >> 8;
-    aui8Rtcp[3] = (sizeof(aui8Rtcp) - 4) & 0xFF;
-
-    pui8Rtcp_RR[0] = 0x81;/* 1 report block */
-    pui8Rtcp_RR[1] = 0xC9;//RTCP_RR
-    pui8Rtcp_RR[2] = 0x00;
-    pui8Rtcp_RR[3] = 0x07;/* length in words - 1 */
-
-    auto track_ssrc = track->_ssrc ? track->_ssrc : getSSRC(track_idx);
-    // our own SSRC: we use the server's SSRC + 1 to avoid conflicts
-    uint32_t ssrc = htonl(track_ssrc + 1);
-    memcpy(&pui8Rtcp_RR[4], &ssrc, 4);
-
-    // server SSRC
-    ssrc = htonl(track_ssrc);
-    memcpy(&pui8Rtcp_RR[8], &ssrc, 4);
-
-    //FIXME: 8 bits of fraction, 24 bits of total packets lost
-    pui8Rtcp_RR[12] = 0x00;
-    pui8Rtcp_RR[13] = 0x00;
-    pui8Rtcp_RR[14] = 0x00;
-    pui8Rtcp_RR[15] = 0x00;
-
-    //FIXME: max sequence received
-    uint16_t cycleCount = (uint16_t)getCycleCount(track_idx);
-    pui8Rtcp_RR[16] = (cycleCount >> 8) & 0xFF;
-    pui8Rtcp_RR[17] = cycleCount & 0xFF;
-    pui8Rtcp_RR[18] = counter.pktCnt >> 8;
-    pui8Rtcp_RR[19] = counter.pktCnt & 0xFF;
-
-    uint32_t jitter = htonl((uint32_t)getJitterSize(track_idx));
-    //FIXME: jitter
-    memcpy(pui8Rtcp_RR + 20, &jitter, 4);
-    /* last SR timestamp */
-    memcpy(pui8Rtcp_RR + 24, &counter.lastTimeStamp, 4);
-    uint32_t msInc = htonl(ntohl(counter.timeStamp) - ntohl(counter.lastTimeStamp));
-    /* delay since last SR */
-    memcpy(pui8Rtcp_RR + 28, &msInc, 4);
-
-    // CNAME
-    pui8Rtcp_SDES[0] = 0x81;
-    pui8Rtcp_SDES[1] = 0xCA;
-    pui8Rtcp_SDES[2] = 0x00;
-    pui8Rtcp_SDES[3] = 0x06;
-
-    memcpy(&pui8Rtcp_SDES[4], &ssrc, 4);
-
-    pui8Rtcp_SDES[8] = 0x01;
-    pui8Rtcp_SDES[9] = 0x0f;
-    memcpy(&pui8Rtcp_SDES[10], s_cname, sizeof(s_cname));
-    pui8Rtcp_SDES[10 + sizeof(s_cname)] = 0x00;
-
-    if (over_tcp) {
-        send(obtainBuffer((char *) aui8Rtcp, sizeof(aui8Rtcp)));
-    } else if (_rtcp_sock[track_idx]) {
-        _rtcp_sock[track_idx]->send((char *) aui8Rtcp + 4, sizeof(aui8Rtcp) - 4);
+void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data, size_t len){
+    auto rtcp_arr = RtcpHeader::loadFromBytes((char *) data, len);
+    for (auto &rtcp : rtcp_arr) {
+        _rtcp_context[track_idx]->onRtcp(rtcp);
     }
 }
 
 void RtspPlayer::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx){
-    //统计丢包率
-    if (_rtp_seq_start[trackidx] == 0 || rtppt->sequence < _rtp_seq_start[trackidx]) {
-        _rtp_seq_start[trackidx] = rtppt->sequence;
-        _rtp_recv_count[trackidx] = 0;
-    }
-    _rtp_recv_count[trackidx] ++;
-    _rtp_seq_now[trackidx] = rtppt->sequence;
     _stamp[trackidx] = rtppt->timeStamp;
-    //计算相对时间戳
-    onRecvRTP_l(rtppt, _sdp_track[trackidx]);
+    _rtp_recv_ticker.resetTime();
+    onRecvRTP(rtppt, _sdp_track[trackidx]);
 }
 
 float RtspPlayer::getPacketLossRate(TrackType type) const{
+    size_t lost = 0, expected = 0;
     try {
         auto track_idx = getTrackIndexByTrackType(type);
-        if (_rtp_seq_now[track_idx] - _rtp_seq_start[track_idx] + 1 == 0) {
-            return 0;
-        }
-        return (float)(1.0f - (double) _rtp_recv_count[track_idx] / (_rtp_seq_now[track_idx] - _rtp_seq_start[track_idx] + 1));
+        auto ctx = _rtcp_context[track_idx];
+        lost = ctx->getLost();
+        expected = ctx->getExpectedPackets();
     } catch (...) {
-        uint64_t totalRecv = 0;
-        uint64_t totalSend = 0;
-        for (unsigned int i = 0; i < _sdp_track.size(); i++) {
-            totalRecv += _rtp_recv_count[i];
-            totalSend += (_rtp_seq_now[i] - _rtp_seq_start[i] + 1);
+        for (auto &ctx : _rtcp_context) {
+            lost += ctx->getLost();
+            expected += ctx->getExpectedPackets();
         }
-        if (totalSend == 0) {
-            return 0;
-        }
-        return (float)(1.0f - (double) totalRecv / totalSend);
     }
+    if (!expected) {
+        return 0;
+    }
+    return (float) (double(lost) / double(expected));
 }
 
 uint32_t RtspPlayer::getProgressMilliSecond() const{
@@ -720,35 +591,51 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
     SockSender::send(std::move(printer));
 }
 
-void RtspPlayer::onRecvRTP_l(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) {
-    _rtp_recv_ticker.resetTime();
-    onRecvRTP(rtp, track);
+void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx){
+    auto &rtcp_ctx = _rtcp_context[track_idx];
+    rtcp_ctx->onRtp(rtp->sequence, rtp->timeStamp, rtp->size() - 4);
 
-    int track_idx = getTrackIndexByTrackType(rtp->type);
-    RtcpCounter &counter = _rtcp_counter[track_idx];
-    counter.pktCnt = rtp->sequence;
     auto &ticker = _rtcp_send_ticker[track_idx];
-    if (ticker.elapsedTime() > 3 * 1000) {
-        //每3秒发送一次心跳，rtcp与rtsp信令轮流心跳，该特性用于兼容issue:642
-        if (_send_rtcp) {
-            counter.lastTimeStamp = counter.timeStamp;
-            //直接保存网络字节序
-            memcpy(&counter.timeStamp, rtp->data() + 8, 4);
-            if (counter.lastTimeStamp != 0) {
-                sendReceiverReport(_rtp_type == Rtsp::RTP_TCP, track_idx);
-                ticker.resetTime();
-                _send_rtcp = false;
-            }
-        } else {
-            //有些rtsp服务器需要rtcp保活，有些需要发送信令保活
-            if (track_idx == 0) {
-                //只需要发送一次心跳信令包
-                sendKeepAlive();
-                ticker.resetTime();
-                _send_rtcp = true;
-            }
-        }
+    if (ticker.elapsedTime() < 3 * 1000) {
+        //时间未到
+        return;
     }
+    auto &rtcp_flag = _send_rtcp[track_idx];
+
+    //每3秒发送一次心跳，rtcp与rtsp信令轮流心跳，该特性用于兼容issue:642
+    //有些rtsp服务器需要rtcp保活，有些需要发送信令保活
+
+    //发送信令保活
+    if (!rtcp_flag) {
+        if (track_idx == 0) {
+            sendKeepAlive();
+        }
+        ticker.resetTime();
+        //下次发送rtcp保活
+        rtcp_flag = true;
+        return;
+    }
+
+    //发送rtcp
+    static auto send_rtcp = [](RtspPlayer *thiz, int index, Buffer::Ptr ptr) {
+        if (thiz->_rtp_type == Rtsp::RTP_TCP) {
+            auto &track = thiz->_sdp_track[index];
+            thiz->send(makeRtpOverTcpPrefix((uint16_t) (ptr->size()), track->_interleaved + 1));
+            thiz->send(std::move(ptr));
+        } else {
+            thiz->_rtcp_sock[index]->send(std::move(ptr));
+        }
+    };
+
+    auto rtcp = rtcp_ctx->createRtcpRR(rtp->ssrc + 1, rtp->ssrc);
+    auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
+    rtcp_sdes->items.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
+    rtcp_sdes->items.ssrc = htonl(rtp->ssrc);
+    send_rtcp(this, track_idx, std::move(rtcp));
+    send_rtcp(this, track_idx, RtcpHeader::toBuffer(rtcp_sdes));
+    ticker.resetTime();
+    //下次发送信令保活
+    rtcp_flag = false;
 }
 
 void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshake_done) {
