@@ -42,22 +42,22 @@ API_EXPORT void API_CALL mk_media_release(mk_media ctx);
 /**
  * 添加视频轨道
  * @param ctx 对象指针
- * @param track_id  0:CodecH264/1:CodecH265
+ * @param codec_id  0:CodecH264/1:CodecH265
  * @param width 视频宽度
  * @param height 视频高度
  * @param fps 视频fps
  */
-API_EXPORT void API_CALL mk_media_init_video(mk_media ctx, int track_id, int width, int height, float fps);
+API_EXPORT void API_CALL mk_media_init_video(mk_media ctx, int codec_id, int width, int height, float fps);
 
 /**
  * 添加音频轨道
  * @param ctx 对象指针
- * @param track_id  2:CodecAAC/3:CodecG711A/4:CodecG711U/5:OPUS
+ * @param codec_id  2:CodecAAC/3:CodecG711A/4:CodecG711U/5:OPUS
  * @param channel 通道数
  * @param sample_bit 采样位数，只支持16
  * @param sample_rate 采样率
  */
-API_EXPORT void API_CALL mk_media_init_audio(mk_media ctx, int track_id, int sample_rate, int channels, int sample_bit);
+API_EXPORT void API_CALL mk_media_init_audio(mk_media ctx, int codec_id, int sample_rate, int channels, int sample_bit);
 
 /**
  * 初始化h264/h265/aac完毕后调用此函数，

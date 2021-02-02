@@ -19,6 +19,13 @@ API_EXPORT mk_pusher API_CALL mk_pusher_create(const char *schema,const char *vh
     return obj;
 }
 
+API_EXPORT mk_pusher API_CALL mk_pusher_create_src(mk_media_source ctx){
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    MediaPusher::Ptr *obj = new MediaPusher::Ptr(new MediaPusher(src->shared_from_this()));
+    return obj;
+}
+
 API_EXPORT void API_CALL mk_pusher_release(mk_pusher ctx){
     assert(ctx);
     MediaPusher::Ptr *obj = (MediaPusher::Ptr *)ctx;
