@@ -1178,9 +1178,8 @@ void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
                     shutdown(SockException(Err_shutdown, "udp sock not opened yet"));
                     return;
                 }
-                BufferRtp::Ptr buffer(new BufferRtp(rtp, 4));
-                _bytes_usage += buffer->size();
-                pSock->send(std::move(buffer), nullptr, 0, ++i == size);
+                _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
+                pSock->send(std::make_shared<BufferRtp>(rtp, RtpPacket::kRtpTcpHeaderSize), nullptr, 0, ++i == size);
             });
         }
             break;
