@@ -125,7 +125,9 @@ public:
     //返回有效负载指针,跳过csrc、ext
     uint8_t* getPayloadData();
     //返回有效负载总长度,不包括csrc、ext、padding
-    size_t getPayloadSize(size_t rtp_size);
+    size_t getPayloadSize(size_t rtp_size) const;
+    //打印调试信息
+    string dumpString(size_t rtp_size) const;
 
 private:
     //返回有效负载偏移量
