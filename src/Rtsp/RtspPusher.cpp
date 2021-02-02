@@ -398,8 +398,7 @@ void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
                 if (++i == size) {
                     setSendFlushFlag(true);
                 }
-                BufferRtp::Ptr buffer(new BufferRtp(rtp));
-                send(std::move(buffer));
+                send(rtp);
             });
             break;
         }
@@ -416,8 +415,7 @@ void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
                     return;
                 }
 
-                BufferRtp::Ptr buffer(new BufferRtp(rtp, 4));
-                pSock->send(std::move(buffer), nullptr, 0, ++i == size);
+                pSock->send(std::make_shared<BufferRtp>(rtp, RtpPacket::kRtpTcpHeaderSize), nullptr, 0, ++i == size);
             });
             break;
         }
