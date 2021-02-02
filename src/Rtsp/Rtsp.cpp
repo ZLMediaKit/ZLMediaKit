@@ -474,7 +474,7 @@ size_t RtpHeader::getPaddingSize(size_t rtp_size) const {
     if (!padding) {
         return 0;
     }
-    auto end = (uint8_t *) this + rtp_size;
+    auto end = (uint8_t *) this + rtp_size - 1;
     return *end;
 }
 
