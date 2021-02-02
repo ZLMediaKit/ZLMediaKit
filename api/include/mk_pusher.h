@@ -12,6 +12,7 @@
 #define MK_PUSHER_H
 
 #include "mk_common.h"
+#include "mk_events_objects.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,7 +30,7 @@ typedef void(API_CALL *on_mk_push_event)(void *user_data,int err_code,const char
 
 /**
  * 绑定的MediaSource对象并创建rtmp[s]/rtsp[s]推流器
- * MediaSource通过mk_media_create或mk_proxy_player_create生成
+ * MediaSource通过mk_media_create或mk_proxy_player_create或推流生成
  * 该MediaSource对象必须已注册
  *
  * @param schema 绑定的MediaSource对象所属协议，支持rtsp/rtmp
@@ -39,6 +40,16 @@ typedef void(API_CALL *on_mk_push_event)(void *user_data,int err_code,const char
  * @return 对象指针
  */
 API_EXPORT mk_pusher API_CALL mk_pusher_create(const char *schema,const char *vhost,const char *app, const char *stream);
+
+/**
+ * 绑定的MediaSource对象并创建rtmp[s]/rtsp[s]推流器
+ * MediaSource通过mk_media_create或mk_proxy_player_create或推流生成
+ * 该MediaSource对象必须已注册
+ *
+ * @param src MediaSource对象
+ * @return 对象指针
+ */
+API_EXPORT mk_pusher API_CALL mk_pusher_create_src(mk_media_source src);
 
 /**
  * 释放推流器

@@ -131,22 +131,22 @@ API_EXPORT void API_CALL mk_media_release(mk_media ctx) {
     delete obj;
 }
 
-API_EXPORT void API_CALL mk_media_init_video(mk_media ctx, int track_id, int width, int height, float fps){
+API_EXPORT void API_CALL mk_media_init_video(mk_media ctx, int codec_id, int width, int height, float fps){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     VideoInfo info;
-    info.codecId = (CodecId)track_id;
+    info.codecId = (CodecId)codec_id;
     info.iFrameRate = fps;
     info.iWidth = width;
     info.iHeight = height;
     (*obj)->getChannel()->initVideo(info);
 }
 
-API_EXPORT void API_CALL mk_media_init_audio(mk_media ctx, int track_id, int sample_rate, int channels, int sample_bit){
+API_EXPORT void API_CALL mk_media_init_audio(mk_media ctx, int codec_id, int sample_rate, int channels, int sample_bit){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     AudioInfo info;
-    info.codecId = (CodecId)track_id;
+    info.codecId = (CodecId)codec_id;
     info.iSampleRate = sample_rate;
     info.iChannel = channels;
     info.iSampleBit = sample_bit;
