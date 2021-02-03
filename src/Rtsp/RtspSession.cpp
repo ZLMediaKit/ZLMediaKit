@@ -82,7 +82,7 @@ void RtspSession::onError(const SockException &err) {
 
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
-    if(_bytes_usage > iFlowThreshold * 1024){
+    if(_bytes_usage >= iFlowThreshold * 1024){
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, isPlayer, static_cast<SockInfo &>(*this));
     }
 
