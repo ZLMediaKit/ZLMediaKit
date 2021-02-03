@@ -100,7 +100,7 @@ void HttpSession::onError(const SockException& err) {
                     << ",耗时(s):" << duration;
 
         GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
-        if(_total_bytes_usage > iFlowThreshold * 1024){
+        if(_total_bytes_usage >= iFlowThreshold * 1024){
             NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _total_bytes_usage, duration , true, static_cast<SockInfo &>(*this));
         }
         return;
