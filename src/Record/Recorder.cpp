@@ -64,19 +64,21 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
             auto ret = std::make_shared<HlsRecorder>(path, enable_vhost ? string(VHOST_KEY) + "=" + vhost : "");
             ret->setMediaSource(vhost, app, stream_id);
             return ret;
+#else
+            throw std::invalid_argument("hls相关功能未打开，请开启ENABLE_HLS宏后编译再测试");
 #endif
-            return nullptr;
+
         }
 
         case Recorder::type_mp4: {
 #if defined(ENABLE_MP4)
             return std::make_shared<MP4Recorder>(path, vhost, app, stream_id);
+#else
+            throw std::invalid_argument("mp4相关功能未打开，请开启ENABLE_MP4宏后编译再测试");
 #endif
-            return nullptr;
         }
 
-        default:
-            return nullptr;
+        default: throw std::invalid_argument("未知的录制类型");
     }
 }
 
