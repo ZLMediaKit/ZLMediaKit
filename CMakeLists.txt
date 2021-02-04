@@ -95,16 +95,6 @@ if (FAAC_FOUND AND ENABLE_FAAC)
     list(APPEND LINK_LIB_LIST ${FAAC_LIBRARIES})
 endif ()
 
-if(${CMAKE_BUILD_TYPE} MATCHES "Release")
-    #查找jemalloc是否安装
-    find_package(JEMALLOC QUIET)
-    if(JEMALLOC_FOUND)
-        message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
-        include_directories(${JEMALLOC_INCLUDE_DIR})
-        list(APPEND  LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
-    endif()
-endif()
-
 #set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573 /wd4996" )
 set(VS_FALGS "/wd4819" )
 
