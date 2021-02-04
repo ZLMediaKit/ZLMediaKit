@@ -63,19 +63,20 @@ private:
         return true;
     }
 
-    void onMediaData(const RtmpPacket::Ptr &chunkData) override {
-        if (_rtmp_src) {
-            if (!_set_meta_data && !chunkData->isCfgFrame()) {
-                _set_meta_data = true;
-                _rtmp_src->setMetaData(TitleMeta().getMetadata());
-            }
-            _rtmp_src->onWrite(chunkData);
-        }
+    void onMediaData(RtmpPacket::Ptr chunkData) override {
         if (!_delegate) {
             //这个流没有metadata
             _delegate.reset(new RtmpDemuxer());
         }
         _delegate->inputRtmp(chunkData);
+
+        if (_rtmp_src) {
+            if (!_set_meta_data && !chunkData->isCfgFrame()) {
+                _set_meta_data = true;
+                _rtmp_src->setMetaData(TitleMeta().getMetadata());
+            }
+            _rtmp_src->onWrite(std::move(chunkData));
+        }
     }
 
 private:

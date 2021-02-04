@@ -42,7 +42,7 @@ protected:
     void onErr(const SockException &ex) override;
 
     //for RtmpProtocol override
-    void onRtmpChunk(RtmpPacket &chunk_data) override;
+    void onRtmpChunk(RtmpPacket::Ptr chunk_data) override;
     void onSendRawData(Buffer::Ptr buffer) override{
         send(std::move(buffer));
     }

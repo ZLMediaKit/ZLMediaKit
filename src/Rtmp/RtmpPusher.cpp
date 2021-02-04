@@ -279,7 +279,8 @@ void RtmpPusher::onCmd_onStatus(AMFDecoder &dec) {
     }
 }
 
-void RtmpPusher::onRtmpChunk(RtmpPacket &chunk_data) {
+void RtmpPusher::onRtmpChunk(RtmpPacket::Ptr packet) {
+    auto &chunk_data = *packet;
     switch (chunk_data.type_id) {
         case MSG_CMD:
         case MSG_CMD3: {

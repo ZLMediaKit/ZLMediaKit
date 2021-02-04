@@ -47,7 +47,7 @@ private:
 /**
  * aac adts转Rtmp类
  */
-class AACRtmpEncoder : public AACRtmpDecoder ,  public ResourcePoolHelper<RtmpPacket> {
+class AACRtmpEncoder : public AACRtmpDecoder{
 public:
     typedef std::shared_ptr<AACRtmpEncoder> Ptr;
 
