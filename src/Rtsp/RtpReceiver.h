@@ -62,7 +62,7 @@ public:
      */
     void sortPacket(SEQ seq, T packet) {
         if (seq < _next_seq_out) {
-            if (_next_seq_out - seq < kMax) {
+            if (_next_seq_out < seq + kMax) {
                 //过滤seq回退包(回环包除外)
                 return;
             }
