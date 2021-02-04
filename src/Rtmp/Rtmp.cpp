@@ -131,4 +131,21 @@ void Metadata::addTrack(AMFValue &metadata, const Track::Ptr &track) {
         metadata.set(key, value);
     });
 }
+
+RtmpPacket::Ptr RtmpPacket::create(){
+#if 0
+    static ResourcePool<RtmpPacket> packet_pool;
+    static onceToken token([]() {
+        packet_pool.setSize(1024);
+    });
+    auto ret = packet_pool.obtain();
+    ret->clear();
+    return ret;
+#else
+    auto ret = Ptr(new RtmpPacket);
+    ret->clear();
+    return ret;
+#endif
+}
+
 }//namespace mediakit

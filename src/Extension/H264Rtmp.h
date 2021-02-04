@@ -52,7 +52,7 @@ protected:
 /**
  * 264 Rtmp打包类
  */
-class H264RtmpEncoder : public H264RtmpDecoder, public ResourcePoolHelper<RtmpPacket> {
+class H264RtmpEncoder : public H264RtmpDecoder{
 public:
     typedef std::shared_ptr<H264RtmpEncoder> Ptr;
 

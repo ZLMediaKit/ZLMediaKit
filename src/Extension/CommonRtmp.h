@@ -53,7 +53,7 @@ private:
 /**
  * 通用 rtmp编码类
  */
-class CommonRtmpEncoder : public CommonRtmpDecoder , public ResourcePoolHelper<RtmpPacket> {
+class CommonRtmpEncoder : public CommonRtmpDecoder {
 public:
     typedef std::shared_ptr<CommonRtmpEncoder> Ptr;
 

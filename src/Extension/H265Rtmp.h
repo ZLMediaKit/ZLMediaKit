@@ -50,7 +50,7 @@ protected:
 /**
  * 265 Rtmp打包类
  */
-class H265RtmpEncoder : public H265RtmpDecoder, public ResourcePoolHelper<RtmpPacket> {
+class H265RtmpEncoder : public H265RtmpDecoder{
 public:
     typedef std::shared_ptr<H265RtmpEncoder> Ptr;
 

@@ -128,17 +128,19 @@ public:
 
 class RtmpPacket : public Buffer{
 public:
-    typedef std::shared_ptr<RtmpPacket> Ptr;
-    bool is_abs_stamp = false;
+    using Ptr = std::shared_ptr<RtmpPacket>;
+    bool is_abs_stamp;
     uint8_t type_id;
-    uint32_t time_stamp = 0;
-    uint32_t ts_field = 0;
+    uint32_t time_stamp;
+    uint32_t ts_field;
     uint32_t stream_index;
     uint32_t chunk_id;
-    size_t body_size = 0;
+    size_t body_size;
     BufferLikeString buffer;
 
 public:
+    static Ptr create();
+
     char *data() const override{
         return (char*)buffer.data();
     }
@@ -146,21 +148,12 @@ public:
         return buffer.size();
     }
 
-public:
-    RtmpPacket() = default;
-    RtmpPacket(const RtmpPacket &that) = delete;
-    RtmpPacket &operator=(const RtmpPacket &that) = delete;
-    RtmpPacket &operator=(RtmpPacket &&that) = delete;
-
-    RtmpPacket(RtmpPacket &&that){
-        type_id = that.type_id;
-        body_size = that.body_size;
-        time_stamp = that.time_stamp;
-        is_abs_stamp = that.is_abs_stamp;
-        ts_field = that.ts_field;
-        stream_index = that.stream_index;
-        chunk_id = that.chunk_id;
-        buffer = std::move(that.buffer);
+    void clear(){
+        is_abs_stamp = false;
+        time_stamp = 0;
+        ts_field = 0;
+        body_size = 0;
+        buffer.clear();
     }
 
     bool isVideoKeyFrame() const {
@@ -213,6 +206,12 @@ public:
         int flvStereoOrMono = (uint8_t) buffer[0] & 0x01;
         const static int channel[] = { 1, 2 };
         return channel[flvStereoOrMono];
+    }
+
+private:
+    friend class ResourcePool_l<RtmpPacket>;
+    RtmpPacket(){
+        clear();
     }
 };
 

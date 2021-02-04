@@ -49,8 +49,7 @@ void CommonRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     if (!_audio_flv_flags) {
         return;
     }
-    RtmpPacket::Ptr rtmp = ResourcePoolHelper<RtmpPacket>::obtainObj();
-    rtmp->buffer.clear();
+    auto rtmp = RtmpPacket::create();
     //header
     rtmp->buffer.push_back(_audio_flv_flags);
     //data

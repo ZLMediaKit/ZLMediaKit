@@ -60,7 +60,7 @@ private:
         _total_bytes += buffer->size();
         send(std::move(buffer));
     }
-    void onRtmpChunk(RtmpPacket &chunk_data) override;
+    void onRtmpChunk(RtmpPacket::Ptr chunk_data) override;
 
     template<typename first, typename second>
     inline void sendReply(const char *str, const first &reply, const second &status) {

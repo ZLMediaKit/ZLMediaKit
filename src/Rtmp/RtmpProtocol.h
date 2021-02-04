@@ -39,7 +39,7 @@ public:
 
 protected:
     virtual void onSendRawData(Buffer::Ptr buffer) = 0;
-    virtual void onRtmpChunk(RtmpPacket &chunk_data) = 0;
+    virtual void onRtmpChunk(RtmpPacket::Ptr chunk_data) = 0;
     virtual void onStreamBegin(uint32_t stream_index){
         _stream_index = stream_index;
     }
@@ -85,7 +85,7 @@ private:
     const char* handle_C0C1(const char *data, size_t len);
     const char* handle_C2(const char *data, size_t len);
     const char* handle_rtmp(const char *data, size_t len);
-    void handle_chunk(RtmpPacket &chunk_data);
+    void handle_chunk(RtmpPacket::Ptr chunk_data);
 
 protected:
     int _send_req_id = 0;
@@ -108,7 +108,7 @@ private:
     //////////Rtmp parser//////////
     function<const char * (const char *data, size_t len)> _next_step_func;
     ////////////Chunk////////////
-    unordered_map<int, RtmpPacket> _map_chunk_data;
+    unordered_map<int, RtmpPacket::Ptr> _map_chunk_data;
 };
 
 } /* namespace mediakit */
