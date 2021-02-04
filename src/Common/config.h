@@ -301,8 +301,6 @@ extern const string kBroadcastRecordTs;
 namespace RtpProxy {
 //rtp调试数据保存目录,置空则不生成
 extern const string kDumpDir;
-//是否限制udp数据来源ip和端口
-extern const string kCheckSource;
 //rtp接收超时时间
 extern const string kTimeoutSec;
 } //namespace RtpProxy

@@ -83,7 +83,7 @@ private:
 private:
     uint32_t _dts = 0;
     uint64_t _total_bytes = 0;
-    struct sockaddr *_addr = nullptr;
+    struct sockaddr _addr{0};
     Socket::Ptr _sock;
     MediaInfo _media_info;
     Ticker _last_frame_time;

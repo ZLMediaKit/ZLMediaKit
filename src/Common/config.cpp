@@ -281,14 +281,11 @@ namespace RtpProxy {
 #define RTP_PROXY_FIELD "rtp_proxy."
 //rtp调试数据保存目录
 const string kDumpDir = RTP_PROXY_FIELD"dumpDir";
-//是否限制udp数据来源ip和端口
-const string kCheckSource = RTP_PROXY_FIELD"checkSource";
 //rtp接收超时时间
 const string kTimeoutSec = RTP_PROXY_FIELD"timeoutSec";
 
 onceToken token([](){
     mINI::Instance()[kDumpDir] = "";
-    mINI::Instance()[kCheckSource] = 1;
     mINI::Instance()[kTimeoutSec] = 15;
 },nullptr);
 } //namespace RtpProxy
