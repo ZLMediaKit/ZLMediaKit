@@ -11,17 +11,11 @@
 #if defined(ENABLE_RTPPROXY)
 #include "GB28181Process.h"
 #include "RtpProcess.h"
-#include "RtpSplitter.h"
-#include "Util/File.h"
 #include "Http/HttpTSPlayer.h"
 
 #define RTP_APP_NAME "rtp"
 
 namespace mediakit {
-
-static string printAddress(const struct sockaddr *addr) {
-    return StrPrinter << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr) << ":" << ntohs(((struct sockaddr_in *) addr)->sin_port);
-}
 
 RtpProcess::RtpProcess(const string &stream_id) {
     _media_info._schema = RTP_APP_NAME;
@@ -63,32 +57,21 @@ RtpProcess::~RtpProcess() {
     if (_total_bytes >= iFlowThreshold * 1024) {
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false, static_cast<SockInfo &>(*this));
     }
-
-    if (_addr) {
-        delete _addr;
-        _addr = nullptr;
-    }
 }
 
 bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint32_t *dts_out) {
-    GET_CONFIG(bool, check_source, RtpProxy::kCheckSource);
-    //检查源是否合法
-    if (!_addr) {
-        _addr = new struct sockaddr;
+    if (!_sock) {
         _sock = sock;
-        memcpy(_addr, addr, sizeof(struct sockaddr));
-        DebugP(this) << "bind to address:" << printAddress(_addr);
-        //推流鉴权
+        _addr = *addr;
         emitOnPublish();
+    } else if (!_sock->getPoller()->isCurrentThread()) {
+        //其他线程执行本对象，存在线程安全问题
+        WarnP(this) << "其他线程执行本对象";
+        return false;
     }
 
     if (!_muxer) {
         //无权限推流
-        return false;
-    }
-
-    if (check_source && memcmp(_addr, addr, sizeof(struct sockaddr)) != 0) {
-        DebugP(this) << "address dismatch:" << printAddress(addr) << " != " << printAddress(_addr);
         return false;
     }
 
@@ -161,17 +144,11 @@ void RtpProcess::setOnDetach(const function<void()> &cb) {
 }
 
 string RtpProcess::get_peer_ip() {
-    if (_addr) {
-        return SockUtil::inet_ntoa(((struct sockaddr_in *) _addr)->sin_addr);
-    }
-    return "0.0.0.0";
+    return SockUtil::inet_ntoa(((struct sockaddr_in &) _addr).sin_addr);
 }
 
 uint16_t RtpProcess::get_peer_port() {
-    if (!_addr) {
-        return 0;
-    }
-    return ntohs(((struct sockaddr_in *) _addr)->sin_port);
+    return ntohs(((struct sockaddr_in &) _addr).sin_port);
 }
 
 string RtpProcess::get_local_ip() {
