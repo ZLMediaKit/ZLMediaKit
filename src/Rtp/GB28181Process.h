@@ -36,7 +36,7 @@ public:
     bool inputRtp(bool, const char *data, size_t data_len) override;
 
 protected:
-    void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override ;
+    void onRtpSorted(RtpPacket::Ptr rtp, int track_index) override ;
     const char *onSearchPacketTail(const char *data,size_t len) override;
     ssize_t onRecvHeader(const char *data,size_t len) override { return 0; };
 

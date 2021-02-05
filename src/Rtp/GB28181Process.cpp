@@ -34,7 +34,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
     return handleOneRtp(0, TrackVideo, 90000, (unsigned char *) data, data_len);
 }
 
-void GB28181Process::onRtpSorted(const RtpPacket::Ptr &rtp, int) {
+void GB28181Process::onRtpSorted(RtpPacket::Ptr rtp, int) {
     auto pt = rtp->getHeader()->pt;
     if (!_rtp_decoder) {
         switch (pt) {

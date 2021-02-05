@@ -166,6 +166,12 @@ public:
     TrackType type;
     //音频为采样率，视频一般为90000
     uint32_t sample_rate;
+
+    static Ptr create();
+
+private:
+    friend class ResourcePool_l<RtpPacket>;
+    RtpPacket() = default;
 };
 
 class RtpPayload {

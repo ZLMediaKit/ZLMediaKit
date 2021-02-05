@@ -913,8 +913,8 @@ void RtspSession::send_NotAcceptable() {
     sendRtspResponse("406 Not Acceptable",{"Connection","Close"});
 }
 
-void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) {
-    _push_src->onWrite(rtp, false);
+void RtspSession::onRtpSorted(RtpPacket::Ptr rtp, int track_idx) {
+    _push_src->onWrite(std::move(rtp), false);
 }
 
 void RtspSession::onRcvPeerUdpData(int interleaved, const Buffer::Ptr &buf, const struct sockaddr &addr) {

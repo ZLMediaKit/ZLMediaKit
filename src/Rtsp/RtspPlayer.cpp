@@ -494,10 +494,10 @@ void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data
     }
 }
 
-void RtspPlayer::onRtpSorted(const RtpPacket::Ptr &rtppt, int trackidx){
+void RtspPlayer::onRtpSorted(RtpPacket::Ptr rtppt, int trackidx){
     _stamp[trackidx] = rtppt->getStampMS();
     _rtp_recv_ticker.resetTime();
-    onRecvRTP(rtppt, _sdp_track[trackidx]);
+    onRecvRTP(std::move(rtppt), _sdp_track[trackidx]);
 }
 
 float RtspPlayer::getPacketLossRate(TrackType type) const{

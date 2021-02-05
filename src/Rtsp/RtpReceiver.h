@@ -182,7 +182,7 @@ protected:
      * @param rtp rtp数据包
      * @param track_index track索引
      */
-    virtual void onRtpSorted(const RtpPacket::Ptr &rtp, int track_index) {}
+    virtual void onRtpSorted(RtpPacket::Ptr rtp, int track_index) {}
 
     /**
      * 解析出rtp但还未排序
@@ -192,7 +192,6 @@ protected:
     virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) {}
 
     void clear();
-    void setPoolSize(size_t size);
     size_t getJitterSize(int track_index) const;
     size_t getCycleCount(int track_index) const;
     uint32_t getSSRC(int track_index) const;
@@ -201,8 +200,6 @@ private:
     uint32_t _ssrc[2] = {0, 0};
     //rtp排序缓存，根据seq排序
     PacketSortor<RtpPacket::Ptr> _rtp_sortor[2];
-    //rtp循环池
-    RtspMediaSource::PoolType _rtp_pool;
 };
 
 }//namespace mediakit
