@@ -147,3 +147,7 @@ RtmpPacket::Ptr RtmpPacket::create(){
 }
 
 }//namespace mediakit
+
+namespace toolkit {
+    StatisticImp(mediakit::RtmpPacket);
+}

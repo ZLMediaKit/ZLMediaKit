@@ -172,6 +172,10 @@ public:
 private:
     friend class ResourcePool_l<RtpPacket>;
     RtpPacket() = default;
+
+private:
+    //对象个数统计
+    ObjectStatistic<RtpPacket> _statistic;
 };
 
 class RtpPayload {

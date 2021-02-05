@@ -1043,6 +1043,9 @@ void installWebApi() {
         val["data"]["BufferRaw"] = (Json::UInt64)(ObjectStatistic<BufferRaw>::count());
         val["data"]["BufferLikeString"] = (Json::UInt64)(ObjectStatistic<BufferLikeString>::count());
         val["data"]["BufferList"] = (Json::UInt64)(ObjectStatistic<BufferList>::count());
+
+        val["data"]["RtpPacket"] = (Json::UInt64)(ObjectStatistic<RtpPacket>::count());
+        val["data"]["RtmpPacket"] = (Json::UInt64)(ObjectStatistic<RtmpPacket>::count());
     });
 
     ////////////以下是注册的Hook API////////////

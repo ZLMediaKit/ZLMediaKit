@@ -173,6 +173,8 @@ public:
     uint32_t _pts = 0;
     size_t _prefix_size = 0;
     BufferLikeString _buffer;
+
+private:
     //对象个数统计
     ObjectStatistic<FrameImp> _statistic;
 
