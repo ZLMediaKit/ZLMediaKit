@@ -19,7 +19,7 @@ RtpReceiver::RtpReceiver() {
     int index = 0;
     for (auto &sortor : _rtp_sortor) {
         sortor.setOnSort([this, index](uint16_t seq, RtpPacket::Ptr &packet) {
-            onRtpSorted(packet, index);
+            onRtpSorted(std::move(packet), index);
         });
         ++index;
     }
@@ -61,7 +61,7 @@ bool RtpReceiver::handleOneRtp(int index, TrackType type, int sample_rate, uint8
         return false;
     }
 
-    auto rtp = _rtp_pool.obtain();
+    auto rtp = RtpPacket::create();
     //需要添加4个字节的rtp over tcp头
     rtp->setCapacity(RtpPacket::kRtpTcpHeaderSize + len);
     rtp->setSize(RtpPacket::kRtpTcpHeaderSize + len);
@@ -88,10 +88,6 @@ void RtpReceiver::clear() {
     for (auto &sortor : _rtp_sortor) {
         sortor.clear();
     }
-}
-
-void RtpReceiver::setPoolSize(size_t size) {
-    _rtp_pool.setSize(size);
 }
 
 size_t RtpReceiver::getJitterSize(int index) const{

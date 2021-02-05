@@ -58,9 +58,9 @@ protected:
     RingType::Ptr _rtpRing;
 };
 
-class RtpInfo : public ResourcePoolHelper<RtpPacket>{
+class RtpInfo{
 public:
-    typedef std::shared_ptr<RtpInfo> Ptr;
+    using Ptr = std::shared_ptr<RtpInfo>;
 
     RtpInfo(uint32_t ssrc, size_t mtu_size, uint32_t sample_rate, uint8_t pt, uint8_t interleaved) {
         if (ssrc == 0) {
@@ -73,7 +73,7 @@ public:
         _interleaved = interleaved;
     }
 
-    ~RtpInfo() override {}
+    virtual ~RtpInfo() {}
 
     //返回rtp负载最大长度
     size_t getMaxSize() const {

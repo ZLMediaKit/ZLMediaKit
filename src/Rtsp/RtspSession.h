@@ -79,7 +79,7 @@ protected:
     ssize_t getContentLength(Parser &parser) override;
 
     ////RtpReceiver override////
-    void onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) override;
+    void onRtpSorted(RtpPacket::Ptr rtp, int track_idx) override;
     void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override;
 
     ///////MediaSourceEvent override///////

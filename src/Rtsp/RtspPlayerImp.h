@@ -59,17 +59,17 @@ private:
         return true;
     }
 
-    void onRecvRTP(const RtpPacket::Ptr &rtp, const SdpTrack::Ptr &track) override {
-        if (_rtsp_media_src) {
-            // rtsp直接代理是无法判断该rtp是否是I帧，所以GOP缓存基本是无效的
-            // 为了减少内存使用，那么我们设置为一直关键帧以便清空GOP缓存
-            _rtsp_media_src->onWrite(rtp, true);
-        }
+    void onRecvRTP(RtpPacket::Ptr rtp, const SdpTrack::Ptr &track) override {
         _delegate->inputRtp(rtp);
-
         if (_max_analysis_ms && _delegate->isInited(_max_analysis_ms)) {
             PlayerImp<RtspPlayer, RtspDemuxer>::onPlayResult(SockException(Err_success, "play rtsp success"));
             _max_analysis_ms = 0;
+        }
+
+        if (_rtsp_media_src) {
+            // rtsp直接代理是无法判断该rtp是否是I帧，所以GOP缓存基本是无效的
+            // 为了减少内存使用，那么我们设置为一直关键帧以便清空GOP缓存
+            _rtsp_media_src->onWrite(std::move(rtp), true);
         }
     }
 
