@@ -182,6 +182,136 @@ bool parseAacConfig(const string &config, int &samplerate, int &channels){
 #endif
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * aac类型SDP
+ */
+class AACSdp : public Sdp {
+public:
+    /**
+     * 构造函数
+     * @param aac_cfg aac两个字节的配置描述
+     * @param sample_rate 音频采样率
+     * @param payload_type rtp payload type 默认98
+     * @param bitrate 比特率
+     */
+    AACSdp(const string &aac_cfg,
+           int sample_rate,
+           int channels,
+           int bitrate = 128,
+           int payload_type = 98) : Sdp(sample_rate,payload_type){
+        _printer << "m=audio 0 RTP/AVP " << payload_type << "\r\n";
+        if (bitrate) {
+            _printer << "b=AS:" << bitrate << "\r\n";
+        }
+        _printer << "a=rtpmap:" << payload_type << " MPEG4-GENERIC/" << sample_rate << "/" << channels << "\r\n";
+
+        string configStr;
+        char buf[4] = {0};
+        for(auto &ch : aac_cfg){
+            snprintf(buf, sizeof(buf), "%02X", (uint8_t)ch);
+            configStr.append(buf);
+        }
+        _printer << "a=fmtp:" << payload_type << " streamtype=5;profile-level-id=1;mode=AAC-hbr;"
+                 << "sizelength=13;indexlength=3;indexdeltalength=3;config=" << configStr << "\r\n";
+        _printer << "a=control:trackID=" << (int)TrackAudio << "\r\n";
+    }
+
+    string getSdp() const override {
+        return _printer;
+    }
+
+    CodecId getCodecId() const override {
+        return CodecAAC;
+    }
+private:
+    _StrPrinter _printer;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+AACTrack::AACTrack(const string &aac_cfg) {
+    if (aac_cfg.size() < 2) {
+        throw std::invalid_argument("adts配置必须最少2个字节");
+    }
+    _cfg = aac_cfg;
+    onReady();
+}
+
+const string &AACTrack::getAacCfg() const {
+    return _cfg;
+}
+
+CodecId AACTrack::getCodecId() const {
+    return CodecAAC;
+}
+
+bool AACTrack::ready() {
+    return !_cfg.empty();
+}
+
+int AACTrack::getAudioSampleRate() const {
+    return _sampleRate;
+}
+
+int AACTrack::getAudioSampleBit() const {
+    return _sampleBit;
+}
+
+int AACTrack::getAudioChannel() const {
+    return _channel;
+}
+
+void AACTrack::inputFrame(const Frame::Ptr &frame) {
+    if (frame->prefixSize()) {
+        //有adts头，尝试分帧
+        auto ptr = frame->data();
+        auto end = frame->data() + frame->size();
+        while (ptr < end) {
+            auto frame_len = getAacFrameLength((uint8_t *) ptr, end - ptr);
+            if (frame_len < ADTS_HEADER_LEN) {
+                break;
+            }
+            auto sub_frame = std::make_shared<FrameInternal<FrameFromPtr> >(frame, (char *) ptr, frame_len, ADTS_HEADER_LEN);
+            ptr += frame_len;
+            sub_frame->setCodecId(CodecAAC);
+            inputFrame_l(sub_frame);
+        }
+    } else {
+        inputFrame_l(frame);
+    }
+}
+
+void AACTrack::inputFrame_l(const Frame::Ptr &frame) {
+    if (_cfg.empty()) {
+        //未获取到aac_cfg信息
+        if (frame->prefixSize()) {
+            //根据7个字节的adts头生成aac config
+            _cfg = makeAacConfig((uint8_t *) (frame->data()), frame->prefixSize());
+            onReady();
+        } else {
+            WarnL << "无法获取adts头!";
+        }
+    }
+
+    if (frame->size() > frame->prefixSize()) {
+        //除adts头外，有实际负载
+        AudioTrack::inputFrame(frame);
+    }
+}
+
+void AACTrack::onReady() {
+    if (_cfg.size() < 2) {
+        return;
+    }
+    parseAacConfig(_cfg, _sampleRate, _channel);
+}
+
+Track::Ptr AACTrack::clone() {
+    return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this);
+}
+
 Sdp::Ptr AACTrack::getSdp() {
     if(!ready()){
         WarnL << getCodecName() << " Track未准备好";

@@ -21,10 +21,7 @@ CodecId CommonRtpDecoder::getCodecId() const {
 }
 
 void CommonRtpDecoder::obtainFrame() {
-    _frame = ResourcePoolHelper<FrameImp>::obtainObj();
-    _frame->_buffer.clear();
-    _frame->_prefix_size = 0;
-    _frame->_dts = 0;
+    _frame = FrameImp::create();
     _frame->_codec_id = _codec;
 }
 

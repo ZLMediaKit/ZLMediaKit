@@ -19,7 +19,7 @@ namespace mediakit{
 /**
  * aac Rtmp转adts类
  */
-class AACRtmpDecoder : public RtmpCodec , public ResourcePoolHelper<FrameImp> {
+class AACRtmpDecoder : public RtmpCodec{
 public:
     typedef std::shared_ptr<AACRtmpDecoder> Ptr;
 

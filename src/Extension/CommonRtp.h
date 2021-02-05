@@ -19,7 +19,7 @@ namespace mediakit{
 /**
  * 通用 rtp解码类
  */
-class CommonRtpDecoder : public RtpCodec, public ResourcePoolHelper<FrameImp> {
+class CommonRtpDecoder : public RtpCodec {
 public:
     typedef std::shared_ptr <CommonRtpDecoder> Ptr;
 

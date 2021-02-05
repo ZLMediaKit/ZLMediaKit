@@ -74,9 +74,7 @@ AACRtpDecoder::AACRtpDecoder() {
 
 void AACRtpDecoder::obtainFrame() {
     //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    _frame = ResourcePoolHelper<FrameImp>::obtainObj();
-    _frame->_prefix_size = 0;
-    _frame->_buffer.clear();
+    _frame = FrameImp::create();
     _frame->_codec_id = CodecAAC;
 }
 

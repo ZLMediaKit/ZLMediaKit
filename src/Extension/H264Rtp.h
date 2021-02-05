@@ -24,7 +24,7 @@ namespace mediakit{
  * 将 h264 over rtsp-rtp 解复用出 h264-Frame
  * rfc3984
  */
-class H264RtpDecoder : public RtpCodec , public ResourcePoolHelper<H264Frame> {
+class H264RtpDecoder : public RtpCodec{
 public:
     typedef std::shared_ptr<H264RtpDecoder> Ptr;
 

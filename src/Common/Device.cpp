@@ -87,7 +87,7 @@ void DevChannel::inputH264(const char *data, int len, uint32_t dts, uint32_t pts
     //由于rtmp/hls/mp4需要缓存时间戳相同的帧，
     //所以使用FrameNoCacheAble类型的帧反而会在转换成FrameCacheAble时多次内存拷贝
     //在此处只拷贝一次，性能开销更低
-    H264Frame::Ptr frame = std::make_shared<H264Frame>();
+    auto frame = FrameImp::create<H264Frame>();
     frame->_dts = dts;
     frame->_pts = pts;
     frame->_buffer.assign(data, len);
@@ -106,7 +106,7 @@ void DevChannel::inputH265(const char *data, int len, uint32_t dts, uint32_t pts
     //由于rtmp/hls/mp4需要缓存时间戳相同的帧，
     //所以使用FrameNoCacheAble类型的帧反而会在转换成FrameCacheAble时多次内存拷贝
     //在此处只拷贝一次，性能开销更低
-    H265Frame::Ptr frame = std::make_shared<H265Frame>();
+    auto frame = FrameImp::create<H265Frame>();
     frame->_dts = dts;
     frame->_pts = pts;
     frame->_buffer.assign(data, len);

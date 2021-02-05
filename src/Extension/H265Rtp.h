@@ -25,7 +25,7 @@ namespace mediakit{
  * 将 h265 over rtsp-rtp 解复用出 h265-Frame
  * 《草案（H265-over-RTP）draft-ietf-payload-rtp-h265-07.pdf》
  */
-class H265RtpDecoder : public RtpCodec , public ResourcePoolHelper<H265Frame> {
+class H265RtpDecoder : public RtpCodec {
 public:
     typedef std::shared_ptr<H265RtpDecoder> Ptr;
 

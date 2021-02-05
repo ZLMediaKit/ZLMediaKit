@@ -42,7 +42,7 @@ void AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
 }
 
 void AACRtmpDecoder::onGetAAC(const char* data, size_t len, uint32_t stamp) {
-    auto frame = ResourcePoolHelper<FrameImp>::obtainObj();
+    auto frame = FrameImp::create();
     frame->_codec_id = CodecAAC;
 
     //生成adts头
