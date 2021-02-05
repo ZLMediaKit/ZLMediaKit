@@ -546,3 +546,7 @@ RtpPacket::Ptr RtpPacket::create(){
 }
 
 }//namespace mediakit
+
+namespace toolkit {
+    StatisticImp(mediakit::RtpPacket);
+}

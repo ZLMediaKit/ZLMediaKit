@@ -213,6 +213,10 @@ private:
     RtmpPacket(){
         clear();
     }
+
+private:
+    //对象个数统计
+    ObjectStatistic<RtmpPacket> _statistic;
 };
 
 /**
