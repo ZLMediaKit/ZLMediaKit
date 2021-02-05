@@ -130,7 +130,10 @@ private:
 
 class FrameImp : public Frame {
 public:
-    typedef std::shared_ptr<FrameImp> Ptr;
+    using Ptr = std::shared_ptr<FrameImp>;
+
+    template<typename C=FrameImp>
+    static std::shared_ptr<C> create();
 
     char *data() const override{
         return (char *)_buffer.data();
@@ -172,6 +175,13 @@ public:
     BufferLikeString _buffer;
     //对象个数统计
     ObjectStatistic<FrameImp> _statistic;
+
+protected:
+    friend class ResourcePool_l<FrameImp>;
+    FrameImp() = default;
+
+    template<typename C>
+    static std::shared_ptr<C> create_l();
 };
 
 /**
@@ -193,26 +203,6 @@ public:
     }
 private:
     Frame::Ptr _parent_frame;
-};
-
-/**
- * 循环池辅助类
- */
-template <typename T>
-class ResourcePoolHelper{
-public:
-    ResourcePoolHelper(int size = 0){
-        if (size > 0) {
-            _pool.setSize(size);
-        }
-    }
-    virtual ~ResourcePoolHelper(){}
-
-    std::shared_ptr<T> obtainObj(){
-        return _pool.obtain();
-    }
-private:
-    ResourcePool<T> _pool;
 };
 
 /**

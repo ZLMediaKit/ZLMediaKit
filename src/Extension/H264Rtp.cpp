@@ -34,10 +34,8 @@ H264RtpDecoder::H264RtpDecoder() {
     _h264frame = obtainFrame();
 }
 
-H264Frame::Ptr  H264RtpDecoder::obtainFrame() {
-    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    auto frame = ResourcePoolHelper<H264Frame>::obtainObj();
-    frame->_buffer.clear();
+H264Frame::Ptr H264RtpDecoder::obtainFrame() {
+    auto frame = FrameImp::create<H264Frame>();
     frame->_prefix_size = 4;
     return frame;
 }
@@ -81,7 +79,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
 
     if (nal_type >= 0 && nal_type < 24) {
         //a full frame
-        _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
+        _h264frame->_buffer.assign("\x00\x00\x00\x01", 4);
         _h264frame->_buffer.append((char *) frame, length);
         _h264frame->_pts = stamp;
         auto key = _h264frame->keyFrame();
@@ -108,7 +106,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
                 }
                 if (len > 0) {
                     //有有效数据
-                    _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
+                    _h264frame->_buffer.assign("\x00\x00\x00\x01", 4);
                     _h264frame->_buffer.append((char *) ptr, len);
                     _h264frame->_pts = stamp;
                     if ((ptr[0] & 0x1F) == H264Frame::NAL_IDR) {
@@ -127,7 +125,7 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
             MakeFU(frame[1], fu);
             if (fu.S) {
                 //该帧的第一个rtp包  FU-A start
-                _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);
+                _h264frame->_buffer.assign("\x00\x00\x00\x01", 4);
                 _h264frame->_buffer.push_back(nal_suffix | fu.type);
                 _h264frame->_buffer.append((char *) frame + 2, length - 2);
                 _h264frame->_pts = stamp;

@@ -142,9 +142,7 @@ RtmpPacket::Ptr RtmpPacket::create(){
     ret->clear();
     return ret;
 #else
-    auto ret = Ptr(new RtmpPacket);
-    ret->clear();
-    return ret;
+    return Ptr(new RtmpPacket);
 #endif
 }
 

@@ -221,7 +221,7 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 if (frame_len + offset + 4 > bytes) {
                     return nullptr;
                 }
-                memcpy(data + offset, "\x0\x0\x0\x1", 4);
+                memcpy(data + offset, "\x00\x00\x00\x01", 4);
                 offset += (frame_len + 4);
             }
             if (codec == CodecH264) {

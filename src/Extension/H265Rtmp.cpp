@@ -19,10 +19,8 @@ H265RtmpDecoder::H265RtmpDecoder() {
     _h265frame = obtainFrame();
 }
 
-H265Frame::Ptr  H265RtmpDecoder::obtainFrame() {
-    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    auto frame = obtainObj();
-    frame->_buffer.clear();
+H265Frame::Ptr H265RtmpDecoder::obtainFrame() {
+    auto frame = FrameImp::create<H265Frame>();
     frame->_prefix_size = 4;
     return frame;
 }
@@ -102,7 +100,7 @@ inline void H265RtmpDecoder::onGetH265(const char* pcData, size_t iLen, uint32_t
 #if 1
     _h265frame->_dts = dts;
     _h265frame->_pts = pts;
-    _h265frame->_buffer.assign("\x0\x0\x0\x1", 4);  //添加265头
+    _h265frame->_buffer.assign("\x00\x00\x00\x01", 4);  //添加265头
     _h265frame->_buffer.append(pcData, iLen);
 
     //写入环形缓存

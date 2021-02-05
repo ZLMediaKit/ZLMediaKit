@@ -9,6 +9,8 @@
  */
 
 #include "Frame.h"
+#include "H264.h"
+#include "H265.h"
 
 using namespace std;
 using namespace toolkit;
@@ -19,6 +21,34 @@ namespace toolkit {
 }
 
 namespace mediakit{
+
+template<typename C>
+std::shared_ptr<C> FrameImp::create_l() {
+#if 0
+    static ResourcePool<C> packet_pool;
+    static onceToken token([]() {
+        packet_pool.setSize(1024);
+    });
+    auto ret = packet_pool.obtain();
+    ret->_buffer.clear();
+    ret->_prefix_size = 0;
+    ret->_dts = 0;
+    ret->_pts = 0;
+    return ret;
+#else
+    return std::shared_ptr<C>(new C());
+#endif
+}
+
+#define CREATE_FRAME_IMP(C) \
+template<> \
+std::shared_ptr<C> FrameImp::create<C>() { \
+    return create_l<C>(); \
+}
+
+CREATE_FRAME_IMP(FrameImp);
+CREATE_FRAME_IMP(H264Frame);
+CREATE_FRAME_IMP(H265Frame);
 
 /**
  * 该对象的功能是把一个不可缓存的帧转换成可缓存的帧
@@ -32,8 +62,8 @@ public:
             _frame = frame;
             _ptr = frame->data();
         }else{
-            _buffer = std::make_shared<BufferRaw>();
-            _buffer->assign(frame->data(),frame->size());
+            _buffer = FrameImp::create();
+            _buffer->_buffer.assign(frame->data(),frame->size());
             _ptr = _buffer->data();
         }
         _size = frame->size();
@@ -66,7 +96,7 @@ private:
     bool _key;
     bool _config;
     Frame::Ptr _frame;
-    BufferRaw::Ptr _buffer;
+    FrameImp::Ptr _buffer;
 };
 
 Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){

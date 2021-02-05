@@ -29,10 +29,8 @@ H265RtpDecoder::H265RtpDecoder() {
     _frame = obtainFrame();
 }
 
-H265Frame::Ptr  H265RtpDecoder::obtainFrame() {
-    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    auto frame = ResourcePoolHelper<H265Frame>::obtainObj();
-    frame->_buffer.clear();
+H265Frame::Ptr H265RtpDecoder::obtainFrame() {
+    auto frame = FrameImp::create<H265Frame>();
     frame->_prefix_size = 4;
     return frame;
 }
