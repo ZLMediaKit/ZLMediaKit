@@ -415,7 +415,8 @@ string printSSRC(uint32_t ui32Ssrc) {
 }
 
 Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved){
-    auto rtp_tcp = std::make_shared<BufferRaw>(RtpPacket::kRtpTcpHeaderSize);
+    auto rtp_tcp = BufferRaw::create();
+    rtp_tcp->setCapacity(RtpPacket::kRtpTcpHeaderSize);
     rtp_tcp->setSize(RtpPacket::kRtpTcpHeaderSize);
     auto ptr = rtp_tcp->data();
     ptr[0] = '$';

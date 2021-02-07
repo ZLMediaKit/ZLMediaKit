@@ -10,9 +10,6 @@
 
 #include "RtmpProtocol.h"
 #include "Rtmp/utils.h"
-#include "Util/util.h"
-#include "Util/onceToken.h"
-#include "Thread/ThreadPool.h"
 #include "RtmpMediaSource.h"
 using namespace toolkit;
 
@@ -760,13 +757,11 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
     }
 }
 
-BufferRaw::Ptr RtmpProtocol::obtainBuffer() {
-    return std::make_shared<BufferRaw>() ;//_bufferPool.obtain();
-}
-
 BufferRaw::Ptr RtmpProtocol::obtainBuffer(const void *data, size_t len) {
-    auto buffer = obtainBuffer();
-    buffer->assign((const char *) data, len);
+    auto buffer = BufferRaw::create();
+    if (data && len) {
+        buffer->assign((const char *) data, len);
+    }
     return buffer;
 }
 

@@ -67,6 +67,12 @@ void FlvMuxer::start(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &
     });
 }
 
+BufferRaw::Ptr FlvMuxer::obtainBuffer(const void *data, size_t len) {
+    auto buffer = BufferRaw::create();
+    buffer->assign((const char *) data, len);
+    return buffer;
+}
+
 void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     //发送flv文件头
     char flv_file_header[] = "FLV\x1\x5\x0\x0\x0\x9"; // have audio and have video
@@ -92,11 +98,11 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     }
 
     //flv header
-    onWrite(std::make_shared<BufferRaw>(flv_file_header, sizeof(flv_file_header) - 1), false);
+    onWrite(obtainBuffer(flv_file_header, sizeof(flv_file_header) - 1), false);
 
     auto size = htonl(0);
     //PreviousTagSize0 Always 0
-    onWrite(std::make_shared<BufferRaw>((char *)&size,4), false);
+    onWrite(obtainBuffer((char *)&size,4), false);
 
 
     auto &metadata = mediaSrc->getMetaData();
@@ -144,12 +150,12 @@ void FlvMuxer::onWriteFlvTag(uint8_t type, const Buffer::Ptr &buffer, uint32_t t
     header.timestamp_ex = (uint8_t) ((time_stamp >> 24) & 0xff);
     set_be24(header.timestamp, time_stamp & 0xFFFFFF);
     //tag header
-    onWrite(std::make_shared<BufferRaw>((char *)&header, sizeof(header)), false);
+    onWrite(obtainBuffer((char *)&header, sizeof(header)), false);
     //tag data
     onWrite(buffer, false);
     uint32_t size = htonl((uint32_t)(buffer->size() + sizeof(header)));
     //PreviousTagSize
-    onWrite(std::make_shared<BufferRaw>((char *)&size,4), flush);
+    onWrite(obtainBuffer((char *)&size,4), flush);
 }
 
 void FlvMuxer::onWriteRtmp(const RtmpPacket::Ptr &pkt,bool flush) {

@@ -53,9 +53,6 @@ protected:
 
 protected:
     void reset();
-    BufferRaw::Ptr obtainBuffer();
-    BufferRaw::Ptr obtainBuffer(const void *data, size_t len);
-
     void sendAcknowledgement(uint32_t size);
     void sendAcknowledgementSize(uint32_t size);
     void sendPeerBandwidth(uint32_t size);
@@ -70,6 +67,7 @@ protected:
     void sendResponse(int type, const string &str);
     void sendRtmp(uint8_t type, uint32_t stream_index, const std::string &buffer, uint32_t stamp, int chunk_id);
     void sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::Ptr &buffer, uint32_t stamp, int chunk_id);
+    BufferRaw::Ptr obtainBuffer(const void *data = nullptr, size_t len = 0);
 
 private:
     void handle_C1_simple(const char *data);
