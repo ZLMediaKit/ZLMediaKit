@@ -537,7 +537,7 @@ void HttpSession::sendResponse(int code,
         headerOut.emplace(kAccessControlAllowCredentials, "true");
     }
 
-    if(!no_content_length && size >= 0 && size < SIZE_MAX){
+    if(!no_content_length && size >= 0 && (size_t)size < SIZE_MAX){
         //文件长度为固定值,且不是http-flv强制设置Content-Length
         headerOut[kContentLength] = to_string(size);
     }
