@@ -106,7 +106,7 @@ private:
     //////////Rtmp parser//////////
     function<const char * (const char *data, size_t len)> _next_step_func;
     ////////////Chunk////////////
-    unordered_map<int, RtmpPacket::Ptr> _map_chunk_data;
+    unordered_map<int, std::pair<RtmpPacket::Ptr/*now*/, RtmpPacket::Ptr/*last*/> > _map_chunk_data;
 };
 
 } /* namespace mediakit */

@@ -128,6 +128,7 @@ public:
 
 class RtmpPacket : public Buffer{
 public:
+    friend class RtmpProtocol;
     using Ptr = std::shared_ptr<RtmpPacket>;
     bool is_abs_stamp;
     uint8_t type_id;
@@ -212,6 +213,16 @@ private:
     friend class ResourcePool_l<RtmpPacket>;
     RtmpPacket(){
         clear();
+    }
+
+    RtmpPacket &operator=(const RtmpPacket &that) {
+        is_abs_stamp = that.is_abs_stamp;
+        stream_index = that.stream_index;
+        body_size = that.body_size;
+        type_id = that.type_id;
+        ts_field = that.ts_field;
+        time_stamp = that.time_stamp;
+        return *this;
     }
 
 private:

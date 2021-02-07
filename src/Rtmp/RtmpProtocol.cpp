@@ -565,13 +565,20 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             //need more data
             return ptr;
         }
-
         RtmpHeader &header = *((RtmpHeader *) (ptr + offset));
-        auto &packet_ptr = _map_chunk_data[_now_chunk_id];
-        if (!packet_ptr) {
-            packet_ptr = RtmpPacket::create();
+        auto &pr = _map_chunk_data[_now_chunk_id];
+        auto &now_packet = pr.first;
+        auto &last_packet = pr.second;
+        if (!now_packet) {
+            now_packet = RtmpPacket::create();
+            if (last_packet) {
+                //恢复chunk上下文
+                *now_packet = *last_packet;
+            }
+            //绝对时间戳标记复位
+            now_packet->is_abs_stamp = false;
         }
-        auto &chunk_data = *packet_ptr;
+        auto &chunk_data = *now_packet;
         chunk_data.chunk_id = _now_chunk_id;
         switch (header_len) {
             case 12:
@@ -598,7 +605,7 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             throw std::runtime_error("非法的bodySize");
         }
 
-        auto more = min(_chunk_size_in, (size_t)(chunk_data.body_size - chunk_data.buffer.size()));
+        auto more = min(_chunk_size_in, (size_t) (chunk_data.body_size - chunk_data.buffer.size()));
         if (len < header_len + offset + more) {
             //need more data
             return ptr;
@@ -612,10 +619,12 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             //frame is ready
             _now_stream_index = chunk_data.stream_index;
             chunk_data.time_stamp = time_stamp + (chunk_data.is_abs_stamp ? 0 : chunk_data.time_stamp);
+            //保存chunk上下文
+            last_packet = now_packet;
             if (chunk_data.body_size) {
-                handle_chunk(std::move(packet_ptr));
+                handle_chunk(std::move(now_packet));
             } else {
-                packet_ptr = nullptr;
+                now_packet = nullptr;
             }
         }
     }
