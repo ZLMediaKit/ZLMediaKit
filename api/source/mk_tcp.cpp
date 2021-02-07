@@ -254,7 +254,8 @@ API_EXPORT void API_CALL mk_tcp_client_send_safe(mk_tcp_client ctx, const char *
     assert(ctx && data);
     TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
     weak_ptr<TcpClient> weakClient = *client;
-    Buffer::Ptr buf = (*client)->obtainBuffer(data,len);
+    auto buf = BufferRaw::create();
+    buf->assign(data,len);
     (*client)->async([weakClient,buf](){
         auto strongClient = weakClient.lock();
         if(strongClient){

@@ -37,6 +37,7 @@ private:
     void onWriteRtmp(const RtmpPacket::Ptr &pkt, bool flush);
     void onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t time_stamp, bool flush);
     void onWriteFlvTag(uint8_t type, const Buffer::Ptr &buffer, uint32_t time_stamp, bool flush);
+    BufferRaw::Ptr obtainBuffer(const void *data, size_t len);
 
 private:
     //时间戳修整器

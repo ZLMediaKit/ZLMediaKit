@@ -14,7 +14,7 @@
 namespace mediakit{
 
 PSEncoder::PSEncoder() {
-    _buffer = std::make_shared<BufferRaw>();
+    _buffer = BufferRaw::create();
     init();
 }
 
