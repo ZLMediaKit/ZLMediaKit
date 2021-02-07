@@ -92,7 +92,8 @@ private:
     std::shared_ptr<FILE> _save_file_video;
     ProcessInterface::Ptr _process;
     MultiMediaSourceMuxer::Ptr _muxer;
-    std::atomic_bool _stop_rtp_check;
+    atomic_bool _stop_rtp_check{false};
+    atomic_flag _busy_flag{false};
 };
 
 }//namespace mediakit
