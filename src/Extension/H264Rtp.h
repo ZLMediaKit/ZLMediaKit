@@ -48,8 +48,9 @@ private:
     H264Frame::Ptr obtainFrame();
 
 private:
-    uint16_t _lastSeq = 0;
-    H264Frame::Ptr _h264frame;
+    uint16_t _last_seq = 0;
+    size_t _max_frame_size = 0;
+    H264Frame::Ptr _frame;
     DtsGenerator _dts_generator;
 };
 
@@ -61,17 +62,17 @@ public:
     typedef std::shared_ptr<H264RtpEncoder> Ptr;
 
     /**
-     * @param ui32Ssrc ssrc
-     * @param ui32MtuSize mtu大小
-     * @param ui32SampleRate 采样率，强制为90000
-     * @param ui8PayloadType pt类型
-     * @param ui8Interleaved rtsp interleaved
+     * @param ssrc ssrc
+     * @param mtu mtu大小
+     * @param sample_rate 采样率，强制为90000
+     * @param pt pt类型
+     * @param interleaved rtsp interleaved
      */
-    H264RtpEncoder(uint32_t ui32Ssrc,
-                   uint32_t ui32MtuSize = 1400,
-                   uint32_t ui32SampleRate = 90000,
-                   uint8_t ui8PayloadType = 96,
-                   uint8_t ui8Interleaved = TrackVideo * 2);
+    H264RtpEncoder(uint32_t ssrc,
+                   uint32_t mtu = 1400,
+                   uint32_t sample_rate = 90000,
+                   uint8_t pt = 96,
+                   uint8_t interleaved = TrackVideo * 2);
     ~H264RtpEncoder() {}
 
     /**
