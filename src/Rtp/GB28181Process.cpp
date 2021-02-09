@@ -77,10 +77,12 @@ void GB28181Process::onRtpSorted(RtpPacket::Ptr rtp, int) {
 const char *GB28181Process::onSearchPacketTail(const char *packet,size_t bytes){
     try {
         auto ret = _decoder->input((uint8_t *) packet, bytes);
-        if (ret > 0) {
+        if (ret >= 0) {
+            //解析成功全部或部分
             return packet + ret;
         }
-        return nullptr;
+        //解析失败，丢弃所有数据
+        return packet + bytes;
     } catch (std::exception &ex) {
         InfoL << "解析ps或ts异常: bytes=" << bytes
               << " ,exception=" << ex.what()
