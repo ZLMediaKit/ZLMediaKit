@@ -45,7 +45,7 @@ class TSDecoder : public Decoder {
 public:
     TSDecoder();
     ~TSDecoder();
-    size_t input(const uint8_t* data, size_t bytes) override ;
+    ssize_t input(const uint8_t* data, size_t bytes) override ;
     void setOnDecode(onDecode cb) override;
     void setOnStream(onStream cb) override;
 

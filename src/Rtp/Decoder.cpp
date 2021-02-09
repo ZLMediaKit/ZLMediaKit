@@ -54,7 +54,7 @@ DecoderImp::Ptr DecoderImp::createDecoder(Type type, MediaSinkInterface *sink){
     return DecoderImp::Ptr(new DecoderImp(decoder, sink));
 }
 
-size_t DecoderImp::input(const uint8_t *data, size_t bytes){
+ssize_t DecoderImp::input(const uint8_t *data, size_t bytes){
     return _decoder->input(data, bytes);
 }
 

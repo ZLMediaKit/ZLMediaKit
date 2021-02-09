@@ -25,7 +25,7 @@ public:
     typedef std::function<void(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, size_t bytes)> onDecode;
     typedef std::function<void(int stream, int codecid, const void *extra, size_t bytes, int finish)> onStream;
 
-    virtual size_t input(const uint8_t *data, size_t bytes) = 0;
+    virtual ssize_t input(const uint8_t *data, size_t bytes) = 0;
     virtual void setOnDecode(onDecode cb) = 0;
     virtual void setOnStream(onStream cb) = 0;
 
@@ -57,7 +57,7 @@ public:
     ~DecoderImp() = default;
 
     static Ptr createDecoder(Type type, MediaSinkInterface *sink);
-    size_t input(const uint8_t *data, size_t bytes);
+    ssize_t input(const uint8_t *data, size_t bytes);
 
 protected:
     void onTrack(const Track::Ptr &track);
