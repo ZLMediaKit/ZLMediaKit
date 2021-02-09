@@ -44,7 +44,7 @@ PSDecoder::~PSDecoder() {
     ps_demuxer_destroy((struct ps_demuxer_t*)_ps_demuxer);
 }
 
-size_t PSDecoder::input(const uint8_t *data, size_t bytes) {
+ssize_t PSDecoder::input(const uint8_t *data, size_t bytes) {
     return ps_demuxer_input((struct ps_demuxer_t*)_ps_demuxer,data,bytes);
 }
 
