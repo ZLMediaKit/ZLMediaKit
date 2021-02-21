@@ -71,6 +71,14 @@ endif ()
 
 set(LINK_LIB_LIST zlmediakit zltoolkit)
 
+#默认链接jemalloc库避免内存碎片
+find_package(JEMALLOC QUIET)
+if(JEMALLOC_FOUND)
+    message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
+    include_directories(${JEMALLOC_INCLUDE_DIR})
+    list(APPEND  LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
+endif()
+
 #查找openssl是否安装
 find_package(OpenSSL QUIET)
 if (OPENSSL_FOUND AND ENABLE_OPENSSL)
