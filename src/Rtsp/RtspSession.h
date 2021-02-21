@@ -132,7 +132,7 @@ private:
     void send_NotAcceptable();
     //获取track下标
     int getTrackIndexByTrackType(TrackType type);
-    int getTrackIndexByControlSuffix(const string &control_suffix);
+    int getTrackIndexByControlUrl(const string &control_url);
     int getTrackIndexByInterleaved(int interleaved);
     //一般用于接收udp打洞包，也用于rtsp推流
     void onRcvPeerUdpData(int interleaved, const Buffer::Ptr &buf, const struct sockaddr &addr);
