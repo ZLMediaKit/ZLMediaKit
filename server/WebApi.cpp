@@ -170,6 +170,8 @@ static ApiArgsType getAllArgs(const Parser &parser) {
     return allArgs;
 }
 
+extern uint64_t getTotalMemUsage();
+
 static inline void addHttpListener(){
     GET_CONFIG(bool, api_debug, API::kApiDebug);
     //注册监听kBroadcastHttpRequest事件
@@ -1046,6 +1048,11 @@ void installWebApi() {
 
         val["data"]["RtpPacket"] = (Json::UInt64)(ObjectStatistic<RtpPacket>::count());
         val["data"]["RtmpPacket"] = (Json::UInt64)(ObjectStatistic<RtmpPacket>::count());
+#ifdef ENABLE_MEM_DEBUG
+        auto bytes = getTotalMemUsage();
+        val["data"]["totalMemUsage"] = (Json::UInt64)bytes;
+        val["data"]["totalMemUsageMB"] = (int)(bytes / 1024 / 1024);
+#endif
     });
 
     ////////////以下是注册的Hook API////////////
