@@ -307,11 +307,117 @@ const string kBenchmarkMode = "benchmark_mode";
 
 }  // namespace mediakit
 
-
-void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line){
-    if(failed) {
+extern "C" {
+void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line) {
+    if (failed) {
         _StrPrinter printer;
-        printer << "Assertion failed: (" << exp << "), function " << func << ", file " << file << ", line " << line << ".";
+        printer << "Assertion failed: (" << exp << "), function " << func << ", file " << file << ", line " << line
+                << ".";
         throw std::runtime_error(printer);
     }
 }
+}
+
+#ifdef ENABLE_MEM_DEBUG
+
+static atomic<uint64_t> mem_usage(0);
+
+uint64_t getTotalMemUsage() {
+    return mem_usage.load();
+}
+
+extern "C" {
+
+#include <stdio.h>
+#define MAGIC_BYTES 0xFEFDFCFB
+#define MAGIC_BYTES_SIZE 4
+#define MEM_PREFIX_SIZE 8
+
+extern void *__real_malloc(size_t);
+extern void __real_free(void *);
+extern void *__real_realloc(void *ptr, size_t c);
+
+void *__wrap_malloc(size_t c) {
+    c += MEM_PREFIX_SIZE;
+    char *ret = (char *) __real_malloc(c);
+    if (ret) {
+        mem_usage += c;
+        *((uint32_t *) (ret)) = MAGIC_BYTES;
+        *((uint32_t *) (ret + MAGIC_BYTES_SIZE)) = c;
+        return ret + MEM_PREFIX_SIZE;
+    }
+    return nullptr;
+}
+
+void __wrap_free(void *ptr) {
+    if (!ptr) {
+        return;
+    }
+    ptr = (char *) ptr - MEM_PREFIX_SIZE;
+    uint32_t magic = *((uint32_t *) (ptr));
+    if (magic != MAGIC_BYTES) {
+        throw std::invalid_argument("attempt to free invalid memory");
+    }
+    mem_usage -= *((uint32_t *) ((char *) ptr + MAGIC_BYTES_SIZE));
+    __real_free(ptr);
+}
+
+void *__wrap_calloc(size_t __nmemb, size_t __size) {
+    auto size = __nmemb * __size;
+    auto ret = malloc(size);
+    if (ret) {
+        memset(ret, 0, size);
+    }
+    return ret;
+}
+
+void *__wrap_realloc(void *ptr, size_t c){
+    if (!ptr) {
+        return malloc(c);
+    }
+    c += MEM_PREFIX_SIZE;
+    ptr = (char *) ptr - MEM_PREFIX_SIZE;
+
+    uint32_t magic = *((uint32_t *) (ptr));
+    if (magic != MAGIC_BYTES) {
+        throw std::invalid_argument("attempt to realloc invalid memory");
+    }
+    auto old_size = *((uint32_t *) ((char *) ptr + MAGIC_BYTES_SIZE));
+    char *ret = (char *) __real_realloc(ptr, c);
+    if (ret) {
+        mem_usage += c - old_size;
+        *((uint32_t *) (ret)) = MAGIC_BYTES;
+        *((uint32_t *) (ret + MAGIC_BYTES_SIZE)) = c;
+        return ret + MEM_PREFIX_SIZE;
+    }
+    free(ptr);
+    mem_usage -= old_size;
+    return nullptr;
+}
+
+}
+
+void *operator new(std::size_t size) {
+    auto ret = malloc(size);
+    if (ret) {
+        return ret;
+    }
+    throw std::bad_alloc();
+}
+
+void operator delete(void *ptr) {
+    free(ptr);
+}
+
+void *operator new[](std::size_t size) {
+    auto ret = malloc(size);
+    if (ret) {
+        return ret;
+    }
+    throw std::bad_alloc();
+}
+
+void operator delete[](void *ptr) {
+    free(ptr);
+}
+#endif
