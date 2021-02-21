@@ -39,8 +39,11 @@ void HttpRequestSplitter::input(const char *data,size_t len) {
     const char *index = nullptr;
     _remain_data_size = len;
     while (_content_len == 0 && _remain_data_size > 0 && (index = onSearchPacketTail(ptr,_remain_data_size)) != nullptr) {
-        if(index == ptr){
+        if (index == ptr) {
             break;
+        }
+        if (index < ptr || index > ptr + _remain_data_size) {
+            throw std::out_of_range("上层分包逻辑异常");
         }
         //_content_len == 0，这是请求头
         const char *header_ptr = ptr;
