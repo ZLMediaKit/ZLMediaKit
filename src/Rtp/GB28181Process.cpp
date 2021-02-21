@@ -86,7 +86,7 @@ const char *GB28181Process::onSearchPacketTail(const char *packet,size_t bytes){
     } catch (std::exception &ex) {
         InfoL << "解析ps或ts异常: bytes=" << bytes
               << " ,exception=" << ex.what()
-              << " ,hex=" << hexdump((uint8_t *) packet, bytes);
+              << " ,hex=" << hexdump((uint8_t *) packet, MIN(bytes,32));
         if (remainDataSize() > 256 * 1024) {
             //缓存太多数据无法处理则上抛异常
             throw;
