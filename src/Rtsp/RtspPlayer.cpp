@@ -226,23 +226,20 @@ void RtspPlayer::createUdpSockIfNecessary(int track_idx){
 void RtspPlayer::sendSetup(unsigned int track_idx) {
     _on_response = std::bind(&RtspPlayer::handleResSETUP, this, placeholders::_1, track_idx);
     auto &track = _sdp_track[track_idx];
-    auto baseUrl = _content_base + "/" + track->_control_surffix;
-    if (track->_control.find("://") != string::npos) {
-        baseUrl = track->_control;
-    }
+    auto control_url = track->getControlUrl(_content_base);
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
-            sendRtspRequest("SETUP",baseUrl,{"Transport",StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1});
+            sendRtspRequest("SETUP", control_url, {"Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1});
         }
             break;
         case Rtsp::RTP_MULTICAST: {
-            sendRtspRequest("SETUP",baseUrl,{"Transport","RTP/AVP;multicast"});
+            sendRtspRequest("SETUP", control_url, {"Transport", "RTP/AVP;multicast"});
         }
             break;
         case Rtsp::RTP_UDP: {
             createUdpSockIfNecessary(track_idx);
-            sendRtspRequest("SETUP", baseUrl, {"Transport",
-                                               StrPrinter << "RTP/AVP;unicast;client_port="
+            sendRtspRequest("SETUP", control_url, {"Transport",
+                                                   StrPrinter << "RTP/AVP;unicast;client_port="
                                                           << _rtp_sock[track_idx]->get_local_port() << "-"
                                                           << _rtcp_sock[track_idx]->get_local_port()});
         }

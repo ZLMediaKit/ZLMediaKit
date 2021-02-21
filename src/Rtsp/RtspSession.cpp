@@ -268,7 +268,7 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
                 shutdown(SockException(Err_shutdown,"track not setuped"));
                 return;
             }
-            rtp_info << "url=" << _content_base << "/" << track->_control_surffix << ",";
+            rtp_info << "url=" << track->getControlUrl(_content_base) << ",";
         }
 
         rtp_info.pop_back();
@@ -614,11 +614,7 @@ void RtspSession::send_SessionNotFound() {
 
 void RtspSession::handleReq_Setup(const Parser &parser) {
     //处理setup命令，该函数可能进入多次
-    auto controlSuffix = split(parser.FullUrl(),"/").back();
-    if(controlSuffix.front() == '/'){
-        controlSuffix = controlSuffix.substr(1);
-    }
-    int trackIdx = getTrackIndexByControlSuffix(controlSuffix);
+    int trackIdx = getTrackIndexByControlUrl(parser.Url());
     SdpTrack::Ptr &trackRef = _sdp_track[trackIdx];
     if (trackRef->_inited) {
         //已经初始化过该Track
@@ -796,7 +792,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         track->_seq = play_src->getSeqence(track->_type);
         track->_time_stamp = play_src->getTimeStamp(track->_type);
 
-        rtp_info << "url=" << _content_base << "/" << track->_control_surffix << ";"
+        rtp_info << "url=" << track->getControlUrl(_content_base) << ";"
                  << "seq=" << track->_seq << ";"
                  << "rtptime=" << (int) (track->_time_stamp * (track->_samplerate / 1000)) << ",";
     }
@@ -1068,16 +1064,16 @@ int RtspSession::getTrackIndexByTrackType(TrackType type) {
     throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << (int) type);
 }
 
-int RtspSession::getTrackIndexByControlSuffix(const string &controlSuffix) {
+int RtspSession::getTrackIndexByControlUrl(const string &control_url) {
     for (unsigned int i = 0; i < _sdp_track.size(); i++) {
-        if (controlSuffix == _sdp_track[i]->_control_surffix) {
+        if (control_url == _sdp_track[i]->getControlUrl(_content_base)) {
             return i;
         }
     }
     if(_sdp_track.size() == 1){
         return 0;
     }
-    throw SockException(Err_shutdown, StrPrinter << "no such track with suffix:" << controlSuffix);
+    throw SockException(Err_shutdown, StrPrinter << "no such track with control url:" << control_url);
 }
 
 int RtspSession::getTrackIndexByInterleaved(int interleaved){

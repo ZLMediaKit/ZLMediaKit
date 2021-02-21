@@ -86,6 +86,14 @@ string SdpTrack::getName() const{
     }
 }
 
+string SdpTrack::getControlUrl(const string &base_url) const{
+    if (_control.find("://") != string::npos) {
+        //以rtsp://开头
+        return _control;
+    }
+    return base_url +"/" + _control;
+}
+
 string SdpTrack::toString() const {
     _StrPrinter _printer;
     switch (_type){
@@ -246,8 +254,6 @@ void SdpParser::load(const string &sdp) {
         it = track._attr.find("control");
         if(it != track._attr.end()) {
             track._control = it->second;
-            auto surffix = string("/") + track._control;
-            track._control_surffix = surffix.substr(1 + surffix.rfind('/'));
         }
     }
 }

@@ -261,21 +261,18 @@ void RtspPusher::createUdpSockIfNecessary(int track_idx){
 void RtspPusher::sendSetup(unsigned int track_idx) {
     _on_res_func = std::bind(&RtspPusher::handleResSetup, this, placeholders::_1, track_idx);
     auto &track = _track_vec[track_idx];
-    auto base_url = _content_base + "/" + track->_control_surffix;
-    if (track->_control.find("://") != string::npos) {
-        base_url = track->_control;
-    }
+    auto control_url = track->getControlUrl(_content_base);
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
-            sendRtspRequest("SETUP", base_url, {"Transport",
-                                                StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2
+            sendRtspRequest("SETUP", control_url, {"Transport",
+                                                   StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2
                                                            << "-" << track->_type * 2 + 1});
         }
             break;
         case Rtsp::RTP_UDP: {
             createUdpSockIfNecessary(track_idx);
             int port = _rtp_sock[track_idx]->get_local_port();
-            sendRtspRequest("SETUP", base_url,
+            sendRtspRequest("SETUP", control_url,
                             {"Transport", StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1});
         }
             break;

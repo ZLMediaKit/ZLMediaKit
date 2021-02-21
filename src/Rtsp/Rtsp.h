@@ -213,6 +213,7 @@ public:
 
     string toString() const;
     string getName() const;
+    string getControlUrl(const string &base_url) const;
 
 public:
     int _pt;
@@ -222,7 +223,6 @@ public:
     string _codec;
     string _fmtp;
     string _control;
-    string _control_surffix;
 
 public:
     bool _inited = false;
