@@ -15,7 +15,10 @@ using namespace toolkit;
 
 namespace mediakit{
 
-static bool getAVCInfo(const char * sps,size_t sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
+static bool getAVCInfo(const char *sps, size_t sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
+    if (sps_len < 4) {
+        return false;
+    }
     T_GetBitContext tGetBitBuf;
     T_SPS tH264SpsInfo;
     memset(&tGetBitBuf,0,sizeof(tGetBitBuf));
@@ -157,7 +160,10 @@ void H264Track::inputFrame(const Frame::Ptr &frame) {
 }
 
 void H264Track::onReady(){
-    getAVCInfo(_sps,_width,_height,_fps);
+    if (!getAVCInfo(_sps, _width, _height, _fps)) {
+        _sps.clear();
+        _pps.clear();
+    }
 }
 
 Track::Ptr H264Track::clone() {
