@@ -307,14 +307,22 @@ static void findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession>
         return;
     }
 
-    void *listener_tag = session.get();
-    weak_ptr<TcpSession> weak_session = session;
-
     GET_CONFIG(int, maxWaitMS, General::kMaxStreamWaitTimeMS);
-    auto on_timeout = session->getPoller()->doDelayTask(maxWaitMS, [cb, listener_tag]() {
+    void *listener_tag = session.get();
+    auto poller = session->getPoller();
+    std::shared_ptr<atomic_flag> invoked(new atomic_flag{false});
+    auto cb_once = [cb, invoked](const MediaSource::Ptr &src) {
+        if (invoked->test_and_set()) {
+            //回调已经执行过了
+            return;
+        }
+        cb(src);
+    };
+
+    auto on_timeout = poller->doDelayTask(maxWaitMS, [cb_once, listener_tag]() {
         //最多等待一定时间，如果这个时间内，流未注册上，那么返回未找到流
         NoticeCenter::Instance().delListener(listener_tag, Broadcast::kBroadcastMediaChanged);
-        cb(nullptr);
+        cb_once(nullptr);
         return 0;
     });
 
@@ -325,20 +333,8 @@ static void findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession>
         NoticeCenter::Instance().delListener(listener_tag, Broadcast::kBroadcastMediaChanged);
     };
 
-    function<void()> close_player = [cb, cancel_all]() {
-        cancel_all();
-        //告诉播放器，流不存在，这样会立即断开播放器
-        cb(nullptr);
-    };
-
-    auto on_regist = [weak_session, info, cb, cancel_all](BroadcastMediaChangedArgs) {
-        auto strong_session = weak_session.lock();
-        if (!strong_session) {
-            //自己已经销毁
-            cancel_all();
-            return;
-        }
-
+    weak_ptr<TcpSession> weak_session = session;
+    auto on_register = [weak_session, info, cb_once, cancel_all, poller](BroadcastMediaChangedArgs) {
         if (!bRegist ||
             sender.getSchema() != info._schema ||
             sender.getVhost() != info._vhost ||
@@ -347,23 +343,30 @@ static void findAsync_l(const MediaInfo &info, const std::shared_ptr<TcpSession>
             //不是自己感兴趣的事件，忽略之
             return;
         }
-
-        cancel_all();
-
-        //播发器请求的流终于注册上了，切换到自己的线程再回复
-        strong_session->async([weak_session, info, cb]() {
-            auto strongSession = weak_session.lock();
-            if (!strongSession) {
+        poller->async([weak_session, cancel_all, info, cb_once]() {
+            cancel_all();
+            auto strong_session = weak_session.lock();
+            if (!strong_session) {
+                //自己已经销毁
                 return;
             }
+            //播发器请求的流终于注册上了，切换到自己的线程再回复
             DebugL << "收到媒体注册事件,回复播放器:" << info._schema << "/" << info._vhost << "/" << info._app << "/" << info._streamid;
             //再找一遍媒体源，一般能找到
-            findAsync_l(info, strongSession, false, cb);
+            findAsync_l(info, strong_session, false, cb_once);
         }, false);
     };
 
     //监听媒体注册事件
-    NoticeCenter::Instance().addListener(listener_tag, Broadcast::kBroadcastMediaChanged, on_regist);
+    NoticeCenter::Instance().addListener(listener_tag, Broadcast::kBroadcastMediaChanged, on_register);
+
+    function<void()> close_player = [cb_once, cancel_all, poller]() {
+        poller->async([cancel_all, cb_once]() {
+            cancel_all();
+            //告诉播放器，流不存在，这样会立即断开播放器
+            cb_once(nullptr);
+        });
+    };
     //广播未找到流,此时可以立即去拉流，这样还来得及
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream, info, static_cast<SockInfo &>(*session), close_player);
 }
