@@ -186,7 +186,11 @@ void H265Track::inputFrame_l(const Frame::Ptr &frame) {
 }
 
 void H265Track::onReady() {
-    getHEVCInfo(_vps, _sps, _width, _height, _fps);
+    if (!getHEVCInfo(_vps, _sps, _width, _height, _fps)) {
+        _vps.clear();
+        _sps.clear();
+        _pps.clear();
+    }
 }
 
 Track::Ptr H265Track::clone() {

@@ -221,6 +221,10 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 }
 
 void H264RtmpEncoder::makeVideoConfigPkt() {
+    if (_sps.size() < 4) {
+        WarnL << "sps长度不足4字节";
+        return;
+    }
     int8_t flags = FLV_CODEC_H264;
     flags |= (FLV_KEY_FRAME << 4);
     bool is_config = true;
