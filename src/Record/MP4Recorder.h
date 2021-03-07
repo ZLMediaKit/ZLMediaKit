@@ -33,7 +33,8 @@ public:
     MP4Recorder(const string &strPath,
                 const string &strVhost,
                 const string &strApp,
-                const string &strStreamId);
+                const string &strStreamId,
+                size_t max_second);
     virtual ~MP4Recorder();
 
     /**
@@ -55,12 +56,13 @@ private:
     void closeFile();
     void asyncClose();
 private:
+    bool _haveVideo = false;
+    size_t _max_second;
     string _strPath;
     string _strFile;
     string _strFileTmp;
     Ticker _createFileTicker;
     RecordInfo _info;
-    bool _haveVideo = false;
     MP4Muxer::Ptr _muxer;
     list<Track::Ptr> _tracks;
 };

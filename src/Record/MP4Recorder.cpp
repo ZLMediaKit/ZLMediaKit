@@ -20,16 +20,19 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Recorder::MP4Recorder(const string& strPath,
-                   const string &strVhost,
-                   const string &strApp,
-                   const string &strStreamId) {
+MP4Recorder::MP4Recorder(const string &strPath,
+                         const string &strVhost,
+                         const string &strApp,
+                         const string &strStreamId,
+                         size_t max_second) {
     _strPath = strPath;
     /////record 业务逻辑//////
     _info.app = strApp;
     _info.stream = strStreamId;
     _info.vhost = strVhost;
     _info.folder = strPath;
+    GET_CONFIG(size_t ,recordSec,Record::kFileSecond);
+    _max_second = max_second ? max_second : recordSec;
 }
 MP4Recorder::~MP4Recorder() {
     closeFile();
@@ -104,8 +107,7 @@ void MP4Recorder::closeFile() {
 }
 
 void MP4Recorder::inputFrame(const Frame::Ptr &frame) {
-    GET_CONFIG(uint32_t,recordSec,Record::kFileSecond);
-    if(!_muxer || ((_createFileTicker.elapsedTime() > recordSec * 1000) &&
+    if(!_muxer || ((_createFileTicker.elapsedTime() > _max_second * 1000) &&
                   (!_haveVideo || (_haveVideo && frame->keyFrame()))) ){
         //成立条件
         //1、_muxer为空
