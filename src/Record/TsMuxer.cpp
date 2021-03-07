@@ -163,7 +163,7 @@ void TsMuxer::init() {
     static mpeg_ts_func_t s_func = {
             [](void *param, size_t bytes) {
                 TsMuxer *muxer = (TsMuxer *) param;
-                assert(sizeof(TsMuxer::_tsbuf) >= bytes);
+                assert(sizeof(muxer->_tsbuf) >= bytes);
                 return (void *) muxer->_tsbuf;
             },
             [](void *param, void *packet) {
