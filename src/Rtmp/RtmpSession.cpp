@@ -70,11 +70,6 @@ void RtmpSession::onRecv(const Buffer::Ptr &buf) {
 
 void RtmpSession::onCmd_connect(AMFDecoder &dec) {
     auto params = dec.load<AMFValue>();
-    double amf_ver = 0;
-    AMFValue objectEncoding = params["objectEncoding"];
-    if(objectEncoding){
-        amf_ver = objectEncoding.as_number();
-    }
     ///////////set chunk size////////////////
     sendChunkSize(60000);
     ////////////window Acknowledgement size/////
@@ -102,7 +97,7 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
     status.set("level", ok ? "status" : "error");
     status.set("code", ok ? "NetConnection.Connect.Success" : "NetConnection.Connect.InvalidApp");
     status.set("description", ok ? "Connection succeeded." : "InvalidApp.");
-    status.set("objectEncoding", amf_ver);
+    status.set("objectEncoding", params["objectEncoding"]);
     sendReply(ok ? "_result" : "_error", version, status);
     if (!ok) {
         throw std::runtime_error("Unsupported application: " + _media_info._app);
