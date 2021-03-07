@@ -1,6 +1,6 @@
 [submodule "ZLToolKit"]
 	path = 3rdpart/ZLToolKit
-	url = https://github.com/xia-chu/ZLToolKit
+	url = https://gitee.com/xia-chu/ZLToolKit
 [submodule "3rdpart/media-server"]
 	path = 3rdpart/media-server
-	url = https://github.com/xia-chu/media-server
+	url = https://gitee.com/xia-chu/media-server
