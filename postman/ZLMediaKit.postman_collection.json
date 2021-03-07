@@ -818,7 +818,14 @@
 						{
 							"key": "customized_path",
 							"value": null,
+							"disabled": true,
 							"description": "录像文件保存自定义根目录，为空则采用配置文件设置"
+						},
+						{
+							"key": "max_second",
+							"value": "1000",
+							"disabled": true,
+							"description": "MP4录制的切片时间大小，单位秒"
 						}
 					]
 				}

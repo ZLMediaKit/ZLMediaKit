@@ -44,7 +44,7 @@ private:
     int totalReaderCount() const;
     void setTimeStamp(uint32_t stamp);
     void setTrackListener(Listener *listener);
-    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path);
+    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second);
     bool isRecording(MediaSource &sender, Recorder::type type);
     bool isEnabled();
     void onTrackReady(const Track::Ptr & track) override;
@@ -125,7 +125,7 @@ public:
      * @param custom_path 开启录制时，指定自定义路径
      * @return 是否设置成功
      */
-    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) override;
+    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) override;
 
     /**
      * 获取录制状态

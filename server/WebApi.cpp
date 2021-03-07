@@ -877,10 +877,11 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
         auto result = Recorder::startRecord((Recorder::type) allArgs["type"].as<int>(),
-                                              allArgs["vhost"],
-                                              allArgs["app"],
-                                              allArgs["stream"],
-                                              allArgs["customized_path"]);
+                                            allArgs["vhost"],
+                                            allArgs["app"],
+                                            allArgs["stream"],
+                                            allArgs["customized_path"],
+                                            allArgs["max_second"].as<size_t>());
         val["result"] = result;
         val["code"] = result ? API::Success : API::OtherFailed;
         val["msg"] = result ? "success" :  "start record failed";

@@ -107,8 +107,8 @@ int MultiMuxerPrivate::totalReaderCount() const {
            (hls ? hls->readerCount() : 0);
 }
 
-static std::shared_ptr<MediaSinkInterface> makeRecorder(const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, MediaSource &sender){
-    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), custom_path);
+static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, size_t max_second){
+    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), custom_path, max_second);
     for (auto &track : tracks) {
         recorder->addTrack(track);
     }
@@ -116,12 +116,12 @@ static std::shared_ptr<MediaSinkInterface> makeRecorder(const vector<Track::Ptr>
 }
 
 //此函数可能跨线程调用
-bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path){
+bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second){
     switch (type) {
         case Recorder::type_hls : {
             if (start && !_hls) {
                 //开始录制
-                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(getTracks(true), type, custom_path, sender));
+                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, getTracks(true), type, custom_path, max_second));
                 if (hls) {
                     //设置HlsMediaSource的事件监听器
                     hls->setListener(_listener);
@@ -136,7 +136,7 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
         case Recorder::type_mp4 : {
             if (start && !_mp4) {
                 //开始录制
-                _mp4 = makeRecorder(getTracks(true), type, custom_path, sender);
+                _mp4 = makeRecorder(sender, getTracks(true), type, custom_path, max_second);
             } else if (!start && _mp4) {
                 //停止录制
                 _mp4 = nullptr;
@@ -326,8 +326,8 @@ int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
     return listener->totalReaderCount(sender);
 }
 
-bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path) {
-    return _muxer->setupRecord(sender, type, start, custom_path);
+bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
+    return _muxer->setupRecord(sender, type, start, custom_path, max_second);
 }
 
 bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type) {
