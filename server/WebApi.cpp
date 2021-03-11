@@ -851,7 +851,7 @@ void installWebApi() {
             return;
         }
         auto server = it->second;
-        server->pauseRtpCheck();
+        server->pauseRtpCheck(allArgs["stream_id"]);
         val["hit"] = 1;
     });
 
@@ -866,7 +866,7 @@ void installWebApi() {
             return;
         }
         auto server = it->second;
-        server->resumeRtpCheck();
+        server->resumeRtpCheck(allArgs["stream_id"]);
         val["hit"] = 1;
     });
 
