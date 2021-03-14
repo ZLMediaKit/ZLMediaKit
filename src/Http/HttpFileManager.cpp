@@ -494,9 +494,9 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
             return;
         }
         //判断是否有权限访问该目录
-        canAccessPath(sender, parser, mediaInfo, true, [strMenu, cb](const string &errMsg, const HttpServerCookie::Ptr &cookie) {
+        canAccessPath(sender, parser, mediaInfo, true, [strMenu, cb](const string &errMsg, const HttpServerCookie::Ptr &cookie) mutable{
             if (!errMsg.empty()) {
-                const_cast<string &>(strMenu) = errMsg;
+                strMenu = errMsg;
             }
             StrCaseMap headerOut;
             if (cookie) {

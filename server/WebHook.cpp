@@ -126,9 +126,9 @@ void do_http_hook(const string &url,const ArgsType &body,const function<void(con
     requester->startRequester(url, [url, func, bodyStr, requester, pTicker](const SockException &ex,
                                                                             const string &status,
                                                                             const HttpClient::HttpHeader &header,
-                                                                            const string &strRecvBody) {
-        onceToken token(nullptr, [&]() {
-            const_cast<HttpRequester::Ptr &>(requester).reset();
+                                                                            const string &strRecvBody) mutable{
+        onceToken token(nullptr, [&]() mutable{
+            requester.reset();
         });
         parse_http_response(ex,status,header,strRecvBody,[&](const Value &obj,const string &err){
             if (func) {
