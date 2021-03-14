@@ -644,12 +644,12 @@ void installWebApi() {
                        allArgs["enable_hls"],/* 是否hls转发 */
                        allArgs["enable_mp4"],/* 是否MP4录制 */
                        allArgs["rtp_type"],
-                       [invoker,val,headerOut](const SockException &ex,const string &key){
-                           if(ex){
-                               const_cast<Value &>(val)["code"] = API::OtherFailed;
-                               const_cast<Value &>(val)["msg"] = ex.what();
-                           }else{
-                               const_cast<Value &>(val)["data"]["key"] = key;
+                       [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
+                           if (ex) {
+                               val["code"] = API::OtherFailed;
+                               val["msg"] = ex.what();
+                           } else {
+                               val["data"]["key"] = key;
                            }
                            invoker(200, headerOut, val.toStyledString());
                        });
@@ -708,12 +708,12 @@ void installWebApi() {
         auto enable_mp4 = allArgs["enable_mp4"].as<int>();
 
         addFFmpegSource(allArgs["ffmpeg_cmd_key"], src_url, dst_url, timeout_ms, enable_hls, enable_mp4,
-                        [invoker, val, headerOut](const SockException &ex, const string &key) {
+                        [invoker, val, headerOut](const SockException &ex, const string &key) mutable{
             if (ex) {
-                const_cast<Value &>(val)["code"] = API::OtherFailed;
-                const_cast<Value &>(val)["msg"] = ex.what();
+                val["code"] = API::OtherFailed;
+                val["msg"] = ex.what();
             } else {
-                const_cast<Value &>(val)["data"]["key"] = key;
+                val["data"]["key"] = key;
             }
             invoker(200, headerOut, val.toStyledString());
         });
@@ -815,12 +815,12 @@ void installWebApi() {
         }
 
         //src_port为空时，则随机本地端口
-        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](uint16_t local_port, const SockException &ex){
+        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable{
             if (ex) {
-                const_cast<Value &>(val)["code"] = API::OtherFailed;
-                const_cast<Value &>(val)["msg"] = ex.what();
+                val["code"] = API::OtherFailed;
+                val["msg"] = ex.what();
             }
-            const_cast<Value &>(val)["local_port"] = local_port;
+            val["local_port"] = local_port;
             invoker(200, headerOut, val.toStyledString());
         });
     });
@@ -1116,12 +1116,12 @@ void installWebApi() {
                         (1000 * timeout_sec) - 500,
                         false,
                         false,
-                        [invoker,val,headerOut](const SockException &ex,const string &key){
+                        [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                             if(ex){
-                                const_cast<Value &>(val)["code"] = API::OtherFailed;
-                                const_cast<Value &>(val)["msg"] = ex.what();
+                                val["code"] = API::OtherFailed;
+                                val["msg"] = ex.what();
                             }else{
-                                const_cast<Value &>(val)["data"]["key"] = key;
+                                val["data"]["key"] = key;
                             }
                             invoker(200, headerOut, val.toStyledString());
                         });
@@ -1141,12 +1141,12 @@ void installWebApi() {
                        true,/* 开启hls转发 */
                        false,/* 禁用MP4录制 */
                        0,//rtp over tcp方式拉流
-                       [invoker,val,headerOut](const SockException &ex,const string &key){
+                       [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                            if(ex){
-                               const_cast<Value &>(val)["code"] = API::OtherFailed;
-                               const_cast<Value &>(val)["msg"] = ex.what();
+                               val["code"] = API::OtherFailed;
+                               val["msg"] = ex.what();
                            }else{
-                               const_cast<Value &>(val)["data"]["key"] = key;
+                               val["data"]["key"] = key;
                            }
                            invoker(200, headerOut, val.toStyledString());
                        });

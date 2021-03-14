@@ -76,16 +76,16 @@ void MP4Recorder::asyncClose() {
     auto strFileTmp = _strFileTmp;
     auto strFile = _strFile;
     auto info = _info;
-    WorkThreadPool::Instance().getExecutor()->async([muxer,strFileTmp,strFile,info]() {
+    WorkThreadPool::Instance().getExecutor()->async([muxer,strFileTmp,strFile,info]() mutable{
         //获取文件录制时间，放在关闭mp4之前是为了忽略关闭mp4执行时间
-        const_cast<RecordInfo&>(info).time_len = (float)(::time(NULL) - info.start_time);
+        info.time_len = (float)(::time(NULL) - info.start_time);
         //关闭mp4非常耗时，所以要放在后台线程执行
         muxer->closeMP4();
 
         //获取文件大小
         struct stat fileData;
         stat(strFileTmp.data(), &fileData);
-        const_cast<RecordInfo &>(info).file_size = fileData.st_size;
+        info.file_size = fileData.st_size;
         if (fileData.st_size < 1024) {
             //录像文件太小，删除之
             File::delete_file(strFileTmp.data());
