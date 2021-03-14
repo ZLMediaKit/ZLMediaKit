@@ -60,12 +60,12 @@ public:
     /**
      * 暂停Rtp服务的RTP流检测
      */
-    void pauseRtpCheck();
+    void pauseRtpCheck(const string &stream_id = "");
 
     /**
      * 恢复Rtp服务的RTP流检测
      */
-    void resumeRtpCheck();
+    void resumeRtpCheck(const string &stream_id = "");
 
 protected:
     Socket::Ptr _udp_server;
