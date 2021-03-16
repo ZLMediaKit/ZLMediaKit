@@ -127,9 +127,15 @@ void RtpProcess::addTrackCompleted() {
 
 bool RtpProcess::alive() {
     if (_stop_rtp_check.load()) {
-        return true;
+        if(_last_check_alive.elapsedTime() > 5 * 60 * 1000){
+            //最多暂停5分钟的rtp超时检测，因为NAT映射有效期一般不会太长
+            _stop_rtp_check = false;
+        } else {
+            return true;
+        }
     }
 
+    _last_check_alive.elapsedTime();
     GET_CONFIG(uint64_t, timeoutSec, RtpProxy::kTimeoutSec)
     if (_last_frame_time.elapsedTime() / 1000 < timeoutSec) {
         return true;

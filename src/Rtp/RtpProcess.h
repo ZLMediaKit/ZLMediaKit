@@ -94,6 +94,7 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
     atomic_bool _stop_rtp_check{false};
     atomic_flag _busy_flag{false};
+    Ticker _last_check_alive;
 };
 
 }//namespace mediakit

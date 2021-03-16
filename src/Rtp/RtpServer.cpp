@@ -160,31 +160,5 @@ uint16_t RtpServer::getPort() {
     return _udp_server ? _udp_server->get_local_port() : 0;
 }
 
-void RtpServer::pauseRtpCheck(const string &stream_id){    
-    if(_rtp_process)
-        _rtp_process->setStopCheckRtp(true);
-    else{
-        if(!stream_id.empty()){
-            auto rtp_process = RtpSelector::Instance().getProcess(stream_id,false);
-            if(rtp_process)
-                rtp_process->setStopCheckRtp(true);
-        }
-    }
-    
-}
-
-void RtpServer::resumeRtpCheck(const string &stream_id){
-    if(_rtp_process)
-        _rtp_process->setStopCheckRtp(false);
-    else{
-        //解决不指定流或者TCP收流无法暂停
-        if(!stream_id.empty()){
-        auto rtp_process = RtpSelector::Instance().getProcess(stream_id,false);
-        if(rtp_process)
-            rtp_process->setStopCheckRtp(false);
-        }
-    }
-}
-
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)

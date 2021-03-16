@@ -844,30 +844,23 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
         //只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议
-        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
-        if (it == s_rtpServerMap.end()) {
-            val["hit"] = 0;
-            return;
+        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        if (rtp_process) {
+            rtp_process->setStopCheckRtp(true);
+        } else {
+            val["code"] = API::NotFound;
         }
-        auto server = it->second;
-        server->pauseRtpCheck(allArgs["stream_id"]);
-        val["hit"] = 1;
     });
 
     api_regist("/index/api/resumeRtpCheck", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
-
-        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
-        if (it == s_rtpServerMap.end()) {
-            val["hit"] = 0;
-            return;
+        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        if (rtp_process) {
+            rtp_process->setStopCheckRtp(false);
+        } else {
+            val["code"] = API::NotFound;
         }
-        auto server = it->second;
-        server->resumeRtpCheck(allArgs["stream_id"]);
-        val["hit"] = 1;
     });
 
 #endif//ENABLE_RTPPROXY
