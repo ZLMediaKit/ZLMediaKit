@@ -135,7 +135,7 @@ bool RtpProcess::alive() {
         }
     }
 
-    _last_check_alive.elapsedTime();
+    _last_check_alive.resetTime();
     GET_CONFIG(uint64_t, timeoutSec, RtpProxy::kTimeoutSec)
     if (_last_frame_time.elapsedTime() / 1000 < timeoutSec) {
         return true;
