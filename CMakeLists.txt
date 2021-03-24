@@ -55,6 +55,7 @@ option(ENABLE_TESTS "Enable Tests" true)
 option(ENABLE_SERVER "Enable Server" true)
 option(ENABLE_MEM_DEBUG "Enable Memory Debug" false)
 option(ENABLE_ASAN "Enable Address Sanitize" false)
+option(ENABLE_WEBRTC "Enable WebRTC" true)
 
 if (ENABLE_MEM_DEBUG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-wrap,free  -Wl,-wrap,malloc -Wl,-wrap,realloc -Wl,-wrap,calloc")
@@ -222,6 +223,11 @@ execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini ${EXECUTA
 #添加c库
 if(ENABLE_API)
     add_subdirectory(api)
+endif()
+
+if(ENABLE_WEBRTC)
+    add_definitions(-DENABLE_WEBRTC)
+    add_subdirectory(webrtc)
 endif()
 
 if (NOT IOS)

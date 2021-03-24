@@ -35,6 +35,9 @@
 #if defined(ENABLE_RTPPROXY)
 #include "Rtp/RtpServer.h"
 #endif
+#ifdef ENABLE_WEBRTC
+#include "../webrtc/webrtc_transport.h"
+#endif
 
 using namespace toolkit;
 using namespace mediakit;
@@ -1048,6 +1051,27 @@ void installWebApi() {
         val["data"]["totalMemUsageMB"] = (int)(bytes / 1024 / 1024);
 #endif
     });
+
+#ifdef ENABLE_WEBRTC
+    static list<WebRtcTransportImp::Ptr> rtcs;
+    api_regist("/webrtc",[](API_ARGS_MAP_ASYNC){
+        CHECK_ARGS("app", "stream");
+        auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, DEFAULT_VHOST, allArgs["app"], allArgs["stream"]));
+        if (!src) {
+            throw ApiRetException("流不存在", API::NotFound);
+        }
+        headerOut["Content-Type"] = "text/plain";
+        headerOut["Access-Control-Allow-Origin"] = "*";
+        auto poller = EventPollerPool::Instance().getFirstPoller();
+        auto rtc = std::make_shared<WebRtcTransportImp>(poller);
+        poller->async([invoker, rtc, headerOut, src]() {
+            rtc->attach(src);
+            auto sdp = rtc->GetLocalSdp();
+            invoker(200, headerOut, sdp);
+            rtcs.emplace_back(rtc);
+        });
+    });
+#endif
 
     ////////////以下是注册的Hook API////////////
     api_regist("/index/hook/on_publish",[](API_ARGS_MAP){
