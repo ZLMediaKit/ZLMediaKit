@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!--
+ *  Copyright (c) 2015 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree.
+-->
+<html>
+<head>
+  <title>PeerConnection PRANSWER Demo</title>
+  <!-- Load the polyfill to switch-hit between Chrome and Firefox -->
+  <style>
+    video {
+      border:5px solid black;
+      width:800px;
+      height:600px;
+    }
+  </style>
+</head>
+<body>
+    <video id="vid2" autoplay></video>
+    <br>
+    <p>ip_address</p>
+    <input id="input1" type="text" name="ip_address" value="http://172.26.10.29:20080/webrtc?app=live&stream=test">
+    <br>
+    <button id="btn1">Call</button>
+    <button id="btn3">Hang Up</button>
+</body>
+<script src="js/adapter.js"></script>
+<script src="js/common.js"></script>
+<script src="js/main.js"></script>
+</html>
+
