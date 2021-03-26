@@ -3,12 +3,12 @@
 #include <memory>
 #include <string>
 
-#include "dtls_transport.h"
+#include "rtc_dtls_transport.h"
 #include "ice_server.h"
 #include "srtp_session.h"
 #include "stun_packet.h"
 
-class WebRtcTransport {
+class WebRtcTransport : public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener  {
 public:
     using Ptr = std::shared_ptr<WebRtcTransport>;
     WebRtcTransport();
@@ -22,12 +22,37 @@ public:
     /// \param buf
     /// \param len
     /// \param remote_address
-    void OnInputDataPacket(char *buf, size_t len, struct sockaddr_in *remote_address);
+    void OnInputDataPacket(char *buf, size_t len, RTC::TransportTuple *tuple);
 
     /// 发送rtp
     /// \param buf
     /// \param len
     void WritRtpPacket(char *buf, size_t len);
+
+protected:
+    // dtls相关的回调
+    void OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) override {};
+    void OnDtlsTransportConnected(
+            const RTC::DtlsTransport *dtlsTransport,
+            RTC::SrtpSession::CryptoSuite srtpCryptoSuite,
+            uint8_t *srtpLocalKey,
+            size_t srtpLocalKeyLen,
+            uint8_t *srtpRemoteKey,
+            size_t srtpRemoteKeyLen,
+            std::string &remoteCert) override;
+
+    void OnDtlsTransportFailed(const RTC::DtlsTransport *dtlsTransport) override {};
+    void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override {};
+    void OnDtlsTransportSendData(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
+    void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override {};
+
+protected:
+    //ice相关的回调
+    void OnIceServerSendStunPacket(const RTC::IceServer *iceServer, const RTC::StunPacket *packet, RTC::TransportTuple *tuple) override;
+    void OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) override;
+    void OnIceServerConnected(const RTC::IceServer *iceServer) override;
+    void OnIceServerCompleted(const RTC::IceServer *iceServer) override;
+    void OnIceServerDisconnected(const RTC::IceServer *iceServer) override;
 
 protected:
     /// 输出udp数据
@@ -39,17 +64,14 @@ protected:
     virtual uint16_t getPort() const = 0;
     virtual std::string getIP() const = 0;
     virtual int getPayloadType() const = 0;
-    virtual void onIceConnected() = 0;
-    virtual void onDtlsCompleted() = 0;
+    virtual void onDtlsConnected() = 0;
 
 private:
-    void OnIceServerCompleted();
-    void OnDtlsCompleted(std::string client_key, std::string server_key, RTC::CryptoSuite srtp_crypto_suite);
-    void WritePacket(char *buf, size_t len, struct sockaddr_in *remote_address = nullptr);
+    void onWrite(const char *buf, size_t len);
 
 private:
-    IceServer::Ptr ice_server_;
-    DtlsTransport::Ptr dtls_transport_;
+    std::shared_ptr<RTC::IceServer> ice_server_;
+    std::shared_ptr<RTC::DtlsTransport> dtls_transport_;
     std::shared_ptr<RTC::SrtpSession> srtp_session_;
 };
 
@@ -74,23 +96,12 @@ protected:
     uint32_t getSSRC() const override;
     uint16_t getPort() const override;
     std::string getIP() const override;
-    void onIceConnected() override;
-    void onDtlsCompleted() override;
+    void onDtlsConnected() override;
 
 private:
     Socket::Ptr _socket;
     RtspMediaSource::Ptr _src;
     RtspMediaSource::RingType::RingReader::Ptr _reader;
-};
-
-class WebRtcManager : public std::enable_shared_from_this<WebRtcManager> {
-public:
-    ~WebRtcManager();
-    static WebRtcManager& Instance();
-
-private:
-    WebRtcManager();
-
 };
 
 

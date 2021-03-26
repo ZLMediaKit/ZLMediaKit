@@ -1,40 +1,112 @@
-#pragma once
+#ifndef MS_RTC_ICE_SERVER_HPP
+#define MS_RTC_ICE_SERVER_HPP
 
+#include "stun_packet.h"
+#include "logger.h"
+#include <list>
+#include <string>
 #include <functional>
 #include <memory>
 
-#include "logger.h"
-#include "stun_packet.h"
+namespace RTC
+{
+    using TransportTuple = struct sockaddr;
+	class IceServer
+	{
+	public:
+		enum class IceState
+		{
+			NEW = 1,
+			CONNECTED,
+			COMPLETED,
+			DISCONNECTED
+		};
 
-typedef std::function<void(char *buf, size_t len, struct sockaddr_in *remote_address)> UdpSendCallback;
+	public:
+		class Listener
+		{
+		public:
+			virtual ~Listener() = default;
 
-class IceServer {
-public:
-    enum class IceState { kNew = 1, kConnect, kCompleted, kDisconnected };
-    typedef std::shared_ptr<IceServer> Ptr;
-    IceServer();
-    IceServer(const std::string &username_fragment, const std::string &password);
-    const std::string &GetUsernameFragment() const;
-    const std::string &GetPassword() const;
-    void SetUsernameFragment(const std::string &username_fragment);
-    void SetPassword(const std::string &password);
-    IceState GetState() const;
-    void ProcessStunPacket(RTC::StunPacket *packet, struct sockaddr_in *remote_address);
-    void HandleTuple(struct sockaddr_in *remote_address, bool has_use_candidate);
-    ~IceServer();
-    void SetSendCB(UdpSendCallback send_cb) { send_callback_ = send_cb; }
-    void SetIceServerCompletedCB(std::function<void()> cb) { ice_server_completed_callback_ = cb; };
-    struct sockaddr_in *GetSelectAddr() {
-        return &remote_address_;
-    }
+		public:
+			/**
+			 * These callbacks are guaranteed to be called before ProcessStunPacket()
+			 * returns, so the given pointers are still usable.
+			 */
+			virtual void OnIceServerSendStunPacket(
+			  const RTC::IceServer* iceServer, const RTC::StunPacket* packet, RTC::TransportTuple* tuple) = 0;
+			virtual void OnIceServerSelectedTuple(
+			  const RTC::IceServer* iceServer, RTC::TransportTuple* tuple)        = 0;
+			virtual void OnIceServerConnected(const RTC::IceServer* iceServer)    = 0;
+			virtual void OnIceServerCompleted(const RTC::IceServer* iceServer)    = 0;
+			virtual void OnIceServerDisconnected(const RTC::IceServer* iceServer) = 0;
+		};
 
-private:
-    UdpSendCallback send_callback_;
-    std::function<void()> ice_server_completed_callback_;
-    std::string username_fragment_;
-    std::string password_;
-    std::string old_username_fragment_;
-    std::string old_password_;
-    IceState state{IceState::kNew};
-    struct sockaddr_in remote_address_;
-};
+	public:
+		IceServer(Listener* listener, const std::string& usernameFragment, const std::string& password);
+
+	public:
+		void ProcessStunPacket(RTC::StunPacket* packet, RTC::TransportTuple* tuple);
+		const std::string& GetUsernameFragment() const
+		{
+			return this->usernameFragment;
+		}
+		const std::string& GetPassword() const
+		{
+			return this->password;
+		}
+		IceState GetState() const
+		{
+			return this->state;
+		}
+		RTC::TransportTuple* GetSelectedTuple() const
+		{
+			return this->selectedTuple;
+		}
+		void SetUsernameFragment(const std::string& usernameFragment)
+		{
+			this->oldUsernameFragment = this->usernameFragment;
+			this->usernameFragment    = usernameFragment;
+		}
+		void SetPassword(const std::string& password)
+		{
+			this->oldPassword = this->password;
+			this->password    = password;
+		}
+		bool IsValidTuple(const RTC::TransportTuple* tuple) const;
+		void RemoveTuple(RTC::TransportTuple* tuple);
+		// This should be just called in 'connected' or completed' state
+		// and the given tuple must be an already valid tuple.
+		void ForceSelectedTuple(const RTC::TransportTuple* tuple);
+
+	private:
+		void HandleTuple(RTC::TransportTuple* tuple, bool hasUseCandidate);
+		/**
+		 * Store the given tuple and return its stored address.
+		 */
+		RTC::TransportTuple* AddTuple(RTC::TransportTuple* tuple);
+		/**
+		 * If the given tuple exists return its stored address, nullptr otherwise.
+		 */
+		RTC::TransportTuple* HasTuple(const RTC::TransportTuple* tuple) const;
+		/**
+		 * Set the given tuple as the selected tuple.
+		 * NOTE: The given tuple MUST be already stored within the list.
+		 */
+		void SetSelectedTuple(RTC::TransportTuple* storedTuple);
+
+	private:
+		// Passed by argument.
+		Listener* listener{ nullptr };
+		// Others.
+		std::string usernameFragment;
+		std::string password;
+		std::string oldUsernameFragment;
+		std::string oldPassword;
+		IceState state{ IceState::NEW };
+		std::list<RTC::TransportTuple> tuples;
+		RTC::TransportTuple* selectedTuple{ nullptr };
+	};
+} // namespace RTC
+
+#endif
