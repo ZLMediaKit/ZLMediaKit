@@ -49,4 +49,3 @@ else()
 endif()
 
 target_link_libraries(MediaServer jsoncpp ${LINK_LIB_LIST})
-message(${LINK_LIB_LIST})
