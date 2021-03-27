@@ -1,7 +1,7 @@
 #define MS_CLASS "RTC::SrtpSession"
 // #define MS_LOG_DEV_LEVEL 3
 
-#include "srtp_session.h"
+#include "SrtpSession.hpp"
 #include <cstring> // std::memset(), std::memcpy()
 #include "logger.h"
 

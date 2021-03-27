@@ -1,7 +1,7 @@
 #ifndef MS_RTC_SRTP_SESSION_HPP
 #define MS_RTC_SRTP_SESSION_HPP
 
-#include "utils.h"
+#include "Utils.hpp"
 #include <srtp2/srtp.h>
 #include <vector>
 

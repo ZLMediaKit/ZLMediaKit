@@ -1,7 +1,7 @@
 #ifndef MS_RTC_ICE_SERVER_HPP
 #define MS_RTC_ICE_SERVER_HPP
 
-#include "stun_packet.h"
+#include "StunPacket.hpp"
 #include "logger.h"
 #include <list>
 #include <string>

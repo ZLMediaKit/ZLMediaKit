@@ -2,9 +2,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define ELOG_DEBUG(fmt, ...) printf(fmt "\n", ##__VA_ARGS__)
-#define ELOG_WARN(fmt, ...) printf(fmt "\n", ##__VA_ARGS__)
-
 #define MS_TRACE()
 #define MS_ERROR(fmt, ...) printf("error:" fmt "\n", ##__VA_ARGS__)
 #define MS_THROW_ERROR(fmt, ...) do{ printf("throw:" fmt "\n", ##__VA_ARGS__); throw std::runtime_error("error"); } while(false);

@@ -2,7 +2,7 @@
 // #define MS_LOG_DEV_LEVEL 3
 
 #include <utility>
-#include "ice_server.h"
+#include "IceServer.hpp"
 
 namespace RTC
 {
