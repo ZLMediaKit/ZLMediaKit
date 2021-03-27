@@ -5,15 +5,16 @@
 WebRtcTransport::WebRtcTransport() {
     static onceToken token([](){
         RTC::DtlsTransport::ClassInit();
-        RTC::DepLibSRTP::ClassInit();
-        RTC::SrtpSession::ClassInit();
     });
 
     dtls_transport_ = std::make_shared<RTC::DtlsTransport>(EventPollerPool::Instance().getFirstPoller(), this);
     ice_server_ = std::make_shared<RTC::IceServer>(this, makeRandStr(4), makeRandStr(24));
 }
 
-WebRtcTransport::~WebRtcTransport() {}
+WebRtcTransport::~WebRtcTransport() {
+    dtls_transport_ = nullptr;
+    ice_server_ = nullptr;
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
