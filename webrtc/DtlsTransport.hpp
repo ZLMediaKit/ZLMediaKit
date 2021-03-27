@@ -1,7 +1,7 @@
 #ifndef MS_RTC_DTLS_TRANSPORT_HPP
 #define MS_RTC_DTLS_TRANSPORT_HPP
 
-#include "srtp_session.h"
+#include "SrtpSession.hpp"
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>

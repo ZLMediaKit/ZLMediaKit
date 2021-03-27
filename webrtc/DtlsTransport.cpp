@@ -1,7 +1,7 @@
 #define MS_CLASS "RTC::DtlsTransport"
 // #define MS_LOG_DEV_LEVEL 3
 
-#include "rtc_dtls_transport.h"
+#include "DtlsTransport.hpp"
 #include "logger.h"
 #include <openssl/asn1.h>
 #include <openssl/bn.h>

@@ -36,7 +36,7 @@
 #include "Rtp/RtpServer.h"
 #endif
 #ifdef ENABLE_WEBRTC
-#include "../webrtc/webrtc_transport.h"
+#include "../webrtc/WebRtcTransport.h"
 #endif
 
 using namespace toolkit;

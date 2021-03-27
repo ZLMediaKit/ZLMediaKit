@@ -3,10 +3,10 @@
 #include <memory>
 #include <string>
 
-#include "rtc_dtls_transport.h"
-#include "ice_server.h"
-#include "srtp_session.h"
-#include "stun_packet.h"
+#include "DtlsTransport.hpp"
+#include "IceServer.hpp"
+#include "SrtpSession.hpp"
+#include "StunPacket.hpp"
 
 class WebRtcTransport : public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener  {
 public:
