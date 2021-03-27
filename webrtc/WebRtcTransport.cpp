@@ -3,10 +3,6 @@
 #include "Rtcp/Rtcp.h"
 
 WebRtcTransport::WebRtcTransport() {
-    static onceToken token([](){
-        RTC::DtlsTransport::ClassInit();
-    });
-
     dtls_transport_ = std::make_shared<RTC::DtlsTransport>(EventPollerPool::Instance().getFirstPoller(), this);
     ice_server_ = std::make_shared<RTC::IceServer>(this, makeRandStr(4), makeRandStr(24));
 }

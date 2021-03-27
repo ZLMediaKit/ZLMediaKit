@@ -14,7 +14,7 @@ using namespace toolkit;
 
 namespace RTC
 {
-class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
+    class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
 	{
 	public:
 		enum class DtlsState
@@ -60,6 +60,27 @@ class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
 			const char* name;
 		};
 
+        class DtlsEnvironment : public std::enable_shared_from_this<DtlsEnvironment>
+        {
+        public:
+            using Ptr = std::shared_ptr<DtlsEnvironment>;
+            ~DtlsEnvironment();
+            static DtlsEnvironment& Instance();
+
+        private:
+            DtlsEnvironment();
+            void GenerateCertificateAndPrivateKey();
+            void ReadCertificateAndPrivateKeyFromFiles();
+            void CreateSslCtx();
+            void GenerateFingerprints();
+
+        public:
+            X509* certificate{ nullptr };
+            EVP_PKEY* privateKey{ nullptr };
+            SSL_CTX* sslCtx{ nullptr };
+            std::vector<Fingerprint> localFingerprints;
+        };
+
 	public:
 		class Listener
 		{
@@ -93,8 +114,6 @@ class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
 		};
 
 	public:
-		static void ClassInit();
-		static void ClassDestroy();
 		static Role StringToRole(const std::string& role)
 		{
 			auto it = DtlsTransport::string2Role.find(role);
@@ -132,20 +151,9 @@ class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
 		}
 
 	private:
-		static void GenerateCertificateAndPrivateKey();
-		static void ReadCertificateAndPrivateKeyFromFiles();
-		static void CreateSslCtx();
-		static void GenerateFingerprints();
-
-	private:
-		static X509* certificate;
-		static EVP_PKEY* privateKey;
-		static SSL_CTX* sslCtx;
-		static uint8_t sslReadBuffer[];
 		static std::map<std::string, Role> string2Role;
 		static std::map<std::string, FingerprintAlgorithm> string2FingerprintAlgorithm;
 		static std::map<FingerprintAlgorithm, std::string> fingerprintAlgorithm2String;
-		static std::vector<Fingerprint> localFingerprints;
 		static std::vector<SrtpCryptoSuiteMapEntry> srtpCryptoSuites;
 
 	public:
@@ -157,7 +165,7 @@ class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
 		void Run(Role localRole);
 		std::vector<Fingerprint>& GetLocalFingerprints() const
 		{
-			return DtlsTransport::localFingerprints;
+			return env->localFingerprints;
 		}
 		bool SetRemoteFingerprint(Fingerprint fingerprint);
 		void ProcessDtlsData(const uint8_t* data, size_t len);
@@ -203,6 +211,7 @@ class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
 		void OnTimer();
 
 	private:
+        DtlsEnvironment::Ptr env;
         EventPoller::Ptr poller;
         // Passed by argument.
 		Listener* listener{ nullptr };
@@ -218,7 +227,9 @@ class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
 		bool handshakeDone{ false };
 		bool handshakeDoneNow{ false };
 		std::string remoteCert;
-	};
+		static constexpr int SslReadBufferSize{ 65536 };
+        uint8_t sslReadBuffer[SslReadBufferSize];
+};
 } // namespace RTC
 
 #endif
