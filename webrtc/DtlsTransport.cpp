@@ -10,6 +10,7 @@
 #include <openssl/rsa.h>
 #include <cstdio>  // std::sprintf(), std::fopen()
 #include <cstring> // std::memcpy(), std::strcmp()
+#include "Util/util.h"
 
 #define LOG_OPENSSL_ERROR(desc)                                                                    \
 	do                                                                                               \
@@ -53,7 +54,6 @@ namespace RTC
 
 	// clang-format off
 	static constexpr int DtlsMtu{ 1350 };
-	static constexpr int SslReadBufferSize{ 65536 };
 	// AES-HMAC: http://tools.ietf.org/html/rfc3711
 	static constexpr size_t SrtpMasterKeyLength{ 16 };
 	static constexpr size_t SrtpMasterSaltLength{ 14 };
@@ -68,11 +68,6 @@ namespace RTC
 	// clang-format on
 
 	/* Class variables. */
-
-	X509* DtlsTransport::certificate{ nullptr };
-	EVP_PKEY* DtlsTransport::privateKey{ nullptr };
-	SSL_CTX* DtlsTransport::sslCtx{ nullptr };
-	uint8_t DtlsTransport::sslReadBuffer[SslReadBufferSize];
 	// clang-format off
 	std::map<std::string, DtlsTransport::FingerprintAlgorithm> DtlsTransport::string2FingerprintAlgorithm =
 	{
@@ -96,7 +91,6 @@ namespace RTC
 		{ "client", DtlsTransport::Role::CLIENT },
 		{ "server", DtlsTransport::Role::SERVER }
 	};
-	std::vector<DtlsTransport::Fingerprint> DtlsTransport::localFingerprints;
 	std::vector<DtlsTransport::SrtpCryptoSuiteMapEntry> DtlsTransport::srtpCryptoSuites =
 	{
 		{ RTC::SrtpSession::CryptoSuite::AEAD_AES_256_GCM, "SRTP_AEAD_AES_256_GCM" },
@@ -106,12 +100,13 @@ namespace RTC
 	};
 	// clang-format on
 
+	INSTANCE_IMP(DtlsTransport::DtlsEnvironment);
+
 	/* Class methods. */
 
-	void DtlsTransport::ClassInit()
+    DtlsTransport::DtlsEnvironment::DtlsEnvironment()
 	{
 		MS_TRACE();
-
 
 		// Generate a X509 certificate and private key (unless PEM files are provided).
 		if (true /*
@@ -132,19 +127,19 @@ namespace RTC
 		GenerateFingerprints();
 	}
 
-	void DtlsTransport::ClassDestroy()
+    DtlsTransport::DtlsEnvironment::~DtlsEnvironment()
 	{
 		MS_TRACE();
 
-		if (DtlsTransport::privateKey)
-			EVP_PKEY_free(DtlsTransport::privateKey);
-		if (DtlsTransport::certificate)
-			X509_free(DtlsTransport::certificate);
-		if (DtlsTransport::sslCtx)
-			SSL_CTX_free(DtlsTransport::sslCtx);
+		if (privateKey)
+			EVP_PKEY_free(privateKey);
+		if (certificate)
+			X509_free(certificate);
+		if (sslCtx)
+			SSL_CTX_free(sslCtx);
 	}
 
-	void DtlsTransport::GenerateCertificateAndPrivateKey()
+	void DtlsTransport::DtlsEnvironment::GenerateCertificateAndPrivateKey()
 	{
 		MS_TRACE();
 
@@ -177,9 +172,9 @@ namespace RTC
 		}
 
 		// Create a private key object.
-		DtlsTransport::privateKey = EVP_PKEY_new();
+		privateKey = EVP_PKEY_new();
 
-		if (!DtlsTransport::privateKey)
+		if (!privateKey)
 		{
 			LOG_OPENSSL_ERROR("EVP_PKEY_new() failed");
 
@@ -187,7 +182,7 @@ namespace RTC
 		}
 
 		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-		ret = EVP_PKEY_assign_EC_KEY(DtlsTransport::privateKey, ecKey);
+		ret = EVP_PKEY_assign_EC_KEY(privateKey, ecKey);
 
 		if (ret == 0)
 		{
@@ -200,9 +195,9 @@ namespace RTC
 		ecKey = nullptr;
 
 		// Create the X509 certificate.
-		DtlsTransport::certificate = X509_new();
+		certificate = X509_new();
 
-		if (!DtlsTransport::certificate)
+		if (!certificate)
 		{
 			LOG_OPENSSL_ERROR("X509_new() failed");
 
@@ -210,19 +205,19 @@ namespace RTC
 		}
 
 		// Set version 3 (note that 0 means version 1).
-		X509_set_version(DtlsTransport::certificate, 2);
+		X509_set_version(certificate, 2);
 
 		// Set serial number (avoid default 0).
 		ASN1_INTEGER_set(
-		  X509_get_serialNumber(DtlsTransport::certificate),
+		  X509_get_serialNumber(certificate),
 		  static_cast<uint64_t>(rand() % 999999 + 100000));
 
 		// Set valid period.
-		X509_gmtime_adj(X509_get_notBefore(DtlsTransport::certificate), -315360000); // -10 years.
-		X509_gmtime_adj(X509_get_notAfter(DtlsTransport::certificate), 315360000);   // 10 years.
+		X509_gmtime_adj(X509_get_notBefore(certificate), -315360000); // -10 years.
+		X509_gmtime_adj(X509_get_notAfter(certificate), 315360000);   // 10 years.
 
 		// Set the public key for the certificate using the key.
-		ret = X509_set_pubkey(DtlsTransport::certificate, DtlsTransport::privateKey);
+		ret = X509_set_pubkey(certificate, privateKey);
 
 		if (ret == 0)
 		{
@@ -232,7 +227,7 @@ namespace RTC
 		}
 
 		// Set certificate fields.
-		certName = X509_get_subject_name(DtlsTransport::certificate);
+		certName = X509_get_subject_name(certificate);
 
 		if (!certName)
 		{
@@ -247,7 +242,7 @@ namespace RTC
 		  certName, "CN", MBSTRING_ASC, reinterpret_cast<const uint8_t*>(subject.c_str()), -1, -1, 0);
 
 		// It is self-signed so set the issuer name to be the same as the subject.
-		ret = X509_set_issuer_name(DtlsTransport::certificate, certName);
+		ret = X509_set_issuer_name(certificate, certName);
 
 		if (ret == 0)
 		{
@@ -257,7 +252,7 @@ namespace RTC
 		}
 
 		// Sign the certificate with its own private key.
-		ret = X509_sign(DtlsTransport::certificate, DtlsTransport::privateKey, EVP_sha1());
+		ret = X509_sign(certificate, privateKey, EVP_sha1());
 
 		if (ret == 0)
 		{
@@ -273,16 +268,16 @@ namespace RTC
 		if (ecKey)
 			EC_KEY_free(ecKey);
 
-		if (DtlsTransport::privateKey)
-			EVP_PKEY_free(DtlsTransport::privateKey); // NOTE: This also frees the EC key.
+		if (privateKey)
+			EVP_PKEY_free(privateKey); // NOTE: This also frees the EC key.
 
-		if (DtlsTransport::certificate)
-			X509_free(DtlsTransport::certificate);
+		if (certificate)
+			X509_free(certificate);
 
 		MS_THROW_ERROR("DTLS certificate and private key generation failed");
 	}
 
-	void DtlsTransport::ReadCertificateAndPrivateKeyFromFiles()
+	void DtlsTransport::DtlsEnvironment::ReadCertificateAndPrivateKeyFromFiles()
 	{
 #if 0
 		MS_TRACE();
@@ -298,9 +293,9 @@ namespace RTC
 			goto error;
 		}
 
-		DtlsTransport::certificate = PEM_read_X509(file, nullptr, nullptr, nullptr);
+		certificate = PEM_read_X509(file, nullptr, nullptr, nullptr);
 
-		if (!DtlsTransport::certificate)
+		if (!certificate)
 		{
 			LOG_OPENSSL_ERROR("PEM_read_X509() failed");
 
@@ -318,9 +313,9 @@ namespace RTC
 			goto error;
 		}
 
-		DtlsTransport::privateKey = PEM_read_PrivateKey(file, nullptr, nullptr, nullptr);
+		privateKey = PEM_read_PrivateKey(file, nullptr, nullptr, nullptr);
 
-		if (!DtlsTransport::privateKey)
+		if (!privateKey)
 		{
 			LOG_OPENSSL_ERROR("PEM_read_PrivateKey() failed");
 
@@ -337,7 +332,7 @@ namespace RTC
 #endif
 	}
 
-	void DtlsTransport::CreateSslCtx()
+	void DtlsTransport::DtlsEnvironment::CreateSslCtx()
 	{
 		MS_TRACE();
 
@@ -347,16 +342,16 @@ namespace RTC
 		/* Set the global DTLS context. */
 
 		// Both DTLS 1.0 and 1.2 (requires OpenSSL >= 1.1.0).
-		DtlsTransport::sslCtx = SSL_CTX_new(DTLS_method());
+		sslCtx = SSL_CTX_new(DTLS_method());
 
-		if (!DtlsTransport::sslCtx)
+		if (!sslCtx)
 		{
 			LOG_OPENSSL_ERROR("SSL_CTX_new() failed");
 
 			goto error;
 		}
 
-		ret = SSL_CTX_use_certificate(DtlsTransport::sslCtx, DtlsTransport::certificate);
+		ret = SSL_CTX_use_certificate(sslCtx, certificate);
 
 		if (ret == 0)
 		{
@@ -365,7 +360,7 @@ namespace RTC
 			goto error;
 		}
 
-		ret = SSL_CTX_use_PrivateKey(DtlsTransport::sslCtx, DtlsTransport::privateKey);
+		ret = SSL_CTX_use_PrivateKey(sslCtx, privateKey);
 
 		if (ret == 0)
 		{
@@ -374,7 +369,7 @@ namespace RTC
 			goto error;
 		}
 
-		ret = SSL_CTX_check_private_key(DtlsTransport::sslCtx);
+		ret = SSL_CTX_check_private_key(sslCtx);
 
 		if (ret == 0)
 		{
@@ -385,31 +380,31 @@ namespace RTC
 
 		// Set options.
 		SSL_CTX_set_options(
-		  DtlsTransport::sslCtx,
+		  sslCtx,
 		  SSL_OP_CIPHER_SERVER_PREFERENCE | SSL_OP_NO_TICKET | SSL_OP_SINGLE_ECDH_USE |
 		    SSL_OP_NO_QUERY_MTU);
 
 		// Don't use sessions cache.
-		SSL_CTX_set_session_cache_mode(DtlsTransport::sslCtx, SSL_SESS_CACHE_OFF);
+		SSL_CTX_set_session_cache_mode(sslCtx, SSL_SESS_CACHE_OFF);
 
 		// Read always as much into the buffer as possible.
 		// NOTE: This is the default for DTLS, but a bug in non latest OpenSSL
 		// versions makes this call required.
-		SSL_CTX_set_read_ahead(DtlsTransport::sslCtx, 1);
+		SSL_CTX_set_read_ahead(sslCtx, 1);
 
-		SSL_CTX_set_verify_depth(DtlsTransport::sslCtx, 4);
+		SSL_CTX_set_verify_depth(sslCtx, 4);
 
 		// Require certificate from peer.
 		SSL_CTX_set_verify(
-		  DtlsTransport::sslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, onSslCertificateVerify);
+		  sslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, onSslCertificateVerify);
 
 		// Set SSL info callback.
-		SSL_CTX_set_info_callback(DtlsTransport::sslCtx, [](const SSL* ssl, int where, int ret){
+		SSL_CTX_set_info_callback(sslCtx, [](const SSL* ssl, int where, int ret){
             static_cast<RTC::DtlsTransport*>(SSL_get_ex_data(ssl, 0))->OnSslInfo(where, ret);
         });
 		// Set ciphers.
 		ret = SSL_CTX_set_cipher_list(
-		  DtlsTransport::sslCtx, "DEFAULT:!NULL:!aNULL:!SHA256:!SHA384:!aECDH:!AESGCM+AES256:!aPSK");
+		  sslCtx, "DEFAULT:!NULL:!aNULL:!SHA256:!SHA384:!aECDH:!AESGCM+AES256:!aPSK");
 
 		if (ret == 0)
 		{
@@ -424,7 +419,7 @@ namespace RTC
 		// NOTE: https://bugs.ruby-lang.org/issues/12324
 
 		// For OpenSSL >= 1.0.2.
-		SSL_CTX_set_ecdh_auto(DtlsTransport::sslCtx, 1);
+		SSL_CTX_set_ecdh_auto(sslCtx, 1);
 
 		// Set the "use_srtp" DTLS extension.
 		for (auto it = DtlsTransport::srtpCryptoSuites.begin();
@@ -441,7 +436,7 @@ namespace RTC
 		MS_DEBUG_2TAGS(dtls, srtp, "setting SRTP cryptoSuites for DTLS: %s", dtlsSrtpCryptoSuites.c_str());
 
 		// NOTE: This function returns 0 on success.
-		ret = SSL_CTX_set_tlsext_use_srtp(DtlsTransport::sslCtx, dtlsSrtpCryptoSuites.c_str());
+		ret = SSL_CTX_set_tlsext_use_srtp(sslCtx, dtlsSrtpCryptoSuites.c_str());
 
 		if (ret != 0)
 		{
@@ -456,16 +451,16 @@ namespace RTC
 
 	error:
 
-		if (DtlsTransport::sslCtx)
+		if (sslCtx)
 		{
-			SSL_CTX_free(DtlsTransport::sslCtx);
-			DtlsTransport::sslCtx = nullptr;
+			SSL_CTX_free(sslCtx);
+			sslCtx = nullptr;
 		}
 
 		MS_THROW_ERROR("SSL context creation failed");
 	}
 
-	void DtlsTransport::GenerateFingerprints()
+	void DtlsTransport::DtlsEnvironment::GenerateFingerprints()
 	{
 		MS_TRACE();
 
@@ -505,7 +500,7 @@ namespace RTC
 					MS_THROW_ERROR("unknown algorithm");
 			}
 
-			ret = X509_digest(DtlsTransport::certificate, hashFunction, binaryFingerprint, &size);
+			ret = X509_digest(certificate, hashFunction, binaryFingerprint, &size);
 
 			if (ret == 0)
 			{
@@ -528,7 +523,7 @@ namespace RTC
 			fingerprint.algorithm = DtlsTransport::GetFingerprintAlgorithm(algorithmString);
 			fingerprint.value     = hexFingerprint;
 
-			DtlsTransport::localFingerprints.push_back(fingerprint);
+			localFingerprints.push_back(fingerprint);
 		}
 	}
 
@@ -537,10 +532,11 @@ namespace RTC
 	DtlsTransport::DtlsTransport(EventPoller::Ptr poller,Listener* listener) : poller(std::move(poller)), listener(listener)
 	{
 		MS_TRACE();
+        env = DtlsEnvironment::Instance().shared_from_this();
 
 		/* Set SSL. */
 
-		this->ssl = SSL_new(DtlsTransport::sslCtx);
+		this->ssl = SSL_new(env->sslCtx);
 
 		if (!this->ssl)
 		{
