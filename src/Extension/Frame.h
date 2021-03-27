@@ -38,7 +38,8 @@ typedef enum {
     TrackVideo = 0,
     TrackAudio,
     TrackTitle,
-    TrackMax = 3
+    TrackData,
+    TrackMax = 4
 } TrackType;
 
 /**
