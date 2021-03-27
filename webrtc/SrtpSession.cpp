@@ -5,6 +5,7 @@
 #include <cstring> // std::memset(), std::memcpy()
 #include "logger.h"
 #include "Util/util.h"
+#include "Util/logger.h"
 using namespace toolkit;
 
 namespace RTC
@@ -59,6 +60,23 @@ namespace RTC
         MS_DEBUG_TAG(info, "libsrtp version: \"%s\"", srtp_get_version_string());
 
         srtp_err_status_t err = srtp_init();
+
+#if 0
+        srtp_install_log_handler([](srtp_log_level_t level,
+                                    const char *msg,
+                                    void *data) {
+            printf("%s\n", msg);
+        }, nullptr);
+        srtp_set_debug_module("srtp", 1);
+        srtp_set_debug_module("hmac sha-1", 1);
+        srtp_set_debug_module("aes icm", 1);
+        srtp_set_debug_module("alloc", 1);
+        srtp_set_debug_module("stat test", 1);
+        srtp_set_debug_module("cipher", 1);
+        srtp_set_debug_module("auth func", 1);
+        srtp_set_debug_module("crypto kernel", 1);
+        srtp_list_debug_modules();
+#endif
 
         if (DepLibSRTP::IsError(err)) {
             MS_THROW_ERROR("srtp_init() failed: %s", DepLibSRTP::GetErrorString(err));
