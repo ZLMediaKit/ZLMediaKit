@@ -7,10 +7,6 @@
 namespace RTC
 {
 	/* Static. */
-
-	static constexpr size_t StunSerializeBufferSize{ 65536 };
-	static uint8_t StunSerializeBuffer[StunSerializeBufferSize];
-
 	/* Instance methods. */
 
 	IceServer::IceServer(Listener* listener, const std::string& usernameFragment, const std::string& password)

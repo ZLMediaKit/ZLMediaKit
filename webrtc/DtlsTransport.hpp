@@ -227,7 +227,8 @@ namespace RTC
 		bool handshakeDone{ false };
 		bool handshakeDoneNow{ false };
 		std::string remoteCert;
-		static constexpr int SslReadBufferSize{ 65536 };
+		//最大不超过mtu
+		static constexpr int SslReadBufferSize{ 1600 };
         uint8_t sslReadBuffer[SslReadBufferSize];
 };
 } // namespace RTC
