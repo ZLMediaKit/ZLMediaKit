@@ -4,21 +4,22 @@
 #include "Utils.hpp"
 #include <srtp2/srtp.h>
 #include <vector>
+#include <memory>
 
 namespace RTC
 {
-    class DepLibSRTP {
+    class DepLibSRTP : public std::enable_shared_from_this<DepLibSRTP>
+    {
     public:
-        static void ClassInit();
-        static void ClassDestroy();
-        static bool IsError(srtp_err_status_t code) { return (code != srtp_err_status_ok); }
-        static const char *GetErrorString(srtp_err_status_t code) {
-            // This throws out_of_range if the given index is not in the vector.
-            return DepLibSRTP::errors.at(code);
-        }
+        using Ptr = std::shared_ptr<DepLibSRTP>;
+        ~DepLibSRTP();
+
+        static bool IsError(srtp_err_status_t code);
+        static const char *GetErrorString(srtp_err_status_t code);
+        static DepLibSRTP &Instance();
 
     private:
-        static std::vector<const char *> errors;
+        DepLibSRTP();
     };
 
 	class SrtpSession
@@ -41,12 +42,6 @@ namespace RTC
 		};
 
 	public:
-		static void ClassInit();
-
-	private:
-		static void OnSrtpEvent(srtp_event_data_t* data);
-
-	public:
 		SrtpSession(Type type, CryptoSuite cryptoSuite, uint8_t* key, size_t keyLen);
 		~SrtpSession();
 
@@ -63,6 +58,10 @@ namespace RTC
 	private:
 		// Allocated by this.
 		srtp_t session{ nullptr };
+		//rtp包最大1600
+        static constexpr size_t EncryptBufferSize{ 1600 };
+        uint8_t EncryptBuffer[EncryptBufferSize];
+        DepLibSRTP::Ptr _env;
 	};
 } // namespace RTC
 

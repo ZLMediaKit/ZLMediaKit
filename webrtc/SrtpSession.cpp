@@ -4,15 +4,14 @@
 #include "SrtpSession.hpp"
 #include <cstring> // std::memset(), std::memcpy()
 #include "logger.h"
+#include "Util/util.h"
+using namespace toolkit;
 
 namespace RTC
 {
 	/* Static. */
 
-	static constexpr size_t EncryptBufferSize{ 65536 };
-	static uint8_t EncryptBuffer[EncryptBufferSize];
-
-    std::vector<const char *> DepLibSRTP::errors = {
+    static std::vector<const char *> errors = {
             // From 0 (srtp_err_status_ok) to 24 (srtp_err_status_pfkey_err).
             "success (srtp_err_status_ok)",
             "unspecified failure (srtp_err_status_fail)",
@@ -43,65 +42,69 @@ namespace RTC
 
 /* Static methods. */
 
-    void DepLibSRTP::ClassInit() {
+    const char *DepLibSRTP::GetErrorString(srtp_err_status_t code) {
+        // This throws out_of_range if the given index is not in the vector.
+        return errors.at(code);
+    }
+
+    bool DepLibSRTP::IsError(srtp_err_status_t code) {
+        return (code != srtp_err_status_ok);
+    }
+
+    INSTANCE_IMP(DepLibSRTP);
+
+    DepLibSRTP::DepLibSRTP(){
         MS_TRACE();
 
         MS_DEBUG_TAG(info, "libsrtp version: \"%s\"", srtp_get_version_string());
 
         srtp_err_status_t err = srtp_init();
 
-        if (DepLibSRTP::IsError(err))
+        if (DepLibSRTP::IsError(err)) {
             MS_THROW_ERROR("srtp_init() failed: %s", DepLibSRTP::GetErrorString(err));
+        }
+
+        // Set libsrtp event handler.
+        err = srtp_install_event_handler([](srtp_event_data_t *data){
+            MS_TRACE();
+            switch (data->event)
+            {
+                case event_ssrc_collision:
+                    MS_WARN_TAG(srtp, "SSRC collision occurred");
+                    break;
+
+                case event_key_soft_limit:
+                    MS_WARN_TAG(srtp, "stream reached the soft key usage limit and will expire soon");
+                    break;
+
+                case event_key_hard_limit:
+                    MS_WARN_TAG(srtp, "stream reached the hard key usage limit and has expired");
+                    break;
+
+                case event_packet_index_limit:
+                    MS_WARN_TAG(srtp, "stream reached the hard packet limit (2^48 packets)");
+                    break;
+            }
+        });
+
+        if (DepLibSRTP::IsError(err))
+        {
+            MS_THROW_ERROR("srtp_install_event_handler() failed: %s", DepLibSRTP::GetErrorString(err));
+        }
     }
 
-    void DepLibSRTP::ClassDestroy() {
+    DepLibSRTP::~DepLibSRTP(){
         MS_TRACE();
-
         srtp_shutdown();
     }
 
-    /* Class methods. */
-
-	void SrtpSession::ClassInit()
-	{
-		// Set libsrtp event handler.
-		srtp_err_status_t err =
-		  srtp_install_event_handler(static_cast<srtp_event_handler_func_t*>(OnSrtpEvent));
-
-		if (DepLibSRTP::IsError(err))
-		{
-			MS_THROW_ERROR("srtp_install_event_handler() failed: %s", DepLibSRTP::GetErrorString(err));
-		}
-	}
-
-	void SrtpSession::OnSrtpEvent(srtp_event_data_t* data)
-	{
-		MS_TRACE();
-
-		switch (data->event)
-		{
-			case event_ssrc_collision:
-				MS_WARN_TAG(srtp, "SSRC collision occurred");
-				break;
-
-			case event_key_soft_limit:
-				MS_WARN_TAG(srtp, "stream reached the soft key usage limit and will expire soon");
-				break;
-
-			case event_key_hard_limit:
-				MS_WARN_TAG(srtp, "stream reached the hard key usage limit and has expired");
-				break;
-
-			case event_packet_index_limit:
-				MS_WARN_TAG(srtp, "stream reached the hard packet limit (2^48 packets)");
-				break;
-		}
-	}
+    /////////////////////////////////////////////////////////////////////////////////////
 
 	/* Instance methods. */
 
 	SrtpSession::SrtpSession(Type type, CryptoSuite cryptoSuite, uint8_t* key, size_t keyLen)
 	{
+        _env = DepLibSRTP::Instance().shared_from_this();
 		MS_TRACE();
 
 		srtp_policy_t policy; // NOLINT(cppcoreguidelines-pro-type-member-init)
