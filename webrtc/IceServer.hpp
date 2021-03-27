@@ -106,6 +106,9 @@ namespace RTC
 		IceState state{ IceState::NEW };
 		std::list<RTC::TransportTuple> tuples;
 		RTC::TransportTuple* selectedTuple{ nullptr };
+		//最大不超过mtu
+        static constexpr size_t StunSerializeBufferSize{ 1600 };
+        uint8_t StunSerializeBuffer[StunSerializeBufferSize];
 	};
 } // namespace RTC
 
