@@ -95,7 +95,7 @@ public:
 
 protected:
     void onWrite(const char *buf, size_t len, struct sockaddr_in *dst) override;
-    int getPayloadType() const ;
+    int getPayloadType() const override;
     uint32_t getSSRC() const override;
     uint16_t getPort() const override;
     std::string getIP() const override;
