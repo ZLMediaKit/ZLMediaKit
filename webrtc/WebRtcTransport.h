@@ -11,8 +11,11 @@
 class WebRtcTransport : public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener  {
 public:
     using Ptr = std::shared_ptr<WebRtcTransport>;
-    WebRtcTransport();
-    virtual ~WebRtcTransport();
+    WebRtcTransport(const EventPoller::Ptr &poller);
+    ~WebRtcTransport() override = default;
+
+    /// 销毁对象
+    virtual void onDestory();
 
     /// 获取本地sdp
     /// \return
@@ -85,7 +88,7 @@ class WebRtcTransportImp : public WebRtcTransport, public std::enable_shared_fro
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
 
-    WebRtcTransportImp(const EventPoller::Ptr &poller);
+    static Ptr create(const EventPoller::Ptr &poller);
     ~WebRtcTransportImp() override = default;
 
     void attach(const RtspMediaSource::Ptr &src);
@@ -97,6 +100,8 @@ protected:
     uint16_t getPort() const override;
     std::string getIP() const override;
     void onDtlsConnected() override;
+    WebRtcTransportImp(const EventPoller::Ptr &poller);
+    void onDestory() override;
 
 private:
     Socket::Ptr _socket;

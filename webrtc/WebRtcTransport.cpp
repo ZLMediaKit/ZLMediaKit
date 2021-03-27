@@ -2,12 +2,12 @@
 #include <iostream>
 #include "Rtcp/Rtcp.h"
 
-WebRtcTransport::WebRtcTransport() {
-    dtls_transport_ = std::make_shared<RTC::DtlsTransport>(EventPollerPool::Instance().getFirstPoller(), this);
+WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
+    dtls_transport_ = std::make_shared<RTC::DtlsTransport>(poller, this);
     ice_server_ = std::make_shared<RTC::IceServer>(this, makeRandStr(4), makeRandStr(24));
 }
 
-WebRtcTransport::~WebRtcTransport() {
+void WebRtcTransport::onDestory(){
     dtls_transport_ = nullptr;
     ice_server_ = nullptr;
 }
@@ -163,14 +163,25 @@ void WebRtcTransport::WritRtpPacket(char *buf, size_t len) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
+WebRtcTransportImp::Ptr WebRtcTransportImp::create(const EventPoller::Ptr &poller){
+    WebRtcTransportImp::Ptr ret(new WebRtcTransportImp(poller), [](WebRtcTransportImp *ptr){
+        ptr->onDestory();
+       delete ptr;
+    });
+    return ret;
+}
 
-WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller) {
+WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller) : WebRtcTransport(poller) {
     _socket = Socket::createSocket(poller, false);
     //随机端口，绑定全部网卡
     _socket->bindUdpSock(0);
     _socket->setOnRead([this](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
         OnInputDataPacket(buf->data(), buf->size(), addr);
     });
+}
+
+void WebRtcTransportImp::onDestory() {
+    WebRtcTransport::onDestory();
 }
 
 void WebRtcTransportImp::attach(const RtspMediaSource::Ptr &src) {
