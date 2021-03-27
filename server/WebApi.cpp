@@ -1062,14 +1062,10 @@ void installWebApi() {
         }
         headerOut["Content-Type"] = "text/plain";
         headerOut["Access-Control-Allow-Origin"] = "*";
-        auto poller = EventPollerPool::Instance().getFirstPoller();
-        auto rtc = std::make_shared<WebRtcTransportImp>(poller);
-        poller->async([invoker, rtc, headerOut, src]() {
-            rtc->attach(src);
-            auto sdp = rtc->GetLocalSdp();
-            invoker(200, headerOut, sdp);
-            rtcs.emplace_back(rtc);
-        });
+        auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
+        rtc->attach(src);
+        invoker(200, headerOut, rtc->GetLocalSdp());
+        rtcs.emplace_back(rtc);
     });
 #endif
 
