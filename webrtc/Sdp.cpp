@@ -21,31 +21,31 @@ void registerSdpItem(){
 
 class DirectionInterface {
 public:
-    virtual RtpDirection getDirection() = 0;
+    virtual RtpDirection getDirection() const = 0;
 };
 
 class SdpDirectionSendonly : public SdpItem, public DirectionInterface{
 public:
-    const char* getKey() override { return getRtpDirectionString(getDirection());}
-    RtpDirection getDirection() override {return RtpDirection::sendonly;}
+    const char* getKey() const override { return getRtpDirectionString(getDirection());}
+    RtpDirection getDirection() const override {return RtpDirection::sendonly;}
 };
 
 class SdpDirectionRecvonly : public SdpItem, public DirectionInterface{
 public:
-    const char* getKey() override { return getRtpDirectionString(getDirection());}
-    RtpDirection getDirection() override {return RtpDirection::recvonly;}
+    const char* getKey() const override { return getRtpDirectionString(getDirection());}
+    RtpDirection getDirection() const override {return RtpDirection::recvonly;}
 };
 
 class SdpDirectionSendrecv : public SdpItem, public DirectionInterface{
 public:
-    const char* getKey() override { return getRtpDirectionString(getDirection());}
-    RtpDirection getDirection() override {return RtpDirection::sendrecv;}
+    const char* getKey() const override { return getRtpDirectionString(getDirection());}
+    RtpDirection getDirection() const override {return RtpDirection::sendrecv;}
 };
 
 class SdpDirectionInactive : public SdpItem, public DirectionInterface{
 public:
-    const char* getKey() override { return getRtpDirectionString(getDirection());}
-    RtpDirection getDirection() override {return RtpDirection::inactive;}
+    const char* getKey() const override { return getRtpDirectionString(getDirection());}
+    RtpDirection getDirection() const override {return RtpDirection::inactive;}
 };
 
 static bool registerAllItem(){
@@ -69,6 +69,7 @@ static bool registerAllItem(){
     registerSdpItem<SdpAttrRtcp>();
     registerSdpItem<SdpAttrIceUfrag>();
     registerSdpItem<SdpAttrIcePwd>();
+    registerSdpItem<SdpAttrIceOption>();
     registerSdpItem<SdpAttrFingerprint>();
     registerSdpItem<SdpAttrSetup>();
     registerSdpItem<SdpAttrMid>();
@@ -77,6 +78,7 @@ static bool registerAllItem(){
     registerSdpItem<SdpAttrRtcpFb>();
     registerSdpItem<SdpAttrFmtp>();
     registerSdpItem<SdpAttrSSRC>();
+    registerSdpItem<SdpAttrSSRCGroup>();
     registerSdpItem<SdpAttrSctpMap>();
     registerSdpItem<SdpAttrCandidate>();
     registerSdpItem<SdpDirectionSendonly>();
@@ -230,6 +232,8 @@ RtpDirection RtcMedia::getDirection() const{
 //////////////////////////////////////////////////////////////////////////////////////////
 
 #define SDP_THROW() throw std::invalid_argument(StrPrinter << "解析sdp " << getKey() << " 字段失败:" << str)
+#define SDP_THROW2() throw std::invalid_argument(StrPrinter << "生成sdp " << getKey() << " 字段失败")
+
 void SdpTime::parse(const string &str) {
     if (sscanf(str.data(), "%" PRIu64 " %" PRIu64, &start, &stop) != 2) {
         SDP_THROW();
@@ -550,6 +554,41 @@ string SdpAttrSSRC::toString() const  {
         if (!attribute_value.empty()) {
             value += ':';
             value += attribute_value;
+        }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrSSRCGroup::parse(const string &str) {
+    auto vec = split(str, " ");
+    if (vec.size() == 3) {
+        if (vec[0] != "FID") {
+            SDP_THROW();
+        }
+        type = std::move(vec[0]);
+        u.fid.rtp_ssrc = atoi(vec[1].data());
+        u.fid.rtx_ssrc = atoi(vec[2].data());
+    } else if (vec.size() == 4) {
+        if (vec[0] != "SIM") {
+            SDP_THROW();
+        }
+        type = std::move(vec[0]);
+        u.sim.rtp_ssrc_low = atoi(vec[1].data());
+        u.sim.rtp_ssrc_mid = atoi(vec[2].data());
+        u.sim.rtp_ssrc_high = atoi(vec[3].data());
+    } else {
+        SDP_THROW();
+    }
+}
+
+string SdpAttrSSRCGroup::toString() const  {
+    if (value.empty()) {
+        if (type == "FID") {
+            value = type + " " + to_string(u.fid.rtp_ssrc) + " " + to_string(u.fid.rtx_ssrc);
+        } else if (type == "SIM") {
+            value = type + " " + to_string(u.sim.rtp_ssrc_low) + " " + to_string(u.sim.rtp_ssrc_mid) + " " + to_string(u.sim.rtp_ssrc_high);
+        } else {
+            SDP_THROW2();
         }
     }
     return SdpItem::toString();
