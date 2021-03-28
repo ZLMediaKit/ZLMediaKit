@@ -167,6 +167,10 @@ public:
     // m=<media> <port> <proto> <fmt> ...
     TrackType type;
     uint16_t port;
+    //RTP/AVP：应用场景为视频/音频的 RTP 协议。参考 RFC 3551
+    //RTP/SAVP：应用场景为视频/音频的 SRTP 协议。参考 RFC 3711
+    //RTP/AVPF: 应用场景为视频/音频的 RTP 协议，支持 RTCP-based Feedback。参考 RFC 4585
+    //RTP/SAVPF: 应用场景为视频/音频的 SRTP 协议，支持 RTCP-based Feedback。参考 RFC 5124
     string proto;
     vector<uint32_t> fmts;
 
