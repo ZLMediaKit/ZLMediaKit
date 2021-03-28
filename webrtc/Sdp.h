@@ -87,7 +87,7 @@ public:
     virtual string toString() const {
         return value;
     }
-    virtual const char* getKey() = 0;
+    virtual const char* getKey() const = 0;
 
 protected:
     mutable string value;
@@ -97,14 +97,14 @@ template <char KEY>
 class SdpString : public SdpItem{
 public:
     // *=*
-    const char* getKey() override { static string key(1, KEY); return key.data();}
+    const char* getKey() const override { static string key(1, KEY); return key.data();}
 };
 
 class SdpCommon : public SdpItem {
 public:
     string key;
     SdpCommon(string key) { this->key = std::move(key); }
-    const char* getKey() override { return key.data();}
+    const char* getKey() const override { return key.data();}
 };
 
 class SdpTime : public SdpItem{
@@ -115,7 +115,7 @@ public:
     uint64_t stop {0};
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "t";}
+    const char* getKey() const override { return "t";}
 };
 
 class SdpOrigin : public SdpItem{
@@ -131,7 +131,7 @@ public:
     string address {"0.0.0.0"};
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "o";}
+    const char* getKey() const override { return "o";}
 };
 
 class SdpConnection : public SdpItem {
@@ -144,7 +144,7 @@ public:
     string address {"0.0.0.0"};
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "c";}
+    const char* getKey() const override { return "c";}
 };
 
 class SdpBandwidth : public SdpItem {
@@ -158,7 +158,7 @@ public:
 
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "b";}
+    const char* getKey() const override { return "b";}
 };
 
 class SdpMedia : public SdpItem {
@@ -172,7 +172,7 @@ public:
 
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "m";}
+    const char* getKey() const override { return "m";}
 };
 
 class SdpAttr : public SdpItem{
@@ -184,7 +184,7 @@ public:
     SdpItem::Ptr detail;
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "a";}
+    const char* getKey() const override { return "a";}
 };
 
 class SdpAttrGroup : public SdpItem{
@@ -197,7 +197,7 @@ public:
     vector<string> mids;
     void parse(const string &str) override ;
     string toString() const override ;
-    const char* getKey() override { return "group";}
+    const char* getKey() const override { return "group";}
 };
 
 class SdpAttrMsidSemantic : public SdpItem {
@@ -226,7 +226,7 @@ public:
     string token;
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "msid-semantic";}
+    const char* getKey() const override { return "msid-semantic";}
 };
 
 class SdpAttrRtcp : public SdpItem {
@@ -238,19 +238,25 @@ public:
     string address {"0.0.0.0"};
     void parse(const string &str) override;;
     string toString() const override;
-    const char* getKey() override { return "rtcp";}
+    const char* getKey() const override { return "rtcp";}
 };
 
 class SdpAttrIceUfrag : public SdpItem {
 public:
     //a=ice-ufrag:sXJ3
-    const char* getKey() override { return "ice-ufrag";}
+    const char* getKey() const override { return "ice-ufrag";}
 };
 
 class SdpAttrIcePwd : public SdpItem {
 public:
     //a=ice-pwd:yEclOTrLg1gEubBFefOqtmyV
-    const char* getKey() override { return "ice-pwd";}
+    const char* getKey() const override { return "ice-pwd";}
+};
+
+class SdpAttrIceOption : public SdpItem {
+public:
+    //a=ice-options:trickle
+    const char* getKey() const override { return "ice-options";}
 };
 
 class SdpAttrFingerprint : public SdpItem {
@@ -260,7 +266,7 @@ public:
     string hash;
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "fingerprint";}
+    const char* getKey() const override { return "fingerprint";}
 };
 
 class SdpAttrSetup : public SdpItem {
@@ -269,13 +275,13 @@ public:
     DtlsRole role{DtlsRole::actpass};
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "setup";}
+    const char* getKey() const override { return "setup";}
 };
 
 class SdpAttrMid : public SdpItem {
 public:
     //a=mid:audio
-    const char* getKey() override { return "mid";}
+    const char* getKey() const override { return "mid";}
 };
 
 class SdpAttrExtmap : public SdpItem {
@@ -285,7 +291,7 @@ public:
     string ext;
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "extmap";}
+    const char* getKey() const override { return "extmap";}
 };
 
 class SdpAttrRtpMap : public SdpItem {
@@ -297,7 +303,7 @@ public:
     int channel {0};
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "rtpmap";}
+    const char* getKey() const override { return "rtpmap";}
 };
 
 class SdpAttrRtcpFb : public SdpItem {
@@ -307,7 +313,7 @@ public:
     vector<string> arr;
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "rtcp-fb";}
+    const char* getKey() const override { return "rtcp-fb";}
 };
 
 class SdpAttrFmtp : public SdpItem {
@@ -317,7 +323,7 @@ public:
     vector<std::pair<string, string> > arr;
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "fmtp";}
+    const char* getKey() const override { return "fmtp";}
 };
 
 class SdpAttrSSRC : public SdpItem {
@@ -330,7 +336,34 @@ public:
     string attribute_value;
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "ssrc";}
+    const char* getKey() const override { return "ssrc";}
+};
+
+class SdpAttrSSRCGroup : public SdpItem {
+public:
+    //a=ssrc-group 定义参考 RFC 5576 ，用于描述多个 ssrc 之间的关联，常见的有两种：
+
+    //a=ssrc-group:FID 2430709021 3715850271
+    // FID (Flow Identification) 最初用在 FEC 的关联中，WebRTC 中通常用于关联一组常规 RTP stream 和 重传 RTP stream 。
+
+    //a=ssrc-group:SIM 360918977 360918978 360918980
+    // 在 Chrome 独有的 SDP munging 风格的 simulcast 中使用，将三组编码质量由低到高的 MediaStreamTrack 关联在一起。
+    string type{"FID"};
+    union {
+        struct {
+            uint32_t rtp_ssrc;
+            uint32_t rtx_ssrc;
+        } fid;
+        struct {
+            uint32_t rtp_ssrc_low;
+            uint32_t rtp_ssrc_mid;
+            uint32_t rtp_ssrc_high;
+        } sim;
+    } u;
+
+    void parse(const string &str) override;
+    string toString() const override;
+    const char* getKey() const override { return "ssrc-group";}
 };
 
 class SdpAttrSctpMap : public SdpItem {
@@ -343,7 +376,7 @@ public:
     int streams;
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "sctpmap";}
+    const char* getKey() const override { return "sctpmap";}
 };
 
 class SdpAttrCandidate : public SdpItem {
@@ -363,7 +396,7 @@ public:
 
     void parse(const string &str) override;
     string toString() const override;
-    const char* getKey() override { return "candidate";}
+    const char* getKey() const override { return "candidate";}
 };
 
 class RtcMedia {
