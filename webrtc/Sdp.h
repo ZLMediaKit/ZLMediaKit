@@ -293,8 +293,9 @@ public:
 class SdpAttrExtmap : public SdpItem {
 public:
     //https://aggresss.blog.csdn.net/article/details/106436703
-    //a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+    //a=extmap:1[/sendonly] urn:ietf:params:rtp-hdrext:ssrc-audio-level
     int index;
+    RtpDirection direction{RtpDirection::invalid};
     string ext;
     void parse(const string &str) override;
     string toString() const override;

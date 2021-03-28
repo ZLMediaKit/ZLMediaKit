@@ -447,15 +447,24 @@ string SdpAttrSetup::toString() const  {
 
 void SdpAttrExtmap::parse(const string &str)  {
     char buf[128] = {0};
-    if (sscanf(str.data(), "%" PRId32 " %127s", &index, buf) != 2) {
-        SDP_THROW();
+    char direction_buf[32] = {0};
+    if (sscanf(str.data(), "%" PRId32 "/%31[^ ] %127s", &index, direction_buf, buf) != 3) {
+        if (sscanf(str.data(), "%" PRId32 " %127s", &index, buf) != 2) {
+            SDP_THROW();
+        }
+    } else {
+        direction = getRtpDirection(direction_buf);
     }
     ext = buf;
 }
 
 string SdpAttrExtmap::toString() const  {
     if (value.empty()) {
-        value = to_string(index) + " " + ext;
+        if(direction == RtpDirection::invalid){
+            value = to_string(index) + " " + ext;
+        } else {
+            value = to_string(index) + "/" + getRtpDirectionString(direction) +  " " + ext;
+        }
     }
     return SdpItem::toString();
 }
@@ -693,7 +702,7 @@ void test_sdp(){
                   "a=fingerprint:sha-256 22:14:B5:AF:66:12:C7:C7:8D:EF:4B:DE:40:25:ED:5D:8F:17:54:DD:88:33:C0:13:2E:FD:1A:FA:7E:7A:1B:79\n"
                   "a=setup:actpass\n"
                   "a=mid:audio\n"
-                  "a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\n"
+                  "a=extmap:1/sendonly urn:ietf:params:rtp-hdrext:ssrc-audio-level\n"
                   "a=sendrecv\n"
                   "a=rtcp-mux\n"
                   "a=rtpmap:111 opus/48000/2\n"
