@@ -93,6 +93,7 @@ std::string WebRtcTransport::GetLocalSdp() {
             "a=mid:video\r\n"
             "a=sendonly\r\n"
             "a=rtcp-mux\r\n"
+            "a=ice-lite\r\n"
             "a=ice-ufrag:%s\r\n"
             "a=ice-pwd:%s\r\n"
             "a=ice-options:trickle\r\n"

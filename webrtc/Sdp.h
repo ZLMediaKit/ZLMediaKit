@@ -12,6 +12,8 @@ using namespace std;
 using namespace mediakit;
 
 //https://datatracker.ietf.org/doc/rfc4566/?include_text=1
+//https://blog.csdn.net/aggresss/article/details/109850434
+//https://aggresss.blog.csdn.net/article/details/106436703
 //Session description
 //         v=  (protocol version)
 //         o=  (originator and session identifier)
@@ -290,6 +292,7 @@ public:
 
 class SdpAttrExtmap : public SdpItem {
 public:
+    //https://aggresss.blog.csdn.net/article/details/106436703
     //a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
     int index;
     string ext;
@@ -312,7 +315,12 @@ public:
 
 class SdpAttrRtcpFb : public SdpItem {
 public:
-   //a=rtcp-fb:98 nack pli
+    //a=rtcp-fb:98 nack pli
+    //a=rtcp-fb:120 nack 支持 nack 重传，nack (Negative-Acknowledgment) 。
+    //a=rtcp-fb:120 nack pli 支持 nack 关键帧重传，PLI (Picture Loss Indication) 。
+    //a=rtcp-fb:120 ccm fir 支持编码层关键帧请求，CCM (Codec Control Message)，FIR (Full Intra Request )，通常与 nack pli 有同样的效果，但是 nack pli 是用于重传时的关键帧请求。
+    //a=rtcp-fb:120 goog-remb 支持 REMB (Receiver Estimated Maximum Bitrate) 。
+    //a=rtcp-fb:120 transport-cc 支持 TCC (Transport Congest Control) 。
     uint8_t pt;
     vector<string> arr;
     void parse(const string &str) override;
@@ -332,9 +340,20 @@ public:
 
 class SdpAttrSSRC : public SdpItem {
 public:
-    //a=ssrc:120276603 cname:iSkJ2vn5cYYubTve
+    //a=ssrc:3245185839 cname:Cx4i/VTR51etgjT7
+    //a=ssrc:3245185839 msid:cb373bff-0fea-4edb-bc39-e49bb8e8e3b9 0cf7e597-36a2-4480-9796-69bf0955eef5
+    //a=ssrc:3245185839 mslabel:cb373bff-0fea-4edb-bc39-e49bb8e8e3b9
+    //a=ssrc:3245185839 label:0cf7e597-36a2-4480-9796-69bf0955eef5
     //a=ssrc:<ssrc-id> <attribute>
     //a=ssrc:<ssrc-id> <attribute>:<value>
+    //cname 是必须的，msid/mslabel/label 这三个属性都是 WebRTC 自创的，或者说 Google 自创的，可以参考 https://tools.ietf.org/html/draft-ietf-mmusic-msid-17，
+    // 理解它们三者的关系需要先了解三个概念：RTP stream / MediaStreamTrack / MediaStream ：
+    //一个 a=ssrc 代表一个 RTP stream ；
+    //一个 MediaStreamTrack 通常包含一个或多个 RTP stream，例如一个视频 MediaStreamTrack 中通常包含两个 RTP stream，一个用于常规传输，一个用于 nack 重传；
+    //一个 MediaStream 通常包含一个或多个 MediaStreamTrack ，例如 simulcast 场景下，一个 MediaStream 通常会包含三个不同编码质量的 MediaStreamTrack ；
+    //这种标记方式并不被 Firefox 认可，在 Firefox 生成的 SDP 中一个 a=ssrc 通常只有一行，例如：
+    //a=ssrc:3245185839 cname:Cx4i/VTR51etgjT7
+
     uint32_t ssrc;
     string attribute;
     string attribute_value;
@@ -345,11 +364,9 @@ public:
 
 class SdpAttrSSRCGroup : public SdpItem {
 public:
-    //a=ssrc-group 定义参考 RFC 5576 ，用于描述多个 ssrc 之间的关联，常见的有两种：
-
+    //a=ssrc-group 定义参考 RFC 5576(https://tools.ietf.org/html/rfc5576) ，用于描述多个 ssrc 之间的关联，常见的有两种：
     //a=ssrc-group:FID 2430709021 3715850271
     // FID (Flow Identification) 最初用在 FEC 的关联中，WebRTC 中通常用于关联一组常规 RTP stream 和 重传 RTP stream 。
-
     //a=ssrc-group:SIM 360918977 360918978 360918980
     // 在 Chrome 独有的 SDP munging 风格的 simulcast 中使用，将三组编码质量由低到高的 MediaStreamTrack 关联在一起。
     string type{"FID"};
