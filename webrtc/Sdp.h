@@ -103,6 +103,7 @@ using namespace mediakit;
 //a=ssrc:611523443 msid:616cfbb1-33a3-4d8c-8275-a199d6005549 bf270496-a23e-47b5-b901-ef23096cd961
 //a=ssrc:611523443 mslabel:616cfbb1-33a3-4d8c-8275-a199d6005549
 //a=ssrc:611523443 label:bf270496-a23e-47b5-b901-ef23096cd961
+//a=candidate:1 1 udp %u %s %u typ host
 //m=application 9 DTLS/SCTP 5000
 //c=IN IP4 0.0.0.0
 //a=ice-ufrag:sXJ3
@@ -172,11 +173,30 @@ enum class SdpType {
 
 class SdpItem {
 public:
-    SdpItem() = default;
+    using Ptr = std::shared_ptr<SdpItem>;
+    string value;
     virtual ~SdpItem() = default;
-    virtual void parse(const string &str) = 0;
-    virtual string toString() const = 0;
+    virtual void parse(const string &str) {
+        value  = str;
+    }
+    virtual string toString() const {
+        return value;
+    }
     virtual const char* getKey() = 0;
+};
+
+template <char KEY>
+class SdpString : public SdpItem{
+public:
+    // *=*
+    const char* getKey() override { static string key(1, KEY); return key.data();}
+};
+
+class SdpCommon : public SdpItem {
+public:
+    string key;
+    SdpCommon(string key) { this->key = std::move(key); }
+    const char* getKey() override { return key.data();}
 };
 
 class SdpTime : public SdpItem{
@@ -185,8 +205,8 @@ public:
     // t=<start-time> <stop-time>
     uint64_t start;
     uint64_t stop;
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "t";}
 };
 
@@ -201,8 +221,8 @@ public:
     string nettype;
     string addrtype;
     string address;
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "o";}
 };
 
@@ -214,8 +234,8 @@ public:
     string nettype;
     string addrtype;
     string address;
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "c";}
 };
 
@@ -228,8 +248,8 @@ public:
     string bwtype;
     int bandwidth;
 
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "b";}
 };
 
@@ -242,20 +262,20 @@ public:
     vector<string> proto;
     vector<uint8_t> fmt;
 
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "m";}
 };
 
 class SdpAttr : public SdpItem{
 public:
+    using Ptr = std::shared_ptr<SdpAttr>;
     //5.13.  Attributes ("a=")
     //a=<attribute>
     //a=<attribute>:<value>
-    string name;
-    string value;
+    SdpItem::Ptr detail;
     void parse(const string &str) override;
-    string toString() const override;
+    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "a";}
 };
 
@@ -267,26 +287,168 @@ public:
     //  identifiers that are part of the same lip sync group.
     string type;
     vector<string> mid;
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "group";}
 };
 
+class SdpAttrMsidSemantic : public SdpItem {
+public:
+    string name{"WMS"};
+    string mid;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "msid-semantic";}
+};
+
+class SdpAttrRtcp : public SdpItem {
+public:
+    // c=IN IP4 224.2.17.12/127
+    // c=<nettype> <addrtype> <connection-address>
+    uint16_t port;
+    string nettype;
+    string addrtype;
+    string address;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "rtcp";}
+};
+
+class SdpAttrIceUfrag : public SdpItem {
+public:
+    //a=ice-ufrag:sXJ3
+    string value;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "ice-ufrag";}
+};
+
+class SdpAttrIcePwd : public SdpItem {
+public:
+    //a=ice-pwd:yEclOTrLg1gEubBFefOqtmyV
+    string value;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "ice-pwd";}
+};
+
+class SdpAttrFingerprint : public SdpItem {
+public:
+    //a=fingerprint:sha-256 22:14:B5:AF:66:12:C7:C7:8D:EF:4B:DE:40:25:ED:5D:8F:17:54:DD:88:33:C0:13:2E:FD:1A:FA:7E:7A:1B:79
+    string algorithm;
+    string value;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "fingerprint";}
+};
+
+class SdpAttrSetup : public SdpItem {
+public:
+    //a=setup:actpass
+    DtlsRole role{DtlsRole::invalid};
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "setup";}
+};
+
+class SdpAttrMid : public SdpItem {
+public:
+    //a=mid:audio
+    string mid;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "mid";}
+};
+
+class SdpAttrExtmap : public SdpItem {
+public:
+    //a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+    int index;
+    string value;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "extmap";}
+};
+
+class SdpAttrRtpMap : public SdpItem {
+public:
+    //a=rtpmap:111 opus/48000/2
+    uint8_t pt;
+    string codec;
+    int sample_rate;
+    int channel;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "rtpmap";}
+};
+
+class SdpAttrRtcpFb : public SdpItem {
+public:
+    //a=rtcp-fb:111 transport-cc
+    uint8_t pt;
+    string value;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "rtcp-fb";}
+};
+
+class SdpAttrFmtp : public SdpItem {
+public:
+    //a=rtcp-fb:111 transport-cc
+    uint8_t pt;
+    map<string, string> values;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "fmtp";}
+};
+
+class SdpAttrSSRC : public SdpItem {
+public:
+    //a=ssrc:120276603 cname:iSkJ2vn5cYYubTve
+    uint32_t ssrc;
+    string key;
+    string value;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "ssrc";}
+};
+
+class SdpAttrSctpMap : public SdpItem {
+public:
+    //a=ssrc:120276603 cname:iSkJ2vn5cYYubTve
+    uint16_t port;
+    string name;
+    int mtu;
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "sctpmap";}
+};
+
+class SdpAttrCandidate : public SdpItem {
+public:
+    //a=candidate:%s 1 udp %u %s %u typ %s
+    void parse(const string &str) override {SdpItem::parse(str); };
+    string toString() const override { return SdpItem::toString(); };
+    const char* getKey() override { return "candidate";}
+};
+
+
 class RtcMedia {
 public:
-    //m=<media> <port> <proto> <fmt> ...
-    SdpMedia media;
-    //c=<nettype> <addrtype> <connection-address>
-    SdpConnection connection;
-    //a=<attribute>:<value>
-    vector<SdpAttr> attributes;
-
+    vector<SdpItem::Ptr> items;
     bool haveAttr(const char *attr) const;
     string getAttrValue(const char *attr) const;
 };
 
 class RtcSdp {
 public:
+    vector<SdpItem::Ptr> items;
+    vector<RtcMedia> medias;
+
+    void parse(const string &str);
+    string toString() const;
+
+#if 0
     /////Session description（会话级别描述）////
     //v=  (protocol version)
     int version;
@@ -319,8 +481,7 @@ public:
     //r=* (zero or more repeat times)
     //r=<repeat interval> <active duration> <offsets from start-time>
     string repeat;
-    //a=* (zero or more media attribute lines)
-    vector<SdpAttr> attributes;
+#endif
 };
 
 
