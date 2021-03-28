@@ -12,107 +12,6 @@ using namespace std;
 using namespace mediakit;
 
 //https://datatracker.ietf.org/doc/rfc4566/?include_text=1
-
-//v=0
-//o=- 2584450093346841581 2 IN IP4 127.0.0.1
-//s=-
-//t=0 0
-//a=group:BUNDLE audio video data
-//a=msid-semantic: WMS 616cfbb1-33a3-4d8c-8275-a199d6005549
-//m=audio 9 UDP/TLS/RTP/SAVPF 111 103 104 9 0 8 106 105 13 110 112 113 126
-//c=IN IP4 0.0.0.0
-//a=rtcp:9 IN IP4 0.0.0.0
-//a=ice-ufrag:sXJ3
-//a=ice-pwd:yEclOTrLg1gEubBFefOqtmyV
-//a=fingerprint:sha-256 22:14:B5:AF:66:12:C7:C7:8D:EF:4B:DE:40:25:ED:5D:8F:17:54:DD:88:33:C0:13:2E:FD:1A:FA:7E:7A:1B:79
-//a=setup:actpass
-//a=mid:audio
-//a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
-//a=sendrecv
-//a=rtcp-mux
-//a=rtpmap:111 opus/48000/2
-//a=rtcp-fb:111 transport-cc
-//a=fmtp:111 minptime=10;useinbandfec=1
-//a=rtpmap:103 ISAC/16000
-//a=rtpmap:104 ISAC/32000
-//a=rtpmap:9 G722/8000
-//a=rtpmap:0 PCMU/8000
-//a=rtpmap:8 PCMA/8000
-//a=rtpmap:106 CN/32000
-//a=rtpmap:105 CN/16000
-//a=rtpmap:13 CN/8000
-//a=rtpmap:110 telephone-event/48000
-//a=rtpmap:112 telephone-event/32000
-//a=rtpmap:113 telephone-event/16000
-//a=rtpmap:126 telephone-event/8000
-//a=ssrc:120276603 cname:iSkJ2vn5cYYubTve
-//a=ssrc:120276603 msid:616cfbb1-33a3-4d8c-8275-a199d6005549 1da3d329-7399-4fe9-b20f-69606bebd363
-//a=ssrc:120276603 mslabel:616cfbb1-33a3-4d8c-8275-a199d6005549
-//a=ssrc:120276603 label:1da3d329-7399-4fe9-b20f-69606bebd363
-//m=video 9 UDP/TLS/RTP/SAVPF 96 98 100 102 127 97 99 101 125
-//c=IN IP4 0.0.0.0
-//a=rtcp:9 IN IP4 0.0.0.0
-//a=ice-ufrag:sXJ3
-//a=ice-pwd:yEclOTrLg1gEubBFefOqtmyV
-//a=fingerprint:sha-256 22:14:B5:AF:66:12:C7:C7:8D:EF:4B:DE:40:25:ED:5D:8F:17:54:DD:88:33:C0:13:2E:FD:1A:FA:7E:7A:1B:79
-//a=setup:actpass
-//a=mid:video
-//a=extmap:2 urn:ietf:params:rtp-hdrext:toffset
-//a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
-//a=extmap:4 urn:3gpp:video-orientation
-//a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
-//a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay
-//a=sendrecv
-//a=rtcp-mux
-//a=rtcp-rsize
-//a=rtpmap:96 VP8/90000
-//a=rtcp-fb:96 ccm fir
-//a=rtcp-fb:96 nack
-//a=rtcp-fb:96 nack pli
-//a=rtcp-fb:96 goog-remb
-//a=rtcp-fb:96 transport-cc
-//a=rtpmap:98 VP9/90000
-//a=rtcp-fb:98 ccm fir
-//a=rtcp-fb:98 nack
-//a=rtcp-fb:98 nack pli
-//a=rtcp-fb:98 goog-remb
-//a=rtcp-fb:98 transport-cc
-//a=rtpmap:100 H264/90000
-//a=rtcp-fb:100 ccm fir
-//a=rtcp-fb:100 nack
-//a=rtcp-fb:100 nack pli
-//a=rtcp-fb:100 goog-remb
-//a=rtcp-fb:100 transport-cc
-//a=fmtp:100 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
-//a=rtpmap:102 red/90000
-//a=rtpmap:127 ulpfec/90000
-//a=rtpmap:97 rtx/90000
-//a=fmtp:97 apt=96
-//a=rtpmap:99 rtx/90000
-//a=fmtp:99 apt=98
-//a=rtpmap:101 rtx/90000
-//a=fmtp:101 apt=100
-//a=rtpmap:125 rtx/90000
-//a=fmtp:125 apt=102
-//a=ssrc-group:FID 2580761338 611523443
-//a=ssrc:2580761338 cname:iSkJ2vn5cYYubTve
-//a=ssrc:2580761338 msid:616cfbb1-33a3-4d8c-8275-a199d6005549 bf270496-a23e-47b5-b901-ef23096cd961
-//a=ssrc:2580761338 mslabel:616cfbb1-33a3-4d8c-8275-a199d6005549
-//a=ssrc:2580761338 label:bf270496-a23e-47b5-b901-ef23096cd961
-//a=ssrc:611523443 cname:iSkJ2vn5cYYubTve
-//a=ssrc:611523443 msid:616cfbb1-33a3-4d8c-8275-a199d6005549 bf270496-a23e-47b5-b901-ef23096cd961
-//a=ssrc:611523443 mslabel:616cfbb1-33a3-4d8c-8275-a199d6005549
-//a=ssrc:611523443 label:bf270496-a23e-47b5-b901-ef23096cd961
-//a=candidate:1 1 udp %u %s %u typ host
-//m=application 9 DTLS/SCTP 5000
-//c=IN IP4 0.0.0.0
-//a=ice-ufrag:sXJ3
-//a=ice-pwd:yEclOTrLg1gEubBFefOqtmyV
-//a=fingerprint:sha-256 22:14:B5:AF:66:12:C7:C7:8D:EF:4B:DE:40:25:ED:5D:8F:17:54:DD:88:33:C0:13:2E:FD:1A:FA:7E:7A:1B:79
-//a=setup:actpass
-//a=mid:data
-//a=sctpmap:5000 webrtc-datachannel 1024
-
 //Session description
 //         v=  (protocol version)
 //         o=  (originator and session identifier)
@@ -148,7 +47,7 @@ enum class RtpDirection {
     //只发送
     sendonly,
     //只接收
-    revonly,
+    recvonly,
     //同时发送接收
     sendrecv,
     //禁止发送数据
@@ -171,10 +70,16 @@ enum class SdpType {
     answer
 };
 
+TrackType getTrackType(const string &str);
+const char* getTrackString(TrackType type);
+DtlsRole getDtlsRole(const string &str);
+const char* getDtlsRoleString(DtlsRole role);
+RtpDirection getRtpDirection(const string &str);
+const char* getRtpDirectionString(RtpDirection val);
+
 class SdpItem {
 public:
     using Ptr = std::shared_ptr<SdpItem>;
-    string value;
     virtual ~SdpItem() = default;
     virtual void parse(const string &str) {
         value  = str;
@@ -183,6 +88,9 @@ public:
         return value;
     }
     virtual const char* getKey() = 0;
+
+protected:
+    mutable string value;
 };
 
 template <char KEY>
@@ -203,10 +111,10 @@ class SdpTime : public SdpItem{
 public:
     //5.9.  Timing ("t=")
     // t=<start-time> <stop-time>
-    uint64_t start;
-    uint64_t stop;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    uint64_t start {0};
+    uint64_t stop {0};
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "t";}
 };
 
@@ -215,14 +123,14 @@ public:
     // 5.2.  Origin ("o=")
     // o=jdoe 2890844526 2890842807 IN IP4 10.47.16.5
     // o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
-    string username;
+    string username {"-"};
     string session_id;
     string session_version;
-    string nettype;
-    string addrtype;
-    string address;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    string nettype {"IN"};
+    string addrtype {"IP4"};
+    string address {"0.0.0.0"};
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "o";}
 };
 
@@ -231,11 +139,11 @@ public:
     // 5.7.  Connection Data ("c=")
     // c=IN IP4 224.2.17.12/127
     // c=<nettype> <addrtype> <connection-address>
-    string nettype;
-    string addrtype;
-    string address;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    string nettype {"IN"};
+    string addrtype {"IP4"};
+    string address {"0.0.0.0"};
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "c";}
 };
 
@@ -245,11 +153,11 @@ public:
     //b=<bwtype>:<bandwidth>
 
     //AS、CT
-    string bwtype;
-    int bandwidth;
+    string bwtype {"AS"};
+    uint32_t bandwidth {0};
 
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "b";}
 };
 
@@ -259,11 +167,11 @@ public:
     // m=<media> <port> <proto> <fmt> ...
     TrackType type;
     uint16_t port;
-    vector<string> proto;
-    vector<uint8_t> fmt;
+    string proto;
+    vector<uint32_t> fmts;
 
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "m";}
 };
 
@@ -275,7 +183,7 @@ public:
     //a=<attribute>:<value>
     SdpItem::Ptr detail;
     void parse(const string &str) override;
-    string toString() const override { return SdpItem::toString(); };
+    string toString() const override;
     const char* getKey() override { return "a";}
 };
 
@@ -285,50 +193,63 @@ public:
     //  BUNDLE group is included at the session-level.
     //a=group:LS session level attribute MUST be included wth the 'mid'
     //  identifiers that are part of the same lip sync group.
-    string type;
-    vector<string> mid;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    string type {"BUNDLE"};
+    vector<string> mids;
+    void parse(const string &str) override ;
+    string toString() const override ;
     const char* getKey() override { return "group";}
 };
 
 class SdpAttrMsidSemantic : public SdpItem {
 public:
-    string name{"WMS"};
-    string mid;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    //https://tools.ietf.org/html/draft-alvestrand-rtcweb-msid-02#section-3
+    //3.  The Msid-Semantic Attribute
+    //
+    //   In order to fully reproduce the semantics of the SDP and SSRC
+    //   grouping frameworks, a session-level attribute is defined for
+    //   signalling the semantics associated with an msid grouping.
+    //
+    //   This OPTIONAL attribute gives the message ID and its group semantic.
+    //     a=msid-semantic: examplefoo LS
+    //
+    //
+    //   The ABNF of msid-semantic is:
+    //
+    //     msid-semantic-attr = "msid-semantic:" " " msid token
+    //     token = <as defined in RFC 4566>
+    //
+    //   The semantic field may hold values from the IANA registries
+    //   "Semantics for the "ssrc-group" SDP Attribute" and "Semantics for the
+    //   "group" SDP Attribute".
+    //a=msid-semantic: WMS 616cfbb1-33a3-4d8c-8275-a199d6005549
+    string msid{"WMS"};
+    string token;
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "msid-semantic";}
 };
 
 class SdpAttrRtcp : public SdpItem {
 public:
-    // c=IN IP4 224.2.17.12/127
-    // c=<nettype> <addrtype> <connection-address>
+    // a=rtcp:9 IN IP4 0.0.0.0
     uint16_t port;
-    string nettype;
-    string addrtype;
-    string address;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    string nettype {"IN"};
+    string addrtype {"IP4"};
+    string address {"0.0.0.0"};
+    void parse(const string &str) override;;
+    string toString() const override;
     const char* getKey() override { return "rtcp";}
 };
 
 class SdpAttrIceUfrag : public SdpItem {
 public:
     //a=ice-ufrag:sXJ3
-    string value;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "ice-ufrag";}
 };
 
 class SdpAttrIcePwd : public SdpItem {
 public:
     //a=ice-pwd:yEclOTrLg1gEubBFefOqtmyV
-    string value;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "ice-pwd";}
 };
 
@@ -336,27 +257,24 @@ class SdpAttrFingerprint : public SdpItem {
 public:
     //a=fingerprint:sha-256 22:14:B5:AF:66:12:C7:C7:8D:EF:4B:DE:40:25:ED:5D:8F:17:54:DD:88:33:C0:13:2E:FD:1A:FA:7E:7A:1B:79
     string algorithm;
-    string value;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    string hash;
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "fingerprint";}
 };
 
 class SdpAttrSetup : public SdpItem {
 public:
     //a=setup:actpass
-    DtlsRole role{DtlsRole::invalid};
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    DtlsRole role{DtlsRole::actpass};
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "setup";}
 };
 
 class SdpAttrMid : public SdpItem {
 public:
     //a=mid:audio
-    string mid;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
     const char* getKey() override { return "mid";}
 };
 
@@ -364,9 +282,9 @@ class SdpAttrExtmap : public SdpItem {
 public:
     //a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
     int index;
-    string value;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    string ext;
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "extmap";}
 };
 
@@ -376,68 +294,85 @@ public:
     uint8_t pt;
     string codec;
     int sample_rate;
-    int channel;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    int channel {0};
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "rtpmap";}
 };
 
 class SdpAttrRtcpFb : public SdpItem {
 public:
-    //a=rtcp-fb:111 transport-cc
+   //a=rtcp-fb:98 nack pli
     uint8_t pt;
-    string value;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    vector<string> arr;
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "rtcp-fb";}
 };
 
 class SdpAttrFmtp : public SdpItem {
 public:
-    //a=rtcp-fb:111 transport-cc
+    //fmtp:96 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
     uint8_t pt;
-    map<string, string> values;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    vector<std::pair<string, string> > arr;
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "fmtp";}
 };
 
 class SdpAttrSSRC : public SdpItem {
 public:
     //a=ssrc:120276603 cname:iSkJ2vn5cYYubTve
+    //a=ssrc:<ssrc-id> <attribute>
+    //a=ssrc:<ssrc-id> <attribute>:<value>
     uint32_t ssrc;
-    string key;
-    string value;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    string attribute;
+    string attribute_value;
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "ssrc";}
 };
 
 class SdpAttrSctpMap : public SdpItem {
 public:
-    //a=ssrc:120276603 cname:iSkJ2vn5cYYubTve
+    //https://tools.ietf.org/html/draft-ietf-mmusic-sctp-sdp-05
+    //a=sctpmap:5000 webrtc-datachannel 1024
+    //a=sctpmap: sctpmap-number media-subtypes [streams]
     uint16_t port;
-    string name;
-    int mtu;
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    string subtypes;
+    int streams;
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "sctpmap";}
 };
 
 class SdpAttrCandidate : public SdpItem {
 public:
-    //a=candidate:%s 1 udp %u %s %u typ %s
-    void parse(const string &str) override {SdpItem::parse(str); };
-    string toString() const override { return SdpItem::toString(); };
+    //https://tools.ietf.org/html/rfc5245
+    //15.1.  "candidate" Attribute
+    //a=candidate:4 1 udp 2 192.168.1.7 58107 typ host
+    //a=candidate:<foundation> <component-id> <transport> <priority> <address> <port> typ <cand-type>
+    uint32_t foundation;
+    uint32_t component;
+    string transport {"udp"};
+    uint32_t priority;
+    string address;
+    uint16_t port;
+    string type;
+    vector<std::pair<string, string> > arr;
+
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() override { return "candidate";}
 };
-
 
 class RtcMedia {
 public:
     vector<SdpItem::Ptr> items;
+    string toString() const;
     bool haveAttr(const char *attr) const;
     string getAttrValue(const char *attr) const;
+    RtpDirection getDirection() const;
 };
 
 class RtcSdp {
@@ -447,41 +382,6 @@ public:
 
     void parse(const string &str);
     string toString() const;
-
-#if 0
-    /////Session description（会话级别描述）////
-    //v=  (protocol version)
-    int version;
-    //o=  (session origin information )
-    SdpOrigin origin;
-    //s=  (session name)
-    string session_name;
-    //t=  (time the session is active)
-    SdpTime time;
-
-    //// 非必须 ////
-    //i=* (session information)
-    string information;
-    //u=* (URI of description)
-    string url;
-    //e=* (email address)
-    string email;
-    //p=* (phone number)
-    string phone;
-    //c=* (connection information -- not required if included in all media)
-    SdpConnection connection;
-    //b=* (zero or more bandwidth information lines)
-    SdpBandwidth bandwidth;
-    //z=* (time zone adjustments)
-    //z=<adjustment time> <offset> <adjustment time> <offset> ....
-    string time_zone;
-    //k=* (encryption key)
-    //k=<method>, k=<method>:<encryption key>
-    string crypt_key;
-    //r=* (zero or more repeat times)
-    //r=<repeat interval> <active duration> <offsets from start-time>
-    string repeat;
-#endif
 };
 
 

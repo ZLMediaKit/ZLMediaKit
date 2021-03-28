@@ -3,6 +3,7 @@
 //
 
 #include "Sdp.h"
+#include <inttypes.h>
 
 using onCreateSdpItem = function<SdpItem::Ptr(const string &key, const string &value)>;
 static unordered_map<string, onCreateSdpItem> sdpItemCreator;
@@ -15,9 +16,37 @@ void registerSdpItem(){
         return ret;
     };
     Item item;
-    InfoL << "register sdp item:" << item.getKey();
     sdpItemCreator.emplace(item.getKey(), std::move(func));
 }
+
+class DirectionInterface {
+public:
+    virtual RtpDirection getDirection() = 0;
+};
+
+class SdpDirectionSendonly : public SdpItem, public DirectionInterface{
+public:
+    const char* getKey() override { return getRtpDirectionString(getDirection());}
+    RtpDirection getDirection() override {return RtpDirection::sendonly;}
+};
+
+class SdpDirectionRecvonly : public SdpItem, public DirectionInterface{
+public:
+    const char* getKey() override { return getRtpDirectionString(getDirection());}
+    RtpDirection getDirection() override {return RtpDirection::recvonly;}
+};
+
+class SdpDirectionSendrecv : public SdpItem, public DirectionInterface{
+public:
+    const char* getKey() override { return getRtpDirectionString(getDirection());}
+    RtpDirection getDirection() override {return RtpDirection::sendrecv;}
+};
+
+class SdpDirectionInactive : public SdpItem, public DirectionInterface{
+public:
+    const char* getKey() override { return getRtpDirectionString(getDirection());}
+    RtpDirection getDirection() override {return RtpDirection::inactive;}
+};
 
 static bool registerAllItem(){
     registerSdpItem<SdpString<'v'> >();
@@ -49,8 +78,86 @@ static bool registerAllItem(){
     registerSdpItem<SdpAttrFmtp>();
     registerSdpItem<SdpAttrSSRC>();
     registerSdpItem<SdpAttrSctpMap>();
+    registerSdpItem<SdpAttrCandidate>();
+    registerSdpItem<SdpDirectionSendonly>();
+    registerSdpItem<SdpDirectionRecvonly>();
+    registerSdpItem<SdpDirectionSendrecv>();
+    registerSdpItem<SdpDirectionInactive>();
+
     return true;
 }
+
+TrackType getTrackType(const string &str){
+    if (str == "video") {
+        return TrackVideo;
+    }
+    if (str == "audio") {
+        return TrackAudio;
+    }
+    if (str == "application") {
+        return TrackApplication;
+    }
+    return TrackInvalid;
+}
+
+const char* getTrackString(TrackType type){
+    switch (type) {
+        case TrackVideo : return "video";
+        case TrackAudio : return "audio";
+        case TrackApplication : return "application";
+        default: return "invalid";
+    }
+}
+
+DtlsRole getDtlsRole(const string &str){
+    if (str == "active") {
+        return DtlsRole::active;
+    }
+    if (str == "passive") {
+        return DtlsRole::passive;
+    }
+    if (str == "actpass") {
+        return DtlsRole::actpass;
+    }
+    return DtlsRole::invalid;
+}
+
+const char* getDtlsRoleString(DtlsRole role){
+    switch (role) {
+        case DtlsRole::active : return "active";
+        case DtlsRole::passive : return "passive";
+        case DtlsRole::actpass : return "actpass";
+        default: return "invalid";
+    }
+}
+
+RtpDirection getRtpDirection(const string &str){
+    if (str == "sendonly") {
+        return RtpDirection::sendonly;
+    }
+    if (str == "recvonly") {
+        return RtpDirection::recvonly;
+    }
+    if (str == "sendrecv") {
+        return RtpDirection::sendrecv;
+    }
+    if (str == "inactive") {
+        return RtpDirection::inactive;
+    }
+    return RtpDirection::invalid;
+}
+
+const char* getRtpDirectionString(RtpDirection val){
+    switch (val) {
+        case RtpDirection::sendonly : return "sendonly";
+        case RtpDirection::recvonly : return "recvonly";
+        case RtpDirection::sendrecv : return "sendrecv";
+        case RtpDirection::inactive : return "inactive";
+        default: return "invalid";
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
 
 void RtcSdp::parse(const string &str) {
     static auto flag = registerAllItem();
@@ -85,11 +192,142 @@ void RtcSdp::parse(const string &str) {
 }
 
 string RtcSdp::toString() const {
-    return std::string();
+    _StrPrinter printer;
+    for (auto &item : items) {
+        printer << item->getKey() << "=" << item->toString() << "\r\n";
+    }
+    for (auto &media : medias) {
+        printer << media.toString();
+    }
+
+    return std::move(printer);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+string RtcMedia::toString() const {
+    _StrPrinter printer;
+    for (auto &item : items) {
+        printer << item->getKey() << "=" << item->toString() << "\r\n";
+    }
+    return std::move(printer);
+}
+
+RtpDirection RtcMedia::getDirection() const{
+    for (auto &item : items) {
+        auto attr = dynamic_pointer_cast<SdpAttr>(item);
+        if (attr) {
+            auto dir = dynamic_pointer_cast<DirectionInterface>(attr->detail);
+            if (dir) {
+                return dir->getDirection();
+            }
+        }
+    }
+    return RtpDirection::invalid;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+#define SDP_THROW() throw std::invalid_argument(StrPrinter << "解析sdp " << getKey() << " 字段失败:" << str)
+void SdpTime::parse(const string &str) {
+    if (sscanf(str.data(), "%" PRIu64 " %" PRIu64, &start, &stop) != 2) {
+        SDP_THROW();
+    }
+}
+
+string SdpTime::toString() const {
+    if (value.empty()) {
+        value = to_string(start) + " " + to_string(stop);
+    }
+    return SdpItem::toString();
+}
+
+void SdpOrigin::parse(const string &str) {
+    auto vec = split(str, " ");
+    if (vec.size() != 6) {
+        SDP_THROW();
+    }
+    username = vec[0];
+    session_id = vec[1];
+    session_version = vec[2];
+    nettype = vec[3];
+    addrtype = vec[4];
+    address = vec[6];
+}
+
+string SdpOrigin::toString() const {
+    if (value.empty()) {
+        value = username + " " + session_id + " " + session_version + " " + nettype + " " + addrtype + " " + address;
+    }
+    return SdpItem::toString();
+}
+
+void SdpConnection::parse(const string &str) {
+    auto vec = split(str, " ");
+    if (vec.size() != 3) {
+        SDP_THROW();
+    }
+    nettype = vec[0];
+    addrtype = vec[1];
+    address = vec[2];
+}
+
+string SdpConnection::toString() const {
+    if (value.empty()) {
+        value = nettype + " " + addrtype + " " + address;
+    }
+    return SdpItem::toString();
+}
+
+void SdpBandwidth::parse(const string &str) {
+    auto vec = split(str, ":");
+    if (vec.size() != 2) {
+        SDP_THROW();
+    }
+    bwtype = vec[0];
+    bandwidth = atoi(vec[1].data());
+}
+
+string SdpBandwidth::toString() const {
+    if (value.empty()) {
+        value = bwtype + ":" + to_string(bandwidth);
+    }
+    return SdpItem::toString();
+}
+
+void SdpMedia::parse(const string &str) {
+    auto vec = split(str, " ");
+    if (vec.size() < 4) {
+        SDP_THROW();
+    }
+    type = getTrackType(vec[0]);
+    if (type == TrackInvalid) {
+        SDP_THROW();
+    }
+    port = atoi(vec[1].data());
+    proto = vec[2];
+    for (int i = 3; i < vec.size(); ++i) {
+        auto pt = atoi(vec[i].data());
+        if (type != TrackApplication && pt > 0xFF) {
+            SDP_THROW();
+        }
+        fmts.emplace_back(pt);
+    }
+}
+
+string SdpMedia::toString() const {
+    if (value.empty()) {
+        value = string(getTrackString(type)) + " " + to_string(port) + " " + proto;
+        for (auto fmt : fmts) {
+            value += ' ';
+            value += to_string(fmt);
+        }
+    }
+    return SdpItem::toString();
 }
 
 void SdpAttr::parse(const string &str) {
-    SdpItem::parse(str);
     auto pos = str.find(':');
     auto key = pos == string::npos ? str : str.substr(0, pos);
     auto value = pos == string::npos ? string() : str.substr(pos + 1);
@@ -102,10 +340,290 @@ void SdpAttr::parse(const string &str) {
     }
 }
 
+string SdpAttr::toString() const {
+    if (value.empty()) {
+        auto detail_value = detail->toString();
+        if (detail_value.empty()) {
+            value = detail->getKey();
+        } else {
+            value = string(detail->getKey()) + ":" + detail_value;
+        }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrGroup::parse(const string &str)  {
+    auto vec = split(str, " ");
+    if (vec.size() < 2) {
+        SDP_THROW();
+    }
+    type = vec[0];
+    vec.erase(vec.begin());
+    mids = std::move(vec);
+}
+
+string SdpAttrGroup::toString() const  {
+    if (value.empty()) {
+        value = type;
+        for (auto mid : mids) {
+            value += ' ';
+            value += mid;
+        }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrMsidSemantic::parse(const string &str)  {
+    auto vec = split(str, " ");
+    if (vec.size() < 1) {
+        SDP_THROW();
+    }
+    msid = vec[0];
+    token = vec.size() > 1 ? vec[1] : "";
+}
+
+string SdpAttrMsidSemantic::toString() const  {
+    if (value.empty()) {
+        if (token.empty()) {
+            value = string(" ") + msid;
+        } else {
+            value = string(" ") + msid + " " + token;
+        }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrRtcp::parse(const string &str)  {
+    auto vec = split(str, " ");
+    if (vec.size() != 4) {
+        SDP_THROW();
+    }
+    port = atoi(vec[0].data());
+    nettype = vec[1];
+    addrtype = vec[2];
+    address = vec[3];
+}
+
+string SdpAttrRtcp::toString() const  {
+    if (value.empty()) {
+        value = to_string(port) + " " + nettype + " " + addrtype + " " + address;
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrFingerprint::parse(const string &str)  {
+    auto vec = split(str, " ");
+    if (vec.size() != 2) {
+        SDP_THROW();
+    }
+    algorithm = vec[0];
+    hash = vec[1];
+}
+
+string SdpAttrFingerprint::toString() const  {
+    if (value.empty()) {
+        value = algorithm + " " + hash;
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrSetup::parse(const string &str)  {
+    role = getDtlsRole(str);
+    if (role == DtlsRole::invalid) {
+        SDP_THROW();
+    }
+}
+
+string SdpAttrSetup::toString() const  {
+    if (value.empty()) {
+        value = getDtlsRoleString(role);
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrExtmap::parse(const string &str)  {
+    char buf[128] = {0};
+    if (sscanf(str.data(), "%" PRId32 " %127s", &index, buf) != 2) {
+        SDP_THROW();
+    }
+    ext = buf;
+}
+
+string SdpAttrExtmap::toString() const  {
+    if (value.empty()) {
+        value = to_string(index) + " " + ext;
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrRtpMap::parse(const string &str)  {
+    char buf[32] = {0};
+    if (sscanf(str.data(), "%" PRId8 " %31[^/]/%" PRId32 "/%" PRId32, &pt, buf, &sample_rate, &channel) != 4) {
+        if (sscanf(str.data(), "%" PRId8 " %31[^/]/%" PRId32, &pt, buf, &sample_rate) != 3) {
+            SDP_THROW();
+        }
+    }
+    codec = buf;
+}
+
+string SdpAttrRtpMap::toString() const  {
+    if (value.empty()) {
+        value = to_string(pt) + " " + codec + "/" + to_string(sample_rate);
+        if (channel) {
+            value += '/';
+            value += to_string(channel);
+        }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrRtcpFb::parse(const string &str)  {
+    auto vec = split(str, " ");
+    if (vec.size() < 2) {
+        SDP_THROW();
+    }
+    pt = atoi(vec[0].data());
+    vec.erase(vec.begin());
+    arr = std::move(vec);
+}
+
+string SdpAttrRtcpFb::toString() const  {
+    if (value.empty()) {
+        value = to_string(pt);
+        for (auto &item : arr) {
+            value += ' ';
+            value += item;
+        }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrFmtp::parse(const string &str)  {
+    auto pos = str.find(' ');
+    if (pos == string::npos) {
+        SDP_THROW();
+    }
+    pt = atoi(str.substr(0, pos).data());
+    auto vec = split(str.substr(pos + 1), ";");
+    for (auto &item : vec) {
+        trim(item);
+        auto pr_vec = split(item, "=");
+        if (pr_vec.size() != 2) {
+            SDP_THROW();
+        }
+        arr.emplace_back(std::make_pair(pr_vec[0], pr_vec[1]));
+    }
+    if (arr.empty()) {
+        SDP_THROW();
+    }
+}
+
+string SdpAttrFmtp::toString() const  {
+    if (value.empty()) {
+        value = to_string(pt);
+        int i = 0;
+        for (auto &pr : arr) {
+            value += (i++  ? ';' : ' ');
+            value += pr.first + "=" + pr.second;
+        }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrSSRC::parse(const string &str)  {
+    char attr_buf[32] = {0};
+    char attr_val_buf[128] = {0};
+    if (3 == sscanf(str.data(), "%" PRIu32 " %31[^:]:%127[^\0]", &ssrc, attr_buf, attr_val_buf)) {
+        attribute = attr_buf;
+        attribute_value = attr_val_buf;
+    } else if (2 == sscanf(str.data(), "%" PRIu32 " %31s", &ssrc, attr_buf)) {
+        attribute = attr_buf;
+    } else {
+        SDP_THROW();
+    }
+}
+
+string SdpAttrSSRC::toString() const  {
+    if (value.empty()) {
+        value = to_string(ssrc) + ' ';
+        value += attribute;
+        if (!attribute_value.empty()) {
+            value += ':';
+            value += attribute_value;
+        }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrSctpMap::parse(const string &str)  {
+    char subtypes_buf[64] = {0};
+    if (3 == sscanf(str.data(), "%" PRIu16 " %63[^ ] %" PRId32, &port, subtypes_buf, &streams)) {
+        subtypes = subtypes_buf;
+    } else {
+        SDP_THROW();
+    }
+}
+
+string SdpAttrSctpMap::toString() const  {
+    if (value.empty()) {
+        value = to_string(port);
+        value += ' ';
+        value += subtypes;
+        value += ' ';
+        value += to_string(streams);
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrCandidate::parse(const string &str)  {
+    char transport_buf[16] = {0};
+    char address_buf[32] = {0};
+    char type_buf[16] = {0};
+
+    if (7 != sscanf(str.data(), "%" PRIu32 " %" PRIu32 " %15[^ ] %" PRIu32 " %31[^ ] %" PRIu16 " typ %15[^ \0]",
+                    &foundation, &component, transport_buf, &priority, address_buf, &port, type_buf)) {
+        SDP_THROW();
+    }
+    transport = transport_buf;
+    address = address_buf;
+    type = type_buf;
+    auto pos = str.find(type);
+    if (pos != string::npos) {
+        auto remain = str.substr(pos + type.size());
+        trim(remain);
+        if (!remain.empty()) {
+            auto vec = split(remain, " ");
+            string key;
+            for (auto &item : vec) {
+                if (key.empty()) {
+                    key = item;
+                } else {
+                    arr.emplace_back(std::make_pair(std::move(key), std::move(item)));
+                }
+            }
+        }
+    }
+}
+
+string SdpAttrCandidate::toString() const  {
+    if (value.empty()) {
+        value = to_string(foundation) + " " + to_string(component) + " " + transport + " " + to_string(priority) +
+                " " + address + " " + to_string(port) + " typ " + type;
+        for (auto &pr : arr) {
+            value += ' ';
+            value += pr.first;
+            value += ' ';
+            value += pr.second;
+        }
+    }
+    return SdpItem::toString();
+}
+
 void test_sdp(){
     char str1[] = "v=0\n"
                  "o=- 380154348540553537 2 IN IP4 127.0.0.1\n"
                  "s=-\n"
+                 "b=CT:1900\n"
                  "t=0 0\n"
                  "a=group:BUNDLE video\n"
                  "a=msid-semantic: WMS\n"
@@ -212,7 +730,7 @@ void test_sdp(){
                   "a=ssrc:611523443 msid:616cfbb1-33a3-4d8c-8275-a199d6005549 bf270496-a23e-47b5-b901-ef23096cd961\n"
                   "a=ssrc:611523443 mslabel:616cfbb1-33a3-4d8c-8275-a199d6005549\n"
                   "a=ssrc:611523443 label:bf270496-a23e-47b5-b901-ef23096cd961\n"
-                  "a=candidate:1 1 udp %u %s %u typ host\n"
+                  "a=candidate:3575467457 1 udp 2113937151 10.15.83.23 57857 typ host generation 0 ufrag 6R0z network-cost 999\n"
                   "m=application 9 DTLS/SCTP 5000\n"
                   "c=IN IP4 0.0.0.0\n"
                   "a=ice-ufrag:sXJ3\n"
@@ -220,7 +738,8 @@ void test_sdp(){
                   "a=fingerprint:sha-256 22:14:B5:AF:66:12:C7:C7:8D:EF:4B:DE:40:25:ED:5D:8F:17:54:DD:88:33:C0:13:2E:FD:1A:FA:7E:7A:1B:79\n"
                   "a=setup:actpass\n"
                   "a=mid:data\n"
-                  "a=sctpmap:5000 webrtc-datachannel 1024";
+                  "a=sctpmap:5000 webrtc-datachannel 1024\n"
+                  "a=sctp-port:5000";
 
     RtcSdp sdp1;
     sdp1.parse(str1);
@@ -228,6 +747,12 @@ void test_sdp(){
     RtcSdp sdp2;
     sdp2.parse(str2);
 
+    for (auto media : sdp1.medias) {
+        InfoL << getRtpDirectionString(media.getDirection());
+    }
+    for (auto media : sdp2.medias) {
+        InfoL << getRtpDirectionString(media.getDirection());
+    }
     InfoL << sdp1.toString();
     InfoL << sdp2.toString();
 }
