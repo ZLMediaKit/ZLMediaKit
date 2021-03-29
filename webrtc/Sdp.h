@@ -494,7 +494,7 @@ public:
 };
 
 //rtc传输编码方案
-class RtcPlan{
+class RtcCodecPlan{
 public:
     uint8_t pt;
     string codec;
@@ -514,10 +514,10 @@ public:
     string proto;
 
     //////// rtp ////////
-    vector<RtcPlan> plan;
+    RtcSSRC ssrc;
     SdpConnection rtp_addr;
     RtpDirection direction;
-    RtcSSRC ssrc;
+    vector<RtcCodecPlan> plan;
 
     //////// rtx - rtcp  ////////
     bool rtcp_mux;

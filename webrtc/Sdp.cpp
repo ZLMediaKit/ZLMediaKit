@@ -897,6 +897,17 @@ void RtcSession::loadFrom(const string &str) {
         RtcMedia rtc_media;
         rtc_media.type = mline.type;
         rtc_media.mid = media.getStringItem('a', "mid");
+        rtc_media.proto = mline.proto;
+        rtc_media.type = mline.type;
+        rtc_media.port = mline.port;
+        rtc_media.direction = media.getDirection();
+        rtc_media.rtp_addr = media.getItemClass<SdpConnection>('c');
+        rtc_media.rtcp_addr = media.getItemClass<SdpAttrRtcp>('a',"rtcp");
+        rtc_media.ice_ufrag = media.getStringItem('a',"ice-ufrag");
+        rtc_media.ice_ufrag = media.getStringItem('a',"ice-pwd");
+        rtc_media.fingerprint = media.getItemClass<SdpAttrFingerprint>('a', "fingerprint");
+        rtc_media.role =  media.getItemClass<SdpAttrSetup>('a',"setup").role;
+//        rtc_media.rtcp_mux =
     }
 
 }
