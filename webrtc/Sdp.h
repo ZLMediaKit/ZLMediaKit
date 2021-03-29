@@ -294,7 +294,7 @@ class SdpAttrExtmap : public SdpItem {
 public:
     //https://aggresss.blog.csdn.net/article/details/106436703
     //a=extmap:1[/sendonly] urn:ietf:params:rtp-hdrext:ssrc-audio-level
-    int index;
+    uint32_t index;
     RtpDirection direction{RtpDirection::invalid};
     string ext;
     void parse(const string &str) override;
@@ -307,8 +307,8 @@ public:
     //a=rtpmap:111 opus/48000/2
     uint8_t pt;
     string codec;
-    int sample_rate;
-    int channel {0};
+    uint32_t sample_rate;
+    uint32_t channel {0};
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "rtpmap";}
@@ -323,7 +323,7 @@ public:
     //a=rtcp-fb:120 goog-remb 支持 REMB (Receiver Estimated Maximum Bitrate) 。
     //a=rtcp-fb:120 transport-cc 支持 TCC (Transport Congest Control) 。
     uint8_t pt;
-    vector<string> arr;
+    string rtcp_type;
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "rtcp-fb";}
@@ -383,6 +383,8 @@ public:
         } sim;
     } u;
 
+    bool isFID() const { return type == "FID"; }
+    bool isSIM() const { return type == "SIM"; }
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "ssrc-group";}
@@ -395,7 +397,7 @@ public:
     //a=sctpmap: sctpmap-number media-subtypes [streams]
     uint16_t port;
     string subtypes;
-    int streams;
+    uint32_t streams;
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "sctpmap";}
@@ -426,6 +428,7 @@ public:
     vector<SdpItem::Ptr> items;
 
 public:
+    virtual ~RtcSdpBase() = default;
     virtual string toString() const;
 
     int getVersion() const;
@@ -461,8 +464,31 @@ public:
         return item->toString();
     }
 
-private:
     SdpItem::Ptr getItem(char key, const char *attr_key = nullptr) const;
+
+    template<typename cls>
+    vector<cls> getAllItem(char key, const char *attr_key = nullptr) const {
+        vector<cls> ret;
+        for (auto item : items) {
+            if (item->getKey()[0] == key) {
+                if (!attr_key) {
+                    auto c = dynamic_pointer_cast<cls>(item);
+                    if (c) {
+                        ret.emplace_back(*c);
+                    }
+                } else {
+                    auto attr = dynamic_pointer_cast<SdpAttr>(item);
+                    if (attr && !strcmp(attr->detail->getKey(), attr_key)) {
+                        auto c = dynamic_pointer_cast<cls>(attr->detail);
+                        if (c) {
+                            ret.emplace_back(*c);
+                        }
+                    }
+                }
+            }
+        }
+        return ret;
+    }
 };
 
 class RtcSessionSdp : public RtcSdpBase{
@@ -486,7 +512,7 @@ enum class RtcSSRCType {
 //ssrc相关信息
 class RtcSSRC{
 public:
-    RtcSSRCType type;
+    uint32_t ssrc {0};
     string cname;
     string msid;
     string mslabel;
@@ -514,15 +540,22 @@ public:
     string proto;
 
     //////// rtp ////////
-    RtcSSRC ssrc;
-    SdpConnection rtp_addr;
+    RtcSSRC rtp_ssrc;
+    // for simulcast
+    bool simulcast{false};
+    RtcSSRC rtp_ssrc_low;
+    RtcSSRC rtp_ssrc_mid;
+    RtcSSRC rtp_ssrc_high;
+
+    SdpConnection addr;
     RtpDirection direction;
     vector<RtcCodecPlan> plan;
 
     //////// rtx - rtcp  ////////
+    bool rtx{false};
     bool rtcp_mux;
     bool rtcp_rsize;
-    uint32_t rtx_ssrc;
+    RtcSSRC rtx_ssrc;
     SdpAttrRtcp rtcp_addr;
 
     //////// ice ////////
@@ -539,18 +572,23 @@ public:
 
     //////// extmap ////////
     vector<SdpAttrExtmap> extmap;
+
+    //////// sctp ////////////
+    SdpAttrSctpMap sctpmap;
+    uint32_t sctp_port {0};
 };
 
 class RtcSession{
 public:
-    int version;
+    uint32_t version;
     SdpOrigin origin;
     string session_name;
     string session_info;
     SdpConnection connection;
     SdpBandwidth bandwidth;
-    set<TrackType> group_bundle;
+    SdpAttrMsidSemantic msid_semantic;
     vector<RtcMedia> media;
+    SdpAttrGroup group;
 
     void loadFrom(const string &sdp);
 };
