@@ -235,7 +235,7 @@ RtpDirection RtcMedia::getDirection() const{
 #define SDP_THROW2() throw std::invalid_argument(StrPrinter << "生成sdp " << getKey() << " 字段失败")
 
 void SdpTime::parse(const string &str) {
-    if (sscanf(str.data(), "%" PRIu64 " %" PRIu64, &start, &stop) != 2) {
+    if (sscanf(str.data(), "%" SCNu64 " %" SCNu64, &start, &stop) != 2) {
         SDP_THROW();
     }
 }
@@ -257,7 +257,7 @@ void SdpOrigin::parse(const string &str) {
     session_version = vec[2];
     nettype = vec[3];
     addrtype = vec[4];
-    address = vec[6];
+    address = vec[5];
 }
 
 string SdpOrigin::toString() const {
@@ -311,7 +311,7 @@ void SdpMedia::parse(const string &str) {
     }
     port = atoi(vec[1].data());
     proto = vec[2];
-    for (int i = 3; i < vec.size(); ++i) {
+    for (size_t i = 3; i < vec.size(); ++i) {
         auto pt = atoi(vec[i].data());
         if (type != TrackApplication && pt > 0xFF) {
             SDP_THROW();
@@ -448,8 +448,8 @@ string SdpAttrSetup::toString() const  {
 void SdpAttrExtmap::parse(const string &str)  {
     char buf[128] = {0};
     char direction_buf[32] = {0};
-    if (sscanf(str.data(), "%" PRId32 "/%31[^ ] %127s", &index, direction_buf, buf) != 3) {
-        if (sscanf(str.data(), "%" PRId32 " %127s", &index, buf) != 2) {
+    if (sscanf(str.data(), "%" SCNd32 "/%31[^ ] %127s", &index, direction_buf, buf) != 3) {
+        if (sscanf(str.data(), "%" SCNd32 " %127s", &index, buf) != 2) {
             SDP_THROW();
         }
     } else {
@@ -471,8 +471,8 @@ string SdpAttrExtmap::toString() const  {
 
 void SdpAttrRtpMap::parse(const string &str)  {
     char buf[32] = {0};
-    if (sscanf(str.data(), "%" PRId8 " %31[^/]/%" PRId32 "/%" PRId32, &pt, buf, &sample_rate, &channel) != 4) {
-        if (sscanf(str.data(), "%" PRId8 " %31[^/]/%" PRId32, &pt, buf, &sample_rate) != 3) {
+    if (sscanf(str.data(), "%" SCNu8 " %31[^/]/%" SCNd32 "/%" SCNd32, &pt, buf, &sample_rate, &channel) != 4) {
+        if (sscanf(str.data(), "%" SCNu8 " %31[^/]/%" SCNd32, &pt, buf, &sample_rate) != 3) {
             SDP_THROW();
         }
     }
@@ -543,13 +543,14 @@ string SdpAttrFmtp::toString() const  {
     return SdpItem::toString();
 }
 
-void SdpAttrSSRC::parse(const string &str)  {
+void SdpAttrSSRC::parse(const string &str_in)  {
+    auto str = str_in + '\n';
     char attr_buf[32] = {0};
     char attr_val_buf[128] = {0};
-    if (3 == sscanf(str.data(), "%" PRIu32 " %31[^:]:%127[^\0]", &ssrc, attr_buf, attr_val_buf)) {
+    if (3 == sscanf(str.data(), "%" SCNu32 " %31[^:]:%127[^\n]", &ssrc, attr_buf, attr_val_buf)) {
         attribute = attr_buf;
         attribute_value = attr_val_buf;
-    } else if (2 == sscanf(str.data(), "%" PRIu32 " %31s", &ssrc, attr_buf)) {
+    } else if (2 == sscanf(str.data(), "%" SCNu32 " %31s[^\n]", &ssrc, attr_buf)) {
         attribute = attr_buf;
     } else {
         SDP_THROW();
@@ -605,7 +606,7 @@ string SdpAttrSSRCGroup::toString() const  {
 
 void SdpAttrSctpMap::parse(const string &str)  {
     char subtypes_buf[64] = {0};
-    if (3 == sscanf(str.data(), "%" PRIu16 " %63[^ ] %" PRId32, &port, subtypes_buf, &streams)) {
+    if (3 == sscanf(str.data(), "%" SCNu16 " %63[^ ] %" SCNd32, &port, subtypes_buf, &streams)) {
         subtypes = subtypes_buf;
     } else {
         SDP_THROW();
@@ -628,7 +629,7 @@ void SdpAttrCandidate::parse(const string &str)  {
     char address_buf[32] = {0};
     char type_buf[16] = {0};
 
-    if (7 != sscanf(str.data(), "%" PRIu32 " %" PRIu32 " %15[^ ] %" PRIu32 " %31[^ ] %" PRIu16 " typ %15[^ \0]",
+    if (7 != sscanf(str.data(), "%" SCNu32 " %" SCNu32 " %15[^ ] %" SCNu32 " %31[^ ] %" SCNu16 " typ %15[^ ]",
                     &foundation, &component, transport_buf, &priority, address_buf, &port, type_buf)) {
         SDP_THROW();
     }
