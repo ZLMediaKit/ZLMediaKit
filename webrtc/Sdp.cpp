@@ -949,9 +949,7 @@ void RtcSession::loadFrom(const string &str) {
             if (group.isFID()) {
                 ssrc_rtp = group.u.fid.rtp_ssrc;
                 ssrc_rtx = group.u.fid.rtx_ssrc;
-                rtc_media.rtx = true;
             } else if (group.isSIM()) {
-                rtc_media.simulcast = true;
                 ssrc_rtp_low = group.u.sim.rtp_ssrc_low;
                 ssrc_rtp_mid = group.u.sim.rtp_ssrc_mid;
                 ssrc_rtp_high = group.u.sim.rtp_ssrc_high;
@@ -1033,4 +1031,55 @@ void RtcSession::loadFrom(const string &str) {
     }
 
     group = sdp.getItemClass<SdpAttrGroup>('a', "group");
+    checkValid();
+}
+
+string RtcCodecPlan::getFmtp(const char *key) const{
+    for (auto &item : fmtp) {
+        if (item.first == key) {
+            return item.second;
+        }
+    }
+    return "";
+}
+
+const RtcCodecPlan *RtcMedia::getPlan(uint8_t pt) const{
+    for (auto &item : plan) {
+        if (item.pt == pt) {
+            return &item;
+        }
+    }
+    return nullptr;
+}
+
+void RtcMedia::checkValid() const{
+    switch (direction) {
+        case RtpDirection::sendonly:
+        case RtpDirection::sendrecv: {
+            if (rtp_ssrc.empty()) {
+                throw std::invalid_argument("发送rtp但是未指定rtp ssrc");
+            }
+            break;
+        }
+        default: break;
+    }
+    for (auto &item : plan) {
+        if (item.codec == "rtx") {
+            if (rtx_ssrc.empty()) {
+                throw std::invalid_argument("指定开启rtx但是未指定rtx ssrc");
+            }
+            auto apt = atoi(item.getFmtp("apt").data());
+            if (!getPlan(apt)) {
+                throw std::invalid_argument("找不到rtx关联的plan信息");
+            }
+        }
+    }
+    //todo 校验更多信息
+}
+
+void RtcSession::checkValid() const{
+    for (auto &item : media) {
+        item.checkValid();
+    }
+    //todo 校验更多信息
 }

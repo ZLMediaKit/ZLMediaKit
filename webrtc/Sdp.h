@@ -517,6 +517,8 @@ public:
     string msid;
     string mslabel;
     string label;
+
+    bool empty() const {return ssrc == 0;}
 };
 
 //rtc传输编码方案
@@ -527,47 +529,48 @@ public:
     uint32_t sample_rate;
     //音频时有效
     uint32_t channel = 0;
+    //rtcp反馈
     vector<string> rtcp_fb;
     vector<std::pair<string/*key*/, string/*value*/> > fmtp;
+
+    string getFmtp(const char *key) const;
 };
 
 //rtc 媒体描述
 class RtcMedia{
 public:
-    TrackType type;
+    TrackType type{TrackType::TrackInvalid};
     string mid;
-    uint16_t port;
+    uint16_t port{0};
+    SdpConnection addr;
     string proto;
+    RtpDirection direction{RtpDirection::invalid};
+    vector<RtcCodecPlan> plan;
 
     //////// rtp ////////
     RtcSSRC rtp_ssrc;
-    // for simulcast
-    bool simulcast{false};
+    RtcSSRC rtx_ssrc;
+
+    //////// simulcast ////////
     RtcSSRC rtp_ssrc_low;
     RtcSSRC rtp_ssrc_mid;
     RtcSSRC rtp_ssrc_high;
 
-    SdpConnection addr;
-    RtpDirection direction;
-    vector<RtcCodecPlan> plan;
-
-    //////// rtx - rtcp  ////////
-    bool rtx{false};
-    bool rtcp_mux;
-    bool rtcp_rsize;
-    RtcSSRC rtx_ssrc;
+    ////////  rtcp  ////////
+    bool rtcp_mux{false};
+    bool rtcp_rsize{false};
     SdpAttrRtcp rtcp_addr;
 
     //////// ice ////////
-    bool ice_trickle;
-    bool ice_lite;
-    bool ice_renomination;
+    bool ice_trickle{false};
+    bool ice_lite{false};
+    bool ice_renomination{false};
     string ice_ufrag;
     string ice_pwd;
     std::vector<SdpAttrCandidate> candidate;
 
     //////// dtls ////////
-    DtlsRole role;
+    DtlsRole role{DtlsRole::invalid};
     SdpAttrFingerprint fingerprint;
 
     //////// extmap ////////
@@ -575,7 +578,10 @@ public:
 
     //////// sctp ////////////
     SdpAttrSctpMap sctpmap;
-    uint32_t sctp_port {0};
+    uint32_t sctp_port{0};
+
+    void checkValid() const;
+    const RtcCodecPlan *getPlan(uint8_t pt) const;
 };
 
 class RtcSession{
@@ -591,6 +597,7 @@ public:
     SdpAttrGroup group;
 
     void loadFrom(const string &sdp);
+    void checkValid() const;
 };
 
 
