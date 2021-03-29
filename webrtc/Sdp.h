@@ -421,7 +421,7 @@ public:
     const char* getKey() const override { return "candidate";}
 };
 
-class RtcMedia {
+class RtcMediaSdp {
 public:
     vector<SdpItem::Ptr> items;
     string toString() const;
@@ -430,15 +430,83 @@ public:
     RtpDirection getDirection() const;
 };
 
-class RtcSdp {
+class RtcSessionSdp {
 public:
     vector<SdpItem::Ptr> items;
-    vector<RtcMedia> medias;
+    vector<RtcMediaSdp> medias;
 
     void parse(const string &str);
     string toString() const;
 };
 
+//////////////////////////////////////////////////////////////////
+
+//ssrc类型
+enum class RtcSSRCType {
+    rtp = 0,
+    rtx,
+    sim_low,
+    sim_mid,
+    ssrc_high
+};
+
+//ssrc相关信息
+class RtcSSRC{
+public:
+    RtcSSRCType type;
+    string cname;
+    string msid;
+    string mslabel;
+    string label;
+};
+
+//rtc传输编码方案
+class RtcPlan{
+public:
+    uint8_t pt;
+    string codec;
+    uint32_t sample_rate;
+    //音频时有效
+    uint32_t channel = 0;
+    vector<std::pair<string/*key*/, string/*value*/> > fmtp;
+    vector<string> rtcp_fb;
+};
+
+//rtc 媒体描述
+class RtcCodec{
+public:
+    TrackType type;
+    string mid;
+    uint16_t port;
+    string proto;
+
+    //////// rtp ////////
+    vector<RtcPlan> plan;
+    SdpConnection rtp_addr;
+    RtpDirection direction;
+    RtcSSRC ssrc;
+
+    //////// rtx - rtcp  ////////
+    bool rtcp_mux;
+    bool rtcp_rsize;
+    uint32_t rtx_ssrc;
+    SdpAttrRtcp rtcp_addr;
+
+    //////// ice ////////
+    bool ice_trickle;
+    bool ice_lite;
+    bool ice_renomination;
+    string ice_ufrag;
+    string ice_pwd;
+    std::vector<SdpAttrCandidate> candidate;
+
+    //////// dtls ////////
+    DtlsRole role;
+    SdpAttrFingerprint fingerprint;
+
+    //////// extmap ////////
+    vector<SdpAttrExtmap> extmap;
+};
 
 
 

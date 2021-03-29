@@ -161,9 +161,9 @@ const char* getRtpDirectionString(RtpDirection val){
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-void RtcSdp::parse(const string &str) {
+void RtcSessionSdp::parse(const string &str) {
     static auto flag = registerAllItem();
-    RtcMedia *media = nullptr;
+    RtcMediaSdp *media = nullptr;
     auto lines = split(str, "\n");
     for(auto &line : lines){
         trim(line);
@@ -173,7 +173,7 @@ void RtcSdp::parse(const string &str) {
         auto key = line.substr(0, 1);
         auto value = line.substr(2);
         if (key == "m") {
-            medias.emplace_back(RtcMedia());
+            medias.emplace_back(RtcMediaSdp());
             media = &medias.back();
         }
 
@@ -193,7 +193,7 @@ void RtcSdp::parse(const string &str) {
     }
 }
 
-string RtcSdp::toString() const {
+string RtcSessionSdp::toString() const {
     _StrPrinter printer;
     for (auto &item : items) {
         printer << item->getKey() << "=" << item->toString() << "\r\n";
@@ -207,7 +207,7 @@ string RtcSdp::toString() const {
 
 //////////////////////////////////////////////////////////////////////
 
-string RtcMedia::toString() const {
+string RtcMediaSdp::toString() const {
     _StrPrinter printer;
     for (auto &item : items) {
         printer << item->getKey() << "=" << item->toString() << "\r\n";
@@ -215,7 +215,7 @@ string RtcMedia::toString() const {
     return std::move(printer);
 }
 
-RtpDirection RtcMedia::getDirection() const{
+RtpDirection RtcMediaSdp::getDirection() const{
     for (auto &item : items) {
         auto attr = dynamic_pointer_cast<SdpAttr>(item);
         if (attr) {
@@ -790,10 +790,10 @@ void test_sdp(){
                   "a=sctpmap:5000 webrtc-datachannel 1024\n"
                   "a=sctp-port:5000";
 
-    RtcSdp sdp1;
+    RtcSessionSdp sdp1;
     sdp1.parse(str1);
 
-    RtcSdp sdp2;
+    RtcSessionSdp sdp2;
     sdp2.parse(str2);
 
     for (auto media : sdp1.medias) {
