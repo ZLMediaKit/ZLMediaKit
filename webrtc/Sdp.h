@@ -421,22 +421,55 @@ public:
     const char* getKey() const override { return "candidate";}
 };
 
-class RtcMediaSdp {
+class RtcSdpBase {
 public:
     vector<SdpItem::Ptr> items;
-    string toString() const;
-    bool haveAttr(const char *attr) const;
-    string getAttrValue(const char *attr) const;
+
+public:
+    virtual string toString() const;
+
+    int getVersion() const;
+    SdpOrigin getOrigin() const;
+    string getSessionName() const;
+    string getSessionInfo() const;
+    SdpTime getSessionTime() const;
+    SdpConnection getConnection() const;
+    SdpBandwidth getBandwidth() const;
+
+    string getUri() const;
+    string getEmail() const;
+    string getPhone() const;
+    string getTimeZone() const;
+    string getEncryptKey() const;
+    string getRepeatTimes() const;
     RtpDirection getDirection() const;
+
+private:
+    SdpItem::Ptr getItem(char key, const char *attr_key = nullptr) const;
+
+    template<typename cls>
+    cls getItemClass(char key, const char *attr_key = nullptr) const{
+        auto item = dynamic_pointer_cast<cls>(getItem(key, attr_key));
+        if (!item) {
+            return cls();
+        }
+        return *item;
+    }
+
+    string getStringItem(char key, const char *attr_key = nullptr) const{
+        auto item = getItem(key, attr_key);
+        if (!item) {
+            return "";
+        }
+        return item->toString();
+    }
 };
 
-class RtcSessionSdp {
+class RtcSessionSdp : public RtcSdpBase{
 public:
-    vector<SdpItem::Ptr> items;
-    vector<RtcMediaSdp> medias;
-
+    vector<RtcSdpBase> medias;
     void parse(const string &str);
-    string toString() const;
+    string toString() const override;
 };
 
 //////////////////////////////////////////////////////////////////
@@ -468,12 +501,12 @@ public:
     uint32_t sample_rate;
     //音频时有效
     uint32_t channel = 0;
-    vector<std::pair<string/*key*/, string/*value*/> > fmtp;
     vector<string> rtcp_fb;
+    vector<std::pair<string/*key*/, string/*value*/> > fmtp;
 };
 
 //rtc 媒体描述
-class RtcCodec{
+class RtcMedia{
 public:
     TrackType type;
     string mid;
@@ -508,6 +541,17 @@ public:
     vector<SdpAttrExtmap> extmap;
 };
 
+class RtcSession{
+public:
+    int version;
+    SdpOrigin origin;
+    string session_name;
+    string session_info;
+    SdpConnection connection;
+    SdpBandwidth bandwidth;
+    set<TrackType> group_bundle;
+    vector<RtcMedia> media;
+};
 
 
 #endif //ZLMEDIAKIT_SDP_H
