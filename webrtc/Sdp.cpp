@@ -190,7 +190,7 @@ SdpItem::Ptr RtcSdpBase::getItem(char key, const char *attr_key) const {
             }
             auto attr = dynamic_pointer_cast<SdpAttr>(item);
             if (attr && attr->detail->getKey() == attr_key) {
-                return item;
+                return attr->detail;
             }
         }
     }
@@ -868,4 +868,33 @@ void test_sdp(){
     }
     InfoL << sdp1.toString();
     InfoL << sdp2.toString();
+}
+
+void RtcSession::loadFrom(const string &str) {
+    RtcSessionSdp sdp;
+    sdp.parse(str);
+
+    version = sdp.getVersion();
+    origin = sdp.getOrigin();
+    session_name = sdp.getSessionName();
+    session_info = sdp.getSessionInfo();
+    connection = sdp.getConnection();
+    bandwidth = sdp.getBandwidth();
+    auto group = sdp.getItemClass<SdpAttrGroup>('a', "group");
+    auto mids = group.mids;
+
+    for (auto &media : sdp.medias) {
+        auto mline = media.getItemClass<SdpMedia>('m');
+        switch (mline.type) {
+            case TrackVideo:
+            case TrackAudio:
+            case TrackApplication:
+                break;
+            default: throw std::invalid_argument(StrPrinter << "不识别的media类型:" << mline.toString());
+        }
+        RtcMedia rtc_media;
+        rtc_media.type = mline.type;
+        rtc_media.mid = media.getStringItem('a', "mid");
+    }
+
 }

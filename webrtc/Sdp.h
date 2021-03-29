@@ -444,9 +444,6 @@ public:
     string getRepeatTimes() const;
     RtpDirection getDirection() const;
 
-private:
-    SdpItem::Ptr getItem(char key, const char *attr_key = nullptr) const;
-
     template<typename cls>
     cls getItemClass(char key, const char *attr_key = nullptr) const{
         auto item = dynamic_pointer_cast<cls>(getItem(key, attr_key));
@@ -463,6 +460,9 @@ private:
         }
         return item->toString();
     }
+
+private:
+    SdpItem::Ptr getItem(char key, const char *attr_key = nullptr) const;
 };
 
 class RtcSessionSdp : public RtcSdpBase{
@@ -551,6 +551,8 @@ public:
     SdpBandwidth bandwidth;
     set<TrackType> group_bundle;
     vector<RtcMedia> media;
+
+    void loadFrom(const string &sdp);
 };
 
 
