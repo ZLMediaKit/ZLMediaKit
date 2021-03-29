@@ -407,7 +407,7 @@ public:
     //15.1.  "candidate" Attribute
     //a=candidate:4 1 udp 2 192.168.1.7 58107 typ host
     //a=candidate:<foundation> <component-id> <transport> <priority> <address> <port> typ <cand-type>
-    uint32_t foundation;
+    string foundation;
     uint32_t component;
     string transport {"udp"};
     uint32_t priority;
