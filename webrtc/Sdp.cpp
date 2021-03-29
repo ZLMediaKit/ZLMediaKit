@@ -189,7 +189,7 @@ SdpItem::Ptr RtcSdpBase::getItem(char key, const char *attr_key) const {
                 return item;
             }
             auto attr = dynamic_pointer_cast<SdpAttr>(item);
-            if (attr && attr->detail->getKey() == attr_key) {
+            if (attr && !strcmp(attr->detail->getKey() , attr_key)) {
                 return attr->detail;
             }
         }
@@ -554,23 +554,18 @@ string SdpAttrRtpMap::toString() const  {
     return SdpItem::toString();
 }
 
-void SdpAttrRtcpFb::parse(const string &str)  {
-    auto vec = split(str, " ");
-    if (vec.size() < 2) {
+void SdpAttrRtcpFb::parse(const string &str_in)  {
+    auto str = str_in + "\n";
+    char rtcp_type_buf[32] = {0};
+    if (2 != sscanf(str.data(), "%" SCNu8 " %31[^\n]", &pt, rtcp_type_buf)) {
         SDP_THROW();
     }
-    pt = atoi(vec[0].data());
-    vec.erase(vec.begin());
-    arr = std::move(vec);
+    rtcp_type = rtcp_type_buf;
 }
 
 string SdpAttrRtcpFb::toString() const  {
     if (value.empty()) {
-        value = to_string(pt);
-        for (auto &item : arr) {
-            value += ' ';
-            value += item;
-        }
+        value = to_string(pt) + " " + rtcp_type;
     }
     return SdpItem::toString();
 }
@@ -870,6 +865,13 @@ void test_sdp(){
     }
     InfoL << sdp1.toString();
     InfoL << sdp2.toString();
+
+    RtcSession session1;
+    session1.loadFrom(str1);
+
+    RtcSession session2;
+    session2.loadFrom(str2);
+    InfoL;
 }
 
 void RtcSession::loadFrom(const string &str) {
@@ -882,32 +884,153 @@ void RtcSession::loadFrom(const string &str) {
     session_info = sdp.getSessionInfo();
     connection = sdp.getConnection();
     bandwidth = sdp.getBandwidth();
-    auto group = sdp.getItemClass<SdpAttrGroup>('a', "group");
-    auto mids = group.mids;
-
+    msid_semantic = sdp.getItemClass<SdpAttrMsidSemantic>('a', "msid-semantic");
     for (auto &media : sdp.medias) {
         auto mline = media.getItemClass<SdpMedia>('m');
         switch (mline.type) {
             case TrackVideo:
             case TrackAudio:
-            case TrackApplication:
-                break;
+            case TrackApplication: break;
             default: throw std::invalid_argument(StrPrinter << "不识别的media类型:" << mline.toString());
         }
-        RtcMedia rtc_media;
+        this->media.emplace_back();
+        auto &rtc_media = this->media.back();
         rtc_media.type = mline.type;
         rtc_media.mid = media.getStringItem('a', "mid");
         rtc_media.proto = mline.proto;
         rtc_media.type = mline.type;
         rtc_media.port = mline.port;
-        rtc_media.direction = media.getDirection();
-        rtc_media.rtp_addr = media.getItemClass<SdpConnection>('c');
-        rtc_media.rtcp_addr = media.getItemClass<SdpAttrRtcp>('a',"rtcp");
-        rtc_media.ice_ufrag = media.getStringItem('a',"ice-ufrag");
-        rtc_media.ice_ufrag = media.getStringItem('a',"ice-pwd");
+        rtc_media.addr = media.getItemClass<SdpConnection>('c');
+        rtc_media.ice_ufrag = media.getStringItem('a', "ice-ufrag");
+        rtc_media.ice_pwd = media.getStringItem('a', "ice-pwd");
+        rtc_media.role = media.getItemClass<SdpAttrSetup>('a', "setup").role;
         rtc_media.fingerprint = media.getItemClass<SdpAttrFingerprint>('a', "fingerprint");
-        rtc_media.role =  media.getItemClass<SdpAttrSetup>('a',"setup").role;
-//        rtc_media.rtcp_mux =
+        rtc_media.ice_trickle = media.getItem('a', "ice-trickle").operator bool();
+        rtc_media.ice_lite = media.getItem('a', "ice-lite").operator bool();
+        rtc_media.ice_renomination = media.getItem('a', "ice-renomination").operator bool();
+        rtc_media.candidate = media.getAllItem<SdpAttrCandidate>('a', "candidate");
+
+        if (mline.type == TrackType::TrackApplication) {
+            rtc_media.sctp_port = atoi(media.getStringItem('a', "sctp-port").data());
+            rtc_media.sctpmap = media.getItemClass<SdpAttrSctpMap>('a', "sctpmap");
+            continue;
+        }
+        rtc_media.rtcp_addr = media.getItemClass<SdpAttrRtcp>('a', "rtcp");
+        rtc_media.direction = media.getDirection();
+        rtc_media.extmap = media.getAllItem<SdpAttrExtmap>('a', "extmap");
+        rtc_media.rtcp_mux = media.getItem('a', "rtcp-mux").operator bool();
+        rtc_media.rtcp_rsize = media.getItem('a', "rtcp-rsize").operator bool();
+
+        map<uint32_t, RtcSSRC> rtc_ssrc_map;
+        for (auto &ssrc : media.getAllItem<SdpAttrSSRC>('a', "ssrc")) {
+            auto &rtc_ssrc = rtc_ssrc_map[ssrc.ssrc];
+            rtc_ssrc.ssrc = ssrc.ssrc;
+            if (ssrc.attribute == "cname") {
+                rtc_ssrc.cname = ssrc.attribute_value;
+                continue;
+            }
+            if (ssrc.attribute == "msid") {
+                rtc_ssrc.msid = ssrc.attribute_value;
+                continue;
+            }
+            if (ssrc.attribute == "mslabel") {
+                rtc_ssrc.mslabel = ssrc.attribute_value;
+                continue;
+            }
+            if (ssrc.attribute == "label") {
+                rtc_ssrc.label = ssrc.attribute_value;
+                continue;
+            }
+        }
+
+        uint32_t ssrc_rtp = 0, ssrc_rtx = 0, ssrc_rtp_low = 0, ssrc_rtp_mid = 0, ssrc_rtp_high = 0;
+        auto ssrc_groups = media.getAllItem<SdpAttrSSRCGroup>('a', "ssrc-group");
+        for (auto &group : ssrc_groups) {
+            if (group.isFID()) {
+                ssrc_rtp = group.u.fid.rtp_ssrc;
+                ssrc_rtx = group.u.fid.rtx_ssrc;
+                rtc_media.rtx = true;
+            } else if (group.isSIM()) {
+                rtc_media.simulcast = true;
+                ssrc_rtp_low = group.u.sim.rtp_ssrc_low;
+                ssrc_rtp_mid = group.u.sim.rtp_ssrc_mid;
+                ssrc_rtp_high = group.u.sim.rtp_ssrc_high;
+            }
+        }
+
+        if (!ssrc_rtp) {
+            //没有指定ssrc-group字段，那么只有一个ssrc
+            if (rtc_ssrc_map.size() > 1) {
+                throw std::invalid_argument("sdp中不存在a=ssrc-group:FID字段,但是ssrc却有多个");
+            }
+            ssrc_rtp = rtc_ssrc_map.begin()->second.ssrc;
+        }
+        for (auto &pr : rtc_ssrc_map) {
+            auto &rtc_ssrc = pr.second;
+            if (rtc_ssrc.ssrc == ssrc_rtp) {
+                rtc_media.rtp_ssrc = rtc_ssrc;
+            }
+            if (rtc_ssrc.ssrc == ssrc_rtx) {
+                rtc_media.rtx_ssrc = rtc_ssrc;
+            }
+            if (rtc_ssrc.ssrc == ssrc_rtp_low) {
+                rtc_media.rtp_ssrc_low = rtc_ssrc;
+            }
+            if (rtc_ssrc.ssrc == ssrc_rtp_mid) {
+                rtc_media.rtp_ssrc_mid = rtc_ssrc;
+            }
+            if (rtc_ssrc.ssrc == ssrc_rtp_high) {
+                rtc_media.rtp_ssrc_high = rtc_ssrc;
+            }
+        }
+
+        auto rtpmap_arr = media.getAllItem<SdpAttrRtpMap>('a', "rtpmap");
+        auto rtcpfb_arr = media.getAllItem<SdpAttrRtcpFb>('a', "rtcp-fb");
+        auto fmtp_aar = media.getAllItem<SdpAttrFmtp>('a', "fmtp");
+        //方便根据pt查找rtpmap,一个pt必有一条
+        map<uint8_t, SdpAttrRtpMap &> rtpmap_map;
+        //方便根据pt查找rtcp-fb,一个pt可能有多条或0条
+        multimap<uint8_t, SdpAttrRtcpFb &> rtcpfb_map;
+        //方便根据pt查找fmtp，一个pt最多一条
+        map<uint8_t, SdpAttrFmtp &> fmtp_map;
+
+        for (auto &rtpmap : rtpmap_arr) {
+            if (!rtpmap_map.emplace(rtpmap.pt, rtpmap).second) {
+                //添加失败，有多条
+                throw std::invalid_argument(StrPrinter << "该pt存在多条a=rtpmap:" << rtpmap.pt);
+            }
+        }
+        for (auto &rtpfb : rtcpfb_arr) {
+            rtcpfb_map.emplace(rtpfb.pt, rtpfb);
+        }
+        for (auto &fmtp : fmtp_aar) {
+            if (!fmtp_map.emplace(fmtp.pt, fmtp).second) {
+                //添加失败，有多条
+                throw std::invalid_argument(StrPrinter << "该pt存在多条a=fmtp:" << fmtp.pt);
+            }
+        }
+        for (auto &pt : mline.fmts) {
+            //遍历所有编码方案的pt
+            rtc_media.plan.emplace_back();
+            auto &plan = rtc_media.plan.back();
+            auto rtpmap_it = rtpmap_map.find(pt);
+            if (rtpmap_it == rtpmap_map.end()) {
+                throw std::invalid_argument(StrPrinter << "该pt不存在相对于的a=rtpmap:" << pt);
+            }
+            plan.pt = rtpmap_it->second.pt;
+            plan.codec = rtpmap_it->second.codec;
+            plan.sample_rate = rtpmap_it->second.sample_rate;
+            plan.channel = rtpmap_it->second.channel;
+            auto fmtp_it = fmtp_map.find(pt);
+            if (fmtp_it != fmtp_map.end()) {
+                plan.fmtp = fmtp_it->second.arr;
+            }
+            for (auto rtpfb_it = rtcpfb_map.find(pt);
+                 rtpfb_it != rtcpfb_map.end() && rtpfb_it->second.pt == pt; ++rtpfb_it) {
+                plan.rtcp_fb.emplace_back(rtpfb_it->second.rtcp_type);
+            }
+        }
     }
 
+    group = sdp.getItemClass<SdpAttrGroup>('a', "group");
 }
