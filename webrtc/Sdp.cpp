@@ -161,9 +161,99 @@ const char* getRtpDirectionString(RtpDirection val){
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
+string RtcSdpBase::toString() const {
+    _StrPrinter printer;
+    for (auto &item : items) {
+        printer << item->getKey() << "=" << item->toString() << "\r\n";
+    }
+    return std::move(printer);
+}
+
+RtpDirection RtcSdpBase::getDirection() const{
+    for (auto &item : items) {
+        auto attr = dynamic_pointer_cast<SdpAttr>(item);
+        if (attr) {
+            auto dir = dynamic_pointer_cast<DirectionInterface>(attr->detail);
+            if (dir) {
+                return dir->getDirection();
+            }
+        }
+    }
+    return RtpDirection::invalid;
+}
+
+SdpItem::Ptr RtcSdpBase::getItem(char key, const char *attr_key) const {
+    for (auto item : items) {
+        if (item->getKey()[0] == key) {
+            if (!attr_key) {
+                return item;
+            }
+            auto attr = dynamic_pointer_cast<SdpAttr>(item);
+            if (attr && attr->detail->getKey() == attr_key) {
+                return item;
+            }
+        }
+    }
+    return SdpItem::Ptr();
+}
+
+int RtcSdpBase::getVersion() const {
+    return atoi(getStringItem('v').data());
+}
+
+SdpOrigin RtcSdpBase::getOrigin() const {
+    return getItemClass<SdpOrigin>('o');
+}
+
+string RtcSdpBase::getSessionName() const {
+    return getStringItem('s');
+}
+
+string RtcSdpBase::getSessionInfo() const {
+    return getStringItem('i');
+}
+
+SdpTime RtcSdpBase::getSessionTime() const{
+    return getItemClass<SdpTime>('t');
+}
+
+SdpConnection RtcSdpBase::getConnection() const {
+    return getItemClass<SdpConnection>('c');
+}
+
+SdpBandwidth RtcSdpBase::getBandwidth() const {
+    return getItemClass<SdpBandwidth>('b');
+}
+
+string RtcSdpBase::getUri() const {
+    return getStringItem('u');
+}
+
+string RtcSdpBase::getEmail() const {
+    return getStringItem('e');
+}
+
+string RtcSdpBase::getPhone() const {
+    return getStringItem('p');
+}
+
+string RtcSdpBase::getTimeZone() const {
+    return getStringItem('z');
+}
+
+string RtcSdpBase::getEncryptKey() const {
+    return getStringItem('k');
+}
+
+string RtcSdpBase::getRepeatTimes() const {
+    return getStringItem('r');
+}
+
+//////////////////////////////////////////////////////////////////////
+
 void RtcSessionSdp::parse(const string &str) {
     static auto flag = registerAllItem();
-    RtcMediaSdp *media = nullptr;
+    RtcSdpBase *media = nullptr;
     auto lines = split(str, "\n");
     for(auto &line : lines){
         trim(line);
@@ -173,7 +263,7 @@ void RtcSessionSdp::parse(const string &str) {
         auto key = line.substr(0, 1);
         auto value = line.substr(2);
         if (key == "m") {
-            medias.emplace_back(RtcMediaSdp());
+            medias.emplace_back(RtcSdpBase());
             media = &medias.back();
         }
 
@@ -195,39 +285,13 @@ void RtcSessionSdp::parse(const string &str) {
 
 string RtcSessionSdp::toString() const {
     _StrPrinter printer;
-    for (auto &item : items) {
-        printer << item->getKey() << "=" << item->toString() << "\r\n";
-    }
+    printer << RtcSdpBase::toString();
     for (auto &media : medias) {
         printer << media.toString();
     }
 
     return std::move(printer);
 }
-
-//////////////////////////////////////////////////////////////////////
-
-string RtcMediaSdp::toString() const {
-    _StrPrinter printer;
-    for (auto &item : items) {
-        printer << item->getKey() << "=" << item->toString() << "\r\n";
-    }
-    return std::move(printer);
-}
-
-RtpDirection RtcMediaSdp::getDirection() const{
-    for (auto &item : items) {
-        auto attr = dynamic_pointer_cast<SdpAttr>(item);
-        if (attr) {
-            auto dir = dynamic_pointer_cast<DirectionInterface>(attr->detail);
-            if (dir) {
-                return dir->getDirection();
-            }
-        }
-    }
-    return RtpDirection::invalid;
-}
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
