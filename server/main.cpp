@@ -209,7 +209,6 @@ static void inline listen_shell_input(){
 //全局变量，在WebApi中用于保存配置文件用
 string g_ini_file;
 
-extern void test_sdp();
 int start_main(int argc,char *argv[]) {
     {
         CMD_main cmd_main;
@@ -267,7 +266,6 @@ int start_main(int argc,char *argv[]) {
             });
         }
 
-        test_sdp();
         uint16_t shellPort = mINI::Instance()[Shell::kPort];
         uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
         uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];

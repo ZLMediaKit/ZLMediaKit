@@ -431,6 +431,7 @@ public:
     //a=candidate:4 1 udp 2 192.168.1.7 58107 typ host
     //a=candidate:<foundation> <component-id> <transport> <priority> <address> <port> typ <cand-type>
     string foundation;
+    //传输媒体的类型,1代表RTP;2代表 RTCP。
     uint32_t component;
     string transport {"udp"};
     uint32_t priority;
