@@ -52,6 +52,18 @@ public:
     RtpDirection getDirection() const override {return RtpDirection::inactive;}
 };
 
+class DirectionInterfaceImp : public SdpItem, public DirectionInterface{
+public:
+    DirectionInterfaceImp(RtpDirection direct){
+        direction = direct;
+    }
+    const char* getKey() const override { return getRtpDirectionString(getDirection());}
+    RtpDirection getDirection() const override {return direction;}
+
+private:
+    RtpDirection direction;
+};
+
 static bool registerAllItem(){
     registerSdpItem<SdpString<'v'> >();
     registerSdpItem<SdpString<'s'> >();
@@ -502,7 +514,7 @@ void SdpAttrExtmap::parse(const string &str)  {
 
 string SdpAttrExtmap::toString() const  {
     if (value.empty()) {
-        if(direction == RtpDirection::invalid){
+        if(direction == RtpDirection::invalid || direction == RtpDirection::sendrecv){
             value = to_string(index) + " " + ext;
         } else {
             value = to_string(index) + "/" + getRtpDirectionString(direction) +  " " + ext;
@@ -630,9 +642,9 @@ void SdpAttrSSRCGroup::parse(const string &str) {
 
 string SdpAttrSSRCGroup::toString() const  {
     if (value.empty()) {
-        if (type == "FID") {
+        if (isFID()) {
             value = type + " " + to_string(u.fid.rtp_ssrc) + " " + to_string(u.fid.rtx_ssrc);
-        } else if (type == "SIM") {
+        } else if (isSIM()) {
             value = type + " " + to_string(u.sim.rtp_ssrc_low) + " " + to_string(u.sim.rtp_ssrc_mid) + " " + to_string(u.sim.rtp_ssrc_high);
         } else {
             SDP_THROW2();
@@ -849,7 +861,8 @@ void test_sdp(){
 
     RtcSession session2;
     session2.loadFrom(str2);
-    InfoL;
+    DebugL << session1.toString();
+    DebugL << session2.toString();
 }
 
 void RtcSession::loadFrom(const string &str) {
@@ -1011,6 +1024,165 @@ void RtcSession::loadFrom(const string &str) {
 
     group = sdp.getItemClass<SdpAttrGroup>('a', "group");
     checkValid();
+}
+
+std::shared_ptr<SdpItem> wrapSdpAttr(SdpItem::Ptr item){
+    auto ret = std::make_shared<SdpAttr>();
+    ret->detail = std::move(item);
+    return ret;
+}
+
+string RtcSession::toString() const{
+    checkValid();
+    RtcSessionSdp sdp;
+    sdp.items.emplace_back(std::make_shared<SdpString<'v'> >(to_string(version)));
+    sdp.items.emplace_back(std::make_shared<SdpOrigin>(origin));
+    sdp.items.emplace_back(std::make_shared<SdpString<'s'> >(session_name));
+    if (!session_info.empty()) {
+        sdp.items.emplace_back(std::make_shared<SdpString<'i'> >(session_info));
+    }
+    sdp.items.emplace_back(std::make_shared<SdpTime>(time));
+    sdp.items.emplace_back(std::make_shared<SdpConnection>(connection));
+    if (!bandwidth.empty()) {
+        sdp.items.emplace_back(std::make_shared<SdpBandwidth>(bandwidth));
+    }
+    sdp.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrMsidSemantic>(msid_semantic)));
+    sdp.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrGroup>(group)));
+    for (auto &m : media) {
+        sdp.medias.emplace_back();
+        auto &sdp_media = sdp.medias.back();
+        auto mline = std::make_shared<SdpMedia>();
+        mline->type = m.type;
+        mline->port = m.port;
+        mline->proto = m.proto;
+        for (auto &p : m.plan) {
+            mline->fmts.emplace_back(p.pt);
+        }
+        if (m.type == TrackApplication) {
+            mline->fmts.emplace_back(m.sctp_port);
+        }
+        sdp_media.items.emplace_back(std::move(mline));
+        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrMid>(m.mid)));
+        sdp_media.items.emplace_back(std::make_shared<SdpConnection>(m.addr));
+        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrIceUfrag>(m.ice_ufrag)));
+        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrIcePwd>(m.ice_pwd)));
+        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrFingerprint>(m.fingerprint)));
+        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSetup>(m.role)));
+        if (m.ice_trickle) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("ice-trickle")));
+        }
+        if (m.ice_lite) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("ice-lite")));
+        }
+        if (m.ice_renomination) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("ice-renomination")));
+        }
+        for (auto &ext : m.extmap) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrExtmap>(ext)));
+        }
+        if (m.direction != RtpDirection::invalid) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<DirectionInterfaceImp>(m.direction)));
+        }
+        if (m.rtcp_addr.port) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrRtcp>(m.rtcp_addr)));
+        }
+        if (m.rtcp_mux) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("rtcp-mux")));
+        }
+        if (m.rtcp_rsize) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("rtcp-rsize")));
+        }
+
+        if(m.type != TrackApplication) {
+            for (auto &p : m.plan) {
+                auto rtp_map = std::make_shared<SdpAttrRtpMap>();
+                rtp_map->pt = p.pt;
+                rtp_map->codec = p.codec;
+                rtp_map->sample_rate = p.sample_rate;
+                rtp_map->channel = p.channel;
+                sdp_media.items.emplace_back(wrapSdpAttr(std::move(rtp_map)));
+
+                for (auto &fb :  p.rtcp_fb) {
+                    auto rtcp_fb = std::make_shared<SdpAttrRtcpFb>();
+                    rtcp_fb->pt = p.pt;
+                    rtcp_fb->rtcp_type = fb;
+                    sdp_media.items.emplace_back(wrapSdpAttr(std::move(rtcp_fb)));
+                }
+
+                if (!p.fmtp.empty()) {
+                    auto fmtp = std::make_shared<SdpAttrFmtp>();
+                    fmtp->pt = p.pt;
+                    fmtp->arr = p.fmtp;
+                    sdp_media.items.emplace_back(wrapSdpAttr(std::move(fmtp)));
+                }
+            }
+
+            if (!m.rtp_ssrc.empty() && !m.rtx_ssrc.empty()) {
+                auto group = std::make_shared<SdpAttrSSRCGroup>();
+                group->type = "FID";
+                group->u.fid.rtp_ssrc = m.rtp_ssrc.ssrc;
+                group->u.fid.rtx_ssrc = m.rtx_ssrc.ssrc;
+                sdp_media.items.emplace_back(wrapSdpAttr(std::move(group)));
+            }
+
+            static auto addSSRCItem = [](const RtcSSRC &rtp_ssrc, vector<SdpItem::Ptr> &items) {
+                SdpAttrSSRC ssrc;
+                ssrc.ssrc = rtp_ssrc.ssrc;
+
+                ssrc.attribute = "cname";
+                ssrc.attribute_value = rtp_ssrc.cname;
+                items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
+
+                if (!rtp_ssrc.msid.empty()) {
+                    ssrc.attribute = "msid";
+                    ssrc.attribute_value = rtp_ssrc.msid;
+                    items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
+                }
+
+                if (!rtp_ssrc.mslabel.empty()) {
+                    ssrc.attribute = "mslabel";
+                    ssrc.attribute_value = rtp_ssrc.mslabel;
+                    items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
+                }
+
+                if (!rtp_ssrc.label.empty()) {
+                    ssrc.attribute = "label";
+                    ssrc.attribute_value = rtp_ssrc.label;
+                    items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
+                }
+            };
+            if (!m.rtp_ssrc.empty()) {
+                addSSRCItem(m.rtp_ssrc, sdp_media.items);
+            }
+            if (!m.rtx_ssrc.empty()) {
+                addSSRCItem(m.rtx_ssrc, sdp_media.items);
+            }
+
+            bool enable_sim = false;
+            if (!m.rtp_ssrc_low.empty() && !m.rtp_ssrc_mid.empty() && !m.rtp_ssrc_high.empty()) {
+                auto group = std::make_shared<SdpAttrSSRCGroup>();
+                group->type = "SIM";
+                group->u.sim.rtp_ssrc_low = m.rtp_ssrc_low.ssrc;
+                group->u.sim.rtp_ssrc_mid = m.rtp_ssrc_mid.ssrc;
+                group->u.sim.rtp_ssrc_high = m.rtp_ssrc_high.ssrc;
+                sdp_media.items.emplace_back(wrapSdpAttr(std::move(group)));
+                enable_sim = true;
+            }
+            if (enable_sim) {
+                addSSRCItem(m.rtp_ssrc_low, sdp_media.items);
+                addSSRCItem(m.rtp_ssrc_mid, sdp_media.items);
+                addSSRCItem(m.rtp_ssrc_high, sdp_media.items);
+            }
+        } else {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSctpMap>(m.sctpmap)));
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("sctp-port", to_string(m.sctp_port))));
+        }
+
+        for (auto &cand : m.candidate) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrCandidate>(cand)));
+        }
+    }
+    return sdp.toString();
 }
 
 string RtcCodecPlan::getFmtp(const char *key) const{
