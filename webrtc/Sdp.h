@@ -72,8 +72,6 @@ enum class SdpType {
     answer
 };
 
-TrackType getTrackType(const string &str);
-const char* getTrackString(TrackType type);
 DtlsRole getDtlsRole(const string &str);
 const char* getDtlsRoleString(DtlsRole role);
 RtpDirection getRtpDirection(const string &str);
@@ -591,6 +589,7 @@ public:
     void checkValid() const;
     const RtcCodecPlan *getPlan(uint8_t pt) const;
     const RtcCodecPlan *getPlan(const char *codec) const;
+    const RtcCodecPlan *getRelatedRtxPlan(uint8_t pt) const;
 };
 
 class RtcSession{

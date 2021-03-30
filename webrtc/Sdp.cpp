@@ -93,26 +93,6 @@ static bool registerAllItem(){
     return true;
 }
 
-static map<string, TrackType, StrCaseCompare> track_str_map = {
-        {"video",       TrackVideo},
-        {"audio",       TrackAudio},
-        {"application", TrackApplication}
-};
-
-TrackType getTrackType(const string &str) {
-    auto it = track_str_map.find(str);
-    return it == track_str_map.end() ? TrackInvalid : it->second;
-}
-
-const char* getTrackString(TrackType type){
-    switch (type) {
-        case TrackVideo : return "video";
-        case TrackAudio : return "audio";
-        case TrackApplication : return "application";
-        default: return "invalid";
-    }
-}
-
 static map<string, DtlsRole, StrCaseCompare> dtls_role_map = {
         {"active",  DtlsRole::active},
         {"passive", DtlsRole::passive},
@@ -1059,6 +1039,18 @@ const RtcCodecPlan *RtcMedia::getPlan(const char *codec) const{
     return nullptr;
 }
 
+const RtcCodecPlan *RtcMedia::getRelatedRtxPlan(uint8_t pt) const{
+    for (auto &item : plan) {
+        if (strcasecmp(item.codec.data(), "rtx") == 0) {
+            auto apt = atoi(item.getFmtp("apt").data());
+            if (pt == apt) {
+                return &item;
+            }
+        }
+    }
+    return nullptr;
+}
+
 void RtcMedia::checkValid() const{
     CHECK(type != TrackInvalid);
     CHECK(!mid.empty());
@@ -1071,9 +1063,6 @@ void RtcMedia::checkValid() const{
     if (rtx_plan) {
         //开启rtx后必须指定rtx_ssrc
         CHECK(!rtx_ssrc.empty() || !send_rtp);
-        auto apt = atoi(rtx_plan->getFmtp("apt").data());
-        //开启rtx后必须指定其关联的其他的plan
-        CHECK(getPlan(apt));
     }
 }
 
