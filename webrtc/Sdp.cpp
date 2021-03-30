@@ -259,7 +259,7 @@ void RtcSessionSdp::parse(const string &str) {
         }
         auto key = line.substr(0, 1);
         auto value = line.substr(2);
-        if (key == "m") {
+        if (!strcasecmp(key.data(), "m")) {
             medias.emplace_back(RtcSdpBase());
             media = &medias.back();
         }
@@ -923,19 +923,19 @@ void RtcSession::loadFrom(const string &str) {
         for (auto &ssrc : media.getAllItem<SdpAttrSSRC>('a', "ssrc")) {
             auto &rtc_ssrc = rtc_ssrc_map[ssrc.ssrc];
             rtc_ssrc.ssrc = ssrc.ssrc;
-            if (ssrc.attribute == "cname") {
+            if (!strcasecmp(ssrc.attribute.data(), "cname")) {
                 rtc_ssrc.cname = ssrc.attribute_value;
                 continue;
             }
-            if (ssrc.attribute == "msid") {
+            if (!strcasecmp(ssrc.attribute.data(), "msid")) {
                 rtc_ssrc.msid = ssrc.attribute_value;
                 continue;
             }
-            if (ssrc.attribute == "mslabel") {
+            if (!strcasecmp(ssrc.attribute.data(), "mslabel")) {
                 rtc_ssrc.mslabel = ssrc.attribute_value;
                 continue;
             }
-            if (ssrc.attribute == "label") {
+            if (!strcasecmp(ssrc.attribute.data(), "label")) {
                 rtc_ssrc.label = ssrc.attribute_value;
                 continue;
             }
