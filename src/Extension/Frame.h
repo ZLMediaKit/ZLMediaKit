@@ -32,7 +32,7 @@ typedef enum {
     CodecL16,
     CodecVP8,
     CodecVP9,
-    CodecMax = 0x7FFF
+    CodecMax
 } CodecId;
 
 typedef enum {
@@ -41,7 +41,7 @@ typedef enum {
     TrackAudio,
     TrackTitle,
     TrackApplication,
-    TrackMax = 4
+    TrackMax
 } TrackType;
 
 /**
