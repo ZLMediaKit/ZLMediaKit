@@ -97,7 +97,7 @@ template <char KEY>
 class SdpString : public SdpItem{
 public:
     SdpString() = default;
-    SdpString(string val) {value == std::move(val);}
+    SdpString(string val) {value = std::move(val);}
     // *=*
     const char* getKey() const override { static string key(1, KEY); return key.data();}
 };
