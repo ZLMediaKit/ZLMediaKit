@@ -11,7 +11,7 @@
 #include "Frame.h"
 #include "H264.h"
 #include "H265.h"
-
+#include "Common/Parser.h"
 using namespace std;
 using namespace toolkit;
 
@@ -106,22 +106,10 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
     return std::make_shared<FrameCacheAble>(frame);
 }
 
-#define SWITCH_CASE(codec_id) case codec_id : return #codec_id
-const char *getCodecName(CodecId codecId) {
-    switch (codecId) {
-        SWITCH_CASE(CodecH264);
-        SWITCH_CASE(CodecH265);
-        SWITCH_CASE(CodecAAC);
-        SWITCH_CASE(CodecG711A);
-        SWITCH_CASE(CodecG711U);
-        SWITCH_CASE(CodecOpus);
-        SWITCH_CASE(CodecL16);
-        default : return "unknown codec";
-    }
-}
-
 TrackType getTrackType(CodecId codecId){
     switch (codecId){
+        case CodecVP8:
+        case CodecVP9:
         case CodecH264:
         case CodecH265: return TrackVideo;
         case CodecAAC:
@@ -130,6 +118,58 @@ TrackType getTrackType(CodecId codecId){
         case CodecOpus: 
         case CodecL16: return TrackAudio;
         default: return TrackInvalid;
+    }
+}
+
+const char* getCodecName(CodecId codec){
+    switch (codec) {
+        case CodecH264 : return "H264";
+        case CodecH265 : return "H265";
+        case CodecAAC : return "mpeg4-generic";
+        case CodecG711A : return "PCMA";
+        case CodecG711U : return "PCMU";
+        case CodecOpus : return "opus";
+        case CodecVP8 : return "VP8";
+        case CodecVP9 : return "VP9";
+        case CodecL16 : return "L16";
+        default: return "invalid";
+    }
+}
+
+static map<string, CodecId, StrCaseCompare> codec_map = {
+        {"H264",          CodecH264},
+        {"H265",          CodecH265},
+        {"mpeg4-generic", CodecAAC},
+        {"PCMA",          CodecG711A},
+        {"PCMU",          CodecG711U},
+        {"opus",          CodecOpus},
+        {"VP8",           CodecVP8},
+        {"VP9",           CodecVP9},
+        {"L16",           CodecL16}
+};
+
+CodecId getCodecId(const string &str){
+    auto it = codec_map.find(str);
+    return it == codec_map.end() ? CodecInvalid : it->second;
+}
+
+static map<string, TrackType, StrCaseCompare> track_str_map = {
+        {"video",       TrackVideo},
+        {"audio",       TrackAudio},
+        {"application", TrackApplication}
+};
+
+TrackType getTrackType(const string &str) {
+    auto it = track_str_map.find(str);
+    return it == track_str_map.end() ? TrackInvalid : it->second;
+}
+
+const char* getTrackString(TrackType type){
+    switch (type) {
+        case TrackVideo : return "video";
+        case TrackAudio : return "audio";
+        case TrackApplication : return "application";
+        default: return "invalid";
     }
 }
 
