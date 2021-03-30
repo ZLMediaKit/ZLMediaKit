@@ -96,6 +96,8 @@ protected:
 template <char KEY>
 class SdpString : public SdpItem{
 public:
+    SdpString() = default;
+    SdpString(string val) {value == std::move(val);}
     // *=*
     const char* getKey() const override { static string key(1, KEY); return key.data();}
 };
@@ -104,6 +106,11 @@ class SdpCommon : public SdpItem {
 public:
     string key;
     SdpCommon(string key) { this->key = std::move(key); }
+    SdpCommon(string key, string val) {
+        this->key = std::move(key);
+        this->value = std::move(val);
+    }
+
     const char* getKey() const override { return key.data();}
 };
 
@@ -163,6 +170,7 @@ public:
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "b";}
+    bool empty() const {return bandwidth == 0;}
 };
 
 class SdpMedia : public SdpItem {
@@ -243,7 +251,7 @@ public:
 class SdpAttrRtcp : public SdpItem {
 public:
     // a=rtcp:9 IN IP4 0.0.0.0
-    uint16_t port;
+    uint16_t port{0};
     string nettype {"IN"};
     string addrtype {"IP4"};
     string address {"0.0.0.0"};
@@ -254,12 +262,16 @@ public:
 
 class SdpAttrIceUfrag : public SdpItem {
 public:
+    SdpAttrIceUfrag() = default;
+    SdpAttrIceUfrag(string str) {value = std::move(str);}
     //a=ice-ufrag:sXJ3
     const char* getKey() const override { return "ice-ufrag";}
 };
 
 class SdpAttrIcePwd : public SdpItem {
 public:
+    SdpAttrIcePwd() = default;
+    SdpAttrIcePwd(string str) {value = std::move(str);}
     //a=ice-pwd:yEclOTrLg1gEubBFefOqtmyV
     const char* getKey() const override { return "ice-pwd";}
 };
@@ -283,6 +295,8 @@ public:
 class SdpAttrSetup : public SdpItem {
 public:
     //a=setup:actpass
+    SdpAttrSetup() = default;
+    SdpAttrSetup(DtlsRole r) { role = r; }
     DtlsRole role{DtlsRole::actpass};
     void parse(const string &str) override;
     string toString() const override;
@@ -291,6 +305,8 @@ public:
 
 class SdpAttrMid : public SdpItem {
 public:
+    SdpAttrMid() = default;
+    SdpAttrMid(string val) { value = std::move(val); }
     //a=mid:audio
     const char* getKey() const override { return "mid";}
 };
@@ -607,6 +623,7 @@ public:
 
     void loadFrom(const string &sdp);
     void checkValid() const;
+    string toString() const;
 };
 
 class RtcConfigure {
