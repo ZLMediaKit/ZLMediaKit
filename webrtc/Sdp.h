@@ -609,5 +609,49 @@ public:
     void checkValid() const;
 };
 
+class RtcConfigure {
+public:
+    class RtcTrackConfigure {
+    public:
+        bool enable;
+        bool rtcp_mux;
+        bool rtcp_rsize;
+        bool group_bundle;
+        bool unified_plan;
+        bool support_rtx;
+        bool support_red;
+        bool support_ulpfec;
+
+        bool support_simulcast;
+        bool ice_lite;
+        bool ice_trickle;
+        bool ice_renomination;
+        string ice_ufrag;
+        string ice_pwd;
+
+        DtlsRole role{DtlsRole::invalid};
+        RtpDirection direction{RtpDirection::invalid};
+        SdpAttrFingerprint fingerprint;
+
+        vector<string> rtcp_fb;
+        vector<CodecId> preferred_codec;
+        vector<string> extmap;
+        vector<SdpAttrCandidate> candidate;
+
+        void setDefaultSetting(TrackType type);
+    };
+
+    RtcTrackConfigure video;
+    RtcTrackConfigure audio;
+    RtcTrackConfigure application;
+
+    void setDefaultSetting(string ice_ufrag,
+                           string ice_pwd,
+                           DtlsRole role,
+                           RtpDirection direction,
+                           const SdpAttrFingerprint &fingerprint);
+    void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);
+};
+
 
 #endif //ZLMEDIAKIT_SDP_H
