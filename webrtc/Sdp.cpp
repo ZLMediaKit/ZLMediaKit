@@ -493,6 +493,7 @@ void SdpAttrExtmap::parse(const string &str)  {
         if (sscanf(str.data(), "%" SCNd32 " %127s", &index, buf) != 2) {
             SDP_THROW();
         }
+        direction = RtpDirection::sendrecv;
     } else {
         direction = getRtpDirection(direction_buf);
     }
@@ -1075,5 +1076,83 @@ void RtcSession::checkValid() const{
     CHECK(group.mids.size() <= media.size());
     for (auto &item : media) {
         item.checkValid();
+    }
+}
+
+void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
+    enable = true;
+    rtcp_mux = true;
+    rtcp_rsize = false;
+    group_bundle = true;
+    unified_plan = false;
+    support_rtx = true;
+    support_red = false;
+    support_ulpfec = false;
+    support_simulcast = false;
+    ice_lite = true;
+    ice_trickle = true;
+    ice_renomination = false;
+    switch (type) {
+        case TrackVideo: {
+            preferred_codec = {CodecAAC, CodecOpus, CodecG711U, CodecG711A};
+            rtcp_fb = {"transport-cc"};
+            extmap = {"1 urn:ietf:params:rtp-hdrext:ssrc-audio-level"};
+            break;
+        }
+        case TrackAudio: {
+            preferred_codec = {CodecH264, CodecH265};
+            rtcp_fb = {"nack", "ccm fir", "nack pli", "goog-remb", "transport-cc"};
+            extmap = {"2 urn:ietf:params:rtp-hdrext:toffset",
+                      "3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
+                      "4 urn:3gpp:video-orientation",
+                      "5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
+                      "6 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"};
+            break;
+        }
+        case TrackApplication: {
+            enable = false;
+            break;
+        }
+        default: break;
+    }
+}
+
+void RtcConfigure::setDefaultSetting(string ice_ufrag,
+                                     string ice_pwd,
+                                     DtlsRole role,
+                                     RtpDirection direction,
+                                     const SdpAttrFingerprint &fingerprint) {
+
+    video.setDefaultSetting(TrackVideo);
+    audio.setDefaultSetting(TrackAudio);
+    application.setDefaultSetting(TrackApplication);
+
+    video.ice_ufrag = audio.ice_ufrag = application.ice_ufrag = ice_ufrag;
+    video.ice_pwd = audio.ice_pwd = application.ice_pwd = ice_ufrag;
+    video.role = audio.role = application.role = role;
+    video.direction = audio.direction = application.direction = direction;
+    video.fingerprint = audio.fingerprint = application.fingerprint = fingerprint;
+}
+
+void RtcConfigure::addCandidate(const SdpAttrCandidate &candidate, TrackType type) {
+    switch (type) {
+        case TrackAudio: {
+            audio.candidate.emplace_back(candidate);
+            break;
+        }
+        case TrackVideo: {
+            video.candidate.emplace_back(candidate);
+            break;
+        }
+        case TrackApplication: {
+            application.candidate.emplace_back(candidate);
+            break;
+        }
+        default: {
+            audio.candidate.emplace_back(candidate);
+            video.candidate.emplace_back(candidate);
+            application.candidate.emplace_back(candidate);
+            break;
+        }
     }
 }
