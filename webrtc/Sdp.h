@@ -669,6 +669,9 @@ public:
                            RtpDirection direction,
                            const SdpAttrFingerprint &fingerprint);
     void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);
+
+    shared_ptr<RtcSession> createOffer();
+    shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
 };
 
 

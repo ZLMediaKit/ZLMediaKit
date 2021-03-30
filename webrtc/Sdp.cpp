@@ -1187,3 +1187,18 @@ void RtcConfigure::addCandidate(const SdpAttrCandidate &candidate, TrackType typ
         }
     }
 }
+
+shared_ptr<RtcSession> RtcConfigure::createOffer(){
+    shared_ptr<RtcSession> ret = std::make_shared<RtcSession>();
+    ret->version = 0;
+    ret->origin.parse("- 0 0 IN IP4 0.0.0.0");
+    ret->session_name = "zlmediakit_webrtc_session";
+    ret->session_info = "zlmediakit_webrtc_session";
+    ret->connection.parse("IN IP4 0.0.0.0");
+    ret->msid_semantic.parse("WMS *");
+    return nullptr;
+}
+
+shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
+    return nullptr;
+}
