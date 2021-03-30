@@ -3,10 +3,14 @@
 //
 
 #include "Sdp.h"
+#include "assert.h"
+#include "Common/Parser.h"
 #include <inttypes.h>
 
+#define CHECK(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__);
+
 using onCreateSdpItem = function<SdpItem::Ptr(const string &key, const string &value)>;
-static unordered_map<string, onCreateSdpItem> sdpItemCreator;
+static map<string, onCreateSdpItem, StrCaseCompare> sdpItemCreator;
 
 template <typename Item>
 void registerSdpItem(){
@@ -89,17 +93,15 @@ static bool registerAllItem(){
     return true;
 }
 
-TrackType getTrackType(const string &str){
-    if (str == "video") {
-        return TrackVideo;
-    }
-    if (str == "audio") {
-        return TrackAudio;
-    }
-    if (str == "application") {
-        return TrackApplication;
-    }
-    return TrackInvalid;
+static map<string, TrackType, StrCaseCompare> track_str_map = {
+        {"video",       TrackVideo},
+        {"audio",       TrackAudio},
+        {"application", TrackApplication}
+};
+
+TrackType getTrackType(const string &str) {
+    auto it = track_str_map.find(str);
+    return it == track_str_map.end() ? TrackInvalid : it->second;
 }
 
 const char* getTrackString(TrackType type){
@@ -111,17 +113,15 @@ const char* getTrackString(TrackType type){
     }
 }
 
-DtlsRole getDtlsRole(const string &str){
-    if (str == "active") {
-        return DtlsRole::active;
-    }
-    if (str == "passive") {
-        return DtlsRole::passive;
-    }
-    if (str == "actpass") {
-        return DtlsRole::actpass;
-    }
-    return DtlsRole::invalid;
+static map<string, DtlsRole, StrCaseCompare> dtls_role_map = {
+        {"active",  DtlsRole::active},
+        {"passive", DtlsRole::passive},
+        {"actpass", DtlsRole::actpass}
+};
+
+DtlsRole getDtlsRole(const string &str) {
+    auto it = dtls_role_map.find(str);
+    return it == dtls_role_map.end() ? DtlsRole::invalid : it->second;
 }
 
 const char* getDtlsRoleString(DtlsRole role){
@@ -133,20 +133,16 @@ const char* getDtlsRoleString(DtlsRole role){
     }
 }
 
-RtpDirection getRtpDirection(const string &str){
-    if (str == "sendonly") {
-        return RtpDirection::sendonly;
-    }
-    if (str == "recvonly") {
-        return RtpDirection::recvonly;
-    }
-    if (str == "sendrecv") {
-        return RtpDirection::sendrecv;
-    }
-    if (str == "inactive") {
-        return RtpDirection::inactive;
-    }
-    return RtpDirection::invalid;
+static map<string, RtpDirection, StrCaseCompare> direction_map = {
+        {"sendonly", RtpDirection::sendonly},
+        {"recvonly", RtpDirection::recvonly},
+        {"sendrecv", RtpDirection::sendrecv},
+        {"inactive", RtpDirection::inactive}
+};
+
+RtpDirection getRtpDirection(const string &str) {
+    auto it = direction_map.find(str);
+    return it == direction_map.end() ? RtpDirection::invalid : it->second;
 }
 
 const char* getRtpDirectionString(RtpDirection val){
@@ -182,14 +178,15 @@ RtpDirection RtcSdpBase::getDirection() const{
     return RtpDirection::invalid;
 }
 
-SdpItem::Ptr RtcSdpBase::getItem(char key, const char *attr_key) const {
+SdpItem::Ptr RtcSdpBase::getItem(char key_c, const char *attr_key) const {
     for (auto item : items) {
-        if (item->getKey()[0] == key) {
+        string key(1, key_c);
+        if (strcasecmp(item->getKey(), key.data()) == 0) {
             if (!attr_key) {
                 return item;
             }
             auto attr = dynamic_pointer_cast<SdpAttr>(item);
-            if (attr && !strcmp(attr->detail->getKey() , attr_key)) {
+            if (attr && !strcasecmp(attr->detail->getKey() , attr_key)) {
                 return attr->detail;
             }
         }
@@ -884,6 +881,7 @@ void RtcSession::loadFrom(const string &str) {
     session_info = sdp.getSessionInfo();
     connection = sdp.getConnection();
     bandwidth = sdp.getBandwidth();
+    time = sdp.getSessionTime();
     msid_semantic = sdp.getItemClass<SdpAttrMsidSemantic>('a', "msid-semantic");
     for (auto &media : sdp.medias) {
         auto mline = media.getItemClass<SdpMedia>('m');
@@ -1036,7 +1034,7 @@ void RtcSession::loadFrom(const string &str) {
 
 string RtcCodecPlan::getFmtp(const char *key) const{
     for (auto &item : fmtp) {
-        if (item.first == key) {
+        if (strcasecmp(item.first.data(), key) == 0) {
             return item.second;
         }
     }
@@ -1052,34 +1050,41 @@ const RtcCodecPlan *RtcMedia::getPlan(uint8_t pt) const{
     return nullptr;
 }
 
-void RtcMedia::checkValid() const{
-    switch (direction) {
-        case RtpDirection::sendonly:
-        case RtpDirection::sendrecv: {
-            if (rtp_ssrc.empty()) {
-                throw std::invalid_argument("发送rtp但是未指定rtp ssrc");
-            }
-            break;
-        }
-        default: break;
-    }
+const RtcCodecPlan *RtcMedia::getPlan(const char *codec) const{
     for (auto &item : plan) {
-        if (item.codec == "rtx") {
-            if (rtx_ssrc.empty()) {
-                throw std::invalid_argument("指定开启rtx但是未指定rtx ssrc");
-            }
-            auto apt = atoi(item.getFmtp("apt").data());
-            if (!getPlan(apt)) {
-                throw std::invalid_argument("找不到rtx关联的plan信息");
-            }
+        if (strcasecmp(item.codec.data(), codec) == 0) {
+            return &item;
         }
     }
-    //todo 校验更多信息
+    return nullptr;
+}
+
+void RtcMedia::checkValid() const{
+    CHECK(type != TrackInvalid);
+    CHECK(!mid.empty());
+    CHECK(!proto.empty());
+    CHECK(direction != RtpDirection::invalid || type == TrackApplication);
+    CHECK(!plan.empty() || type == TrackApplication );
+    bool send_rtp = (direction == RtpDirection::sendonly || direction == RtpDirection::sendrecv);
+    CHECK(!rtp_ssrc.empty() || !send_rtp);
+    auto rtx_plan = getPlan("rtx");
+    if (rtx_plan) {
+        //开启rtx后必须指定rtx_ssrc
+        CHECK(!rtx_ssrc.empty() || !send_rtp);
+        auto apt = atoi(rtx_plan->getFmtp("apt").data());
+        //开启rtx后必须指定其关联的其他的plan
+        CHECK(getPlan(apt));
+    }
 }
 
 void RtcSession::checkValid() const{
+    CHECK(version == 0);
+    CHECK(!origin.empty());
+    CHECK(!session_name.empty());
+    CHECK(!msid_semantic.empty());
+    CHECK(!media.empty());
+    CHECK(group.mids.size() <= media.size());
     for (auto &item : media) {
         item.checkValid();
     }
-    //todo 校验更多信息
 }

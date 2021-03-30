@@ -134,6 +134,10 @@ public:
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "o";}
+    bool empty() const {
+        return username.empty() || session_id.empty() || session_version.empty()
+               || nettype.empty() || addrtype.empty() || address.empty();
+    }
 };
 
 class SdpConnection : public SdpItem {
@@ -233,6 +237,9 @@ public:
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "msid-semantic";}
+    bool empty() const {
+        return msid.empty();
+    }
 };
 
 class SdpAttrRtcp : public SdpItem {
@@ -467,10 +474,11 @@ public:
     SdpItem::Ptr getItem(char key, const char *attr_key = nullptr) const;
 
     template<typename cls>
-    vector<cls> getAllItem(char key, const char *attr_key = nullptr) const {
+    vector<cls> getAllItem(char key_c, const char *attr_key = nullptr) const {
         vector<cls> ret;
         for (auto item : items) {
-            if (item->getKey()[0] == key) {
+            string key(1, key_c);
+            if (strcasecmp(item->getKey(), key.data()) == 0) {
                 if (!attr_key) {
                     auto c = dynamic_pointer_cast<cls>(item);
                     if (c) {
@@ -478,7 +486,7 @@ public:
                     }
                 } else {
                     auto attr = dynamic_pointer_cast<SdpAttr>(item);
-                    if (attr && !strcmp(attr->detail->getKey(), attr_key)) {
+                    if (attr && !strcasecmp(attr->detail->getKey(), attr_key)) {
                         auto c = dynamic_pointer_cast<cls>(attr->detail);
                         if (c) {
                             ret.emplace_back(*c);
@@ -518,7 +526,7 @@ public:
     string mslabel;
     string label;
 
-    bool empty() const {return ssrc == 0;}
+    bool empty() const {return ssrc == 0 && cname.empty();}
 };
 
 //rtc传输编码方案
@@ -582,6 +590,7 @@ public:
 
     void checkValid() const;
     const RtcCodecPlan *getPlan(uint8_t pt) const;
+    const RtcCodecPlan *getPlan(const char *codec) const;
 };
 
 class RtcSession{
@@ -590,6 +599,7 @@ public:
     SdpOrigin origin;
     string session_name;
     string session_info;
+    SdpTime time;
     SdpConnection connection;
     SdpBandwidth bandwidth;
     SdpAttrMsidSemantic msid_semantic;
