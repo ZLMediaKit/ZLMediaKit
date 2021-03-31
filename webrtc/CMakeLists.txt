@@ -10,7 +10,7 @@ else ()
 endif ()
 
 include_directories(./)
-file(GLOB SRC_LIST ./*.*)
+file(GLOB SRC_LIST ./*.cpp ./*.h ./*.hpp)
 add_library(webrtc ${SRC_LIST})
 set(LINK_LIB_LIST ${LINK_LIB_LIST} PARENT_SCOPE)
 

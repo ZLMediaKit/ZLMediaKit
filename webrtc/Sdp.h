@@ -7,9 +7,12 @@
 
 #include <string>
 #include <vector>
+#include "assert.h"
 #include "Extension/Frame.h"
 using namespace std;
 using namespace mediakit;
+
+#define CHECK(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__);
 
 //https://datatracker.ietf.org/doc/rfc4566/?include_text=1
 //https://blog.csdn.net/aggresss/article/details/109850434
@@ -545,15 +548,6 @@ public:
 
 //////////////////////////////////////////////////////////////////
 
-//ssrc类型
-enum class RtcSSRCType {
-    rtp = 0,
-    rtx,
-    sim_low,
-    sim_mid,
-    ssrc_high
-};
-
 //ssrc相关信息
 class RtcSSRC{
 public:
@@ -672,7 +666,6 @@ public:
         string ice_ufrag;
         string ice_pwd;
 
-        DtlsRole role{DtlsRole::invalid};
         RtpDirection direction{RtpDirection::invalid};
         SdpAttrFingerprint fingerprint;
 
@@ -690,13 +683,16 @@ public:
 
     void setDefaultSetting(string ice_ufrag,
                            string ice_pwd,
-                           DtlsRole role,
                            RtpDirection direction,
                            const SdpAttrFingerprint &fingerprint);
     void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);
 
     shared_ptr<RtcSession> createOffer();
     shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
+
+private:
+    void matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
+    bool onMatchCodecPlan(const RtcCodecPlan &plan, CodecId codec) { return true; }
 };
 
 

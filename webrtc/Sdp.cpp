@@ -3,11 +3,8 @@
 //
 
 #include "Sdp.h"
-#include "assert.h"
 #include "Common/Parser.h"
 #include <inttypes.h>
-
-#define CHECK(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__);
 
 using onCreateSdpItem = function<SdpItem::Ptr(const string &key, const string &value)>;
 static map<string, onCreateSdpItem, StrCaseCompare> sdpItemCreator;
@@ -1148,7 +1145,6 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
 
 void RtcConfigure::setDefaultSetting(string ice_ufrag,
                                      string ice_pwd,
-                                     DtlsRole role,
                                      RtpDirection direction,
                                      const SdpAttrFingerprint &fingerprint) {
     video.setDefaultSetting(TrackVideo);
@@ -1157,9 +1153,9 @@ void RtcConfigure::setDefaultSetting(string ice_ufrag,
 
     video.ice_ufrag = audio.ice_ufrag = application.ice_ufrag = ice_ufrag;
     video.ice_pwd = audio.ice_pwd = application.ice_pwd = ice_ufrag;
-    video.role = audio.role = application.role = role;
     video.direction = audio.direction = application.direction = direction;
     video.fingerprint = audio.fingerprint = application.fingerprint = fingerprint;
+    application.enable = false;
 }
 
 void RtcConfigure::addCandidate(const SdpAttrCandidate &candidate, TrackType type) {
@@ -1203,5 +1199,100 @@ shared_ptr<RtcSession> RtcConfigure::createOffer(){
 }
 
 shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
-    return nullptr;
+    shared_ptr<RtcSession> ret = std::make_shared<RtcSession>();
+    ret->version = offer.version;
+    ret->origin.parse("- 0 0 IN IP4 0.0.0.0");
+    ret->session_name = "zlmediakit_webrtc_session";
+    ret->session_info = "zlmediakit_webrtc_session";
+    ret->connection.parse("IN IP4 0.0.0.0");
+    ret->msid_semantic.parse("WMS *");
+    matchMedia(ret, TrackVideo, offer.media, video);
+    matchMedia(ret, TrackAudio, offer.media, audio);
+    matchMedia(ret, TrackApplication, offer.media, application);
+    return ret;
+}
+
+void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure){
+    if (!configure.enable) {
+        return;
+    }
+    for (auto &codec : configure.preferred_codec) {
+        for (auto &media : medias) {
+            if (media.type != type) {
+                continue;
+            }
+            if (media.ice_lite && configure.ice_lite) {
+                WarnL << "offer sdp开启了ice_lite模式，但是answer sdp配置为不支持";
+                continue;
+            }
+
+            const RtcCodecPlan *plan_ptr = nullptr;
+            for (auto &plan : media.plan) {
+                if (getCodecId(plan.codec) != codec) {
+                    continue;
+                }
+                //命中偏好的编码格式
+                if (!onMatchCodecPlan(plan, codec)) {
+                    continue;
+                }
+                plan_ptr = &plan;
+            }
+            if (!plan_ptr) {
+                continue;
+            }
+            RtcMedia answer_media;
+            answer_media.type = media.type;
+            answer_media.mid = media.type;
+            answer_media.proto = media.proto;
+            answer_media.rtcp_mux = media.rtcp_mux && configure.rtcp_mux;
+            answer_media.rtcp_rsize = media.rtcp_rsize && configure.rtcp_rsize;
+            answer_media.ice_trickle = media.ice_trickle && configure.ice_trickle;
+            answer_media.ice_renomination = media.ice_renomination && configure.ice_renomination;
+            switch (media.role) {
+                case DtlsRole::actpass : {
+                    answer_media.role = DtlsRole::passive;
+                    break;
+                }
+                case DtlsRole::active : {
+                    answer_media.role = DtlsRole::passive;
+                    break;
+                }
+                case DtlsRole::passive : {
+                    answer_media.role = DtlsRole::active;
+                    break;
+                }
+                default: continue;
+            }
+
+            switch (media.direction) {
+                case RtpDirection::sendonly : {
+                    if (configure.direction != RtpDirection::recvonly &&
+                        configure.direction != RtpDirection::sendrecv) {
+                        //我们不支持接收
+                        continue;
+                    }
+                    answer_media.direction = RtpDirection::recvonly;
+                    break;
+                }
+                case RtpDirection::recvonly : {
+                    if (configure.direction != RtpDirection::sendonly &&
+                        configure.direction != RtpDirection::sendrecv) {
+                        //我们不支持发送
+                        continue;
+                    }
+                    answer_media.direction = RtpDirection::sendonly;
+                    break;
+                }
+                case RtpDirection::sendrecv : {
+                    //对方支持发送接收，那么最终能力根据配置来决定
+                    answer_media.direction = configure.direction;
+                    break;
+                }
+                default: continue;
+            }
+            answer_media.plan.emplace_back(*plan_ptr);
+            ret->media.emplace_back(answer_media);
+        }
+    }
+
 }
