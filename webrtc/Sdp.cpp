@@ -101,7 +101,10 @@ static bool registerAllItem(){
     registerSdpItem<SdpDirectionRecvonly>();
     registerSdpItem<SdpDirectionSendrecv>();
     registerSdpItem<SdpDirectionInactive>();
-
+    registerSdpItem<SdpAttrMsid>();
+    registerSdpItem<SdpAttrExtmapAllowMixed>();
+    registerSdpItem<SdpAttrRid>();
+    registerSdpItem<SdpAttrSimulcast>();
     return true;
 }
 

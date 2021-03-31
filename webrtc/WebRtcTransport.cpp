@@ -62,7 +62,17 @@ void WebRtcTransport::onWrite(const char *buf, size_t len){
     onWrite(buf, len, (struct sockaddr_in *)tuple);
 }
 
-std::string WebRtcTransport::GetLocalSdp() {
+std::string WebRtcTransport::getAnswerSdp(const string &offer){
+    InfoL << offer;
+    _offer_sdp = std::make_shared<RtcSession>();
+    _offer_sdp->loadFrom(offer);
+
+    RtcConfigure configure;
+    _answer_sdp = configure.createAnswer(*_offer_sdp);
+    return _answer_sdp->toString();
+}
+
+std::string WebRtcTransport::getOfferSdp() {
     RTC::DtlsTransport::Fingerprint remote_fingerprint;
     remote_fingerprint.algorithm = RTC::DtlsTransport::GetFingerprintAlgorithm("sha-256");
     remote_fingerprint.value = "";

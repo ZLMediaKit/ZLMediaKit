@@ -445,6 +445,28 @@ public:
     const char* getKey() const override { return "candidate";}
 };
 
+class SdpAttrMsid : public SdpItem{
+public:
+    const char* getKey() const override { return "msid";}
+};
+
+class SdpAttrExtmapAllowMixed : public SdpItem{
+public:
+    const char* getKey() const override { return "extmap-allow-mixed";}
+};
+
+class SdpAttrSimulcast : public SdpItem{
+public:
+    //todo
+    const char* getKey() const override { return "simulcast";}
+};
+
+class SdpAttrRid : public SdpItem{
+public:
+    //todo
+    const char* getKey() const override { return "rid";}
+};
+
 class RtcSdpBase {
 public:
     vector<SdpItem::Ptr> items;
@@ -575,6 +597,7 @@ public:
     RtcSSRC rtx_ssrc;
 
     //////// simulcast ////////
+    bool simulcast{false};
     RtcSSRC rtp_ssrc_low;
     RtcSSRC rtp_ssrc_mid;
     RtcSSRC rtp_ssrc_high;
@@ -611,6 +634,8 @@ public:
 
 class RtcSession{
 public:
+    using Ptr = std::shared_ptr<RtcSession>;
+
     uint32_t version;
     SdpOrigin origin;
     string session_name;

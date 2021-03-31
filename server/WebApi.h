@@ -85,6 +85,8 @@ using ApiArgsType = map<string, variant, StrCaseCompare>;
 #define API_ARGS_MAP_ASYNC API_ARGS_MAP, const HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_JSON SockInfo &sender, HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, Json::Value &allArgs, Json::Value &val
 #define API_ARGS_JSON_ASYNC API_ARGS_JSON, const HttpSession::HttpResponseInvoker &invoker
+#define API_ARGS_STRING SockInfo &sender, HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, const Parser &allArgs, Json::Value &val
+#define API_ARGS_STRING_ASYNC API_ARGS_STRING, const HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_VALUE sender, headerIn, headerOut, allArgs, val
 
 //注册http请求参数是map<string, variant, StrCaseCompare>类型的http api
@@ -97,6 +99,11 @@ void api_regist(const string &api_path, const function<void(API_ARGS_JSON)> &fun
 //注册http请求参数是Json::Value类型，但是可以异步回复的的http api
 void api_regist(const string &api_path, const function<void(API_ARGS_JSON_ASYNC)> &func);
 
+//注册http请求参数是http原始请求信息的http api
+void api_regist(const string &api_path, const function<void(API_ARGS_STRING)> &func);
+//注册http请求参数是http原始请求信息的异步回复的http api
+void api_regist(const string &api_path, const function<void(API_ARGS_STRING_ASYNC)> &func);
+
 template<typename Args, typename First>
 bool checkArgs(Args &&args, First &&first) {
     return !args[first].empty();
@@ -105,6 +112,16 @@ bool checkArgs(Args &&args, First &&first) {
 template<typename Args, typename First, typename ...KeyTypes>
 bool checkArgs(Args &&args, First &&first, KeyTypes &&...keys) {
     return !args[first].empty() && checkArgs(std::forward<Args>(args), std::forward<KeyTypes>(keys)...);
+}
+
+template<typename First>
+bool checkArgs(const Parser &args, First &&first) {
+    return !args.getUrlArgs()[first].empty();
+}
+
+template<typename First, typename ...KeyTypes>
+bool checkArgs(const Parser &args, First &&first, KeyTypes &&...keys) {
+    return !args.getUrlArgs()[first].empty() && checkArgs(args, std::forward<KeyTypes>(keys)...);
 }
 
 //检查http参数是否为空的宏

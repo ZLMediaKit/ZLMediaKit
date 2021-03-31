@@ -7,6 +7,7 @@
 #include "IceServer.hpp"
 #include "SrtpSession.hpp"
 #include "StunPacket.hpp"
+#include "Sdp.h"
 
 class WebRtcTransport : public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener  {
 public:
@@ -17,9 +18,9 @@ public:
     /// 销毁对象
     virtual void onDestory();
 
-    /// 获取本地sdp
-    /// \return
-    std::string GetLocalSdp();
+    std::string getAnswerSdp(const string &offer);
+
+    std::string getOfferSdp();
 
     /// 收到udp数据
     /// \param buf
@@ -76,6 +77,8 @@ private:
     std::shared_ptr<RTC::IceServer> ice_server_;
     std::shared_ptr<RTC::DtlsTransport> dtls_transport_;
     std::shared_ptr<RTC::SrtpSession> srtp_session_;
+    RtcSession::Ptr _offer_sdp;
+    RtcSession::Ptr _answer_sdp;
 };
 
 #include "Poller/EventPoller.h"
