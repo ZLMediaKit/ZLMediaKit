@@ -127,6 +127,26 @@ static HttpApi toApi(const function<void(API_ARGS_JSON)> &cb) {
     });
 }
 
+static HttpApi toApi(const function<void(API_ARGS_STRING_ASYNC)> &cb) {
+    return [cb](const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, SockInfo &sender) {
+        GET_CONFIG(string, charSet, Http::kCharSet);
+        HttpSession::KeyValue headerOut;
+        headerOut["Content-Type"] = string("application/json; charset=") + charSet;
+
+        Json::Value val;
+        val["code"] = API::Success;
+
+        cb(sender, parser.getHeader(), headerOut, parser, val, invoker);
+    };
+}
+
+static HttpApi toApi(const function<void(API_ARGS_STRING)> &cb) {
+    return toApi([cb](API_ARGS_STRING_ASYNC) {
+        cb(API_ARGS_VALUE);
+        invoker(200, headerOut, val.toStyledString());
+    });
+}
+
 void api_regist(const string &api_path, const function<void(API_ARGS_MAP)> &func) {
     s_map_api.emplace(api_path, toApi(func));
 }
@@ -140,6 +160,14 @@ void api_regist(const string &api_path, const function<void(API_ARGS_JSON)> &fun
 }
 
 void api_regist(const string &api_path, const function<void(API_ARGS_JSON_ASYNC)> &func) {
+    s_map_api.emplace(api_path, toApi(func));
+}
+
+void api_regist(const string &api_path, const function<void(API_ARGS_STRING)> &func){
+    s_map_api.emplace(api_path, toApi(func));
+}
+
+void api_regist(const string &api_path, const function<void(API_ARGS_STRING_ASYNC)> &func){
     s_map_api.emplace(api_path, toApi(func));
 }
 
@@ -1054,9 +1082,9 @@ void installWebApi() {
 
 #ifdef ENABLE_WEBRTC
     static list<WebRtcTransportImp::Ptr> rtcs;
-    api_regist("/webrtc",[](API_ARGS_MAP_ASYNC){
+    api_regist("/index/api/webrtc",[](API_ARGS_STRING){
         CHECK_ARGS("app", "stream");
-        auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, DEFAULT_VHOST, allArgs["app"], allArgs["stream"]));
+        auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, DEFAULT_VHOST, allArgs.getUrlArgs()["app"], allArgs.getUrlArgs()["stream"]));
         if (!src) {
             throw ApiRetException("流不存在", API::NotFound);
         }
@@ -1064,7 +1092,8 @@ void installWebApi() {
         headerOut["Access-Control-Allow-Origin"] = "*";
         auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
         rtc->attach(src);
-        invoker(200, headerOut, rtc->GetLocalSdp());
+        val["sdp"] = rtc->getAnswerSdp(allArgs.Content());
+        val["type"] = "answer";
         rtcs.emplace_back(rtc);
     });
 #endif
