@@ -145,6 +145,9 @@ bool RtpProcess::alive() {
 
 void RtpProcess::setStopCheckRtp(bool is_check){
     _stop_rtp_check = is_check;
+    if (!is_check) {
+        _last_frame_time.resetTime();
+    }
 }
 
 void RtpProcess::onDetach() {
