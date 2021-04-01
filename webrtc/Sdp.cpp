@@ -1176,7 +1176,7 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             break;
         }
         case TrackApplication: {
-            enable = false;
+            enable = true;
             break;
         }
         default: break;
@@ -1195,7 +1195,6 @@ void RtcConfigure::setDefaultSetting(string ice_ufrag,
     video.ice_pwd = audio.ice_pwd = application.ice_pwd = ice_pwd;
     video.direction = audio.direction = application.direction = direction;
     video.fingerprint = audio.fingerprint = application.fingerprint = fingerprint;
-    application.enable = false;
 }
 
 void RtcConfigure::addCandidate(const SdpAttrCandidate &candidate, TrackType type) {
