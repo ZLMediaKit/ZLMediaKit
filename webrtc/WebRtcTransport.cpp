@@ -24,15 +24,15 @@ void WebRtcTransport::OnIceServerSelectedTuple(const RTC::IceServer *iceServer, 
 
 void WebRtcTransport::OnIceServerConnected(const RTC::IceServer *iceServer) {
     InfoL;
+}
+
+void WebRtcTransport::OnIceServerCompleted(const RTC::IceServer *iceServer) {
+    InfoL;
     if (_answer_sdp->media[0].role == DtlsRole::passive) {
         dtls_transport_->Run(RTC::DtlsTransport::Role::SERVER);
     } else {
         dtls_transport_->Run(RTC::DtlsTransport::Role::CLIENT);
     }
-}
-
-void WebRtcTransport::OnIceServerCompleted(const RTC::IceServer *iceServer) {
-    InfoL;
 }
 
 void WebRtcTransport::OnIceServerDisconnected(const RTC::IceServer *iceServer) {
@@ -141,16 +141,6 @@ bool is_rtcp(char *buf) {
 }
 
 void WebRtcTransport::OnInputDataPacket(char *buf, size_t len, RTC::TransportTuple *tuple) {
-    if (is_rtp(buf)) {
-        RtpHeader *header = (RtpHeader *) buf;
-        InfoL << "rtp:" << header->dumpString(len);
-        return;
-    }
-    if (is_rtcp(buf)) {
-        RtcpHeader *header = (RtcpHeader *) buf;
-//        InfoL << "rtcp:" << header->dumpString();
-        return;
-    }
     if (RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
         RTC::StunPacket *packet = RTC::StunPacket::Parse((const uint8_t *) buf, len);
         if (packet == nullptr) {
@@ -162,6 +152,16 @@ void WebRtcTransport::OnInputDataPacket(char *buf, size_t len, RTC::TransportTup
     }
     if (is_dtls(buf)) {
         dtls_transport_->ProcessDtlsData((uint8_t *) buf, len);
+        return;
+    }
+    if (is_rtp(buf)) {
+        RtpHeader *header = (RtpHeader *) buf;
+        InfoL << "rtp:" << header->dumpString(len);
+        return;
+    }
+    if (is_rtcp(buf)) {
+        RtcpHeader *header = (RtcpHeader *) buf;
+//        InfoL << "rtcp:" << header->dumpString();
         return;
     }
 }

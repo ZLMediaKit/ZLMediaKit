@@ -1294,11 +1294,11 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
             answer_media.fingerprint = configure.fingerprint;
             answer_media.ice_lite = configure.ice_lite;
             switch (offer_media.role) {
+                case DtlsRole::actpass :
                 case DtlsRole::active : {
                     answer_media.role = DtlsRole::passive;
                     break;
                 }
-                case DtlsRole::actpass :
                 case DtlsRole::passive : {
                     answer_media.role = DtlsRole::active;
                     break;
