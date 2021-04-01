@@ -108,10 +108,17 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         }
         fprintf(stderr, "\r\n\r\n#### pid=%d,cmd=%s #####\r\n\r\n", getpid(), cmd.data());
 
+#ifndef ANDROID
         //关闭父进程继承的fd
         for (int i = 3; i < getdtablesize(); i++) {
             ::close(i);
         }
+#else
+        //关闭父进程继承的fd
+        for (int i = 3; i < 1024; i++) {
+            ::close(i);
+        }
+#endif
 
         auto params = split(cmd, " ");
         // memory leak in child process, it's ok.
