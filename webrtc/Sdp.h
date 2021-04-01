@@ -159,6 +159,7 @@ public:
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "c";}
+    bool empty() const {return address.empty();}
 };
 
 class SdpBandwidth : public SdpItem {
@@ -261,6 +262,9 @@ public:
     void parse(const string &str) override;;
     string toString() const override;
     const char* getKey() const override { return "rtcp";}
+    bool empty() const {
+        return address.empty() || !port;
+    }
 };
 
 class SdpAttrIceUfrag : public SdpItem {

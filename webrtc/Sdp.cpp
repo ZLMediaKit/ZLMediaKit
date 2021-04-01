@@ -924,12 +924,14 @@ string RtcSession::toString() const{
         sdp.items.emplace_back(std::make_shared<SdpString<'i'> >(session_info));
     }
     sdp.items.emplace_back(std::make_shared<SdpTime>(time));
-    sdp.items.emplace_back(std::make_shared<SdpConnection>(connection));
+    if(connection.empty()){
+        sdp.items.emplace_back(std::make_shared<SdpConnection>(connection));
+    }
     if (!bandwidth.empty()) {
         sdp.items.emplace_back(std::make_shared<SdpBandwidth>(bandwidth));
     }
-    sdp.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrMsidSemantic>(msid_semantic)));
     sdp.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrGroup>(group)));
+    sdp.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrMsidSemantic>(msid_semantic)));
     for (auto &m : media) {
         sdp.medias.emplace_back();
         auto &sdp_media = sdp.medias.back();
@@ -944,18 +946,22 @@ string RtcSession::toString() const{
             mline->fmts.emplace_back(m.sctp_port);
         }
         sdp_media.items.emplace_back(std::move(mline));
-        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrMid>(m.mid)));
         sdp_media.items.emplace_back(std::make_shared<SdpConnection>(m.addr));
+        if (!m.rtcp_addr.empty()) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrRtcp>(m.rtcp_addr)));
+        }
+
         sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrIceUfrag>(m.ice_ufrag)));
         sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrIcePwd>(m.ice_pwd)));
-        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrFingerprint>(m.fingerprint)));
-        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSetup>(m.role)));
         if (m.ice_trickle || m.ice_renomination) {
             auto attr = std::make_shared<SdpAttrIceOption>();
             attr->trickle = m.ice_trickle;
             attr->renomination = m.ice_renomination;
             sdp_media.items.emplace_back(wrapSdpAttr(attr));
         }
+        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrFingerprint>(m.fingerprint)));
+        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSetup>(m.role)));
+        sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrMid>(m.mid)));
         if (m.ice_lite) {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("ice-lite")));
         }
@@ -964,9 +970,6 @@ string RtcSession::toString() const{
         }
         if (m.direction != RtpDirection::invalid) {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<DirectionInterfaceImp>(m.direction)));
-        }
-        if (m.rtcp_addr.port) {
-            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrRtcp>(m.rtcp_addr)));
         }
         if (m.rtcp_mux) {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("rtcp-mux")));
@@ -1145,7 +1148,7 @@ RtcMedia *RtcSession::getMedia(TrackType type){
 void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     enable = true;
     rtcp_mux = true;
-    rtcp_rsize = false;
+    rtcp_rsize = true;
     group_bundle = true;
     unified_plan = false;
     support_rtx = true;
@@ -1238,11 +1241,9 @@ shared_ptr<RtcSession> RtcConfigure::createOffer(){
 shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
     shared_ptr<RtcSession> ret = std::make_shared<RtcSession>();
     ret->version = offer.version;
-    ret->origin.parse("- 0 0 IN IP4 0.0.0.0");
-    ret->session_name = "zlmediakit_webrtc_session";
-    ret->session_info = "zlmediakit_webrtc_session";
-    ret->connection.parse("IN IP4 0.0.0.0");
-    ret->msid_semantic.parse("WMS *");
+    ret->origin = offer.origin;
+    ret->session_name = offer.session_name;
+    ret->msid_semantic = offer.msid_semantic;
     matchMedia(ret, TrackAudio, offer.media, audio);
     matchMedia(ret, TrackVideo, offer.media, video);
     matchMedia(ret, TrackApplication, offer.media, application);
@@ -1283,19 +1284,22 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
             answer_media.type = offer_media.type;
             answer_media.mid = offer_media.mid;
             answer_media.proto = offer_media.proto;
+            answer_media.port = offer_media.port;
             answer_media.rtcp_mux = offer_media.rtcp_mux && configure.rtcp_mux;
             answer_media.rtcp_rsize = offer_media.rtcp_rsize && configure.rtcp_rsize;
+            answer_media.rtcp_addr = offer_media.rtcp_addr;
             answer_media.ice_trickle = offer_media.ice_trickle && configure.ice_trickle;
             answer_media.ice_renomination = offer_media.ice_renomination && configure.ice_renomination;
             answer_media.ice_ufrag = configure.ice_ufrag;
             answer_media.ice_pwd = configure.ice_pwd;
             answer_media.fingerprint = configure.fingerprint;
+            answer_media.ice_lite = configure.ice_lite;
             switch (offer_media.role) {
-                case DtlsRole::actpass :
                 case DtlsRole::active : {
                     answer_media.role = DtlsRole::passive;
                     break;
                 }
+                case DtlsRole::actpass :
                 case DtlsRole::passive : {
                     answer_media.role = DtlsRole::active;
                     break;
