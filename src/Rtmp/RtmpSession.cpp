@@ -415,17 +415,11 @@ void RtmpSession::onCmd_pause(AMFDecoder &dec) {
 }
 
 void RtmpSession::setMetaData(AMFDecoder &dec) {
-    if (!_publisher_src) {
-        throw std::runtime_error("not a publisher");
-    }
     std::string type = dec.load<std::string>();
     if (type != "onMetaData") {
         throw std::runtime_error("can only set metadata");
     }
-    auto metadata = dec.load<AMFValue>();
-//    dumpMetadata(metadata);
-    _publisher_src->setMetaData(metadata);
-    _set_meta_data = true;
+    _publisher_metadata = dec.load<AMFValue>();
 }
 
 void RtmpSession::onProcessCmd(AMFDecoder &dec) {
@@ -478,7 +472,8 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
     case MSG_AUDIO:
     case MSG_VIDEO: {
         if (!_publisher_src) {
-            throw std::runtime_error("Not a rtmp publisher!");
+            WarnL << "Not a rtmp publisher!";
+            return;
         }
         GET_CONFIG(bool, rtmp_modify_stamp, Rtmp::kModifyStamp);
         if (rtmp_modify_stamp) {
@@ -487,9 +482,9 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
             chunk_data.time_stamp = (uint32_t)dts_out;
         }
 
-        if (!_set_meta_data && !chunk_data.isCfgFrame()) {
+        if (!_set_meta_data) {
             _set_meta_data = true;
-            _publisher_src->setMetaData(TitleMeta().getMetadata());
+            _publisher_src->setMetaData(_publisher_metadata ? _publisher_metadata : TitleMeta().getMetadata());
         }
         _publisher_src->onWrite(std::move(packet));
         break;
