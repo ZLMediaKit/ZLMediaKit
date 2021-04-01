@@ -7357,7 +7357,7 @@ var ZLMRTCClient = (function (exports) {
 	              'Content-Type': 'text/plain;charset=utf-8'
 	            }
 	          }).then(response => {
-	            let ret = JSON.parse(response.data);
+	            let ret = response.data;
 
 	            if (ret.code != 0) {
 	              // mean failed for offer/anwser exchange 

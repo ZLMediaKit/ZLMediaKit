@@ -77,6 +77,7 @@ private:
     std::shared_ptr<RTC::IceServer> ice_server_;
     std::shared_ptr<RTC::DtlsTransport> dtls_transport_;
     std::shared_ptr<RTC::SrtpSession> srtp_session_;
+    std::shared_ptr<RTC::SrtpSession> srtp_session_recv_;
     RtcSession::Ptr _offer_sdp;
     RtcSession::Ptr _answer_sdp;
 };
