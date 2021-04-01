@@ -104,7 +104,7 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
         throw std::invalid_argument("支持group BUNDLE模式");
     }
     auto str = _answer_sdp->toString();
-    InfoL << str;
+    InfoL << "\r\n" << str;
     return str;
 }
 
