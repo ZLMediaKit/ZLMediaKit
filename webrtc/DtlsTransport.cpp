@@ -1180,13 +1180,8 @@ namespace RTC
 			  "fingerprint in the remote certificate (%s) does not match the announced one (%s)",
 			  hexFingerprint,
 			  this->remoteFingerprint.value.c_str());
-
-			//todo 先屏蔽检查客户端签名
-#if 0
 			X509_free(certificate);
-
 			return false;
-#endif
 		}
 
 		MS_DEBUG_TAG(dtls, "valid remote fingerprint");
