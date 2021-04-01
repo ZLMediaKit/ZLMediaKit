@@ -1148,7 +1148,7 @@ RtcMedia *RtcSession::getMedia(TrackType type){
 void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     enable = true;
     rtcp_mux = true;
-    rtcp_rsize = true;
+    rtcp_rsize = false;
     group_bundle = true;
     unified_plan = false;
     support_rtx = true;
@@ -1176,7 +1176,7 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             break;
         }
         case TrackApplication: {
-            enable = true;
+            enable = false;
             break;
         }
         default: break;

@@ -20,8 +20,6 @@ public:
 
     std::string getAnswerSdp(const string &offer);
 
-    std::string getOfferSdp();
-
     /// 收到udp数据
     /// \param buf
     /// \param len

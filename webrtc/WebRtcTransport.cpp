@@ -103,51 +103,27 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
     } else {
         throw std::invalid_argument("支持group BUNDLE模式");
     }
+
+    SdpAttrCandidate candidate;
+    candidate.foundation = "udpcandidate";
+    candidate.component = 1;
+    candidate.transport = "udp";
+    candidate.priority = getSSRC();
+    candidate.address = getIP();
+    candidate.port = getPort();
+    candidate.type = "host";
+    for (auto &m :_answer_sdp->media) {
+        m.candidate.emplace_back(candidate);
+        m.port = getPort();
+        m.rtcp_addr.address = getIP();
+        m.rtcp_addr.port = getPort();
+        m.addr.address = getIP();
+    }
+    _answer_sdp->connection.address = getIP();
+
     auto str = _answer_sdp->toString();
     InfoL << "\r\n" << str;
     return str;
-}
-
-std::string WebRtcTransport::getOfferSdp() {
-    RTC::DtlsTransport::Fingerprint remote_fingerprint;
-    remote_fingerprint.algorithm = RTC::DtlsTransport::GetFingerprintAlgorithm("sha-256");
-    remote_fingerprint.value = "";
-    dtls_transport_->SetRemoteFingerprint(remote_fingerprint);
-
-    char sdp[1024 * 10] = {0};
-    auto ssrc = getSSRC();
-    auto ip = getIP();
-    auto pt = getPayloadType();
-    auto port = getPort();
-    sprintf(sdp,
-            "v=0\r\n"
-            "o=- 1495799811084970 1495799811084970 IN IP4 %s\r\n"
-            "s=Streaming Test\r\n"
-            "t=0 0\r\n"
-            "a=group:BUNDLE video\r\n"
-            "a=msid-semantic: WMS janus\r\n"
-            "m=video %u RTP/SAVPF %u\r\n"
-            "c=IN IP4 %s\r\n"
-            "a=mid:video\r\n"
-            "a=sendonly\r\n"
-            "a=rtcp-mux\r\n"
-            "a=ice-lite\r\n"
-            "a=ice-ufrag:%s\r\n"
-            "a=ice-pwd:%s\r\n"
-            "a=ice-options:trickle\r\n"
-            "a=fingerprint:sha-256 %s\r\n"
-            "a=setup:actpass\r\n"
-            "a=connection:new\r\n"
-            "a=rtpmap:%u H264/90000\r\n"
-            "a=ssrc:%u cname:janusvideo\r\n"
-            "a=ssrc:%u msid:janus janusv0\r\n"
-            "a=ssrc:%u mslabel:janus\r\n"
-            "a=ssrc:%u label:janusv0\r\n"
-            "a=candidate:%s 1 udp %u %s %u typ %s\r\n",
-            ip.c_str(), port, pt, ip.c_str(),
-            ice_server_->GetUsernameFragment().c_str(),ice_server_->GetPassword().c_str(),
-            "",  pt, ssrc, ssrc, ssrc, ssrc, "4", ssrc, ip.c_str(), port, "host");
-    return sdp;
 }
 
 bool is_dtls(char *buf) {
