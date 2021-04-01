@@ -98,8 +98,8 @@ private:
     //数据接收超时计时器
     Ticker _ticker;
     MediaInfo _media_info;
-
     std::weak_ptr<RtmpMediaSource> _player_src;
+    AMFValue _publisher_metadata;
     std::shared_ptr<RtmpMediaSourceImp> _publisher_src;
     RtmpMediaSource::RingType::RingReader::Ptr _ring_reader;
 };
