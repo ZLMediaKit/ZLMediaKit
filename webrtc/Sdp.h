@@ -644,6 +644,7 @@ public:
     void loadFrom(const string &sdp);
     void checkValid() const;
     string toString() const;
+    RtcMedia *getMedia(TrackType type);
 };
 
 class RtcConfigure {

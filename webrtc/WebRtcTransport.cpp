@@ -24,7 +24,11 @@ void WebRtcTransport::OnIceServerSelectedTuple(const RTC::IceServer *iceServer, 
 
 void WebRtcTransport::OnIceServerConnected(const RTC::IceServer *iceServer) {
     InfoL;
-    dtls_transport_->Run(RTC::DtlsTransport::Role::SERVER);
+    if (_answer_sdp->media[0].role == DtlsRole::passive) {
+        dtls_transport_->Run(RTC::DtlsTransport::Role::SERVER);
+    } else {
+        dtls_transport_->Run(RTC::DtlsTransport::Role::CLIENT);
+    }
 }
 
 void WebRtcTransport::OnIceServerCompleted(const RTC::IceServer *iceServer) {
@@ -47,6 +51,7 @@ void WebRtcTransport::OnDtlsTransportConnected(
         std::string &remoteCert) {
     InfoL;
     srtp_session_ = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::OUTBOUND, srtpCryptoSuite, srtpLocalKey, srtpLocalKeyLen);
+    srtp_session_recv_ = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::OUTBOUND, srtpCryptoSuite, srtpRemoteKey, srtpRemoteKeyLen);
     onDtlsConnected();
 }
 
@@ -62,14 +67,45 @@ void WebRtcTransport::onWrite(const char *buf, size_t len){
     onWrite(buf, len, (struct sockaddr_in *)tuple);
 }
 
+string getFingerprint(const string &algorithm_str, const std::shared_ptr<RTC::DtlsTransport> &transport){
+    auto algorithm = RTC::DtlsTransport::GetFingerprintAlgorithm(algorithm_str);
+    for (auto &finger_prints : transport->GetLocalFingerprints()) {
+        if (finger_prints.algorithm == algorithm) {
+            return finger_prints.value;
+        }
+    }
+    throw std::invalid_argument(StrPrinter << "不支持的加密算法:" << algorithm_str);
+}
+
 std::string WebRtcTransport::getAnswerSdp(const string &offer){
     InfoL << offer;
     _offer_sdp = std::make_shared<RtcSession>();
     _offer_sdp->loadFrom(offer);
 
+    SdpAttrFingerprint fingerprint;
+    fingerprint.algorithm = _offer_sdp->media[0].fingerprint.algorithm;
+    fingerprint.hash = getFingerprint(fingerprint.algorithm, dtls_transport_);
+
     RtcConfigure configure;
+    configure.setDefaultSetting(ice_server_->GetUsernameFragment(), ice_server_->GetPassword(), RtpDirection::recvonly, fingerprint);
     _answer_sdp = configure.createAnswer(*_offer_sdp);
-    return _answer_sdp->toString();
+
+    //设置远端dtls签名
+    RTC::DtlsTransport::Fingerprint remote_fingerprint;
+    remote_fingerprint.algorithm = RTC::DtlsTransport::GetFingerprintAlgorithm(_offer_sdp->media[0].fingerprint.algorithm);
+    remote_fingerprint.value = _offer_sdp->media[0].fingerprint.hash;
+    dtls_transport_->SetRemoteFingerprint(remote_fingerprint);
+
+    if (!_offer_sdp->group.mids.empty()) {
+        for (auto &m : _answer_sdp->media) {
+            _answer_sdp->group.mids.emplace_back(m.mid);
+        }
+    } else {
+        throw std::invalid_argument("支持group BUNDLE模式");
+    }
+    auto str = _answer_sdp->toString();
+    InfoL << str;
+    return str;
 }
 
 std::string WebRtcTransport::getOfferSdp() {
@@ -77,14 +113,6 @@ std::string WebRtcTransport::getOfferSdp() {
     remote_fingerprint.algorithm = RTC::DtlsTransport::GetFingerprintAlgorithm("sha-256");
     remote_fingerprint.value = "";
     dtls_transport_->SetRemoteFingerprint(remote_fingerprint);
-
-    string finger_print_sha256;
-    auto finger_prints = dtls_transport_->GetLocalFingerprints();
-    for (size_t i = 0; i < finger_prints.size(); i++) {
-        if (finger_prints[i].algorithm == RTC::DtlsTransport::FingerprintAlgorithm::SHA256) {
-            finger_print_sha256 = finger_prints[i].value;
-        }
-    }
 
     char sdp[1024 * 10] = {0};
     auto ssrc = getSSRC();
@@ -118,7 +146,7 @@ std::string WebRtcTransport::getOfferSdp() {
             "a=candidate:%s 1 udp %u %s %u typ %s\r\n",
             ip.c_str(), port, pt, ip.c_str(),
             ice_server_->GetUsernameFragment().c_str(),ice_server_->GetPassword().c_str(),
-            finger_print_sha256.c_str(),  pt, ssrc, ssrc, ssrc, ssrc, "4", ssrc, ip.c_str(), port, "host");
+            "",  pt, ssrc, ssrc, ssrc, ssrc, "4", ssrc, ip.c_str(), port, "host");
     return sdp;
 }
 
@@ -137,6 +165,16 @@ bool is_rtcp(char *buf) {
 }
 
 void WebRtcTransport::OnInputDataPacket(char *buf, size_t len, RTC::TransportTuple *tuple) {
+    if (is_rtp(buf)) {
+        RtpHeader *header = (RtpHeader *) buf;
+        InfoL << "rtp:" << header->dumpString(len);
+        return;
+    }
+    if (is_rtcp(buf)) {
+        RtcpHeader *header = (RtcpHeader *) buf;
+//        InfoL << "rtcp:" << header->dumpString();
+        return;
+    }
     if (RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
         RTC::StunPacket *packet = RTC::StunPacket::Parse((const uint8_t *) buf, len);
         if (packet == nullptr) {
@@ -147,17 +185,7 @@ void WebRtcTransport::OnInputDataPacket(char *buf, size_t len, RTC::TransportTup
         return;
     }
     if (is_dtls(buf)) {
-        dtls_transport_->ProcessDtlsData((uint8_t *)buf, len);
-        return;
-    }
-    if (is_rtp(buf)) {
-        RtpHeader *header = (RtpHeader *) buf;
-//        InfoL << "rtp:" << header->dumpString(len);
-        return;
-    }
-    if (is_rtcp(buf)) {
-        RtcpHeader *header = (RtcpHeader *) buf;
-//        InfoL << "rtcp:" << header->dumpString();
+        dtls_transport_->ProcessDtlsData((uint8_t *) buf, len);
         return;
     }
 }

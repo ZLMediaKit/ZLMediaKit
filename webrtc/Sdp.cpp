@@ -1105,6 +1105,15 @@ void RtcSession::checkValid() const{
     }
 }
 
+RtcMedia *RtcSession::getMedia(TrackType type){
+    for(auto &m : media){
+        if(m.type == type){
+            return &m;
+        }
+    }
+    return nullptr;
+}
+
 void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     enable = true;
     rtcp_mux = true;
@@ -1119,13 +1128,13 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     ice_trickle = true;
     ice_renomination = false;
     switch (type) {
-        case TrackVideo: {
+        case TrackAudio: {
             preferred_codec = {CodecAAC, CodecOpus, CodecG711U, CodecG711A};
             rtcp_fb = {"transport-cc"};
             extmap = {"1 urn:ietf:params:rtp-hdrext:ssrc-audio-level"};
             break;
         }
-        case TrackAudio: {
+        case TrackVideo: {
             preferred_codec = {CodecH264, CodecH265};
             rtcp_fb = {"nack", "ccm fir", "nack pli", "goog-remb", "transport-cc"};
             extmap = {"2 urn:ietf:params:rtp-hdrext:toffset",
@@ -1152,7 +1161,7 @@ void RtcConfigure::setDefaultSetting(string ice_ufrag,
     application.setDefaultSetting(TrackApplication);
 
     video.ice_ufrag = audio.ice_ufrag = application.ice_ufrag = ice_ufrag;
-    video.ice_pwd = audio.ice_pwd = application.ice_pwd = ice_ufrag;
+    video.ice_pwd = audio.ice_pwd = application.ice_pwd = ice_pwd;
     video.direction = audio.direction = application.direction = direction;
     video.fingerprint = audio.fingerprint = application.fingerprint = fingerprint;
     application.enable = false;
@@ -1217,17 +1226,16 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
         return;
     }
     for (auto &codec : configure.preferred_codec) {
-        for (auto &media : medias) {
-            if (media.type != type) {
+        for (auto &offer_media : medias) {
+            if (offer_media.type != type) {
                 continue;
             }
-            if (media.ice_lite && configure.ice_lite) {
+            if (offer_media.ice_lite && configure.ice_lite) {
                 WarnL << "offer sdp开启了ice_lite模式，但是answer sdp配置为不支持";
                 continue;
             }
-
-            const RtcCodecPlan *plan_ptr = nullptr;
-            for (auto &plan : media.plan) {
+            const RtcCodecPlan *offer_plan_ptr = nullptr;
+            for (auto &plan : offer_media.plan) {
                 if (getCodecId(plan.codec) != codec) {
                     continue;
                 }
@@ -1235,24 +1243,27 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
                 if (!onMatchCodecPlan(plan, codec)) {
                     continue;
                 }
-                plan_ptr = &plan;
+                //找到中意的codec
+                offer_plan_ptr = &plan;
+                break;
             }
-            if (!plan_ptr) {
+            if (!offer_plan_ptr) {
+                //offer中该媒体的所有的codec都不支持
                 continue;
             }
             RtcMedia answer_media;
-            answer_media.type = media.type;
-            answer_media.mid = media.type;
-            answer_media.proto = media.proto;
-            answer_media.rtcp_mux = media.rtcp_mux && configure.rtcp_mux;
-            answer_media.rtcp_rsize = media.rtcp_rsize && configure.rtcp_rsize;
-            answer_media.ice_trickle = media.ice_trickle && configure.ice_trickle;
-            answer_media.ice_renomination = media.ice_renomination && configure.ice_renomination;
-            switch (media.role) {
-                case DtlsRole::actpass : {
-                    answer_media.role = DtlsRole::passive;
-                    break;
-                }
+            answer_media.type = offer_media.type;
+            answer_media.mid = offer_media.mid;
+            answer_media.proto = offer_media.proto;
+            answer_media.rtcp_mux = offer_media.rtcp_mux && configure.rtcp_mux;
+            answer_media.rtcp_rsize = offer_media.rtcp_rsize && configure.rtcp_rsize;
+            answer_media.ice_trickle = offer_media.ice_trickle && configure.ice_trickle;
+            answer_media.ice_renomination = offer_media.ice_renomination && configure.ice_renomination;
+            answer_media.ice_ufrag = configure.ice_ufrag;
+            answer_media.ice_pwd = configure.ice_pwd;
+            answer_media.fingerprint = configure.fingerprint;
+            switch (offer_media.role) {
+                case DtlsRole::actpass :
                 case DtlsRole::active : {
                     answer_media.role = DtlsRole::passive;
                     break;
@@ -1264,7 +1275,7 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
                 default: continue;
             }
 
-            switch (media.direction) {
+            switch (offer_media.direction) {
                 case RtpDirection::sendonly : {
                     if (configure.direction != RtpDirection::recvonly &&
                         configure.direction != RtpDirection::sendrecv) {
@@ -1290,9 +1301,59 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
                 }
                 default: continue;
             }
-            answer_media.plan.emplace_back(*plan_ptr);
+            answer_media.plan.emplace_back(*offer_plan_ptr);
+            if (configure.support_red || configure.support_rtx || configure.support_ulpfec) {
+                for (auto &plan : offer_media.plan) {
+                    if (!strcasecmp(plan.codec.data(), "rtx")) {
+                        if (configure.support_rtx && atoi(plan.getFmtp("apt").data()) == offer_plan_ptr->pt) {
+                            answer_media.plan.emplace_back(plan);
+                        }
+                        continue;
+                    }
+                    if (!strcasecmp(plan.codec.data(), "red")) {
+                        if (configure.support_red) {
+                            answer_media.plan.emplace_back(plan);
+                        }
+                        continue;
+                    }
+                    if (!strcasecmp(plan.codec.data(), "ulpfec")) {
+                        if (configure.support_ulpfec) {
+                            answer_media.plan.emplace_back(plan);
+                        }
+                        continue;
+                    }
+                }
+            }
+
+            //这是我们支持的扩展
+            unordered_set<string> extmap_set;
+            for (auto &ext : configure.extmap) {
+                SdpAttrExtmap ext_cfg;
+                ext_cfg.parse(ext);
+                extmap_set.emplace(ext_cfg.ext);
+            }
+
+            //对方和我方都支持的扩展，那么我们都支持
+            for (auto &ext : offer_media.extmap) {
+                if (extmap_set.find(ext.ext) != extmap_set.end()) {
+                    answer_media.extmap.emplace_back(ext);
+                }
+            }
+            //我们支持的rtcp类型
+            unordered_set<string> rtcp_fb_set;
+            for (auto &fp : configure.rtcp_fb) {
+                rtcp_fb_set.emplace(fp);
+            }
+            vector<string> offer_rtcp_fb;
+            for (auto &fp : offer_plan_ptr->rtcp_fb) {
+                if (rtcp_fb_set.find(fp) != rtcp_fb_set.end()) {
+                    //对方该rtcp被我们支持
+                    offer_rtcp_fb.emplace_back(fp);
+                }
+            }
+            answer_media.plan[0].rtcp_fb.swap(offer_rtcp_fb);
             ret->media.emplace_back(answer_media);
+            return;
         }
     }
-
 }
