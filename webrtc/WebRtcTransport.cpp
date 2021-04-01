@@ -78,7 +78,7 @@ string getFingerprint(const string &algorithm_str, const std::shared_ptr<RTC::Dt
 }
 
 std::string WebRtcTransport::getAnswerSdp(const string &offer){
-    InfoL << offer;
+//    InfoL << offer;
     _offer_sdp = std::make_shared<RtcSession>();
     _offer_sdp->loadFrom(offer);
 

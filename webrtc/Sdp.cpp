@@ -468,6 +468,33 @@ string SdpAttrRtcp::toString() const  {
     return SdpItem::toString();
 }
 
+void SdpAttrIceOption::parse(const string &str){
+    auto vec = split(str, " ");
+    for (auto &v : vec) {
+        if (!strcasecmp(v.data(), "trickle")) {
+            trickle = true;
+            continue;
+        }
+        if (!strcasecmp(v.data(), "renomination")) {
+            renomination = true;
+            continue;
+        }
+    }
+}
+
+string SdpAttrIceOption::toString() const{
+    if (value.empty()) {
+        if (trickle && renomination) {
+            value = "trickle renomination";
+        } else if (trickle) {
+            value = "trickle";
+        } else if (renomination) {
+            value = "renomination";
+        }
+    }
+    return value;
+}
+
 void SdpAttrFingerprint::parse(const string &str)  {
     auto vec = split(str, " ");
     if (vec.size() != 2) {
@@ -751,9 +778,10 @@ void RtcSession::loadFrom(const string &str) {
         rtc_media.ice_pwd = media.getStringItem('a', "ice-pwd");
         rtc_media.role = media.getItemClass<SdpAttrSetup>('a', "setup").role;
         rtc_media.fingerprint = media.getItemClass<SdpAttrFingerprint>('a', "fingerprint");
-        rtc_media.ice_trickle = media.getItem('a', "ice-trickle").operator bool();
         rtc_media.ice_lite = media.getItem('a', "ice-lite").operator bool();
-        rtc_media.ice_renomination = media.getItem('a', "ice-renomination").operator bool();
+        auto ice_options = media.getItemClass<SdpAttrIceOption>('a', "ice-options");
+        rtc_media.ice_trickle = ice_options.trickle;
+        rtc_media.ice_renomination = ice_options.renomination;
         rtc_media.candidate = media.getAllItem<SdpAttrCandidate>('a', "candidate");
 
         if (mline.type == TrackType::TrackApplication) {
@@ -922,14 +950,14 @@ string RtcSession::toString() const{
         sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrIcePwd>(m.ice_pwd)));
         sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrFingerprint>(m.fingerprint)));
         sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSetup>(m.role)));
-        if (m.ice_trickle) {
-            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("ice-trickle")));
+        if (m.ice_trickle || m.ice_renomination) {
+            auto attr = std::make_shared<SdpAttrIceOption>();
+            attr->trickle = m.ice_trickle;
+            attr->renomination = m.ice_renomination;
+            sdp_media.items.emplace_back(wrapSdpAttr(attr));
         }
         if (m.ice_lite) {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("ice-lite")));
-        }
-        if (m.ice_renomination) {
-            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("ice-renomination")));
         }
         for (auto &ext : m.extmap) {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrExtmap>(ext)));
@@ -1215,8 +1243,8 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
     ret->session_info = "zlmediakit_webrtc_session";
     ret->connection.parse("IN IP4 0.0.0.0");
     ret->msid_semantic.parse("WMS *");
-    matchMedia(ret, TrackVideo, offer.media, video);
     matchMedia(ret, TrackAudio, offer.media, audio);
+    matchMedia(ret, TrackVideo, offer.media, video);
     matchMedia(ret, TrackApplication, offer.media, application);
     return ret;
 }

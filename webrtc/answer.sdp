@@ -1,0 +1,46 @@
+ v=0
+o=- 0 0 IN IP4 0.0.0.0
+s=zlmediakit_webrtc_session
+i=zlmediakit_webrtc_session
+t=0 0
+c=IN IP4 0.0.0.0
+a=msid-semantic: WMS *
+a=group:BUNDLE 0 1
+m=audio 0 UDP/TLS/RTP/SAVPF 111
+a=mid:0
+c=IN IP4 0.0.0.0
+a=ice-ufrag:PdK3
+a=ice-pwd:PdK31zZ1sKhPU2ACzP5av37f
+a=fingerprint:sha-256 D1:4F:7B:70:86:99:BE:1E:7E:B8:C7:0F:13:BC:78:C4:6A:F9:2C:F6:F3:5E:42:11:0F:1C:74:18:F6:DD:95:75
+a=setup:passive
+a=ice-options:trickle
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=recvonly
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1
+m=video 0 UDP/TLS/RTP/SAVPF 102 121
+a=mid:1
+c=IN IP4 0.0.0.0
+a=ice-ufrag:PdK3
+a=ice-pwd:PdK31zZ1sKhPU2ACzP5av37f
+a=fingerprint:sha-256 D1:4F:7B:70:86:99:BE:1E:7E:B8:C7:0F:13:BC:78:C4:6A:F9:2C:F6:F3:5E:42:11:0F:1C:74:18:F6:DD:95:75
+a=setup:passive
+a=ice-options:trickle
+a=extmap:14 urn:ietf:params:rtp-hdrext:toffset
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:13 urn:3gpp:video-orientation
+a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:12 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay
+a=recvonly
+a=rtcp-mux
+a=rtpmap:102 H264/90000
+a=rtcp-fb:102 goog-remb
+a=rtcp-fb:102 transport-cc
+a=rtcp-fb:102 ccm fir
+a=rtcp-fb:102 nack
+a=rtcp-fb:102 nack pli
+a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f
+a=rtpmap:121 rtx/90000
+a=fmtp:121 apt=102

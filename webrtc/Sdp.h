@@ -282,6 +282,10 @@ public:
 class SdpAttrIceOption : public SdpItem {
 public:
     //a=ice-options:trickle
+    bool trickle{false};
+    bool renomination{false};
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() const override { return "ice-options";}
 };
 
