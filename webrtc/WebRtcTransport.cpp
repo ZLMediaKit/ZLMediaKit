@@ -61,10 +61,10 @@ void WebRtcTransport::OnDtlsTransportSendData(const RTC::DtlsTransport *dtlsTran
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void WebRtcTransport::onSendSockData(const char *buf, size_t len){
+void WebRtcTransport::onSendSockData(const char *buf, size_t len, bool flush){
     auto tuple = _ice_server->GetSelectedTuple();
     assert(tuple);
-    onSendSockData(buf, len, (struct sockaddr_in *) tuple);
+    onSendSockData(buf, len, (struct sockaddr_in *) tuple, flush);
 }
 
 string getFingerprint(const string &algorithm_str, const std::shared_ptr<RTC::DtlsTransport> &transport){
@@ -85,7 +85,7 @@ void WebRtcTransport::setRemoteDtlsFingerprint(const RtcSession &remote){
     _dtls_transport->SetRemoteFingerprint(remote_fingerprint);
 }
 
-void WebRtcTransport::onCheckSdp(SdpType type, const RtcSession &sdp) const{
+void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp) const{
     for (auto &m : sdp.media) {
         if (m.type != TrackApplication && !m.rtcp_mux) {
             throw std::invalid_argument("只支持rtcp-mux模式");
@@ -150,23 +150,27 @@ void WebRtcTransport::inputSockData(char *buf, size_t len, RTC::TransportTuple *
         return;
     }
     if (is_rtp(buf)) {
-        RtpHeader *header = (RtpHeader *) buf;
+        if (_srtp_session_recv->DecryptSrtp((uint8_t *) buf, &len)) {
+            onRtp(buf, len);
+        }
         return;
     }
     if (is_rtcp(buf)) {
-        RtcpHeader *header = (RtcpHeader *) buf;
+        if (_srtp_session_recv->DecryptSrtcp((uint8_t *) buf, &len)) {
+            onRtcp(buf, len);
+        }
         return;
     }
 }
 
-void WebRtcTransport::sendRtpPacket(char *buf, size_t len) {
+void WebRtcTransport::sendRtpPacket(char *buf, size_t len, bool flush) {
     const uint8_t *p = (uint8_t *) buf;
     bool ret = false;
     if (_srtp_session_send) {
         ret = _srtp_session_send->EncryptRtp(&p, &len);
     }
     if (ret) {
-        onSendSockData((char *) p, len);
+        onSendSockData((char *) p, len, flush);
     }
 }
 
@@ -205,34 +209,38 @@ void WebRtcTransportImp::onStartWebRTC() {
         if (!strongSelf) {
             return;
         }
+        size_t i = 0;
         pkt->for_each([&](const RtpPacket::Ptr &rtp) {
-            if(rtp->type == TrackVideo) {
-                //目前只支持视频
-                strongSelf->sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize,
-                                          rtp->size() - RtpPacket::kRtpTcpHeaderSize);
-            }
+            strongSelf->onSendRtp(rtp, ++i == pkt->size());
         });
     });
 }
 
-void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst) {
+void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
+    InfoL << flush;
+}
+
+void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
+    WebRtcTransport::onCheckSdp(type, sdp);
+    if (type != SdpType::answer) {
+        return;
+    }
+    for (auto &m : sdp.media) {
+        if (m.type == TrackApplication) {
+            continue;
+        }
+        m.rtp_ssrc.ssrc = _src->getSsrc(m.type);
+        m.rtx_ssrc.ssrc = 2 + m.rtp_ssrc.ssrc;
+
+        m.rtp_ssrc.cname = "zlmediakit rtc";
+        m.rtx_ssrc.cname = "zlmediakit rtc";
+    }
+}
+
+void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush) {
     auto ptr = BufferRaw::create();
     ptr->assign(buf, len);
-    _socket->send(ptr, (struct sockaddr *)(dst), sizeof(struct sockaddr));
-}
-
-uint32_t WebRtcTransportImp::getSSRC() const {
-    return _src->getSsrc(TrackVideo);
-}
-
-uint16_t WebRtcTransportImp::getPort() const {
-    //todo udp端口号应该与外网映射端口相同
-    return _socket->get_local_port();
-}
-
-std::string WebRtcTransportImp::getIP() const {
-    //todo 替换为外网ip
-    return SockUtil::get_local_ip();
+    _socket->send(ptr, (struct sockaddr *)(dst), sizeof(struct sockaddr), flush);
 }
 
 SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
@@ -241,10 +249,20 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
     candidate->component = 1;
     candidate->transport = "udp";
     candidate->priority = 100;
-    candidate->address = getIP();
-    candidate->port = getPort();
+    candidate->address = SockUtil::get_local_ip();
+    candidate->port = _socket->get_local_port();
     candidate->type = "host";
     return candidate;
+}
+
+void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
+    RtpHeader *rtp = (RtpHeader *) buf;
+//    TraceL << (int)rtp->ssrc;
+}
+
+void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
+    RtcpHeader *rtcp = (RtcpHeader *) buf;
+//    TraceL << rtcpTypeToStr((RtcpType)rtcp->pt);
 }
 
 ///////////////////////////////////////////////////////////////////
