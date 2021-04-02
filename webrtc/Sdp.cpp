@@ -923,9 +923,74 @@ std::shared_ptr<SdpItem> wrapSdpAttr(SdpItem::Ptr item){
     return ret;
 }
 
-string RtcSession::toString() const{
+static void toRtsp(vector <SdpItem::Ptr> &items) {
+    for (auto it = items.begin(); it != items.end();) {
+        switch ((*it)->getKey()[0]) {
+            case 'v':
+            case 'o':
+            case 's':
+            case 'i':
+            case 't':
+            case 'c':
+            case 'b':{
+                ++it;
+                break;
+            }
+
+            case 'm': {
+                auto m = dynamic_pointer_cast<SdpMedia>(*it);
+                CHECK(m);
+                m->proto = "RTP/AVP";
+                ++it;
+                break;
+            }
+            case 'a': {
+                auto attr = dynamic_pointer_cast<SdpAttr>(*it);
+                CHECK(attr);
+                if (!strcasecmp(attr->detail->getKey(), "rtpmap")
+                    || !strcasecmp(attr->detail->getKey(), "fmtp")) {
+                    ++it;
+                    break;
+                }
+            }
+            default: {
+                it = items.erase(it);
+                break;
+            }
+        }
+    }
+}
+
+string RtcSession::toRtspSdp() const{
     checkValid();
-    RtcSessionSdp sdp;
+    RtcSession copy = *this;
+    copy.media.clear();
+    for (auto &m : media) {
+        switch (m.type) {
+            case TrackAudio:
+            case TrackVideo: {
+                copy.media.emplace_back(m);
+                copy.media.back().plan.resize(1);
+                break;
+            }
+            default:
+                continue;
+        }
+    }
+
+    auto sdp = copy.toRtcSessionSdp();
+    toRtsp(sdp->items);
+    int i = 0;
+    for (auto &m : sdp->medias) {
+        toRtsp(m.items);
+        m.items.push_back(wrapSdpAttr(std::make_shared<SdpCommon>("control", string("trackID=") + to_string(i++))));
+    }
+    return sdp->toString();
+}
+
+RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
+    RtcSessionSdp::Ptr ret = std::make_shared<RtcSessionSdp>();
+    auto &sdp = *ret;
     sdp.items.emplace_back(std::make_shared<SdpString<'v'> >(to_string(version)));
     sdp.items.emplace_back(std::make_shared<SdpOrigin>(origin));
     sdp.items.emplace_back(std::make_shared<SdpString<'s'> >(session_name));
@@ -1076,7 +1141,12 @@ string RtcSession::toString() const{
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrCandidate>(cand)));
         }
     }
-    return sdp.toString();
+    return ret;
+}
+
+string RtcSession::toString() const{
+    checkValid();
+    return toRtcSessionSdp()->toString();
 }
 
 string RtcCodecPlan::getFmtp(const char *key) const{
@@ -1146,7 +1216,7 @@ void RtcSession::checkValid() const{
     }
 }
 
-RtcMedia *RtcSession::getMedia(TrackType type){
+const RtcMedia *RtcSession::getMedia(TrackType type) const{
     for(auto &m : media){
         if(m.type == type){
             return &m;
