@@ -186,6 +186,17 @@ void WebRtcTransport::sendRtpPacket(char *buf, size_t len, bool flush) {
     }
 }
 
+void WebRtcTransport::sendRtcpPacket(char *buf, size_t len, bool flush){
+    const uint8_t *p = (uint8_t *) buf;
+    bool ret = false;
+    if (_srtp_session_send) {
+        ret = _srtp_session_send->EncryptRtcp(&p, &len);
+    }
+    if (ret) {
+        onSendSockData((char *) p, len, flush);
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////
 WebRtcTransportImp::Ptr WebRtcTransportImp::create(const EventPoller::Ptr &poller){
     WebRtcTransportImp::Ptr ret(new WebRtcTransportImp(poller), [](WebRtcTransportImp *ptr){
@@ -389,17 +400,22 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
 
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
     RtcpHeader *rtcp = (RtcpHeader *) buf;
+    //todo rtcp相关
 }
 
 void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
     if(!info.is_common_rtp){
         WarnL;
     }
-    _push_src->onWrite(std::move(rtp), true);
+    if (_pli_ticker.elapsedTime() > 2000) {
+        //todo 发送pli
+        _pli_ticker.resetTime();
+    }
+    _push_src->onWrite(std::move(rtp), false);
 }
 
 void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
-
+    //todo rtcp相关
 }
 ///////////////////////////////////////////////////////////////////
 

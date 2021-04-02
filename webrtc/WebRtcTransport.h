@@ -45,6 +45,7 @@ public:
      * @param len rtcp长度
      */
     void sendRtpPacket(char *buf, size_t len, bool flush);
+    void sendRtcpPacket(char *buf, size_t len, bool flush);
 
 protected:
     ////  dtls相关的回调 ////
@@ -152,6 +153,7 @@ private:
     mutable uint8_t _send_rtp_pt[2] = {0, 0};
     RtspMediaSourceImp::Ptr _push_src;
     unordered_map<uint8_t, RtpPayloadInfo> _rtp_receiver;
+    Ticker _pli_ticker;
 };
 
 
