@@ -59,7 +59,7 @@ namespace RTC
 		// Allocated by this.
 		srtp_t session{ nullptr };
 		//rtp包最大1600
-        static constexpr size_t EncryptBufferSize{ 1600 };
+        static constexpr size_t EncryptBufferSize{ 2000 };
         uint8_t EncryptBuffer[EncryptBufferSize];
         DepLibSRTP::Ptr _env;
 	};

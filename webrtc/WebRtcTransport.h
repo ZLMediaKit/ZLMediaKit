@@ -127,7 +127,6 @@ private:
     void onDestory() override;
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush);
     SdpAttrCandidate::Ptr getIceCandidate() const;
-    uint8_t getSendPayloadType(TrackType type);
     bool canSendRtp() const;
 
 private:
@@ -135,6 +134,8 @@ private:
     RtspMediaSource::Ptr _src;
     RtspMediaSource::RingType::RingReader::Ptr _reader;
     RtcSession _answer_sdp;
+    mutable RtcSession _rtsp_send_sdp;
+    mutable uint8_t _send_rtp_pt[2] = {0, 0};
 };
 
 
