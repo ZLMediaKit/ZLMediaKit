@@ -79,6 +79,9 @@ protected:
     virtual void onRtp(const char *buf, size_t len) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
 
+protected:
+    const RtcSession& getSdp(SdpType type) const;
+
 private:
     void onSendSockData(const char *buf, size_t len, bool flush = true);
     void setRemoteDtlsFingerprint(const RtcSession &remote);
@@ -124,11 +127,14 @@ private:
     void onDestory() override;
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush);
     SdpAttrCandidate::Ptr getIceCandidate() const;
+    uint8_t getSendPayloadType(TrackType type);
+    bool canSendRtp() const;
 
 private:
     Socket::Ptr _socket;
     RtspMediaSource::Ptr _src;
     RtspMediaSource::RingType::RingReader::Ptr _reader;
+    RtcSession _answer_sdp;
 };
 
 

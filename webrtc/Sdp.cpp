@@ -1129,7 +1129,8 @@ void RtcMedia::checkValid() const{
     auto rtx_plan = getPlan("rtx");
     if (rtx_plan) {
         //开启rtx后必须指定rtx_ssrc
-        CHECK(!rtx_ssrc.empty() || !send_rtp);
+        //todo 此处不确定
+//        CHECK(!rtx_ssrc.empty() || !send_rtp);
     }
 }
 
