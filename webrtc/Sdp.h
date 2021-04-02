@@ -649,7 +649,7 @@ public:
     vector<RtcMedia> media;
     SdpAttrGroup group;
 
-    void loadFrom(const string &sdp);
+    void loadFrom(const string &sdp, bool check = true);
     void checkValid() const;
     string toString() const;
     RtcMedia *getMedia(TrackType type);

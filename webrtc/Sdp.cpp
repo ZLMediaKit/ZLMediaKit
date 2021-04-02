@@ -4,7 +4,9 @@
 
 #include "Sdp.h"
 #include "Common/Parser.h"
+#include "Rtsp/Rtsp.h"
 #include <inttypes.h>
+using namespace mediakit;
 
 using onCreateSdpItem = function<SdpItem::Ptr(const string &key, const string &value)>;
 static map<string, onCreateSdpItem, StrCaseCompare> sdpItemCreator;
@@ -596,11 +598,11 @@ void SdpAttrFmtp::parse(const string &str)  {
     auto vec = split(str.substr(pos + 1), ";");
     for (auto &item : vec) {
         trim(item);
-        auto pr_vec = split(item, "=");
-        if (pr_vec.size() != 2) {
+        auto pos = item.find('=');
+        if(pos == string::npos){
             SDP_THROW();
         }
-        arr.emplace_back(std::make_pair(pr_vec[0], pr_vec[1]));
+        arr.emplace_back(std::make_pair(item.substr(0, pos), item.substr(pos + 1)));
     }
     if (arr.empty()) {
         SDP_THROW();
@@ -746,7 +748,7 @@ string SdpAttrCandidate::toString() const  {
     return SdpItem::toString();
 }
 
-void RtcSession::loadFrom(const string &str) {
+void RtcSession::loadFrom(const string &str, bool check) {
     RtcSessionSdp sdp;
     sdp.parse(str);
 
@@ -887,12 +889,17 @@ void RtcSession::loadFrom(const string &str) {
             auto &plan = rtc_media.plan.back();
             auto rtpmap_it = rtpmap_map.find(pt);
             if (rtpmap_it == rtpmap_map.end()) {
-                throw std::invalid_argument(StrPrinter << "该pt不存在相对于的a=rtpmap:" << pt);
+                plan.pt = pt;
+                plan.codec = RtpPayload::getCodecId(pt);
+                plan.sample_rate = RtpPayload::getClockRate(pt);
+                plan.channel = RtpPayload::getAudioChannel(pt);
+            } else {
+                plan.pt = rtpmap_it->second.pt;
+                plan.codec = rtpmap_it->second.codec;
+                plan.sample_rate = rtpmap_it->second.sample_rate;
+                plan.channel = rtpmap_it->second.channel;
             }
-            plan.pt = rtpmap_it->second.pt;
-            plan.codec = rtpmap_it->second.codec;
-            plan.sample_rate = rtpmap_it->second.sample_rate;
-            plan.channel = rtpmap_it->second.channel;
+
             auto fmtp_it = fmtp_map.find(pt);
             if (fmtp_it != fmtp_map.end()) {
                 plan.fmtp = fmtp_it->second.arr;
@@ -905,7 +912,9 @@ void RtcSession::loadFrom(const string &str) {
     }
 
     group = sdp.getItemClass<SdpAttrGroup>('a', "group");
-    checkValid();
+    if (check) {
+        checkValid();
+    }
 }
 
 std::shared_ptr<SdpItem> wrapSdpAttr(SdpItem::Ptr item){
