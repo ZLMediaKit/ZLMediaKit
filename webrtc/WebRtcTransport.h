@@ -44,7 +44,7 @@ public:
      * @param buf rtcp内容
      * @param len rtcp长度
      */
-    void sendRtpPacket(char *buf, size_t len);
+    void sendRtpPacket(char *buf, size_t len, bool flush);
 
 protected:
     ////  dtls相关的回调 ////
@@ -71,19 +71,18 @@ protected:
     void OnIceServerDisconnected(const RTC::IceServer *iceServer) override;
 
 protected:
-
-    virtual uint32_t getSSRC() const = 0;
-    virtual uint16_t getPort() const = 0;
-    virtual std::string getIP() const = 0;
     virtual void onStartWebRTC() = 0;
     virtual void onRtcConfigure(RtcConfigure &configure) const {}
-    virtual void onCheckSdp(SdpType type, const RtcSession &sdp) const;
+    virtual void onCheckSdp(SdpType type, RtcSession &sdp) const;
 
     virtual SdpAttrCandidate::Ptr getIceCandidate() const = 0;
-    virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst) = 0;
+    virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) = 0;
+
+    virtual void onRtp(const char *buf, size_t len) = 0;
+    virtual void onRtcp(const char *buf, size_t len) = 0;
 
 private:
-    void onSendSockData(const char *buf, size_t len);
+    void onSendSockData(const char *buf, size_t len, bool flush = true);
     void setRemoteDtlsFingerprint(const RtcSession &remote);
 
 private:
@@ -115,15 +114,17 @@ public:
 
 protected:
     void onStartWebRTC() override;
-    void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst) override;
-    uint32_t getSSRC() const override;
-    uint16_t getPort() const override;
-    std::string getIP() const override;
+    void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) override;
+    void onCheckSdp(SdpType type, RtcSession &sdp) const override;
+
     SdpAttrCandidate::Ptr getIceCandidate() const override;
+    void onRtp(const char *buf, size_t len) override;
+    void onRtcp(const char *buf, size_t len) override;
 
 private:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
     void onDestory() override;
+    void onSendRtp(const RtpPacket::Ptr &rtp, bool flush);
 
 private:
     Socket::Ptr _socket;
