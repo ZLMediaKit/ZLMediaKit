@@ -226,30 +226,23 @@ void WebRtcTransportImp::onStartWebRTC() {
     });
 }
 
-uint8_t WebRtcTransportImp::getSendPayloadType(TrackType type) {
-    for (auto &m : getSdp(SdpType::answer).media) {
-        if (m.type == type) {
-            return m.plan[0].pt;
-        }
-    }
-    return 0;
-}
-
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
-    //需要修改pt
-    if (rtp->type == TrackVideo) {
-        rtp->getHeader()->pt = getSendPayloadType(rtp->type);
-        sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush);
-    } else {
-
+    if (!_send_rtp_pt[rtp->type]) {
+        //忽略，对方不支持该编码类型
+        return;
     }
+    auto tmp = rtp->getHeader()->pt;
+    //设置pt
+    rtp->getHeader()->pt = _send_rtp_pt[rtp->type];
+    sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush);
+    //还原pt
+    rtp->getHeader()->pt = tmp;
 }
 
 bool WebRtcTransportImp::canSendRtp() const{
     auto &sdp = getSdp(SdpType::answer);
     return sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::sendonly;
 }
-
 
 void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
     WebRtcTransport::onCheckSdp(type, sdp);
@@ -263,19 +256,21 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
         }
         m.rtp_ssrc.ssrc = _src->getSsrc(m.type);
         m.rtp_ssrc.cname = "zlmediakit-rtc";
+        auto rtsp_media = _rtsp_send_sdp.getMedia(m.type);
+        if (rtsp_media && getCodecId(rtsp_media->plan[0].codec) == getCodecId(m.plan[0].codec)) {
+            _send_rtp_pt[m.type] = m.plan[0].pt;
+        }
     }
 }
 
 void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     WebRtcTransport::onRtcConfigure(configure);
-
-    RtcSession sdp;
-    sdp.loadFrom(_src->getSdp(), false);
+    _rtsp_send_sdp.loadFrom(_src->getSdp(), false);
 
     configure.audio.enable = false;
     configure.video.enable = false;
 
-    for (auto &m : sdp.media) {
+    for (auto &m : _rtsp_send_sdp.media) {
         switch (m.type) {
             case TrackVideo: {
                 configure.video.enable = true;
