@@ -232,8 +232,8 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
         m.rtp_ssrc.ssrc = _src->getSsrc(m.type);
         m.rtx_ssrc.ssrc = 2 + m.rtp_ssrc.ssrc;
 
-        m.rtp_ssrc.cname = "zlmediakit rtc";
-        m.rtx_ssrc.cname = "zlmediakit rtc";
+        m.rtp_ssrc.cname = "zlmediakit-rtc";
+        m.rtx_ssrc.cname = "zlmediakit-rtc";
     }
 }
 
@@ -250,12 +250,12 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
         switch (m.type) {
             case TrackVideo: {
                 configure.video.enable = true;
-                configure.video.preferred_codec = {getCodecId(m.plan[0].codec)};
+                configure.video.preferred_codec.insert(configure.video.preferred_codec.begin(), getCodecId(m.plan[0].codec));
                 break;
             }
             case TrackAudio: {
                 configure.audio.enable = true;
-                configure.audio.preferred_codec = {getCodecId(m.plan[0].codec)};
+                configure.audio.preferred_codec.insert(configure.audio.preferred_codec.begin(),getCodecId(m.plan[0].codec));
                 break;
             }
             default:
