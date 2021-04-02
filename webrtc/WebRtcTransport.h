@@ -74,8 +74,6 @@ protected:
     virtual void onStartWebRTC() = 0;
     virtual void onRtcConfigure(RtcConfigure &configure) const {}
     virtual void onCheckSdp(SdpType type, RtcSession &sdp) const;
-
-    virtual SdpAttrCandidate::Ptr getIceCandidate() const = 0;
     virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) = 0;
 
     virtual void onRtp(const char *buf, size_t len) = 0;
@@ -116,8 +114,8 @@ protected:
     void onStartWebRTC() override;
     void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) override;
     void onCheckSdp(SdpType type, RtcSession &sdp) const override;
+    void onRtcConfigure(RtcConfigure &configure) const override;
 
-    SdpAttrCandidate::Ptr getIceCandidate() const override;
     void onRtp(const char *buf, size_t len) override;
     void onRtcp(const char *buf, size_t len) override;
 
@@ -125,6 +123,7 @@ private:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
     void onDestory() override;
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush);
+    SdpAttrCandidate::Ptr getIceCandidate() const;
 
 private:
     Socket::Ptr _socket;

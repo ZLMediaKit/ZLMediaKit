@@ -109,7 +109,6 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
     fingerprint.hash = getFingerprint(fingerprint.algorithm, _dtls_transport);
     RtcConfigure configure;
     configure.setDefaultSetting(_ice_server->GetUsernameFragment(), _ice_server->GetPassword(), RtpDirection::recvonly, fingerprint);
-    configure.addCandidate(*getIceCandidate());
     onRtcConfigure(configure);
 
     //// 生成answer sdp ////
@@ -217,6 +216,7 @@ void WebRtcTransportImp::onStartWebRTC() {
 }
 
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
+    //需要修改pt
     InfoL << flush;
 }
 
@@ -236,6 +236,36 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
         m.rtx_ssrc.cname = "zlmediakit rtc";
     }
 }
+
+void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
+    WebRtcTransport::onRtcConfigure(configure);
+
+    RtcSession sdp;
+    sdp.loadFrom(_src->getSdp(), false);
+
+    configure.audio.enable = false;
+    configure.video.enable = false;
+
+    for (auto &m : sdp.media) {
+        switch (m.type) {
+            case TrackVideo: {
+                configure.video.enable = true;
+                configure.video.preferred_codec = {getCodecId(m.plan[0].codec)};
+                break;
+            }
+            case TrackAudio: {
+                configure.audio.enable = true;
+                configure.audio.preferred_codec = {getCodecId(m.plan[0].codec)};
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    configure.addCandidate(*getIceCandidate());
+}
+
 
 void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush) {
     auto ptr = BufferRaw::create();
