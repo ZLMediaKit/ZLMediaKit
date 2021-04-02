@@ -437,6 +437,7 @@ public:
 
 class SdpAttrCandidate : public SdpItem {
 public:
+    using Ptr = std::shared_ptr<SdpAttrCandidate>;
     //https://tools.ietf.org/html/rfc5245
     //15.1.  "candidate" Attribute
     //a=candidate:4 1 udp 2 192.168.1.7 58107 typ host
@@ -656,6 +657,7 @@ public:
 
 class RtcConfigure {
 public:
+    using Ptr = std::shared_ptr<RtcConfigure>;
     class RtcTrackConfigure {
     public:
         bool enable;
