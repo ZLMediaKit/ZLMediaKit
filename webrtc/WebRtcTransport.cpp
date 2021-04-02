@@ -237,9 +237,12 @@ void WebRtcTransportImp::onStartWebRTC() {
                     continue;
                 }
                 auto &ref = _rtp_receiver[plan.pt];
+                _ssrc_info[m.rtp_ssrc.ssrc] = &ref;
                 ref.plan = &plan;
                 ref.media = &m;
                 ref.is_common_rtp = getCodecId(plan.codec) != CodecInvalid;
+                ref.rtcp_context_recv = std::make_shared<RtcpContext>(ref.plan->sample_rate, true);
+                ref.rtcp_context_send = std::make_shared<RtcpContext>(ref.plan->sample_rate, false);
                 ref.receiver = std::make_shared<RtpReceiverImp>([&ref, this](RtpPacket::Ptr rtp) {
                     onSortedRtp(ref, std::move(rtp));
                 }, [ref, this](const RtpPacket::Ptr &rtp) {
@@ -274,6 +277,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
     //设置pt
     rtp->getHeader()->pt = _send_rtp_pt[rtp->type];
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush);
+    _rtp_receiver[_send_rtp_pt[rtp->type]].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
     //还原pt
     rtp->getHeader()->pt = tmp;
 }
@@ -399,23 +403,68 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
 }
 
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
-    RtcpHeader *rtcp = (RtcpHeader *) buf;
-    //todo rtcp相关
+    auto rtcps = RtcpHeader::loadFromBytes((char *) buf, len);
+    for (auto rtcp : rtcps) {
+        switch ((RtcpType) rtcp->pt) {
+            case RtcpType::RTCP_SR : {
+                //对方汇报rtp发送情况
+                RtcpSR *sr = (RtcpSR *) rtcp;
+                auto it = _ssrc_info.find(sr->items.ssrc);
+                if (it != _ssrc_info.end()) {
+                    it->second->rtcp_context_recv->onRtcp(sr);
+                    auto rr = it->second->rtcp_context_recv->createRtcpRR(sr->ssrc, sr->items.ssrc);
+                    sendRtcpPacket(rr->data(), rr->size(), true);
+                    InfoL << "send rtcp rr";
+                }
+                break;
+            }
+            case RtcpType::RTCP_RR : {
+                //对方汇报rtp接收情况
+                RtcpRR *rr = (RtcpRR *) rtcp;
+                auto it = _ssrc_info.find(rr->items.ssrc);
+                if (it != _ssrc_info.end()) {
+                    auto sr = it->second->rtcp_context_send->createRtcpSR(rr->ssrc);
+                    sendRtcpPacket(sr->data(), sr->size(), true);
+                    InfoL << "send rtcp sr";
+                }
+                break;
+            }
+            default: break;
+        }
+    }
+}
+
+int makeRtcpPli(char *packet, int len) {
+    if (packet == NULL || len != 12)
+        return -1;
+    memset(packet, 0, len);
+    RtcpHeader *rtcp = (RtcpHeader *) packet;
+    rtcp->version = 2;
+    rtcp->pt = (uint8_t) RtcpType::RTCP_PSFB;
+    rtcp->report_count = 1;
+    rtcp->length = htons((len / 4) - 1);
+    return 12;
 }
 
 void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
     if(!info.is_common_rtp){
         WarnL;
+        return;
     }
     if (_pli_ticker.elapsedTime() > 2000) {
         //todo 发送pli
         _pli_ticker.resetTime();
+        char rtcpbuf[12];
+        makeRtcpPli(rtcpbuf, 12);
+        sendRtcpPacket(rtcpbuf, 12, true);
+        InfoL << "send pli";
     }
     _push_src->onWrite(std::move(rtp), false);
 }
 
 void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
     //todo rtcp相关
+    info.rtcp_context_recv->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 }
 ///////////////////////////////////////////////////////////////////
 
