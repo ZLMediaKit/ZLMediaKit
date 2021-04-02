@@ -550,6 +550,8 @@ public:
 
 class RtcSessionSdp : public RtcSdpBase{
 public:
+    using Ptr = std::shared_ptr<RtcSessionSdp>;
+
     vector<RtcSdpBase> medias;
     void parse(const string &str);
     string toString() const override;
@@ -652,7 +654,11 @@ public:
     void loadFrom(const string &sdp, bool check = true);
     void checkValid() const;
     string toString() const;
-    RtcMedia *getMedia(TrackType type);
+    string toRtspSdp() const;
+    const  RtcMedia *getMedia(TrackType type) const;
+
+private:
+    RtcSessionSdp::Ptr toRtcSessionSdp() const;
 };
 
 class RtcConfigure {

@@ -9,7 +9,7 @@
 #include "Sdp.h"
 #include "Poller/EventPoller.h"
 #include "Network/Socket.h"
-#include "Rtsp/RtspMediaSource.h"
+#include "Rtsp/RtspMediaSourceImp.h"
 using namespace toolkit;
 using namespace mediakit;
 
@@ -95,6 +95,8 @@ private:
     RtcSession::Ptr _answer_sdp;
 };
 
+class RtpReceiverImp;
+
 class WebRtcTransportImp : public WebRtcTransport, public std::enable_shared_from_this<WebRtcTransportImp>{
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
@@ -128,6 +130,18 @@ private:
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush);
     SdpAttrCandidate::Ptr getIceCandidate() const;
     bool canSendRtp() const;
+    bool canRecvRtp() const;
+
+    class RtpPayloadInfo {
+    public:
+        bool is_common_rtp;
+        const RtcCodecPlan *plan;
+        const RtcMedia *media;
+        std::shared_ptr<RtpReceiverImp> receiver;
+    };
+
+    void onSortedRtp(const RtpPayloadInfo &info,RtpPacket::Ptr rtp);
+    void onBeforeSortedRtp(const RtpPayloadInfo &info,const RtpPacket::Ptr &rtp);
 
 private:
     Socket::Ptr _socket;
@@ -136,6 +150,8 @@ private:
     RtcSession _answer_sdp;
     mutable RtcSession _rtsp_send_sdp;
     mutable uint8_t _send_rtp_pt[2] = {0, 0};
+    RtspMediaSourceImp::Ptr _push_src;
+    unordered_map<uint8_t, RtpPayloadInfo> _rtp_receiver;
 };
 
 

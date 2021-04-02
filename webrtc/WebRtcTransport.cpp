@@ -1,6 +1,11 @@
 #include "WebRtcTransport.h"
 #include <iostream>
 #include "Rtcp/Rtcp.h"
+#include "Rtsp/RtpReceiver.h"
+#define RTX_SSRC_OFFSET 2
+#define RTP_CNAME "zlmediakit-rtp"
+#define RTX_CNAME "zlmediakit-rtx"
+
 
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _dtls_transport = std::make_shared<RTC::DtlsTransport>(poller, this);
@@ -51,7 +56,7 @@ void WebRtcTransport::OnDtlsTransportConnected(
         std::string &remoteCert) {
     InfoL;
     _srtp_session_send = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::OUTBOUND, srtpCryptoSuite, srtpLocalKey, srtpLocalKeyLen);
-    _srtp_session_recv = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::OUTBOUND, srtpCryptoSuite, srtpRemoteKey, srtpRemoteKeyLen);
+    _srtp_session_recv = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::INBOUND, srtpCryptoSuite, srtpRemoteKey, srtpRemoteKeyLen);
     onStartWebRTC();
 }
 
@@ -209,6 +214,29 @@ void WebRtcTransportImp::attach(const RtspMediaSource::Ptr &src) {
 }
 
 void WebRtcTransportImp::onStartWebRTC() {
+    if (canRecvRtp()) {
+        _push_src = std::make_shared<RtspMediaSourceImp>(DEFAULT_VHOST, "live", "push");
+        auto rtsp_sdp = getSdp(SdpType::answer).toRtspSdp();
+        _push_src->setSdp(rtsp_sdp);
+
+        for (auto &m : getSdp(SdpType::offer).media) {
+            for (auto &plan : m.plan) {
+                auto hit_pan = getSdp(SdpType::answer).getMedia(m.type)->getPlan(plan.pt);
+                if (!hit_pan) {
+                    continue;
+                }
+                auto &ref = _rtp_receiver[plan.pt];
+                ref.plan = &plan;
+                ref.media = &m;
+                ref.is_common_rtp = getCodecId(plan.codec) != CodecInvalid;
+                ref.receiver = std::make_shared<RtpReceiverImp>([&ref, this](RtpPacket::Ptr rtp) {
+                    onSortedRtp(ref, std::move(rtp));
+                }, [ref, this](const RtpPacket::Ptr &rtp) {
+                    onBeforeSortedRtp(ref, rtp);
+                });
+            }
+        }
+    }
     if (!canSendRtp()) {
         return;
     }
@@ -244,6 +272,11 @@ bool WebRtcTransportImp::canSendRtp() const{
     return sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::sendonly;
 }
 
+bool WebRtcTransportImp::canRecvRtp() const{
+    auto &sdp = getSdp(SdpType::answer);
+    return sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::recvonly;
+}
+
 void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
     WebRtcTransport::onCheckSdp(type, sdp);
     if (type != SdpType::answer || !canSendRtp()) {
@@ -255,7 +288,12 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
             continue;
         }
         m.rtp_ssrc.ssrc = _src->getSsrc(m.type);
-        m.rtp_ssrc.cname = "zlmediakit-rtc";
+        m.rtp_ssrc.cname = RTP_CNAME;
+        //todo 先屏蔽rtx，因为chrome报错
+        if (false && m.getRelatedRtxPlan(m.plan[0].pt)) {
+            m.rtx_ssrc.ssrc = RTX_SSRC_OFFSET + m.rtp_ssrc.ssrc;
+            m.rtx_ssrc.cname = RTX_CNAME;
+        }
         auto rtsp_media = _rtsp_send_sdp.getMedia(m.type);
         if (rtsp_media && getCodecId(rtsp_media->plan[0].codec) == getCodecId(m.plan[0].codec)) {
             _send_rtp_pt[m.type] = m.plan[0].pt;
@@ -309,14 +347,60 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
     return candidate;
 }
 
+class RtpReceiverImp : public RtpReceiver {
+public:
+    RtpReceiverImp( function<void(RtpPacket::Ptr rtp)> cb,  function<void(const RtpPacket::Ptr &rtp)> cb_before = nullptr){
+        _on_sort = std::move(cb);
+        _on_before_sort = std::move(cb_before);
+    }
+
+    ~RtpReceiverImp() override = default;
+
+    bool inputRtp(TrackType type, int samplerate, uint8_t *ptr, size_t len){
+        return handleOneRtp((int) type, type, samplerate, ptr, len);
+    }
+
+protected:
+    void onRtpSorted(RtpPacket::Ptr rtp, int track_index) override {
+        _on_sort(std::move(rtp));
+    }
+
+    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override {
+        if (_on_before_sort) {
+            _on_before_sort(rtp);
+        }
+    }
+
+private:
+    function<void(RtpPacket::Ptr rtp)> _on_sort;
+    function<void(const RtpPacket::Ptr &rtp)> _on_before_sort;
+};
+
 void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
     RtpHeader *rtp = (RtpHeader *) buf;
+    auto it = _rtp_receiver.find(rtp->pt);
+    if (it == _rtp_receiver.end()) {
+        WarnL;
+        return;
+    }
+    auto &info = it->second;
+    info.receiver->inputRtp(info.media->type, info.plan->sample_rate, (uint8_t *) buf, len);
 }
 
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
     RtcpHeader *rtcp = (RtcpHeader *) buf;
 }
 
+void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
+    if(!info.is_common_rtp){
+        WarnL;
+    }
+    _push_src->onWrite(std::move(rtp), true);
+}
+
+void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
+
+}
 ///////////////////////////////////////////////////////////////////
 
 
