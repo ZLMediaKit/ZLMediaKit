@@ -1150,11 +1150,9 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     rtcp_mux = true;
     rtcp_rsize = false;
     group_bundle = true;
-    unified_plan = false;
     support_rtx = true;
     support_red = false;
     support_ulpfec = false;
-    support_simulcast = false;
     ice_lite = true;
     ice_trickle = true;
     ice_renomination = false;
@@ -1226,26 +1224,19 @@ void RtcConfigure::addCandidate(const SdpAttrCandidate &candidate, TrackType typ
     }
 }
 
-shared_ptr<RtcSession> RtcConfigure::createOffer(){
-    shared_ptr<RtcSession> ret = std::make_shared<RtcSession>();
-    ret->version = 0;
-    ret->origin.parse("- 0 0 IN IP4 0.0.0.0");
-    ret->session_name = "zlmediakit_webrtc_session";
-    ret->session_info = "zlmediakit_webrtc_session";
-    ret->connection.parse("IN IP4 0.0.0.0");
-    ret->msid_semantic.parse("WMS *");
-    return nullptr;
-}
-
 shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
     shared_ptr<RtcSession> ret = std::make_shared<RtcSession>();
     ret->version = offer.version;
+    //todo 此处设置会话id与会话地址，貌似没什么作用
     ret->origin = offer.origin;
     ret->session_name = offer.session_name;
     ret->msid_semantic = offer.msid_semantic;
     matchMedia(ret, TrackAudio, offer.media, audio);
     matchMedia(ret, TrackVideo, offer.media, video);
     matchMedia(ret, TrackApplication, offer.media, application);
+    if (ret->media.empty()) {
+        throw std::invalid_argument("生成的answer sdp中媒体个数为0");
+    }
     return ret;
 }
 
@@ -1259,7 +1250,7 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
                 continue;
             }
             if (offer_media.ice_lite && configure.ice_lite) {
-                WarnL << "offer sdp开启了ice_lite模式，但是answer sdp配置为不支持";
+                WarnL << "answer sdp配置为ice_lite模式，与offer sdp中的ice_lite模式冲突";
                 continue;
             }
             const RtcCodecPlan *offer_plan_ptr = nullptr;
@@ -1283,16 +1274,21 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
             answer_media.type = offer_media.type;
             answer_media.mid = offer_media.mid;
             answer_media.proto = offer_media.proto;
+            //todo(此处设置rtp端口，貌似没什么作用)
             answer_media.port = offer_media.port;
+            //todo(此处设置rtp的ip地址，貌似没什么作用)
+            answer_media.addr = offer_media.addr;
+            //todo(此处设置rtcp地址，貌似没什么作用)
+            answer_media.rtcp_addr = offer_media.rtcp_addr;
             answer_media.rtcp_mux = offer_media.rtcp_mux && configure.rtcp_mux;
             answer_media.rtcp_rsize = offer_media.rtcp_rsize && configure.rtcp_rsize;
-            answer_media.rtcp_addr = offer_media.rtcp_addr;
             answer_media.ice_trickle = offer_media.ice_trickle && configure.ice_trickle;
             answer_media.ice_renomination = offer_media.ice_renomination && configure.ice_renomination;
             answer_media.ice_ufrag = configure.ice_ufrag;
             answer_media.ice_pwd = configure.ice_pwd;
             answer_media.fingerprint = configure.fingerprint;
             answer_media.ice_lite = configure.ice_lite;
+            answer_media.candidate = configure.candidate;
             switch (offer_media.role) {
                 case DtlsRole::actpass :
                 case DtlsRole::active : {
@@ -1332,7 +1328,11 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
                 }
                 default: continue;
             }
+
+            //添加媒体plan
             answer_media.plan.emplace_back(*offer_plan_ptr);
+
+            //添加rtx,red,ulpfec plan
             if (configure.support_red || configure.support_rtx || configure.support_ulpfec) {
                 for (auto &plan : offer_media.plan) {
                     if (!strcasecmp(plan.codec.data(), "rtx")) {
@@ -1382,6 +1382,8 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
                     offer_rtcp_fb.emplace_back(fp);
                 }
             }
+
+            //修改为我们支持的rtcp-fb类型
             answer_media.plan[0].rtcp_fb.swap(offer_rtcp_fb);
             ret->media.emplace_back(answer_media);
             return;

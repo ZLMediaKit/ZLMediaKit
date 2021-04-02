@@ -88,6 +88,17 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
 
     RtcConfigure configure;
     configure.setDefaultSetting(ice_server_->GetUsernameFragment(), ice_server_->GetPassword(), RtpDirection::recvonly, fingerprint);
+
+    SdpAttrCandidate candidate;
+    candidate.foundation = "udpcandidate";
+    candidate.component = 1;
+    candidate.transport = "udp";
+    candidate.priority = getSSRC();
+    candidate.address = getIP();
+    candidate.port = getPort();
+    candidate.type = "host";
+    configure.addCandidate(candidate);
+
     _answer_sdp = configure.createAnswer(*_offer_sdp);
 
     //设置远端dtls签名
@@ -103,23 +114,6 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
     } else {
         throw std::invalid_argument("支持group BUNDLE模式");
     }
-
-    SdpAttrCandidate candidate;
-    candidate.foundation = "udpcandidate";
-    candidate.component = 1;
-    candidate.transport = "udp";
-    candidate.priority = getSSRC();
-    candidate.address = getIP();
-    candidate.port = getPort();
-    candidate.type = "host";
-    for (auto &m :_answer_sdp->media) {
-        m.candidate.emplace_back(candidate);
-        m.port = getPort();
-        m.rtcp_addr.address = getIP();
-        m.rtcp_addr.port = getPort();
-        m.addr.address = getIP();
-    }
-    _answer_sdp->connection.address = getIP();
 
     auto str = _answer_sdp->toString();
     InfoL << "\r\n" << str;
@@ -156,12 +150,10 @@ void WebRtcTransport::OnInputDataPacket(char *buf, size_t len, RTC::TransportTup
     }
     if (is_rtp(buf)) {
         RtpHeader *header = (RtpHeader *) buf;
-        InfoL << "rtp:" << header->dumpString(len);
         return;
     }
     if (is_rtcp(buf)) {
         RtcpHeader *header = (RtcpHeader *) buf;
-//        InfoL << "rtcp:" << header->dumpString();
         return;
     }
 }

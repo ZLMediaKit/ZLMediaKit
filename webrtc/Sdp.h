@@ -599,7 +599,6 @@ public:
     RtcSSRC rtx_ssrc;
 
     //////// simulcast ////////
-    bool simulcast{false};
     RtcSSRC rtp_ssrc_low;
     RtcSSRC rtp_ssrc_mid;
     RtcSSRC rtp_ssrc_high;
@@ -663,12 +662,9 @@ public:
         bool rtcp_mux;
         bool rtcp_rsize;
         bool group_bundle;
-        bool unified_plan;
         bool support_rtx;
         bool support_red;
         bool support_ulpfec;
-
-        bool support_simulcast;
         bool ice_lite;
         bool ice_trickle;
         bool ice_renomination;
@@ -696,7 +692,6 @@ public:
                            const SdpAttrFingerprint &fingerprint);
     void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);
 
-    shared_ptr<RtcSession> createOffer();
     shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
 
 private:
