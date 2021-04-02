@@ -10,6 +10,7 @@
 #include "Poller/EventPoller.h"
 #include "Network/Socket.h"
 #include "Rtsp/RtspMediaSourceImp.h"
+#include "Rtcp/RtcpContext.h"
 using namespace toolkit;
 using namespace mediakit;
 
@@ -139,6 +140,8 @@ private:
         const RtcCodecPlan *plan;
         const RtcMedia *media;
         std::shared_ptr<RtpReceiverImp> receiver;
+        RtcpContext::Ptr rtcp_context_recv;
+        RtcpContext::Ptr rtcp_context_send;
     };
 
     void onSortedRtp(const RtpPayloadInfo &info,RtpPacket::Ptr rtp);
@@ -153,6 +156,7 @@ private:
     mutable uint8_t _send_rtp_pt[2] = {0, 0};
     RtspMediaSourceImp::Ptr _push_src;
     unordered_map<uint8_t, RtpPayloadInfo> _rtp_receiver;
+    unordered_map<uint32_t, RtpPayloadInfo*> _ssrc_info;
     Ticker _pli_ticker;
 };
 
