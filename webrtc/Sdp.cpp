@@ -1237,6 +1237,13 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
     if (ret->media.empty()) {
         throw std::invalid_argument("生成的answer sdp中媒体个数为0");
     }
+
+    //设置音视频端口复用
+    if (!offer.group.mids.empty()) {
+        for (auto &m : ret->media) {
+            ret->group.mids.emplace_back(m.mid);
+        }
+    }
     return ret;
 }
 
