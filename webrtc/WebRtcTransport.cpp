@@ -253,6 +253,9 @@ void WebRtcTransportImp::onStartWebRTC() {
         _push_src->setSdp(rtsp_sdp);
 
         for (auto &m : getSdp(SdpType::offer).media) {
+            if (m.type == TrackVideo) {
+                _recv_video_ssrc = m.rtp_ssrc.ssrc;
+            }
             for (auto &plan : m.plan) {
                 auto hit_pan = getSdp(SdpType::answer).getMedia(m.type)->getPlan(plan.pt);
                 if (!hit_pan) {
@@ -416,6 +419,10 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 //todo 此处应该销毁对象
                 break;
             }
+            case RtcpType::RTCP_PSFB: {
+//                InfoL << rtcp->dumpString();
+                break;
+            }
             default: break;
         }
     }
@@ -434,18 +441,6 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
     info.receiver->inputRtp(info.media->type, info.plan->sample_rate, (uint8_t *) buf, len);
 }
 
-int makeRtcpPli(char *packet, int len) {
-    if (packet == NULL || len != 12)
-        return -1;
-    memset(packet, 0, len);
-    RtcpHeader *rtcp = (RtcpHeader *) packet;
-    rtcp->version = 2;
-    rtcp->pt = (uint8_t) RtcpType::RTCP_PSFB;
-    rtcp->report_count = 1;
-    rtcp->length = htons((len / 4) - 1);
-    return 12;
-}
-
 ///////////////////////////////////////////////////////////////////
 
 void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
@@ -457,9 +452,10 @@ void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr 
     if (_pli_ticker.elapsedTime() > 2000) {
         //todo 定期发送pli
         _pli_ticker.resetTime();
-        char rtcpbuf[12];
-        makeRtcpPli(rtcpbuf, 12);
-        sendRtcpPacket(rtcpbuf, 12, true);
+        auto pli = RtcpPli::create();
+        pli->ssrc = htonl(0);
+        pli->ssrc_media = htonl(_recv_video_ssrc);
+        sendRtcpPacket((char *) pli.get(), sizeof(RtcpPli), true);
         InfoL << "send pli";
     }
     _push_src->onWrite(std::move(rtp), false);

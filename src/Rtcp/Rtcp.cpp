@@ -82,6 +82,11 @@ string RtcpHeader::dumpString() const {
             RtcpSdes *rtcp = (RtcpSdes *)this;
             return rtcp->dumpString();
         }
+
+        case RtcpType::RTCP_PSFB: {
+            RtcpPli *rtcp = (RtcpPli *)this;
+            return rtcp->dumpString();
+        }
         default: return StrPrinter << dumpHeader() << hexdump((char *)this + sizeof(*this), length << 2);
     }
 }
@@ -105,6 +110,12 @@ void RtcpHeader::net2Host(size_t len){
             sdes->net2Host(len);
             break;
         }
+
+        case RtcpType::RTCP_PSFB: {
+            RtcpPli *pli = (RtcpPli *)this;
+            pli->net2Host(len);
+            break;
+        }
         default: throw std::runtime_error(StrPrinter << "未处理的rtcp包:" << rtcpTypeToStr((RtcpType) this->pt));
     }
 }
@@ -121,7 +132,7 @@ vector<RtcpHeader *> RtcpHeader::loadFromBytes(char *data, size_t len){
             ret.emplace_back(rtcp);
         } catch (std::exception &ex) {
             //不能处理的rtcp包，或者无法解析的rtcp包，忽略掉
-            WarnL << ex.what();
+            WarnL << ex.what() << ",长度为:" << rtcp_len;
         }
         ptr += rtcp_len;
         remain -= rtcp_len;
@@ -400,6 +411,33 @@ vector<SdesItem *> RtcpSdes::getItemList() {
         ptr = (SdesItem *) ((char *) ptr + ptr->totalBytes());
     }
     return ret;
+}
+
+////////////////////////////////////////////////////////////////////
+
+std::shared_ptr<RtcpPli> RtcpPli::create() {
+    auto bytes = alignSize(sizeof(RtcpPli));
+    auto ptr = (RtcpRR *) new char[bytes];
+    setupHeader(ptr, RtcpType::RTCP_PSFB, 1, bytes);
+    return std::shared_ptr<RtcpPli>((RtcpPli *) ptr, [](RtcpPli *ptr) {
+        delete[] (char *) ptr;
+    });
+}
+
+string RtcpPli::dumpString() const {
+    _StrPrinter printer;
+    printer << RtcpHeader::dumpHeader();
+    printer << "ssrc:" << ssrc << "\r\n";
+    printer << "ssrc_media:" << ssrc_media;
+    return std::move(printer);
+}
+
+void RtcpPli::net2Host(size_t size) {
+    static const size_t kMinSize = sizeof(RtcpPli);
+    CHECK_MIN_SIZE(size, kMinSize);
+    RtcpHeader::net2Host();
+    ssrc = ntohl(ssrc);
+    ssrc_media = ntohl(ssrc_media);
 }
 
 }//namespace mediakit

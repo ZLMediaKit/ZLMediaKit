@@ -456,6 +456,35 @@ private:
     void net2Host(size_t size);
 } PACKED;
 
+//PLI
+class RtcpPli : public RtcpHeader {
+public:
+    friend class RtcpHeader;
+    uint32_t ssrc;
+    uint32_t ssrc_media;
+
+public:
+    /**
+     * 创建SDES包，只赋值了RtcpHeader以及SdesItem对象的length和text部分
+     * @param item_text SdesItem列表，只赋值length和text部分
+     * @return SDES包
+     */
+    static std::shared_ptr<RtcpPli> create();
+
+private:
+    /**
+    * 打印字段详情
+    * 使用net2Host转换成主机字节序后才可使用此函数
+    */
+    string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     * @param size 字节长度，防止内存越界
+     */
+    void net2Host(size_t size);
+} PACKED;
+
 #if defined(_WIN32)
 #pragma pack(pop)
 #endif // defined(_WIN32)
