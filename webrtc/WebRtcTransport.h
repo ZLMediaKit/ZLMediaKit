@@ -157,6 +157,7 @@ private:
     RtspMediaSourceImp::Ptr _push_src;
     unordered_map<uint8_t, RtpPayloadInfo> _rtp_receiver;
     unordered_map<uint32_t, RtpPayloadInfo*> _ssrc_info;
+    uint32_t _recv_video_ssrc;
     Ticker _pli_ticker;
 };
 
