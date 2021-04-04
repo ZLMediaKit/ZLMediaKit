@@ -45,7 +45,7 @@ public:
      * @param buf rtcp内容
      * @param len rtcp长度
      */
-    void sendRtpPacket(char *buf, size_t len, bool flush);
+    void sendRtpPacket(char *buf, size_t len, bool flush, uint8_t pt);
     void sendRtcpPacket(char *buf, size_t len, bool flush);
 
 protected:

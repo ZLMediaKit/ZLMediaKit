@@ -46,7 +46,7 @@ namespace RTC
 		~SrtpSession();
 
 	public:
-		bool EncryptRtp(const uint8_t** data, size_t* len);
+		bool EncryptRtp(const uint8_t** data, size_t* len, uint8_t pt);
 		bool DecryptSrtp(uint8_t* data, size_t* len);
 		bool EncryptRtcp(const uint8_t** data, size_t* len);
 		bool DecryptSrtcp(uint8_t* data, size_t* len);

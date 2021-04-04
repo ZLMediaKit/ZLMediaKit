@@ -213,7 +213,7 @@ namespace RTC
 		}
 	}
 
-	bool SrtpSession::EncryptRtp(const uint8_t** data, size_t* len)
+	bool SrtpSession::EncryptRtp(const uint8_t** data, size_t* len, uint8_t pt)
 	{
 		MS_TRACE();
 
@@ -226,6 +226,7 @@ namespace RTC
 		}
 
 		std::memcpy(EncryptBuffer, *data, *len);
+        EncryptBuffer[1] |= (pt & 0x7F);
 
 		srtp_err_status_t err =
 		  srtp_protect(this->session, static_cast<void*>(EncryptBuffer), reinterpret_cast<int*>(len));

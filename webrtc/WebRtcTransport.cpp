@@ -179,11 +179,11 @@ void WebRtcTransport::inputSockData(char *buf, size_t len, RTC::TransportTuple *
     }
 }
 
-void WebRtcTransport::sendRtpPacket(char *buf, size_t len, bool flush) {
+void WebRtcTransport::sendRtpPacket(char *buf, size_t len, bool flush, uint8_t pt) {
     const uint8_t *p = (uint8_t *) buf;
     bool ret = false;
     if (_srtp_session_send) {
-        ret = _srtp_session_send->EncryptRtp(&p, &len);
+        ret = _srtp_session_send->EncryptRtp(&p, &len, pt);
     }
     if (ret) {
         onSendSockData((char *) p, len, flush);
@@ -467,16 +467,12 @@ void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const Rtp
 }
 
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
-    if (!_send_rtp_pt[rtp->type]) {
+    auto &pt = _send_rtp_pt[rtp->type];
+    if (!pt) {
         //忽略，对方不支持该编码类型
         return;
     }
-    auto tmp = rtp->getHeader()->pt;
-    //设置pt
-    rtp->getHeader()->pt = _send_rtp_pt[rtp->type];
-    sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush);
+    sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, pt);
     //统计rtp发送情况，好做sr汇报
-    _rtp_receiver[_send_rtp_pt[rtp->type]].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
-    //还原pt
-    rtp->getHeader()->pt = tmp;
+    _rtp_receiver[pt].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 }
