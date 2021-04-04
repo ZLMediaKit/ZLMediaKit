@@ -324,16 +324,19 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
         //这是播放
         configure.video.direction = RtpDirection::sendonly;
         configure.audio.direction = RtpDirection::sendonly;
+        configure.setPlayRtspInfo(_src->getSdp());
         _rtsp_send_sdp.loadFrom(_src->getSdp(), false);
         //根据rtsp流的相关信息，设置rtc最佳编码
         for (auto &m : _rtsp_send_sdp.media) {
             switch (m.type) {
                 case TrackVideo: {
-                    configure.video.preferred_codec.insert(configure.video.preferred_codec.begin(), getCodecId(m.plan[0].codec));
+                    configure.video.preferred_codec.clear();
+                    configure.video.preferred_codec.emplace_back(getCodecId(m.plan[0].codec));
                     break;
                 }
                 case TrackAudio: {
-                    configure.audio.preferred_codec.insert(configure.audio.preferred_codec.begin(),getCodecId(m.plan[0].codec));
+                    configure.audio.preferred_codec.clear();
+                    configure.audio.preferred_codec.emplace_back(getCodecId(m.plan[0].codec));
                     break;
                 }
                 default:

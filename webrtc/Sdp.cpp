@@ -1331,6 +1331,10 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
     if (!configure.enable) {
         return;
     }
+    bool failed = false;
+
+RETRY:
+
     for (auto &codec : configure.preferred_codec) {
         for (auto &offer_media : medias) {
             if (offer_media.type != type) {
@@ -1342,12 +1346,15 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
             }
             const RtcCodecPlan *offer_plan_ptr = nullptr;
             for (auto &plan : offer_media.plan) {
-                if (getCodecId(plan.codec) != codec) {
-                    continue;
-                }
-                //命中偏好的编码格式
-                if (!onMatchCodecPlan(plan, codec)) {
-                    continue;
+                if (!failed) {
+                    //如果匹配失败了，那么随便选择一个plan
+                    if (getCodecId(plan.codec) != codec) {
+                        continue;
+                    }
+                    //命中偏好的编码格式
+                    if (!onMatchCodecPlan(plan, codec)) {
+                        continue;
+                    }
                 }
                 //找到中意的codec
                 offer_plan_ptr = &plan;
@@ -1476,4 +1483,32 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
             return;
         }
     }
+
+    if (!failed) {
+        //只重试一次
+        failed = true;
+        goto RETRY;
+    }
+}
+
+void RtcConfigure::setPlayRtspInfo(const string &sdp){
+    RtcSession session;
+    session.loadFrom(sdp, false);
+    for (auto &m : session.media) {
+        switch (m.type) {
+            case TrackVideo : _rtsp_video_plan = std::make_shared<RtcCodecPlan>(m.plan[0]); break;
+            case TrackAudio : _rtsp_audio_plan = std::make_shared<RtcCodecPlan>(m.plan[0]); break;
+            default: break;
+        }
+    }
+}
+
+bool RtcConfigure::onMatchCodecPlan(const RtcCodecPlan &plan, CodecId codec){
+    if (_rtsp_audio_plan && codec == getCodecId(_rtsp_audio_plan->codec)) {
+        if (plan.sample_rate != _rtsp_audio_plan->sample_rate || plan.channel != _rtsp_audio_plan->channel) {
+            //音频采样率和通道数必须相同
+            return false;
+        }
+    }
+    return true;
 }
