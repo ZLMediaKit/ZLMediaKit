@@ -102,7 +102,7 @@ void WebRtcTransport::setRemoteDtlsFingerprint(const RtcSession &remote){
     _dtls_transport->SetRemoteFingerprint(remote_fingerprint);
 }
 
-void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp) const{
+void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp){
     for (auto &m : sdp.media) {
         if (m.type != TrackApplication && !m.rtcp_mux) {
             throw std::invalid_argument("只支持rtcp-mux模式");
@@ -292,7 +292,7 @@ void WebRtcTransportImp::onStartWebRTC() {
     }
 }
 
-void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
+void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
     WebRtcTransport::onCheckSdp(type, sdp);
     if (type != SdpType::answer || !canSendRtp()) {
         return;
