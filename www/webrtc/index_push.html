@@ -1,0 +1,97 @@
+<html>
+  <meta charset="utf-8">
+  <head>
+    <title>ZLM RTC demo</title>
+    <script src="./ZLMRTCClient.js"></script>
+  </head>
+    
+  <body>
+
+    <div style="text-align: center;">
+        <div>
+          <video id='video' controls autoplay style="text-align:left;">
+            Your browser is too old which doesn't support HTML5 video.
+          </video>
+
+          <video id='selfVideo' controls autoplay style="text-align:right;">
+            Your browser is too old which doesn't support HTML5 video.
+          </video>
+        </div>
+
+        <div>
+
+            <p>
+                <label for="streamUrl">url:</label>
+                <input type="text" id='streamUrl' value="http://127.0.0.1/index/api/webrtc?app=live&stream=test&type=push">
+            </p>
+
+            <p>
+              <label for="simulecast">simulecast:</label>
+              <input type="checkbox" id='simulecast'>
+            </p>
+            <button onclick="start()">开始</button>
+            <button onclick="stop()">停止</button>
+            
+        </div>
+    </div>
+
+    <script>
+      var player = null
+      function start()
+      {
+        stop();
+        player = new ZLMRTCClient.Endpoint(
+            {
+                element: document.getElementById('video'),// video 标签
+                debug: true,// 是否打印日志
+                zlmsdpUrl:document.getElementById('streamUrl').value,//流地址
+                simulecast:document.getElementById('simulecast').checked
+            }
+        );
+
+        player.on(ZLMRTCClient.Events.WEBRTC_ICE_CANDIDATE_ERROR,function(e)
+        {// ICE 协商出错
+            console.log('ICE 协商出错')
+        });
+
+        player.on(ZLMRTCClient.Events.WEBRTC_ON_REMOTE_STREAMS,function(e)
+        {//获取到了远端流，可以播放
+            console.log('播放成功',e.streams)
+        });
+
+        player.on(ZLMRTCClient.Events.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED,function(e)
+        {// offer anwser 交换失败
+            console.log('offer anwser 交换失败',e)
+        });
+
+        player.on(ZLMRTCClient.Events.WEBRTC_ON_LOCAL_STREAM,function(s)
+        {// 获取到了本地流
+
+          document.getElementById('selfVideo').srcObject=s;
+          
+            //console.log('offer anwser 交换失败',e)
+        });
+
+      }
+
+      function stop()
+      {
+          if(player)
+          {
+            player.close();
+            player = null;
+            var local = document.getElementById('selfVideo');
+            local.removeAttribute('srcObject');
+            local.load();
+          }
+      }
+
+    </script>
+    
+  </body>
+
+  <script>
+    
+  </script>
+
+</html>
