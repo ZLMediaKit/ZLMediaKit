@@ -7307,8 +7307,9 @@ var ZLMRTCClient = (function (exports) {
 	  }
 
 	  start() {
-	    let audioConstraints = new AudioTrackConstraints(AudioSourceInfo.SCREENCAST);
-	    let videoConstraints = new VideoTrackConstraints(VideoSourceInfo.SCREENCAST);
+	  	//todo 此处修改捕获桌面或摄像头
+	    let audioConstraints = new AudioTrackConstraints(AudioSourceInfo.MIC);
+	    let videoConstraints = new VideoTrackConstraints(VideoSourceInfo.CAMERA);
 	    MediaStreamFactory.createMediaStream(new StreamConstraints(audioConstraints, videoConstraints)).then(stream => {
 	      this._localStream = stream;
 	      this.dispatch(Events$1.WEBRTC_ON_LOCAL_STREAM, stream);
