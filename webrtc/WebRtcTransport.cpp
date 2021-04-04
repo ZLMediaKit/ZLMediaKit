@@ -298,11 +298,14 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
         return;
     }
 
-    //添加answer sdp的ssrc信息，并且记录发送rtp的pt
+    RtcSession rtsp_send_sdp;
+    rtsp_send_sdp.loadFrom(_src->getSdp(), false);
+
     for (auto &m : sdp.media) {
         if (m.type == TrackApplication) {
             continue;
         }
+        //添加answer sdp的ssrc信息
         m.rtp_ssrc.ssrc = _src->getSsrc(m.type);
         m.rtp_ssrc.cname = RTP_CNAME;
         //todo 先屏蔽rtx，因为chrome报错
@@ -310,8 +313,9 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
             m.rtx_ssrc.ssrc = RTX_SSRC_OFFSET + m.rtp_ssrc.ssrc;
             m.rtx_ssrc.cname = RTX_CNAME;
         }
-        auto rtsp_media = _rtsp_send_sdp.getMedia(m.type);
+        auto rtsp_media = rtsp_send_sdp.getMedia(m.type);
         if (rtsp_media && getCodecId(rtsp_media->plan[0].codec) == getCodecId(m.plan[0].codec)) {
+            //记录发送rtp的pt
             _send_rtp_pt[m.type] = m.plan[0].pt;
         }
     }
@@ -325,24 +329,6 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
         configure.video.direction = RtpDirection::sendonly;
         configure.audio.direction = RtpDirection::sendonly;
         configure.setPlayRtspInfo(_src->getSdp());
-        _rtsp_send_sdp.loadFrom(_src->getSdp(), false);
-        //根据rtsp流的相关信息，设置rtc最佳编码
-        for (auto &m : _rtsp_send_sdp.media) {
-            switch (m.type) {
-                case TrackVideo: {
-                    configure.video.preferred_codec.clear();
-                    configure.video.preferred_codec.emplace_back(getCodecId(m.plan[0].codec));
-                    break;
-                }
-                case TrackAudio: {
-                    configure.audio.preferred_codec.clear();
-                    configure.audio.preferred_codec.emplace_back(getCodecId(m.plan[0].codec));
-                    break;
-                }
-                default:
-                    break;
-            }
-        }
     } else {
         //这是推流
         configure.video.direction = RtpDirection::recvonly;

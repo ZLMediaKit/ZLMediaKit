@@ -159,7 +159,6 @@ private:
     Socket::Ptr _socket;
     RtcSession _answer_sdp;
     RtspMediaSource::Ptr _src;
-    mutable RtcSession _rtsp_send_sdp;
     RtspMediaSource::RingType::RingReader::Ptr _reader;
     unordered_map<uint8_t, RtpPayloadInfo> _rtp_info_pt;
     unordered_map<uint32_t, RtpPayloadInfo*> _rtp_info_ssrc;
