@@ -6,15 +6,19 @@
 #define RTP_CNAME "zlmediakit-rtp"
 #define RTX_CNAME "zlmediakit-rtx"
 
-
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
+    _poller = poller;
     _dtls_transport = std::make_shared<RTC::DtlsTransport>(poller, this);
-    _ice_server = std::make_shared<RTC::IceServer>(this, makeRandStr(4), makeRandStr(24));
+    _ice_server = std::make_shared<RTC::IceServer>(this, makeRandStr(4), makeRandStr(28).substr(4));
 }
 
 void WebRtcTransport::onDestory(){
     _dtls_transport = nullptr;
     _ice_server = nullptr;
+}
+
+const EventPoller::Ptr& WebRtcTransport::getPoller() const{
+    return _poller;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -127,10 +131,7 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
     //// 生成answer sdp ////
     _answer_sdp = configure.createAnswer(*_offer_sdp);
     onCheckSdp(SdpType::answer, *_answer_sdp);
-
-    auto str = _answer_sdp->toString();
-    TraceL << "\r\n" << str;
-    return str;
+    return _answer_sdp->toString();
 }
 
 bool is_dtls(char *buf) {
@@ -247,35 +248,33 @@ bool WebRtcTransportImp::canRecvRtp() const{
 }
 
 void WebRtcTransportImp::onStartWebRTC() {
-    if (canRecvRtp()) {
-        _push_src = std::make_shared<RtspMediaSourceImp>(DEFAULT_VHOST, "live", "push");
-        auto rtsp_sdp = getSdp(SdpType::answer).toRtspSdp();
-        _push_src->setSdp(rtsp_sdp);
-
-        for (auto &m : getSdp(SdpType::offer).media) {
-            if (m.type == TrackVideo) {
-                _recv_video_ssrc = m.rtp_ssrc.ssrc;
-            }
-            for (auto &plan : m.plan) {
-                auto hit_pan = getSdp(SdpType::answer).getMedia(m.type)->getPlan(plan.pt);
-                if (!hit_pan) {
-                    continue;
-                }
-                //获取offer端rtp的ssrc和pt相关信息
-                auto &ref = _rtp_receiver[plan.pt];
-                _ssrc_info[m.rtp_ssrc.ssrc] = &ref;
-                ref.plan = &plan;
-                ref.media = &m;
-                ref.is_common_rtp = getCodecId(plan.codec) != CodecInvalid;
-                ref.rtcp_context_recv = std::make_shared<RtcpContext>(ref.plan->sample_rate, true);
-                ref.rtcp_context_send = std::make_shared<RtcpContext>(ref.plan->sample_rate, false);
-                ref.receiver = std::make_shared<RtpReceiverImp>([&ref, this](RtpPacket::Ptr rtp) {
-                    onSortedRtp(ref, std::move(rtp));
-                }, [ref, this](const RtpPacket::Ptr &rtp) {
-                    onBeforeSortedRtp(ref, rtp);
-                });
-            }
+    for (auto &m : getSdp(SdpType::offer).media) {
+        if (m.type == TrackVideo) {
+            _recv_video_ssrc = m.rtp_ssrc.ssrc;
         }
+        for (auto &plan : m.plan) {
+            auto hit_pan = getSdp(SdpType::answer).getMedia(m.type)->getPlan(plan.pt);
+            if (!hit_pan) {
+                continue;
+            }
+            //获取offer端rtp的ssrc和pt相关信息
+            auto &ref = _rtp_info_pt[plan.pt];
+            _rtp_info_ssrc[m.rtp_ssrc.ssrc] = &ref;
+            ref.plan = &plan;
+            ref.media = &m;
+            ref.is_common_rtp = getCodecId(plan.codec) != CodecInvalid;
+            ref.rtcp_context_recv = std::make_shared<RtcpContext>(ref.plan->sample_rate, true);
+            ref.rtcp_context_send = std::make_shared<RtcpContext>(ref.plan->sample_rate, false);
+            ref.receiver = std::make_shared<RtpReceiverImp>([&ref, this](RtpPacket::Ptr rtp) {
+                onSortedRtp(ref, std::move(rtp));
+            }, [ref, this](const RtpPacket::Ptr &rtp) {
+                onBeforeSortedRtp(ref, rtp);
+            });
+        }
+    }
+
+    if (canRecvRtp()) {
+        _src->setSdp(getSdp(SdpType::answer).toRtspSdp());
     }
     if (canSendRtp()) {
         _reader = _src->getRing()->attach(_socket->getPoller(), true);
@@ -320,22 +319,31 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) const{
 
 void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     WebRtcTransport::onRtcConfigure(configure);
-    _rtsp_send_sdp.loadFrom(_src->getSdp(), false);
 
-    //根据rtsp流的相关信息，设置rtc最佳编码
-    for (auto &m : _rtsp_send_sdp.media) {
-        switch (m.type) {
-            case TrackVideo: {
-                configure.video.preferred_codec.insert(configure.video.preferred_codec.begin(), getCodecId(m.plan[0].codec));
-                break;
+    if (!_src->getSdp().empty()) {
+        //这是播放
+        configure.video.direction = RtpDirection::sendonly;
+        configure.audio.direction = RtpDirection::sendonly;
+        _rtsp_send_sdp.loadFrom(_src->getSdp(), false);
+        //根据rtsp流的相关信息，设置rtc最佳编码
+        for (auto &m : _rtsp_send_sdp.media) {
+            switch (m.type) {
+                case TrackVideo: {
+                    configure.video.preferred_codec.insert(configure.video.preferred_codec.begin(), getCodecId(m.plan[0].codec));
+                    break;
+                }
+                case TrackAudio: {
+                    configure.audio.preferred_codec.insert(configure.audio.preferred_codec.begin(),getCodecId(m.plan[0].codec));
+                    break;
+                }
+                default:
+                    break;
             }
-            case TrackAudio: {
-                configure.audio.preferred_codec.insert(configure.audio.preferred_codec.begin(),getCodecId(m.plan[0].codec));
-                break;
-            }
-            default:
-                break;
         }
+    } else {
+        //这是推流
+        configure.video.direction = RtpDirection::recvonly;
+        configure.audio.direction = RtpDirection::recvonly;
     }
 
     //添加接收端口candidate信息
@@ -395,8 +403,8 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
             case RtcpType::RTCP_SR : {
                 //对方汇报rtp发送情况
                 RtcpSR *sr = (RtcpSR *) rtcp;
-                auto it = _ssrc_info.find(sr->ssrc);
-                if (it != _ssrc_info.end()) {
+                auto it = _rtp_info_ssrc.find(sr->ssrc);
+                if (it != _rtp_info_ssrc.end()) {
                     it->second->rtcp_context_recv->onRtcp(sr);
                     auto rr = it->second->rtcp_context_recv->createRtcpRR(sr->items.ssrc, sr->ssrc);
                     sendRtcpPacket(rr->data(), rr->size(), true);
@@ -407,8 +415,8 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
             case RtcpType::RTCP_RR : {
                 //对方汇报rtp接收情况
                 RtcpRR *rr = (RtcpRR *) rtcp;
-                auto it = _ssrc_info.find(rr->ssrc);
-                if (it != _ssrc_info.end()) {
+                auto it = _rtp_info_ssrc.find(rr->ssrc);
+                if (it != _rtp_info_ssrc.end()) {
                     auto sr = it->second->rtcp_context_send->createRtcpSR(rr->items.ssrc);
                     sendRtcpPacket(sr->data(), sr->size(), true);
                     InfoL << "send rtcp sr";
@@ -431,8 +439,8 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
     RtpHeader *rtp = (RtpHeader *) buf;
     //根据接收到的rtp的pt信息，找到该流的信息
-    auto it = _rtp_receiver.find(rtp->pt);
-    if (it == _rtp_receiver.end()) {
+    auto it = _rtp_info_pt.find(rtp->pt);
+    if (it == _rtp_info_pt.end()) {
         WarnL;
         return;
     }
@@ -458,7 +466,7 @@ void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr 
         sendRtcpPacket((char *) pli.get(), sizeof(RtcpPli), true);
         InfoL << "send pli";
     }
-    _push_src->onWrite(std::move(rtp), false);
+    _src->onWrite(std::move(rtp), false);
 }
 
 void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
@@ -474,5 +482,5 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
     }
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, pt);
     //统计rtp发送情况，好做sr汇报
-    _rtp_receiver[pt].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+    _rtp_info_pt[pt].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 }
