@@ -574,6 +574,7 @@ public:
 //rtc传输编码方案
 class RtcCodecPlan{
 public:
+    using Ptr = shared_ptr<RtcCodecPlan>;
     uint8_t pt;
     string codec;
     uint32_t sample_rate;
@@ -702,9 +703,15 @@ public:
 
     shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
 
+    void setPlayRtspInfo(const string &sdp);
+
 private:
     void matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
-    bool onMatchCodecPlan(const RtcCodecPlan &plan, CodecId codec) { return true; }
+    bool onMatchCodecPlan(const RtcCodecPlan &plan, CodecId codec);
+
+private:
+    RtcCodecPlan::Ptr _rtsp_video_plan;
+    RtcCodecPlan::Ptr _rtsp_audio_plan;
 };
 
 
