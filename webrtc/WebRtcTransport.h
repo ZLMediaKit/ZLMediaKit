@@ -44,9 +44,13 @@ public:
      * 发送rtp
      * @param buf rtcp内容
      * @param len rtcp长度
+     * @param flush 是否flush socket
+     * @param pt rtp payload type
      */
     void sendRtpPacket(char *buf, size_t len, bool flush, uint8_t pt);
     void sendRtcpPacket(char *buf, size_t len, bool flush);
+
+    const EventPoller::Ptr& getPoller() const;
 
 protected:
     ////  dtls相关的回调 ////
@@ -89,6 +93,7 @@ private:
     void setRemoteDtlsFingerprint(const RtcSession &remote);
 
 private:
+    EventPoller::Ptr _poller;
     std::shared_ptr<RTC::IceServer> _ice_server;
     std::shared_ptr<RTC::DtlsTransport> _dtls_transport;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_send;
@@ -148,17 +153,16 @@ private:
     void onBeforeSortedRtp(const RtpPayloadInfo &info,const RtpPacket::Ptr &rtp);
 
 private:
-    Socket::Ptr _socket;
-    RtspMediaSource::Ptr _src;
-    RtspMediaSource::RingType::RingReader::Ptr _reader;
-    RtcSession _answer_sdp;
-    mutable RtcSession _rtsp_send_sdp;
-    mutable uint8_t _send_rtp_pt[2] = {0, 0};
-    RtspMediaSourceImp::Ptr _push_src;
-    unordered_map<uint8_t, RtpPayloadInfo> _rtp_receiver;
-    unordered_map<uint32_t, RtpPayloadInfo*> _ssrc_info;
     uint32_t _recv_video_ssrc;
+    mutable uint8_t _send_rtp_pt[2] = {0, 0};
     Ticker _pli_ticker;
+    Socket::Ptr _socket;
+    RtcSession _answer_sdp;
+    RtspMediaSource::Ptr _src;
+    mutable RtcSession _rtsp_send_sdp;
+    RtspMediaSource::RingType::RingReader::Ptr _reader;
+    unordered_map<uint8_t, RtpPayloadInfo> _rtp_info_pt;
+    unordered_map<uint32_t, RtpPayloadInfo*> _rtp_info_ssrc;
 };
 
 

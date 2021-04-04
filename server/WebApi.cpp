@@ -1082,19 +1082,87 @@ void installWebApi() {
 
 #ifdef ENABLE_WEBRTC
     static list<WebRtcTransportImp::Ptr> rtcs;
-    api_regist("/index/api/webrtc",[](API_ARGS_STRING){
+    api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
         CHECK_ARGS("app", "stream");
-        auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, DEFAULT_VHOST, allArgs.getUrlArgs()["app"], allArgs.getUrlArgs()["stream"]));
-        if (!src) {
-            throw ApiRetException("流不存在", API::NotFound);
-        }
-        headerOut["Content-Type"] = "text/plain";
+
+        auto offer_sdp = allArgs.Content();
+        auto type = allArgs.getUrlArgs()["type"];
+        MediaInfo info(StrPrinter << "rtc://" << headerIn["Host"] << "/" << allArgs.getUrlArgs()["app"] << "/" << allArgs.getUrlArgs()["stream"] << "?" << allArgs.Params());
+
+        //设置返回类型
+        headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
+        //设置跨域
         headerOut["Access-Control-Allow-Origin"] = "*";
-        auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
-        rtc->attach(src);
-        val["sdp"] = rtc->getAnswerSdp(allArgs.Content());
-        val["type"] = "answer";
-        rtcs.emplace_back(rtc);
+
+        if (type.empty() || !strcasecmp(type.data(), "play")) {
+            Broadcast::AuthInvoker authInvoker = [invoker, offer_sdp, val, info, headerOut](const string &err) mutable {
+                try {
+                    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid));
+                    if (!src) {
+                        throw runtime_error("流不存在");
+                    }
+                    if (!err.empty()) {
+                        throw runtime_error(StrPrinter << "播放鉴权失败:" << err);
+                    }
+                    auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
+                    rtc->attach(src);
+                    val["sdp"] = rtc->getAnswerSdp(offer_sdp);
+                    val["type"] = "answer";
+                    rtcs.emplace_back(rtc);
+                    invoker(200, headerOut, val.toStyledString());
+                } catch (std::exception &ex) {
+                    val["code"] = API::Exception;
+                    val["msg"] = ex.what();
+                    invoker(200, headerOut, val.toStyledString());
+                }
+            };
+
+            //广播通用播放url鉴权事件
+            auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, info, authInvoker, sender);
+            if (!flag) {
+                //该事件无人监听,默认不鉴权
+                authInvoker("");
+            }
+            return;
+        }
+
+        if (!strcasecmp(type.data(), "push")) {
+            Broadcast::PublishAuthInvoker authInvoker = [invoker, offer_sdp, val, info, headerOut](const string &err, bool enableHls, bool enableMP4) mutable {
+                try {
+                    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid));
+                    if (src) {
+                        throw std::runtime_error("已经在推流");
+                    }
+                    if (!err.empty()) {
+                        throw runtime_error(StrPrinter << "推流鉴权失败:" << err);
+                    }
+                    auto push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
+                    push_src->setProtocolTranslation(enableHls, enableMP4);
+                    auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
+                    rtc->attach(push_src);
+                    val["sdp"] = rtc->getAnswerSdp(offer_sdp);
+                    val["type"] = "answer";
+                    rtcs.emplace_back(rtc);
+                    invoker(200, headerOut, val.toStyledString());
+                } catch (std::exception &ex) {
+                    val["code"] = API::Exception;
+                    val["msg"] = ex.what();
+                    invoker(200, headerOut, val.toStyledString());
+                }
+            };
+
+            //rtsp推流需要鉴权
+            auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, info, authInvoker, sender);
+            if (!flag) {
+                //该事件无人监听,默认不鉴权
+                GET_CONFIG(bool, toHls, General::kPublishToHls);
+                GET_CONFIG(bool, toMP4, General::kPublishToMP4);
+                authInvoker("", toHls, toMP4);
+            }
+            return;
+        }
+
+        throw ApiRetException("不支持该类型", API::InvalidArgs);
     });
 #endif
 
