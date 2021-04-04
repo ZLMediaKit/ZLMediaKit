@@ -79,7 +79,7 @@ protected:
 protected:
     virtual void onStartWebRTC() = 0;
     virtual void onRtcConfigure(RtcConfigure &configure) const {}
-    virtual void onCheckSdp(SdpType type, RtcSession &sdp) const;
+    virtual void onCheckSdp(SdpType type, RtcSession &sdp);
     virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) = 0;
 
     virtual void onRtp(const char *buf, size_t len) = 0;
@@ -125,7 +125,7 @@ public:
 protected:
     void onStartWebRTC() override;
     void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) override;
-    void onCheckSdp(SdpType type, RtcSession &sdp) const override;
+    void onCheckSdp(SdpType type, RtcSession &sdp) override;
     void onRtcConfigure(RtcConfigure &configure) const override;
 
     void onRtp(const char *buf, size_t len) override;
@@ -153,14 +153,20 @@ private:
     void onBeforeSortedRtp(const RtpPayloadInfo &info,const RtpPacket::Ptr &rtp);
 
 private:
-    uint32_t _recv_video_ssrc;
-    mutable uint8_t _send_rtp_pt[2] = {0, 0};
+    //pli rtcp计时器
     Ticker _pli_ticker;
+    //rtc rtp推流的视频ssrc
+    uint32_t _recv_video_ssrc;
+    //记录协商的rtp的pt类型
+    uint8_t _send_rtp_pt[2] = {0, 0};
+    //复合udp端口，接收一切rtp与rtcp
     Socket::Ptr _socket;
-    RtcSession _answer_sdp;
+    //推流或播放的rtsp源
     RtspMediaSource::Ptr _src;
     RtspMediaSource::RingType::RingReader::Ptr _reader;
+    //根据rtp的pt获取相关信息
     unordered_map<uint8_t, RtpPayloadInfo> _rtp_info_pt;
+    //根据推流端rtp的ssrc获取相关信息
     unordered_map<uint32_t, RtpPayloadInfo*> _rtp_info_ssrc;
 };
 
