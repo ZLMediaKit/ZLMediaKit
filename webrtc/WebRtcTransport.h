@@ -119,8 +119,9 @@ public:
     /**
      * 绑定rtsp媒体源
      * @param src 媒体源
+     * @param is_play 是播放还是推流
      */
-    void attach(const RtspMediaSource::Ptr &src);
+    void attach(const RtspMediaSource::Ptr &src, bool is_play = true);
 
 protected:
     void onStartWebRTC() override;
@@ -161,8 +162,11 @@ private:
     uint8_t _send_rtp_pt[2] = {0, 0};
     //复合udp端口，接收一切rtp与rtcp
     Socket::Ptr _socket;
-    //推流或播放的rtsp源
-    RtspMediaSource::Ptr _src;
+    //推流的rtsp源
+    RtspMediaSource::Ptr _push_src;
+    //播放的rtsp源
+    RtspMediaSource::Ptr _play_src;
+    //播放rtsp源的reader对象
     RtspMediaSource::RingType::RingReader::Ptr _reader;
     //根据rtp的pt获取相关信息
     unordered_map<uint8_t, RtpPayloadInfo> _rtp_info_pt;
