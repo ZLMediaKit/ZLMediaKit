@@ -224,9 +224,13 @@ void WebRtcTransportImp::onDestory() {
     WebRtcTransport::onDestory();
 }
 
-void WebRtcTransportImp::attach(const RtspMediaSource::Ptr &src) {
+void WebRtcTransportImp::attach(const RtspMediaSource::Ptr &src, bool is_play) {
     assert(src);
-    _src = src;
+    if (is_play) {
+        _play_src = src;
+    } else {
+        _push_src = src;
+    }
 }
 
 void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush) {
@@ -239,12 +243,12 @@ void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sock
 
 bool WebRtcTransportImp::canSendRtp() const{
     auto &sdp = getSdp(SdpType::answer);
-    return sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::sendonly;
+    return _play_src && (sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::sendonly);
 }
 
 bool WebRtcTransportImp::canRecvRtp() const{
     auto &sdp = getSdp(SdpType::answer);
-    return sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::recvonly;
+    return _push_src && (sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::recvonly);
 }
 
 void WebRtcTransportImp::onStartWebRTC() {
@@ -274,10 +278,10 @@ void WebRtcTransportImp::onStartWebRTC() {
     }
 
     if (canRecvRtp()) {
-        _src->setSdp(getSdp(SdpType::answer).toRtspSdp());
+        _push_src->setSdp(getSdp(SdpType::answer).toRtspSdp());
     }
     if (canSendRtp()) {
-        _reader = _src->getRing()->attach(_socket->getPoller(), true);
+        _reader = _play_src->getRing()->attach(_socket->getPoller(), true);
         weak_ptr<WebRtcTransportImp> weak_self = shared_from_this();
         _reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {
             auto strongSelf = weak_self.lock();
@@ -299,14 +303,14 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
     }
 
     RtcSession rtsp_send_sdp;
-    rtsp_send_sdp.loadFrom(_src->getSdp(), false);
+    rtsp_send_sdp.loadFrom(_play_src->getSdp(), false);
 
     for (auto &m : sdp.media) {
         if (m.type == TrackApplication) {
             continue;
         }
         //添加answer sdp的ssrc信息
-        m.rtp_ssrc.ssrc = _src->getSsrc(m.type);
+        m.rtp_ssrc.ssrc = _play_src->getSsrc(m.type);
         m.rtp_ssrc.cname = RTP_CNAME;
         //todo 先屏蔽rtx，因为chrome报错
         if (false && m.getRelatedRtxPlan(m.plan[0].pt)) {
@@ -324,15 +328,17 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
 void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     WebRtcTransport::onRtcConfigure(configure);
 
-    if (!_src->getSdp().empty()) {
-        //这是播放
-        configure.video.direction = RtpDirection::sendonly;
-        configure.audio.direction = RtpDirection::sendonly;
-        configure.setPlayRtspInfo(_src->getSdp());
-    } else {
-        //这是推流
+    if (_play_src) {
+        //这是播放,同时也可能有推流
+        configure.video.direction = _push_src ? RtpDirection::sendrecv : RtpDirection::sendonly;
+        configure.audio.direction = configure.video.direction;
+        configure.setPlayRtspInfo(_play_src->getSdp());
+    } else if (_push_src) {
+        //这只是推流
         configure.video.direction = RtpDirection::recvonly;
         configure.audio.direction = RtpDirection::recvonly;
+    } else {
+        throw std::invalid_argument("未设置播放或推流的媒体源");
     }
 
     //添加接收端口candidate信息
@@ -455,7 +461,9 @@ void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr 
         sendRtcpPacket((char *) pli.get(), sizeof(RtcpPli), true);
         InfoL << "send pli";
     }
-    _src->onWrite(std::move(rtp), false);
+    if (_push_src) {
+        _push_src->onWrite(std::move(rtp), false);
+    }
 }
 
 void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
