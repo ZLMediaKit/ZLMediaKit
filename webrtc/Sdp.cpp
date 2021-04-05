@@ -558,6 +558,10 @@ void SdpAttrRtpMap::parse(const string &str)  {
         if (sscanf(str.data(), "%" SCNu8 " %31[^/]/%" SCNd32, &pt, buf, &sample_rate) != 3) {
             SDP_THROW();
         }
+        if (getTrackType(getCodecId(buf)) == TrackAudio) {
+            //未指定通道数时，且为音频时，那么通道数默认为1
+            channel = 1;
+        }
     }
     codec = buf;
 }
@@ -890,7 +894,7 @@ void RtcSession::loadFrom(const string &str, bool check) {
             auto rtpmap_it = rtpmap_map.find(pt);
             if (rtpmap_it == rtpmap_map.end()) {
                 plan.pt = pt;
-                plan.codec = RtpPayload::getCodecId(pt);
+                plan.codec = RtpPayload::getName(pt);
                 plan.sample_rate = RtpPayload::getClockRate(pt);
                 plan.channel = RtpPayload::getAudioChannel(pt);
             } else {
