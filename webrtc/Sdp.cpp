@@ -1535,7 +1535,7 @@ static map<string, string, StrCaseCompare> toMap(const vector<std::pair<string/*
 static const string kProfile{"profile-level-id"};
 static const string kMode{"packetization-mode"};
 
-bool RtcConfigure::onMatchCodecPlan(const RtcCodecPlan &plan, CodecId codec){
+bool RtcConfigure::onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec){
     if (_rtsp_audio_plan && codec == getCodecId(_rtsp_audio_plan->codec)) {
         if (plan.sample_rate != _rtsp_audio_plan->sample_rate || plan.channel != _rtsp_audio_plan->channel) {
             //音频采样率和通道数必须相同
@@ -1548,12 +1548,12 @@ bool RtcConfigure::onMatchCodecPlan(const RtcCodecPlan &plan, CodecId codec){
         auto rtc_fmt_map = toMap(plan.fmtp);
         auto rtsp_fmt_map = toMap(_rtsp_video_plan->fmtp);
         auto &profile = rtsp_fmt_map[kProfile];
-        if (!profile.empty() && profile != rtc_fmt_map[kProfile]) {
+        if (!profile.empty() && strcasecmp(profile.data(), rtc_fmt_map[kProfile].data())) {
             //profile-level-id 不匹配
             return false;
         }
         auto &mode = rtsp_fmt_map[kMode];
-        if (!mode.empty() && mode != rtc_fmt_map[kMode]) {
+        if (!mode.empty() && atoi(mode.data()) != atoi(rtc_fmt_map[kMode].data())) {
             //packetization-mode不匹配
             return false;
         }
