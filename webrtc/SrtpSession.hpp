@@ -1,4 +1,4 @@
-#ifndef MS_RTC_SRTP_SESSION_HPP
+﻿#ifndef MS_RTC_SRTP_SESSION_HPP
 #define MS_RTC_SRTP_SESSION_HPP
 
 #include "Utils.hpp"
