@@ -841,7 +841,9 @@ void RtcSession::loadFrom(const string &str, bool check) {
             if (rtc_ssrc_map.size() > 1) {
                 throw std::invalid_argument("sdp中不存在a=ssrc-group:FID字段,但是ssrc却有多个");
             }
-            ssrc_rtp = rtc_ssrc_map.begin()->second.ssrc;
+            if (rtc_ssrc_map.size() == 1) {
+                ssrc_rtp = rtc_ssrc_map.begin()->second.ssrc;
+            }
         }
         for (auto &pr : rtc_ssrc_map) {
             auto &rtc_ssrc = pr.second;
@@ -982,6 +984,7 @@ string RtcSession::toRtspSdp() const{
         }
     }
 
+    copy.session_name = "zlmediakit rtsp stream from webrtc";
     auto sdp = copy.toRtcSessionSdp();
     toRtsp(sdp->items);
     int i = 0;
