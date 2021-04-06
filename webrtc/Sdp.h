@@ -708,7 +708,7 @@ public:
 
 private:
     void matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
-    bool onMatchCodecPlan(const RtcCodecPlan &plan, CodecId codec);
+    bool onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec);
 
 private:
     RtcCodecPlan::Ptr _rtsp_video_plan;
