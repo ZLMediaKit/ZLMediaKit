@@ -301,6 +301,7 @@ public:
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "fingerprint";}
+    bool empty() const { return algorithm.empty() || hash.empty(); }
 };
 
 class SdpAttrSetup : public SdpItem {

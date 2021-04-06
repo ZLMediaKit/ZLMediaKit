@@ -604,9 +604,10 @@ void SdpAttrFmtp::parse(const string &str)  {
         trim(item);
         auto pos = item.find('=');
         if(pos == string::npos){
-            SDP_THROW();
+            arr.emplace_back(std::make_pair(item, ""));
+        }  else {
+            arr.emplace_back(std::make_pair(item.substr(0, pos), item.substr(pos + 1)));
         }
-        arr.emplace_back(std::make_pair(item.substr(0, pos), item.substr(pos + 1)));
     }
     if (arr.empty()) {
         SDP_THROW();
@@ -784,6 +785,9 @@ void RtcSession::loadFrom(const string &str, bool check) {
         rtc_media.ice_pwd = media.getStringItem('a', "ice-pwd");
         rtc_media.role = media.getItemClass<SdpAttrSetup>('a', "setup").role;
         rtc_media.fingerprint = media.getItemClass<SdpAttrFingerprint>('a', "fingerprint");
+        if (rtc_media.fingerprint.empty()) {
+            rtc_media.fingerprint = sdp.getItemClass<SdpAttrFingerprint>('a', "fingerprint");
+        }
         rtc_media.ice_lite = media.getItem('a', "ice-lite").operator bool();
         auto ice_options = media.getItemClass<SdpAttrIceOption>('a', "ice-options");
         rtc_media.ice_trickle = ice_options.trickle;
