@@ -1357,11 +1357,11 @@ RETRY:
             }
             const RtcCodecPlan *offer_plan_ptr = nullptr;
             for (auto &plan : offer_media.plan) {
+                if (getCodecId(plan.codec) != codec) {
+                    continue;
+                }
+                //如果匹配失败了，那么随便选择一个plan
                 if (!failed) {
-                    //如果匹配失败了，那么随便选择一个plan
-                    if (getCodecId(plan.codec) != codec) {
-                        continue;
-                    }
                     //命中偏好的编码格式
                     if (!onMatchCodecPlan(plan, codec)) {
                         continue;
