@@ -225,10 +225,23 @@ if(ENABLE_API)
     add_subdirectory(api)
 endif()
 
-if(ENABLE_WEBRTC)
-    add_definitions(-DENABLE_WEBRTC)
-    add_subdirectory(webrtc)
-endif()
+if (ENABLE_WEBRTC)
+    #查找srtp是否安装
+    find_package(SRTP QUIET)
+    if (SRTP_FOUND)
+        message(STATUS "found library:${SRTP_LIBRARIES}")
+        include_directories(${SRTP_INCLUDE_DIRS})
+        list(APPEND LINK_LIB_LIST ${SRTP_LIBRARIES})
+
+        add_definitions(-DENABLE_WEBRTC)
+        include_directories(./webrtc)
+        file(GLOB SRC_WEBRTC_LIST ./webrtc/*.cpp ./webrtc/*.h ./webrtc/*.hpp)
+        add_library(webrtc ${SRC_WEBRTC_LIST})
+        list(APPEND LINK_LIB_LIST webrtc)
+    else ()
+        message(WARNING "srtp未找到, webrtc相关功能打开失败")
+    endif ()
+endif ()
 
 if (NOT IOS)
     #测试程序
