@@ -1,4 +1,4 @@
-#ifndef MS_UTILS_HPP
+﻿#ifndef MS_UTILS_HPP
 #define MS_UTILS_HPP
 
 #if defined(_WIN32)

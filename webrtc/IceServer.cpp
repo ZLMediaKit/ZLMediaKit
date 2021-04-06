@@ -1,4 +1,4 @@
-#define MS_CLASS "RTC::IceServer"
+﻿#define MS_CLASS "RTC::IceServer"
 // #define MS_LOG_DEV_LEVEL 3
 
 #include <utility>
