@@ -1342,7 +1342,8 @@ void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const
     if (!configure.enable) {
         return;
     }
-    bool failed = false;
+    bool check_profile = true;
+    bool check_codec = true;
 
 RETRY:
 
@@ -1357,15 +1358,13 @@ RETRY:
             }
             const RtcCodecPlan *offer_plan_ptr = nullptr;
             for (auto &plan : offer_media.plan) {
-                if (getCodecId(plan.codec) != codec) {
+                //先检查编码格式是否为偏好
+                if (check_codec && getCodecId(plan.codec) != codec) {
                     continue;
                 }
-                //如果匹配失败了，那么随便选择一个plan
-                if (!failed) {
-                    //命中偏好的编码格式
-                    if (!onMatchCodecPlan(plan, codec)) {
-                        continue;
-                    }
+                //命中偏好的编码格式,然后检查规格
+                if (check_profile && !onCheckCodecProfile(plan, codec)) {
+                    continue;
                 }
                 //找到中意的codec
                 offer_plan_ptr = &plan;
@@ -1495,9 +1494,15 @@ RETRY:
         }
     }
 
-    if (!failed) {
-        //只重试一次
-        failed = true;
+    if (check_profile) {
+        //如果是由于检查profile导致匹配失败，那么重试一次，且不检查profile
+        check_profile = false;
+        goto RETRY;
+    }
+
+    if (check_codec) {
+        //如果是由于检查codec导致匹配失败，那么重试一次，且不检查codec
+        check_codec = false;
         goto RETRY;
     }
 }
