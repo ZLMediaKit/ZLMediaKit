@@ -32,7 +32,7 @@ set(_SRTP_ROOT_PATHS
 
 find_path(SRTP_INCLUDE_DIRS
         NAMES srtp2/srtp.h
-        HINTS _SRTP_ROOT_PATHS
+        HINTS _SRTP_ROOT_PATHS  ${SRTP_PREFIX}
         PATH_SUFFIXES include
         )
 
@@ -42,7 +42,7 @@ endif()
 
 find_library(SRTP_LIBRARIES
         NAMES srtp2
-        HINTS ${_SRTP_ROOT_PATHS}
+        HINTS ${_SRTP_ROOT_PATHS} ${SRTP_PREFIX}
         PATH_SUFFIXES bin lib
         )
 
