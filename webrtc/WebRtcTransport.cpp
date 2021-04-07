@@ -295,22 +295,22 @@ void WebRtcTransportImp::onDestory() {
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
 
     if (_play_src) {
-        WarnP(_socket) << "RTC播放器("
-                       << _media_info._vhost << "/"
-                       << _media_info._app << "/"
-                       << _media_info._streamid
-                       << ")结束播放,耗时(s):" << duration;
+        WarnL << "RTC播放器("
+              << _media_info._vhost << "/"
+              << _media_info._app << "/"
+              << _media_info._streamid
+              << ")结束播放,耗时(s):" << duration;
         if (_bytes_usage >= iFlowThreshold * 1024) {
             NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, true, static_cast<SockInfo &>(*_socket));
         }
     }
 
     if (_push_src) {
-        WarnP(_socket) << "RTC推流器("
-                       << _media_info._vhost << "/"
-                       << _media_info._app << "/"
-                       << _media_info._streamid
-                       << ")结束推流,耗时(s):" << duration;
+        WarnL << "RTC推流器("
+              << _media_info._vhost << "/"
+              << _media_info._app << "/"
+              << _media_info._streamid
+              << ")结束推流,耗时(s):" << duration;
         if (_bytes_usage >= iFlowThreshold * 1024) {
             NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, false, static_cast<SockInfo &>(*_socket));
         }
