@@ -154,24 +154,30 @@ void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp){
 }
 
 std::string WebRtcTransport::getAnswerSdp(const string &offer){
-    //// 解析offer sdp ////
-    _offer_sdp = std::make_shared<RtcSession>();
-    _offer_sdp->loadFrom(offer);
-    onCheckSdp(SdpType::offer, *_offer_sdp);
-    setRemoteDtlsFingerprint(*_offer_sdp);
+    try {
+        //// 解析offer sdp ////
+        _offer_sdp = std::make_shared<RtcSession>();
+        _offer_sdp->loadFrom(offer);
+        onCheckSdp(SdpType::offer, *_offer_sdp);
+        setRemoteDtlsFingerprint(*_offer_sdp);
 
-    //// sdp 配置 ////
-    SdpAttrFingerprint fingerprint;
-    fingerprint.algorithm = _offer_sdp->media[0].fingerprint.algorithm;
-    fingerprint.hash = getFingerprint(fingerprint.algorithm, _dtls_transport);
-    RtcConfigure configure;
-    configure.setDefaultSetting(_ice_server->GetUsernameFragment(), _ice_server->GetPassword(), RtpDirection::sendrecv, fingerprint);
-    onRtcConfigure(configure);
+        //// sdp 配置 ////
+        SdpAttrFingerprint fingerprint;
+        fingerprint.algorithm = _offer_sdp->media[0].fingerprint.algorithm;
+        fingerprint.hash = getFingerprint(fingerprint.algorithm, _dtls_transport);
+        RtcConfigure configure;
+        configure.setDefaultSetting(_ice_server->GetUsernameFragment(), _ice_server->GetPassword(),
+                                    RtpDirection::sendrecv, fingerprint);
+        onRtcConfigure(configure);
 
-    //// 生成answer sdp ////
-    _answer_sdp = configure.createAnswer(*_offer_sdp);
-    onCheckSdp(SdpType::answer, *_answer_sdp);
-    return _answer_sdp->toString();
+        //// 生成answer sdp ////
+        _answer_sdp = configure.createAnswer(*_offer_sdp);
+        onCheckSdp(SdpType::answer, *_answer_sdp);
+        return _answer_sdp->toString();
+    } catch (exception &ex) {
+        onShutdown(SockException(Err_shutdown, ex.what()));
+        throw;
+    }
 }
 
 bool is_dtls(char *buf) {
