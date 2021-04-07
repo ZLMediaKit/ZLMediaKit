@@ -285,10 +285,37 @@ WebRtcTransportImp::~WebRtcTransportImp() {
 
 void WebRtcTransportImp::onDestory() {
     WebRtcTransport::onDestory();
+    uint64_t duration = _alive_ticker.createdTime() / 1000;
+
+    //流量统计事件广播
+    GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
+
+    if (_play_src) {
+        WarnP(_socket) << "RTC播放器("
+                       << _media_info._vhost << "/"
+                       << _media_info._app << "/"
+                       << _media_info._streamid
+                       << ")结束播放,耗时(s):" << duration;
+        if (_bytes_usage >= iFlowThreshold * 1024) {
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, true, static_cast<SockInfo &>(*_socket));
+        }
+    }
+
+    if (_push_src) {
+        WarnP(_socket) << "RTC推流器("
+                       << _media_info._vhost << "/"
+                       << _media_info._app << "/"
+                       << _media_info._streamid
+                       << ")结束推流,耗时(s):" << duration;
+        if (_bytes_usage >= iFlowThreshold * 1024) {
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, false, static_cast<SockInfo &>(*_socket));
+        }
+    }
 }
 
-void WebRtcTransportImp::attach(const RtspMediaSource::Ptr &src, bool is_play) {
+void WebRtcTransportImp::attach(const RtspMediaSource::Ptr &src, const MediaInfo &info, bool is_play) {
     assert(src);
+    _media_info = info;
     if (is_play) {
         _play_src = src;
     } else {
@@ -455,6 +482,7 @@ private:
 };
 
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
+    _bytes_usage += len;
     auto rtcps = RtcpHeader::loadFromBytes((char *) buf, len);
     for (auto rtcp : rtcps) {
         switch ((RtcpType) rtcp->pt) {
@@ -504,6 +532,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 }
 
 void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
+    _bytes_usage += len;
     _alive_ticker.resetTime();
     RtpHeader *rtp = (RtpHeader *) buf;
     //根据接收到的rtp的pt信息，找到该流的信息
@@ -549,6 +578,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
         //忽略，对方不支持该编码类型
         return;
     }
+    _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, pt);
     //统计rtp发送情况，好做sr汇报
     _rtp_info_pt[pt].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);

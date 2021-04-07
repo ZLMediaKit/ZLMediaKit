@@ -1104,7 +1104,7 @@ void installWebApi() {
                         throw runtime_error(StrPrinter << "播放鉴权失败:" << err);
                     }
                     auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
-                    rtc->attach(src, true);
+                    rtc->attach(src, info, true);
                     val["sdp"] = rtc->getAnswerSdp(offer_sdp);
                     val["type"] = "answer";
                     invoker(200, headerOut, val.toStyledString());
@@ -1138,7 +1138,7 @@ void installWebApi() {
                     push_src->setProtocolTranslation(enableHls, enableMP4);
                     auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
                     push_src->setListener(rtc);
-                    rtc->attach(push_src, false);
+                    rtc->attach(push_src, info, false);
                     val["sdp"] = rtc->getAnswerSdp(offer_sdp);
                     val["type"] = "answer";
                     invoker(200, headerOut, val.toStyledString());
