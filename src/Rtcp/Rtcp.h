@@ -124,6 +124,12 @@ public:
      */
     string dumpString() const;
 
+    /**
+     * 根据length字段获取rtcp总长度
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
+    size_t getSize() const;
+
 protected:
     /**
      * 网络字节序转换为主机字节序
@@ -465,11 +471,69 @@ public:
 
 public:
     /**
-     * 创建SDES包，只赋值了RtcpHeader以及SdesItem对象的length和text部分
-     * @param item_text SdesItem列表，只赋值length和text部分
-     * @return SDES包
+     * 创建pli包
      */
     static std::shared_ptr<RtcpPli> create();
+
+private:
+    /**
+    * 打印字段详情
+    * 使用net2Host转换成主机字节序后才可使用此函数
+    */
+    string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     * @param size 字节长度，防止内存越界
+     */
+    void net2Host(size_t size);
+} PACKED;
+
+//BYE
+/*
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |V=2|P|    SC   |   PT=BYE=203  |             length            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                           SSRC/CSRC                           |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      :                              ...                              :
+      +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+(opt) |     length    |               reason for leaving            ...
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
+
+class RtcpBye : public RtcpHeader {
+public:
+    friend class RtcpHeader;
+    /* 变长，根据count决定有多少个ssrc */
+    uint32_t ssrc;
+
+    /** 中间可能有若干个 ssrc **/
+
+    /* 可选 */
+    uint8_t reason_len;
+    char reason;
+
+public:
+    /**
+     * 创建bye包
+     * @param ssrc ssrc列表
+     * @param reason 原因
+     * @return rtcp bye包
+     */
+    static std::shared_ptr<RtcpBye> create(const std::initializer_list<uint32_t> &ssrc, const string &reason);
+
+    /**
+     * 获取ssrc列表
+     */
+    vector<uint32_t *> getSSRC();
+
+    /**
+     * 获取原因
+     */
+    string getReason() const;
 
 private:
     /**
