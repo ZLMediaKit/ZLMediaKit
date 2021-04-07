@@ -533,7 +533,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 break;
             }
             case RtcpType::RTCP_PSFB: {
-//                InfoL << rtcp->dumpString();
+                //todo 支持pli等更多类型的rtcp
                 break;
             }
             default: break;
@@ -561,11 +561,10 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
 void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
     if(!info.is_common_rtp){
         //todo rtx/red/ulpfec类型的rtp先未处理
-        WarnL;
         return;
     }
     if (_pli_ticker.elapsedTime() > 2000) {
-        //todo 定期发送pli
+        //定期发送pli请求关键帧，方便非rtc等协议
         _pli_ticker.resetTime();
         auto pli = RtcpPli::create();
         pli->ssrc = htonl(0);

@@ -133,6 +133,11 @@ void RtcpHeader::net2Host(size_t len){
             bye->net2Host(len);
             break;
         }
+
+        case RtcpType::RTCP_RTPFB: {
+            //todo 支持rtcp-fb相关功能
+            break;
+        }
         default: throw std::runtime_error(StrPrinter << "未处理的rtcp包:" << rtcpTypeToStr((RtcpType) this->pt));
     }
 }
