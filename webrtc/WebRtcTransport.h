@@ -110,7 +110,7 @@ private:
 
 class RtpReceiverImp;
 
-class WebRtcTransportImp : public WebRtcTransport, public std::enable_shared_from_this<WebRtcTransportImp>{
+class WebRtcTransportImp : public WebRtcTransport, public MediaSourceEvent, public std::enable_shared_from_this<WebRtcTransportImp>{
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
     ~WebRtcTransportImp() override;
@@ -138,6 +138,20 @@ protected:
     void onRtp(const char *buf, size_t len) override;
     void onRtcp(const char *buf, size_t len) override;
     void onShutdown(const SockException &ex) override;
+
+    void OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) override;
+
+    ///////MediaSourceEvent override///////
+    // 关闭
+    bool close(MediaSource &sender, bool force) override;
+    // 播放总人数
+    int totalReaderCount(MediaSource &sender) override;
+    // 获取媒体源类型
+    MediaOriginType getOriginType(MediaSource &sender) const override;
+    // 获取媒体源url或者文件路径
+    string getOriginUrl(MediaSource &sender) const override;
+    // 获取媒体源客户端相关信息
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
 private:
     WebRtcTransportImp(const EventPoller::Ptr &poller);

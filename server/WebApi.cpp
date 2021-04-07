@@ -1137,6 +1137,7 @@ void installWebApi() {
                     auto push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
                     push_src->setProtocolTranslation(enableHls, enableMP4);
                     auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
+                    push_src->setListener(rtc);
                     rtc->attach(push_src, false);
                     val["sdp"] = rtc->getAnswerSdp(offer_sdp);
                     val["type"] = "answer";
