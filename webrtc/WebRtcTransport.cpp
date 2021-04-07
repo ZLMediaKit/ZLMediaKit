@@ -559,3 +559,35 @@ void WebRtcTransportImp::onShutdown(const SockException &ex){
     _self = nullptr;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+bool WebRtcTransportImp::close(MediaSource &sender, bool force) {
+    //此回调在其他线程触发
+    if(!_push_src || (!force && _push_src->totalReaderCount())){
+        return false;
+    }
+    string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    onShutdown(SockException(Err_shutdown,err));
+    return true;
+}
+
+int WebRtcTransportImp::totalReaderCount(MediaSource &sender) {
+    return _push_src ? _push_src->totalReaderCount() : sender.readerCount();
+}
+
+MediaOriginType WebRtcTransportImp::getOriginType(MediaSource &sender) const {
+    return MediaOriginType::rtc_push;
+}
+
+string WebRtcTransportImp::getOriginUrl(MediaSource &sender) const {
+    return "";
+}
+
+std::shared_ptr<SockInfo> WebRtcTransportImp::getOriginSock(MediaSource &sender) const {
+    return const_cast<WebRtcTransportImp *>(this)->_socket;
+}
+
+void WebRtcTransportImp::OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) {
+    WebRtcTransport::OnIceServerSelectedTuple(iceServer, tuple);
+    _socket->setSendPeerAddr(tuple);
+}
