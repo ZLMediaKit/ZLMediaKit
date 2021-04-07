@@ -1081,7 +1081,6 @@ void installWebApi() {
     });
 
 #ifdef ENABLE_WEBRTC
-    static list<WebRtcTransportImp::Ptr> rtcs;
     api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
         CHECK_ARGS("app", "stream");
 
@@ -1108,7 +1107,6 @@ void installWebApi() {
                     rtc->attach(src, true);
                     val["sdp"] = rtc->getAnswerSdp(offer_sdp);
                     val["type"] = "answer";
-                    rtcs.emplace_back(rtc);
                     invoker(200, headerOut, val.toStyledString());
                 } catch (std::exception &ex) {
                     val["code"] = API::Exception;
@@ -1142,7 +1140,6 @@ void installWebApi() {
                     rtc->attach(push_src, false);
                     val["sdp"] = rtc->getAnswerSdp(offer_sdp);
                     val["type"] = "answer";
-                    rtcs.emplace_back(rtc);
                     invoker(200, headerOut, val.toStyledString());
                 } catch (std::exception &ex) {
                     val["code"] = API::Exception;

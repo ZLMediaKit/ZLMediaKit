@@ -6,6 +6,21 @@
 #define RTP_CNAME "zlmediakit-rtp"
 #define RTX_CNAME "zlmediakit-rtx"
 
+//RTC配置项目
+namespace RTC {
+#define RTC_FIELD "rtc."
+//rtp和rtcp接受超时时间
+const string kTimeOutSec = RTC_FIELD"timeoutSec";
+//服务器外网ip
+const string kExternIP = RTC_FIELD"externIP";
+
+static onceToken token([]() {
+    mINI::Instance()[kTimeOutSec] = 15;
+    mINI::Instance()[kExternIP] = "";
+});
+
+}//namespace RTC
+
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
     _dtls_transport = std::make_shared<RTC::DtlsTransport>(poller, this);
@@ -72,6 +87,23 @@ void WebRtcTransport::OnDtlsTransportSendData(const RTC::DtlsTransport *dtlsTran
     onSendSockData((char *)data, len);
 }
 
+void WebRtcTransport::OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) {
+    InfoL;
+}
+
+void WebRtcTransport::OnDtlsTransportFailed(const RTC::DtlsTransport *dtlsTransport) {
+    InfoL;
+    onShutdown(SockException(Err_shutdown, "dtls transport failed"));
+}
+
+void WebRtcTransport::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) {
+    InfoL;
+    onShutdown(SockException(Err_shutdown, "dtls close notify received"));
+}
+
+void WebRtcTransport::OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) {
+    InfoL << hexdump(data, len);
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void WebRtcTransport::onSendSockData(const char *buf, size_t len, bool flush){
@@ -228,10 +260,27 @@ void WebRtcTransportImp::onCreate(){
             strong_self->inputSockData(buf->data(), buf->size(), addr);
         }
     });
+    _self = shared_from_this();
+
+    GET_CONFIG(float, timeoutSec, RTC::kTimeOutSec);
+    _timer = std::make_shared<Timer>(timeoutSec / 2, [weak_self]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return false;
+        }
+        if (strong_self->_alive_ticker.elapsedTime() > timeoutSec * 1000) {
+            strong_self->onShutdown(SockException(Err_timeout, "接受rtp和rtcp超时"));
+        }
+        return true;
+    }, getPoller());
 }
 
 WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller) : WebRtcTransport(poller) {
+    InfoL << this;
+}
 
+WebRtcTransportImp::~WebRtcTransportImp() {
+    InfoL << this;
 }
 
 void WebRtcTransportImp::onDestory() {
@@ -367,8 +416,8 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
     candidate->transport = "udp";
     //优先级，单candidate时随便
     candidate->priority = 100;
-    //todo 此处修改为配置文件
-    candidate->address = SockUtil::get_local_ip();
+    GET_CONFIG(string, extern_ip, RTC::kExternIP);
+    candidate->address = extern_ip.empty() ? SockUtil::get_local_ip() : extern_ip;
     candidate->port = _socket->get_local_port();
     candidate->type = "host";
     return candidate;
@@ -421,6 +470,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 break;
             }
             case RtcpType::RTCP_RR : {
+                _alive_ticker.resetTime();
                 //对方汇报rtp接收情况
                 RtcpRR *rr = (RtcpRR *) rtcp;
                 auto it = _rtp_info_ssrc.find(rr->ssrc);
@@ -454,6 +504,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 }
 
 void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
+    _alive_ticker.resetTime();
     RtpHeader *rtp = (RtpHeader *) buf;
     //根据接收到的rtp的pt信息，找到该流的信息
     auto it = _rtp_info_pt.find(rtp->pt);
@@ -505,5 +556,6 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
 
 void WebRtcTransportImp::onShutdown(const SockException &ex){
     InfoL << ex.what();
+    _self = nullptr;
 }
 
