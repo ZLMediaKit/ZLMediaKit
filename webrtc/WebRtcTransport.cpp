@@ -120,6 +120,10 @@ const RtcSession& WebRtcTransport::getSdp(SdpType type) const{
     }
 }
 
+RTC::TransportTuple* WebRtcTransport::getSelectedTuple() const{
+    return  _ice_server->GetSelectedTuple();
+}
+
 string getFingerprint(const string &algorithm_str, const std::shared_ptr<RTC::DtlsTransport> &transport){
     auto algorithm = RTC::DtlsTransport::GetFingerprintAlgorithm(algorithm_str);
     for (auto &finger_prints : transport->GetLocalFingerprints()) {
@@ -614,10 +618,27 @@ string WebRtcTransportImp::getOriginUrl(MediaSource &sender) const {
 }
 
 std::shared_ptr<SockInfo> WebRtcTransportImp::getOriginSock(MediaSource &sender) const {
-    return const_cast<WebRtcTransportImp *>(this)->_socket;
+    return const_cast<WebRtcTransportImp *>(this)->shared_from_this();
 }
 
-void WebRtcTransportImp::OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) {
-    WebRtcTransport::OnIceServerSelectedTuple(iceServer, tuple);
-    _socket->setSendPeerAddr(tuple);
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+string WebRtcTransportImp::get_local_ip() {
+    return getSdp(SdpType::answer).media[0].candidate[0].address;
+}
+
+uint16_t WebRtcTransportImp::get_local_port() {
+    return _socket->get_local_port();
+}
+
+string WebRtcTransportImp::get_peer_ip() {
+    return SockUtil::inet_ntoa(((struct sockaddr_in *) getSelectedTuple())->sin_addr);
+}
+
+uint16_t WebRtcTransportImp::get_peer_port() {
+    return ntohs(((struct sockaddr_in *) getSelectedTuple())->sin_port);
+}
+
+string WebRtcTransportImp::getIdentifier() const {
+    return StrPrinter << this;
 }
