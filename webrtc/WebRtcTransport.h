@@ -127,7 +127,7 @@ public:
      * @param src 媒体源
      * @param is_play 是播放还是推流
      */
-    void attach(const RtspMediaSource::Ptr &src, bool is_play = true);
+    void attach(const RtspMediaSource::Ptr &src, const MediaInfo &info, bool is_play = true);
 
 protected:
     void onStartWebRTC() override;
@@ -176,6 +176,10 @@ private:
     void onBeforeSortedRtp(const RtpPayloadInfo &info,const RtpPacket::Ptr &rtp);
 
 private:
+    //用掉的总流量
+    uint64_t _bytes_usage = 0;
+    //媒体相关元数据
+    MediaInfo _media_info;
     //保持自我强引用
     Ptr _self;
     //检测超时的定时器
