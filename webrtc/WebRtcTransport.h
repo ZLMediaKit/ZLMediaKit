@@ -21,7 +21,12 @@ public:
     ~WebRtcTransport() override = default;
 
     /**
-     * 消费对象
+     * 创建对象
+     */
+    virtual void onCreate();
+
+    /**
+     * 销毁对象
      */
     virtual void onDestory();
 
@@ -84,6 +89,7 @@ protected:
 
     virtual void onRtp(const char *buf, size_t len) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
+    virtual void onShutdown(const SockException &ex) = 0;
 
 protected:
     const RtcSession& getSdp(SdpType type) const;
@@ -131,9 +137,11 @@ protected:
 
     void onRtp(const char *buf, size_t len) override;
     void onRtcp(const char *buf, size_t len) override;
+    void onShutdown(const SockException &ex) override;
 
 private:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
+    void onCreate() override;
     void onDestory() override;
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush);
     SdpAttrCandidate::Ptr getIceCandidate() const;
