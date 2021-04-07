@@ -59,7 +59,7 @@ public:
 
 protected:
     ////  dtls相关的回调 ////
-    void OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) override {};
+    void OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) override;
     void OnDtlsTransportConnected(const RTC::DtlsTransport *dtlsTransport,
                                   RTC::SrtpSession::CryptoSuite srtpCryptoSuite,
                                   uint8_t *srtpLocalKey,
@@ -68,10 +68,10 @@ protected:
                                   size_t srtpRemoteKeyLen,
                                   std::string &remoteCert) override;
 
-    void OnDtlsTransportFailed(const RTC::DtlsTransport *dtlsTransport) override {};
-    void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override {};
+    void OnDtlsTransportFailed(const RTC::DtlsTransport *dtlsTransport) override;
+    void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override;
     void OnDtlsTransportSendData(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
-    void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override {};
+    void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
 
 protected:
     //// ice相关的回调 ///
@@ -113,7 +113,7 @@ class RtpReceiverImp;
 class WebRtcTransportImp : public WebRtcTransport, public std::enable_shared_from_this<WebRtcTransportImp>{
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
-    ~WebRtcTransportImp() override = default;
+    ~WebRtcTransportImp() override;
 
     /**
      * 创建WebRTC对象
@@ -162,6 +162,12 @@ private:
     void onBeforeSortedRtp(const RtpPayloadInfo &info,const RtpPacket::Ptr &rtp);
 
 private:
+    //保持自我强引用
+    Ptr _self;
+    //检测超时的定时器
+    Timer::Ptr _timer;
+    //刷新计时器
+    Ticker _alive_ticker;
     //pli rtcp计时器
     Ticker _pli_ticker;
     //rtc rtp推流的视频ssrc
