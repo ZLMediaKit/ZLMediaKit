@@ -93,6 +93,7 @@ protected:
 
 protected:
     const RtcSession& getSdp(SdpType type) const;
+    RTC::TransportTuple* getSelectedTuple() const;
 
 private:
     void onSendSockData(const char *buf, size_t len, bool flush = true);
@@ -110,7 +111,7 @@ private:
 
 class RtpReceiverImp;
 
-class WebRtcTransportImp : public WebRtcTransport, public MediaSourceEvent, public std::enable_shared_from_this<WebRtcTransportImp>{
+class WebRtcTransportImp : public WebRtcTransport, public MediaSourceEvent, public SockInfo, public std::enable_shared_from_this<WebRtcTransportImp>{
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
     ~WebRtcTransportImp() override;
@@ -139,8 +140,6 @@ protected:
     void onRtcp(const char *buf, size_t len) override;
     void onShutdown(const SockException &ex) override;
 
-    void OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) override;
-
     ///////MediaSourceEvent override///////
     // 关闭
     bool close(MediaSource &sender, bool force) override;
@@ -152,6 +151,18 @@ protected:
     string getOriginUrl(MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+
+    ///////SockInfo override///////
+    //获取本机ip
+    string get_local_ip() override;
+    //获取本机端口号
+    uint16_t get_local_port() override;
+    //获取对方ip
+    string get_peer_ip() override;
+    //获取对方端口号
+    uint16_t get_peer_port() override;
+    //获取标识符
+    string getIdentifier() const override;
 
 private:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
