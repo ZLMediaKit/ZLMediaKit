@@ -19,6 +19,7 @@
 #include "Rtsp/RtspSession.h"
 #include "Http/HttpSession.h"
 #include "WebHook.h"
+#include "WebApi.h"
 
 using namespace toolkit;
 using namespace mediakit;
@@ -301,10 +302,14 @@ void installWebHook(){
         }
         ArgsType body;
         body["regist"] = bRegist;
-        body["schema"] = sender.getSchema();
-        body["vhost"] = sender.getVhost();
-        body["app"] = sender.getApp();
-        body["stream"] = sender.getId();
+        if (bRegist) {
+            body = makeMediaSourceJson(sender);
+        } else {
+            body["schema"] = sender.getSchema();
+            body["vhost"] = sender.getVhost();
+            body["app"] = sender.getApp();
+            body["stream"] = sender.getId();
+        }
         //执行hook
         do_http_hook(hook_stream_chaned,body, nullptr);
     });
