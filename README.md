@@ -13,7 +13,7 @@
 ## 项目特点
 
 - 基于C++11开发，避免使用裸指针，代码稳定可靠，性能优越。
-- 支持多种协议(RTSP/RTMP/HLS/HTTP-FLV/WebSocket-FLV/GB28181/HTTP-TS/WebSocket-TS/HTTP-fMP4/WebSocket-fMP4/MP4),支持协议互转。
+- 支持多种协议(RTSP/RTMP/HLS/HTTP-FLV/WebSocket-FLV/GB28181/HTTP-TS/WebSocket-TS/HTTP-fMP4/WebSocket-fMP4/MP4/WebRTC),支持协议互转。
 - 使用多路复用/多线程/异步网络IO模式开发，并发性能优越，支持海量客户端连接。
 - 代码经过长期大量的稳定性、性能测试，已经在线上商用验证已久。
 - 支持linux、macos、ios、android、windows全平台。
@@ -91,6 +91,10 @@
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
   - 支持H264/H265/AAC/G711/OPUS编码
+  
+- WebRTC(体验,请使用dev分支)
+  - 支持WebRTC推流，支持转其他协议
+  - 支持WebRTC播放，支持其他协议转WebRTC     
   
 - 其他
   - 支持丰富的restful api以及web hook事件 
