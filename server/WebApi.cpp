@@ -247,6 +247,61 @@ static inline string getProxyKey(const string &vhost,const string &app,const str
     return vhost + "/" + app + "/" + stream;
 }
 
+Value makeMediaSourceJson(MediaSource &media){
+    Value item;
+    item["schema"] = media.getSchema();
+    item["vhost"] = media.getVhost();
+    item["app"] = media.getApp();
+    item["stream"] = media.getId();
+    item["createStamp"] = (Json::UInt64) media.getCreateStamp();
+    item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
+    item["bytesSpeed"] = media.getBytesSpeed();
+    item["readerCount"] = media.readerCount();
+    item["totalReaderCount"] = media.totalReaderCount();
+    item["originType"] = (int) media.getOriginType();
+    item["originTypeStr"] = getOriginTypeString(media.getOriginType());
+    item["originUrl"] = media.getOriginUrl();
+    auto originSock = media.getOriginSock();
+    if (originSock) {
+        item["originSock"]["local_ip"] = originSock->get_local_ip();
+        item["originSock"]["local_port"] = originSock->get_local_port();
+        item["originSock"]["peer_ip"] = originSock->get_peer_ip();
+        item["originSock"]["peer_port"] = originSock->get_peer_port();
+        item["originSock"]["identifier"] = originSock->getIdentifier();
+    } else {
+        item["originSock"] = Json::nullValue;
+    }
+
+    for(auto &track : media.getTracks()){
+        Value obj;
+        auto codec_type = track->getTrackType();
+        obj["codec_id"] = track->getCodecId();
+        obj["codec_id_name"] = track->getCodecName();
+        obj["ready"] = track->ready();
+        obj["codec_type"] = codec_type;
+        switch(codec_type){
+            case TrackAudio : {
+                auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+                obj["sample_rate"] = audio_track->getAudioSampleRate();
+                obj["channels"] = audio_track->getAudioChannel();
+                obj["sample_bit"] = audio_track->getAudioSampleBit();
+                break;
+            }
+            case TrackVideo : {
+                auto video_track = dynamic_pointer_cast<VideoTrack>(track);
+                obj["width"] = video_track->getVideoWidth();
+                obj["height"] = video_track->getVideoHeight();
+                obj["fps"] = round(video_track->getVideoFps());
+                break;
+            }
+            default:
+                break;
+        }
+        item["tracks"].append(obj);
+    }
+    return item;
+}
+
 /**
  * 安装api接口
  * 所有api都支持GET和POST两种方式
@@ -370,62 +425,6 @@ void installWebApi() {
     });
 #endif//#if !defined(_WIN32)
 
-
-    static auto makeMediaSourceJson = [](const MediaSource::Ptr &media){
-        Value item;
-        item["schema"] = media->getSchema();
-        item["vhost"] = media->getVhost();
-        item["app"] = media->getApp();
-        item["stream"] = media->getId();
-        item["createStamp"] = (Json::UInt64) media->getCreateStamp();
-        item["aliveSecond"] = (Json::UInt64) media->getAliveSecond();
-        item["bytesSpeed"] = media->getBytesSpeed();
-        item["readerCount"] = media->readerCount();
-        item["totalReaderCount"] = media->totalReaderCount();
-        item["originType"] = (int) media->getOriginType();
-        item["originTypeStr"] = getOriginTypeString(media->getOriginType());
-        item["originUrl"] = media->getOriginUrl();
-        auto originSock = media->getOriginSock();
-        if (originSock) {
-            item["originSock"]["local_ip"] = originSock->get_local_ip();
-            item["originSock"]["local_port"] = originSock->get_local_port();
-            item["originSock"]["peer_ip"] = originSock->get_peer_ip();
-            item["originSock"]["peer_port"] = originSock->get_peer_port();
-            item["originSock"]["identifier"] = originSock->getIdentifier();
-        } else {
-            item["originSock"] = Json::nullValue;
-        }
-
-        for(auto &track : media->getTracks()){
-            Value obj;
-            auto codec_type = track->getTrackType();
-            obj["codec_id"] = track->getCodecId();
-            obj["codec_id_name"] = track->getCodecName();
-            obj["ready"] = track->ready();
-            obj["codec_type"] = codec_type;
-            switch(codec_type){
-                case TrackAudio : {
-                    auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
-                    obj["sample_rate"] = audio_track->getAudioSampleRate();
-                    obj["channels"] = audio_track->getAudioChannel();
-                    obj["sample_bit"] = audio_track->getAudioSampleBit();
-                    break;
-                }
-                case TrackVideo : {
-                    auto video_track = dynamic_pointer_cast<VideoTrack>(track);
-                    obj["width"] = video_track->getVideoWidth();
-                    obj["height"] = video_track->getVideoHeight();
-                    obj["fps"] = round(video_track->getVideoFps());
-                    break;
-                }
-                default:
-                    break;
-            }
-            item["tracks"].append(obj);
-        }
-        return item;
-    };
-
     //获取流列表，可选筛选参数
     //测试url0(获取所有流) http://127.0.0.1/index/api/getMediaList
     //测试url1(获取虚拟主机为"__defaultVost__"的流) http://127.0.0.1/index/api/getMediaList?vhost=__defaultVost__
@@ -446,7 +445,7 @@ void installWebApi() {
             if (!allArgs["stream"].empty() && allArgs["stream"] != media->getId()) {
                 return;
             }
-            val["data"].append(makeMediaSourceJson(media));
+            val["data"].append(makeMediaSourceJson(*media));
         });
     });
 
@@ -466,7 +465,7 @@ void installWebApi() {
             val["online"] = false;
             return;
         }
-        val = makeMediaSourceJson(src);
+        val = makeMediaSourceJson(*src);
         val["online"] = true;
         val["code"] = API::Success;
     });
@@ -1083,7 +1082,7 @@ void installWebApi() {
         val["passwd"] = allArgs["user_name"].data();
     });
 
-    api_regist("/index/hook/on_stream_changed",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_stream_changed",[](API_ARGS_JSON){
         //媒体注册或反注册事件
     });
 
