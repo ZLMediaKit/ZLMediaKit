@@ -659,16 +659,16 @@ void SdpAttrSSRCGroup::parse(const string &str) {
             SDP_THROW();
         }
         type = std::move(vec[0]);
-        u.fid.rtp_ssrc = atoi(vec[1].data());
-        u.fid.rtx_ssrc = atoi(vec[2].data());
+        u.fid.rtp_ssrc = atoll(vec[1].data()) & 0xFFFFFFFF;
+        u.fid.rtx_ssrc = atoll(vec[2].data()) & 0xFFFFFFFF;
     } else if (vec.size() == 4) {
         if (vec[0] != "SIM") {
             SDP_THROW();
         }
         type = std::move(vec[0]);
-        u.sim.rtp_ssrc_low = atoi(vec[1].data());
-        u.sim.rtp_ssrc_mid = atoi(vec[2].data());
-        u.sim.rtp_ssrc_high = atoi(vec[3].data());
+        u.sim.rtp_ssrc_low = atoll(vec[1].data()) & 0xFFFFFFFF;
+        u.sim.rtp_ssrc_mid = atoll(vec[2].data()) & 0xFFFFFFFF;
+        u.sim.rtp_ssrc_high = atoll(vec[3].data()) & 0xFFFFFFFF;
     } else {
         SDP_THROW();
     }
