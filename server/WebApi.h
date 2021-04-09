@@ -141,5 +141,5 @@ bool checkArgs(const Parser &args, First &&first, KeyTypes &&...keys) {
 
 void installWebApi();
 void unInstallWebApi();
-
+Value makeMediaSourceJson(MediaSource &media);
 #endif //ZLMEDIAKIT_WEBAPI_H
