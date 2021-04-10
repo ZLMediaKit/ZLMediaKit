@@ -212,7 +212,7 @@ private:
     //rtc rtp推流的视频ssrc
     uint32_t _recv_video_ssrc;
     //记录协商的rtp的pt类型
-    uint8_t _send_rtp_pt[2] = {0, 0};
+    uint8_t _send_rtp_pt[2] = {0xFF, 0xFF};
     //复合udp端口，接收一切rtp与rtcp
     Socket::Ptr _socket;
     //推流的rtsp源
