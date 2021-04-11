@@ -48,4 +48,4 @@ else()
 	install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_EXECUTABLE})
 endif()
 
-target_link_libraries(MediaServer jsoncpp ${LINK_LIB_LIST})
+target_link_libraries(MediaServer -Wl,--start-group jsoncpp ${LINK_LIB_LIST}  -Wl,--end-group)
