@@ -198,6 +198,7 @@ protected:
 
 private:
     uint32_t _ssrc[2] = {0, 0};
+    Ticker _ssrc_alive[2];
     //rtp排序缓存，根据seq排序
     PacketSortor<RtpPacket::Ptr> _rtp_sortor[2];
 };
