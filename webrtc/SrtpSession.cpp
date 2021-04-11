@@ -244,7 +244,7 @@ namespace RTC
 		}
 
 		std::memcpy(EncryptBuffer, *data, *len);
-        EncryptBuffer[1] |= (pt & 0x7F);
+        EncryptBuffer[1] = (pt & 0x7F) | (EncryptBuffer[1] & 0x80);
 
 		srtp_err_status_t err =
 		  srtp_protect(this->session, static_cast<void*>(EncryptBuffer), reinterpret_cast<int*>(len));

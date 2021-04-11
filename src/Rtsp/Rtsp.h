@@ -150,7 +150,11 @@ public:
         kRtpTcpHeaderSize = 4
     };
 
+    //获取rtp头
     RtpHeader* getHeader();
+    //打印调试信息
+    string dumpString() const;
+
     //主机字节序的seq
     uint16_t getSeq();
     //主机字节序的时间戳，已经转换为毫秒
