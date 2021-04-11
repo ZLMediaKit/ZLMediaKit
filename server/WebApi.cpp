@@ -272,7 +272,7 @@ Value makeMediaSourceJson(MediaSource &media){
         item["originSock"] = Json::nullValue;
     }
 
-    for(auto &track : media.getTracks()){
+    for(auto &track : media.getTracks(false)){
         Value obj;
         auto codec_type = track->getTrackType();
         obj["codec_id"] = track->getCodecId();
