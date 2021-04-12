@@ -11,7 +11,7 @@
 
 ## Why ZLMediaKit?
 - Developed based on C++ 11, the code is stable and reliable, avoiding the use of raw pointers, cross-platform porting is simple and convenient, and the code is clear and concise.
-- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV/WebSocket-flv/HTTP-TS/WebSocket-TS/HTTP-fMP4/Websocket-fMP4/MP4`),and support Inter-protocol conversion.
+- Support rich streaming media protocols(`RTSP/RTMP/HLS/HTTP-FLV/WebSocket-flv/HTTP-TS/WebSocket-TS/HTTP-fMP4/Websocket-fMP4/MP4/WebRTC`),and support Inter-protocol conversion.
 - Multiplexing asynchronous network IO based on epoll and multi thread，extreme performance.
 - Well performance and stable test,can be used commercially.
 - Support linux, macos, ios, android, Windows Platforms.
@@ -55,6 +55,10 @@
   - WebSocket Server and Client.
   - File access authentication.
   
+- WebRTC(experiential, dev branch)
+  - Support webrtc push stream and transfer to other protocols
+  - Support webrtc play, support other protocol to webrtc
+
 - Others
   - Support stream proxy by ffmpeg.
   - RESTful http api and http hook event api.

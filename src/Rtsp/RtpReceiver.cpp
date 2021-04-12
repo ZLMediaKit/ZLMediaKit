@@ -53,12 +53,22 @@ bool RtpReceiver::handleOneRtp(int index, TrackType type, int sample_rate, uint8
     auto ssrc = ntohl(header->ssrc);
 
     if (!_ssrc[index]) {
-        //保存SSRC至track对象
+        //记录并锁定ssrc
         _ssrc[index] = ssrc;
-    } else if (_ssrc[index] != ssrc) {
+        _ssrc_alive[index].resetTime();
+    } else if (_ssrc[index] == ssrc) {
+        //ssrc匹配正确,刷新计时器
+        _ssrc_alive[index].resetTime();
+    } else {
         //ssrc错误
-        WarnL << "ssrc错误:" << ssrc << " != " << _ssrc[index];
-        return false;
+        if (_ssrc_alive[index].elapsedTime() < 10 * 1000) {
+            //接受正确ssrc的rtp在10秒内，那么我们认为存在多路rtp,忽略掉ssrc不匹配的rtp
+            WarnL << "ssrc比匹配,rtp已丢弃:" << ssrc << " != " << _ssrc[index];
+            return false;
+        }
+        InfoL << "rtp流ssrc切换:" << _ssrc[index] << " -> " << ssrc;
+        _ssrc[index] = ssrc;
+        _ssrc_alive[index].resetTime();
     }
 
     auto rtp = RtpPacket::create();
