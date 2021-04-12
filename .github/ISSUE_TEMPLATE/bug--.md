@@ -1,6 +1,6 @@
 ---
 name: bug反馈
-about: 反馈一个bug，这里应该有bug的简单描述
+about: 反馈zlmediakit代码本身的bug
 title: "[BUG]"
 labels: bug
 assignees: ''
