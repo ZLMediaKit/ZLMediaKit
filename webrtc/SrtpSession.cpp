@@ -1,4 +1,22 @@
-﻿#define MS_CLASS "RTC::SrtpSession"
+﻿/**
+ISC License
+
+Copyright © 2015, Iñaki Baz Castillo <ibc@aliax.net>
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#define MS_CLASS "RTC::SrtpSession"
 // #define MS_LOG_DEV_LEVEL 3
 
 #include "SrtpSession.hpp"
@@ -226,7 +244,7 @@ namespace RTC
 		}
 
 		std::memcpy(EncryptBuffer, *data, *len);
-        EncryptBuffer[1] |= (pt & 0x7F);
+        EncryptBuffer[1] = (pt & 0x7F) | (EncryptBuffer[1] & 0x80);
 
 		srtp_err_status_t err =
 		  srtp_protect(this->session, static_cast<void*>(EncryptBuffer), reinterpret_cast<int*>(len));

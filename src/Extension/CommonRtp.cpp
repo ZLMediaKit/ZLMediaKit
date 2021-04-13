@@ -69,7 +69,7 @@ CommonRtpEncoder::CommonRtpEncoder(CodecId codec, uint32_t ssrc, uint32_t mtu_si
 }
 
 void CommonRtpEncoder::inputFrame(const Frame::Ptr &frame){
-    auto stamp = frame->dts();
+    auto stamp = frame->pts();
     auto ptr = frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
     auto remain_size = len;
