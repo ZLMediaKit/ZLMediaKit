@@ -1,4 +1,14 @@
-﻿#include "WebRtcTransport.h"
+﻿/*
+ * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+ */
+
+#include "WebRtcTransport.h"
 #include <iostream>
 #include "Rtcp/Rtcp.h"
 #include "Rtsp/RtpReceiver.h"
@@ -583,7 +593,7 @@ void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const Rtp
 
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
     auto &pt = _send_rtp_pt[rtp->type];
-    if (!pt) {
+    if (pt == 0xFF) {
         //忽略，对方不支持该编码类型
         return;
     }

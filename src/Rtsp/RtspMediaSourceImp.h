@@ -56,7 +56,11 @@ public:
             //需要解复用rtp
             key_pos = _demuxer->inputRtp(rtp);
         }
-        RtspMediaSource::onWrite(std::move(rtp), key_pos);
+        GET_CONFIG(bool, directProxy, Rtsp::kDirectProxy);
+        if (directProxy) {
+            //直接代理模式才直接使用原始rtp
+            RtspMediaSource::onWrite(std::move(rtp), key_pos);
+        }
     }
 
     /**
@@ -72,8 +76,10 @@ public:
      * @param enableMP4  是否mp4录制
      */
     void setProtocolTranslation(bool enableHls,bool enableMP4){
-        //不重复生成rtsp
-        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), false, true, enableHls, enableMP4);
+        GET_CONFIG(bool, directProxy, Rtsp::kDirectProxy);
+        //开启直接代理模式时，rtsp直接代理，不重复产生；但是有些rtsp推流端，由于sdp中已有sps pps，rtp中就不再包括sps pps,
+        //导致rtc无法播放，所以在rtsp推流rtc播放时，建议关闭直接代理模式
+        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), !directProxy, true, enableHls, enableMP4);
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)

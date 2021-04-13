@@ -521,6 +521,10 @@ RtpHeader* RtpPacket::getHeader(){
     return (RtpHeader*)(data() + RtpPacket::kRtpTcpHeaderSize);
 }
 
+string RtpPacket::dumpString() const{
+    return ((RtpPacket *) this)->getHeader()->dumpString(size() - RtpPacket::kRtpTcpHeaderSize);
+}
+
 uint16_t RtpPacket::getSeq(){
     return ntohs(getHeader()->seq);
 }
