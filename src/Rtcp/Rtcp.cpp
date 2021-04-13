@@ -38,7 +38,7 @@ const char *psfbTypeToStr(PSFBType type) {
 #define SWITCH_CASE(key, value) case PSFBType::key :  return #value "(" #key ")";
         PSFB_TYPE_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default: return "unknown payload-specific fb message (rfc4585) type";
+        default: return "unknown payload-specific fb message fmt type";
     }
 }
 
@@ -385,7 +385,7 @@ string SdesItem::dumpString() const{
     printer << "ssrc:" << ssrc << "\r\n";
     printer << "type:" << sdesTypeToStr((SdesType) type) << "\r\n";
     printer << "length:" << (int) length << "\r\n";
-    printer << "text:" << (length ? string(&text, length) : "") << "\r\n";
+    printer << "text:" << (length ? string(text, length) : "") << "\r\n";
     return std::move(printer);
 }
 
@@ -403,7 +403,7 @@ std::shared_ptr<RtcpSdes> RtcpSdes::create(const std::initializer_list<string> &
     for (auto &text : item_text) {
         item_ptr->length = (0xFF & text.size());
         //确保赋值\0为RTCP_SDES_END
-        memcpy(&(item_ptr->text), text.data(), item_ptr->length + 1);
+        memcpy(item_ptr->text, text.data(), item_ptr->length + 1);
         item_ptr = (SdesItem *) ((char *) item_ptr + item_ptr->totalBytes());
     }
 
@@ -555,7 +555,7 @@ void RtcpBye::net2Host(size_t size) {
     }
 }
 
-#if 0
+#if 1
 #include "Util/onceToken.h"
 
 static toolkit::onceToken token([](){
