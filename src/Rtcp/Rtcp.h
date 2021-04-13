@@ -55,6 +55,33 @@ namespace mediakit {
         XX(RTCP_SDES_NOTE, 7) \
         XX(RTCP_SDES_PRIVATE, 8)
 
+//https://datatracker.ietf.org/doc/rfc4585/?include_text=1
+//6.3.  Payload-Specific Feedback Messages
+//
+//   Payload-Specific FB messages are identified by the value PT=PSFB as
+//   RTCP message type.
+//
+//   Three payload-specific FB messages are defined so far plus an
+//   application layer FB message.  They are identified by means of the
+//   FMT parameter as follows:
+//
+//      0:     unassigned
+//      1:     Picture Loss Indication (PLI)
+//      2:     Slice Loss Indication (SLI)
+//      3:     Reference Picture Selection Indication (RPSI)
+//      4-14:  unassigned
+//      15:    Application layer FB (AFB) message
+//      16-30: unassigned
+//      31:    reserved for future expansion of the sequence number space
+
+#define PSFB_TYPE_MAP(XX) \
+        XX(RTCP_PSFB_PLI, 1) \
+        XX(RTCP_PSFB_SLI, 2) \
+        XX(RTCP_PSFB_RPSI, 3) \
+        XX(RTCP_PSFB_FIR, 4) \
+        XX(RTCP_PSFB_TSTR, 5) \
+        XX(RTCP_PSFB_AFB, 15)
+
 //rtcp类型枚举
 enum class RtcpType : uint8_t {
 #define XX(key, value) key = value,
@@ -69,6 +96,13 @@ enum class SdesType : uint8_t {
 #undef XX
 };
 
+//psfb类型枚举
+enum class PSFBType : uint8_t {
+#define XX(key, value) key = value,
+    PSFB_TYPE_MAP(XX)
+#undef XX
+};
+
 /**
  * RtcpType转描述字符串
  */
@@ -78,6 +112,11 @@ const char *rtcpTypeToStr(RtcpType type);
  * SdesType枚举转描述字符串
  */
 const char *sdesTypeToStr(SdesType type);
+
+/**
+ * psfb枚举转描述字符串
+ */
+const char *psfbTypeToStr(PSFBType type);
 
 class RtcpHeader {
 public:
@@ -462,7 +501,23 @@ private:
     void net2Host(size_t size);
 } PACKED;
 
-//PLI
+//6.1.   Common Packet Format for Feedback Messages
+//
+//   All FB messages MUST use a common packet format that is depicted in
+//   Figure 3:
+//
+//    0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |V=2|P|   FMT   |       PT      |          length               |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                  SSRC of packet sender                        |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                  SSRC of media source                         |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   :            Feedback Control Information (FCI)                 :
+//   :                                                               :
+
 class RtcpPli : public RtcpHeader {
 public:
     friend class RtcpHeader;

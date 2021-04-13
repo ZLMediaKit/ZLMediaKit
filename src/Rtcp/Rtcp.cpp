@@ -33,6 +33,15 @@ const char *sdesTypeToStr(SdesType type){
     }
 }
 
+const char *psfbTypeToStr(PSFBType type) {
+    switch (type){
+#define SWITCH_CASE(key, value) case PSFBType::key :  return #value "(" #key ")";
+        PSFB_TYPE_MAP(SWITCH_CASE)
+#undef SWITCH_CASE
+        default: return "unknown payload-specific fb message (rfc4585) type";
+    }
+}
+
 static size_t alignSize(size_t bytes) {
     return (size_t)((bytes + 3) / 4) << 2;
 }
@@ -136,6 +145,7 @@ void RtcpHeader::net2Host(size_t len){
 
         case RtcpType::RTCP_RTPFB: {
             //todo 支持rtcp-fb相关功能
+            net2Host();
             break;
         }
         default: throw std::runtime_error(StrPrinter << "未处理的rtcp包:" << rtcpTypeToStr((RtcpType) this->pt));
