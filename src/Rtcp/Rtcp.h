@@ -25,8 +25,7 @@ namespace mediakit {
 #pragma pack(push, 1)
 #endif // defined(_WIN32)
 
-//https://datatracker.ietf.org/doc/rfc3550
-
+//http://www.networksorcery.com/enp/protocol/rtcp.htm
 #define RTCP_PT_MAP(XX) \
         XX(RTCP_FIR, 192) \
         XX(RTCP_NACK, 193) \
@@ -43,7 +42,8 @@ namespace mediakit {
         XX(RTCP_AVB, 208) \
         XX(RTCP_RSI, 209) \
         XX(RTCP_TOKEN, 210)
-                        
+
+//https://tools.ietf.org/html/rfc3550#section-6.5
 #define SDES_TYPE_MAP(XX) \
         XX(RTCP_SDES_END, 0) \
         XX(RTCP_SDES_CNAME, 1) \
@@ -69,18 +69,48 @@ namespace mediakit {
 //      1:     Picture Loss Indication (PLI)
 //      2:     Slice Loss Indication (SLI)
 //      3:     Reference Picture Selection Indication (RPSI)
-//      4-14:  unassigned
-//      15:    Application layer FB (AFB) message
+//      4:     FIR https://tools.ietf.org/html/rfc5104#section-4.3.1.1
+//      5:     TSTR https://tools.ietf.org/html/rfc5104#section-4.3.2.1
+//      6:     TSTN https://tools.ietf.org/html/rfc5104#section-4.3.2.1
+//      7:     VBCM https://tools.ietf.org/html/rfc5104#section-4.3.4.1
+//      8-14:  unassigned
+//      15:    REMB / Application layer FB (AFB) message, https://tools.ietf.org/html/draft-alvestrand-rmcat-remb-03
 //      16-30: unassigned
 //      31:    reserved for future expansion of the sequence number space
-
 #define PSFB_TYPE_MAP(XX) \
         XX(RTCP_PSFB_PLI, 1) \
         XX(RTCP_PSFB_SLI, 2) \
         XX(RTCP_PSFB_RPSI, 3) \
         XX(RTCP_PSFB_FIR, 4) \
-        XX(RTCP_PSFB_TSTR, 5) \
+        XX(RTCP_PSFB_TSTR, 5)\
+        XX(RTCP_PSFB_TSTN, 6)\
+        XX(RTCP_PSFB_VBCM, 7) \
         XX(RTCP_PSFB_AFB, 15)
+
+//https://tools.ietf.org/html/rfc4585#section-6.2
+//6.2.   Transport Layer Feedback Messages
+//
+//   Transport layer FB messages are identified by the value RTPFB as RTCP
+//   message type.
+//
+//   A single general purpose transport layer FB message is defined in
+//   this document: Generic NACK.  It is identified by means of the FMT
+//   parameter as follows:
+//
+//   0:     unassigned
+//   1:     Generic NACK
+//   2:     reserved https://tools.ietf.org/html/rfc5104#section-4.2
+//   3:     TMMBR https://tools.ietf.org/html/rfc5104#section-4.2.1.1
+//   4:     TMMBN https://tools.ietf.org/html/rfc5104#section-4.2.2.1
+//   5-14:  unassigned
+//   15     transport-cc https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
+//   16-30: unassigned
+//   31:    reserved for future expansion of the identifier number space
+#define RTPFB_TYPE_MAP(XX) \
+        XX(RTCP_RTPFB_NACK, 1) \
+        XX(RTCP_RTPFB_TMMBR, 3) \
+        XX(RTCP_RTPFB_TMMBN, 4) \
+        XX(RTCP_RTPFB_TWCC, 15)
 
 //rtcp类型枚举
 enum class RtcpType : uint8_t {
@@ -436,7 +466,7 @@ public:
     //text长度股，可以为0
     uint8_t length;
     //不定长
-    char text;
+    char text[1];
     //最后以RTCP_SDES_END结尾
     //只字段为占位字段，不代表真实位置
     uint8_t end;
@@ -501,7 +531,8 @@ private:
     void net2Host(size_t size);
 } PACKED;
 
-//6.1.   Common Packet Format for Feedback Messages
+// https://tools.ietf.org/html/rfc4585#section-6.1
+// 6.1.   Common Packet Format for Feedback Messages
 //
 //   All FB messages MUST use a common packet format that is depicted in
 //   Figure 3:
@@ -569,7 +600,7 @@ public:
 
     /* 可选 */
     uint8_t reason_len;
-    char reason;
+    char reason[1];
 
 public:
     /**
