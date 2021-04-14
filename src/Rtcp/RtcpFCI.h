@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -13,42 +13,17 @@
 
 #include "Rtcp.h"
 
-//https://tools.ietf.org/html/rfc4585
-
 namespace mediakit {
 
-//https://tools.ietf.org/html/rfc4585#section-6.2.1
-// 0                   1                   2                   3
-//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//   |            PID                |             BLP               |
-//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//
-//               Figure 4: Syntax for the Generic NACK message
+/////////////////////////////////////////// PSFB ////////////////////////////////////////////////////
 
-class FCI_NACK {
-public:
-    // The PID field is used to specify a lost packet.  The PID field
-    //      refers to the RTP sequence number of the lost packet.
-    uint16_t pid;
-    // bitmask of following lost packets (BLP): 16 bits
-    uint16_t blp;
-} PACKED;
-
+//PSFB fmt = 2
 //https://tools.ietf.org/html/rfc4585#section-6.3.2.2
-// The Slice Loss Indication uses one additional FCI field, the content
-//   of which is depicted in Figure 6.  The length of the FB message MUST
-//   be set to 2+n, with n being the number of SLIs contained in the FCI
-//   field.
-//
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   |            First        |        Number           | PictureID |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//
-//            Figure 6: Syntax of the Slice Loss Indication (SLI)
-//
 class FCI_SLI {
 public:
     uint32_t first : 13;
@@ -56,11 +31,8 @@ public:
     uint32_t pic_id  : 6;
 } PACKED;
 
+//PSFB fmt = 3
 //https://tools.ietf.org/html/rfc4585#section-6.3.3.2
-//6.3.3.2.  Format
-//
-//   The FCI for the RPSI message follows the format depicted in Figure 7:
-//
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -68,8 +40,6 @@ public:
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   |   defined per codec          ...                | Padding (0) |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//
-//   Figure 7: Syntax of the Reference Picture Selection Indication (RPSI)
 class FCI_RPSI {
 public:
     //The number of unused bits required to pad the length of the RPSI
@@ -99,7 +69,62 @@ public:
     //      MUST be indicated by the PB field.
 } PACKED;
 
-//tools.ietf.org/html/draft-alvestrand-rmcat-remb-03
+//PSFB fmt = 4
+//https://tools.ietf.org/html/rfc5104#section-4.3.1.1
+//    0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                              SSRC                             |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   | Seq nr.       |    Reserved                                   |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class FCI_FIR {
+
+} PACKED;
+
+//PSFB fmt = 5
+//https://tools.ietf.org/html/rfc5104#section-4.3.2.1
+// 0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                              SSRC                             |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |  Seq nr.      |  Reserved                           | Index   |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class FCI_TSTR {
+
+} PACKED;
+
+//PSFB fmt = 6
+//https://tools.ietf.org/html/rfc5104#section-4.3.2.1
+// 0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                              SSRC                             |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |  Seq nr.      |  Reserved                           | Index   |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class FCI_TSTN {
+
+} PACKED;
+
+//PSFB fmt = 7
+//https://tools.ietf.org/html/rfc5104#section-4.3.4.1
+//0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                              SSRC                             |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   | Seq nr.       |0| Payload Type| Length                        |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                    VBCM Octet String....      |    Padding    |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class FCI_VBCM {
+
+} PACKED;
+
+//PSFB fmt = 15
+//https://tools.ietf.org/html/draft-alvestrand-rmcat-remb-03
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -141,6 +166,96 @@ public:
     // SSRC feedback (32 bits)  Consists of one or more SSRC entries which
     //               this feedback message applies to.
     uint32_t ssrc_feedback;
+
+} PACKED;
+
+/////////////////////////////////////////// RTPFB ////////////////////////////////////////////////////
+
+//RTPFB fmt = 1
+//https://tools.ietf.org/html/rfc4585#section-6.2.1
+// 0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |            PID                |             BLP               |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class FCI_NACK {
+public:
+    // The PID field is used to specify a lost packet.  The PID field
+    //      refers to the RTP sequence number of the lost packet.
+    uint16_t pid;
+    // bitmask of following lost packets (BLP): 16 bits
+    uint16_t blp;
+} PACKED;
+
+//RTPFB fmt = 3
+//https://tools.ietf.org/html/rfc5104#section-4.2.1.1
+//    0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                              SSRC                             |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   | MxTBR Exp |  MxTBR Mantissa                 |Measured Overhead|
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class FCI_TMMBR {
+public:
+    //SSRC (32 bits): The SSRC value of the media sender that is
+    //              requested to obey the new maximum bit rate.
+    uint32_t ssrc;
+
+    //     MxTBR Exp (6 bits): The exponential scaling of the mantissa for the
+    //              maximum total media bit rate value.  The value is an
+    //              unsigned integer [0..63].
+    uint32_t max_tbr_exp: 6;
+
+    //     MxTBR Mantissa (17 bits): The mantissa of the maximum total media
+    //              bit rate value as an unsigned integer.
+    uint32_t max_mantissa: 17;
+
+    //     Measured Overhead (9 bits): The measured average packet overhead
+    //              value in bytes.  The measurement SHALL be done according
+    //              to the description in section 4.2.1.2. The value is an
+    //              unsigned integer [0..511].
+    uint32_t measured_overhead: 9;
+} PACKED;
+
+//RTPFB fmt = 4
+// https://tools.ietf.org/html/rfc5104#section-4.2.2.1
+// 0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                              SSRC                             |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   | MxTBR Exp |  MxTBR Mantissa                 |Measured Overhead|
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class FCI_TMMBN : public FCI_TMMBR{
+public:
+
+} PACKED;
+
+//RTPFB fmt = 15
+//https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01#section-3.1
+//https://zhuanlan.zhihu.com/p/206656654
+//0                   1                   2                   3
+//        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |      base sequence number     |      packet status count      |
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |                 reference time                | fb pkt. count |
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |          packet chunk         |         packet chunk          |
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       .                                                               .
+//       .                                                               .
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |         packet chunk          |  recv delta   |  recv delta   |
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       .                                                               .
+//       .                                                               .
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |           recv delta          |  recv delta   | zero padding  |
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class FCI_TWCC : public FCI_TMMBR{
+public:
 
 } PACKED;
 
