@@ -83,6 +83,8 @@ public:
 
 private:
     void makeH264Rtp(const void *pData, size_t uiLen, bool bMark,  bool gop_pos, uint32_t uiStamp);
+    string _sps;
+    string _pps;
 };
 
 }//namespace mediakit{

@@ -189,8 +189,41 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto len = frame->size() - frame->prefixSize();
     auto pts = frame->pts();
     auto nal_type = H264_TYPE(ptr[0]);
-    auto packet_size = getMaxSize() - 2;
+    if(nal_type == H264Frame::NAL_SEI || nal_type == H264Frame::NAL_AUD){
+        return;
+    }
 
+    if(nal_type == H264Frame::NAL_SPS){
+        _sps = std::string(ptr,len);
+        return;
+    }
+
+    if(nal_type == H264Frame::NAL_PPS){
+        _pps = std::string(ptr,len);
+        return;
+    }
+
+    if(nal_type == H264Frame::NAL_IDR)
+    {// 保证每一个I帧前都有SPS与PPS ,为了兼容webrtc 需要在一个rtp包中，并且只能是 STAP-A 
+     // https://blog.csdn.net/momo0853/article/details/88872873
+        auto rtp  = makeRtp(getTrackType(), nullptr,_sps.size()+_pps.size()+2*2+1,true,pts);
+        uint8_t *payload = rtp->getPayload();
+        payload[0] = 24;
+        payload[1] = _sps.size() >> 8;
+        payload[2] = _sps.size() & 0xff;
+        memcpy(payload+3,(uint8_t *) _sps.data(),_sps.size());
+
+        payload[_sps.size()+3] = _pps.size() >> 8;
+        payload[_sps.size()+4] = _pps.size() & 0xff;
+
+        memcpy(payload+3+_sps.size()+2,(uint8_t *) _pps.data(),_pps.size());
+        RtpCodec::inputRtp(rtp,true);
+    }
+
+
+
+    auto packet_size = getMaxSize() - 2;
+    //InfoL<<"nal type = "<<nal_type<<" pts="<<pts<<" len="<<len;
     //末尾5bit为nalu type，固定为28(FU-A)
     auto fu_char_0 = (ptr[0] & (~0x1F)) | 28;
     auto fu_char_1 = nal_type;
@@ -218,14 +251,22 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
             //H264 数据
             memcpy(payload + 2, (uint8_t *) ptr + offset, packet_size);
             //输入到rtp环形缓存
-            RtpCodec::inputRtp(rtp, fu_flags->start_bit && nal_type == H264Frame::NAL_IDR);
+            RtpCodec::inputRtp(rtp, false);
 
             offset += packet_size;
             fu_flags->start_bit = 0;
         }
     } else {
         //如果帧长度不超过mtu, 则按照Single NAL unit packet per H.264 方式打包
-        makeH264Rtp(ptr, len, false, false, pts);
+        //为了兼容性 webrtc使用 STAP-A 打包
+        auto rtp  = makeRtp(getTrackType(), nullptr,len+3,true,pts);
+        uint8_t *payload = rtp->getPayload();
+        payload[0] = (ptr[0] & (~0x1F)) | 24;
+        payload[1] = len >> 8;
+        payload[2] = len & 0xff;
+        memcpy(payload+3,(uint8_t *) ptr,len);
+        RtpCodec::inputRtp(rtp,false);
+        //makeH264Rtp(ptr, len, false, false, pts);
     }
 }
 
