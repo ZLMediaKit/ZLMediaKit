@@ -9,7 +9,6 @@
  */
 
 #include "Sdp.h"
-#include "Common/Parser.h"
 #include "Rtsp/Rtsp.h"
 #include <inttypes.h>
 using namespace mediakit;
@@ -610,12 +609,12 @@ void SdpAttrFmtp::parse(const string &str)  {
         trim(item);
         auto pos = item.find('=');
         if(pos == string::npos){
-            arr.emplace_back(std::make_pair(item, ""));
+            fmtp.emplace(std::make_pair(item, ""));
         }  else {
-            arr.emplace_back(std::make_pair(item.substr(0, pos), item.substr(pos + 1)));
+            fmtp.emplace(std::make_pair(item.substr(0, pos), item.substr(pos + 1)));
         }
     }
-    if (arr.empty()) {
+    if (fmtp.empty()) {
         SDP_THROW();
     }
 }
@@ -624,7 +623,7 @@ string SdpAttrFmtp::toString() const  {
     if (value.empty()) {
         value = to_string(pt);
         int i = 0;
-        for (auto &pr : arr) {
+        for (auto &pr : fmtp) {
             value += (i++  ? ';' : ' ');
             value += pr.first + "=" + pr.second;
         }
@@ -918,7 +917,7 @@ void RtcSession::loadFrom(const string &str, bool check) {
 
             auto fmtp_it = fmtp_map.find(pt);
             if (fmtp_it != fmtp_map.end()) {
-                plan.fmtp = fmtp_it->second.arr;
+                plan.fmtp = fmtp_it->second.fmtp;
             }
             for (auto rtpfb_it = rtcpfb_map.find(pt);
                  rtpfb_it != rtcpfb_map.end() && rtpfb_it->second.pt == pt; ++rtpfb_it) {
@@ -1088,7 +1087,7 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                 if (!p.fmtp.empty()) {
                     auto fmtp = std::make_shared<SdpAttrFmtp>();
                     fmtp->pt = p.pt;
-                    fmtp->arr = p.fmtp;
+                    fmtp->fmtp = p.fmtp;
                     sdp_media.items.emplace_back(wrapSdpAttr(std::move(fmtp)));
                 }
             }
@@ -1255,12 +1254,14 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     ice_renomination = false;
     switch (type) {
         case TrackAudio: {
-            preferred_codec = {CodecAAC, CodecOpus, CodecG711U, CodecG711A};
+            //此处调整偏好的编码格式优先级
+            preferred_codec = {CodecAAC, CodecG711U, CodecG711A, CodecOpus};
             rtcp_fb = {"transport-cc"};
             extmap = {"1 urn:ietf:params:rtp-hdrext:ssrc-audio-level"};
             break;
         }
         case TrackVideo: {
+            //此处调整偏好的编码格式优先级
             preferred_codec = {CodecH264, CodecH265};
             rtcp_fb = {"nack", "ccm fir", "nack pli", "goog-remb", "transport-cc"};
             extmap = {"2 urn:ietf:params:rtp-hdrext:toffset",
@@ -1441,6 +1442,7 @@ RETRY:
 
             //添加媒体plan
             answer_media.plan.emplace_back(*offer_plan_ptr);
+            onSelectPlan(answer_media.plan.back(), codec);
 
             //添加rtx,red,ulpfec plan
             if (configure.support_red || configure.support_rtx || configure.support_ulpfec) {
@@ -1535,14 +1537,6 @@ void RtcConfigure::setPlayRtspInfo(const string &sdp){
     }
 }
 
-static map<string, string, StrCaseCompare> toMap(const vector<std::pair<string/*key*/, string/*value*/> > &fmt) {
-    map<string, string, StrCaseCompare> ret;
-    for (auto &pr : fmt) {
-        ret.emplace(pr);
-    }
-    return ret;
-}
-
 static const string kProfile{"profile-level-id"};
 static const string kMode{"packetization-mode"};
 
@@ -1555,21 +1549,21 @@ bool RtcConfigure::onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec){
         return true;
     }
     if (_rtsp_video_plan && codec == CodecH264 && getCodecId(_rtsp_video_plan->codec) == CodecH264) {
-        //h264时，匹配packetization-mode和profile-level-id
-        auto rtc_fmt_map = toMap(plan.fmtp);
-        auto rtsp_fmt_map = toMap(_rtsp_video_plan->fmtp);
-        auto &profile = rtsp_fmt_map[kProfile];
-        if (!profile.empty() && strcasecmp(profile.data(), rtc_fmt_map[kProfile].data())) {
+        //h264时，profile-level-id
+        if (strcasecmp(_rtsp_video_plan->fmtp[kProfile].data(), const_cast<RtcCodecPlan &>(plan).fmtp[kProfile].data())) {
             //profile-level-id 不匹配
-            return false;
-        }
-        auto &mode = rtsp_fmt_map[kMode];
-        if (!mode.empty() && atoi(mode.data()) != atoi(rtc_fmt_map[kMode].data())) {
-            //packetization-mode不匹配
             return false;
         }
         return true;
     }
 
     return true;
+}
+
+void RtcConfigure::onSelectPlan(RtcCodecPlan &plan, CodecId codec){
+    if (_rtsp_video_plan && codec == CodecH264 && getCodecId(_rtsp_video_plan->codec) == CodecH264) {
+        //h264时，设置packetization-mod为一致
+        auto mode = _rtsp_video_plan->fmtp[kMode];
+        plan.fmtp[kMode] = mode.empty() ? "0" : mode;
+    }
 }

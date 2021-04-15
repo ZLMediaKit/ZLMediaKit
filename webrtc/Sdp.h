@@ -15,6 +15,7 @@
 #include <vector>
 #include "assert.h"
 #include "Extension/Frame.h"
+#include "Common/Parser.h"
 using namespace std;
 using namespace mediakit;
 
@@ -372,7 +373,7 @@ class SdpAttrFmtp : public SdpItem {
 public:
     //fmtp:96 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
     uint8_t pt;
-    vector<std::pair<string, string> > arr;
+    map<string/*key*/, string/*value*/, StrCaseCompare> fmtp;
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "fmtp";}
@@ -589,7 +590,7 @@ public:
     uint32_t channel = 0;
     //rtcp反馈
     vector<string> rtcp_fb;
-    vector<std::pair<string/*key*/, string/*value*/> > fmtp;
+    map<string/*key*/, string/*value*/, StrCaseCompare> fmtp;
 
     string getFmtp(const char *key) const;
 };
@@ -715,6 +716,7 @@ public:
 private:
     void matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
     bool onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec);
+    void onSelectPlan(RtcCodecPlan &plan, CodecId codec);
 
 private:
     RtcCodecPlan::Ptr _rtsp_video_plan;
