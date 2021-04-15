@@ -185,12 +185,12 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ssrc, uint32_t mtu, uint32_t sample_rate
 }
 
 void H264RtpEncoder::insertConfigFrame(uint32_t pts){
-    if (_sps.empty() || _pps.empty()) {
+    if (!_sps || !_pps) {
         return;
     }
     //gop缓存从sps开始，sps、pps后面还有时间戳相同的关键帧，所以mark bit为false
-    packRtp(_sps.data(), _sps.size(), pts, false, true);
-    packRtp(_pps.data(), _pps.size(), pts, false, false);
+    packRtp(_sps->data() + _sps->prefixSize(), _sps->size() - _sps->prefixSize(), pts, false, true);
+    packRtp(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, false);
 }
 
 void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint32_t pts, bool is_mark, bool gop_pos){
@@ -258,18 +258,17 @@ void H264RtpEncoder::packRtpStapA(const char *ptr, size_t len, uint32_t pts, boo
 
 void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto ptr = frame->data() + frame->prefixSize();
-    auto len = frame->size() - frame->prefixSize();
     switch (H264_TYPE(ptr[0])) {
         case H264Frame::NAL_AUD:
         case H264Frame::NAL_SEI : {
             return;
         }
         case H264Frame::NAL_SPS: {
-            _sps = std::string(ptr, len);
+            _sps = Frame::getCacheAbleFrame(frame);
             return;
         }
         case H264Frame::NAL_PPS: {
-            _pps = std::string(ptr, len);
+            _pps = Frame::getCacheAbleFrame(frame);
             return;
         }
         default: break;
