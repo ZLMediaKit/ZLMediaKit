@@ -555,7 +555,7 @@ void RtcpBye::net2Host(size_t size) {
     }
 }
 
-#if 1
+#if 0
 #include "Util/onceToken.h"
 
 static toolkit::onceToken token([](){
