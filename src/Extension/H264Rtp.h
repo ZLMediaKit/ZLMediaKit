@@ -89,8 +89,8 @@ private:
     void packRtpStapA(const char *data, size_t len, uint32_t pts, bool is_mark, bool gop_pos);
 
 private:
-    string _sps;
-    string _pps;
+    Frame::Ptr _sps;
+    Frame::Ptr _pps;
     Frame::Ptr _last_frame;
 };
 
