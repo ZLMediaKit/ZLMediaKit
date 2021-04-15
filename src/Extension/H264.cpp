@@ -181,17 +181,15 @@ void H264Track::inputFrame_l(const Frame::Ptr &frame){
             _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
             break;
         }
-        case H264Frame::NAL_IDR: {
-            insertConfigFrame(frame);
-            VideoTrack::inputFrame(frame);
-            break;
-        }
         case H264Frame::NAL_AUD: {
             //忽略AUD帧;
             break;
         }
 
         default:
+            if (frame->keyFrame()) {
+                insertConfigFrame(frame);
+            }
             VideoTrack::inputFrame(frame);
             break;
     }
@@ -281,7 +279,8 @@ Sdp::Ptr H264Track::getSdp() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool H264Frame::keyFrame() const {
-    return H264_TYPE(_buffer[_prefix_size]) == H264Frame::NAL_IDR;
+    //多slice 一帧的情况下检查 first_mb_in_slice 是否为0 表示其为一帧的开始
+    return H264_TYPE(_buffer[_prefix_size]) == H264Frame::NAL_IDR && (_buffer[_prefix_size + 1] & 0x80);
 }
 
 bool H264Frame::configFrame() const {
