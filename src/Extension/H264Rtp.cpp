@@ -203,10 +203,20 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         return;
     }
 
-    if(nal_type == H264Frame::NAL_IDR)
+    if(!_last_frame){
+        _last_frame = frame;
+        return;
+    }
+
+    bool isMark = _last_frame->pts() != frame->pts();
+    ptr = _last_frame->data() + _last_frame->prefixSize();
+    len = _last_frame->size() - _last_frame->prefixSize();
+    pts = _last_frame->pts();
+    nal_type = H264_TYPE(ptr[0]);
+    if(nal_type == H264Frame::NAL_IDR && (ptr[1]&0x80))
     {// 保证每一个I帧前都有SPS与PPS ,为了兼容webrtc 需要在一个rtp包中，并且只能是 STAP-A 
      // https://blog.csdn.net/momo0853/article/details/88872873
-        auto rtp  = makeRtp(getTrackType(), nullptr,_sps.size()+_pps.size()+2*2+1,true,pts);
+        auto rtp  = makeRtp(getTrackType(), nullptr,_sps.size()+_pps.size()+2*2+1,false,pts);
         uint8_t *payload = rtp->getPayload();
         payload[0] = 24;
         payload[1] = _sps.size() >> 8;
@@ -241,7 +251,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
             }
 
             //传入nullptr先不做payload的内存拷贝
-            auto rtp = makeRtp(getTrackType(), nullptr, packet_size + 2, fu_flags->end_bit, pts);
+            auto rtp = makeRtp(getTrackType(), nullptr, packet_size + 2, fu_flags->end_bit && isMark, pts);
             //rtp payload 负载部分
             uint8_t *payload = rtp->getPayload();
             //FU-A 第1个字节
@@ -259,7 +269,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     } else {
         //如果帧长度不超过mtu, 则按照Single NAL unit packet per H.264 方式打包
         //为了兼容性 webrtc使用 STAP-A 打包
-        auto rtp  = makeRtp(getTrackType(), nullptr,len+3,true,pts);
+        auto rtp  = makeRtp(getTrackType(), nullptr,len+3,isMark,pts);
         uint8_t *payload = rtp->getPayload();
         payload[0] = (ptr[0] & (~0x1F)) | 24;
         payload[1] = len >> 8;
@@ -268,6 +278,8 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         RtpCodec::inputRtp(rtp,false);
         //makeH264Rtp(ptr, len, false, false, pts);
     }
+
+    _last_frame = frame;
 }
 
 void H264RtpEncoder::makeH264Rtp(const void* data, size_t len, bool mark, bool gop_pos, uint32_t uiStamp) {
