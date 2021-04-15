@@ -207,7 +207,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         _last_frame = frame;
         return;
     }
-
+    // 上一帧打包，保证rtp 的mark是正确的
     bool isMark = _last_frame->pts() != frame->pts();
     ptr = _last_frame->data() + _last_frame->prefixSize();
     len = _last_frame->size() - _last_frame->prefixSize();
@@ -216,6 +216,7 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     if(nal_type == H264Frame::NAL_IDR && (ptr[1]&0x80))
     {// 保证每一个I帧前都有SPS与PPS ,为了兼容webrtc 需要在一个rtp包中，并且只能是 STAP-A 
      // https://blog.csdn.net/momo0853/article/details/88872873
+     // 多slice 一帧的情况下检查 first_mb_in_slice 是否为0 表示其为一帧的开始，SPS PPS 只有在帧开始时，才插入
         auto rtp  = makeRtp(getTrackType(), nullptr,_sps.size()+_pps.size()+2*2+1,false,pts);
         uint8_t *payload = rtp->getPayload();
         payload[0] = 24;
