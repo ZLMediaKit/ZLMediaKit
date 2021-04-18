@@ -307,7 +307,11 @@ void MultiMediaSourceMuxer::setTrackListener(const std::weak_ptr<MultiMuxerPriva
 }
 
 int MultiMediaSourceMuxer::totalReaderCount() const {
+#if defined(ENABLE_RTPPROXY)
+    return _muxer->totalReaderCount() + _rtp_sender.size();
+#else
     return _muxer->totalReaderCount();
+#endif
 }
 
 void MultiMediaSourceMuxer::setTimeStamp(uint32_t stamp) {
@@ -358,6 +362,10 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const string &dst_
 
 bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string& ssrc){
 #if defined(ENABLE_RTPPROXY)
+    onceToken token(nullptr, [&]() {
+        //关闭rtp推流，可能触发无人观看事件
+        MediaSourceEventInterceptor::onReaderChanged(sender, totalReaderCount());
+    });
     if (ssrc.empty()) {
         //关闭全部
         lock_guard<mutex> lck(_rtp_sender_mtx);
