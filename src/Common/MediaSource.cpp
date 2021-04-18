@@ -520,6 +520,7 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
     if (size || totalReaderCount(sender)) {
         //还有人观看该视频，不触发关闭事件
+        _async_close_timer = nullptr;
         return;
     }
     //没有任何人观看该视频源，表明该源可以关闭了
