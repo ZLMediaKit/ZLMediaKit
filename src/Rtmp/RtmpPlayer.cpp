@@ -354,7 +354,7 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket::Ptr packet) {
         case MSG_CMD3:
         case MSG_DATA:
         case MSG_DATA3: {
-            AMFDecoder dec(chunk_data.buffer, 0);
+            AMFDecoder dec(chunk_data.buffer, 0, (chunk_data.type_id == MSG_DATA3 || chunk_data.type_id == MSG_CMD3) ? 3 : 0);
             std::string type = dec.load<std::string>();
             auto it = s_func_map.find(type);
             if (it != s_func_map.end()) {

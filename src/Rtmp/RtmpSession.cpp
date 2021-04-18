@@ -452,14 +452,14 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
     switch (chunk_data.type_id) {
     case MSG_CMD:
     case MSG_CMD3: {
-        AMFDecoder dec(chunk_data.buffer, chunk_data.type_id == MSG_CMD3 ? 1 : 0);
+        AMFDecoder dec(chunk_data.buffer, chunk_data.type_id == MSG_CMD3 ? 3 : 0);
         onProcessCmd(dec);
         break;
     }
 
     case MSG_DATA:
     case MSG_DATA3: {
-        AMFDecoder dec(chunk_data.buffer, chunk_data.type_id == MSG_CMD3 ? 1 : 0);
+        AMFDecoder dec(chunk_data.buffer, chunk_data.type_id == MSG_DATA3 ? 3 : 0);
         std::string type = dec.load<std::string>();
         if (type == "@setDataFrame") {
             setMetaData(dec);
