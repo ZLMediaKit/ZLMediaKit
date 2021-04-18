@@ -292,7 +292,7 @@ void RtmpPusher::onRtmpChunk(RtmpPacket::Ptr packet) {
                 g_mapCmd.emplace("onStatus", &RtmpPusher::onCmd_onStatus);
             });
 
-            AMFDecoder dec(chunk_data.buffer, 0);
+            AMFDecoder dec(chunk_data.buffer, 0, chunk_data.type_id == MSG_CMD3 ? 3 : 0);
             std::string type = dec.load<std::string>();
             auto it = g_mapCmd.find(type);
             if (it != g_mapCmd.end()) {
