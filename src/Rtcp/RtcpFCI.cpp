@@ -142,4 +142,30 @@ string FCI_REMB::dumpString() const {
     return printer;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void FCI_NACK::net2Host() {
+    pid = ntohs(pid);
+    blp = ntohs(blp);
+}
+
+vector<bool> FCI_NACK::getBitArray() const {
+    vector<bool> ret;
+    ret.resize(kBitSize);
+    for (size_t i = 0; i < kBitSize; ++i) {
+        ret[i] = blp & (1 << (kBitSize - i - 1));
+    }
+    return ret;
+}
+
+string FCI_NACK::dumpString() const {
+    _StrPrinter printer;
+    printer << "pid:" << pid << ",blp:";
+    for (auto &flag : getBitArray()) {
+        printer << flag << " ";
+    }
+    return std::move(printer);
+}
+
+
 }//namespace mediakit

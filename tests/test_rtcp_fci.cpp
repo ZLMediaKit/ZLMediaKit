@@ -37,5 +37,10 @@ int main() {
         ptr->net2Host(str.size());
         InfoL << ptr->dumpString();
     }
+    {
+        FCI_NACK nack(1234, vector<int>({1, 0, 0, 0, 1, 0, 1, 0, 1, 0}));
+        nack.net2Host();
+        InfoL << nack.dumpString();
+    }
     return 0;
 }
