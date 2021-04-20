@@ -22,12 +22,10 @@ using namespace toolkit;
 
 namespace mediakit{
 
-class MediaSinkInterface : public FrameWriterInterface {
+class TrackListener {
 public:
-    typedef std::shared_ptr<MediaSinkInterface> Ptr;
-
-    MediaSinkInterface(){};
-    virtual ~MediaSinkInterface(){};
+    TrackListener() = default;
+    virtual ~TrackListener() = default;
 
     /**
      * 添加track，内部会调用Track的clone方法
@@ -37,25 +35,33 @@ public:
     virtual void addTrack(const Track::Ptr & track) = 0;
 
     /**
-     * 添加所有Track完毕
+     * 添加track完毕
      */
-    virtual void addTrackCompleted() {}
+    virtual void addTrackCompleted() {};
 
     /**
      * 重置track
      */
-    virtual void resetTracks() = 0;
+    virtual void resetTracks() {};
+};
+
+class MediaSinkInterface : public FrameWriterInterface, public TrackListener {
+public:
+    typedef std::shared_ptr<MediaSinkInterface> Ptr;
+
+    MediaSinkInterface() = default;
+    ~MediaSinkInterface() override = default;
 };
 
 /**
  * 该类的作用是等待Track ready()返回true也就是就绪后再通知派生类进行下一步的操作
  * 目的是输入Frame前由Track截取处理下，以便获取有效的信息（譬如sps pps aa_cfg）
  */
-class MediaSink : public MediaSinkInterface , public TrackSource{
+class MediaSink : public MediaSinkInterface, public TrackSource{
 public:
     typedef std::shared_ptr<MediaSink> Ptr;
-    MediaSink(){}
-    virtual ~MediaSink(){}
+    MediaSink() = default;
+    ~MediaSink() override = default;
 
     /**
      * 输入frame
@@ -86,7 +92,8 @@ public:
      * 获取所有Track
      * @param trackReady 是否获取已经准备好的Track
      */
-    vector<Track::Ptr> getTracks(bool trackReady = true) const override ;
+    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
+
 protected:
     /**
      * 某track已经准备好，其ready()状态返回true，
@@ -105,6 +112,7 @@ protected:
      * @param frame
      */
     virtual void onTrackFrame(const Frame::Ptr &frame) {};
+
 private:
     /**
      * 触发onAllTrackReady事件
@@ -116,6 +124,7 @@ private:
      */
     void checkTrackIfReady(const Track::Ptr &track);
     void checkTrackIfReady_l(const Track::Ptr &track);
+
 private:
     bool _all_track_ready = false;
     size_t _max_track_size = 2;

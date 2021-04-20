@@ -106,13 +106,25 @@ float Demuxer::getDuration() const {
     return _fDuration;
 }
 
-void Demuxer::onAddTrack(const Track::Ptr &track){
+void Demuxer::addTrack(const Track::Ptr &track){
     if(_listener){
-        _listener->onAddTrack(track);
+        _listener->addTrack(track);
     }
 }
 
-void Demuxer::setTrackListener(Demuxer::Listener *listener) {
+void Demuxer::addTrackCompleted(){
+    if(_listener){
+        _listener->addTrackCompleted();
+    }
+}
+
+void Demuxer::resetTracks() {
+    if (_listener) {
+        _listener->resetTracks();
+    }
+}
+
+void Demuxer::setTrackListener(TrackListener *listener) {
     _listener = listener;
 }
 
