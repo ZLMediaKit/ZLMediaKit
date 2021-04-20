@@ -13,8 +13,8 @@
 //最多等待未初始化的Track 10秒，超时之后会忽略未初始化的Track
 #define MAX_WAIT_MS_READY 10000
 
-//如果添加Track，最多等待5秒
-#define MAX_WAIT_MS_ADD_TRACK 5000
+//如果直播流只有单Track，最多等待3秒，超时后未收到其他Track的数据，则认为是单Track
+#define MAX_WAIT_MS_ADD_TRACK 3000
 
 namespace mediakit{
 
