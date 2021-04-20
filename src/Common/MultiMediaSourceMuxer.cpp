@@ -308,7 +308,7 @@ void MultiMediaSourceMuxer::setTrackListener(const std::weak_ptr<MultiMuxerPriva
 
 int MultiMediaSourceMuxer::totalReaderCount() const {
 #if defined(ENABLE_RTPPROXY)
-    return _muxer->totalReaderCount() + _rtp_sender.size();
+    return _muxer->totalReaderCount() + (int)_rtp_sender.size();
 #else
     return _muxer->totalReaderCount();
 #endif
