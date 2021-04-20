@@ -221,11 +221,31 @@ public:
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 class FCI_NACK {
 public:
+    static constexpr size_t kBitSize = 16;
+
     // The PID field is used to specify a lost packet.  The PID field
     //      refers to the RTP sequence number of the lost packet.
     uint16_t pid;
     // bitmask of following lost packets (BLP): 16 bits
     uint16_t blp;
+
+    void net2Host();
+    vector<bool> getBitArray() const;
+    string dumpString() const;
+
+    template<typename Type>
+    FCI_NACK(uint16_t pid_h, const Type &type){
+        uint16_t blp_h = 0;
+        int i = kBitSize;
+        for (auto &item : type) {
+            --i;
+            if (item) {
+                blp_h |= (1 << i);
+            }
+        }
+        blp = htons(blp_h);
+        pid = htons(pid_h);
+    }
 } PACKED;
 
 //RTPFB fmt = 3
