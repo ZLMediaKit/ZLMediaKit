@@ -72,6 +72,11 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
     } catch (std::exception &ex) {
         WarnL << ex.what();
     }
+
+    if (ret) {
+        //metadata中存在track相关的描述，那么我们根据metadata判断有多少个track
+        addTrackCompleted();
+    }
     return ret;
 }
 
@@ -114,7 +119,7 @@ void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec, int bit_rate) {
         if (_video_rtmp_decoder) {
             //设置rtmp解码器代理，生成的frame写入该Track
             _video_rtmp_decoder->addDelegate(_videoTrack);
-            onAddTrack(_videoTrack);
+            addTrack(_videoTrack);
             _try_get_video_track = true;
         } else {
             //找不到相应的rtmp解码器，该track无效
@@ -133,7 +138,7 @@ void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec,int sample_rate, int
         if (_audio_rtmp_decoder) {
             //设置rtmp解码器代理，生成的frame写入该Track
             _audio_rtmp_decoder->addDelegate(_audioTrack);
-            onAddTrack(_audioTrack);
+            addTrack(_audioTrack);
             _try_get_audio_track = true;
         } else {
             //找不到相应的rtmp解码器，该track无效
