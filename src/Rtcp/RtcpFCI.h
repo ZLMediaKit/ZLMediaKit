@@ -406,7 +406,7 @@ public:
 
     void net2Host(size_t total_size);
     uint32_t getReferenceTime() const;
-    map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > getPacketChunkList(size_t total_size) const;
+    map<uint16_t, std::pair<SymbolStatus, uint32_t/*recv delta 微秒*/> > getPacketChunkList(size_t total_size) const;
     string dumpString(size_t total_size) const;
 
 } PACKED;
