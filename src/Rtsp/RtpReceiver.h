@@ -165,6 +165,13 @@ public:
     RtpReceiver();
     virtual ~RtpReceiver();
 
+    class BadRtpException : public invalid_argument {
+    public:
+        template<typename Type>
+        BadRtpException(Type &&type) : invalid_argument(std::forward<Type>(type)) {}
+        ~BadRtpException() = default;
+    };
+
 protected:
     /**
      * 输入数据指针生成并排序rtp包

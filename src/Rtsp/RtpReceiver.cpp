@@ -42,7 +42,7 @@ bool RtpReceiver::handleOneRtp(int index, TrackType type, int sample_rate, uint8
     }
     RtpHeader *header = (RtpHeader *) ptr;
     if (header->version != RtpPacket::kRtpVersion) {
-        throw std::invalid_argument("非法的rtp，version字段非法");
+        throw BadRtpException("非法的rtp，version字段非法");
     }
     if (!header->getPayloadSize(len)) {
         //无有效负载的rtp包
