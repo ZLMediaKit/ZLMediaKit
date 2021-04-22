@@ -296,29 +296,6 @@ public:
 
 } PACKED;
 
-//RTPFB fmt = 15
-//https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01#section-3.1
-//https://zhuanlan.zhihu.com/p/206656654
-//0                   1                   2                   3
-//        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//       |      base sequence number     |      packet status count      |
-//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//       |                 reference time                | fb pkt. count |
-//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//       |          packet chunk         |         packet chunk          |
-//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//       .                                                               .
-//       .                                                               .
-//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//       |         packet chunk          |  recv delta   |  recv delta   |
-//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//       .                                                               .
-//       .                                                               .
-//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//       |           recv delta          |  recv delta   | zero padding  |
-//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
 enum class SymbolStatus : uint8_t{
     //Packet not received
     not_received = 0,
@@ -333,11 +310,11 @@ enum class SymbolStatus : uint8_t{
 class RunLengthChunk {
 public:
     static size_t constexpr kSize = 2;
-    //       0                   1
-    //       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
-    //      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //      |T| S |       Run Length        |
-    //      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //  0                   1
+    //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    // |T| S |       Run Length        |
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #if __BYTE_ORDER == __BIG_ENDIAN
     uint16_t type: 1;
     uint16_t symbol: 2;
@@ -364,11 +341,11 @@ public:
 class StatusVecChunk {
 public:
     static size_t constexpr kSize = 2;
-    //       0                   1
-    //       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
-    //      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //      |T| S |       Run Length        |
-    //      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    // 0                   1
+    // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    // |T|S|       symbol list         |
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #if __BYTE_ORDER == __BIG_ENDIAN
     uint16_t type: 1;
     uint16_t symbol: 1;
@@ -392,9 +369,31 @@ public:
     string dumpString() const;
 } PACKED;
 
+//RTPFB fmt = 15
+//https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01#section-3.1
+//https://zhuanlan.zhihu.com/p/206656654
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |      base sequence number     |      packet status count      |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                 reference time                | fb pkt. count |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |          packet chunk         |         packet chunk          |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  .                                                               .
+//  .                                                               .
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |         packet chunk          |  recv delta   |  recv delta   |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  .                                                               .
+//  .                                                               .
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |           recv delta          |  recv delta   | zero padding  |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 class FCI_TWCC{
 public:
-    static size_t constexpr kSize = 12;
+    static size_t constexpr kSize = 8;
 
     //base sequence number,基础序号,本次反馈的第一个包的序号;也就是RTP扩展头的序列号
     uint16_t base_seq;
@@ -404,6 +403,11 @@ public:
     uint8_t ref_time[3];
     //feedback packet count,反馈包号,本包是第几个transport-cc包，每次加1                          |
     uint8_t fb_pkt_count;
+
+    void net2Host(size_t total_size);
+    uint32_t getReferenceTime() const;
+    map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > getPacketChunkList(size_t total_size) const;
+    string dumpString(size_t total_size) const;
 
 } PACKED;
 
