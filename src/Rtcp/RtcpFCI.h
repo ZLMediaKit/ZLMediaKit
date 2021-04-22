@@ -222,6 +222,7 @@ public:
 class FCI_NACK {
 public:
     static constexpr size_t kBitSize = 16;
+    static constexpr size_t kSize = 4;
 
     // The PID field is used to specify a lost packet.  The PID field
     //      refers to the RTP sequence number of the lost packet.
@@ -259,6 +260,8 @@ public:
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 class FCI_TMMBR {
 public:
+    static size_t constexpr kSize = 8;
+
     //SSRC (32 bits): The SSRC value of the media sender that is
     //              requested to obey the new maximum bit rate.
     uint32_t ssrc;
@@ -315,8 +318,92 @@ public:
 //       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //       |           recv delta          |  recv delta   | zero padding  |
 //       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+enum class SymbolStatus : uint8_t{
+    //Packet not received
+    not_received = 0,
+    //Packet received, small delta （所谓small detal是指能用一个字节表示的数值）
+    small_delta = 1,
+    // Packet received, large ornegative delta （large即是能用两个字节表示的数值）
+    large_delta = 2,
+    //Reserved
+    reserved = 3
+};
+
+class RunLengthChunk {
+public:
+    static size_t constexpr kSize = 2;
+    //       0                   1
+    //       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+    //      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //      |T| S |       Run Length        |
+    //      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#if __BYTE_ORDER == __BIG_ENDIAN
+    uint16_t type: 1;
+    uint16_t symbol: 2;
+    uint16_t run_length_high: 5;
+#else
+    // Run Length 高5位
+    uint16_t run_length_high: 5;
+    //参考SymbolStatus定义
+    uint16_t symbol: 2;
+    //固定为0
+    uint16_t type: 1;
+#endif
+    // Run Length 低8位
+    uint16_t run_length_low: 8;
+
+    //获取Run Length
+    uint16_t getRunLength() const;
+    //构造函数
+    RunLengthChunk(SymbolStatus status, uint16_t run_length);
+
+    string dumpString() const;
+} PACKED;
+
+class StatusVecChunk {
+public:
+    static size_t constexpr kSize = 2;
+    //       0                   1
+    //       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+    //      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //      |T| S |       Run Length        |
+    //      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#if __BYTE_ORDER == __BIG_ENDIAN
+    uint16_t type: 1;
+    uint16_t symbol: 1;
+    uint16_t symbol_list_high: 6;
+#else
+    // symbol_list 高6位
+    uint16_t symbol_list_high: 6;
+    //symbol_list中元素是1个还是2个bit
+    uint16_t symbol: 1;
+    //固定为1
+    uint16_t type: 1;
+#endif
+    // symbol_list 低8位
+    uint16_t symbol_list_low: 8;
+
+    //获取symbollist
+    vector<SymbolStatus> getSymbolList() const;
+    //构造函数
+    StatusVecChunk(const vector<SymbolStatus> &status);
+
+    string dumpString() const;
+} PACKED;
+
 class FCI_TWCC{
 public:
+    static size_t constexpr kSize = 12;
+
+    //base sequence number,基础序号,本次反馈的第一个包的序号;也就是RTP扩展头的序列号
+    uint16_t base_seq;
+    //packet status count, 包个数,本次反馈包含多少个包的状态;从基础序号开始算
+    uint16_t pkt_status_count;
+    //reference time,基准时间,绝对时间;计算该包中每个媒体包的到达时间都要基于这个基准时间计算
+    uint8_t ref_time[3];
+    //feedback packet count,反馈包号,本包是第几个transport-cc包，每次加1                          |
+    uint8_t fb_pkt_count;
 
 } PACKED;
 

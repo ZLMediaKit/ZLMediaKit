@@ -167,5 +167,83 @@ string FCI_NACK::dumpString() const {
     return std::move(printer);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+RunLengthChunk::RunLengthChunk(SymbolStatus status, uint16_t run_length) {
+    type = 0;
+    symbol = (uint8_t)status & 0x03;
+    run_length_high = (run_length >> 8) & 0x1F;
+    run_length_low = run_length & 0xFF;
+}
+
+uint16_t RunLengthChunk::getRunLength() const {
+    CHECK(type == 0);
+    return run_length_high << 8 | run_length_low;
+}
+
+string RunLengthChunk::dumpString() const{
+    _StrPrinter printer;
+    printer << "run length chunk, symbol:" << (int)symbol << ", run length:" << getRunLength();
+    return std::move(printer);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+StatusVecChunk::StatusVecChunk(const vector<SymbolStatus> &status) {
+    uint16_t value = 0;
+    type = 1;
+    if (status.size() == 14) {
+        symbol = 0;
+    } else if (status.size() == 7) {
+        symbol = 1;
+    } else {
+        //非法
+        CHECK(0);
+    }
+    int i = 13;
+    for (auto &item : status) {
+        CHECK(item <= SymbolStatus::reserved);
+        if (!symbol) {
+            CHECK(item <= SymbolStatus::small_delta);
+            value |= (int) item << i;
+            --i;
+        } else {
+            value |= (int) item << (i - 1);
+            i -= 2;
+        }
+    }
+    symbol_list_low = value & 0xFF;
+    symbol_list_high = (value >> 8 ) & 0x1F;
+}
+
+vector<SymbolStatus> StatusVecChunk::getSymbolList() const {
+    CHECK(type == 1);
+    vector<SymbolStatus> ret;
+    auto thiz = ntohs(*((uint16_t *) this));
+    if (symbol == 0) {
+        //s = 0 时，表示symbollist的每一个bit能表示一个数据包的到达状态
+        for (int i = 13; i >= 0; --i) {
+            SymbolStatus status = (SymbolStatus) ((bool) (thiz & (1 << i)));
+            ret.emplace_back(status);
+        }
+    } else {
+        //s = 1 时，表示symbollist每两个bit表示一个数据包的状态
+        for (int i = 12; i >= 0; i -= 2) {
+            SymbolStatus status = (SymbolStatus) ((thiz & (3 << i)) >> i);
+            ret.emplace_back(status);
+        }
+    }
+    return ret;
+}
+
+string StatusVecChunk::dumpString() const {
+    _StrPrinter printer;
+    printer << "status vector chunk, symbol:" << (int) symbol << ", symbol list:";
+    auto vec = getSymbolList();
+    for (auto &item : vec) {
+        printer << (int) item << " ";
+    }
+    return std::move(printer);
+}
 
 }//namespace mediakit
