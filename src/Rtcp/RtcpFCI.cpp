@@ -261,9 +261,35 @@ uint32_t FCI_TWCC::getReferenceTime() const {
     ret |= ref_time[2];
     return ret;
 }
+//3.1.5.  Receive Delta
+//
+//   Deltas are represented as multiples of 250us:
+//
+//   o  If the "Packet received, small delta" symbol has been appended to
+//      the status list, an 8-bit unsigned receive delta will be appended
+//      to recv delta list, representing a delta in the range [0, 63.75]
+//      ms.
+//
+//   o  If the "Packet received, large or negative delta" symbol has been
+//      appended to the status list, a 16-bit signed receive delta will be
+//      appended to recv delta list, representing a delta in the range
+//      [-8192.0, 8191.75] ms.
+//
+//   o  If the delta exceeds even the larger limits, a new feedback
+//      message must be used, where the 24-bit base receive delta can
+//      cover very large gaps.
+//
+//   The smaller receive delta upper bound of 63.75 ms means that this is
+//   only viable at about 1000/25.5 ~= 16 packets per second and above.
+//   With a packet size of 1200 bytes/packet that amounts to a bitrate of
+//   about 150 kbit/s.
+//
+//   The 0.25 ms resolution means that up to 4000 packets per second can
+//   be represented.  With a 1200 bytes/packet payload, that amounts to
+//   38.4 Mbit/s payload bandwidth.
 
-static uint16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *end){
-    uint16_t delta = 0;
+static int16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *end){
+    int16_t delta = 0;
     switch (status) {
         case SymbolStatus::not_received : {
             //丢包， recv delta为0个字节
@@ -298,29 +324,29 @@ map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > FCI_TWCC::getPacketCh
     auto end = (uint8_t *) this + total_size;
     CHECK(ptr < end);
     auto seq = base_seq;
-    auto stamp = getReferenceTime();
 
     for (uint8_t i = 0; i < pkt_status_count;) {
         CHECK(ptr + RunLengthChunk::kSize <= end)
         RunLengthChunk *chunk = (RunLengthChunk *) ptr;
         if (!chunk->type) {
             //RunLengthChunk
-            ptr += RunLengthChunk::kSize;
             for (auto j = 0; j < chunk->getRunLength(); ++j) {
-                ret.emplace(seq++, std::make_pair((SymbolStatus) chunk->symbol, stamp));
-                stamp += getRecvDelta((SymbolStatus) chunk->symbol, ptr, end);
+                ret.emplace(seq++, std::make_pair((SymbolStatus) chunk->symbol, 0));
                 ++i;
             }
         } else {
             //StatusVecChunk
             StatusVecChunk *chunk = (StatusVecChunk *) ptr;
-            ptr += StatusVecChunk::kSize;
             for (auto &symbol : chunk->getSymbolList()) {
-                ret.emplace(seq++, std::make_pair(symbol, stamp));
-                stamp += getRecvDelta(symbol, ptr, end);
+                ret.emplace(seq++, std::make_pair(symbol, 0));
                 ++i;
             }
         }
+        ptr += 2;
+    }
+    for (auto &pr : ret) {
+        CHECK(ptr <= end)
+        pr.second.second = 250 * getRecvDelta(pr.second.first, ptr, end);
     }
     return ret;
 }
@@ -328,8 +354,9 @@ map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > FCI_TWCC::getPacketCh
 string FCI_TWCC::dumpString(size_t total_size) const {
     _StrPrinter printer;
     auto map = getPacketChunkList(total_size);
+    printer << "twcc fci, base_seq:" << base_seq << ",pkt_status_count:" << pkt_status_count << ", ref time:" << getReferenceTime() << ", fb count:" << (int)fb_pkt_count << "\n";
     for (auto &pr : map) {
-        printer << "  seq:" << pr.first <<", packet status:" << (int)(pr.second.first) << ", stamp:" << pr.second.second << "\n";
+        printer << "rtp seq:" << pr.first <<", packet status:" << (int)(pr.second.first) << ", delta:" << pr.second.second << "\n";
     }
     return std::move(printer);
 }
