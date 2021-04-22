@@ -501,6 +501,8 @@ private:
     function<void(const RtpPacket::Ptr &rtp)> _on_before_sort;
 };
 
+#include "RTCP/RtcpFCI.h"
+
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
     _bytes_usage += len;
     auto rtcps = RtcpHeader::loadFromBytes((char *) buf, len);
@@ -544,6 +546,20 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
             }
             case RtcpType::RTCP_PSFB: {
                 //todo 支持pli等更多类型的rtcp
+                break;
+            }
+            case RtcpType::RTCP_RTPFB: {
+                //todo 测试打印twcc
+                RtcpPli *rtpfb = (RtcpPli *)rtcp;
+                auto fci = (uint8_t *)rtpfb + sizeof (RtcpPli);
+                if(rtpfb->report_count == 15){
+                    //TWCC
+                    FCI_TWCC *twcc = (FCI_TWCC *) (fci);
+                    auto fci_size = rtpfb->getSize() - 12;
+                    InfoL << hexdump(fci, fci_size);
+                    twcc->net2Host(fci_size);
+                    InfoL << "\n" << twcc->dumpString(fci_size);
+                }
                 break;
             }
             default: break;

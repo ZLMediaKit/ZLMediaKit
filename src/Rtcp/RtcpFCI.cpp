@@ -246,4 +246,92 @@ string StatusVecChunk::dumpString() const {
     return std::move(printer);
 }
 
+///////////////////////////////////////////////////////
+
+void FCI_TWCC::net2Host(size_t total_size) {
+    CHECK(total_size >= kSize);
+    base_seq = ntohs(base_seq);
+    pkt_status_count = ntohs(pkt_status_count);
+}
+
+uint32_t FCI_TWCC::getReferenceTime() const {
+    uint32_t ret = 0;
+    ret |= ref_time[0] << 16;
+    ret |= ref_time[1] << 8;
+    ret |= ref_time[2];
+    return ret;
+}
+
+static uint16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *end){
+    uint16_t delta = 0;
+    switch (status) {
+        case SymbolStatus::not_received : {
+            //丢包， recv delta为0个字节
+            delta = 0;
+            break;
+        }
+        case SymbolStatus::small_delta : {
+            CHECK(ptr + 1 <= end);
+            //时间戳增量小于256， recv delta为1个字节
+            delta = *ptr;
+            ptr += 1;
+            break;
+        }
+        case SymbolStatus::large_delta : {
+            CHECK(ptr + 2 <= end);
+            //时间戳增量256~65535间，recv delta为2个字节
+            delta = *ptr << 8 | *(ptr + 1);
+            ptr += 2;
+            break;
+        }
+        default:
+            //这个逻辑分支不可达到
+            CHECK(0);
+            break;
+    }
+    return delta;
+}
+
+map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > FCI_TWCC::getPacketChunkList(size_t total_size) const {
+    map<uint16_t, std::pair<SymbolStatus, uint32_t> > ret;
+    auto ptr = (uint8_t *) this + kSize;
+    auto end = (uint8_t *) this + total_size;
+    CHECK(ptr < end);
+    auto seq = base_seq;
+    auto stamp = getReferenceTime();
+
+    for (uint8_t i = 0; i < pkt_status_count;) {
+        CHECK(ptr + RunLengthChunk::kSize <= end)
+        RunLengthChunk *chunk = (RunLengthChunk *) ptr;
+        if (!chunk->type) {
+            //RunLengthChunk
+            ptr += RunLengthChunk::kSize;
+            for (auto j = 0; j < chunk->getRunLength(); ++j) {
+                ret.emplace(seq++, std::make_pair((SymbolStatus) chunk->symbol, stamp));
+                stamp += getRecvDelta((SymbolStatus) chunk->symbol, ptr, end);
+                ++i;
+            }
+        } else {
+            //StatusVecChunk
+            StatusVecChunk *chunk = (StatusVecChunk *) ptr;
+            ptr += StatusVecChunk::kSize;
+            for (auto &symbol : chunk->getSymbolList()) {
+                ret.emplace(seq++, std::make_pair(symbol, stamp));
+                stamp += getRecvDelta(symbol, ptr, end);
+                ++i;
+            }
+        }
+    }
+    return ret;
+}
+
+string FCI_TWCC::dumpString(size_t total_size) const {
+    _StrPrinter printer;
+    auto map = getPacketChunkList(total_size);
+    for (auto &pr : map) {
+        printer << "  seq:" << pr.first <<", packet status:" << (int)(pr.second.first) << ", stamp:" << pr.second.second << "\n";
+    }
+    return std::move(printer);
+}
+
 }//namespace mediakit
