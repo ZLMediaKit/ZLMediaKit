@@ -18,7 +18,7 @@
 using namespace toolkit;
 
 namespace mediakit {
-class RtspMediaSourceImp : public RtspMediaSource, public Demuxer::Listener , public MultiMediaSourceMuxer::Listener  {
+class RtspMediaSourceImp : public RtspMediaSource, public TrackListener, public MultiMediaSourceMuxer::Listener  {
 public:
     typedef std::shared_ptr<RtspMediaSourceImp> Ptr;
 
@@ -88,10 +88,25 @@ public:
     /**
      * _demuxer触发的添加Track事件
      */
-    void onAddTrack(const Track::Ptr &track) override {
+    void addTrack(const Track::Ptr &track) override {
         if(_muxer){
             _muxer->addTrack(track);
             track->addDelegate(_muxer);
+        }
+    }
+
+    /**
+     * _demuxer触发的Track添加完毕事件
+     */
+    void addTrackCompleted() override {
+        if (_muxer) {
+            _muxer->addTrackCompleted();
+        }
+    }
+
+    void resetTracks() override {
+        if (_muxer) {
+            _muxer->resetTracks();
         }
     }
 
