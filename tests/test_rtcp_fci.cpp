@@ -42,5 +42,28 @@ int main() {
         nack.net2Host();
         InfoL << nack.dumpString();
     }
+    {
+        RunLengthChunk chunk(SymbolStatus::large_delta, 8024);
+        InfoL << hexdump(&chunk, RunLengthChunk::kSize);
+        InfoL << chunk.dumpString();
+    }
+
+    auto lam = [](const initializer_list<int> &lst){
+        vector<SymbolStatus> ret;
+        for(auto &num : lst){
+            ret.emplace_back((SymbolStatus)num);
+        }
+        return ret;
+    };
+    {
+        StatusVecChunk chunk(lam({0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1}));
+        InfoL << hexdump(&chunk, StatusVecChunk::kSize);
+        InfoL << chunk.dumpString();
+    }
+    {
+        StatusVecChunk chunk(lam({0, 1, 2, 3, 0, 1, 2}));
+        InfoL << hexdump(&chunk, StatusVecChunk::kSize);
+        InfoL << chunk.dumpString();
+    }
     return 0;
 }
