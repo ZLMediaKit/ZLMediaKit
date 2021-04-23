@@ -38,7 +38,12 @@ protected:
     // 收到rtp回调
     void onRtpPacket(const char *data, size_t len) override;
 
+    const char *onSearchPacketTail(const char *data, size_t len) override;
+
 private:
+    bool _search_rtp = false;
+    bool _search_rtp_finished = false;
+    uint32_t _ssrc = 0;
     Ticker _ticker;
     string _stream_id;
     struct sockaddr addr;
