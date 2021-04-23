@@ -52,7 +52,7 @@ const char *rtpfbTypeToStr(RTPFBType type) {
 }
 
 static size_t alignSize(size_t bytes) {
-    return (size_t)((bytes + 3) / 4) << 2;
+    return (size_t)((bytes + 3) >> 2 ) << 2;
 }
 
 static void setupHeader(RtcpHeader *rtcp, RtcpType type, size_t report_count, size_t total_bytes) {
@@ -64,23 +64,32 @@ static void setupHeader(RtcpHeader *rtcp, RtcpType type, size_t report_count, si
     //items总个数
     rtcp->report_count = report_count;
     rtcp->pt = (uint8_t) type;
-    //不包含rtcp头的长度
-    rtcp->length = htons((uint16_t)((total_bytes / 4) - 1));
+    rtcp->setSize(total_bytes);
 }
 
 /////////////////////////////////////////////////////////////////////////////
-
-void RtcpHeader::net2Host() {
-    length = ntohs(length);
-}
 
 string RtcpHeader::dumpHeader() const{
     _StrPrinter printer;
     printer << "version:" << version << "\r\n";
     printer << "padding:" << padding << "\r\n";
-    printer << "report_count:" << report_count << "\r\n";
+    switch ((RtcpType)pt) {
+        case RtcpType::RTCP_RTPFB : {
+            printer << "report_count:" << rtpfbTypeToStr((RTPFBType) report_count) << "\r\n";
+            break;
+        }
+        case RtcpType::RTCP_PSFB : {
+            printer << "report_count:" << psfbTypeToStr((PSFBType) report_count) << "\r\n";
+            break;
+        }
+        default : {
+            printer << "report_count:" << report_count << "\r\n";
+            break;
+        }
+    }
+
     printer << "pt:" << rtcpTypeToStr((RtcpType)pt) << "\r\n";
-    printer << "length:" << length << "\r\n";
+    printer << "size:" << getSize() << "\r\n";
     printer << "--------\r\n";
     return std::move(printer);
 }
@@ -102,8 +111,9 @@ string RtcpHeader::dumpString() const {
             return rtcp->dumpString();
         }
 
+        case RtcpType::RTCP_RTPFB:
         case RtcpType::RTCP_PSFB: {
-            RtcpPli *rtcp = (RtcpPli *)this;
+            RtcpFB *rtcp = (RtcpFB *)this;
             return rtcp->dumpString();
         }
 
@@ -112,12 +122,18 @@ string RtcpHeader::dumpString() const {
             return rtcp->dumpString();
         }
 
-        default: return StrPrinter << dumpHeader() << hexdump((char *)this + sizeof(*this), length << 2);
+        default: return StrPrinter << dumpHeader() << hexdump((char *)this + sizeof(*this), getSize() - sizeof(*this));
     }
 }
 
 size_t RtcpHeader::getSize() const {
-    return (1 + length) << 2;
+    //加上rtcp头长度
+    return (1 + ntohs(length)) << 2;
+}
+
+void RtcpHeader::setSize(size_t size) {
+    //不包含rtcp头的长度
+    length = htons((uint16_t)((size >> 2) - 1));
 }
 
 void RtcpHeader::net2Host(size_t len){
@@ -140,9 +156,10 @@ void RtcpHeader::net2Host(size_t len){
             break;
         }
 
+        case RtcpType::RTCP_RTPFB:
         case RtcpType::RTCP_PSFB: {
-            RtcpPli *pli = (RtcpPli *)this;
-            pli->net2Host(len);
+            RtcpFB *fb = (RtcpFB *)this;
+            fb->net2Host(len);
             break;
         }
 
@@ -152,11 +169,6 @@ void RtcpHeader::net2Host(size_t len){
             break;
         }
 
-        case RtcpType::RTCP_RTPFB: {
-            RtcpPli *pli = (RtcpPli *)this;
-            pli->net2Host(len);
-            break;
-        }
         default: throw std::runtime_error(StrPrinter << "未处理的rtcp包:" << rtcpTypeToStr((RtcpType) this->pt));
     }
 }
@@ -167,8 +179,8 @@ vector<RtcpHeader *> RtcpHeader::loadFromBytes(char *data, size_t len){
     char *ptr = data;
     while (remain > (ssize_t) sizeof(RtcpHeader)) {
         RtcpHeader *rtcp = (RtcpHeader *) ptr;
-        auto rtcp_len = (1 + ntohs(rtcp->length)) << 2;
-        if (remain < rtcp_len) {
+        auto rtcp_len = rtcp->getSize();
+        if (remain < (ssize_t)rtcp_len) {
             WarnL << "非法的rtcp包,声明的长度超过实际数据长度";
             break;
         }
@@ -189,7 +201,6 @@ class BufferRtcp : public Buffer {
 public:
     BufferRtcp(std::shared_ptr<RtcpHeader> rtcp) {
         _rtcp = std::move(rtcp);
-        _size = (ntohs(_rtcp->length) + 1) << 2;
     }
 
     ~BufferRtcp() override {}
@@ -199,7 +210,7 @@ public:
     }
 
     size_t size() const override {
-        return _size;
+        return _rtcp->getSize();
     }
 
 private:
@@ -258,21 +269,17 @@ if (size < kMinSize) { \
     throw std::out_of_range(StrPrinter << rtcpTypeToStr((RtcpType)pt) << " 长度不足:" << size << " < " << kMinSize); \
 }
 
-#define CHECK_LENGTH(size, item_count) \
+#define CHECK_REPORT_COUNT(item_count) \
 /*修正个数，防止getItemList时内存越界*/ \
 if (report_count != item_count) { \
     WarnL << rtcpTypeToStr((RtcpType)pt) << " report_count 字段不正确,已修正为:" << (int)report_count << " -> " << item_count; \
     report_count = item_count; \
-} \
-if ((size_t) (length + 1) << 2 != size) { \
-    WarnL << rtcpTypeToStr((RtcpType)pt) << " length字段不正确:" << (size_t) (length + 1) << 2 << " != " << size; \
 }
 
 void RtcpSR::net2Host(size_t size) {
     static const size_t kMinSize = sizeof(RtcpSR) - sizeof(items);
     CHECK_MIN_SIZE(size, kMinSize);
 
-    RtcpHeader::net2Host();
     ssrc = ntohl(ssrc);
     ntpmsw = ntohl(ntpmsw);
     ntplsw = ntohl(ntplsw);
@@ -287,7 +294,7 @@ void RtcpSR::net2Host(size_t size) {
         ++ptr;
         ++item_count;
     }
-    CHECK_LENGTH(size, item_count);
+    CHECK_REPORT_COUNT(item_count);
 }
 
 vector<ReportItem*> RtcpSR::getItemList(){
@@ -352,7 +359,6 @@ string RtcpRR::dumpString() const{
 void RtcpRR::net2Host(size_t size) {
     static const size_t kMinSize = sizeof(RtcpRR) - sizeof(items);
     CHECK_MIN_SIZE(size, kMinSize);
-    RtcpHeader::net2Host();
     ssrc = ntohl(ssrc);
 
     ReportItem *ptr = &items;
@@ -362,7 +368,7 @@ void RtcpRR::net2Host(size_t size) {
         ++ptr;
         ++item_count;
     }
-    CHECK_LENGTH(size, item_count);
+    CHECK_REPORT_COUNT(item_count);
 }
 
 vector<ReportItem*> RtcpRR::getItemList() {
@@ -382,7 +388,7 @@ void SdesItem::net2Host() {
 }
 
 size_t SdesItem::totalBytes() const{
-    return alignSize(minSize() + length);
+    return alignSize(minSize() + txt_len);
 }
 
 size_t SdesItem::minSize() {
@@ -393,14 +399,14 @@ string SdesItem::dumpString() const{
     _StrPrinter printer;
     printer << "ssrc:" << ssrc << "\r\n";
     printer << "type:" << sdesTypeToStr((SdesType) type) << "\r\n";
-    printer << "length:" << (int) length << "\r\n";
-    printer << "text:" << (length ? string(text, length) : "") << "\r\n";
+    printer << "txt_len:" << (int) txt_len << "\r\n";
+    printer << "text:" << (txt_len ? string(text, txt_len) : "") << "\r\n";
     return std::move(printer);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<RtcpSdes> RtcpSdes::create(const std::initializer_list<string> &item_text) {
+std::shared_ptr<RtcpSdes> RtcpSdes::create(const std::vector<string> &item_text) {
     size_t item_total_size = 0;
     for (auto &text : item_text) {
         //统计所有SdesItem对象占用的空间
@@ -410,9 +416,9 @@ std::shared_ptr<RtcpSdes> RtcpSdes::create(const std::initializer_list<string> &
     auto ptr = (RtcpSdes *) new char[bytes];
     auto item_ptr = &ptr->items;
     for (auto &text : item_text) {
-        item_ptr->length = (0xFF & text.size());
+        item_ptr->txt_len = (0xFF & text.size());
         //确保赋值\0为RTCP_SDES_END
-        memcpy(item_ptr->text, text.data(), item_ptr->length + 1);
+        memcpy(item_ptr->text, text.data(), item_ptr->txt_len + 1);
         item_ptr = (SdesItem *) ((char *) item_ptr + item_ptr->totalBytes());
     }
 
@@ -437,7 +443,6 @@ string RtcpSdes::dumpString() const {
 void RtcpSdes::net2Host(size_t size) {
     static const size_t kMinSize = sizeof(RtcpSdes) - sizeof(items);
     CHECK_MIN_SIZE(size, kMinSize);
-    RtcpHeader::net2Host();
     SdesItem *ptr = &items;
     int item_count = 0;
     for(int i = 0; i < (int)report_count && (char *)(ptr) + SdesItem::minSize() <= (char *)(this) + size; ++i){
@@ -445,7 +450,7 @@ void RtcpSdes::net2Host(size_t size) {
         ptr = (SdesItem *) ((char *) ptr + ptr->totalBytes());
         ++item_count;
     }
-    CHECK_LENGTH(size, item_count);
+    CHECK_REPORT_COUNT(item_count);
 }
 
 vector<SdesItem *> RtcpSdes::getItemList() {
@@ -460,34 +465,52 @@ vector<SdesItem *> RtcpSdes::getItemList() {
 
 ////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<RtcpPli> RtcpPli::create() {
-    auto bytes = alignSize(sizeof(RtcpPli));
+std::shared_ptr<RtcpFB> RtcpFB::create_l(RtcpType type, int fmt, const void *fci, size_t fci_len) {
+    if (!fci) {
+        fci_len = 0;
+    }
+    auto bytes = alignSize(sizeof(RtcpFB) + fci_len);
     auto ptr = (RtcpRR *) new char[bytes];
-    setupHeader(ptr, RtcpType::RTCP_PSFB, 1, bytes);
-    return std::shared_ptr<RtcpPli>((RtcpPli *) ptr, [](RtcpPli *ptr) {
+    if (fci && fci_len) {
+        memcpy(ptr + sizeof(RtcpFB), fci, fci_len);
+    }
+    setupHeader(ptr, type, fmt, bytes);
+    return std::shared_ptr<RtcpFB>((RtcpFB *) ptr, [](RtcpFB *ptr) {
         delete[] (char *) ptr;
     });
 }
 
-string RtcpPli::dumpString() const {
+std::shared_ptr<RtcpFB> RtcpFB::create(PSFBType fmt, const void *fci, size_t fci_len) {
+    return RtcpFB::create_l(RtcpType::RTCP_PSFB, (int)fmt, fci, fci_len);
+}
+
+std::shared_ptr<RtcpFB> RtcpFB::create(RTPFBType fmt, const void *fci, size_t fci_len) {
+    return RtcpFB::create_l(RtcpType::RTCP_RTPFB, (int)fmt, fci, fci_len);
+}
+
+string RtcpFB::dumpString() const {
     _StrPrinter printer;
     printer << RtcpHeader::dumpHeader();
     printer << "ssrc:" << ssrc << "\r\n";
-    printer << "ssrc_media:" << ssrc_media;
+    printer << "ssrc_media:" << ssrc_media << "\r\n";
+    auto fci = (uint8_t *)&ssrc_media + sizeof(ssrc_media);
+    auto fci_len = getSize() - sizeof(RtcpFB);
+    if (fci_len) {
+        printer << "fci:" << hexdump(fci, fci_len);
+    }
     return std::move(printer);
 }
 
-void RtcpPli::net2Host(size_t size) {
-    static const size_t kMinSize = sizeof(RtcpPli);
+void RtcpFB::net2Host(size_t size) {
+    static const size_t kMinSize = sizeof(RtcpFB);
     CHECK_MIN_SIZE(size, kMinSize);
-    RtcpHeader::net2Host();
     ssrc = ntohl(ssrc);
     ssrc_media = ntohl(ssrc_media);
 }
 
 ////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<RtcpBye> RtcpBye::create(const std::initializer_list<uint32_t> &ssrcs, const string &reason) {
+std::shared_ptr<RtcpBye> RtcpBye::create(const std::vector<uint32_t> &ssrcs, const string &reason) {
     assert(reason.size() <= 0xFF);
     auto bytes = alignSize(sizeof(RtcpHeader) + sizeof(uint32_t) * ssrcs.size() + 1 + reason.size());
     auto ptr = (RtcpBye *) new char[bytes];
@@ -541,8 +564,6 @@ string RtcpBye::dumpString() const {
 void RtcpBye::net2Host(size_t size) {
     static const size_t kMinSize = sizeof(RtcpHeader);
     CHECK_MIN_SIZE(size, kMinSize);
-    RtcpHeader::net2Host();
-
     uint32_t *ssrc_ptr = &ssrc;
     size_t offset = kMinSize;
     size_t i = 0;
@@ -552,7 +573,7 @@ void RtcpBye::net2Host(size_t size) {
         offset += sizeof(ssrc);
     }
     //修正ssrc个数
-    CHECK_LENGTH(size, i);
+    CHECK_REPORT_COUNT(i);
 
     if (offset < size) {
         uint8_t *reason_len_ptr = &reason_len + sizeof(ssrc) * (report_count - 1);

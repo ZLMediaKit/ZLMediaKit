@@ -179,6 +179,8 @@ public:
 #endif
     //rtcp类型,RtcpType
     uint32_t pt: 8;
+
+private:
     //长度
     uint32_t length: 16;
 
@@ -207,15 +209,16 @@ public:
 
     /**
      * 根据length字段获取rtcp总长度
-     * 使用net2Host转换成主机字节序后才可使用此函数
      */
     size_t getSize() const;
 
-protected:
     /**
-     * 网络字节序转换为主机字节序
+     * 设置rtcp length字段
+     * @param size rtcp总长度，单位字节
      */
-    void net2Host();
+    void setSize(size_t size);
+
+protected:
 
     /**
      * 打印字段详情
@@ -476,7 +479,7 @@ public:
     //SdesType
     uint8_t type;
     //text长度股，可以为0
-    uint8_t length;
+    uint8_t txt_len;
     //不定长
     char text[1];
     //最后以RTCP_SDES_END结尾
@@ -521,7 +524,7 @@ public:
      * @param item_text SdesItem列表，只赋值length和text部分
      * @return SDES包
      */
-    static std::shared_ptr<RtcpSdes> create(const std::initializer_list<string> &item_text);
+    static std::shared_ptr<RtcpSdes> create(const std::vector<string> &item_text);
 
     /**
      * 获取SdesItem对象指针列表
@@ -560,8 +563,8 @@ private:
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   :            Feedback Control Information (FCI)                 :
 //   :                                                               :
-
-class RtcpPli : public RtcpHeader {
+// rtcpfb和psfb的数据结构一致
+class RtcpFB : public RtcpHeader {
 public:
     friend class RtcpHeader;
     uint32_t ssrc;
@@ -569,9 +572,14 @@ public:
 
 public:
     /**
-     * 创建pli包
+     * 创建psfb类型的反馈包
      */
-    static std::shared_ptr<RtcpPli> create();
+    static std::shared_ptr<RtcpFB> create(PSFBType fmt, const void *fci = nullptr, size_t fci_len = 0);
+
+    /**
+     * 创建rtpfb类型的反馈包
+     */
+    static std::shared_ptr<RtcpFB> create(RTPFBType fmt, const void *fci = nullptr, size_t fci_len = 0);
 
 private:
     /**
@@ -585,6 +593,9 @@ private:
      * @param size 字节长度，防止内存越界
      */
     void net2Host(size_t size);
+
+private:
+    static std::shared_ptr<RtcpFB> create_l(RtcpType type, int fmt, const void *fci, size_t fci_len);
 } PACKED;
 
 //BYE
@@ -621,7 +632,7 @@ public:
      * @param reason 原因
      * @return rtcp bye包
      */
-    static std::shared_ptr<RtcpBye> create(const std::initializer_list<uint32_t> &ssrc, const string &reason);
+    static std::shared_ptr<RtcpBye> create(const std::vector<uint32_t> &ssrc, const string &reason);
 
     /**
      * 获取ssrc列表
