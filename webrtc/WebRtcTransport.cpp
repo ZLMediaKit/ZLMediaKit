@@ -544,21 +544,9 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 onShutdown(SockException(Err_eof, "rtcp bye message received"));
                 break;
             }
-            case RtcpType::RTCP_PSFB: {
-                //todo 支持pli等更多类型的rtcp
-                break;
-            }
+            case RtcpType::RTCP_PSFB:
             case RtcpType::RTCP_RTPFB: {
-                //todo 测试打印twcc
-                RtcpPli *rtpfb = (RtcpPli *)rtcp;
-                auto fci = (uint8_t *)rtpfb + sizeof (RtcpPli);
-                if(rtpfb->report_count == 15){
-                    //TWCC
-                    FCI_TWCC *twcc = (FCI_TWCC *) (fci);
-                    auto fci_size = rtpfb->getSize() - 12;
-                    InfoL << hexdump(fci, fci_size);
-                    InfoL << "\n" << twcc->dumpString(fci_size);
-                }
+                InfoL << rtcp->dumpString();
                 break;
             }
             default: break;
@@ -591,10 +579,10 @@ void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr 
     if (_pli_ticker.elapsedTime() > 2000) {
         //定期发送pli请求关键帧，方便非rtc等协议
         _pli_ticker.resetTime();
-        auto pli = RtcpPli::create();
+        auto pli = RtcpFB::create(PSFBType::RTCP_PSFB_PLI);
         pli->ssrc = htonl(0);
         pli->ssrc_media = htonl(_recv_video_ssrc);
-        sendRtcpPacket((char *) pli.get(), sizeof(RtcpPli), true);
+        sendRtcpPacket((char *) pli.get(), pli->getSize(), true);
     }
     if (_push_src) {
         _push_src->onWrite(std::move(rtp), false);
