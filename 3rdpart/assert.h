@@ -21,6 +21,8 @@ extern void Assert_Throw(int failed, const char *exp, const char *func, const ch
 }
 #endif
 
+#define CHECK(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__)
+
 #ifndef NDEBUG
     #ifdef assert
         #undef assert
