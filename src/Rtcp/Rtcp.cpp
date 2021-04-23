@@ -42,6 +42,15 @@ const char *psfbTypeToStr(PSFBType type) {
     }
 }
 
+const char *rtpfbTypeToStr(RTPFBType type) {
+    switch (type){
+#define SWITCH_CASE(key, value) case RTPFBType::key :  return #value "(" #key ")";
+        RTPFB_TYPE_MAP(SWITCH_CASE)
+#undef SWITCH_CASE
+        default: return "unknown transport layer feedback messages fmt type";
+    }
+}
+
 static size_t alignSize(size_t bytes) {
     return (size_t)((bytes + 3) / 4) << 2;
 }

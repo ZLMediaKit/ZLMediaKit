@@ -133,6 +133,13 @@ enum class PSFBType : uint8_t {
 #undef XX
 };
 
+//rtpfb类型枚举
+enum class RTPFBType : uint8_t {
+#define XX(key, value) key = value,
+    RTPFB_TYPE_MAP(XX)
+#undef XX
+};
+
 /**
  * RtcpType转描述字符串
  */
@@ -147,6 +154,11 @@ const char *sdesTypeToStr(SdesType type);
  * psfb枚举转描述字符串
  */
 const char *psfbTypeToStr(PSFBType type);
+
+/**
+ * rtpfb枚举转描述字符串
+ */
+const char *rtpfbTypeToStr(RTPFBType type);
 
 class RtcpHeader {
 public:
