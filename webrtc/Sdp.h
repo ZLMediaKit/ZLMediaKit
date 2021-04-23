@@ -19,8 +19,6 @@
 using namespace std;
 using namespace mediakit;
 
-#define CHECK(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__);
-
 //https://datatracker.ietf.org/doc/rfc4566/?include_text=1
 //https://blog.csdn.net/aggresss/article/details/109850434
 //https://aggresss.blog.csdn.net/article/details/106436703

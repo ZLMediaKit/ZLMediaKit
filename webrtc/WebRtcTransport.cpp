@@ -557,7 +557,6 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     FCI_TWCC *twcc = (FCI_TWCC *) (fci);
                     auto fci_size = rtpfb->getSize() - 12;
                     InfoL << hexdump(fci, fci_size);
-                    twcc->net2Host(fci_size);
                     InfoL << "\n" << twcc->dumpString(fci_size);
                 }
                 break;

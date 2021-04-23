@@ -12,6 +12,7 @@
 #define ZLMEDIAKIT_RTCPFCI_H
 
 #include "Rtcp.h"
+#include "assert.h"
 
 namespace mediakit {
 
@@ -46,10 +47,11 @@ public:
     static size_t constexpr kSize = 4;
 
     FCI_SLI(uint16_t first, uint16_t number, uint8_t pic_id);
+
+    void check(size_t size);
     uint16_t getFirst() const;
     uint16_t getNumber() const;
     uint8_t getPicID() const;
-    void net2Host();
     string dumpString() const;
 
 private:
@@ -108,15 +110,20 @@ public:
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 class FCI_FIR {
 public:
-    uint32_t ssrc;
-    uint32_t seq_number: 8;
-    uint32_t reserved: 24;
-
     static size_t constexpr kSize = 8;
+
     FCI_FIR(uint32_t ssrc, uint8_t seq_number, uint32_t reserved = 0);
-    void net2Host();
+
+    void check(size_t size);
+    uint32_t getSSRC() const;
+    uint8_t getSeq() const;
+    uint32_t getReserved() const;
     string dumpString() const;
 
+private:
+    uint32_t ssrc;
+    uint8_t seq_number;
+    uint8_t reserved[3];
 } PACKED;
 
 //PSFB fmt = 5
@@ -131,6 +138,13 @@ public:
 class FCI_TSTR {
 public:
     static size_t constexpr kSize = 8;
+
+    void check(size_t size) {
+        CHECK(size == kSize);
+    }
+
+private:
+    uint8_t data[kSize];
 } PACKED;
 
 //PSFB fmt = 6
@@ -160,6 +174,13 @@ class FCI_TSTN : public FCI_TSTR{
 class FCI_VBCM {
 public:
     static size_t constexpr kSize = 12;
+
+    void check(size_t size) {
+        CHECK(size == kSize);
+    }
+
+private:
+    uint8_t data[kSize];
 } PACKED;
 
 //PSFB fmt = 15
@@ -194,12 +215,13 @@ class FCI_REMB {
 public:
     static size_t constexpr kSize = 8;
 
-    static string create(const std::initializer_list<uint32_t> &ssrcs, uint32_t bitrate);
-    void net2Host(size_t total_size);
+    static string create(const std::vector<uint32_t> &ssrcs, uint32_t bitrate);
+    void check(size_t size);
     string dumpString() const;
     uint32_t getBitRate() const;
-    vector<uint32_t *> getSSRC();
+    vector<uint32_t> getSSRC();
 
+private:
     //Unique identifier 'R' 'E' 'M' 'B'
     char magic[4];
     //Num SSRC (8 bits)/BR Exp (6 bits)/ BR Mantissa (18 bits)
@@ -207,7 +229,6 @@ public:
     // SSRC feedback (32 bits)  Consists of one or more SSRC entries which
     //               this feedback message applies to.
     uint32_t ssrc_feedback[1];
-
 } PACKED;
 
 /////////////////////////////////////////// RTPFB ////////////////////////////////////////////////////
@@ -221,32 +242,25 @@ public:
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 class FCI_NACK {
 public:
-    static constexpr size_t kBitSize = 16;
     static constexpr size_t kSize = 4;
 
+    FCI_NACK(uint16_t pid_h, const vector<bool> &type);
+
+    void check(size_t size);
+    uint16_t getPid() const;
+    uint16_t getBlp() const;
+    vector<bool> getBitArray() const;
+    string dumpString() const;
+
+private:
+    static constexpr size_t kBitSize = 16;
+
+private:
     // The PID field is used to specify a lost packet.  The PID field
     //      refers to the RTP sequence number of the lost packet.
     uint16_t pid;
     // bitmask of following lost packets (BLP): 16 bits
     uint16_t blp;
-
-    void net2Host();
-    vector<bool> getBitArray() const;
-    string dumpString() const;
-
-    template<typename Type>
-    FCI_NACK(uint16_t pid_h, const Type &type){
-        uint16_t blp_h = 0;
-        int i = kBitSize;
-        for (auto &item : type) {
-            --i;
-            if (item) {
-                blp_h |= (1 << i);
-            }
-        }
-        blp = htons(blp_h);
-        pid = htons(pid_h);
-    }
 } PACKED;
 
 //RTPFB fmt = 3
@@ -262,6 +276,11 @@ class FCI_TMMBR {
 public:
     static size_t constexpr kSize = 8;
 
+    void check(size_t size) {
+        CHECK(size == kSize);
+    }
+
+private:
     //SSRC (32 bits): The SSRC value of the media sender that is
     //              requested to obey the new maximum bit rate.
     uint32_t ssrc;
@@ -269,17 +288,13 @@ public:
     //     MxTBR Exp (6 bits): The exponential scaling of the mantissa for the
     //              maximum total media bit rate value.  The value is an
     //              unsigned integer [0..63].
-    uint32_t max_tbr_exp: 6;
-
     //     MxTBR Mantissa (17 bits): The mantissa of the maximum total media
     //              bit rate value as an unsigned integer.
-    uint32_t max_mantissa: 17;
-
     //     Measured Overhead (9 bits): The measured average packet overhead
     //              value in bytes.  The measurement SHALL be done according
     //              to the description in section 4.2.1.2. The value is an
     //              unsigned integer [0..511].
-    uint32_t measured_overhead: 9;
+    uint32_t max_tbr;
 } PACKED;
 
 //RTPFB fmt = 4
@@ -307,68 +322,6 @@ enum class SymbolStatus : uint8_t{
     reserved = 3
 };
 
-class RunLengthChunk {
-public:
-    static size_t constexpr kSize = 2;
-    //  0                   1
-    //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
-    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    // |T| S |       Run Length        |
-    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#if __BYTE_ORDER == __BIG_ENDIAN
-    uint16_t type: 1;
-    uint16_t symbol: 2;
-    uint16_t run_length_high: 5;
-#else
-    // Run Length 高5位
-    uint16_t run_length_high: 5;
-    //参考SymbolStatus定义
-    uint16_t symbol: 2;
-    //固定为0
-    uint16_t type: 1;
-#endif
-    // Run Length 低8位
-    uint16_t run_length_low: 8;
-
-    //获取Run Length
-    uint16_t getRunLength() const;
-    //构造函数
-    RunLengthChunk(SymbolStatus status, uint16_t run_length);
-
-    string dumpString() const;
-} PACKED;
-
-class StatusVecChunk {
-public:
-    static size_t constexpr kSize = 2;
-    // 0                   1
-    // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
-    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    // |T|S|       symbol list         |
-    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#if __BYTE_ORDER == __BIG_ENDIAN
-    uint16_t type: 1;
-    uint16_t symbol: 1;
-    uint16_t symbol_list_high: 6;
-#else
-    // symbol_list 高6位
-    uint16_t symbol_list_high: 6;
-    //symbol_list中元素是1个还是2个bit
-    uint16_t symbol: 1;
-    //固定为1
-    uint16_t type: 1;
-#endif
-    // symbol_list 低8位
-    uint16_t symbol_list_low: 8;
-
-    //获取symbollist
-    vector<SymbolStatus> getSymbolList() const;
-    //构造函数
-    StatusVecChunk(const vector<SymbolStatus> &status);
-
-    string dumpString() const;
-} PACKED;
-
 //RTPFB fmt = 15
 //https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01#section-3.1
 //https://zhuanlan.zhihu.com/p/206656654
@@ -395,6 +348,14 @@ class FCI_TWCC{
 public:
     static size_t constexpr kSize = 8;
 
+    void check(size_t size);
+    string dumpString(size_t total_size) const;
+    uint16_t getBaseSeq() const;
+    uint32_t getReferenceTime() const;
+    uint16_t getPacketCount() const;
+    map<uint16_t, std::pair<SymbolStatus, uint32_t/*recv delta 微秒*/> > getPacketChunkList(size_t total_size) const;
+
+private:
     //base sequence number,基础序号,本次反馈的第一个包的序号;也就是RTP扩展头的序列号
     uint16_t base_seq;
     //packet status count, 包个数,本次反馈包含多少个包的状态;从基础序号开始算
@@ -403,12 +364,6 @@ public:
     uint8_t ref_time[3];
     //feedback packet count,反馈包号,本包是第几个transport-cc包，每次加1                          |
     uint8_t fb_pkt_count;
-
-    void net2Host(size_t total_size);
-    uint32_t getReferenceTime() const;
-    map<uint16_t, std::pair<SymbolStatus, uint32_t/*recv delta 微秒*/> > getPacketChunkList(size_t total_size) const;
-    string dumpString(size_t total_size) const;
-
 } PACKED;
 
 } //namespace mediakit
