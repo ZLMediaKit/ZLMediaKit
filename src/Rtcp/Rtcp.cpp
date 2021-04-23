@@ -496,6 +496,14 @@ string RtcpFB::dumpString() const {
     auto fci = (uint8_t *)&ssrc_media + sizeof(ssrc_media);
     auto fci_len = getSize() - sizeof(RtcpFB);
     if (fci_len) {
+        switch ((RtcpType) pt) {
+            case RtcpType::RTCP_PSFB : {
+                break;
+            }
+            case RtcpType::RTCP_RTPFB : {
+                break;
+            }
+        }
         printer << "fci:" << hexdump(fci, fci_len);
     }
     return std::move(printer);
