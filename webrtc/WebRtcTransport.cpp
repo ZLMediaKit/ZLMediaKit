@@ -408,7 +408,22 @@ void WebRtcTransportImp::onStartWebRTC() {
 
 void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
     WebRtcTransport::onCheckSdp(type, sdp);
-    if (type != SdpType::answer || !canSendRtp()) {
+    if (type != SdpType::answer) {
+        return;
+    }
+
+    GET_CONFIG(string, extern_ip, RTC::kExternIP);
+    for (auto &m : sdp.media) {
+        m.addr.reset();
+        m.addr.address = extern_ip.empty() ? SockUtil::get_local_ip() : extern_ip;
+        m.rtcp_addr.reset();
+        m.rtcp_addr.address = m.addr.address;
+        m.rtcp_addr.port = _socket->get_local_port();
+        m.port = m.rtcp_addr.port;
+        sdp.origin.address = m.addr.address;
+    }
+
+    if (!canSendRtp()) {
         return;
     }
 
