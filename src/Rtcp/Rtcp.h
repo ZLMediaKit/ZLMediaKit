@@ -85,7 +85,7 @@ namespace mediakit {
         XX(RTCP_PSFB_TSTR, 5)\
         XX(RTCP_PSFB_TSTN, 6)\
         XX(RTCP_PSFB_VBCM, 7) \
-        XX(RTCP_PSFB_AFB, 15)
+        XX(RTCP_PSFB_REMB, 15)
 
 //https://tools.ietf.org/html/rfc4585#section-6.2
 //6.2.   Transport Layer Feedback Messages

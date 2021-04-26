@@ -1257,18 +1257,29 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             //此处调整偏好的编码格式优先级
             preferred_codec = {CodecAAC, CodecG711U, CodecG711A, CodecOpus};
             rtcp_fb = {"transport-cc"};
-            extmap = {"1 urn:ietf:params:rtp-hdrext:ssrc-audio-level"};
+            extmap = {"1 urn:ietf:params:rtp-hdrext:ssrc-audio-level",
+                      "2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
+                      "3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
+                      "4 urn:ietf:params:rtp-hdrext:sdes:mid",
+                      "5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
+                      "6 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"};
             break;
         }
         case TrackVideo: {
             //此处调整偏好的编码格式优先级
             preferred_codec = {CodecH264, CodecH265};
             rtcp_fb = {"nack", "ccm fir", "nack pli", "goog-remb", "transport-cc"};
-            extmap = {"2 urn:ietf:params:rtp-hdrext:toffset",
-                      "3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
-                      "4 urn:3gpp:video-orientation",
-                      "5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
-                      "6 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"};
+            extmap = {"14 urn:ietf:params:rtp-hdrext:toffset",
+                      "2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
+                      "13 urn:3gpp:video-orientation",
+                      "3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
+                      "12 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay",
+                      "11 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type",
+                      "7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing",
+                      "8 http://www.webrtc.org/experiments/rtp-hdrext/color-space",
+                      "4 urn:ietf:params:rtp-hdrext:sdes:mid",
+                      "5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
+                      "6 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"};
             break;
         }
         case TrackApplication: {

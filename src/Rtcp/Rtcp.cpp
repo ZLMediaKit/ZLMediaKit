@@ -12,6 +12,7 @@
 #include <assert.h>
 #include "Rtcp.h"
 #include "Util/logger.h"
+#include "RtcpFCI.h"
 
 namespace mediakit {
 
@@ -493,18 +494,65 @@ string RtcpFB::dumpString() const {
     printer << RtcpHeader::dumpHeader();
     printer << "ssrc:" << ssrc << "\r\n";
     printer << "ssrc_media:" << ssrc_media << "\r\n";
-    auto fci = (uint8_t *)&ssrc_media + sizeof(ssrc_media);
+    auto fci_data = (uint8_t *)&ssrc_media + sizeof(ssrc_media);
     auto fci_len = getSize() - sizeof(RtcpFB);
-    if (fci_len) {
-        switch ((RtcpType) pt) {
-            case RtcpType::RTCP_PSFB : {
-                break;
+    switch ((RtcpType) pt) {
+        case RtcpType::RTCP_PSFB : {
+            switch ((PSFBType) report_count) {
+                case PSFBType::RTCP_PSFB_SLI : {
+                    FCI_SLI *fci = (FCI_SLI *) fci_data;
+                    fci->check(fci_len);
+                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << fci->dumpString();
+                    break;
+                }
+                case PSFBType::RTCP_PSFB_PLI : {
+                    CHECK(fci_len == 0);
+                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count);
+                    break;
+                }
+
+                case PSFBType::RTCP_PSFB_FIR : {
+                    FCI_FIR *fci = (FCI_FIR *) fci_data;
+                    fci->check(fci_len);
+                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << fci->dumpString();
+                    break;
+                }
+
+                case PSFBType::RTCP_PSFB_REMB : {
+                    FCI_REMB *fci = (FCI_REMB *) fci_data;
+                    fci->check(fci_len);
+                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << fci->dumpString();
+                    break;
+                }
+                default:{
+                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << hexdump(fci_data, fci_len);
+                    break;
+                }
             }
-            case RtcpType::RTCP_RTPFB : {
-                break;
-            }
+            break;
         }
-        printer << "fci:" << hexdump(fci, fci_len);
+        case RtcpType::RTCP_RTPFB : {
+            switch ((RTPFBType) report_count) {
+                case RTPFBType::RTCP_RTPFB_NACK : {
+                    FCI_NACK *fci = (FCI_NACK *) fci_data;
+                    fci->check(fci_len);
+                    printer << "fci:" << rtpfbTypeToStr((RTPFBType) report_count) << " " << fci->dumpString();
+                    break;
+                }
+                case RTPFBType::RTCP_RTPFB_TWCC : {
+                    FCI_TWCC *fci = (FCI_TWCC *) fci_data;
+                    fci->check(fci_len);
+                    printer << "fci:" << rtpfbTypeToStr((RTPFBType) report_count) << " " << fci->dumpString(fci_len);
+                    break;
+                }
+                default: {
+                    printer << "fci:" << rtpfbTypeToStr((RTPFBType) report_count) << " " << hexdump(fci_data, fci_len);
+                    break;
+                }
+            }
+            break;
+        }
+        default: /*不可达*/ assert(0); break;
     }
     return std::move(printer);
 }

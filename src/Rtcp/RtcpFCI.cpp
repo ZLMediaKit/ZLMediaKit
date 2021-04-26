@@ -453,7 +453,7 @@ map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > FCI_TWCC::getPacketCh
 string FCI_TWCC::dumpString(size_t total_size) const {
     _StrPrinter printer;
     auto map = getPacketChunkList(total_size);
-    printer << "twcc fci, base_seq:" << getBaseSeq() << ",pkt_status_count:" << getPacketCount() << ", ref time:" << getReferenceTime() << ", fb count:" << (int)fb_pkt_count << "\n";
+    printer << "twcc fci, base_seq:" << getBaseSeq() << ", pkt_status_count:" << getPacketCount() << ", ref time:" << getReferenceTime() << ", fb count:" << (int)fb_pkt_count << "\n";
     for (auto &pr : map) {
         printer << "rtp seq:" << pr.first <<", packet status:" << (int)(pr.second.first) << ", delta:" << pr.second.second << "\n";
     }

@@ -544,7 +544,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
             }
             case RtcpType::RTCP_PSFB:
             case RtcpType::RTCP_RTPFB: {
-                InfoL << rtcp->dumpString();
+                InfoL << "\n" << rtcp->dumpString();
                 break;
             }
             default: break;
