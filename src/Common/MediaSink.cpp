@@ -11,10 +11,13 @@
 #include "MediaSink.h"
 
 //最多等待未初始化的Track 10秒，超时之后会忽略未初始化的Track
-#define MAX_WAIT_MS_READY 10000
+static size_t constexpr kMaxWaitReadyMS= 10000;
 
 //如果直播流只有单Track，最多等待3秒，超时后未收到其他Track的数据，则认为是单Track
-#define MAX_WAIT_MS_ADD_TRACK 3000
+static size_t constexpr kMaxAddTrackMS = 3000;
+
+//如果track未就绪，我们先缓存帧数据，但是有最大个数限制(100帧时大约4秒)，防止内存溢出
+static size_t constexpr kMaxUnreadyFrame = 100;
 
 namespace mediakit{
 
@@ -37,8 +40,14 @@ void MediaSink::addTrack(const Track::Ptr &track_in) {
         if (_all_track_ready) {
             onTrackFrame(frame);
         } else {
+            auto &frame_unread = _frame_unread[frame->getCodecId()];
+            if (frame_unread.size() > kMaxUnreadyFrame) {
+                //未就绪的的track，不能缓存太多的帧，否则可能内存溢出
+                frame_unread.clear();
+                WarnL << "cached frame of unready track(" << frame->getCodecName() << ") is too much, now cleared";
+            }
             //还有Track未就绪，先缓存之
-            _frame_unread[frame->getCodecId()].emplace_back(Frame::getCacheAbleFrame(frame));
+            frame_unread.emplace_back(Frame::getCacheAbleFrame(frame));
         }
     }));
 }
@@ -84,7 +93,7 @@ void MediaSink::checkTrackIfReady(const Track::Ptr &track){
     }
 
     if(!_all_track_ready){
-        if(_ticker.elapsedTime() > MAX_WAIT_MS_READY){
+        if(_ticker.elapsedTime() > kMaxWaitReadyMS){
             //如果超过规定时间，那么不再等待并忽略未准备好的Track
             emitAllTrackReady();
             return;
@@ -101,7 +110,7 @@ void MediaSink::checkTrackIfReady(const Track::Ptr &track){
             return;
         }
 
-        if(_track_map.size() == 1 && _ticker.elapsedTime() > MAX_WAIT_MS_ADD_TRACK){
+        if(_track_map.size() == 1 && _ticker.elapsedTime() > kMaxAddTrackMS){
             //如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
             emitAllTrackReady();
             return;

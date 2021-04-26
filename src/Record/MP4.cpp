@@ -80,14 +80,6 @@ int mp4_writer_write(mp4_writer_t* mp4, int track, const void* data, size_t byte
     }
 }
 
-int mp4_writer_write_l(mp4_writer_t* mp4, int track, const void* data, size_t bytes, int64_t pts, int64_t dts, int flags, int add_nalu_size){
-    if (mp4->is_fmp4) {
-        return fmp4_writer_write_l(mp4->u.fmp4, track, data, bytes, pts, dts, flags, add_nalu_size);
-    } else {
-        return mov_writer_write_l(mp4->u.mov, track, data, bytes, pts, dts, flags, add_nalu_size);
-    }
-}
-
 int mp4_writer_save_segment(mp4_writer_t* mp4){
     if (mp4->is_fmp4) {
         return fmp4_writer_save_segment(mp4->u.fmp4);

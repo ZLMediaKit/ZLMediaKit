@@ -100,34 +100,6 @@ static const char *getCodecName(int codec_id) {
     }
 }
 
-void FrameMerger::inputFrame(const Frame::Ptr &frame,const function<void(uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer)> &cb){
-    bool flush = false;
-    switch (frame->getCodecId()) {
-        case CodecH264:
-        case CodecH265:{
-            //如果是新的一帧，前面的缓存需要输出
-            flush = frame->prefixSize();
-            break;
-        }
-        default: break;
-    }
-    if (!_frameCached.empty() && (flush || _frameCached.back()->dts() != frame->dts())) {
-        Frame::Ptr back = _frameCached.back();
-        Buffer::Ptr merged_frame = back;
-        if(_frameCached.size() != 1){
-            BufferLikeString merged;
-            merged.reserve(back->size() + 1024);
-            _frameCached.for_each([&](const Frame::Ptr &frame){
-                merged.append(frame->data(),frame->size());
-            });
-            merged_frame = std::make_shared<BufferOffset<BufferLikeString> >(std::move(merged));
-        }
-        cb(back->dts(),back->pts(),merged_frame);
-        _frameCached.clear();
-    }
-    _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
-}
-
 void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t bytes, int finish){
     switch (codecid) {
         case PSI_STREAM_H264: {
@@ -188,7 +160,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
     switch (codecid) {
         case PSI_STREAM_H264: {
             auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, (uint32_t)dts, (uint32_t)pts, prefixSize((char *) data, bytes));
-            _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
+            _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
                 onFrame(std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
             break;
@@ -196,7 +168,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
 
         case PSI_STREAM_H265: {
             auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, (uint32_t)dts, (uint32_t)pts, prefixSize((char *) data, bytes));
-            _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer) {
+            _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
                 onFrame(std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
             break;
