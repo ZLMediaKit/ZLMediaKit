@@ -423,22 +423,26 @@ map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > FCI_TWCC::getPacketCh
     auto end = (uint8_t *) this + total_size;
     CHECK(ptr < end);
     auto seq = getBaseSeq();
-
-    for (uint8_t i = 0; i < getPacketCount();) {
+    auto rtp_count = getPacketCount();
+    for (uint8_t i = 0; i < rtp_count;) {
         CHECK(ptr + RunLengthChunk::kSize <= end);
         RunLengthChunk *chunk = (RunLengthChunk *) ptr;
         if (!chunk->type) {
             //RunLengthChunk
             for (auto j = 0; j < chunk->getRunLength(); ++j) {
                 ret.emplace(seq++, std::make_pair((SymbolStatus) chunk->symbol, 0));
-                ++i;
+                if (++i >= rtp_count) {
+                    break;
+                }
             }
         } else {
             //StatusVecChunk
             StatusVecChunk *chunk = (StatusVecChunk *) ptr;
             for (auto &symbol : chunk->getSymbolList()) {
                 ret.emplace(seq++, std::make_pair(symbol, 0));
-                ++i;
+                if (++i >= rtp_count) {
+                    break;
+                }
             }
         }
         ptr += 2;
