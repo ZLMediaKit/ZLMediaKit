@@ -61,9 +61,9 @@ private:
 private:
     uint32_t _timestamp = 0;
     BufferRaw::Ptr _buffer;
-    List<Frame::Ptr> _frameCached;
     std::shared_ptr<struct ps_muxer_t> _muxer;
     unordered_map<int, track_info> _codec_to_trackid;
+    FrameMerger _frame_merger{FrameMerger::h264_prefix};
 };
 
 class PSEncoderImp : public PSEncoder{

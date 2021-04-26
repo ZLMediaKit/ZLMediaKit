@@ -59,6 +59,8 @@ private:
     void stampSync();
 
 private:
+    bool _have_video = false;
+    bool _is_idr_fast_packet = false;
     void *_context = nullptr;
     char _tsbuf[188];
     uint32_t _timestamp = 0;
@@ -67,9 +69,7 @@ private:
         Stamp stamp;
     };
     unordered_map<int, track_info> _codec_to_trackid;
-    List<Frame::Ptr> _frameCached;
-    bool _is_idr_fast_packet = false;
-    bool _have_video = false;
+    FrameMerger _frame_merger{FrameMerger::h264_prefix};
 };
 
 }//namespace mediakit

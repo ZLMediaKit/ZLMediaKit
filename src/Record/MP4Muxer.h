@@ -72,8 +72,8 @@ private:
         int track_id = -1;
         Stamp stamp;
     };
-    List<Frame::Ptr> _frameCached;
     unordered_map<int, track_info> _codec_to_trackid;
+    FrameMerger _frame_merger{FrameMerger::mp4_nal_size};
 };
 
 class MP4Muxer : public MP4MuxerInterface{

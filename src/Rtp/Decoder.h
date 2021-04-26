@@ -34,18 +34,6 @@ protected:
     virtual ~Decoder() = default;
 };
 
-/**
- * 合并一些时间戳相同的frame
- */
-class FrameMerger {
-public:
-    FrameMerger() = default;
-    ~FrameMerger() = default;
-    void inputFrame(const Frame::Ptr &frame,const function<void(uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer)> &cb);
-private:
-    List<Frame::Ptr> _frameCached;
-};
-
 class DecoderImp{
 public:
     typedef enum {
@@ -71,7 +59,7 @@ private:
 private:
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;
-    FrameMerger _merger;
+    FrameMerger _merger{FrameMerger::none};
     Ticker _last_unsported_print;
 };
 
