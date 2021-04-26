@@ -501,8 +501,6 @@ private:
     function<void(const RtpPacket::Ptr &rtp)> _on_before_sort;
 };
 
-#include "RTCP/RtcpFCI.h"
-
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
     _bytes_usage += len;
     auto rtcps = RtcpHeader::loadFromBytes((char *) buf, len);
