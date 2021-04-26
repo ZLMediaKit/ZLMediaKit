@@ -172,7 +172,7 @@ public:
 #else
     //reception report count
     uint32_t report_count: 5;
-    //padding，固定为0
+    //padding，末尾是否有追加填充
     uint32_t padding: 1;
     //版本号，固定为2
     uint32_t version: 2;
@@ -211,6 +211,11 @@ public:
      * 根据length字段获取rtcp总长度
      */
     size_t getSize() const;
+
+    /**
+     * 后面追加padding数据长度
+     */
+    size_t getPaddingSize() const;
 
     /**
      * 设置rtcp length字段
