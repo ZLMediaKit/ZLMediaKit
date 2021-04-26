@@ -103,32 +103,14 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
 
         case CodecH265: {
             //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            if (!_frameCached.empty() && _frameCached.back()->dts() != frame->dts()) {
-                Frame::Ptr back = _frameCached.back();
-                Buffer::Ptr merged_frame = back;
-                if (_frameCached.size() != 1) {
-                    BufferLikeString merged;
-                    merged.reserve(back->size() + 1024);
-                    _frameCached.for_each([&](const Frame::Ptr &frame) {
-                        if (frame->prefixSize()) {
-                            merged.append(frame->data(), frame->size());
-                        } else {
-                            merged.append("\x00\x00\x00\x01", 4);
-                            merged.append(frame->data(), frame->size());
-                        }
-                        if (frame->keyFrame()) {
-                            _is_idr_fast_packet = true;
-                        }
-                    });
-                    merged_frame = std::make_shared<BufferOffset<BufferLikeString> >(std::move(merged));
-                }
-                track_info.stamp.revise(back->dts(), back->pts(), dts_out, pts_out);
+            _frame_merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr){
+                track_info.stamp.revise(dts, pts, dts_out, pts_out);
                 //取视频时间戳为TS的时间戳
-                _timestamp = (uint32_t)dts_out;
-                mpeg_ts_write(_context, track_info.track_id, back->keyFrame() ? 0x0001 : 0, pts_out * 90LL,dts_out * 90LL, merged_frame->data(), merged_frame->size());
-                _frameCached.clear();
-            }
-            _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
+                _timestamp = (uint32_t) dts_out;
+                _is_idr_fast_packet = have_idr;
+                mpeg_ts_write(_context, track_info.track_id, have_idr ? 0x0001 : 0,
+                              pts_out * 90LL, dts_out * 90LL, buffer->data(), buffer->size());
+            });
             break;
         }
 
@@ -141,11 +123,12 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
 
         default: {
             track_info.stamp.revise(frame->dts(), frame->pts(), dts_out, pts_out);
-            if(!_have_video){
+            if (!_have_video) {
                 //没有视频时，才以音频时间戳为TS的时间戳
-                _timestamp = (uint32_t)dts_out;
+                _timestamp = (uint32_t) dts_out;
             }
-            mpeg_ts_write(_context, track_info.track_id, frame->keyFrame() ? 0x0001 : 0, pts_out * 90LL, dts_out * 90LL, frame->data(), frame->size());
+            mpeg_ts_write(_context, track_info.track_id, frame->keyFrame() ? 0x0001 : 0,
+                          pts_out * 90LL, dts_out * 90LL, frame->data(), frame->size());
             break;
         }
     }
@@ -187,6 +170,7 @@ void TsMuxer::uninit() {
         _context = nullptr;
     }
     _codec_to_trackid.clear();
+    _frame_merger.clear();
 }
 
 }//namespace mediakit

@@ -428,5 +428,32 @@ private:
     Buffer::Ptr _buf;
 };
 
+/**
+ * 合并一些时间戳相同的frame
+ */
+class FrameMerger {
+public:
+    using onOutput = function<void(uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr)>;
+    enum {
+        none = 0,
+        h264_prefix,
+        mp4_nal_size,
+    };
+
+    FrameMerger(int type);
+    ~FrameMerger() = default;
+
+    void clear();
+    void inputFrame(const Frame::Ptr &frame, const onOutput &cb);
+
+private:
+    bool willFlush(const Frame::Ptr &frame) const;
+    void doMerge(BufferLikeString &buffer, const Frame::Ptr &frame) const;
+
+private:
+    int _type;
+    List<Frame::Ptr> _frameCached;
+};
+
 }//namespace mediakit
 #endif //ZLMEDIAKIT_FRAME_H
