@@ -97,6 +97,10 @@ public:
     }
     virtual const char* getKey() const = 0;
 
+    void reset() {
+        value.clear();
+    }
+
 protected:
     mutable string value;
 };
