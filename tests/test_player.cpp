@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
                 if(!merger){
                     merger.set<FrameMerger>(FrameMerger::h264_prefix);
                 }
-                merger.get<FrameMerger>().inputFrame(frame,[&](uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer){
+                merger.get<FrameMerger>().inputFrame(frame,[&](uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer, bool have_idr){
                     AVFrame *pFrame = nullptr;
                     bool flag = decoder.get<FFMpegDecoder>().inputVideo((unsigned char *) buffer->data(), buffer->size(), dts, &pFrame);
                     if (flag) {
