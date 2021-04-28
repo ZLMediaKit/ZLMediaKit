@@ -499,9 +499,9 @@ std::shared_ptr<RtcpFB> RtcpFB::create_l(RtcpType type, int fmt, const void *fci
     }
     auto real_size = sizeof(RtcpFB) + fci_len;
     auto bytes = alignSize(real_size);
-    auto ptr = (RtcpRR *) new char[bytes];
+    auto ptr = (RtcpFB *) new char[bytes];
     if (fci && fci_len) {
-        memcpy(ptr + sizeof(RtcpFB), fci, fci_len);
+        memcpy((char *)ptr + sizeof(RtcpFB), fci, fci_len);
     }
     setupHeader(ptr, type, fmt, bytes);
     setupPadding(ptr, bytes - real_size);
