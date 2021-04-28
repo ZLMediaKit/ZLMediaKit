@@ -204,8 +204,8 @@ void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint32_t pts, bool is_
 }
 
 void H264RtpEncoder::packRtpFu(const char *ptr, size_t len, uint32_t pts, bool is_mark, bool gop_pos){
-    auto packet_size = getMaxSize() - 1;
-    if (len <= packet_size) {
+    auto packet_size = getMaxSize() - 2;
+    if (len <= packet_size + 1) {
         //小于FU-A打包最小字节长度要求，采用STAP-A模式
         packRtpStapA(ptr, len, pts, is_mark, gop_pos);
         return;
