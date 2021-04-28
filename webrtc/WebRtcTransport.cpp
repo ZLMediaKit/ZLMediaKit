@@ -11,7 +11,9 @@
 #include "WebRtcTransport.h"
 #include <iostream>
 #include "Rtcp/Rtcp.h"
+#include "Rtcp/RtcpFCI.h"
 #include "Rtsp/RtpReceiver.h"
+
 #define RTX_SSRC_OFFSET 2
 #define RTP_CNAME "zlmediakit-rtp"
 #define RTX_CNAME "zlmediakit-rtx"
@@ -23,10 +25,13 @@ namespace RTC {
 const string kTimeOutSec = RTC_FIELD"timeoutSec";
 //服务器外网ip
 const string kExternIP = RTC_FIELD"externIP";
+//设置remb比特率，非0时关闭twcc并开启remb。该设置在rtc推流时有效，可以控制推流画质
+const string kRembBitRate = RTC_FIELD"rembBitRate";
 
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
     mINI::Instance()[kExternIP] = "";
+    mINI::Instance()[kRembBitRate] = 0;
 });
 
 }//namespace RTC
@@ -134,6 +139,22 @@ RTC::TransportTuple* WebRtcTransport::getSelectedTuple() const{
     return  _ice_server->GetSelectedTuple();
 }
 
+void WebRtcTransport::sendRtcpRemb(uint32_t ssrc, size_t bit_rate) {
+    auto remb = FCI_REMB::create({ssrc}, (uint32_t)bit_rate);
+    auto fb = RtcpFB::create(PSFBType::RTCP_PSFB_REMB, remb.data(), remb.size());
+    fb->ssrc = htonl(0);
+    fb->ssrc_media = htonl(ssrc);
+    sendRtcpPacket((char *) fb.get(), fb->getSize(), true);
+    TraceL << ssrc << " " << bit_rate;
+}
+
+void WebRtcTransport::sendRtcpPli(uint32_t ssrc) {
+    auto pli = RtcpFB::create(PSFBType::RTCP_PSFB_PLI);
+    pli->ssrc = htonl(0);
+    pli->ssrc_media = htonl(ssrc);
+    sendRtcpPacket((char *) pli.get(), pli->getSize(), true);
+}
+
 string getFingerprint(const string &algorithm_str, const std::shared_ptr<RTC::DtlsTransport> &transport){
     auto algorithm = RTC::DtlsTransport::GetFingerprintAlgorithm(algorithm_str);
     for (auto &finger_prints : transport->GetLocalFingerprints()) {
@@ -161,6 +182,12 @@ void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp){
     if (sdp.group.mids.empty()) {
         throw std::invalid_argument("只支持group BUNDLE模式");
     }
+}
+
+void WebRtcTransport::onRtcConfigure(RtcConfigure &configure) const {
+    //开启remb后关闭twcc，因为开启twcc后remb无效
+    GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
+    configure.enableTWCC(!remb_bit_rate);
 }
 
 std::string WebRtcTransport::getAnswerSdp(const string &offer){
@@ -389,6 +416,10 @@ void WebRtcTransportImp::onStartWebRTC() {
 
     if (canRecvRtp()) {
         _push_src->setSdp(getSdp(SdpType::answer).toRtspSdp());
+        GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
+        if (remb_bit_rate && getSdp(SdpType::answer).supportRtcpFb("goog-remb")) {
+            sendRtcpRemb(_recv_video_ssrc, remb_bit_rate);
+        }
     }
     if (canSendRtp()) {
         _reader = _play_src->getRing()->attach(getPoller(), true);
@@ -592,10 +623,7 @@ void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr 
     if (_pli_ticker.elapsedTime() > 2000) {
         //定期发送pli请求关键帧，方便非rtc等协议
         _pli_ticker.resetTime();
-        auto pli = RtcpFB::create(PSFBType::RTCP_PSFB_PLI);
-        pli->ssrc = htonl(0);
-        pli->ssrc_media = htonl(_recv_video_ssrc);
-        sendRtcpPacket((char *) pli.get(), pli->getSize(), true);
+        sendRtcpPli(_recv_video_ssrc);
     }
     if (_push_src) {
         _push_src->onWrite(std::move(rtp), false);
