@@ -48,9 +48,9 @@ void release_pusher(mk_media *ptr) {
 
 void release_context(Context **ptr){
     if (ptr && *ptr) {
-        release_pusher((*ptr)->pusher);
-        release_media((*ptr)->media);
-        release_player((*ptr)->player);
+        release_pusher(&(*ptr)->pusher);
+        release_media(&(*ptr)->media);
+        release_player(&(*ptr)->player);
         free(*ptr);
         *ptr = NULL;
     }
