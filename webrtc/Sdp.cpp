@@ -921,7 +921,7 @@ void RtcSession::loadFrom(const string &str, bool check) {
             }
             for (auto rtpfb_it = rtcpfb_map.find(pt);
                  rtpfb_it != rtcpfb_map.end() && rtpfb_it->second.pt == pt; ++rtpfb_it) {
-                plan.rtcp_fb.emplace_back(rtpfb_it->second.rtcp_type);
+                plan.rtcp_fb.emplace(rtpfb_it->second.rtcp_type);
             }
         }
     }
@@ -1241,6 +1241,20 @@ const RtcMedia *RtcSession::getMedia(TrackType type) const{
     return nullptr;
 }
 
+static string const kTWCCRtcpFb = "transport-cc";
+static string const kTWCCExtMap = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
+
+
+void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
+    if (!enable) {
+        rtcp_fb.erase(kTWCCRtcpFb);
+        extmap.erase(kTWCCExtMap);
+    } else {
+        rtcp_fb.emplace(kTWCCRtcpFb);
+        extmap.emplace(kTWCCExtMap);
+    }
+}
+
 void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     enable = true;
     rtcp_mux = true;
@@ -1256,30 +1270,34 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
         case TrackAudio: {
             //此处调整偏好的编码格式优先级
             preferred_codec = {CodecAAC, CodecG711U, CodecG711A, CodecOpus};
-            rtcp_fb = {"transport-cc"};
-            extmap = {"1 urn:ietf:params:rtp-hdrext:ssrc-audio-level",
-                      "2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
-                      "3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
-                      "4 urn:ietf:params:rtp-hdrext:sdes:mid",
-                      "5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
-                      "6 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"};
+            rtcp_fb = {kTWCCRtcpFb};
+            extmap = {
+                    kTWCCExtMap,
+                    "urn:ietf:params:rtp-hdrext:ssrc-audio-level",
+                    "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
+                    "urn:ietf:params:rtp-hdrext:sdes:mid",
+                    "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
+                    "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"
+            };
             break;
         }
         case TrackVideo: {
             //此处调整偏好的编码格式优先级
             preferred_codec = {CodecH264, CodecH265};
-            rtcp_fb = {"nack", "ccm fir", "nack pli", "goog-remb", "transport-cc"};
-            extmap = {"14 urn:ietf:params:rtp-hdrext:toffset",
-                      "2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
-                      "13 urn:3gpp:video-orientation",
-                      "3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
-                      "12 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay",
-                      "11 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type",
-                      "7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing",
-                      "8 http://www.webrtc.org/experiments/rtp-hdrext/color-space",
-                      "4 urn:ietf:params:rtp-hdrext:sdes:mid",
-                      "5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
-                      "6 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"};
+            rtcp_fb = {kTWCCRtcpFb, "nack", "ccm fir", "nack pli", "goog-remb"};
+            extmap = {
+                    kTWCCExtMap,
+                    "urn:ietf:params:rtp-hdrext:toffset",
+                    "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
+                    "urn:3gpp:video-orientation",
+                    "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay",
+                    "http://www.webrtc.org/experiments/rtp-hdrext/video-content-type",
+                    "http://www.webrtc.org/experiments/rtp-hdrext/video-timing",
+                    "http://www.webrtc.org/experiments/rtp-hdrext/color-space",
+                    "urn:ietf:params:rtp-hdrext:sdes:mid",
+                    "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
+                    "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"
+            };
             break;
         }
         case TrackApplication: {
@@ -1328,6 +1346,29 @@ void RtcConfigure::addCandidate(const SdpAttrCandidate &candidate, TrackType typ
             if (application.group_bundle) {
                 application.candidate.emplace_back(candidate);
             }
+            break;
+        }
+    }
+}
+
+void RtcConfigure::enableTWCC(bool enable, TrackType type){
+    switch (type) {
+        case TrackAudio: {
+            audio.enableTWCC(enable);
+            break;
+        }
+        case TrackVideo: {
+            video.enableTWCC(enable);
+            break;
+        }
+        case TrackApplication: {
+            application.enableTWCC(enable);
+            break;
+        }
+        default: {
+            audio.enableTWCC(enable);
+            video.enableTWCC(enable);
+            application.enableTWCC(enable);
             break;
         }
     }
@@ -1479,35 +1520,22 @@ RETRY:
                 }
             }
 
-            //这是我们支持的扩展
-            unordered_set<string> extmap_set;
-            for (auto &ext : configure.extmap) {
-                SdpAttrExtmap ext_cfg;
-                ext_cfg.parse(ext);
-                extmap_set.emplace(ext_cfg.ext);
-            }
-
-            //对方和我方都支持的扩展，那么我们都支持
+            //对方和我方都支持的扩展，那么我们才支持
             for (auto &ext : offer_media.extmap) {
-                if (extmap_set.find(ext.ext) != extmap_set.end()) {
+                if (configure.extmap.find(ext.ext) != configure.extmap.end()) {
                     answer_media.extmap.emplace_back(ext);
                 }
             }
-            //我们支持的rtcp类型
-            unordered_set<string> rtcp_fb_set;
-            for (auto &fp : configure.rtcp_fb) {
-                rtcp_fb_set.emplace(fp);
-            }
-            vector<string> offer_rtcp_fb;
+
+            auto &rtcp_fb_ref = answer_media.plan[0].rtcp_fb;
+            rtcp_fb_ref.clear();
+            //对方和我方都支持的rtcpfb，那么我们才支持
             for (auto &fp : offer_plan_ptr->rtcp_fb) {
-                if (rtcp_fb_set.find(fp) != rtcp_fb_set.end()) {
+                if (configure.rtcp_fb.find(fp) != configure.rtcp_fb.end()) {
                     //对方该rtcp被我们支持
-                    offer_rtcp_fb.emplace_back(fp);
+                    rtcp_fb_ref.emplace(fp);
                 }
             }
-
-            //修改为我们支持的rtcp-fb类型
-            answer_media.plan[0].rtcp_fb.swap(offer_rtcp_fb);
             ret->media.emplace_back(answer_media);
             return;
         }

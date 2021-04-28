@@ -591,7 +591,7 @@ public:
     //音频时有效
     uint32_t channel = 0;
     //rtcp反馈
-    vector<string> rtcp_fb;
+    set<string> rtcp_fb;
     map<string/*key*/, string/*value*/, StrCaseCompare> fmtp;
 
     string getFmtp(const char *key) const;
@@ -693,12 +693,13 @@ public:
         RtpDirection direction{RtpDirection::invalid};
         SdpAttrFingerprint fingerprint;
 
-        vector<string> rtcp_fb;
+        set<string> rtcp_fb;
+        set<string> extmap;
         vector<CodecId> preferred_codec;
-        vector<string> extmap;
         vector<SdpAttrCandidate> candidate;
 
         void setDefaultSetting(TrackType type);
+        void enableTWCC(bool enable = true);
     };
 
     RtcTrackConfigure video;
@@ -714,6 +715,8 @@ public:
     shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
 
     void setPlayRtspInfo(const string &sdp);
+
+    void enableTWCC(bool enable = true, TrackType type = TrackInvalid);
 
 private:
     void matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
