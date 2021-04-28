@@ -1241,9 +1241,17 @@ const RtcMedia *RtcSession::getMedia(TrackType type) const{
     return nullptr;
 }
 
+bool RtcSession::supportRtcpFb(const string &name, TrackType type) const {
+    auto media = getMedia(type);
+    if (!media) {
+        return false;
+    }
+    auto &ref = media->plan[0].rtcp_fb;
+    return ref.find(name) != ref.end();
+}
+
 static string const kTWCCRtcpFb = "transport-cc";
 static string const kTWCCExtMap = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
-
 
 void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
     if (!enable) {

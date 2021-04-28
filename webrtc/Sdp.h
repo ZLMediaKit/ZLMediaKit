@@ -667,6 +667,7 @@ public:
     string toString() const;
     string toRtspSdp() const;
     const  RtcMedia *getMedia(TrackType type) const;
+    bool supportRtcpFb(const string &name, TrackType type = TrackType::TrackVideo) const;
 
 private:
     RtcSessionSdp::Ptr toRtcSessionSdp() const;

@@ -93,7 +93,7 @@ protected:
 
 protected:
     virtual void onStartWebRTC() = 0;
-    virtual void onRtcConfigure(RtcConfigure &configure) const {}
+    virtual void onRtcConfigure(RtcConfigure &configure) const;
     virtual void onCheckSdp(SdpType type, RtcSession &sdp);
     virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) = 0;
 
@@ -104,6 +104,8 @@ protected:
 protected:
     const RtcSession& getSdp(SdpType type) const;
     RTC::TransportTuple* getSelectedTuple() const;
+    void sendRtcpRemb(uint32_t ssrc, size_t bit_rate);
+    void sendRtcpPli(uint32_t ssrc);
 
 private:
     void onSendSockData(const char *buf, size_t len, bool flush = true);
