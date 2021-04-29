@@ -89,6 +89,8 @@ public:
             _muxer->addTrack(track);
             track->addDelegate(_muxer);
         }
+        if(this->_all_demuxer_track_ready)
+            this->addTrackCompleted();
     }
 
     /**
@@ -108,6 +110,7 @@ public:
         if (_muxer) {
             _muxer->addTrackCompleted();
         }
+        this->_all_demuxer_track_ready = true;
     }
 
     void resetTracks() override {
@@ -141,6 +144,7 @@ private:
     RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
     bool _all_track_ready = false;
+    bool _all_demuxer_track_ready = false;
 };
 } /* namespace mediakit */
 
