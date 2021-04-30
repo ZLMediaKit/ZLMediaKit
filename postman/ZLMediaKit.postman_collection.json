@@ -512,6 +512,12 @@
 							"value": null,
 							"description": "rtsp拉流时，拉流方式，0：tcp，1：udp，2：组播",
 							"disabled": true
+						},
+						{
+							"key": "timeout_sec",
+							"value": "10",
+							"description": "拉流超时时间，单位秒，float类型",
+							"disabled": true
 						}
 					]
 				}
