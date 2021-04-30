@@ -416,10 +416,6 @@ void WebRtcTransportImp::onStartWebRTC() {
 
     if (canRecvRtp()) {
         _push_src->setSdp(getSdp(SdpType::answer).toRtspSdp());
-        GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
-        if (remb_bit_rate && getSdp(SdpType::answer).supportRtcpFb("goog-remb")) {
-            sendRtcpRemb(_recv_video_ssrc, remb_bit_rate);
-        }
     }
     if (canSendRtp()) {
         _reader = _play_src->getRing()->attach(getPoller(), true);
@@ -624,6 +620,12 @@ void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr 
         //定期发送pli请求关键帧，方便非rtc等协议
         _pli_ticker.resetTime();
         sendRtcpPli(_recv_video_ssrc);
+
+        //开启remb，则发送remb包调节比特率
+        GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
+        if (remb_bit_rate) {
+            sendRtcpRemb(_recv_video_ssrc, remb_bit_rate);
+        }
     }
     if (_push_src) {
         _push_src->onWrite(std::move(rtp), false);
