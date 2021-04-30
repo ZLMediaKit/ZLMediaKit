@@ -631,6 +631,7 @@ void installWebApi() {
                                     bool enable_hls,
                                     bool enable_mp4,
                                     int rtp_type,
+                                    float timeoutSec,
                                     const function<void(const SockException &ex,const string &key)> &cb){
         auto key = getProxyKey(vhost,app,stream);
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
@@ -645,6 +646,12 @@ void installWebApi() {
         
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = rtp_type;
+
+        if (timeoutSec > 0.1) {
+            //播放握手超时时间
+            (*player)[kTimeoutMS] = timeoutSec * 1000;
+        }
+
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
         player->setPlayCallbackOnce([cb,key](const SockException &ex){
             if(ex){
@@ -674,6 +681,7 @@ void installWebApi() {
                        allArgs["enable_hls"],/* 是否hls转发 */
                        allArgs["enable_mp4"],/* 是否MP4录制 */
                        allArgs["rtp_type"],
+                       allArgs["timeout_sec"],
                        [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                            if (ex) {
                                val["code"] = API::OtherFailed;
@@ -1248,6 +1256,7 @@ void installWebApi() {
                        true,/* 开启hls转发 */
                        false,/* 禁用MP4录制 */
                        0,//rtp over tcp方式拉流
+                       10,//10秒超时
                        [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                            if(ex){
                                val["code"] = API::OtherFailed;
