@@ -623,7 +623,7 @@ void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr 
 
         //开启remb，则发送remb包调节比特率
         GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
-        if (remb_bit_rate) {
+        if (remb_bit_rate && getSdp(SdpType::answer).supportRtcpFb(SdpConst::kRembRtcpFb)) {
             sendRtcpRemb(_recv_video_ssrc, remb_bit_rate);
         }
     }
