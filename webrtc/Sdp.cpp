@@ -1252,6 +1252,8 @@ bool RtcSession::supportRtcpFb(const string &name, TrackType type) const {
 
 static string const kTWCCRtcpFb = "transport-cc";
 static string const kTWCCExtMap = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
+static string const kRembRtcpFb = "goog-remb";
+static string const kRembExtMap = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
 
 void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
     if (!enable) {
@@ -1260,6 +1262,16 @@ void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
     } else {
         rtcp_fb.emplace(kTWCCRtcpFb);
         extmap.emplace(kTWCCExtMap);
+    }
+}
+
+void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
+    if (!enable) {
+        rtcp_fb.erase(kRembRtcpFb);
+        extmap.erase(kRembExtMap);
+    } else {
+        rtcp_fb.emplace(kRembRtcpFb);
+        extmap.emplace(kRembExtMap);
     }
 }
 
@@ -1278,11 +1290,11 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
         case TrackAudio: {
             //此处调整偏好的编码格式优先级
             preferred_codec = {CodecAAC, CodecG711U, CodecG711A, CodecOpus};
-            rtcp_fb = {kTWCCRtcpFb};
+            rtcp_fb = {kTWCCRtcpFb, kRembRtcpFb};
             extmap = {
                     kTWCCExtMap,
+                    kRembExtMap,
                     "urn:ietf:params:rtp-hdrext:ssrc-audio-level",
-                    "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
                     "urn:ietf:params:rtp-hdrext:sdes:mid",
                     "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
                     "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"
@@ -1292,11 +1304,11 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
         case TrackVideo: {
             //此处调整偏好的编码格式优先级
             preferred_codec = {CodecH264, CodecH265};
-            rtcp_fb = {kTWCCRtcpFb, "nack", "ccm fir", "nack pli", "goog-remb"};
+            rtcp_fb = {kTWCCRtcpFb, kRembRtcpFb, "nack", "ccm fir", "nack pli"};
             extmap = {
                     kTWCCExtMap,
+                    kRembExtMap,
                     "urn:ietf:params:rtp-hdrext:toffset",
-                    "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
                     "urn:3gpp:video-orientation",
                     "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay",
                     "http://www.webrtc.org/experiments/rtp-hdrext/video-content-type",

@@ -701,6 +701,7 @@ public:
 
         void setDefaultSetting(TrackType type);
         void enableTWCC(bool enable = true);
+        void enableREMB(bool enable = true);
     };
 
     RtcTrackConfigure video;
