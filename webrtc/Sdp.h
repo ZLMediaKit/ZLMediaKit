@@ -730,5 +730,17 @@ private:
     RtcCodecPlan::Ptr _rtsp_audio_plan;
 };
 
+class SdpConst {
+public:
+    static string const kTWCCRtcpFb;
+    static string const kTWCCExtMap;
+    static string const kRembRtcpFb;
+    static string const kRembExtMap;
+
+private:
+    SdpConst() = delete;
+    ~SdpConst() = delete;
+};
+
 
 #endif //ZLMEDIAKIT_SDP_H

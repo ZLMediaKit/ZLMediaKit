@@ -1250,28 +1250,28 @@ bool RtcSession::supportRtcpFb(const string &name, TrackType type) const {
     return ref.find(name) != ref.end();
 }
 
-static string const kTWCCRtcpFb = "transport-cc";
-static string const kTWCCExtMap = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
-static string const kRembRtcpFb = "goog-remb";
-static string const kRembExtMap = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
+string const SdpConst::kTWCCRtcpFb = "transport-cc";
+string const SdpConst::kTWCCExtMap = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
+string const SdpConst::kRembRtcpFb = "goog-remb";
+string const SdpConst::kRembExtMap = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
 
 void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
     if (!enable) {
-        rtcp_fb.erase(kTWCCRtcpFb);
-        extmap.erase(kTWCCExtMap);
+        rtcp_fb.erase(SdpConst::kTWCCRtcpFb);
+        extmap.erase(SdpConst::kTWCCExtMap);
     } else {
-        rtcp_fb.emplace(kTWCCRtcpFb);
-        extmap.emplace(kTWCCExtMap);
+        rtcp_fb.emplace(SdpConst::kTWCCRtcpFb);
+        extmap.emplace(SdpConst::kTWCCExtMap);
     }
 }
 
 void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
     if (!enable) {
-        rtcp_fb.erase(kRembRtcpFb);
-        extmap.erase(kRembExtMap);
+        rtcp_fb.erase(SdpConst::kRembRtcpFb);
+        extmap.erase(SdpConst::kRembExtMap);
     } else {
-        rtcp_fb.emplace(kRembRtcpFb);
-        extmap.emplace(kRembExtMap);
+        rtcp_fb.emplace(SdpConst::kRembRtcpFb);
+        extmap.emplace(SdpConst::kRembExtMap);
     }
 }
 
@@ -1290,10 +1290,10 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
         case TrackAudio: {
             //此处调整偏好的编码格式优先级
             preferred_codec = {CodecAAC, CodecG711U, CodecG711A, CodecOpus};
-            rtcp_fb = {kTWCCRtcpFb, kRembRtcpFb};
+            rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb};
             extmap = {
-                    kTWCCExtMap,
-                    kRembExtMap,
+                    SdpConst::kTWCCExtMap,
+                    SdpConst::kRembExtMap,
                     "urn:ietf:params:rtp-hdrext:ssrc-audio-level",
                     "urn:ietf:params:rtp-hdrext:sdes:mid",
                     "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
@@ -1304,10 +1304,10 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
         case TrackVideo: {
             //此处调整偏好的编码格式优先级
             preferred_codec = {CodecH264, CodecH265};
-            rtcp_fb = {kTWCCRtcpFb, kRembRtcpFb, "nack", "ccm fir", "nack pli"};
+            rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb, "nack", "ccm fir", "nack pli"};
             extmap = {
-                    kTWCCExtMap,
-                    kRembExtMap,
+                    SdpConst::kTWCCExtMap,
+                    SdpConst::kRembExtMap,
                     "urn:ietf:params:rtp-hdrext:toffset",
                     "urn:3gpp:video-orientation",
                     "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay",
