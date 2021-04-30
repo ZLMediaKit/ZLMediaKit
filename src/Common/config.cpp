@@ -190,16 +190,10 @@ namespace Rtp {
 //RTP打包最大MTU,公网情况下更小
 const string kVideoMtuSize = RTP_FIELD"videoMtuSize";
 const string kAudioMtuSize = RTP_FIELD"audioMtuSize";
-//RTP排序缓存最大个数
-const string kMaxRtpCount = RTP_FIELD"maxRtpCount";
-//如果RTP序列正确次数累计达到该数字就启动清空排序缓存
-const string kClearCount = RTP_FIELD"clearCount";
 
 onceToken token([](){
     mINI::Instance()[kVideoMtuSize] = 1400;
     mINI::Instance()[kAudioMtuSize] = 600;
-    mINI::Instance()[kMaxRtpCount] = 50;
-    mINI::Instance()[kClearCount] = 10;
 },nullptr);
 } //namespace Rtsp
 
