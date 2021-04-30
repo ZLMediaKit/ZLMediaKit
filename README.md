@@ -143,7 +143,7 @@ bash build_docker_images.sh
     - [基于ZLMediaKit分支的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
     
  - 流媒体管理平台
-   - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/StreamNode)
+   - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/AKStream)
    - [GB28181-2016网络视频平台](https://github.com/648540858/wvp-GB28181-pro)
    - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
    - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
@@ -218,11 +218,10 @@ bash build_docker_images.sh
 [mirs](fangpengcheng@bilibili.com>)
 [Kevin Cheng](kevin__cheng@outlook.com>)
 [Liu Jiang](root@oopy.org>)
-[along](alongl@users.noreply.github.com>)
+[along](https://github.com/alongl)
 [qingci](xpy66swsry@gmail.com>)
 [lyg1949](zh.ghlong@qq.com>)
 [zhlong](zh.ghlong@qq.com>)
-[Luke](automan@easydarwin.org>)
 [大裤衩](3503207480@qq.com>)
 [droid.chow](droid.chow@gmail.com>)
 [陈晓林](https://github.com/musicwood)
@@ -240,6 +239,6 @@ bash build_docker_images.sh
 欢迎捐赠以便更好的推动项目的发展，谢谢您的支持!
 同时欢迎捐赠公网服务器用于在线展示效果。
 
-[支付宝](https://gitee.com/xia-chu/other/raw/master/IMG_3919.JPG)
+[支付宝](https://github.com/xia-chu/other/blob/master/IMG_3919.JPG)
 
-[微信](https://gitee.com/xia-chu/other/raw/master/IMG_3920.JPG)
+[微信](https://github.com/xia-chu/other/blob/master/IMG_3920.JPG)
