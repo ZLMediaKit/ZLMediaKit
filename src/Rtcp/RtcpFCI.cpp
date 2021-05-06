@@ -392,7 +392,6 @@ static int16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *e
     switch (status) {
         case SymbolStatus::not_received : {
             //丢包， recv delta为0个字节
-            delta = 0;
             break;
         }
         case SymbolStatus::small_delta : {
@@ -407,6 +406,10 @@ static int16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *e
             //时间戳增量256~65535间，recv delta为2个字节
             delta = *ptr << 8 | *(ptr + 1);
             ptr += 2;
+            break;
+        }
+        case SymbolStatus::reserved : {
+            //没有时间戳
             break;
         }
         default:
