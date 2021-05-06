@@ -1297,7 +1297,8 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
                     "urn:ietf:params:rtp-hdrext:ssrc-audio-level",
                     "urn:ietf:params:rtp-hdrext:sdes:mid",
                     "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
-                    "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"
+                    "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id",
+                    "urn:ietf:params:rtp-hdrext:csrc-audio-level"
             };
             break;
         }
