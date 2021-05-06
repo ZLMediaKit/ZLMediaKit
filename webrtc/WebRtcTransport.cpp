@@ -187,7 +187,13 @@ void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp){
 void WebRtcTransport::onRtcConfigure(RtcConfigure &configure) const {
     //开启remb后关闭twcc，因为开启twcc后remb无效
     GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
-    configure.enableTWCC(!remb_bit_rate);
+    if (remb_bit_rate) {
+        configure.enableREMB(true);
+        configure.enableTWCC(false);
+    } else {
+        configure.enableREMB(false);
+        configure.enableTWCC(true);
+    }
 }
 
 std::string WebRtcTransport::getAnswerSdp(const string &offer){
