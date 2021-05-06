@@ -119,6 +119,8 @@ public:
 
     //返回ext字段字节长度
     size_t getExtSize() const;
+    //返回ext reserved值
+    uint16_t getExtReserved() const;
     //返回ext段首地址，不存在时返回nullptr
     uint8_t *getExtData();
 
