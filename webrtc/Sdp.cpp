@@ -1394,6 +1394,29 @@ void RtcConfigure::enableTWCC(bool enable, TrackType type){
     }
 }
 
+void RtcConfigure::enableREMB(bool enable, TrackType type){
+    switch (type) {
+        case TrackAudio: {
+            audio.enableREMB(enable);
+            break;
+        }
+        case TrackVideo: {
+            video.enableREMB(enable);
+            break;
+        }
+        case TrackApplication: {
+            application.enableREMB(enable);
+            break;
+        }
+        default: {
+            audio.enableREMB(enable);
+            video.enableREMB(enable);
+            application.enableREMB(enable);
+            break;
+        }
+    }
+}
+
 shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
     shared_ptr<RtcSession> ret = std::make_shared<RtcSession>();
     ret->version = offer.version;

@@ -719,6 +719,7 @@ public:
     void setPlayRtspInfo(const string &sdp);
 
     void enableTWCC(bool enable = true, TrackType type = TrackInvalid);
+    void enableREMB(bool enable = true, TrackType type = TrackInvalid);
 
 private:
     void matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
