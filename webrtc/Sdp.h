@@ -337,7 +337,7 @@ class SdpAttrExtmap : public SdpItem {
 public:
     //https://aggresss.blog.csdn.net/article/details/106436703
     //a=extmap:1[/sendonly] urn:ietf:params:rtp-hdrext:ssrc-audio-level
-    uint32_t index;
+    uint8_t id;
     RtpDirection direction{RtpDirection::invalid};
     string ext;
     void parse(const string &str) override;
@@ -636,7 +636,7 @@ public:
     SdpAttrFingerprint fingerprint;
 
     //////// extmap ////////
-    vector<SdpAttrExtmap> extmap;
+    map<uint8_t /*id*/, SdpAttrExtmap> extmap;
 
     //////// sctp ////////////
     SdpAttrSctpMap sctpmap;
