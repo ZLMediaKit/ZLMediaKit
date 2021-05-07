@@ -10,6 +10,7 @@
 
 #include "WebRtcTransport.h"
 #include <iostream>
+#include "RtpExt.h"
 #include "Rtcp/Rtcp.h"
 #include "Rtcp/RtcpFCI.h"
 #include "Rtsp/RtpReceiver.h"
@@ -187,13 +188,7 @@ void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp){
 void WebRtcTransport::onRtcConfigure(RtcConfigure &configure) const {
     //开启remb后关闭twcc，因为开启twcc后remb无效
     GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
-    if (remb_bit_rate) {
-        configure.enableREMB(true);
-        configure.enableTWCC(false);
-    } else {
-        configure.enableREMB(false);
-        configure.enableTWCC(true);
-    }
+    configure.enableTWCC(!remb_bit_rate);
 }
 
 std::string WebRtcTransport::getAnswerSdp(const string &offer){
@@ -633,6 +628,19 @@ void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr 
             sendRtcpRemb(_recv_video_ssrc, remb_bit_rate);
         }
     }
+
+    auto header = rtp->getHeader();
+    auto ext_map = RtpExt::getExtValue(header, *(info.media));
+    for (auto &pr : ext_map) {
+        if (rtp->type == TrackVideo) {
+            InfoL << pr.second.dumpString();
+        } else {
+            DebugL << pr.second.dumpString();
+        }
+        //推流时修改ext id为统一的id，播放时再修改为对方设置的ext id
+        pr.second.setExtId((uint8_t) pr.first);
+    }
+
     if (_push_src) {
         _push_src->onWrite(std::move(rtp), false);
     }
