@@ -13,6 +13,7 @@
 
 #include <string>
 #include <vector>
+#include "RtpExt.h"
 #include "assert.h"
 #include "Extension/Frame.h"
 #include "Common/Parser.h"
@@ -695,7 +696,7 @@ public:
         SdpAttrFingerprint fingerprint;
 
         set<string> rtcp_fb;
-        set<string> extmap;
+        set<RtpExtType> extmap;
         vector<CodecId> preferred_codec;
         vector<SdpAttrCandidate> candidate;
 
@@ -734,9 +735,7 @@ private:
 class SdpConst {
 public:
     static string const kTWCCRtcpFb;
-    static string const kTWCCExtMap;
     static string const kRembRtcpFb;
-    static string const kRembExtMap;
 
 private:
     SdpConst() = delete;
