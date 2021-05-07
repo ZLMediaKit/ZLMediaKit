@@ -9,6 +9,7 @@
  */
 
 #include "RtpExt.h"
+#include "Sdp.h"
 
 #if defined(_WIN32)
 #pragma pack(push, 1)
@@ -108,8 +109,35 @@ uint8_t *RtpExtTwoByte::getData() {
 static constexpr uint16_t kOneByteHeader = 0xBEDE;
 static constexpr uint16_t kTwoByteHeader = 0x1000;
 
-map<uint8_t/*id*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header, const RtcMedia &media) {
-    map<uint8_t, RtpExt> ret;
+static RtpExtType getExtTypeById(uint8_t id, const RtcMedia &media){
+    auto it = media.extmap.find(id);
+    if (it == media.extmap.end()) {
+        return RtpExtType::padding;
+    }
+    return RtpExt::getExtType(it->second.ext);
+}
+
+template<typename Type>
+static void appendExt( map<RtpExtType, RtpExt> &ret,const RtcMedia &media, uint8_t *ptr, const uint8_t *end){
+    while (ptr < end) {
+        auto ext = reinterpret_cast<Type *>(ptr);
+        if (ext->getId() == (uint8_t) RtpExtType::padding) {
+            //padding，忽略
+            ++ptr;
+            continue;
+        }
+        //15类型的rtp ext为保留
+        CHECK(ext->getId() < (uint8_t) RtpExtType::reserved);
+        CHECK(reinterpret_cast<uint8_t *>(ext) + Type::kMinSize <= end);
+        CHECK(ext->getData() + ext->getSize() <= end);
+        auto type = getExtTypeById(ext->getId(), media);
+        ret.emplace(type, RtpExt(type, ext->getId(), reinterpret_cast<char *>(ext->getData()), ext->getSize()));
+        ptr += Type::kMinSize + ext->getSize();
+    }
+}
+
+map<RtpExtType/*type*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header, const RtcMedia &media) {
+    map<RtpExtType, RtpExt> ret;
     assert(header);
     auto ext_size = header->getExtSize();
     if (!ext_size) {
@@ -118,66 +146,37 @@ map<uint8_t/*id*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header, 
     auto reserved = header->getExtReserved();
     auto ptr = const_cast<RtpHeader *>(header)->getExtData();
     auto end = ptr + ext_size;
-    RtpExtType type;
     if (reserved == kOneByteHeader) {
-        while (ptr < end) {
-            RtpExtOneByte *ext = reinterpret_cast<RtpExtOneByte *>(ptr);
-            if (ext->getId() == (uint8_t) RtpExtType::padding) {
-                //padding，忽略
-                ++ptr;
-                continue;
-            }
-            //15类型的rtp ext为保留
-            CHECK(ext->getId() < (uint8_t) RtpExtType::reserved);
-            CHECK(reinterpret_cast<uint8_t *>(ext) + RtpExtOneByte::kMinSize <= end);
-            CHECK(ext->getData() + ext->getSize() <= end);
-            ret.emplace(ext->getId(), RtpExt(type, reinterpret_cast<char *>(ext->getData()), ext->getSize()));
-            ptr += RtpExtOneByte::kMinSize + ext->getSize();
-        }
+        appendExt<RtpExtOneByte>(ret, media, ptr, end);
         return ret;
     }
-
     if ((reserved & 0xFFF0) >> 4 == kTwoByteHeader) {
-        while (ptr < end) {
-            RtpExtTwoByte *ext = reinterpret_cast<RtpExtTwoByte *>(ptr);
-            if (ext->getId() == (uint8_t) RtpExtType::padding) {
-                //padding，忽略
-                ++ptr;
-                continue;
-            }
-            //15类型的rtp ext为保留
-            CHECK(ext->getId() < (uint8_t) RtpExtType::reserved);
-            CHECK(reinterpret_cast<uint8_t *>(ext) + RtpExtTwoByte::kMinSize <= end);
-            CHECK(ext->getData() + ext->getSize() <= end);
-            ret.emplace(ext->getId(), RtpExt(type, reinterpret_cast<char *>(ext->getData()), ext->getSize()));
-            ptr += RtpExtTwoByte::kMinSize + ext->getSize();
-        }
+        appendExt<RtpExtTwoByte>(ret, media, ptr, end);
         return ret;
     }
-
     return ret;
 }
 
 #define RTP_EXT_MAP(XX) \
-    XX(RtpExtType::ssrc_audio_level,            "urn:ietf:params:rtp-hdrext:ssrc-audio-level") \
-    XX(RtpExtType::abs_send_time,               "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time") \
-    XX(RtpExtType::transport_cc,                "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01") \
-    XX(RtpExtType::sdes_mid,                    "urn:ietf:params:rtp-hdrext:sdes:mid") \
-    XX(RtpExtType::sdes_rtp_stream_id,          "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id") \
-    XX(RtpExtType::sdes_repaired_rtp_stream_id, "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id") \
-    XX(RtpExtType::video_timing,                "http://www.webrtc.org/experiments/rtp-hdrext/video-timing") \
-    XX(RtpExtType::color_space,                 "http://www.webrtc.org/experiments/rtp-hdrext/color-space") \
-    XX(RtpExtType::video_content_type,          "http://www.webrtc.org/experiments/rtp-hdrext/video-content-type") \
-    XX(RtpExtType::playout_delay,               "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay") \
-    XX(RtpExtType::video_orientation,           "urn:3gpp:video-orientation") \
-    XX(RtpExtType::toffset,                     "urn:ietf:params:rtp-hdrext:toffset")
+    XX(ssrc_audio_level,            "urn:ietf:params:rtp-hdrext:ssrc-audio-level") \
+    XX(abs_send_time,               "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time") \
+    XX(transport_cc,                "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01") \
+    XX(sdes_mid,                    "urn:ietf:params:rtp-hdrext:sdes:mid") \
+    XX(sdes_rtp_stream_id,          "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id") \
+    XX(sdes_repaired_rtp_stream_id, "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id") \
+    XX(video_timing,                "http://www.webrtc.org/experiments/rtp-hdrext/video-timing") \
+    XX(color_space,                 "http://www.webrtc.org/experiments/rtp-hdrext/color-space") \
+    XX(video_content_type,          "http://www.webrtc.org/experiments/rtp-hdrext/video-content-type") \
+    XX(playout_delay,               "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay") \
+    XX(video_orientation,           "urn:3gpp:video-orientation") \
+    XX(toffset,                     "urn:ietf:params:rtp-hdrext:toffset")
 
-#define XX(type, url) {type , url},
+#define XX(type, url) {RtpExtType::type , url},
 static unordered_map<RtpExtType/*id*/, string/*ext*/> s_type_to_url = {RTP_EXT_MAP(XX)};
 #undef XX
 
 
-#define XX(type, url) {url, type},
+#define XX(type, url) {url, RtpExtType::type},
 static unordered_map<string/*ext*/, RtpExtType/*id*/> s_url_to_type = {RTP_EXT_MAP(XX)};
 #undef XX
 
@@ -197,3 +196,17 @@ const string &RtpExt::getExtUrl(RtpExtType type) {
     return it->second;
 }
 
+const char *RtpExt::getExtName(RtpExtType type) {
+#define XX(type, url) case RtpExtType::type: return #type;
+    switch (type) {
+        RTP_EXT_MAP(XX)
+        default: return "unknown ext type";
+    }
+#undef XX
+}
+
+string RtpExt::dumpString() const {
+    _StrPrinter printer;
+    printer << getExtName(_type) << ", id:" << (int)_id << " " << hexdump(data(), size());
+    return std::move(printer);
+}
