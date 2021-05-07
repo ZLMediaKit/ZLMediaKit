@@ -166,10 +166,13 @@ map<RtpExtType/*type*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *hea
     XX(sdes_repaired_rtp_stream_id, "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id") \
     XX(video_timing,                "http://www.webrtc.org/experiments/rtp-hdrext/video-timing") \
     XX(color_space,                 "http://www.webrtc.org/experiments/rtp-hdrext/color-space") \
+    XX(csrc_audio_level,            "urn:ietf:params:rtp-hdrext:csrc-audio-level") \
+    XX(framemarking,                "http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07") \
     XX(video_content_type,          "http://www.webrtc.org/experiments/rtp-hdrext/video-content-type") \
     XX(playout_delay,               "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay") \
     XX(video_orientation,           "urn:3gpp:video-orientation") \
-    XX(toffset,                     "urn:ietf:params:rtp-hdrext:toffset")
+    XX(toffset,                     "urn:ietf:params:rtp-hdrext:toffset") \
+    XX(encrypt,                     "urn:ietf:params:rtp-hdrext:encrypt")
 
 #define XX(type, url) {RtpExtType::type , url},
 static unordered_map<RtpExtType/*id*/, string/*ext*/> s_type_to_url = {RTP_EXT_MAP(XX)};
@@ -207,6 +210,291 @@ const char *RtpExt::getExtName(RtpExtType type) {
 
 string RtpExt::dumpString() const {
     _StrPrinter printer;
-    printer << getExtName(_type) << ", id:" << (int)_id << " " << hexdump(data(), size());
+    switch (_type) {
+        case RtpExtType::ssrc_audio_level : {
+            bool vad;
+            printer << "audio level:" << (int) getAudioLevel(&vad) << ", vad:" << vad;
+            break;
+        }
+        case RtpExtType::abs_send_time : {
+            printer << "abs send time:" << getAbsSendTime();
+            break;
+        }
+        case RtpExtType::transport_cc : {
+            printer << "twcc seq:" << getTransportCCSeq();
+            break;
+        }
+        case RtpExtType::sdes_mid : {
+            printer << "sdes mid:" << getSdesMid();
+            break;
+        }
+        case RtpExtType::sdes_rtp_stream_id : {
+            printer << "rtp stream id:" << getRtpStreamId();
+            break;
+        }
+        case RtpExtType::sdes_repaired_rtp_stream_id : {
+            printer << "rtp repaired stream id:" << getRepairedRtpStreamId();
+            break;
+        }
+        case RtpExtType::video_timing : {
+            uint8_t flags;
+            uint16_t encode_start, encode_finish, packetization_complete, last_pkt_left_pacer, reserved_net0, reserved_net1;
+            getVideoTiming(flags, encode_start, encode_finish, packetization_complete, last_pkt_left_pacer,
+                           reserved_net0, reserved_net1);
+            printer << "video timing, flags:" << (int) flags
+                    << ",encode:" << encode_start << "-" << encode_finish
+                    << ",packetization_complete:" << packetization_complete
+                    << ",last_pkt_left_pacer:" << last_pkt_left_pacer
+                    << ",reserved_net0:" << reserved_net0
+                    << ",reserved_net1:" << reserved_net1;
+            break;
+        }
+        case RtpExtType::video_content_type : {
+            printer << "video content type:" << (int)getVideoContentType();
+            break;
+        }
+        case RtpExtType::video_orientation : {
+            bool camera_bit, flip_bit, first_rotation, second_rotation;
+            getVideoOrientation(camera_bit, flip_bit, first_rotation, second_rotation);
+            printer << "video orientation:" << camera_bit << "-" << flip_bit << "-" << first_rotation << "-" << second_rotation;
+            break;
+        }
+        case RtpExtType::playout_delay : {
+            uint16_t min_delay, max_delay;
+            getPlayoutDelay(min_delay, max_delay);
+            printer << "playout delay:" << min_delay << "-" << max_delay;
+            break;
+        }
+        case RtpExtType::toffset : {
+            printer << "toffset:" << getTransmissionOffset();
+            break;
+        }
+        case RtpExtType::framemarking : {
+            printer << "framemarking tid:" << getFramemarkingTID();
+            break;
+        }
+        default: {
+            printer << getExtName(_type) << ", id:" << (int) _id << ", ";
+            printer << "hex:" << hexdump(data(), size());
+            break;
+        }
+    }
     return std::move(printer);
+}
+
+//https://tools.ietf.org/html/rfc6464
+// 0                   1
+//                    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+//                   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//                   |  ID   | len=0 |V| level       |
+//                   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+//              Figure 1: Sample Audio Level Encoding Using the
+//                          One-Byte Header Format
+//
+//
+//      0                   1                   2                   3
+//      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//     |      ID       |     len=1     |V|    level    |    0 (pad)    |
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+//              Figure 2: Sample Audio Level Encoding Using the
+//                          Two-Byte Header Format
+uint8_t RtpExt::getAudioLevel(bool *vad) const{
+    CHECK(_type == RtpExtType::ssrc_audio_level && size() >= 1);
+    auto &byte = (*this)[0];
+    if (vad) {
+        *vad = byte & 0x80;
+    }
+    return byte & 0x7F;
+}
+
+//http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+//Wire format: 1-byte extension, 3 bytes of data. total 4 bytes extra per packet (plus shared 4 bytes for all extensions present: 2 byte magic word 0xBEDE, 2 byte # of extensions). Will in practice replace the “toffset” extension so we should see no long term increase in traffic as a result.
+//
+//Encoding: Timestamp is in seconds, 24 bit 6.18 fixed point, yielding 64s wraparound and 3.8us resolution (one increment for each 477 bytes going out on a 1Gbps interface).
+//
+//Relation to NTP timestamps: abs_send_time_24 = (ntp_timestamp_64 >> 14) & 0x00ffffff ; NTP timestamp is 32 bits for whole seconds, 32 bits fraction of second.
+//
+//Notes: Packets are time stamped when going out, preferably close to metal. Intermediate RTP relays (entities possibly altering the stream) should remove the extension or set its own timestamp.
+uint32_t RtpExt::getAbsSendTime() const {
+    CHECK(_type == RtpExtType::abs_send_time && size() >= 3);
+    uint32_t ret = 0;
+    ret |= (*this)[0] << 16;
+    ret |= (*this)[1] << 8;
+    ret |= (*this)[2];
+    return ret;
+}
+
+//https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
+//     0                   1                   2                   3
+//      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//     |       0xBE    |    0xDE       |           length=1            |
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//     |  ID   | L=1   |transport-wide sequence number | zero padding  |
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+uint16_t RtpExt::getTransportCCSeq() const {
+    CHECK(_type == RtpExtType::transport_cc && size() >= 2);
+    uint16_t ret;
+    ret |= (*this)[0] << 8;
+    ret |= (*this)[1];
+    return ret;
+}
+
+//https://tools.ietf.org/html/draft-ietf-avtext-sdes-hdr-ext-07
+//    0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |  ID   |  len  | SDES Item text value ...                      |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+const string &RtpExt::getSdesMid() const {
+    CHECK(_type == RtpExtType::sdes_mid && size() >= 1);
+    return *this;
+}
+
+
+//https://tools.ietf.org/html/draft-ietf-avtext-rid-06
+//用于simulecast
+//3.1.  RTCP 'RtpStreamId' SDES Extension
+//
+//        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |RtpStreamId=TBD|     length    | RtpStreamId                 ...
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+//
+//   The RtpStreamId payload is UTF-8 encoded and is not null-terminated.
+//
+//      RFC EDITOR NOTE: Please replace TBD with the assigned SDES
+//      identifier value.
+
+//3.2.  RTCP 'RepairedRtpStreamId' SDES Extension
+//
+//        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |Repaired...=TBD|     length    | RepairRtpStreamId           ...
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+//
+//   The RepairedRtpStreamId payload is UTF-8 encoded and is not null-
+//   terminated.
+//
+//      RFC EDITOR NOTE: Please replace TBD with the assigned SDES
+//      identifier value.
+
+string RtpExt::getRtpStreamId() const {
+    CHECK(_type == RtpExtType::sdes_rtp_stream_id && size() >= 1);
+    return *this;
+}
+
+string RtpExt::getRepairedRtpStreamId() const {
+    CHECK(_type == RtpExtType::sdes_repaired_rtp_stream_id && size() >= 1);
+    return *this;
+}
+
+
+//http://www.webrtc.org/experiments/rtp-hdrext/video-timing
+//Wire format: 1-byte extension, 13 bytes of data. Total 14 bytes extra per packet (plus 1-3 padding byte in some cases, plus shared 4 bytes for all extensions present: 2 byte magic word 0xBEDE, 2 byte # of extensions).
+//
+//First byte is a flags field. Defined flags:
+//
+//0x01 - extension is set due to timer.
+//0x02 - extension is set because the frame is larger than usual.
+//Both flags may be set at the same time. All remaining 6 bits are reserved and should be ignored.
+//
+//Next, 6 timestamps are stored as 16-bit values in big-endian order, representing delta from the capture time of a packet in ms. Timestamps are, in order:
+//
+//Encode start.
+//Encode finish.
+//Packetization complete.
+//Last packet left the pacer.
+//Reserved for network.
+//Reserved for network (2).
+
+void RtpExt::getVideoTiming(uint8_t &flags,
+                            uint16_t &encode_start,
+                            uint16_t &encode_finish,
+                            uint16_t &packetization_complete,
+                            uint16_t &last_pkt_left_pacer,
+                            uint16_t &reserved_net0,
+                            uint16_t &reserved_net1) const {
+    CHECK(_type == RtpExtType::video_timing && size() >= 13);
+    flags = (*this)[0];
+    encode_start = (*this)[1] << 8 | (*this)[2];
+    encode_finish = (*this)[3] << 8 | (*this)[4];
+    packetization_complete = (*this)[5] << 8 | (*this)[6];
+    last_pkt_left_pacer = (*this)[7] << 8 | (*this)[8];
+    reserved_net0 = (*this)[9] << 8 | (*this)[10];
+    reserved_net1 = (*this)[11] << 8 | (*this)[12];
+}
+
+
+//http://www.webrtc.org/experiments/rtp-hdrext/color-space
+//  0                   1                   2                   3
+//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |  ID   | L = 3 |   primaries   |   transfer    |    matrix     |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |range+chr.sit. |
+// +-+-+-+-+-+-+-+-+
+
+
+//http://www.webrtc.org/experiments/rtp-hdrext/video-content-type
+//Values:
+//0x00: Unspecified. Default value. Treated the same as an absence of an extension.
+//0x01: Screenshare. Video stream is of a screenshare type.
+//0x02: 摄像头？
+//Notes: Extension shoud be present only in the last packet of key-frames.
+// If attached to other packets it should be ignored.
+// If extension is absent, Unspecified value is assumed.
+uint8_t RtpExt::getVideoContentType() const {
+    CHECK(_type == RtpExtType::video_content_type && size() >= 1);
+    return (*this)[0];
+}
+
+//http://www.3gpp.org/ftp/Specs/html-info/26114.htm
+void RtpExt::getVideoOrientation(bool &camera_bit, bool &flip_bit, bool &first_rotation, bool &second_rotation) const {
+    CHECK(_type == RtpExtType::video_orientation && size() >= 1);
+    uint8_t byte = (*this)[0];
+    camera_bit = (byte & 0x08) >> 3;
+    flip_bit = (byte & 0x04) >> 2;
+    first_rotation = (byte & 0x02) >> 1;
+    second_rotation = byte & 0x01;
+}
+
+//http://www.webrtc.org/experiments/rtp-hdrext/playout-delay
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//|  ID   | len=2 |       MIN delay       |       MAX delay       |
+//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void RtpExt::getPlayoutDelay(uint16_t &min_delay, uint16_t &max_delay) const {
+    CHECK(_type == RtpExtType::playout_delay && size() >= 3);
+    uint32_t bytes = (*this)[0] << 16 | (*this)[1] << 8 | (*this)[2];
+    min_delay = (bytes & 0x00FFF000) >> 12;
+    max_delay = bytes & 0x00000FFF;
+}
+
+//urn:ietf:params:rtp-hdrext:toffset
+//https://tools.ietf.org/html/rfc5450
+//       0                   1                   2                   3
+//       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//      |  ID   | len=2 |              transmission offset              |
+//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+uint32_t RtpExt::getTransmissionOffset() const {
+    CHECK(_type == RtpExtType::toffset && size() >= 3);
+    return (*this)[0] << 16 | (*this)[1] << 8 | (*this)[2];
+}
+
+//http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07
+//      0                   1                   2                   3
+//	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//	   |  ID=? |  L=2  |S|E|I|D|B| TID |   LID         |    TL0PICIDX  |
+//	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+uint8_t RtpExt::getFramemarkingTID() const {
+    CHECK(_type == RtpExtType::framemarking && size() >= 3);
+    return (*this)[0] & 0x07;
 }
