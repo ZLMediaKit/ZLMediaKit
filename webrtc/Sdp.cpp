@@ -1251,27 +1251,25 @@ bool RtcSession::supportRtcpFb(const string &name, TrackType type) const {
 }
 
 string const SdpConst::kTWCCRtcpFb = "transport-cc";
-string const SdpConst::kTWCCExtMap = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
 string const SdpConst::kRembRtcpFb = "goog-remb";
-string const SdpConst::kRembExtMap = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
 
 void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
     if (!enable) {
         rtcp_fb.erase(SdpConst::kTWCCRtcpFb);
-        extmap.erase(SdpConst::kTWCCExtMap);
+        extmap.erase(RtpExtType::abs_send_time);
     } else {
         rtcp_fb.emplace(SdpConst::kTWCCRtcpFb);
-        extmap.emplace(SdpConst::kTWCCExtMap);
+        extmap.emplace(RtpExtType::transport_cc);
     }
 }
 
 void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
     if (!enable) {
         rtcp_fb.erase(SdpConst::kRembRtcpFb);
-        extmap.erase(SdpConst::kRembExtMap);
+        extmap.erase(RtpExtType::abs_send_time);
     } else {
         rtcp_fb.emplace(SdpConst::kRembRtcpFb);
-        extmap.emplace(SdpConst::kRembExtMap);
+        extmap.emplace(RtpExtType::transport_cc);
     }
 }
 
@@ -1292,13 +1290,12 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             preferred_codec = {CodecAAC, CodecG711U, CodecG711A, CodecOpus};
             rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb};
             extmap = {
-                    SdpConst::kTWCCExtMap,
-                    SdpConst::kRembExtMap,
-                    "urn:ietf:params:rtp-hdrext:ssrc-audio-level",
-                    "urn:ietf:params:rtp-hdrext:sdes:mid",
-                    "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
-                    "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id",
-                    "urn:ietf:params:rtp-hdrext:csrc-audio-level"
+                    RtpExtType::ssrc_audio_level,
+                    RtpExtType::abs_send_time,
+                    RtpExtType::transport_cc,
+                    RtpExtType::sdes_mid,
+                    RtpExtType::sdes_rtp_stream_id,
+                    RtpExtType::sdes_repaired_rtp_stream_id
             };
             break;
         }
@@ -1307,17 +1304,17 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             preferred_codec = {CodecH264, CodecH265};
             rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb, "nack", "ccm fir", "nack pli"};
             extmap = {
-                    SdpConst::kTWCCExtMap,
-                    SdpConst::kRembExtMap,
-                    "urn:ietf:params:rtp-hdrext:toffset",
-                    "urn:3gpp:video-orientation",
-                    "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay",
-                    "http://www.webrtc.org/experiments/rtp-hdrext/video-content-type",
-                    "http://www.webrtc.org/experiments/rtp-hdrext/video-timing",
-                    "http://www.webrtc.org/experiments/rtp-hdrext/color-space",
-                    "urn:ietf:params:rtp-hdrext:sdes:mid",
-                    "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
-                    "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"
+                    RtpExtType::abs_send_time,
+                    RtpExtType::transport_cc,
+                    RtpExtType::sdes_mid,
+                    RtpExtType::sdes_rtp_stream_id,
+                    RtpExtType::sdes_repaired_rtp_stream_id,
+                    RtpExtType::video_timing,
+                    RtpExtType::color_space,
+                    RtpExtType::video_content_type,
+                    RtpExtType::playout_delay,
+                    RtpExtType::video_orientation,
+                    RtpExtType::toffset
             };
             break;
         }
@@ -1566,7 +1563,7 @@ RETRY:
 
             //对方和我方都支持的扩展，那么我们才支持
             for (auto &ext : offer_media.extmap) {
-                if (configure.extmap.find(ext.ext) != configure.extmap.end()) {
+                if (configure.extmap.find(RtpExt::getExtType(ext.ext)) != configure.extmap.end()) {
                     answer_media.extmap.emplace_back(ext);
                 }
             }
