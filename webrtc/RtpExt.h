@@ -41,16 +41,19 @@ class RtcMedia;
 
 class RtpExt : public std::string {
 public:
+    RtpExt(RtpExtType type, uint8_t id, const char *str, size_t size) : std::string(str, size), _type(type), _id(id) {}
     ~RtpExt() = default;
-    static map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header, const RtcMedia &media);
+
+    static map<RtpExtType/*type*/, RtpExt/*data*/> getExtValue(const RtpHeader *header, const RtcMedia &media);
     static RtpExtType getExtType(const string &url);
     static const string& getExtUrl(RtpExtType type);
+    static const char *getExtName(RtpExtType type);
 
-private:
-    RtpExt(RtpExtType type, const char *str, size_t size) : std::string(str, size), _type(type) {}
+    string dumpString() const;
 
 private:
     RtpExtType _type;
+    uint8_t _id;
 };
 
 
