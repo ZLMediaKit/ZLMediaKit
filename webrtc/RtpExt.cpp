@@ -181,7 +181,7 @@ static unordered_map<RtpExtType/*id*/, string/*ext*/> s_type_to_url = {RTP_EXT_M
 static unordered_map<string/*ext*/, RtpExtType/*id*/> s_url_to_type = {RTP_EXT_MAP(XX)};
 #undef XX
 
-RtpExtType RtpExt::getRtpExtType(const string &url) {
+RtpExtType RtpExt::getExtType(const string &url) {
     auto it = s_url_to_type.find(url);
     if (it == s_url_to_type.end()) {
         throw std::invalid_argument(string("未识别的rtp ext url类型:") + url);
@@ -189,7 +189,7 @@ RtpExtType RtpExt::getRtpExtType(const string &url) {
     return it->second;
 }
 
-const string &RtpExt::getRtpExtUrl(RtpExtType type) {
+const string &RtpExt::getExtUrl(RtpExtType type) {
     auto it = s_type_to_url.find(type);
     if (it == s_type_to_url.end()) {
         throw std::invalid_argument(string("未识别的rtp ext类型:") + to_string((int) type));

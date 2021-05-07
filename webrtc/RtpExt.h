@@ -43,8 +43,8 @@ class RtpExt : public std::string {
 public:
     ~RtpExt() = default;
     static map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header, const RtcMedia &media);
-    static RtpExtType getRtpExtType(const string &url);
-    static const string& getRtpExtUrl(RtpExtType type);
+    static RtpExtType getExtType(const string &url);
+    static const string& getExtUrl(RtpExtType type);
 
 private:
     RtpExt(RtpExtType type, const char *str, size_t size) : std::string(str, size), _type(type) {}
