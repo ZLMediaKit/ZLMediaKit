@@ -40,14 +40,16 @@ enum class RtpExtType : uint8_t {
     toffset = 14,
     reserved = 15,
     // e2e ?
-    encrypt
+    encrypt = reserved
 };
 
 class RtcMedia;
 
 class RtpExt : public std::string {
 public:
-    RtpExt(RtpExtType type, uint8_t id, const char *str, size_t size) : std::string(str, size), _type(type), _id(id) {}
+    template<typename Type>
+    friend void appendExt(map<RtpExtType, RtpExt> &ret, const RtcMedia &media, uint8_t *ptr, const uint8_t *end);
+
     ~RtpExt() = default;
 
     static map<RtpExtType/*type*/, RtpExt/*data*/> getExtValue(const RtpHeader *header, const RtcMedia &media);
@@ -85,9 +87,16 @@ public:
 
     uint8_t getFramemarkingTID() const;
 
+    //危险函数，必须保证关联的RtpHeader对象有效
+    void setExtId(uint8_t ext_id);
+
 private:
+    RtpExt(void *ptr, bool one_byte_ext, RtpExtType type, const char *str, size_t size);
+
+private:
+    void *_ptr = nullptr;
+    bool _one_byte_ext = true;
     RtpExtType _type;
-    uint8_t _id;
 };
 
 

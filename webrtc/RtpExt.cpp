@@ -34,6 +34,7 @@ public:
     static constexpr uint16_t kMinSize = 1;
     size_t getSize() const;
     uint8_t getId() const;
+    void setId(uint8_t id);
     uint8_t* getData();
 
 private:
@@ -64,6 +65,7 @@ public:
 
     size_t getSize() const;
     uint8_t getId() const;
+    void setId(uint8_t id);
     uint8_t* getData();
 
 private:
@@ -86,6 +88,10 @@ uint8_t RtpExtOneByte::getId() const {
     return id;
 }
 
+void RtpExtOneByte::setId(uint8_t in) {
+    id = in & 0x0F;
+}
+
 uint8_t *RtpExtOneByte::getData() {
     return data;
 }
@@ -98,6 +104,10 @@ size_t RtpExtTwoByte::getSize() const {
 
 uint8_t RtpExtTwoByte::getId() const {
     return id;
+}
+
+void RtpExtTwoByte::setId(uint8_t in) {
+    id = in;
 }
 
 uint8_t *RtpExtTwoByte::getData() {
@@ -118,7 +128,17 @@ static RtpExtType getExtTypeById(uint8_t id, const RtcMedia &media){
 }
 
 template<typename Type>
-static void appendExt( map<RtpExtType, RtpExt> &ret,const RtcMedia &media, uint8_t *ptr, const uint8_t *end){
+static bool isOneByteExt(){
+    return false;
+}
+
+template<>
+static bool isOneByteExt<RtpExtOneByte>(){
+    return true;
+}
+
+template<typename Type>
+static void appendExt(map<RtpExtType, RtpExt> &ret, const RtcMedia &media, uint8_t *ptr, const uint8_t *end) {
     while (ptr < end) {
         auto ext = reinterpret_cast<Type *>(ptr);
         if (ext->getId() == (uint8_t) RtpExtType::padding) {
@@ -131,9 +151,15 @@ static void appendExt( map<RtpExtType, RtpExt> &ret,const RtcMedia &media, uint8
         CHECK(reinterpret_cast<uint8_t *>(ext) + Type::kMinSize <= end);
         CHECK(ext->getData() + ext->getSize() <= end);
         auto type = getExtTypeById(ext->getId(), media);
-        ret.emplace(type, RtpExt(type, ext->getId(), reinterpret_cast<char *>(ext->getData()), ext->getSize()));
+        ret.emplace(type, RtpExt(ext, isOneByteExt<Type>(), type, reinterpret_cast<char *>(ext->getData()), ext->getSize()));
         ptr += Type::kMinSize + ext->getSize();
     }
+}
+
+RtpExt::RtpExt(void *ptr, bool one_byte_ext, RtpExtType type, const char *str, size_t size) : std::string(str, size) {
+    _ptr = ptr;
+    _one_byte_ext = one_byte_ext;
+    _type = type;
 }
 
 map<RtpExtType/*type*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header, const RtcMedia &media) {
@@ -274,8 +300,7 @@ string RtpExt::dumpString() const {
             break;
         }
         default: {
-            printer << getExtName(_type) << ", id:" << (int) _id << ", ";
-            printer << "hex:" << hexdump(data(), size());
+            printer << getExtName(_type) << ", hex:" << hexdump(data(), size());
             break;
         }
     }
@@ -497,4 +522,15 @@ uint32_t RtpExt::getTransmissionOffset() const {
 uint8_t RtpExt::getFramemarkingTID() const {
     CHECK(_type == RtpExtType::framemarking && size() >= 3);
     return (*this)[0] & 0x07;
+}
+
+void RtpExt::setExtId(uint8_t ext_id) {
+    assert(ext_id > (int) RtpExtType::padding && ext_id <= (int) RtpExtType::reserved && _ptr);
+    if (_one_byte_ext) {
+        auto ptr = reinterpret_cast<RtpExtOneByte *>(_ptr);
+        ptr->setId(ext_id);
+    } else {
+        auto ptr = reinterpret_cast<RtpExtTwoByte *>(_ptr);
+        ptr->setId(ext_id);
+    }
 }
