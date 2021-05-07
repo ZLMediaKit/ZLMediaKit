@@ -535,8 +535,8 @@ string SdpAttrSetup::toString() const  {
 void SdpAttrExtmap::parse(const string &str)  {
     char buf[128] = {0};
     char direction_buf[32] = {0};
-    if (sscanf(str.data(), "%" SCNd32 "/%31[^ ] %127s", &index, direction_buf, buf) != 3) {
-        if (sscanf(str.data(), "%" SCNd32 " %127s", &index, buf) != 2) {
+    if (sscanf(str.data(), "%" SCNd8 "/%31[^ ] %127s", &id, direction_buf, buf) != 3) {
+        if (sscanf(str.data(), "%" SCNd8 " %127s", &id, buf) != 2) {
             SDP_THROW();
         }
         direction = RtpDirection::sendrecv;
@@ -549,9 +549,9 @@ void SdpAttrExtmap::parse(const string &str)  {
 string SdpAttrExtmap::toString() const  {
     if (value.empty()) {
         if(direction == RtpDirection::invalid || direction == RtpDirection::sendrecv){
-            value = to_string(index) + " " + ext;
+            value = to_string((int)id) + " " + ext;
         } else {
-            value = to_string(index) + "/" + getRtpDirectionString(direction) +  " " + ext;
+            value = to_string((int)id) + "/" + getRtpDirectionString(direction) +  " " + ext;
         }
     }
     return SdpItem::toString();
@@ -806,7 +806,13 @@ void RtcSession::loadFrom(const string &str, bool check) {
         }
         rtc_media.rtcp_addr = media.getItemClass<SdpAttrRtcp>('a', "rtcp");
         rtc_media.direction = media.getDirection();
-        rtc_media.extmap = media.getAllItem<SdpAttrExtmap>('a', "extmap");
+        {
+            rtc_media.extmap.clear();
+            auto arr = media.getAllItem<SdpAttrExtmap>('a', "extmap");
+            for (auto &ext : arr) {
+                rtc_media.extmap.emplace(ext.id, ext);
+            }
+        }
         rtc_media.rtcp_mux = media.getItem('a', "rtcp-mux").operator bool();
         rtc_media.rtcp_rsize = media.getItem('a', "rtcp-rsize").operator bool();
 
@@ -1055,8 +1061,8 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
         if (m.ice_lite) {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("ice-lite")));
         }
-        for (auto &ext : m.extmap) {
-            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrExtmap>(ext)));
+        for (auto &pr : m.extmap) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrExtmap>(pr.second)));
         }
         if (m.direction != RtpDirection::invalid) {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<DirectionInterfaceImp>(m.direction)));
@@ -1562,9 +1568,9 @@ RETRY:
             }
 
             //对方和我方都支持的扩展，那么我们才支持
-            for (auto &ext : offer_media.extmap) {
-                if (configure.extmap.find(RtpExt::getExtType(ext.ext)) != configure.extmap.end()) {
-                    answer_media.extmap.emplace_back(ext);
+            for (auto &pr : offer_media.extmap) {
+                if (configure.extmap.find(RtpExt::getExtType(pr.second.ext)) != configure.extmap.end()) {
+                    answer_media.extmap.emplace(pr);
                 }
             }
 
