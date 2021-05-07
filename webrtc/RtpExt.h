@@ -30,11 +30,17 @@ enum class RtpExtType : uint8_t {
     sdes_repaired_rtp_stream_id = 6,
     video_timing = 7,
     color_space = 8,
+    //for firefox
+    csrc_audio_level = 9,
+    //svc ?
+    framemarking = 10,
     video_content_type = 11,
     playout_delay = 12,
     video_orientation = 13,
     toffset = 14,
     reserved = 15,
+    // e2e ?
+    encrypt
 };
 
 class RtcMedia;
@@ -50,6 +56,34 @@ public:
     static const char *getExtName(RtpExtType type);
 
     string dumpString() const;
+
+    uint8_t getAudioLevel(bool *vad) const;
+    uint32_t getAbsSendTime() const;
+    uint16_t getTransportCCSeq() const;
+    const string& getSdesMid() const;
+    string getRtpStreamId() const;
+    string getRepairedRtpStreamId() const;
+
+    void getVideoTiming(uint8_t &flags,
+                        uint16_t &encode_start,
+                        uint16_t &encode_finish,
+                        uint16_t &packetization_complete,
+                        uint16_t &last_pkt_left_pacer,
+                        uint16_t &reserved_net0,
+                        uint16_t &reserved_net1) const;
+
+    uint8_t getVideoContentType() const;
+
+    void getVideoOrientation(bool &camera_bit,
+                             bool &flip_bit,
+                             bool &first_rotation,
+                             bool &second_rotation) const;
+
+    void getPlayoutDelay(uint16_t &min_delay, uint16_t &max_delay) const;
+
+    uint32_t getTransmissionOffset() const;
+
+    uint8_t getFramemarkingTID() const;
 
 private:
     RtpExtType _type;

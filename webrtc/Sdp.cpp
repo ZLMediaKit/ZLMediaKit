@@ -1297,6 +1297,7 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb};
             extmap = {
                     RtpExtType::ssrc_audio_level,
+                    RtpExtType::csrc_audio_level,
                     RtpExtType::abs_send_time,
                     RtpExtType::transport_cc,
                     RtpExtType::sdes_mid,
@@ -1320,7 +1321,8 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
                     RtpExtType::video_content_type,
                     RtpExtType::playout_delay,
                     RtpExtType::video_orientation,
-                    RtpExtType::toffset
+                    RtpExtType::toffset,
+                    RtpExtType::framemarking
             };
             break;
         }
