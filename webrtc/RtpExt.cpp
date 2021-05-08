@@ -525,6 +525,17 @@ void RtpExt::setExtId(uint8_t ext_id) {
     }
 }
 
+void RtpExt::clearExt(){
+    assert(_ptr);
+    if (_one_byte_ext) {
+        auto ptr = reinterpret_cast<RtpExtOneByte *>(_ptr);
+        memset(ptr, (int) RtpExtType::padding, RtpExtOneByte::kMinSize + ptr->getSize());
+    } else {
+        auto ptr = reinterpret_cast<RtpExtTwoByte *>(_ptr);
+        memset(ptr, (int) RtpExtType::padding, RtpExtTwoByte::kMinSize + ptr->getSize());
+    }
+}
+
 void RtpExt::setType(RtpExtType type) {
     _type = type;
 }
