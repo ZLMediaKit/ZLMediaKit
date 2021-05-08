@@ -401,7 +401,7 @@ void WebRtcTransportImp::onStartWebRTC() {
             }
             //获取offer端rtp的ssrc和pt相关信息
             auto &ref = _rtp_info_pt[plan.pt];
-            _rtp_info_ssrc[m.rtp_ssrc.ssrc] = &ref;
+            _rtp_info_ssrc[m.rtp_rtx_ssrc[0].ssrc] = &ref;
             ref.plan = &plan;
             ref.media = &m;
             ref.is_common_rtp = getCodecId(plan.codec) != CodecInvalid;
@@ -482,16 +482,17 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
             continue;
         }
         //添加answer sdp的ssrc信息
-        m.rtp_ssrc.ssrc = _play_src->getSsrc(m.type);
-        m.rtp_ssrc.cname = RTP_CNAME;
-        m.rtp_ssrc.label = RTP_LABEL;
-        m.rtp_ssrc.mslabel = RTP_MSLABEL;
-        m.rtp_ssrc.msid = RTP_MSID;
+        m.rtp_rtx_ssrc.emplace_back();
+        m.rtp_rtx_ssrc[0].ssrc = _play_src->getSsrc(m.type);
+        m.rtp_rtx_ssrc[0].cname = RTP_CNAME;
+        m.rtp_rtx_ssrc[0].label = RTP_LABEL;
+        m.rtp_rtx_ssrc[0].mslabel = RTP_MSLABEL;
+        m.rtp_rtx_ssrc[0].msid = RTP_MSID;
 
-        //todo 先屏蔽rtx，因为chrome报错
         if (m.getRelatedRtxPlan(m.plan[0].pt)) {
-            m.rtx_ssrc = m.rtp_ssrc;
-            m.rtx_ssrc.ssrc += RTX_SSRC_OFFSET;
+            m.rtp_rtx_ssrc.emplace_back();
+            m.rtp_rtx_ssrc[1] = m.rtp_rtx_ssrc[0];
+            m.rtp_rtx_ssrc[1].ssrc += RTX_SSRC_OFFSET;
         }
     }
 }
