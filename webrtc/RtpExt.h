@@ -90,6 +90,7 @@ public:
 
     //危险函数，必须保证关联的RtpHeader对象有效
     void setExtId(uint8_t ext_id);
+    void clearExt();
 
 private:
     RtpExt(void *ptr, bool one_byte_ext, const char *str, size_t size);
