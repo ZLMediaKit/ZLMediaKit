@@ -119,14 +119,6 @@ uint8_t *RtpExtTwoByte::getData() {
 static constexpr uint16_t kOneByteHeader = 0xBEDE;
 static constexpr uint16_t kTwoByteHeader = 0x1000;
 
-static RtpExtType getExtTypeById(uint8_t id, const RtcMedia &media){
-    auto it = media.extmap.find(id);
-    if (it == media.extmap.end()) {
-        return RtpExtType::padding;
-    }
-    return RtpExt::getExtType(it->second.ext);
-}
-
 template<typename Type>
 static bool isOneByteExt(){
     return false;
@@ -138,7 +130,7 @@ static bool isOneByteExt<RtpExtOneByte>(){
 }
 
 template<typename Type>
-static void appendExt(map<RtpExtType, RtpExt> &ret, const RtcMedia &media, uint8_t *ptr, const uint8_t *end) {
+static void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end) {
     while (ptr < end) {
         auto ext = reinterpret_cast<Type *>(ptr);
         if (ext->getId() == (uint8_t) RtpExtType::padding) {
@@ -150,20 +142,18 @@ static void appendExt(map<RtpExtType, RtpExt> &ret, const RtcMedia &media, uint8
         CHECK(ext->getId() < (uint8_t) RtpExtType::reserved);
         CHECK(reinterpret_cast<uint8_t *>(ext) + Type::kMinSize <= end);
         CHECK(ext->getData() + ext->getSize() <= end);
-        auto type = getExtTypeById(ext->getId(), media);
-        ret.emplace(type, RtpExt(ext, isOneByteExt<Type>(), type, reinterpret_cast<char *>(ext->getData()), ext->getSize()));
+        ret.emplace(ext->getId(), RtpExt(ext, isOneByteExt<Type>(), reinterpret_cast<char *>(ext->getData()), ext->getSize()));
         ptr += Type::kMinSize + ext->getSize();
     }
 }
 
-RtpExt::RtpExt(void *ptr, bool one_byte_ext, RtpExtType type, const char *str, size_t size) : std::string(str, size) {
+RtpExt::RtpExt(void *ptr, bool one_byte_ext, const char *str, size_t size) : std::string(str, size) {
     _ptr = ptr;
     _one_byte_ext = one_byte_ext;
-    _type = type;
 }
 
-map<RtpExtType/*type*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header, const RtcMedia &media) {
-    map<RtpExtType, RtpExt> ret;
+map<uint8_t/*id*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header) {
+    map<uint8_t, RtpExt> ret;
     assert(header);
     auto ext_size = header->getExtSize();
     if (!ext_size) {
@@ -173,11 +163,11 @@ map<RtpExtType/*type*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *hea
     auto ptr = const_cast<RtpHeader *>(header)->getExtData();
     auto end = ptr + ext_size;
     if (reserved == kOneByteHeader) {
-        appendExt<RtpExtOneByte>(ret, media, ptr, end);
+        appendExt<RtpExtOneByte>(ret, ptr, end);
         return ret;
     }
     if ((reserved & 0xFFF0) >> 4 == kTwoByteHeader) {
-        appendExt<RtpExtTwoByte>(ret, media, ptr, end);
+        appendExt<RtpExtTwoByte>(ret, ptr, end);
         return ret;
     }
     return ret;
@@ -533,4 +523,8 @@ void RtpExt::setExtId(uint8_t ext_id) {
         auto ptr = reinterpret_cast<RtpExtTwoByte *>(_ptr);
         ptr->setId(ext_id);
     }
+}
+
+void RtpExt::setType(RtpExtType type) {
+    _type = type;
 }
