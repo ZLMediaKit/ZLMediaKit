@@ -1349,7 +1349,7 @@ string const SdpConst::kRembRtcpFb = "goog-remb";
 void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
     if (!enable) {
         rtcp_fb.erase(SdpConst::kTWCCRtcpFb);
-        extmap.erase(RtpExtType::abs_send_time);
+        extmap.erase(RtpExtType::transport_cc);
     } else {
         rtcp_fb.emplace(SdpConst::kTWCCRtcpFb);
         extmap.emplace(RtpExtType::transport_cc);
@@ -1362,7 +1362,7 @@ void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
         extmap.erase(RtpExtType::abs_send_time);
     } else {
         rtcp_fb.emplace(SdpConst::kRembRtcpFb);
-        extmap.emplace(RtpExtType::transport_cc);
+        extmap.emplace(RtpExtType::abs_send_time);
     }
 }
 
