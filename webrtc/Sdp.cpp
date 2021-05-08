@@ -1601,12 +1601,14 @@ RETRY:
                 }
             }
 
-            //其他plan放在后面
+#if 0
+            //todo 此处为添加无效的plan，webrtc sdp通过调节plan pt顺序选择匹配的codec，意味着后面的codec其实放在sdp中是无意义的
             for (auto &plan : offer_media.plan) {
                 if (pt_selected.find(plan.pt) == pt_selected.end()) {
                     answer_media.plan.emplace_back(plan);
                 }
             }
+#endif
             ret->media.emplace_back(answer_media);
             return;
         }
