@@ -475,17 +475,18 @@ public:
     const char* getKey() const override { return "simulcast";}
     void parse(const string &str) override;
     string toString() const override;
-
+    bool empty() const { return rids.empty(); }
     string direction;
-    string rid0;
-    string rid1;
-    string rid2;
+    vector<string> rids;
 };
 
 class SdpAttrRid : public SdpItem{
 public:
-    //todo
+    void parse(const string &str) override;
+    string toString() const override;
     const char* getKey() const override { return "rid";}
+    string direction;
+    string rid;
 };
 
 class RtcSdpBase {
@@ -612,6 +613,7 @@ public:
 
     //////// simulcast ////////
     vector<RtcSSRC> rtp_ssrc_sim;
+    vector<string> rtp_rids;
 
     ////////  rtcp  ////////
     bool rtcp_mux{false};
