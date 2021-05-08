@@ -1098,6 +1098,16 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                 }
             }
 
+            if (!m.rtp_ssrc.empty()) {
+                auto msid = std::make_shared<SdpAttrMsid>();
+                if (!m.rtp_ssrc.msid.empty()) {
+                    msid->parse(m.rtp_ssrc.msid);
+                } else {
+                    msid->parse("mslabel label");
+                }
+                sdp_media.items.emplace_back(wrapSdpAttr(std::move(msid)));
+            }
+
             if (!m.rtp_ssrc.empty() && !m.rtx_ssrc.empty()) {
                 auto group = std::make_shared<SdpAttrSSRCGroup>();
                 group->type = "FID";
