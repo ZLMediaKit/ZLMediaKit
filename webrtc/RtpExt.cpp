@@ -125,7 +125,7 @@ static bool isOneByteExt(){
 }
 
 template<>
-static bool isOneByteExt<RtpExtOneByte>(){
+bool isOneByteExt<RtpExtOneByte>(){
     return true;
 }
 
