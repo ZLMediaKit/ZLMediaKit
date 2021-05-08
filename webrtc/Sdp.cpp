@@ -1253,11 +1253,15 @@ void RtcMedia::checkValid() const{
     CHECK(!plan.empty() || type == TrackApplication );
     bool send_rtp = (direction == RtpDirection::sendonly || direction == RtpDirection::sendrecv);
     CHECK(!rtp_rtx_ssrc.empty() || !send_rtp);
+
+#if 0
+    //todo 发现Firefox(88.0)在mac平台下，开启rtx后没有指定ssrc
     auto rtx_plan = getPlan("rtx");
     if (rtx_plan) {
         //开启rtx后必须指定rtx_ssrc
         CHECK(rtp_rtx_ssrc.size() >= 2 || !send_rtp);
     }
+#endif
 }
 
 void RtcSession::checkValid() const{
