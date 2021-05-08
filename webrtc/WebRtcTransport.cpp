@@ -576,7 +576,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     auto rr = it->second->rtcp_context_recv->createRtcpRR(sr->items.ssrc, sr->ssrc);
                     sendRtcpPacket(rr->data(), rr->size(), true);
                 } else {
-                    WarnL << "未识别的sr rtcp包:" << sr->ssrc;
+                    WarnL << "未识别的sr rtcp包:" << (uint32_t)sr->ssrc;
                 }
                 break;
             }
@@ -589,7 +589,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     auto sr = it->second->rtcp_context_send->createRtcpSR(rr->items.ssrc);
                     sendRtcpPacket(sr->data(), sr->size(), true);
                 } else {
-                    WarnL << "未识别的rr rtcp包:"  << rr->ssrc;
+                    WarnL << "未识别的rr rtcp包:"  << (uint32_t)rr->ssrc;
                 }
                 break;
             }
