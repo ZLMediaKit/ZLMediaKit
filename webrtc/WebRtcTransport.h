@@ -211,8 +211,6 @@ private:
     Ticker _alive_ticker;
     //pli rtcp计时器
     Ticker _pli_ticker;
-    //rtc rtp推流的视频ssrc
-    uint32_t _recv_video_ssrc;
     //记录协商的rtp的pt类型
     uint8_t _send_rtp_pt[2] = {0xFF, 0xFF};
     //复合udp端口，接收一切rtp与rtcp
@@ -225,8 +223,12 @@ private:
     RtspMediaSource::RingType::RingReader::Ptr _reader;
     //根据rtp的pt获取相关信息
     unordered_map<uint8_t, RtpPayloadInfo> _rtp_info_pt;
-    //根据推流端rtp的ssrc获取相关信息
+    //根据推流端rtcp的ssrc获取相关信息
     unordered_map<uint32_t, RtpPayloadInfo*> _rtp_info_ssrc;
+    //发送rtp时需要修改rtp ext id
+    unordered_map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
+    //接收rtp时需要修改rtp ext id
+    unordered_map<uint8_t, RtpExtType> _rtp_ext_id_to_type;
 };
 
 
