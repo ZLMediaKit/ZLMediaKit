@@ -659,21 +659,13 @@ string SdpAttrSSRC::toString() const  {
 
 void SdpAttrSSRCGroup::parse(const string &str) {
     auto vec = split(str, " ");
-    if (vec.size() == 3) {
-        if (vec[0] != "FID") {
-            SDP_THROW();
-        }
+    if (vec.size() >= 3) {
         type = std::move(vec[0]);
-        u.fid.rtp_ssrc = atoll(vec[1].data()) & 0xFFFFFFFF;
-        u.fid.rtx_ssrc = atoll(vec[2].data()) & 0xFFFFFFFF;
-    } else if (vec.size() == 4) {
-        if (vec[0] != "SIM") {
-            SDP_THROW();
+        CHECK(isFID() || isSIM());
+        vec.erase(vec.begin());
+        for (auto ssrc : vec) {
+            ssrcs.emplace_back((uint32_t)atoll(ssrc.data()));
         }
-        type = std::move(vec[0]);
-        u.sim.rtp_ssrc_low = atoll(vec[1].data()) & 0xFFFFFFFF;
-        u.sim.rtp_ssrc_mid = atoll(vec[2].data()) & 0xFFFFFFFF;
-        u.sim.rtp_ssrc_high = atoll(vec[3].data()) & 0xFFFFFFFF;
     } else {
         SDP_THROW();
     }
@@ -681,12 +673,12 @@ void SdpAttrSSRCGroup::parse(const string &str) {
 
 string SdpAttrSSRCGroup::toString() const  {
     if (value.empty()) {
-        if (isFID()) {
-            value = type + " " + to_string(u.fid.rtp_ssrc) + " " + to_string(u.fid.rtx_ssrc);
-        } else if (isSIM()) {
-            value = type + " " + to_string(u.sim.rtp_ssrc_low) + " " + to_string(u.sim.rtp_ssrc_mid) + " " + to_string(u.sim.rtp_ssrc_high);
-        } else {
-            SDP_THROW2();
+        value = type;
+        //最少要求2个ssrc
+        CHECK(ssrcs.size() >= 2);
+        for (auto &ssrc : ssrcs) {
+            value += ' ';
+            value += to_string(ssrc);
         }
     }
     return SdpItem::toString();
@@ -754,6 +746,34 @@ string SdpAttrCandidate::toString() const  {
             value += ' ';
             value += pr.second;
         }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrSimulcast::parse(const string &str) {
+    //https://www.meetecho.com/blog/simulcast-janus-ssrc/
+    //a=simulcast:send/recv q;h;f
+    //a=simulcast:send/recv [rid=]q;h;f
+    //a=simulcast: recv h;m;l
+    //
+    auto vec = split(str, " ");
+    if (vec.size() != 2) {
+        SDP_THROW();
+    }
+    direction = vec[0];
+    vec = split(vec[1], ";");
+    rid0 = vec[0];
+    if (vec.size() > 1) {
+        rid1 = vec[1];
+        if (vec.size() > 2) {
+            rid2 = vec[2];
+        }
+    }
+}
+
+string SdpAttrSimulcast::toString() const {
+    if (value.empty()) {
+        value = direction + " " + rid0 + ";" + rid1 + ";" + rid2;
     }
     return SdpItem::toString();
 }
@@ -838,44 +858,43 @@ void RtcSession::loadFrom(const string &str, bool check) {
             }
         }
 
-        uint32_t ssrc_rtp = 0, ssrc_rtx = 0, ssrc_rtp_low = 0, ssrc_rtp_mid = 0, ssrc_rtp_high = 0;
         auto ssrc_groups = media.getAllItem<SdpAttrSSRCGroup>('a', "ssrc-group");
+        SdpAttrSSRCGroup *ssrc_group_sim = nullptr;
+        SdpAttrSSRCGroup *ssrc_group_fid = nullptr;
         for (auto &group : ssrc_groups) {
             if (group.isFID()) {
-                ssrc_rtp = group.u.fid.rtp_ssrc;
-                ssrc_rtx = group.u.fid.rtx_ssrc;
+                ssrc_group_fid = &group;
             } else if (group.isSIM()) {
-                ssrc_rtp_low = group.u.sim.rtp_ssrc_low;
-                ssrc_rtp_mid = group.u.sim.rtp_ssrc_mid;
-                ssrc_rtp_high = group.u.sim.rtp_ssrc_high;
+                ssrc_group_sim = &group;
             }
         }
 
-        if (!ssrc_rtp) {
-            //没有指定ssrc-group字段，那么只有一个ssrc
-            if (rtc_ssrc_map.size() > 1) {
-                throw std::invalid_argument("sdp中不存在a=ssrc-group:FID字段,但是ssrc却有多个");
+        if (ssrc_group_fid) {
+            //指定了ssrc-group:FID字段
+            for (auto ssrc : ssrc_group_fid->ssrcs) {
+                auto it = rtc_ssrc_map.find(ssrc);
+                if (it == rtc_ssrc_map.end()) {
+                    throw std::invalid_argument("a=ssrc-group:FID字段指定的ssrc未找到");
+                }
+                rtc_media.rtp_rtx_ssrc.emplace_back(it->second);
             }
+            CHECK(rtc_media.rtp_rtx_ssrc.size() == 2);
+        } else {
+            //没有指定ssrc-group:FID字段，那么只有1个或0个ssrc
             if (rtc_ssrc_map.size() == 1) {
-                ssrc_rtp = rtc_ssrc_map.begin()->second.ssrc;
+                rtc_media.rtp_rtx_ssrc.emplace_back(rtc_ssrc_map.begin()->second);
+            } else if (rtc_ssrc_map.size() > 1) {
+                throw std::invalid_argument("sdp中不存在a=ssrc-group:FID字段,但是ssrc却大于1个");
             }
         }
-        for (auto &pr : rtc_ssrc_map) {
-            auto &rtc_ssrc = pr.second;
-            if (rtc_ssrc.ssrc == ssrc_rtp) {
-                rtc_media.rtp_ssrc = rtc_ssrc;
-            }
-            if (rtc_ssrc.ssrc == ssrc_rtx) {
-                rtc_media.rtx_ssrc = rtc_ssrc;
-            }
-            if (rtc_ssrc.ssrc == ssrc_rtp_low) {
-                rtc_media.rtp_ssrc_low = rtc_ssrc;
-            }
-            if (rtc_ssrc.ssrc == ssrc_rtp_mid) {
-                rtc_media.rtp_ssrc_mid = rtc_ssrc;
-            }
-            if (rtc_ssrc.ssrc == ssrc_rtp_high) {
-                rtc_media.rtp_ssrc_high = rtc_ssrc;
+
+        if (ssrc_group_sim) {
+            for (auto ssrc : ssrc_group_sim->ssrcs) {
+                auto it = rtc_ssrc_map.find(ssrc);
+                if (it == rtc_ssrc_map.end()) {
+                    throw std::invalid_argument("a=ssrc-group:SIM字段指定的ssrc未找到");
+                }
+                rtc_media.rtp_ssrc_sim.emplace_back(it->second);
             }
         }
 
@@ -1081,12 +1100,14 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                 rtp_map->codec = p.codec;
                 rtp_map->sample_rate = p.sample_rate;
                 rtp_map->channel = p.channel;
+                //添加a=rtpmap
                 sdp_media.items.emplace_back(wrapSdpAttr(std::move(rtp_map)));
 
                 for (auto &fb :  p.rtcp_fb) {
                     auto rtcp_fb = std::make_shared<SdpAttrRtcpFb>();
                     rtcp_fb->pt = p.pt;
                     rtcp_fb->rtcp_type = fb;
+                    //添加a=rtcp-fb
                     sdp_media.items.emplace_back(wrapSdpAttr(std::move(rtcp_fb)));
                 }
 
@@ -1094,29 +1115,26 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                     auto fmtp = std::make_shared<SdpAttrFmtp>();
                     fmtp->pt = p.pt;
                     fmtp->fmtp = p.fmtp;
+                    //添加a=fmtp
                     sdp_media.items.emplace_back(wrapSdpAttr(std::move(fmtp)));
                 }
             }
 
-            if (!m.rtp_ssrc.empty()) {
-                auto msid = std::make_shared<SdpAttrMsid>();
-                if (!m.rtp_ssrc.msid.empty()) {
-                    msid->parse(m.rtp_ssrc.msid);
-                } else {
-                    msid->parse("mslabel label");
+            {
+                //添加a=msid字段
+                if (!m.rtp_rtx_ssrc.empty()) {
+                    auto msid = std::make_shared<SdpAttrMsid>();
+                    if (!m.rtp_rtx_ssrc[0].msid.empty()) {
+                        msid->parse(m.rtp_rtx_ssrc[0].msid);
+                    } else {
+                        msid->parse("mslabel label");
+                    }
+                    sdp_media.items.emplace_back(wrapSdpAttr(std::move(msid)));
                 }
-                sdp_media.items.emplace_back(wrapSdpAttr(std::move(msid)));
-            }
-
-            if (!m.rtp_ssrc.empty() && !m.rtx_ssrc.empty()) {
-                auto group = std::make_shared<SdpAttrSSRCGroup>();
-                group->type = "FID";
-                group->u.fid.rtp_ssrc = m.rtp_ssrc.ssrc;
-                group->u.fid.rtx_ssrc = m.rtx_ssrc.ssrc;
-                sdp_media.items.emplace_back(wrapSdpAttr(std::move(group)));
             }
 
             static auto addSSRCItem = [](const RtcSSRC &rtp_ssrc, vector<SdpItem::Ptr> &items) {
+                CHECK(!rtp_ssrc.empty());
                 SdpAttrSSRC ssrc;
                 ssrc.ssrc = rtp_ssrc.ssrc;
 
@@ -1142,27 +1160,34 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                     items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
                 }
             };
-            if (!m.rtp_ssrc.empty()) {
-                addSSRCItem(m.rtp_ssrc, sdp_media.items);
-            }
-            if (!m.rtx_ssrc.empty()) {
-                addSSRCItem(m.rtx_ssrc, sdp_media.items);
+
+            {
+                auto group = std::make_shared<SdpAttrSSRCGroup>();
+                for (auto &ssrc : m.rtp_rtx_ssrc) {
+                    //添加a=ssrc字段
+                    addSSRCItem(ssrc, sdp_media.items);
+                    group->ssrcs.emplace_back(ssrc.ssrc);
+                }
+                if (group->ssrcs.size() >= 2) {
+                    group->type = "FID";
+                    //生成a=ssrc-group:FID字段
+                    sdp_media.items.emplace_back(wrapSdpAttr(std::move(group)));
+                }
             }
 
-            bool enable_sim = false;
-            if (!m.rtp_ssrc_low.empty() && !m.rtp_ssrc_mid.empty() && !m.rtp_ssrc_high.empty()) {
-                auto group = std::make_shared<SdpAttrSSRCGroup>();
-                group->type = "SIM";
-                group->u.sim.rtp_ssrc_low = m.rtp_ssrc_low.ssrc;
-                group->u.sim.rtp_ssrc_mid = m.rtp_ssrc_mid.ssrc;
-                group->u.sim.rtp_ssrc_high = m.rtp_ssrc_high.ssrc;
-                sdp_media.items.emplace_back(wrapSdpAttr(std::move(group)));
-                enable_sim = true;
-            }
-            if (enable_sim) {
-                addSSRCItem(m.rtp_ssrc_low, sdp_media.items);
-                addSSRCItem(m.rtp_ssrc_mid, sdp_media.items);
-                addSSRCItem(m.rtp_ssrc_high, sdp_media.items);
+            {
+                if (m.rtp_ssrc_sim.size() >= 2) {
+                    //simulcast 要求 2~3路
+                    auto group = std::make_shared<SdpAttrSSRCGroup>();
+                    for (auto &ssrc :  m.rtp_ssrc_sim) {
+                        //添加simulcast的ssrc
+                        addSSRCItem(ssrc, sdp_media.items);
+                        group->ssrcs.emplace_back(ssrc.ssrc);
+                    }
+                    //添加a=ssrc-group:SIM字段
+                    group->type = "SIM";
+                    sdp_media.items.emplace_back(wrapSdpAttr(std::move(group)));
+                }
             }
         } else {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSctpMap>(m.sctpmap)));
@@ -1227,12 +1252,11 @@ void RtcMedia::checkValid() const{
     CHECK(direction != RtpDirection::invalid || type == TrackApplication);
     CHECK(!plan.empty() || type == TrackApplication );
     bool send_rtp = (direction == RtpDirection::sendonly || direction == RtpDirection::sendrecv);
-    CHECK(!rtp_ssrc.empty() || !send_rtp);
+    CHECK(!rtp_rtx_ssrc.empty() || !send_rtp);
     auto rtx_plan = getPlan("rtx");
     if (rtx_plan) {
         //开启rtx后必须指定rtx_ssrc
-        //todo 此处不确定
-//        CHECK(!rtx_ssrc.empty() || !send_rtp);
+        CHECK(rtp_rtx_ssrc.size() >= 2 || !send_rtp);
     }
 }
 

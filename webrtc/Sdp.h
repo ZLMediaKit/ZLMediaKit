@@ -414,17 +414,7 @@ public:
     //a=ssrc-group:SIM 360918977 360918978 360918980
     // 在 Chrome 独有的 SDP munging 风格的 simulcast 中使用，将三组编码质量由低到高的 MediaStreamTrack 关联在一起。
     string type{"FID"};
-    union {
-        struct {
-            uint32_t rtp_ssrc;
-            uint32_t rtx_ssrc;
-        } fid;
-        struct {
-            uint32_t rtp_ssrc_low;
-            uint32_t rtp_ssrc_mid;
-            uint32_t rtp_ssrc_high;
-        } sim;
-    } u;
+    vector<uint32_t> ssrcs;
 
     bool isFID() const { return type == "FID"; }
     bool isSIM() const { return type == "SIM"; }
@@ -480,8 +470,16 @@ public:
 
 class SdpAttrSimulcast : public SdpItem{
 public:
-    //todo
+    //https://www.meetecho.com/blog/simulcast-janus-ssrc/
+    //https://tools.ietf.org/html/draft-ietf-mmusic-sdp-simulcast-14
     const char* getKey() const override { return "simulcast";}
+    void parse(const string &str) override;
+    string toString() const override;
+
+    string direction;
+    string rid0;
+    string rid1;
+    string rid2;
 };
 
 class SdpAttrRid : public SdpItem{
@@ -610,13 +608,10 @@ public:
     vector<RtcCodecPlan> plan;
 
     //////// rtp ////////
-    RtcSSRC rtp_ssrc;
-    RtcSSRC rtx_ssrc;
+    vector<RtcSSRC> rtp_rtx_ssrc;
 
     //////// simulcast ////////
-    RtcSSRC rtp_ssrc_low;
-    RtcSSRC rtp_ssrc_mid;
-    RtcSSRC rtp_ssrc_high;
+    vector<RtcSSRC> rtp_ssrc_sim;
 
     ////////  rtcp  ////////
     bool rtcp_mux{false};
