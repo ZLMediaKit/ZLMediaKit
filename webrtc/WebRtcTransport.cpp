@@ -17,7 +17,9 @@
 
 #define RTX_SSRC_OFFSET 2
 #define RTP_CNAME "zlmediakit-rtp"
-#define RTX_CNAME "zlmediakit-rtx"
+#define RTP_LABEL "zlmediakit-label"
+#define RTP_MSLABEL "zlmediakit-mslabel"
+#define RTP_MSID RTP_MSLABEL " " RTP_LABEL
 
 //RTC配置项目
 namespace RTC {
@@ -482,10 +484,14 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
         //添加answer sdp的ssrc信息
         m.rtp_ssrc.ssrc = _play_src->getSsrc(m.type);
         m.rtp_ssrc.cname = RTP_CNAME;
+        m.rtp_ssrc.label = RTP_LABEL;
+        m.rtp_ssrc.mslabel = RTP_MSLABEL;
+        m.rtp_ssrc.msid = RTP_MSID;
+
         //todo 先屏蔽rtx，因为chrome报错
-        if (false && m.getRelatedRtxPlan(m.plan[0].pt)) {
-            m.rtx_ssrc.ssrc = RTX_SSRC_OFFSET + m.rtp_ssrc.ssrc;
-            m.rtx_ssrc.cname = RTX_CNAME;
+        if (m.getRelatedRtxPlan(m.plan[0].pt)) {
+            m.rtx_ssrc = m.rtp_ssrc;
+            m.rtx_ssrc.ssrc += RTX_SSRC_OFFSET;
         }
     }
 }
