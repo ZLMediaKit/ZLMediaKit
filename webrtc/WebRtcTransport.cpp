@@ -650,8 +650,8 @@ void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr 
     }
 }
 
-void setExtType(RtpExt &ext, uint8_t tp) {}
-void setExtType(RtpExt &ext, RtpExtType tp) {
+static void setExtType(RtpExt &ext, uint8_t tp) {}
+static void setExtType(RtpExt &ext, RtpExtType tp) {
     ext.setType(tp);
 }
 
