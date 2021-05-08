@@ -622,7 +622,7 @@ class RtcpBye : public RtcpHeader {
 public:
     friend class RtcpHeader;
     /* 变长，根据count决定有多少个ssrc */
-    uint32_t ssrc;
+    uint32_t ssrc[1];
 
     /** 中间可能有若干个 ssrc **/
 

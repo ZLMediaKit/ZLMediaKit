@@ -130,7 +130,7 @@ static bool isOneByteExt<RtpExtOneByte>(){
 }
 
 template<typename Type>
-static void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end) {
+void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end) {
     while (ptr < end) {
         auto ext = reinterpret_cast<Type *>(ptr);
         if (ext->getId() == (uint8_t) RtpExtType::padding) {
@@ -191,7 +191,7 @@ map<uint8_t/*id*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header) 
     XX(encrypt,                     "urn:ietf:params:rtp-hdrext:encrypt")
 
 #define XX(type, url) {RtpExtType::type , url},
-static unordered_map<RtpExtType/*id*/, string/*ext*/> s_type_to_url = {RTP_EXT_MAP(XX)};
+static map<RtpExtType/*id*/, string/*ext*/> s_type_to_url = {RTP_EXT_MAP(XX)};
 #undef XX
 
 
@@ -353,7 +353,7 @@ uint32_t RtpExt::getAbsSendTime() const {
 uint16_t RtpExt::getTransportCCSeq() const {
     CHECK(_type == RtpExtType::transport_cc && size() >= 2);
     uint16_t ret;
-    ret |= (*this)[0] << 8;
+    ret = (*this)[0] << 8;
     ret |= (*this)[1];
     return ret;
 }

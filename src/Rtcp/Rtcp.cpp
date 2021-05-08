@@ -236,7 +236,6 @@ public:
     }
 
 private:
-    std::size_t _size;
     std::shared_ptr<RtcpHeader> _rtcp;
 };
 
@@ -604,7 +603,7 @@ std::shared_ptr<RtcpBye> RtcpBye::create(const std::vector<uint32_t> &ssrcs, con
     setupHeader(ptr, RtcpType::RTCP_BYE, ssrcs.size(), bytes);
     setupPadding(ptr, bytes - real_size);
 
-    auto *ssrc_ptr = &(((RtcpBye *) ptr)->ssrc);
+    auto ssrc_ptr = ((RtcpBye *) ptr)->ssrc;
     for (auto ssrc : ssrcs) {
         *ssrc_ptr = htonl(ssrc);
         ++ssrc_ptr;
@@ -623,7 +622,7 @@ std::shared_ptr<RtcpBye> RtcpBye::create(const std::vector<uint32_t> &ssrcs, con
 
 vector<uint32_t *> RtcpBye::getSSRC()  {
     vector<uint32_t *> ret;
-    uint32_t *ssrc_ptr = &ssrc;
+    auto ssrc_ptr = ssrc;
     for (size_t i = 0; i < report_count; ++i) {
         ret.emplace_back(ssrc_ptr);
         ssrc_ptr += 1;
@@ -652,7 +651,7 @@ string RtcpBye::dumpString() const {
 void RtcpBye::net2Host(size_t size) {
     static const size_t kMinSize = sizeof(RtcpHeader);
     CHECK_MIN_SIZE(size, kMinSize);
-    uint32_t *ssrc_ptr = &ssrc;
+    auto ssrc_ptr = ssrc;
     size_t offset = kMinSize;
     size_t i = 0;
     for (; i < report_count && offset + sizeof(ssrc) <= size; ++i) {
