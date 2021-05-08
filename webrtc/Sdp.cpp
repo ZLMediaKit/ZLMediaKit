@@ -1464,7 +1464,7 @@ RETRY:
                 WarnL << "answer sdp配置为ice_lite模式，与offer sdp中的ice_lite模式冲突";
                 continue;
             }
-            const RtcCodecPlan *offer_plan_ptr = nullptr;
+            const RtcCodecPlan *selected_plan = nullptr;
             for (auto &plan : offer_media.plan) {
                 //先检查编码格式是否为偏好
                 if (check_codec && getCodecId(plan.codec) != codec) {
@@ -1475,10 +1475,10 @@ RETRY:
                     continue;
                 }
                 //找到中意的codec
-                offer_plan_ptr = &plan;
+                selected_plan = &plan;
                 break;
             }
-            if (!offer_plan_ptr) {
+            if (!selected_plan) {
                 //offer中该媒体的所有的codec都不支持
                 continue;
             }
@@ -1542,27 +1542,32 @@ RETRY:
             }
 
             //添加媒体plan
-            answer_media.plan.emplace_back(*offer_plan_ptr);
+            answer_media.plan.emplace_back(*selected_plan);
             onSelectPlan(answer_media.plan.back(), codec);
+
+            set<uint8_t> pt_selected = {selected_plan->pt};
 
             //添加rtx,red,ulpfec plan
             if (configure.support_red || configure.support_rtx || configure.support_ulpfec) {
                 for (auto &plan : offer_media.plan) {
                     if (!strcasecmp(plan.codec.data(), "rtx")) {
-                        if (configure.support_rtx && atoi(plan.getFmtp("apt").data()) == offer_plan_ptr->pt) {
+                        if (configure.support_rtx && atoi(plan.getFmtp("apt").data()) == selected_plan->pt) {
                             answer_media.plan.emplace_back(plan);
+                            pt_selected.emplace(plan.pt);
                         }
                         continue;
                     }
                     if (!strcasecmp(plan.codec.data(), "red")) {
                         if (configure.support_red) {
                             answer_media.plan.emplace_back(plan);
+                            pt_selected.emplace(plan.pt);
                         }
                         continue;
                     }
                     if (!strcasecmp(plan.codec.data(), "ulpfec")) {
                         if (configure.support_ulpfec) {
                             answer_media.plan.emplace_back(plan);
+                            pt_selected.emplace(plan.pt);
                         }
                         continue;
                     }
@@ -1579,10 +1584,17 @@ RETRY:
             auto &rtcp_fb_ref = answer_media.plan[0].rtcp_fb;
             rtcp_fb_ref.clear();
             //对方和我方都支持的rtcpfb，那么我们才支持
-            for (auto &fp : offer_plan_ptr->rtcp_fb) {
+            for (auto &fp : selected_plan->rtcp_fb) {
                 if (configure.rtcp_fb.find(fp) != configure.rtcp_fb.end()) {
                     //对方该rtcp被我们支持
                     rtcp_fb_ref.emplace(fp);
+                }
+            }
+
+            //其他plan放在后面
+            for (auto &plan : offer_media.plan) {
+                if (pt_selected.find(plan.pt) == pt_selected.end()) {
+                    answer_media.plan.emplace_back(plan);
                 }
             }
             ret->media.emplace_back(answer_media);
