@@ -48,15 +48,16 @@ class RtcMedia;
 class RtpExt : public std::string {
 public:
     template<typename Type>
-    friend void appendExt(map<RtpExtType, RtpExt> &ret, const RtcMedia &media, uint8_t *ptr, const uint8_t *end);
+    friend void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end);
 
     ~RtpExt() = default;
 
-    static map<RtpExtType/*type*/, RtpExt/*data*/> getExtValue(const RtpHeader *header, const RtcMedia &media);
+    static map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header);
     static RtpExtType getExtType(const string &url);
     static const string& getExtUrl(RtpExtType type);
     static const char *getExtName(RtpExtType type);
 
+    void setType(RtpExtType type);
     string dumpString() const;
 
     uint8_t getAudioLevel(bool *vad) const;
@@ -91,12 +92,12 @@ public:
     void setExtId(uint8_t ext_id);
 
 private:
-    RtpExt(void *ptr, bool one_byte_ext, RtpExtType type, const char *str, size_t size);
+    RtpExt(void *ptr, bool one_byte_ext, const char *str, size_t size);
 
 private:
     void *_ptr = nullptr;
     bool _one_byte_ext = true;
-    RtpExtType _type;
+    RtpExtType _type = RtpExtType::padding;
 };
 
 
