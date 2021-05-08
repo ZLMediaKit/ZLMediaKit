@@ -761,19 +761,35 @@ void SdpAttrSimulcast::parse(const string &str) {
         SDP_THROW();
     }
     direction = vec[0];
-    vec = split(vec[1], ";");
-    rid0 = vec[0];
-    if (vec.size() > 1) {
-        rid1 = vec[1];
-        if (vec.size() > 2) {
-            rid2 = vec[2];
-        }
-    }
+    rids = split(vec[1], ";");
 }
 
 string SdpAttrSimulcast::toString() const {
     if (value.empty()) {
-        value = direction + " " + rid0 + ";" + rid1 + ";" + rid2;
+        value = direction + " ";
+        bool first = true;
+        for (auto &rid : rids) {
+            if (first) {
+                first = false;
+            } else {
+                value += ';';
+            }
+            value += rid;
+        }
+    }
+    return SdpItem::toString();
+}
+
+void SdpAttrRid::parse(const string &str) {
+    auto vec = split(str, " ");
+    CHECK(vec.size() >= 2);
+    rid = vec[0];
+    direction = vec[1];
+}
+
+string SdpAttrRid::toString() const {
+    if (value.empty()) {
+        value = rid + " " + direction;
     }
     return SdpItem::toString();
 }
@@ -837,7 +853,8 @@ void RtcSession::loadFrom(const string &str, bool check) {
         rtc_media.rtcp_rsize = media.getItem('a', "rtcp-rsize").operator bool();
 
         map<uint32_t, RtcSSRC> rtc_ssrc_map;
-        for (auto &ssrc : media.getAllItem<SdpAttrSSRC>('a', "ssrc")) {
+        auto ssrc_attr = media.getAllItem<SdpAttrSSRC>('a', "ssrc");
+        for (auto &ssrc : ssrc_attr) {
             auto &rtc_ssrc = rtc_ssrc_map[ssrc.ssrc];
             rtc_ssrc.ssrc = ssrc.ssrc;
             if (!strcasecmp(ssrc.attribute.data(), "cname")) {
@@ -880,21 +897,35 @@ void RtcSession::loadFrom(const string &str, bool check) {
             }
             CHECK(rtc_media.rtp_rtx_ssrc.size() == 2);
         } else {
-            //没有指定ssrc-group:FID字段，那么只有1个或0个ssrc
-            if (rtc_ssrc_map.size() == 1) {
-                rtc_media.rtp_rtx_ssrc.emplace_back(rtc_ssrc_map.begin()->second);
-            } else if (rtc_ssrc_map.size() > 1) {
-                throw std::invalid_argument("sdp中不存在a=ssrc-group:FID字段,但是ssrc却大于1个");
+            auto simulcast = media.getItemClass<SdpAttrSimulcast>('a', "simulcast");
+            if (simulcast.empty()) {
+                //没有指定ssrc-group:FID字段,也不是simulcast，那么只有1个或0个ssrc
+                if (rtc_ssrc_map.size() == 1) {
+                    rtc_media.rtp_rtx_ssrc.emplace_back(rtc_ssrc_map.begin()->second);
+                } else if (rtc_ssrc_map.size() > 1) {
+                    throw std::invalid_argument("sdp中不存在a=ssrc-group:FID字段,但是ssrc却大于1个");
+                }
+            } else {
+                //开启simulcast
+                rtc_media.rtp_rids = simulcast.rids;
+                //simulcast最少要求2种方案
+                CHECK(rtc_media.rtp_rids.size() >= 2);
             }
         }
 
         if (ssrc_group_sim) {
+            //指定了a=ssrc-group:SIM
             for (auto ssrc : ssrc_group_sim->ssrcs) {
                 auto it = rtc_ssrc_map.find(ssrc);
                 if (it == rtc_ssrc_map.end()) {
                     throw std::invalid_argument("a=ssrc-group:SIM字段指定的ssrc未找到");
                 }
                 rtc_media.rtp_ssrc_sim.emplace_back(it->second);
+            }
+        } else if (!rtc_media.rtp_rids.empty()) {
+            //未指定a=ssrc-group:SIM，但是指定了a=simulcast,且可能指定了ssrc
+            for (auto &attr : ssrc_attr) {
+                rtc_media.rtp_ssrc_sim.emplace_back(rtc_ssrc_map[attr.ssrc]);
             }
         }
 
@@ -1188,7 +1219,22 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                     group->type = "SIM";
                     sdp_media.items.emplace_back(wrapSdpAttr(std::move(group)));
                 }
+
+                if (m.rtp_rids.size() >= 2) {
+                    auto simulcast = std::make_shared<SdpAttrSimulcast>();
+                    simulcast->direction = "recv";
+                    simulcast->rids = m.rtp_rids;
+                    sdp_media.items.emplace_back(wrapSdpAttr(std::move(simulcast)));
+
+                    for (auto &rid : m.rtp_rids) {
+                        auto attr_rid = std::make_shared<SdpAttrRid>();
+                        attr_rid->rid = rid;
+                        attr_rid->direction = "recv";
+                        sdp_media.items.emplace_back(wrapSdpAttr(std::move(attr_rid)));
+                    }
+                }
             }
+
         } else {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSctpMap>(m.sctpmap)));
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("sctp-port", to_string(m.sctp_port))));
@@ -1252,7 +1298,10 @@ void RtcMedia::checkValid() const{
     CHECK(direction != RtpDirection::invalid || type == TrackApplication);
     CHECK(!plan.empty() || type == TrackApplication );
     bool send_rtp = (direction == RtpDirection::sendonly || direction == RtpDirection::sendrecv);
-    CHECK(!rtp_rtx_ssrc.empty() || !send_rtp);
+    if (rtp_rids.empty() && rtp_ssrc_sim.empty()) {
+        //非simulcast时，检查有没有指定rtp ssrc
+        CHECK(!rtp_rtx_ssrc.empty() || !send_rtp);
+    }
 
 #if 0
     //todo 发现Firefox(88.0)在mac平台下，开启rtx后没有指定ssrc
@@ -1539,6 +1588,8 @@ RETRY:
             answer_media.fingerprint = configure.fingerprint;
             answer_media.ice_lite = configure.ice_lite;
             answer_media.candidate = configure.candidate;
+            answer_media.rtp_rids = offer_media.rtp_rids;
+            answer_media.rtp_ssrc_sim = offer_media.rtp_ssrc_sim;
             switch (offer_media.role) {
                 case DtlsRole::actpass :
                 case DtlsRole::active : {
