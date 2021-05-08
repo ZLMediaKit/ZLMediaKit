@@ -149,7 +149,7 @@ string FCI_REMB::dumpString() const {
     for (auto &ssrc : ((FCI_REMB *) this)->getSSRC()) {
         printer << ssrc << " ";
     }
-    return printer;
+    return std::move(printer);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

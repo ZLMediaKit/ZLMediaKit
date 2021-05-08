@@ -667,7 +667,7 @@ static void changeRtpExtId(const RtpPacket::Ptr &rtp, const Type &map) {
     auto header = rtp->getHeader();
     auto ext_map = RtpExt::getExtValue(header);
     for (auto &pr : ext_map) {
-        auto it = map.find((Type::key_type) pr.first);
+        auto it = map.find((typename Type::key_type) (pr.first));
         if (it == map.end()) {
             WarnL << "未处理的rtp ext, 类型不识别:" << (int) pr.first;
             pr.second.clearExt();

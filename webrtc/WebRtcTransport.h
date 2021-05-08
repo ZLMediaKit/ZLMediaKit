@@ -226,7 +226,7 @@ private:
     //根据推流端rtcp的ssrc获取相关信息
     unordered_map<uint32_t, RtpPayloadInfo*> _rtp_info_ssrc;
     //发送rtp时需要修改rtp ext id
-    unordered_map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
+    map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
     //接收rtp时需要修改rtp ext id
     unordered_map<uint8_t, RtpExtType> _rtp_ext_id_to_type;
 };
