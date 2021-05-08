@@ -60,9 +60,9 @@ public:
      * @param buf rtcp内容
      * @param len rtcp长度
      * @param flush 是否flush socket
-     * @param pt rtp payload type
+     * @param type rtp类型
      */
-    void sendRtpPacket(char *buf, size_t len, bool flush, uint8_t pt);
+    void sendRtpPacket(char *buf, size_t len, bool flush, TrackType type);
     void sendRtcpPacket(char *buf, size_t len, bool flush);
 
     const EventPoller::Ptr& getPoller() const;
@@ -100,6 +100,7 @@ protected:
     virtual void onRtp(const char *buf, size_t len) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
     virtual void onShutdown(const SockException &ex) = 0;
+    virtual void onBeforeEncryptRtp(const char *buf, size_t len, TrackType type) = 0;
 
 protected:
     const RtcSession& getSdp(SdpType type) const;
@@ -112,6 +113,7 @@ private:
     void setRemoteDtlsFingerprint(const RtcSession &remote);
 
 private:
+    uint8_t _srtp_buf[2000];
     EventPoller::Ptr _poller;
     std::shared_ptr<RTC::IceServer> _ice_server;
     std::shared_ptr<RTC::DtlsTransport> _dtls_transport;
@@ -150,6 +152,8 @@ protected:
 
     void onRtp(const char *buf, size_t len) override;
     void onRtcp(const char *buf, size_t len) override;
+    void onBeforeEncryptRtp(const char *buf, size_t len, TrackType type) override;
+
     void onShutdown(const SockException &ex) override;
 
     ///////MediaSourceEvent override///////

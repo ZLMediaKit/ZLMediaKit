@@ -64,9 +64,9 @@ namespace RTC
 		~SrtpSession();
 
 	public:
-		bool EncryptRtp(const uint8_t** data, size_t* len, uint8_t pt);
+		bool EncryptRtp(uint8_t* data, size_t* len);
 		bool DecryptSrtp(uint8_t* data, size_t* len);
-		bool EncryptRtcp(const uint8_t** data, size_t* len);
+		bool EncryptRtcp(uint8_t* data, size_t* len);
 		bool DecryptSrtcp(uint8_t* data, size_t* len);
 		void RemoveStream(uint32_t ssrc)
 		{
@@ -76,9 +76,6 @@ namespace RTC
 	private:
 		// Allocated by this.
 		srtp_t session{ nullptr };
-		//rtp包最大1600
-        static constexpr size_t EncryptBufferSize{ 2000 };
-        uint8_t EncryptBuffer[EncryptBufferSize];
         DepLibSRTP::Ptr _env;
 	};
 } // namespace RTC

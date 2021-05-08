@@ -231,23 +231,11 @@ namespace RTC
 		}
 	}
 
-	bool SrtpSession::EncryptRtp(const uint8_t** data, size_t* len, uint8_t pt)
+	bool SrtpSession::EncryptRtp(uint8_t* data, size_t* len)
 	{
 		MS_TRACE();
-
-		// Ensure that the resulting SRTP packet fits into the encrypt buffer.
-		if (*len + SRTP_MAX_TRAILER_LEN > EncryptBufferSize)
-		{
-			MS_WARN_TAG(srtp, "cannot encrypt RTP packet, size too big (%zu bytes)", *len);
-
-			return false;
-		}
-
-		std::memcpy(EncryptBuffer, *data, *len);
-        EncryptBuffer[1] = (pt & 0x7F) | (EncryptBuffer[1] & 0x80);
-
 		srtp_err_status_t err =
-		  srtp_protect(this->session, static_cast<void*>(EncryptBuffer), reinterpret_cast<int*>(len));
+		  srtp_protect(this->session, static_cast<void*>(data), reinterpret_cast<int*>(len));
 
 		if (DepLibSRTP::IsError(err))
 		{
@@ -255,9 +243,6 @@ namespace RTC
 
 			return false;
 		}
-
-		// Update the given data pointer.
-		*data = (const uint8_t*)EncryptBuffer;
 
 		return true;
 	}
@@ -279,22 +264,11 @@ namespace RTC
 		return true;
 	}
 
-	bool SrtpSession::EncryptRtcp(const uint8_t** data, size_t* len)
+	bool SrtpSession::EncryptRtcp(uint8_t* data, size_t* len)
 	{
 		MS_TRACE();
-
-		// Ensure that the resulting SRTCP packet fits into the encrypt buffer.
-		if (*len + SRTP_MAX_TRAILER_LEN > EncryptBufferSize)
-		{
-			MS_WARN_TAG(srtp, "cannot encrypt RTCP packet, size too big (%zu bytes)", *len);
-
-			return false;
-		}
-
-		std::memcpy(EncryptBuffer, *data, *len);
-
 		srtp_err_status_t err = srtp_protect_rtcp(
-		  this->session, static_cast<void*>(EncryptBuffer), reinterpret_cast<int*>(len));
+		  this->session, static_cast<void*>(data), reinterpret_cast<int*>(len));
 
 		if (DepLibSRTP::IsError(err))
 		{
@@ -302,9 +276,6 @@ namespace RTC
 
 			return false;
 		}
-
-		// Update the given data pointer.
-		*data = (const uint8_t*)EncryptBuffer;
 
 		return true;
 	}

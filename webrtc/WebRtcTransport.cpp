@@ -266,25 +266,24 @@ void WebRtcTransport::inputSockData(char *buf, size_t len, RTC::TransportTuple *
     }
 }
 
-void WebRtcTransport::sendRtpPacket(char *buf, size_t len, bool flush, uint8_t pt) {
-    const uint8_t *p = (uint8_t *) buf;
-    bool ret = false;
+void WebRtcTransport::sendRtpPacket(char *buf, size_t len, bool flush, TrackType type) {
     if (_srtp_session_send) {
-        ret = _srtp_session_send->EncryptRtp(&p, &len, pt);
-    }
-    if (ret) {
-        onSendSockData((char *) p, len, flush);
+        CHECK(len + SRTP_MAX_TRAILER_LEN <= sizeof(_srtp_buf));
+        memcpy(_srtp_buf, buf, len);
+        onBeforeEncryptRtp((char *) _srtp_buf, len, type);
+        if (_srtp_session_send->EncryptRtp(_srtp_buf, &len)) {
+            onSendSockData((char *) _srtp_buf, len, flush);
+        }
     }
 }
 
 void WebRtcTransport::sendRtcpPacket(char *buf, size_t len, bool flush){
-    const uint8_t *p = (uint8_t *) buf;
-    bool ret = false;
     if (_srtp_session_send) {
-        ret = _srtp_session_send->EncryptRtcp(&p, &len);
-    }
-    if (ret) {
-        onSendSockData((char *) p, len, flush);
+        CHECK(len + SRTP_MAX_TRAILER_LEN <= sizeof(_srtp_buf));
+        memcpy(_srtp_buf, buf, len);
+        if (_srtp_session_send->EncryptRtcp(_srtp_buf, &len)) {
+            onSendSockData((char *) _srtp_buf, len, flush);
+        }
     }
 }
 
@@ -611,6 +610,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
             }
             case RtcpType::RTCP_PSFB:
             case RtcpType::RTCP_RTPFB: {
+                DebugL << "\r\n" << rtcp->dumpString();
                 break;
             }
             default: break;
@@ -663,8 +663,7 @@ static void setExtType(RtpExt &ext, RtpExtType tp) {
 }
 
 template<typename Type>
-static void changeRtpExtId(const RtpPacket::Ptr &rtp, const Type &map) {
-    auto header = rtp->getHeader();
+static void changeRtpExtId(const RtpHeader *header, const Type &map) {
     auto ext_map = RtpExt::getExtValue(header);
     for (auto &pr : ext_map) {
         auto it = map.find((typename Type::key_type) (pr.first));
@@ -675,27 +674,33 @@ static void changeRtpExtId(const RtpPacket::Ptr &rtp, const Type &map) {
         }
         setExtType(pr.second, it->first);
         setExtType(pr.second, it->second);
+        DebugL << pr.second.dumpString();
         pr.second.setExtId((uint8_t) it->second);
     }
 }
 
 void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
-    changeRtpExtId(rtp, _rtp_ext_id_to_type);
+    changeRtpExtId(rtp->getHeader(), _rtp_ext_id_to_type);
     //统计rtp收到的情况，好做rr汇报
     info.rtcp_context_recv->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 }
 
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
-    auto &pt = _send_rtp_pt[rtp->type];
+    auto pt = _send_rtp_pt[rtp->type];
     if (pt == 0xFF) {
         //忽略，对方不支持该编码类型
         return;
     }
-    changeRtpExtId(rtp, _rtp_ext_type_to_id);
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
-    sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, pt);
+    sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, rtp->type);
     //统计rtp发送情况，好做sr汇报
     _rtp_info_pt[pt].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+}
+
+void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t len, TrackType type) {
+    auto header = (RtpHeader *)buf;
+    header->pt = _send_rtp_pt[type];
+    changeRtpExtId(header, _rtp_ext_type_to_id);
 }
 
 void WebRtcTransportImp::onShutdown(const SockException &ex){
