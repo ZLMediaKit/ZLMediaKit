@@ -610,7 +610,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
             }
             case RtcpType::RTCP_PSFB:
             case RtcpType::RTCP_RTPFB: {
-                DebugL << "\r\n" << rtcp->dumpString();
+//                DebugL << "\r\n" << rtcp->dumpString();
                 break;
             }
             default: break;
@@ -674,7 +674,7 @@ static void changeRtpExtId(const RtpHeader *header, const Type &map) {
         }
         setExtType(pr.second, it->first);
         setExtType(pr.second, it->second);
-        DebugL << pr.second.dumpString();
+//        DebugL << pr.second.dumpString();
         pr.second.setExtId((uint8_t) it->second);
     }
 }
