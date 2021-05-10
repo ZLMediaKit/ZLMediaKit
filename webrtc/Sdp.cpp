@@ -292,7 +292,6 @@ string RtcSessionSdp::toString() const {
 //////////////////////////////////////////////////////////////////////////////////////////
 
 #define SDP_THROW() throw std::invalid_argument(StrPrinter << "解析sdp " << getKey() << " 字段失败:" << str)
-#define SDP_THROW2() throw std::invalid_argument(StrPrinter << "生成sdp " << getKey() << " 字段失败")
 
 void SdpTime::parse(const string &str) {
     if (sscanf(str.data(), "%" SCNu64 " %" SCNu64, &start, &stop) != 2) {
@@ -842,13 +841,7 @@ void RtcSession::loadFrom(const string &str, bool check) {
         }
         rtc_media.rtcp_addr = media.getItemClass<SdpAttrRtcp>('a', "rtcp");
         rtc_media.direction = media.getDirection();
-        {
-            rtc_media.extmap.clear();
-            auto arr = media.getAllItem<SdpAttrExtmap>('a', "extmap");
-            for (auto &ext : arr) {
-                rtc_media.extmap.emplace(ext.id, ext);
-            }
-        }
+        rtc_media.extmap = media.getAllItem<SdpAttrExtmap>('a', "extmap");
         rtc_media.rtcp_mux = media.getItem('a', "rtcp-mux").operator bool();
         rtc_media.rtcp_rsize = media.getItem('a', "rtcp-rsize").operator bool();
 
@@ -1111,8 +1104,8 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
         if (m.ice_lite) {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("ice-lite")));
         }
-        for (auto &pr : m.extmap) {
-            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrExtmap>(pr.second)));
+        for (auto &ext : m.extmap) {
+            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrExtmap>(ext)));
         }
         if (m.direction != RtpDirection::invalid) {
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<DirectionInterfaceImp>(m.direction)));
@@ -1664,9 +1657,9 @@ RETRY:
             }
 
             //对方和我方都支持的扩展，那么我们才支持
-            for (auto &pr : offer_media.extmap) {
-                if (configure.extmap.find(RtpExt::getExtType(pr.second.ext)) != configure.extmap.end()) {
-                    answer_media.extmap.emplace(pr);
+            for (auto &ext : offer_media.extmap) {
+                if (configure.extmap.find(RtpExt::getExtType(ext.ext)) != configure.extmap.end()) {
+                    answer_media.extmap.emplace_back(ext);
                 }
             }
 

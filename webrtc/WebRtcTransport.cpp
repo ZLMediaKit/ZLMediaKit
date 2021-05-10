@@ -414,10 +414,10 @@ void WebRtcTransportImp::onStartWebRTC() {
         }
         if (m.type != TrackApplication) {
             //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
-            for (auto &pr : m.extmap) {
-                auto ext_type = RtpExt::getExtType(pr.second.ext);
-                _rtp_ext_id_to_type.emplace(pr.second.id, ext_type);
-                _rtp_ext_type_to_id.emplace(ext_type, pr.second.id);
+            for (auto &ext : m.extmap) {
+                auto ext_type = RtpExt::getExtType(ext.ext);
+                _rtp_ext_id_to_type.emplace(ext.id, ext_type);
+                _rtp_ext_type_to_id.emplace(ext_type, ext.id);
             }
         }
     }
