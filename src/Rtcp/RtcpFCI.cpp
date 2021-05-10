@@ -181,17 +181,20 @@ uint16_t FCI_NACK::getBlp() const {
 
 vector<bool> FCI_NACK::getBitArray() const {
     vector<bool> ret;
-    ret.resize(kBitSize);
+    ret.resize(kBitSize + 1);
+    //nack第一个包丢包
+    ret[0] = false;
+
     auto blp_h = getBlp();
     for (size_t i = 0; i < kBitSize; ++i) {
-        ret[i] = blp_h & (1 << (kBitSize - i - 1));
+        ret[i + 1] = blp_h & (1 << (kBitSize - i - 1));
     }
     return ret;
 }
 
 string FCI_NACK::dumpString() const {
     _StrPrinter printer;
-    printer << "pid:" << getPid() << ",blp:";
+    printer << "pid:" << getPid() << ",blp:" << getBlp() << ",bit array:";
     for (auto flag : getBitArray()) {
         printer << flag << " ";
     }
