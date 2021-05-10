@@ -15,7 +15,7 @@ using namespace toolkit;
 namespace mediakit {
 
 void FCI_SLI::check(size_t size){
-    CHECK(size == kSize);
+    CHECK(size >= kSize);
 }
 
 FCI_SLI::FCI_SLI(uint16_t first, uint16_t number, uint8_t pic_id) {
@@ -48,7 +48,7 @@ string FCI_SLI::dumpString() const {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void FCI_FIR::check(size_t size){
-    CHECK(size == kSize);
+    CHECK(size >= kSize);
 }
 
 uint32_t FCI_FIR::getSSRC() const{
@@ -84,7 +84,7 @@ void FCI_REMB::check(size_t size){
     CHECK(memcmp(magic, kRembMagic, sizeof(magic)) == 0);
     auto num_ssrc = bitrate[0];
     auto expect_size = kSize + 4 * num_ssrc;
-    CHECK(size == expect_size);
+    CHECK(size >= expect_size);
 }
 
 string FCI_REMB::create(const vector<uint32_t> &ssrcs, uint32_t bitrate) {
@@ -168,7 +168,7 @@ FCI_NACK::FCI_NACK(uint16_t pid_h, const vector<bool> &type) {
 }
 
 void FCI_NACK::check(size_t size){
-    CHECK(size == kSize);
+    CHECK(size >= kSize);
 }
 
 uint16_t FCI_NACK::getPid() const {
