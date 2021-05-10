@@ -640,6 +640,8 @@ public:
     uint32_t sctp_port{0};
 
     void checkValid() const;
+    //offer sdp,如果指定了发送rtp,那么应该指定ssrc
+    void checkValidSSRC() const;
     const RtcCodecPlan *getPlan(uint8_t pt) const;
     const RtcCodecPlan *getPlan(const char *codec) const;
     const RtcCodecPlan *getRelatedRtxPlan(uint8_t pt) const;
@@ -662,9 +664,12 @@ public:
 
     void loadFrom(const string &sdp, bool check = true);
     void checkValid() const;
+    //offer sdp,如果指定了发送rtp,那么应该指定ssrc
+    void checkValidSSRC() const;
     string toString() const;
     string toRtspSdp() const;
     const  RtcMedia *getMedia(TrackType type) const;
+    bool haveSSRC() const;
     bool supportRtcpFb(const string &name, TrackType type = TrackType::TrackVideo) const;
 
 private:

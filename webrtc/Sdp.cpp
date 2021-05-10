@@ -1290,6 +1290,9 @@ void RtcMedia::checkValid() const{
     CHECK(!proto.empty());
     CHECK(direction != RtpDirection::invalid || type == TrackApplication);
     CHECK(!plan.empty() || type == TrackApplication );
+}
+
+void RtcMedia::checkValidSSRC() const {
     bool send_rtp = (direction == RtpDirection::sendonly || direction == RtpDirection::sendrecv);
     if (rtp_rids.empty() && rtp_ssrc_sim.empty()) {
         //非simulcast时，检查有没有指定rtp ssrc
@@ -1318,6 +1321,12 @@ void RtcSession::checkValid() const{
     }
 }
 
+void RtcSession::checkValidSSRC() const{
+    for (auto &item : media) {
+        item.checkValidSSRC();
+    }
+}
+
 const RtcMedia *RtcSession::getMedia(TrackType type) const{
     for(auto &m : media){
         if(m.type == type){
@@ -1325,6 +1334,15 @@ const RtcMedia *RtcSession::getMedia(TrackType type) const{
         }
     }
     return nullptr;
+}
+
+bool RtcSession::haveSSRC() const {
+    for (auto &m : media) {
+        if (!m.rtp_rtx_ssrc.empty()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool RtcSession::supportRtcpFb(const string &name, TrackType type) const {
