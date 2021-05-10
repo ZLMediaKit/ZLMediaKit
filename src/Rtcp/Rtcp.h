@@ -586,6 +586,30 @@ public:
      */
     static std::shared_ptr<RtcpFB> create(RTPFBType fmt, const void *fci = nullptr, size_t fci_len = 0);
 
+    /**
+     * fci转换成某对象指针
+     * @tparam Type 对象类型
+     * @return 对象指针
+     */
+    template<typename Type>
+    const Type& getFci() const{
+        auto fci_data = getFciPtr();
+        auto fci_len = getFciSize();
+        Type *fci = (Type *) fci_data;
+        fci->check(fci_len);
+        return *fci;
+    }
+
+    /**
+     * 获取fci指针
+     */
+    const void *getFciPtr() const;
+
+    /**
+     * 获取fci数据长度
+     */
+    size_t getFciSize() const;
+
 private:
     /**
     * 打印字段详情
