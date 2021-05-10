@@ -712,7 +712,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, rtp->type);
     //统计rtp发送情况，好做sr汇报
-    _rtp_info_pt[info->plan->pt].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+    info->rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 }
 
 void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t len, TrackType type) {
