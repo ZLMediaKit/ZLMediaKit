@@ -517,44 +517,48 @@ std::shared_ptr<RtcpFB> RtcpFB::create(RTPFBType fmt, const void *fci, size_t fc
     return RtcpFB::create_l(RtcpType::RTCP_RTPFB, (int)fmt, fci, fci_len);
 }
 
+const void *RtcpFB::getFciPtr() const {
+    return (uint8_t *) &ssrc_media + sizeof(ssrc_media);
+}
+
+size_t RtcpFB::getFciSize() const {
+    auto fci_len = (ssize_t) getSize() - getPaddingSize() - sizeof(RtcpFB);
+    CHECK(fci_len >= 0);
+    return fci_len;
+}
+
 string RtcpFB::dumpString() const {
     _StrPrinter printer;
     printer << RtcpHeader::dumpHeader();
     printer << "ssrc:" << ssrc << "\r\n";
     printer << "ssrc_media:" << ssrc_media << "\r\n";
-    auto fci_data = (uint8_t *)&ssrc_media + sizeof(ssrc_media);
-    auto fci_len = (ssize_t)getSize() - getPaddingSize() - sizeof(RtcpFB);
-    CHECK(fci_len >= 0);
     switch ((RtcpType) pt) {
         case RtcpType::RTCP_PSFB : {
             switch ((PSFBType) report_count) {
                 case PSFBType::RTCP_PSFB_SLI : {
-                    FCI_SLI *fci = (FCI_SLI *) fci_data;
-                    fci->check(fci_len);
-                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << fci->dumpString();
+                    auto &fci = getFci<FCI_SLI>();
+                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << fci.dumpString();
                     break;
                 }
                 case PSFBType::RTCP_PSFB_PLI : {
-                    CHECK(fci_len == 0);
+                    getFciSize();
                     printer << "fci:" << psfbTypeToStr((PSFBType) report_count);
                     break;
                 }
 
                 case PSFBType::RTCP_PSFB_FIR : {
-                    FCI_FIR *fci = (FCI_FIR *) fci_data;
-                    fci->check(fci_len);
-                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << fci->dumpString();
+                    auto &fci = getFci<FCI_FIR>();
+                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << fci.dumpString();
                     break;
                 }
 
                 case PSFBType::RTCP_PSFB_REMB : {
-                    FCI_REMB *fci = (FCI_REMB *) fci_data;
-                    fci->check(fci_len);
-                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << fci->dumpString();
+                    auto &fci = getFci<FCI_REMB>();
+                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << fci.dumpString();
                     break;
                 }
                 default:{
-                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << hexdump(fci_data, fci_len);
+                    printer << "fci:" << psfbTypeToStr((PSFBType) report_count) << " " << hexdump(getFciPtr(), getFciSize());
                     break;
                 }
             }
@@ -563,19 +567,17 @@ string RtcpFB::dumpString() const {
         case RtcpType::RTCP_RTPFB : {
             switch ((RTPFBType) report_count) {
                 case RTPFBType::RTCP_RTPFB_NACK : {
-                    FCI_NACK *fci = (FCI_NACK *) fci_data;
-                    fci->check(fci_len);
-                    printer << "fci:" << rtpfbTypeToStr((RTPFBType) report_count) << " " << fci->dumpString();
+                    auto &fci = getFci<FCI_NACK>();
+                    printer << "fci:" << rtpfbTypeToStr((RTPFBType) report_count) << " " << fci.dumpString();
                     break;
                 }
                 case RTPFBType::RTCP_RTPFB_TWCC : {
-                    FCI_TWCC *fci = (FCI_TWCC *) fci_data;
-                    fci->check(fci_len);
-                    printer << "fci:" << rtpfbTypeToStr((RTPFBType) report_count) << " " << fci->dumpString(fci_len);
+                    auto &fci = getFci<FCI_TWCC>();
+                    printer << "fci:" << rtpfbTypeToStr((RTPFBType) report_count) << " " << fci.dumpString(getFciSize());
                     break;
                 }
                 default: {
-                    printer << "fci:" << rtpfbTypeToStr((RTPFBType) report_count) << " " << hexdump(fci_data, fci_len);
+                    printer << "fci:" << rtpfbTypeToStr((RTPFBType) report_count) << " " << hexdump(getFciPtr(), getFciSize());
                     break;
                 }
             }
