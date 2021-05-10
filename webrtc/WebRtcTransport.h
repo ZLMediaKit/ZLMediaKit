@@ -21,6 +21,7 @@
 #include "Network/Socket.h"
 #include "Rtsp/RtspMediaSourceImp.h"
 #include "Rtcp/RtcpContext.h"
+#include "Rtcp/RtcpFCI.h"
 using namespace toolkit;
 using namespace mediakit;
 
@@ -60,10 +61,10 @@ public:
      * @param buf rtcp内容
      * @param len rtcp长度
      * @param flush 是否flush socket
-     * @param type rtp类型
+     * @param ctx 用户指针
      */
-    void sendRtpPacket(char *buf, size_t len, bool flush, TrackType type);
-    void sendRtcpPacket(char *buf, size_t len, bool flush);
+    void sendRtpPacket(char *buf, size_t len, bool flush, void *ctx = nullptr);
+    void sendRtcpPacket(char *buf, size_t len, bool flush, void *ctx = nullptr);
 
     const EventPoller::Ptr& getPoller() const;
 
@@ -100,7 +101,8 @@ protected:
     virtual void onRtp(const char *buf, size_t len) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
     virtual void onShutdown(const SockException &ex) = 0;
-    virtual void onBeforeEncryptRtp(const char *buf, size_t len, TrackType type) = 0;
+    virtual void onBeforeEncryptRtp(const char *buf, size_t len, void *ctx) = 0;
+    virtual void onBeforeEncryptRtcp(const char *buf, size_t len, void *ctx) = 0;
 
 protected:
     const RtcSession& getSdp(SdpType type) const;
@@ -124,6 +126,69 @@ private:
 };
 
 class RtpReceiverImp;
+
+class NackList {
+public:
+    void push_back(RtpPacket::Ptr rtp) {
+        auto seq = rtp->getSeq();
+        nack_cache_seq.emplace_back(seq);
+        nack_cache_pkt.emplace(seq, std::move(rtp));
+        while (get_cache_ms() > kMaxNackMS) {
+            //需要清除部分nack缓存
+            pop_front();
+        }
+    }
+
+    template<typename FUNC>
+    void for_each_nack(const FCI_NACK &nack, const FUNC &func) {
+        auto seq = nack.getPid();
+        for (auto bit : nack.getBitArray()) {
+            if (!bit) {
+                //丢包
+                RtpPacket::Ptr *ptr = get_rtp(seq);
+                if (ptr) {
+                    func(*ptr);
+                }
+            }
+            ++seq;
+        }
+    }
+
+private:
+    void pop_front() {
+        if (nack_cache_seq.empty()) {
+            return;
+        }
+        nack_cache_pkt.erase(nack_cache_seq.front());
+        nack_cache_seq.pop_front();
+    }
+
+    RtpPacket::Ptr *get_rtp(uint16_t seq) {
+        auto it = nack_cache_pkt.find(seq);
+        if (it == nack_cache_pkt.end()) {
+            return nullptr;
+        }
+        return &it->second;
+    }
+
+    uint32_t get_cache_ms() {
+        if (nack_cache_seq.size() < 2) {
+            return 0;
+        }
+        uint32_t back = nack_cache_pkt[nack_cache_seq.back()]->getStampMS();
+        uint32_t front = nack_cache_pkt[nack_cache_seq.front()]->getStampMS();
+        if (back > front) {
+            return back - front;
+        }
+        //很有可能回环了
+        return back + (UINT32_MAX - front);
+    }
+
+private:
+    static constexpr uint32_t kMaxNackMS = 10 * 1000;
+    deque<uint16_t> nack_cache_seq;
+    unordered_map<uint16_t, RtpPacket::Ptr > nack_cache_pkt;
+};
 
 class WebRtcTransportImp : public WebRtcTransport, public MediaSourceEvent, public SockInfo, public std::enable_shared_from_this<WebRtcTransportImp>{
 public:
@@ -152,7 +217,8 @@ protected:
 
     void onRtp(const char *buf, size_t len) override;
     void onRtcp(const char *buf, size_t len) override;
-    void onBeforeEncryptRtp(const char *buf, size_t len, TrackType type) override;
+    void onBeforeEncryptRtp(const char *buf, size_t len, void *ctx) override;
+    void onBeforeEncryptRtcp(const char *buf, size_t len, void *ctx) override;
 
     void onShutdown(const SockException &ex) override;
 
@@ -184,7 +250,7 @@ private:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
     void onCreate() override;
     void onDestory() override;
-    void onSendRtp(const RtpPacket::Ptr &rtp, bool flush);
+    void onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
     SdpAttrCandidate::Ptr getIceCandidate() const;
     bool canSendRtp() const;
     bool canRecvRtp() const;
@@ -198,10 +264,11 @@ private:
         std::shared_ptr<RtpReceiverImp> receiver;
         RtcpContext::Ptr rtcp_context_recv;
         RtcpContext::Ptr rtcp_context_send;
+        NackList nack_list;
     };
 
-    void onSortedRtp(const RtpPayloadInfo &info,RtpPacket::Ptr rtp);
-    void onBeforeSortedRtp(const RtpPayloadInfo &info,const RtpPacket::Ptr &rtp);
+    void onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr rtp);
+    void onBeforeSortedRtp(const RtpPayloadInfo &info, const RtpPacket::Ptr &rtp);
 
 private:
     //用掉的总流量
