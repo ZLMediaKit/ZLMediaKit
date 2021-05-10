@@ -188,6 +188,7 @@ private:
     SdpAttrCandidate::Ptr getIceCandidate() const;
     bool canSendRtp() const;
     bool canRecvRtp() const;
+    const RtcSession& getSdpWithSSRC() const;
 
     class RtpPayloadInfo {
     public:
@@ -215,8 +216,8 @@ private:
     Ticker _alive_ticker;
     //pli rtcp计时器
     Ticker _pli_ticker;
-    //记录协商的rtp的pt类型
-    uint8_t _send_rtp_pt[2] = {0xFF, 0xFF};
+    //记录协商的发送rtp的pt和ssrc
+    RtpPayloadInfo* _send_rtp_info[2] = {nullptr, nullptr};
     //复合udp端口，接收一切rtp与rtcp
     Socket::Ptr _socket;
     //推流的rtsp源
@@ -226,9 +227,9 @@ private:
     //播放rtsp源的reader对象
     RtspMediaSource::RingType::RingReader::Ptr _reader;
     //根据rtp的pt获取相关信息
-    unordered_map<uint8_t, RtpPayloadInfo> _rtp_info_pt;
-    //根据推流端rtcp的ssrc获取相关信息
-    unordered_map<uint32_t, RtpPayloadInfo*> _rtp_info_ssrc;
+    unordered_map<uint8_t/*pt*/, RtpPayloadInfo> _rtp_info_pt;
+    //根据rtcp的ssrc获取相关信息
+    unordered_map<uint32_t/*ssrc*/, RtpPayloadInfo*> _rtp_info_ssrc;
     //发送rtp时需要修改rtp ext id
     map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
     //接收rtp时需要修改rtp ext id

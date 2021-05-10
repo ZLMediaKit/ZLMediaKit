@@ -185,6 +185,9 @@ void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp){
     if (sdp.group.mids.empty()) {
         throw std::invalid_argument("只支持group BUNDLE模式");
     }
+    if (type == SdpType::offer) {
+        sdp.checkValidSSRC();
+    }
 }
 
 void WebRtcTransport::onRtcConfigure(RtcConfigure &configure) const {
@@ -390,6 +393,16 @@ bool WebRtcTransportImp::canRecvRtp() const{
     return _push_src && (sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::recvonly);
 }
 
+const RtcSession& WebRtcTransportImp::getSdpWithSSRC() const{
+    auto &offer = getSdp(SdpType::offer);
+    if (offer.haveSSRC()) {
+        return offer;
+    }
+    auto &answer = getSdp(SdpType::answer);
+    CHECK(answer.haveSSRC());
+    return answer;
+}
+
 void WebRtcTransportImp::onStartWebRTC() {
     //获取ssrc和pt相关信息,届时收到rtp和rtcp时分别可以根据pt和ssrc找到相关的信息
     for (auto &m : getSdp(SdpType::offer).media) {
@@ -398,11 +411,12 @@ void WebRtcTransportImp::onStartWebRTC() {
             if (!hit_pan) {
                 continue;
             }
+            auto m_with_ssrc = getSdpWithSSRC().getMedia(m.type);
             //获取offer端rtp的ssrc和pt相关信息
             auto &ref = _rtp_info_pt[plan.pt];
-            _rtp_info_ssrc[m.rtp_rtx_ssrc[0].ssrc] = &ref;
+            _rtp_info_ssrc[m_with_ssrc->rtp_rtx_ssrc[0].ssrc] = &ref;
             ref.plan = &plan;
-            ref.media = &m;
+            ref.media = m_with_ssrc;
             ref.is_common_rtp = getCodecId(plan.codec) != CodecInvalid;
             ref.rtcp_context_recv = std::make_shared<RtcpContext>(ref.plan->sample_rate, true);
             ref.rtcp_context_send = std::make_shared<RtcpContext>(ref.plan->sample_rate, false);
@@ -441,14 +455,16 @@ void WebRtcTransportImp::onStartWebRTC() {
 
         RtcSession rtsp_send_sdp;
         rtsp_send_sdp.loadFrom(_play_src->getSdp(), false);
-        for (auto &m :  getSdp(SdpType::answer).media) {
+        for (auto &m : getSdp(SdpType::answer).media) {
             if (m.type == TrackApplication) {
                 continue;
             }
             auto rtsp_media = rtsp_send_sdp.getMedia(m.type);
             if (rtsp_media && getCodecId(rtsp_media->plan[0].codec) == getCodecId(m.plan[0].codec)) {
-                //记录发送rtp时约定的pt，届时发送rtp时需要修改pt
-                _send_rtp_pt[m.type] = m.plan[0].pt;
+                auto it = _rtp_info_pt.find(m.plan[0].pt);
+                CHECK(it != _rtp_info_pt.end());
+                //记录发送rtp时约定的信息，届时发送rtp时需要修改pt和ssrc
+                _send_rtp_info[m.type] = &it->second;
             }
         }
     }
@@ -457,10 +473,11 @@ void WebRtcTransportImp::onStartWebRTC() {
 void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
     WebRtcTransport::onCheckSdp(type, sdp);
     if (type != SdpType::answer) {
+        //我们只修改answer sdp
         return;
     }
 
-    //修改sdp的ip、端口信息
+    //修改answer sdp的ip、端口信息
     GET_CONFIG(string, extern_ip, RTC::kExternIP);
     for (auto &m : sdp.media) {
         m.addr.reset();
@@ -472,7 +489,8 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
         sdp.origin.address = m.addr.address;
     }
 
-    if (!canSendRtp()) {
+    if (!canSendRtp() || getSdp(SdpType::offer).haveSSRC()) {
+        //offer sdp未包含ssrc相关信息，那么我们才在answer sdp中回复ssrc相关信息
         return;
     }
 
@@ -686,20 +704,23 @@ void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const Rtp
 }
 
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush){
-    auto pt = _send_rtp_pt[rtp->type];
-    if (pt == 0xFF) {
+    auto info = _send_rtp_info[rtp->type];
+    if (!info) {
         //忽略，对方不支持该编码类型
         return;
     }
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, rtp->type);
     //统计rtp发送情况，好做sr汇报
-    _rtp_info_pt[pt].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+    _rtp_info_pt[info->plan->pt].rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 }
 
 void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t len, TrackType type) {
     auto header = (RtpHeader *)buf;
-    header->pt = _send_rtp_pt[type];
+    auto info = _send_rtp_info[type];
+    //修改目标pt和ssrc
+    header->pt = info->plan->pt;
+    header->ssrc = htons(info->media->rtp_rtx_ssrc[0].ssrc);
     changeRtpExtId(header, _rtp_ext_type_to_id);
 }
 
