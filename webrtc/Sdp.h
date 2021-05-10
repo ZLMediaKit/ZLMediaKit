@@ -633,7 +633,7 @@ public:
     SdpAttrFingerprint fingerprint;
 
     //////// extmap ////////
-    map<uint8_t /*id*/, SdpAttrExtmap> extmap;
+    vector<SdpAttrExtmap> extmap;
 
     //////// sctp ////////////
     SdpAttrSctpMap sctpmap;
