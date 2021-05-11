@@ -421,6 +421,10 @@ void WebRtcTransportImp::onStartWebRTC() {
             if (ref.is_common_rtp) {
                 //rtp
                 _rtp_info_ssrc[m_with_ssrc->rtp_rtx_ssrc[0].ssrc] = &ref;
+            } else {
+                //rtx
+                auto apt = atoi(plan.getFmtp("apt").data());
+                ref.plan_apt = m_with_ssrc->getPlan(apt);
             }
             ref.rtcp_context_recv = std::make_shared<RtcpContext>(ref.plan->sample_rate, true);
             ref.rtcp_context_send = std::make_shared<RtcpContext>(ref.plan->sample_rate, false);
@@ -642,7 +646,6 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     return;
                 }
                 if ((RtcpType) rtcp->pt == RtcpType::RTCP_PSFB) {
-//                    DebugL << "\r\n" << rtcp->dumpString();
                     break;
                 }
                 //RTPFB
@@ -655,9 +658,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                         });
                         break;
                     }
-                    default:
-//                        DebugL << "\r\n" << rtcp->dumpString();
-                        break;
+                    default: break;
                 }
                 break;
             }
@@ -666,72 +667,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
     }
 }
 
-void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
-    _bytes_usage += len;
-    _alive_ticker.resetTime();
-    RtpHeader *rtp = (RtpHeader *) buf;
-    //根据接收到的rtp的pt信息，找到该流的信息
-    auto it = _rtp_info_pt.find(rtp->pt);
-    if (it == _rtp_info_pt.end()) {
-        WarnL;
-        return;
-    }
-    auto &info = it->second;
-
-#if 1
-    auto header = (RtpHeader *) buf;
-    auto seq = ntohs(header->seq);
-    if (info.is_common_rtp) {
-        //此处模拟接受丢包
-        if (info.media->type == TrackVideo && seq % 10 == 0) {
-            //丢包
-            DebugL << "模拟接受丢包:" << seq;
-            return;
-        } else {
-            info.nack_ctx.received(seq);
-        }
-    } else {
-        //收到重传包
-        header->ssrc = info.media->rtp_rtx_ssrc[0].ssrc;
-        InfoL << "收到重传包:" <<  seq;
-    }
-#endif
-
-    //解析并排序rtp
-    info.receiver->inputRtp(info.media->type, info.plan->sample_rate, (uint8_t *) buf, len);
-}
-
-void WebRtcTransportImp::onNack(RtpPayloadInfo &info, const FCI_NACK &nack) {
-    auto rtcp = RtcpFB::create(RTPFBType::RTCP_RTPFB_NACK, &nack, FCI_NACK::kSize);
-    rtcp->ssrc = htons(0);
-    rtcp->ssrc_media = htonl(info.media->rtp_rtx_ssrc[0].ssrc);
-    InfoL << rtcp->RtcpHeader::dumpString();
-    sendRtcpPacket((char *) rtcp.get(), rtcp->getSize(), true);
-}
-
 ///////////////////////////////////////////////////////////////////
-
-void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
-    if (!info.is_common_rtp) {
-        WarnL;
-        return;
-    }
-    if (info.media->type == TrackVideo && _pli_ticker.elapsedTime() > 2000) {
-        //定期发送pli请求关键帧，方便非rtc等协议
-        _pli_ticker.resetTime();
-        sendRtcpPli(rtp->getSSRC());
-
-        //开启remb，则发送remb包调节比特率
-        GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
-        if (remb_bit_rate && getSdp(SdpType::answer).supportRtcpFb(SdpConst::kRembRtcpFb)) {
-            sendRtcpRemb(rtp->getSSRC(), remb_bit_rate);
-        }
-    }
-
-    if (_push_src) {
-        _push_src->onWrite(std::move(rtp), false);
-    }
-}
 
 static void setExtType(RtpExt &ext, uint8_t tp) {}
 static void setExtType(RtpExt &ext, RtpExtType tp) {
@@ -750,16 +686,97 @@ static void changeRtpExtId(const RtpHeader *header, const Type &map) {
         }
         setExtType(pr.second, it->first);
         setExtType(pr.second, it->second);
-//        DebugL << pr.second.dumpString();
         pr.second.setExtId((uint8_t) it->second);
     }
 }
+
+void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
+    onRtp_l(buf, len, false);
+}
+
+void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
+    _bytes_usage += len;
+    _alive_ticker.resetTime();
+    RtpHeader *rtp = (RtpHeader *) buf;
+    //根据接收到的rtp的pt信息，找到该流的信息
+    auto it = _rtp_info_pt.find(rtp->pt);
+    if (it == _rtp_info_pt.end()) {
+        WarnL;
+        return;
+    }
+    auto &info = it->second;
+    if (info.is_common_rtp) {
+        //这是普通的rtp数据
+        auto seq = ntohs(rtp->seq);
+#if 0
+        if (!rtx && info.media->type == TrackVideo && seq % 100 == 0) {
+            //此处模拟接受丢包
+            DebugL << "recv dropped:" << seq;
+            return;
+        }
+#endif
+        if (!rtx) {
+            //统计rtp接受情况，便于生成nack rtcp包
+            info.nack_ctx.received(seq);
+        }
+        //解析并排序rtp
+        info.receiver->inputRtp(info.media->type, info.plan->sample_rate, (uint8_t *) buf, len);
+        return;
+    }
+
+    //这里是rtx重传包
+    //https://datatracker.ietf.org/doc/html/rfc4588#section-4
+    auto payload = rtp->getPayloadData();
+    auto size = rtp->getPayloadSize(len);
+    if (size < 2) {
+        return;
+    }
+    //前两个字节是原始的rtp的seq
+    auto origin_seq = payload[0] << 8 | payload[1];
+    InfoL << "received rtx rtp: " << origin_seq;
+    rtp->seq = htons(origin_seq);
+    rtp->ssrc = htonl(info.media->rtp_rtx_ssrc[0].ssrc);
+    rtp->pt = info.plan_apt->pt;
+    memmove((uint8_t *) buf + 2, buf, payload - (uint8_t *) buf);
+    buf += 2;
+    len -= 2;
+    onRtp_l(buf, len, true);
+}
+
+void WebRtcTransportImp::onNack(RtpPayloadInfo &info, const FCI_NACK &nack) {
+    auto rtcp = RtcpFB::create(RTPFBType::RTCP_RTPFB_NACK, &nack, FCI_NACK::kSize);
+    rtcp->ssrc = htons(0);
+    rtcp->ssrc_media = htonl(info.media->rtp_rtx_ssrc[0].ssrc);
+    sendRtcpPacket((char *) rtcp.get(), rtcp->getSize(), true);
+}
+
+///////////////////////////////////////////////////////////////////
 
 void WebRtcTransportImp::onBeforeSortedRtp(RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
     changeRtpExtId(rtp->getHeader(), _rtp_ext_id_to_type);
     //统计rtp收到的情况，好做rr汇报
     info.rtcp_context_recv->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 }
+
+void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
+    if (info.media->type == TrackVideo && _pli_ticker.elapsedTime() > 2000) {
+        //定期发送pli请求关键帧，方便非rtc等协议
+        _pli_ticker.resetTime();
+        sendRtcpPli(rtp->getSSRC());
+
+        //开启remb，则发送remb包调节比特率
+        GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
+        if (remb_bit_rate && getSdp(SdpType::answer).supportRtcpFb(SdpConst::kRembRtcpFb)) {
+            sendRtcpRemb(rtp->getSSRC(), remb_bit_rate);
+        }
+    }
+
+    if (_push_src) {
+        _push_src->onWrite(std::move(rtp), false);
+    }
+}
+
+///////////////////////////////////////////////////////////////////
 
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx){
     auto info = _send_rtp_info[rtp->type];
@@ -773,13 +790,13 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
         info->nack_list.push_back(rtp);
 #if 0
         //此处模拟发送丢包
-        if(rtp->getSeq() % 10 == 0){
-            DebugL << "模拟发送丢包:" << rtp->getSeq();
+        if(rtp->getSeq() % 100 == 0){
+            DebugL << "send droped:" << rtp->getSeq();
             return;
         }
 #endif
     } else {
-        WarnL << "rtp发送重传:" << rtp->getSeq();
+        WarnL << "send rtx rtp:" << rtp->getSeq();
     }
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, info);
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;

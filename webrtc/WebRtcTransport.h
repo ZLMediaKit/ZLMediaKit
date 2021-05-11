@@ -298,6 +298,8 @@ protected:
     void onRtcConfigure(RtcConfigure &configure) const override;
 
     void onRtp(const char *buf, size_t len) override;
+    void onRtp_l(const char *buf, size_t len, bool rtx);
+
     void onRtcp(const char *buf, size_t len) override;
     void onBeforeEncryptRtp(const char *buf, size_t len, void *ctx) override;
     void onBeforeEncryptRtcp(const char *buf, size_t len, void *ctx) override;
@@ -342,6 +344,7 @@ private:
     public:
         bool is_common_rtp;
         const RtcCodecPlan *plan;
+        const RtcCodecPlan *plan_apt;
         const RtcMedia *media;
         std::shared_ptr<RtpReceiverImp> receiver;
         RtcpContext::Ptr rtcp_context_recv;
