@@ -424,9 +424,9 @@ void WebRtcTransportImp::onStartWebRTC() {
             }
             ref.rtcp_context_recv = std::make_shared<RtcpContext>(ref.plan->sample_rate, true);
             ref.rtcp_context_send = std::make_shared<RtcpContext>(ref.plan->sample_rate, false);
-            ref.receiver = std::make_shared<RtpReceiverImp>([&ref, this](RtpPacket::Ptr rtp) {
+            ref.receiver = std::make_shared<RtpReceiverImp>([&ref, this](RtpPacket::Ptr rtp) mutable{
                 onSortedRtp(ref, std::move(rtp));
-            }, [&ref, this](const RtpPacket::Ptr &rtp) {
+            }, [&ref, this](const RtpPacket::Ptr &rtp) mutable {
                 onBeforeSortedRtp(ref, rtp);
             });
         }
@@ -674,15 +674,28 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
         return;
     }
     auto &info = it->second;
+
+#if 1
+    //此处模拟接受丢包
+    auto header = (RtpHeader *) buf;
+    auto seq = ntohs(header->seq);
+    if (seq % 10 == 0) {
+        //丢包
+        return;
+    } else {
+        info.nack_ctx.received(seq);
+    }
+#endif
+
     //解析并排序rtp
     info.receiver->inputRtp(info.media->type, info.plan->sample_rate, (uint8_t *) buf, len);
 }
 
 ///////////////////////////////////////////////////////////////////
 
-void WebRtcTransportImp::onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
-    if(!info.is_common_rtp){
-        //todo rtx/red/ulpfec类型的rtp先未处理
+void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
+    if (!info.is_common_rtp) {
+        WarnL;
         return;
     }
     if (info.media->type == TrackVideo && _pli_ticker.elapsedTime() > 2000) {
@@ -724,7 +737,7 @@ static void changeRtpExtId(const RtpHeader *header, const Type &map) {
     }
 }
 
-void WebRtcTransportImp::onBeforeSortedRtp(const RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
+void WebRtcTransportImp::onBeforeSortedRtp(RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
     changeRtpExtId(rtp->getHeader(), _rtp_ext_id_to_type);
     //统计rtp收到的情况，好做rr汇报
     info.rtcp_context_recv->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
@@ -740,6 +753,12 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
         //统计rtp发送情况，好做sr汇报
         info->rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
         info->nack_list.push_back(rtp);
+#if 0
+        //此处模拟发送丢包
+        if(rtp->getSeq() % 10 == 0){
+            return;
+        }
+#endif
     } else {
         WarnL << "重传rtp:" << rtp->getSeq();
     }

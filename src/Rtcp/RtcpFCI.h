@@ -243,17 +243,16 @@ private:
 class FCI_NACK {
 public:
     static constexpr size_t kSize = 4;
+    static constexpr size_t kBitSize = 16;
 
     FCI_NACK(uint16_t pid_h, const vector<bool> &type);
 
     void check(size_t size);
     uint16_t getPid() const;
     uint16_t getBlp() const;
+    //返回丢包列表，总长度17，第一个包必丢
     vector<bool> getBitArray() const;
     string dumpString() const;
-
-private:
-    static constexpr size_t kBitSize = 16;
 
 private:
     // The PID field is used to specify a lost packet.  The PID field

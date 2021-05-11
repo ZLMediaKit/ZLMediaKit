@@ -183,7 +183,7 @@ vector<bool> FCI_NACK::getBitArray() const {
     vector<bool> ret;
     ret.resize(kBitSize + 1);
     //nack第一个包丢包
-    ret[0] = false;
+    ret[0] = true;
 
     auto blp_h = getBlp();
     for (size_t i = 0; i < kBitSize; ++i) {

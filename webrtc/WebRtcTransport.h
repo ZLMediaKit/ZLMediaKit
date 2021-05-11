@@ -131,8 +131,8 @@ class NackList {
 public:
     void push_back(RtpPacket::Ptr rtp) {
         auto seq = rtp->getSeq();
-        nack_cache_seq.emplace_back(seq);
-        nack_cache_pkt.emplace(seq, std::move(rtp));
+        _nack_cache_seq.emplace_back(seq);
+        _nack_cache_pkt.emplace(seq, std::move(rtp));
         while (get_cache_ms() > kMaxNackMS) {
             //需要清除部分nack缓存
             pop_front();
@@ -143,7 +143,7 @@ public:
     void for_each_nack(const FCI_NACK &nack, const FUNC &func) {
         auto seq = nack.getPid();
         for (auto bit : nack.getBitArray()) {
-            if (!bit) {
+            if (bit) {
                 //丢包
                 RtpPacket::Ptr *ptr = get_rtp(seq);
                 if (ptr) {
@@ -156,27 +156,27 @@ public:
 
 private:
     void pop_front() {
-        if (nack_cache_seq.empty()) {
+        if (_nack_cache_seq.empty()) {
             return;
         }
-        nack_cache_pkt.erase(nack_cache_seq.front());
-        nack_cache_seq.pop_front();
+        _nack_cache_pkt.erase(_nack_cache_seq.front());
+        _nack_cache_seq.pop_front();
     }
 
     RtpPacket::Ptr *get_rtp(uint16_t seq) {
-        auto it = nack_cache_pkt.find(seq);
-        if (it == nack_cache_pkt.end()) {
+        auto it = _nack_cache_pkt.find(seq);
+        if (it == _nack_cache_pkt.end()) {
             return nullptr;
         }
         return &it->second;
     }
 
     uint32_t get_cache_ms() {
-        if (nack_cache_seq.size() < 2) {
+        if (_nack_cache_seq.size() < 2) {
             return 0;
         }
-        uint32_t back = nack_cache_pkt[nack_cache_seq.back()]->getStampMS();
-        uint32_t front = nack_cache_pkt[nack_cache_seq.front()]->getStampMS();
+        uint32_t back = _nack_cache_pkt[_nack_cache_seq.back()]->getStampMS();
+        uint32_t front = _nack_cache_pkt[_nack_cache_seq.front()]->getStampMS();
         if (back > front) {
             return back - front;
         }
@@ -186,8 +186,81 @@ private:
 
 private:
     static constexpr uint32_t kMaxNackMS = 10 * 1000;
-    deque<uint16_t> nack_cache_seq;
-    unordered_map<uint16_t, RtpPacket::Ptr > nack_cache_pkt;
+    deque<uint16_t> _nack_cache_seq;
+    unordered_map<uint16_t, RtpPacket::Ptr > _nack_cache_pkt;
+};
+
+class NackContext {
+public:
+    void received(uint16_t seq) {
+        if (!_last_max_seq && _seq.empty()) {
+            _last_max_seq = seq - 1;
+        }
+        _seq.emplace(seq);
+        auto max_seq = *_seq.rbegin();
+        auto min_seq = *_seq.begin();
+        auto diff = max_seq - min_seq;
+        if (!diff) {
+            return;
+        }
+
+        if (diff > UINT32_MAX / 2) {
+            //回环
+            _seq.clear();
+            _last_max_seq = min_seq;
+            return;
+        }
+
+        if (_seq.size() == diff + 1 && _last_max_seq + 1 == min_seq) {
+            //都是连续的seq，未丢包
+            _seq.clear();
+            _last_max_seq = max_seq;
+        } else {
+            //seq不连续，有丢包
+            if (min_seq == _last_max_seq + 1) {
+                //前面部分seq是连续的，未丢包，移除之
+                eraseFrontSeq();
+            }
+
+            //有丢包，丢包从_last_max_seq开始
+            if (max_seq - _last_max_seq > FCI_NACK::kBitSize) {
+                vector<bool> vec;
+                vec.resize(FCI_NACK::kBitSize);
+                for (auto i = 0; i < FCI_NACK::kBitSize; ++i) {
+                    vec[i] = _seq.find(_last_max_seq + i + 2) == _seq.end();
+                }
+                onNack(FCI_NACK(_last_max_seq + 1, vec));
+                _last_max_seq += FCI_NACK::kBitSize + 1;
+                if (_last_max_seq >= max_seq) {
+                    _seq.clear();
+                } else {
+                    auto it = _seq.emplace_hint(_seq.begin(), _last_max_seq);
+                    _seq.erase(_seq.begin(), it);
+                }
+            }
+        }
+    }
+
+    void onNack(const FCI_NACK &nack) {
+        InfoL << nack.dumpString() << " " << _seq.size();
+    }
+
+private:
+    void eraseFrontSeq(){
+        //前面部分seq是连续的，未丢包，移除之
+        for (auto it = _seq.begin(); it != _seq.end();) {
+            if (*it != _last_max_seq + 1) {
+                //seq不连续，丢包了
+                break;
+            }
+            _last_max_seq = *it;
+            it = _seq.erase(it);
+        }
+    }
+
+private:
+    set<uint16_t> _seq;
+    uint16_t _last_max_seq = 0;
 };
 
 class WebRtcTransportImp : public WebRtcTransport, public MediaSourceEvent, public SockInfo, public std::enable_shared_from_this<WebRtcTransportImp>{
@@ -265,10 +338,11 @@ private:
         RtcpContext::Ptr rtcp_context_recv;
         RtcpContext::Ptr rtcp_context_send;
         NackList nack_list;
+        NackContext nack_ctx;
     };
 
-    void onSortedRtp(const RtpPayloadInfo &info, RtpPacket::Ptr rtp);
-    void onBeforeSortedRtp(const RtpPayloadInfo &info, const RtpPacket::Ptr &rtp);
+    void onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp);
+    void onBeforeSortedRtp(RtpPayloadInfo &info, const RtpPacket::Ptr &rtp);
 
 private:
     //用掉的总流量
