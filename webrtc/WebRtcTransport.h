@@ -192,6 +192,8 @@ private:
 
 class NackContext {
 public:
+    using onNack = function<void(const FCI_NACK &nack)>;
+
     void received(uint16_t seq) {
         if (!_last_max_seq && _seq.empty()) {
             _last_max_seq = seq - 1;
@@ -229,7 +231,7 @@ public:
                 for (auto i = 0; i < FCI_NACK::kBitSize; ++i) {
                     vec[i] = _seq.find(_last_max_seq + i + 2) == _seq.end();
                 }
-                onNack(FCI_NACK(_last_max_seq + 1, vec));
+                doNack(FCI_NACK(_last_max_seq + 1, vec));
                 _last_max_seq += FCI_NACK::kBitSize + 1;
                 if (_last_max_seq >= max_seq) {
                     _seq.clear();
@@ -241,11 +243,17 @@ public:
         }
     }
 
-    void onNack(const FCI_NACK &nack) {
-        InfoL << nack.dumpString() << " " << _seq.size();
+    void setOnNack(onNack cb) {
+        _cb = std::move(cb);
     }
 
 private:
+    void doNack(const FCI_NACK &nack) {
+        if (_cb) {
+            _cb(nack);
+        }
+    }
+
     void eraseFrontSeq(){
         //前面部分seq是连续的，未丢包，移除之
         for (auto it = _seq.begin(); it != _seq.end();) {
@@ -259,6 +267,7 @@ private:
     }
 
 private:
+    onNack _cb;
     set<uint16_t> _seq;
     uint16_t _last_max_seq = 0;
 };
@@ -343,6 +352,7 @@ private:
 
     void onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp);
     void onBeforeSortedRtp(RtpPayloadInfo &info, const RtpPacket::Ptr &rtp);
+    void onNack(RtpPayloadInfo &info, const FCI_NACK &nack);
 
 private:
     //用掉的总流量

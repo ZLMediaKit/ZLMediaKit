@@ -429,6 +429,9 @@ void WebRtcTransportImp::onStartWebRTC() {
             }, [&ref, this](const RtpPacket::Ptr &rtp) mutable {
                 onBeforeSortedRtp(ref, rtp);
             });
+            ref.nack_ctx.setOnNack([&ref, this](const FCI_NACK &nack) mutable{
+                onNack(ref, nack);
+            });
         }
         if (m.type != TrackApplication) {
             //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
@@ -676,19 +679,34 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
     auto &info = it->second;
 
 #if 1
-    //此处模拟接受丢包
     auto header = (RtpHeader *) buf;
     auto seq = ntohs(header->seq);
-    if (seq % 10 == 0) {
-        //丢包
-        return;
+    if (info.is_common_rtp) {
+        //此处模拟接受丢包
+        if (info.media->type == TrackVideo && seq % 10 == 0) {
+            //丢包
+            DebugL << "模拟接受丢包:" << seq;
+            return;
+        } else {
+            info.nack_ctx.received(seq);
+        }
     } else {
-        info.nack_ctx.received(seq);
+        //收到重传包
+        header->ssrc = info.media->rtp_rtx_ssrc[0].ssrc;
+        InfoL << "收到重传包:" <<  seq;
     }
 #endif
 
     //解析并排序rtp
     info.receiver->inputRtp(info.media->type, info.plan->sample_rate, (uint8_t *) buf, len);
+}
+
+void WebRtcTransportImp::onNack(RtpPayloadInfo &info, const FCI_NACK &nack) {
+    auto rtcp = RtcpFB::create(RTPFBType::RTCP_RTPFB_NACK, &nack, FCI_NACK::kSize);
+    rtcp->ssrc = htons(0);
+    rtcp->ssrc_media = htonl(info.media->rtp_rtx_ssrc[0].ssrc);
+    InfoL << rtcp->RtcpHeader::dumpString();
+    sendRtcpPacket((char *) rtcp.get(), rtcp->getSize(), true);
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -756,11 +774,12 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
 #if 0
         //此处模拟发送丢包
         if(rtp->getSeq() % 10 == 0){
+            DebugL << "模拟发送丢包:" << rtp->getSeq();
             return;
         }
 #endif
     } else {
-        WarnL << "重传rtp:" << rtp->getSeq();
+        WarnL << "rtp发送重传:" << rtp->getSeq();
     }
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, info);
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
