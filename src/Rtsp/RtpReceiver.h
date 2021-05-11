@@ -21,7 +21,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-template<typename T, typename SEQ = uint16_t, size_t kMax = 256, size_t kMin = 10>
+template<typename T, typename SEQ = uint16_t, size_t kMax = 1024, size_t kMin = 32>
 class PacketSortor {
 public:
     PacketSortor() = default;
