@@ -426,7 +426,7 @@ void WebRtcTransportImp::onStartWebRTC() {
             ref.rtcp_context_send = std::make_shared<RtcpContext>(ref.plan->sample_rate, false);
             ref.receiver = std::make_shared<RtpReceiverImp>([&ref, this](RtpPacket::Ptr rtp) {
                 onSortedRtp(ref, std::move(rtp));
-            }, [ref, this](const RtpPacket::Ptr &rtp) {
+            }, [&ref, this](const RtpPacket::Ptr &rtp) {
                 onBeforeSortedRtp(ref, rtp);
             });
         }
