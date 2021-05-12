@@ -708,7 +708,7 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
     if (info->is_common_rtp) {
         //这是普通的rtp数据
         auto seq = ntohs(rtp->seq);
-#if 1
+#if 0
         if (!rtx && info->media->type == TrackVideo && seq % 100 == 0) {
             //此处模拟接受丢包
             DebugL << "recv dropped:" << seq;
@@ -788,7 +788,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
         //统计rtp发送情况，好做sr汇报
         info->rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
         info->nack_list.push_back(rtp);
-#if 1
+#if 0
         //此处模拟发送丢包
         if(rtp->getSeq() % 100 == 0){
             DebugL << "send dropped:" << rtp->getSeq();
