@@ -45,7 +45,8 @@ enum class RtpExtType : uint8_t {
 
 class RtcMedia;
 
-class RtpExt : public std::string {
+//使用次对象的方法前需保证RtpHeader内存未释放
+class RtpExt {
 public:
     template<typename Type>
     friend void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end);
@@ -63,7 +64,7 @@ public:
     uint8_t getAudioLevel(bool *vad) const;
     uint32_t getAbsSendTime() const;
     uint16_t getTransportCCSeq() const;
-    const string& getSdesMid() const;
+    string getSdesMid() const;
     string getRtpStreamId() const;
     string getRepairedRtpStreamId() const;
 
@@ -88,15 +89,20 @@ public:
 
     uint8_t getFramemarkingTID() const;
 
-    //危险函数，必须保证关联的RtpHeader对象有效
     void setExtId(uint8_t ext_id);
     void clearExt();
 
 private:
     RtpExt(void *ptr, bool one_byte_ext, const char *str, size_t size);
+    const char *data() const;
+    size_t size() const;
+    const char& operator[](size_t pos) const;
+    operator std::string() const;
 
 private:
-    void *_ptr = nullptr;
+    void *_ext = nullptr;
+    const char *_data;
+    size_t _size;
     bool _one_byte_ext = true;
     RtpExtType _type = RtpExtType::padding;
 };
