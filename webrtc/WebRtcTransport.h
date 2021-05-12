@@ -101,8 +101,8 @@ protected:
     virtual void onRtp(const char *buf, size_t len) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
     virtual void onShutdown(const SockException &ex) = 0;
-    virtual void onBeforeEncryptRtp(const char *buf, size_t len, void *ctx) = 0;
-    virtual void onBeforeEncryptRtcp(const char *buf, size_t len, void *ctx) = 0;
+    virtual void onBeforeEncryptRtp(const char *buf, size_t &len, void *ctx) = 0;
+    virtual void onBeforeEncryptRtcp(const char *buf, size_t &len, void *ctx) = 0;
 
 protected:
     const RtcSession& getSdp(SdpType type) const;
@@ -301,8 +301,8 @@ protected:
     void onRtp_l(const char *buf, size_t len, bool rtx);
 
     void onRtcp(const char *buf, size_t len) override;
-    void onBeforeEncryptRtp(const char *buf, size_t len, void *ctx) override;
-    void onBeforeEncryptRtcp(const char *buf, size_t len, void *ctx) override;
+    void onBeforeEncryptRtp(const char *buf, size_t &len, void *ctx) override;
+    void onBeforeEncryptRtcp(const char *buf, size_t &len, void *ctx) override {};
 
     void onShutdown(const SockException &ex) override;
 
@@ -345,8 +345,8 @@ private:
         using Ptr = std::shared_ptr<RtpPayloadInfo>;
 
         bool is_common_rtp;
-        const RtcCodecPlan *plan;
-        const RtcCodecPlan *plan_apt;
+        const RtcCodecPlan *plan_rtp;
+        const RtcCodecPlan *plan_rtx;
         const RtcMedia *media;
         std::shared_ptr<RtpReceiverImp> receiver;
         RtcpContext::Ptr rtcp_context_recv;
