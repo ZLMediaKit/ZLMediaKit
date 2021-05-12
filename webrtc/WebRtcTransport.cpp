@@ -414,27 +414,26 @@ void WebRtcTransportImp::onStartWebRTC() {
             }
             auto m_with_ssrc = getSdpWithSSRC().getMedia(m.type);
             //获取offer端rtp的ssrc和pt相关信息
-            auto &ref = _rtp_info_pt[plan.pt];
-            ref.plan = &plan;
-            ref.media = m_with_ssrc;
-            ref.is_common_rtp = getCodecId(plan.codec) != CodecInvalid;
-            if (ref.is_common_rtp) {
+            auto info = std::make_shared<RtpPayloadInfo>();
+            _rtp_info_pt.emplace(plan.pt, info);
+            info->plan = &plan;
+            info->media = m_with_ssrc;
+            info->is_common_rtp = getCodecId(plan.codec) != CodecInvalid;
+            if (info->is_common_rtp) {
                 //rtp
-                _rtp_info_ssrc[m_with_ssrc->rtp_rtx_ssrc[0].ssrc] = &ref;
+                _rtp_info_ssrc[m_with_ssrc->rtp_rtx_ssrc[0].ssrc] = info;
             } else {
                 //rtx
                 auto apt = atoi(plan.getFmtp("apt").data());
-                ref.plan_apt = m_with_ssrc->getPlan(apt);
+                info->plan_apt = m.getPlan(apt);
             }
-            ref.rtcp_context_recv = std::make_shared<RtcpContext>(ref.plan->sample_rate, true);
-            ref.rtcp_context_send = std::make_shared<RtcpContext>(ref.plan->sample_rate, false);
-            ref.receiver = std::make_shared<RtpReceiverImp>([&ref, this](RtpPacket::Ptr rtp) mutable{
-                onSortedRtp(ref, std::move(rtp));
-            }, [&ref, this](const RtpPacket::Ptr &rtp) mutable {
-                onBeforeSortedRtp(ref, rtp);
+            info->rtcp_context_recv = std::make_shared<RtcpContext>(info->plan->sample_rate, true);
+            info->rtcp_context_send = std::make_shared<RtcpContext>(info->plan->sample_rate, false);
+            info->receiver = std::make_shared<RtpReceiverImp>([info, this](RtpPacket::Ptr rtp) mutable {
+                onSortedRtp(*info, std::move(rtp));
             });
-            ref.nack_ctx.setOnNack([&ref, this](const FCI_NACK &nack) mutable{
-                onNack(ref, nack);
+            info->nack_ctx.setOnNack([info, this](const FCI_NACK &nack) mutable {
+                onNack(*info, nack);
             });
         }
         if (m.type != TrackApplication) {
@@ -475,7 +474,7 @@ void WebRtcTransportImp::onStartWebRTC() {
                 auto it = _rtp_info_pt.find(m.plan[0].pt);
                 CHECK(it != _rtp_info_pt.end());
                 //记录发送rtp时约定的信息，届时发送rtp时需要修改pt和ssrc
-                _send_rtp_info[m.type] = &it->second;
+                _send_rtp_info[m.type] = it->second;
             }
         }
     }
@@ -564,9 +563,8 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
 
 class RtpReceiverImp : public RtpReceiver {
 public:
-    RtpReceiverImp( function<void(RtpPacket::Ptr rtp)> cb,  function<void(const RtpPacket::Ptr &rtp)> cb_before = nullptr){
+    RtpReceiverImp( function<void(RtpPacket::Ptr rtp)> cb){
         _on_sort = std::move(cb);
-        _on_before_sort = std::move(cb_before);
     }
 
     ~RtpReceiverImp() override = default;
@@ -580,15 +578,8 @@ protected:
         _on_sort(std::move(rtp));
     }
 
-    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override {
-        if (_on_before_sort) {
-            _on_before_sort(rtp);
-        }
-    }
-
 private:
     function<void(RtpPacket::Ptr rtp)> _on_sort;
-    function<void(const RtpPacket::Ptr &rtp)> _on_before_sort;
 };
 
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
@@ -695,8 +686,11 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
 }
 
 void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
-    _bytes_usage += len;
-    _alive_ticker.resetTime();
+    if (!rtx) {
+        _bytes_usage += len;
+        _alive_ticker.resetTime();
+    }
+
     RtpHeader *rtp = (RtpHeader *) buf;
     //根据接收到的rtp的pt信息，找到该流的信息
     auto it = _rtp_info_pt.find(rtp->pt);
@@ -705,11 +699,11 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
         return;
     }
     auto &info = it->second;
-    if (info.is_common_rtp) {
+    if (info->is_common_rtp) {
         //这是普通的rtp数据
         auto seq = ntohs(rtp->seq);
 #if 0
-        if (!rtx && info.media->type == TrackVideo && seq % 100 == 0) {
+        if (!rtx && info->media->type == TrackVideo && seq % 100 == 0) {
             //此处模拟接受丢包
             DebugL << "recv dropped:" << seq;
             return;
@@ -717,10 +711,16 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
 #endif
         if (!rtx) {
             //统计rtp接受情况，便于生成nack rtcp包
-            info.nack_ctx.received(seq);
+            info->nack_ctx.received(seq);
+            //修改ext id至统一
+            changeRtpExtId(rtp, _rtp_ext_id_to_type);
+            //时间戳转换成毫秒
+            auto stamp_ms = ntohl(rtp->stamp) * uint64_t(1000) / info->plan->sample_rate;
+            //统计rtp收到的情况，好做rr汇报
+            info->rtcp_context_recv->onRtp(seq, stamp_ms, len);
         }
         //解析并排序rtp
-        info.receiver->inputRtp(info.media->type, info.plan->sample_rate, (uint8_t *) buf, len);
+        info->receiver->inputRtp(info->media->type, info->plan->sample_rate, (uint8_t *) buf, len);
         return;
     }
 
@@ -735,8 +735,8 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
     auto origin_seq = payload[0] << 8 | payload[1];
     InfoL << "received rtx rtp: " << origin_seq;
     rtp->seq = htons(origin_seq);
-    rtp->ssrc = htonl(info.media->rtp_rtx_ssrc[0].ssrc);
-    rtp->pt = info.plan_apt->pt;
+    rtp->ssrc = htonl(info->media->rtp_rtx_ssrc[0].ssrc);
+    rtp->pt = info->plan_apt->pt;
     memmove((uint8_t *) buf + 2, buf, payload - (uint8_t *) buf);
     buf += 2;
     len -= 2;
@@ -751,12 +751,6 @@ void WebRtcTransportImp::onNack(RtpPayloadInfo &info, const FCI_NACK &nack) {
 }
 
 ///////////////////////////////////////////////////////////////////
-
-void WebRtcTransportImp::onBeforeSortedRtp(RtpPayloadInfo &info, const RtpPacket::Ptr &rtp) {
-    changeRtpExtId(rtp->getHeader(), _rtp_ext_id_to_type);
-    //统计rtp收到的情况，好做rr汇报
-    info.rtcp_context_recv->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
-}
 
 void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
     if (info.media->type == TrackVideo && _pli_ticker.elapsedTime() > 2000) {
@@ -779,7 +773,7 @@ void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
 ///////////////////////////////////////////////////////////////////
 
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx){
-    auto info = _send_rtp_info[rtp->type];
+    auto &info = _send_rtp_info[rtp->type];
     if (!info) {
         //忽略，对方不支持该编码类型
         return;
@@ -798,7 +792,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
     } else {
         WarnL << "send rtx rtp:" << rtp->getSeq();
     }
-    sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, info);
+    sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, info.get());
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
 }
 
