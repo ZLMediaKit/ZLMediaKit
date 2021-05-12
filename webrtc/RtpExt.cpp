@@ -147,9 +147,28 @@ void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end) {
     }
 }
 
-RtpExt::RtpExt(void *ptr, bool one_byte_ext, const char *str, size_t size) : std::string(str, size) {
-    _ptr = ptr;
+RtpExt::RtpExt(void *ext, bool one_byte_ext, const char *str, size_t size) {
+    _ext = ext;
     _one_byte_ext = one_byte_ext;
+    _data = str;
+    _size = size;
+}
+
+const char *RtpExt::data() const {
+    return _data;
+}
+
+size_t RtpExt::size() const {
+    return _size;
+}
+
+const char& RtpExt::operator[](size_t pos) const{
+    CHECK(pos < _size);
+    return _data[pos];
+}
+
+RtpExt::operator std::string() const{
+    return string(_data, _size);
 }
 
 map<uint8_t/*id*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header) {
@@ -364,7 +383,7 @@ uint16_t RtpExt::getTransportCCSeq() const {
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   |  ID   |  len  | SDES Item text value ...                      |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-const string &RtpExt::getSdesMid() const {
+string RtpExt::getSdesMid() const {
     CHECK(_type == RtpExtType::sdes_mid && size() >= 1);
     return *this;
 }
@@ -515,23 +534,23 @@ uint8_t RtpExt::getFramemarkingTID() const {
 }
 
 void RtpExt::setExtId(uint8_t ext_id) {
-    assert(ext_id > (int) RtpExtType::padding && ext_id <= (int) RtpExtType::reserved && _ptr);
+    assert(ext_id > (int) RtpExtType::padding && ext_id <= (int) RtpExtType::reserved && _ext);
     if (_one_byte_ext) {
-        auto ptr = reinterpret_cast<RtpExtOneByte *>(_ptr);
+        auto ptr = reinterpret_cast<RtpExtOneByte *>(_ext);
         ptr->setId(ext_id);
     } else {
-        auto ptr = reinterpret_cast<RtpExtTwoByte *>(_ptr);
+        auto ptr = reinterpret_cast<RtpExtTwoByte *>(_ext);
         ptr->setId(ext_id);
     }
 }
 
 void RtpExt::clearExt(){
-    assert(_ptr);
+    assert(_ext);
     if (_one_byte_ext) {
-        auto ptr = reinterpret_cast<RtpExtOneByte *>(_ptr);
+        auto ptr = reinterpret_cast<RtpExtOneByte *>(_ext);
         memset(ptr, (int) RtpExtType::padding, RtpExtOneByte::kMinSize + ptr->getSize());
     } else {
-        auto ptr = reinterpret_cast<RtpExtTwoByte *>(_ptr);
+        auto ptr = reinterpret_cast<RtpExtTwoByte *>(_ext);
         memset(ptr, (int) RtpExtType::padding, RtpExtTwoByte::kMinSize + ptr->getSize());
     }
 }
