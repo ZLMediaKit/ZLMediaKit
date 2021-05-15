@@ -202,81 +202,57 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
                                                                        _media_info._vhost,
                                                                        _media_info._app,
                                                                        _media_info._streamid));
-    if(src){
+    if (src) {
         sendRtspResponse("406 Not Acceptable", {"Content-Type", "text/plain"}, "Already publishing.");
         string err = StrPrinter << "ANNOUNCE:"
                                 << "Already publishing:"
                                 << _media_info._vhost << " "
                                 << _media_info._app << " "
                                 << _media_info._streamid << endl;
-        throw SockException(Err_shutdown,err);
+        throw SockException(Err_shutdown, err);
     }
 
     auto full_url = parser.FullUrl();
-    if(end_with(full_url,".sdp")){
+    if (end_with(full_url, ".sdp")) {
         //去除.sdp后缀，防止EasyDarwin推流器强制添加.sdp后缀
-        full_url = full_url.substr(0,full_url.length() - 4);
+        full_url = full_url.substr(0, full_url.length() - 4);
         _media_info.parse(full_url);
     }
 
-    if(_media_info._app.empty() || _media_info._streamid.empty()){
+    if (_media_info._app.empty() || _media_info._streamid.empty()) {
         //推流rtsp url必须最少两级(rtsp://host/app/stream_id)，不允许莫名其妙的推流url
         static constexpr auto err = "rtsp推流url非法,最少确保两级rtsp url";
         sendRtspResponse("403 Forbidden", {"Content-Type", "text/plain"}, err);
         throw SockException(Err_shutdown, StrPrinter << err << ":" << full_url);
     }
 
-    SdpParser sdpParser(parser.Content());
-    _sessionid = makeRandStr(12);
-    _sdp_track = sdpParser.getAvailableTrack();
-    if (_sdp_track.empty()) {
-        //sdp无效
-        static constexpr auto err = "sdp中无有效track";
-        sendRtspResponse("403 Forbidden", {"Content-Type", "text/plain"}, err);
-        throw SockException(Err_shutdown,StrPrinter << err << ":" << full_url);
-    }
-    _rtcp_context.clear();
-    for (auto &track : _sdp_track) {
-        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, true));
-    }
-    _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
-    _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
-    _push_src->setSdp(sdpParser.toString());
-    sendRtspResponse("200 OK",{"Content-Base", _content_base + "/"});
-}
-
-void RtspSession::handleReq_RECORD(const Parser &parser){
-    if (_sdp_track.empty() || parser["Session"] != _sessionid) {
-        send_SessionNotFound();
-        throw SockException(Err_shutdown, _sdp_track.empty() ? "can not find any availabe track when record" : "session not found when record");
-    }
-    auto onRes = [this](const string &err, bool enableHls, bool enableMP4){
+    auto onRes = [this, parser, full_url](const string &err, bool enableHls, bool enableMP4){
         bool authSuccess = err.empty();
-        if(!authSuccess){
+        if (!authSuccess) {
             sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
-            shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << err));
+            shutdown(SockException(Err_shutdown, StrPrinter << "401 Unauthorized:" << err));
             return;
         }
 
-        //设置转协议
+        SdpParser sdpParser(parser.Content());
+        _sessionid = makeRandStr(12);
+        _sdp_track = sdpParser.getAvailableTrack();
+        if (_sdp_track.empty()) {
+            //sdp无效
+            static constexpr auto err = "sdp中无有效track";
+            sendRtspResponse("403 Forbidden", {"Content-Type", "text/plain"}, err);
+            shutdown(SockException(Err_shutdown, StrPrinter << err << ":" << full_url));
+            return;
+        }
+        _rtcp_context.clear();
+        for (auto &track : _sdp_track) {
+            _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, true));
+        }
+        _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
+        _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
         _push_src->setProtocolTranslation(enableHls, enableMP4);
-
-        _StrPrinter rtp_info;
-        for(auto &track : _sdp_track){
-            if (track->_inited == false) {
-                //还有track没有setup
-                shutdown(SockException(Err_shutdown,"track not setuped"));
-                return;
-            }
-            rtp_info << "url=" << track->getControlUrl(_content_base) << ",";
-        }
-
-        rtp_info.pop_back();
-        sendRtspResponse("200 OK", {"RTP-Info",rtp_info});
-        if(_rtp_type == Rtsp::RTP_TCP){
-            //如果是rtsp推流服务器，并且是TCP推流，设置socket flags,，这样能提升接收性能
-            setSocketFlags();
-        }
+        _push_src->setSdp(sdpParser.toString());
+        sendRtspResponse("200 OK", {"Content-Base", _content_base + "/"});
     };
 
     weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
@@ -296,11 +272,34 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 
     //rtsp推流需要鉴权
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
-    if(!flag){
+    if (!flag) {
         //该事件无人监听,默认不鉴权
-        GET_CONFIG(bool,toHls,General::kPublishToHls);
-        GET_CONFIG(bool,toMP4,General::kPublishToMP4);
-        onRes("",toHls,toMP4);
+        GET_CONFIG(bool, toHls, General::kPublishToHls);
+        GET_CONFIG(bool, toMP4, General::kPublishToMP4);
+        onRes("", toHls, toMP4);
+    }
+}
+
+void RtspSession::handleReq_RECORD(const Parser &parser){
+    if (_sdp_track.empty() || parser["Session"] != _sessionid) {
+        send_SessionNotFound();
+        throw SockException(Err_shutdown, _sdp_track.empty() ? "can not find any availabe track when record" : "session not found when record");
+    }
+
+    _StrPrinter rtp_info;
+    for (auto &track : _sdp_track) {
+        if (track->_inited == false) {
+            //还有track没有setup
+            shutdown(SockException(Err_shutdown, "track not setuped"));
+            return;
+        }
+        rtp_info << "url=" << track->getControlUrl(_content_base) << ",";
+    }
+    rtp_info.pop_back();
+    sendRtspResponse("200 OK", {"RTP-Info", rtp_info});
+    if (_rtp_type == Rtsp::RTP_TCP) {
+        //如果是rtsp推流服务器，并且是TCP推流，设置socket flags,，这样能提升接收性能
+        setSocketFlags();
     }
 }
 
