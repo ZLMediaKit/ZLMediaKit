@@ -344,7 +344,7 @@ void WebRtcTransportImp::onDestory() {
     //流量统计事件广播
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
 
-    if (_play_src) {
+    if (_reader) {
         WarnL << "RTC播放器("
               << _media_info._vhost << "/"
               << _media_info._app << "/"
@@ -457,6 +457,13 @@ void WebRtcTransportImp::onStartWebRTC() {
                 strongSelf->onSendRtp(rtp, ++i == pkt->size());
             });
         });
+        _reader->setDetachCB([weak_self](){
+            auto strongSelf = weak_self.lock();
+            if (!strongSelf) {
+                return;
+            }
+            strongSelf->onShutdown(SockException(Err_eof, "rtsp ring buffer detached"));
+        });
 
         RtcSession rtsp_send_sdp;
         rtsp_send_sdp.loadFrom(_play_src->getSdp(), false);
@@ -473,6 +480,8 @@ void WebRtcTransportImp::onStartWebRTC() {
             }
         }
     }
+    //使用完毕后，释放强引用，这样确保推流器断开后能及时注销媒体
+    _play_src = nullptr;
 }
 
 void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
@@ -849,7 +858,7 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t &len, void *
 }
 
 void WebRtcTransportImp::onShutdown(const SockException &ex){
-    InfoL << ex.what();
+    WarnL << ex.what();
     _self = nullptr;
 }
 
