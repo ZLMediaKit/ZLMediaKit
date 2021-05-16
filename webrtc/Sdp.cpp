@@ -1284,6 +1284,20 @@ const RtcCodecPlan *RtcMedia::getRelatedRtxPlan(uint8_t pt) const{
     return nullptr;
 }
 
+uint32_t RtcMedia::getRtpSSRC() const {
+    if (rtp_rtx_ssrc.size()) {
+        return rtp_rtx_ssrc[0].ssrc;
+    }
+    return 0;
+}
+
+uint32_t RtcMedia::getRtxSSRC() const {
+    if (rtp_rtx_ssrc.size() > 1) {
+        return rtp_rtx_ssrc[1].ssrc;
+    }
+    return 0;
+}
+
 void RtcMedia::checkValid() const{
     CHECK(type != TrackInvalid);
     CHECK(!mid.empty());
