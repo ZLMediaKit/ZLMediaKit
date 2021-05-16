@@ -360,6 +360,7 @@ private:
     void onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack);
 
 private:
+    uint16_t _rtx_seq[2] = {0, 0};
     //用掉的总流量
     uint64_t _bytes_usage = 0;
     //媒体相关元数据

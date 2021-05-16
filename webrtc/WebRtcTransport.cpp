@@ -820,11 +820,14 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t &len, void *
         if (pr->second->answer_ssrc_rtx) {
             //有rtx单独的ssrc,有些情况下，浏览器支持rtx，但是未指定rtx单独的ssrc
             header->ssrc = htonl(pr->second->answer_ssrc_rtx);
+        } else {
+            //未单独指定rtx的ssrc，那么使用rtp的ssrc
+            header->ssrc = htonl(pr->second->answer_ssrc_rtp);
         }
 
         auto origin_seq = ntohs(header->seq);
         //seq跟原来的不一样
-        header->seq = htons(origin_seq + 100);
+        header->seq = htons(_rtx_seq[pr->second->media->type]++);
         auto payload = header->getPayloadData();
         auto payload_size = header->getPayloadSize(len);
         if (payload_size) {
