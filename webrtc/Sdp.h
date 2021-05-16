@@ -645,6 +645,8 @@ public:
     const RtcCodecPlan *getPlan(uint8_t pt) const;
     const RtcCodecPlan *getPlan(const char *codec) const;
     const RtcCodecPlan *getRelatedRtxPlan(uint8_t pt) const;
+    uint32_t getRtpSSRC() const;
+    uint32_t getRtxSSRC() const;
 };
 
 class RtcSession{
