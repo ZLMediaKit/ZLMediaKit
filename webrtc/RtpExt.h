@@ -59,6 +59,7 @@ public:
     static const char *getExtName(RtpExtType type);
 
     void setType(RtpExtType type);
+    RtpExtType getType() const;
     string dumpString() const;
 
     uint8_t getAudioLevel(bool *vad) const;
