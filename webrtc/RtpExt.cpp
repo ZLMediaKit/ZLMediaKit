@@ -558,3 +558,7 @@ void RtpExt::clearExt(){
 void RtpExt::setType(RtpExtType type) {
     _type = type;
 }
+
+RtpExtType RtpExt::getType() const {
+    return _type;
+}
