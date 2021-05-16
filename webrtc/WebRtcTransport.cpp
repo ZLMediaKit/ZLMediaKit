@@ -668,24 +668,30 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 
 ///////////////////////////////////////////////////////////////////
 
-static void setExtType(RtpExt &ext, uint8_t tp) {}
-static void setExtType(RtpExt &ext, RtpExtType tp) {
-    ext.setType(tp);
-}
-
-template<typename Type>
-static void changeRtpExtId(const RtpHeader *header, const Type &map) {
+void WebRtcTransportImp::changeRtpExtId(const RtpHeader *header, bool is_recv, bool is_rtx) const{
     auto ext_map = RtpExt::getExtValue(header);
     for (auto &pr : ext_map) {
-        auto it = map.find((typename Type::key_type) (pr.first));
-        if (it == map.end()) {
-            WarnL << "未处理的rtp ext, 类型不识别:" << (int) pr.first;
-            pr.second.clearExt();
-            continue;
+        if (is_recv) {
+            auto it = _rtp_ext_id_to_type.find(pr.first);
+            if (it == _rtp_ext_id_to_type.end()) {
+                WarnL << "接收rtp时,忽略不识别的rtp ext, id=" << (int) pr.first;
+                pr.second.clearExt();
+                continue;
+            }
+            pr.second.setType(it->second);
+            //重新赋值ext id为 ext type，作为后面处理ext的统一中间类型
+            pr.second.setExtId((uint8_t) it->second);
+        } else {
+            pr.second.setType((RtpExtType) pr.first);
+            auto it = _rtp_ext_type_to_id.find((RtpExtType) pr.first);
+            if (it == _rtp_ext_type_to_id.end()) {
+                WarnL << "发送rtp时, 忽略不被客户端支持rtp ext:" << pr.second.dumpString();
+                pr.second.clearExt();
+                continue;
+            }
+            //重新赋值ext id为客户端sdp声明的类型
+            pr.second.setExtId(it->second);
         }
-        setExtType(pr.second, it->first);
-        setExtType(pr.second, it->second);
-        pr.second.setExtId((uint8_t) it->second);
     }
 }
 
@@ -726,7 +732,7 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
             info->rtcp_context_recv->onRtp(seq, stamp_ms, len);
         }
         //修改ext id至统一
-        changeRtpExtId(rtp, _rtp_ext_id_to_type);
+        changeRtpExtId(rtp, true);
         //解析并排序rtp
         info->receiver->inputRtp(info->media->type, info->plan_rtp->sample_rate, (uint8_t *) buf, len);
         return;
@@ -808,14 +814,15 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
 void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t &len, void *ctx) {
     auto pr = (pair<bool/*rtx*/, RtpPayloadInfo *> *) ctx;
     auto header = (RtpHeader *) buf;
-    changeRtpExtId(header, _rtp_ext_type_to_id);
 
     if (!pr->first || !pr->second->plan_rtx) {
         //普通的rtp,或者不支持rtx, 修改目标pt和ssrc
+        changeRtpExtId(header, false, false);
         header->pt = pr->second->plan_rtp->pt;
         header->ssrc = htonl(pr->second->answer_ssrc_rtp);
     } else {
         //重传的rtp, rtx
+        changeRtpExtId(header, false, true);
         header->pt = pr->second->plan_rtx->pt;
         if (pr->second->answer_ssrc_rtx) {
             //有rtx单独的ssrc,有些情况下，浏览器支持rtx，但是未指定rtx单独的ssrc

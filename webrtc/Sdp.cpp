@@ -1412,7 +1412,8 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
                     RtpExtType::csrc_audio_level,
                     RtpExtType::abs_send_time,
                     RtpExtType::transport_cc,
-                    RtpExtType::sdes_mid,
+                    //rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放
+                    //RtpExtType::sdes_mid,
                     RtpExtType::sdes_rtp_stream_id,
                     RtpExtType::sdes_repaired_rtp_stream_id
             };
@@ -1425,7 +1426,8 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             extmap = {
                     RtpExtType::abs_send_time,
                     RtpExtType::transport_cc,
-                    RtpExtType::sdes_mid,
+                    //rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放
+                    //RtpExtType::sdes_mid,
                     RtpExtType::sdes_rtp_stream_id,
                     RtpExtType::sdes_repaired_rtp_stream_id,
                     RtpExtType::video_timing,
