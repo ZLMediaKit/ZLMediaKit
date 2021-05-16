@@ -269,7 +269,7 @@ void WebRtcTransport::inputSockData(char *buf, size_t len, RTC::TransportTuple *
     }
 }
 
-void WebRtcTransport::sendRtpPacket(char *buf, size_t len, bool flush, void *ctx) {
+void WebRtcTransport::sendRtpPacket(const char *buf, size_t len, bool flush, void *ctx) {
     if (_srtp_session_send) {
         //预留rtx加入的两个字节
         CHECK(len + SRTP_MAX_TRAILER_LEN + 2 <= sizeof(_srtp_buf));
@@ -281,7 +281,7 @@ void WebRtcTransport::sendRtpPacket(char *buf, size_t len, bool flush, void *ctx
     }
 }
 
-void WebRtcTransport::sendRtcpPacket(char *buf, size_t len, bool flush, void *ctx){
+void WebRtcTransport::sendRtcpPacket(const char *buf, size_t len, bool flush, void *ctx){
     if (_srtp_session_send) {
         CHECK(len + SRTP_MAX_TRAILER_LEN <= sizeof(_srtp_buf));
         memcpy(_srtp_buf, buf, len);
@@ -720,13 +720,13 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
         if (!rtx) {
             //统计rtp接受情况，便于生成nack rtcp包
             info->nack_ctx.received(seq);
-            //修改ext id至统一
-            changeRtpExtId(rtp, _rtp_ext_id_to_type);
             //时间戳转换成毫秒
             auto stamp_ms = ntohl(rtp->stamp) * uint64_t(1000) / info->plan_rtp->sample_rate;
             //统计rtp收到的情况，好做rr汇报
             info->rtcp_context_recv->onRtp(seq, stamp_ms, len);
         }
+        //修改ext id至统一
+        changeRtpExtId(rtp, _rtp_ext_id_to_type);
         //解析并排序rtp
         info->receiver->inputRtp(info->media->type, info->plan_rtp->sample_rate, (uint8_t *) buf, len);
         return;

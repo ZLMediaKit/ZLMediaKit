@@ -63,8 +63,8 @@ public:
      * @param flush 是否flush socket
      * @param ctx 用户指针
      */
-    void sendRtpPacket(char *buf, size_t len, bool flush, void *ctx = nullptr);
-    void sendRtcpPacket(char *buf, size_t len, bool flush, void *ctx = nullptr);
+    void sendRtpPacket(const char *buf, size_t len, bool flush, void *ctx = nullptr);
+    void sendRtcpPacket(const char *buf, size_t len, bool flush, void *ctx = nullptr);
 
     const EventPoller::Ptr& getPoller() const;
 
