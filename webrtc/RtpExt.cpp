@@ -305,7 +305,7 @@ string RtpExt::dumpString() const {
             break;
         }
         case RtpExtType::framemarking : {
-            printer << "framemarking tid:" << getFramemarkingTID();
+            printer << "framemarking tid:" << (int)getFramemarkingTID();
             break;
         }
         default: {
