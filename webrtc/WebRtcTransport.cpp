@@ -668,7 +668,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 
 ///////////////////////////////////////////////////////////////////
 
-void WebRtcTransportImp::changeRtpExtId(const RtpHeader *header, bool is_recv, bool is_rtx) const{
+void WebRtcTransportImp::changeRtpExtId(const RtpPayloadInfo *info, const RtpHeader *header, bool is_recv, bool is_rtx) const{
     auto ext_map = RtpExt::getExtValue(header);
     for (auto &pr : ext_map) {
         if (is_recv) {
@@ -732,7 +732,7 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
             info->rtcp_context_recv->onRtp(seq, stamp_ms, len);
         }
         //修改ext id至统一
-        changeRtpExtId(rtp, true);
+        changeRtpExtId(info.get(), rtp, true, rtx);
         //解析并排序rtp
         info->receiver->inputRtp(info->media->type, info->plan_rtp->sample_rate, (uint8_t *) buf, len);
         return;
@@ -817,12 +817,12 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t &len, void *
 
     if (!pr->first || !pr->second->plan_rtx) {
         //普通的rtp,或者不支持rtx, 修改目标pt和ssrc
-        changeRtpExtId(header, false, false);
+        changeRtpExtId(pr->second, header, false, false);
         header->pt = pr->second->plan_rtp->pt;
         header->ssrc = htonl(pr->second->answer_ssrc_rtp);
     } else {
         //重传的rtp, rtx
-        changeRtpExtId(header, false, true);
+        changeRtpExtId(pr->second, header, false, true);
         header->pt = pr->second->plan_rtx->pt;
         if (pr->second->answer_ssrc_rtx) {
             //有rtx单独的ssrc,有些情况下，浏览器支持rtx，但是未指定rtx单独的ssrc

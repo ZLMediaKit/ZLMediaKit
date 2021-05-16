@@ -338,7 +338,6 @@ private:
     SdpAttrCandidate::Ptr getIceCandidate() const;
     bool canSendRtp() const;
     bool canRecvRtp() const;
-    void changeRtpExtId(const RtpHeader *header, bool is_recv, bool is_rtx = false) const;
 
     class RtpPayloadInfo {
     public:
@@ -359,6 +358,7 @@ private:
 
     void onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp);
     void onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack);
+    void changeRtpExtId(const RtpPayloadInfo *info, const RtpHeader *header, bool is_recv, bool is_rtx = false) const;
 
 private:
     uint16_t _rtx_seq[2] = {0, 0};
