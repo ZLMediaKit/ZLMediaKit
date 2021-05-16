@@ -338,6 +338,7 @@ private:
     SdpAttrCandidate::Ptr getIceCandidate() const;
     bool canSendRtp() const;
     bool canRecvRtp() const;
+    void changeRtpExtId(const RtpHeader *header, bool is_recv, bool is_rtx = false) const;
 
     class RtpPayloadInfo {
     public:
