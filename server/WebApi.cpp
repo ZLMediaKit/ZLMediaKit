@@ -250,7 +250,7 @@ static inline string getProxyKey(const string &vhost,const string &app,const str
 Value makeMediaSourceJson(MediaSource &media){
     Value item;
     item["schema"] = media.getSchema();
-    item["vhost"] = media.getVhost();
+    item[VHOST_KEY] = media.getVhost();
     item["app"] = media.getApp();
     item["stream"] = media.getId();
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
