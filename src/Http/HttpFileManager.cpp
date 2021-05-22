@@ -577,7 +577,7 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
         //分节下载
         code = 206;
         iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
-        iRangeEnd = atoll(FindField(strRange.data(), "-", "\r\n").data());
+        iRangeEnd = atoll(FindField(strRange.data(), "-", nullptr).data());
         if (iRangeEnd == 0) {
             iRangeEnd = fileSize - 1;
         }
