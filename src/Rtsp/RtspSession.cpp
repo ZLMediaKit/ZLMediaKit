@@ -213,6 +213,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     }
 
     auto full_url = parser.FullUrl();
+    _content_base = full_url;
     if(end_with(full_url,".sdp")){
         //去除.sdp后缀，防止EasyDarwin推流器强制添加.sdp后缀
         full_url = full_url.substr(0,full_url.length() - 4);
@@ -242,7 +243,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
     _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
     _push_src->setSdp(sdpParser.toString());
-    sendRtspResponse("200 OK",{"Content-Base", _content_base + "/"});
+    sendRtspResponse("200 OK");
 }
 
 void RtspSession::handleReq_RECORD(const Parser &parser){
@@ -614,7 +615,7 @@ void RtspSession::send_SessionNotFound() {
 
 void RtspSession::handleReq_Setup(const Parser &parser) {
     //处理setup命令，该函数可能进入多次
-    int trackIdx = getTrackIndexByControlUrl(parser.Url());
+    int trackIdx = getTrackIndexByControlUrl(parser.FullUrl());
     SdpTrack::Ptr &trackRef = _sdp_track[trackIdx];
     if (trackRef->_inited) {
         //已经初始化过该Track
