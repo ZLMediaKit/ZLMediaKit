@@ -74,6 +74,7 @@ const string kRtspDemand = GENERAL_FIELD"rtsp_demand";
 const string kRtmpDemand = GENERAL_FIELD"rtmp_demand";
 const string kTSDemand = GENERAL_FIELD"ts_demand";
 const string kFMP4Demand = GENERAL_FIELD"fmp4_demand";
+const string kEnableAudio = GENERAL_FIELD"enable_audio";
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
@@ -92,6 +93,7 @@ onceToken token([](){
     mINI::Instance()[kRtmpDemand] = 0;
     mINI::Instance()[kTSDemand] = 0;
     mINI::Instance()[kFMP4Demand] = 0;
+    mINI::Instance()[kEnableAudio] = 1;
 
 },nullptr);
 

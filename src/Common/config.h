@@ -187,6 +187,8 @@ extern const string kRtspDemand;
 extern const string kRtmpDemand;
 extern const string kTSDemand;
 extern const string kFMP4Demand;
+//转协议是否全局开启或忽略音频
+extern const string kEnableAudio;
 }//namespace General
 
 
