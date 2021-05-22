@@ -21,8 +21,7 @@ HttpRequester::~HttpRequester(){
 
 ssize_t HttpRequester::onResponseHeader(const string &status,const HttpHeader &headers) {
     _strRecvBody.clear();
-    //无Content-Length字段时默认后面没有content
-    return 0;
+    return HttpClientImp::onResponseHeader(status, headers);
 }
     
 void HttpRequester::onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) {
