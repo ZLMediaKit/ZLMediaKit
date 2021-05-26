@@ -1139,7 +1139,7 @@ void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
         };
 
         auto ssrc = rtp->getSSRC();
-        auto rtcp = _push_src ?  rtcp_ctx->createRtcpRR(ssrc + 1, ssrc) : rtcp_ctx->createRtcpSR(ssrc + 1);
+        auto rtcp = _push_src ?  rtcp_ctx->createRtcpRR(ssrc + 1, ssrc) : rtcp_ctx->createRtcpSR(ssrc);
         auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
         rtcp_sdes->items.type = (uint8_t)SdesType::RTCP_SDES_CNAME;
         rtcp_sdes->items.ssrc = htonl(ssrc);
