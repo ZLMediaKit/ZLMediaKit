@@ -463,7 +463,10 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
         std::string type = dec.load<std::string>();
         if (type == "@setDataFrame") {
             setMetaData(dec);
-        } else {
+        } else if(type == "onMetaData"){
+             //setMetaData(dec);
+              _publisher_metadata = dec.load<AMFValue>();
+        }else {
             TraceP(this) << "unknown notify:" << type;
         }
         break;
