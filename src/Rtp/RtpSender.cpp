@@ -54,7 +54,7 @@ void RtpSender::startSend(const string &dst_url, uint16_t dst_port, bool is_udp,
                 cb(local_port, SockException());
                 auto strong_self = weak_self.lock();
                 if (strong_self) {
-                    strong_self->_socket->setSendPeerAddr(&addr);
+                    strong_self->_socket->bindPeerAddr(&addr);
                     strong_self->onConnect();
                 }
             });
