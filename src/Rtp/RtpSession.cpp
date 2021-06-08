@@ -17,8 +17,8 @@ namespace mediakit{
 
 const string RtpSession::kStreamID = "stream_id";
 
-void RtpSession::attachServer(const TcpServer &server) {
-    _stream_id = const_cast<TcpServer &>(server)[kStreamID];
+void RtpSession::attachServer(const Server &server) {
+    _stream_id = const_cast<Server &>(server)[kStreamID];
 }
 
 RtpSession::RtpSession(const Socket::Ptr &sock) : TcpSession(sock) {

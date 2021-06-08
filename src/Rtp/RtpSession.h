@@ -28,7 +28,7 @@ public:
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
-    void attachServer(const TcpServer &server) override;
+    void attachServer(const Server &server) override;
 
 protected:
     // 通知其停止推流

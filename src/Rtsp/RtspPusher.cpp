@@ -313,13 +313,13 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
         rtpto.sin_port = ntohs(rtp_port);
         rtpto.sin_family = AF_INET;
         rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-        rtp_sock->setSendPeerAddr((struct sockaddr *) &(rtpto));
+        rtp_sock->bindPeerAddr((struct sockaddr *) &(rtpto));
 
         //设置rtcp发送目标，为后续发送rtcp做准备
         rtpto.sin_port = ntohs(rtcp_port);
         rtpto.sin_family = AF_INET;
         rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-        rtcp_sock->setSendPeerAddr((struct sockaddr *)&(rtpto));
+        rtcp_sock->bindPeerAddr((struct sockaddr *)&(rtpto));
 
         auto srcIP = inet_addr(get_peer_ip().data());
         weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());

@@ -686,14 +686,14 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         peerAddr.sin_port = htons(ui16RtpPort);
         peerAddr.sin_addr.s_addr = inet_addr(get_peer_ip().data());
         bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
-        pr.first->setSendPeerAddr((struct sockaddr *) (&peerAddr));
+        pr.first->bindPeerAddr((struct sockaddr *) (&peerAddr));
 
         //设置rtcp发送目标地址
         peerAddr.sin_family = AF_INET;
         peerAddr.sin_port = htons(ui16RtcpPort);
         peerAddr.sin_addr.s_addr = inet_addr(get_peer_ip().data());
         bzero(&(peerAddr.sin_zero), sizeof peerAddr.sin_zero);
-        pr.second->setSendPeerAddr((struct sockaddr *) (&peerAddr));
+        pr.second->bindPeerAddr((struct sockaddr *) (&peerAddr));
 
         //尝试获取客户端nat映射地址
         startListenPeerUdpData(trackIdx);
@@ -925,13 +925,13 @@ void RtspSession::onRcvPeerUdpData(int interleaved, const Buffer::Ptr &buf, cons
         } else if (!_udp_connected_flags.count(interleaved)) {
             //这是rtsp播放器的rtp打洞包
             _udp_connected_flags.emplace(interleaved);
-            _rtp_socks[interleaved / 2]->setSendPeerAddr(&addr);
+            _rtp_socks[interleaved / 2]->bindPeerAddr(&addr);
         }
     } else {
         //rtcp包
         if (!_udp_connected_flags.count(interleaved)) {
             _udp_connected_flags.emplace(interleaved);
-            _rtcp_socks[(interleaved - 1) / 2]->setSendPeerAddr(&addr);
+            _rtcp_socks[(interleaved - 1) / 2]->bindPeerAddr(&addr);
         }
         onRtcpPacket((interleaved - 1) / 2, _sdp_track[(interleaved - 1) / 2], buf->data(), buf->size());
     }
