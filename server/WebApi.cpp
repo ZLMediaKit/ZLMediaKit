@@ -402,7 +402,10 @@ void installWebApi() {
         for (auto &pr : allArgs) {
             if (ini.find(pr.first) == ini.end()) {
                 //没有这个key
-                continue;
+                //continue;
+                // 新增配置选项,为了动态添加多个ffmpeg cmd 模板
+                ini[pr.first] = pr.second;
+                continue;// 防止changed变化
             }
             if (ini[pr.first] == pr.second) {
                 continue;
