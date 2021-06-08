@@ -20,15 +20,17 @@ using namespace toolkit;
 
 namespace mediakit{
 
-class RtpSession : public TcpSession , public RtpSplitter , public MediaSourceEvent{
+class RtpSession : public Session , public RtpSplitter , public MediaSourceEvent{
 public:
     static const string kStreamID;
+    static const string kIsUDP;
+
     RtpSession(const Socket::Ptr &sock);
     ~RtpSession() override;
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
-    void attachServer(const TcpServer &server) override;
+    void attachServer(const Server &server) override;
 
 protected:
     // 通知其停止推流
@@ -41,13 +43,16 @@ protected:
     const char *onSearchPacketTail(const char *data, size_t len) override;
 
 private:
+    bool _is_udp = false;
     bool _search_rtp = false;
     bool _search_rtp_finished = false;
     uint32_t _ssrc = 0;
     Ticker _ticker;
     string _stream_id;
-    struct sockaddr addr;
+    struct sockaddr _addr;
     RtpProcess::Ptr _process;
+    std::shared_ptr<ObjectStatistic<TcpSession> > _statistic_tcp;
+    std::shared_ptr<ObjectStatistic<UdpSession> > _statistic_udp;
 };
 
 }//namespace mediakit

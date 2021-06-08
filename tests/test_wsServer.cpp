@@ -30,7 +30,7 @@ public:
         DebugL;
     }
 
-    void attachServer(const TcpServer &server) override{
+    void attachServer(const Server &server) override{
         DebugL << getIdentifier() << " " << TcpSession::getIdentifier();
     }
     void onRecv(const Buffer::Ptr &buffer) override {
@@ -57,7 +57,7 @@ public:
         DebugL;
     }
 
-    void attachServer(const TcpServer &server) override{
+    void attachServer(const Server &server) override{
         DebugL << getIdentifier() << " " << TcpSession::getIdentifier();
     }
     void onRecv(const Buffer::Ptr &buffer) override {

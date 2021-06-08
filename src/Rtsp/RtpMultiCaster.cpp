@@ -127,7 +127,7 @@ RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, con
         //组播目标地址
         peer.sin_addr.s_addr = htonl(*_multicast_ip);
         bzero(&(peer.sin_zero), sizeof peer.sin_zero);
-        _udp_sock[i]->setSendPeerAddr((struct sockaddr *) &peer);
+        _udp_sock[i]->bindPeerAddr((struct sockaddr *) &peer);
     }
 
     _rtp_reader = src->getRing()->attach(helper.getPoller());

@@ -25,6 +25,7 @@
 #include "Http/HttpRequester.h"
 #include "Http/HttpSession.h"
 #include "Network/TcpServer.h"
+#include "Network/UdpServer.h"
 #include "Player/PlayerProxy.h"
 #include "Util/MD5.h"
 #include "WebApi.h"
@@ -569,7 +570,7 @@ void installWebApi() {
         uint16_t local_port = allArgs["local_port"].as<uint16_t>();
         string &peer_ip = allArgs["peer_ip"];
 
-        SessionMap::Instance().for_each_session([&](const string &id,const TcpSession::Ptr &session){
+        SessionMap::Instance().for_each_session([&](const string &id,const Session::Ptr &session){
             if(local_port != 0 && local_port != session->get_local_port()){
                 return;
             }
@@ -608,8 +609,8 @@ void installWebApi() {
         string &peer_ip = allArgs["peer_ip"];
         size_t count_hit = 0;
 
-        list<TcpSession::Ptr> session_list;
-        SessionMap::Instance().for_each_session([&](const string &id,const TcpSession::Ptr &session){
+        list<Session::Ptr> session_list;
+        SessionMap::Instance().for_each_session([&](const string &id,const Session::Ptr &session){
             if(local_port != 0 && local_port != session->get_local_port()){
                 return;
             }
@@ -1069,6 +1070,8 @@ void installWebApi() {
 
         val["data"]["TcpServer"] = (Json::UInt64)(ObjectStatistic<TcpServer>::count());
         val["data"]["TcpSession"] = (Json::UInt64)(ObjectStatistic<TcpSession>::count());
+        val["data"]["UdpServer"] = (Json::UInt64)(ObjectStatistic<UdpServer>::count());
+        val["data"]["UdpSession"] = (Json::UInt64)(ObjectStatistic<UdpSession>::count());
         val["data"]["TcpClient"] = (Json::UInt64)(ObjectStatistic<TcpClient>::count());
         val["data"]["Socket"] = (Json::UInt64)(ObjectStatistic<Socket>::count());
 

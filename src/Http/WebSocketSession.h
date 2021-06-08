@@ -104,9 +104,9 @@ public:
         }
     }
 
-    void attachServer(const TcpServer &server) override{
+    void attachServer(const Server &server) override{
         HttpSessionType::attachServer(server);
-        _weak_server = const_cast<TcpServer &>(server).shared_from_this();
+        _weak_server = const_cast<Server &>(server).shared_from_this();
     }
 
 protected:
@@ -226,7 +226,7 @@ protected:
 private:
     string _payload_cache;
     string _payload_section;
-    weak_ptr<TcpServer> _weak_server;
+    weak_ptr<Server> _weak_server;
     TcpSession::Ptr _session;
     Creator _creator;
 };
