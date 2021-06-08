@@ -306,7 +306,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
             rtpto.sin_port = ntohs(rtp_port);
             rtpto.sin_family = AF_INET;
             rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-            pRtpSockRef->setSendPeerAddr((struct sockaddr *)&(rtpto));
+            pRtpSockRef->bindPeerAddr((struct sockaddr *)&(rtpto));
             //发送rtp打洞包
             pRtpSockRef->send("\xce\xfa\xed\xfe", 4);
 
@@ -314,7 +314,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
             rtpto.sin_port = ntohs(rtcp_port);
             rtpto.sin_family = AF_INET;
             rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-            pRtcpSockRef->setSendPeerAddr((struct sockaddr *)&(rtpto));
+            pRtcpSockRef->bindPeerAddr((struct sockaddr *)&(rtpto));
         }
 
         auto srcIP = inet_addr(get_peer_ip().data());
