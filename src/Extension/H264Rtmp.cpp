@@ -214,12 +214,6 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     _lastPacket->buffer.append((char *) &size, 4);
     _lastPacket->buffer.append(pcData, iLen);
     _lastPacket->body_size = _lastPacket->buffer.size();
-    /*
-    if (type == H264Frame::NAL_B_P) {
-        RtmpCodec::inputRtmp(_lastPacket);
-        _lastPacket = nullptr;
-    }
-    */
 }
 
 void H264RtmpEncoder::makeVideoConfigPkt() {
