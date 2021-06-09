@@ -499,7 +499,6 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
 void RtmpSession::onCmd_seek(AMFDecoder &dec) {
     dec.load<AMFValue>();/* NULL */
     AMFValue status(AMF_OBJECT);
-    AMFEncoder invoke;
     status.set("level", "status");
     status.set("code", "NetStream.Seek.Notify");
     status.set("description", "Seeking.");

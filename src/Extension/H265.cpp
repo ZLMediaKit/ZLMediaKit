@@ -51,7 +51,7 @@ bool getHEVCInfo(const string &strVps, const string &strSps, int &iVideoWidth, i
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool H265Frame::keyFrame() const {
-    return isKeyFrame(H265_TYPE(_buffer[_prefix_size]));
+    return isKeyFrame(H265_TYPE(_buffer[_prefix_size]), _buffer.data(), _prefix_size);
 }
 
 bool H265Frame::configFrame() const {
@@ -63,9 +63,22 @@ bool H265Frame::configFrame() const {
     }
 }
 
-bool H265Frame::isKeyFrame(int type) {
-    return type >= NAL_BLA_W_LP && type <= NAL_RSV_IRAP_VCL23;
-}
+bool H265Frame::isKeyFrame(int type, const char* ptr, uint32_t prefix_size) {
+        if (nullptr != ptr)
+        {
+            if (type == NAL_IDR_W_RADL)
+            {
+                uint32_t r = 0;
+                r = ((*((uint8_t*)ptr + prefix_size + 2)) >> 7) & 0x01;
+                if (r == 1)
+                    return true;
+                else
+                    return false;
+            }else
+                return type >= NAL_BLA_W_LP && type <= NAL_RSV_IRAP_VCL23;
+        }
+        return type >= NAL_BLA_W_LP && type <= NAL_RSV_IRAP_VCL23;
+    }
 
 H265Frame::H265Frame(){
     _codec_id = CodecH265;
@@ -83,7 +96,7 @@ H265FrameNoCacheAble::H265FrameNoCacheAble(char *ptr, size_t size, uint32_t dts,
 }
 
 bool H265FrameNoCacheAble::keyFrame() const {
-    return H265Frame::isKeyFrame(H265_TYPE(((uint8_t *) _ptr)[_prefix_size]));
+	return H265Frame::isKeyFrame(H265_TYPE(((uint8_t *) _ptr)[_prefix_size]), _ptr, _prefix_size);
 }
 
 bool H265FrameNoCacheAble::configFrame() const {
@@ -152,7 +165,7 @@ void H265Track::inputFrame(const Frame::Ptr &frame) {
 
 void H265Track::inputFrame_l(const Frame::Ptr &frame) {
     int type = H265_TYPE(((uint8_t *) frame->data() + frame->prefixSize())[0]);
-    if (H265Frame::isKeyFrame(type)) {
+    if (H265Frame::isKeyFrame(type, frame->data(), frame->prefixSize())) {
         insertConfigFrame(frame);
         VideoTrack::inputFrame(frame);
         _is_idr = true;
