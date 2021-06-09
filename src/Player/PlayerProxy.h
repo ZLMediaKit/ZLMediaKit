@@ -34,15 +34,15 @@ public:
 
     /**
      * 设置play结果回调，只触发一次；在play执行之前有效
-     * @param cb
+     * @param cb 回调对象
      */
     void setPlayCallbackOnce(const function<void(const SockException &ex)> &cb);
 
     /**
      * 设置主动关闭回调
-     * @param cb
+     * @param cb 回调对象
      */
-    void setOnClose(const function<void()> &cb);
+    void setOnClose(const function<void(const SockException &ex)> &cb);
 
     /**
      * 开始拉流播放
@@ -76,7 +76,7 @@ private:
     string _stream_id;
     string _pull_url;
     Timer::Ptr _timer;
-    function<void()> _on_close;
+    function<void(const SockException &ex)> _on_close;
     function<void(const SockException &ex)> _on_play;
     MultiMediaSourceMuxer::Ptr _muxer;
 };
