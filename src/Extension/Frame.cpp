@@ -169,10 +169,22 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
                 //时间戳变化了
                 return true;
             }
-            if (frame->getCodecId() == CodecH264 &&
-                H264_TYPE(frame->data()[frame->prefixSize()]) == H264Frame::NAL_B_P) {
-                //如果是264的b/p帧，那么也刷新输出
-                return true;
+            switch (frame->getCodecId()) {
+                case CodecH264 : {
+                    if (H264_TYPE(frame->data()[frame->prefixSize()]) == H264Frame::NAL_B_P) {
+                        //如果是264的b/p帧，那么也刷新输出
+                        return true;
+                    }
+                    break;
+                }
+                case CodecH265 : {
+                    if (H265_TYPE(frame->data()[frame->prefixSize()]) == H265Frame::NAL_TRAIL_R) {
+                        //如果是265的TRAIL_R帧，那么也刷新输出
+                        return true;
+                    }
+                    break;
+                }
+                default : break;
             }
             return _frameCached.size() > kMaxFrameCacheSize;
         }
