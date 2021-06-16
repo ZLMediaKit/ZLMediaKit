@@ -27,6 +27,7 @@
 #include "Network/TcpServer.h"
 #include "Network/UdpServer.h"
 #include "Player/PlayerProxy.h"
+#include "Pusher/PusherProxy.h"
 #include "Util/MD5.h"
 #include "WebApi.h"
 #include "WebHook.h"
@@ -233,6 +234,10 @@ static inline void addHttpListener(){
 //拉流代理器列表
 static unordered_map<string ,PlayerProxy::Ptr> s_proxyMap;
 static recursive_mutex s_proxyMapMtx;
+
+//推流代理器列表
+static unordered_map<string ,PusherProxy::Ptr> s_proxyPusherMap;
+static recursive_mutex s_proxyPusherMapMtx;
 
 //FFmpeg拉流代理器列表
 static unordered_map<string ,FFmpegSource::Ptr> s_ffmpegMap;
@@ -594,6 +599,102 @@ void installWebApi() {
             session->safeShutdown();
         }
         val["count_hit"] = (Json::UInt64)count_hit;
+    });
+
+    static auto addStreamPusherProxy = [](const string &schema,
+                                          const string &vhost,
+                                          const string &app,
+                                          const string &stream,
+                                          const string &url,
+                                          int retryCount,
+                                          const function<void(const SockException &ex,const string &key)> &cb){
+        auto key = getProxyKey(vhost, app, stream);
+        lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+        if (s_proxyPusherMap.find(key) != s_proxyPusherMap.end()){
+            //已经在推流了
+            cb(SockException(Err_success),key);
+            return;
+        }
+
+        auto poller = EventPollerPool::Instance().getPoller();
+        int retry_count = 3;
+        if (retryCount != 0) retry_count = retryCount;
+
+        //添加推流代理
+        PusherProxy::Ptr pusher(new PusherProxy(schema,vhost, app, stream, retry_count, poller));
+        s_proxyPusherMap[key] = pusher;
+
+        //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
+        pusher->setPushCallbackOnce([cb, key, url](const SockException &ex){
+            if (ex){
+                InfoL << "key: " << key << ", " << "addStreamPusherProxy pusher callback error: " << ex.what();
+                lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+                s_proxyMap.erase(key);
+            }
+            cb(ex,key);
+        });
+
+        //被主动关闭推流
+        pusher->setOnClose([key, url](const SockException &ex){
+            InfoL << "key: " << key << ", " << "addStreamPusherProxy close callback error: " << ex.what();
+            lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+            s_proxyMap.erase(key);
+        });
+        pusher->publish(url);
+    };
+
+    //动态添加rtsp/rtmp推流代理
+    //测试url http://127.0.0.1/index/api/addStreamPusherProxy?schema=rtmp&vhost=__defaultVhost__&app=proxy&stream=0&dst_url=rtmp://127.0.0.1/live/obs
+    api_regist("/index/api/addStreamPusherProxy", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("schema","vhost","app","stream");
+
+        InfoL << allArgs["schema"] << ", " << allArgs["vhost"] << ", " << allArgs["app"] << ", " << allArgs["stream"];
+
+        //查找源
+        auto src = MediaSource::find(allArgs["schema"],
+                                     allArgs["vhost"],
+                                     allArgs["app"],
+                                     allArgs["stream"]);
+        if (!src){
+            InfoL << "addStreamPusherProxy， canont find source stream!";
+            const_cast<Value &>(val)["code"] = API::OtherFailed;
+            const_cast<Value &>(val)["msg"] = "can not find the source stream";
+            invoker(200, headerOut, val.toStyledString());
+            return;
+        }
+
+        std::string srcUrl = allArgs["schema"] + "://" + "127.0.0.1" + "/" + allArgs["app"] + "/" + allArgs["stream"];
+        std::string pushUrl = decodeBase64(allArgs["dst_url"]);
+        InfoL << "addStreamPusherProxy， find stream: " << srcUrl << ", push dst url: " << pushUrl;
+
+        addStreamPusherProxy(allArgs["schema"],
+                             allArgs["vhost"],
+                             allArgs["app"],
+                             allArgs["stream"],
+                             pushUrl,
+                             allArgs["retry_count"],
+                             [invoker,val,headerOut, pushUrl](const SockException &ex, const string &key){
+                                 if(ex){
+                                     const_cast<Value &>(val)["code"] = API::OtherFailed;
+                                     const_cast<Value &>(val)["msg"] = ex.what();
+                                     InfoL << "Publish error url: " << pushUrl;
+                                 }else{
+                                     const_cast<Value &>(val)["data"]["key"] = key;
+                                     InfoL << "Publish success, Please play with player:" << pushUrl;
+                                 }
+                                 invoker(200, headerOut, val.toStyledString());
+                             });
+
+    });
+
+    //关闭推流代理
+    //测试url http://127.0.0.1/index/api/delStreamPusherProxy?key=__defaultVhost__/proxy/0
+    api_regist("/index/api/delStreamPusherProxy",[](API_ARGS_MAP){
+        CHECK_SECRET();
+        CHECK_ARGS("key");
+        lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+        val["data"]["flag"] = s_proxyPusherMap.erase(allArgs["key"]) == 1;
     });
 
     static auto addStreamProxy = [](const string &vhost,
