@@ -59,7 +59,7 @@ API_EXPORT void API_CALL mk_proxy_player_play(mk_proxy_player ctx, const char *u
  * 如果你不调用mk_proxy_player_release函数，那么MediaSource.close()操作将无效
  * @param user_data 用户数据指针，通过mk_proxy_player_set_on_close函数设置
  */
-typedef void(API_CALL *on_mk_proxy_player_close)(void *user_data);
+typedef void(API_CALL *on_mk_proxy_player_close)(void *user_data, int err, const char *what, int sys_err);
 
 /**
  * 监听MediaSource.close()事件

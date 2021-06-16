@@ -179,7 +179,7 @@ API_EXPORT void API_CALL mk_media_set_on_regist(mk_media ctx, on_mk_media_source
 typedef on_mk_media_source_send_rtp_result on_mk_media_send_rtp_result;
 
 /**
- * 开始发送ps-rtp流
+ * 开始发送一路ps-rtp流(通过ssrc区分多路)
  * @param ctx 对象指针
  * @param dst_url 目标ip或域名
  * @param dst_port 目标端口
@@ -191,11 +191,12 @@ typedef on_mk_media_source_send_rtp_result on_mk_media_send_rtp_result;
 API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data);
 
 /**
- * 停止ps-rtp发送
+ * 停止某路或全部ps-rtp发送
  * @param ctx 对象指针
+ * @param ssrc rtp的ssrc，10进制的字符串打印，如果为null或空字符串，则停止所有rtp推流
  * @return 1成功，0失败
  */
-API_EXPORT int API_CALL mk_media_stop_send_rtp(mk_media ctx);
+API_EXPORT int API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc);
 
 #ifdef __cplusplus
 }

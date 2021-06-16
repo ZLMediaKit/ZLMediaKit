@@ -169,7 +169,7 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         return;
     }
 
-    if(_lastPacket && _lastPacket->time_stamp != frame->dts()) {
+    if (_lastPacket && (_lastPacket->time_stamp != frame->dts() || type == H265Frame::NAL_TRAIL_R)) {
         RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
     }
