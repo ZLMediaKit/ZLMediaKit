@@ -111,7 +111,6 @@ protected:
      *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
      */
     virtual ssize_t onResponseHeader(const string &status,const HttpHeader &headers){
-        DebugL << status;
         //无Content-Length字段时默认后面全是content
         return -1;
     }

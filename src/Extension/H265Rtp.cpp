@@ -263,13 +263,13 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
                 //FU 第1个字节，表明为FU
                 payload[0] = 49 << 1;
                 //FU 第2个字节貌似固定为1
-                payload[1] = 1;
+                payload[1] = ptr[1];// 1;
                 //FU 第3个字节
                 payload[2] = s_e_flags;
                 //H265 数据
                 memcpy(payload + 3, ptr + offset, max_size);
                 //输入到rtp环形缓存
-                RtpCodec::inputRtp(rtp, fu_start && H265Frame::isKeyFrame(nal_type));
+                RtpCodec::inputRtp(rtp, fu_start && H265Frame::isKeyFrame(nal_type, frame->data() + frame->prefixSize()));
             }
 
             offset += max_size;
@@ -281,7 +281,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
 }
 
 void H265RtpEncoder::makeH265Rtp(int nal_type,const void* data, size_t len, bool mark, bool first_packet, uint32_t uiStamp) {
-    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),first_packet && H265Frame::isKeyFrame(nal_type));
+    RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),first_packet && H265Frame::isKeyFrame(nal_type, (const char*)data + prefixSize((const char*)data, len)));
 }
 
 }//namespace mediakit
