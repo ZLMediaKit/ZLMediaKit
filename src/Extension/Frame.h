@@ -22,20 +22,6 @@ using namespace toolkit;
 namespace mediakit{
 
 typedef enum {
-    CodecInvalid = -1,
-    CodecH264 = 0,
-    CodecH265,
-    CodecAAC,
-    CodecG711A,
-    CodecG711U,
-    CodecOpus,
-    CodecL16,
-    CodecVP8,
-    CodecVP9,
-    CodecMax
-} CodecId;
-
-typedef enum {
     TrackInvalid = -1,
     TrackVideo = 0,
     TrackAudio,
@@ -43,6 +29,26 @@ typedef enum {
     TrackApplication,
     TrackMax
 } TrackType;
+
+#define CODEC_MAP(XX) \
+    XX(CodecH264,  TrackVideo, 0, "H264")          \
+    XX(CodecH265,  TrackVideo, 1, "H265")          \
+    XX(CodecAAC,   TrackAudio, 2, "mpeg4-generic") \
+    XX(CodecG711A, TrackAudio, 3, "PCMA")          \
+    XX(CodecG711U, TrackAudio, 4, "PCMU")          \
+    XX(CodecOpus,  TrackAudio, 5, "opus")          \
+    XX(CodecL16,   TrackAudio, 6, "L16")           \
+    XX(CodecVP8,   TrackVideo, 7, "VP8")           \
+    XX(CodecVP9,   TrackVideo, 8, "VP9")           \
+    XX(CodecAV1,   TrackVideo, 9, "AV1X")
+
+typedef enum {
+    CodecInvalid = -1,
+#define XX(name, type, value, str) name = value,
+    CODEC_MAP(XX)
+#undef XX
+    CodecMax
+} CodecId;
 
 /**
  * 字符串转媒体类型转
