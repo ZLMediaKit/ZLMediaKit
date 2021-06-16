@@ -200,9 +200,9 @@ API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_u
     });
 }
 
-API_EXPORT int API_CALL mk_media_stop_send_rtp(mk_media ctx){
+API_EXPORT int API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     //sender参数无用
-    return (*obj)->getChannel()->stopSendRtp(*MediaSource::NullMediaSource, "");
+    return (*obj)->getChannel()->stopSendRtp(*MediaSource::NullMediaSource, ssrc ? ssrc : "");
 }
