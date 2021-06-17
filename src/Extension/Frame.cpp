@@ -191,7 +191,8 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
             }
             switch (frame->getCodecId()) {
                 case CodecH264 : {
-                    if (frame->data()[frame->prefixSize()+1]&0x80 !=0) {
+                    auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
+                    if (frame->data()[frame->prefixSize()+1]&0x80 !=0 && type >=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR ) {// sei aud pps sps 不判断
                         //264 新一帧的开始，刷新输出
                         return true;
                     }else{
