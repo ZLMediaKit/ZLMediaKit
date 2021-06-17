@@ -616,6 +616,11 @@ void installWebApi() {
                                           float timeout_sec,
                                           const function<void(const SockException &ex, const string &key)> &cb) {
         auto key = getPusherKey(schema, vhost, app, stream, url);
+        auto src = MediaSource::find(schema, vhost, app, stream);
+        if (!src) {
+            cb(SockException(Err_other, "can not find the source stream"), key);
+            return;
+        }
         lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
         if (s_proxyPusherMap.find(key) != s_proxyPusherMap.end()) {
             //已经在推流了
@@ -624,7 +629,7 @@ void installWebApi() {
         }
 
         //添加推流代理
-        PusherProxy::Ptr pusher(new PusherProxy(schema, vhost, app, stream, retry_count ? retry_count : -1));
+        PusherProxy::Ptr pusher(new PusherProxy(src, retry_count ? retry_count : -1));
         s_proxyPusherMap[key] = pusher;
 
         //指定RTP over TCP(播放rtsp时有效)
@@ -638,18 +643,18 @@ void installWebApi() {
         //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
         pusher->setPushCallbackOnce([cb, key, url](const SockException &ex) {
             if (ex) {
-                InfoL << "key: " << key << ", " << "addStreamPusherProxy pusher callback error: " << ex.what();
-                lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-                s_proxyMap.erase(key);
+                WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+                lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+                s_proxyPusherMap.erase(key);
             }
             cb(ex, key);
         });
 
         //被主动关闭推流
         pusher->setOnClose([key, url](const SockException &ex) {
-            InfoL << "key: " << key << ", " << "addStreamPusherProxy close callback error: " << ex.what();
-            lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-            s_proxyMap.erase(key);
+            WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+            lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+            s_proxyPusherMap.erase(key);
         });
         pusher->publish(url);
     };
@@ -659,23 +664,7 @@ void installWebApi() {
     api_regist("/index/api/addStreamPusherProxy", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "dst_url");
-
         auto dst_url = allArgs["dst_url"];
-        auto src_url = allArgs["schema"] + "/" + allArgs["vhost"] + "/" + allArgs["app"] + "/" + allArgs["stream"];
-        auto src = MediaSource::find(allArgs["schema"],
-                                     allArgs["vhost"],
-                                     allArgs["app"],
-                                     allArgs["stream"]);
-        if (!src) {
-            WarnL << "addStreamPusherProxy, can not find source stream:" << src_url;
-            val["code"] = API::NotFound;
-            val["msg"] = "can not find the source stream";
-            invoker(200, headerOut, val.toStyledString());
-            return;
-        }
-
-        InfoL << "addStreamPusherProxy, find stream: " << src_url << ", push dst url: " << dst_url;
-
         addStreamPusherProxy(allArgs["schema"],
                              allArgs["vhost"],
                              allArgs["app"],
@@ -688,7 +677,6 @@ void installWebApi() {
                                  if (ex) {
                                      val["code"] = API::OtherFailed;
                                      val["msg"] = ex.what();
-                                     WarnL << "Publish stream failed, dst url is: " << dst_url;
                                  } else {
                                      val["data"]["key"] = key;
                                      InfoL << "Publish success, please play with player:" << dst_url;

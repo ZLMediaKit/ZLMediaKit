@@ -24,10 +24,8 @@ public:
     typedef std::shared_ptr<PusherProxy> Ptr;
 
     // 如果retry_count<0,则一直重试播放；否则重试retry_count次数
-    // 默认一直重试，创建此对象时候，需要外部保证mediaSource存在
-    PusherProxy(const string& schema, const string &vhost, const string &app, const string &stream,
-                int retry_count = -1, const EventPoller::Ptr &poller = nullptr);
-
+    // 默认一直重试，创建此对象时候，需要外部保证MediaSource存在
+    PusherProxy(const MediaSource::Ptr &src, int retry_count = -1, const EventPoller::Ptr &poller = nullptr);
     ~PusherProxy() override;
 
     /**
@@ -54,11 +52,6 @@ private:
 
 private:
     int _retry_count;
-    std::string _schema;
-    string _vhost;
-    string _app;
-    string _stream_id;
-    std::string _publish_url;
     Timer::Ptr _timer;
 
     function<void(const SockException &ex)> _on_close;
