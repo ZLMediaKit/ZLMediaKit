@@ -51,9 +51,9 @@ API_EXPORT void API_CALL mk_proxy_player_set_on_close(mk_proxy_player ctx, on_mk
     PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *) ctx);
     obj->getPoller()->async([obj,cb,user_data](){
         //切换线程再操作
-        obj->setOnClose([cb,user_data](){
+        obj->setOnClose([cb,user_data](const SockException &ex){
             if(cb){
-                cb(user_data);
+                cb(user_data, ex.getErrCode(), ex.what(), ex.getCustomCode());
             }
         });
     });

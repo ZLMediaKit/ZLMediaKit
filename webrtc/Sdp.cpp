@@ -1421,7 +1421,7 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
         }
         case TrackVideo: {
             //此处调整偏好的编码格式优先级
-            preferred_codec = {CodecH264, CodecH265};
+            preferred_codec = {CodecH264, CodecH265, CodecAV1};
             rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb, "nack", "ccm fir", "nack pli"};
             extmap = {
                     RtpExtType::abs_send_time,

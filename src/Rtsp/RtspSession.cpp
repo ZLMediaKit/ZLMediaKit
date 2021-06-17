@@ -99,10 +99,15 @@ void RtspSession::onManager() {
         }
     }
 
-    if ((_rtp_type == Rtsp::RTP_UDP || _push_src ) && _alive_ticker.elapsedTime() > keep_alive_sec * 1000 && _enable_send_rtp) {
-        //如果是推流端或者rtp over udp类型的播放端，那么就做超时检测
-        shutdown(SockException(Err_timeout,"rtp over udp session timeouted"));
+    if (_push_src && _alive_ticker.elapsedTime() > keep_alive_sec * 1000) {
+        //推流超时
+        shutdown(SockException(Err_timeout, "pusher session timeouted"));
         return;
+    }
+
+    if (!_push_src && _rtp_type == Rtsp::RTP_UDP && _enable_send_rtp && _alive_ticker.elapsedTime() > keep_alive_sec * 4000) {
+        //rtp over udp播放器超时
+        shutdown(SockException(Err_timeout, "rtp over udp player timeouted"));
     }
 }
 

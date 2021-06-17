@@ -61,7 +61,7 @@ public:
 
     bool keyFrame() const override;
     bool configFrame() const override;
-    static bool isKeyFrame(int type);
+    static bool isKeyFrame(int type, const char* ptr);
 
 protected:
     friend class FrameImp;

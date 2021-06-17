@@ -106,47 +106,27 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
     return std::make_shared<FrameCacheAble>(frame);
 }
 
-TrackType getTrackType(CodecId codecId){
-    switch (codecId){
-        case CodecVP8:
-        case CodecVP9:
-        case CodecH264:
-        case CodecH265: return TrackVideo;
-        case CodecAAC:
-        case CodecG711A:
-        case CodecG711U:
-        case CodecOpus: 
-        case CodecL16: return TrackAudio;
-        default: return TrackInvalid;
+TrackType getTrackType(CodecId codecId) {
+    switch (codecId) {
+#define XX(name, type, value, str) case name : return type;
+        CODEC_MAP(XX)
+#undef XX
+        default : return TrackInvalid;
     }
 }
 
-const char* getCodecName(CodecId codec){
+const char *getCodecName(CodecId codec) {
     switch (codec) {
-        case CodecH264 : return "H264";
-        case CodecH265 : return "H265";
-        case CodecAAC : return "mpeg4-generic";
-        case CodecG711A : return "PCMA";
-        case CodecG711U : return "PCMU";
-        case CodecOpus : return "opus";
-        case CodecVP8 : return "VP8";
-        case CodecVP9 : return "VP9";
-        case CodecL16 : return "L16";
-        default: return "invalid";
+#define XX(name, type, value, str) case name : return str;
+        CODEC_MAP(XX)
+#undef XX
+        default : return "invalid";
     }
 }
 
-static map<string, CodecId, StrCaseCompare> codec_map = {
-        {"H264",          CodecH264},
-        {"H265",          CodecH265},
-        {"mpeg4-generic", CodecAAC},
-        {"PCMA",          CodecG711A},
-        {"PCMU",          CodecG711U},
-        {"opus",          CodecOpus},
-        {"VP8",           CodecVP8},
-        {"VP9",           CodecVP9},
-        {"L16",           CodecL16}
-};
+#define XX(name, type, value, str) {str, name},
+static map<string, CodecId, StrCaseCompare> codec_map = {CODEC_MAP(XX)};
+#undef XX
 
 CodecId getCodecId(const string &str){
     auto it = codec_map.find(str);
@@ -209,10 +189,22 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
                 //时间戳变化了
                 return true;
             }
-            if (frame->getCodecId() == CodecH264 &&
-                H264_TYPE(frame->data()[frame->prefixSize()]) == H264Frame::NAL_B_P) {
-                //如果是264的b/p帧，那么也刷新输出
-                return true;
+            switch (frame->getCodecId()) {
+                case CodecH264 : {
+                    if (H264_TYPE(frame->data()[frame->prefixSize()]) == H264Frame::NAL_B_P) {
+                        //如果是264的b/p帧，那么也刷新输出
+                        return true;
+                    }
+                    break;
+                }
+                case CodecH265 : {
+                    if (H265_TYPE(frame->data()[frame->prefixSize()]) == H265Frame::NAL_TRAIL_R) {
+                        //如果是265的TRAIL_R帧，那么也刷新输出
+                        return true;
+                    }
+                    break;
+                }
+                default : break;
             }
             return _frameCached.size() > kMaxFrameCacheSize;
         }
