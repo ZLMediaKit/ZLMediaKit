@@ -61,6 +61,7 @@ private:
     MediaSinkInterface *_sink;
     FrameMerger _merger{FrameMerger::none};
     Ticker _last_unsported_print;
+    Track::Ptr _tracks[TrackMax];
 };
 
 }//namespace mediakit

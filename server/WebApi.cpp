@@ -672,7 +672,7 @@ void installWebApi() {
         });
 
         //被主动关闭拉流
-        player->setOnClose([key](){
+        player->setOnClose([key](const SockException &ex){
             lock_guard<recursive_mutex> lck(s_proxyMapMtx);
             s_proxyMap.erase(key);
         });

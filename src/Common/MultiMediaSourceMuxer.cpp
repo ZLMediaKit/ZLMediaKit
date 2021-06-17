@@ -338,7 +338,7 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
     return _muxer->isRecording(sender,type);
 }
 
-void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb){
+void MultiMediaSourceMuxer::startSendRtp(MediaSource &, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb){
 #if defined(ENABLE_RTPPROXY)
     RtpSender::Ptr rtp_sender = std::make_shared<RtpSender>(atoi(ssrc.data()));
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
@@ -360,12 +360,14 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const string &dst_
 #endif//ENABLE_RTPPROXY
 }
 
-bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string& ssrc){
+bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string &ssrc) {
 #if defined(ENABLE_RTPPROXY)
-    onceToken token(nullptr, [&]() {
-        //关闭rtp推流，可能触发无人观看事件
-        MediaSourceEventInterceptor::onReaderChanged(sender, totalReaderCount());
-    });
+    if (&sender != MediaSource::NullMediaSource) {
+        onceToken token(nullptr, [&]() {
+            //关闭rtp推流，可能触发无人观看事件
+            MediaSourceEventInterceptor::onReaderChanged(sender, totalReaderCount());
+        });
+    }
     if (ssrc.empty()) {
         //关闭全部
         lock_guard<mutex> lck(_rtp_sender_mtx);

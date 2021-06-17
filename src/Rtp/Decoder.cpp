@@ -104,22 +104,19 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
     switch (codecid) {
         case PSI_STREAM_H264: {
             InfoL << "got video track: H264";
-            auto track = std::make_shared<H264Track>();
-            onTrack(track);
+            onTrack(std::make_shared<H264Track>());
             break;
         }
 
         case PSI_STREAM_H265: {
             InfoL << "got video track: H265";
-            auto track = std::make_shared<H265Track>();
-            onTrack(track);
+            onTrack(std::make_shared<H265Track>());
             break;
         }
 
         case PSI_STREAM_AAC: {
             InfoL<< "got audio track: AAC";
-            auto track = std::make_shared<AACTrack>();
-            onTrack(track);
+            onTrack(std::make_shared<AACTrack>());
             break;
         }
 
@@ -128,15 +125,13 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
             auto codec = codecid == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
             InfoL << "got audio track: G711";
             //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
-            auto track = std::make_shared<G711Track>(codec, 8000, 1, 16);
-            onTrack(track);
+            onTrack(std::make_shared<G711Track>(codec, 8000, 1, 16));
             break;
         }
 
         case PSI_STREAM_AUDIO_OPUS: {
             InfoL << "got audio track: opus";
-            auto track = std::make_shared<OpusTrack>();
-            onTrack(track);
+            onTrack(std::make_shared<OpusTrack>());
             break;
         }
 
@@ -159,6 +154,9 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
 
     switch (codecid) {
         case PSI_STREAM_H264: {
+            if (!_tracks[TrackVideo]) {
+                onTrack(std::make_shared<H264Track>());
+            }
             auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, (uint32_t)dts, (uint32_t)pts, prefixSize((char *) data, bytes));
             _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
                 onFrame(std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
@@ -167,6 +165,9 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         case PSI_STREAM_H265: {
+            if (!_tracks[TrackVideo]) {
+                onTrack(std::make_shared<H265Track>());
+            }
             auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, (uint32_t)dts, (uint32_t)pts, prefixSize((char *) data, bytes));
             _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
                 onFrame(std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
@@ -180,6 +181,9 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 //这不是aac
                 break;
             }
+            if (!_tracks[TrackAudio]) {
+                onTrack(std::make_shared<AACTrack>());
+            }
             onFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data, bytes, (uint32_t)dts, 0, ADTS_HEADER_LEN));
             break;
         }
@@ -187,11 +191,18 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         case PSI_STREAM_AUDIO_G711A:
         case PSI_STREAM_AUDIO_G711U: {
             auto codec = codecid  == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
+            if (!_tracks[TrackAudio]) {
+                //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
+                onTrack(std::make_shared<G711Track>(codec, 8000, 1, 16));
+            }
             onFrame(std::make_shared<FrameFromPtr>(codec, (char *) data, bytes, (uint32_t)dts));
             break;
         }
 
         case PSI_STREAM_AUDIO_OPUS: {
+            if (!_tracks[TrackAudio]) {
+                onTrack(std::make_shared<OpusTrack>());
+            }
             onFrame(std::make_shared<FrameFromPtr>(CodecOpus, (char *) data, bytes, (uint32_t)dts));
             break;
         }
@@ -212,6 +223,7 @@ void DecoderImp::onStream(int stream,int codecid,const void *extra,size_t bytes,
 #endif
 
 void DecoderImp::onTrack(const Track::Ptr &track) {
+    _tracks[track->getTrackType()] = track;
     _sink->addTrack(track);
 }
 
