@@ -249,8 +249,13 @@ static unordered_map<string, RtpServer::Ptr> s_rtpServerMap;
 static recursive_mutex s_rtpServerMapMtx;
 #endif
 
-static inline string getProxyKey(const string &vhost,const string &app,const string &stream){
+static inline string getProxyKey(const string &vhost, const string &app, const string &stream) {
     return vhost + "/" + app + "/" + stream;
+}
+
+static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream,
+                                  const string &dst_url) {
+    return schema + "/" + vhost + "/" + app + "/" + stream + "/" + MD5(dst_url).hexdigest();
 }
 
 Value makeMediaSourceJson(MediaSource &media){
@@ -606,9 +611,11 @@ void installWebApi() {
                                           const string &app,
                                           const string &stream,
                                           const string &url,
-                                          int retryCount,
+                                          int retry_count,
+                                          int rtp_type,
+                                          float timeout_sec,
                                           const function<void(const SockException &ex, const string &key)> &cb) {
-        auto key = getProxyKey(vhost, app, stream);
+        auto key = getPusherKey(schema, vhost, app, stream, url);
         lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
         if (s_proxyPusherMap.find(key) != s_proxyPusherMap.end()) {
             //已经在推流了
@@ -616,13 +623,17 @@ void installWebApi() {
             return;
         }
 
-        auto poller = EventPollerPool::Instance().getPoller();
-        int retry_count = 3;
-        if (retryCount != 0) retry_count = retryCount;
-
         //添加推流代理
-        PusherProxy::Ptr pusher(new PusherProxy(schema, vhost, app, stream, retry_count, poller));
+        PusherProxy::Ptr pusher(new PusherProxy(schema, vhost, app, stream, retry_count ? retry_count : -1));
         s_proxyPusherMap[key] = pusher;
+
+        //指定RTP over TCP(播放rtsp时有效)
+        (*pusher)[kRtpType] = rtp_type;
+
+        if (timeout_sec > 0.1) {
+            //推流握手超时时间
+            (*pusher)[kTimeoutMS] = timeout_sec * 1000;
+        }
 
         //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
         pusher->setPushCallbackOnce([cb, key, url](const SockException &ex) {
@@ -671,6 +682,8 @@ void installWebApi() {
                              allArgs["stream"],
                              allArgs["dst_url"],
                              allArgs["retry_count"],
+                             allArgs["rtp_type"],
+                             allArgs["timeout_sec"],
                              [invoker, val, headerOut, dst_url](const SockException &ex, const string &key) mutable {
                                  if (ex) {
                                      val["code"] = API::OtherFailed;
