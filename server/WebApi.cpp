@@ -697,10 +697,11 @@ void installWebApi() {
                                     const string &app,
                                     const string &stream,
                                     const string &url,
+                                    int retry_count,
                                     bool enable_hls,
                                     bool enable_mp4,
                                     int rtp_type,
-                                    float timeoutSec,
+                                    float timeout_sec,
                                     const function<void(const SockException &ex,const string &key)> &cb){
         auto key = getProxyKey(vhost,app,stream);
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
@@ -710,15 +711,15 @@ void installWebApi() {
             return;
         }
         //添加拉流代理
-        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4));
+        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4, retry_count ? retry_count : -1));
         s_proxyMap[key] = player;
-        
+
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = rtp_type;
 
-        if (timeoutSec > 0.1) {
+        if (timeout_sec > 0.1) {
             //播放握手超时时间
-            (*player)[kTimeoutMS] = timeoutSec * 1000;
+            (*player)[kTimeoutMS] = timeout_sec * 1000;
         }
 
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
@@ -747,6 +748,7 @@ void installWebApi() {
                        allArgs["app"],
                        allArgs["stream"],
                        allArgs["url"],
+                       allArgs["retry_count"],
                        allArgs["enable_hls"],/* 是否hls转发 */
                        allArgs["enable_mp4"],/* 是否MP4录制 */
                        allArgs["rtp_type"],
@@ -1240,6 +1242,7 @@ void installWebApi() {
                        allArgs["stream"],
                        /** 支持rtsp和rtmp方式拉流 ，rtsp支持h265/h264/aac,rtmp仅支持h264/aac **/
                        "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+                       -1,/*无限重试*/
                        true,/* 开启hls转发 */
                        false,/* 禁用MP4录制 */
                        0,//rtp over tcp方式拉流
