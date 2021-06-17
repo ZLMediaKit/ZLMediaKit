@@ -53,7 +53,7 @@ private:
 private:
     int _retry_count;
     Timer::Ptr _timer;
-
+    std::weak_ptr<MediaSource> _weak_src;
     function<void(const SockException &ex)> _on_close;
     function<void(const SockException &ex)> _on_publish;
 };
