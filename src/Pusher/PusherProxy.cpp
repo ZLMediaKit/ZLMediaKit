@@ -14,13 +14,8 @@ using namespace toolkit;
 
 namespace mediakit {
 
-PusherProxy::PusherProxy(const string& schema, const string &vhost, const string &app, const string &stream,
-            int retry_count, const EventPoller::Ptr &poller)
-            : MediaPusher(schema,vhost, app, stream, poller){
-    _schema = schema;
-    _vhost = vhost;
-    _app = app;
-    _stream_id = stream;
+PusherProxy::PusherProxy(const MediaSource::Ptr &src, int retry_count, const EventPoller::Ptr &poller)
+            : MediaPusher(src, poller){
     _retry_count = retry_count;
     _on_close = [](const SockException &) {};
 }
@@ -53,7 +48,7 @@ void PusherProxy::publish(const string& dstUrl) {
         if (!err) {
             // 推流成功
             *piFailedCnt = 0;
-            InfoL << "pusher publish " << dstUrl << " success";
+            InfoL << "Publish " << dstUrl << " success";
         } else if (*piFailedCnt < strongSelf->_retry_count || strongSelf->_retry_count < 0) {
             // 推流失败，延时重试推送
             strongSelf->rePublish(dstUrl, (*piFailedCnt)++);
@@ -77,7 +72,6 @@ void PusherProxy::publish(const string& dstUrl) {
     });
 
     MediaPusher::publish(dstUrl);
-    _publish_url = dstUrl;
 }
 
 void PusherProxy::rePublish(const string &dstUrl, int iFailedCnt) {
