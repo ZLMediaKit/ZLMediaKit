@@ -191,9 +191,12 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
             }
             switch (frame->getCodecId()) {
                 case CodecH264 : {
-                    if (H264_TYPE(frame->data()[frame->prefixSize()]) == H264Frame::NAL_B_P) {
-                        //如果是264的b/p帧，那么也刷新输出
+                    if (frame->data()[frame->prefixSize()+1]&0x80 !=0) {
+                        //264 新一帧的开始，刷新输出
                         return true;
+                    }else{
+                        // 不刷新输出
+                        return false;
                     }
                     break;
                 }
