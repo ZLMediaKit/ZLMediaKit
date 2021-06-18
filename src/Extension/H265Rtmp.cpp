@@ -165,11 +165,11 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         }
     }
 
-    if(type == H265Frame::NAL_SEI_PREFIX || type == H265Frame::NAL_SEI_SUFFIX){
-        return;
+    if(type == H265Frame::NAL_SEI_PREFIX || type == H265Frame::NAL_SEI_SUFFIX || type == H265Frame::NAL_AUD){
+        return;// 防止sei aud 作为一帧
     }
 
-    if (_lastPacket && (_lastPacket->time_stamp != frame->dts() || type == H265Frame::NAL_TRAIL_R)) {
+    if (_lastPacket && (_lastPacket->time_stamp != frame->dts() || (type >=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR && (pcData[2]>>7 &0x01) !=0))) {
         RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
     }

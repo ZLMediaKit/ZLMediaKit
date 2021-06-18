@@ -183,7 +183,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         }
     }
 
-    if(_lastPacket && (_lastPacket->time_stamp != frame->dts() || pcData[1]&0x80 != 0)) {
+    if(_lastPacket && (_lastPacket->time_stamp != frame->dts() || ((pcData[1]&0x80) != 0 && type>=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR))) {
         RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
     }
