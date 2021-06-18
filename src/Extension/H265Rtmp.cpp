@@ -191,7 +191,9 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         int8_t flags = FLV_CODEC_H265;
         bool is_config = false;
         flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
-
+        // to do
+        // 必须是IDR帧才能是关键帧，否则有可能开始帧会花屏 SPS PPS VPS 打头的是一般I帧，但不一定是IDR帧
+        // RtmpCodec::inputRtmp 时需要判断 是否是IDR帧,做出相应的修改
         _lastPacket = RtmpPacket::create();
         _lastPacket->buffer.push_back(flags);
         _lastPacket->buffer.push_back(!is_config);
