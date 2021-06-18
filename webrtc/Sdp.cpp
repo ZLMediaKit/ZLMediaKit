@@ -704,12 +704,13 @@ string SdpAttrSctpMap::toString() const  {
 }
 
 void SdpAttrCandidate::parse(const string &str)  {
-    char foundation_buf[32] = {0};
+    char foundation_buf[40] = {0};
     char transport_buf[16] = {0};
     char address_buf[32] = {0};
     char type_buf[16] = {0};
 
-    if (7 != sscanf(str.data(), "%31[^ ] %" SCNu32 " %15[^ ] %" SCNu32 " %31[^ ] %" SCNu16 " typ %15[^ ]",
+    // https://datatracker.ietf.org/doc/html/rfc5245#section-15.1
+    if (7 != sscanf(str.data(), "%32[^ ] %" SCNu32 " %15[^ ] %" SCNu32 " %31[^ ] %" SCNu16 " typ %15[^ ]",
                     foundation_buf, &component, transport_buf, &priority, address_buf, &port, type_buf)) {
         SDP_THROW();
     }
