@@ -192,7 +192,7 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
             switch (frame->getCodecId()) {
                 case CodecH264 : {
                     auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
-                    if (frame->data()[frame->prefixSize()+1]&0x80 !=0 && type >=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR ) {// sei aud pps sps 不判断
+                    if ((frame->data()[frame->prefixSize()+1]&0x80) !=0 && type >=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR ) {// sei aud pps sps 不判断
                         //264 新一帧的开始，刷新输出
                         return true;
                     }else{
@@ -202,9 +202,12 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
                     break;
                 }
                 case CodecH265 : {
-                    if (H265_TYPE(frame->data()[frame->prefixSize()]) == H265Frame::NAL_TRAIL_R) {
-                        //如果是265的TRAIL_R帧，那么也刷新输出
+                    auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
+                    if ((type>=H265Frame::NAL_TRAIL_R &&type<= H265Frame::NAL_RSV_IRAP_VCL23) && ( (frame->data()[frame->prefixSize()+2]>>7 & 0x01) != 0)) {
+                        //first_slice_segment_in_pic_flag is frame start  
                         return true;
+                    }else{
+                        return false;
                     }
                     break;
                 }
