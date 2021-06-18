@@ -159,7 +159,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto pcData = frame->data() + frame->prefixSize();
     auto iLen = frame->size() - frame->prefixSize();
     auto type = H264_TYPE(((uint8_t*)pcData)[0]);
-    if(type == H264Frame::NAL_SEI){
+    if(type == H264Frame::NAL_SEI || type == H264Frame::NAL_AUD){
         return;
     }
 
@@ -182,10 +182,20 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
                 break;
         }
     }
-
-    if(_lastPacket && (_lastPacket->time_stamp != frame->dts() || ((pcData[1]&0x80) != 0 && type>=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR))) {
+    if((frame->configFrame() || frame->keyFrame()) && _lastPacket){
+        // key frame or sps pps flush frame
         RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
+        _lastPacketHasVCL = false;
+    }
+
+    if(_lastPacket && (_lastPacket->time_stamp != frame->dts() || ((pcData[1]&0x80) != 0 && type>=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR && _lastPacketHasVCL))) {
+        RtmpCodec::inputRtmp(_lastPacket);
+        _lastPacket = nullptr;
+        _lastPacketHasVCL = false;
+    }
+    if(type>=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR){
+        _lastPacketHasVCL = true;
     }
 
     if(!_lastPacket) {

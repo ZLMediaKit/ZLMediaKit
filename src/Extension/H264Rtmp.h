@@ -80,6 +80,7 @@ private:
 private:
     H264Track::Ptr _track;
     bool _gotSpsPps = false;
+    bool _lastPacketHasVCL = false;
     RtmpPacket::Ptr _lastPacket;
 };
 
