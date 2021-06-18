@@ -169,9 +169,21 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         return;// 防止sei aud 作为一帧
     }
 
-    if (_lastPacket && (_lastPacket->time_stamp != frame->dts() || (type >=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR && (pcData[2]>>7 &0x01) !=0))) {
+    if(frame->configFrame() && _lastPacket &&_lastPacketHasVCL){
+        // sps pps flush frame
         RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
+        _lastPacketHasVCL = false;
+    }
+
+    if (_lastPacket && (_lastPacket->time_stamp != frame->dts() || (_lastPacketHasVCL &&type>=H265Frame::NAL_TRAIL_R &&type<= H265Frame::NAL_RSV_IRAP_VCL23 && (pcData[2]>>7 &0x01) !=0))) {
+        RtmpCodec::inputRtmp(_lastPacket);
+        _lastPacket = nullptr;
+        _lastPacketHasVCL = false;
+    }
+
+    if(type>=H265Frame::NAL_TRAIL_R &&type<= H265Frame::NAL_RSV_IRAP_VCL23){
+        _lastPacketHasVCL = true;
     }
 
     if(!_lastPacket) {
