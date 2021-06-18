@@ -182,8 +182,8 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
                 break;
         }
     }
-    if((frame->configFrame() || frame->keyFrame()) && _lastPacket){
-        // key frame or sps pps flush frame
+    if(frame->configFrame() && _lastPacket &&_lastPacketHasVCL){
+        //sps pps flush frame
         RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
         _lastPacketHasVCL = false;
