@@ -244,8 +244,33 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
         default: /*不可达*/ assert(0); break;
     }
 }
-
+bool FrameMerger::shouldDrop(const Frame::Ptr &frame) const{
+    switch (frame->getCodecId()) {
+                case CodecH264:{
+                    auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
+                    if(type == H264Frame::NAL_SEI || type == H264Frame::NAL_AUD){
+                        // 防止吧AUD或者SEI当成一帧
+                        return  true;
+                    }
+                    break;
+                }
+                case CodecH265: {
+                    //如果是新的一帧，前面的缓存需要输出
+                    auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
+                    if(type == H265Frame::NAL_AUD || type == H265Frame::NAL_SEI_PREFIX || type == H265Frame::NAL_SEI_SUFFIX){
+                        // 防止吧AUD或者SEI当成一帧
+                        return true;
+                    }
+                    break;
+                }
+                default: break;
+            }
+    return false;
+}
 void FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb) {
+    if(shouldDrop(frame)){
+        return;
+    }
     if (willFlush(frame)) {
         Frame::Ptr back = _frameCached.back();
         Buffer::Ptr merged_frame = back;
