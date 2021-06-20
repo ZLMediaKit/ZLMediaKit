@@ -26,8 +26,8 @@
             </p>
 
             <p>
-              <label for="simulecast">simulecast:</label>
-              <input type="checkbox" id='simulecast' checked="checked">
+              <label for="simulcast">simulcast:</label>
+              <input type="checkbox" id='simulcast' checked="checked">
             </p>
             <p>
               <label for="useCamera">useCamera:</label>
@@ -46,14 +46,14 @@
             </p>
 
             <p>
-              <label for="methond">methond(play or push):</label>
-              <input type="radio" name="methond" value="push" >push
-              <input type="radio" name="methond" value="play" checked = true>play
+              <label for="method">method(play or push):</label>
+              <input type="radio" name="method" value="push" >push
+              <input type="radio" name="method" value="play" checked = true>play
             </p>
 
             <p>
-              <label for="resilution">resolution:</label>
-              <select id="resilution">
+              <label for="resolution">resolution:</label>
+              <select id="resolution">
 
               </select>
             </p>
@@ -69,7 +69,7 @@
       var recvOnly = true
       var resArr = []
 
-      document.getElementsByName("methond").forEach((el,idx)=>{
+      document.getElementsByName("method").forEach((el,idx)=>{
         el.onclick=function(e){
           if(el.value == "play")
           {
@@ -91,14 +91,14 @@
           opt = document.createElement('option');
           opt.text = r.label +"("+r.width+"x"+r.height+")";
           opt.value = r;
-          document.getElementById("resilution").add(opt,null)
+          document.getElementById("resolution").add(opt,null)
 
           //console.log(opt.text.match(/\d+/g))
 
         
       })
       function start_play(){
-        let elr = document.getElementById("resilution");
+        let elr = document.getElementById("resolution");
         let res = elr.options[elr.selectedIndex].text.match(/\d+/g);
         let h = parseInt(res.pop());
         let w = parseInt(res.pop());
@@ -108,7 +108,7 @@
                     element: document.getElementById('video'),// video 标签
                     debug: true,// 是否打印日志
                     zlmsdpUrl:document.getElementById('streamUrl').value,//流地址
-                    simulecast:false,//document.getElementById('simulecast').checked,
+                    simulcast:false,//document.getElementById('simulcast').checked,
                     useCamera:document.getElementById('useCamera').checked,
                     audioEnable:document.getElementById('audioEnable').checked,
                     videoEnable:document.getElementById('videoEnable').checked,
@@ -127,9 +127,9 @@
                 console.log('播放成功',e.streams)
             });
     
-            player.on(ZLMRTCClient.Events.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED,function(e)
-            {// offer anwser 交换失败
-                console.log('offer anwser 交换失败',e)
+            player.on(ZLMRTCClient.Events.WEBRTC_OFFER_ANSWER_EXCHANGE_FAILED,function(e)
+            {// offer answer 交换失败
+                console.log('offer answer 交换失败',e)
                 stop();
             });
     
@@ -139,7 +139,7 @@
               document.getElementById('selfVideo').srcObject=s;
               document.getElementById('selfVideo').muted = true;
               
-                //console.log('offer anwser 交换失败',e)
+                //console.log('offer answer 交换失败',e)
             });
 
             player.on(ZLMRTCClient.Events.CAPTURE_STREAM_FAILED,function(s)
@@ -152,7 +152,7 @@
       function start()
       {
         stop();
-        let elr = document.getElementById("resilution");
+        let elr = document.getElementById("resolution");
         let res = elr.options[elr.selectedIndex].text.match(/\d+/g);
         let h = parseInt(res.pop());
         let w = parseInt(res.pop());
