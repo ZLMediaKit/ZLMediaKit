@@ -14,6 +14,7 @@
 #include "Http/HttpTSPlayer.h"
 #include "Extension/CommonRtp.h"
 #include "Extension/H264Rtp.h"
+#include "Extension/Factory.h"
 
 namespace mediakit{
 
@@ -21,6 +22,38 @@ namespace mediakit{
 static inline bool checkTS(const uint8_t *packet, size_t bytes){
     return bytes % TS_PACKET_SIZE == 0 && packet[0] == TS_SYNC_BYTE;
 }
+
+class RtpReceiverImp : public RtpReceiver {
+public:
+    using Ptr = std::shared_ptr<RtpReceiverImp>;
+    RtpReceiverImp( function<void(RtpPacket::Ptr rtp)> cb,  function<void(const RtpPacket::Ptr &rtp)> cb_before = nullptr){
+        _on_sort = std::move(cb);
+        _on_before_sort = std::move(cb_before);
+    }
+
+    ~RtpReceiverImp() override = default;
+
+    bool inputRtp(TrackType type, int samplerate, uint8_t *ptr, size_t len){
+        return handleOneRtp((int) type, type, samplerate, ptr, len);
+    }
+
+protected:
+    void onRtpSorted(RtpPacket::Ptr rtp, int track_index) override {
+        _on_sort(std::move(rtp));
+    }
+
+    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override {
+        if (_on_before_sort) {
+            _on_before_sort(rtp);
+        }
+    }
+
+private:
+    function<void(RtpPacket::Ptr rtp)> _on_sort;
+    function<void(const RtpPacket::Ptr &rtp)> _on_before_sort;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////
 
 GB28181Process::GB28181Process(const MediaInfo &media_info, MediaSinkInterface *interface) {
     assert(interface);
@@ -31,25 +64,57 @@ GB28181Process::GB28181Process(const MediaInfo &media_info, MediaSinkInterface *
 GB28181Process::~GB28181Process() {}
 
 bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
-    return handleOneRtp(0, TrackVideo, 90000, (unsigned char *) data, data_len);
+    RtpHeader *header = (RtpHeader *) data;
+    auto &ref = _rtp_receiver[header->pt];
+    if (!ref) {
+        ref = std::make_shared<RtpReceiverImp>([this](RtpPacket::Ptr rtp) {
+            onRtpSorted(std::move(rtp));
+        });
+    }
+    return ref->inputRtp(TrackVideo, RtpPayload::getClockRate(header->pt), (unsigned char *) data, data_len);
 }
 
-void GB28181Process::onRtpSorted(RtpPacket::Ptr rtp, int) {
+void GB28181Process::onRtpSorted(RtpPacket::Ptr rtp) {
     auto pt = rtp->getHeader()->pt;
-    if (!_rtp_decoder) {
+    auto &ref = _rtp_decoder[pt];
+    if (!ref) {
         switch (pt) {
-            case 98: {
-                //H264负载
-                _rtp_decoder = std::make_shared<H264RtpDecoder>();
-                _interface->addTrack(std::make_shared<H264Track>());
+            case 99: {
+                //H265负载
+                auto track = std::make_shared<H265Track>();
+                _interface->addTrack(track);
+                ref = Factory::getRtpDecoderByTrack(track);
                 break;
             }
+            case 98: {
+                //H264负载
+                auto track = std::make_shared<H264Track>();
+                _interface->addTrack(track);
+                ref = Factory::getRtpDecoderByTrack(track);
+                break;
+            }
+            case 0: {
+                //CodecG711U
+                auto track = std::make_shared<G711Track>(CodecG711U, 8000, 1, 16);
+                _interface->addTrack(track);
+                ref = Factory::getRtpDecoderByTrack(track);
+                break;
+            }
+
+            case 8: {
+                //CodecG711A
+                auto track = std::make_shared<G711Track>(CodecG711A, 8000, 1, 16);
+                _interface->addTrack(track);
+                ref = Factory::getRtpDecoderByTrack(track);
+                break;
+            }
+
             default: {
                 if (pt != 33 && pt != 96) {
                     WarnL << "rtp payload type未识别(" << (int) pt << "),已按ts或ps负载处理";
                 }
                 //ts或ps负载
-                _rtp_decoder = std::make_shared<CommonRtpDecoder>(CodecInvalid, 32 * 1024);
+                ref = std::make_shared<CommonRtpDecoder>(CodecInvalid, 32 * 1024);
                 //设置dump目录
                 GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
                 if (!dump_dir.empty()) {
@@ -65,13 +130,13 @@ void GB28181Process::onRtpSorted(RtpPacket::Ptr rtp, int) {
         }
 
         //设置frame回调
-        _rtp_decoder->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
+        ref->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
             onRtpDecode(frame);
         }));
     }
 
     //解码rtp
-    _rtp_decoder->inputRtp(rtp, false);
+    ref->inputRtp(rtp, false);
 }
 
 const char *GB28181Process::onSearchPacketTail(const char *packet,size_t bytes){
@@ -96,8 +161,8 @@ const char *GB28181Process::onSearchPacketTail(const char *packet,size_t bytes){
 }
 
 void GB28181Process::onRtpDecode(const Frame::Ptr &frame) {
-    if (frame->getCodecId() == CodecH264) {
-        //这是H264
+    if (frame->getCodecId() != CodecInvalid) {
+        //这里不是ps或ts
         _interface->inputFrame(frame);
         return;
     }
