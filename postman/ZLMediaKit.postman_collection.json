@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "ff20487b-d269-40c3-b811-44bc643a3b74",
+		"_postman_id": "fe6cdfbd-531d-45e6-87e5-d460ce9e6328",
 		"name": "ZLMediaKit",
 		"description": "媒体服务器",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -518,6 +518,12 @@
 							"value": "10",
 							"description": "拉流超时时间，单位秒，float类型",
 							"disabled": true
+						},
+						{
+							"key": "retry_count",
+							"value": null,
+							"description": "拉流重试次数,不传此参数或传值<=0时，则无限重试",
+							"disabled": true
 						}
 					]
 				}
@@ -549,6 +555,106 @@
 							"key": "key",
 							"value": "__defaultVhost__/live/1",
 							"description": "addStreamProxy接口返回的key"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "添加rtsp/rtmp推流(addStreamPusherProxy)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/addStreamPusherProxy?secret={{ZLMediaKit_secret}}&schema=rtmp&vhost={{defaultVhost}}&app=live&stream=test&dst_url=rtmp://127.0.0.1/live/push",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"addStreamPusherProxy"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "schema",
+							"value": "rtmp",
+							"description": "推流协议，支持rtsp、rtmp，大小写敏感"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "已注册流的虚拟主机，一般为__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "已注册流的应用名，例如live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "已注册流的id名，例如test"
+						},
+						{
+							"key": "dst_url",
+							"value": "rtmp://127.0.0.1/live/push",
+							"description": "推流地址，需要与schema字段协议一致"
+						},
+						{
+							"key": "rtp_type",
+							"value": "0",
+							"description": "rtsp推流时，推流方式，0：tcp，1：udp",
+							"disabled": true
+						},
+						{
+							"key": "timeout_sec",
+							"value": "10",
+							"description": "推流超时时间，单位秒，float类型",
+							"disabled": true
+						},
+						{
+							"key": "retry_count",
+							"value": null,
+							"description": "推流重试次数,不传此参数或传值<=0时，则无限重试",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "关闭推流(delStreamPusherProxy)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/delStreamPusherProxy?secret={{ZLMediaKit_secret}}&key=__defaultVhost__/live/test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"delStreamPusherProxy"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "key",
+							"value": "__defaultVhost__/live/test",
+							"description": "addStreamPusherProxy接口返回的key"
 						}
 					]
 				}
@@ -786,7 +892,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/startRecord?secret={{ZLMediaKit_secret}}&type=1&vhost={{defaultVhost}}&app=live&stream=obs&customized_path",
+					"raw": "{{ZLMediaKit_URL}}/index/api/startRecord?secret={{ZLMediaKit_secret}}&type=1&vhost={{defaultVhost}}&app=live&stream=obs",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -824,14 +930,14 @@
 						{
 							"key": "customized_path",
 							"value": null,
-							"disabled": true,
-							"description": "录像文件保存自定义根目录，为空则采用配置文件设置"
+							"description": "录像文件保存自定义根目录，为空则采用配置文件设置",
+							"disabled": true
 						},
 						{
 							"key": "max_second",
 							"value": "1000",
-							"disabled": true,
-							"description": "MP4录制的切片时间大小，单位秒"
+							"description": "MP4录制的切片时间大小，单位秒",
+							"disabled": true
 						}
 					]
 				}
@@ -1281,7 +1387,6 @@
 		{
 			"listen": "prerequest",
 			"script": {
-				"id": "90757ea3-58c0-4f84-8000-513ed7088bbc",
 				"type": "text/javascript",
 				"exec": [
 					""
@@ -1291,7 +1396,6 @@
 		{
 			"listen": "test",
 			"script": {
-				"id": "0ddf2b8e-9932-409d-a055-1ab3b7765600",
 				"type": "text/javascript",
 				"exec": [
 					""
@@ -1301,20 +1405,16 @@
 	],
 	"variable": [
 		{
-			"id": "ce426571-eb1e-4067-8901-01978c982fed",
 			"key": "ZLMediaKit_URL",
 			"value": "zlmediakit.com:8880"
 		},
 		{
-			"id": "2d3dfd4a-a39c-47d8-a3e9-37d80352ea5f",
 			"key": "ZLMediaKit_secret",
 			"value": "035c73f7-bb6b-4889-a715-d9eb2d1925cc"
 		},
 		{
-			"id": "0aacc473-3a2e-4ef9-b415-e86ce71e0c42",
 			"key": "defaultVhost",
 			"value": "__defaultVhost__"
 		}
-	],
-	"protocolProfileBehavior": {}
+	]
 }
