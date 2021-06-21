@@ -475,6 +475,7 @@ public:
 private:
     bool willFlush(const Frame::Ptr &frame) const;
     void doMerge(BufferLikeString &buffer, const Frame::Ptr &frame) const;
+    bool shouldDrop(const Frame::Ptr &frame) const;
 
 private:
     int _type;
