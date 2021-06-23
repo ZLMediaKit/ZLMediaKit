@@ -10,7 +10,7 @@
 
 #include "Sdp.h"
 #include "Rtsp/Rtsp.h"
-#include <inttypes.h>
+#include <cinttypes>
 using namespace mediakit;
 
 using onCreateSdpItem = function<SdpItem::Ptr(const string &key, const string &value)>;
