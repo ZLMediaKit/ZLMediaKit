@@ -2,10 +2,12 @@
 %global use_devtoolset 0
 %bcond_without faac
 %bcond_without x264
+%bcond_without webrtc
 %else
 %global use_devtoolset 1
 %bcond_with faac
 %bcond_with x264
+%bcond_with webrtc
 %endif
 
 %bcond_without openssl
@@ -35,6 +37,10 @@ BuildRequires:	faac-devel
 
 %if %{with x264}
 BuildRequires:	x264-devel
+%endif
+
+%if %{with webrtc}
+BuildRequires:	libsrtp-devel >= 2.0
 %endif
 
 %if 0%{?use_devtoolset}
@@ -88,6 +94,7 @@ pushd %{_target_platform}
     -DENABLE_MYSQL:BOOL=%{with mysql} \
     -DENABLE_FAAC:BOOL=%{with faac} \
     -DENABLE_X264:BOOL=%{with x264} \
+    -DENABLE_WEBRTC:BOOL=%{with webrtc} \
     -DENABLE_MP4:BOOL=ON \
     -DENABLE_RTPPROXY:BOOL=ON \
     -DENABLE_API:BOOL=ON \
