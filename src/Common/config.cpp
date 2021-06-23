@@ -260,6 +260,8 @@ const string kFileBufSize = HLS_FIELD"fileBufSize";
 const string kFilePath = HLS_FIELD"filePath";
 // 是否广播 ts 切片完成通知
 const string kBroadcastRecordTs = HLS_FIELD"broadcastRecordTs";
+//hls直播文件删除延时，单位秒
+const string kDeleteDelaySec = HLS_FIELD"deleteDelaySec";
 
 onceToken token([](){
     mINI::Instance()[kSegmentDuration] = 2;
@@ -268,6 +270,7 @@ onceToken token([](){
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kFilePath] = "./www";
     mINI::Instance()[kBroadcastRecordTs] = false;
+    mINI::Instance()[kDeleteDelaySec] = 0;
 },nullptr);
 } //namespace Hls
 
