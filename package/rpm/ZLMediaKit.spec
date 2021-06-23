@@ -24,7 +24,11 @@ URL:		https://github.com/xia-chu/ZLMediaKit
 Source0:	%{name}-%{version}.tar.xz
 
 %if %{with openssl}
+%if 0%{?rhel} <= 7 && %{with webrtc}
+BuildRequires:	openssl11-devel
+%else
 BuildRequires:	openssl-devel
+%endif
 %endif
 
 %if %{with mysql}
