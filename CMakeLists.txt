@@ -55,6 +55,7 @@ option(ENABLE_TESTS "Enable Tests" true)
 option(ENABLE_SERVER "Enable Server" true)
 option(ENABLE_MEM_DEBUG "Enable Memory Debug" false)
 option(ENABLE_ASAN "Enable Address Sanitize" false)
+option(ENABLE_WEBRTC "Enable WebRTC" true)
 
 if (ENABLE_MEM_DEBUG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-wrap,free  -Wl,-wrap,malloc -Wl,-wrap,realloc -Wl,-wrap,calloc")
@@ -86,6 +87,10 @@ if (OPENSSL_FOUND AND ENABLE_OPENSSL)
     include_directories(${OPENSSL_INCLUDE_DIR})
     add_definitions(-DENABLE_OPENSSL)
     list(APPEND LINK_LIB_LIST ${OPENSSL_LIBRARIES})
+    if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND OPENSSL_USE_STATIC_LIBS)
+        list(APPEND LINK_LIB_LIST dl)
+    endif()
+
 else()
     message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效")
 endif ()
@@ -223,6 +228,24 @@ execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini ${EXECUTA
 if(ENABLE_API)
     add_subdirectory(api)
 endif()
+
+if (ENABLE_WEBRTC)
+    #查找srtp是否安装
+    find_package(SRTP QUIET)
+    if (SRTP_FOUND)
+        message(STATUS "found library:${SRTP_LIBRARIES}")
+        include_directories(${SRTP_INCLUDE_DIRS})
+        list(APPEND LINK_LIB_LIST ${SRTP_LIBRARIES})
+
+        add_definitions(-DENABLE_WEBRTC)
+        include_directories(./webrtc)
+        file(GLOB SRC_WEBRTC_LIST ./webrtc/*.cpp ./webrtc/*.h ./webrtc/*.hpp)
+        add_library(webrtc ${SRC_WEBRTC_LIST})
+        list(APPEND LINK_LIB_LIST webrtc)
+    else ()
+        message(WARNING "srtp未找到, webrtc相关功能打开失败")
+    endif ()
+endif ()
 
 if (NOT IOS)
     #测试程序

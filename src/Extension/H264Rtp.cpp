@@ -184,53 +184,109 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ssrc, uint32_t mtu, uint32_t sample_rate
         : RtpInfo(ssrc, mtu, sample_rate, pt, interleaved) {
 }
 
-void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    auto ptr = frame->data() + frame->prefixSize();
-    auto len = frame->size() - frame->prefixSize();
-    auto pts = frame->pts();
-    auto nal_type = H264_TYPE(ptr[0]);
-    auto packet_size = getMaxSize() - 2;
+void H264RtpEncoder::insertConfigFrame(uint32_t pts){
+    if (!_sps || !_pps) {
+        return;
+    }
+    //gop缓存从sps开始，sps、pps后面还有时间戳相同的关键帧，所以mark bit为false
+    packRtp(_sps->data() + _sps->prefixSize(), _sps->size() - _sps->prefixSize(), pts, false, true);
+    packRtp(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, false);
+}
 
-    //末尾5bit为nalu type，固定为28(FU-A)
-    auto fu_char_0 = (ptr[0] & (~0x1F)) | 28;
-    auto fu_char_1 = nal_type;
-    FuFlags *fu_flags = (FuFlags *) (&fu_char_1);
-    fu_flags->start_bit = 1;
-
-    //超过MTU则按照FU-A模式打包
-    if (len > packet_size + 1) {
-        size_t offset = 1;
-        while (!fu_flags->end_bit) {
-            if (!fu_flags->start_bit && len <= offset + packet_size) {
-                //FU-A end
-                packet_size = len - offset;
-                fu_flags->end_bit = 1;
-            }
-
-            //传入nullptr先不做payload的内存拷贝
-            auto rtp = makeRtp(getTrackType(), nullptr, packet_size + 2, fu_flags->end_bit, pts);
-            //rtp payload 负载部分
-            uint8_t *payload = rtp->getPayload();
-            //FU-A 第1个字节
-            payload[0] = fu_char_0;
-            //FU-A 第2个字节
-            payload[1] = fu_char_1;
-            //H264 数据
-            memcpy(payload + 2, (uint8_t *) ptr + offset, packet_size);
-            //输入到rtp环形缓存
-            RtpCodec::inputRtp(rtp, fu_flags->start_bit && nal_type == H264Frame::NAL_IDR);
-
-            offset += packet_size;
-            fu_flags->start_bit = 0;
-        }
+void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint32_t pts, bool is_mark, bool gop_pos){
+    if (len + 3 <= getMaxSize()) {
+        //STAP-A模式打包小于MTU
+        packRtpStapA(ptr, len, pts, is_mark, gop_pos);
     } else {
-        //如果帧长度不超过mtu, 则按照Single NAL unit packet per H.264 方式打包
-        makeH264Rtp(ptr, len, false, false, pts);
+        //STAP-A模式打包会大于MTU,所以采用FU-A模式
+        packRtpFu(ptr, len, pts, is_mark, gop_pos);
     }
 }
 
-void H264RtpEncoder::makeH264Rtp(const void* data, size_t len, bool mark, bool gop_pos, uint32_t uiStamp) {
-    RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, mark, uiStamp), gop_pos);
+void H264RtpEncoder::packRtpFu(const char *ptr, size_t len, uint32_t pts, bool is_mark, bool gop_pos){
+    auto packet_size = getMaxSize() - 2;
+    if (len <= packet_size + 1) {
+        //小于FU-A打包最小字节长度要求，采用STAP-A模式
+        packRtpStapA(ptr, len, pts, is_mark, gop_pos);
+        return;
+    }
+
+    //末尾5bit为nalu type，固定为28(FU-A)
+    auto fu_char_0 = (ptr[0] & (~0x1F)) | 28;
+    auto fu_char_1 = H264_TYPE(ptr[0]);
+    FuFlags *fu_flags = (FuFlags *) (&fu_char_1);
+    fu_flags->start_bit = 1;
+
+    size_t offset = 1;
+    while (!fu_flags->end_bit) {
+        if (!fu_flags->start_bit && len <= offset + packet_size) {
+            //FU-A end
+            packet_size = len - offset;
+            fu_flags->end_bit = 1;
+        }
+
+        //传入nullptr先不做payload的内存拷贝
+        auto rtp = makeRtp(getTrackType(), nullptr, packet_size + 2, fu_flags->end_bit && is_mark, pts);
+        //rtp payload 负载部分
+        uint8_t *payload = rtp->getPayload();
+        //FU-A 第1个字节
+        payload[0] = fu_char_0;
+        //FU-A 第2个字节
+        payload[1] = fu_char_1;
+        //H264 数据
+        memcpy(payload + 2, (uint8_t *) ptr + offset, packet_size);
+        //输入到rtp环形缓存
+        RtpCodec::inputRtp(rtp, gop_pos);
+
+        offset += packet_size;
+        fu_flags->start_bit = 0;
+    }
+}
+
+void H264RtpEncoder::packRtpStapA(const char *ptr, size_t len, uint32_t pts, bool is_mark, bool gop_pos){
+    //如果帧长度不超过mtu,为了兼容性 webrtc，采用STAP-A模式打包
+    auto rtp = makeRtp(getTrackType(), nullptr, len + 3, is_mark, pts);
+    uint8_t *payload = rtp->getPayload();
+    //STAP-A
+    payload[0] = (ptr[0] & (~0x1F)) | 24;
+    payload[1] = (len >> 8) & 0xFF;
+    payload[2] = len & 0xff;
+    memcpy(payload + 3, (uint8_t *) ptr, len);
+
+    RtpCodec::inputRtp(rtp, gop_pos);
+}
+
+void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
+    auto ptr = frame->data() + frame->prefixSize();
+    switch (H264_TYPE(ptr[0])) {
+        case H264Frame::NAL_AUD:
+        case H264Frame::NAL_SEI : {
+            return;
+        }
+        case H264Frame::NAL_SPS: {
+            _sps = Frame::getCacheAbleFrame(frame);
+            return;
+        }
+        case H264Frame::NAL_PPS: {
+            _pps = Frame::getCacheAbleFrame(frame);
+            return;
+        }
+        default: break;
+    }
+
+    if (_last_frame) {
+        //如果时间戳发生了变化，那么markbit才置true
+        inputFrame_l(_last_frame, _last_frame->pts() != frame->pts());
+    }
+    _last_frame = Frame::getCacheAbleFrame(frame);
+}
+
+void H264RtpEncoder::inputFrame_l(const Frame::Ptr &frame, bool is_mark){
+    if (frame->keyFrame()) {
+        //保证每一个关键帧前都有SPS与PPS
+        insertConfigFrame(frame->pts());
+    }
+    packRtp(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), frame->pts(), is_mark, false);
 }
 
 }//namespace mediakit

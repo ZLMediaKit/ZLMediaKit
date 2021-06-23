@@ -458,9 +458,18 @@ size_t RtpHeader::getExtSize() const {
         return 0;
     }
     auto ext_ptr = &payload + getCsrcSize();
-    uint16_t reserved = AV_RB16(ext_ptr);
+    //uint16_t reserved = AV_RB16(ext_ptr);
     //每个ext占用4字节
     return AV_RB16(ext_ptr + 2) << 2;
+}
+
+uint16_t RtpHeader::getExtReserved() const{
+    //rtp有ext
+    if (!ext) {
+        return 0;
+    }
+    auto ext_ptr = &payload + getCsrcSize();
+    return AV_RB16(ext_ptr);
 }
 
 uint8_t *RtpHeader::getExtData() {
@@ -469,7 +478,7 @@ uint8_t *RtpHeader::getExtData() {
     }
     auto ext_ptr = &payload + getCsrcSize();
     //多出的4个字节分别为reserved、ext_len
-    return ext_ptr + 4 + getExtSize();
+    return ext_ptr + 4;
 }
 
 size_t RtpHeader::getPayloadOffset() const {
@@ -519,6 +528,10 @@ string RtpHeader::dumpString(size_t rtp_size) const{
 RtpHeader* RtpPacket::getHeader(){
     //需除去rtcp over tcp 4个字节长度
     return (RtpHeader*)(data() + RtpPacket::kRtpTcpHeaderSize);
+}
+
+string RtpPacket::dumpString() const{
+    return ((RtpPacket *) this)->getHeader()->dumpString(size() - RtpPacket::kRtpTcpHeaderSize);
 }
 
 uint16_t RtpPacket::getSeq(){

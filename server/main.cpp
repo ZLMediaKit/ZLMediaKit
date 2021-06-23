@@ -25,6 +25,7 @@
 #include "Rtp/RtpServer.h"
 #include "WebApi.h"
 #include "WebHook.h"
+#include "../webrtc/Sdp.h"
 
 #if defined(ENABLE_VERSION)
 #include "Version.h"

@@ -205,7 +205,7 @@ public:
         if (bitrate) {
             _printer << "b=AS:" << bitrate << "\r\n";
         }
-        _printer << "a=rtpmap:" << payload_type << " mpeg4-generic/" << sample_rate << "/" << channels << "\r\n";
+        _printer << "a=rtpmap:" << payload_type << " " << getCodecName() << "/" << sample_rate << "/" << channels << "\r\n";
 
         string configStr;
         char buf[4] = {0};
