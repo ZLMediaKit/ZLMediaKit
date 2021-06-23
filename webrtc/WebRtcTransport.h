@@ -350,15 +350,17 @@ private:
         uint32_t answer_ssrc_rtx = 0;
         const RtcMedia *media;
         NackList nack_list;
-        NackContext nack_ctx;
-        RtcpContext::Ptr rtcp_context_recv;
         RtcpContext::Ptr rtcp_context_send;
-        std::shared_ptr<RtpReceiverImp> receiver;
+        unordered_map<string/*rid*/, std::pair<uint32_t/*rtp ssrc*/, uint32_t/*rtx ssrc*/> > rid_ssrc;
+        unordered_map<uint32_t/*rtx ssrc*/, uint32_t/*rtp ssrc*/> rtx_ssrc_to_rtp_ssrc;
+        unordered_map<uint32_t/*simulcast ssrc*/, NackContext> nack_ctx;
+        unordered_map<uint32_t/*simulcast ssrc*/, RtcpContext::Ptr> rtcp_context_recv;
+        unordered_map<uint32_t/*simulcast ssrc*/, std::shared_ptr<RtpReceiverImp> > receiver;
     };
 
     void onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp);
-    void onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack);
-    void changeRtpExtId(const RtpPayloadInfo *info, const RtpHeader *header, bool is_recv, bool is_rtx = false) const;
+    void onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack, uint32_t ssrc);
+    void changeRtpExtId(RtpPayloadInfo &info, const RtpHeader *header, bool is_recv, bool is_rtx = false, string *rid_ptr = nullptr) const;
 
 private:
     uint16_t _rtx_seq[2] = {0, 0};
