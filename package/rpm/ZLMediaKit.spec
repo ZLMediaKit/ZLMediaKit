@@ -99,6 +99,9 @@ pushd %{_target_platform}
     -DENABLE_FAAC:BOOL=%{with faac} \
     -DENABLE_X264:BOOL=%{with x264} \
     -DENABLE_WEBRTC:BOOL=%{with webrtc} \
+%if %{with webrtc} && 0%{?rhel} <= 7
+    -DOPENSSL_ROOT_DIR:STRING="/usr/lib64/openssl11;/usr/include/openssl11" \
+%endif
     -DENABLE_MP4:BOOL=ON \
     -DENABLE_RTPPROXY:BOOL=ON \
     -DENABLE_API:BOOL=ON \
