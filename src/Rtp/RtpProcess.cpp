@@ -13,14 +13,17 @@
 #include "RtpProcess.h"
 #include "Http/HttpTSPlayer.h"
 
-#define RTP_APP_NAME "rtp"
+static constexpr char kRtpAppName[] = "rtp";
+//在创建_muxer对象前(也就是推流鉴权成功前)，需要先缓存frame，这样可以防止丢包，提高体验
+//但是同时需要控制缓冲长度，防止内存溢出。200帧数据，大概有10秒数据，应该足矣等待鉴权hook返回
+static constexpr size_t kMaxCachedFrame = 200;
 
 namespace mediakit {
 
 RtpProcess::RtpProcess(const string &stream_id) {
-    _media_info._schema = RTP_APP_NAME;
+    _media_info._schema = kRtpAppName;
     _media_info._vhost = DEFAULT_VHOST;
-    _media_info._app = RTP_APP_NAME;
+    _media_info._app = kRtpAppName;
     _media_info._streamid = stream_id;
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
@@ -112,8 +115,8 @@ void RtpProcess::inputFrame(const Frame::Ptr &frame) {
         _last_frame_time.resetTime();
         _muxer->inputFrame(frame);
     } else {
-        if (_cached_func.size() > 100) {
-            WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now droped";
+        if (_cached_func.size() > kMaxCachedFrame) {
+            WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now dropped";
             return;
         }
         auto frame_cached = Frame::getCacheAbleFrame(frame);
