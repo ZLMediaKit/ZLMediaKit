@@ -11,7 +11,7 @@
 #include "Frame.h"
 #include "H264.h"
 #include "H265.h"
-
+#include "Common/Parser.h"
 using namespace std;
 using namespace toolkit;
 
@@ -106,30 +106,50 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
     return std::make_shared<FrameCacheAble>(frame);
 }
 
-#define SWITCH_CASE(codec_id) case codec_id : return #codec_id
-const char *getCodecName(CodecId codecId) {
+TrackType getTrackType(CodecId codecId) {
     switch (codecId) {
-        SWITCH_CASE(CodecH264);
-        SWITCH_CASE(CodecH265);
-        SWITCH_CASE(CodecAAC);
-        SWITCH_CASE(CodecG711A);
-        SWITCH_CASE(CodecG711U);
-        SWITCH_CASE(CodecOpus);
-        SWITCH_CASE(CodecL16);
-        default : return "unknown codec";
+#define XX(name, type, value, str) case name : return type;
+        CODEC_MAP(XX)
+#undef XX
+        default : return TrackInvalid;
     }
 }
 
-TrackType getTrackType(CodecId codecId){
-    switch (codecId){
-        case CodecH264:
-        case CodecH265: return TrackVideo;
-        case CodecAAC:
-        case CodecG711A:
-        case CodecG711U:
-        case CodecOpus: 
-        case CodecL16: return TrackAudio;
-        default: return TrackInvalid;
+const char *getCodecName(CodecId codec) {
+    switch (codec) {
+#define XX(name, type, value, str) case name : return str;
+        CODEC_MAP(XX)
+#undef XX
+        default : return "invalid";
+    }
+}
+
+#define XX(name, type, value, str) {str, name},
+static map<string, CodecId, StrCaseCompare> codec_map = {CODEC_MAP(XX)};
+#undef XX
+
+CodecId getCodecId(const string &str){
+    auto it = codec_map.find(str);
+    return it == codec_map.end() ? CodecInvalid : it->second;
+}
+
+static map<string, TrackType, StrCaseCompare> track_str_map = {
+        {"video",       TrackVideo},
+        {"audio",       TrackAudio},
+        {"application", TrackApplication}
+};
+
+TrackType getTrackType(const string &str) {
+    auto it = track_str_map.find(str);
+    return it == track_str_map.end() ? TrackInvalid : it->second;
+}
+
+const char* getTrackString(TrackType type){
+    switch (type) {
+        case TrackVideo : return "video";
+        case TrackAudio : return "audio";
+        case TrackApplication : return "application";
+        default: return "invalid";
     }
 }
 
@@ -171,16 +191,23 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
             }
             switch (frame->getCodecId()) {
                 case CodecH264 : {
-                    if (H264_TYPE(frame->data()[frame->prefixSize()]) == H264Frame::NAL_B_P) {
-                        //如果是264的b/p帧，那么也刷新输出
+                    auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
+                    if ((frame->data()[frame->prefixSize()+1]&0x80) !=0 && type >=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR ) {// sei aud pps sps 不判断
+                        //264 新一帧的开始，刷新输出
                         return true;
+                    }else{
+                        // 不刷新输出
+                        return false;
                     }
                     break;
                 }
                 case CodecH265 : {
-                    if (H265_TYPE(frame->data()[frame->prefixSize()]) == H265Frame::NAL_TRAIL_R) {
-                        //如果是265的TRAIL_R帧，那么也刷新输出
+                    auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
+                    if ((type>=H265Frame::NAL_TRAIL_R &&type<= H265Frame::NAL_RSV_IRAP_VCL23) && ( (frame->data()[frame->prefixSize()+2]>>7 & 0x01) != 0)) {
+                        //first_slice_segment_in_pic_flag is frame start  
                         return true;
+                    }else{
+                        return false;
                     }
                     break;
                 }
@@ -217,8 +244,33 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
         default: /*不可达*/ assert(0); break;
     }
 }
-
+bool FrameMerger::shouldDrop(const Frame::Ptr &frame) const{
+    switch (frame->getCodecId()) {
+                case CodecH264:{
+                    auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
+                    if(type == H264Frame::NAL_SEI || type == H264Frame::NAL_AUD){
+                        // 防止吧AUD或者SEI当成一帧
+                        return  true;
+                    }
+                    break;
+                }
+                case CodecH265: {
+                    //如果是新的一帧，前面的缓存需要输出
+                    auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
+                    if(type == H265Frame::NAL_AUD || type == H265Frame::NAL_SEI_PREFIX || type == H265Frame::NAL_SEI_SUFFIX){
+                        // 防止吧AUD或者SEI当成一帧
+                        return true;
+                    }
+                    break;
+                }
+                default: break;
+            }
+    return false;
+}
 void FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb) {
+    if(shouldDrop(frame)){
+        return;
+    }
     if (willFlush(frame)) {
         Frame::Ptr back = _frameCached.back();
         Buffer::Ptr merged_frame = back;

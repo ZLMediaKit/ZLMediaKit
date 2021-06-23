@@ -181,17 +181,15 @@ void H264Track::inputFrame_l(const Frame::Ptr &frame){
             _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
             break;
         }
-        case H264Frame::NAL_IDR: {
-            insertConfigFrame(frame);
-            VideoTrack::inputFrame(frame);
-            break;
-        }
         case H264Frame::NAL_AUD: {
             //忽略AUD帧;
             break;
         }
 
         default:
+            if (frame->keyFrame()) {
+                insertConfigFrame(frame);
+            }
             VideoTrack::inputFrame(frame);
             break;
     }
@@ -235,7 +233,7 @@ public:
         if (bitrate) {
             _printer << "b=AS:" << bitrate << "\r\n";
         }
-        _printer << "a=rtpmap:" << payload_type << " H264/" << 90000 << "\r\n";
+        _printer << "a=rtpmap:" << payload_type << " " << getCodecName() << "/" << 90000 << "\r\n";
         _printer << "a=fmtp:" << payload_type << " packetization-mode=1; profile-level-id=";
 
         char strTemp[1024];
@@ -281,7 +279,8 @@ Sdp::Ptr H264Track::getSdp() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool H264Frame::keyFrame() const {
-    return H264_TYPE(_buffer[_prefix_size]) == H264Frame::NAL_IDR;
+    //多slice 一帧的情况下检查 first_mb_in_slice 是否为0 表示其为一帧的开始
+    return H264_TYPE(_buffer[_prefix_size]) == H264Frame::NAL_IDR && (_buffer[_prefix_size + 1] & 0x80);
 }
 
 bool H264Frame::configFrame() const {

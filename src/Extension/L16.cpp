@@ -33,7 +33,7 @@ public:
         if (bitrate) {
             _printer << "b=AS:" << bitrate << "\r\n";
         }
-        _printer << "a=rtpmap:" << payload_type << " L16/" << sample_rate  << "/" << channels << "\r\n";
+        _printer << "a=rtpmap:" << payload_type << " " << getCodecName() << "/" << sample_rate  << "/" << channels << "\r\n";
         _printer << "a=control:trackID=" << (int)TrackAudio << "\r\n";
     }
 

@@ -119,6 +119,8 @@ public:
 
     //返回ext字段字节长度
     size_t getExtSize() const;
+    //返回ext reserved值
+    uint16_t getExtReserved() const;
     //返回ext段首地址，不存在时返回nullptr
     uint8_t *getExtData();
 
@@ -150,7 +152,11 @@ public:
         kRtpTcpHeaderSize = 4
     };
 
+    //获取rtp头
     RtpHeader* getHeader();
+    //打印调试信息
+    string dumpString() const;
+
     //主机字节序的seq
     uint16_t getSeq();
     //主机字节序的时间戳，已经转换为毫秒

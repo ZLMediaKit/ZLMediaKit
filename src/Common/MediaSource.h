@@ -45,7 +45,8 @@ enum class MediaOriginType : uint8_t {
     pull,
     ffmpeg_pull,
     mp4_vod,
-    device_chn
+    device_chn,
+    rtc_push,
 };
 
 string getOriginTypeString(MediaOriginType type);
