@@ -792,8 +792,11 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
             }
         }
         //解析并排序rtp
-        assert(ref);
-        ref->inputRtp(info->media->type, info->plan_rtp->sample_rate, (uint8_t *) buf, len);
+        if (ref) {
+            ref->inputRtp(info->media->type, info->plan_rtp->sample_rate, (uint8_t *) buf, len);
+        } else {
+            WarnL << "rtp dropped, ssrc:" << ssrc << ", is rtx:" << rtx;
+        }
         return;
     }
 
@@ -945,7 +948,7 @@ void WebRtcTransportImp::onShutdown(const SockException &ex){
 
 bool WebRtcTransportImp::close(MediaSource &sender, bool force) {
     //此回调在其他线程触发
-    if(!_push_src || (!force && _push_src->totalReaderCount())){
+    if (!force && totalReaderCount(sender)) {
         return false;
     }
     string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
@@ -954,7 +957,11 @@ bool WebRtcTransportImp::close(MediaSource &sender, bool force) {
 }
 
 int WebRtcTransportImp::totalReaderCount(MediaSource &sender) {
-    return _push_src ? _push_src->totalReaderCount() : sender.readerCount();
+    auto total_count = 0;
+    for (auto &src : _push_src_simulcast) {
+        total_count += src.second->totalReaderCount();
+    }
+    return total_count;
 }
 
 MediaOriginType WebRtcTransportImp::getOriginType(MediaSource &sender) const {
