@@ -103,19 +103,16 @@ static const char *getCodecName(int codec_id) {
 void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t bytes, int finish){
     switch (codecid) {
         case PSI_STREAM_H264: {
-            InfoL << "got video track: H264";
             onTrack(std::make_shared<H264Track>());
             break;
         }
 
         case PSI_STREAM_H265: {
-            InfoL << "got video track: H265";
             onTrack(std::make_shared<H265Track>());
             break;
         }
 
         case PSI_STREAM_AAC: {
-            InfoL<< "got audio track: AAC";
             onTrack(std::make_shared<AACTrack>());
             break;
         }
@@ -123,14 +120,12 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
         case PSI_STREAM_AUDIO_G711A:
         case PSI_STREAM_AUDIO_G711U: {
             auto codec = codecid == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
-            InfoL << "got audio track: G711";
             //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
             onTrack(std::make_shared<G711Track>(codec, 8000, 1, 16));
             break;
         }
 
         case PSI_STREAM_AUDIO_OPUS: {
-            InfoL << "got audio track: opus";
             onTrack(std::make_shared<OpusTrack>());
             break;
         }
@@ -223,8 +218,11 @@ void DecoderImp::onStream(int stream,int codecid,const void *extra,size_t bytes,
 #endif
 
 void DecoderImp::onTrack(const Track::Ptr &track) {
-    _tracks[track->getTrackType()] = track;
-    _sink->addTrack(track);
+    if (!_tracks[track->getTrackType()]) {
+        _tracks[track->getTrackType()] = track;
+        _sink->addTrack(track);
+        InfoL << "got track: " << track->getCodecName();
+    }
 }
 
 void DecoderImp::onFrame(const Frame::Ptr &frame) {

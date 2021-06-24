@@ -23,6 +23,7 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
                          uint32_t bufSize,
                          float seg_duration,
                          uint32_t seg_number) : HlsMaker(seg_duration, seg_number) {
+    _poller = EventPollerPool::Instance().getPoller();
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
     _params = params;
@@ -35,18 +36,30 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
 }
 
 HlsMakerImp::~HlsMakerImp() {
-    clearCache();
+    clearCache(false);
 }
 
-void HlsMakerImp::clearCache() {
+void HlsMakerImp::clearCache(bool immediately) {
     //录制完了
     flushLastSegment(true);
-    if (isLive()) {
-        //hls直播才删除文件
-        clear();
-        _file = nullptr;
-        _segment_file_paths.clear();
+    if (!isLive()) {
+        return;
+    }
+
+    clear();
+    _file = nullptr;
+    _segment_file_paths.clear();
+
+    //hls直播才删除文件
+    GET_CONFIG(uint32_t, delay, Hls::kDeleteDelaySec);
+    if (!delay || immediately) {
         File::delete_file(_path_prefix.data());
+    } else {
+        auto path_prefix = _path_prefix;
+        _poller->doDelayTask(delay * 1000, [path_prefix]() {
+            File::delete_file(path_prefix.data());
+            return 0;
+        });
     }
 }
 

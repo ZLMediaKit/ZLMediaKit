@@ -210,7 +210,8 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::P
     buffer_header->setSize(sizeof(RtmpHeader));
     //对rtmp头赋值，如果使用整形赋值，在arm android上可能由于数据对齐导致总线错误的问题
     RtmpHeader *header = (RtmpHeader *) buffer_header->data();
-    header->flags = (chunk_id & 0x3f) | (0 << 6);
+    header->fmt = 0;
+    header->chunk_id = chunk_id;
     header->type_id = type;
     set_be24(header->time_stamp, ext_stamp ? 0xFFFFFF : stamp);
     set_be24(header->body_size, (uint32_t)buf->size());
@@ -232,7 +233,9 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::P
     BufferRaw::Ptr buffer_flags = obtainBuffer();
     buffer_flags->setCapacity(1);
     buffer_flags->setSize(1);
-    buffer_flags->data()[0] = (chunk_id & 0x3f) | (3 << 6);
+    header = (RtmpHeader *) buffer_flags->data();
+    header->fmt = 3;
+    header->chunk_id = chunk_id;
 
     size_t offset = 0;
     size_t totalSize = sizeof(RtmpHeader);
@@ -523,15 +526,15 @@ const char* RtmpProtocol::handle_C2(const char *data, size_t len) {
     return handle_rtmp(data + C1_HANDSHARK_SIZE, len - C1_HANDSHARK_SIZE);
 }
 
-static const size_t HEADER_LENGTH[] = {12, 8, 4, 1};
+static constexpr size_t HEADER_LENGTH[] = {12, 8, 4, 1};
 
 const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
     auto ptr = data;
     while (len) {
-        int offset = 0;
-        uint8_t flags = ptr[0];
-        size_t header_len = HEADER_LENGTH[flags >> 6];
-        _now_chunk_id = flags & 0x3f;
+        size_t offset = 0;
+        auto header = (RtmpHeader *) ptr;
+        auto header_len = HEADER_LENGTH[header->fmt];
+        _now_chunk_id = header->chunk_id;
         switch (_now_chunk_id) {
             case 0: {
                 //0 值表示二字节形式，并且 ID 范围 64 - 319
@@ -565,7 +568,7 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             //need more data
             return ptr;
         }
-        RtmpHeader &header = *((RtmpHeader *) (ptr + offset));
+        header = (RtmpHeader *) (ptr + offset);
         auto &pr = _map_chunk_data[_now_chunk_id];
         auto &now_packet = pr.first;
         auto &last_packet = pr.second;
@@ -583,12 +586,12 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
         switch (header_len) {
             case 12:
                 chunk_data.is_abs_stamp = true;
-                chunk_data.stream_index = load_le32(header.stream_index);
+                chunk_data.stream_index = load_le32(header->stream_index);
             case 8:
-                chunk_data.body_size = load_be24(header.body_size);
-                chunk_data.type_id = header.type_id;
+                chunk_data.body_size = load_be24(header->body_size);
+                chunk_data.type_id = header->type_id;
             case 4:
-                chunk_data.ts_field = load_be24(header.time_stamp);
+                chunk_data.ts_field = load_be24(header->time_stamp);
         }
 
         auto time_stamp = chunk_data.ts_field;

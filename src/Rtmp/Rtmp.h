@@ -115,7 +115,14 @@ public:
 
 class RtmpHeader {
 public:
-    uint8_t flags;
+#if __BYTE_ORDER == __BIG_ENDIAN
+    uint8_t fmt : 2;
+    uint8_t chunk_id : 6;
+#else
+    uint8_t chunk_id : 6;
+    //0、1、2、3分别对应 12、8、4、1长度
+    uint8_t fmt : 2;
+#endif
     uint8_t time_stamp[3];
     uint8_t body_size[3];
     uint8_t type_id;
