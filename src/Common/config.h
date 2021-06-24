@@ -293,6 +293,8 @@ extern const string kFileBufSize;
 extern const string kFilePath;
 // 是否广播 ts 切片完成通知
 extern const string kBroadcastRecordTs;
+//hls直播文件删除延时，单位秒
+extern const string kDeleteDelaySec;
 } //namespace Hls
 
 ////////////Rtp代理相关配置///////////

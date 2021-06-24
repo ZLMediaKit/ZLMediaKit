@@ -4,7 +4,7 @@ var ZLMRTCClient = (function (exports) {
 	const Events$1 = {
 	  WEBRTC_NOT_SUPPORT: 'WEBRTC_NOT_SUPPORT',
 	  WEBRTC_ICE_CANDIDATE_ERROR: 'WEBRTC_ICE_CANDIDATE_ERROR',
-	  WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED: 'WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED',
+	  WEBRTC_OFFER_ANSWER_EXCHANGE_FAILED: 'WEBRTC_OFFER_ANSWER_EXCHANGE_FAILED',
 	  WEBRTC_ON_REMOTE_STREAMS: 'WEBRTC_ON_REMOTE_STREAMS',
 	  WEBRTC_ON_LOCAL_STREAM: 'WEBRTC_ON_LOCAL_STREAM',
 	  CAPTURE_STREAM_FAILED: 'CAPTURE_STREAM_FAILED'
@@ -7285,7 +7285,7 @@ var ZLMRTCClient = (function (exports) {
 	      debug: false,
 	      // if output debug log
 	      zlmsdpUrl: '',
-	      simulecast: false,
+	      simulcast: false,
 	      useCamera: true,
 	      audioEnable: true,
 	      videoEnable: true,
@@ -7342,16 +7342,16 @@ var ZLMRTCClient = (function (exports) {
 	          let ret = response.data; //JSON.parse(response.data);
 
 	          if (ret.code != 0) {
-	            // mean failed for offer/anwser exchange 
-	            this.dispatch(Events$1.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED, ret);
+	            // mean failed for offer/answer exchange 
+	            this.dispatch(Events$1.WEBRTC_OFFER_ANSWER_EXCHANGE_FAILED, ret);
 	            return;
 	          }
 
-	          let anwser = {};
-	          anwser.sdp = ret.sdp;
-	          anwser.type = 'answer';
+	          let answer = {};
+	          answer.sdp = ret.sdp;
+	          answer.type = 'answer';
 	          log(this.TAG, 'answer:', ret.sdp);
-	          this.pc.setRemoteDescription(anwser).then(() => {
+	          this.pc.setRemoteDescription(answer).then(() => {
 	            log(this.TAG, 'set remote sucess');
 	          }).catch(e => {
 	            error(this.TAG, e);
@@ -7398,7 +7398,7 @@ var ZLMRTCClient = (function (exports) {
 	        sendEncodings: []
 	      };
 
-	      if (this.options.simulecast && stream.getVideoTracks().length > 0) {
+	      if (this.options.simulcast && stream.getVideoTracks().length > 0) {
 	        VideoTransceiverInit.sendEncodings = [{
 	          rid: 'q',
 	          active: true,
@@ -7449,16 +7449,16 @@ var ZLMRTCClient = (function (exports) {
 	            let ret = response.data; //JSON.parse(response.data);
 
 	            if (ret.code != 0) {
-	              // mean failed for offer/anwser exchange 
-	              this.dispatch(Events$1.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED, ret);
+	              // mean failed for offer/answer exchange 
+	              this.dispatch(Events$1.WEBRTC_OFFER_ANSWER_EXCHANGE_FAILED, ret);
 	              return;
 	            }
 
-	            let anwser = {};
-	            anwser.sdp = ret.sdp;
-	            anwser.type = 'answer';
+	            let answer = {};
+	            answer.sdp = ret.sdp;
+	            answer.type = 'answer';
 	            log(this.TAG, 'answer:', ret.sdp);
-	            this.pc.setRemoteDescription(anwser).then(() => {
+	            this.pc.setRemoteDescription(answer).then(() => {
 	              log(this.TAG, 'set remote sucess');
 	            }).catch(e => {
 	              error(this.TAG, e);

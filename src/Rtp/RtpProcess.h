@@ -79,6 +79,7 @@ protected:
 
 private:
     void emitOnPublish();
+    void doCachedFunc();
 
 private:
     uint32_t _dts = 0;
@@ -95,6 +96,8 @@ private:
     atomic_bool _stop_rtp_check{false};
     atomic_flag _busy_flag{false};
     Ticker _last_check_alive;
+    recursive_mutex _func_mtx;
+    deque<function<void()> > _cached_func;
 };
 
 }//namespace mediakit

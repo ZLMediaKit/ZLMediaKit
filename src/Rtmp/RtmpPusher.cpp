@@ -47,6 +47,7 @@ void RtmpPusher::teardown() {
 }
 
 void RtmpPusher::onPublishResult(const SockException &ex, bool handshake_done) {
+    DebugL << ex.what();
     if (ex.getErrCode() == Err_shutdown) {
         //主动shutdown的，不触发回调
         return;

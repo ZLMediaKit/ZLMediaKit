@@ -31,7 +31,7 @@ ZLMediaKit的WebRTC相关功能目前仅供测试与开发，现在还不成熟�
 
 - 1、完善webrtc rtcp相关功能，包括丢包重传、带宽检测等功能。
 - 2、实现rtp重传等相关功能。
-- 3、实现simulecast相关功能。
+- 3、实现simulcast相关功能。
 - 4、fec、rtp扩展等其他功能。
 - 5、如果精力允许，逐步替换MediaSoup相关代码，改用自有版权代码。
 

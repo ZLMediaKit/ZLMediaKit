@@ -47,8 +47,9 @@ public:
 
      /**
       * 清空缓存
+      * @param immediately 时候立即删除
       */
-     void clearCache();
+     void clearCache(bool immediately = true);
 
 protected:
     string onOpenSegment(uint64_t index) override ;
@@ -69,6 +70,7 @@ private:
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
+    EventPoller::Ptr _poller;
     map<uint64_t/*index*/,string/*file_path*/> _segment_file_paths;
 };
 

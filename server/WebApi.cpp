@@ -27,6 +27,7 @@
 #include "Network/TcpServer.h"
 #include "Network/UdpServer.h"
 #include "Player/PlayerProxy.h"
+#include "Pusher/PusherProxy.h"
 #include "Util/MD5.h"
 #include "WebApi.h"
 #include "WebHook.h"
@@ -262,11 +263,15 @@ static inline void addHttpListener(){
 }
 
 //拉流代理器列表
-static unordered_map<string ,PlayerProxy::Ptr> s_proxyMap;
+static unordered_map<string, PlayerProxy::Ptr> s_proxyMap;
 static recursive_mutex s_proxyMapMtx;
 
+//推流代理器列表
+static unordered_map<string, PusherProxy::Ptr> s_proxyPusherMap;
+static recursive_mutex s_proxyPusherMapMtx;
+
 //FFmpeg拉流代理器列表
-static unordered_map<string ,FFmpegSource::Ptr> s_ffmpegMap;
+static unordered_map<string, FFmpegSource::Ptr> s_ffmpegMap;
 static recursive_mutex s_ffmpegMapMtx;
 
 #if defined(ENABLE_RTPPROXY)
@@ -275,8 +280,13 @@ static unordered_map<string, RtpServer::Ptr> s_rtpServerMap;
 static recursive_mutex s_rtpServerMapMtx;
 #endif
 
-static inline string getProxyKey(const string &vhost,const string &app,const string &stream){
+static inline string getProxyKey(const string &vhost, const string &app, const string &stream) {
     return vhost + "/" + app + "/" + stream;
+}
+
+static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream,
+                                  const string &dst_url) {
+    return schema + "/" + vhost + "/" + app + "/" + stream + "/" + MD5(dst_url).hexdigest();
 }
 
 Value makeMediaSourceJson(MediaSource &media){
@@ -634,14 +644,103 @@ void installWebApi() {
         val["count_hit"] = (Json::UInt64)count_hit;
     });
 
+    static auto addStreamPusherProxy = [](const string &schema,
+                                          const string &vhost,
+                                          const string &app,
+                                          const string &stream,
+                                          const string &url,
+                                          int retry_count,
+                                          int rtp_type,
+                                          float timeout_sec,
+                                          const function<void(const SockException &ex, const string &key)> &cb) {
+        auto key = getPusherKey(schema, vhost, app, stream, url);
+        auto src = MediaSource::find(schema, vhost, app, stream);
+        if (!src) {
+            cb(SockException(Err_other, "can not find the source stream"), key);
+            return;
+        }
+        lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+        if (s_proxyPusherMap.find(key) != s_proxyPusherMap.end()) {
+            //已经在推流了
+            cb(SockException(Err_success), key);
+            return;
+        }
+
+        //添加推流代理
+        PusherProxy::Ptr pusher(new PusherProxy(src, retry_count ? retry_count : -1));
+        s_proxyPusherMap[key] = pusher;
+
+        //指定RTP over TCP(播放rtsp时有效)
+        (*pusher)[kRtpType] = rtp_type;
+
+        if (timeout_sec > 0.1) {
+            //推流握手超时时间
+            (*pusher)[kTimeoutMS] = timeout_sec * 1000;
+        }
+
+        //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
+        pusher->setPushCallbackOnce([cb, key, url](const SockException &ex) {
+            if (ex) {
+                WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+                lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+                s_proxyPusherMap.erase(key);
+            }
+            cb(ex, key);
+        });
+
+        //被主动关闭推流
+        pusher->setOnClose([key, url](const SockException &ex) {
+            WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+            lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+            s_proxyPusherMap.erase(key);
+        });
+        pusher->publish(url);
+    };
+
+    //动态添加rtsp/rtmp推流代理
+    //测试url http://127.0.0.1/index/api/addStreamPusherProxy?schema=rtmp&vhost=__defaultVhost__&app=proxy&stream=0&dst_url=rtmp://127.0.0.1/live/obs
+    api_regist("/index/api/addStreamPusherProxy", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("schema", "vhost", "app", "stream", "dst_url");
+        auto dst_url = allArgs["dst_url"];
+        addStreamPusherProxy(allArgs["schema"],
+                             allArgs["vhost"],
+                             allArgs["app"],
+                             allArgs["stream"],
+                             allArgs["dst_url"],
+                             allArgs["retry_count"],
+                             allArgs["rtp_type"],
+                             allArgs["timeout_sec"],
+                             [invoker, val, headerOut, dst_url](const SockException &ex, const string &key) mutable {
+                                 if (ex) {
+                                     val["code"] = API::OtherFailed;
+                                     val["msg"] = ex.what();
+                                 } else {
+                                     val["data"]["key"] = key;
+                                     InfoL << "Publish success, please play with player:" << dst_url;
+                                 }
+                                 invoker(200, headerOut, val.toStyledString());
+                             });
+    });
+
+    //关闭推流代理
+    //测试url http://127.0.0.1/index/api/delStreamPusherProxy?key=__defaultVhost__/proxy/0
+    api_regist("/index/api/delStreamPusherProxy", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("key");
+        lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+        val["data"]["flag"] = s_proxyPusherMap.erase(allArgs["key"]) == 1;
+    });
+
     static auto addStreamProxy = [](const string &vhost,
                                     const string &app,
                                     const string &stream,
                                     const string &url,
+                                    int retry_count,
                                     bool enable_hls,
                                     bool enable_mp4,
                                     int rtp_type,
-                                    float timeoutSec,
+                                    float timeout_sec,
                                     const function<void(const SockException &ex,const string &key)> &cb){
         auto key = getProxyKey(vhost,app,stream);
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
@@ -651,15 +750,15 @@ void installWebApi() {
             return;
         }
         //添加拉流代理
-        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4));
+        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4, retry_count ? retry_count : -1));
         s_proxyMap[key] = player;
-        
+
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = rtp_type;
 
-        if (timeoutSec > 0.1) {
+        if (timeout_sec > 0.1) {
             //播放握手超时时间
-            (*player)[kTimeoutMS] = timeoutSec * 1000;
+            (*player)[kTimeoutMS] = timeout_sec * 1000;
         }
 
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
@@ -688,6 +787,7 @@ void installWebApi() {
                        allArgs["app"],
                        allArgs["stream"],
                        allArgs["url"],
+                       allArgs["retry_count"],
                        allArgs["enable_hls"],/* 是否hls转发 */
                        allArgs["enable_mp4"],/* 是否MP4录制 */
                        allArgs["rtp_type"],
@@ -1265,6 +1365,7 @@ void installWebApi() {
                        allArgs["stream"],
                        /** 支持rtsp和rtmp方式拉流 ，rtsp支持h265/h264/aac,rtmp仅支持h264/aac **/
                        "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+                       -1,/*无限重试*/
                        true,/* 开启hls转发 */
                        false,/* 禁用MP4录制 */
                        0,//rtp over tcp方式拉流
