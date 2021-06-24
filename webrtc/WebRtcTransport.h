@@ -298,8 +298,6 @@ protected:
     void onRtcConfigure(RtcConfigure &configure) const override;
 
     void onRtp(const char *buf, size_t len) override;
-    void onRtp_l(const char *buf, size_t len, bool rtx);
-
     void onRtcp(const char *buf, size_t len) override;
     void onBeforeEncryptRtp(const char *buf, size_t &len, void *ctx) override;
     void onBeforeEncryptRtcp(const char *buf, size_t &len, void *ctx) override {};
@@ -351,16 +349,19 @@ private:
         const RtcMedia *media;
         NackList nack_list;
         RtcpContext::Ptr rtcp_context_send;
-        unordered_map<string/*rid*/, std::pair<uint32_t/*rtp ssrc*/, uint32_t/*rtx ssrc*/> > rid_ssrc;
-        unordered_map<uint32_t/*rtx ssrc*/, uint32_t/*rtp ssrc*/> rtx_ssrc_to_rtp_ssrc;
-        unordered_map<uint32_t/*simulcast ssrc*/, NackContext> nack_ctx;
+        //只生成rtp的nack，rtx的不生成
+        unordered_map<string/*rid*/, NackContext> nack_ctx;
+        unordered_map<string/*rid*/, uint32_t/*rtp ssrc*/> rid_to_ssrc;
+        unordered_map<string/*rid*/, std::shared_ptr<RtpReceiverImp> > receiver;
+        unordered_map<uint32_t/*simulcast ssrc*/, string/*rid*/> ssrc_to_rid;
+        //只统计rtp的接收情况，rtx的不统计
         unordered_map<uint32_t/*simulcast ssrc*/, RtcpContext::Ptr> rtcp_context_recv;
-        unordered_map<uint32_t/*simulcast ssrc*/, std::shared_ptr<RtpReceiverImp> > receiver;
     };
 
     void onSortedRtp(RtpPayloadInfo &info, const string &rid, RtpPacket::Ptr rtp);
     void onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack, uint32_t ssrc);
-    void changeRtpExtId(RtpPayloadInfo &info, const RtpHeader *header, bool is_recv, bool is_rtx = false, string *rid_ptr = nullptr) const;
+    void changeRtpExtId(RtpPayloadInfo &info, const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr) const;
+    std::shared_ptr<RtpReceiverImp> createRtpReceiver(const string &rid, uint32_t ssrc, bool is_rtx, const RtpPayloadInfo::Ptr &info);
 
 private:
     uint16_t _rtx_seq[2] = {0, 0};
@@ -389,8 +390,8 @@ private:
     RtpPayloadInfo::Ptr _send_rtp_info[2];
     //根据接收rtp的pt获取相关信息
     unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,RtpPayloadInfo::Ptr> > _rtp_info_pt;
-    //根据rtcp的ssrc获取相关信息
-    unordered_map<uint32_t/*ssrc*/, std::pair<bool/*is rtx*/,RtpPayloadInfo::Ptr> > _rtp_info_ssrc;
+    //根据rtcp的ssrc获取相关信息，只记录rtp的ssrc，rtx的ssrc不记录
+    unordered_map<uint32_t/*ssrc*/, RtpPayloadInfo::Ptr> _rtp_info_ssrc;
     //发送rtp时需要修改rtp ext id
     map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
     //接收rtp时需要修改rtp ext id
