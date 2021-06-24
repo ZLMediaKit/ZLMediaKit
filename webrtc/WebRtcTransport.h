@@ -358,7 +358,7 @@ private:
         unordered_map<uint32_t/*simulcast ssrc*/, std::shared_ptr<RtpReceiverImp> > receiver;
     };
 
-    void onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp);
+    void onSortedRtp(RtpPayloadInfo &info, const string &rid, RtpPacket::Ptr rtp);
     void onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack, uint32_t ssrc);
     void changeRtpExtId(RtpPayloadInfo &info, const RtpHeader *header, bool is_recv, bool is_rtx = false, string *rid_ptr = nullptr) const;
 
@@ -380,6 +380,7 @@ private:
     Socket::Ptr _socket;
     //推流的rtsp源
     RtspMediaSource::Ptr _push_src;
+    unordered_map<string/*rid*/, RtspMediaSource::Ptr> _push_src_simulcast;
     //播放的rtsp源
     RtspMediaSource::Ptr _play_src;
     //播放rtsp源的reader对象

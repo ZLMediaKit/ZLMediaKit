@@ -761,35 +761,38 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
             return;
         }
 #endif
+        auto &ref = info->receiver[ssrc];
         if (!rtx) {
             //统计rtp接受情况，便于生成nack rtcp包
             info->nack_ctx[ssrc].received(seq);
             //时间戳转换成毫秒
             auto stamp_ms = ntohl(rtp->stamp) * uint64_t(1000) / info->plan_rtp->sample_rate;
+
             //统计rtp收到的情况，好做rr汇报
-            auto &ref = info->rtcp_context_recv[ssrc];
-            if (!ref) {
-                ref = std::make_shared<RtcpContext>(info->plan_rtp->sample_rate, true);
+            auto &cxt_ref = info->rtcp_context_recv[ssrc];
+            if (!cxt_ref) {
+                cxt_ref = std::make_shared<RtcpContext>(info->plan_rtp->sample_rate, true);
             }
-            ref->onRtp(seq, stamp_ms, len);
+            cxt_ref->onRtp(seq, stamp_ms, len);
+
             //修改ext id至统一
-            changeRtpExtId(*info, rtp, true, false);
-        }
+            string rid;
+            changeRtpExtId(*info, rtp, true, false, &rid);
 
+            if (!ref) {
+                ref = std::make_shared<RtpReceiverImp>([info, this, rid](RtpPacket::Ptr rtp) mutable {
+                    onSortedRtp(*info, rid, std::move(rtp));
+                });
+                info->nack_ctx[ssrc].setOnNack([info, this, ssrc](const FCI_NACK &nack) mutable {
+                    onSendNack(*info, nack, ssrc);
+                });
+                //recv simulcast ssrc --> RtpPayloadInfo
+                _rtp_info_ssrc[ssrc] = std::make_pair(false, info);
+                InfoL << "receive rtp of ssrc:" << ssrc;
+            }
+        }
         //解析并排序rtp
-        auto &ref = info->receiver[ssrc];
-        if (!ref) {
-            ref = std::make_shared<RtpReceiverImp>([info, this](RtpPacket::Ptr rtp) mutable {
-                onSortedRtp(*info, std::move(rtp));
-            });
-            info->nack_ctx[ssrc].setOnNack([info, this, ssrc](const FCI_NACK &nack) mutable {
-                onSendNack(*info, nack, ssrc);
-            });
-            //recv simulcast ssrc --> RtpPayloadInfo
-            _rtp_info_ssrc[ssrc] = std::make_pair(false, info);
-            InfoL << "receive rtp of ssrc:" << ssrc;
-        }
-
+        assert(ref);
         ref->inputRtp(info->media->type, info->plan_rtp->sample_rate, (uint8_t *) buf, len);
         return;
     }
@@ -809,9 +812,9 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
     auto origin_seq = payload[0] << 8 | payload[1];
     rtp->seq = htons(origin_seq);
     if (info->offer_ssrc_rtp) {
-        //非simulcast
+        //非simulcast或音频
         rtp->ssrc = htonl(info->offer_ssrc_rtp);
-        TraceL << "received rtx rtp,ssrc: " << ssrc << ", seq:" << origin_seq;
+        TraceL << "received rtx rtp,ssrc: " << ssrc << ", seq:" << origin_seq << ", pt:" << (int)rtp->pt;
     } else {
         //todo simulcast下，辅码流通过rtx传输？
         //simulcast情况下，根据rtx的ssrc查找rtp的ssrc
@@ -834,7 +837,7 @@ void WebRtcTransportImp::onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack, 
 
 ///////////////////////////////////////////////////////////////////
 
-void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
+void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, const string &rid, RtpPacket::Ptr rtp) {
     if (info.media->type == TrackVideo && _pli_ticker.elapsedTime() > 2000) {
         //定期发送pli请求关键帧，方便非rtc等协议
         _pli_ticker.resetTime();
@@ -848,7 +851,24 @@ void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, RtpPacket::Ptr rtp) {
     }
 
     if (_push_src) {
-        _push_src->onWrite(std::move(rtp), false);
+        if (rtp->type == TrackAudio) {
+            //音频
+            for (auto &pr : _push_src_simulcast) {
+                pr.second->onWrite(rtp, false);
+            }
+        } else {
+            //视频
+            auto &src = _push_src_simulcast[rid];
+            if (!src) {
+                auto stream_id = rid.empty() ? _push_src->getId() : _push_src->getId() + "_" + rid;
+                auto src_imp = std::make_shared<RtspMediaSourceImp>(_push_src->getVhost(), _push_src->getApp(), stream_id);
+                src_imp->setSdp(_push_src->getSdp());
+                src_imp->setProtocolTranslation(_push_src->isRecording(Recorder::type_hls),_push_src->isRecording(Recorder::type_mp4));
+                src_imp->setListener(shared_from_this());
+                src = src_imp;
+            }
+            src->onWrite(std::move(rtp), false);
+        }
     }
 }
 
