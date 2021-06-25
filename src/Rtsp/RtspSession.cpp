@@ -252,7 +252,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         }
         _rtcp_context.clear();
         for (auto &track : _sdp_track) {
-            _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, true));
+            _rtcp_context.emplace_back(std::make_shared<RtcpContext>(true));
         }
         _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
         _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
@@ -413,7 +413,7 @@ void RtspSession::onAuthSuccess() {
         }
         strongSelf->_rtcp_context.clear();
         for (auto &track : strongSelf->_sdp_track) {
-            strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, false));
+            strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContext>(false));
         }
         strongSelf->_sessionid = makeRandStr(12);
         strongSelf->_play_src = rtsp_src;
@@ -1126,7 +1126,7 @@ void RtspSession::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index){
 void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
     int track_index = getTrackIndexByTrackType(rtp->type);
     auto &rtcp_ctx = _rtcp_context[track_index];
-    rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+    rtcp_ctx->onRtp(rtp->getSeq(), ntohl(rtp->getHeader()->stamp), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 
     auto &ticker = _rtcp_send_tickers[track_index];
     //send rtcp every 5 second
