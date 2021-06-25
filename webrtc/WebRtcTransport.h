@@ -272,6 +272,27 @@ private:
     uint16_t _last_max_seq = 0;
 };
 
+class MediaTrack {
+public:
+    using Ptr = std::shared_ptr<MediaTrack>;
+    const RtcCodecPlan *plan_rtp;
+    const RtcCodecPlan *plan_rtx;
+    uint32_t offer_ssrc_rtp = 0;
+    uint32_t offer_ssrc_rtx = 0;
+    uint32_t answer_ssrc_rtp = 0;
+    uint32_t answer_ssrc_rtx = 0;
+    const RtcMedia *media;
+    RtpExtContext::Ptr rtp_ext_ctx;
+
+    //for send rtp
+    NackList nack_list;
+    RtcpContext::Ptr rtcp_context_send;
+
+    //for recv rtp
+    unordered_map<string/*rid*/, std::shared_ptr<RtpChannel> > rtp_channel;
+    std::shared_ptr<RtpChannel> getRtpChannel(uint32_t ssrc) const;
+};
+
 class WebRtcTransportImp : public WebRtcTransport, public MediaSourceEvent, public SockInfo, public std::enable_shared_from_this<WebRtcTransportImp>{
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
@@ -337,27 +358,8 @@ private:
     bool canSendRtp() const;
     bool canRecvRtp() const;
 
-    class MediaTrack {
-    public:
-        using Ptr = std::shared_ptr<MediaTrack>;
-        const RtcCodecPlan *plan_rtp;
-        const RtcCodecPlan *plan_rtx;
-        uint32_t offer_ssrc_rtp = 0;
-        uint32_t offer_ssrc_rtx = 0;
-        uint32_t answer_ssrc_rtp = 0;
-        uint32_t answer_ssrc_rtx = 0;
-        const RtcMedia *media;
-        NackList nack_list;
-        RtcpContext::Ptr rtcp_context_send;
-        unordered_map<string/*rid*/, std::shared_ptr<RtpChannel> > rtp_channel;
-        unordered_map<uint32_t/*simulcast ssrc*/, string/*rid*/> ssrc_to_rid;
-
-        std::shared_ptr<RtpChannel> getRtpChannel(uint32_t ssrc) const;
-    };
-
     void onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp);
     void onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc);
-    void changeRtpExtId(MediaTrack &track, const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr) const;
     void createRtpChannel(const string &rid, uint32_t ssrc, const MediaTrack::Ptr &info);
 
 private:
@@ -389,8 +391,4 @@ private:
     unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _pt_to_track;
     //根据rtcp的ssrc获取相关信息，只记录rtp的ssrc，rtx的ssrc不记录
     unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
-    //发送rtp时需要修改rtp ext id
-    map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
-    //接收rtp时需要修改rtp ext id
-    unordered_map<uint8_t, RtpExtType> _rtp_ext_id_to_type;
 };

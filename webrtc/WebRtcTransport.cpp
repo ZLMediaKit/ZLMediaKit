@@ -424,11 +424,7 @@ void WebRtcTransportImp::onStartWebRTC() {
         }
         if (m_offer->type != TrackApplication) {
             //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
-            for (auto &ext : m_offer->extmap) {
-                auto ext_type = RtpExt::getExtType(ext.ext);
-                _rtp_ext_id_to_type.emplace(ext.id, ext_type);
-                _rtp_ext_type_to_id.emplace(ext_type, ext.id);
-            }
+            info->rtp_ext_ctx = std::make_shared<RtpExtContext>(*m_offer);
         }
     }
 
@@ -596,12 +592,8 @@ private:
     function<void(RtpPacket::Ptr rtp)> _on_sort;
 };
 
-std::shared_ptr<RtpChannel> WebRtcTransportImp::MediaTrack::getRtpChannel(uint32_t ssrc) const{
-    auto it_rid = ssrc_to_rid.find(ssrc);
-    if (it_rid == ssrc_to_rid.end()) {
-        return nullptr;
-    }
-    auto it_chn = rtp_channel.find(it_rid->second);
+std::shared_ptr<RtpChannel> MediaTrack::getRtpChannel(uint32_t ssrc) const{
+    auto it_chn = rtp_channel.find(rtp_ext_ctx->getRid(ssrc));
     if (it_chn == rtp_channel.end()) {
         return nullptr;
     }
@@ -694,59 +686,6 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 
 ///////////////////////////////////////////////////////////////////
 
-void WebRtcTransportImp::changeRtpExtId(MediaTrack &info, const RtpHeader *header, bool is_recv, string *rid_ptr) const{
-    string rid, repaired_rid;
-    auto ext_map = RtpExt::getExtValue(header);
-    for (auto &pr : ext_map) {
-        if (is_recv) {
-            auto it = _rtp_ext_id_to_type.find(pr.first);
-            if (it == _rtp_ext_id_to_type.end()) {
-                WarnL << "接收rtp时,忽略不识别的rtp ext, id=" << (int) pr.first;
-                pr.second.clearExt();
-                continue;
-            }
-            pr.second.setType(it->second);
-            //重新赋值ext id为 ext type，作为后面处理ext的统一中间类型
-            pr.second.setExtId((uint8_t) it->second);
-            switch (it->second) {
-                case RtpExtType::sdes_rtp_stream_id : rid = pr.second.getRtpStreamId(); break;
-                case RtpExtType::sdes_repaired_rtp_stream_id : repaired_rid = pr.second.getRepairedRtpStreamId(); break;
-                default : break;
-            }
-        } else {
-            pr.second.setType((RtpExtType) pr.first);
-            auto it = _rtp_ext_type_to_id.find((RtpExtType) pr.first);
-            if (it == _rtp_ext_type_to_id.end()) {
-                WarnL << "发送rtp时, 忽略不被客户端支持rtp ext:" << pr.second.dumpString();
-                pr.second.clearExt();
-                continue;
-            }
-            //重新赋值ext id为客户端sdp声明的类型
-            pr.second.setExtId(it->second);
-        }
-    }
-
-    if (!is_recv) {
-        return;
-    }
-    if (rid.empty()) {
-        rid = repaired_rid;
-    }
-    auto ssrc = ntohl(header->ssrc);
-    if (rid.empty()) {
-        //获取rid
-        rid = info.ssrc_to_rid[ssrc];
-    } else {
-        //设置rid
-        if (info.ssrc_to_rid.emplace(ssrc, rid).second) {
-            InfoL << "rid of ssrc " << ssrc << " is:" << rid;
-        }
-    }
-    if (rid_ptr) {
-        *rid_ptr = rid;
-    }
-}
-
 void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, const MediaTrack::Ptr &info) {
     //rid --> RtpReceiverImp
     auto &ref = info->rtp_channel[rid];
@@ -779,13 +718,8 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
 
     //修改ext id至统一
     string rid;
-    changeRtpExtId(*info, rtp, true, &rid);
+    info->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid);
 
-#if 0
-    if (rid.empty() && info->media->type == TrackVideo) {
-        WarnL << "ssrc:" << ssrc << ", rtx:" << is_rtx << ",seq:" << ntohs((uint16_t) rtp->seq);
-    }
-#endif
     auto &ref = info->rtp_channel[rid];
     if (!ref) {
         if (is_rtx) {
@@ -910,12 +844,12 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t &len, void *
 
     if (!pr->first || !pr->second->plan_rtx) {
         //普通的rtp,或者不支持rtx, 修改目标pt和ssrc
-        changeRtpExtId(*pr->second, header, false);
+        pr->second->rtp_ext_ctx->changeRtpExtId(header, false);
         header->pt = pr->second->plan_rtp->pt;
         header->ssrc = htonl(pr->second->answer_ssrc_rtp);
     } else {
         //重传的rtp, rtx
-        changeRtpExtId(*pr->second, header, false);
+        pr->second->rtp_ext_ctx->changeRtpExtId(header, false);
         header->pt = pr->second->plan_rtx->pt;
         if (pr->second->answer_ssrc_rtx) {
             //有rtx单独的ssrc,有些情况下，浏览器支持rtx，但是未指定rtx单独的ssrc
