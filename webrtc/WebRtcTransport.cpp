@@ -745,12 +745,7 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
         }
 #endif
         //解析并排序rtp
-        if(!ref){
-            InfoL << "ignore  no rtp receiver of ssrc:" << ssrc<<" is rtx:"<<rtx;
-            return;
-        }
-        assert(ref);
-        ref->inputRtp(info->media->type, info->plan_rtp->sample_rate, (uint8_t *) buf, len);
+        ref->inputRtp(track->media->type, track->plan_rtp->sample_rate, (uint8_t *) buf, len, false);
         return;
     }
 
