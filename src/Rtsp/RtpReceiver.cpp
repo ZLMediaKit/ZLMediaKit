@@ -15,19 +15,23 @@
 
 namespace mediakit {
 
-RtpReceiver::RtpReceiver() {
-    int index = 0;
-    for (auto &sortor : _rtp_sortor) {
-        sortor.setOnSort([this, index](uint16_t seq, RtpPacket::Ptr &packet) {
-            onRtpSorted(std::move(packet), index);
-        });
-        ++index;
-    }
+RtpTrack::RtpTrack() {
+    setOnSort([this](uint16_t seq, RtpPacket::Ptr &packet) {
+        onRtpSorted(std::move(packet));
+    });
 }
 
-RtpReceiver::~RtpReceiver() {}
+uint32_t RtpTrack::getSSRC() const {
+    return _ssrc;
+}
 
-bool RtpReceiver::handleOneRtp(int index, TrackType type, int sample_rate, uint8_t *ptr, size_t len) {
+void RtpTrack::clear() {
+    _ssrc = 0;
+    _ssrc_alive.resetTime();
+    PacketSortor<RtpPacket::Ptr>::clear();
+}
+
+bool RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len) {
     if (len < RtpPacket::kRtpHeaderSize) {
         WarnL << "rtp包太小:" << len;
         return false;
@@ -52,23 +56,23 @@ bool RtpReceiver::handleOneRtp(int index, TrackType type, int sample_rate, uint8
     //比对缓存ssrc
     auto ssrc = ntohl(header->ssrc);
 
-    if (!_ssrc[index]) {
+    if (!_ssrc) {
         //记录并锁定ssrc
-        _ssrc[index] = ssrc;
-        _ssrc_alive[index].resetTime();
-    } else if (_ssrc[index] == ssrc) {
+        _ssrc = ssrc;
+        _ssrc_alive.resetTime();
+    } else if (_ssrc == ssrc) {
         //ssrc匹配正确,刷新计时器
-        _ssrc_alive[index].resetTime();
+        _ssrc_alive.resetTime();
     } else {
         //ssrc错误
-        if (_ssrc_alive[index].elapsedTime() < 3 * 1000) {
+        if (_ssrc_alive.elapsedTime() < 3 * 1000) {
             //接受正确ssrc的rtp在10秒内，那么我们认为存在多路rtp,忽略掉ssrc不匹配的rtp
-            WarnL << "ssrc不匹配,rtp已丢弃:" << ssrc << " != " << _ssrc[index];
+            WarnL << "ssrc不匹配,rtp已丢弃:" << ssrc << " != " << _ssrc;
             return false;
         }
-        InfoL << "rtp流ssrc切换:" << _ssrc[index] << " -> " << ssrc;
-        _ssrc[index] = ssrc;
-        _ssrc_alive[index].resetTime();
+        InfoL << "rtp流ssrc切换:" << _ssrc << " -> " << ssrc;
+        _ssrc = ssrc;
+        _ssrc_alive.resetTime();
     }
 
     auto rtp = RtpPacket::create();
@@ -87,29 +91,32 @@ bool RtpReceiver::handleOneRtp(int index, TrackType type, int sample_rate, uint8
     //拷贝rtp
     memcpy(&data[4], ptr, len);
 
-    onBeforeRtpSorted(rtp, index);
+    onBeforeRtpSorted(rtp);
     auto seq = rtp->getSeq();
-    _rtp_sortor[index].sortPacket(seq, std::move(rtp));
+    sortPacket(seq, std::move(rtp));
     return true;
 }
 
-void RtpReceiver::clear() {
-    CLEAR_ARR(_ssrc);
-    for (auto &sortor : _rtp_sortor) {
-        sortor.clear();
+////////////////////////////////////////////////////////////////////////////////////
+
+void RtpTrackImp::setOnSorted(OnSorted cb) {
+    _on_sorted = std::move(cb);
+}
+
+void RtpTrackImp::setBeforeSorted(BeforeSorted cb) {
+    _on_before_sorted = std::move(cb);
+}
+
+void RtpTrackImp::onRtpSorted(RtpPacket::Ptr rtp) {
+    if (_on_sorted) {
+        _on_sorted(std::move(rtp));
     }
 }
 
-size_t RtpReceiver::getJitterSize(int index) const{
-    return _rtp_sortor[index].getJitterSize();
-}
-
-size_t RtpReceiver::getCycleCount(int index) const{
-    return _rtp_sortor[index].getCycleCount();
-}
-
-uint32_t RtpReceiver::getSSRC(int index) const{
-    return _ssrc[index];
+void RtpTrackImp::onBeforeRtpSorted(const RtpPacket::Ptr &rtp) {
+    if (_on_before_sorted) {
+        _on_before_sorted(rtp);
+    }
 }
 
 }//namespace mediakit

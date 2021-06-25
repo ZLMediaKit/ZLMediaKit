@@ -24,36 +24,23 @@ static inline bool checkTS(const uint8_t *packet, size_t bytes){
     return bytes % TS_PACKET_SIZE == 0 && packet[0] == TS_SYNC_BYTE;
 }
 
-class RtpReceiverImp : public RtpReceiver {
+class RtpReceiverImp : public RtpTrackImp {
 public:
     using Ptr = std::shared_ptr<RtpReceiverImp>;
-    RtpReceiverImp(int sample_rate, function<void(RtpPacket::Ptr rtp)> cb,  function<void(const RtpPacket::Ptr &rtp)> cb_before = nullptr){
+    RtpReceiverImp(int sample_rate, RtpTrackImp::OnSorted cb, RtpTrackImp::BeforeSorted cb_before = nullptr){
         _sample_rate = sample_rate;
-        _on_sort = std::move(cb);
-        _on_before_sort = std::move(cb_before);
+        setOnSorted(std::move(cb));
+        setBeforeSorted(std::move(cb_before));
     }
 
     ~RtpReceiverImp() override = default;
 
     bool inputRtp(TrackType type, uint8_t *ptr, size_t len){
-        return handleOneRtp((int) type, type, _sample_rate, ptr, len);
-    }
-
-protected:
-    void onRtpSorted(RtpPacket::Ptr rtp, int track_index) override {
-        _on_sort(std::move(rtp));
-    }
-
-    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override {
-        if (_on_before_sort) {
-            _on_before_sort(rtp);
-        }
+        return RtpTrack::inputRtp(type, _sample_rate, ptr, len);
     }
 
 private:
     int _sample_rate;
-    function<void(RtpPacket::Ptr rtp)> _on_sort;
-    function<void(const RtpPacket::Ptr &rtp)> _on_before_sort;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////
