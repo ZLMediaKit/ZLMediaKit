@@ -1636,7 +1636,8 @@ RETRY:
                     if (configure.direction != RtpDirection::recvonly &&
                         configure.direction != RtpDirection::sendrecv) {
                         //我们不支持接收
-                        continue;
+                        answer_media.direction = RtpDirection::inactive;
+                        break;
                     }
                     answer_media.direction = RtpDirection::recvonly;
                     break;
@@ -1645,7 +1646,8 @@ RETRY:
                     if (configure.direction != RtpDirection::sendonly &&
                         configure.direction != RtpDirection::sendrecv) {
                         //我们不支持发送
-                        continue;
+                        answer_media.direction = RtpDirection::inactive;
+                        break;
                     }
                     answer_media.direction = RtpDirection::sendonly;
                     break;

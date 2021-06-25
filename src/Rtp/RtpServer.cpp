@@ -27,7 +27,7 @@ class RtcpHelper : public RtcpContext, public std::enable_shared_from_this<RtcpH
 public:
     using Ptr = std::shared_ptr<RtcpHelper>;
 
-    RtcpHelper(Socket::Ptr rtcp_sock, uint32_t sample_rate) : RtcpContext(sample_rate, true){
+    RtcpHelper(Socket::Ptr rtcp_sock, uint32_t sample_rate) : RtcpContext(true){
         _rtcp_sock = std::move(rtcp_sock);
         _sample_rate = sample_rate;
     }
@@ -35,7 +35,7 @@ public:
     void onRecvRtp(const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
         //统计rtp接受情况，用于发送rr包
         auto header = (RtpHeader *) buf->data();
-        onRtp(ntohs(header->seq), ntohl(header->stamp) * uint64_t(1000) / _sample_rate, buf->size());
+        onRtp(ntohs(header->seq), ntohl(header->stamp), buf->size());
         sendRtcp(ntohl(header->ssrc), addr, addr_len);
     }
 

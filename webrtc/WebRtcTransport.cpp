@@ -148,7 +148,6 @@ void WebRtcTransport::sendRtcpRemb(uint32_t ssrc, size_t bit_rate) {
     fb->ssrc = htonl(0);
     fb->ssrc_media = htonl(ssrc);
     sendRtcpPacket((char *) fb.get(), fb->getSize(), true);
-    TraceL << ssrc << " " << bit_rate;
 }
 
 void WebRtcTransport::sendRtcpPli(uint32_t ssrc) {
@@ -255,7 +254,8 @@ void WebRtcTransport::inputSockData(char *buf, size_t len, RTC::TransportTuple *
         if (_srtp_session_recv->DecryptSrtp((uint8_t *) buf, &len)) {
             onRtp(buf, len);
         } else {
-            WarnL;
+            RtpHeader *rtp = (RtpHeader *) buf;
+            WarnL << "srtp_unprotect rtp failed, pt:" << (int)rtp->pt;
         }
         return;
     }
@@ -399,37 +399,49 @@ void WebRtcTransportImp::onStartWebRTC() {
     //获取ssrc和pt相关信息,届时收到rtp和rtcp时分别可以根据pt和ssrc找到相关的信息
     for (auto &m_answer : getSdp(SdpType::answer).media) {
         auto m_offer = getSdp(SdpType::offer).getMedia(m_answer.type);
-        auto info = std::make_shared<RtpPayloadInfo>();
+        auto track = std::make_shared<MediaTrack>();
 
-        info->media = &m_answer;
-        info->answer_ssrc_rtp = m_answer.getRtpSSRC();
-        info->answer_ssrc_rtx = m_answer.getRtxSSRC();
-        info->offer_ssrc_rtp = m_offer->getRtpSSRC();
-        info->offer_ssrc_rtx = m_offer->getRtxSSRC();
-        info->plan_rtp = &m_answer.plan[0];;
-        info->plan_rtx = m_answer.getRelatedRtxPlan(info->plan_rtp->pt);
-        info->rtcp_context_send = std::make_shared<RtcpContext>(info->plan_rtp->sample_rate, false);
+        track->media = &m_answer;
+        track->answer_ssrc_rtp = m_answer.getRtpSSRC();
+        track->answer_ssrc_rtx = m_answer.getRtxSSRC();
+        track->offer_ssrc_rtp = m_offer->getRtpSSRC();
+        track->offer_ssrc_rtx = m_offer->getRtxSSRC();
+        track->plan_rtp = &m_answer.plan[0];;
+        track->plan_rtx = m_answer.getRelatedRtxPlan(track->plan_rtp->pt);
+        track->rtcp_context_send = std::make_shared<RtcpContext>(false);
 
-        //send ssrc --> RtpPayloadInfo
-        _rtp_info_ssrc[info->answer_ssrc_rtp] = std::make_pair(false, info);
-        _rtp_info_ssrc[info->answer_ssrc_rtx] = std::make_pair(true, info);
+        //send ssrc --> MediaTrack
+        _ssrc_to_track[track->answer_ssrc_rtp] = track;
+        _ssrc_to_track[track->answer_ssrc_rtx] = track;
 
-        //recv ssrc --> RtpPayloadInfo
-        _rtp_info_ssrc[info->offer_ssrc_rtp] = std::make_pair(false, info);;
-        _rtp_info_ssrc[info->offer_ssrc_rtx] = std::make_pair(true, info);;
+        //recv ssrc --> MediaTrack
+        _ssrc_to_track[track->offer_ssrc_rtp] = track;
+        _ssrc_to_track[track->offer_ssrc_rtx] = track;
 
-        //rtp pt --> RtpPayloadInfo
-        _rtp_info_pt.emplace(info->plan_rtp->pt, std::make_pair(false, info));
-        if (info->plan_rtx) {
-            //rtx pt --> RtpPayloadInfo
-            _rtp_info_pt.emplace(info->plan_rtx->pt, std::make_pair(true, info));
+        //rtp pt --> MediaTrack
+        _pt_to_track.emplace(track->plan_rtp->pt, std::make_pair(false, track));
+        if (track->plan_rtx) {
+            //rtx pt --> MediaTrack
+            _pt_to_track.emplace(track->plan_rtx->pt, std::make_pair(true, track));
         }
         if (m_offer->type != TrackApplication) {
             //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
-            for (auto &ext : m_offer->extmap) {
-                auto ext_type = RtpExt::getExtType(ext.ext);
-                _rtp_ext_id_to_type.emplace(ext.id, ext_type);
-                _rtp_ext_type_to_id.emplace(ext_type, ext.id);
+            track->rtp_ext_ctx = std::make_shared<RtpExtContext>(*m_offer);
+            track->rtp_ext_ctx->setOnGetRtp([this, track](uint8_t pt, uint32_t ssrc, const string &rid) {
+                //ssrc --> MediaTrack
+                _ssrc_to_track[ssrc] = track;
+                InfoL << "get rtp, pt:" << (int) pt << ", ssrc:" << ssrc << ", rid:" << rid;
+            });
+
+            int index = 0;
+            for (auto &ssrc : m_offer->rtp_ssrc_sim) {
+                //记录ssrc对应的MediaTrack
+                _ssrc_to_track[ssrc.ssrc] = track;
+                if (m_offer->rtp_rids.size() > index) {
+                    //支持firefox的simulcast, 提前映射好ssrc和rid的关系
+                    track->rtp_ext_ctx->setRid(ssrc.ssrc, m_offer->rtp_rids[index]);
+                }
+                ++index;
             }
         }
     }
@@ -466,10 +478,10 @@ void WebRtcTransportImp::onStartWebRTC() {
             }
             auto rtsp_media = rtsp_send_sdp.getMedia(m.type);
             if (rtsp_media && getCodecId(rtsp_media->plan[0].codec) == getCodecId(m.plan[0].codec)) {
-                auto it = _rtp_info_pt.find(m.plan[0].pt);
-                CHECK(it != _rtp_info_pt.end());
+                auto it = _pt_to_track.find(m.plan[0].pt);
+                CHECK(it != _pt_to_track.end());
                 //记录发送rtp时约定的信息，届时发送rtp时需要修改pt和ssrc
-                _send_rtp_info[m.type] = it->second.second;
+                _type_to_track[m.type] = it->second.second;
             }
         }
     }
@@ -558,26 +570,44 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
 
 ///////////////////////////////////////////////////////////////////
 
-class RtpReceiverImp : public RtpReceiver {
+class RtpChannel : public RtpTrackImp {
 public:
-    RtpReceiverImp( function<void(RtpPacket::Ptr rtp)> cb){
-        _on_sort = std::move(cb);
+    RtpChannel(RtpTrackImp::OnSorted cb, function<void(const FCI_NACK &nack)> on_nack) {
+        setOnSorted(std::move(cb));
+        _nack_ctx.setOnNack(std::move(on_nack));
     }
 
-    ~RtpReceiverImp() override = default;
+    ~RtpChannel() override = default;
 
-    bool inputRtp(TrackType type, int samplerate, uint8_t *ptr, size_t len){
-        return handleOneRtp((int) type, type, samplerate, ptr, len);
+    bool inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len, bool is_rtx){
+        if (!is_rtx) {
+            RtpHeader *rtp = (RtpHeader *) ptr;
+            auto seq = ntohs(rtp->seq);
+            //统计rtp接受情况，便于生成nack rtcp包
+            _nack_ctx.received(seq);
+            //统计rtp收到的情况，好做rr汇报
+            _rtcp_context.onRtp(seq, ntohl(rtp->stamp), len);
+        }
+        return RtpTrack::inputRtp(type, sample_rate, ptr, len);
     }
 
-protected:
-    void onRtpSorted(RtpPacket::Ptr rtp, int track_index) override {
-        _on_sort(std::move(rtp));
+    Buffer::Ptr createRtcpRR(RtcpHeader *sr, uint32_t ssrc) {
+        _rtcp_context.onRtcp(sr);
+        return _rtcp_context.createRtcpRR(ssrc, getSSRC());
     }
 
 private:
-    function<void(RtpPacket::Ptr rtp)> _on_sort;
+    NackContext _nack_ctx;
+    RtcpContext _rtcp_context{true};
 };
+
+std::shared_ptr<RtpChannel> MediaTrack::getRtpChannel(uint32_t ssrc) const{
+    auto it_chn = rtp_channel.find(rtp_ext_ctx->getRid(ssrc));
+    if (it_chn == rtp_channel.end()) {
+        return nullptr;
+    }
+    return it_chn->second;
+}
 
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
     _bytes_usage += len;
@@ -587,19 +617,15 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
             case RtcpType::RTCP_SR : {
                 //对方汇报rtp发送情况
                 RtcpSR *sr = (RtcpSR *) rtcp;
-                auto it = _rtp_info_ssrc.find(sr->ssrc);
-                if (it != _rtp_info_ssrc.end()) {
-                    auto rtx = it->second.first;
-                    if (!rtx) {
-                        auto &info = it->second.second;
-                        auto it = info->rtcp_context_recv.find(sr->ssrc);
-                        if (it != info->rtcp_context_recv.end()) {
-                            it->second->onRtcp(sr);
-                            auto rr = it->second->createRtcpRR(info->answer_ssrc_rtp, sr->ssrc);
-                            sendRtcpPacket(rr->data(), rr->size(), true);
-                        } else {
-                            WarnL << "未识别的sr rtcp包:" << rtcp->dumpString();
-                        }
+                auto it = _ssrc_to_track.find(sr->ssrc);
+                if (it != _ssrc_to_track.end()) {
+                    auto &track = it->second;
+                    auto rtp_chn = track->getRtpChannel(sr->ssrc);
+                    if(!rtp_chn){
+                        WarnL << "未识别的sr rtcp包:" << rtcp->dumpString();
+                    } else {
+                        auto rr = rtp_chn->createRtcpRR(sr, track->answer_ssrc_rtp);
+                        sendRtcpPacket(rr->data(), rr->size(), true);
                     }
                 } else {
                     WarnL << "未识别的sr rtcp包:" << rtcp->dumpString();
@@ -611,14 +637,11 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 //对方汇报rtp接收情况
                 RtcpRR *rr = (RtcpRR *) rtcp;
                 for (auto item : rr->getItemList()) {
-                    auto it = _rtp_info_ssrc.find(item->ssrc);
-                    if (it != _rtp_info_ssrc.end()) {
-                        auto rtx = it->second.first;
-                        if (!rtx) {
-                            auto &info = it->second.second;
-                            auto sr = info->rtcp_context_send->createRtcpSR(info->answer_ssrc_rtp);
-                            sendRtcpPacket(sr->data(), sr->size(), true);
-                        }
+                    auto it = _ssrc_to_track.find(item->ssrc);
+                    if (it != _ssrc_to_track.end()) {
+                        auto &track = it->second;
+                        auto sr = track->rtcp_context_send->createRtcpSR(track->answer_ssrc_rtp);
+                        sendRtcpPacket(sr->data(), sr->size(), true);
                     } else {
                         WarnL << "未识别的rr rtcp包:" << rtcp->dumpString();
                     }
@@ -629,12 +652,12 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 //对方汇报停止发送rtp
                 RtcpBye *bye = (RtcpBye *) rtcp;
                 for (auto ssrc : bye->getSSRC()) {
-                    auto it = _rtp_info_ssrc.find(*ssrc);
-                    if (it == _rtp_info_ssrc.end()) {
+                    auto it = _ssrc_to_track.find(*ssrc);
+                    if (it == _ssrc_to_track.end()) {
                         WarnL << "未识别的bye rtcp包:" << rtcp->dumpString();
                         continue;
                     }
-                    _rtp_info_ssrc.erase(it);
+                    _ssrc_to_track.erase(it);
                 }
                 onShutdown(SockException(Err_eof, "rtcp bye message received"));
                 break;
@@ -648,20 +671,17 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 switch ((RTPFBType) rtcp->report_count) {
                     case RTPFBType::RTCP_RTPFB_NACK : {
                         RtcpFB *fb = (RtcpFB *) rtcp;
-                        auto it = _rtp_info_ssrc.find(fb->ssrc_media);
-                        if (it == _rtp_info_ssrc.end()) {
+                        auto it = _ssrc_to_track.find(fb->ssrc_media);
+                        if (it == _ssrc_to_track.end()) {
                             WarnL << "未识别的 rtcp包:" << rtcp->dumpString();
                             return;
                         }
-                        auto rtx = it->second.first;
-                        if (!rtx) {
-                            auto &info = it->second.second;
-                            auto &fci = fb->getFci<FCI_NACK>();
-                            info->nack_list.for_each_nack(fci, [&](const RtpPacket::Ptr &rtp) {
-                                //rtp重传
-                                onSendRtp(rtp, true, true);
-                            });
-                        }
+                        auto &track = it->second;
+                        auto &fci = fb->getFci<FCI_NACK>();
+                        track->nack_list.for_each_nack(fci, [&](const RtpPacket::Ptr &rtp) {
+                            //rtp重传
+                            onSendRtp(rtp, true, true);
+                        });
                         break;
                     }
                     default: break;
@@ -675,122 +695,55 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 
 ///////////////////////////////////////////////////////////////////
 
-void WebRtcTransportImp::changeRtpExtId(RtpPayloadInfo &info, const RtpHeader *header, bool is_recv, bool is_rtx, string *rid_ptr) const{
-    auto ext_map = RtpExt::getExtValue(header);
-    for (auto &pr : ext_map) {
-        if (is_recv) {
-            auto it = _rtp_ext_id_to_type.find(pr.first);
-            if (it == _rtp_ext_id_to_type.end()) {
-                WarnL << "接收rtp时,忽略不识别的rtp ext, id=" << (int) pr.first;
-                pr.second.clearExt();
-                continue;
-            }
-            pr.second.setType(it->second);
-            //重新赋值ext id为 ext type，作为后面处理ext的统一中间类型
-            pr.second.setExtId((uint8_t) it->second);
-            switch(it->second){
-                case RtpExtType::sdes_repaired_rtp_stream_id :
-                case RtpExtType::sdes_rtp_stream_id : {
-                    auto ssrc = ntohl(header->ssrc);
-                    auto rid = it->second == RtpExtType::sdes_rtp_stream_id ? pr.second.getRtpStreamId() : pr.second.getRepairedRtpStreamId();
-                    //根据rid获取rtp或rtx的ssrc
-                    auto &ssrc_ref = is_rtx ? info.rid_ssrc[rid].second : info.rid_ssrc[rid].first;
-                    if (!ssrc_ref) {
-                        //ssrc未赋值，赋值
-                        ssrc_ref = ssrc;
-                        DebugL << (is_rtx ? "got rid of rtx:" : "got rid:") << rid << ", ssrc:" << ssrc;
-                    }
-                    if (is_rtx) {
-                        //rtx ssrc --> rtp ssrc
-                        auto &rtp_ssrc_ref = info.rtx_ssrc_to_rtp_ssrc[ssrc];
-                        if (!rtp_ssrc_ref && info.rid_ssrc[rid].first) {
-                            //未找到rtx到rtp ssrc的映射关系，且已经获取rtp的ssrc，那么设置映射关系
-                            rtp_ssrc_ref = info.rid_ssrc[rid].first;
-                            DebugL << "got ssrc of rid:" << rid << ", [rtx-rtp]:" << ssrc << "-" << rtp_ssrc_ref;
-                        }
-                    }
-                    if (rid_ptr) {
-                        *rid_ptr = rid;
-                    }
-                    break;
-                }
-
-                default : break;
-            }
-        } else {
-            pr.second.setType((RtpExtType) pr.first);
-            auto it = _rtp_ext_type_to_id.find((RtpExtType) pr.first);
-            if (it == _rtp_ext_type_to_id.end()) {
-                WarnL << "发送rtp时, 忽略不被客户端支持rtp ext:" << pr.second.dumpString();
-                pr.second.clearExt();
-                continue;
-            }
-            //重新赋值ext id为客户端sdp声明的类型
-            pr.second.setExtId(it->second);
-        }
-    }
+void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, const MediaTrack::Ptr &track) {
+    //rid --> RtpReceiverImp
+    auto &ref = track->rtp_channel[rid];
+    ref = std::make_shared<RtpChannel>([track, this, rid](RtpPacket::Ptr rtp) mutable {
+        onSortedRtp(*track, rid, std::move(rtp));
+    }, [track, this, ssrc](const FCI_NACK &nack) mutable {
+        onSendNack(*track, nack, ssrc);
+    });
+    InfoL << "create rtp receiver of ssrc:" << ssrc << ", rid:" << rid << ", codec:" << track->plan_rtp->codec;
 }
 
 void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
-    onRtp_l(buf, len, false);
-}
-
-void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
-    if (!rtx) {
-        _bytes_usage += len;
-        _alive_ticker.resetTime();
-    }
+    _bytes_usage += len;
+    _alive_ticker.resetTime();
 
     RtpHeader *rtp = (RtpHeader *) buf;
-    auto ssrc = ntohl(rtp->ssrc);
-
     //根据接收到的rtp的pt信息，找到该流的信息
-    auto it = _rtp_info_pt.find(rtp->pt);
-    if (it == _rtp_info_pt.end()) {
-        WarnL;
+    auto it = _pt_to_track.find(rtp->pt);
+    if (it == _pt_to_track.end()) {
+        WarnL << "unknown rtp pt:" << (int)rtp->pt;
         return;
     }
-    auto &info = it->second.second;
-    if (!it->second.first) {
+    bool is_rtx = it->second.first;
+    auto ssrc = ntohl(rtp->ssrc);
+    auto &track = it->second.second;
+
+    //修改ext id至统一
+    string rid;
+    track->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid);
+
+    auto &ref = track->rtp_channel[rid];
+    if (!ref) {
+        if (is_rtx) {
+            //再接收到对应的rtp前，丢弃rtx包
+            WarnL << "unknown rtx rtp, rid:" << rid << ", ssrc:" << ssrc << ", codec:" << track->plan_rtp->codec << ", seq:" << ntohs(rtp->seq);
+            return;
+        }
+        createRtpChannel(rid, ssrc, track);
+    }
+
+    if (!is_rtx) {
         //这是普通的rtp数据
-        auto seq = ntohs(rtp->seq);
 #if 0
-        if (!rtx && info->media->type == TrackVideo && seq % 100 == 0) {
+        auto seq = ntohs(rtp->seq);
+        if (track->media->type == TrackVideo && seq % 100 == 0) {
             //此处模拟接受丢包
-            DebugL << "recv dropped:" << seq;
             return;
         }
 #endif
-        auto &ref = info->receiver[ssrc];
-        if (!rtx) {
-            //统计rtp接受情况，便于生成nack rtcp包
-            info->nack_ctx[ssrc].received(seq);
-            //时间戳转换成毫秒
-            auto stamp_ms = ntohl(rtp->stamp) * uint64_t(1000) / info->plan_rtp->sample_rate;
-
-            //统计rtp收到的情况，好做rr汇报
-            auto &cxt_ref = info->rtcp_context_recv[ssrc];
-            if (!cxt_ref) {
-                cxt_ref = std::make_shared<RtcpContext>(info->plan_rtp->sample_rate, true);
-            }
-            cxt_ref->onRtp(seq, stamp_ms, len);
-
-            //修改ext id至统一
-            string rid;
-            changeRtpExtId(*info, rtp, true, false, &rid);
-
-            if (!ref) {
-                ref = std::make_shared<RtpReceiverImp>([info, this, rid](RtpPacket::Ptr rtp) mutable {
-                    onSortedRtp(*info, rid, std::move(rtp));
-                });
-                info->nack_ctx[ssrc].setOnNack([info, this, ssrc](const FCI_NACK &nack) mutable {
-                    onSendNack(*info, nack, ssrc);
-                });
-                //recv simulcast ssrc --> RtpPayloadInfo
-                _rtp_info_ssrc[ssrc] = std::make_pair(false, info);
-                InfoL << "receive rtp of ssrc:" << ssrc;
-            }
-        }
         //解析并排序rtp
         if(!ref){
             InfoL << "ignore  no rtp receiver of ssrc:" << ssrc<<" is rtx:"<<rtx;
@@ -809,31 +762,22 @@ void WebRtcTransportImp::onRtp_l(const char *buf, size_t len, bool rtx) {
         return;
     }
 
-    //修改ext id至统一
-    changeRtpExtId(*info, rtp, true, true);
-
     //前两个字节是原始的rtp的seq
     auto origin_seq = payload[0] << 8 | payload[1];
+    //rtx 转换为 rtp
+    rtp->pt = track->plan_rtp->pt;
     rtp->seq = htons(origin_seq);
-    if (info->offer_ssrc_rtp) {
-        //非simulcast或音频
-        rtp->ssrc = htonl(info->offer_ssrc_rtp);
-        TraceL << "received rtx rtp,ssrc: " << ssrc << ", seq:" << origin_seq << ", pt:" << (int)rtp->pt;
-    } else {
-        //todo simulcast下，辅码流通过rtx传输？
-        //simulcast情况下，根据rtx的ssrc查找rtp的ssrc
-        rtp->ssrc = htonl(info->rtx_ssrc_to_rtp_ssrc[ntohl(rtp->ssrc)]);
-    }
-    rtp->pt = info->plan_rtp->pt;
+    rtp->ssrc = htonl(ref->getSSRC());
+
     memmove((uint8_t *) buf + 2, buf, payload - (uint8_t *) buf);
     buf += 2;
     len -= 2;
-    onRtp_l(buf, len, true);
+    ref->inputRtp(track->media->type, track->plan_rtp->sample_rate, (uint8_t *) buf, len, true);
 }
 
-void WebRtcTransportImp::onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack, uint32_t ssrc) {
+void WebRtcTransportImp::onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc) {
     auto rtcp = RtcpFB::create(RTPFBType::RTCP_RTPFB_NACK, &nack, FCI_NACK::kSize);
-    rtcp->ssrc = htons(info.answer_ssrc_rtp);
+    rtcp->ssrc = htons(track.answer_ssrc_rtp);
     rtcp->ssrc_media = htonl(ssrc);
     DebugL << htonl(ssrc) << " " << nack.getPid();
     sendRtcpPacket((char *) rtcp.get(), rtcp->getSize(), true);
@@ -841,8 +785,8 @@ void WebRtcTransportImp::onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack, 
 
 ///////////////////////////////////////////////////////////////////
 
-void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, const string &rid, RtpPacket::Ptr rtp) {
-    if (info.media->type == TrackVideo && _pli_ticker.elapsedTime() > 2000) {
+void WebRtcTransportImp::onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp) {
+    if (track.media->type == TrackVideo && _pli_ticker.elapsedTime() > 2000) {
         //定期发送pli请求关键帧，方便非rtc等协议
         _pli_ticker.resetTime();
         sendRtcpPli(rtp->getSSRC());
@@ -879,42 +823,41 @@ void WebRtcTransportImp::onSortedRtp(RtpPayloadInfo &info, const string &rid, Rt
 ///////////////////////////////////////////////////////////////////
 
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx){
-    auto &info = _send_rtp_info[rtp->type];
-    if (!info) {
+    auto &track = _type_to_track[rtp->type];
+    if (!track) {
         //忽略，对方不支持该编码类型
         return;
     }
     if (!rtx) {
         //统计rtp发送情况，好做sr汇报
-        info->rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
-        info->nack_list.push_back(rtp);
+        track->rtcp_context_send->onRtp(rtp->getSeq(), ntohl(rtp->getHeader()->stamp), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+        track->nack_list.push_back(rtp);
 #if 0
         //此处模拟发送丢包
         if (rtp->type == TrackVideo && rtp->getSeq() % 100 == 0) {
-            DebugL << "send dropped:" << rtp->getSeq();
             return;
         }
 #endif
     } else {
         WarnL << "send rtx rtp:" << rtp->getSeq();
     }
-    pair<bool/*rtx*/, RtpPayloadInfo *> ctx{rtx, info.get()};
+    pair<bool/*rtx*/, MediaTrack *> ctx{rtx, track.get()};
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, &ctx);
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
 }
 
 void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t &len, void *ctx) {
-    auto pr = (pair<bool/*rtx*/, RtpPayloadInfo *> *) ctx;
+    auto pr = (pair<bool/*rtx*/, MediaTrack *> *) ctx;
     auto header = (RtpHeader *) buf;
 
     if (!pr->first || !pr->second->plan_rtx) {
         //普通的rtp,或者不支持rtx, 修改目标pt和ssrc
-        changeRtpExtId(*pr->second, header, false, false);
+        pr->second->rtp_ext_ctx->changeRtpExtId(header, false);
         header->pt = pr->second->plan_rtp->pt;
         header->ssrc = htonl(pr->second->answer_ssrc_rtp);
     } else {
         //重传的rtp, rtx
-        changeRtpExtId(*pr->second, header, false, true);
+        pr->second->rtp_ext_ctx->changeRtpExtId(header, false);
         header->pt = pr->second->plan_rtx->pt;
         if (pr->second->answer_ssrc_rtx) {
             //有rtx单独的ssrc,有些情况下，浏览器支持rtx，但是未指定rtx单独的ssrc
@@ -949,7 +892,7 @@ void WebRtcTransportImp::onShutdown(const SockException &ex){
 
 bool WebRtcTransportImp::close(MediaSource &sender, bool force) {
     //此回调在其他线程触发
-    if(!_push_src || (!force && _push_src->totalReaderCount())){
+    if (!force && totalReaderCount(sender)) {
         return false;
     }
     string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
@@ -958,7 +901,11 @@ bool WebRtcTransportImp::close(MediaSource &sender, bool force) {
 }
 
 int WebRtcTransportImp::totalReaderCount(MediaSource &sender) {
-    return _push_src ? _push_src->totalReaderCount() : sender.readerCount();
+    auto total_count = 0;
+    for (auto &src : _push_src_simulcast) {
+        total_count += src.second->totalReaderCount();
+    }
+    return total_count;
 }
 
 MediaOriginType WebRtcTransportImp::getOriginType(MediaSource &sender) const {

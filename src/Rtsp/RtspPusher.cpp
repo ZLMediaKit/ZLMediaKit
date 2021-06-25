@@ -179,7 +179,7 @@ void RtspPusher::sendAnnounce() {
     }
     _rtcp_context.clear();
     for (auto &track : _track_vec) {
-        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(track->_samplerate, false));
+        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(false));
     }
     _on_res_func = std::bind(&RtspPusher::handleResAnnounce, this, placeholders::_1);
     sendRtspRequest("ANNOUNCE", _url, {}, src->getSdp());
@@ -360,7 +360,7 @@ void RtspPusher::updateRtcpContext(const RtpPacket::Ptr &rtp){
     int track_index = getTrackIndexByTrackType(rtp->type);
     auto &ticker = _rtcp_send_ticker[track_index];
     auto &rtcp_ctx = _rtcp_context[track_index];
-    rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStampMS(), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+    rtcp_ctx->onRtp(rtp->getSeq(), ntohl(rtp->getHeader()->stamp), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 
     //send rtcp every 5 second
     if (ticker.elapsedTime() > 5 * 1000) {
