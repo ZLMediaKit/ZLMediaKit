@@ -22,15 +22,14 @@ public:
     using Ptr = std::shared_ptr<RtcpContext>;
     /**
      * 创建rtcp上下文
-     * @param sample_rate 音频采用率，视频一般为90000
      * @param is_receiver 是否为rtp接收者，接收者更消耗性能
      */
-    RtcpContext(uint32_t sample_rate, bool is_receiver);
+    RtcpContext(bool is_receiver);
 
     /**
      * 输出或输入rtp时调用
      * @param seq rtp的seq
-     * @param stamp rtp的时间戳，单位毫秒
+     * @param stamp rtp的时间戳，单位采样数(非毫秒)
      * @param bytes rtp数据长度
      */
     void onRtp(uint16_t seq, uint32_t stamp, size_t bytes);
@@ -87,8 +86,6 @@ private:
     bool _is_receiver;
     //时间戳抖动值
     double _jitter = 0;
-    //视频默认90000,音频为采样率
-    uint32_t _sample_rate;
     //收到或发送的rtp的字节数
     size_t _bytes = 0;
     //收到或发送的rtp的个数

@@ -384,11 +384,11 @@ private:
     //播放rtsp源的reader对象
     RtspMediaSource::RingType::RingReader::Ptr _reader;
     //根据发送rtp的track类型获取相关信息
-    MediaTrack::Ptr _send_rtp_info[2];
+    MediaTrack::Ptr _type_to_track[2];
     //根据接收rtp的pt获取相关信息
-    unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _rtp_info_pt;
+    unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _pt_to_track;
     //根据rtcp的ssrc获取相关信息，只记录rtp的ssrc，rtx的ssrc不记录
-    unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _rtp_info_ssrc;
+    unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
     //发送rtp时需要修改rtp ext id
     map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
     //接收rtp时需要修改rtp ext id

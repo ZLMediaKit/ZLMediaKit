@@ -18,8 +18,7 @@ void RtcpContext::clear() {
     memset(this, 0, sizeof(RtcpContext));
 }
 
-RtcpContext::RtcpContext(uint32_t sample_rate, bool is_receiver) {
-    _sample_rate = sample_rate;
+RtcpContext::RtcpContext(bool is_receiver) {
     _is_receiver = is_receiver;
 }
 
@@ -35,7 +34,6 @@ void RtcpContext::onRtp(uint16_t seq, uint32_t stamp, size_t bytes) {
                 diff = -diff;
             }
             //抖动单位为采样次数
-            diff *= (_sample_rate / 1000.0);
             _jitter += (diff - _jitter) / 16.0;
         } else {
             _jitter = 0;
@@ -129,7 +127,7 @@ Buffer::Ptr RtcpContext::createRtcpSR(uint32_t rtcp_ssrc) {
     rtcp->setNtpStamp(tv);
 
     //转换成rtp时间戳
-    rtcp->rtpts = htonl(uint32_t(_last_rtp_stamp * (_sample_rate / 1000.0)));
+    rtcp->rtpts = htonl(_last_rtp_stamp);
     rtcp->packet_count = htonl((uint32_t) _packets);
     rtcp->octet_count = htonl((uint32_t) _bytes);
     return RtcpHeader::toBuffer(std::move(rtcp));
