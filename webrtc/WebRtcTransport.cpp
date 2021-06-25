@@ -552,14 +552,14 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
 
 ///////////////////////////////////////////////////////////////////
 
-class RtpChannel : public RtpReceiver {
+class RtpChannel : public RtpTrackImp {
 public:
     uint32_t rtp_ssrc;
 
 public:
-    RtpChannel(function<void(RtpPacket::Ptr rtp)> on_rtp, function<void(const FCI_NACK &nack)> on_nack) {
-        _on_sort = std::move(on_rtp);
-        nack_ctx.setOnNack(std::move(on_nack));
+    RtpChannel(RtpTrackImp::OnSorted cb, function<void(const FCI_NACK &nack)> on_nack) {
+        setOnSorted(std::move(cb));
+        _nack_ctx.setOnNack(std::move(on_nack));
     }
 
     ~RtpChannel() override = default;
@@ -569,27 +569,21 @@ public:
             RtpHeader *rtp = (RtpHeader *) ptr;
             auto seq = ntohs(rtp->seq);
             //统计rtp接受情况，便于生成nack rtcp包
-            nack_ctx.received(seq);
+            _nack_ctx.received(seq);
             //统计rtp收到的情况，好做rr汇报
-            rtcp_context.onRtp(seq, ntohl(rtp->stamp), len);
+            _rtcp_context.onRtp(seq, ntohl(rtp->stamp), len);
         }
-        return handleOneRtp((int) type, type, sample_rate, ptr, len);
+        return RtpTrack::inputRtp(type, sample_rate, ptr, len);
     }
 
     Buffer::Ptr createRtcpRR(RtcpHeader *sr, uint32_t ssrc) {
-        rtcp_context.onRtcp(sr);
-        return rtcp_context.createRtcpRR(ssrc, rtp_ssrc);
-    }
-
-protected:
-    void onRtpSorted(RtpPacket::Ptr rtp, int track_index) override {
-        _on_sort(std::move(rtp));
+        _rtcp_context.onRtcp(sr);
+        return _rtcp_context.createRtcpRR(ssrc, rtp_ssrc);
     }
 
 private:
-    NackContext nack_ctx;
-    RtcpContext rtcp_context{true};
-    function<void(RtpPacket::Ptr rtp)> _on_sort;
+    NackContext _nack_ctx;
+    RtcpContext _rtcp_context{true};
 };
 
 std::shared_ptr<RtpChannel> MediaTrack::getRtpChannel(uint32_t ssrc) const{
