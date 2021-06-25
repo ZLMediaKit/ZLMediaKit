@@ -245,6 +245,6 @@ private:
     MediaTrack::Ptr _type_to_track[2];
     //根据接收rtp的pt获取相关信息
     unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _pt_to_track;
-    //根据rtcp的ssrc获取相关信息，只记录rtp的ssrc，rtx的ssrc不记录
+    //根据rtcp的ssrc获取相关信息，收发rtp和rtx的ssrc都会记录
     unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
 };
