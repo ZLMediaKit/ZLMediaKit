@@ -432,6 +432,17 @@ void WebRtcTransportImp::onStartWebRTC() {
                 _ssrc_to_track[ssrc] = track;
                 InfoL << "get rtp, pt:" << (int) pt << ", ssrc:" << ssrc << ", rid:" << rid;
             });
+
+            int index = 0;
+            for (auto &ssrc : m_offer->rtp_ssrc_sim) {
+                //记录ssrc对应的MediaTrack
+                _ssrc_to_track[ssrc.ssrc] = track;
+                if (m_offer->rtp_rids.size() > index) {
+                    //支持firefox的simulcast, 提前映射好ssrc和rid的关系
+                    track->rtp_ext_ctx->setRid(ssrc.ssrc, m_offer->rtp_rids[index]);
+                }
+                ++index;
+            }
         }
     }
 

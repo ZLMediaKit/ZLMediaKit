@@ -579,6 +579,10 @@ string RtpExtContext::getRid(uint32_t ssrc) const{
     return it->second;
 }
 
+void RtpExtContext::setRid(uint32_t ssrc, const string &rid) {
+    _ssrc_to_rid[ssrc] = rid;
+}
+
 void RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr) {
     string rid, repaired_rid;
     auto ext_map = RtpExt::getExtValue(header);

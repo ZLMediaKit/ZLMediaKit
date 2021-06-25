@@ -119,6 +119,7 @@ public:
 
     void setOnGetRtp(OnGetRtp cb);
     string getRid(uint32_t ssrc) const;
+    void setRid(uint32_t ssrc, const string &rid);
     void changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr);
 
 private:
