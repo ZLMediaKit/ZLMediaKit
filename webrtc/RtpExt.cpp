@@ -623,7 +623,9 @@ void RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, string
         rid = _ssrc_to_rid[ssrc];
     } else {
         //设置rid
-        if (_ssrc_to_rid.emplace(ssrc, rid).second) {
+        auto it = _ssrc_to_rid.find(ssrc);
+        if (it == _ssrc_to_rid.end() || it->second != rid) {
+            _ssrc_to_rid[ssrc] = rid;
             onGetRtp(header->pt, ssrc, rid);
         }
     }
