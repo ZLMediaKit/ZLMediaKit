@@ -722,7 +722,8 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
     auto &ref = info->rtp_channel[rid];
     if (!ref) {
         if (is_rtx) {
-            WarnL << "dropped rtx rtp, rid:" << rid << ", ssrc:" << ssrc << ", codec:" << info->plan_rtp->codec << ", seq:" << ntohs(rtp->seq);
+            //再接收到对应的rtp前，丢弃rtx包
+            WarnL << "unknown rtx rtp, rid:" << rid << ", ssrc:" << ssrc << ", codec:" << info->plan_rtp->codec << ", seq:" << ntohs(rtp->seq);
             return;
         }
         createRtpChannel(rid, ssrc, info);
@@ -752,7 +753,6 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
 
     //前两个字节是原始的rtp的seq
     auto origin_seq = payload[0] << 8 | payload[1];
-    //InfoL << "rtx rtp, rid:" << rid << ", seq:" << origin_seq << ", ssrc:" << ssrc;
     //rtx 转换为 rtp
     rtp->pt = info->plan_rtp->pt;
     rtp->seq = htons(origin_seq);
