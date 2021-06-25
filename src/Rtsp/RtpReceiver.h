@@ -160,11 +160,8 @@ private:
     function<void(SEQ seq, T &packet)> _cb;
 };
 
-class RtpReceiver {
+class RtpTrack : private PacketSortor<RtpPacket::Ptr>{
 public:
-    RtpReceiver();
-    virtual ~RtpReceiver();
-
     class BadRtpException : public invalid_argument {
     public:
         template<typename Type>
@@ -172,7 +169,60 @@ public:
         ~BadRtpException() = default;
     };
 
+    RtpTrack();
+    virtual ~RtpTrack() = default;
+
+    void clear();
+    uint32_t getSSRC() const;
+    bool inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
+
 protected:
+    virtual void onRtpSorted(RtpPacket::Ptr rtp) {}
+    virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp) {}
+
+private:
+    uint32_t _ssrc = 0;
+    Ticker _ssrc_alive;
+};
+
+class RtpTrackImp : public RtpTrack{
+public:
+    using OnSorted = function<void(RtpPacket::Ptr)>;
+    using BeforeSorted = function<void(const RtpPacket::Ptr &)>;
+
+    RtpTrackImp() = default;
+    ~RtpTrackImp() override = default;
+
+    void setOnSorted(OnSorted cb);
+    void setBeforeSorted(BeforeSorted cb);
+
+protected:
+    void onRtpSorted(RtpPacket::Ptr rtp) override;
+    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp) override;
+
+private:
+    OnSorted _on_sorted;
+    BeforeSorted _on_before_sorted;
+};
+
+template<int kCount = 2>
+class RtpMultiReceiver {
+public:
+    RtpMultiReceiver() {
+        int index = 0;
+        for (auto &track : _track) {
+            track.setOnSorted([this, index](RtpPacket::Ptr rtp) {
+                onRtpSorted(std::move(rtp), index);
+            });
+            track.setBeforeSorted([this, index](const RtpPacket::Ptr &rtp) {
+                onBeforeRtpSorted(rtp, index);
+            });
+            ++index;
+        }
+    }
+
+    virtual ~RtpMultiReceiver() = default;
+
     /**
      * 输入数据指针生成并排序rtp包
      * @param index track下标索引
@@ -182,33 +232,48 @@ protected:
      * @param len rtp数据指针长度
      * @return 解析成功返回true
      */
-    bool handleOneRtp(int index, TrackType type, int samplerate, uint8_t *ptr, size_t len);
+    bool handleOneRtp(int index, TrackType type, int sample_rate, uint8_t *ptr, size_t len){
+        return _track[index].inputRtp(type, sample_rate, ptr, len);
+    }
 
+    void clear() {
+        for (auto &track : _track) {
+            track.clear();
+        }
+    }
+
+    size_t getJitterSize(int index) const {
+        return _track[index].getJitterSize();
+    }
+
+    size_t getCycleCount(int index) const {
+        return _track[index].getCycleCount();
+    }
+
+    uint32_t getSSRC(int index) const {
+        return _track[index].getSSRC();
+    }
+
+protected:
     /**
      * rtp数据包排序后输出
      * @param rtp rtp数据包
      * @param track_index track索引
      */
-    virtual void onRtpSorted(RtpPacket::Ptr rtp, int track_index) {}
+    virtual void onRtpSorted(RtpPacket::Ptr rtp, int index) {}
 
     /**
      * 解析出rtp但还未排序
      * @param rtp rtp数据包
      * @param track_index track索引
      */
-    virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) {}
-
-    void clear();
-    size_t getJitterSize(int track_index) const;
-    size_t getCycleCount(int track_index) const;
-    uint32_t getSSRC(int track_index) const;
+    virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int index) {}
 
 private:
-    uint32_t _ssrc[2] = {0, 0};
-    Ticker _ssrc_alive[2];
-    //rtp排序缓存，根据seq排序
-    PacketSortor<RtpPacket::Ptr> _rtp_sortor[2];
+    RtpTrackImp _track[kCount];
 };
+
+using RtpReceiver = RtpMultiReceiver<2>;
 
 }//namespace mediakit
 

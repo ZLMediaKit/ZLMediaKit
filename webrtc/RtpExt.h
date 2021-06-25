@@ -108,5 +108,31 @@ private:
     RtpExtType _type = RtpExtType::padding;
 };
 
+class RtcMedia;
+class RtpExtContext {
+public:
+    using Ptr = std::shared_ptr<RtpExtContext>;
+    using OnGetRtp = function<void(uint8_t pt, uint32_t ssrc, const string &rid)>;
+
+    RtpExtContext(const RtcMedia &media);
+    ~RtpExtContext() = default;
+
+    void setOnGetRtp(OnGetRtp cb);
+    string getRid(uint32_t ssrc) const;
+    void setRid(uint32_t ssrc, const string &rid);
+    void changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr);
+
+private:
+    void onGetRtp(uint8_t pt, uint32_t ssrc, const string &rid);
+
+private:
+    OnGetRtp _cb;
+    //发送rtp时需要修改rtp ext id
+    map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
+    //接收rtp时需要修改rtp ext id
+    unordered_map<uint8_t, RtpExtType> _rtp_ext_id_to_type;
+    //ssrc --> rid
+    unordered_map<uint32_t/*simulcast ssrc*/, string/*rid*/> _ssrc_to_rid;
+};
 
 #endif //ZLMEDIAKIT_RTPEXT_H
