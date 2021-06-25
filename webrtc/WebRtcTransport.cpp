@@ -557,26 +557,130 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
 
 ///////////////////////////////////////////////////////////////////
 
+struct PacketContainer {
+  explicit PacketContainer(TrackType t): type(t) {}
+  const TrackType type;
+  //rtp排序缓存，根据seq排序
+  PacketSortor<RtpPacket::Ptr> rtp_sortor;
+  void sortPacket(int sample_rate,
+                  const uint8_t *ptr,
+                  size_t len);
+};
+
+using OnRtpSortedCallback = std::function<void(RtpPacket::Ptr rtp, int track_index)>;
+
+struct TrackRtpHandlerInterface {
+  virtual bool handleRtp(int sample_rate, const uint8_t *ptr, size_t len, const RtpHeader *header) = 0;
+  virtual void setOnRtpSorted(OnRtpSortedCallback callback) = 0;
+};
+
+struct TrackRtpHandler : TrackRtpHandlerInterface {
+  explicit TrackRtpHandler(TrackType t): track{t} {}
+  PacketContainer track;
+
+  bool handleRtp(int sample_rate, const uint8_t *ptr, size_t len, const RtpHeader *header) override {
+    //比对缓存ssrc
+    auto ssrc = ntohl(header->ssrc);
+    track.sortPacket(sample_rate, ptr, len);
+    return true;
+  }
+  void setOnRtpSorted(OnRtpSortedCallback callback) override {
+    track.rtp_sortor.setOnSort([this, callback](uint16_t seq, RtpPacket::Ptr &packet) {
+      callback(move(packet), static_cast<int>(track.type));
+    });
+  }
+};
+
 class RtpReceiverImp : public RtpReceiver {
+  const RtcMedia& media;
 public:
-    RtpReceiverImp( function<void(RtpPacket::Ptr rtp)> cb){
-        _on_sort = std::move(cb);
-    }
+  RtpReceiverImp(const RtcMedia *m, function<void(RtpPacket::Ptr rtp)> cb)
+      : media(*m), track_rtp_handler_(new TrackRtpHandler(m->type)) {
+    _on_sort = std::move(cb);
+    track_rtp_handler_->setOnRtpSorted(
+        [&](RtpPacket::Ptr rtp, int track_index) {
+          _on_sort(std::move(rtp));
+        });
+  }
 
-    ~RtpReceiverImp() override = default;
+  ~RtpReceiverImp() override = default;
 
-    bool inputRtp(TrackType type, int samplerate, uint8_t *ptr, size_t len){
-        return handleOneRtp((int) type, type, samplerate, ptr, len);
-    }
+  bool inputRtp(int samplerate, uint8_t *ptr, size_t len) {
+    return handleRtp(samplerate, ptr, len);
+  }
 
 protected:
-    void onRtpSorted(RtpPacket::Ptr rtp, int track_index) override {
-        _on_sort(std::move(rtp));
-    }
+  /**
+   * 输入数据指针生成并排序rtp包
+   * @param index track下标索引
+   * @param type track类型
+   * @param sample_rate rtp时间戳基准时钟，视频为90000，音频为采样率
+   * @param ptr rtp数据指针
+   * @param len rtp数据指针长度
+   * @return 解析成功返回true
+   */
+  bool handleRtp(int sample_rate, uint8_t *ptr, size_t len);
+
+  void onRtpSorted(RtpPacket::Ptr rtp, int track_index) override {
+    _on_sort(std::move(rtp));
+  }
 
 private:
-    function<void(RtpPacket::Ptr rtp)> _on_sort;
+  std::unique_ptr<TrackRtpHandlerInterface> track_rtp_handler_;
+  function<void(RtpPacket::Ptr rtp)> _on_sort;
 };
+
+constexpr size_t RTP_MAX_SIZE = 10*1024;
+
+bool RtpReceiverImp::handleRtp(int sample_rate, uint8_t *ptr, size_t len) {
+  if (len < RtpPacket::kRtpHeaderSize) {
+    WarnL << "rtp包太小:" << len;
+    return false;
+  }
+  if (len > RTP_MAX_SIZE) {
+    WarnL << "超大的rtp包:" << len << " > " << RTP_MAX_SIZE;
+    return false;
+  }
+  if (!sample_rate) {
+    //无法把时间戳转换成毫秒
+    return false;
+  }
+  RtpHeader *header = (RtpHeader *) ptr;
+  if (header->version != RtpPacket::kRtpVersion) {
+    throw BadRtpException("非法的rtp，version字段非法");
+  }
+  if (!header->getPayloadSize(len)) {
+    //无有效负载的rtp包
+    return false;
+  }
+
+  return track_rtp_handler_->handleRtp(sample_rate, ptr, len, header);
+}
+
+void PacketContainer::sortPacket(
+    int sample_rate,
+    const uint8_t *ptr,
+    size_t len) {
+  auto rtp = RtpPacket::create();
+  //需要添加4个字节的rtp over tcp头
+  rtp->setCapacity(RtpPacket::kRtpTcpHeaderSize + len);
+  rtp->setSize(RtpPacket::kRtpTcpHeaderSize + len);
+  rtp->sample_rate = sample_rate;
+  rtp->type = type;
+
+  //赋值4个字节的rtp over tcp头
+  uint8_t *data = (uint8_t *) rtp->data();
+  data[0] = '$';
+  data[1] = 2 * static_cast<int>(type);
+  data[2] = (len >> 8) & 0xFF;
+  data[3] = len & 0xFF;
+  //拷贝rtp
+  memcpy(&data[4], ptr, len);
+
+  auto seq = rtp->getSeq();
+  rtp_sortor.sortPacket(seq, move(rtp));
+}
+
 
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
     _bytes_usage += len;
@@ -717,7 +821,7 @@ void WebRtcTransportImp::changeRtpExtId(RtpPayloadInfo &info, const RtpHeader *h
 }
 
 std::shared_ptr<RtpReceiverImp> WebRtcTransportImp::createRtpReceiver(const string &rid, uint32_t ssrc, bool is_rtx, const RtpPayloadInfo::Ptr &info){
-    auto ref = std::make_shared<RtpReceiverImp>([info, this, rid](RtpPacket::Ptr rtp) mutable {
+    auto ref = std::make_shared<RtpReceiverImp>(info->media,[info, this, rid](RtpPacket::Ptr rtp) mutable {
         onSortedRtp(*info, rid, std::move(rtp));
     });
 
@@ -787,7 +891,7 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
         cxt_ref->onRtp(seq, stamp_ms, len);
 
         //解析并排序rtp
-        ref->inputRtp(info->media->type, info->plan_rtp->sample_rate, (uint8_t *) buf, len);
+        ref->inputRtp(info->plan_rtp->sample_rate, (uint8_t *) buf, len);
         return;
     }
 
@@ -810,7 +914,7 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
     memmove((uint8_t *) buf + 2, buf, payload - (uint8_t *) buf);
     buf += 2;
     len -= 2;
-    ref->inputRtp(info->media->type, info->plan_rtp->sample_rate, (uint8_t *) buf, len);
+    ref->inputRtp(info->plan_rtp->sample_rate, (uint8_t *) buf, len);
 }
 
 void WebRtcTransportImp::onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack, uint32_t ssrc) {
