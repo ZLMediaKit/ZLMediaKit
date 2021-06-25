@@ -125,7 +125,7 @@ private:
     RtcSession::Ptr _answer_sdp;
 };
 
-class RtpReceiverImp;
+class RtpChannel;
 
 class NackList {
 public:
@@ -337,9 +337,9 @@ private:
     bool canSendRtp() const;
     bool canRecvRtp() const;
 
-    class RtpPayloadInfo {
+    class MediaTrack {
     public:
-        using Ptr = std::shared_ptr<RtpPayloadInfo>;
+        using Ptr = std::shared_ptr<MediaTrack>;
         const RtcCodecPlan *plan_rtp;
         const RtcCodecPlan *plan_rtx;
         uint32_t offer_ssrc_rtp = 0;
@@ -349,19 +349,16 @@ private:
         const RtcMedia *media;
         NackList nack_list;
         RtcpContext::Ptr rtcp_context_send;
-        //只生成rtp的nack，rtx的不生成
-        unordered_map<string/*rid*/, NackContext> nack_ctx;
-        unordered_map<string/*rid*/, uint32_t/*rtp ssrc*/> rid_to_ssrc;
-        unordered_map<string/*rid*/, std::shared_ptr<RtpReceiverImp> > receiver;
+        unordered_map<string/*rid*/, std::shared_ptr<RtpChannel> > rtp_channel;
         unordered_map<uint32_t/*simulcast ssrc*/, string/*rid*/> ssrc_to_rid;
-        //只统计rtp的接收情况，rtx的不统计
-        unordered_map<uint32_t/*simulcast ssrc*/, RtcpContext::Ptr> rtcp_context_recv;
+
+        std::shared_ptr<RtpChannel> getRtpChannel(uint32_t ssrc) const;
     };
 
-    void onSortedRtp(RtpPayloadInfo &info, const string &rid, RtpPacket::Ptr rtp);
-    void onSendNack(RtpPayloadInfo &info, const FCI_NACK &nack, uint32_t ssrc);
-    void changeRtpExtId(RtpPayloadInfo &info, const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr) const;
-    std::shared_ptr<RtpReceiverImp> createRtpReceiver(const string &rid, uint32_t ssrc, bool is_rtx, const RtpPayloadInfo::Ptr &info);
+    void onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp);
+    void onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc);
+    void changeRtpExtId(MediaTrack &track, const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr) const;
+    void createRtpChannel(const string &rid, uint32_t ssrc, const MediaTrack::Ptr &info);
 
 private:
     uint16_t _rtx_seq[2] = {0, 0};
@@ -387,11 +384,11 @@ private:
     //播放rtsp源的reader对象
     RtspMediaSource::RingType::RingReader::Ptr _reader;
     //根据发送rtp的track类型获取相关信息
-    RtpPayloadInfo::Ptr _send_rtp_info[2];
+    MediaTrack::Ptr _send_rtp_info[2];
     //根据接收rtp的pt获取相关信息
-    unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,RtpPayloadInfo::Ptr> > _rtp_info_pt;
+    unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _rtp_info_pt;
     //根据rtcp的ssrc获取相关信息，只记录rtp的ssrc，rtx的ssrc不记录
-    unordered_map<uint32_t/*ssrc*/, RtpPayloadInfo::Ptr> _rtp_info_ssrc;
+    unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _rtp_info_ssrc;
     //发送rtp时需要修改rtp ext id
     map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
     //接收rtp时需要修改rtp ext id
