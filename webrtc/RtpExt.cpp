@@ -562,3 +562,72 @@ void RtpExt::setType(RtpExtType type) {
 RtpExtType RtpExt::getType() const {
     return _type;
 }
+
+RtpExtContext::RtpExtContext(const RtcMedia &m){
+    for (auto &ext : m.extmap) {
+        auto ext_type = RtpExt::getExtType(ext.ext);
+        _rtp_ext_id_to_type.emplace(ext.id, ext_type);
+        _rtp_ext_type_to_id.emplace(ext_type, ext.id);
+    }
+}
+
+string RtpExtContext::getRid(uint32_t ssrc) const{
+    auto it = _ssrc_to_rid.find(ssrc);
+    if (it == _ssrc_to_rid.end()) {
+        return "";
+    }
+    return it->second;
+}
+
+void RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr) {
+    string rid, repaired_rid;
+    auto ext_map = RtpExt::getExtValue(header);
+    for (auto &pr : ext_map) {
+        if (is_recv) {
+            auto it = _rtp_ext_id_to_type.find(pr.first);
+            if (it == _rtp_ext_id_to_type.end()) {
+                WarnL << "接收rtp时,忽略不识别的rtp ext, id=" << (int) pr.first;
+                pr.second.clearExt();
+                continue;
+            }
+            pr.second.setType(it->second);
+            //重新赋值ext id为 ext type，作为后面处理ext的统一中间类型
+            pr.second.setExtId((uint8_t) it->second);
+            switch (it->second) {
+                case RtpExtType::sdes_rtp_stream_id : rid = pr.second.getRtpStreamId(); break;
+                case RtpExtType::sdes_repaired_rtp_stream_id : repaired_rid = pr.second.getRepairedRtpStreamId(); break;
+                default : break;
+            }
+        } else {
+            pr.second.setType((RtpExtType) pr.first);
+            auto it = _rtp_ext_type_to_id.find((RtpExtType) pr.first);
+            if (it == _rtp_ext_type_to_id.end()) {
+                WarnL << "发送rtp时, 忽略不被客户端支持rtp ext:" << pr.second.dumpString();
+                pr.second.clearExt();
+                continue;
+            }
+            //重新赋值ext id为客户端sdp声明的类型
+            pr.second.setExtId(it->second);
+        }
+    }
+
+    if (!is_recv) {
+        return;
+    }
+    if (rid.empty()) {
+        rid = repaired_rid;
+    }
+    auto ssrc = ntohl(header->ssrc);
+    if (rid.empty()) {
+        //获取rid
+        rid = _ssrc_to_rid[ssrc];
+    } else {
+        //设置rid
+        if (_ssrc_to_rid.emplace(ssrc, rid).second) {
+            InfoL << "rid of ssrc " << ssrc << " is:" << rid;
+        }
+    }
+    if (rid_ptr) {
+        *rid_ptr = rid;
+    }
+}
