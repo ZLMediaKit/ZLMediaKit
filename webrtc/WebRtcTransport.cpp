@@ -412,9 +412,11 @@ void WebRtcTransportImp::onStartWebRTC() {
 
         //send ssrc --> MediaTrack
         _ssrc_to_track[info->answer_ssrc_rtp] = info;
+        _ssrc_to_track[info->answer_ssrc_rtx] = info;
 
         //recv ssrc --> MediaTrack
         _ssrc_to_track[info->offer_ssrc_rtp] = info;
+        _ssrc_to_track[info->offer_ssrc_rtx] = info;
 
         //rtp pt --> MediaTrack
         _pt_to_track.emplace(info->plan_rtp->pt, std::make_pair(false, info));
@@ -425,6 +427,11 @@ void WebRtcTransportImp::onStartWebRTC() {
         if (m_offer->type != TrackApplication) {
             //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
             info->rtp_ext_ctx = std::make_shared<RtpExtContext>(*m_offer);
+            info->rtp_ext_ctx->setOnGetRtp([this, info](uint8_t pt, uint32_t ssrc, const string &rid) {
+                //ssrc --> MediaTrack
+                _ssrc_to_track[ssrc] = info;
+                InfoL << "get rtp, pt:" << (int) pt << ", ssrc:" << ssrc << ", rid:" << rid;
+            });
         }
     }
 
@@ -690,8 +697,6 @@ void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, cons
     });
     //rid --> rtp ssrc
     ref->rtp_ssrc = ssrc;
-    //rtp ssrc --> MediaTrack
-    _ssrc_to_track[ssrc] = info;
     InfoL << "create rtp receiver of ssrc:" << ssrc << ", rid:" << rid << ", codec:" << info->plan_rtp->codec;
 }
 
@@ -729,7 +734,6 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
         auto seq = ntohs(rtp->seq);
         if (info->media->type == TrackVideo && seq % 100 == 0) {
             //此处模拟接受丢包
-            DebugL << "recv dropped:" << seq << ", rid:" << rid << ", ssrc:" << ssrc;
             return;
         }
 #endif
@@ -820,7 +824,6 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
 #if 0
         //此处模拟发送丢包
         if (rtp->type == TrackVideo && rtp->getSeq() % 100 == 0) {
-            DebugL << "send dropped:" << rtp->getSeq();
             return;
         }
 #endif

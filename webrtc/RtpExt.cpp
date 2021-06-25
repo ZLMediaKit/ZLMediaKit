@@ -624,10 +624,21 @@ void RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, string
     } else {
         //设置rid
         if (_ssrc_to_rid.emplace(ssrc, rid).second) {
-            InfoL << "rid of ssrc " << ssrc << " is:" << rid;
+            onGetRtp(header->pt, ssrc, rid);
         }
     }
     if (rid_ptr) {
         *rid_ptr = rid;
     }
 }
+
+void RtpExtContext::setOnGetRtp(OnGetRtp cb) {
+    _cb = std::move(cb);
+}
+
+void RtpExtContext::onGetRtp(uint8_t pt, uint32_t ssrc, const string &rid){
+    if (_cb) {
+        _cb(pt, ssrc, rid);
+    }
+}
+
