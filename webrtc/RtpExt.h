@@ -112,13 +112,20 @@ class RtcMedia;
 class RtpExtContext {
 public:
     using Ptr = std::shared_ptr<RtpExtContext>;
+    using OnGetRtp = function<void(uint8_t pt, uint32_t ssrc, const string &rid)>;
+
     RtpExtContext(const RtcMedia &media);
     ~RtpExtContext() = default;
 
+    void setOnGetRtp(OnGetRtp cb);
     string getRid(uint32_t ssrc) const;
     void changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr);
 
 private:
+    void onGetRtp(uint8_t pt, uint32_t ssrc, const string &rid);
+
+private:
+    OnGetRtp _cb;
     //发送rtp时需要修改rtp ext id
     map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
     //接收rtp时需要修改rtp ext id
