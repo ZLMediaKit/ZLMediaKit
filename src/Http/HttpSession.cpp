@@ -41,10 +41,7 @@ void HttpSession::Handle_Req_HEAD(ssize_t &content_len){
 void HttpSession::Handle_Req_OPTIONS(ssize_t &content_len)
 {
     //暂时对OPTINS进行200 OK回复
-    KeyValue headerOut;
-    headerOut["Content-Type"] = "application/octet-stream";
-
-    sendResponse(200, true, nullptr, headerOut, nullptr, true);
+    sendResponse(200, true);
 }
 
 ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
