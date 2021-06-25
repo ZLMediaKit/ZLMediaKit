@@ -561,9 +561,6 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
 
 class RtpChannel : public RtpTrackImp {
 public:
-    uint32_t rtp_ssrc;
-
-public:
     RtpChannel(RtpTrackImp::OnSorted cb, function<void(const FCI_NACK &nack)> on_nack) {
         setOnSorted(std::move(cb));
         _nack_ctx.setOnNack(std::move(on_nack));
@@ -585,7 +582,7 @@ public:
 
     Buffer::Ptr createRtcpRR(RtcpHeader *sr, uint32_t ssrc) {
         _rtcp_context.onRtcp(sr);
-        return _rtcp_context.createRtcpRR(ssrc, rtp_ssrc);
+        return _rtcp_context.createRtcpRR(ssrc, getSSRC());
     }
 
 private:
@@ -695,8 +692,6 @@ void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, cons
     }, [info, this, ssrc](const FCI_NACK &nack) mutable {
         onSendNack(*info, nack, ssrc);
     });
-    //rid --> rtp ssrc
-    ref->rtp_ssrc = ssrc;
     InfoL << "create rtp receiver of ssrc:" << ssrc << ", rid:" << rid << ", codec:" << info->plan_rtp->codec;
 }
 
@@ -756,7 +751,7 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
     //rtx 转换为 rtp
     rtp->pt = info->plan_rtp->pt;
     rtp->seq = htons(origin_seq);
-    rtp->ssrc = htonl(ref->rtp_ssrc);
+    rtp->ssrc = htonl(ref->getSSRC());
 
     memmove((uint8_t *) buf + 2, buf, payload - (uint8_t *) buf);
     buf += 2;
