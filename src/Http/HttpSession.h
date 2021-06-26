@@ -105,6 +105,7 @@ private:
     void Handle_Req_GET_l(ssize_t &content_len, bool sendBody);
     void Handle_Req_POST(ssize_t &content_len);
     void Handle_Req_HEAD(ssize_t &content_len);
+    void Handle_Req_OPTIONS(ssize_t &content_len);
 
     bool checkLiveStream(const string &schema, const string  &url_suffix, const function<void(const MediaSource::Ptr &src)> &cb);
 
