@@ -55,6 +55,12 @@ else()
 endif()
 
 foreach(TEST_SRC ${TEST_SRC_LIST})
+    if(NOT ENABLE_WEBRTC)
+        # 暂时过滤掉依赖 WebRTC 的测试模块
+        if("${TEST_SRC}" MATCHES "test_rtcp_nack\.cpp")
+            continue()
+        endif()
+    endif()
     STRING(REGEX REPLACE "^\\./|\\.c[a-zA-Z0-9_]*$" "" TEST_EXE_NAME ${TEST_SRC})
     message(STATUS "add test:${TEST_EXE_NAME}")
     add_executable(${TEST_EXE_NAME} ${TEST_SRC})
