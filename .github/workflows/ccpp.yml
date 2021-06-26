@@ -5,8 +5,8 @@ on: [push]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu-20.04
+
     steps:
     - uses: actions/checkout@v1
 
@@ -16,8 +16,19 @@ jobs:
     - name: apt-get安装依赖库(非必选)
       run: sudo apt-get update && sudo apt-get install -y cmake  libssl-dev libsdl-dev libavcodec-dev libavutil-dev
 
+    - name: 下载 SRTP
+      uses: actions/checkout@v2
+      with:
+        repository: cisco/libsrtp
+        fetch-depth: 1
+        ref: v2.3.0
+        path: 3rdpart/libsrtp
+
+    - name: 编译 SRTP
+      run: cd 3rdpart/libsrtp && ./configure --enable-openssl && make -j4 && sudo make install
+
     - name: 编译
-      run: mkdir -p linux_build && cd linux_build && cmake .. && make -j4
+      run: mkdir -p linux_build && cd linux_build && cmake .. -DENABLE_WEBRTC:BOOL=TRUE && make -j4
 
     - name: 运行MediaServer
       run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
