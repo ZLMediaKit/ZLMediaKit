@@ -55,9 +55,11 @@
   - WebSocket Server and Client.
   - File access authentication.
   
-- WebRTC(experiential, dev branch)
+- WebRTC(experiential)
   - Support webrtc push stream and transfer to other protocols
   - Support webrtc play, support other protocol to webrtc
+  - Support simulcast
+  - Support rtx/nack
 
 - Others
   - Support stream proxy by ffmpeg.

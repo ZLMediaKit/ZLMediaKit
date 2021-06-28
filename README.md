@@ -92,9 +92,11 @@
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
   - 支持H264/H265/AAC/G711/OPUS编码
   
-- WebRTC(体验,请使用dev分支)
+- WebRTC(体验)
   - 支持WebRTC推流，支持转其他协议
   - 支持WebRTC播放，支持其他协议转WebRTC     
+  - 支持simulcast
+  - 支持rtx/nack
   
 - 其他
   - 支持丰富的restful api以及web hook事件 
@@ -225,20 +227,11 @@ bash build_docker_images.sh
 [大裤衩](3503207480@qq.com>)
 [droid.chow](droid.chow@gmail.com>)
 [陈晓林](https://github.com/musicwood)
+[CharleyWangHZ](https://github.com/CharleyWangHZ)
+[Johnny](https://github.com/johzzy)
 
 ## 使用案例
 
 本项目已经得到不少公司和个人开发者的认可，据作者不完全统计，
 使用本项目的公司包括知名的互联网巨头、国内排名前列的云服务公司、多家知名的AI独角兽公司，
 以及一系列中小型公司。使用者可以通过在 [issue](https://github.com/xia-chu/ZLMediaKit/issues/511) 上粘贴公司的大名和相关项目介绍为本项目背书，感谢支持！
-
-
-## 捐赠
-
-您的捐赠将用于支付该项目的一些费用支出以及激励开发者，
-欢迎捐赠以便更好的推动项目的发展，谢谢您的支持!
-同时欢迎捐赠公网服务器用于在线展示效果。
-
-[支付宝](https://github.com/xia-chu/other/blob/master/IMG_3919.JPG)
-
-[微信](https://github.com/xia-chu/other/blob/master/IMG_3920.JPG)
