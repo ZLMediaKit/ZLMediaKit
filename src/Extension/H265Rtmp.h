@@ -78,13 +78,13 @@ private:
     void makeVideoConfigPkt();
 
 private:
-    bool _gotSpsPps = false;
+    bool _has_vcl = false;
+    bool _got_config_frame = false;
     string _vps;
     string _sps;
     string _pps;
     H265Track::Ptr _track;
-    RtmpPacket::Ptr _lastPacket;
-    bool _lastPacketHasVCL = false;
+    RtmpPacket::Ptr _rtmp_packet;
 };
 
 }//namespace mediakit

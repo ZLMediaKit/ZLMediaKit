@@ -64,7 +64,7 @@ bool H265Frame::configFrame() const {
 }
 
 bool H265Frame::isKeyFrame(int type, const char *ptr) {
-    if(ptr){
+    if (ptr) {
         return (((*((uint8_t *) ptr + 2)) >> 7) & 0x01) == 1 && (type == NAL_IDR_N_LP || type == NAL_IDR_W_RADL);
     }
     return false;
