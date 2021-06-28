@@ -49,6 +49,8 @@ endif()
 aux_source_directory(. TEST_SRC_LIST)
 #如果ffmpeg/libavcodec ffmpeg/libavcodec SDL 都安装了则编译 test_player
 if(SDL2_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND)
+    add_subdirectory(Audio)
+    list(APPEND  LINK_LIB_LIST audioPlayer )
 else()
     message(STATUS "test_player ingored, please install sdl2 ffmpeg/libavcodec ffmpeg/libavutil")
     list(REMOVE_ITEM TEST_SRC_LIST ./test_player.cpp)
