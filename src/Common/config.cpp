@@ -119,7 +119,7 @@ const string kDirMenu = HTTP_FIELD"dirMenu";
 
 onceToken token([](){
     mINI::Instance()[kSendBufSize] = 64 * 1024;
-    mINI::Instance()[kMaxReqSize] = 4*1024;
+    mINI::Instance()[kMaxReqSize] = 4 * 10240;
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirMenu] = true;
 
