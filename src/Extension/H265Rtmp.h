@@ -84,6 +84,7 @@ private:
     string _pps;
     H265Track::Ptr _track;
     RtmpPacket::Ptr _lastPacket;
+    bool _lastPacketHasVCL = false;
 };
 
 }//namespace mediakit
