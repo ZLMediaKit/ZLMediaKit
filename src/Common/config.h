@@ -20,15 +20,10 @@
 using namespace std;
 using namespace toolkit;
 
-namespace mediakit {
+#ifndef CHECK
+#define CHECK(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__)
+#endif//CHECK
 
-//加载配置文件，如果配置文件不存在，那么会导出默认配置并生成配置文件
-//加载配置文件成功后会触发kBroadcastUpdateConfig广播
-//如果指定的文件名(ini_path)为空，那么会加载默认配置文件
-//默认配置文件名为 /path/to/your/exe.ini
-//加载配置文件成功后返回true，否则返回false
-bool loadIniConfig(const char *ini_path = nullptr);
-////////////其他宏定义///////////
 #ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b) )
 #endif //MAX
@@ -50,6 +45,17 @@ bool loadIniConfig(const char *ini_path = nullptr);
 #define TS_SCHEMA "ts"
 #define FMP4_SCHEMA "fmp4"
 #define DEFAULT_VHOST "__defaultVhost__"
+
+extern "C" void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line);
+
+namespace mediakit {
+
+//加载配置文件，如果配置文件不存在，那么会导出默认配置并生成配置文件
+//加载配置文件成功后会触发kBroadcastUpdateConfig广播
+//如果指定的文件名(ini_path)为空，那么会加载默认配置文件
+//默认配置文件名为 /path/to/your/exe.ini
+//加载配置文件成功后返回true，否则返回false
+bool loadIniConfig(const char *ini_path = nullptr);
 
 ////////////广播名称///////////
 namespace Broadcast {

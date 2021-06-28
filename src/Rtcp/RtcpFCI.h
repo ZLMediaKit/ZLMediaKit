@@ -12,7 +12,7 @@
 #define ZLMEDIAKIT_RTCPFCI_H
 
 #include "Rtcp.h"
-#include "assert.h"
+#include "Common/config.h"
 
 namespace mediakit {
 
