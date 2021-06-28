@@ -1,4 +1,3 @@
-
 INCLUDE_DIRECTORIES(./libFaad)
 
 
@@ -10,5 +9,4 @@ add_definitions(-DHAVE_CONFIG_H)
 
 add_library(audioPlayer ${AUDIO_SRC_LIST} )
 
-list(APPEND  LINK_LIB_LIST audioPlayer )
-message(WARNING ${AUDIO_SRC_LIST})
+message(STATUS "ADD AudioPlayer")
