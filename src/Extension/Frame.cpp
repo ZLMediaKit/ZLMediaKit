@@ -192,10 +192,11 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
             switch (frame->getCodecId()) {
                 case CodecH264 : {
                     auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
-                    if ((frame->data()[frame->prefixSize()+1]&0x80) !=0 && type >=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR ) {// sei aud pps sps 不判断
+                    if ((frame->data()[frame->prefixSize() + 1] & 0x80) != 0 && type >= H264Frame::NAL_B_P &&
+                        type <= H264Frame::NAL_IDR) {// sei aud pps sps 不判断
                         //264 新一帧的开始，刷新输出
                         return true;
-                    }else{
+                    } else {
                         // 不刷新输出
                         return false;
                     }
@@ -203,10 +204,11 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
                 }
                 case CodecH265 : {
                     auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
-                    if ((type>=H265Frame::NAL_TRAIL_R &&type<= H265Frame::NAL_RSV_IRAP_VCL23) && ( (frame->data()[frame->prefixSize()+2]>>7 & 0x01) != 0)) {
+                    if ((type >= H265Frame::NAL_TRAIL_R && type <= H265Frame::NAL_RSV_IRAP_VCL23) &&
+                        ((frame->data()[frame->prefixSize() + 2] >> 7 & 0x01) != 0)) {
                         //first_slice_segment_in_pic_flag is frame start  
                         return true;
-                    }else{
+                    } else {
                         return false;
                     }
                     break;
@@ -244,64 +246,68 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
         default: /*不可达*/ assert(0); break;
     }
 }
+
 bool FrameMerger::shouldDrop(const Frame::Ptr &frame) const{
     switch (frame->getCodecId()) {
-                case CodecH264:{
-                    auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
-                    if(type == H264Frame::NAL_SEI || type == H264Frame::NAL_AUD){
-                        // 防止吧AUD或者SEI当成一帧
-                        return  true;
-                    }
-                    break;
-                }
-                case CodecH265: {
-                    //如果是新的一帧，前面的缓存需要输出
-                    auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
-                    if(type == H265Frame::NAL_AUD || type == H265Frame::NAL_SEI_PREFIX || type == H265Frame::NAL_SEI_SUFFIX){
-                        // 防止吧AUD或者SEI当成一帧
-                        return true;
-                    }
-                    break;
-                }
-                default: break;
+        case CodecH264: {
+            auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
+            if (type == H264Frame::NAL_SEI || type == H264Frame::NAL_AUD) {
+                // 防止吧AUD或者SEI当成一帧
+                return true;
             }
+            break;
+        }
+        case CodecH265: {
+            //如果是新的一帧，前面的缓存需要输出
+            auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
+            if (type == H265Frame::NAL_AUD || type == H265Frame::NAL_SEI_PREFIX || type == H265Frame::NAL_SEI_SUFFIX) {
+                // 防止吧AUD或者SEI当成一帧
+                return true;
+            }
+            break;
+        }
+        default:
+            break;
+    }
     return false;
 }
-bool FrameMerger::frameCacheHasVCL(List<Frame::Ptr> &frameCached) const{
+
+bool FrameMerger::frameCacheHasVCL(List<Frame::Ptr> &frameCached) const {
     bool hasVCL = false;
     bool isH264OrH265 = false;
-    frameCached.for_each([&hasVCL,&isH264OrH265](const Frame::Ptr &frame){
+    frameCached.for_each([&hasVCL, &isH264OrH265](const Frame::Ptr &frame) {
         switch (frame->getCodecId()) {
-                case CodecH264:{
-                    auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
-                    if(type >=H264Frame::NAL_B_P && type <= H264Frame::NAL_IDR){
-                        //有编码数据
-                        hasVCL=true;
-                    }
-                    isH264OrH265 = true;
-                    break;
+            case CodecH264: {
+                auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
+                if (type >= H264Frame::NAL_B_P && type <= H264Frame::NAL_IDR) {
+                    //有编码数据
+                    hasVCL = true;
                 }
-                case CodecH265: {
-                    //如果是新的一帧，前面的缓存需要输出
-                    auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
-                    if(type>=H265Frame::NAL_TRAIL_R &&type<= H265Frame::NAL_RSV_IRAP_VCL23){
-                        //有编码数据
-                         hasVCL=true;
-                    }
-                    isH264OrH265 = true;
-                    break;
-                }
-                default: break;
+                isH264OrH265 = true;
+                break;
             }
+            case CodecH265: {
+                //如果是新的一帧，前面的缓存需要输出
+                auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
+                if (type >= H265Frame::NAL_TRAIL_R && type <= H265Frame::NAL_RSV_IRAP_VCL23) {
+                    //有编码数据
+                    hasVCL = true;
+                }
+                isH264OrH265 = true;
+                break;
+            }
+            default:
+                break;
+        }
     });
-    if(isH264OrH265){
-         return hasVCL;
+    if (isH264OrH265) {
+        return hasVCL;
     }
     return true;
-   
 }
+
 void FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb) {
-    if(shouldDrop(frame)){
+    if (shouldDrop(frame)) {
         return;
     }
     if (willFlush(frame) && frameCacheHasVCL(_frameCached)) {

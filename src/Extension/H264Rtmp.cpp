@@ -95,22 +95,21 @@ void H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     }
 
     if (pkt->buffer.size() > 9) {
-        auto iTotalLen = pkt->buffer.size();
-        size_t iOffset = 5;
+        auto total_len = pkt->buffer.size();
+        size_t offset = 5;
         uint8_t *cts_ptr = (uint8_t *) (pkt->buffer.data() + 2);
         int32_t cts = (((cts_ptr[0] << 16) | (cts_ptr[1] << 8) | (cts_ptr[2])) + 0xff800000) ^ 0xff800000;
         auto pts = pkt->time_stamp + cts;
-
-        while(iOffset + 4 < iTotalLen){
-            uint32_t iFrameLen;
-            memcpy(&iFrameLen, pkt->buffer.data() + iOffset, 4);
-            iFrameLen = ntohl(iFrameLen);
-            iOffset += 4;
-            if(iFrameLen + iOffset > iTotalLen){
+        while (offset + 4 < total_len) {
+            uint32_t frame_len;
+            memcpy(&frame_len, pkt->buffer.data() + offset, 4);
+            frame_len = ntohl(frame_len);
+            offset += 4;
+            if (frame_len + offset > total_len) {
                 break;
             }
-            onGetH264(pkt->buffer.data() + iOffset, iFrameLen, pkt->time_stamp , pts);
-            iOffset += iFrameLen;
+            onGetH264(pkt->buffer.data() + offset, frame_len, pkt->time_stamp, pts);
+            offset += frame_len;
         }
     }
 }
@@ -151,79 +150,73 @@ void H264RtmpEncoder::makeConfigPacket(){
     if (!_sps.empty() && !_pps.empty()) {
         //获取到sps/pps
         makeVideoConfigPkt();
-        _gotSpsPps = true;
+        _got_config_frame = true;
     }
 }
 
 void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
-    auto pcData = frame->data() + frame->prefixSize();
-    auto iLen = frame->size() - frame->prefixSize();
-    auto type = H264_TYPE(((uint8_t*)pcData)[0]);
-    if(type == H264Frame::NAL_SEI || type == H264Frame::NAL_AUD){
-        return;
-    }
-
-    if (!_gotSpsPps) {
-        //尝试从frame中获取sps pps
-        switch (type) {
-            case H264Frame::NAL_SPS: {
-                //sps
-                _sps = string(pcData, iLen);
+    auto data = frame->data() + frame->prefixSize();
+    auto len = frame->size() - frame->prefixSize();
+    auto type = H264_TYPE(((uint8_t*)data)[0]);
+    switch (type) {
+        case H264Frame::NAL_SEI:
+        case H264Frame::NAL_AUD: return;
+        case H264Frame::NAL_SPS: {
+            if (!_got_config_frame) {
+                _sps = string(data, len);
                 makeConfigPacket();
-                break;
             }
-            case H264Frame::NAL_PPS: {
-                //pps
-                _pps = string(pcData, iLen);
-                makeConfigPacket();
-                break;
-            }
-            default:
-                break;
+            break;
         }
+        case H264Frame::NAL_PPS: {
+            if (!_got_config_frame) {
+                _pps = string(data, len);
+                makeConfigPacket();
+            }
+            break;
+        }
+        default : break;
     }
-    if(frame->configFrame() && _lastPacket &&_lastPacketHasVCL){
+
+    if (frame->configFrame() && _rtmp_packet && _has_vcl) {
         //sps pps flush frame
-        RtmpCodec::inputRtmp(_lastPacket);
-        _lastPacket = nullptr;
-        _lastPacketHasVCL = false;
+        RtmpCodec::inputRtmp(_rtmp_packet);
+        _has_vcl = false;
+        _rtmp_packet = nullptr;
     }
 
-    if(_lastPacket && (_lastPacket->time_stamp != frame->dts() || ((pcData[1]&0x80) != 0 && type>=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR && _lastPacketHasVCL))) {
-        RtmpCodec::inputRtmp(_lastPacket);
-        _lastPacket = nullptr;
-        _lastPacketHasVCL = false;
+    if (_rtmp_packet && (_rtmp_packet->time_stamp != frame->dts() || ((data[1] & 0x80) != 0 && type >= H264Frame::NAL_B_P && type <= H264Frame::NAL_IDR && _has_vcl))) {
+        RtmpCodec::inputRtmp(_rtmp_packet);
+        _has_vcl = false;
+        _rtmp_packet = nullptr;
     }
-    if(type>=H264Frame::NAL_B_P && type<=H264Frame::NAL_IDR){
-        _lastPacketHasVCL = true;
+    if (type >= H264Frame::NAL_B_P && type <= H264Frame::NAL_IDR) {
+        _has_vcl = true;
     }
-
-    if(!_lastPacket) {
+    if (!_rtmp_packet) {
         //I or P or B frame
         int8_t flags = FLV_CODEC_H264;
         bool is_config = false;
         flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
 
-        _lastPacket = RtmpPacket::create();
-        _lastPacket->buffer.push_back(flags);
-        _lastPacket->buffer.push_back(!is_config);
+        _rtmp_packet = RtmpPacket::create();
+        _rtmp_packet->buffer.push_back(flags);
+        _rtmp_packet->buffer.push_back(!is_config);
         int32_t cts = frame->pts() - frame->dts();
         if (cts < 0) {
             cts = 0;
         }
         cts = htonl(cts);
-        _lastPacket->buffer.append((char *)&cts + 1, 3);
-
-        _lastPacket->chunk_id = CHUNK_VIDEO;
-        _lastPacket->stream_index = STREAM_MEDIA;
-        _lastPacket->time_stamp = frame->dts();
-        _lastPacket->type_id = MSG_VIDEO;
-
+        _rtmp_packet->buffer.append((char *) &cts + 1, 3);
+        _rtmp_packet->chunk_id = CHUNK_VIDEO;
+        _rtmp_packet->stream_index = STREAM_MEDIA;
+        _rtmp_packet->time_stamp = frame->dts();
+        _rtmp_packet->type_id = MSG_VIDEO;
     }
-    uint32_t size = htonl((uint32_t)iLen);
-    _lastPacket->buffer.append((char *) &size, 4);
-    _lastPacket->buffer.append(pcData, iLen);
-    _lastPacket->body_size = _lastPacket->buffer.size();
+    uint32_t size = htonl((uint32_t) len);
+    _rtmp_packet->buffer.append((char *) &size, 4);
+    _rtmp_packet->buffer.append(data, len);
+    _rtmp_packet->body_size = _rtmp_packet->buffer.size();
 }
 
 void H264RtmpEncoder::makeVideoConfigPkt() {
