@@ -37,11 +37,15 @@ void HttpSession::Handle_Req_HEAD(ssize_t &content_len){
     //对于按需生成流的直播场景并不适用
     sendResponse(200, true);
 }
-    
-void HttpSession::Handle_Req_OPTIONS(ssize_t &content_len)
-{
-    //暂时对OPTINS进行200 OK回复
-    sendResponse(200, true);
+
+void HttpSession::Handle_Req_OPTIONS(ssize_t &content_len) {
+    KeyValue header;
+    header.emplace("Allow", "GET, POST, OPTIONS");
+    header.emplace("Access-Control-Allow-Origin", "*");
+    header.emplace("Access-Control-Allow-Credentials", "true");
+    header.emplace("Access-Control-Request-Methods", "GET, POST, OPTIONS");
+    header.emplace("Access-Control-Request-Headers", "Accept,Accept-Language,Content-Language,Content-Type");
+    sendResponse(200, true, nullptr, header);
 }
 
 ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
