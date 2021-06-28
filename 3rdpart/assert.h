@@ -13,22 +13,20 @@
 
 #include <stdio.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-extern void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line);
-#ifdef __cplusplus
-}
-#endif
-
-#define CHECK(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__)
-
 #ifndef NDEBUG
     #ifdef assert
         #undef assert
     #endif//assert
 
-    #define assert(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__);
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    extern void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line);
+    #ifdef __cplusplus
+    }
+    #endif
+
+    #define assert(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__)
 #else
     #define	assert(e)	((void)0)
 #endif//NDEBUG
