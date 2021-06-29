@@ -460,6 +460,7 @@ private:
 class FrameMerger {
 public:
     using onOutput = function<void(uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr)>;
+    using Ptr = std::shared_ptr<FrameMerger>;
     enum {
         none = 0,
         h264_prefix,
