@@ -101,6 +101,7 @@ public:
      */
     virtual void setMetaData(const AMFValue &metadata) {
         _metadata = metadata;
+        _metadata.set("server", SERVER_NAME);
         if (_ring) {
             regist();
         }

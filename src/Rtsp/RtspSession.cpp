@@ -257,7 +257,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
         _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
         _push_src->setProtocolTranslation(enableHls, enableMP4);
-        _push_src->setSdp(sdpParser.toString());
+        _push_src->setSdp(parser.Content());
         sendRtspResponse("200 OK");
     };
 
