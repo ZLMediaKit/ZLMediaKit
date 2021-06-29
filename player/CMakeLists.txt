@@ -79,6 +79,7 @@ if (SDL2_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWRESAMPLE_FOUND)
     message(STATUS "${PLAYER_NAME} enabled")
 else ()
     message(STATUS "${PLAYER_NAME} disabled, please install sdl2 ffmpeg/libavcodec ffmpeg/libavutil ffmpeg/libswresample")
+    return()
 endif ()
 
 aux_source_directory(. SRC_LIST)
