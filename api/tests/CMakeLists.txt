@@ -5,9 +5,9 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
     set(exe_name api_tester_${TEST_EXE_NAME})
     add_executable(${exe_name} ${TEST_SRC})
 
-	if(WIN32)
+	if(MSVC)
 		set_target_properties(${exe_name} PROPERTIES COMPILE_FLAGS ${VS_FALGS} )
-	endif(WIN32)
+	endif()
 
     target_link_libraries(${exe_name} mk_api)
 endforeach()

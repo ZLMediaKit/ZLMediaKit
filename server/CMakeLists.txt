@@ -5,7 +5,7 @@ file(GLOB MediaServer_src_list ./*.cpp ./*.h)
 
 add_executable(MediaServer ${MediaServer_src_list})
 
-if(WIN32)
+if(MSVC)
 	set_target_properties(MediaServer PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
 else()
 	install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_EXECUTABLE})
