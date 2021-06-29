@@ -56,6 +56,7 @@ option(ENABLE_SERVER "Enable Server" true)
 option(ENABLE_MEM_DEBUG "Enable Memory Debug" false)
 option(ENABLE_ASAN "Enable Address Sanitize" false)
 option(ENABLE_WEBRTC "Enable WebRTC" false)
+option(ENABLE_PLAYER "Enable Player" true)
 
 # 添加git版本信息
 set(COMMIT_HASH "Git_NotFound_Unkown_commit")
@@ -174,9 +175,9 @@ if (ENABLE_HLS)
     list(APPEND LINK_LIB_LIST mpeg)
     list(APPEND CXX_API_TARGETS mpeg)
 
-    if (WIN32)
+    if (MSVC)
         set_target_properties(mpeg PROPERTIES COMPILE_FLAGS ${VS_FALGS})
-    endif (WIN32)
+    endif ()
 endif ()
 
 #添加mov、flv库用于MP4录制
@@ -198,9 +199,9 @@ if (ENABLE_MP4)
     list(APPEND LINK_LIB_LIST mov flv)
     list(APPEND CXX_API_TARGETS mov flv)
 
-    if (WIN32)
+    if (MSVC)
         set_target_properties(mov flv PROPERTIES COMPILE_FLAGS ${VS_FALGS})
-    endif (WIN32)
+    endif ()
 endif ()
 
 #添加rtp库用于rtp转ps/ts
@@ -249,8 +250,10 @@ endif ()
 
 if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
-    set_target_properties(zltoolkit PROPERTIES COMPILE_FLAGS ${VS_FALGS})
-    set_target_properties(zlmediakit PROPERTIES COMPILE_FLAGS ${VS_FALGS})
+    if (MSVC)
+        set_target_properties(zltoolkit PROPERTIES COMPILE_FLAGS ${VS_FALGS})
+        set_target_properties(zlmediakit PROPERTIES COMPILE_FLAGS ${VS_FALGS})
+    endif ()
 elseif (NOT ANDROID OR IOS)
     list(APPEND LINK_LIB_LIST pthread)
 endif ()
@@ -290,5 +293,10 @@ if (NOT IOS)
     #主服务器
     if (ENABLE_SERVER)
         add_subdirectory(server)
+    endif ()
+
+    #播放器
+    if (ENABLE_PLAYER)
+        add_subdirectory(player)
     endif ()
 endif ()
