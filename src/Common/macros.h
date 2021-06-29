@@ -61,7 +61,7 @@
 #if !defined(ENABLE_VERSION)
 #define SERVER_NAME "ZLMediaKit-6.0(build in " __DATE__ " " __TIME__ ")"
 #else
-#define SERVER_NAME "ZLMediaKit(git hash:" COMMIT_HASH ",branch:" BRANCH_TIME ",build time:" BUILD_TIME ")"
+#define SERVER_NAME "ZLMediaKit(git hash:" COMMIT_HASH ",branch:" BRANCH_TIME ",build time:" __DATE__ " " __TIME__ ")"
 #endif
 
 #define VHOST_KEY "vhost"
