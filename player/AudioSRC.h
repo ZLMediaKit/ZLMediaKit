@@ -68,7 +68,7 @@ public:
     ~AudioPlayer() override;
 
     void setup(int sample_rate, int channel, SDL_AudioFormat format);
-    void inputFrame(const char *data, size_t size);
+    void playPCM(const char *data, size_t size);
 
 private:
     SDL_AudioFormat getPCMFormat() override;
