@@ -72,7 +72,7 @@ else ()
     endif ()
 endif ()
 
-set(PLAYER_NAME "player")
+set(PLAYER_NAME "test_player")
 
 #如果ffmpeg/libavcodec ffmpeg/libavcodec SDL 都安装了则编译播放器
 if (SDL2_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWRESAMPLE_FOUND)
