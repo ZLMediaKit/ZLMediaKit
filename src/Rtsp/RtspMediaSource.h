@@ -141,11 +141,11 @@ public:
      * 设置sdp
      */
     virtual void setSdp(const string &sdp) {
-        _sdp = sdp;
         SdpParser sdp_parser(sdp);
         _tracks[TrackVideo] = sdp_parser.getTrack(TrackVideo);
         _tracks[TrackAudio] = sdp_parser.getTrack(TrackAudio);
         _have_video = (bool) _tracks[TrackVideo];
+        _sdp = sdp_parser.toString();
         if (_ring) {
             regist();
         }

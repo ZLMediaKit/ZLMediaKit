@@ -7,13 +7,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 #set(CMAKE_BUILD_TYPE "Release")
 
-if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+if (${CMAKE_BUILD_TYPE} MATCHES "Release")
     message(STATUS "Release版本")
     set(BuildType "Release")
-else()
+else ()
     set(BuildType "Debug")
     message(STATUS "Debug版本")
-endif()
+endif ()
 
 #设置bin和lib库目录
 set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release)
@@ -57,6 +57,41 @@ option(ENABLE_MEM_DEBUG "Enable Memory Debug" false)
 option(ENABLE_ASAN "Enable Address Sanitize" false)
 option(ENABLE_WEBRTC "Enable WebRTC" false)
 
+# 添加git版本信息
+set(COMMIT_HASH "Git_NotFound_Unkown_commit")
+set(BRANCH_NAME "Git_NotFound_Unkown_branch")
+set(BUILD_TIME "")
+
+string(TIMESTAMP BUILD_TIME "%Y/%m/%d-%H:%M:%S")
+
+find_package(Git QUIET)
+if (GIT_FOUND)
+    execute_process(
+            COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%h
+            OUTPUT_VARIABLE COMMIT_HASH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+    execute_process(
+            COMMAND ${GIT_EXECUTABLE} symbolic-ref --short -q HEAD
+            OUTPUT_VARIABLE BRANCH_NAME
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endif ()
+
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/version.h.ini
+        ${CMAKE_BINARY_DIR}/Version.h
+        @ONLY
+)
+
+add_definitions(-DENABLE_VERSION)
+include_directories(${CMAKE_BINARY_DIR})
+message(STATUS "Git version is ${BRANCH_NAME}:${COMMIT_HASH}:${BUILD_TIME}")
+
 if (ENABLE_MEM_DEBUG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-wrap,free  -Wl,-wrap,malloc -Wl,-wrap,realloc -Wl,-wrap,calloc")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wl,-wrap,free  -Wl,-wrap,malloc -Wl,-wrap,realloc -Wl,-wrap,calloc")
@@ -74,11 +109,11 @@ set(LINK_LIB_LIST zlmediakit zltoolkit)
 
 #默认链接jemalloc库避免内存碎片
 find_package(JEMALLOC QUIET)
-if(JEMALLOC_FOUND)
+if (JEMALLOC_FOUND)
     message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
     include_directories(${JEMALLOC_INCLUDE_DIR})
-    list(APPEND  LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
-endif()
+    list(APPEND LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
+endif ()
 
 #查找openssl是否安装
 find_package(OpenSSL QUIET)
@@ -89,9 +124,9 @@ if (OPENSSL_FOUND AND ENABLE_OPENSSL)
     list(APPEND LINK_LIB_LIST ${OPENSSL_LIBRARIES})
     if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND OPENSSL_USE_STATIC_LIBS)
         list(APPEND LINK_LIB_LIST dl)
-    endif()
+    endif ()
 
-else()
+else ()
     message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效")
 endif ()
 
@@ -124,10 +159,10 @@ if (FAAC_FOUND AND ENABLE_FAAC)
 endif ()
 
 #set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573 /wd4996" )
-set(VS_FALGS "/wd4819" )
+set(VS_FALGS "/wd4819")
 
 #添加mpeg用于支持ts生成
-if(ENABLE_HLS)
+if (ENABLE_HLS)
     message(STATUS "ENABLE_HLS defined")
     add_definitions(-DENABLE_HLS)
 
@@ -139,13 +174,13 @@ if(ENABLE_HLS)
     list(APPEND LINK_LIB_LIST mpeg)
     list(APPEND CXX_API_TARGETS mpeg)
 
-	if(WIN32)
-		set_target_properties(mpeg PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
-	endif(WIN32)
-endif()
+    if (WIN32)
+        set_target_properties(mpeg PROPERTIES COMPILE_FLAGS ${VS_FALGS})
+    endif (WIN32)
+endif ()
 
 #添加mov、flv库用于MP4录制
-if(ENABLE_MP4)
+if (ENABLE_MP4)
     message(STATUS "ENABLE_MP4 defined")
     add_definitions(-DENABLE_MP4)
 
@@ -153,39 +188,39 @@ if(ENABLE_MP4)
     include_directories(${MediaServer_Root}/libflv/include)
 
     aux_source_directory(${MediaServer_Root}/libmov/include src_mov)
-    aux_source_directory(${MediaServer_Root}/libmov/source src_mov)	
+    aux_source_directory(${MediaServer_Root}/libmov/source src_mov)
 
     aux_source_directory(${MediaServer_Root}/libflv/include src_flv)
-    aux_source_directory(${MediaServer_Root}/libflv/source src_flv)	
+    aux_source_directory(${MediaServer_Root}/libflv/source src_flv)
 
     add_library(mov STATIC ${src_mov})
-	add_library(flv STATIC ${src_flv})
+    add_library(flv STATIC ${src_flv})
     list(APPEND LINK_LIB_LIST mov flv)
     list(APPEND CXX_API_TARGETS mov flv)
 
-	if(WIN32)
-		set_target_properties(mov flv PROPERTIES COMPILE_FLAGS  ${VS_FALGS} )
-	endif(WIN32)
-endif()
+    if (WIN32)
+        set_target_properties(mov flv PROPERTIES COMPILE_FLAGS ${VS_FALGS})
+    endif (WIN32)
+endif ()
 
 #添加rtp库用于rtp转ps/ts
-if(ENABLE_RTPPROXY AND ENABLE_HLS)
+if (ENABLE_RTPPROXY AND ENABLE_HLS)
     message(STATUS "ENABLE_RTPPROXY defined")
     add_definitions(-DENABLE_RTPPROXY)
-endif()
+endif ()
 
 #收集源代码
 file(GLOB ToolKit_src_list ${ToolKit_Root}/*/*.cpp ${ToolKit_Root}/*/*.h ${ToolKit_Root}/*/*.c)
-if(IOS)
+if (IOS)
     list(APPEND ToolKit_src_list ${ToolKit_Root}/Network/Socket_ios.mm)
-endif()
+endif ()
 
 file(GLOB MediaKit_src_list ${MediaKit_Root}/*/*.cpp ${MediaKit_Root}/*/*.h ${MediaKit_Root}/*/*.c)
 
 #去除win32的适配代码
 if (NOT WIN32)
     list(REMOVE_ITEM ToolKit_src_list ${ToolKit_Root}/win32/getopt.c)
-else()
+else ()
     #防止Windows.h包含Winsock.h
     add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS -D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif ()
@@ -205,18 +240,18 @@ else ()
     set(INSTALL_PATH_EXECUTABLE bin)
 endif ()
 
-if(ENABLE_CXX_API)
+if (ENABLE_CXX_API)
     # 保留目录结构
-    install(DIRECTORY ${ToolKit_Root}/  DESTINATION ${INSTALL_PATH_INCLUDE}/ZLToolKit  REGEX "(.*[.](md|cpp)|win32)$" EXCLUDE)
+    install(DIRECTORY ${ToolKit_Root}/ DESTINATION ${INSTALL_PATH_INCLUDE}/ZLToolKit REGEX "(.*[.](md|cpp)|win32)$" EXCLUDE)
     install(DIRECTORY ${MediaKit_Root}/ DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit REGEX ".*[.](md|cpp)$" EXCLUDE)
     install(TARGETS ${CXX_API_TARGETS} DESTINATION ${INSTALL_PATH_LIB})
-endif()
+endif ()
 
 if (WIN32)
     list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
-	set_target_properties(zltoolkit PROPERTIES COMPILE_FLAGS ${VS_FALGS} )
-	set_target_properties(zlmediakit PROPERTIES COMPILE_FLAGS ${VS_FALGS} )
-elseif(NOT ANDROID OR IOS)
+    set_target_properties(zltoolkit PROPERTIES COMPILE_FLAGS ${VS_FALGS})
+    set_target_properties(zlmediakit PROPERTIES COMPILE_FLAGS ${VS_FALGS})
+elseif (NOT ANDROID OR IOS)
     list(APPEND LINK_LIB_LIST pthread)
 endif ()
 
@@ -225,9 +260,9 @@ execute_process(COMMAND cp -r ${CMAKE_CURRENT_SOURCE_DIR}/www ${EXECUTABLE_OUTPU
 execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini ${EXECUTABLE_OUTPUT_PATH}/)
 
 #添加c库
-if(ENABLE_API)
+if (ENABLE_API)
     add_subdirectory(api)
-endif()
+endif ()
 
 if (ENABLE_WEBRTC)
     #查找srtp是否安装
@@ -249,11 +284,11 @@ endif ()
 
 if (NOT IOS)
     #测试程序
-    if(ENABLE_TESTS)
+    if (ENABLE_TESTS)
         add_subdirectory(tests)
-    endif()
+    endif ()
     #主服务器
-    if(ENABLE_SERVER)
+    if (ENABLE_SERVER)
         add_subdirectory(server)
-    endif()
+    endif ()
 endif ()

@@ -1043,7 +1043,6 @@ string RtcSession::toRtspSdp() const{
         }
     }
 
-    copy.session_name = "zlmediakit rtsp stream from webrtc";
     auto sdp = copy.toRtcSessionSdp();
     toRtsp(sdp->items);
     int i = 0;
