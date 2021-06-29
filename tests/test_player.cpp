@@ -18,6 +18,8 @@
 #include "FFMpegDecoder.h"
 #include "YuvDisplayer.h"
 #include "Extension/H265.h"
+#include "Extension/AAC.h"
+#include "Audio/AudioPlayer.h"
 
 using namespace std;
 using namespace toolkit;
@@ -80,6 +82,11 @@ int main(int argc, char *argv[]) {
             return;
         }
 
+        auto audioTrack = strongPlayer->getTrack(TrackAudio,false);
+        if( !audioTrack){
+            WarnL << "没有音频!";
+        }
+
         AnyStorage::Ptr storage(new AnyStorage);
         viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([storage](const Frame::Ptr &frame_in) {
             auto frame = Frame::getCacheAbleFrame(frame_in);
@@ -106,6 +113,30 @@ int main(int argc, char *argv[]) {
                 return true;
             });
         }));
+
+        auto audio_delagate = std::make_shared<FrameWriterInterfaceHelper>([storage, audioTrack](const Frame::Ptr& frame_in) {
+            auto frame = Frame::getCacheAbleFrame(frame_in);
+            AACTrack::Ptr aacTrack = dynamic_pointer_cast<AACTrack>(audioTrack);
+
+            std::string codename = frame->getCodecName();
+            int out_sample_fmt = aacTrack->getAudioSampleBit();
+            int channelnum = aacTrack->getAudioChannel();
+            int sample_rate = aacTrack->getAudioSampleRate();
+
+            auto &audioplayer = (*storage)["audioplayer"];
+
+            if(!audioplayer){
+                audioplayer.set<AudioPlayer>(sample_rate,channelnum,out_sample_fmt);
+            }
+
+            audioplayer.get<AudioPlayer>().inputFrame( frame );
+
+        });
+
+        if( audioTrack ) {
+            audioTrack->addDelegate(audio_delagate);
+        }
+
     });
 
 
