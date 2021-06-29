@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
             //FFmpeg解码时已经统一转换为16位整型pcm
             audio_player->setup(audioTrack->getAudioSampleRate(), audioTrack->getAudioChannel(), AUDIO_S16);
             decoder->setOnDecode([audio_player](const FFmpegFrame::Ptr &pcm) {
-                audio_player->inputFrame((const char *) (pcm->get()->data[0]), pcm->get()->linesize[0]);
+                audio_player->playPCM((const char *) (pcm->get()->data[0]), pcm->get()->linesize[0]);
             });
             auto audio_delegate = std::make_shared<FrameWriterInterfaceHelper>( [decoder](const Frame::Ptr &frame) {
                 decoder->inputFrame(frame);

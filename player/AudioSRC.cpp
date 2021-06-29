@@ -122,7 +122,7 @@ int AudioPlayer::getPCMData(char *buf, int size) {
     return size;
 }
 
-void AudioPlayer::inputFrame(const char *data, size_t size) {
+void AudioPlayer::playPCM(const char *data, size_t size) {
     lock_guard<mutex> lck(_mtx);
     _buffer.append(data, size);
 }
