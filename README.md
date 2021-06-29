@@ -229,6 +229,7 @@ bash build_docker_images.sh
 [陈晓林](https://github.com/musicwood)
 [CharleyWangHZ](https://github.com/CharleyWangHZ)
 [Johnny](https://github.com/johzzy)
+[DoubleX69](https://github.com/DoubleX69)
 
 ## 使用案例
 
