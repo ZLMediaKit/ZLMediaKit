@@ -23,22 +23,6 @@ public:
     CMD_media(){
         _parser.reset(new OptionParser([](const std::shared_ptr<ostream> &stream,mINI &ini){
             MediaSource::for_each_media([&](const MediaSource::Ptr &media){
-                if(!ini["schema"].empty() && ini["schema"] != media->getSchema()){
-                    //筛选协议不匹配
-                    return;
-                }
-                if(!ini["vhost"].empty() && ini["vhost"] != media->getVhost()){
-                    //筛选虚拟主机不匹配
-                    return;
-                }
-                if(!ini["app"].empty() && ini["app"] != media->getApp()){
-                    //筛选应用名不匹配
-                    return;
-                }
-                if(!ini["stream"].empty() && ini["stream"] != media->getId()){
-                    //流id不匹配
-                    return;
-                }
                 if(ini.find("list") != ini.end()){
                     //列出源
                     (*stream) << "\t"
@@ -78,7 +62,7 @@ public:
                 },false);
 
 
-            });
+            }, ini["schema"], ini["vhost"], ini["app"], ini["stream"]);
         }));
         (*_parser) << Option('k', "kick", Option::ArgNone,nullptr,false, "踢出媒体源", nullptr);
         (*_parser) << Option('l', "list", Option::ArgNone,nullptr,false, "列出媒体源", nullptr);

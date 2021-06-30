@@ -206,7 +206,18 @@ bool MediaSource::stopSendRtp(const string &ssrc) {
     return listener->stopSendRtp(*this, ssrc);
 }
 
-void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src)> &cb) {
+static void do_for_each(const function<void(const MediaSource::Ptr &src)> &cb, weak_ptr<MediaSource> &ptr){
+    auto src = ptr.lock();
+    if (src) {
+        cb(src);
+    }
+}
+
+void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src)> &cb,
+                                 const string &schema,
+                                 const string &vhost,
+                                 const string &app,
+                                 const string &stream) {
     decltype(s_media_source_map) copy;
     {
         //拷贝s_media_source_map后再遍历，考虑到是高频使用的全局单例锁，并且在上锁时会执行回调代码
@@ -216,13 +227,31 @@ void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src
     }
 
     for (auto &pr0 : copy) {
+        //遍历schema
+        if (!schema.empty() && pr0.first != schema) {
+            continue;
+        }
         for (auto &pr1 : pr0.second) {
+            //遍历vhost
+            if (!vhost.empty() && pr1.first != vhost) {
+                continue;
+            }
             for (auto &pr2 : pr1.second) {
-                for (auto &pr3 : pr2.second) {
-                    auto src = pr3.second.lock();
-                    if(src){
-                        cb(src);
+                //遍历app
+                if (!app.empty() && pr2.first != app) {
+                    continue;
+                }
+                if (!stream.empty()) {
+                    //指定stream id, 那么不用遍历stream
+                    auto it = pr2.second.find(stream);
+                    if (it != pr2.second.end()) {
+                        do_for_each(cb, it->second);
                     }
+                    continue;
+                }
+                for (auto &pr3 : pr2.second) {
+                    //未指定stream id, 遍历stream
+                    do_for_each(cb, pr3.second);
                 }
             }
         }

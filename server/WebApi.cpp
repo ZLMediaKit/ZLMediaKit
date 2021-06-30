@@ -483,21 +483,9 @@ void installWebApi() {
     api_regist("/index/api/getMediaList",[](API_ARGS_MAP){
         CHECK_SECRET();
         //获取所有MediaSource列表
-        MediaSource::for_each_media([&](const MediaSource::Ptr &media){
-            if (!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()) {
-                return;
-            }
-            if (!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()) {
-                return;
-            }
-            if (!allArgs["app"].empty() && allArgs["app"] != media->getApp()) {
-                return;
-            }
-            if (!allArgs["stream"].empty() && allArgs["stream"] != media->getId()) {
-                return;
-            }
+        MediaSource::for_each_media([&](const MediaSource::Ptr &media) {
             val["data"].append(makeMediaSourceJson(*media));
-        });
+        }, allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
     });
 
     //测试url http://127.0.0.1/index/api/isMediaOnline?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
@@ -551,22 +539,10 @@ void installWebApi() {
         int count_hit = 0;
         int count_closed = 0;
         list<MediaSource::Ptr> media_list;
-        MediaSource::for_each_media([&](const MediaSource::Ptr &media){
-            if(!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()){
-                return;
-            }
-            if(!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()){
-                return;
-            }
-            if(!allArgs["app"].empty() && allArgs["app"] != media->getApp()){
-                return;
-            }
-            if(!allArgs["stream"].empty() && allArgs["stream"] != media->getId()){
-                return;
-            }
+        MediaSource::for_each_media([&](const MediaSource::Ptr &media) {
             ++count_hit;
             media_list.emplace_back(media);
-        });
+        }, allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
 
         bool force = allArgs["force"].as<bool>();
         for(auto &media : media_list){
