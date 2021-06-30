@@ -257,44 +257,6 @@ void MediaSource::for_each_media(const function<void(const Ptr &src)> &cb,
     }
 }
 
-template<typename MAP, typename FUNC>
-static bool searchMedia(MAP &map, const string &schema, const string &vhost, const string &app, const string &id, FUNC &&func) {
-    auto it0 = map.find(schema);
-    if (it0 == map.end()) {
-        //未找到协议
-        return false;
-    }
-    auto it1 = it0->second.find(vhost);
-    if (it1 == it0->second.end()) {
-        //未找到vhost
-        return false;
-    }
-    auto it2 = it1->second.find(app);
-    if (it2 == it1->second.end()) {
-        //未找到app
-        return false;
-    }
-    auto it3 = it2->second.find(id);
-    if (it3 == it2->second.end()) {
-        //未找到streamId
-        return false;
-    }
-    return func(it0, it1, it2, it3);
-}
-
-template<typename MAP, typename IT0, typename IT1, typename IT2>
-static void eraseIfEmpty(MAP &map, IT0 it0, IT1 it1, IT2 it2) {
-    if (it2->second.empty()) {
-        it1->second.erase(it2);
-        if (it1->second.empty()) {
-            it0->second.erase(it1);
-            if (it0->second.empty()) {
-                map.erase(it0);
-            }
-        }
-    }
-}
-
 static MediaSource::Ptr find_l(const string &schema, const string &vhost_in, const string &app, const string &id, bool create_new) {
     string vhost = vhost_in;
     GET_CONFIG(bool,enableVhost,General::kEnableVhost);
@@ -303,22 +265,7 @@ static MediaSource::Ptr find_l(const string &schema, const string &vhost_in, con
     }
 
     MediaSource::Ptr ret;
-    {
-        lock_guard<recursive_mutex> lock(s_media_source_mtx);
-        //查找某一媒体源，找到后返回
-        searchMedia(s_media_source_map, schema, vhost, app, id,
-                    [&](MediaSource::SchemaVhostAppStreamMap::iterator &it0, MediaSource::VhostAppStreamMap::iterator &it1,
-                        MediaSource::AppStreamMap::iterator &it2, MediaSource::StreamMap::iterator &it3) {
-            ret = it3->second.lock();
-            if (!ret) {
-                //该对象已经销毁
-                it2->second.erase(it3);
-                eraseIfEmpty(s_media_source_map, it0, it1, it2);
-                return false;
-            }
-            return true;
-        });
-    }
+    MediaSource::for_each_media([&](const MediaSource::Ptr &src) { ret = std::move(const_cast<MediaSource::Ptr &>(src)); }, schema, vhost, app, id);
 
     if(!ret && create_new && schema != HLS_SCHEMA){
         //未查找媒体源，则读取mp4创建一个
@@ -440,24 +387,36 @@ void MediaSource::regist() {
     emitEvent(true);
 }
 
+template<typename MAP, typename First, typename ...KeyTypes>
+static bool erase_media_source(bool &hit, const MediaSource *thiz, MAP &map, const First &first, const KeyTypes &...keys) {
+    auto it = map.find(first);
+    if (it != map.end() && erase_media_source(hit, thiz, it->second, keys...)) {
+        map.erase(it);
+    }
+    return map.empty();
+}
+
+template<typename MAP, typename First>
+static bool erase_media_source(bool &hit, const MediaSource *thiz, MAP &map, const First &first) {
+    auto it = map.find(first);
+    if (it != map.end()) {
+        auto src = it->second.lock();
+        if (!src || src.get() == thiz) {
+            //对象已经销毁或者对象就是自己，那么移除之
+            map.erase(it);
+            hit = true;
+        }
+    }
+    return map.empty();
+}
+
 //反注册该源
 bool MediaSource::unregist() {
-    bool ret;
+    bool ret = false;
     {
         //减小互斥锁临界区
         lock_guard<recursive_mutex> lock(s_media_source_mtx);
-        ret = searchMedia(s_media_source_map, _schema, _vhost, _app, _stream_id,
-                          [&](SchemaVhostAppStreamMap::iterator &it0, VhostAppStreamMap::iterator &it1,
-                              AppStreamMap::iterator &it2, StreamMap::iterator &it3) {
-          auto strong_self = it3->second.lock();
-          if (strong_self && this != strong_self.get()) {
-              //不是自己,不允许反注册
-              return false;
-          }
-          it2->second.erase(it3);
-          eraseIfEmpty(s_media_source_map, it0, it1, it2);
-          return true;
-      });
+        erase_media_source(ret, this, s_media_source_map, _schema, _vhost, _app, _stream_id);
     }
 
     if (ret) {
