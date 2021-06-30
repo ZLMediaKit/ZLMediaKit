@@ -206,55 +206,54 @@ bool MediaSource::stopSendRtp(const string &ssrc) {
     return listener->stopSendRtp(*this, ssrc);
 }
 
-static void do_for_each(const function<void(const MediaSource::Ptr &src)> &cb, weak_ptr<MediaSource> &ptr){
-    auto src = ptr.lock();
-    if (src) {
-        cb(src);
+template<typename MAP, typename LIST, typename First, typename ...KeyTypes>
+static void for_each_media_l(const MAP &map, LIST &list, const First &first, const KeyTypes &...keys) {
+    if (first.empty()) {
+        for (auto &pr : map) {
+            for_each_media_l(pr.second, list, keys...);
+        }
+        return;
+    }
+    auto it = map.find(first);
+    if (it != map.end()) {
+        for_each_media_l(it->second, list, keys...);
     }
 }
 
-void MediaSource::for_each_media(const function<void(const MediaSource::Ptr &src)> &cb,
+template<typename LIST, typename Ptr>
+static void emplace_back(LIST &list, const Ptr &ptr) {
+    auto src = ptr.lock();
+    if (src) {
+        list.emplace_back(std::move(src));
+    }
+}
+
+template<typename MAP, typename LIST, typename First>
+static void for_each_media_l(const MAP &map, LIST &list, const First &first) {
+    if (first.empty()) {
+        for (auto &pr : map) {
+            emplace_back(list, pr.second);
+        }
+        return;
+    }
+    auto it = map.find(first);
+    if (it != map.end()) {
+        emplace_back(list, it->second);
+    }
+}
+
+void MediaSource::for_each_media(const function<void(const Ptr &src)> &cb,
                                  const string &schema,
                                  const string &vhost,
                                  const string &app,
                                  const string &stream) {
-    decltype(s_media_source_map) copy;
+    deque<Ptr> src_list;
     {
-        //拷贝s_media_source_map后再遍历，考虑到是高频使用的全局单例锁，并且在上锁时会执行回调代码
-        //很容易导致多个锁交叉死锁的情况，而且该函数使用频率不高，拷贝开销相对来说是可以接受的
         lock_guard<recursive_mutex> lock(s_media_source_mtx);
-        copy = s_media_source_map;
+        for_each_media_l(s_media_source_map, src_list, schema, vhost, app, stream);
     }
-
-    for (auto &pr0 : copy) {
-        //遍历schema
-        if (!schema.empty() && pr0.first != schema) {
-            continue;
-        }
-        for (auto &pr1 : pr0.second) {
-            //遍历vhost
-            if (!vhost.empty() && pr1.first != vhost) {
-                continue;
-            }
-            for (auto &pr2 : pr1.second) {
-                //遍历app
-                if (!app.empty() && pr2.first != app) {
-                    continue;
-                }
-                if (!stream.empty()) {
-                    //指定stream id, 那么不用遍历stream
-                    auto it = pr2.second.find(stream);
-                    if (it != pr2.second.end()) {
-                        do_for_each(cb, it->second);
-                    }
-                    continue;
-                }
-                for (auto &pr3 : pr2.second) {
-                    //未指定stream id, 遍历stream
-                    do_for_each(cb, pr3.second);
-                }
-            }
-        }
+    for (auto &src : src_list) {
+        cb(src);
     }
 }
 
