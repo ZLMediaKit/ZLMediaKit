@@ -230,6 +230,7 @@ bash build_docker_images.sh
 [CharleyWangHZ](https://github.com/CharleyWangHZ)
 [Johnny](https://github.com/johzzy)
 [DoubleX69](https://github.com/DoubleX69)
+[lawrencehj](https://github.com/lawrencehj)
 
 ## 使用案例
 
