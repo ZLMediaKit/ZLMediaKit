@@ -264,6 +264,11 @@ static MediaSource::Ptr find_l(const string &schema, const string &vhost_in, con
         vhost = DEFAULT_VHOST;
     }
 
+    if (app.empty() || id.empty()) {
+        //如果未指定app与stream id，那么就是遍历而非查找，所以应该返回查找失败
+        return nullptr;
+    }
+
     MediaSource::Ptr ret;
     MediaSource::for_each_media([&](const MediaSource::Ptr &src) { ret = std::move(const_cast<MediaSource::Ptr &>(src)); }, schema, vhost, app, id);
 
