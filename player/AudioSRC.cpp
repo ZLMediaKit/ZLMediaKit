@@ -53,7 +53,7 @@ int AudioSRC::getPCMData(char *buf, int size) {
 
     if ((int)(size / _audio_cvt.len_ratio) != _origin_size) {
         _origin_size = size / _audio_cvt.len_ratio;
-        _origin_buf.reset(new char[std::max(_origin_size, size)], [](char *ptr) {
+        _origin_buf.reset(new char[(std::max)(_origin_size, size)], [](char *ptr) {
             delete[] ptr;
         });
         InfoL << "origin pcm buffer size is:" << _origin_size << ", target pcm buffer size is:" << size;
