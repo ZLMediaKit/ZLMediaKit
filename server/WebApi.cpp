@@ -1193,7 +1193,7 @@ void installWebApi() {
             auto session_ptr = session->shared_from_this();
             Broadcast::AuthInvoker authInvoker = [invoker, offer_sdp, val, info, headerOut, session_ptr](const string &err) mutable {
                 if (!err.empty()) {
-                    val["code"] = API::Exception;
+                    val["code"] = API::AuthFailed;
                     val["msg"] = err;
                     invoker(200, headerOut, val.toStyledString());
                     return;
