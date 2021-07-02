@@ -79,7 +79,7 @@ void NackContext::received(uint16_t seq) {
         return;
     }
 
-    if (diff > UINT32_MAX / 2) {
+    if (diff > UINT16_MAX / 2) {
         //回环
         _seq.clear();
         _last_max_seq = min_seq;
