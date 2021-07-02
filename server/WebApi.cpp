@@ -1189,25 +1189,34 @@ void installWebApi() {
         headerOut["Access-Control-Allow-Origin"] = "*";
 
         if (type.empty() || !strcasecmp(type.data(), "play")) {
-            Broadcast::AuthInvoker authInvoker = [invoker, offer_sdp, val, info, headerOut](const string &err) mutable {
-                try {
-                    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid));
+            auto session = static_cast<TcpSession*>(&sender);
+            auto session_ptr = session->shared_from_this();
+            Broadcast::AuthInvoker authInvoker = [invoker, offer_sdp, val, info, headerOut, session_ptr](const string &err) mutable {
+                if (!err.empty()) {
+                    val["code"] = API::Exception;
+                    val["msg"] = err;
+                    invoker(200, headerOut, val.toStyledString());
+                    return;
+                }
+
+                //webrtc播放的是rtsp的源
+                info._schema = RTSP_SCHEMA;
+                MediaSource::findAsync(info, session_ptr, [=](const MediaSource::Ptr &src_in) mutable {
+                    auto src = dynamic_pointer_cast<RtspMediaSource>(src_in);
                     if (!src) {
-                        throw runtime_error("流不存在");
+                        val["code"] = API::NotFound;
+                        val["msg"] = "stream not found";
+                        invoker(200, headerOut, val.toStyledString());
+                        return;
                     }
-                    if (!err.empty()) {
-                        throw runtime_error(StrPrinter << "播放鉴权失败:" << err);
-                    }
+                    //还原成rtc，目的是为了hook时识别哪种播放协议
+                    info._schema = "rtc";
                     auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
                     rtc->attach(src, info, true);
                     val["sdp"] = rtc->getAnswerSdp(offer_sdp);
                     val["type"] = "answer";
                     invoker(200, headerOut, val.toStyledString());
-                } catch (std::exception &ex) {
-                    val["code"] = API::Exception;
-                    val["msg"] = ex.what();
-                    invoker(200, headerOut, val.toStyledString());
-                }
+                });
             };
 
             //广播通用播放url鉴权事件
