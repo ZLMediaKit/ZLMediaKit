@@ -30,12 +30,12 @@ void AudioSRC::setOutputAudioConfig(const SDL_AudioSpec &cfg) {
     }
     InfoL << "audio cvt origin format, freq:" << freq << ", format:" << hex << format  << dec << ", channels:" << channels;
     InfoL << "audio cvt info, "
-          << "needed:" << _audio_cvt.needed
-          << ", src_format:" << hex << _audio_cvt.src_format
-          << ", dst_format:" << _audio_cvt.dst_format << dec
-          << ", rate_incr:" << _audio_cvt.rate_incr
-          << ", len_mult:" << _audio_cvt.len_mult
-          << ", len_ratio:" << _audio_cvt.len_ratio;
+          << "needed:" << (int)_audio_cvt.needed
+          << ", src_format:" << hex << (SDL_AudioFormat)_audio_cvt.src_format
+          << ", dst_format:" << (SDL_AudioFormat)_audio_cvt.dst_format << dec
+          << ", rate_incr:" << (double)_audio_cvt.rate_incr
+          << ", len_mult:" << (int)_audio_cvt.len_mult
+          << ", len_ratio:" << (double)_audio_cvt.len_ratio;
 }
 
 void AudioSRC::setEnableMix(bool flag) {
