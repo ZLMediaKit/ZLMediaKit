@@ -640,6 +640,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     auto it = _ssrc_to_track.find(item->ssrc);
                     if (it != _ssrc_to_track.end()) {
                         auto &track = it->second;
+                        track->rtcp_context_send->onRtcp(rtcp);
                         auto sr = track->rtcp_context_send->createRtcpSR(track->answer_ssrc_rtp);
                         sendRtcpPacket(sr->data(), sr->size(), true);
                     } else {
