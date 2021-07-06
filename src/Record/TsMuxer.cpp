@@ -110,6 +110,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
                 _is_idr_fast_packet = have_idr;
                 mpeg_ts_write(_context, track_info.track_id, have_idr ? 0x0001 : 0,
                               pts_out * 90LL, dts_out * 90LL, buffer->data(), buffer->size());
+                flushCache();
             });
             break;
         }
@@ -129,6 +130,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
             }
             mpeg_ts_write(_context, track_info.track_id, frame->keyFrame() ? 0x0001 : 0,
                           pts_out * 90LL, dts_out * 90LL, frame->data(), frame->size());
+            flushCache();
             break;
         }
     }
@@ -154,14 +156,23 @@ void TsMuxer::init() {
             },
             [](void *param, const void *packet, size_t bytes) {
                 TsMuxer *muxer = (TsMuxer *) param;
-                muxer->onTs(packet, bytes, muxer->_timestamp, muxer->_is_idr_fast_packet);
-                muxer->_is_idr_fast_packet = false;
+                muxer->onTs_l(packet, bytes);
                 return 0;
             }
     };
     if (_context == nullptr) {
         _context = mpeg_ts_create(&s_func, this);
     }
+}
+
+void TsMuxer::onTs_l(const void *packet, size_t bytes) {
+    _cache.append((char *) packet, bytes);
+}
+
+void TsMuxer::flushCache() {
+    onTs(_cache.data(), _cache.size(), _timestamp, _is_idr_fast_packet);
+    _cache.clear();
+    _is_idr_fast_packet = false;
 }
 
 void TsMuxer::uninit() {
