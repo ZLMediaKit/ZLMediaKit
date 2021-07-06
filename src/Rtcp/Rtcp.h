@@ -347,12 +347,14 @@ public:
      * @param tv 时间
      */
     void setNtpStamp(struct timeval tv);
+    void setNtpStamp(uint64_t unix_stamp_ms);
 
     /**
      * 返回ntp时间的字符串
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
     string getNtpStamp() const;
+    uint64_t getNtpUnixStampMS() const;
 
     /**
      * 获取ReportItem对象指针列表
