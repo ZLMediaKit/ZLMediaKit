@@ -24,7 +24,7 @@ API_EXPORT const char* API_CALL mk_sock_info_peer_ip(const mk_sock_info ctx, cha
 API_EXPORT const char* API_CALL mk_sock_info_local_ip(const mk_sock_info ctx, char *buf){
     assert(ctx);
     SockInfo *sock = (SockInfo *)ctx;
-    strcpy(buf,sock->get_peer_ip().c_str());
+    strcpy(buf,sock->get_local_ip().c_str());
     return buf;
 }
 API_EXPORT uint16_t API_CALL mk_sock_info_peer_port(const mk_sock_info ctx){
