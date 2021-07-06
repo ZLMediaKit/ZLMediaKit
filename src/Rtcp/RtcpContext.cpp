@@ -103,7 +103,7 @@ void RtcpContext::onRtcp(RtcpHeader *rtcp) {
 
                 //转换为毫秒
                 auto ms_inc = ntpmsw_inc * 1000 + (ntplsw_inc / ((double) (((uint64_t) 1) << 32) * 1.0e-3));
-                auto rtt = (int) ((ms_inc - delay_ms) / 2);
+                auto rtt = (int) (ms_inc - delay_ms);
                 _rtt[item->ssrc] = rtt;
                 //InfoL << "ssrc:" << item->ssrc << ",rtt:" << rtt;
             }
@@ -111,6 +111,14 @@ void RtcpContext::onRtcp(RtcpHeader *rtcp) {
         }
         default: break;
     }
+}
+
+uint32_t RtcpContext::getRtt(uint32_t ssrc) const {
+    auto it = _rtt.find(ssrc);
+    if (it == _rtt.end()) {
+        return 0;
+    }
+    return it->second;
 }
 
 size_t RtcpContext::getExpectedPackets() const {
