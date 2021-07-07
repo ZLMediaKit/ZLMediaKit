@@ -87,6 +87,19 @@ public:
      * 重置track
      */
     void resetTracks() override;
+    /**
+    * 返回是否track已经准备完成
+    */
+    bool isTrackReady(TrackType type){
+        if(_all_track_ready){
+            return true;
+        }
+        auto it = _track_map.find(type);
+        if (it == _track_map.end()) {
+            return false;
+        }
+        return it->second->ready();
+    }
 
     /**
      * 获取所有Track
