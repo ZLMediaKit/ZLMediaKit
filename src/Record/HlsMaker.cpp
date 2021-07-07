@@ -104,7 +104,7 @@ void HlsMaker::addNewSegment(uint32_t stamp) {
     //新增切片
     _last_file_name = onOpenSegment(_file_index++);
     //记录本次切片的起始时间戳
-    _last_seg_timestamp = stamp;
+    _last_seg_timestamp = _last_timestamp ? _last_timestamp : stamp;
 }
 
 void HlsMaker::flushLastSegment(bool eof){
