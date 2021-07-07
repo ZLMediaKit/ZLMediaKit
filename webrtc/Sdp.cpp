@@ -1034,15 +1034,17 @@ string RtcSession::toRtspSdp() const{
         switch (m.type) {
             case TrackAudio:
             case TrackVideo: {
-                copy.media.emplace_back(m);
-                copy.media.back().plan.resize(1);
+                if (m.direction != RtpDirection::inactive) {
+                    copy.media.emplace_back(m);
+                    copy.media.back().plan.resize(1);
+                }
                 break;
             }
-            default:
-                continue;
+            default: continue;
         }
     }
 
+    CHECK(!copy.media.empty());
     auto sdp = copy.toRtcSessionSdp();
     toRtsp(sdp->items);
     int i = 0;
@@ -1366,6 +1368,18 @@ bool RtcSession::supportRtcpFb(const string &name, TrackType type) const {
     }
     auto &ref = media->plan[0].rtcp_fb;
     return ref.find(name) != ref.end();
+}
+
+bool RtcSession::supportSimulcast() const {
+    for (auto &m : media) {
+        if (!m.rtp_rids.empty()) {
+            return true;
+        }
+        if (!m.rtp_ssrc_sim.empty()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 string const SdpConst::kTWCCRtcpFb = "transport-cc";

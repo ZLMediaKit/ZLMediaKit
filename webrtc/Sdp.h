@@ -673,6 +673,7 @@ public:
     const  RtcMedia *getMedia(TrackType type) const;
     bool haveSSRC() const;
     bool supportRtcpFb(const string &name, TrackType type = TrackType::TrackVideo) const;
+    bool supportSimulcast() const;
 
 private:
     RtcSessionSdp::Ptr toRtcSessionSdp() const;

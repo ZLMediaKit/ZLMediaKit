@@ -219,6 +219,7 @@ private:
     void createRtpChannel(const string &rid, uint32_t ssrc, const MediaTrack::Ptr &track);
 
 private:
+    bool _simulcast = false;
     uint16_t _rtx_seq[2] = {0, 0};
     //用掉的总流量
     uint64_t _bytes_usage = 0;
