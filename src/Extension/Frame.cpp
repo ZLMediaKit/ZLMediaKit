@@ -165,6 +165,7 @@ static size_t constexpr kMaxFrameCacheSize = 100;
 
 bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
     if (_frameCached.empty()) {
+        //缓存为空
         return false;
     }
     switch (_type) {
@@ -186,8 +187,12 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
 
         case mp4_nal_size:
         case h264_prefix: {
+            if (!frameCacheHasVCL()) {
+                //缓存中没有有效的能解码的帧，所以这次不flush
+                return false;
+            }
             if (_frameCached.back()->dts() != frame->dts()) {
-                //时间戳变化了
+                //时间戳变化了,立即flush
                 return true;
             }
             switch (frame->getCodecId()) {
@@ -221,10 +226,6 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
             break;
         }
         case h264_prefix: {
-            if (shouldDrop(frame)) {
-                //h264头模式过滤无效的帧
-                break;
-            }
             if (frame->prefixSize()) {
                 merged.append(frame->data(), frame->size());
             } else {
@@ -234,10 +235,6 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
             break;
         }
         case mp4_nal_size: {
-            if (shouldDrop(frame)) {
-                //MP4头模式过滤无效的帧
-                break;
-            }
             uint32_t nalu_size = (uint32_t) (frame->size() - frame->prefixSize());
             nalu_size = htonl(nalu_size);
             merged.append((char *) &nalu_size, 4);
@@ -273,42 +270,36 @@ bool FrameMerger::shouldDrop(const Frame::Ptr &frame) const{
     }
 }
 
-bool FrameMerger::frameCacheHasVCL(List<Frame::Ptr> &frameCached) const {
-    bool hasVCL = false;
-    bool isH264OrH265 = false;
-    frameCached.for_each([&hasVCL, &isH264OrH265](const Frame::Ptr &frame) {
+bool FrameMerger::frameCacheHasVCL() const {
+    bool has_vcl = false;
+    bool is_h264_or_h265 = false;
+    _frameCached.for_each([&](const Frame::Ptr &frame) {
         switch (frame->getCodecId()) {
             case CodecH264: {
                 auto type = H264_TYPE(frame->data()[frame->prefixSize()]);
-                if (type >= H264Frame::NAL_B_P && type <= H264Frame::NAL_IDR) {
-                    //有编码数据
-                    hasVCL = true;
-                }
-                isH264OrH265 = true;
+                //有编码数据
+                has_vcl = type >= H264Frame::NAL_B_P && type <= H264Frame::NAL_IDR;
+                is_h264_or_h265 = true;
                 break;
             }
             case CodecH265: {
-                //如果是新的一帧，前面的缓存需要输出
                 auto type = H265_TYPE(frame->data()[frame->prefixSize()]);
-                if (type >= H265Frame::NAL_TRAIL_R && type <= H265Frame::NAL_RSV_IRAP_VCL23) {
-                    //有编码数据
-                    hasVCL = true;
-                }
-                isH264OrH265 = true;
+                //有编码数据
+                has_vcl = type >= H265Frame::NAL_TRAIL_R && type <= H265Frame::NAL_RSV_IRAP_VCL23;
+                is_h264_or_h265 = true;
                 break;
             }
-            default:
-                break;
+            default: break;
         }
     });
-    if (isH264OrH265) {
-        return hasVCL;
+    if (is_h264_or_h265) {
+        return has_vcl;
     }
     return true;
 }
 
 void FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb) {
-    if (willFlush(frame) && frameCacheHasVCL(_frameCached)) {
+    if (willFlush(frame)) {
         Frame::Ptr back = _frameCached.back();
         Buffer::Ptr merged_frame = back;
         bool have_idr = back->keyFrame();
@@ -323,15 +314,24 @@ void FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb) {
                     have_idr = true;
                 }
             });
-            if (merged.empty()) {
-                _frameCached.clear();
-                return;
-            }
             merged_frame = std::make_shared<BufferOffset<BufferLikeString> >(std::move(merged));
         }
         cb(back->dts(), back->pts(), merged_frame, have_idr);
         _frameCached.clear();
     }
+
+    switch (_type) {
+        case h264_prefix:
+        case mp4_nal_size: {
+            //h264头和mp4头模式过滤无效的帧
+            if (shouldDrop(frame)) {
+                return;
+            }
+            break;
+        }
+        default: break;
+    }
+
     _frameCached.emplace_back(Frame::getCacheAbleFrame(frame));
 }
 
