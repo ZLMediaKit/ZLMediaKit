@@ -73,8 +73,12 @@ public:
     }
 
 private:
-    void onTs(const void *packet, size_t bytes, uint32_t timestamp, bool is_idr_fast_packet) override {
-        _hls->inputData((char *) packet, bytes, timestamp, is_idr_fast_packet);
+    void onTs(std::shared_ptr<Buffer> buffer, uint32_t timestamp, bool is_idr_fast_packet) override {
+        if (!buffer) {
+            _hls->inputData(nullptr, 0, timestamp, is_idr_fast_packet);
+        } else {
+            _hls->inputData(buffer->data(), buffer->size(), timestamp, is_idr_fast_packet);
+        }
     }
 
 private:

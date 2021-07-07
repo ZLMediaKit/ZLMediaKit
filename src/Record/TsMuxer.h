@@ -45,12 +45,11 @@ public:
 protected:
     /**
      * 输出mpegts数据回调
-     * @param packet mpegts数据
-     * @param bytes mpegts数据长度
+     * @param buffer mpegts数据包
      * @param timestamp 时间戳，单位毫秒
      * @param is_idr_fast_packet 是否为关键帧的第一个TS包，用于确保ts切片第一帧为关键帧
      */
-    virtual void onTs(const void *packet, size_t bytes,uint32_t timestamp,bool is_idr_fast_packet) = 0;
+    virtual void onTs(std::shared_ptr<Buffer> buffer, uint32_t timestamp,bool is_idr_fast_packet) = 0;
 
 private:
     void init();
@@ -72,7 +71,7 @@ private:
     };
     unordered_map<int, track_info> _codec_to_trackid;
     FrameMerger _frame_merger{FrameMerger::h264_prefix};
-    BufferLikeString _cache;
+    std::shared_ptr<BufferLikeString> _cache;
 };
 
 }//namespace mediakit
