@@ -1406,7 +1406,6 @@ void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
 }
 
 void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
-    enable = true;
     rtcp_mux = true;
     rtcp_rsize = false;
     group_bundle = true;
@@ -1455,7 +1454,6 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             break;
         }
         case TrackApplication: {
-            enable = false;
             break;
         }
         default: break;
@@ -1575,9 +1573,6 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
 }
 
 void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure){
-    if (!configure.enable) {
-        return;
-    }
     bool check_profile = true;
     bool check_codec = true;
 
@@ -1667,7 +1662,8 @@ RETRY:
                 }
                 case RtpDirection::sendrecv : {
                     //对方支持发送接收，那么最终能力根据配置来决定
-                    answer_media.direction = configure.direction;
+                    answer_media.direction = (configure.direction == RtpDirection::invalid ? RtpDirection::inactive
+                                                                                           : configure.direction);
                     break;
                 }
                 default: continue;
