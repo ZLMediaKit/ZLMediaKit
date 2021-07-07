@@ -133,7 +133,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
 void TsMuxer::resetTracks() {
     _have_video = false;
     //通知片段中断
-    onTs(nullptr, 0, _timestamp, 0);
+    onTs(nullptr, _timestamp, 0);
     uninit();
     init();
 }
@@ -160,12 +160,14 @@ void TsMuxer::init() {
 }
 
 void TsMuxer::onTs_l(const void *packet, size_t bytes) {
-    _cache.append((char *) packet, bytes);
+    if (!_cache) {
+        _cache = std::make_shared<BufferLikeString>();
+    }
+    _cache->append((char *) packet, bytes);
 }
 
 void TsMuxer::flushCache() {
-    onTs(_cache.data(), _cache.size(), _timestamp, _is_idr_fast_packet);
-    _cache.clear();
+    onTs(std::move(_cache), _timestamp, _is_idr_fast_packet);
     _is_idr_fast_packet = false;
 }
 
