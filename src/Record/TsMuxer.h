@@ -57,6 +57,8 @@ private:
     void uninit();
     //音视频时间戳同步用
     void stampSync();
+    void onTs_l(const void *packet, size_t bytes);
+    void flushCache();
 
 private:
     bool _have_video = false;
@@ -70,6 +72,7 @@ private:
     };
     unordered_map<int, track_info> _codec_to_trackid;
     FrameMerger _frame_merger{FrameMerger::h264_prefix};
+    BufferLikeString _cache;
 };
 
 }//namespace mediakit

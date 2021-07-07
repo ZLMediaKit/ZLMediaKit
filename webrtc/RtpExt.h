@@ -20,27 +20,29 @@
 using namespace std;
 using namespace mediakit;
 
+#define RTP_EXT_MAP(XX) \
+    XX(ssrc_audio_level,            "urn:ietf:params:rtp-hdrext:ssrc-audio-level") \
+    XX(abs_send_time,               "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time") \
+    XX(transport_cc,                "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01") \
+    XX(sdes_mid,                    "urn:ietf:params:rtp-hdrext:sdes:mid") \
+    XX(sdes_rtp_stream_id,          "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id") \
+    XX(sdes_repaired_rtp_stream_id, "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id") \
+    XX(video_timing,                "http://www.webrtc.org/experiments/rtp-hdrext/video-timing") \
+    XX(color_space,                 "http://www.webrtc.org/experiments/rtp-hdrext/color-space") \
+    XX(csrc_audio_level,            "urn:ietf:params:rtp-hdrext:csrc-audio-level") \
+    XX(framemarking,                "http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07") \
+    XX(video_content_type,          "http://www.webrtc.org/experiments/rtp-hdrext/video-content-type") \
+    XX(playout_delay,               "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay") \
+    XX(video_orientation,           "urn:3gpp:video-orientation") \
+    XX(toffset,                     "urn:ietf:params:rtp-hdrext:toffset") \
+    XX(encrypt,                     "urn:ietf:params:rtp-hdrext:encrypt")
+
 enum class RtpExtType : uint8_t {
     padding = 0,
-    ssrc_audio_level = 1,
-    abs_send_time = 2,
-    transport_cc = 3,
-    sdes_mid = 4,
-    sdes_rtp_stream_id = 5,
-    sdes_repaired_rtp_stream_id = 6,
-    video_timing = 7,
-    color_space = 8,
-    //for firefox
-    csrc_audio_level = 9,
-    //svc ?
-    framemarking = 10,
-    video_content_type = 11,
-    playout_delay = 12,
-    video_orientation = 13,
-    toffset = 14,
-    reserved = 15,
-    // e2e ?
-    encrypt = reserved
+#define XX(type, uri) type,
+    RTP_EXT_MAP(XX)
+#undef XX
+    reserved = encrypt,
 };
 
 class RtcMedia;

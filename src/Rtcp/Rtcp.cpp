@@ -263,9 +263,23 @@ string RtcpSR::getNtpStamp() const{
     return LogChannel::printTime(tv);
 }
 
+uint64_t RtcpSR::getNtpUnixStampMS() const {
+    struct timeval tv;
+    tv.tv_sec = ntpmsw - 0x83AA7E80;
+    tv.tv_usec = (decltype(tv.tv_usec)) (ntplsw / ((double) (((uint64_t) 1) << 32) * 1.0e-6));
+    return 1000 * tv.tv_sec + tv.tv_usec / 1000;
+}
+
 void RtcpSR::setNtpStamp(struct timeval tv) {
     ntpmsw = htonl(tv.tv_sec + 0x83AA7E80); /* 0x83AA7E80 is the number of seconds from 1900 to 1970 */
     ntplsw = htonl((uint32_t) ((double) tv.tv_usec * (double) (((uint64_t) 1) << 32) * 1.0e-6));
+}
+
+void RtcpSR::setNtpStamp(uint64_t unix_stamp_ms) {
+    struct timeval tv;
+    tv.tv_sec = unix_stamp_ms / 1000;
+    tv.tv_usec = (unix_stamp_ms % 1000) * 1000;
+    setNtpStamp(tv);
 }
 
 string RtcpSR::dumpString() const{

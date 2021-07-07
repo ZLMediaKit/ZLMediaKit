@@ -586,7 +586,7 @@ public:
             //统计rtp接受情况，便于生成nack rtcp包
             _nack_ctx.received(seq);
             //统计rtp收到的情况，好做rr汇报
-            _rtcp_context.onRtp(seq, ntohl(rtp->stamp), len);
+            _rtcp_context.onRtp(seq, ntohl(rtp->stamp), sample_rate, len);
         }
         return RtpTrack::inputRtp(type, sample_rate, ptr, len);
     }
@@ -640,6 +640,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     auto it = _ssrc_to_track.find(item->ssrc);
                     if (it != _ssrc_to_track.end()) {
                         auto &track = it->second;
+                        track->rtcp_context_send->onRtcp(rtcp);
                         auto sr = track->rtcp_context_send->createRtcpSR(track->answer_ssrc_rtp);
                         sendRtcpPacket(sr->data(), sr->size(), true);
                     } else {
@@ -825,7 +826,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
     }
     if (!rtx) {
         //统计rtp发送情况，好做sr汇报
-        track->rtcp_context_send->onRtp(rtp->getSeq(), ntohl(rtp->getHeader()->stamp), rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+        track->rtcp_context_send->onRtp(rtp->getSeq(), ntohl(rtp->getHeader()->stamp), rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
         track->nack_list.push_back(rtp);
 #if 0
         //此处模拟发送丢包
