@@ -276,6 +276,10 @@ bool FrameMerger::shouldDrop(const Frame::Ptr &frame) const{
 bool FrameMerger::frameCacheHasVCL(List<Frame::Ptr> &frameCached) const {
     bool hasVCL = false;
     bool isH264OrH265 = false;
+    if(_type == none){
+        // 因为可能存在粘帧, 所以等待后续split
+        return true;
+    }
     frameCached.for_each([&hasVCL, &isH264OrH265](const Frame::Ptr &frame) {
         switch (frame->getCodecId()) {
             case CodecH264: {

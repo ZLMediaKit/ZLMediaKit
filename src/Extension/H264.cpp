@@ -181,6 +181,7 @@ void H264Track::inputFrame_l(const Frame::Ptr &frame){
             _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
             break;
         }
+        case H264Frame::NAL_SEI:
         case H264Frame::NAL_AUD: {
             //忽略AUD帧;
             break;
