@@ -684,7 +684,6 @@ public:
     using Ptr = std::shared_ptr<RtcConfigure>;
     class RtcTrackConfigure {
     public:
-        bool enable;
         bool rtcp_mux;
         bool rtcp_rsize;
         bool group_bundle;
