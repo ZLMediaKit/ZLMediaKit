@@ -448,6 +448,7 @@ void WebRtcTransportImp::onStartWebRTC() {
 
     if (canRecvRtp()) {
         _push_src->setSdp(getSdp(SdpType::answer).toRtspSdp());
+        _simulcast = getSdp(SdpType::answer).supportSimulcast();
     }
     if (canSendRtp()) {
         _reader = _play_src->getRing()->attach(getPoller(), true);
@@ -794,25 +795,29 @@ void WebRtcTransportImp::onSortedRtp(MediaTrack &track, const string &rid, RtpPa
         }
     }
 
-    if (_push_src) {
-        if (rtp->type == TrackAudio) {
-            //音频
-            for (auto &pr : _push_src_simulcast) {
-                pr.second->onWrite(rtp, false);
-            }
-        } else {
-            //视频
-            auto &src = _push_src_simulcast[rid];
-            if (!src) {
-                auto stream_id = rid.empty() ? _push_src->getId() : _push_src->getId() + "_" + rid;
-                auto src_imp = std::make_shared<RtspMediaSourceImp>(_push_src->getVhost(), _push_src->getApp(), stream_id);
-                src_imp->setSdp(_push_src->getSdp());
-                src_imp->setProtocolTranslation(_push_src->isRecording(Recorder::type_hls),_push_src->isRecording(Recorder::type_mp4));
-                src_imp->setListener(shared_from_this());
-                src = src_imp;
-            }
-            src->onWrite(std::move(rtp), false);
+    if (!_simulcast) {
+        assert(_push_src);
+        _push_src->onWrite(rtp, false);
+        return;
+    }
+
+    if (rtp->type == TrackAudio) {
+        //音频
+        for (auto &pr : _push_src_simulcast) {
+            pr.second->onWrite(rtp, false);
         }
+    } else {
+        //视频
+        auto &src = _push_src_simulcast[rid];
+        if (!src) {
+            auto stream_id = rid.empty() ? _push_src->getId() : _push_src->getId() + "_" + rid;
+            auto src_imp = std::make_shared<RtspMediaSourceImp>(_push_src->getVhost(), _push_src->getApp(), stream_id);
+            src_imp->setSdp(_push_src->getSdp());
+            src_imp->setProtocolTranslation(_push_src->isRecording(Recorder::type_hls),_push_src->isRecording(Recorder::type_mp4));
+            src_imp->setListener(shared_from_this());
+            src = src_imp;
+        }
+        src->onWrite(std::move(rtp), false);
     }
 }
 
@@ -901,7 +906,7 @@ int WebRtcTransportImp::totalReaderCount(MediaSource &sender) {
     for (auto &src : _push_src_simulcast) {
         total_count += src.second->totalReaderCount();
     }
-    return total_count;
+    return total_count + _push_src->totalReaderCount();
 }
 
 MediaOriginType WebRtcTransportImp::getOriginType(MediaSource &sender) const {
