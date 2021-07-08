@@ -157,8 +157,8 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
             if (!_got_config_frame) {
                 _vps = string(data, len);
                 makeConfigPacket();
-                break;
             }
+            break;
         }
         case H265Frame::NAL_AUD:
         case H265Frame::NAL_SEI_PREFIX:
