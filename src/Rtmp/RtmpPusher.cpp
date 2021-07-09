@@ -173,9 +173,10 @@ inline void RtmpPusher::send_createStream() {
     });
 }
 
+#define RTMP_STREAM_LIVE    "live"
 inline void RtmpPusher::send_publish() {
     AMFEncoder enc;
-    enc << "publish" << ++_send_req_id << nullptr << _stream_id << _app;
+    enc << "publish" << ++_send_req_id << nullptr << _stream_id << RTMP_STREAM_LIVE;
     sendRequest(MSG_CMD, enc.data());
 
     addOnStatusCB([this](AMFValue &val) {
