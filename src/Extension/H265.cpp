@@ -91,8 +91,7 @@ bool H265Track::ready() {
 
 void H265Track::inputFrame(const Frame::Ptr &frame) {
     using H265FrameInternal = FrameInternal<H265FrameNoCacheAble>;
-
-    int type = H265_TYPE(*((uint8_t *) frame->data() + frame->prefixSize()));
+    int type = H265_TYPE( frame->data()[frame->prefixSize()]);
     if (frame->configFrame() || type == H265Frame::NAL_SEI_PREFIX) {
         splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
             H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame, (char *) ptr, len, prefix);
@@ -113,7 +112,7 @@ void H265Track::inputFrame_l(const Frame::Ptr &frame) {
 
     _is_idr = false;
     //非idr帧
-    switch (H265_TYPE(((uint8_t *) frame->data() + frame->prefixSize())[0])) {
+    switch (H265_TYPE( frame->data()[frame->prefixSize()])) {
         case H265Frame::NAL_VPS: {
             _vps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
             break;

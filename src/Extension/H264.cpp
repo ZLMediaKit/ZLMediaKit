@@ -146,8 +146,7 @@ bool H264Track::ready() {
 
 void H264Track::inputFrame(const Frame::Ptr &frame) {
     using H264FrameInternal = FrameInternal<H264FrameNoCacheAble>;
-
-    int type = H264_TYPE(*((uint8_t *) frame->data() + frame->prefixSize()));
+    int type = H264_TYPE( frame->data()[frame->prefixSize()]);
     if (type != H264Frame::NAL_B_P && type != H264Frame::NAL_IDR) {
         //非I/B/P帧情况下，split一下，防止多个帧粘合在一起
         splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
@@ -171,7 +170,7 @@ Track::Ptr H264Track::clone() {
 }
 
 void H264Track::inputFrame_l(const Frame::Ptr &frame){
-    int type = H264_TYPE(*((uint8_t *) frame->data() + frame->prefixSize()));
+    int type = H264_TYPE( frame->data()[frame->prefixSize()]);
     switch (type) {
         case H264Frame::NAL_SPS: {
             _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
