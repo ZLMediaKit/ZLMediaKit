@@ -23,12 +23,12 @@ bool getAVCInfo(const string &strSps,int &iVideoWidth, int &iVideoHeight, float 
 void splitH264(const char *ptr, size_t len, size_t prefix, const std::function<void(const char *, size_t, size_t)> &cb);
 size_t prefixSize(const char *ptr, size_t len);
 
-/**
- * 264帧类
- */
-class H264Frame : public FrameImp {
+template<typename Parent>
+class H264FrameHelper : public Parent{
 public:
-    using Ptr = std::shared_ptr<H264Frame>;
+    friend class FrameImp;
+    friend class ResourcePool_l<H264FrameHelper>;
+    using Ptr = std::shared_ptr<H264FrameHelper>;
 
     enum {
         NAL_IDR = 5,
@@ -39,28 +39,54 @@ public:
         NAL_B_P = 1,
     };
 
-    bool keyFrame() const override;
-    bool configFrame() const override;
+    template<typename ...ARGS>
+    H264FrameHelper(ARGS &&...args): Parent(std::forward<ARGS>(args)...) {
+        this->_codec_id = CodecH264;
+    }
 
-protected:
-    friend class FrameImp;
-    friend class ResourcePool_l<H264Frame>;
-    H264Frame();
+    ~H264FrameHelper() override = default;
+
+    bool keyFrame() const override {
+        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
+        return H264_TYPE(*nal_ptr) == NAL_IDR && decodeAble();
+    }
+
+    bool configFrame() const override {
+        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
+        switch (H264_TYPE(*nal_ptr)) {
+            case NAL_SPS:
+            case NAL_PPS: return true;
+            default: return false;
+        }
+    }
+
+    bool dropAble() const override {
+        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
+        switch (H264_TYPE(*nal_ptr)) {
+            case NAL_SEI:
+            case NAL_AUD: return true;
+            default: return false;
+        }
+    }
+
+    bool decodeAble() const override {
+        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
+        auto type = H264_TYPE(*nal_ptr);
+        //多slice情况下, first_mb_in_slice 表示其为一帧的开始
+        return type >= NAL_B_P && type <= NAL_IDR && (nal_ptr[1] & 0x80);
+    }
 };
+
+/**
+ * 264帧类
+ */
+using H264Frame = H264FrameHelper<FrameImp>;
 
 /**
  * 防止内存拷贝的H264类
  * 用户可以通过该类型快速把一个指针无拷贝的包装成Frame类
- * 该类型在DevChannel中有使用
  */
-class H264FrameNoCacheAble : public FrameFromPtr {
-public:
-    using Ptr = std::shared_ptr<H264FrameNoCacheAble>;
-
-    H264FrameNoCacheAble(char *ptr,size_t size,uint32_t dts , uint32_t pts ,size_t prefix_size = 4);
-    bool keyFrame() const override;
-    bool configFrame() const override;
-};
+using H264FrameNoCacheAble = H264FrameHelper<FrameFromPtr>;
 
 /**
  * 264视频通道

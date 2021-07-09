@@ -157,10 +157,8 @@ void H264RtmpEncoder::makeConfigPacket(){
 void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto data = frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
-    auto type = H264_TYPE(((uint8_t*)data)[0]);
+    auto type = H264_TYPE(data[0]);
     switch (type) {
-        case H264Frame::NAL_SEI:
-        case H264Frame::NAL_AUD: return;
         case H264Frame::NAL_SPS: {
             if (!_got_config_frame) {
                 _sps = string(data, len);
@@ -178,21 +176,6 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         default : break;
     }
 
-    if (frame->configFrame() && _rtmp_packet && _has_vcl) {
-        //sps pps flush frame
-        RtmpCodec::inputRtmp(_rtmp_packet);
-        _has_vcl = false;
-        _rtmp_packet = nullptr;
-    }
-
-    if (_rtmp_packet && (_rtmp_packet->time_stamp != frame->dts() || ((data[1] & 0x80) != 0 && type >= H264Frame::NAL_B_P && type <= H264Frame::NAL_IDR && _has_vcl))) {
-        RtmpCodec::inputRtmp(_rtmp_packet);
-        _has_vcl = false;
-        _rtmp_packet = nullptr;
-    }
-    if (type >= H264Frame::NAL_B_P && type <= H264Frame::NAL_IDR) {
-        _has_vcl = true;
-    }
     if (!_rtmp_packet) {
         //I or P or B frame
         int8_t flags = FLV_CODEC_H264;
@@ -200,6 +183,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
 
         _rtmp_packet = RtmpPacket::create();
+        _rtmp_packet->buffer.clear();
         _rtmp_packet->buffer.push_back(flags);
         _rtmp_packet->buffer.push_back(!is_config);
         int32_t cts = frame->pts() - frame->dts();
@@ -213,10 +197,13 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         _rtmp_packet->time_stamp = frame->dts();
         _rtmp_packet->type_id = MSG_VIDEO;
     }
-    uint32_t size = htonl((uint32_t) len);
-    _rtmp_packet->buffer.append((char *) &size, 4);
-    _rtmp_packet->buffer.append(data, len);
-    _rtmp_packet->body_size = _rtmp_packet->buffer.size();
+
+    _merger.inputFrame(frame, [&](uint32_t, uint32_t, const Buffer::Ptr &, bool) {
+        //输出rtmp packet
+        _rtmp_packet->body_size = _rtmp_packet->buffer.size();
+        RtmpCodec::inputRtmp(_rtmp_packet);
+        _rtmp_packet = nullptr;
+    }, &_rtmp_packet->buffer);
 }
 
 void H264RtmpEncoder::makeVideoConfigPkt() {

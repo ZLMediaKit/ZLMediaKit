@@ -276,48 +276,6 @@ Sdp::Ptr H264Track::getSdp() {
     return std::make_shared<H264Sdp>(getSps(), getPps(), getBitRate() / 1024);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool H264Frame::keyFrame() const {
-    //多slice 一帧的情况下检查 first_mb_in_slice 是否为0 表示其为一帧的开始
-    return H264_TYPE(_buffer[_prefix_size]) == H264Frame::NAL_IDR && (_buffer[_prefix_size + 1] & 0x80);
-}
-
-bool H264Frame::configFrame() const {
-    switch (H264_TYPE(_buffer[_prefix_size])) {
-        case H264Frame::NAL_SPS:
-        case H264Frame::NAL_PPS: return true;
-        default: return false;
-    }
-}
-
-H264Frame::H264Frame() {
-    _codec_id = CodecH264;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-H264FrameNoCacheAble::H264FrameNoCacheAble(char *ptr,size_t size,uint32_t dts , uint32_t pts ,size_t prefix_size){
-    _ptr = ptr;
-    _size = size;
-    _dts = dts;
-    _pts = pts;
-    _prefix_size = prefix_size;
-    _codec_id = CodecH264;
-}
-
-bool H264FrameNoCacheAble::keyFrame() const {
-    return H264_TYPE(_ptr[_prefix_size]) == H264Frame::NAL_IDR;
-}
-
-bool H264FrameNoCacheAble::configFrame() const {
-    switch (H264_TYPE(_ptr[_prefix_size])) {
-        case H264Frame::NAL_SPS:
-        case H264Frame::NAL_PPS: return true;
-        default: return false;
-    }
-}
-
 }//namespace mediakit
 
 

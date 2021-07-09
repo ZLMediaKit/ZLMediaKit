@@ -75,13 +75,15 @@ public:
      * 生成config包
      */
     void makeConfigPacket() override;
+
 private:
     void makeVideoConfigPkt();
+
 private:
-    bool _has_vcl = false;
     bool _got_config_frame = false;
     H264Track::Ptr _track;
     RtmpPacket::Ptr _rtmp_packet;
+    FrameMerger _merger{FrameMerger::mp4_nal_size};
 };
 
 }//namespace mediakit
