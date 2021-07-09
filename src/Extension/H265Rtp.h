@@ -84,8 +84,6 @@ public:
      * @param frame 帧数据，必须
      */
     void inputFrame(const Frame::Ptr &frame) override;
-private:
-    void makeH265Rtp(int nal_type,const void *pData, size_t uiLen, bool bMark, bool first_packet,uint32_t uiStamp);
 };
 
 }//namespace mediakit{
