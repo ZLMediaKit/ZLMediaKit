@@ -386,13 +386,27 @@ void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sock
 ///////////////////////////////////////////////////////////////////
 
 bool WebRtcTransportImp::canSendRtp() const{
-    auto &sdp = getSdp(SdpType::answer);
-    return _play_src && (sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::sendonly);
+    if (!_play_src) {
+        return false;
+    }
+    for (auto &m : getSdp(SdpType::answer).media) {
+        if (m.direction == RtpDirection::sendrecv || m.direction == RtpDirection::sendonly) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool WebRtcTransportImp::canRecvRtp() const{
-    auto &sdp = getSdp(SdpType::answer);
-    return _push_src && (sdp.media[0].direction == RtpDirection::sendrecv || sdp.media[0].direction == RtpDirection::recvonly);
+    if (!_push_src) {
+        return false;
+    }
+    for (auto &m : getSdp(SdpType::answer).media) {
+        if (m.direction == RtpDirection::sendrecv || m.direction == RtpDirection::recvonly) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void WebRtcTransportImp::onStartWebRTC() {
