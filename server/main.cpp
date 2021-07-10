@@ -229,6 +229,8 @@ int start_main(int argc,char *argv[]) {
         string ssl_file = cmd_main["ssl"];
         int threads = cmd_main["threads"];
 
+        setThreadName("main thread");
+
         //设置日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
 #ifndef ANDROID
