@@ -600,8 +600,6 @@ public:
             auto seq = ntohs(rtp->seq);
             //统计rtp接受情况，便于生成nack rtcp包
             _nack_ctx.received(seq);
-            //统计rtp收到的情况，好做rr汇报
-            _rtcp_context.onRtp(seq, ntohl(rtp->stamp), sample_rate, len);
         }
         return RtpTrack::inputRtp(type, sample_rate, ptr, len);
     }
@@ -609,6 +607,14 @@ public:
     Buffer::Ptr createRtcpRR(RtcpHeader *sr, uint32_t ssrc) {
         _rtcp_context.onRtcp(sr);
         return _rtcp_context.createRtcpRR(ssrc, getSSRC());
+    }
+
+protected:
+    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp) override {
+        //统计rtp收到的情况，好做rr汇报
+        _rtcp_context.onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate,
+                            rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+        RtpTrackImp::onBeforeRtpSorted(rtp);
     }
 
 private:
@@ -639,6 +645,8 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     if(!rtp_chn){
                         WarnL << "未识别的sr rtcp包:" << rtcp->dumpString();
                     } else {
+                        //设置rtp时间戳与ntp时间戳的对应关系
+                        rtp_chn->setNtpStamp(sr->rtpts, track->plan_rtp->sample_rate, sr->getNtpUnixStampMS());
                         auto rr = rtp_chn->createRtcpRR(sr, track->answer_ssrc_rtp);
                         sendRtcpPacket(rr->data(), rr->size(), true);
                     }
@@ -845,7 +853,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
     }
     if (!rtx) {
         //统计rtp发送情况，好做sr汇报
-        track->rtcp_context_send->onRtp(rtp->getSeq(), ntohl(rtp->getHeader()->stamp), rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+        track->rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
         track->nack_list.push_back(rtp);
 #if 0
         //此处模拟发送丢包

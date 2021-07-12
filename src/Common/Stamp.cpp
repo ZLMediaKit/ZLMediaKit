@@ -35,7 +35,8 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp) {
 
     //时间戳增量为负，说明时间戳回环了或回退了
     _last_stamp = stamp;
-    return 0;
+    //如果时间戳回退不多，那么返回负值
+    return -ret < MAX_CTS ? ret : 0;
 }
 
 void Stamp::setPlayBack(bool playback) {
@@ -213,6 +214,34 @@ bool DtsGenerator::getDts_l(uint32_t pts, uint32_t &dts){
 
     //排序缓存尚未满
     return false;
+}
+
+void NtpStamp::setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms) {
+    _rtp_stamp_ms = uint64_t(rtp_stamp) * 1000 / sample_rate;
+    _ntp_stamp_ms = ntp_stamp_ms;
+}
+
+uint64_t NtpStamp::getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate) {
+    uint64_t rtp_stamp_ms = uint64_t(rtp_stamp) * 1000 / sample_rate;
+    if (!_rtp_stamp_ms && !_ntp_stamp_ms) {
+        return rtp_stamp_ms;
+    }
+    if (rtp_stamp_ms > _rtp_stamp_ms) {
+        //时间戳正常增长
+        _last_ret = _ntp_stamp_ms + (rtp_stamp_ms - _rtp_stamp_ms);
+        return _last_ret;
+    }
+    if (_rtp_stamp_ms - rtp_stamp_ms < 10 * 1000) {
+        //小于10秒的时间戳回退，说明收到rtp乱序了
+        return _ntp_stamp_ms - (_rtp_stamp_ms - rtp_stamp_ms);
+    }
+    uint64_t max_rtp_ms = uint64_t(UINT32_MAX) * 1000 / sample_rate;
+    if (rtp_stamp_ms < 60 * 1000 && _rtp_stamp_ms > max_rtp_ms - 60 * 1000) {
+        //确定是时间戳溢出
+        return _ntp_stamp_ms + rtp_stamp_ms + (max_rtp_ms - _rtp_stamp_ms);
+    }
+    //不明原因的时间戳回退，直接返回上次值
+    return _last_ret;
 }
 
 }//namespace mediakit

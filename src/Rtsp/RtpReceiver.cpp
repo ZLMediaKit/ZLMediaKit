@@ -91,10 +91,17 @@ bool RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t le
     //拷贝rtp
     memcpy(&data[4], ptr, len);
 
+    //设置ntp时间戳
+    rtp->ntp_stamp = _ntp_stamp.getNtpStamp(ntohl(rtp->getHeader()->stamp), sample_rate);
+
     onBeforeRtpSorted(rtp);
     auto seq = rtp->getSeq();
     sortPacket(seq, std::move(rtp));
     return true;
+}
+
+void RtpTrack::setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms){
+    _ntp_stamp.setNtpStamp(rtp_stamp, sample_rate, ntp_stamp_ms);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

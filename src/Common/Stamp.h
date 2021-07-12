@@ -114,6 +114,20 @@ private:
     set<uint32_t> _pts_sorter;
 };
 
+class NtpStamp {
+public:
+    NtpStamp() = default;
+    ~NtpStamp() = default;
+
+    void setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms);
+    uint64_t getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate);
+
+private:
+    uint64_t _rtp_stamp_ms = 0;
+    uint64_t _ntp_stamp_ms = 0;
+    uint64_t _last_ret = 0;
+};
+
 }//namespace mediakit
 
 #endif //ZLMEDIAKIT_STAMP_H
