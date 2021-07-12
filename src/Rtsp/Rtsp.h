@@ -154,24 +154,29 @@ public:
 
     //获取rtp头
     RtpHeader* getHeader();
+    const RtpHeader* getHeader() const;
+
     //打印调试信息
     string dumpString() const;
 
     //主机字节序的seq
-    uint16_t getSeq();
+    uint16_t getSeq() const;
+    uint32_t getStamp() const;
     //主机字节序的时间戳，已经转换为毫秒
-    uint32_t getStampMS();
+    uint32_t getStampMS() const;
     //主机字节序的ssrc
-    uint32_t getSSRC();
+    uint32_t getSSRC() const;
     //有效负载，跳过csrc、ext
     uint8_t* getPayload();
     //有效负载长度，不包括csrc、ext、padding
-    size_t getPayloadSize();
+    size_t getPayloadSize() const;
 
     //音视频类型
     TrackType type;
     //音频为采样率，视频一般为90000
     uint32_t sample_rate;
+    //ntp时间戳
+    uint64_t ntp_stamp;
 
     static Ptr create();
 

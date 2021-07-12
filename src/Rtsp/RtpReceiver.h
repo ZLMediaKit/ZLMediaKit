@@ -16,6 +16,7 @@
 #include <memory>
 #include "RtpCodec.h"
 #include "RtspMediaSource.h"
+#include "Common/Stamp.h"
 using namespace std;
 using namespace toolkit;
 
@@ -175,6 +176,7 @@ public:
     void clear();
     uint32_t getSSRC() const;
     bool inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
+    void setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms);
 
 protected:
     virtual void onRtpSorted(RtpPacket::Ptr rtp) {}
@@ -183,6 +185,7 @@ protected:
 private:
     uint32_t _ssrc = 0;
     Ticker _ssrc_alive;
+    NtpStamp _ntp_stamp;
 };
 
 class RtpTrackImp : public RtpTrack{
@@ -234,6 +237,17 @@ public:
      */
     bool handleOneRtp(int index, TrackType type, int sample_rate, uint8_t *ptr, size_t len){
         return _track[index].inputRtp(type, sample_rate, ptr, len);
+    }
+
+    /**
+     * 设置ntp时间戳，在收到rtcp sender report时设置
+     * @param index track下标索引
+     * @param rtp_stamp rtp时间戳
+     * @param sample_rate 时间戳采样率
+     * @param ntp_stamp_ms ntp时间戳
+     */
+    void setNtpStamp(int index, uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms){
+        _track[index].setNtpStamp(rtp_stamp, sample_rate, ntp_stamp_ms);
     }
 
     void clear() {

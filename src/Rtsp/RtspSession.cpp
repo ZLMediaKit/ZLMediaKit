@@ -186,6 +186,11 @@ void RtspSession::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, const char *
     auto rtcp_arr = RtcpHeader::loadFromBytes((char *) data, len);
     for (auto &rtcp : rtcp_arr) {
         _rtcp_context[track_idx]->onRtcp(rtcp);
+        if ((RtcpType) rtcp->pt == RtcpType::RTCP_SR) {
+            auto sr = (RtcpSR *) (rtcp);
+            //设置rtp时间戳与ntp时间戳的对应关系
+            setNtpStamp(track_idx, sr->rtpts, track->_samplerate, sr->getNtpUnixStampMS());
+        }
     }
 }
 
@@ -1126,12 +1131,14 @@ void RtspSession::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index){
 void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
     int track_index = getTrackIndexByTrackType(rtp->type);
     auto &rtcp_ctx = _rtcp_context[track_index];
-    rtcp_ctx->onRtp(rtp->getSeq(), ntohl(rtp->getHeader()->stamp), rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+    rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 
     auto &ticker = _rtcp_send_tickers[track_index];
     //send rtcp every 5 second
-    if (ticker.elapsedTime() > 5 * 1000) {
+    if (ticker.elapsedTime() > 5 * 1000 || (_send_sr_rtcp[track_index] && !_push_src)) {
+        //确保在发送rtp前，先发送一次sender report rtcp(用于播放器同步音视频)
         ticker.resetTime();
+        _send_sr_rtcp[track_index] = false;
 
         static auto send_rtcp = [](RtspSession *thiz, int index, Buffer::Ptr ptr) {
             if (thiz->_rtp_type == Rtsp::RTP_TCP) {

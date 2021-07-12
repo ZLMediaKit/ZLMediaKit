@@ -30,10 +30,11 @@ public:
      * 输出或输入rtp时调用
      * @param seq rtp的seq
      * @param stamp rtp的时间戳，单位采样数(非毫秒)
+     * @param ntp_stamp_ms ntp时间戳
      * @param rtp rtp时间戳采样率，视频一般为90000，音频一般为采样率
      * @param bytes rtp数据长度
      */
-    void onRtp(uint16_t seq, uint32_t stamp, uint32_t sample_rate, size_t bytes);
+    void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes);
 
     /**
      * 输入sr rtcp包
@@ -110,6 +111,7 @@ private:
     uint16_t _last_rtp_seq = 0;
     //上次的rtp时间戳,毫秒
     uint32_t _last_rtp_stamp = 0;
+    uint64_t _last_ntp_stamp_ms = 0;
     //上次的rtp的系统时间戳(毫秒)用于统计抖动
     uint64_t _last_rtp_sys_stamp = 0;
     //上次统计的丢包总数

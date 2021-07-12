@@ -163,7 +163,7 @@ public:
         auto stamp = rtp->getStampMS();
         if (track) {
             track->_seq = rtp->getSeq();
-            track->_time_stamp = stamp;
+            track->_time_stamp = rtp->getStamp() * uint64_t(1000) / rtp->sample_rate;
             track->_ssrc = rtp->getSSRC();
         }
         if (!_ring) {

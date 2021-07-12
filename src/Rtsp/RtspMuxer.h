@@ -13,6 +13,7 @@
 
 #include "Extension/Frame.h"
 #include "Common/MediaSink.h"
+#include "Common/Stamp.h"
 #include "RtpCodec.h"
 
 namespace mediakit{
@@ -21,7 +22,8 @@ namespace mediakit{
 */
 class RtspMuxer : public MediaSinkInterface{
 public:
-    typedef std::shared_ptr<RtspMuxer> Ptr;
+    friend class RingDelegateHelper;
+    using Ptr = std::shared_ptr<RtspMuxer>;
 
     /**
      * 构造函数
@@ -57,10 +59,21 @@ public:
      * 重置所有track
      */
     void resetTracks() override ;
+
 private:
+    void onRtp(RtpPacket::Ptr in, bool is_key);
+    void computeNtp(const Frame::Ptr &frame);
+    void trySyncTrack();
+
+private:
+    uint32_t _rtp_stamp[TrackMax]{0};
+    uint64_t _ntp_stamp[TrackMax]{0};
+    uint64_t _ntp_stamp_start;
     string _sdp;
+    Stamp _stamp[TrackMax];
     RtpCodec::Ptr _encoder[TrackMax];
     RtpRing::RingType::Ptr _rtpRing;
+    RtpRing::RingType::Ptr _rtpInterceptor;
 };
 
 
