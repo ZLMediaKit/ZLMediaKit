@@ -10,7 +10,9 @@
 
 #include "Stamp.h"
 
-#define MAX_DELTA_STAMP 1000
+//时间戳最大允许跳变30秒，主要是防止网络抖动导致的跳变
+#define MAX_DELTA_STAMP (30 * 1000)
+#define STAMP_LOOP_DELTA (60 * 1000)
 #define MAX_CTS 500
 #define ABS(x) ((x) > 0 ? (x) : (-x))
 
@@ -235,14 +237,14 @@ uint64_t NtpStamp::getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate) {
     uint64_t max_rtp_ms = uint64_t(UINT32_MAX) * 1000 / sample_rate;
     if (rtp_stamp_ms > _rtp_stamp_ms) {
         auto diff = rtp_stamp_ms - _rtp_stamp_ms;
-        if (diff < 10 * 1000) {
+        if (diff < MAX_DELTA_STAMP) {
             //时间戳正常增长
             _last_ret = _ntp_stamp_ms + diff;
             _last_rtp_stamp = rtp_stamp;
             return _last_ret;
         }
         //时间戳大幅跳跃
-        if (_rtp_stamp_ms < 60 * 1000 && rtp_stamp_ms > max_rtp_ms - 60 * 1000) {
+        if (_rtp_stamp_ms < STAMP_LOOP_DELTA && rtp_stamp_ms > max_rtp_ms - STAMP_LOOP_DELTA) {
             //应该是rtp时间戳溢出+乱序
             return _ntp_stamp_ms + diff - max_rtp_ms;
         }
@@ -250,11 +252,11 @@ uint64_t NtpStamp::getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate) {
         return _last_ret;
     }
     auto diff = _rtp_stamp_ms - rtp_stamp_ms;
-    if (diff < 10 * 1000) {
-        //小于10秒的时间戳回退，说明收到rtp乱序了
+    if (diff < MAX_DELTA_STAMP) {
+        //正常范围的时间戳回退，说明收到rtp乱序了
         return _ntp_stamp_ms - diff;
     }
-    if (rtp_stamp_ms < 60 * 1000 && _rtp_stamp_ms > max_rtp_ms - 60 * 1000) {
+    if (rtp_stamp_ms < STAMP_LOOP_DELTA && _rtp_stamp_ms > max_rtp_ms - STAMP_LOOP_DELTA) {
         //确定是时间戳溢出
         return _ntp_stamp_ms + (max_rtp_ms - diff);
     }
