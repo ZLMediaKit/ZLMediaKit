@@ -229,11 +229,11 @@ uint64_t NtpStamp::getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate) {
     }
     uint64_t rtp_stamp_ms = uint64_t(rtp_stamp) * 1000 / sample_rate;
     if (!_rtp_stamp_ms && !_ntp_stamp_ms) {
-        //尚未收到sender report rtcp包
-        _last_ret = rtp_stamp_ms;
-        _last_rtp_stamp = rtp_stamp;
-        return rtp_stamp_ms;
+        //尚未收到sender report rtcp包，那么赋值为本地系统时间戳吧
+        _rtp_stamp_ms = rtp_stamp_ms;
+        _ntp_stamp_ms = getCurrentMillisecond(true);
     }
+
     uint64_t max_rtp_ms = uint64_t(UINT32_MAX) * 1000 / sample_rate;
     if (rtp_stamp_ms > _rtp_stamp_ms) {
         auto diff = rtp_stamp_ms - _rtp_stamp_ms;
