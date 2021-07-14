@@ -594,27 +594,20 @@ public:
 
     ~RtpChannel() override = default;
 
-    bool inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len, bool is_rtx){
-        if (!is_rtx) {
-            RtpHeader *rtp = (RtpHeader *) ptr;
-            auto seq = ntohs(rtp->seq);
+    RtpPacket::Ptr inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len, bool is_rtx) {
+        auto rtp = RtpTrack::inputRtp(type, sample_rate, ptr, len);
+        if (!is_rtx && rtp) {
             //统计rtp接受情况，便于生成nack rtcp包
+            auto seq = rtp->getSeq();
             _nack_ctx.received(seq);
+            _rtcp_context.onRtp(seq, rtp->getStamp(), rtp->ntp_stamp, sample_rate, len);
         }
-        return RtpTrack::inputRtp(type, sample_rate, ptr, len);
+        return rtp;
     }
 
     Buffer::Ptr createRtcpRR(RtcpHeader *sr, uint32_t ssrc) {
         _rtcp_context.onRtcp(sr);
         return _rtcp_context.createRtcpRR(ssrc, getSSRC());
-    }
-
-protected:
-    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp) override {
-        //统计rtp收到的情况，好做rr汇报
-        _rtcp_context.onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate,
-                            rtp->size() - RtpPacket::kRtpTcpHeaderSize);
-        RtpTrackImp::onBeforeRtpSorted(rtp);
     }
 
 private:

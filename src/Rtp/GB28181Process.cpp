@@ -36,7 +36,7 @@ public:
     ~RtpReceiverImp() override = default;
 
     bool inputRtp(TrackType type, uint8_t *ptr, size_t len){
-        return RtpTrack::inputRtp(type, _sample_rate, ptr, len);
+        return RtpTrack::inputRtp(type, _sample_rate, ptr, len).operator bool();
     }
 
 private:
