@@ -175,7 +175,7 @@ public:
 
     void clear();
     uint32_t getSSRC() const;
-    bool inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
+    RtpPacket::Ptr inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
     void setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms);
 
 protected:
@@ -236,7 +236,7 @@ public:
      * @return 解析成功返回true
      */
     bool handleOneRtp(int index, TrackType type, int sample_rate, uint8_t *ptr, size_t len){
-        return _track[index].inputRtp(type, sample_rate, ptr, len);
+        return _track[index].inputRtp(type, sample_rate, ptr, len).operator bool();
     }
 
     /**
