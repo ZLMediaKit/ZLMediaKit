@@ -43,10 +43,10 @@ void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
     _rtpRing->write(std::move(in), is_key);
 }
 
-RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title){
-    if(!title){
+RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title) {
+    if (!title) {
         _sdp = std::make_shared<TitleSdp>()->getSdp();
-    } else{
+    } else {
         _sdp = title->getSdp();
     }
     _rtpRing = std::make_shared<RtpRing::RingType>();
@@ -100,7 +100,7 @@ RtpRing::RingType::Ptr RtspMuxer::getRtpRing() const {
 
 void RtspMuxer::resetTracks() {
     _sdp.clear();
-    for(auto &encoder : _encoder){
+    for (auto &encoder : _encoder) {
         encoder = nullptr;
     }
 }
