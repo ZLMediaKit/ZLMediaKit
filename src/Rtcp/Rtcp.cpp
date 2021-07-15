@@ -427,7 +427,7 @@ void SdesItem::net2Host() {
 }
 
 size_t SdesItem::totalBytes() const{
-    return alignSize(minSize() + txt_len);
+    return minSize() + txt_len;
 }
 
 size_t SdesItem::minSize() {
@@ -449,7 +449,7 @@ std::shared_ptr<RtcpSdes> RtcpSdes::create(const std::vector<string> &item_text)
     size_t item_total_size = 0;
     for (auto &text : item_text) {
         //统计所有SdesItem对象占用的空间
-        item_total_size += alignSize(SdesItem::minSize() + (0xFF & text.size()));
+        item_total_size += SdesItem::minSize() + (0xFF & text.size());
     }
     auto real_size = sizeof(RtcpSdes) - sizeof(SdesItem) + item_total_size;
     auto bytes = alignSize(real_size);
