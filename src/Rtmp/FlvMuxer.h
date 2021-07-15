@@ -19,11 +19,12 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class FlvMuxer{
+class FlvMuxer {
 public:
-    typedef std::shared_ptr<FlvMuxer> Ptr;
-    FlvMuxer();
-    virtual ~FlvMuxer();
+    using Ptr = std::shared_ptr<FlvMuxer>;
+    FlvMuxer() = default;
+    virtual ~FlvMuxer() = default;
+
     void stop();
 
 protected:
@@ -47,9 +48,10 @@ private:
 
 class FlvRecorder : public FlvMuxer , public std::enable_shared_from_this<FlvRecorder>{
 public:
-    typedef std::shared_ptr<FlvRecorder> Ptr;
-    FlvRecorder();
-    virtual ~FlvRecorder();
+    using Ptr = std::shared_ptr<FlvRecorder>;
+    FlvRecorder() = default;
+    ~FlvRecorder() override = default;
+
     void startRecord(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, const string &file_path);
     void startRecord(const EventPoller::Ptr &poller, const string &vhost, const string &app, const string &stream, const string &file_path);
 
@@ -62,7 +64,6 @@ private:
     std::shared_ptr<FILE> _file;
     recursive_mutex _file_mtx;
 };
-
 
 }//namespace mediakit
 #endif //ZLMEDIAKIT_FLVMUXER_H

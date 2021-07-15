@@ -129,6 +129,44 @@ public:
     uint8_t stream_index[4]; /* Note, this is little-endian while others are BE */
 }PACKED;
 
+class FLVHeader {
+public:
+    //FLV
+    char flv[3];
+    //File version (for example, 0x01 for FLV version 1)
+    uint8_t version;
+#if __BYTE_ORDER == __BIG_ENDIAN
+    //保留,置0
+    uint8_t : 5;
+    //是否有音频
+    uint8_t have_audio: 1;
+    //保留,置0
+    uint8_t : 1;
+    //是否有视频
+    uint8_t have_video: 1;
+#else
+    //是否有视频
+    uint8_t have_video: 1;
+    //保留,置0
+    uint8_t : 1;
+    //是否有音频
+    uint8_t have_audio: 1;
+    //保留,置0
+    uint8_t : 5;
+#endif
+    //The length of this header in bytes,固定为9
+    uint32_t length;
+} PACKED;
+
+class RtmpTagHeader {
+public:
+    uint8_t type = 0;
+    uint8_t data_size[3] = {0};
+    uint8_t timestamp[3] = {0};
+    uint8_t timestamp_ex = 0;
+    uint8_t streamid[3] = {0}; /* Always 0. */
+} PACKED;
+
 #if defined(_WIN32)
 #pragma pack(pop)
 #endif // defined(_WIN32)
