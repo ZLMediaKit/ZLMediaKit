@@ -97,7 +97,7 @@ public:
         auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
         auto type = H265_TYPE(*nal_ptr);
         //多slice情况下, first_slice_segment_in_pic_flag 表示其为一帧的开始
-        return type >= NAL_TRAIL_R && type <= NAL_RSV_IRAP_VCL23 && (nal_ptr[2] & 0x80);
+        return type >= NAL_TRAIL_N && type <= NAL_RSV_IRAP_VCL23 && (nal_ptr[2] & 0x80);
     }
 };
 
