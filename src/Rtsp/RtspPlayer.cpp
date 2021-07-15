@@ -633,8 +633,8 @@ void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx){
     auto ssrc = rtp->getSSRC();
     auto rtcp = rtcp_ctx->createRtcpRR(ssrc + 1, ssrc);
     auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
-    rtcp_sdes->items.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
-    rtcp_sdes->items.ssrc = htonl(ssrc);
+    rtcp_sdes->chunks.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
+    rtcp_sdes->chunks.ssrc = htonl(ssrc);
     send_rtcp(this, track_idx, std::move(rtcp));
     send_rtcp(this, track_idx, RtcpHeader::toBuffer(rtcp_sdes));
     ticker.resetTime();

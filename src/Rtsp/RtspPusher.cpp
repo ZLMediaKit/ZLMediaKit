@@ -378,8 +378,8 @@ void RtspPusher::updateRtcpContext(const RtpPacket::Ptr &rtp){
         auto ssrc = rtp->getSSRC();
         auto rtcp = rtcp_ctx->createRtcpSR(ssrc + 1);
         auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
-        rtcp_sdes->items.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
-        rtcp_sdes->items.ssrc = htonl(ssrc);
+        rtcp_sdes->chunks.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
+        rtcp_sdes->chunks.ssrc = htonl(ssrc);
         send_rtcp(this, track_index, std::move(rtcp));
         send_rtcp(this, track_index, RtcpHeader::toBuffer(rtcp_sdes));
     }

@@ -67,7 +67,7 @@ std::shared_ptr<Buffer> makeRtcpRR() {
 std::shared_ptr<Buffer> makeRtcpSDES() {
     auto rtcp = RtcpSdes::create({"zlmediakit", "", "https://github.com/xia-chu/ZLMediaKit", "1213642868@qq.com", "123456789012345678"});
     auto i = 5;
-    auto items = rtcp->getItemList();
+    auto items = rtcp->getChunkList();
     items[0]->type = (uint8_t)SdesType::RTCP_SDES_CNAME;
     items[0]->ssrc = htonl(i++);
 
