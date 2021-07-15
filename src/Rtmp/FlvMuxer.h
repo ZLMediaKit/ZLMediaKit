@@ -34,7 +34,7 @@ protected:
     virtual std::shared_ptr<FlvMuxer> getSharedPtr() = 0;
 
 private:
-    void onWriteFlvHeader(const RtmpMediaSource::Ptr &media);
+    void onWriteFlvHeader(const RtmpMediaSource::Ptr &src);
     void onWriteRtmp(const RtmpPacket::Ptr &pkt, bool flush);
     void onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t time_stamp, bool flush);
     void onWriteFlvTag(uint8_t type, const Buffer::Ptr &buffer, uint32_t time_stamp, bool flush);

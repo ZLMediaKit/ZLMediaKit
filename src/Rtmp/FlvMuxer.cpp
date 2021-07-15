@@ -67,7 +67,7 @@ BufferRaw::Ptr FlvMuxer::obtainBuffer(const void *data, size_t len) {
     return buffer;
 }
 
-void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
+void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &src) {
     //发送flv文件头
     auto buffer = BufferRaw::create();
     buffer->setCapacity(sizeof(FLVHeader));
@@ -80,15 +80,8 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     header->flv[2] = 'V';
     header->version = 1;
     header->length = htonl(9);
-
-    mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
-        if (pkt->type_id == MSG_VIDEO) {
-            header->have_video = 1;
-        }
-        if (pkt->type_id == MSG_AUDIO) {
-            header->have_audio = 1;
-        }
-    });
+    header->have_video = src->haveVideo();
+    header->have_audio = src->haveAudio();
 
     //flv header
     onWrite(buffer, false);
@@ -97,7 +90,7 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     auto size = htonl(0);
     onWrite(obtainBuffer((char *) &size, 4), false);
 
-    auto &metadata = mediaSrc->getMetaData();
+    auto &metadata = src->getMetaData();
     if (metadata) {
         //在有metadata的情况下才发送metadata
         //其实metadata没什么用，有些推流器不产生metadata
@@ -107,7 +100,7 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &mediaSrc) {
     }
 
     //config frame
-    mediaSrc->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
+    src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
         onWriteRtmp(pkt, true);
     });
 }
