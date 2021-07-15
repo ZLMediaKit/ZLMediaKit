@@ -422,19 +422,19 @@ vector<ReportItem*> RtcpRR::getItemList() {
 
 /////////////////////////////////////////////////////////////////////////////
 
-void SdesItem::net2Host() {
+void SdesChunk::net2Host() {
     ssrc = ntohl(ssrc);
 }
 
-size_t SdesItem::totalBytes() const{
+size_t SdesChunk::totalBytes() const{
     return alignSize(minSize() + txt_len);
 }
 
-size_t SdesItem::minSize() {
-    return sizeof(SdesItem) - sizeof(text);
+size_t SdesChunk::minSize() {
+    return sizeof(SdesChunk) - sizeof(text);
 }
 
-string SdesItem::dumpString() const{
+string SdesChunk::dumpString() const{
     _StrPrinter printer;
     printer << "ssrc:" << ssrc << "\r\n";
     printer << "type:" << sdesTypeToStr((SdesType) type) << "\r\n";
@@ -448,18 +448,18 @@ string SdesItem::dumpString() const{
 std::shared_ptr<RtcpSdes> RtcpSdes::create(const std::vector<string> &item_text) {
     size_t item_total_size = 0;
     for (auto &text : item_text) {
-        //统计所有SdesItem对象占用的空间
-        item_total_size += alignSize(SdesItem::minSize() + (0xFF & text.size()));
+        //统计所有SdesChunk对象占用的空间
+        item_total_size += alignSize(SdesChunk::minSize() + (0xFF & text.size()));
     }
-    auto real_size = sizeof(RtcpSdes) - sizeof(SdesItem) + item_total_size;
+    auto real_size = sizeof(RtcpSdes) - sizeof(SdesChunk) + item_total_size;
     auto bytes = alignSize(real_size);
     auto ptr = (RtcpSdes *) new char[bytes];
-    auto item_ptr = &ptr->items;
+    auto item_ptr = &ptr->chunks;
     for (auto &text : item_text) {
         item_ptr->txt_len = (0xFF & text.size());
         //确保赋值\0为RTCP_SDES_END
         memcpy(item_ptr->text, text.data(), item_ptr->txt_len + 1);
-        item_ptr = (SdesItem *) ((char *) item_ptr + item_ptr->totalBytes());
+        item_ptr = (SdesChunk *) ((char *) item_ptr + item_ptr->totalBytes());
     }
 
     setupHeader(ptr, RtcpType::RTCP_SDES, item_text.size(), bytes);
@@ -472,7 +472,7 @@ std::shared_ptr<RtcpSdes> RtcpSdes::create(const std::vector<string> &item_text)
 string RtcpSdes::dumpString() const {
     _StrPrinter printer;
     printer << RtcpHeader::dumpHeader();
-    auto items = ((RtcpSdes *)this)->getItemList();
+    auto items = ((RtcpSdes *) this)->getChunkList();
     auto i = 0;
     for (auto &item : items) {
         printer << "---- item:" << i++ << " ----\r\n";
@@ -482,24 +482,24 @@ string RtcpSdes::dumpString() const {
 }
 
 void RtcpSdes::net2Host(size_t size) {
-    static const size_t kMinSize = sizeof(RtcpSdes) - sizeof(items);
+    static const size_t kMinSize = sizeof(RtcpSdes) - sizeof(chunks);
     CHECK_MIN_SIZE(size, kMinSize);
-    SdesItem *ptr = &items;
+    SdesChunk *ptr = &chunks;
     int item_count = 0;
-    for(int i = 0; i < (int)report_count && (char *)(ptr) + SdesItem::minSize() <= (char *)(this) + size; ++i){
+    for(int i = 0; i < (int)report_count && (char *)(ptr) + SdesChunk::minSize() <= (char *)(this) + size; ++i){
         ptr->net2Host();
-        ptr = (SdesItem *) ((char *) ptr + ptr->totalBytes());
+        ptr = (SdesChunk *) ((char *) ptr + ptr->totalBytes());
         ++item_count;
     }
     CHECK_REPORT_COUNT(item_count);
 }
 
-vector<SdesItem *> RtcpSdes::getItemList() {
-    vector<SdesItem *> ret;
-    SdesItem *ptr = &items;
+vector<SdesChunk *> RtcpSdes::getChunkList() {
+    vector<SdesChunk *> ret;
+    SdesChunk *ptr = &chunks;
     for (int i = 0; i < (int) report_count; ++i) {
         ret.emplace_back(ptr);
-        ptr = (SdesItem *) ((char *) ptr + ptr->totalBytes());
+        ptr = (SdesChunk *) ((char *) ptr + ptr->totalBytes());
     }
     return ret;
 }
