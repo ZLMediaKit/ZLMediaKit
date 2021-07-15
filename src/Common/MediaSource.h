@@ -32,7 +32,7 @@ using namespace std;
 using namespace toolkit;
 
 namespace toolkit{
-    class TcpSession;
+    class Session;
 }// namespace toolkit
 
 namespace mediakit {
@@ -271,7 +271,7 @@ public:
     static Ptr find(const string &vhost, const string &app, const string &stream_id);
 
     // 异步查找流
-    static void findAsync(const MediaInfo &info, const std::shared_ptr<TcpSession> &session, const function<void(const Ptr &src)> &cb);
+    static void findAsync(const MediaInfo &info, const std::shared_ptr<Session> &session, const function<void(const Ptr &src)> &cb);
     // 遍历所有流
     static void for_each_media(const function<void(const Ptr &src)> &cb,
                                const string &schema = "",
