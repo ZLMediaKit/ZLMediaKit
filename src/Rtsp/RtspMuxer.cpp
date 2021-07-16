@@ -13,20 +13,6 @@
 
 namespace mediakit {
 
-class RingDelegateHelper : public RingDelegate<RtpPacket::Ptr> {
-public:
-    RingDelegateHelper(RtspMuxer *delegate) {
-        _delegate = delegate;
-    }
-
-    void onWrite(RtpPacket::Ptr in, bool is_key) override {
-        _delegate->onRtp(std::move(in), is_key);
-    }
-
-private:
-    RtspMuxer *_delegate;
-};
-
 void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
     if (_rtp_stamp[in->type] != in->getHeader()->stamp) {
         //rtp时间戳变化才计算ntp，节省cpu资源
@@ -51,7 +37,9 @@ RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title) {
     }
     _rtpRing = std::make_shared<RtpRing::RingType>();
     _rtpInterceptor = std::make_shared<RtpRing::RingType>();
-    _rtpInterceptor->setDelegate(std::make_shared<RingDelegateHelper>(this));
+    _rtpInterceptor->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr in, bool is_key) {
+        onRtp(std::move(in), is_key);
+    }));
     _ntp_stamp_start = getCurrentMillisecond(true);
 }
 
