@@ -11,6 +11,7 @@
 #if defined(ENABLE_RTPPROXY)
 #include "PSEncoder.h"
 #include "Extension/H264.h"
+#include "Rtsp/RtspMuxer.h"
 namespace mediakit{
 
 PSEncoder::PSEncoder() {
@@ -146,24 +147,6 @@ void PSEncoder::inputFrame(const Frame::Ptr &frame) {
         }
     }
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-class RingDelegateHelper : public RingDelegate<RtpPacket::Ptr> {
-public:
-    typedef function<void(RtpPacket::Ptr in, bool is_key)> onRtp;
-
-    ~RingDelegateHelper() override{}
-    RingDelegateHelper(onRtp on_rtp){
-        _on_rtp = std::move(on_rtp);
-    }
-    void onWrite(RtpPacket::Ptr in, bool is_key) override{
-        _on_rtp(std::move(in), is_key);
-    }
-
-private:
-    onRtp _on_rtp;
-};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

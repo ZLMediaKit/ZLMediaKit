@@ -17,12 +17,28 @@
 #include "RtpCodec.h"
 
 namespace mediakit{
+
+class RingDelegateHelper : public RingDelegate<RtpPacket::Ptr> {
+public:
+    typedef function<void(RtpPacket::Ptr in, bool is_key)> onRtp;
+
+    ~RingDelegateHelper() override{}
+    RingDelegateHelper(onRtp on_rtp){
+        _on_rtp = std::move(on_rtp);
+    }
+    void onWrite(RtpPacket::Ptr in, bool is_key) override{
+        _on_rtp(std::move(in), is_key);
+    }
+
+private:
+    onRtp _on_rtp;
+};
+
 /**
 * rtsp生成器
 */
 class RtspMuxer : public MediaSinkInterface{
 public:
-    friend class RingDelegateHelper;
     using Ptr = std::shared_ptr<RtspMuxer>;
 
     /**
@@ -62,7 +78,6 @@ public:
 
 private:
     void onRtp(RtpPacket::Ptr in, bool is_key);
-    void computeNtp(const Frame::Ptr &frame);
     void trySyncTrack();
 
 private:
