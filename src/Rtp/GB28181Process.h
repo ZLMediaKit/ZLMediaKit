@@ -22,7 +22,7 @@
 namespace mediakit{
 
 class RtpReceiverImp;
-class GB28181Process : public HttpRequestSplitter, public ProcessInterface{
+class GB28181Process : public ProcessInterface {
 public:
     typedef std::shared_ptr<GB28181Process> Ptr;
     GB28181Process(const MediaInfo &media_info, MediaSinkInterface *interface);
@@ -38,8 +38,6 @@ public:
 
 protected:
     void onRtpSorted(RtpPacket::Ptr rtp);
-    const char *onSearchPacketTail(const char *data,size_t len) override;
-    ssize_t onRecvHeader(const char *data,size_t len) override { return 0; };
 
 private:
     void onRtpDecode(const Frame::Ptr &frame);
