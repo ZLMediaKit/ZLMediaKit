@@ -45,7 +45,8 @@ PSDecoder::~PSDecoder() {
 }
 
 ssize_t PSDecoder::input(const uint8_t *data, size_t bytes) {
-    return ps_demuxer_input((struct ps_demuxer_t*)_ps_demuxer,data,bytes);
+    HttpRequestSplitter::input(reinterpret_cast<const char *>(data), bytes);
+    return bytes;
 }
 
 void PSDecoder::setOnDecode(Decoder::onDecode cb) {
@@ -54,6 +55,29 @@ void PSDecoder::setOnDecode(Decoder::onDecode cb) {
 
 void PSDecoder::setOnStream(Decoder::onStream cb) {
     _on_stream = std::move(cb);
+}
+
+const char *PSDecoder::onSearchPacketTail(const char *data, size_t len) {
+    try {
+        auto ret = ps_demuxer_input(static_cast<struct ps_demuxer_t *>(_ps_demuxer), reinterpret_cast<const uint8_t *>(data), len);
+        if (ret >= 0) {
+            //解析成功全部或部分
+            return data + ret;
+        }
+
+        //解析失败，丢弃所有数据
+        return data + len;
+    } catch (std::exception &ex) {
+        InfoL << "解析 ps 异常: bytes=" << len
+              << ", exception=" << ex.what()
+              << ", hex=" << hexdump(data, MIN(len, 32));
+        if (remainDataSize() > 256 * 1024) {
+            //缓存太多数据无法处理则上抛异常
+            throw;
+        }
+
+        return nullptr;
+    }
 }
 
 }//namespace mediakit
