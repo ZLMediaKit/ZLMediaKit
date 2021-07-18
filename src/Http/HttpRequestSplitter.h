@@ -27,8 +27,9 @@ public:
      * 添加数据
      * @param data 需要添加的数据
      * @param len 数据长度
+     * @warning 实际内存需保证不小于 len + 1, 内部使用 strstr 进行查找, 为防止查找越界, 会在 @p len + 1 的位置设置 '\0' 结束符.
      */
-    virtual void input(const char *data,size_t len);
+    virtual void input(const char *data, size_t len);
 
 protected:
     /**
