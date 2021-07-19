@@ -67,7 +67,7 @@ public:
                 //过滤seq回退包(回环包除外)
                 return;
             }
-        } else if (_next_seq_out && seq - _next_seq_out > (std::numeric_limits<SEQ>::max() >> 1)) {
+        } else if (_next_seq_out && seq - _next_seq_out > ((std::numeric_limits<SEQ>::max)() >> 1)) {
             //过滤seq跳变非常大的包(防止回环时乱序时收到非常大的seq)
             return;
         }
