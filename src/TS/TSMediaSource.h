@@ -33,7 +33,6 @@ public:
 //TS直播源
 class TSMediaSource : public MediaSource, public RingDelegate<TSPacket::Ptr>, public PacketCache<TSPacket>{
 public:
-    using PoolType = ResourcePool<TSPacket>;
     using Ptr = std::shared_ptr<TSMediaSource>;
     using RingDataType = std::shared_ptr<List<TSPacket::Ptr> >;
     using RingType = RingBuffer<RingDataType>;
