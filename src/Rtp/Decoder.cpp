@@ -203,7 +203,8 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         default:
-            if (codecid != 0) {
+            // 海康的 PS 流中会有 codecid 为 0xBD 的包
+            if (codecid != 0 && codecid != 0xBD) {
                 if (_last_unsported_print.elapsedTime() / 1000 > 5) {
                     _last_unsported_print.resetTime();
                     WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int) codecid;
