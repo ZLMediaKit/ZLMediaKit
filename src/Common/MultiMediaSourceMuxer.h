@@ -66,6 +66,11 @@ public:
      */
     void setTimeStamp(uint32_t stamp);
 
+    /**
+     * 重置track
+     */
+    void resetTracks() override;
+
     /////////////////////////////////MediaSourceEvent override/////////////////////////////////
 
     /**
@@ -108,9 +113,11 @@ public:
     bool stopSendRtp(MediaSource &sender, const string &ssrc) override;
 
     /**
-     * 重置track
+     * 获取所有Track
+     * @param trackReady 是否筛选过滤未就绪的track
+     * @return 所有Track
      */
-    void resetTracks() override;
+    vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
 
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////
