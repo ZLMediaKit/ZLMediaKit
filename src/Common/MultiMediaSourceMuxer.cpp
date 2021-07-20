@@ -149,7 +149,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         case Recorder::type_hls : {
             if (start && !_hls) {
                 //开始录制
-                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, MediaSink::getTracks(), type, custom_path, max_second));
+                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, getTracks(), type, custom_path, max_second));
                 if (hls) {
                     //设置HlsMediaSource的事件监听器
                     hls->setListener(shared_from_this());
@@ -164,7 +164,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         case Recorder::type_mp4 : {
             if (start && !_mp4) {
                 //开始录制
-                _mp4 = makeRecorder(sender, MediaSink::getTracks(), type, custom_path, max_second);
+                _mp4 = makeRecorder(sender, getTracks(), type, custom_path, max_second);
             } else if (!start && _mp4) {
                 //停止录制
                 _mp4 = nullptr;
@@ -197,7 +197,7 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &, const string &dst_url, u
         if (!strong_self || ex) {
             return;
         }
-        for (auto &track : strong_self->MediaSink::getTracks(false)) {
+        for (auto &track : strong_self->getTracks(false)) {
             rtp_sender->addTrack(track);
         }
         rtp_sender->addTrackCompleted();
@@ -230,6 +230,10 @@ bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string &ssrc)
 #else
     return false;
 #endif//ENABLE_RTPPROXY
+}
+
+vector<Track::Ptr> MultiMediaSourceMuxer::getMediaTracks(MediaSource &sender, bool trackReady) const {
+    return getTracks(trackReady);
 }
 
 void MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
