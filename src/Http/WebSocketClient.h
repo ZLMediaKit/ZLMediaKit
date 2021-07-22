@@ -386,6 +386,10 @@ public:
         _wsClient->startWsClient(ws_url,fTimeOutSec);
     }
 
+    HttpClient &getHttpClient() {
+        return *_wsClient;
+    }
+
 private:
     typename HttpWsClient<ClientType,DataType>::Ptr _wsClient;
 };
