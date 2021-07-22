@@ -90,7 +90,7 @@ public:
     void inputFrame(const Frame::Ptr &frame) override {}
 
 protected:
-    virtual void onTs(const void *packet, size_t bytes,uint32_t timestamp,bool is_idr_fast_packet) = 0;
+    virtual void onTs(std::shared_ptr<Buffer> buffer, uint32_t timestamp,bool is_idr_fast_packet) = 0;
 };
 }//namespace mediakit
 
