@@ -219,49 +219,61 @@ bool DtsGenerator::getDts_l(uint32_t pts, uint32_t &dts){
 }
 
 void NtpStamp::setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms) {
-    _rtp_stamp_ms = uint64_t(rtp_stamp) * 1000 / sample_rate;
-    _ntp_stamp_ms = ntp_stamp_ms;
+    update(uint64_t(rtp_stamp) * 1000 / sample_rate, ntp_stamp_ms);
+}
+
+void NtpStamp::update(uint32_t rtp_stamp_ms, uint64_t ntp_stamp_ms) {
+    _last_rtp_stamp_ms = rtp_stamp_ms;
+    _last_ntp_stamp_ms = ntp_stamp_ms;
 }
 
 uint64_t NtpStamp::getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate) {
     if (rtp_stamp == _last_rtp_stamp) {
-        return _last_ret;
+        return _last_ntp_stamp_ms;
     }
+    auto ret = getNtpStamp_l(rtp_stamp, sample_rate);
+    _last_rtp_stamp = rtp_stamp;
+    return ret;
+}
+
+uint64_t NtpStamp::getNtpStamp_l(uint32_t rtp_stamp, uint32_t sample_rate) {
     uint64_t rtp_stamp_ms = uint64_t(rtp_stamp) * 1000 / sample_rate;
-    if (!_rtp_stamp_ms && !_ntp_stamp_ms) {
+    if (!_last_rtp_stamp_ms && !_last_ntp_stamp_ms) {
         //尚未收到sender report rtcp包，那么赋值为本地系统时间戳吧
-        _rtp_stamp_ms = rtp_stamp_ms;
-        _ntp_stamp_ms = getCurrentMillisecond(true);
+        update(rtp_stamp_ms, getCurrentMillisecond(true));
     }
 
-    uint64_t max_rtp_ms = uint64_t(UINT32_MAX) * 1000 / sample_rate;
-    if (rtp_stamp_ms > _rtp_stamp_ms) {
-        auto diff = rtp_stamp_ms - _rtp_stamp_ms;
+    if (rtp_stamp_ms >= _last_rtp_stamp_ms) {
+        auto diff = rtp_stamp_ms - _last_rtp_stamp_ms;
         if (diff < MAX_DELTA_STAMP) {
             //时间戳正常增长
-            _last_ret = _ntp_stamp_ms + diff;
-            _last_rtp_stamp = rtp_stamp;
-            return _last_ret;
+            update(rtp_stamp_ms, _last_ntp_stamp_ms + diff);
+            return _last_ntp_stamp_ms;
         }
+        uint64_t max_rtp_ms = uint64_t(UINT32_MAX) * 1000 / sample_rate;
         //时间戳大幅跳跃
-        if (_rtp_stamp_ms < STAMP_LOOP_DELTA && rtp_stamp_ms > max_rtp_ms - STAMP_LOOP_DELTA) {
+        if (_last_rtp_stamp_ms < STAMP_LOOP_DELTA && rtp_stamp_ms > max_rtp_ms - STAMP_LOOP_DELTA) {
             //应该是rtp时间戳溢出+乱序
-            return _ntp_stamp_ms + diff - max_rtp_ms;
+            return _last_ntp_stamp_ms + diff - max_rtp_ms;
         }
         //不明原因的时间戳大幅跳跃，直接返回上次值
-        return _last_ret;
+        WarnL << "rtp stamp abnormal increased:" << _last_rtp_stamp << " -> " << rtp_stamp;
+        return _last_ntp_stamp_ms;
     }
-    auto diff = _rtp_stamp_ms - rtp_stamp_ms;
+    auto diff = _last_rtp_stamp_ms - rtp_stamp_ms;
     if (diff < MAX_DELTA_STAMP) {
         //正常范围的时间戳回退，说明收到rtp乱序了
-        return _ntp_stamp_ms - diff;
+        return _last_ntp_stamp_ms - diff;
     }
-    if (rtp_stamp_ms < STAMP_LOOP_DELTA && _rtp_stamp_ms > max_rtp_ms - STAMP_LOOP_DELTA) {
+    uint64_t max_rtp_ms = uint64_t(UINT32_MAX) * 1000 / sample_rate;
+    if (rtp_stamp_ms < STAMP_LOOP_DELTA && _last_rtp_stamp_ms > max_rtp_ms - STAMP_LOOP_DELTA) {
         //确定是时间戳溢出
-        return _ntp_stamp_ms + (max_rtp_ms - diff);
+        update(rtp_stamp_ms, _last_ntp_stamp_ms + (max_rtp_ms - diff));
+        return _last_ntp_stamp_ms;
     }
     //不明原因的时间戳回退，直接返回上次值
-    return _last_ret;
+    WarnL << "rtp stamp abnormal reduced:" << _last_rtp_stamp << " -> " << rtp_stamp;
+    return _last_ntp_stamp_ms;
 }
 
 }//namespace mediakit
