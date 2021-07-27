@@ -90,7 +90,7 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
         //回环
         _seq.clear();
         _last_max_seq = min_seq;
-        _nack_send_ntp.clear();
+        _nack_send_status.clear();
         return;
     }
 
@@ -151,12 +151,12 @@ void NackContext::eraseFrontSeq() {
 }
 
 void NackContext::onRtx(uint16_t seq) {
-    auto it = _nack_send_ntp.find(seq);
-    if (it == _nack_send_ntp.end()) {
+    auto it = _nack_send_status.find(seq);
+    if (it == _nack_send_status.end()) {
         return;
     }
     auto rtt = getCurrentMillisecond() - it->second.update_stamp;
-    _nack_send_ntp.erase(it);
+    _nack_send_status.erase(it);
 
     if (rtt >= 0) {
         //rtt不肯小于0
@@ -170,7 +170,7 @@ void NackContext::recordNack(const FCI_NACK &nack) {
     auto i = nack.getPid();
     for (auto flag : nack.getBitArray()) {
         if (flag) {
-            auto &ref = _nack_send_ntp[i];
+            auto &ref = _nack_send_status[i];
             ref.first_stamp = now;
             ref.update_stamp = now;
             ref.nack_count = 1;
@@ -178,18 +178,18 @@ void NackContext::recordNack(const FCI_NACK &nack) {
         ++i;
     }
     //记录太多了，移除一部分早期的记录
-    while (_nack_send_ntp.size() > kNackMaxSize) {
-        _nack_send_ntp.erase(_nack_send_ntp.begin());
+    while (_nack_send_status.size() > kNackMaxSize) {
+        _nack_send_status.erase(_nack_send_status.begin());
     }
 }
 
 uint64_t NackContext::reSendNack() {
     set<uint16_t> nack_rtp;
     auto now = getCurrentMillisecond();
-    for (auto it = _nack_send_ntp.begin(); it != _nack_send_ntp.end();) {
+    for (auto it = _nack_send_status.begin(); it != _nack_send_status.end();) {
         if (now - it->second.first_stamp > kNackMaxMS) {
             //该rtp丢失太久了，不再要求重传
-            it = _nack_send_ntp.erase(it);
+            it = _nack_send_status.erase(it);
             continue;
         }
         if (now - it->second.update_stamp < 2 * _rtt) {
@@ -203,13 +203,13 @@ uint64_t NackContext::reSendNack() {
         it->second.update_stamp = now;
         if (++(it->second.nack_count) == kNackMaxCount) {
             //nack次数太多，移除之
-            it = _nack_send_ntp.erase(it);
+            it = _nack_send_status.erase(it);
             continue;
         }
         ++it;
     }
 
-    if (_nack_send_ntp.empty()) {
+    if (_nack_send_status.empty()) {
         //不需要再发送nack
         return 0;
     }
@@ -219,7 +219,7 @@ uint64_t NackContext::reSendNack() {
     for (auto it = nack_rtp.begin(); it != nack_rtp.end();) {
         if (pid == -1) {
             pid = *it;
-            vec.resize(16, false);
+            vec.resize(FCI_NACK::kBitSize, false);
             ++it;
             continue;
         }

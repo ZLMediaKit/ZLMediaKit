@@ -69,7 +69,7 @@ private:
         uint64_t update_stamp;
         int nack_count = 0;
     };
-    map<uint16_t/*seq*/, NackStatus > _nack_send_ntp;
+    map<uint16_t/*seq*/, NackStatus > _nack_send_status;
 };
 
 #endif //ZLMEDIAKIT_NACK_H
