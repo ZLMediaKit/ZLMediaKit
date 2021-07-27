@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -146,12 +146,28 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
 void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,size_t bytes) {
     pts /= 90;
     dts /= 90;
+//    using H264FrameInternal = FrameInternal<H264FrameNoCacheAble>;
     switch (codecid) {
         case PSI_STREAM_H264: {
             if (!_tracks[TrackVideo]) {
                 onTrack(std::make_shared<H264Track>());
             }
             auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, (uint32_t)dts, (uint32_t)pts, prefixSize((char *) data, bytes));
+//            int type = H264_TYPE(*((uint8_t *) frame->data() + frame->prefixSize()));
+//            if (type == H264Frame::NAL_SEI || type == H264Frame::NAL_AUD) {
+//                //非I/B/P帧情况下，split一下，防止多个帧粘合在一起
+//                splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
+////                    auto sub_frame = std::make_shared<H264FrameNoCacheAble>((char *) ptr, len, (uint32_t)dts, (uint32_t)pts, prefix);
+//                    H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame, (char *) ptr, len, prefix);
+//                    _merger.inputFrame(sub_frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
+//                        onFrame(std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
+//                    });
+//                });
+//            } else {
+//                _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
+//                    onFrame(std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
+//                });
+//            }
             _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
                 onFrame(std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });

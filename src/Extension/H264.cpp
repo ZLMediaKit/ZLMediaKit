@@ -46,11 +46,82 @@ static const char *memfind(const char *buf, ssize_t len, const char *subbuf, ssi
     }
     return NULL;
 }
-
+//    static inline const uint8_t* h264_startcode(const uint8_t *data, size_t bytes)
+//    {
+//        size_t i;
+//        for(i = 2; i + 1 < bytes; i++)
+//        {
+//            if(0x01 == data[i] && 0x00 == data[i-1] && 0x00 == data[i-2])
+//                return data + i + 1;
+//        }
+//
+//        return NULL;
+//    }
+//    void h264_stream(const Frame::Ptr &frame)
+//    {
+//        ptrdiff_t n;
+//        const unsigned char* p, *next, *end;
+//
+//        end = (const unsigned char*)frame->data() + frame->size();
+//        p = h264_startcode((const unsigned char*)frame->data(), frame->size());
+//
+//        while (p)
+//        {
+//            next = h264_startcode(p, end - p);
+//            if (next)
+//            {
+//                n = next - p - 3;
+//            }
+//            else
+//            {
+//                n = end - p;
+//            }
+//
+//            while (n > 0 && 0 == p[n - 1]) n--; // filter tailing zero
+//
+//            assert(n > 0);
+//            if (n > 0)
+//            {
+//                handler(param, p, (size_t)n);
+//                WarnL << H264_TYPE(p[0]);
+//            }
+//
+//            p = next;
+//        }
+//    }
 void splitH264(const char *ptr, size_t len, size_t prefix, const std::function<void(const char *, size_t , size_t)> &cb) {
     auto start = ptr + prefix;
     auto end = ptr + len;
     size_t next_prefix;
+//    ptrdiff_t n;
+//    while (start)
+//    {
+//        auto next_start = memfind(start, end - start, "\x00\x00\x01", 3);
+//        if (next_start)
+//        {
+//            n = next_start - start - 3;
+//        }
+//        else
+//        {
+//            n = end - start;
+//        }
+//        while (n > 0 && 0 == start[n - 1]) n--; // filter tailing zero
+//        assert(n > 0);
+//        if (n > 0)
+//        {
+////            handler(param, p, (size_t)n);
+////            WarnL << H264_TYPE(p[0]);
+//            if (*(start - 1) == 0x00) {
+////                //这个是00 00 00 01开头
+//                prefix = 4;
+//            } else {
+//                //这个是00 00 01开头
+//                prefix = 3;
+//            }
+//            cb(start - prefix, (size_t)n, prefix);
+//        }
+//        start = next_start;
+//    }
     while (true) {
         auto next_start = memfind(start, end - start, "\x00\x00\x01", 3);
         if (next_start) {
