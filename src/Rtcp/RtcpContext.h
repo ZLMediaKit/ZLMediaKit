@@ -74,7 +74,6 @@ public:
      */
     uint32_t getRtt(uint32_t ssrc) const;
 
-private:
     /**
      * 上次结果与本次结果间应收包数
      */
