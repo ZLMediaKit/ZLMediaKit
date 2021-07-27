@@ -14,10 +14,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-void RtcpContext::clear() {
-    memset(this, 0, sizeof(RtcpContext));
-}
-
 RtcpContext::RtcpContext(bool is_receiver) {
     _is_receiver = is_receiver;
 }
@@ -89,24 +85,20 @@ void RtcpContext::onRtcp(RtcpHeader *rtcp) {
                 if (!item->last_sr_stamp) {
                     continue;
                 }
+                auto it = _sender_report_ntp.find(item->last_sr_stamp);
+                if (it == _sender_report_ntp.end()) {
+                    continue;
+                }
+                //发送sr到收到rr之间的时间戳增量
+                auto ms_inc = getCurrentMillisecond() - it->second;
                 //rtp接收端收到sr包后，回复rr包的延时，已转换为毫秒
                 auto delay_ms = (uint64_t) item->delay_since_last_sr * 1000 / 65536;
-                //这个rr包对应sr包的ntpmsw和ntplsw
-                auto ntpmsw = item->last_sr_stamp >> 16;
-                auto ntplsw = (item->last_sr_stamp & 0xFFFF) << 16;
-                RtcpSR sr;
-                //获取当前时间戳
-                sr.setNtpStamp(getCurrentMillisecond(true));
-
-                //当前时间戳与上次发送的sr包直接的ntp时间差
-                int64_t ntpmsw_inc = (int64_t)(ntohl(sr.ntpmsw) & 0xFFFF) - (int64_t)ntpmsw;
-                int64_t ntplsw_inc = (int64_t)(ntohl(sr.ntplsw)) - (int64_t)ntplsw;
-
-                //转换为毫秒
-                auto ms_inc = ntpmsw_inc * 1000 + (ntplsw_inc / ((double) (((uint64_t) 1) << 32) * 1.0e-3));
                 auto rtt = (int) (ms_inc - delay_ms);
-                _rtt[item->ssrc] = rtt;
-                //InfoL << "ssrc:" << item->ssrc << ",rtt:" << rtt;
+                if (rtt >= 0) {
+                    //rtt不可能小于0
+                    _rtt[item->ssrc] = rtt;
+                    //InfoL << "ssrc:" << item->ssrc << ",rtt:" << rtt;
+                }
             }
             break;
         }
@@ -160,6 +152,15 @@ Buffer::Ptr RtcpContext::createRtcpSR(uint32_t rtcp_ssrc) {
     rtcp->ssrc = htonl(rtcp_ssrc);
     rtcp->packet_count = htonl((uint32_t) _packets);
     rtcp->octet_count = htonl((uint32_t) _bytes);
+
+    //记录上次发送的sender report信息，用于后续统计rtt
+    auto last_sr_lsr = ((ntohl(rtcp->ntpmsw) & 0xFFFF) << 16) | ((ntohl(rtcp->ntplsw) >> 16) & 0xFFFF);
+    _sender_report_ntp[last_sr_lsr] = getCurrentMillisecond();
+    if (_sender_report_ntp.size() >= 5) {
+        //删除最早的sr rtcp
+        _sender_report_ntp.erase(_sender_report_ntp.begin());
+    }
+
     return RtcpHeader::toBuffer(std::move(rtcp));
 }
 
