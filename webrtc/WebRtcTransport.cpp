@@ -97,7 +97,12 @@ void WebRtcTransport::OnDtlsTransportConnected(
         std::string &remoteCert) {
     InfoL;
     _srtp_session_send = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::OUTBOUND, srtpCryptoSuite, srtpLocalKey, srtpLocalKeyLen);
-    _srtp_session_recv = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::INBOUND, srtpCryptoSuite, srtpRemoteKey, srtpRemoteKeyLen);
+
+    string srtpRemoteKey_str((char *) srtpRemoteKey, srtpRemoteKeyLen);
+    _srtp_session_recv_alloc = [srtpCryptoSuite, srtpRemoteKey_str]() {
+        return std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::INBOUND, srtpCryptoSuite,
+                                                  (uint8_t *) srtpRemoteKey_str.data(), srtpRemoteKey_str.size());
+    };
     onStartWebRTC();
 }
 
@@ -250,20 +255,20 @@ void WebRtcTransport::inputSockData(char *buf, size_t len, RTC::TransportTuple *
         _dtls_transport->ProcessDtlsData((uint8_t *) buf, len);
         return;
     }
+    RtpHeader *rtp = (RtpHeader *) buf;
+    auto it = _srtp_session_recv.find(rtp->pt);
+    if (it == _srtp_session_recv.end()) {
+        it = _srtp_session_recv.emplace((uint8_t) rtp->pt, _srtp_session_recv_alloc()).first;
+    }
     if (is_rtp(buf)) {
-        if (_srtp_session_recv->DecryptSrtp((uint8_t *) buf, &len)) {
+        if (it->second->DecryptSrtp((uint8_t *) buf, &len)) {
             onRtp(buf, len);
-        } else {
-            RtpHeader *rtp = (RtpHeader *) buf;
-            WarnL << "srtp_unprotect rtp failed, pt:" << (int)rtp->pt;
         }
         return;
     }
     if (is_rtcp(buf)) {
-        if (_srtp_session_recv->DecryptSrtcp((uint8_t *) buf, &len)) {
+        if (it->second->DecryptSrtcp((uint8_t *) buf, &len)) {
             onRtcp(buf, len);
-        } else {
-            WarnL;
         }
         return;
     }
@@ -585,21 +590,29 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
 
 ///////////////////////////////////////////////////////////////////
 
-class RtpChannel : public RtpTrackImp {
+class RtpChannel : public RtpTrackImp, public std::enable_shared_from_this<RtpChannel> {
 public:
-    RtpChannel(RtpTrackImp::OnSorted cb, function<void(const FCI_NACK &nack)> on_nack) {
+    RtpChannel(EventPoller::Ptr poller, RtpTrackImp::OnSorted cb, function<void(const FCI_NACK &nack)> on_nack) {
+        _poller = std::move(poller);
+        _on_nack = std::move(on_nack);
         setOnSorted(std::move(cb));
-        _nack_ctx.setOnNack(std::move(on_nack));
+
+        _nack_ctx.setOnNack([this](const FCI_NACK &nack) {
+            onNack(nack);
+        });
     }
 
     ~RtpChannel() override = default;
 
     RtpPacket::Ptr inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len, bool is_rtx) {
         auto rtp = RtpTrack::inputRtp(type, sample_rate, ptr, len);
-        if (!is_rtx && rtp) {
+        if (!rtp) {
+            return rtp;
+        }
+        auto seq = rtp->getSeq();
+        _nack_ctx.received(seq, is_rtx);
+        if (!is_rtx) {
             //统计rtp接受情况，便于生成nack rtcp包
-            auto seq = rtp->getSeq();
-            _nack_ctx.received(seq);
             _rtcp_context.onRtp(seq, rtp->getStamp(), rtp->ntp_stamp, sample_rate, len);
         }
         return rtp;
@@ -610,9 +623,40 @@ public:
         return _rtcp_context.createRtcpRR(ssrc, getSSRC());
     }
 
+    int getLossRate() {
+        return _rtcp_context.geLostInterval() * 100 / _rtcp_context.getExpectedPacketsInterval();
+    }
+
+private:
+    void starNackTimer(){
+        if (_delay_task) {
+            return;
+        }
+        weak_ptr<RtpChannel> weak_self = shared_from_this();
+        _delay_task = _poller->doDelayTask(10, [weak_self]() -> uint64_t {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return 0;
+            }
+            auto ret = strong_self->_nack_ctx.reSendNack();
+            if (!ret) {
+                strong_self->_delay_task = nullptr;
+            }
+            return ret;
+        });
+    }
+
+    void onNack(const FCI_NACK &nack) {
+        _on_nack(nack);
+        starNackTimer();
+    }
+
 private:
     NackContext _nack_ctx;
     RtcpContext _rtcp_context{true};
+    EventPoller::Ptr _poller;
+    DelayTask::Ptr _delay_task;
+    function<void(const FCI_NACK &nack)> _on_nack;
 };
 
 std::shared_ptr<RtpChannel> MediaTrack::getRtpChannel(uint32_t ssrc) const{
@@ -638,6 +682,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     if(!rtp_chn){
                         WarnL << "未识别的sr rtcp包:" << rtcp->dumpString();
                     } else {
+                        //InfoL << "接收丢包率,ssrc:" << sr->ssrc << ",loss rate(%):" << rtp_chn->getLossRate();
                         //设置rtp时间戳与ntp时间戳的对应关系
                         rtp_chn->setNtpStamp(sr->rtpts, track->plan_rtp->sample_rate, sr->getNtpUnixStampMS());
                         auto rr = rtp_chn->createRtcpRR(sr, track->answer_ssrc_rtp);
@@ -715,7 +760,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, const MediaTrack::Ptr &track) {
     //rid --> RtpReceiverImp
     auto &ref = track->rtp_channel[rid];
-    ref = std::make_shared<RtpChannel>([track, this, rid](RtpPacket::Ptr rtp) mutable {
+    ref = std::make_shared<RtpChannel>(getPoller(),[track, this, rid](RtpPacket::Ptr rtp) mutable {
         onSortedRtp(*track, rid, std::move(rtp));
     }, [track, this, ssrc](const FCI_NACK &nack) mutable {
         onSendNack(*track, nack, ssrc);
@@ -791,7 +836,6 @@ void WebRtcTransportImp::onSendNack(MediaTrack &track, const FCI_NACK &nack, uin
     auto rtcp = RtcpFB::create(RTPFBType::RTCP_RTPFB_NACK, &nack, FCI_NACK::kSize);
     rtcp->ssrc = htons(track.answer_ssrc_rtp);
     rtcp->ssrc_media = htonl(ssrc);
-    DebugL << htonl(ssrc) << " " << nack.getPid();
     sendRtcpPacket((char *) rtcp.get(), rtcp->getSize(), true);
 }
 

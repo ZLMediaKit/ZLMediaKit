@@ -194,9 +194,13 @@ vector<bool> FCI_NACK::getBitArray() const {
 
 string FCI_NACK::dumpString() const {
     _StrPrinter printer;
-    printer << "pid:" << getPid() << ",blp:" << getBlp() << ",bit array:";
+    auto pid = getPid();
+    printer << "pid:" << pid << ",blp:" << getBlp() << ",dropped rtp seq:";
     for (auto flag : getBitArray()) {
-        printer << flag << " ";
+        if (flag) {
+            printer << pid << " ";
+        }
+        ++pid;
     }
     return std::move(printer);
 }

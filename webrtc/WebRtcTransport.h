@@ -122,9 +122,10 @@ private:
     std::shared_ptr<RTC::IceServer> _ice_server;
     std::shared_ptr<RTC::DtlsTransport> _dtls_transport;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_send;
-    std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
     RtcSession::Ptr _offer_sdp;
     RtcSession::Ptr _answer_sdp;
+    function<std::shared_ptr<RTC::SrtpSession>() > _srtp_session_recv_alloc;
+    std::unordered_map<uint8_t /*pt*/, std::shared_ptr<RTC::SrtpSession> > _srtp_session_recv;
 };
 
 class RtpChannel;
