@@ -97,12 +97,7 @@ void WebRtcTransport::OnDtlsTransportConnected(
         std::string &remoteCert) {
     InfoL;
     _srtp_session_send = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::OUTBOUND, srtpCryptoSuite, srtpLocalKey, srtpLocalKeyLen);
-
-    string srtpRemoteKey_str((char *) srtpRemoteKey, srtpRemoteKeyLen);
-    _srtp_session_recv_alloc = [srtpCryptoSuite, srtpRemoteKey_str]() {
-        return std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::INBOUND, srtpCryptoSuite,
-                                                  (uint8_t *) srtpRemoteKey_str.data(), srtpRemoteKey_str.size());
-    };
+    _srtp_session_recv = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::INBOUND, srtpCryptoSuite, srtpRemoteKey, srtpRemoteKeyLen);
     onStartWebRTC();
 }
 
@@ -255,19 +250,14 @@ void WebRtcTransport::inputSockData(char *buf, size_t len, RTC::TransportTuple *
         _dtls_transport->ProcessDtlsData((uint8_t *) buf, len);
         return;
     }
-    RtpHeader *rtp = (RtpHeader *) buf;
-    auto it = _srtp_session_recv.find(rtp->pt);
-    if (it == _srtp_session_recv.end()) {
-        it = _srtp_session_recv.emplace((uint8_t) rtp->pt, _srtp_session_recv_alloc()).first;
-    }
     if (is_rtp(buf)) {
-        if (it->second->DecryptSrtp((uint8_t *) buf, &len)) {
+        if (_srtp_session_recv->DecryptSrtp((uint8_t *) buf, &len)) {
             onRtp(buf, len);
         }
         return;
     }
     if (is_rtcp(buf)) {
-        if (it->second->DecryptSrtcp((uint8_t *) buf, &len)) {
+        if (_srtp_session_recv->DecryptSrtcp((uint8_t *) buf, &len)) {
             onRtcp(buf, len);
         }
         return;

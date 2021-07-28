@@ -192,7 +192,7 @@ uint64_t NackContext::reSendNack() {
             it = _nack_send_status.erase(it);
             continue;
         }
-        if (now - it->second.update_stamp < 2 * _rtt) {
+        if (now - it->second.update_stamp < kNackIntervalRatio * _rtt) {
             //距离上次nack不足2倍的rtt，不用再发送nack
             ++it;
             continue;
