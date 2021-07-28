@@ -75,6 +75,7 @@ namespace mediakit {
         if(isReconnect){
             onPlayResult(SockException(Err_success, "play reconnect"));
         }
+        onPlayResult(SockException(Err_success, "play success"));
         //后续是不定长content
         return -1;
     }
@@ -112,14 +113,15 @@ namespace mediakit {
             //主动shutdown的，不触发回调
             onShutdown(ex);
         } else {
-            weak_ptr<TsPlayer> weakSelf = dynamic_pointer_cast<TsPlayer>(shared_from_this());
-            getPoller()->async([weakSelf]() {
-                auto strongSelf = weakSelf.lock();
-                if (strongSelf) {
-                    strongSelf->isReconnect = true;
-                    strongSelf->playTs(true);
-                }
-            }, false);
+//            weak_ptr<TsPlayer> weakSelf = dynamic_pointer_cast<TsPlayer>(shared_from_this());
+//            getPoller()->async([weakSelf]() {
+//                auto strongSelf = weakSelf.lock();
+//                if (strongSelf) {
+//                    strongSelf->isReconnect = true;
+//                    strongSelf->playTs(true);
+//                }
+//            }, false);
+            onShutdown(ex);
         }
     }
 

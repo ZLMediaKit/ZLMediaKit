@@ -72,6 +72,9 @@ namespace mediakit {
 //            if (last_dts >= frame->dts() && isReconnect) {
 //                return;
 //            }
+            if(isReconnect){
+                WarnL << getTrackString(frame->getTrackType()) << "当前dts/pts[" << frame->dts() << "/" << frame->pts() << "] 最后dts[" << last_dts << "]";
+            }
             last_dts = frame->dts();
             isReconnect = false;
             _stamp[frame->getTrackType()].revise(frame->dts(), frame->pts(), dts, pts);
@@ -83,15 +86,15 @@ namespace mediakit {
             _frame_cache.emplace(dts, Frame::getCacheAbleFrame(frame));
 
 //        WarnL << "缓存时间[" << getBufferMS() << "]";
-            if (getBufferMS() > 30 * 1000) {
-                //缓存超过30秒，强制消费至15秒(减少延时或内存占用)
-                while (getBufferMS() > 15 * 1000) {
-                    MediaSink::inputFrame(_frame_cache.begin()->second);
-                    _frame_cache.erase(_frame_cache.begin());
-                }
-                //接着播放缓存中最早的帧
-                setPlayPosition(_frame_cache.begin()->first);
-            }
+//            if (getBufferMS() > 30 * 1000) {
+//                //缓存超过30秒，强制消费至15秒(减少延时或内存占用)
+//                while (getBufferMS() > 15 * 1000) {
+//                    MediaSink::inputFrame(_frame_cache.begin()->second);
+//                    _frame_cache.erase(_frame_cache.begin());
+//                }
+//                //接着播放缓存中最早的帧
+//                setPlayPosition(_frame_cache.begin()->first);
+//            }
         }
 
         void onShutdown(const SockException &ex) override {
