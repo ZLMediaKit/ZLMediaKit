@@ -44,15 +44,18 @@ public:
     }
 
 private:
-    bool unpackAp(const uint8_t *ptr, ssize_t size, uint32_t stamp);
-    bool mergeFu(const uint8_t *ptr, ssize_t size, uint16_t seq, uint32_t stamp);
-    bool singleFrame(const uint8_t *ptr, ssize_t size, uint32_t stamp);
+    bool unpackAp(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp);
+    bool mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp, uint16_t seq);
+    bool singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp);
 
+    bool decodeRtp(const RtpPacket::Ptr &rtp);
     H265Frame::Ptr obtainFrame();
-    void outputFrame(const H265Frame::Ptr &frame);
+    void outputFrame(const RtpPacket::Ptr &rtp, const H265Frame::Ptr &frame);
 
 private:
     bool _using_donl_field = false;
+    bool _gop_dropped = false;
+    bool _fu_dropped = true;
     uint16_t _last_seq = 0;
     H265Frame::Ptr _frame;
     DtsGenerator _dts_generator;

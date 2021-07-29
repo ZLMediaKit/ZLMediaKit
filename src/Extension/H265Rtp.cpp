@@ -12,6 +12,7 @@
 
 namespace mediakit{
 
+//https://datatracker.ietf.org/doc/rfc7798/
 //H265 nalu 头两个字节的定义
 /*
  0               1
@@ -41,7 +42,7 @@ H265Frame::Ptr H265RtpDecoder::obtainFrame() {
 
 #define CHECK_SIZE(total, size, ret) \
         if (total < size) {     \
-            WarnL << "数据不够:" << total << " " << size; return ret; \
+            WarnL << "invalid rtp data size:" << total << " < " << size << ",rtp:\r\n" << rtp->dumpString(); _gop_dropped = true;  return ret; \
         }
 
 // 4.4.2. Aggregation Packets (APs) (p25)
@@ -68,9 +69,8 @@ H265Frame::Ptr H265RtpDecoder::obtainFrame() {
 |                               :    ...OPTIONAL RTP padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
-bool H265RtpDecoder::unpackAp(const uint8_t *ptr, ssize_t size, uint32_t stamp){
+bool H265RtpDecoder::unpackAp(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp){
     bool have_key_frame = false;
-
     //忽略PayloadHdr
     CHECK_SIZE(size, 2, have_key_frame);
     ptr += 2;
@@ -88,7 +88,7 @@ bool H265RtpDecoder::unpackAp(const uint8_t *ptr, ssize_t size, uint32_t stamp){
         size -= 2;
         ptr += 2;
         CHECK_SIZE(size, nalu_size, have_key_frame)
-        if (singleFrame(ptr, nalu_size, stamp)) {
+        if (singleFrame(rtp, ptr, nalu_size, stamp)) {
             have_key_frame = true;
         }
         size -= nalu_size;
@@ -119,7 +119,7 @@ bool H265RtpDecoder::unpackAp(const uint8_t *ptr, ssize_t size, uint32_t stamp){
 +---------------+
 */
 
-bool H265RtpDecoder::mergeFu(const uint8_t *ptr, ssize_t size, uint16_t seq, uint32_t stamp){
+bool H265RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp, uint16_t seq){
     CHECK_SIZE(size, 4, false);
     auto s_bit = ptr[2] >> 7;
     auto e_bit = (ptr[2] >> 6) & 0x01;
@@ -127,15 +127,21 @@ bool H265RtpDecoder::mergeFu(const uint8_t *ptr, ssize_t size, uint16_t seq, uin
     if (s_bit) {
         //该帧的第一个rtp包
         _frame->_buffer.assign("\x00\x00\x00\x01", 4);
-        //恢复nalu头两个字节
         _frame->_buffer.push_back((type << 1) | (ptr[0] & 0x81));
         _frame->_buffer.push_back(ptr[1]);
+        _frame->_pts = stamp;
+        _fu_dropped = false;
     }
 
-    if (!s_bit && seq != (uint16_t) (_last_seq + 1) && seq != 0) {
+    if (_fu_dropped) {
+        //该帧不完整
+        return false;
+    }
+
+    if (!s_bit && seq != (uint16_t) (_last_seq + 1)) {
         //中间的或末尾的rtp包，其seq必须连续，否则说明rtp丢包，那么该帧不完整，必须得丢弃
+        _fu_dropped = true;
         _frame->_buffer.clear();
-        WarnL << "rtp丢包: " << seq << " != " << _last_seq << " + 1,该帧被废弃";
         return false;
     }
 
@@ -152,64 +158,80 @@ bool H265RtpDecoder::mergeFu(const uint8_t *ptr, ssize_t size, uint16_t seq, uin
 
     CHECK_SIZE(size, 1, false);
 
+    //后面追加数据
+    _frame->_buffer.append((char *) ptr, size);
+
     if (!e_bit) {
         //非末尾包
-        _last_seq = seq;
-        _frame->_buffer.append((char *) ptr, size);
         return s_bit ? _frame->keyFrame() : false;
     }
 
+    //确保下一次fu必须收到第一个包
+    _fu_dropped = true;
     //该帧最后一个rtp包
-    _frame->_pts = stamp;
-    _frame->_buffer.append((char *) ptr, size);
-    outputFrame(_frame);
+    outputFrame(rtp, _frame);
     return false;
 }
 
-bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool ) {
+bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
+    auto seq = rtp->getSeq();
+    auto ret = decodeRtp(rtp);
+    if (!_gop_dropped && seq != (uint16_t) (_last_seq + 1) && _last_seq) {
+        _gop_dropped = true;
+        WarnL << "start drop h265 gop, last seq:" << _last_seq << ", rtp:\r\n" << rtp->dumpString();
+    }
+    _last_seq = seq;
+    return ret;
+}
+
+bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
     auto frame = rtp->getPayload();
     auto length = rtp->getPayloadSize();
     auto stamp = rtp->getStampMS();
     auto seq = rtp->getSeq();
     int nal = H265_TYPE(frame[0]);
 
-    if (nal > 50){
-        // packet discard, Unsupported (HEVC) NAL type
-        WarnL << "不支持该类型的265 RTP包" << nal;
-        return false;
-    }
     switch (nal) {
-        case 50:
-            //4.4.4. PACI Packets (p32)
-            WarnL << "不支持该类型的265 RTP包" << nal;
-            return false;
         case 48:
             // aggregated packet (AP) - with two or more NAL units
-            return unpackAp(frame, length, stamp);
-        case 49: 
+            return unpackAp(rtp, frame, length, stamp);
+
+        case 49:
             // fragmentation unit (FU)
-            return mergeFu(frame, length, seq, stamp);
-        default: 
-            // 4.4.1. Single NAL Unit Packets (p24)
-            return singleFrame(frame, length, stamp);
+            return mergeFu(rtp, frame, length, stamp, seq);
+
+        default: {
+            if (nal < 48) {
+                // Single NAL Unit Packets (p24)
+                return singleFrame(rtp, frame, length, stamp);
+            }
+            _gop_dropped = true;
+            WarnL << "不支持该类型的265 RTP包, nal type" << nal << ", rtp:\r\n" << rtp->dumpString();
+            return false;
+        }
     }
 }
 
-bool H265RtpDecoder::singleFrame(const uint8_t *ptr, ssize_t size, uint32_t stamp){
-    //a full frame
+bool H265RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp){
     _frame->_buffer.assign("\x00\x00\x00\x01", 4);
     _frame->_buffer.append((char *) ptr, size);
     _frame->_pts = stamp;
     auto key = _frame->keyFrame();
-    outputFrame(_frame);
+    outputFrame(rtp, _frame);
     return key;
 }
 
-void H265RtpDecoder::outputFrame(const H265Frame::Ptr &frame) {
+void H265RtpDecoder::outputFrame(const RtpPacket::Ptr &rtp, const H265Frame::Ptr &frame) {
     //rtsp没有dts，那么根据pts排序算法生成dts
-    _dts_generator.getDts(frame->_pts,frame->_dts);
-    //输出frame
-    RtpCodec::inputFrame(frame);
+    _dts_generator.getDts(frame->_pts, frame->_dts);
+
+    if (frame->keyFrame() && _gop_dropped) {
+        _gop_dropped = false;
+        InfoL << "new gop received, rtp:\r\n" << rtp->dumpString();
+    }
+    if (!_gop_dropped) {
+        RtpCodec::inputFrame(frame);
+    }
     _frame = obtainFrame();
 }
 
