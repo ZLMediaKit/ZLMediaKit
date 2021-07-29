@@ -46,7 +46,14 @@ H264Frame::Ptr H264RtpDecoder::obtainFrame() {
 }
 
 bool H264RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
-    return decodeRtp(rtp);
+    auto seq = rtp->getSeq();
+    auto ret = decodeRtp(rtp);
+    if (!_gop_dropped && seq != (uint16_t) (_last_seq + 1) && _last_seq) {
+        _gop_dropped = true;
+        WarnL << "start drop h264 gop, last seq:" << _last_seq << ", rtp:\r\n" << rtp->dumpString();
+    }
+    _last_seq = seq;
+    return ret;
 }
 
 /*
@@ -66,117 +73,114 @@ Table 1.  Summary of NAL unit types and their payload structures
    30-31  undefined                                    -
 */
 
+bool H264RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp){
+    _frame->_buffer.assign("\x00\x00\x00\x01", 4);
+    _frame->_buffer.append((char *) ptr, size);
+    _frame->_pts = stamp;
+    auto key = _frame->keyFrame();
+    outputFrame(rtp, _frame);
+    return key;
+}
+
+bool H264RtpDecoder::unpackStapA(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp) {
+    //STAP-A 单一时间的组合包
+    auto have_key_frame = false;
+    auto end = ptr + size;
+    while (ptr + 2 < end) {
+        uint16_t len = (ptr[0] << 8) | ptr[1];
+        if (!len || ptr + len > end) {
+            WarnL << "invalid rtp data size:" << len << ",rtp:\r\n" << rtp->dumpString();
+            _gop_dropped = true;
+            break;
+        }
+        ptr += 2;
+        if (singleFrame(rtp, ptr, len, stamp)) {
+            have_key_frame = true;
+        }
+        ptr += len;
+    }
+    return have_key_frame;
+}
+
+bool H264RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp, uint16_t seq){
+    auto nal_suffix = *ptr & (~0x1F);
+    FuFlags *fu = (FuFlags *) (ptr + 1);
+    if (fu->start_bit) {
+        //该帧的第一个rtp包
+        _frame->_buffer.assign("\x00\x00\x00\x01", 4);
+        _frame->_buffer.push_back(nal_suffix | fu->nal_type);
+        _frame->_pts = stamp;
+        _fu_dropped = false;
+    }
+
+    if (_fu_dropped) {
+        //该帧不完整
+        return false;
+    }
+
+    if (!fu->start_bit && seq != (uint16_t) (_last_seq + 1)) {
+        //中间的或末尾的rtp包，其seq必须连续，否则说明rtp丢包，那么该帧不完整，必须得丢弃
+        _fu_dropped = true;
+        _frame->_buffer.clear();
+        return false;
+    }
+
+    //后面追加数据
+    _frame->_buffer.append((char *) ptr + 2, size - 2);
+
+    if (!fu->end_bit) {
+        //非末尾包
+        return fu->start_bit ? _frame->keyFrame() : false;
+    }
+
+    //确保下一次fu必须收到第一个包
+    _fu_dropped = true;
+    //该帧最后一个rtp包,输出frame
+    outputFrame(rtp, _frame);
+    return false;
+}
+
 bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
     auto frame = rtp->getPayload();
     auto length = rtp->getPayloadSize();
     auto stamp = rtp->getStampMS();
     auto seq = rtp->getSeq();
-    auto nal_type = *frame & 0x1F;
-    auto nal_suffix = *frame & (~0x1F);
+    int nal = H264_TYPE(frame[0]);
 
-    if (nal_type >= 0 && nal_type < 24) {
-        //a full frame
-        _frame->_buffer.assign("\x00\x00\x00\x01", 4);
-        _frame->_buffer.append((char *) frame, length);
-        _frame->_pts = stamp;
-        auto key = _frame->keyFrame();
-        onGetH264(_frame);
-        return (key); //i frame
-    }
+    switch (nal) {
+        case 24:
+            // 24 STAP-A Single-time aggregation packet 5.7.1
+            return unpackStapA(rtp, frame + 1, length - 1, stamp);
 
-    switch (nal_type) {
-        case 24: {
-            // 24 STAP-A   单一时间的组合包
-            bool haveIDR = false;
-            auto ptr = frame + 1;
-            while (true) {
-                size_t off = ptr - frame;
-                if (off >= length) {
-                    break;
-                }
-                //获取当前nalu的大小
-                uint16_t len = *ptr++;
-                len <<= 8;
-                len |= *ptr++;
-                if (off + len > length) {
-                    break;
-                }
-                if (len > 0) {
-                    //有有效数据
-                    _frame->_buffer.assign("\x00\x00\x00\x01", 4);
-                    _frame->_buffer.append((char *) ptr, len);
-                    _frame->_pts = stamp;
-                    if ((ptr[0] & 0x1F) == H264Frame::NAL_IDR) {
-                        haveIDR = true;
-                    }
-                    onGetH264(_frame);
-                }
-                ptr += len;
-            }
-            return haveIDR;
-        }
-
-        case 28: {
-            //FU-A
-            FuFlags *fu = (FuFlags *) (frame + 1);
-            if (fu->start_bit) {
-                //该帧的第一个rtp包  FU-A start
-                //预留空间，防止频繁扩容拷贝
-                _frame->_buffer.reserve(_max_frame_size);
-                _frame->_buffer.assign("\x00\x00\x00\x01", 4);
-                _frame->_buffer.push_back(nal_suffix | fu->nal_type);
-                _frame->_buffer.append((char *) frame + 2, length - 2);
-                _frame->_pts = stamp;
-                //该函数return时，保存下当前sequence,以便下次对比seq是否连续
-                _last_seq = seq;
-                return _frame->keyFrame();
-            }
-
-            if (seq != (uint16_t) (_last_seq + 1)) {
-                //中间的或末尾的rtp包，其seq必须连续(如果回环了则判定为连续)，否则说明rtp丢包，那么该帧不完整，必须得丢弃
-                _frame->_buffer.clear();
-                WarnL << "rtp丢包: " << seq << " != " << _last_seq << " + 1,该帧被废弃";
-                return false;
-            }
-
-            if (!fu->end_bit) {
-                //该帧的中间rtp包  FU-A mid
-                _frame->_buffer.append((char *) frame + 2, length - 2);
-                //该函数return时，保存下当前sequence,以便下次对比seq是否连续
-                _last_seq = seq;
-                return false;
-            }
-
-            //该帧最后一个rtp包  FU-A end
-            _frame->_buffer.append((char *) frame + 2, length - 2);
-            _frame->_pts = stamp;
-            //计算最大的帧
-            auto frame_size = _frame->size();
-            if (frame_size > _max_frame_size) {
-                _max_frame_size = frame_size;
-            }
-            onGetH264(_frame);
-            return false;
-        }
+        case 28:
+            // 28 FU-A Fragmentation unit
+            return mergeFu(rtp, frame, length, stamp, seq);
 
         default: {
-            // 29 FU-B     单NAL单元B模式
-            // 25 STAP-B   单一时间的组合包
-            // 26 MTAP16   多个时间的组合包
-            // 27 MTAP24   多个时间的组合包
-            WarnL << "不支持的rtp类型:" << (int) nal_type << " " << seq;
+            if (nal < 24) {
+                //Single NAL Unit Packets
+                return singleFrame(rtp, frame, length, stamp);
+            }
+            _gop_dropped = true;
+            WarnL << "不支持该类型的264 RTP包, nal type:" << nal << ", rtp:\r\n" << rtp->dumpString();
             return false;
         }
     }
 }
 
-void H264RtpDecoder::onGetH264(const H264Frame::Ptr &frame) {
+void H264RtpDecoder::outputFrame(const RtpPacket::Ptr &rtp, const H264Frame::Ptr &frame) {
     //rtsp没有dts，那么根据pts排序算法生成dts
-    _dts_generator.getDts(frame->_pts,frame->_dts);
-    RtpCodec::inputFrame(frame);
+    _dts_generator.getDts(frame->_pts, frame->_dts);
+
+    if (frame->keyFrame() && _gop_dropped) {
+        _gop_dropped = false;
+        InfoL << "new gop received, rtp:\r\n" << rtp->dumpString();
+    }
+    if (!_gop_dropped) {
+        RtpCodec::inputFrame(frame);
+    }
     _frame = obtainFrame();
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 
