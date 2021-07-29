@@ -87,6 +87,12 @@ public:
      * 重置track
      */
     void resetTracks() override;
+    /**
+    * 返回是否track已经准备完成
+    */
+    bool isTrackReady() const{
+        return _all_track_ready;
+    }
 
     /**
      * 获取所有Track

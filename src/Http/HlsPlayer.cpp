@@ -302,7 +302,11 @@ void HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
     _stamp[frame->getTrackType()].revise(frame->dts(), frame->pts(), dts, pts);
     //根据时间戳缓存frame
     _frame_cache.emplace(dts, Frame::getCacheAbleFrame(frame));
-
+    if(!MediaSink::isTrackReady()){
+        MediaSink::inputFrame(Frame::getCacheAbleFrame(frame));
+        return;
+    }
+//    WarnL << "缓存时间[" << getBufferMS() << "]";
     if (getBufferMS() > 30 * 1000) {
         //缓存超过30秒，强制消费至15秒(减少延时或内存占用)
         while (getBufferMS() > 15 * 1000) {
