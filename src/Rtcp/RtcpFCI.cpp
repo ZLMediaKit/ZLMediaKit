@@ -155,13 +155,14 @@ string FCI_REMB::dumpString() const {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 FCI_NACK::FCI_NACK(uint16_t pid_h, const vector<bool> &type) {
+    assert(type.size() <= kBitSize);
     uint16_t blp_h = 0;
-    int i = kBitSize;
+    int i = 0;
     for (auto item : type) {
-        --i;
         if (item) {
             blp_h |= (1 << i);
         }
+        ++i;
     }
     blp = htons(blp_h);
     pid = htons(pid_h);
@@ -187,16 +188,20 @@ vector<bool> FCI_NACK::getBitArray() const {
 
     auto blp_h = getBlp();
     for (size_t i = 0; i < kBitSize; ++i) {
-        ret[i + 1] = blp_h & (1 << (kBitSize - i - 1));
+        ret[i + 1] = blp_h & (1 << i);
     }
     return ret;
 }
 
 string FCI_NACK::dumpString() const {
     _StrPrinter printer;
-    printer << "pid:" << getPid() << ",blp:" << getBlp() << ",bit array:";
+    auto pid = getPid();
+    printer << "pid:" << pid << ",blp:" << getBlp() << ",dropped rtp seq:";
     for (auto flag : getBitArray()) {
-        printer << flag << " ";
+        if (flag) {
+            printer << pid << " ";
+        }
+        ++pid;
     }
     return std::move(printer);
 }

@@ -35,7 +35,7 @@ public:
     void onRecvRtp(const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
         //统计rtp接受情况，用于发送rr包
         auto header = (RtpHeader *) buf->data();
-        onRtp(ntohs(header->seq), ntohl(header->stamp), _sample_rate, buf->size());
+        onRtp(ntohs(header->seq), ntohl(header->stamp), 0/*不发送sr,所以可以设置为0*/ , _sample_rate, buf->size());
         sendRtcp(ntohl(header->ssrc), addr, addr_len);
     }
 

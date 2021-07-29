@@ -127,7 +127,7 @@ public:
 
         if (_recreate_metadata) {
             //更新metadata
-            for (auto &track : _muxer->getTracks(*this)) {
+            for (auto &track : _muxer->getTracks()) {
                 Metadata::addTrack(_metadata, track);
             }
             RtmpMediaSource::updateMetaData(_metadata);

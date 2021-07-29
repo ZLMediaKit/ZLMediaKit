@@ -13,7 +13,6 @@
 #include "Rtsp/RtspPlayerImp.h"
 #include "Rtmp/RtmpPlayerImp.h"
 #include "Http/HlsPlayer.h"
-#include "Http/TsPlayerImp.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -49,12 +48,10 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller,const st
         return PlayerBase::Ptr(new RtmpPlayerImp(poller),releasePlayer);
     }
 
-    if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0) && (end_with(url, ".m3u8") || end_with(url_in, ".m3u8"))) {
+    if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0) && end_with(url, ".m3u8")) {
         return PlayerBase::Ptr(new HlsPlayerImp(poller),releasePlayer);
     }
-    if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0) && (end_with(url, ".ts") || end_with(url_in, ".ts"))) {
-        return PlayerBase::Ptr(new TsPlayerImp(poller),releasePlayer);
-    }
+
     return PlayerBase::Ptr(new RtspPlayerImp(poller),releasePlayer);
 }
 

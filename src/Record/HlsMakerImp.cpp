@@ -10,7 +10,6 @@
 
 #include <ctime>
 #include <sys/stat.h>
-#include <random>
 #include "HlsMakerImp.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
@@ -68,22 +67,11 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
     string segment_name, segment_path;
     {
         auto strDate = getTimeStr("%Y-%m-%d");
-//        auto strHour = getTimeStr("%H");
-//        auto strTime = getTimeStr("%M-%S");
-//        segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << ".ts";
-//        segment_path = _path_prefix + "/" + segment_name;
+        auto strHour = getTimeStr("%H");
+        auto strTime = getTimeStr("%M-%S");
+        segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << ".ts";
+        segment_path = _path_prefix + "/" + segment_name;
         if (isLive()) {
-            default_random_engine sd(time(NULL));
-            minstd_rand linearRan(sd());//使用种子初始化linear_congruential_engine对象，为的是使用它来做我们下面随机分布的种子以输出多个随机分布.注意这里要使用()操作符，因为minst_rand()接受的是一个值（你用srand也是给出这样的一个值）
-            uniform_int_distribution<int>dis(100,999);//生成01序列
-            segment_name = StrPrinter << strDate + "/" << dis(linearRan) << "_" << index << ".ts";
-            segment_path = _path_prefix + "/" + segment_name;
-            _segment_file_paths.emplace(index, segment_path);
-        }else{
-            auto strHour = getTimeStr("%H");
-            auto strTime = getTimeStr("%M-%S");
-            segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << ".ts";
-            segment_path = _path_prefix + "/" + segment_name;
             _segment_file_paths.emplace(index, segment_path);
         }
     }

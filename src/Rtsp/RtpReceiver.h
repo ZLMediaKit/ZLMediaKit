@@ -16,6 +16,7 @@
 #include <memory>
 #include "RtpCodec.h"
 #include "RtspMediaSource.h"
+#include "Common/Stamp.h"
 using namespace std;
 using namespace toolkit;
 
@@ -36,7 +37,7 @@ public:
      */
     void clear() {
         _seq_cycle_count = 0;
-        _rtp_sort_cache_map.clear();
+        _pkt_sort_cache_map.clear();
         _next_seq_out = 0;
         _max_sort_size = kMin;
     }
@@ -45,7 +46,7 @@ public:
      * 获取排序缓存长度
      */
     size_t getJitterSize() const{
-        return _rtp_sort_cache_map.size();
+        return _pkt_sort_cache_map.size();
     }
 
     /**
@@ -66,27 +67,27 @@ public:
                 //过滤seq回退包(回环包除外)
                 return;
             }
-        } else if (_next_seq_out && seq - _next_seq_out > (0xFFFF >> 1)) {
+        } else if (_next_seq_out && seq - _next_seq_out > ((std::numeric_limits<SEQ>::max)() >> 1)) {
             //过滤seq跳变非常大的包(防止回环时乱序时收到非常大的seq)
             return;
         }
 
         //放入排序缓存
-        _rtp_sort_cache_map.emplace(seq, std::move(packet));
+        _pkt_sort_cache_map.emplace(seq, std::move(packet));
         //尝试输出排序后的包
         tryPopPacket();
     }
 
     void flush(){
         //清空缓存
-        while (!_rtp_sort_cache_map.empty()) {
-            popIterator(_rtp_sort_cache_map.begin());
+        while (!_pkt_sort_cache_map.empty()) {
+            popIterator(_pkt_sort_cache_map.begin());
         }
     }
 
 private:
     void popPacket() {
-        auto it = _rtp_sort_cache_map.begin();
+        auto it = _pkt_sort_cache_map.begin();
         if (it->first >= _next_seq_out) {
             //过滤回跳包
             popIterator(it);
@@ -95,37 +96,37 @@ private:
 
         if (_next_seq_out - it->first > (0xFFFF >> 1)) {
             //产生回环了
-            if (_rtp_sort_cache_map.size() < 2 * kMin) {
+            if (_pkt_sort_cache_map.size() < 2 * kMin) {
                 //等足够多的数据后才处理回环, 因为后面还可能出现大的SEQ
                 return;
             }
             ++_seq_cycle_count;
             //找到大的SEQ并清空掉，然后从小的SEQ重新开始排序
-            auto hit = _rtp_sort_cache_map.upper_bound((SEQ) (_next_seq_out - _rtp_sort_cache_map.size()));
-            while (hit != _rtp_sort_cache_map.end()) {
+            auto hit = _pkt_sort_cache_map.upper_bound((SEQ) (_next_seq_out - _pkt_sort_cache_map.size()));
+            while (hit != _pkt_sort_cache_map.end()) {
                 //回环前，清空剩余的大的SEQ的数据
                 _cb(hit->first, hit->second);
-                hit = _rtp_sort_cache_map.erase(hit);
+                hit = _pkt_sort_cache_map.erase(hit);
             }
             //下一个回环的数据
-            popIterator(_rtp_sort_cache_map.begin());
+            popIterator(_pkt_sort_cache_map.begin());
             return;
         }
         //删除回跳的数据包
-        _rtp_sort_cache_map.erase(it);
+        _pkt_sort_cache_map.erase(it);
     }
 
     void popIterator(typename map<SEQ, T>::iterator it) {
         auto seq = it->first;
         auto data = std::move(it->second);
-        _rtp_sort_cache_map.erase(it);
+        _pkt_sort_cache_map.erase(it);
         _next_seq_out = seq + 1;
         _cb(seq, data);
     }
 
     void tryPopPacket() {
         int count = 0;
-        while ((!_rtp_sort_cache_map.empty() && _rtp_sort_cache_map.begin()->first == _next_seq_out)) {
+        while ((!_pkt_sort_cache_map.empty() && _pkt_sort_cache_map.begin()->first == _next_seq_out)) {
             //找到下个包，直接输出
             popPacket();
             ++count;
@@ -133,7 +134,7 @@ private:
 
         if (count) {
             setSortSize();
-        } else if (_rtp_sort_cache_map.size() > _max_sort_size) {
+        } else if (_pkt_sort_cache_map.size() > _max_sort_size) {
             //排序缓存溢出，不再继续排序
             popPacket();
             setSortSize();
@@ -141,7 +142,7 @@ private:
     }
 
     void setSortSize() {
-        _max_sort_size = kMin + _rtp_sort_cache_map.size();
+        _max_sort_size = kMin + _pkt_sort_cache_map.size();
         if (_max_sort_size > kMax) {
             _max_sort_size = kMax;
         }
@@ -154,8 +155,8 @@ private:
     size_t _seq_cycle_count = 0;
     //排序缓存长度
     size_t _max_sort_size = kMin;
-    //rtp排序缓存，根据seq排序
-    map<SEQ, T> _rtp_sort_cache_map;
+    //pkt排序缓存，根据seq排序
+    map<SEQ, T> _pkt_sort_cache_map;
     //回调
     function<void(SEQ seq, T &packet)> _cb;
 };
@@ -174,7 +175,8 @@ public:
 
     void clear();
     uint32_t getSSRC() const;
-    bool inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
+    RtpPacket::Ptr inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
+    void setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms);
 
 protected:
     virtual void onRtpSorted(RtpPacket::Ptr rtp) {}
@@ -183,6 +185,7 @@ protected:
 private:
     uint32_t _ssrc = 0;
     Ticker _ssrc_alive;
+    NtpStamp _ntp_stamp;
 };
 
 class RtpTrackImp : public RtpTrack{
@@ -233,7 +236,18 @@ public:
      * @return 解析成功返回true
      */
     bool handleOneRtp(int index, TrackType type, int sample_rate, uint8_t *ptr, size_t len){
-        return _track[index].inputRtp(type, sample_rate, ptr, len);
+        return _track[index].inputRtp(type, sample_rate, ptr, len).operator bool();
+    }
+
+    /**
+     * 设置ntp时间戳，在收到rtcp sender report时设置
+     * @param index track下标索引
+     * @param rtp_stamp rtp时间戳
+     * @param sample_rate 时间戳采样率
+     * @param ntp_stamp_ms ntp时间戳
+     */
+    void setNtpStamp(int index, uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms){
+        _track[index].setNtpStamp(rtp_stamp, sample_rate, ntp_stamp_ms);
     }
 
     void clear() {

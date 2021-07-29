@@ -50,7 +50,7 @@ void HlsMaker::makeIndexFile(bool eof) {
         snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
         m3u8.append(file_content);
     }
-//    WarnL << "当前m3u8:" << m3u8 <<"\n";
+
     if (eof) {
         snprintf(file_content, sizeof(file_content), "#EXT-X-ENDLIST\n");
         m3u8.append(file_content);
@@ -100,7 +100,6 @@ void HlsMaker::addNewSegment(uint32_t stamp) {
     }
 
     //关闭并保存上一个切片，如果_seg_number==0,那么是点播。
-//    WarnL << "当前时间戳/上一个时间戳[" << stamp << "/" << _last_seg_timestamp << "]";
     flushLastSegment(_seg_number == 0);
     //新增切片
     _last_file_name = onOpenSegment(_file_index++);

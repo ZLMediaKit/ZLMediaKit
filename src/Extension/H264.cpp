@@ -46,82 +46,11 @@ static const char *memfind(const char *buf, ssize_t len, const char *subbuf, ssi
     }
     return NULL;
 }
-//    static inline const uint8_t* h264_startcode(const uint8_t *data, size_t bytes)
-//    {
-//        size_t i;
-//        for(i = 2; i + 1 < bytes; i++)
-//        {
-//            if(0x01 == data[i] && 0x00 == data[i-1] && 0x00 == data[i-2])
-//                return data + i + 1;
-//        }
-//
-//        return NULL;
-//    }
-//    void h264_stream(const Frame::Ptr &frame)
-//    {
-//        ptrdiff_t n;
-//        const unsigned char* p, *next, *end;
-//
-//        end = (const unsigned char*)frame->data() + frame->size();
-//        p = h264_startcode((const unsigned char*)frame->data(), frame->size());
-//
-//        while (p)
-//        {
-//            next = h264_startcode(p, end - p);
-//            if (next)
-//            {
-//                n = next - p - 3;
-//            }
-//            else
-//            {
-//                n = end - p;
-//            }
-//
-//            while (n > 0 && 0 == p[n - 1]) n--; // filter tailing zero
-//
-//            assert(n > 0);
-//            if (n > 0)
-//            {
-//                handler(param, p, (size_t)n);
-//                WarnL << H264_TYPE(p[0]);
-//            }
-//
-//            p = next;
-//        }
-//    }
+
 void splitH264(const char *ptr, size_t len, size_t prefix, const std::function<void(const char *, size_t , size_t)> &cb) {
     auto start = ptr + prefix;
     auto end = ptr + len;
     size_t next_prefix;
-//    ptrdiff_t n;
-//    while (start)
-//    {
-//        auto next_start = memfind(start, end - start, "\x00\x00\x01", 3);
-//        if (next_start)
-//        {
-//            n = next_start - start - 3;
-//        }
-//        else
-//        {
-//            n = end - start;
-//        }
-//        while (n > 0 && 0 == start[n - 1]) n--; // filter tailing zero
-//        assert(n > 0);
-//        if (n > 0)
-//        {
-////            handler(param, p, (size_t)n);
-////            WarnL << H264_TYPE(p[0]);
-//            if (*(start - 1) == 0x00) {
-////                //这个是00 00 00 01开头
-//                prefix = 4;
-//            } else {
-//                //这个是00 00 01开头
-//                prefix = 3;
-//            }
-//            cb(start - prefix, (size_t)n, prefix);
-//        }
-//        start = next_start;
-//    }
     while (true) {
         auto next_start = memfind(start, end - start, "\x00\x00\x01", 3);
         if (next_start) {
@@ -217,8 +146,7 @@ bool H264Track::ready() {
 
 void H264Track::inputFrame(const Frame::Ptr &frame) {
     using H264FrameInternal = FrameInternal<H264FrameNoCacheAble>;
-
-    int type = H264_TYPE(*((uint8_t *) frame->data() + frame->prefixSize()));
+    int type = H264_TYPE( frame->data()[frame->prefixSize()]);
     if (type != H264Frame::NAL_B_P && type != H264Frame::NAL_IDR) {
         //非I/B/P帧情况下，split一下，防止多个帧粘合在一起
         splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
@@ -242,7 +170,7 @@ Track::Ptr H264Track::clone() {
 }
 
 void H264Track::inputFrame_l(const Frame::Ptr &frame){
-    int type = H264_TYPE(*((uint8_t *) frame->data() + frame->prefixSize()));
+    int type = H264_TYPE( frame->data()[frame->prefixSize()]);
     switch (type) {
         case H264Frame::NAL_SPS: {
             _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
@@ -252,7 +180,6 @@ void H264Track::inputFrame_l(const Frame::Ptr &frame){
             _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
             break;
         }
-        case H264Frame::NAL_SEI:
         case H264Frame::NAL_AUD: {
             //忽略AUD帧;
             break;
@@ -346,48 +273,6 @@ Sdp::Ptr H264Track::getSdp() {
         return nullptr;
     }
     return std::make_shared<H264Sdp>(getSps(), getPps(), getBitRate() / 1024);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool H264Frame::keyFrame() const {
-    //多slice 一帧的情况下检查 first_mb_in_slice 是否为0 表示其为一帧的开始
-    return H264_TYPE(_buffer[_prefix_size]) == H264Frame::NAL_IDR && (_buffer[_prefix_size + 1] & 0x80);
-}
-
-bool H264Frame::configFrame() const {
-    switch (H264_TYPE(_buffer[_prefix_size])) {
-        case H264Frame::NAL_SPS:
-        case H264Frame::NAL_PPS: return true;
-        default: return false;
-    }
-}
-
-H264Frame::H264Frame() {
-    _codec_id = CodecH264;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-H264FrameNoCacheAble::H264FrameNoCacheAble(char *ptr,size_t size,uint32_t dts , uint32_t pts ,size_t prefix_size){
-    _ptr = ptr;
-    _size = size;
-    _dts = dts;
-    _pts = pts;
-    _prefix_size = prefix_size;
-    _codec_id = CodecH264;
-}
-
-bool H264FrameNoCacheAble::keyFrame() const {
-    return H264_TYPE(_ptr[_prefix_size]) == H264Frame::NAL_IDR;
-}
-
-bool H264FrameNoCacheAble::configFrame() const {
-    switch (H264_TYPE(_ptr[_prefix_size])) {
-        case H264Frame::NAL_SPS:
-        case H264Frame::NAL_PPS: return true;
-        default: return false;
-    }
 }
 
 }//namespace mediakit

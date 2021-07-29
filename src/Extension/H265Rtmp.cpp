@@ -136,8 +136,7 @@ void H265RtmpEncoder::makeConfigPacket(){
 void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto data = frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
-    auto type = H265_TYPE(((uint8_t*)data)[0]);
-
+    auto type = H265_TYPE(data[0]);
     switch (type) {
         case H265Frame::NAL_SPS: {
             if (!_got_config_frame) {
@@ -157,30 +156,10 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
             if (!_got_config_frame) {
                 _vps = string(data, len);
                 makeConfigPacket();
-                break;
             }
+            break;
         }
-        case H265Frame::NAL_AUD:
-        case H265Frame::NAL_SEI_PREFIX:
-        case H265Frame::NAL_SEI_SUFFIX: return;
         default: break;
-    }
-
-    if(frame->configFrame() && _rtmp_packet && _has_vcl){
-        // sps pps flush frame
-        RtmpCodec::inputRtmp(_rtmp_packet);
-        _rtmp_packet = nullptr;
-        _has_vcl = false;
-    }
-
-    if (_rtmp_packet && (_rtmp_packet->time_stamp != frame->dts() || (_has_vcl && type >= H265Frame::NAL_TRAIL_R && type <= H265Frame::NAL_RSV_IRAP_VCL23 && (data[2] >> 7 & 0x01) != 0))) {
-        RtmpCodec::inputRtmp(_rtmp_packet);
-        _has_vcl = false;
-        _rtmp_packet = nullptr;
-    }
-
-    if (type >= H265Frame::NAL_TRAIL_R && type <= H265Frame::NAL_RSV_IRAP_VCL23) {
-        _has_vcl = true;
     }
 
     if (!_rtmp_packet) {
@@ -188,9 +167,8 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         int8_t flags = FLV_CODEC_H265;
         bool is_config = false;
         flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
-        // todo 必须是IDR帧才能是关键帧，否则有可能开始帧会花屏 SPS PPS VPS 打头的是一般I帧，但不一定是IDR帧
-        //  RtmpCodec::inputRtmp 时需要判断 是否是IDR帧,做出相应的修改
         _rtmp_packet = RtmpPacket::create();
+        _rtmp_packet->buffer.clear();
         _rtmp_packet->buffer.push_back(flags);
         _rtmp_packet->buffer.push_back(!is_config);
         int32_t cts = frame->pts() - frame->dts();
@@ -204,10 +182,13 @@ void H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         _rtmp_packet->time_stamp = frame->dts();
         _rtmp_packet->type_id = MSG_VIDEO;
     }
-    uint32_t size = htonl((uint32_t) len);
-    _rtmp_packet->buffer.append((char *) &size, 4);
-    _rtmp_packet->buffer.append(data, len);
-    _rtmp_packet->body_size = _rtmp_packet->buffer.size();
+
+    _merger.inputFrame(frame, [&](uint32_t, uint32_t, const Buffer::Ptr &, bool) {
+        //输出rtmp packet
+        _rtmp_packet->body_size = _rtmp_packet->buffer.size();
+        RtmpCodec::inputRtmp(_rtmp_packet);
+        _rtmp_packet = nullptr;
+    }, &_rtmp_packet->buffer);
 }
 
 void H265RtmpEncoder::makeVideoConfigPkt() {

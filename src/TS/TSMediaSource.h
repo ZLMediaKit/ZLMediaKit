@@ -18,12 +18,12 @@ using namespace toolkit;
 namespace mediakit {
 
 //TS直播数据包
-class TSPacket : public BufferRaw{
+class TSPacket : public BufferOffset<Buffer::Ptr>{
 public:
     using Ptr = std::shared_ptr<TSPacket>;
 
     template<typename ...ARGS>
-    TSPacket(ARGS && ...args) : BufferRaw(std::forward<ARGS>(args)...) {};
+    TSPacket(ARGS && ...args) : BufferOffset<Buffer::Ptr>(std::forward<ARGS>(args)...) {};
     ~TSPacket() override = default;
 
 public:
@@ -33,7 +33,6 @@ public:
 //TS直播源
 class TSMediaSource : public MediaSource, public RingDelegate<TSPacket::Ptr>, public PacketCache<TSPacket>{
 public:
-    using PoolType = ResourcePool<TSPacket>;
     using Ptr = std::shared_ptr<TSMediaSource>;
     using RingDataType = std::shared_ptr<List<TSPacket::Ptr> >;
     using RingType = RingBuffer<RingDataType>;

@@ -525,32 +525,40 @@ string RtpHeader::dumpString(size_t rtp_size) const{
 
 ///////////////////////////////////////////////////////////////////////
 
-RtpHeader* RtpPacket::getHeader(){
+RtpHeader *RtpPacket::getHeader() {
     //需除去rtcp over tcp 4个字节长度
-    return (RtpHeader*)(data() + RtpPacket::kRtpTcpHeaderSize);
+    return (RtpHeader *) (data() + RtpPacket::kRtpTcpHeaderSize);
 }
 
-string RtpPacket::dumpString() const{
+const RtpHeader *RtpPacket::getHeader() const {
+    return (RtpHeader *) (data() + RtpPacket::kRtpTcpHeaderSize);
+}
+
+string RtpPacket::dumpString() const {
     return ((RtpPacket *) this)->getHeader()->dumpString(size() - RtpPacket::kRtpTcpHeaderSize);
 }
 
-uint16_t RtpPacket::getSeq(){
+uint16_t RtpPacket::getSeq() const {
     return ntohs(getHeader()->seq);
 }
 
-uint32_t RtpPacket::getStampMS(){
-    return ntohl(getHeader()->stamp) * uint64_t(1000) / sample_rate;
+uint32_t RtpPacket::getStamp() const {
+    return ntohl(getHeader()->stamp);
 }
 
-uint32_t RtpPacket::getSSRC(){
+uint32_t RtpPacket::getStampMS() const {
+    return ntp_stamp & 0xFFFFFFFF;
+}
+
+uint32_t RtpPacket::getSSRC() const {
     return ntohl(getHeader()->ssrc);
 }
 
-uint8_t* RtpPacket::getPayload(){
+uint8_t *RtpPacket::getPayload() {
     return getHeader()->getPayloadData();
 }
 
-size_t RtpPacket::getPayloadSize(){
+size_t RtpPacket::getPayloadSize() const {
     //需除去rtcp over tcp 4个字节长度
     return getHeader()->getPayloadSize(size() - kRtpTcpHeaderSize);
 }

@@ -95,12 +95,12 @@ public:
     /**
      * 获取编码器名称
      */
-    const char *getCodecName();
+    const char *getCodecName() const;
 
     /**
      * 获取音视频类型
      */
-    TrackType getTrackType();
+    TrackType getTrackType() const;
 };
 
 /**
@@ -143,6 +143,26 @@ public:
      * 是否可以缓存
      */
     virtual bool cacheAble() const { return true; }
+
+    /**
+     * 该帧是否可以丢弃
+     * SEI/AUD帧可以丢弃
+     * 默认都不能丢帧
+     */
+    virtual bool dropAble() const { return false; }
+
+    /**
+     * 是否为可解码帧
+     * sps pps等帧不能解码
+     */
+    virtual bool decodeAble() const {
+        if (getTrackType() != TrackVideo) {
+            //非视频帧都可以解码
+            return true;
+        }
+        //默认非sps pps帧都可以解码
+        return !configFrame();
+    }
 
     /**
      * 返回可缓存的frame
@@ -459,7 +479,7 @@ private:
  */
 class FrameMerger {
 public:
-    using onOutput = function<void(uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr)>;
+    using onOutput = function<void(uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_key_frame)>;
     using Ptr = std::shared_ptr<FrameMerger>;
     enum {
         none = 0,
@@ -471,17 +491,16 @@ public:
     ~FrameMerger() = default;
 
     void clear();
-    void inputFrame(const Frame::Ptr &frame, const onOutput &cb);
+    void inputFrame(const Frame::Ptr &frame, const onOutput &cb, BufferLikeString *buffer = nullptr);
 
 private:
     bool willFlush(const Frame::Ptr &frame) const;
     void doMerge(BufferLikeString &buffer, const Frame::Ptr &frame) const;
-    bool shouldDrop(const Frame::Ptr &frame) const;
-    bool frameCacheHasVCL() const;
 
 private:
     int _type;
-    List<Frame::Ptr> _frameCached;
+    bool _have_decode_able_frame = false;
+    List<Frame::Ptr> _frame_cache;
 };
 
 }//namespace mediakit

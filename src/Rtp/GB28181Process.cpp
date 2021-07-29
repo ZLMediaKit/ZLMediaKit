@@ -36,7 +36,7 @@ public:
     ~RtpReceiverImp() override = default;
 
     bool inputRtp(TrackType type, uint8_t *ptr, size_t len){
-        return RtpTrack::inputRtp(type, _sample_rate, ptr, len);
+        return RtpTrack::inputRtp(type, _sample_rate, ptr, len).operator bool();
     }
 
 private:
@@ -150,27 +150,6 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
     return ref->inputRtp(TrackVideo, (unsigned char *) data, data_len);
 }
 
-const char *GB28181Process::onSearchPacketTail(const char *packet,size_t bytes){
-    try {
-        auto ret = _decoder->input((uint8_t *) packet, bytes);
-        if (ret >= 0) {
-            //解析成功全部或部分
-            return packet + ret;
-        }
-        //解析失败，丢弃所有数据
-        return packet + bytes;
-    } catch (std::exception &ex) {
-        InfoL << "解析ps或ts异常: bytes=" << bytes
-              << " ,exception=" << ex.what()
-              << " ,hex=" << hexdump((uint8_t *) packet, MIN(bytes,32));
-        if (remainDataSize() > 256 * 1024) {
-            //缓存太多数据无法处理则上抛异常
-            throw;
-        }
-        return nullptr;
-    }
-}
-
 void GB28181Process::onRtpDecode(const Frame::Ptr &frame) {
     if (frame->getCodecId() != CodecInvalid) {
         //这里不是ps或ts
@@ -197,7 +176,7 @@ void GB28181Process::onRtpDecode(const Frame::Ptr &frame) {
     }
 
     if (_decoder) {
-        HttpRequestSplitter::input(frame->data(), frame->size());
+        _decoder->input(reinterpret_cast<const uint8_t *>(frame->data()), frame->size());
     }
 }
 

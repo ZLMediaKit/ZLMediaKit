@@ -22,12 +22,13 @@ namespace mediakit {
 
 bool getHEVCInfo(const string &strVps, const string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps);
 
-/**
- * 265帧类
- */
-class H265Frame : public FrameImp {
+template<typename Parent>
+class H265FrameHelper : public Parent{
 public:
-    using Ptr = std::shared_ptr<H265Frame>;
+    friend class FrameImp;
+    friend class ResourcePool_l<H265FrameHelper>;
+    using Ptr = std::shared_ptr<H265FrameHelper>;
+
     enum {
         NAL_TRAIL_N = 0,
         NAL_TRAIL_R = 1,
@@ -59,24 +60,57 @@ public:
         NAL_SEI_SUFFIX = 40,
     };
 
-    bool keyFrame() const override;
-    bool configFrame() const override;
-    static bool isKeyFrame(int type, const char* ptr);
+    template<typename ...ARGS>
+    H265FrameHelper(ARGS &&...args): Parent(std::forward<ARGS>(args)...) {
+        this->_codec_id = CodecH265;
+    }
 
-protected:
-    friend class FrameImp;
-    friend class ResourcePool_l<H265Frame>;
-    H265Frame();
+    ~H265FrameHelper() override = default;
+
+    bool keyFrame() const override {
+        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
+        auto type = H265_TYPE(*nal_ptr);
+        return (type == NAL_IDR_N_LP || type == NAL_IDR_W_RADL) && decodeAble();
+    }
+
+    bool configFrame() const override {
+        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
+        switch (H265_TYPE(*nal_ptr)) {
+            case NAL_VPS:
+            case NAL_SPS:
+            case NAL_PPS : return true;
+            default : return false;
+        }
+    }
+
+    bool dropAble() const override {
+        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
+        switch (H265_TYPE(*nal_ptr)) {
+            case NAL_AUD:
+            case NAL_SEI_SUFFIX:
+            case NAL_SEI_PREFIX: return true;
+            default: return false;
+        }
+    }
+
+    bool decodeAble() const override {
+        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
+        auto type = H265_TYPE(*nal_ptr);
+        //多slice情况下, first_slice_segment_in_pic_flag 表示其为一帧的开始
+        return type >= NAL_TRAIL_N && type <= NAL_RSV_IRAP_VCL23 && (nal_ptr[2] & 0x80);
+    }
 };
 
-class H265FrameNoCacheAble : public FrameFromPtr {
-public:
-    using Ptr = std::shared_ptr<H265FrameNoCacheAble>;
+/**
+ * 265帧类
+ */
+using H265Frame = H265FrameHelper<FrameImp>;
 
-    H265FrameNoCacheAble(char *ptr, size_t size, uint32_t dts,uint32_t pts, size_t prefix_size = 4);
-    bool keyFrame() const override;
-    bool configFrame() const override;
-};
+/**
+ * 防止内存拷贝的H265类
+ * 用户可以通过该类型快速把一个指针无拷贝的包装成Frame类
+ */
+using H265FrameNoCacheAble = H265FrameHelper<FrameFromPtr>;
 
 /**
 * 265视频通道

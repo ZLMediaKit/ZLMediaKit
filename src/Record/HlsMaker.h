@@ -116,7 +116,6 @@ private:
     uint64_t _file_index = 0;
     string _last_file_name;
     std::deque<tuple<int,string> > _seg_dur_list;
-    Ticker _ticker;
 };
 
 }//namespace mediakit

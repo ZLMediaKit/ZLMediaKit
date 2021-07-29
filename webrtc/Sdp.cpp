@@ -1034,15 +1034,17 @@ string RtcSession::toRtspSdp() const{
         switch (m.type) {
             case TrackAudio:
             case TrackVideo: {
-                copy.media.emplace_back(m);
-                copy.media.back().plan.resize(1);
+                if (m.direction != RtpDirection::inactive) {
+                    copy.media.emplace_back(m);
+                    copy.media.back().plan.resize(1);
+                }
                 break;
             }
-            default:
-                continue;
+            default: continue;
         }
     }
 
+    CHECK(!copy.media.empty());
     auto sdp = copy.toRtcSessionSdp();
     toRtsp(sdp->items);
     int i = 0;
@@ -1368,6 +1370,18 @@ bool RtcSession::supportRtcpFb(const string &name, TrackType type) const {
     return ref.find(name) != ref.end();
 }
 
+bool RtcSession::supportSimulcast() const {
+    for (auto &m : media) {
+        if (!m.rtp_rids.empty()) {
+            return true;
+        }
+        if (!m.rtp_ssrc_sim.empty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 string const SdpConst::kTWCCRtcpFb = "transport-cc";
 string const SdpConst::kRembRtcpFb = "goog-remb";
 
@@ -1392,7 +1406,6 @@ void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
 }
 
 void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
-    enable = true;
     rtcp_mux = true;
     rtcp_rsize = false;
     group_bundle = true;
@@ -1441,7 +1454,6 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             break;
         }
         case TrackApplication: {
-            enable = false;
             break;
         }
         default: break;
@@ -1561,9 +1573,6 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
 }
 
 void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure){
-    if (!configure.enable) {
-        return;
-    }
     bool check_profile = true;
     bool check_codec = true;
 
@@ -1653,7 +1662,8 @@ RETRY:
                 }
                 case RtpDirection::sendrecv : {
                     //对方支持发送接收，那么最终能力根据配置来决定
-                    answer_media.direction = configure.direction;
+                    answer_media.direction = (configure.direction == RtpDirection::invalid ? RtpDirection::inactive
+                                                                                           : configure.direction);
                     break;
                 }
                 default: continue;

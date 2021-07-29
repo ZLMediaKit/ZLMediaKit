@@ -21,9 +21,8 @@ HttpClient::HttpClient() {
 HttpClient::~HttpClient() {
 }
 
-void HttpClient::sendRequest(const string &strUrl, uint64_t fTimeOutSec, uint64_t recvTimeOutSec) {
+void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     _aliveTicker.resetTime();
-    _recvTimeOutSec = recvTimeOutSec;
     _url = strUrl;
     auto protocol = FindField(strUrl.data(), NULL, "://");
     uint16_t defaultPort;
@@ -141,7 +140,7 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
         if(onRedirectUrl(newUrl,_parser.Url() == "302")){
             HttpClient::clear();
             setMethod("GET");
-            HttpClient::sendRequest(newUrl,_fTimeOutSec, _recvTimeOutSec);
+            HttpClient::sendRequest(newUrl,_fTimeOutSec);
             return 0;
         }
     }
@@ -231,7 +230,7 @@ void HttpClient::onFlush() {
 }
 
 void HttpClient::onManager() {
-    if (_aliveTicker.elapsedTime() > _recvTimeOutSec * 1000 && _totalBodySize < 0 && !_chunkedSplitter) {
+    if (_aliveTicker.elapsedTime() > 3 * 1000 && _totalBodySize < 0 && !_chunkedSplitter) {
         //如果Content-Length未指定 但接收数据超时
         //则认为本次http请求完成
         onResponseCompleted_l();

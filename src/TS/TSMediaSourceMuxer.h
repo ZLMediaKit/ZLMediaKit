@@ -25,7 +25,6 @@ public:
                        const string &app,
                        const string &stream_id) {
         _media_src = std::make_shared<TSMediaSource>(vhost, app, stream_id);
-        _pool.setSize(256);
     }
 
     ~TSMediaSourceMuxer() override = default;
@@ -66,12 +65,11 @@ public:
     }
 
 protected:
-    void onTs(const void *data, size_t len,uint32_t timestamp,bool is_idr_fast_packet) override{
-        if(!data || !len){
+    void onTs(std::shared_ptr<Buffer> buffer, uint32_t timestamp, bool is_idr_fast_packet) override {
+        if (!buffer) {
             return;
         }
-        TSPacket::Ptr packet = _pool.obtain();
-        packet->assign((char *) data, len);
+        auto packet = std::make_shared<TSPacket>(std::move(buffer));
         packet->time_stamp = timestamp;
         _media_src->onWrite(std::move(packet), is_idr_fast_packet);
     }
@@ -79,7 +77,6 @@ protected:
 private:
     bool _enabled = true;
     bool _clear_cache = false;
-    TSMediaSource::PoolType _pool;
     TSMediaSource::Ptr _media_src;
 };
 

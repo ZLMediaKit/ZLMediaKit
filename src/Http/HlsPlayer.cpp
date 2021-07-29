@@ -119,10 +119,6 @@ void HlsPlayer::onParsed(bool is_m3u8_inner,int64_t sequence,const map<int,ts_se
             return;
         }
         _last_sequence = sequence;
-//        if(!ts_map.empty()&& _ts_url_sort.empty() && _ts_list.empty() && !_ts_url_cache.empty()){
-//            _ts_url_cache.clear();
-//            _ts_url_sort.clear();
-//        }
         for (auto &pr : ts_map) {
             auto &ts = pr.second;
             if (_ts_url_cache.emplace(ts.url).second) {
@@ -306,11 +302,7 @@ void HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
     _stamp[frame->getTrackType()].revise(frame->dts(), frame->pts(), dts, pts);
     //根据时间戳缓存frame
     _frame_cache.emplace(dts, Frame::getCacheAbleFrame(frame));
-    if(!MediaSink::isTrackReady(frame->getTrackType())){
-        MediaSink::inputFrame(Frame::getCacheAbleFrame(frame));
-        return;
-    }
-//    WarnL << "缓存时间[" << getBufferMS() << "]";
+
     if (getBufferMS() > 30 * 1000) {
         //缓存超过30秒，强制消费至15秒(减少延时或内存占用)
         while (getBufferMS() > 15 * 1000) {

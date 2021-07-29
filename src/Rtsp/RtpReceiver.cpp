@@ -31,18 +31,18 @@ void RtpTrack::clear() {
     PacketSortor<RtpPacket::Ptr>::clear();
 }
 
-bool RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len) {
+RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len) {
     if (len < RtpPacket::kRtpHeaderSize) {
         WarnL << "rtp包太小:" << len;
-        return false;
+        return nullptr;
     }
     if (len > RTP_MAX_SIZE) {
         WarnL << "超大的rtp包:" << len << " > " << RTP_MAX_SIZE;
-        return false;
+        return nullptr;
     }
     if (!sample_rate) {
         //无法把时间戳转换成毫秒
-        return false;
+        return nullptr;
     }
     RtpHeader *header = (RtpHeader *) ptr;
     if (header->version != RtpPacket::kRtpVersion) {
@@ -50,7 +50,7 @@ bool RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t le
     }
     if (!header->getPayloadSize(len)) {
         //无有效负载的rtp包
-        return false;
+        return nullptr;
     }
 
     //比对缓存ssrc
@@ -68,7 +68,7 @@ bool RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t le
         if (_ssrc_alive.elapsedTime() < 3 * 1000) {
             //接受正确ssrc的rtp在10秒内，那么我们认为存在多路rtp,忽略掉ssrc不匹配的rtp
             WarnL << "ssrc不匹配,rtp已丢弃:" << ssrc << " != " << _ssrc;
-            return false;
+            return nullptr;
         }
         InfoL << "rtp流ssrc切换:" << _ssrc << " -> " << ssrc;
         _ssrc = ssrc;
@@ -90,11 +90,15 @@ bool RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t le
     data[3] = len & 0xFF;
     //拷贝rtp
     memcpy(&data[4], ptr, len);
-
+    //设置ntp时间戳
+    rtp->ntp_stamp = _ntp_stamp.getNtpStamp(ntohl(rtp->getHeader()->stamp), sample_rate);
     onBeforeRtpSorted(rtp);
-    auto seq = rtp->getSeq();
-    sortPacket(seq, std::move(rtp));
-    return true;
+    sortPacket(rtp->getSeq(), rtp);
+    return rtp;
+}
+
+void RtpTrack::setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms){
+    _ntp_stamp.setNtpStamp(rtp_stamp, sample_rate, ntp_stamp_ms);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

@@ -477,8 +477,8 @@ SDES items 定义
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-//Source description item
-class SdesItem {
+//Source description Chunk
+class SdesChunk {
 public:
     friend class RtcpSdes;
 
@@ -523,21 +523,21 @@ public:
     friend class RtcpHeader;
 
     //可能有很多个
-    SdesItem items;
+    SdesChunk chunks;
 
 public:
     /**
-     * 创建SDES包，只赋值了RtcpHeader以及SdesItem对象的length和text部分
-     * @param item_text SdesItem列表，只赋值length和text部分
+     * 创建SDES包，只赋值了RtcpHeader以及SdesChunk对象的length和text部分
+     * @param item_text SdesChunk列表，只赋值length和text部分
      * @return SDES包
      */
     static std::shared_ptr<RtcpSdes> create(const std::vector<string> &item_text);
 
     /**
-     * 获取SdesItem对象指针列表
+     * 获取SdesChunk对象指针列表
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    vector<SdesItem*> getItemList();
+    vector<SdesChunk*> getChunkList();
 
 private:
     /**

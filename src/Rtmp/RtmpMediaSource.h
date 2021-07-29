@@ -102,6 +102,8 @@ public:
     virtual void setMetaData(const AMFValue &metadata) {
         _metadata = metadata;
         _metadata.set("server", SERVER_NAME);
+        _have_video = _metadata["videocodecid"];
+        _have_audio = _metadata["audiocodecid"];
         if (_ring) {
             regist();
         }
@@ -125,7 +127,7 @@ public:
         //保存当前时间戳
         switch (pkt->type_id) {
             case MSG_VIDEO : _track_stamps[TrackVideo] = pkt->time_stamp, _have_video = true; break;
-            case MSG_AUDIO : _track_stamps[TrackAudio] = pkt->time_stamp; break;
+            case MSG_AUDIO : _track_stamps[TrackAudio] = pkt->time_stamp, _have_audio = true; break;
             default :  break;
         }
 
@@ -187,6 +189,14 @@ public:
         _ring->clearCache();
     }
 
+    bool haveVideo() const {
+        return _have_video;
+    }
+
+    bool haveAudio() const {
+        return _have_audio;
+    }
+
 private:
     /**
     * 批量flush rtmp包时触发该函数
@@ -200,6 +210,7 @@ private:
 
 private:
     bool _have_video = false;
+    bool _have_audio = false;
     int _ring_size;
     uint32_t _track_stamps[TrackMax] = {0};
     AMFValue _metadata;

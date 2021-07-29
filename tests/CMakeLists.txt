@@ -8,7 +8,8 @@ foreach (TEST_SRC ${TEST_SRC_LIST})
             continue()
         endif ()
     endif ()
-    STRING(REGEX REPLACE "^\\./|\\.c[a-zA-Z0-9_]*$" "" TEST_EXE_NAME ${TEST_SRC})
+
+    get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
     message(STATUS "add test:${TEST_EXE_NAME}")
     add_executable(${TEST_EXE_NAME} ${TEST_SRC})
 
