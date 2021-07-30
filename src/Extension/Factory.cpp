@@ -27,9 +27,9 @@ namespace mediakit{
 
 Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     if (strcasecmp(track->_codec.data(), "mpeg4-generic") == 0) {
-        string aac_cfg_str = FindField(track->_fmtp.data(), "config=", nullptr);
+        string aac_cfg_str = FindField(track->_fmtp.data(), "config=", ";");
         if (aac_cfg_str.empty()) {
-            aac_cfg_str = FindField(track->_fmtp.data(), "config=", ";");
+            aac_cfg_str = FindField(track->_fmtp.data(), "config=", nullptr);
         }
         if (aac_cfg_str.empty()) {
             //如果sdp中获取不到aac config信息，那么在rtp也无法获取，那么忽略该Track
