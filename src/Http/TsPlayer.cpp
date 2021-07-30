@@ -27,20 +27,17 @@ namespace mediakit {
         teardown_l(SockException(Err_shutdown, "teardown"));
     }
 
-    void TsPlayer::playTs(bool force) {
-        if (!force && alive()) {
+    void TsPlayer::playTs() {
+        if (alive()) {
             //播放器目前还存活，正在下载中
             return;
         }
-        WarnL << "fetch:" << _ts_url << " is reconnect:" << isReconnect;
+        WarnL << "fetch:" << _ts_url;
         setOnCreateSocket([this](const EventPoller::Ptr &poller) {
             return Socket::createSocket(poller, true);
         });
         if (!(*this)[kNetAdapter].empty()) {
             setNetAdapter((*this)[kNetAdapter]);
-        }
-        if (force) {
-            HttpClient::clear();
         }
         setMethod("GET");
         sendRequest(_ts_url, 600, 60);
@@ -63,9 +60,6 @@ namespace mediakit {
         }
         if (_first) {
             _first = false;
-        }
-        if(isReconnect){
-            onPlayResult(SockException(Err_success, "play reconnect"));
         }
         onPlayResult(SockException(Err_success, "play success"));
         //后续是不定长content
@@ -101,15 +95,11 @@ namespace mediakit {
             onPlayResult(ex);
             return;
         }
-        if (ex.getErrCode() == Err_shutdown) {
-            //主动shutdown的，不触发回调
-            onShutdown(ex);
-        } else {
-            onShutdown(ex);
-        }
+        onShutdown(ex);
     }
 
     bool TsPlayer::onRedirectUrl(const string &url, bool temporary) {
         return HttpClient::onRedirectUrl(url, temporary);
     }
+
 }//namespace mediakit

@@ -87,7 +87,7 @@ namespace mediakit {
         bool onRedirectUrl(const string &url,bool temporary) override;
 
     private:
-        void playTs(bool force = false);
+        void playTs();
         void teardown_l(const SockException &ex);
 
     private:
@@ -97,13 +97,9 @@ namespace mediakit {
                 return split(__x,"?")[0] < split(__y,"?")[0];
             }
         };
-
-    protected:
-        bool isReconnect = false;
     private:
         bool _first = true;
         string _ts_url;
-        int64_t _last_sequence = -1;
         Timer::Ptr _timer;
         TSSegment _segment;
         //是否为mpegts负载
