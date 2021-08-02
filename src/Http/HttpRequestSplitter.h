@@ -75,6 +75,11 @@ protected:
       */
      size_t remainDataSize();
 
+     /**
+      * 获取剩余数据指针
+      */
+     const char *remainData() const;
+
 private:
     ssize_t _content_len = 0;
     size_t _remain_data_size = 0;
