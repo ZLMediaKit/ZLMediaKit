@@ -8,6 +8,8 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <signal.h>
+#include <string.h>
 #ifdef _WIN32
 #include "windows.h"
 #else
