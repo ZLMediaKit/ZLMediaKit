@@ -23,5 +23,6 @@
 #include "mk_util.h"
 #include "mk_thread.h"
 #include "mk_rtp_server.h"
+#include "mk_h264_splitter.h"
 
 #endif /* MK_API_H_ */

@@ -126,6 +126,10 @@ size_t HttpRequestSplitter::remainDataSize() {
     return _remain_data_size;
 }
 
+const char *HttpRequestSplitter::remainData() const {
+    return _remain_data.data();
+}
+
 
 } /* namespace mediakit */
 
