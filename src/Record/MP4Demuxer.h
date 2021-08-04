@@ -16,7 +16,7 @@
 #include "Util/ResourcePool.h"
 namespace mediakit {
 
-class MP4Demuxer : public MP4FileDisk, public TrackSource{
+class MP4Demuxer : public TrackSource {
 public:
     typedef std::shared_ptr<MP4Demuxer> Ptr;
 
@@ -31,6 +31,11 @@ public:
      * @param file mp4文件路径
      */
     void openMP4(const string &file);
+
+    /**
+     * @brief 关闭 mp4 文件
+     */
+    void closeMP4();
 
     /**
      * 移动时间轴至某处
@@ -67,7 +72,8 @@ private:
     Frame::Ptr makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int64_t pts, int64_t dts);
 
 private:
-    Reader _mov_reader;
+    MP4FileDisk::Ptr _mp4_file;
+    MP4FileDisk::Reader _mov_reader;
     uint64_t _duration_ms = 0;
     map<int, Track::Ptr> _track_to_codec;
     ResourcePool<BufferRaw> _buffer_pool;
