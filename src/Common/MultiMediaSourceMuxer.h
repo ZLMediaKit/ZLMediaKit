@@ -142,7 +142,6 @@ protected:
 
 private:
     bool _is_enable = false;
-    string _stream_url;
     Ticker _last_check;
     Stamp _stamp[2];
     std::weak_ptr<Listener> _track_listener;

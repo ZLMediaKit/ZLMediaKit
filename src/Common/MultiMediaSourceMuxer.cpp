@@ -286,7 +286,7 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     if (listener) {
         listener->onAllTrackReady();
     }
-    InfoL << "stream: " << _stream_url << " , codec info: " << getTrackInfoStr(this);
+    InfoL << "stream: " << getOriginUrl(*MediaSource::NullMediaSource) << " , codec info: " << getTrackInfoStr(this);
 }
 
 void MultiMediaSourceMuxer::resetTracks() {
