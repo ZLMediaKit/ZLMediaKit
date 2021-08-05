@@ -968,7 +968,7 @@ MediaOriginType WebRtcTransportImp::getOriginType(MediaSource &sender) const {
 }
 
 string WebRtcTransportImp::getOriginUrl(MediaSource &sender) const {
-    return "";
+    return _media_info._full_url;
 }
 
 std::shared_ptr<SockInfo> WebRtcTransportImp::getOriginSock(MediaSource &sender) const {
