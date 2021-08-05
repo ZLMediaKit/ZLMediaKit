@@ -22,15 +22,22 @@ namespace mediakit {
 MP4Demuxer::MP4Demuxer() {}
 
 MP4Demuxer::~MP4Demuxer() {
-    _mov_reader = nullptr;
-    closeFile();
+    closeMP4();
 }
 
-void MP4Demuxer::openMP4(const string &file){
-    openFile(file.data(),"rb+");
-    _mov_reader = createReader();
+void MP4Demuxer::openMP4(const string &file) {
+    closeMP4();
+
+    _mp4_file = std::make_shared<MP4FileDisk>();
+    _mp4_file->openFile(file.data(), "rb+");
+    _mov_reader = _mp4_file->createReader();
     getAllTracks();
     _duration_ms = mov_reader_getduration(_mov_reader.get());
+}
+
+void MP4Demuxer::closeMP4() {
+    _mov_reader.reset();
+    _mp4_file.reset();
 }
 
 int MP4Demuxer::getAllTracks() {
