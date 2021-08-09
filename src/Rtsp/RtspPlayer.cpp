@@ -25,7 +25,8 @@ namespace mediakit {
 enum PlayType {
     type_play = 0,
     type_pause,
-    type_seek
+    type_seek,
+    type_speed
 };
 
 RtspPlayer::RtspPlayer(const EventPoller::Ptr &poller) : TcpClient(poller){
@@ -414,8 +415,13 @@ void RtspPlayer::sendPause(int type , uint32_t seekMS){
     }
 }
 
-void RtspPlayer::pause(bool pause_flag) {
-    sendPause(pause_flag ? type_pause : type_seek, getProgressMilliSecond());
+void RtspPlayer::pause(bool bPause) {
+    sendPause(bPause ? type_pause : type_seek, getProgressMilliSecond());
+}
+
+void RtspPlayer::speed(float speed)
+{
+    sendRtspRequest("PLAY", _content_base, { "Scale",StrPrinter << speed });
 }
 
 void RtspPlayer::handleResPAUSE(const Parser& parser,int type) {

@@ -774,21 +774,36 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     }
 
     bool useGOP = true;
-    _enable_send_rtp = false;
+    //_enable_send_rtp = false;
     float iStartTime = 0;
     auto strRange = parser["Range"];
-    if (strRange.size()) {
-        //这个是seek操作
-        auto strStart = FindField(strRange.data(), "npt=", "-");
-        if (strStart == "now") {
-            strStart = "0";
+    auto strScale = parser["Scale"];
+    if (strScale.size() == 0)
+    {
+
+        if (strRange.size()) {
+            //这个是seek操作
+            auto strStart = FindField(strRange.data(), "npt=", "-");
+            if (strStart == "now") {
+                strStart = "0";
+            }
+            iStartTime = 1000 * (float)atof(strStart.data());
+            InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
+            useGOP = !play_src->seekTo((uint32_t)iStartTime);
         }
-        iStartTime = 1000 * (float)atof(strStart.data());
-        InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
-        useGOP = !play_src->seekTo((uint32_t)iStartTime);
-    } else if (play_src->totalReaderCount() == 0) {
-        //第一个消费者
-        play_src->seekTo(0);
+        else if (play_src->totalReaderCount() == 0) {
+            //第一个消费者
+            play_src->seekTo(0);
+        }
+        else if (play_src->totalReaderCount() > 0)
+        {
+            _enable_send_rtp = true;
+            play_src->seekTo(-1);
+        }
+    }
+    else
+    {
+        play_src->speed(atof(strScale.data()));
     }
 
     _StrPrinter rtp_info;
@@ -845,7 +860,17 @@ void RtspSession::handleReq_Pause(const Parser &parser) {
     }
 
     sendRtspResponse("200 OK");
-    _enable_send_rtp = false;
+
+
+    auto play_src = _play_src.lock();
+    if (!play_src) {
+        send_StreamNotFound();
+        shutdown(SockException(Err_shutdown, "rtsp stream released"));
+        return;
+    }
+
+    play_src->pause();
+    //_enable_send_rtp = false;
 }
 
 void RtspSession::handleReq_Teardown(const Parser &parser) {

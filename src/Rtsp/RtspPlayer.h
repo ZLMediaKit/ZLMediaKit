@@ -41,7 +41,8 @@ public:
     ~RtspPlayer() override;
 
     void play(const string &strUrl) override;
-    void pause(bool pause_flag) override;
+    void pause(bool bPause) override;
+    void speed(float speed)override;
     void teardown() override;
     float getPacketLossRate(TrackType type) const override;
 

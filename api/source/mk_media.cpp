@@ -43,6 +43,16 @@ public:
         _on_seek_data = user_data;
     }
 
+    void setOnPause(on_mk_media_pause cb, void* user_data) {
+        _on_pause = cb;
+        _on_pause_data = user_data;
+    }
+
+    void setOnSpeed(on_mk_media_speed cb, void* user_data) {
+        _on_speed = cb;
+        _on_speed_data = user_data;
+    }
+
     void setOnRegist(on_mk_media_source_regist cb, void *user_data){
         _on_regist = cb;
         _on_regist_data = user_data;
@@ -72,6 +82,23 @@ protected:
         }
         return _on_seek(_on_seek_data,ui32Stamp);
     }
+    // 通知暂停
+    bool pause(MediaSource &sender) override {
+        if (!_on_pause)       
+        {
+            return false;
+        }
+        return _on_pause(_on_pause_data);
+    }
+    //通知倍数播放
+    bool speed(MediaSource& sender, float speed) override {
+        if (!_on_speed)
+        {
+            return false;
+        }
+        return _on_speed(_on_pause_data, speed);
+    }
+
     // 观看总人数
     int totalReaderCount(MediaSource &sender) override{
         return _channel->totalReaderCount();
@@ -87,8 +114,12 @@ private:
     DevChannel::Ptr _channel;
     on_mk_media_close _on_close = nullptr;
     on_mk_media_seek _on_seek = nullptr;
+    on_mk_media_pause _on_pause = nullptr;
+    on_mk_media_speed _on_speed = nullptr;
     on_mk_media_source_regist _on_regist = nullptr;
-    void *_on_seek_data;
+    void* _on_seek_data;
+    void* _on_pause_data;
+    void* _on_speed_data;
     void *_on_close_data;
     void *_on_regist_data;
 };
@@ -103,6 +134,20 @@ API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb,
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->setOnSeek(cb, user_data);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_pause(mk_media ctx, on_mk_media_pause cb, void* user_data)
+{
+    assert(ctx);
+    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    (*obj)->setOnPause(cb, user_data);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_speed(mk_media ctx, on_mk_media_speed cb, void* user_data)
+{
+    assert(ctx);
+    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    (*obj)->setOnSpeed(cb, user_data);
 }
 
 API_EXPORT void API_CALL mk_media_set_on_regist(mk_media ctx, on_mk_media_source_regist cb, void *user_data){

@@ -107,12 +107,17 @@ void MP4Recorder::closeFile() {
 }
 
 void MP4Recorder::inputFrame(const Frame::Ptr &frame) {
-    if(!_muxer || ((_createFileTicker.elapsedTime() > _max_second * 1000) &&
+	if (_baseSec == 0)
+		_baseSec = frame->dts();
+	auto dis = frame->dts() - _baseSec;
+    if(!_muxer || ((dis > _max_second * 1000) &&
                   (!_haveVideo || (_haveVideo && frame->keyFrame()))) ){
         //成立条件
         //1、_muxer为空
         //2、到了切片时间，并且只有音频
         //3、到了切片时间，有视频并且遇到视频的关键帧
+        DebugL << "create file dts:" << frame->dts() << " baseSec:" << _baseSec;
+        _baseSec = 0;
         createFile();
     }
 
