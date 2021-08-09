@@ -30,9 +30,12 @@ public:
     void setOnResult(const onDownloadResult &cb){
         _onResult = cb;
     }
+	
+protected:
+    void onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) override;
+	
 private:
     ssize_t onResponseHeader(const string &status, const HttpHeader &headers) override;
-    void onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) override;
     void onResponseCompleted() override;
     void onDisconnect(const SockException &ex) override;
     void closeFile();

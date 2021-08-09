@@ -412,6 +412,36 @@ void RtmpSession::onCmd_pause(AMFDecoder &dec) {
     //streamBegin
     sendUserControl(paused ? CONTROL_STREAM_EOF : CONTROL_STREAM_BEGIN, STREAM_MEDIA);
     _paused = paused;
+
+    auto stongSrc = _player_src.lock();
+    if (stongSrc) {
+        if (_paused)
+            stongSrc->pause();
+        else
+            stongSrc->seekTo(-1);
+    }
+}
+
+void RtmpSession::onCmd_playCtrl(AMFDecoder& dec)
+{
+    dec.load<AMFValue>();
+    auto ctrlObj = dec.load<AMFValue>();
+    int ctrlType = ctrlObj["ctrlType"].as_integer();
+    float speed = ctrlObj["speed"].as_number();
+
+
+    AMFValue status(AMF_OBJECT);
+    status.set("level", "status");
+    status.set("code", "NetStream.Speed.Notify");
+    status.set("description", "Speeding");
+    sendReply("onStatus", nullptr, status);
+    //streamBegin
+    sendUserControl(CONTROL_STREAM_EOF, STREAM_MEDIA);
+
+    auto stongSrc = _player_src.lock();
+    if (stongSrc) {
+        stongSrc->speed(speed);
+    }
 }
 
 void RtmpSession::setMetaData(AMFDecoder &dec) {
@@ -434,6 +464,7 @@ void RtmpSession::onProcessCmd(AMFDecoder &dec) {
         s_cmd_functions.emplace("play2", &RtmpSession::onCmd_play2);
         s_cmd_functions.emplace("seek", &RtmpSession::onCmd_seek);
         s_cmd_functions.emplace("pause", &RtmpSession::onCmd_pause);
+        s_cmd_functions.emplace("onPlayCtrl", &RtmpSession::onCmd_playCtrl);
     });
 
     std::string method = dec.load<std::string>();

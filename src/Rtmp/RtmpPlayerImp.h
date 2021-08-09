@@ -46,6 +46,11 @@ public:
         seekToMilliSecond((uint32_t)(fProgress * getDuration() * 1000));
     }
 
+    void seekTo(uint32_t seekPos) override {
+        uint32_t pos = MAX(float(0), MIN(seekPos, getDuration()))*1000;
+        seekToMilliSecond(pos);
+    }
+    
     void play(const string &strUrl) override {
         PlayerImp<RtmpPlayer, RtmpDemuxer>::play(strUrl);
     }
