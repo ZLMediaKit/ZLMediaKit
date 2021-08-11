@@ -83,7 +83,8 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
             }
             return;
         }
-        if (len > 1024 * 10) {
+        GET_CONFIG(uint32_t, rtpMaxSize, Rtp::kRtpMaxSize);
+        if (len > 1024 * rtpMaxSize) {
             _search_rtp = true;
             WarnL << "rtp包长度异常(" << len << ")，发送端可能缓存溢出并覆盖，开始搜索ssrc以便恢复上下文";
             return;

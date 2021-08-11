@@ -11,8 +11,6 @@
 #include "Common/config.h"
 #include "RtpReceiver.h"
 
-#define RTP_MAX_SIZE (10 * 1024)
-
 namespace mediakit {
 
 RtpTrack::RtpTrack() {
@@ -36,8 +34,9 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
         WarnL << "rtp包太小:" << len;
         return nullptr;
     }
-    if (len > RTP_MAX_SIZE) {
-        WarnL << "超大的rtp包:" << len << " > " << RTP_MAX_SIZE;
+    GET_CONFIG(uint32_t, rtpMaxSize, Rtp::kRtpMaxSize);
+    if (len > 1024 * rtpMaxSize) {
+        WarnL << "超大的rtp包:" << len << " > " << 1024 * rtpMaxSize;
         return nullptr;
     }
     if (!sample_rate) {
