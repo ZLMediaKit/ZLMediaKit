@@ -192,10 +192,13 @@ namespace Rtp {
 //RTP打包最大MTU,公网情况下更小
 const string kVideoMtuSize = RTP_FIELD"videoMtuSize";
 const string kAudioMtuSize = RTP_FIELD"audioMtuSize";
+//rtp包最大长度限制，单位是k
+const string kRtpMaxSize = RTP_FIELD"rtpMaxSize";
 
 onceToken token([](){
     mINI::Instance()[kVideoMtuSize] = 1400;
     mINI::Instance()[kAudioMtuSize] = 600;
+    mINI::Instance()[kRtpMaxSize] = 10;
 },nullptr);
 } //namespace Rtsp
 
