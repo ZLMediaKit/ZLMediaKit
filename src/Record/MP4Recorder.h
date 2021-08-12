@@ -61,11 +61,9 @@ private:
     string _strPath;
     string _strFile;
     string _strFileTmp;
-    Ticker _createFileTicker;
     RecordInfo _info;
     MP4Muxer::Ptr _muxer;
     list<Track::Ptr> _tracks;
-
 	uint64_t _baseSec = 0;
 };
 

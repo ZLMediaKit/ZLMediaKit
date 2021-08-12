@@ -6,32 +6,26 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 #set(CMAKE_BUILD_TYPE "Release")
-
-if (${CMAKE_BUILD_TYPE} MATCHES "Release")
-    message(STATUS "Release版本")
-    set(BuildType "Release")
-else ()
-    set(BuildType "Debug")
-    message(STATUS "Debug版本")
-endif ()
+message(STATUS "编译类型:${CMAKE_BUILD_TYPE}")
 
 #设置bin和lib库目录
 set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release)
-if(CMAKE_CL_64)
-    set(CL_32_64 64)
-else(CMAKE_CL_64)
-    set(CL_32_64 32)
-endif(CMAKE_CL_64)
+
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux${CL_32_64}/${BuildType})
-    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux${CL_32_64}/${BuildType})
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux/${CMAKE_BUILD_TYPE})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux/${CMAKE_BUILD_TYPE})
     add_compile_options(-fPIC -Wall -Wno-unused-variable -Wno-unused-value)
 elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/windows${CL_32_64}/${BuildType})
-    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/windows${CL_32_64}/${BuildType})
+    if (CMAKE_CL_64)
+        set(CL_32_64 64)
+    else ()
+        set(CL_32_64 32)
+    endif ()
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/windows${CL_32_64}/${CMAKE_BUILD_TYPE})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/windows${CL_32_64}/${CMAKE_BUILD_TYPE})
 elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/mac${CL_32_64}/${BuildType})
-    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/mac${CL_32_64/${BuildType})
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/mac/${CMAKE_BUILD_TYPE})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/mac/${CMAKE_BUILD_TYPE})
     add_compile_options(-Wall -Wno-unused-variable -Wno-unused-value)
 endif ()
 
@@ -62,10 +56,9 @@ option(ENABLE_MEM_DEBUG "Enable Memory Debug" false)
 option(ENABLE_ASAN "Enable Address Sanitize" false)
 option(ENABLE_WEBRTC "Enable WebRTC" false)
 option(ENABLE_PLAYER "Enable Player" true)
-option(ENABLE_MsvcMT "Enable MSVC Mt/Mtd lib" true)
+option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" true)
 
-
-if (ENABLE_STATIC AND MSVC)
+if (MSVC AND ENABLE_MSVC_MT)
     set(CompilerFlags
         CMAKE_CXX_FLAGS
         CMAKE_CXX_FLAGS_DEBUG
@@ -147,7 +140,6 @@ if (OPENSSL_FOUND AND ENABLE_OPENSSL)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND OPENSSL_USE_STATIC_LIBS)
         list(APPEND LINK_LIB_LIST dl)
     endif ()
-
 else ()
     message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效")
 endif ()
@@ -301,23 +293,28 @@ if (ENABLE_WEBRTC)
         file(GLOB SRC_WEBRTC_LIST ./webrtc/*.cpp ./webrtc/*.h ./webrtc/*.hpp)
         add_library(webrtc ${SRC_WEBRTC_LIST})
         list(APPEND LINK_LIB_LIST webrtc)
+        message(STATUS "webrtc功能已开启")
     else ()
         message(WARNING "srtp未找到, webrtc相关功能打开失败")
     endif ()
 endif ()
 
-if (NOT IOS)
-    #测试程序
-    if (ENABLE_TESTS)
-        add_subdirectory(tests)
-    endif ()
-    #主服务器
-    if (ENABLE_SERVER)
-        add_subdirectory(server)
-    endif ()
+#ios不编译可执行程序
+if (IOS)
+    return()
+endif()
 
-    #播放器
-    if (ENABLE_PLAYER)
-        add_subdirectory(player)
-    endif ()
+#测试程序
+if (ENABLE_TESTS)
+    add_subdirectory(tests)
+endif ()
+
+#主服务器
+if (ENABLE_SERVER)
+    add_subdirectory(server)
+endif ()
+
+#播放器
+if (ENABLE_PLAYER)
+    add_subdirectory(player)
 endif ()

@@ -419,9 +419,8 @@ void RtspPlayer::pause(bool bPause) {
     sendPause(bPause ? type_pause : type_seek, getProgressMilliSecond());
 }
 
-void RtspPlayer::speed(float speed)
-{
-    sendRtspRequest("PLAY", _content_base, { "Scale",StrPrinter << speed });
+void RtspPlayer::speed(float speed) {
+    sendRtspRequest("PLAY", _content_base, {"Scale", StrPrinter << speed});
 }
 
 void RtspPlayer::handleResPAUSE(const Parser& parser,int type) {

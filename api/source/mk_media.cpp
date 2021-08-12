@@ -76,24 +76,24 @@ protected:
         return true;
     }
 
-    bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override{
-        if(!_on_seek){
+    bool seekTo(MediaSource &sender, uint32_t stamp) override {
+        if (!_on_seek) {
             return false;
         }
-        return _on_seek(_on_seek_data,ui32Stamp);
+        return _on_seek(_on_seek_data, stamp);
     }
-    // 通知暂停
-    bool pause(MediaSource &sender) override {
-        if (!_on_pause)       
-        {
+
+    // 通知暂停或恢复
+    bool pause(MediaSource &sender, bool pause) override {
+        if (!_on_pause) {
             return false;
         }
-        return _on_pause(_on_pause_data);
+        return _on_pause(_on_pause_data, pause);
     }
+
     //通知倍数播放
-    bool speed(MediaSource& sender, float speed) override {
-        if (!_on_speed)
-        {
+    bool speed(MediaSource &sender, float speed) override {
+        if (!_on_speed) {
             return false;
         }
         return _on_speed(_on_pause_data, speed);
@@ -130,23 +130,21 @@ API_EXPORT void API_CALL mk_media_set_on_close(mk_media ctx, on_mk_media_close c
     (*obj)->setOnClose(cb, user_data);
 }
 
-API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb, void *user_data){
+API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb, void *user_data) {
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->setOnSeek(cb, user_data);
 }
 
-API_EXPORT void API_CALL mk_media_set_on_pause(mk_media ctx, on_mk_media_pause cb, void* user_data)
-{
+API_EXPORT void API_CALL mk_media_set_on_pause(mk_media ctx, on_mk_media_pause cb, void *user_data) {
     assert(ctx);
-    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->setOnPause(cb, user_data);
 }
 
-API_EXPORT void API_CALL mk_media_set_on_speed(mk_media ctx, on_mk_media_speed cb, void* user_data)
-{
+API_EXPORT void API_CALL mk_media_set_on_speed(mk_media ctx, on_mk_media_speed cb, void *user_data) {
     assert(ctx);
-    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->setOnSpeed(cb, user_data);
 }
 

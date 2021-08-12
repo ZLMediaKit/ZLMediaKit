@@ -130,7 +130,7 @@ void HttpSession::onManager() {
 
     if(_ticker.elapsedTime() > keepAliveSec * 1000){
         //1分钟超时
-        shutdown(SockException(Err_timeout,"session timeouted"));
+        shutdown(SockException(Err_timeout,"session timeout"));
     }
 }
 

@@ -102,7 +102,6 @@ public:
 
     /**
      * 获取播放进度pos，取值 相对开始时间增量 单位秒
-     * @return
      */
     virtual uint32_t getProgressPos() const { return 0; }
 
@@ -152,15 +151,16 @@ public:
     typedef std::shared_ptr<PlayerImp> Ptr;
 
     template<typename ...ArgsType>
-    PlayerImp(ArgsType &&...args):Parent(std::forward<ArgsType>(args)...){}
+    PlayerImp(ArgsType &&...args):Parent(std::forward<ArgsType>(args)...) {}
+    virtual ~PlayerImp() {}
 
-    virtual ~PlayerImp(){}
     void setOnShutdown(const function<void(const SockException &)> &cb) override {
         if (_delegate) {
             _delegate->setOnShutdown(cb);
         }
         _shutdownCB = cb;
     }
+
     void setOnPlayResult(const function<void(const SockException &ex)> &cb) override {
         if (_delegate) {
             _delegate->setOnPlayResult(cb);
@@ -175,31 +175,35 @@ public:
         _resumeCB = cb;
     }
 
-    bool isInited(int analysisMs) override{
+    bool isInited(int analysisMs) override {
         if (_delegate) {
             return _delegate->isInited(analysisMs);
         }
         return Parent::isInited(analysisMs);
     }
+
     float getDuration() const override {
         if (_delegate) {
             return _delegate->getDuration();
         }
         return Parent::getDuration();
     }
-    float getProgress() const override{
+
+    float getProgress() const override {
         if (_delegate) {
             return _delegate->getProgress();
         }
         return Parent::getProgress();
     }
+
     uint32_t getProgressPos() const override {
         if (_delegate) {
             return _delegate->getProgressPos();
         }
         return Parent::getProgressPos();
     }
-    void seekTo(float fProgress) override{
+
+    void seekTo(float fProgress) override {
         if (_delegate) {
             return _delegate->seekTo(fProgress);
         }
@@ -213,21 +217,21 @@ public:
         return Parent::seekTo(seekPos);
     }
 
-    void setMediaSource(const MediaSource::Ptr & src) override {
+    void setMediaSource(const MediaSource::Ptr &src) override {
         if (_delegate) {
             _delegate->setMediaSource(src);
         }
         _pMediaSrc = src;
     }
 
-    vector<Track::Ptr> getTracks(bool trackReady = true) const override{
+    vector<Track::Ptr> getTracks(bool trackReady = true) const override {
         if (_delegate) {
             return _delegate->getTracks(trackReady);
         }
         return Parent::getTracks(trackReady);
     }
 
-    std::shared_ptr<SockInfo> getSockInfo() const{
+    std::shared_ptr<SockInfo> getSockInfo() const {
         return dynamic_pointer_cast<SockInfo>(_delegate);
     }
 

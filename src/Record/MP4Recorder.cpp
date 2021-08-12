@@ -65,7 +65,6 @@ void MP4Recorder::createFile() {
         }
         _strFileTmp = strFileTmp;
         _strFile = strFile;
-        _createFileTicker.resetTime();
     } catch (std::exception &ex) {
         WarnL << ex.what();
     }
@@ -107,21 +106,21 @@ void MP4Recorder::closeFile() {
 }
 
 void MP4Recorder::inputFrame(const Frame::Ptr &frame) {
-	if (_baseSec == 0)
-		_baseSec = frame->dts();
-	auto dis = frame->dts() - _baseSec;
-    if(!_muxer || ((dis > _max_second * 1000) &&
-                  (!_haveVideo || (_haveVideo && frame->keyFrame()))) ){
+    if (_baseSec == 0) {
+        _baseSec = frame->dts();
+    }
+
+    auto duration = frame->dts() - _baseSec;
+    if (!_muxer || ((duration > _max_second * 1000) && (!_haveVideo || (_haveVideo && frame->keyFrame())))) {
         //成立条件
         //1、_muxer为空
         //2、到了切片时间，并且只有音频
         //3、到了切片时间，有视频并且遇到视频的关键帧
-        DebugL << "create file dts:" << frame->dts() << " baseSec:" << _baseSec;
         _baseSec = 0;
         createFile();
     }
 
-    if(_muxer){
+    if (_muxer) {
         //生成mp4文件
         _muxer->inputFrame(frame);
     }
@@ -139,7 +138,6 @@ void MP4Recorder::resetTracks() {
     closeFile();
     _tracks.clear();
     _haveVideo = false;
-    _createFileTicker.resetTime();
 }
 
 } /* namespace mediakit */

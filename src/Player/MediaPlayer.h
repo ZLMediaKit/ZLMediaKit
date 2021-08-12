@@ -29,7 +29,7 @@ public:
     virtual ~MediaPlayer();
     void play(const string &url) override;
     void pause(bool pause) override;
-    void speed(float speed)override;
+    void speed(float speed) override;
     void teardown() override;
     EventPoller::Ptr getPoller();
     void setOnCreateSocket(Socket::onCreateSocket cb);

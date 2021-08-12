@@ -38,7 +38,7 @@ public:
 
     void play(const string &strUrl) override;
     void pause(bool bPause) override;
-    void speed(float speed)override;
+    void speed(float speed) override;
     void teardown() override;
 
 protected:

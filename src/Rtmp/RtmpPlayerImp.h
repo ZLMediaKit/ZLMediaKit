@@ -47,7 +47,7 @@ public:
     }
 
     void seekTo(uint32_t seekPos) override {
-        uint32_t pos = MAX(float(0), MIN(seekPos, getDuration()))*1000;
+        uint32_t pos = MAX(float(0), MIN(seekPos, getDuration())) * 1000;
         seekToMilliSecond(pos);
     }
     
