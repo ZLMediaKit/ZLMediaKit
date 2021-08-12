@@ -118,13 +118,15 @@ static HttpApi toApi(const function<void(API_ARGS_JSON_ASYNC)> &cb) {
         Json::Reader reader;
         reader.parse(parser.Content(), in);
 
-        cb(sender, parser.getHeader(), headerOut, in, out, invoker);
+        //参数解析成map
+        auto urlArgs = getAllArgs(parser);
+        cb(sender, parser.getHeader(), headerOut, in, urlArgs, out, invoker);
     };
 }
 
 static HttpApi toApi(const function<void(API_ARGS_JSON)> &cb) {
     return toApi([cb](API_ARGS_JSON_ASYNC) {
-        cb(API_ARGS_VALUE);
+        cb(API_ARGS_JSON_VALUE);
         invoker(200, headerOut, val.toStyledString());
     });
 }
@@ -228,18 +230,19 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
+                const std::string& content = parser.Content();
                 if (size && size < 4 * 1024) {
                     string contentOut = body->readData(size)->toString();
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
-                           << "# content:\r\n" << parser.Content() << "\r\n"
-                           << "# response:\r\n"
-                           << contentOut << "\r\n";
+                        << "# content:\r\n" << (content.size() > 4 * 1024 ? content.substr(0, 4 * 1024) : content) << "\r\n"
+                        << "# response:\r\n"
+                        << contentOut << "\r\n";
                     invoker(code, headerOut, contentOut);
                 } else {
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
-                           << "# content:\r\n" << parser.Content() << "\r\n"
-                           << "# response size:"
-                           << size << "\r\n";
+                        << "# content:\r\n" << (content.size() > 4 * 1024 ? content.substr(0, 4 * 1024) : content) << "\r\n"
+                        << "# response size:"
+                        << size << "\r\n";
                     invoker(code, headerOut, body);
                 }
             };
@@ -276,8 +279,8 @@ static recursive_mutex s_ffmpegMapMtx;
 
 #if defined(ENABLE_RTPPROXY)
 //rtp服务器列表
-static unordered_map<string, RtpServer::Ptr> s_rtpServerMap;
-static recursive_mutex s_rtpServerMapMtx;
+/*static*/ unordered_map<string, RtpServer::Ptr> s_rtpServerMap;
+/*static*/ recursive_mutex s_rtpServerMapMtx;
 #endif
 
 static inline string getProxyKey(const string &vhost, const string &app, const string &stream) {
@@ -932,21 +935,56 @@ void installWebApi() {
     api_regist("/index/api/startSendRtp",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
+        bool isAsync = false;
+        if (checkArgs(allArgs, "is_async"))
+            isAsync = allArgs["is_async"];
+        if (isAsync)
+        {
+            MediaInfo info = {};
+            info._vhost = allArgs["vhost"];
+            info._app = allArgs["app"];
+            info._streamid = allArgs["stream"];
+            info._schema = RTSP_SCHEMA;
+            auto session = static_cast<TcpSession*>(&sender);
+            auto session_ptr = session->shared_from_this();
 
-        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
-        if (!src) {
-            throw ApiRetException("该媒体流不存在", API::OtherFailed);
+            MediaSource::findAsync(info, session_ptr, [=](const MediaSource::Ptr& src_in) mutable {
+                if (!src_in) {
+                    val["code"] = API::OtherFailed;
+                    val["msg"] = "该媒体流不存在";
+                    invoker(200, headerOut, val.toStyledString());
+                    return;
+                }
+                auto src = dynamic_pointer_cast<RtspMediaSource>(src_in);
+                //src_port为空时，则随机本地端口
+                src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](uint16_t local_port, const SockException& ex) mutable {
+                    if (ex) {
+                        val["code"] = API::OtherFailed;
+                        val["msg"] = ex.what();
+                    }
+                    val["local_port"] = local_port;
+                    invoker(200, headerOut, val.toStyledString());
+                    });
+                });
+        }
+        else
+        {
+            auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+            if (!src) {
+                throw ApiRetException("该媒体流不存在", API::OtherFailed);
+            }
+
+            //src_port为空时，则随机本地端口
+            src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](uint16_t local_port, const SockException& ex) mutable {
+                if (ex) {
+                    val["code"] = API::OtherFailed;
+                    val["msg"] = ex.what();
+                }
+                val["local_port"] = local_port;
+                invoker(200, headerOut, val.toStyledString());
+                });
         }
 
-        //src_port为空时，则随机本地端口
-        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable{
-            if (ex) {
-                val["code"] = API::OtherFailed;
-                val["msg"] = ex.what();
-            }
-            val["local_port"] = local_port;
-            invoker(200, headerOut, val.toStyledString());
-        });
     });
 
     api_regist("/index/api/stopSendRtp",[](API_ARGS_MAP){

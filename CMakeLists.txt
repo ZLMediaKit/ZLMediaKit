@@ -17,16 +17,21 @@ endif ()
 
 #设置bin和lib库目录
 set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release)
+if(CMAKE_CL_64)
+    set(CL_32_64 64)
+else(CMAKE_CL_64)
+    set(CL_32_64 32)
+endif(CMAKE_CL_64)
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
-    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux${CL_32_64}/${BuildType})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux${CL_32_64}/${BuildType})
     add_compile_options(-fPIC -Wall -Wno-unused-variable -Wno-unused-value)
 elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/windows/${BuildType})
-    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/windows/${BuildType})
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/windows${CL_32_64}/${BuildType})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/windows${CL_32_64}/${BuildType})
 elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/mac/${BuildType})
-    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/mac/${BuildType})
+    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/mac${CL_32_64}/${BuildType})
+    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/mac${CL_32_64/${BuildType})
     add_compile_options(-Wall -Wno-unused-variable -Wno-unused-value)
 endif ()
 
@@ -57,6 +62,22 @@ option(ENABLE_MEM_DEBUG "Enable Memory Debug" false)
 option(ENABLE_ASAN "Enable Address Sanitize" false)
 option(ENABLE_WEBRTC "Enable WebRTC" false)
 option(ENABLE_PLAYER "Enable Player" true)
+option(ENABLE_MsvcMT "Enable MSVC Mt/Mtd lib" true)
+
+
+if (ENABLE_STATIC AND MSVC)
+    set(CompilerFlags
+        CMAKE_CXX_FLAGS
+        CMAKE_CXX_FLAGS_DEBUG
+        CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_C_FLAGS
+        CMAKE_C_FLAGS_DEBUG
+        CMAKE_C_FLAGS_RELEASE
+        )
+    foreach(CompilerFlag ${CompilerFlags})
+        string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+    endforeach()
+endif()
 
 # 添加git版本信息
 set(COMMIT_HASH "Git_NotFound_Unkown_commit")

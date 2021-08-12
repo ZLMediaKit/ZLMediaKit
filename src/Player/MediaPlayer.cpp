@@ -64,6 +64,13 @@ void MediaPlayer::pause(bool pause) {
     }
 }
 
+void MediaPlayer::speed(float speed)
+{
+    if (_delegate) {
+        _delegate->speed(speed);
+    }
+}
+
 void MediaPlayer::teardown() {
     if (_delegate) {
         _delegate->teardown();

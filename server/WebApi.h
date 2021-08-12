@@ -83,11 +83,12 @@ using ApiArgsType = map<string, variant, StrCaseCompare>;
 
 #define API_ARGS_MAP SockInfo &sender, HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, ApiArgsType &allArgs, Json::Value &val
 #define API_ARGS_MAP_ASYNC API_ARGS_MAP, const HttpSession::HttpResponseInvoker &invoker
-#define API_ARGS_JSON SockInfo &sender, HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, Json::Value &allArgs, Json::Value &val
+#define API_ARGS_JSON SockInfo &sender, HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, Json::Value &bodyArgs, ApiArgsType &allArgs, Json::Value &val
 #define API_ARGS_JSON_ASYNC API_ARGS_JSON, const HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_STRING SockInfo &sender, HttpSession::KeyValue &headerIn, HttpSession::KeyValue &headerOut, const Parser &allArgs, Json::Value &val
 #define API_ARGS_STRING_ASYNC API_ARGS_STRING, const HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_VALUE sender, headerIn, headerOut, allArgs, val
+#define API_ARGS_JSON_VALUE sender, headerIn, headerOut, bodyArgs, allArgs, val
 
 //注册http请求参数是map<string, variant, StrCaseCompare>类型的http api
 void api_regist(const string &api_path, const function<void(API_ARGS_MAP)> &func);
