@@ -101,13 +101,13 @@ void RtspSession::onManager() {
 
     if (_push_src && _alive_ticker.elapsedTime() > keep_alive_sec * 1000) {
         //推流超时
-        shutdown(SockException(Err_timeout, "pusher session timeouted"));
+        shutdown(SockException(Err_timeout, "pusher session timeout"));
         return;
     }
 
     if (!_push_src && _rtp_type == Rtsp::RTP_UDP && _enable_send_rtp && _alive_ticker.elapsedTime() > keep_alive_sec * 4000) {
         //rtp over udp播放器超时
-        shutdown(SockException(Err_timeout, "rtp over udp player timeouted"));
+        shutdown(SockException(Err_timeout, "rtp over udp player timeout"));
     }
 }
 
@@ -774,36 +774,27 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     }
 
     bool useGOP = true;
-    //_enable_send_rtp = false;
     float iStartTime = 0;
-    auto strRange = parser["Range"];
-    auto strScale = parser["Scale"];
-    if (strScale.size() == 0)
-    {
+    auto &strRange = parser["Range"];
+    auto &strScale = parser["Scale"];
 
-        if (strRange.size()) {
-            //这个是seek操作
-            auto strStart = FindField(strRange.data(), "npt=", "-");
-            if (strStart == "now") {
-                strStart = "0";
-            }
-            iStartTime = 1000 * (float)atof(strStart.data());
-            InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
-            useGOP = !play_src->seekTo((uint32_t)iStartTime);
-        }
-        else if (play_src->totalReaderCount() == 0) {
-            //第一个消费者
-            play_src->seekTo(0);
-        }
-        else if (play_src->totalReaderCount() > 0)
-        {
-            _enable_send_rtp = true;
-            play_src->seekTo(-1);
-        }
+    if (!strScale.empty()) {
+        //这是设置播放速度
+        auto speed = atof(strScale.data());
+        play_src->speed(speed);
+        InfoP(this) << "rtp set play speed:" << speed;
     }
-    else
-    {
-        play_src->speed(atof(strScale.data()));
+
+    if (!strRange.empty()) {
+        //这是seek操作
+        _enable_send_rtp = false;
+        auto strStart = FindField(strRange.data(), "npt=", "-");
+        if (strStart == "now") {
+            strStart = "0";
+        }
+        iStartTime = 1000 * (float) atof(strStart.data());
+        useGOP = !play_src->seekTo((uint32_t) iStartTime);
+        InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
     }
 
     _StrPrinter rtp_info;
@@ -828,7 +819,10 @@ void RtspSession::handleReq_Play(const Parser &parser) {
                       "RTP-Info",rtp_info
                      });
 
+    //在回复rtsp信令后再恢复播放
     _enable_send_rtp = true;
+    play_src->pause(false);
+
     setSocketFlags();
 
     if (!_play_reader && _rtp_type != Rtsp::RTP_MULTICAST) {
@@ -856,26 +850,21 @@ void RtspSession::handleReq_Play(const Parser &parser) {
 void RtspSession::handleReq_Pause(const Parser &parser) {
     if (parser["Session"] != _sessionid) {
         send_SessionNotFound();
-        throw SockException(Err_shutdown,"session not found when pause");
+        throw SockException(Err_shutdown, "session not found when pause");
     }
 
     sendRtspResponse("200 OK");
-
+    _enable_send_rtp = false;
 
     auto play_src = _play_src.lock();
-    if (!play_src) {
-        send_StreamNotFound();
-        shutdown(SockException(Err_shutdown, "rtsp stream released"));
-        return;
+    if (play_src) {
+        play_src->pause(true);
     }
-
-    play_src->pause();
-    //_enable_send_rtp = false;
 }
 
 void RtspSession::handleReq_Teardown(const Parser &parser) {
     sendRtspResponse("200 OK");
-    throw SockException(Err_shutdown,"rtsp player send teardown request");
+    throw SockException(Err_shutdown,"recv teardown request");
 }
 
 void RtspSession::handleReq_Get(const Parser &parser) {

@@ -67,10 +67,10 @@ public:
 
     // 通知拖动进度条
     virtual bool seekTo(MediaSource &sender, uint32_t stamp) { return false; }
-    // 通知暂停
-    virtual bool pause(MediaSource& sender) { return false; }
+    // 通知暂停或恢复
+    virtual bool pause(MediaSource &sender, bool pause) { return false; }
     // 通知倍数
-    virtual bool speed(MediaSource& sender, float speed) { return false; }
+    virtual bool speed(MediaSource &sender, float speed) { return false; }
     // 通知其停止产生流
     virtual bool close(MediaSource &sender, bool force) { return false; }
     // 获取观看总人数
@@ -110,8 +110,8 @@ public:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
     bool seekTo(MediaSource &sender, uint32_t stamp) override;
-    bool pause(MediaSource& sender) override;
-    bool speed(MediaSource& sender, float speed) override;
+    bool pause(MediaSource &sender,  bool pause) override;
+    bool speed(MediaSource &sender, float speed) override;
     bool close(MediaSource &sender, bool force) override;
     int totalReaderCount(MediaSource &sender) override;
     void onReaderChanged(MediaSource &sender, int size) override;
@@ -256,8 +256,7 @@ public:
     // 拖动进度条
     bool seekTo(uint32_t stamp);
     //暂停
-    bool pause();
-
+    bool pause(bool pause);
     //倍数播放
     bool speed(float speed);
     // 关闭该流

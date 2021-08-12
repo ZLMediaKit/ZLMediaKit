@@ -93,8 +93,8 @@ void API_CALL on_mk_play_event_func(void *user_data, int err_code, const char *e
         log_debug("play success!");
         ctx->media = mk_media_create("__defaultVhost__", "live", "test", 0, 0, 0);
 
-        int video_codec = mk_player_video_codecId(ctx->player);
-        int audio_codec = mk_player_audio_codecId(ctx->player);
+        int video_codec = mk_player_video_codec_id(ctx->player);
+        int audio_codec = mk_player_audio_codec_id(ctx->player);
         if(video_codec != -1){
             mk_media_init_video(ctx->media, video_codec,
                                 mk_player_video_width(ctx->player),

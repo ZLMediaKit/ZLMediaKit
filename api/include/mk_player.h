@@ -90,9 +90,9 @@ API_EXPORT void API_CALL mk_player_seekto(mk_player ctx, float progress);
 /**
  * 设置点播进度条
  * @param ctx 对象指针
- * @param seekPos 取值范围 相对于开始时间增量 单位秒
+ * @param seek_pos 取值范围 相对于开始时间增量 单位秒
  */
-API_EXPORT void API_CALL mk_player_seektoByPos(mk_player ctx, int seekPos);
+API_EXPORT void API_CALL mk_player_seekto_pos(mk_player ctx, int seek_pos);
 
 /**
  * 设置播放器开启播放结果回调函数
@@ -124,7 +124,7 @@ API_EXPORT void API_CALL mk_player_set_on_data(mk_player ctx, on_mk_play_data cb
  * 获取视频codec_id -1：不存在 0：H264，1：H265，2：AAC 3.G711A 4.G711U
  * @param ctx 播放器指针
  */
-API_EXPORT int API_CALL mk_player_video_codecId(mk_player ctx);
+API_EXPORT int API_CALL mk_player_video_codec_id(mk_player ctx);
 
 /**
  * 获取视频codec_id, vendor类型, 私有头数据  codec_id -1：不存在 0：H264，1：H265，2：AAC 3.G711A 4.G711U
@@ -133,7 +133,7 @@ API_EXPORT int API_CALL mk_player_video_codecId(mk_player ctx);
  * @param head 厂家SDK头数据
  * @param head 厂家SDK头数据长度
  */
-API_EXPORT int API_CALL mk_player_video_codecId_vendor_head(mk_player ctx, char* vendor, char* head, int* headLen);
+API_EXPORT int API_CALL mk_player_video_codec_id_vendor_head(mk_player ctx, char* vendor, char* head, int* headLen);
 
 /**
  * 获取视频宽度
@@ -154,7 +154,7 @@ API_EXPORT float API_CALL mk_player_video_fps(mk_player ctx);
  * 获取音频codec_id -1：不存在 0：H264，1：H265，2：AAC 3.G711A 4.G711U
  * @param ctx 播放器指针
  */
-API_EXPORT int API_CALL mk_player_audio_codecId(mk_player ctx);
+API_EXPORT int API_CALL mk_player_audio_codec_id(mk_player ctx);
 
 /**
  * 获取音频采样率

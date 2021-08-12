@@ -157,17 +157,15 @@ bool MediaSource::seekTo(uint32_t stamp) {
     return listener->seekTo(*this, stamp);
 }
 
-bool MediaSource::pause()
-{
+bool MediaSource::pause(bool pause) {
     auto listener = _listener.lock();
     if (!listener) {
         return false;
     }
-    return listener->pause(*this);
+    return listener->pause(*this, pause);
 }
 
-bool MediaSource::speed(float speed)
-{
+bool MediaSource::speed(float speed) {
     auto listener = _listener.lock();
     if (!listener) {
         return false;
@@ -601,17 +599,15 @@ bool MediaSourceEventInterceptor::seekTo(MediaSource &sender, uint32_t stamp) {
     return listener->seekTo(sender, stamp);
 }
 
-bool MediaSourceEventInterceptor::pause(MediaSource& sender)
-{
+bool MediaSourceEventInterceptor::pause(MediaSource &sender, bool pause) {
     auto listener = _listener.lock();
     if (!listener) {
         return false;
     }
-    return listener->pause(sender);
+    return listener->pause(sender, pause);
 }
 
-bool MediaSourceEventInterceptor::speed(MediaSource& sender, float speed)
-{
+bool MediaSourceEventInterceptor::speed(MediaSource &sender, float speed) {
     auto listener = _listener.lock();
     if (!listener) {
         return false;

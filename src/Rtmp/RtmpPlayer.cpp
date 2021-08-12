@@ -171,8 +171,7 @@ void RtmpPlayer::pause(bool bPause) {
     send_pause(bPause);
 }
 
-void RtmpPlayer::speed(float speed)
-{
+void RtmpPlayer::speed(float speed) {
     //todo
 }
 

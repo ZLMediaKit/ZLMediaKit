@@ -413,22 +413,17 @@ void RtmpSession::onCmd_pause(AMFDecoder &dec) {
     sendUserControl(paused ? CONTROL_STREAM_EOF : CONTROL_STREAM_BEGIN, STREAM_MEDIA);
     _paused = paused;
 
-    auto stongSrc = _player_src.lock();
-    if (stongSrc) {
-        if (_paused)
-            stongSrc->pause();
-        else
-            stongSrc->seekTo(-1);
+    auto strongSrc = _player_src.lock();
+    if (strongSrc) {
+        strongSrc->pause(paused);
     }
 }
 
-void RtmpSession::onCmd_playCtrl(AMFDecoder& dec)
-{
+void RtmpSession::onCmd_playCtrl(AMFDecoder &dec) {
     dec.load<AMFValue>();
     auto ctrlObj = dec.load<AMFValue>();
     int ctrlType = ctrlObj["ctrlType"].as_integer();
     float speed = ctrlObj["speed"].as_number();
-
 
     AMFValue status(AMF_OBJECT);
     status.set("level", "status");
