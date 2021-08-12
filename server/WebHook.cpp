@@ -421,6 +421,11 @@ void installWebHook(){
                 return;
             }
             strongSrc->close(false);
+            WarnL << "无人观看主动关闭流:"
+                  << strongSrc->getSchema() << "/"
+                  << strongSrc->getVhost() << "/"
+                  << strongSrc->getApp() << "/"
+                  << strongSrc->getId();
         });
     });
 
