@@ -69,13 +69,30 @@ class HttpStringBody : public HttpBody{
 public:
     typedef std::shared_ptr<HttpStringBody> Ptr;
     HttpStringBody(const string &str);
-    virtual ~HttpStringBody(){}
+    ~HttpStringBody() override = default;
+
     ssize_t remainSize() override;
     Buffer::Ptr readData(size_t size) override ;
 
 private:
     size_t _offset = 0;
     mutable string _str;
+};
+
+/**
+ * Buffer类型的content
+ */
+class HttpBufferBody : public HttpBody{
+public:
+    typedef std::shared_ptr<HttpBufferBody> Ptr;
+    HttpBufferBody(Buffer::Ptr buffer);
+    ~HttpBufferBody() override = default;
+
+    ssize_t remainSize() override;
+    Buffer::Ptr readData(size_t size) override;
+
+private:
+    Buffer::Ptr _buffer;
 };
 
 /**
@@ -93,7 +110,7 @@ public:
      */
     HttpFileBody(const std::shared_ptr<FILE> &fp,size_t offset,size_t max_size);
     HttpFileBody(const string &file_path);
-    ~HttpFileBody(){};
+    ~HttpFileBody() override = default;
 
     ssize_t remainSize() override ;
     Buffer::Ptr readData(size_t size) override;

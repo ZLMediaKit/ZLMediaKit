@@ -514,6 +514,10 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
 
 ////////////////////////////////////HttpResponseInvokerImp//////////////////////////////////////
 
+void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, const Buffer::Ptr &body) const {
+    return operator()(code, headerOut, std::make_shared<HttpBufferBody>(body));
+}
+
 void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const{
     if (_lambad) {
         _lambad(code, headerOut, body);
