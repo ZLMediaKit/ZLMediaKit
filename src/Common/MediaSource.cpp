@@ -537,11 +537,6 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
 
         if (!is_mp4_vod) {
             //直播时触发无人观看事件，让开发者自行选择是否关闭
-            WarnL << "无人观看事件:"
-                  << strong_sender->getSchema() << "/"
-                  << strong_sender->getVhost() << "/"
-                  << strong_sender->getApp() << "/"
-                  << strong_sender->getId();
             NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strong_sender);
         } else {
             //这个是mp4点播，我们自动关闭
