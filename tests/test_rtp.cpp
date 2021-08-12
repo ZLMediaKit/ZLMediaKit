@@ -36,7 +36,7 @@ static bool loadFile(const char *path){
 
     uint32_t timeStamp_last = 0;
     uint16_t len;
-    char rtp[50 * 1024];
+    char rtp[0xFFFF];
     struct sockaddr addr = {0};
     auto sock = Socket::createSocket();
     size_t total_size = 0;
