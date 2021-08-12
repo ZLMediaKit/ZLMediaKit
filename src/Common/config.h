@@ -228,7 +228,7 @@ namespace Rtp {
 extern const string kVideoMtuSize;
 //RTP打包最大MTU,公网情况下更小
 extern const string kAudioMtuSize;
-//rtp包最大长度限制, 单位k
+//rtp包最大长度限制, 单位KB
 extern const string kRtpMaxSize;
 } //namespace Rtsp
 
