@@ -247,4 +247,16 @@ string HttpMultiFormBody::multiFormBodyPrefix(const HttpArgs &args,const string 
     return std::move(body);
 }
 
+HttpBufferBody::HttpBufferBody(Buffer::Ptr buffer) {
+    _buffer = std::move(buffer);
+}
+
+ssize_t HttpBufferBody::remainSize() {
+    return _buffer ? _buffer->size() : 0;
+}
+
+Buffer::Ptr HttpBufferBody::readData(size_t size) {
+    return Buffer::Ptr(std::move(_buffer));
+}
+
 }//namespace mediakit

@@ -217,10 +217,7 @@ static inline void addHttpListener(){
         consumed = true;
 
         if(api_debug){
-            auto newInvoker = [invoker, parser](int code,
-                                                const HttpSession::KeyValue &headerOut,
-                                                const HttpBody::Ptr &body) {
-
+            auto newInvoker = [invoker, parser](int code, const HttpSession::KeyValue &headerOut, const HttpBody::Ptr &body) {
                 //body默认为空
                 ssize_t size = 0;
                 if (body && body->remainSize()) {
@@ -228,18 +225,23 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
+                LogContextCapturer log(getLogger(), LDebug, __FILE__, "http api debug", __LINE__);
+                log << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n";
+                log << "# header:\r\n";
+
+                for (auto &pr : parser.getHeader()) {
+                    log << pr.first << " : " << pr.second << "\r\n";
+                }
+
+                auto &content = parser.Content();
+                log << "# content:\r\n" << (content.size() > 4 * 1024 ? content.substr(0, 4 * 1024) : content) << "\r\n";
+
                 if (size && size < 4 * 1024) {
-                    string contentOut = body->readData(size)->toString();
-                    DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
-                           << "# content:\r\n" << parser.Content() << "\r\n"
-                           << "# response:\r\n"
-                           << contentOut << "\r\n";
-                    invoker(code, headerOut, contentOut);
+                    auto response = body->readData(size);
+                    log << "# response:\r\n" << response->data() << "\r\n";
+                    invoker(code, headerOut, response);
                 } else {
-                    DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
-                           << "# content:\r\n" << parser.Content() << "\r\n"
-                           << "# response size:"
-                           << size << "\r\n";
+                    log << "# response size:" << size << "\r\n";
                     invoker(code, headerOut, body);
                 }
             };

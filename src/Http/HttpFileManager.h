@@ -31,6 +31,7 @@ public:
     HttpResponseInvokerImp(const HttpResponseInvokerLambda0 &lambda);
     HttpResponseInvokerImp(const HttpResponseInvokerLambda1 &lambda);
 
+    void operator()(int code, const StrCaseMap &headerOut, const Buffer::Ptr &body) const;
     void operator()(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const;
     void operator()(int code, const StrCaseMap &headerOut, const string &body) const;
 
