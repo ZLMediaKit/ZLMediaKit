@@ -53,6 +53,7 @@ private:
 
     void onCmd_seek(AMFDecoder &dec);
     void onCmd_pause(AMFDecoder &dec);
+    void onCmd_playCtrl(AMFDecoder& dec);
     void setMetaData(AMFDecoder &dec);
 
     void onSendMedia(const RtmpPacket::Ptr &pkt);

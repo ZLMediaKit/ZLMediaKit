@@ -74,11 +74,25 @@ API_EXPORT void API_CALL mk_player_play(mk_player ctx, const char *url);
 API_EXPORT void API_CALL mk_player_pause(mk_player ctx, int pause);
 
 /**
+ * 倍数播放，仅对点播有用
+ * @param ctx 播放器指针
+ * @param speed 0.5 1.0 2.0 
+ */
+API_EXPORT void API_CALL mk_player_speed(mk_player ctx, float speed);
+
+/**
  * 设置点播进度条
  * @param ctx 对象指针
  * @param progress 取值范围未 0.0～1.0
  */
 API_EXPORT void API_CALL mk_player_seekto(mk_player ctx, float progress);
+
+/**
+ * 设置点播进度条
+ * @param ctx 对象指针
+ * @param seekPos 取值范围 相对于开始时间增量 单位秒
+ */
+API_EXPORT void API_CALL mk_player_seektoByPos(mk_player ctx, int seekPos);
 
 /**
  * 设置播放器开启播放结果回调函数
@@ -111,6 +125,15 @@ API_EXPORT void API_CALL mk_player_set_on_data(mk_player ctx, on_mk_play_data cb
  * @param ctx 播放器指针
  */
 API_EXPORT int API_CALL mk_player_video_codecId(mk_player ctx);
+
+/**
+ * 获取视频codec_id, vendor类型, 私有头数据  codec_id -1：不存在 0：H264，1：H265，2：AAC 3.G711A 4.G711U
+ * @param ctx 播放器指针
+ * @param vendor 输出厂家类型 如果是私有流 应该是H264另外还有厂家类型
+ * @param head 厂家SDK头数据
+ * @param head 厂家SDK头数据长度
+ */
+API_EXPORT int API_CALL mk_player_video_codecId_vendor_head(mk_player ctx, char* vendor, char* head, int* headLen);
 
 /**
  * 获取视频宽度
@@ -154,9 +177,14 @@ API_EXPORT int API_CALL mk_player_audio_channel(mk_player ctx);
 API_EXPORT float API_CALL mk_player_duration(mk_player ctx);
 
 /**
- * 获取点播播放进度，取值范围未 0.0～1.0
+ * 获取点播播放进度，取值范围 0.0～1.0
  */
 API_EXPORT float API_CALL mk_player_progress(mk_player ctx);
+
+/**
+ * 获取点播播放进度位置，取值范围 相对于开始时间增量 单位秒
+ */
+API_EXPORT int API_CALL mk_player_progress_pos(mk_player ctx);
 
 /**
  * 获取丢包率，rtsp时有效

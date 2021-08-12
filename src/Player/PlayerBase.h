@@ -66,6 +66,12 @@ public:
     virtual void pause(bool bPause) {}
 
     /**
+     * 倍数播放
+     * @param speed 1.0 2.0 0.5
+     */
+    virtual void speed(float speed) {}
+
+    /**
      * 中断播放
      */
     virtual void teardown() {}
@@ -95,10 +101,22 @@ public:
     virtual float getProgress() const { return 0;}
 
     /**
+     * 获取播放进度pos，取值 相对开始时间增量 单位秒
+     * @return
+     */
+    virtual uint32_t getProgressPos() const { return 0; }
+
+    /**
      * 拖动进度条
      * @param fProgress 进度，取值 0.0 ~ 1.0
      */
     virtual void seekTo(float fProgress) {}
+
+    /**
+     * 拖动进度条
+     * @param seekPos 进度，取值 相对于开始时间的增量 单位秒
+     */
+    virtual void seekTo(uint32_t seekPos) {}
 
     /**
      * 设置一个MediaSource，直接生产rtsp/rtmp代理
@@ -175,11 +193,24 @@ public:
         }
         return Parent::getProgress();
     }
+    uint32_t getProgressPos() const override {
+        if (_delegate) {
+            return _delegate->getProgressPos();
+        }
+        return Parent::getProgressPos();
+    }
     void seekTo(float fProgress) override{
         if (_delegate) {
             return _delegate->seekTo(fProgress);
         }
         return Parent::seekTo(fProgress);
+    }
+
+    void seekTo(uint32_t seekPos) override {
+        if (_delegate) {
+            return _delegate->seekTo(seekPos);
+        }
+        return Parent::seekTo(seekPos);
     }
 
     void setMediaSource(const MediaSource::Ptr & src) override {

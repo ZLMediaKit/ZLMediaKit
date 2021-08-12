@@ -143,12 +143,41 @@ API_EXPORT void API_CALL mk_media_set_on_close(mk_media ctx, on_mk_media_close c
 typedef int(API_CALL *on_mk_media_seek)(void *user_data,uint32_t stamp_ms);
 
 /**
+ * 收到客户端的pause请求时触发该回调
+ * @param user_data 用户数据指针,通过mk_media_set_on_pause设置
+ */
+typedef int(API_CALL* on_mk_media_pause)(void* user_data);
+
+/**
+ * 收到客户端的speed请求时触发该回调
+ * @param user_data 用户数据指针,通过mk_media_set_on_pause设置
+ * @param speed 0.5 1.0 2.0
+ */
+typedef int(API_CALL* on_mk_media_speed)(void* user_data, float speed);
+
+/**
  * 监听播放器seek请求事件
  * @param ctx 对象指针
  * @param cb 回调指针
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb, void *user_data);
+
+/**
+ * 监听播放器pause请求事件
+ * @param ctx 对象指针
+ * @param cb 回调指针
+ * @param user_data 用户数据指针
+ */
+API_EXPORT void API_CALL mk_media_set_on_pause(mk_media ctx, on_mk_media_pause cb, void* user_data);
+
+/**
+ * 监听播放器pause请求事件
+ * @param ctx 对象指针
+ * @param cb 回调指针
+ * @param user_data 用户数据指针
+ */
+API_EXPORT void API_CALL mk_media_set_on_speed(mk_media ctx, on_mk_media_speed cb, void* user_data);
 
 /**
  * 获取总的观看人数

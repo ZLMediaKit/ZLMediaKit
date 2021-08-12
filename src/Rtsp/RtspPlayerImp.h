@@ -42,9 +42,22 @@ public:
 
     }
 
-    void seekTo(float fProgress) override {
-        fProgress = MAX(float(0), MIN(fProgress, float(1.0)));
+    uint32_t getProgressPos() const override {
+        if (getDuration() > 0) {
+            return getProgressMilliSecond();
+        }
+        return PlayerBase::getProgressPos();
+
+    };
+
+    void seekTo(float fProgress) override{
+        fProgress = MAX(float(0),MIN(fProgress,float(1.0)));
         seekToMilliSecond((uint32_t)(fProgress * getDuration() * 1000));
+    }
+
+    void seekTo(uint32_t seekPos) override {
+        uint32_t pos = MAX(float(0), MIN(seekPos, getDuration()))*1000;
+        seekToMilliSecond(pos);
     }
 
 private:

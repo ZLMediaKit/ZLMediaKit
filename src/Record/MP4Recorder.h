@@ -65,6 +65,8 @@ private:
     RecordInfo _info;
     MP4Muxer::Ptr _muxer;
     list<Track::Ptr> _tracks;
+
+	uint64_t _baseSec = 0;
 };
 
 #endif ///ENABLE_MP4
