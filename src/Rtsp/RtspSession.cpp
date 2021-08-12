@@ -782,7 +782,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         //这是设置播放速度
         auto speed = atof(strScale.data());
         play_src->speed(speed);
-        InfoP(this) << "rtp set play speed:" << speed;
+        InfoP(this) << "rtsp set play speed:" << speed;
     }
 
     if (!strRange.empty()) {

@@ -309,11 +309,9 @@ API_EXPORT float API_CALL mk_player_progress(mk_player ctx) {
     return obj->getProgress();
 }
 
-
-API_EXPORT int API_CALL mk_player_progress_pos(mk_player ctx)
-{
+API_EXPORT int API_CALL mk_player_progress_pos(mk_player ctx) {
     assert(ctx);
-    MediaPlayerForC& obj = **((MediaPlayerForC::Ptr*)ctx);
+    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *) ctx);
     return obj->getProgressPos();
 }
 
