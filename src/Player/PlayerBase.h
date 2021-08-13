@@ -102,6 +102,7 @@ public:
 
     /**
      * 获取播放进度pos，取值 相对开始时间增量 单位秒
+     * @return
      */
     virtual uint32_t getProgressPos() const { return 0; }
 
