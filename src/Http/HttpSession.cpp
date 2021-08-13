@@ -118,9 +118,9 @@ void HttpSession::onError(const SockException& err) {
     }
 
     //http客户端
-    if(_ticker.createdTime() < 10 * 1000){
+    if (!_is_live_stream) {
         TraceP(this) << err.what();
-    }else{
+    } else {
         WarnP(this) << err.what();
     }
 }
