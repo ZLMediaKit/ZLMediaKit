@@ -1,0 +1,64 @@
+# This is for clang-format >= 9.0.
+#
+# clang-format --version
+# clang-format version 9.0.1 (Red Hat 9.0.1-2.module+el8.2.0+5494+7b8075cf)
+#
+# 详细说明见: https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+# 部分参数会随版本变化.
+---
+Language: Cpp
+# 基于 WebKit 的风格, https://www.webkit.org/coding/coding-style.html
+BasedOnStyle: WebKit
+
+# 以下各选项按字母排序
+
+# public/protected/private 不缩进
+AccessModifierOffset: -4
+# 参数过长时统一换行
+AlignAfterOpenBracket: AlwaysBreak
+# clang-format >= 13 required, map 之类的内部列对齐
+# AlignArrayOfStructures: Left
+# 换行符统一在 ColumnLimit 最右侧
+AlignEscapedNewlines: Right
+# 不允许短代码块单行, 即不允许单行代码: if (x) return;
+AllowShortBlocksOnASingleLine: false
+# 只允许 Inline 函数单行
+AllowShortFunctionsOnASingleLine: Inline
+# 模板声明换行
+AlwaysBreakTemplateDeclarations: Yes
+# 左开括号不换行
+BreakBeforeBraces: Attach
+# 构造函数初始化时在 `,` 前换行, 和 `:` 对齐显得整齐
+BreakConstructorInitializers: BeforeComma
+# 继承过长需要换行时也在 `,` 前
+BreakInheritanceList: BeforeComma
+# 列宽 120
+ColumnLimit: 120
+# c++11 括号内起始/结束无空格, false 会加上
+Cpp11BracedListStyle: false
+# 命名空间后的注释会修正为: // namespace_name
+FixNamespaceComments: true
+# clang-format >= 13 required, lambda 函数内部缩进级别和外部一致, 默认会增加一级缩进
+# LambdaBodyIndentation: OuterScope
+# 命名空间不缩进
+NamespaceIndentation: None
+# PPIndentWidth: 2
+# */& 靠近变量, 向右靠
+PointerAlignment: Right
+# c++11 使用 {} 构造时和变量加个空格
+SpaceBeforeCpp11BracedList: true
+# 继承时 `:` 前加空格
+SpaceBeforeInheritanceColon: true
+# () 前不加空格, do/for/if/switch/while 除外
+SpaceBeforeParens: ControlStatements
+# 空 {} 中不加空格
+SpaceInEmptyBlock: false
+# Tab 占 4 位
+TabWidth: 4
+# 不使用 TAB
+UseTab: Never
+---
+Language: Java
+---
+Language: JavaScript
+...
