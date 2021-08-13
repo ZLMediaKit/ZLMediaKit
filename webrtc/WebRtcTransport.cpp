@@ -236,7 +236,7 @@ bool is_rtcp(char *buf) {
     return ((header->pt >= 64) && (header->pt < 96));
 }
 
-void WebRtcTransport::inputSockData(char *buf, size_t len, RTC::TransportTuple *tuple) {
+void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tuple) {
     if (RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
         RTC::StunPacket *packet = RTC::StunPacket::Parse((const uint8_t *) buf, len);
         if (packet == nullptr) {
@@ -264,7 +264,7 @@ void WebRtcTransport::inputSockData(char *buf, size_t len, RTC::TransportTuple *
     }
 }
 
-void WebRtcTransport::sendRtpPacket(const char *buf, size_t len, bool flush, void *ctx) {
+void WebRtcTransport::sendRtpPacket(const char *buf, int len, bool flush, void *ctx) {
     if (_srtp_session_send) {
         //预留rtx加入的两个字节
         CHECK(len + SRTP_MAX_TRAILER_LEN + 2 <= sizeof(_srtp_buf));
@@ -276,7 +276,7 @@ void WebRtcTransport::sendRtpPacket(const char *buf, size_t len, bool flush, voi
     }
 }
 
-void WebRtcTransport::sendRtcpPacket(const char *buf, size_t len, bool flush, void *ctx){
+void WebRtcTransport::sendRtcpPacket(const char *buf, int len, bool flush, void *ctx){
     if (_srtp_session_send) {
         CHECK(len + SRTP_MAX_TRAILER_LEN <= sizeof(_srtp_buf));
         memcpy(_srtp_buf, buf, len);
@@ -901,7 +901,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
 }
 
-void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, size_t &len, void *ctx) {
+void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx) {
     auto pr = (pair<bool/*rtx*/, MediaTrack *> *) ctx;
     auto header = (RtpHeader *) buf;
 
