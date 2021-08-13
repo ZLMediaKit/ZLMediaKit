@@ -231,7 +231,7 @@ namespace RTC
 		}
 	}
 
-	bool SrtpSession::EncryptRtp(uint8_t* data, size_t* len)
+	bool SrtpSession::EncryptRtp(uint8_t* data, int* len)
 	{
 		MS_TRACE();
 		srtp_err_status_t err =
@@ -246,7 +246,7 @@ namespace RTC
 		return true;
 	}
 
-	bool SrtpSession::DecryptSrtp(uint8_t* data, size_t* len)
+	bool SrtpSession::DecryptSrtp(uint8_t* data, int* len)
 	{
 		MS_TRACE();
 
@@ -262,7 +262,7 @@ namespace RTC
 		return true;
 	}
 
-	bool SrtpSession::EncryptRtcp(uint8_t* data, size_t* len)
+	bool SrtpSession::EncryptRtcp(uint8_t* data, int* len)
 	{
 		MS_TRACE();
 		srtp_err_status_t err = srtp_protect_rtcp(
@@ -277,7 +277,7 @@ namespace RTC
 		return true;
 	}
 
-	bool SrtpSession::DecryptSrtcp(uint8_t* data, size_t* len)
+	bool SrtpSession::DecryptSrtcp(uint8_t* data, int* len)
 	{
 		MS_TRACE();
 

@@ -56,7 +56,7 @@ public:
      * @param len 数据长度
      * @param tuple 数据来源
      */
-    void inputSockData(char *buf, size_t len, RTC::TransportTuple *tuple);
+    void inputSockData(char *buf, int len, RTC::TransportTuple *tuple);
 
     /**
      * 发送rtp
@@ -65,8 +65,8 @@ public:
      * @param flush 是否flush socket
      * @param ctx 用户指针
      */
-    void sendRtpPacket(const char *buf, size_t len, bool flush, void *ctx = nullptr);
-    void sendRtcpPacket(const char *buf, size_t len, bool flush, void *ctx = nullptr);
+    void sendRtpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
+    void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
 
     const EventPoller::Ptr& getPoller() const;
 
@@ -103,8 +103,8 @@ protected:
     virtual void onRtp(const char *buf, size_t len) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
     virtual void onShutdown(const SockException &ex) = 0;
-    virtual void onBeforeEncryptRtp(const char *buf, size_t &len, void *ctx) = 0;
-    virtual void onBeforeEncryptRtcp(const char *buf, size_t &len, void *ctx) = 0;
+    virtual void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) = 0;
+    virtual void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) = 0;
 
 protected:
     const RtcSession& getSdp(SdpType type) const;
@@ -176,8 +176,8 @@ protected:
 
     void onRtp(const char *buf, size_t len) override;
     void onRtcp(const char *buf, size_t len) override;
-    void onBeforeEncryptRtp(const char *buf, size_t &len, void *ctx) override;
-    void onBeforeEncryptRtcp(const char *buf, size_t &len, void *ctx) override {};
+    void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) override;
+    void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) override {};
 
     void onShutdown(const SockException &ex) override;
 
