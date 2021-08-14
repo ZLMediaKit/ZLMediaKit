@@ -239,5 +239,5 @@ uint64_t NackContext::reSendNack() {
     }
 
     //重传间隔不得低于5ms
-    return std::max(_rtt, 5);
+    return max(_rtt, 5);
 }
