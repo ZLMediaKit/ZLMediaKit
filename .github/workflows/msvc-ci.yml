@@ -1,0 +1,30 @@
+name: MSVC C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          submodules: 'recursive'
+          fetch-depth: 1
+
+      - name: 配置 vcpkg
+        uses: lukka/run-vcpkg@v7
+        with:
+          vcpkgDirectory: '${{github.workspace}}/vcpkg'
+          vcpkgTriplet: x64-windows-static
+          # 2021.05.12
+          vcpkgGitCommitId: '5568f110b509a9fd90711978a7cb76bae75bb092'
+          vcpkgArguments: 'openssl libsrtp'
+
+      - name: 编译
+        uses: lukka/run-cmake@main
+        with:
+          useVcpkgToolchainFile: true
+          buildDirectory: '${{github.workspace}}/build'
+          cmakeAppendedArgs: '-DCMAKE_ENABLE_WEBRTC:BOOL=ON'
+          cmakeBuildType: 'RelWithDebInfo'
