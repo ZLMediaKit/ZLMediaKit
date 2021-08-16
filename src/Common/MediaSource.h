@@ -61,7 +61,7 @@ public:
     // 获取媒体源类型
     virtual MediaOriginType getOriginType(MediaSource &sender) const { return MediaOriginType::unknown; }
     // 获取媒体源url或者文件路径
-    virtual string getOriginUrl(MediaSource &sender) const { return ""; }
+    virtual string getOriginUrl(MediaSource &sender) const;
     // 获取媒体源客户端相关信息
     virtual std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const { return nullptr; }
 
@@ -198,7 +198,7 @@ private:
  */
 class MediaSource: public TrackSource, public enable_shared_from_this<MediaSource> {
 public:
-    static constexpr MediaSource *NullMediaSource = nullptr;
+    static MediaSource * const NullMediaSource;
     using Ptr = std::shared_ptr<MediaSource>;
     using StreamMap = unordered_map<string, weak_ptr<MediaSource> >;
     using AppStreamMap = unordered_map<string, StreamMap>;

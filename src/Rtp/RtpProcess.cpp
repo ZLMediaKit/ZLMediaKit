@@ -262,10 +262,10 @@ MediaOriginType RtpProcess::getOriginType(MediaSource &sender) const{
 }
 
 string RtpProcess::getOriginUrl(MediaSource &sender) const {
-    return _media_info._full_url;
+    return _media_info._schema + "://" + _media_info._vhost + "/" + _media_info._app + "/" + _media_info._streamid;
 }
 
-std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const{
+std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const {
     return const_cast<RtpProcess *>(this)->shared_from_this();
 }
 

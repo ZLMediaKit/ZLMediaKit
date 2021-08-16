@@ -145,6 +145,7 @@ private:
     Ticker _last_check;
     Stamp _stamp[2];
     std::weak_ptr<Listener> _track_listener;
+    function<string()> _get_origin_url;
 #if defined(ENABLE_RTPPROXY)
     mutex _rtp_sender_mtx;
 	unordered_map<string, RtpSender::Ptr> _rtp_sender;
