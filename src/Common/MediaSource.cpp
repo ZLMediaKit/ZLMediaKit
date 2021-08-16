@@ -40,6 +40,17 @@ string getOriginTypeString(MediaOriginType type){
     }
 }
 
+static string getOriginUrl_l(const MediaSource *thiz) {
+    if (thiz == MediaSource::NullMediaSource) {
+        return "";
+    }
+    return thiz->getSchema() + "://" + thiz->getVhost() + "/" + thiz->getApp() + "/" + thiz->getId();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+MediaSource * const MediaSource::NullMediaSource = nullptr;
+
 MediaSource::MediaSource(const string &schema, const string &vhost, const string &app, const string &stream_id){
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     if (!enableVhost) {
@@ -136,9 +147,13 @@ MediaOriginType MediaSource::getOriginType() const {
 string MediaSource::getOriginUrl() const {
     auto listener = _listener.lock();
     if (!listener) {
-        return "";
+        return getOriginUrl_l(this);
     }
-    return listener->getOriginUrl(const_cast<MediaSource &>(*this));
+    auto ret = listener->getOriginUrl(const_cast<MediaSource &>(*this));
+    if (!ret.empty()) {
+        return ret;
+    }
+    return getOriginUrl_l(this);
 }
 
 std::shared_ptr<SockInfo> MediaSource::getOriginSock() const {
@@ -567,6 +582,10 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
     }, nullptr);
 }
 
+string MediaSourceEvent::getOriginUrl(MediaSource &sender) const {
+    return getOriginUrl_l(&sender);
+}
+
 MediaOriginType MediaSourceEventInterceptor::getOriginType(MediaSource &sender) const {
     auto listener = _listener.lock();
     if (!listener) {
@@ -578,9 +597,13 @@ MediaOriginType MediaSourceEventInterceptor::getOriginType(MediaSource &sender) 
 string MediaSourceEventInterceptor::getOriginUrl(MediaSource &sender) const {
     auto listener = _listener.lock();
     if (!listener) {
-        return "";
+        return MediaSourceEvent::getOriginUrl(sender);
     }
-    return listener->getOriginUrl(sender);
+    auto ret = listener->getOriginUrl(sender);
+    if (!ret.empty()) {
+        return ret;
+    }
+    return MediaSourceEvent::getOriginUrl(sender);
 }
 
 std::shared_ptr<SockInfo> MediaSourceEventInterceptor::getOriginSock(MediaSource &sender) const {

@@ -58,6 +58,14 @@ static string getTrackInfoStr(const TrackSource *track_src){
 
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec,
                                              bool enable_rtsp, bool enable_rtmp, bool enable_hls, bool enable_mp4) {
+    _get_origin_url = [this, vhost, app, stream]() {
+        auto ret = getOriginUrl(*MediaSource::NullMediaSource);
+        if (!ret.empty()) {
+            return ret;
+        }
+        return vhost + "/" + app + "/" + stream;
+    };
+
     if (enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleMeta>(dur_sec));
     }
@@ -286,7 +294,7 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     if (listener) {
         listener->onAllTrackReady();
     }
-    InfoL << "stream: " << getOriginUrl(*MediaSource::NullMediaSource) << " , codec info: " << getTrackInfoStr(this);
+    InfoL << "stream: " << _get_origin_url() << " , codec info: " << getTrackInfoStr(this);
 }
 
 void MultiMediaSourceMuxer::resetTracks() {
