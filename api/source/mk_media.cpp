@@ -96,7 +96,7 @@ protected:
         if (!_on_speed) {
             return false;
         }
-        return _on_speed(_on_pause_data, speed);
+        return _on_speed(_on_speed_data, speed);
     }
 
     // 观看总人数
