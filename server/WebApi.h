@@ -151,6 +151,7 @@ public:
             _get_args = that._get_args;
             _get_parser = that._get_parser;
             _get_value = that._get_value;
+            _cache_able = true;
         } else {
             that._clone(*this);
         }
