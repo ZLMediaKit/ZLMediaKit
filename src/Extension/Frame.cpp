@@ -203,8 +203,8 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
                 //缓存中没有有效的能解码的帧，所以这次不flush
                 return _frame_cache.size() > kMaxFrameCacheSize;
             }
-            if (_frame_cache.back()->dts() != frame->dts() || frame->decodeAble()) {
-                //时间戳变化了,或新的一帧，立即flush
+            if (_frame_cache.back()->dts() != frame->dts() || frame->decodeAble() || frame->configFrame()) {
+                //时间戳变化了,或新的一帧，或遇到config帧，立即flush
                 return true;
             }
             return _frame_cache.size() > kMaxFrameCacheSize;
