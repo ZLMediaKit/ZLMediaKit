@@ -70,7 +70,9 @@ public:
     bool keyFrame() const override {
         auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
         auto type = H265_TYPE(*nal_ptr);
-        return (type == NAL_IDR_N_LP || type == NAL_IDR_W_RADL) && decodeAble();
+        // 参考自FFmpeg: IRAP VCL NAL unit types span the range
+        // [BLA_W_LP (16), RSV_IRAP_VCL23 (23)].
+        return (type >= NAL_BLA_W_LP && type <= NAL_RSV_IRAP_VCL23) && decodeAble() ;
     }
 
     bool configFrame() const override {
