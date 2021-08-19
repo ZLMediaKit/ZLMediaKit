@@ -163,16 +163,33 @@ public:
             _render = SDL_CreateRenderer(_win, -1, SDL_RENDERER_ACCELERATED);
         }
         if (_render && !_texture) {
-            _texture = SDL_CreateTexture(_render, SDL_PIXELFORMAT_IYUV,
+            //support NV12, when in windows
+            Uint32 uFormat = SDL_PIXELFORMAT_UNKNOWN;
+            if (pFrame->format == AV_PIX_FMT_YUV420P) {
+                uFormat = SDL_PIXELFORMAT_IYUV;
+            } else if (pFrame->format == AV_PIX_FMT_NV12) {
+                uFormat = SDL_PIXELFORMAT_NV12;
+            } else {
+                ErrorL << "not support format:" << pFrame->format;
+                return false;
+            }
+            _texture = SDL_CreateTexture(_render, uFormat,
                                          SDL_TEXTUREACCESS_STREAMING,
                                          pFrame->width,
                                          pFrame->height);
         }
         if (_texture) {
-            SDL_UpdateYUVTexture(_texture, nullptr,
-                                 pFrame->data[0], pFrame->linesize[0],
-                                 pFrame->data[1], pFrame->linesize[1],
-                                 pFrame->data[2], pFrame->linesize[2]);
+            if (pFrame->format == AV_PIX_FMT_YUV420P) {
+                SDL_UpdateYUVTexture(
+                    _texture, nullptr, pFrame->data[0], pFrame->linesize[0], pFrame->data[1], pFrame->linesize[1],
+                    pFrame->data[2], pFrame->linesize[2]);
+            } else if (pFrame->format == AV_PIX_FMT_NV12) {
+                SDL_UpdateNVTexture(
+                    _texture, nullptr, pFrame->data[0], pFrame->linesize[0], pFrame->data[1], pFrame->linesize[1]);
+            }
+            else {
+                return false;
+            }
 
             //SDL_UpdateTexture(_texture, nullptr, pFrame->data[0], pFrame->linesize[0]);
             SDL_RenderClear(_render);
