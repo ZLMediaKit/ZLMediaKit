@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "Rtmp/utils.h"
 #include "H264Rtmp.h"
 namespace mediakit{
 
@@ -177,30 +178,29 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 
     if (!_rtmp_packet) {
-        //I or P or B frame
-        int8_t flags = FLV_CODEC_H264;
-        bool is_config = false;
-        flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
-
         _rtmp_packet = RtmpPacket::create();
-        _rtmp_packet->buffer.clear();
-        _rtmp_packet->buffer.push_back(flags);
-        _rtmp_packet->buffer.push_back(!is_config);
-        int32_t cts = frame->pts() - frame->dts();
+        //flags/not config/cts预占位
+        _rtmp_packet->buffer.resize(5);
+    }
+
+    _merger.inputFrame(frame, [this](uint32_t dts, uint32_t pts, const Buffer::Ptr &, bool have_key_frame) {
+        //flags
+        _rtmp_packet->buffer[0] = FLV_CODEC_H264 | ((have_key_frame ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
+        //not config
+        _rtmp_packet->buffer[1] = true;
+        int32_t cts = pts - dts;
         if (cts < 0) {
             cts = 0;
         }
-        cts = htonl(cts);
-        _rtmp_packet->buffer.append((char *) &cts + 1, 3);
+        //cts
+        set_be24(&_rtmp_packet->buffer[2], cts);
+
+        _rtmp_packet->time_stamp = dts;
+        _rtmp_packet->body_size = _rtmp_packet->buffer.size();
         _rtmp_packet->chunk_id = CHUNK_VIDEO;
         _rtmp_packet->stream_index = STREAM_MEDIA;
-        _rtmp_packet->time_stamp = frame->dts();
         _rtmp_packet->type_id = MSG_VIDEO;
-    }
-
-    _merger.inputFrame(frame, [&](uint32_t, uint32_t, const Buffer::Ptr &, bool) {
         //输出rtmp packet
-        _rtmp_packet->body_size = _rtmp_packet->buffer.size();
         RtmpCodec::inputRtmp(_rtmp_packet);
         _rtmp_packet = nullptr;
     }, &_rtmp_packet->buffer);
