@@ -238,12 +238,12 @@ bool is_rtcp(char *buf) {
 
 void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tuple) {
     if (RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
-        RTC::StunPacket *packet = RTC::StunPacket::Parse((const uint8_t *) buf, len);
-        if (packet == nullptr) {
+        std::unique_ptr<RTC::StunPacket> packet(RTC::StunPacket::Parse((const uint8_t *) buf, len));
+        if (!packet) {
             WarnL << "parse stun error" << std::endl;
             return;
         }
-        _ice_server->ProcessStunPacket(packet, tuple);
+        _ice_server->ProcessStunPacket(packet.get(), tuple);
         return;
     }
     if (is_dtls(buf)) {
