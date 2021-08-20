@@ -42,7 +42,9 @@ const string kOnShellLogin = HOOK_FIELD"on_shell_login";
 const string kOnStreamNoneReader = HOOK_FIELD"on_stream_none_reader";
 const string kOnHttpAccess = HOOK_FIELD"on_http_access";
 const string kOnServerStarted = HOOK_FIELD"on_server_started";
+const string kOnServerKeepalive = HOOK_FIELD"on_server_keepalive";
 const string kAdminParams = HOOK_FIELD"admin_params";
+const string kAliveInterval = HOOK_FIELD"alive_interval";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = false;
@@ -61,7 +63,9 @@ onceToken token([](){
     mINI::Instance()[kOnStreamNoneReader] = "";
     mINI::Instance()[kOnHttpAccess] = "";
     mINI::Instance()[kOnServerStarted] = "";
+    mINI::Instance()[kOnServerKeepalive] = "";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
+    mINI::Instance()[kAliveInterval] = 30.0;
 },nullptr);
 }//namespace Hook
 
@@ -182,6 +186,28 @@ static void reportServerStarted(){
     }
     //执行hook
     do_http_hook(hook_server_started,body, nullptr);
+}
+
+// 服务器定时保活定时器
+Timer::Ptr g_keepalive_timer;
+static void reportServerKeepalive() {
+    GET_CONFIG(bool,hook_enable,Hook::kEnable);
+    GET_CONFIG(string, hook_server_keepalive, Hook::kOnServerKeepalive);
+    if(!hook_enable || hook_server_keepalive.empty()){
+        return;
+    }
+
+    GET_CONFIG(float, alive_interval, Hook::kAliveInterval);
+    g_keepalive_timer = std::make_shared<Timer>(alive_interval, [&](){
+        ArgsType body;
+        body["data"]["MediaSource"] = (Json::UInt64)(ObjectStatistic<MediaSource>::count());
+        body["data"]["MultiMediaSourceMuxer"] = (Json::UInt64)(ObjectStatistic<MultiMediaSourceMuxer>::count());
+
+        //执行hook
+        do_http_hook(hook_server_keepalive, body, nullptr);
+
+        return true;
+    }, nullptr);
 }
 
 void installWebHook(){
@@ -484,8 +510,11 @@ void installWebHook(){
 
     //汇报服务器重新启动
     reportServerStarted();
+
+    //定时上报保活
+    reportServerKeepalive();
 }
 
 void unInstallWebHook(){
-
+    g_keepalive_timer.reset();
 }
