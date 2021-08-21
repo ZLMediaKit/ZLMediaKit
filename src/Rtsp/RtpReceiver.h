@@ -183,6 +183,7 @@ protected:
     virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp) {}
 
 private:
+    bool _disable_ntp = false;
     uint32_t _ssrc = 0;
     Ticker _ssrc_alive;
     NtpStamp _ntp_stamp;
@@ -241,6 +242,7 @@ public:
 
     /**
      * 设置ntp时间戳，在收到rtcp sender report时设置
+     * 如果rtp_stamp/sample_rate/ntp_stamp_ms都为0，那么采用rtp时间戳为ntp时间戳
      * @param index track下标索引
      * @param rtp_stamp rtp时间戳
      * @param sample_rate 时间戳采样率
