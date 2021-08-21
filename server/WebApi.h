@@ -235,4 +235,5 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
 void installWebApi();
 void unInstallWebApi();
 Value makeMediaSourceJson(MediaSource &media);
+Value getStatisticJson();
 #endif //ZLMEDIAKIT_WEBAPI_H
