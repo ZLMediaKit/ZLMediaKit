@@ -27,10 +27,13 @@ static inline bool checkTS(const uint8_t *packet, size_t bytes){
 class RtpReceiverImp : public RtpTrackImp {
 public:
     using Ptr = std::shared_ptr<RtpReceiverImp>;
-    RtpReceiverImp(int sample_rate, RtpTrackImp::OnSorted cb, RtpTrackImp::BeforeSorted cb_before = nullptr){
+
+    RtpReceiverImp(int sample_rate, RtpTrackImp::OnSorted cb, RtpTrackImp::BeforeSorted cb_before = nullptr) {
         _sample_rate = sample_rate;
         setOnSorted(std::move(cb));
         setBeforeSorted(std::move(cb_before));
+        //GB28181推流不支持ntp时间戳
+        setNtpStamp(0, 0, 0);
     }
 
     ~RtpReceiverImp() override = default;
