@@ -219,6 +219,7 @@ bool DtsGenerator::getDts_l(uint32_t pts, uint32_t &dts){
 }
 
 void NtpStamp::setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms) {
+    assert(sample_rate);
     update(uint64_t(rtp_stamp) * 1000 / sample_rate, ntp_stamp_ms);
 }
 
