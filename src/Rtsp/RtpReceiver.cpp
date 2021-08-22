@@ -103,7 +103,9 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
 
 void RtpTrack::setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms) {
     _disable_ntp = rtp_stamp == 0 && sample_rate == 0 && ntp_stamp_ms == 0;
-    _ntp_stamp.setNtpStamp(rtp_stamp, sample_rate, ntp_stamp_ms);
+    if (sample_rate) {
+        _ntp_stamp.setNtpStamp(rtp_stamp, sample_rate, ntp_stamp_ms);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
