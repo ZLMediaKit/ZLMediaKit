@@ -222,8 +222,13 @@ bool H265RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, 
 }
 
 void H265RtpDecoder::outputFrame(const RtpPacket::Ptr &rtp, const H265Frame::Ptr &frame) {
-    //rtsp没有dts，那么根据pts排序算法生成dts
-    _dts_generator.getDts(frame->_pts, frame->_dts);
+    if (frame->dropAble()) {
+        //不参与dts生成
+        frame->_dts = frame->_pts;
+    } else {
+        //rtsp没有dts，那么根据pts排序算法生成dts
+        _dts_generator.getDts(frame->_pts, frame->_dts);
+    }
 
     if (frame->keyFrame() && _gop_dropped) {
         _gop_dropped = false;
