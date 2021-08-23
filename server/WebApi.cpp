@@ -236,7 +236,7 @@ static inline void addHttpListener(){
                 auto &content = parser.Content();
                 log << "# content:\r\n" << (content.size() > 4 * 1024 ? content.substr(0, 4 * 1024) : content) << "\r\n";
 
-                if (size && size < 4 * 1024) {
+                if (size > 0 && size < 4 * 1024) {
                     auto response = body->readData(size);
                     log << "# response:\r\n" << response->data() << "\r\n";
                     invoker(code, headerOut, response);
