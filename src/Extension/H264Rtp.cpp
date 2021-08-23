@@ -169,8 +169,13 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
 }
 
 void H264RtpDecoder::outputFrame(const RtpPacket::Ptr &rtp, const H264Frame::Ptr &frame) {
-    //rtsp没有dts，那么根据pts排序算法生成dts
-    _dts_generator.getDts(frame->_pts, frame->_dts);
+    if (frame->dropAble()) {
+        //不参与dts生成
+        frame->_dts = frame->_pts;
+    } else {
+        //rtsp没有dts，那么根据pts排序算法生成dts
+        _dts_generator.getDts(frame->_pts, frame->_dts);
+    }
 
     if (frame->keyFrame() && _gop_dropped) {
         _gop_dropped = false;
