@@ -220,7 +220,7 @@ public:
     float _end = 0;
 
     map<char, string> _other;
-    map<string, string> _attr;
+    multimap<string, string> _attr;
 
     string toString() const;
     string getName() const;

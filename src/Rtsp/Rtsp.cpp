@@ -12,41 +12,45 @@
 #include "Rtsp.h"
 #include "Common/Parser.h"
 
-namespace mediakit{
+namespace mediakit {
 
-int RtpPayload::getClockRate(int pt){
-    switch (pt){
+int RtpPayload::getClockRate(int pt) {
+    switch (pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return clock_rate;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default: return 90000;
+        default:
+            return 90000;
     }
 }
 
-TrackType RtpPayload::getTrackType(int pt){
-    switch (pt){
+TrackType RtpPayload::getTrackType(int pt) {
+    switch (pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return type;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default: return TrackInvalid;
+        default:
+            return TrackInvalid;
     }
 }
 
-int RtpPayload::getAudioChannel(int pt){
-    switch (pt){
+int RtpPayload::getAudioChannel(int pt) {
+    switch (pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return channel;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default: return 1;
+        default:
+            return 1;
     }
 }
 
-const char * RtpPayload::getName(int pt){
-    switch (pt){
+const char *RtpPayload::getName(int pt) {
+    switch (pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return #name;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default: return "unknown payload type";
+        default:
+            return "unknown payload type";
     }
 }
 
@@ -55,75 +59,77 @@ CodecId RtpPayload::getCodecId(int pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return codec_id;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default : return CodecInvalid;
+        default :
+            return CodecInvalid;
     }
 }
 
-static void getAttrSdp(const map<string, string> &attr, _StrPrinter &printer){
+static void getAttrSdp(const multimap<string, string> &attr, _StrPrinter &printer) {
     const map<string, string>::value_type *ptr = nullptr;
-    for(auto &pr : attr){
-        if(pr.first == "control"){
+    for (auto &pr : attr) {
+        if (pr.first == "control") {
             ptr = &pr;
             continue;
         }
-        if(pr.second.empty()){
+        if (pr.second.empty()) {
             printer << "a=" << pr.first << "\r\n";
-        }else{
+        } else {
             printer << "a=" << pr.first << ":" << pr.second << "\r\n";
         }
     }
-    if(ptr){
+    if (ptr) {
         printer << "a=" << ptr->first << ":" << ptr->second << "\r\n";
     }
 }
 
-string SdpTrack::getName() const{
-    switch (_pt){
+string SdpTrack::getName() const {
+    switch (_pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return #name;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default: return _codec;
+        default:
+            return _codec;
     }
 }
 
-string SdpTrack::getControlUrl(const string &base_url) const{
+string SdpTrack::getControlUrl(const string &base_url) const {
     if (_control.find("://") != string::npos) {
         //以rtsp://开头
         return _control;
     }
-    return base_url +"/" + _control;
+    return base_url + "/" + _control;
 }
 
 string SdpTrack::toString() const {
     _StrPrinter _printer;
-    switch (_type){
-        case TrackTitle:{
+    switch (_type) {
+        case TrackTitle: {
             _printer << "v=" << 0 << "\r\n";
-            if(!_o.empty()){
-                _printer << "o="<< _o << "\r\n";
+            if (!_o.empty()) {
+                _printer << "o=" << _o << "\r\n";
             }
-            if(!_c.empty()){
+            if (!_c.empty()) {
                 _printer << "c=" << _c << "\r\n";
             }
-            if(!_t.empty()){
+            if (!_t.empty()) {
                 _printer << "t=" << _t << "\r\n";
             }
 
             _printer << "s=Streamed by " << SERVER_NAME << "\r\n";
-            getAttrSdp(_attr,_printer);
+            getAttrSdp(_attr, _printer);
         }
             break;
         case TrackAudio:
-        case TrackVideo:{
-            if(_type == TrackAudio){
+        case TrackVideo: {
+            if (_type == TrackAudio) {
                 _printer << "m=audio 0 RTP/AVP " << _pt << "\r\n";
-            }else{
+            } else {
                 _printer << "m=video 0 RTP/AVP " << _pt << "\r\n";
             }
-            if(!_b.empty()){
-                _printer << "b=" <<_b << "\r\n";
+            if (!_b.empty()) {
+                _printer << "b=" << _b << "\r\n";
             }
-            getAttrSdp(_attr,_printer);
+            getAttrSdp(_attr, _printer);
         }
             break;
         default:
@@ -200,9 +206,9 @@ void SdpParser::load(const string &sdp) {
                 case 'a': {
                     string attr = FindField(opt_val.data(), nullptr, ":");
                     if (attr.empty()) {
-                        track->_attr[opt_val] = "";
+                        track->_attr.emplace(opt_val, "");
                     } else {
-                        track->_attr[attr] = FindField(opt_val.data(), ":", nullptr);
+                        track->_attr.emplace(attr, FindField(opt_val.data(), ":", nullptr));
                     }
                 }
                     break;
@@ -229,13 +235,18 @@ void SdpParser::load(const string &sdp) {
             }
         }
 
-        it = track._attr.find("rtpmap");
-        if (it != track._attr.end()) {
-            auto rtpmap = it->second;
+        for (it = track._attr.find("rtpmap"); it != track._attr.end();) {
+            auto &rtpmap = it->second;
             int pt, samplerate, channel;
             char codec[16] = {0};
+
+            sscanf(rtpmap.data(), "%d", &pt);
+            if (track._pt != pt) {
+                //pt不匹配
+                it = track._attr.erase(it);
+                continue;
+            }
             if (4 == sscanf(rtpmap.data(), "%d %15[^/]/%d/%d", &pt, codec, &samplerate, &channel)) {
-                track._pt = pt;
                 track._codec = codec;
                 track._samplerate = samplerate;
                 track._channel = channel;
@@ -248,11 +259,20 @@ void SdpParser::load(const string &sdp) {
                 //未设置视频采样率时，赋值为90000
                 track._samplerate = 90000;
             }
+            ++it;
         }
 
-        it = track._attr.find("fmtp");
-        if (it != track._attr.end()) {
-            track._fmtp = it->second;
+        for (it = track._attr.find("fmtp"); it != track._attr.end(); ) {
+            auto &fmtp = it->second;
+            int pt;
+            sscanf(fmtp.data(), "%d", &pt);
+            if (track._pt != pt) {
+                //pt不匹配
+                it = track._attr.erase(it);
+                continue;
+            }
+            track._fmtp = FindField(fmtp.data(), " ", nullptr);
+            ++it;
         }
 
         it = track._attr.find("control");
@@ -267,8 +287,8 @@ bool SdpParser::available() const {
 }
 
 SdpTrack::Ptr SdpParser::getTrack(TrackType type) const {
-    for (auto &track : _track_vec){
-        if(track->_type == type){
+    for (auto &track : _track_vec) {
+        if (track->_type == type) {
             return track;
         }
     }
@@ -279,17 +299,17 @@ vector<SdpTrack::Ptr> SdpParser::getAvailableTrack() const {
     vector<SdpTrack::Ptr> ret;
     bool audio_added = false;
     bool video_added = false;
-    for (auto &track : _track_vec){
-        if(track->_type == TrackAudio ){
-            if(!audio_added){
+    for (auto &track : _track_vec) {
+        if (track->_type == TrackAudio) {
+            if (!audio_added) {
                 ret.emplace_back(track);
                 audio_added = true;
             }
             continue;
         }
 
-        if(track->_type == TrackVideo ){
-            if(!video_added){
+        if (track->_type == TrackVideo) {
+            if (!video_added) {
                 ret.emplace_back(track);
                 video_added = true;
             }
@@ -300,18 +320,18 @@ vector<SdpTrack::Ptr> SdpParser::getAvailableTrack() const {
 }
 
 string SdpParser::toString() const {
-    string title,audio,video;
-    for(auto &track : _track_vec){
-        switch (track->_type){
-            case TrackTitle:{
+    string title, audio, video;
+    for (auto &track : _track_vec) {
+        switch (track->_type) {
+            case TrackTitle: {
                 title = track->toString();
             }
                 break;
-            case TrackVideo:{
+            case TrackVideo: {
                 video = track->toString();
             }
                 break;
-            case TrackAudio:{
+            case TrackAudio: {
                 audio = track->toString();
             }
                 break;
@@ -375,7 +395,7 @@ bool RtspUrl::setup(bool isSSL, const string &strUrl, const string &strUser, con
     return true;
 }
 
-static void makeSockPair_l(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip){
+static void makeSockPair_l(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip) {
     auto &pSockRtp = pair.first;
     auto &pSockRtcp = pair.second;
 
@@ -399,23 +419,23 @@ static void makeSockPair_l(std::pair<Socket::Ptr, Socket::Ptr> &pair, const stri
     }
 }
 
- void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip){
-     int try_count = 0;
-     while (true) {
-         try {
-             makeSockPair_l(pair, local_ip);
-             break;
-         } catch (...) {
-             if (++try_count == 3) {
-                 throw;
-             }
-             WarnL << "open udp socket failed, retry: " << try_count;
-         }
-     }
+void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip) {
+    int try_count = 0;
+    while (true) {
+        try {
+            makeSockPair_l(pair, local_ip);
+            break;
+        } catch (...) {
+            if (++try_count == 3) {
+                throw;
+            }
+            WarnL << "open udp socket failed, retry: " << try_count;
+        }
+    }
 }
 
 string printSSRC(uint32_t ui32Ssrc) {
-    char tmp[9] = { 0 };
+    char tmp[9] = {0};
     ui32Ssrc = htonl(ui32Ssrc);
     uint8_t *pSsrc = (uint8_t *) &ui32Ssrc;
     for (int i = 0; i < 4; i++) {
@@ -424,7 +444,7 @@ string printSSRC(uint32_t ui32Ssrc) {
     return tmp;
 }
 
-Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved){
+Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved) {
     auto rtp_tcp = BufferRaw::create();
     rtp_tcp->setCapacity(RtpPacket::kRtpTcpHeaderSize);
     rtp_tcp->setSize(RtpPacket::kRtpTcpHeaderSize);
@@ -463,7 +483,7 @@ size_t RtpHeader::getExtSize() const {
     return AV_RB16(ext_ptr + 2) << 2;
 }
 
-uint16_t RtpHeader::getExtReserved() const{
+uint16_t RtpHeader::getExtReserved() const {
     //rtp有ext
     if (!ext) {
         return 0;
@@ -498,7 +518,7 @@ size_t RtpHeader::getPaddingSize(size_t rtp_size) const {
     return *end;
 }
 
-size_t RtpHeader::getPayloadSize(size_t rtp_size) const{
+size_t RtpHeader::getPayloadSize(size_t rtp_size) const {
     auto invalid_size = getPayloadOffset() + getPaddingSize(rtp_size);
     if (invalid_size + RtpPacket::kRtpHeaderSize >= rtp_size) {
         return 0;
@@ -506,14 +526,14 @@ size_t RtpHeader::getPayloadSize(size_t rtp_size) const{
     return rtp_size - invalid_size - RtpPacket::kRtpHeaderSize;
 }
 
-string RtpHeader::dumpString(size_t rtp_size) const{
+string RtpHeader::dumpString(size_t rtp_size) const {
     _StrPrinter printer;
-    printer << "version:" << (int)version << "\r\n";
+    printer << "version:" << (int) version << "\r\n";
     printer << "padding:" << getPaddingSize(rtp_size) << "\r\n";
     printer << "ext:" << getExtSize() << "\r\n";
     printer << "csrc:" << getCsrcSize() << "\r\n";
-    printer << "mark:" << (int)mark << "\r\n";
-    printer << "pt:" << (int)pt << "\r\n";
+    printer << "mark:" << (int) mark << "\r\n";
+    printer << "pt:" << (int) pt << "\r\n";
     printer << "seq:" << ntohs(seq) << "\r\n";
     printer << "stamp:" << ntohl(stamp) << "\r\n";
     printer << "ssrc:" << ntohl(ssrc) << "\r\n";
@@ -563,7 +583,7 @@ size_t RtpPacket::getPayloadSize() const {
     return getHeader()->getPayloadSize(size() - kRtpTcpHeaderSize);
 }
 
-RtpPacket::Ptr RtpPacket::create(){
+RtpPacket::Ptr RtpPacket::create() {
 #if 0
     static ResourcePool<RtpPacket> packet_pool;
     static onceToken token([]() {
@@ -580,5 +600,5 @@ RtpPacket::Ptr RtpPacket::create(){
 }//namespace mediakit
 
 namespace toolkit {
-    StatisticImp(mediakit::RtpPacket);
+StatisticImp(mediakit::RtpPacket);
 }
