@@ -140,13 +140,14 @@ bash build_docker_images.sh
 ## 合作项目
 
  - 可视化管理网站
-    - [一个非常漂亮的可视化后台管理系统](https://github.com/MingZhuLiu/ZLMediaServerManagent)
+    - [最新的前后端分离web项目,支持webrtc播放](https://github.com/langmansh/AKStreamNVR)
     - [基于ZLMediaKit主线的管理WEB网站](https://gitee.com/kkkkk5G/MediaServerUI) 
     - [基于ZLMediaKit分支的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
+    - [一个非常漂亮的可视化后台管理系统](https://github.com/MingZhuLiu/ZLMediaServerManagent)
     
  - 流媒体管理平台
+   - [GB28181完整解决方案,自带web管理网站,支持webrtc、h265播放](https://github.com/648540858/wvp-GB28181-pro)
    - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/AKStream)
-   - [GB28181-2016网络视频平台](https://github.com/648540858/wvp-GB28181-pro)
    - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
    - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
 
@@ -231,6 +232,8 @@ bash build_docker_images.sh
 [Johnny](https://github.com/johzzy)
 [DoubleX69](https://github.com/DoubleX69)
 [lawrencehj](https://github.com/lawrencehj)
+[yangkun](xyyangkun@163.com)
+[Xinghua Zhao](holychaossword@hotmail.com)
 
 ## 使用案例
 
