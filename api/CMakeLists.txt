@@ -2,13 +2,11 @@
 
 file(GLOB api_src_list include/*.h source/*.cpp source/*.h source/*.c)
 
-set(ENABLE_API_STATIC false)
-
 if (IOS)
     add_library(mk_api STATIC ${api_src_list})
     target_link_libraries(mk_api ${LINK_LIB_LIST})
 else ()
-    if(ENABLE_API_STATIC)
+    if(ENABLE_API_STATIC_LIB)
         add_library(mk_api STATIC ${api_src_list})
         if (WIN32)
             add_definitions(-DMediaKitApi_STATIC)
