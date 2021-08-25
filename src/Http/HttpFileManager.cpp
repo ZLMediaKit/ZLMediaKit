@@ -18,6 +18,7 @@
 #include "HttpConst.h"
 #include "HttpSession.h"
 #include "Record/HlsMediaSource.h"
+#include "Common/Parser.h"
 
 namespace mediakit {
 
@@ -131,6 +132,15 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         }
         setFile.emplace(pDirent->d_name);
     }
+    //如果是root目录，添加虚拟目录
+    if (httpPath == "/") {
+        GET_CONFIG(string, virtualPath, Http::kVirtualPath);
+        mediakit::Parser pathParser;
+        StrCaseMap args = pathParser.parseArgs(virtualPath, "|", ",");
+        for (auto arg : args) {
+            setFile.emplace(arg.first);
+        }
+    }
     int i = 0;
     for (auto &strFile :setFile) {
         string strAbsolutePath = strPathPrefix + "/" + strFile;
@@ -138,7 +148,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         ss << "<li><span>" << i++ << "</span>\t";
         ss << "<a href=\"";
         if (!last_dir_name.empty()) {
-            ss << last_dir_name << "/" << strFile;
+            ss << httpPath << "/" << strFile;
         } else {
             ss << strFile;
         }
@@ -461,7 +471,18 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
 static string getFilePath(const Parser &parser,const MediaInfo &mediaInfo, TcpSession &sender){
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     GET_CONFIG(string, rootPath, Http::kRootPath);
-    auto ret = File::absolutePath(enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
+    GET_CONFIG(string, virtualPath, Http::kVirtualPath);
+    mediakit::Parser pathParser;
+    StrCaseMap args = pathParser.parseArgs(virtualPath, "|", ",");
+    auto path = args[mediaInfo._app];
+    string ret;
+    if (path == "") {
+        ret = File::absolutePath(
+            enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
+    }else {
+        ret = File::absolutePath(
+            enableVhost ? mediaInfo._vhost + "/" + mediaInfo._streamid : mediaInfo._streamid, path);
+    }
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, static_cast<SockInfo &>(sender));
     return ret;
 }

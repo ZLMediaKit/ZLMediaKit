@@ -57,6 +57,7 @@ option(ENABLE_ASAN "Enable Address Sanitize" false)
 option(ENABLE_WEBRTC "Enable WebRTC" false)
 option(ENABLE_PLAYER "Enable Player" true)
 option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" true)
+option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" false)
 
 if (MSVC AND ENABLE_MSVC_MT)
     set(CompilerFlags
