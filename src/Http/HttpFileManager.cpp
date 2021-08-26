@@ -79,6 +79,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         return false;
     }
     string strPathPrefix(strFullPath);
+    //url后缀有没有'/'访问文件夹，处理逻辑不一致
     string last_dir_name;
     if (strPathPrefix.back() == '/') {
         strPathPrefix.pop_back();
@@ -90,12 +91,12 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         return false;
     }
     stringstream ss;
-    ss <<   "<html>\r\n"
-            "<head>\r\n"
-            "<title>文件索引</title>\r\n"
-            "</head>\r\n"
-            "<body>\r\n"
-            "<h1>文件索引:";
+    ss << "<html>\r\n"
+          "<head>\r\n"
+          "<title>文件索引</title>\r\n"
+          "</head>\r\n"
+          "<body>\r\n"
+          "<h1>文件索引:";
 
     ss << httpPath;
     ss << "</h1>\r\n";
@@ -107,9 +108,9 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         ss << "</a></li>\r\n";
 
         ss << "<li><a href=\"";
-        if(!last_dir_name.empty()){
+        if (!last_dir_name.empty()) {
             ss << "./";
-        }else{
+        } else {
             ss << "../";
         }
         ss << "\">";
@@ -122,7 +123,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
     if ((pDir = opendir(strPathPrefix.data())) == NULL) {
         return false;
     }
-    set<string> setFile;
+    multimap<string/*url name*/, std::pair<string/*note name*/, string/*file path*/> > file_map;
     while ((pDirent = readdir(pDir)) != NULL) {
         if (File::is_special_dir(pDirent->d_name)) {
             continue;
@@ -130,34 +131,35 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         if (pDirent->d_name[0] == '.') {
             continue;
         }
-        setFile.emplace(pDirent->d_name);
+        file_map.emplace(pDirent->d_name, std::make_pair(pDirent->d_name, strPathPrefix + "/" + pDirent->d_name));
     }
     //如果是root目录，添加虚拟目录
     if (httpPath == "/") {
         GET_CONFIG(string, virtualPath, Http::kVirtualPath);
-        mediakit::Parser pathParser;
-        StrCaseMap args = pathParser.parseArgs(virtualPath, "|", ",");
-        for (auto arg : args) {
-            setFile.emplace(arg.first);
+        StrCaseMap args = Parser::parseArgs(virtualPath, ";", ",");
+        for (auto &pr : args) {
+            file_map.emplace(pr.first, std::make_pair(string("虚拟目录:") + pr.first, File::absolutePath("", pr.second)));
         }
     }
     int i = 0;
-    for (auto &strFile :setFile) {
-        string strAbsolutePath = strPathPrefix + "/" + strFile;
+    for (auto &pr :file_map) {
+        auto &strAbsolutePath = pr.second.second;
         bool isDir = File::is_dir(strAbsolutePath.data());
         ss << "<li><span>" << i++ << "</span>\t";
         ss << "<a href=\"";
+        //路径链接地址
         if (!last_dir_name.empty()) {
-            ss << httpPath << "/" << strFile;
+            ss << last_dir_name << "/" << pr.first;
         } else {
-            ss << strFile;
+            ss << pr.first;
         }
 
         if (isDir) {
             ss << "/";
         }
         ss << "\">";
-        ss << strFile;
+        //路径名称
+        ss << pr.second.first;
         if (isDir) {
             ss << "/</a></li>\r\n";
             continue;
@@ -470,19 +472,20 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
 
 static string getFilePath(const Parser &parser,const MediaInfo &mediaInfo, TcpSession &sender){
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
-    GET_CONFIG(string, rootPath, Http::kRootPath);
     GET_CONFIG(string, virtualPath, Http::kVirtualPath);
-    mediakit::Parser pathParser;
-    StrCaseMap args = pathParser.parseArgs(virtualPath, "|", ",");
+    StrCaseMap args = Parser::parseArgs(virtualPath, ";", ",");
     auto path = args[mediaInfo._app];
-    string ret;
-    if (path == "") {
-        ret = File::absolutePath(
-            enableVhost ? mediaInfo._vhost + parser.Url() : parser.Url(), rootPath);
-    }else {
-        ret = File::absolutePath(
-            enableVhost ? mediaInfo._vhost + "/" + mediaInfo._streamid : mediaInfo._streamid, path);
+    string url;
+    if (path.empty()) {
+        //访问的是根路径
+        GET_CONFIG(string, rootPath, Http::kRootPath);
+        path = rootPath;
+        url = parser.Url();
+    } else {
+        //访问的是虚拟路径
+        url = parser.Url().substr(1 + mediaInfo._app.size());
     }
+    auto ret = File::absolutePath(enableVhost ? mediaInfo._vhost + url : url, path);
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, static_cast<SockInfo &>(sender));
     return ret;
 }

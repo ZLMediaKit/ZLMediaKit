@@ -124,6 +124,7 @@ onceToken token([](){
     mINI::Instance()[kMaxReqSize] = 4 * 10240;
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirMenu] = true;
+    mINI::Instance()[kVirtualPath] = "";
 
 #if defined(_WIN32)
     mINI::Instance()[kCharSet] = "gb2312";
