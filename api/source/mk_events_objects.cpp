@@ -90,11 +90,6 @@ API_EXPORT const char* API_CALL mk_parser_get_url(const mk_parser ctx){
     Parser *parser = (Parser *)ctx;
     return parser->Url().c_str();
 }
-API_EXPORT const char* API_CALL mk_parser_get_full_url(const mk_parser ctx){
-    assert(ctx);
-    Parser *parser = (Parser *)ctx;
-    return parser->FullUrl().c_str();
-}
 API_EXPORT const char* API_CALL mk_parser_get_url_params(const mk_parser ctx){
     assert(ctx);
     Parser *parser = (Parser *)ctx;

@@ -49,16 +49,16 @@ void Parser::Parse(const char *buf) {
         }
         if (start == buf) {
             _strMethod = FindField(line.data(), NULL, " ");
-            _strFullUrl = FindField(line.data(), " ", " ");
-            auto args_pos = _strFullUrl.find('?');
+            auto strFullUrl = FindField(line.data(), " ", " ");
+            auto args_pos = strFullUrl.find('?');
             if (args_pos != string::npos) {
-                _strUrl = _strFullUrl.substr(0, args_pos);
-                _params = _strFullUrl.substr(args_pos + 1);
+                _strUrl = strFullUrl.substr(0, args_pos);
+                _params = strFullUrl.substr(args_pos + 1);
                 _mapUrlArgs = parseArgs(_params);
             } else {
-                _strUrl = _strFullUrl;
+                _strUrl = strFullUrl;
             }
-            _strTail = FindField(line.data(), (_strFullUrl + " ").data(), NULL);
+            _strTail = FindField(line.data(), (strFullUrl + " ").data(), NULL);
         } else {
             auto field = FindField(line.data(), NULL, ": ");
             auto value = FindField(line.data(), ": ", NULL);
@@ -82,8 +82,11 @@ const string &Parser::Url() const {
     return _strUrl;
 }
 
-const string &Parser::FullUrl() const {
-    return _strFullUrl;
+string Parser::FullUrl() const {
+    if (_params.empty()) {
+        return _strUrl;
+    }
+    return _strUrl + "?" + _params;
 }
 
 const string &Parser::Tail() const {
@@ -105,7 +108,6 @@ const string &Parser::Content() const {
 void Parser::Clear() {
     _strMethod.clear();
     _strUrl.clear();
-    _strFullUrl.clear();
     _params.clear();
     _strTail.clear();
     _strContent.clear();

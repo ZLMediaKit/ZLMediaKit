@@ -69,7 +69,7 @@ public:
     //获取中间url，不包含?后面的参数
     const string &Url() const;
     //获取中间url，包含?后面的参数
-    const string &FullUrl() const;
+    string FullUrl() const;
     //获取命令协议名
     const string &Tail() const;
     //根据header key名，获取请求header value值
@@ -96,7 +96,6 @@ private:
     string _strTail;
     string _strContent;
     string _strNull;
-    string _strFullUrl;
     string _params;
     mutable StrCaseMap _mapHeaders;
     mutable StrCaseMap _mapUrlArgs;
