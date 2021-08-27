@@ -106,28 +106,46 @@ extern const string kBroadcastReloadConfig;
 #define BroadcastReloadConfigArgs void
 
 #define ReloadConfigTag  ((void *)(0xFF))
-#define RELOAD_KEY(arg,key) \
-    do{ \
-        decltype(arg) arg##tmp = mINI::Instance()[key]; \
-        if(arg != arg##tmp ) { \
-            arg = arg##tmp; \
-            InfoL << "reload config:" << key << "=" <<  arg; \
-        } \
-    }while(0);
+#define RELOAD_KEY(arg,key)                              \
+    do {                                                 \
+        decltype(arg) arg##_tmp = mINI::Instance()[key]; \
+        if (arg == arg##_tmp) {                          \
+            return;                                      \
+        }                                                \
+        arg = arg##_tmp;                                 \
+        InfoL << "reload config:" << key << "=" <<  arg; \
+    } while(0)
 
 //监听某个配置发送变更
-#define LISTEN_RELOAD_KEY(arg,key) \
-    do{ \
-        static onceToken s_token([](){ \
-            NoticeCenter::Instance().addListener(ReloadConfigTag,Broadcast::kBroadcastReloadConfig,[](BroadcastReloadConfigArgs){ \
-                RELOAD_KEY(arg,key); \
-            }); \
-        }); \
-    }while(0);
+#define LISTEN_RELOAD_KEY(arg, key, ...)                                          \
+    do {                                                                          \
+        static onceToken s_token_listen([](){                                     \
+            NoticeCenter::Instance().addListener(ReloadConfigTag,                 \
+                Broadcast::kBroadcastReloadConfig,[](BroadcastReloadConfigArgs) { \
+                __VA_ARGS__;                                                      \
+            });                                                                   \
+        });                                                                       \
+    } while(0)
 
-#define GET_CONFIG(type,arg,key) \
-        static type arg = mINI::Instance()[key]; \
-        LISTEN_RELOAD_KEY(arg,key);
+#define GET_CONFIG(type, arg, key)           \
+    static type arg = mINI::Instance()[key]; \
+    LISTEN_RELOAD_KEY(arg, key, {            \
+        RELOAD_KEY(arg, key);                \
+    });
+
+#define GET_CONFIG_FUNC(type, arg, key, ...)               \
+    static type arg;                                       \
+    do {                                                   \
+        static onceToken s_token_set([](){                 \
+            static auto lam = __VA_ARGS__ ;                \
+            static auto arg##_str = mINI::Instance()[key]; \
+            arg = lam(arg##_str);                          \
+            LISTEN_RELOAD_KEY(arg, key, {                  \
+                RELOAD_KEY(arg##_str, key);                \
+                arg = lam(arg##_str);                      \
+            });                                            \
+        });                                                \
+    } while(0)
 
 } //namespace Broadcast
 
