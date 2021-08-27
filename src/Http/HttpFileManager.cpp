@@ -135,9 +135,10 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
     }
     //如果是root目录，添加虚拟目录
     if (httpPath == "/") {
-        GET_CONFIG(string, virtualPath, Http::kVirtualPath);
-        StrCaseMap args = Parser::parseArgs(virtualPath, ";", ",");
-        for (auto &pr : args) {
+        GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
+            return Parser::parseArgs(str, ";", ",");
+        });
+        for (auto &pr : virtualPathMap) {
             file_map.emplace(pr.first, std::make_pair(string("虚拟目录:") + pr.first, File::absolutePath("", pr.second)));
         }
     }
@@ -472,18 +473,21 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
 
 static string getFilePath(const Parser &parser,const MediaInfo &mediaInfo, TcpSession &sender){
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
-    GET_CONFIG(string, virtualPath, Http::kVirtualPath);
-    StrCaseMap args = Parser::parseArgs(virtualPath, ";", ",");
-    auto path = args[mediaInfo._app];
-    string url;
-    if (path.empty()) {
-        //访问的是根路径
-        GET_CONFIG(string, rootPath, Http::kRootPath);
+    GET_CONFIG(string, rootPath, Http::kRootPath);
+    GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
+        return Parser::parseArgs(str, ";", ",");
+    });
+
+    string url, path;
+    auto it = virtualPathMap.find(mediaInfo._app);
+    if (it != virtualPathMap.end()) {
+        //访问的是virtualPath
+        path = it->second;
+        url = parser.Url().substr(1 + mediaInfo._app.size());
+    } else {
+        //访问的是rootPath
         path = rootPath;
         url = parser.Url();
-    } else {
-        //访问的是虚拟路径
-        url = parser.Url().substr(1 + mediaInfo._app.size());
     }
     auto ret = File::absolutePath(enableVhost ? mediaInfo._vhost + url : url, path);
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, static_cast<SockInfo &>(sender));
