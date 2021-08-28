@@ -235,7 +235,7 @@ void SdpParser::load(const string &sdp) {
             }
         }
 
-        for (it = track._attr.find("rtpmap"); it != track._attr.end();) {
+        for (it = track._attr.find("rtpmap"); it != track._attr.end() && it->first == "rtpmap";) {
             auto &rtpmap = it->second;
             int pt, samplerate, channel;
             char codec[16] = {0};
@@ -262,7 +262,7 @@ void SdpParser::load(const string &sdp) {
             ++it;
         }
 
-        for (it = track._attr.find("fmtp"); it != track._attr.end(); ) {
+        for (it = track._attr.find("fmtp"); it != track._attr.end() && it->first == "fmtp"; ) {
             auto &fmtp = it->second;
             int pt;
             sscanf(fmtp.data(), "%d", &pt);
