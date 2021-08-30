@@ -20,13 +20,13 @@ static void* s_tag;
 static mk_events s_events = {0};
 
 API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
-    if(events){
-        memcpy(&s_events,events, sizeof(s_events));
-    }else{
-        memset(&s_events,0,sizeof(s_events));
+    if (events) {
+        memcpy(&s_events, events, sizeof(s_events));
+    } else {
+        memset(&s_events, 0, sizeof(s_events));
     }
 
-    static onceToken tokne([]{
+    static onceToken token([]{
         NoticeCenter::Instance().addListener(&s_tag,Broadcast::kBroadcastMediaChanged,[](BroadcastMediaChangedArgs){
             if(s_events.on_mk_media_changed){
                 s_events.on_mk_media_changed(bRegist,
@@ -152,9 +152,10 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
             }
         });
 
-        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastLog,[](BroadcastLogArgs){
+        NoticeCenter::Instance().addListener(&s_tag, EventChannel::kBroadcastLogEvent,[](BroadcastLogEventArgs){
             if (s_events.on_mk_log) {
-                s_events.on_mk_log((int)level, file, line, function, message);
+                auto log = ctx->str();
+                s_events.on_mk_log((int) ctx->_level, ctx->_file.data(), ctx->_line, ctx->_function.data(), log.data());
             }
         });
     });

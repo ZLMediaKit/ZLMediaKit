@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
             .ini = NULL,
             .ini_is_path = 1,
             .log_level = 0,
+            .log_mask = LOG_CONSOLE,
             .log_file_path = NULL,
             .log_file_days = 0,
             .ssl = NULL,

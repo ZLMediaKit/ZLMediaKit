@@ -38,18 +38,25 @@
 extern "C" {
 #endif
 
+//输出日志到shell
+#define LOG_CONSOLE     (1 << 0)
+//输出日志到文件
+#define LOG_FILE        (1 << 1)
+//输出日志到回调函数(mk_events::on_mk_log)
+#define LOG_CALLBACK    (1 << 2)
+
 typedef struct {
     // 线程数
     int thread_num;
 
     // 日志级别,支持0~4
     int log_level;
+    //控制日志输出的掩模，请查看LOG_CONSOLE、LOG_FILE、LOG_CALLBACK等宏
+    int log_mask;
     //文件日志保存路径,路径可以不存在(内部可以创建文件夹)，设置为NULL关闭日志输出至文件
     const char *log_file_path;
     //文件日志保存天数,设置为0关闭日志文件
     int log_file_days;
-    // 是否关闭 控制台 日志
-    int disable_console_log;
 
     // 配置文件是内容还是路径
     int ini_is_path;
@@ -79,6 +86,7 @@ API_EXPORT void API_CALL mk_stop_all_server();
  * 基础类型参数版本的mk_env_init，为了方便其他语言调用
  * @param thread_num 线程数
  * @param log_level 日志级别,支持0~4
+ * @param log_mask 日志输出方式掩模，请查看LOG_CONSOLE、LOG_FILE、LOG_CALLBACK等宏
  * @param log_file_path 文件日志保存路径,路径可以不存在(内部可以创建文件夹)，设置为NULL关闭日志输出至文件
  * @param log_file_days 文件日志保存天数,设置为0关闭日志文件
  * @param ini_is_path 配置文件是内容还是路径
@@ -89,6 +97,7 @@ API_EXPORT void API_CALL mk_stop_all_server();
  */
 API_EXPORT void API_CALL mk_env_init1(int thread_num,
                                       int log_level,
+                                      int log_mask,
                                       const char *log_file_path,
                                       int log_file_days,
                                       int ini_is_path,
@@ -96,29 +105,6 @@ API_EXPORT void API_CALL mk_env_init1(int thread_num,
                                       int ssl_is_path,
                                       const char *ssl,
                                       const char *ssl_pwd);
- /**
- * 基础类型参数版本的mk_env_init，为了方便其他语言调用
- * @param thread_num 线程数
- * @param log_level 日志级别,支持0~4
- * @param log_file_path 文件日志保存路径,路径可以不存在(内部可以创建文件夹)，设置为NULL关闭日志输出至文件
- * @param log_file_days 文件日志保存天数,设置为0关闭日志文件
- * @param ini_is_path 配置文件是内容还是路径
- * @param ini 配置文件内容或路径，可以为NULL,如果该文件不存在，那么将导出默认配置至该文件
- * @param ssl_is_path ssl证书是内容还是路径
- * @param ssl ssl证书内容或路径，可以为NULL
- * @param ssl_pwd 证书密码，可以为NULL
- * @param disable_console_log 是否关闭 控制台 日志
- */
-API_EXPORT void API_CALL mk_env_init2(int thread_num,
-                                      int log_level,
-                                      const char *log_file_path,
-                                      int log_file_days,
-                                      int ini_is_path,
-                                      const char *ini,
-                                      int ssl_is_path,
-                                      const char *ssl,
-                                      const char *ssl_pwd,
-                                      int disable_console_log);                                     
 
 /**
  * 设置配置项

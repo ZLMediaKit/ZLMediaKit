@@ -105,10 +105,6 @@ extern const string kBroadcastStreamNoneReader;
 extern const string kBroadcastReloadConfig;
 #define BroadcastReloadConfigArgs void
 
-//日志输出广播，目的是为了通过C API运行时，由上级程序打印日志
-extern const string kBroadcastLog;
-#define BroadcastLogArgs const LogLevel level, const char* file, int line, const char* function, const char* message
-
 #define ReloadConfigTag  ((void *)(0xFF))
 #define RELOAD_KEY(arg,key)                              \
     do {                                                 \
