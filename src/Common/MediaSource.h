@@ -342,7 +342,8 @@ public:
     virtual ~PacketCache() = default;
 
     void inputPacket(uint64_t stamp, bool is_video, std::shared_ptr<packet> pkt, bool key_pos) {
-        if (_policy.isFlushAble(is_video, key_pos, stamp, _cache->size())) {
+        bool flush = flushImmediatelyWhenCloseMerge();
+        if (!flush && _policy.isFlushAble(is_video, key_pos, stamp, _cache->size())) {
             flushAll();
         }
 
@@ -350,6 +351,10 @@ public:
         _cache->emplace_back(std::move(pkt));
         if (key_pos) {
             _key_pos = key_pos;
+        }
+
+        if (flush) {
+            flushAll();
         }
     }
 
@@ -367,6 +372,12 @@ private:
         onFlush(std::move(_cache), _key_pos);
         _cache = std::make_shared<packet_list>();
         _key_pos = false;
+    }
+
+    bool flushImmediatelyWhenCloseMerge() {
+        //一般的协议关闭合并写时，立即刷新缓存，这样可以减少一帧的延时，但是rtp例外，请看相应的模板特例化函数
+        GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
+        return mergeWriteMS <= 0;
     }
 
 private:
