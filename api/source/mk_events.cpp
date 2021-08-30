@@ -151,6 +151,12 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_media_no_reader((mk_media_source) &sender);
             }
         });
+
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastLog,[](BroadcastLogArgs){
+            if (s_events.on_mk_log) {
+                s_events.on_mk_log((int)level, file, line, function, message);
+            }
+        });
     });
 
 }

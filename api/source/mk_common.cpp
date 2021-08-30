@@ -37,7 +37,7 @@ static std::shared_ptr<RtpServer> rtpServer;
 //////////////////////////environment init///////////////////////////
 API_EXPORT void API_CALL mk_env_init(const mk_config *cfg) {
     assert(cfg);
-    mk_env_init1(cfg->thread_num,
+    mk_env_init2(cfg->thread_num,
                  cfg->log_level,
                  cfg->log_file_path,
                  cfg->log_file_days,
@@ -45,7 +45,8 @@ API_EXPORT void API_CALL mk_env_init(const mk_config *cfg) {
                  cfg->ini,
                  cfg->ssl_is_path,
                  cfg->ssl,
-                 cfg->ssl_pwd);
+                 cfg->ssl_pwd,
+                 cfg->disable_console_log);
 }
 
 extern void stopAllTcpServer();
@@ -69,10 +70,39 @@ API_EXPORT void API_CALL mk_env_init1(int thread_num,
                                       int ssl_is_path,
                                       const char *ssl,
                                       const char *ssl_pwd) {
+    mk_env_init2(
+        thread_num,
+        log_level,
+        log_file_path,
+        log_file_days,
+        ini_is_path,
+        ini,
+        ssl_is_path,
+        ssl,
+        ssl_pwd,
+        0
+    );
+}
+
+API_EXPORT void API_CALL mk_env_init2(int thread_num,
+                                      int log_level,
+                                      const char *log_file_path,
+                                      int log_file_days,
+                                      int ini_is_path,
+                                      const char *ini,
+                                      int ssl_is_path,
+                                      const char *ssl,
+                                      const char *ssl_pwd,
+                                      int disable_console_log) {
     //确保只初始化一次
     static onceToken token([&]() {
-        //控制台日志
-        Logger::Instance().add(std::make_shared<ConsoleChannel>("console", (LogLevel) log_level));
+        if(disable_console_log) {
+            // 广播日志
+            Logger::Instance().add(std::make_shared<EventChannel>("EventChannel", (LogLevel) log_level));
+        } else {
+            //控制台日志
+            Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", (LogLevel) log_level));
+        }
         if(log_file_path && log_file_days){
             //日志文件
             auto channel = std::make_shared<FileChannel>("FileChannel", File::absolutePath(log_file_path, ""), (LogLevel) log_level);

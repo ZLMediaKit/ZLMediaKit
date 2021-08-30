@@ -152,6 +152,18 @@ typedef struct {
                                        size_t total_seconds,
                                        int is_player,
                                        const mk_sock_info sender);
+                                       
+
+    /**
+     * 日志输出广播
+     * @param level 日志级别
+     * @param file 源文件名
+     * @param line 源文件行
+     * @param function 源文件方法
+     * @param message 日志内容
+     */
+    void (API_CALL *on_mk_log)(int level, const char* file, int line, const char *function, const char* message);
+
 } mk_events;
 
 
