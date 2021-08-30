@@ -159,10 +159,10 @@ typedef struct {
      * @param level 日志级别
      * @param file 源文件名
      * @param line 源文件行
-     * @param function 源文件方法
+     * @param function 源文件函数名
      * @param message 日志内容
      */
-    void (API_CALL *on_mk_log)(int level, const char* file, int line, const char *function, const char* message);
+    void (API_CALL *on_mk_log)(int level, const char *file, int line, const char *function, const char *message);
 
 } mk_events;
 

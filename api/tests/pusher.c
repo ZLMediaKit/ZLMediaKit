@@ -164,6 +164,7 @@ int main(int argc, char *argv[]){
             .ini = NULL,
             .ini_is_path = 0,
             .log_level = 0,
+            .log_mask = LOG_CONSOLE,
             .ssl = NULL,
             .ssl_is_path = 1,
             .ssl_pwd = NULL,
