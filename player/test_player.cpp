@@ -83,11 +83,8 @@ int main(int argc, char *argv[]) {
                     return true;
                 });
             });
-            auto merger = std::make_shared<FrameMerger>(FrameMerger::h264_prefix);
-            auto delegate = std::make_shared<FrameWriterInterfaceHelper>([decoder, merger](const Frame::Ptr &frame) {
-                merger->inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
-                    decoder->inputFrame(buffer->data(), buffer->size(), dts, pts);
-                });
+            auto delegate = std::make_shared<FrameWriterInterfaceHelper>([decoder](const Frame::Ptr &frame) {
+                decoder->inputFrame(frame);
             });
             videoTrack->addDelegate(delegate);
         }
@@ -97,8 +94,16 @@ int main(int argc, char *argv[]) {
             auto audio_player = std::make_shared<AudioPlayer>();
             //FFmpeg解码时已经统一转换为16位整型pcm
             audio_player->setup(audioTrack->getAudioSampleRate(), audioTrack->getAudioChannel(), AUDIO_S16);
-            decoder->setOnDecode([audio_player](const FFmpegFrame::Ptr &pcm) {
-                audio_player->playPCM((const char *) (pcm->get()->data[0]), pcm->get()->linesize[0]);
+            FFmpegSwr::Ptr swr;
+
+            decoder->setOnDecode([audio_player, swr](const FFmpegFrame::Ptr &frame) mutable{
+                if (!swr) {
+                    swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->channels,
+                                                      frame->get()->channel_layout, frame->get()->sample_rate);
+                }
+                auto pcm = swr->inputFrame(frame);
+                auto len = pcm->get()->nb_samples * pcm->get()->channels * av_get_bytes_per_sample((enum AVSampleFormat)pcm->get()->format);
+                audio_player->playPCM((const char *) (pcm->get()->data[0]), len);
             });
             auto audio_delegate = std::make_shared<FrameWriterInterfaceHelper>( [decoder](const Frame::Ptr &frame) {
                 decoder->inputFrame(frame);
