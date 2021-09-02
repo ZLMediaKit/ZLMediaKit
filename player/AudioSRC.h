@@ -55,8 +55,8 @@ public:
 
 private:
     bool _enabled = true;
-    int _origin_size = 0;
-    std::shared_ptr<char> _origin_buf;
+    int _buf_size = 0;
+    std::shared_ptr<char> _buf;
     AudioSRCDelegate *_delegate = nullptr;
     BufferLikeString _target_buf;
     SDL_AudioCVT _audio_cvt;
