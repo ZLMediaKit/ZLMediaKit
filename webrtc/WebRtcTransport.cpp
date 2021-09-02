@@ -674,7 +674,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     } else {
                         //InfoL << "接收丢包率,ssrc:" << sr->ssrc << ",loss rate(%):" << rtp_chn->getLossRate();
                         //设置rtp时间戳与ntp时间戳的对应关系
-                        rtp_chn->setNtpStamp(sr->rtpts, track->plan_rtp->sample_rate, sr->getNtpUnixStampMS());
+                        rtp_chn->setNtpStamp(sr->rtpts, sr->getNtpUnixStampMS());
                         auto rr = rtp_chn->createRtcpRR(sr, track->answer_ssrc_rtp);
                         sendRtcpPacket(rr->data(), rr->size(), true);
                     }
