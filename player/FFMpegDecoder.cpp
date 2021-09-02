@@ -9,38 +9,38 @@
  */
 
 #include "FFMpegDecoder.h"
-#define MAX_DELAY_SECOND 60
+#define MAX_DELAY_SECOND 3
 
 using namespace std;
 using namespace mediakit;
 
-static string ffmpeg_err(int errnum){
+static string ffmpeg_err(int errnum) {
     char errbuf[AV_ERROR_MAX_STRING_SIZE];
     av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
     return errbuf;
 }
 
-///////////////////////////////////////////////////////////////////////////
+std::shared_ptr<AVPacket> alloc_av_packet(){
+    auto pkt = std::shared_ptr<AVPacket>(av_packet_alloc(), [](AVPacket *pkt) {
+        av_packet_free(&pkt);
+    });
+    pkt->data = NULL;    // packet data will be allocated by the encoder
+    pkt->size = 0;
+    return pkt;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
 
 template<bool decoder = true, typename ...ARGS>
-AVCodec *getCodecByName(ARGS ...names);
+AVCodec *getCodec(ARGS ...names);
 
-template<bool decoder = true, typename ...ARGS>
-AVCodec *getCodecByName(const char *name) {
+template<bool decoder = true>
+AVCodec *getCodec(const char *name) {
     auto codec = decoder ? avcodec_find_decoder_by_name(name) : avcodec_find_encoder_by_name(name);
     if (codec) {
         InfoL << (decoder ? "got decoder:" : "got encoder:") << name;
     }
     return codec;
-}
-
-template<bool decoder = true, typename ...ARGS>
-AVCodec *getCodecByName(const char *name, ARGS ...names) {
-    auto codec = getCodecByName<decoder>(names...);
-    if (codec) {
-        return codec;
-    }
-    return getCodecByName<decoder>(name);
 }
 
 template<bool decoder = true>
@@ -52,60 +52,58 @@ AVCodec *getCodec(enum AVCodecID id) {
     return codec;
 }
 
-template<bool decoder = true, typename ...ARGS>
-AVCodec *getCodec(enum AVCodecID id, ARGS ...names) {
-    auto codec = getCodecByName<decoder>(names...);
+template<bool decoder = true, typename First, typename ...ARGS>
+AVCodec *getCodec(First first, ARGS ...names) {
+    auto codec = getCodec<decoder>(names...);
     if (codec) {
         return codec;
     }
-    return getCodec<decoder>(id);
+    return getCodec<decoder>(first);
 }
 
-///////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 
 FFmpegFrame::FFmpegFrame(std::shared_ptr<AVFrame> frame) {
     if (frame) {
         _frame = std::move(frame);
     } else {
         _frame.reset(av_frame_alloc(), [](AVFrame *ptr) {
-            av_frame_unref(ptr);
             av_frame_free(&ptr);
         });
     }
 }
 
-FFmpegFrame::~FFmpegFrame(){
+FFmpegFrame::~FFmpegFrame() {
     if (_data) {
         delete[] _data;
         _data = nullptr;
     }
 }
 
-AVFrame *FFmpegFrame::get() const{
+AVFrame *FFmpegFrame::get() const {
     return _frame.get();
 }
 
-///////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-FFmpegSwr::FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate){
+FFmpegSwr::FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate) {
     _target_format = output;
     _target_channels = channel;
     _target_channel_layout = channel_layout;
     _target_samplerate = samplerate;
-    _frame_pool.setSize(8);
 }
 
-FFmpegSwr::~FFmpegSwr(){
+FFmpegSwr::~FFmpegSwr() {
     if (_ctx) {
         swr_free(&_ctx);
     }
 }
 
-FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame){
+FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
     if (frame->get()->format == _target_format &&
-        frame->get()->channels == _target_channels &&
-        frame->get()->channel_layout == _target_channel_layout &&
-        frame->get()->sample_rate == _target_samplerate) {
+    frame->get()->channels == _target_channels &&
+    frame->get()->channel_layout == _target_channel_layout &&
+    frame->get()->sample_rate == _target_samplerate) {
         //不转格式
         return frame;
     }
@@ -114,51 +112,43 @@ FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame){
                                   frame->get()->channel_layout, (AVSampleFormat) frame->get()->format,
                                   frame->get()->sample_rate, 0, nullptr);
         InfoL << "swr_alloc_set_opts:" << av_get_sample_fmt_name((enum AVSampleFormat) frame->get()->format) << " -> "
-              << av_get_sample_fmt_name(_target_format);
+                << av_get_sample_fmt_name(_target_format);
     }
     if (_ctx) {
-        FFmpegFrame::Ptr out = _frame_pool.obtain();
+        auto out = std::make_shared<FFmpegFrame>();
         out->get()->format = _target_format;
         out->get()->channel_layout = _target_channel_layout;
         out->get()->channels = _target_channels;
         out->get()->sample_rate = _target_samplerate;
         out->get()->pkt_dts = frame->get()->pkt_dts;
-        out->get()->pkt_pts = frame->get()->pkt_pts;
         out->get()->pts = frame->get()->pts;
 
-        int ret;
+        int ret = 0;
         if(0 != (ret = swr_convert_frame(_ctx, out->get(), frame->get()))){
             WarnL << "swr_convert_frame failed:" << ffmpeg_err(ret);
             return nullptr;
         }
-        //修正大小
-        out->get()->linesize[0] = out->get()->nb_samples * out->get()->channels * av_get_bytes_per_sample((enum AVSampleFormat)out->get()->format);
         return out;
     }
 
     return nullptr;
 }
-void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int  target_height){
-    assert(_data == nullptr);
-    _data = new char[avpicture_get_size(target_format, target_width, target_height)];
-    avpicture_fill((AVPicture *) _frame.get(), (uint8_t *) _data, target_format, target_width, target_height);
-}
+
 
 ///////////////////////////////////////////////////////////////////////////
 
 FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track) {
-    _frame_pool.setSize(8);
     avcodec_register_all();
     AVCodec *codec = nullptr;
     AVCodec *codec_default = nullptr;
     switch (track->getCodecId()) {
         case CodecH264:
             codec_default = getCodec(AV_CODEC_ID_H264);
-            codec = getCodec(AV_CODEC_ID_H264, "h264_cuvid","h264_videotoolbox");
+            codec = getCodec("libopenh264", AV_CODEC_ID_H264, "h264_videotoolbox", "h264_cuvid");
             break;
         case CodecH265:
             codec_default = getCodec(AV_CODEC_ID_HEVC);
-            codec = getCodec(AV_CODEC_ID_HEVC, "hevc_cuvid","hevc_videotoolbox");
+            codec = getCodec(AV_CODEC_ID_HEVC, "hevc_videotoolbox", "hevc_cuvid");
             break;
         case CodecAAC:
             codec = getCodec(AV_CODEC_ID_AAC);
@@ -196,27 +186,31 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track) {
 
         switch (track->getCodecId()) {
             case CodecG711A:
-            case CodecG711U: {
-                AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
-                _context->channels = audio->getAudioChannel();
-                _context->sample_rate = audio->getAudioSampleRate();
-                _context->channel_layout = _context->channels == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO;
-                break;
-            }
-            default:
-                break;
+                case CodecG711U: {
+                    AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
+                    _context->channels = audio->getAudioChannel();
+                    _context->sample_rate = audio->getAudioSampleRate();
+                    _context->channel_layout = av_get_default_channel_layout(_context->channels);
+                    break;
+                }
+                default:
+                    break;
         }
         AVDictionary *dict = nullptr;
-        av_dict_set(&dict, "threads", to_string(thread::hardware_concurrency()).data(), 0);
+        av_dict_set(&dict, "threads", "auto", 0);
         av_dict_set(&dict, "zerolatency", "1", 0);
         av_dict_set(&dict, "strict", "-2", 0);
 
         if (codec->capabilities & AV_CODEC_CAP_TRUNCATED) {
             /* we do not send complete frames */
             _context->flags |= AV_CODEC_FLAG_TRUNCATED;
+        } else {
+            // 此时业务层应该需要合帧
+            _do_merger = true;
         }
 
         int ret = avcodec_open2(_context.get(), codec, &dict);
+        av_dict_free(&dict);
         if (ret >= 0) {
             //成功
             InfoL << "打开解码器成功:" << codec->name;
@@ -231,11 +225,19 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track) {
         }
         throw std::runtime_error(StrPrinter << "打开解码器" << codec->name << "失败:" << ffmpeg_err(ret));
     }
+
+    if (track->getTrackType() == TrackVideo) {
+        startThread("decoder thread");
+    }
 }
 
-void FFmpegDecoder::flush(){
+FFmpegDecoder::~FFmpegDecoder() {
+    stopThread();
+}
+
+void FFmpegDecoder::flush() {
     while (true) {
-        FFmpegFrame::Ptr out_frame = _frame_pool.obtain();
+        auto out_frame = std::make_shared<FFmpegFrame>();
         auto ret = avcodec_receive_frame(_context.get(), out_frame->get());
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             break;
@@ -248,24 +250,43 @@ void FFmpegDecoder::flush(){
     }
 }
 
-const AVCodecContext *FFmpegDecoder::getContext() const{
+const AVCodecContext *FFmpegDecoder::getContext() const {
     return _context.get();
 }
 
-void FFmpegDecoder::inputFrame(const Frame::Ptr &frame) {
-    inputFrame(frame->data(), frame->size(), frame->dts(), frame->pts());
+void FFmpegDecoder::inputFrame_l(const Frame::Ptr &frame) {
+    if (_do_merger) {
+        _merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+            decodeFrame(buffer->data(), buffer->size(), dts, pts);
+        });
+    } else {
+        decodeFrame(frame->data(), frame->size(), frame->dts(), frame->pts());
+    }
 }
 
-void FFmpegDecoder::inputFrame(const char *data, size_t size, uint32_t dts, uint32_t pts) {
-    AVPacket pkt;
-    av_init_packet(&pkt);
+void FFmpegDecoder::inputFrame(const Frame::Ptr &frame) {
+    if (!TaskManager::isEnabled()) {
+        inputFrame_l(frame);
+    } else {
+        auto frame_cache = Frame::getCacheAbleFrame(frame);
+        addDecodeTask(frame->keyFrame(), [this, frame_cache]() {
+            inputFrame_l(frame_cache);
+            //此处模拟解码太慢导致的主动丢帧
+            //usleep(100 * 1000);
+        });
+    }
+}
 
-    pkt.data = (uint8_t *) data;
-    pkt.size = size;
-    pkt.dts = dts;
-    pkt.pts = pts;
+void FFmpegDecoder::decodeFrame(const char *data, size_t size, uint32_t dts, uint32_t pts) {
+    TimeTicker2(30, TraceL);
 
-    auto ret = avcodec_send_packet(_context.get(), &pkt);
+    auto pkt = alloc_av_packet();
+    pkt->data = (uint8_t *) data;
+    pkt->size = size;
+    pkt->dts = dts;
+    pkt->pts = pts;
+
+    auto ret = avcodec_send_packet(_context.get(), pkt.get());
     if (ret < 0) {
         if (ret != AVERROR_INVALIDDATA) {
             WarnL << "avcodec_send_packet failed:" << ffmpeg_err(ret);
@@ -274,7 +295,7 @@ void FFmpegDecoder::inputFrame(const char *data, size_t size, uint32_t dts, uint
     }
 
     while (true) {
-        FFmpegFrame::Ptr out_frame = _frame_pool.obtain();
+        auto out_frame = std::make_shared<FFmpegFrame>();
         ret = avcodec_receive_frame(_context.get(), out_frame->get());
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             break;
@@ -283,9 +304,9 @@ void FFmpegDecoder::inputFrame(const char *data, size_t size, uint32_t dts, uint
             WarnL << "avcodec_receive_frame failed:" << ffmpeg_err(ret);
             break;
         }
-        if (pts - out_frame->get()->pkt_pts > MAX_DELAY_SECOND * 1000 && _ticker.createdTime() > 10 * 1000) {
+        if (pts - out_frame->get()->pts > MAX_DELAY_SECOND * 1000 && _ticker.createdTime() > 10 * 1000) {
             //后面的帧才忽略,防止Track无法ready
-            WarnL << "解码时，忽略" << MAX_DELAY_SECOND << "秒前的数据:" << pts << " " << out_frame->get()->pkt_pts;
+            WarnL << "解码时，忽略" << MAX_DELAY_SECOND << "秒前的数据:" << pts << " " << out_frame->get()->pts;
             continue;
         }
         onDecode(out_frame);
@@ -296,17 +317,106 @@ void FFmpegDecoder::setOnDecode(FFmpegDecoder::onDec cb) {
     _cb = std::move(cb);
 }
 
-void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame){
-    if (_context->codec_type == AVMEDIA_TYPE_AUDIO) {
-        if (!_swr) {
-            //固定输出16位整型的pcm
-            _swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->channels, frame->get()->channel_layout, frame->get()->sample_rate);
-        }
-        //音频情况下，转换音频format类型，比如说浮点型转换为int型
-        const_cast<FFmpegFrame::Ptr &>(frame) = _swr->inputFrame(frame);
-    }
-    if (_cb && frame) {
+void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
+    if (_cb) {
         _cb(frame);
     }
 }
 
+////////////////////////////////////////////////////////////////////////
+
+void TaskManager::pushExit(){
+    {
+        lock_guard<mutex> lck(_task_mtx);
+        _exit = true;
+        _task.clear();
+        _task.emplace_back([](){
+            throw ThreadExitException();
+        });
+    }
+    _sem.post(10);
+}
+
+void TaskManager::addEncodeTask(function<void()> task) {
+    {
+        lock_guard<mutex> lck(_task_mtx);
+        _task.emplace_back(std::move(task));
+        if (_task.size() > 30) {
+            WarnL << "encoder thread task is too more, now drop frame!";
+            _task.pop_front();
+        }
+    }
+    _sem.post();
+}
+
+void TaskManager::addDecodeTask(bool key_frame, function<void()> task) {
+    {
+        lock_guard<mutex> lck(_task_mtx);
+        if (_decode_drop_start) {
+            if (!key_frame) {
+                TraceL << "decode thread drop frame";
+                return;
+            }
+            _decode_drop_start = false;
+            InfoL << "decode thread stop drop frame";
+        }
+
+        _task.emplace_back(std::move(task));
+        if (_task.size() > 30) {
+            _decode_drop_start = true;
+            WarnL << "decode thread start drop frame";
+        }
+    }
+    _sem.post();
+}
+
+void TaskManager::startThread(const string &name) {
+    _thread.reset(new thread([this, name]() {
+        onThreadRun(name);
+    }), [this](thread *ptr) {
+        pushExit();
+        ptr->join();
+        delete ptr;
+    });
+}
+
+void TaskManager::stopThread() {
+    _thread = nullptr;
+}
+
+TaskManager::~TaskManager() {
+    stopThread();
+}
+
+bool TaskManager::isEnabled() const {
+    return _thread.operator bool();
+}
+
+void TaskManager::onThreadRun(const string &name) {
+    setThreadName(name.data());
+    function<void()> task;
+    _exit = false;
+    while (!_exit) {
+        _sem.wait();
+        {
+            unique_lock<mutex> lck(_task_mtx);
+            if (_task.empty()) {
+                continue;
+            }
+            task = _task.front();
+            _task.pop_front();
+        }
+
+        try {
+            TimeTicker2(50, TraceL);
+            task();
+            task = nullptr;
+        } catch (ThreadExitException &ex) {
+            break;
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+            continue;
+        }
+    }
+    InfoL << name << " exited!";
+}
