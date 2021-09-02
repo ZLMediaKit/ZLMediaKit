@@ -189,7 +189,7 @@ void RtspSession::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, const char *
         if ((RtcpType) rtcp->pt == RtcpType::RTCP_SR) {
             auto sr = (RtcpSR *) (rtcp);
             //设置rtp时间戳与ntp时间戳的对应关系
-            setNtpStamp(track_idx, sr->rtpts, track->_samplerate, sr->getNtpUnixStampMS());
+            setNtpStamp(track_idx, sr->rtpts, sr->getNtpUnixStampMS());
         }
     }
 }

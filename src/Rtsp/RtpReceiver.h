@@ -176,7 +176,7 @@ public:
     void clear();
     uint32_t getSSRC() const;
     RtpPacket::Ptr inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
-    void setNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms);
+    void setNtpStamp(uint32_t rtp_stamp, uint64_t ntp_stamp_ms);
 
 protected:
     virtual void onRtpSorted(RtpPacket::Ptr rtp) {}
@@ -245,11 +245,10 @@ public:
      * 如果rtp_stamp/sample_rate/ntp_stamp_ms都为0，那么采用rtp时间戳为ntp时间戳
      * @param index track下标索引
      * @param rtp_stamp rtp时间戳
-     * @param sample_rate 时间戳采样率
      * @param ntp_stamp_ms ntp时间戳
      */
-    void setNtpStamp(int index, uint32_t rtp_stamp, uint32_t sample_rate, uint64_t ntp_stamp_ms){
-        _track[index].setNtpStamp(rtp_stamp, sample_rate, ntp_stamp_ms);
+    void setNtpStamp(int index, uint32_t rtp_stamp, uint64_t ntp_stamp_ms){
+        _track[index].setNtpStamp(rtp_stamp, ntp_stamp_ms);
     }
 
     void clear() {

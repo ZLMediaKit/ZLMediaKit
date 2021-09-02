@@ -33,7 +33,7 @@ public:
         setOnSorted(std::move(cb));
         setBeforeSorted(std::move(cb_before));
         //GB28181推流不支持ntp时间戳
-        setNtpStamp(0, 0, 0);
+        setNtpStamp(0, 0);
     }
 
     ~RtpReceiverImp() override = default;
