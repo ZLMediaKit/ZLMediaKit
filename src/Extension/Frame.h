@@ -179,7 +179,22 @@ public:
     using Ptr = std::shared_ptr<FrameImp>;
 
     template<typename C=FrameImp>
-    static std::shared_ptr<C> create();
+    static std::shared_ptr<C> create() {
+#if 0
+        static ResourcePool<C> packet_pool;
+        static onceToken token([]() {
+            packet_pool.setSize(1024);
+        });
+        auto ret = packet_pool.obtain();
+        ret->_buffer.clear();
+        ret->_prefix_size = 0;
+        ret->_dts = 0;
+        ret->_pts = 0;
+        return ret;
+#else
+        return std::shared_ptr<C>(new C());
+#endif
+    }
 
     char *data() const override{
         return (char *)_buffer.data();
@@ -227,9 +242,6 @@ private:
 protected:
     friend class ResourcePool_l<FrameImp>;
     FrameImp() = default;
-
-    template<typename C>
-    static std::shared_ptr<C> create_l();
 };
 
 /**
