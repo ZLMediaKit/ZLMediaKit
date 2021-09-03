@@ -59,6 +59,8 @@ ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
     }, nullptr);
 
     _parser.Parse(header);
+    CHECK(_parser.Url()[0] == '/');
+
     urlDecode(_parser);
     string cmd = _parser.Method();
     auto it = s_func_map.find(cmd);
