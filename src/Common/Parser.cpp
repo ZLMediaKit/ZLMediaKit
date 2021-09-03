@@ -148,7 +148,10 @@ StrCaseMap Parser::parseArgs(const string &str, const char *pair_delim, const ch
             auto val = trim(FindField(key_val.data(), key_delim, NULL));
             ret.emplace_force(key, val);
         } else {
-            ret.emplace_force(key_val, "");
+            trim(key_val);
+            if (!key_val.empty()) {
+                ret.emplace_force(key_val, "");
+            }
         }
     }
     return ret;
