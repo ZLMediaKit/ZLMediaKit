@@ -267,7 +267,7 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
 void WebRtcTransport::sendRtpPacket(const char *buf, int len, bool flush, void *ctx) {
     if (_srtp_session_send) {
         //预留rtx加入的两个字节
-        CHECK(len + SRTP_MAX_TRAILER_LEN + 2 <= sizeof(_srtp_buf));
+        CHECK((size_t)len + SRTP_MAX_TRAILER_LEN + 2 <= sizeof(_srtp_buf));
         memcpy(_srtp_buf, buf, len);
         onBeforeEncryptRtp((char *) _srtp_buf, len, ctx);
         if (_srtp_session_send->EncryptRtp(_srtp_buf, &len)) {
@@ -278,7 +278,7 @@ void WebRtcTransport::sendRtpPacket(const char *buf, int len, bool flush, void *
 
 void WebRtcTransport::sendRtcpPacket(const char *buf, int len, bool flush, void *ctx){
     if (_srtp_session_send) {
-        CHECK(len + SRTP_MAX_TRAILER_LEN <= sizeof(_srtp_buf));
+        CHECK((size_t)len + SRTP_MAX_TRAILER_LEN <= sizeof(_srtp_buf));
         memcpy(_srtp_buf, buf, len);
         onBeforeEncryptRtcp((char *) _srtp_buf, len, ctx);
         if (_srtp_session_send->EncryptRtcp(_srtp_buf, &len)) {
@@ -442,7 +442,7 @@ void WebRtcTransportImp::onStartWebRTC() {
                 InfoL << "get rtp, pt:" << (int) pt << ", ssrc:" << ssrc << ", rid:" << rid;
             });
 
-            int index = 0;
+            size_t index = 0;
             for (auto &ssrc : m_offer->rtp_ssrc_sim) {
                 //记录ssrc对应的MediaTrack
                 _ssrc_to_track[ssrc.ssrc] = track;
