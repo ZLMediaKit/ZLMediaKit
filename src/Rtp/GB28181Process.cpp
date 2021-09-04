@@ -16,6 +16,8 @@
 #include "Extension/H264Rtp.h"
 #include "Extension/Factory.h"
 #include "Extension/Opus.h"
+#include "Extension/G711.h"
+#include "Extension/H265.h"
 
 namespace mediakit{
 
