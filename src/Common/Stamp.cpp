@@ -244,7 +244,7 @@ uint64_t NtpStamp::getNtpStamp_l(uint32_t rtp_stamp, uint32_t sample_rate) {
 
     //rtp时间戳正增长
     if (rtp_stamp >= _last_rtp_stamp) {
-        auto diff = (rtp_stamp - _last_rtp_stamp) / (sample_rate / 1000.0f);
+        auto diff = static_cast<int>((rtp_stamp - _last_rtp_stamp) / (sample_rate / 1000.0f));
         if (diff < MAX_DELTA_STAMP) {
             //时间戳正常增长
             update(rtp_stamp, _last_ntp_stamp_ms + diff);
@@ -264,7 +264,7 @@ uint64_t NtpStamp::getNtpStamp_l(uint32_t rtp_stamp, uint32_t sample_rate) {
     }
 
     //rtp时间戳负增长
-    auto diff = (_last_rtp_stamp - rtp_stamp) / (sample_rate / 1000.0f);
+    auto diff = static_cast<int>((_last_rtp_stamp - rtp_stamp) / (sample_rate / 1000.0f));
     if (diff < MAX_DELTA_STAMP) {
         //正常范围的时间戳回退，说明收到rtp乱序了
         return _last_ntp_stamp_ms - diff;
