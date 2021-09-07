@@ -216,7 +216,7 @@ private:
 
     void onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp);
     void onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc);
-    void createRtpChannel(const string &rid, uint32_t ssrc, const MediaTrack::Ptr &track);
+    void createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track);
 
 private:
     bool _simulcast = false;
