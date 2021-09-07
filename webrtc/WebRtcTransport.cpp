@@ -441,7 +441,7 @@ void WebRtcTransportImp::onStartWebRTC() {
                 //ssrc --> MediaTrack
                 auto track = weak_track.lock();
                 assert(track);
-                _ssrc_to_track[ssrc] = track;
+                _ssrc_to_track[ssrc] = std::move(track);
                 InfoL << "get rtp, pt:" << (int) pt << ", ssrc:" << ssrc << ", rid:" << rid;
             });
 
@@ -750,20 +750,20 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 
 ///////////////////////////////////////////////////////////////////
 
-void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, const MediaTrack::Ptr &track) {
+void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track) {
     //rid --> RtpReceiverImp
-    auto &ref = track->rtp_channel[rid];
+    auto &ref = track.rtp_channel[rid];
     weak_ptr<WebRtcTransportImp> weak_self = dynamic_pointer_cast<WebRtcTransportImp>(shared_from_this());
-    ref = std::make_shared<RtpChannel>(getPoller(),[track, this, rid](RtpPacket::Ptr rtp) mutable {
-        onSortedRtp(*track, rid, std::move(rtp));
-    }, [track, weak_self, ssrc](const FCI_NACK &nack) mutable {
+    ref = std::make_shared<RtpChannel>(getPoller(), [&track, this, rid](RtpPacket::Ptr rtp) mutable {
+        onSortedRtp(track, rid, std::move(rtp));
+    }, [&track, weak_self, ssrc](const FCI_NACK &nack) mutable {
         //nack发送可能由定时器异步触发
         auto strong_self = weak_self.lock();
         if (strong_self) {
-            strong_self->onSendNack(*track, nack, ssrc);
+            strong_self->onSendNack(track, nack, ssrc);
         }
     });
-    InfoL << "create rtp receiver of ssrc:" << ssrc << ", rid:" << rid << ", codec:" << track->plan_rtp->codec;
+    InfoL << "create rtp receiver of ssrc:" << ssrc << ", rid:" << rid << ", codec:" << track.plan_rtp->codec;
 }
 
 void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
@@ -792,7 +792,7 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
             WarnL << "unknown rtx rtp, rid:" << rid << ", ssrc:" << ssrc << ", codec:" << track->plan_rtp->codec << ", seq:" << ntohs(rtp->seq);
             return;
         }
-        createRtpChannel(rid, ssrc, track);
+        createRtpChannel(rid, ssrc, *track);
     }
 
     if (!is_rtx) {
