@@ -25,7 +25,11 @@
 #include "Rtp/RtpServer.h"
 #include "WebApi.h"
 #include "WebHook.h"
-#include "../webrtc/Sdp.h"
+
+#if defined(ENABLE_WEBRTC)
+#include "../webrtc/WebRtcTransport.h"
+#include "../webrtc/WebRtcSession.h"
+#endif
 
 #if defined(ENABLE_VERSION)
 #include "Version.h"
@@ -255,13 +259,13 @@ int start_main(int argc,char *argv[]) {
         //加载配置文件，如果配置文件不存在就创建一个
         loadIniConfig(g_ini_file.data());
 
-        if(!File::is_dir(ssl_file.data())){
+        if (!File::is_dir(ssl_file.data())) {
             //不是文件夹，加载证书，证书包含公钥和私钥
             SSL_Initor::Instance().loadCertificate(ssl_file.data());
-        }else{
+        } else {
             //加载文件夹下的所有证书
-            File::scanDir(ssl_file,[](const string &path, bool isDir){
-                if(!isDir){
+            File::scanDir(ssl_file, [](const string &path, bool isDir) {
+                if (!isDir) {
                     //最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
                     SSL_Initor::Instance().loadCertificate(path.data());
                 }
@@ -283,56 +287,67 @@ int start_main(int argc,char *argv[]) {
 
         //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
         //测试方法:telnet 127.0.0.1 9000
-        TcpServer::Ptr shellSrv(new TcpServer());
+        TcpServer::Ptr shellSrv = std::make_shared<TcpServer>();
 
         //rtsp[s]服务器, 可用于诸如亚马逊echo show这样的设备访问
-        TcpServer::Ptr rtspSrv(new TcpServer());
-        TcpServer::Ptr rtspSSLSrv(new TcpServer());
+        TcpServer::Ptr rtspSrv = std::make_shared<TcpServer>();;
+        TcpServer::Ptr rtspSSLSrv = std::make_shared<TcpServer>();;
 
         //rtmp[s]服务器
-        TcpServer::Ptr rtmpSrv(new TcpServer());
-        TcpServer::Ptr rtmpsSrv(new TcpServer());
+        TcpServer::Ptr rtmpSrv = std::make_shared<TcpServer>();;
+        TcpServer::Ptr rtmpsSrv = std::make_shared<TcpServer>();;
 
         //http[s]服务器
-        TcpServer::Ptr httpSrv(new TcpServer());
-        TcpServer::Ptr httpsSrv(new TcpServer());
+        TcpServer::Ptr httpSrv = std::make_shared<TcpServer>();;
+        TcpServer::Ptr httpsSrv = std::make_shared<TcpServer>();;
 
 #if defined(ENABLE_RTPPROXY)
         //GB28181 rtp推流端口，支持UDP/TCP
         RtpServer::Ptr rtpServer = std::make_shared<RtpServer>();
 #endif//defined(ENABLE_RTPPROXY)
 
+#if defined(ENABLE_WEBRTC)
+        //webrtc udp服务器
+        UdpServer::Ptr rtcSrv = std::make_shared<UdpServer>();
+        uint16_t rtcPort = mINI::Instance()[RTC::kPort];
+#endif//defined(ENABLE_WEBRTC)
+
         try {
             //rtsp服务器，端口默认554
-            if(rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
+            if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
             //rtsps服务器，端口默认322
-            if(rtspsPort) { rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort); }
+            if (rtspsPort) { rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort); }
 
             //rtmp服务器，端口默认1935
-            if(rtmpPort) { rtmpSrv->start<RtmpSession>(rtmpPort); }
+            if (rtmpPort) { rtmpSrv->start<RtmpSession>(rtmpPort); }
             //rtmps服务器，端口默认19350
-            if(rtmpsPort) { rtmpsSrv->start<RtmpSessionWithSSL>(rtmpsPort); }
+            if (rtmpsPort) { rtmpsSrv->start<RtmpSessionWithSSL>(rtmpsPort); }
 
             //http服务器，端口默认80
-            if(httpPort) { httpSrv->start<HttpSession>(httpPort); }
+            if (httpPort) { httpSrv->start<HttpSession>(httpPort); }
             //https服务器，端口默认443
-            if(httpsPort) { httpsSrv->start<HttpsSession>(httpsPort); }
+            if (httpsPort) { httpsSrv->start<HttpsSession>(httpsPort); }
 
             //telnet远程调试服务器
-            if(shellPort) { shellSrv->start<ShellSession>(shellPort); }
+            if (shellPort) { shellSrv->start<ShellSession>(shellPort); }
 
 #if defined(ENABLE_RTPPROXY)
             //创建rtp服务器
-            if(rtpPort){ rtpServer->start(rtpPort); }
+            if (rtpPort) { rtpServer->start(rtpPort); }
 #endif//defined(ENABLE_RTPPROXY)
 
-        }catch (std::exception &ex){
+#if defined(ENABLE_WEBRTC)
+            //webrtc udp服务器
+            if (rtcPort) { rtcSrv->start<WebRtcSession>(rtcPort); }
+#endif//defined(ENABLE_WEBRTC)
+
+        } catch (std::exception &ex) {
             WarnL << "端口占用或无权限:" << ex.what() << endl;
             ErrorL << "程序启动失败，请修改配置文件中端口号后重试!" << endl;
             sleep(1);
 #if !defined(_WIN32)
-            if(pid != getpid()){
-                kill(pid,SIGINT);
+            if (pid != getpid()) {
+                kill(pid, SIGINT);
             }
 #endif
             return -1;

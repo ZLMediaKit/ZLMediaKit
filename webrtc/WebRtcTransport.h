@@ -23,15 +23,23 @@
 #include "Rtcp/RtcpContext.h"
 #include "Rtcp/RtcpFCI.h"
 #include "Nack.h"
+#include "Network/Session.h"
 
 using namespace toolkit;
 using namespace mediakit;
 
-class WebRtcTransport : public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener  {
+//RTC配置项目
+namespace RTC {
+extern const string kPort;
+}//namespace RTC
+
+class WebRtcTransport : public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener, public std::enable_shared_from_this<WebRtcTransport> {
 public:
     using Ptr = std::shared_ptr<WebRtcTransport>;
     WebRtcTransport(const EventPoller::Ptr &poller);
     ~WebRtcTransport() override = default;
+
+    void unrefSelf(const SockException &ex);
 
     /**
      * 创建对象
@@ -115,9 +123,11 @@ protected:
 private:
     void onSendSockData(const char *buf, size_t len, bool flush = true);
     void setRemoteDtlsFingerprint(const RtcSession &remote);
+    void refSelf();
 
 private:
     uint8_t _srtp_buf[2000];
+    string _key;
     EventPoller::Ptr _poller;
     std::shared_ptr<RTC::IceServer> _ice_server;
     std::shared_ptr<RTC::DtlsTransport> _dtls_transport;
@@ -125,6 +135,8 @@ private:
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
     RtcSession::Ptr _offer_sdp;
     RtcSession::Ptr _answer_sdp;
+    //保持自我强引用
+    WebRtcTransport::Ptr _self;
 };
 
 class RtpChannel;
@@ -149,7 +161,7 @@ public:
     std::shared_ptr<RtpChannel> getRtpChannel(uint32_t ssrc) const;
 };
 
-class WebRtcTransportImp : public WebRtcTransport, public MediaSourceEvent, public SockInfo, public std::enable_shared_from_this<WebRtcTransportImp>{
+class WebRtcTransportImp : public WebRtcTransport, public MediaSourceEvent{
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
     ~WebRtcTransportImp() override;
@@ -160,6 +172,9 @@ public:
      * @return 对象
      */
     static Ptr create(const EventPoller::Ptr &poller);
+    static Ptr getTransport(const string &key);
+
+    void setSession(Session *session);
 
     /**
      * 绑定rtsp媒体源
@@ -193,18 +208,6 @@ protected:
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
-    ///////SockInfo override///////
-    //获取本机ip
-    string get_local_ip() override;
-    //获取本机端口号
-    uint16_t get_local_port() override;
-    //获取对方ip
-    string get_peer_ip() override;
-    //获取对方端口号
-    uint16_t get_peer_port() override;
-    //获取标识符
-    string getIdentifier() const override;
-
 private:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
     void onCreate() override;
@@ -225,16 +228,14 @@ private:
     uint64_t _bytes_usage = 0;
     //媒体相关元数据
     MediaInfo _media_info;
-    //保持自我强引用
-    Ptr _self;
     //检测超时的定时器
     Timer::Ptr _timer;
     //刷新计时器
     Ticker _alive_ticker;
     //pli rtcp计时器
     Ticker _pli_ticker;
-    //复合udp端口，接收一切rtp与rtcp
-    Socket::Ptr _socket;
+    //udp session
+    Session *_session;
     //推流的rtsp源
     RtspMediaSource::Ptr _push_src;
     unordered_map<string/*rid*/, RtspMediaSource::Ptr> _push_src_simulcast;
