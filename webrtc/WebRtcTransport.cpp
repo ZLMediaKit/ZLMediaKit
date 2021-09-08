@@ -30,28 +30,59 @@ const string kTimeOutSec = RTC_FIELD"timeoutSec";
 const string kExternIP = RTC_FIELD"externIP";
 //设置remb比特率，非0时关闭twcc并开启remb。该设置在rtc推流时有效，可以控制推流画质
 const string kRembBitRate = RTC_FIELD"rembBitRate";
+//webrtc单端口udp服务器
+const string kPort =  RTC_FIELD"port";
 
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
     mINI::Instance()[kExternIP] = "";
     mINI::Instance()[kRembBitRate] = 0;
+    mINI::Instance()[kPort] = 8000;
 });
 
 }//namespace RTC
 
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
-    _dtls_transport = std::make_shared<RTC::DtlsTransport>(poller, this);
-    _ice_server = std::make_shared<RTC::IceServer>(this, makeRandStr(4), makeRandStr(28).substr(4));
 }
 
 void WebRtcTransport::onCreate(){
-
+    _key = to_string(reinterpret_cast<uint64_t>(this));
+    _dtls_transport = std::make_shared<RTC::DtlsTransport>(_poller, this);
+    _ice_server = std::make_shared<RTC::IceServer>(this, _key, makeRandStr(24));
+    refSelf();
 }
 
 void WebRtcTransport::onDestory(){
     _dtls_transport = nullptr;
     _ice_server = nullptr;
+    unrefSelf(SockException());
+}
+
+static mutex s_rtc_mtx;
+static unordered_map<string, weak_ptr<WebRtcTransportImp> > s_rtc_map;
+
+void WebRtcTransport::refSelf() {
+    _self = shared_from_this();
+
+    lock_guard<mutex> lck(s_rtc_mtx);
+    s_rtc_map[_key] = static_pointer_cast<WebRtcTransportImp>(_self);
+}
+
+void WebRtcTransport::unrefSelf(const SockException &ex) {
+    _self = nullptr;
+
+    lock_guard<mutex> lck(s_rtc_mtx);
+    s_rtc_map.erase(_key);
+}
+
+WebRtcTransportImp::Ptr WebRtcTransportImp::getTransport(const string &key){
+    lock_guard<mutex> lck(s_rtc_mtx);
+    auto it = s_rtc_map.find(key);
+    if (it == s_rtc_map.end()) {
+        return nullptr;
+    }
+    return it->second.lock();
 }
 
 const EventPoller::Ptr& WebRtcTransport::getPoller() const{
@@ -299,18 +330,7 @@ WebRtcTransportImp::Ptr WebRtcTransportImp::create(const EventPoller::Ptr &polle
 
 void WebRtcTransportImp::onCreate(){
     WebRtcTransport::onCreate();
-    _socket = Socket::createSocket(getPoller(), false);
-    //随机端口，绑定全部网卡
-    _socket->bindUdpSock(0);
-    weak_ptr<WebRtcTransportImp> weak_self = shared_from_this();
-    _socket->setOnRead([weak_self](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
-        auto strong_self = weak_self.lock();
-        if (strong_self) {
-            strong_self->inputSockData(buf->data(), buf->size(), addr);
-        }
-    });
-    _self = shared_from_this();
-
+    weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
     GET_CONFIG(float, timeoutSec, RTC::kTimeOutSec);
     _timer = std::make_shared<Timer>(timeoutSec / 2, [weak_self]() {
         auto strong_self = weak_self.lock();
@@ -346,7 +366,7 @@ void WebRtcTransportImp::onDestory() {
               << _media_info._streamid
               << ")结束播放,耗时(s):" << duration;
         if (_bytes_usage >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, true, static_cast<SockInfo &>(*_socket));
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, true, *static_cast<SockInfo *>(_session));
         }
     }
 
@@ -357,7 +377,7 @@ void WebRtcTransportImp::onDestory() {
               << _media_info._streamid
               << ")结束推流,耗时(s):" << duration;
         if (_bytes_usage >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, false, static_cast<SockInfo &>(*_socket));
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, false, *static_cast<SockInfo *>(_session));
         }
     }
 }
@@ -375,7 +395,7 @@ void WebRtcTransportImp::attach(const RtspMediaSource::Ptr &src, const MediaInfo
 void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush) {
     auto ptr = BufferRaw::create();
     ptr->assign(buf, len);
-    _socket->send(ptr, (struct sockaddr *)(dst), sizeof(struct sockaddr), flush);
+    _session->send(std::move(ptr));
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -464,7 +484,7 @@ void WebRtcTransportImp::onStartWebRTC() {
     }
     if (canSendRtp()) {
         _reader = _play_src->getRing()->attach(getPoller(), true);
-        weak_ptr<WebRtcTransportImp> weak_self = shared_from_this();
+        weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
         _reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {
             auto strongSelf = weak_self.lock();
             if (!strongSelf) {
@@ -516,7 +536,9 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
         m.addr.address = extern_ip.empty() ? SockUtil::get_local_ip() : extern_ip;
         m.rtcp_addr.reset();
         m.rtcp_addr.address = m.addr.address;
-        m.rtcp_addr.port = _socket->get_local_port();
+
+        GET_CONFIG(uint16_t, local_port, RTC::kPort);
+        m.rtcp_addr.port = local_port;
         m.port = m.rtcp_addr.port;
         sdp.origin.address = m.addr.address;
     }
@@ -576,7 +598,8 @@ SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
     candidate->priority = 100;
     GET_CONFIG(string, extern_ip, RTC::kExternIP);
     candidate->address = extern_ip.empty() ? SockUtil::get_local_ip() : extern_ip;
-    candidate->port = _socket->get_local_port();
+    GET_CONFIG(uint16_t, local_port, RTC::kPort);
+    candidate->port = local_port;
     candidate->type = "host";
     return candidate;
 }
@@ -871,7 +894,7 @@ void WebRtcTransportImp::onSortedRtp(MediaTrack &track, const string &rid, RtpPa
             auto src_imp = std::make_shared<RtspMediaSourceImp>(_push_src->getVhost(), _push_src->getApp(), stream_id);
             src_imp->setSdp(_push_src->getSdp());
             src_imp->setProtocolTranslation(_push_src->isRecording(Recorder::type_hls),_push_src->isRecording(Recorder::type_mp4));
-            src_imp->setListener(shared_from_this());
+            src_imp->setListener(static_pointer_cast<WebRtcTransportImp>(shared_from_this()));
             src = src_imp;
         }
         src->onWrite(std::move(rtp), false);
@@ -943,7 +966,11 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
 
 void WebRtcTransportImp::onShutdown(const SockException &ex){
     WarnL << ex.what();
-    _self = nullptr;
+    unrefSelf(ex);
+    if (_session) {
+        _session->shutdown(ex);
+        _session = nullptr;
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -975,27 +1002,9 @@ string WebRtcTransportImp::getOriginUrl(MediaSource &sender) const {
 }
 
 std::shared_ptr<SockInfo> WebRtcTransportImp::getOriginSock(MediaSource &sender) const {
-    return const_cast<WebRtcTransportImp *>(this)->shared_from_this();
+    return static_pointer_cast<SockInfo>(const_cast<Session *>(_session)->shared_from_this());
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////
-
-string WebRtcTransportImp::get_local_ip() {
-    return getSdp(SdpType::answer).media[0].candidate[0].address;
-}
-
-uint16_t WebRtcTransportImp::get_local_port() {
-    return _socket->get_local_port();
-}
-
-string WebRtcTransportImp::get_peer_ip() {
-    return SockUtil::inet_ntoa(((struct sockaddr_in *) getSelectedTuple())->sin_addr);
-}
-
-uint16_t WebRtcTransportImp::get_peer_port() {
-    return ntohs(((struct sockaddr_in *) getSelectedTuple())->sin_port);
-}
-
-string WebRtcTransportImp::getIdentifier() const {
-    return StrPrinter << this;
+void WebRtcTransportImp::setSession(Session *session) {
+    _session = session;
 }
