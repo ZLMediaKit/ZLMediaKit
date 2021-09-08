@@ -967,10 +967,7 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
 void WebRtcTransportImp::onShutdown(const SockException &ex){
     WarnL << ex.what();
     unrefSelf(ex);
-    if (_session) {
-        _session->shutdown(ex);
-        _session = nullptr;
-    }
+    _session->shutdown(ex);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
