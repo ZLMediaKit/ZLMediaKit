@@ -20,6 +20,8 @@ using namespace toolkit;
 
 class WebRtcSession : public UdpSession {
 public:
+    static EventPoller::Ptr getPoller(const Buffer::Ptr &);
+
     WebRtcSession(const Socket::Ptr &sock);
     ~WebRtcSession() override;
 
@@ -28,11 +30,8 @@ public:
     void onManager() override;
 
 private:
-    std::shared_ptr<WebRtcTransport> createTransport(const string &user_name);
-
-private:
     struct sockaddr _peer_addr;
-    std::shared_ptr<WebRtcTransport> _transport;
+    std::shared_ptr<WebRtcTransportImp> _transport;
 };
 
 
