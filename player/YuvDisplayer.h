@@ -1,4 +1,4 @@
-﻿/*
+ /*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -163,16 +163,24 @@ public:
             _render = SDL_CreateRenderer(_win, -1, SDL_RENDERER_ACCELERATED);
         }
         if (_render && !_texture) {
-            _texture = SDL_CreateTexture(_render, SDL_PIXELFORMAT_IYUV,
-                                         SDL_TEXTUREACCESS_STREAMING,
-                                         pFrame->width,
-                                         pFrame->height);
+            if (pFrame->format == AV_PIX_FMT_NV12) {
+                _texture = SDL_CreateTexture(
+                    _render, SDL_PIXELFORMAT_NV12, SDL_TEXTUREACCESS_STREAMING, pFrame->width, pFrame->height);
+            } else {
+                _texture = SDL_CreateTexture(
+                    _render, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, pFrame->width, pFrame->height);
+            }
         }
         if (_texture) {
-            SDL_UpdateYUVTexture(_texture, nullptr,
-                                 pFrame->data[0], pFrame->linesize[0],
-                                 pFrame->data[1], pFrame->linesize[1],
-                                 pFrame->data[2], pFrame->linesize[2]);
+            //需要更新sdl到最新（>=2.0.16）
+            if (pFrame->format == AV_PIX_FMT_NV12) {
+                SDL_UpdateNVTexture(
+                    _texture, nullptr, pFrame->data[0], pFrame->linesize[0], pFrame->data[1], pFrame->linesize[1]);
+            } else {
+                SDL_UpdateYUVTexture(
+                    _texture, nullptr, pFrame->data[0], pFrame->linesize[0], pFrame->data[1], pFrame->linesize[1],
+                    pFrame->data[2], pFrame->linesize[2]);
+            }
 
             //SDL_UpdateTexture(_texture, nullptr, pFrame->data[0], pFrame->linesize[0]);
             SDL_RenderClear(_render);
