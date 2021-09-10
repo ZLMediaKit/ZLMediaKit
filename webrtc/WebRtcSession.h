@@ -30,6 +30,7 @@ public:
     void onManager() override;
 
 private:
+    Ticker _ticker;
     struct sockaddr _peer_addr;
     std::shared_ptr<WebRtcTransportImp> _transport;
 };

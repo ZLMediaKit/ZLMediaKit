@@ -45,7 +45,7 @@ EventPoller::Ptr WebRtcSession::getPoller(const Buffer::Ptr &buffer) {
     if (user_name.empty()) {
         return nullptr;
     }
-    auto ret = WebRtcTransportImp::getTransport(user_name);
+    auto ret = WebRtcTransportImp::getRtcTransport(user_name, false);
     return ret ? ret->getPoller() : nullptr;
 }
 
@@ -60,24 +60,34 @@ void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
             WarnL << user_name;
             return;
         }
-        _transport = WebRtcTransportImp::getTransport(user_name);
+        _transport = WebRtcTransportImp::getRtcTransport(user_name, true);
         if (!_transport) {
             //逻辑分支不太可能走到这里
             WarnL << user_name;
             return;
         }
-        _transport->setSession(this);
+        _transport->setSession(shared_from_this());
     }
+    _ticker.resetTime();
     _transport->inputSockData(buf, len, &_peer_addr);
 }
 
 void WebRtcSession::onError(const SockException &err) {
-    if (_transport) {
-        _transport->unrefSelf(err);
-        _transport = nullptr;
-    }
+    //udp链接超时，但是rtc链接不一定超时，因为可能存在udp链接迁移的情况
+    //在udp链接迁移时，新的WebRtcSession对象将接管WebRtcTransport对象的生命周期
+    //本WebRtcSession对象将在超时后自动销毁
+    WarnP(this) << err.what();
+    _transport = nullptr;
 }
 
 void WebRtcSession::onManager() {
-
+    GET_CONFIG(float, timeoutSec, RTC::kTimeOutSec);
+    if (!_transport && _ticker.createdTime() > timeoutSec * 1000) {
+        shutdown(SockException(Err_timeout, "illegal webrtc connection"));
+        return;
+    }
+    if (_ticker.elapsedTime() > timeoutSec * 1000) {
+        shutdown(SockException(Err_timeout, "webrtc connection timeout"));
+        return;
+    }
 }

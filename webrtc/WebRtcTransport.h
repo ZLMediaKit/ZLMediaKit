@@ -31,6 +31,7 @@ using namespace mediakit;
 //RTC配置项目
 namespace RTC {
 extern const string kPort;
+extern const string kTimeOutSec;
 }//namespace RTC
 
 class WebRtcTransport : public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener, public std::enable_shared_from_this<WebRtcTransport> {
@@ -38,8 +39,6 @@ public:
     using Ptr = std::shared_ptr<WebRtcTransport>;
     WebRtcTransport(const EventPoller::Ptr &poller);
     ~WebRtcTransport() override = default;
-
-    void unrefSelf(const SockException &ex);
 
     /**
      * 创建对象
@@ -77,6 +76,7 @@ public:
     void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
 
     const EventPoller::Ptr& getPoller() const;
+    const string& getKey() const;
 
 protected:
     ////  dtls相关的回调 ////
@@ -123,7 +123,6 @@ protected:
 private:
     void onSendSockData(const char *buf, size_t len, bool flush = true);
     void setRemoteDtlsFingerprint(const RtcSession &remote);
-    void refSelf();
 
 private:
     uint8_t _srtp_buf[2000];
@@ -135,8 +134,6 @@ private:
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
     RtcSession::Ptr _offer_sdp;
     RtcSession::Ptr _answer_sdp;
-    //保持自我强引用
-    WebRtcTransport::Ptr _self;
 };
 
 class RtpChannel;
@@ -172,9 +169,9 @@ public:
      * @return 对象
      */
     static Ptr create(const EventPoller::Ptr &poller);
-    static Ptr getTransport(const string &key);
+    static Ptr getRtcTransport(const string &key, bool unref_self);
 
-    void setSession(Session *session);
+    void setSession(weak_ptr<Session> session);
 
     /**
      * 绑定rtsp媒体源
@@ -220,12 +217,17 @@ private:
     void onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp);
     void onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc);
     void createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track);
+    void registerSelf();
+    void unregisterSelf();
+    void unrefSelf();
 
 private:
     bool _simulcast = false;
     uint16_t _rtx_seq[2] = {0, 0};
     //用掉的总流量
     uint64_t _bytes_usage = 0;
+    //保持自我强引用
+    Ptr _self;
     //媒体相关元数据
     MediaInfo _media_info;
     //检测超时的定时器
@@ -235,7 +237,7 @@ private:
     //pli rtcp计时器
     Ticker _pli_ticker;
     //udp session
-    Session *_session;
+    weak_ptr<Session> _session;
     //推流的rtsp源
     RtspMediaSource::Ptr _push_src;
     unordered_map<string/*rid*/, RtspMediaSource::Ptr> _push_src_simulcast;

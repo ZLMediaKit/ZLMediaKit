@@ -50,43 +50,19 @@ void WebRtcTransport::onCreate(){
     _key = to_string(reinterpret_cast<uint64_t>(this));
     _dtls_transport = std::make_shared<RTC::DtlsTransport>(_poller, this);
     _ice_server = std::make_shared<RTC::IceServer>(this, _key, makeRandStr(24));
-    refSelf();
 }
 
 void WebRtcTransport::onDestory(){
     _dtls_transport = nullptr;
     _ice_server = nullptr;
-    unrefSelf(SockException());
-}
-
-static mutex s_rtc_mtx;
-static unordered_map<string, weak_ptr<WebRtcTransportImp> > s_rtc_map;
-
-void WebRtcTransport::refSelf() {
-    _self = shared_from_this();
-
-    lock_guard<mutex> lck(s_rtc_mtx);
-    s_rtc_map[_key] = static_pointer_cast<WebRtcTransportImp>(_self);
-}
-
-void WebRtcTransport::unrefSelf(const SockException &ex) {
-    _self = nullptr;
-
-    lock_guard<mutex> lck(s_rtc_mtx);
-    s_rtc_map.erase(_key);
-}
-
-WebRtcTransportImp::Ptr WebRtcTransportImp::getTransport(const string &key){
-    lock_guard<mutex> lck(s_rtc_mtx);
-    auto it = s_rtc_map.find(key);
-    if (it == s_rtc_map.end()) {
-        return nullptr;
-    }
-    return it->second.lock();
 }
 
 const EventPoller::Ptr& WebRtcTransport::getPoller() const{
     return _poller;
+}
+
+const string &WebRtcTransport::getKey() const {
+    return _key;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -330,6 +306,8 @@ WebRtcTransportImp::Ptr WebRtcTransportImp::create(const EventPoller::Ptr &polle
 
 void WebRtcTransportImp::onCreate(){
     WebRtcTransport::onCreate();
+    registerSelf();
+
     weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
     GET_CONFIG(float, timeoutSec, RTC::kTimeOutSec);
     _timer = std::make_shared<Timer>(timeoutSec / 2, [weak_self]() {
@@ -354,8 +332,14 @@ WebRtcTransportImp::~WebRtcTransportImp() {
 
 void WebRtcTransportImp::onDestory() {
     WebRtcTransport::onDestory();
-    uint64_t duration = _alive_ticker.createdTime() / 1000;
+    unregisterSelf();
 
+    auto session = _session.lock();
+    if (!session) {
+        return;
+    }
+
+    uint64_t duration = _alive_ticker.createdTime() / 1000;
     //流量统计事件广播
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
 
@@ -366,7 +350,7 @@ void WebRtcTransportImp::onDestory() {
               << _media_info._streamid
               << ")结束播放,耗时(s):" << duration;
         if (_bytes_usage >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, true, *static_cast<SockInfo *>(_session));
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, true, static_cast<SockInfo &>(*session));
         }
     }
 
@@ -377,7 +361,7 @@ void WebRtcTransportImp::onDestory() {
               << _media_info._streamid
               << ")结束推流,耗时(s):" << duration;
         if (_bytes_usage >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, false, *static_cast<SockInfo *>(_session));
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, false, static_cast<SockInfo &>(*session));
         }
     }
 }
@@ -393,9 +377,14 @@ void WebRtcTransportImp::attach(const RtspMediaSource::Ptr &src, const MediaInfo
 }
 
 void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush) {
+    auto session = _session.lock();
+    if (!session) {
+        WarnL << "send data failed:" << len;
+        return;
+    }
     auto ptr = BufferRaw::create();
     ptr->assign(buf, len);
-    _session->send(std::move(ptr));
+    session->send(std::move(ptr));
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -966,8 +955,11 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
 
 void WebRtcTransportImp::onShutdown(const SockException &ex){
     WarnL << ex.what();
-    unrefSelf(ex);
-    _session->shutdown(ex);
+    unrefSelf();
+    auto session = _session.lock();
+    if (session) {
+        session->shutdown(ex);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -999,9 +991,43 @@ string WebRtcTransportImp::getOriginUrl(MediaSource &sender) const {
 }
 
 std::shared_ptr<SockInfo> WebRtcTransportImp::getOriginSock(MediaSource &sender) const {
-    return static_pointer_cast<SockInfo>(const_cast<Session *>(_session)->shared_from_this());
+    return static_pointer_cast<SockInfo>(_session.lock());
 }
 
-void WebRtcTransportImp::setSession(Session *session) {
-    _session = session;
+void WebRtcTransportImp::setSession(weak_ptr<Session> session) {
+    _session = std::move(session);
+}
+
+
+static mutex s_rtc_mtx;
+static unordered_map<string, weak_ptr<WebRtcTransportImp> > s_rtc_map;
+
+void WebRtcTransportImp::registerSelf() {
+    _self =  static_pointer_cast<WebRtcTransportImp>(shared_from_this());
+    lock_guard<mutex> lck(s_rtc_mtx);
+    s_rtc_map[getKey()] = static_pointer_cast<WebRtcTransportImp>(_self);
+}
+
+void WebRtcTransportImp::unrefSelf() {
+    _self = nullptr;
+}
+
+void WebRtcTransportImp::unregisterSelf() {
+    unrefSelf();
+    lock_guard<mutex> lck(s_rtc_mtx);
+    s_rtc_map.erase(getKey());
+}
+
+WebRtcTransportImp::Ptr WebRtcTransportImp::getRtcTransport(const string &key, bool unref_self){
+    lock_guard<mutex> lck(s_rtc_mtx);
+    auto it = s_rtc_map.find(key);
+    if (it == s_rtc_map.end()) {
+        return nullptr;
+    }
+    auto ret = it->second.lock();
+    if (unref_self) {
+        //此对象不再强引用自己，因为自己将被WebRtcSession对象持有
+        ret->unrefSelf();
+    }
+    return ret;
 }
