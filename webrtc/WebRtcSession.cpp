@@ -21,26 +21,54 @@ WebRtcSession::~WebRtcSession() {
     InfoP(this);
 }
 
+static string getUserName(const Buffer::Ptr &buffer) {
+    auto buf = buffer->data();
+    auto len = buffer->size();
+    if (!RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
+        return "";
+    }
+    std::unique_ptr<RTC::StunPacket> packet(RTC::StunPacket::Parse((const uint8_t *) buf, len));
+    if (!packet) {
+        return "";
+    }
+    if (packet->GetClass() != RTC::StunPacket::Class::REQUEST ||
+        packet->GetMethod() != RTC::StunPacket::Method::BINDING) {
+        return "";
+    }
+    //收到binding request请求
+    auto vec = split(packet->GetUsername(), ":");
+    return vec[0];
+}
+
+EventPoller::Ptr WebRtcSession::getPoller(const Buffer::Ptr &buffer) {
+    auto user_name = getUserName(buffer);
+    if (user_name.empty()) {
+        return nullptr;
+    }
+    auto ret = WebRtcTransportImp::getTransport(user_name);
+    return ret ? ret->getPoller() : nullptr;
+}
+
 void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
     auto buf = buffer->data();
     auto len = buffer->size();
 
-    if (!_transport && RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
-        std::unique_ptr<RTC::StunPacket> packet(RTC::StunPacket::Parse((const uint8_t *) buf, len));
-        if (!packet) {
-            WarnL << "parse stun error";
+    if (!_transport) {
+        auto user_name = getUserName(buffer);
+        if (user_name.empty()) {
+            //逻辑分支不太可能走到这里
+            WarnL << user_name;
             return;
         }
-        if (packet->GetClass() == RTC::StunPacket::Class::REQUEST &&
-            packet->GetMethod() == RTC::StunPacket::Method::BINDING) {
-            //收到binding request请求
-            _transport = createTransport(packet->GetUsername());
+        _transport = WebRtcTransportImp::getTransport(user_name);
+        if (!_transport) {
+            //逻辑分支不太可能走到这里
+            WarnL << user_name;
+            return;
         }
+        _transport->setSession(this);
     }
-
-    if (_transport) {
-        _transport->inputSockData(buf, len, &_peer_addr);
-    }
+    _transport->inputSockData(buf, len, &_peer_addr);
 }
 
 void WebRtcSession::onError(const SockException &err) {
@@ -52,14 +80,4 @@ void WebRtcSession::onError(const SockException &err) {
 
 void WebRtcSession::onManager() {
 
-}
-
-std::shared_ptr<WebRtcTransport> WebRtcSession::createTransport(const string &user_name) {
-    if (user_name.empty()) {
-        return nullptr;
-    }
-    auto vec = split(user_name, ":");
-    auto ret = WebRtcTransportImp::getTransport(vec[0]);
-    ret->setSession(this);
-    return ret;
 }

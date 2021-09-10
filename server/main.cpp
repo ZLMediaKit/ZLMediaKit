@@ -309,6 +309,17 @@ int start_main(int argc,char *argv[]) {
 #if defined(ENABLE_WEBRTC)
         //webrtc udp服务器
         UdpServer::Ptr rtcSrv = std::make_shared<UdpServer>();
+        rtcSrv->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
+            if (!buf) {
+                return Socket::createSocket(poller, false);
+            }
+            auto new_poller = WebRtcSession::getPoller(buf);
+            if (!new_poller) {
+                //该数据对应的webrtc对象未找到，丢弃之
+                return Socket::Ptr();
+            }
+            return Socket::createSocket(new_poller, false);
+        });
         uint16_t rtcPort = mINI::Instance()[RTC::kPort];
 #endif//defined(ENABLE_WEBRTC)
 
