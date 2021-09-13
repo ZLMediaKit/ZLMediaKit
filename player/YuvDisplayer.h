@@ -172,14 +172,17 @@ public:
             }
         }
         if (_texture) {
+#if (SDL_PATCHLEVEL >= 16 || SDL_MINOR_VERSION > 0)
             //需要更新sdl到最新（>=2.0.16）
             if (pFrame->format == AV_PIX_FMT_NV12) {
                 SDL_UpdateNVTexture(
                     _texture, nullptr, pFrame->data[0], pFrame->linesize[0], pFrame->data[1], pFrame->linesize[1]);
-            } else {
+            } else
+#endif
+            {
                 SDL_UpdateYUVTexture(
-                    _texture, nullptr, pFrame->data[0], pFrame->linesize[0], pFrame->data[1], pFrame->linesize[1],
-                    pFrame->data[2], pFrame->linesize[2]);
+                        _texture, nullptr, pFrame->data[0], pFrame->linesize[0], pFrame->data[1], pFrame->linesize[1],
+                        pFrame->data[2], pFrame->linesize[2]);
             }
 
             //SDL_UpdateTexture(_texture, nullptr, pFrame->data[0], pFrame->linesize[0]);
