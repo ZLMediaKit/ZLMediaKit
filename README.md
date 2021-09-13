@@ -92,11 +92,12 @@
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
   - 支持H264/H265/AAC/G711/OPUS编码
   
-- WebRTC(体验)
+- WebRTC
   - 支持WebRTC推流，支持转其他协议
   - 支持WebRTC播放，支持其他协议转WebRTC     
   - 支持simulcast
   - 支持rtx/nack
+  - **支持单端口、多线程、客户端网络连接迁移(开源界唯一)**。
   
 - 其他
   - 支持丰富的restful api以及web hook事件 
