@@ -23,9 +23,13 @@ namespace mediakit{
 
 void MediaSink::addTrack(const Track::Ptr &track_in) {
     GET_CONFIG(bool, enabel_audio, General::kEnableAudio);
-    if (!enabel_audio && track_in->getTrackType() == TrackAudio) {
-        //音频被全局忽略
-        return;
+    if (!enabel_audio) {
+        //关闭音频时，加快单视频流注册速度
+        _max_track_size = 1;
+        if (track_in->getTrackType() == TrackAudio) {
+            //音频被全局忽略
+            return;
+        }
     }
     lock_guard<recursive_mutex> lck(_mtx);
     if (_all_track_ready) {
