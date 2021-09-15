@@ -67,7 +67,9 @@ void WebRtcSession::onRecv_l(const Buffer::Ptr &buffer) {
     }
     _ticker.resetTime();
     CHECK(_transport);
-    _transport->inputSockData(buffer->data(), buffer->size(), &_peer_addr);
+    //先增加引用技术，防止使用transport时，触发onError事件导致对象释放
+    auto transport = _transport;
+    transport->inputSockData(buffer->data(), buffer->size(), &_peer_addr);
 }
 
 void WebRtcSession::onError(const SockException &err) {
