@@ -171,7 +171,7 @@ public:
     static Ptr create(const EventPoller::Ptr &poller);
     static Ptr getRtcTransport(const string &key, bool unref_self);
 
-    void setSession(weak_ptr<Session> session);
+    void setSession(Session::Ptr session);
 
     /**
      * 绑定rtsp媒体源
@@ -237,7 +237,7 @@ private:
     //pli rtcp计时器
     Ticker _pli_ticker;
     //udp session
-    weak_ptr<Session> _session;
+    Session::Ptr _session;
     //推流的rtsp源
     RtspMediaSource::Ptr _push_src;
     unordered_map<string/*rid*/, RtspMediaSource::Ptr> _push_src_simulcast;
