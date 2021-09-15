@@ -489,7 +489,7 @@ void WebRtcTransportImp::onStartWebRTC() {
             if (!strongSelf) {
                 return;
             }
-            strongSelf->onShutdown(SockException(Err_eof, "rtsp ring buffer detached"));
+            strongSelf->onShutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
 
         RtcSession rtsp_send_sdp;
@@ -956,6 +956,8 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
 void WebRtcTransportImp::onShutdown(const SockException &ex){
     WarnL << ex.what();
     unrefSelf();
+    //触发发送dtls close通知
+    WebRtcTransport::onDestory();
     auto session = _session.lock();
     if (session) {
         session->shutdown(ex);
@@ -970,7 +972,13 @@ bool WebRtcTransportImp::close(MediaSource &sender, bool force) {
         return false;
     }
     string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
-    onShutdown(SockException(Err_shutdown,err));
+    weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
+    getPoller()->async([weak_self, err]() {
+        auto strong_self = weak_self.lock();
+        if (strong_self) {
+            strong_self->onShutdown(SockException(Err_shutdown, err));
+        }
+    });
     return true;
 }
 

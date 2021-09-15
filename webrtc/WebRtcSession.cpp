@@ -75,7 +75,6 @@ void WebRtcSession::onError(const SockException &err) {
     //在udp链接迁移时，新的WebRtcSession对象将接管WebRtcTransport对象的生命周期
     //本WebRtcSession对象将在超时后自动销毁
     WarnP(this) << err.what();
-    _transport = nullptr;
 }
 
 void WebRtcSession::onManager() {
