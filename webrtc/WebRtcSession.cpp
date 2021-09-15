@@ -50,26 +50,24 @@ EventPoller::Ptr WebRtcSession::getPoller(const Buffer::Ptr &buffer) {
 }
 
 void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
-    auto buf = buffer->data();
-    auto len = buffer->size();
+    try {
+        onRecv_l(buffer);
+    } catch (std::exception &ex) {
+        shutdown(SockException(Err_shutdown, ex.what()));
+    }
+}
 
-    if (!_transport) {
-        auto user_name = getUserName(buffer);
-        if (user_name.empty()) {
-            //逻辑分支不太可能走到这里
-            WarnL << user_name;
-            return;
-        }
-        _transport = WebRtcTransportImp::getRtcTransport(user_name, true);
-        if (!_transport) {
-            //逻辑分支不太可能走到这里
-            WarnL << user_name;
-            return;
-        }
+void WebRtcSession::onRecv_l(const Buffer::Ptr &buffer) {
+    if (_find_transport) {
+        //只允许寻找一次transport
+        _find_transport = false;
+        _transport = WebRtcTransportImp::getRtcTransport(getUserName(buffer), true);
+        CHECK(_transport && _transport->getPoller()->isCurrentThread());
         _transport->setSession(shared_from_this());
     }
     _ticker.resetTime();
-    _transport->inputSockData(buf, len, &_peer_addr);
+    CHECK(_transport);
+    _transport->inputSockData(buffer->data(), buffer->size(), &_peer_addr);
 }
 
 void WebRtcSession::onError(const SockException &err) {

@@ -1018,7 +1018,10 @@ void WebRtcTransportImp::unregisterSelf() {
     s_rtc_map.erase(getKey());
 }
 
-WebRtcTransportImp::Ptr WebRtcTransportImp::getRtcTransport(const string &key, bool unref_self){
+WebRtcTransportImp::Ptr WebRtcTransportImp::getRtcTransport(const string &key, bool unref_self) {
+    if (key.empty()) {
+        return nullptr;
+    }
     lock_guard<mutex> lck(s_rtc_mtx);
     auto it = s_rtc_map.find(key);
     if (it == s_rtc_map.end()) {
