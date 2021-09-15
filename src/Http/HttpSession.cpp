@@ -187,16 +187,19 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
         return false;
     }
 
-    //这是个符合后缀的直播的流
-    _mediaInfo.parse(schema + "://" + _parser["Host"] + _parser.FullUrl());
-    if (_mediaInfo._app.empty() || _mediaInfo._streamid.size() < url_suffix.size() + 1) {
+    //url去除特殊后缀
+    auto url = _parser.Url().substr(0, _parser.Url().size() - url_suffix.size());
+    //带参数的url
+    url = _parser.Params().empty() ? url : (url + "?" + _parser.Params());
+    //解析带上协议+参数完整的url
+    _mediaInfo.parse(schema + "://" + _parser["Host"] + url);
+
+    if (_mediaInfo._app.empty() || _mediaInfo._streamid.empty()) {
         //url不合法
         return false;
     }
-    //去除后缀
+
     bool close_flag = !strcasecmp(_parser["Connection"].data(), "close");
-    //流id去除后缀
-    _mediaInfo._streamid.erase(_mediaInfo._streamid.size() - url_suffix.size());
     weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
 
     //鉴权结果回调
