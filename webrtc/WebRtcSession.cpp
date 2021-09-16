@@ -76,6 +76,9 @@ void WebRtcSession::onError(const SockException &err) {
     //本WebRtcSession对象将在超时后自动销毁
     WarnP(this) << err.what();
 
+    if (!_transport) {
+        return;
+    }
     auto transport = std::move(_transport);
     this->Session::getPoller()->async([transport] {
         //延时减引用，防止使用transport对象时，销毁对象
