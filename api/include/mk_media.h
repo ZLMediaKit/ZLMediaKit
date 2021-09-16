@@ -75,7 +75,7 @@ API_EXPORT void API_CALL mk_media_init_complete(mk_media ctx);
  * @param dts 解码时间戳，单位毫秒
  * @param pts 播放时间戳，单位毫秒
  */
-API_EXPORT void API_CALL mk_media_input_h264(mk_media ctx, void *data, int len, uint32_t dts, uint32_t pts);
+API_EXPORT void API_CALL mk_media_input_h264(mk_media ctx, const void *data, int len, uint32_t dts, uint32_t pts);
 
 /**
  * 输入单帧H265视频，帧起始字节00 00 01,00 00 00 01均可
@@ -85,7 +85,7 @@ API_EXPORT void API_CALL mk_media_input_h264(mk_media ctx, void *data, int len, 
  * @param dts 解码时间戳，单位毫秒
  * @param pts 播放时间戳，单位毫秒
  */
-API_EXPORT void API_CALL mk_media_input_h265(mk_media ctx, void *data, int len, uint32_t dts, uint32_t pts);
+API_EXPORT void API_CALL mk_media_input_h265(mk_media ctx, const void *data, int len, uint32_t dts, uint32_t pts);
 
 /**
  * 输入单帧AAC音频(单独指定adts头)
@@ -95,7 +95,7 @@ API_EXPORT void API_CALL mk_media_input_h265(mk_media ctx, void *data, int len, 
  * @param dts 时间戳，毫秒
  * @param adts adts头，可以为null
  */
-API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, void *data, int len, uint32_t dts, void *adts);
+API_EXPORT void API_CALL mk_media_input_aac(mk_media ctx, const void *data, int len, uint32_t dts, void *adts);
 
 /**
  * 输入单帧PCM音频,启用ENABLE_FAAC编译时，该函数才有效
@@ -113,7 +113,7 @@ API_EXPORT void API_CALL mk_media_input_pcm(mk_media ctx, void *data, int len, u
  * @param len  单帧音频数据字节数
  * @param dts 时间戳，毫秒
  */
-API_EXPORT void API_CALL mk_media_input_audio(mk_media ctx, void* data, int len, uint32_t dts);
+API_EXPORT void API_CALL mk_media_input_audio(mk_media ctx, const void* data, int len, uint32_t dts);
 
 /**
  * MediaSource.close()回调事件

@@ -102,7 +102,7 @@ FFmpegSwr::~FFmpegSwr() {
 FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
     if (frame->get()->format == _target_format &&
     frame->get()->channels == _target_channels &&
-    frame->get()->channel_layout == _target_channel_layout &&
+    frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
     frame->get()->sample_rate == _target_samplerate) {
         //不转格式
         return frame;
