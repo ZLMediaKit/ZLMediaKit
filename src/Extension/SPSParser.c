@@ -712,7 +712,6 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
 {
     int iAspectRatioInfoPresentFlag;
     unsigned int uiAspectRatioIdc;
-    int iChromaSampleLocation;
 
     iAspectRatioInfoPresentFlag = getOneBit(pvBuf);
 
@@ -759,8 +758,7 @@ static inline int decodeVuiParameters(void *pvBuf, T_SPS *ptSps)
     /* chroma_location_info_present_flag */
     if (getOneBit(pvBuf))
     {
-        /* chroma_sample_location_type_top_field */
-        iChromaSampleLocation = parseUe(pvBuf);
+        parseUe(pvBuf);  /* chroma_sample_location_type_top_field */
         parseUe(pvBuf);  /* chroma_sample_location_type_bottom_field */
     }
     if(getBitsLeft(pvBuf) < 10)
