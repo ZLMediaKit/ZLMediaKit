@@ -83,7 +83,7 @@ int AudioSRC::getPCMData(char *buf, int size) {
     if (_audio_cvt.len_cvt) {
         _target_buf.append(_buf.get(), _audio_cvt.len_cvt);
     }
-    if (_target_buf.size() < size) {
+    if (_target_buf.size() < (size_t)size) {
         return 0;
     }
     memcpy(buf, _target_buf.data(), size);
@@ -122,7 +122,7 @@ int AudioPlayer::getPCMChannel() {
 
 int AudioPlayer::getPCMData(char *buf, int size) {
     lock_guard<mutex> lck(_mtx);
-    if (_buffer.size() < size) {
+    if (_buffer.size() < (size_t)size) {
         return 0;
     }
     memcpy(buf, _buffer.data(), size);
