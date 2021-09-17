@@ -69,6 +69,19 @@
       var recvOnly = true
       var resArr = []
 
+      var ishttps = 'https:' == document.location.protocol ? true : false
+      var isLocal = "file:" == document.location.protocol ? true : false
+      var url = document.location.protocol+"//"+window.location.host+"/index/api/webrtc?app=live&stream=test&type=play"
+      
+
+      if(!ishttps && !isLocal){
+        alert('本demo需要在https的网站访问 (this demo must access in site of https)')
+      }
+
+      if(isLocal){
+        url = "http://127.0.0.1"+"/index/api/webrtc?app=live&stream=test&type=play"
+      }
+      document.getElementById('streamUrl').value = url
       document.getElementsByName("methond").forEach((el,idx)=>{
         el.onclick=function(e){
           if(el.value == "play")
