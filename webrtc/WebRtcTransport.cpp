@@ -243,6 +243,10 @@ bool is_rtcp(char *buf) {
     return ((header->pt >= 64) && (header->pt < 96));
 }
 
+static string getPeerAddress(RTC::TransportTuple *tuple){
+    return SockUtil::inet_ntoa(((struct sockaddr_in *)tuple)->sin_addr) + ":" + to_string(ntohs(((struct sockaddr_in *)tuple)->sin_port));
+}
+
 void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tuple) {
     if (RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
         std::unique_ptr<RTC::StunPacket> packet(RTC::StunPacket::Parse((const uint8_t *) buf, len));
@@ -258,12 +262,20 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
         return;
     }
     if (is_rtp(buf)) {
+        if (!_srtp_session_recv) {
+            WarnL << "received rtp packet when dtls not completed from:" << getPeerAddress(tuple);
+            return;
+        }
         if (_srtp_session_recv->DecryptSrtp((uint8_t *) buf, &len)) {
             onRtp(buf, len);
         }
         return;
     }
     if (is_rtcp(buf)) {
+        if (!_srtp_session_recv) {
+            WarnL << "received rtcp packet when dtls not completed from:" << getPeerAddress(tuple);
+            return;
+        }
         if (_srtp_session_recv->DecryptSrtcp((uint8_t *) buf, &len)) {
             onRtcp(buf, len);
         }
@@ -382,6 +394,8 @@ void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sock
     }
     auto ptr = BufferRaw::create();
     ptr->assign(buf, len);
+    //一次性发送一帧的rtp数据，提高网络io性能
+    _session->setSendFlushFlag(flush);
     _session->send(std::move(ptr));
 }
 
