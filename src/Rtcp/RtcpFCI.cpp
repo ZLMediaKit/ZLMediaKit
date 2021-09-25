@@ -460,7 +460,7 @@ map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > FCI_TWCC::getPacketCh
     }
     for (auto &pr : ret) {
         CHECK(ptr <= end);
-        pr.second.second = 250 * getRecvDelta(pr.second.first, ptr, end);
+        pr.second.second = getRecvDelta(pr.second.first, ptr, end);
     }
     return ret;
 }
