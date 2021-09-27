@@ -80,7 +80,7 @@ bool PSEncoder::addTrack(const Track::Ptr &track) {
             break;
         }
 
-        default: WarnL << "mpeg-ps 不支持该编码格式,已忽略:" << track->getCodecName(); return false;;
+        default: WarnL << "mpeg-ps 不支持该编码格式,已忽略:" << track->getCodecName(); return false;
     }
     //尝试音视频同步
     stampSync();
