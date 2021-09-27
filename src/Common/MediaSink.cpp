@@ -31,6 +31,12 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
             //音频被全局忽略
             return false;
         }
+    } else {
+        //是否添加静音音频
+        GET_CONFIG(bool, addMuteAudio, General::kAddMuteAudio);
+        if (addMuteAudio && track_in->getTrackType() == TrackVideo) {
+            addMuteAudioTrack();
+        }
     }
     lock_guard<recursive_mutex> lck(_mtx);
     if (_all_track_ready) {
@@ -39,9 +45,9 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
     }
     //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
-    auto codec_id = track->getCodecId();
-    _track_map[codec_id] = track;
-    _track_ready_callback[codec_id] = [this, track]() {
+    auto track_type = track->getTrackType();
+    _track_map[track_type] = track;
+    _track_ready_callback[track_type] = [this, track]() {
         onTrackReady(track);
     };
     _ticker.resetTime();
@@ -50,7 +56,7 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
         if (_all_track_ready) {
             return onTrackFrame(frame);
         }
-        auto &frame_unread = _frame_unread[frame->getCodecId()];
+        auto &frame_unread = _frame_unread[frame->getTrackType()];
         if (frame_unread.size() > kMaxUnreadyFrame) {
             //未就绪的的track，不能缓存太多的帧，否则可能内存溢出
             frame_unread.clear();
@@ -75,7 +81,7 @@ void MediaSink::resetTracks() {
 
 bool MediaSink::inputFrame(const Frame::Ptr &frame) {
     lock_guard<recursive_mutex> lck(_mtx);
-    auto it = _track_map.find(frame->getCodecId());
+    auto it = _track_map.find(frame->getTrackType());
     if (it == _track_map.end()) {
         return false;
     }
@@ -90,7 +96,7 @@ bool MediaSink::inputFrame(const Frame::Ptr &frame) {
 
 void MediaSink::checkTrackIfReady_l(const Track::Ptr &track){
     //Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
-    auto it_callback = _track_ready_callback.find(track->getCodecId());
+    auto it_callback = _track_ready_callback.find(track->getTrackType());
     if (it_callback != _track_ready_callback.end() && track->ready()) {
         it_callback->second();
         _track_ready_callback.erase(it_callback);
