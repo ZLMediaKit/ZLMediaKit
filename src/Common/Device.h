@@ -58,14 +58,14 @@ public:
      * 相当于MultiMediaSourceMuxer::addTrack(VideoTrack::Ptr );
      * @param info 视频相关信息
      */
-    void initVideo(const VideoInfo &info);
+    bool initVideo(const VideoInfo &info);
 
     /**
      * 初始化音频Track
      * 相当于MultiMediaSourceMuxer::addTrack(AudioTrack::Ptr );
      * @param info 音频相关信息
      */
-    void initAudio(const AudioInfo &info);
+    bool initAudio(const AudioInfo &info);
 
     /**
      * 输入264帧
@@ -74,7 +74,7 @@ public:
      * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
      * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
      */
-    void inputH264(const char *data, int len, uint32_t dts, uint32_t pts = 0);
+    bool inputH264(const char *data, int len, uint32_t dts, uint32_t pts = 0);
 
     /**
      * 输入265帧
@@ -83,7 +83,7 @@ public:
      * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
      * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
      */
-    void inputH265(const char *data, int len, uint32_t dts, uint32_t pts = 0);
+    bool inputH265(const char *data, int len, uint32_t dts, uint32_t pts = 0);
 
     /**
      * 输入aac帧
@@ -92,7 +92,7 @@ public:
      * @param dts 时间戳，单位毫秒
      * @param adts_header adts头
      */
-    void inputAAC(const char *data_without_adts, int len, uint32_t dts, const char *adts_header);
+    bool inputAAC(const char *data_without_adts, int len, uint32_t dts, const char *adts_header);
 
     /**
      * 输入OPUS/G711音频帧
@@ -100,7 +100,7 @@ public:
      * @param len 帧数据长度
      * @param dts 时间戳，单位毫秒
      */
-    void inputAudio(const char *data, int len, uint32_t dts);
+    bool inputAudio(const char *data, int len, uint32_t dts);
 
     /**
      * 输入yuv420p视频帧，内部会完成编码并调用inputH264方法
@@ -108,8 +108,7 @@ public:
      * @param aiYuvLen
      * @param uiStamp
      */
-    void inputYUV(char *apcYuv[3], int aiYuvLen[3], uint32_t uiStamp);
-
+    bool inputYUV(char *apcYuv[3], int aiYuvLen[3], uint32_t uiStamp);
 
     /**
      * 输入pcm数据，内部会完成编码并调用inputAAC方法
@@ -117,7 +116,7 @@ public:
      * @param iDataLen
      * @param uiStamp
      */
-    void inputPCM(char *pcData, int iDataLen, uint32_t uiStamp);
+    bool inputPCM(char *pcData, int iDataLen, uint32_t uiStamp);
 
 private:
     MediaOriginType getOriginType(MediaSource &sender) const override;
