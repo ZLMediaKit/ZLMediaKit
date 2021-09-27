@@ -64,7 +64,7 @@ public:
      * 输入aac 数据，可以不带adts头
      * @param frame aac数据
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 生成config包

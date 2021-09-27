@@ -89,28 +89,32 @@ bool H265Track::ready() {
     return !_vps.empty() && !_sps.empty() && !_pps.empty();
 }
 
-void H265Track::inputFrame(const Frame::Ptr &frame) {
-    using H265FrameInternal = FrameInternal<H265FrameNoCacheAble>;
-    int type = H265_TYPE( frame->data()[frame->prefixSize()]);
-    if (frame->configFrame() || type == H265Frame::NAL_SEI_PREFIX) {
-        splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
-            H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame, (char *) ptr, len, prefix);
-            inputFrame_l(sub_frame);
-        });
-    } else {
-        inputFrame_l(frame);
+bool H265Track::inputFrame(const Frame::Ptr &frame) {
+    int type = H265_TYPE(frame->data()[frame->prefixSize()]);
+    if (!frame->configFrame() && type != H265Frame::NAL_SEI_PREFIX) {
+        return inputFrame_l(frame);
     }
+    bool ret = false;
+    splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
+        using H265FrameInternal = FrameInternal<H265FrameNoCacheAble>;
+        H265FrameInternal::Ptr sub_frame = std::make_shared<H265FrameInternal>(frame, (char *) ptr, len, prefix);
+        if (inputFrame_l(sub_frame)) {
+            ret = true;
+        }
+    });
+    return ret;
 }
 
-void H265Track::inputFrame_l(const Frame::Ptr &frame) {
+bool H265Track::inputFrame_l(const Frame::Ptr &frame) {
     if (frame->keyFrame()) {
         insertConfigFrame(frame);
-        VideoTrack::inputFrame(frame);
         _is_idr = true;
-        return;
+        return VideoTrack::inputFrame(frame);
     }
 
     _is_idr = false;
+    bool ret = true;
+
     //非idr帧
     switch (H265_TYPE( frame->data()[frame->prefixSize()])) {
         case H265Frame::NAL_VPS: {
@@ -126,13 +130,14 @@ void H265Track::inputFrame_l(const Frame::Ptr &frame) {
             break;
         }
         default: {
-            VideoTrack::inputFrame(frame);
+            ret = VideoTrack::inputFrame(frame);
             break;
         }
     }
     if (_width == 0 && ready()) {
         onReady();
     }
+    return ret;
 }
 
 void H265Track::onReady() {

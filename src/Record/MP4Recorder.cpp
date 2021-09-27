@@ -105,7 +105,7 @@ void MP4Recorder::closeFile() {
     }
 }
 
-void MP4Recorder::inputFrame(const Frame::Ptr &frame) {
+bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
     if (_baseSec == 0) {
         _baseSec = frame->dts();
     }
@@ -122,16 +122,18 @@ void MP4Recorder::inputFrame(const Frame::Ptr &frame) {
 
     if (_muxer) {
         //生成mp4文件
-        _muxer->inputFrame(frame);
+        return _muxer->inputFrame(frame);
     }
+    return false;
 }
 
-void MP4Recorder::addTrack(const Track::Ptr & track){
+bool MP4Recorder::addTrack(const Track::Ptr & track){
     //保存所有的track，为创建MP4MuxerFile做准备
     _tracks.emplace_back(track);
     if(track->getTrackType() == TrackVideo){
         _haveVideo = true;
     }
+    return true;
 }
 
 void MP4Recorder::resetTracks() {

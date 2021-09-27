@@ -45,12 +45,13 @@ public:
     /**
      * 输入frame
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 添加ready状态的track
      */
-    void addTrack(const Track::Ptr & track) override;
+    bool addTrack(const Track::Ptr & track) override;
+
 private:
     void createFile();
     void closeFile();

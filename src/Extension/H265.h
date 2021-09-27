@@ -150,13 +150,13 @@ public:
     int getVideoWidth() const override;
     int getVideoHeight() const override;
     float getVideoFps() const override;
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
     void onReady();
     Sdp::Ptr getSdp() override;
     Track::Ptr clone() override;
-    void inputFrame_l(const Frame::Ptr &frame);
+    bool inputFrame_l(const Frame::Ptr &frame);
     void insertConfigFrame(const Frame::Ptr &frame);
 
 private:

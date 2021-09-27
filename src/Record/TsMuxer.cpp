@@ -44,7 +44,7 @@ void TsMuxer::stampSync(){
     }
 }
 
-void TsMuxer::addTrack(const Track::Ptr &track) {
+bool TsMuxer::addTrack(const Track::Ptr &track) {
     switch (track->getCodecId()) {
         case CodecH264: {
             _have_video = true;
@@ -78,17 +78,18 @@ void TsMuxer::addTrack(const Track::Ptr &track) {
             break;
         }
 
-        default: WarnL << "mpeg-ts 不支持该编码格式,已忽略:" << track->getCodecName(); break;
+        default: WarnL << "mpeg-ts 不支持该编码格式,已忽略:" << track->getCodecName(); return false;
     }
 
     //尝试音视频同步
     stampSync();
+    return true;
 }
 
-void TsMuxer::inputFrame(const Frame::Ptr &frame) {
+bool TsMuxer::inputFrame(const Frame::Ptr &frame) {
     auto it = _codec_to_trackid.find(frame->getCodecId());
     if (it == _codec_to_trackid.end()) {
-        return;
+        return false;
     }
     auto &track_info = it->second;
     int64_t dts_out, pts_out;
@@ -97,7 +98,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
         case CodecH264:
         case CodecH265: {
             //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            _frame_merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr){
+            return _frame_merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr){
                 track_info.stamp.revise(dts, pts, dts_out, pts_out);
                 //取视频时间戳为TS的时间戳
                 _timestamp = (uint32_t) dts_out;
@@ -106,13 +107,12 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
                               pts_out * 90LL, dts_out * 90LL, buffer->data(), buffer->size());
                 flushCache();
             });
-            break;
         }
 
         case CodecAAC: {
             if (frame->prefixSize() == 0) {
                 WarnL << "必须提供adts头才能mpeg-ts打包";
-                break;
+                return false;
             }
         }
 
@@ -125,7 +125,7 @@ void TsMuxer::inputFrame(const Frame::Ptr &frame) {
             mpeg_ts_write(_context, track_info.track_id, frame->keyFrame() ? 0x0001 : 0,
                           pts_out * 90LL, dts_out * 90LL, frame->data(), frame->size());
             flushCache();
-            break;
+            return true;
         }
     }
 }

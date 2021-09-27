@@ -296,7 +296,7 @@ vector<Track::Ptr> HlsPlayerImp::getTracks(bool trackReady) const {
     return MediaSink::getTracks(trackReady);
 }
 
-void HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
+bool HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
     //计算相对时间戳
     int64_t dts, pts;
     _stamp[frame->getTrackType()].revise(frame->dts(), frame->pts(), dts, pts);
@@ -312,6 +312,7 @@ void HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
         //接着播放缓存中最早的帧
         setPlayPosition(_frame_cache.begin()->first);
     }
+    return true;
 }
 
 int64_t HlsPlayerImp::getPlayPosition(){
