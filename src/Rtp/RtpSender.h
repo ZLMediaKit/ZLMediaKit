@@ -42,14 +42,14 @@ public:
     /**
      * 输入帧数据
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 添加track，内部会调用Track的clone方法
      * 只会克隆sps pps这些信息 ，而不会克隆Delegate相关关系
      * @param track
      */
-    virtual void addTrack(const Track::Ptr & track) override;
+    virtual bool addTrack(const Track::Ptr & track) override;
 
     /**
      * 添加所有Track完毕

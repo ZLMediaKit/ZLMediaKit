@@ -47,15 +47,16 @@ public:
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
-    void inputFrame(const Frame::Ptr &frame) override {
+    bool inputFrame(const Frame::Ptr &frame) override {
         GET_CONFIG(bool, ts_demand, General::kTSDemand);
         if (_clear_cache && ts_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
         if (_enabled || !ts_demand) {
-            TsMuxer::inputFrame(frame);
+            return TsMuxer::inputFrame(frame);
         }
+        return false;
     }
 
     bool isEnabled() {

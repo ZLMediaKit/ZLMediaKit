@@ -61,15 +61,16 @@ public:
         return hls_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
-    void inputFrame(const Frame::Ptr &frame) override {
+    bool inputFrame(const Frame::Ptr &frame) override {
         GET_CONFIG(bool, hls_demand, General::kHlsDemand);
         if (_clear_cache && hls_demand) {
             _clear_cache = false;
             _hls->clearCache();
         }
         if (_enabled || !hls_demand) {
-            TsMuxer::inputFrame(frame);
+            return TsMuxer::inputFrame(frame);
         }
+        return false;
     }
 
 private:

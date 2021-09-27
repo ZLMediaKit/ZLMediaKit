@@ -84,11 +84,11 @@ public:
      * 输入264帧
      * @param frame 帧数据，必须
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
     void insertConfigFrame(uint32_t pts);
-    void inputFrame_l(const Frame::Ptr &frame, bool is_mark);
+    bool inputFrame_l(const Frame::Ptr &frame, bool is_mark);
     void packRtp(const char *data, size_t len, uint32_t pts, bool is_mark, bool gop_pos);
     void packRtpFu(const char *data, size_t len, uint32_t pts, bool is_mark, bool gop_pos);
     void packRtpStapA(const char *data, size_t len, uint32_t pts, bool is_mark, bool gop_pos);

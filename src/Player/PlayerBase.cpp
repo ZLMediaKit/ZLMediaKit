@@ -106,10 +106,8 @@ float Demuxer::getDuration() const {
     return _fDuration;
 }
 
-void Demuxer::addTrack(const Track::Ptr &track){
-    if(_listener){
-        _listener->addTrack(track);
-    }
+bool Demuxer::addTrack(const Track::Ptr &track){
+    return _listener ? _listener->addTrack(track) : false;
 }
 
 void Demuxer::addTrackCompleted(){

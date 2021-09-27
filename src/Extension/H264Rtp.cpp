@@ -265,20 +265,20 @@ void H264RtpEncoder::packRtpStapA(const char *ptr, size_t len, uint32_t pts, boo
     RtpCodec::inputRtp(rtp, gop_pos);
 }
 
-void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
+bool H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto ptr = frame->data() + frame->prefixSize();
     switch (H264_TYPE(ptr[0])) {
         case H264Frame::NAL_AUD:
         case H264Frame::NAL_SEI : {
-            return;
+            return false;
         }
         case H264Frame::NAL_SPS: {
             _sps = Frame::getCacheAbleFrame(frame);
-            return;
+            return true;
         }
         case H264Frame::NAL_PPS: {
             _pps = Frame::getCacheAbleFrame(frame);
-            return;
+            return true;
         }
         default: break;
     }
@@ -288,14 +288,16 @@ void H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         inputFrame_l(_last_frame, _last_frame->pts() != frame->pts());
     }
     _last_frame = Frame::getCacheAbleFrame(frame);
+    return true;
 }
 
-void H264RtpEncoder::inputFrame_l(const Frame::Ptr &frame, bool is_mark){
+bool H264RtpEncoder::inputFrame_l(const Frame::Ptr &frame, bool is_mark){
     if (frame->keyFrame()) {
         //保证每一个关键帧前都有SPS与PPS
         insertConfigFrame(frame->pts());
     }
     packRtp(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), frame->pts(), is_mark, false);
+    return true;
 }
 
 }//namespace mediakit

@@ -24,7 +24,7 @@ AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
                 ui8Interleaved){
 }
 
-void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
+bool AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto stamp = frame->dts();
     auto data = frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
@@ -50,6 +50,7 @@ void AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
         ptr += max_size;
         remain_size -= max_size;
     }
+    return len > 0;
 }
 
 void AACRtpEncoder::makeAACRtp(const void *data, size_t len, bool mark, uint32_t uiStamp) {
