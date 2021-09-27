@@ -46,8 +46,10 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
     //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
     auto track_type = track->getTrackType();
-    //确保添加非静音音频track时，取消之前的静音音频track
-    _mute_audio_maker = nullptr;
+    if (track_type == TrackAudio) {
+        //确保添加非静音音频track时，取消之前的静音音频track
+        _mute_audio_maker = nullptr;
+    }
     _track_map[track_type] = track;
     _track_ready_callback[track_type] = [this, track]() {
         onTrackReady(track);
