@@ -207,18 +207,12 @@ void PlayerProxy::onPlaySuccess() {
         videoTrack->addDelegate(_muxer);
     }
 
-    //是否添加静音音频
-    GET_CONFIG(bool, addMuteAudio, General::kAddMuteAudio);
-
     auto audioTrack = getTrack(TrackAudio, false);
     if (audioTrack) {
         //添加音频
         _muxer->addTrack(audioTrack);
         //音频数据写入_mediaMuxer
         audioTrack->addDelegate(_muxer);
-    } else if (addMuteAudio && videoTrack) {
-        //没有音频信息，产生一个静音音频
-        _muxer->addMuteAudioTrack();
     }
 
     //添加完毕所有track，防止单track情况下最大等待3秒
