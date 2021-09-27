@@ -77,10 +77,11 @@ public:
         //播放成功,添加事件回调
         weak_ptr<MediaPlayerForC> weak_self = shared_from_this();
         auto delegate = std::make_shared<FrameWriterInterfaceHelper>([weak_self](const Frame::Ptr &frame) {
-            auto strong_self = weak_self.lock();
-            if (strong_self) {
+            if (auto strong_self = weak_self.lock()) {
                 strong_self->onData(frame);
+                return true;
             }
+            return false;
         });
         for (auto &track : _player->getTracks(false)) {
             track->addDelegate(delegate);

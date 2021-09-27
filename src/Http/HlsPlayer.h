@@ -135,7 +135,7 @@ private:
     void onAllTrackReady() override;
     void onPlayResult(const SockException &ex) override;
     vector<Track::Ptr> getTracks(bool trackReady = true) const override;
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
     void onShutdown(const SockException &ex) override;
     void onTick();
 

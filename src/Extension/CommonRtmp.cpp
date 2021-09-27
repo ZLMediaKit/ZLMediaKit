@@ -42,9 +42,9 @@ CommonRtmpEncoder::CommonRtmpEncoder(const Track::Ptr &track) : CommonRtmpDecode
     _audio_flv_flags = getAudioRtmpFlags(track);
 }
 
-void CommonRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
+bool CommonRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     if (!_audio_flv_flags) {
-        return;
+        return false;
     }
     auto rtmp = RtmpPacket::create();
     //header
@@ -57,6 +57,7 @@ void CommonRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     rtmp->time_stamp = frame->dts();
     rtmp->type_id = MSG_AUDIO;
     RtmpCodec::inputRtmp(rtmp);
+    return true;
 }
 
 }//namespace mediakit

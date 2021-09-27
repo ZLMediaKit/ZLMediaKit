@@ -277,7 +277,7 @@ public:
     /**
      * 写入帧数据
      */
-    virtual void inputFrame(const Frame::Ptr &frame) = 0;
+    virtual bool inputFrame(const Frame::Ptr &frame) = 0;
 };
 
 /**
@@ -286,7 +286,7 @@ public:
 class FrameWriterInterfaceHelper : public FrameWriterInterface {
 public:
     typedef std::shared_ptr<FrameWriterInterfaceHelper> Ptr;
-    typedef std::function<void(const Frame::Ptr &frame)> onWriteFrame;
+    typedef std::function<bool(const Frame::Ptr &frame)> onWriteFrame;
 
     /**
      * inputFrame后触发onWriteFrame回调
@@ -300,9 +300,10 @@ public:
     /**
      * 写入帧数据
      */
-    void inputFrame(const Frame::Ptr &frame) override {
-        _writeCallback(frame);
+    bool inputFrame(const Frame::Ptr &frame) override {
+        return _writeCallback(frame);
     }
+
 private:
     onWriteFrame _writeCallback;
 };
@@ -340,7 +341,7 @@ public:
     /**
      * 写入帧并派发
      */
-    void inputFrame(const Frame::Ptr &frame) override{
+    bool inputFrame(const Frame::Ptr &frame) override{
         if(_need_update){
             //发现代理列表发生变化了，这里同步一次
             lock_guard<mutex> lck(_mtx);
@@ -349,9 +350,13 @@ public:
         }
 
         //_delegates_read能确保是单线程操作的
-        for(auto &pr : _delegates_read){
-            pr.second->inputFrame(frame);
+        bool ret = false;
+        for (auto &pr : _delegates_read) {
+            if (pr.second->inputFrame(frame)) {
+                ret = true;
+            }
         }
+        return ret;
     }
 
     /**
@@ -503,7 +508,7 @@ public:
     ~FrameMerger() = default;
 
     void clear();
-    void inputFrame(const Frame::Ptr &frame, const onOutput &cb, BufferLikeString *buffer = nullptr);
+    bool inputFrame(const Frame::Ptr &frame, const onOutput &cb, BufferLikeString *buffer = nullptr);
 
 private:
     bool willFlush(const Frame::Ptr &frame) const;

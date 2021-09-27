@@ -254,7 +254,7 @@ H265RtpEncoder::H265RtpEncoder(uint32_t ui32Ssrc,
                 ui8Interleaved) {
 }
 
-void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
+bool H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto ptr = (uint8_t *) frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
     auto pts = frame->pts();
@@ -305,6 +305,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     } else {
         RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, len, false, pts), frame->keyFrame());
     }
+    return len > 0;
 }
 
 }//namespace mediakit

@@ -63,7 +63,7 @@ public:
     /**
      * 输入帧数据
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
     uint8_t _audio_flv_flags = 0;

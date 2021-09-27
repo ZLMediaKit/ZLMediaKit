@@ -97,8 +97,8 @@ void RtpSender::onConnect(){
     InfoL << "开始发送 rtp:" << _socket->get_peer_ip() << ":" << _socket->get_peer_port() << ", 是否为udp方式:" << _is_udp;
 }
 
-void RtpSender::addTrack(const Track::Ptr &track){
-    _interface->addTrack(track);
+bool RtpSender::addTrack(const Track::Ptr &track){
+    return _interface->addTrack(track);
 }
 
 void RtpSender::addTrackCompleted(){
@@ -110,11 +110,9 @@ void RtpSender::resetTracks(){
 }
 
 //此函数在其他线程执行
-void RtpSender::inputFrame(const Frame::Ptr &frame) {
-    if (_is_connect) {
-        //连接成功后才做实质操作(节省cpu资源)
-        _interface->inputFrame(frame);
-    }
+bool RtpSender::inputFrame(const Frame::Ptr &frame) {
+    //连接成功后才做实质操作(节省cpu资源)
+    return _is_connect ? _interface->inputFrame(frame) : false;
 }
 
 //此函数在其他线程执行

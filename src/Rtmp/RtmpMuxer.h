@@ -43,13 +43,13 @@ public:
     /**
      * 添加ready状态的track
      */
-    void addTrack(const Track::Ptr & track) override;
+    bool addTrack(const Track::Ptr & track) override;
 
     /**
      * 写入帧数据
      * @param frame 帧
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 重置所有track

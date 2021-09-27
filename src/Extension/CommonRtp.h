@@ -78,7 +78,7 @@ public:
     /**
      * 输入帧数据并编码成rtp
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 };
 
 }//namespace mediakit
