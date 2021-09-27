@@ -31,12 +31,12 @@ public:
     /**
      * 添加已经ready状态的track
      */
-    void addTrack(const Track::Ptr &track) override;
+    bool addTrack(const Track::Ptr &track) override;
 
     /**
      * 输入帧
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 重置所有track
@@ -120,7 +120,7 @@ public:
     /**
      * 输入帧
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 获取fmp4 init segment

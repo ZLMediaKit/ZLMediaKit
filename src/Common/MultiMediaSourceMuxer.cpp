@@ -244,36 +244,38 @@ vector<Track::Ptr> MultiMediaSourceMuxer::getMediaTracks(MediaSource &sender, bo
     return getTracks(trackReady);
 }
 
-void MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
+bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     if (CodecL16 == track->getCodecId()) {
         WarnL << "L16音频格式目前只支持RTSP协议推流拉流!!!";
-        return;
+        return false;
     }
 
+    bool ret = false;
     if (_rtmp) {
-        _rtmp->addTrack(track);
+        ret = _rtmp->addTrack(track) ? true : ret;
     }
     if (_rtsp) {
-        _rtsp->addTrack(track);
+        ret = _rtsp->addTrack(track) ? true : ret;
     }
     if (_ts) {
-        _ts->addTrack(track);
+        ret = _ts->addTrack(track) ? true : ret;
     }
 #if defined(ENABLE_MP4)
     if (_fmp4) {
-        _fmp4->addTrack(track);
+        ret = _fmp4->addTrack(track) ? true : ret;
     }
 #endif
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     auto hls = _hls;
     if (hls) {
-        hls->addTrack(track);
+        ret = hls->addTrack(track) ? true : ret;
     }
     auto mp4 = _mp4;
     if (mp4) {
-        mp4->addTrack(track);
+        ret = mp4->addTrack(track) ? true : ret;
     }
+    return ret;
 }
 
 void MultiMediaSourceMuxer::onAllTrackReady() {
@@ -386,7 +388,7 @@ private:
     Frame::Ptr _frame;
 };
 
-void MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
+bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     GET_CONFIG(bool, modify_stamp, General::kModifyStamp);
     auto frame = frame_in;
     if (modify_stamp) {
@@ -394,39 +396,41 @@ void MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
         frame = std::make_shared<FrameModifyStamp>(frame, _stamp[frame->getTrackType()]);
     }
 
+    bool ret = false;
     if (_rtmp) {
-        _rtmp->inputFrame(frame);
+        ret = _rtmp->inputFrame(frame) ? true : ret;
     }
     if (_rtsp) {
-        _rtsp->inputFrame(frame);
+        ret = _rtsp->inputFrame(frame) ? true : ret;
     }
     if (_ts) {
-        _ts->inputFrame(frame);
+        ret = _ts->inputFrame(frame) ? true : ret;
     }
 
     //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
     //此处使用智能指针拷贝来确保线程安全，比互斥锁性能更优
     auto hls = _hls;
     if (hls) {
-        hls->inputFrame(frame);
+        ret = hls->inputFrame(frame) ? true : ret;
     }
     auto mp4 = _mp4;
     if (mp4) {
-        mp4->inputFrame(frame);
+        ret = mp4->inputFrame(frame) ? true : ret;
     }
 
 #if defined(ENABLE_MP4)
     if (_fmp4) {
-        _fmp4->inputFrame(frame);
+        ret = _fmp4->inputFrame(frame) ? true : ret;
     }
 #endif
 
 #if defined(ENABLE_RTPPROXY)
     lock_guard<mutex> lck(_rtp_sender_mtx);
     for (auto &pr : _rtp_sender) {
-        pr.second->inputFrame(frame);
+        ret = pr.second->inputFrame(frame) ? true : ret;
     }
 #endif //ENABLE_RTPPROXY
+    return ret;
 }
 
 bool MultiMediaSourceMuxer::isEnabled(){

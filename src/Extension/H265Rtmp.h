@@ -67,7 +67,7 @@ public:
      * 输入265帧，可以不带sps pps
      * @param frame 帧数据
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 生成config包

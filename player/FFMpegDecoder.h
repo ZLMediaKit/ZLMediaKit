@@ -95,15 +95,15 @@ public:
     FFmpegDecoder(const Track::Ptr &track);
     ~FFmpegDecoder();
 
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
     void setOnDecode(onDec cb);
     void flush();
     const AVCodecContext *getContext() const;
 
 private:
     void onDecode(const FFmpegFrame::Ptr &frame);
-    void inputFrame_l(const Frame::Ptr &frame);
-    void decodeFrame(const char *data, size_t size, uint32_t dts, uint32_t pts);
+    bool inputFrame_l(const Frame::Ptr &frame);
+    bool decodeFrame(const char *data, size_t size, uint32_t dts, uint32_t pts);
 
 private:
     bool _do_merger = false;

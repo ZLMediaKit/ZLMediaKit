@@ -58,15 +58,16 @@ public:
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
-    void inputFrame(const Frame::Ptr &frame) override {
+    bool inputFrame(const Frame::Ptr &frame) override {
         GET_CONFIG(bool, rtmp_demand, General::kRtmpDemand);
         if (_clear_cache && rtmp_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
         if (_enabled || !rtmp_demand) {
-            RtmpMuxer::inputFrame(frame);
+            return RtmpMuxer::inputFrame(frame);
         }
+        return false;
     }
 
     bool isEnabled() {

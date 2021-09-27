@@ -106,37 +106,38 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
     return ret;
 }
 
-void RtpProcess::inputFrame(const Frame::Ptr &frame) {
+bool RtpProcess::inputFrame(const Frame::Ptr &frame) {
     _dts = frame->dts();
     if (_save_file_video && frame->getTrackType() == TrackVideo) {
         fwrite((uint8_t *) frame->data(), frame->size(), 1, _save_file_video.get());
     }
     if (_muxer) {
         _last_frame_time.resetTime();
-        _muxer->inputFrame(frame);
-    } else {
-        if (_cached_func.size() > kMaxCachedFrame) {
-            WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now dropped";
-            return;
-        }
-        auto frame_cached = Frame::getCacheAbleFrame(frame);
-        lock_guard<recursive_mutex> lck(_func_mtx);
-        _cached_func.emplace_back([this, frame_cached]() {
-            _last_frame_time.resetTime();
-            _muxer->inputFrame(frame_cached);
-        });
+        return _muxer->inputFrame(frame);
     }
+    if (_cached_func.size() > kMaxCachedFrame) {
+        WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now dropped";
+        return false;
+    }
+    auto frame_cached = Frame::getCacheAbleFrame(frame);
+    lock_guard<recursive_mutex> lck(_func_mtx);
+    _cached_func.emplace_back([this, frame_cached]() {
+        _last_frame_time.resetTime();
+        _muxer->inputFrame(frame_cached);
+    });
+    return true;
 }
 
-void RtpProcess::addTrack(const Track::Ptr &track) {
+bool RtpProcess::addTrack(const Track::Ptr &track) {
     if (_muxer) {
-        _muxer->addTrack(track);
-    } else {
-        lock_guard<recursive_mutex> lck(_func_mtx);
-        _cached_func.emplace_back([this, track]() {
-            _muxer->addTrack(track);
-        });
+        return _muxer->addTrack(track);
     }
+
+    lock_guard<recursive_mutex> lck(_func_mtx);
+    _cached_func.emplace_back([this, track]() {
+        _muxer->addTrack(track);
+    });
+    return true;
 }
 
 void RtpProcess::addTrackCompleted() {

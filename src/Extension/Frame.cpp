@@ -213,7 +213,7 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
     }
 }
 
-void FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb, BufferLikeString *buffer) {
+bool FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb, BufferLikeString *buffer) {
     if (willFlush(frame)) {
         Frame::Ptr back = _frame_cache.back();
         Buffer::Ptr merged_frame = back;
@@ -246,7 +246,7 @@ void FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb, Buffer
         case mp4_nal_size: {
             if (frame->dropAble()) {
                 //h264头和mp4头模式过滤无效的帧
-                return;
+                return false;
             }
             break;
         }
@@ -257,6 +257,7 @@ void FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb, Buffer
         _have_decode_able_frame = true;
     }
     _frame_cache.emplace_back(Frame::getCacheAbleFrame(frame));
+    return true;
 }
 
 FrameMerger::FrameMerger(int type) {

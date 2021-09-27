@@ -22,26 +22,25 @@ RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
     _rtmp_ring = std::make_shared<RtmpRing::RingType>();
 }
 
-void RtmpMuxer::addTrack(const Track::Ptr &track) {
+bool RtmpMuxer::addTrack(const Track::Ptr &track) {
     auto &encoder = _encoder[track->getTrackType()];
     //生成rtmp编码器,克隆该Track，防止循环引用
     encoder = Factory::getRtmpCodecByTrack(track->clone(), true);
     if (!encoder) {
-        return;
+        return false;
     }
 
     //设置rtmp输出环形缓存
     encoder->setRtmpRing(_rtmp_ring);
 
     //添加metadata
-    Metadata::addTrack(_metadata,track);
+    Metadata::addTrack(_metadata, track);
+    return true;
 }
 
-void RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
+bool RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
     auto &encoder = _encoder[frame->getTrackType()];
-    if(encoder){
-        encoder->inputFrame(frame);
-    }
+    return encoder ? encoder->inputFrame(frame) : false;
 }
 
 void RtmpMuxer::makeConfigPacket(){

@@ -263,27 +263,31 @@ int AACTrack::getAudioChannel() const {
     return _channel;
 }
 
-void AACTrack::inputFrame(const Frame::Ptr &frame) {
-    if (frame->prefixSize()) {
-        //有adts头，尝试分帧
-        auto ptr = frame->data();
-        auto end = frame->data() + frame->size();
-        while (ptr < end) {
-            auto frame_len = getAacFrameLength((uint8_t *) ptr, end - ptr);
-            if (frame_len < ADTS_HEADER_LEN) {
-                break;
-            }
-            auto sub_frame = std::make_shared<FrameInternal<FrameFromPtr> >(frame, (char *) ptr, frame_len, ADTS_HEADER_LEN);
-            ptr += frame_len;
-            sub_frame->setCodecId(CodecAAC);
-            inputFrame_l(sub_frame);
-        }
-    } else {
-        inputFrame_l(frame);
+bool AACTrack::inputFrame(const Frame::Ptr &frame) {
+    if (!frame->prefixSize()) {
+        return inputFrame_l(frame);
     }
+
+    bool ret = false;
+    //有adts头，尝试分帧
+    auto ptr = frame->data();
+    auto end = frame->data() + frame->size();
+    while (ptr < end) {
+        auto frame_len = getAacFrameLength((uint8_t *) ptr, end - ptr);
+        if (frame_len < ADTS_HEADER_LEN) {
+            break;
+        }
+        auto sub_frame = std::make_shared<FrameInternal<FrameFromPtr> >(frame, (char *) ptr, frame_len, ADTS_HEADER_LEN);
+        ptr += frame_len;
+        sub_frame->setCodecId(CodecAAC);
+        if (inputFrame_l(sub_frame)) {
+            ret = true;
+        }
+    }
+    return ret;
 }
 
-void AACTrack::inputFrame_l(const Frame::Ptr &frame) {
+bool AACTrack::inputFrame_l(const Frame::Ptr &frame) {
     if (_cfg.empty()) {
         //未获取到aac_cfg信息
         if (frame->prefixSize()) {
@@ -297,8 +301,9 @@ void AACTrack::inputFrame_l(const Frame::Ptr &frame) {
 
     if (frame->size() > frame->prefixSize()) {
         //除adts头外，有实际负载
-        AudioTrack::inputFrame(frame);
+        return AudioTrack::inputFrame(frame);
     }
+    return false;
 }
 
 void AACTrack::onReady() {
