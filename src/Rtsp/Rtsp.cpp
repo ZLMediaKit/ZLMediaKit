@@ -19,8 +19,7 @@ int RtpPayload::getClockRate(int pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return clock_rate;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default:
-            return 90000;
+        default: return 90000;
     }
 }
 
@@ -29,8 +28,7 @@ TrackType RtpPayload::getTrackType(int pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return type;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default:
-            return TrackInvalid;
+        default: return TrackInvalid;
     }
 }
 
@@ -39,8 +37,7 @@ int RtpPayload::getAudioChannel(int pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return channel;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default:
-            return 1;
+        default: return 1;
     }
 }
 
@@ -49,8 +46,7 @@ const char *RtpPayload::getName(int pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return #name;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default:
-            return "unknown payload type";
+        default: return "unknown payload type";
     }
 }
 
@@ -59,8 +55,7 @@ CodecId RtpPayload::getCodecId(int pt) {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return codec_id;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default :
-            return CodecInvalid;
+        default: return CodecInvalid;
     }
 }
 
@@ -87,8 +82,7 @@ string SdpTrack::getName() const {
 #define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return #name;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-        default:
-            return _codec;
+        default: return _codec;
     }
 }
 
@@ -104,21 +98,11 @@ string SdpTrack::toString() const {
     _StrPrinter _printer;
     switch (_type) {
         case TrackTitle: {
-            _printer << "v=" << 0 << "\r\n";
-            if (!_o.empty()) {
-                _printer << "o=" << _o << "\r\n";
-            }
-            if (!_c.empty()) {
-                _printer << "c=" << _c << "\r\n";
-            }
-            if (!_t.empty()) {
-                _printer << "t=" << _t << "\r\n";
-            }
-
-            _printer << "s=Streamed by " << SERVER_NAME << "\r\n";
+            TitleSdp title(atof(_t.data()));
+            _printer << title.getSdp();
             getAttrSdp(_attr, _printer);
-        }
             break;
+        }
         case TrackAudio:
         case TrackVideo: {
             if (_type == TrackAudio) {
@@ -130,10 +114,9 @@ string SdpTrack::toString() const {
                 _printer << "b=" << _b << "\r\n";
             }
             getAttrSdp(_attr, _printer);
+            break;
         }
-            break;
-        default:
-            break;
+        default: break;
     }
     return std::move(_printer);
 }
@@ -170,18 +153,6 @@ void SdpParser::load(const string &sdp) {
             char opt = line[0];
             string opt_val = line.substr(2);
             switch (opt) {
-                case 'o':
-                    track->_o = opt_val;
-                    break;
-                case 's':
-                    track->_s = opt_val;
-                    break;
-                case 'i':
-                    track->_i = opt_val;
-                    break;
-                case 'c':
-                    track->_c = opt_val;
-                    break;
                 case 't':
                     track->_t = opt_val;
                     break;
@@ -197,12 +168,11 @@ void SdpParser::load(const string &sdp) {
                         track->_samplerate = RtpPayload::getClockRate(pt);
                         track->_channel = RtpPayload::getAudioChannel(pt);
                         track->_type = toTrackType(type);
-                        track->_m = opt_val;
                         track->_port = port;
                         _track_vec.emplace_back(track);
                     }
-                }
                     break;
+                }
                 case 'a': {
                     string attr = FindField(opt_val.data(), nullptr, ":");
                     if (attr.empty()) {
@@ -210,11 +180,9 @@ void SdpParser::load(const string &sdp) {
                     } else {
                         track->_attr.emplace(attr, FindField(opt_val.data(), ":", nullptr));
                     }
+                    break;
                 }
-                    break;
-                default:
-                    track->_other[opt] = opt_val;
-                    break;
+                default: track->_other[opt] = opt_val; break;
             }
         }
     }
@@ -325,18 +293,17 @@ string SdpParser::toString() const {
         switch (track->_type) {
             case TrackTitle: {
                 title = track->toString();
-            }
                 break;
+            }
             case TrackVideo: {
                 video = track->toString();
-            }
                 break;
+            }
             case TrackAudio: {
                 audio = track->toString();
+                break;
             }
-                break;
-            default:
-                break;
+            default: break;
         }
     }
     return title + video + audio;

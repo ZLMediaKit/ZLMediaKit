@@ -205,12 +205,6 @@ private:
 class SdpTrack {
 public:
     using Ptr = std::shared_ptr<SdpTrack>;
-
-    string _m;
-    string _o;
-    string _s;
-    string _i;
-    string _c;
     string _t;
     string _b;
     uint16_t _port;
