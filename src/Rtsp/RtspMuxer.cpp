@@ -28,8 +28,8 @@ void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
         //rtp拦截入口，此处统一赋值ntp
         in->ntp_stamp = _ntp_stamp[in->type];
     } else {
-        //点播情况下设置ntp时间戳为rtp时间戳
-        in->ntp_stamp = in->getStamp() * uint64_t(1000) / in->sample_rate;
+        //点播情况下设置ntp时间戳为rtp时间戳加基准ntp时间戳
+        in->ntp_stamp = _ntp_stamp_start + (in->getStamp() * uint64_t(1000) / in->sample_rate);
     }
     _rtpRing->write(std::move(in), is_key);
 }
