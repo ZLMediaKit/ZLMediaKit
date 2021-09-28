@@ -127,7 +127,7 @@ protected:
     * 此时代表可以获取其例如sps pps等相关信息了
     * @param track
     */
-    void onTrackReady(const Track::Ptr & track) override;
+    bool onTrackReady(const Track::Ptr & track) override;
 
     /**
      * 所有Track已经准备好，
@@ -138,7 +138,7 @@ protected:
      * 某Track输出frame，在onAllTrackReady触发后才会调用此方法
      * @param frame
      */
-    void onTrackFrame(const Frame::Ptr &frame) override;
+    bool onTrackFrame(const Frame::Ptr &frame) override;
 
 private:
     bool _is_enable = false;

@@ -86,7 +86,7 @@ public:
      * 输入265帧
      * @param frame 帧数据，必须
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 };
 
 }//namespace mediakit{

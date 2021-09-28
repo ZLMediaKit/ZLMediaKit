@@ -155,7 +155,7 @@ void H264RtmpEncoder::makeConfigPacket(){
     }
 }
 
-void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
+bool H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto data = frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
     auto type = H264_TYPE(data[0]);
@@ -183,7 +183,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         _rtmp_packet->buffer.resize(5);
     }
 
-    _merger.inputFrame(frame, [this](uint32_t dts, uint32_t pts, const Buffer::Ptr &, bool have_key_frame) {
+    return _merger.inputFrame(frame, [this](uint32_t dts, uint32_t pts, const Buffer::Ptr &, bool have_key_frame) {
         //flags
         _rtmp_packet->buffer[0] = FLV_CODEC_H264 | ((have_key_frame ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
         //not config

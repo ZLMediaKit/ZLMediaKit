@@ -43,17 +43,17 @@ RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title) {
     _ntp_stamp_start = getCurrentMillisecond(true);
 }
 
-void RtspMuxer::addTrack(const Track::Ptr &track) {
+bool RtspMuxer::addTrack(const Track::Ptr &track) {
     //根据track生成sdp
     Sdp::Ptr sdp = track->getSdp();
     if (!sdp) {
-        return;
+        return false;
     }
 
     auto &encoder = _encoder[track->getTrackType()];
     encoder = Factory::getRtpEncoderBySdp(sdp);
     if (!encoder) {
-        return;
+        return false;
     }
 
     //设置rtp输出环形缓存
@@ -62,6 +62,7 @@ void RtspMuxer::addTrack(const Track::Ptr &track) {
     //添加其sdp
     _sdp.append(sdp->getSdp());
     trySyncTrack();
+    return true;
 }
 
 void RtspMuxer::trySyncTrack() {
@@ -71,11 +72,9 @@ void RtspMuxer::trySyncTrack() {
     }
 }
 
-void RtspMuxer::inputFrame(const Frame::Ptr &frame) {
+bool RtspMuxer::inputFrame(const Frame::Ptr &frame) {
     auto &encoder = _encoder[frame->getTrackType()];
-    if (encoder) {
-        encoder->inputFrame(frame);
-    }
+    return encoder ? encoder->inputFrame(frame) : false;
 }
 
 string RtspMuxer::getSdp() {

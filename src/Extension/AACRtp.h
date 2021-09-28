@@ -74,7 +74,7 @@ public:
      * 输入aac 数据，必须带dats头
      * @param frame 带dats头的aac数据
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
     void makeAACRtp(const void *pData, size_t uiLen, bool bMark, uint32_t uiStamp);

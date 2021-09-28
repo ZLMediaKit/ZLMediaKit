@@ -94,11 +94,14 @@ public:
     /**
      * _demuxer触发的添加Track事件
      */
-    void addTrack(const Track::Ptr &track) override {
-        if(_muxer){
-            _muxer->addTrack(track);
-            track->addDelegate(_muxer);
+    bool addTrack(const Track::Ptr &track) override {
+        if (_muxer) {
+            if (_muxer->addTrack(track)) {
+                track->addDelegate(_muxer);
+                return true;
+            }
         }
+        return false;
     }
 
     /**
