@@ -172,45 +172,6 @@ public:
     }
 };
 
-#if !defined(_WIN32)
-static void inline listen_shell_input(){
-    cout << "> 欢迎进入命令模式，你可以输入\"help\"命令获取帮助" << endl;
-    cout << "> " << std::flush;
-
-    signal(SIGTTOU,SIG_IGN);
-    signal(SIGTTIN,SIG_IGN);
-
-    SockUtil::setNoBlocked(STDIN_FILENO);
-    auto oninput = [](int event) {
-        if (event & Event_Read) {
-            char buf[1024];
-            int n = read(STDIN_FILENO, buf, sizeof(buf));
-            if (n > 0) {
-                buf[n] = '\0';
-                try {
-                    CMDRegister::Instance()(buf);
-                    cout << "> " << std::flush;
-                } catch (ExitException &ex) {
-                    InfoL << "ExitException";
-                    kill(getpid(), SIGINT);
-                } catch (std::exception &ex) {
-                    cout << ex.what() << endl;
-                }
-            } else {
-                DebugL << get_uv_errmsg();
-                EventPollerPool::Instance().getFirstPoller()->delEvent(STDIN_FILENO);
-            }
-        }
-
-        if (event & Event_Error) {
-            WarnL << "Event_Error";
-            EventPollerPool::Instance().getFirstPoller()->delEvent(STDIN_FILENO);
-        }
-    };
-    EventPollerPool::Instance().getFirstPoller()->addEvent(STDIN_FILENO, Event_Read | Event_Error | Event_LT,oninput);
-}
-#endif//!defined(_WIN32)
-
 //全局变量，在WebApi中用于保存配置文件用
 string g_ini_file;
 
@@ -368,13 +329,6 @@ int start_main(int argc,char *argv[]) {
         InfoL << "已启动http api 接口";
         installWebHook();
         InfoL << "已启动http hook 接口";
-
-#if !defined(_WIN32) && !defined(ANDROID)
-        if (!bDaemon) {
-            //交互式shell输入
-            listen_shell_input();
-        }
-#endif
 
         //设置退出信号处理函数
         static semaphore sem;
