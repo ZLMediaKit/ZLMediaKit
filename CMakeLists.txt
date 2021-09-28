@@ -12,6 +12,10 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 #set(CMAKE_BUILD_TYPE "Release")
+if (${CMAKE_BUILD_TYPE} MATCHES "")
+    set(CMAKE_BUILD_TYPE "Debug")
+endif ()
+
 message(STATUS "编译类型:${CMAKE_BUILD_TYPE}")
 
 #设置bin和lib库目录
