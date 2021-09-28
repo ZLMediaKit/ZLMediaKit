@@ -499,6 +499,7 @@ void WebRtcTransportImp::onStartWebRTC() {
             }
         }
 
+        _play_src->pause(false);
         _reader = _play_src->getRing()->attach(getPoller(), true);
         weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
         _reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {

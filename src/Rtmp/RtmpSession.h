@@ -87,7 +87,6 @@ private:
     void dumpMetadata(const AMFValue &metadata);
 
 private:
-    bool _paused = false;
     bool _set_meta_data = false;
     double _recv_req_id = 0;
     //消耗的总流量

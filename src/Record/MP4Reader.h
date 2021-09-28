@@ -38,7 +38,10 @@ public:
 
 private:
     //MediaSourceEvent override
-    bool seekTo(MediaSource &sender,uint32_t ui32Stamp) override;
+    bool seekTo(MediaSource &sender,uint32_t stamp) override;
+    bool pause(MediaSource &sender, bool pause) override;
+    bool speed(MediaSource &sender, float speed) override;
+
     bool close(MediaSource &sender,bool force) override;
     int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
@@ -51,6 +54,8 @@ private:
 
 private:
     bool _have_video = false;
+    bool _paused = false;
+    float _speed = 1.0;
     uint32_t _seek_to;
     string _file_path;
     recursive_mutex _mtx;

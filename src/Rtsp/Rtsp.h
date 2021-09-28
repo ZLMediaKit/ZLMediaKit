@@ -334,7 +334,7 @@ private:
 */
 class TitleSdp : public Sdp{
 public:
-
+    using Ptr = std::shared_ptr<TitleSdp>;
     /**
      * 构造title类型sdp
      * @param dur_sec rtsp点播时长，0代表直播，单位秒
@@ -342,12 +342,12 @@ public:
      * @param version sdp版本
      */
     TitleSdp(float dur_sec = 0,
-             const map<string,string> &header = map<string,string>(),
-             int version = 0) : Sdp(0,0){
+             const map<string, string> &header = map<string, string>(),
+             int version = 0) : Sdp(0, 0) {
         _printer << "v=" << version << "\r\n";
 
-        if(!header.empty()){
-            for (auto &pr : header){
+        if (!header.empty()) {
+            for (auto &pr : header) {
                 _printer << pr.first << "=" << pr.second << "\r\n";
             }
         } else {
@@ -357,23 +357,31 @@ public:
             _printer << "t=0 0\r\n";
         }
 
-        if(dur_sec <= 0){
+        if (dur_sec <= 0) {
             //直播
             _printer << "a=range:npt=now-\r\n";
-        }else{
+        } else {
             //点播
-            _printer << "a=range:npt=0-" << dur_sec  << "\r\n";
+            _dur_sec = dur_sec;
+            _printer << "a=range:npt=0-" << dur_sec << "\r\n";
         }
         _printer << "a=control:*\r\n";
     }
+
     string getSdp() const override {
         return _printer;
     }
 
-    CodecId getCodecId() const override{
+    CodecId getCodecId() const override {
         return CodecInvalid;
     }
+
+    float getDuration() const {
+        return _dur_sec;
+    }
+
 private:
+    float _dur_sec = 0;
     _StrPrinter _printer;
 };
 

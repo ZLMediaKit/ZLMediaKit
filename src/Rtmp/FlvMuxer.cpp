@@ -36,6 +36,7 @@ void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr 
     onWriteFlvHeader(media);
 
     std::weak_ptr<FlvMuxer> weakSelf = getSharedPtr();
+    media->pause(false);
     _ring_reader = media->getRing()->attach(poller);
     _ring_reader->setDetachCB([weakSelf]() {
         auto strongSelf = weakSelf.lock();

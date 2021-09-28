@@ -105,7 +105,7 @@ void RtspSession::onManager() {
         return;
     }
 
-    if (!_push_src && _rtp_type == Rtsp::RTP_UDP && _enable_send_rtp && _alive_ticker.elapsedTime() > keep_alive_sec * 4000) {
+    if (!_push_src && _rtp_type == Rtsp::RTP_UDP && _alive_ticker.elapsedTime() > keep_alive_sec * 4000) {
         //rtp over udp播放器超时
         shutdown(SockException(Err_timeout, "rtp over udp player timeout"));
     }
@@ -774,12 +774,12 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     }
 
     bool useGOP = true;
-    float iStartTime = 0;
-    auto &strRange = parser["Range"];
     auto &strScale = parser["Scale"];
-
+    auto &strRange = parser["Range"];
+    StrCaseMap res_header;
     if (!strScale.empty()) {
         //这是设置播放速度
+        res_header.emplace("Scale", strScale);
         auto speed = atof(strScale.data());
         play_src->speed(speed);
         InfoP(this) << "rtsp set play speed:" << speed;
@@ -787,12 +787,12 @@ void RtspSession::handleReq_Play(const Parser &parser) {
 
     if (!strRange.empty()) {
         //这是seek操作
-        _enable_send_rtp = false;
+        res_header.emplace("Range", strRange);
         auto strStart = FindField(strRange.data(), "npt=", "-");
         if (strStart == "now") {
             strStart = "0";
         }
-        iStartTime = 1000 * (float) atof(strStart.data());
+        auto iStartTime = 1000 * (float) atof(strStart.data());
         useGOP = !play_src->seekTo((uint32_t) iStartTime);
         InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
     }
@@ -814,13 +814,13 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     }
 
     rtp_info.pop_back();
-    sendRtspResponse("200 OK",
-                     {"Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << (useGOP ? play_src->getTimeStamp(TrackInvalid) / 1000.0 : iStartTime / 1000),
-                      "RTP-Info",rtp_info
-                     });
+
+    res_header.emplace("RTP-Info", rtp_info);
+    //已存在Range时不覆盖
+    res_header.emplace("Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << play_src->getTimeStamp(TrackInvalid) / 1000.0);
+    sendRtspResponse("200 OK", res_header);
 
     //在回复rtsp信令后再恢复播放
-    _enable_send_rtp = true;
     play_src->pause(false);
 
     setSocketFlags();
@@ -840,9 +840,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
             if (!strongSelf) {
                 return;
             }
-            if (strongSelf->_enable_send_rtp) {
-                strongSelf->sendRtpPacket(pack);
-            }
+            strongSelf->sendRtpPacket(pack);
         });
     }
 }
@@ -854,8 +852,6 @@ void RtspSession::handleReq_Pause(const Parser &parser) {
     }
 
     sendRtspResponse("200 OK");
-    _enable_send_rtp = false;
-
     auto play_src = _play_src.lock();
     if (play_src) {
         play_src->pause(true);
