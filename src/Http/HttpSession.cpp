@@ -269,6 +269,7 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb){
         setSocketFlags();
         onWrite(std::make_shared<BufferString>(fmp4_src->getInitSegment()), true);
         weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+        fmp4_src->pause(false);
         _fmp4_reader = fmp4_src->getRing()->attach(getPoller());
         _fmp4_reader->setDetachCB([weak_self]() {
             auto strong_self = weak_self.lock();
@@ -309,6 +310,7 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
         //直播牺牲延时提升发送性能
         setSocketFlags();
         weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+        ts_src->pause(false);
         _ts_reader = ts_src->getRing()->attach(getPoller());
         _ts_reader->setDetachCB([weak_self](){
             auto strong_self = weak_self.lock();

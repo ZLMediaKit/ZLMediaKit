@@ -47,6 +47,12 @@ MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &
 }
 
 bool MP4Reader::readSample() {
+    if (_paused) {
+        //确保暂停时，时间轴不走动
+        _seek_ticker.resetTime();
+        return true;
+    }
+
     bool keyFrame = false;
     bool eof = false;
     while (!eof) {
@@ -89,20 +95,53 @@ void MP4Reader::startReadMP4() {
 }
 
 uint32_t MP4Reader::getCurrentStamp() {
-    return (uint32_t)(_seek_to + _seek_ticker.elapsedTime());
+    return (uint32_t)(_seek_to + !_paused * _speed * _seek_ticker.elapsedTime());
 }
 
-void MP4Reader::setCurrentStamp(uint32_t ui32Stamp){
-    _seek_to = ui32Stamp;
+void MP4Reader::setCurrentStamp(uint32_t new_stamp){
+    auto old_stamp = getCurrentStamp();
+    _seek_to = new_stamp;
     _seek_ticker.resetTime();
-    _mediaMuxer->setTimeStamp(ui32Stamp);
+    if (old_stamp != new_stamp) {
+        //时间轴未拖动时不操作
+        _mediaMuxer->setTimeStamp(new_stamp);
+    }
 }
 
-bool MP4Reader::seekTo(MediaSource &sender,uint32_t ui32Stamp){
-    return seekTo(ui32Stamp);
+bool MP4Reader::seekTo(MediaSource &sender, uint32_t stamp) {
+    //拖动进度条后应该恢复播放
+    pause(sender, false);
+    TraceL << getOriginUrl(sender) << ",stamp:" << stamp;
+    return seekTo(stamp);
 }
 
-bool MP4Reader::seekTo(uint32_t ui32Stamp){
+bool MP4Reader::pause(MediaSource &sender, bool pause) {
+    if (_paused == pause) {
+        return true;
+    }
+    //_seek_ticker重新计时，不管是暂停还是seek都不影响总的播放进度
+    setCurrentStamp(getCurrentStamp());
+    _paused = pause;
+    TraceL << getOriginUrl(sender) << ",pause:" << pause;
+    return true;
+}
+
+bool MP4Reader::speed(MediaSource &sender, float speed) {
+    if (speed < 0.1 && speed > 20) {
+        WarnL << "播放速度取值范围非法:" << speed;
+        return false;
+    }
+    //设置播放速度后应该恢复播放
+    pause(sender, false);
+    if (_speed == speed) {
+        return true;
+    }
+    _speed = speed;
+    TraceL << getOriginUrl(sender) << ",speed:" << speed;
+    return true;
+}
+
+bool MP4Reader::seekTo(uint32_t ui32Stamp) {
     lock_guard<recursive_mutex> lck(_mtx);
     if (ui32Stamp > _demuxer->getDurationMS()) {
         //超过文件长度

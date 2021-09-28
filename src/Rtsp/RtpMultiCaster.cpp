@@ -132,6 +132,7 @@ RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, con
         _udp_sock[i]->bindPeerAddr((struct sockaddr *) &peer);
     }
 
+    src->pause(false);
     _rtp_reader = src->getRing()->attach(helper.getPoller());
     _rtp_reader->setReadCB([this](const RtspMediaSource::RingDataType &pkt) {
         size_t i = 0;

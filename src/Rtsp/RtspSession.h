@@ -165,8 +165,6 @@ private:
 private:
     //是否已经触发on_play事件
     bool _emit_on_play = false;
-    //是否开始发送rtp
-    bool _enable_send_rtp;
     //推流或拉流客户端采用的rtp传输方式
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_Invalid;
     //收到的seq，回复时一致

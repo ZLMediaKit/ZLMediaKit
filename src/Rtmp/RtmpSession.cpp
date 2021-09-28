@@ -268,14 +268,12 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
 
     //音频同步于视频
     _stamp[0].syncTo(_stamp[1]);
+    src->pause(false);
     _ring_reader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
     _ring_reader->setReadCB([weakSelf](const RtmpMediaSource::RingDataType &pkt) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
-            return;
-        }
-        if(strongSelf->_paused){
             return;
         }
         size_t i = 0;
@@ -295,10 +293,8 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         }
         strongSelf->shutdown(SockException(Err_shutdown,"rtmp ring buffer detached"));
     });
+    src->pause(false);
     _player_src = src;
-    if (src->totalReaderCount() == 1) {
-        src->seekTo(0);
-    }
     //提高服务器发送性能
     setSocketFlags();
 }
@@ -411,8 +407,6 @@ void RtmpSession::onCmd_pause(AMFDecoder &dec) {
     sendReply("onStatus", nullptr, status);
     //streamBegin
     sendUserControl(paused ? CONTROL_STREAM_EOF : CONTROL_STREAM_BEGIN, STREAM_MEDIA);
-    _paused = paused;
-
     auto strongSrc = _player_src.lock();
     if (strongSrc) {
         strongSrc->pause(paused);

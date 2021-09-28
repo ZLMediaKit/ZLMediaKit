@@ -452,6 +452,7 @@ void RtspPusher::sendRecord() {
             throw std::runtime_error("the media source was released");
         }
 
+        src->pause(false);
         _rtsp_reader = src->getRing()->attach(getPoller());
         weak_ptr<RtspPusher> weak_self = dynamic_pointer_cast<RtspPusher>(shared_from_this());
         _rtsp_reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {

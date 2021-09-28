@@ -81,6 +81,7 @@ private:
     void trySyncTrack();
 
 private:
+    bool _live = true;
     uint32_t _rtp_stamp[TrackMax]{0};
     uint64_t _ntp_stamp[TrackMax]{0};
     uint64_t _ntp_stamp_start;

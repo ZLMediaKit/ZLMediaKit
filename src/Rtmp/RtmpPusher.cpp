@@ -204,6 +204,7 @@ inline void RtmpPusher::send_metaData(){
         sendRtmp(pkt->type_id, _stream_index, pkt, pkt->time_stamp, pkt->chunk_id);
     });
 
+    src->pause(false);
     _rtmp_reader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpPusher> weak_self = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
     _rtmp_reader->setReadCB([weak_self](const RtmpMediaSource::RingDataType &pkt) {
