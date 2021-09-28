@@ -299,7 +299,7 @@ public:
     void setTrackListener(TrackListener *listener);
 
 protected:
-    void addTrack(const Track::Ptr &track) override;
+    bool addTrack(const Track::Ptr &track) override;
     void addTrackCompleted() override;
     void resetTracks() override;
 

@@ -30,7 +30,7 @@ public:
     /**
      * 添加音视频轨道
      */
-    void addTrack(const Track::Ptr &track) override;
+    bool addTrack(const Track::Ptr &track) override;
 
     /**
      * 重置音视频轨道
@@ -40,7 +40,7 @@ public:
     /**
      * 输入帧数据
      */
-    void inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
 protected:
     /**

@@ -48,7 +48,7 @@ void PSEncoder::init() {
     });
 }
 
-void PSEncoder::addTrack(const Track::Ptr &track) {
+bool PSEncoder::addTrack(const Track::Ptr &track) {
     switch (track->getCodecId()) {
         case CodecH264: {
             _codec_to_trackid[track->getCodecId()].track_id = ps_muxer_add_stream(_muxer.get(), STREAM_VIDEO_H264, nullptr, 0);
@@ -80,10 +80,11 @@ void PSEncoder::addTrack(const Track::Ptr &track) {
             break;
         }
 
-        default: WarnL << "mpeg-ps 不支持该编码格式,已忽略:" << track->getCodecName(); break;
+        default: WarnL << "mpeg-ps 不支持该编码格式,已忽略:" << track->getCodecName(); return false;
     }
     //尝试音视频同步
     stampSync();
+    return true;
 }
 
 void PSEncoder::stampSync(){
@@ -110,10 +111,10 @@ void PSEncoder::resetTracks() {
     init();
 }
 
-void PSEncoder::inputFrame(const Frame::Ptr &frame) {
+bool PSEncoder::inputFrame(const Frame::Ptr &frame) {
     auto it = _codec_to_trackid.find(frame->getCodecId());
     if (it == _codec_to_trackid.end()) {
-        return;
+        return false;
     }
     auto &track_info = it->second;
     int64_t dts_out, pts_out;
@@ -121,20 +122,19 @@ void PSEncoder::inputFrame(const Frame::Ptr &frame) {
         case CodecH264:
         case CodecH265: {
             //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            _frame_merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+            return _frame_merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
                 track_info.stamp.revise(dts, pts, dts_out, pts_out);
                 //取视频时间戳为TS的时间戳
                 _timestamp = (uint32_t) pts_out;
                 ps_muxer_input(_muxer.get(), track_info.track_id, have_idr ? 0x0001 : 0,
                                pts_out * 90LL, dts_out * 90LL, buffer->data(), buffer->size());
             });
-            break;
         }
 
         case CodecAAC: {
             if (frame->prefixSize() == 0) {
                 WarnL << "必须提供adts头才能mpeg-ps打包";
-                break;
+                return false;
             }
         }
 
@@ -143,7 +143,7 @@ void PSEncoder::inputFrame(const Frame::Ptr &frame) {
             _timestamp = (uint32_t) dts_out;
             ps_muxer_input(_muxer.get(), track_info.track_id, frame->keyFrame() ? 0x0001 : 0, pts_out * 90LL,
                            dts_out * 90LL, frame->data(), frame->size());
-            break;
+            return true;
         }
     }
 }

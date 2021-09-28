@@ -49,15 +49,16 @@ public:
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
-    void inputFrame(const Frame::Ptr &frame) override {
+    bool inputFrame(const Frame::Ptr &frame) override {
         GET_CONFIG(bool, fmp4_demand, General::kFMP4Demand);
         if (_clear_cache && fmp4_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
         if (_enabled || !fmp4_demand) {
-            MP4MuxerMemory::inputFrame(frame);
+            return MP4MuxerMemory::inputFrame(frame);
         }
+        return false;
     }
 
     bool isEnabled() {

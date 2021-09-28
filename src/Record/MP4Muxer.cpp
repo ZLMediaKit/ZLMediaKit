@@ -64,18 +64,18 @@ void MP4MuxerInterface::resetTracks() {
     _codec_to_trackid.clear();
 }
 
-void MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
+bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
     auto it = _codec_to_trackid.find(frame->getCodecId());
     if(it == _codec_to_trackid.end()){
         //该Track不存在或初始化失败
-        return;
+        return false;
     }
 
     if (!_started) {
         //该逻辑确保含有视频时，第一帧为关键帧
         if (_have_video && !frame->keyFrame()) {
             //含有视频，但是不是关键帧，那么前面的帧丢弃
-            return;
+            return false;
         }
         //开始写文件
         _started = true;
@@ -113,8 +113,8 @@ void MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
                              frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0);
             break;
         }
-
     }
+    return true;
 }
 
 static uint8_t getObject(CodecId codecId){
@@ -149,19 +149,19 @@ void MP4MuxerInterface::stampSync(){
     }
 }
 
-void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
+bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
     if (!_mov_writter) {
         _mov_writter = createWriter();
     }
     auto mp4_object = getObject(track->getCodecId());
     if (!mp4_object) {
         WarnL << "MP4录制不支持该编码格式:" << track->getCodecName();
-        return;
+        return false;
     }
 
     if (!track->ready()) {
         WarnL << "Track[" << track->getCodecName() << "]未就绪";
-        return;
+        return false;
     }
 
     switch (track->getCodecId()) {
@@ -171,7 +171,7 @@ void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
             auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
             if (!audio_track) {
                 WarnL << "不是音频Track:" << track->getCodecName();
-                return;
+                return false;
             }
 
             auto track_id = mp4_writer_add_audio(_mov_writter.get(),
@@ -182,17 +182,17 @@ void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
                                                  nullptr, 0);
             if (track_id < 0) {
                 WarnL << "添加Track[" << track->getCodecName() << "]失败:" << track_id;
-                return;
+                return false;
             }
             _codec_to_trackid[track->getCodecId()].track_id = track_id;
-        }
             break;
+        }
 
         case CodecAAC: {
             auto audio_track = dynamic_pointer_cast<AACTrack>(track);
             if (!audio_track) {
                 WarnL << "不是AAC Track";
-                return;
+                return false;
             }
 
             auto track_id = mp4_writer_add_audio(_mov_writter.get(),
@@ -204,16 +204,17 @@ void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
                                                  audio_track->getAacCfg().size());
             if(track_id < 0){
                 WarnL << "添加AAC Track失败:" << track_id;
-                return;
+                return false;
             }
             _codec_to_trackid[track->getCodecId()].track_id = track_id;
-        }
             break;
+        }
+
         case CodecH264: {
             auto h264_track = dynamic_pointer_cast<H264Track>(track);
             if (!h264_track) {
                 WarnL << "不是H264 Track";
-                return;
+                return false;
             }
 
             struct mpeg4_avc_t avc = {0};
@@ -225,7 +226,7 @@ void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
             int extra_data_size = mpeg4_avc_decoder_configuration_record_save(&avc, extra_data, sizeof(extra_data));
             if (extra_data_size == -1) {
                 WarnL << "生成H264 extra_data 失败";
-                return;
+                return false;
             }
 
             auto track_id = mp4_writer_add_video(_mov_writter.get(),
@@ -237,17 +238,18 @@ void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
 
             if(track_id < 0){
                 WarnL << "添加H264 Track失败:" << track_id;
-                return;
+                return false;
             }
             _codec_to_trackid[track->getCodecId()].track_id = track_id;
             _have_video = true;
-        }
             break;
+        }
+
         case CodecH265: {
             auto h265_track = dynamic_pointer_cast<H265Track>(track);
             if (!h265_track) {
                 WarnL << "不是H265 Track";
-                return;
+                return false;
             }
 
             struct mpeg4_hevc_t hevc = {0};
@@ -260,7 +262,7 @@ void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
             int extra_data_size = mpeg4_hevc_decoder_configuration_record_save(&hevc, extra_data, sizeof(extra_data));
             if (extra_data_size == -1) {
                 WarnL << "生成H265 extra_data 失败";
-                return;
+                return false;
             }
 
             auto track_id = mp4_writer_add_video(_mov_writter.get(),
@@ -271,18 +273,19 @@ void MP4MuxerInterface::addTrack(const Track::Ptr &track) {
                                                  extra_data_size);
             if(track_id < 0){
                 WarnL << "添加H265 Track失败:" << track_id;
-                return;
+                return false;
             }
             _codec_to_trackid[track->getCodecId()].track_id = track_id;
             _have_video = true;
-        }
             break;
+        }
 
-        default: WarnL << "MP4录制不支持该编码格式:" << track->getCodecName(); break;
+        default: WarnL << "MP4录制不支持该编码格式:" << track->getCodecName(); return false;
     }
 
     //尝试音视频同步
     stampSync();
+    return true;
 }
 
 /////////////////////////////////////////// MP4MuxerMemory /////////////////////////////////////////////
@@ -310,10 +313,10 @@ void MP4MuxerMemory::resetTracks(){
     _init_segment.clear();
 }
 
-void MP4MuxerMemory::inputFrame(const Frame::Ptr &frame){
+bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame){
     if (_init_segment.empty()) {
         //尚未生成init segment
-        return;
+        return false;
     }
 
     bool key_frame = frame->keyFrame();
@@ -330,7 +333,7 @@ void MP4MuxerMemory::inputFrame(const Frame::Ptr &frame){
     if (key_frame) {
         _key_frame = true;
     }
-    MP4MuxerInterface::inputFrame(frame);
+    return MP4MuxerInterface::inputFrame(frame);
 }
 
 

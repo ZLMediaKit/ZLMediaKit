@@ -254,30 +254,29 @@ const AVCodecContext *FFmpegDecoder::getContext() const {
     return _context.get();
 }
 
-void FFmpegDecoder::inputFrame_l(const Frame::Ptr &frame) {
+bool FFmpegDecoder::inputFrame_l(const Frame::Ptr &frame) {
     if (_do_merger) {
-        _merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+        return _merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
             decodeFrame(buffer->data(), buffer->size(), dts, pts);
         });
-    } else {
-        decodeFrame(frame->data(), frame->size(), frame->dts(), frame->pts());
     }
+    return decodeFrame(frame->data(), frame->size(), frame->dts(), frame->pts());
 }
 
-void FFmpegDecoder::inputFrame(const Frame::Ptr &frame) {
+bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame) {
     if (!TaskManager::isEnabled()) {
-        inputFrame_l(frame);
-    } else {
-        auto frame_cache = Frame::getCacheAbleFrame(frame);
-        addDecodeTask(frame->keyFrame(), [this, frame_cache]() {
-            inputFrame_l(frame_cache);
-            //此处模拟解码太慢导致的主动丢帧
-            //usleep(100 * 1000);
-        });
+        return inputFrame_l(frame);
     }
+    auto frame_cache = Frame::getCacheAbleFrame(frame);
+    addDecodeTask(frame->keyFrame(), [this, frame_cache]() {
+        inputFrame_l(frame_cache);
+        //此处模拟解码太慢导致的主动丢帧
+        //usleep(100 * 1000);
+    });
+    return true;
 }
 
-void FFmpegDecoder::decodeFrame(const char *data, size_t size, uint32_t dts, uint32_t pts) {
+bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint32_t dts, uint32_t pts) {
     TimeTicker2(30, TraceL);
 
     auto pkt = alloc_av_packet();
@@ -291,7 +290,7 @@ void FFmpegDecoder::decodeFrame(const char *data, size_t size, uint32_t dts, uin
         if (ret != AVERROR_INVALIDDATA) {
             WarnL << "avcodec_send_packet failed:" << ffmpeg_err(ret);
         }
-        return;
+        return false;
     }
 
     while (true) {
@@ -311,6 +310,7 @@ void FFmpegDecoder::decodeFrame(const char *data, size_t size, uint32_t dts, uin
         }
         onDecode(out_frame);
     }
+    return true;
 }
 
 void FFmpegDecoder::setOnDecode(FFmpegDecoder::onDec cb) {

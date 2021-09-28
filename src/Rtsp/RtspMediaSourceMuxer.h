@@ -57,15 +57,16 @@ public:
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
-    void inputFrame(const Frame::Ptr &frame) override {
+    bool inputFrame(const Frame::Ptr &frame) override {
         GET_CONFIG(bool, rtsp_demand, General::kRtspDemand);
         if (_clear_cache && rtsp_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
         if (_enabled || !rtsp_demand) {
-            RtspMuxer::inputFrame(frame);
+            return RtspMuxer::inputFrame(frame);
         }
+        return false;
     }
 
     bool isEnabled() {

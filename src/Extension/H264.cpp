@@ -144,18 +144,22 @@ bool H264Track::ready() {
     return !_sps.empty() && !_pps.empty();
 }
 
-void H264Track::inputFrame(const Frame::Ptr &frame) {
+bool H264Track::inputFrame(const Frame::Ptr &frame) {
     using H264FrameInternal = FrameInternal<H264FrameNoCacheAble>;
-    int type = H264_TYPE( frame->data()[frame->prefixSize()]);
-    if (type != H264Frame::NAL_B_P && type != H264Frame::NAL_IDR) {
-        //非I/B/P帧情况下，split一下，防止多个帧粘合在一起
-        splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
-            H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame, (char *) ptr, len, prefix);
-            inputFrame_l(sub_frame);
-        });
-    } else {
-        inputFrame_l(frame);
+    int type = H264_TYPE(frame->data()[frame->prefixSize()]);
+    if (type == H264Frame::NAL_B_P || type == H264Frame::NAL_IDR) {
+        return inputFrame_l(frame);
     }
+
+    //非I/B/P帧情况下，split一下，防止多个帧粘合在一起
+    bool ret = false;
+    splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
+        H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame, (char *) ptr, len, prefix);
+        if (inputFrame_l(sub_frame)) {
+            ret = true;
+        }
+    });
+    return ret;
 }
 
 void H264Track::onReady(){
@@ -169,8 +173,9 @@ Track::Ptr H264Track::clone() {
     return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
 }
 
-void H264Track::inputFrame_l(const Frame::Ptr &frame){
+bool H264Track::inputFrame_l(const Frame::Ptr &frame){
     int type = H264_TYPE( frame->data()[frame->prefixSize()]);
+    bool ret = true;
     switch (type) {
         case H264Frame::NAL_SPS: {
             _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
@@ -182,6 +187,7 @@ void H264Track::inputFrame_l(const Frame::Ptr &frame){
         }
         case H264Frame::NAL_AUD: {
             //忽略AUD帧;
+            ret = false;
             break;
         }
 
@@ -189,7 +195,7 @@ void H264Track::inputFrame_l(const Frame::Ptr &frame){
             if (frame->keyFrame()) {
                 insertConfigFrame(frame);
             }
-            VideoTrack::inputFrame(frame);
+            ret = VideoTrack::inputFrame(frame);
             break;
     }
 
@@ -197,6 +203,7 @@ void H264Track::inputFrame_l(const Frame::Ptr &frame){
     if (_width == 0 && ready()) {
         onReady();
     }
+    return ret;
 }
 
 void H264Track::insertConfigFrame(const Frame::Ptr &frame){
