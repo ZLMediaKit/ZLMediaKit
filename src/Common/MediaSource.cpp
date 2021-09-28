@@ -21,8 +21,8 @@ namespace toolkit {
 
 namespace mediakit {
 
-recursive_mutex s_media_source_mtx;
-MediaSource::SchemaVhostAppStreamMap s_media_source_map;
+static recursive_mutex s_media_source_mtx;
+static MediaSource::SchemaVhostAppStreamMap s_media_source_map;
 
 string getOriginTypeString(MediaOriginType type){
 #define SWITCH_CASE(type) case MediaOriginType::type : return #type
