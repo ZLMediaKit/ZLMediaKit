@@ -200,10 +200,10 @@ class MediaSource: public TrackSource, public enable_shared_from_this<MediaSourc
 public:
     static MediaSource * const NullMediaSource;
     using Ptr = std::shared_ptr<MediaSource>;
-    using StreamMap = unordered_map<string, weak_ptr<MediaSource> >;
-    using AppStreamMap = unordered_map<string, StreamMap>;
-    using VhostAppStreamMap = unordered_map<string, AppStreamMap>;
-    using SchemaVhostAppStreamMap = unordered_map<string, VhostAppStreamMap>;
+    using StreamMap = unordered_map<string/*strema_id*/, weak_ptr<MediaSource> >;
+    using AppStreamMap = unordered_map<string/*app*/, StreamMap>;
+    using VhostAppStreamMap = unordered_map<string/*vhost*/, AppStreamMap>;
+    using SchemaVhostAppStreamMap = unordered_map<string/*schema*/, VhostAppStreamMap>;
 
     MediaSource(const string &schema, const string &vhost, const string &app, const string &stream_id) ;
     virtual ~MediaSource();
