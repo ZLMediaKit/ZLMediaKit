@@ -107,6 +107,13 @@ API_EXPORT void API_CALL mk_env_init1(int thread_num,
                                       const char *ssl_pwd);
 
 /**
+* 设置日志文件
+* @param file_max_size 单个切片文件大小(MB)
+* @param file_max_count 切片文件个数
+*/
+API_EXPORT void API_CALL mk_set_log(int file_max_size, int file_max_count);
+
+/**
  * 设置配置项
  * @param key 配置项名
  * @param val 配置项值
