@@ -35,7 +35,7 @@ void HttpSession::Handle_Req_HEAD(ssize_t &content_len){
     //暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
     //如果直接返回404，那么又会导致按需生成流的逻辑失效，所以HTTP HEAD在静态文件或者已存在资源时才有效
     //对于按需生成流的直播场景并不适用
-    sendResponse(200, true);
+    sendResponse(200, false);
 }
 
 void HttpSession::Handle_Req_OPTIONS(ssize_t &content_len) {
