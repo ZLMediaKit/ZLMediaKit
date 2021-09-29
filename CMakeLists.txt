@@ -12,7 +12,7 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 #set(CMAKE_BUILD_TYPE "Release")
-if (${CMAKE_BUILD_TYPE} MATCHES "")
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
     set(CMAKE_BUILD_TYPE "Debug")
 endif ()
 
