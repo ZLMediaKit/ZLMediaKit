@@ -61,7 +61,8 @@ using namespace toolkit;
 #define STREAM_CONTROL				0
 #define STREAM_MEDIA				1
 
-#define CHUNK_SERVER_REQUEST			2 /*服务器像客户端发出请求时的chunkID*/
+#define CHUNK_NETWORK                   2 /*网络相关的消息(参见 Protocol Control Messages)*/
+#define CHUNK_SYSTEM                    3 /*向服务器发送控制消息(反之亦可)*/
 #define CHUNK_CLIENT_REQUEST_BEFORE		3 /*客户端在createStream前,向服务器发出请求的chunkID*/
 #define CHUNK_CLIENT_REQUEST_AFTER		4 /*客户端在createStream后,向服务器发出请求的chunkID*/
 #define CHUNK_AUDIO						6 /*音频chunkID*/
