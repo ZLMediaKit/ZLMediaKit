@@ -166,10 +166,10 @@ void RtmpProtocol::sendInvoke(const string &cmd, const AMFValue &val) {
 
 void RtmpProtocol::sendRequest(int cmd, const string& str) {
     // 若 cmd 属于 Protocol Control Messages ，则应使用 chunk id 2 发送
-    if(cmd <= MSG_SET_PEER_BW){
+    if (cmd <= MSG_SET_PEER_BW) {
         sendRtmp(cmd, _stream_index, str, 0, CHUNK_NETWORK);
-    // 否则使用 chunk id 发送(任意值3-128，参见 obs 及 ffmpeg 选取 3)
-    }else{
+        // 否则使用 chunk id 发送(任意值3-128，参见 obs 及 ffmpeg 选取 3)
+    } else {
         sendRtmp(cmd, _stream_index, str, 0, CHUNK_SYSTEM);
     }
 }
