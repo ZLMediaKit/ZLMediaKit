@@ -24,84 +24,88 @@
 #include "HttpChunkedSplitter.h"
 #include "strCoding.h"
 #include "HttpBody.h"
+
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-class HttpArgs : public map<string, variant, StrCaseCompare>  {
+class HttpArgs : public map<string, variant, StrCaseCompare> {
 public:
-    HttpArgs(){}
-    virtual ~HttpArgs(){}
+    HttpArgs() = default;
+    ~HttpArgs() = default;
+
     string make() const {
         string ret;
-        for(auto &pr : *this){
+        for (auto &pr : *this) {
             ret.append(pr.first);
             ret.append("=");
             ret.append(strCoding::UrlEncode(pr.second));
             ret.append("&");
         }
-        if(ret.size()){
+        if (ret.size()) {
             ret.pop_back();
         }
         return ret;
     }
 };
 
-class HttpClient : public TcpClient , public HttpRequestSplitter{
+class HttpClient : public TcpClient, public HttpRequestSplitter {
 public:
-    typedef StrCaseMap HttpHeader;
-    typedef std::shared_ptr<HttpClient> Ptr;
-    HttpClient();
-    virtual ~HttpClient();
-    virtual void sendRequest(const string &url,float fTimeOutSec);
+    using HttpHeader = StrCaseMap;
+    using Ptr = std::shared_ptr<HttpClient>;
 
-    virtual void clear(){
-        _header.clear();
-        _body.reset();
-        _method.clear();
-        _path.clear();
-        _parser.Clear();
-        _recvedBodySize = 0;
-        _totalBodySize = 0;
-        _aliveTicker.resetTime();
-        _chunkedSplitter.reset();
-        HttpRequestSplitter::reset();
-    }
+    HttpClient() = default;
+    ~HttpClient() override = default;
 
-    void setMethod(const string &method){
-        _method = method;
-    }
-    void setHeader(const HttpHeader &header){
-        _header = header;
-    }
-    HttpClient & addHeader(const string &key,const string &val,bool force = false){
-        if(!force){
-            _header.emplace(key,val);
-        }else{
-            _header[key] = val;
-        }
-        return *this;
-    }
-    void setBody(const string &body){
-        _body.reset(new HttpStringBody(body));
-    }
-    void setBody(const HttpBody::Ptr &body){
-        _body = body;
-    }
-    const string &responseStatus() const{
-        return _parser.Url();
-    }
-    const HttpHeader &responseHeader() const{
-        return _parser.getHeader();
-    }
-    const Parser& response() const{
-        return _parser;
-    }
+    /**
+     * 发送http[s]请求
+     * @param url 请求url
+     * @param fTimeOutSec 超时时间
+     */
+    virtual void sendRequest(const string &url, float fTimeOutSec);
 
-    const string &getUrl() const{
-        return _url;
-    }
+    /**
+     * 重置对象
+     */
+    virtual void clear();
+
+    /**
+     * 设置http方法
+     * @param method GET/POST等
+     */
+    void setMethod(string method);
+
+    /**
+     * 覆盖http头
+     * @param header
+     */
+    void setHeader(HttpHeader header);
+
+    HttpClient &addHeader(string key, string val, bool force = false);
+
+    /**
+     * 设置http content
+     * @param body http content
+     */
+    void setBody(string body);
+
+    /**
+     * 设置http content
+     * @param body http content
+     */
+    void setBody(HttpBody::Ptr body);
+
+    /**
+     * 获取回复，在收到完整回复后有效
+     */
+    const Parser &response() const;
+
+    /**
+     * 获取请求url
+     */
+    const string &getUrl() const;
+
 protected:
     /**
      * 收到http回复头
@@ -110,7 +114,7 @@ protected:
      * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
      *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
      */
-    virtual ssize_t onResponseHeader(const string &status,const HttpHeader &headers){
+    virtual ssize_t onResponseHeader(const string &status, const HttpHeader &headers) {
         //无Content-Length字段时默认后面全是content
         return -1;
     }
@@ -129,7 +133,7 @@ protected:
     /**
      * 接收http回复完毕,
      */
-    virtual void onResponseCompleted(){
+    virtual void onResponseCompleted() {
         DebugL;
     }
 
@@ -137,7 +141,7 @@ protected:
      * http链接断开回调
      * @param ex 断开原因
      */
-    virtual void onDisconnect(const SockException &ex){}
+    virtual void onDisconnect(const SockException &ex) {}
 
     /**
      * 重定向事件
@@ -145,22 +149,23 @@ protected:
      * @param temporary 是否为临时重定向
      * @return 是否继续
      */
-    virtual bool onRedirectUrl(const string &url,bool temporary){ return true;};
+    virtual bool onRedirectUrl(const string &url, bool temporary) { return true; };
 
-    //HttpRequestSplitter override
-    ssize_t onRecvHeader(const char *data,size_t len) override;
-    void onRecvContent(const char *data,size_t len) override;
+    //// HttpRequestSplitter override ////
+    ssize_t onRecvHeader(const char *data, size_t len) override;
+    void onRecvContent(const char *data, size_t len) override;
 
 protected:
-    virtual void onConnect(const SockException &ex) override;
-    virtual void onRecv(const Buffer::Ptr &pBuf) override;
-    virtual void onErr(const SockException &ex) override;
-    virtual void onFlush() override;
-    virtual void onManager() override;
+    //// TcpClient override ////
+    void onConnect(const SockException &ex) override;
+    void onRecv(const Buffer::Ptr &pBuf) override;
+    void onErr(const SockException &ex) override;
+    void onFlush() override;
+    void onManager() override;
 
 private:
     void onResponseCompleted_l();
-    void checkCookie(HttpHeader &headers );
+    void checkCookie(HttpHeader &headers);
 
 protected:
     bool _isHttps;

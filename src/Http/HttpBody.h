@@ -68,7 +68,7 @@ public:
 class HttpStringBody : public HttpBody{
 public:
     typedef std::shared_ptr<HttpStringBody> Ptr;
-    HttpStringBody(const string &str);
+    HttpStringBody(string str);
     ~HttpStringBody() override = default;
 
     ssize_t remainSize() override;
