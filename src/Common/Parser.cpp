@@ -119,12 +119,12 @@ const string &Parser::Params() const {
     return _params;
 }
 
-void Parser::setUrl(const string &url) {
-    this->_strUrl = url;
+void Parser::setUrl(string url) {
+    this->_strUrl = std::move(url);
 }
 
-void Parser::setContent(const string &content) {
-    this->_strContent = content;
+void Parser::setContent(string content) {
+    this->_strContent = std::move(content);
 }
 
 StrCaseMap &Parser::getHeader() const {

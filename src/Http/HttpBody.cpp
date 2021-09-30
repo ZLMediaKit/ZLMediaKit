@@ -23,8 +23,8 @@
 
 namespace mediakit {
 
-HttpStringBody::HttpStringBody(const string &str){
-    _str = str;
+HttpStringBody::HttpStringBody(string str){
+    _str = std::move(str);
 }
 
 ssize_t HttpStringBody::remainSize() {
@@ -43,6 +43,7 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 }
 
 //////////////////////////////////////////////////////////////////
+
 HttpFileBody::HttpFileBody(const string &filePath){
     std::shared_ptr<FILE> fp(fopen(filePath.data(), "rb"), [](FILE *fp) {
         if(fp){

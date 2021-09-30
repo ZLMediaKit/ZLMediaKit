@@ -14,13 +14,6 @@
 
 namespace mediakit {
 
-
-HttpClient::HttpClient() {
-}
-
-HttpClient::~HttpClient() {
-}
-
 void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     _aliveTicker.resetTime();
     _url = strUrl;
@@ -60,7 +53,8 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     _header.emplace("Connection", "keep-alive");
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
-    _header.emplace("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36");
+    _header.emplace("User-Agent",
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36");
 
     if (_body && _body->remainSize()) {
         _header.emplace("Content-Length", to_string(_body->remainSize()));
@@ -72,19 +66,17 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     _isHttps = isHttps;
     _fTimeOutSec = fTimeOutSec;
 
-    auto cookies = HttpCookieStorage::Instance().get(_lastHost,_path);
+    auto cookies = HttpCookieStorage::Instance().get(_lastHost, _path);
     _StrPrinter printer;
-    for(auto &cookie : cookies){
+    for (auto &cookie : cookies) {
         printer << cookie->getKey() << "=" << cookie->getVal() << ";";
     }
-    if(!printer.empty()){
+    if (!printer.empty()) {
         printer.pop_back();
         _header.emplace("Cookie", printer);
     }
 
-
     if (!alive() || bChanged) {
-        //InfoL << "reconnet:" << _lastHost;
         startConnect(host, port, fTimeOutSec);
     } else {
         SockException ex;
@@ -92,6 +84,51 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     }
 }
 
+void HttpClient::clear() {
+    _header.clear();
+    _body.reset();
+    _method.clear();
+    _path.clear();
+    _parser.Clear();
+    _recvedBodySize = 0;
+    _totalBodySize = 0;
+    _aliveTicker.resetTime();
+    _chunkedSplitter.reset();
+    HttpRequestSplitter::reset();
+}
+
+void HttpClient::setMethod(string method) {
+    _method = std::move(method);
+}
+
+void HttpClient::setHeader(HttpHeader header) {
+    _header = std::move(header);
+}
+
+HttpClient &HttpClient::addHeader(string key, string val, bool force) {
+    if (!force) {
+        _header.emplace(std::move(key), std::move(val));
+    } else {
+        _header[std::move(key)] = std::move(val);
+    }
+    return *this;
+}
+
+void HttpClient::setBody(string body) {
+    _body.reset(new HttpStringBody(std::move(body)));
+}
+
+void HttpClient::setBody(HttpBody::Ptr body) {
+    _body = std::move(body);
+}
+
+const Parser &HttpClient::response() const {
+    return _parser;
+}
+
+const string &HttpClient::getUrl() const {
+    return _url;
+}
 
 void HttpClient::onConnect(const SockException &ex) {
     _aliveTicker.resetTime();
@@ -131,16 +168,16 @@ void HttpClient::onErr(const SockException &ex) {
 
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     _parser.Parse(data);
-    if(_parser.Url() == "302" || _parser.Url() == "301"){
+    if (_parser.Url() == "302" || _parser.Url() == "301") {
         auto newUrl = _parser["Location"];
-        if(newUrl.empty()){
-            shutdown(SockException(Err_shutdown,"未找到Location字段(跳转url)"));
+        if (newUrl.empty()) {
+            shutdown(SockException(Err_shutdown, "未找到Location字段(跳转url)"));
             return 0;
         }
-        if(onRedirectUrl(newUrl,_parser.Url() == "302")){
+        if (onRedirectUrl(newUrl, _parser.Url() == "302")) {
             HttpClient::clear();
             setMethod("GET");
-            HttpClient::sendRequest(newUrl,_fTimeOutSec);
+            HttpClient::sendRequest(newUrl, _fTimeOutSec);
             return 0;
         }
     }
@@ -148,26 +185,26 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     checkCookie(_parser.getHeader());
     _totalBodySize = onResponseHeader(_parser.Url(), _parser.getHeader());
 
-    if(!_parser["Content-Length"].empty()){
+    if (!_parser["Content-Length"].empty()) {
         //有Content-Length字段时忽略onResponseHeader的返回值
         _totalBodySize = atoll(_parser["Content-Length"].data());
     }
 
-    if(_parser["Transfer-Encoding"] == "chunked"){
+    if (_parser["Transfer-Encoding"] == "chunked") {
         //如果Transfer-Encoding字段等于chunked，则认为后续的content是不限制长度的
         _totalBodySize = -1;
-        _chunkedSplitter = std::make_shared<HttpChunkedSplitter>([this](const char *data,size_t len){
-            if(len > 0){
+        _chunkedSplitter = std::make_shared<HttpChunkedSplitter>([this](const char *data, size_t len) {
+            if (len > 0) {
                 auto recvedBodySize = _recvedBodySize + len;
                 onResponseBody(data, len, recvedBodySize, SIZE_MAX);
                 _recvedBodySize = recvedBodySize;
-            }else{
+            } else {
                 onResponseCompleted_l();
             }
         });
     }
 
-    if(_totalBodySize == 0){
+    if (_totalBodySize == 0) {
         //后续没content，本次http请求结束
         onResponseCompleted_l();
         return 0;
@@ -182,12 +219,12 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
 }
 
 void HttpClient::onRecvContent(const char *data, size_t len) {
-    if(_chunkedSplitter){
-        _chunkedSplitter->input(data,len);
+    if (_chunkedSplitter) {
+        _chunkedSplitter->input(data, len);
         return;
     }
     auto recvedBodySize = _recvedBodySize + len;
-    if(_totalBodySize < 0){
+    if (_totalBodySize < 0) {
         //不限长度的content,最大支持SIZE_MAX个字节
         onResponseBody(data, len, recvedBodySize, SIZE_MAX);
         _recvedBodySize = recvedBodySize;
@@ -195,7 +232,7 @@ void HttpClient::onRecvContent(const char *data, size_t len) {
     }
 
     //固定长度的content
-    if (recvedBodySize < (size_t)_totalBodySize ) {
+    if (recvedBodySize < (size_t) _totalBodySize) {
         //content还未接收完毕
         onResponseBody(data, len, recvedBodySize, _totalBodySize);
         _recvedBodySize = recvedBodySize;
@@ -204,9 +241,9 @@ void HttpClient::onRecvContent(const char *data, size_t len) {
 
     //content接收完毕
     onResponseBody(data, _totalBodySize - _recvedBodySize, _totalBodySize, _totalBodySize);
-    bool biggerThanExpected = recvedBodySize > (size_t)_totalBodySize;
+    bool biggerThanExpected = recvedBodySize > (size_t) _totalBodySize;
     onResponseCompleted_l();
-    if(biggerThanExpected) {
+    if (biggerThanExpected) {
         //声明的content数据比真实的小，那么我们只截取前面部分的并断开链接
         shutdown(SockException(Err_shutdown, "http response content size bigger than expected"));
     }
@@ -214,7 +251,7 @@ void HttpClient::onRecvContent(const char *data, size_t len) {
 
 void HttpClient::onFlush() {
     _aliveTicker.resetTime();
-    GET_CONFIG(uint32_t,sendBufSize,Http::kSendBufSize);
+    GET_CONFIG(uint32_t, sendBufSize, Http::kSendBufSize);
     while (_body && _body->remainSize() && !isSocketBusy()) {
         auto buffer = _body->readData(sendBufSize);
         if (!buffer) {
@@ -250,34 +287,34 @@ void HttpClient::onResponseCompleted_l() {
 
 void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
     //Set-Cookie: IPTV_SERVER=8E03927B-CC8C-4389-BC00-31DBA7EC7B49;expires=Sun, Sep 23 2018 15:07:31 GMT;path=/index/api/
-    for(auto it_set_cookie = headers.find("Set-Cookie") ; it_set_cookie != headers.end() ; ++it_set_cookie ){
-        auto key_val = Parser::parseArgs(it_set_cookie->second,";","=");
+    for (auto it_set_cookie = headers.find("Set-Cookie"); it_set_cookie != headers.end(); ++it_set_cookie) {
+        auto key_val = Parser::parseArgs(it_set_cookie->second, ";", "=");
         HttpCookie::Ptr cookie = std::make_shared<HttpCookie>();
         cookie->setHost(_lastHost);
 
         int index = 0;
         auto arg_vec = split(it_set_cookie->second, ";");
         for (string &key_val : arg_vec) {
-            auto key = FindField(key_val.data(),NULL,"=");
-            auto val = FindField(key_val.data(),"=", NULL);
+            auto key = FindField(key_val.data(), NULL, "=");
+            auto val = FindField(key_val.data(), "=", NULL);
 
-            if(index++ == 0){
-                cookie->setKeyVal(key,val);
+            if (index++ == 0) {
+                cookie->setKeyVal(key, val);
                 continue;
             }
 
-            if(key == "path") {
+            if (key == "path") {
                 cookie->setPath(val);
                 continue;
             }
 
-            if(key == "expires"){
-                cookie->setExpires(val,headers["Date"]);
+            if (key == "expires") {
+                cookie->setExpires(val, headers["Date"]);
                 continue;
             }
         }
 
-        if(!(*cookie)){
+        if (!(*cookie)) {
             //无效的cookie
             continue;
         }
@@ -285,6 +322,4 @@ void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
     }
 }
 
-
 } /* namespace mediakit */
-

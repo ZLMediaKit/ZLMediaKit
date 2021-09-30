@@ -76,9 +76,7 @@ int main(int argc, char *argv[]) {
     //开启请求，该api会返回当前主机外网ip等信息
     requesterGet->startRequester("http://pv.sohu.com/cityjson?ie=utf-8",//url地址
                                  [](const SockException &ex,                                 //网络相关的失败信息，如果为空就代表成功
-                                    const string &status,                                    //http回复的状态码，比如说200/404
-                                    const HttpClient::HttpHeader &header,                    //http回复头
-                                    const string &strRecvBody) {                              //http回复body
+                                    const Parser &parser) {                              //http回复body
                                      DebugL << "=====================HttpRequester GET===========================";
                                      if (ex) {
                                          //网络相关的错误
@@ -86,12 +84,12 @@ int main(int argc, char *argv[]) {
                                      } else {
                                          //打印http回复信息
                                          _StrPrinter printer;
-                                         for (auto &pr: header) {
+                                         for (auto &pr: parser.getHeader()) {
                                              printer << pr.first << ":" << pr.second << "\r\n";
                                          }
-                                         InfoL << "status:" << status << "\r\n"
+                                         InfoL << "status:" << parser.Url() << "\r\n"
                                                << "header:\r\n" << (printer << endl)
-                                               << "\r\nbody:" << strRecvBody;
+                                               << "\r\nbody:" << parser.Content();
                                      }
                                  });
 
@@ -114,9 +112,7 @@ int main(int argc, char *argv[]) {
     //开启请求
     requesterPost->startRequester("http://fanyi.baidu.com/langdetect",//url地址
                                   [](const SockException &ex,                          //网络相关的失败信息，如果为空就代表成功
-                                     const string &status,                             //http回复的状态码，比如说200/404
-                                     const HttpClient::HttpHeader &header,             //http回复头
-                                     const string &strRecvBody) {                       //http回复body
+                                     const Parser &parser) {                       //http回复body
                                       DebugL << "=====================HttpRequester POST==========================";
                                       if (ex) {
                                           //网络相关的错误
@@ -124,12 +120,12 @@ int main(int argc, char *argv[]) {
                                       } else {
                                           //打印http回复信息
                                           _StrPrinter printer;
-                                          for (auto &pr: header) {
+                                          for (auto &pr: parser.getHeader()) {
                                               printer << pr.first << ":" << pr.second << "\r\n";
                                           }
-                                          InfoL << "status:" << status << "\r\n"
+                                          InfoL << "status:" << parser.Url() << "\r\n"
                                                 << "header:\r\n" << (printer << endl)
-                                                << "\r\nbody:" << strRecvBody;
+                                                << "\r\nbody:" << parser.Content();
                                       }
                                   });
 
@@ -153,9 +149,7 @@ int main(int argc, char *argv[]) {
     //开启请求
     requesterUploader->startRequester("http://fanyi.baidu.com/langdetect",//url地址
                                       [](const SockException &ex,                          //网络相关的失败信息，如果为空就代表成功
-                                         const string &status,                             //http回复的状态码，比如说200/404
-                                         const HttpClient::HttpHeader &header,             //http回复头
-                                         const string &strRecvBody) {                       //http回复body
+                                         const Parser &parser) {                       //http回复body
                                           DebugL << "=====================HttpRequester Uploader==========================";
                                           if (ex) {
                                               //网络相关的错误
@@ -163,12 +157,12 @@ int main(int argc, char *argv[]) {
                                           } else {
                                               //打印http回复信息
                                               _StrPrinter printer;
-                                              for (auto &pr: header) {
+                                              for (auto &pr: parser.getHeader()) {
                                                   printer << pr.first << ":" << pr.second << "\r\n";
                                               }
-                                              InfoL << "status:" << status << "\r\n"
+                                              InfoL << "status:" << parser.Url() << "\r\n"
                                                     << "header:\r\n" << (printer << endl)
-                                                    << "\r\nbody:" << strRecvBody;
+                                                    << "\r\nbody:" << parser.Content();
                                           }
                                       });
 

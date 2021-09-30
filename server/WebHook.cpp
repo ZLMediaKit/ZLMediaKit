@@ -71,33 +71,31 @@ onceToken token([](){
 
 
 static void parse_http_response(const SockException &ex,
-                                const string &status,
-                                const HttpClient::HttpHeader &header,
-                                const string &strRecvBody,
+                                const Parser &res,
                                 const function<void(const Value &,const string &)> &fun){
-    if(ex){
+    if (ex) {
         auto errStr = StrPrinter << "[network err]:" << ex.what() << endl;
-        fun(Json::nullValue,errStr);
+        fun(Json::nullValue, errStr);
         return;
     }
-    if(status != "200"){
-        auto errStr = StrPrinter << "[bad http status code]:" << status << endl;
-        fun(Json::nullValue,errStr);
+    if (res.Url() != "200") {
+        auto errStr = StrPrinter << "[bad http status code]:" << res.Url() << endl;
+        fun(Json::nullValue, errStr);
         return;
     }
     try {
-        stringstream ss(strRecvBody);
+        stringstream ss(res.Content());
         Value result;
         ss >> result;
-        if(result["code"].asInt() != 0) {
+        if (result["code"].asInt() != 0) {
             auto errStr = StrPrinter << "[json code]:" << "code=" << result["code"] << ",msg=" << result["msg"] << endl;
-            fun(Json::nullValue,errStr);
+            fun(Json::nullValue, errStr);
             return;
         }
-        fun(result,"");
-    }catch (std::exception &ex){
+        fun(result, "");
+    } catch (std::exception &ex) {
         auto errStr = StrPrinter << "[parse json failed]:" << ex.what() << endl;
-        fun(Json::nullValue,errStr);
+        fun(Json::nullValue, errStr);
     }
 }
 
@@ -144,13 +142,11 @@ void do_http_hook(const string &url,const ArgsType &body,const function<void(con
     }
     std::shared_ptr<Ticker> pTicker(new Ticker);
     requester->startRequester(url, [url, func, bodyStr, requester, pTicker](const SockException &ex,
-                                                                            const string &status,
-                                                                            const HttpClient::HttpHeader &header,
-                                                                            const string &strRecvBody) mutable{
+                                                                            const Parser &res) mutable{
         onceToken token(nullptr, [&]() mutable{
             requester.reset();
         });
-        parse_http_response(ex,status,header,strRecvBody,[&](const Value &obj,const string &err){
+        parse_http_response(ex, res, [&](const Value &obj, const string &err) {
             if (func) {
                 func(obj, err);
             }

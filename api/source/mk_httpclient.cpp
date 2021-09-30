@@ -104,7 +104,7 @@ API_EXPORT void API_CALL mk_http_requester_add_header(mk_http_requester ctx,cons
 API_EXPORT const char* API_CALL mk_http_requester_get_response_status(mk_http_requester ctx){
     assert(ctx);
     HttpRequester::Ptr *obj = (HttpRequester::Ptr *)ctx;
-    return (*obj)->responseStatus().c_str();
+    return (*obj)->response().Url().c_str();
 }
 
 API_EXPORT const char* API_CALL mk_http_requester_get_response_header(mk_http_requester ctx,const char *key){
@@ -131,8 +131,8 @@ API_EXPORT mk_parser API_CALL mk_http_requester_get_response(mk_http_requester c
 API_EXPORT void API_CALL mk_http_requester_set_cb(mk_http_requester ctx,on_mk_http_requester_complete cb, void *user_data){
     assert(ctx && cb);
     HttpRequester::Ptr *obj = (HttpRequester::Ptr *)ctx;
-    (*obj)->setOnResult([cb,user_data](const SockException &ex,const string &status,const StrCaseMap &header,const string &strRecvBody){
-        cb(user_data, ex.getErrCode(),ex.what());
+    (*obj)->setOnResult([cb, user_data](const SockException &ex, const Parser &res) {
+        cb(user_data, ex.getErrCode(), ex.what());
     });
 }
 
