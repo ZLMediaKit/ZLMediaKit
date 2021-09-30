@@ -18,6 +18,6 @@
 #if !defined(ENABLE_VERSION)
 const char SERVER_NAME[] =  "ZLMediaKit-6.0(build in " __DATE__ " " __TIME__ ")";
 #else
-const char SERVER_NAME[] = "ZLMediaKit(git hash:" COMMIT_HASH ",branch:" BRANCH_TIME ",build time:" __DATE__ " " __TIME__ ")";
+const char SERVER_NAME[] = "ZLMediaKit(git hash:" COMMIT_HASH ",branch:" BRANCH_NAME ",build time:" __DATE__ " " __TIME__ ")";
 #endif
 
