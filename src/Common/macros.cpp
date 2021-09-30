@@ -16,9 +16,8 @@
 
 //请遵循MIT协议，勿修改服务器声明
 #if !defined(ENABLE_VERSION)
-char SERVER_NAME[] =  "ZLMediaKit-6.0(build in " __DATE__ " " __TIME__ ")"
+const char SERVER_NAME[] =  "ZLMediaKit-6.0(build in " __DATE__ " " __TIME__ ")";
 #else
-char SERVER_NAME[] = "ZLMediaKit(git hash:" COMMIT_HASH ",branch:" BRANCH_TIME ",build time:" __DATE__ " " __TIME__ ")"
+const char SERVER_NAME[] = "ZLMediaKit(git hash:" COMMIT_HASH ",branch:" BRANCH_TIME ",build time:" __DATE__ " " __TIME__ ")";
 #endif
 
-#endif //ZLMEDIAKIT_MACROS_H
