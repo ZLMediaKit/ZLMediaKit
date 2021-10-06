@@ -428,8 +428,8 @@ static int16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *e
     return delta;
 }
 
-map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > FCI_TWCC::getPacketChunkList(size_t total_size) const {
-    map<uint16_t, std::pair<SymbolStatus, uint32_t> > ret;
+map<uint16_t, std::pair<SymbolStatus, int16_t/*stamp*/> > FCI_TWCC::getPacketChunkList(size_t total_size) const {
+    map<uint16_t, std::pair<SymbolStatus, int16_t> > ret;
     auto ptr = (uint8_t *) this + kSize;
     auto end = (uint8_t *) this + total_size;
     CHECK(ptr < end);

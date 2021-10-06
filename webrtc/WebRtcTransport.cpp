@@ -808,7 +808,10 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
 
     //修改ext id至统一
     string rid;
-    track->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid);
+    auto twcc_ext = track->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid, RtpExtType::transport_cc);
+    if (twcc_ext && !is_rtx) {
+        _twcc_ctx.onRtp(twcc_ext.getTransportCCSeq());
+    }
 
     auto &ref = track->rtp_channel[rid];
     if (!ref) {
