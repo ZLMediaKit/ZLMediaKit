@@ -162,9 +162,9 @@ size_t RtpExt::size() const {
     return _size;
 }
 
-const char& RtpExt::operator[](size_t pos) const{
+const uint8_t& RtpExt::operator[](size_t pos) const{
     CHECK(pos < _size);
-    return _data[pos];
+    return ((uint8_t*)_data)[pos];
 }
 
 RtpExt::operator std::string() const{

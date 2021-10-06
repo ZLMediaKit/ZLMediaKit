@@ -99,7 +99,7 @@ private:
     RtpExt(void *ptr, bool one_byte_ext, const char *str, size_t size);
     const char *data() const;
     size_t size() const;
-    const char& operator[](size_t pos) const;
+    const uint8_t& operator[](size_t pos) const;
     operator std::string() const;
 
 private:
