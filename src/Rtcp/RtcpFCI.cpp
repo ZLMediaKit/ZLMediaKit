@@ -291,7 +291,7 @@ public:
 } PACKED;
 
 StatusVecChunk::StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status) {
-    CHECK((1 + symbol_bit) * status.size() <= 14);
+    CHECK( status.size() << symbol_bit <= 14);
     uint16_t value = 0;
     type = 1;
     symbol = symbol_bit;
@@ -501,12 +501,12 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
             auto symbol = status.begin()->second.first;
             int16_t count = 0;
             for (auto &pr : status) {
-                if (++count == (0xFFFF >> 3)) {
-                    //RunLengthChunk 13个bit表明rtp个数，最多可以表述0xFFFF >> 3个rtp状态
-                    break;
-                }
                 if (pr.second.first != symbol) {
                     //状态发送变更了，本chunk结束
+                    break;
+                }
+                if (++count >= (0xFFFF >> 3)) {
+                    //RunLengthChunk 13个bit表明rtp个数，最多可以表述0xFFFF >> 3个rtp状态
                     break;
                 }
             }
@@ -523,7 +523,6 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
             //StatusVecChunk模式
             //symbol_list中元素是1个bit
             auto symbol = 0;
-            int count = 0;
             vector<SymbolStatus> vec;
             for (auto &pr : status) {
                 vec.push_back(pr.second.first);
@@ -531,15 +530,17 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
                     //symbol_list中元素是2个bit
                     symbol = 1;
                 }
-                if ((1 + symbol) * (++count) == 14) {
+
+                if (vec.size() << symbol >= 14) {
                     //symbol为0时，最多存放14个rtp的状态
                     //symbol为1时，最多存放7个rtp的状态
                     break;
                 }
             }
+            vec.resize(MIN(vec.size(), 14 >> symbol));
             StatusVecChunk chunk(symbol, vec);
             fci.append((char *)&chunk, StatusVecChunk::kSize);
-            appendDeltaString(delta_str, status, count);
+            appendDeltaString(delta_str, status, vec.size());
         }
     }
 
