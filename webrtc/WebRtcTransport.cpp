@@ -267,7 +267,7 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
             return;
         }
         if (_srtp_session_recv->DecryptSrtp((uint8_t *) buf, &len)) {
-            onRtp(buf, len);
+            onRtp(buf, len, _ticker.createdTime());
         }
         return;
     }
@@ -795,7 +795,7 @@ void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, Medi
     InfoL << "create rtp receiver of ssrc:" << ssrc << ", rid:" << rid << ", codec:" << track.plan_rtp->codec;
 }
 
-void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
+void WebRtcTransportImp::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
     _bytes_usage += len;
     _alive_ticker.resetTime();
 
@@ -814,7 +814,7 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
     string rid;
     auto twcc_ext = track->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid, RtpExtType::transport_cc);
     if (twcc_ext && !is_rtx) {
-        _twcc_ctx.onRtp(ssrc, twcc_ext.getTransportCCSeq());
+        _twcc_ctx.onRtp(ssrc, twcc_ext.getTransportCCSeq(), stamp_ms);
     }
 
     auto &ref = track->rtp_channel[rid];
