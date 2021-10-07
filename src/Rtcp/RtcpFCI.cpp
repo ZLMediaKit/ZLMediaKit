@@ -314,7 +314,7 @@ StatusVecChunk::StatusVecChunk(const vector<SymbolStatus> &status) {
         }
     }
     symbol_list_low = value & 0xFF;
-    symbol_list_high = (value >> 8 ) & 0x1F;
+    symbol_list_high = (value >> 8 ) & 0x3F;
 }
 
 vector<SymbolStatus> StatusVecChunk::getSymbolList() const {
