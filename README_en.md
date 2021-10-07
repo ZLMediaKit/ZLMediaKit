@@ -60,6 +60,7 @@
   - Support webrtc play, support other protocol to webrtc
   - Support simulcast
   - Support rtx/nack
+  - Support transport-cc rtcp/rtp ext
 
 - Others
   - Support stream proxy by ffmpeg.
