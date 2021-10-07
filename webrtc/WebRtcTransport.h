@@ -217,6 +217,7 @@ private:
 
     void onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp);
     void onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc);
+    void onSendTwcc(uint32_t ssrc, const string &twcc_fci);
     void createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track);
     void registerSelf();
     void unregisterSelf();

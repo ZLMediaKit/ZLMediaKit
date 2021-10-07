@@ -18,18 +18,20 @@ using namespace toolkit;
 
 class TwccContext {
 public:
+    using onSendTwccCB = function<void(uint32_t ssrc, string fci)>;
     //每个twcc rtcp包最多表明的rtp ext seq增量
     static constexpr size_t kMaxSeqDelta = 20;
     //每个twcc rtcp包发送的最大时间间隔，单位毫秒
-    static constexpr size_t kMaxTimeDelta = 64;
+    static constexpr size_t kMaxTimeDelta = 256;
 
     TwccContext() = default;
     ~TwccContext() = default;
 
-    void onRtp(uint16_t twcc_ext_seq);
+    void onRtp(uint32_t ssrc, uint16_t twcc_ext_seq);
+    void setOnSendTwccCB(onSendTwccCB cb);
 
 private:
-    void onSendTwcc();
+    void onSendTwcc(uint32_t ssrc);
     bool checkIfNeedSendTwcc() const;
     int checkSeqStatus(uint16_t twcc_ext_seq) const;
     void clearStatus();
@@ -40,6 +42,7 @@ private:
     uint64_t _max_stamp;
     std::map<uint32_t /*twcc_ext_seq*/, uint64_t/*recv time in ms*/> _rtp_recv_status;
     uint8_t _twcc_pkt_count = 0;
+    onSendTwccCB _cb;
 };
 
 
