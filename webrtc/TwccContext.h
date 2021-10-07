@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <map>
+#include <functional>
 #include "Util/TimeTicker.h"
 using namespace toolkit;
 
