@@ -9,6 +9,9 @@
  */
 
 #include "TwccContext.h"
+#include "Rtcp/RtcpFCI.h"
+
+using namespace mediakit;
 
 enum class ExtSeqStatus : int {
     normal = 0,
@@ -78,17 +81,27 @@ void TwccContext::onSendTwcc() {
     auto begin = _rtp_recv_status.begin();
     auto min = begin->first;
     auto ref_time = begin->second;
-    DebugL << "base_seq:" << min << ",pkt_status_count:" << max + 1 - min << ",ref time:" << ref_time / 64
-           << ", fb count:" << (int) (_twcc_pkt_count++);
-    for (auto i = min; i <= max; ++i) {
-        auto it = _rtp_recv_status.find(i);
-        if (it == _rtp_recv_status.end()) {
-            DebugL << "rtp seq:" << i << ",packet status:" << 0 /*not recved*/ << ",delta_ms:" << 0;
-        } else {
-            auto delta_ms = it->second - ref_time;
-            DebugL << "rtp seq:" << i << ",packet status:" << 1 /*recved*/ << ",delta_ms:" << delta_ms;
+    FCI_TWCC::TwccPacketStatus status;
+    for (auto seq = min; seq <= max; ++seq) {
+        int16_t delta = 0;
+        SymbolStatus symbol = SymbolStatus::not_received;
+        auto it = _rtp_recv_status.find(seq);
+        if (it != _rtp_recv_status.end()) {
+            //recv delta,单位为250us,1ms等于4x250us
+            delta = (int16_t) (4 * ((int64_t) it->second - (int64_t) ref_time));
+            if (delta < 0 || delta > 0xFF) {
+                symbol = SymbolStatus::large_delta;
+            } else {
+                symbol = SymbolStatus::small_delta;
+            }
+            ref_time = it->second;
         }
+        status.emplace(seq, std::make_pair(symbol, delta));
     }
+    auto fci = FCI_TWCC::create(ref_time / 64, _twcc_pkt_count, status);
+    InfoL << ((FCI_TWCC *) (fci.data()))->dumpString(fci.size());
+
+    ++_twcc_pkt_count;
     clearStatus();
 }
 
