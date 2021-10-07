@@ -109,7 +109,7 @@ protected:
     virtual void onCheckSdp(SdpType type, RtcSession &sdp);
     virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) = 0;
 
-    virtual void onRtp(const char *buf, size_t len) = 0;
+    virtual void onRtp(const char *buf, size_t len, uint64_t stamp_ms) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
     virtual void onShutdown(const SockException &ex) = 0;
     virtual void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) = 0;
@@ -135,6 +135,7 @@ private:
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
     RtcSession::Ptr _offer_sdp;
     RtcSession::Ptr _answer_sdp;
+    Ticker _ticker;
 };
 
 class RtpChannel;
@@ -187,7 +188,7 @@ protected:
     void onCheckSdp(SdpType type, RtcSession &sdp) override;
     void onRtcConfigure(RtcConfigure &configure) const override;
 
-    void onRtp(const char *buf, size_t len) override;
+    void onRtp(const char *buf, size_t len, uint64_t stamp_ms) override;
     void onRtcp(const char *buf, size_t len) override;
     void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) override;
     void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) override {};

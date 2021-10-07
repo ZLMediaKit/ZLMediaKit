@@ -27,7 +27,7 @@ public:
     TwccContext() = default;
     ~TwccContext() = default;
 
-    void onRtp(uint32_t ssrc, uint16_t twcc_ext_seq);
+    void onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms);
     void setOnSendTwccCB(onSendTwccCB cb);
 
 private:
@@ -37,7 +37,6 @@ private:
     void clearStatus();
 
 private:
-    Ticker _ticker;
     uint64_t _min_stamp = 0;
     uint64_t _max_stamp;
     std::map<uint32_t /*twcc_ext_seq*/, uint64_t/*recv time in ms*/> _rtp_recv_status;

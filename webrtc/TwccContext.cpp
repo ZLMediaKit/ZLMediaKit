@@ -19,7 +19,7 @@ enum class ExtSeqStatus : int {
     jumped,
 };
 
-void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq) {
+void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms) {
     switch ((ExtSeqStatus) checkSeqStatus(twcc_ext_seq)) {
         case ExtSeqStatus::jumped: /*回环后，收到回环前的大ext seq包,过滤掉*/ return;
         case ExtSeqStatus::looped: /*回环，触发发送twcc rtcp*/ onSendTwcc(ssrc); break;
@@ -27,7 +27,7 @@ void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq) {
         default: /*不可达*/assert(0); break;
     }
 
-    auto result = _rtp_recv_status.emplace(twcc_ext_seq, _ticker.createdTime());
+    auto result = _rtp_recv_status.emplace(twcc_ext_seq, stamp_ms);
     if (!result.second) {
         WarnL << "recv same twcc ext seq:" << twcc_ext_seq;
         return;
@@ -80,7 +80,9 @@ void TwccContext::onSendTwcc(uint32_t ssrc) {
     auto max = _rtp_recv_status.rbegin()->first;
     auto begin = _rtp_recv_status.begin();
     auto min = begin->first;
+    //参考时间戳的最小单位是64ms
     auto ref_time = begin->second >> 6;
+    //还原基准时间戳
     auto last_time = ref_time << 6;
     FCI_TWCC::TwccPacketStatus status;
     for (auto seq = min; seq <= max; ++seq) {
