@@ -332,6 +332,10 @@ void WebRtcTransportImp::onCreate(){
         }
         return true;
     }, getPoller());
+
+    _twcc_ctx.setOnSendTwccCB([this](uint32_t ssrc, string fci) {
+        onSendTwcc(ssrc, fci);
+    });
 }
 
 WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller) : WebRtcTransport(poller) {
@@ -810,7 +814,7 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
     string rid;
     auto twcc_ext = track->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid, RtpExtType::transport_cc);
     if (twcc_ext && !is_rtx) {
-        _twcc_ctx.onRtp(twcc_ext.getTransportCCSeq());
+        _twcc_ctx.onRtp(ssrc, twcc_ext.getTransportCCSeq());
     }
 
     auto &ref = track->rtp_channel[rid];
@@ -861,6 +865,13 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len) {
 void WebRtcTransportImp::onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc) {
     auto rtcp = RtcpFB::create(RTPFBType::RTCP_RTPFB_NACK, &nack, FCI_NACK::kSize);
     rtcp->ssrc = htons(track.answer_ssrc_rtp);
+    rtcp->ssrc_media = htonl(ssrc);
+    sendRtcpPacket((char *) rtcp.get(), rtcp->getSize(), true);
+}
+
+void WebRtcTransportImp::onSendTwcc(uint32_t ssrc, const string &twcc_fci) {
+    auto rtcp = RtcpFB::create(RTPFBType::RTCP_RTPFB_TWCC, twcc_fci.data(), twcc_fci.size());
+    rtcp->ssrc = htons(0);
     rtcp->ssrc_media = htonl(ssrc);
     sendRtcpPacket((char *) rtcp.get(), rtcp->getSize(), true);
 }

@@ -19,10 +19,10 @@ enum class ExtSeqStatus : int {
     jumped,
 };
 
-void TwccContext::onRtp(uint16_t twcc_ext_seq) {
+void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq) {
     switch ((ExtSeqStatus) checkSeqStatus(twcc_ext_seq)) {
         case ExtSeqStatus::jumped: /*回环后，收到回环前的大ext seq包,过滤掉*/ return;
-        case ExtSeqStatus::looped: /*回环，触发发送twcc rtcp*/ onSendTwcc(); break;
+        case ExtSeqStatus::looped: /*回环，触发发送twcc rtcp*/ onSendTwcc(ssrc); break;
         case ExtSeqStatus::normal: break;
         default: /*不可达*/assert(0); break;
     }
@@ -40,7 +40,7 @@ void TwccContext::onRtp(uint16_t twcc_ext_seq) {
 
     if (checkIfNeedSendTwcc()) {
         //其他匹配条件立即发送twcc
-        onSendTwcc();
+        onSendTwcc(ssrc);
     }
 }
 
@@ -76,11 +76,12 @@ int TwccContext::checkSeqStatus(uint16_t twcc_ext_seq) const {
     return (int) ExtSeqStatus::normal;
 }
 
-void TwccContext::onSendTwcc() {
+void TwccContext::onSendTwcc(uint32_t ssrc) {
     auto max = _rtp_recv_status.rbegin()->first;
     auto begin = _rtp_recv_status.begin();
     auto min = begin->first;
-    auto ref_time = begin->second;
+    auto ref_time = begin->second >> 6;
+    auto last_time = ref_time << 6;
     FCI_TWCC::TwccPacketStatus status;
     for (auto seq = min; seq <= max; ++seq) {
         int16_t delta = 0;
@@ -88,24 +89,28 @@ void TwccContext::onSendTwcc() {
         auto it = _rtp_recv_status.find(seq);
         if (it != _rtp_recv_status.end()) {
             //recv delta,单位为250us,1ms等于4x250us
-            delta = (int16_t) (4 * ((int64_t) it->second - (int64_t) ref_time));
+            delta = (int16_t) (4 * ((int64_t) it->second - (int64_t) last_time));
             if (delta < 0 || delta > 0xFF) {
                 symbol = SymbolStatus::large_delta;
             } else {
                 symbol = SymbolStatus::small_delta;
             }
-            ref_time = it->second;
+            last_time = it->second;
         }
         status.emplace(seq, std::make_pair(symbol, delta));
     }
-    auto fci = FCI_TWCC::create(ref_time / 64, _twcc_pkt_count, status);
-    InfoL << ((FCI_TWCC *) (fci.data()))->dumpString(fci.size());
-
-    ++_twcc_pkt_count;
+    auto fci = FCI_TWCC::create(ref_time, _twcc_pkt_count++, status);
+    if (_cb) {
+        _cb(ssrc, std::move(fci));
+    }
     clearStatus();
 }
 
 void TwccContext::clearStatus() {
     _rtp_recv_status.clear();
     _min_stamp = 0;
+}
+
+void TwccContext::setOnSendTwccCB(TwccContext::onSendTwccCB cb) {
+    _cb = std::move(cb);
 }
