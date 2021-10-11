@@ -52,7 +52,7 @@ class RtpExt {
 public:
     template<typename Type>
     friend void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end);
-
+    friend class RtpExtContext;
     ~RtpExt() = default;
 
     static map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header);
@@ -94,12 +94,14 @@ public:
 
     void setExtId(uint8_t ext_id);
     void clearExt();
+    operator bool () const;
 
 private:
+    RtpExt() = default;
     RtpExt(void *ptr, bool one_byte_ext, const char *str, size_t size);
     const char *data() const;
     size_t size() const;
-    const char& operator[](size_t pos) const;
+    const uint8_t& operator[](size_t pos) const;
     operator std::string() const;
 
 private:
@@ -122,7 +124,7 @@ public:
     void setOnGetRtp(OnGetRtp cb);
     string getRid(uint32_t ssrc) const;
     void setRid(uint32_t ssrc, const string &rid);
-    void changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr);
+    RtpExt changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
 
 private:
     void onGetRtp(uint8_t pt, uint32_t ssrc, const string &rid);

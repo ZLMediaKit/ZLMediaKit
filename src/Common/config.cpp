@@ -133,16 +133,16 @@ onceToken token([](){
 #endif
 
     mINI::Instance()[kRootPath] = "./www";
-    mINI::Instance()[kNotFound] =
-                    "<html>"
-                    "<head><title>404 Not Found</title></head>"
-                    "<body bgcolor=\"white\">"
-                    "<center><h1>您访问的资源不存在！</h1></center>"
-                    "<hr><center>"
-                    SERVER_NAME
-                    "</center>"
-                    "</body>"
-                    "</html>";
+    mINI::Instance()[kNotFound] = StrPrinter << "<html>"
+                                                "<head><title>404 Not Found</title></head>"
+                                                "<body bgcolor=\"white\">"
+                                                "<center><h1>您访问的资源不存在！</h1></center>"
+                                                "<hr><center>"
+                                             << SERVER_NAME
+                                             << "</center>"
+                                                "</body>"
+                                                "</html>"
+                                             << endl;
 },nullptr);
 
 }//namespace Http

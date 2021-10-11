@@ -14,10 +14,11 @@
 #include <map>
 #include <string>
 #include "Util/util.h"
+
 using namespace std;
 using namespace toolkit;
 
-namespace mediakit{
+namespace mediakit {
 
 string FindField(const char *buf, const char *start, const char *end, size_t bufSize = 0);
 
@@ -27,33 +28,32 @@ struct StrCaseCompare {
     }
 };
 
-
-class StrCaseMap : public multimap<string, string, StrCaseCompare>{
-    public:
-    typedef multimap<string, string, StrCaseCompare> Super ;
+class StrCaseMap : public multimap<string, string, StrCaseCompare> {
+public:
+    using Super = multimap<string, string, StrCaseCompare>;
     StrCaseMap() = default;
     ~StrCaseMap() = default;
 
-    string &operator[](const string &k){
+    string &operator[](const string &k) {
         auto it = find(k);
-        if(it == end()){
-            it = Super::emplace(k,"");
+        if (it == end()) {
+            it = Super::emplace(k, "");
         }
         return it->second;
     }
 
-    template <typename V>
+    template<typename V>
     void emplace(const string &k, V &&v) {
         auto it = find(k);
-        if(it != end()){
+        if (it != end()) {
             return;
         }
-        Super::emplace(k,std::forward<V>(v));
+        Super::emplace(k, std::forward<V>(v));
     }
 
-    template <typename V>
-    void emplace_force(const string k , V &&v) {
-        Super::emplace(k,std::forward<V>(v));
+    template<typename V>
+    void emplace_force(const string k, V &&v) {
+        Super::emplace(k, std::forward<V>(v));
     }
 };
 
@@ -62,34 +62,49 @@ class Parser {
 public:
     Parser();
     ~Parser();
+
     //解析信令
     void Parse(const char *buf);
+
     //获取命令字
     const string &Method() const;
+
     //获取中间url，不包含?后面的参数
     const string &Url() const;
+
     //获取中间url，包含?后面的参数
     string FullUrl() const;
+
     //获取命令协议名
     const string &Tail() const;
+
     //根据header key名，获取请求header value值
     const string &operator[](const char *name) const;
+
     //获取http body或sdp
     const string &Content() const;
+
     //清空，为了重用
     void Clear();
+
     //获取?后面的参数
     const string &Params() const;
+
     //重新设置url
-    void setUrl(const string &url);
+    void setUrl(string url);
+
     //重新设置content
-    void setContent(const string &content);
+    void setContent(string content);
+
     //获取header列表
     StrCaseMap &getHeader() const;
+
     //获取url参数列表
     StrCaseMap &getUrlArgs() const;
+
     //解析?后面的参数
     static StrCaseMap parseArgs(const string &str, const char *pair_delim = "&", const char *key_delim = "=");
+
 private:
     string _strMethod;
     string _strUrl;
@@ -100,7 +115,6 @@ private:
     mutable StrCaseMap _mapHeaders;
     mutable StrCaseMap _mapUrlArgs;
 };
-
 
 }//namespace mediakit
 

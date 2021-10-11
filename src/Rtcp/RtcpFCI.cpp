@@ -285,22 +285,16 @@ public:
     //获取symbollist
     vector<SymbolStatus> getSymbolList() const;
     //构造函数
-    StatusVecChunk(const vector<SymbolStatus> &status);
+    StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status);
     //打印本对象
     string dumpString() const;
 } PACKED;
 
-StatusVecChunk::StatusVecChunk(const vector<SymbolStatus> &status) {
+StatusVecChunk::StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status) {
+    CHECK( status.size() << symbol_bit <= 14);
     uint16_t value = 0;
     type = 1;
-    if (status.size() == 14) {
-        symbol = 0;
-    } else if (status.size() == 7) {
-        symbol = 1;
-    } else {
-        //非法
-        CHECK(0);
-    }
+    symbol = symbol_bit;
     int i = 13;
     for (auto &item : status) {
         CHECK(item <= SymbolStatus::reserved);
@@ -314,7 +308,7 @@ StatusVecChunk::StatusVecChunk(const vector<SymbolStatus> &status) {
         }
     }
     symbol_list_low = value & 0xFF;
-    symbol_list_high = (value >> 8 ) & 0x1F;
+    symbol_list_high = (value >> 8 ) & 0x3F;
 }
 
 vector<SymbolStatus> StatusVecChunk::getSymbolList() const {
@@ -428,8 +422,8 @@ static int16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *e
     return delta;
 }
 
-map<uint16_t, std::pair<SymbolStatus, uint32_t/*stamp*/> > FCI_TWCC::getPacketChunkList(size_t total_size) const {
-    map<uint16_t, std::pair<SymbolStatus, uint32_t> > ret;
+FCI_TWCC::TwccPacketStatus FCI_TWCC::getPacketChunkList(size_t total_size) const {
+    TwccPacketStatus ret;
     auto ptr = (uint8_t *) this + kSize;
     auto end = (uint8_t *) this + total_size;
     CHECK(ptr < end);
@@ -475,48 +469,84 @@ string FCI_TWCC::dumpString(size_t total_size) const {
     return std::move(printer);
 }
 
-}//namespace mediakit
-
-#if 1
-using namespace mediakit;
-void testFCI() {
-    {
-        FCI_SLI fci(8191, 0, 63);
-        InfoL << hexdump(&fci, FCI_SLI::kSize) << fci.dumpString();
-    }
-    {
-        FCI_FIR fci(123456, 139, 456789);
-        InfoL << hexdump(&fci, FCI_FIR::kSize) << fci.dumpString();
-    }
-    {
-        auto str = FCI_REMB::create({1234, 2345, 5678}, 4 * 1024 * 1024);
-        FCI_REMB *ptr = (FCI_REMB *) str.data();
-        InfoL << hexdump(str.data(), str.size()) << ptr->dumpString();
-    }
-    {
-        FCI_NACK nack(1234, vector<bool>({1, 0, 0, 0, 1, 0, 1, 0, 1, 0}));
-        InfoL << hexdump(&nack, FCI_NACK::kSize) << nack.dumpString();
-    }
-
-    {
-        RunLengthChunk chunk(SymbolStatus::large_delta, 8024);
-        InfoL << hexdump(&chunk, RunLengthChunk::kSize) << chunk.dumpString();
-    }
-
-    auto lam = [](const initializer_list<int> &lst) {
-        vector<SymbolStatus> ret;
-        for (auto &num : lst) {
-            ret.emplace_back((SymbolStatus) num);
+static void appendDeltaString(string &delta_str, FCI_TWCC::TwccPacketStatus &status, int count){
+    for (auto it = status.begin(); it != status.end() && count--;) {
+        switch (it->second.first) {
+            //large delta模式先写高字节，再写低字节
+            case SymbolStatus::large_delta: delta_str.push_back((it->second.second >> 8) & 0xFF);
+                //small delta模式只写低字节
+            case SymbolStatus::small_delta: delta_str.push_back(it->second.second & 0xFF); break;
+            default: break;
         }
-        return ret;
-    };
-    {
-        StatusVecChunk chunk(lam({0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1}));
-        InfoL << hexdump(&chunk, StatusVecChunk::kSize) << chunk.dumpString();
-    }
-    {
-        StatusVecChunk chunk(lam({0, 1, 2, 2, 0, 1, 2}));
-        InfoL <<  hexdump(&chunk, StatusVecChunk::kSize) << chunk.dumpString();
+        //移除已经处理过的数据
+        it = status.erase(it);
     }
 }
-#endif
+
+string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatus &status) {
+    string fci;
+    fci.resize(FCI_TWCC::kSize);
+    FCI_TWCC *ptr = (FCI_TWCC *) (fci.data());
+    ptr->base_seq = htons(status.begin()->first);
+    ptr->pkt_status_count = htons(status.size());
+    ptr->fb_pkt_count = fb_pkt_count;
+    ptr->ref_time[0] = (ref_time >> 16) & 0xFF;
+    ptr->ref_time[1] = (ref_time >> 8) & 0xFF;
+    ptr->ref_time[2] = (ref_time >> 0) & 0xFF;
+
+    string delta_str;
+    while (!status.empty()) {
+        {
+            //第一个rtp的状态
+            auto symbol = status.begin()->second.first;
+            int16_t count = 0;
+            for (auto &pr : status) {
+                if (pr.second.first != symbol) {
+                    //状态发送变更了，本chunk结束
+                    break;
+                }
+                if (++count >= (0xFFFF >> 3)) {
+                    //RunLengthChunk 13个bit表明rtp个数，最多可以表述0xFFFF >> 3个rtp状态
+                    break;
+                }
+            }
+            if (count >= 7) {
+                //连续状态相同个数大于6个时，使用RunLengthChunk模式比较节省带宽
+                RunLengthChunk chunk(symbol, count);
+                fci.append((char *)&chunk, RunLengthChunk::kSize);
+                appendDeltaString(delta_str, status, count);
+                continue;
+            }
+        }
+
+        {
+            //StatusVecChunk模式
+            //symbol_list中元素是1个bit
+            auto symbol = 0;
+            vector<SymbolStatus> vec;
+            for (auto &pr : status) {
+                vec.push_back(pr.second.first);
+                if (pr.second.first >= SymbolStatus::large_delta) {
+                    //symbol_list中元素是2个bit
+                    symbol = 1;
+                }
+
+                if (vec.size() << symbol >= 14) {
+                    //symbol为0时，最多存放14个rtp的状态
+                    //symbol为1时，最多存放7个rtp的状态
+                    break;
+                }
+            }
+            vec.resize(MIN(vec.size(), 14 >> symbol));
+            StatusVecChunk chunk(symbol, vec);
+            fci.append((char *)&chunk, StatusVecChunk::kSize);
+            appendDeltaString(delta_str, status, vec.size());
+        }
+    }
+
+    //recv delta部分
+    fci.append(delta_str);
+    return fci;
+}
+
+}//namespace mediakit

@@ -162,9 +162,9 @@ size_t RtpExt::size() const {
     return _size;
 }
 
-const char& RtpExt::operator[](size_t pos) const{
+const uint8_t& RtpExt::operator[](size_t pos) const{
     CHECK(pos < _size);
-    return _data[pos];
+    return ((uint8_t*)_data)[pos];
 }
 
 RtpExt::operator std::string() const{
@@ -239,7 +239,7 @@ string RtpExt::dumpString() const {
             break;
         }
         case RtpExtType::transport_cc : {
-            printer << "twcc seq:" << getTransportCCSeq();
+            printer << "twcc ext seq:" << getTransportCCSeq();
             break;
         }
         case RtpExtType::sdes_mid : {
@@ -546,6 +546,10 @@ RtpExtType RtpExt::getType() const {
     return _type;
 }
 
+RtpExt::operator bool() const {
+    return _ext != nullptr;
+}
+
 RtpExtContext::RtpExtContext(const RtcMedia &m){
     for (auto &ext : m.extmap) {
         auto ext_type = RtpExt::getExtType(ext.ext);
@@ -566,8 +570,9 @@ void RtpExtContext::setRid(uint32_t ssrc, const string &rid) {
     _ssrc_to_rid[ssrc] = rid;
 }
 
-void RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr) {
+RtpExt RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr, RtpExtType type) {
     string rid, repaired_rid;
+    RtpExt ret;
     auto ext_map = RtpExt::getExtValue(header);
     for (auto &pr : ext_map) {
         if (is_recv) {
@@ -596,10 +601,13 @@ void RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, string
             //重新赋值ext id为客户端sdp声明的类型
             pr.second.setExtId(it->second);
         }
+        if (pr.second.getType() == type) {
+            ret = pr.second;
+        }
     }
 
     if (!is_recv) {
-        return;
+        return ret;
     }
     if (rid.empty()) {
         rid = repaired_rid;
@@ -619,6 +627,7 @@ void RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, string
     if (rid_ptr) {
         *rid_ptr = rid;
     }
+    return ret;
 }
 
 void RtpExtContext::setOnGetRtp(OnGetRtp cb) {

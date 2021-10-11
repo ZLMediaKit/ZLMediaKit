@@ -24,6 +24,7 @@
 #include "Rtcp/RtcpFCI.h"
 #include "Nack.h"
 #include "Network/Session.h"
+#include "TwccContext.h"
 
 using namespace toolkit;
 using namespace mediakit;
@@ -108,7 +109,7 @@ protected:
     virtual void onCheckSdp(SdpType type, RtcSession &sdp);
     virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) = 0;
 
-    virtual void onRtp(const char *buf, size_t len) = 0;
+    virtual void onRtp(const char *buf, size_t len, uint64_t stamp_ms) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
     virtual void onShutdown(const SockException &ex) = 0;
     virtual void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) = 0;
@@ -134,6 +135,7 @@ private:
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
     RtcSession::Ptr _offer_sdp;
     RtcSession::Ptr _answer_sdp;
+    Ticker _ticker;
 };
 
 class RtpChannel;
@@ -186,7 +188,7 @@ protected:
     void onCheckSdp(SdpType type, RtcSession &sdp) override;
     void onRtcConfigure(RtcConfigure &configure) const override;
 
-    void onRtp(const char *buf, size_t len) override;
+    void onRtp(const char *buf, size_t len, uint64_t stamp_ms) override;
     void onRtcp(const char *buf, size_t len) override;
     void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) override;
     void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) override {};
@@ -216,6 +218,7 @@ private:
 
     void onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp);
     void onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc);
+    void onSendTwcc(uint32_t ssrc, const string &twcc_fci);
     void createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track);
     void registerSelf();
     void unregisterSelf();
@@ -251,4 +254,5 @@ private:
     unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _pt_to_track;
     //根据rtcp的ssrc获取相关信息，收发rtp和rtx的ssrc都会记录
     unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
+    TwccContext _twcc_ctx;
 };

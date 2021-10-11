@@ -346,14 +346,16 @@ enum class SymbolStatus : uint8_t{
 class FCI_TWCC{
 public:
     static size_t constexpr kSize = 8;
-
+    using TwccPacketStatus = map<uint16_t/*rtp ext seq*/, std::pair<SymbolStatus, int16_t/*recv delta,单位为250us*/> >;
     void check(size_t size);
     string dumpString(size_t total_size) const;
     uint16_t getBaseSeq() const;
     //单位64ms
     uint32_t getReferenceTime() const;
     uint16_t getPacketCount() const;
-    map<uint16_t, std::pair<SymbolStatus, uint32_t/*recv delta,单位为250us*/> > getPacketChunkList(size_t total_size) const;
+    TwccPacketStatus getPacketChunkList(size_t total_size) const;
+
+    static string create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatus &status);
 
 private:
     //base sequence number,基础序号,本次反馈的第一个包的序号;也就是RTP扩展头的序列号
