@@ -28,7 +28,7 @@ public:
      * @param strId 流id
      * @param filePath 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
      */
-    MP4Reader(const string &strVhost,const string &strApp, const string &strId,const string &filePath = "");
+    MP4Reader(const string &strVhost,const string &strApp, const string &strId, const string& para, const string &filePath = "");
 
     /**
      * 开始流化MP4文件，需要指出的是，MP4Reader对象一经过调用startReadMP4方法，它的强引用会自持有，
@@ -56,14 +56,19 @@ private:
     bool _have_video = false;
     bool _paused = false;
     float _speed = 1.0;
+    uint8_t _file_num = 0;
     uint32_t _seek_to;
     string _file_path;
+    string _str_vhost;
+    string _str_app;
+    string _str_id;
     recursive_mutex _mtx;
     Ticker _seek_ticker;
     Timer::Ptr _timer;
     EventPoller::Ptr _poller;
-    MP4Demuxer::Ptr _demuxer;
+    vector<MP4Demuxer::Ptr> _demuxers;
     MultiMediaSourceMuxer::Ptr _mediaMuxer;
+    vector<string> play_list;
 };
 
 } /* namespace mediakit */

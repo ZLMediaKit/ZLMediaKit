@@ -1059,6 +1059,42 @@ void installWebApi() {
                                               allArgs["stream"]);
     });
 
+    // 跳转播放位置
+    api_regist("/index/api/seekRecordPosition", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("schema", "vhost", "app", "stream", "stamp");
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (src) {
+            bool flag = src->seekTo(allArgs["stamp"].as<size_t>());
+            val["result"] = flag ? 0 : -1;
+            val["msg"] = flag ? "success" : "seek failed";
+            val["code"] = flag ? API::Success : API::OtherFailed;
+        }
+        else {
+            val["result"] = -2;
+            val["msg"] = "can not find the stream";
+            val["code"] = API::OtherFailed;
+        }
+        });
+
+    // 设置播放速度
+    api_regist("/index/api/setRecordSpeed", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("schema", "vhost", "app", "stream", "speed");
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (src) {
+            bool flag = src->speed(allArgs["speed"].as<float>());
+            val["result"] = flag ? 0 : -1;
+            val["msg"] = flag ? "success" : "set failed";
+            val["code"] = flag ? API::Success : API::OtherFailed;
+        }
+        else {
+            val["result"] = -2;
+            val["msg"] = "can not find the stream";
+            val["code"] = API::OtherFailed;
+        }
+        });
+
     //获取录像文件夹列表或mp4文件列表
     //http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
     api_regist("/index/api/getMp4RecordFile", [](API_ARGS_MAP){

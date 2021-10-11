@@ -289,7 +289,7 @@ public:
                                const string &app = "",
                                const string &stream = "");
     // 从mp4文件生成MediaSource
-    static MediaSource::Ptr createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &file_path = "", bool check_app = true);
+    static MediaSource::Ptr createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &para, const string &file_path = "", bool check_app = true);
 
 protected:
     //媒体注册

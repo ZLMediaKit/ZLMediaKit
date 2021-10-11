@@ -12,38 +12,69 @@
 #include "MP4Reader.h"
 #include "Common/config.h"
 #include "Thread/WorkThreadPool.h"
+
+#include <regex>
 using namespace toolkit;
 namespace mediakit {
 
-MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
+static string regex_paser(const string &tex, const string &rule, uint8_t length) {
+    smatch s;
+    regex_search(tex, s, regex(rule));
+    return s.str().substr(length, s.str().length() - length);
+}
+
+MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &strId, const string& para, const string &filePath) {
+    GET_CONFIG(string, recordPath, Record::kFilePath);
+    GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     _poller = WorkThreadPool::Instance().getPoller();
     _file_path = filePath;
-    if(_file_path.empty()){
-        GET_CONFIG(string,recordPath,Record::kFilePath);
-        GET_CONFIG(bool,enableVhost,General::kEnableVhost);
-        if(enableVhost){
-            _file_path = strVhost + "/" + strApp + "/" + strId;
-        }else{
-            _file_path = strApp + "/" + strId;
+    _str_vhost = strVhost;
+    _str_app = strApp;
+    _str_id = strId;
+    if (para == "") {
+        if (_file_path.empty()) {
+            if (enableVhost) {
+                _file_path = strVhost + "/" + strApp + "/" + strId;
+            }
+            else {
+                _file_path = strApp + "/" + strId;
+            }
+            _file_path = File::absolutePath(_file_path, recordPath);
         }
-        _file_path = File::absolutePath(_file_path,recordPath);
+        play_list.push_back(_file_path);
+    }
+    else {
+        string &&record_vhost = regex_paser(para, "vhost=[_\\w]+", 6);
+        auto pos = strId.rfind('/');
+        string&& record_app = strId.substr(0, pos + 1);
+        string&& record_stream = strId.substr(pos);
+        string &&record_date = regex_paser(para, "date=[0-9-]+", 5);
+        string &&record_time = regex_paser(para, "time=[0-9-]+", 5);
+        auto record_path = Recorder::getRecordPath(Recorder::type_mp4, record_vhost, record_app, record_stream);
+        record_path += record_date + "/";
+
+        File::scanDir(record_path, [&](const string& path, bool isDir) {
+            auto pos = path.rfind('/');
+            if (pos != string::npos) {
+                string file_name = path.substr(pos + 1, path.length() - pos - 1);
+                    if (!isDir) {
+                        //我们只收集mp4文件，对文件夹不感兴趣
+                        record_time.erase(std::remove(record_time.begin(), record_time.end(), '-'), record_time.end());
+                        file_name.erase(std::remove(file_name.begin(), file_name.end(), '-'), file_name.end());
+                        if (atoi(file_name.c_str()) + 500 > atoi(record_time.c_str()))
+                            play_list.push_back(path);
+                    }
+            }
+            return true;
+            }, false);
     }
 
-    _demuxer = std::make_shared<MP4Demuxer>();
-    _demuxer->openMP4(_file_path);
-    _mediaMuxer.reset(new MultiMediaSourceMuxer(strVhost, strApp, strId, _demuxer->getDurationMS() / 1000.0f, true, true, false, false));
-    auto tracks = _demuxer->getTracks(false);
-    if(tracks.empty()){
-        throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << _file_path);
+    int i = 0;
+    for (auto& play_file : play_list) {
+        _demuxers.push_back(make_shared<MP4Demuxer>());
+        _demuxers[i]->openMP4(play_list[i]);
+        ++i;
     }
-    for(auto &track : tracks){
-        _mediaMuxer->addTrack(track);
-        if(track->getTrackType() == TrackVideo){
-            _have_video = true;
-        }
-    }
-    //添加完毕所有track，防止单track情况下最大等待3秒
-    _mediaMuxer->addTrackCompleted();
 }
 
 bool MP4Reader::readSample() {
@@ -56,7 +87,7 @@ bool MP4Reader::readSample() {
     bool keyFrame = false;
     bool eof = false;
     while (!eof) {
-        auto frame = _demuxer->readFrame(keyFrame, eof);
+        auto frame = _demuxers[_file_num]->readFrame(keyFrame, eof);
         if (!frame) {
             continue;
         }
@@ -67,16 +98,41 @@ bool MP4Reader::readSample() {
     }
 
     GET_CONFIG(bool, fileRepeat, Record::kFileRepeat);
-    if (eof && fileRepeat) {
-        //需要从头开始看
+    if (eof) {
+        if (fileRepeat) {
+            //需要从头开始看
+            seekTo(0);
+            return true;
+        }
+        if (++_file_num >= _demuxers.size()) {
+            return false;
+        }
+        //_demuxers[_file_num]->openMP4(play_list[_file_num]);
         seekTo(0);
-        return true;
     }
 
-    return !eof;
+    return true;
 }
 
 void MP4Reader::startReadMP4() {
+    float title_time = 0.0;
+    for (auto& _demuxer : _demuxers) {
+        title_time += _demuxer->getDurationMS() / 1000.0f;
+    }
+    _mediaMuxer.reset(new MultiMediaSourceMuxer(_str_vhost, _str_app, _str_id, title_time, true, true, false, false));
+    auto tracks = _demuxers[_file_num]->getTracks(false);
+    if (tracks.empty()) {
+        throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << _file_path);
+    }
+    _have_video = false;
+    for (auto& track : tracks) {
+        _mediaMuxer->addTrack(track);
+        if (track->getTrackType() == TrackVideo) {
+            _have_video = true;
+        }
+    }
+    //添加完毕所有track，防止单track情况下最大等待3秒
+    _mediaMuxer->addTrackCompleted();
     GET_CONFIG(uint32_t, sampleMS, Record::kSampleMS);
     auto strongSelf = shared_from_this();
     _mediaMuxer->setMediaListener(strongSelf);
@@ -143,11 +199,25 @@ bool MP4Reader::speed(MediaSource &sender, float speed) {
 
 bool MP4Reader::seekTo(uint32_t ui32Stamp) {
     lock_guard<recursive_mutex> lck(_mtx);
-    if (ui32Stamp > _demuxer->getDurationMS()) {
-        //超过文件长度
-        return false;
+    if (ui32Stamp != 0) {
+        int i = 0;
+        float title_time = ui32Stamp;
+        for (auto& _demuxer : _demuxers) {
+            title_time -= _demuxer->getDurationMS();
+            if (title_time > 0)
+                ++i;
+            else {
+                _file_num = i;
+                break;
+            }
+        }
+        if (i == _demuxers.size())
+            return false;
+        //_demuxers[_file_num]->openMP4(play_list[_file_num]);
+        title_time += _demuxers[_file_num]->getDurationMS();
+        ui32Stamp = title_time;
     }
-    auto stamp = _demuxer->seekTo(ui32Stamp);
+    auto stamp = _demuxers[_file_num]->seekTo(ui32Stamp);
     if(stamp == -1){
         //seek失败
         return false;
@@ -163,7 +233,7 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp) {
     bool keyFrame = false;
     bool eof = false;
     while (!eof) {
-        auto frame = _demuxer->readFrame(keyFrame, eof);
+        auto frame = _demuxers[_file_num]->readFrame(keyFrame, eof);
         if(!frame){
             //文件读完了都未找到下一帧关键帧
             continue;
