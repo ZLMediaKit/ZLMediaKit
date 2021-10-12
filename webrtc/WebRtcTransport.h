@@ -116,7 +116,8 @@ protected:
     virtual void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) = 0;
 
 protected:
-    const RtcSession& getSdp(SdpType type) const;
+    RtcSession::Ptr _offer_sdp;
+    RtcSession::Ptr _answer_sdp;
     RTC::TransportTuple* getSelectedTuple() const;
     void sendRtcpRemb(uint32_t ssrc, size_t bit_rate);
     void sendRtcpPli(uint32_t ssrc);
@@ -133,8 +134,6 @@ private:
     std::shared_ptr<RTC::DtlsTransport> _dtls_transport;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_send;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
-    RtcSession::Ptr _offer_sdp;
-    RtcSession::Ptr _answer_sdp;
     Ticker _ticker;
 };
 
