@@ -573,6 +573,7 @@ public:
 class RtcSSRC{
 public:
     uint32_t ssrc {0};
+    uint32_t rtx_ssrc {0};
     string cname;
     string msid;
     string mslabel;
@@ -647,6 +648,7 @@ public:
     const RtcCodecPlan *getRelatedRtxPlan(uint8_t pt) const;
     uint32_t getRtpSSRC() const;
     uint32_t getRtxSSRC() const;
+    bool supportSimulcast() const;
 };
 
 class RtcSession{

@@ -539,9 +539,8 @@ void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
         m.rtp_rtx_ssrc[0].msid = RTP_MSID;
 
         if (m.getRelatedRtxPlan(m.plan[0].pt)) {
-            m.rtp_rtx_ssrc.emplace_back();
-            m.rtp_rtx_ssrc[1] = m.rtp_rtx_ssrc[0];
-            m.rtp_rtx_ssrc[1].ssrc += RTX_SSRC_OFFSET;
+            //rtx ssrc
+            m.rtp_rtx_ssrc[0].rtx_ssrc = m.rtp_rtx_ssrc[0].ssrc + RTX_SSRC_OFFSET;
         }
     }
 }
