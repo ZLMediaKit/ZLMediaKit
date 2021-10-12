@@ -106,7 +106,7 @@ protected:
 protected:
     virtual void onStartWebRTC() = 0;
     virtual void onRtcConfigure(RtcConfigure &configure) const;
-    virtual void onCheckAnswer(RtcSession &sdp) = 0;
+    virtual void onCheckSdp(SdpType type, RtcSession &sdp) = 0;
     virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) = 0;
 
     virtual void onRtp(const char *buf, size_t len, uint64_t stamp_ms) = 0;
@@ -184,7 +184,7 @@ public:
 protected:
     void onStartWebRTC() override;
     void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) override;
-    void onCheckAnswer(RtcSession &sdp) override;
+    void onCheckSdp(SdpType type, RtcSession &sdp) override;
     void onRtcConfigure(RtcConfigure &configure) const override;
 
     void onRtp(const char *buf, size_t len, uint64_t stamp_ms) override;
@@ -222,6 +222,7 @@ private:
     void registerSelf();
     void unregisterSelf();
     void unrefSelf();
+    void onCheckAnswer(RtcSession &sdp);
 
 private:
     bool _simulcast = false;
