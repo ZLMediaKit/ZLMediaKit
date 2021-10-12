@@ -174,19 +174,6 @@ void WebRtcTransport::setRemoteDtlsFingerprint(const RtcSession &remote){
     _dtls_transport->SetRemoteFingerprint(remote_fingerprint);
 }
 
-void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp){
-    for (auto &m : sdp.media) {
-        if (m.type != TrackApplication && !m.rtcp_mux) {
-            throw std::invalid_argument("只支持rtcp-mux模式");
-        }
-    }
-    if (sdp.group.mids.empty()) {
-        throw std::invalid_argument("只支持group BUNDLE模式");
-    }
-    if (type == SdpType::offer) {
-        sdp.checkValidSSRC();
-    }
-}
 
 void WebRtcTransport::onRtcConfigure(RtcConfigure &configure) const {
     //开启remb后关闭twcc，因为开启twcc后remb无效
@@ -199,7 +186,8 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
         //// 解析offer sdp ////
         _offer_sdp = std::make_shared<RtcSession>();
         _offer_sdp->loadFrom(offer);
-        onCheckSdp(SdpType::offer, *_offer_sdp);
+        _offer_sdp->checkSdp();
+        _offer_sdp->checkValidSSRC();
         setRemoteDtlsFingerprint(*_offer_sdp);
 
         //// sdp 配置 ////
@@ -213,7 +201,8 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
 
         //// 生成answer sdp ////
         _answer_sdp = configure.createAnswer(*_offer_sdp);
-        onCheckSdp(SdpType::answer, *_answer_sdp);
+        _answer_sdp->checkSdp();
+        onCheckAnswer(*_answer_sdp);
         return _answer_sdp->toString();
     } catch (exception &ex) {
         onShutdown(SockException(Err_shutdown, ex.what()));
@@ -520,13 +509,7 @@ void WebRtcTransportImp::onStartWebRTC() {
     _play_src = nullptr;
 }
 
-void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
-    WebRtcTransport::onCheckSdp(type, sdp);
-    if (type != SdpType::answer) {
-        //我们只修改answer sdp
-        return;
-    }
-
+void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
     //修改answer sdp的ip、端口信息
     GET_CONFIG(string, extern_ip, RTC::kExternIP);
     for (auto &m : sdp.media) {

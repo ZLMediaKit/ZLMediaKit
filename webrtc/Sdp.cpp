@@ -1381,6 +1381,16 @@ bool RtcSession::supportSimulcast() const {
     }
     return false;
 }
+void RtcSession::checkSdp() const {
+    for (auto &m : media) {
+        if (m.type != TrackApplication && !m.rtcp_mux) {
+            throw std::invalid_argument("只支持rtcp-mux模式");
+        }
+    }
+    if (group.mids.empty()) {
+        throw std::invalid_argument("只支持group BUNDLE模式");
+    }
+}
 
 string const SdpConst::kTWCCRtcpFb = "transport-cc";
 string const SdpConst::kRembRtcpFb = "goog-remb";
