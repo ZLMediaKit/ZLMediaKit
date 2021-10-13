@@ -36,7 +36,7 @@ public:
      * 输入sr rtcp包
      * @param rtcp 输入一个rtcp
      */
-    void onRtcp(RtcpHeader *rtcp);
+    virtual void onRtcp(RtcpHeader *rtcp) = 0;
 
     /**
      * 计算总丢包数
@@ -64,13 +64,6 @@ public:
     virtual Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc);
 
     /**
-     * 获取rtt
-     * @param ssrc rtp ssrc
-     * @return rtt,单位毫秒
-     */
-    uint32_t getRtt(uint32_t ssrc) const;
-
-    /**
      * 上次结果与本次结果间应收包数
      */
     virtual size_t getExpectedPacketsInterval();
@@ -88,24 +81,36 @@ protected:
     //上次的rtp时间戳,毫秒
     uint32_t _last_rtp_stamp = 0;
     uint64_t _last_ntp_stamp_ms = 0;
-    //上次统计的丢包总数
-    size_t _last_lost = 0;
-    //上次统计应收rtp包总数
-    size_t _last_expected = 0;
-    //上次收到sr包时计算出的Last SR timestamp
-    uint32_t _last_sr_lsr = 0;
-    //上次收到sr时的系统时间戳,单位毫秒
-    uint64_t _last_sr_ntp_sys = 0;
-    map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
-    map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
 };
 
 class RtcpContextForSend : public RtcpContext {
 public:
     Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc) override;
+    void onRtcp(RtcpHeader *rtcp) override;
+
+    /**
+     * 获取rtt
+     * @param ssrc rtp ssrc
+     * @return rtt,单位毫秒
+     */
+    uint32_t getRtt(uint32_t ssrc) const;
+
+private:
+    map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
+    map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
 };
 
 class RtcpContextForRecv : public RtcpContext {
+public:
+    void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes) override;
+    Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
+    size_t getExpectedPackets() const override;
+    size_t getExpectedPacketsInterval() override;
+    size_t getLost() override;
+    size_t geLostInterval() override;
+    void onRtcp(RtcpHeader *rtcp) override;
+
+private:
     //时间戳抖动值
     double _jitter = 0;
     //第一个seq的值
@@ -120,13 +125,15 @@ class RtcpContextForRecv : public RtcpContext {
     uint16_t _last_rtp_seq = 0;
     //上次的rtp的系统时间戳(毫秒)用于统计抖动
     uint64_t _last_rtp_sys_stamp = 0;
-public:
-    void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes) override;
-    Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
-    size_t getExpectedPackets() const override;
-    size_t getExpectedPacketsInterval() override;
-    size_t getLost() override;
-    size_t geLostInterval() override;
+    //上次统计的丢包总数
+    size_t _last_lost = 0;
+    //上次统计应收rtp包总数
+    size_t _last_expected = 0;
+    //上次收到sr包时计算出的Last SR timestamp
+    uint32_t _last_sr_lsr = 0;
+    //上次收到sr时的系统时间戳,单位毫秒
+    uint64_t _last_sr_ntp_sys = 0;
 };
+
 }//namespace mediakit
 #endif //ZLMEDIAKIT_RTCPCONTEXT_H
