@@ -1010,13 +1010,40 @@ void WebRtcTransportImp::setSession(Session::Ptr session) {
     _session = std::move(session);
 }
 
-static mutex s_rtc_mtx;
-static unordered_map<string, weak_ptr<WebRtcTransportImp> > s_rtc_map;
+class WebRtcTransportManager {
+    mutable mutex _mtx;
+    unordered_map<string, weak_ptr<WebRtcTransportImp> > _map;
+    WebRtcTransportManager() = default;
+public:
+    static WebRtcTransportManager& instance() {
+        static WebRtcTransportManager s_instance;
+        return s_instance;
+    }
+    void addItem(string key, WebRtcTransportImp::Ptr ptr) {
+        lock_guard<mutex> lck(_mtx);
+        _map[key] = ptr;
+    }
+
+    WebRtcTransportImp::Ptr getItem(const string &key) {
+        if (key.empty()) {
+            return nullptr;
+        }
+        lock_guard<mutex> lck(_mtx);
+        auto it = _map.find(key);
+        if (it == _map.end()) {
+            return nullptr;
+        }
+        return it->second.lock();
+    }
+    void removeItem(string key) {
+        lock_guard<mutex> lck(_mtx);
+        _map.erase(key);
+    }
+};
 
 void WebRtcTransportImp::registerSelf() {
     _self =  static_pointer_cast<WebRtcTransportImp>(shared_from_this());
-    lock_guard<mutex> lck(s_rtc_mtx);
-    s_rtc_map[getKey()] = static_pointer_cast<WebRtcTransportImp>(_self);
+    WebRtcTransportManager::instance().addItem(getKey(), _self);
 }
 
 void WebRtcTransportImp::unrefSelf() {
@@ -1025,21 +1052,16 @@ void WebRtcTransportImp::unrefSelf() {
 
 void WebRtcTransportImp::unregisterSelf() {
     unrefSelf();
-    lock_guard<mutex> lck(s_rtc_mtx);
-    s_rtc_map.erase(getKey());
+    WebRtcTransportManager::instance().removeItem(getKey());
 }
 
-WebRtcTransportImp::Ptr WebRtcTransportImp::getRtcTransport(const string &key, bool unref_self) {
-    if (key.empty()) {
-        return nullptr;
-    }
-    lock_guard<mutex> lck(s_rtc_mtx);
-    auto it = s_rtc_map.find(key);
-    if (it == s_rtc_map.end()) {
-        return nullptr;
-    }
-    auto ret = it->second.lock();
-    if (unref_self) {
+WebRtcTransportImp::Ptr WebRtcTransportImp::get(const string &key) {
+    return WebRtcTransportManager::instance().getItem(key);
+}
+
+WebRtcTransportImp::Ptr WebRtcTransportImp::move(const string &key) {
+    auto ret = WebRtcTransportManager::instance().getItem(key);
+    if (ret) {
         //此对象不再强引用自己，因为自己将被WebRtcSession对象持有
         ret->unrefSelf();
     }

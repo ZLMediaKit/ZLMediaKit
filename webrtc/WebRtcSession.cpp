@@ -45,7 +45,7 @@ EventPoller::Ptr WebRtcSession::getPoller(const Buffer::Ptr &buffer) {
     if (user_name.empty()) {
         return nullptr;
     }
-    auto ret = WebRtcTransportImp::getRtcTransport(user_name, false);
+    auto ret = WebRtcTransportImp::get(user_name);
     return ret ? ret->getPoller() : nullptr;
 }
 
@@ -61,7 +61,7 @@ void WebRtcSession::onRecv_l(const Buffer::Ptr &buffer) {
     if (_find_transport) {
         //只允许寻找一次transport
         _find_transport = false;
-        _transport = WebRtcTransportImp::getRtcTransport(getUserName(buffer), true);
+        _transport = WebRtcTransportImp::move(getUserName(buffer));
         CHECK(_transport && _transport->getPoller()->isCurrentThread());
         _transport->setSession(shared_from_this());
     }
