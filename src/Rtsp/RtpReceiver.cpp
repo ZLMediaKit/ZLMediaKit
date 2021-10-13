@@ -94,7 +94,7 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
         rtp->ntp_stamp = rtp->getStamp() * uint64_t(1000) / sample_rate;
     } else {
         //设置ntp时间戳
-        rtp->ntp_stamp = _ntp_stamp.getNtpStamp(ntohl(rtp->getHeader()->stamp), sample_rate);
+        rtp->ntp_stamp = _ntp_stamp.getNtpStamp(rtp->getStamp(), sample_rate);
     }
     onBeforeRtpSorted(rtp);
     sortPacket(rtp->getSeq(), rtp);
