@@ -73,12 +73,12 @@ public:
     /**
      * 上次结果与本次结果间应收包数
      */
-    size_t getExpectedPacketsInterval();
+    virtual size_t getExpectedPacketsInterval();
 
     /**
      * 上次结果与本次结果间丢包个数
      */
-    size_t geLostInterval();
+    virtual size_t geLostInterval();
 
 protected:
     //收到或发送的rtp的字节数
@@ -124,7 +124,9 @@ public:
     void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes) override;
     Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
     size_t getExpectedPackets() const override;
+    size_t getExpectedPacketsInterval() override;
     size_t getLost() override;
+    size_t geLostInterval() override;
 };
 }//namespace mediakit
 #endif //ZLMEDIAKIT_RTCPCONTEXT_H
