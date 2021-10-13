@@ -81,27 +81,13 @@ public:
     size_t geLostInterval();
 
 protected:
-    //时间戳抖动值
-    double _jitter = 0;
     //收到或发送的rtp的字节数
     size_t _bytes = 0;
     //收到或发送的rtp的个数
     size_t _packets = 0;
-    //第一个seq的值
-    uint16_t _seq_base = 0;
-    //rtp最大seq
-    uint16_t _seq_max = 0;
-    //rtp回环次数
-    uint16_t _seq_cycles = 0;
-    //上次回环发生时，记录的rtp包数
-    size_t _last_cycle_packets = 0;
-    //上次的seq
-    uint16_t _last_rtp_seq = 0;
     //上次的rtp时间戳,毫秒
     uint32_t _last_rtp_stamp = 0;
     uint64_t _last_ntp_stamp_ms = 0;
-    //上次的rtp的系统时间戳(毫秒)用于统计抖动
-    uint64_t _last_rtp_sys_stamp = 0;
     //上次统计的丢包总数
     size_t _last_lost = 0;
     //上次统计应收rtp包总数
@@ -120,6 +106,20 @@ public:
 };
 
 class RtcpContextForRecv : public RtcpContext {
+    //时间戳抖动值
+    double _jitter = 0;
+    //第一个seq的值
+    uint16_t _seq_base = 0;
+    //rtp最大seq
+    uint16_t _seq_max = 0;
+    //rtp回环次数
+    uint16_t _seq_cycles = 0;
+    //上次回环发生时，记录的rtp包数
+    size_t _last_cycle_packets = 0;
+    //上次的seq
+    uint16_t _last_rtp_seq = 0;
+    //上次的rtp的系统时间戳(毫秒)用于统计抖动
+    uint64_t _last_rtp_sys_stamp = 0;
 public:
     void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes) override;
     Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
