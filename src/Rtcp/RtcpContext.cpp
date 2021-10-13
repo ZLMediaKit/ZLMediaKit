@@ -120,8 +120,10 @@ size_t RtcpContext::getExpectedPackets() const {
 size_t RtcpContextForRecv::getExpectedPackets() const {
     return (_seq_cycles << 16) + _seq_max - _seq_base + 1;
 }
-
 size_t RtcpContext::getExpectedPacketsInterval() {
+    throw std::runtime_error("没有实现, rtp发送者无法统计应收包数");
+}
+size_t RtcpContextForRecv::getExpectedPacketsInterval() {
     auto expected = getExpectedPackets();
     auto ret = expected - _last_expected;
     _last_expected = expected;
@@ -137,6 +139,9 @@ size_t RtcpContextForRecv::getLost() {
 }
 
 size_t RtcpContext::geLostInterval() {
+    throw std::runtime_error("没有实现, rtp发送者无法统计丢包率");
+}
+size_t RtcpContextForRecv::geLostInterval() {
     auto lost = getLost();
     auto ret = lost - _last_lost;
     _last_lost = lost;
