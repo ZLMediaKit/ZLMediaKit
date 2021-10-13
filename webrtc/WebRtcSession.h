@@ -18,10 +18,10 @@
 
 using namespace toolkit;
 
+EventPoller::Ptr QueryPollerByBuffer(const Buffer::Ptr &buffer);
+
 class WebRtcSession : public UdpSession {
 public:
-    static EventPoller::Ptr getPoller(const Buffer::Ptr &);
-
     WebRtcSession(const Socket::Ptr &sock);
     ~WebRtcSession() override;
 
