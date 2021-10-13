@@ -1014,16 +1014,16 @@ class WebRtcTransportManager {
     mutable mutex _mtx;
     unordered_map<string, weak_ptr<WebRtcTransportImp> > _map;
     WebRtcTransportManager() = default;
+    
 public:
     static WebRtcTransportManager& instance() {
         static WebRtcTransportManager s_instance;
         return s_instance;
     }
-    void addItem(string key, WebRtcTransportImp::Ptr ptr) {
+    void addItem(string key, const WebRtcTransportImp::Ptr &ptr) {
         lock_guard<mutex> lck(_mtx);
         _map[key] = ptr;
     }
-
     WebRtcTransportImp::Ptr getItem(const string &key) {
         if (key.empty()) {
             return nullptr;
