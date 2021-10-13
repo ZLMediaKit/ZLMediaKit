@@ -170,7 +170,8 @@ public:
      * @return 对象
      */
     static Ptr create(const EventPoller::Ptr &poller);
-    static Ptr getRtcTransport(const string &key, bool unref_self);
+    static Ptr get(const string &key); // 借用
+    static Ptr move(const string &key); // 所有权转移
 
     void setSession(Session::Ptr session);
 
