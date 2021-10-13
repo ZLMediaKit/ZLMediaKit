@@ -420,7 +420,7 @@ void WebRtcTransportImp::onStartWebRTC() {
         track->offer_ssrc_rtx = m_offer->getRtxSSRC();
         track->plan_rtp = &m_answer.plan[0];;
         track->plan_rtx = m_answer.getRelatedRtxPlan(track->plan_rtp->pt);
-        track->rtcp_context_send = std::make_shared<RtcpContext>(false);
+        track->rtcp_context_send = std::make_shared<RtcpContextForSend>();
 
         //send ssrc --> MediaTrack
         _ssrc_to_track[track->answer_ssrc_rtp] = track;
@@ -656,7 +656,7 @@ private:
 
 private:
     NackContext _nack_ctx;
-    RtcpContext _rtcp_context{true};
+    RtcpContextForRecv _rtcp_context;
     EventPoller::Ptr _poller;
     DelayTask::Ptr _delay_task;
     function<void(const FCI_NACK &nack)> _on_nack;

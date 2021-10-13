@@ -20,11 +20,7 @@ namespace mediakit {
 class RtcpContext {
 public:
     using Ptr = std::shared_ptr<RtcpContext>;
-    /**
-     * 创建rtcp上下文
-     * @param is_receiver 是否为rtp接收者，接收者更消耗性能
-     */
-    RtcpContext(bool is_receiver);
+    virtual ~RtcpContext() = default;
 
     /**
      * 输出或输入rtp时调用
@@ -34,7 +30,7 @@ public:
      * @param rtp rtp时间戳采样率，视频一般为90000，音频一般为采样率
      * @param bytes rtp数据长度
      */
-    void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes);
+    virtual void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes);
 
     /**
      * 输入sr rtcp包
@@ -45,19 +41,19 @@ public:
     /**
      * 计算总丢包数
      */
-    size_t getLost();
+    virtual size_t getLost();
 
     /**
      * 返回理应收到的rtp数
      */
-    size_t getExpectedPackets() const;
+    virtual size_t getExpectedPackets() const;
 
     /**
      * 创建SR rtcp包
      * @param rtcp_ssrc rtcp的ssrc
      * @return rtcp包
      */
-    Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc);
+    virtual Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc);
 
     /**
      * 创建RR rtcp包
@@ -65,7 +61,7 @@ public:
      * @param rtp_ssrc rtp的ssrc
      * @return rtcp包
      */
-    Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc);
+    virtual Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc);
 
     /**
      * 获取rtt
@@ -84,9 +80,7 @@ public:
      */
     size_t geLostInterval();
 
-private:
-    //是否为接收者
-    bool _is_receiver;
+protected:
     //时间戳抖动值
     double _jitter = 0;
     //收到或发送的rtp的字节数
@@ -120,5 +114,17 @@ private:
     map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
 };
 
+class RtcpContextForSend : public RtcpContext {
+public:
+    Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc) override;
+};
+
+class RtcpContextForRecv : public RtcpContext {
+public:
+    void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes) override;
+    Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
+    size_t getExpectedPackets() const override;
+    size_t getLost() override;
+};
 }//namespace mediakit
 #endif //ZLMEDIAKIT_RTCPCONTEXT_H

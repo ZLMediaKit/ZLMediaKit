@@ -23,11 +23,11 @@ RtpServer::~RtpServer() {
     }
 }
 
-class RtcpHelper : public RtcpContext, public std::enable_shared_from_this<RtcpHelper> {
+class RtcpHelper : public RtcpContextForRecv, public std::enable_shared_from_this<RtcpHelper> {
 public:
     using Ptr = std::shared_ptr<RtcpHelper>;
 
-    RtcpHelper(Socket::Ptr rtcp_sock, uint32_t sample_rate) : RtcpContext(true){
+    RtcpHelper(Socket::Ptr rtcp_sock, uint32_t sample_rate) {
         _rtcp_sock = std::move(rtcp_sock);
         _sample_rate = sample_rate;
     }
