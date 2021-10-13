@@ -257,7 +257,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         }
         _rtcp_context.clear();
         for (auto &track : _sdp_track) {
-            _rtcp_context.emplace_back(std::make_shared<RtcpContext>(true));
+            _rtcp_context.emplace_back(std::make_shared<RtcpContextForRecv>());
         }
         _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
         _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
@@ -418,7 +418,7 @@ void RtspSession::onAuthSuccess() {
         }
         strongSelf->_rtcp_context.clear();
         for (auto &track : strongSelf->_sdp_track) {
-            strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContext>(false));
+            strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContextForSend>());
         }
         strongSelf->_sessionid = makeRandStr(12);
         strongSelf->_play_src = rtsp_src;

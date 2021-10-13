@@ -179,7 +179,7 @@ void RtspPusher::sendAnnounce() {
     }
     _rtcp_context.clear();
     for (auto &track : _track_vec) {
-        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(false));
+        _rtcp_context.emplace_back(std::make_shared<RtcpContextForSend>());
     }
     _on_res_func = std::bind(&RtspPusher::handleResAnnounce, this, placeholders::_1);
     sendRtspRequest("ANNOUNCE", _url, {}, src->getSdp());
