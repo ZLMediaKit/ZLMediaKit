@@ -40,7 +40,7 @@ static string getUserName(const Buffer::Ptr &buffer) {
     return vec[0];
 }
 
-EventPoller::Ptr WebRtcSession::getPoller(const Buffer::Ptr &buffer) {
+EventPoller::Ptr QueryPollerByBuffer(const Buffer::Ptr &buffer) {
     auto user_name = getUserName(buffer);
     if (user_name.empty()) {
         return nullptr;
@@ -80,7 +80,7 @@ void WebRtcSession::onError(const SockException &err) {
         return;
     }
     auto transport = std::move(_transport);
-    this->Session::getPoller()->async([transport] {
+    getPoller()->async([transport] {
         //延时减引用，防止使用transport对象时，销毁对象
     }, false);
 }
