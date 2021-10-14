@@ -1669,8 +1669,6 @@ RETRY:
             answer_media.ice_lite = configure.ice_lite;
             answer_media.candidate = configure.candidate;
             answer_media.rtp_rids = offer_media.rtp_rids;
-            answer_media.rtp_ssrc_sim = offer_media.rtp_ssrc_sim;
-            answer_media.rtp_rtx_ssrc = offer_media.rtp_rtx_ssrc;
             switch (offer_media.role) {
                 case DtlsRole::actpass :
                 case DtlsRole::active : {
