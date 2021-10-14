@@ -83,18 +83,25 @@ static void parse_http_response(const SockException &ex,
         fun(Json::nullValue, errStr);
         return;
     }
+    Value result;
     try {
         stringstream ss(res.Content());
-        Value result;
         ss >> result;
-        if (result["code"].asInt() != 0) {
-            auto errStr = StrPrinter << "[json code]:" << "code=" << result["code"] << ",msg=" << result["msg"] << endl;
-            fun(Json::nullValue, errStr);
-            return;
-        }
-        fun(result, "");
     } catch (std::exception &ex) {
         auto errStr = StrPrinter << "[parse json failed]:" << ex.what() << endl;
+        fun(Json::nullValue, errStr);
+        return;
+    }
+    if (result["code"].asInt() != 0) {
+        auto errStr = StrPrinter << "[json code]:" << "code=" << result["code"] << ",msg=" << result["msg"] << endl;
+        fun(Json::nullValue, errStr);
+        return;
+    }
+    try {
+        fun(result, "");
+    } catch (std::exception &ex) {
+        auto errStr = StrPrinter << "[do hook invoker failed]:" << ex.what() << endl;
+        //如果还是抛异常，那么再上抛异常
         fun(Json::nullValue, errStr);
     }
 }
