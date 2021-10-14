@@ -1749,8 +1749,14 @@ RETRY:
             for (auto &ext : offer_media.extmap) {
                 auto it = configure.extmap.find(RtpExt::getExtType(ext.ext));
                 if (it != configure.extmap.end()) {
+                    auto new_dir = matchDirection(ext.direction, it->second);
+                    switch (new_dir) {
+                        case RtpDirection::invalid:
+                        case RtpDirection::inactive: continue;
+                        default: break;
+                    }
                     answer_media.extmap.emplace_back(ext);
-                    answer_media.extmap.back().direction = matchDirection(ext.direction, it->second);
+                    answer_media.extmap.back().direction = new_dir;
                 }
             }
 
