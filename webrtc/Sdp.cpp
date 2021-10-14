@@ -1435,7 +1435,7 @@ void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
         extmap.erase(RtpExtType::transport_cc);
     } else {
         rtcp_fb.emplace(SdpConst::kTWCCRtcpFb);
-        extmap.emplace(RtpExtType::transport_cc);
+        extmap.emplace(RtpExtType::transport_cc, RtpDirection::sendrecv);
     }
 }
 
@@ -1445,7 +1445,7 @@ void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
         extmap.erase(RtpExtType::abs_send_time);
     } else {
         rtcp_fb.emplace(SdpConst::kRembRtcpFb);
-        extmap.emplace(RtpExtType::abs_send_time);
+        extmap.emplace(RtpExtType::abs_send_time, RtpDirection::sendrecv);
     }
 }
 
@@ -1465,14 +1465,14 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             preferred_codec = {CodecAAC, CodecG711U, CodecG711A, CodecOpus};
             rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb};
             extmap = {
-                    RtpExtType::ssrc_audio_level,
-                    RtpExtType::csrc_audio_level,
-                    RtpExtType::abs_send_time,
-                    RtpExtType::transport_cc,
+                    {RtpExtType::ssrc_audio_level,            RtpDirection::sendrecv},
+                    {RtpExtType::csrc_audio_level,            RtpDirection::sendrecv},
+                    {RtpExtType::abs_send_time,               RtpDirection::sendrecv},
+                    {RtpExtType::transport_cc,                RtpDirection::sendrecv},
                     //rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放
-                    //RtpExtType::sdes_mid,
-                    RtpExtType::sdes_rtp_stream_id,
-                    RtpExtType::sdes_repaired_rtp_stream_id
+                    //{RtpExtType::sdes_mid,RtpDirection::sendrecv},
+                    {RtpExtType::sdes_rtp_stream_id,          RtpDirection::sendrecv},
+                    {RtpExtType::sdes_repaired_rtp_stream_id, RtpDirection::sendrecv}
             };
             break;
         }
@@ -1481,19 +1481,19 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
             preferred_codec = {CodecH264, CodecH265, CodecAV1};
             rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb, "nack", "ccm fir", "nack pli"};
             extmap = {
-                    RtpExtType::abs_send_time,
-                    RtpExtType::transport_cc,
+                    {RtpExtType::abs_send_time,               RtpDirection::sendrecv},
+                    {RtpExtType::transport_cc,                RtpDirection::sendrecv},
                     //rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放
-                    //RtpExtType::sdes_mid,
-                    RtpExtType::sdes_rtp_stream_id,
-                    RtpExtType::sdes_repaired_rtp_stream_id,
-                    RtpExtType::video_timing,
-                    RtpExtType::color_space,
-                    RtpExtType::video_content_type,
-                    RtpExtType::playout_delay,
-                    RtpExtType::video_orientation,
-                    RtpExtType::toffset,
-                    RtpExtType::framemarking
+                    //{RtpExtType::sdes_mid,RtpDirection::sendrecv},
+                    {RtpExtType::sdes_rtp_stream_id,          RtpDirection::sendrecv},
+                    {RtpExtType::sdes_repaired_rtp_stream_id, RtpDirection::sendrecv},
+                    {RtpExtType::video_timing,                RtpDirection::sendrecv},
+                    {RtpExtType::color_space,                 RtpDirection::sendrecv},
+                    {RtpExtType::video_content_type,          RtpDirection::sendrecv},
+                    {RtpExtType::playout_delay,               RtpDirection::sendrecv},
+                    {RtpExtType::video_orientation,           RtpDirection::sendrecv},
+                    {RtpExtType::toffset,                     RtpDirection::sendrecv},
+                    {RtpExtType::framemarking,                RtpDirection::sendrecv}
             };
             break;
         }
@@ -1616,6 +1616,31 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer){
     return ret;
 }
 
+static RtpDirection matchDirection(RtpDirection offer_direction, RtpDirection supported){
+    switch (offer_direction) {
+        case RtpDirection::sendonly : {
+            if (supported != RtpDirection::recvonly && supported != RtpDirection::sendrecv) {
+                //我们不支持接收
+                return RtpDirection::inactive;
+            }
+            return RtpDirection::recvonly;
+        }
+
+        case RtpDirection::recvonly : {
+            if (supported != RtpDirection::sendonly && supported != RtpDirection::sendrecv) {
+                //我们不支持发送
+                return RtpDirection::inactive;
+            }
+            return RtpDirection::sendonly;
+        }
+
+        //对方支持发送接收，那么最终能力根据配置来决定
+        case RtpDirection::sendrecv : return  (supported == RtpDirection::invalid ? RtpDirection::inactive : supported);
+        case RtpDirection::inactive : return RtpDirection::inactive;
+        default: return RtpDirection::invalid;
+    }
+}
+
 void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure){
     bool check_profile = true;
     bool check_codec = true;
@@ -1682,34 +1707,9 @@ RETRY:
                 default: continue;
             }
 
-            switch (offer_media.direction) {
-                case RtpDirection::sendonly : {
-                    if (configure.direction != RtpDirection::recvonly &&
-                        configure.direction != RtpDirection::sendrecv) {
-                        //我们不支持接收
-                        answer_media.direction = RtpDirection::inactive;
-                        break;
-                    }
-                    answer_media.direction = RtpDirection::recvonly;
-                    break;
-                }
-                case RtpDirection::recvonly : {
-                    if (configure.direction != RtpDirection::sendonly &&
-                        configure.direction != RtpDirection::sendrecv) {
-                        //我们不支持发送
-                        answer_media.direction = RtpDirection::inactive;
-                        break;
-                    }
-                    answer_media.direction = RtpDirection::sendonly;
-                    break;
-                }
-                case RtpDirection::sendrecv : {
-                    //对方支持发送接收，那么最终能力根据配置来决定
-                    answer_media.direction = (configure.direction == RtpDirection::invalid ? RtpDirection::inactive
-                                                                                           : configure.direction);
-                    break;
-                }
-                default: continue;
+            answer_media.direction = matchDirection(offer_media.direction, configure.direction);
+            if (answer_media.direction == RtpDirection::invalid) {
+                continue;
             }
 
             //添加媒体plan
@@ -1747,8 +1747,10 @@ RETRY:
 
             //对方和我方都支持的扩展，那么我们才支持
             for (auto &ext : offer_media.extmap) {
-                if (configure.extmap.find(RtpExt::getExtType(ext.ext)) != configure.extmap.end()) {
+                auto it = configure.extmap.find(RtpExt::getExtType(ext.ext));
+                if (it != configure.extmap.end()) {
                     answer_media.extmap.emplace_back(ext);
+                    answer_media.extmap.back().direction = matchDirection(ext.direction, it->second);
                 }
             }
 
