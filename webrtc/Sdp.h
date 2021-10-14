@@ -703,7 +703,7 @@ public:
         SdpAttrFingerprint fingerprint;
 
         set<string> rtcp_fb;
-        set<RtpExtType> extmap;
+        map<RtpExtType, RtpDirection> extmap;
         vector<CodecId> preferred_codec;
         vector<SdpAttrCandidate> candidate;
 
