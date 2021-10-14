@@ -532,15 +532,16 @@ void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
         }
         //添加answer sdp的ssrc信息
         m.rtp_rtx_ssrc.emplace_back();
-        m.rtp_rtx_ssrc[0].ssrc = _play_src->getSsrc(m.type);
-        m.rtp_rtx_ssrc[0].cname = RTP_CNAME;
-        m.rtp_rtx_ssrc[0].label = RTP_LABEL;
-        m.rtp_rtx_ssrc[0].mslabel = RTP_MSLABEL;
-        m.rtp_rtx_ssrc[0].msid = RTP_MSID;
+        auto &ssrc = m.rtp_rtx_ssrc.back();
+        ssrc.ssrc = _play_src->getSsrc(m.type);
+        ssrc.cname = RTP_CNAME;
+        ssrc.label = RTP_LABEL;
+        ssrc.mslabel = RTP_MSLABEL;
+        ssrc.msid = RTP_MSID;
 
         if (m.getRelatedRtxPlan(m.plan[0].pt)) {
             //rtx ssrc
-            m.rtp_rtx_ssrc[0].rtx_ssrc = m.rtp_rtx_ssrc[0].ssrc + RTX_SSRC_OFFSET;
+            ssrc.rtx_ssrc = ssrc.ssrc + RTX_SSRC_OFFSET;
         }
     }
 }
