@@ -33,6 +33,12 @@ void WebRtcPlayer::onStartWebRTC() {
     CHECK(_play_src);
     WebRtcTransportImp::onStartWebRTC();
     if (canSendRtp()) {
+        //确保该rtp codec类型对方支持
+        memset(_can_send_rtp, 0, sizeof(_can_send_rtp));
+        for (auto &m : _answer_sdp->media) {
+            _can_send_rtp[m.type] = m.direction == RtpDirection::sendonly || m.direction == RtpDirection::sendrecv;
+        }
+
         _play_src->pause(false);
         _reader = _play_src->getRing()->attach(getPoller(), true);
         weak_ptr<WebRtcPlayer> weak_self = static_pointer_cast<WebRtcPlayer>(shared_from_this());
@@ -53,12 +59,6 @@ void WebRtcPlayer::onStartWebRTC() {
             }
             strongSelf->onShutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
-
-        //确保该rtp codec类型对方支持
-        memset(_can_send_rtp, 0, sizeof(_can_send_rtp));
-        for (auto &m : _answer_sdp->media) {
-            _can_send_rtp[m.type] = m.direction == RtpDirection::sendonly || m.direction == RtpDirection::sendrecv;
-        }
     }
     //使用完毕后，释放强引用，这样确保推流器断开后能及时注销媒体
     _play_src = nullptr;
