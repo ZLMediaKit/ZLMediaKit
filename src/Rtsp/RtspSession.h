@@ -185,7 +185,7 @@ private:
     //url解析后保存的相关信息
     MediaInfo _media_info;
     //rtsp推流相关绑定的源
-    RtspMediaSourceImp::Ptr _push_src;
+    RtspMediaSource::Ptr _push_src;
     //rtsp播放器绑定的直播源
     std::weak_ptr<RtspMediaSource> _play_src;
     //直播源读取器
