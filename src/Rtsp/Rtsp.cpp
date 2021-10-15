@@ -94,7 +94,7 @@ string SdpTrack::getControlUrl(const string &base_url) const {
     return base_url + "/" + _control;
 }
 
-string SdpTrack::toString() const {
+string SdpTrack::toString(uint16_t port) const {
     _StrPrinter _printer;
     switch (_type) {
         case TrackTitle: {
@@ -106,9 +106,9 @@ string SdpTrack::toString() const {
         case TrackAudio:
         case TrackVideo: {
             if (_type == TrackAudio) {
-                _printer << "m=audio 0 RTP/AVP " << _pt << "\r\n";
+                _printer << "m=audio " << port << " RTP/AVP " << _pt << "\r\n";
             } else {
-                _printer << "m=video 0 RTP/AVP " << _pt << "\r\n";
+                _printer << "m=video " << port << " RTP/AVP " << _pt << "\r\n";
             }
             if (!_b.empty()) {
                 _printer << "b=" << _b << "\r\n";
