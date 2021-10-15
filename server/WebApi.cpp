@@ -38,7 +38,8 @@
 #include "Rtp/RtpServer.h"
 #endif
 #ifdef ENABLE_WEBRTC
-#include "../webrtc/WebRtcTransport.h"
+#include "../webrtc/WebRtcPlayer.h"
+#include "../webrtc/WebRtcPusher.h"
 #endif
 
 using namespace toolkit;
@@ -1219,8 +1220,7 @@ void installWebApi() {
                     }
                     //还原成rtc，目的是为了hook时识别哪种播放协议
                     info._schema = "rtc";
-                    auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
-                    rtc->attach(src, info, true);
+                    auto rtc = WebRtcPlayer::create(EventPollerPool::Instance().getPoller(), src, info);
                     val["sdp"] = rtc->getAnswerSdp(offer_sdp);
                     val["type"] = "answer";
                     invoker(200, headerOut, val.toStyledString());
@@ -1248,9 +1248,8 @@ void installWebApi() {
                     }
                     auto push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
                     push_src->setProtocolTranslation(enableHls, enableMP4);
-                    auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
+                    auto rtc = WebRtcPusher::create(EventPollerPool::Instance().getPoller(), push_src, info);
                     push_src->setListener(rtc);
-                    rtc->attach(push_src, info, false);
                     val["sdp"] = rtc->getAnswerSdp(offer_sdp);
                     val["type"] = "answer";
                     invoker(200, headerOut, val.toStyledString());
