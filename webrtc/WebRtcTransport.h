@@ -166,14 +166,6 @@ public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
     ~WebRtcTransportImp() override;
 
-    /**
-     * 创建WebRTC对象
-     * @param poller 改对象需要绑定的线程
-     * @return 对象
-     */
-    static Ptr get(const string &key); // 借用
-    static Ptr move(const string &key); // 所有权转移
-
     void setSession(Session::Ptr session);
     const Session::Ptr& getSession() const;
     uint64_t getBytesUsage() const;
@@ -231,4 +223,16 @@ private:
     unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
     //根据接收rtp的pt获取相关信息
     unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _pt_to_track;
+};
+
+class WebRtcTransportManager {
+    mutable mutex _mtx;
+    unordered_map<string, weak_ptr<WebRtcTransportImp> > _map;
+    WebRtcTransportManager() = default;
+
+public:
+    static WebRtcTransportManager& instance();
+    void addItem(string key, const WebRtcTransportImp::Ptr &ptr);
+    WebRtcTransportImp::Ptr getItem(const string &key);
+    void removeItem(string key);
 };
