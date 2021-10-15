@@ -187,9 +187,9 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
 bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type) {
     switch (type){
         case Recorder::type_hls :
-            return _hls ? true : false;
+            return !!_hls;
         case Recorder::type_mp4 :
-            return _mp4 ? true : false;
+            return !!_mp4;
         default:
             return false;
     }
