@@ -454,6 +454,7 @@ std::shared_ptr<RtcpSdes> RtcpSdes::create(const std::vector<string> &item_text)
     auto real_size = sizeof(RtcpSdes) - sizeof(SdesChunk) + item_total_size;
     auto bytes = alignSize(real_size);
     auto ptr = (RtcpSdes *) new char[bytes];
+    memset(ptr, 0x00, bytes);
     auto item_ptr = &ptr->chunks;
     for (auto &text : item_text) {
         item_ptr->txt_len = (0xFF & text.size());
