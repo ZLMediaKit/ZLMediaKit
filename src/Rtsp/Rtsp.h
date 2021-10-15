@@ -216,7 +216,7 @@ public:
     map<char, string> _other;
     multimap<string, string> _attr;
 
-    string toString() const;
+    string toString(uint16_t port = 0) const;
     string getName() const;
     string getControlUrl(const string &base_url) const;
 
