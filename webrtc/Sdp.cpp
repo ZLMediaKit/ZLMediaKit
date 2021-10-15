@@ -1707,7 +1707,9 @@ RETRY:
                 default: continue;
             }
 
-            answer_media.direction = matchDirection(offer_media.direction, configure.direction);
+            //如果codec匹配失败，那么禁用该track
+            answer_media.direction = check_codec ? matchDirection(offer_media.direction, configure.direction)
+                                                 : RtpDirection::inactive;
             if (answer_media.direction == RtpDirection::invalid) {
                 continue;
             }
