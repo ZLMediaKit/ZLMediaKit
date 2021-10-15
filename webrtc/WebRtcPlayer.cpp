@@ -24,7 +24,6 @@ WebRtcPlayer::Ptr WebRtcPlayer::create(const EventPoller::Ptr &poller,
 WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller,
                            const RtspMediaSource::Ptr &src,
                            const MediaInfo &info) : WebRtcTransportImp(poller) {
-    InfoL << this;
     _media_info = info;
     _play_src = src;
     CHECK(_play_src);

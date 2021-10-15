@@ -28,11 +28,13 @@ public:
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
+    std::string getIdentifier() const override;
 
 private:
     void onRecv_l(const Buffer::Ptr &);
 
 private:
+    std::string _identifier;
     bool _find_transport = true;
     Ticker _ticker;
     struct sockaddr _peer_addr;

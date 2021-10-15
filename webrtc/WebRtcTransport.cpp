@@ -45,12 +45,12 @@ static onceToken token([]() {
 
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
+    _identifier = to_string(reinterpret_cast<uint64_t>(this));
 }
 
 void WebRtcTransport::onCreate(){
-    _key = to_string(reinterpret_cast<uint64_t>(this));
     _dtls_transport = std::make_shared<RTC::DtlsTransport>(_poller, this);
-    _ice_server = std::make_shared<RTC::IceServer>(this, _key, makeRandStr(24));
+    _ice_server = std::make_shared<RTC::IceServer>(this, _identifier, makeRandStr(24));
 }
 
 void WebRtcTransport::onDestory(){
@@ -62,8 +62,8 @@ const EventPoller::Ptr& WebRtcTransport::getPoller() const{
     return _poller;
 }
 
-const string &WebRtcTransport::getKey() const {
-    return _key;
+const string &WebRtcTransport::getIdentifier() const {
+    return _identifier;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -310,11 +310,11 @@ void WebRtcTransportImp::onCreate(){
 }
 
 WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller) : WebRtcTransport(poller) {
-    InfoL << this;
+    InfoL << getIdentifier();
 }
 
 WebRtcTransportImp::~WebRtcTransportImp() {
-    InfoL << this;
+    InfoL << getIdentifier();
 }
 
 void WebRtcTransportImp::onDestory() {
@@ -889,7 +889,7 @@ public:
 
 void WebRtcTransportImp::registerSelf() {
     _self =  static_pointer_cast<WebRtcTransportImp>(shared_from_this());
-    WebRtcTransportManager::instance().addItem(getKey(), _self);
+    WebRtcTransportManager::instance().addItem(getIdentifier(), _self);
 }
 
 void WebRtcTransportImp::unrefSelf() {
@@ -898,7 +898,7 @@ void WebRtcTransportImp::unrefSelf() {
 
 void WebRtcTransportImp::unregisterSelf() {
     unrefSelf();
-    WebRtcTransportManager::instance().removeItem(getKey());
+    WebRtcTransportManager::instance().removeItem(getIdentifier());
 }
 
 WebRtcTransportImp::Ptr WebRtcTransportImp::get(const string &key) {

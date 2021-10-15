@@ -77,7 +77,7 @@ public:
     void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
 
     const EventPoller::Ptr& getPoller() const;
-    const string& getKey() const;
+    const string& getIdentifier() const;
 
 protected:
     ////  dtls相关的回调 ////
@@ -130,7 +130,7 @@ protected:
 
 private:
     uint8_t _srtp_buf[2000];
-    string _key;
+    string _identifier;
     EventPoller::Ptr _poller;
     std::shared_ptr<RTC::IceServer> _ice_server;
     std::shared_ptr<RTC::DtlsTransport> _dtls_transport;
