@@ -24,7 +24,6 @@ WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
 WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
                            const RtspMediaSource::Ptr &src,
                            const MediaInfo &info) : WebRtcTransportImp(poller) {
-    InfoL << this;
     _media_info = info;
     _push_src = src;
     CHECK(_push_src);

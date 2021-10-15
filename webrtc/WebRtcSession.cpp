@@ -14,7 +14,6 @@
 WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : UdpSession(sock) {
     socklen_t addr_len = sizeof(_peer_addr);
     getpeername(sock->rawFD(), &_peer_addr, &addr_len);
-    InfoP(this);
 }
 
 WebRtcSession::~WebRtcSession() {
@@ -61,9 +60,12 @@ void WebRtcSession::onRecv_l(const Buffer::Ptr &buffer) {
     if (_find_transport) {
         //只允许寻找一次transport
         _find_transport = false;
-        _transport = WebRtcTransportImp::move(getUserName(buffer));
+        auto user_name = getUserName(buffer);
+        _identifier = user_name + '-' + to_string(reinterpret_cast<uint64_t>(this));
+        _transport = WebRtcTransportImp::move(user_name);
         CHECK(_transport && _transport->getPoller()->isCurrentThread());
         _transport->setSession(shared_from_this());
+        InfoP(this);
     }
     _ticker.resetTime();
     CHECK(_transport);
@@ -96,3 +98,8 @@ void WebRtcSession::onManager() {
         return;
     }
 }
+
+std::string WebRtcSession::getIdentifier() const {
+    return _identifier;
+}
+
