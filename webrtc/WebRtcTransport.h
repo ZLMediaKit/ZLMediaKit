@@ -116,8 +116,6 @@ protected:
     virtual void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) = 0;
 
 protected:
-    RtcSession::Ptr _offer_sdp;
-    RtcSession::Ptr _answer_sdp;
     RTC::TransportTuple* getSelectedTuple() const;
     void sendRtcpRemb(uint32_t ssrc, size_t bit_rate);
     void sendRtcpPli(uint32_t ssrc);
@@ -125,6 +123,10 @@ protected:
 private:
     void onSendSockData(const char *buf, size_t len, bool flush = true);
     void setRemoteDtlsFingerprint(const RtcSession &remote);
+
+protected:
+    RtcSession::Ptr _offer_sdp;
+    RtcSession::Ptr _answer_sdp;
 
 private:
     uint8_t _srtp_buf[2000];
@@ -159,7 +161,7 @@ public:
     std::shared_ptr<RtpChannel> getRtpChannel(uint32_t ssrc) const;
 };
 
-class WebRtcTransportImp : public WebRtcTransport, public MediaSourceEvent{
+class WebRtcTransportImp : public WebRtcTransport {
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
     ~WebRtcTransportImp() override;
@@ -169,20 +171,19 @@ public:
      * @param poller 改对象需要绑定的线程
      * @return 对象
      */
-    static Ptr create(const EventPoller::Ptr &poller);
     static Ptr get(const string &key); // 借用
     static Ptr move(const string &key); // 所有权转移
 
     void setSession(Session::Ptr session);
-
-    /**
-     * 绑定rtsp媒体源
-     * @param src 媒体源
-     * @param is_play 是播放还是推流
-     */
-    void attach(const RtspMediaSource::Ptr &src, const MediaInfo &info, bool is_play = true);
+    const Session::Ptr& getSession() const;
+    uint64_t getBytesUsage() const;
+    uint64_t getDuration() const;
+    bool canSendRtp() const;
+    bool canRecvRtp() const;
+    void onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
 
 protected:
+    WebRtcTransportImp(const EventPoller::Ptr &poller);
     void onStartWebRTC() override;
     void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) override;
     void onCheckSdp(SdpType type, RtcSession &sdp) override;
@@ -192,30 +193,13 @@ protected:
     void onRtcp(const char *buf, size_t len) override;
     void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) override;
     void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) override {};
-
-    void onShutdown(const SockException &ex) override;
-
-    ///////MediaSourceEvent override///////
-    // 关闭
-    bool close(MediaSource &sender, bool force) override;
-    // 播放总人数
-    int totalReaderCount(MediaSource &sender) override;
-    // 获取媒体源类型
-    MediaOriginType getOriginType(MediaSource &sender) const override;
-    // 获取媒体源url或者文件路径
-    string getOriginUrl(MediaSource &sender) const override;
-    // 获取媒体源客户端相关信息
-    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
-
-private:
-    WebRtcTransportImp(const EventPoller::Ptr &poller);
     void onCreate() override;
     void onDestory() override;
-    void onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
-    SdpAttrCandidate::Ptr getIceCandidate() const;
-    bool canSendRtp() const;
-    bool canRecvRtp() const;
+    void onShutdown(const SockException &ex) override;
+    virtual void onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp) = 0;
 
+private:
+    SdpAttrCandidate::Ptr getIceCandidate() const;
     void onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp);
     void onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc);
     void onSendTwcc(uint32_t ssrc, const string &twcc_fci);
@@ -226,14 +210,11 @@ private:
     void onCheckAnswer(RtcSession &sdp);
 
 private:
-    bool _simulcast = false;
     uint16_t _rtx_seq[2] = {0, 0};
     //用掉的总流量
     uint64_t _bytes_usage = 0;
     //保持自我强引用
     Ptr _self;
-    //媒体相关元数据
-    MediaInfo _media_info;
     //检测超时的定时器
     Timer::Ptr _timer;
     //刷新计时器
@@ -242,18 +223,12 @@ private:
     Ticker _pli_ticker;
     //udp session
     Session::Ptr _session;
-    //推流的rtsp源
-    RtspMediaSource::Ptr _push_src;
-    unordered_map<string/*rid*/, RtspMediaSource::Ptr> _push_src_simulcast;
-    //播放的rtsp源
-    RtspMediaSource::Ptr _play_src;
-    //播放rtsp源的reader对象
-    RtspMediaSource::RingType::RingReader::Ptr _reader;
+    //twcc rtcp发送上下文对象
+    TwccContext _twcc_ctx;
     //根据发送rtp的track类型获取相关信息
     MediaTrack::Ptr _type_to_track[2];
-    //根据接收rtp的pt获取相关信息
-    unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _pt_to_track;
     //根据rtcp的ssrc获取相关信息，收发rtp和rtx的ssrc都会记录
     unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
-    TwccContext _twcc_ctx;
+    //根据接收rtp的pt获取相关信息
+    unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _pt_to_track;
 };
