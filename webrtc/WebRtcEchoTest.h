@@ -31,8 +31,6 @@ protected:
 
 private:
     WebRtcEchoTest(const EventPoller::Ptr &poller);
-
 };
-
 
 #endif //ZLMEDIAKIT_WEBRTCECHOTEST_H
