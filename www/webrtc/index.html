@@ -46,7 +46,8 @@
             </p>
 
             <p>
-              <label for="methond">methond(play or push):</label>
+              <label for="methond">methond(play or push or echo):</label>
+              <input type="radio" name="methond" value="echo" >echo
               <input type="radio" name="methond" value="push" >push
               <input type="radio" name="methond" value="play" checked = true>play
             </p>
@@ -84,17 +85,15 @@
       document.getElementById('streamUrl').value = url
       document.getElementsByName("methond").forEach((el,idx)=>{
         el.onclick=function(e){
-          if(el.value == "play")
-          {
-            let url = document.getElementById('streamUrl').value;
-            
-            document.getElementById('streamUrl').value = url.replace("&type=push","&type=play");
+          let url = new URL(document.getElementById('streamUrl').value);
+          url.searchParams.set("type",el.value)
+          document.getElementById('streamUrl').value = url.toString()
+          
+          if(el.value == "play"){
             recvOnly = true;
-          }
-          else
-          {
-            let url = document.getElementById('streamUrl').value;
-            document.getElementById('streamUrl').value = url.replace("&type=play","&type=push");
+          }else if(el.value == "echo"){ 
+            recvOnly = false;
+          }else{
             recvOnly = false;
           }
         };
