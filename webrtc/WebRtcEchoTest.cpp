@@ -10,7 +10,6 @@
 
 #include "WebRtcEchoTest.h"
 
-
 WebRtcEchoTest::Ptr WebRtcEchoTest::create(const EventPoller::Ptr &poller) {
     WebRtcEchoTest::Ptr ret(new WebRtcEchoTest(poller), [](WebRtcEchoTest *ptr) {
         ptr->onDestory();
@@ -35,4 +34,3 @@ void WebRtcEchoTest::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
 void WebRtcEchoTest::onRtcp(const char *buf, size_t len) {
     sendRtcpPacket(buf, len, true, nullptr);
 }
-
