@@ -857,10 +857,9 @@ uint64_t WebRtcTransportImp::getDuration() const{
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-
 void WebRtcTransportImp::registerSelf() {
     _self =  static_pointer_cast<WebRtcTransportImp>(shared_from_this());
-    WebRtcTransportManager::instance().addItem(getIdentifier(), _self);
+    WebRtcTransportManager::Instance().addItem(getIdentifier(), _self);
 }
 
 void WebRtcTransportImp::unrefSelf() {
@@ -869,17 +868,19 @@ void WebRtcTransportImp::unrefSelf() {
 
 void WebRtcTransportImp::unregisterSelf() {
     unrefSelf();
-    WebRtcTransportManager::instance().removeItem(getIdentifier());
+    WebRtcTransportManager::Instance().removeItem(getIdentifier());
 }
 
-WebRtcTransportManager &WebRtcTransportManager::instance() {
+WebRtcTransportManager &WebRtcTransportManager::Instance() {
     static WebRtcTransportManager s_instance;
     return s_instance;
 }
+
 void WebRtcTransportManager::addItem(string key, const WebRtcTransportImp::Ptr &ptr) {
     lock_guard<mutex> lck(_mtx);
     _map[key] = ptr;
 }
+
 WebRtcTransportImp::Ptr WebRtcTransportManager::getItem(const string &key) {
     if (key.empty()) {
         return nullptr;
@@ -891,6 +892,7 @@ WebRtcTransportImp::Ptr WebRtcTransportManager::getItem(const string &key) {
     }
     return it->second.lock();
 }
+
 void WebRtcTransportManager::removeItem(string key) {
     lock_guard<mutex> lck(_mtx);
     _map.erase(key);

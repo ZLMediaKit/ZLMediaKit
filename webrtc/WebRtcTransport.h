@@ -226,13 +226,14 @@ private:
 };
 
 class WebRtcTransportManager {
+public:
+    static WebRtcTransportManager &Instance();
+    void addItem(string key, const WebRtcTransportImp::Ptr &ptr);
+    void removeItem(string key);
+    WebRtcTransportImp::Ptr getItem(const string &key);
+
+private:
+    WebRtcTransportManager() = default;
     mutable mutex _mtx;
     unordered_map<string, weak_ptr<WebRtcTransportImp> > _map;
-    WebRtcTransportManager() = default;
-
-public:
-    static WebRtcTransportManager& instance();
-    void addItem(string key, const WebRtcTransportImp::Ptr &ptr);
-    WebRtcTransportImp::Ptr getItem(const string &key);
-    void removeItem(string key);
 };
