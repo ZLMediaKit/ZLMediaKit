@@ -1713,6 +1713,10 @@ RETRY:
             if (answer_media.direction == RtpDirection::invalid) {
                 continue;
             }
+            if (answer_media.direction == RtpDirection::sendrecv) {
+                //如果是收发双向，那么我们拷贝offer sdp的ssrc，确保ssrc一致
+                answer_media.rtp_rtx_ssrc = offer_media.rtp_rtx_ssrc;
+            }
 
             //添加媒体plan
             answer_media.plan.emplace_back(*selected_plan);
