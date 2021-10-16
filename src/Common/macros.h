@@ -78,11 +78,6 @@ extern const char kServerName[];
 
 void printArgs(std::ostream &out);
 
-template<typename First>
-void printArgs(std::ostream &out, First &&first) {
-    out << std::forward<First>(first);
-}
-
 template<typename First, typename ...ARGS>
 void printArgs(std::ostream &out, First &&first, ARGS &&...args) {
     out << std::forward<First>(first);
