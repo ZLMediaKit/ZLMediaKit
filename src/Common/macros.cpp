@@ -9,10 +9,31 @@
  */
 
 #include "macros.h"
+#include "Util/util.h"
+
+using namespace toolkit;
 
 #if defined(ENABLE_VERSION)
 #include "Version.h"
 #endif
+
+extern "C" {
+void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line, const char *str) {
+    if (failed) {
+        _StrPrinter printer;
+        printer << "Assertion failed: (" << exp ;
+        if(str && *str){
+            printer << ", " << str;
+        }
+        printer << "), function " << func << ", file " << file << ", line " << line << ".";
+        throw std::runtime_error(printer);
+    }
+}
+}
+
+namespace mediakit {
+
+void printArgs(std::ostream &out) {}
 
 //请遵循MIT协议，勿修改服务器声明
 #if !defined(ENABLE_VERSION)
@@ -21,3 +42,4 @@ const char SERVER_NAME[] =  "ZLMediaKit-6.0(build in " __DATE__ " " __TIME__ ")"
 const char SERVER_NAME[] = "ZLMediaKit(git hash:" COMMIT_HASH ",branch:" BRANCH_NAME ",build time:" __DATE__ " " __TIME__ ")";
 #endif
 
+}//namespace mediakit
