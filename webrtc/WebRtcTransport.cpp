@@ -187,6 +187,7 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
         _offer_sdp = std::make_shared<RtcSession>();
         _offer_sdp->loadFrom(offer);
         onCheckSdp(SdpType::offer, *_offer_sdp);
+        _offer_sdp->checkValid();
         setRemoteDtlsFingerprint(*_offer_sdp);
 
         //// sdp 配置 ////
@@ -201,6 +202,7 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
         //// 生成answer sdp ////
         _answer_sdp = configure.createAnswer(*_offer_sdp);
         onCheckSdp(SdpType::answer, *_answer_sdp);
+        _answer_sdp->checkValid();
         return _answer_sdp->toString();
     } catch (exception &ex) {
         onShutdown(SockException(Err_shutdown, ex.what()));
@@ -457,10 +459,9 @@ void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
 }
 
 void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) {
-    sdp.checkSdp();
     switch (type) {
         case SdpType::answer: onCheckAnswer(sdp); break;
-        case SdpType::offer: sdp.checkValidSSRC(); break;
+        case SdpType::offer: break;
         default: /*不可达*/ assert(0); break;
     }
 }
