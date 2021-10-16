@@ -37,9 +37,9 @@ void printArgs(std::ostream &out) {}
 
 //请遵循MIT协议，勿修改服务器声明
 #if !defined(ENABLE_VERSION)
-const char SERVER_NAME[] =  "ZLMediaKit-6.0(build in " __DATE__ " " __TIME__ ")";
+const char kServerName[] =  "ZLMediaKit-6.0(build in " __DATE__ " " __TIME__ ")";
 #else
-const char SERVER_NAME[] = "ZLMediaKit(git hash:" COMMIT_HASH ",branch:" BRANCH_NAME ",build time:" __DATE__ " " __TIME__ ")";
+const char kServerName[] = "ZLMediaKit(git hash:" COMMIT_HASH ",branch:" BRANCH_NAME ",build time:" __DATE__ " " __TIME__ ")";
 #endif
 
 }//namespace mediakit

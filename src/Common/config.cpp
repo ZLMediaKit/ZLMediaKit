@@ -138,7 +138,7 @@ onceToken token([](){
                                                 "<body bgcolor=\"white\">"
                                                 "<center><h1>您访问的资源不存在！</h1></center>"
                                                 "<hr><center>"
-                                             << SERVER_NAME
+                                             << kServerName
                                              << "</center>"
                                                 "</body>"
                                                 "</html>"

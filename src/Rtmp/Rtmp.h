@@ -306,7 +306,7 @@ public:
               const map<string,string> &header = map<string,string>()){
         _metadata.set("duration", dur_sec);
         _metadata.set("fileSize", (int)fileSize);
-        _metadata.set("server",SERVER_NAME);
+        _metadata.set("server",kServerName);
         for (auto &pr : header){
             _metadata.set(pr.first, pr.second);
         }

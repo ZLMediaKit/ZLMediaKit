@@ -74,7 +74,7 @@ extern void Assert_Throw(int failed, const char *exp, const char *func, const ch
 
 namespace mediakit {
 
-extern const char SERVER_NAME[];
+extern const char kServerName[];
 
 void printArgs(std::ostream &out);
 
