@@ -40,6 +40,7 @@
 #ifdef ENABLE_WEBRTC
 #include "../webrtc/WebRtcPlayer.h"
 #include "../webrtc/WebRtcPusher.h"
+#include "../webrtc/WebRtcEchoTest.h"
 #endif
 
 using namespace toolkit;
@@ -1268,6 +1269,14 @@ void installWebApi() {
                 GET_CONFIG(bool, toMP4, General::kPublishToMP4);
                 authInvoker("", toHls, toMP4);
             }
+            return;
+        }
+
+        if (!strcasecmp(type.data(), "echo")) {
+            auto rtc = WebRtcEchoTest::create(EventPollerPool::Instance().getPoller());
+            val["sdp"] = rtc->getAnswerSdp(offer_sdp);
+            val["type"] = "answer";
+            invoker(200, headerOut, val.toStyledString());
             return;
         }
 

@@ -435,6 +435,10 @@ void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
         if (m.type == TrackApplication) {
             continue;
         }
+        if (!m.rtp_rtx_ssrc.empty()) {
+            //已经生成了ssrc
+            continue;
+        }
         //添加answer sdp的ssrc信息
         m.rtp_rtx_ssrc.emplace_back();
         auto &ssrc = m.rtp_rtx_ssrc.back();
@@ -666,6 +670,10 @@ void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, Medi
         }
     });
     InfoL << "create rtp receiver of ssrc:" << ssrc << ", rid:" << rid << ", codec:" << track.plan_rtp->codec;
+}
+
+void WebRtcTransportImp::updateTicker() {
+    _alive_ticker.resetTime();
 }
 
 void WebRtcTransportImp::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
