@@ -307,21 +307,9 @@ const string kMediaTimeoutMS = "media_timeout_ms";
 const string kBeatIntervalMS = "beat_interval_ms";
 const string kMaxAnalysisMS = "max_analysis_ms";
 const string kBenchmarkMode = "benchmark_mode";
-
 }
 
 }  // namespace mediakit
-
-extern "C" {
-void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line) {
-    if (failed) {
-        _StrPrinter printer;
-        printer << "Assertion failed: (" << exp << "), function " << func << ", file " << file << ", line " << line
-                << ".";
-        throw std::runtime_error(printer);
-    }
-}
-}
 
 #ifdef ENABLE_MEM_DEBUG
 

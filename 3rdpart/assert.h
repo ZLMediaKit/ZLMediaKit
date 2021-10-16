@@ -21,12 +21,12 @@
     #ifdef __cplusplus
     extern "C" {
     #endif
-    extern void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line);
+    extern void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line, const char *str);
     #ifdef __cplusplus
     }
     #endif
 
-    #define assert(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__)
+    #define assert(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__, NULL)
 #else
     #define	assert(e)	((void)0)
 #endif//NDEBUG
