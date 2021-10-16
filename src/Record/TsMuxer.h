@@ -85,9 +85,9 @@ class TsMuxer : public MediaSinkInterface {
 public:
     TsMuxer() {}
     ~TsMuxer() override {}
-    void addTrack(const Track::Ptr &track) override {}
+    bool addTrack(const Track::Ptr &track) override { return false; }
     void resetTracks() override {}
-    void inputFrame(const Frame::Ptr &frame) override {}
+    bool inputFrame(const Frame::Ptr &frame) override { return false; }
 
 protected:
     virtual void onTs(std::shared_ptr<Buffer> buffer, uint32_t timestamp,bool is_idr_fast_packet) = 0;
