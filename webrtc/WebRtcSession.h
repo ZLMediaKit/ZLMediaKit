@@ -18,8 +18,6 @@
 
 using namespace toolkit;
 
-EventPoller::Ptr QueryPollerByBuffer(const Buffer::Ptr &buffer);
-
 class WebRtcSession : public UdpSession {
 public:
     WebRtcSession(const Socket::Ptr &sock);
@@ -29,6 +27,8 @@ public:
     void onError(const SockException &err) override;
     void onManager() override;
     std::string getIdentifier() const override;
+
+    static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
 
 private:
     void onRecv_l(const Buffer::Ptr &);
