@@ -44,7 +44,7 @@ EventPoller::Ptr QueryPollerByBuffer(const Buffer::Ptr &buffer) {
     if (user_name.empty()) {
         return nullptr;
     }
-    auto ret = WebRtcTransportManager::instance().getItem(user_name);
+    auto ret = WebRtcTransportManager::Instance().getItem(user_name);
     return ret ? ret->getPoller() : nullptr;
 }
 
@@ -62,7 +62,7 @@ void WebRtcSession::onRecv_l(const Buffer::Ptr &buffer) {
         _find_transport = false;
         auto user_name = getUserName(buffer);
         _identifier = user_name + '-' + to_string(reinterpret_cast<uint64_t>(this));
-        auto transport = WebRtcTransportManager::instance().getItem(user_name);
+        auto transport = WebRtcTransportManager::Instance().getItem(user_name);
         CHECK(transport && transport->getPoller()->isCurrentThread());
         transport->setSession(shared_from_this());
         _transport = std::move(transport);
