@@ -1187,11 +1187,8 @@ void installWebApi() {
 
 #ifdef ENABLE_WEBRTC
     api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
-        CHECK_ARGS("app", "stream");
-
         auto offer_sdp = allArgs.getArgs();
         auto type = allArgs["type"];
-        MediaInfo info(StrPrinter << "rtc://" << allArgs["Host"] << "/" << allArgs["app"] << "/" << allArgs["stream"] << "?" << allArgs.getParser().Params());
 
         //设置返回类型
         headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
@@ -1199,6 +1196,9 @@ void installWebApi() {
         headerOut["Access-Control-Allow-Origin"] = "*";
 
         if (type.empty() || !strcasecmp(type.data(), "play")) {
+            CHECK_ARGS("app", "stream");
+            MediaInfo info(StrPrinter << "rtc://" << allArgs["Host"] << "/" << allArgs["app"] << "/" << allArgs["stream"] << "?" << allArgs.getParser().Params());
+
             auto session = static_cast<TcpSession*>(&sender);
             auto session_ptr = session->shared_from_this();
             Broadcast::AuthInvoker authInvoker = [invoker, offer_sdp, val, info, headerOut, session_ptr](const string &err) mutable {
@@ -1238,6 +1238,9 @@ void installWebApi() {
         }
 
         if (!strcasecmp(type.data(), "push")) {
+            CHECK_ARGS("app", "stream");
+            MediaInfo info(StrPrinter << "rtc://" << allArgs["Host"] << "/" << allArgs["app"] << "/" << allArgs["stream"] << "?" << allArgs.getParser().Params());
+
             Broadcast::PublishAuthInvoker authInvoker = [invoker, offer_sdp, val, info, headerOut](const string &err, bool enableHls, bool enableMP4) mutable {
                 try {
                     auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid));
