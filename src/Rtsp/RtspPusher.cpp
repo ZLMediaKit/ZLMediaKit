@@ -377,7 +377,7 @@ void RtspPusher::updateRtcpContext(const RtpPacket::Ptr &rtp){
 
         auto ssrc = rtp->getSSRC();
         auto rtcp = rtcp_ctx->createRtcpSR(ssrc + 1);
-        auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
+        auto rtcp_sdes = RtcpSdes::create({kServerName});
         rtcp_sdes->chunks.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
         rtcp_sdes->chunks.ssrc = htonl(ssrc);
         send_rtcp(this, track_index, std::move(rtcp));
@@ -511,7 +511,7 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url, const std
 void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrCaseMap &header_const,const string &sdp ) {
     auto header = header_const;
     header.emplace("CSeq", StrPrinter << _cseq++);
-    header.emplace("User-Agent", SERVER_NAME);
+    header.emplace("User-Agent", kServerName);
 
     if (!_session_id.empty()) {
         header.emplace("Session", _session_id);
