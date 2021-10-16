@@ -189,6 +189,7 @@ protected:
     void onDestory() override;
     void onShutdown(const SockException &ex) override;
     virtual void onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp) = 0;
+    void updateTicker();
 
 private:
     SdpAttrCandidate::Ptr getIceCandidate() const;
