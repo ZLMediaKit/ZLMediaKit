@@ -75,6 +75,8 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
     }
     if (_pid == 0) {
+        //取消cpu亲和性设置，防止FFmpeg进程cpu占用率不能超过100%的问题
+        setThreadAffinity(-1);
         string log_file;
         if (log_file_tmp.empty()) {
             //未指定子进程日志文件时，重定向至/dev/null
