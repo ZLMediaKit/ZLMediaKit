@@ -34,3 +34,14 @@ void WebRtcEchoTest::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
 void WebRtcEchoTest::onRtcp(const char *buf, size_t len) {
     sendRtcpPacket(buf, len, true, nullptr);
 }
+
+//修改mline的a=msid属性，目的是在echo test的情况下，如果offer和answer的msid相同，chrome会忽略远端的track
+void WebRtcEchoTest::onCheckSdp(SdpType type, RtcSession &sdp) {
+    if (type == SdpType::answer) {
+        for (auto &m : sdp.media) {
+            for (auto &ssrc : m.rtp_rtx_ssrc) {
+                ssrc.msid = "zlmediakit msid";
+            }
+        }
+    }
+}
