@@ -9,7 +9,6 @@
  */
 
 #include "mk_util.h"
-#include <stdarg.h>
 #include <assert.h>
 #include "Util/util.h"
 #include "Util/logger.h"
@@ -46,14 +45,9 @@ API_EXPORT char* API_CALL mk_util_hex_dump(const void *buf, int len){
 }
 
 API_EXPORT void API_CALL mk_log_printf(int level, const char *file, const char *function, int line, const char *fmt, ...) {
-    assert(file && function && fmt);
-    LogContextCapturer info(Logger::Instance(), (LogLevel) level, file, function, line);
     va_list ap;
     va_start(ap, fmt);
-    char *str = nullptr;
-    vasprintf(&str, fmt, ap);
+    toolkit::printLog(getLogger(), level, file, function, line, fmt, ap);
     va_end(ap);
-    info << str;
-    free(str);
 }
 
