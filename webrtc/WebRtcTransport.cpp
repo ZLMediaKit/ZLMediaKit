@@ -885,7 +885,7 @@ WebRtcTransportManager &WebRtcTransportManager::Instance() {
     return s_instance;
 }
 
-void WebRtcTransportManager::addItem(string key, const WebRtcTransportImp::Ptr &ptr) {
+void WebRtcTransportManager::addItem(const string &key, const WebRtcTransportImp::Ptr &ptr) {
     lock_guard<mutex> lck(_mtx);
     _map[key] = ptr;
 }
@@ -902,7 +902,106 @@ WebRtcTransportImp::Ptr WebRtcTransportManager::getItem(const string &key) {
     return it->second.lock();
 }
 
-void WebRtcTransportManager::removeItem(string key) {
+void WebRtcTransportManager::removeItem(const string &key) {
     lock_guard<mutex> lck(_mtx);
     _map.erase(key);
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+WebRtcPluginManager &WebRtcPluginManager::Instance() {
+    static WebRtcPluginManager s_instance;
+    return s_instance;
+}
+
+void WebRtcPluginManager::registerPlugin(const string &type, Plugin cb) {
+    lock_guard<mutex> lck(_mtx_creator);
+    _map_creator[type] = std::move(cb);
+}
+
+void WebRtcPluginManager::getAnswerSdp(Session &sender, const string &type, const string &offer, const WebRtcArgs &args,
+                                       const onCreateRtc &cb) {
+    lock_guard<mutex> lck(_mtx_creator);
+    auto it = _map_creator.find(type);
+    if (it == _map_creator.end()) {
+        cb(WebRtcException(SockException(Err_other, "the type can not supported")));
+        return;
+    }
+    it->second(sender, offer, args, cb);
+}
+
+#include "WebRtcPlayer.h"
+#include "WebRtcPusher.h"
+#include "WebRtcEchoTest.h"
+
+void echo_plugin(Session &sender, const string &offer, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
+    cb(*WebRtcEchoTest::create(EventPollerPool::Instance().getPoller()));
+}
+
+void push_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
+    MediaInfo info(args["url"]);
+    Broadcast::PublishAuthInvoker invoker = [cb, offer_sdp, info](const string &err, bool enable_hls, bool enable_mp4) mutable {
+        if (!err.empty()) {
+            cb(WebRtcException(SockException(Err_other, err)));
+            return;
+        }
+        auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid));
+        if (src) {
+            cb(WebRtcException(SockException(Err_other, "already publishing")));
+            return;
+        }
+
+        auto push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
+        push_src->setProtocolTranslation(enable_hls, enable_mp4);
+        auto rtc = WebRtcPusher::create(EventPollerPool::Instance().getPoller(), push_src, info);
+        push_src->setListener(rtc);
+        cb(*rtc);
+    };
+
+    //rtsp推流需要鉴权
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, info, invoker, sender);
+    if (!flag) {
+        //该事件无人监听,默认不鉴权
+        GET_CONFIG(bool, to_hls, General::kPublishToHls);
+        GET_CONFIG(bool, to_mp4, General::kPublishToMP4);
+        invoker("", to_hls, to_mp4);
+    }
+}
+
+void play_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
+    MediaInfo info(args["url"]);
+    auto session_ptr = sender.shared_from_this();
+    Broadcast::AuthInvoker invoker = [cb, offer_sdp, info, session_ptr](const string &err) mutable {
+        if (!err.empty()) {
+            cb(WebRtcException(SockException(Err_other, err)));
+            return;
+        }
+
+        //webrtc播放的是rtsp的源
+        info._schema = RTSP_SCHEMA;
+        MediaSource::findAsync(info, session_ptr, [=](const MediaSource::Ptr &src_in) mutable {
+            auto src = dynamic_pointer_cast<RtspMediaSource>(src_in);
+            if (!src) {
+                cb(WebRtcException(SockException(Err_other, "stream not found")));
+                return;
+            }
+            //还原成rtc，目的是为了hook时识别哪种播放协议
+            info._schema = RTC_SCHEMA;
+            auto rtc = WebRtcPlayer::create(EventPollerPool::Instance().getPoller(), src, info);
+            cb(*rtc);
+        });
+    };
+
+    //广播通用播放url鉴权事件
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, info, invoker, sender);
+    if (!flag) {
+        //该事件无人监听,默认不鉴权
+        invoker("");
+    }
+}
+
+static onceToken s_rtc_auto_register([](){
+    WebRtcPluginManager::Instance().registerPlugin("echo", echo_plugin);
+    WebRtcPluginManager::Instance().registerPlugin("push", push_plugin);
+    WebRtcPluginManager::Instance().registerPlugin("play", play_plugin);
+});
