@@ -35,7 +35,31 @@ extern const string kPort;
 extern const string kTimeOutSec;
 }//namespace RTC
 
-class WebRtcTransport : public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener, public std::enable_shared_from_this<WebRtcTransport> {
+class WebRtcInterface {
+public:
+    WebRtcInterface() = default;
+    virtual ~WebRtcInterface() = default;
+    virtual string getAnswerSdp(const string &offer) = 0;
+    virtual const string &getIdentifier() const = 0;
+};
+
+class WebRtcException : public WebRtcInterface {
+public:
+    WebRtcException(const SockException &ex) : _ex(ex) {};
+    ~WebRtcException() override = default;
+    string getAnswerSdp(const string &offer) override {
+        throw _ex;
+    }
+    const string &getIdentifier() const override {
+        static string s_null;
+        return s_null;
+    }
+
+private:
+    SockException _ex;
+};
+
+class WebRtcTransport : public WebRtcInterface, public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener, public std::enable_shared_from_this<WebRtcTransport> {
 public:
     using Ptr = std::shared_ptr<WebRtcTransport>;
     WebRtcTransport(const EventPoller::Ptr &poller);
@@ -56,7 +80,12 @@ public:
      * @param offer offer sdp
      * @return answer sdp
      */
-    std::string getAnswerSdp(const string &offer);
+    string getAnswerSdp(const string &offer) override;
+
+    /**
+     * 获取对象唯一id
+     */
+    const string& getIdentifier() const override;
 
     /**
      * socket收到udp数据
@@ -77,7 +106,6 @@ public:
     void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
 
     const EventPoller::Ptr& getPoller() const;
-    const string& getIdentifier() const;
 
 protected:
     ////  dtls相关的回调 ////
@@ -228,13 +256,42 @@ private:
 
 class WebRtcTransportManager {
 public:
+    friend class WebRtcTransportImp;
     static WebRtcTransportManager &Instance();
-    void addItem(string key, const WebRtcTransportImp::Ptr &ptr);
-    void removeItem(string key);
     WebRtcTransportImp::Ptr getItem(const string &key);
 
 private:
     WebRtcTransportManager() = default;
+    void addItem(const string &key, const WebRtcTransportImp::Ptr &ptr);
+    void removeItem(const string &key);
+
+private:
     mutable mutex _mtx;
     unordered_map<string, weak_ptr<WebRtcTransportImp> > _map;
+};
+
+class WebRtcArgs {
+public:
+    WebRtcArgs() = default;
+    virtual ~WebRtcArgs() = default;
+
+    virtual variant operator[](const string &key) const = 0;
+};
+
+class WebRtcPluginManager {
+public:
+    using onCreateRtc = function<void(const WebRtcInterface &rtc)>;
+    using Plugin = function<void(Session &sender, const string &offer, const WebRtcArgs &args, const onCreateRtc &cb)>;
+
+    static WebRtcPluginManager &Instance();
+
+    void registerPlugin(const string &type, Plugin cb);
+    void getAnswerSdp(Session &sender, const string &type, const string &offer, const WebRtcArgs &args, const onCreateRtc &cb);
+
+private:
+    WebRtcPluginManager() = default;
+
+private:
+    mutable mutex _mtx_creator;
+    unordered_map<string, Plugin> _map_creator;
 };
