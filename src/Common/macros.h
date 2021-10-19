@@ -58,6 +58,7 @@
 #define VHOST_KEY "vhost"
 #define HTTP_SCHEMA "http"
 #define RTSP_SCHEMA "rtsp"
+#define RTC_SCHEMA "rtc"
 #define RTMP_SCHEMA "rtmp"
 #define HLS_SCHEMA "hls"
 #define TS_SCHEMA "ts"
