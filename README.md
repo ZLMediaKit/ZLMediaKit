@@ -94,11 +94,14 @@
   
 - WebRTC
   - 支持WebRTC推流，支持转其他协议
-  - 支持WebRTC播放，支持其他协议转WebRTC     
-  - 支持simulcast
-  - 支持rtx/nack
+  - 支持WebRTC播放，支持其他协议转WebRTC
+  - 支持双向echo test     
+  - 支持simulcast推流
+  - 支持上下行rtx/nack丢包重传
   - **支持单端口、多线程、客户端网络连接迁移(开源界唯一)**。
   - 支持TWCC rtcp动态调整码率
+  - 支持remb/pli/sr/rr rtcp
+  - 支持rtp扩展解析
   
 - 其他
   - 支持丰富的restful api以及web hook事件 
