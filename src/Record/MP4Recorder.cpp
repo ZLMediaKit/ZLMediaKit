@@ -74,10 +74,12 @@ void MP4Recorder::asyncClose() {
         muxer->closeMP4();
 
         //获取文件大小
-        struct stat fileData;
-        stat(full_path_tmp.data(), &fileData);
-        info.file_size = fileData.st_size;
-        if (fileData.st_size < 1024) {
+        auto fp = fopen(full_path_tmp.data(), "rb");
+        assert(fp);
+        info.file_size = File::fileSize(fp);
+        fclose(fp);
+
+        if (info.file_size < 1024) {
             //录像文件太小，删除之
             File::delete_file(full_path_tmp.data());
             return;
