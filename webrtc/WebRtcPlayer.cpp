@@ -33,12 +33,6 @@ void WebRtcPlayer::onStartWebRTC() {
     CHECK(_play_src);
     WebRtcTransportImp::onStartWebRTC();
     if (canSendRtp()) {
-        //确保该rtp codec类型对方支持
-        memset(_can_send_rtp, 0, sizeof(_can_send_rtp));
-        for (auto &m : _answer_sdp->media) {
-            _can_send_rtp[m.type] = m.direction == RtpDirection::sendonly || m.direction == RtpDirection::sendrecv;
-        }
-
         _play_src->pause(false);
         _reader = _play_src->getRing()->attach(getPoller(), true);
         weak_ptr<WebRtcPlayer> weak_self = static_pointer_cast<WebRtcPlayer>(shared_from_this());
@@ -49,7 +43,7 @@ void WebRtcPlayer::onStartWebRTC() {
             }
             size_t i = 0;
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
-                strongSelf->beforeSendRtp(rtp, ++i == pkt->size());
+                strongSelf->onSendRtp(rtp, ++i == pkt->size());
             });
         });
         _reader->setDetachCB([weak_self]() {
@@ -90,11 +84,4 @@ void WebRtcPlayer::onRtcConfigure(RtcConfigure &configure) const {
     //这是播放
     configure.audio.direction = configure.video.direction = RtpDirection::sendonly;
     configure.setPlayRtspInfo(_play_src->getSdp());
-}
-
-void WebRtcPlayer::beforeSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx) {
-    if (!_can_send_rtp[rtp->type]) {
-        return;
-    }
-    onSendRtp(rtp, flush, rtx);
 }

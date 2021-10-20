@@ -372,7 +372,10 @@ void WebRtcTransportImp::onStartWebRTC() {
         track->rtcp_context_send = std::make_shared<RtcpContextForSend>();
 
         //rtp track type --> MediaTrack
-        _type_to_track[m_answer.type] = track;
+        if (m_answer.direction == RtpDirection::sendonly || m_answer.direction == RtpDirection::sendrecv) {
+            //该类型的track 才支持发送
+            _type_to_track[m_answer.type] = track;
+        }
         //send ssrc --> MediaTrack
         _ssrc_to_track[track->answer_ssrc_rtp] = track;
         _ssrc_to_track[track->answer_ssrc_rtx] = track;
