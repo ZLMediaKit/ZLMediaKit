@@ -98,7 +98,7 @@ void MP4Recorder::closeFile() {
 }
 
 bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
-    if (_last_dts == 0) {
+    if (_last_dts == 0 || _last_dts > frame->dts()) {
         //极少情况下dts时间戳可能回退
         _last_dts = frame->dts();
     }
