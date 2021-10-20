@@ -28,10 +28,8 @@ protected:
 
 private:
     WebRtcPlayer(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
-    void beforeSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
 
 private:
-    bool _can_send_rtp[TrackMax];
     //媒体相关元数据
     MediaInfo _media_info;
     //播放的rtsp源
