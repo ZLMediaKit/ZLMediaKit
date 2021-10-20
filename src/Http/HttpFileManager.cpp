@@ -598,7 +598,7 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     auto &strRange = const_cast<StrCaseMap &>(requestHeader)["Range"];
     size_t iRangeStart = 0;
     size_t iRangeEnd = 0;
-    size_t fileSize = HttpMultiFormBody::fileSize(fp.get());
+    size_t fileSize = File::fileSize(fp.get());
 
     int code;
     if (strRange.size() == 0) {

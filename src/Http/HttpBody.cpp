@@ -10,6 +10,7 @@
 
 #include "HttpBody.h"
 #include "Util/util.h"
+#include "Util/File.h"
 #include "Util/uv_errno.h"
 #include "Util/logger.h"
 #include "HttpClient.h"
@@ -46,14 +47,14 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 
 HttpFileBody::HttpFileBody(const string &filePath){
     std::shared_ptr<FILE> fp(fopen(filePath.data(), "rb"), [](FILE *fp) {
-        if(fp){
+        if (fp) {
             fclose(fp);
         }
     });
-    if(!fp){
-        init(fp,0,0);
-    }else{
-        init(fp,0,HttpMultiFormBody::fileSize(fp.get()));
+    if (!fp) {
+        init(fp, 0, 0);
+    } else {
+        init(fp, 0, File::fileSize(fp.get()));
     }
 }
 
@@ -61,15 +62,7 @@ HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_
     init(fp,offset,max_size);
 }
 
-#if defined(_WIN32) || defined(_WIN64)
-    #define fseek64 _fseeki64
-    #define ftell64 _ftelli64
-#else
-    #define fseek64 fseek
-    #define ftell64 ftell
-#endif
-
-void HttpFileBody::init(const std::shared_ptr<FILE> &fp,size_t offset, size_t max_size){
+void HttpFileBody::init(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size) {
     _fp = fp;
     _max_size = max_size;
 #ifdef ENABLE_MMAP
@@ -169,7 +162,7 @@ HttpMultiFormBody::HttpMultiFormBody(const HttpArgs &args,const string &filePath
     if(!fp){
         throw std::invalid_argument(StrPrinter << "open file failed：" << filePath << " " << get_uv_errmsg());
     }
-    _fileBody = std::make_shared<HttpFileBody>(fp, 0, fileSize(fp.get()));
+    _fileBody = std::make_shared<HttpFileBody>(fp, 0, File::fileSize(fp.get()));
 
     auto fileName = filePath;
     auto pos = filePath.rfind('/');
@@ -220,14 +213,6 @@ string HttpMultiFormBody::multiFormBodySuffix(const string &boundary){
     _StrPrinter body;
     body << "\r\n" << endMPboundary;
     return std::move(body);
-}
-
-size_t HttpMultiFormBody::fileSize(FILE *fp) {
-    auto current = ftell64(fp);
-    fseek64(fp, 0L, SEEK_END); /* 定位到文件末尾 */
-    auto end = ftell64(fp); /* 得到文件大小 */
-    fseek64(fp, current, SEEK_SET);
-    return end - current;
 }
 
 string HttpMultiFormBody::multiFormContentType(const string &boundary){
