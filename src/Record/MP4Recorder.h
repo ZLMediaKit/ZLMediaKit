@@ -26,16 +26,12 @@ using namespace toolkit;
 namespace mediakit {
 
 #ifdef ENABLE_MP4
-class MP4Recorder : public MediaSinkInterface{
+class MP4Recorder : public MediaSinkInterface {
 public:
-    typedef std::shared_ptr<MP4Recorder> Ptr;
+    using Ptr = std::shared_ptr<MP4Recorder>;
 
-    MP4Recorder(const string &strPath,
-                const string &strVhost,
-                const string &strApp,
-                const string &strStreamId,
-                size_t max_second);
-    virtual ~MP4Recorder();
+    MP4Recorder(const string &path, const string &vhost, const string &app, const string &stream_id, size_t max_second);
+    ~MP4Recorder() override;
 
     /**
      * 重置所有Track
@@ -56,16 +52,17 @@ private:
     void createFile();
     void closeFile();
     void asyncClose();
+
 private:
-    bool _haveVideo = false;
+    bool _have_video = false;
     size_t _max_second;
-    string _strPath;
-    string _strFile;
-    string _strFileTmp;
+    string _folder_path;
+    string _full_path;
+    string _full_path_tmp;
     RecordInfo _info;
     MP4Muxer::Ptr _muxer;
     list<Track::Ptr> _tracks;
-	uint64_t _baseSec = 0;
+    uint64_t _last_dts = 0;
 };
 
 #endif ///ENABLE_MP4
