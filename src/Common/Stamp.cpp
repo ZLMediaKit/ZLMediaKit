@@ -223,6 +223,10 @@ void NtpStamp::setNtpStamp(uint32_t rtp_stamp, uint64_t ntp_stamp_ms) {
 }
 
 void NtpStamp::update(uint32_t rtp_stamp, uint64_t ntp_stamp_ms) {
+    if (ntp_stamp_ms == 0) {
+        //实测发现有些rtsp服务器发送的rtp时间戳和ntp时间戳一直为0
+        return;
+    }
     _last_rtp_stamp = rtp_stamp;
     _last_ntp_stamp_ms = ntp_stamp_ms;
 }
