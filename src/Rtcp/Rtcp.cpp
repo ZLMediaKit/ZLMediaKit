@@ -264,6 +264,11 @@ string RtcpSR::getNtpStamp() const{
 }
 
 uint64_t RtcpSR::getNtpUnixStampMS() const {
+    if (ntpmsw < 0x83AA7E80) {
+        //ntp时间戳起始时间为1900年，但是utc时间戳起始时间为1970年，两者相差0x83AA7E80秒
+        //ntp时间戳不得早于1970年，否则无法转换为utc时间戳
+        return 0;
+    }
     struct timeval tv;
     tv.tv_sec = ntpmsw - 0x83AA7E80;
     tv.tv_usec = (decltype(tv.tv_usec)) (ntplsw / ((double) (((uint64_t) 1) << 32) * 1.0e-6));
