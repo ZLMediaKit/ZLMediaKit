@@ -275,19 +275,15 @@ public:
     ////////////////static方法，查找或生成MediaSource////////////////
 
     // 同步查找流
-    static Ptr find(const string &schema, const string &vhost, const string &app, const string &id);
+    static Ptr find(const string &schema, const string &vhost, const string &app, const string &id, bool from_mp4 = false);
 
     // 忽略类型，同步查找流，可能返回rtmp/rtsp/hls类型
-    static Ptr find(const string &vhost, const string &app, const string &stream_id);
+    static Ptr find(const string &vhost, const string &app, const string &stream_id, bool from_mp4 = false);
 
     // 异步查找流
     static void findAsync(const MediaInfo &info, const std::shared_ptr<Session> &session, const function<void(const Ptr &src)> &cb);
     // 遍历所有流
-    static void for_each_media(const function<void(const Ptr &src)> &cb,
-                               const string &schema = "",
-                               const string &vhost = "",
-                               const string &app = "",
-                               const string &stream = "");
+    static void for_each_media(const function<void(const Ptr &src)> &cb, const string &schema = "", const string &vhost = "", const string &app = "", const string &stream = "");
     // 从mp4文件生成MediaSource
     static MediaSource::Ptr createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &file_path = "", bool check_app = true);
 

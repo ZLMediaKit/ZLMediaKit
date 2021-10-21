@@ -1329,6 +1329,12 @@
 							"value": "0",
 							"description": "指定tcp/udp客户端使用的本地端口，0时为随机端口，该参数非必选参数，不传时为随机端口。",
 							"disabled": true
+						},
+						{
+							"key": "from_mp4",
+							"value": "0",
+							"description": "是否推送本地MP4录像，该参数非必选参数",
+							"disabled": true
 						}
 					]
 				}
