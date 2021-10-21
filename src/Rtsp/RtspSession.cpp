@@ -257,12 +257,13 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         }
         _rtcp_context.clear();
         for (auto &track : _sdp_track) {
-            _rtcp_context.emplace_back(std::make_shared<RtcpContext>(true));
+            _rtcp_context.emplace_back(std::make_shared<RtcpContextForRecv>());
         }
-        _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
-        _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
-        _push_src->setProtocolTranslation(enableHls, enableMP4);
-        _push_src->setSdp(parser.Content());
+        auto push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
+        push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
+        push_src->setProtocolTranslation(enableHls, enableMP4);
+        push_src->setSdp(parser.Content());
+        _push_src = std::move(push_src);
         sendRtspResponse("200 OK");
     };
 
@@ -418,7 +419,7 @@ void RtspSession::onAuthSuccess() {
         }
         strongSelf->_rtcp_context.clear();
         for (auto &track : strongSelf->_sdp_track) {
-            strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContext>(false));
+            strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContextForSend>());
         }
         strongSelf->_sessionid = makeRandStr(12);
         strongSelf->_play_src = rtsp_src;
@@ -1027,7 +1028,7 @@ bool RtspSession::sendRtspResponse(const string &res_code, const StrCaseMap &hea
         header.emplace("Session", _sessionid);
     }
 
-    header.emplace("Server",SERVER_NAME);
+    header.emplace("Server",kServerName);
     header.emplace("Date",dateStr());
 
     if(!sdp.empty()){
@@ -1162,7 +1163,7 @@ void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
 
         auto ssrc = rtp->getSSRC();
         auto rtcp = _push_src ?  rtcp_ctx->createRtcpRR(ssrc + 1, ssrc) : rtcp_ctx->createRtcpSR(ssrc);
-        auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
+        auto rtcp_sdes = RtcpSdes::create({kServerName});
         rtcp_sdes->chunks.type = (uint8_t)SdesType::RTCP_SDES_CNAME;
         rtcp_sdes->chunks.ssrc = htonl(ssrc);
         send_rtcp(this, track_index, std::move(rtcp));

@@ -223,6 +223,10 @@ void NtpStamp::setNtpStamp(uint32_t rtp_stamp, uint64_t ntp_stamp_ms) {
 }
 
 void NtpStamp::update(uint32_t rtp_stamp, uint64_t ntp_stamp_ms) {
+    if (ntp_stamp_ms == 0) {
+        //实测发现有些rtsp服务器发送的rtp时间戳和ntp时间戳一直为0
+        return;
+    }
     _last_rtp_stamp = rtp_stamp;
     _last_ntp_stamp_ms = ntp_stamp_ms;
 }
@@ -231,9 +235,7 @@ uint64_t NtpStamp::getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate) {
     if (rtp_stamp == _last_rtp_stamp) {
         return _last_ntp_stamp_ms;
     }
-    auto ret = getNtpStamp_l(rtp_stamp, sample_rate);
-    _last_rtp_stamp = rtp_stamp;
-    return ret;
+    return getNtpStamp_l(rtp_stamp, sample_rate);
 }
 
 uint64_t NtpStamp::getNtpStamp_l(uint32_t rtp_stamp, uint32_t sample_rate) {

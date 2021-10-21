@@ -303,7 +303,7 @@ static MediaSource::Ptr find_l(const string &schema, const string &vhost_in, con
     MediaSource::Ptr ret;
     MediaSource::for_each_media([&](const MediaSource::Ptr &src) { ret = std::move(const_cast<MediaSource::Ptr &>(src)); }, schema, vhost, app, id);
 
-    if(!ret && create_new && schema != HLS_SCHEMA){
+    if(!ret && from_mp4 && schema != HLS_SCHEMA){
         //未查找媒体源，则读取mp4创建一个
         //播放hls不触发mp4点播(因为HLS也可以用于录像，不是纯粹的直播)
         ret = MediaSource::createFromMP4(schema, vhost, app, id, para);
@@ -391,16 +391,16 @@ MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost, co
     return find_l(schema, vhost, app, id, "", false);
 }
 
-MediaSource::Ptr MediaSource::find(const string &vhost, const string &app, const string &stream_id){
-    auto src = MediaSource::find(RTMP_SCHEMA, vhost, app, stream_id);
+MediaSource::Ptr MediaSource::find(const string &vhost, const string &app, const string &stream_id, bool from_mp4) {
+    auto src = MediaSource::find(RTMP_SCHEMA, vhost, app, stream_id, from_mp4);
     if (src) {
         return src;
     }
-    src = MediaSource::find(RTSP_SCHEMA, vhost, app, stream_id);
+    src = MediaSource::find(RTSP_SCHEMA, vhost, app, stream_id, from_mp4);
     if (src) {
         return src;
     }
-    return MediaSource::find(HLS_SCHEMA, vhost, app, stream_id);
+    return MediaSource::find(HLS_SCHEMA, vhost, app, stream_id, from_mp4);
 }
 
 void MediaSource::emitEvent(bool regist){

@@ -216,7 +216,7 @@ public:
     map<char, string> _other;
     multimap<string, string> _attr;
 
-    string toString() const;
+    string toString(uint16_t port = 0) const;
     string getName() const;
     string getControlUrl(const string &base_url) const;
 
@@ -346,7 +346,7 @@ public:
             }
         } else {
             _printer << "o=- 0 0 IN IP4 0.0.0.0\r\n";
-            _printer << "s=Streamed by " << SERVER_NAME << "\r\n";
+            _printer << "s=Streamed by " << kServerName << "\r\n";
             _printer << "c=IN IP4 0.0.0.0\r\n";
             _printer << "t=0 0\r\n";
         }

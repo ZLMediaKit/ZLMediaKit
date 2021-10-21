@@ -206,7 +206,7 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
     }
     _rtcp_context.clear();
     for (auto &track : _sdp_track) {
-        _rtcp_context.emplace_back(std::make_shared<RtcpContext>(true));
+        _rtcp_context.emplace_back(std::make_shared<RtcpContextForRecv>());
     }
     sendSetup(0);
 }
@@ -551,7 +551,7 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
 void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrCaseMap &header_const) {
     auto header = header_const;
     header.emplace("CSeq",StrPrinter << _cseq_send++);
-    header.emplace("User-Agent",SERVER_NAME);
+    header.emplace("User-Agent",kServerName);
 
     if(!_session_id.empty()){
         header.emplace("Session", _session_id);
@@ -637,7 +637,7 @@ void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx){
 
     auto ssrc = rtp->getSSRC();
     auto rtcp = rtcp_ctx->createRtcpRR(ssrc + 1, ssrc);
-    auto rtcp_sdes = RtcpSdes::create({SERVER_NAME});
+    auto rtcp_sdes = RtcpSdes::create({kServerName});
     rtcp_sdes->chunks.type = (uint8_t) SdesType::RTCP_SDES_CNAME;
     rtcp_sdes->chunks.ssrc = htonl(ssrc);
     send_rtcp(this, track_idx, std::move(rtcp));

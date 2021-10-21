@@ -38,7 +38,9 @@
 #include "Rtp/RtpServer.h"
 #endif
 #ifdef ENABLE_WEBRTC
-#include "../webrtc/WebRtcTransport.h"
+#include "../webrtc/WebRtcPlayer.h"
+#include "../webrtc/WebRtcPusher.h"
+#include "../webrtc/WebRtcEchoTest.h"
 #endif
 
 using namespace toolkit;
@@ -965,7 +967,7 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
 
-        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["from_mp4"].as<int>());
         if (!src) {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
@@ -1222,124 +1224,82 @@ void installWebApi() {
     });
 
 #ifdef ENABLE_WEBRTC
+    class WebRtcArgsImp : public WebRtcArgs {
+    public:
+        WebRtcArgsImp(const HttpAllArgs<string> &args) : _args(args) {}
+        ~WebRtcArgsImp() override = default;
+
+        variant operator[](const string &key) const override {
+            if (key == "url") {
+                return getUrl();
+            }
+            return _args[key];
+        }
+
+    private:
+        string getUrl() const{
+            auto &allArgs = _args;
+            CHECK_ARGS("app", "stream");
+
+            return StrPrinter << RTC_SCHEMA << "://" << _args["Host"] << "/" << _args["app"] << "/"
+                              << _args["stream"] << "?" << _args.getParser().Params();
+        }
+
+    private:
+        HttpAllArgs<string> _args;
+    };
+
     api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
-        CHECK_ARGS("app", "stream");
-
-        auto offer_sdp = allArgs.getArgs();
+        CHECK_ARGS("type");
         auto type = allArgs["type"];
-        MediaInfo info(StrPrinter << "rtc://" << allArgs["Host"] << "/" << allArgs["app"] << "/" << allArgs["stream"] << "?" << allArgs.getParser().Params());
+        auto offer = allArgs.getArgs();
+        CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        //设置返回类型
-        headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
-        //设置跨域
-        headerOut["Access-Control-Allow-Origin"] = "*";
+        WebRtcPluginManager::Instance().getAnswerSdp(*(static_cast<Session *>(&sender)), type, offer, WebRtcArgsImp(allArgs),
+        [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
+            //设置返回类型
+            headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
+            //设置跨域
+            headerOut["Access-Control-Allow-Origin"] = "*";
 
-        if (type.empty() || !strcasecmp(type.data(), "play")) {
-            auto session = static_cast<TcpSession*>(&sender);
-            auto session_ptr = session->shared_from_this();
-            Broadcast::AuthInvoker authInvoker = [invoker, offer_sdp, val, info, headerOut, session_ptr](const string &err) mutable {
-                if (!err.empty()) {
-                    val["code"] = API::AuthFailed;
-                    val["msg"] = err;
-                    invoker(200, headerOut, val.toStyledString());
-                    return;
-                }
-
-                //webrtc播放的是rtsp的源
-                info._schema = RTSP_SCHEMA;
-                MediaSource::findAsync(info, session_ptr, [=](const MediaSource::Ptr &src_in) mutable {
-                    auto src = dynamic_pointer_cast<RtspMediaSource>(src_in);
-                    if (!src) {
-                        val["code"] = API::NotFound;
-                        val["msg"] = "stream not found";
-                        invoker(200, headerOut, val.toStyledString());
-                        return;
-                    }
-                    //还原成rtc，目的是为了hook时识别哪种播放协议
-                    info._schema = "rtc";
-                    auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
-                    rtc->attach(src, info, true);
-                    val["sdp"] = rtc->getAnswerSdp(offer_sdp);
-                    val["type"] = "answer";
-                    invoker(200, headerOut, val.toStyledString());
-                });
-            };
-
-            //广播通用播放url鉴权事件
-            auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, info, authInvoker, sender);
-            if (!flag) {
-                //该事件无人监听,默认不鉴权
-                authInvoker("");
+            try {
+                val["sdp"] = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
+                val["id"] = exchanger.getIdentifier();
+                val["type"] = "answer";
+                invoker(200, headerOut, val.toStyledString());
+            } catch (std::exception &ex) {
+                val["code"] = API::Exception;
+                val["msg"] = ex.what();
+                invoker(200, headerOut, val.toStyledString());
             }
-            return;
-        }
-
-        if (!strcasecmp(type.data(), "push")) {
-            Broadcast::PublishAuthInvoker authInvoker = [invoker, offer_sdp, val, info, headerOut](const string &err, bool enableHls, bool enableMP4) mutable {
-                try {
-                    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid));
-                    if (src) {
-                        throw std::runtime_error("已经在推流");
-                    }
-                    if (!err.empty()) {
-                        throw runtime_error(StrPrinter << "推流鉴权失败:" << err);
-                    }
-                    auto push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
-                    push_src->setProtocolTranslation(enableHls, enableMP4);
-                    auto rtc = WebRtcTransportImp::create(EventPollerPool::Instance().getPoller());
-                    push_src->setListener(rtc);
-                    rtc->attach(push_src, info, false);
-                    val["sdp"] = rtc->getAnswerSdp(offer_sdp);
-                    val["type"] = "answer";
-                    invoker(200, headerOut, val.toStyledString());
-                } catch (std::exception &ex) {
-                    val["code"] = API::Exception;
-                    val["msg"] = ex.what();
-                    invoker(200, headerOut, val.toStyledString());
-                }
-            };
-
-            //rtsp推流需要鉴权
-            auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, info, authInvoker, sender);
-            if (!flag) {
-                //该事件无人监听,默认不鉴权
-                GET_CONFIG(bool, toHls, General::kPublishToHls);
-                GET_CONFIG(bool, toMP4, General::kPublishToMP4);
-                authInvoker("", toHls, toMP4);
-            }
-            return;
-        }
-
-        throw ApiRetException("不支持该类型", API::InvalidArgs);
+        });
     });
 #endif
 
     ////////////以下是注册的Hook API////////////
-    api_regist("/index/hook/on_publish",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_publish",[](API_ARGS_JSON){
         //开始推流事件
-        //转换成rtsp或rtmp
-        val["enableRtxp"] = true;
         //转换hls
         val["enableHls"] = true;
         //不录制mp4
         val["enableMP4"] = false;
     });
 
-    api_regist("/index/hook/on_play",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_play",[](API_ARGS_JSON){
         //开始播放事件
     });
 
-    api_regist("/index/hook/on_flow_report",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_flow_report",[](API_ARGS_JSON){
         //流量统计hook api
     });
 
-    api_regist("/index/hook/on_rtsp_realm",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_rtsp_realm",[](API_ARGS_JSON){
         //rtsp是否需要鉴权，默认需要鉴权
         val["code"] = API::Success;
         val["realm"] = "zlmediakit_reaml";
     });
 
-    api_regist("/index/hook/on_rtsp_auth",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_rtsp_auth",[](API_ARGS_JSON){
         //rtsp鉴权密码，密码等于用户名
         //rtsp可以有双重鉴权！后面还会触发on_play事件
         CHECK_ARGS("user_name");
@@ -1412,15 +1372,15 @@ void installWebApi() {
                        });
     });
 
-    api_regist("/index/hook/on_record_mp4",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_record_mp4",[](API_ARGS_JSON){
         //录制mp4分片完毕事件
     });
 
-    api_regist("/index/hook/on_shell_login",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_shell_login",[](API_ARGS_JSON){
         //shell登录调试事件
     });
 
-    api_regist("/index/hook/on_stream_none_reader",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_stream_none_reader",[](API_ARGS_JSON){
         //无人观看流默认关闭
         val["close"] = true;
     });
@@ -1450,9 +1410,12 @@ void installWebApi() {
         val["second"] = 10 * 60;
     });
 
-
-    api_regist("/index/hook/on_server_started",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_server_started",[](API_ARGS_JSON){
         //服务器重启报告
+    });
+
+    api_regist("/index/hook/on_server_keepalive",[](API_ARGS_JSON){
+        //心跳hook
     });
 }
 

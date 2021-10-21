@@ -11,6 +11,8 @@
 #ifndef ZLMEDIAKIT_MACROS_H
 #define ZLMEDIAKIT_MACROS_H
 
+#include <iostream>
+#include <sstream>
 #if defined(__MACH__)
 #include <arpa/inet.h>
     #include <machine/endian.h>
@@ -38,7 +40,7 @@
 #endif
 
 #ifndef CHECK
-#define CHECK(exp) Assert_Throw(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__)
+#define CHECK(exp,...) mediakit::Assert_ThrowCpp(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
 #endif//CHECK
 
 #ifndef MAX
@@ -56,20 +58,41 @@
 #define VHOST_KEY "vhost"
 #define HTTP_SCHEMA "http"
 #define RTSP_SCHEMA "rtsp"
+#define RTC_SCHEMA "rtc"
 #define RTMP_SCHEMA "rtmp"
 #define HLS_SCHEMA "hls"
 #define TS_SCHEMA "ts"
 #define FMP4_SCHEMA "fmp4"
 #define DEFAULT_VHOST "__defaultVhost__"
 
-extern const char SERVER_NAME[];
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-extern void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line);
+extern void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line, const char *str);
 #ifdef __cplusplus
 }
 #endif
 
+namespace mediakit {
+
+extern const char kServerName[];
+
+void printArgs(std::ostream &out);
+
+template<typename First, typename ...ARGS>
+void printArgs(std::ostream &out, First &&first, ARGS &&...args) {
+    out << std::forward<First>(first);
+    printArgs(out, std::forward<ARGS>(args)...);
+}
+
+template<typename ...ARGS>
+void Assert_ThrowCpp(int failed, const char *exp, const char *func, const char *file, int line, ARGS &&...args) {
+    if (failed) {
+        std::stringstream ss;
+        printArgs(ss, std::forward<ARGS>(args)...);
+        Assert_Throw(failed, exp, func, file, line, ss.str().data());
+    }
+}
+
+}//namespace mediakit
 #endif //ZLMEDIAKIT_MACROS_H

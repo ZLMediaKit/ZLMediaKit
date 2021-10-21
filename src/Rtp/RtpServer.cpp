@@ -23,11 +23,11 @@ RtpServer::~RtpServer() {
     }
 }
 
-class RtcpHelper : public RtcpContext, public std::enable_shared_from_this<RtcpHelper> {
+class RtcpHelper : public RtcpContextForRecv, public std::enable_shared_from_this<RtcpHelper> {
 public:
     using Ptr = std::shared_ptr<RtcpHelper>;
 
-    RtcpHelper(Socket::Ptr rtcp_sock, uint32_t sample_rate) : RtcpContext(true){
+    RtcpHelper(Socket::Ptr rtcp_sock, uint32_t sample_rate) {
         _rtcp_sock = std::move(rtcp_sock);
         _sample_rate = sample_rate;
     }
@@ -125,8 +125,8 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable
         RtcpHelper::Ptr helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), 90000);
         helper->startRtcp();
         rtp_socket->setOnRead([rtp_socket, process, helper](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
-            helper->onRecvRtp(buf, addr, addr_len);
             process->inputRtp(true, rtp_socket, buf->data(), buf->size(), addr);
+            helper->onRecvRtp(buf, addr, addr_len);
         });
     } else {
 #if 1

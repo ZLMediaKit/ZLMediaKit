@@ -573,6 +573,7 @@ public:
 class RtcSSRC{
 public:
     uint32_t ssrc {0};
+    uint32_t rtx_ssrc {0};
     string cname;
     string msid;
     string mslabel;
@@ -640,16 +641,15 @@ public:
     uint32_t sctp_port{0};
 
     void checkValid() const;
-    //offer sdp,如果指定了发送rtp,那么应该指定ssrc
-    void checkValidSSRC() const;
     const RtcCodecPlan *getPlan(uint8_t pt) const;
     const RtcCodecPlan *getPlan(const char *codec) const;
     const RtcCodecPlan *getRelatedRtxPlan(uint8_t pt) const;
     uint32_t getRtpSSRC() const;
     uint32_t getRtxSSRC() const;
+    bool supportSimulcast() const;
 };
 
-class RtcSession{
+class RtcSession {
 public:
     using Ptr = std::shared_ptr<RtcSession>;
 
@@ -664,14 +664,11 @@ public:
     vector<RtcMedia> media;
     SdpAttrGroup group;
 
-    void loadFrom(const string &sdp, bool check = true);
+    void loadFrom(const string &sdp);
     void checkValid() const;
-    //offer sdp,如果指定了发送rtp,那么应该指定ssrc
-    void checkValidSSRC() const;
     string toString() const;
     string toRtspSdp() const;
     const  RtcMedia *getMedia(TrackType type) const;
-    bool haveSSRC() const;
     bool supportRtcpFb(const string &name, TrackType type = TrackType::TrackVideo) const;
     bool supportSimulcast() const;
 
@@ -700,7 +697,7 @@ public:
         SdpAttrFingerprint fingerprint;
 
         set<string> rtcp_fb;
-        set<RtpExtType> extmap;
+        map<RtpExtType, RtpDirection> extmap;
         vector<CodecId> preferred_codec;
         vector<SdpAttrCandidate> candidate;
 

@@ -101,7 +101,7 @@ public:
      */
     virtual void setMetaData(const AMFValue &metadata) {
         _metadata = metadata;
-        _metadata.set("server", SERVER_NAME);
+        _metadata.set("server", kServerName);
         _have_video = _metadata["videocodecid"];
         _have_audio = _metadata["audiocodecid"];
         if (_ring) {

@@ -438,6 +438,8 @@ int main(int argc, char *argv[]) {
     };
     mk_events_listen(&events);
 
+    log_info("media server %s", "stared!");
+
     signal(SIGINT, s_on_exit );// 设置退出信号
     while (flag) {
 #ifdef _WIN32

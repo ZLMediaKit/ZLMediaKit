@@ -27,7 +27,7 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
         defaultPort = 443;
         isHttps = true;
     } else {
-        auto strErr = StrPrinter << "非法的协议:" << protocol << endl;
+        auto strErr = StrPrinter << "非法的http url:" << strUrl << endl;
         throw std::invalid_argument(strErr);
     }
 
@@ -49,7 +49,7 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
         host = FindField(host.data(), NULL, ":");
     }
     _header.emplace("Host", host_header);
-    _header.emplace("Tools", SERVER_NAME);
+    _header.emplace("Tools", kServerName);
     _header.emplace("Connection", "keep-alive");
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");

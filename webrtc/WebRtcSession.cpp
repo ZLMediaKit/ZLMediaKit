@@ -11,16 +11,6 @@
 #include "WebRtcSession.h"
 #include "Util/util.h"
 
-WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : UdpSession(sock) {
-    socklen_t addr_len = sizeof(_peer_addr);
-    getpeername(sock->rawFD(), &_peer_addr, &addr_len);
-    InfoP(this);
-}
-
-WebRtcSession::~WebRtcSession() {
-    InfoP(this);
-}
-
 static string getUserName(const Buffer::Ptr &buffer) {
     auto buf = buffer->data();
     auto len = buffer->size();
@@ -40,13 +30,24 @@ static string getUserName(const Buffer::Ptr &buffer) {
     return vec[0];
 }
 
-EventPoller::Ptr WebRtcSession::getPoller(const Buffer::Ptr &buffer) {
+EventPoller::Ptr WebRtcSession::queryPoller(const Buffer::Ptr &buffer) {
     auto user_name = getUserName(buffer);
     if (user_name.empty()) {
         return nullptr;
     }
-    auto ret = WebRtcTransportImp::getRtcTransport(user_name, false);
+    auto ret = WebRtcTransportManager::Instance().getItem(user_name);
     return ret ? ret->getPoller() : nullptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : UdpSession(sock) {
+    socklen_t addr_len = sizeof(_peer_addr);
+    getpeername(sock->rawFD(), &_peer_addr, &addr_len);
+}
+
+WebRtcSession::~WebRtcSession() {
+    InfoP(this);
 }
 
 void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
@@ -61,9 +62,13 @@ void WebRtcSession::onRecv_l(const Buffer::Ptr &buffer) {
     if (_find_transport) {
         //只允许寻找一次transport
         _find_transport = false;
-        _transport = WebRtcTransportImp::getRtcTransport(getUserName(buffer), true);
-        CHECK(_transport && _transport->getPoller()->isCurrentThread());
-        _transport->setSession(shared_from_this());
+        auto user_name = getUserName(buffer);
+        _identifier = user_name + '-' + to_string(reinterpret_cast<uint64_t>(this));
+        auto transport = WebRtcTransportManager::Instance().getItem(user_name);
+        CHECK(transport && transport->getPoller()->isCurrentThread());
+        transport->setSession(shared_from_this());
+        _transport = std::move(transport);
+        InfoP(this);
     }
     _ticker.resetTime();
     CHECK(_transport);
@@ -80,7 +85,7 @@ void WebRtcSession::onError(const SockException &err) {
         return;
     }
     auto transport = std::move(_transport);
-    this->Session::getPoller()->async([transport] {
+    getPoller()->async([transport] {
         //延时减引用，防止使用transport对象时，销毁对象
     }, false);
 }
@@ -96,3 +101,8 @@ void WebRtcSession::onManager() {
         return;
     }
 }
+
+std::string WebRtcSession::getIdentifier() const {
+    return _identifier;
+}
+

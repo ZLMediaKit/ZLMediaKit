@@ -108,7 +108,7 @@ public:
      * @param offset 相对文件头的偏移量
      * @param max_size 最大读取字节数，未判断是否大于文件真实大小
      */
-    HttpFileBody(const std::shared_ptr<FILE> &fp,size_t offset,size_t max_size);
+    HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size);
     HttpFileBody(const string &file_path);
     ~HttpFileBody() override = default;
 
@@ -149,7 +149,6 @@ public:
 public:
     static string multiFormBodyPrefix(const HttpArgs &args,const string &boundary,const string &fileName);
     static string multiFormBodySuffix(const string &boundary);
-    static size_t fileSize(FILE *fp);
     static string multiFormContentType(const string &boundary);
 
 private:

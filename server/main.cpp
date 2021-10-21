@@ -274,7 +274,7 @@ int start_main(int argc,char *argv[]) {
             if (!buf) {
                 return Socket::createSocket(poller, false);
             }
-            auto new_poller = WebRtcSession::getPoller(buf);
+            auto new_poller = WebRtcSession::queryPoller(buf);
             if (!new_poller) {
                 //该数据对应的webrtc对象未找到，丢弃之
                 return Socket::Ptr();

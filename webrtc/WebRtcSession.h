@@ -20,19 +20,21 @@ using namespace toolkit;
 
 class WebRtcSession : public UdpSession {
 public:
-    static EventPoller::Ptr getPoller(const Buffer::Ptr &);
-
     WebRtcSession(const Socket::Ptr &sock);
     ~WebRtcSession() override;
 
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
+    std::string getIdentifier() const override;
+
+    static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
 
 private:
     void onRecv_l(const Buffer::Ptr &);
 
 private:
+    std::string _identifier;
     bool _find_transport = true;
     Ticker _ticker;
     struct sockaddr _peer_addr;
