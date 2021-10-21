@@ -1,3 +1,6 @@
 [submodule "ZLToolKit"]
 	path = 3rdpart/ZLToolKit
 	url = https://gitee.com/xia-chu/ZLToolKit
+[submodule "3rdpart/media-server"]
+	path = 3rdpart/media-server
+	url = git@github.com:ireader/media-server.git

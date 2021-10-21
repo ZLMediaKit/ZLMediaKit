@@ -172,16 +172,14 @@ struct Context{
 Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     keyFrame = false;
     eof = false;
-    static mov_reader_onread mov_reader_onread = [](void *param, uint32_t track_id, const void *buffer, size_t bytes, int64_t pts, int64_t dts, int flags) {
+
+    static mov_reader_onread2 mov_onalloc = [](void *param, uint32_t track_id, size_t bytes, int64_t pts, int64_t dts, int flags) -> void * {
         Context *ctx = (Context *) param;
         ctx->pts = pts;
         ctx->dts = dts;
         ctx->flags = flags;
         ctx->track_id = track_id;
-    };
 
-    static mov_onalloc mov_onalloc = [](void *param, int bytes) -> void * {
-        Context *ctx = (Context *) param;
         ctx->buffer = ctx->thiz->_buffer_pool.obtain();
         ctx->buffer->setCapacity(bytes + DATA_OFFSET + 1);
         ctx->buffer->setSize(bytes + DATA_OFFSET);
@@ -189,7 +187,7 @@ Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     };
 
     Context ctx = {this, 0};
-    auto ret = mov_reader_read2(_mov_reader.get(), mov_onalloc, mov_reader_onread, &ctx);
+    auto ret = mov_reader_read2(_mov_reader.get(), mov_onalloc, &ctx);
     switch (ret) {
         case 0 : {
             eof = true;
