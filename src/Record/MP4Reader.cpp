@@ -93,6 +93,7 @@ bool MP4Reader::readSample() {
         }
         _mediaMuxer->inputFrame(frame);
         if (frame->dts() > getCurrentStamp()) {
+            //cout << frame->dts() << endl << getCurrentStamp() << endl;
             break;
         }
     }
@@ -104,6 +105,7 @@ bool MP4Reader::readSample() {
             seekTo(0);
             return true;
         }
+        //_played_time += _demuxers[_file_num]->getDurationMS();
         if (++_file_num >= _demuxers.size()) {
             return false;
         }

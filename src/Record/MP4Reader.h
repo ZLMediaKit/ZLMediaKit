@@ -57,6 +57,7 @@ private:
     bool _paused = false;
     float _speed = 1.0;
     uint8_t _file_num = 0;
+    //uint32_t _played_time = 0;
     uint32_t _seek_to;
     string _file_path;
     string _str_vhost;

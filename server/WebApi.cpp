@@ -994,6 +994,8 @@ void installWebApi() {
         if (!src->stopSendRtp(allArgs["ssrc"])) {
             throw ApiRetException("尚未开始推流,停止失败", API::OtherFailed);
         }
+
+        src->onReaderChanged(0);
     });
 
     api_regist("/index/api/pauseRtpCheck", [](API_ARGS_MAP) {
@@ -1077,7 +1079,7 @@ void installWebApi() {
         }
         });
 
-    // 设置播放速度
+    //设置播放速度
     api_regist("/index/api/setRecordSpeed", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "speed");
