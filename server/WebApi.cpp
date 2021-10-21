@@ -1239,31 +1239,29 @@ void installWebApi() {
 #endif
 
     ////////////以下是注册的Hook API////////////
-    api_regist("/index/hook/on_publish",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_publish",[](API_ARGS_JSON){
         //开始推流事件
-        //转换成rtsp或rtmp
-        val["enableRtxp"] = true;
         //转换hls
         val["enableHls"] = true;
         //不录制mp4
         val["enableMP4"] = false;
     });
 
-    api_regist("/index/hook/on_play",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_play",[](API_ARGS_JSON){
         //开始播放事件
     });
 
-    api_regist("/index/hook/on_flow_report",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_flow_report",[](API_ARGS_JSON){
         //流量统计hook api
     });
 
-    api_regist("/index/hook/on_rtsp_realm",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_rtsp_realm",[](API_ARGS_JSON){
         //rtsp是否需要鉴权，默认需要鉴权
         val["code"] = API::Success;
         val["realm"] = "zlmediakit_reaml";
     });
 
-    api_regist("/index/hook/on_rtsp_auth",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_rtsp_auth",[](API_ARGS_JSON){
         //rtsp鉴权密码，密码等于用户名
         //rtsp可以有双重鉴权！后面还会触发on_play事件
         CHECK_ARGS("user_name");
@@ -1336,15 +1334,15 @@ void installWebApi() {
                        });
     });
 
-    api_regist("/index/hook/on_record_mp4",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_record_mp4",[](API_ARGS_JSON){
         //录制mp4分片完毕事件
     });
 
-    api_regist("/index/hook/on_shell_login",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_shell_login",[](API_ARGS_JSON){
         //shell登录调试事件
     });
 
-    api_regist("/index/hook/on_stream_none_reader",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_stream_none_reader",[](API_ARGS_JSON){
         //无人观看流默认关闭
         val["close"] = true;
     });
@@ -1374,9 +1372,12 @@ void installWebApi() {
         val["second"] = 10 * 60;
     });
 
-
-    api_regist("/index/hook/on_server_started",[](API_ARGS_MAP){
+    api_regist("/index/hook/on_server_started",[](API_ARGS_JSON){
         //服务器重启报告
+    });
+
+    api_regist("/index/hook/on_server_keepalive",[](API_ARGS_JSON){
+        //心跳hook
     });
 }
 
