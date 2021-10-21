@@ -967,7 +967,7 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
 
-        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["from_mp4"].as<int>());
         if (!src) {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
