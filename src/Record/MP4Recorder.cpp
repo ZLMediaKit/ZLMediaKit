@@ -72,13 +72,8 @@ void MP4Recorder::asyncClose() {
         info.time_len = (float) (::time(NULL) - info.start_time);
         //关闭mp4非常耗时，所以要放在后台线程执行
         muxer->closeMP4();
-
         //获取文件大小
-        auto fp = fopen(full_path_tmp.data(), "rb");
-        assert(fp);
-        info.file_size = File::fileSize(fp);
-        fclose(fp);
-
+        info.file_size = File::fileSize(full_path_tmp.data());
         if (info.file_size < 1024) {
             //录像文件太小，删除之
             File::delete_file(full_path_tmp.data());
