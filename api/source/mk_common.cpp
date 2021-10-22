@@ -121,6 +121,14 @@ API_EXPORT void API_CALL mk_env_init1(int thread_num,
     });
 }
 
+API_EXPORT void API_CALL mk_set_log(int file_max_size, int file_max_count) {
+    auto channel = dynamic_pointer_cast<FileChannel>(Logger::Instance().get("FileChannel"));
+    if (channel) {
+        channel->setFileMaxSize(file_max_size);
+        channel->setFileMaxCount(file_max_count);
+    }
+}
+
 API_EXPORT void API_CALL mk_set_option(const char *key, const char *val) {
     assert(key && val);
     if (mINI::Instance().find(key) == mINI::Instance().end()) {
