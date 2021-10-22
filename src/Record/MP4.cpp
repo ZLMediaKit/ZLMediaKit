@@ -107,13 +107,13 @@ static struct mov_buffer_t s_io = {
             MP4FileIO *thiz = (MP4FileIO *) ctx;
             return thiz->onWrite(data, bytes);
         },
-        [](void *ctx, uint64_t offset) {
+        [](void *ctx, int64_t offset) {
             MP4FileIO *thiz = (MP4FileIO *) ctx;
             return thiz->onSeek(offset);
         },
         [](void *ctx) {
             MP4FileIO *thiz = (MP4FileIO *) ctx;
-            return (uint64_t)thiz->onTell();
+            return (int64_t)thiz->onTell();
         }
 };
 
