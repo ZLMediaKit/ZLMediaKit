@@ -288,7 +288,8 @@ void MediaSource::for_each_media(const function<void(const Ptr &src)> &cb,
     }
 }
 
-static MediaSource::Ptr find_l(const string &schema, const string &vhost_in, const string &app, const string &id, const string &para, bool create_new) {
+static MediaSource::Ptr find_l(const string &schema, const string &vhost_in,
+    const string &app, const string &id, const string &para, bool create_new) {
     string vhost = vhost_in;
     GET_CONFIG(bool,enableVhost,General::kEnableVhost);
     if(vhost.empty() || !enableVhost){
@@ -303,7 +304,7 @@ static MediaSource::Ptr find_l(const string &schema, const string &vhost_in, con
     MediaSource::Ptr ret;
     MediaSource::for_each_media([&](const MediaSource::Ptr &src) { ret = std::move(const_cast<MediaSource::Ptr &>(src)); }, schema, vhost, app, id);
 
-    if(!ret && from_mp4 && schema != HLS_SCHEMA){
+    if(!ret && create_new && schema != HLS_SCHEMA){
         //未查找媒体源，则读取mp4创建一个
         //播放hls不触发mp4点播(因为HLS也可以用于录像，不是纯粹的直播)
         ret = MediaSource::createFromMP4(schema, vhost, app, id, para);
@@ -387,8 +388,8 @@ void MediaSource::findAsync(const MediaInfo &info, const std::shared_ptr<Session
     return findAsync_l(info, session, true, cb);
 }
 
-MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost, const string &app, const string &id) {
-    return find_l(schema, vhost, app, id, "", false);
+MediaSource::Ptr MediaSource::find(const string &schema, const string &vhost, const string &app, const string &id, bool from_mp4) {
+    return find_l(schema, vhost, app, id, "", from_mp4);
 }
 
 MediaSource::Ptr MediaSource::find(const string &vhost, const string &app, const string &stream_id, bool from_mp4) {

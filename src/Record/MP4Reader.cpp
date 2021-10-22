@@ -44,30 +44,40 @@ MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &
         play_list.push_back(_file_path);
     }
     else {
-        string &&record_vhost = regex_paser(para, "vhost=[_\\w]+", 6);
-        auto pos = strId.rfind('/');
-        string&& record_app = strId.substr(0, pos + 1);
-        string&& record_stream = strId.substr(pos);
-        string &&record_date = regex_paser(para, "date=[0-9-]+", 5);
-        string &&record_time = regex_paser(para, "time=[0-9-]+", 5);
-        auto record_path = Recorder::getRecordPath(Recorder::type_mp4, record_vhost, record_app, record_stream);
-        record_path += record_date + "/";
+        try {
+            const string&& record_vhost = regex_paser(para, "vhost=[_\\w]+", 6);
+            auto pos = strId.rfind('/');
+            const string&& record_app = strId.substr(0, pos);
+            const string&& record_stream = strId.substr(pos + 1);
+            const string&& record_date = regex_paser(para, "date=[0-9-]+", 5);
+            string&& start_time = regex_paser(para, "start_time=[0-9-]+", 11);
+            string&& end_time = regex_paser(para, "end_time=[0-9-]+", 9);
+            auto record_path = Recorder::getRecordPath(Recorder::type_mp4, record_vhost, record_app, record_stream);
+            record_path += record_date + "/";
 
-        File::scanDir(record_path, [&](const string& path, bool isDir) {
-            auto pos = path.rfind('/');
-            if (pos != string::npos) {
-                string file_name = path.substr(pos + 1, path.length() - pos - 1);
+            File::scanDir(record_path, [&](const string& path, bool isDir) {
+                auto pos = path.rfind('/');
+                if (pos != string::npos) {
+                    string file_name = path.substr(pos + 1, path.length() - pos - 1);
                     if (!isDir) {
                         //我们只收集mp4文件，对文件夹不感兴趣
-                        record_time.erase(std::remove(record_time.begin(), record_time.end(), '-'), record_time.end());
+                        start_time.erase(std::remove(start_time.begin(), start_time.end(), '-'), start_time.end());
+                        end_time.erase(std::remove(end_time.begin(), end_time.end(), '-'), end_time.end());
                         file_name.erase(std::remove(file_name.begin(), file_name.end(), '-'), file_name.end());
-                        if (atoi(file_name.c_str()) + 500 > atoi(record_time.c_str()))
+                        if (atoi(file_name.c_str()) >= atoi(start_time.c_str()) && atoi(file_name.c_str()) < atoi(end_time.c_str()))
                             play_list.push_back(path);
                     }
-            }
+                }
             return true;
             }, false);
+        }
+        catch (...) {
+            throw std::runtime_error(StrPrinter << "播放参数解析错误:" << para);
+        }
     }
+
+    if (play_list.empty())
+        throw std::runtime_error(StrPrinter << "找不到所请求的录像:" << para);
 
     int i = 0;
     for (auto& play_file : play_list) {
@@ -93,7 +103,6 @@ bool MP4Reader::readSample() {
         }
         _mediaMuxer->inputFrame(frame);
         if (frame->dts() > getCurrentStamp()) {
-            //cout << frame->dts() << endl << getCurrentStamp() << endl;
             break;
         }
     }
@@ -105,11 +114,9 @@ bool MP4Reader::readSample() {
             seekTo(0);
             return true;
         }
-        //_played_time += _demuxers[_file_num]->getDurationMS();
         if (++_file_num >= _demuxers.size()) {
             return false;
         }
-        //_demuxers[_file_num]->openMP4(play_list[_file_num]);
         seekTo(0);
     }
 
@@ -215,7 +222,6 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp) {
         }
         if (i == _demuxers.size())
             return false;
-        //_demuxers[_file_num]->openMP4(play_list[_file_num]);
         title_time += _demuxers[_file_num]->getDurationMS();
         ui32Stamp = title_time;
     }
