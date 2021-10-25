@@ -996,8 +996,6 @@ void installWebApi() {
         if (!src->stopSendRtp(allArgs["ssrc"])) {
             throw ApiRetException("尚未开始推流,停止失败", API::OtherFailed);
         }
-
-        src->onReaderChanged(0);
     });
 
     api_regist("/index/api/pauseRtpCheck", [](API_ARGS_MAP) {
@@ -1045,16 +1043,15 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "speed");
         auto src = MediaSource::find(allArgs["schema"],
-            allArgs["vhost"],
-            allArgs["app"],
-            allArgs["stream"]);
+                                     allArgs["vhost"],
+                                     allArgs["app"],
+                                     allArgs["stream"]);
         if (src) {
             bool flag = src->speed(allArgs["speed"].as<float>());
             val["result"] = flag ? 0 : -1;
             val["msg"] = flag ? "success" : "set failed";
             val["code"] = flag ? API::Success : API::OtherFailed;
-        }
-        else {
+        } else {
             val["result"] = -2;
             val["msg"] = "can not find the stream";
             val["code"] = API::OtherFailed;
@@ -1065,21 +1062,20 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "stamp");
         auto src = MediaSource::find(allArgs["schema"],
-            allArgs["vhost"],
-            allArgs["app"],
-            allArgs["stream"]);
+                                     allArgs["vhost"],
+                                     allArgs["app"],
+                                     allArgs["stream"]);
         if (src) {
             bool flag = src->seekTo(allArgs["stamp"].as<size_t>());
             val["result"] = flag ? 0 : -1;
             val["msg"] = flag ? "success" : "seek failed";
             val["code"] = flag ? API::Success : API::OtherFailed;
-        }
-        else {
+        } else {
             val["result"] = -2;
             val["msg"] = "can not find the stream";
             val["code"] = API::OtherFailed;
         }
-        });
+    });
 
     // 停止录制hls或MP4
     api_regist("/index/api/stopRecord",[](API_ARGS_MAP){
