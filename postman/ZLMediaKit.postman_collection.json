@@ -945,6 +945,98 @@
 			"response": []
 		},
 		{
+			"name": "设置录像速度(setRecordSpeed)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/setRecordSpeed?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=obs&speed=2.0",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"setRecordSpeed"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "obs",
+							"description": "流id，例如 obs"
+						},
+						{
+							"key": "speed",
+							"value": 2.0,
+							"description": "要设置的录像倍速",
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "设置录像流播放位置(seekRecordStamp)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/startRecord?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=obs&stamp=1000",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"seekRecordStamp"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "obs",
+							"description": "流id，例如 obs"
+						},
+						{
+							"key": "stamp",
+							"value": 1000,
+							"description": "要设置的录像播放位置",
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "停止录制(stopRecord)",
 			"request": {
 				"method": "GET",
