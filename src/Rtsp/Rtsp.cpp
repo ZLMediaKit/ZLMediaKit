@@ -98,9 +98,8 @@ string SdpTrack::toString(uint16_t port) const {
     _StrPrinter _printer;
     switch (_type) {
         case TrackTitle: {
-            TitleSdp title(atof(_t.data()));
+            TitleSdp title(_duration);
             _printer << title.getSdp();
-            getAttrSdp(_attr, _printer);
             break;
         }
         case TrackAudio:
