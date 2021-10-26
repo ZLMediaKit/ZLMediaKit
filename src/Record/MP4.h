@@ -62,14 +62,14 @@ public:
     /**
      * 获取文件读写位置
      */
-    virtual size_t onTell() = 0;
+    virtual uint64_t onTell() = 0;
 
     /**
      * seek至文件某处
      * @param offset 文件偏移量
      * @return 是否成功(0成功)
      */
-    virtual int onSeek(size_t offset) = 0;
+    virtual int onSeek(uint64_t offset) = 0;
 
     /**
      * 从文件读取一定数据
@@ -108,8 +108,8 @@ public:
     void closeFile();
 
 protected:
-    size_t onTell() override;
-    int onSeek(size_t offset) override;
+    uint64_t onTell() override;
+    int onSeek(uint64_t offset) override;
     int onRead(void *data, size_t bytes) override;
     int onWrite(const void *data, size_t bytes) override;
 
@@ -134,13 +134,13 @@ public:
     string getAndClearMemory();
 
 protected:
-    size_t onTell() override;
-    int onSeek(size_t offset) override;
+    uint64_t onTell() override;
+    int onSeek(uint64_t offset) override;
     int onRead(void *data, size_t bytes) override;
     int onWrite(const void *data, size_t bytes) override;
 
 private:
-    size_t _offset = 0;
+    uint64_t _offset = 0;
     string _memory;
 };
 
