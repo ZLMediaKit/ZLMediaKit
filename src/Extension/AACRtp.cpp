@@ -132,8 +132,8 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
 }
 
 void AACRtpDecoder::flushData() {
-    auto ptr = reinterpret_cast<const uint8_t *>(_frame->_buffer.data());
-    if ((ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0)) {
+    auto ptr = reinterpret_cast<const uint8_t *>(_frame->data());
+    if ((ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0) && _frame->size() > ADTS_HEADER_LEN) {
         //adts头打入了rtp包，不符合规范，兼容EasyPusher的bug
         _frame->_prefix_size = ADTS_HEADER_LEN;
     } else {
