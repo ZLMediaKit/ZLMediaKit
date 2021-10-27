@@ -155,6 +155,11 @@ else ()
     message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效")
 endif ()
 
+# 添加srtp
+set(TEST_APPS OFF CACHE INTERNAL "")
+add_subdirectory(3rdpart/libsrtp)
+unset(TEST_APPS)
+
 #查找mysql是否安装
 find_package(MYSQL QUIET)
 if (MYSQL_FOUND AND ENABLE_MYSQL)
@@ -292,23 +297,12 @@ if (ENABLE_API)
 endif ()
 
 if (ENABLE_WEBRTC)
-    #查找srtp是否安装
-    find_package(SRTP QUIET)
-    if (SRTP_FOUND)
-        message(STATUS "found library:${SRTP_LIBRARIES}")
-        include_directories(${SRTP_INCLUDE_DIRS})
-        list(APPEND LINK_LIB_LIST ${SRTP_LIBRARIES})
-
-        add_definitions(-DENABLE_WEBRTC)
-        include_directories(./webrtc)
-        file(GLOB SRC_WEBRTC_LIST ./webrtc/*.cpp ./webrtc/*.h ./webrtc/*.hpp)
-        add_library(webrtc ${SRC_WEBRTC_LIST})
-        list(APPEND LINK_LIB_LIST webrtc)
-        message(STATUS "webrtc功能已开启")
-    else ()
-        set(ENABLE_WEBRTC off)
-        message(WARNING "srtp未找到, webrtc相关功能打开失败")
-    endif ()
+  add_definitions(-DENABLE_WEBRTC)
+  include_directories(./webrtc 3rdpart/libsrtp/include)
+  file(GLOB SRC_WEBRTC_LIST ./webrtc/*.cpp ./webrtc/*.h ./webrtc/*.hpp)
+  add_library(webrtc ${SRC_WEBRTC_LIST})
+  list(APPEND LINK_LIB_LIST webrtc srtp2)
+  message(STATUS "webrtc功能已开启")
 endif ()
 
 #ios不编译可执行程序

@@ -20,7 +20,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define MS_RTC_SRTP_SESSION_HPP
 
 #include "Utils.hpp"
-#include <srtp2/srtp.h>
+#include <srtp.h>
 #include <vector>
 #include <memory>
 
