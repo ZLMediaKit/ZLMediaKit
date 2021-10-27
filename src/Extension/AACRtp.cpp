@@ -132,13 +132,19 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
 }
 
 void AACRtpDecoder::flushData() {
-    //插入adts头
-    char adts_header[32] = {0};
-    auto size = dumpAacConfig(_aac_cfg, _frame->_buffer.size(), (uint8_t *) adts_header, sizeof(adts_header));
-    if (size > 0) {
-        //插入adts头
-        _frame->_buffer.insert(0, adts_header, size);
-        _frame->_prefix_size = size;
+    auto ptr = reinterpret_cast<const uint8_t *>(_frame->_buffer.data());
+    if ((ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0)) {
+        //adts头打入了rtp包，不符合规范，兼容EasyPusher的bug
+        _frame->_prefix_size = ADTS_HEADER_LEN;
+    } else {
+        //没有adts头则插入adts头
+        char adts_header[32] = {0};
+        auto size = dumpAacConfig(_aac_cfg, _frame->_buffer.size(), (uint8_t *) adts_header, sizeof(adts_header));
+        if (size > 0) {
+            //插入adts头
+            _frame->_buffer.insert(0, adts_header, size);
+            _frame->_prefix_size = size;
+        }
     }
     RtpCodec::inputFrame(_frame);
     obtainFrame();
