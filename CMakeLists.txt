@@ -151,14 +151,15 @@ if (OPENSSL_FOUND AND ENABLE_OPENSSL)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND OPENSSL_USE_STATIC_LIBS)
         list(APPEND LINK_LIB_LIST dl)
     endif ()
+
+    # 添加srtp
+    set(TEST_APPS OFF CACHE INTERNAL "")
+    add_subdirectory(3rdpart/libsrtp)
+    unset(TEST_APPS)
 else ()
-    message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效")
+    message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效, webrtc功能也将没有")
 endif ()
 
-# 添加srtp
-set(TEST_APPS OFF CACHE INTERNAL "")
-add_subdirectory(3rdpart/libsrtp)
-unset(TEST_APPS)
 
 #查找mysql是否安装
 find_package(MYSQL QUIET)
@@ -296,7 +297,7 @@ if (ENABLE_API)
     add_subdirectory(api)
 endif ()
 
-if (ENABLE_WEBRTC)
+if (OPENSSL_FOUND AND ENABLE_WEBRTC)
   add_definitions(-DENABLE_WEBRTC)
   include_directories(./webrtc 3rdpart/libsrtp/include)
   file(GLOB SRC_WEBRTC_LIST ./webrtc/*.cpp ./webrtc/*.h ./webrtc/*.hpp)
