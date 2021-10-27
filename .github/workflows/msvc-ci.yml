@@ -19,7 +19,7 @@ jobs:
           vcpkgTriplet: x64-windows-static
           # 2021.05.12
           vcpkgGitCommitId: '5568f110b509a9fd90711978a7cb76bae75bb092'
-          vcpkgArguments: 'openssl libsrtp'
+          vcpkgArguments: 'openssl'
 
       - name: 编译
         uses: lukka/run-cmake@v3

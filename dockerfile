@@ -33,8 +33,6 @@ RUN apt-get update && \
          libmp4v2-dev && \
          apt-get autoremove -y && \
          apt-get clean -y && \
-         wget https://github.com/cisco/libsrtp/archive/v2.2.0.tar.gz -O libsrtp-2.2.0.tar.gz && tar xfv libsrtp-2.2.0.tar.gz && \
-         cd libsrtp-2.2.0 && ./configure --enable-openssl && make && make install && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/media

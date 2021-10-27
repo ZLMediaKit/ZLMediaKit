@@ -205,6 +205,17 @@ else ()
     message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效")
 endif ()
 
+# 添加srtp
+set(TEST_APPS OFF CACHE INTERNAL "")
+add_subdirectory(3rdpart/libsrtp)
+unset(TEST_APPS)
+# 添加usrsctp
+set(sctp_build_programs OFF CACHE INTERNAL "")
+set(sctp_werror OFF CACHE INTERNAL "")
+add_subdirectory(3rdpart/usrsctp)
+unset(sctp_build_programs)
+unset(sctp_werror)
+
 #查找mysql是否安装
 find_package(MYSQL QUIET)
 if (MYSQL_FOUND AND ENABLE_MYSQL)
@@ -344,32 +355,12 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini" DESTINATION ${EXECUTABLE
 
 
 if (ENABLE_WEBRTC)
-    #查找srtp是否安装
-    find_package(SRTP QUIET)
-    if (SRTP_FOUND AND ENABLE_OPENSSL)
-        message(STATUS "found library:${SRTP_LIBRARIES}")
-        include_directories(${SRTP_INCLUDE_DIRS})
-        list(APPEND LINK_LIB_LIST ${SRTP_LIBRARIES})
-
-        add_definitions(-DENABLE_WEBRTC)
-        include_directories(./webrtc)
-        file(GLOB SRC_WEBRTC_LIST ./webrtc/*.cpp ./webrtc/*.h ./webrtc/*.hpp)
-        add_library(webrtc ${SRC_WEBRTC_LIST})
-        list(APPEND LINK_LIB_LIST webrtc)
-        message(STATUS "webrtc功能已开启")
-
-        find_package(SCTP QUIET)
-        if (SCTP_FOUND)
-            message(STATUS "found library:${SCTP_INCLUDE_DIRS} ${SCTP_LIBRARIES}")
-            include_directories(${SCTP_INCLUDE_DIRS})
-            list(APPEND LINK_LIB_LIST ${SCTP_LIBRARIES})
-            add_definitions(-DENABLE_SCTP)
-            message(STATUS "webrtc datachannel功能已打开")
-        endif ()
-    else ()
-        set(ENABLE_WEBRTC off)
-        message(WARNING "srtp未找到, webrtc相关功能打开失败")
-    endif ()
+  add_definitions(-DENABLE_WEBRTC -DENABLE_SCTP)
+  include_directories(./webrtc 3rdpart/libsrtp/include 3rdpart/usrsctp/usrsctplib)
+  file(GLOB SRC_WEBRTC_LIST ./webrtc/*.cpp ./webrtc/*.h ./webrtc/*.hpp)
+  add_library(webrtc ${SRC_WEBRTC_LIST})
+  list(APPEND LINK_LIB_LIST webrtc srtp2 usrsctp)
+  message(STATUS "webrtc功能已开启")
 endif ()
 
 #添加c库

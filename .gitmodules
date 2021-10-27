@@ -4,3 +4,9 @@
 [submodule "3rdpart/media-server"]
 	path = 3rdpart/media-server
 	url = https://gitee.com/ireader/media-server
+[submodule "3rdpart/libsrtp"]
+	path = 3rdpart/libsrtp
+	url = https://github.com/cisco/libsrtp.git
+[submodule "3rdpart/usrsctp"]
+	path = 3rdpart/usrsctp
+	url = https://github.com/sctplab/usrsctp.git

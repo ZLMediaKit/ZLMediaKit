@@ -597,8 +597,11 @@ namespace RTC
 		SSL_set_mtu(this->ssl, DtlsMtu);
 		DTLS_set_link_mtu(this->ssl, DtlsMtu);
 
+#if OPENSSL_VERSION_NUMBER >= 0x10010100L
+		// The DTLS_set_timer_cb() function was added in OpenSSL 1.1.1.
 		// Set callback handler for setting DTLS timer interval.
 		DTLS_set_timer_cb(this->ssl, onSslDtlsTimer);
+#endif
 
 		return;
 
