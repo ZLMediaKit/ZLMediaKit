@@ -219,11 +219,12 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &, const string &dst_url, u
 
 bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string &ssrc) {
 #if defined(ENABLE_RTPPROXY)
+    std::unique_ptr<onceToken> token;
     if (&sender != MediaSource::NullMediaSource) {
-        onceToken token(nullptr, [&]() {
+        token.reset(new onceToken(nullptr, [&]() {
             //关闭rtp推流，可能触发无人观看事件
             MediaSourceEventInterceptor::onReaderChanged(sender, totalReaderCount());
-        });
+        }));
     }
     if (ssrc.empty()) {
         //关闭全部
