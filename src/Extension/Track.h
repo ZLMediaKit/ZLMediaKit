@@ -147,7 +147,12 @@ public:
      * 是否已经初始化
      */
     bool ready() override {
-        return true;
+        return _ready;
+    }
+
+    bool inputFrame(const Frame::Ptr &frame) override {
+        _ready = true;
+        return AudioTrack::inputFrame(frame);
     }
 
     /**
@@ -171,6 +176,7 @@ public:
         return _channels;
     }
 private:
+    bool _ready = false;
     CodecId _codecid;
     int _sample_rate;
     int _channels;
