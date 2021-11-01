@@ -157,7 +157,7 @@ if (OPENSSL_FOUND AND ENABLE_OPENSSL)
     add_subdirectory(3rdpart/libsrtp)
     unset(TEST_APPS)
 else ()
-    message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效, webrtc功能也将没有")
+    message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效, webrtc功能也将关闭")
 endif ()
 
 
