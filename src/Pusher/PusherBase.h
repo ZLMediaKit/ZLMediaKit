@@ -22,18 +22,17 @@ using namespace toolkit;
 
 namespace mediakit {
 
-
-class PusherBase : public mINI{
+class PusherBase : public mINI {
 public:
-    typedef std::shared_ptr<PusherBase> Ptr;
-    typedef std::function<void(const SockException &ex)> Event;
+    using Ptr = std::shared_ptr<PusherBase>;
+    using Event = std::function<void(const SockException &ex)>;
 
     static Ptr createPusher(const EventPoller::Ptr &poller,
                             const MediaSource::Ptr &src,
                             const string &strUrl);
 
     PusherBase();
-    virtual ~PusherBase(){}
+    virtual ~PusherBase() = default;
 
     /**
      * 开始推流
@@ -48,32 +47,29 @@ public:
 
     /**
      * 摄像推流结果回调
-     * @param onPublished
      */
     virtual void setOnPublished(const Event &cb) = 0;
 
     /**
      * 设置断开回调
-     * @param onShutdown
      */
     virtual void setOnShutdown(const Event &cb) = 0;
 };
 
-template<typename Parent,typename Delegate>
+template<typename Parent, typename Delegate>
 class PusherImp : public Parent {
 public:
-    typedef std::shared_ptr<PusherImp> Ptr;
+    using Ptr = std::shared_ptr<PusherImp>;
 
     template<typename ...ArgsType>
-    PusherImp(ArgsType &&...args):Parent(std::forward<ArgsType>(args)...){}
-
-    virtual ~PusherImp(){}
+    PusherImp(ArgsType &&...args) : Parent(std::forward<ArgsType>(args)...) {}
+    ~PusherImp() override = default;
 
     /**
      * 开始推流
      * @param strUrl 推流url，支持rtsp/rtmp
      */
-    void publish(const string &strUrl) override{
+    void publish(const string &strUrl) override {
         if (_delegate) {
             _delegate->publish(strUrl);
         }
@@ -82,7 +78,7 @@ public:
     /**
      * 中断推流
      */
-    void teardown() override{
+    void teardown() override {
         if (_delegate) {
             _delegate->teardown();
         }
@@ -90,37 +86,33 @@ public:
 
     /**
      * 摄像推流结果回调
-     * @param onPublished
      */
-    void setOnPublished(const PusherBase::Event &cb) override{
+    void setOnPublished(const PusherBase::Event &cb) override {
         if (_delegate) {
             _delegate->setOnPublished(cb);
         }
-        _publishCB = cb;
+        _on_publish = cb;
     }
 
     /**
      * 设置断开回调
-     * @param onShutdown
      */
-    void setOnShutdown(const PusherBase::Event &cb) override{
+    void setOnShutdown(const PusherBase::Event &cb) override {
         if (_delegate) {
             _delegate->setOnShutdown(cb);
         }
-        _shutdownCB = cb;
+        _on_shutdown = cb;
     }
 
-    std::shared_ptr<SockInfo> getSockInfo() const{
+    std::shared_ptr<SockInfo> getSockInfo() const {
         return dynamic_pointer_cast<SockInfo>(_delegate);
     }
 
 protected:
-    PusherBase::Event _shutdownCB;
-    PusherBase::Event _publishCB;
+    PusherBase::Event _on_shutdown;
+    PusherBase::Event _on_publish;
     std::shared_ptr<Delegate> _delegate;
 };
 
-
 } /* namespace mediakit */
-
 #endif /* SRC_PUSHER_PUSHERBASE_H_ */
