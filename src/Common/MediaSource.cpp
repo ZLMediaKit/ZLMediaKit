@@ -212,6 +212,15 @@ bool MediaSource::setupRecord(Recorder::type type, bool start, const string &cus
     return listener->setupRecord(*this, type, start, custom_path, max_second);
 }
 
+bool MediaSource::refreshRecord(Recorder::type type) {
+    auto listener = _listener.lock();
+    if (!listener) {
+        WarnL << "未设置MediaSource的事件监听者，setupRecord失败:" << getSchema() << "/" << getVhost() << "/" << getApp() << "/" << getId();
+        return false;
+    }
+    return listener->refreshRecord(*this, type);
+}
+
 bool MediaSource::isRecording(Recorder::type type){
     auto listener = _listener.lock();
     if(!listener){
@@ -676,6 +685,14 @@ bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::typ
         return false;
     }
     return listener->setupRecord(sender, type, start, custom_path, max_second);
+}
+
+bool MediaSourceEventInterceptor::refreshRecord(MediaSource& sender, Recorder::type type) {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return false;
+    }
+    return listener->refreshRecord(sender, type);
 }
 
 bool MediaSourceEventInterceptor::isRecording(MediaSource &sender, Recorder::type type) {

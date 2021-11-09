@@ -1090,6 +1090,27 @@ void installWebApi() {
         val["msg"] = result ? "success" :  "stop record failed";
     });
 
+    // 刷新录制mp4
+    api_regist("/index/api/refreshRecord", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("type", "vhost", "app", "stream");
+        auto src = MediaSource::find(allArgs["schema"],
+            allArgs["vhost"],
+            allArgs["app"],
+            allArgs["stream"]);
+        if (src) {
+            bool flag = src->refreshRecord((Recorder::type) allArgs["type"].as<int>());
+            val["result"] = flag ? 0 : -1;
+            val["msg"] = flag ? "success" : "refresh failed";
+            val["code"] = flag ? API::Success : API::OtherFailed;
+        }
+        else {
+            val["result"] = -2;
+            val["msg"] = "can not find the stream";
+            val["code"] = API::OtherFailed;
+        }
+        });
+
     // 获取hls或MP4录制状态
     api_regist("/index/api/isRecording",[](API_ARGS_MAP){
         CHECK_SECRET();

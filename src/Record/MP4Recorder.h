@@ -48,13 +48,41 @@ public:
      */
     bool addTrack(const Track::Ptr & track) override;
 
+    /**
+    * 立即生成mp4文件
+    */
+    inline bool refreshRecord() noexcept override {
+        _last_dts = 0;
+        refresh = true; 
+        return true;
+    }
+
 private:
     void createFile();
     void closeFile();
     void asyncClose();
 
+    /**
+    * 输出缓存帧
+    */
+    inline void pop_frame() noexcept {
+        try {
+            if (_muxer) {
+                while (_cache_frame.size()) {
+                    _muxer->inputFrame(_cache_frame.front());
+                    _cache_frame.pop_front();
+                }
+                _cache_frame.clear();
+            }
+        }
+        catch (const std::exception& err) {
+            WarnL << err.what();
+        }
+    }
+
 private:
     bool _have_video = false;
+    bool refresh = false;
     size_t _max_second;
     string _folder_path;
     string _full_path;
@@ -62,6 +90,7 @@ private:
     RecordInfo _info;
     MP4Muxer::Ptr _muxer;
     list<Track::Ptr> _tracks;
+    list<Frame::Ptr> _cache_frame;
     uint64_t _last_dts = 0;
 };
 

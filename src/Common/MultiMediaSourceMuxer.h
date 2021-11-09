@@ -88,6 +88,12 @@ public:
      * @return 是否设置成功
      */
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) override;
+    
+    /**
+    * 刷新注册
+    * @param type 录制类型
+    */
+    bool refreshRecord(MediaSource& sender, Recorder::type type) override;
 
     /**
      * 获取录制状态

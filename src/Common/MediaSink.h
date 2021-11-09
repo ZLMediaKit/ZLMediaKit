@@ -49,6 +49,8 @@ class MediaSinkInterface : public FrameWriterInterface, public TrackListener {
 public:
     typedef std::shared_ptr<MediaSinkInterface> Ptr;
 
+    virtual bool refreshRecord() { return false; };
+
     MediaSinkInterface() = default;
     ~MediaSinkInterface() override = default;
 };

@@ -30,7 +30,9 @@ MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &
     GET_CONFIG(size_t ,recordSec,Record::kFileSecond);
     _max_second = max_second ? max_second : recordSec;
 }
+
 MP4Recorder::~MP4Recorder() {
+    pop_frame();
     closeFile();
 }
 
@@ -49,12 +51,14 @@ void MP4Recorder::createFile() {
     _info.url = appName + "/" + _info.app + "/" + _info.stream + "/" + date + "/" + time + ".mp4";
 
     try {
-        _muxer = std::make_shared<MP4Muxer>();
+        if (_muxer == nullptr)
+            _muxer = std::make_shared<MP4Muxer>();
         _muxer->openMP4(full_path_tmp);
         for (auto &track :_tracks) {
             //添加track
             _muxer->addTrack(track);
         }
+        _muxer->addTrackCompleted();
         _full_path_tmp = full_path_tmp;
         _full_path = full_path;
     } catch (std::exception &ex) {
@@ -100,21 +104,24 @@ bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
         _last_dts = frame->dts();
     }
 
-    auto duration = frame->dts() - _last_dts;
-    if (!_muxer || ((duration > _max_second * 1000) && (!_have_video || (_have_video && frame->keyFrame())))) {
-        //成立条件
-        //1、_muxer为空
-        //2、到了切片时间，并且只有音频
-        //3、到了切片时间，有视频并且遇到视频的关键帧
-        _last_dts = 0;
-        createFile();
+    if (frame->keyFrame()) {
+        pop_frame();
     }
 
-    if (_muxer) {
-        //生成mp4文件
-        return _muxer->inputFrame(frame);
+    auto duration = frame->dts() - _last_dts;
+    if (!_muxer || duration > _max_second * 1000 || refresh) {
+        //成立条件
+        //1、_muxer为空
+        //2、到了切片时间
+        //3、立即刷新接口被调用
+        _last_dts = 0;
+        createFile();
+        refresh = false;
     }
-    return false;
+
+    _cache_frame.push_back(frame);
+
+    return true;
 }
 
 bool MP4Recorder::addTrack(const Track::Ptr &track) {

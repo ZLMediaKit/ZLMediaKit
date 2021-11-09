@@ -85,6 +85,8 @@ public:
     virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) { return false; };
     // 获取录制状态
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
+    // 刷新录像
+    virtual bool refreshRecord(MediaSource& sender, Recorder::type type) { return false; };
     // 获取所有track相关信息
     virtual vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return vector<Track::Ptr>(); };
     // 开始发送ps-rtp
@@ -117,6 +119,7 @@ public:
     void onReaderChanged(MediaSource &sender, int size) override;
     void onRegist(MediaSource &sender, bool regist) override;
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) override;
+    bool refreshRecord(MediaSource& sender, Recorder::type type) override;
     bool isRecording(MediaSource &sender, Recorder::type type) override;
     vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
     void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb) override;
@@ -267,6 +270,8 @@ public:
     bool setupRecord(Recorder::type type, bool start, const string &custom_path, size_t max_second);
     // 获取录制状态
     bool isRecording(Recorder::type type);
+    // 刷新录像
+    bool refreshRecord(Recorder::type type);
     // 开始发送ps-rtp
     void startSendRtp(const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb);
     // 停止发送ps-rtp

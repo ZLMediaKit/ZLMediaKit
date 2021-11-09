@@ -183,6 +183,18 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
     }
 }
 
+bool MultiMediaSourceMuxer::refreshRecord(MediaSource& sender, Recorder::type type) {
+    switch (type)
+    {
+    case Recorder::type_hls:
+        return false;
+    case Recorder::type_mp4:
+        _mp4->refreshRecord();
+    default:
+        break;
+    }
+}
+
 //此函数可能跨线程调用
 bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type) {
     switch (type){
