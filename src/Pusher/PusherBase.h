@@ -38,12 +38,12 @@ public:
      * 开始推流
      * @param strUrl 视频url，支持rtsp/rtmp
      */
-    virtual void publish(const string &strUrl) = 0;
+    virtual void publish(const string &strUrl) {};
 
     /**
      * 中断推流
      */
-    virtual void teardown() = 0;
+    virtual void teardown() {};
 
     /**
      * 摄像推流结果回调
@@ -54,6 +54,10 @@ public:
      * 设置断开回调
      */
     virtual void setOnShutdown(const Event &cb) = 0;
+
+protected:
+    virtual void onShutdown(const SockException &ex) = 0;
+    virtual void onPublishResult(const SockException &ex) = 0;
 };
 
 template<typename Parent, typename Delegate>
@@ -67,21 +71,21 @@ public:
 
     /**
      * 开始推流
-     * @param strUrl 推流url，支持rtsp/rtmp
+     * @param url 推流url，支持rtsp/rtmp
      */
-    void publish(const string &strUrl) override {
-        if (_delegate) {
-            _delegate->publish(strUrl);
-        }
+    void publish(const string &url) override {
+        return _delegate ? _delegate->publish(url) : Parent::publish(url);
     }
 
     /**
      * 中断推流
      */
     void teardown() override {
-        if (_delegate) {
-            _delegate->teardown();
-        }
+        return _delegate ? _delegate->teardown() : Parent::teardown();
+    }
+
+    std::shared_ptr<SockInfo> getSockInfo() const {
+        return dynamic_pointer_cast<SockInfo>(_delegate);
     }
 
     /**
@@ -104,8 +108,19 @@ public:
         _on_shutdown = cb;
     }
 
-    std::shared_ptr<SockInfo> getSockInfo() const {
-        return dynamic_pointer_cast<SockInfo>(_delegate);
+protected:
+    void onShutdown(const SockException &ex) override {
+        if (_on_shutdown) {
+            _on_shutdown(ex);
+            _on_shutdown = nullptr;
+        }
+    }
+
+    void onPublishResult(const SockException &ex) override {
+        if (_on_publish) {
+            _on_publish(ex);
+            _on_publish = nullptr;
+        }
     }
 
 protected:
