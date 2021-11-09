@@ -36,14 +36,6 @@ public:
     void publish(const string &url) override;
     void teardown() override;
 
-    void setOnPublished(const Event &cb) override {
-        _on_published = cb;
-    }
-
-    void setOnShutdown(const Event & cb) override{
-        _on_shutdown = cb;
-    }
-
 protected:
     //for Tcpclient override
     void onRecv(const Buffer::Ptr &buf) override;
@@ -57,7 +49,7 @@ protected:
     virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data, size_t len);
 
 private:
-    void onPublishResult(const SockException &ex, bool handshake_done);
+    void onPublishResult_l(const SockException &ex, bool handshake_done);
 
     void sendAnnounce();
     void sendSetup(unsigned int track_idx);
@@ -102,9 +94,6 @@ private:
     std::shared_ptr<Timer> _beat_timer;
     std::weak_ptr<RtspMediaSource> _push_src;
     RtspMediaSource::RingType::RingReader::Ptr _rtsp_reader;
-    //事件监听
-    Event _on_shutdown;
-    Event _on_published;
     function<void(const Parser&)> _on_res_func;
     ////////// rtcp ////////////////
     //rtcp发送时间,trackid idx 为数组下标
@@ -112,6 +101,8 @@ private:
     //统计rtp并发送rtcp
     vector<RtcpContext::Ptr> _rtcp_context;
 };
+
+using RtspPusherImp = PusherImp<RtspPusher, PusherBase>;
 
 } /* namespace mediakit */
 #endif //ZLMEDIAKIT_RTSPPUSHER_H

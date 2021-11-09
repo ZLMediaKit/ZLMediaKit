@@ -30,22 +30,22 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &poller,
     string prefix = FindField(strUrl.data(), NULL, "://");
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
-        return PusherBase::Ptr(new TcpClientWithSSL<RtspPusher>(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);
+        return PusherBase::Ptr(new TcpClientWithSSL<RtspPusherImp>(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);
     }
 
     if (strcasecmp("rtsp",prefix.data()) == 0) {
-        return PusherBase::Ptr(new RtspPusher(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);
+        return PusherBase::Ptr(new RtspPusherImp(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);
     }
 
     if (strcasecmp("rtmps",prefix.data()) == 0) {
-        return PusherBase::Ptr(new TcpClientWithSSL<RtmpPusher>(poller,dynamic_pointer_cast<RtmpMediaSource>(src)),releasePusher);
+        return PusherBase::Ptr(new TcpClientWithSSL<RtmpPusherImp>(poller,dynamic_pointer_cast<RtmpMediaSource>(src)),releasePusher);
     }
 
     if (strcasecmp("rtmp",prefix.data()) == 0) {
-        return PusherBase::Ptr(new RtmpPusher(poller,dynamic_pointer_cast<RtmpMediaSource>(src)),releasePusher);
+        return PusherBase::Ptr(new RtmpPusherImp(poller,dynamic_pointer_cast<RtmpMediaSource>(src)),releasePusher);
     }
 
-    return PusherBase::Ptr(new RtspPusher(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);
+    return PusherBase::Ptr(new RtspPusherImp(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);
 }
 
 PusherBase::PusherBase() {
