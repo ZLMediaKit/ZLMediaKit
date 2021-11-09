@@ -44,8 +44,8 @@ void MediaPusher::publish(const string &url) {
     _delegate = PusherBase::createPusher(_poller, _src.lock(), url);
     assert(_delegate);
     setOnCreateSocket_l(_delegate, _on_create_socket);
-    _delegate->setOnShutdown(_shutdownCB);
-    _delegate->setOnPublished(_publishCB);
+    _delegate->setOnShutdown(_on_shutdown);
+    _delegate->setOnPublished(_on_publish);
     _delegate->mINI::operator=(*this);
     _delegate->publish(url);
 }
