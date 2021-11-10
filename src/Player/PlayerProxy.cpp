@@ -184,17 +184,17 @@ void PlayerProxy::onPlaySuccess() {
     if (dynamic_pointer_cast<RtspMediaSource>(_media_src)) {
         //rtsp拉流代理
         if (resetWhenRePlay || !_muxer) {
-            _muxer.reset(new MultiMediaSourceMuxer(_vhost, _app, _stream_id, getDuration(), false, true, _enable_hls, _enable_mp4));
+            _muxer = std::make_shared<MultiMediaSourceMuxer>(_vhost, _app, _stream_id, getDuration(), false, true, _enable_hls, _enable_mp4);
         }
     } else if (dynamic_pointer_cast<RtmpMediaSource>(_media_src)) {
         //rtmp拉流代理
         if (resetWhenRePlay || !_muxer) {
-            _muxer.reset(new MultiMediaSourceMuxer(_vhost, _app, _stream_id, getDuration(), true, false, _enable_hls, _enable_mp4));
+            _muxer = std::make_shared<MultiMediaSourceMuxer>(_vhost, _app, _stream_id, getDuration(), true, false, _enable_hls, _enable_mp4);
         }
     } else {
         //其他拉流代理
         if (resetWhenRePlay || !_muxer) {
-            _muxer.reset(new MultiMediaSourceMuxer(_vhost, _app, _stream_id, getDuration(), true, true, _enable_hls, _enable_mp4));
+            _muxer = std::make_shared<MultiMediaSourceMuxer>(_vhost, _app, _stream_id, getDuration(), true, true, _enable_hls, _enable_mp4);
         }
     }
     _muxer->setMediaListener(shared_from_this());

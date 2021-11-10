@@ -63,7 +63,7 @@ private:
     Timer::Ptr _timer;
     EventPoller::Ptr _poller;
     MP4Demuxer::Ptr _demuxer;
-    MultiMediaSourceMuxer::Ptr _mediaMuxer;
+    MultiMediaSourceMuxer::Ptr _muxer;
 };
 
 } /* namespace mediakit */
