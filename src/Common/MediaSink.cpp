@@ -261,8 +261,8 @@ bool MediaSink::addMuteAudioTrack() {
         return onTrackFrame(frame);
     }));
     _mute_audio_maker = std::make_shared<MuteAudioMaker>();
-    _mute_audio_maker->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
-        return inputFrame(frame);
+    _mute_audio_maker->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([audio](const Frame::Ptr &frame) {
+        return audio->inputFrame(frame);
     }));
     onTrackReady(audio);
     TraceL << "mute aac track added";
