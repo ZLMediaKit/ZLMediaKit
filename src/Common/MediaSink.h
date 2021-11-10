@@ -143,6 +143,7 @@ private:
      */
     void checkTrackIfReady(const Track::Ptr &track);
     void checkTrackIfReady_l(const Track::Ptr &track);
+    void onAllTrackReady_l();
 
 private:
     bool _all_track_ready = false;
