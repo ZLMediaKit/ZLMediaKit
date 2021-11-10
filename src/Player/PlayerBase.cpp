@@ -60,6 +60,7 @@ PlayerBase::PlayerBase() {
     this->mINI::operator[](kTimeoutMS) = 10000;
     this->mINI::operator[](kMediaTimeoutMS) = 5000;
     this->mINI::operator[](kBeatIntervalMS) = 5000;
+    this->mINI::operator[](kWaitTrackReady) = true;
 }
 
 ///////////////////////////DemuxerSink//////////////////////////////
