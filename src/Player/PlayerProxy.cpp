@@ -29,6 +29,7 @@ PlayerProxy::PlayerProxy(const string &vhost, const string &app, const string &s
     _enable_mp4 = enable_mp4;
     _retry_count = retry_count;
     _on_close = [](const SockException &) {};
+    (*this)[Client::kWaitTrackReady] = false;
 }
 
 void PlayerProxy::setPlayCallbackOnce(const function<void(const SockException &ex)> &cb) {
