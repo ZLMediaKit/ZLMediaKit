@@ -25,7 +25,7 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
         const AMFValue *videocodecid = nullptr;
         val.object_for_each([&](const string &key, const AMFValue &val) {
             if (key == "duration") {
-                _fDuration = (float)val.as_number();
+                _duration = (float)val.as_number();
                 return;
             }
             if (key == "audiosamplerate") {
@@ -80,6 +80,10 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
     return ret;
 }
 
+float RtmpDemuxer::getDuration() const {
+    return _duration;
+}
+
 void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->type_id) {
         case MSG_VIDEO: {
@@ -111,41 +115,42 @@ void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
 
 void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec, int bit_rate) {
     //生成Track对象
-    _videoTrack = dynamic_pointer_cast<VideoTrack>(Factory::getVideoTrackByAmf(videoCodec));
-    if (_videoTrack) {
-        _videoTrack->setBitRate(bit_rate);
-        //生成rtmpCodec对象以便解码rtmp
-        _video_rtmp_decoder = Factory::getRtmpCodecByTrack(_videoTrack, false);
-        if (_video_rtmp_decoder) {
-            //设置rtmp解码器代理，生成的frame写入该Track
-            _video_rtmp_decoder->addDelegate(_videoTrack);
-            addTrack(_videoTrack);
-            _try_get_video_track = true;
-        } else {
-            //找不到相应的rtmp解码器，该track无效
-            _videoTrack.reset();
-        }
+    _video_track = dynamic_pointer_cast<VideoTrack>(Factory::getVideoTrackByAmf(videoCodec));
+    if (!_video_track) {
+        return;
     }
+    //生成rtmpCodec对象以便解码rtmp
+    _video_rtmp_decoder = Factory::getRtmpCodecByTrack(_video_track, false);
+    if (!_video_rtmp_decoder) {
+        //找不到相应的rtmp解码器，该track无效
+        _video_track.reset();
+        return;
+    }
+    _video_track->setBitRate(bit_rate);
+    //设置rtmp解码器代理，生成的frame写入该Track
+    _video_rtmp_decoder->addDelegate(_video_track);
+    addTrack(_video_track);
+    _try_get_video_track = true;
 }
 
 void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec,int sample_rate, int channels, int sample_bit, int bit_rate) {
     //生成Track对象
-    _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getAudioTrackByAmf(audioCodec, sample_rate, channels, sample_bit));
-    if (_audioTrack) {
-        _audioTrack->setBitRate(bit_rate);
-        //生成rtmpCodec对象以便解码rtmp
-        _audio_rtmp_decoder = Factory::getRtmpCodecByTrack(_audioTrack, false);
-        if (_audio_rtmp_decoder) {
-            //设置rtmp解码器代理，生成的frame写入该Track
-            _audio_rtmp_decoder->addDelegate(_audioTrack);
-            addTrack(_audioTrack);
-            _try_get_audio_track = true;
-        } else {
-            //找不到相应的rtmp解码器，该track无效
-            _audioTrack.reset();
-        }
+    _audio_track = dynamic_pointer_cast<AudioTrack>(Factory::getAudioTrackByAmf(audioCodec, sample_rate, channels, sample_bit));
+    if (!_audio_track) {
+        return;
     }
+    //生成rtmpCodec对象以便解码rtmp
+    _audio_rtmp_decoder = Factory::getRtmpCodecByTrack(_audio_track, false);
+    if (!_audio_rtmp_decoder) {
+        //找不到相应的rtmp解码器，该track无效
+        _audio_track.reset();
+        return;
+    }
+    _audio_track->setBitRate(bit_rate);
+    //设置rtmp解码器代理，生成的frame写入该Track
+    _audio_rtmp_decoder->addDelegate(_audio_track);
+    addTrack(_audio_track);
+    _try_get_audio_track = true;
 }
-
 
 } /* namespace mediakit */

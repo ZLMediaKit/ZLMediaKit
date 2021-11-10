@@ -18,13 +18,13 @@ using namespace std;
 
 namespace mediakit {
 
-void RtspDemuxer::loadSdp(const string &sdp){
+void RtspDemuxer::loadSdp(const string &sdp) {
     loadSdp(SdpParser(sdp));
 }
 
 void RtspDemuxer::loadSdp(const SdpParser &attr) {
     auto tracks = attr.getAvailableTrack();
-    for (auto &track : tracks){
+    for (auto &track : tracks) {
         switch (track->_type) {
             case TrackVideo: {
                 makeVideoTrack(track);
@@ -42,31 +42,35 @@ void RtspDemuxer::loadSdp(const SdpParser &attr) {
     addTrackCompleted();
 
     auto titleTrack = attr.getTrack(TrackTitle);
-    if(titleTrack){
-        _fDuration = titleTrack->_duration;
-    }
-}
-bool RtspDemuxer::inputRtp(const RtpPacket::Ptr & rtp) {
-    switch (rtp->type) {
-    case TrackVideo:{
-        if(_videoRtpDecoder){
-            return _videoRtpDecoder->inputRtp(rtp, true);
-        }
-        return false;
-    }
-    case TrackAudio:{
-        if(_audioRtpDecoder){
-            _audioRtpDecoder->inputRtp(rtp, false);
-            return false;
-        }
-        return false;
-    }
-    default:
-        return false;
+    if (titleTrack) {
+        _duration = titleTrack->_duration;
     }
 }
 
-static void setBitRate(const SdpTrack::Ptr &sdp, const Track::Ptr &track){
+float RtspDemuxer::getDuration() const {
+    return _duration;
+}
+
+bool RtspDemuxer::inputRtp(const RtpPacket::Ptr &rtp) {
+    switch (rtp->type) {
+        case TrackVideo: {
+            if (_videoRtpDecoder) {
+                return _videoRtpDecoder->inputRtp(rtp, true);
+            }
+            return false;
+        }
+        case TrackAudio: {
+            if (_audioRtpDecoder) {
+                _audioRtpDecoder->inputRtp(rtp, false);
+                return false;
+            }
+            return false;
+        }
+        default: return false;
+    }
+}
+
+static void setBitRate(const SdpTrack::Ptr &sdp, const Track::Ptr &track) {
     if (!sdp->_b.empty()) {
         int data_rate = 0;
         sscanf(sdp->_b.data(), "AS:%d", &data_rate);
@@ -78,38 +82,40 @@ static void setBitRate(const SdpTrack::Ptr &sdp, const Track::Ptr &track){
 
 void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
     //生成Track对象
-    _audioTrack = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio));
-    if(_audioTrack){
-        setBitRate(audio, _audioTrack);
-        //生成RtpCodec对象以便解码rtp
-        _audioRtpDecoder = Factory::getRtpDecoderByTrack(_audioTrack);
-        if(_audioRtpDecoder){
-            //设置rtp解码器代理，生成的frame写入该Track
-            _audioRtpDecoder->addDelegate(_audioTrack);
-            addTrack(_audioTrack);
-        } else{
-            //找不到相应的rtp解码器，该track无效
-            _audioTrack.reset();
-        }
+    _audio_track = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio));
+    if (!_audio_track) {
+        return;
     }
+    setBitRate(audio, _audio_track);
+    //生成RtpCodec对象以便解码rtp
+    _audioRtpDecoder = Factory::getRtpDecoderByTrack(_audio_track);
+    if (!_audioRtpDecoder) {
+        //找不到相应的rtp解码器，该track无效
+        _audio_track.reset();
+        return;
+    }
+    //设置rtp解码器代理，生成的frame写入该Track
+    _audioRtpDecoder->addDelegate(_audio_track);
+    addTrack(_audio_track);
 }
 
 void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
     //生成Track对象
-    _videoTrack = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video));
-    if(_videoTrack){
-        setBitRate(video, _videoTrack);
-        //生成RtpCodec对象以便解码rtp
-        _videoRtpDecoder = Factory::getRtpDecoderByTrack(_videoTrack);
-        if(_videoRtpDecoder){
-            //设置rtp解码器代理，生成的frame写入该Track
-            _videoRtpDecoder->addDelegate(_videoTrack);
-            addTrack(_videoTrack);
-        }else{
-            //找不到相应的rtp解码器，该track无效
-            _videoTrack.reset();
-        }
+    _video_track = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video));
+    if (!_video_track) {
+        return;
     }
+    setBitRate(video, _video_track);
+    //生成RtpCodec对象以便解码rtp
+    _videoRtpDecoder = Factory::getRtpDecoderByTrack(_video_track);
+    if (!_videoRtpDecoder) {
+        //找不到相应的rtp解码器，该track无效
+        _video_track.reset();
+        return;
+    }
+    //设置rtp解码器代理，生成的frame写入该Track
+    _videoRtpDecoder->addDelegate(_video_track);
+    addTrack(_video_track);
 }
 
 } /* namespace mediakit */

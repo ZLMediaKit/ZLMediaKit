@@ -21,16 +21,14 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class MediaPlayer : public PlayerImp<PlayerBase,PlayerBase> {
+class MediaPlayer : public PlayerImp<PlayerBase, PlayerBase> {
 public:
-    typedef std::shared_ptr<MediaPlayer> Ptr;
+    using Ptr = std::shared_ptr<MediaPlayer>;
 
     MediaPlayer(const EventPoller::Ptr &poller = nullptr);
-    virtual ~MediaPlayer();
+    ~MediaPlayer() override = default;
+
     void play(const string &url) override;
-    void pause(bool pause) override;
-    void speed(float speed) override;
-    void teardown() override;
     EventPoller::Ptr getPoller();
     void setOnCreateSocket(Socket::onCreateSocket cb);
 
