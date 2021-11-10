@@ -40,7 +40,7 @@ namespace mediakit {
  * 只要生成了这三要素，那么要实现rtmp推流、rtmp服务器就很简单了
  * rtmp推拉流协议中，先传递metadata，然后传递config帧，然后一直传递普通帧
  */
-class RtmpMediaSource : public MediaSource, public RingDelegate<RtmpPacket::Ptr>, public PacketCache<RtmpPacket>{
+class RtmpMediaSource : public MediaSource, public RingDelegate<RtmpPacket::Ptr>, private PacketCache<RtmpPacket>{
 public:
     typedef std::shared_ptr<RtmpMediaSource> Ptr;
     typedef std::shared_ptr<List<RtmpPacket::Ptr> > RingDataType;

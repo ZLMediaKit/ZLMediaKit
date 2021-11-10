@@ -18,7 +18,7 @@
 using namespace toolkit;
 
 namespace mediakit {
-class RtspMediaSourceImp : public RtspMediaSource, public TrackListener, public MultiMediaSourceMuxer::Listener  {
+class RtspMediaSourceImp : public RtspMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener  {
 public:
     typedef std::shared_ptr<RtspMediaSourceImp> Ptr;
 
