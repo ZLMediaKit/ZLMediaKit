@@ -30,6 +30,8 @@ public:
     RtmpDemuxer() = default;
     ~RtmpDemuxer() override = default;
 
+    static size_t trackCount(const AMFValue &metadata);
+
     bool loadMetaData(const AMFValue &metadata);
 
     /**

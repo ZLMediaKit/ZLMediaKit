@@ -13,6 +13,23 @@
 
 namespace mediakit {
 
+size_t RtmpDemuxer::trackCount(const AMFValue &metadata) {
+    size_t ret = 0;
+    metadata.object_for_each([&](const string &key, const AMFValue &val) {
+        if (key == "videocodecid") {
+            //找到视频
+            ++ret;
+            return;
+        }
+        if (key == "audiocodecid") {
+            //找到音频
+            ++ret;
+            return;
+        }
+    });
+    return ret;
+}
+
 bool RtmpDemuxer::loadMetaData(const AMFValue &val){
     bool ret = false;
     try {
