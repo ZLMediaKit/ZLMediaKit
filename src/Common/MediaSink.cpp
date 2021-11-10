@@ -32,7 +32,6 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
             return false;
         }
     }
-    lock_guard<recursive_mutex> lck(_mtx);
     if (_all_track_ready) {
         WarnL << "all track is ready, add this track too late!";
         return false;
@@ -64,7 +63,6 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
 }
 
 void MediaSink::resetTracks() {
-    lock_guard<recursive_mutex> lck(_mtx);
     _all_track_ready = false;
     _track_map.clear();
     _track_ready_callback.clear();
@@ -74,7 +72,6 @@ void MediaSink::resetTracks() {
 }
 
 bool MediaSink::inputFrame(const Frame::Ptr &frame) {
-    lock_guard<recursive_mutex> lck(_mtx);
     auto it = _track_map.find(frame->getTrackType());
     if (it == _track_map.end()) {
         return false;
@@ -135,7 +132,6 @@ void MediaSink::checkTrackIfReady(const Track::Ptr &track){
 }
 
 void MediaSink::addTrackCompleted(){
-    lock_guard<recursive_mutex> lck(_mtx);
     _max_track_size = _track_map.size();
     checkTrackIfReady(nullptr);
 }
@@ -190,7 +186,6 @@ void MediaSink::onAllTrackReady_l() {
 
 vector<Track::Ptr> MediaSink::getTracks(bool trackReady) const{
     vector<Track::Ptr> ret;
-    lock_guard<recursive_mutex> lck(_mtx);
     for (auto &pr : _track_map){
         if(trackReady && !pr.second->ready()){
             continue;

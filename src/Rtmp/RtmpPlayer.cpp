@@ -40,9 +40,7 @@ void RtmpPlayer::teardown() {
     CLEAR_ARR(_fist_stamp);
     CLEAR_ARR(_now_stamp);
 
-    lock_guard<recursive_mutex> lck(_mtx_on_result);
     _map_on_result.clear();
-    lock_guard<recursive_mutex> lck2(_mtx_on_status);
     _deque_on_status.clear();
 }
 
@@ -271,7 +269,6 @@ inline void RtmpPlayer::send_pause(bool pause) {
 
 void RtmpPlayer::onCmd_result(AMFDecoder &dec){
     auto req_id = dec.load<int>();
-    lock_guard<recursive_mutex> lck(_mtx_on_result);
     auto it = _map_on_result.find(req_id);
     if (it != _map_on_result.end()) {
         it->second(dec);
@@ -293,7 +290,6 @@ void RtmpPlayer::onCmd_onStatus(AMFDecoder &dec) {
         throw std::runtime_error("onStatus:the result object was not found");
     }
 
-    lock_guard<recursive_mutex> lck(_mtx_on_status);
     if (_deque_on_status.size()) {
         _deque_on_status.front()(val);
         _deque_on_status.pop_front();
