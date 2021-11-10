@@ -331,6 +331,8 @@ extern const string kMediaTimeoutMS;
 extern const string kBeatIntervalMS;
 //是否为性能测试模式，性能测试模式开启后不会解析rtp或rtmp包
 extern const string kBenchmarkMode;
+//播放器在触发播放成功事件时，是否等待所有track ready时再回调
+extern const string kWaitTrackReady;
 }
 }  // namespace mediakit
 

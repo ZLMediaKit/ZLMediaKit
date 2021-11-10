@@ -76,7 +76,7 @@ private:
             _rtsp_media_src->setSdp(sdp);
         }
         _demuxer = std::make_shared<RtspDemuxer>();
-        _demuxer->setTrackListener(this, true);
+        _demuxer->setTrackListener(this, (*this)[Client::kWaitTrackReady].as<bool>());
         _demuxer->loadSdp(sdp);
         return true;
     }
@@ -91,7 +91,7 @@ private:
     }
 
     void onPlayResult(const SockException &ex) override {
-        if (ex) {
+        if (!(*this)[Client::kWaitTrackReady].as<bool>() || ex) {
             Super::onPlayResult(ex);
             return;
         }
@@ -100,7 +100,9 @@ private:
     bool addTrack(const Track::Ptr &track) override { return true; }
 
     void addTrackCompleted() override {
-        Super::onPlayResult(SockException(Err_success, "play success"));
+        if ((*this)[Client::kWaitTrackReady].as<bool>()) {
+            Super::onPlayResult(SockException(Err_success, "play success"));
+        }
     }
 
 private:
