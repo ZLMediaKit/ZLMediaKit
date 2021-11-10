@@ -23,9 +23,9 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class RtmpDemuxer : public Demuxer{
+class RtmpDemuxer : public Demuxer {
 public:
-    typedef std::shared_ptr<RtmpDemuxer> Ptr;
+    using Ptr = std::shared_ptr<RtmpDemuxer>;
 
     RtmpDemuxer() = default;
     ~RtmpDemuxer() override = default;
@@ -38,6 +38,12 @@ public:
      */
     void inputRtmp(const RtmpPacket::Ptr &pkt);
 
+    /**
+     * 获取节目总时长
+     * @return 节目总时长,单位秒
+     */
+    float getDuration() const;
+
 private:
     void makeVideoTrack(const AMFValue &val, int bit_rate);
     void makeAudioTrack(const AMFValue &val, int sample_rate, int channels, int sample_bit, int bit_rate);
@@ -45,6 +51,9 @@ private:
 private:
     bool _try_get_video_track = false;
     bool _try_get_audio_track = false;
+    float _duration = 0;
+    AudioTrack::Ptr _audio_track;
+    VideoTrack::Ptr _video_track;
     RtmpCodec::Ptr _audio_rtmp_decoder;
     RtmpCodec::Ptr _video_rtmp_decoder;
 };

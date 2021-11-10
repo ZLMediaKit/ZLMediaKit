@@ -305,7 +305,6 @@ const string kRtspPwdIsMD5 = "rtsp_pwd_md5";
 const string kTimeoutMS = "protocol_timeout_ms";
 const string kMediaTimeoutMS = "media_timeout_ms";
 const string kBeatIntervalMS = "beat_interval_ms";
-const string kMaxAnalysisMS = "max_analysis_ms";
 const string kBenchmarkMode = "benchmark_mode";
 }
 

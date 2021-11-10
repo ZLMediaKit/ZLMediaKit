@@ -24,11 +24,12 @@ using namespace mediakit::Client;
 
 namespace mediakit {
 
-class RtmpPlayerImp: public PlayerImp<RtmpPlayer,RtmpDemuxer> {
+class RtmpPlayerImp: public PlayerImp<RtmpPlayer,PlayerBase>, private TrackListener {
 public:
-    typedef std::shared_ptr<RtmpPlayerImp> Ptr;
+    using Ptr = std::shared_ptr<RtmpPlayerImp>;
+    using Super = PlayerImp<RtmpPlayer,PlayerBase>;
 
-    RtmpPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<RtmpPlayer, RtmpDemuxer>(poller) {};
+    RtmpPlayerImp(const EventPoller::Ptr &poller) : Super(poller) {};
 
     ~RtmpPlayerImp() override {
         DebugL << endl;
@@ -50,43 +51,60 @@ public:
         uint32_t pos = MAX(float(0), MIN(seekPos, getDuration())) * 1000;
         seekToMilliSecond(pos);
     }
-    
-    void play(const string &strUrl) override {
-        PlayerImp<RtmpPlayer, RtmpDemuxer>::play(strUrl);
+
+    float getDuration() const override {
+        return _demuxer ? _demuxer->getDuration() : 0;
+    }
+
+    vector<Track::Ptr> getTracks(bool ready = true) const override {
+        return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
     }
 
 private:
     //派生类回调函数
     bool onCheckMeta(const AMFValue &val) override {
-        _rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(_pMediaSrc);
-        if (_rtmp_src) {
-            _rtmp_src->setMetaData(val);
-            _set_meta_data = true;
-        }
-        _delegate.reset(new RtmpDemuxer);
-        _delegate->loadMetaData(val);
+        onCheckMeta_l(val);
         return true;
     }
 
     void onMediaData(RtmpPacket::Ptr chunkData) override {
-        if (!_delegate) {
-            //这个流没有metadata
-            _delegate.reset(new RtmpDemuxer());
+        if (!_demuxer) {
+            //有些rtmp流没metadata
+            onCheckMeta_l(TitleMeta().getMetadata());
         }
-        _delegate->inputRtmp(chunkData);
-
+        _demuxer->inputRtmp(chunkData);
         if (_rtmp_src) {
-            if (!_set_meta_data && !chunkData->isCfgFrame()) {
-                _set_meta_data = true;
-                _rtmp_src->setMetaData(TitleMeta().getMetadata());
-            }
             _rtmp_src->onWrite(std::move(chunkData));
         }
     }
 
+    void onPlayResult(const SockException &ex) override {
+        if (ex) {
+            Super::onPlayResult(ex);
+            return;
+        }
+    }
+
+    bool addTrack(const Track::Ptr &track) override { return true; }
+
+    void addTrackCompleted() override {
+        Super::onPlayResult(SockException(Err_success, "play success"));
+    }
+
 private:
+    void onCheckMeta_l(const AMFValue &val) {
+        _rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(_media_src);
+        if (_rtmp_src) {
+            _rtmp_src->setMetaData(val);
+        }
+        _demuxer = std::make_shared<RtmpDemuxer>();
+        _demuxer->setTrackListener(this);
+        _demuxer->loadMetaData(val);
+    }
+
+private:
+    RtmpDemuxer::Ptr _demuxer;
     RtmpMediaSource::Ptr _rtmp_src;
-    bool _set_meta_data = false;
 };
 
 
