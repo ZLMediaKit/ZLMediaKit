@@ -44,12 +44,10 @@ private:
 
     template<typename FUN>
     inline void addOnResultCB(const FUN &fun) {
-        lock_guard<recursive_mutex> lck(_mtx_on_result);
         _map_on_result.emplace(_send_req_id, fun);
     }
     template<typename FUN>
     inline void addOnStatusCB(const FUN &fun) {
-        lock_guard<recursive_mutex> lck(_mtx_on_status);
         _deque_on_status.emplace_back(fun);
     }
 
@@ -67,9 +65,6 @@ private:
     string _app;
     string _stream_id;
     string _tc_url;
-
-    recursive_mutex _mtx_on_result;
-    recursive_mutex _mtx_on_status;
     deque<function<void(AMFValue &dec)> > _deque_on_status;
     unordered_map<int, function<void(AMFDecoder &dec)> > _map_on_result;
 

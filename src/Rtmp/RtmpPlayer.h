@@ -65,12 +65,10 @@ protected:
 
     template<typename FUNC>
     void addOnResultCB(const FUNC &func) {
-        lock_guard<recursive_mutex> lck(_mtx_on_result);
         _map_on_result.emplace(_send_req_id, func);
     }
     template<typename FUNC>
     void addOnStatusCB(const FUNC &func) {
-        lock_guard<recursive_mutex> lck(_mtx_on_status);
         _deque_on_status.emplace_back(func);
     }
 
@@ -98,9 +96,6 @@ private:
     uint32_t _fist_stamp[2] = {0, 0};
     uint32_t _now_stamp[2] = {0, 0};
     Ticker _now_stamp_ticker[2];
-
-    recursive_mutex _mtx_on_result;
-    recursive_mutex _mtx_on_status;
     deque<function<void(AMFValue &dec)> > _deque_on_status;
     unordered_map<int, function<void(AMFDecoder &dec)> > _map_on_result;
 

@@ -32,14 +32,8 @@ void RtmpPusher::teardown() {
         _app.clear();
         _stream_id.clear();
         _tc_url.clear();
-        {
-            lock_guard<recursive_mutex> lck(_mtx_on_result);
-            _map_on_result.clear();
-        }
-        {
-            lock_guard<recursive_mutex> lck(_mtx_on_status);
-            _deque_on_status.clear();
-        }
+        _map_on_result.clear();
+        _deque_on_status.clear();
         _publish_timer.reset();
         reset();
         shutdown(SockException(Err_shutdown, "teardown"));
@@ -241,7 +235,6 @@ void RtmpPusher::setSocketFlags(){
 
 void RtmpPusher::onCmd_result(AMFDecoder &dec){
     auto req_id = dec.load<int>();
-    lock_guard<recursive_mutex> lck(_mtx_on_result);
     auto it = _map_on_result.find(req_id);
     if (it != _map_on_result.end()) {
         it->second(dec);
@@ -263,7 +256,6 @@ void RtmpPusher::onCmd_onStatus(AMFDecoder &dec) {
         throw std::runtime_error("onStatus:the result object was not found");
     }
 
-    lock_guard<recursive_mutex> lck(_mtx_on_status);
     if (_deque_on_status.size()) {
         _deque_on_status.front()(val);
         _deque_on_status.pop_front();

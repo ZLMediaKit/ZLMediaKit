@@ -148,7 +148,6 @@ private:
 private:
     bool _all_track_ready = false;
     size_t _max_track_size = 2;
-    mutable recursive_mutex _mtx;
     unordered_map<int,Track::Ptr> _track_map;
     unordered_map<int,List<Frame::Ptr> > _frame_unread;
     unordered_map<int,function<void()> > _track_ready_callback;
