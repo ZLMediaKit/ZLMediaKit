@@ -176,8 +176,8 @@ void MediaSink::emitAllTrackReady() {
 
 void MediaSink::onAllTrackReady_l() {
     //是否添加静音音频
-    GET_CONFIG(bool, addMuteAudio, General::kAddMuteAudio);
-    if (addMuteAudio && _track_map.find(TrackAudio) == _track_map.end()) {
+    GET_CONFIG(bool, add_mute_audio, General::kAddMuteAudio);
+    if (add_mute_audio) {
         addMuteAudioTrack();
     }
     onAllTrackReady();
@@ -248,20 +248,25 @@ bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
 }
 
 bool MediaSink::addMuteAudioTrack() {
-    if (_track_map.find(TrackAudio) != _track_map.end()) {
-        WarnL << "audio track already existed";
+    GET_CONFIG(bool, enabel_audio, General::kEnableAudio);
+    if (!enabel_audio) {
         return false;
     }
-
-    if (MediaSink::addTrack(std::make_shared<AACTrack>(makeAacConfig(MUTE_ADTS_DATA, ADTS_HEADER_LEN)))) {
-        _mute_audio_maker = std::make_shared<MuteAudioMaker>();
-        _mute_audio_maker->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
-            return inputFrame(frame);
-        }));
-        return true;
+    if (_track_map.find(TrackAudio) != _track_map.end()) {
+        return false;
     }
-    return false;
+    auto audio = std::make_shared<AACTrack>(makeAacConfig(MUTE_ADTS_DATA, ADTS_HEADER_LEN));
+    _track_map[audio->getTrackType()] = audio;
+    audio->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
+        return onTrackFrame(frame);
+    }));
+    _mute_audio_maker = std::make_shared<MuteAudioMaker>();
+    _mute_audio_maker->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
+        return inputFrame(frame);
+    }));
+    onTrackReady(audio);
+    TraceL << "mute aac track added";
+    return true;
 }
-
 
 }//namespace mediakit
