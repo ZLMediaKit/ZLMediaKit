@@ -262,6 +262,7 @@ uint64_t NtpStamp::getNtpStamp_l(uint32_t rtp_stamp, uint32_t sample_rate) {
         }
         //不明原因的时间戳大幅跳跃，直接返回上次值
         WarnL << "rtp stamp abnormal increased:" << _last_rtp_stamp << " -> " << rtp_stamp;
+        update(rtp_stamp, _last_ntp_stamp_ms);
         return _last_ntp_stamp_ms;
     }
 
@@ -282,6 +283,7 @@ uint64_t NtpStamp::getNtpStamp_l(uint32_t rtp_stamp, uint32_t sample_rate) {
     }
     //不明原因的时间戳回退，直接返回上次值
     WarnL << "rtp stamp abnormal reduced:" << _last_rtp_stamp << " -> " << rtp_stamp;
+    update(rtp_stamp, _last_ntp_stamp_ms);
     return _last_ntp_stamp_ms;
 }
 
