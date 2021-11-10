@@ -39,7 +39,7 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
     //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
     auto track_type = track->getTrackType();
-    _track_map[track_type] = track;
+    _track_map[track_type] = std::make_pair(track, false);
     _track_ready_callback[track_type] = [this, track]() {
         onTrackReady(track);
     };
@@ -76,31 +76,27 @@ bool MediaSink::inputFrame(const Frame::Ptr &frame) {
     if (it == _track_map.end()) {
         return false;
     }
-    auto ret = it->second->inputFrame(frame);
+    //got frame
+    it->second.second = true;
+    auto ret = it->second.first->inputFrame(frame);
     if (_mute_audio_maker && frame->getTrackType() == TrackVideo) {
         //视频驱动产生静音音频
         _mute_audio_maker->inputFrame(frame);
     }
-    checkTrackIfReady(nullptr);
+    checkTrackIfReady();
     return ret;
 }
 
-void MediaSink::checkTrackIfReady_l(const Track::Ptr &track){
-    //Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
-    auto it_callback = _track_ready_callback.find(track->getTrackType());
-    if (it_callback != _track_ready_callback.end() && track->ready()) {
-        it_callback->second();
-        _track_ready_callback.erase(it_callback);
-    }
-}
-
-void MediaSink::checkTrackIfReady(const Track::Ptr &track){
+void MediaSink::checkTrackIfReady(){
     if (!_all_track_ready && !_track_ready_callback.empty()) {
-        if (track) {
-            checkTrackIfReady_l(track);
-        } else {
-            for (auto &pr : _track_map) {
-                checkTrackIfReady_l(pr.second);
+        for (auto &pr : _track_map) {
+            if (pr.second.second && pr.second.first->ready()) {
+                //Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
+                auto it = _track_ready_callback.find(pr.first);
+                if (it != _track_ready_callback.end()) {
+                    it->second();
+                    _track_ready_callback.erase(it);
+                }
             }
         }
     }
@@ -133,7 +129,7 @@ void MediaSink::checkTrackIfReady(const Track::Ptr &track){
 
 void MediaSink::addTrackCompleted(){
     _max_track_size = _track_map.size();
-    checkTrackIfReady(nullptr);
+    checkTrackIfReady();
 }
 
 void MediaSink::emitAllTrackReady() {
@@ -147,8 +143,8 @@ void MediaSink::emitAllTrackReady() {
         _track_ready_callback.clear();
         //移除未准备好的Track
         for (auto it = _track_map.begin(); it != _track_map.end();) {
-            if (!it->second->ready()) {
-                WarnL << "track not ready for a long time, ignored: " << it->second->getCodecName();
+            if (!it->second.second || !it->second.first->ready()) {
+                WarnL << "track not ready for a long time, ignored: " << it->second.first->getCodecName();
                 it = _track_map.erase(it);
                 continue;
             }
@@ -184,13 +180,13 @@ void MediaSink::onAllTrackReady_l() {
     _all_track_ready = true;
 }
 
-vector<Track::Ptr> MediaSink::getTracks(bool trackReady) const{
+vector<Track::Ptr> MediaSink::getTracks(bool ready) const{
     vector<Track::Ptr> ret;
     for (auto &pr : _track_map){
-        if(trackReady && !pr.second->ready()){
+        if(ready && !pr.second.first->ready()){
             continue;
         }
-        ret.emplace_back(pr.second);
+        ret.emplace_back(pr.second.first);
     }
     return ret;
 }
@@ -256,7 +252,7 @@ bool MediaSink::addMuteAudioTrack() {
         return false;
     }
     auto audio = std::make_shared<AACTrack>(makeAacConfig(MUTE_ADTS_DATA, ADTS_HEADER_LEN));
-    _track_map[audio->getTrackType()] = audio;
+    _track_map[audio->getTrackType()] = std::make_pair(audio, true);
     audio->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
         return onTrackFrame(frame);
     }));
