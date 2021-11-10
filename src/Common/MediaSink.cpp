@@ -31,12 +31,6 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
             //音频被全局忽略
             return false;
         }
-    } else {
-        //是否添加静音音频
-        GET_CONFIG(bool, addMuteAudio, General::kAddMuteAudio);
-        if (addMuteAudio && track_in->getTrackType() == TrackVideo) {
-            addMuteAudioTrack();
-        }
     }
     lock_guard<recursive_mutex> lck(_mtx);
     if (_all_track_ready) {
@@ -46,10 +40,6 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
     //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
     auto track_type = track->getTrackType();
-    if (track_type == TrackAudio) {
-        //确保添加非静音音频track时，取消之前的静音音频track
-        _mute_audio_maker = nullptr;
-    }
     _track_map[track_type] = track;
     _track_ready_callback[track_type] = [this, track]() {
         onTrackReady(track);
@@ -172,8 +162,7 @@ void MediaSink::emitAllTrackReady() {
 
     if (!_track_map.empty()) {
         //最少有一个有效的Track
-        _all_track_ready = true;
-        onAllTrackReady();
+        onAllTrackReady_l();
 
         //全部Track就绪，我们一次性把之前的帧输出
         for(auto &pr : _frame_unread){
@@ -187,6 +176,16 @@ void MediaSink::emitAllTrackReady() {
         }
         _frame_unread.clear();
     }
+}
+
+void MediaSink::onAllTrackReady_l() {
+    //是否添加静音音频
+    GET_CONFIG(bool, addMuteAudio, General::kAddMuteAudio);
+    if (addMuteAudio && !_track_map[TrackAudio]) {
+        addMuteAudioTrack();
+    }
+    onAllTrackReady();
+    _all_track_ready = true;
 }
 
 vector<Track::Ptr> MediaSink::getTracks(bool trackReady) const{
