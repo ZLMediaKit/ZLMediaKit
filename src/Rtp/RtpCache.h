@@ -18,7 +18,7 @@
 
 namespace mediakit{
 
-class RtpCache : public PacketCache<Buffer> {
+class RtpCache : private PacketCache<Buffer> {
 public:
     using onFlushed = function<void(std::shared_ptr<List<Buffer::Ptr> >)>;
     RtpCache(onFlushed cb);
