@@ -63,6 +63,8 @@ public:
 private:
     //派生类回调函数
     bool onCheckMeta(const AMFValue &val) override {
+        //无metadata或metadata中无track信息时，需要从数据包中获取track
+        _wait_track_ready = (*this)[Client::kWaitTrackReady].as<bool>() || RtmpDemuxer::trackCount(val) == 0;
         onCheckMeta_l(val);
         return true;
     }
@@ -79,7 +81,7 @@ private:
     }
 
     void onPlayResult(const SockException &ex) override {
-        if (!(*this)[Client::kWaitTrackReady].as<bool>() || ex) {
+        if (!_wait_track_ready || ex) {
             Super::onPlayResult(ex);
             return;
         }
@@ -88,7 +90,7 @@ private:
     bool addTrack(const Track::Ptr &track) override { return true; }
 
     void addTrackCompleted() override {
-        if ((*this)[Client::kWaitTrackReady].as<bool>()) {
+        if (_wait_track_ready) {
             Super::onPlayResult(SockException(Err_success, "play success"));
         }
     }
@@ -100,11 +102,12 @@ private:
             _rtmp_src->setMetaData(val);
         }
         _demuxer = std::make_shared<RtmpDemuxer>();
-        _demuxer->setTrackListener(this, (*this)[Client::kWaitTrackReady].as<bool>());
+        _demuxer->setTrackListener(this, _wait_track_ready);
         _demuxer->loadMetaData(val);
     }
 
 private:
+    bool _wait_track_ready = true;
     RtmpDemuxer::Ptr _demuxer;
     RtmpMediaSource::Ptr _rtmp_src;
 };
