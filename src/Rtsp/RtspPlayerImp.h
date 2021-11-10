@@ -76,7 +76,7 @@ private:
             _rtsp_media_src->setSdp(sdp);
         }
         _demuxer = std::make_shared<RtspDemuxer>();
-        _demuxer->setTrackListener(this);
+        _demuxer->setTrackListener(this, true);
         _demuxer->loadSdp(sdp);
         return true;
     }

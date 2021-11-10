@@ -98,7 +98,7 @@ private:
             _rtmp_src->setMetaData(val);
         }
         _demuxer = std::make_shared<RtmpDemuxer>();
-        _demuxer->setTrackListener(this);
+        _demuxer->setTrackListener(this, true);
         _demuxer->loadMetaData(val);
     }
 

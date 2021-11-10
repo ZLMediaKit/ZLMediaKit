@@ -238,27 +238,21 @@ protected:
     std::shared_ptr<Delegate> _delegate;
 };
 
-class Demuxer : protected MediaSink {
+class Demuxer : protected TrackListener, public TrackSource {
 public:
     Demuxer() = default;
     ~Demuxer() override = default;
 
-    /**
-     * 设置track监听器
-     */
-    void setTrackListener(TrackListener *listener);
-    vector<Track::Ptr> getTracks(bool ready = true) const override;
-
-protected:
-    bool addTrack(const Track::Ptr & track) override;
+    void setTrackListener(TrackListener *listener, bool wait_track_ready = false);
+    bool addTrack(const Track::Ptr &track) override;
+    void addTrackCompleted() override;
     void resetTracks() override;
-    bool onTrackReady(const Track::Ptr & track) override;
-    void onAllTrackReady() override;
-    bool onTrackFrame(const Frame::Ptr &frame) override;
+    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 
 private:
-    Track::Ptr _tracks[TrackMax];
+    MediaSink::Ptr _sink;
     TrackListener *_listener = nullptr;
+    vector<Track::Ptr> _origin_track;
 };
 
 } /* namespace mediakit */
