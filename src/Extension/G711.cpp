@@ -58,7 +58,18 @@ Sdp::Ptr G711Track::getSdp() {
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<G711Sdp>(getCodecId(), getAudioSampleRate(), getAudioChannel(), getBitRate() / 1024);
+
+    const auto codec = getCodecId();
+    const auto sample_rate = getAudioSampleRate();
+    const auto audio_channel = getAudioChannel();
+    const auto bitrate = getBitRate() >> 10;
+    auto payload_type = 98;
+    if (sample_rate == 8000 && audio_channel == 1) {
+        // https://datatracker.ietf.org/doc/html/rfc3551#section-6
+        payload_type = (codec == CodecG711U) ? Rtsp::PT_PCMU : Rtsp::PT_PCMA;
+    }
+
+    return std::make_shared<G711Sdp>(codec, sample_rate, audio_channel, bitrate, payload_type);
 }
 
 }//namespace mediakit
