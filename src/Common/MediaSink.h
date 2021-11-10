@@ -141,16 +141,15 @@ private:
     /**
      * 检查track是否准备完毕
      */
-    void checkTrackIfReady(const Track::Ptr &track);
-    void checkTrackIfReady_l(const Track::Ptr &track);
+    void checkTrackIfReady();
     void onAllTrackReady_l();
 
 private:
     bool _all_track_ready = false;
     size_t _max_track_size = 2;
-    unordered_map<int,Track::Ptr> _track_map;
-    unordered_map<int,List<Frame::Ptr> > _frame_unread;
-    unordered_map<int,function<void()> > _track_ready_callback;
+    unordered_map<int, pair<Track::Ptr, bool/*got frame*/> > _track_map;
+    unordered_map<int, List<Frame::Ptr> > _frame_unread;
+    unordered_map<int, function<void()> > _track_ready_callback;
     Ticker _ticker;
     MuteAudioMaker::Ptr _mute_audio_maker;
 };
