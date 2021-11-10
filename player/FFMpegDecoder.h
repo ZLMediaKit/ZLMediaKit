@@ -87,7 +87,7 @@ private:
     std::shared_ptr<thread> _thread;
 };
 
-class FFmpegDecoder : public FrameWriterInterface, private TaskManager {
+class FFmpegDecoder : private TaskManager {
 public:
     using Ptr = std::shared_ptr<FFmpegDecoder>;
     using onDec = function<void(const FFmpegFrame::Ptr &)>;
@@ -95,7 +95,7 @@ public:
     FFmpegDecoder(const Track::Ptr &track);
     ~FFmpegDecoder();
 
-    bool inputFrame(const Frame::Ptr &frame) override;
+    bool inputFrame(const Frame::Ptr &frame, bool may_async = true);
     void setOnDecode(onDec cb);
     void flush();
     const AVCodecContext *getContext() const;

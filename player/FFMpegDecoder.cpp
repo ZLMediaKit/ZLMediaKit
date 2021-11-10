@@ -263,8 +263,8 @@ bool FFmpegDecoder::inputFrame_l(const Frame::Ptr &frame) {
     return decodeFrame(frame->data(), frame->size(), frame->dts(), frame->pts());
 }
 
-bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame) {
-    if (!TaskManager::isEnabled()) {
+bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool may_async) {
+    if (!may_async || !TaskManager::isEnabled()) {
         return inputFrame_l(frame);
     }
     auto frame_cache = Frame::getCacheAbleFrame(frame);
