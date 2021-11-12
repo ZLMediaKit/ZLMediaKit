@@ -33,8 +33,6 @@ void Assert_Throw(int failed, const char *exp, const char *func, const char *fil
 
 namespace mediakit {
 
-void printArgs(std::ostream &out) {}
-
 //请遵循MIT协议，勿修改服务器声明
 #if !defined(ENABLE_VERSION)
 const char kServerName[] =  "ZLMediaKit-6.0(build in " __DATE__ " " __TIME__ ")";
