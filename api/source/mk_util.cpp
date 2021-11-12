@@ -47,7 +47,7 @@ API_EXPORT char* API_CALL mk_util_hex_dump(const void *buf, int len){
 API_EXPORT void API_CALL mk_log_printf(int level, const char *file, const char *function, int line, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    toolkit::printLog(getLogger(), level, file, function, line, fmt, ap);
+    toolkit::LoggerWrapper::printLog(getLogger(), level, file, function, line, fmt, ap);
     va_end(ap);
 }
 
