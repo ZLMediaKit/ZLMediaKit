@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <sstream>
+#include "Util/logger.h"
 #if defined(__MACH__)
 #include <arpa/inet.h>
     #include <machine/endian.h>
@@ -77,19 +78,11 @@ namespace mediakit {
 
 extern const char kServerName[];
 
-void printArgs(std::ostream &out);
-
-template<typename First, typename ...ARGS>
-void printArgs(std::ostream &out, First &&first, ARGS &&...args) {
-    out << std::forward<First>(first);
-    printArgs(out, std::forward<ARGS>(args)...);
-}
-
 template<typename ...ARGS>
 void Assert_ThrowCpp(int failed, const char *exp, const char *func, const char *file, int line, ARGS &&...args) {
     if (failed) {
         std::stringstream ss;
-        printArgs(ss, std::forward<ARGS>(args)...);
+        toolkit::LoggerWrapper::appendLog(ss, std::forward<ARGS>(args)...);
         Assert_Throw(failed, exp, func, file, line, ss.str().data());
     }
 }
