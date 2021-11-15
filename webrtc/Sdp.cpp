@@ -13,6 +13,16 @@
 #include <cinttypes>
 using namespace mediakit;
 
+namespace RTC {
+#define RTC_FIELD "rtc."
+const string kPreferredCodecA = RTC_FIELD"preferredCodecA";
+const string kPreferredCodecV = RTC_FIELD"preferredCodecV";
+static onceToken token([]() {
+    mINI::Instance()[kPreferredCodecA] = "PCMU,PCMA,opus,mpeg4-generic";
+    mINI::Instance()[kPreferredCodecV] = "H264,H265,AV1X,VP9,VP8";
+});
+}
+
 using onCreateSdpItem = function<SdpItem::Ptr(const string &key, const string &value)>;
 static map<string, onCreateSdpItem, StrCaseCompare> sdpItemCreator;
 
@@ -1372,6 +1382,18 @@ void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
     }
 }
 
+static vector<CodecId> toCodecArray(const string &str){
+    vector<CodecId> ret;
+    auto vec = split(str, ",");
+    for (auto &s : vec) {
+        auto codec = getCodecId(trim(s));
+        if (codec != CodecInvalid) {
+            ret.emplace_back(codec);
+        }
+    }
+    return ret;
+}
+
 void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     rtcp_mux = true;
     rtcp_rsize = false;
@@ -1385,7 +1407,10 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     switch (type) {
         case TrackAudio: {
             //此处调整偏好的编码格式优先级
-            preferred_codec = {CodecAAC, CodecG711U, CodecG711A, CodecOpus};
+            GET_CONFIG_FUNC(vector<CodecId>, s_preferred_codec, RTC::kPreferredCodecA, toCodecArray);
+            CHECK(!s_preferred_codec.empty(), "rtc音频偏好codec不能为空");
+            preferred_codec = s_preferred_codec;
+
             rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb};
             extmap = {
                     {RtpExtType::ssrc_audio_level,            RtpDirection::sendrecv},
@@ -1401,7 +1426,10 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
         }
         case TrackVideo: {
             //此处调整偏好的编码格式优先级
-            preferred_codec = {CodecH264, CodecH265, CodecAV1};
+            GET_CONFIG_FUNC(vector<CodecId>, s_preferred_codec, RTC::kPreferredCodecV, toCodecArray);
+            CHECK(!s_preferred_codec.empty(), "rtc视频偏好codec不能为空");
+            preferred_codec = s_preferred_codec;
+
             rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb, "nack", "ccm fir", "nack pli"};
             extmap = {
                     {RtpExtType::abs_send_time,               RtpDirection::sendrecv},
