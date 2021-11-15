@@ -190,10 +190,10 @@ namespace RTC
 
 #endif
 
-				MS_DEBUG_DEV(
-				  "processing STUN Binding Request [Priority:%" PRIu32 ", UseCandidate:%s]",
-				  static_cast<uint32_t>(packet->GetPriority()),
-				  packet->HasUseCandidate() ? "true" : "false");
+				//MS_DEBUG_DEV(
+				//  "processing STUN Binding Request [Priority:%" PRIu32 ", UseCandidate:%s]",
+				//  static_cast<uint32_t>(packet->GetPriority()),
+				//  packet->HasUseCandidate() ? "true" : "false");
 
 				// Create a success response.
 				RTC::StunPacket* response = packet->CreateSuccessResponse();
