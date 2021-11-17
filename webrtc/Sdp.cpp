@@ -1135,12 +1135,8 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                     addSdpAttrSSRC(ssrc, sdp_media.items, ssrc.ssrc);
                     if (ssrc.rtx_ssrc) {
                         addSdpAttrSSRC(ssrc, sdp_media.items, ssrc.rtx_ssrc);
-                    }
-                }
 
-                for (auto &ssrc : m.rtp_rtx_ssrc) {
-                    //生成a=ssrc-group:FID字段
-                    if (ssrc.rtx_ssrc) {
+                        //生成a=ssrc-group:FID字段
                         //有rtx ssrc
                         auto group = std::make_shared<SdpAttrSSRCGroup>();
                         group->type = "FID";
