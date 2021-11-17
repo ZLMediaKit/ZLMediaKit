@@ -4,14 +4,13 @@ ARG MODEL
 EXPOSE 9000/tcp
 EXPOSE 1935/tcp
 EXPOSE 554/tcp
-EXPOSE 322/tcp
 EXPOSE 80/tcp
 EXPOSE 443/tcp
 EXPOSE 10000/udp
 EXPOSE 10000/tcp
 EXPOSE 8000/udp
 
-RUN apt-get update && \
+RUN apt-get update && apt-get dist-upgrade && \
          DEBIAN_FRONTEND="noninteractive" \
          apt-get install -y --no-install-recommends \
          build-essential \
@@ -49,7 +48,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=${MODEL} -DENABLE_WEBRTC=true -DENABLE_TESTS=false 
 FROM ubuntu:18.04
 ARG MODEL
 
-RUN apt-get update && \
+RUN apt-get update && apt-get dist-upgrade && \
          DEBIAN_FRONTEND="noninteractive" \
          apt-get install -y --no-install-recommends \
          vim \
