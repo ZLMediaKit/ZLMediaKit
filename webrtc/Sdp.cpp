@@ -1128,18 +1128,14 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                 }
             }
 
-            static auto addSSRCItem = [](const RtcSSRC &rtp_ssrc, vector<SdpItem::Ptr> &items) {
-                CHECK(!rtp_ssrc.empty());
-                addSdpAttrSSRC(rtp_ssrc, items, rtp_ssrc.ssrc);
-                if (rtp_ssrc.rtx_ssrc) {
-                    addSdpAttrSSRC(rtp_ssrc, items, rtp_ssrc.rtx_ssrc);
-                }
-            };
-
             {
                 for (auto &ssrc : m.rtp_rtx_ssrc) {
                     //添加a=ssrc字段
-                    addSSRCItem(ssrc, sdp_media.items);
+                    CHECK(!ssrc.empty());
+                    addSdpAttrSSRC(ssrc, sdp_media.items, ssrc.ssrc);
+                    if (ssrc.rtx_ssrc) {
+                        addSdpAttrSSRC(ssrc, sdp_media.items, ssrc.rtx_ssrc);
+                    }
                 }
 
                 for (auto &ssrc : m.rtp_rtx_ssrc) {
