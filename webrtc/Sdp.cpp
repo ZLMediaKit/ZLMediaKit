@@ -1022,7 +1022,33 @@ string RtcSession::toRtspSdp() const{
     return sdp->toString();
 }
 
-void addSdpAttrSSRC(const RtcSSRC &rtp_ssrc, vector<SdpItem::Ptr> &items, uint32_t ssrc_num);
+void addSdpAttrSSRC(const RtcSSRC &rtp_ssrc, vector<SdpItem::Ptr> &items, uint32_t ssrc_num) {
+    assert(ssrc_num);
+    SdpAttrSSRC ssrc;
+    ssrc.ssrc = ssrc_num;
+
+    ssrc.attribute = "cname";
+    ssrc.attribute_value = rtp_ssrc.cname;
+    items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
+
+    if (!rtp_ssrc.msid.empty()) {
+        ssrc.attribute = "msid";
+        ssrc.attribute_value = rtp_ssrc.msid;
+        items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
+    }
+
+    if (!rtp_ssrc.mslabel.empty()) {
+        ssrc.attribute = "mslabel";
+        ssrc.attribute_value = rtp_ssrc.mslabel;
+        items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
+    }
+
+    if (!rtp_ssrc.label.empty()) {
+        ssrc.attribute = "label";
+        ssrc.attribute_value = rtp_ssrc.label;
+        items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
+    }
+}
 
 RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
     RtcSessionSdp::Ptr ret = std::make_shared<RtcSessionSdp>();
@@ -1184,33 +1210,6 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
         }
     }
     return ret;
-}
-void addSdpAttrSSRC(const RtcSSRC &rtp_ssrc, vector<SdpItem::Ptr> &items, uint32_t ssrc_num) {
-    assert(ssrc_num);
-    SdpAttrSSRC ssrc;
-    ssrc.ssrc = ssrc_num;
-
-    ssrc.attribute = "cname";
-    ssrc.attribute_value = rtp_ssrc.cname;
-    items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
-
-    if (!rtp_ssrc.msid.empty()) {
-        ssrc.attribute = "msid";
-        ssrc.attribute_value = rtp_ssrc.msid;
-        items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
-    }
-
-    if (!rtp_ssrc.mslabel.empty()) {
-        ssrc.attribute = "mslabel";
-        ssrc.attribute_value = rtp_ssrc.mslabel;
-        items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
-    }
-
-    if (!rtp_ssrc.label.empty()) {
-        ssrc.attribute = "label";
-        ssrc.attribute_value = rtp_ssrc.label;
-        items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSSRC>(ssrc)));
-    }
 }
 
 string RtcSession::toString() const{
