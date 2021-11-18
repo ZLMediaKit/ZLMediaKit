@@ -710,10 +710,7 @@ public:
     RtcTrackConfigure audio;
     RtcTrackConfigure application;
 
-    void setDefaultSetting(string ice_ufrag,
-                           string ice_pwd,
-                           RtpDirection direction,
-                           const SdpAttrFingerprint &fingerprint);
+    void setDefaultSetting(string ice_ufrag, string ice_pwd, RtpDirection direction, const SdpAttrFingerprint &fingerprint);
     void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);
 
     shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
@@ -724,7 +721,7 @@ public:
     void enableREMB(bool enable = true, TrackType type = TrackInvalid);
 
 private:
-    void matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
+    void matchMedia(const shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
     bool onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec);
     void onSelectPlan(RtcCodecPlan &plan, CodecId codec);
 
