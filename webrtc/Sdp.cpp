@@ -1447,16 +1447,14 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     }
 }
 
-void RtcConfigure::setDefaultSetting(string ice_ufrag,
-                                     string ice_pwd,
-                                     RtpDirection direction,
+void RtcConfigure::setDefaultSetting(string ice_ufrag, string ice_pwd, RtpDirection direction,
                                      const SdpAttrFingerprint &fingerprint) {
     video.setDefaultSetting(TrackVideo);
     audio.setDefaultSetting(TrackAudio);
     application.setDefaultSetting(TrackApplication);
 
-    video.ice_ufrag = audio.ice_ufrag = application.ice_ufrag = ice_ufrag;
-    video.ice_pwd = audio.ice_pwd = application.ice_pwd = ice_pwd;
+    video.ice_ufrag = audio.ice_ufrag = application.ice_ufrag = std::move(ice_ufrag);
+    video.ice_pwd = audio.ice_pwd = application.ice_pwd = std::move(ice_pwd);
     video.direction = audio.direction = application.direction = direction;
     video.fingerprint = audio.fingerprint = application.fingerprint = fingerprint;
 }
@@ -1579,7 +1577,7 @@ static RtpDirection matchDirection(RtpDirection offer_direction, RtpDirection su
     }
 }
 
-void RtcConfigure::matchMedia(shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure){
+void RtcConfigure::matchMedia(const shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure){
     bool check_profile = true;
     bool check_codec = true;
 
