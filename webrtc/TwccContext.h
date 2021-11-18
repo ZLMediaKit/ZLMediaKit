@@ -21,7 +21,7 @@ class TwccContext {
 public:
     using onSendTwccCB = function<void(uint32_t ssrc, string fci)>;
     //每个twcc rtcp包最多表明的rtp ext seq增量
-    static constexpr size_t kMaxSeqDelta = 20;
+    static constexpr size_t kMaxSeqSize = 20;
     //每个twcc rtcp包发送的最大时间间隔，单位毫秒
     static constexpr size_t kMaxTimeDelta = 256;
 
@@ -33,7 +33,7 @@ public:
 
 private:
     void onSendTwcc(uint32_t ssrc);
-    bool checkIfNeedSendTwcc() const;
+    bool needSendTwcc() const;
     int checkSeqStatus(uint16_t twcc_ext_seq) const;
     void clearStatus();
 

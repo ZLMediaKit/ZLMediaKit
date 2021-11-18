@@ -38,25 +38,17 @@ void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms)
         _min_stamp = _max_stamp;
     }
 
-    if (checkIfNeedSendTwcc()) {
+    if (needSendTwcc()) {
         //其他匹配条件立即发送twcc
         onSendTwcc(ssrc);
     }
 }
 
-bool TwccContext::checkIfNeedSendTwcc() const {
-    auto size = _rtp_recv_status.size();
-    if (!size) {
+bool TwccContext::needSendTwcc() const {
+    if (_rtp_recv_status.empty()) {
         return false;
     }
-    if (size >= kMaxSeqDelta) {
-        return true;
-    }
-    auto delta_ms = _max_stamp - _min_stamp;
-    if (delta_ms >= kMaxTimeDelta) {
-        return true;
-    }
-    return false;
+    return (_rtp_recv_status.size() >= kMaxSeqSize) || (_max_stamp - _min_stamp >= kMaxTimeDelta);
 }
 
 int TwccContext::checkSeqStatus(uint16_t twcc_ext_seq) const {
