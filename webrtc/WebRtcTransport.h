@@ -189,6 +189,33 @@ public:
     std::shared_ptr<RtpChannel> getRtpChannel(uint32_t ssrc) const;
 };
 
+struct WrappedMediaTrack {
+    MediaTrack::Ptr track;
+    explicit WrappedMediaTrack(MediaTrack::Ptr ptr): track(ptr) {}
+    virtual ~WrappedMediaTrack() {}
+    virtual void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) = 0;
+};
+
+struct WrappedRtxTrack: public WrappedMediaTrack {
+    explicit WrappedRtxTrack(MediaTrack::Ptr ptr)
+        : WrappedMediaTrack(std::move(ptr)) {}
+    void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) override;
+};
+
+class WebRtcTransportImp;
+
+struct WrappedRtpTrack : public WrappedMediaTrack {
+    explicit WrappedRtpTrack(MediaTrack::Ptr ptr, TwccContext& twcc, WebRtcTransportImp& t)
+        : WrappedMediaTrack(std::move(ptr))
+        , _twcc_ctx(twcc)
+        , _transport(t) {}
+    TwccContext& _twcc_ctx;
+    WebRtcTransportImp& _transport;
+    void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) override;
+};
+
+
+
 class WebRtcTransportImp : public WebRtcTransport {
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
@@ -201,6 +228,8 @@ public:
     bool canSendRtp() const;
     bool canRecvRtp() const;
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
+
+    void createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track);
 
 protected:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
@@ -224,7 +253,7 @@ private:
     void onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp);
     void onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc);
     void onSendTwcc(uint32_t ssrc, const string &twcc_fci);
-    void createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track);
+
     void registerSelf();
     void unregisterSelf();
     void unrefSelf();
@@ -251,7 +280,7 @@ private:
     //根据rtcp的ssrc获取相关信息，收发rtp和rtx的ssrc都会记录
     unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
     //根据接收rtp的pt获取相关信息
-    unordered_map<uint8_t/*pt*/, std::pair<bool/*is rtx*/,MediaTrack::Ptr> > _pt_to_track;
+    unordered_map<uint8_t/*pt*/, std::unique_ptr<WrappedMediaTrack>> _pt_to_track;
 };
 
 class WebRtcTransportManager {

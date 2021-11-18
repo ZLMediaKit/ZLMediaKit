@@ -385,10 +385,10 @@ void WebRtcTransportImp::onStartWebRTC() {
         _ssrc_to_track[track->offer_ssrc_rtx] = track;
 
         //rtp pt --> MediaTrack
-        _pt_to_track.emplace(track->plan_rtp->pt, std::make_pair(false, track));
+        _pt_to_track.emplace(track->plan_rtp->pt, new WrappedRtpTrack(track, _twcc_ctx, *this));
         if (track->plan_rtx) {
             //rtx pt --> MediaTrack
-            _pt_to_track.emplace(track->plan_rtx->pt, std::make_pair(true, track));
+            _pt_to_track.emplace(track->plan_rtx->pt, new WrappedRtxTrack(track));
         }
         if (m_offer->type != TrackApplication) {
             //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
@@ -691,43 +691,51 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
         WarnL << "unknown rtp pt:" << (int)rtp->pt;
         return;
     }
-    bool is_rtx = it->second.first;
+    it->second->inputRtp(buf, len, stamp_ms, rtp);
+}
+
+void WrappedRtpTrack::inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) {
     auto ssrc = ntohl(rtp->ssrc);
-    auto &track = it->second.second;
 
     //修改ext id至统一
     string rid;
     auto twcc_ext = track->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid, RtpExtType::transport_cc);
-    if (twcc_ext && !is_rtx) {
+
+    if (twcc_ext) {
         _twcc_ctx.onRtp(ssrc, twcc_ext.getTransportCCSeq(), stamp_ms);
     }
 
     auto &ref = track->rtp_channel[rid];
     if (!ref) {
-        if (is_rtx) {
-            //再接收到对应的rtp前，丢弃rtx包
-            WarnL << "unknown rtx rtp, rid:" << rid << ", ssrc:" << ssrc << ", codec:" << track->plan_rtp->codec << ", seq:" << ntohs(rtp->seq);
-            return;
-        }
-        createRtpChannel(rid, ssrc, *track);
+        _transport.createRtpChannel(rid, ssrc, *track);
     }
 
-    if (!is_rtx) {
-        //这是普通的rtp数据
+    //这是普通的rtp数据
 #if 0
-        auto seq = ntohs(rtp->seq);
-        if (track->media->type == TrackVideo && seq % 100 == 0) {
-            //此处模拟接受丢包
-            return;
-        }
+    auto seq = ntohs(rtp->seq);
+    if (track->media->type == TrackVideo && seq % 100 == 0) {
+        //此处模拟接受丢包
+        return;
+    }
 #endif
-        //解析并排序rtp
-        ref->inputRtp(track->media->type, track->plan_rtp->sample_rate, (uint8_t *) buf, len, false);
+    //解析并排序rtp
+    ref->inputRtp(track->media->type, track->plan_rtp->sample_rate, (uint8_t *) buf, len, false);
+}
+
+void WrappedRtxTrack::inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) {
+    //修改ext id至统一
+    string rid;
+    track->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid, RtpExtType::transport_cc);
+
+    auto &ref = track->rtp_channel[rid];
+    if (!ref) {
+        //再接收到对应的rtp前，丢弃rtx包
+        WarnL << "unknown rtx rtp, rid:" << rid << ", ssrc:" << ntohl(rtp->ssrc) << ", codec:" << track->plan_rtp->codec << ", seq:" << ntohs(rtp->seq);
         return;
     }
 
     //这里是rtx重传包
-    //https://datatracker.ietf.org/doc/html/rfc4588#section-4
+    // https://datatracker.ietf.org/doc/html/rfc4588#section-4
     auto payload = rtp->getPayloadData();
     auto size = rtp->getPayloadSize(len);
     if (size < 2) {
@@ -736,7 +744,7 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
 
     //前两个字节是原始的rtp的seq
     auto origin_seq = payload[0] << 8 | payload[1];
-    //rtx 转换为 rtp
+    // rtx 转换为 rtp
     rtp->pt = track->plan_rtp->pt;
     rtp->seq = htons(origin_seq);
     rtp->ssrc = htonl(ref->getSSRC());
