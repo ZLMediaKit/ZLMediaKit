@@ -102,6 +102,7 @@
   - 支持TWCC rtcp动态调整码率
   - 支持remb/pli/sr/rr rtcp
   - 支持rtp扩展解析
+  - 支持GOP缓冲，webrtc播放秒开
   
 - 其他
   - 支持丰富的restful api以及web hook事件 
@@ -160,6 +161,9 @@ bash build_docker_images.sh
    - [基于C SDK实现的推流客户端](https://github.com/hctym1995/ZLM_ApiDemo)
    - [C#版本的Http API与Hook](https://github.com/chengxiaosheng/ZLMediaKit.HttpApi)
    - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
+   
+ - 播放器
+   - [基于MSE的websocket-fmp4播放器](https://github.com/v354412101/wsPlayer) 
 
 ## 授权协议
 
@@ -240,6 +244,7 @@ bash build_docker_images.sh
 [yangkun](xyyangkun@163.com)
 [Xinghua Zhao](holychaossword@hotmail.com)
 [hejilin](https://github.com/brokensword2018)
+[rqb500](https://github.com/rqb500)
 
 ## 使用案例
 
