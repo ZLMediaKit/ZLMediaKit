@@ -60,12 +60,8 @@ void RtmpSession::onManager() {
 
 void RtmpSession::onRecv(const Buffer::Ptr &buf) {
     _ticker.resetTime();
-    try {
-        _total_bytes += buf->size();
-        onParseRtmp(buf->data(), buf->size());
-    } catch (exception &ex) {
-        shutdown(SockException(Err_shutdown, ex.what()));
-    }
+    _total_bytes += buf->size();
+    onParseRtmp(buf->data(), buf->size());
 }
 
 void RtmpSession::onCmd_connect(AMFDecoder &dec) {

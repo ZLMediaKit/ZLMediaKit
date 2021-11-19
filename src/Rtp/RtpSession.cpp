@@ -45,17 +45,11 @@ RtpSession::~RtpSession() {
 }
 
 void RtpSession::onRecv(const Buffer::Ptr &data) {
-    try {
-        if (_is_udp) {
-            onRtpPacket(data->data(), data->size());
-            return;
-        }
-        RtpSplitter::input(data->data(), data->size());
-    } catch (SockException &ex) {
-        shutdown(ex);
-    } catch (std::exception &ex) {
-        shutdown(SockException(Err_other, ex.what()));
+    if (_is_udp) {
+        onRtpPacket(data->data(), data->size());
+        return;
     }
+    RtpSplitter::input(data->data(), data->size());
 }
 
 void RtpSession::onError(const SockException &err) {

@@ -125,46 +125,36 @@ void RtspSession::onRecv(const Buffer::Ptr &buf) {
 void RtspSession::onWholeRtspPacket(Parser &parser) {
     string method = parser.Method(); //提取出请求命令字
     _cseq = atoi(parser["CSeq"].data());
-    if(_content_base.empty() && method != "GET"){
+    if (_content_base.empty() && method != "GET") {
         _content_base = parser.Url();
         _media_info.parse(parser.FullUrl());
         _media_info._schema = RTSP_SCHEMA;
     }
 
-    typedef void (RtspSession::*rtsp_request_handler)(const Parser &parser);
+    using rtsp_request_handler = void (RtspSession::*)(const Parser &parser);
     static unordered_map<string, rtsp_request_handler> s_cmd_functions;
-    static onceToken token( []() {
-        s_cmd_functions.emplace("OPTIONS",&RtspSession::handleReq_Options);
-        s_cmd_functions.emplace("DESCRIBE",&RtspSession::handleReq_Describe);
-        s_cmd_functions.emplace("ANNOUNCE",&RtspSession::handleReq_ANNOUNCE);
-        s_cmd_functions.emplace("RECORD",&RtspSession::handleReq_RECORD);
-        s_cmd_functions.emplace("SETUP",&RtspSession::handleReq_Setup);
-        s_cmd_functions.emplace("PLAY",&RtspSession::handleReq_Play);
-        s_cmd_functions.emplace("PAUSE",&RtspSession::handleReq_Pause);
-        s_cmd_functions.emplace("TEARDOWN",&RtspSession::handleReq_Teardown);
-        s_cmd_functions.emplace("GET",&RtspSession::handleReq_Get);
-        s_cmd_functions.emplace("POST",&RtspSession::handleReq_Post);
-        s_cmd_functions.emplace("SET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
-        s_cmd_functions.emplace("GET_PARAMETER",&RtspSession::handleReq_SET_PARAMETER);
-    }, []() {});
+    static onceToken token([]() {
+        s_cmd_functions.emplace("OPTIONS", &RtspSession::handleReq_Options);
+        s_cmd_functions.emplace("DESCRIBE", &RtspSession::handleReq_Describe);
+        s_cmd_functions.emplace("ANNOUNCE", &RtspSession::handleReq_ANNOUNCE);
+        s_cmd_functions.emplace("RECORD", &RtspSession::handleReq_RECORD);
+        s_cmd_functions.emplace("SETUP", &RtspSession::handleReq_Setup);
+        s_cmd_functions.emplace("PLAY", &RtspSession::handleReq_Play);
+        s_cmd_functions.emplace("PAUSE", &RtspSession::handleReq_Pause);
+        s_cmd_functions.emplace("TEARDOWN", &RtspSession::handleReq_Teardown);
+        s_cmd_functions.emplace("GET", &RtspSession::handleReq_Get);
+        s_cmd_functions.emplace("POST", &RtspSession::handleReq_Post);
+        s_cmd_functions.emplace("SET_PARAMETER", &RtspSession::handleReq_SET_PARAMETER);
+        s_cmd_functions.emplace("GET_PARAMETER", &RtspSession::handleReq_SET_PARAMETER);
+    });
 
     auto it = s_cmd_functions.find(method);
     if (it == s_cmd_functions.end()) {
         sendRtspResponse("403 Forbidden");
-        shutdown(SockException(Err_shutdown,StrPrinter << "403 Forbidden:" << method));
-        return;
+        throw SockException(Err_shutdown, StrPrinter << "403 Forbidden:" << method);
     }
 
-    auto &fun = it->second;
-    try {
-        (this->*fun)(parser);
-    }catch (SockException &ex){
-        if(ex){
-            shutdown(ex);
-        }
-    }catch (exception &ex){
-        shutdown(SockException(Err_shutdown,ex.what()));
-    }
+    (this->*(it->second))(parser);
     parser.Clear();
 }
 
@@ -979,7 +969,13 @@ void RtspSession::startListenPeerUdpData(int track_idx) {
             if (!strongSelf) {
                 return;
             }
-            strongSelf->onRcvPeerUdpData(interleaved, buf, addr);
+            try {
+                strongSelf->onRcvPeerUdpData(interleaved, buf, addr);
+            } catch (SockException &ex) {
+                strongSelf->shutdown(ex);
+            } catch (std::exception &ex) {
+                strongSelf->shutdown(SockException(Err_other, ex.what()));
+            }
         });
         return true;
     };
