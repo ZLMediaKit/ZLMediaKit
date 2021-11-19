@@ -177,6 +177,10 @@ const char *RtpSession::onSearchPacketTail(const char *data, size_t len) {
     if (ssrc_offset == rtp_len + 2 || ssrc_offset == rtp_len + 4) {
         InfoL << "rtp搜索成功，tcp上下文恢复成功，丢弃的rtp残余数据为：" << rtp_len_ptr - data;
         _search_rtp_finished = true;
+        if (rtp_len_ptr == data) {
+            //停止搜索rtp，否则会进入死循环
+            _search_rtp = false;
+        }
         //前面的数据都需要丢弃，这个是rtp的起始
         return rtp_len_ptr;
     }
