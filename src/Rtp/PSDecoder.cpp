@@ -71,11 +71,6 @@ const char *PSDecoder::onSearchPacketTail(const char *data, size_t len) {
         InfoL << "解析 ps 异常: bytes=" << len
               << ", exception=" << ex.what()
               << ", hex=" << hexdump(data, MIN(len, 32));
-        if (remainDataSize() > 256 * 1024) {
-            //缓存太多数据无法处理则上抛异常
-            throw;
-        }
-
         return nullptr;
     }
 }
