@@ -31,9 +31,6 @@ public:
     static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
 
 private:
-    void onRecv_l(const Buffer::Ptr &);
-
-private:
     std::string _identifier;
     bool _find_transport = true;
     Ticker _ticker;

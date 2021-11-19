@@ -51,14 +51,6 @@ WebRtcSession::~WebRtcSession() {
 }
 
 void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
-    try {
-        onRecv_l(buffer);
-    } catch (std::exception &ex) {
-        shutdown(SockException(Err_shutdown, ex.what()));
-    }
-}
-
-void WebRtcSession::onRecv_l(const Buffer::Ptr &buffer) {
     if (_find_transport) {
         //只允许寻找一次transport
         _find_transport = false;

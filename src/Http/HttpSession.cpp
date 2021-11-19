@@ -75,12 +75,7 @@ ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
 
     //默认后面数据不是content而是header
     ssize_t content_len = 0;
-    auto &fun = it->second;
-    try {
-        (this->*fun)(content_len);
-    }catch (exception &ex){
-        shutdown(SockException(Err_shutdown,ex.what()));
-    }
+    (this->*(it->second))(content_len);
 
     //清空解析器节省内存
     _parser.Clear();
