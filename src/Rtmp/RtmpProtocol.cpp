@@ -55,6 +55,7 @@ static string openssl_HMACsha256(const void *key, size_t key_len, const void *da
 namespace mediakit {
 
 RtmpProtocol::RtmpProtocol() {
+    _packet_pool.setSize(64);
     _next_step_func = [this](const char *data, size_t len) {
         return handle_C0C1(data, len);
     };
@@ -776,7 +777,7 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
 }
 
 BufferRaw::Ptr RtmpProtocol::obtainBuffer(const void *data, size_t len) {
-    auto buffer = BufferRaw::create();
+    auto buffer = _packet_pool.obtain();
     if (data && len) {
         buffer->assign((const char *) data, len);
     }
