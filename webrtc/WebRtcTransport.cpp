@@ -313,6 +313,7 @@ void WebRtcTransportImp::onCreate(){
 
 WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller) : WebRtcTransport(poller) {
     InfoL << getIdentifier();
+    _packet_pool.setSize(64);
 }
 
 WebRtcTransportImp::~WebRtcTransportImp() {
@@ -329,7 +330,7 @@ void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sock
         WarnL << "send data failed:" << len;
         return;
     }
-    auto ptr = BufferRaw::create();
+    auto ptr = _packet_pool.obtain();
     ptr->assign(buf, len);
     //一次性发送一帧的rtp数据，提高网络io性能
     _session->setSendFlushFlag(flush);
@@ -385,10 +386,10 @@ void WebRtcTransportImp::onStartWebRTC() {
         _ssrc_to_track[track->offer_ssrc_rtx] = track;
 
         //rtp pt --> MediaTrack
-        _pt_to_track.emplace(track->plan_rtp->pt, new WrappedRtpTrack(track, _twcc_ctx, *this));
+        _pt_to_track.emplace(track->plan_rtp->pt, std::unique_ptr<WrappedMediaTrack>(new WrappedRtpTrack(track, _twcc_ctx, *this)));
         if (track->plan_rtx) {
             //rtx pt --> MediaTrack
-            _pt_to_track.emplace(track->plan_rtx->pt, new WrappedRtxTrack(track));
+            _pt_to_track.emplace(track->plan_rtx->pt, std::unique_ptr<WrappedMediaTrack>(new WrappedRtxTrack(track)));
         }
         if (m_offer->type != TrackApplication) {
             //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id

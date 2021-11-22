@@ -22,7 +22,7 @@ namespace mediakit {
 class FlvMuxer {
 public:
     using Ptr = std::shared_ptr<FlvMuxer>;
-    FlvMuxer() = default;
+    FlvMuxer();
     virtual ~FlvMuxer() = default;
 
     void stop();
@@ -39,8 +39,10 @@ private:
     void onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t time_stamp, bool flush);
     void onWriteFlvTag(uint8_t type, const Buffer::Ptr &buffer, uint32_t time_stamp, bool flush);
     BufferRaw::Ptr obtainBuffer(const void *data, size_t len);
+    BufferRaw::Ptr obtainBuffer();
 
 private:
+    ResourcePool<BufferRaw> _packet_pool;
     //时间戳修整器
     Stamp _stamp[2];
     RtmpMediaSource::RingType::RingReader::Ptr _ring_reader;
