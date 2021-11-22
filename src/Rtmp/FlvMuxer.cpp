@@ -16,6 +16,10 @@
 
 namespace mediakit {
 
+FlvMuxer::FlvMuxer(){
+    _packet_pool.setSize(64);
+}
+
 void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media) {
     if (!media) {
         throw std::runtime_error("RtmpMediaSource 无效");
@@ -62,15 +66,19 @@ void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr 
     });
 }
 
+BufferRaw::Ptr FlvMuxer::obtainBuffer() {
+    return _packet_pool.obtain();
+}
+
 BufferRaw::Ptr FlvMuxer::obtainBuffer(const void *data, size_t len) {
-    auto buffer = BufferRaw::create();
+    auto buffer = obtainBuffer();
     buffer->assign((const char *) data, len);
     return buffer;
 }
 
 void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &src) {
     //发送flv文件头
-    auto buffer = BufferRaw::create();
+    auto buffer = obtainBuffer();
     buffer->setCapacity(sizeof(FLVHeader));
     buffer->setSize(sizeof(FLVHeader));
 

@@ -214,8 +214,6 @@ struct WrappedRtpTrack : public WrappedMediaTrack {
     void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) override;
 };
 
-
-
 class WebRtcTransportImp : public WebRtcTransport {
 public:
     using Ptr = std::shared_ptr<WebRtcTransportImp>;
@@ -281,6 +279,8 @@ private:
     unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
     //根据接收rtp的pt获取相关信息
     unordered_map<uint8_t/*pt*/, std::unique_ptr<WrappedMediaTrack>> _pt_to_track;
+    //循环池
+    ResourcePool<BufferRaw> _packet_pool;
 };
 
 class WebRtcTransportManager {
