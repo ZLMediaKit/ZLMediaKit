@@ -781,7 +781,7 @@ BufferRaw::Ptr RtmpProtocol::obtainBuffer(const void *data, size_t len) {
     if (data && len) {
         buffer->assign((const char *) data, len);
     }
-    return buffer;
+    return std::move(buffer);
 }
 
 } /* namespace mediakit */
