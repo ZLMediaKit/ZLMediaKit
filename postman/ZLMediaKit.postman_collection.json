@@ -983,7 +983,7 @@
 						{
 							"key": "speed",
 							"value": 2.0,
-							"description": "要设置的录像倍速",
+							"description": "要设置的录像倍速"
 						}
 					]
 				}
@@ -1029,7 +1029,7 @@
 						{
 							"key": "stamp",
 							"value": 1000,
-							"description": "要设置的录像播放位置",
+							"description": "要设置的录像播放位置"
 						}
 					]
 				}
