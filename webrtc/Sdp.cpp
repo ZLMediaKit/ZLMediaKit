@@ -1737,16 +1737,21 @@ RETRY:
 
 void RtcConfigure::setPlayRtspInfo(const string &sdp){
     RtcSession session;
+    video.direction = RtpDirection::inactive;
+    audio.direction = RtpDirection::inactive;
+
     session.loadFrom(sdp);
     for (auto &m : session.media) {
         switch (m.type) {
             case TrackVideo : {
+                video.direction = RtpDirection::sendonly;
                 _rtsp_video_plan = std::make_shared<RtcCodecPlan>(m.plan[0]);
                 video.preferred_codec.clear();
                 video.preferred_codec.emplace_back(getCodecId(_rtsp_video_plan->codec));
                 break;
             }
             case TrackAudio : {
+                 audio.direction = RtpDirection::sendonly;
                 _rtsp_audio_plan = std::make_shared<RtcCodecPlan>(m.plan[0]);
                 audio.preferred_codec.clear();
                 audio.preferred_codec.emplace_back(getCodecId(_rtsp_audio_plan->codec));
