@@ -154,6 +154,7 @@ bash build_docker_images.sh
  - 流媒体管理平台
    - [GB28181完整解决方案,自带web管理网站,支持webrtc、h265播放](https://github.com/648540858/wvp-GB28181-pro)
    - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/AKStream)
+   - [Go实现的GB28181服务器](https://github.com/panjjo/gosip)
    - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
    - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
 
@@ -163,8 +164,9 @@ bash build_docker_images.sh
    - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
    
  - 播放器
+   - [基于wasm支持H265的播放器](https://github.com/numberwolf/h265web.js)
    - [基于MSE的websocket-fmp4播放器](https://github.com/v354412101/wsPlayer) 
-
+   
 ## 授权协议
 
 本项目自有代码使用宽松的MIT协议，在保留版权信息的情况下可以自由应用于各自商用、非商业的项目。
