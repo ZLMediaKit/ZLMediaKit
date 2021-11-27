@@ -21,7 +21,7 @@ enum class ExtSeqStatus : int {
 
 void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms) {
     switch ((ExtSeqStatus) checkSeqStatus(twcc_ext_seq)) {
-        case ExtSeqStatus::jumped: /*回环后，收到回环前的大ext seq包,过滤掉*/ return;
+        case ExtSeqStatus::jumped: /*seq异常,过滤掉*/ return;
         case ExtSeqStatus::looped: /*回环，触发发送twcc rtcp*/ onSendTwcc(ssrc); break;
         case ExtSeqStatus::normal: break;
         default: /*不可达*/assert(0); break;
@@ -56,16 +56,29 @@ int TwccContext::checkSeqStatus(uint16_t twcc_ext_seq) const {
         return (int) ExtSeqStatus::normal;
     }
     auto max = _rtp_recv_status.rbegin()->first;
-    if (max > 0xFF00 && twcc_ext_seq < 0xFF) {
-        //发生回环了
+    auto delta = (int32_t) twcc_ext_seq - (int32_t) max;
+    if (delta > 0 && delta < 0xFFFF / 2) {
+        //正常增长
+        return (int) ExtSeqStatus::normal;
+    }
+    if (delta < -0xFF00) {
+        //回环
         TraceL << "rtp twcc ext seq looped:" << max << " -> " << twcc_ext_seq;
         return (int) ExtSeqStatus::looped;
     }
-    if (twcc_ext_seq - max > 0xFFFF / 2) {
-        TraceL << "rtp twcc ext seq jumped:" << max << " -> " << twcc_ext_seq;
+    if (delta > 0xFF00) {
+        //回环后收到前面大的乱序的包，无法处理，丢弃
+        TraceL << "rtp twcc ext seq jumped after looped:" << max << " -> " << twcc_ext_seq;
         return (int) ExtSeqStatus::jumped;
     }
-    return (int) ExtSeqStatus::normal;
+    auto min = _rtp_recv_status.begin()->first;
+    if (min <= twcc_ext_seq || twcc_ext_seq <= max) {
+        //正常回退
+        return (int) ExtSeqStatus::normal;
+    }
+    //seq莫名的大幅增加或减少，无法处理，丢弃
+    TraceL << "rtp twcc ext seq jumped:" << max << " -> " << twcc_ext_seq;
+    return (int) ExtSeqStatus::jumped;
 }
 
 void TwccContext::onSendTwcc(uint32_t ssrc) {
