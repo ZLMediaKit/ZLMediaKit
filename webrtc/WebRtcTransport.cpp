@@ -46,6 +46,7 @@ static onceToken token([]() {
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
     _identifier = to_string(reinterpret_cast<uint64_t>(this));
+    _packet_pool.setSize(64);
 }
 
 void WebRtcTransport::onCreate(){
@@ -69,7 +70,7 @@ const string &WebRtcTransport::getIdentifier() const {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void WebRtcTransport::OnIceServerSendStunPacket(const RTC::IceServer *iceServer, const RTC::StunPacket *packet, RTC::TransportTuple *tuple) {
-    onSendSockData((char *) packet->GetData(), packet->GetSize(), (struct sockaddr_in *) tuple);
+    sendSockData((char *) packet->GetData(), packet->GetSize(), tuple);
 }
 
 void WebRtcTransport::OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) {
@@ -110,7 +111,7 @@ void WebRtcTransport::OnDtlsTransportConnected(
 }
 
 void WebRtcTransport::OnDtlsTransportSendData(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) {
-    onSendSockData((char *)data, len);
+    sendSockData((char *)data, len, nullptr);
 }
 
 void WebRtcTransport::OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) {
@@ -132,10 +133,10 @@ void WebRtcTransport::OnDtlsTransportApplicationDataReceived(const RTC::DtlsTran
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void WebRtcTransport::onSendSockData(const char *buf, size_t len, bool flush){
-    auto tuple = _ice_server->GetSelectedTuple();
-    assert(tuple);
-    onSendSockData(buf, len, (struct sockaddr_in *) tuple, flush);
+void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTuple *tuple){
+    auto pkt = _packet_pool.obtain();
+    pkt->assign(buf, len);
+    onSendSockData(std::move(pkt), true, tuple ? tuple : _ice_server->GetSelectedTuple());
 }
 
 RTC::TransportTuple* WebRtcTransport::getSelectedTuple() const{
@@ -266,23 +267,28 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
 
 void WebRtcTransport::sendRtpPacket(const char *buf, int len, bool flush, void *ctx) {
     if (_srtp_session_send) {
+        auto pkt = _packet_pool.obtain();
         //预留rtx加入的两个字节
-        CHECK((size_t)len + SRTP_MAX_TRAILER_LEN + 2 <= sizeof(_srtp_buf));
-        memcpy(_srtp_buf, buf, len);
-        onBeforeEncryptRtp((char *) _srtp_buf, len, ctx);
-        if (_srtp_session_send->EncryptRtp(_srtp_buf, &len)) {
-            onSendSockData((char *) _srtp_buf, len, flush);
+        pkt->setCapacity((size_t) len + SRTP_MAX_TRAILER_LEN + 2);
+        pkt->assign(buf, len);
+        onBeforeEncryptRtp(pkt->data(), len, ctx);
+        if (_srtp_session_send->EncryptRtp(reinterpret_cast<uint8_t *>(pkt->data()), &len)) {
+            pkt->setSize(len);
+            onSendSockData(std::move(pkt), flush);
         }
     }
 }
 
-void WebRtcTransport::sendRtcpPacket(const char *buf, int len, bool flush, void *ctx){
+void WebRtcTransport::sendRtcpPacket(const char *buf, int len, bool flush, void *ctx) {
     if (_srtp_session_send) {
-        CHECK((size_t)len + SRTP_MAX_TRAILER_LEN <= sizeof(_srtp_buf));
-        memcpy(_srtp_buf, buf, len);
-        onBeforeEncryptRtcp((char *) _srtp_buf, len, ctx);
-        if (_srtp_session_send->EncryptRtcp(_srtp_buf, &len)) {
-            onSendSockData((char *) _srtp_buf, len, flush);
+        auto pkt = _packet_pool.obtain();
+        //预留rtx加入的两个字节
+        pkt->setCapacity((size_t) len + SRTP_MAX_TRAILER_LEN + 2);
+        pkt->assign(buf, len);
+        onBeforeEncryptRtcp(pkt->data(), len, ctx);
+        if (_srtp_session_send->EncryptRtcp(reinterpret_cast<uint8_t *>(pkt->data()), &len)) {
+            pkt->setSize(len);
+            onSendSockData(std::move(pkt), flush);
         }
     }
 }
@@ -313,7 +319,6 @@ void WebRtcTransportImp::onCreate(){
 
 WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller) : WebRtcTransport(poller) {
     InfoL << getIdentifier();
-    _packet_pool.setSize(64);
 }
 
 WebRtcTransportImp::~WebRtcTransportImp() {
@@ -325,16 +330,14 @@ void WebRtcTransportImp::onDestory() {
     unregisterSelf();
 }
 
-void WebRtcTransportImp::onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush) {
+void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, RTC::TransportTuple *tuple) {
     if (!_session) {
-        WarnL << "send data failed:" << len;
+        WarnL << "send data failed:" << buf->size();
         return;
     }
-    auto ptr = _packet_pool.obtain();
-    ptr->assign(buf, len);
     //一次性发送一帧的rtp数据，提高网络io性能
     _session->setSendFlushFlag(flush);
-    _session->send(std::move(ptr));
+    _session->send(std::move(buf));
 }
 
 ///////////////////////////////////////////////////////////////////
