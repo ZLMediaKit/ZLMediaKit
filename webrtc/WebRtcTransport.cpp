@@ -810,7 +810,8 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
         }
 #endif
     } else {
-        WarnL << "send rtx rtp:" << rtp->getSeq();
+        //发送rtx重传包
+        TraceL << "send rtx rtp:" << rtp->getSeq();
     }
     pair<bool/*rtx*/, MediaTrack *> ctx{rtx, track.get()};
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, &ctx);
