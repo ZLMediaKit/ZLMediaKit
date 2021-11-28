@@ -246,28 +246,28 @@ int start_main(int argc,char *argv[]) {
 
         //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
         //测试方法:telnet 127.0.0.1 9000
-        TcpServer::Ptr shellSrv = std::make_shared<TcpServer>();
+        auto shellSrv = std::make_shared<TcpServer>();
 
         //rtsp[s]服务器, 可用于诸如亚马逊echo show这样的设备访问
-        TcpServer::Ptr rtspSrv = std::make_shared<TcpServer>();;
-        TcpServer::Ptr rtspSSLSrv = std::make_shared<TcpServer>();;
+        auto rtspSrv = std::make_shared<TcpServer>();;
+        auto rtspSSLSrv = std::make_shared<TcpServer>();;
 
         //rtmp[s]服务器
-        TcpServer::Ptr rtmpSrv = std::make_shared<TcpServer>();;
-        TcpServer::Ptr rtmpsSrv = std::make_shared<TcpServer>();;
+        auto rtmpSrv = std::make_shared<TcpServer>();;
+        auto rtmpsSrv = std::make_shared<TcpServer>();;
 
         //http[s]服务器
-        TcpServer::Ptr httpSrv = std::make_shared<TcpServer>();;
-        TcpServer::Ptr httpsSrv = std::make_shared<TcpServer>();;
+        auto httpSrv = std::make_shared<TcpServer>();;
+        auto httpsSrv = std::make_shared<TcpServer>();;
 
 #if defined(ENABLE_RTPPROXY)
         //GB28181 rtp推流端口，支持UDP/TCP
-        RtpServer::Ptr rtpServer = std::make_shared<RtpServer>();
+        auto rtpServer = std::make_shared<RtpServer>();
 #endif//defined(ENABLE_RTPPROXY)
 
 #if defined(ENABLE_WEBRTC)
         //webrtc udp服务器
-        UdpServer::Ptr rtcSrv = std::make_shared<UdpServer>();
+        auto rtcSrv = std::make_shared<UdpServer>();
         rtcSrv->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
             if (!buf) {
                 return Socket::createSocket(poller, false);
