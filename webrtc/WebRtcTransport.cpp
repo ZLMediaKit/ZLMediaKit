@@ -43,9 +43,11 @@ static onceToken token([]() {
 
 }//namespace RTC
 
+static atomic<uint64_t> s_key{0};
+
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
-    _identifier = to_string(reinterpret_cast<uint64_t>(this));
+    _identifier = to_string(++s_key);
     _packet_pool.setSize(64);
 }
 
