@@ -75,6 +75,9 @@ const string kRtmpDemand = GENERAL_FIELD"rtmp_demand";
 const string kTSDemand = GENERAL_FIELD"ts_demand";
 const string kFMP4Demand = GENERAL_FIELD"fmp4_demand";
 const string kEnableAudio = GENERAL_FIELD"enable_audio";
+const string kWaitTrackReadyMS = GENERAL_FIELD"wait_track_ready_ms";
+const string kWaitAddTrackMS = GENERAL_FIELD"wait_add_track_ms";
+const string kUnreadyFrameCache = GENERAL_FIELD"unready_frame_cache";
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
@@ -94,7 +97,9 @@ onceToken token([](){
     mINI::Instance()[kTSDemand] = 0;
     mINI::Instance()[kFMP4Demand] = 0;
     mINI::Instance()[kEnableAudio] = 1;
-
+    mINI::Instance()[kWaitTrackReadyMS] = 10000;
+    mINI::Instance()[kWaitAddTrackMS] = 3000;
+    mINI::Instance()[kUnreadyFrameCache] = 100;
 },nullptr);
 
 }//namespace General
