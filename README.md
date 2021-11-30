@@ -164,8 +164,9 @@ bash build_docker_images.sh
    - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
    
  - 播放器
+   - [基于wasm支持H265的播放器](https://github.com/numberwolf/h265web.js)
    - [基于MSE的websocket-fmp4播放器](https://github.com/v354412101/wsPlayer) 
-
+   
 ## 授权协议
 
 本项目自有代码使用宽松的MIT协议，在保留版权信息的情况下可以自由应用于各自商用、非商业的项目。

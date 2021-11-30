@@ -135,7 +135,7 @@ protected:
     virtual void onStartWebRTC() = 0;
     virtual void onRtcConfigure(RtcConfigure &configure) const;
     virtual void onCheckSdp(SdpType type, RtcSession &sdp) = 0;
-    virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) = 0;
+    virtual void onSendSockData(Buffer::Ptr buf, bool flush = true, RTC::TransportTuple *tuple = nullptr) = 0;
 
     virtual void onRtp(const char *buf, size_t len, uint64_t stamp_ms) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
@@ -149,7 +149,7 @@ protected:
     void sendRtcpPli(uint32_t ssrc);
 
 private:
-    void onSendSockData(const char *buf, size_t len, bool flush = true);
+    void sendSockData(const char *buf, size_t len, RTC::TransportTuple *tuple);
     void setRemoteDtlsFingerprint(const RtcSession &remote);
 
 protected:
@@ -157,7 +157,6 @@ protected:
     RtcSession::Ptr _answer_sdp;
 
 private:
-    uint8_t _srtp_buf[2000];
     string _identifier;
     EventPoller::Ptr _poller;
     std::shared_ptr<RTC::IceServer> _ice_server;
@@ -165,6 +164,8 @@ private:
     std::shared_ptr<RTC::SrtpSession> _srtp_session_send;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
     Ticker _ticker;
+    //循环池
+    ResourcePool<BufferRaw> _packet_pool;
 };
 
 class RtpChannel;
@@ -232,7 +233,7 @@ public:
 protected:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
     void onStartWebRTC() override;
-    void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) override;
+    void onSendSockData(Buffer::Ptr buf, bool flush = true, RTC::TransportTuple *tuple = nullptr) override;
     void onCheckSdp(SdpType type, RtcSession &sdp) override;
     void onRtcConfigure(RtcConfigure &configure) const override;
 
@@ -279,8 +280,6 @@ private:
     unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
     //根据接收rtp的pt获取相关信息
     unordered_map<uint8_t/*pt*/, std::unique_ptr<WrappedMediaTrack>> _pt_to_track;
-    //循环池
-    ResourcePool<BufferRaw> _packet_pool;
 };
 
 class WebRtcTransportManager {
