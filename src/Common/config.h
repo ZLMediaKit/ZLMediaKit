@@ -186,6 +186,13 @@ extern const string kTSDemand;
 extern const string kFMP4Demand;
 //转协议是否全局开启或忽略音频
 extern const string kEnableAudio;
+//最多等待未初始化的Track 10秒，超时之后会忽略未初始化的Track
+extern const string kWaitTrackReadyMS;
+//如果直播流只有单Track，最多等待3秒，超时后未收到其他Track的数据，则认为是单Track
+//如果协议元数据有声明特定track数，那么无此等待时间
+extern const string kWaitAddTrackMS;
+//如果track未就绪，我们先缓存帧数据，但是有最大个数限制(100帧时大约4秒)，防止内存溢出
+extern const string kUnreadyFrameCache;
 }//namespace General
 
 
