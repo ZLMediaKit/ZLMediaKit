@@ -128,9 +128,7 @@ class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListe
 public:
     typedef std::shared_ptr<HlsPlayerImp> Ptr;
     HlsPlayerImp(const EventPoller::Ptr &poller = nullptr);
-    ~HlsPlayerImp() override {};
-
-    void setOnPacket(const TSSegment::onSegment &cb);
+    ~HlsPlayerImp() override = default;
 
 private:
     //// HlsPlayer override////
