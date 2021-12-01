@@ -238,65 +238,68 @@ void HlsPlayer::onPacket_l(const char *data, size_t len){
 
 //////////////////////////////////////////////////////////////////////////
 
-HlsPlayerImp::HlsPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<HlsPlayer, PlayerBase>(poller) {
+class HlsDemuxer : public MediaSinkInterface, public TrackSource, public std::enable_shared_from_this<HlsDemuxer> {
+public:
+    HlsDemuxer() = default;
+    ~HlsDemuxer() override { _timer = nullptr; }
 
-}
+    void start(const EventPoller::Ptr &poller, TrackListener *listener);
 
-void HlsPlayerImp::setOnPacket(const TSSegment::onSegment &cb){
-    _on_ts = cb;
-}
+    bool inputFrame(const Frame::Ptr &frame) override;
 
-void HlsPlayerImp::onPacket(const char *data,size_t len) {
-    if (_on_ts) {
-        _on_ts(data, len);
+    bool addTrack(const Track::Ptr &track) override {
+        return _delegate.addTrack(track);
     }
 
-    if (!_decoder) {
-        _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, this);
+    void addTrackCompleted() override {
+        _delegate.addTrackCompleted();
     }
 
-    if (_decoder) {
-        _decoder->input((uint8_t *) data, len);
+    void resetTracks() override {
+        ((MediaSink &)_delegate).resetTracks();
     }
-}
 
-void HlsPlayerImp::onAllTrackReady() {
-    PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(SockException(Err_success,"play hls success"));
-}
-
-void HlsPlayerImp::onPlayResult(const SockException &ex) {
-    if (ex) {
-        PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(ex);
-    } else {
-        _frame_cache.clear();
-        _stamp[TrackAudio].setRelativeStamp(0);
-        _stamp[TrackVideo].setRelativeStamp(0);
-        _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
-        setPlayPosition(0);
-
-        weak_ptr<HlsPlayerImp> weakSelf = dynamic_pointer_cast<HlsPlayerImp>(shared_from_this());
-        //每50毫秒执行一次
-        _timer = std::make_shared<Timer>(0.05f, [weakSelf]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
-                return false;
-            }
-            strongSelf->onTick();
-            return true;
-        }, getPoller());
+    vector<Track::Ptr> getTracks(bool ready = true) const override {
+        return _delegate.getTracks(ready);
     }
+
+private:
+    void onTick();
+    int64_t getBufferMS();
+    int64_t getPlayPosition();
+    void setPlayPosition(int64_t pos);
+
+private:
+    int64_t _ticker_offset = 0;
+    Ticker _ticker;
+    Stamp _stamp[2];
+    Timer::Ptr _timer;
+    MediaSinkDelegate _delegate;
+    multimap<int64_t, Frame::Ptr> _frame_cache;
+};
+
+void HlsDemuxer::start(const EventPoller::Ptr &poller, TrackListener *listener) {
+    _frame_cache.clear();
+    _stamp[TrackAudio].setRelativeStamp(0);
+    _stamp[TrackVideo].setRelativeStamp(0);
+    _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
+    setPlayPosition(0);
+
+    _delegate.setTrackListener(listener);
+
+    //每50毫秒执行一次
+    weak_ptr<HlsDemuxer> weak_self = shared_from_this();
+    _timer = std::make_shared<Timer>(0.05f, [weak_self]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return false;
+        }
+        strong_self->onTick();
+        return true;
+    }, poller);
 }
 
-void HlsPlayerImp::onShutdown(const SockException &ex) {
-    PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
-    _timer = nullptr;
-}
-
-vector<Track::Ptr> HlsPlayerImp::getTracks(bool trackReady) const {
-    return MediaSink::getTracks(trackReady);
-}
-
-bool HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
+bool HlsDemuxer::inputFrame(const Frame::Ptr &frame) {
     //计算相对时间戳
     int64_t dts, pts;
     _stamp[frame->getTrackType()].revise(frame->dts(), frame->pts(), dts, pts);
@@ -306,7 +309,7 @@ bool HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
     if (getBufferMS() > 30 * 1000) {
         //缓存超过30秒，强制消费至15秒(减少延时或内存占用)
         while (getBufferMS() > 15 * 1000) {
-            MediaSink::inputFrame(_frame_cache.begin()->second);
+            _delegate.inputFrame(_frame_cache.begin()->second);
             _frame_cache.erase(_frame_cache.begin());
         }
         //接着播放缓存中最早的帧
@@ -315,23 +318,23 @@ bool HlsPlayerImp::inputFrame(const Frame::Ptr &frame) {
     return true;
 }
 
-int64_t HlsPlayerImp::getPlayPosition(){
+int64_t HlsDemuxer::getPlayPosition() {
     return _ticker.elapsedTime() + _ticker_offset;
 }
 
-int64_t HlsPlayerImp::getBufferMS(){
-    if(_frame_cache.empty()){
+int64_t HlsDemuxer::getBufferMS() {
+    if (_frame_cache.empty()) {
         return 0;
     }
     return _frame_cache.rbegin()->first - _frame_cache.begin()->first;
 }
 
-void HlsPlayerImp::setPlayPosition(int64_t pos){
+void HlsDemuxer::setPlayPosition(int64_t pos) {
     _ticker.resetTime();
     _ticker_offset = pos;
 }
 
-void HlsPlayerImp::onTick() {
+void HlsDemuxer::onTick() {
     auto it = _frame_cache.begin();
     while (it != _frame_cache.end()) {
         if (it->first > getPlayPosition()) {
@@ -346,10 +349,46 @@ void HlsPlayerImp::onTick() {
         }
 
         //消费掉已经到期的帧
-        MediaSink::inputFrame(it->second);
+        _delegate.inputFrame(it->second);
         it = _frame_cache.erase(it);
     }
 }
 
+//////////////////////////////////////////////////////////////////////////
+
+HlsPlayerImp::HlsPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<HlsPlayer, PlayerBase>(poller) {}
+
+void HlsPlayerImp::onPacket(const char *data,size_t len) {
+    if (!_decoder) {
+        _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, _demuxer.get());
+    }
+
+    if (_decoder && _demuxer) {
+        _decoder->input((uint8_t *) data, len);
+    }
+}
+
+void HlsPlayerImp::addTrackCompleted() {
+    PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(SockException(Err_success, "play hls success"));
+}
+
+void HlsPlayerImp::onPlayResult(const SockException &ex) {
+    if (ex) {
+        PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(ex);
+    } else {
+        auto demuxer = std::make_shared<HlsDemuxer>();
+        demuxer->start(getPoller(), this);
+        _demuxer = std::move(demuxer);
+    }
+}
+
+void HlsPlayerImp::onShutdown(const SockException &ex) {
+    PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
+    _demuxer = nullptr;
+}
+
+vector<Track::Ptr> HlsPlayerImp::getTracks(bool ready) const {
+    return static_pointer_cast<HlsDemuxer>(_demuxer)->getTracks(ready);
+}
 
 }//namespace mediakit

@@ -22,6 +22,7 @@
 #include "Rtp/TSDecoder.h"
 
 using namespace toolkit;
+
 namespace mediakit {
 
 class HlsPlayer : public  HttpClientImp , public PlayerBase , public HlsParser{
@@ -123,34 +124,32 @@ private:
     TSSegment _segment;
 };
 
-class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase> , public MediaSink{
+class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {
 public:
     typedef std::shared_ptr<HlsPlayerImp> Ptr;
     HlsPlayerImp(const EventPoller::Ptr &poller = nullptr);
     ~HlsPlayerImp() override {};
+
     void setOnPacket(const TSSegment::onSegment &cb);
 
 private:
+    //// HlsPlayer override////
     void onPacket(const char *data, size_t len) override;
-    void onAllTrackReady() override;
-    void onPlayResult(const SockException &ex) override;
-    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
-    bool inputFrame(const Frame::Ptr &frame) override;
-    void onShutdown(const SockException &ex) override;
-    void onTick();
-
-    int64_t getPlayPosition();
-    void setPlayPosition(int64_t pos);
-    int64_t getBufferMS();
 
 private:
-    int64_t _ticker_offset = 0;
-    Ticker _ticker;
-    Stamp _stamp[2];
-    Timer::Ptr _timer;
+    //// PlayerBase override////
+    void onPlayResult(const SockException &ex) override;
+    vector<Track::Ptr> getTracks(bool ready = true) const override;
+    void onShutdown(const SockException &ex) override;
+
+private:
+    //// TrackListener override////
+    bool addTrack(const Track::Ptr &track) override { return true; };
+    void addTrackCompleted() override;
+
+private:
     DecoderImp::Ptr _decoder;
-    TSSegment::onSegment _on_ts;
-    multimap<int64_t, Frame::Ptr> _frame_cache;
+    MediaSinkInterface::Ptr _demuxer;
 };
 
 }//namespace mediakit 
