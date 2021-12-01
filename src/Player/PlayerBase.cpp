@@ -65,90 +65,35 @@ PlayerBase::PlayerBase() {
 
 ///////////////////////////DemuxerSink//////////////////////////////
 
-class DemuxerSink : public MediaSink {
-public:
-    DemuxerSink() = default;
-    ~DemuxerSink() override = default;
-
-    /**
-     * 设置track监听器
-     */
-    void setTrackListener(TrackListener *listener);
-    vector<Track::Ptr> getTracks(bool ready = true) const override;
-
-protected:
-    bool addTrack(const Track::Ptr & track) override;
-    void resetTracks() override;
-    bool onTrackReady(const Track::Ptr & track) override;
-    void onAllTrackReady() override;
-    bool onTrackFrame(const Frame::Ptr &frame) override;
-
-private:
-    Track::Ptr _tracks[TrackMax];
-    TrackListener *_listener = nullptr;
-};
-
-bool DemuxerSink::addTrack(const Track::Ptr &track) {
-    auto ret = MediaSink::addTrack(track);
-    if (ret) {
-        track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
-            return inputFrame(frame);
-        }));
-    }
-    return ret;
-}
-
-void DemuxerSink::setTrackListener(TrackListener *listener) {
+void MediaSinkDelegate::setTrackListener(TrackListener *listener) {
     _listener = listener;
 }
 
-bool DemuxerSink::onTrackReady(const Track::Ptr &track) {
-    _tracks[track->getTrackType()] = track->clone();
+bool MediaSinkDelegate::onTrackReady(const Track::Ptr &track) {
+    if (_listener) {
+        _listener->addTrack(track);
+    }
     return true;
 }
 
-void DemuxerSink::onAllTrackReady() {
-    if (!_listener) {
-        return;
+void MediaSinkDelegate::onAllTrackReady() {
+    if (_listener) {
+        _listener->addTrackCompleted();
     }
-    for (auto &track : _tracks) {
-        if (track) {
-            _listener->addTrack(track);
-        }
-    }
-    _listener->addTrackCompleted();
 }
 
-bool DemuxerSink::onTrackFrame(const Frame::Ptr &frame) {
-    return _tracks[frame->getTrackType()]->inputFrame(frame);
-}
-
-void DemuxerSink::resetTracks() {
+void MediaSinkDelegate::resetTracks() {
     MediaSink::resetTracks();
-    for (auto &track : _tracks) {
-        track = nullptr;
-    }
     if (_listener) {
         _listener->resetTracks();
     }
-}
-
-vector<Track::Ptr> DemuxerSink::getTracks(bool ready) const {
-    vector<Track::Ptr> ret;
-    for (auto &track : _tracks) {
-        if (!track || (ready && !track->ready())) {
-            continue;
-        }
-        ret.emplace_back(track);
-    }
-    return ret;
 }
 
 ///////////////////////////Demuxer//////////////////////////////
 
 void Demuxer::setTrackListener(TrackListener *listener, bool wait_track_ready) {
     if (wait_track_ready) {
-        auto sink = std::make_shared<DemuxerSink>();
+        auto sink = std::make_shared<MediaSinkDelegate>();
         sink->setTrackListener(listener);
         _sink = std::move(sink);
     }
@@ -158,8 +103,16 @@ void Demuxer::setTrackListener(TrackListener *listener, bool wait_track_ready) {
 bool Demuxer::addTrack(const Track::Ptr &track) {
     if (!_sink) {
         _origin_track.emplace_back(track);
+        return _listener ? _listener->addTrack(track) : false;
     }
-    return _sink ? _sink->addTrack(track) : (_listener ? _listener->addTrack(track) : false);
+
+    if (_sink->addTrack(track)) {
+        track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
+            return _sink->inputFrame(frame);
+        }));
+        return true;
+    }
+    return false;
 }
 
 void Demuxer::addTrackCompleted() {
