@@ -73,7 +73,7 @@ public:
     typedef shared_ptr<HttpWsClient> Ptr;
 
     HttpWsClient(ClientTypeImp<ClientType,DataType> &delegate) : _delegate(delegate){
-        _Sec_WebSocket_Key = encodeBase64(SHA1::encode_bin(makeRandStr(16, false)));
+        _Sec_WebSocket_Key = encodeBase64(makeRandStr(16, false));
         setPoller(delegate.getPoller());
     }
     ~HttpWsClient(){}
