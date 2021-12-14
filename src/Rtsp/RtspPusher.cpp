@@ -207,6 +207,8 @@ void RtspPusher::handleResAnnounce(const Parser &parser) {
     if (_content_base.back() == '/') {
         _content_base.pop_back();
     }
+    
+    _session_id = parser["Session"];
 
     sendSetup(0);
 }
@@ -263,7 +265,7 @@ void RtspPusher::sendSetup(unsigned int track_idx) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest("SETUP", control_url, {"Transport",
                                                    StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2
-                                                           << "-" << track->_type * 2 + 1});
+                                                           << "-" << track->_type * 2 + 1<<";mode=record"});
         }
             break;
         case Rtsp::RTP_UDP: {
