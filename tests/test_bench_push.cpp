@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
     proxy->play(in_url);
 
     auto get_src = [schema]() {
-        return MediaSource::find(schema, DEFAULT_VHOST, "app", "test");
+        return MediaSource::find(schema, DEFAULT_VHOST, "app", "test", false);
     };
 
     //推流器map
