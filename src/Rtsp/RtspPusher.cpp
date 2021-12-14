@@ -45,7 +45,6 @@ void RtspPusher::teardown() {
     _track_vec.clear();
     _session_id.clear();
     _content_base.clear();
-    _session_id.clear();
     _cseq = 1;
     _publish_timer.reset();
     _beat_timer.reset();
@@ -207,6 +206,8 @@ void RtspPusher::handleResAnnounce(const Parser &parser) {
     if (_content_base.back() == '/') {
         _content_base.pop_back();
     }
+    
+    _session_id = parser["Session"];
 
     sendSetup(0);
 }
@@ -263,14 +264,14 @@ void RtspPusher::sendSetup(unsigned int track_idx) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest("SETUP", control_url, {"Transport",
                                                    StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2
-                                                           << "-" << track->_type * 2 + 1});
+                                                           << "-" << track->_type * 2 + 1 << ";mode=record"});
         }
             break;
         case Rtsp::RTP_UDP: {
             createUdpSockIfNecessary(track_idx);
             int port = _rtp_sock[track_idx]->get_local_port();
             sendRtspRequest("SETUP", control_url,
-                            {"Transport", StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1});
+                            {"Transport", StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1 << ";mode=record"});
         }
             break;
         default:
