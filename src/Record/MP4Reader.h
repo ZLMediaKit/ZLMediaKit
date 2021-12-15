@@ -23,18 +23,21 @@ public:
 
     /**
      * 流化一个mp4文件，使之转换成RtspMediaSource和RtmpMediaSource
-     * @param strVhost 虚拟主机
-     * @param strApp 应用名
-     * @param strId 流id
-     * @param filePath 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
+     * @param vhost 虚拟主机
+     * @param app 应用名
+     * @param stream_id 流id
+     * @param file_path 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
      */
-    MP4Reader(const string &strVhost,const string &strApp, const string &strId,const string &filePath = "");
+    MP4Reader(const string &vhost, const string &app, const string &stream_id, const string &file_path = "");
 
     /**
      * 开始流化MP4文件，需要指出的是，MP4Reader对象一经过调用startReadMP4方法，它的强引用会自持有，
      * 意思是在文件流化结束之前或中断之前,MP4Reader对象是不会被销毁的(不管有没有被外部对象持有)
      */
-    void startReadMP4();
+    void startReadMP4(const EventPoller::Ptr &poller = nullptr, uint64_t sample_ms = 0, bool ref_self = true,  bool file_repeat = false);
+    void stopReadMP4();
+
+    const MP4Demuxer::Ptr& getDemuxer() const;
 
 private:
     //MediaSourceEvent override
@@ -53,6 +56,7 @@ private:
     bool seekTo(uint32_t ui32Stamp);
 
 private:
+    bool _file_repeat = false;
     bool _have_video = false;
     bool _paused = false;
     float _speed = 1.0;

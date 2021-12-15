@@ -15,23 +15,27 @@
 using namespace toolkit;
 namespace mediakit {
 
-MP4Reader::MP4Reader(const string &strVhost,const string &strApp, const string &strId,const string &filePath ) {
+MP4Reader::MP4Reader(const string &vhost, const string &app, const string &stream_id, const string &file_path) {
     _poller = WorkThreadPool::Instance().getPoller();
-    _file_path = filePath;
-    if(_file_path.empty()){
-        GET_CONFIG(string,recordPath,Record::kFilePath);
-        GET_CONFIG(bool,enableVhost,General::kEnableVhost);
-        if(enableVhost){
-            _file_path = strVhost + "/" + strApp + "/" + strId;
-        }else{
-            _file_path = strApp + "/" + strId;
+    _file_path = file_path;
+    if (_file_path.empty()) {
+        GET_CONFIG(string, recordPath, Record::kFilePath);
+        GET_CONFIG(bool, enableVhost, General::kEnableVhost);
+        if (enableVhost) {
+            _file_path = vhost + "/" + app + "/" + stream_id;
+        } else {
+            _file_path = app + "/" + stream_id;
         }
-        _file_path = File::absolutePath(_file_path,recordPath);
+        _file_path = File::absolutePath(_file_path, recordPath);
     }
 
     _demuxer = std::make_shared<MP4Demuxer>();
     _demuxer->openMP4(_file_path);
-    _muxer = std::make_shared<MultiMediaSourceMuxer>(strVhost, strApp, strId, _demuxer->getDurationMS() / 1000.0f, true, true, false, false);
+
+    if (stream_id.empty()) {
+        return;
+    }
+    _muxer = std::make_shared<MultiMediaSourceMuxer>(vhost, app, stream_id, _demuxer->getDurationMS() / 1000.0f, true, true, false, false);
     auto tracks = _demuxer->getTracks(false);
     if(tracks.empty()){
         throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << _file_path);
@@ -60,14 +64,16 @@ bool MP4Reader::readSample() {
         if (!frame) {
             continue;
         }
-        _muxer->inputFrame(frame);
+        if (_muxer) {
+            _muxer->inputFrame(frame);
+        }
         if (frame->dts() > getCurrentStamp()) {
             break;
         }
     }
 
     GET_CONFIG(bool, fileRepeat, Record::kFileRepeat);
-    if (eof && fileRepeat) {
+    if (eof && (fileRepeat || _file_repeat)) {
         //需要从头开始看
         seekTo(0);
         return true;
@@ -76,10 +82,14 @@ bool MP4Reader::readSample() {
     return !eof;
 }
 
-void MP4Reader::startReadMP4() {
+void MP4Reader::stopReadMP4() {
+    _timer = nullptr;
+}
+
+void MP4Reader::startReadMP4(const EventPoller::Ptr &poller, uint64_t sample_ms, bool ref_self,  bool file_repeat) {
     GET_CONFIG(uint32_t, sampleMS, Record::kSampleMS);
     auto strongSelf = shared_from_this();
-    _muxer->setMediaListener(strongSelf);
+    if (_muxer) { _muxer->setMediaListener(strongSelf); }
 
     //先获取关键帧
     seekTo(0);
@@ -88,10 +98,28 @@ void MP4Reader::startReadMP4() {
     readSample();
 
     //启动定时器
-    _timer = std::make_shared<Timer>(sampleMS / 1000.0f, [strongSelf]() {
-        lock_guard<recursive_mutex> lck(strongSelf->_mtx);
-        return strongSelf->readSample();
-    }, _poller);
+    if (ref_self) {
+        _timer = std::make_shared<Timer>((sample_ms ? sample_ms : sampleMS) / 1000.0f, [strongSelf]() {
+            lock_guard<recursive_mutex> lck(strongSelf->_mtx);
+            return strongSelf->readSample();
+        }, poller ? poller : _poller);
+    } else {
+        weak_ptr<MP4Reader> weak_self = strongSelf;
+        _timer = std::make_shared<Timer>((sample_ms ? sample_ms : sampleMS) / 1000.0f, [weak_self]() {
+            auto strongSelf = weak_self.lock();
+            if (!strongSelf) {
+                return false;
+            }
+            lock_guard<recursive_mutex> lck(strongSelf->_mtx);
+            return strongSelf->readSample();
+        }, poller ? poller : _poller);
+    }
+
+    _file_repeat = file_repeat;
+}
+
+const MP4Demuxer::Ptr &MP4Reader::getDemuxer() const {
+    return _demuxer;
 }
 
 uint32_t MP4Reader::getCurrentStamp() {
@@ -102,7 +130,7 @@ void MP4Reader::setCurrentStamp(uint32_t new_stamp){
     auto old_stamp = getCurrentStamp();
     _seek_to = new_stamp;
     _seek_ticker.resetTime();
-    if (old_stamp != new_stamp) {
+    if (old_stamp != new_stamp && _muxer) {
         //时间轴未拖动时不操作
         _muxer->setTimeStamp(new_stamp);
     }
@@ -170,7 +198,9 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp) {
         }
         if(keyFrame || frame->keyFrame() || frame->configFrame()){
             //定位到key帧
-            _muxer->inputFrame(frame);
+            if (_muxer) {
+                _muxer->inputFrame(frame);
+            }
             //设置当前时间戳
             setCurrentStamp(frame->dts());
             return true;
