@@ -215,6 +215,7 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
     auto bytes = buf->size() - DATA_OFFSET;
     auto data = buf->data() + DATA_OFFSET;
     auto codec = it->second->getCodecId();
+    Frame::Ptr ret;
     switch (codec) {
         case CodecH264 :
         case CodecH265 : {
@@ -230,9 +231,11 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 offset += (frame_len + 4);
             }
             if (codec == CodecH264) {
-                return std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
+                ret = std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
+                break;
             }
-            return std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
+            ret = std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
+            break;
         }
 
         case CodecAAC: {
@@ -240,17 +243,23 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
             assert(track);
             //加上adts头
             dumpAacConfig(track->getAacCfg(), buf->size() - DATA_OFFSET, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
-            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
+            ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
+            break;
         }
 
         case CodecOpus:
         case CodecG711A:
         case CodecG711U: {
-            return std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, 0, DATA_OFFSET, codec);
+            ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, 0, DATA_OFFSET, codec);
+            break;
         }
 
         default: return nullptr;
     }
+    if (ret) {
+        it->second->inputFrame(ret);
+    }
+    return ret;
 }
 
 vector<Track::Ptr> MP4Demuxer::getTracks(bool trackReady) const {
