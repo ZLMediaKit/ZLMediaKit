@@ -47,7 +47,7 @@ static atomic<uint64_t> s_key{0};
 
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
-    _identifier = "zlm_"+to_string(++s_key);
+    _identifier = "zlm_" + to_string(++s_key);
     _packet_pool.setSize(64);
 }
 
@@ -333,13 +333,13 @@ void WebRtcTransportImp::onDestory() {
 }
 
 void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, RTC::TransportTuple *tuple) {
-    if (!_session) {
+    if (!_selected_session) {
         WarnL << "send data failed:" << buf->size();
         return;
     }
     //一次性发送一帧的rtp数据，提高网络io性能
-    _session->setSendFlushFlag(flush);
-    _session->send(std::move(buf));
+    _selected_session->setSendFlushFlag(flush);
+    _selected_session->send(std::move(buf));
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -860,18 +860,22 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
 void WebRtcTransportImp::onShutdown(const SockException &ex){
     WarnL << ex.what();
     unrefSelf();
-    if (_session) {
-        _session->shutdown(ex);
+    for (auto &pr : _history_sessions) {
+        auto session = pr.second.lock();
+        if (session) {
+            session->shutdown(ex);
+        }
     }
 }
 
 void WebRtcTransportImp::setSession(Session::Ptr session) {
-    _session = std::move(session);
+    _history_sessions.emplace(session.get(), session);
+    _selected_session = std::move(session);
     unrefSelf();
 }
 
 const Session::Ptr &WebRtcTransportImp::getSession() const {
-    return _session;
+    return _selected_session;
 }
 
 uint64_t WebRtcTransportImp::getBytesUsage() const{

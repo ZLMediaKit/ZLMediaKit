@@ -270,8 +270,10 @@ private:
     Ticker _alive_ticker;
     //pli rtcp计时器
     Ticker _pli_ticker;
-    //udp session
-    Session::Ptr _session;
+    //当前选中的udp链接
+    Session::Ptr _selected_session;
+    //链接迁移前后使用过的udp链接
+    unordered_map<Session *, weak_ptr<Session> > _history_sessions;
     //twcc rtcp发送上下文对象
     TwccContext _twcc_ctx;
     //根据发送rtp的track类型获取相关信息
