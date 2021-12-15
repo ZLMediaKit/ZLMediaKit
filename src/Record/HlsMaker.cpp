@@ -35,7 +35,18 @@ void HlsMaker::makeIndexFile(bool eof) {
     auto sequence = _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
 
     string m3u8;
-    snprintf(file_content, sizeof(file_content),
+    if(_seg_number == 0){
+        // 录像点播支持时移
+         snprintf(file_content, sizeof(file_content),
+             "#EXTM3U\n"
+             "#EXT-X-PLAYLIST-TYPE:EVENT\n"
+             "#EXT-X-VERSION:4\n"
+             "#EXT-X-TARGETDURATION:%u\n"
+             "#EXT-X-MEDIA-SEQUENCE:%llu\n",
+             (maxSegmentDuration + 999) / 1000,
+             sequence);
+    }else{
+        snprintf(file_content, sizeof(file_content),
              "#EXTM3U\n"
              "#EXT-X-VERSION:3\n"
              "#EXT-X-ALLOW-CACHE:NO\n"
@@ -43,7 +54,8 @@ void HlsMaker::makeIndexFile(bool eof) {
              "#EXT-X-MEDIA-SEQUENCE:%llu\n",
              (maxSegmentDuration + 999) / 1000,
              sequence);
-
+    }
+    
     m3u8.assign(file_content);
 
     for (auto &tp : _seg_dur_list) {
@@ -100,7 +112,7 @@ void HlsMaker::addNewSegment(uint32_t stamp) {
     }
 
     //关闭并保存上一个切片，如果_seg_number==0,那么是点播。
-    flushLastSegment(_seg_number == 0);
+    flushLastSegment(false);
     //新增切片
     _last_file_name = onOpenSegment(_file_index++);
     //记录本次切片的起始时间戳
