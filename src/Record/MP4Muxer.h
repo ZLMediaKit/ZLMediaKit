@@ -134,14 +134,13 @@ protected:
      * @param stamp 切片末尾时间戳
      * @param key_frame 是否有关键帧
      */
-    virtual void onSegmentData(const string &string, uint32_t stamp, bool key_frame) = 0;
+    virtual void onSegmentData(string string, uint32_t stamp, bool key_frame) = 0;
 
 protected:
     MP4FileIO::Writer createWriter() override;
 
 private:
     bool _key_frame = false;
-    Ticker _ticker;
     string _init_segment;
     MP4FileMemory::Ptr _memory_file;
 };

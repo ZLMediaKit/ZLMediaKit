@@ -64,9 +64,7 @@ public:
      */
     void setInitSegment(string str) {
         _init_segment = std::move(str);
-        if (_ring) {
-            regist();
-        }
+        createRing();
     }
 
     /**
