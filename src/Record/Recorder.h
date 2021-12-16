@@ -36,7 +36,9 @@ public:
         // 录制hls
         type_hls = 0,
         // 录制MP4
-        type_mp4 = 1
+        type_mp4 = 1,
+        // 录制hls落盘
+        type_hls_disk = 2,
     } type;
 
     /**

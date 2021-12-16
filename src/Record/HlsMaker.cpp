@@ -9,17 +9,18 @@
  */
 
 #include "HlsMaker.h"
+
 namespace mediakit {
 
-HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number) {
+HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number, Recorder::type type) {
     //最小允许设置为0，0个切片代表点播
     _seg_number = seg_number;
     _seg_duration = seg_duration;
+    _type = type;
 }
 
 HlsMaker::~HlsMaker() {
 }
-
 
 void HlsMaker::makeIndexFile(bool eof) {
     char file_content[1024];
@@ -32,7 +33,7 @@ void HlsMaker::makeIndexFile(bool eof) {
         }
     }
 
-    auto sequence = _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
+    auto sequence =  _type == Recorder::type_hls ? ( _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL): 0LL;
 
     string m3u8;
      if (_seg_number == 0) {
@@ -57,19 +58,32 @@ void HlsMaker::makeIndexFile(bool eof) {
     }
     
     m3u8.assign(file_content);
+    string rm3u8 = m3u8;
+    string rcontent;
 
-    for (auto &tp : _seg_dur_list) {
+    if (_type == Recorder::type_hls) {;
+        for (auto &tp : _seg_dur_list) {
+            snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s?\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
+            m3u8.append(file_content);
+        }
+    } else if (_type == Recorder::type_hls_disk) {
+        auto &tp = _seg_dur_list.back();
         snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
-        m3u8.append(file_content);
+        rcontent.assign(file_content);
     }
 
     if (eof) {
         snprintf(file_content, sizeof(file_content), "#EXT-X-ENDLIST\n");
         m3u8.append(file_content);
+        rcontent.append(file_content);
     }
-    onWriteHls(m3u8.data(), m3u8.size());
-}
 
+    if (_type == Recorder::type_hls) {
+        onWriteHls(m3u8.data(), m3u8.size());
+    } else if (_type == Recorder::type_hls_disk) {
+        onWriteRecordM3u8(rm3u8.data(), rm3u8.size(), rcontent.data(), rcontent.size());
+    }
+}
 
 void HlsMaker::inputData(void *data, size_t len, uint32_t timestamp, bool is_idr_fast_packet) {
     if (data && len) {
@@ -89,7 +103,7 @@ void HlsMaker::inputData(void *data, size_t len, uint32_t timestamp, bool is_idr
 }
 
 void HlsMaker::delOldSegment() {
-    if (_seg_number == 0) {
+    if (_seg_number == 0 || _type == Recorder::type_hls_disk) {
         //如果设置为保留0个切片，则认为是保存为点播
         return;
     }
@@ -112,7 +126,7 @@ void HlsMaker::addNewSegment(uint32_t stamp) {
     }
 
     //关闭并保存上一个切片，如果_seg_number==0,那么是点播。
-    flushLastSegment(false);
+    flushLastSegment(_seg_number == 0 || _type == Recorder::type_hls_disk);
     //新增切片
     _last_file_name = onOpenSegment(_file_index++);
     //记录本次切片的起始时间戳
@@ -129,7 +143,7 @@ void HlsMaker::flushLastSegment(bool eof){
     if (seg_dur <= 0) {
         seg_dur = 100;
     }
-    _seg_dur_list.push_back(std::make_tuple(seg_dur, std::move(_last_file_name)));
+    _seg_dur_list.emplace_back(seg_dur, std::move(_last_file_name));
     _last_file_name.clear();
     delOldSegment();
     makeIndexFile(eof);
@@ -137,7 +151,7 @@ void HlsMaker::flushLastSegment(bool eof){
 }
 
 bool HlsMaker::isLive() {
-    return _seg_number != 0;
+    return _seg_number != 0 && _type == Recorder::type_hls;
 }
 
 void HlsMaker::clear() {

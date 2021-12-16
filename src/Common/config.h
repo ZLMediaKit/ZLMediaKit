@@ -45,6 +45,10 @@ extern const string kBroadcastRecordMP4;
 extern const string kBroadcastRecordTs;
 #define BroadcastRecordTsArgs const RecordInfo &info
 
+//录制hls文件成功后广播
+extern const string kBroadcastRecordHlsDisk;
+#define BroadcastRecordHlsDiskArgs const RecordInfo &info
+
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;
 #define BroadcastHttpRequestArgs const Parser &parser,const HttpSession::HttpResponseInvoker &invoker,bool &consumed,SockInfo &sender

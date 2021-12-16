@@ -27,7 +27,8 @@ public:
                 const string &params,
                 uint32_t bufSize  = 64 * 1024,
                 float seg_duration = 5,
-                uint32_t seg_number = 3);
+                uint32_t seg_number = 3,
+                Recorder::type type = Recorder::type_hls);
 
     ~HlsMakerImp() override;
 
@@ -49,17 +50,21 @@ public:
       * 清空缓存
       * @param immediately 时候立即删除
       */
-     void clearCache(bool immediately = true);
+     void clearCache(bool immediately = true, bool first = false);
 
 protected:
     string onOpenSegment(uint64_t index) override ;
     void onDelSegment(uint64_t index) override;
     void onWriteSegment(const char *data, size_t len) override;
     void onWriteHls(const char *data, size_t len) override;
+    // hls 落盘使用
+    void onWriteRecordM3u8(const char *header, size_t hlen, const char *body, size_t blen) override;
     void onFlushLastSegment(uint32_t duration_ms) override;
 
 private:
     std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
+    // hls 落盘使用
+    std::shared_ptr<FILE> makeRecordM3u8(const string &file, const string &mode, bool setbuf = false);
 
 private:
     int _buf_size;
@@ -72,6 +77,9 @@ private:
     HlsMediaSource::Ptr _media_src;
     EventPoller::Ptr _poller;
     map<uint64_t/*index*/,string/*file_path*/> _segment_file_paths;
+
+    time_t _start_time {0};
+    Recorder::type _type{Recorder::type_hls};
 };
 
 }//namespace mediakit

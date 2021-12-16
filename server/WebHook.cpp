@@ -43,6 +43,7 @@ const string kOnStreamNoneReader = HOOK_FIELD"on_stream_none_reader";
 const string kOnHttpAccess = HOOK_FIELD"on_http_access";
 const string kOnServerStarted = HOOK_FIELD"on_server_started";
 const string kOnServerKeepalive = HOOK_FIELD"on_server_keepalive";
+const string kOnRecordHls = HOOK_FIELD"on_record_hls";
 const string kAdminParams = HOOK_FIELD"admin_params";
 const string kAliveInterval = HOOK_FIELD"alive_interval";
 
@@ -64,6 +65,7 @@ onceToken token([](){
     mINI::Instance()[kOnHttpAccess] = "";
     mINI::Instance()[kOnServerStarted] = "";
     mINI::Instance()[kOnServerKeepalive] = "";
+ 	mINI::Instance()[kOnRecordHls] = "";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
     mINI::Instance()[kAliveInterval] = 30.0;
 },nullptr);
@@ -400,6 +402,20 @@ void installWebHook(){
         do_http_hook(hook_record_mp4, getRecordInfo(info), nullptr);
     });
 #endif //ENABLE_MP4
+
+#ifdef ENABLE_HLS
+    //录制hls文件落盘成功后广播
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRecordHlsDisk,[](BroadcastRecordHlsDiskArgs){
+        GET_CONFIG(bool, hook_enable, Hook::kEnable)
+        GET_CONFIG(string, hook_record_hls, Hook::kOnRecordHls);
+        if(!hook_enable || hook_record_hls.empty()){
+            return;
+        }
+
+        //执行hook
+        do_http_hook(hook_record_hls, getRecordInfo(info), nullptr);
+    });
+#endif
 
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastRecordTs, [](BroadcastRecordTsArgs) {
         GET_CONFIG(string,hook_record_ts,Hook::kOnRecordTs);
