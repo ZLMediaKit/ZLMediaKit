@@ -184,9 +184,25 @@ void HlsPlayer::onResponseCompleted() {
     }
 }
 
-float HlsPlayer::delaySecond(){
+float HlsPlayer::delaySecond() {
     if (HlsParser::isM3u8() && HlsParser::getTargetDur() > 0) {
-        return (float)HlsParser::getTargetDur();
+        float targetOffset;
+        if (HlsParser::isLive()) {
+            // see RFC 8216, Section 4.4.3.8.
+            // 根据rfc刷新index列表的周期应该是分段时间x3, 因为根据规范播放器只处理最后3个Segment
+            targetOffset = (float) (3 * HlsParser::getTargetDur());
+        } else {
+            // 点播则一般m3u8文件不会在改变了, 没必要频繁的刷新, 所以按照总时间来进行刷新
+            targetOffset = HlsParser::getTotalDuration();
+        }
+        // 取最小值, 避免因为分段时长不规则而导致的问题
+        if (targetOffset > HlsParser::getTotalDuration()) {
+            targetOffset = HlsParser::getTotalDuration();
+        }
+        // 根据规范为一半的时间
+        if(targetOffset / 2 > 1.0f) {
+            return targetOffset / 2;
+        }
     }
     return 1.0f;
 }
