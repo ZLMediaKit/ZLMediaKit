@@ -141,7 +141,6 @@ protected:
 
 private:
     bool _key_frame = false;
-    Ticker _ticker;
     string _init_segment;
     MP4FileMemory::Ptr _memory_file;
 };
