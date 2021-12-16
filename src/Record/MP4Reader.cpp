@@ -45,27 +45,44 @@ MP4Reader::MP4Reader(const string &vhost, const string &app, const string &strea
         if(track->getTrackType() == TrackVideo){
             _have_video = true;
         }
+
+        if(track->getTrackType() == TrackAudio){
+            _have_audio = true;
+        }
     }
     //添加完毕所有track，防止单track情况下最大等待3秒
     _muxer->addTrackCompleted();
 }
 
-bool MP4Reader::readSample() {
+bool MP4Reader::readSample(bool init_muxer) {
     if (_paused) {
         //确保暂停时，时间轴不走动
         _seek_ticker.resetTime();
         return true;
     }
+    bool videoOk = !_have_video;
+    bool audioOk = !_have_audio;
+    bool hasInit =  !init_muxer;
 
     bool keyFrame = false;
     bool eof = false;
-    while (!eof && _last_dts < getCurrentStamp()) {
+    while (!eof && (_last_dts < getCurrentStamp() || !hasInit)){
         auto frame = _demuxer->readFrame(keyFrame, eof);
         if (!frame) {
             continue;
         }
+        if(frame->getTrackType() == TrackVideo && init_muxer){
+            videoOk = true;
+        }
+        if(frame->getTrackType() == TrackAudio && init_muxer){
+            audioOk = true;
+        }
+        if(init_muxer && videoOk && audioOk){
+            hasInit = true;
+        }
         _last_dts = frame->dts();
         if (_muxer) {
+            //TraceL<<"input frame:"<<frame->dts()<<" type:"<<frame->getTrackType();
             _muxer->inputFrame(frame);
         }
     }
@@ -93,7 +110,7 @@ void MP4Reader::startReadMP4(const EventPoller::Ptr &poller, uint64_t sample_ms,
     seekTo(0);
     //读sampleMS毫秒的数据用于产生MediaSource
     setCurrentStamp(getCurrentStamp() + sampleMS);
-    readSample();
+    readSample(true);
 
     //启动定时器
     if (ref_self) {
@@ -198,6 +215,7 @@ bool MP4Reader::seekTo(uint32_t ui32Stamp) {
         if(keyFrame || frame->keyFrame() || frame->configFrame()){
             //定位到key帧
             if (_muxer) {
+                //TraceL<<"input frame:"<<frame->dts()<<" type:"<<frame->getTrackType();
                 _muxer->inputFrame(frame);
             }
             //设置当前时间戳

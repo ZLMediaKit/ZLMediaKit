@@ -50,7 +50,8 @@ private:
     MediaOriginType getOriginType(MediaSource &sender) const override;
     string getOriginUrl(MediaSource &sender) const override;
 
-    bool readSample();
+    // 第一次读取时，需要读取视频与音频的关键帧
+    bool readSample(bool init_muxer = false);
     uint32_t getCurrentStamp();
     void setCurrentStamp(uint32_t ui32Stamp);
     bool seekTo(uint32_t ui32Stamp);
@@ -58,6 +59,7 @@ private:
 private:
     bool _file_repeat = false;
     bool _have_video = false;
+    bool _have_audio = false;
     bool _paused = false;
     float _speed = 1.0;
     uint32_t _last_dts = 0;
