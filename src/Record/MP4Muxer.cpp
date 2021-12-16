@@ -319,14 +319,13 @@ bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame){
         return false;
     }
 
-    bool key_frame = frame->keyFrame();
-    if (_ticker.elapsedTime() > 50 || key_frame) {
-        //遇到关键帧或者超过50ms则切片
-        _ticker.resetTime();
+    auto key_frame = frame->keyFrame();
+    auto data = _memory_file->getAndClearMemory();
+    if (!data.empty()) {
         //flush切片
         saveSegment();
         //输出切片数据
-        onSegmentData(_memory_file->getAndClearMemory(), frame->dts(), _key_frame);
+        onSegmentData(data, frame->dts(), _key_frame);
         _key_frame = false;
     }
 
