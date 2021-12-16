@@ -60,6 +60,7 @@ private:
     bool _have_video = false;
     bool _paused = false;
     float _speed = 1.0;
+    uint32_t _last_dts = 0;
     uint32_t _seek_to;
     string _file_path;
     recursive_mutex _mtx;

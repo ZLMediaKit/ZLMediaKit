@@ -59,16 +59,14 @@ bool MP4Reader::readSample() {
 
     bool keyFrame = false;
     bool eof = false;
-    while (!eof) {
+    while (!eof && _last_dts < getCurrentStamp()) {
         auto frame = _demuxer->readFrame(keyFrame, eof);
         if (!frame) {
             continue;
         }
+        _last_dts = frame->dts();
         if (_muxer) {
             _muxer->inputFrame(frame);
-        }
-        if (frame->dts() > getCurrentStamp()) {
-            break;
         }
     }
 
@@ -129,6 +127,7 @@ uint32_t MP4Reader::getCurrentStamp() {
 void MP4Reader::setCurrentStamp(uint32_t new_stamp){
     auto old_stamp = getCurrentStamp();
     _seek_to = new_stamp;
+    _last_dts = new_stamp;
     _seek_ticker.resetTime();
     if (old_stamp != new_stamp && _muxer) {
         //时间轴未拖动时不操作
