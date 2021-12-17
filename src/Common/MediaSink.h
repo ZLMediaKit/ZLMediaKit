@@ -109,11 +109,12 @@ public:
     vector<Track::Ptr> getTracks(bool trackReady = true) const override;
     
     /**
-    * 返回是否track已经准备完成
-    */
-    bool isTrackReady() const{
+     * 返回是否所有track已经准备完成
+     */
+    bool isAllTrackReady() const {
         return _all_track_ready;
     }
+    
     /**
      * 添加aac静音轨道
      */
