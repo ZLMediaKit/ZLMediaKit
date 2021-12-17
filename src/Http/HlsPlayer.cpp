@@ -318,6 +318,11 @@ void HlsDemuxer::start(const EventPoller::Ptr &poller, TrackListener *listener) 
 bool HlsDemuxer::inputFrame(const Frame::Ptr &frame) {
     //计算相对时间戳
     int64_t dts, pts;
+    //为了避免track准备时间过长, 因此在没准备好之前, 直接消费掉所有的帧
+    if (!_delegate.isTrackReady()) {
+        _delegate.inputFrame(Frame::getCacheAbleFrame(frame));
+        return true;
+    }
     _stamp[frame->getTrackType()].revise(frame->dts(), frame->pts(), dts, pts);
     //根据时间戳缓存frame
     _frame_cache.emplace(dts, Frame::getCacheAbleFrame(frame));
