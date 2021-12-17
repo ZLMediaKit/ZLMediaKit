@@ -247,6 +247,11 @@ bash build_docker_images.sh
 [Xinghua Zhao](holychaossword@hotmail.com)
 [hejilin](https://github.com/brokensword2018)
 [rqb500](https://github.com/rqb500)
+[Alex](https://github.com/alexliyu7352)
+[Dw9](https://github.com/Dw9)
+[明月惊鹊](mingyuejingque@gmail.com)
+[cgm](2958580318@qq.com)
+[hejilin](1724010622@qq.com)
 
 ## 使用案例
 
