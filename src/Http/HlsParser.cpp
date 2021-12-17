@@ -140,4 +140,5 @@ bool HlsParser::isM3u8Inner() const {
 float HlsParser::getTotalDuration() const {
     return _total_dur;
 }
+
 }//namespace mediakit
