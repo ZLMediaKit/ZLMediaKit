@@ -9,7 +9,7 @@
  */
 
 #include <cstdlib>
-#include <Util/base64.h>
+#include "Util/base64.h"
 #include "HttpClient.h"
 #include "Common/config.h"
 
@@ -45,9 +45,7 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
         //去除？后面的字符串
         auto authStr = host.substr(0, pos);
         host = host.substr(pos + 1, host.size());
-        char authStrBase64[1024] = {0};
-        av_base64_encode(authStrBase64, sizeof(authStrBase64), (uint8_t *) authStr.data(), (int) authStr.size());
-        _header.emplace("Authorization", StrPrinter << "Basic " << authStrBase64 );
+        _header.emplace("Authorization", "Basic " + encodeBase64(authStr));
     }
     auto host_header = host;
     uint16_t port = atoi(FindField(host.data(), ":", NULL).data());
