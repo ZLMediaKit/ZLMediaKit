@@ -200,7 +200,7 @@ float HlsPlayer::delaySecond() {
             targetOffset = HlsParser::getTotalDuration();
         }
         // 根据规范为一半的时间
-        if(targetOffset / 2 > 1.0f) {
+        if (targetOffset / 2 > 1.0f) {
             return targetOffset / 2;
         }
     }

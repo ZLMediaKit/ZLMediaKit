@@ -74,9 +74,9 @@ public:
      * 内部是否含有子m3u8
      */
     bool isM3u8Inner() const;
+
     /**
      * 得到总时间
-     * @return
      */
     float getTotalDuration() const;
  
