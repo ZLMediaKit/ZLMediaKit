@@ -42,6 +42,12 @@
 #include "../webrtc/WebRtcPusher.h"
 #include "../webrtc/WebRtcEchoTest.h"
 #endif
+#ifdef _WIN32
+#include <io.h>
+#include <iostream>
+#include <tchar.h>
+#endif // _WIN32
+
 
 using namespace toolkit;
 using namespace mediakit;
@@ -507,6 +513,59 @@ void installWebApi() {
             return 0;
         });
         val["msg"] = "服务器将在一秒后自动重启";
+    });
+#else
+    //增加Windows下的重启代码
+    api_regist("/index/api/restartServer", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        //创建重启批处理脚本文件
+        FILE *pf;
+        errno_t err = ::_wfopen_s(&pf, L"RestartServer.cmd", L"w"); //“w”如果该文件存在，其内容将被覆盖
+        if (err == 0) {
+            char szExeName[1024];
+            char drive[_MAX_DRIVE] = { 0 };
+            char dir[_MAX_DIR] = { 0 };
+            char fname[_MAX_FNAME] = { 0 };
+            char ext[_MAX_EXT] = { 0 };
+            char exeName[_MAX_FNAME] = { 0 };
+            GetModuleFileNameA(NULL, szExeName, 1024); //获取进程的全路径
+            _splitpath(szExeName, drive, dir, fname, ext);
+            strcpy(exeName, fname);
+            strcat(exeName, ext);
+            fprintf(pf, "@echo off\ntaskkill /f /im %s\nstart \"\" \"%s\"\ndel %%0", exeName, szExeName);
+            fclose(pf);
+            // 1秒后执行创建的批处理脚本
+            EventPollerPool::Instance().getPoller()->doDelayTask(1000, []() {
+                STARTUPINFO si;
+                PROCESS_INFORMATION pi;
+                ZeroMemory(&si, sizeof si);
+                ZeroMemory(&pi, sizeof pi);
+                si.cb = sizeof si;
+                si.dwFlags = STARTF_USESHOWWINDOW;
+                si.wShowWindow = SW_HIDE;
+                TCHAR winSysDir[1024];
+                ZeroMemory(winSysDir, sizeof winSysDir);
+                GetSystemDirectory(winSysDir, 1024);
+                TCHAR appName[1024];
+                ZeroMemory(appName, sizeof appName);
+
+                _stprintf(appName, "%s\\cmd.exe", winSysDir);
+                BOOL bRet = CreateProcess(appName, " /c RestartServer.cmd", NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+
+                if (bRet == FALSE) {
+                    int err = GetLastError();
+                    cout << endl << "无法执行重启操作，错误代码：" << err << endl;
+                }
+                WaitForSingleObject(pi.hProcess, INFINITE);
+                CloseHandle(pi.hProcess);
+                CloseHandle(pi.hThread);
+                return 0;
+            });
+            val["msg"] = "服务器将在一秒后自动重启";
+        } else {
+            val["msg"] = "创建重启脚本文件失败";
+            val["code"] = API::OtherFailed;
+        }
     });
 #endif//#if !defined(_WIN32)
 
