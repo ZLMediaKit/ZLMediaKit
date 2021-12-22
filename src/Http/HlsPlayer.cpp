@@ -28,11 +28,15 @@ void HlsPlayer::play_l(){
         teardown_l(SockException(Err_shutdown, "所有hls url都尝试播放失败!"));
         return;
     }
+    if (alive() && _waiting_response) {
+        return;
+    }
     float playTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     setMethod("GET");
     if(!(*this)[kNetAdapter].empty()) {
         setNetAdapter((*this)[kNetAdapter]);
     }
+    _waiting_response = true;
     sendRequest(_m3u8_list.back(), playTimeOutSec);
 }
 
@@ -173,6 +177,7 @@ void HlsPlayer::onResponseBody(const char *buf, size_t size, size_t recvedSize, 
 }
 
 void HlsPlayer::onResponseCompleted() {
+    _waiting_response = false;
     if (HlsParser::parse(getUrl(), _m3u8)) {
         playDelay();
         if (_first) {
@@ -208,6 +213,7 @@ float HlsPlayer::delaySecond() {
 }
 
 void HlsPlayer::onDisconnect(const SockException &ex) {
+    _waiting_response = false;
     if (_first) {
         //第一次失败，则播放失败
         _first = false;
@@ -219,6 +225,8 @@ void HlsPlayer::onDisconnect(const SockException &ex) {
     if (ex.getErrCode() == Err_shutdown) {
         if (_m3u8_list.size() <= 1) {
             //全部url都播放失败
+            _timer = nullptr;
+            _timer_ts = nullptr;
             onShutdown(ex);
         } else {
             _m3u8_list.pop_back();
@@ -399,6 +407,7 @@ void HlsPlayerImp::onPlayResult(const SockException &ex) {
 }
 
 void HlsPlayerImp::onShutdown(const SockException &ex) {
+    WarnL << ex.what();
     PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
     _demuxer = nullptr;
 }

@@ -165,7 +165,9 @@ protected:
 
 private:
     void onResponseCompleted_l();
+    void onConnect_l(const SockException &ex);
     void checkCookie(HttpHeader &headers);
+    void clearResponse();
 
 protected:
     bool _isHttps;
@@ -176,13 +178,14 @@ private:
     HttpBody::Ptr _body;
     string _method;
     string _path;
+    string _lastHost;
+    Ticker _aliveTicker;
+    float _fTimeOutSec = 0;
+
     //recv
     size_t _recvedBodySize;
     ssize_t _totalBodySize;
     Parser _parser;
-    string _lastHost;
-    Ticker _aliveTicker;
-    float _fTimeOutSec = 0;
     std::shared_ptr<HttpChunkedSplitter> _chunkedSplitter;
 };
 

@@ -80,20 +80,27 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
         startConnect(host, port, fTimeOutSec);
     } else {
         SockException ex;
-        onConnect(ex);
+        onConnect_l(ex);
     }
 }
 
 void HttpClient::clear() {
+    _url.clear();
     _header.clear();
     _body.reset();
     _method.clear();
     _path.clear();
-    _parser.Clear();
-    _recvedBodySize = 0;
-    _totalBodySize = 0;
     _aliveTicker.resetTime();
     _chunkedSplitter.reset();
+    _fTimeOutSec = 0;
+    clearResponse();
+}
+
+void HttpClient::clearResponse() {
+    _recvedBodySize = 0;
+    _totalBodySize = 0;
+    _parser.Clear();
+    _chunkedSplitter = nullptr;
     HttpRequestSplitter::reset();
 }
 
@@ -131,16 +138,17 @@ const string &HttpClient::getUrl() const {
 }
 
 void HttpClient::onConnect(const SockException &ex) {
+    onConnect_l(ex);
+}
+
+void HttpClient::onConnect_l(const SockException &ex) {
     _aliveTicker.resetTime();
     if (ex) {
         onDisconnect(ex);
         return;
     }
 
-    _totalBodySize = 0;
-    _recvedBodySize = 0;
-    HttpRequestSplitter::reset();
-    _chunkedSplitter.reset();
+    clearResponse();
 
     _StrPrinter printer;
     printer << _method + " " << _path + " HTTP/1.1\r\n";
@@ -280,8 +288,6 @@ void HttpClient::onManager() {
 }
 
 void HttpClient::onResponseCompleted_l() {
-    _totalBodySize = 0;
-    _recvedBodySize = 0;
     onResponseCompleted();
 }
 

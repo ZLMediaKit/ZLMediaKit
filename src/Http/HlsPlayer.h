@@ -112,6 +112,7 @@ private:
 private:
     bool _is_m3u8 = false;
     bool _first = true;
+    bool _waiting_response = false;
     int64_t _last_sequence = -1;
     string _m3u8;
     Timer::Ptr _timer;
