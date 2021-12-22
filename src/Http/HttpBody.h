@@ -107,16 +107,17 @@ public:
      * @param fp 文件句柄，文件的偏移量必须为0
      * @param offset 相对文件头的偏移量
      * @param max_size 最大读取字节数，未判断是否大于文件真实大小
+     * @param use_mmap 是否使用mmap方式访问文件
      */
-    HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size);
-    HttpFileBody(const string &file_path);
+    HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size, bool use_mmap = true);
+    HttpFileBody(const string &file_path, bool use_mmap = true);
     ~HttpFileBody() override = default;
 
     ssize_t remainSize() override ;
     Buffer::Ptr readData(size_t size) override;
 
 private:
-    void init(const std::shared_ptr<FILE> &fp,size_t offset,size_t max_size);
+    void init(const std::shared_ptr<FILE> &fp,size_t offset,size_t max_size, bool use_mmap);
 
 private:
     size_t _max_size;

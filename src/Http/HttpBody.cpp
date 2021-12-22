@@ -45,53 +45,54 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 
 //////////////////////////////////////////////////////////////////
 
-HttpFileBody::HttpFileBody(const string &filePath){
+HttpFileBody::HttpFileBody(const string &filePath, bool use_mmap) {
     std::shared_ptr<FILE> fp(fopen(filePath.data(), "rb"), [](FILE *fp) {
         if (fp) {
             fclose(fp);
         }
     });
     if (!fp) {
-        init(fp, 0, 0);
+        init(fp, 0, 0, use_mmap);
     } else {
-        init(fp, 0, File::fileSize(fp.get()));
+        init(fp, 0, File::fileSize(fp.get()), use_mmap);
     }
 }
 
-HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size) {
-    init(fp,offset,max_size);
+HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size, bool use_mmap) {
+    init(fp, offset, max_size, use_mmap);
 }
 
-void HttpFileBody::init(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size) {
+void HttpFileBody::init(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size, bool use_mmap) {
     _fp = fp;
     _max_size = max_size;
 #ifdef ENABLE_MMAP
-    do {
-        if(!_fp){
-            //文件不存在
-            break;
-        }
-        int fd = fileno(fp.get());
-        if (fd < 0) {
-            WarnL << "fileno failed:" << get_uv_errmsg(false);
-            break;
-        }
-        auto ptr = (char *) mmap(NULL, max_size, PROT_READ, MAP_SHARED, fd, offset);
-        if (ptr == MAP_FAILED) {
-            WarnL << "mmap failed:" << get_uv_errmsg(false);
-            break;
-        }
-        _map_addr.reset(ptr,[max_size,fp](char *ptr){
-            munmap(ptr,max_size);
-        });
-    } while (false);
+    if (use_mmap) {
+        do {
+            if (!_fp) {
+                //文件不存在
+                break;
+            }
+            int fd = fileno(fp.get());
+            if (fd < 0) {
+                WarnL << "fileno failed:" << get_uv_errmsg(false);
+                break;
+            }
+            auto ptr = (char *) mmap(NULL, max_size, PROT_READ, MAP_SHARED, fd, offset);
+            if (ptr == MAP_FAILED) {
+                WarnL << "mmap failed:" << get_uv_errmsg(false);
+                break;
+            }
+            _map_addr.reset(ptr, [max_size, fp](char *ptr) {
+                munmap(ptr, max_size);
+            });
+        } while (false);
+    }
 #endif
-    if(!_map_addr && offset && fp.get()){
+    if (!_map_addr && offset && fp.get()) {
         //未映射,那么fseek设置偏移量
         fseek64(fp.get(), offset, SEEK_SET);
     }
 }
-
 
 class BufferMmap : public Buffer{
 public:

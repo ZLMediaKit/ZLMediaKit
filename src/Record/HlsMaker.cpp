@@ -132,8 +132,10 @@ void HlsMaker::flushLastSegment(bool eof){
     _seg_dur_list.push_back(std::make_tuple(seg_dur, std::move(_last_file_name)));
     _last_file_name.clear();
     delOldSegment();
-    makeIndexFile(eof);
+    //先flush ts切片，否则可能存在ts文件未写入完毕就被访问的情况
     onFlushLastSegment(seg_dur);
+    //然后写m3u8文件
+    makeIndexFile(eof);
 }
 
 bool HlsMaker::isLive() {

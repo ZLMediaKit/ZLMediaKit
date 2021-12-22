@@ -405,7 +405,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             return;
         }
 
-        auto response_file = [file_exist](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
+        auto response_file = [file_exist, is_hls](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
             StrCaseMap httpHeader;
             if (cookie) {
                 auto lck = cookie->getLock();
@@ -421,7 +421,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                 }
                 cb(code, HttpFileManager::getContentType(strFile.data()), headerOut, body);
             };
-            invoker.responseFile(parser.getHeader(), httpHeader, strFile);
+            invoker.responseFile(parser.getHeader(), httpHeader, strFile, !is_hls);
         };
 
         if (!is_hls) {
@@ -576,7 +576,8 @@ HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::Htt
 
 void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
                                           const StrCaseMap &responseHeader,
-                                          const string &filePath) const {
+                                          const string &filePath,
+                                          bool use_mmap) const {
     StrCaseMap &httpHeader = const_cast<StrCaseMap &>(responseHeader);
     std::shared_ptr<FILE> fp(fopen(filePath.data(), "rb"), [](FILE *fp) {
         if (fp) {
@@ -618,7 +619,7 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     }
 
     //回复文件
-    HttpBody::Ptr fileBody = std::make_shared<HttpFileBody>(fp, iRangeStart, iRangeEnd - iRangeStart + 1);
+    HttpBody::Ptr fileBody = std::make_shared<HttpFileBody>(fp, iRangeStart, iRangeEnd - iRangeStart + 1, use_mmap);
     (*this)(code, httpHeader, fileBody);
 }
 

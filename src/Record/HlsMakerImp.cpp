@@ -125,10 +125,11 @@ void HlsMakerImp::onWriteHls(const char *data, size_t len) {
 }
 
 void HlsMakerImp::onFlushLastSegment(uint32_t duration_ms) {
+    //关闭并flush文件到磁盘
+    _file = nullptr;
+
     GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);
     if (broadcastRecordTs) {
-        //关闭ts文件以便获取正确的文件大小
-        _file = nullptr;
         _info.time_len = duration_ms / 1000.0f;
         struct stat fileData;
         stat(_info.file_path.data(), &fileData);

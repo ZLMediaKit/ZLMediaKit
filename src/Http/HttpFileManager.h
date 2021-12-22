@@ -35,7 +35,7 @@ public:
     void operator()(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const;
     void operator()(int code, const StrCaseMap &headerOut, const string &body) const;
 
-    void responseFile(const StrCaseMap &requestHeader,const StrCaseMap &responseHeader,const string &filePath) const;
+    void responseFile(const StrCaseMap &requestHeader,const StrCaseMap &responseHeader,const string &filePath, bool use_mmap = true) const;
     operator bool();
 private:
     HttpResponseInvokerLambda0 _lambad;
