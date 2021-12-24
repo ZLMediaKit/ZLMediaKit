@@ -15,8 +15,8 @@ bool TSSegment::isTSPacket(const char *data, size_t len){
     return len == TS_PACKET_SIZE && ((uint8_t*)data)[0] == TS_SYNC_BYTE;
 }
 
-void TSSegment::setOnSegment(const TSSegment::onSegment &cb) {
-    _onSegment = cb;
+void TSSegment::setOnSegment(TSSegment::onSegment cb) {
+    _onSegment = std::move(cb);
 }
 
 ssize_t TSSegment::onRecvHeader(const char *data, size_t len) {
@@ -43,6 +43,11 @@ const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
     if (pos) {
         return (char *) pos;
     }
+    if (remainDataSize() > 4 * _size) {
+        //数据这么多都没ts包，全部清空
+        return data + len;
+    }
+    //等待更多数据
     return nullptr;
 }
 
