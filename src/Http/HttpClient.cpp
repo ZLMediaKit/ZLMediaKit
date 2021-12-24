@@ -15,28 +15,28 @@
 
 namespace mediakit {
 
-void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
-    _aliveTicker.resetTime();
-    _url = strUrl;
-    auto protocol = FindField(strUrl.data(), NULL, "://");
-    uint16_t defaultPort;
-    bool isHttps;
+void HttpClient::sendRequest(const string &url, float timeout_sec) {
+    clearResponse();
+    _url = url;
+    auto protocol = FindField(url.data(), NULL, "://");
+    uint16_t default_port;
+    bool is_https;
     if (strcasecmp(protocol.data(), "http") == 0) {
-        defaultPort = 80;
-        isHttps = false;
+        default_port = 80;
+        is_https = false;
     } else if (strcasecmp(protocol.data(), "https") == 0) {
-        defaultPort = 443;
-        isHttps = true;
+        default_port = 443;
+        is_https = true;
     } else {
-        auto strErr = StrPrinter << "非法的http url:" << strUrl << endl;
+        auto strErr = StrPrinter << "非法的http url:" << url << endl;
         throw std::invalid_argument(strErr);
     }
 
-    auto host = FindField(strUrl.data(), "://", "/");
+    auto host = FindField(url.data(), "://", "/");
     if (host.empty()) {
-        host = FindField(strUrl.data(), "://", NULL);
+        host = FindField(url.data(), "://", NULL);
     }
-    _path = FindField(strUrl.data(), host.data(), NULL);
+    _path = FindField(url.data(), host.data(), NULL);
     if (_path.empty()) {
         _path = "/";
     }
@@ -51,30 +51,28 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
     uint16_t port = atoi(FindField(host.data(), ":", NULL).data());
     if (port <= 0) {
         //默认端口
-        port = defaultPort;
+        port = default_port;
     } else {
         //服务器域名
         host = FindField(host.data(), NULL, ":");
     }
     _header.emplace("Host", host_header);
-    _header.emplace("Tools", kServerName);
+    _header.emplace("User-Agent", kServerName);
     _header.emplace("Connection", "keep-alive");
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
-    _header.emplace("User-Agent",
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36");
 
     if (_body && _body->remainSize()) {
         _header.emplace("Content-Length", to_string(_body->remainSize()));
         _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
     }
 
-    bool bChanged = (_lastHost != host + ":" + to_string(port)) || (_isHttps != isHttps);
-    _lastHost = host + ":" + to_string(port);
-    _isHttps = isHttps;
-    _fTimeOutSec = fTimeOutSec;
+    bool host_changed = (_last_host != host + ":" + to_string(port)) || (_is_https != is_https);
+    _last_host = host + ":" + to_string(port);
+    _is_https = is_https;
+    _timeout_second = timeout_sec;
 
-    auto cookies = HttpCookieStorage::Instance().get(_lastHost, _path);
+    auto cookies = HttpCookieStorage::Instance().get(_last_host, _path);
     _StrPrinter printer;
     for (auto &cookie : cookies) {
         printer << cookie->getKey() << "=" << cookie->getVal() << ";";
@@ -84,8 +82,8 @@ void HttpClient::sendRequest(const string &strUrl, float fTimeOutSec) {
         _header.emplace("Cookie", printer);
     }
 
-    if (!alive() || bChanged) {
-        startConnect(host, port, fTimeOutSec);
+    if (!alive() || host_changed) {
+        startConnect(host, port, timeout_sec);
     } else {
         SockException ex;
         onConnect_l(ex);
@@ -98,17 +96,16 @@ void HttpClient::clear() {
     _body.reset();
     _method.clear();
     _path.clear();
-    _aliveTicker.resetTime();
-    _chunkedSplitter.reset();
-    _fTimeOutSec = 0;
     clearResponse();
 }
 
 void HttpClient::clearResponse() {
-    _recvedBodySize = 0;
-    _totalBodySize = 0;
+    _recved_body_size = 0;
+    _total_body_size = 0;
     _parser.Clear();
-    _chunkedSplitter = nullptr;
+    _chunked_splitter = nullptr;
+    _recv_timeout_ticker.resetTime();
+    _total_timeout_ticker.resetTime();
     HttpRequestSplitter::reset();
 }
 
@@ -150,13 +147,11 @@ void HttpClient::onConnect(const SockException &ex) {
 }
 
 void HttpClient::onConnect_l(const SockException &ex) {
-    _aliveTicker.resetTime();
+    _recv_timeout_ticker.resetTime();
     if (ex) {
         onDisconnect(ex);
         return;
     }
-
-    clearResponse();
 
     _StrPrinter printer;
     printer << _method + " " << _path + " HTTP/1.1\r\n";
@@ -169,12 +164,12 @@ void HttpClient::onConnect_l(const SockException &ex) {
 }
 
 void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
-    _aliveTicker.resetTime();
+    _recv_timeout_ticker.resetTime();
     HttpRequestSplitter::input(pBuf->data(), pBuf->size());
 }
 
 void HttpClient::onErr(const SockException &ex) {
-    if (ex.getErrCode() == Err_eof && _totalBodySize < 0) {
+    if (ex.getErrCode() == Err_eof && _total_body_size < 0) {
         //如果Content-Length未指定 但服务器断开链接
         //则认为本次http请求完成
         onResponseCompleted_l();
@@ -185,42 +180,41 @@ void HttpClient::onErr(const SockException &ex) {
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     _parser.Parse(data);
     if (_parser.Url() == "302" || _parser.Url() == "301") {
-        auto newUrl = _parser["Location"];
-        if (newUrl.empty()) {
+        auto new_url = _parser["Location"];
+        if (new_url.empty()) {
             shutdown(SockException(Err_shutdown, "未找到Location字段(跳转url)"));
             return 0;
         }
-        if (onRedirectUrl(newUrl, _parser.Url() == "302")) {
-            HttpClient::clear();
+        if (onRedirectUrl(new_url, _parser.Url() == "302")) {
             setMethod("GET");
-            HttpClient::sendRequest(newUrl, _fTimeOutSec);
+            HttpClient::sendRequest(new_url, _timeout_second);
             return 0;
         }
     }
 
     checkCookie(_parser.getHeader());
-    _totalBodySize = onResponseHeader(_parser.Url(), _parser.getHeader());
+    _total_body_size = onResponseHeader(_parser.Url(), _parser.getHeader());
 
     if (!_parser["Content-Length"].empty()) {
         //有Content-Length字段时忽略onResponseHeader的返回值
-        _totalBodySize = atoll(_parser["Content-Length"].data());
+        _total_body_size = atoll(_parser["Content-Length"].data());
     }
 
     if (_parser["Transfer-Encoding"] == "chunked") {
         //如果Transfer-Encoding字段等于chunked，则认为后续的content是不限制长度的
-        _totalBodySize = -1;
-        _chunkedSplitter = std::make_shared<HttpChunkedSplitter>([this](const char *data, size_t len) {
+        _total_body_size = -1;
+        _chunked_splitter = std::make_shared<HttpChunkedSplitter>([this](const char *data, size_t len) {
             if (len > 0) {
-                auto recvedBodySize = _recvedBodySize + len;
-                onResponseBody(data, len, recvedBodySize, SIZE_MAX);
-                _recvedBodySize = recvedBodySize;
+                auto recved_body_size = _recved_body_size + len;
+                onResponseBody(data, len, recved_body_size, SIZE_MAX);
+                _recved_body_size = recved_body_size;
             } else {
                 onResponseCompleted_l();
             }
         });
     }
 
-    if (_totalBodySize == 0) {
+    if (_total_body_size == 0) {
         //后续没content，本次http请求结束
         onResponseCompleted_l();
         return 0;
@@ -230,46 +224,46 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     //虽然我们在_totalBodySize >0 时知道content的确切大小，
     //但是由于我们没必要等content接收完毕才回调onRecvContent(因为这样浪费内存并且要多次拷贝数据)
     //所以返回-1代表我们接下来分段接收content
-    _recvedBodySize = 0;
+    _recved_body_size = 0;
     return -1;
 }
 
 void HttpClient::onRecvContent(const char *data, size_t len) {
-    if (_chunkedSplitter) {
-        _chunkedSplitter->input(data, len);
+    if (_chunked_splitter) {
+        _chunked_splitter->input(data, len);
         return;
     }
-    auto recvedBodySize = _recvedBodySize + len;
-    if (_totalBodySize < 0) {
+    auto recved_body_size = _recved_body_size + len;
+    if (_total_body_size < 0) {
         //不限长度的content,最大支持SIZE_MAX个字节
-        onResponseBody(data, len, recvedBodySize, SIZE_MAX);
-        _recvedBodySize = recvedBodySize;
+        onResponseBody(data, len, recved_body_size, SIZE_MAX);
+        _recved_body_size = recved_body_size;
         return;
     }
 
     //固定长度的content
-    if (recvedBodySize < (size_t) _totalBodySize) {
+    if (recved_body_size < (size_t) _total_body_size) {
         //content还未接收完毕
-        onResponseBody(data, len, recvedBodySize, _totalBodySize);
-        _recvedBodySize = recvedBodySize;
+        onResponseBody(data, len, recved_body_size, _total_body_size);
+        _recved_body_size = recved_body_size;
         return;
     }
 
     //content接收完毕
-    onResponseBody(data, _totalBodySize - _recvedBodySize, _totalBodySize, _totalBodySize);
-    bool biggerThanExpected = recvedBodySize > (size_t) _totalBodySize;
+    onResponseBody(data, _total_body_size - _recved_body_size, _total_body_size, _total_body_size);
+    bool bigger_than_expected = recved_body_size > (size_t) _total_body_size;
     onResponseCompleted_l();
-    if (biggerThanExpected) {
+    if (bigger_than_expected) {
         //声明的content数据比真实的小，那么我们只截取前面部分的并断开链接
         shutdown(SockException(Err_shutdown, "http response content size bigger than expected"));
     }
 }
 
 void HttpClient::onFlush() {
-    _aliveTicker.resetTime();
-    GET_CONFIG(uint32_t, sendBufSize, Http::kSendBufSize);
+    _recv_timeout_ticker.resetTime();
+    GET_CONFIG(uint32_t, send_buf_size, Http::kSendBufSize);
     while (_body && _body->remainSize() && !isSocketBusy()) {
-        auto buffer = _body->readData(sendBufSize);
+        auto buffer = _body->readData(send_buf_size);
         if (!buffer) {
             //数据发送结束或读取数据异常
             break;
@@ -283,13 +277,13 @@ void HttpClient::onFlush() {
 }
 
 void HttpClient::onManager() {
-    if (_aliveTicker.elapsedTime() > 3 * 1000 && _totalBodySize < 0 && !_chunkedSplitter) {
+    if (_recv_timeout_ticker.elapsedTime() > 3 * 1000 && _total_body_size < 0 && !_chunked_splitter) {
         //如果Content-Length未指定 但接收数据超时
         //则认为本次http请求完成
         onResponseCompleted_l();
     }
 
-    if (_fTimeOutSec > 0 && _aliveTicker.elapsedTime() > _fTimeOutSec * 1000) {
+    if (_timeout_second > 0 && _total_timeout_ticker.elapsedTime() > _timeout_second * 1000) {
         //超时
         shutdown(SockException(Err_timeout, "http request timeout"));
     }
@@ -304,7 +298,7 @@ void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
     for (auto it_set_cookie = headers.find("Set-Cookie"); it_set_cookie != headers.end(); ++it_set_cookie) {
         auto key_val = Parser::parseArgs(it_set_cookie->second, ";", "=");
         HttpCookie::Ptr cookie = std::make_shared<HttpCookie>();
-        cookie->setHost(_lastHost);
+        cookie->setHost(_last_host);
 
         int index = 0;
         auto arg_vec = split(it_set_cookie->second, ";");
