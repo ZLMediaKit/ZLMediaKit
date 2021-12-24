@@ -106,6 +106,11 @@ public:
      */
     const string &getUrl() const;
 
+    /**
+     * 判断是否正在等待响应
+     */
+    bool waitResponse() const;
+
 protected:
     /**
      * 收到http回复头
@@ -173,6 +178,7 @@ protected:
     bool _is_https;
 
 private:
+    bool _complete = false;
     string _url;
     HttpHeader _header;
     HttpBody::Ptr _body;
