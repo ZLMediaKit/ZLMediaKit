@@ -9,24 +9,23 @@
  */
 
 #include "HttpTSPlayer.h"
+
 namespace mediakit {
 
-HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller, bool split_ts){
+HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller, bool split_ts) {
     _split_ts = split_ts;
     _segment.setOnSegment([this](const char *data, size_t len) { onPacket(data, len); });
     setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 
-HttpTSPlayer::~HttpTSPlayer() {}
-
-ssize_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
+ssize_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &header) {
     _status = status;
     if (status != "200" && status != "206") {
         //http状态码不符合预期
         shutdown(SockException(Err_other, StrPrinter << "bad http status code:" + status));
         return 0;
     }
-    auto content_type = const_cast< HttpClient::HttpHeader &>(headers)["Content-Type"];
+    auto content_type = const_cast< HttpClient::HttpHeader &>(header)["Content-Type"];
     if (content_type.find("video/mp2t") == 0 || content_type.find("video/mpeg") == 0) {
         _is_ts_content = true;
     }
@@ -35,11 +34,11 @@ ssize_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::H
     return -1;
 }
 
-void HttpTSPlayer::onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) {
+void HttpTSPlayer::onResponseBody(const char *buf, size_t size, size_t recved_size, size_t total_size) {
     if (_status != "200" && _status != "206") {
         return;
     }
-    if (recvedSize == size) {
+    if (recved_size == size) {
         //开始接收数据
         if (buf[0] == TS_SYNC_BYTE) {
             //这是ts头
@@ -57,14 +56,16 @@ void HttpTSPlayer::onResponseBody(const char *buf, size_t size, size_t recvedSiz
 }
 
 void HttpTSPlayer::onResponseCompleted() {
-    //接收完毕
-    shutdown(SockException(Err_success, "play completed"));
+    emitOnComplete(SockException(Err_success, "play completed"));
 }
 
 void HttpTSPlayer::onDisconnect(const SockException &ex) {
-    if (_on_disconnect) {
-        _on_disconnect(ex);
-        _on_disconnect = nullptr;
+    emitOnComplete(ex);
+}
+
+void HttpTSPlayer::emitOnComplete(const SockException &ex) {
+    if (_on_complete) {
+        _on_complete(ex);
     }
 }
 
@@ -74,12 +75,12 @@ void HttpTSPlayer::onPacket(const char *data, size_t len) {
     }
 }
 
-void HttpTSPlayer::setOnDisconnect(const HttpTSPlayer::onShutdown &cb) {
-    _on_disconnect = cb;
+void HttpTSPlayer::setOnComplete(onComplete cb) {
+    _on_complete = std::move(cb);
 }
 
-void HttpTSPlayer::setOnPacket(const TSSegment::onSegment &cb) {
-    _on_segment = cb;
+void HttpTSPlayer::setOnPacket(TSSegment::onSegment cb) {
+    _on_segment = std::move(cb);
 }
 
 }//namespace mediakit

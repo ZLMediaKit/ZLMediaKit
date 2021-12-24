@@ -96,7 +96,7 @@ private:
 private:
     void playDelay();
     float delaySecond();
-    void playNextTs(bool force = false);
+    void playNextTs();
     void teardown_l(const SockException &ex);
     void play_l();
     void onPacket_l(const char *data, size_t len);
@@ -112,7 +112,6 @@ private:
 private:
     bool _is_m3u8 = false;
     bool _first = true;
-    bool _waiting_response = false;
     int64_t _last_sequence = -1;
     string _m3u8;
     Timer::Ptr _timer;
