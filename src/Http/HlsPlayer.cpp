@@ -259,7 +259,13 @@ void HlsPlayer::playDelay() {
 }
 
 void HlsPlayer::onPacket_l(const char *data, size_t len) {
-    _segment.input(data, len);
+    try {
+        _segment.input(data, len);
+    } catch (...) {
+        //ts解析失败，清空缓存数据
+        _segment.reset();
+        throw;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
