@@ -100,6 +100,7 @@ void HttpClient::clear() {
 }
 
 void HttpClient::clearResponse() {
+    _complete = false;
     _recved_body_size = 0;
     _total_body_size = 0;
     _parser.Clear();
@@ -283,14 +284,19 @@ void HttpClient::onManager() {
         onResponseCompleted_l();
     }
 
-    if (_timeout_second > 0 && _total_timeout_ticker.elapsedTime() > _timeout_second * 1000) {
+    if (waitResponse() && _timeout_second > 0 && _total_timeout_ticker.elapsedTime() > _timeout_second * 1000) {
         //超时
         shutdown(SockException(Err_timeout, "http request timeout"));
     }
 }
 
 void HttpClient::onResponseCompleted_l() {
+    _complete = true;
     onResponseCompleted();
+}
+
+bool HttpClient::waitResponse() const {
+    return !_complete && alive();
 }
 
 void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
