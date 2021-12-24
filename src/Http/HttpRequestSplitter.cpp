@@ -19,9 +19,13 @@ static constexpr size_t kMaxCacheSize = 1 * 1024 * 1024;
 namespace mediakit {
 
 void HttpRequestSplitter::input(const char *data,size_t len) {
-    if (remainDataSize() > kMaxCacheSize) {
-        //缓存太多数据无法处理则上抛异常
-        throw std::out_of_range("remain data size is too huge:" + to_string(remainDataSize()));
+    {
+        auto size = remainDataSize();
+        if (size > kMaxCacheSize) {
+            //缓存太多数据无法处理则上抛异常
+            reset();
+            throw std::out_of_range("remain data size is too huge, now cleared:" + to_string(size));
+        }
     }
     const char *ptr = data;
     if(!_remain_data.empty()){
