@@ -31,6 +31,21 @@ public:
      */
     virtual void input(const char *data, size_t len);
 
+    /**
+     * 恢复初始设置
+     */
+    void reset();
+
+    /**
+     * 剩余数据大小
+     */
+    size_t remainDataSize();
+
+    /**
+     * 获取剩余数据指针
+     */
+    const char *remainData() const;
+
 protected:
     /**
      * 收到请求头
@@ -64,21 +79,6 @@ protected:
      * 设置content len
      */
     void setContentLen(ssize_t content_len);
-
-    /**
-     * 恢复初始设置
-     */
-     void reset();
-
-     /**
-      * 剩余数据大小
-      */
-     size_t remainDataSize();
-
-     /**
-      * 获取剩余数据指针
-      */
-     const char *remainData() const;
 
 private:
     ssize_t _content_len = 0;
