@@ -14,32 +14,45 @@
 #include "Http/HttpDownloader.h"
 #include "Player/MediaPlayer.h"
 #include "Rtp/TSDecoder.h"
+
 using namespace toolkit;
+
 namespace mediakit {
 
 //http-ts播发器，未实现ts解复用
-class HttpTSPlayer : public HttpClientImp{
+class HttpTSPlayer : public HttpClientImp {
 public:
-    typedef function<void(const SockException &)> onShutdown;
-    typedef std::shared_ptr<HttpTSPlayer> Ptr;
+    using Ptr = std::shared_ptr<HttpTSPlayer>;
+    using onComplete = std::function<void(const SockException &)>;
 
     HttpTSPlayer(const EventPoller::Ptr &poller = nullptr, bool split_ts = true);
-    ~HttpTSPlayer() override ;
+    ~HttpTSPlayer() override = default;
 
-    //设置异常断开回调
-    void setOnDisconnect(const onShutdown &cb);
-    //设置接收ts包回调
-    void setOnPacket(const TSSegment::onSegment &cb);
+    /**
+     * 设置下载完毕或异常断开回调
+     */
+    void setOnComplete(onComplete cb);
+
+    /**
+     * 设置接收ts包回调
+     */
+    void setOnPacket(TSSegment::onSegment cb);
 
 protected:
     ///HttpClient override///
-    ssize_t onResponseHeader(const string &status,const HttpHeader &headers) override;
-    void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override;
+    ssize_t onResponseHeader(const string &status, const HttpHeader &header) override;
+    void onResponseBody(const char *buf, size_t size, size_t recved_size, size_t total_size) override;
     void onResponseCompleted() override;
-    void onDisconnect(const SockException &ex) override ;
+    void onDisconnect(const SockException &ex) override;
 
-    //收到ts包
+protected:
+    /**
+     * 收到ts数据
+     */
     virtual void onPacket(const char *data, size_t len);
+
+private:
+    void emitOnComplete(const SockException &ex);
 
 private:
     //是否为mpegts负载
@@ -50,7 +63,7 @@ private:
     bool _split_ts;
     string _status;
     TSSegment _segment;
-    onShutdown _on_disconnect;
+    onComplete _on_complete;
     TSSegment::onSegment _on_segment;
 };
 
