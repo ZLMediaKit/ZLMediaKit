@@ -430,26 +430,6 @@ static u_int8_t FPKey[] = {
     0x93, 0xB8, 0xE6, 0x36, 0xCF, 0xEB, 0x31, 0xAE
 }; // 62
 
-//发送复杂握手c0c1
-void RtmpHandshake::create_complex_c0c1() {
-#ifdef ENABLE_OPENSSL
-    memcpy(zero, "\x80\x00\x07\x02", 4);
-    //digest随机偏移长度
-    auto offset_value = rand() % (C1_SCHEMA_SIZE - C1_OFFSET_SIZE - C1_DIGEST_SIZE);
-    //设置digest偏移长度
-    auto offset_ptr = random + C1_SCHEMA_SIZE;
-    offset_ptr[0] = offset_ptr[1] = offset_ptr[2] = offset_value / 4;
-    offset_ptr[3] = offset_value - 3 * (offset_value / 4);
-    //去除digest后的剩余随机数据
-    string str((char *) this, sizeof(*this));
-    str.erase(8 + C1_SCHEMA_SIZE + C1_OFFSET_SIZE + offset_value, C1_DIGEST_SIZE);
-    //获取摘要
-    auto digest_value = openssl_HMACsha256(FPKey, C1_FPKEY_SIZE, str.data(), str.size());
-    //插入摘要
-    memcpy(random + C1_SCHEMA_SIZE + C1_OFFSET_SIZE + offset_value, digest_value.data(), digest_value.size());
-#endif
-}
-
 void RtmpProtocol::check_C1_Digest(const string &digest,const string &data){
     auto sha256 = openssl_HMACsha256(FPKey, C1_FPKEY_SIZE, data.data(), data.size());
     if (sha256 != digest) {
@@ -540,6 +520,26 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
     };
 }
 #endif //ENABLE_OPENSSL
+
+//发送复杂握手c0c1
+void RtmpHandshake::create_complex_c0c1() {
+#ifdef ENABLE_OPENSSL
+    memcpy(zero, "\x80\x00\x07\x02", 4);
+    //digest随机偏移长度
+    auto offset_value = rand() % (C1_SCHEMA_SIZE - C1_OFFSET_SIZE - C1_DIGEST_SIZE);
+    //设置digest偏移长度
+    auto offset_ptr = random + C1_SCHEMA_SIZE;
+    offset_ptr[0] = offset_ptr[1] = offset_ptr[2] = offset_value / 4;
+    offset_ptr[3] = offset_value - 3 * (offset_value / 4);
+    //去除digest后的剩余随机数据
+    string str((char *) this, sizeof(*this));
+    str.erase(8 + C1_SCHEMA_SIZE + C1_OFFSET_SIZE + offset_value, C1_DIGEST_SIZE);
+    //获取摘要
+    auto digest_value = openssl_HMACsha256(FPKey, C1_FPKEY_SIZE, str.data(), str.size());
+    //插入摘要
+    memcpy(random + C1_SCHEMA_SIZE + C1_OFFSET_SIZE + offset_value, digest_value.data(), digest_value.size());
+#endif
+}
 
 const char* RtmpProtocol::handle_C2(const char *data, size_t len) {
     if (len < C1_HANDSHARK_SIZE) {
