@@ -432,6 +432,7 @@ static u_int8_t FPKey[] = {
 
 //发送复杂握手c0c1
 void RtmpHandshake::create_complex_c0c1() {
+#ifdef ENABLE_OPENSSL
     memcpy(zero, "\x80\x00\x07\x02", 4);
     //digest随机偏移长度
     auto offset_value = rand() % (C1_SCHEMA_SIZE - C1_OFFSET_SIZE - C1_DIGEST_SIZE);
@@ -446,6 +447,7 @@ void RtmpHandshake::create_complex_c0c1() {
     auto digest_value = openssl_HMACsha256(FPKey, C1_FPKEY_SIZE, str.data(), str.size());
     //插入摘要
     memcpy(random + C1_SCHEMA_SIZE + C1_OFFSET_SIZE + offset_value, digest_value.data(), digest_value.size());
+#endif
 }
 
 void RtmpProtocol::check_C1_Digest(const string &digest,const string &data){
