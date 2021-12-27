@@ -212,6 +212,7 @@ static ApiArgsType getAllArgs(const Parser &parser) {
 }
 
 extern uint64_t getTotalMemUsage();
+extern uint64_t getThisThreadMemUsage();
 
 static inline void addHttpListener(){
     GET_CONFIG(bool, api_debug, API::kApiDebug);
@@ -356,8 +357,9 @@ Value makeMediaSourceJson(MediaSource &media){
     return item;
 }
 
-Value getStatisticJson() {
-    Value val(objectValue);
+void getStatisticJson(const function<void(Value &val)> &cb) {
+    auto obj = std::make_shared<Value>(objectValue);
+    auto &val = *obj;
     val["MediaSource"] = (Json::UInt64)(ObjectStatistic<MediaSource>::count());
     val["MultiMediaSourceMuxer"] = (Json::UInt64)(ObjectStatistic<MultiMediaSourceMuxer>::count());
 
@@ -382,8 +384,46 @@ Value getStatisticJson() {
     auto bytes = getTotalMemUsage();
     val["totalMemUsage"] = (Json::UInt64)bytes;
     val["totalMemUsageMB"] = (int)(bytes / 1024 / 1024);
+
+    std::shared_ptr<vector<Value> > thread_mem_info = std::make_shared<vector<Value> >();
+    std::shared_ptr<atomic<uint64_t> > thread_mem_total = std::make_shared<atomic<uint64_t> >(0);
+
+    shared_ptr<void> finished(nullptr, [thread_mem_info, cb, obj, thread_mem_total](void *) {
+        //poller和work线程开辟的内存
+        for (auto &val : *thread_mem_info) {
+            (*obj)["threadMem"].append(val);
+        }
+
+        //其他线程申请的内存为总内存减去poller和work线程开辟的内存
+        Value val;
+        val["threadName"] = "other threads";
+        auto bytes = getTotalMemUsage() - *thread_mem_total;
+        val["threadMemUsage"] = (Json::UInt64) bytes;
+        val["threadMemUsageMB"] = (int) (bytes / 1024 / 1024);
+        (*obj)["threadMem"].append(val);
+
+        //触发回调
+        cb(*obj);
+    });
+
+    auto lam = [&](const TaskExecutor::Ptr &executor) {
+        thread_mem_info->emplace_back();
+        auto pos = thread_mem_info->size();
+        executor->async([thread_mem_info, pos, finished, thread_mem_total]() {
+            auto bytes = getThisThreadMemUsage();
+            auto &val = (*thread_mem_info)[pos - 1];
+            *thread_mem_total += bytes;
+
+            val["threadName"] = getThreadName();
+            val["threadMemUsage"] = (Json::UInt64) bytes;
+            val["threadMemUsageMB"] = (int) (bytes / 1024 / 1024);
+        });
+    };
+    EventPollerPool::Instance().for_each(lam);
+    WorkThreadPool::Instance().for_each(lam);
+#else
+    cb(*obj);
 #endif
-    return val;
 }
 
 /**
@@ -1278,9 +1318,12 @@ void installWebApi() {
         });
     });
 
-    api_regist("/index/api/getStatistic",[](API_ARGS_MAP){
+    api_regist("/index/api/getStatistic",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        val["data"] = getStatisticJson();
+        getStatisticJson([headerOut, val](const Value &data) mutable{
+            val["data"] = data;
+            invoker(200, headerOut, val.toStyledString());
+        });
     });
 
 #ifdef ENABLE_WEBRTC
