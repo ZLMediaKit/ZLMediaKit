@@ -385,7 +385,8 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     val["totalMemUsage"] = (Json::UInt64)bytes;
     val["totalMemUsageMB"] = (int)(bytes / 1024 / 1024);
 
-    std::shared_ptr<vector<Value> > thread_mem_info = std::make_shared<vector<Value> >();
+    auto thread_size = EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
+    std::shared_ptr<vector<Value> > thread_mem_info = std::make_shared<vector<Value> >(thread_size);
     std::shared_ptr<atomic<uint64_t> > thread_mem_total = std::make_shared<atomic<uint64_t> >(0);
 
     shared_ptr<void> finished(nullptr, [thread_mem_info, cb, obj, thread_mem_total](void *) {
@@ -395,9 +396,9 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
         }
 
         //其他线程申请的内存为总内存减去poller和work线程开辟的内存
+        auto bytes = getTotalMemUsage() - *thread_mem_total;
         Value val;
         val["threadName"] = "other threads";
-        auto bytes = getTotalMemUsage() - *thread_mem_total;
         val["threadMemUsage"] = (Json::UInt64) bytes;
         val["threadMemUsageMB"] = (int) (bytes / 1024 / 1024);
         (*obj)["threadMem"].append(val);
@@ -406,17 +407,17 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
         cb(*obj);
     });
 
+    auto pos = 0;
     auto lam = [&](const TaskExecutor::Ptr &executor) {
-        thread_mem_info->emplace_back();
-        auto pos = thread_mem_info->size();
-        executor->async([thread_mem_info, pos, finished, thread_mem_total]() {
+        auto &val = *(thread_mem_info)[pos++];
+        executor->async([finished, thread_mem_total, &val]() mutable{
             auto bytes = getThisThreadMemUsage();
-            auto &val = (*thread_mem_info)[pos - 1];
             *thread_mem_total += bytes;
 
             val["threadName"] = getThreadName();
             val["threadMemUsage"] = (Json::UInt64) bytes;
             val["threadMemUsageMB"] = (int) (bytes / 1024 / 1024);
+            finished = nullptr;
         });
     };
     EventPollerPool::Instance().for_each(lam);
