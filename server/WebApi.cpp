@@ -410,14 +410,13 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     auto pos = 0;
     auto lam = [&](const TaskExecutor::Ptr &executor) {
         auto &val = *(thread_mem_info)[pos++];
-        executor->async([finished, thread_mem_total, &val]() mutable{
+        executor->async([finished, thread_mem_total, &val]() {
             auto bytes = getThisThreadMemUsage();
             *thread_mem_total += bytes;
 
             val["threadName"] = getThreadName();
             val["threadMemUsage"] = (Json::UInt64) bytes;
             val["threadMemUsageMB"] = (int) (bytes / 1024 / 1024);
-            finished = nullptr;
         });
     };
     EventPollerPool::Instance().for_each(lam);
