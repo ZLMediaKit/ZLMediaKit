@@ -8,12 +8,12 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <stdio.h>
 #include "Common/config.h"
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
-#include "Network/sockutil.h"
 
 using namespace toolkit;
 
@@ -318,31 +318,67 @@ const string kWaitTrackReady = "wait_track_ready";
 
 #ifdef ENABLE_MEM_DEBUG
 
-static atomic<uint64_t> mem_usage(0);
-
-uint64_t getTotalMemUsage() {
-    return mem_usage.load();
+extern "C" {
+    extern void *__real_malloc(size_t);
+    extern void __real_free(void *);
+    extern void *__real_realloc(void *ptr, size_t c);
+    void *__wrap_malloc(size_t c);
+    void __wrap_free(void *ptr);
+    void *__wrap_calloc(size_t __nmemb, size_t __size);
+    void *__wrap_realloc(void *ptr, size_t c);
 }
 
-extern "C" {
+class MemAllocInfo {
+public:
+    static atomic<uint64_t> total_mem_usage;
+    atomic<uint64_t> mem_usage{0};
+};
 
-#include <stdio.h>
-#define MAGIC_BYTES 0xFEFDFCFB
-#define MAGIC_BYTES_SIZE 4
-#define MEM_PREFIX_SIZE 8
+atomic<uint64_t> MemAllocInfo::total_mem_usage{0};
 
-extern void *__real_malloc(size_t);
-extern void __real_free(void *);
-extern void *__real_realloc(void *ptr, size_t c);
+static thread_local MemAllocInfo s_alloc_info;
+
+uint64_t getTotalMemUsage() {
+    return MemAllocInfo::total_mem_usage.load();
+}
+
+uint64_t getThisThreadMemUsage() {
+    return s_alloc_info.mem_usage.load();
+}
+
+#if defined(_WIN32)
+#pragma pack(push, 1)
+#endif // defined(_WIN32)
+
+class MemCookie {
+public:
+    static constexpr uint32_t kMagic = 0xFEFDFCFB;
+    uint32_t magic;
+    uint32_t size;
+    MemAllocInfo *alloc_info;
+    char ptr;
+}PACKED;
+
+#if defined(_WIN32)
+#pragma pack(pop)
+#endif // defined(_WIN32)
+
+#define MEM_OFFSET (sizeof(MemCookie) - 1)
+
+void init_cookie(MemCookie *cookie, size_t c) {
+    MemAllocInfo::total_mem_usage += c;
+    s_alloc_info.mem_usage += c;
+    cookie->magic = MemCookie::kMagic;
+    cookie->size = c;
+    cookie->alloc_info = &s_alloc_info;
+}
 
 void *__wrap_malloc(size_t c) {
-    c += MEM_PREFIX_SIZE;
-    char *ret = (char *) __real_malloc(c);
-    if (ret) {
-        mem_usage += c;
-        *((uint32_t *) (ret)) = MAGIC_BYTES;
-        *((uint32_t *) (ret + MAGIC_BYTES_SIZE)) = c;
-        return ret + MEM_PREFIX_SIZE;
+    c += MEM_OFFSET;
+    auto cookie = (MemCookie *) __real_malloc(c);
+    if (cookie) {
+        init_cookie(cookie, c);
+        return &cookie->ptr;
     }
     return nullptr;
 }
@@ -351,13 +387,13 @@ void __wrap_free(void *ptr) {
     if (!ptr) {
         return;
     }
-    ptr = (char *) ptr - MEM_PREFIX_SIZE;
-    uint32_t magic = *((uint32_t *) (ptr));
-    if (magic != MAGIC_BYTES) {
+    auto cookie = (MemCookie *) ((char *) ptr - MEM_OFFSET);
+    if (cookie->magic != MemCookie::kMagic) {
         throw std::invalid_argument("attempt to free invalid memory");
     }
-    mem_usage -= *((uint32_t *) ((char *) ptr + MAGIC_BYTES_SIZE));
-    __real_free(ptr);
+    MemAllocInfo::total_mem_usage -= cookie->size;
+    cookie->alloc_info->mem_usage -= cookie->size;
+    __real_free(cookie);
 }
 
 void *__wrap_calloc(size_t __nmemb, size_t __size) {
@@ -369,30 +405,28 @@ void *__wrap_calloc(size_t __nmemb, size_t __size) {
     return ret;
 }
 
-void *__wrap_realloc(void *ptr, size_t c){
+void *__wrap_realloc(void *ptr, size_t c) {
     if (!ptr) {
         return malloc(c);
     }
-    c += MEM_PREFIX_SIZE;
-    ptr = (char *) ptr - MEM_PREFIX_SIZE;
 
-    uint32_t magic = *((uint32_t *) (ptr));
-    if (magic != MAGIC_BYTES) {
+    auto cookie = (MemCookie *) ((char *) ptr - MEM_OFFSET);
+    if (cookie->magic != MemCookie::kMagic) {
         throw std::invalid_argument("attempt to realloc invalid memory");
     }
-    auto old_size = *((uint32_t *) ((char *) ptr + MAGIC_BYTES_SIZE));
-    char *ret = (char *) __real_realloc(ptr, c);
-    if (ret) {
-        mem_usage += c - old_size;
-        *((uint32_t *) (ret)) = MAGIC_BYTES;
-        *((uint32_t *) (ret + MAGIC_BYTES_SIZE)) = c;
-        return ret + MEM_PREFIX_SIZE;
-    }
-    free(ptr);
-    mem_usage -= old_size;
-    return nullptr;
-}
 
+    MemAllocInfo::total_mem_usage -= cookie->size;
+    cookie->alloc_info->mem_usage -= cookie->size;
+
+    c += MEM_OFFSET;
+    cookie = (MemCookie *) __real_realloc(cookie, c);
+    if (cookie) {
+        init_cookie(cookie, c);
+        return &cookie->ptr;
+    }
+
+    free(cookie);
+    return nullptr;
 }
 
 void *operator new(std::size_t size) {

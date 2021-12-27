@@ -202,12 +202,12 @@ static void reportServerKeepalive() {
 
     GET_CONFIG(float, alive_interval, Hook::kAliveInterval);
     g_keepalive_timer = std::make_shared<Timer>(alive_interval, []() {
-        ArgsType body;
-        body["data"] = getStatisticJson();
-
-        //执行hook
-        do_http_hook(hook_server_keepalive, body, nullptr);
-
+        getStatisticJson([](const Value &data) mutable {
+            ArgsType body;
+            body["data"] = data;
+            //执行hook
+            do_http_hook(hook_server_keepalive, body, nullptr);
+        });
         return true;
     }, nullptr);
 }
