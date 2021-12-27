@@ -409,7 +409,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 
     auto pos = 0;
     auto lam = [&](const TaskExecutor::Ptr &executor) {
-        auto &val = *(thread_mem_info)[pos++];
+        auto &val = (*thread_mem_info)[pos++];
         executor->async([finished, thread_mem_total, &val]() {
             auto bytes = getThisThreadMemUsage();
             *thread_mem_total += bytes;
