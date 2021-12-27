@@ -1320,7 +1320,7 @@ void installWebApi() {
 
     api_regist("/index/api/getStatistic",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        getStatisticJson([headerOut, val](const Value &data) mutable{
+        getStatisticJson([headerOut, val, invoker](const Value &data) mutable{
             val["data"] = data;
             invoker(200, headerOut, val.toStyledString());
         });
