@@ -9,6 +9,7 @@
  */
 
 #if defined(ENABLE_HLS)
+
 #include "TsMuxer.h"
 #include "mpeg-ts-proto.h"
 #include "mpeg-ts.h"
@@ -24,65 +25,43 @@ TsMuxer::~TsMuxer() {
     uninit();
 }
 
-void TsMuxer::stampSync(){
-    if (_codec_to_trackid.size() < 2) {
-        return;
-    }
-
-    Stamp *audio = nullptr, *video = nullptr;
-    for (auto &pr : _codec_to_trackid) {
-        switch (getTrackType((CodecId) pr.first)) {
-            case TrackAudio : audio = &pr.second.stamp; break;
-            case TrackVideo : video = &pr.second.stamp; break;
-            default : break;
-        }
-    }
-
-    if (audio && video) {
-        //音频时间戳同步于视频，因为音频时间戳被修改后不影响播放
-        audio->syncTo(*video);
-    }
-}
-
 bool TsMuxer::addTrack(const Track::Ptr &track) {
     switch (track->getCodecId()) {
         case CodecH264: {
             _have_video = true;
-            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H264, nullptr, 0);
+            _codec_to_trackid[track->getCodecId()] = mpeg_ts_add_stream(_context, PSI_STREAM_H264, nullptr, 0);
             break;
         }
 
         case CodecH265: {
             _have_video = true;
-            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_H265, nullptr, 0);
+            _codec_to_trackid[track->getCodecId()] = mpeg_ts_add_stream(_context, PSI_STREAM_H265, nullptr, 0);
             break;
         }
 
         case CodecAAC: {
-            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AAC, nullptr, 0);
+            _codec_to_trackid[track->getCodecId()] = mpeg_ts_add_stream(_context, PSI_STREAM_AAC, nullptr, 0);
             break;
         }
 
         case CodecG711A: {
-            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_G711A, nullptr, 0);
+            _codec_to_trackid[track->getCodecId()] = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_G711A,nullptr, 0);
             break;
         }
 
         case CodecG711U: {
-            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_G711U, nullptr, 0);
+            _codec_to_trackid[track->getCodecId()] = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_G711U,nullptr, 0);
             break;
         }
 
         case CodecOpus: {
-            _codec_to_trackid[track->getCodecId()].track_id = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_OPUS, nullptr, 0);
+            _codec_to_trackid[track->getCodecId()] = mpeg_ts_add_stream(_context, PSI_STREAM_AUDIO_OPUS,nullptr, 0);
             break;
         }
 
         default: WarnL << "mpeg-ts 不支持该编码格式,已忽略:" << track->getCodecName(); return false;
     }
 
-    //尝试音视频同步
-    stampSync();
     return true;
 }
 
@@ -91,20 +70,17 @@ bool TsMuxer::inputFrame(const Frame::Ptr &frame) {
     if (it == _codec_to_trackid.end()) {
         return false;
     }
-    auto &track_info = it->second;
-    int64_t dts_out, pts_out;
+    auto track_id = it->second;
     _is_idr_fast_packet = !_have_video;
-    switch (frame->getCodecId()){
+    switch (frame->getCodecId()) {
         case CodecH264:
         case CodecH265: {
             //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            return _frame_merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr){
-                track_info.stamp.revise(dts, pts, dts_out, pts_out);
+            return _frame_merger.inputFrame(frame,[&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
                 //取视频时间戳为TS的时间戳
-                _timestamp = (uint32_t) dts_out;
+                _timestamp = (uint32_t) dts;
                 _is_idr_fast_packet = have_idr;
-                mpeg_ts_write(_context, track_info.track_id, have_idr ? 0x0001 : 0,
-                              pts_out * 90LL, dts_out * 90LL, buffer->data(), buffer->size());
+                mpeg_ts_write(_context, track_id, have_idr ? 0x0001 : 0, pts * 90LL,dts * 90LL, buffer->data(), buffer->size());
                 flushCache();
             });
         }
@@ -117,13 +93,11 @@ bool TsMuxer::inputFrame(const Frame::Ptr &frame) {
         }
 
         default: {
-            track_info.stamp.revise(frame->dts(), frame->pts(), dts_out, pts_out);
             if (!_have_video) {
                 //没有视频时，才以音频时间戳为TS的时间戳
-                _timestamp = (uint32_t) dts_out;
+                _timestamp = (uint32_t) frame->dts();
             }
-            mpeg_ts_write(_context, track_info.track_id, frame->keyFrame() ? 0x0001 : 0,
-                          pts_out * 90LL, dts_out * 90LL, frame->data(), frame->size());
+            mpeg_ts_write(_context, track_id, frame->keyFrame() ? 0x0001 : 0, frame->pts() * 90LL, frame->dts() * 90LL, frame->data(), frame->size());
             flushCache();
             return true;
         }
@@ -181,4 +155,5 @@ void TsMuxer::uninit() {
 }
 
 }//namespace mediakit
+
 #endif// defined(ENABLE_HLS)
