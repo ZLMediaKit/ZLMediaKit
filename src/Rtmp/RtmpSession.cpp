@@ -248,22 +248,12 @@ void RtmpSession::sendPlayResponse(const string &err,const RtmpMediaSource::Ptr 
         invoke.clear();
         invoke << "onMetaData" << metadata;
         sendResponse(MSG_DATA, invoke.data());
-        auto duration = metadata["duration"];
-        if(duration && duration.as_number() > 0){
-            //这是点播，使用绝对时间戳
-            _stamp[0].setPlayBack();
-            _stamp[1].setPlayBack();
-        }
     }
 
-
     src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
-        //DebugP(this)<<"send initial frame";
         onSendMedia(pkt);
     });
 
-    //音频同步于视频
-    _stamp[0].syncTo(_stamp[1]);
     src->pause(false);
     _ring_reader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weakSelf = dynamic_pointer_cast<RtmpSession>(shared_from_this());
@@ -532,12 +522,8 @@ void RtmpSession::onCmd_seek(AMFDecoder &dec) {
 }
 
 void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
-    //rtmp播放器时间戳从零开始
-    int64_t dts_out;
-    _stamp[pkt->type_id % 2].revise(pkt->time_stamp, 0, dts_out, dts_out);
-    sendRtmp(pkt->type_id, pkt->stream_index, pkt, (uint32_t)dts_out, pkt->chunk_id);
+    sendRtmp(pkt->type_id, pkt->stream_index, pkt, pkt->time_stamp, pkt->chunk_id);
 }
-
 
 bool RtmpSession::close(MediaSource &sender,bool force)  {
     //此回调在其他线程触发
