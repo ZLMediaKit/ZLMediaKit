@@ -28,7 +28,7 @@ public:
     void stop();
 
 protected:
-    void start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media);
+    void start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, uint32_t start_pts = 0);
     virtual void onWrite(const Buffer::Ptr &data, bool flush) = 0;
     virtual void onDetach() = 0;
     virtual std::shared_ptr<FlvMuxer> getSharedPtr() = 0;
@@ -43,8 +43,6 @@ private:
 
 private:
     ResourcePool<BufferRaw> _packet_pool;
-    //时间戳修整器
-    Stamp _stamp[2];
     RtmpMediaSource::RingType::RingReader::Ptr _ring_reader;
 };
 
