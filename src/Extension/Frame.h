@@ -31,20 +31,20 @@ typedef enum {
 } TrackType;
 
 #define CODEC_MAP(XX) \
-    XX(CodecH264,  TrackVideo, 0, "H264")          \
-    XX(CodecH265,  TrackVideo, 1, "H265")          \
-    XX(CodecAAC,   TrackAudio, 2, "mpeg4-generic") \
-    XX(CodecG711A, TrackAudio, 3, "PCMA")          \
-    XX(CodecG711U, TrackAudio, 4, "PCMU")          \
-    XX(CodecOpus,  TrackAudio, 5, "opus")          \
-    XX(CodecL16,   TrackAudio, 6, "L16")           \
-    XX(CodecVP8,   TrackVideo, 7, "VP8")           \
-    XX(CodecVP9,   TrackVideo, 8, "VP9")           \
-    XX(CodecAV1,   TrackVideo, 9, "AV1X")
+    XX(CodecH264,  TrackVideo, 0, "H264", PSI_STREAM_H264)          \
+    XX(CodecH265,  TrackVideo, 1, "H265", PSI_STREAM_H265)          \
+    XX(CodecAAC,   TrackAudio, 2, "mpeg4-generic", PSI_STREAM_AAC)  \
+    XX(CodecG711A, TrackAudio, 3, "PCMA", PSI_STREAM_AUDIO_G711A)   \
+    XX(CodecG711U, TrackAudio, 4, "PCMU", PSI_STREAM_AUDIO_G711U)   \
+    XX(CodecOpus,  TrackAudio, 5, "opus", PSI_STREAM_AUDIO_OPUS)    \
+    XX(CodecL16,   TrackAudio, 6, "L16", PSI_STREAM_RESERVED)       \
+    XX(CodecVP8,   TrackVideo, 7, "VP8", PSI_STREAM_VP8)            \
+    XX(CodecVP9,   TrackVideo, 8, "VP9", PSI_STREAM_VP9)            \
+    XX(CodecAV1,   TrackVideo, 9, "AV1X", PSI_STREAM_AV1)
 
 typedef enum {
     CodecInvalid = -1,
-#define XX(name, type, value, str) name = value,
+#define XX(name, type, value, str, mpeg_id) name = value,
     CODEC_MAP(XX)
 #undef XX
     CodecMax

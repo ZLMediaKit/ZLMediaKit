@@ -92,7 +92,7 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
 
 TrackType getTrackType(CodecId codecId) {
     switch (codecId) {
-#define XX(name, type, value, str) case name : return type;
+#define XX(name, type, value, str, mpeg_id) case name : return type;
         CODEC_MAP(XX)
 #undef XX
         default : return TrackInvalid;
@@ -101,14 +101,14 @@ TrackType getTrackType(CodecId codecId) {
 
 const char *getCodecName(CodecId codec) {
     switch (codec) {
-#define XX(name, type, value, str) case name : return str;
+#define XX(name, type, value, str, mpeg_id) case name : return str;
         CODEC_MAP(XX)
 #undef XX
         default : return "invalid";
     }
 }
 
-#define XX(name, type, value, str) {str, name},
+#define XX(name, type, value, str, mpeg_id) {str, name},
 static map<string, CodecId, StrCaseCompare> codec_map = {CODEC_MAP(XX)};
 #undef XX
 

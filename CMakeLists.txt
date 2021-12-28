@@ -187,10 +187,7 @@ endif ()
 set(VS_FALGS "/wd4819")
 
 #添加mpeg用于支持ts生成
-if (ENABLE_HLS)
-    message(STATUS "ENABLE_HLS defined")
-    add_definitions(-DENABLE_HLS)
-
+if (ENABLE_RTPPROXY OR ENABLE_HLS)
     include_directories(${MediaServer_Root}/libmpeg/include)
     aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
     aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
@@ -228,10 +225,14 @@ if (ENABLE_MP4)
     endif ()
 endif ()
 
-#添加rtp库用于rtp转ps/ts
-if (ENABLE_RTPPROXY AND ENABLE_HLS)
+if (ENABLE_RTPPROXY)
     message(STATUS "ENABLE_RTPPROXY defined")
     add_definitions(-DENABLE_RTPPROXY)
+endif ()
+
+if (ENABLE_HLS)
+    message(STATUS "ENABLE_HLS defined")
+    add_definitions(-DENABLE_HLS)
 endif ()
 
 #收集源代码

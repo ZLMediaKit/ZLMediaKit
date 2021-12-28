@@ -16,6 +16,7 @@
 #include "Util/onceToken.h"
 #include "Util/CMD.h"
 #include "Network/TcpServer.h"
+#include "Network/UdpServer.h"
 #include "Poller/EventPoller.h"
 #include "Common/config.h"
 #include "Rtsp/RtspSession.h"
