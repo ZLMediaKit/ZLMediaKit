@@ -114,7 +114,7 @@ int mpeg_muxer_remove_program(mpeg_muxer_t *muxer, uint16_t pn) {
     return mpeg_ts_remove_program(muxer->u.ts.ctx, pn);
 }
 
-int peg_muxer_add_program_stream(mpeg_muxer_t *muxer, uint16_t pn, int codecid, const void *extra_data, size_t extra_data_size) {
+int mpeg_muxer_add_program_stream(mpeg_muxer_t *muxer, uint16_t pn, int codecid, const void *extra_data, size_t extra_data_size) {
     assert(muxer);
     if (muxer->is_ps) {
         return -1;

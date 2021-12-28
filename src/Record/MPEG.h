@@ -35,7 +35,7 @@ int mpeg_muxer_input(mpeg_muxer_t *muxer, int stream, int flags, int64_t pts, in
 int mpeg_muxer_reset(mpeg_muxer_t *muxer);
 int mpeg_muxer_add_program(mpeg_muxer_t *muxer, uint16_t pn, const void *info, int bytes);
 int mpeg_muxer_remove_program(mpeg_muxer_t *muxer, uint16_t pn);
-int peg_muxer_add_program_stream(mpeg_muxer_t *muxer, uint16_t pn, int codecid, const void *extra_data, size_t extra_data_size);
+int mpeg_muxer_add_program_stream(mpeg_muxer_t *muxer, uint16_t pn, int codecid, const void *extra_data, size_t extra_data_size);
 
 ///////////////////////////////////////////////////////////////
 
