@@ -12,13 +12,15 @@
 #define HLSRECORDER_H
 
 #include "HlsMakerImp.h"
-#include "TsMuxer.h"
+#include "MPEG.h"
+
 namespace mediakit {
 
-class HlsRecorder : public MediaSourceEventInterceptor, public TsMuxer, public std::enable_shared_from_this<HlsRecorder> {
+class HlsRecorder : public MediaSourceEventInterceptor, public MpegMuxer, public std::enable_shared_from_this<HlsRecorder> {
 public:
-    typedef std::shared_ptr<HlsRecorder> Ptr;
-    HlsRecorder(const string &m3u8_file, const string &params){
+    using Ptr = std::shared_ptr<HlsRecorder>;
+
+    HlsRecorder(const string &m3u8_file, const string &params) : MpegMuxer(false) {
         GET_CONFIG(uint32_t, hlsNum, Hls::kSegmentNum);
         GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
         GET_CONFIG(float, hlsDuration, Hls::kSegmentDuration);
@@ -27,7 +29,7 @@ public:
         _hls->clearCache();
     }
 
-    ~HlsRecorder(){}
+    ~HlsRecorder() = default;
 
     void setMediaSource(const string &vhost, const string &app, const string &stream_id) {
         _hls->setMediaSource(vhost, app, stream_id);
@@ -68,17 +70,17 @@ public:
             _hls->clearCache();
         }
         if (_enabled || !hls_demand) {
-            return TsMuxer::inputFrame(frame);
+            return MpegMuxer::inputFrame(frame);
         }
         return false;
     }
 
 private:
-    void onTs(std::shared_ptr<Buffer> buffer, uint32_t timestamp, bool is_idr_fast_packet) override {
+    void onWrite(std::shared_ptr<Buffer> buffer, uint32_t timestamp, bool key_pos) override {
         if (!buffer) {
-            _hls->inputData(nullptr, 0, timestamp, is_idr_fast_packet);
+            _hls->inputData(nullptr, 0, timestamp, key_pos);
         } else {
-            _hls->inputData(buffer->data(), buffer->size(), timestamp, is_idr_fast_packet);
+            _hls->inputData(buffer->data(), buffer->size(), timestamp, key_pos);
         }
     }
 
