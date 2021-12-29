@@ -396,17 +396,16 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     val["totalMemUsageMB"] = (int) (bytes / 1024 / 1024);
     val["totalMemBlock"] = (Json::UInt64) getTotalMemBlock();
     static auto block_type_size = getBlockTypeSize();
-    string block_type_size_str;
-    for (auto sz : block_type_size) {
-        block_type_size_str += to_string(sz);
-        block_type_size_str += '-';
-    }
-    block_type_size_str.pop_back();
-    val["memBlockSizeType"] = block_type_size_str;
-
-    int i = 0;
-    for (auto sz : block_type_size) {
-        val["totalMemBlockTypeCount"].append((Json::UInt64) getTotalMemBlockByType(i++));
+    {
+        int i = 0;
+        string str;
+        size_t last = 0;
+        for (auto sz : block_type_size) {
+            str.append(to_string(last) + "~" to_string(sz) + ":" + to_string(getTotalMemBlockByType(i++)) + ";");
+            last = sz;
+        }
+        str.pop_back();
+        val["totalMemBlockTypeCount"] = str;
     }
 
     auto thread_size = 2 + EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
@@ -429,10 +428,16 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
             val["threadMemUsage"] = (Json::UInt64) bytes;
             val["threadMemUsageMB"] = (Json::UInt64) (bytes / 1024 / 1024);
             val["threadMemBlock"] = (Json::UInt64) getThisThreadMemBlock();
-
-            int i = 0;
-            for (auto sz : block_type_size) {
-                val["threadMemBlockTypeCount"].append((Json::UInt64) getThisThreadMemBlockByType(i++));
+            {
+                int i = 0;
+                string str;
+                size_t last = 0;
+                for (auto sz : block_type_size) {
+                    str.append(to_string(last) + "~" to_string(sz) + ":" + to_string(getThisThreadMemBlockByType(i++)) + ";");
+                    last = sz;
+                }
+                str.pop_back();
+                val["threadMemBlockTypeCount"] = str;
             }
         });
     };
