@@ -401,7 +401,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
         string str;
         size_t last = 0;
         for (auto sz : block_type_size) {
-            str.append(to_string(last) + "~" to_string(sz) + ":" + to_string(getTotalMemBlockByType(i++)) + ";");
+            str.append(to_string(last) + "~" + to_string(sz) + ":" + to_string(getTotalMemBlockByType(i++)) + ";");
             last = sz;
         }
         str.pop_back();
@@ -433,7 +433,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
                 string str;
                 size_t last = 0;
                 for (auto sz : block_type_size) {
-                    str.append(to_string(last) + "~" to_string(sz) + ":" + to_string(getThisThreadMemBlockByType(i++)) + ";");
+                    str.append(to_string(last) + "~" + to_string(sz) + ":" + to_string(getThisThreadMemBlockByType(i++)) + ";");
                     last = sz;
                 }
                 str.pop_back();
