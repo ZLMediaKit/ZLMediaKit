@@ -334,7 +334,7 @@ extern "C" {
 static int get_mem_block_type(size_t c) {
     int ret = 0;
     while (c > MIN_BLOCK_SIZE && ret + 1 < BLOCK_TYPES) {
-        c >>= 2;
+        c >>= 1;
         ++ret;
     }
     return ret;
@@ -346,7 +346,7 @@ std::vector<size_t> getBlockTypeSize() {
     size_t block_size = MIN_BLOCK_SIZE;
     for (auto i = 0; i < BLOCK_TYPES; ++i) {
         ret[i] = block_size;
-        block_size <<= 2;
+        block_size <<= 1;
     }
     return ret;
 }
