@@ -406,7 +406,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 
     int i = 0;
     for (auto sz : block_type_size) {
-        val["totalMemBlockTypeCount"].append(getTotalMemBlockByType(i++));
+        val["totalMemBlockTypeCount"].append((Json::UInt64) getTotalMemBlockByType(i++));
     }
 
     auto thread_size = 2 + EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
@@ -432,7 +432,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 
             int i = 0;
             for (auto sz : block_type_size) {
-                val["threadMemBlockTypeCount"].append(getThisThreadMemBlockByType(i++));
+                val["threadMemBlockTypeCount"].append((Json::UInt64) getThisThreadMemBlockByType(i++));
             }
         });
     };
