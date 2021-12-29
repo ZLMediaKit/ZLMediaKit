@@ -10,9 +10,12 @@
 
 #ifndef ZLMEDIAKIT_MP4_H
 #define ZLMEDIAKIT_MP4_H
+
 #ifdef ENABLE_MP4
+
 #include <memory>
 #include <string>
+#include "mp4-writer.h"
 #include "mov-writer.h"
 #include "mov-reader.h"
 #include "mpeg4-hevc.h"
@@ -20,20 +23,10 @@
 #include "mpeg4-aac.h"
 #include "mov-buffer.h"
 #include "mov-format.h"
-using namespace std;
-namespace mediakit {
 
-//以下是fmp4/mov的通用接口，简单包装了ireader/media-server的接口
-typedef struct mp4_writer_t mp4_writer_t;
-mp4_writer_t* mp4_writer_create(int is_fmp4, const struct mov_buffer_t *buffer, void* param, int flags);
-void mp4_writer_destroy(mp4_writer_t* mp4);
-int mp4_writer_add_audio(mp4_writer_t* mp4, uint8_t object, int channel_count, int bits_per_sample, int sample_rate, const void* extra_data, size_t extra_data_size);
-int mp4_writer_add_video(mp4_writer_t* mp4, uint8_t object, int width, int height, const void* extra_data, size_t extra_data_size);
-int mp4_writer_add_subtitle(mp4_writer_t* mp4, uint8_t object, const void* extra_data, size_t extra_data_size);
-int mp4_writer_write(mp4_writer_t* mp4, int track, const void* data, size_t bytes, int64_t pts, int64_t dts, int flags);
-int mp4_writer_write_l(mp4_writer_t* mp4, int track, const void* data, size_t bytes, int64_t pts, int64_t dts, int flags, int add_nalu_size);
-int mp4_writer_save_segment(mp4_writer_t* mp4);
-int mp4_writer_init_segment(mp4_writer_t* mp4);
+using namespace std;
+
+namespace mediakit {
 
 //mp4文件IO的抽象接口类
 class MP4FileIO : public std::enable_shared_from_this<MP4FileIO> {

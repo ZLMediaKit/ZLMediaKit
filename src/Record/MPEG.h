@@ -16,7 +16,6 @@
 #include <cstdio>
 #include <cstdint>
 #include <unordered_map>
-#include "mpeg-ps.h"
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
 #include "Util/File.h"
@@ -24,20 +23,6 @@
 #include "Common/Stamp.h"
 
 namespace mediakit {
-
-typedef struct mpeg_muxer_t mpeg_muxer_t;
-typedef struct ps_muxer_func_t mpeg_muxer_func_t;
-
-mpeg_muxer_t *mpeg_muxer_create(int is_ps, const mpeg_muxer_func_t *func, void *param);
-int mpeg_muxer_destroy(mpeg_muxer_t *muxer);
-int mpeg_muxer_add_stream(mpeg_muxer_t *muxer, int codecid, const void *extradata, size_t extradata_size);
-int mpeg_muxer_input(mpeg_muxer_t *muxer, int stream, int flags, int64_t pts, int64_t dts, const void *data, size_t bytes);
-int mpeg_muxer_reset(mpeg_muxer_t *muxer);
-int mpeg_muxer_add_program(mpeg_muxer_t *muxer, uint16_t pn, const void *info, int bytes);
-int mpeg_muxer_remove_program(mpeg_muxer_t *muxer, uint16_t pn);
-int mpeg_muxer_add_program_stream(mpeg_muxer_t *muxer, uint16_t pn, int codecid, const void *extra_data, size_t extra_data_size);
-
-///////////////////////////////////////////////////////////////
 
 //该类用于产生MPEG-TS/MPEG-PS
 class MpegMuxer : public MediaSinkInterface {
@@ -80,7 +65,7 @@ private:
     bool _have_video = false;
     bool _key_pos = false;
     uint32_t _timestamp = 0;
-    mpeg_muxer_t *_context = nullptr;
+    struct mpeg_muxer_t *_context = nullptr;
     BufferRaw::Ptr _buffer;
     unordered_map<int, int/*track_id*/> _codec_to_trackid;
     FrameMerger _frame_merger{FrameMerger::h264_prefix};
