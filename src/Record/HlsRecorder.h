@@ -63,9 +63,7 @@ public:
         return hls_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
-    bool inputFrame(const Frame::Ptr &frame) override;
-
-    bool inputFrame_l(const Frame::Ptr &frame) {
+    bool inputFrame(const Frame::Ptr &frame) override {
         GET_CONFIG(bool, hls_demand, General::kHlsDemand);
         if (_clear_cache && hls_demand) {
             _clear_cache = false;
