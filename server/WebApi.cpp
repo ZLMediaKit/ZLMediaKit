@@ -427,8 +427,8 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     auto lam1 = [lam0](const TaskExecutor::Ptr &executor) {
         lam0(*executor);
     };
-    EventPollerPool::Instance().for_each(lam);
-    WorkThreadPool::Instance().for_each(lam);
+    EventPollerPool::Instance().for_each(lam1);
+    WorkThreadPool::Instance().for_each(lam1);
     lam0(getMP4Thread());
     lam0(getHlsThread());
 #else
