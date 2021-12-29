@@ -20,6 +20,16 @@ using namespace toolkit;
 
 namespace mediakit {
 
+ThreadPool &getMP4Thread() {
+    static ThreadPool ret(1, ThreadPool::PRIORITY_LOWEST, true);
+    static onceToken s_token([]() {
+        ret.async([]() {
+            setThreadName("mp4 thread");
+        });
+    });
+    return ret;
+}
+
 MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &app, const string &stream_id, size_t max_second) {
     _folder_path = path;
     /////record 业务逻辑//////
@@ -67,7 +77,7 @@ void MP4Recorder::asyncClose() {
     auto full_path_tmp = _full_path_tmp;
     auto full_path = _full_path;
     auto info = _info;
-    WorkThreadPool::Instance().getExecutor()->async([muxer, full_path_tmp, full_path, info]() mutable {
+    getMP4Thread().async([muxer, full_path_tmp, full_path, info]() mutable {
         //获取文件录制时间，放在关闭mp4之前是为了忽略关闭mp4执行时间
         info.time_len = (float) (::time(NULL) - info.start_time);
         //关闭mp4非常耗时，所以要放在后台线程执行
@@ -112,7 +122,12 @@ bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
 
     if (_muxer) {
         //生成mp4文件
-        return _muxer->inputFrame(frame);
+        auto muxer = _muxer;
+        auto cached_frame = Frame::getCacheAbleFrame(frame);
+        getMP4Thread().async([muxer, cached_frame]() {
+            return muxer->inputFrame(cached_frame);
+        });
+        return true;
     }
     return false;
 }
