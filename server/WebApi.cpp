@@ -212,7 +212,12 @@ static ApiArgsType getAllArgs(const Parser &parser) {
 }
 
 extern uint64_t getTotalMemUsage();
+extern uint64_t getTotalMemBlock();
 extern uint64_t getThisThreadMemUsage();
+extern uint64_t getThisThreadMemBlock();
+extern std::vector<size_t> getBlockTypeSize();
+extern uint64_t getTotalMemBlockByType(int type);
+extern uint64_t getThisThreadMemBlockByType(int type) ;
 
 static inline void addHttpListener(){
     GET_CONFIG(bool, api_debug, API::kApiDebug);
@@ -382,45 +387,60 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     val["RtmpPacket"] = (Json::UInt64)(ObjectStatistic<RtmpPacket>::count());
 #ifdef ENABLE_MEM_DEBUG
     auto bytes = getTotalMemUsage();
-    val["totalMemUsage"] = (Json::UInt64)bytes;
-    val["totalMemUsageMB"] = (int)(bytes / 1024 / 1024);
+    val["totalMemUsage"] = (Json::UInt64) bytes;
+    val["totalMemUsageMB"] = (int) (bytes / 1024 / 1024);
+    val["totalMemBlock"] = (Json::UInt64) getTotalMemBlock();
+    static auto block_type_size = getBlockTypeSize();
+    {
+        int i = 0;
+        string str;
+        size_t last = 0;
+        for (auto sz : block_type_size) {
+            str.append(to_string(last) + "~" + to_string(sz) + ":" + to_string(getTotalMemBlockByType(i++)) + ";");
+            last = sz;
+        }
+        str.pop_back();
+        val["totalMemBlockTypeCount"] = str;
+    }
 
     auto thread_size = EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
     std::shared_ptr<vector<Value> > thread_mem_info = std::make_shared<vector<Value> >(thread_size);
-    std::shared_ptr<atomic<uint64_t> > thread_mem_total = std::make_shared<atomic<uint64_t> >(0);
 
-    shared_ptr<void> finished(nullptr, [thread_mem_info, cb, obj, thread_mem_total](void *) {
-        //poller和work线程开辟的内存
+    shared_ptr<void> finished(nullptr, [thread_mem_info, cb, obj](void *) {
         for (auto &val : *thread_mem_info) {
             (*obj)["threadMem"].append(val);
         }
-
-        //其他线程申请的内存为总内存减去poller和work线程开辟的内存
-        auto bytes = getTotalMemUsage() - *thread_mem_total;
-        Value val;
-        val["threadName"] = "other threads";
-        val["threadMemUsage"] = (Json::UInt64) bytes;
-        val["threadMemUsageMB"] = (int) (bytes / 1024 / 1024);
-        (*obj)["threadMem"].append(val);
-
         //触发回调
         cb(*obj);
     });
 
     auto pos = 0;
-    auto lam = [&](const TaskExecutor::Ptr &executor) {
+    auto lam0 = [&](TaskExecutor &executor) {
         auto &val = (*thread_mem_info)[pos++];
-        executor->async([finished, thread_mem_total, &val]() {
+        executor.async([finished, &val]() {
             auto bytes = getThisThreadMemUsage();
-            *thread_mem_total += bytes;
-
             val["threadName"] = getThreadName();
             val["threadMemUsage"] = (Json::UInt64) bytes;
-            val["threadMemUsageMB"] = (int) (bytes / 1024 / 1024);
+            val["threadMemUsageMB"] = (Json::UInt64) (bytes / 1024 / 1024);
+            val["threadMemBlock"] = (Json::UInt64) getThisThreadMemBlock();
+            {
+                int i = 0;
+                string str;
+                size_t last = 0;
+                for (auto sz : block_type_size) {
+                    str.append(to_string(last) + "~" + to_string(sz) + ":" + to_string(getThisThreadMemBlockByType(i++)) + ";");
+                    last = sz;
+                }
+                str.pop_back();
+                val["threadMemBlockTypeCount"] = str;
+            }
         });
     };
-    EventPollerPool::Instance().for_each(lam);
-    WorkThreadPool::Instance().for_each(lam);
+    auto lam1 = [lam0](const TaskExecutor::Ptr &executor) {
+        lam0(*executor);
+    };
+    EventPollerPool::Instance().for_each(lam1);
+    WorkThreadPool::Instance().for_each(lam1);
 #else
     cb(*obj);
 #endif
