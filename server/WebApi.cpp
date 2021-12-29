@@ -214,6 +214,11 @@ static ApiArgsType getAllArgs(const Parser &parser) {
 extern uint64_t getTotalMemUsage();
 extern uint64_t getThisThreadMemUsage();
 
+namespace mediakit {
+extern ThreadPool &getMP4Thread();
+extern ThreadPool &getHlsThread();
+}
+
 static inline void addHttpListener(){
     GET_CONFIG(bool, api_debug, API::kApiDebug);
     //注册监听kBroadcastHttpRequest事件
@@ -385,7 +390,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     val["totalMemUsage"] = (Json::UInt64)bytes;
     val["totalMemUsageMB"] = (int)(bytes / 1024 / 1024);
 
-    auto thread_size = EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
+    auto thread_size = 2 + EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
     std::shared_ptr<vector<Value> > thread_mem_info = std::make_shared<vector<Value> >(thread_size);
     std::shared_ptr<atomic<uint64_t> > thread_mem_total = std::make_shared<atomic<uint64_t> >(0);
 
@@ -408,9 +413,9 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     });
 
     auto pos = 0;
-    auto lam = [&](const TaskExecutor::Ptr &executor) {
+    auto lam0 = [&](const TaskExecutor &executor) {
         auto &val = (*thread_mem_info)[pos++];
-        executor->async([finished, thread_mem_total, &val]() {
+        executor.async([finished, thread_mem_total, &val]() {
             auto bytes = getThisThreadMemUsage();
             *thread_mem_total += bytes;
 
@@ -419,8 +424,13 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
             val["threadMemUsageMB"] = (int) (bytes / 1024 / 1024);
         });
     };
+    auto lam1 = [lam0](const TaskExecutor::Ptr &executor) {
+        lam0(*executor);
+    };
     EventPollerPool::Instance().for_each(lam);
     WorkThreadPool::Instance().for_each(lam);
+    lam0(getMP4Thread());
+    lam0(getHlsThread());
 #else
     cb(*obj);
 #endif
