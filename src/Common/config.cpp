@@ -403,7 +403,7 @@ public:
     static constexpr uint32_t kMagic = 0xFEFDFCFB;
     uint32_t magic;
     uint32_t size;
-    uint8_t type;
+    uint32_t type;
     MemAllocInfo *alloc_info;
     char ptr;
 }PACKED;
