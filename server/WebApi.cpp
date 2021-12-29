@@ -219,6 +219,11 @@ extern std::vector<size_t> getBlockTypeSize();
 extern uint64_t getTotalMemBlockByType(int type);
 extern uint64_t getThisThreadMemBlockByType(int type) ;
 
+namespace mediakit {
+extern ThreadPool &getMP4Thread();
+extern ThreadPool &getHlsThread();
+}
+
 static inline void addHttpListener(){
     GET_CONFIG(bool, api_debug, API::kApiDebug);
     //注册监听kBroadcastHttpRequest事件
@@ -404,7 +409,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
         val["totalMemBlockTypeCount"].append(getTotalMemBlockByType(i++));
     }
 
-    auto thread_size = EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
+    auto thread_size = 2 + EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
     std::shared_ptr<vector<Value> > thread_mem_info = std::make_shared<vector<Value> >(thread_size);
 
     shared_ptr<void> finished(nullptr, [thread_mem_info, cb, obj](void *) {
@@ -416,9 +421,9 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     });
 
     auto pos = 0;
-    auto lam = [&](const TaskExecutor::Ptr &executor) {
+    auto lam0 = [&](TaskExecutor &executor) {
         auto &val = (*thread_mem_info)[pos++];
-        executor->async([finished, &val]() {
+        executor.async([finished, &val]() {
             auto bytes = getThisThreadMemUsage();
             val["threadName"] = getThreadName();
             val["threadMemUsage"] = (Json::UInt64) bytes;
@@ -431,8 +436,13 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
             }
         });
     };
-    EventPollerPool::Instance().for_each(lam);
-    WorkThreadPool::Instance().for_each(lam);
+    auto lam1 = [lam0](const TaskExecutor::Ptr &executor) {
+        lam0(*executor);
+    };
+    EventPollerPool::Instance().for_each(lam1);
+    WorkThreadPool::Instance().for_each(lam1);
+    lam0(getMP4Thread());
+    lam0(getHlsThread());
 #else
     cb(*obj);
 #endif
