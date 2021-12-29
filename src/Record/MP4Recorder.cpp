@@ -30,6 +30,7 @@ MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &
     GET_CONFIG(size_t ,recordSec,Record::kFileSecond);
     _max_second = max_second ? max_second : recordSec;
 }
+
 MP4Recorder::~MP4Recorder() {
     closeFile();
 }
@@ -61,7 +62,6 @@ void MP4Recorder::createFile() {
         WarnL << ex.what();
     }
 }
-
 void MP4Recorder::asyncClose() {
     auto muxer = _muxer;
     auto full_path_tmp = _full_path_tmp;
