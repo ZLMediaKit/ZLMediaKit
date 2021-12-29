@@ -328,13 +328,43 @@ extern "C" {
     void *__wrap_realloc(void *ptr, size_t c);
 }
 
+#define BLOCK_TYPES 16
+#define MIN_BLOCK_SIZE 128
+
+static int get_mem_block_type(size_t c) {
+    int ret = 0;
+    while (c > MIN_BLOCK_SIZE && ret + 1 < BLOCK_TYPES) {
+        c >>= 2;
+        ++ret;
+    }
+    return ret;
+}
+
+std::vector<size_t> getBlockTypeSize() {
+    std::vector<size_t> ret;
+    ret.resize(BLOCK_TYPES);
+    size_t block_size = MIN_BLOCK_SIZE;
+    for (auto i = 0; i < BLOCK_TYPES; ++i) {
+        ret[i] = block_size;
+        block_size <<= 2;
+    }
+    return ret;
+}
+
 class MemAllocInfo {
 public:
     static atomic<uint64_t> total_mem_usage;
+    static atomic<uint64_t> total_mem_block;
+    static atomic<uint64_t> total_mem_block_map[BLOCK_TYPES];
+
     atomic<uint64_t> mem_usage{0};
+    atomic<uint64_t> mem_block{0};
+    atomic<uint64_t> mem_block_map[BLOCK_TYPES];
 };
 
 atomic<uint64_t> MemAllocInfo::total_mem_usage{0};
+atomic<uint64_t> MemAllocInfo::total_mem_block{0};
+atomic<uint64_t> MemAllocInfo::total_mem_block_map[BLOCK_TYPES];
 
 static thread_local MemAllocInfo s_alloc_info;
 
@@ -342,8 +372,26 @@ uint64_t getTotalMemUsage() {
     return MemAllocInfo::total_mem_usage.load();
 }
 
+uint64_t getTotalMemBlock() {
+    return MemAllocInfo::total_mem_block.load();
+}
+
+uint64_t getTotalMemBlockByType(int type) {
+    assert(type < BLOCK_TYPES);
+    return MemAllocInfo::total_mem_block_map[type].load();
+}
+
 uint64_t getThisThreadMemUsage() {
     return s_alloc_info.mem_usage.load();
+}
+
+uint64_t getThisThreadMemBlock() {
+    return s_alloc_info.mem_block.load();
+}
+
+uint64_t getThisThreadMemBlockByType(int type) {
+    assert(type < BLOCK_TYPES);
+    return s_alloc_info.mem_block_map[type].load();
 }
 
 #if defined(_WIN32)
@@ -355,6 +403,7 @@ public:
     static constexpr uint32_t kMagic = 0xFEFDFCFB;
     uint32_t magic;
     uint32_t size;
+    uint8_t type;
     MemAllocInfo *alloc_info;
     char ptr;
 }PACKED;
@@ -366,11 +415,29 @@ public:
 #define MEM_OFFSET (sizeof(MemCookie) - 1)
 
 void init_cookie(MemCookie *cookie, size_t c) {
+    int type = get_mem_block_type(c);
     MemAllocInfo::total_mem_usage += c;
+    ++MemAllocInfo::total_mem_block;
+    ++MemAllocInfo::total_mem_block_map[type];
+
     s_alloc_info.mem_usage += c;
+    ++s_alloc_info.mem_block;
+    ++s_alloc_info.mem_block_map[type];
+
     cookie->magic = MemCookie::kMagic;
     cookie->size = c;
     cookie->alloc_info = &s_alloc_info;
+    cookie->type = type;
+}
+
+void un_init_cookie(MemCookie *cookie) {
+    MemAllocInfo::total_mem_usage -= cookie->size;
+    --MemAllocInfo::total_mem_block;
+    --MemAllocInfo::total_mem_block_map[cookie->type];
+
+    cookie->alloc_info->mem_usage -= cookie->size;
+    --cookie->alloc_info->mem_block;
+    --cookie->alloc_info->mem_block_map[cookie->type];
 }
 
 void *__wrap_malloc(size_t c) {
@@ -389,10 +456,10 @@ void __wrap_free(void *ptr) {
     }
     auto cookie = (MemCookie *) ((char *) ptr - MEM_OFFSET);
     if (cookie->magic != MemCookie::kMagic) {
-        throw std::invalid_argument("attempt to free invalid memory");
+        __real_free(ptr);
+        return;
     }
-    MemAllocInfo::total_mem_usage -= cookie->size;
-    cookie->alloc_info->mem_usage -= cookie->size;
+    un_init_cookie(cookie);
     __real_free(cookie);
 }
 
@@ -412,20 +479,16 @@ void *__wrap_realloc(void *ptr, size_t c) {
 
     auto cookie = (MemCookie *) ((char *) ptr - MEM_OFFSET);
     if (cookie->magic != MemCookie::kMagic) {
-        throw std::invalid_argument("attempt to realloc invalid memory");
+        return __real_realloc(ptr, c);
     }
 
-    MemAllocInfo::total_mem_usage -= cookie->size;
-    cookie->alloc_info->mem_usage -= cookie->size;
-
+    un_init_cookie(cookie);
     c += MEM_OFFSET;
     cookie = (MemCookie *) __real_realloc(cookie, c);
     if (cookie) {
         init_cookie(cookie, c);
         return &cookie->ptr;
     }
-
-    free(cookie);
     return nullptr;
 }
 
