@@ -22,6 +22,20 @@ using namespace toolkit;
 
 namespace mediakit {
 
+ThreadPool &getMP4Thread() {
+    static ThreadPool ret(1, ThreadPool::PRIORITY_LOWEST, true);
+    static onceToken s_token([]() {
+        ret.async([]() {
+            setThreadName("mp4 thread");
+        });
+    });
+    return ret;
+}
+
+MP4Recorder::Ptr MP4Recorder::create(const MediaTuple &tuple, const std::string &path, size_t max_second) {
+    return Ptr(new MP4Recorder(tuple, path, max_second), [](MP4Recorder *ptr) { getMP4Thread().async([ptr]() { delete ptr; }); });
+}
+
 MP4Recorder::MP4Recorder(const MediaTuple &tuple, const string &path, size_t max_second) {
     // ///record 业务逻辑//////  [AUTO-TRANSLATED:2e78931a]
     // ///record Business Logic//////
@@ -75,7 +89,7 @@ void MP4Recorder::asyncClose() {
     auto full_path_tmp = _full_path_tmp;
     auto info = _info;
     TraceL << "Start close tmp mp4 file: " << full_path_tmp;
-    WorkThreadPool::Instance().getExecutor()->async([muxer, full_path_tmp, info]() mutable {
+    getMP4Thread().async([muxer, full_path_tmp, info]() mutable {
         info.time_len = muxer->getDuration() / 1000.0f;
         // 关闭mp4可能非常耗时，所以要放在后台线程执行  [AUTO-TRANSLATED:a7378a11]
         // Closing mp4 can be very time-consuming, so it should be executed in the background thread
@@ -128,7 +142,7 @@ bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
             // In the case of b-frames, the dts timestamp may regress
             _last_dts = MIN(frame->dts(), _last_dts);
         }
-        
+
         auto duration = 5u; // 默认至少一帧5ms
         if (frame->dts() > 0 && frame->dts() > _last_dts) {
             duration = MAX(duration, frame->dts() - _last_dts);
@@ -150,7 +164,12 @@ bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
     if (_muxer) {
         // 生成mp4文件  [AUTO-TRANSLATED:76a8d77c]
         // Generate mp4 file
-        return _muxer->inputFrame(frame);
+        auto muxer = _muxer;
+        auto cached_frame = Frame::getCacheAbleFrame(frame);
+        getMP4Thread().async([muxer, cached_frame]() {
+            return muxer->inputFrame(cached_frame);
+        });
+        return true;
     }
     return false;
 }

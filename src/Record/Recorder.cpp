@@ -78,7 +78,7 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const Me
 #if defined(ENABLE_HLS)
             auto path = Recorder::getRecordPath(type, tuple, option.hls_save_path);
             GET_CONFIG(bool, enable_vhost, General::kEnableVhost);
-            auto ret = std::make_shared<HlsRecorder>(path, enable_vhost ? string(VHOST_KEY) + "=" + tuple.vhost : "", option);
+            auto ret = HlsRecorder::create(path, enable_vhost ? string(VHOST_KEY) + "=" + tuple.vhost : "", option);
             ret->setMediaSource(tuple);
             return ret;
 #else
@@ -89,7 +89,7 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const Me
         case Recorder::type_mp4: {
 #if defined(ENABLE_MP4)
             auto path = Recorder::getRecordPath(type, tuple, option.mp4_save_path);
-            return std::make_shared<MP4Recorder>(tuple, path, option.mp4_max_second);
+            return MP4Recorder::create(tuple, path, option.mp4_max_second);
 #else
             throw std::invalid_argument("mp4相关功能未打开，请开启ENABLE_MP4宏后编译再测试");
 #endif
@@ -99,7 +99,7 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const Me
 #if defined(ENABLE_MP4)
             auto path = Recorder::getRecordPath(type, tuple, option.hls_save_path);
             GET_CONFIG(bool, enable_vhost, General::kEnableVhost);
-            auto ret = std::make_shared<HlsFMP4Recorder>(path, enable_vhost ? string(VHOST_KEY) + "=" + tuple.vhost : "", option);
+            auto ret = HlsFMP4Recorder::create(path, enable_vhost ? string(VHOST_KEY) + "=" + tuple.vhost : "", option);
             ret->setMediaSource(tuple);
             return ret;
 #else

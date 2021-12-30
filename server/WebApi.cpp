@@ -245,6 +245,10 @@ extern std::vector<size_t> getBlockTypeSize();
 extern uint64_t getTotalMemBlockByType(int type);
 extern uint64_t getThisThreadMemBlockByType(int type) ;
 
+namespace mediakit {
+extern ThreadPool &getMP4Thread();
+extern ThreadPool &getHlsThread();
+}
 static void *web_api_tag = nullptr;
 
 static inline void addHttpListener(){
@@ -334,7 +338,7 @@ public:
         return _map.erase(key);
     }
 
-    size_t size() { 
+    size_t size() {
         std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _map.size();
     }
@@ -594,7 +598,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
         val["totalMemBlockTypeCount"] = str;
     }
 
-    auto thread_size = EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
+    auto thread_size = 2 + EventPollerPool::Instance().getExecutorSize() + WorkThreadPool::Instance().getExecutorSize();
     std::shared_ptr<vector<Value> > thread_mem_info = std::make_shared<vector<Value> >(thread_size);
 
     shared_ptr<void> finished(nullptr, [thread_mem_info, cb, obj](void *) {
@@ -633,6 +637,8 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     };
     EventPollerPool::Instance().for_each(lam1);
     WorkThreadPool::Instance().for_each(lam1);
+    lam0(getMP4Thread());
+    lam0(getHlsThread());
 #else
     cb(*obj);
 #endif
@@ -756,7 +762,7 @@ void addStreamPusherProxy(const string &schema,
  * Install api interface
  * All apis support GET and POST methods
  * POST method parameters support application/json and application/x-www-form-urlencoded methods
- 
+
  * [AUTO-TRANSLATED:62e68c43]
  */
 void installWebApi() {
