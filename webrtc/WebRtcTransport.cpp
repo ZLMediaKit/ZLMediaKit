@@ -843,7 +843,9 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
 
         auto origin_seq = ntohs(header->seq);
         //seq跟原来的不一样
-        header->seq = htons(_rtx_seq[pr->second->media->type]++);
+        header->seq = htons(_rtx_seq[pr->second->media->type]);
+        ++_rtx_seq[pr->second->media->type];
+
         auto payload = header->getPayloadData();
         auto payload_size = header->getPayloadSize(len);
         if (payload_size) {

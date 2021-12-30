@@ -118,9 +118,9 @@ string FCI_REMB::create(const vector<uint32_t> &ssrcs, uint32_t bitrate) {
     thiz->bitrate[3] = (uint8_t) (mantissa);
 
     //设置ssrc列表
-    auto ptr = thiz->ssrc_feedback;
+    int i = 0;
     for (auto ssrc : ssrcs) {
-        *(ptr++) = htonl(ssrc);
+        thiz->ssrc_feedback[i++] = htonl(ssrc);
     }
     return ret;
 }
@@ -136,9 +136,10 @@ uint32_t FCI_REMB::getBitRate() const {
 vector<uint32_t> FCI_REMB::getSSRC() {
     vector<uint32_t> ret;
     auto num_ssrc = bitrate[0];
-    auto ptr = ssrc_feedback;
+    int i = 0;
     while (num_ssrc--) {
-        ret.emplace_back(ntohl(*ptr++));
+        ret.emplace_back(ntohl(ssrc_feedback[i]));
+        ++i;
     }
     return ret;
 }
@@ -537,7 +538,7 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
                     break;
                 }
             }
-            vec.resize(MIN(vec.size(), 14 >> symbol));
+            vec.resize(MIN(vec.size(), (size_t)14 >> symbol));
             StatusVecChunk chunk(symbol, vec);
             fci.append((char *)&chunk, StatusVecChunk::kSize);
             appendDeltaString(delta_str, status, vec.size());

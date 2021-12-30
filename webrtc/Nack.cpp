@@ -94,7 +94,7 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
         return;
     }
 
-    if (_seq.size() == diff + 1 && _last_max_seq + 1 == min_seq) {
+    if (_seq.size() == (size_t)diff + 1 && _last_max_seq + 1 == min_seq) {
         //都是连续的seq，未丢包
         _seq.clear();
         _last_max_seq = max_seq;
@@ -107,10 +107,10 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
 
         //有丢包，丢包从_last_max_seq开始
         auto nack_rtp_count = FCI_NACK::kBitSize;
-        if (max_seq - _last_max_seq > nack_rtp_count) {
+        if (max_seq  > nack_rtp_count + _last_max_seq) {
             vector<bool> vec;
             vec.resize(FCI_NACK::kBitSize, false);
-            for (auto i = 0; i < nack_rtp_count; ++i) {
+            for (size_t i = 0; i < nack_rtp_count; ++i) {
                 vec[i] = _seq.find(_last_max_seq + i + 2) == _seq.end();
             }
             doNack(FCI_NACK(_last_max_seq + 1, vec), true);
@@ -224,7 +224,7 @@ uint64_t NackContext::reSendNack() {
             continue;
         }
         auto inc = *it - pid;
-        if (inc > FCI_NACK::kBitSize) {
+        if (inc > (ssize_t)FCI_NACK::kBitSize) {
             //新的nack包
             doNack(FCI_NACK(pid, vec), false);
             pid = -1;
