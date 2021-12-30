@@ -475,7 +475,6 @@ public:
 #if (defined(__linux__) && !defined(ANDROID)) || defined(__MACH__)
 #define MAX_STACK_FRAMES 128
 #define MEM_WARING
-#include <backtrace.h>
 #include <limits.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
