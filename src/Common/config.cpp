@@ -351,34 +351,50 @@ std::vector<size_t> getBlockTypeSize() {
     return ret;
 }
 
+class MemTotalInfo : public std::enable_shared_from_this<MemTotalInfo> {
+public:
+    using Ptr = std::shared_ptr<MemTotalInfo>;
+    atomic<uint64_t> mem_usage{0};
+    atomic<uint64_t> mem_block{0};
+    atomic<uint64_t> mem_block_map[BLOCK_TYPES];
+
+    static MemTotalInfo &Instance() {
+        static auto s_instance = std::make_shared<MemTotalInfo>();
+        static auto &s_ref = *s_instance;
+        return s_ref;
+    }
+
+private:
+    void *operator new(size_t sz) {
+        return __real_malloc(sz);
+    }
+
+    void operator delete(void *ptr) {
+        __real_free(ptr);
+    }
+};
+
 class MemAllocInfo {
 public:
-    static atomic<uint64_t> total_mem_usage;
-    static atomic<uint64_t> total_mem_block;
-    static atomic<uint64_t> total_mem_block_map[BLOCK_TYPES];
-
+    MemTotalInfo::Ptr total_mem = MemTotalInfo::Instance().shared_from_this();
     atomic<uint64_t> mem_usage{0};
     atomic<uint64_t> mem_block{0};
     atomic<uint64_t> mem_block_map[BLOCK_TYPES];
 };
 
-atomic<uint64_t> MemAllocInfo::total_mem_usage{0};
-atomic<uint64_t> MemAllocInfo::total_mem_block{0};
-atomic<uint64_t> MemAllocInfo::total_mem_block_map[BLOCK_TYPES];
-
 static thread_local MemAllocInfo s_alloc_info;
 
 uint64_t getTotalMemUsage() {
-    return MemAllocInfo::total_mem_usage.load();
+    return s_alloc_info.total_mem->mem_usage.load();
 }
 
 uint64_t getTotalMemBlock() {
-    return MemAllocInfo::total_mem_block.load();
+    return s_alloc_info.total_mem->mem_block.load();
 }
 
 uint64_t getTotalMemBlockByType(int type) {
     assert(type < BLOCK_TYPES);
-    return MemAllocInfo::total_mem_block_map[type].load();
+    return s_alloc_info.total_mem->mem_block_map[type].load();
 }
 
 uint64_t getThisThreadMemUsage() {
@@ -416,28 +432,28 @@ public:
 
 void init_cookie(MemCookie *cookie, size_t c) {
     int type = get_mem_block_type(c);
-    MemAllocInfo::total_mem_usage += c;
-    ++MemAllocInfo::total_mem_block;
-    ++MemAllocInfo::total_mem_block_map[type];
-
-    s_alloc_info.mem_usage += c;
-    ++s_alloc_info.mem_block;
-    ++s_alloc_info.mem_block_map[type];
-
     cookie->magic = MemCookie::kMagic;
     cookie->size = c;
     cookie->alloc_info = &s_alloc_info;
     cookie->type = type;
+
+    cookie->alloc_info->mem_usage += c;
+    ++cookie->alloc_info->mem_block;
+    ++cookie->alloc_info->mem_block_map[type];
+
+    cookie->alloc_info->total_mem->mem_usage += c;
+    ++cookie->alloc_info->total_mem->mem_block;
+    ++cookie->alloc_info->total_mem->mem_block_map[type];
 }
 
 void un_init_cookie(MemCookie *cookie) {
-    MemAllocInfo::total_mem_usage -= cookie->size;
-    --MemAllocInfo::total_mem_block;
-    --MemAllocInfo::total_mem_block_map[cookie->type];
-
     cookie->alloc_info->mem_usage -= cookie->size;
     --cookie->alloc_info->mem_block;
     --cookie->alloc_info->mem_block_map[cookie->type];
+
+    cookie->alloc_info->total_mem->mem_usage -= cookie->size;
+    --cookie->alloc_info->total_mem->mem_block;
+    --cookie->alloc_info->total_mem->mem_block_map[cookie->type];
 }
 
 void *__wrap_malloc(size_t c) {
@@ -500,11 +516,11 @@ void *operator new(std::size_t size) {
     throw std::bad_alloc();
 }
 
-void operator delete(void *ptr) {
+void operator delete(void *ptr) noexcept {
     free(ptr);
 }
 
-void operator delete(void *ptr, std::size_t) {
+void operator delete(void *ptr, std::size_t) noexcept {
     free(ptr);
 }
 
@@ -516,11 +532,11 @@ void *operator new[](std::size_t size) {
     throw std::bad_alloc();
 }
 
-void operator delete[](void *ptr) {
+void operator delete[](void *ptr) noexcept {
     free(ptr);
 }
 
-void operator delete[](void *ptr, std::size_t) {
+void operator delete[](void *ptr, std::size_t) noexcept {
     free(ptr);
 }
 #endif
