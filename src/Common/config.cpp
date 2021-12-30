@@ -351,20 +351,35 @@ std::vector<size_t> getBlockTypeSize() {
     return ret;
 }
 
-class MemTotalInfo : public std::enable_shared_from_this<MemTotalInfo> {
+class MemThreadInfo {
 public:
-    using Ptr = std::shared_ptr<MemTotalInfo>;
+    using Ptr = std::shared_ptr<MemThreadInfo>;
     atomic<uint64_t> mem_usage{0};
     atomic<uint64_t> mem_block{0};
     atomic<uint64_t> mem_block_map[BLOCK_TYPES];
 
-    static MemTotalInfo &Instance() {
-        static auto s_instance = std::make_shared<MemTotalInfo>();
-        static auto &s_ref = *s_instance;
-        return s_ref;
+    static MemThreadInfo *Instance(bool is_thread_local) {
+        if (!is_thread_local) {
+            static auto instance = new MemThreadInfo(is_thread_local);
+            return instance;
+        }
+        static auto thread_local instance = new MemThreadInfo(is_thread_local);
+        return instance;
     }
 
-private:
+    ~MemThreadInfo() {
+        //printf("%s %d\r\n", __FUNCTION__, (int) _is_thread_local);
+    }
+
+    MemThreadInfo(bool is_thread_local) {
+        _is_thread_local = is_thread_local;
+        if (_is_thread_local) {
+            //确保所有线程退出后才能释放全局内存统计器
+            total_mem = Instance(false);
+        }
+        //printf("%s %d\r\n", __FUNCTION__, (int) _is_thread_local);
+    }
+
     void *operator new(size_t sz) {
         return __real_malloc(sz);
     }
@@ -372,88 +387,129 @@ private:
     void operator delete(void *ptr) {
         __real_free(ptr);
     }
+
+    void addBlock(size_t c) {
+        if (total_mem) {
+            total_mem->addBlock(c);
+        }
+        mem_usage += c;
+        ++mem_block_map[get_mem_block_type(c)];
+        ++mem_block;
+    }
+
+    void delBlock(size_t c) {
+        if (total_mem) {
+            total_mem->delBlock(c);
+        }
+        mem_usage -= c;
+        --mem_block_map[get_mem_block_type(c)];
+        if (0 == --mem_block) {
+            delete this;
+        }
+    }
+
+private:
+    bool _is_thread_local;
+    MemThreadInfo *total_mem = nullptr;
 };
 
-class MemAllocInfo {
+class MemThreadInfoLocal {
 public:
-    MemTotalInfo::Ptr total_mem = MemTotalInfo::Instance().shared_from_this();
-    atomic<uint64_t> mem_usage{0};
-    atomic<uint64_t> mem_block{0};
-    atomic<uint64_t> mem_block_map[BLOCK_TYPES];
+    MemThreadInfoLocal() {
+        ptr = MemThreadInfo::Instance(true);
+        ptr->addBlock(1);
+    }
+
+    ~MemThreadInfoLocal() {
+        ptr->delBlock(1);
+    }
+
+    MemThreadInfo *get() const {
+        return ptr;
+    }
+
+private:
+    MemThreadInfo *ptr;
 };
 
-static thread_local MemAllocInfo s_alloc_info;
+//该变量主要确保线程退出后才能释放MemThreadInfo变量
+static thread_local MemThreadInfoLocal s_thread_mem_info;
 
 uint64_t getTotalMemUsage() {
-    return s_alloc_info.total_mem->mem_usage.load();
+    return MemThreadInfo::Instance(false)->mem_usage.load();
 }
 
 uint64_t getTotalMemBlock() {
-    return s_alloc_info.total_mem->mem_block.load();
+    return MemThreadInfo::Instance(false)->mem_block.load();
 }
 
 uint64_t getTotalMemBlockByType(int type) {
     assert(type < BLOCK_TYPES);
-    return s_alloc_info.total_mem->mem_block_map[type].load();
+    return MemThreadInfo::Instance(false)->mem_block_map[type].load();
 }
 
 uint64_t getThisThreadMemUsage() {
-    return s_alloc_info.mem_usage.load();
+    return MemThreadInfo::Instance(true)->mem_usage.load();
 }
 
 uint64_t getThisThreadMemBlock() {
-    return s_alloc_info.mem_block.load();
+    return MemThreadInfo::Instance(true)->mem_block.load();
 }
 
 uint64_t getThisThreadMemBlockByType(int type) {
     assert(type < BLOCK_TYPES);
-    return s_alloc_info.mem_block_map[type].load();
+    return MemThreadInfo::Instance(true)->mem_block_map[type].load();
 }
-
-#if defined(_WIN32)
-#pragma pack(push, 1)
-#endif // defined(_WIN32)
 
 class MemCookie {
 public:
     static constexpr uint32_t kMagic = 0xFEFDFCFB;
     uint32_t magic;
     uint32_t size;
-    uint32_t type;
-    MemAllocInfo *alloc_info;
+    MemThreadInfo* alloc_info;
     char ptr;
-}PACKED;
+};
 
-#if defined(_WIN32)
-#pragma pack(pop)
-#endif // defined(_WIN32)
+#define MEM_OFFSET offsetof(MemCookie, ptr)
 
-#define MEM_OFFSET (sizeof(MemCookie) - 1)
+#if (defined(__linux__) && !defined(ANDROID)) || defined(__MACH__)
+#define MAX_STACK_FRAMES 128
+#define MEM_WARING
+#include <backtrace.h>
+#include <limits.h>
+#include <sys/resource.h>
+#include <sys/wait.h>
+#include <execinfo.h>
 
-void init_cookie(MemCookie *cookie, size_t c) {
-    int type = get_mem_block_type(c);
+static void print_mem_waring(size_t c) {
+    void *array[MAX_STACK_FRAMES];
+    int size = backtrace(array, MAX_STACK_FRAMES);
+    char **strings = backtrace_symbols(array, size);
+    printf("malloc big memory:%d, back trace:\r\n", (int)c);
+    for (int i = 0; i < size; ++i) {
+        printf("[%d]: %s\r\n", i, strings[i]);
+    }
+    __real_free(strings);
+}
+#endif
+
+static void init_cookie(MemCookie *cookie, size_t c) {
     cookie->magic = MemCookie::kMagic;
     cookie->size = c;
-    cookie->alloc_info = &s_alloc_info;
-    cookie->type = type;
+    cookie->alloc_info = s_thread_mem_info.get();
+    cookie->alloc_info->addBlock(c);
 
-    cookie->alloc_info->mem_usage += c;
-    ++cookie->alloc_info->mem_block;
-    ++cookie->alloc_info->mem_block_map[type];
-
-    cookie->alloc_info->total_mem->mem_usage += c;
-    ++cookie->alloc_info->total_mem->mem_block;
-    ++cookie->alloc_info->total_mem->mem_block_map[type];
+#if defined(MEM_WARING)
+    static auto env = getenv("MAX_MEM_SIZE");
+    static size_t kMaxMemSize = atoll(env ? env : "0");
+    if (kMaxMemSize > 1024 && c >= kMaxMemSize) {
+        print_mem_waring(c);
+    }
+#endif
 }
 
-void un_init_cookie(MemCookie *cookie) {
-    cookie->alloc_info->mem_usage -= cookie->size;
-    --cookie->alloc_info->mem_block;
-    --cookie->alloc_info->mem_block_map[cookie->type];
-
-    cookie->alloc_info->total_mem->mem_usage -= cookie->size;
-    --cookie->alloc_info->total_mem->mem_block;
-    --cookie->alloc_info->total_mem->mem_block_map[cookie->type];
+static void un_init_cookie(MemCookie *cookie) {
+    cookie->alloc_info->delBlock(cookie->size);
 }
 
 void *__wrap_malloc(size_t c) {
