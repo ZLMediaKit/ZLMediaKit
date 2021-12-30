@@ -35,7 +35,8 @@ RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, size_t len, bo
     header->csrc = 0;
     header->mark = mark;
     header->pt = _pt;
-    header->seq = htons(_seq++);
+    header->seq = htons(_seq);
+    ++_seq;
     header->stamp = htonl(uint64_t(stamp) * _sample_rate / 1000);
     header->ssrc = htonl(_ssrc);
 
