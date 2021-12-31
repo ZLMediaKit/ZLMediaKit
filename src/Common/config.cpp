@@ -499,9 +499,9 @@ static void init_cookie(MemCookie *cookie, size_t c) {
     cookie->alloc_info->addBlock(c);
 
 #if defined(MEM_WARING)
-    static auto env = getenv("MAX_MEM_SIZE");
-    static size_t kMaxMemSize = atoll(env ? env : "0");
-    if (kMaxMemSize > 1024 && c >= kMaxMemSize) {
+    static auto env = getenv("MEM_WARN_SIZE");
+    static size_t s_mem_waring_size = atoll(env ? env : "0");
+    if (s_mem_waring_size > 1024 && c >= s_mem_waring_size) {
         print_mem_waring(c);
     }
 #endif
