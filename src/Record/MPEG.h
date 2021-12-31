@@ -57,7 +57,6 @@ protected:
 private:
     void createContext();
     void releaseContext();
-    void flushCache();
     void onWrite_l(const void *packet, size_t bytes);
 
 private:
@@ -66,10 +65,10 @@ private:
     bool _key_pos = false;
     uint32_t _timestamp = 0;
     struct mpeg_muxer_t *_context = nullptr;
-    BufferRaw::Ptr _buffer;
     unordered_map<int, int/*track_id*/> _codec_to_trackid;
     FrameMerger _frame_merger{FrameMerger::h264_prefix};
-    std::shared_ptr<BufferLikeString> _cache;
+    BufferRaw::Ptr _current_buffer;
+    ResourcePool<BufferRaw> _buffer_pool;
 };
 
 }//mediakit

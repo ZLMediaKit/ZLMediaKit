@@ -8,7 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <cstdlib>
+#include <assert.h>
 #include "MPEG.h"
 
 #if defined(ENABLE_HLS) || defined(ENABLE_RTPPROXY)
@@ -19,8 +19,8 @@ namespace mediakit{
 
 MpegMuxer::MpegMuxer(bool is_ps) {
     _is_ps = is_ps;
-    _buffer = BufferRaw::create();
     createContext();
+    _buffer_pool.setSize(64);
 }
 
 MpegMuxer::~MpegMuxer() {
@@ -65,7 +65,6 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
                 //取视频时间戳为TS的时间戳
                 _timestamp = (uint32_t) dts;
                 mpeg_muxer_input(_context, track_id, have_idr ? 0x0001 : 0, pts * 90LL,dts * 90LL, buffer->data(), buffer->size());
-                flushCache();
             });
         }
 
@@ -82,7 +81,6 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
                 _timestamp = (uint32_t) frame->dts();
             }
             mpeg_muxer_input(_context, track_id, frame->keyFrame() ? 0x0001 : 0, frame->pts() * 90LL, frame->dts() * 90LL, frame->data(), frame->size());
-            flushCache();
             return true;
         }
     }
@@ -101,8 +99,9 @@ void MpegMuxer::createContext() {
             /*alloc*/
             [](void *param, size_t bytes) {
                 MpegMuxer *thiz = (MpegMuxer *) param;
-                thiz->_buffer->setCapacity(bytes + 1);
-                return (void *) thiz->_buffer->data();
+                thiz->_current_buffer = thiz->_buffer_pool.obtain();;
+                thiz->_current_buffer->setCapacity(bytes + 1);
+                return (void *) thiz->_current_buffer->data();
             },
             /*free*/
             [](void *param, void *packet) {
@@ -121,17 +120,9 @@ void MpegMuxer::createContext() {
 }
 
 void MpegMuxer::onWrite_l(const void *packet, size_t bytes) {
-    if (!_cache) {
-        _cache = std::make_shared<BufferLikeString>();
-    }
-    _cache->append((char *) packet, bytes);
-}
-
-void MpegMuxer::flushCache() {
-    if (!_cache || _cache->empty()) {
-        return;
-    }
-    onWrite(std::move(_cache), _timestamp, _key_pos);
+    assert(_current_buffer && _current_buffer->data() == packet);
+    _current_buffer->setSize(bytes);
+    onWrite(std::move(_current_buffer), _timestamp, _key_pos);
     _key_pos = false;
 }
 
