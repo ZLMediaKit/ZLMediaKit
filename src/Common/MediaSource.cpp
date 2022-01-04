@@ -419,7 +419,8 @@ void MediaSource::regist() {
         //减小互斥锁临界区
         lock_guard<recursive_mutex> lock(s_media_source_mtx);
         auto &ref = s_media_source_map[_schema][_vhost][_app][_stream_id];
-        if (ref.lock()) {
+        // 增加判断, 防止当前流已注册时再次注册
+        if (ref.lock() && ref.lock().get() != this) {
             throw std::invalid_argument("media source already existed:" + _schema + "/" + _vhost + "/" + _app + "/" + _stream_id);
         }
         ref = shared_from_this();
