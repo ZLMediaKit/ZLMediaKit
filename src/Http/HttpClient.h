@@ -63,7 +63,7 @@ public:
      * @param url 请求url
      * @param timeout_sec 超时时间
      */
-    virtual void sendRequest(const string &url, float timeout_sec);
+    virtual void sendRequest(const string &url, float timeout_sec, float recv_timeout_sec = 3);
 
     /**
      * 重置对象
