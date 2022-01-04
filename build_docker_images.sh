@@ -53,7 +53,7 @@ case $type in
 	'build')
 	rm -rf ./build/CMakeCache.txt
 	# 以腾讯云账号为例
-	docker build --build-arg MODEL=$model -t ccr.ccs.tencentyun.com/$namespace/$packagename:$model.$version .
+	docker build --network=host --build-arg MODEL=$model -t ccr.ccs.tencentyun.com/$namespace/$packagename:$model.$version .
 		;;
 	'push')
 		echo "push to dst registry"
