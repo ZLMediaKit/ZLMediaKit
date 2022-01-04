@@ -66,6 +66,7 @@ void HttpTSPlayer::onDisconnect(const SockException &ex) {
 void HttpTSPlayer::emitOnComplete(const SockException &ex) {
     if (_on_complete) {
         _on_complete(ex);
+        _on_complete = nullptr;
     }
 }
 
