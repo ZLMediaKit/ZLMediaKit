@@ -169,6 +169,13 @@ ssize_t HlsPlayer::onResponseHeader(const string &status, const HttpClient::Http
     }
     auto content_type = const_cast< HttpClient::HttpHeader &>(headers)["Content-Type"];
     _is_m3u8 = (content_type.find("application/vnd.apple.mpegurl") == 0);
+    if(!_is_m3u8) {
+        auto it = headers.find("Content-Length");
+        //如果没有长度或者长度小于等于0, 那么肯定不是m3u8
+        if (it == headers.end() || atoll(it->second.data()) <=0) {
+            teardown_l(SockException(Err_shutdown, "可能不是m3u8文件"));
+        }
+    }
     return -1;
 }
 
