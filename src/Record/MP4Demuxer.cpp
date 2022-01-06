@@ -180,7 +180,7 @@ Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
         ctx->flags = flags;
         ctx->track_id = track_id;
 
-        ctx->buffer = ctx->thiz->_buffer_pool.obtain();
+        ctx->buffer = ctx->thiz->_buffer_pool.obtain2();
         ctx->buffer->setCapacity(bytes + DATA_OFFSET + 1);
         ctx->buffer->setSize(bytes + DATA_OFFSET);
         return ctx->buffer->data() + DATA_OFFSET;

@@ -185,7 +185,7 @@ public:
         static onceToken token([]() {
             packet_pool.setSize(1024);
         });
-        auto ret = packet_pool.obtain();
+        auto ret = packet_pool.obtain2();
         ret->_buffer.clear();
         ret->_prefix_size = 0;
         ret->_dts = 0;

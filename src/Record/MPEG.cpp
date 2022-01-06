@@ -99,7 +99,7 @@ void MpegMuxer::createContext() {
             /*alloc*/
             [](void *param, size_t bytes) {
                 MpegMuxer *thiz = (MpegMuxer *) param;
-                thiz->_current_buffer = thiz->_buffer_pool.obtain();;
+                thiz->_current_buffer = thiz->_buffer_pool.obtain2();
                 thiz->_current_buffer->setCapacity(bytes + 1);
                 return (void *) thiz->_current_buffer->data();
             },

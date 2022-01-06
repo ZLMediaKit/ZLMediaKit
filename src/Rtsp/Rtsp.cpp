@@ -555,7 +555,7 @@ RtpPacket::Ptr RtpPacket::create() {
     static onceToken token([]() {
         packet_pool.setSize(1024);
     });
-    auto ret = packet_pool.obtain();
+    auto ret = packet_pool.obtain2();
     ret->setSize(0);
     return ret;
 #else
