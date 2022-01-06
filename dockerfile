@@ -10,7 +10,9 @@ EXPOSE 10000/udp
 EXPOSE 10000/tcp
 EXPOSE 8000/udp
 
-RUN apt-get update && apt-get dist-upgrade && \
+ADD sources.list /etc/apt/sources.list
+
+RUN apt-get update && \
          DEBIAN_FRONTEND="noninteractive" \
          apt-get install -y --no-install-recommends \
          build-essential \
@@ -48,7 +50,9 @@ RUN cmake -DCMAKE_BUILD_TYPE=${MODEL} -DENABLE_WEBRTC=true -DENABLE_TESTS=false 
 FROM ubuntu:18.04
 ARG MODEL
 
-RUN apt-get update && apt-get dist-upgrade && \
+ADD sources.list /etc/apt/sources.list
+
+RUN apt-get update && \
          DEBIAN_FRONTEND="noninteractive" \
          apt-get install -y --no-install-recommends \
          vim \
