@@ -72,7 +72,7 @@ void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr 
 }
 
 BufferRaw::Ptr FlvMuxer::obtainBuffer() {
-    return _packet_pool.obtain();
+    return _packet_pool.obtain2();
 }
 
 BufferRaw::Ptr FlvMuxer::obtainBuffer(const void *data, size_t len) {

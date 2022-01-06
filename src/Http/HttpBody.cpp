@@ -129,7 +129,7 @@ Buffer::Ptr HttpFileBody::readData(size_t size) {
     if(!_map_addr){
         //fread模式
         ssize_t iRead;
-        auto ret = _pool.obtain();
+        auto ret = _pool.obtain2();
         ret->setCapacity(size + 1);
         do{
             iRead = fread(ret->data(), 1, size, _fp.get());

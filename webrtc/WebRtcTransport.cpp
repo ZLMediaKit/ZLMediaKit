@@ -136,7 +136,7 @@ void WebRtcTransport::OnDtlsTransportApplicationDataReceived(const RTC::DtlsTran
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTuple *tuple){
-    auto pkt = _packet_pool.obtain();
+    auto pkt = _packet_pool.obtain2();
     pkt->assign(buf, len);
     onSendSockData(std::move(pkt), true, tuple ? tuple : _ice_server->GetSelectedTuple());
 }
@@ -269,7 +269,7 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
 
 void WebRtcTransport::sendRtpPacket(const char *buf, int len, bool flush, void *ctx) {
     if (_srtp_session_send) {
-        auto pkt = _packet_pool.obtain();
+        auto pkt = _packet_pool.obtain2();
         //预留rtx加入的两个字节
         pkt->setCapacity((size_t) len + SRTP_MAX_TRAILER_LEN + 2);
         pkt->assign(buf, len);
@@ -283,7 +283,7 @@ void WebRtcTransport::sendRtpPacket(const char *buf, int len, bool flush, void *
 
 void WebRtcTransport::sendRtcpPacket(const char *buf, int len, bool flush, void *ctx) {
     if (_srtp_session_send) {
-        auto pkt = _packet_pool.obtain();
+        auto pkt = _packet_pool.obtain2();
         //预留rtx加入的两个字节
         pkt->setCapacity((size_t) len + SRTP_MAX_TRAILER_LEN + 2);
         pkt->assign(buf, len);

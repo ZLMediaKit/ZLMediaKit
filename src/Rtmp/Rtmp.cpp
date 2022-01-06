@@ -138,7 +138,7 @@ RtmpPacket::Ptr RtmpPacket::create(){
     static onceToken token([]() {
         packet_pool.setSize(1024);
     });
-    auto ret = packet_pool.obtain();
+    auto ret = packet_pool.obtain2();
     ret->clear();
     return ret;
 #else
