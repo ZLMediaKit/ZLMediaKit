@@ -58,11 +58,13 @@ private:
     void createContext();
     void releaseContext();
     void onWrite_l(const void *packet, size_t bytes);
+    void flushCache();
 
 private:
     bool _is_ps = false;
     bool _have_video = false;
     bool _key_pos = false;
+    uint32_t _max_cache_size = 0;
     uint32_t _timestamp = 0;
     struct mpeg_muxer_t *_context = nullptr;
     unordered_map<int, int/*track_id*/> _codec_to_trackid;
