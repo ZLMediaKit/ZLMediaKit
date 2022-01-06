@@ -64,7 +64,9 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
                 _key_pos = have_idr;
                 //取视频时间戳为TS的时间戳
                 _timestamp = (uint32_t) dts;
+                _max_cache_size = 512 + 1.2 * buffer->size();
                 mpeg_muxer_input(_context, track_id, have_idr ? 0x0001 : 0, pts * 90LL,dts * 90LL, buffer->data(), buffer->size());
+                flushCache();
             });
         }
 
@@ -80,7 +82,9 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
                 //没有视频时，才以音频时间戳为TS的时间戳
                 _timestamp = (uint32_t) frame->dts();
             }
+            _max_cache_size = 512 + 1.2 * frame->size();
             mpeg_muxer_input(_context, track_id, frame->keyFrame() ? 0x0001 : 0, frame->pts() * 90LL, frame->dts() * 90LL, frame->data(), frame->size());
+            flushCache();
             return true;
         }
     }
@@ -98,10 +102,18 @@ void MpegMuxer::createContext() {
     static mpeg_muxer_func_t func = {
             /*alloc*/
             [](void *param, size_t bytes) {
-                MpegMuxer *thiz = (MpegMuxer *) param;
-                thiz->_current_buffer = thiz->_buffer_pool.obtain2();
-                thiz->_current_buffer->setCapacity(bytes + 1);
-                return (void *) thiz->_current_buffer->data();
+                MpegMuxer *thiz = (MpegMuxer *)param;
+                if (!thiz->_current_buffer
+                    || thiz->_current_buffer->size() + bytes > thiz->_current_buffer->getCapacity()) {
+                    if (thiz->_current_buffer) {
+                        //WarnL << "need realloc mpeg buffer" << thiz->_current_buffer->size() + bytes  << " > " << thiz->_current_buffer->getCapacity();
+                        thiz->flushCache();
+                    }
+                    thiz->_current_buffer = thiz->_buffer_pool.obtain2();
+                    thiz->_current_buffer->setSize(0);
+                    thiz->_current_buffer->setCapacity(MAX(thiz->_max_cache_size, bytes));
+                }
+                return (void *)(thiz->_current_buffer->data() + thiz->_current_buffer->size());
             },
             /*free*/
             [](void *param, void *packet) {
@@ -120,8 +132,11 @@ void MpegMuxer::createContext() {
 }
 
 void MpegMuxer::onWrite_l(const void *packet, size_t bytes) {
-    assert(_current_buffer && _current_buffer->data() == packet);
-    _current_buffer->setSize(bytes);
+    assert(_current_buffer && _current_buffer->data() + _current_buffer->size() == packet);
+    _current_buffer->setSize(_current_buffer->size() + bytes);
+}
+
+void MpegMuxer::flushCache() {
     onWrite(std::move(_current_buffer), _timestamp, _key_pos);
     _key_pos = false;
 }
