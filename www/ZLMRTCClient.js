@@ -7,11 +7,12 @@ var ZLMRTCClient = (function (exports) {
 	  WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED: 'WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED',
 	  WEBRTC_ON_REMOTE_STREAMS: 'WEBRTC_ON_REMOTE_STREAMS',
 	  WEBRTC_ON_LOCAL_STREAM: 'WEBRTC_ON_LOCAL_STREAM',
+	  WEBRTC_ON_CONNECTION_STATE_CHANGE: 'WEBRTC_ON_CONNECTION_STATE_CHANGE',
 	  CAPTURE_STREAM_FAILED: 'CAPTURE_STREAM_FAILED'
 	};
 
 	const VERSION = '1.0.1';
-	const BUILD_DATE = 'Fri Sep 17 2021 10:41:58 GMT+0800 (China Standard Time)';
+	const BUILD_DATE = 'Sat Jan 08 2022 15:24:38 GMT+0800 (China Standard Time)';
 
 	// Copyright (C) <2018> Intel Corporation
 	//
@@ -7304,7 +7305,8 @@ var ZLMRTCClient = (function (exports) {
 	    this.e = {
 	      onicecandidate: this._onIceCandidate.bind(this),
 	      ontrack: this._onTrack.bind(this),
-	      onicecandidateerror: this._onIceCandidateError.bind(this)
+	      onicecandidateerror: this._onIceCandidateError.bind(this),
+	      onconnectionstatechange: this._onconnectionstatechange.bind(this)
 	    };
 	    this._remoteStream = null;
 	    this._localStream = null;
@@ -7312,6 +7314,7 @@ var ZLMRTCClient = (function (exports) {
 	    this.pc.onicecandidate = this.e.onicecandidate;
 	    this.pc.onicecandidateerror = this.e.onicecandidateerror;
 	    this.pc.ontrack = this.e.ontrack;
+	    this.pc.onconnectionstatechange = this.e.onconnectionstatechange;
 	    if (!this.options.recvOnly && (this.options.audioEnable || this.options.videoEnable)) this.start();else this.receive();
 	  }
 
@@ -7505,6 +7508,10 @@ var ZLMRTCClient = (function (exports) {
 
 	  _onIceCandidateError(event) {
 	    this.dispatch(Events$1.WEBRTC_ICE_CANDIDATE_ERROR, event);
+	  }
+
+	  _onconnectionstatechange(event) {
+	    this.dispatch(Events$1.WEBRTC_ON_CONNECTION_STATE_CHANGE, this.pc.connectionState);
 	  }
 
 	  close() {
