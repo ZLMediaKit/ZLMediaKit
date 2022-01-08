@@ -159,6 +159,11 @@
     
               console.log('获取本地流失败')
             });
+
+            player.on(ZLMRTCClient.Events.WEBRTC_ON_CONNECTION_STATE_CHANGE,function(state)
+            {// RTC 状态变化 ,详情参考 https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
+              console.log('当前状态==>',state)
+            });
       }
 
       function start()
