@@ -40,7 +40,7 @@ public:
     }
 
 protected:
-    void onGetH264(const char *pcData, size_t iLen, uint32_t dts,uint32_t pts);
+    void onGetH264(const char *data, size_t len, uint32_t dts, uint32_t pts);
     H264Frame::Ptr obtainFrame();
 
 protected:
