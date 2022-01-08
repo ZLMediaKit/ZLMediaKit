@@ -104,6 +104,7 @@ void HttpClient::clearResponse() {
     _recved_body_size = 0;
     _total_body_size = 0;
     _parser.Clear();
+    _header.clear();
     _chunked_splitter = nullptr;
     _recv_timeout_ticker.resetTime();
     _total_timeout_ticker.resetTime();
