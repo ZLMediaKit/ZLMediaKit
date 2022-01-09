@@ -48,14 +48,13 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller, const s
     if (strcasecmp("rtmp", prefix.data()) == 0) {
         return PlayerBase::Ptr(new RtmpPlayerImp(poller), releasePlayer);
     }
-    if ((strcasecmp("http",prefix.data()) == 0 || strcasecmp("https",prefix.data()) == 0)) {
+    if ((strcasecmp("http", prefix.data()) == 0 || strcasecmp("https", prefix.data()) == 0)) {
         if (end_with(url, ".m3u8") || end_with(url_in, ".m3u8")) {
-            return PlayerBase::Ptr(new HlsPlayerImp(poller),releasePlayer);
+            return PlayerBase::Ptr(new HlsPlayerImp(poller), releasePlayer);
+        } else if (end_with(url, ".ts") || end_with(url_in, ".ts")) {
+            return PlayerBase::Ptr(new TsPlayerImp(poller), releasePlayer);
         }
-        else if (end_with(url, ".ts") || end_with(url_in, ".ts")) {
-            return PlayerBase::Ptr(new TsPlayerImp(poller),releasePlayer);
-        }
-        return PlayerBase::Ptr(new TsPlayerImp(poller),releasePlayer);
+        return PlayerBase::Ptr(new TsPlayerImp(poller), releasePlayer);
     }
 
     return PlayerBase::Ptr(new RtspPlayerImp(poller), releasePlayer);
