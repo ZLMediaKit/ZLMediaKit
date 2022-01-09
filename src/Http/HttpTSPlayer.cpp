@@ -51,7 +51,7 @@ void HttpTSPlayer::onResponseBody(const char *buf, size_t size, size_t recved_si
     if (_split_ts) {
         try {
             _segment.input(buf, size);
-        }catch (std::exception &ex)  {
+        } catch (std::exception &ex) {
             WarnL << ex.what();
             //ts解析失败，清空缓存数据
             _segment.reset();

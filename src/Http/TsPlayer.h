@@ -1,10 +1,6 @@
-//
-// Created by alex on 2021/4/6.
-//
-
 /*
  * Copyright (c) 2020 The ZLMediaKit project authors. All Rights Reserved.
- *
+ * Created by alex on 2021/4/6.
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
@@ -24,37 +20,37 @@
 #include "Rtp/TSDecoder.h"
 #include "HttpTSPlayer.h"
 
-
-
 using namespace toolkit;
 namespace mediakit {
 
-    class TsPlayer : public  HttpTSPlayer , public PlayerBase {
-    public:
-        TsPlayer(const EventPoller::Ptr &poller);
-        ~TsPlayer() override;
-        /**
-         * 开始播放
-         * @param strUrl
-         */
-        void play(const string &strUrl) override;
-        /**
-         * 停止播放
-         */
-        void teardown() override;
-    private:
-        void playTs();
-        void teardown_l(const SockException &ex);
+class TsPlayer : public HttpTSPlayer, public PlayerBase {
+public:
+    TsPlayer(const EventPoller::Ptr &poller);
+    ~TsPlayer() override = default;
 
-    protected:
-        virtual void onResponseCompleted() override;
+    /**
+     * 开始播放
+     */
+    void play(const string &url) override;
 
-        virtual void onDisconnect(const SockException &ex) override;
+    /**
+     * 停止播放
+     */
+    void teardown() override;
 
-        virtual ssize_t onResponseHeader(const string &status, const HttpHeader &header) override;
-    private:
-        bool _first = true;
-        string _ts_url;
-    };
+private:
+    void playTs();
+    void teardown_l(const SockException &ex);
+
+protected:
+    virtual void onResponseCompleted() override;
+    virtual void onDisconnect(const SockException &ex) override;
+    virtual ssize_t onResponseHeader(const string &status, const HttpHeader &header) override;
+
+private:
+    bool _first = true;
+    string _ts_url;
+};
+
 }//namespace mediakit
 #endif //HTTP_TSPLAYER_H
