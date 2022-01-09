@@ -22,6 +22,7 @@ const string kBin = FFmpeg_FIELD"bin";
 const string kCmd = FFmpeg_FIELD"cmd";
 const string kLog = FFmpeg_FIELD"log";
 const string kSnap = FFmpeg_FIELD"snap";
+const string kRestartSec = FFmpeg_FIELD"restart_sec";
 
 onceToken token([]() {
 #ifdef _WIN32
@@ -35,6 +36,7 @@ onceToken token([]() {
     mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";
     mINI::Instance()[kCmd] = "%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
     mINI::Instance()[kSnap] = "%s -i %s -y -f mjpeg -t 0.001 %s";
+    mINI::Instance()[kRestartSec] = 0;
 });
 }
 
@@ -202,17 +204,27 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
  */
 void FFmpegSource::startTimer(int timeout_ms) {
     weak_ptr<FFmpegSource> weakSelf = shared_from_this();
+    GET_CONFIG(uint64_t,ffmpeg_restart_sec,FFmpeg::kRestartSec);
     _timer = std::make_shared<Timer>(1.0f, [weakSelf, timeout_ms]() {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
             //自身已经销毁
             return false;
         }
+        bool needRestart = ffmpeg_restart_sec > 0 && strongSelf->_replay_ticker.elapsedTime() > ffmpeg_restart_sec * 1000;
         if (is_local_ip(strongSelf->_media_info._host)) {
             //推流给自己的，我们通过检查是否已经注册来判断FFmpeg是否工作正常
             strongSelf->findAsync(0, [&](const MediaSource::Ptr &src) {
                 //同步查找流
-                if (!src) {
+                if (!src || needRestart) {
+                    if(needRestart){
+                        strongSelf->_replay_ticker.resetTime();
+                        if(strongSelf->_process.wait(false)){
+                            //FFmpeg进程还在运行，超时就关闭它
+                            strongSelf->_process.kill(2000);
+                        }
+                        InfoL << "FFmpeg即将重启, 将会继续拉流 " << strongSelf->_src_url;
+                    }
                     //流不在线，重新拉流, 这里原先是10秒超时，实际发现10秒不够，改成20秒了
                     if(strongSelf->_replay_ticker.elapsedTime() > 20 * 1000){
                         //上次重试时间超过10秒，那么再重试FFmpeg拉流
@@ -223,7 +235,15 @@ void FFmpegSource::startTimer(int timeout_ms) {
             });
         } else {
             //推流给其他服务器的，我们通过判断FFmpeg进程是否在线，如果FFmpeg推流中断，那么它应该会自动退出
-            if (!strongSelf->_process.wait(false)) {
+            if (!strongSelf->_process.wait(false) || needRestart) {
+                if(needRestart){
+                    strongSelf->_replay_ticker.resetTime();
+                    if(strongSelf->_process.wait(false)){
+                        //FFmpeg进程还在运行，超时就关闭它
+                        strongSelf->_process.kill(2000);
+                    }
+                    InfoL << "FFmpeg即将重启, 将会继续拉流 " << strongSelf->_src_url;
+                }
                 //ffmpeg不在线，重新拉流
                 strongSelf->play(strongSelf->_ffmpeg_cmd_key, strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [weakSelf](const SockException &ex) {
                     if(!ex){
