@@ -188,6 +188,7 @@ private:
     Ticker _recv_timeout_ticker;
     Ticker _total_timeout_ticker;
     float _timeout_second = 0;
+    float _recv_timeout_second = 0;
 
     //recv
     size_t _recved_body_size;

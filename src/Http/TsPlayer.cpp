@@ -34,7 +34,6 @@ void TsPlayer::playTs() {
         return;
     }
     WarnL << "fetch:" << _ts_url;
-    _request_complete = false;
     weak_ptr <TsPlayer> weak_self = dynamic_pointer_cast<TsPlayer>(shared_from_this());
     setMethod("GET");
     sendRequest(_ts_url, 3600 * 2, 60);
