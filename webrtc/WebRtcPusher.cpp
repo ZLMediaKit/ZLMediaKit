@@ -12,8 +12,9 @@
 
 WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
                                        const RtspMediaSource::Ptr &src,
+                                       const std::shared_ptr<void> &ownership,
                                        const MediaInfo &info) {
-    WebRtcPusher::Ptr ret(new WebRtcPusher(poller, src, info), [](WebRtcPusher *ptr) {
+    WebRtcPusher::Ptr ret(new WebRtcPusher(poller, src, ownership, info), [](WebRtcPusher *ptr) {
         ptr->onDestory();
         delete ptr;
     });
@@ -23,9 +24,11 @@ WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
 
 WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
                            const RtspMediaSource::Ptr &src,
+                           const std::shared_ptr<void> &ownership,
                            const MediaInfo &info) : WebRtcTransportImp(poller) {
     _media_info = info;
     _push_src = src;
+    _push_src_ownership = ownership;
     CHECK(_push_src);
 }
 
@@ -48,7 +51,7 @@ bool WebRtcPusher::close(MediaSource &sender, bool force) {
 
 int WebRtcPusher::totalReaderCount(MediaSource &sender) {
     auto total_count = 0;
-    for (auto &src : _push_src_simulcast) {
+    for (auto &src : _push_src_sim) {
         total_count += src.second->totalReaderCount();
     }
     return total_count + _push_src->totalReaderCount();
@@ -75,15 +78,16 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
 
     if (rtp->type == TrackAudio) {
         //音频
-        for (auto &pr : _push_src_simulcast) {
+        for (auto &pr : _push_src_sim) {
             pr.second->onWrite(rtp, false);
         }
     } else {
         //视频
-        auto &src = _push_src_simulcast[rid];
+        auto &src = _push_src_sim[rid];
         if (!src) {
             auto stream_id = rid.empty() ? _push_src->getId() : _push_src->getId() + "_" + rid;
             auto src_imp = std::make_shared<RtspMediaSourceImp>(_push_src->getVhost(), _push_src->getApp(), stream_id);
+            _push_src_sim_ownership[rid] = src_imp->getOwnership();
             src_imp->setSdp(_push_src->getSdp());
             src_imp->setProtocolTranslation(_push_src->isRecording(Recorder::type_hls),
                                             _push_src->isRecording(Recorder::type_mp4));
@@ -120,6 +124,15 @@ void WebRtcPusher::onDestory() {
             NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, bytes_usage, duration,
                                                false, static_cast<SockInfo &>(*getSession()));
         }
+    }
+
+    GET_CONFIG(uint32_t, continue_push_ms, General::kContinuePushMS);
+    if (_push_src && continue_push_ms) {
+        //取消所有权
+        _push_src_ownership = nullptr;
+        //延时10秒注销流
+        auto push_src = std::move(_push_src);
+        getPoller()->doDelayTask(continue_push_ms, [push_src]() { return 0; });
     }
 }
 

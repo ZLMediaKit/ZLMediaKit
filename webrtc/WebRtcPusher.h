@@ -17,7 +17,8 @@ class WebRtcPusher : public WebRtcTransportImp, public MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<WebRtcPusher>;
     ~WebRtcPusher() override = default;
-    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
+    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
+                      const std::shared_ptr<void> &ownership, const MediaInfo &info);
 
 protected:
     ///////WebRtcTransportImp override///////
@@ -40,7 +41,8 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
 private:
-    WebRtcPusher(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
+    WebRtcPusher(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
+                 const std::shared_ptr<void> &ownership, const MediaInfo &info);
 
 private:
     bool _simulcast = false;
@@ -48,8 +50,11 @@ private:
     MediaInfo _media_info;
     //推流的rtsp源
     RtspMediaSource::Ptr _push_src;
+    //推流所有权
+    std::shared_ptr<void> _push_src_ownership;
     //推流的rtsp源,支持simulcast
-    unordered_map<string/*rid*/, RtspMediaSource::Ptr> _push_src_simulcast;
+    unordered_map<string/*rid*/, RtspMediaSource::Ptr> _push_src_sim;
+    unordered_map<string/*rid*/, std::shared_ptr<void> > _push_src_sim_ownership;
 };
 
 #endif //ZLMEDIAKIT_WEBRTCPUSHER_H
