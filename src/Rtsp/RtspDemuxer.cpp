@@ -54,14 +54,14 @@ float RtspDemuxer::getDuration() const {
 bool RtspDemuxer::inputRtp(const RtpPacket::Ptr &rtp) {
     switch (rtp->type) {
         case TrackVideo: {
-            if (_videoRtpDecoder) {
-                return _videoRtpDecoder->inputRtp(rtp, true);
+            if (_video_rtp_decoder) {
+                return _video_rtp_decoder->inputRtp(rtp, true);
             }
             return false;
         }
         case TrackAudio: {
-            if (_audioRtpDecoder) {
-                _audioRtpDecoder->inputRtp(rtp, false);
+            if (_audio_rtp_decoder) {
+                _audio_rtp_decoder->inputRtp(rtp, false);
                 return false;
             }
             return false;
@@ -81,6 +81,9 @@ static void setBitRate(const SdpTrack::Ptr &sdp, const Track::Ptr &track) {
 }
 
 void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
+    if (_audio_rtp_decoder) {
+        return;
+    }
     //生成Track对象
     _audio_track = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio));
     if (!_audio_track) {
@@ -88,18 +91,21 @@ void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
     }
     setBitRate(audio, _audio_track);
     //生成RtpCodec对象以便解码rtp
-    _audioRtpDecoder = Factory::getRtpDecoderByTrack(_audio_track);
-    if (!_audioRtpDecoder) {
+    _audio_rtp_decoder = Factory::getRtpDecoderByTrack(_audio_track);
+    if (!_audio_rtp_decoder) {
         //找不到相应的rtp解码器，该track无效
         _audio_track.reset();
         return;
     }
     //设置rtp解码器代理，生成的frame写入该Track
-    _audioRtpDecoder->addDelegate(_audio_track);
+    _audio_rtp_decoder->addDelegate(_audio_track);
     addTrack(_audio_track);
 }
 
 void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
+    if (_video_rtp_decoder) {
+        return;
+    }
     //生成Track对象
     _video_track = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video));
     if (!_video_track) {
@@ -107,14 +113,14 @@ void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
     }
     setBitRate(video, _video_track);
     //生成RtpCodec对象以便解码rtp
-    _videoRtpDecoder = Factory::getRtpDecoderByTrack(_video_track);
-    if (!_videoRtpDecoder) {
+    _video_rtp_decoder = Factory::getRtpDecoderByTrack(_video_track);
+    if (!_video_rtp_decoder) {
         //找不到相应的rtp解码器，该track无效
         _video_track.reset();
         return;
     }
     //设置rtp解码器代理，生成的frame写入该Track
-    _videoRtpDecoder->addDelegate(_video_track);
+    _video_rtp_decoder->addDelegate(_video_track);
     addTrack(_video_track);
 }
 

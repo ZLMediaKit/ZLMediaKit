@@ -131,6 +131,9 @@ void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
 }
 
 void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec, int bit_rate) {
+    if (_video_rtmp_decoder) {
+        return;
+    }
     //生成Track对象
     _video_track = dynamic_pointer_cast<VideoTrack>(Factory::getVideoTrackByAmf(videoCodec));
     if (!_video_track) {
@@ -151,6 +154,9 @@ void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec, int bit_rate) {
 }
 
 void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec,int sample_rate, int channels, int sample_bit, int bit_rate) {
+    if (_audio_rtmp_decoder) {
+        return;
+    }
     //生成Track对象
     _audio_track = dynamic_pointer_cast<AudioTrack>(Factory::getAudioTrackByAmf(audioCodec, sample_rate, channels, sample_bit));
     if (!_audio_track) {
