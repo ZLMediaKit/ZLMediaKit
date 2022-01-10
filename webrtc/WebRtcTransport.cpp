@@ -969,15 +969,41 @@ void push_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &arg
             cb(WebRtcException(SockException(Err_other, err)));
             return;
         }
-        auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid));
-        if (src) {
+
+        RtspMediaSourceImp::Ptr push_src;
+        std::shared_ptr<void> push_src_ownership;
+        auto src = MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid);
+        auto push_failed = (bool)src;
+
+        while (src) {
+            //尝试断连后继续推流
+            auto rtsp_src = dynamic_pointer_cast<RtspMediaSourceImp>(src);
+            if (!rtsp_src) {
+                //源不是rtsp推流产生的
+                break;
+            }
+            auto ownership = rtsp_src->getOwnership();
+            if (!ownership) {
+                //获取推流源所有权失败
+                break;
+            }
+            push_src = std::move(rtsp_src);
+            push_src_ownership = std::move(ownership);
+            push_failed = false;
+            break;
+        }
+
+        if (push_failed) {
             cb(WebRtcException(SockException(Err_other, "already publishing")));
             return;
         }
 
-        auto push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
-        push_src->setProtocolTranslation(enable_hls, enable_mp4);
-        auto rtc = WebRtcPusher::create(EventPollerPool::Instance().getPoller(), push_src, info);
+        if (!push_src) {
+            push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
+            push_src_ownership = push_src->getOwnership();
+            push_src->setProtocolTranslation(enable_hls, enable_mp4);
+        }
+        auto rtc = WebRtcPusher::create(EventPollerPool::Instance().getPoller(), push_src, push_src_ownership, info);
         push_src->setListener(rtc);
         cb(*rtc);
     };
