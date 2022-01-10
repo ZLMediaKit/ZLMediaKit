@@ -13,6 +13,7 @@
 
 #include <mutex>
 #include <string>
+#include <atomic>
 #include <memory>
 #include <functional>
 #include <unordered_map>
@@ -219,6 +220,9 @@ public:
     // 流id
     const string& getId() const;
 
+    //获取对象所有权
+    std::shared_ptr<void> getOwnership();
+
     // 获取所有Track
     vector<Track::Ptr> getTracks(bool ready = true) const override;
 
@@ -301,6 +305,7 @@ protected:
     BytesSpeed _speed[TrackMax];
 
 private:
+    atomic_flag _owned { false };
     time_t _create_stamp;
     Ticker _ticker;
     string _schema;

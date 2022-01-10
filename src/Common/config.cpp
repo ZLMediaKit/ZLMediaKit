@@ -78,6 +78,7 @@ const string kEnableAudio = GENERAL_FIELD"enable_audio";
 const string kWaitTrackReadyMS = GENERAL_FIELD"wait_track_ready_ms";
 const string kWaitAddTrackMS = GENERAL_FIELD"wait_add_track_ms";
 const string kUnreadyFrameCache = GENERAL_FIELD"unready_frame_cache";
+const string kContinuePushMS = GENERAL_FIELD"continue_push_ms";
 
 onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
@@ -100,6 +101,7 @@ onceToken token([](){
     mINI::Instance()[kWaitTrackReadyMS] = 10000;
     mINI::Instance()[kWaitAddTrackMS] = 3000;
     mINI::Instance()[kUnreadyFrameCache] = 100;
+    mINI::Instance()[kContinuePushMS] = 15 * 1000;
 },nullptr);
 
 }//namespace General
