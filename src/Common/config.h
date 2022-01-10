@@ -193,6 +193,9 @@ extern const string kWaitTrackReadyMS;
 extern const string kWaitAddTrackMS;
 //如果track未就绪，我们先缓存帧数据，但是有最大个数限制(100帧时大约4秒)，防止内存溢出
 extern const string kUnreadyFrameCache;
+//推流断开后可以在超时时间内重新连接上继续推流，这样播放器会接着播放。
+//置0关闭此特性(推流断开会导致立即断开播放器)
+extern const string kContinuePushMS;
 }//namespace General
 
 
