@@ -236,7 +236,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
             //尝试断连后继续推流
             auto rtsp_src = dynamic_pointer_cast<RtspMediaSourceImp>(src);
             if (!rtsp_src) {
-                //源不是rtmp推流产生的
+                //源不是rtsp推流产生的
                 break;
             }
             auto ownership = rtsp_src->getOwnership();
