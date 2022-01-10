@@ -54,8 +54,8 @@ private:
     float _duration = 0;
     AudioTrack::Ptr _audio_track;
     VideoTrack::Ptr _video_track;
-    RtpCodec::Ptr _audioRtpDecoder;
-    RtpCodec::Ptr _videoRtpDecoder;
+    RtpCodec::Ptr _audio_rtp_decoder;
+    RtpCodec::Ptr _video_rtp_decoder;
 };
 
 } /* namespace mediakit */

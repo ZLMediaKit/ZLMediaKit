@@ -40,6 +40,9 @@ public:
      * 设置sdp
      */
     void setSdp(const string &strSdp) override {
+        if (!getSdp().empty()) {
+            return;
+        }
         _demuxer->loadSdp(strSdp);
         RtspMediaSource::setSdp(strSdp);
     }
