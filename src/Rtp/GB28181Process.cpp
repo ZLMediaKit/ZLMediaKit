@@ -50,10 +50,10 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-GB28181Process::GB28181Process(const MediaInfo &media_info, MediaSinkInterface *interface) {
-    assert(interface);
+GB28181Process::GB28181Process(const MediaInfo &media_info, MediaSinkInterface *sink) {
+    assert(sink);
     _media_info = media_info;
-    _interface = interface;
+    _interface = sink;
 }
 
 GB28181Process::~GB28181Process() {}

@@ -747,14 +747,6 @@ std::shared_ptr<MediaSourceEvent> MediaSourceEventInterceptor::getDelegate() con
 
 /////////////////////////////////////FlushPolicy//////////////////////////////////////
 
-template<>
-bool PacketCache<RtpPacket>::flushImmediatelyWhenCloseMerge() {
-    //因为rtp的包很小，一个RtpPacket包中也不是完整的一帧图像，所以在关闭合并写时，
-    //还是有必要缓冲一帧的rtp(也就是时间戳相同的rtp)再输出，这样虽然会增加一帧的延时
-    //但是却对性能提升很大，这样做还是比较划算的
-    return false;
-}
-
 static bool isFlushAble_default(bool is_video, uint64_t last_stamp, uint64_t new_stamp, size_t cache_size) {
     if (new_stamp + 500 < last_stamp) {
         //时间戳回退比较大(可能seek中)，由于rtp中时间戳是pts，是可能存在一定程度的回退的
