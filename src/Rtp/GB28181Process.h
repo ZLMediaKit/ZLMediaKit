@@ -25,7 +25,7 @@ class RtpReceiverImp;
 class GB28181Process : public ProcessInterface {
 public:
     typedef std::shared_ptr<GB28181Process> Ptr;
-    GB28181Process(const MediaInfo &media_info, MediaSinkInterface *interface);
+    GB28181Process(const MediaInfo &media_info, MediaSinkInterface *sink);
     ~GB28181Process() override;
 
     /**

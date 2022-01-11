@@ -376,9 +376,13 @@ private:
     }
 
     bool flushImmediatelyWhenCloseMerge() {
-        //一般的协议关闭合并写时，立即刷新缓存，这样可以减少一帧的延时，但是rtp例外，请看相应的模板特例化函数
+        //一般的协议关闭合并写时，立即刷新缓存，这样可以减少一帧的延时，但是rtp例外
+        //因为rtp的包很小，一个RtpPacket包中也不是完整的一帧图像，所以在关闭合并写时，
+        //还是有必要缓冲一帧的rtp(也就是时间戳相同的rtp)再输出，这样虽然会增加一帧的延时
+        //但是却对性能提升很大，这样做还是比较划算的
+
         GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
-        return mergeWriteMS <= 0;
+        return std::is_same<packet, RtpPacket>::value ? false : (mergeWriteMS <= 0);
     }
 
 private:
