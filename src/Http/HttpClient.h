@@ -181,6 +181,7 @@ private:
     bool _complete = false;
     string _url;
     HttpHeader _header;
+    HttpHeader _user_set_header;
     HttpBody::Ptr _body;
     string _method;
     string _path;
