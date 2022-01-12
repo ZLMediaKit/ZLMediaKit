@@ -417,17 +417,17 @@ void installWebHook(){
 
     //监听播放失败(未找到特定的流)事件
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastNotFoundStream, [](BroadcastNotFoundStreamArgs) {
-        if (start_with(args._param_strs, kEdgeServerParam)) {
-            //来自边沿站的溯源请求，流不存在时立即返回拉流失败
-            closePlayer();
-            return;
-        }
-
         if (!origin_urls.empty()) {
             //设置了源站，那么尝试溯源
             static atomic<uint8_t> s_index { 0 };
             pullStreamFromOrigin(origin_urls, s_index.load(), 0, args, closePlayer);
             ++s_index;
+            return;
+        }
+
+        if (start_with(args._param_strs, kEdgeServerParam)) {
+            //源站收到来自边沿站的溯源请求，流不存在时立即返回拉流失败
+            closePlayer();
             return;
         }
 
