@@ -72,8 +72,11 @@ onceToken token([](){
 namespace Cluster {
 #define CLUSTER_FIELD "cluster."
 const string kOriginUrl = CLUSTER_FIELD "origin_url";
+const string kTimeoutSec = CLUSTER_FIELD "timeout_sec";
+
 static onceToken token([]() {
     mINI::Instance()[kOriginUrl] = "";
+    mINI::Instance()[kTimeoutSec] = 15;
 });
 
 }//namespace Cluster
@@ -234,10 +237,9 @@ static string getPullUrl(const string &origin_fmt, const MediaInfo &info) {
 static void pullStreamFromOrigin(const vector<string>& urls, int index, int failed_cnt, const MediaInfo &args,
                                  const function<void()> &closePlayer) {
 
-    GET_CONFIG(float, hook_timeout_sec, Hook::kTimeoutSec);
-
+    GET_CONFIG(float, cluster_timeout_sec, Cluster::kTimeoutSec);
     auto url = getPullUrl(urls[index % urls.size()], args);
-    auto timeout_sec = hook_timeout_sec / urls.size();
+    auto timeout_sec = cluster_timeout_sec / urls.size();
     InfoL << "pull stream from origin, failed_cnt: " << failed_cnt << ", timeout_sec: " << timeout_sec << ", url: " << url;
 
     addStreamProxy(args._vhost, args._app, args._streamid, url, -1, args._schema == HLS_SCHEMA, false,
