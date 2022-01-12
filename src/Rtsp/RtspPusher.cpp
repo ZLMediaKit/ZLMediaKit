@@ -419,7 +419,7 @@ void RtspPusher::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
 }
 
 int RtspPusher::getTrackIndexByInterleaved(int interleaved) const {
-    for (int i = 0; i < (int)_track_vec.size(); ++i) {
+    for (size_t i = 0; i < _track_vec.size(); ++i) {
         if (_track_vec[i]->_interleaved == interleaved) {
             return i;
         }
@@ -430,8 +430,8 @@ int RtspPusher::getTrackIndexByInterleaved(int interleaved) const {
     throw SockException(Err_shutdown, StrPrinter << "no such track with interleaved:" << interleaved);
 }
 
-int RtspPusher::getTrackIndexByTrackType(TrackType type) const{
-    for (int i = 0; i < (int)_track_vec.size(); ++i) {
+int RtspPusher::getTrackIndexByTrackType(TrackType type) const {
+    for (size_t i = 0; i < _track_vec.size(); ++i) {
         if (type == _track_vec[i]->_type) {
             return i;
         }
@@ -439,7 +439,7 @@ int RtspPusher::getTrackIndexByTrackType(TrackType type) const{
     if (_track_vec.size() == 1) {
         return 0;
     }
-    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << (int) type);
+    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << getTrackString(type));
 }
 
 void RtspPusher::sendRecord() {
