@@ -1098,36 +1098,36 @@ bool RtspSession::sendRtspResponse(const string &res_code, const std::initialize
 }
 
 int RtspSession::getTrackIndexByTrackType(TrackType type) {
-    for (unsigned int i = 0; i < _sdp_track.size(); i++) {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
         if (type == _sdp_track[i]->_type) {
             return i;
         }
     }
-    if(_sdp_track.size() == 1){
+    if (_sdp_track.size() == 1) {
         return 0;
     }
-    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << (int) type);
+    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << getTrackString(type));
 }
 
 int RtspSession::getTrackIndexByControlUrl(const string &control_url) {
-    for (unsigned int i = 0; i < _sdp_track.size(); i++) {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
         if (control_url == _sdp_track[i]->getControlUrl(_content_base)) {
             return i;
         }
     }
-    if(_sdp_track.size() == 1){
+    if (_sdp_track.size() == 1) {
         return 0;
     }
     throw SockException(Err_shutdown, StrPrinter << "no such track with control url:" << control_url);
 }
 
-int RtspSession::getTrackIndexByInterleaved(int interleaved){
-    for (unsigned int i = 0; i < _sdp_track.size(); i++) {
+int RtspSession::getTrackIndexByInterleaved(int interleaved) {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
         if (_sdp_track[i]->_interleaved == interleaved) {
             return i;
         }
     }
-    if(_sdp_track.size() == 1){
+    if (_sdp_track.size() == 1) {
         return 0;
     }
     throw SockException(Err_shutdown, StrPrinter << "no such track with interleaved:" << interleaved);

@@ -236,7 +236,8 @@ public:
      * @param len rtp数据指针长度
      * @return 解析成功返回true
      */
-    bool handleOneRtp(int index, TrackType type, int sample_rate, uint8_t *ptr, size_t len){
+    bool handleOneRtp(int index, TrackType type, int sample_rate, uint8_t *ptr, size_t len) {
+        assert(index < kCount && index >= 0);
         return _track[index].inputRtp(type, sample_rate, ptr, len).operator bool();
     }
 
@@ -247,7 +248,8 @@ public:
      * @param rtp_stamp rtp时间戳
      * @param ntp_stamp_ms ntp时间戳
      */
-    void setNtpStamp(int index, uint32_t rtp_stamp, uint64_t ntp_stamp_ms){
+    void setNtpStamp(int index, uint32_t rtp_stamp, uint64_t ntp_stamp_ms) {
+        assert(index < kCount && index >= 0);
         _track[index].setNtpStamp(rtp_stamp, ntp_stamp_ms);
     }
 
@@ -258,14 +260,17 @@ public:
     }
 
     size_t getJitterSize(int index) const {
+        assert(index < kCount && index >= 0);
         return _track[index].getJitterSize();
     }
 
     size_t getCycleCount(int index) const {
+        assert(index < kCount && index >= 0);
         return _track[index].getCycleCount();
     }
 
     uint32_t getSSRC(int index) const {
+        assert(index < kCount && index >= 0);
         return _track[index].getSSRC();
     }
 

@@ -693,7 +693,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshake_done) {
 }
 
 int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const {
-    for (unsigned int i = 0; i < _sdp_track.size(); i++) {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
         if (_sdp_track[i]->_interleaved == interleaved) {
             return i;
         }
@@ -705,7 +705,7 @@ int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const {
 }
 
 int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
-    for (unsigned int i = 0; i < _sdp_track.size(); i++) {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
         if (_sdp_track[i]->_type == track_type) {
             return i;
         }
@@ -713,7 +713,7 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
     if (_sdp_track.size() == 1) {
         return 0;
     }
-    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << (int) track_type);
+    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << getTrackString(track_type));
 }
 
 } /* namespace mediakit */
