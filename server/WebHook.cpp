@@ -227,7 +227,7 @@ static string getPullUrl(const string &origin_fmt, const MediaInfo &info) {
         WarnL << "get origin url failed, origin_fmt:" << origin_fmt;
         return "";
     }
-    //告知源站这是来自边沿站的，如果未找到流就理解返回
+    //告知源站这是来自边沿站的拉流请求，如果未找到流请立即返回拉流失败
     return string(url) + '?' + kEdgeServerParam + '&' + VHOST_KEY + '=' + info._vhost + '&' + info._param_strs;
 }
 
@@ -416,7 +416,7 @@ void installWebHook(){
     //监听播放失败(未找到特定的流)事件
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastNotFoundStream, [](BroadcastNotFoundStreamArgs) {
         if (start_with(args._param_strs, kEdgeServerParam)) {
-            //来自源站的溯源请求，流不存在时立即返回拉流失败
+            //来自边沿站的溯源请求，流不存在时立即返回拉流失败
             closePlayer();
             return;
         }
