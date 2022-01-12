@@ -446,6 +446,45 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 #endif
 }
 
+void addStreamProxy(const string &vhost, const string &app, const string &stream, const string &url, int retry_count,
+                    bool enable_hls, bool enable_mp4, int rtp_type, float timeout_sec,
+                    const function<void(const SockException &ex, const string &key)> &cb) {
+    auto key = getProxyKey(vhost, app, stream);
+    lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+    if (s_proxyMap.find(key) != s_proxyMap.end()) {
+        //已经在拉流了
+        cb(SockException(Err_success), key);
+        return;
+    }
+    //添加拉流代理
+    auto player = std::make_shared<PlayerProxy>(vhost, app, stream, enable_hls, enable_mp4, retry_count ? retry_count : -1);
+    s_proxyMap[key] = player;
+
+    //指定RTP over TCP(播放rtsp时有效)
+    (*player)[kRtpType] = rtp_type;
+
+    if (timeout_sec > 0.1) {
+        //播放握手超时时间
+        (*player)[kTimeoutMS] = timeout_sec * 1000;
+    }
+
+    //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
+    player->setPlayCallbackOnce([cb, key](const SockException &ex) {
+        if (ex) {
+            lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+            s_proxyMap.erase(key);
+        }
+        cb(ex, key);
+    });
+
+    //被主动关闭拉流
+    player->setOnClose([key](const SockException &ex) {
+        lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+        s_proxyMap.erase(key);
+    });
+    player->play(url);
+};
+
 /**
  * 安装api接口
  * 所有api都支持GET和POST两种方式
@@ -860,52 +899,6 @@ void installWebApi() {
         lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
         val["data"]["flag"] = s_proxyPusherMap.erase(allArgs["key"]) == 1;
     });
-
-    static auto addStreamProxy = [](const string &vhost,
-                                    const string &app,
-                                    const string &stream,
-                                    const string &url,
-                                    int retry_count,
-                                    bool enable_hls,
-                                    bool enable_mp4,
-                                    int rtp_type,
-                                    float timeout_sec,
-                                    const function<void(const SockException &ex,const string &key)> &cb){
-        auto key = getProxyKey(vhost,app,stream);
-        lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-        if(s_proxyMap.find(key) != s_proxyMap.end()){
-            //已经在拉流了
-            cb(SockException(Err_success),key);
-            return;
-        }
-        //添加拉流代理
-        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4, retry_count ? retry_count : -1));
-        s_proxyMap[key] = player;
-
-        //指定RTP over TCP(播放rtsp时有效)
-        (*player)[kRtpType] = rtp_type;
-
-        if (timeout_sec > 0.1) {
-            //播放握手超时时间
-            (*player)[kTimeoutMS] = timeout_sec * 1000;
-        }
-
-        //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
-        player->setPlayCallbackOnce([cb,key](const SockException &ex){
-            if(ex){
-                lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-                s_proxyMap.erase(key);
-            }
-            cb(ex,key);
-        });
-
-        //被主动关闭拉流
-        player->setOnClose([key](const SockException &ex){
-            lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-            s_proxyMap.erase(key);
-        });
-        player->play(url);
-    };
 
     //动态添加rtsp/rtmp拉流代理
     //测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&enable_rtsp=1&enable_rtmp=1&stream=0&url=rtmp://127.0.0.1/live/obs

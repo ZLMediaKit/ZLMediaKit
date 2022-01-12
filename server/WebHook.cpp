@@ -69,9 +69,16 @@ onceToken token([](){
 },nullptr);
 }//namespace Hook
 
+namespace Cluster {
+#define CLUSTER_FIELD "cluster."
+const string kOriginUrl = CLUSTER_FIELD "origin_url";
+static onceToken token([]() {
+    mINI::Instance()[kOriginUrl] = "";
+});
 
-static void parse_http_response(const SockException &ex,
-                                const Parser &res,
+}//namespace Cluster
+
+static void parse_http_response(const SockException &ex, const Parser &res,
                                 const function<void(const Value &,const string &)> &fun){
     if (ex) {
         auto errStr = StrPrinter << "[network err]:" << ex.what() << endl;
@@ -358,12 +365,41 @@ void installWebHook(){
         do_http_hook(hook_stream_chaned,body, nullptr);
     });
 
+    static auto getPullUrl = [](const string &origin_fmt, const MediaInfo &info) -> string {
+        char url[1024] = { 0 };
+        if (origin_fmt.size() > snprintf(url, sizeof(url), origin_fmt.data(), info._app.data(), info._streamid.data())) {
+            WarnL << "get origin url failed, origin_fmt:" << origin_fmt;
+            return "";
+        }
+
+        return string(url) + '?' + VHOST_KEY + '=' + info._vhost + '&' + info._param_strs;
+    };
+
     //监听播放失败(未找到特定的流)事件
-    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastNotFoundStream,[](BroadcastNotFoundStreamArgs){
-        GET_CONFIG(string,hook_stream_not_found,Hook::kOnStreamNotFound);
-        if(!hook_enable || hook_stream_not_found.empty()){
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastNotFoundStream, [](BroadcastNotFoundStreamArgs) {
+        GET_CONFIG(string, origin_url, Cluster::kOriginUrl);
+        if (!origin_url.empty()) {
+            //设置了源站
+            auto url = getPullUrl(origin_url, args);
+            if (url.empty()) {
+                closePlayer();
+                return;
+            }
+            InfoL << "start pull stream from origin:" << url;
+            GET_CONFIG(float, hook_timeout_sec, Hook::kTimeoutSec);
+            addStreamProxy(args._vhost, args._app, args._streamid, url, -1, args._schema == HLS_SCHEMA, false,
+                           Rtsp::RTP_TCP, hook_timeout_sec, [closePlayer](const SockException &ex, const string &key) {
+                if (ex) {
+                    closePlayer();
+                }
+            });
+            return;
+        }
+
+        GET_CONFIG(string, hook_stream_not_found, Hook::kOnStreamNotFound);
+        if (!hook_enable || hook_stream_not_found.empty()) {
             //如果确定这个流不存在，可以closePlayer()返回播放器流不存在
-            //closePlayer();
+            // closePlayer();
             return;
         }
         auto body = make_json(args);
@@ -371,7 +407,7 @@ void installWebHook(){
         body["port"] = sender.get_peer_port();
         body["id"] = sender.getIdentifier();
         //执行hook
-        do_http_hook(hook_stream_not_found,body, nullptr);
+        do_http_hook(hook_stream_not_found, body, nullptr);
     });
 
     static auto getRecordInfo = [](const RecordInfo &info) {
@@ -429,7 +465,13 @@ void installWebHook(){
         });
     });
 
-    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastStreamNoneReader,[](BroadcastStreamNoneReaderArgs){
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastStreamNoneReader,[](BroadcastStreamNoneReaderArgs) {
+        GET_CONFIG(string, origin_url, Cluster::kOriginUrl);
+        if (!origin_url.empty()) {
+            sender.close(false);
+            WarnL << "无人观看主动关闭流:" << sender.getOriginUrl();
+            return;
+        }
         GET_CONFIG(string,hook_stream_none_reader,Hook::kOnStreamNoneReader);
         if(!hook_enable || hook_stream_none_reader.empty()){
             return;
@@ -449,11 +491,7 @@ void installWebHook(){
                 return;
             }
             strongSrc->close(false);
-            WarnL << "无人观看主动关闭流:"
-                  << strongSrc->getSchema() << "/"
-                  << strongSrc->getVhost() << "/"
-                  << strongSrc->getApp() << "/"
-                  << strongSrc->getId();
+            WarnL << "无人观看主动关闭流:" << strongSrc->getOriginUrl();
         });
     });
 
