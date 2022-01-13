@@ -22,6 +22,7 @@
 - 打通了视频监控协议栈与直播协议栈，对RTSP/RTMP支持都很完善。
 - 全面支持H265/H264/AAC/G711/OPUS。
 - 功能完善，支持集群、按需转协议、按需推拉流、先播后推、断连续推等功能。
+- 为什么选择zlmedaikit？独家特性[介绍](https://github.com/ZLMediaKit/ZLMediaKit/wiki/ZLMediakit%E7%8B%AC%E5%AE%B6%E7%89%B9%E6%80%A7%E4%BB%8B%E7%BB%8D)
 
 ## 项目定位
 
