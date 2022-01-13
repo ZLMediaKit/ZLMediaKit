@@ -304,6 +304,21 @@ static inline string getPusherKey(const string &schema, const string &vhost, con
                                   const string &dst_url) {
     return schema + "/" + vhost + "/" + app + "/" + stream + "/" + MD5(dst_url).hexdigest();
 }
+Value makeSimpleMediaSourceJson(MediaSource &media){
+    Value item;
+    item["schema"] = media.getSchema();
+    item[VHOST_KEY] = media.getVhost();
+    item["app"] = media.getApp();
+    item["stream"] = media.getId();
+    item["createStamp"] = (Json::UInt64) media.getCreateStamp();
+    item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
+    item["bytesSpeed"] = media.getBytesSpeed();
+    item["readerCount"] = media.readerCount();
+    item["totalReaderCount"] = media.totalReaderCount();
+    item["isRecordingMP4"] = media.isRecording(Recorder::type_mp4);
+    item["isRecordingHLS"] = media.isRecording(Recorder::type_hls);
+    return item;
+}
 
 Value makeMediaSourceJson(MediaSource &media){
     Value item;
