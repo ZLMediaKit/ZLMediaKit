@@ -49,6 +49,8 @@ const string kAliveWithMediaInfo = HOOK_FIELD"alive_with_media_info";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = false;
+    //默认不提交媒体数据
+    mINI::Instance()[kAliveWithMediaInfo] = false;
     mINI::Instance()[kTimeoutSec] = 10;
     //默认hook地址设置为空，采用默认行为(例如不鉴权)
     mINI::Instance()[kOnPublish] = "";
