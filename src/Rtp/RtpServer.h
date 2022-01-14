@@ -41,7 +41,7 @@ public:
      * @param enable_tcp 是否启用tcp服务器
      * @param local_ip 绑定的本地网卡ip
      */
-    void start(uint16_t local_port, const string &stream_id = "", bool enable_tcp = true, const char *local_ip = "0.0.0.0");
+    void start(uint16_t local_port, const string &stream_id = "", bool enable_tcp = true, const char *local_ip = "0.0.0.0",bool enable_reuse = true);
 
     /**
      * 获取绑定的本地端口
