@@ -1,7 +1,5 @@
 ![logo](https://raw.githubusercontent.com/xia-chu/ZLMediaKit/master/www/logo.png)
 
-[english readme](https://github.com/xia-chu/ZLMediaKit/blob/master/README_en.md)
-
 # 一个基于C++11的高性能运营级流媒体服务框架
 
 [![license](http://img.shields.io/badge/license-MIT-green.svg)](https://github.com/xia-chu/ZLMediaKit/blob/master/LICENSE)
@@ -23,6 +21,8 @@
 - 提供完善的[restful api](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-API)以及[web hook](https://github.com/xia-chu/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-HOOK-API)，支持丰富的业务逻辑。
 - 打通了视频监控协议栈与直播协议栈，对RTSP/RTMP支持都很完善。
 - 全面支持H265/H264/AAC/G711/OPUS。
+- 功能完善，支持集群、按需转协议、按需推拉流、先播后推、断连续推等功能。
+- 为什么选择zlmedaikit？独家特性[介绍](https://github.com/ZLMediaKit/ZLMediaKit/wiki/ZLMediakit%E7%8B%AC%E5%AE%B6%E7%89%B9%E6%80%A7%E4%BB%8B%E7%BB%8D)
 
 ## 项目定位
 
@@ -111,13 +111,11 @@
   - 支持流量统计、推拉流鉴权等事件
   - 支持虚拟主机,可以隔离不同域名
   - 支持按需拉流，无人观看自动关断拉流
-  - 支持先拉流后推流，提高及时推流画面打开率
-  - 支持先播放后推流
-  - 支持推流异常断开重连续推播放器不断开
+  - 支持先播放后推流，提高及时推流画面打开率
   - 提供c api sdk
   - 支持FFmpeg拉流代理任意格式的流
   - 支持http api生成并返回实时截图
-  - 支持按需解复用、转协议，当有人观看时才开启转协议
+  - 支持按需解复用、转协议，当有人观看时才开启转协议，降低cpu占用率
   - 支持溯源模式的集群部署，溯源方式支持rtsp/rtmp/hls/http-ts, 边沿站支持hls, 源站支持多个(采用round robin方式溯源)
   - rtsp/rtmp/webrtc推流异常断开后，可以在超时时间内重连推流，播放器无感知
   
@@ -216,46 +214,47 @@ bash build_docker_images.sh
 [γ瑞γミ](https://github.com/JerryLinGd)
 [linkingvision](https://www.linkingvision.com/)
 [茄子](https://github.com/taotaobujue2008)
-[好心情](<409257224@qq.com>)
+[好心情](mailto:409257224@qq.com)
 [浮沉](https://github.com/MingZhuLiu)
 [Xiaofeng Wang](https://github.com/wasphin)
 [doodoocoder](https://github.com/doodoocoder)
 [qingci](https://github.com/Colibrow)
 [swwheihei](https://github.com/swwheihei)
 [KKKKK5G](https://gitee.com/kkkkk5G)
-[Zhou Weimin](<zhouweimin@supremind.com>)
+[Zhou Weimin](mailto:zhouweimin@supremind.com)
 [Jim Jin](https://github.com/jim-king-2000)
-[西瓜丶](<392293307@qq.com>)
+[西瓜丶](mailto:392293307@qq.com)
 [MingZhuLiu](https://github.com/MingZhuLiu)
 [chengxiaosheng](https://github.com/chengxiaosheng)
-[big panda](<2381267071@qq.com>)
+[big panda](mailto:2381267071@qq.com)
 [tanningzhong](https://github.com/tanningzhong)
 [hctym1995](https://github.com/hctym1995)
 [hewenyuan](https://gitee.com/kingyuanyuan)
-[sunhui](<sunhui200475@163.com>)
-[mirs](fangpengcheng@bilibili.com>)
-[Kevin Cheng](kevin__cheng@outlook.com>)
-[Liu Jiang](root@oopy.org>)
+[sunhui](mailto:sunhui200475@163.com)
+[mirs](mailto:fangpengcheng@bilibili.com)
+[Kevin Cheng](mailto:kevin__cheng@outlook.com)
+[Liu Jiang](mailto:root@oopy.org)
 [along](https://github.com/alongl)
-[qingci](xpy66swsry@gmail.com>)
-[lyg1949](zh.ghlong@qq.com>)
-[zhlong](zh.ghlong@qq.com>)
-[大裤衩](3503207480@qq.com>)
-[droid.chow](droid.chow@gmail.com>)
+[qingci](mailto:xpy66swsry@gmail.com)
+[lyg1949](mailto:zh.ghlong@qq.com)
+[zhlong](mailto:zh.ghlong@qq.com)
+[大裤衩](mailto:3503207480@qq.com)
+[droid.chow](mailto:droid.chow@gmail.com)
 [陈晓林](https://github.com/musicwood)
 [CharleyWangHZ](https://github.com/CharleyWangHZ)
 [Johnny](https://github.com/johzzy)
 [DoubleX69](https://github.com/DoubleX69)
 [lawrencehj](https://github.com/lawrencehj)
-[yangkun](xyyangkun@163.com)
-[Xinghua Zhao](holychaossword@hotmail.com)
+[yangkun](mailto:xyyangkun@163.com)
+[Xinghua Zhao](mailto:holychaossword@hotmail.com)
 [hejilin](https://github.com/brokensword2018)
 [rqb500](https://github.com/rqb500)
 [Alex](https://github.com/alexliyu7352)
 [Dw9](https://github.com/Dw9)
-[明月惊鹊](mingyuejingque@gmail.com)
-[cgm](2958580318@qq.com)
-[hejilin](1724010622@qq.com)
+[明月惊鹊](mailto:mingyuejingque@gmail.com)
+[cgm](mailto:2958580318@qq.com)
+[hejilin](mailto:1724010622@qq.com)
+[alexliyu7352](mailto:liyu7352@gmail.com)
 
 ## 使用案例
 
