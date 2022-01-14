@@ -300,6 +300,20 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
             if (-1 == SockUtil::joinMultiAddrFilter(fd, multiAddr.data(), get_peer_ip().data(),get_local_ip().data())) {
                 SockUtil::joinMultiAddr(fd, multiAddr.data(),get_local_ip().data());
             }
+
+            //设置rtcp发送端口
+            pRtcpSockRef = createSocket();
+            if (!pRtcpSockRef->bindUdpSock(0, "0.0.0.0")) {
+                //分配端口失败
+                throw runtime_error("open udp socket failed");
+            }
+
+            //设置发送地址和发送端口
+            struct sockaddr_in rtpto;
+            rtpto.sin_port = ntohs(rtcp_port);
+            rtpto.sin_family = AF_INET;
+            rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
+            pRtcpSockRef->bindPeerAddr((struct sockaddr *)&(rtpto));
         } else {
             createUdpSockIfNecessary(track_idx);
             //udp单播
