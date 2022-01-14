@@ -84,7 +84,7 @@ private:
     std::shared_ptr<struct sockaddr> _rtcp_addr;
 };
 
-void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable_tcp, const char *local_ip) {
+void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable_tcp, const char *local_ip,bool enable_reuse) {
     //创建udp服务器
     Socket::Ptr rtp_socket = Socket::createSocket(nullptr, true);
     Socket::Ptr rtcp_socket = Socket::createSocket(nullptr, true);
@@ -95,10 +95,10 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable
         //取偶数端口
         rtp_socket = pair.first;
         rtcp_socket = pair.second;
-    } else if (!rtp_socket->bindUdpSock(local_port, local_ip)) {
+    } else if (!rtp_socket->bindUdpSock(local_port, local_ip,enable_reuse)) {
         //用户指定端口
         throw std::runtime_error(StrPrinter << "创建rtp端口 " << local_ip << ":" << local_port << " 失败:" << get_uv_errmsg(true));
-    } else if(!rtcp_socket->bindUdpSock(rtp_socket->get_local_port() + 1, local_ip)) {
+    } else if(!rtcp_socket->bindUdpSock(rtp_socket->get_local_port() + 1, local_ip,enable_reuse)) {
         // rtcp端口
         throw std::runtime_error(StrPrinter << "创建rtcp端口 " << local_ip << ":" << local_port << " 失败:" << get_uv_errmsg(true));
     }
