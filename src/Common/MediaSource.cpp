@@ -609,7 +609,28 @@ string MediaSourceEvent::getOriginUrl(MediaSource &sender) const {
     return getOriginUrl_l(&sender);
 }
 
+class InvokeDepthHelper {
+public:
+    InvokeDepthHelper(const int &depth, int max_depth, const LogContextCapture &log)
+        : _depth(const_cast<int &>(depth)) {
+        if (++_depth > max_depth) {
+            throw std::runtime_error("invalid call depth: " + to_string(_depth));
+        } else {
+            const_cast<LogContextCapture &>(log).clear();
+        }
+    }
+    ~InvokeDepthHelper() { --_depth; }
+
+private:
+    int &_depth;
+};
+
+#define CHECK_CALL_DEPTH() \
+    InvokeDepthHelper \
+    heler(_invoke_depth, 5, ErrorL << "invalid call depth[" << _invoke_depth + 1 << "] on object: " << this)
+
 MediaOriginType MediaSourceEventInterceptor::getOriginType(MediaSource &sender) const {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return MediaOriginType::unknown;
@@ -618,6 +639,7 @@ MediaOriginType MediaSourceEventInterceptor::getOriginType(MediaSource &sender) 
 }
 
 string MediaSourceEventInterceptor::getOriginUrl(MediaSource &sender) const {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return MediaSourceEvent::getOriginUrl(sender);
@@ -630,6 +652,7 @@ string MediaSourceEventInterceptor::getOriginUrl(MediaSource &sender) const {
 }
 
 std::shared_ptr<SockInfo> MediaSourceEventInterceptor::getOriginSock(MediaSource &sender) const {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return nullptr;
@@ -638,6 +661,7 @@ std::shared_ptr<SockInfo> MediaSourceEventInterceptor::getOriginSock(MediaSource
 }
 
 bool MediaSourceEventInterceptor::seekTo(MediaSource &sender, uint32_t stamp) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return false;
@@ -646,6 +670,7 @@ bool MediaSourceEventInterceptor::seekTo(MediaSource &sender, uint32_t stamp) {
 }
 
 bool MediaSourceEventInterceptor::pause(MediaSource &sender, bool pause) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return false;
@@ -654,6 +679,7 @@ bool MediaSourceEventInterceptor::pause(MediaSource &sender, bool pause) {
 }
 
 bool MediaSourceEventInterceptor::speed(MediaSource &sender, float speed) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return false;
@@ -662,6 +688,7 @@ bool MediaSourceEventInterceptor::speed(MediaSource &sender, float speed) {
 }
 
 bool MediaSourceEventInterceptor::close(MediaSource &sender, bool force) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return false;
@@ -670,6 +697,7 @@ bool MediaSourceEventInterceptor::close(MediaSource &sender, bool force) {
 }
 
 int MediaSourceEventInterceptor::totalReaderCount(MediaSource &sender) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return sender.readerCount();
@@ -678,6 +706,7 @@ int MediaSourceEventInterceptor::totalReaderCount(MediaSource &sender) {
 }
 
 void MediaSourceEventInterceptor::onReaderChanged(MediaSource &sender, int size) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         MediaSourceEvent::onReaderChanged(sender, size);
@@ -687,6 +716,7 @@ void MediaSourceEventInterceptor::onReaderChanged(MediaSource &sender, int size)
 }
 
 void MediaSourceEventInterceptor::onRegist(MediaSource &sender, bool regist) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (listener) {
         listener->onRegist(sender, regist);
@@ -694,6 +724,7 @@ void MediaSourceEventInterceptor::onRegist(MediaSource &sender, bool regist) {
 }
 
 bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return false;
@@ -702,6 +733,7 @@ bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::typ
 }
 
 bool MediaSourceEventInterceptor::isRecording(MediaSource &sender, Recorder::type type) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return false;
@@ -710,6 +742,7 @@ bool MediaSourceEventInterceptor::isRecording(MediaSource &sender, Recorder::typ
 }
 
 vector<Track::Ptr> MediaSourceEventInterceptor::getMediaTracks(MediaSource &sender, bool trackReady) const {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (!listener) {
         return vector<Track::Ptr>();
@@ -718,6 +751,7 @@ vector<Track::Ptr> MediaSourceEventInterceptor::getMediaTracks(MediaSource &send
 }
 
 void MediaSourceEventInterceptor::startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb){
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (listener) {
         listener->startSendRtp(sender, dst_url, dst_port, ssrc, is_udp, src_port, cb);
@@ -726,7 +760,8 @@ void MediaSourceEventInterceptor::startSendRtp(MediaSource &sender, const string
     }
 }
 
-bool MediaSourceEventInterceptor::stopSendRtp(MediaSource &sender, const string &ssrc){
+bool MediaSourceEventInterceptor::stopSendRtp(MediaSource &sender, const string &ssrc) {
+    CHECK_CALL_DEPTH();
     auto listener = _listener.lock();
     if (listener) {
         return listener->stopSendRtp(sender, ssrc);

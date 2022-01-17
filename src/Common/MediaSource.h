@@ -124,6 +124,7 @@ public:
     bool stopSendRtp(MediaSource &sender, const string &ssrc) override;
 
 private:
+    int _invoke_depth = 0;
     std::weak_ptr<MediaSourceEvent> _listener;
 };
 
