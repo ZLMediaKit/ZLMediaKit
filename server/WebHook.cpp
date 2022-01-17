@@ -226,7 +226,7 @@ static const string kEdgeServerParam = "edge=1";
 
 static string getPullUrl(const string &origin_fmt, const MediaInfo &info) {
     char url[1024] = { 0 };
-    if (origin_fmt.size() > snprintf(url, sizeof(url), origin_fmt.data(), info._app.data(), info._streamid.data())) {
+    if ((ssize_t)origin_fmt.size() > snprintf(url, sizeof(url), origin_fmt.data(), info._app.data(), info._streamid.data())) {
         WarnL << "get origin url failed, origin_fmt:" << origin_fmt;
         return "";
     }
@@ -234,7 +234,7 @@ static string getPullUrl(const string &origin_fmt, const MediaInfo &info) {
     return string(url) + '?' + kEdgeServerParam + '&' + VHOST_KEY + '=' + info._vhost + '&' + info._param_strs;
 }
 
-static void pullStreamFromOrigin(const vector<string>& urls, int index, int failed_cnt, const MediaInfo &args,
+static void pullStreamFromOrigin(const vector<string>& urls, size_t index, size_t failed_cnt, const MediaInfo &args,
                                  const function<void()> &closePlayer) {
 
     GET_CONFIG(float, cluster_timeout_sec, Cluster::kTimeoutSec);
