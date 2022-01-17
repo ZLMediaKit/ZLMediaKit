@@ -1025,17 +1025,20 @@ void installWebApi() {
     api_regist("/index/api/openRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("port", "enable_tcp", "stream_id");
-
+        bool enable_reuse = true;
+        if (!allArgs["enable_reuse"].empty()) {
+            enable_reuse = allArgs["enable_reuse"].as<bool>();
+        }
         auto stream_id = allArgs["stream_id"];
 
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        if(s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
+        if (s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
             //为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的stream_id
             throw InvalidArgsException("该stream_id已存在");
         }
 
         RtpServer::Ptr server = std::make_shared<RtpServer>();
-        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>());
+        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "0.0.0.0", enable_reuse);
         server->setOnDetach([stream_id]() {
             //设置rtp超时移除事件
             lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
