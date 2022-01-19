@@ -179,7 +179,7 @@ bash build_docker_images.sh
 ## 联系方式
 
  - 邮箱：<1213642868@qq.com>(本项目相关或流媒体相关问题请走issue流程，否则恕不邮件答复)
- - QQ群：690854210 (加群前请先把 [wiki](https://github.com/ZLMediaKit/ZLMediaKit/wiki) 看完，文档有涉及的问题不答复)
+ - QQ群：qq群号在wiki中，请阅读wiki后再加群
 
 ## 怎么提问？
 
