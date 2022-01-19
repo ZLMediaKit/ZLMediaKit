@@ -139,6 +139,7 @@ API_EXPORT void API_CALL mk_http_requester_set_cb(mk_http_requester ctx,on_mk_ht
 API_EXPORT void API_CALL mk_http_requester_start(mk_http_requester ctx,const char *url, float timeout_second){
     assert(ctx && url && url[0] && timeout_second > 0);
     HttpRequester::Ptr *obj = (HttpRequester::Ptr *)ctx;
-    (*obj)->sendRequest(url,timeout_second);
+    (*obj)->setCompleteTimeout(timeout_second * 1000);
+    (*obj)->sendRequest(url);
 }
 

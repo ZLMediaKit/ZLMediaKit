@@ -39,7 +39,8 @@ void HttpRequester::onDisconnect(const SockException &ex) {
 
 void HttpRequester::startRequester(const string &url, const HttpRequesterResult &onResult, float timeOutSecond) {
     _onResult = onResult;
-    sendRequest(url, timeOutSecond);
+    setCompleteTimeout(timeOutSecond * 1000);
+    sendRequest(url);
 }
 
 void HttpRequester::clear() {

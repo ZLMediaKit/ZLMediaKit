@@ -19,13 +19,8 @@ void TsPlayer::play(const string &strUrl) {
     playTs();
 }
 
-void TsPlayer::teardown_l(const SockException &ex) {
-    HttpClient::clear();
-    shutdown(ex);
-}
-
 void TsPlayer::teardown() {
-    teardown_l(SockException(Err_shutdown, "teardown"));
+    shutdown(SockException(Err_shutdown, "teardown"));
 }
 
 void TsPlayer::playTs() {
@@ -33,15 +28,17 @@ void TsPlayer::playTs() {
         //播放器目前还存活，正在下载中
         return;
     }
-    WarnL << "fetch:" << _ts_url;
+    TraceL << "play http-ts: " << _ts_url;
     weak_ptr <TsPlayer> weak_self = dynamic_pointer_cast<TsPlayer>(shared_from_this());
     setMethod("GET");
-    sendRequest(_ts_url, 3600 * 2, 60);
+    setHeaderTimeout((*this)[Client::kTimeoutMS].as<int>());
+    setBodyTimeout((*this)[Client::kMediaTimeoutMS].as<int>());
+    sendRequest(_ts_url);
 }
 
 void TsPlayer::onResponseCompleted() {
     //接收完毕
-    teardown_l(SockException(Err_success, StrPrinter << _ts_url << ": play completed"));
+    shutdown(SockException(Err_success, StrPrinter << "play " << _ts_url << " completed"));
 }
 
 void TsPlayer::onDisconnect(const SockException &ex) {

@@ -18,19 +18,17 @@ namespace mediakit {
 class HttpDownloader: public HttpClientImp {
 public:
     typedef std::shared_ptr<HttpDownloader> Ptr;
-    typedef std::function<void(ErrCode code,const string &errMsg,const string &filePath)> onDownloadResult;
+    typedef std::function<void(ErrCode code, const string &errMsg, const string &filePath)> onDownloadResult;
     HttpDownloader();
     virtual ~HttpDownloader();
     //开始下载文件,默认断点续传方式下载
-    void startDownload(const string &url,const string &filePath = "",bool bAppend = false, float timeOutSecond = 10 );
-    void startDownload(const string &url,const onDownloadResult &cb,float timeOutSecond = 10){
+    void startDownload(const string &url, const string &filePath = "", bool bAppend = false);
+    void startDownload(const string &url, const onDownloadResult &cb) {
         setOnResult(cb);
-        startDownload(url,"",false,timeOutSecond);
+        startDownload(url, "", false);
     }
-    void setOnResult(const onDownloadResult &cb){
-        _onResult = cb;
-    }
-	
+    void setOnResult(const onDownloadResult &cb) { _onResult = cb; }
+
 protected:
     void onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) override;
     ssize_t onResponseHeader(const string &status, const HttpHeader &headers) override;
