@@ -9,87 +9,85 @@
  */
 
 #include "HttpDownloader.h"
-#include "Util/MD5.h"
 #include "Util/File.h"
+#include "Util/MD5.h"
 using namespace toolkit;
 
 namespace mediakit {
 
-HttpDownloader::HttpDownloader() {
-
-}
+HttpDownloader::HttpDownloader() {}
 
 HttpDownloader::~HttpDownloader() {
     closeFile();
 }
 
-void HttpDownloader::startDownload(const string& url, const string& filePath,bool bAppend,float timeOutSecond) {
+void HttpDownloader::startDownload(const string &url, const string &filePath, bool bAppend) {
     _filePath = filePath;
-    if(_filePath.empty()){
+    if (_filePath.empty()) {
         _filePath = exeDir() + "HttpDownloader/" + MD5(url).hexdigest();
     }
     _saveFile = File::create_file(_filePath.data(), bAppend ? "ab" : "wb");
-    if(!_saveFile){
+    if (!_saveFile) {
         auto strErr = StrPrinter << "打开文件失败:" << filePath << endl;
         throw std::runtime_error(strErr);
     }
     _bDownloadSuccess = false;
-    if(bAppend){
+    if (bAppend) {
         auto currentLen = ftell(_saveFile);
-        if(currentLen){
+        if (currentLen) {
             //最少续传一个字节，怕遇到http 416的错误
             currentLen -= 1;
-            fseek(_saveFile,-1,SEEK_CUR);
+            fseek(_saveFile, -1, SEEK_CUR);
         }
         addHeader("Range", StrPrinter << "bytes=" << currentLen << "-" << endl);
     }
     setMethod("GET");
-    sendRequest(url,timeOutSecond);
+
+    sendRequest(url);
 }
 
-ssize_t HttpDownloader::onResponseHeader(const string& status,const HttpHeader& headers) {
-    if(status != "200" && status != "206"){
+ssize_t HttpDownloader::onResponseHeader(const string &status, const HttpHeader &headers) {
+    if (status != "200" && status != "206") {
         //失败
-        shutdown(SockException(Err_shutdown,StrPrinter << "Http Status:" << status));
+        shutdown(SockException(Err_shutdown, StrPrinter << "Http Status:" << status));
     }
     //后续全部是content
     return -1;
 }
 
-void HttpDownloader::onResponseBody(const char* buf, size_t size, size_t recvedSize, size_t totalSize) {
-    if(_saveFile){
-        fwrite(buf,size,1,_saveFile);
+void HttpDownloader::onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) {
+    if (_saveFile) {
+        fwrite(buf, size, 1, _saveFile);
     }
 }
 
 void HttpDownloader::onResponseCompleted() {
     closeFile();
-    //InfoL << "md5Sum:" << getMd5Sum(_filePath);
+    // InfoL << "md5Sum:" << getMd5Sum(_filePath);
     _bDownloadSuccess = true;
-    if(_onResult){
-        _onResult(Err_success,"success",_filePath);
+    if (_onResult) {
+        _onResult(Err_success, "success", _filePath);
         _onResult = nullptr;
     }
 }
 
 void HttpDownloader::onDisconnect(const SockException &ex) {
     closeFile();
-    if(!_bDownloadSuccess){
+    if (!_bDownloadSuccess) {
         File::delete_file(_filePath.data());
     }
-    if(_onResult){
-        _onResult(ex.getErrCode(),ex.what(),_filePath);
+    if (_onResult) {
+        _onResult(ex.getErrCode(), ex.what(), _filePath);
         _onResult = nullptr;
     }
 }
 
 void HttpDownloader::closeFile() {
-    if(_saveFile){
+    if (_saveFile) {
         fflush(_saveFile);
         fclose(_saveFile);
         _saveFile = nullptr;
     }
 }
-
 
 } /* namespace mediakit */

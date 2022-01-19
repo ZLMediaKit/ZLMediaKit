@@ -40,7 +40,6 @@ public:
 
 private:
     void playTs();
-    void teardown_l(const SockException &ex);
 
 protected:
     virtual void onResponseCompleted() override;

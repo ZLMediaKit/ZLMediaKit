@@ -32,12 +32,12 @@ void HlsPlayer::play_l() {
     if (waitResponse()) {
         return;
     }
-    float playTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     setMethod("GET");
     if (!(*this)[kNetAdapter].empty()) {
         setNetAdapter((*this)[kNetAdapter]);
     }
-    sendRequest(_m3u8_list.back(), playTimeOutSec);
+    setCompleteTimeout((*this)[Client::kTimeoutMS].as<int>());
+    sendRequest(_m3u8_list.back());
 }
 
 void HlsPlayer::teardown_l(const SockException &ex) {
@@ -117,7 +117,9 @@ void HlsPlayer::playNextTs() {
     });
 
     _http_ts_player->setMethod("GET");
-    _http_ts_player->sendRequest(url, 2 * duration);
+    //ts切片必须在其时长的3倍内下载完毕
+    _http_ts_player->setCompleteTimeout(3 * duration * 1000);
+    _http_ts_player->sendRequest(url);
 }
 
 void HlsPlayer::onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts_segment> &ts_map) {

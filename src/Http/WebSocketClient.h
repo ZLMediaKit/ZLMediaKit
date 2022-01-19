@@ -83,17 +83,18 @@ public:
      * @param ws_url ws连接url
      * @param fTimeOutSec 超时时间
      */
-    void startWsClient(const string &ws_url,float fTimeOutSec){
+    void startWsClient(const string &ws_url, float fTimeOutSec) {
         string http_url = ws_url;
-        replace(http_url,"ws://","http://");
-        replace(http_url,"wss://","https://");
+        replace(http_url, "ws://", "http://");
+        replace(http_url, "wss://", "https://");
         setMethod("GET");
-        addHeader("Upgrade","websocket");
-        addHeader("Connection","Upgrade");
-        addHeader("Sec-WebSocket-Version","13");
-        addHeader("Sec-WebSocket-Key",_Sec_WebSocket_Key);
+        addHeader("Upgrade", "websocket");
+        addHeader("Connection", "Upgrade");
+        addHeader("Sec-WebSocket-Version", "13");
+        addHeader("Sec-WebSocket-Key", _Sec_WebSocket_Key);
         _onRecv = nullptr;
-        sendRequest(http_url,fTimeOutSec);
+        setHeaderTimeout(fTimeOutSec * 1000);
+        sendRequest(http_url);
     }
 
     void closeWsClient(){
