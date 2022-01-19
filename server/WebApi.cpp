@@ -1025,10 +1025,6 @@ void installWebApi() {
     api_regist("/index/api/openRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("port", "enable_tcp", "stream_id");
-        bool enable_reuse = true;
-        if (!allArgs["enable_reuse"].empty()) {
-            enable_reuse = allArgs["enable_reuse"].as<bool>();
-        }
         auto stream_id = allArgs["stream_id"];
 
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
@@ -1038,7 +1034,7 @@ void installWebApi() {
         }
 
         RtpServer::Ptr server = std::make_shared<RtpServer>();
-        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "0.0.0.0", enable_reuse);
+        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "0.0.0.0", false);
         server->setOnDetach([stream_id]() {
             //设置rtp超时移除事件
             lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
