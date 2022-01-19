@@ -42,7 +42,7 @@ void TsPlayer::onResponseCompleted() {
 }
 
 void TsPlayer::onDisconnect(const SockException &ex) {
-    WarnL << _ts_url << "   :" << ex.getErrCode() << " " << ex.what();
+    WarnL << "play " << _ts_url << " failed: " << ex.getErrCode() << " " << ex.what();
     if (_first) {
         //第一次失败，则播放失败
         _first = false;
