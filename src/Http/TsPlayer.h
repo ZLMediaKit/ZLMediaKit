@@ -11,14 +11,8 @@
 #ifndef HTTP_TSPLAYER_H
 #define HTTP_TSPLAYER_H
 
-#include "Http/HttpDownloader.h"
 #include "HttpTSPlayer.h"
-#include "Player/MediaPlayer.h"
-#include "Poller/Timer.h"
-#include "Rtp/Decoder.h"
-#include "Rtp/TSDecoder.h"
-#include "Util/util.h"
-#include <unordered_set>
+#include "Player/PlayerBase.h"
 
 using namespace toolkit;
 namespace mediakit {

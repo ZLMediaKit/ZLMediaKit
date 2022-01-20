@@ -12,12 +12,6 @@
 #define HTTP_TSPLAYERIMP_H
 
 #include <unordered_set>
-#include "Util/util.h"
-#include "Poller/Timer.h"
-#include "Http/HttpDownloader.h"
-#include "Player/MediaPlayer.h"
-#include "Rtp/Decoder.h"
-#include "Rtp/TSDecoder.h"
 #include "TsPlayer.h"
 
 using namespace toolkit;

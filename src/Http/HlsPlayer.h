@@ -11,14 +11,10 @@
 #ifndef HTTP_HLSPLAYER_H
 #define HTTP_HLSPLAYER_H
 
-#include <unordered_set>
-#include "Util/util.h"
-#include "Poller/Timer.h"
-#include "Http/HttpDownloader.h"
-#include "Player/MediaPlayer.h"
-#include "HlsParser.h"
+#include "Common/Stamp.h"
+#include "Player/PlayerBase.h"
 #include "HttpTSPlayer.h"
-#include "Rtp/Decoder.h"
+#include "HlsParser.h"
 #include "Rtp/TSDecoder.h"
 
 using namespace toolkit;
