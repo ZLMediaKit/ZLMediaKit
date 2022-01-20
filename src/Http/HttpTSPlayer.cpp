@@ -18,42 +18,25 @@ HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller, bool split_ts) {
     setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 
-ssize_t HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &header) {
-    _status = status;
+void HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &header) {
     if (status != "200" && status != "206") {
-        //http状态码不符合预期
-        shutdown(SockException(Err_other, StrPrinter << "bad http status code:" + status));
-        return 0;
-    }
-    auto content_type = const_cast< HttpClient::HttpHeader &>(header)["Content-Type"];
-    if (content_type.find("video/mp2t") == 0 || content_type.find("video/mpeg") == 0) {
-        _is_ts_content = true;
+        // http状态码不符合预期
+        throw invalid_argument("bad http status code:" + status);
     }
 
-    //后续是不定长content
-    return -1;
+    auto content_type = const_cast<HttpClient::HttpHeader &>(header)["Content-Type"];
+    if (content_type.find("video/mp2t") != 0 && content_type.find("video/mpeg") != 0) {
+        throw invalid_argument("content type not mpeg-ts: " + content_type);
+    }
 }
 
-void HttpTSPlayer::onResponseBody(const char *buf, size_t size, size_t recved_size, size_t total_size) {
-    if (_status != "200" && _status != "206") {
-        return;
-    }
-    if (recved_size == size) {
-        //开始接收数据
-        if (buf[0] == TS_SYNC_BYTE) {
-            //这是ts头
-            _is_first_packet_ts = true;
-        } else {
-            WarnL << "可能不是http-ts流";
-        }
-    }
-
+void HttpTSPlayer::onResponseBody(const char *buf, size_t size) {
     if (_split_ts) {
         try {
             _segment.input(buf, size);
         } catch (std::exception &ex) {
             WarnL << ex.what();
-            //ts解析失败，清空缓存数据
+            // ts解析失败，清空缓存数据
             _segment.reset();
             throw;
         }
@@ -62,11 +45,7 @@ void HttpTSPlayer::onResponseBody(const char *buf, size_t size, size_t recved_si
     }
 }
 
-void HttpTSPlayer::onResponseCompleted() {
-    emitOnComplete(SockException(Err_success, "play completed"));
-}
-
-void HttpTSPlayer::onDisconnect(const SockException &ex) {
+void HttpTSPlayer::onResponseCompleted(const SockException &ex) {
     emitOnComplete(ex);
 }
 
@@ -91,4 +70,4 @@ void HttpTSPlayer::setOnPacket(TSSegment::onSegment cb) {
     _on_segment = std::move(cb);
 }
 
-}//namespace mediakit
+} // namespace mediakit

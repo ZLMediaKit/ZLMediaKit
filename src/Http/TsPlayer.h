@@ -11,19 +11,19 @@
 #ifndef HTTP_TSPLAYER_H
 #define HTTP_TSPLAYER_H
 
-#include <unordered_set>
-#include "Util/util.h"
-#include "Poller/Timer.h"
 #include "Http/HttpDownloader.h"
+#include "HttpTSPlayer.h"
 #include "Player/MediaPlayer.h"
+#include "Poller/Timer.h"
 #include "Rtp/Decoder.h"
 #include "Rtp/TSDecoder.h"
-#include "HttpTSPlayer.h"
+#include "Util/util.h"
+#include <unordered_set>
 
 using namespace toolkit;
 namespace mediakit {
 
-class TsPlayer : public HttpTSPlayer, public PlayerBase {
+class TsPlayer : public HttpTSPlayer , public PlayerBase {
 public:
     TsPlayer(const EventPoller::Ptr &poller);
     ~TsPlayer() override = default;
@@ -38,18 +38,13 @@ public:
      */
     void teardown() override;
 
-private:
-    void playTs();
-
 protected:
-    virtual void onResponseCompleted() override;
-    virtual void onDisconnect(const SockException &ex) override;
-    virtual ssize_t onResponseHeader(const string &status, const HttpHeader &header) override;
+    void onResponseBody(const char *buf, size_t size) override;
+    void onResponseCompleted(const SockException &ex) override;
 
 private:
-    bool _first = true;
-    string _ts_url;
+    bool _play_result = true;
 };
 
-}//namespace mediakit
-#endif //HTTP_TSPLAYER_H
+} // namespace mediakit
+#endif // HTTP_TSPLAYER_H

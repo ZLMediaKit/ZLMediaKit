@@ -12,46 +12,36 @@
 
 namespace mediakit {
 
-ssize_t HttpRequester::onResponseHeader(const string &status, const HttpHeader &headers) {
-    _strRecvBody.clear();
-    return HttpClientImp::onResponseHeader(status, headers);
+void HttpRequester::onResponseHeader(const string &status, const HttpHeader &headers) {
+    _res_body.clear();
 }
 
-void HttpRequester::onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) {
-    _strRecvBody.append(buf, size);
+void HttpRequester::onResponseBody(const char *buf, size_t size) {
+    _res_body.append(buf, size);
 }
 
-void HttpRequester::onResponseCompleted() {
-    const_cast<Parser &> (response()).setContent(std::move(_strRecvBody));
-    if (_onResult) {
-        _onResult(SockException(), response());
-        _onResult = nullptr;
+void HttpRequester::onResponseCompleted(const SockException &ex) {
+    const_cast<Parser &>(response()).setContent(std::move(_res_body));
+    if (_on_result) {
+        _on_result(ex, response());
+        _on_result = nullptr;
     }
 }
 
-void HttpRequester::onDisconnect(const SockException &ex) {
-    const_cast<Parser &> (response()).setContent(std::move(_strRecvBody));
-    if (_onResult) {
-        _onResult(ex, response());
-        _onResult = nullptr;
-    }
-}
-
-void HttpRequester::startRequester(const string &url, const HttpRequesterResult &onResult, float timeOutSecond) {
-    _onResult = onResult;
-    setCompleteTimeout(timeOutSecond * 1000);
+void HttpRequester::startRequester(const string &url, const HttpRequesterResult &on_result, float timeout_sec) {
+    _on_result = on_result;
+    setCompleteTimeout(timeout_sec * 1000);
     sendRequest(url);
 }
 
 void HttpRequester::clear() {
     HttpClientImp::clear();
-    _strRecvBody.clear();
-    _onResult = nullptr;
+    _res_body.clear();
+    _on_result = nullptr;
 }
 
 void HttpRequester::setOnResult(const HttpRequesterResult &onResult) {
-    _onResult = onResult;
+    _on_result = onResult;
 }
 
-
-}//namespace mediakit
+} // namespace mediakit

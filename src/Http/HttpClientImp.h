@@ -16,13 +16,14 @@
 using namespace toolkit;
 namespace mediakit {
 
-class HttpClientImp: public TcpClientWithSSL<HttpClient> {
+class HttpClientImp : public TcpClientWithSSL<HttpClient> {
 public:
-    typedef std::shared_ptr<HttpClientImp> Ptr;
-    HttpClientImp() {}
-    virtual ~HttpClientImp() {}
+    using Ptr = std::shared_ptr<HttpClientImp>;
+    HttpClientImp() = default;
+    ~HttpClientImp() override = default;
+
 protected:
-    void onConnect(const SockException &ex)  override ;
+    void onConnect(const SockException &ex) override;
 };
 
 } /* namespace mediakit */
