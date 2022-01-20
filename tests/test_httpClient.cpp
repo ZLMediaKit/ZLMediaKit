@@ -49,15 +49,15 @@ int main(int argc, char *argv[]) {
     for (auto &url : urlList) {
         //创建下载器
         HttpDownloader::Ptr downloader(new HttpDownloader());
-        downloader->setOnResult([](ErrCode code, const string &errMsg, const string &filePath) {
+        downloader->setOnResult([](const SockException &ex, const string &filePath) {
             DebugL << "=====================HttpDownloader result=======================";
             //下载结果回调
-            if (code == Err_success) {
+            if (!ex) {
                 //文件下载成功
                 InfoL << "download file success:" << filePath;
             } else {
                 //下载失败
-                WarnL << "code:" << code << " msg:" << errMsg;
+                WarnL << "code:" << ex.getErrCode() << " msg:" << ex.what();
             }
         });
         //断点续传功能,开启后可能会遇到416的错误（因为上次文件已经下载完全）

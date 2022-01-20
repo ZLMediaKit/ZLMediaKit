@@ -118,10 +118,8 @@ protected:
      * 收到http回复头
      * @param status 状态码，譬如:200 OK
      * @param headers http头
-     * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
-     *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
      */
-    ssize_t onResponseHeader(const string &status,const HttpHeader &headers) override {
+    void onResponseHeader(const string &status,const HttpHeader &headers) override {
         if(status == "101"){
             auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(_Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
             if(Sec_WebSocket_Accept == const_cast<HttpHeader &>(headers)["Sec-WebSocket-Accept"]){
@@ -129,26 +127,24 @@ protected:
                 onWebSocketException(SockException());
                 //防止ws服务器返回Content-Length
                 const_cast<HttpHeader &>(headers).erase("Content-Length");
-                //后续全是websocket负载数据
-                return -1;
+                return;
             }
-            shutdown(SockException(Err_shutdown,StrPrinter << "Sec-WebSocket-Accept mismatch"));
-            return 0;
+            shutdown(SockException(Err_shutdown, StrPrinter << "Sec-WebSocket-Accept mismatch"));
+            return;
         }
 
         shutdown(SockException(Err_shutdown,StrPrinter << "bad http status code:" << status));
-        return 0;
     };
 
     /**
      * 接收http回复完毕,
      */
-    void onResponseCompleted() override {}
+    void onResponseCompleted(const SockException &ex) override {}
 
     /**
      * 接收websocket负载数据
      */
-    void onResponseBody(const char *buf,size_t size,size_t recvedSize,size_t totalSize) override{
+    void onResponseBody(const char *buf,size_t size) override{
         if(_onRecv){
             //完成websocket握手后，拦截websocket数据并解析
             _onRecv(buf, size);

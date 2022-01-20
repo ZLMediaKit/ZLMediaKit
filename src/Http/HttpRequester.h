@@ -24,18 +24,17 @@ public:
     ~HttpRequester() override = default;
 
     void setOnResult(const HttpRequesterResult &onResult);
-    void startRequester(const string &url, const HttpRequesterResult &onResult, float timeOutSecond = 10);
+    void startRequester(const string &url, const HttpRequesterResult &on_result, float timeout_sec = 10);
     void clear() override;
 
 private:
-    ssize_t onResponseHeader(const string &status, const HttpHeader &headers) override;
-    void onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) override;
-    void onResponseCompleted() override;
-    void onDisconnect(const SockException &ex) override;
+    void onResponseHeader(const string &status, const HttpHeader &headers) override;
+    void onResponseBody(const char *buf, size_t size) override;
+    void onResponseCompleted(const SockException &ex) override;
 
 private:
-    string _strRecvBody;
-    HttpRequesterResult _onResult;
+    string _res_body;
+    HttpRequesterResult _on_result;
 };
 
 }//namespace mediakit

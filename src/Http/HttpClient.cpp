@@ -141,6 +141,14 @@ const Parser &HttpClient::response() const {
     return _parser;
 }
 
+ssize_t HttpClient::responseBodyTotalSize() const {
+    return _total_body_size;
+}
+
+size_t HttpClient::responseBodySize() const {
+    return _recved_body_size;
+}
+
 const string &HttpClient::getUrl() const {
     return _url;
 }
@@ -151,7 +159,7 @@ void HttpClient::onConnect(const SockException &ex) {
 
 void HttpClient::onConnect_l(const SockException &ex) {
     if (ex) {
-        onDisconnect(ex);
+        onResponseCompleted_l(ex);
         return;
     }
 
@@ -173,12 +181,7 @@ void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
 }
 
 void HttpClient::onErr(const SockException &ex) {
-    if (ex.getErrCode() == Err_eof && _total_body_size < 0) {
-        //如果Content-Length未指定 但服务器断开链接
-        //则认为本次http请求完成
-        onResponseCompleted_l();
-    }
-    onDisconnect(ex);
+    onResponseCompleted_l(ex);
 }
 
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
@@ -186,42 +189,44 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     if (_parser.Url() == "302" || _parser.Url() == "301") {
         auto new_url = _parser["Location"];
         if (new_url.empty()) {
-            shutdown(SockException(Err_shutdown, "未找到Location字段(跳转url)"));
-            return 0;
+            throw invalid_argument("未找到Location字段(跳转url)");
         }
         if (onRedirectUrl(new_url, _parser.Url() == "302")) {
-            setMethod("GET");
             HttpClient::sendRequest(new_url);
             return 0;
         }
     }
 
     checkCookie(_parser.getHeader());
+    onResponseHeader(_parser.Url(), _parser.getHeader());
     _header_recved = true;
-    _total_body_size = onResponseHeader(_parser.Url(), _parser.getHeader());
-
-    if (!_parser["Content-Length"].empty()) {
-        //有Content-Length字段时忽略onResponseHeader的返回值
-        _total_body_size = atoll(_parser["Content-Length"].data());
-    }
 
     if (_parser["Transfer-Encoding"] == "chunked") {
         //如果Transfer-Encoding字段等于chunked，则认为后续的content是不限制长度的
         _total_body_size = -1;
         _chunked_splitter = std::make_shared<HttpChunkedSplitter>([this](const char *data, size_t len) {
             if (len > 0) {
-                auto recved_body_size = _recved_body_size + len;
-                onResponseBody(data, len, recved_body_size, SIZE_MAX);
-                _recved_body_size = recved_body_size;
+                _recved_body_size += len;
+                onResponseBody(data, len);
             } else {
-                onResponseCompleted_l();
+                _total_body_size = _recved_body_size;
+                onResponseCompleted_l(SockException(Err_success, "success"));
             }
         });
+        //后续为源源不断的body
+        return -1;
+    }
+
+    if (!_parser["Content-Length"].empty()) {
+        //有Content-Length字段时忽略onResponseHeader的返回值
+        _total_body_size = atoll(_parser["Content-Length"].data());
+    } else {
+        _total_body_size = -1;
     }
 
     if (_total_body_size == 0) {
         //后续没content，本次http请求结束
-        onResponseCompleted_l();
+        onResponseCompleted_l(SockException(Err_success, "success"));
         return 0;
     }
 
@@ -238,30 +243,30 @@ void HttpClient::onRecvContent(const char *data, size_t len) {
         _chunked_splitter->input(data, len);
         return;
     }
-    auto recved_body_size = _recved_body_size + len;
+    _recved_body_size += len;
     if (_total_body_size < 0) {
-        //不限长度的content,最大支持SIZE_MAX个字节
-        onResponseBody(data, len, recved_body_size, SIZE_MAX);
-        _recved_body_size = recved_body_size;
+        //不限长度的content
+        onResponseBody(data, len);
         return;
     }
 
     //固定长度的content
-    if (recved_body_size < (size_t) _total_body_size) {
+    if (_recved_body_size < (size_t) _total_body_size) {
         //content还未接收完毕
-        onResponseBody(data, len, recved_body_size, _total_body_size);
-        _recved_body_size = recved_body_size;
+        onResponseBody(data, len);
         return;
     }
 
-    //content接收完毕
-    onResponseBody(data, _total_body_size - _recved_body_size, _total_body_size, _total_body_size);
-    bool bigger_than_expected = recved_body_size > (size_t) _total_body_size;
-    onResponseCompleted_l();
-    if (bigger_than_expected) {
-        //声明的content数据比真实的小，那么我们只截取前面部分的并断开链接
-        shutdown(SockException(Err_shutdown, "http response content size bigger than expected"));
+    if (_recved_body_size == (size_t)_total_body_size) {
+        //content接收完毕
+        onResponseBody(data, len);
+        onResponseCompleted_l(SockException(Err_success, "success"));
+        return;
     }
+
+    //声明的content数据比真实的小，断开链接
+    onResponseBody(data, len);
+    throw invalid_argument("http response content size bigger than expected");
 }
 
 void HttpClient::onFlush() {
@@ -308,10 +313,34 @@ void HttpClient::onManager() {
     }
 }
 
-void HttpClient::onResponseCompleted_l() {
+void HttpClient::onResponseCompleted_l(const SockException &ex) {
+    if (_complete) {
+        return;
+    }
     _complete = true;
     _wait_complete.resetTime();
-    onResponseCompleted();
+
+    if (!ex) {
+        //确认无疑的成功
+        onResponseCompleted(ex);
+        return;
+    }
+    //可疑的失败
+
+    if (_total_body_size > 0 && _recved_body_size >= _total_body_size) {
+        //回复header中有content-length信息，那么收到的body大于等于声明值则认为成功
+        onResponseCompleted(SockException(Err_success, "success"));
+        return;
+    }
+
+    if (_total_body_size == -1 && _recved_body_size > 0) {
+        //回复header中无content-length信息，那么收到一点body也认为成功
+        onResponseCompleted(SockException(Err_success, ex.what()));
+        return;
+    }
+
+    //确认无疑的失败
+    onResponseCompleted(ex);
 }
 
 bool HttpClient::waitResponse() const {

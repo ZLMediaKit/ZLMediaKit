@@ -25,16 +25,45 @@ using namespace toolkit;
 
 namespace mediakit {
 
+class HlsDemuxer
+    : public MediaSinkInterface
+    , public TrackSource
+    , public std::enable_shared_from_this<HlsDemuxer> {
+public:
+    HlsDemuxer() = default;
+    ~HlsDemuxer() override { _timer = nullptr; }
+
+    void start(const EventPoller::Ptr &poller, TrackListener *listener);
+    bool inputFrame(const Frame::Ptr &frame) override;
+    bool addTrack(const Track::Ptr &track) override { return _delegate.addTrack(track); }
+    void addTrackCompleted() override { _delegate.addTrackCompleted(); }
+    void resetTracks() override { ((MediaSink &)_delegate).resetTracks(); }
+    vector<Track::Ptr> getTracks(bool ready = true) const override { return _delegate.getTracks(ready); }
+
+private:
+    void onTick();
+    int64_t getBufferMS();
+    int64_t getPlayPosition();
+    void setPlayPosition(int64_t pos);
+
+private:
+    int64_t _ticker_offset = 0;
+    Ticker _ticker;
+    Stamp _stamp[2];
+    Timer::Ptr _timer;
+    MediaSinkDelegate _delegate;
+    multimap<int64_t, Frame::Ptr> _frame_cache;
+};
+
 class HlsPlayer : public  HttpClientImp , public PlayerBase , public HlsParser{
 public:
     HlsPlayer(const EventPoller::Ptr &poller);
-    ~HlsPlayer() override;
+    ~HlsPlayer() override = default;
 
     /**
      * 开始播放
-     * @param strUrl
      */
-    void play(const string &strUrl) override;
+    void play(const string &url) override;
 
     /**
      * 停止播放
@@ -50,55 +79,18 @@ protected:
     virtual void onPacket(const char *data, size_t len) = 0;
 
 private:
-    /**
-     * 解析m3u8成功
-     * @param is_m3u8_inner 是否为m3u8列表
-     * @param sequence ts列表seq
-     * @param ts_map ts列表或m3u8列表
-     */
     void onParsed(bool is_m3u8_inner,int64_t sequence,const map<int,ts_segment> &ts_map) override;
-    /**
-     * 收到http回复头
-     * @param status 状态码，譬如:200 OK
-     * @param headers http头
-     * @return 返回后续content的长度；-1:后续数据全是content；>=0:固定长度content
-     *          需要指出的是，在http头中带有Content-Length字段时，该返回值无效
-     */
-    ssize_t onResponseHeader(const string &status,const HttpHeader &headers) override;
-    /**
-     * 收到http conten数据
-     * @param buf 数据指针
-     * @param size 数据大小
-     * @param recvedSize 已收数据大小(包含本次数据大小),当其等于totalSize时将触发onResponseCompleted回调
-     * @param totalSize 总数据大小
-     */
-    void onResponseBody(const char *buf,size_t size,size_t recvedSize, size_t totalSize) override;
-
-    /**
-     * 接收http回复完毕,
-     */
-    void onResponseCompleted() override;
-
-    /**
-     * http链接断开回调
-     * @param ex 断开原因
-     */
-    void onDisconnect(const SockException &ex) override;
-
-    /**
-     * 重定向事件
-     * @param url 重定向url
-     * @param temporary 是否为临时重定向
-     * @return 是否继续
-     */
+    void onResponseHeader(const string &status,const HttpHeader &headers) override;
+    void onResponseBody(const char *buf,size_t size) override;
+    void onResponseCompleted(const SockException &e) override;
     bool onRedirectUrl(const string &url,bool temporary) override;
 
 private:
     void playDelay();
     float delaySecond();
-    void playNextTs();
+    void fetchSegment();
     void teardown_l(const SockException &ex);
-    void play_l();
+    void fetchIndexFile();
     void onPacket_l(const char *data, size_t len);
 
 private:
@@ -110,15 +102,14 @@ private:
     };
 
 private:
-    bool _is_m3u8 = false;
-    bool _first = true;
+    bool _play_result = false;
     int64_t _last_sequence = -1;
     string _m3u8;
+    string _play_url;
     Timer::Ptr _timer;
     Timer::Ptr _timer_ts;
     list<ts_segment> _ts_list;
     list<string> _ts_url_sort;
-    list<string> _m3u8_list;
     set<string, UrlComp> _ts_url_cache;
     HttpTSPlayer::Ptr _http_ts_player;
     TSSegment _segment;

@@ -14,56 +14,35 @@ namespace mediakit {
 
 TsPlayer::TsPlayer(const EventPoller::Ptr &poller) : HttpTSPlayer(poller, true) {}
 
-void TsPlayer::play(const string &strUrl) {
-    _ts_url.append(strUrl);
-    playTs();
+void TsPlayer::play(const string &url) {
+    TraceL << "play http-ts: " << url;
+    _play_result = false;
+    setHeaderTimeout((*this)[Client::kTimeoutMS].as<int>());
+    setBodyTimeout((*this)[Client::kMediaTimeoutMS].as<int>());
+    setMethod("GET");
+    sendRequest(url);
 }
 
 void TsPlayer::teardown() {
     shutdown(SockException(Err_shutdown, "teardown"));
 }
 
-void TsPlayer::playTs() {
-    if (waitResponse()) {
-        //播放器目前还存活，正在下载中
-        return;
-    }
-    TraceL << "play http-ts: " << _ts_url;
-    weak_ptr <TsPlayer> weak_self = dynamic_pointer_cast<TsPlayer>(shared_from_this());
-    setMethod("GET");
-    setHeaderTimeout((*this)[Client::kTimeoutMS].as<int>());
-    setBodyTimeout((*this)[Client::kMediaTimeoutMS].as<int>());
-    sendRequest(_ts_url);
-}
-
-void TsPlayer::onResponseCompleted() {
-    //接收完毕
-    shutdown(SockException(Err_success, StrPrinter << "play " << _ts_url << " completed"));
-}
-
-void TsPlayer::onDisconnect(const SockException &ex) {
-    WarnL << "play " << _ts_url << " failed: " << ex.getErrCode() << " " << ex.what();
-    if (_first) {
-        //第一次失败，则播放失败
-        _first = false;
+void TsPlayer::onResponseCompleted(const SockException &ex) {
+    if (!_play_result) {
+        _play_result = true;
         onPlayResult(ex);
-        return;
-    }
-    if (ex.getErrCode() == Err_shutdown) {
-        onShutdown(ex);
     } else {
-        onResponseCompleted();
         onShutdown(ex);
     }
+    HttpTSPlayer::onResponseCompleted(ex);
 }
 
-ssize_t TsPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &header) {
-    ssize_t ret = HttpTSPlayer::onResponseHeader(status, header);
-    if (_first) {
-        _first = false;
-        onPlayResult(SockException(Err_success, "play success"));
+void TsPlayer::onResponseBody(const char *buf, size_t size) {
+    if (!_play_result) {
+        _play_result = true;
+        onPlayResult(SockException(Err_success, "play http-ts success"));
     }
-    return ret;
+    HttpTSPlayer::onResponseBody(buf, size);
 }
 
-}//namespace mediakit
+} // namespace mediakit

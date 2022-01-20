@@ -15,34 +15,41 @@
 
 namespace mediakit {
 
-class HttpDownloader: public HttpClientImp {
+class HttpDownloader : public HttpClientImp {
 public:
-    typedef std::shared_ptr<HttpDownloader> Ptr;
-    typedef std::function<void(ErrCode code, const string &errMsg, const string &filePath)> onDownloadResult;
-    HttpDownloader();
-    virtual ~HttpDownloader();
-    //开始下载文件,默认断点续传方式下载
-    void startDownload(const string &url, const string &filePath = "", bool bAppend = false);
+    using Ptr = std::shared_ptr<HttpDownloader>;
+    using onDownloadResult = std::function<void(const SockException &ex, const string &filePath)>;
+
+    HttpDownloader() = default;
+    ~HttpDownloader() override;
+
+    /**
+     * 开始下载文件,默认断点续传方式下载
+     * @param url 下载http url
+     * @param file_path 文件保存地址，置空则选择默认文件路径
+     * @param append 如果文件已经存在，是否断点续传方式下载
+     */
+    void startDownload(const string &url, const string &file_path = "", bool append = false);
+
     void startDownload(const string &url, const onDownloadResult &cb) {
         setOnResult(cb);
         startDownload(url, "", false);
     }
-    void setOnResult(const onDownloadResult &cb) { _onResult = cb; }
+
+    void setOnResult(const onDownloadResult &cb) { _on_result = cb; }
 
 protected:
-    void onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) override;
-    ssize_t onResponseHeader(const string &status, const HttpHeader &headers) override;
-    void onResponseCompleted() override;
-    void onDisconnect(const SockException &ex) override;
+    void onResponseBody(const char *buf, size_t size) override;
+    void onResponseHeader(const string &status, const HttpHeader &headers) override;
+    void onResponseCompleted(const SockException &ex) override;
 
 private:
     void closeFile();
 
 private:
-    FILE *_saveFile = nullptr;
-    string _filePath;
-    onDownloadResult _onResult;
-    bool _bDownloadSuccess = false;
+    FILE *_save_file = nullptr;
+    string _file_path;
+    onDownloadResult _on_result;
 };
 
 } /* namespace mediakit */

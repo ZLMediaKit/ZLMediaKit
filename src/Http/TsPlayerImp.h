@@ -24,46 +24,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class TsDemuxer : public MediaSinkInterface, public TrackSource, public std::enable_shared_from_this<TsDemuxer> {
-public:
-    TsDemuxer() = default;
-    ~TsDemuxer() override { _timer = nullptr; }
-
-    void start(const EventPoller::Ptr &poller, TrackListener *listener);
-
-    bool inputFrame(const Frame::Ptr &frame) override;
-
-    bool addTrack(const Track::Ptr &track) override {
-        return _delegate.addTrack(track);
-    }
-
-    void addTrackCompleted() override {
-        _delegate.addTrackCompleted();
-    }
-
-    void resetTracks() override {
-        ((MediaSink &) _delegate).resetTracks();
-    }
-
-    vector<Track::Ptr> getTracks(bool ready = true) const override {
-        return _delegate.getTracks(ready);
-    }
-
-private:
-    void onTick();
-    int64_t getBufferMS();
-    int64_t getPlayPosition();
-    void setPlayPosition(int64_t pos);
-
-private:
-    int64_t _ticker_offset = 0;
-    Ticker _ticker;
-    Stamp _stamp[2];
-    Timer::Ptr _timer;
-    MediaSinkDelegate _delegate;
-    multimap<int64_t, Frame::Ptr> _frame_cache;
-};
-
 class TsPlayerImp : public PlayerImp<TsPlayer, PlayerBase>, private TrackListener {
 public:
     using Ptr = std::shared_ptr<TsPlayerImp>;

@@ -15,78 +15,59 @@ using namespace toolkit;
 
 namespace mediakit {
 
-HttpDownloader::HttpDownloader() {}
-
 HttpDownloader::~HttpDownloader() {
     closeFile();
 }
 
-void HttpDownloader::startDownload(const string &url, const string &filePath, bool bAppend) {
-    _filePath = filePath;
-    if (_filePath.empty()) {
-        _filePath = exeDir() + "HttpDownloader/" + MD5(url).hexdigest();
+void HttpDownloader::startDownload(const string &url, const string &file_path, bool append) {
+    _file_path = file_path;
+    if (_file_path.empty()) {
+        _file_path = exeDir() + "HttpDownloader/" + MD5(url).hexdigest();
     }
-    _saveFile = File::create_file(_filePath.data(), bAppend ? "ab" : "wb");
-    if (!_saveFile) {
-        auto strErr = StrPrinter << "打开文件失败:" << filePath << endl;
+    _save_file = File::create_file(_file_path.data(), append ? "ab" : "wb");
+    if (!_save_file) {
+        auto strErr = StrPrinter << "打开文件失败:" << file_path << endl;
         throw std::runtime_error(strErr);
     }
-    _bDownloadSuccess = false;
-    if (bAppend) {
-        auto currentLen = ftell(_saveFile);
+    if (append) {
+        auto currentLen = ftell(_save_file);
         if (currentLen) {
             //最少续传一个字节，怕遇到http 416的错误
             currentLen -= 1;
-            fseek(_saveFile, -1, SEEK_CUR);
+            fseek(_save_file, -1, SEEK_CUR);
         }
         addHeader("Range", StrPrinter << "bytes=" << currentLen << "-" << endl);
     }
     setMethod("GET");
-
     sendRequest(url);
 }
 
-ssize_t HttpDownloader::onResponseHeader(const string &status, const HttpHeader &headers) {
+void HttpDownloader::onResponseHeader(const string &status, const HttpHeader &headers) {
     if (status != "200" && status != "206") {
         //失败
-        shutdown(SockException(Err_shutdown, StrPrinter << "Http Status:" << status));
-    }
-    //后续全部是content
-    return -1;
-}
-
-void HttpDownloader::onResponseBody(const char *buf, size_t size, size_t recvedSize, size_t totalSize) {
-    if (_saveFile) {
-        fwrite(buf, size, 1, _saveFile);
+        throw std::invalid_argument("bad http status: " + status);
     }
 }
 
-void HttpDownloader::onResponseCompleted() {
+void HttpDownloader::onResponseBody(const char *buf, size_t size) {
+    if (_save_file) {
+        fwrite(buf, size, 1, _save_file);
+    }
+}
+
+void HttpDownloader::onResponseCompleted(const SockException &ex) {
     closeFile();
-    // InfoL << "md5Sum:" << getMd5Sum(_filePath);
-    _bDownloadSuccess = true;
-    if (_onResult) {
-        _onResult(Err_success, "success", _filePath);
-        _onResult = nullptr;
-    }
-}
-
-void HttpDownloader::onDisconnect(const SockException &ex) {
-    closeFile();
-    if (!_bDownloadSuccess) {
-        File::delete_file(_filePath.data());
-    }
-    if (_onResult) {
-        _onResult(ex.getErrCode(), ex.what(), _filePath);
-        _onResult = nullptr;
+    if (_on_result) {
+        _on_result(ex, _file_path);
+        _on_result = nullptr;
     }
 }
 
 void HttpDownloader::closeFile() {
-    if (_saveFile) {
-        fflush(_saveFile);
-        fclose(_saveFile);
-        _saveFile = nullptr;
+    if (_save_file) {
+        fflush(_save_file);
+        fclose(_save_file);
+        _save_file = nullptr;
     }
 }
 
