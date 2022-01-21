@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2020 The ZLMediaKit project authors. All Rights Reserved.
  * Created by alex on 2021/4/6.
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
