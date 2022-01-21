@@ -24,9 +24,9 @@ void HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::Http
         throw invalid_argument("bad http status code:" + status);
     }
 
-    auto content_type = const_cast<HttpClient::HttpHeader &>(header)["Content-Type"];
+    auto content_type = strToLower(const_cast<HttpClient::HttpHeader &>(header)["Content-Type"]);
     if (content_type.find("video/mp2t") != 0 && content_type.find("video/mpeg") != 0) {
-        throw invalid_argument("content type not mpeg-ts: " + content_type);
+        WarnL << "may not a mpeg-ts video: " << content_type << ", url: " << getUrl();
     }
 }
 

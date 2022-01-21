@@ -167,9 +167,9 @@ void HlsPlayer::onResponseHeader(const string &status, const HttpClient::HttpHea
         //失败
         throw invalid_argument("bad http status code:" + status);
     }
-    auto content_type = const_cast<HttpClient::HttpHeader &>(headers)["Content-Type"];
-    if (content_type.find("application/vnd.apple.mpegurl") != 0) {
-        throw invalid_argument("content type not m3u8: " + content_type);
+    auto content_type = strToLower(const_cast<HttpClient::HttpHeader &>(headers)["Content-Type"]);
+    if (content_type.find("application/vnd.apple.mpegurl") != 0 && content_type.find("application/x-mpegurl") != 0) {
+        WarnL << "may not a hls video: " << content_type << ", url: " << getUrl();
     }
     _m3u8.clear();
 }
