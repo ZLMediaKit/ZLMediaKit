@@ -106,7 +106,7 @@ void HlsMaker::delOldSegment() {
 }
 
 void HlsMaker::addNewSegment(uint32_t stamp) {
-    if (!_last_file_name.empty() && stamp - _last_seg_timestamp < _seg_duration * 1000) {
+    if (!_last_file_name.empty() && static_cast<float>(stamp - _last_seg_timestamp) < _seg_duration * 1000) {
         //存在上个切片，并且未到分片时间
         return;
     }
@@ -125,11 +125,11 @@ void HlsMaker::flushLastSegment(bool eof){
         return;
     }
     //文件创建到最后一次数据写入的时间即为切片长度
-    auto seg_dur = _last_timestamp - _last_seg_timestamp;
+    int seg_dur = static_cast<int>(_last_timestamp - _last_seg_timestamp);
     if (seg_dur <= 0) {
         seg_dur = 100;
     }
-    _seg_dur_list.push_back(std::make_tuple(seg_dur, std::move(_last_file_name)));
+    _seg_dur_list.emplace_back(seg_dur, std::move(_last_file_name));
     _last_file_name.clear();
     delOldSegment();
     //先flush ts切片，否则可能存在ts文件未写入完毕就被访问的情况
