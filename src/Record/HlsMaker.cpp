@@ -73,6 +73,11 @@ void HlsMaker::makeIndexFile(bool eof) {
 
 void HlsMaker::inputData(void *data, size_t len, uint32_t timestamp, bool is_idr_fast_packet) {
     if (data && len) {
+        if (timestamp < _last_timestamp) {
+            //时间戳回退了，切片时长重新计时
+            WarnL << "stamp reduce: " << _last_timestamp << " -> " << timestamp;
+            _last_seg_timestamp = _last_timestamp = timestamp;
+        }
         if (is_idr_fast_packet) {
             //尝试切片ts
             addNewSegment(timestamp);
@@ -130,7 +135,6 @@ void HlsMaker::flushLastSegment(bool eof){
         seg_dur = 100;
     }
     _seg_dur_list.push_back(std::make_tuple(seg_dur, std::move(_last_file_name)));
-    _last_file_name.clear();
     delOldSegment();
     //先flush ts切片，否则可能存在ts文件未写入完毕就被访问的情况
     onFlushLastSegment(seg_dur);
