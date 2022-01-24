@@ -43,6 +43,7 @@ void WebRtcPlayer::onStartWebRTC() {
             }
             size_t i = 0;
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                //TraceL<<"send track type:"<<rtp->type<<" ts:"<<rtp->getStamp()<<" ntp:"<<rtp->ntp_stamp<<" size:"<<rtp->getPayloadSize()<<" i:"<<i;
                 strongSelf->onSendRtp(rtp, ++i == pkt->size());
             });
         });
@@ -57,7 +58,6 @@ void WebRtcPlayer::onStartWebRTC() {
     //使用完毕后，释放强引用，这样确保推流器断开后能及时注销媒体
     _play_src = nullptr;
 }
-
 void WebRtcPlayer::onDestory() {
     WebRtcTransportImp::onDestory();
 
