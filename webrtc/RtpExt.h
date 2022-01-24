@@ -18,7 +18,6 @@
 #include "Rtsp/Rtsp.h"
 
 using namespace std;
-using namespace mediakit;
 
 #define RTP_EXT_MAP(XX) \
     XX(ssrc_audio_level,            "urn:ietf:params:rtp-hdrext:ssrc-audio-level") \
@@ -55,7 +54,7 @@ public:
     friend class RtpExtContext;
     ~RtpExt() = default;
 
-    static map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header);
+    static map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const mediakit::RtpHeader *header);
     static RtpExtType getExtType(const string &url);
     static const string& getExtUrl(RtpExtType type);
     static const char *getExtName(RtpExtType type);
@@ -124,7 +123,7 @@ public:
     void setOnGetRtp(OnGetRtp cb);
     string getRid(uint32_t ssrc) const;
     void setRid(uint32_t ssrc, const string &rid);
-    RtpExt changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
+    RtpExt changeRtpExtId(const mediakit::RtpHeader *header, bool is_recv, string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
 
 private:
     void onGetRtp(uint8_t pt, uint32_t ssrc, const string &rid);
