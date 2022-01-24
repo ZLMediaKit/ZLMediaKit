@@ -122,11 +122,12 @@ RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
         case CodecL16 :
         case CodecOpus : return std::make_shared<CommonRtpEncoder>(codec_id, ssrc, mtu, sample_rate, pt, interleaved);
         case CodecG711A :
-        case CodecG711U : 
-            if(pt == Rtsp::PT_PCMA || pt == Rtsp::PT_PCMU){
-                return std::make_shared<G711RtpEncoder>(codec_id, ssrc, mtu, sample_rate, pt, interleaved,1);
+        case CodecG711U : {
+            if (pt == Rtsp::PT_PCMA || pt == Rtsp::PT_PCMU) {
+                return std::make_shared<G711RtpEncoder>(codec_id, ssrc, mtu, sample_rate, pt, interleaved, 1);
             }
             return std::make_shared<CommonRtpEncoder>(codec_id, ssrc, mtu, sample_rate, pt, interleaved);
+        }
         default : WarnL << "暂不支持该CodecId:" << codec_id; return nullptr;
     }
 }
