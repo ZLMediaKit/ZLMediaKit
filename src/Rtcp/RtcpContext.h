@@ -96,8 +96,8 @@ public:
     uint32_t getRtt(uint32_t ssrc) const;
 
 private:
-    map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
-    map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
+    std::map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
+    std::map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
 };
 
 class RtcpContextForRecv : public RtcpContext {

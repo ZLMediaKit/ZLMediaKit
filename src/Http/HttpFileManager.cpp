@@ -20,6 +20,7 @@
 #include "Record/HlsMediaSource.h"
 #include "Common/Parser.h"
 
+using namespace std;
 namespace mediakit {
 
 // hls的播放cookie缓存时间默认60秒，

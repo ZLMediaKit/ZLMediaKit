@@ -15,6 +15,7 @@
 #include "Http/HlsPlayer.h"
 #include "Http/TsPlayerImp.h"
 using namespace toolkit;
+using namespace std;
 
 namespace mediakit {
 

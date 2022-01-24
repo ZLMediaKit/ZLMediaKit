@@ -29,13 +29,13 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class HttpArgs : public map<string, variant, StrCaseCompare> {
+class HttpArgs : public std::map<std::string, variant, StrCaseCompare> {
 public:
     HttpArgs() = default;
     ~HttpArgs() = default;
 
-    string make() const {
-        string ret;
+    std::string make() const {
+        std::string ret;
         for (auto &pr : *this) {
             ret.append(pr.first);
             ret.append("=");
@@ -61,7 +61,7 @@ public:
      * 发送http[s]请求
      * @param url 请求url
      */
-    virtual void sendRequest(const string &url);
+    virtual void sendRequest(const std::string &url);
 
     /**
      * 重置对象
@@ -72,7 +72,7 @@ public:
      * 设置http方法
      * @param method GET/POST等
      */
-    void setMethod(string method);
+    void setMethod(std::string method);
 
     /**
      * 覆盖http头
@@ -80,13 +80,13 @@ public:
      */
     void setHeader(HttpHeader header);
 
-    HttpClient &addHeader(string key, string val, bool force = false);
+    HttpClient &addHeader(std::string key, std::string val, bool force = false);
 
     /**
      * 设置http content
      * @param body http content
      */
-    void setBody(string body);
+    void setBody(std::string body);
 
     /**
      * 设置http content
@@ -112,7 +112,7 @@ public:
     /**
      * 获取请求url
      */
-    const string &getUrl() const;
+    const std::string &getUrl() const;
 
     /**
      * 判断是否正在等待响应
@@ -149,7 +149,7 @@ protected:
      * @param status 状态码，譬如:200 OK
      * @param headers http头
      */
-    virtual void onResponseHeader(const string &status, const HttpHeader &headers) = 0;
+    virtual void onResponseHeader(const std::string &status, const HttpHeader &headers) = 0;
 
     /**
      * 收到http conten数据
@@ -169,7 +169,7 @@ protected:
      * @param temporary 是否为临时重定向
      * @return 是否继续
      */
-    virtual bool onRedirectUrl(const string &url, bool temporary) { return true; };
+    virtual bool onRedirectUrl(const std::string &url, bool temporary) { return true; };
 
 protected:
     //// HttpRequestSplitter override ////
@@ -200,14 +200,14 @@ private:
 
     //for request args
     bool _is_https;
-    string _url;
+    std::string _url;
     HttpHeader _user_set_header;
     HttpBody::Ptr _body;
-    string _method;
-    string _last_host;
+    std::string _method;
+    std::string _last_host;
 
     //for this request
-    string _path;
+    std::string _path;
     HttpHeader _header;
 
     //for timeout

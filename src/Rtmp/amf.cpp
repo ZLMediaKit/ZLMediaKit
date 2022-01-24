@@ -17,6 +17,7 @@
 #include "Network/sockutil.h"
 #include "Util/util.h"
 using namespace toolkit;
+using namespace std;
 
 /////////////////////AMFValue/////////////////////////////
 inline void AMFValue::destroy() {

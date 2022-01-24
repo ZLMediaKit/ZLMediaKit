@@ -24,7 +24,7 @@ public:
     RtmpPusher(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &src);
     ~RtmpPusher() override;
 
-    void publish(const string &url) override ;
+    void publish(const std::string &url) override ;
     void teardown() override;
 
 protected:
@@ -62,11 +62,11 @@ private:
     void setSocketFlags();
 
 private:
-    string _app;
-    string _stream_id;
-    string _tc_url;
-    deque<function<void(AMFValue &dec)> > _deque_on_status;
-    unordered_map<int, function<void(AMFDecoder &dec)> > _map_on_result;
+    std::string _app;
+    std::string _stream_id;
+    std::string _tc_url;
+    std::deque<std::function<void(AMFValue &dec)> > _deque_on_status;
+    std::unordered_map<int, std::function<void(AMFDecoder &dec)> > _map_on_result;
 
     //推流超时定时器
     std::shared_ptr<Timer> _publish_timer;

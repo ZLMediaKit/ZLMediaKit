@@ -29,15 +29,15 @@ public:
     void onManager() override;
 
 private:
-    inline bool onCommandLine(const string &);
+    inline bool onCommandLine(const std::string &);
     inline void pleaseInputUser();
     inline void pleaseInputPasswd();
     inline void printShellPrefix();
 
-    function<bool(const string &)> _loginInterceptor;
-    string _strRecvBuf;
+    std::function<bool(const std::string &)> _loginInterceptor;
+    std::string _strRecvBuf;
     Ticker _beatTicker;
-    string _strUserName;
+    std::string _strUserName;
 };
 
 } /* namespace mediakit */

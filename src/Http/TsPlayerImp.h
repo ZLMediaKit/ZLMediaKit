@@ -32,7 +32,7 @@ private:
 private:
     //// PlayerBase override////
     void onPlayResult(const SockException &ex) override;
-    vector<Track::Ptr> getTracks(bool ready = true) const override;
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override;
     void onShutdown(const SockException &ex) override;
 
 private:

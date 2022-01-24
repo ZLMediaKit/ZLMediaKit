@@ -21,9 +21,9 @@ class TSMediaSourceMuxer : public MpegMuxer, public MediaSourceEventInterceptor,
 public:
     using Ptr = std::shared_ptr<TSMediaSourceMuxer>;
 
-    TSMediaSourceMuxer(const string &vhost,
-                       const string &app,
-                       const string &stream_id) : MpegMuxer(false) {
+    TSMediaSourceMuxer(const std::string &vhost,
+                       const std::string &app,
+                       const std::string &stream_id) : MpegMuxer(false) {
         _media_src = std::make_shared<TSMediaSource>(vhost, app, stream_id);
     }
 

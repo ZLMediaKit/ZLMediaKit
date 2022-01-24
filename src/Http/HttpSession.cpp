@@ -18,6 +18,7 @@
 #include "Util/base64.h"
 #include "Util/SHA1.h"
 using namespace toolkit;
+using namespace std;
 
 namespace mediakit {
 

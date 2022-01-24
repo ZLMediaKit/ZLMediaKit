@@ -48,8 +48,8 @@ private:
     void onCmd_play(AMFDecoder &dec);
     void onCmd_play2(AMFDecoder &dec);
     void doPlay(AMFDecoder &dec);
-    void doPlayResponse(const string &err,const std::function<void(bool)> &cb);
-    void sendPlayResponse(const string &err,const RtmpMediaSource::Ptr &src);
+    void doPlayResponse(const std::string &err,const std::function<void(bool)> &cb);
+    void sendPlayResponse(const std::string &err,const RtmpMediaSource::Ptr &src);
 
     void onCmd_seek(AMFDecoder &dec);
     void onCmd_pause(AMFDecoder &dec);
@@ -78,14 +78,14 @@ private:
     // 获取媒体源类型
     MediaOriginType getOriginType(MediaSource &sender) const override;
     // 获取媒体源url或者文件路径
-    string getOriginUrl(MediaSource &sender) const override;
+    std::string getOriginUrl(MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
     void setSocketFlags();
-    string getStreamId(const string &str);
+    std::string getStreamId(const std::string &str);
     void dumpMetadata(const AMFValue &metadata);
-    void sendStatus(const std::initializer_list<string> &key_value);
+    void sendStatus(const std::initializer_list<std::string> &key_value);
 
 private:
     bool _set_meta_data = false;

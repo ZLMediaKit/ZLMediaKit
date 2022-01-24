@@ -32,7 +32,7 @@ public:
     typedef std::shared_ptr<RtspPusher> Ptr;
     RtspPusher(const EventPoller::Ptr &poller,const RtspMediaSource::Ptr &src);
     ~RtspPusher() override;
-    void publish(const string &url) override;
+    void publish(const std::string &url) override;
     void teardown() override;
 
 protected:
@@ -58,14 +58,14 @@ private:
 
     void handleResAnnounce(const Parser &parser);
     void handleResSetup(const Parser &parser, unsigned int track_idx);
-    bool handleAuthenticationFailure(const string &params_str);
+    bool handleAuthenticationFailure(const std::string &params_str);
 
     int getTrackIndexByInterleaved(int interleaved) const;
     int getTrackIndexByTrackType(TrackType type) const;
 
     void sendRtpPacket(const RtspMediaSource::RingDataType & pkt) ;
-    void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap(),const string &sdp = "" );
-    void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header,const string &sdp = "");
+    void sendRtspRequest(const std::string &cmd, const std::string &url ,const StrCaseMap &header = StrCaseMap(),const std::string &sdp = "" );
+    void sendRtspRequest(const std::string &cmd, const std::string &url ,const std::initializer_list<std::string> &header,const std::string &sdp = "");
 
     void createUdpSockIfNecessary(int track_idx);
     void setSocketFlags();
@@ -76,13 +76,13 @@ private:
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
     //rtsp鉴权相关
-    string _nonce;
-    string _realm;
-    string _url;
-    string _session_id;
-    string _content_base;
+    std::string _nonce;
+    std::string _realm;
+    std::string _url;
+    std::string _session_id;
+    std::string _content_base;
     SdpParser _sdp_parser;
-    vector<SdpTrack::Ptr> _track_vec;
+    std::vector<SdpTrack::Ptr> _track_vec;
     //RTP端口,trackid idx 为数组下标
     Socket::Ptr _rtp_sock[2];
     //RTCP端口,trackid idx 为数组下标
@@ -93,12 +93,12 @@ private:
     std::shared_ptr<Timer> _beat_timer;
     std::weak_ptr<RtspMediaSource> _push_src;
     RtspMediaSource::RingType::RingReader::Ptr _rtsp_reader;
-    function<void(const Parser&)> _on_res_func;
+    std::function<void(const Parser&)> _on_res_func;
     ////////// rtcp ////////////////
     //rtcp发送时间,trackid idx 为数组下标
     Ticker _rtcp_send_ticker[2];
     //统计rtp并发送rtcp
-    vector<RtcpContext::Ptr> _rtcp_context;
+    std::vector<RtcpContext::Ptr> _rtcp_context;
 };
 
 using RtspPusherImp = PusherImp<RtspPusher, PusherBase>;

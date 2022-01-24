@@ -39,7 +39,7 @@ public:
      * @param accessPath 运行或禁止访问的根目录
      * @param cookieLifeSecond 鉴权cookie有效期
      **/
-    typedef std::function<void(const string &errMsg,const string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
+    typedef std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
 
     HttpSession(const Socket::Ptr &pSock);
     ~HttpSession() override;
@@ -47,7 +47,7 @@ public:
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
-    static string urlDecode(const string &str);
+    static std::string urlDecode(const std::string &str);
 
 protected:
     //FlvMuxer override
@@ -106,11 +106,11 @@ private:
     void Handle_Req_HEAD(ssize_t &content_len);
     void Handle_Req_OPTIONS(ssize_t &content_len);
 
-    bool checkLiveStream(const string &schema, const string  &url_suffix, const function<void(const MediaSource::Ptr &src)> &cb);
+    bool checkLiveStream(const std::string &schema, const std::string  &url_suffix, const std::function<void(const MediaSource::Ptr &src)> &cb);
 
-    bool checkLiveStreamFlv(const function<void()> &cb = nullptr);
-    bool checkLiveStreamTS(const function<void()> &cb = nullptr);
-    bool checkLiveStreamFMP4(const function<void()> &fmp4_list = nullptr);
+    bool checkLiveStreamFlv(const std::function<void()> &cb = nullptr);
+    bool checkLiveStreamTS(const std::function<void()> &cb = nullptr);
+    bool checkLiveStreamFMP4(const std::function<void()> &fmp4_list = nullptr);
 
     bool checkWebSocket();
     bool emitHttpEvent(bool doInvoke);
@@ -128,14 +128,14 @@ private:
     bool _live_over_websocket = false;
     //消耗的总流量
     uint64_t _total_bytes_usage = 0;
-    string _origin;
+    std::string _origin;
     Parser _parser;
     Ticker _ticker;
     MediaInfo _mediaInfo;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
     FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
     //处理content数据的callback
-    function<bool (const char *data,size_t len) > _contentCallBack;
+    std::function<bool (const char *data,size_t len) > _contentCallBack;
 };
 
 

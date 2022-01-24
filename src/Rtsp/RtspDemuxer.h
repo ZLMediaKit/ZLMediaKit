@@ -29,7 +29,7 @@ public:
     /**
      * 加载sdp
      */
-    void loadSdp(const string &sdp);
+    void loadSdp(const std::string &sdp);
 
     /**
      * 开始解复用

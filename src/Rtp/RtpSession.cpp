@@ -13,6 +13,9 @@
 #include "RtpSelector.h"
 #include "Network/TcpServer.h"
 #include "Rtsp/RtpReceiver.h"
+
+using namespace std;
+
 namespace mediakit{
 
 const string RtpSession::kStreamID = "stream_id";

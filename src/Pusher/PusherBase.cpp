@@ -20,14 +20,14 @@ namespace mediakit {
 
 PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &poller,
                                          const MediaSource::Ptr &src,
-                                         const string & strUrl) {
+                                         const std::string & strUrl) {
     static auto releasePusher = [](PusherBase *ptr){
         onceToken token(nullptr,[&](){
             delete  ptr;
         });
         ptr->teardown();
     };
-    string prefix = FindField(strUrl.data(), NULL, "://");
+    std::string prefix = FindField(strUrl.data(), NULL, "://");
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
         return PusherBase::Ptr(new TcpClientWithSSL<RtspPusherImp>(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);

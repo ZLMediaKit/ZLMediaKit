@@ -14,6 +14,8 @@
 
 #define FILE_BUF_SIZE (64 * 1024)
 
+using namespace std;
+
 namespace mediakit {
 
 FlvMuxer::FlvMuxer(){

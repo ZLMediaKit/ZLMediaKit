@@ -24,7 +24,7 @@ protected:
     void onStartWebRTC() override;
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
-    void onRecvRtp(MediaTrack &track, const string &rid, mediakit::RtpPacket::Ptr rtp) override {};
+    void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) override {};
 
 private:
     WebRtcPlayer(const EventPoller::Ptr &poller, const mediakit::RtspMediaSource::Ptr &src, const mediakit::MediaInfo &info);

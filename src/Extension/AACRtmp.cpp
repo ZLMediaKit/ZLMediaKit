@@ -11,6 +11,7 @@
 #include "AACRtmp.h"
 #include "Rtmp/Rtmp.h"
 
+using namespace std;
 namespace mediakit{
 
 static string getAacCfg(const RtmpPacket &thiz) {

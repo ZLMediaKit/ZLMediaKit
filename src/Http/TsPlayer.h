@@ -25,7 +25,7 @@ public:
     /**
      * 开始播放
      */
-    void play(const string &url) override;
+    void play(const std::string &url) override;
 
     /**
      * 停止播放

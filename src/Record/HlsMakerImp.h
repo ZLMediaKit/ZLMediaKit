@@ -22,8 +22,8 @@ namespace mediakit {
 
 class HlsMakerImp : public HlsMaker{
 public:
-    HlsMakerImp(const string &m3u8_file,
-                const string &params,
+    HlsMakerImp(const std::string &m3u8_file,
+                const std::string &params,
                 uint32_t bufSize  = 64 * 1024,
                 float seg_duration = 5,
                 uint32_t seg_number = 3);
@@ -36,7 +36,7 @@ public:
      * @param app 应用名
      * @param stream_id 流id
      */
-    void setMediaSource(const string &vhost, const string &app, const string &stream_id);
+    void setMediaSource(const std::string &vhost, const std::string &app, const std::string &stream_id);
 
     /**
      * 获取MediaSource
@@ -51,26 +51,26 @@ public:
      void clearCache(bool immediately = true);
 
 protected:
-    string onOpenSegment(uint64_t index) override ;
+    std::string onOpenSegment(uint64_t index) override ;
     void onDelSegment(uint64_t index) override;
     void onWriteSegment(const char *data, size_t len) override;
     void onWriteHls(const char *data, size_t len) override;
     void onFlushLastSegment(uint32_t duration_ms) override;
 
 private:
-    std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
+    std::shared_ptr<FILE> makeFile(const std::string &file,bool setbuf = false);
 
 private:
     int _buf_size;
-    string _params;
-    string _path_hls;
-    string _path_prefix;
+    std::string _params;
+    std::string _path_hls;
+    std::string _path_prefix;
     RecordInfo _info;
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
     EventPoller::Ptr _poller;
-    map<uint64_t/*index*/,string/*file_path*/> _segment_file_paths;
+    std::map<uint64_t/*index*/,std::string/*file_path*/> _segment_file_paths;
 };
 
 }//namespace mediakit

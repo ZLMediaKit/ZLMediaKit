@@ -13,6 +13,7 @@
 #include "PusherBase.h"
 
 using namespace toolkit;
+using namespace std;
 
 namespace mediakit {
 

@@ -30,7 +30,7 @@ public:
      * 打开文件
      * @param file mp4文件路径
      */
-    void openMP4(const string &file);
+    void openMP4(const std::string &file);
 
     /**
      * @brief 关闭 mp4 文件
@@ -57,7 +57,7 @@ public:
      * @param trackReady 是否要求track为就绪状态
      * @return 所有Track
      */
-    vector<Track::Ptr> getTracks(bool trackReady) const override;
+    std::vector<Track::Ptr> getTracks(bool trackReady) const override;
 
     /**
      * 获取文件长度
@@ -75,7 +75,7 @@ private:
     MP4FileDisk::Ptr _mp4_file;
     MP4FileDisk::Reader _mov_reader;
     uint64_t _duration_ms = 0;
-    map<int, Track::Ptr> _track_to_codec;
+    std::map<int, Track::Ptr> _track_to_codec;
     ResourcePool<BufferRaw> _buffer_pool;
 };
 

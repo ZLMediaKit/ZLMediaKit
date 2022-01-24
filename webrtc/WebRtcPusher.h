@@ -25,7 +25,7 @@ protected:
     void onStartWebRTC() override;
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
-    void onRecvRtp(MediaTrack &track, const string &rid, mediakit::RtpPacket::Ptr rtp) override;
+    void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) override;
 
 protected:
     ///////MediaSourceEvent override///////
@@ -36,7 +36,7 @@ protected:
     // 获取媒体源类型
     mediakit::MediaOriginType getOriginType(mediakit::MediaSource &sender) const override;
     // 获取媒体源url或者文件路径
-    string getOriginUrl(mediakit::MediaSource &sender) const override;
+    std::string getOriginUrl(mediakit::MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
 
@@ -53,8 +53,8 @@ private:
     //推流所有权
     std::shared_ptr<void> _push_src_ownership;
     //推流的rtsp源,支持simulcast
-    unordered_map<string/*rid*/, mediakit::RtspMediaSource::Ptr> _push_src_sim;
-    unordered_map<string/*rid*/, std::shared_ptr<void> > _push_src_sim_ownership;
+    std::unordered_map<std::string/*rid*/, mediakit::RtspMediaSource::Ptr> _push_src_sim;
+    std::unordered_map<std::string/*rid*/, std::shared_ptr<void> > _push_src_sim_ownership;
 };
 
 #endif //ZLMEDIAKIT_WEBRTCPUSHER_H

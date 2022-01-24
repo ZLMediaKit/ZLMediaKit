@@ -12,6 +12,9 @@
 #include "RtpServer.h"
 #include "RtpSelector.h"
 #include "Rtcp/RtcpContext.h"
+
+using namespace std;
+
 namespace mediakit{
 
 RtpServer::RtpServer() {

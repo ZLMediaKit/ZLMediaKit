@@ -28,7 +28,7 @@ namespace mediakit{
 class RtpServer {
 public:
     typedef std::shared_ptr<RtpServer> Ptr;
-    typedef function<void(const Buffer::Ptr &buf)> onRecv;
+    typedef std::function<void(const Buffer::Ptr &buf)> onRecv;
 
     RtpServer();
     ~RtpServer();
@@ -40,7 +40,7 @@ public:
      * @param enable_tcp 是否启用tcp服务器
      * @param local_ip 绑定的本地网卡ip
      */
-    void start(uint16_t local_port, const string &stream_id = "", bool enable_tcp = true, const char *local_ip = "0.0.0.0",bool enable_reuse = true);
+    void start(uint16_t local_port, const std::string &stream_id = "", bool enable_tcp = true, const char *local_ip = "0.0.0.0",bool enable_reuse = true);
 
     /**
      * 获取绑定的本地端口
@@ -50,14 +50,14 @@ public:
     /**
      * 设置RtpProcess onDetach事件回调
      */
-    void setOnDetach(const function<void()> &cb);
+    void setOnDetach(const std::function<void()> &cb);
 
 protected:
     Socket::Ptr _rtp_socket;
     UdpServer::Ptr _udp_server;
     TcpServer::Ptr _tcp_server;
     RtpProcess::Ptr _rtp_process;
-    function<void()> _on_clearup;
+    std::function<void()> _on_clearup;
 };
 
 }//namespace mediakit

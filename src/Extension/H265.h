@@ -20,7 +20,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-bool getHEVCInfo(const string &strVps, const string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps);
+bool getHEVCInfo(const std::string &strVps, const std::string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps);
 
 template<typename Parent>
 class H265FrameHelper : public Parent{
@@ -136,14 +136,14 @@ public:
      * @param sps_prefix_len 265头长度，可以为3个或4个字节，一般为0x00 00 00 01
      * @param pps_prefix_len 265头长度，可以为3个或4个字节，一般为0x00 00 00 01
      */
-    H265Track(const string &vps,const string &sps, const string &pps,int vps_prefix_len = 4, int sps_prefix_len = 4, int pps_prefix_len = 4);
+    H265Track(const std::string &vps,const std::string &sps, const std::string &pps,int vps_prefix_len = 4, int sps_prefix_len = 4, int pps_prefix_len = 4);
 
     /**
      * 返回不带0x00 00 00 01头的vps/sps/pps
      */
-    const string &getVps() const;
-    const string &getSps() const;
-    const string &getPps() const;
+    const std::string &getVps() const;
+    const std::string &getSps() const;
+    const std::string &getPps() const;
 
     bool ready() override;
     CodecId getCodecId() const override;
@@ -164,9 +164,9 @@ private:
     int _width = 0;
     int _height = 0;
     float _fps = 0;
-    string _vps;
-    string _sps;
-    string _pps;
+    std::string _vps;
+    std::string _sps;
+    std::string _pps;
 };
 
 }//namespace mediakit

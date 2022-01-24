@@ -32,7 +32,7 @@ public:
     RtspPlayerImp(const EventPoller::Ptr &poller) : Super(poller) {}
 
     ~RtspPlayerImp() override {
-        DebugL << endl;
+        DebugL << std::endl;
     }
 
     float getProgress() const override {
@@ -63,13 +63,13 @@ public:
         return _demuxer ? _demuxer->getDuration() : 0;
     }
 
-    vector<Track::Ptr> getTracks(bool ready = true) const override {
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override {
         return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
     }
 
 private:
     //派生类回调函数
-    bool onCheckSDP(const string &sdp) override {
+    bool onCheckSDP(const std::string &sdp) override {
         _rtsp_media_src = dynamic_pointer_cast<RtspMediaSource>(_media_src);
         if (_rtsp_media_src) {
             _rtsp_media_src->setSdp(sdp);

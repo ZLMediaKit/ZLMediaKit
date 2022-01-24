@@ -21,7 +21,7 @@ public:
     ~NackList() = default;
 
     void push_back(mediakit::RtpPacket::Ptr rtp);
-    void for_each_nack(const mediakit::FCI_NACK &nack, const function<void(const mediakit::RtpPacket::Ptr &rtp)> &cb);
+    void for_each_nack(const mediakit::FCI_NACK &nack, const std::function<void(const mediakit::RtpPacket::Ptr &rtp)> &cb);
 
 private:
     void pop_front();
@@ -29,14 +29,14 @@ private:
     mediakit::RtpPacket::Ptr *get_rtp(uint16_t seq);
 
 private:
-    deque<uint16_t> _nack_cache_seq;
-    unordered_map<uint16_t, mediakit::RtpPacket::Ptr> _nack_cache_pkt;
+    std::deque<uint16_t> _nack_cache_seq;
+    std::unordered_map<uint16_t, mediakit::RtpPacket::Ptr> _nack_cache_pkt;
 };
 
 class NackContext {
 public:
     using Ptr = std::shared_ptr<NackContext>;
-    using onNack = function<void(const mediakit::FCI_NACK &nack)>;
+    using onNack = std::function<void(const mediakit::FCI_NACK &nack)>;
     //最大保留的rtp丢包状态个数
     static constexpr auto kNackMaxSize = 1024;
     //rtp丢包状态最长保留时间
@@ -62,7 +62,7 @@ private:
 private:
     int _rtt = 50;
     onNack _cb;
-    set<uint16_t> _seq;
+    std::set<uint16_t> _seq;
     uint16_t _last_max_seq = 0;
 
     struct NackStatus{
@@ -70,7 +70,7 @@ private:
         uint64_t update_stamp;
         int nack_count = 0;
     };
-    map<uint16_t/*seq*/, NackStatus > _nack_send_status;
+    std::map<uint16_t/*seq*/, NackStatus > _nack_send_status;
 };
 
 #endif //ZLMEDIAKIT_NACK_H

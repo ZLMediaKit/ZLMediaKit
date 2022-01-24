@@ -34,7 +34,7 @@ public:
     bool addTrack(const Track::Ptr &track) override { return _delegate.addTrack(track); }
     void addTrackCompleted() override { _delegate.addTrackCompleted(); }
     void resetTracks() override { ((MediaSink &)_delegate).resetTracks(); }
-    vector<Track::Ptr> getTracks(bool ready = true) const override { return _delegate.getTracks(ready); }
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override { return _delegate.getTracks(ready); }
 
 private:
     void onTick();
@@ -48,7 +48,7 @@ private:
     Stamp _stamp[2];
     Timer::Ptr _timer;
     MediaSinkDelegate _delegate;
-    multimap<int64_t, Frame::Ptr> _frame_cache;
+    std::multimap<int64_t, Frame::Ptr> _frame_cache;
 };
 
 class HlsPlayer : public  HttpClientImp , public PlayerBase , public HlsParser{
@@ -59,7 +59,7 @@ public:
     /**
      * 开始播放
      */
-    void play(const string &url) override;
+    void play(const std::string &url) override;
 
     /**
      * 停止播放
@@ -76,10 +76,10 @@ protected:
 
 private:
     void onParsed(bool is_m3u8_inner,int64_t sequence,const map<int,ts_segment> &ts_map) override;
-    void onResponseHeader(const string &status,const HttpHeader &headers) override;
+    void onResponseHeader(const std::string &status,const HttpHeader &headers) override;
     void onResponseBody(const char *buf,size_t size) override;
     void onResponseCompleted(const SockException &e) override;
-    bool onRedirectUrl(const string &url,bool temporary) override;
+    bool onRedirectUrl(const std::string &url,bool temporary) override;
 
 private:
     void playDelay();
@@ -92,7 +92,7 @@ private:
 private:
     struct UrlComp {
         //url忽略？后面的参数
-        bool operator()(const string& __x, const string& __y) const {
+        bool operator()(const std::string& __x, const std::string& __y) const {
             return split(__x,"?")[0] < split(__y,"?")[0];
         }
     };
@@ -100,13 +100,13 @@ private:
 private:
     bool _play_result = false;
     int64_t _last_sequence = -1;
-    string _m3u8;
-    string _play_url;
+    std::string _m3u8;
+    std::string _play_url;
     Timer::Ptr _timer;
     Timer::Ptr _timer_ts;
-    list<ts_segment> _ts_list;
-    list<string> _ts_url_sort;
-    set<string, UrlComp> _ts_url_cache;
+    std::list<ts_segment> _ts_list;
+    std::list<std::string> _ts_url_sort;
+    std::set<std::string, UrlComp> _ts_url_cache;
     HttpTSPlayer::Ptr _http_ts_player;
     TSSegment _segment;
 };
@@ -124,7 +124,7 @@ private:
 private:
     //// PlayerBase override////
     void onPlayResult(const SockException &ex) override;
-    vector<Track::Ptr> getTracks(bool ready = true) const override;
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override;
     void onShutdown(const SockException &ex) override;
 
 private:

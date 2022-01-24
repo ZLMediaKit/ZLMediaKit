@@ -25,6 +25,7 @@
 #include "Util/NoticeCenter.h"
 #include "Util/uv_errno.h"
 using namespace toolkit;
+using namespace std;
 
 const int MAX_STACK_FRAMES = 128;
 #define BroadcastOnCrashDumpArgs int &sig,const vector<vector<string> > &stack

@@ -17,6 +17,7 @@
 #include "Network/sockutil.h"
 
 using namespace mediakit;
+using namespace std;
 
 namespace FFmpeg {
 #define FFmpeg_FIELD "ffmpeg."

@@ -52,8 +52,8 @@ public:
     FlvRecorder() = default;
     ~FlvRecorder() override = default;
 
-    void startRecord(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, const string &file_path);
-    void startRecord(const EventPoller::Ptr &poller, const string &vhost, const string &app, const string &stream, const string &file_path);
+    void startRecord(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, const std::string &file_path);
+    void startRecord(const EventPoller::Ptr &poller, const std::string &vhost, const std::string &app, const std::string &stream, const std::string &file_path);
 
 private:
     virtual void onWrite(const Buffer::Ptr &data, bool flush) override ;
@@ -62,7 +62,7 @@ private:
 
 private:
     std::shared_ptr<FILE> _file;
-    recursive_mutex _file_mtx;
+    std::recursive_mutex _file_mtx;
 };
 
 }//namespace mediakit

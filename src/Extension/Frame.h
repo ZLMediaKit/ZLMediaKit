@@ -52,7 +52,7 @@ typedef enum {
 /**
  * 字符串转媒体类型转
  */
-TrackType getTrackType(const string &str);
+TrackType getTrackType(const std::string &str);
 
 /**
  * 媒体类型转字符串
@@ -64,7 +64,7 @@ const char* getTrackString(TrackType type);
  * @param str
  * @return
  */
-CodecId getCodecId(const string &str);
+CodecId getCodecId(const std::string &str);
 
 /**
  * 获取编码器名称
@@ -322,7 +322,7 @@ public:
      */
     void addDelegate(const FrameWriterInterface::Ptr &delegate){
         //_delegates_write可能多线程同时操作
-        lock_guard<mutex> lck(_mtx);
+        std::lock_guard<std::mutex> lck(_mtx);
         _delegates_write.emplace(delegate.get(),delegate);
         _need_update = true;
     }
@@ -332,7 +332,7 @@ public:
      */
     void delDelegate(FrameWriterInterface *ptr){
         //_delegates_write可能多线程同时操作
-        lock_guard<mutex> lck(_mtx);
+        std::lock_guard<std::mutex> lck(_mtx);
         _delegates_write.erase(ptr);
         _need_update = true;
     }
@@ -343,7 +343,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override{
         if(_need_update){
             //发现代理列表发生变化了，这里同步一次
-            lock_guard<mutex> lck(_mtx);
+            std::lock_guard<std::mutex> lck(_mtx);
             _delegates_read = _delegates_write;
             _need_update = false;
         }
@@ -365,9 +365,9 @@ public:
         return _delegates_write.size();
     }
 private:
-    mutex _mtx;
-    map<void *,FrameWriterInterface::Ptr>  _delegates_read;
-    map<void *,FrameWriterInterface::Ptr>  _delegates_write;
+    std::mutex _mtx;
+    std::map<void *,FrameWriterInterface::Ptr>  _delegates_read;
+    std::map<void *,FrameWriterInterface::Ptr>  _delegates_write;
     bool _need_update = false;
 };
 
@@ -495,7 +495,7 @@ private:
  */
 class FrameMerger {
 public:
-    using onOutput = function<void(uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_key_frame)>;
+    using onOutput = std::function<void(uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_key_frame)>;
     using Ptr = std::shared_ptr<FrameMerger>;
     enum {
         none = 0,

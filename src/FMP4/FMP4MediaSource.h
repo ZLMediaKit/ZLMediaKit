@@ -37,9 +37,9 @@ public:
     using RingDataType = std::shared_ptr<List<FMP4Packet::Ptr> >;
     using RingType = RingBuffer<RingDataType>;
 
-    FMP4MediaSource(const string &vhost,
-                    const string &app,
-                    const string &stream_id,
+    FMP4MediaSource(const std::string &vhost,
+                    const std::string &app,
+                    const std::string &stream_id,
                     int ring_size = FMP4_GOP_SIZE) : MediaSource(FMP4_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
 
     ~FMP4MediaSource() override = default;
@@ -54,7 +54,7 @@ public:
     /**
      * 获取fmp4 init segment
      */
-    const string &getInitSegment() const{
+    const std::string &getInitSegment() const{
         return _init_segment;
     }
 
@@ -62,7 +62,7 @@ public:
      * 设置fmp4 init segment
      * @param str init segment
      */
-    void setInitSegment(string str) {
+    void setInitSegment(std::string str) {
         _init_segment = std::move(str);
         createRing();
     }
@@ -101,7 +101,7 @@ public:
 
 private:
     void createRing(){
-        weak_ptr<FMP4MediaSource> weak_self = dynamic_pointer_cast<FMP4MediaSource>(shared_from_this());
+        std::weak_ptr<FMP4MediaSource> weak_self = dynamic_pointer_cast<FMP4MediaSource>(shared_from_this());
         _ring = std::make_shared<RingType>(_ring_size, [weak_self](int size) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -128,7 +128,7 @@ private:
 private:
     bool _have_video = false;
     int _ring_size;
-    string _init_segment;
+    std::string _init_segment;
     RingType::Ptr _ring;
 };
 

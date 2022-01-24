@@ -22,7 +22,7 @@ namespace mediakit {
 class HttpResponseInvokerImp{
 public:
     typedef std::function<void(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body)> HttpResponseInvokerLambda0;
-    typedef std::function<void(int code, const StrCaseMap &headerOut, const string &body)> HttpResponseInvokerLambda1;
+    typedef std::function<void(int code, const StrCaseMap &headerOut, const std::string &body)> HttpResponseInvokerLambda1;
 
     HttpResponseInvokerImp(){}
     ~HttpResponseInvokerImp(){}
@@ -33,9 +33,9 @@ public:
 
     void operator()(int code, const StrCaseMap &headerOut, const Buffer::Ptr &body) const;
     void operator()(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const;
-    void operator()(int code, const StrCaseMap &headerOut, const string &body) const;
+    void operator()(int code, const StrCaseMap &headerOut, const std::string &body) const;
 
-    void responseFile(const StrCaseMap &requestHeader,const StrCaseMap &responseHeader,const string &filePath, bool use_mmap = true) const;
+    void responseFile(const StrCaseMap &requestHeader,const StrCaseMap &responseHeader,const std::string &filePath, bool use_mmap = true) const;
     operator bool();
 private:
     HttpResponseInvokerLambda0 _lambad;
@@ -46,7 +46,7 @@ private:
  */
 class HttpFileManager  {
 public:
-    typedef function<void(int code, const string &content_type, const StrCaseMap &responseHeader, const HttpBody::Ptr &body)> invoker;
+    typedef std::function<void(int code, const std::string &content_type, const StrCaseMap &responseHeader, const HttpBody::Ptr &body)> invoker;
 
     /**
      * 访问文件或文件夹
@@ -61,7 +61,7 @@ public:
      * @param name 文件后缀
      * @return mime值
      */
-    static const string &getContentType(const char *name);
+    static const std::string &getContentType(const char *name);
 private:
     HttpFileManager() = delete;
     ~HttpFileManager() = delete;

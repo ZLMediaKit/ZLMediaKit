@@ -22,6 +22,8 @@
 #define ENABLE_MMAP
 #endif
 
+using namespace std;
+
 namespace mediakit {
 
 HttpStringBody::HttpStringBody(string str){

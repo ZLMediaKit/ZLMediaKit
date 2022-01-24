@@ -10,6 +10,7 @@
 
 #include "HttpRequester.h"
 
+using namespace std;
 namespace mediakit {
 
 void HttpRequester::onResponseHeader(const string &status, const HttpHeader &headers) {

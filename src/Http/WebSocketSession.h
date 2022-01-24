@@ -19,7 +19,7 @@
  */
 class SendInterceptor{
 public:
-    typedef function<ssize_t (const Buffer::Ptr &buf)> onBeforeSendCB;
+    typedef std::function<ssize_t (const Buffer::Ptr &buf)> onBeforeSendCB;
     SendInterceptor() = default;
     virtual ~SendInterceptor() = default;
     virtual void setOnBeforeSendCB(const onBeforeSendCB &cb) = 0;
@@ -60,12 +60,12 @@ protected:
         return TcpSessionType::send(std::move(buf));
     }
 
-    string getIdentifier() const override {
+    std::string getIdentifier() const override {
         return _identifier;
     }
 
 private:
-    string _identifier;
+    std::string _identifier;
     onBeforeSendCB _beforeSendCB;
 };
 
@@ -128,7 +128,7 @@ protected:
         }
 
         //此处截取数据并进行websocket协议打包
-        weak_ptr<WebSocketSessionBase> weakSelf = dynamic_pointer_cast<WebSocketSessionBase>(HttpSessionType::shared_from_this());
+        std::weak_ptr<WebSocketSessionBase> weakSelf = dynamic_pointer_cast<WebSocketSessionBase>(HttpSessionType::shared_from_this());
         dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf) {
             auto strongSelf = weakSelf.lock();
             if (strongSelf) {
@@ -224,9 +224,9 @@ protected:
     }
 
 private:
-    string _payload_cache;
-    string _payload_section;
-    weak_ptr<Server> _weak_server;
+    std::string _payload_cache;
+    std::string _payload_section;
+    std::weak_ptr<Server> _weak_server;
     TcpSession::Ptr _session;
     Creator _creator;
 };

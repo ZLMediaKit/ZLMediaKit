@@ -27,7 +27,7 @@ public:
      * @param stream_id 流id,置空时,只解复用mp4,但是不生成MediaSource
      * @param file_path 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
      */
-    MP4Reader(const string &vhost, const string &app, const string &stream_id, const string &file_path = "");
+    MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path = "");
     ~MP4Reader() override = default;
 
     /**
@@ -58,7 +58,7 @@ private:
     bool close(MediaSource &sender,bool force) override;
     int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
-    string getOriginUrl(MediaSource &sender) const override;
+    std::string getOriginUrl(MediaSource &sender) const override;
 
     bool readSample();
     bool readNextSample();
@@ -73,8 +73,8 @@ private:
     float _speed = 1.0;
     uint32_t _last_dts = 0;
     uint32_t _seek_to = 0;
-    string _file_path;
-    recursive_mutex _mtx;
+    std::string _file_path;
+    std::recursive_mutex _mtx;
     Ticker _seek_ticker;
     Timer::Ptr _timer;
     MP4Demuxer::Ptr _demuxer;

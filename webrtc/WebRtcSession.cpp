@@ -12,6 +12,7 @@
 #include "Util/util.h"
 
 using namespace mediakit;
+using namespace std;
 
 static string getUserName(const Buffer::Ptr &buffer) {
     auto buf = buffer->data();

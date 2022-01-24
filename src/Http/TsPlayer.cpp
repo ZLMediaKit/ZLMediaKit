@@ -10,6 +10,8 @@
 
 #include "TsPlayer.h"
 
+using namespace std;
+
 namespace mediakit {
 
 TsPlayer::TsPlayer(const EventPoller::Ptr &poller) : HttpTSPlayer(poller, true) {}

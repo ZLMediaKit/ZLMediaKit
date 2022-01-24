@@ -10,6 +10,8 @@
 
 #include "Opus.h"
 
+using namespace std;
+
 namespace mediakit{
 
 /**

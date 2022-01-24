@@ -15,6 +15,7 @@
 #include "Common/config.h"
 #include "ShellCMD.h"
 using namespace toolkit;
+using namespace std;
 
 namespace mediakit {
 

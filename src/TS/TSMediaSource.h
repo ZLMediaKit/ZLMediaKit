@@ -37,9 +37,9 @@ public:
     using RingDataType = std::shared_ptr<List<TSPacket::Ptr> >;
     using RingType = RingBuffer<RingDataType>;
 
-    TSMediaSource(const string &vhost,
-                  const string &app,
-                  const string &stream_id,
+    TSMediaSource(const std::string &vhost,
+                  const std::string &app,
+                  const std::string &stream_id,
                   int ring_size = TS_GOP_SIZE) : MediaSource(TS_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
 
     ~TSMediaSource() override = default;
@@ -85,7 +85,7 @@ public:
 
 private:
     void createRing(){
-        weak_ptr<TSMediaSource> weak_self = dynamic_pointer_cast<TSMediaSource>(shared_from_this());
+        std::weak_ptr<TSMediaSource> weak_self = dynamic_pointer_cast<TSMediaSource>(shared_from_this());
         _ring = std::make_shared<RingType>(_ring_size, [weak_self](int size) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {

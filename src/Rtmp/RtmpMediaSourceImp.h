@@ -38,7 +38,7 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtmpMediaSourceImp(const string &vhost, const string &app, const string &id, int ringSize = RTMP_GOP_SIZE) : RtmpMediaSource(vhost, app, id, ringSize) {
+    RtmpMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTMP_GOP_SIZE) : RtmpMediaSource(vhost, app, id, ringSize) {
         _demuxer = std::make_shared<RtmpDemuxer>();
         _demuxer->setTrackListener(this);
     }

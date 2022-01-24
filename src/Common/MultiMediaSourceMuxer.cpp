@@ -12,6 +12,7 @@
 #include "Common/config.h"
 #include "MultiMediaSourceMuxer.h"
 
+using namespace std;
 namespace toolkit {
     StatisticImp(mediakit::MultiMediaSourceMuxer);
 }

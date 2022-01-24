@@ -28,7 +28,7 @@ public:
     MediaPlayer(const EventPoller::Ptr &poller = nullptr);
     ~MediaPlayer() override = default;
 
-    void play(const string &url) override;
+    void play(const std::string &url) override;
     EventPoller::Ptr getPoller();
     void setOnCreateSocket(Socket::onCreateSocket cb);
 

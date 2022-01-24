@@ -31,30 +31,30 @@ public:
      * 设置push结果回调，只触发一次；在publish执行之前有效
      * @param cb 回调对象
      */
-    void setPushCallbackOnce(const function<void(const SockException &ex)> &cb);
+    void setPushCallbackOnce(const std::function<void(const SockException &ex)> &cb);
 
     /**
      * 设置主动关闭回调
      * @param cb 回调对象
      */
-    void setOnClose(const function<void(const SockException &ex)> &cb);
+    void setOnClose(const std::function<void(const SockException &ex)> &cb);
 
     /**
      * 开始拉流播放
      * @param dstUrl 目标推流地址
      */
-    void publish(const string& dstUrl) override;
+    void publish(const std::string& dstUrl) override;
 
 private:
     // 重推逻辑函数
-    void rePublish(const string &dstUrl, int iFailedCnt);
+    void rePublish(const std::string &dstUrl, int iFailedCnt);
 
 private:
     int _retry_count;
     Timer::Ptr _timer;
     std::weak_ptr<MediaSource> _weak_src;
-    function<void(const SockException &ex)> _on_close;
-    function<void(const SockException &ex)> _on_publish;
+    std::function<void(const SockException &ex)> _on_close;
+    std::function<void(const SockException &ex)> _on_publish;
 };
 
 } /* namespace mediakit */

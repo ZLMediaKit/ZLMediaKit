@@ -53,9 +53,9 @@ public:
      * @param stream_id 流id
      * @param ring_size 可以设置固定的环形缓冲大小，0则自适应
      */
-    RtmpMediaSource(const string &vhost,
-                    const string &app,
-                    const string &stream_id,
+    RtmpMediaSource(const std::string &vhost,
+                    const std::string &app,
+                    const std::string &stream_id,
                     int ring_size = RTMP_GOP_SIZE) :
             MediaSource(RTMP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {
     }
@@ -81,7 +81,7 @@ public:
      * 获取metadata
      */
     const AMFValue &getMetaData() const {
-        lock_guard<recursive_mutex> lock(_mtx);
+        std::lock_guard<std::recursive_mutex> lock(_mtx);
         return _metadata;
     }
 
@@ -90,7 +90,7 @@ public:
      */
     template<typename FUNC>
     void getConfigFrame(const FUNC &f) {
-        lock_guard<recursive_mutex> lock(_mtx);
+        std::lock_guard<std::recursive_mutex> lock(_mtx);
         for (auto &pr : _config_frame_map) {
             f(pr.second);
         }
@@ -113,7 +113,7 @@ public:
      * 更新metadata
      */
     void updateMetaData(const AMFValue &metadata) {
-        lock_guard<recursive_mutex> lock(_mtx);
+        std::lock_guard<std::recursive_mutex> lock(_mtx);
         _metadata = metadata;
     }
 
@@ -132,7 +132,7 @@ public:
         }
 
         if (pkt->isCfgFrame()) {
-            lock_guard<recursive_mutex> lock(_mtx);
+            std::lock_guard<std::recursive_mutex> lock(_mtx);
             _config_frame_map[pkt->type_id] = pkt;
             if (!_ring) {
                 //注册后收到config帧更新到各播放器
@@ -141,7 +141,7 @@ public:
         }
 
         if (!_ring) {
-            weak_ptr<RtmpMediaSource> weakSelf = dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
+            std::weak_ptr<RtmpMediaSource> weakSelf = dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
             auto lam = [weakSelf](int size) {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
@@ -216,8 +216,8 @@ private:
     AMFValue _metadata;
     RingType::Ptr _ring;
 
-    mutable recursive_mutex _mtx;
-    unordered_map<int, RtmpPacket::Ptr> _config_frame_map;
+    mutable std::recursive_mutex _mtx;
+    std::unordered_map<int, RtmpPacket::Ptr> _config_frame_map;
 };
 
 } /* namespace mediakit */

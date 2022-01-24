@@ -45,8 +45,8 @@ protected:
 
 protected:
     H264Frame::Ptr _h264frame;
-    string _sps;
-    string _pps;
+    std::string _sps;
+    std::string _pps;
 };
 
 /**

@@ -19,6 +19,8 @@
 #include "Extension/G711.h"
 #include "Extension/H265.h"
 
+using namespace std;
+
 namespace mediakit{
 
 //判断是否为ts负载

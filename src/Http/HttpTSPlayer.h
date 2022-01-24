@@ -40,7 +40,7 @@ public:
 
 protected:
     ///HttpClient override///
-    void onResponseHeader(const string &status, const HttpHeader &header) override;
+    void onResponseHeader(const std::string &status, const HttpHeader &header) override;
     void onResponseBody(const char *buf, size_t size) override;
     void onResponseCompleted(const SockException &ex) override;
 

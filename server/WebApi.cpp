@@ -51,6 +51,7 @@
 
 using namespace toolkit;
 using namespace mediakit;
+using namespace std;
 
 namespace API {
 #define API_FIELD "api."

@@ -111,7 +111,7 @@ private:
     size_t _frames_since_last_max_pts = 0;
     size_t _sorter_max_size = 0;
     size_t _count_sorter_max_size = 0;
-    set<uint32_t> _pts_sorter;
+    std::set<uint32_t> _pts_sorter;
 };
 
 class NtpStamp {

@@ -127,7 +127,7 @@ public:
     //返回有效负载总长度,不包括csrc、ext、padding
     size_t getPayloadSize(size_t rtp_size) const;
     //打印调试信息
-    string dumpString(size_t rtp_size) const;
+    std::string dumpString(size_t rtp_size) const;
 
 private:
     //返回有效负载偏移量
@@ -155,7 +155,7 @@ public:
     const RtpHeader* getHeader() const;
 
     //打印调试信息
-    string dumpString() const;
+    std::string dumpString() const;
 
     //主机字节序的seq
     uint16_t getSeq() const;
@@ -203,29 +203,29 @@ private:
 class SdpTrack {
 public:
     using Ptr = std::shared_ptr<SdpTrack>;
-    string _t;
-    string _b;
+    std::string _t;
+    std::string _b;
     uint16_t _port;
 
     float _duration = 0;
     float _start = 0;
     float _end = 0;
 
-    map<char, string> _other;
-    multimap<string, string> _attr;
+    std::map<char, std::string> _other;
+    std::multimap<std::string, std::string> _attr;
 
-    string toString(uint16_t port = 0) const;
-    string getName() const;
-    string getControlUrl(const string &base_url) const;
+    std::string toString(uint16_t port = 0) const;
+    std::string getName() const;
+    std::string getControlUrl(const std::string &base_url) const;
 
 public:
     int _pt;
     int _channel;
     int _samplerate;
     TrackType _type;
-    string _codec;
-    string _fmtp;
-    string _control;
+    std::string _codec;
+    std::string _fmtp;
+    std::string _control;
 
 public:
     bool _inited = false;
@@ -241,17 +241,17 @@ public:
     using Ptr = std::shared_ptr<SdpParser>;
 
     SdpParser() {}
-    SdpParser(const string &sdp) { load(sdp); }
+    SdpParser(const std::string &sdp) { load(sdp); }
     ~SdpParser() {}
 
-    void load(const string &sdp);
+    void load(const std::string &sdp);
     bool available() const;
     SdpTrack::Ptr getTrack(TrackType type) const;
-    vector<SdpTrack::Ptr> getAvailableTrack() const;
-    string toString() const;
+    std::vector<SdpTrack::Ptr> getAvailableTrack() const;
+    std::string toString() const;
 
 private:
-    vector<SdpTrack::Ptr> _track_vec;
+    std::vector<SdpTrack::Ptr> _track_vec;
 };
 
 /**
@@ -261,18 +261,18 @@ class RtspUrl{
 public:
     bool _is_ssl;
     uint16_t _port;
-    string _url;
-    string _user;
-    string _passwd;
-    string _host;
+    std::string _url;
+    std::string _user;
+    std::string _passwd;
+    std::string _host;
 
 public:
     RtspUrl() = default;
     ~RtspUrl() = default;
-    bool parse(const string &url);
+    bool parse(const std::string &url);
 
 private:
-    bool setup(bool,const string &, const string &, const string &);
+    bool setup(bool,const std::string &, const std::string &, const std::string &);
 };
 
 /**
@@ -298,7 +298,7 @@ public:
      * 获取sdp字符串
      * @return
      */
-    virtual string getSdp() const  = 0;
+    virtual std::string getSdp() const  = 0;
 
     /**
      * 获取pt
@@ -334,7 +334,7 @@ public:
      * @param version sdp版本
      */
     TitleSdp(float dur_sec = 0,
-             const map<string, string> &header = map<string, string>(),
+             const std::map<std::string, std::string> &header = std::map<std::string, std::string>(),
              int version = 0) : Sdp(0, 0) {
         _printer << "v=" << version << "\r\n";
 
@@ -360,7 +360,7 @@ public:
         _printer << "a=control:*\r\n";
     }
 
-    string getSdp() const override {
+    std::string getSdp() const override {
         return _printer;
     }
 
@@ -380,9 +380,9 @@ private:
 //创建rtp over tcp4个字节的头
 Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved);
 //创建rtp-rtcp端口对
-void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip);
+void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const std::string &local_ip);
 //十六进制方式打印ssrc
-string printSSRC(uint32_t ui32Ssrc);
+std::string printSSRC(uint32_t ui32Ssrc);
 
 } //namespace mediakit
 #endif //RTSP_RTSP_H_

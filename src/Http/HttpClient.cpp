@@ -13,6 +13,8 @@
 #include "HttpClient.h"
 #include "Common/config.h"
 
+using namespace std;
+
 namespace mediakit {
 
 void HttpClient::sendRequest(const string &url) {

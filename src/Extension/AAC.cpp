@@ -13,6 +13,7 @@
 #include "mpeg4-aac.h"
 #endif
 
+using namespace std;
 namespace mediakit{
 
 #ifndef ENABLE_MP4

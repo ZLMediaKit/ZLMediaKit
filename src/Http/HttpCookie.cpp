@@ -17,6 +17,8 @@
 #endif
 
 using namespace toolkit;
+using namespace std;
+
 namespace mediakit {
 
 void HttpCookie::setPath(const string &path){

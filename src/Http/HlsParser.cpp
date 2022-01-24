@@ -14,6 +14,8 @@
 #include "Util/util.h"
 #include "Common/Parser.h"
 using namespace toolkit;
+using namespace std;
+
 namespace mediakit {
 
 bool HlsParser::parse(const string &http_url, const string &m3u8) {

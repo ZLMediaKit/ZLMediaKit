@@ -22,7 +22,7 @@
 using namespace toolkit;
 
 namespace FFmpeg {
-    extern const string kSnap;
+    extern const std::string kSnap;
 }
 
 class FFmpegSnap {
@@ -32,7 +32,7 @@ public:
     /// \param save_path 截图jpeg文件保存路径
     /// \param timeout_sec 生成截图超时时间(防止阻塞太久)
     /// \param cb 生成截图成功与否回调
-    static void makeSnap(const string &play_url, const string &save_path, float timeout_sec, const function<void(bool)> &cb);
+    static void makeSnap(const std::string &play_url, const std::string &save_path, float timeout_sec, const std::function<void(bool)> &cb);
 private:
     FFmpegSnap() = delete;
     ~FFmpegSnap() = delete;
@@ -40,8 +40,8 @@ private:
 
 class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public mediakit::MediaSourceEventInterceptor{
 public:
-    typedef shared_ptr<FFmpegSource> Ptr;
-    typedef function<void(const SockException &ex)> onPlay;
+    typedef std::shared_ptr<FFmpegSource> Ptr;
+    typedef std::function<void(const SockException &ex)> onPlay;
 
     FFmpegSource();
     ~FFmpegSource();
@@ -49,7 +49,7 @@ public:
     /**
      * 设置主动关闭回调
      */
-    void setOnClose(const function<void()> &cb);
+    void setOnClose(const std::function<void()> &cb);
 
     /**
      * 开始播放url
@@ -59,7 +59,7 @@ public:
      * @param timeout_ms 等待结果超时时间，单位毫秒
      * @param cb 成功与否回调
      */
-    void play(const string &ffmpeg_cmd_key, const string &src_url, const string &dst_url, int timeout_ms, const onPlay &cb);
+    void play(const std::string &ffmpeg_cmd_key, const std::string &src_url, const std::string &dst_url, int timeout_ms, const onPlay &cb);
 
     /**
      * 设置录制
@@ -69,7 +69,7 @@ public:
     void setupRecordFlag(bool enable_hls, bool enable_mp4);
 
 private:
-    void findAsync(int maxWaitMS ,const function<void(const mediakit::MediaSource::Ptr &src)> &cb);
+    void findAsync(int maxWaitMS ,const std::function<void(const mediakit::MediaSource::Ptr &src)> &cb);
     void startTimer(int timeout_ms);
     void onGetMediaSource(const mediakit::MediaSource::Ptr &src);
 
@@ -79,7 +79,7 @@ private:
     // 获取媒体源类型
     mediakit::MediaOriginType getOriginType(mediakit::MediaSource &sender) const override;
     //获取媒体源url或者文件路径
-    string getOriginUrl(mediakit::MediaSource &sender) const override;
+    std::string getOriginUrl(mediakit::MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
 
@@ -90,10 +90,10 @@ private:
     Timer::Ptr _timer;
     EventPoller::Ptr _poller;
     mediakit::MediaInfo _media_info;
-    string _src_url;
-    string _dst_url;
-    string _ffmpeg_cmd_key;
-    function<void()> _onClose;
+    std::string _src_url;
+    std::string _dst_url;
+    std::string _ffmpeg_cmd_key;
+    std::function<void()> _onClose;
     Ticker _replay_ticker;
 };
 

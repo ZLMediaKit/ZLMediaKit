@@ -29,7 +29,7 @@ public:
 
     static Ptr createPusher(const EventPoller::Ptr &poller,
                             const MediaSource::Ptr &src,
-                            const string &strUrl);
+                            const std::string &strUrl);
 
     PusherBase();
     virtual ~PusherBase() = default;
@@ -38,7 +38,7 @@ public:
      * 开始推流
      * @param strUrl 视频url，支持rtsp/rtmp
      */
-    virtual void publish(const string &strUrl) {};
+    virtual void publish(const std::string &strUrl) {};
 
     /**
      * 中断推流
@@ -73,7 +73,7 @@ public:
      * 开始推流
      * @param url 推流url，支持rtsp/rtmp
      */
-    void publish(const string &url) override {
+    void publish(const std::string &url) override {
         return _delegate ? _delegate->publish(url) : Parent::publish(url);
     }
 

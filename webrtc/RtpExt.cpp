@@ -16,6 +16,7 @@
 #endif // defined(_WIN32)
 
 using namespace mediakit;
+using namespace std;
 
 //https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 //https://tools.ietf.org/html/rfc5285

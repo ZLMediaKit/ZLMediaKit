@@ -10,6 +10,9 @@
 
 #include "Rtmp/utils.h"
 #include "H264Rtmp.h"
+
+using namespace std;
+
 namespace mediakit{
 
 H264RtmpDecoder::H264RtmpDecoder() {

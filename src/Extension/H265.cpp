@@ -11,6 +11,8 @@
 #include "H265.h"
 #include "SPSParser.h"
 
+using namespace std;
+
 namespace mediakit{
 
 bool getHEVCInfo(const char * vps, size_t vps_len,const char * sps,size_t sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){

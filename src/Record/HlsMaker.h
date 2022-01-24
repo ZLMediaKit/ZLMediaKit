@@ -56,7 +56,7 @@ protected:
      * @param index
      * @return
      */
-    virtual string onOpenSegment(uint64_t index) = 0;
+    virtual std::string onOpenSegment(uint64_t index) = 0;
 
     /**
      * 删除ts切片文件回调
@@ -114,8 +114,8 @@ private:
     uint32_t _last_timestamp = 0;
     uint32_t _last_seg_timestamp = 0;
     uint64_t _file_index = 0;
-    string _last_file_name;
-    std::deque<tuple<int,string> > _seg_dur_list;
+    std::string _last_file_name;
+    std::deque<std::tuple<int,std::string> > _seg_dur_list;
 };
 
 }//namespace mediakit

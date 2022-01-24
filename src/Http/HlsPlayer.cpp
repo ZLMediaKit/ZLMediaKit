@@ -10,6 +10,8 @@
 
 #include "HlsPlayer.h"
 
+using namespace std;
+
 namespace mediakit {
 
 HlsPlayer::HlsPlayer(const EventPoller::Ptr &poller) {

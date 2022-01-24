@@ -14,6 +14,7 @@
 #include "RtspSession.h"
 
 using namespace mediakit::Client;
+using namespace std;
 
 namespace mediakit {
 

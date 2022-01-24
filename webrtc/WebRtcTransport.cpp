@@ -23,6 +23,7 @@
 #define RTP_MSID RTP_MSLABEL " " RTP_LABEL
 
 using namespace mediakit;
+using namespace std;
 
 //RTC配置项目
 namespace RTC {

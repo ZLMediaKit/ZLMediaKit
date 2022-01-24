@@ -21,7 +21,7 @@ namespace mediakit {
 class CMD_media: public CMD {
 public:
     CMD_media(){
-        _parser.reset(new OptionParser([](const std::shared_ptr<ostream> &stream,mINI &ini){
+        _parser.reset(new OptionParser([](const std::shared_ptr<std::ostream> &stream,mINI &ini){
             MediaSource::for_each_media([&](const MediaSource::Ptr &media){
                 if(ini.find("list") != ini.end()){
                     //列出源

@@ -10,6 +10,8 @@
 
 #include "L16.h"
 
+using namespace std;
+
 namespace mediakit{
 
 /**

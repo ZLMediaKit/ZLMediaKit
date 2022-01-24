@@ -36,7 +36,7 @@ public:
     RtmpPlayer(const EventPoller::Ptr &poller);
     ~RtmpPlayer() override;
 
-    void play(const string &strUrl) override;
+    void play(const std::string &strUrl) override;
     void pause(bool bPause) override;
     void speed(float speed) override;
     void teardown() override;
@@ -82,9 +82,9 @@ protected:
     void send_pause(bool pause);
 
 private:
-    string _app;
-    string _stream_id;
-    string _tc_url;
+    std::string _app;
+    std::string _stream_id;
+    std::string _tc_url;
 
     bool _paused = false;
     bool _metadata_got = false;
@@ -96,8 +96,8 @@ private:
     uint32_t _fist_stamp[2] = {0, 0};
     uint32_t _now_stamp[2] = {0, 0};
     Ticker _now_stamp_ticker[2];
-    deque<function<void(AMFValue &dec)> > _deque_on_status;
-    unordered_map<int, function<void(AMFDecoder &dec)> > _map_on_result;
+    std::deque<std::function<void(AMFValue &dec)> > _deque_on_status;
+    std::unordered_map<int, std::function<void(AMFDecoder &dec)> > _map_on_result;
 
     //rtmp接收超时计时器
     Ticker _rtmp_recv_ticker;

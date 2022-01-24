@@ -53,7 +53,7 @@ public:
      * @param size 请求大小
      * @param cb 回调函数
      */
-    virtual void readDataAsync(size_t size,const function<void(const Buffer::Ptr &buf)> &cb){
+    virtual void readDataAsync(size_t size,const std::function<void(const Buffer::Ptr &buf)> &cb){
         //由于unix和linux是通过mmap的方式读取文件，所以把读文件操作放在后台线程并不能提高性能
         //反而会由于频繁的线程切换导致性能降低以及延时增加，所以我们默认同步获取文件内容
         //(其实并没有读，拷贝文件数据时在内核态完成文件读)
@@ -62,12 +62,12 @@ public:
 };
 
 /**
- * string类型的content
+ * std::string类型的content
  */
 class HttpStringBody : public HttpBody{
 public:
     typedef std::shared_ptr<HttpStringBody> Ptr;
-    HttpStringBody(string str);
+    HttpStringBody(std::string str);
     ~HttpStringBody() override = default;
 
     ssize_t remainSize() override;
@@ -75,7 +75,7 @@ public:
 
 private:
     size_t _offset = 0;
-    mutable string _str;
+    mutable std::string _str;
 };
 
 /**
@@ -109,7 +109,7 @@ public:
      * @param use_mmap 是否使用mmap方式访问文件
      */
     HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size, bool use_mmap = true);
-    HttpFileBody(const string &file_path, bool use_mmap = true);
+    HttpFileBody(const std::string &file_path, bool use_mmap = true);
     ~HttpFileBody() override = default;
 
     ssize_t remainSize() override ;
@@ -141,21 +141,21 @@ public:
      * @param filePath 文件路径
      * @param boundary boundary字符串
      */
-    HttpMultiFormBody(const HttpArgs &args,const string &filePath,const string &boundary = "0xKhTmLbOuNdArY");
+    HttpMultiFormBody(const HttpArgs &args,const std::string &filePath,const std::string &boundary = "0xKhTmLbOuNdArY");
     virtual ~HttpMultiFormBody(){}
     ssize_t remainSize() override ;
     Buffer::Ptr readData(size_t size) override;
 
 public:
-    static string multiFormBodyPrefix(const HttpArgs &args,const string &boundary,const string &fileName);
-    static string multiFormBodySuffix(const string &boundary);
-    static string multiFormContentType(const string &boundary);
+    static std::string multiFormBodyPrefix(const HttpArgs &args,const std::string &boundary,const std::string &fileName);
+    static std::string multiFormBodySuffix(const std::string &boundary);
+    static std::string multiFormContentType(const std::string &boundary);
 
 private:
     size_t _offset = 0;
     size_t _totalSize;
-    string _bodyPrefix;
-    string _bodySuffix;
+    std::string _bodyPrefix;
+    std::string _bodySuffix;
     HttpFileBody::Ptr _fileBody;
 };
 

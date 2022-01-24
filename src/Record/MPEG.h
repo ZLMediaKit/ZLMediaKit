@@ -67,7 +67,7 @@ private:
     uint32_t _max_cache_size = 0;
     uint32_t _timestamp = 0;
     struct mpeg_muxer_t *_context = nullptr;
-    unordered_map<int, int/*track_id*/> _codec_to_trackid;
+    std::unordered_map<int, int/*track_id*/> _codec_to_trackid;
     FrameMerger _frame_merger{FrameMerger::h264_prefix};
     BufferRaw::Ptr _current_buffer;
     ResourcePool<BufferRaw> _buffer_pool;

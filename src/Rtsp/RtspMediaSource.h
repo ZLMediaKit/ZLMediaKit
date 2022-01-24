@@ -50,9 +50,9 @@ public:
      * @param stream_id 流id
      * @param ring_size 可以设置固定的环形缓冲大小，0则自适应
      */
-    RtspMediaSource(const string &vhost,
-                    const string &app,
-                    const string &stream_id,
+    RtspMediaSource(const std::string &vhost,
+                    const std::string &app,
+                    const std::string &stream_id,
                     int ring_size = RTP_GOP_SIZE) :
             MediaSource(RTSP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
 
@@ -75,7 +75,7 @@ public:
     /**
      * 获取该源的sdp
      */
-    const string &getSdp() const {
+    const std::string &getSdp() const {
         return _sdp;
     }
 
@@ -140,7 +140,7 @@ public:
     /**
      * 设置sdp
      */
-    virtual void setSdp(const string &sdp) {
+    virtual void setSdp(const std::string &sdp) {
         SdpParser sdp_parser(sdp);
         _tracks[TrackVideo] = sdp_parser.getTrack(TrackVideo);
         _tracks[TrackAudio] = sdp_parser.getTrack(TrackAudio);
@@ -167,7 +167,7 @@ public:
             track->_ssrc = rtp->getSSRC();
         }
         if (!_ring) {
-            weak_ptr<RtspMediaSource> weakSelf = dynamic_pointer_cast<RtspMediaSource>(shared_from_this());
+            std::weak_ptr<RtspMediaSource> weakSelf = dynamic_pointer_cast<RtspMediaSource>(shared_from_this());
             auto lam = [weakSelf](int size) {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
@@ -206,7 +206,7 @@ private:
 private:
     bool _have_video = false;
     int _ring_size;
-    string _sdp;
+    std::string _sdp;
     RingType::Ptr _ring;
     SdpTrack::Ptr _tracks[TrackMax];
 };

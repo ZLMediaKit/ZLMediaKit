@@ -32,7 +32,7 @@ public:
     RtmpPlayerImp(const EventPoller::Ptr &poller) : Super(poller) {};
 
     ~RtmpPlayerImp() override {
-        DebugL << endl;
+        DebugL << std::endl;
     }
 
     float getProgress() const override {
@@ -56,7 +56,7 @@ public:
         return _demuxer ? _demuxer->getDuration() : 0;
     }
 
-    vector<Track::Ptr> getTracks(bool ready = true) const override {
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override {
         return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
     }
 

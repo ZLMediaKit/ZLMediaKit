@@ -43,9 +43,9 @@ public:
      */
 
     HttpServerCookie(const std::shared_ptr<HttpCookieManager> &manager,
-                     const string &cookie_name,
-                     const string &uid,
-                     const string &cookie,
+                     const std::string &cookie_name,
+                     const std::string &uid,
+                     const std::string &cookie,
                      uint64_t max_elapsed);
     ~HttpServerCookie() ;
 
@@ -53,7 +53,7 @@ public:
      * 获取uid
      * @return uid
      */
-    const string &getUid() const;
+    const std::string &getUid() const;
 
     /**
      * 获取http中Set-Cookie字段的值
@@ -61,19 +61,19 @@ public:
      * @param path http访问路径
      * @return 例如 MY_SESSION=XXXXXX;expires=Wed, Jun 12 2019 06:30:48 GMT;path=/index/files/
      */
-    string getCookie(const string &path) const;
+    std::string getCookie(const std::string &path) const;
 
     /**
      * 获取cookie随机字符串
      * @return cookie随机字符串
      */
-    const string& getCookie() const;
+    const std::string& getCookie() const;
 
     /**
      * 获取该cookie名
      * @return
      */
-    const string& getCookieName() const;
+    const std::string& getCookieName() const;
 
     /**
      * 更新该cookie的过期时间，可以让此cookie不失效
@@ -90,16 +90,16 @@ public:
      * 获取区域锁
      * @return
      */
-    std::shared_ptr<lock_guard<recursive_mutex> > getLock();
+    std::shared_ptr<std::lock_guard<std::recursive_mutex> > getLock();
 private:
-    string cookieExpireTime() const ;
+    std::string cookieExpireTime() const ;
 private:
-    string _uid;
-    string _cookie_name;
-    string _cookie_uuid;
+    std::string _uid;
+    std::string _cookie_name;
+    std::string _cookie_uuid;
     uint64_t _max_elapsed;
     Ticker _ticker;
-    recursive_mutex _mtx;
+    std::recursive_mutex _mtx;
     std::weak_ptr<HttpCookieManager> _manager;
 };
 
@@ -115,18 +115,18 @@ public:
      * 获取不碰撞的随机字符串
      * @return 随机字符串
      */
-    string obtain();
+    std::string obtain();
 
     /**
      * 释放随机字符串
      * @param str 随机字符串
      */
-    void release(const string &str);
+    void release(const std::string &str);
 private:
-    string obtain_l();
+    std::string obtain_l();
 private:
     //碰撞库
-    unordered_set<string> _obtained;
+    std::unordered_set<std::string> _obtained;
     //增长index，防止碰撞用
     int _index = 0;
 };
@@ -154,7 +154,7 @@ public:
      * @param max_elapsed 该cookie过期时间，单位秒
      * @return cookie对象
      */
-    HttpServerCookie::Ptr addCookie(const string &cookie_name,const string &uid, uint64_t max_elapsed = COOKIE_DEFAULT_LIFE,int max_client = 1);
+    HttpServerCookie::Ptr addCookie(const std::string &cookie_name,const std::string &uid, uint64_t max_elapsed = COOKIE_DEFAULT_LIFE,int max_client = 1);
 
     /**
      * 根据cookie随机字符串查找cookie对象
@@ -162,7 +162,7 @@ public:
      * @param cookie cookie随机字符串
      * @return cookie对象，可以为nullptr
      */
-    HttpServerCookie::Ptr getCookie(const string &cookie_name,const string &cookie);
+    HttpServerCookie::Ptr getCookie(const std::string &cookie_name,const std::string &cookie);
 
     /**
      * 从http头中获取cookie对象
@@ -170,7 +170,7 @@ public:
      * @param http_header http头
      * @return cookie对象
      */
-    HttpServerCookie::Ptr getCookie(const string &cookie_name,const StrCaseMap &http_header);
+    HttpServerCookie::Ptr getCookie(const std::string &cookie_name,const StrCaseMap &http_header);
 
     /**
      * 根据uid获取cookie
@@ -178,7 +178,7 @@ public:
      * @param uid 用户id
      * @return cookie对象
      */
-    HttpServerCookie::Ptr getCookieByUid(const string &cookie_name,const string &uid);
+    HttpServerCookie::Ptr getCookieByUid(const std::string &cookie_name,const std::string &uid);
 
     /**
      * 删除cookie，用户登出时使用
@@ -195,7 +195,7 @@ private:
      * @param uid 用户id
      * @param cookie cookie随机字符串
      */
-    void onAddCookie(const string &cookie_name,const string &uid,const string &cookie);
+    void onAddCookie(const std::string &cookie_name,const std::string &uid,const std::string &cookie);
 
     /**
      * 析构cookie对象时触发
@@ -203,7 +203,7 @@ private:
      * @param uid 用户id
      * @param cookie cookie随机字符串
      */
-    void onDelCookie(const string &cookie_name,const string &uid,const string &cookie);
+    void onDelCookie(const std::string &cookie_name,const std::string &uid,const std::string &cookie);
 
     /**
      * 获取某用户名下最先登录时的cookie，目的是实现某用户下最多登录若干个设备
@@ -212,7 +212,7 @@ private:
      * @param max_client 最多登录的设备个数
      * @return 最早的cookie随机字符串
      */
-    string getOldestCookie(const string &cookie_name,const string &uid, int max_client = 1);
+    std::string getOldestCookie(const std::string &cookie_name,const std::string &uid, int max_client = 1);
 
     /**
      * 删除cookie
@@ -220,11 +220,11 @@ private:
      * @param cookie cookie随机字符串
      * @return 成功true
      */
-    bool delCookie(const string &cookie_name,const string &cookie);
+    bool delCookie(const std::string &cookie_name,const std::string &cookie);
 private:
-    unordered_map<string/*cookie_name*/,unordered_map<string/*cookie*/,HttpServerCookie::Ptr/*cookie_data*/> >_map_cookie;
-    unordered_map<string/*cookie_name*/,unordered_map<string/*uid*/,map<uint64_t/*cookie time stamp*/,string/*cookie*/> > >_map_uid_to_cookie;
-    recursive_mutex _mtx_cookie;
+    std::unordered_map<std::string/*cookie_name*/,std::unordered_map<std::string/*cookie*/,HttpServerCookie::Ptr/*cookie_data*/> >_map_cookie;
+    std::unordered_map<std::string/*cookie_name*/,std::unordered_map<std::string/*uid*/,std::map<uint64_t/*cookie time stamp*/,std::string/*cookie*/> > >_map_uid_to_cookie;
+    std::recursive_mutex _mtx_cookie;
     Timer::Ptr _timer;
     RandStrGeneator _geneator;
 };

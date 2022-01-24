@@ -29,7 +29,7 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtspMediaSourceImp(const string &vhost, const string &app, const string &id, int ringSize = RTP_GOP_SIZE) : RtspMediaSource(vhost, app, id,ringSize) {
+    RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTP_GOP_SIZE) : RtspMediaSource(vhost, app, id,ringSize) {
         _demuxer = std::make_shared<RtspDemuxer>();
         _demuxer->setTrackListener(this);
     }
@@ -39,7 +39,7 @@ public:
     /**
      * 设置sdp
      */
-    void setSdp(const string &strSdp) override {
+    void setSdp(const std::string &strSdp) override {
         if (!getSdp().empty()) {
             return;
         }

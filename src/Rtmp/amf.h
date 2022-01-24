@@ -58,9 +58,9 @@ public:
     double as_number() const;
     int as_integer() const;
     bool as_boolean() const;
-    string to_string() const;
+    std::string to_string() const;
     const AMFValue &operator[](const char *str) const;
-    void object_for_each(const function<void(const string &key, const AMFValue &val)> &fun) const ;
+    void object_for_each(const std::function<void(const std::string &key, const AMFValue &val)> &fun) const ;
     operator bool() const;
     void set(const std::string &s, const AMFValue &val);
     void add(const AMFValue &val);

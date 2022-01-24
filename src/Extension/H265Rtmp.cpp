@@ -14,6 +14,8 @@
 #include "mpeg4-hevc.h"
 #endif//ENABLE_MP4
 
+using namespace std;
+
 namespace mediakit{
 
 H265RtmpDecoder::H265RtmpDecoder() {

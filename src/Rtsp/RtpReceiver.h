@@ -28,7 +28,7 @@ public:
     PacketSortor() = default;
     ~PacketSortor() = default;
 
-    void setOnSort(function<void(SEQ seq, T &packet)> cb) {
+    void setOnSort(std::function<void(SEQ seq, T &packet)> cb) {
         _cb = std::move(cb);
     }
 
@@ -116,7 +116,7 @@ private:
         _pkt_sort_cache_map.erase(it);
     }
 
-    void popIterator(typename map<SEQ, T>::iterator it) {
+    void popIterator(typename std::map<SEQ, T>::iterator it) {
         auto seq = it->first;
         auto data = std::move(it->second);
         _pkt_sort_cache_map.erase(it);
@@ -156,14 +156,14 @@ private:
     //排序缓存长度
     size_t _max_sort_size = kMin;
     //pkt排序缓存，根据seq排序
-    map<SEQ, T> _pkt_sort_cache_map;
+    std::map<SEQ, T> _pkt_sort_cache_map;
     //回调
-    function<void(SEQ seq, T &packet)> _cb;
+    std::function<void(SEQ seq, T &packet)> _cb;
 };
 
 class RtpTrack : private PacketSortor<RtpPacket::Ptr>{
 public:
-    class BadRtpException : public invalid_argument {
+    class BadRtpException : public std::invalid_argument {
     public:
         template<typename Type>
         BadRtpException(Type &&type) : invalid_argument(std::forward<Type>(type)) {}
@@ -191,8 +191,8 @@ private:
 
 class RtpTrackImp : public RtpTrack{
 public:
-    using OnSorted = function<void(RtpPacket::Ptr)>;
-    using BeforeSorted = function<void(const RtpPacket::Ptr &)>;
+    using OnSorted = std::function<void(RtpPacket::Ptr)>;
+    using BeforeSorted = std::function<void(const RtpPacket::Ptr &)>;
 
     RtpTrackImp() = default;
     ~RtpTrackImp() override = default;

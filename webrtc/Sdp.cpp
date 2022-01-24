@@ -12,6 +12,7 @@
 #include "Rtsp/Rtsp.h"
 #include <cinttypes>
 using namespace mediakit;
+using namespace std;
 
 namespace RTC {
 #define RTC_FIELD "rtc."

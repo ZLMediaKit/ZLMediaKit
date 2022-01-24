@@ -61,7 +61,7 @@ public:
     Type _opcode;
     bool _mask_flag;
     size_t _payload_len;
-    vector<uint8_t > _mask;
+    std::vector<uint8_t > _mask;
 };
 
 //websocket协议收到的字符串类型缓存，用户协议层获取该数据传输的方式
@@ -141,7 +141,7 @@ private:
     bool _got_header = false;
     int _mask_offset = 0;
     size_t _payload_offset = 0;
-    string _remain_data;
+    std::string _remain_data;
 };
 
 } /* namespace mediakit */

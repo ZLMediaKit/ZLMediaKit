@@ -306,7 +306,7 @@ public:
 
     TitleMeta(float dur_sec = 0,
               size_t fileSize = 0,
-              const map<string,string> &header = map<string,string>()){
+              const std::map<std::string, std::string> &header = std::map<std::string, std::string>()){
         _metadata.set("duration", dur_sec);
         _metadata.set("fileSize", (int)fileSize);
         _metadata.set("server",kServerName);

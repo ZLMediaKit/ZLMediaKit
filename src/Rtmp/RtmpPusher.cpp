@@ -15,6 +15,7 @@
 #include "Thread/ThreadPool.h"
 using namespace toolkit;
 using namespace mediakit::Client;
+using namespace std;
 
 namespace mediakit {
 

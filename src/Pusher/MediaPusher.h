@@ -23,10 +23,10 @@ class MediaPusher : public PusherImp<PusherBase,PusherBase> {
 public:
     typedef std::shared_ptr<MediaPusher> Ptr;
 
-    MediaPusher(const string &schema,
-                const string &vhost,
-                const string &app,
-                const string &stream,
+    MediaPusher(const std::string &schema,
+                const std::string &vhost,
+                const std::string &app,
+                const std::string &stream,
                 const EventPoller::Ptr &poller = nullptr);
 
     MediaPusher(const MediaSource::Ptr &src,
@@ -34,7 +34,7 @@ public:
 
     virtual ~MediaPusher();
 
-    void publish(const string &url) override;
+    void publish(const std::string &url) override;
     EventPoller::Ptr getPoller();
     void setOnCreateSocket(Socket::onCreateSocket cb);
 
