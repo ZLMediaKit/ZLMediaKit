@@ -16,7 +16,7 @@
 #include <vector>
 #include <memory>
 #include "Network/Buffer.h"
-using namespace std;
+
 using namespace toolkit;
 
 //websocket组合包最大不得超过4MB(防止内存爆炸)

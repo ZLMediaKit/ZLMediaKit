@@ -28,7 +28,6 @@
 #include "Common/Stamp.h"
 #include "Rtcp/RtcpContext.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

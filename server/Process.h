@@ -19,13 +19,12 @@ typedef int pid_t;
 
 #include <fcntl.h>
 #include <string>
-using namespace std;
 
 class Process {
 public:
     Process();
     ~Process();
-    void run(const string &cmd,const string &log_file);
+    void run(const std::string &cmd,const std::string &log_file);
     void kill(int max_delay,bool force = false);
     bool wait(bool block = true);
     int exit_code();

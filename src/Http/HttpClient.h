@@ -25,7 +25,6 @@
 #include "strCoding.h"
 #include "HttpBody.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

@@ -17,7 +17,6 @@
 #include "HlsMaker.h"
 #include "HlsMediaSource.h"
 
-using namespace std;
 
 namespace mediakit {
 

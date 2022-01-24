@@ -18,7 +18,6 @@
 #include "Network/Socket.h"
 #include "Http/HttpSession.h"
 
-using namespace std;
 using namespace Json;
 using namespace toolkit;
 

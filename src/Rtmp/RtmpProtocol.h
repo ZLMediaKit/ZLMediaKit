@@ -23,7 +23,6 @@
 #include "Util/ResourcePool.h"
 #include "Http/HttpRequestSplitter.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

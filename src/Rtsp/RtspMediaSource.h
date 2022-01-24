@@ -25,7 +25,7 @@
 #include "Util/ResourcePool.h"
 #include "Util/NoticeCenter.h"
 #include "Thread/ThreadPool.h"
-using namespace std;
+
 using namespace toolkit;
 #define RTP_GOP_SIZE 512
 namespace mediakit {

@@ -17,7 +17,6 @@
 #include "assert.h"
 #include "Extension/Frame.h"
 #include "Common/Parser.h"
-using namespace std;
 
 //https://datatracker.ietf.org/doc/rfc4566/?include_text=1
 //https://blog.csdn.net/aggresss/article/details/109850434

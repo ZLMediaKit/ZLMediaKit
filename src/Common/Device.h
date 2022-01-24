@@ -17,7 +17,7 @@
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Common/MultiMediaSourceMuxer.h"
-using namespace std;
+
 using namespace toolkit;
 
 namespace mediakit {

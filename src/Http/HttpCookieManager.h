@@ -19,7 +19,6 @@
 #include "Network/Socket.h"
 #include "Common/Parser.h"
 
-using namespace std;
 using namespace toolkit;
 
 #define COOKIE_DEFAULT_LIFE (7 * 24 * 60 * 60)

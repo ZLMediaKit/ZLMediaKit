@@ -19,7 +19,6 @@
 #include "Network/Socket.h"
 #include "Common/MediaSource.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace FFmpeg {

@@ -20,7 +20,6 @@
 #include "Common/macros.h"
 #include "Extension/Frame.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

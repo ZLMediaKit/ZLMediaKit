@@ -16,7 +16,6 @@
 #include "Util/TimeTicker.h"
 #include "RtpCodec.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

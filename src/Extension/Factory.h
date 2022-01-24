@@ -17,7 +17,6 @@
 #include "Rtsp/RtpCodec.h"
 #include "Rtmp/RtmpCodec.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit{

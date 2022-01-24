@@ -20,7 +20,6 @@
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

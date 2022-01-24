@@ -21,7 +21,6 @@
 #define DEFAULT_CHANNEL 2
 #define DEFAULT_SAMPLES 1024
 
-using namespace std;
 
 class AudioSRC;
 

@@ -19,7 +19,7 @@
 #include "RtspMediaSource.h"
 #include "Util/mini.h"
 #include "Network/Socket.h"
-using namespace std;
+
 using namespace toolkit;
 
 namespace mediakit{

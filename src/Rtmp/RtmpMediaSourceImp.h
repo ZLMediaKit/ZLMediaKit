@@ -23,7 +23,7 @@
 #include "RtmpMediaSource.h"
 #include "RtmpDemuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
-using namespace std;
+
 using namespace toolkit;
 
 namespace mediakit {

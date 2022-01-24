@@ -22,7 +22,6 @@
 #include "TS/TSMediaSource.h"
 #include "FMP4/FMP4MediaSource.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

@@ -29,7 +29,6 @@
 #include "Extension/Track.h"
 #include "Record/Recorder.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace toolkit{

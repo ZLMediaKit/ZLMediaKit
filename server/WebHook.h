@@ -14,7 +14,7 @@
 #include <string>
 #include <functional>
 #include "jsoncpp/json.h"
-using namespace std;
+
 using namespace Json;
 
 //支持json或urlencoded方式传输参数

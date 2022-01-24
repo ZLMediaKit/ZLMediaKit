@@ -17,7 +17,6 @@
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit{

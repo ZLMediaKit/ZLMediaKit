@@ -19,7 +19,7 @@
 #include <stdexcept>
 #include <functional>
 #include "Network/Buffer.h"
-using namespace std;
+
 using namespace toolkit;
 
 enum AMFType {

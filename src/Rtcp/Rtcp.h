@@ -16,7 +16,7 @@
 #include "Util/util.h"
 #include "Network/Buffer.h"
 #include "Common/macros.h"
-using namespace std;
+
 using namespace toolkit;
 
 namespace mediakit {

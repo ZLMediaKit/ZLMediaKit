@@ -18,7 +18,6 @@
 #include "Network/UdpServer.h"
 #include "RtpSession.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit{

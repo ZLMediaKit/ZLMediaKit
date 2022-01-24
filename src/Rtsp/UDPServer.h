@@ -20,7 +20,6 @@
 #include "Util/logger.h"
 #include "Network/Socket.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

@@ -18,7 +18,6 @@
 #include "Util/logger.h"
 #include "Thread/WorkThreadPool.h"
 
-using namespace std;
 using namespace toolkit;
 
 #ifndef MIN

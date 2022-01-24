@@ -17,7 +17,6 @@
 #include "Common/macros.h"
 #include "Rtsp/Rtsp.h"
 
-using namespace std;
 
 #define RTP_EXT_MAP(XX) \
     XX(ssrc_audio_level,            "urn:ietf:params:rtp-hdrext:ssrc-audio-level") \

@@ -15,7 +15,7 @@
 #include "Common/Device.h"
 #include "Player/MediaPlayer.h"
 #include "Util/TimeTicker.h"
-using namespace std;
+
 using namespace toolkit;
 
 namespace mediakit {

@@ -13,7 +13,7 @@
 
 #include <string>
 #include "Network/Buffer.h"
-using namespace std;
+
 using namespace toolkit;
 
 namespace mediakit {

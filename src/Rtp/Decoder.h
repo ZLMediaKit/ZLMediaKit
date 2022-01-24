@@ -16,7 +16,6 @@
 #include <functional>
 #include "Common/MediaSink.h"
 
-using namespace std;
 namespace mediakit {
 
 class Decoder {

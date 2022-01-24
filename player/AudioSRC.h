@@ -30,7 +30,6 @@ extern "C" {
 #include "SDLAudioDevice.h"
 #include "FFMpegDecoder.h"
 
-using namespace std;
 using namespace toolkit;
 
 class AudioSRCDelegate {
