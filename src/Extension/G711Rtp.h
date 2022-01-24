@@ -15,17 +15,16 @@
 #include "CommonRtp.h"
 #include "Rtsp/RtpCodec.h"
 
-namespace mediakit{
-
+namespace mediakit {
 
 /**
  * G711 rtp编码类
  */
 class G711RtpEncoder : public CommonRtpDecoder, public RtpInfo {
 public:
-    typedef std::shared_ptr <G711RtpEncoder> Ptr;
+    using Ptr = std::shared_ptr<G711RtpEncoder>;
 
-    ~G711RtpEncoder() override {}
+    ~G711RtpEncoder() override = default;
 
     /**
      * 构造函数
@@ -36,15 +35,17 @@ public:
      * @param payload_type pt类型
      * @param interleaved rtsp interleaved 值
      */
-    G711RtpEncoder(CodecId codec, uint32_t ssrc, uint32_t mtu_size, uint32_t sample_rate, uint8_t payload_type, uint8_t interleaved,uint32_t channels);
+    G711RtpEncoder(CodecId codec, uint32_t ssrc, uint32_t mtu_size, uint32_t sample_rate, uint8_t payload_type,
+                   uint8_t interleaved, uint32_t channels);
 
     /**
      * 输入帧数据并编码成rtp
      */
     bool inputFrame(const Frame::Ptr &frame) override;
+
 private:
-    FrameImp::Ptr _cache_frame;
     uint32_t _channels = 1;
+    FrameImp::Ptr _cache_frame;
 };
 
 }//namespace mediakit
