@@ -327,7 +327,7 @@ void HttpClient::onResponseCompleted_l(const SockException &ex) {
     }
     //可疑的失败
 
-    if (_total_body_size > 0 && _recved_body_size >= _total_body_size) {
+    if (_total_body_size > 0 && _recved_body_size >= (size_t)_total_body_size) {
         //回复header中有content-length信息，那么收到的body大于等于声明值则认为成功
         onResponseCompleted(SockException(Err_success, "success"));
         return;
