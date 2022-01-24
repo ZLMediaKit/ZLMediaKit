@@ -10,6 +10,8 @@
 
 #include "WebRtcPlayer.h"
 
+using namespace mediakit;
+
 WebRtcPlayer::Ptr WebRtcPlayer::create(const EventPoller::Ptr &poller,
                                        const RtspMediaSource::Ptr &src,
                                        const MediaInfo &info) {

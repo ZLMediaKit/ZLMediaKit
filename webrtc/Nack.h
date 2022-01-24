@@ -14,30 +14,29 @@
 #include "Rtsp/Rtsp.h"
 #include "Rtcp/RtcpFCI.h"
 
-using namespace mediakit;
 
 class NackList {
 public:
     NackList() = default;
     ~NackList() = default;
 
-    void push_back(RtpPacket::Ptr rtp);
-    void for_each_nack(const FCI_NACK &nack, const function<void(const RtpPacket::Ptr &rtp)> &cb);
+    void push_back(mediakit::RtpPacket::Ptr rtp);
+    void for_each_nack(const mediakit::FCI_NACK &nack, const function<void(const mediakit::RtpPacket::Ptr &rtp)> &cb);
 
 private:
     void pop_front();
     uint32_t get_cache_ms();
-    RtpPacket::Ptr *get_rtp(uint16_t seq);
+    mediakit::RtpPacket::Ptr *get_rtp(uint16_t seq);
 
 private:
     deque<uint16_t> _nack_cache_seq;
-    unordered_map<uint16_t, RtpPacket::Ptr> _nack_cache_pkt;
+    unordered_map<uint16_t, mediakit::RtpPacket::Ptr> _nack_cache_pkt;
 };
 
 class NackContext {
 public:
     using Ptr = std::shared_ptr<NackContext>;
-    using onNack = function<void(const FCI_NACK &nack)>;
+    using onNack = function<void(const mediakit::FCI_NACK &nack)>;
     //最大保留的rtp丢包状态个数
     static constexpr auto kNackMaxSize = 1024;
     //rtp丢包状态最长保留时间
@@ -56,8 +55,8 @@ public:
 
 private:
     void eraseFrontSeq();
-    void doNack(const FCI_NACK &nack, bool record_nack);
-    void recordNack(const FCI_NACK &nack);
+    void doNack(const mediakit::FCI_NACK &nack, bool record_nack);
+    void recordNack(const mediakit::FCI_NACK &nack);
     void onRtx(uint16_t seq);
 
 private:

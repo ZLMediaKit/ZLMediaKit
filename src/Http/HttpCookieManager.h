@@ -21,7 +21,6 @@
 
 using namespace std;
 using namespace toolkit;
-using namespace mediakit;
 
 #define COOKIE_DEFAULT_LIFE (7 * 24 * 60 * 60)
 

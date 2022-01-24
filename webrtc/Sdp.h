@@ -18,7 +18,6 @@
 #include "Extension/Frame.h"
 #include "Common/Parser.h"
 using namespace std;
-using namespace mediakit;
 
 //https://datatracker.ietf.org/doc/rfc4566/?include_text=1
 //https://blog.csdn.net/aggresss/article/details/109850434
@@ -191,7 +190,7 @@ class SdpMedia : public SdpItem {
 public:
     // 5.14.  Media Descriptions ("m=")
     // m=<media> <port> <proto> <fmt> ...
-    TrackType type;
+    mediakit::TrackType type;
     uint16_t port;
     //RTP/AVP：应用场景为视频/音频的 RTP 协议。参考 RFC 3551
     //RTP/SAVP：应用场景为视频/音频的 SRTP 协议。参考 RFC 3711
@@ -376,7 +375,7 @@ class SdpAttrFmtp : public SdpItem {
 public:
     //fmtp:96 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
     uint8_t pt;
-    map<string/*key*/, string/*value*/, StrCaseCompare> fmtp;
+    map<string/*key*/, string/*value*/, mediakit::StrCaseCompare> fmtp;
     void parse(const string &str) override;
     string toString() const override;
     const char* getKey() const override { return "fmtp";}
@@ -593,7 +592,7 @@ public:
     uint32_t channel = 0;
     //rtcp反馈
     set<string> rtcp_fb;
-    map<string/*key*/, string/*value*/, StrCaseCompare> fmtp;
+    map<string/*key*/, string/*value*/, mediakit::StrCaseCompare> fmtp;
 
     string getFmtp(const char *key) const;
 };
@@ -601,7 +600,7 @@ public:
 //rtc 媒体描述
 class RtcMedia{
 public:
-    TrackType type{TrackType::TrackInvalid};
+    mediakit::TrackType type{mediakit::TrackType::TrackInvalid};
     string mid;
     uint16_t port{0};
     SdpConnection addr;
@@ -668,8 +667,8 @@ public:
     void checkValid() const;
     string toString() const;
     string toRtspSdp() const;
-    const  RtcMedia *getMedia(TrackType type) const;
-    bool supportRtcpFb(const string &name, TrackType type = TrackType::TrackVideo) const;
+    const  RtcMedia *getMedia(mediakit::TrackType type) const;
+    bool supportRtcpFb(const string &name, mediakit::TrackType type = mediakit::TrackType::TrackVideo) const;
     bool supportSimulcast() const;
 
 private:
@@ -698,10 +697,10 @@ public:
 
         set<string> rtcp_fb;
         map<RtpExtType, RtpDirection> extmap;
-        vector<CodecId> preferred_codec;
+        vector<mediakit::CodecId> preferred_codec;
         vector<SdpAttrCandidate> candidate;
 
-        void setDefaultSetting(TrackType type);
+        void setDefaultSetting(mediakit::TrackType type);
         void enableTWCC(bool enable = true);
         void enableREMB(bool enable = true);
     };
@@ -711,19 +710,19 @@ public:
     RtcTrackConfigure application;
 
     void setDefaultSetting(string ice_ufrag, string ice_pwd, RtpDirection direction, const SdpAttrFingerprint &fingerprint);
-    void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);
+    void addCandidate(const SdpAttrCandidate &candidate, mediakit::TrackType type = mediakit::TrackInvalid);
 
     shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
 
     void setPlayRtspInfo(const string &sdp);
 
-    void enableTWCC(bool enable = true, TrackType type = TrackInvalid);
-    void enableREMB(bool enable = true, TrackType type = TrackInvalid);
+    void enableTWCC(bool enable = true, mediakit::TrackType type = mediakit::TrackInvalid);
+    void enableREMB(bool enable = true, mediakit::TrackType type = mediakit::TrackInvalid);
 
 private:
-    void matchMedia(const shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
-    bool onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec);
-    void onSelectPlan(RtcCodecPlan &plan, CodecId codec);
+    void matchMedia(const shared_ptr<RtcSession> &ret, mediakit::TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
+    bool onCheckCodecProfile(const RtcCodecPlan &plan, mediakit::CodecId codec);
+    void onSelectPlan(RtcCodecPlan &plan, mediakit::CodecId codec);
 
 private:
     RtcCodecPlan::Ptr _rtsp_video_plan;

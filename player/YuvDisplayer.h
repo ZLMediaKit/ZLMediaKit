@@ -26,7 +26,6 @@ extern "C" {
 #endif //defined(_WIN32)
 
 using namespace toolkit;
-using namespace mediakit;
 
 #define REFRESH_EVENT   (SDL_USEREVENT + 1)
 

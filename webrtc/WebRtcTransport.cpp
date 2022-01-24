@@ -22,6 +22,8 @@
 #define RTP_MSLABEL "zlmediakit-mslabel"
 #define RTP_MSID RTP_MSLABEL " " RTP_LABEL
 
+using namespace mediakit;
+
 //RTC配置项目
 namespace RTC {
 #define RTC_FIELD "rtc."

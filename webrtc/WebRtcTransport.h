@@ -27,7 +27,6 @@
 #include "TwccContext.h"
 
 using namespace toolkit;
-using namespace mediakit;
 
 //RTC配置项目
 namespace RTC {
@@ -183,7 +182,7 @@ public:
 
     //for send rtp
     NackList nack_list;
-    RtcpContext::Ptr rtcp_context_send;
+    mediakit::RtcpContext::Ptr rtcp_context_send;
 
     //for recv rtp
     unordered_map<string/*rid*/, std::shared_ptr<RtpChannel> > rtp_channel;
@@ -194,13 +193,13 @@ struct WrappedMediaTrack {
     MediaTrack::Ptr track;
     explicit WrappedMediaTrack(MediaTrack::Ptr ptr): track(ptr) {}
     virtual ~WrappedMediaTrack() {}
-    virtual void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) = 0;
+    virtual void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, mediakit::RtpHeader *rtp) = 0;
 };
 
 struct WrappedRtxTrack: public WrappedMediaTrack {
     explicit WrappedRtxTrack(MediaTrack::Ptr ptr)
         : WrappedMediaTrack(std::move(ptr)) {}
-    void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) override;
+    void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, mediakit::RtpHeader *rtp) override;
 };
 
 class WebRtcTransportImp;
@@ -212,7 +211,7 @@ struct WrappedRtpTrack : public WrappedMediaTrack {
         , _transport(t) {}
     TwccContext& _twcc_ctx;
     WebRtcTransportImp& _transport;
-    void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) override;
+    void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, mediakit::RtpHeader *rtp) override;
 };
 
 class WebRtcTransportImp : public WebRtcTransport {
@@ -226,7 +225,7 @@ public:
     uint64_t getDuration() const;
     bool canSendRtp() const;
     bool canRecvRtp() const;
-    void onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
+    void onSendRtp(const mediakit::RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
 
     void createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track);
 
@@ -244,13 +243,13 @@ protected:
     void onCreate() override;
     void onDestory() override;
     void onShutdown(const SockException &ex) override;
-    virtual void onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp) = 0;
+    virtual void onRecvRtp(MediaTrack &track, const string &rid, mediakit::RtpPacket::Ptr rtp) = 0;
     void updateTicker();
 
 private:
     SdpAttrCandidate::Ptr getIceCandidate() const;
-    void onSortedRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp);
-    void onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc);
+    void onSortedRtp(MediaTrack &track, const string &rid, mediakit::RtpPacket::Ptr rtp);
+    void onSendNack(MediaTrack &track, const mediakit::FCI_NACK &nack, uint32_t ssrc);
     void onSendTwcc(uint32_t ssrc, const string &twcc_fci);
 
     void registerSelf();

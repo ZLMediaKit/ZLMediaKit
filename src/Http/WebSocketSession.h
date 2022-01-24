@@ -34,7 +34,7 @@ class TcpSessionTypeImp : public TcpSessionType, public SendInterceptor{
 public:
     typedef std::shared_ptr<TcpSessionTypeImp> Ptr;
 
-    TcpSessionTypeImp(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock) :
+    TcpSessionTypeImp(const mediakit::Parser &header, const mediakit::HttpSession &parent, const Socket::Ptr &pSock) :
             TcpSessionType(pSock), _identifier(parent.getIdentifier()) {}
 
     ~TcpSessionTypeImp() {}
@@ -73,7 +73,7 @@ template <typename TcpSessionType>
 class TcpSessionCreator {
 public:
     //返回的TcpSession必须派生于SendInterceptor，可以返回null
-    TcpSession::Ptr operator()(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock){
+    TcpSession::Ptr operator()(const mediakit::Parser &header, const mediakit::HttpSession &parent, const Socket::Ptr &pSock){
         return std::make_shared<TcpSessionTypeImp<TcpSessionType> >(header,parent,pSock);
     }
 };
@@ -82,7 +82,7 @@ public:
 * 通过该模板类可以透明化WebSocket协议，
 * 用户只要实现WebSock协议下的具体业务协议，譬如基于WebSocket协议的Rtmp协议等
 */
-template<typename Creator, typename HttpSessionType = HttpSession, WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
+template<typename Creator, typename HttpSessionType = mediakit::HttpSession, mediakit::WebSocketHeader::Type DataType = mediakit::WebSocketHeader::TEXT>
 class WebSocketSessionBase : public HttpSessionType {
 public:
     WebSocketSessionBase(const Socket::Ptr &pSock) : HttpSessionType(pSock){}
@@ -115,7 +115,7 @@ protected:
      * @param header http头
      * @return true代表允许websocket连接，否则拒绝
      */
-    bool onWebSocketConnect(const Parser &header) override{
+    bool onWebSocketConnect(const mediakit::Parser &header) override{
         //创建websocket session类
         _session = _creator(header, *this,HttpSessionType::getSock());
         if(!_session){
@@ -132,7 +132,7 @@ protected:
         dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf) {
             auto strongSelf = weakSelf.lock();
             if (strongSelf) {
-                WebSocketHeader header;
+                mediakit::WebSocketHeader header;
                 header._fin = true;
                 header._reserved = 0;
                 header._opcode = DataType;
@@ -149,7 +149,7 @@ protected:
     /**
      * 开始收到一个webSocket数据包
      */
-    void onWebSocketDecodeHeader(const WebSocketHeader &packet) override{
+    void onWebSocketDecodeHeader(const mediakit::WebSocketHeader &packet) override{
         //新包，原来的包残余数据清空掉
         _payload_section.clear();
     }
@@ -157,7 +157,7 @@ protected:
     /**
      * 收到websocket数据包负载
      */
-    void onWebSocketDecodePayload(const WebSocketHeader &packet,const uint8_t *ptr,size_t len,size_t recved) override {
+    void onWebSocketDecodePayload(const mediakit::WebSocketHeader &packet,const uint8_t *ptr,size_t len,size_t recved) override {
         _payload_section.append((char *)ptr,len);
     }
 
@@ -165,27 +165,27 @@ protected:
      * 接收到完整的一个webSocket数据包后回调
      * @param header 数据包包头
      */
-    void onWebSocketDecodeComplete(const WebSocketHeader &header_in) override {
-        WebSocketHeader& header = const_cast<WebSocketHeader&>(header_in);
+    void onWebSocketDecodeComplete(const mediakit::WebSocketHeader &header_in) override {
+        auto header = const_cast<mediakit::WebSocketHeader&>(header_in);
         auto  flag = header._mask_flag;
         header._mask_flag = false;
 
         switch (header._opcode){
-            case WebSocketHeader::CLOSE:{
+            case mediakit::WebSocketHeader::CLOSE:{
                 HttpSessionType::encode(header,nullptr);
                 HttpSessionType::shutdown(SockException(Err_shutdown, "recv close request from client"));
                 break;
             }
             
-            case WebSocketHeader::PING:{
-                header._opcode = WebSocketHeader::PONG;
+            case mediakit::WebSocketHeader::PING:{
+                header._opcode = mediakit::WebSocketHeader::PONG;
                 HttpSessionType::encode(header,std::make_shared<BufferString>(_payload_section));
                 break;
             }
             
-            case WebSocketHeader::CONTINUATION:
-            case WebSocketHeader::TEXT:
-            case WebSocketHeader::BINARY:{
+            case mediakit::WebSocketHeader::CONTINUATION:
+            case mediakit::WebSocketHeader::TEXT:
+            case mediakit::WebSocketHeader::BINARY:{
                 if (!header._fin) {
                     //还有后续分片数据, 我们先缓存数据，所有分片收集完成才一次性输出
                     _payload_cache.append(std::move(_payload_section));
@@ -199,13 +199,13 @@ protected:
                 //最后一个包
                 if (_payload_cache.empty()) {
                     //这个包是唯一个分片
-                    _session->onRecv(std::make_shared<WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_section)));
+                    _session->onRecv(std::make_shared<mediakit::WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_section)));
                     break;
                 }
 
                 //这个包由多个分片组成
                 _payload_cache.append(std::move(_payload_section));
-                _session->onRecv(std::make_shared<WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_cache)));
+                _session->onRecv(std::make_shared<mediakit::WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_cache)));
                 _payload_cache.clear();
                 break;
             }
@@ -232,7 +232,7 @@ private:
 };
 
 
-template<typename TcpSessionType,typename HttpSessionType = HttpSession,WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
+template<typename TcpSessionType,typename HttpSessionType = mediakit::HttpSession, mediakit::WebSocketHeader::Type DataType = mediakit::WebSocketHeader::TEXT>
 class WebSocketSession : public WebSocketSessionBase<TcpSessionCreator<TcpSessionType>,HttpSessionType,DataType>{
 public:
     WebSocketSession(const Socket::Ptr &pSock) : WebSocketSessionBase<TcpSessionCreator<TcpSessionType>,HttpSessionType,DataType>(pSock){}
