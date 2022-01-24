@@ -21,7 +21,6 @@
 
 using namespace std;
 using namespace toolkit;
-using namespace mediakit;
 
 namespace FFmpeg {
     extern const string kSnap;
@@ -40,7 +39,7 @@ private:
     ~FFmpegSnap() = delete;
 };
 
-class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public MediaSourceEventInterceptor{
+class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public mediakit::MediaSourceEventInterceptor{
 public:
     typedef shared_ptr<FFmpegSource> Ptr;
     typedef function<void(const SockException &ex)> onPlay;
@@ -71,19 +70,19 @@ public:
     void setupRecordFlag(bool enable_hls, bool enable_mp4);
 
 private:
-    void findAsync(int maxWaitMS ,const function<void(const MediaSource::Ptr &src)> &cb);
+    void findAsync(int maxWaitMS ,const function<void(const mediakit::MediaSource::Ptr &src)> &cb);
     void startTimer(int timeout_ms);
-    void onGetMediaSource(const MediaSource::Ptr &src);
+    void onGetMediaSource(const mediakit::MediaSource::Ptr &src);
 
     ///////MediaSourceEvent override///////
     // 关闭
-    bool close(MediaSource &sender,bool force) override;
+    bool close(mediakit::MediaSource &sender,bool force) override;
     // 获取媒体源类型
-    MediaOriginType getOriginType(MediaSource &sender) const override;
+    mediakit::MediaOriginType getOriginType(mediakit::MediaSource &sender) const override;
     //获取媒体源url或者文件路径
-    string getOriginUrl(MediaSource &sender) const override;
+    string getOriginUrl(mediakit::MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
-    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+    std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
 
 private:
     bool _enable_hls = false;
@@ -91,7 +90,7 @@ private:
     Process _process;
     Timer::Ptr _timer;
     EventPoller::Ptr _poller;
-    MediaInfo _media_info;
+    mediakit::MediaInfo _media_info;
     string _src_url;
     string _dst_url;
     string _ffmpeg_cmd_key;
