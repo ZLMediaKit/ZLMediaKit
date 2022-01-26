@@ -32,7 +32,7 @@ class HttpWsClient;
 template <typename ClientType,WebSocketHeader::Type DataType>
 class ClientTypeImp : public ClientType {
 public:
-    typedef function<ssize_t (const Buffer::Ptr &buf)> onBeforeSendCB;
+    typedef std::function<ssize_t (const Buffer::Ptr &buf)> onBeforeSendCB;
     friend class HttpWsClient<ClientType,DataType>;
 
     template<typename ...ArgsType>
@@ -70,7 +70,7 @@ private:
 template <typename ClientType,WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
 class HttpWsClient : public HttpClientImp , public WebSocketSplitter{
 public:
-    typedef shared_ptr<HttpWsClient> Ptr;
+    typedef std::shared_ptr<HttpWsClient> Ptr;
 
     HttpWsClient(const std::shared_ptr<ClientTypeImp<ClientType, DataType> > &delegate) : _weak_delegate(delegate),
                                                                                           _delegate(*delegate) {
@@ -84,8 +84,8 @@ public:
      * @param ws_url ws连接url
      * @param fTimeOutSec 超时时间
      */
-    void startWsClient(const string &ws_url, float fTimeOutSec) {
-        string http_url = ws_url;
+    void startWsClient(const std::string &ws_url, float fTimeOutSec) {
+        std::string http_url = ws_url;
         replace(http_url, "ws://", "http://");
         replace(http_url, "wss://", "https://");
         setMethod("GET");
@@ -120,7 +120,7 @@ protected:
      * @param status 状态码，譬如:200 OK
      * @param headers http头
      */
-    void onResponseHeader(const string &status,const HttpHeader &headers) override {
+    void onResponseHeader(const std::string &status, const HttpHeader &headers) override {
         if(status == "101"){
             auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(_Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
             if(Sec_WebSocket_Accept == const_cast<HttpHeader &>(headers)["Sec-WebSocket-Accept"]){
@@ -303,7 +303,7 @@ private:
         if(!ex){
             //websocket握手成功
             //此处截取TcpClient派生类发送的数据并进行websocket协议打包
-            weak_ptr<HttpWsClient> weakSelf = dynamic_pointer_cast<HttpWsClient>(shared_from_this());
+            std::weak_ptr<HttpWsClient> weakSelf = std::dynamic_pointer_cast<HttpWsClient>(shared_from_this());
             _delegate.setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf){
                 auto strongSelf = weakSelf.lock();
                 if(strongSelf){
@@ -343,12 +343,12 @@ private:
     }
 
 private:
-    string _Sec_WebSocket_Key;
-    function<void(const char *data, size_t len)> _onRecv;
-    weak_ptr<ClientTypeImp<ClientType,DataType> > _weak_delegate;
-    ClientTypeImp<ClientType,DataType> &_delegate;
-    string _payload_section;
-    string _payload_cache;
+    std::string _Sec_WebSocket_Key;
+    std::function<void(const char *data, size_t len)> _onRecv;
+    std::weak_ptr<ClientTypeImp<ClientType, DataType>> _weak_delegate;
+    ClientTypeImp<ClientType, DataType> &_delegate;
+    std::string _payload_section;
+    std::string _payload_cache;
 };
 
 /**
@@ -378,8 +378,8 @@ public:
      * @param timeout_sec 超时时间
      * @param local_port 本地监听端口，此处不起作用
      */
-    void startConnect(const string &host, uint16_t port, float timeout_sec = 3, uint16_t local_port = 0) override {
-        string ws_url;
+    void startConnect(const std::string &host, uint16_t port, float timeout_sec = 3, uint16_t local_port = 0) override {
+        std::string ws_url;
         if (useWSS) {
             //加密的ws
             ws_url = StrPrinter << "wss://" + host << ":" << port << "/";
@@ -390,8 +390,8 @@ public:
         startWebSocket(ws_url, timeout_sec);
     }
 
-    void startWebSocket(const string &ws_url,float fTimeOutSec = 3){
-        _wsClient = std::make_shared<HttpWsClient<ClientType,DataType> >(static_pointer_cast<WebSocketClient>(this->shared_from_this()));
+    void startWebSocket(const std::string &ws_url, float fTimeOutSec = 3) {
+        _wsClient = std::make_shared<HttpWsClient<ClientType, DataType> >(std::static_pointer_cast<WebSocketClient>(this->shared_from_this()));
         _wsClient->setOnCreateSocket([this](const EventPoller::Ptr &){
             return this->createSocket();
         });

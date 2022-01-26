@@ -78,7 +78,7 @@ private:
 private:
     int _sample_rate, _channel;
     SDL_AudioFormat _format;
-    mutex _mtx;
+    std::mutex _mtx;
     BufferLikeString _buffer;
     SDLAudioDevice::Ptr _device;
 };

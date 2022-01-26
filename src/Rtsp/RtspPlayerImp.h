@@ -70,7 +70,7 @@ public:
 private:
     //派生类回调函数
     bool onCheckSDP(const std::string &sdp) override {
-        _rtsp_media_src = dynamic_pointer_cast<RtspMediaSource>(_media_src);
+        _rtsp_media_src = std::dynamic_pointer_cast<RtspMediaSource>(_media_src);
         if (_rtsp_media_src) {
             _rtsp_media_src->setSdp(sdp);
         }

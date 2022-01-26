@@ -513,7 +513,7 @@ public:
 
     template<typename cls>
     cls getItemClass(char key, const char *attr_key = nullptr) const{
-        auto item = dynamic_pointer_cast<cls>(getItem(key, attr_key));
+        auto item = std::dynamic_pointer_cast<cls>(getItem(key, attr_key));
         if (!item) {
             return cls();
         }
@@ -537,14 +537,14 @@ public:
             std::string key(1, key_c);
             if (strcasecmp(item->getKey(), key.data()) == 0) {
                 if (!attr_key) {
-                    auto c = dynamic_pointer_cast<cls>(item);
+                    auto c = std::dynamic_pointer_cast<cls>(item);
                     if (c) {
                         ret.emplace_back(*c);
                     }
                 } else {
-                    auto attr = dynamic_pointer_cast<SdpAttr>(item);
+                    auto attr = std::dynamic_pointer_cast<SdpAttr>(item);
                     if (attr && !strcasecmp(attr->detail->getKey(), attr_key)) {
-                        auto c = dynamic_pointer_cast<cls>(attr->detail);
+                        auto c = std::dynamic_pointer_cast<cls>(attr->detail);
                         if (c) {
                             ret.emplace_back(*c);
                         }

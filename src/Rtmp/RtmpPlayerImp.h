@@ -97,7 +97,7 @@ private:
 
 private:
     void onCheckMeta_l(const AMFValue &val) {
-        _rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(_media_src);
+        _rtmp_src = std::dynamic_pointer_cast<RtmpMediaSource>(_media_src);
         if (_rtmp_src) {
             _rtmp_src->setMetaData(val);
         }

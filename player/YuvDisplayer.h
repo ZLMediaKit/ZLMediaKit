@@ -43,7 +43,7 @@ public:
     template<typename FUN>
     void doTask(FUN &&f){
         {
-            lock_guard<mutex> lck(_mtxTask);
+            std::lock_guard<std::mutex> lck(_mtxTask);
             _taskList.emplace_back(f);
         }
         SDL_Event event;
@@ -60,8 +60,8 @@ public:
             switch (event.type){
                 case REFRESH_EVENT:{
                     {
-                        lock_guard<mutex> lck(_mtxTask);
-                        if(_taskList.empty()){
+                        std::lock_guard<std::mutex> lck(_mtxTask);
+                        if (_taskList.empty()) {
                             //not reachable
                             continue;
                         }
@@ -102,16 +102,16 @@ public:
 
     YuvDisplayer(void *hwnd = nullptr,const char *title = "untitled"){
         static onceToken token([]() {
-            if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO) == -1) {
-                string err = "初始化SDL失败:";
+            if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO) == -1) {
+                std::string err = "初始化SDL失败:";
                 err+= SDL_GetError();
                 ErrorL << err;
                 throw std::runtime_error(err);
             }
             SDL_LogSetAllPriority(SDL_LOG_PRIORITY_CRITICAL);
-            SDL_LogSetOutputFunction([](void *userdata, int category, SDL_LogPriority priority, const char *message){
+            SDL_LogSetOutputFunction([](void *userdata, int category, SDL_LogPriority priority, const char *message) {
                 DebugL << category << " " <<  priority << message;
-            },nullptr);
+            }, nullptr);
             InfoL << "SDL_Init";
         }, []() {
             SDLDisplayerHelper::Destory();
@@ -193,7 +193,7 @@ public:
         return false;
     }
 private:
-    string _title;
+    std::string _title;
     SDL_Window *_win = nullptr;
     SDL_Renderer *_render = nullptr;
     SDL_Texture *_texture = nullptr;

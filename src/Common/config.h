@@ -55,7 +55,7 @@ extern const std::string kBroadcastHttpAccess;
 //在http文件服务器中,收到http访问文件或目录前的广播,通过该事件可以控制http url到文件路径的映射
 //在该事件中通过自行覆盖path参数，可以做到譬如根据虚拟主机或者app选择不同http根目录的目的
 extern const std::string kBroadcastHttpBeforeAccess;
-#define BroadcastHttpBeforeAccessArgs const Parser &parser,string &path,SockInfo &sender
+#define BroadcastHttpBeforeAccessArgs const Parser &parser, std::string &path, SockInfo &sender
 
 //该流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm.如果该事件不监听则不认证
 extern const std::string kBroadcastOnGetRtspRealm;
@@ -94,7 +94,7 @@ extern const std::string kBroadcastFlowReport;
 
 //未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了
 extern const std::string kBroadcastNotFoundStream;
-#define BroadcastNotFoundStreamArgs const MediaInfo &args,SockInfo &sender, const function<void()> &closePlayer
+#define BroadcastNotFoundStreamArgs const MediaInfo &args, SockInfo &sender, const std::function<void()> &closePlayer
 
 //某个流无人消费时触发，目的为了实现无人观看时主动断开拉流等业务逻辑
 extern const std::string kBroadcastStreamNoneReader;

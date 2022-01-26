@@ -60,15 +60,15 @@ public:
     ~TaskManager();
 
 protected:
-    void startThread(const string &name);
+    void startThread(const std::string &name);
     void stopThread();
 
-    void addEncodeTask(function<void()> task);
-    void addDecodeTask(bool key_frame, function<void()> task);
+    void addEncodeTask(std::function<void()> task);
+    void addDecodeTask(bool key_frame, std::function<void()> task);
     bool isEnabled() const;
 
 private:
-    void onThreadRun(const string &name);
+    void onThreadRun(const std::string &name);
     void pushExit();
 
 private:
@@ -81,28 +81,28 @@ private:
 private:
     bool _decode_drop_start = false;
     bool _exit = false;
-    mutex _task_mtx;
+    std::mutex _task_mtx;
     semaphore _sem;
-    List<function<void()> > _task;
-    std::shared_ptr<thread> _thread;
+    List<std::function<void()> > _task;
+    std::shared_ptr<std::thread> _thread;
 };
 
 class FFmpegDecoder : private TaskManager {
 public:
     using Ptr = std::shared_ptr<FFmpegDecoder>;
-    using onDec = function<void(const FFmpegFrame::Ptr &)>;
+    using onDec = std::function<void(const FFmpegFrame::Ptr &)>;
 
-    FFmpegDecoder(const Track::Ptr &track);
+    FFmpegDecoder(const mediakit::Track::Ptr &track);
     ~FFmpegDecoder();
 
-    bool inputFrame(const Frame::Ptr &frame, bool may_async = true);
+    bool inputFrame(const mediakit::Frame::Ptr &frame, bool may_async = true);
     void setOnDecode(onDec cb);
     void flush();
     const AVCodecContext *getContext() const;
 
 private:
     void onDecode(const FFmpegFrame::Ptr &frame);
-    bool inputFrame_l(const Frame::Ptr &frame);
+    bool inputFrame_l(const mediakit::Frame::Ptr &frame);
     bool decodeFrame(const char *data, size_t size, uint32_t dts, uint32_t pts);
 
 private:
@@ -110,7 +110,7 @@ private:
     Ticker _ticker;
     onDec _cb;
     std::shared_ptr<AVCodecContext> _context;
-    FrameMerger _merger{FrameMerger::h264_prefix};
+    mediakit::FrameMerger _merger { mediakit::FrameMerger::h264_prefix };
 };
 
 #endif /* FFMpegDecoder_H_ */

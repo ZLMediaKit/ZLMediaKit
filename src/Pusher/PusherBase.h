@@ -85,7 +85,7 @@ public:
     }
 
     std::shared_ptr<SockInfo> getSockInfo() const {
-        return dynamic_pointer_cast<SockInfo>(_delegate);
+        return std::dynamic_pointer_cast<SockInfo>(_delegate);
     }
 
     /**

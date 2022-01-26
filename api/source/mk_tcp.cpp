@@ -62,19 +62,19 @@ API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx,const char
 
 API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const char *data,size_t len){
     assert(ctx && data);
-    if(!len){
+    if (!len) {
         len = strlen(data);
     }
     try {
-        weak_ptr<TcpSession> weak_session = ((TcpSessionForC *)ctx)->shared_from_this();
-        string str = string(data,len);
+        std::weak_ptr<TcpSession> weak_session = ((TcpSessionForC *)ctx)->shared_from_this();
+        std::string str = std::string(data,len);
         ((TcpSessionForC *)ctx)->async([weak_session,str](){
             auto session_session = weak_session.lock();
             if(session_session){
                 session_session->SockSender::send(str);
             }
         });
-    }catch (std::exception &ex){
+    } catch (std::exception &ex) {
         WarnL << "can not got the strong pionter of this mk_tcp_session:" << ex.what();
     }
 }
@@ -208,13 +208,13 @@ TcpClientForC::Ptr *mk_tcp_client_create_l(mk_tcp_client_events *events, mk_tcp_
         case mk_type_tcp:
             return new TcpClientForC::Ptr(new TcpClientForC(events));
         case mk_type_ssl:
-            return (TcpClientForC::Ptr *)new shared_ptr<TcpSessionWithSSL<TcpClientForC> >(new TcpSessionWithSSL<TcpClientForC>(events));
+            return (TcpClientForC::Ptr *)new std::shared_ptr<TcpSessionWithSSL<TcpClientForC> >(new TcpSessionWithSSL<TcpClientForC>(events));
         case mk_type_ws:
             //此处你也可以修改WebSocketHeader::BINARY
-            return (TcpClientForC::Ptr *)new shared_ptr<WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, false> >(new WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, false>(events));
+            return (TcpClientForC::Ptr *)new std::shared_ptr<WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, false> >(new WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, false>(events));
         case mk_type_wss:
             //此处你也可以修改WebSocketHeader::BINARY
-            return (TcpClientForC::Ptr *)new shared_ptr<WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, true> >(new WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, true>(events));
+            return (TcpClientForC::Ptr *)new std::shared_ptr<WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, true> >(new WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, true>(events));
         default:
             return nullptr;
     }
@@ -253,7 +253,7 @@ API_EXPORT void API_CALL mk_tcp_client_send(mk_tcp_client ctx, const char *data,
 API_EXPORT void API_CALL mk_tcp_client_send_safe(mk_tcp_client ctx, const char *data, int len){
     assert(ctx && data);
     TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
-    weak_ptr<TcpClient> weakClient = *client;
+    std::weak_ptr<TcpClient> weakClient = *client;
     auto buf = BufferRaw::create();
     buf->assign(data,len);
     (*client)->async([weakClient,buf](){

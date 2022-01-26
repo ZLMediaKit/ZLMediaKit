@@ -84,7 +84,7 @@ public:
         //导致rtc无法播放，所以在rtsp推流rtc播放时，建议关闭直接代理模式
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), !directProxy, true, enableHls, enableMP4);
         _muxer->setMediaListener(getListener());
-        _muxer->setTrackListener(static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
+        _muxer->setTrackListener(std::static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
         MediaSource::setListener(_muxer);
 

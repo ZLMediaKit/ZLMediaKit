@@ -27,7 +27,7 @@ void RtpCache::input(uint64_t stamp, Buffer::Ptr buffer) {
 }
 
 void RtpCachePS::onRTP(Buffer::Ptr buffer) {
-    auto rtp = static_pointer_cast<RtpPacket>(buffer);
+    auto rtp = std::static_pointer_cast<RtpPacket>(buffer);
     auto stamp = rtp->getStampMS();
     input(stamp, std::move(buffer));
 }
