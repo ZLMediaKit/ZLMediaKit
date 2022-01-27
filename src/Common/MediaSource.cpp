@@ -208,7 +208,7 @@ bool MediaSource::close(bool force) {
     if(!listener){
         return false;
     }
-    return listener->close(*this,force);
+    return listener->close(*this,force) && unregist();
 }
 
 void MediaSource::onReaderChanged(int size) {
