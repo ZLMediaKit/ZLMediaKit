@@ -204,12 +204,11 @@ bool MediaSource::speed(float speed) {
 }
 
 bool MediaSource::close(bool force) {
-    unregist();
     auto listener = _listener.lock();
     if(!listener){
         return false;
     }
-    return listener->close(*this,force);
+    return listener->close(*this,force) && unregist();
 }
 
 void MediaSource::onReaderChanged(int size) {
