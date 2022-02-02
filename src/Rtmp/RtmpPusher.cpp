@@ -13,8 +13,9 @@
 #include "Util/util.h"
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
-using namespace toolkit;
+
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

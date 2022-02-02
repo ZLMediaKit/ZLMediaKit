@@ -16,8 +16,9 @@
 #include "Util/logger.h"
 #include "Network/sockutil.h"
 #include "Util/util.h"
-using namespace toolkit;
+
 using namespace std;
+using namespace toolkit;
 
 /////////////////////AMFValue/////////////////////////////
 inline void AMFValue::destroy() {

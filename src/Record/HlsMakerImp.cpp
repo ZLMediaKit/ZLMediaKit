@@ -14,8 +14,8 @@
 #include "Util/util.h"
 #include "Util/uv_errno.h"
 
-using namespace toolkit;
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 
