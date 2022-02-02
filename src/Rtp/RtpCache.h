@@ -18,9 +18,9 @@
 
 namespace mediakit{
 
-class RtpCache : private PacketCache<Buffer> {
+class RtpCache : private PacketCache<toolkit::Buffer> {
 public:
-    using onFlushed = function<void(std::shared_ptr<List<Buffer::Ptr> >)>;
+    using onFlushed = std::function<void(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> >)>;
     RtpCache(onFlushed cb);
     ~RtpCache() override = default;
 
@@ -29,10 +29,10 @@ protected:
      * 输入rtp(目的是为了合并写)
      * @param buffer rtp数据
      */
-    void input(uint64_t stamp, Buffer::Ptr buffer);
+    void input(uint64_t stamp, toolkit::Buffer::Ptr buffer);
 
 protected:
-    void onFlush(std::shared_ptr<List<Buffer::Ptr> > rtp_list, bool) override;
+    void onFlush(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> > rtp_list, bool) override;
 
 private:
     onFlushed _cb;
@@ -44,7 +44,7 @@ public:
     ~RtpCachePS() override = default;
 
 protected:
-    void onRTP(Buffer::Ptr rtp)  override;
+    void onRTP(toolkit::Buffer::Ptr rtp)  override;
 };
 
 }//namespace mediakit

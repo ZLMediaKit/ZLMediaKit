@@ -14,14 +14,17 @@
 #include <atomic>
 #include "Util/TimeTicker.h"
 #include "Common/MediaSource.h"
+
 namespace mediakit{
 
 class HlsMediaSource : public MediaSource {
 public:
     friend class HlsCookieData;
-    typedef RingBuffer<string> RingType;
-    typedef std::shared_ptr<HlsMediaSource> Ptr;
-    HlsMediaSource(const string &vhost, const string &app, const string &stream_id) : MediaSource(HLS_SCHEMA, vhost, app, stream_id){}
+
+    using RingType = toolkit::RingBuffer<std::string>;
+    using Ptr = std::shared_ptr<HlsMediaSource>;
+
+    HlsMediaSource(const std::string &vhost, const std::string &app, const std::string &stream_id) : MediaSource(HLS_SCHEMA, vhost, app, stream_id){}
     ~HlsMediaSource() override = default;
 
     /**
@@ -45,7 +48,7 @@ public:
     void registHls(bool file_created){
         if (!_is_regist) {
             _is_regist = true;
-            weak_ptr<HlsMediaSource> weakSelf = dynamic_pointer_cast<HlsMediaSource>(shared_from_this());
+            std::weak_ptr<HlsMediaSource> weakSelf = std::dynamic_pointer_cast<HlsMediaSource>(shared_from_this());
             auto lam = [weakSelf](int size) {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
@@ -65,17 +68,17 @@ public:
         //m3u8文件生成，发送给播放器
         decltype(_list_cb) copy;
         {
-            lock_guard<mutex> lck(_mtx_cb);
+            std::lock_guard<std::mutex> lck(_mtx_cb);
             copy.swap(_list_cb);
         }
-        copy.for_each([](const function<void()> &cb) {
+        copy.for_each([](const std::function<void()> &cb) {
             cb();
         });
     }
 
-    void waitForFile(function<void()> cb) {
+    void waitForFile(std::function<void()> cb) {
         //等待生成m3u8文件
-        lock_guard<mutex> lck(_mtx_cb);
+        std::lock_guard<std::mutex> lck(_mtx_cb);
         _list_cb.emplace_back(std::move(cb));
     }
 
@@ -86,14 +89,14 @@ public:
 private:
     bool _is_regist = false;
     RingType::Ptr _ring;
-    mutex _mtx_cb;
-    List<function<void()> > _list_cb;
+    std::mutex _mtx_cb;
+    toolkit::List<std::function<void()> > _list_cb;
 };
 
 class HlsCookieData{
 public:
     typedef std::shared_ptr<HlsCookieData> Ptr;
-    HlsCookieData(const MediaInfo &info, const std::shared_ptr<SockInfo> &sock_info);
+    HlsCookieData(const MediaInfo &info, const std::shared_ptr<toolkit::SockInfo> &sock_info);
     ~HlsCookieData();
     void addByteUsage(size_t bytes);
 
@@ -101,14 +104,13 @@ private:
     void addReaderCount();
 
 private:
-    atomic<uint64_t> _bytes {0};
+    std::atomic<uint64_t> _bytes {0};
     MediaInfo _info;
     std::shared_ptr<bool> _added;
-    Ticker _ticker;
-    std::shared_ptr<SockInfo> _sock_info;
+    toolkit::Ticker _ticker;
+    std::shared_ptr<toolkit::SockInfo> _sock_info;
     HlsMediaSource::RingType::RingReader::Ptr _ring_reader;
 };
-
 
 }//namespace mediakit
 #endif //ZLMEDIAKIT_HLSMEDIASOURCE_H

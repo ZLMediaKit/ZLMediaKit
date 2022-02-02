@@ -24,6 +24,8 @@
 #include "L16.h"
 #include "Common/Parser.h"
 
+using namespace std;
+
 namespace mediakit{
 
 Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {

@@ -29,9 +29,6 @@
 #include "Extension/Track.h"
 #include "Record/Recorder.h"
 
-using namespace std;
-using namespace toolkit;
-
 namespace toolkit{
     class Session;
 }// namespace toolkit
@@ -50,7 +47,7 @@ enum class MediaOriginType : uint8_t {
     rtc_push,
 };
 
-string getOriginTypeString(MediaOriginType type);
+std::string getOriginTypeString(MediaOriginType type);
 
 class MediaSource;
 class MediaSourceEvent{
@@ -62,9 +59,9 @@ public:
     // 获取媒体源类型
     virtual MediaOriginType getOriginType(MediaSource &sender) const { return MediaOriginType::unknown; }
     // 获取媒体源url或者文件路径
-    virtual string getOriginUrl(MediaSource &sender) const;
+    virtual std::string getOriginUrl(MediaSource &sender) const;
     // 获取媒体源客户端相关信息
-    virtual std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const { return nullptr; }
+    virtual std::shared_ptr<toolkit::SockInfo> getOriginSock(MediaSource &sender) const { return nullptr; }
 
     // 通知拖动进度条
     virtual bool seekTo(MediaSource &sender, uint32_t stamp) { return false; }
@@ -83,18 +80,18 @@ public:
 
     ////////////////////////仅供MultiMediaSourceMuxer对象继承////////////////////////
     // 开启或关闭录制
-    virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) { return false; };
+    virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) { return false; };
     // 获取录制状态
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
     // 获取所有track相关信息
-    virtual vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return vector<Track::Ptr>(); };
+    virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
     // 开始发送ps-rtp
-    virtual void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb) { cb(0, SockException(Err_other, "not implemented"));};
+    virtual void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb) { cb(0, toolkit::SockException(toolkit::Err_other, "not implemented"));};
     // 停止发送ps-rtp
-    virtual bool stopSendRtp(MediaSource &sender, const string &ssrc) {return false; }
+    virtual bool stopSendRtp(MediaSource &sender, const std::string &ssrc) {return false; }
 
 private:
-    Timer::Ptr _async_close_timer;
+    toolkit::Timer::Ptr _async_close_timer;
 };
 
 //该对象用于拦截感兴趣的MediaSourceEvent事件
@@ -107,8 +104,8 @@ public:
     std::shared_ptr<MediaSourceEvent> getDelegate() const;
 
     MediaOriginType getOriginType(MediaSource &sender) const override;
-    string getOriginUrl(MediaSource &sender) const override;
-    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+    std::string getOriginUrl(MediaSource &sender) const override;
+    std::shared_ptr<toolkit::SockInfo> getOriginSock(MediaSource &sender) const override;
 
     bool seekTo(MediaSource &sender, uint32_t stamp) override;
     bool pause(MediaSource &sender,  bool pause) override;
@@ -117,11 +114,11 @@ public:
     int totalReaderCount(MediaSource &sender) override;
     void onReaderChanged(MediaSource &sender, int size) override;
     void onRegist(MediaSource &sender, bool regist) override;
-    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) override;
+    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) override;
     bool isRecording(MediaSource &sender, Recorder::type type) override;
-    vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
-    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb) override;
-    bool stopSendRtp(MediaSource &sender, const string &ssrc) override;
+    std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
+    void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb) override;
+    bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
 
 private:
     std::weak_ptr<MediaSourceEvent> _listener;
@@ -134,18 +131,18 @@ class MediaInfo{
 public:
     ~MediaInfo() {}
     MediaInfo() {}
-    MediaInfo(const string &url) { parse(url); }
-    void parse(const string &url);
+    MediaInfo(const std::string &url) { parse(url); }
+    void parse(const std::string &url);
 
 public:
-    string _full_url;
-    string _schema;
-    string _host;
-    string _port;
-    string _vhost;
-    string _app;
-    string _streamid;
-    string _param_strs;
+    std::string _full_url;
+    std::string _schema;
+    std::string _host;
+    std::string _port;
+    std::string _vhost;
+    std::string _app;
+    std::string _streamid;
+    std::string _param_strs;
 };
 
 class BytesSpeed {
@@ -191,40 +188,40 @@ private:
 private:
     int _speed = 0;
     size_t _bytes = 0;
-    Ticker _ticker;
+    toolkit::Ticker _ticker;
 };
 
 /**
  * 媒体源，任何rtsp/rtmp的直播流都源自该对象
  */
-class MediaSource: public TrackSource, public enable_shared_from_this<MediaSource> {
+class MediaSource: public TrackSource, public std::enable_shared_from_this<MediaSource> {
 public:
     static MediaSource * const NullMediaSource;
     using Ptr = std::shared_ptr<MediaSource>;
-    using StreamMap = unordered_map<string/*strema_id*/, weak_ptr<MediaSource> >;
-    using AppStreamMap = unordered_map<string/*app*/, StreamMap>;
-    using VhostAppStreamMap = unordered_map<string/*vhost*/, AppStreamMap>;
-    using SchemaVhostAppStreamMap = unordered_map<string/*schema*/, VhostAppStreamMap>;
+    using StreamMap = std::unordered_map<std::string/*strema_id*/, std::weak_ptr<MediaSource> >;
+    using AppStreamMap = std::unordered_map<std::string/*app*/, StreamMap>;
+    using VhostAppStreamMap = std::unordered_map<std::string/*vhost*/, AppStreamMap>;
+    using SchemaVhostAppStreamMap = std::unordered_map<std::string/*schema*/, VhostAppStreamMap>;
 
-    MediaSource(const string &schema, const string &vhost, const string &app, const string &stream_id) ;
+    MediaSource(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &stream_id) ;
     virtual ~MediaSource();
 
     ////////////////获取MediaSource相关信息////////////////
 
     // 获取协议类型
-    const string& getSchema() const;
+    const std::string& getSchema() const;
     // 虚拟主机
-    const string& getVhost() const;
+    const std::string& getVhost() const;
     // 应用名
-    const string& getApp() const;
+    const std::string& getApp() const;
     // 流id
-    const string& getId() const;
+    const std::string& getId() const;
 
     //获取对象所有权
     std::shared_ptr<void> getOwnership();
 
     // 获取所有Track
-    vector<Track::Ptr> getTracks(bool ready = true) const override;
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override;
 
     // 获取流当前时间戳
     virtual uint32_t getTimeStamp(TrackType type) { return 0; };
@@ -253,9 +250,9 @@ public:
     // 获取媒体源类型
     MediaOriginType getOriginType() const;
     // 获取媒体源url或者文件路径
-    string getOriginUrl() const;
+    std::string getOriginUrl() const;
     // 获取媒体源客户端相关信息
-    std::shared_ptr<SockInfo> getOriginSock() const;
+    std::shared_ptr<toolkit::SockInfo> getOriginSock() const;
 
     // 拖动进度条
     bool seekTo(uint32_t stamp);
@@ -268,28 +265,28 @@ public:
     // 该流观看人数变化
     void onReaderChanged(int size);
     // 开启或关闭录制
-    bool setupRecord(Recorder::type type, bool start, const string &custom_path, size_t max_second);
+    bool setupRecord(Recorder::type type, bool start, const std::string &custom_path, size_t max_second);
     // 获取录制状态
     bool isRecording(Recorder::type type);
     // 开始发送ps-rtp
-    void startSendRtp(const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb);
+    void startSendRtp(const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb);
     // 停止发送ps-rtp
-    bool stopSendRtp(const string &ssrc);
+    bool stopSendRtp(const std::string &ssrc);
 
     ////////////////static方法，查找或生成MediaSource////////////////
 
     // 同步查找流
-    static Ptr find(const string &schema, const string &vhost, const string &app, const string &id, bool from_mp4 = false);
+    static Ptr find(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &id, bool from_mp4 = false);
 
     // 忽略类型，同步查找流，可能返回rtmp/rtsp/hls类型
-    static Ptr find(const string &vhost, const string &app, const string &stream_id, bool from_mp4 = false);
+    static Ptr find(const std::string &vhost, const std::string &app, const std::string &stream_id, bool from_mp4 = false);
 
     // 异步查找流
-    static void findAsync(const MediaInfo &info, const std::shared_ptr<Session> &session, const function<void(const Ptr &src)> &cb);
+    static void findAsync(const MediaInfo &info, const std::shared_ptr<toolkit::Session> &session, const std::function<void(const Ptr &src)> &cb);
     // 遍历所有流
-    static void for_each_media(const function<void(const Ptr &src)> &cb, const string &schema = "", const string &vhost = "", const string &app = "", const string &stream = "");
+    static void for_each_media(const std::function<void(const Ptr &src)> &cb, const std::string &schema = "", const std::string &vhost = "", const std::string &app = "", const std::string &stream = "");
     // 从mp4文件生成MediaSource
-    static MediaSource::Ptr createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &file_path = "", bool check_app = true);
+    static MediaSource::Ptr createFromMP4(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &stream, const std::string &file_path = "", bool check_app = true);
 
 protected:
     //媒体注册
@@ -305,16 +302,16 @@ protected:
     BytesSpeed _speed[TrackMax];
 
 private:
-    atomic_flag _owned { false };
+    std::atomic_flag _owned { false };
     time_t _create_stamp;
-    Ticker _ticker;
-    string _schema;
-    string _vhost;
-    string _app;
-    string _stream_id;
+    toolkit::Ticker _ticker;
+    std::string _schema;
+    std::string _vhost;
+    std::string _app;
+    std::string _stream_id;
     std::weak_ptr<MediaSourceEvent> _listener;
     //对象个数统计
-    ObjectStatistic<MediaSource> _statistic;
+    toolkit::ObjectStatistic<MediaSource> _statistic;
 };
 
 ///缓存刷新策略类
@@ -333,7 +330,7 @@ private:
 /// \tparam packet 包类型
 /// \tparam policy 刷新缓存策略
 /// \tparam packet_list 包缓存类型
-template<typename packet, typename policy = FlushPolicy, typename packet_list = List<std::shared_ptr<packet> > >
+template<typename packet, typename policy = FlushPolicy, typename packet_list = toolkit::List<std::shared_ptr<packet> > >
 class PacketCache {
 public:
     PacketCache(){

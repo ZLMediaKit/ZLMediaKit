@@ -10,6 +10,9 @@
 
 #include "Parser.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit{
 
 string FindField(const char* buf, const char* start, const char *end ,size_t bufSize) {

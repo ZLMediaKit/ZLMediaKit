@@ -23,24 +23,21 @@
 #include "Pusher/PusherBase.h"
 #include "Rtcp/RtcpContext.h"
 
-using namespace std;
-using namespace toolkit;
-
 namespace mediakit {
 
-class RtspPusher : public TcpClient, public RtspSplitter, public PusherBase {
+class RtspPusher : public toolkit::TcpClient, public RtspSplitter, public PusherBase {
 public:
     typedef std::shared_ptr<RtspPusher> Ptr;
-    RtspPusher(const EventPoller::Ptr &poller,const RtspMediaSource::Ptr &src);
+    RtspPusher(const toolkit::EventPoller::Ptr &poller,const RtspMediaSource::Ptr &src);
     ~RtspPusher() override;
-    void publish(const string &url) override;
+    void publish(const std::string &url) override;
     void teardown() override;
 
 protected:
     //for Tcpclient override
-    void onRecv(const Buffer::Ptr &buf) override;
-    void onConnect(const SockException &err) override;
-    void onErr(const SockException &ex) override;
+    void onRecv(const toolkit::Buffer::Ptr &buf) override;
+    void onConnect(const toolkit::SockException &err) override;
+    void onErr(const toolkit::SockException &ex) override;
 
     //RtspSplitter override
     void onWholeRtspPacket(Parser &parser) override ;
@@ -49,7 +46,7 @@ protected:
     virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data, size_t len);
 
 private:
-    void onPublishResult_l(const SockException &ex, bool handshake_done);
+    void onPublishResult_l(const toolkit::SockException &ex, bool handshake_done);
 
     void sendAnnounce();
     void sendSetup(unsigned int track_idx);
@@ -59,14 +56,14 @@ private:
 
     void handleResAnnounce(const Parser &parser);
     void handleResSetup(const Parser &parser, unsigned int track_idx);
-    bool handleAuthenticationFailure(const string &params_str);
+    bool handleAuthenticationFailure(const std::string &params_str);
 
     int getTrackIndexByInterleaved(int interleaved) const;
     int getTrackIndexByTrackType(TrackType type) const;
 
     void sendRtpPacket(const RtspMediaSource::RingDataType & pkt) ;
-    void sendRtspRequest(const string &cmd, const string &url ,const StrCaseMap &header = StrCaseMap(),const string &sdp = "" );
-    void sendRtspRequest(const string &cmd, const string &url ,const std::initializer_list<string> &header,const string &sdp = "");
+    void sendRtspRequest(const std::string &cmd, const std::string &url ,const StrCaseMap &header = StrCaseMap(),const std::string &sdp = "" );
+    void sendRtspRequest(const std::string &cmd, const std::string &url ,const std::initializer_list<std::string> &header,const std::string &sdp = "");
 
     void createUdpSockIfNecessary(int track_idx);
     void setSocketFlags();
@@ -77,29 +74,29 @@ private:
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
     //rtsp鉴权相关
-    string _nonce;
-    string _realm;
-    string _url;
-    string _session_id;
-    string _content_base;
+    std::string _nonce;
+    std::string _realm;
+    std::string _url;
+    std::string _session_id;
+    std::string _content_base;
     SdpParser _sdp_parser;
-    vector<SdpTrack::Ptr> _track_vec;
+    std::vector<SdpTrack::Ptr> _track_vec;
     //RTP端口,trackid idx 为数组下标
-    Socket::Ptr _rtp_sock[2];
+    toolkit::Socket::Ptr _rtp_sock[2];
     //RTCP端口,trackid idx 为数组下标
-    Socket::Ptr _rtcp_sock[2];
+    toolkit::Socket::Ptr _rtcp_sock[2];
     //超时功能实现
-    std::shared_ptr<Timer> _publish_timer;
+    std::shared_ptr<toolkit::Timer> _publish_timer;
     //心跳定时器
-    std::shared_ptr<Timer> _beat_timer;
+    std::shared_ptr<toolkit::Timer> _beat_timer;
     std::weak_ptr<RtspMediaSource> _push_src;
     RtspMediaSource::RingType::RingReader::Ptr _rtsp_reader;
-    function<void(const Parser&)> _on_res_func;
+    std::function<void(const Parser&)> _on_res_func;
     ////////// rtcp ////////////////
     //rtcp发送时间,trackid idx 为数组下标
-    Ticker _rtcp_send_ticker[2];
+    toolkit::Ticker _rtcp_send_ticker[2];
     //统计rtp并发送rtcp
-    vector<RtcpContext::Ptr> _rtcp_context;
+    std::vector<RtcpContext::Ptr> _rtcp_context;
 };
 
 using RtspPusherImp = PusherImp<RtspPusher, PusherBase>;

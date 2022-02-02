@@ -21,9 +21,9 @@ class RtmpMediaSourceMuxer : public RtmpMuxer, public MediaSourceEventIntercepto
 public:
     typedef std::shared_ptr<RtmpMediaSourceMuxer> Ptr;
 
-    RtmpMediaSourceMuxer(const string &vhost,
-                         const string &strApp,
-                         const string &strId,
+    RtmpMediaSourceMuxer(const std::string &vhost,
+                         const std::string &strApp,
+                         const std::string &strId,
                          const TitleMeta::Ptr &title = nullptr) : RtmpMuxer(title){
         _media_src = std::make_shared<RtmpMediaSource>(vhost, strApp, strId);
         getRtmpRing()->setDelegate(_media_src);

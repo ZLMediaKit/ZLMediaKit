@@ -9,13 +9,17 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
+#include "Util/uv_errno.h"
 #include "RtpServer.h"
 #include "RtpSelector.h"
 #include "Rtcp/RtcpContext.h"
+
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit{
 
-RtpServer::RtpServer() {
-}
+RtpServer::RtpServer() {}
 
 RtpServer::~RtpServer() {
     if(_on_clearup){
@@ -161,8 +165,8 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable
     _rtp_process = process;
 }
 
-void RtpServer::setOnDetach(const function<void()> &cb){
-    if(_rtp_process){
+void RtpServer::setOnDetach(const function<void()> &cb) {
+    if (_rtp_process) {
         _rtp_process->setOnDetach(cb);
     }
 }

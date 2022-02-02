@@ -28,9 +28,9 @@
 #include "Util/ResourcePool.h"
 #include "Util/NoticeCenter.h"
 #include "Thread/ThreadPool.h"
-using namespace toolkit;
 
 #define RTMP_GOP_SIZE 512
+
 namespace mediakit {
 
 /**
@@ -40,11 +40,11 @@ namespace mediakit {
  * 只要生成了这三要素，那么要实现rtmp推流、rtmp服务器就很简单了
  * rtmp推拉流协议中，先传递metadata，然后传递config帧，然后一直传递普通帧
  */
-class RtmpMediaSource : public MediaSource, public RingDelegate<RtmpPacket::Ptr>, private PacketCache<RtmpPacket>{
+class RtmpMediaSource : public MediaSource, public toolkit::RingDelegate<RtmpPacket::Ptr>, private PacketCache<RtmpPacket>{
 public:
-    typedef std::shared_ptr<RtmpMediaSource> Ptr;
-    typedef std::shared_ptr<List<RtmpPacket::Ptr> > RingDataType;
-    typedef RingBuffer<RingDataType> RingType;
+    using Ptr = std::shared_ptr<RtmpMediaSource>;
+    using RingDataType = std::shared_ptr<toolkit::List<RtmpPacket::Ptr> >;
+    using RingType = toolkit::RingBuffer<RingDataType>;
 
     /**
      * 构造函数
@@ -53,9 +53,9 @@ public:
      * @param stream_id 流id
      * @param ring_size 可以设置固定的环形缓冲大小，0则自适应
      */
-    RtmpMediaSource(const string &vhost,
-                    const string &app,
-                    const string &stream_id,
+    RtmpMediaSource(const std::string &vhost,
+                    const std::string &app,
+                    const std::string &stream_id,
                     int ring_size = RTMP_GOP_SIZE) :
             MediaSource(RTMP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {
     }
@@ -81,7 +81,7 @@ public:
      * 获取metadata
      */
     const AMFValue &getMetaData() const {
-        lock_guard<recursive_mutex> lock(_mtx);
+        std::lock_guard<std::recursive_mutex> lock(_mtx);
         return _metadata;
     }
 
@@ -90,7 +90,7 @@ public:
      */
     template<typename FUNC>
     void getConfigFrame(const FUNC &f) {
-        lock_guard<recursive_mutex> lock(_mtx);
+        std::lock_guard<std::recursive_mutex> lock(_mtx);
         for (auto &pr : _config_frame_map) {
             f(pr.second);
         }
@@ -113,7 +113,7 @@ public:
      * 更新metadata
      */
     void updateMetaData(const AMFValue &metadata) {
-        lock_guard<recursive_mutex> lock(_mtx);
+        std::lock_guard<std::recursive_mutex> lock(_mtx);
         _metadata = metadata;
     }
 
@@ -132,7 +132,7 @@ public:
         }
 
         if (pkt->isCfgFrame()) {
-            lock_guard<recursive_mutex> lock(_mtx);
+            std::lock_guard<std::recursive_mutex> lock(_mtx);
             _config_frame_map[pkt->type_id] = pkt;
             if (!_ring) {
                 //注册后收到config帧更新到各播放器
@@ -141,7 +141,7 @@ public:
         }
 
         if (!_ring) {
-            weak_ptr<RtmpMediaSource> weakSelf = dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
+            std::weak_ptr<RtmpMediaSource> weakSelf = std::dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
             auto lam = [weakSelf](int size) {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
@@ -203,7 +203,7 @@ private:
     * @param rtmp_list rtmp包列表
     * @param key_pos 是否包含关键帧
     */
-    void onFlush(std::shared_ptr<List<RtmpPacket::Ptr> > rtmp_list, bool key_pos) override {
+    void onFlush(std::shared_ptr<toolkit::List<RtmpPacket::Ptr> > rtmp_list, bool key_pos) override {
         //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
         _ring->write(std::move(rtmp_list), _have_video ? key_pos : true);
     }
@@ -216,8 +216,8 @@ private:
     AMFValue _metadata;
     RingType::Ptr _ring;
 
-    mutable recursive_mutex _mtx;
-    unordered_map<int, RtmpPacket::Ptr> _config_frame_map;
+    mutable std::recursive_mutex _mtx;
+    std::unordered_map<int, RtmpPacket::Ptr> _config_frame_map;
 };
 
 } /* namespace mediakit */

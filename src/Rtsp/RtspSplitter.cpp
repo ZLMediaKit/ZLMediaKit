@@ -13,6 +13,9 @@
 #include "Util/logger.h"
 #include "Util/util.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit{
 
 const char *RtspSplitter::onSearchPacketTail(const char *data, size_t len) {

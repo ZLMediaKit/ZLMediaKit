@@ -11,6 +11,8 @@
 #include "MediaSink.h"
 #include "Extension/AAC.h"
 
+using namespace std;
+
 namespace mediakit{
 
 bool MediaSink::addTrack(const Track::Ptr &track_in) {

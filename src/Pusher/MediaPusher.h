@@ -15,7 +15,6 @@
 #include <string>
 #include "PusherBase.h"
 #include "Thread/TaskExecutor.h"
-using namespace toolkit;
 
 namespace mediakit {
 
@@ -23,25 +22,25 @@ class MediaPusher : public PusherImp<PusherBase,PusherBase> {
 public:
     typedef std::shared_ptr<MediaPusher> Ptr;
 
-    MediaPusher(const string &schema,
-                const string &vhost,
-                const string &app,
-                const string &stream,
-                const EventPoller::Ptr &poller = nullptr);
+    MediaPusher(const std::string &schema,
+                const std::string &vhost,
+                const std::string &app,
+                const std::string &stream,
+                const toolkit::EventPoller::Ptr &poller = nullptr);
 
     MediaPusher(const MediaSource::Ptr &src,
-                const EventPoller::Ptr &poller = nullptr);
+                const toolkit::EventPoller::Ptr &poller = nullptr);
 
     virtual ~MediaPusher();
 
-    void publish(const string &url) override;
-    EventPoller::Ptr getPoller();
-    void setOnCreateSocket(Socket::onCreateSocket cb);
+    void publish(const std::string &url) override;
+    toolkit::EventPoller::Ptr getPoller();
+    void setOnCreateSocket(toolkit::Socket::onCreateSocket cb);
 
 private:
     std::weak_ptr<MediaSource> _src;
-    EventPoller::Ptr _poller;
-    Socket::onCreateSocket _on_create_socket;
+    toolkit::EventPoller::Ptr _poller;
+    toolkit::Socket::onCreateSocket _on_create_socket;
 };
 
 } /* namespace mediakit */

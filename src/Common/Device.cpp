@@ -24,6 +24,7 @@
 #include "Codec/H264Encoder.h"
 #endif //ENABLE_X264
 using namespace toolkit;
+using namespace std;
 
 namespace mediakit {
 

@@ -1,0 +1,39 @@
+name: macos C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: macOS-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: 下载submodule源码
+      run: git submodule update --init
+
+#    - name: 安装brew
+#      run: ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+#
+#    - name: brew安装依赖库(非必选)
+#      run: brew update && brew install cmake openssl sdl2 ffmpeg
+
+#    - name: 下载 SRTP
+#      uses: actions/checkout@v2
+#      with:
+#        repository: cisco/libsrtp
+#        fetch-depth: 1
+#        ref: v2.3.0
+#        path: 3rdpart/libsrtp
+#
+#    - name: 编译 SRTP
+#      run: cd 3rdpart/libsrtp && ./configure --enable-openssl && make -j4 && sudo make install
+
+    - name: 编译
+      run: mkdir -p build && cd build && cmake .. && make -j4
+
+    - name: 运行MediaServer
+      run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
+
+      

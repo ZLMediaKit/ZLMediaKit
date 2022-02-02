@@ -14,6 +14,8 @@
 #include "Rtmp/RtmpPlayerImp.h"
 #include "Http/HlsPlayer.h"
 #include "Http/TsPlayerImp.h"
+
+using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
@@ -61,10 +63,10 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller, const s
 }
 
 PlayerBase::PlayerBase() {
-    this->mINI::operator[](kTimeoutMS) = 10000;
-    this->mINI::operator[](kMediaTimeoutMS) = 5000;
-    this->mINI::operator[](kBeatIntervalMS) = 5000;
-    this->mINI::operator[](kWaitTrackReady) = true;
+    this->mINI::operator[](Client::kTimeoutMS) = 10000;
+    this->mINI::operator[](Client::kMediaTimeoutMS) = 5000;
+    this->mINI::operator[](Client::kBeatIntervalMS) = 5000;
+    this->mINI::operator[](Client::kWaitTrackReady) = true;
 }
 
 ///////////////////////////DemuxerSink//////////////////////////////

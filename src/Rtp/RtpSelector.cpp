@@ -13,6 +13,9 @@
 #include "RtpSelector.h"
 #include "RtpSplitter.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit{
 
 INSTANCE_IMP(RtpSelector);

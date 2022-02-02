@@ -15,6 +15,8 @@
 #include "Common/config.h"
 
 using namespace toolkit;
+using namespace std;
+
 namespace mediakit {
 
 static struct mov_buffer_t s_io = {

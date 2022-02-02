@@ -17,10 +17,10 @@
 
 namespace mediakit{
 
-string makeAacConfig(const uint8_t *hex, size_t length);
+std::string makeAacConfig(const uint8_t *hex, size_t length);
 int getAacFrameLength(const uint8_t *hex, size_t length);
-int dumpAacConfig(const string &config, size_t length, uint8_t *out, size_t out_size);
-bool parseAacConfig(const string &config, int &samplerate, int &channels);
+int dumpAacConfig(const std::string &config, size_t length, uint8_t *out, size_t out_size);
+bool parseAacConfig(const std::string &config, int &samplerate, int &channels);
 
 /**
  * aac音频通道
@@ -39,12 +39,12 @@ public:
      * 构造aac类型的媒体
      * @param aac_cfg aac配置信息
      */
-    AACTrack(const string &aac_cfg);
+    AACTrack(const std::string &aac_cfg);
 
     /**
      * 获取aac 配置信息
      */
-    const string &getAacCfg() const;
+    const std::string &getAacCfg() const;
 
     bool ready() override;
     CodecId getCodecId() const override;
@@ -60,7 +60,7 @@ private:
     bool inputFrame_l(const Frame::Ptr &frame);
 
 private:
-    string _cfg;
+    std::string _cfg;
     int _channel = 0;
     int _sampleRate = 0;
     int _sampleBit = 16;

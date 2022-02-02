@@ -19,7 +19,8 @@
  */
 class SendInterceptor{
 public:
-    typedef function<ssize_t (const Buffer::Ptr &buf)> onBeforeSendCB;
+    using onBeforeSendCB =std::function<ssize_t (const toolkit::Buffer::Ptr &buf)>;
+
     SendInterceptor() = default;
     virtual ~SendInterceptor() = default;
     virtual void setOnBeforeSendCB(const onBeforeSendCB &cb) = 0;
@@ -34,7 +35,7 @@ class TcpSessionTypeImp : public TcpSessionType, public SendInterceptor{
 public:
     typedef std::shared_ptr<TcpSessionTypeImp> Ptr;
 
-    TcpSessionTypeImp(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock) :
+    TcpSessionTypeImp(const mediakit::Parser &header, const mediakit::HttpSession &parent, const toolkit::Socket::Ptr &pSock) :
             TcpSessionType(pSock), _identifier(parent.getIdentifier()) {}
 
     ~TcpSessionTypeImp() {}
@@ -53,19 +54,19 @@ protected:
      * @param buf 需要截取的数据
      * @return 数据字节数
      */
-    ssize_t send(Buffer::Ptr buf) override {
+    ssize_t send(toolkit::Buffer::Ptr buf) override {
         if (_beforeSendCB) {
             return _beforeSendCB(buf);
         }
         return TcpSessionType::send(std::move(buf));
     }
 
-    string getIdentifier() const override {
+    std::string getIdentifier() const override {
         return _identifier;
     }
 
 private:
-    string _identifier;
+    std::string _identifier;
     onBeforeSendCB _beforeSendCB;
 };
 
@@ -73,7 +74,7 @@ template <typename TcpSessionType>
 class TcpSessionCreator {
 public:
     //返回的TcpSession必须派生于SendInterceptor，可以返回null
-    TcpSession::Ptr operator()(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock){
+    toolkit::TcpSession::Ptr operator()(const mediakit::Parser &header, const mediakit::HttpSession &parent, const toolkit::Socket::Ptr &pSock){
         return std::make_shared<TcpSessionTypeImp<TcpSessionType> >(header,parent,pSock);
     }
 };
@@ -82,14 +83,14 @@ public:
 * 通过该模板类可以透明化WebSocket协议，
 * 用户只要实现WebSock协议下的具体业务协议，譬如基于WebSocket协议的Rtmp协议等
 */
-template<typename Creator, typename HttpSessionType = HttpSession, WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
+template<typename Creator, typename HttpSessionType = mediakit::HttpSession, mediakit::WebSocketHeader::Type DataType = mediakit::WebSocketHeader::TEXT>
 class WebSocketSessionBase : public HttpSessionType {
 public:
-    WebSocketSessionBase(const Socket::Ptr &pSock) : HttpSessionType(pSock){}
+    WebSocketSessionBase(const toolkit::Socket::Ptr &pSock) : HttpSessionType(pSock){}
     virtual ~WebSocketSessionBase(){}
 
     //收到eof或其他导致脱离TcpServer事件的回调
-    void onError(const SockException &err) override{
+    void onError(const toolkit::SockException &err) override{
         HttpSessionType::onError(err);
         if(_session){
             _session->onError(err);
@@ -104,9 +105,9 @@ public:
         }
     }
 
-    void attachServer(const Server &server) override{
+    void attachServer(const toolkit::Server &server) override{
         HttpSessionType::attachServer(server);
-        _weak_server = const_cast<Server &>(server).shared_from_this();
+        _weak_server = const_cast<toolkit::Server &>(server).shared_from_this();
     }
 
 protected:
@@ -115,7 +116,7 @@ protected:
      * @param header http头
      * @return true代表允许websocket连接，否则拒绝
      */
-    bool onWebSocketConnect(const Parser &header) override{
+    bool onWebSocketConnect(const mediakit::Parser &header) override{
         //创建websocket session类
         _session = _creator(header, *this,HttpSessionType::getSock());
         if(!_session){
@@ -128,16 +129,16 @@ protected:
         }
 
         //此处截取数据并进行websocket协议打包
-        weak_ptr<WebSocketSessionBase> weakSelf = dynamic_pointer_cast<WebSocketSessionBase>(HttpSessionType::shared_from_this());
-        dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf](const Buffer::Ptr &buf) {
+        std::weak_ptr<WebSocketSessionBase> weakSelf = std::dynamic_pointer_cast<WebSocketSessionBase>(HttpSessionType::shared_from_this());
+        std::dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf](const toolkit::Buffer::Ptr &buf) {
             auto strongSelf = weakSelf.lock();
             if (strongSelf) {
-                WebSocketHeader header;
+                mediakit::WebSocketHeader header;
                 header._fin = true;
                 header._reserved = 0;
                 header._opcode = DataType;
                 header._mask_flag = false;
-                strongSelf->WebSocketSplitter::encode(header, buf);
+                strongSelf->HttpSessionType::encode(header, buf);
             }
             return buf->size();
         });
@@ -149,7 +150,7 @@ protected:
     /**
      * 开始收到一个webSocket数据包
      */
-    void onWebSocketDecodeHeader(const WebSocketHeader &packet) override{
+    void onWebSocketDecodeHeader(const mediakit::WebSocketHeader &packet) override{
         //新包，原来的包残余数据清空掉
         _payload_section.clear();
     }
@@ -157,7 +158,7 @@ protected:
     /**
      * 收到websocket数据包负载
      */
-    void onWebSocketDecodePayload(const WebSocketHeader &packet,const uint8_t *ptr,size_t len,size_t recved) override {
+    void onWebSocketDecodePayload(const mediakit::WebSocketHeader &packet,const uint8_t *ptr,size_t len,size_t recved) override {
         _payload_section.append((char *)ptr,len);
     }
 
@@ -165,27 +166,27 @@ protected:
      * 接收到完整的一个webSocket数据包后回调
      * @param header 数据包包头
      */
-    void onWebSocketDecodeComplete(const WebSocketHeader &header_in) override {
-        WebSocketHeader& header = const_cast<WebSocketHeader&>(header_in);
+    void onWebSocketDecodeComplete(const mediakit::WebSocketHeader &header_in) override {
+        auto header = const_cast<mediakit::WebSocketHeader&>(header_in);
         auto  flag = header._mask_flag;
         header._mask_flag = false;
 
         switch (header._opcode){
-            case WebSocketHeader::CLOSE:{
+            case mediakit::WebSocketHeader::CLOSE:{
                 HttpSessionType::encode(header,nullptr);
-                HttpSessionType::shutdown(SockException(Err_shutdown, "recv close request from client"));
+                HttpSessionType::shutdown(toolkit::SockException(toolkit::Err_shutdown, "recv close request from client"));
                 break;
             }
             
-            case WebSocketHeader::PING:{
-                header._opcode = WebSocketHeader::PONG;
-                HttpSessionType::encode(header,std::make_shared<BufferString>(_payload_section));
+            case mediakit::WebSocketHeader::PING:{
+                header._opcode = mediakit::WebSocketHeader::PONG;
+                HttpSessionType::encode(header,std::make_shared<toolkit::BufferString>(_payload_section));
                 break;
             }
             
-            case WebSocketHeader::CONTINUATION:
-            case WebSocketHeader::TEXT:
-            case WebSocketHeader::BINARY:{
+            case mediakit::WebSocketHeader::CONTINUATION:
+            case mediakit::WebSocketHeader::TEXT:
+            case mediakit::WebSocketHeader::BINARY:{
                 if (!header._fin) {
                     //还有后续分片数据, 我们先缓存数据，所有分片收集完成才一次性输出
                     _payload_cache.append(std::move(_payload_section));
@@ -199,13 +200,13 @@ protected:
                 //最后一个包
                 if (_payload_cache.empty()) {
                     //这个包是唯一个分片
-                    _session->onRecv(std::make_shared<WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_section)));
+                    _session->onRecv(std::make_shared<mediakit::WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_section)));
                     break;
                 }
 
                 //这个包由多个分片组成
                 _payload_cache.append(std::move(_payload_section));
-                _session->onRecv(std::make_shared<WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_cache)));
+                _session->onRecv(std::make_shared<mediakit::WebSocketBuffer>(header._opcode, header._fin, std::move(_payload_cache)));
                 _payload_cache.clear();
                 break;
             }
@@ -219,23 +220,23 @@ protected:
     /**
      * 发送数据进行websocket协议打包后回调
     */
-    void onWebSocketEncodeData(Buffer::Ptr buffer) override{
+    void onWebSocketEncodeData(toolkit::Buffer::Ptr buffer) override{
         HttpSessionType::send(std::move(buffer));
     }
 
 private:
-    string _payload_cache;
-    string _payload_section;
-    weak_ptr<Server> _weak_server;
-    TcpSession::Ptr _session;
+    std::string _payload_cache;
+    std::string _payload_section;
+    std::weak_ptr<toolkit::Server> _weak_server;
+    toolkit::TcpSession::Ptr _session;
     Creator _creator;
 };
 
 
-template<typename TcpSessionType,typename HttpSessionType = HttpSession,WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
+template<typename TcpSessionType,typename HttpSessionType = mediakit::HttpSession, mediakit::WebSocketHeader::Type DataType = mediakit::WebSocketHeader::TEXT>
 class WebSocketSession : public WebSocketSessionBase<TcpSessionCreator<TcpSessionType>,HttpSessionType,DataType>{
 public:
-    WebSocketSession(const Socket::Ptr &pSock) : WebSocketSessionBase<TcpSessionCreator<TcpSessionType>,HttpSessionType,DataType>(pSock){}
+    WebSocketSession(const toolkit::Socket::Ptr &pSock) : WebSocketSessionBase<TcpSessionCreator<TcpSessionType>,HttpSessionType,DataType>(pSock){}
     virtual ~WebSocketSession(){}
 };
 

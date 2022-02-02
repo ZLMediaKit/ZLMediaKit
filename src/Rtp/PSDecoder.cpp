@@ -9,8 +9,12 @@
  */
 
 #if defined(ENABLE_RTPPROXY)
+
 #include "PSDecoder.h"
 #include "mpeg-ps.h"
+
+using namespace toolkit;
+
 namespace mediakit{
 
 PSDecoder::PSDecoder() {

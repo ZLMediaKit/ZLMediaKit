@@ -13,6 +13,8 @@
 #include "Util/util.h"
 #include "Network/sockutil.h"
 #include "Network/TcpSession.h"
+
+using namespace std;
 using namespace toolkit;
 
 namespace toolkit {

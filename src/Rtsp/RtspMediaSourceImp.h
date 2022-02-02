@@ -15,7 +15,6 @@
 #include "RtspMediaSource.h"
 #include "RtspDemuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
-using namespace toolkit;
 
 namespace mediakit {
 class RtspMediaSourceImp : public RtspMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener  {
@@ -29,7 +28,7 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtspMediaSourceImp(const string &vhost, const string &app, const string &id, int ringSize = RTP_GOP_SIZE) : RtspMediaSource(vhost, app, id,ringSize) {
+    RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTP_GOP_SIZE) : RtspMediaSource(vhost, app, id,ringSize) {
         _demuxer = std::make_shared<RtspDemuxer>();
         _demuxer->setTrackListener(this);
     }
@@ -39,7 +38,7 @@ public:
     /**
      * 设置sdp
      */
-    void setSdp(const string &strSdp) override {
+    void setSdp(const std::string &strSdp) override {
         if (!getSdp().empty()) {
             return;
         }
@@ -84,7 +83,7 @@ public:
         //导致rtc无法播放，所以在rtsp推流rtc播放时，建议关闭直接代理模式
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), !directProxy, true, enableHls, enableMP4);
         _muxer->setMediaListener(getListener());
-        _muxer->setTrackListener(static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
+        _muxer->setTrackListener(std::static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
         MediaSource::setListener(_muxer);
 

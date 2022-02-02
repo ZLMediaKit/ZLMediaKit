@@ -17,8 +17,6 @@
 #include "assert.h"
 #include "Extension/Frame.h"
 #include "Common/Parser.h"
-using namespace std;
-using namespace mediakit;
 
 //https://datatracker.ietf.org/doc/rfc4566/?include_text=1
 //https://blog.csdn.net/aggresss/article/details/109850434
@@ -81,19 +79,19 @@ enum class SdpType {
     answer
 };
 
-DtlsRole getDtlsRole(const string &str);
+DtlsRole getDtlsRole(const std::string &str);
 const char* getDtlsRoleString(DtlsRole role);
-RtpDirection getRtpDirection(const string &str);
+RtpDirection getRtpDirection(const std::string &str);
 const char* getRtpDirectionString(RtpDirection val);
 
 class SdpItem {
 public:
     using Ptr = std::shared_ptr<SdpItem>;
     virtual ~SdpItem() = default;
-    virtual void parse(const string &str) {
+    virtual void parse(const std::string &str) {
         value  = str;
     }
-    virtual string toString() const {
+    virtual std::string toString() const {
         return value;
     }
     virtual const char* getKey() const = 0;
@@ -103,23 +101,23 @@ public:
     }
 
 protected:
-    mutable string value;
+    mutable std::string value;
 };
 
 template <char KEY>
 class SdpString : public SdpItem{
 public:
     SdpString() = default;
-    SdpString(string val) {value = std::move(val);}
+    SdpString(std::string val) {value = std::move(val);}
     // *=*
-    const char* getKey() const override { static string key(1, KEY); return key.data();}
+    const char* getKey() const override { static std::string key(1, KEY); return key.data();}
 };
 
 class SdpCommon : public SdpItem {
 public:
-    string key;
-    SdpCommon(string key) { this->key = std::move(key); }
-    SdpCommon(string key, string val) {
+    std::string key;
+    SdpCommon(std::string key) { this->key = std::move(key); }
+    SdpCommon(std::string key, std::string val) {
         this->key = std::move(key);
         this->value = std::move(val);
     }
@@ -133,8 +131,8 @@ public:
     // t=<start-time> <stop-time>
     uint64_t start {0};
     uint64_t stop {0};
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "t";}
 };
 
@@ -143,14 +141,14 @@ public:
     // 5.2.  Origin ("o=")
     // o=jdoe 2890844526 2890842807 IN IP4 10.47.16.5
     // o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
-    string username {"-"};
-    string session_id;
-    string session_version;
-    string nettype {"IN"};
-    string addrtype {"IP4"};
-    string address {"0.0.0.0"};
-    void parse(const string &str) override;
-    string toString() const override;
+    std::string username {"-"};
+    std::string session_id;
+    std::string session_version;
+    std::string nettype {"IN"};
+    std::string addrtype {"IP4"};
+    std::string address {"0.0.0.0"};
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "o";}
     bool empty() const {
         return username.empty() || session_id.empty() || session_version.empty()
@@ -163,11 +161,11 @@ public:
     // 5.7.  Connection Data ("c=")
     // c=IN IP4 224.2.17.12/127
     // c=<nettype> <addrtype> <connection-address>
-    string nettype {"IN"};
-    string addrtype {"IP4"};
-    string address {"0.0.0.0"};
-    void parse(const string &str) override;
-    string toString() const override;
+    std::string nettype {"IN"};
+    std::string addrtype {"IP4"};
+    std::string address {"0.0.0.0"};
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "c";}
     bool empty() const {return address.empty();}
 };
@@ -178,11 +176,11 @@ public:
     //b=<bwtype>:<bandwidth>
 
     //AS、CT
-    string bwtype {"AS"};
+    std::string bwtype {"AS"};
     uint32_t bandwidth {0};
 
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "b";}
     bool empty() const {return bandwidth == 0;}
 };
@@ -191,17 +189,17 @@ class SdpMedia : public SdpItem {
 public:
     // 5.14.  Media Descriptions ("m=")
     // m=<media> <port> <proto> <fmt> ...
-    TrackType type;
+    mediakit::TrackType type;
     uint16_t port;
     //RTP/AVP：应用场景为视频/音频的 RTP 协议。参考 RFC 3551
     //RTP/SAVP：应用场景为视频/音频的 SRTP 协议。参考 RFC 3711
     //RTP/AVPF: 应用场景为视频/音频的 RTP 协议，支持 RTCP-based Feedback。参考 RFC 4585
     //RTP/SAVPF: 应用场景为视频/音频的 SRTP 协议，支持 RTCP-based Feedback。参考 RFC 5124
-    string proto;
-    vector<uint32_t> fmts;
+    std::string proto;
+    std::vector<uint32_t> fmts;
 
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "m";}
 };
 
@@ -212,8 +210,8 @@ public:
     //a=<attribute>
     //a=<attribute>:<value>
     SdpItem::Ptr detail;
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "a";}
 };
 
@@ -223,10 +221,10 @@ public:
     //  BUNDLE group is included at the session-level.
     //a=group:LS session level attribute MUST be included wth the 'mid'
     //  identifiers that are part of the same lip sync group.
-    string type {"BUNDLE"};
-    vector<string> mids;
-    void parse(const string &str) override ;
-    string toString() const override ;
+    std::string type {"BUNDLE"};
+    std::vector<std::string> mids;
+    void parse(const std::string &str) override ;
+    std::string toString() const override ;
     const char* getKey() const override { return "group";}
 };
 
@@ -252,10 +250,10 @@ public:
     //   "Semantics for the "ssrc-group" SDP Attribute" and "Semantics for the
     //   "group" SDP Attribute".
     //a=msid-semantic: WMS 616cfbb1-33a3-4d8c-8275-a199d6005549
-    string msid{"WMS"};
-    string token;
-    void parse(const string &str) override;
-    string toString() const override;
+    std::string msid{"WMS"};
+    std::string token;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "msid-semantic";}
     bool empty() const {
         return msid.empty();
@@ -266,11 +264,11 @@ class SdpAttrRtcp : public SdpItem {
 public:
     // a=rtcp:9 IN IP4 0.0.0.0
     uint16_t port{0};
-    string nettype {"IN"};
-    string addrtype {"IP4"};
-    string address {"0.0.0.0"};
-    void parse(const string &str) override;;
-    string toString() const override;
+    std::string nettype {"IN"};
+    std::string addrtype {"IP4"};
+    std::string address {"0.0.0.0"};
+    void parse(const std::string &str) override;;
+    std::string toString() const override;
     const char* getKey() const override { return "rtcp";}
     bool empty() const {
         return address.empty() || !port;
@@ -280,7 +278,7 @@ public:
 class SdpAttrIceUfrag : public SdpItem {
 public:
     SdpAttrIceUfrag() = default;
-    SdpAttrIceUfrag(string str) {value = std::move(str);}
+    SdpAttrIceUfrag(std::string str) {value = std::move(str);}
     //a=ice-ufrag:sXJ3
     const char* getKey() const override { return "ice-ufrag";}
 };
@@ -288,7 +286,7 @@ public:
 class SdpAttrIcePwd : public SdpItem {
 public:
     SdpAttrIcePwd() = default;
-    SdpAttrIcePwd(string str) {value = std::move(str);}
+    SdpAttrIcePwd(std::string str) {value = std::move(str);}
     //a=ice-pwd:yEclOTrLg1gEubBFefOqtmyV
     const char* getKey() const override { return "ice-pwd";}
 };
@@ -298,18 +296,18 @@ public:
     //a=ice-options:trickle
     bool trickle{false};
     bool renomination{false};
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "ice-options";}
 };
 
 class SdpAttrFingerprint : public SdpItem {
 public:
     //a=fingerprint:sha-256 22:14:B5:AF:66:12:C7:C7:8D:EF:4B:DE:40:25:ED:5D:8F:17:54:DD:88:33:C0:13:2E:FD:1A:FA:7E:7A:1B:79
-    string algorithm;
-    string hash;
-    void parse(const string &str) override;
-    string toString() const override;
+    std::string algorithm;
+    std::string hash;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "fingerprint";}
     bool empty() const { return algorithm.empty() || hash.empty(); }
 };
@@ -320,15 +318,15 @@ public:
     SdpAttrSetup() = default;
     SdpAttrSetup(DtlsRole r) { role = r; }
     DtlsRole role{DtlsRole::actpass};
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "setup";}
 };
 
 class SdpAttrMid : public SdpItem {
 public:
     SdpAttrMid() = default;
-    SdpAttrMid(string val) { value = std::move(val); }
+    SdpAttrMid(std::string val) { value = std::move(val); }
     //a=mid:audio
     const char* getKey() const override { return "mid";}
 };
@@ -339,9 +337,9 @@ public:
     //a=extmap:1[/sendonly] urn:ietf:params:rtp-hdrext:ssrc-audio-level
     uint8_t id;
     RtpDirection direction{RtpDirection::invalid};
-    string ext;
-    void parse(const string &str) override;
-    string toString() const override;
+    std::string ext;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "extmap";}
 };
 
@@ -349,11 +347,11 @@ class SdpAttrRtpMap : public SdpItem {
 public:
     //a=rtpmap:111 opus/48000/2
     uint8_t pt;
-    string codec;
+    std::string codec;
     uint32_t sample_rate;
     uint32_t channel {0};
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "rtpmap";}
 };
 
@@ -366,9 +364,9 @@ public:
     //a=rtcp-fb:120 goog-remb 支持 REMB (Receiver Estimated Maximum Bitrate) 。
     //a=rtcp-fb:120 transport-cc 支持 TCC (Transport Congest Control) 。
     uint8_t pt;
-    string rtcp_type;
-    void parse(const string &str) override;
-    string toString() const override;
+    std::string rtcp_type;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "rtcp-fb";}
 };
 
@@ -376,9 +374,9 @@ class SdpAttrFmtp : public SdpItem {
 public:
     //fmtp:96 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
     uint8_t pt;
-    map<string/*key*/, string/*value*/, StrCaseCompare> fmtp;
-    void parse(const string &str) override;
-    string toString() const override;
+    std::map<std::string/*key*/, std::string/*value*/, mediakit::StrCaseCompare> fmtp;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "fmtp";}
 };
 
@@ -399,10 +397,10 @@ public:
     //a=ssrc:3245185839 cname:Cx4i/VTR51etgjT7
 
     uint32_t ssrc;
-    string attribute;
-    string attribute_value;
-    void parse(const string &str) override;
-    string toString() const override;
+    std::string attribute;
+    std::string attribute_value;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "ssrc";}
 };
 
@@ -413,13 +411,13 @@ public:
     // FID (Flow Identification) 最初用在 FEC 的关联中，WebRTC 中通常用于关联一组常规 RTP stream 和 重传 RTP stream 。
     //a=ssrc-group:SIM 360918977 360918978 360918980
     // 在 Chrome 独有的 SDP munging 风格的 simulcast 中使用，将三组编码质量由低到高的 MediaStreamTrack 关联在一起。
-    string type{"FID"};
-    vector<uint32_t> ssrcs;
+    std::string type{"FID"};
+    std::vector<uint32_t> ssrcs;
 
     bool isFID() const { return type == "FID"; }
     bool isSIM() const { return type == "SIM"; }
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "ssrc-group";}
 };
 
@@ -429,10 +427,10 @@ public:
     //a=sctpmap:5000 webrtc-datachannel 1024
     //a=sctpmap: sctpmap-number media-subtypes [streams]
     uint16_t port;
-    string subtypes;
+    std::string subtypes;
     uint32_t streams;
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "sctpmap";}
 };
 
@@ -443,18 +441,18 @@ public:
     //15.1.  "candidate" Attribute
     //a=candidate:4 1 udp 2 192.168.1.7 58107 typ host
     //a=candidate:<foundation> <component-id> <transport> <priority> <address> <port> typ <cand-type>
-    string foundation;
+    std::string foundation;
     //传输媒体的类型,1代表RTP;2代表 RTCP。
     uint32_t component;
-    string transport {"udp"};
+    std::string transport {"udp"};
     uint32_t priority;
-    string address;
+    std::string address;
     uint16_t port;
-    string type;
-    vector<std::pair<string, string> > arr;
+    std::string type;
+    std::vector<std::pair<std::string, std::string> > arr;
 
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "candidate";}
 };
 
@@ -473,56 +471,56 @@ public:
     //https://www.meetecho.com/blog/simulcast-janus-ssrc/
     //https://tools.ietf.org/html/draft-ietf-mmusic-sdp-simulcast-14
     const char* getKey() const override { return "simulcast";}
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     bool empty() const { return rids.empty(); }
-    string direction;
-    vector<string> rids;
+    std::string direction;
+    std::vector<std::string> rids;
 };
 
 class SdpAttrRid : public SdpItem{
 public:
-    void parse(const string &str) override;
-    string toString() const override;
+    void parse(const std::string &str) override;
+    std::string toString() const override;
     const char* getKey() const override { return "rid";}
-    string direction;
-    string rid;
+    std::string direction;
+    std::string rid;
 };
 
 class RtcSdpBase {
 public:
-    vector<SdpItem::Ptr> items;
+    std::vector<SdpItem::Ptr> items;
 
 public:
     virtual ~RtcSdpBase() = default;
-    virtual string toString() const;
+    virtual std::string toString() const;
 
     int getVersion() const;
     SdpOrigin getOrigin() const;
-    string getSessionName() const;
-    string getSessionInfo() const;
+    std::string getSessionName() const;
+    std::string getSessionInfo() const;
     SdpTime getSessionTime() const;
     SdpConnection getConnection() const;
     SdpBandwidth getBandwidth() const;
 
-    string getUri() const;
-    string getEmail() const;
-    string getPhone() const;
-    string getTimeZone() const;
-    string getEncryptKey() const;
-    string getRepeatTimes() const;
+    std::string getUri() const;
+    std::string getEmail() const;
+    std::string getPhone() const;
+    std::string getTimeZone() const;
+    std::string getEncryptKey() const;
+    std::string getRepeatTimes() const;
     RtpDirection getDirection() const;
 
     template<typename cls>
     cls getItemClass(char key, const char *attr_key = nullptr) const{
-        auto item = dynamic_pointer_cast<cls>(getItem(key, attr_key));
+        auto item = std::dynamic_pointer_cast<cls>(getItem(key, attr_key));
         if (!item) {
             return cls();
         }
         return *item;
     }
 
-    string getStringItem(char key, const char *attr_key = nullptr) const{
+    std::string getStringItem(char key, const char *attr_key = nullptr) const{
         auto item = getItem(key, attr_key);
         if (!item) {
             return "";
@@ -533,20 +531,20 @@ public:
     SdpItem::Ptr getItem(char key, const char *attr_key = nullptr) const;
 
     template<typename cls>
-    vector<cls> getAllItem(char key_c, const char *attr_key = nullptr) const {
-        vector<cls> ret;
+    std::vector<cls> getAllItem(char key_c, const char *attr_key = nullptr) const {
+        std::vector<cls> ret;
         for (auto item : items) {
-            string key(1, key_c);
+            std::string key(1, key_c);
             if (strcasecmp(item->getKey(), key.data()) == 0) {
                 if (!attr_key) {
-                    auto c = dynamic_pointer_cast<cls>(item);
+                    auto c = std::dynamic_pointer_cast<cls>(item);
                     if (c) {
                         ret.emplace_back(*c);
                     }
                 } else {
-                    auto attr = dynamic_pointer_cast<SdpAttr>(item);
+                    auto attr = std::dynamic_pointer_cast<SdpAttr>(item);
                     if (attr && !strcasecmp(attr->detail->getKey(), attr_key)) {
-                        auto c = dynamic_pointer_cast<cls>(attr->detail);
+                        auto c = std::dynamic_pointer_cast<cls>(attr->detail);
                         if (c) {
                             ret.emplace_back(*c);
                         }
@@ -562,9 +560,9 @@ class RtcSessionSdp : public RtcSdpBase{
 public:
     using Ptr = std::shared_ptr<RtcSessionSdp>;
 
-    vector<RtcSdpBase> medias;
-    void parse(const string &str);
-    string toString() const override;
+    std::vector<RtcSdpBase> medias;
+    void parse(const std::string &str);
+    std::string toString() const override;
 };
 
 //////////////////////////////////////////////////////////////////
@@ -574,10 +572,10 @@ class RtcSSRC{
 public:
     uint32_t ssrc {0};
     uint32_t rtx_ssrc {0};
-    string cname;
-    string msid;
-    string mslabel;
-    string label;
+    std::string cname;
+    std::string msid;
+    std::string mslabel;
+    std::string label;
 
     bool empty() const {return ssrc == 0 && cname.empty();}
 };
@@ -585,36 +583,36 @@ public:
 //rtc传输编码方案
 class RtcCodecPlan{
 public:
-    using Ptr = shared_ptr<RtcCodecPlan>;
+    using Ptr = std::shared_ptr<RtcCodecPlan>;
     uint8_t pt;
-    string codec;
+    std::string codec;
     uint32_t sample_rate;
     //音频时有效
     uint32_t channel = 0;
     //rtcp反馈
-    set<string> rtcp_fb;
-    map<string/*key*/, string/*value*/, StrCaseCompare> fmtp;
+    std::set<std::string> rtcp_fb;
+    std::map<std::string/*key*/, std::string/*value*/, mediakit::StrCaseCompare> fmtp;
 
-    string getFmtp(const char *key) const;
+    std::string getFmtp(const char *key) const;
 };
 
 //rtc 媒体描述
 class RtcMedia{
 public:
-    TrackType type{TrackType::TrackInvalid};
-    string mid;
+    mediakit::TrackType type{mediakit::TrackType::TrackInvalid};
+    std::string mid;
     uint16_t port{0};
     SdpConnection addr;
-    string proto;
+    std::string proto;
     RtpDirection direction{RtpDirection::invalid};
-    vector<RtcCodecPlan> plan;
+    std::vector<RtcCodecPlan> plan;
 
     //////// rtp ////////
-    vector<RtcSSRC> rtp_rtx_ssrc;
+    std::vector<RtcSSRC> rtp_rtx_ssrc;
 
     //////// simulcast ////////
-    vector<RtcSSRC> rtp_ssrc_sim;
-    vector<string> rtp_rids;
+    std::vector<RtcSSRC> rtp_ssrc_sim;
+    std::vector<std::string> rtp_rids;
 
     ////////  rtcp  ////////
     bool rtcp_mux{false};
@@ -625,8 +623,8 @@ public:
     bool ice_trickle{false};
     bool ice_lite{false};
     bool ice_renomination{false};
-    string ice_ufrag;
-    string ice_pwd;
+    std::string ice_ufrag;
+    std::string ice_pwd;
     std::vector<SdpAttrCandidate> candidate;
 
     //////// dtls ////////
@@ -634,7 +632,7 @@ public:
     SdpAttrFingerprint fingerprint;
 
     //////// extmap ////////
-    vector<SdpAttrExtmap> extmap;
+    std::vector<SdpAttrExtmap> extmap;
 
     //////// sctp ////////////
     SdpAttrSctpMap sctpmap;
@@ -655,21 +653,21 @@ public:
 
     uint32_t version;
     SdpOrigin origin;
-    string session_name;
-    string session_info;
+    std::string session_name;
+    std::string session_info;
     SdpTime time;
     SdpConnection connection;
     SdpBandwidth bandwidth;
     SdpAttrMsidSemantic msid_semantic;
-    vector<RtcMedia> media;
+    std::vector<RtcMedia> media;
     SdpAttrGroup group;
 
-    void loadFrom(const string &sdp);
+    void loadFrom(const std::string &sdp);
     void checkValid() const;
-    string toString() const;
-    string toRtspSdp() const;
-    const  RtcMedia *getMedia(TrackType type) const;
-    bool supportRtcpFb(const string &name, TrackType type = TrackType::TrackVideo) const;
+    std::string toString() const;
+    std::string toRtspSdp() const;
+    const  RtcMedia *getMedia(mediakit::TrackType type) const;
+    bool supportRtcpFb(const std::string &name, mediakit::TrackType type = mediakit::TrackType::TrackVideo) const;
     bool supportSimulcast() const;
 
 private:
@@ -690,18 +688,18 @@ public:
         bool ice_lite;
         bool ice_trickle;
         bool ice_renomination;
-        string ice_ufrag;
-        string ice_pwd;
+        std::string ice_ufrag;
+        std::string ice_pwd;
 
         RtpDirection direction{RtpDirection::invalid};
         SdpAttrFingerprint fingerprint;
 
-        set<string> rtcp_fb;
-        map<RtpExtType, RtpDirection> extmap;
-        vector<CodecId> preferred_codec;
-        vector<SdpAttrCandidate> candidate;
+        std::set<std::string> rtcp_fb;
+        std::map<RtpExtType, RtpDirection> extmap;
+        std::vector<mediakit::CodecId> preferred_codec;
+        std::vector<SdpAttrCandidate> candidate;
 
-        void setDefaultSetting(TrackType type);
+        void setDefaultSetting(mediakit::TrackType type);
         void enableTWCC(bool enable = true);
         void enableREMB(bool enable = true);
     };
@@ -710,20 +708,20 @@ public:
     RtcTrackConfigure audio;
     RtcTrackConfigure application;
 
-    void setDefaultSetting(string ice_ufrag, string ice_pwd, RtpDirection direction, const SdpAttrFingerprint &fingerprint);
-    void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);
+    void setDefaultSetting(std::string ice_ufrag, std::string ice_pwd, RtpDirection direction, const SdpAttrFingerprint &fingerprint);
+    void addCandidate(const SdpAttrCandidate &candidate, mediakit::TrackType type = mediakit::TrackInvalid);
 
-    shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
+    std::shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
 
-    void setPlayRtspInfo(const string &sdp);
+    void setPlayRtspInfo(const std::string &sdp);
 
-    void enableTWCC(bool enable = true, TrackType type = TrackInvalid);
-    void enableREMB(bool enable = true, TrackType type = TrackInvalid);
+    void enableTWCC(bool enable = true, mediakit::TrackType type = mediakit::TrackInvalid);
+    void enableREMB(bool enable = true, mediakit::TrackType type = mediakit::TrackInvalid);
 
 private:
-    void matchMedia(const shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
-    bool onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec);
-    void onSelectPlan(RtcCodecPlan &plan, CodecId codec);
+    void matchMedia(const std::shared_ptr<RtcSession> &ret, mediakit::TrackType type, const std::vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
+    bool onCheckCodecProfile(const RtcCodecPlan &plan, mediakit::CodecId codec);
+    void onSelectPlan(RtcCodecPlan &plan, mediakit::CodecId codec);
 
 private:
     RtcCodecPlan::Ptr _rtsp_video_plan;
@@ -732,8 +730,8 @@ private:
 
 class SdpConst {
 public:
-    static string const kTWCCRtcpFb;
-    static string const kRembRtcpFb;
+    static std::string const kTWCCRtcpFb;
+    static std::string const kRembRtcpFb;
 
 private:
     SdpConst() = delete;

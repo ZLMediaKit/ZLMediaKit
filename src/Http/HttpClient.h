@@ -25,18 +25,15 @@
 #include "strCoding.h"
 #include "HttpBody.h"
 
-using namespace std;
-using namespace toolkit;
-
 namespace mediakit {
 
-class HttpArgs : public map<string, variant, StrCaseCompare> {
+class HttpArgs : public std::map<std::string, toolkit::variant, StrCaseCompare> {
 public:
     HttpArgs() = default;
     ~HttpArgs() = default;
 
-    string make() const {
-        string ret;
+    std::string make() const {
+        std::string ret;
         for (auto &pr : *this) {
             ret.append(pr.first);
             ret.append("=");
@@ -50,7 +47,7 @@ public:
     }
 };
 
-class HttpClient : public TcpClient, public HttpRequestSplitter {
+class HttpClient : public toolkit::TcpClient, public HttpRequestSplitter {
 public:
     using HttpHeader = StrCaseMap;
     using Ptr = std::shared_ptr<HttpClient>;
@@ -62,7 +59,7 @@ public:
      * 发送http[s]请求
      * @param url 请求url
      */
-    virtual void sendRequest(const string &url);
+    virtual void sendRequest(const std::string &url);
 
     /**
      * 重置对象
@@ -73,7 +70,7 @@ public:
      * 设置http方法
      * @param method GET/POST等
      */
-    void setMethod(string method);
+    void setMethod(std::string method);
 
     /**
      * 覆盖http头
@@ -81,13 +78,13 @@ public:
      */
     void setHeader(HttpHeader header);
 
-    HttpClient &addHeader(string key, string val, bool force = false);
+    HttpClient &addHeader(std::string key, std::string val, bool force = false);
 
     /**
      * 设置http content
      * @param body http content
      */
-    void setBody(string body);
+    void setBody(std::string body);
 
     /**
      * 设置http content
@@ -113,7 +110,7 @@ public:
     /**
      * 获取请求url
      */
-    const string &getUrl() const;
+    const std::string &getUrl() const;
 
     /**
      * 判断是否正在等待响应
@@ -150,7 +147,7 @@ protected:
      * @param status 状态码，譬如:200 OK
      * @param headers http头
      */
-    virtual void onResponseHeader(const string &status, const HttpHeader &headers) = 0;
+    virtual void onResponseHeader(const std::string &status, const HttpHeader &headers) = 0;
 
     /**
      * 收到http conten数据
@@ -162,7 +159,7 @@ protected:
     /**
      * 接收http回复完毕,
      */
-    virtual void onResponseCompleted(const SockException &ex) = 0;
+    virtual void onResponseCompleted(const toolkit::SockException &ex) = 0;
 
     /**
      * 重定向事件
@@ -170,7 +167,7 @@ protected:
      * @param temporary 是否为临时重定向
      * @return 是否继续
      */
-    virtual bool onRedirectUrl(const string &url, bool temporary) { return true; };
+    virtual bool onRedirectUrl(const std::string &url, bool temporary) { return true; };
 
 protected:
     //// HttpRequestSplitter override ////
@@ -178,15 +175,15 @@ protected:
     void onRecvContent(const char *data, size_t len) override;
 
     //// TcpClient override ////
-    void onConnect(const SockException &ex) override;
-    void onRecv(const Buffer::Ptr &pBuf) override;
-    void onErr(const SockException &ex) override;
+    void onConnect(const toolkit::SockException &ex) override;
+    void onRecv(const toolkit::Buffer::Ptr &pBuf) override;
+    void onErr(const toolkit::SockException &ex) override;
     void onFlush() override;
     void onManager() override;
 
 private:
-    void onResponseCompleted_l(const SockException &ex);
-    void onConnect_l(const SockException &ex);
+    void onResponseCompleted_l(const toolkit::SockException &ex);
+    void onConnect_l(const toolkit::SockException &ex);
     void checkCookie(HttpHeader &headers);
     void clearResponse();
 
@@ -201,23 +198,23 @@ private:
 
     //for request args
     bool _is_https;
-    string _url;
+    std::string _url;
     HttpHeader _user_set_header;
     HttpBody::Ptr _body;
-    string _method;
-    string _last_host;
+    std::string _method;
+    std::string _last_host;
 
     //for this request
-    string _path;
+    std::string _path;
     HttpHeader _header;
 
     //for timeout
     size_t _wait_header_ms = 10 * 1000;
     size_t _wait_body_ms = 10 * 1000;
     size_t _wait_complete_ms = 0;
-    Ticker _wait_header;
-    Ticker _wait_body;
-    Ticker _wait_complete;
+    toolkit::Ticker _wait_header;
+    toolkit::Ticker _wait_body;
+    toolkit::Ticker _wait_complete;
 };
 
 } /* namespace mediakit */

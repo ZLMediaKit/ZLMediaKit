@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
         WarnL << "play shutdown: " << ex.what();
     });
 
-    (*player)[kRtpType] = atoi(argv[2]);
+    (*player)[Client::kRtpType] = atoi(argv[2]);
     //不等待track ready再回调播放成功事件，这样可以加快秒开速度
     (*player)[Client::kWaitTrackReady] = false;
     player->play(argv[1]);

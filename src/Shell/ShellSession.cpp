@@ -14,6 +14,8 @@
 #include "Util/NoticeCenter.h"
 #include "Common/config.h"
 #include "ShellCMD.h"
+
+using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

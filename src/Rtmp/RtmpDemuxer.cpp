@@ -11,6 +11,8 @@
 #include "RtmpDemuxer.h"
 #include "Extension/Factory.h"
 
+using namespace std;
+
 namespace mediakit {
 
 size_t RtmpDemuxer::trackCount(const AMFValue &metadata) {

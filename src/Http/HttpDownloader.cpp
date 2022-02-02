@@ -12,6 +12,7 @@
 #include "Util/File.h"
 #include "Util/MD5.h"
 using namespace toolkit;
+using namespace std;
 
 namespace mediakit {
 

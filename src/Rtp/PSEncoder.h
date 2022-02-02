@@ -27,10 +27,10 @@ public:
 
 protected:
     //rtp打包后回调
-    virtual void onRTP(Buffer::Ptr rtp) = 0;
+    virtual void onRTP(toolkit::Buffer::Ptr rtp) = 0;
 
 protected:
-    void onWrite(std::shared_ptr<Buffer> buffer, uint32_t stamp, bool key_pos) override;
+    void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint32_t stamp, bool key_pos) override;
 
 private:
     std::shared_ptr<CommonRtpEncoder> _rtp_encoder;

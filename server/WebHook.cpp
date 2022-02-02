@@ -21,6 +21,8 @@
 #include "WebHook.h"
 #include "WebApi.h"
 
+using namespace std;
+using namespace Json;
 using namespace toolkit;
 using namespace mediakit;
 

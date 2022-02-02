@@ -16,6 +16,8 @@
 #define MAX_CTS 500
 #define ABS(x) ((x) > 0 ? (x) : (-x))
 
+using namespace toolkit;
+
 namespace mediakit {
 
 int64_t DeltaStamp::deltaStamp(int64_t stamp) {

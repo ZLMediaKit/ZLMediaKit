@@ -12,6 +12,7 @@
 #include "Rtmp/utils.h"
 #include "RtmpMediaSource.h"
 using namespace toolkit;
+using namespace std;
 
 #define C1_DIGEST_SIZE 32
 #define C1_KEY_SIZE 128

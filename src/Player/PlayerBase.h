@@ -23,16 +23,14 @@
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
-class PlayerBase : public TrackSource, public mINI {
+class PlayerBase : public TrackSource, public toolkit::mINI {
 public:
     using Ptr = std::shared_ptr<PlayerBase>;
-    using Event = std::function<void(const SockException &ex)>;
+    using Event = std::function<void(const toolkit::SockException &ex)>;
 
-    static Ptr createPlayer(const EventPoller::Ptr &poller, const string &strUrl);
+    static Ptr createPlayer(const toolkit::EventPoller::Ptr &poller, const std::string &strUrl);
 
     PlayerBase();
     ~PlayerBase() override = default;
@@ -41,7 +39,7 @@ public:
      * 开始播放
      * @param url 视频url，支持rtsp/rtmp
      */
-    virtual void play(const string &url) {};
+    virtual void play(const std::string &url) {};
 
     /**
      * 暂停或恢复
@@ -96,7 +94,7 @@ public:
     /**
      * 获取所有track
      */
-    vector<Track::Ptr> getTracks(bool ready = true) const override { return vector<Track::Ptr>(); };
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override { return std::vector<Track::Ptr>(); };
 
     /**
      * 设置一个MediaSource，直接生产rtsp/rtmp代理
@@ -116,12 +114,12 @@ public:
     /**
      * 设置播放恢复回调
      */
-    virtual void setOnResume(const function<void()> &cb) = 0;
+    virtual void setOnResume(const std::function<void()> &cb) = 0;
 
 protected:
     virtual void onResume() = 0;
-    virtual void onShutdown(const SockException &ex) = 0;
-    virtual void onPlayResult(const SockException &ex) = 0;
+    virtual void onShutdown(const toolkit::SockException &ex) = 0;
+    virtual void onPlayResult(const toolkit::SockException &ex) = 0;
 };
 
 template<typename Parent, typename Delegate>
@@ -133,7 +131,7 @@ public:
     PlayerImp(ArgsType &&...args) : Parent(std::forward<ArgsType>(args)...) {}
     ~PlayerImp() override = default;
 
-    void play(const string &url) override {
+    void play(const std::string &url) override {
         return _delegate ? _delegate->play(url) : Parent::play(url);
     }
 
@@ -173,12 +171,12 @@ public:
         return _delegate ? _delegate->seekTo(pos) : Parent::seekTo(pos);
     }
 
-    vector<Track::Ptr> getTracks(bool ready = true) const override {
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override {
         return _delegate ? _delegate->getTracks(ready) : Parent::getTracks(ready);
     }
 
-    std::shared_ptr<SockInfo> getSockInfo() const {
-        return dynamic_pointer_cast<SockInfo>(_delegate);
+    std::shared_ptr<toolkit::SockInfo> getSockInfo() const {
+        return std::dynamic_pointer_cast<toolkit::SockInfo>(_delegate);
     }
 
     void setMediaSource(const MediaSource::Ptr &src) override {
@@ -188,21 +186,21 @@ public:
         _media_src = src;
     }
 
-    void setOnShutdown(const function<void(const SockException &)> &cb) override {
+    void setOnShutdown(const std::function<void(const toolkit::SockException &)> &cb) override {
         if (_delegate) {
             _delegate->setOnShutdown(cb);
         }
         _on_shutdown = cb;
     }
 
-    void setOnPlayResult(const function<void(const SockException &ex)> &cb) override {
+    void setOnPlayResult(const std::function<void(const toolkit::SockException &ex)> &cb) override {
         if (_delegate) {
             _delegate->setOnPlayResult(cb);
         }
         _on_play_result = cb;
     }
 
-    void setOnResume(const function<void()> &cb) override {
+    void setOnResume(const std::function<void()> &cb) override {
         if (_delegate) {
             _delegate->setOnResume(cb);
         }
@@ -210,14 +208,14 @@ public:
     }
 
 protected:
-    void onShutdown(const SockException &ex) override {
+    void onShutdown(const toolkit::SockException &ex) override {
         if (_on_shutdown) {
             _on_shutdown(ex);
             _on_shutdown = nullptr;
         }
     }
 
-    void onPlayResult(const SockException &ex) override {
+    void onPlayResult(const toolkit::SockException &ex) override {
         if (_on_play_result) {
             _on_play_result(ex);
             _on_play_result = nullptr;
@@ -231,7 +229,7 @@ protected:
     }
 
 protected:
-    function<void()> _on_resume;
+    std::function<void()> _on_resume;
     PlayerBase::Event _on_shutdown;
     PlayerBase::Event _on_play_result;
     MediaSource::Ptr _media_src;
@@ -263,7 +261,7 @@ public:
     ~Demuxer() override = default;
 
     void setTrackListener(TrackListener *listener, bool wait_track_ready = false);
-    vector<Track::Ptr> getTracks(bool trackReady = true) const override;
+    std::vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 
 protected:
     bool addTrack(const Track::Ptr &track) override;
@@ -273,7 +271,7 @@ protected:
 private:
     MediaSink::Ptr _sink;
     TrackListener *_listener = nullptr;
-    vector<Track::Ptr> _origin_track;
+    std::vector<Track::Ptr> _origin_track;
 };
 
 } /* namespace mediakit */

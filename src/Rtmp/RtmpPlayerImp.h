@@ -19,8 +19,6 @@
 #include "RtmpDemuxer.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
-using namespace toolkit;
-using namespace mediakit::Client;
 
 namespace mediakit {
 
@@ -29,10 +27,10 @@ public:
     using Ptr = std::shared_ptr<RtmpPlayerImp>;
     using Super = PlayerImp<RtmpPlayer,PlayerBase>;
 
-    RtmpPlayerImp(const EventPoller::Ptr &poller) : Super(poller) {};
+    RtmpPlayerImp(const toolkit::EventPoller::Ptr &poller) : Super(poller) {};
 
     ~RtmpPlayerImp() override {
-        DebugL << endl;
+        DebugL << std::endl;
     }
 
     float getProgress() const override {
@@ -56,7 +54,7 @@ public:
         return _demuxer ? _demuxer->getDuration() : 0;
     }
 
-    vector<Track::Ptr> getTracks(bool ready = true) const override {
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override {
         return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
     }
 
@@ -80,7 +78,7 @@ private:
         }
     }
 
-    void onPlayResult(const SockException &ex) override {
+    void onPlayResult(const toolkit::SockException &ex) override {
         if (!_wait_track_ready || ex) {
             Super::onPlayResult(ex);
             return;
@@ -91,13 +89,13 @@ private:
 
     void addTrackCompleted() override {
         if (_wait_track_ready) {
-            Super::onPlayResult(SockException(Err_success, "play success"));
+            Super::onPlayResult(toolkit::SockException(toolkit::Err_success, "play success"));
         }
     }
 
 private:
     void onCheckMeta_l(const AMFValue &val) {
-        _rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(_media_src);
+        _rtmp_src = std::dynamic_pointer_cast<RtmpMediaSource>(_media_src);
         if (_rtmp_src) {
             _rtmp_src->setMetaData(val);
         }

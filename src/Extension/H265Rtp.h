@@ -16,8 +16,6 @@
 #include "Extension/H265.h"
 #include "Common/Stamp.h"
 
-using namespace toolkit;
-
 namespace mediakit{
 
 /**

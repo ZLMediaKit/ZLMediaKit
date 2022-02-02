@@ -15,6 +15,8 @@
 #include <windows.h> 
 #endif//defined(_WIN32)
 
+using namespace std;
+
 namespace mediakit {
 
 //////////////////////////通用///////////////////////

@@ -24,8 +24,6 @@
 #include "mov-buffer.h"
 #include "mov-format.h"
 
-using namespace std;
-
 namespace mediakit {
 
 //mp4文件IO的抽象接口类
@@ -124,7 +122,7 @@ public:
     /**
      * 获取并清空文件缓存
      */
-    string getAndClearMemory();
+    std::string getAndClearMemory();
 
 protected:
     uint64_t onTell() override;
@@ -134,7 +132,7 @@ protected:
 
 private:
     uint64_t _offset = 0;
-    string _memory;
+    std::string _memory;
 };
 
 }//namespace mediakit

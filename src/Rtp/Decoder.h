@@ -16,7 +16,6 @@
 #include <functional>
 #include "Common/MediaSink.h"
 
-using namespace std;
 namespace mediakit {
 
 class Decoder {
@@ -60,7 +59,7 @@ private:
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;
     FrameMerger _merger{FrameMerger::none};
-    Ticker _last_unsported_print;
+    toolkit::Ticker _last_unsported_print;
     Track::Ptr _tracks[TrackMax];
 };
 

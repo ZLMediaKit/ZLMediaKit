@@ -12,7 +12,6 @@
 #define ZLMEDIAKIT_HTTPCONST_H
 
 #include <string>
-using namespace std;
 
 namespace mediakit{
 
@@ -28,7 +27,7 @@ const char *getHttpStatusMessage(int status);
  * @param name 文件后缀，譬如html
  * @return mime值，譬如text/html
  */
-const string &getHttpContentType(const char *name);
+const std::string &getHttpContentType(const char *name);
 
 }//mediakit
 

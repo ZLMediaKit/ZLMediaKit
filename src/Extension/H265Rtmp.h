@@ -15,7 +15,6 @@
 #include "Extension/Track.h"
 #include "Util/ResourcePool.h"
 #include "Extension/H265.h"
-using namespace toolkit;
 
 namespace mediakit{
 /**
@@ -79,9 +78,9 @@ private:
 
 private:
     bool _got_config_frame = false;
-    string _vps;
-    string _sps;
-    string _pps;
+    std::string _vps;
+    std::string _sps;
+    std::string _pps;
     H265Track::Ptr _track;
     RtmpPacket::Ptr _rtmp_packet;
     FrameMerger _merger{FrameMerger::mp4_nal_size};
