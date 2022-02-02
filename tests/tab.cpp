@@ -10,6 +10,7 @@
 
 #include <memory.h>
 #include <set>
+#include <deque>
 #include "Util/CMD.h"
 #include "Util/util.h"
 #include "Util/logger.h"
