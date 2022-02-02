@@ -138,7 +138,7 @@ protected:
                 header._reserved = 0;
                 header._opcode = DataType;
                 header._mask_flag = false;
-                strongSelf->WebSocketSplitter::encode(header, buf);
+                strongSelf->HttpSessionType::encode(header, buf);
             }
             return buf->size();
         });
