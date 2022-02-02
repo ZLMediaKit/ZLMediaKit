@@ -10,6 +10,9 @@
 
 #include "G711.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit{
 
 /**

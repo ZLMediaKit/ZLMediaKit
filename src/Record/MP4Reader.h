@@ -11,9 +11,10 @@
 #ifndef SRC_MEDIAFILE_MEDIAREADER_H_
 #define SRC_MEDIAFILE_MEDIAREADER_H_
 #ifdef ENABLE_MP4
+
 #include "MP4Demuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
-using namespace toolkit;
+
 namespace mediakit {
 
 class MP4Reader : public std::enable_shared_from_this<MP4Reader>, public MediaSourceEvent {
@@ -27,7 +28,7 @@ public:
      * @param stream_id 流id,置空时,只解复用mp4,但是不生成MediaSource
      * @param file_path 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
      */
-    MP4Reader(const string &vhost, const string &app, const string &stream_id, const string &file_path = "");
+    MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path = "");
     ~MP4Reader() override = default;
 
     /**
@@ -37,7 +38,7 @@ public:
      * @param ref_self 是否让定时器引用此对象本身，如果无其他对象引用本身，在不循环读文件时，读取文件结束后本对象将自动销毁
      * @param file_repeat 是否循环读取文件，如果配置文件设置为循环读文件，此参数无效
      */
-    void startReadMP4(const EventPoller::Ptr &poller = nullptr, uint64_t sample_ms = 0, bool ref_self = true,  bool file_repeat = false);
+    void startReadMP4(const toolkit::EventPoller::Ptr &poller = nullptr, uint64_t sample_ms = 0, bool ref_self = true,  bool file_repeat = false);
 
     /**
      * 停止解复用MP4定时器
@@ -58,7 +59,7 @@ private:
     bool close(MediaSource &sender,bool force) override;
     int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
-    string getOriginUrl(MediaSource &sender) const override;
+    std::string getOriginUrl(MediaSource &sender) const override;
 
     bool readSample();
     bool readNextSample();
@@ -73,10 +74,10 @@ private:
     float _speed = 1.0;
     uint32_t _last_dts = 0;
     uint32_t _seek_to = 0;
-    string _file_path;
-    recursive_mutex _mtx;
-    Ticker _seek_ticker;
-    Timer::Ptr _timer;
+    std::string _file_path;
+    std::recursive_mutex _mtx;
+    toolkit::Ticker _seek_ticker;
+    toolkit::Timer::Ptr _timer;
     MP4Demuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
 };

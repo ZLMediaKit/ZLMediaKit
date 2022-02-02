@@ -16,8 +16,6 @@
 #include "IceServer.hpp"
 #include "WebRtcTransport.h"
 
-using namespace toolkit;
-
 class WebRtcSession : public UdpSession {
 public:
     WebRtcSession(const Socket::Ptr &sock);

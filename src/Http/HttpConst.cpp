@@ -13,6 +13,9 @@
 #include "Common/Parser.h"
 #include "Util/onceToken.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit{
 
 const char *getHttpStatusMessage(int status) {

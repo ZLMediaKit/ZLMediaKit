@@ -15,7 +15,6 @@
 #include "Extension/Track.h"
 #include "Util/ResourcePool.h"
 #include "Extension/H264.h"
-using namespace toolkit;
 
 namespace mediakit{
 /**
@@ -45,8 +44,8 @@ protected:
 
 protected:
     H264Frame::Ptr _h264frame;
-    string _sps;
-    string _pps;
+    std::string _sps;
+    std::string _pps;
 };
 
 /**

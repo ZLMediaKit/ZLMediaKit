@@ -16,6 +16,10 @@
 #include "Thread/WorkThreadPool.h"
 #include "Network/sockutil.h"
 
+using namespace std;
+using namespace toolkit;
+using namespace mediakit;
+
 namespace FFmpeg {
 #define FFmpeg_FIELD "ffmpeg."
 const string kBin = FFmpeg_FIELD"bin";

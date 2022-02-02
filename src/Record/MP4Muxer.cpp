@@ -14,6 +14,9 @@
 #include "Util/File.h"
 #include "Extension/H264.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit {
 
 MP4Muxer::MP4Muxer() {}

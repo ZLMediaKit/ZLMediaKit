@@ -9,6 +9,9 @@
  */
 
 #include "HlsMaker.h"
+
+using namespace std;
+
 namespace mediakit {
 
 HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number) {

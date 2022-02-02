@@ -16,6 +16,7 @@
 #include "MP4Recorder.h"
 #include "Thread/WorkThreadPool.h"
 
+using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

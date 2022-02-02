@@ -11,6 +11,9 @@
 #include "RtspMuxer.h"
 #include "Extension/Factory.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit {
 
 void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {

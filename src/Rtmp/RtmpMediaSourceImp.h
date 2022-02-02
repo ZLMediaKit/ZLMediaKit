@@ -23,10 +23,9 @@
 #include "RtmpMediaSource.h"
 #include "RtmpDemuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
-using namespace std;
-using namespace toolkit;
 
 namespace mediakit {
+
 class RtmpMediaSourceImp: public RtmpMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener {
 public:
     typedef std::shared_ptr<RtmpMediaSourceImp> Ptr;
@@ -38,7 +37,7 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtmpMediaSourceImp(const string &vhost, const string &app, const string &id, int ringSize = RTMP_GOP_SIZE) : RtmpMediaSource(vhost, app, id, ringSize) {
+    RtmpMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTMP_GOP_SIZE) : RtmpMediaSource(vhost, app, id, ringSize) {
         _demuxer = std::make_shared<RtmpDemuxer>();
         _demuxer->setTrackListener(this);
     }
@@ -84,7 +83,7 @@ public:
         //不重复生成rtmp
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), true, false, enableHls, enableMP4);
         _muxer->setMediaListener(getListener());
-        _muxer->setTrackListener(static_pointer_cast<RtmpMediaSourceImp>(shared_from_this()));
+        _muxer->setTrackListener(std::static_pointer_cast<RtmpMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
         MediaSource::setListener(_muxer);
 

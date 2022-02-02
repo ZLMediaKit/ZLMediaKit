@@ -11,6 +11,8 @@
 #include <assert.h>
 #include "mk_pusher.h"
 #include "Pusher/MediaPusher.h"
+
+using namespace toolkit;
 using namespace mediakit;
 
 API_EXPORT mk_pusher API_CALL mk_pusher_create(const char *schema,const char *vhost,const char *app, const char *stream){
@@ -35,7 +37,7 @@ API_EXPORT void API_CALL mk_pusher_release(mk_pusher ctx){
 API_EXPORT void API_CALL mk_pusher_set_option(mk_pusher ctx, const char *key, const char *val){
     assert(ctx && key && val);
     MediaPusher::Ptr &obj = *((MediaPusher::Ptr *)ctx);
-    string key_str(key),val_str(val);
+    std::string key_str(key), val_str(val);
     obj->getPoller()->async([obj,key_str,val_str](){
         //切换线程再操作
         (*obj)[key_str] = val_str;
@@ -45,7 +47,7 @@ API_EXPORT void API_CALL mk_pusher_set_option(mk_pusher ctx, const char *key, co
 API_EXPORT void API_CALL mk_pusher_publish(mk_pusher ctx,const char *url){
     assert(ctx && url);
     MediaPusher::Ptr &obj = *((MediaPusher::Ptr *)ctx);
-    string url_str(url);
+    std::string url_str(url);
     obj->getPoller()->async([obj,url_str](){
         //切换线程再操作
         obj->publish(url_str);

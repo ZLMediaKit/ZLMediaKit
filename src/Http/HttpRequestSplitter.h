@@ -13,8 +13,6 @@
 
 #include <string>
 #include "Network/Buffer.h"
-using namespace std;
-using namespace toolkit;
 
 namespace mediakit {
 
@@ -83,7 +81,7 @@ protected:
 private:
     ssize_t _content_len = 0;
     size_t _remain_data_size = 0;
-    BufferLikeString _remain_data;
+    toolkit::BufferLikeString _remain_data;
 };
 
 } /* namespace mediakit */

@@ -16,8 +16,6 @@
 #include "Util/util.h"
 #include "Network/Buffer.h"
 #include "Common/macros.h"
-using namespace std;
-using namespace toolkit;
 
 namespace mediakit {
 
@@ -191,21 +189,21 @@ public:
      * @param size 数据总长度
      * @return rtcp对象列表，无需free
      */
-    static vector<RtcpHeader *> loadFromBytes(char *data, size_t size);
+    static std::vector<RtcpHeader *> loadFromBytes(char *data, size_t size);
 
     /**
      * rtcp包转Buffer对象
      * @param rtcp rtcp包对象智能指针
      * @return Buffer对象
      */
-    static Buffer::Ptr toBuffer(std::shared_ptr<RtcpHeader> rtcp);
+    static toolkit::Buffer::Ptr toBuffer(std::shared_ptr<RtcpHeader> rtcp);
 
     /**
      * 打印rtcp相关字段详情(调用派生类的dumpString函数)
      * 内部会判断是什么类型的派生类
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    string dumpString() const;
+    std::string dumpString() const;
 
     /**
      * 根据length字段获取rtcp总长度
@@ -229,7 +227,7 @@ protected:
      * 打印字段详情
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    string dumpHeader() const;
+    std::string dumpHeader() const;
 
 private:
     /**
@@ -269,7 +267,7 @@ private:
      * 打印字段详情
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    string dumpString() const;
+    std::string dumpString() const;
 
     /**
      * 网络字节序转换为主机字节序
@@ -353,21 +351,21 @@ public:
      * 返回ntp时间的字符串
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    string getNtpStamp() const;
+    std::string getNtpStamp() const;
     uint64_t getNtpUnixStampMS() const;
 
     /**
      * 获取ReportItem对象指针列表
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    vector<ReportItem*> getItemList();
+    std::vector<ReportItem*> getItemList();
 
 private:
     /**
     * 打印字段详情
     * 使用net2Host转换成主机字节序后才可使用此函数
     */
-    string dumpString() const;
+    std::string dumpString() const;
 
     /**
      * 网络字节序转换为主机字节序
@@ -429,7 +427,7 @@ public:
      * 获取ReportItem对象指针列表
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    vector<ReportItem*> getItemList();
+    std::vector<ReportItem*> getItemList();
 
 private:
     /**
@@ -442,7 +440,7 @@ private:
      * 打印字段详情
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    string dumpString() const;
+    std::string dumpString() const;
 
 } PACKED;
 
@@ -509,7 +507,7 @@ private:
      * 打印字段详情
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    string dumpString() const;
+    std::string dumpString() const;
 
     /**
      * 网络字节序转换为主机字节序
@@ -531,20 +529,20 @@ public:
      * @param item_text SdesChunk列表，只赋值length和text部分
      * @return SDES包
      */
-    static std::shared_ptr<RtcpSdes> create(const std::vector<string> &item_text);
+    static std::shared_ptr<RtcpSdes> create(const std::vector<std::string> &item_text);
 
     /**
      * 获取SdesChunk对象指针列表
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    vector<SdesChunk*> getChunkList();
+    std::vector<SdesChunk*> getChunkList();
 
 private:
     /**
     * 打印字段详情
     * 使用net2Host转换成主机字节序后才可使用此函数
     */
-    string dumpString() const;
+    std::string dumpString() const;
 
     /**
      * 网络字节序转换为主机字节序
@@ -617,7 +615,7 @@ private:
     * 打印字段详情
     * 使用net2Host转换成主机字节序后才可使用此函数
     */
-    string dumpString() const;
+    std::string dumpString() const;
 
     /**
      * 网络字节序转换为主机字节序
@@ -663,24 +661,24 @@ public:
      * @param reason 原因
      * @return rtcp bye包
      */
-    static std::shared_ptr<RtcpBye> create(const std::vector<uint32_t> &ssrc, const string &reason);
+    static std::shared_ptr<RtcpBye> create(const std::vector<uint32_t> &ssrc, const std::string &reason);
 
     /**
      * 获取ssrc列表
      */
-    vector<uint32_t *> getSSRC();
+    std::vector<uint32_t *> getSSRC();
 
     /**
      * 获取原因
      */
-    string getReason() const;
+    std::string getReason() const;
 
 private:
     /**
     * 打印字段详情
     * 使用net2Host转换成主机字节序后才可使用此函数
     */
-    string dumpString() const;
+    std::string dumpString() const;
 
     /**
      * 网络字节序转换为主机字节序

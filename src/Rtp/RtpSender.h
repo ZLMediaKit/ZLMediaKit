@@ -37,7 +37,7 @@ public:
      * @param is_udp 是否采用udp方式发送rtp
      * @param cb 连接目标端口是否成功的回调
      */
-    void startSend(const string &dst_url, uint16_t dst_port, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb);
+    void startSend(const std::string &dst_url, uint16_t dst_port, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb);
 
     /**
      * 输入帧数据
@@ -63,21 +63,21 @@ public:
 
 private:
     //合并写输出
-    void onFlushRtpList(std::shared_ptr<List<Buffer::Ptr> > rtp_list);
+    void onFlushRtpList(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> > rtp_list);
     //udp/tcp连接成功回调
     void onConnect();
     //异常断开socket事件
-    void onErr(const SockException &ex, bool is_connect = false);
+    void onErr(const toolkit::SockException &ex, bool is_connect = false);
 
 private:
     bool _is_udp;
     bool _is_connect = false;
-    string _dst_url;
+    std::string _dst_url;
     uint16_t _dst_port;
 	uint16_t _src_port;
-    Socket::Ptr _socket;
-    EventPoller::Ptr _poller;
-    Timer::Ptr _connect_timer;
+    toolkit::Socket::Ptr _socket;
+    toolkit::EventPoller::Ptr _poller;
+    toolkit::Timer::Ptr _connect_timer;
     MediaSinkInterface::Ptr _interface;
 };
 

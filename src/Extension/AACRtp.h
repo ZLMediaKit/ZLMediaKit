@@ -44,7 +44,7 @@ private:
 
 private:
     uint32_t _last_dts = 0;
-    string _aac_cfg;
+    std::string _aac_cfg;
     FrameImp::Ptr _frame;
 };
 

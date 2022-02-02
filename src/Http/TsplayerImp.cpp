@@ -11,6 +11,9 @@
 #include "TsPlayerImp.h"
 #include "HlsPlayer.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit {
 
 TsPlayerImp::TsPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<TsPlayer, PlayerBase>(poller) {}

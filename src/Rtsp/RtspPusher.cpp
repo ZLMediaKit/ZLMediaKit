@@ -13,7 +13,8 @@
 #include "RtspPusher.h"
 #include "RtspSession.h"
 
-using namespace mediakit::Client;
+using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 
@@ -63,20 +64,20 @@ void RtspPusher::publish(const string &url_str) {
     teardown();
 
     if (url._user.size()) {
-        (*this)[kRtspUser] = url._user;
+        (*this)[Client::kRtspUser] = url._user;
     }
     if (url._passwd.size()) {
-        (*this)[kRtspPwd] = url._passwd;
-        (*this)[kRtspPwdIsMD5] = false;
+        (*this)[Client::kRtspPwd] = url._passwd;
+        (*this)[Client::kRtspPwdIsMD5] = false;
     }
 
     _url = url_str;
-    _rtp_type = (Rtsp::eRtpType) (int) (*this)[kRtpType];
+    _rtp_type = (Rtsp::eRtpType) (int) (*this)[Client::kRtpType];
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " "
            << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
     weak_ptr<RtspPusher> weak_self = dynamic_pointer_cast<RtspPusher>(shared_from_this());
-    float publish_timeout_sec = (*this)[kTimeoutMS].as<int>() / 1000.0f;
+    float publish_timeout_sec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     _publish_timer.reset(new Timer(publish_timeout_sec, [weak_self]() {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -86,8 +87,8 @@ void RtspPusher::publish(const string &url_str) {
         return false;
     }, getPoller()));
 
-    if (!(*this)[kNetAdapter].empty()) {
-        setNetAdapter((*this)[kNetAdapter]);
+    if (!(*this)[Client::kNetAdapter].empty()) {
+        setNetAdapter((*this)[Client::kNetAdapter]);
     }
 
     startConnect(url._host, url._port, publish_timeout_sec);
@@ -467,7 +468,7 @@ void RtspPusher::sendRecord() {
         });
         if (_rtp_type != Rtsp::RTP_TCP) {
             /////////////////////////心跳/////////////////////////////////
-            _beat_timer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0f, [weak_self]() {
+            _beat_timer.reset(new Timer((*this)[Client::kBeatIntervalMS].as<int>() / 1000.0f, [weak_self]() {
                 auto strong_self = weak_self.lock();
                 if (!strong_self) {
                     return false;
@@ -514,7 +515,7 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
         header.emplace("Session", _session_id);
     }
 
-    if (!_realm.empty() && !(*this)[kRtspUser].empty()) {
+    if (!_realm.empty() && !(*this)[Client::kRtspUser].empty()) {
         if (!_nonce.empty()) {
             //MD5认证
             /*
@@ -525,22 +526,22 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
             (2)当password为ANSI字符串,则
                 response= md5( md5(username:realm:password):nonce:md5(public_method:url) );
              */
-            string encrypted_pwd = (*this)[kRtspPwd];
-            if (!(*this)[kRtspPwdIsMD5].as<bool>()) {
-                encrypted_pwd = MD5((*this)[kRtspUser] + ":" + _realm + ":" + encrypted_pwd).hexdigest();
+            string encrypted_pwd = (*this)[Client::kRtspPwd];
+            if (!(*this)[Client::kRtspPwdIsMD5].as<bool>()) {
+                encrypted_pwd = MD5((*this)[Client::kRtspUser] + ":" + _realm + ":" + encrypted_pwd).hexdigest();
             }
             auto response = MD5(encrypted_pwd + ":" + _nonce + ":" + MD5(cmd + ":" + url).hexdigest()).hexdigest();
             _StrPrinter printer;
             printer << "Digest ";
-            printer << "username=\"" << (*this)[kRtspUser] << "\", ";
+            printer << "username=\"" << (*this)[Client::kRtspUser] << "\", ";
             printer << "realm=\"" << _realm << "\", ";
             printer << "nonce=\"" << _nonce << "\", ";
             printer << "uri=\"" << url << "\", ";
             printer << "response=\"" << response << "\"";
             header.emplace("Authorization", printer);
-        } else if (!(*this)[kRtspPwdIsMD5].as<bool>()) {
+        } else if (!(*this)[Client::kRtspPwdIsMD5].as<bool>()) {
             //base64认证
-            string authStr = StrPrinter << (*this)[kRtspUser] << ":" << (*this)[kRtspPwd];
+            string authStr = StrPrinter << (*this)[Client::kRtspUser] << ":" << (*this)[Client::kRtspPwd];
             char authStrBase64[1024] = {0};
             av_base64_encode(authStrBase64, sizeof(authStrBase64), (uint8_t *) authStr.data(), (int)authStr.size());
             header.emplace("Authorization", StrPrinter << "Basic " << authStrBase64);

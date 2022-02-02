@@ -20,9 +20,6 @@
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 
-using namespace std;
-using namespace toolkit;
-
 namespace mediakit {
 
 class RtspPlayerImp : public PlayerImp<RtspPlayer, PlayerBase> ,private TrackListener {
@@ -30,10 +27,10 @@ public:
     using Ptr = std::shared_ptr<RtspPlayerImp>;
     using Super = PlayerImp<RtspPlayer, PlayerBase>;
 
-    RtspPlayerImp(const EventPoller::Ptr &poller) : Super(poller) {}
+    RtspPlayerImp(const toolkit::EventPoller::Ptr &poller) : Super(poller) {}
 
     ~RtspPlayerImp() override {
-        DebugL << endl;
+        DebugL << std::endl;
     }
 
     float getProgress() const override {
@@ -64,14 +61,14 @@ public:
         return _demuxer ? _demuxer->getDuration() : 0;
     }
 
-    vector<Track::Ptr> getTracks(bool ready = true) const override {
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override {
         return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
     }
 
 private:
     //派生类回调函数
-    bool onCheckSDP(const string &sdp) override {
-        _rtsp_media_src = dynamic_pointer_cast<RtspMediaSource>(_media_src);
+    bool onCheckSDP(const std::string &sdp) override {
+        _rtsp_media_src = std::dynamic_pointer_cast<RtspMediaSource>(_media_src);
         if (_rtsp_media_src) {
             _rtsp_media_src->setSdp(sdp);
         }
@@ -90,7 +87,7 @@ private:
         }
     }
 
-    void onPlayResult(const SockException &ex) override {
+    void onPlayResult(const toolkit::SockException &ex) override {
         if (!(*this)[Client::kWaitTrackReady].as<bool>() || ex) {
             Super::onPlayResult(ex);
             return;
@@ -101,7 +98,7 @@ private:
 
     void addTrackCompleted() override {
         if ((*this)[Client::kWaitTrackReady].as<bool>()) {
-            Super::onPlayResult(SockException(Err_success, "play success"));
+            Super::onPlayResult(toolkit::SockException(toolkit::Err_success, "play success"));
         }
     }
 

@@ -16,7 +16,6 @@
 #include "Frame.h"
 #include "Util/RingBuffer.h"
 #include "Rtsp/Rtsp.h"
-using namespace toolkit;
 
 namespace mediakit{
 
@@ -186,7 +185,7 @@ public:
      * 获取全部的Track
      * @param trackReady 是否获取全部已经准备好的Track
      */
-    virtual vector<Track::Ptr> getTracks(bool trackReady = true) const = 0;
+    virtual std::vector<Track::Ptr> getTracks(bool trackReady = true) const = 0;
 
     /**
      * 获取特定Track

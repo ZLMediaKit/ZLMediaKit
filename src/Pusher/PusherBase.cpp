@@ -14,43 +14,42 @@
 #include "Rtmp/RtmpPusher.h"
 
 using namespace toolkit;
-using namespace mediakit::Client;
 
 namespace mediakit {
 
 PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &poller,
                                          const MediaSource::Ptr &src,
-                                         const string & strUrl) {
+                                         const std::string & strUrl) {
     static auto releasePusher = [](PusherBase *ptr){
         onceToken token(nullptr,[&](){
             delete  ptr;
         });
         ptr->teardown();
     };
-    string prefix = FindField(strUrl.data(), NULL, "://");
+    std::string prefix = FindField(strUrl.data(), NULL, "://");
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
-        return PusherBase::Ptr(new TcpClientWithSSL<RtspPusherImp>(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);
+        return PusherBase::Ptr(new TcpClientWithSSL<RtspPusherImp>(poller, std::dynamic_pointer_cast<RtspMediaSource>(src)), releasePusher);
     }
 
     if (strcasecmp("rtsp",prefix.data()) == 0) {
-        return PusherBase::Ptr(new RtspPusherImp(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);
+        return PusherBase::Ptr(new RtspPusherImp(poller, std::dynamic_pointer_cast<RtspMediaSource>(src)), releasePusher);
     }
 
     if (strcasecmp("rtmps",prefix.data()) == 0) {
-        return PusherBase::Ptr(new TcpClientWithSSL<RtmpPusherImp>(poller,dynamic_pointer_cast<RtmpMediaSource>(src)),releasePusher);
+        return PusherBase::Ptr(new TcpClientWithSSL<RtmpPusherImp>(poller, std::dynamic_pointer_cast<RtmpMediaSource>(src)), releasePusher);
     }
 
     if (strcasecmp("rtmp",prefix.data()) == 0) {
-        return PusherBase::Ptr(new RtmpPusherImp(poller,dynamic_pointer_cast<RtmpMediaSource>(src)),releasePusher);
+        return PusherBase::Ptr(new RtmpPusherImp(poller, std::dynamic_pointer_cast<RtmpMediaSource>(src)), releasePusher);
     }
 
-    return PusherBase::Ptr(new RtspPusherImp(poller,dynamic_pointer_cast<RtspMediaSource>(src)),releasePusher);
+    return PusherBase::Ptr(new RtspPusherImp(poller, std::dynamic_pointer_cast<RtspMediaSource>(src)), releasePusher);
 }
 
 PusherBase::PusherBase() {
-    this->mINI::operator[](kTimeoutMS) = 10000;
-    this->mINI::operator[](kBeatIntervalMS) = 5000;
+    this->mINI::operator[](Client::kTimeoutMS) = 10000;
+    this->mINI::operator[](Client::kBeatIntervalMS) = 5000;
 }
 
 } /* namespace mediakit */

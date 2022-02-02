@@ -15,26 +15,23 @@
 #include <string>
 #include "Util/util.h"
 
-using namespace std;
-using namespace toolkit;
-
 namespace mediakit {
 
-string FindField(const char *buf, const char *start, const char *end, size_t bufSize = 0);
+std::string FindField(const char *buf, const char *start, const char *end, size_t bufSize = 0);
 
 struct StrCaseCompare {
-    bool operator()(const string &__x, const string &__y) const {
+    bool operator()(const std::string &__x, const std::string &__y) const {
         return strcasecmp(__x.data(), __y.data()) < 0;
     }
 };
 
-class StrCaseMap : public multimap<string, string, StrCaseCompare> {
+class StrCaseMap : public std::multimap<std::string, std::string, StrCaseCompare> {
 public:
-    using Super = multimap<string, string, StrCaseCompare>;
+    using Super = multimap<std::string, std::string, StrCaseCompare>;
     StrCaseMap() = default;
     ~StrCaseMap() = default;
 
-    string &operator[](const string &k) {
+    std::string &operator[](const std::string &k) {
         auto it = find(k);
         if (it == end()) {
             it = Super::emplace(k, "");
@@ -43,7 +40,7 @@ public:
     }
 
     template<typename V>
-    void emplace(const string &k, V &&v) {
+    void emplace(const std::string &k, V &&v) {
         auto it = find(k);
         if (it != end()) {
             return;
@@ -52,7 +49,7 @@ public:
     }
 
     template<typename V>
-    void emplace_force(const string k, V &&v) {
+    void emplace_force(const std::string k, V &&v) {
         Super::emplace(k, std::forward<V>(v));
     }
 };
@@ -67,34 +64,34 @@ public:
     void Parse(const char *buf);
 
     //获取命令字
-    const string &Method() const;
+    const std::string &Method() const;
 
     //获取中间url，不包含?后面的参数
-    const string &Url() const;
+    const std::string &Url() const;
 
     //获取中间url，包含?后面的参数
-    string FullUrl() const;
+    std::string FullUrl() const;
 
     //获取命令协议名
-    const string &Tail() const;
+    const std::string &Tail() const;
 
     //根据header key名，获取请求header value值
-    const string &operator[](const char *name) const;
+    const std::string &operator[](const char *name) const;
 
     //获取http body或sdp
-    const string &Content() const;
+    const std::string &Content() const;
 
     //清空，为了重用
     void Clear();
 
     //获取?后面的参数
-    const string &Params() const;
+    const std::string &Params() const;
 
     //重新设置url
-    void setUrl(string url);
+    void setUrl(std::string url);
 
     //重新设置content
-    void setContent(string content);
+    void setContent(std::string content);
 
     //获取header列表
     StrCaseMap &getHeader() const;
@@ -103,15 +100,15 @@ public:
     StrCaseMap &getUrlArgs() const;
 
     //解析?后面的参数
-    static StrCaseMap parseArgs(const string &str, const char *pair_delim = "&", const char *key_delim = "=");
+    static StrCaseMap parseArgs(const std::string &str, const char *pair_delim = "&", const char *key_delim = "=");
 
 private:
-    string _strMethod;
-    string _strUrl;
-    string _strTail;
-    string _strContent;
-    string _strNull;
-    string _params;
+    std::string _strMethod;
+    std::string _strUrl;
+    std::string _strTail;
+    std::string _strContent;
+    std::string _strNull;
+    std::string _params;
     mutable StrCaseMap _mapHeaders;
     mutable StrCaseMap _mapUrlArgs;
 };

@@ -20,7 +20,7 @@ class HlsRecorder : public MediaSourceEventInterceptor, public MpegMuxer, public
 public:
     using Ptr = std::shared_ptr<HlsRecorder>;
 
-    HlsRecorder(const string &m3u8_file, const string &params) : MpegMuxer(false) {
+    HlsRecorder(const std::string &m3u8_file, const std::string &params) : MpegMuxer(false) {
         GET_CONFIG(uint32_t, hlsNum, Hls::kSegmentNum);
         GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
         GET_CONFIG(float, hlsDuration, Hls::kSegmentDuration);
@@ -31,7 +31,7 @@ public:
 
     ~HlsRecorder() = default;
 
-    void setMediaSource(const string &vhost, const string &app, const string &stream_id) {
+    void setMediaSource(const std::string &vhost, const std::string &app, const std::string &stream_id) {
         _hls->setMediaSource(vhost, app, stream_id);
     }
 
@@ -76,7 +76,7 @@ public:
     }
 
 private:
-    void onWrite(std::shared_ptr<Buffer> buffer, uint32_t timestamp, bool key_pos) override {
+    void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint32_t timestamp, bool key_pos) override {
         if (!buffer) {
             _hls->inputData(nullptr, 0, timestamp, key_pos);
         } else {
