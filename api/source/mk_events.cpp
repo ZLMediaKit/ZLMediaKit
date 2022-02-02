@@ -14,6 +14,8 @@
 #include "Http/HttpSession.h"
 #include "Rtsp/RtspSession.h"
 #include "Record/MP4Recorder.h"
+
+using namespace toolkit;
 using namespace mediakit;
 
 static void* s_tag;

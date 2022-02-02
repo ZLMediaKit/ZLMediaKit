@@ -13,8 +13,9 @@
 #include "HlsParser.h"
 #include "Util/util.h"
 #include "Common/Parser.h"
-using namespace toolkit;
+
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

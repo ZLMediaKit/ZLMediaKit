@@ -27,16 +27,14 @@
 #include "Common/Stamp.h"
 #include "Rtcp/RtcpContext.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 //实现了rtsp播放器协议部分的功能，及数据接收功能
-class RtspPlayer: public PlayerBase, public TcpClient, public RtspSplitter, public RtpReceiver {
+class RtspPlayer : public PlayerBase, public toolkit::TcpClient, public RtspSplitter, public RtpReceiver {
 public:
-    typedef std::shared_ptr<RtspPlayer> Ptr;
+    using Ptr = std::shared_ptr<RtspPlayer>;
 
-    RtspPlayer(const EventPoller::Ptr &poller);
+    RtspPlayer(const toolkit::EventPoller::Ptr &poller);
     ~RtspPlayer() override;
 
     void play(const std::string &strUrl) override;
@@ -89,12 +87,12 @@ protected:
     virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data, size_t len);
 
     /////////////TcpClient override/////////////
-    void onConnect(const SockException &err) override;
-    void onRecv(const Buffer::Ptr &buf) override;
-    void onErr(const SockException &ex) override;
+    void onConnect(const toolkit::SockException &err) override;
+    void onRecv(const toolkit::Buffer::Ptr &buf) override;
+    void onErr(const toolkit::SockException &ex) override;
 
 private:
-    void onPlayResult_l(const SockException &ex , bool handshake_done);
+    void onPlayResult_l(const toolkit::SockException &ex , bool handshake_done);
 
     int getTrackIndexByInterleaved(int interleaved) const;
     int getTrackIndexByTrackType(TrackType track_type) const;
@@ -125,9 +123,9 @@ private:
     std::vector<SdpTrack::Ptr> _sdp_track;
     std::function<void(const Parser&)> _on_response;
     //RTP端口,trackid idx 为数组下标
-    Socket::Ptr _rtp_sock[2];
+    toolkit::Socket::Ptr _rtp_sock[2];
     //RTCP端口,trackid idx 为数组下标
-    Socket::Ptr _rtcp_sock[2];
+    toolkit::Socket::Ptr _rtcp_sock[2];
 
     //rtsp鉴权相关
     std::string _md5_nonce;
@@ -142,14 +140,14 @@ private:
     uint32_t _stamp[2] = {0, 0};
 
     //超时功能实现
-    Ticker _rtp_recv_ticker;
-    std::shared_ptr<Timer> _play_check_timer;
-    std::shared_ptr<Timer> _rtp_check_timer;
+    toolkit::Ticker _rtp_recv_ticker;
+    std::shared_ptr<toolkit::Timer> _play_check_timer;
+    std::shared_ptr<toolkit::Timer> _rtp_check_timer;
     //服务器支持的命令
     std::set<std::string> _supported_cmd;
     ////////// rtcp ////////////////
     //rtcp发送时间,trackid idx 为数组下标
-    Ticker _rtcp_send_ticker[2];
+    toolkit::Ticker _rtcp_send_ticker[2];
     //统计rtp并发送rtcp
     std::vector<RtcpContext::Ptr> _rtcp_context;
 };

@@ -12,6 +12,7 @@
 #define MAX_DELAY_SECOND 3
 
 using namespace std;
+using namespace toolkit;
 using namespace mediakit;
 
 static string ffmpeg_err(int errnum) {

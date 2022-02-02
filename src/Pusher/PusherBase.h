@@ -18,16 +18,15 @@
 #include "Network/Socket.h"
 #include "Util/mini.h"
 #include "Common/MediaSource.h"
-using namespace toolkit;
 
 namespace mediakit {
 
-class PusherBase : public mINI {
+class PusherBase : public toolkit::mINI {
 public:
     using Ptr = std::shared_ptr<PusherBase>;
-    using Event = std::function<void(const SockException &ex)>;
+    using Event = std::function<void(const toolkit::SockException &ex)>;
 
-    static Ptr createPusher(const EventPoller::Ptr &poller,
+    static Ptr createPusher(const toolkit::EventPoller::Ptr &poller,
                             const MediaSource::Ptr &src,
                             const std::string &strUrl);
 
@@ -56,8 +55,8 @@ public:
     virtual void setOnShutdown(const Event &cb) = 0;
 
 protected:
-    virtual void onShutdown(const SockException &ex) = 0;
-    virtual void onPublishResult(const SockException &ex) = 0;
+    virtual void onShutdown(const toolkit::SockException &ex) = 0;
+    virtual void onPublishResult(const toolkit::SockException &ex) = 0;
 };
 
 template<typename Parent, typename Delegate>
@@ -84,8 +83,8 @@ public:
         return _delegate ? _delegate->teardown() : Parent::teardown();
     }
 
-    std::shared_ptr<SockInfo> getSockInfo() const {
-        return std::dynamic_pointer_cast<SockInfo>(_delegate);
+    std::shared_ptr<toolkit::SockInfo> getSockInfo() const {
+        return std::dynamic_pointer_cast<toolkit::SockInfo>(_delegate);
     }
 
     /**
@@ -109,14 +108,14 @@ public:
     }
 
 protected:
-    void onShutdown(const SockException &ex) override {
+    void onShutdown(const toolkit::SockException &ex) override {
         if (_on_shutdown) {
             _on_shutdown(ex);
             _on_shutdown = nullptr;
         }
     }
 
-    void onPublishResult(const SockException &ex) override {
+    void onPublishResult(const toolkit::SockException &ex) override {
         if (_on_publish) {
             _on_publish(ex);
             _on_publish = nullptr;

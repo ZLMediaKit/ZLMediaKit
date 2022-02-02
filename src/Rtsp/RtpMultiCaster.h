@@ -20,8 +20,6 @@
 #include "Util/mini.h"
 #include "Network/Socket.h"
 
-using namespace toolkit;
-
 namespace mediakit{
 
 class MultiCastAddressMaker {
@@ -49,18 +47,18 @@ public:
     typedef std::function<void()> onDetach;
     ~RtpMultiCaster();
 
-    static Ptr get(SocketHelper &helper, const std::string &local_ip, const std::string &vhost, const std::string &app, const std::string &stream);
+    static Ptr get(toolkit::SocketHelper &helper, const std::string &local_ip, const std::string &vhost, const std::string &app, const std::string &stream);
     void setDetachCB(void *listener,const onDetach &cb);
 
     std::string getMultiCasterIP();
     uint16_t getMultiCasterPort(TrackType trackType);
 
 private:
-    RtpMultiCaster(SocketHelper &helper, const std::string &local_ip, const std::string &vhost, const std::string &app, const std::string &stream);
+    RtpMultiCaster(toolkit::SocketHelper &helper, const std::string &local_ip, const std::string &vhost, const std::string &app, const std::string &stream);
 
 private:
     std::recursive_mutex _mtx;
-    Socket::Ptr _udp_sock[2];
+    toolkit::Socket::Ptr _udp_sock[2];
     std::shared_ptr<uint32_t> _multicast_ip;
     std::unordered_map<void * , onDetach > _detach_map;
     RtspMediaSource::RingType::RingReader::Ptr _rtp_reader;

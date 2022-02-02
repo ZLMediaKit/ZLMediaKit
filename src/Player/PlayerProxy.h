@@ -16,8 +16,6 @@
 #include "Player/MediaPlayer.h"
 #include "Util/TimeTicker.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 class PlayerProxy : public MediaPlayer, public MediaSourceEvent, public std::enable_shared_from_this<PlayerProxy> {
@@ -28,7 +26,7 @@ public:
     //默认一直重试
     PlayerProxy(const std::string &vhost, const std::string &app, const std::string &stream_id,
                 bool enable_hls = true, bool enable_mp4 = false,
-                int retry_count = -1, const EventPoller::Ptr &poller = nullptr);
+                int retry_count = -1, const toolkit::EventPoller::Ptr &poller = nullptr);
 
     ~PlayerProxy() override;
 
@@ -36,13 +34,13 @@ public:
      * 设置play结果回调，只触发一次；在play执行之前有效
      * @param cb 回调对象
      */
-    void setPlayCallbackOnce(const std::function<void(const SockException &ex)> &cb);
+    void setPlayCallbackOnce(const std::function<void(const toolkit::SockException &ex)> &cb);
 
     /**
      * 设置主动关闭回调
      * @param cb 回调对象
      */
-    void setOnClose(const std::function<void(const SockException &ex)> &cb);
+    void setOnClose(const std::function<void(const toolkit::SockException &ex)> &cb);
 
     /**
      * 开始拉流播放
@@ -61,7 +59,7 @@ private:
     int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
     std::string getOriginUrl(MediaSource &sender) const override;
-    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+    std::shared_ptr<toolkit::SockInfo> getOriginSock(MediaSource &sender) const override;
 
     void rePlay(const std::string &strUrl,int iFailedCnt);
     void onPlaySuccess();
@@ -75,9 +73,9 @@ private:
     std::string _app;
     std::string _stream_id;
     std::string _pull_url;
-    Timer::Ptr _timer;
-    std::function<void(const SockException &ex)> _on_close;
-    std::function<void(const SockException &ex)> _on_play;
+    toolkit::Timer::Ptr _timer;
+    std::function<void(const toolkit::SockException &ex)> _on_close;
+    std::function<void(const toolkit::SockException &ex)> _on_play;
     MultiMediaSourceMuxer::Ptr _muxer;
 };
 

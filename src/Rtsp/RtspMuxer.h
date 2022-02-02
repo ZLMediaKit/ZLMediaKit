@@ -18,15 +18,17 @@
 
 namespace mediakit{
 
-class RingDelegateHelper : public RingDelegate<RtpPacket::Ptr> {
+class RingDelegateHelper : public toolkit::RingDelegate<RtpPacket::Ptr> {
 public:
-    typedef std::function<void(RtpPacket::Ptr in, bool is_key)> onRtp;
+    using onRtp = std::function<void(RtpPacket::Ptr in, bool is_key)> ;
 
-    ~RingDelegateHelper() override{}
-    RingDelegateHelper(onRtp on_rtp){
+    ~RingDelegateHelper() override {}
+
+    RingDelegateHelper(onRtp on_rtp) {
         _on_rtp = std::move(on_rtp);
     }
-    void onWrite(RtpPacket::Ptr in, bool is_key) override{
+
+    void onWrite(RtpPacket::Ptr in, bool is_key) override {
         _on_rtp(std::move(in), is_key);
     }
 

@@ -23,16 +23,14 @@
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
-class PlayerBase : public TrackSource, public mINI {
+class PlayerBase : public TrackSource, public toolkit::mINI {
 public:
     using Ptr = std::shared_ptr<PlayerBase>;
-    using Event = std::function<void(const SockException &ex)>;
+    using Event = std::function<void(const toolkit::SockException &ex)>;
 
-    static Ptr createPlayer(const EventPoller::Ptr &poller, const std::string &strUrl);
+    static Ptr createPlayer(const toolkit::EventPoller::Ptr &poller, const std::string &strUrl);
 
     PlayerBase();
     ~PlayerBase() override = default;
@@ -120,8 +118,8 @@ public:
 
 protected:
     virtual void onResume() = 0;
-    virtual void onShutdown(const SockException &ex) = 0;
-    virtual void onPlayResult(const SockException &ex) = 0;
+    virtual void onShutdown(const toolkit::SockException &ex) = 0;
+    virtual void onPlayResult(const toolkit::SockException &ex) = 0;
 };
 
 template<typename Parent, typename Delegate>
@@ -177,8 +175,8 @@ public:
         return _delegate ? _delegate->getTracks(ready) : Parent::getTracks(ready);
     }
 
-    std::shared_ptr<SockInfo> getSockInfo() const {
-        return std::dynamic_pointer_cast<SockInfo>(_delegate);
+    std::shared_ptr<toolkit::SockInfo> getSockInfo() const {
+        return std::dynamic_pointer_cast<toolkit::SockInfo>(_delegate);
     }
 
     void setMediaSource(const MediaSource::Ptr &src) override {
@@ -188,14 +186,14 @@ public:
         _media_src = src;
     }
 
-    void setOnShutdown(const std::function<void(const SockException &)> &cb) override {
+    void setOnShutdown(const std::function<void(const toolkit::SockException &)> &cb) override {
         if (_delegate) {
             _delegate->setOnShutdown(cb);
         }
         _on_shutdown = cb;
     }
 
-    void setOnPlayResult(const std::function<void(const SockException &ex)> &cb) override {
+    void setOnPlayResult(const std::function<void(const toolkit::SockException &ex)> &cb) override {
         if (_delegate) {
             _delegate->setOnPlayResult(cb);
         }
@@ -210,14 +208,14 @@ public:
     }
 
 protected:
-    void onShutdown(const SockException &ex) override {
+    void onShutdown(const toolkit::SockException &ex) override {
         if (_on_shutdown) {
             _on_shutdown(ex);
             _on_shutdown = nullptr;
         }
     }
 
-    void onPlayResult(const SockException &ex) override {
+    void onPlayResult(const toolkit::SockException &ex) override {
         if (_on_play_result) {
             _on_play_result(ex);
             _on_play_result = nullptr;

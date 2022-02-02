@@ -48,10 +48,10 @@
 #include <tchar.h>
 #endif // _WIN32
 
-
+using namespace std;
+using namespace Json;
 using namespace toolkit;
 using namespace mediakit;
-using namespace std;
 
 namespace API {
 #define API_FIELD "api."
@@ -462,11 +462,11 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
     s_proxyMap[key] = player;
 
     //指定RTP over TCP(播放rtsp时有效)
-    (*player)[kRtpType] = rtp_type;
+    (*player)[Client::kRtpType] = rtp_type;
 
     if (timeout_sec > 0.1) {
         //播放握手超时时间
-        (*player)[kTimeoutMS] = timeout_sec * 1000;
+        (*player)[Client::kTimeoutMS] = timeout_sec * 1000;
     }
 
     //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
@@ -840,11 +840,11 @@ void installWebApi() {
         s_proxyPusherMap[key] = pusher;
 
         //指定RTP over TCP(播放rtsp时有效)
-        (*pusher)[kRtpType] = rtp_type;
+        (*pusher)[Client::kRtpType] = rtp_type;
 
         if (timeout_sec > 0.1) {
             //推流握手超时时间
-            (*pusher)[kTimeoutMS] = timeout_sec * 1000;
+            (*pusher)[Client::kTimeoutMS] = timeout_sec * 1000;
         }
 
         //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试

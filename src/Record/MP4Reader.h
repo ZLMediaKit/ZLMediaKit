@@ -11,9 +11,10 @@
 #ifndef SRC_MEDIAFILE_MEDIAREADER_H_
 #define SRC_MEDIAFILE_MEDIAREADER_H_
 #ifdef ENABLE_MP4
+
 #include "MP4Demuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
-using namespace toolkit;
+
 namespace mediakit {
 
 class MP4Reader : public std::enable_shared_from_this<MP4Reader>, public MediaSourceEvent {
@@ -37,7 +38,7 @@ public:
      * @param ref_self 是否让定时器引用此对象本身，如果无其他对象引用本身，在不循环读文件时，读取文件结束后本对象将自动销毁
      * @param file_repeat 是否循环读取文件，如果配置文件设置为循环读文件，此参数无效
      */
-    void startReadMP4(const EventPoller::Ptr &poller = nullptr, uint64_t sample_ms = 0, bool ref_self = true,  bool file_repeat = false);
+    void startReadMP4(const toolkit::EventPoller::Ptr &poller = nullptr, uint64_t sample_ms = 0, bool ref_self = true,  bool file_repeat = false);
 
     /**
      * 停止解复用MP4定时器
@@ -75,8 +76,8 @@ private:
     uint32_t _seek_to = 0;
     std::string _file_path;
     std::recursive_mutex _mtx;
-    Ticker _seek_ticker;
-    Timer::Ptr _timer;
+    toolkit::Ticker _seek_ticker;
+    toolkit::Timer::Ptr _timer;
     MP4Demuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
 };

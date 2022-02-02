@@ -13,6 +13,7 @@
 #include "Common/Parser.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

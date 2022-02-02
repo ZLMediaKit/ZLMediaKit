@@ -15,8 +15,6 @@
 #include <string>
 #include "Util/util.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 std::string FindField(const char *buf, const char *start, const char *end, size_t bufSize = 0);

@@ -12,8 +12,9 @@
 #include "H264Rtmp.h"
 
 using namespace std;
+using namespace toolkit;
 
-namespace mediakit{
+namespace mediakit {
 
 H264RtmpDecoder::H264RtmpDecoder() {
     _h264frame = obtainFrame();

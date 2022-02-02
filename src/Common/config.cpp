@@ -15,8 +15,8 @@
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
 
-using namespace toolkit;
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

@@ -18,8 +18,6 @@
 #include "Network/UdpServer.h"
 #include "RtpSession.h"
 
-using namespace toolkit;
-
 namespace mediakit{
 
 /**
@@ -27,8 +25,8 @@ namespace mediakit{
  */
 class RtpServer {
 public:
-    typedef std::shared_ptr<RtpServer> Ptr;
-    typedef std::function<void(const Buffer::Ptr &buf)> onRecv;
+    using Ptr = std::shared_ptr<RtpServer>;
+    using onRecv = std::function<void(const toolkit::Buffer::Ptr &buf)>;
 
     RtpServer();
     ~RtpServer();
@@ -53,9 +51,9 @@ public:
     void setOnDetach(const std::function<void()> &cb);
 
 protected:
-    Socket::Ptr _rtp_socket;
-    UdpServer::Ptr _udp_server;
-    TcpServer::Ptr _tcp_server;
+    toolkit::Socket::Ptr _rtp_socket;
+    toolkit::UdpServer::Ptr _udp_server;
+    toolkit::TcpServer::Ptr _tcp_server;
     RtpProcess::Ptr _rtp_process;
     std::function<void()> _on_clearup;
 };

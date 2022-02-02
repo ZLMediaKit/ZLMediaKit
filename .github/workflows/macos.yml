@@ -1,11 +1,11 @@
-name: linux C/C++ CI
+name: macos C/C++ CI
 
 on: [push]
 
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
+    runs-on: macOS-latest
 
     steps:
     - uses: actions/checkout@v1
@@ -13,8 +13,11 @@ jobs:
     - name: 下载submodule源码
       run: git submodule update --init
 
-    - name: apt-get安装依赖库(非必选)
-      run: sudo apt-get update && sudo apt-get install -y cmake  libssl-dev libsdl-dev libavcodec-dev libavutil-dev
+    - name: 安装brew
+      run: ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+    - name: brew安装依赖库(非必选)
+      run: brew update && brew install cmake libssl-dev libsdl-dev libavcodec-dev libavutil-dev
 
     - name: 下载 SRTP
       uses: actions/checkout@v2

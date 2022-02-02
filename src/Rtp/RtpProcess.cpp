@@ -14,6 +14,7 @@
 #include "Http/HttpTSPlayer.h"
 
 using namespace std;
+using namespace toolkit;
 
 static constexpr char kRtpAppName[] = "rtp";
 //在创建_muxer对象前(也就是推流鉴权成功前)，需要先缓存frame，这样可以防止丢包，提高体验

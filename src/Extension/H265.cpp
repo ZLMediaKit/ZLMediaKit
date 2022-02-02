@@ -12,8 +12,9 @@
 #include "SPSParser.h"
 
 using namespace std;
+using namespace toolkit;
 
-namespace mediakit{
+namespace mediakit {
 
 bool getHEVCInfo(const char * vps, size_t vps_len,const char * sps,size_t sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
     T_GetBitContext tGetBitBuf;

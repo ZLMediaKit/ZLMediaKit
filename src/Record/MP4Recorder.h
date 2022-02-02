@@ -21,8 +21,6 @@
 #include "Common/MediaSink.h"
 #include "MP4Muxer.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 #ifdef ENABLE_MP4

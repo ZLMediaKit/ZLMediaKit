@@ -22,11 +22,9 @@
 #include "TS/TSMediaSource.h"
 #include "FMP4/FMP4MediaSource.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
-class HttpSession: public TcpSession,
+class HttpSession: public toolkit::TcpSession,
                    public FlvMuxer,
                    public HttpRequestSplitter,
                    public WebSocketSplitter {
@@ -41,17 +39,17 @@ public:
      **/
     typedef std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
 
-    HttpSession(const Socket::Ptr &pSock);
+    HttpSession(const toolkit::Socket::Ptr &pSock);
     ~HttpSession() override;
 
-    void onRecv(const Buffer::Ptr &) override;
-    void onError(const SockException &err) override;
+    void onRecv(const toolkit::Buffer::Ptr &) override;
+    void onError(const toolkit::SockException &err) override;
     void onManager() override;
     static std::string urlDecode(const std::string &str);
 
 protected:
     //FlvMuxer override
-    void onWrite(const Buffer::Ptr &data, bool flush) override ;
+    void onWrite(const toolkit::Buffer::Ptr &data, bool flush) override ;
     void onDetach() override;
     std::shared_ptr<FlvMuxer> getSharedPtr() override;
 
@@ -73,7 +71,7 @@ protected:
                                         size_t len,
                                         size_t totalSize,
                                         size_t recvedSize){
-        shutdown(SockException(Err_shutdown,"http post content is too huge,default closed"));
+        shutdown(toolkit::SockException(toolkit::Err_shutdown,"http post content is too huge,default closed"));
     }
 
     /**
@@ -91,7 +89,7 @@ protected:
      * 发送数据进行websocket协议打包后回调
      * @param buffer websocket协议数据
      */
-    void onWebSocketEncodeData(Buffer::Ptr buffer) override;
+    void onWebSocketEncodeData(toolkit::Buffer::Ptr buffer) override;
 
     /**
      * 接收到完整的一个webSocket数据包后回调
@@ -130,7 +128,7 @@ private:
     uint64_t _total_bytes_usage = 0;
     std::string _origin;
     Parser _parser;
-    Ticker _ticker;
+    toolkit::Ticker _ticker;
     MediaInfo _mediaInfo;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
     FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
@@ -138,8 +136,7 @@ private:
     std::function<bool (const char *data,size_t len) > _contentCallBack;
 };
 
-
-typedef TcpSessionWithSSL<HttpSession> HttpsSession;
+using HttpsSession = toolkit::TcpSessionWithSSL<HttpSession>;
 
 } /* namespace mediakit */
 

@@ -91,7 +91,7 @@ private:
     on_mk_timer _cb = nullptr;
     void *_user_data = nullptr;
     recursive_mutex _mxt;
-    DelayTask::Ptr _task;
+    EventPoller::DelayTask::Ptr _task;
 };
 
 API_EXPORT mk_timer API_CALL mk_timer_create(mk_thread ctx,uint64_t delay_ms,on_mk_timer cb, void *user_data){

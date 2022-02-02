@@ -16,6 +16,8 @@
 #include "mpeg-ts-proto.h"
 #include "mpeg-muxer.h"
 
+using namespace toolkit;
+
 namespace mediakit{
 
 MpegMuxer::MpegMuxer(bool is_ps) {

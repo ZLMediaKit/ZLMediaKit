@@ -14,12 +14,11 @@
 #include "HttpTSPlayer.h"
 #include "Player/PlayerBase.h"
 
-using namespace toolkit;
 namespace mediakit {
 
 class TsPlayer : public HttpTSPlayer , public PlayerBase {
 public:
-    TsPlayer(const EventPoller::Ptr &poller);
+    TsPlayer(const toolkit::EventPoller::Ptr &poller);
     ~TsPlayer() override = default;
 
     /**
@@ -34,7 +33,7 @@ public:
 
 protected:
     void onResponseBody(const char *buf, size_t size) override;
-    void onResponseCompleted(const SockException &ex) override;
+    void onResponseCompleted(const toolkit::SockException &ex) override;
 
 private:
     bool _play_result = true;

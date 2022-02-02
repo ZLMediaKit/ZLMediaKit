@@ -14,8 +14,8 @@
 #include "Common/config.h"
 #include "Thread/WorkThreadPool.h"
 
-using namespace toolkit;
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

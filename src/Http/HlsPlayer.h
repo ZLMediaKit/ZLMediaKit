@@ -17,8 +17,6 @@
 #include "HlsParser.h"
 #include "Rtp/TSDecoder.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 class HlsDemuxer
@@ -29,7 +27,7 @@ public:
     HlsDemuxer() = default;
     ~HlsDemuxer() override { _timer = nullptr; }
 
-    void start(const EventPoller::Ptr &poller, TrackListener *listener);
+    void start(const toolkit::EventPoller::Ptr &poller, TrackListener *listener);
     bool inputFrame(const Frame::Ptr &frame) override;
     bool addTrack(const Track::Ptr &track) override { return _delegate.addTrack(track); }
     void addTrackCompleted() override { _delegate.addTrackCompleted(); }
@@ -44,16 +42,16 @@ private:
 
 private:
     int64_t _ticker_offset = 0;
-    Ticker _ticker;
+    toolkit::Ticker _ticker;
     Stamp _stamp[2];
-    Timer::Ptr _timer;
+    toolkit::Timer::Ptr _timer;
     MediaSinkDelegate _delegate;
     std::multimap<int64_t, Frame::Ptr> _frame_cache;
 };
 
 class HlsPlayer : public  HttpClientImp , public PlayerBase , public HlsParser{
 public:
-    HlsPlayer(const EventPoller::Ptr &poller);
+    HlsPlayer(const toolkit::EventPoller::Ptr &poller);
     ~HlsPlayer() override = default;
 
     /**
@@ -78,14 +76,14 @@ private:
     void onParsed(bool is_m3u8_inner,int64_t sequence,const map<int,ts_segment> &ts_map) override;
     void onResponseHeader(const std::string &status,const HttpHeader &headers) override;
     void onResponseBody(const char *buf,size_t size) override;
-    void onResponseCompleted(const SockException &e) override;
+    void onResponseCompleted(const toolkit::SockException &e) override;
     bool onRedirectUrl(const std::string &url,bool temporary) override;
 
 private:
     void playDelay();
     float delaySecond();
     void fetchSegment();
-    void teardown_l(const SockException &ex);
+    void teardown_l(const toolkit::SockException &ex);
     void fetchIndexFile();
     void onPacket_l(const char *data, size_t len);
 
@@ -93,7 +91,7 @@ private:
     struct UrlComp {
         //url忽略？后面的参数
         bool operator()(const std::string& __x, const std::string& __y) const {
-            return split(__x,"?")[0] < split(__y,"?")[0];
+            return toolkit::split(__x,"?")[0] < toolkit::split(__y,"?")[0];
         }
     };
 
@@ -102,8 +100,8 @@ private:
     int64_t _last_sequence = -1;
     std::string _m3u8;
     std::string _play_url;
-    Timer::Ptr _timer;
-    Timer::Ptr _timer_ts;
+    toolkit::Timer::Ptr _timer;
+    toolkit::Timer::Ptr _timer_ts;
     std::list<ts_segment> _ts_list;
     std::list<std::string> _ts_url_sort;
     std::set<std::string, UrlComp> _ts_url_cache;
@@ -114,7 +112,7 @@ private:
 class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {
 public:
     typedef std::shared_ptr<HlsPlayerImp> Ptr;
-    HlsPlayerImp(const EventPoller::Ptr &poller = nullptr);
+    HlsPlayerImp(const toolkit::EventPoller::Ptr &poller = nullptr);
     ~HlsPlayerImp() override = default;
 
 private:
@@ -123,9 +121,9 @@ private:
 
 private:
     //// PlayerBase override////
-    void onPlayResult(const SockException &ex) override;
+    void onPlayResult(const toolkit::SockException &ex) override;
     std::vector<Track::Ptr> getTracks(bool ready = true) const override;
-    void onShutdown(const SockException &ex) override;
+    void onShutdown(const toolkit::SockException &ex) override;
 
 private:
     //// TrackListener override////

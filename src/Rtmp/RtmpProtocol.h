@@ -23,8 +23,6 @@
 #include "Util/ResourcePool.h"
 #include "Http/HttpRequestSplitter.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 class RtmpProtocol : public HttpRequestSplitter{
@@ -37,7 +35,7 @@ public:
     void startClientSession(const std::function<void()> &cb);
 
 protected:
-    virtual void onSendRawData(Buffer::Ptr buffer) = 0;
+    virtual void onSendRawData(toolkit::Buffer::Ptr buffer) = 0;
     virtual void onRtmpChunk(RtmpPacket::Ptr chunk_data) = 0;
     virtual void onStreamBegin(uint32_t stream_index){
         _stream_index = stream_index;
@@ -65,8 +63,8 @@ protected:
     void sendRequest(int cmd, const std::string &str);
     void sendResponse(int type, const std::string &str);
     void sendRtmp(uint8_t type, uint32_t stream_index, const std::string &buffer, uint32_t stamp, int chunk_id);
-    void sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::Ptr &buffer, uint32_t stamp, int chunk_id);
-    BufferRaw::Ptr obtainBuffer(const void *data = nullptr, size_t len = 0);
+    void sendRtmp(uint8_t type, uint32_t stream_index, const toolkit::Buffer::Ptr &buffer, uint32_t stamp, int chunk_id);
+    toolkit::BufferRaw::Ptr obtainBuffer(const void *data = nullptr, size_t len = 0);
 
 private:
     void handle_C1_simple(const char *data);
@@ -107,7 +105,7 @@ private:
     ////////////Chunk////////////
     std::unordered_map<int, std::pair<RtmpPacket::Ptr/*now*/, RtmpPacket::Ptr/*last*/> > _map_chunk_data;
     //循环池
-    ResourcePool<BufferRaw> _packet_pool;
+    toolkit::ResourcePool<toolkit::BufferRaw> _packet_pool;
 };
 
 } /* namespace mediakit */

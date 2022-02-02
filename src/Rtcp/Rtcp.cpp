@@ -15,6 +15,7 @@
 #include "RtcpFCI.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

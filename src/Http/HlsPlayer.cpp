@@ -11,6 +11,7 @@
 #include "HlsPlayer.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 
@@ -29,8 +30,8 @@ void HlsPlayer::fetchIndexFile() {
     if (waitResponse()) {
         return;
     }
-    if (!(*this)[kNetAdapter].empty()) {
-        setNetAdapter((*this)[kNetAdapter]);
+    if (!(*this)[Client::kNetAdapter].empty()) {
+        setNetAdapter((*this)[Client::kNetAdapter]);
     }
     setCompleteTimeout((*this)[Client::kTimeoutMS].as<int>());
     setMethod("GET");
@@ -85,7 +86,7 @@ void HlsPlayer::fetchSegment() {
             strong_self->onPacket_l(data, len);
         });
 
-        if (!(*this)[kNetAdapter].empty()) {
+        if (!(*this)[Client::kNetAdapter].empty()) {
             _http_ts_player->setNetAdapter((*this)[Client::kNetAdapter]);
         }
     }

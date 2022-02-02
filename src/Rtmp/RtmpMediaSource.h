@@ -28,9 +28,9 @@
 #include "Util/ResourcePool.h"
 #include "Util/NoticeCenter.h"
 #include "Thread/ThreadPool.h"
-using namespace toolkit;
 
 #define RTMP_GOP_SIZE 512
+
 namespace mediakit {
 
 /**
@@ -40,11 +40,11 @@ namespace mediakit {
  * 只要生成了这三要素，那么要实现rtmp推流、rtmp服务器就很简单了
  * rtmp推拉流协议中，先传递metadata，然后传递config帧，然后一直传递普通帧
  */
-class RtmpMediaSource : public MediaSource, public RingDelegate<RtmpPacket::Ptr>, private PacketCache<RtmpPacket>{
+class RtmpMediaSource : public MediaSource, public toolkit::RingDelegate<RtmpPacket::Ptr>, private PacketCache<RtmpPacket>{
 public:
-    typedef std::shared_ptr<RtmpMediaSource> Ptr;
-    typedef std::shared_ptr<List<RtmpPacket::Ptr> > RingDataType;
-    typedef RingBuffer<RingDataType> RingType;
+    using Ptr = std::shared_ptr<RtmpMediaSource>;
+    using RingDataType = std::shared_ptr<toolkit::List<RtmpPacket::Ptr> >;
+    using RingType = toolkit::RingBuffer<RingDataType>;
 
     /**
      * 构造函数
@@ -203,7 +203,7 @@ private:
     * @param rtmp_list rtmp包列表
     * @param key_pos 是否包含关键帧
     */
-    void onFlush(std::shared_ptr<List<RtmpPacket::Ptr> > rtmp_list, bool key_pos) override {
+    void onFlush(std::shared_ptr<toolkit::List<RtmpPacket::Ptr> > rtmp_list, bool key_pos) override {
         //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
         _ring->write(std::move(rtmp_list), _have_video ? key_pos : true);
     }

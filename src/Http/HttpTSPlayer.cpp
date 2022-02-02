@@ -11,6 +11,7 @@
 #include "HttpTSPlayer.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

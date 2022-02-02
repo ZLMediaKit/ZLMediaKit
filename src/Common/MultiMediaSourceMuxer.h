@@ -104,7 +104,7 @@ public:
      * @param is_udp 是否为udp
      * @param cb 启动成功或失败回调
      */
-    void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const SockException &ex)> &cb) override;
+    void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb) override;
 
     /**
      * 停止ps-rtp发送
@@ -142,7 +142,7 @@ protected:
 
 private:
     bool _is_enable = false;
-    Ticker _last_check;
+    toolkit::Ticker _last_check;
     Stamp _stamp[2];
     std::weak_ptr<Listener> _track_listener;
     std::function<std::string()> _get_origin_url;
@@ -161,7 +161,7 @@ private:
     HlsRecorder::Ptr _hls;
 
     //对象个数统计
-    ObjectStatistic<MultiMediaSourceMuxer> _statistic;
+    toolkit::ObjectStatistic<MultiMediaSourceMuxer> _statistic;
 };
 
 }//namespace mediakit

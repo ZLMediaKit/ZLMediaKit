@@ -18,7 +18,7 @@ namespace mediakit {
 class HttpDownloader : public HttpClientImp {
 public:
     using Ptr = std::shared_ptr<HttpDownloader>;
-    using onDownloadResult = std::function<void(const SockException &ex, const std::string &filePath)>;
+    using onDownloadResult = std::function<void(const toolkit::SockException &ex, const std::string &filePath)>;
 
     HttpDownloader() = default;
     ~HttpDownloader() override;
@@ -41,7 +41,7 @@ public:
 protected:
     void onResponseBody(const char *buf, size_t size) override;
     void onResponseHeader(const std::string &status, const HttpHeader &headers) override;
-    void onResponseCompleted(const SockException &ex) override;
+    void onResponseCompleted(const toolkit::SockException &ex) override;
 
 private:
     void closeFile();

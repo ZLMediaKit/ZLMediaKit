@@ -69,14 +69,14 @@ private:
     int getAllTracks();
     void onVideoTrack(uint32_t track_id, uint8_t object, int width, int height, const void *extra, size_t bytes);
     void onAudioTrack(uint32_t track_id, uint8_t object, int channel_count, int bit_per_sample, int sample_rate, const void *extra, size_t bytes);
-    Frame::Ptr makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int64_t pts, int64_t dts);
+    Frame::Ptr makeFrame(uint32_t track_id, const toolkit::Buffer::Ptr &buf, int64_t pts, int64_t dts);
 
 private:
     MP4FileDisk::Ptr _mp4_file;
     MP4FileDisk::Reader _mov_reader;
     uint64_t _duration_ms = 0;
     std::map<int, Track::Ptr> _track_to_codec;
-    ResourcePool<BufferRaw> _buffer_pool;
+    toolkit::ResourcePool<toolkit::BufferRaw> _buffer_pool;
 };
 
 

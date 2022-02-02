@@ -18,8 +18,6 @@
 #include "RtspMediaSource.h"
 #include "Common/Stamp.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 template<typename T, typename SEQ = uint16_t, size_t kMax = 1024, size_t kMin = 32>
@@ -185,7 +183,7 @@ protected:
 private:
     bool _disable_ntp = false;
     uint32_t _ssrc = 0;
-    Ticker _ssrc_alive;
+    toolkit::Ticker _ssrc_alive;
     NtpStamp _ntp_stamp;
 };
 

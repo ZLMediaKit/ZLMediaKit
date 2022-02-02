@@ -12,8 +12,8 @@
 #include "MediaPusher.h"
 #include "PusherBase.h"
 
-using namespace toolkit;
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

@@ -20,8 +20,6 @@
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 class RtspPlayerImp : public PlayerImp<RtspPlayer, PlayerBase> ,private TrackListener {
@@ -29,7 +27,7 @@ public:
     using Ptr = std::shared_ptr<RtspPlayerImp>;
     using Super = PlayerImp<RtspPlayer, PlayerBase>;
 
-    RtspPlayerImp(const EventPoller::Ptr &poller) : Super(poller) {}
+    RtspPlayerImp(const toolkit::EventPoller::Ptr &poller) : Super(poller) {}
 
     ~RtspPlayerImp() override {
         DebugL << std::endl;
@@ -89,7 +87,7 @@ private:
         }
     }
 
-    void onPlayResult(const SockException &ex) override {
+    void onPlayResult(const toolkit::SockException &ex) override {
         if (!(*this)[Client::kWaitTrackReady].as<bool>() || ex) {
             Super::onPlayResult(ex);
             return;
@@ -100,7 +98,7 @@ private:
 
     void addTrackCompleted() override {
         if ((*this)[Client::kWaitTrackReady].as<bool>()) {
-            Super::onPlayResult(SockException(Err_success, "play success"));
+            Super::onPlayResult(toolkit::SockException(toolkit::Err_success, "play success"));
         }
     }
 

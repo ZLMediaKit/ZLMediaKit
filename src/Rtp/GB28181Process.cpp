@@ -20,11 +20,12 @@
 #include "Extension/H265.h"
 
 using namespace std;
+using namespace toolkit;
 
-namespace mediakit{
+namespace mediakit {
 
 //判断是否为ts负载
-static inline bool checkTS(const uint8_t *packet, size_t bytes){
+static inline bool checkTS(const uint8_t *packet, size_t bytes) {
     return bytes % TS_PACKET_SIZE == 0 && packet[0] == TS_SYNC_BYTE;
 }
 

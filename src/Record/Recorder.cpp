@@ -14,8 +14,8 @@
 #include "MP4Recorder.h"
 #include "HlsRecorder.h"
 
-using namespace toolkit;
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

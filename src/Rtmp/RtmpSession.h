@@ -23,18 +23,17 @@
 #include "Network/TcpSession.h"
 #include "Common/Stamp.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
-class RtmpSession: public TcpSession ,public  RtmpProtocol , public MediaSourceEvent{
+class RtmpSession : public toolkit::TcpSession, public RtmpProtocol, public MediaSourceEvent {
 public:
-    typedef std::shared_ptr<RtmpSession> Ptr;
-    RtmpSession(const Socket::Ptr &sock);
+    using Ptr = std::shared_ptr<RtmpSession>;
+
+    RtmpSession(const toolkit::Socket::Ptr &sock);
     ~RtmpSession() override;
 
-    void onRecv(const Buffer::Ptr &buf) override;
-    void onError(const SockException &err) override;
+    void onRecv(const toolkit::Buffer::Ptr &buf) override;
+    void onError(const toolkit::SockException &err) override;
     void onManager() override;
 
 private:
@@ -57,7 +56,7 @@ private:
     void setMetaData(AMFDecoder &dec);
 
     void onSendMedia(const RtmpPacket::Ptr &pkt);
-    void onSendRawData(Buffer::Ptr buffer) override{
+    void onSendRawData(toolkit::Buffer::Ptr buffer) override{
         _total_bytes += buffer->size();
         send(std::move(buffer));
     }
@@ -96,7 +95,7 @@ private:
     //推流时间戳修整器
     Stamp _stamp[2];
     //数据接收超时计时器
-    Ticker _ticker;
+    toolkit::Ticker _ticker;
     MediaInfo _media_info;
     std::weak_ptr<RtmpMediaSource> _play_src;
     AMFValue _push_metadata;
@@ -108,7 +107,7 @@ private:
 /**
  * 支持ssl加密的rtmp服务器
  */
-typedef TcpSessionWithSSL<RtmpSession> RtmpSessionWithSSL;
+using RtmpSessionWithSSL = toolkit::TcpSessionWithSSL<RtmpSession>;
 
 } /* namespace mediakit */
 #endif /* SRC_RTMP_RTMPSESSION_H_ */

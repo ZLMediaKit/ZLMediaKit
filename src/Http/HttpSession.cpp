@@ -17,8 +17,9 @@
 #include "HttpConst.h"
 #include "Util/base64.h"
 #include "Util/SHA1.h"
-using namespace toolkit;
+
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

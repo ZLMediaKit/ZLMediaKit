@@ -13,6 +13,8 @@
 #include "mk_tcp_private.h"
 #include "Http/WebSocketClient.h"
 #include "Http/WebSocketSession.h"
+
+using namespace toolkit;
 using namespace mediakit;
 
 API_EXPORT const char* API_CALL mk_sock_info_peer_ip(const mk_sock_info ctx, char *buf){

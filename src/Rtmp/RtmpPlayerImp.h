@@ -19,8 +19,6 @@
 #include "RtmpDemuxer.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
-using namespace toolkit;
-using namespace mediakit::Client;
 
 namespace mediakit {
 
@@ -29,7 +27,7 @@ public:
     using Ptr = std::shared_ptr<RtmpPlayerImp>;
     using Super = PlayerImp<RtmpPlayer,PlayerBase>;
 
-    RtmpPlayerImp(const EventPoller::Ptr &poller) : Super(poller) {};
+    RtmpPlayerImp(const toolkit::EventPoller::Ptr &poller) : Super(poller) {};
 
     ~RtmpPlayerImp() override {
         DebugL << std::endl;
@@ -80,7 +78,7 @@ private:
         }
     }
 
-    void onPlayResult(const SockException &ex) override {
+    void onPlayResult(const toolkit::SockException &ex) override {
         if (!_wait_track_ready || ex) {
             Super::onPlayResult(ex);
             return;
@@ -91,7 +89,7 @@ private:
 
     void addTrackCompleted() override {
         if (_wait_track_ready) {
-            Super::onPlayResult(SockException(Err_success, "play success"));
+            Super::onPlayResult(toolkit::SockException(toolkit::Err_success, "play success"));
         }
     }
 

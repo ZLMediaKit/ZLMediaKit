@@ -24,9 +24,8 @@
 #include "RtmpDemuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
-using namespace toolkit;
-
 namespace mediakit {
+
 class RtmpMediaSourceImp: public RtmpMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener {
 public:
     typedef std::shared_ptr<RtmpMediaSourceImp> Ptr;

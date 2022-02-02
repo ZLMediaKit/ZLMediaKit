@@ -14,6 +14,7 @@
 #include "HttpCookieManager.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

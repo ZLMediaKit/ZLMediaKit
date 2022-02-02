@@ -25,11 +25,9 @@
 #include "strCoding.h"
 #include "HttpBody.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
-class HttpArgs : public std::map<std::string, variant, StrCaseCompare> {
+class HttpArgs : public std::map<std::string, toolkit::variant, StrCaseCompare> {
 public:
     HttpArgs() = default;
     ~HttpArgs() = default;
@@ -49,7 +47,7 @@ public:
     }
 };
 
-class HttpClient : public TcpClient, public HttpRequestSplitter {
+class HttpClient : public toolkit::TcpClient, public HttpRequestSplitter {
 public:
     using HttpHeader = StrCaseMap;
     using Ptr = std::shared_ptr<HttpClient>;
@@ -161,7 +159,7 @@ protected:
     /**
      * 接收http回复完毕,
      */
-    virtual void onResponseCompleted(const SockException &ex) = 0;
+    virtual void onResponseCompleted(const toolkit::SockException &ex) = 0;
 
     /**
      * 重定向事件
@@ -177,15 +175,15 @@ protected:
     void onRecvContent(const char *data, size_t len) override;
 
     //// TcpClient override ////
-    void onConnect(const SockException &ex) override;
-    void onRecv(const Buffer::Ptr &pBuf) override;
-    void onErr(const SockException &ex) override;
+    void onConnect(const toolkit::SockException &ex) override;
+    void onRecv(const toolkit::Buffer::Ptr &pBuf) override;
+    void onErr(const toolkit::SockException &ex) override;
     void onFlush() override;
     void onManager() override;
 
 private:
-    void onResponseCompleted_l(const SockException &ex);
-    void onConnect_l(const SockException &ex);
+    void onResponseCompleted_l(const toolkit::SockException &ex);
+    void onConnect_l(const toolkit::SockException &ex);
     void checkCookie(HttpHeader &headers);
     void clearResponse();
 
@@ -214,9 +212,9 @@ private:
     size_t _wait_header_ms = 10 * 1000;
     size_t _wait_body_ms = 10 * 1000;
     size_t _wait_complete_ms = 0;
-    Ticker _wait_header;
-    Ticker _wait_body;
-    Ticker _wait_complete;
+    toolkit::Ticker _wait_header;
+    toolkit::Ticker _wait_body;
+    toolkit::Ticker _wait_complete;
 };
 
 } /* namespace mediakit */

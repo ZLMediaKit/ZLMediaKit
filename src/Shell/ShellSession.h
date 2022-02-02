@@ -15,17 +15,16 @@
 #include "Common/config.h"
 #include "Util/TimeTicker.h"
 #include "Network/TcpSession.h"
-using namespace toolkit;
 
 namespace mediakit {
 
-class ShellSession: public TcpSession {
+class ShellSession: public toolkit::TcpSession {
 public:
-    ShellSession(const Socket::Ptr &_sock);
+    ShellSession(const toolkit::Socket::Ptr &_sock);
     virtual ~ShellSession();
 
-    void onRecv(const Buffer::Ptr &) override;
-    void onError(const SockException &err) override;
+    void onRecv(const toolkit::Buffer::Ptr &) override;
+    void onError(const toolkit::SockException &err) override;
     void onManager() override;
 
 private:
@@ -36,7 +35,7 @@ private:
 
     std::function<bool(const std::string &)> _loginInterceptor;
     std::string _strRecvBuf;
-    Ticker _beatTicker;
+    toolkit::Ticker _beatTicker;
     std::string _strUserName;
 };
 

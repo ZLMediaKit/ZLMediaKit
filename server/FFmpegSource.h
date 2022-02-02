@@ -19,8 +19,6 @@
 #include "Network/Socket.h"
 #include "Common/MediaSource.h"
 
-using namespace toolkit;
-
 namespace FFmpeg {
     extern const std::string kSnap;
 }
@@ -40,8 +38,8 @@ private:
 
 class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public mediakit::MediaSourceEventInterceptor{
 public:
-    typedef std::shared_ptr<FFmpegSource> Ptr;
-    typedef std::function<void(const SockException &ex)> onPlay;
+    using Ptr = std::shared_ptr<FFmpegSource>;
+    using onPlay = std::function<void(const toolkit::SockException &ex)>;
 
     FFmpegSource();
     ~FFmpegSource();
@@ -81,20 +79,20 @@ private:
     //获取媒体源url或者文件路径
     std::string getOriginUrl(mediakit::MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
-    std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
+    std::shared_ptr<toolkit::SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
 
 private:
     bool _enable_hls = false;
     bool _enable_mp4 = false;
     Process _process;
-    Timer::Ptr _timer;
-    EventPoller::Ptr _poller;
+    toolkit::Timer::Ptr _timer;
+    toolkit::EventPoller::Ptr _poller;
     mediakit::MediaInfo _media_info;
     std::string _src_url;
     std::string _dst_url;
     std::string _ffmpeg_cmd_key;
     std::function<void()> _onClose;
-    Ticker _replay_ticker;
+    toolkit::Ticker _replay_ticker;
 };
 
 

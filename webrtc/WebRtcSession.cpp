@@ -11,8 +11,8 @@
 #include "WebRtcSession.h"
 #include "Util/util.h"
 
-using namespace mediakit;
 using namespace std;
+using namespace mediakit;
 
 static string getUserName(const Buffer::Ptr &buffer) {
     auto buf = buffer->data();

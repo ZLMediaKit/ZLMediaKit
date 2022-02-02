@@ -14,8 +14,6 @@
 #include "Pusher/MediaPusher.h"
 #include "Util/TimeTicker.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 class PusherProxy : public MediaPusher, public std::enable_shared_from_this<PusherProxy> {
@@ -24,20 +22,20 @@ public:
 
     // 如果retry_count<0,则一直重试播放；否则重试retry_count次数
     // 默认一直重试，创建此对象时候，需要外部保证MediaSource存在
-    PusherProxy(const MediaSource::Ptr &src, int retry_count = -1, const EventPoller::Ptr &poller = nullptr);
+    PusherProxy(const MediaSource::Ptr &src, int retry_count = -1, const toolkit::EventPoller::Ptr &poller = nullptr);
     ~PusherProxy() override;
 
     /**
      * 设置push结果回调，只触发一次；在publish执行之前有效
      * @param cb 回调对象
      */
-    void setPushCallbackOnce(const std::function<void(const SockException &ex)> &cb);
+    void setPushCallbackOnce(const std::function<void(const toolkit::SockException &ex)> &cb);
 
     /**
      * 设置主动关闭回调
      * @param cb 回调对象
      */
-    void setOnClose(const std::function<void(const SockException &ex)> &cb);
+    void setOnClose(const std::function<void(const toolkit::SockException &ex)> &cb);
 
     /**
      * 开始拉流播放
@@ -51,10 +49,10 @@ private:
 
 private:
     int _retry_count;
-    Timer::Ptr _timer;
+    toolkit::Timer::Ptr _timer;
     std::weak_ptr<MediaSource> _weak_src;
-    std::function<void(const SockException &ex)> _on_close;
-    std::function<void(const SockException &ex)> _on_publish;
+    std::function<void(const toolkit::SockException &ex)> _on_close;
+    std::function<void(const toolkit::SockException &ex)> _on_publish;
 };
 
 } /* namespace mediakit */

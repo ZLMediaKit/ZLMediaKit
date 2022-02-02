@@ -15,6 +15,7 @@
 #define FILE_BUF_SIZE (64 * 1024)
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

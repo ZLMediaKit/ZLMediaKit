@@ -16,8 +16,6 @@
 #include "Util/RingBuffer.h"
 #include "Network/Socket.h"
 
-using namespace toolkit;
-
 namespace mediakit{
 
 typedef enum {
@@ -105,7 +103,7 @@ public:
 /**
  * 帧类型的抽象接口
  */
-class Frame : public Buffer, public CodecInfo {
+class Frame : public toolkit::Buffer, public CodecInfo {
 public:
     typedef std::shared_ptr<Frame> Ptr;
     virtual ~Frame(){}
@@ -170,7 +168,7 @@ public:
 
 private:
     //对象个数统计
-    ObjectStatistic<Frame> _statistic;
+    toolkit::ObjectStatistic<Frame> _statistic;
 };
 
 class FrameImp : public Frame {
@@ -232,14 +230,14 @@ public:
     uint32_t _dts = 0;
     uint32_t _pts = 0;
     size_t _prefix_size = 0;
-    BufferLikeString _buffer;
+    toolkit::BufferLikeString _buffer;
 
 private:
     //对象个数统计
-    ObjectStatistic<FrameImp> _statistic;
+    toolkit::ObjectStatistic<FrameImp> _statistic;
 
 protected:
-    friend class ResourcePool_l<FrameImp>;
+    friend class toolkit::ResourcePool_l<FrameImp>;
     FrameImp() = default;
 };
 
@@ -462,7 +460,7 @@ public:
      * @param prefix 帧前缀长度
      * @param offset buffer有效数据偏移量
      */
-    FrameWrapper(const Buffer::Ptr &buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset) : Parent(buf->data() + offset, buf->size() - offset, dts, pts, prefix){
+    FrameWrapper(const toolkit::Buffer::Ptr &buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset) : Parent(buf->data() + offset, buf->size() - offset, dts, pts, prefix){
         _buf = buf;
     }
 
@@ -475,7 +473,7 @@ public:
      * @param offset buffer有效数据偏移量
      * @param codec 帧类型
      */
-    FrameWrapper(const Buffer::Ptr &buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset, CodecId codec) : Parent(codec, buf->data() + offset, buf->size() - offset, dts, pts, prefix){
+    FrameWrapper(const toolkit::Buffer::Ptr &buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset, CodecId codec) : Parent(codec, buf->data() + offset, buf->size() - offset, dts, pts, prefix){
         _buf = buf;
     }
 
@@ -487,7 +485,7 @@ public:
     }
 
 private:
-    Buffer::Ptr _buf;
+    toolkit::Buffer::Ptr _buf;
 };
 
 /**
@@ -495,7 +493,7 @@ private:
  */
 class FrameMerger {
 public:
-    using onOutput = std::function<void(uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_key_frame)>;
+    using onOutput = std::function<void(uint32_t dts, uint32_t pts, const toolkit::Buffer::Ptr &buffer, bool have_key_frame)>;
     using Ptr = std::shared_ptr<FrameMerger>;
     enum {
         none = 0,
@@ -507,16 +505,16 @@ public:
     ~FrameMerger() = default;
 
     void clear();
-    bool inputFrame(const Frame::Ptr &frame, const onOutput &cb, BufferLikeString *buffer = nullptr);
+    bool inputFrame(const Frame::Ptr &frame, const onOutput &cb, toolkit::BufferLikeString *buffer = nullptr);
 
 private:
     bool willFlush(const Frame::Ptr &frame) const;
-    void doMerge(BufferLikeString &buffer, const Frame::Ptr &frame) const;
+    void doMerge(toolkit::BufferLikeString &buffer, const Frame::Ptr &frame) const;
 
 private:
     int _type;
     bool _have_decode_able_frame = false;
-    List<Frame::Ptr> _frame_cache;
+    toolkit::List<Frame::Ptr> _frame_cache;
 };
 
 }//namespace mediakit

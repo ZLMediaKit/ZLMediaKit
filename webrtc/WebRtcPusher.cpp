@@ -10,8 +10,8 @@
 
 #include "WebRtcPusher.h"
 
-using namespace mediakit;
 using namespace std;
+using namespace mediakit;
 
 WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
                                        const RtspMediaSource::Ptr &src,

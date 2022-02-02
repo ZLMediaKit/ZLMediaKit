@@ -14,8 +14,8 @@
 #include "Frame.h"
 #include "Track.h"
 #include "Util/base64.h"
+
 #define H264_TYPE(v) ((uint8_t)(v) & 0x1F)
-using namespace toolkit;
 
 namespace mediakit{
 
@@ -27,7 +27,7 @@ template<typename Parent>
 class H264FrameHelper : public Parent{
 public:
     friend class FrameImp;
-    friend class ResourcePool_l<H264FrameHelper>;
+    friend class toolkit::ResourcePool_l<H264FrameHelper>;
     using Ptr = std::shared_ptr<H264FrameHelper>;
 
     enum {

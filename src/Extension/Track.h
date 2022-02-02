@@ -16,7 +16,6 @@
 #include "Frame.h"
 #include "Util/RingBuffer.h"
 #include "Rtsp/Rtsp.h"
-using namespace toolkit;
 
 namespace mediakit{
 

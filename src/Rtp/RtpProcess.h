@@ -17,7 +17,7 @@
 
 namespace mediakit {
 
-class RtpProcess : public SockInfo, public MediaSinkInterface, public MediaSourceEventInterceptor, public std::enable_shared_from_this<RtpProcess>{
+class RtpProcess : public toolkit::SockInfo, public MediaSinkInterface, public MediaSourceEventInterceptor, public std::enable_shared_from_this<RtpProcess>{
 public:
     typedef std::shared_ptr<RtpProcess> Ptr;
     friend class RtpProcessHelper;
@@ -34,7 +34,7 @@ public:
      * @param dts_out 解析出最新的dts
      * @return 是否解析成功
      */
-    bool inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
+    bool inputRtp(bool is_udp, const toolkit::Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
 
     /**
      * 是否超时，用于超时移除对象
@@ -85,9 +85,9 @@ private:
     uint32_t _dts = 0;
     uint64_t _total_bytes = 0;
     struct sockaddr _addr{0};
-    Socket::Ptr _sock;
+    toolkit::Socket::Ptr _sock;
     MediaInfo _media_info;
-    Ticker _last_frame_time;
+    toolkit::Ticker _last_frame_time;
     std::function<void()> _on_detach;
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_video;
@@ -95,7 +95,7 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
     std::atomic_bool _stop_rtp_check{false};
     std::atomic_flag _busy_flag{false};
-    Ticker _last_check_alive;
+    toolkit::Ticker _last_check_alive;
     std::recursive_mutex _func_mtx;
     std::deque<std::function<void()> > _cached_func;
 };

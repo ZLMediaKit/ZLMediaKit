@@ -76,7 +76,7 @@ public:
     }
 
 private:
-    void onWrite(std::shared_ptr<Buffer> buffer, uint32_t timestamp, bool key_pos) override {
+    void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint32_t timestamp, bool key_pos) override {
         if (!buffer) {
             _hls->inputData(nullptr, 0, timestamp, key_pos);
         } else {

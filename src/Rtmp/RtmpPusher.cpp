@@ -14,7 +14,6 @@
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
 using namespace toolkit;
-using namespace mediakit::Client;
 using namespace std;
 
 namespace mediakit {
@@ -84,7 +83,7 @@ void RtmpPusher::publish(const string &url)  {
     }
 
     weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
-    float publishTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0f;
+    float publishTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     _publish_timer.reset(new Timer(publishTimeOutSec, [weakSelf]() {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -94,8 +93,8 @@ void RtmpPusher::publish(const string &url)  {
         return false;
     }, getPoller()));
 
-    if (!(*this)[kNetAdapter].empty()) {
-        setNetAdapter((*this)[kNetAdapter]);
+    if (!(*this)[Client::kNetAdapter].empty()) {
+        setNetAdapter((*this)[Client::kNetAdapter]);
     }
 
     startConnect(host_url, iPort);

@@ -16,6 +16,8 @@
 #include "Http/HttpBody.h"
 #include "Http/HttpClient.h"
 #include "Rtsp/RtspSession.h"
+
+using namespace toolkit;
 using namespace mediakit;
 
 ///////////////////////////////////////////RecordInfo/////////////////////////////////////////////

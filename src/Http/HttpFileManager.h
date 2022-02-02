@@ -27,11 +27,11 @@ public:
     HttpResponseInvokerImp(){}
     ~HttpResponseInvokerImp(){}
     template<typename C>
-    HttpResponseInvokerImp(const C &c):HttpResponseInvokerImp(typename function_traits<C>::stl_function_type(c)) {}
+    HttpResponseInvokerImp(const C &c):HttpResponseInvokerImp(typename toolkit::function_traits<C>::stl_function_type(c)) {}
     HttpResponseInvokerImp(const HttpResponseInvokerLambda0 &lambda);
     HttpResponseInvokerImp(const HttpResponseInvokerLambda1 &lambda);
 
-    void operator()(int code, const StrCaseMap &headerOut, const Buffer::Ptr &body) const;
+    void operator()(int code, const StrCaseMap &headerOut, const toolkit::Buffer::Ptr &body) const;
     void operator()(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const;
     void operator()(int code, const StrCaseMap &headerOut, const std::string &body) const;
 
@@ -54,7 +54,7 @@ public:
      * @param parser http请求
      * @param cb 回调对象
     */
-    static void onAccessPath(TcpSession &sender, Parser &parser, const invoker &cb);
+    static void onAccessPath(toolkit::TcpSession &sender, Parser &parser, const invoker &cb);
 
     /**
      * 获取mime值

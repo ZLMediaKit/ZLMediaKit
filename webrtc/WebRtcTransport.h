@@ -26,8 +26,6 @@
 #include "Network/Session.h"
 #include "TwccContext.h"
 
-using namespace toolkit;
-
 //RTC配置项目
 namespace RTC {
 extern const std::string kPort;

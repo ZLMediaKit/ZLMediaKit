@@ -28,17 +28,16 @@
 #include "Common/Stamp.h"
 #include "Rtcp/RtcpContext.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 class RtspSession;
 
-class BufferRtp : public Buffer{
+class BufferRtp : public toolkit::Buffer{
 public:
-    typedef std::shared_ptr<BufferRtp> Ptr;
-    BufferRtp(Buffer::Ptr pkt, size_t offset = 0) : _offset(offset),_rtp(std::move(pkt)) {}
-    ~BufferRtp() override{}
+    using Ptr = std::shared_ptr<BufferRtp>;
+
+    BufferRtp(Buffer::Ptr pkt, size_t offset = 0) : _offset(offset), _rtp(std::move(pkt)) {}
+    ~BufferRtp() override {}
 
     char *data() const override {
         return (char *)_rtp->data() + _offset;
@@ -53,19 +52,19 @@ private:
     Buffer::Ptr _rtp;
 };
 
-class RtspSession: public TcpSession, public RtspSplitter, public RtpReceiver , public MediaSourceEvent{
+class RtspSession : public toolkit::TcpSession, public RtspSplitter, public RtpReceiver, public MediaSourceEvent {
 public:
-    typedef std::shared_ptr<RtspSession> Ptr;
-    typedef std::function<void(const std::string &realm)> onGetRealm;
+    using Ptr = std::shared_ptr<RtspSession>;
+    using onGetRealm = std::function<void(const std::string &realm)>;
     //encrypted为true是则表明是md5加密的密码，否则是明文密码
     //在请求明文密码时如果提供md5密码者则会导致认证失败
-    typedef std::function<void(bool encrypted,const std::string &pwd_or_md5)> onAuth;
+    using onAuth = std::function<void(bool encrypted, const std::string &pwd_or_md5)>;
 
-    RtspSession(const Socket::Ptr &sock);
+    RtspSession(const toolkit::Socket::Ptr &sock);
     virtual ~RtspSession();
     ////TcpSession override////
-    void onRecv(const Buffer::Ptr &buf) override;
-    void onError(const SockException &err) override;
+    void onRecv(const toolkit::Buffer::Ptr &buf) override;
+    void onError(const toolkit::SockException &err) override;
     void onManager() override;
 
 protected:
@@ -94,7 +93,7 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
     /////TcpSession override////
-    ssize_t send(Buffer::Ptr pkt) override;
+    ssize_t send(toolkit::Buffer::Ptr pkt) override;
     //收到RTCP包回调
     virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, const char *data, size_t len);
 
@@ -134,7 +133,7 @@ private:
     int getTrackIndexByControlUrl(const std::string &control_url);
     int getTrackIndexByInterleaved(int interleaved);
     //一般用于接收udp打洞包，也用于rtsp推流
-    void onRcvPeerUdpData(int interleaved, const Buffer::Ptr &buf, const struct sockaddr &addr);
+    void onRcvPeerUdpData(int interleaved, const toolkit::Buffer::Ptr &buf, const struct sockaddr &addr);
     //配合onRcvPeerUdpData使用
     void startListenPeerUdpData(int track_idx);
     ////rtsp专有认证相关////
@@ -179,7 +178,7 @@ private:
     //登录认证
     std::string _auth_nonce;
     //用于判断客户端是否超时
-    Ticker _alive_ticker;
+    toolkit::Ticker _alive_ticker;
 
     //url解析后保存的相关信息
     MediaInfo _media_info;
@@ -196,9 +195,9 @@ private:
 
     ////////RTP over udp////////
     //RTP端口,trackid idx 为数组下标
-    Socket::Ptr _rtp_socks[2];
+    toolkit::Socket::Ptr _rtp_socks[2];
     //RTCP端口,trackid idx 为数组下标
-    Socket::Ptr _rtcp_socks[2];
+    toolkit::Socket::Ptr _rtcp_socks[2];
     //标记是否收到播放的udp打洞包,收到播放的udp打洞包后才能知道其外网udp端口号
     std::unordered_set<int> _udp_connected_flags;
     ////////RTP over udp_multicast////////
@@ -208,10 +207,10 @@ private:
     //quicktime 请求rtsp会产生两次tcp连接，
     //一次发送 get 一次发送post，需要通过x-sessioncookie关联起来
     std::string _http_x_sessioncookie;
-    std::function<void(const Buffer::Ptr &)> _on_recv;
+    std::function<void(const toolkit::Buffer::Ptr &)> _on_recv;
     ////////// rtcp ////////////////
     //rtcp发送时间,trackid idx 为数组下标
-    Ticker _rtcp_send_tickers[2];
+    toolkit::Ticker _rtcp_send_tickers[2];
     //统计rtp并发送rtcp
     std::vector<RtcpContext::Ptr> _rtcp_context;
     bool _send_sr_rtcp[2] = {true, true};
@@ -220,7 +219,7 @@ private:
 /**
  * 支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
  */
-typedef TcpSessionWithSSL<RtspSession> RtspSessionWithSSL;
+using RtspSessionWithSSL = toolkit::TcpSessionWithSSL<RtspSession>;
 
 } /* namespace mediakit */
 

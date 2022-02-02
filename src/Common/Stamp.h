@@ -14,7 +14,6 @@
 #include <set>
 #include <cstdint>
 #include "Util/TimeTicker.h"
-using namespace toolkit;
 
 namespace mediakit {
 
@@ -87,7 +86,7 @@ private:
     int64_t _last_dts_in = 0;
     int64_t _last_dts_out = 0;
     int64_t _last_pts_out = 0;
-    SmoothTicker _ticker;
+    toolkit::SmoothTicker _ticker;
     bool _playback = false;
     Stamp *_sync_master = nullptr;
 };

@@ -63,7 +63,7 @@ public:
      * @param dts_out 解析出最新的dts
      * @return 是否成功
      */
-    bool inputRtp(const Socket::Ptr &sock, const char *data, size_t data_len,
+    bool inputRtp(const toolkit::Socket::Ptr &sock, const char *data, size_t data_len,
                   const struct sockaddr *addr, uint32_t *dts_out = nullptr);
 
     /**
@@ -86,7 +86,7 @@ private:
     void createTimer();
 
 private:
-    Timer::Ptr _timer;
+    toolkit::Timer::Ptr _timer;
     std::recursive_mutex _mtx_map;
     std::unordered_map<std::string,RtpProcessHelper::Ptr> _map_rtp_process;
 };

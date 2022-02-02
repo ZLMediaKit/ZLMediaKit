@@ -15,6 +15,7 @@
 #endif//ENABLE_MP4
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit{
 

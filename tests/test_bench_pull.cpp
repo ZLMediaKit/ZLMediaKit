@@ -139,9 +139,9 @@ int main(int argc, char *argv[]) {
             player_map.erase(tag);
         });
         //设置为性能测试模式
-        (*player)[kBenchmarkMode] = true;
+        (*player)[Client::kBenchmarkMode] = true;
         //设置rtsp拉流方式(在rtsp拉流时有效)
-        (*player)[kRtpType] = rtp_type;
+        (*player)[Client::kRtpType] = rtp_type;
         //提高压测性能与正确性
         (*player)[Client::kWaitTrackReady] = false;
         //发起播放请求

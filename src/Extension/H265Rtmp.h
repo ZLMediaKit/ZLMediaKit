@@ -15,7 +15,6 @@
 #include "Extension/Track.h"
 #include "Util/ResourcePool.h"
 #include "Extension/H265.h"
-using namespace toolkit;
 
 namespace mediakit{
 /**

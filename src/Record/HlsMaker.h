@@ -18,7 +18,6 @@
 #include "Util/File.h"
 #include "Util/util.h"
 #include "Util/logger.h"
-using namespace toolkit;
 
 namespace mediakit {
 

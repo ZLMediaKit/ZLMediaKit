@@ -18,7 +18,7 @@ namespace mediakit {
 class HttpRequester : public HttpClientImp {
 public:
     using Ptr = std::shared_ptr<HttpRequester>;
-    using HttpRequesterResult = std::function<void(const SockException &ex, const Parser &response)>;
+    using HttpRequesterResult = std::function<void(const toolkit::SockException &ex, const Parser &response)>;
 
     HttpRequester() = default;
     ~HttpRequester() override = default;
@@ -30,7 +30,7 @@ public:
 private:
     void onResponseHeader(const std::string &status, const HttpHeader &headers) override;
     void onResponseBody(const char *buf, size_t size) override;
-    void onResponseCompleted(const SockException &ex) override;
+    void onResponseCompleted(const toolkit::SockException &ex) override;
 
 private:
     std::string _res_body;

@@ -13,8 +13,9 @@
 #include "Util/util.h"
 #include "Network/sockutil.h"
 #include "Network/TcpSession.h"
-using namespace toolkit;
+
 using namespace std;
+using namespace toolkit;
 
 namespace toolkit {
     StatisticImp(mediakit::MediaSource);

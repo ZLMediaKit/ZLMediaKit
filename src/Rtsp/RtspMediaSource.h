@@ -26,8 +26,8 @@
 #include "Util/NoticeCenter.h"
 #include "Thread/ThreadPool.h"
 
-using namespace toolkit;
 #define RTP_GOP_SIZE 512
+
 namespace mediakit {
 
 /**
@@ -36,12 +36,12 @@ namespace mediakit {
  * 只要生成了这两要素，那么要实现rtsp推流、rtsp服务器就很简单了
  * rtsp推拉流协议中，先传递sdp，然后再协商传输方式(tcp/udp/组播)，最后一直传递rtp
  */
-class RtspMediaSource : public MediaSource, public RingDelegate<RtpPacket::Ptr>, private PacketCache<RtpPacket> {
+class RtspMediaSource : public MediaSource, public toolkit::RingDelegate<RtpPacket::Ptr>, private PacketCache<RtpPacket> {
 public:
-    typedef ResourcePool<RtpPacket> PoolType;
-    typedef std::shared_ptr<RtspMediaSource> Ptr;
-    typedef std::shared_ptr<List<RtpPacket::Ptr> > RingDataType;
-    typedef RingBuffer<RingDataType> RingType;
+    using PoolType = toolkit::ResourcePool<RtpPacket>;
+    using Ptr = std::shared_ptr<RtspMediaSource>;
+    using RingDataType = std::shared_ptr<toolkit::List<RtpPacket::Ptr> >;
+    using RingType = toolkit::RingBuffer<RingDataType>;
 
     /**
      * 构造函数
@@ -198,7 +198,7 @@ private:
      * @param rtp_list rtp包列表
      * @param key_pos 是否包含关键帧
      */
-    void onFlush(std::shared_ptr<List<RtpPacket::Ptr> > rtp_list, bool key_pos) override {
+    void onFlush(std::shared_ptr<toolkit::List<RtpPacket::Ptr> > rtp_list, bool key_pos) override {
         //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
         _ring->write(std::move(rtp_list), _have_video ? key_pos : true);
     }

@@ -14,13 +14,16 @@
 #include <atomic>
 #include "Util/TimeTicker.h"
 #include "Common/MediaSource.h"
+
 namespace mediakit{
 
 class HlsMediaSource : public MediaSource {
 public:
     friend class HlsCookieData;
-    typedef RingBuffer<std::string> RingType;
-    typedef std::shared_ptr<HlsMediaSource> Ptr;
+
+    using RingType = toolkit::RingBuffer<std::string>;
+    using Ptr = std::shared_ptr<HlsMediaSource>;
+
     HlsMediaSource(const std::string &vhost, const std::string &app, const std::string &stream_id) : MediaSource(HLS_SCHEMA, vhost, app, stream_id){}
     ~HlsMediaSource() override = default;
 
@@ -87,13 +90,13 @@ private:
     bool _is_regist = false;
     RingType::Ptr _ring;
     std::mutex _mtx_cb;
-    List<std::function<void()> > _list_cb;
+    toolkit::List<std::function<void()> > _list_cb;
 };
 
 class HlsCookieData{
 public:
     typedef std::shared_ptr<HlsCookieData> Ptr;
-    HlsCookieData(const MediaInfo &info, const std::shared_ptr<SockInfo> &sock_info);
+    HlsCookieData(const MediaInfo &info, const std::shared_ptr<toolkit::SockInfo> &sock_info);
     ~HlsCookieData();
     void addByteUsage(size_t bytes);
 
@@ -104,11 +107,10 @@ private:
     std::atomic<uint64_t> _bytes {0};
     MediaInfo _info;
     std::shared_ptr<bool> _added;
-    Ticker _ticker;
-    std::shared_ptr<SockInfo> _sock_info;
+    toolkit::Ticker _ticker;
+    std::shared_ptr<toolkit::SockInfo> _sock_info;
     HlsMediaSource::RingType::RingReader::Ptr _ring_reader;
 };
-
 
 }//namespace mediakit
 #endif //ZLMEDIAKIT_HLSMEDIASOURCE_H

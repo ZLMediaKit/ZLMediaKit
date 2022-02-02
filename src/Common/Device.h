@@ -18,8 +18,6 @@
 #include "Util/TimeTicker.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 class H264Encoder;
@@ -126,7 +124,7 @@ private:
     std::shared_ptr<AACEncoder> _pAacEnc;
     std::shared_ptr<VideoInfo> _video;
     std::shared_ptr<AudioInfo> _audio;
-    SmoothTicker _aTicker[2];
+    toolkit::SmoothTicker _aTicker[2];
 };
 
 } /* namespace mediakit */

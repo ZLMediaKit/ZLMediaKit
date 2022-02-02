@@ -20,8 +20,6 @@
 #include <functional>
 #include "Network/Buffer.h"
 
-using namespace toolkit;
-
 enum AMFType {
     AMF_NUMBER,
     AMF_INTEGER,
@@ -39,8 +37,9 @@ class AMFValue;
 class AMFValue {
 public:
     friend class AMFEncoder;
-    typedef std::map<std::string, AMFValue> mapType;
-    typedef std::vector<AMFValue> arrayType;
+
+    using mapType = std::map<std::string, AMFValue>;
+    using arrayType = std::vector<AMFValue>;
 
     ~AMFValue();
     AMFValue(AMFType type = AMF_NULL);
@@ -64,11 +63,13 @@ public:
     operator bool() const;
     void set(const std::string &s, const AMFValue &val);
     void add(const AMFValue &val);
+
 private:
     const mapType &getMap() const;
     const arrayType &getArr() const;
     void destroy();
     void init();
+
 private:
     AMFType _type;
     union {
@@ -83,9 +84,10 @@ private:
 
 class AMFDecoder {
 public:
-    AMFDecoder(const BufferLikeString &buf, size_t pos, int version = 0);
+    AMFDecoder(const toolkit::BufferLikeString &buf, size_t pos, int version = 0);
     template<typename TP>
     TP load();
+
 private:
     std::string load_key();
     AMFValue load_object();
@@ -93,8 +95,9 @@ private:
     AMFValue load_arr();
     uint8_t front();
     uint8_t pop_front();
+
 private:
-    const BufferLikeString &buf;
+    const toolkit::BufferLikeString &buf;
     size_t pos;
     int version;
 };
@@ -110,9 +113,11 @@ public:
     AMFEncoder & operator <<(const AMFValue &value);
     const std::string& data() const ;
     void clear() ;
+
 private:
     void write_key(const std::string &s);
     AMFEncoder &write_undefined();
+
 private:
     std::string buf;
 };

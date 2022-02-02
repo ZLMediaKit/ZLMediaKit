@@ -17,8 +17,6 @@
 #include "Network/Buffer.h"
 #include "Common/macros.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 #if defined(_WIN32)
@@ -198,7 +196,7 @@ public:
      * @param rtcp rtcp包对象智能指针
      * @return Buffer对象
      */
-    static Buffer::Ptr toBuffer(std::shared_ptr<RtcpHeader> rtcp);
+    static toolkit::Buffer::Ptr toBuffer(std::shared_ptr<RtcpHeader> rtcp);
 
     /**
      * 打印rtcp相关字段详情(调用派生类的dumpString函数)

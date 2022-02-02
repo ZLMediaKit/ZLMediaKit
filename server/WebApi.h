@@ -18,9 +18,6 @@
 #include "Network/Socket.h"
 #include "Http/HttpSession.h"
 
-using namespace Json;
-using namespace toolkit;
-
 //配置文件路径
 extern std::string g_ini_file;
 
@@ -158,8 +155,8 @@ public:
     ~HttpAllArgs() = default;
 
     template<typename Key>
-    variant operator[](const Key &key) const {
-        return (variant)_get_value(*(HttpAllArgs*)this, key);
+    toolkit::variant operator[](const Key &key) const {
+        return (toolkit::variant)_get_value(*(HttpAllArgs*)this, key);
     }
 
     const mediakit::Parser &getParser() const {
@@ -182,11 +179,11 @@ private:
     std::function<void(HttpAllArgs &that) > _clone;
 };
 
-#define API_ARGS_MAP SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<ApiArgsType> &allArgs, Json::Value &val
+#define API_ARGS_MAP toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<ApiArgsType> &allArgs, Json::Value &val
 #define API_ARGS_MAP_ASYNC API_ARGS_MAP, const mediakit::HttpSession::HttpResponseInvoker &invoker
-#define API_ARGS_JSON SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<Json::Value> &allArgs, Json::Value &val
+#define API_ARGS_JSON toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<Json::Value> &allArgs, Json::Value &val
 #define API_ARGS_JSON_ASYNC API_ARGS_JSON, const mediakit::HttpSession::HttpResponseInvoker &invoker
-#define API_ARGS_STRING SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<std::string> &allArgs, Json::Value &val
+#define API_ARGS_STRING toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<std::string> &allArgs, Json::Value &val
 #define API_ARGS_STRING_ASYNC API_ARGS_STRING, const mediakit::HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_VALUE sender, headerOut, allArgs, val
 
@@ -232,9 +229,9 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
 
 void installWebApi();
 void unInstallWebApi();
-Value makeMediaSourceJson(mediakit::MediaSource &media);
-void getStatisticJson(const std::function<void(Value &val)> &cb);
+Json::Value makeMediaSourceJson(mediakit::MediaSource &media);
+void getStatisticJson(const std::function<void(Json::Value &val)> &cb);
 void addStreamProxy(const std::string &vhost, const std::string &app, const std::string &stream, const std::string &url, int retry_count,
                     bool enable_hls, bool enable_mp4, int rtp_type, float timeout_sec,
-                    const std::function<void(const SockException &ex, const std::string &key)> &cb);
+                    const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
 #endif //ZLMEDIAKIT_WEBAPI_H

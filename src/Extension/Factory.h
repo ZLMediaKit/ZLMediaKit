@@ -17,8 +17,6 @@
 #include "Rtsp/RtpCodec.h"
 #include "Rtmp/RtmpCodec.h"
 
-using namespace toolkit;
-
 namespace mediakit{
 
 class Factory {

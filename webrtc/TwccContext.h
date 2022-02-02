@@ -15,7 +15,6 @@
 #include <map>
 #include <functional>
 #include "Util/TimeTicker.h"
-using namespace toolkit;
 
 class TwccContext {
 public:

@@ -18,8 +18,6 @@
 #include "Util/logger.h"
 #include "Thread/WorkThreadPool.h"
 
-using namespace toolkit;
-
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b) )
 #endif //MIN
@@ -46,14 +44,14 @@ public:
      * @param size 请求大小
      * @return 字节对象,如果读完了，那么请返回nullptr
      */
-    virtual Buffer::Ptr readData(size_t size) { return nullptr;};
+    virtual toolkit::Buffer::Ptr readData(size_t size) { return nullptr;};
 
     /**
      * 异步请求读取一定字节数，返回大小可能小于size
      * @param size 请求大小
      * @param cb 回调函数
      */
-    virtual void readDataAsync(size_t size,const std::function<void(const Buffer::Ptr &buf)> &cb){
+    virtual void readDataAsync(size_t size,const std::function<void(const toolkit::Buffer::Ptr &buf)> &cb){
         //由于unix和linux是通过mmap的方式读取文件，所以把读文件操作放在后台线程并不能提高性能
         //反而会由于频繁的线程切换导致性能降低以及延时增加，所以我们默认同步获取文件内容
         //(其实并没有读，拷贝文件数据时在内核态完成文件读)
@@ -71,7 +69,7 @@ public:
     ~HttpStringBody() override = default;
 
     ssize_t remainSize() override;
-    Buffer::Ptr readData(size_t size) override ;
+    toolkit::Buffer::Ptr readData(size_t size) override ;
 
 private:
     size_t _offset = 0;
@@ -84,14 +82,14 @@ private:
 class HttpBufferBody : public HttpBody{
 public:
     typedef std::shared_ptr<HttpBufferBody> Ptr;
-    HttpBufferBody(Buffer::Ptr buffer);
+    HttpBufferBody(toolkit::Buffer::Ptr buffer);
     ~HttpBufferBody() override = default;
 
     ssize_t remainSize() override;
-    Buffer::Ptr readData(size_t size) override;
+    toolkit::Buffer::Ptr readData(size_t size) override;
 
 private:
-    Buffer::Ptr _buffer;
+    toolkit::Buffer::Ptr _buffer;
 };
 
 /**
@@ -113,7 +111,7 @@ public:
     ~HttpFileBody() override = default;
 
     ssize_t remainSize() override ;
-    Buffer::Ptr readData(size_t size) override;
+    toolkit::Buffer::Ptr readData(size_t size) override;
 
 private:
     void init(const std::shared_ptr<FILE> &fp,size_t offset,size_t max_size, bool use_mmap);
@@ -123,7 +121,7 @@ private:
     size_t _offset = 0;
     std::shared_ptr<FILE> _fp;
     std::shared_ptr<char> _map_addr;
-    ResourcePool<BufferRaw> _pool;
+    toolkit::ResourcePool<toolkit::BufferRaw> _pool;
 };
 
 class HttpArgs;
@@ -144,7 +142,7 @@ public:
     HttpMultiFormBody(const HttpArgs &args,const std::string &filePath,const std::string &boundary = "0xKhTmLbOuNdArY");
     virtual ~HttpMultiFormBody(){}
     ssize_t remainSize() override ;
-    Buffer::Ptr readData(size_t size) override;
+    toolkit::Buffer::Ptr readData(size_t size) override;
 
 public:
     static std::string multiFormBodyPrefix(const HttpArgs &args,const std::string &boundary,const std::string &fileName);

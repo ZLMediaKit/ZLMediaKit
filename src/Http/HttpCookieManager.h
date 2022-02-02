@@ -19,8 +19,6 @@
 #include "Network/Socket.h"
 #include "Common/Parser.h"
 
-using namespace toolkit;
-
 #define COOKIE_DEFAULT_LIFE (7 * 24 * 60 * 60)
 
 namespace mediakit {
@@ -30,7 +28,7 @@ class HttpCookieManager;
 /**
  * cookie对象，用于保存cookie的一些相关属性
  */
-class HttpServerCookie : public AnyStorage , public noncopyable{
+class HttpServerCookie : public toolkit::AnyStorage , public toolkit::noncopyable{
 public:
     typedef std::shared_ptr<HttpServerCookie> Ptr;
     /**
@@ -98,7 +96,7 @@ private:
     std::string _cookie_name;
     std::string _cookie_uuid;
     uint64_t _max_elapsed;
-    Ticker _ticker;
+    toolkit::Ticker _ticker;
     std::recursive_mutex _mtx;
     std::weak_ptr<HttpCookieManager> _manager;
 };
@@ -225,7 +223,7 @@ private:
     std::unordered_map<std::string/*cookie_name*/,std::unordered_map<std::string/*cookie*/,HttpServerCookie::Ptr/*cookie_data*/> >_map_cookie;
     std::unordered_map<std::string/*cookie_name*/,std::unordered_map<std::string/*uid*/,std::map<uint64_t/*cookie time stamp*/,std::string/*cookie*/> > >_map_uid_to_cookie;
     std::recursive_mutex _mtx_cookie;
-    Timer::Ptr _timer;
+    toolkit::Timer::Ptr _timer;
     RandStrGeneator _geneator;
 };
 

@@ -15,7 +15,6 @@
 #include "RtspMediaSource.h"
 #include "RtspDemuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
-using namespace toolkit;
 
 namespace mediakit {
 class RtspMediaSourceImp : public RtspMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener  {

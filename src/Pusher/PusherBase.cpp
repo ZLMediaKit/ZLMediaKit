@@ -14,7 +14,6 @@
 #include "Rtmp/RtmpPusher.h"
 
 using namespace toolkit;
-using namespace mediakit::Client;
 
 namespace mediakit {
 
@@ -49,8 +48,8 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &poller,
 }
 
 PusherBase::PusherBase() {
-    this->mINI::operator[](kTimeoutMS) = 10000;
-    this->mINI::operator[](kBeatIntervalMS) = 5000;
+    this->mINI::operator[](Client::kTimeoutMS) = 10000;
+    this->mINI::operator[](Client::kBeatIntervalMS) = 5000;
 }
 
 } /* namespace mediakit */

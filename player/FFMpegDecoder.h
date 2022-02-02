@@ -82,8 +82,8 @@ private:
     bool _decode_drop_start = false;
     bool _exit = false;
     std::mutex _task_mtx;
-    semaphore _sem;
-    List<std::function<void()> > _task;
+    toolkit::semaphore _sem;
+    toolkit::List<std::function<void()> > _task;
     std::shared_ptr<std::thread> _thread;
 };
 
@@ -107,7 +107,7 @@ private:
 
 private:
     bool _do_merger = false;
-    Ticker _ticker;
+    toolkit::Ticker _ticker;
     onDec _cb;
     std::shared_ptr<AVCodecContext> _context;
     mediakit::FrameMerger _merger { mediakit::FrameMerger::h264_prefix };

@@ -12,6 +12,8 @@
 
 #if defined(ENABLE_RTPPROXY)
 
+using namespace toolkit;
+
 namespace mediakit{
 
 RtpCache::RtpCache(onFlushed cb) {

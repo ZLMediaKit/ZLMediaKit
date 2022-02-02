@@ -25,10 +25,7 @@ extern "C" {
 #pragma comment(lib,"SDL2.lib")
 #endif //defined(_WIN32)
 
-using namespace toolkit;
-
 #define REFRESH_EVENT   (SDL_USEREVENT + 1)
-
 
 class SDLDisplayerHelper
 {
@@ -101,7 +98,7 @@ public:
     using Ptr = std::shared_ptr<YuvDisplayer>;
 
     YuvDisplayer(void *hwnd = nullptr,const char *title = "untitled"){
-        static onceToken token([]() {
+        static toolkit::onceToken token([]() {
             if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO) == -1) {
                 std::string err = "初始化SDL失败:";
                 err+= SDL_GetError();

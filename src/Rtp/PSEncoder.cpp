@@ -14,6 +14,8 @@
 #include "Extension/H264.h"
 #include "Rtsp/RtspMuxer.h"
 
+using namespace toolkit;
+
 namespace mediakit{
 
 PSEncoderImp::PSEncoderImp(uint32_t ssrc, uint8_t payload_type) : MpegMuxer(true) {

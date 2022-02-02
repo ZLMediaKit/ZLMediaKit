@@ -15,8 +15,9 @@
 #pragma pack(push, 1)
 #endif // defined(_WIN32)
 
-using namespace mediakit;
 using namespace std;
+using namespace toolkit;
+using namespace mediakit;
 
 //https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 //https://tools.ietf.org/html/rfc5285

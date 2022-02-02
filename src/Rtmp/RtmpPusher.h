@@ -18,10 +18,10 @@
 
 namespace mediakit {
 
-class RtmpPusher : public RtmpProtocol, public TcpClient, public PusherBase {
+class RtmpPusher : public RtmpProtocol, public toolkit::TcpClient, public PusherBase {
 public:
     typedef std::shared_ptr<RtmpPusher> Ptr;
-    RtmpPusher(const EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &src);
+    RtmpPusher(const toolkit::EventPoller::Ptr &poller,const RtmpMediaSource::Ptr &src);
     ~RtmpPusher() override;
 
     void publish(const std::string &url) override ;
@@ -29,18 +29,18 @@ public:
 
 protected:
     //for Tcpclient override
-    void onRecv(const Buffer::Ptr &buf) override;
-    void onConnect(const SockException &err) override;
-    void onErr(const SockException &ex) override;
+    void onRecv(const toolkit::Buffer::Ptr &buf) override;
+    void onConnect(const toolkit::SockException &err) override;
+    void onErr(const toolkit::SockException &ex) override;
 
     //for RtmpProtocol override
     void onRtmpChunk(RtmpPacket::Ptr chunk_data) override;
-    void onSendRawData(Buffer::Ptr buffer) override{
+    void onSendRawData(toolkit::Buffer::Ptr buffer) override{
         send(std::move(buffer));
     }
 
 private:
-    void onPublishResult_l(const SockException &ex, bool handshake_done);
+    void onPublishResult_l(const toolkit::SockException &ex, bool handshake_done);
 
     template<typename FUN>
     inline void addOnResultCB(const FUN &fun) {
@@ -69,7 +69,7 @@ private:
     std::unordered_map<int, std::function<void(AMFDecoder &dec)> > _map_on_result;
 
     //推流超时定时器
-    std::shared_ptr<Timer> _publish_timer;
+    std::shared_ptr<toolkit::Timer> _publish_timer;
     std::weak_ptr<RtmpMediaSource> _publish_src;
     RtmpMediaSource::RingType::RingReader::Ptr _rtmp_reader;
 };

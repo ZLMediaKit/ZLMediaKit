@@ -20,8 +20,6 @@
 #include "Common/macros.h"
 #include "Extension/Frame.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 namespace Rtsp {
@@ -141,7 +139,7 @@ private:
 #endif // defined(_WIN32)
 
 //此rtp为rtp over tcp形式，需要忽略前4个字节
-class RtpPacket : public BufferRaw{
+class RtpPacket : public toolkit::BufferRaw{
 public:
     using Ptr = std::shared_ptr<RtpPacket>;
     enum {
@@ -179,12 +177,12 @@ public:
     static Ptr create();
 
 private:
-    friend class ResourcePool_l<RtpPacket>;
+    friend class toolkit::ResourcePool_l<RtpPacket>;
     RtpPacket() = default;
 
 private:
     //对象个数统计
-    ObjectStatistic<RtpPacket> _statistic;
+    toolkit::ObjectStatistic<RtpPacket> _statistic;
 };
 
 class RtpPayload {
@@ -374,13 +372,13 @@ public:
 
 private:
     float _dur_sec = 0;
-    _StrPrinter _printer;
+    toolkit::_StrPrinter _printer;
 };
 
 //创建rtp over tcp4个字节的头
-Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved);
+toolkit::Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved);
 //创建rtp-rtcp端口对
-void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const std::string &local_ip);
+void makeSockPair(std::pair<toolkit::Socket::Ptr, toolkit::Socket::Ptr> &pair, const std::string &local_ip);
 //十六进制方式打印ssrc
 std::string printSSRC(uint32_t ui32Ssrc);
 
