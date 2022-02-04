@@ -71,7 +71,8 @@ HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_
 
 int HttpFileBody::sendFile(int fd) {
 #if  defined(__linux__) || defined(__linux)
-    return sendfile(fd, fileno(_fp.get()), &_file_offset, _max_size);
+    off_t off = _file_offset;
+    return sendfile(fd, fileno(_fp.get()), &off, _max_size);
 #else
     return -1;
 #endif
