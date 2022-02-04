@@ -57,6 +57,15 @@ public:
         //(其实并没有读，拷贝文件数据时在内核态完成文件读)
         cb(readData(size));
     }
+
+    /**
+     * 使用sendfile优化文件发送
+     * @param fd socket fd
+     * @return 0成功，其他为错误代码
+     */
+    virtual int sendFile(int fd) {
+        return -1;
+    }
 };
 
 /**
@@ -112,6 +121,7 @@ public:
 
     ssize_t remainSize() override ;
     toolkit::Buffer::Ptr readData(size_t size) override;
+    int sendFile(int fd) override;
 
 private:
     void init(const std::shared_ptr<FILE> &fp,size_t offset,size_t max_size, bool use_mmap);
@@ -119,6 +129,7 @@ private:
 private:
     size_t _max_size;
     size_t _offset = 0;
+    size_t _file_offset = 0;
     std::shared_ptr<FILE> _fp;
     std::shared_ptr<char> _map_addr;
     toolkit::ResourcePool<toolkit::BufferRaw> _pool;

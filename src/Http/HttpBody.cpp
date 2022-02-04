@@ -65,9 +65,23 @@ HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_
     init(fp, offset, max_size, use_mmap);
 }
 
+#if  defined(__linux__) || defined(__linux)
+#include <sys/sendfile.h>
+#endif
+
+int HttpFileBody::sendFile(int fd) {
+#if  defined(__linux__) || defined(__linux)
+    off_t off = _file_offset;
+    return sendfile(fd, fileno(_fp.get()), &off, _max_size);
+#else
+    return -1;
+#endif
+}
+
 void HttpFileBody::init(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size, bool use_mmap) {
     _fp = fp;
     _max_size = max_size;
+    _file_offset = offset;
 #ifdef ENABLE_MMAP
     if (use_mmap) {
         do {
