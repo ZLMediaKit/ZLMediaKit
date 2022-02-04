@@ -594,6 +594,11 @@ void HttpSession::sendResponse(int code,
         return;
     }
 
+    if (!body->sendFile(getSock()->rawFD())) {
+        //支持sendfile优化
+        return;
+    }
+
     GET_CONFIG(uint32_t, sendBufSize, Http::kSendBufSize);
     if(body->remainSize() > sendBufSize){
         //文件下载提升发送性能
