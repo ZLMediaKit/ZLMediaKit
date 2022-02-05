@@ -67,15 +67,15 @@ HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_
     init(fp, offset, max_size, use_mmap);
 }
 
-#if  defined(__linux__) || defined(__linux)
+#if defined(__linux__) || defined(__linux)
 #include <sys/sendfile.h>
 #endif
 
 int HttpFileBody::sendFile(int fd) {
+#if defined(__linux__) || defined(__linux)
     static onceToken s_token([]() {
         signal(SIGPIPE, SIG_IGN);
     });
-#if  defined(__linux__) || defined(__linux)
     off_t off = _file_offset;
     return sendfile(fd, fileno(_fp.get()), &off, _max_size);
 #else
