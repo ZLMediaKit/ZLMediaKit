@@ -8,11 +8,13 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <csignal>
 #include "HttpBody.h"
 #include "Util/util.h"
 #include "Util/File.h"
 #include "Util/uv_errno.h"
 #include "Util/logger.h"
+#include "Util/onceToken.h"
 #include "HttpClient.h"
 #ifndef _WIN32
 #include <sys/mman.h>
@@ -70,6 +72,9 @@ HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_
 #endif
 
 int HttpFileBody::sendFile(int fd) {
+    static onceToken s_token([]() {
+        signal(SIGPIPE, SIG_IGN);
+    });
 #if  defined(__linux__) || defined(__linux)
     off_t off = _file_offset;
     return sendfile(fd, fileno(_fp.get()), &off, _max_size);
