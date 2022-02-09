@@ -18,7 +18,7 @@
 #include "Util/base64.h"
 #include "Rtcp/Rtcp.h"
 using namespace toolkit;
-using namespace mediakit::Client;
+using namespace std;
 
 namespace mediakit {
 
@@ -74,19 +74,19 @@ void RtspPlayer::play(const string &strUrl){
     teardown();
 
     if (url._user.size()) {
-        (*this)[kRtspUser] = url._user;
+        (*this)[Client::kRtspUser] = url._user;
     }
     if (url._passwd.size()) {
-        (*this)[kRtspPwd] = url._passwd;
-        (*this)[kRtspPwdIsMD5] = false;
+        (*this)[Client::kRtspPwd] = url._passwd;
+        (*this)[Client::kRtspPwdIsMD5] = false;
     }
 
     _play_url = url._url;
-    _rtp_type = (Rtsp::eRtpType)(int)(*this)[kRtpType];
+    _rtp_type = (Rtsp::eRtpType)(int)(*this)[Client::kRtpType];
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
     weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
-    float playTimeOutSec = (*this)[kTimeoutMS].as<int>() / 1000.0f;
+    float playTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     _play_check_timer.reset(new Timer(playTimeOutSec, [weakSelf]() {
         auto strongSelf=weakSelf.lock();
         if(!strongSelf) {
@@ -96,8 +96,8 @@ void RtspPlayer::play(const string &strUrl){
         return false;
     }, getPoller()));
 
-    if(!(*this)[kNetAdapter].empty()){
-        setNetAdapter((*this)[kNetAdapter]);
+    if(!(*this)[Client::kNetAdapter].empty()){
+        setNetAdapter((*this)[Client::kNetAdapter]);
     }
     startConnect(url._host, url._port, playTimeOutSec);
 }
@@ -571,7 +571,7 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
         header.emplace("Session", _session_id);
     }
 
-    if(!_realm.empty() && !(*this)[kRtspUser].empty()){
+    if(!_realm.empty() && !(*this)[Client::kRtspUser].empty()){
         if(!_md5_nonce.empty()){
             //MD5认证
             /*
@@ -582,22 +582,22 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
             (2)当password为ANSI字符串,则
                 response= md5( md5(username:realm:password):nonce:md5(public_method:url) );
              */
-            string encrypted_pwd = (*this)[kRtspPwd];
-            if(!(*this)[kRtspPwdIsMD5].as<bool>()){
-                encrypted_pwd = MD5((*this)[kRtspUser] + ":" + _realm + ":" + encrypted_pwd).hexdigest();
+            string encrypted_pwd = (*this)[Client::kRtspPwd];
+            if(!(*this)[Client::kRtspPwdIsMD5].as<bool>()){
+                encrypted_pwd = MD5((*this)[Client::kRtspUser] + ":" + _realm + ":" + encrypted_pwd).hexdigest();
             }
             auto response = MD5(encrypted_pwd + ":" + _md5_nonce + ":" + MD5(cmd + ":" + url).hexdigest()).hexdigest();
             _StrPrinter printer;
             printer << "Digest ";
-            printer << "username=\"" << (*this)[kRtspUser] << "\", ";
+            printer << "username=\"" << (*this)[Client::kRtspUser] << "\", ";
             printer << "realm=\"" << _realm << "\", ";
             printer << "nonce=\"" << _md5_nonce << "\", ";
             printer << "uri=\"" << url << "\", ";
             printer << "response=\"" << response << "\"";
             header.emplace("Authorization",printer);
-        }else if(!(*this)[kRtspPwdIsMD5].as<bool>()){
+        }else if(!(*this)[Client::kRtspPwdIsMD5].as<bool>()){
             //base64认证
-            string authStr = StrPrinter << (*this)[kRtspUser] << ":" << (*this)[kRtspPwd];
+            string authStr = StrPrinter << (*this)[Client::kRtspUser] << ":" << (*this)[Client::kRtspPwd];
             char authStrBase64[1024] = {0};
             av_base64_encode(authStrBase64, sizeof(authStrBase64), (uint8_t *) authStr.data(), (int) authStr.size());
             header.emplace("Authorization",StrPrinter << "Basic " << authStrBase64 );
@@ -685,7 +685,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshake_done) {
     if (!ex) {
         //播放成功，恢复rtp接收超时定时器
         _rtp_recv_ticker.resetTime();
-        auto timeoutMS = (*this)[kMediaTimeoutMS].as<uint64_t>();
+        auto timeoutMS = (*this)[Client::kMediaTimeoutMS].as<uint64_t>();
         weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
         auto lam = [weakSelf, timeoutMS]() {
             auto strongSelf = weakSelf.lock();

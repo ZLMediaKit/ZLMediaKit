@@ -15,17 +15,15 @@
 #include "Player/MediaPlayer.h"
 #include "Rtp/TSDecoder.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 //http-ts播发器，未实现ts解复用
 class HttpTSPlayer : public HttpClientImp {
 public:
     using Ptr = std::shared_ptr<HttpTSPlayer>;
-    using onComplete = std::function<void(const SockException &)>;
+    using onComplete = std::function<void(const toolkit::SockException &)>;
 
-    HttpTSPlayer(const EventPoller::Ptr &poller = nullptr, bool split_ts = true);
+    HttpTSPlayer(const toolkit::EventPoller::Ptr &poller = nullptr, bool split_ts = true);
     ~HttpTSPlayer() override = default;
 
     /**
@@ -40,9 +38,9 @@ public:
 
 protected:
     ///HttpClient override///
-    void onResponseHeader(const string &status, const HttpHeader &header) override;
+    void onResponseHeader(const std::string &status, const HttpHeader &header) override;
     void onResponseBody(const char *buf, size_t size) override;
-    void onResponseCompleted(const SockException &ex) override;
+    void onResponseCompleted(const toolkit::SockException &ex) override;
 
 protected:
     /**
@@ -51,7 +49,7 @@ protected:
     virtual void onPacket(const char *data, size_t len);
 
 private:
-    void emitOnComplete(const SockException &ex);
+    void emitOnComplete(const toolkit::SockException &ex);
 
 private:
     bool _split_ts;

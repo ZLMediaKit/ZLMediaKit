@@ -17,6 +17,8 @@
 #include "Extension/G711.h"
 #include "Extension/Opus.h"
 using namespace toolkit;
+using namespace std;
+
 namespace mediakit {
 
 MP4Demuxer::MP4Demuxer() {}

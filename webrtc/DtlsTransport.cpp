@@ -30,6 +30,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <cstring> // std::memcpy(), std::strcmp()
 #include "Util/util.h"
 
+using namespace std;
+
 #define LOG_OPENSSL_ERROR(desc)                                                                    \
 	do                                                                                               \
 	{                                                                                                \

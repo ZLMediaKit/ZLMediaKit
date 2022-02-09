@@ -23,9 +23,9 @@ class FMP4MediaSourceMuxer : public MP4MuxerMemory, public MediaSourceEventInter
 public:
     using Ptr = std::shared_ptr<FMP4MediaSourceMuxer>;
 
-    FMP4MediaSourceMuxer(const string &vhost,
-                         const string &app,
-                         const string &stream_id) {
+    FMP4MediaSourceMuxer(const std::string &vhost,
+                         const std::string &app,
+                         const std::string &stream_id) {
         _media_src = std::make_shared<FMP4MediaSource>(vhost, app, stream_id);
     }
 
@@ -72,7 +72,7 @@ public:
     }
 
 protected:
-    void onSegmentData(string string, uint32_t stamp, bool key_frame) override {
+    void onSegmentData(std::string string, uint32_t stamp, bool key_frame) override {
         if (string.empty()) {
             return;
         }

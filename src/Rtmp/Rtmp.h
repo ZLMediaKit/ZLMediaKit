@@ -21,8 +21,6 @@
 #include "amf.h"
 #include "Extension/Track.h"
 
-using namespace toolkit;
-
 #if !defined(_WIN32)
 #define PACKED	__attribute__((packed))
 #else
@@ -175,7 +173,7 @@ public:
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-class RtmpPacket : public Buffer{
+class RtmpPacket : public toolkit::Buffer{
 public:
     friend class RtmpProtocol;
     using Ptr = std::shared_ptr<RtmpPacket>;
@@ -186,7 +184,7 @@ public:
     uint32_t stream_index;
     uint32_t chunk_id;
     size_t body_size;
-    BufferLikeString buffer;
+    toolkit::BufferLikeString buffer;
 
 public:
     static Ptr create();
@@ -259,7 +257,7 @@ public:
     }
 
 private:
-    friend class ResourcePool_l<RtmpPacket>;
+    friend class toolkit::ResourcePool_l<RtmpPacket>;
     RtmpPacket(){
         clear();
     }
@@ -276,7 +274,7 @@ private:
 
 private:
     //对象个数统计
-    ObjectStatistic<RtmpPacket> _statistic;
+    toolkit::ObjectStatistic<RtmpPacket> _statistic;
 };
 
 /**
@@ -306,7 +304,7 @@ public:
 
     TitleMeta(float dur_sec = 0,
               size_t fileSize = 0,
-              const map<string,string> &header = map<string,string>()){
+              const std::map<std::string, std::string> &header = std::map<std::string, std::string>()){
         _metadata.set("duration", dur_sec);
         _metadata.set("fileSize", (int)fileSize);
         _metadata.set("server",kServerName);

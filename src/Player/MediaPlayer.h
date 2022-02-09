@@ -17,7 +17,6 @@
 #include "Rtsp/RtspPlayer.h"
 #include "Rtmp/RtmpPlayer.h"
 #include "Thread/TaskExecutor.h"
-using namespace toolkit;
 
 namespace mediakit {
 
@@ -25,16 +24,16 @@ class MediaPlayer : public PlayerImp<PlayerBase, PlayerBase> {
 public:
     using Ptr = std::shared_ptr<MediaPlayer>;
 
-    MediaPlayer(const EventPoller::Ptr &poller = nullptr);
+    MediaPlayer(const toolkit::EventPoller::Ptr &poller = nullptr);
     ~MediaPlayer() override = default;
 
-    void play(const string &url) override;
-    EventPoller::Ptr getPoller();
-    void setOnCreateSocket(Socket::onCreateSocket cb);
+    void play(const std::string &url) override;
+    toolkit::EventPoller::Ptr getPoller();
+    void setOnCreateSocket(toolkit::Socket::onCreateSocket cb);
 
 private:
-    EventPoller::Ptr _poller;
-    Socket::onCreateSocket _on_create_socket;
+    toolkit::EventPoller::Ptr _poller;
+    toolkit::Socket::onCreateSocket _on_create_socket;
 };
 
 } /* namespace mediakit */

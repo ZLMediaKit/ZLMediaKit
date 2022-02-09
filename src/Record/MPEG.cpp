@@ -13,7 +13,10 @@
 
 #if defined(ENABLE_HLS) || defined(ENABLE_RTPPROXY)
 
+#include "mpeg-ts-proto.h"
 #include "mpeg-muxer.h"
+
+using namespace toolkit;
 
 namespace mediakit{
 
@@ -32,7 +35,7 @@ MpegMuxer::~MpegMuxer() {
         if (mpeg_id == PSI_STREAM_RESERVED) {                                                          \
             break;                                                                                     \
         }                                                                                              \
-        _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream(_context, mpeg_id, nullptr, 0); \
+        _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id, nullptr, 0); \
         return true;                                                                                   \
     }
 
@@ -65,7 +68,7 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
                 //取视频时间戳为TS的时间戳
                 _timestamp = (uint32_t) dts;
                 _max_cache_size = 512 + 1.2 * buffer->size();
-                mpeg_muxer_input(_context, track_id, have_idr ? 0x0001 : 0, pts * 90LL,dts * 90LL, buffer->data(), buffer->size());
+                mpeg_muxer_input((::mpeg_muxer_t *)_context, track_id, have_idr ? 0x0001 : 0, pts * 90LL,dts * 90LL, buffer->data(), buffer->size());
                 flushCache();
             });
         }
@@ -83,7 +86,7 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
                 _timestamp = (uint32_t) frame->dts();
             }
             _max_cache_size = 512 + 1.2 * frame->size();
-            mpeg_muxer_input(_context, track_id, frame->keyFrame() ? 0x0001 : 0, frame->pts() * 90LL, frame->dts() * 90LL, frame->data(), frame->size());
+            mpeg_muxer_input((::mpeg_muxer_t *)_context, track_id, frame->keyFrame() ? 0x0001 : 0, frame->pts() * 90LL, frame->dts() * 90LL, frame->data(), frame->size());
             flushCache();
             return true;
         }
@@ -127,7 +130,7 @@ void MpegMuxer::createContext() {
             }
     };
     if (_context == nullptr) {
-        _context = mpeg_muxer_create(_is_ps, &func, this);
+        _context = (struct mpeg_muxer_t *)mpeg_muxer_create(_is_ps, &func, this);
     }
 }
 
@@ -143,7 +146,7 @@ void MpegMuxer::flushCache() {
 
 void MpegMuxer::releaseContext() {
     if (_context) {
-        mpeg_muxer_destroy(_context);
+        mpeg_muxer_destroy((::mpeg_muxer_t *)_context);
         _context = nullptr;
     }
     _codec_to_trackid.clear();

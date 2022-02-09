@@ -10,6 +10,8 @@
 
 #include "CommonRtp.h"
 
+using namespace mediakit;
+
 CommonRtpDecoder::CommonRtpDecoder(CodecId codec, size_t max_frame_size ){
     _codec = codec;
     _max_frame_size = max_frame_size;

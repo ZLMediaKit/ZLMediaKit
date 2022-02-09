@@ -12,11 +12,10 @@
 #define ZLMEDIAKIT_SYSTEM_H
 
 #include <string>
-using namespace std;
 
 class System {
 public:
-    static string execute(const string &cmd);
+    static std::string execute(const std::string &cmd);
     static void startDaemon();
     static void systemSetup();
 };

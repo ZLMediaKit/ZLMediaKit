@@ -8,10 +8,13 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <cstdarg>
+#include <cassert>
+
 #include "mk_util.h"
-#include <assert.h>
 #include "Util/util.h"
 #include "Util/logger.h"
+
 using namespace std;
 using namespace toolkit;
 

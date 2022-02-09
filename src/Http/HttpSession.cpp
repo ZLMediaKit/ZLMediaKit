@@ -17,6 +17,8 @@
 #include "HttpConst.h"
 #include "Util/base64.h"
 #include "Util/SHA1.h"
+
+using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
@@ -592,15 +594,20 @@ void HttpSession::sendResponse(int code,
         return;
     }
 
+    if (typeid(*this) == typeid(HttpSession) && !body->sendFile(getSock()->rawFD())) {
+        //http支持sendfile优化
+        return;
+    }
+
     GET_CONFIG(uint32_t, sendBufSize, Http::kSendBufSize);
-    if(body->remainSize() > sendBufSize){
+    if (body->remainSize() > sendBufSize) {
         //文件下载提升发送性能
         setSocketFlags();
     }
 
     //发送http body
-    AsyncSenderData::Ptr data = std::make_shared<AsyncSenderData>(shared_from_this(),body,bClose);
-    getSock()->setOnFlush([data](){
+    AsyncSenderData::Ptr data = std::make_shared<AsyncSenderData>(shared_from_this(), body, bClose);
+    getSock()->setOnFlush([data]() {
         return AsyncSender::onSocketFlushed(data);
     });
     AsyncSender::onSocketFlushed(data);

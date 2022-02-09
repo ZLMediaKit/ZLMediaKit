@@ -13,6 +13,9 @@
 #include "RtpProcess.h"
 #include "Http/HttpTSPlayer.h"
 
+using namespace std;
+using namespace toolkit;
+
 static constexpr char kRtpAppName[] = "rtp";
 //在创建_muxer对象前(也就是推流鉴权成功前)，需要先缓存frame，这样可以防止丢包，提高体验
 //但是同时需要控制缓冲长度，防止内存溢出。200帧数据，大概有10秒数据，应该足矣等待鉴权hook返回

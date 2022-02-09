@@ -52,7 +52,7 @@ public:
     uint16_t getFirst() const;
     uint16_t getNumber() const;
     uint8_t getPicID() const;
-    string dumpString() const;
+    std::string dumpString() const;
 
 private:
     uint32_t data;
@@ -118,7 +118,7 @@ public:
     uint32_t getSSRC() const;
     uint8_t getSeq() const;
     uint32_t getReserved() const;
-    string dumpString() const;
+    std::string dumpString() const;
 
 private:
     uint32_t ssrc;
@@ -215,11 +215,11 @@ class FCI_REMB {
 public:
     static size_t constexpr kSize = 8;
 
-    static string create(const std::vector<uint32_t> &ssrcs, uint32_t bitrate);
+    static std::string create(const std::vector<uint32_t> &ssrcs, uint32_t bitrate);
     void check(size_t size);
-    string dumpString() const;
+    std::string dumpString() const;
     uint32_t getBitRate() const;
-    vector<uint32_t> getSSRC();
+    std::vector<uint32_t> getSSRC();
 
 private:
     //Unique identifier 'R' 'E' 'M' 'B'
@@ -245,14 +245,15 @@ public:
     static constexpr size_t kSize = 4;
     static constexpr size_t kBitSize = 16;
 
-    FCI_NACK(uint16_t pid_h, const vector<bool> &type);
+    FCI_NACK(uint16_t pid_h, const std::vector<bool> &type);
 
     void check(size_t size);
     uint16_t getPid() const;
     uint16_t getBlp() const;
     //返回丢包列表，总长度17，第一个包必丢
-    vector<bool> getBitArray() const;
-    string dumpString() const;
+    // TODO: replace std::bitset
+    std::vector<bool> getBitArray() const;
+    std::string dumpString() const;
 
 private:
     // The PID field is used to specify a lost packet.  The PID field
@@ -346,16 +347,16 @@ enum class SymbolStatus : uint8_t{
 class FCI_TWCC{
 public:
     static size_t constexpr kSize = 8;
-    using TwccPacketStatus = map<uint16_t/*rtp ext seq*/, std::pair<SymbolStatus, int16_t/*recv delta,单位为250us*/> >;
+    using TwccPacketStatus = std::map<uint16_t/*rtp ext seq*/, std::pair<SymbolStatus, int16_t/*recv delta,单位为250us*/> >;
     void check(size_t size);
-    string dumpString(size_t total_size) const;
+    std::string dumpString(size_t total_size) const;
     uint16_t getBaseSeq() const;
     //单位64ms
     uint32_t getReferenceTime() const;
     uint16_t getPacketCount() const;
     TwccPacketStatus getPacketChunkList(size_t total_size) const;
 
-    static string create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatus &status);
+    static std::string create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatus &status);
 
 private:
     //base sequence number,基础序号,本次反馈的第一个包的序号;也就是RTP扩展头的序列号

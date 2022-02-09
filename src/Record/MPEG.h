@@ -52,7 +52,7 @@ protected:
      * @param timestamp 时间戳，单位毫秒
      * @param key_pos 是否为关键帧的第一个ts/ps包，用于确保ts切片第一帧为关键帧
      */
-    virtual void onWrite(std::shared_ptr<Buffer> buffer, uint32_t timestamp, bool key_pos) = 0;
+    virtual void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint32_t timestamp, bool key_pos) = 0;
 
 private:
     void createContext();
@@ -67,10 +67,10 @@ private:
     uint32_t _max_cache_size = 0;
     uint32_t _timestamp = 0;
     struct mpeg_muxer_t *_context = nullptr;
-    unordered_map<int, int/*track_id*/> _codec_to_trackid;
+    std::unordered_map<int, int/*track_id*/> _codec_to_trackid;
     FrameMerger _frame_merger{FrameMerger::h264_prefix};
-    BufferRaw::Ptr _current_buffer;
-    ResourcePool<BufferRaw> _buffer_pool;
+    toolkit::BufferRaw::Ptr _current_buffer;
+    toolkit::ResourcePool<toolkit::BufferRaw> _buffer_pool;
 };
 
 }//mediakit
@@ -90,7 +90,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override { return false; }
 
 protected:
-    virtual void onWrite(std::shared_ptr<Buffer> buffer, uint32_t timestamp, bool key_pos) = 0;
+    virtual void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint32_t timestamp, bool key_pos) = 0;
 };
 
 }//namespace mediakit

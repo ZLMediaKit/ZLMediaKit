@@ -15,11 +15,10 @@
 #include <map>
 #include <functional>
 #include "Util/TimeTicker.h"
-using namespace toolkit;
 
 class TwccContext {
 public:
-    using onSendTwccCB = function<void(uint32_t ssrc, string fci)>;
+    using onSendTwccCB = std::function<void(uint32_t ssrc, std::string fci)>;
     //每个twcc rtcp包最多表明的rtp ext seq增量
     static constexpr size_t kMaxSeqSize = 20;
     //每个twcc rtcp包发送的最大时间间隔，单位毫秒

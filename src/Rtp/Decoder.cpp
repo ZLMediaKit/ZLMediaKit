@@ -21,6 +21,8 @@
 #include "mpeg-ts-proto.h"
 #endif
 
+using namespace toolkit;
+
 namespace mediakit {
 static Decoder::Ptr createDecoder_l(DecoderImp::Type type) {
     switch (type){

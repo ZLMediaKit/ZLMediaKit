@@ -14,32 +14,29 @@
 #include "Rtmp/Rtmp.h"
 #include "Extension/Frame.h"
 #include "Util/RingBuffer.h"
-using namespace toolkit;
 
 namespace mediakit{
 
-class RtmpRing{
+class RtmpRing {
 public:
-    typedef std::shared_ptr<RtmpRing> Ptr;
-    typedef RingBuffer<RtmpPacket::Ptr> RingType;
+    using Ptr = std::shared_ptr<RtmpRing>;
+    using RingType = toolkit::RingBuffer<RtmpPacket::Ptr>;
 
-    RtmpRing() {}
-    virtual ~RtmpRing() {}
+    RtmpRing() = default;
+    virtual ~RtmpRing() = default;
 
     /**
      * 获取rtmp环形缓存
-     * @return
      */
     virtual RingType::Ptr getRtmpRing() const {
-        return _rtmpRing;
+        return _ring;
     }
 
     /**
      * 设置rtmp环形缓存
-     * @param ring
      */
     virtual void setRtmpRing(const RingType::Ptr &ring) {
-        _rtmpRing = ring;
+        _ring = ring;
     }
 
     /**
@@ -47,13 +44,13 @@ public:
      * @param rtmp rtmp包
      */
     virtual void inputRtmp(const RtmpPacket::Ptr &rtmp) {
-        if (_rtmpRing) {
-            _rtmpRing->write(rtmp, rtmp->isVideoKeyFrame());
+        if (_ring) {
+            _ring->write(rtmp, rtmp->isVideoKeyFrame());
         }
     }
 
 protected:
-    RingType::Ptr _rtmpRing;
+    RingType::Ptr _ring;
 };
 
 class RtmpCodec : public RtmpRing, public FrameDispatcher , public CodecInfo{

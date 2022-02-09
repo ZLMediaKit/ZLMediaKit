@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "Util/logger.h"
-using namespace toolkit;
 
 #define MS_TRACE()
 #define MS_ERROR PrintE

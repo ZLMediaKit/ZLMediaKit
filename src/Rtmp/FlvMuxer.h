@@ -15,7 +15,6 @@
 #include "Rtmp/RtmpMediaSource.h"
 #include "Network/Socket.h"
 #include "Common/Stamp.h"
-using namespace toolkit;
 
 namespace mediakit {
 
@@ -28,8 +27,8 @@ public:
     void stop();
 
 protected:
-    void start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, uint32_t start_pts = 0);
-    virtual void onWrite(const Buffer::Ptr &data, bool flush) = 0;
+    void start(const toolkit::EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, uint32_t start_pts = 0);
+    virtual void onWrite(const toolkit::Buffer::Ptr &data, bool flush) = 0;
     virtual void onDetach() = 0;
     virtual std::shared_ptr<FlvMuxer> getSharedPtr() = 0;
 
@@ -37,12 +36,12 @@ private:
     void onWriteFlvHeader(const RtmpMediaSource::Ptr &src);
     void onWriteRtmp(const RtmpPacket::Ptr &pkt, bool flush);
     void onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t time_stamp, bool flush);
-    void onWriteFlvTag(uint8_t type, const Buffer::Ptr &buffer, uint32_t time_stamp, bool flush);
-    BufferRaw::Ptr obtainBuffer(const void *data, size_t len);
-    BufferRaw::Ptr obtainBuffer();
+    void onWriteFlvTag(uint8_t type, const toolkit::Buffer::Ptr &buffer, uint32_t time_stamp, bool flush);
+    toolkit::BufferRaw::Ptr obtainBuffer(const void *data, size_t len);
+    toolkit::BufferRaw::Ptr obtainBuffer();
 
 private:
-    ResourcePool<BufferRaw> _packet_pool;
+    toolkit::ResourcePool<toolkit::BufferRaw> _packet_pool;
     RtmpMediaSource::RingType::RingReader::Ptr _ring_reader;
 };
 
@@ -52,17 +51,17 @@ public:
     FlvRecorder() = default;
     ~FlvRecorder() override = default;
 
-    void startRecord(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, const string &file_path);
-    void startRecord(const EventPoller::Ptr &poller, const string &vhost, const string &app, const string &stream, const string &file_path);
+    void startRecord(const toolkit::EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, const std::string &file_path);
+    void startRecord(const toolkit::EventPoller::Ptr &poller, const std::string &vhost, const std::string &app, const std::string &stream, const std::string &file_path);
 
 private:
-    virtual void onWrite(const Buffer::Ptr &data, bool flush) override ;
+    virtual void onWrite(const toolkit::Buffer::Ptr &data, bool flush) override ;
     virtual void onDetach() override;
     virtual std::shared_ptr<FlvMuxer> getSharedPtr() override;
 
 private:
     std::shared_ptr<FILE> _file;
-    recursive_mutex _file_mtx;
+    std::recursive_mutex _file_mtx;
 };
 
 }//namespace mediakit

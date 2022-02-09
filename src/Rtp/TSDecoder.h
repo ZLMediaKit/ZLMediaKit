@@ -15,11 +15,10 @@
 #include "Http/HttpRequestSplitter.h"
 #include "Decoder.h"
 
-using namespace toolkit;
-namespace mediakit {
-
 #define TS_PACKET_SIZE		188
 #define TS_SYNC_BYTE        0x47
+
+namespace mediakit {
 
 //TS包分割器，用于split一个一个的ts包
 class TSSegment : public HttpRequestSplitter {

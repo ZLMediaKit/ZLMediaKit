@@ -40,7 +40,7 @@ private:
     void onGetAAC(const char *data, size_t len, uint32_t stamp);
 
 private:
-    string _aac_cfg;
+    std::string _aac_cfg;
 };
 
 
@@ -77,7 +77,7 @@ private:
 private:
     uint8_t _audio_flv_flags;
     AACTrack::Ptr _track;
-    string _aac_cfg;
+    std::string _aac_cfg;
 };
 
 }//namespace mediakit

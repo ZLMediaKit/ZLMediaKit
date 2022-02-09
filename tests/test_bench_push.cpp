@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
     //添加拉流代理
     auto proxy = std::make_shared<PlayerProxy>(DEFAULT_VHOST, "app", "test", false, false);
     //rtsp拉流代理方式
-    (*proxy)[kRtpType] = rtp_type;
+    (*proxy)[Client::kRtpType] = rtp_type;
     //开始拉流代理
     proxy->play(in_url);
 

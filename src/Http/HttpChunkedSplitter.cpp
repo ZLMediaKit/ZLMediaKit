@@ -11,6 +11,8 @@
 #include <string.h>
 #include "HttpChunkedSplitter.h"
 
+using namespace std;
+
 namespace mediakit{
     
 const char *HttpChunkedSplitter::onSearchPacketTail(const char *data, size_t len) {

@@ -15,7 +15,6 @@
 #include "Util/ResourcePool.h"
 #include "Extension/H264.h"
 #include "Common/Stamp.h"
-using namespace toolkit;
 
 namespace mediakit{
 

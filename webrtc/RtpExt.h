@@ -17,8 +17,6 @@
 #include "Common/macros.h"
 #include "Rtsp/Rtsp.h"
 
-using namespace std;
-using namespace mediakit;
 
 #define RTP_EXT_MAP(XX) \
     XX(ssrc_audio_level,            "urn:ietf:params:rtp-hdrext:ssrc-audio-level") \
@@ -51,25 +49,25 @@ class RtcMedia;
 class RtpExt {
 public:
     template<typename Type>
-    friend void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end);
+    friend void appendExt(std::map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end);
     friend class RtpExtContext;
     ~RtpExt() = default;
 
-    static map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header);
-    static RtpExtType getExtType(const string &url);
-    static const string& getExtUrl(RtpExtType type);
+    static std::map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const mediakit::RtpHeader *header);
+    static RtpExtType getExtType(const std::string &url);
+    static const std::string& getExtUrl(RtpExtType type);
     static const char *getExtName(RtpExtType type);
 
     void setType(RtpExtType type);
     RtpExtType getType() const;
-    string dumpString() const;
+    std::string dumpString() const;
 
     uint8_t getAudioLevel(bool *vad) const;
     uint32_t getAbsSendTime() const;
     uint16_t getTransportCCSeq() const;
-    string getSdesMid() const;
-    string getRtpStreamId() const;
-    string getRepairedRtpStreamId() const;
+    std::string getSdesMid() const;
+    std::string getRtpStreamId() const;
+    std::string getRepairedRtpStreamId() const;
 
     void getVideoTiming(uint8_t &flags,
                         uint16_t &encode_start,
@@ -116,27 +114,27 @@ class RtcMedia;
 class RtpExtContext {
 public:
     using Ptr = std::shared_ptr<RtpExtContext>;
-    using OnGetRtp = function<void(uint8_t pt, uint32_t ssrc, const string &rid)>;
+    using OnGetRtp = std::function<void(uint8_t pt, uint32_t ssrc, const std::string &rid)>;
 
     RtpExtContext(const RtcMedia &media);
     ~RtpExtContext() = default;
 
     void setOnGetRtp(OnGetRtp cb);
-    string getRid(uint32_t ssrc) const;
-    void setRid(uint32_t ssrc, const string &rid);
-    RtpExt changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
+    std::string getRid(uint32_t ssrc) const;
+    void setRid(uint32_t ssrc, const std::string &rid);
+    RtpExt changeRtpExtId(const mediakit::RtpHeader *header, bool is_recv, std::string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
 
 private:
-    void onGetRtp(uint8_t pt, uint32_t ssrc, const string &rid);
+    void onGetRtp(uint8_t pt, uint32_t ssrc, const std::string &rid);
 
 private:
     OnGetRtp _cb;
     //发送rtp时需要修改rtp ext id
-    map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
+    std::map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
     //接收rtp时需要修改rtp ext id
-    unordered_map<uint8_t, RtpExtType> _rtp_ext_id_to_type;
+    std::unordered_map<uint8_t, RtpExtType> _rtp_ext_id_to_type;
     //ssrc --> rid
-    unordered_map<uint32_t/*simulcast ssrc*/, string/*rid*/> _ssrc_to_rid;
+    std::unordered_map<uint32_t/*simulcast ssrc*/, std::string/*rid*/> _ssrc_to_rid;
 };
 
 #endif //ZLMEDIAKIT_RTPEXT_H

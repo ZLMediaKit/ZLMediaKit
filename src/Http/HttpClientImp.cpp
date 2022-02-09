@@ -10,6 +10,8 @@
 
 #include "Http/HttpClientImp.h"
 
+using namespace toolkit;
+
 namespace mediakit {
 
 void HttpClientImp::onConnect(const SockException &ex) {

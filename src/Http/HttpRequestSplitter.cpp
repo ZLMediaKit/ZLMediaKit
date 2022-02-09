@@ -12,6 +12,7 @@
 #include "Util/logger.h"
 #include "Util/util.h"
 using namespace toolkit;
+using namespace std;
 
 //协议解析最大缓存1兆数据
 static constexpr size_t kMaxCacheSize = 1 * 1024 * 1024;
