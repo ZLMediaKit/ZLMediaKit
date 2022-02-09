@@ -15,7 +15,7 @@ using namespace mediakit;
 
 class H264Splitter : public HttpRequestSplitter {
 public:
-    using onH264 = function<void(const char *data, size_t len)>;
+    using onH264 = std::function<void(const char *data, size_t len)>;
     H264Splitter() = default;
     ~H264Splitter() override;
     void setOnSplitted(onH264 cb);

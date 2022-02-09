@@ -35,7 +35,7 @@ public:
     };
 
     ~MultiMediaSourceMuxer() override = default;
-    MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec = 0.0,
+    MultiMediaSourceMuxer(const std::string &vhost, const std::string &app, const std::string &stream, float dur_sec = 0.0,
                           bool enable_rtsp = true, bool enable_rtmp = true, bool enable_hls = true, bool enable_mp4 = false);
 
     /**
@@ -87,7 +87,7 @@ public:
      * @param custom_path 开启录制时，指定自定义路径
      * @return 是否设置成功
      */
-    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) override;
+    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) override;
 
     /**
      * 获取录制状态
@@ -104,20 +104,20 @@ public:
      * @param is_udp 是否为udp
      * @param cb 启动成功或失败回调
      */
-    void startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb) override;
+    void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb) override;
 
     /**
      * 停止ps-rtp发送
      * @return 是否成功
      */
-    bool stopSendRtp(MediaSource &sender, const string &ssrc) override;
+    bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
 
     /**
      * 获取所有Track
      * @param trackReady 是否筛选过滤未就绪的track
      * @return 所有Track
      */
-    vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
+    std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
 
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////
@@ -142,13 +142,13 @@ protected:
 
 private:
     bool _is_enable = false;
-    Ticker _last_check;
+    toolkit::Ticker _last_check;
     Stamp _stamp[2];
     std::weak_ptr<Listener> _track_listener;
-    function<string()> _get_origin_url;
+    std::function<std::string()> _get_origin_url;
 #if defined(ENABLE_RTPPROXY)
-    mutex _rtp_sender_mtx;
-	unordered_map<string, RtpSender::Ptr> _rtp_sender;
+    std::mutex _rtp_sender_mtx;
+    std::unordered_map<std::string, RtpSender::Ptr> _rtp_sender;
 #endif //ENABLE_RTPPROXY
 
 #if defined(ENABLE_MP4)
@@ -161,7 +161,7 @@ private:
     HlsRecorder::Ptr _hls;
 
     //对象个数统计
-    ObjectStatistic<MultiMediaSourceMuxer> _statistic;
+    toolkit::ObjectStatistic<MultiMediaSourceMuxer> _statistic;
 };
 
 }//namespace mediakit

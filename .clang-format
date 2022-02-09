@@ -27,7 +27,25 @@ AllowShortFunctionsOnASingleLine: Inline
 # 模板声明换行
 AlwaysBreakTemplateDeclarations: Yes
 # 左开括号不换行
-BreakBeforeBraces: Attach
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: false
+  # BraceWrappingAfterControlStatementStyle: MultiLine
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
 # 构造函数初始化时在 `,` 前换行, 和 `:` 对齐显得整齐
 BreakConstructorInitializers: BeforeComma
 # 继承过长需要换行时也在 `,` 前

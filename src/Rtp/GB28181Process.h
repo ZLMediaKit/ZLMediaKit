@@ -47,8 +47,8 @@ private:
     DecoderImp::Ptr _decoder;
     MediaSinkInterface *_interface;
     std::shared_ptr<FILE> _save_file_ps;
-    unordered_map<uint8_t, std::shared_ptr<RtpCodec> > _rtp_decoder;
-    unordered_map<uint8_t, std::shared_ptr<RtpReceiverImp> > _rtp_receiver;
+    std::unordered_map<uint8_t, std::shared_ptr<RtpCodec> > _rtp_decoder;
+    std::unordered_map<uint8_t, std::shared_ptr<RtpReceiverImp> > _rtp_receiver;
 };
 
 }//namespace mediakit

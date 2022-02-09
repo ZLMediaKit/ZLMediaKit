@@ -10,6 +10,8 @@
 
 #include "RtcpFCI.h"
 #include "Util/logger.h"
+
+using namespace std;
 using namespace toolkit;
 
 namespace mediakit {

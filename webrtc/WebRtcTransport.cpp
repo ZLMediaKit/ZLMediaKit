@@ -22,6 +22,9 @@
 #define RTP_MSLABEL "zlmediakit-mslabel"
 #define RTP_MSID RTP_MSLABEL " " RTP_LABEL
 
+using namespace std;
+using namespace mediakit;
+
 //RTC配置项目
 namespace RTC {
 #define RTC_FIELD "rtc."
@@ -564,7 +567,7 @@ private:
     NackContext _nack_ctx;
     RtcpContextForRecv _rtcp_context;
     EventPoller::Ptr _poller;
-    DelayTask::Ptr _delay_task;
+    EventPoller::DelayTask::Ptr _delay_task;
     function<void(const FCI_NACK &nack)> _on_nack;
 };
 

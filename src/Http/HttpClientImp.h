@@ -13,17 +13,17 @@
 
 #include "HttpClient.h"
 #include "Util/SSLBox.h"
-using namespace toolkit;
+
 namespace mediakit {
 
-class HttpClientImp : public TcpClientWithSSL<HttpClient> {
+class HttpClientImp : public toolkit::TcpClientWithSSL<HttpClient> {
 public:
     using Ptr = std::shared_ptr<HttpClientImp>;
     HttpClientImp() = default;
     ~HttpClientImp() override = default;
 
 protected:
-    void onConnect(const SockException &ex) override;
+    void onConnect(const toolkit::SockException &ex) override;
 };
 
 } /* namespace mediakit */

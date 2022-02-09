@@ -20,30 +20,27 @@
 #include "Util/logger.h"
 #include "Network/Socket.h"
 
-using namespace std;
-using namespace toolkit;
-
 namespace mediakit {
 
 class UDPServer : public std::enable_shared_from_this<UDPServer> {
 public:
-    typedef function< bool(int intervaled, const Buffer::Ptr &buffer, struct sockaddr *peer_addr)> onRecvData;
+    using onRecvData = std::function<bool(int intervaled, const toolkit::Buffer::Ptr &buffer, struct sockaddr *peer_addr)> ;
     ~UDPServer();
     static UDPServer &Instance();
-    Socket::Ptr getSock(SocketHelper &helper, const char *local_ip, int interleaved, uint16_t local_port = 0);
+    toolkit::Socket::Ptr getSock(toolkit::SocketHelper &helper, const char *local_ip, int interleaved, uint16_t local_port = 0);
     void listenPeer(const char *peer_ip, void *obj, const onRecvData &cb);
     void stopListenPeer(const char *peer_ip, void *obj);
 
 private:
     UDPServer();
-    void onRecv(int interleaved, const Buffer::Ptr &buf, struct sockaddr *peer_addr);
-    void onErr(const string &strKey,const SockException &err);
+    void onRecv(int interleaved, const toolkit::Buffer::Ptr &buf, struct sockaddr *peer_addr);
+    void onErr(const std::string &strKey, const toolkit::SockException &err);
 
 private:
-    mutex _mtx_udp_sock;
-    mutex _mtx_on_recv;
-    unordered_map<string, Socket::Ptr> _udp_sock_map;
-    unordered_map<string, unordered_map<void *, onRecvData> > _on_recv_map;
+    std::mutex _mtx_udp_sock;
+    std::mutex _mtx_on_recv;
+    std::unordered_map<std::string, toolkit::Socket::Ptr> _udp_sock_map;
+    std::unordered_map<std::string, std::unordered_map<void *, onRecvData> > _on_recv_map;
 };
 
 } /* namespace mediakit */

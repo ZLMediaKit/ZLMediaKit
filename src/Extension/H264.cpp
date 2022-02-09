@@ -12,6 +12,7 @@
 #include "SPSParser.h"
 #include "Util/logger.h"
 using namespace toolkit;
+using namespace std;
 
 namespace mediakit{
 

@@ -15,8 +15,6 @@
 #include "Common/Device.h"
 #include "Player/MediaPlayer.h"
 #include "Util/TimeTicker.h"
-using namespace std;
-using namespace toolkit;
 
 namespace mediakit {
 
@@ -26,9 +24,9 @@ public:
 
     //如果retry_count<0,则一直重试播放；否则重试retry_count次数
     //默认一直重试
-    PlayerProxy(const string &vhost, const string &app, const string &stream_id,
+    PlayerProxy(const std::string &vhost, const std::string &app, const std::string &stream_id,
                 bool enable_hls = true, bool enable_mp4 = false,
-                int retry_count = -1, const EventPoller::Ptr &poller = nullptr);
+                int retry_count = -1, const toolkit::EventPoller::Ptr &poller = nullptr);
 
     ~PlayerProxy() override;
 
@@ -36,19 +34,19 @@ public:
      * 设置play结果回调，只触发一次；在play执行之前有效
      * @param cb 回调对象
      */
-    void setPlayCallbackOnce(const function<void(const SockException &ex)> &cb);
+    void setPlayCallbackOnce(const std::function<void(const toolkit::SockException &ex)> &cb);
 
     /**
      * 设置主动关闭回调
      * @param cb 回调对象
      */
-    void setOnClose(const function<void(const SockException &ex)> &cb);
+    void setOnClose(const std::function<void(const toolkit::SockException &ex)> &cb);
 
     /**
      * 开始拉流播放
      * @param strUrl
      */
-    void play(const string &strUrl) override;
+    void play(const std::string &strUrl) override;
 
     /**
      * 获取观看总人数
@@ -60,10 +58,10 @@ private:
     bool close(MediaSource &sender,bool force) override;
     int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
-    string getOriginUrl(MediaSource &sender) const override;
-    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+    std::string getOriginUrl(MediaSource &sender) const override;
+    std::shared_ptr<toolkit::SockInfo> getOriginSock(MediaSource &sender) const override;
 
-    void rePlay(const string &strUrl,int iFailedCnt);
+    void rePlay(const std::string &strUrl,int iFailedCnt);
     void onPlaySuccess();
     void setDirectProxy();
 
@@ -71,13 +69,13 @@ private:
     bool _enable_hls;
     bool _enable_mp4;
     int _retry_count;
-    string _vhost;
-    string _app;
-    string _stream_id;
-    string _pull_url;
-    Timer::Ptr _timer;
-    function<void(const SockException &ex)> _on_close;
-    function<void(const SockException &ex)> _on_play;
+    std::string _vhost;
+    std::string _app;
+    std::string _stream_id;
+    std::string _pull_url;
+    toolkit::Timer::Ptr _timer;
+    std::function<void(const toolkit::SockException &ex)> _on_close;
+    std::function<void(const toolkit::SockException &ex)> _on_play;
     MultiMediaSourceMuxer::Ptr _muxer;
 };
 

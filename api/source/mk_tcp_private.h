@@ -14,17 +14,16 @@
 #include "mk_tcp.h"
 #include "Network/TcpClient.h"
 #include "Network/TcpSession.h"
-using namespace toolkit;
 
-class TcpClientForC : public TcpClient {
+class TcpClientForC : public toolkit::TcpClient {
 public:
     typedef std::shared_ptr<TcpClientForC> Ptr;
     TcpClientForC(mk_tcp_client_events *events) ;
     ~TcpClientForC() override ;
-    void onRecv(const Buffer::Ptr &pBuf) override;
-    void onErr(const SockException &ex) override;
+    void onRecv(const toolkit::Buffer::Ptr &pBuf) override;
+    void onErr(const toolkit::SockException &ex) override;
     void onManager() override;
-    void onConnect(const SockException &ex) override;
+    void onConnect(const toolkit::SockException &ex) override;
     void setClient(mk_tcp_client client);
     void *_user_data;
 private:
@@ -32,12 +31,12 @@ private:
     mk_tcp_client _client;
 };
 
-class TcpSessionForC : public TcpSession {
+class TcpSessionForC : public toolkit::TcpSession {
 public:
-    TcpSessionForC(const Socket::Ptr &pSock) ;
+    TcpSessionForC(const toolkit::Socket::Ptr &pSock) ;
     ~TcpSessionForC() override = default;
-    void onRecv(const Buffer::Ptr &buffer) override ;
-    void onError(const SockException &err) override;
+    void onRecv(const toolkit::Buffer::Ptr &buffer) override ;
+    void onError(const toolkit::SockException &err) override;
     void onManager() override;
     void *_user_data;
     uint16_t _local_port;

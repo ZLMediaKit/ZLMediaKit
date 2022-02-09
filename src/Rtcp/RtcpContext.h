@@ -53,7 +53,7 @@ public:
      * @param rtcp_ssrc rtcp的ssrc
      * @return rtcp包
      */
-    virtual Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc);
+    virtual toolkit::Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc);
 
     /**
      * 创建RR rtcp包
@@ -61,7 +61,7 @@ public:
      * @param rtp_ssrc rtp的ssrc
      * @return rtcp包
      */
-    virtual Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc);
+    virtual toolkit::Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc);
 
     /**
      * 上次结果与本次结果间应收包数
@@ -85,7 +85,7 @@ protected:
 
 class RtcpContextForSend : public RtcpContext {
 public:
-    Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc) override;
+    toolkit::Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc) override;
     void onRtcp(RtcpHeader *rtcp) override;
 
     /**
@@ -96,14 +96,14 @@ public:
     uint32_t getRtt(uint32_t ssrc) const;
 
 private:
-    map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
-    map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
+    std::map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
+    std::map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
 };
 
 class RtcpContextForRecv : public RtcpContext {
 public:
     void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes) override;
-    Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
+    toolkit::Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
     size_t getExpectedPackets() const override;
     size_t getExpectedPacketsInterval() override;
     size_t getLost() override;

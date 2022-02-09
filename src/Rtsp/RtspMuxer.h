@@ -18,15 +18,17 @@
 
 namespace mediakit{
 
-class RingDelegateHelper : public RingDelegate<RtpPacket::Ptr> {
+class RingDelegateHelper : public toolkit::RingDelegate<RtpPacket::Ptr> {
 public:
-    typedef function<void(RtpPacket::Ptr in, bool is_key)> onRtp;
+    using onRtp = std::function<void(RtpPacket::Ptr in, bool is_key)> ;
 
-    ~RingDelegateHelper() override{}
-    RingDelegateHelper(onRtp on_rtp){
+    ~RingDelegateHelper() override {}
+
+    RingDelegateHelper(onRtp on_rtp) {
         _on_rtp = std::move(on_rtp);
     }
-    void onWrite(RtpPacket::Ptr in, bool is_key) override{
+
+    void onWrite(RtpPacket::Ptr in, bool is_key) override {
         _on_rtp(std::move(in), is_key);
     }
 
@@ -52,7 +54,7 @@ public:
      * 获取完整的SDP字符串
      * @return SDP字符串
      */
-    string getSdp() ;
+    std::string getSdp() ;
 
     /**
      * 获取rtp环形缓存
@@ -85,7 +87,7 @@ private:
     uint32_t _rtp_stamp[TrackMax]{0};
     uint64_t _ntp_stamp[TrackMax]{0};
     uint64_t _ntp_stamp_start;
-    string _sdp;
+    std::string _sdp;
     Stamp _stamp[TrackMax];
     RtpCodec::Ptr _encoder[TrackMax];
     RtpRing::RingType::Ptr _rtpRing;

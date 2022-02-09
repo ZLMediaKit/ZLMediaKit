@@ -13,17 +13,15 @@
 
 #include "Util/CMD.h"
 #include "Common/MediaSource.h"
-using namespace toolkit;
 
 namespace mediakit {
 
-
-class CMD_media: public CMD {
+class CMD_media : public toolkit::CMD {
 public:
-    CMD_media(){
-        _parser.reset(new OptionParser([](const std::shared_ptr<ostream> &stream,mINI &ini){
-            MediaSource::for_each_media([&](const MediaSource::Ptr &media){
-                if(ini.find("list") != ini.end()){
+    CMD_media() {
+        _parser.reset(new toolkit::OptionParser([](const std::shared_ptr<std::ostream> &stream, toolkit::mINI &ini) {
+            MediaSource::for_each_media([&](const MediaSource::Ptr &media) {
+                if (ini.find("list") != ini.end()) {
                     //列出源
                     (*stream) << "\t"
                               << media->getSchema() << "/"
@@ -34,14 +32,14 @@ public:
                     return;
                 }
 
-                EventPollerPool::Instance().getPoller()->async([ini,media,stream](){
-                    if(ini.find("kick") != ini.end()){
+                toolkit::EventPollerPool::Instance().getPoller()->async([ini, media, stream]() {
+                    if (ini.find("kick") != ini.end()) {
                         //踢出源
-                        do{
-                            if(!media) {
+                        do {
+                            if (!media) {
                                 break;
                             }
-                            if(!media->close(true)) {
+                            if (!media->close(true)) {
                                 break;
                             }
                             (*stream) << "\t踢出成功:"
@@ -51,7 +49,7 @@ public:
                                       << media->getId()
                                       << "\r\n";
                             return;
-                        }while(0);
+                        } while (0);
                         (*stream) << "\t踢出失败:"
                                   << media->getSchema() << "/"
                                   << media->getVhost() << "/"
@@ -59,19 +57,21 @@ public:
                                   << media->getId()
                                   << "\r\n";
                     }
-                },false);
+                }, false);
 
 
             }, ini["schema"], ini["vhost"], ini["app"], ini["stream"]);
         }));
-        (*_parser) << Option('k', "kick", Option::ArgNone,nullptr,false, "踢出媒体源", nullptr);
-        (*_parser) << Option('l', "list", Option::ArgNone,nullptr,false, "列出媒体源", nullptr);
-        (*_parser) << Option('S', "schema", Option::ArgRequired,nullptr,false, "协议筛选", nullptr);
-        (*_parser) << Option('v', "vhost", Option::ArgRequired,nullptr,false, "虚拟主机筛选", nullptr);
-        (*_parser) << Option('a', "app", Option::ArgRequired,nullptr,false, "应用名筛选", nullptr);
-        (*_parser) << Option('s', "stream", Option::ArgRequired,nullptr,false, "流id筛选", nullptr);
+        (*_parser) << toolkit::Option('k', "kick", toolkit::Option::ArgNone, nullptr, false, "踢出媒体源", nullptr);
+        (*_parser) << toolkit::Option('l', "list", toolkit::Option::ArgNone, nullptr, false, "列出媒体源", nullptr);
+        (*_parser) << toolkit::Option('S', "schema", toolkit::Option::ArgRequired, nullptr, false, "协议筛选", nullptr);
+        (*_parser) << toolkit::Option('v', "vhost", toolkit::Option::ArgRequired, nullptr, false, "虚拟主机筛选", nullptr);
+        (*_parser) << toolkit::Option('a', "app", toolkit::Option::ArgRequired, nullptr, false, "应用名筛选", nullptr);
+        (*_parser) << toolkit::Option('s', "stream", toolkit::Option::ArgRequired, nullptr, false, "流id筛选", nullptr);
     }
+
     virtual ~CMD_media() {}
+
     const char *description() const override {
         return "媒体源相关操作.";
     }

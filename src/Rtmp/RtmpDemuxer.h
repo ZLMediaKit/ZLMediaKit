@@ -19,8 +19,6 @@
 #include "Util/TimeTicker.h"
 #include "RtmpCodec.h"
 
-using namespace toolkit;
-
 namespace mediakit {
 
 class RtmpDemuxer : public Demuxer {

@@ -17,8 +17,6 @@
 #include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Common/MultiMediaSourceMuxer.h"
-using namespace std;
-using namespace toolkit;
 
 namespace mediakit {
 
@@ -48,7 +46,7 @@ class DevChannel  : public MultiMediaSourceMuxer{
 public:
     typedef std::shared_ptr<DevChannel> Ptr;
     //fDuration<=0为直播，否则为点播
-    DevChannel(const string &vhost, const string &app, const string &stream_id,
+    DevChannel(const std::string &vhost, const std::string &app, const std::string &stream_id,
                float duration = 0, bool enable_hls = true, bool enable_mp4 = false);
 
     ~DevChannel() override ;
@@ -126,7 +124,7 @@ private:
     std::shared_ptr<AACEncoder> _pAacEnc;
     std::shared_ptr<VideoInfo> _video;
     std::shared_ptr<AudioInfo> _audio;
-    SmoothTicker _aTicker[2];
+    toolkit::SmoothTicker _aTicker[2];
 };
 
 } /* namespace mediakit */

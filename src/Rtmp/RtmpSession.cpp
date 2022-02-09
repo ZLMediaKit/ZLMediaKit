@@ -11,6 +11,10 @@
 #include "RtmpSession.h"
 #include "Common/config.h"
 #include "Util/onceToken.h"
+
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit {
 
 RtmpSession::RtmpSession(const Socket::Ptr &sock) : TcpSession(sock) {

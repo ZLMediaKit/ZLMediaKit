@@ -21,7 +21,6 @@
 #define DEFAULT_CHANNEL 2
 #define DEFAULT_SAMPLES 1024
 
-using namespace std;
 
 class AudioSRC;
 
@@ -43,8 +42,8 @@ private:
 private:
     std::shared_ptr<char> _play_buf;
     SDL_AudioSpec _audio_config;
-    recursive_mutex _channel_mtx;
-    unordered_set<AudioSRC *> _channels;
+    std::recursive_mutex _channel_mtx;
+    std::unordered_set<AudioSRC *> _channels;
 };
 
 #endif /* SDLAUDIOMIXER_SDLAUDIODEVICE_H_ */

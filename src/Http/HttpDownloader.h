@@ -18,7 +18,7 @@ namespace mediakit {
 class HttpDownloader : public HttpClientImp {
 public:
     using Ptr = std::shared_ptr<HttpDownloader>;
-    using onDownloadResult = std::function<void(const SockException &ex, const string &filePath)>;
+    using onDownloadResult = std::function<void(const toolkit::SockException &ex, const std::string &filePath)>;
 
     HttpDownloader() = default;
     ~HttpDownloader() override;
@@ -29,9 +29,9 @@ public:
      * @param file_path 文件保存地址，置空则选择默认文件路径
      * @param append 如果文件已经存在，是否断点续传方式下载
      */
-    void startDownload(const string &url, const string &file_path = "", bool append = false);
+    void startDownload(const std::string &url, const std::string &file_path = "", bool append = false);
 
-    void startDownload(const string &url, const onDownloadResult &cb) {
+    void startDownload(const std::string &url, const onDownloadResult &cb) {
         setOnResult(cb);
         startDownload(url, "", false);
     }
@@ -40,15 +40,15 @@ public:
 
 protected:
     void onResponseBody(const char *buf, size_t size) override;
-    void onResponseHeader(const string &status, const HttpHeader &headers) override;
-    void onResponseCompleted(const SockException &ex) override;
+    void onResponseHeader(const std::string &status, const HttpHeader &headers) override;
+    void onResponseCompleted(const toolkit::SockException &ex) override;
 
 private:
     void closeFile();
 
 private:
     FILE *_save_file = nullptr;
-    string _file_path;
+    std::string _file_path;
     onDownloadResult _on_result;
 };
 

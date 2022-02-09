@@ -12,6 +12,9 @@
 #include "Rtsp.h"
 #include "Common/Parser.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit {
 
 int RtpPayload::getClockRate(int pt) {

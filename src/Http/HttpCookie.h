@@ -17,7 +17,6 @@
 #include <map>
 #include <unordered_map>
 #include <mutex>
-using namespace std;
 
 namespace mediakit {
 
@@ -31,19 +30,19 @@ public:
     HttpCookie(){}
     ~HttpCookie(){}
 
-    void setPath(const string &path);
-    void setHost(const string &host);
-    void setExpires(const string &expires,const string &server_date);
-    void setKeyVal(const string &key,const string &val);
+    void setPath(const std::string &path);
+    void setHost(const std::string &host);
+    void setExpires(const std::string &expires,const std::string &server_date);
+    void setKeyVal(const std::string &key,const std::string &val);
     operator bool ();
 
-    const string &getKey() const ;
-    const string &getVal() const ;
+    const std::string &getKey() const ;
+    const std::string &getVal() const ;
 private:
-    string _host;
-    string _path = "/";
-    string _key;
-    string _val;
+    std::string _host;
+    std::string _path = "/";
+    std::string _key;
+    std::string _val;
     time_t _expire = 0;
 };
 
@@ -56,12 +55,12 @@ public:
     ~HttpCookieStorage(){}
     static HttpCookieStorage &Instance();
     void set(const HttpCookie::Ptr &cookie);
-    vector<HttpCookie::Ptr> get(const string &host,const string &path);
+    std::vector<HttpCookie::Ptr> get(const std::string &host,const std::string &path);
 private:
     HttpCookieStorage(){};
 private:
-    unordered_map<string/*host*/,map<string/*cookie path*/,map<string/*cookie_key*/,HttpCookie::Ptr> > > _all_cookie;
-    mutex _mtx_cookie;
+    std::unordered_map<std::string/*host*/, std::map<std::string/*cookie path*/,std::map<std::string/*cookie_key*/, HttpCookie::Ptr> > > _all_cookie;
+    std::mutex _mtx_cookie;
 };
 
 

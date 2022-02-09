@@ -60,7 +60,7 @@ void AACRtpEncoder::makeAACRtp(const void *data, size_t len, bool mark, uint32_t
 /////////////////////////////////////////////////////////////////////////////////////
 
 AACRtpDecoder::AACRtpDecoder(const Track::Ptr &track) {
-    auto aacTrack = dynamic_pointer_cast<AACTrack>(track);
+    auto aacTrack = std::dynamic_pointer_cast<AACTrack>(track);
     if (!aacTrack || !aacTrack->ready()) {
         WarnL << "该aac track无效!";
     } else {

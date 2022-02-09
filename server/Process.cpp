@@ -28,6 +28,7 @@
 #include "Poller/EventPoller.h"
 #include "Process.h"
 using namespace toolkit;
+using namespace std;
 
 void Process::run(const string &cmd, const string &log_file_tmp) {
     kill(2000);

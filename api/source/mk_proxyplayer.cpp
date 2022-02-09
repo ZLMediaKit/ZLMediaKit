@@ -29,7 +29,7 @@ API_EXPORT void API_CALL mk_proxy_player_release(mk_proxy_player ctx) {
 API_EXPORT void API_CALL mk_proxy_player_set_option(mk_proxy_player ctx, const char *key, const char *val){
     assert(ctx && key && val);
     PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *) ctx);
-    string key_str(key),val_str(val);
+    std::string key_str(key), val_str(val);
     obj->getPoller()->async([obj,key_str,val_str](){
         //切换线程再操作
         (*obj)[key_str] = val_str;
@@ -39,7 +39,7 @@ API_EXPORT void API_CALL mk_proxy_player_set_option(mk_proxy_player ctx, const c
 API_EXPORT void API_CALL mk_proxy_player_play(mk_proxy_player ctx, const char *url) {
     assert(ctx && url);
     PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *) ctx);
-    string url_str(url);
+    std::string url_str(url);
     obj->getPoller()->async([obj,url_str](){
         //切换线程再操作
         obj->play(url_str);

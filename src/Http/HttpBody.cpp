@@ -8,11 +8,13 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <csignal>
 #include "HttpBody.h"
 #include "Util/util.h"
 #include "Util/File.h"
 #include "Util/uv_errno.h"
 #include "Util/logger.h"
+#include "Util/onceToken.h"
 #include "HttpClient.h"
 #ifndef _WIN32
 #include <sys/mman.h>
@@ -21,6 +23,9 @@
 #ifndef _WIN32
 #define ENABLE_MMAP
 #endif
+
+using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 
@@ -62,9 +67,26 @@ HttpFileBody::HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_
     init(fp, offset, max_size, use_mmap);
 }
 
+#if defined(__linux__) || defined(__linux)
+#include <sys/sendfile.h>
+#endif
+
+int HttpFileBody::sendFile(int fd) {
+#if defined(__linux__) || defined(__linux)
+    static onceToken s_token([]() {
+        signal(SIGPIPE, SIG_IGN);
+    });
+    off_t off = _file_offset;
+    return sendfile(fd, fileno(_fp.get()), &off, _max_size);
+#else
+    return -1;
+#endif
+}
+
 void HttpFileBody::init(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size, bool use_mmap) {
     _fp = fp;
     _max_size = max_size;
+    _file_offset = offset;
 #ifdef ENABLE_MMAP
     if (use_mmap) {
         do {

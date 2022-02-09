@@ -13,6 +13,8 @@
 #include "Util/util.h"
 #include "Network/sockutil.h"
 #include "Network/TcpSession.h"
+
+using namespace std;
 using namespace toolkit;
 
 namespace toolkit {
@@ -91,7 +93,8 @@ std::shared_ptr<void> MediaSource::getOwnership() {
         return nullptr;
     }
     weak_ptr<MediaSource> weak_self = shared_from_this();
-    return std::shared_ptr<void>(this, [weak_self](void *ptr) {
+    //确保返回的Ownership智能指针不为空，0x01无实际意义
+    return std::shared_ptr<void>((void *) 0x01, [weak_self](void *ptr) {
         auto strong_self = weak_self.lock();
         if (strong_self) {
             strong_self->_owned.clear();
@@ -207,7 +210,7 @@ bool MediaSource::close(bool force) {
     if(!listener){
         return false;
     }
-    return listener->close(*this,force);
+    return listener->close(*this,force) && unregist();
 }
 
 void MediaSource::onReaderChanged(int size) {

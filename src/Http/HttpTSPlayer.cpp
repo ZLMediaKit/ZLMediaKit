@@ -10,6 +10,9 @@
 
 #include "HttpTSPlayer.h"
 
+using namespace std;
+using namespace toolkit;
+
 namespace mediakit {
 
 HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller, bool split_ts) {
