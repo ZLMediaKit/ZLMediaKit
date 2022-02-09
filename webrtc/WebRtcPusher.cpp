@@ -47,6 +47,8 @@ bool WebRtcPusher::close(MediaSource &sender, bool force) {
         auto strong_self = weak_self.lock();
         if (strong_self) {
             strong_self->onShutdown(SockException(Err_shutdown, err));
+            //主动关闭推流，那么不延时注销
+            strong_self->_push_src = nullptr;
         }
     });
     return true;
