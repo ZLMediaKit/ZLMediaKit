@@ -330,10 +330,10 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
     });
 }
 
-//http-flv 链接格式:http://vhost-url:port/app/streamid.flv?key1=value1&key2=value2
+//http-flv 链接格式:http://vhost-url:port/app/streamid.live.flv?key1=value1&key2=value2
 bool HttpSession::checkLiveStreamFlv(const function<void()> &cb){
     auto start_pts = atoll(_parser.getUrlArgs()["starPts"].data());
-    return checkLiveStream(RTMP_SCHEMA, ".flv", [this, cb, start_pts](const MediaSource::Ptr &src) {
+    return checkLiveStream(RTMP_SCHEMA, ".live.flv", [this, cb, start_pts](const MediaSource::Ptr &src) {
         auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
         assert(rtmp_src);
         if (!cb) {
