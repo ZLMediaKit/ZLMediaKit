@@ -45,7 +45,8 @@ void RtmpSession::onError(const SockException& err) {
     }
 
     GET_CONFIG(uint32_t, continue_push_ms, General::kContinuePushMS);
-    if (_push_src && continue_push_ms) {
+    //如果是主动关闭的，那么不延迟注销
+    if (_push_src && continue_push_ms && err.getErrCode() != Err_shutdown) {
         //取消所有权
         _push_src_ownership = nullptr;
         //延时10秒注销流
