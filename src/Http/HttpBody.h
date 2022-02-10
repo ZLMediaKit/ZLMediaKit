@@ -37,7 +37,7 @@ public:
     /**
      * 剩余数据大小，如果返回-1, 那么就不设置content-length
      */
-    virtual ssize_t remainSize() { return 0;};
+    virtual int64_t remainSize() { return 0;};
 
     /**
      * 读取一定字节数，返回大小可能小于size
@@ -77,7 +77,7 @@ public:
     HttpStringBody(std::string str);
     ~HttpStringBody() override = default;
 
-    ssize_t remainSize() override;
+    int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override ;
 
 private:
@@ -94,7 +94,7 @@ public:
     HttpBufferBody(toolkit::Buffer::Ptr buffer);
     ~HttpBufferBody() override = default;
 
-    ssize_t remainSize() override;
+    int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
 
 private:
@@ -123,7 +123,7 @@ public:
      */
     void setRange(uint64_t offset, uint64_t max_size);
 
-    ssize_t remainSize() override;
+    int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
     int sendFile(int fd) override;
 
@@ -152,7 +152,7 @@ public:
      */
     HttpMultiFormBody(const HttpArgs &args,const std::string &filePath,const std::string &boundary = "0xKhTmLbOuNdArY");
     virtual ~HttpMultiFormBody(){}
-    ssize_t remainSize() override ;
+    int64_t remainSize() override ;
     toolkit::Buffer::Ptr readData(size_t size) override;
 
 public:
@@ -161,8 +161,8 @@ public:
     static std::string multiFormContentType(const std::string &boundary);
 
 private:
-    size_t _offset = 0;
-    size_t _totalSize;
+    uint64_t _offset = 0;
+    int64_t _totalSize;
     std::string _bodyPrefix;
     std::string _bodySuffix;
     HttpFileBody::Ptr _fileBody;
