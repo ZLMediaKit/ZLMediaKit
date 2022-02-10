@@ -60,13 +60,13 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 #ifdef ENABLE_MMAP
 static std::shared_ptr<char> getSharedMmap(const string &file_path, const std::shared_ptr<FILE> &fp, uint64_t max_size) {
     static mutex s_mtx;
-    static unordered_map<string /*file_path*/, weak_ptr<char> /*mmap*/> s_shared_mmap;
+    static unordered_map<string /*file_path*/, std::pair<char */*ptr*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
 
     {
         lock_guard<mutex> lck(s_mtx);
         auto it = s_shared_mmap.find(file_path);
         if (it != s_shared_mmap.end()) {
-            auto ret = it->second.lock();
+            auto ret = it->second.second.lock();
             if (ret) {
                 //命中mmap缓存
                 return ret;
@@ -84,10 +84,19 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, const std::s
         WarnL << "mmap " << file_path << " failed:" << get_uv_errmsg(false);
         return nullptr;
     }
-    std::shared_ptr<char> ret(ptr, [max_size, fp](char *ptr) { munmap(ptr, max_size); });
+    std::shared_ptr<char> ret(ptr, [max_size, fp, file_path](char *ptr) {
+        munmap(ptr, max_size);
+
+        //删除mmap记录
+        lock_guard<mutex> lck(s_mtx);
+        auto it = s_shared_mmap.find(file_path);
+        if (it != s_shared_mmap.end() && it->second.first == ptr) {
+            s_shared_mmap.erase(it);
+        }
+    });
     {
         lock_guard<mutex> lck(s_mtx);
-        s_shared_mmap[file_path] = ret;
+        s_shared_mmap[file_path] = std::make_pair(ret.get(), ret);
     }
     return ret;
 }
