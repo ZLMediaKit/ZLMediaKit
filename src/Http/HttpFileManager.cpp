@@ -582,13 +582,8 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
                                           const string &filePath,
                                           bool use_mmap) const {
     StrCaseMap &httpHeader = const_cast<StrCaseMap &>(responseHeader);
-    std::shared_ptr<FILE> fp(fopen(filePath.data(), "rb"), [](FILE *fp) {
-        if (fp) {
-            fclose(fp);
-        }
-    });
-
-    if (!fp) {
+    auto fileBody = std::make_shared<HttpFileBody>(filePath, use_mmap);
+    if (fileBody->remainSize() < 0) {
         //打开文件失败
         GET_CONFIG(string, notFound, Http::kNotFound);
         GET_CONFIG(string, charSet, Http::kCharSet);
@@ -600,29 +595,23 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     }
 
     auto &strRange = const_cast<StrCaseMap &>(requestHeader)["Range"];
-    size_t iRangeStart = 0;
-    size_t iRangeEnd = 0;
-    size_t fileSize = File::fileSize(fp.get());
-
-    int code;
-    if (strRange.size() == 0) {
-        //全部下载
-        code = 200;
-        iRangeEnd = fileSize - 1;
-    } else {
+    int code = 200;
+    if (!strRange.empty()) {
         //分节下载
         code = 206;
-        iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
-        iRangeEnd = atoll(FindField(strRange.data(), "-", nullptr).data());
+        auto iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
+        auto iRangeEnd = atoll(FindField(strRange.data(), "-", nullptr).data());
+        auto fileSize = fileBody->remainSize();
         if (iRangeEnd == 0) {
             iRangeEnd = fileSize - 1;
         }
+        //设置文件范围
+        fileBody->setRange(iRangeStart, iRangeEnd - iRangeStart + 1);
         //分节下载返回Content-Range头
         httpHeader.emplace("Content-Range", StrPrinter << "bytes " << iRangeStart << "-" << iRangeEnd << "/" << fileSize << endl);
     }
 
     //回复文件
-    HttpBody::Ptr fileBody = std::make_shared<HttpFileBody>(fp, iRangeStart, iRangeEnd - iRangeStart + 1, use_mmap);
     (*this)(code, httpHeader, fileBody);
 }
 
