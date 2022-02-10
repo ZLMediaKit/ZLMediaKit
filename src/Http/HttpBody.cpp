@@ -40,7 +40,7 @@ HttpStringBody::HttpStringBody(string str) {
     _str = std::move(str);
 }
 
-ssize_t HttpStringBody::remainSize() {
+int64_t HttpStringBody::remainSize() {
     return _str.size() - _offset;
 }
 
@@ -150,7 +150,7 @@ private:
     std::shared_ptr<char> _map_addr;
 };
 
-ssize_t HttpFileBody::remainSize() {
+int64_t HttpFileBody::remainSize() {
     return _read_to - _file_offset;
 }
 
@@ -205,7 +205,7 @@ HttpMultiFormBody::HttpMultiFormBody(const HttpArgs &args, const string &filePat
     _totalSize = _bodyPrefix.size() + _bodySuffix.size() + _fileBody->remainSize();
 }
 
-ssize_t HttpMultiFormBody::remainSize() {
+int64_t HttpMultiFormBody::remainSize() {
     return _totalSize - _offset;
 }
 
@@ -270,7 +270,7 @@ HttpBufferBody::HttpBufferBody(Buffer::Ptr buffer) {
     _buffer = std::move(buffer);
 }
 
-ssize_t HttpBufferBody::remainSize() {
+int64_t HttpBufferBody::remainSize() {
     return _buffer ? _buffer->size() : 0;
 }
 
