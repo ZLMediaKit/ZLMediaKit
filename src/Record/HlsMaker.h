@@ -72,10 +72,8 @@ protected:
 
     /**
      * 写m3u8文件回调
-     * @param data
-     * @param len
      */
-    virtual void onWriteHls(const char *data, size_t len) = 0;
+    virtual void onWriteHls(const std::string &data) = 0;
 
     /**
      * 上一个 ts 切片写入完成, 可在这里进行通知处理
