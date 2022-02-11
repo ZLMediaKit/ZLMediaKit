@@ -115,6 +115,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         delSharedMmap(file_path, ptr);
     });
 
+#if 0
     if (file_size < 10 * 1024 * 1024 && file_path.rfind(".ts") != string::npos) {
         //如果是小ts文件，那么尝试先加载到内存
         auto buf = BufferRaw::create();
@@ -123,6 +124,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
             delSharedMmap(file_path, ptr);
         });
     }
+#endif
     {
         lock_guard<mutex> lck(s_mtx);
         s_shared_mmap[file_path] = std::make_tuple(ret.get(), file_size, ret);
