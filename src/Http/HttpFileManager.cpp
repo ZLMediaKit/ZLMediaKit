@@ -393,7 +393,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             //文件鉴权失败
             StrCaseMap headerOut;
             if (cookie) {
-                headerOut["Set-Cookie"] = cookie->getAttach<HttpCookieAttachment>()._path;
+                headerOut["Set-Cookie"] = cookie->getCookie(cookie->getAttach<HttpCookieAttachment>()._path);
             }
             cb(401, "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
             return;
@@ -402,7 +402,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
         auto response_file = [file_exist, is_hls](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
             StrCaseMap httpHeader;
             if (cookie) {
-                httpHeader["Set-Cookie"] = cookie->getAttach<HttpCookieAttachment>()._path;
+                httpHeader["Set-Cookie"] = cookie->getCookie(cookie->getAttach<HttpCookieAttachment>()._path);
             }
             HttpSession::HttpResponseInvoker invoker = [&](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
                 if (cookie && file_exist) {
@@ -519,7 +519,7 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
             }
             StrCaseMap headerOut;
             if (cookie) {
-                headerOut["Set-Cookie"] = cookie->getAttach<HttpCookieAttachment>()._path;
+                headerOut["Set-Cookie"] = cookie->getCookie(cookie->getAttach<HttpCookieAttachment>()._path);
             }
             cb(errMsg.empty() ? 200 : 401, "text/html", headerOut, std::make_shared<HttpStringBody>(strMenu));
         });
