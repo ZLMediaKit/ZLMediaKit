@@ -9,6 +9,7 @@
  */
 
 #include <csignal>
+#include <tuple>
 
 #ifndef _WIN32
 #include <sys/mman.h>
@@ -60,13 +61,13 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 #ifdef ENABLE_MMAP
 
 static mutex s_mtx;
-static unordered_map<string /*file_path*/, std::pair<char */*ptr*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
+static unordered_map<string /*file_path*/, std::tuple<char */*ptr*/, int64_t /*size*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
 
 //删除mmap记录
 static void delSharedMmap(const string &file_path, char *ptr) {
     lock_guard<mutex> lck(s_mtx);
     auto it = s_shared_mmap.find(file_path);
-    if (it != s_shared_mmap.end() && it->second.first == ptr) {
+    if (it != s_shared_mmap.end() && std::get<0>(it->second) == ptr) {
         s_shared_mmap.erase(it);
     }
 }
@@ -76,9 +77,10 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         lock_guard<mutex> lck(s_mtx);
         auto it = s_shared_mmap.find(file_path);
         if (it != s_shared_mmap.end()) {
-            auto ret = it->second.second.lock();
+            auto ret = std::get<2>(it->second).lock();
             if (ret) {
                 //命中mmap缓存
+                file_size = std::get<1>(it->second);
                 return ret;
             }
         }
@@ -123,7 +125,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
     }
     {
         lock_guard<mutex> lck(s_mtx);
-        s_shared_mmap[file_path] = std::make_pair(ret.get(), ret);
+        s_shared_mmap[file_path] = std::make_tuple(ret.get(), file_size, ret);
     }
     return ret;
 }
@@ -135,7 +137,7 @@ HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
         _map_addr = getSharedMmap(file_path, _read_to);
     }
 #endif
-    if (!_map_addr) {
+    if (!_map_addr && _read_to != -1) {
         _fp.reset(fopen(file_path.data(), "rb"), [](FILE *fp) {
             if (fp) {
                 fclose(fp);
