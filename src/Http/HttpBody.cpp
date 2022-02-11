@@ -95,6 +95,12 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, const std::s
         }
     });
     {
+        if (max_size < 10 * 1024 * 1024 && file_path.rfind(".ts") != string::npos) {
+            //如果是小ts文件，那么尝试先加载到内存
+            auto buf = BufferRaw::create();
+            buf->assign(ret.get(), max_size);
+            ret.reset(buf->data(), [buf](char *ptr) {});
+        }
         lock_guard<mutex> lck(s_mtx);
         s_shared_mmap[file_path] = std::make_pair(ret.get(), ret);
     }
