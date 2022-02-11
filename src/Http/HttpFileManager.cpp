@@ -34,9 +34,6 @@ static const string kHlsSuffix = "/hls.m3u8";
 
 class HttpCookieAttachment {
 public:
-    HttpCookieAttachment() {};
-    ~HttpCookieAttachment() {};
-public:
     //cookie生效作用域，本cookie只对该目录下的文件生效
     string _path;
     //上次鉴权失败信息,为空则上次鉴权成功
@@ -265,13 +262,12 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
 
     if (cookie) {
         //找到了cookie，对cookie上锁先
-        auto lck = cookie->getLock();
-        auto attachment = (*cookie)[kCookieName].get<HttpCookieAttachment>();
-        if (path.find(attachment._path) == 0) {
+        auto& attach = cookie->getAttach<HttpCookieAttachment>();
+        if (path.find(attach._path) == 0) {
             //上次cookie是限定本目录
-            if (attachment._err_msg.empty()) {
+            if (attach._err_msg.empty()) {
                 //上次鉴权成功
-                if (attachment._is_hls) {
+                if (attach._is_hls) {
                     //如果播放的是hls，那么刷新hls的cookie(获取ts文件也会刷新)
                     cookie->updateTime();
                     cookie_from_header = false;
@@ -282,7 +278,7 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             //上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下
             if (parser.Params().empty() || parser.Params() == cookie->getUid()) {
                 //url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限
-                callback(attachment._err_msg, cookie_from_header ? nullptr : cookie);
+                callback(attach._err_msg, cookie_from_header ? nullptr : cookie);
                 return;
             }
         }
@@ -301,9 +297,9 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
 
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
     HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, mediaInfo, info]
-            (const string &errMsg, const string &cookie_path_in, int cookieLifeSecond) {
+            (const string &err_msg, const string &cookie_path_in, int life_second) {
         HttpServerCookie::Ptr cookie;
-        if (cookieLifeSecond) {
+        if (life_second) {
             //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
             string cookie_path = cookie_path_in;
             if (cookie_path.empty()) {
@@ -311,26 +307,22 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
                 cookie_path = is_dir ? path : path.substr(0, path.rfind("/") + 1);
             }
 
-            cookie = HttpCookieManager::Instance().addCookie(kCookieName, uid, cookieLifeSecond);
-            //对cookie上锁
-            auto lck = cookie->getLock();
-            HttpCookieAttachment attachment;
+            auto attach = std::make_shared<HttpCookieAttachment>();
             //记录用户能访问的路径
-            attachment._path = cookie_path;
+            attach->_path = cookie_path;
             //记录能否访问
-            attachment._err_msg = errMsg;
+            attach->_err_msg = err_msg;
             //记录访问的是否为hls
-            attachment._is_hls = is_hls;
+            attach->_is_hls = is_hls;
             if (is_hls) {
-                //hls相关信息
-                attachment._hls_data = std::make_shared<HlsCookieData>(mediaInfo, info);
-                //hls未查找MediaSource
-                attachment._have_find_media_source = false;
+                // hls相关信息
+                attach->_hls_data = std::make_shared<HlsCookieData>(mediaInfo, info);
+                // hls未查找MediaSource
+                attach->_have_find_media_source = false;
             }
-            (*cookie)[kCookieName].set<HttpCookieAttachment>(std::move(attachment));
-            callback(errMsg, cookie);
+            callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, attach));
         } else {
-            callback(errMsg, nullptr);
+            callback(err_msg, nullptr);
         }
     };
 
@@ -401,8 +393,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             //文件鉴权失败
             StrCaseMap headerOut;
             if (cookie) {
-                auto lck = cookie->getLock();
-                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
+                headerOut["Set-Cookie"] = cookie->getAttach<HttpCookieAttachment>()._path;
             }
             cb(401, "text/html", headerOut, std::make_shared<HttpStringBody>(errMsg));
             return;
@@ -411,15 +402,13 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
         auto response_file = [file_exist, is_hls](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
             StrCaseMap httpHeader;
             if (cookie) {
-                auto lck = cookie->getLock();
-                httpHeader["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
+                httpHeader["Set-Cookie"] = cookie->getAttach<HttpCookieAttachment>()._path;
             }
             HttpSession::HttpResponseInvoker invoker = [&](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
                 if (cookie && file_exist) {
-                    auto lck = cookie->getLock();
-                    auto is_hls = (*cookie)[kCookieName].get<HttpCookieAttachment>()._is_hls;
-                    if (is_hls) {
-                        (*cookie)[kCookieName].get<HttpCookieAttachment>()._hls_data->addByteUsage(body->remainSize());
+                    auto& attach = cookie->getAttach<HttpCookieAttachment>();
+                    if (attach._is_hls) {
+                        attach._hls_data->addByteUsage(body->remainSize());
                     }
                 }
                 cb(code, HttpFileManager::getContentType(strFile.data()), headerOut, body);
@@ -436,10 +425,10 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
         //是hls直播，判断HLS直播流是否已经注册
         bool have_find_media_src = false;
         if (cookie) {
-            auto lck = cookie->getLock();
-            have_find_media_src = (*cookie)[kCookieName].get<HttpCookieAttachment>()._have_find_media_source;
+            auto& attach = cookie->getAttach<HttpCookieAttachment>();
+            have_find_media_src = attach._have_find_media_source;
             if (!have_find_media_src) {
-                (*cookie)[kCookieName].get<HttpCookieAttachment>()._have_find_media_source = true;
+                const_cast<HttpCookieAttachment &>(attach)._have_find_media_source = true;
             }
         }
         if (have_find_media_src) {
@@ -450,9 +439,8 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
         //hls文件不存在，我们等待其生成并延后回复
         MediaSource::findAsync(mediaInfo, strongSession, [response_file, cookie, cb, strFile, parser](const MediaSource::Ptr &src) {
             if (cookie) {
-                auto lck = cookie->getLock();
                 //尝试添加HlsMediaSource的观看人数(HLS是按需生成的，这样可以触发HLS文件的生成)
-                (*cookie)[kCookieName].get<HttpCookieAttachment>()._hls_data->addByteUsage(0);
+                cookie->getAttach<HttpCookieAttachment>()._hls_data->addByteUsage(0);
             }
             if (src && File::is_file(strFile.data())) {
                 //流和m3u8文件都存在，那么直接返回文件
@@ -531,7 +519,7 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
             }
             StrCaseMap headerOut;
             if (cookie) {
-                headerOut["Set-Cookie"] = cookie->getCookie((*cookie)[kCookieName].get<HttpCookieAttachment>()._path);
+                headerOut["Set-Cookie"] = cookie->getAttach<HttpCookieAttachment>()._path;
             }
             cb(errMsg.empty() ? 200 : 401, "text/html", headerOut, std::make_shared<HttpStringBody>(strMenu));
         });
