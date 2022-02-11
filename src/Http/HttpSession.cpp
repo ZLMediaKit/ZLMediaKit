@@ -594,10 +594,13 @@ void HttpSession::sendResponse(int code,
         return;
     }
 
+#if 0
+    //sendfile跟共享mmap相比并没有性能上的优势，相反，sendfile还有功能上的缺陷，先屏蔽
     if (typeid(*this) == typeid(HttpSession) && !body->sendFile(getSock()->rawFD())) {
         // http支持sendfile优化
         return;
     }
+#endif
 
     GET_CONFIG(uint32_t, sendBufSize, Http::kSendBufSize);
     if (body->remainSize() > sendBufSize) {
