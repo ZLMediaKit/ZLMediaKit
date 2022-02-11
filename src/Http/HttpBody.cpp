@@ -122,7 +122,7 @@ HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
 }
 
 void HttpFileBody::setRange(uint64_t offset, uint64_t max_size) {
-    CHECK(offset <= _read_to && max_size + offset <= _read_to);
+    CHECK((int64_t)offset <= _read_to && (int64_t)(max_size + offset) <= _read_to);
     _read_to = max_size + offset;
     _file_offset = offset;
     if (_fp && !_map_addr) {
