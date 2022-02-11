@@ -16,7 +16,7 @@
 
 namespace mediakit {
 
-class TsPlayer : public HttpTSPlayer , public PlayerBase {
+class TsPlayer : public HttpTSPlayer, public PlayerBase {
 public:
     TsPlayer(const toolkit::EventPoller::Ptr &poller);
     ~TsPlayer() override = default;
@@ -37,6 +37,7 @@ protected:
 
 private:
     bool _play_result = true;
+    bool _benchmark_mode = false;
 };
 
 } // namespace mediakit

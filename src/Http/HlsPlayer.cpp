@@ -76,15 +76,17 @@ void HlsPlayer::fetchSegment() {
             }
             return Socket::createSocket(poller, true);
         });
-
-        _http_ts_player->setOnPacket([weak_self](const char *data, size_t len) {
-            auto strong_self = weak_self.lock();
-            if (!strong_self) {
-                return;
-            }
-            //收到ts包
-            strong_self->onPacket_l(data, len);
-        });
+        auto benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
+        if (!benchmark_mode) {
+            _http_ts_player->setOnPacket([weak_self](const char *data, size_t len) {
+                auto strong_self = weak_self.lock();
+                if (!strong_self) {
+                    return;
+                }
+                //收到ts包
+                strong_self->onPacket_l(data, len);
+            });
+        }
 
         if (!(*this)[Client::kNetAdapter].empty()) {
             _http_ts_player->setNetAdapter((*this)[Client::kNetAdapter]);
@@ -349,7 +351,8 @@ void HlsPlayerImp::addTrackCompleted() {
 }
 
 void HlsPlayerImp::onPlayResult(const SockException &ex) {
-    if (ex) {
+    auto benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
+    if (ex || benchmark_mode) {
         PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(ex);
     } else {
         auto demuxer = std::make_shared<HlsDemuxer>();
@@ -364,6 +367,9 @@ void HlsPlayerImp::onShutdown(const SockException &ex) {
 }
 
 vector<Track::Ptr> HlsPlayerImp::getTracks(bool ready) const {
+    if (!_demuxer) {
+        return vector<Track::Ptr>();
+    }
     return static_pointer_cast<HlsDemuxer>(_demuxer)->getTracks(ready);
 }
 
