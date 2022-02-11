@@ -20,6 +20,7 @@ TsPlayer::TsPlayer(const EventPoller::Ptr &poller) : HttpTSPlayer(poller, true) 
 void TsPlayer::play(const string &url) {
     TraceL << "play http-ts: " << url;
     _play_result = false;
+    _benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
     setHeaderTimeout((*this)[Client::kTimeoutMS].as<int>());
     setBodyTimeout((*this)[Client::kMediaTimeoutMS].as<int>());
     setMethod("GET");
@@ -45,7 +46,9 @@ void TsPlayer::onResponseBody(const char *buf, size_t size) {
         _play_result = true;
         onPlayResult(SockException(Err_success, "play http-ts success"));
     }
-    HttpTSPlayer::onResponseBody(buf, size);
+    if (!_benchmark_mode) {
+        HttpTSPlayer::onResponseBody(buf, size);
+    }
 }
 
 } // namespace mediakit
