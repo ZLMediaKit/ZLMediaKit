@@ -399,7 +399,8 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             return;
         }
 
-        auto response_file = [file_exist, is_hls](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb, const string &strFile, const Parser &parser) {
+        auto response_file = [file_exist, is_hls](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb,
+                                                  const string &strFile, const Parser &parser, bool is_path = true) {
             StrCaseMap httpHeader;
             if (cookie) {
                 httpHeader["Set-Cookie"] = cookie->getCookie(cookie->getAttach<HttpCookieAttachment>()._path);
@@ -413,7 +414,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                 }
                 cb(code, HttpFileManager::getContentType(strFile.data()), headerOut, body);
             };
-            invoker.responseFile(parser.getHeader(), httpHeader, strFile, !is_hls);
+            invoker.responseFile(parser.getHeader(), httpHeader, strFile, !is_hls, is_path);
         };
 
         if (!is_hls) {
@@ -429,6 +430,13 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             have_find_media_src = attach._have_find_media_source;
             if (!have_find_media_src) {
                 const_cast<HttpCookieAttachment &>(attach)._have_find_media_source = true;
+            } else {
+                auto src = attach._hls_data->getMediaSource();
+                if (src) {
+                    //直接从内存获取m3u8索引文件(而不是从文件系统)
+                    response_file(cookie, cb, src->getIndexFile(), parser, false);
+                    return;
+                }
             }
         }
         if (have_find_media_src) {
@@ -440,13 +448,11 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
         MediaSource::findAsync(mediaInfo, strongSession, [response_file, cookie, cb, strFile, parser](const MediaSource::Ptr &src) {
             if (cookie) {
                 //尝试添加HlsMediaSource的观看人数(HLS是按需生成的，这样可以触发HLS文件的生成)
-                cookie->getAttach<HttpCookieAttachment>()._hls_data->addByteUsage(0);
+                auto &attach = cookie->getAttach<HttpCookieAttachment>();
+                attach._hls_data->addByteUsage(0);
+                attach._hls_data->setMediaSource(dynamic_pointer_cast<HlsMediaSource>(src));
             }
-            if (src && File::is_file(strFile.data())) {
-                //流和m3u8文件都存在，那么直接返回文件
-                response_file(cookie, cb, strFile, parser);
-                return;
-            }
+
             auto hls = dynamic_pointer_cast<HlsMediaSource>(src);
             if (!hls) {
                 //流不存在，那么直接返回文件(相当于纯粹的HLS文件服务器,但是会挂起播放器15秒左右(用于等待HLS流的注册))
@@ -454,9 +460,9 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                 return;
             }
 
-            //流存在，但是m3u8文件不存在，那么等待生成m3u8文件(HLS源注册后，并不会立即生成HLS文件，有人观看才会按需生成HLS文件)
-            hls->waitForFile([response_file, cookie, cb, strFile, parser]() {
-                response_file(cookie, cb, strFile, parser);
+            //可能异步获取m3u8索引文件
+            hls->getIndexFile([response_file, cookie, cb, parser](const string &file) {
+                response_file(cookie, cb, file, parser, false);
             });
         });
     });
@@ -567,10 +573,18 @@ HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::Htt
 
 void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
                                           const StrCaseMap &responseHeader,
-                                          const string &filePath,
-                                          bool use_mmap) const {
+                                          const string &file,
+                                          bool use_mmap,
+                                          bool is_path) const {
+    if (!is_path) {
+        //file是文件内容
+        (*this)(200, responseHeader, std::make_shared<HttpStringBody>(file));
+        return;
+    }
+
+    //file是文件路径
     StrCaseMap &httpHeader = const_cast<StrCaseMap &>(responseHeader);
-    auto fileBody = std::make_shared<HttpFileBody>(filePath, use_mmap);
+    auto fileBody = std::make_shared<HttpFileBody>(file, use_mmap);
     if (fileBody->remainSize() < 0) {
         //打开文件失败
         GET_CONFIG(string, notFound, Http::kNotFound);

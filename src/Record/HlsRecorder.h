@@ -39,7 +39,7 @@ public:
         setDelegate(listener);
         _hls->getMediaSource()->setListener(shared_from_this());
         //先注册媒体流，后续可以按需生成
-        _hls->getMediaSource()->registHls(false);
+        _hls->getMediaSource()->registHls("");
     }
 
     int readerCount() {
