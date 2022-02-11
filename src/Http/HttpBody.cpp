@@ -58,10 +58,20 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 //////////////////////////////////////////////////////////////////
 
 #ifdef ENABLE_MMAP
-static std::shared_ptr<char> getSharedMmap(const string &file_path, const std::shared_ptr<FILE> &fp, uint64_t max_size) {
-    static mutex s_mtx;
-    static unordered_map<string /*file_path*/, std::pair<char */*ptr*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
 
+static mutex s_mtx;
+static unordered_map<string /*file_path*/, std::pair<char */*ptr*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
+
+//删除mmap记录
+static void delSharedMmap(const string &file_path, char *ptr) {
+    lock_guard<mutex> lck(s_mtx);
+    auto it = s_shared_mmap.find(file_path);
+    if (it != s_shared_mmap.end() && it->second.first == ptr) {
+        s_shared_mmap.erase(it);
+    }
+}
+
+static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &file_size) {
     {
         lock_guard<mutex> lck(s_mtx);
         auto it = s_shared_mmap.find(file_path);
@@ -74,33 +84,44 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, const std::s
         }
     }
 
+    //打开文件
+    std::shared_ptr<FILE> fp(fopen(file_path.data(), "rb"), [](FILE *fp) {
+        if (fp) {
+            fclose(fp);
+        }
+    });
+    if (!fp) {
+        //文件不存在
+        file_size = -1;
+        return nullptr;
+    }
+    //获取文件大小
+    file_size = File::fileSize(fp.get());
+
     int fd = fileno(fp.get());
     if (fd < 0) {
         WarnL << "fileno failed:" << get_uv_errmsg(false);
         return nullptr;
     }
-    auto ptr = (char *)mmap(NULL, max_size, PROT_READ, MAP_SHARED, fd, 0);
+    auto ptr = (char *)mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
     if (ptr == MAP_FAILED) {
         WarnL << "mmap " << file_path << " failed:" << get_uv_errmsg(false);
         return nullptr;
     }
-    std::shared_ptr<char> ret(ptr, [max_size, fp, file_path](char *ptr) {
-        munmap(ptr, max_size);
-
-        //删除mmap记录
-        lock_guard<mutex> lck(s_mtx);
-        auto it = s_shared_mmap.find(file_path);
-        if (it != s_shared_mmap.end() && it->second.first == ptr) {
-            s_shared_mmap.erase(it);
-        }
+    std::shared_ptr<char> ret(ptr, [file_size, fp, file_path](char *ptr) {
+        munmap(ptr, file_size);
+        delSharedMmap(file_path, ptr);
     });
+
+    if (file_size < 10 * 1024 * 1024 && file_path.rfind(".ts") != string::npos) {
+        //如果是小ts文件，那么尝试先加载到内存
+        auto buf = BufferRaw::create();
+        buf->assign(ret.get(), file_size);
+        ret.reset(buf->data(), [buf, file_path](char *ptr) {
+            delSharedMmap(file_path, ptr);
+        });
+    }
     {
-        if (max_size < 10 * 1024 * 1024 && file_path.rfind(".ts") != string::npos) {
-            //如果是小ts文件，那么尝试先加载到内存
-            auto buf = BufferRaw::create();
-            buf->assign(ret.get(), max_size);
-            ret.reset(buf->data(), [buf](char *ptr) {});
-        }
         lock_guard<mutex> lck(s_mtx);
         s_shared_mmap[file_path] = std::make_pair(ret.get(), ret);
     }
@@ -109,22 +130,24 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, const std::s
 #endif
 
 HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
-    _fp.reset(fopen(file_path.data(), "rb"), [](FILE *fp) {
-        if (fp) {
-            fclose(fp);
-        }
-    });
-    if (!_fp) {
-        //文件不存在
-        _read_to = -1;
-        return;
-    }
-    _read_to = File::fileSize(_fp.get());
 #ifdef ENABLE_MMAP
-    if (use_mmap && _read_to) {
-        _map_addr = getSharedMmap(file_path, _fp, _read_to);
+    if (use_mmap ) {
+        _map_addr = getSharedMmap(file_path, _read_to);
     }
 #endif
+    if (!_map_addr) {
+        _fp.reset(fopen(file_path.data(), "rb"), [](FILE *fp) {
+            if (fp) {
+                fclose(fp);
+            }
+        });
+        if (!_fp) {
+            //文件不存在
+            _read_to = -1;
+            return;
+        }
+        _read_to = File::fileSize(_fp.get());
+    }
 }
 
 void HttpFileBody::setRange(uint64_t offset, uint64_t max_size) {
@@ -138,6 +161,9 @@ void HttpFileBody::setRange(uint64_t offset, uint64_t max_size) {
 
 int HttpFileBody::sendFile(int fd) {
 #if defined(__linux__) || defined(__linux)
+    if (!_fp) {
+        return -1;
+    }
     static onceToken s_token([]() { signal(SIGPIPE, SIG_IGN); });
     off_t off = _file_offset;
     return sendfile(fd, fileno(_fp.get()), &off, _read_to - _file_offset);
