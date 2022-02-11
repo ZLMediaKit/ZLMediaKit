@@ -70,7 +70,7 @@ void HlsMaker::makeIndexFile(bool eof) {
         snprintf(file_content, sizeof(file_content), "#EXT-X-ENDLIST\n");
         m3u8.append(file_content);
     }
-    onWriteHls(m3u8.data(), m3u8.size());
+    onWriteHls(m3u8);
 }
 
 

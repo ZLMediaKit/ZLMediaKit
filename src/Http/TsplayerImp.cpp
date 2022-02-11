@@ -33,7 +33,8 @@ void TsPlayerImp::addTrackCompleted() {
 }
 
 void TsPlayerImp::onPlayResult(const SockException &ex) {
-    if (ex) {
+    auto benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
+    if (ex || benchmark_mode) {
         PlayerImp<TsPlayer, PlayerBase>::onPlayResult(ex);
     } else {
         auto demuxer = std::make_shared<HlsDemuxer>();
@@ -47,7 +48,10 @@ void TsPlayerImp::onShutdown(const SockException &ex) {
     _demuxer = nullptr;
 }
 
-vector <Track::Ptr> TsPlayerImp::getTracks(bool ready) const {
+vector<Track::Ptr> TsPlayerImp::getTracks(bool ready) const {
+    if (!_demuxer) {
+        return vector<Track::Ptr>();
+    }
     return static_pointer_cast<HlsDemuxer>(_demuxer)->getTracks(ready);
 }
 

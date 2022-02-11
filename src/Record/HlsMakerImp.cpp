@@ -111,13 +111,13 @@ void HlsMakerImp::onWriteSegment(const char *data, size_t len) {
     }
 }
 
-void HlsMakerImp::onWriteHls(const char *data, size_t len) {
+void HlsMakerImp::onWriteHls(const std::string &data) {
     auto hls = makeFile(_path_hls);
     if (hls) {
-        fwrite(data, len, 1, hls.get());
+        fwrite(data.data(), data.size(), 1, hls.get());
         hls.reset();
         if (_media_src) {
-            _media_src->registHls(true);
+            _media_src->registHls(data);
         }
     } else {
         WarnL << "create hls file failed," << _path_hls << " " << get_uv_errmsg();

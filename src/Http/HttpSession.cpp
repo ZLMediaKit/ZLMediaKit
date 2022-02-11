@@ -519,16 +519,16 @@ void HttpSession::sendResponse(int code,
     GET_CONFIG(uint32_t,keepAliveSec,Http::kKeepAliveSecond);
 
     //body默认为空
-    ssize_t size = 0;
+    int64_t size = 0;
     if (body && body->remainSize()) {
         //有body，获取body大小
         size = body->remainSize();
     }
 
-    if(no_content_length){
-        //http-flv直播是Keep-Alive类型
+    if (no_content_length) {
+        // http-flv直播是Keep-Alive类型
         bClose = false;
-    }else if((size_t) size >= SIZE_MAX || size < 0 ){
+    } else if ((size_t)size >= SIZE_MAX || size < 0) {
         //不固定长度的body，那么发送完body后应该关闭socket，以便浏览器做下载完毕的判断
         bClose = true;
     }
@@ -537,47 +537,47 @@ void HttpSession::sendResponse(int code,
     headerOut.emplace(kDate, dateStr());
     headerOut.emplace(kServer, kServerName);
     headerOut.emplace(kConnection, bClose ? "close" : "keep-alive");
-    if(!bClose){
+    if (!bClose) {
         string keepAliveString = "timeout=";
         keepAliveString += to_string(keepAliveSec);
         keepAliveString += ", max=100";
-        headerOut.emplace(kKeepAlive,std::move(keepAliveString));
+        headerOut.emplace(kKeepAlive, std::move(keepAliveString));
     }
 
-    if(!_origin.empty()){
+    if (!_origin.empty()) {
         //设置跨域
-        headerOut.emplace(kAccessControlAllowOrigin,_origin);
+        headerOut.emplace(kAccessControlAllowOrigin, _origin);
         headerOut.emplace(kAccessControlAllowCredentials, "true");
     }
 
-    if(!no_content_length && size >= 0 && (size_t)size < SIZE_MAX){
+    if (!no_content_length && size >= 0 && (size_t)size < SIZE_MAX) {
         //文件长度为固定值,且不是http-flv强制设置Content-Length
         headerOut[kContentLength] = to_string(size);
     }
 
-    if(size && !pcContentType){
+    if (size && !pcContentType) {
         //有body时，设置缺省类型
         pcContentType = "text/plain";
     }
 
-    if((size || no_content_length) && pcContentType){
+    if ((size || no_content_length) && pcContentType) {
         //有body时，设置文件类型
         string strContentType = pcContentType;
         strContentType += "; charset=";
         strContentType += charSet;
-        headerOut.emplace(kContentType,std::move(strContentType));
+        headerOut.emplace(kContentType, std::move(strContentType));
     }
 
     //发送http头
     string str;
     str.reserve(256);
-    str += "HTTP/1.1 " ;
+    str += "HTTP/1.1 ";
     str += to_string(code);
     str += ' ';
-    str += getHttpStatusMessage(code) ;
+    str += getHttpStatusMessage(code);
     str += "\r\n";
     for (auto &pr : header) {
-        str += pr.first ;
+        str += pr.first;
         str += ": ";
         str += pr.second;
         str += "\r\n";
@@ -586,18 +586,21 @@ void HttpSession::sendResponse(int code,
     SockSender::send(std::move(str));
     _ticker.resetTime();
 
-    if(!size){
+    if (!size) {
         //没有body
-        if(bClose){
+        if (bClose) {
             shutdown(SockException(Err_shutdown,StrPrinter << "close connection after send http header completed with status code:" << code));
         }
         return;
     }
 
+#if 0
+    //sendfile跟共享mmap相比并没有性能上的优势，相反，sendfile还有功能上的缺陷，先屏蔽
     if (typeid(*this) == typeid(HttpSession) && !body->sendFile(getSock()->rawFD())) {
-        //http支持sendfile优化
+        // http支持sendfile优化
         return;
     }
+#endif
 
     GET_CONFIG(uint32_t, sendBufSize, Http::kSendBufSize);
     if (body->remainSize() > sendBufSize) {
@@ -607,9 +610,7 @@ void HttpSession::sendResponse(int code,
 
     //发送http body
     AsyncSenderData::Ptr data = std::make_shared<AsyncSenderData>(shared_from_this(), body, bClose);
-    getSock()->setOnFlush([data]() {
-        return AsyncSender::onSocketFlushed(data);
-    });
+    getSock()->setOnFlush([data]() { return AsyncSender::onSocketFlushed(data); });
     AsyncSender::onSocketFlushed(data);
 }
 

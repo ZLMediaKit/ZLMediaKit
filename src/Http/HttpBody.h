@@ -37,7 +37,7 @@ public:
     /**
      * 剩余数据大小，如果返回-1, 那么就不设置content-length
      */
-    virtual ssize_t remainSize() { return 0;};
+    virtual int64_t remainSize() { return 0;};
 
     /**
      * 读取一定字节数，返回大小可能小于size
@@ -77,7 +77,7 @@ public:
     HttpStringBody(std::string str);
     ~HttpStringBody() override = default;
 
-    ssize_t remainSize() override;
+    int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override ;
 
 private:
@@ -94,7 +94,7 @@ public:
     HttpBufferBody(toolkit::Buffer::Ptr buffer);
     ~HttpBufferBody() override = default;
 
-    ssize_t remainSize() override;
+    int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
 
 private:
@@ -104,32 +104,32 @@ private:
 /**
  * 文件类型的content
  */
-class HttpFileBody : public HttpBody{
+class HttpFileBody : public HttpBody {
 public:
     typedef std::shared_ptr<HttpFileBody> Ptr;
 
     /**
      * 构造函数
-     * @param fp 文件句柄，文件的偏移量必须为0
-     * @param offset 相对文件头的偏移量
-     * @param max_size 最大读取字节数，未判断是否大于文件真实大小
+     * @param file_path 文件路径
      * @param use_mmap 是否使用mmap方式访问文件
      */
-    HttpFileBody(const std::shared_ptr<FILE> &fp, size_t offset, size_t max_size, bool use_mmap = true);
     HttpFileBody(const std::string &file_path, bool use_mmap = true);
     ~HttpFileBody() override = default;
 
-    ssize_t remainSize() override ;
+    /**
+     * 设置读取范围
+     * @param offset 相对文件头的偏移量
+     * @param max_size 最大读取字节数
+     */
+    void setRange(uint64_t offset, uint64_t max_size);
+
+    int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
     int sendFile(int fd) override;
 
 private:
-    void init(const std::shared_ptr<FILE> &fp,size_t offset,size_t max_size, bool use_mmap);
-
-private:
-    size_t _max_size;
-    size_t _offset = 0;
-    size_t _file_offset = 0;
+    int64_t _read_to = 0;
+    uint64_t _file_offset = 0;
     std::shared_ptr<FILE> _fp;
     std::shared_ptr<char> _map_addr;
     toolkit::ResourcePool<toolkit::BufferRaw> _pool;
@@ -152,7 +152,7 @@ public:
      */
     HttpMultiFormBody(const HttpArgs &args,const std::string &filePath,const std::string &boundary = "0xKhTmLbOuNdArY");
     virtual ~HttpMultiFormBody(){}
-    ssize_t remainSize() override ;
+    int64_t remainSize() override ;
     toolkit::Buffer::Ptr readData(size_t size) override;
 
 public:
@@ -161,8 +161,8 @@ public:
     static std::string multiFormContentType(const std::string &boundary);
 
 private:
-    size_t _offset = 0;
-    size_t _totalSize;
+    uint64_t _offset = 0;
+    int64_t _totalSize;
     std::string _bodyPrefix;
     std::string _bodySuffix;
     HttpFileBody::Ptr _fileBody;

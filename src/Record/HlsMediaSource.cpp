@@ -12,7 +12,7 @@
 
 using namespace toolkit;
 
-namespace mediakit{
+namespace mediakit {
 
 HlsCookieData::HlsCookieData(const MediaInfo &info, const std::shared_ptr<SockInfo> &sock_info) {
     _info = info;
@@ -21,15 +21,15 @@ HlsCookieData::HlsCookieData(const MediaInfo &info, const std::shared_ptr<SockIn
     addReaderCount();
 }
 
-void HlsCookieData::addReaderCount(){
-    if(!*_added){
-        auto src = std::dynamic_pointer_cast<HlsMediaSource>(MediaSource::find(HLS_SCHEMA,_info._vhost,_info._app,_info._streamid));
-        if(src){
+void HlsCookieData::addReaderCount() {
+    if (!*_added) {
+        auto src = std::dynamic_pointer_cast<HlsMediaSource>(MediaSource::find(HLS_SCHEMA, _info._vhost, _info._app, _info._streamid));
+        if (src) {
             *_added = true;
             _ring_reader = src->getRing()->attach(EventPollerPool::Instance().getPoller());
             auto added = _added;
-            _ring_reader->setDetachCB([added](){
-                //HlsMediaSource已经销毁
+            _ring_reader->setDetachCB([added]() {
+                // HlsMediaSource已经销毁
                 *added = false;
             });
         }
@@ -39,14 +39,14 @@ void HlsCookieData::addReaderCount(){
 HlsCookieData::~HlsCookieData() {
     if (*_added) {
         uint64_t duration = (_ticker.createdTime() - _ticker.elapsedTime()) / 1000;
-        WarnL << _sock_info->getIdentifier() << "(" << _sock_info->get_peer_ip() << ":" << _sock_info->get_peer_port() << ") "
-              << "HLS播放器(" << _info._vhost << "/" << _info._app << "/" << _info._streamid
+        WarnL << _sock_info->getIdentifier() << "(" << _sock_info->get_peer_ip() << ":" << _sock_info->get_peer_port()
+              << ") " << "HLS播放器(" << _info._vhost << "/" << _info._app << "/" << _info._streamid
               << ")断开,耗时(s):" << duration;
 
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
         uint64_t bytes = _bytes.load();
         if (bytes >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, bytes, duration, true, static_cast<SockInfo&>(*_sock_info));
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, bytes, duration, true, static_cast<SockInfo &>(*_sock_info));
         }
     }
 }
@@ -57,6 +57,12 @@ void HlsCookieData::addByteUsage(size_t bytes) {
     _ticker.resetTime();
 }
 
+void HlsCookieData::setMediaSource(const HlsMediaSource::Ptr &src) {
+    _src = src;
+}
 
-}//namespace mediakit
+HlsMediaSource::Ptr HlsCookieData::getMediaSource() const {
+    return _src.lock();
+}
 
+} // namespace mediakit
