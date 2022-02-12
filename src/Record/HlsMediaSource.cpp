@@ -23,7 +23,7 @@ HlsCookieData::HlsCookieData(const MediaInfo &info, const std::shared_ptr<SockIn
 
 void HlsCookieData::addReaderCount() {
     if (!*_added) {
-        auto src = std::dynamic_pointer_cast<HlsMediaSource>(MediaSource::find(HLS_SCHEMA, _info._vhost, _info._app, _info._streamid));
+        auto src = getMediaSource();
         if (src) {
             *_added = true;
             _ring_reader = src->getRing()->attach(EventPollerPool::Instance().getPoller());

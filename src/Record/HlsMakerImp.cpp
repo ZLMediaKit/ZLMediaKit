@@ -117,7 +117,7 @@ void HlsMakerImp::onWriteHls(const std::string &data) {
         fwrite(data.data(), data.size(), 1, hls.get());
         hls.reset();
         if (_media_src) {
-            _media_src->registHls(data);
+            _media_src->setIndexFile(data);
         }
     } else {
         WarnL << "create hls file failed," << _path_hls << " " << get_uv_errmsg();

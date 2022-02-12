@@ -38,8 +38,6 @@ public:
     string _path;
     //上次鉴权失败信息,为空则上次鉴权成功
     string _err_msg;
-    //本cookie是否为hls直播的
-    bool _is_hls = false;
     //hls直播时的其他一些信息，主要用于播放器个数计数以及流量计数
     HlsCookieData::Ptr _hls_data;
     //如果是hls直播，那么判断该cookie是否使用过MediaSource::findAsync查找过
@@ -261,13 +259,12 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
     }
 
     if (cookie) {
-        //找到了cookie，对cookie上锁先
         auto& attach = cookie->getAttach<HttpCookieAttachment>();
         if (path.find(attach._path) == 0) {
             //上次cookie是限定本目录
             if (attach._err_msg.empty()) {
                 //上次鉴权成功
-                if (attach._is_hls) {
+                if (attach._hls_data) {
                     //如果播放的是hls，那么刷新hls的cookie(获取ts文件也会刷新)
                     cookie->updateTime();
                     cookie_from_header = false;
@@ -312,13 +309,9 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             attach->_path = cookie_path;
             //记录能否访问
             attach->_err_msg = err_msg;
-            //记录访问的是否为hls
-            attach->_is_hls = is_hls;
             if (is_hls) {
                 // hls相关信息
                 attach->_hls_data = std::make_shared<HlsCookieData>(media_info, info);
-                // hls未查找MediaSource
-                attach->_have_find_media_source = false;
             }
             callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, attach));
         } else {
@@ -408,7 +401,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             HttpSession::HttpResponseInvoker invoker = [&](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
                 if (cookie && file_exist) {
                     auto& attach = cookie->getAttach<HttpCookieAttachment>();
-                    if (attach._is_hls) {
+                    if (attach._hls_data) {
                         attach._hls_data->addByteUsage(body->remainSize());
                     }
                 }
@@ -449,8 +442,8 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             if (cookie) {
                 //尝试添加HlsMediaSource的观看人数(HLS是按需生成的，这样可以触发HLS文件的生成)
                 auto &attach = cookie->getAttach<HttpCookieAttachment>();
-                attach._hls_data->addByteUsage(0);
                 attach._hls_data->setMediaSource(dynamic_pointer_cast<HlsMediaSource>(src));
+                attach._hls_data->addByteUsage(0);
             }
 
             auto hls = dynamic_pointer_cast<HlsMediaSource>(src);
