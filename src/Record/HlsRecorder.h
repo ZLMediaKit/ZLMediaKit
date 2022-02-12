@@ -38,41 +38,39 @@ public:
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
         setDelegate(listener);
         _hls->getMediaSource()->setListener(shared_from_this());
-        //先注册媒体流，后续可以按需生成
-        _hls->getMediaSource()->registHls("");
     }
 
-    int readerCount() {
-        return _hls->getMediaSource()->readerCount();
-    }
+    int readerCount() { return _hls->getMediaSource()->readerCount(); }
 
     void onReaderChanged(MediaSource &sender, int size) override {
         GET_CONFIG(bool, hls_demand, General::kHlsDemand);
-        //hls保留切片个数为0时代表为hls录制(不删除切片)，那么不管有无观看者都一直生成hls
+        // hls保留切片个数为0时代表为hls录制(不删除切片)，那么不管有无观看者都一直生成hls
         _enabled = hls_demand ? (_hls->isLive() ? size : true) : true;
         if (!size && _hls->isLive() && hls_demand) {
-            //hls直播时，如果无人观看就删除视频缓存，目的是为了防止视频跳跃
+            // hls直播时，如果无人观看就删除视频缓存，目的是为了防止视频跳跃
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
-    }
-
-    bool isEnabled() {
-        GET_CONFIG(bool, hls_demand, General::kHlsDemand);
-        //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return hls_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
     bool inputFrame(const Frame::Ptr &frame) override {
         GET_CONFIG(bool, hls_demand, General::kHlsDemand);
         if (_clear_cache && hls_demand) {
             _clear_cache = false;
+            //清空旧的m3u8索引文件于ts切片
             _hls->clearCache();
+            _hls->getMediaSource()->setIndexFile("");
         }
         if (_enabled || !hls_demand) {
             return MpegMuxer::inputFrame(frame);
         }
         return false;
+    }
+
+    bool isEnabled() {
+        GET_CONFIG(bool, hls_demand, General::kHlsDemand);
+        //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
+        return hls_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
 private:
@@ -85,8 +83,7 @@ private:
     }
 
 private:
-    //默认不生成hls文件，有播放器时再生成
-    bool _enabled = false;
+    bool _enabled = true;
     bool _clear_cache = false;
     std::shared_ptr<HlsMakerImp> _hls;
 };

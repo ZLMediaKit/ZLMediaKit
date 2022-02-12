@@ -39,12 +39,10 @@ public:
     int readerCount() override { return _ring ? _ring->readerCount() : 0; }
 
     /**
-     * 生成m3u8文件时触发
-     * @param index_file m3u8文件内容
+     * 设置或清空m3u8索引文件内容
      */
-    void registHls(std::string index_file) {
-        if (!_is_regist) {
-            _is_regist = true;
+    void setIndexFile(std::string index_file) {
+        if (!_ring) {
             std::weak_ptr<HlsMediaSource> weakSelf = std::dynamic_pointer_cast<HlsMediaSource>(shared_from_this());
             auto lam = [weakSelf](int size) {
                 auto strongSelf = weakSelf.lock();
@@ -58,19 +56,19 @@ public:
             regist();
         }
 
-        if (index_file.empty()) {
-            //没产生索引文件, 只是为了触发媒体注册
-            return;
-        }
-
         //赋值m3u8索引文件内容
         std::lock_guard<std::mutex> lck(_mtx_index);
         _index_file = std::move(index_file);
 
-        _list_cb.for_each([&](const std::function<void(const std::string &str)> &cb) { cb(_index_file); });
-        _list_cb.clear();
+        if (!_index_file.empty()) {
+            _list_cb.for_each([&](const std::function<void(const std::string &str)> &cb) { cb(_index_file); });
+            _list_cb.clear();
+        }
     }
 
+    /**
+     * 异步获取m3u8文件
+     */
     void getIndexFile(std::function<void(const std::string &str)> cb) {
         std::lock_guard<std::mutex> lck(_mtx_index);
         if (!_index_file.empty()) {
@@ -81,6 +79,9 @@ public:
         _list_cb.emplace_back(std::move(cb));
     }
 
+    /**
+     * 同步获取m3u8文件
+     */
     std::string getIndexFile() const {
         std::lock_guard<std::mutex> lck(_mtx_index);
         return _index_file;
@@ -89,12 +90,10 @@ public:
     void onSegmentSize(size_t bytes) { _speed[TrackVideo] += bytes; }
 
 private:
-    bool _is_regist = false;
     RingType::Ptr _ring;
-
     std::string _index_file;
     mutable std::mutex _mtx_index;
-    toolkit::List<std::function<void(const std::string &)> > _list_cb;
+    toolkit::List<std::function<void(const std::string &)>> _list_cb;
 };
 
 class HlsCookieData {
