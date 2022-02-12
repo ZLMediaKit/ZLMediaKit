@@ -424,7 +424,11 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
         //hls流可能未注册，MediaSource::findAsync可以触发not_found事件，然后再按需推拉流
         MediaSource::findAsync(media_info, strongSession, [response_file, cookie, cb, file_path, parser](const MediaSource::Ptr &src) {
             auto hls = dynamic_pointer_cast<HlsMediaSource>(src);
-            assert(hls);
+            if (!hls) {
+                //流不在线
+                response_file(cookie, cb, file_path, parser);
+                return;
+            }
 
             auto &attach = cookie->getAttach<HttpCookieAttachment>();
             attach._hls_data->setMediaSource(hls);
