@@ -15,9 +15,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller, bool split_ts) {
-    _split_ts = split_ts;
-    _segment.setOnSegment([this](const char *data, size_t len) { onPacket(data, len); });
+HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller) {
     setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 
@@ -34,17 +32,8 @@ void HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::Http
 }
 
 void HttpTSPlayer::onResponseBody(const char *buf, size_t size) {
-    if (_split_ts) {
-        try {
-            _segment.input(buf, size);
-        } catch (std::exception &ex) {
-            WarnL << ex.what();
-            // ts解析失败，清空缓存数据
-            _segment.reset();
-            throw;
-        }
-    } else {
-        onPacket(buf, size);
+    if (_on_segment) {
+        _on_segment(buf, size);
     }
 }
 
@@ -56,12 +45,6 @@ void HttpTSPlayer::emitOnComplete(const SockException &ex) {
     if (_on_complete) {
         _on_complete(ex);
         _on_complete = nullptr;
-    }
-}
-
-void HttpTSPlayer::onPacket(const char *data, size_t len) {
-    if (_on_segment) {
-        _on_segment(data, len);
     }
 }
 

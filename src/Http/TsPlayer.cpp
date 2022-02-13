@@ -15,7 +15,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-TsPlayer::TsPlayer(const EventPoller::Ptr &poller) : HttpTSPlayer(poller, true) {}
+TsPlayer::TsPlayer(const EventPoller::Ptr &poller) : HttpTSPlayer(poller) {}
 
 void TsPlayer::play(const string &url) {
     TraceL << "play http-ts: " << url;

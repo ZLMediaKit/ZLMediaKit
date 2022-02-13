@@ -85,7 +85,6 @@ private:
     void fetchSegment();
     void teardown_l(const toolkit::SockException &ex);
     void fetchIndexFile();
-    void onPacket_l(const char *data, size_t len);
 
 private:
     struct UrlComp {
@@ -106,7 +105,6 @@ private:
     std::list<std::string> _ts_url_sort;
     std::set<std::string, UrlComp> _ts_url_cache;
     HttpTSPlayer::Ptr _http_ts_player;
-    TSSegment _segment;
 };
 
 class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {

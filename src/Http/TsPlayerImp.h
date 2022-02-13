@@ -24,8 +24,8 @@ public:
     ~TsPlayerImp() override = default;
 
 private:
-    //// HlsPlayer override////
-    void onPacket(const char *data, size_t len) override;
+    //// TsPlayer override////
+    void onResponseBody(const char *buf, size_t size) override;
 
 private:
     //// PlayerBase override////
