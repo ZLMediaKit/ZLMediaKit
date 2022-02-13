@@ -92,7 +92,7 @@ void HlsMaker::inputData(void *data, size_t len, uint32_t timestamp, bool is_idr
         }
     } else {
         //resetTracks时触发此逻辑
-        flushLastSegment(true);
+        flushLastSegment(false);
     }
 }
 
@@ -151,6 +151,7 @@ bool HlsMaker::isLive() {
 
 void HlsMaker::clear() {
     _file_index = 0;
+    _last_timestamp = 0;
     _last_seg_timestamp = 0;
     _seg_dur_list.clear();
     _last_file_name.clear();
