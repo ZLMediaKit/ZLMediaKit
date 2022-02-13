@@ -23,7 +23,7 @@ public:
     using Ptr = std::shared_ptr<HttpTSPlayer>;
     using onComplete = std::function<void(const toolkit::SockException &)>;
 
-    HttpTSPlayer(const toolkit::EventPoller::Ptr &poller = nullptr, bool split_ts = true);
+    HttpTSPlayer(const toolkit::EventPoller::Ptr &poller = nullptr);
     ~HttpTSPlayer() override = default;
 
     /**
@@ -42,18 +42,10 @@ protected:
     void onResponseBody(const char *buf, size_t size) override;
     void onResponseCompleted(const toolkit::SockException &ex) override;
 
-protected:
-    /**
-     * 收到ts数据
-     */
-    virtual void onPacket(const char *data, size_t len);
-
 private:
     void emitOnComplete(const toolkit::SockException &ex);
 
 private:
-    bool _split_ts;
-    TSSegment _segment;
     onComplete _on_complete;
     TSSegment::onSegment _on_segment;
 };

@@ -16,7 +16,6 @@ using namespace toolkit;
 namespace mediakit {
 
 HlsPlayer::HlsPlayer(const EventPoller::Ptr &poller) {
-    _segment.setOnSegment([this](const char *data, size_t len) { onPacket(data, len); });
     setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 
@@ -68,7 +67,7 @@ void HlsPlayer::fetchSegment() {
     }
     weak_ptr<HlsPlayer> weak_self = dynamic_pointer_cast<HlsPlayer>(shared_from_this());
     if (!_http_ts_player) {
-        _http_ts_player = std::make_shared<HttpTSPlayer>(getPoller(), false);
+        _http_ts_player = std::make_shared<HttpTSPlayer>(getPoller());
         _http_ts_player->setOnCreateSocket([weak_self](const EventPoller::Ptr &poller) {
             auto strong_self = weak_self.lock();
             if (strong_self) {
@@ -84,7 +83,7 @@ void HlsPlayer::fetchSegment() {
                     return;
                 }
                 //收到ts包
-                strong_self->onPacket_l(data, len);
+                strong_self->onPacket(data, len);
             });
         }
 
@@ -236,16 +235,6 @@ void HlsPlayer::playDelay() {
         }
         return false;
     }, getPoller()));
-}
-
-void HlsPlayer::onPacket_l(const char *data, size_t len) {
-    try {
-        _segment.input(data, len);
-    } catch (...) {
-        //ts解析失败，清空缓存数据
-        _segment.reset();
-        throw;
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////

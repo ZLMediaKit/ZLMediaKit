@@ -18,7 +18,8 @@ namespace mediakit {
 
 TsPlayerImp::TsPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<TsPlayer, PlayerBase>(poller) {}
 
-void TsPlayerImp::onPacket(const char *data, size_t len) {
+void TsPlayerImp::onResponseBody(const char *data, size_t len) {
+    TsPlayer::onResponseBody(data, len);
     if (!_decoder && _demuxer) {
         _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, _demuxer.get());
     }
