@@ -37,12 +37,16 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
 }
 
 HlsMakerImp::~HlsMakerImp() {
-    clearCache(false);
+    clearCache(false, true);
 }
 
-void HlsMakerImp::clearCache(bool immediately) {
+void HlsMakerImp::clearCache() {
+    clearCache(true, false);
+}
+
+void HlsMakerImp::clearCache(bool immediately, bool eof) {
     //录制完了
-    flushLastSegment(true);
+    flushLastSegment(eof);
     if (!isLive()) {
         return;
     }

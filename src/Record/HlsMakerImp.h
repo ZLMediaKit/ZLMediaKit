@@ -45,9 +45,8 @@ public:
 
      /**
       * 清空缓存
-      * @param immediately 时候立即删除
       */
-     void clearCache(bool immediately = true);
+     void clearCache();
 
 protected:
     std::string onOpenSegment(uint64_t index) override ;
@@ -58,6 +57,7 @@ protected:
 
 private:
     std::shared_ptr<FILE> makeFile(const std::string &file,bool setbuf = false);
+    void clearCache(bool immediately, bool eof);
 
 private:
     int _buf_size;
