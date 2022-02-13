@@ -86,7 +86,13 @@ ssize_t TSDecoder::input(const uint8_t *data, size_t bytes) {
     if (TSSegment::isTSPacket((char *)data, bytes)) {
         return ts_demuxer_input(_demuxer_ctx, (uint8_t *) data, bytes);
     }
-    _ts_segment.input((char*)data,bytes);
+    try {
+        _ts_segment.input((char *) data, bytes);
+    } catch (...) {
+        //ts解析失败，清空缓存数据
+        _ts_segment.reset();
+        throw;
+    }
     return bytes;
 }
 
