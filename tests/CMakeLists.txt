@@ -14,6 +14,10 @@ foreach (TEST_SRC ${TEST_SRC_LIST})
     message(STATUS "add test:${TEST_EXE_NAME}")
     add_executable(${TEST_EXE_NAME} ${TEST_SRC})
 
+    if(USE_SOLUTION_FOLDERS)
+        SET_PROPERTY(TARGET ${TEST_EXE_NAME} PROPERTY FOLDER "test")
+    endif ()
+
     if (MSVC)
         set_target_properties(${TEST_EXE_NAME} PROPERTIES COMPILE_FLAGS ${VS_FALGS})
     endif ()
