@@ -140,6 +140,7 @@ HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
     }
 #endif
     if (!_map_addr && _read_to != -1) {
+        //mmap失败(且不是由于文件不存在导致的)或未执行mmap时，才进入fread逻辑分支
         _fp.reset(fopen(file_path.data(), "rb"), [](FILE *fp) {
             if (fp) {
                 fclose(fp);
@@ -150,7 +151,11 @@ HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
             _read_to = -1;
             return;
         }
-        _read_to = File::fileSize(_fp.get());
+        if (!_read_to) {
+            //_read_to等于0时，说明还未尝试获取文件大小
+            //加上该判断逻辑，在mmap失败时，可以省去一次该操作
+            _read_to = File::fileSize(_fp.get());
+        }
     }
 }
 
