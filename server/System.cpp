@@ -18,7 +18,8 @@
 #endif//!defined(_WIN32)
 
 #include "System.h"
-#include <signal.h>
+#include <cstdlib>
+#include <csignal>
 #include <map>
 #include <iostream>
 #include "Util/logger.h"
