@@ -75,7 +75,11 @@ public:
     }
 
     /**
-     * 输入FMP4包
+     * 输入FMP4包(RingDelegate触发)
+     * - createRing
+     * - PacketCache::inputPacket
+     *   - onFlush
+     *     - ring::write(packetList)
      * @param packet FMP4包
      * @param key 是否为关键帧第一个包
      */
@@ -87,8 +91,7 @@ public:
             _have_video = true;
         }
         _speed[TrackVideo] += packet->size();
-        auto stamp = packet->time_stamp;
-        PacketCache<FMP4Packet>::inputPacket(stamp, true, std::move(packet), key);
+        PacketCache<FMP4Packet>::inputPacket(packet->time_stamp, true, packet, key);
     }
 
     /**
@@ -103,11 +106,8 @@ private:
     void createRing(){
         std::weak_ptr<FMP4MediaSource> weak_self = std::dynamic_pointer_cast<FMP4MediaSource>(shared_from_this());
         _ring = std::make_shared<RingType>(_ring_size, [weak_self](int size) {
-            auto strong_self = weak_self.lock();
-            if (!strong_self) {
-                return;
-            }
-            strong_self->onReaderChanged(size);
+            if (auto strong_self = weak_self.lock())
+                strong_self->onReaderChanged(size);
         });
         onReaderChanged(0);
         if (!_init_segment.empty()) {

@@ -43,7 +43,7 @@ public:
     void onReaderChanged(MediaSource &sender, int size) override {
         GET_CONFIG(bool, fmp4_demand, General::kFMP4Demand);
         _enabled = fmp4_demand ? size : true;
-        if (!size && fmp4_demand) {
+        if (!_enabled) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
