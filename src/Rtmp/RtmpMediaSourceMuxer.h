@@ -52,7 +52,7 @@ public:
     void onReaderChanged(MediaSource &sender, int size) override {
         GET_CONFIG(bool, rtmp_demand, General::kRtmpDemand);
         _enabled = rtmp_demand ? size : true;
-        if (!size && rtmp_demand) {
+        if (!_enabled) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);

@@ -60,8 +60,12 @@ uint8_t getAudioRtmpFlags(const Track::Ptr &track){
 
             uint8_t flvAudioType ;
             switch (track->getCodecId()){
-                case CodecG711A : flvAudioType = FLV_CODEC_G711A; break;
-                case CodecG711U : flvAudioType = FLV_CODEC_G711U; break;
+                case CodecG711A : 
+                    flvAudioType = FLV_CODEC_G711A; 
+                    break;
+                case CodecG711U : 
+                    flvAudioType = FLV_CODEC_G711U; 
+                    break;
                 case CodecOpus : {
                     flvAudioType = FLV_CODEC_OPUS;
                     //opus不通过flags获取音频相关信息
@@ -78,7 +82,9 @@ uint8_t getAudioRtmpFlags(const Track::Ptr &track){
                     iChannel = 2;
                     break;
                 }
-                default: WarnL << "该编码格式不支持转换为RTMP: " << track->getCodecName(); return 0;
+                default: 
+                    WarnL << "该编码格式不支持转换为RTMP: " << track->getCodecName(); 
+                    return 0;
             }
 
             uint8_t flvSampleRate;

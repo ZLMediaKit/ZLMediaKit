@@ -122,13 +122,22 @@ public:
      * @param pkt rtmp包
      */
     void onWrite(RtmpPacket::Ptr pkt, bool = true) override {
-        bool is_video = pkt->type_id == MSG_VIDEO;
-        _speed[is_video ? TrackVideo : TrackAudio] += pkt->size();
+        bool is_video = false;
         //保存当前时间戳
         switch (pkt->type_id) {
-            case MSG_VIDEO : _track_stamps[TrackVideo] = pkt->time_stamp, _have_video = true; break;
-            case MSG_AUDIO : _track_stamps[TrackAudio] = pkt->time_stamp, _have_audio = true; break;
-            default :  break;
+            case MSG_VIDEO : 
+                _track_stamps[TrackVideo] = pkt->time_stamp;
+                _speed[TrackVideo] += pkt->size();
+                _have_video = true;
+                is_video = true;
+                break;
+            case MSG_AUDIO : 
+                _track_stamps[TrackAudio] = pkt->time_stamp;
+                _speed[TrackAudio] += pkt->size();
+                _have_audio = true; 
+                break;
+            default : 
+                break;
         }
 
         if (pkt->isCfgFrame()) {
@@ -142,17 +151,12 @@ public:
 
         if (!_ring) {
             std::weak_ptr<RtmpMediaSource> weakSelf = std::dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
-            auto lam = [weakSelf](int size) {
-                auto strongSelf = weakSelf.lock();
-                if (!strongSelf) {
-                    return;
-                }
-                strongSelf->onReaderChanged(size);
-            };
-
             //GOP默认缓冲512组RTMP包，每组RTMP包时间戳相同(如果开启合并写了，那么每组为合并写时间内的RTMP包),
             //每次遇到关键帧第一个RTMP包，则会清空GOP缓存(因为有新的关键帧了，同样可以实现秒开)
-            _ring = std::make_shared<RingType>(_ring_size,std::move(lam));
+            _ring = std::make_shared<RingType>(_ring_size, [weakSelf](int size) {
+                if (auto strongSelf = weakSelf.lock())
+                    strongSelf->onReaderChanged(size);
+            });
             onReaderChanged(0);
 
             if(_metadata){

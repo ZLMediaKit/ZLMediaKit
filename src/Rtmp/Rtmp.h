@@ -15,9 +15,7 @@
 #include <string>
 #include <cstdlib>
 #include "Util/util.h"
-#include "Util/logger.h"
 #include "Network/Buffer.h"
-#include "Network/sockutil.h"
 #include "amf.h"
 #include "Extension/Track.h"
 
@@ -242,18 +240,14 @@ public:
         if (type_id != MSG_AUDIO) {
             return 0;
         }
-        int flvSampleBit = ((uint8_t) buffer[0] & 0x02) >> 1;
-        const static int sampleBit[] = { 8, 16 };
-        return sampleBit[flvSampleBit];
+        return  buffer[0] & 0x02 ? 16 : 8;
     }
 
     int getAudioChannel() const {
         if (type_id != MSG_AUDIO) {
             return 0;
         }
-        int flvStereoOrMono = (uint8_t) buffer[0] & 0x01;
-        const static int channel[] = { 1, 2 };
-        return channel[flvStereoOrMono];
+        return buffer[0] & 0x01 ? 2 : 1;
     }
 
 private:
