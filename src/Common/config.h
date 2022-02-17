@@ -214,6 +214,8 @@ extern const std::string kVirtualPath;
 extern const std::string kNotFound;
 //是否显示文件夹菜单
 extern const std::string kDirMenu;
+//禁止缓存文件的后缀
+extern const std::string kForbidCacheSuffix;
 }//namespace Http
 
 ////////////SHELL配置///////////

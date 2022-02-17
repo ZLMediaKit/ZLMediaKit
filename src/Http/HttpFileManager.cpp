@@ -357,6 +357,7 @@ static string pathCat(const string &a, const string &b){
 static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
     bool is_hls = end_with(file_path, kHlsSuffix);
     bool file_exist = File::is_file(file_path.data());
+    bool is_forbid_cache = false;
     if (!is_hls && !file_exist) {
         //文件不存在且不是hls,那么直接返回404
         sendNotFound(cb);
@@ -369,9 +370,18 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
         replace(const_cast<string &>(media_info._streamid), kHlsSuffix, "");
     }
 
+    GET_CONFIG_FUNC(vector<string>, forbidCacheSuffix, Http::kForbidCacheSuffix, [](const string &str) {
+        return split(str,",");
+    });
+    for (auto &suffix : forbidCacheSuffix) {
+        if(suffix != "" && end_with(file_path, suffix)){
+            is_forbid_cache = true;
+            break;
+        }
+    }
     weak_ptr<TcpSession> weakSession = sender.shared_from_this();
     //判断是否有权限访问该文件
-    canAccessPath(sender, parser, media_info, false, [cb, file_path, parser, is_hls, media_info, weakSession , file_exist](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
+    canAccessPath(sender, parser, media_info, false, [cb, file_path, parser, is_hls,is_forbid_cache, media_info, weakSession , file_exist](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
         auto strongSession = weakSession.lock();
         if (!strongSession) {
             //http客户端已经断开，不需要回复
@@ -387,7 +397,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             return;
         }
 
-        auto response_file = [file_exist, is_hls](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb,
+        auto response_file = [file_exist, is_hls, is_forbid_cache](const HttpServerCookie::Ptr &cookie, const HttpFileManager::invoker &cb,
                                                   const string &file_path, const Parser &parser, const string &file_content = "") {
             StrCaseMap httpHeader;
             if (cookie) {
@@ -402,7 +412,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
                 }
                 cb(code, HttpFileManager::getContentType(file_path.data()), headerOut, body);
             };
-            invoker.responseFile(parser.getHeader(), httpHeader, file_content.empty() ? file_path : file_content, !is_hls, file_content.empty());
+            invoker.responseFile(parser.getHeader(), httpHeader, file_content.empty() ? file_path : file_content, !is_hls && !is_forbid_cache, file_content.empty());
         };
 
         if (!is_hls || !cookie) {
