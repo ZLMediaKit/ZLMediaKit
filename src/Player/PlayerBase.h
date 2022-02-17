@@ -24,7 +24,7 @@
 #include "Extension/Track.h"
 
 namespace mediakit {
-
+/// 播放器接口定义
 class PlayerBase : public TrackSource, public toolkit::mINI {
 public:
     using Ptr = std::shared_ptr<PlayerBase>;
@@ -122,11 +122,17 @@ protected:
     virtual void onPlayResult(const toolkit::SockException &ex) = 0;
 };
 
+/*
+带Delegate拦截的播放器.
+有Delegate就调Delegate，否则调用 Parent 方法
+@note 此类并没有_delegate的get/set方法，子类要想实现拦截必须自己设置_delegate，
+如 MediaPlayer 就在 play 方法设置 _delegate
+*/
 template<typename Parent, typename Delegate>
 class PlayerImp : public Parent {
 public:
     using Ptr = std::shared_ptr<PlayerImp>;
-
+    // 完美转发构造函数 to Parent
     template<typename ...ArgsType>
     PlayerImp(ArgsType &&...args) : Parent(std::forward<ArgsType>(args)...) {}
     ~PlayerImp() override = default;
@@ -209,14 +215,14 @@ public:
 
 protected:
     void onShutdown(const toolkit::SockException &ex) override {
-        if (_on_shutdown) {
+        if (_on_shutdown) { //只触发一次
             _on_shutdown(ex);
             _on_shutdown = nullptr;
         }
     }
 
     void onPlayResult(const toolkit::SockException &ex) override {
-        if (_on_play_result) {
+        if (_on_play_result) { //只触发一次
             _on_play_result(ex);
             _on_play_result = nullptr;
         }

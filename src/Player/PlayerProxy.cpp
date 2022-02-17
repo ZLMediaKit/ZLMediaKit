@@ -30,17 +30,9 @@ PlayerProxy::PlayerProxy(const string &vhost, const string &app, const string &s
     (*this)[Client::kWaitTrackReady] = false;
 }
 
-void PlayerProxy::setPlayCallbackOnce(const function<void(const SockException &ex)> &cb) {
-    _on_play = cb;
-}
-
-void PlayerProxy::setOnClose(const function<void(const SockException &ex)> &cb) {
-    _on_close = cb ? cb : [](const SockException &) {};
-}
-
 void PlayerProxy::play(const string &strUrlTmp) {
     weak_ptr<PlayerProxy> weakSelf = shared_from_this();
-    std::shared_ptr<int> piFailedCnt(new int(0)); //连续播放失败次数
+    std::shared_ptr<int> piFailedCnt(new int(0)); //记录连续播放失败次数
     setOnPlayResult([weakSelf, strUrlTmp, piFailedCnt](const SockException &err) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -56,7 +48,7 @@ void PlayerProxy::play(const string &strUrlTmp) {
             // 取消定时器,避免hls拉流索引文件因为网络波动失败重连成功后出现循环重试的情况
            strongSelf->_timer.reset();
             // 播放成功
-            *piFailedCnt = 0;//连续播放失败次数清0
+            *piFailedCnt = 0;//清空失败次数
             strongSelf->onPlaySuccess();
         } else if (*piFailedCnt < strongSelf->_retry_count || strongSelf->_retry_count < 0) {
             // 播放失败，延时重试播放
@@ -66,6 +58,7 @@ void PlayerProxy::play(const string &strUrlTmp) {
             strongSelf->_on_close(err);
         }
     });
+
     setOnShutdown([weakSelf, strUrlTmp, piFailedCnt](const SockException &err) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -96,6 +89,7 @@ void PlayerProxy::play(const string &strUrlTmp) {
             strongSelf->_on_close(err);
         }
     });
+
     MediaPlayer::play(strUrlTmp);
     _pull_url = strUrlTmp;
     setDirectProxy();
@@ -133,13 +127,11 @@ void PlayerProxy::rePlay(const string &strUrl, int iFailedCnt) {
     weak_ptr<PlayerProxy> weakSelf = shared_from_this();
     _timer = std::make_shared<Timer>(iDelay / 1000.0f, [weakSelf, strUrl, iFailedCnt]() {
         //播放失败次数越多，则延时越长
-        auto strongPlayer = weakSelf.lock();
-        if (!strongPlayer) {
-            return false;
+        if (auto strongPlayer = weakSelf.lock()) {
+            WarnL << "重试播放[" << iFailedCnt << "]:" << strUrl;
+            strongPlayer->MediaPlayer::play(strUrl);
+            strongPlayer->setDirectProxy();
         }
-        WarnL << "重试播放[" << iFailedCnt << "]:" << strUrl;
-        strongPlayer->MediaPlayer::play(strUrl);
-        strongPlayer->setDirectProxy();
         return false;
     }, getPoller());
 }
@@ -152,21 +144,22 @@ bool PlayerProxy::close(MediaSource &sender, bool force) {
     //通知其停止推流
     weak_ptr<PlayerProxy> weakSelf = dynamic_pointer_cast<PlayerProxy>(shared_from_this());
     getPoller()->async_first([weakSelf]() {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
-            return;
+        if (auto strongSelf = weakSelf.lock()) {
+            strongSelf->_muxer.reset();
+            strongSelf->setMediaSource(nullptr);
+            strongSelf->teardown();
         }
-        strongSelf->_muxer.reset();
-        strongSelf->setMediaSource(nullptr);
-        strongSelf->teardown();
     });
     _on_close(SockException(Err_shutdown, "closed by user"));
-    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    WarnL << sender.getUrl() << " " << force;
     return true;
 }
 
 int PlayerProxy::totalReaderCount() {
-    return (_muxer ? _muxer->totalReaderCount() : 0) + (_media_src ? _media_src->readerCount() : 0);
+    int ret = 0;
+    if (_muxer) ret += _muxer->totalReaderCount();
+    if (_media_src) ret += _media_src->totalReaderCount();
+    return ret;
 }
 
 int PlayerProxy::totalReaderCount(MediaSource &sender) {

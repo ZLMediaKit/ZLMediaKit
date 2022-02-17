@@ -28,7 +28,7 @@ public:
     ~MediaPlayer() override = default;
 
     void play(const std::string &url) override;
-    toolkit::EventPoller::Ptr getPoller();
+    toolkit::EventPoller::Ptr getPoller() { return _poller; }
     void setOnCreateSocket(toolkit::Socket::onCreateSocket cb);
 
 private:

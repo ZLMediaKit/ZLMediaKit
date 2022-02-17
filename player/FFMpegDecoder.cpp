@@ -75,10 +75,6 @@ FFmpegFrame::FFmpegFrame(std::shared_ptr<AVFrame> frame) {
 }
 
 FFmpegFrame::~FFmpegFrame() {
-    if (_data) {
-        delete[] _data;
-        _data = nullptr;
-    }
 }
 
 AVFrame *FFmpegFrame::get() const {
@@ -101,10 +97,10 @@ FFmpegSwr::~FFmpegSwr() {
 }
 
 FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
-    if (frame->get()->format == _target_format &&
-    frame->get()->channels == _target_channels &&
-    frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
-    frame->get()->sample_rate == _target_samplerate) {
+    if (frame->get()->format == _target_format 
+        && frame->get()->channels == _target_channels 
+        && frame->get()->channel_layout == (uint64_t)_target_channel_layout 
+        && frame->get()->sample_rate == _target_samplerate) {
         //不转格式
         return frame;
     }
@@ -191,16 +187,17 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track) {
 
         switch (track->getCodecId()) {
             case CodecG711A:
-                case CodecG711U: {
-                    AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
-                    _context->channels = audio->getAudioChannel();
-                    _context->sample_rate = audio->getAudioSampleRate();
-                    _context->channel_layout = av_get_default_channel_layout(_context->channels);
-                    break;
-                }
-                default:
-                    break;
+            case CodecG711U: {
+                AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
+                _context->channels = audio->getAudioChannel();
+                _context->sample_rate = audio->getAudioSampleRate();
+                _context->channel_layout = av_get_default_channel_layout(_context->channels);
+                break;
+            }
+            default:
+                break;
         }
+
         AVDictionary *dict = nullptr;
         av_dict_set(&dict, "threads", "auto", 0);
         av_dict_set(&dict, "zerolatency", "1", 0);
@@ -232,6 +229,7 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track) {
     }
 
     if (track->getTrackType() == TrackVideo) {
+        // 视频才启动独立解码线程
         startThread("decoder thread");
     }
 }
@@ -345,11 +343,17 @@ void TaskManager::pushExit(){
 void TaskManager::addEncodeTask(function<void()> task) {
     {
         lock_guard<mutex> lck(_task_mtx);
-        _task.emplace_back(std::move(task));
         if (_task.size() > 30) {
             WarnL << "encoder thread task is too more, now drop frame!";
+#if 1
+            // 丢前面的，进后面的，必须保证这个线程只进行编码，如既进行编码也进行解码的话，就不行
             _task.pop_front();
+#else
+            // 建议就别将本帧进栈，这就既可用于编码也可用于解码，但这会导致公平性问题
+            return;
+#endif
         }
+        _task.emplace_back(std::move(task));
     }
     _sem.post();
 }

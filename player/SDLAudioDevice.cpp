@@ -51,7 +51,7 @@ SDLAudioDevice::SDLAudioDevice() {
 void SDLAudioDevice::addChannel(AudioSRC *chn) {
     lock_guard<recursive_mutex> lck(_channel_mtx);
     if (_channels.empty()) {
-        SDL_PauseAudio(0);
+        SDL_PauseAudio(false);
     }
     chn->setOutputAudioConfig(_audio_config);
     _channels.emplace(chn);

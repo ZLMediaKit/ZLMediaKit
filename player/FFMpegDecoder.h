@@ -33,7 +33,6 @@ public:
     AVFrame *get() const;
 
 private:
-    char *_data = nullptr;
     std::shared_ptr<AVFrame> _frame;
 };
 
@@ -64,6 +63,7 @@ protected:
     void stopThread();
 
     void addEncodeTask(std::function<void()> task);
+    // 解码要有丢帧，则一直丢到关键帧才停止
     void addDecodeTask(bool key_frame, std::function<void()> task);
     bool isEnabled() const;
 
@@ -79,6 +79,7 @@ private:
     };
 
 private:
+    // 解码丢包，直到下一个关键帧到来
     bool _decode_drop_start = false;
     bool _exit = false;
     std::mutex _task_mtx;

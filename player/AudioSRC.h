@@ -28,7 +28,6 @@ extern "C" {
 
 #include "Network/Buffer.h"
 #include "SDLAudioDevice.h"
-#include "FFMpegDecoder.h"
 
 class AudioSRCDelegate {
 public:
@@ -43,10 +42,10 @@ public:
 class AudioSRC {
 public:
     typedef std::shared_ptr<AudioSRC> Ptr;
-    AudioSRC(AudioSRCDelegate *);
-    virtual ~AudioSRC();
+    AudioSRC(AudioSRCDelegate * del):_delegate(del) {}
+    virtual ~AudioSRC() {}
 
-    void setEnableMix(bool flag);
+    void setEnableMix(bool flag) {_enabled = flag;}
     void setOutputAudioConfig(const SDL_AudioSpec &cfg);
     int getPCMData(char *buf, int size);
 
@@ -68,9 +67,9 @@ public:
     void playPCM(const char *data, size_t size);
 
 private:
-    SDL_AudioFormat getPCMFormat() override;
-    int getPCMSampleRate() override;
-    int getPCMChannel() override;
+    SDL_AudioFormat getPCMFormat() override {return _format;}
+    int getPCMSampleRate() override {return _sample_rate;}
+    int getPCMChannel() override {return _channel;}
     int getPCMData(char *buf, int size) override;
 
 private:

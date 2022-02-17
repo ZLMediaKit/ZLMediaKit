@@ -37,6 +37,7 @@ public:
     static void Destory(){
         delete &Instance();
     }
+
     template<typename FUN>
     void doTask(FUN &&f){
         {
@@ -97,11 +98,11 @@ class YuvDisplayer {
 public:
     using Ptr = std::shared_ptr<YuvDisplayer>;
 
-    YuvDisplayer(void *hwnd = nullptr,const char *title = "untitled"){
+    YuvDisplayer(void *hwnd = nullptr, const char *title = "untitled") {
         static toolkit::onceToken token([]() {
             if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO) == -1) {
                 std::string err = "初始化SDL失败:";
-                err+= SDL_GetError();
+                err += SDL_GetError();
                 ErrorL << err;
                 throw std::runtime_error(err);
             }
@@ -145,19 +146,17 @@ public:
                                         SDL_WINDOW_OPENGL);
             }
         }
-        if (_win && ! _render){
+
+        if (_win && ! _render) {
 #if 0
             SDL_RENDERER_SOFTWARE = 0x00000001,         /**< The renderer is a software fallback */
-                    SDL_RENDERER_ACCELERATED = 0x00000002,      /**< The renderer uses hardware
-                                                                     acceleration */
-                    SDL_RENDERER_PRESENTVSYNC = 0x00000004,     /**< Present is synchronized
-                                                                     with the refresh rate */
-                    SDL_RENDERER_TARGETTEXTURE = 0x00000008     /**< The renderer supports
-                                                                     rendering to texture */
+            SDL_RENDERER_ACCELERATED = 0x00000002,      /**< The renderer uses hardware acceleration */
+            SDL_RENDERER_PRESENTVSYNC = 0x00000004,     /**< Present is synchronized with the refresh rate */
+            SDL_RENDERER_TARGETTEXTURE = 0x00000008     /**< The renderer supports rendering to texture */
 #endif
-
             _render = SDL_CreateRenderer(_win, -1, SDL_RENDERER_ACCELERATED);
         }
+
         if (_render && !_texture) {
             if (pFrame->format == AV_PIX_FMT_NV12) {
                 _texture = SDL_CreateTexture(
@@ -167,18 +166,21 @@ public:
                     _render, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, pFrame->width, pFrame->height);
             }
         }
+
         if (_texture) {
 #if (SDL_PATCHLEVEL >= 16 || SDL_MINOR_VERSION > 0)
             //需要更新sdl到最新（>=2.0.16）
             if (pFrame->format == AV_PIX_FMT_NV12) {
-                SDL_UpdateNVTexture(
-                    _texture, nullptr, pFrame->data[0], pFrame->linesize[0], pFrame->data[1], pFrame->linesize[1]);
+                SDL_UpdateNVTexture(_texture, nullptr, 
+                    pFrame->data[0], pFrame->linesize[0], 
+                    pFrame->data[1], pFrame->linesize[1]);
             } else
 #endif
             {
-                SDL_UpdateYUVTexture(
-                        _texture, nullptr, pFrame->data[0], pFrame->linesize[0], pFrame->data[1], pFrame->linesize[1],
-                        pFrame->data[2], pFrame->linesize[2]);
+                SDL_UpdateYUVTexture(_texture, nullptr, 
+                    pFrame->data[0], pFrame->linesize[0], 
+                    pFrame->data[1], pFrame->linesize[1],
+                    pFrame->data[2], pFrame->linesize[2]);
             }
 
             //SDL_UpdateTexture(_texture, nullptr, pFrame->data[0], pFrame->linesize[0]);

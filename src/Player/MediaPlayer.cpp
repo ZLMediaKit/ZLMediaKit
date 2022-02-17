@@ -48,9 +48,6 @@ void MediaPlayer::play(const string &url) {
     _delegate->play(url);
 }
 
-EventPoller::Ptr MediaPlayer::getPoller(){
-    return _poller;
-}
 
 void MediaPlayer::setOnCreateSocket(Socket::onCreateSocket cb){
     setOnCreateSocket_l(_delegate, cb);

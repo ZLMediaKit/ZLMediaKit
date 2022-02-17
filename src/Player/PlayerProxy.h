@@ -17,29 +17,35 @@
 #include "Util/TimeTicker.h"
 
 namespace mediakit {
-
-class PlayerProxy : public MediaPlayer, public MediaSourceEvent, public std::enable_shared_from_this<PlayerProxy> {
+/// 将MediaPlay代理成 MediaSource, 并实现重试逻辑
+class PlayerProxy : public MediaPlayer, public MediaSourceEvent, 
+    public std::enable_shared_from_this<PlayerProxy> {
+    std::function<void(const toolkit::SockException &ex)> _on_close;
+    std::function<void(const toolkit::SockException &ex)> _on_play;
 public:
     typedef std::shared_ptr<PlayerProxy> Ptr;
 
-    //如果retry_count<0,则一直重试播放；否则重试retry_count次数
-    //默认一直重试
     PlayerProxy(const std::string &vhost, const std::string &app, const std::string &stream_id,
-                const ProtocolOption &option, int retry_count = -1, const toolkit::EventPoller::Ptr &poller = nullptr);
+                const ProtocolOption &option,
+                int retry_count = -1, ///< 重试次数， 如果 < 0 则一直重试播放；否则重试retry_count次数
+                const toolkit::EventPoller::Ptr &poller = nullptr);
 
     ~PlayerProxy() override;
 
     /**
-     * 设置play结果回调，只触发一次；在play执行之前有效
+     * 设置play结果回调
+     * @note 只触发一次；在play后置空
      * @param cb 回调对象
      */
-    void setPlayCallbackOnce(const std::function<void(const toolkit::SockException &ex)> &cb);
-
+    void setPlayCallbackOnce(const std::function<void(const toolkit::SockException &ex)> &cb)
+    { _on_play = cb; }
     /**
      * 设置主动关闭回调
      * @param cb 回调对象
      */
-    void setOnClose(const std::function<void(const toolkit::SockException &ex)> &cb);
+    void setOnClose(const std::function<void(const toolkit::SockException &ex)> &cb) {
+        _on_close = cb ? cb : [](const toolkit::SockException &) {};
+    }
 
     /**
      * 开始拉流播放
@@ -53,7 +59,7 @@ public:
     int totalReaderCount() ;
 
 private:
-    //MediaSourceEvent override
+    // MediaSourceEvent override
     bool close(MediaSource &sender,bool force) override;
     int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
@@ -72,8 +78,7 @@ private:
     std::string _stream_id;
     std::string _pull_url;
     toolkit::Timer::Ptr _timer;
-    std::function<void(const toolkit::SockException &ex)> _on_close;
-    std::function<void(const toolkit::SockException &ex)> _on_play;
+
     MultiMediaSourceMuxer::Ptr _muxer;
 };
 

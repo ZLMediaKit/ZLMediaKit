@@ -235,12 +235,10 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
     pX264Param->rc.i_qp_min = 10;	//ffmpeg:qmin;最小的量化因子。取值范围1-51。建议在10-30之间。
     pX264Param->rc.i_qp_max = 41;	//ffmpeg:qmax;最大的量化因子。取值范围1-51。建议在10-30之间。
     pX264Param->rc.f_qcompress = 0.6;//ffmpeg:qcompress 量化器压缩比率0-1.越小则比特率越区域固定，但是越高越使量化器参数越固定
-    pX264Param->analyse.i_me_range = 16;		//ffmpeg:me_range 运动侦测的半径
+    pX264Param->analyse.i_me_range = 16;	//ffmpeg:me_range 运动侦测的半径
     pX264Param->i_frame_reference = 3;		//ffmpeg:refsB和P帧向前预测参考的帧数。取值范围1-16。
-                                            //该值不影响解码的速度，但是越大解码
-                                            //所需的内存越大。这个值在一般情况下
-                                            //越大效果越好，但是超过6以后效果就
-                                            //不明显了。
+                                            //该值不影响解码的速度，但是越大解码所需的内存越大。
+                                            //这个值在一般情况下越大效果越好，但是超过6以后效果就不明显了。
 
     pX264Param->analyse.i_trellis = 1;							//ffmpeg:trellis
     //pX264Param->analyse.i_me_method=X264_ME_DIA;//ffmpeg:me_method ME_ZERO 运动侦测的方式
@@ -249,16 +247,14 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
     //* bitstream parameters
     /*open-GOP
      码流里面包含B帧的时候才会出现open-GOP。
-     一个GOP里面的某一帧在解码时要依赖于前一个GOP的某些帧，
-     这个GOP就称为open-GOP。
-     有些解码器不能完全支持open-GOP码流，
-     例如蓝光解码器，因此在x264里面open-GOP是默认关闭的。
+     一个GOP里面的某一帧在解码时要依赖于前一个GOP的某些帧，这个GOP就称为open-GOP。
+     有些解码器不能完全支持open-GOP码流，例如蓝光解码器，因此在x264里面open-GOP是默认关闭的。
      对于解码端，接收到的码流如果如下:I0 B0 B1 P0 B2 B3...这就是一个open-GOP码流（I帧后面紧跟B帧）。
      因此B0 B1的解码需要用到I0前面一个GOP的数据，B0 B1的dts是小于I0的。
      如果码流如下: I0 P0 B0 B1 P1 B2 B3...这就是一个close-GOP码流，
      I0后面所有帧的解码不依赖于I0前面的帧，I0后面所有帧的dts都比I0的大。
-     如果码流是IDR0 B0 B1 P0 B2 B3...那个这个GOP是close-GOP，B0,B1虽然dst比IDR0小，
-     但编解码端都刷新了参考缓冲，B0,B1参考不到前向GOP帧。
+     如果码流是IDR0 B0 B1 P0 B2 B3...那个这个GOP是close-GOP，
+     B0,B1虽然dst比IDR0小，但编解码端都刷新了参考缓冲，B0,B1参考不到前向GOP帧。
      对于编码端，如果编码帧类型决定如下: ...P0 B1 B2 P3 B4 B5 I6这就会输出open-Gop码流 （P0 P3 B1 B2 I6 B4 B5...），
      B4 B5的解码依赖P3。
      如果编码帧类型决定如下...P0 B1 B2 P3 B4 P5 I6这样就不会输出open-GOP码流（P0 P3 B1 B2 P5 B4 I6...）。

@@ -12,15 +12,6 @@
 #include "AudioSRC.h"
 #include "SDLAudioDevice.h"
 
-using namespace std;
-using namespace toolkit;
-
-AudioSRC::AudioSRC(AudioSRCDelegate *del) {
-    _delegate = del;
-}
-
-AudioSRC::~AudioSRC() {}
-
 void AudioSRC::setOutputAudioConfig(const SDL_AudioSpec &cfg) {
     int freq = _delegate->getPCMSampleRate();
     int format = _delegate->getPCMFormat();
@@ -28,18 +19,14 @@ void AudioSRC::setOutputAudioConfig(const SDL_AudioSpec &cfg) {
     if (-1 == SDL_BuildAudioCVT(&_audio_cvt, format, channels, freq, cfg.format, cfg.channels, cfg.freq)) {
         throw std::runtime_error("the format conversion is not supported");
     }
-    InfoL << "audio cvt origin format, freq:" << freq << ", format:" << hex << format  << dec << ", channels:" << channels;
+    InfoL << "audio cvt origin format, freq:" << freq << ", format:" << std::hex << format  << std::dec << ", channels:" << channels;
     InfoL << "audio cvt info, "
           << "needed:" << (int)_audio_cvt.needed
-          << ", src_format:" << hex << (SDL_AudioFormat)_audio_cvt.src_format
-          << ", dst_format:" << (SDL_AudioFormat)_audio_cvt.dst_format << dec
+          << ", src_format:" << std::hex << (SDL_AudioFormat)_audio_cvt.src_format
+          << ", dst_format:" << (SDL_AudioFormat)_audio_cvt.dst_format << std::dec
           << ", rate_incr:" << (double)_audio_cvt.rate_incr
           << ", len_mult:" << (int)_audio_cvt.len_mult
           << ", len_ratio:" << (double)_audio_cvt.len_ratio;
-}
-
-void AudioSRC::setEnableMix(bool flag) {
-    _enabled = flag;
 }
 
 int AudioSRC::getPCMData(char *buf, int size) {
@@ -67,7 +54,7 @@ int AudioSRC::getPCMData(char *buf, int size) {
         InfoL << "origin pcm buffer size is:" << original_size << ", target pcm buffer size is:" << size;
     }
 
-    auto origin_size = _delegate->getPCMData(_buf.get(), original_size );
+    auto origin_size = _delegate->getPCMData(_buf.get(), original_size);
     if (!origin_size) {
         //获取数据失败
         TraceL << "get empty pcm data";
@@ -108,20 +95,8 @@ void AudioPlayer::setup(int sample_rate, int channel, SDL_AudioFormat format) {
     _device->addChannel(this);
 }
 
-SDL_AudioFormat AudioPlayer::getPCMFormat() {
-    return _format;
-}
-
-int AudioPlayer::getPCMSampleRate() {
-    return _sample_rate;
-}
-
-int AudioPlayer::getPCMChannel() {
-    return _channel;
-}
-
 int AudioPlayer::getPCMData(char *buf, int size) {
-    lock_guard<mutex> lck(_mtx);
+    std::lock_guard<std::mutex> lck(_mtx);
     if (_buffer.size() < (size_t)size) {
         return 0;
     }
@@ -131,6 +106,6 @@ int AudioPlayer::getPCMData(char *buf, int size) {
 }
 
 void AudioPlayer::playPCM(const char *data, size_t size) {
-    lock_guard<mutex> lck(_mtx);
+    std::lock_guard<std::mutex> lck(_mtx);
     _buffer.append(data, size);
 }
