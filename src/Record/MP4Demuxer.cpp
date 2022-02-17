@@ -98,7 +98,7 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
 
             struct mpeg4_avc_t avc = {0};
             if (mpeg4_avc_decoder_configuration_record_load((uint8_t *) extra, bytes, &avc) > 0) {
-                uint8_t config[1024] = {0};
+                uint8_t config[1024 * 10] = {0};
                 int size = mpeg4_avc_to_nalu(&avc, config, sizeof(config));
                 if (size > 0) {
                     video->inputFrame(std::make_shared<H264FrameNoCacheAble>((char *)config, size, 0, 4));
@@ -112,7 +112,7 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
 
             struct mpeg4_hevc_t hevc = {0};
             if (mpeg4_hevc_decoder_configuration_record_load((uint8_t *) extra, bytes, &hevc) > 0) {
-                uint8_t config[1024] = {0};
+                uint8_t config[1024 * 10] = {0};
                 int size = mpeg4_hevc_to_nalu(&hevc, config, sizeof(config));
                 if (size > 0) {
                     video->inputFrame(std::make_shared<H265FrameNoCacheAble>((char *) config, size, 0, 4));
