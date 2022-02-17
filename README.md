@@ -24,6 +24,7 @@
 - 功能完善，支持集群、按需转协议、按需推拉流、先播后推、断连续推等功能。
 - 极致性能，单机10W级别播放器，100Gb/s级别io带宽能力。
 - 极致体验，[独家特性](https://github.com/ZLMediaKit/ZLMediaKit/wiki/ZLMediakit%E7%8B%AC%E5%AE%B6%E7%89%B9%E6%80%A7%E4%BB%8B%E7%BB%8D)
+- [谁在使用zlmediakit?](https://github.com/ZLMediaKit/ZLMediaKit/issues/511)
 
 ## 项目定位
 
