@@ -30,32 +30,23 @@ RtpProcess::RtpProcess(const string &stream_id) {
     _media_info._streamid = stream_id;
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
+    if(!dump_dir.empty())
     {
-        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".rtp", dump_dir).data(), "wb") : nullptr;
+        FILE *fp = File::create_file(File::absolutePath(_media_info._streamid + ".rtp", dump_dir).c_str(), "wb");
         if (fp) {
-            _save_file_rtp.reset(fp, [](FILE *fp) {
-                fclose(fp);
-            });
+            _save_file_rtp.reset(fp, fclose);
         }
-    }
 
-    {
-        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".video", dump_dir).data(), "wb") : nullptr;
+        fp = File::create_file(File::absolutePath(_media_info._streamid + ".video", dump_dir).c_str(), "wb");
         if (fp) {
-            _save_file_video.reset(fp, [](FILE *fp) {
-                fclose(fp);
-            });
+            _save_file_video.reset(fp, fclose);
         }
     }
 }
 
 RtpProcess::~RtpProcess() {
     uint64_t duration = (_last_frame_time.createdTime() - _last_frame_time.elapsedTime()) / 1000;
-    WarnP(this) << "RTP推流器("
-                << _media_info._vhost << "/"
-                << _media_info._app << "/"
-                << _media_info._streamid
-                << ")断开,耗时(s):" << duration;
+    WarnP(this) << "RTP推流器(" << _media_info.shortUrl() << ")断开,耗时(s):" << duration;
 
     //流量统计事件广播
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
@@ -65,15 +56,11 @@ RtpProcess::~RtpProcess() {
 }
 
 bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint32_t *dts_out) {
-    auto is_busy = _busy_flag.test_and_set();
-    if (is_busy) {
-        //其他线程正在执行本函数
+    if (_busy_flag.test_and_set()) {
         WarnP(this) << "其他线程正在执行本函数";
         return false;
     }
-    //没有其他线程执行本函数
     onceToken token(nullptr, [&]() {
-        //本函数执行完毕时，释放状态
         _busy_flag.clear();
     });
 
@@ -86,6 +73,7 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
 
     _total_bytes += len;
     if (_save_file_rtp) {
+        // rtp dump格式
         uint16_t size = (uint16_t)len;
         size = htons(size);
         fwrite((uint8_t *) &size, 2, 1, _save_file_rtp.get());
@@ -95,8 +83,7 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
         _process = std::make_shared<GB28181Process>(_media_info, this);
     }
 
-    GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
-    if (_muxer && !_muxer->isEnabled() && !dts_out && dump_dir.empty()) {
+    if (_muxer && !_muxer->isEnabled() && !dts_out && !_save_file_video) {
         //无人访问、且不取时间戳、不导出调试文件时，我们可以直接丢弃数据
         _last_frame_time.resetTime();
         return false;
@@ -118,6 +105,7 @@ bool RtpProcess::inputFrame(const Frame::Ptr &frame) {
         _last_frame_time.resetTime();
         return _muxer->inputFrame(frame);
     }
+    // else cache
     if (_cached_func.size() > kMaxCachedFrame) {
         WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now dropped";
         return false;
@@ -212,17 +200,11 @@ uint16_t RtpProcess::get_peer_port() {
 }
 
 string RtpProcess::get_local_ip() {
-    if (_sock) {
-        return _sock->get_local_ip();
-    }
-    return "::";
+    return _sock ? _sock->get_local_ip() : "::";
 }
 
 uint16_t RtpProcess::get_local_port() {
-    if (_sock) {
-        return _sock->get_local_port();
-    }
-    return 0;
+    return _sock ? _sock->get_local_port() : 0;
 }
 
 string RtpProcess::getIdentifier() const {
@@ -270,7 +252,7 @@ MediaOriginType RtpProcess::getOriginType(MediaSource &sender) const{
 }
 
 string RtpProcess::getOriginUrl(MediaSource &sender) const {
-    return _media_info._schema + "://" + _media_info._vhost + "/" + _media_info._app + "/" + _media_info._streamid;
+    return _media_info.fullUrl();
 }
 
 std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const {

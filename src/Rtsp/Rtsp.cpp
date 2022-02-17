@@ -432,11 +432,7 @@ void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local
 
 string printSSRC(uint32_t ui32Ssrc) {
     char tmp[9] = {0};
-    ui32Ssrc = htonl(ui32Ssrc);
-    uint8_t *pSsrc = (uint8_t *) &ui32Ssrc;
-    for (int i = 0; i < 4; i++) {
-        sprintf(tmp + 2 * i, "%02X", pSsrc[i]);
-    }
+    sprintf(tmp, "%08X", ui32Ssrc);
     return tmp;
 }
 

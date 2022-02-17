@@ -7,7 +7,7 @@
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
-
+#include "Util/logger.h"
 #include "TSDecoder.h"
 namespace mediakit {
 
@@ -22,29 +22,32 @@ void TSSegment::setOnSegment(TSSegment::onSegment cb) {
 ssize_t TSSegment::onRecvHeader(const char *data, size_t len) {
     if (!isTSPacket(data, len)) {
         WarnL << "不是ts包:" << (int) (data[0]) << " " << len;
-        return 0;
     }
-    _onSegment(data, len);
+    else {
+        _onSegment(data, len);
+    }
+    // 返回0，则不用Content-lenght来找帧
     return 0;
 }
 
 const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
     if (len < _size + 1) {
-        if (len == _size && ((uint8_t *) data)[0] == TS_SYNC_BYTE) {
+        if (len == _size && data[0] == TS_SYNC_BYTE) {
             return data + _size;
         }
         return nullptr;
     }
     //下一个包头
-    if (((uint8_t *) data)[_size] == TS_SYNC_BYTE) {
+    if (data[_size] == TS_SYNC_BYTE) {
         return data + _size;
     }
+    // 通过包头来定位起点
     auto pos = memchr(data + _size, TS_SYNC_BYTE, len - _size);
     if (pos) {
         return (char *) pos;
     }
     if (remainDataSize() > 4 * _size) {
-        //数据这么多都没ts包，全部清空
+        //这么多数据都没ts包，则清空
         return data + len;
     }
     //等待更多数据
@@ -57,9 +60,6 @@ const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
 #include "mpeg-ts.h"
 #include "mpeg-ts-proto.h"
 TSDecoder::TSDecoder() : _ts_segment() {
-    _ts_segment.setOnSegment([this](const char *data, size_t len){
-        ts_demuxer_input(_demuxer_ctx,(uint8_t*)data,len);
-    });
     _demuxer_ctx = ts_demuxer_create([](void* param, int program, int stream, int codecid, int flags, int64_t pts, int64_t dts, const void* data, size_t bytes){
         TSDecoder *thiz = (TSDecoder*)param;
         if (thiz->_on_decode) {
@@ -70,17 +70,20 @@ TSDecoder::TSDecoder() : _ts_segment() {
             }
         }
         return 0;
-    },this);
+    }, this);
 
-    ts_demuxer_notify_t notify = {
-            [](void *param, int stream, int codecid, const void *extra, int bytes, int finish) {
-                TSDecoder *thiz = (TSDecoder *) param;
-                if (thiz->_on_stream) {
-                    thiz->_on_stream(stream, codecid, extra, bytes, finish);
-                }
-            }
+    ts_demuxer_notify_t notify;
+    notify.onstream = [](void *param, int stream, int codecid, const void *extra, int bytes, int finish) {
+        TSDecoder *thiz = (TSDecoder *) param;
+        if (thiz->_on_stream) {
+            thiz->_on_stream(stream, codecid, extra, bytes, finish);
+        }
     };
     ts_demuxer_set_notify((struct ts_demuxer_t *) _demuxer_ctx, &notify, this);
+
+    _ts_segment.setOnSegment([this](const char *data, size_t len) {
+        ts_demuxer_input(_demuxer_ctx, (uint8_t*)data, len);
+    });
 }
 
 TSDecoder::~TSDecoder() {

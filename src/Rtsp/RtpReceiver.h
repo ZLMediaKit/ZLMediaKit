@@ -26,7 +26,8 @@ public:
     PacketSortor() = default;
     ~PacketSortor() = default;
 
-    void setOnSort(std::function<void(SEQ seq, T &packet)> cb) {
+    typedef std::function<void(SEQ seq, T& packet)> SortCallback;
+    void setOnSort(SortCallback cb) {
         _cb = std::move(cb);
     }
 
@@ -35,7 +36,7 @@ public:
      */
     void clear() {
         _seq_cycle_count = 0;
-        _pkt_sort_cache_map.clear();
+        _pkt_cache_map.clear();
         _next_seq_out = 0;
         _max_sort_size = kMin;
     }
@@ -44,7 +45,7 @@ public:
      * 获取排序缓存长度
      */
     size_t getJitterSize() const{
-        return _pkt_sort_cache_map.size();
+        return _pkt_cache_map.size();
     }
 
     /**
@@ -71,21 +72,21 @@ public:
         }
 
         //放入排序缓存
-        _pkt_sort_cache_map.emplace(seq, std::move(packet));
+        _pkt_cache_map.emplace(seq, std::move(packet));
         //尝试输出排序后的包
         tryPopPacket();
     }
 
     void flush(){
         //清空缓存
-        while (!_pkt_sort_cache_map.empty()) {
-            popIterator(_pkt_sort_cache_map.begin());
+        while (!_pkt_cache_map.empty()) {
+            popIterator(_pkt_cache_map.begin());
         }
     }
 
 private:
     void popPacket() {
-        auto it = _pkt_sort_cache_map.begin();
+        auto it = _pkt_cache_map.begin();
         if (it->first >= _next_seq_out) {
             //过滤回跳包
             popIterator(it);
@@ -94,38 +95,38 @@ private:
 
         if (_next_seq_out - it->first > ((std::numeric_limits<SEQ>::max)() >> 1)) {
             //产生回环了
-            if (_pkt_sort_cache_map.size() < 2 * kMin) {
+            if (_pkt_cache_map.size() < 2 * kMin) {
                 //等足够多的数据后才处理回环, 因为后面还可能出现大的SEQ
                 return;
             }
             ++_seq_cycle_count;
             //找到大的SEQ并清空掉，然后从小的SEQ重新开始排序
-            auto hit = _pkt_sort_cache_map.upper_bound((SEQ)(_next_seq_out - _pkt_sort_cache_map.size()));
-            while (hit != _pkt_sort_cache_map.end()) {
+            auto hit = _pkt_cache_map.upper_bound((SEQ)(_next_seq_out - _pkt_cache_map.size()));
+            while (hit != _pkt_cache_map.end()) {
                 //回环前，清空剩余的大的SEQ的数据
                 _cb(hit->first, hit->second);
-                hit = _pkt_sort_cache_map.erase(hit);
+                hit = _pkt_cache_map.erase(hit);
             }
             //下一个回环的数据
-            popIterator(_pkt_sort_cache_map.begin());
+            popIterator(_pkt_cache_map.begin());
         }
         else {
             //删除回跳的数据包
-            _pkt_sort_cache_map.erase(it);
+            _pkt_cache_map.erase(it);
         }
     }
 
     void popIterator(typename std::map<SEQ, T>::iterator it) {
         auto seq = it->first;
         auto data = std::move(it->second);
-        _pkt_sort_cache_map.erase(it);
+        _pkt_cache_map.erase(it);
         _next_seq_out = seq + 1;
         _cb(seq, data);
     }
 
     void tryPopPacket() {
         int count = 0;
-        while ((!_pkt_sort_cache_map.empty() && _pkt_sort_cache_map.begin()->first == _next_seq_out)) {
+        while ((!_pkt_cache_map.empty() && _pkt_cache_map.begin()->first == _next_seq_out)) {
             //找到下个包，直接输出
             popPacket();
             ++count;
@@ -133,7 +134,7 @@ private:
 
         if (count) {
             setSortSize();
-        } else if (_pkt_sort_cache_map.size() > _max_sort_size) {
+        } else if (_pkt_cache_map.size() > _max_sort_size) {
             //排序缓存溢出，不再继续排序
             popPacket();
             setSortSize();
@@ -141,7 +142,7 @@ private:
     }
 
     void setSortSize() {
-        _max_sort_size = kMin + _pkt_sort_cache_map.size();
+        _max_sort_size = kMin + _pkt_cache_map.size();
         if (_max_sort_size > kMax) {
             _max_sort_size = kMax;
         }
@@ -155,9 +156,9 @@ private:
     //排序缓存长度
     size_t _max_sort_size = kMin;
     //pkt排序缓存，根据seq排序
-    std::map<SEQ, T> _pkt_sort_cache_map;
+    std::map<SEQ, T> _pkt_cache_map;
     //回调
-    std::function<void(SEQ seq, T &packet)> _cb;
+    SortCallback _cb;
 };
 
 class RtpTrack : private PacketSortor<RtpPacket::Ptr>{
@@ -174,7 +175,9 @@ public:
 
     void clear();
     uint32_t getSSRC() const;
+    // 根据ssrc和pt来过滤和生成单个rtp流的包
     RtpPacket::Ptr inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
+    // rtcp sr用于更新ntp时间戳
     void setNtpStamp(uint32_t rtp_stamp, uint64_t ntp_stamp_ms);
 
 protected:
@@ -185,6 +188,7 @@ private:
     bool _disable_ntp = false;
     uint8_t _pt = 0xFF;
     uint32_t _ssrc = 0;
+    // ssrc切换计时器
     toolkit::Ticker _ssrc_alive;
     NtpStamp _ntp_stamp;
 };

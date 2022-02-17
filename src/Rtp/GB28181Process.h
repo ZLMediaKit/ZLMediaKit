@@ -16,20 +16,24 @@
 #include "Decoder.h"
 #include "ProcessInterface.h"
 #include "Rtsp/RtpCodec.h"
-#include "Rtsp/RtpReceiver.h"
-#include "Http/HttpRequestSplitter.h"
-
+#include "Common/MediaSource.h"
 namespace mediakit{
 
 class RtpReceiverImp;
+/* Rtp-> MediaSink
+ 本类根据pt解复用同一ssrc的rtp数据包，排序并解析帧，最终回调MediaSink接口
+*/
 class GB28181Process : public ProcessInterface {
 public:
     typedef std::shared_ptr<GB28181Process> Ptr;
-    GB28181Process(const MediaInfo &media_info, MediaSinkInterface *sink);
-    ~GB28181Process() override;
+
+    GB28181Process(const MediaInfo &media_info, MediaSinkInterface *sink) 
+        : _media_info(media_info), _interface(sink) {}
+    ~GB28181Process() override = default;
 
     /**
      * 输入rtp
+     * Rtp数据包进来, 根据pt先进RtpReceiverImp进行排序(onRtpSorted), 再进RtpCodec进行解码(onRtpDecode)，最终回调到MediaSink(inputFrame)
      * @param data rtp数据指针
      * @param data_len rtp数据长度
      * @return 是否解析成功
@@ -47,7 +51,9 @@ private:
     DecoderImp::Ptr _decoder;
     MediaSinkInterface *_interface;
     std::shared_ptr<FILE> _save_file_ps;
+    // pt->RtpCodec 负责rtp包解码
     std::unordered_map<uint8_t, std::shared_ptr<RtpCodec> > _rtp_decoder;
+    // pt->RtpReceiverImp 负责rtp包排序
     std::unordered_map<uint8_t, std::shared_ptr<RtpReceiverImp> > _rtp_receiver;
 };
 

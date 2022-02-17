@@ -21,13 +21,19 @@
 namespace mediakit{
 
 class RtpSelector;
-class RtpProcessHelper : public MediaSourceEvent , public std::enable_shared_from_this<RtpProcessHelper> {
+// 主要作用：在close时，调用RtpSelector::Instance()->delProcess()
+class RtpProcessHelper : public MediaSourceEvent, 
+    public std::enable_shared_from_this<RtpProcessHelper> {
 public:
     typedef std::shared_ptr<RtpProcessHelper> Ptr;
-    RtpProcessHelper(const std::string &stream_id, const std::weak_ptr<RtpSelector > &parent);
-    ~RtpProcessHelper();
-    void attachEvent();
-    RtpProcess::Ptr & getProcess();
+
+    RtpProcessHelper(const std::string &stream_id, const std::weak_ptr<RtpSelector> &parent);
+    ~RtpProcessHelper() {}
+
+    void attachEvent() {
+        _process->setListener(shared_from_this());
+    }
+    RtpProcess::Ptr& getProcess() { return _process; }
 
 protected:
     // 通知其停止推流
@@ -36,18 +42,23 @@ protected:
     int totalReaderCount(MediaSource &sender) override;
 
 private:
-    std::weak_ptr<RtpSelector > _parent;
+    std::weak_ptr<RtpSelector> _parent;
     RtpProcess::Ptr _process;
     std::string _stream_id;
 };
 
+/*
+RtpProcess管理类.
+支持根据ssrc自动创建或根据stream_id手工创建RtpProcess
+并定期清理过期的RtpProcess(alive() = false)
+*/
 class RtpSelector : public std::enable_shared_from_this<RtpSelector>{
 public:
-    RtpSelector();
-    ~RtpSelector();
+    RtpSelector() = default;
+    ~RtpSelector() = default;
 
     static bool getSSRC(const char *data,size_t data_len, uint32_t &ssrc);
-    static RtpSelector &Instance();
+    static RtpSelector& Instance();
 
     /**
      * 清空所有对象
@@ -88,7 +99,7 @@ private:
 private:
     toolkit::Timer::Ptr _timer;
     std::recursive_mutex _mtx_map;
-    std::unordered_map<std::string,RtpProcessHelper::Ptr> _map_rtp_process;
+    std::unordered_map<std::string, RtpProcessHelper::Ptr> _map_rtp_process;
 };
 
 }//namespace mediakit

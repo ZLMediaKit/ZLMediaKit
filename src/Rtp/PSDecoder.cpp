@@ -33,13 +33,12 @@ PSDecoder::PSDecoder() {
         return 0;
     },this);
 
-    ps_demuxer_notify_t notify = {
-            [](void *param, int stream, int codecid, const void *extra, int bytes, int finish) {
-                PSDecoder *thiz = (PSDecoder *) param;
-                if (thiz->_on_stream) {
-                    thiz->_on_stream(stream, codecid, extra, bytes, finish);
-                }
-            }
+    ps_demuxer_notify_t notify;
+    notify.onstream = [](void *param, int stream, int codecid, const void *extra, int bytes, int finish) {
+        PSDecoder *thiz = (PSDecoder *) param;
+        if (thiz->_on_stream) {
+            thiz->_on_stream(stream, codecid, extra, bytes, finish);
+        }
     };
     ps_demuxer_set_notify((struct ps_demuxer_t *) _ps_demuxer, &notify, this);
 }
@@ -68,16 +67,13 @@ const char *PSDecoder::onSearchPacketTail(const char *data, size_t len) {
             //解析成功全部或部分
             return data + ret;
         }
-
-        //解析失败，丢弃所有数据
-        return data + len;
     } catch (std::exception &ex) {
-        InfoL << "解析 ps 异常: bytes=" << len
-              << ", exception=" << ex.what()
-              << ", hex=" << hexdump(data, MIN(len, 32));
-        //触发断言，解析失败，丢弃所有数据
-        return data + len;
+        InfoL << "ps解析异常: " << ex.what() 
+            << ", bytes=" << len 
+            << ", hex=" << hexdump(data, MIN(len, 32));
     }
+    //解析失败，丢弃所有数据
+    return data + len;
 }
 
 }//namespace mediakit

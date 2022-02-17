@@ -42,7 +42,8 @@ static Decoder::Ptr createDecoder_l(DecoderImp::Type type) {
             return nullptr;
 #endif//ENABLE_HLS
 
-        default: return nullptr;
+        default: 
+            return nullptr;
     }
 }
 
@@ -50,7 +51,7 @@ static Decoder::Ptr createDecoder_l(DecoderImp::Type type) {
 
 DecoderImp::Ptr DecoderImp::createDecoder(Type type, MediaSinkInterface *sink){
     auto decoder =  createDecoder_l(type);
-    if(!decoder){
+    if(!decoder) {
         return nullptr;
     }
     return DecoderImp::Ptr(new DecoderImp(decoder, sink));
@@ -145,7 +146,8 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
     }
 }
 
-void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,size_t bytes) {
+void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void* data, size_t bytes) {
+    // 单位换算成ms
     pts /= 90;
     dts /= 90;
 
@@ -155,7 +157,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 onTrack(std::make_shared<H264Track>());
             }
             auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, (uint32_t)dts, (uint32_t)pts, prefixSize((char *) data, bytes));
-            _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
+            _merger.inputFrame(frame, [this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
                 onFrame(std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
             break;
@@ -166,7 +168,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
                 onTrack(std::make_shared<H265Track>());
             }
             auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, (uint32_t)dts, (uint32_t)pts, prefixSize((char *) data, bytes));
-            _merger.inputFrame(frame,[this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
+            _merger.inputFrame(frame, [this](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool) {
                 onFrame(std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
             break;
@@ -174,7 +176,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
 
         case PSI_STREAM_AAC: {
             uint8_t *ptr = (uint8_t *)data;
-            if(!(bytes > 7 && ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0)){
+            if(!(bytes > ADTS_HEADER_LEN && ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0)){
                 //这不是aac
                 break;
             }

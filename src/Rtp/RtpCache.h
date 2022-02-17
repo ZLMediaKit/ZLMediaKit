@@ -16,7 +16,8 @@
 #include "PSEncoder.h"
 #include "RawEncoder.h"
 #include "Extension/CommonRtp.h"
-
+// for PacketCache
+#include "Common/MediaSource.h"
 namespace mediakit{
 
 class RtpCache : private PacketCache<toolkit::Buffer> {

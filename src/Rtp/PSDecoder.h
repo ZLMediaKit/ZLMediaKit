@@ -18,7 +18,7 @@
 
 namespace mediakit{
 
-//ps解析器
+//ps解析器:负责拆包找帧
 class PSDecoder : public Decoder, private HttpRequestSplitter {
 public:
     PSDecoder();
@@ -32,6 +32,7 @@ public:
 private:
     using HttpRequestSplitter::input;
     const char *onSearchPacketTail(const char *data, size_t len) override;
+    // 退化到不使用Content-Length找帧
     ssize_t onRecvHeader(const char *, size_t) override { return 0; };
 
 private:

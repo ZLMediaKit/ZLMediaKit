@@ -28,6 +28,7 @@ public:
 
     RtpSession(const toolkit::Socket::Ptr &sock);
     ~RtpSession() override;
+
     void onRecv(const toolkit::Buffer::Ptr &) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
@@ -52,8 +53,8 @@ private:
     std::string _stream_id;
     struct sockaddr_storage _addr;
     RtpProcess::Ptr _process;
-    std::shared_ptr<toolkit::ObjectStatistic<toolkit::TcpSession> > _statistic_tcp;
-    std::shared_ptr<toolkit::ObjectStatistic<toolkit::UdpSession> > _statistic_udp;
+    // 负责自动增加和减少对象统计数
+    std::shared_ptr<void> _statistic_counter;
 };
 
 }//namespace mediakit

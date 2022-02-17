@@ -20,6 +20,7 @@ namespace mediakit {
 class ProcessInterface {
 public:
     using Ptr = std::shared_ptr<ProcessInterface>;
+
     ProcessInterface() = default;
     virtual ~ProcessInterface() = default;
 

@@ -10,6 +10,7 @@
 
 #if defined(ENABLE_RTPPROXY)
 #include "GB28181Process.h"
+#include "Rtsp/RtpReceiver.h"
 #include "Util/File.h"
 #include "Http/HttpTSPlayer.h"
 #include "Extension/CommonRtp.h"
@@ -43,24 +44,17 @@ public:
 
     ~RtpReceiverImp() override = default;
 
-    bool inputRtp(TrackType type, uint8_t *ptr, size_t len){
-        return RtpTrack::inputRtp(type, _sample_rate, ptr, len).operator bool();
+    bool inputRtp(uint8_t *ptr, size_t len){
+        return RtpTrack::inputRtp(_sample_rate == 90000 ? TrackVideo : TrackAudio, _sample_rate, ptr, len).operator bool();
     }
 
 private:
+    // 记录采样率来换算时间戳
     int _sample_rate;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
-GB28181Process::GB28181Process(const MediaInfo &media_info, MediaSinkInterface *sink) {
-    assert(sink);
-    _media_info = media_info;
-    _interface = sink;
-}
-
-GB28181Process::~GB28181Process() {}
-
+// GB28181Process
 void GB28181Process::onRtpSorted(RtpPacket::Ptr rtp) {
     _rtp_decoder[rtp->getHeader()->pt]->inputRtp(rtp, false);
 }
@@ -74,12 +68,13 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
             //防止pt类型太多导致内存溢出
             throw std::invalid_argument("rtp pt类型不得超过2种!");
         }
+        RtpTrackImp::OnSorted onSort = [this](RtpPacket::Ptr rtp) {
+            onRtpSorted(std::move(rtp));
+        };
         switch (pt) {
             case 100: {
                 //opus负载
-                ref = std::make_shared<RtpReceiverImp>(48000,[this](RtpPacket::Ptr rtp) {
-                    onRtpSorted(std::move(rtp));
-                });
+                ref = std::make_shared<RtpReceiverImp>(48000, onSort);
 
                 auto track = std::make_shared<OpusTrack>();
                 _interface->addTrack(track);
@@ -89,9 +84,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
 
             case 99: {
                 //H265负载
-                ref = std::make_shared<RtpReceiverImp>(90000,[this](RtpPacket::Ptr rtp) {
-                    onRtpSorted(std::move(rtp));
-                });
+                ref = std::make_shared<RtpReceiverImp>(90000, onSort);
 
                 auto track = std::make_shared<H265Track>();
                 _interface->addTrack(track);
@@ -100,9 +93,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
             }
             case 98: {
                 //H264负载
-                ref = std::make_shared<RtpReceiverImp>(90000,[this](RtpPacket::Ptr rtp) {
-                    onRtpSorted(std::move(rtp));
-                });
+                ref = std::make_shared<RtpReceiverImp>(90000, onSort);
 
                 auto track = std::make_shared<H264Track>();
                 _interface->addTrack(track);
@@ -110,13 +101,10 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                 break;
             }
 
-            case 0:
-                //CodecG711U
-            case 8: {
-                //CodecG711A
-                ref = std::make_shared<RtpReceiverImp>(8000,[this](RtpPacket::Ptr rtp) {
-                    onRtpSorted(std::move(rtp));
-                });
+            case 0:  //CodecG711U
+            case 8:  //CodecG711A
+            {
+                ref = std::make_shared<RtpReceiverImp>(8000, onSort);
 
                 auto track = std::make_shared<G711Track>(pt == 0 ? CodecG711U : CodecG711A, 8000, 1, 16);
                 _interface->addTrack(track);
@@ -129,9 +117,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                     WarnL << "rtp payload type未识别(" << (int) pt << "),已按ts或ps负载处理";
                 }
 
-                ref = std::make_shared<RtpReceiverImp>(90000,[this](RtpPacket::Ptr rtp) {
-                    onRtpSorted(std::move(rtp));
-                });
+                ref = std::make_shared<RtpReceiverImp>(90000, onSort);
 
                 //ts或ps负载
                 _rtp_decoder[pt] = std::make_shared<CommonRtpDecoder>(CodecInvalid, 32 * 1024);
@@ -139,11 +125,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                 GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
                 if (!dump_dir.empty()) {
                     auto save_path = File::absolutePath(_media_info._streamid + ".mp2", dump_dir);
-                    _save_file_ps.reset(File::create_file(save_path.data(), "wb"), [](FILE *fp) {
-                        if (fp) {
-                            fclose(fp);
-                        }
-                    });
+                    _save_file_ps.reset(File::create_file(save_path.data(), "wb"), [](FILE *fp) {if (fp)fclose(fp);});
                 }
                 break;
             }
@@ -155,8 +137,12 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
             return true;
         });
     }
-
-    return ref->inputRtp(TrackVideo, (unsigned char *) data, data_len);
+    /*
+    - onRtpSorted
+      RtpDecoder::inputRtp
+      - onRtpDecode
+    */
+    return ref->inputRtp((unsigned char *) data, data_len);
 }
 
 void GB28181Process::onRtpDecode(const Frame::Ptr &frame) {

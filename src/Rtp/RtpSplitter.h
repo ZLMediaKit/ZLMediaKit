@@ -15,11 +15,14 @@
 #include "Http/HttpRequestSplitter.h"
 
 namespace mediakit{
-
+/* 
+tcp的rtp分包器，并处理了ehome协议
+['$' channel len1 len2] rtp packet
+*/
 class RtpSplitter : public HttpRequestSplitter{
 public:
-    RtpSplitter();
-    ~RtpSplitter() override;
+    RtpSplitter() = default;
+    ~RtpSplitter() = default;
 
 protected:
     /**

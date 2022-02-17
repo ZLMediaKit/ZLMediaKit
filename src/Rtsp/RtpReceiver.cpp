@@ -45,10 +45,10 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
     }
     RtpHeader *header = (RtpHeader *) ptr;
     if (header->version != RtpPacket::kRtpVersion) {
-        throw BadRtpException("非法的rtp，version字段非法");
+        throw BadRtpException("only support rtp ver 2");
     }
     if (!header->getPayloadSize(len)) {
-        //无有效负载的rtp包
+        //略过负载为空的rtp包
         return nullptr;
     }
 
@@ -82,28 +82,29 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
     }
 
     auto rtp = RtpPacket::create();
-    //需要添加4个字节的rtp over tcp头
-    rtp->setCapacity(RtpPacket::kRtpTcpHeaderSize + len);
-    rtp->setSize(RtpPacket::kRtpTcpHeaderSize + len);
     rtp->sample_rate = sample_rate;
     rtp->type = type;
 
-    //赋值4个字节的rtp over tcp头
+    // 添加 rtp over tcp 头
+    rtp->setCapacity(RtpPacket::kRtpTcpHeaderSize + len);
+    rtp->setSize(RtpPacket::kRtpTcpHeaderSize + len);
     uint8_t *data = (uint8_t *) rtp->data();
     data[0] = '$';
     data[1] = 2 * type;
     data[2] = (len >> 8) & 0xFF;
     data[3] = len & 0xFF;
-    //拷贝rtp
+    //拷贝rtp包体
     memcpy(&data[4], ptr, len);
+
     if (_disable_ntp) {
-        //不支持ntp时间戳，例如国标推流，那么直接使用rtp时间戳
+        // 不支持ntp时间戳，例如国标推流，那么直接使用rtp时间戳
         rtp->ntp_stamp = rtp->getStamp() * uint64_t(1000) / sample_rate;
     } else {
         //设置ntp时间戳
         rtp->ntp_stamp = _ntp_stamp.getNtpStamp(rtp->getStamp(), sample_rate);
     }
     onBeforeRtpSorted(rtp);
+    // 根据系列号排序
     sortPacket(rtp->getSeq(), rtp);
     return rtp;
 }

@@ -31,9 +31,9 @@ void RtpSession::attachServer(const Server &server) {
     if (_is_udp) {
         //设置udp socket读缓存
         SockUtil::setRecvBuf(getSock()->rawFD(), 4 * 1024 * 1024);
-        _statistic_udp = std::make_shared<ObjectStatistic<UdpSession> >();
+        _statistic_counter = std::make_shared<ObjectStatistic<UdpSession> >();
     } else {
-        _statistic_tcp = std::make_shared<ObjectStatistic<TcpSession> >();
+        _statistic_counter = std::make_shared<ObjectStatistic<TcpSession> >();
     }
 }
 
@@ -45,17 +45,18 @@ RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
 
 RtpSession::~RtpSession() {
     DebugP(this);
-    if(_process){
-        RtpSelector::Instance().delProcess(_stream_id,_process.get());
+    if(_process) {
+        RtpSelector::Instance().delProcess(_stream_id, _process.get());
     }
 }
 
 void RtpSession::onRecv(const Buffer::Ptr &data) {
     if (_is_udp) {
         onRtpPacket(data->data(), data->size());
-        return;
     }
-    RtpSplitter::input(data->data(), data->size());
+    else { // tcp 须进行拆包
+        RtpSplitter::input(data->data(), data->size());
+    }
 }
 
 void RtpSession::onError(const SockException &err) {
@@ -63,12 +64,12 @@ void RtpSession::onError(const SockException &err) {
 }
 
 void RtpSession::onManager() {
-    if(_process && !_process->alive()){
-        shutdown(SockException(Err_timeout, "receive rtp timeout"));
+    if(_process){
+        if(!_process->alive())
+            shutdown(SockException(Err_timeout, "rtp receive timeout"));
     }
-
-    if(!_process && _ticker.createdTime() > 10 * 1000){
-        shutdown(SockException(Err_timeout, "illegal connection"));
+    else if(_ticker.createdTime() > 10 * 1000){
+        shutdown(SockException(Err_timeout, "illegal connection"));                  
     }
 }
 
@@ -90,19 +91,21 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
             return;
         }
     }
+
     if (!_process) {
         //未设置ssrc时，尝试获取ssrc
         if (!_ssrc && !RtpSelector::getSSRC(data, len, _ssrc)) {
             return;
         }
         if (_stream_id.empty()) {
-            //未指定流id就使用ssrc为流id
+            // 未指定流id就使用ssrc为流id
             _stream_id = printSSRC(_ssrc);
         }
         //tcp情况下，一个tcp链接只可能是一路流，不需要通过多个ssrc来区分，所以不需要频繁getProcess
         _process = RtpSelector::Instance().getProcess(_stream_id, true);
         _process->setListener(dynamic_pointer_cast<RtpSession>(shared_from_this()));
     }
+
     try {
         uint32_t rtp_ssrc = 0;
         RtpSelector::getSSRC(data, len, rtp_ssrc);
@@ -129,8 +132,8 @@ bool RtpSession::close(MediaSource &sender, bool force) {
     if(!_process || (!force && _process->getTotalReaderCount())){
         return false;
     }
-    string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
-    safeShutdown(SockException(Err_shutdown,err));
+    string err = StrPrinter << "close media:" << sender.getUrl() << " " << force;
+    safeShutdown(SockException(Err_shutdown, err));
     return true;
 }
 

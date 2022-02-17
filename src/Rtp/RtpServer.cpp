@@ -14,7 +14,7 @@
 #include "RtpSelector.h"
 #include "Rtcp/RtcpContext.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 
 namespace mediakit{
@@ -37,14 +37,16 @@ public:
     }
 
     void onRecvRtp(const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
-        //统计rtp接受情况，用于发送rr包
+        // 统计rtp接受情况，用于发送rr包
         auto header = (RtpHeader *) buf->data();
-        onRtp(ntohs(header->seq), ntohl(header->stamp), 0/*不发送sr,所以可以设置为0*/ , _sample_rate, buf->size());
+        onRtp(ntohs(header->seq), ntohl(header->stamp), 0/*不发送sr,所以ntp_tsp可设为0*/ , _sample_rate, buf->size());
+        // 必要时发送rtcp rr请求
         sendRtcp(ntohl(header->ssrc), addr, addr_len);
     }
 
+    // 处理rtcp包的接收
     void startRtcp(){
-        weak_ptr<RtcpHelper> weak_self = shared_from_this();
+        std::weak_ptr<RtcpHelper> weak_self = shared_from_this();
         _rtcp_sock->setOnRead([weak_self](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
             //用于接受rtcp打洞包
             auto strong_self = weak_self.lock();
@@ -65,7 +67,7 @@ public:
 
 private:
     void sendRtcp(uint32_t rtp_ssrc, struct sockaddr *addr, int addr_len){
-        //每5秒发送一次rtcp
+        // 每5秒发送一次rtcp
         if (_ticker.elapsedTime() < 5000) {
             return;
         }
@@ -73,12 +75,12 @@ private:
 
         auto rtcp_addr = (struct sockaddr *)_rtcp_addr.get();
         if (!rtcp_addr) {
-            //默认的，rtcp端口为rtp端口+1
+            // guess rtcpPort = rtpPort + 1
             switch(addr->sa_family){
                 case AF_INET: ((sockaddr_in *) addr)->sin_port = htons(ntohs(((sockaddr_in *) addr)->sin_port) + 1); break;
                 case AF_INET6: ((sockaddr_in6 *) addr)->sin6_port = htons(ntohs(((sockaddr_in6 *) addr)->sin6_port) + 1); break;
             }
-            //未收到rtcp打洞包时，采用默认的rtcp端口
+            // 未收到对方rtcp打洞包时，采用缺省/猜测的rtcp端口
             rtcp_addr = addr;
         }
         _rtcp_sock->send(createRtcpRR(rtp_ssrc + 1, rtp_ssrc), rtcp_addr, addr_len);
@@ -104,10 +106,10 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, bool enable_
         throw std::runtime_error(StrPrinter << "创建rtp端口 " << local_ip << ":" << local_port << " 失败:" << get_uv_errmsg(true));
     } else if (!rtcp_socket->bindUdpSock(rtp_socket->get_local_port() + 1, local_ip, re_use_port)) {
         // rtcp端口
-        throw std::runtime_error(StrPrinter << "创建rtcp端口 " << local_ip << ":" << local_port << " 失败:" << get_uv_errmsg(true));
+        throw std::runtime_error(StrPrinter << "创建rtcp端口 " << local_ip << ":" << local_port + 1 << " 失败:" << get_uv_errmsg(true));
     }
 
-    //设置udp socket读缓存
+    //设置udp socket读缓存 4M?
     SockUtil::setRecvBuf(rtp_socket->rawFD(), 4 * 1024 * 1024);
 
     TcpServer::Ptr tcp_server;
@@ -140,10 +142,12 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, bool enable_
         });
     } else {
 #if 1
-        //单端口多线程接收多个流，根据ssrc区分流
+        //单端口多线程接收多个流，根据客户端ip+port区分RtpSession，根据ssrc区分流(RtpSelector)
         udp_server = std::make_shared<UdpServer>(rtp_socket->getPoller());
         (*udp_server)[RtpSession::kIsUDP] = 1;
+        // 此时的rtp_socket只是来判断端口是否可用而已，数据由udp_server接管，后者可以做到一个peer一个线程
         udp_server->start<RtpSession>(rtp_socket->get_local_port(), local_ip);
+        // 这边的rtp_socket只起到占用端口作用
         rtp_socket = nullptr;
 #else
         //单端口单线程接收多个流
@@ -171,7 +175,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, bool enable_
     _rtp_process = process;
 }
 
-void RtpServer::setOnDetach(const function<void()> &cb) {
+void RtpServer::setOnDetach(const std::function<void()> &cb) {
     if (_rtp_process) {
         _rtp_process->setOnDetach(cb);
     }
