@@ -94,7 +94,7 @@ bool H265Track::ready() {
 
 bool H265Track::inputFrame(const Frame::Ptr &frame) {
     int type = H265_TYPE(frame->data()[frame->prefixSize()]);
-    if (!frame->configFrame() && type != H265Frame::NAL_SEI_PREFIX) {
+    if (!frame->configFrame() && type != H265Frame::NAL_SEI_PREFIX && ready()) {
         return inputFrame_l(frame);
     }
     bool ret = false;
