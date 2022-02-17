@@ -12,6 +12,7 @@
 #include <ctime>
 #include <sys/stat.h>
 #include "Util/File.h"
+#include "Util/logger.h"
 #include "Common/config.h"
 #include "MP4Recorder.h"
 #include "Thread/WorkThreadPool.h"

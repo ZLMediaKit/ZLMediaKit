@@ -14,9 +14,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-HlsCookieData::HlsCookieData(const MediaInfo &info, const std::shared_ptr<SockInfo> &sock_info) {
-    _info = info;
-    _sock_info = sock_info;
+HlsCookieData::HlsCookieData(const MediaInfo &info, std::shared_ptr<toolkit::SockInfo> sock_info) : _info(info), _sock_info(sock_info) {
     _added = std::make_shared<bool>(false);
     addReaderCount();
 }
@@ -39,9 +37,7 @@ void HlsCookieData::addReaderCount() {
 HlsCookieData::~HlsCookieData() {
     if (*_added) {
         uint64_t duration = (_ticker.createdTime() - _ticker.elapsedTime()) / 1000;
-        WarnL << _sock_info->getIdentifier() << "(" << _sock_info->get_peer_ip() << ":" << _sock_info->get_peer_port()
-              << ") " << "HLS播放器(" << _info._vhost << "/" << _info._app << "/" << _info._streamid
-              << ")断开,耗时(s):" << duration;
+        WarnP(_sock_info)  << "HLS播放器(" << _info._vhost << "/" << _info._app << "/" << _info._streamid << ")断开,耗时(s):" << duration;
 
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
         uint64_t bytes = _bytes.load();

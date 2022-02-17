@@ -17,7 +17,6 @@
 #include "Extension/G711.h"
 #include "Extension/Opus.h"
 using namespace toolkit;
-using namespace std;
 
 namespace mediakit {
 
@@ -27,7 +26,7 @@ MP4Demuxer::~MP4Demuxer() {
     closeMP4();
 }
 
-void MP4Demuxer::openMP4(const string &file) {
+void MP4Demuxer::openMP4(const std::string &file) {
     closeMP4();
 
     _mp4_file = std::make_shared<MP4FileDisk>();
@@ -44,19 +43,19 @@ void MP4Demuxer::closeMP4() {
 
 int MP4Demuxer::getAllTracks() {
     static mov_reader_trackinfo_t s_on_track = {
-            [](void *param, uint32_t track, uint8_t object, int width, int height, const void *extra, size_t bytes) {
-                //onvideo
-                MP4Demuxer *thiz = (MP4Demuxer *)param;
-                thiz->onVideoTrack(track,object,width,height,extra,bytes);
-            },
-            [](void *param, uint32_t track, uint8_t object, int channel_count, int bit_per_sample, int sample_rate, const void *extra, size_t bytes) {
-                //onaudio
-                MP4Demuxer *thiz = (MP4Demuxer *)param;
-                thiz->onAudioTrack(track,object,channel_count,bit_per_sample,sample_rate,extra,bytes);
-            },
-            [](void *param, uint32_t track, uint8_t object, const void *extra, size_t bytes) {
-                //onsubtitle, do nothing
-            }
+        [](void *param, uint32_t track, uint8_t object, int width, int height, const void *extra, size_t bytes) {
+            //onvideo
+            MP4Demuxer *thiz = (MP4Demuxer *)param;
+            thiz->onVideoTrack(track, object, width, height, extra, bytes);
+        },
+        [](void *param, uint32_t track, uint8_t object, int channel_count, int bit_per_sample, int sample_rate, const void *extra, size_t bytes) {
+            //onaudio
+            MP4Demuxer *thiz = (MP4Demuxer *)param;
+            thiz->onAudioTrack(track, object, channel_count, bit_per_sample, sample_rate, extra, bytes);
+        },
+        [](void *param, uint32_t track, uint8_t object, const void *extra, size_t bytes) {
+            //onsubtitle, do nothing
+        }
     };
     return mov_reader_getinfo(_mov_reader.get(),&s_on_track,this);
 }
@@ -94,7 +93,7 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
     switch (object) {
         case MOV_OBJECT_H264: {
             auto video = std::make_shared<H264Track>();
-            _track_to_codec.emplace(track,video);
+            _track_to_codec.emplace(track, video);
 
             struct mpeg4_avc_t avc = {0};
             if (mpeg4_avc_decoder_configuration_record_load((uint8_t *) extra, bytes, &avc) > 0) {
@@ -129,7 +128,7 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
 void MP4Demuxer::onAudioTrack(uint32_t track_id, uint8_t object, int channel_count, int bit_per_sample, int sample_rate, const void *extra, size_t bytes) {
     switch(object){
         case MOV_OBJECT_AAC:{
-            auto audio = std::make_shared<AACTrack>(bytes > 0 ? string((char *)extra,bytes) : "");
+            auto audio = std::make_shared<AACTrack>(bytes > 0 ? std::string((char *)extra,bytes) : "");
             _track_to_codec.emplace(track_id, audio);
             break;
         }
@@ -185,6 +184,7 @@ Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
         ctx->buffer = ctx->thiz->_buffer_pool.obtain2();
         ctx->buffer->setCapacity(bytes + DATA_OFFSET + 1);
         ctx->buffer->setSize(bytes + DATA_OFFSET);
+        // 头部略过7个字节，用于填充prefix
         return ctx->buffer->data() + DATA_OFFSET;
     };
 
@@ -223,40 +223,36 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
         case CodecH265 : {
             uint32_t offset = 0;
             while (offset < bytes) {
-                uint32_t frame_len;
-                memcpy(&frame_len, data + offset, 4);
-                frame_len = ntohl(frame_len);
+                uint32_t frame_len = ntohl(*(uint32_t*)(data + offset));
                 if (frame_len + offset + 4 > bytes) {
                     return nullptr;
                 }
                 memcpy(data + offset, "\x00\x00\x00\x01", 4);
                 offset += (frame_len + 4);
             }
-            if (codec == CodecH264) {
+            if (codec == CodecH264)
                 ret = std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
-                break;
-            }
-            ret = std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
+            else
+                ret = std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
             break;
         }
 
         case CodecAAC: {
-            AACTrack::Ptr track = dynamic_pointer_cast<AACTrack>(it->second);
+            AACTrack::Ptr track = std::dynamic_pointer_cast<AACTrack>(it->second);
             assert(track);
             //加上adts头
-            dumpAacConfig(track->getAacCfg(), buf->size() - DATA_OFFSET, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
+            dumpAacConfig(track->getAacCfg(), bytes, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
             ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
             break;
         }
 
         case CodecOpus:
         case CodecG711A:
-        case CodecG711U: {
+        case CodecG711U: 
             ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, 0, DATA_OFFSET, codec);
             break;
-        }
-
-        default: return nullptr;
+        default: 
+            return nullptr;
     }
     if (ret) {
         it->second->inputFrame(ret);
@@ -264,8 +260,8 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
     return ret;
 }
 
-vector<Track::Ptr> MP4Demuxer::getTracks(bool trackReady) const {
-    vector<Track::Ptr> ret;
+std::vector<Track::Ptr> MP4Demuxer::getTracks(bool trackReady) const {
+    std::vector<Track::Ptr> ret;
     for (auto &pr : _track_to_codec) {
         if(trackReady && !pr.second->ready()){
             continue;

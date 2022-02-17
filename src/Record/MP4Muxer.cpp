@@ -19,36 +19,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Muxer::MP4Muxer() {}
-
-MP4Muxer::~MP4Muxer() {
-    closeMP4();
-}
-
-void MP4Muxer::openMP4(const string &file) {
-    closeMP4();
-    _file_name = file;
-    _mp4_file = std::make_shared<MP4FileDisk>();
-    _mp4_file->openFile(_file_name.data(), "wb+");
-}
-
-MP4FileIO::Writer MP4Muxer::createWriter() {
-    GET_CONFIG(bool, mp4FastStart, Record::kFastStart);
-    return _mp4_file->createWriter(mp4FastStart ? MOV_FLAG_FASTSTART : 0, false);
-}
-
-void MP4Muxer::closeMP4() {
-    MP4MuxerInterface::resetTracks();
-    _mp4_file = nullptr;
-}
-
-void MP4Muxer::resetTracks() {
-    MP4MuxerInterface::resetTracks();
-    openMP4(_file_name);
-}
-
-/////////////////////////////////////////// MP4MuxerInterface /////////////////////////////////////////////
-
 void MP4MuxerInterface::saveSegment() {
     mp4_writer_save_segment(_mov_writter.get());
 }
@@ -79,7 +49,6 @@ bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
     if (!_started) {
         //该逻辑确保含有视频时，第一帧为关键帧
         if (_have_video && !frame->keyFrame()) {
-            //含有视频，但是不是关键帧，那么前面的帧丢弃
             return false;
         }
         //开始写文件
@@ -185,7 +154,7 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
                                                  audio_track->getAudioSampleRate(),
                                                  nullptr, 0);
             if (track_id < 0) {
-                WarnL << "添加Track[" << track->getCodecName() << "]失败:" << track_id;
+                WarnL << "Track[" << track->getCodecName() << "]添加失败:" << track_id;
                 return false;
             }
             _codec_to_trackid[track->getCodecId()].track_id = track_id;
@@ -284,12 +253,44 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
             break;
         }
 
-        default: WarnL << "MP4录制不支持该编码格式:" << track->getCodecName(); return false;
+        default: 
+            WarnL << "MP4录制不支持该编码格式:" << track->getCodecName(); 
+            return false;
     }
 
     //尝试音视频同步
     stampSync();
     return true;
+}
+
+/////////////////////////////////////////// MP4Muxer /////////////////////////////////////////////
+MP4Muxer::MP4Muxer() {}
+
+MP4Muxer::~MP4Muxer() {
+    closeMP4();
+}
+
+void MP4Muxer::openMP4(const string &file) {
+    closeMP4();
+    _file_name = file;
+    _mp4_file = std::make_shared<MP4FileDisk>();
+    _mp4_file->openFile(_file_name.data(), "wb+");
+}
+
+MP4FileIO::Writer MP4Muxer::createWriter() {
+    GET_CONFIG(bool, mp4FastStart, Record::kFastStart);
+    // 正常mp4读写
+    return _mp4_file->createWriter(mp4FastStart ? MOV_FLAG_FASTSTART : 0, false);
+}
+
+void MP4Muxer::closeMP4() {
+    MP4MuxerInterface::resetTracks();
+    _mp4_file = nullptr;
+}
+
+void MP4Muxer::resetTracks() {
+    MP4MuxerInterface::resetTracks();
+    openMP4(_file_name);
 }
 
 /////////////////////////////////////////// MP4MuxerMemory /////////////////////////////////////////////
@@ -299,6 +300,7 @@ MP4MuxerMemory::MP4MuxerMemory() {
 }
 
 MP4FileIO::Writer MP4MuxerMemory::createWriter() {
+    // fmp4
     return _memory_file->createWriter(MOV_FLAG_SEGMENT, true);
 }
 
@@ -306,6 +308,7 @@ const string &MP4MuxerMemory::getInitSegment() {
     if (_init_segment.empty()) {
         initSegment();
         saveSegment();
+        // 输出 ftyp 和 moov
         _init_segment = _memory_file->getAndClearMemory();
     }
     return _init_segment;
@@ -323,19 +326,17 @@ bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame) {
         return false;
     }
 
-    bool key_frame = frame->keyFrame();
-
-    //flush切片
+    // flush切片, 输出 moof 和 mdat
     saveSegment();
 
     auto data = _memory_file->getAndClearMemory();
     if (!data.empty()) {
-        //输出切片数据
+        //输出切片数据(这边用frame的dts,是不是错了?)
         onSegmentData(std::move(data), frame->dts(), _key_frame);
         _key_frame = false;
     }
 
-    if (key_frame) {
+    if (frame->keyFrame()) {
         _key_frame = true;
     }
 

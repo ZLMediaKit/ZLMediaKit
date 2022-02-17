@@ -22,7 +22,10 @@
 #include "MP4.h"
 
 namespace mediakit{
-
+/*
+Mp4写入基类.
+将MediaSinkInterface写到Mp4文件中
+*/
 class MP4MuxerInterface : public MediaSinkInterface {
 public:
     MP4MuxerInterface() = default;
@@ -30,11 +33,16 @@ public:
 
     /**
      * 添加已经ready状态的track
+     * - mp4_writer_add_audio
+     * - mp4_writer_add_video
      */
     bool addTrack(const Track::Ptr &track) override;
 
     /**
      * 输入帧
+     * - 视频合帧
+     * - 音频时间戳同步
+     * - mp4_writer_write
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
@@ -59,6 +67,7 @@ public:
     void initSegment();
 
 protected:
+    // 类厂方法，由子类实现
     virtual MP4FileIO::Writer createWriter() = 0;
 
 private:
@@ -76,6 +85,10 @@ private:
     FrameMerger _frame_merger{FrameMerger::mp4_nal_size};
 };
 
+/*
+ 写Mp4到文件
+ 正常mp4格式，并可设置faststart
+*/
 class MP4Muxer : public MP4MuxerInterface{
 public:
     typedef std::shared_ptr<MP4Muxer> Ptr;
@@ -107,6 +120,7 @@ private:
     MP4FileDisk::Ptr _mp4_file;
 };
 
+/// 写fmp4到内存
 class MP4MuxerMemory : public MP4MuxerInterface{
 public:
     MP4MuxerMemory();
@@ -119,6 +133,7 @@ public:
 
     /**
      * 输入帧
+     * 最终会导致onSegmentData回调
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
@@ -129,7 +144,7 @@ public:
 
 protected:
     /**
-     * 输出fmp4切片回调函数
+     * fmp4切片输出回调函数
      * @param std::string 切片内容
      * @param stamp 切片末尾时间戳
      * @param key_frame 是否有关键帧

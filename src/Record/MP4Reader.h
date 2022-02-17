@@ -16,7 +16,10 @@
 #include "Common/MultiMediaSourceMuxer.h"
 
 namespace mediakit {
-
+/*
+读取 Mp4File 并转成 MultiMediaSourceMuxer
+Mp4File -> MP4Demuxer(TrackSource) -> MultiMediaSourceMuxer
+*/
 class MP4Reader : public std::enable_shared_from_this<MP4Reader>, public MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<MP4Reader>;

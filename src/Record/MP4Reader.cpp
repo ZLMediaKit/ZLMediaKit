@@ -45,7 +45,7 @@ MP4Reader::MP4Reader(const string &vhost, const string &app, const string &strea
     _muxer = std::make_shared<MultiMediaSourceMuxer>(vhost, app, stream_id, _demuxer->getDurationMS() / 1000.0f, option);
     auto tracks = _demuxer->getTracks(false);
     if (tracks.empty()) {
-        throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << _file_path);
+        throw std::runtime_error("Mp4File has no track:" + _file_path);
     }
     for (auto &track : tracks) {
         _muxer->addTrack(track);
@@ -110,7 +110,7 @@ void MP4Reader::startReadMP4(const EventPoller::Ptr &poller_in, uint64_t sample_
     auto strong_self = shared_from_this();
     if (_muxer) {
         _muxer->setMediaListener(strong_self);
-        //一直读到所有track就绪为止
+        // 一直读到所有track就绪为止
         while (!_muxer->isAllTrackReady() && readNextSample()) {}
     }
 
@@ -121,6 +121,7 @@ void MP4Reader::startReadMP4(const EventPoller::Ptr &poller_in, uint64_t sample_
     //启动定时器
     if (ref_self) {
         _timer = std::make_shared<Timer>(timer_sec, [strong_self]() {
+            // 这边seek和readsample可能不在同个线程，因此要上锁..
             lock_guard<recursive_mutex> lck(strong_self->_mtx);
             return strong_self->readSample();
         }, poller);
@@ -208,6 +209,7 @@ bool MP4Reader::seekTo(uint32_t stamp_seek) {
         setCurrentStamp((uint32_t) stamp);
         return true;
     }
+
     //搜索到下一帧关键帧
     bool keyFrame = false;
     bool eof = false;
@@ -234,8 +236,9 @@ bool MP4Reader::close(MediaSource &sender, bool force) {
     if (!_muxer || (!force && _muxer->totalReaderCount())) {
         return false;
     }
+    // this->stopReadMP4();
     _timer.reset();
-    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    WarnL << sender.getUrl() << " " << force;
     return true;
 }
 

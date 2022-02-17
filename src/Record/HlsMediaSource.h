@@ -45,14 +45,12 @@ public:
     void setIndexFile(std::string index_file) {
         if (!_ring) {
             std::weak_ptr<HlsMediaSource> weakSelf = std::dynamic_pointer_cast<HlsMediaSource>(shared_from_this());
-            auto lam = [weakSelf](int size) {
+            _ring = std::make_shared<RingType>(0, [weakSelf](int size) {
                 auto strongSelf = weakSelf.lock();
-                if (!strongSelf) {
-                    return;
+                if (strongSelf) {
+                    strongSelf->onReaderChanged(size);
                 }
-                strongSelf->onReaderChanged(size);
-            };
-            _ring = std::make_shared<RingType>(0, std::move(lam));
+            });
             onReaderChanged(0);
             regist();
         }
@@ -101,7 +99,7 @@ class HlsCookieData {
 public:
     using Ptr = std::shared_ptr<HlsCookieData>;
 
-    HlsCookieData(const MediaInfo &info, const std::shared_ptr<toolkit::SockInfo> &sock_info);
+    HlsCookieData(const MediaInfo &info, std::shared_ptr<toolkit::SockInfo> sock_info);
     ~HlsCookieData();
 
     void addByteUsage(size_t bytes);

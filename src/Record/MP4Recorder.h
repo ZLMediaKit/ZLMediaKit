@@ -15,7 +15,6 @@
 #include <memory>
 #include "Player/PlayerBase.h"
 #include "Util/util.h"
-#include "Util/logger.h"
 #include "Util/TimeTicker.h"
 #include "Util/TimeTicker.h"
 #include "Common/MediaSink.h"

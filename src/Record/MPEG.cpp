@@ -32,9 +32,7 @@ MpegMuxer::~MpegMuxer() {
 
 #define XX(name, type, value, str, mpeg_id)                                                            \
     case name : {                                                                                      \
-        if (mpeg_id == PSI_STREAM_RESERVED) {                                                          \
-            break;                                                                                     \
-        }                                                                                              \
+        if (mpeg_id == PSI_STREAM_RESERVED) break;                                                     \
         _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id, nullptr, 0); \
         return true;                                                                                   \
     }
@@ -47,7 +45,7 @@ bool MpegMuxer::addTrack(const Track::Ptr &track) {
         CODEC_MAP(XX)
         default: break;
     }
-    WarnL << "不支持该编码格式,已忽略:" << track->getCodecName();
+    WarnL << "忽略不支持该编码格式:" << track->getCodecName();
     return false;
 }
 #undef XX
@@ -63,12 +61,12 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
         case CodecH264:
         case CodecH265: {
             //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            return _frame_merger.inputFrame(frame,[&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+            return _frame_merger.inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
                 _key_pos = have_idr;
                 //取视频时间戳为TS的时间戳
                 _timestamp = (uint32_t) dts;
                 _max_cache_size = 512 + 1.2 * buffer->size();
-                mpeg_muxer_input((::mpeg_muxer_t *)_context, track_id, have_idr ? 0x0001 : 0, pts * 90LL,dts * 90LL, buffer->data(), buffer->size());
+                mpeg_muxer_input((::mpeg_muxer_t *)_context, track_id, have_idr ? 0x0001 : 0, pts * 90LL, dts * 90LL, buffer->data(), buffer->size());
                 flushCache();
             });
         }

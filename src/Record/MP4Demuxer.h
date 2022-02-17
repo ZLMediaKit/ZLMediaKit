@@ -15,7 +15,10 @@
 #include "Extension/Track.h"
 #include "Util/ResourcePool.h"
 namespace mediakit {
-
+/*!
+Mp4文件读取类
+Mp4File -> TrackSource
+*/
 class MP4Demuxer : public TrackSource {
 public:
     typedef std::shared_ptr<MP4Demuxer> Ptr;

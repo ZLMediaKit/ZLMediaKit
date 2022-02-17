@@ -108,6 +108,7 @@ private:
     std::shared_ptr<FILE> _file;
 };
 
+//内存MP4文件类
 class MP4FileMemory : public MP4FileIO{
 public:
     using Ptr = std::shared_ptr<MP4FileMemory>;

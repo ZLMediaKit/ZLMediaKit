@@ -20,29 +20,29 @@ using namespace std;
 namespace mediakit {
 
 static struct mov_buffer_t s_io = {
-        [](void *ctx, void *data, uint64_t bytes) {
-            MP4FileIO *thiz = (MP4FileIO *) ctx;
-            return thiz->onRead(data, bytes);
-        },
-        [](void *ctx, const void *data, uint64_t bytes) {
-            MP4FileIO *thiz = (MP4FileIO *) ctx;
-            return thiz->onWrite(data, bytes);
-        },
-        [](void *ctx, int64_t offset) {
-            MP4FileIO *thiz = (MP4FileIO *) ctx;
-            return thiz->onSeek(offset);
-        },
-        [](void *ctx) {
-            MP4FileIO *thiz = (MP4FileIO *) ctx;
-            return (int64_t)thiz->onTell();
-        }
+    [](void *ctx, void *data, uint64_t bytes) {
+        MP4FileIO *thiz = (MP4FileIO *) ctx;
+        return thiz->onRead(data, bytes);
+    },
+    [](void *ctx, const void *data, uint64_t bytes) {
+        MP4FileIO *thiz = (MP4FileIO *) ctx;
+        return thiz->onWrite(data, bytes);
+    },
+    [](void *ctx, int64_t offset) {
+        MP4FileIO *thiz = (MP4FileIO *) ctx;
+        return thiz->onSeek(offset);
+    },
+    [](void *ctx) {
+        MP4FileIO *thiz = (MP4FileIO *) ctx;
+        return (int64_t)thiz->onTell();
+    }
 };
 
 MP4FileIO::Writer MP4FileIO::createWriter(int flags, bool is_fmp4){
     Writer writer;
     Ptr self = shared_from_this();
-    //保存自己的强引用，防止提前释放
-    writer.reset(mp4_writer_create(is_fmp4, &s_io,this, flags),[self](mp4_writer_t *ptr){
+    // 保存自己的强引用self，防止提前释放
+    writer.reset(mp4_writer_create(is_fmp4, &s_io, this, flags), [self](mp4_writer_t *ptr){
         if(ptr){
             mp4_writer_destroy(ptr);
         }
@@ -56,8 +56,8 @@ MP4FileIO::Writer MP4FileIO::createWriter(int flags, bool is_fmp4){
 MP4FileIO::Reader MP4FileIO::createReader(){
     Reader reader;
     Ptr self = shared_from_this();
-    //保存自己的强引用，防止提前释放
-    reader.reset(mov_reader_create(&s_io,this),[self](mov_reader_t *ptr){
+    // 保存自己的强引用self，防止提前释放
+    reader.reset(mov_reader_create(&s_io,this), [self](mov_reader_t *ptr){
         if(ptr){
             mov_reader_destroy(ptr);
         }
@@ -81,26 +81,19 @@ MP4FileIO::Reader MP4FileIO::createReader(){
 void MP4FileDisk::openFile(const char *file, const char *mode) {
     //创建文件
     auto fp = File::create_file(file, mode);
-    if(!fp){
+    if(!fp) {
         throw std::runtime_error(string("打开文件失败:") + file);
     }
 
+    //设置文件io缓存
     GET_CONFIG(uint32_t,mp4BufSize,Record::kFileBufSize);
-
-    //新建文件io缓存
-    std::shared_ptr<char> file_buf(new char[mp4BufSize],[](char *ptr){
-        if(ptr){
-            delete [] ptr;
-        }
-    });
-
+    std::shared_ptr<char> file_buf((char*)malloc(mp4BufSize), free);
     if(file_buf){
-        //设置文件io缓存
         setvbuf(fp, file_buf.get(), _IOFBF, mp4BufSize);
     }
 
-    //创建智能指针
-    _file.reset(fp,[file_buf](FILE *fp) {
+    //创建智能指针，并强引用file_buf使它与_file的生成器一致
+    _file.reset(fp, [file_buf](FILE *fp) {
         fflush(fp);
         fclose(fp);
     });
