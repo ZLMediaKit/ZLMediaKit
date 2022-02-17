@@ -16,7 +16,12 @@
 #include "Util/util.h"
 
 namespace mediakit {
-
+/*
+在buf中查找以start开始到end结束之间的字符串(不包含start和end)
+start和end都可以为空，其中：
+- start 为空则以头部开始
+- end 为空则到尾部结束
+*/
 //从字符串中提取子字符串
 std::string FindField(const char *buf, const char *start, const char *end, size_t bufSize = 0);
 //把url解析为主机地址和端口号,兼容ipv4/ipv6/dns
@@ -72,7 +77,7 @@ public:
     //获取中间url，不包含?后面的参数
     const std::string &Url() const;
 
-    //获取中间url，包含?后面的参数
+    //获取中间url，包含?后面的参数(Url + "?" + Params)
     std::string FullUrl() const;
 
     //获取命令协议名
@@ -91,10 +96,10 @@ public:
     const std::string &Params() const;
 
     //重新设置url
-    void setUrl(std::string url);
+    void setUrl(const std::string& url);
 
     //重新设置content
-    void setContent(std::string content);
+    void setContent(const std::string& content);
 
     //获取header列表
     StrCaseMap &getHeader() const;

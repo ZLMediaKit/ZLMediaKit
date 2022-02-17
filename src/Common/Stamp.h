@@ -60,7 +60,7 @@ public:
      * 获取当前相对时间戳
      * @return
      */
-    int64_t getRelativeStamp() const ;
+    int64_t getRelativeStamp() const;
 
     /**
      * 设置是否为回放模式，回放模式运行时间戳回退

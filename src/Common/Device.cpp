@@ -43,15 +43,15 @@ bool DevChannel::inputYUV(char* apcYuv[3], int aiYuvLen[3], uint32_t uiStamp) {
         int iFrames = _pH264Enc->inputData(apcYuv, aiYuvLen, uiStamp, &pOut);
         bool ret = false;
         for (int i = 0; i < iFrames; i++) {
-            ret = inputH264((char *) pOut[i].pucData, pOut[i].iLength, uiStamp) ? true : ret;
+            if(inputH264((char *)pOut[i].pucData, pOut[i].iLength, uiStamp))
+                ret = true;
         }
         return ret;
     }
-    return false;
 #else
     WarnL << "h264编码未启用,该方法无效,编译时请打开ENABLE_X264选项";
-    return false;
 #endif //ENABLE_X264
+    return false;
 }
 
 bool DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
@@ -70,11 +70,10 @@ bool DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
             return inputAAC((char *) pucOut + 7, iRet - 7, uiStamp, (char *)pucOut);
         }
     }
-    return false;
 #else
     WarnL << "aac编码未启用,该方法无效,编译时请打开ENABLE_FAAC选项";
-    return false;
 #endif //ENABLE_FAAC
+    return false;
 }
 
 bool DevChannel::inputH264(const char *data, int len, uint32_t dts, uint32_t pts) {
@@ -115,20 +114,6 @@ bool DevChannel::inputH265(const char *data, int len, uint32_t dts, uint32_t pts
     return inputFrame(frame);
 }
 
-class FrameAutoDelete : public FrameFromPtr{
-public:
-    template <typename ... ARGS>
-    FrameAutoDelete(ARGS && ...args) : FrameFromPtr(std::forward<ARGS>(args)...){}
-
-    ~FrameAutoDelete() override {
-        delete [] _ptr;
-    };
-
-    bool cacheAble() const override {
-        return true;
-    }
-};
-
 bool DevChannel::inputAAC(const char *data_without_adts, int len, uint32_t dts, const char *adts_header){
     if (dts == 0) {
         dts = (uint32_t) _aTicker[1].elapsedTime();
@@ -136,19 +121,23 @@ bool DevChannel::inputAAC(const char *data_without_adts, int len, uint32_t dts, 
 
     if (!adts_header) {
         //没有adts头
-        return inputFrame(std::make_shared<FrameFromPtr>(_audio->codecId, (char *) data_without_adts, len, dts, 0, 0));
+        return inputFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data_without_adts, len, dts, 0, 0));
     }
 
     if (adts_header + ADTS_HEADER_LEN == data_without_adts) {
         //adts头和帧在一起
-        return inputFrame(std::make_shared<FrameFromPtr>(_audio->codecId, (char *) data_without_adts - ADTS_HEADER_LEN, len + ADTS_HEADER_LEN, dts, 0, ADTS_HEADER_LEN));
+        return inputFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *)adts_header, len + ADTS_HEADER_LEN, dts, 0, ADTS_HEADER_LEN));
     }
 
     //adts头和帧不在一起
-    char *data_with_adts = new char[len + ADTS_HEADER_LEN];
-    memcpy(data_with_adts, adts_header, ADTS_HEADER_LEN);
-    memcpy(data_with_adts + ADTS_HEADER_LEN, data_without_adts, len);
-    return inputFrame(std::make_shared<FrameAutoDelete>(_audio->codecId, data_with_adts, len + ADTS_HEADER_LEN, dts, 0, ADTS_HEADER_LEN));
+    auto frame = FrameImp::create<FrameImp>();
+    frame->_codec_id = CodecAAC;
+    frame->_dts = dts;
+    frame->_buffer.reserve(len + ADTS_HEADER_LEN);
+    frame->_buffer.append(adts_header, ADTS_HEADER_LEN);
+    frame->_prefix_size = ADTS_HEADER_LEN;
+    frame->_buffer.append(data_without_adts, len);
+    return inputFrame(frame);
 
 }
 
@@ -171,11 +160,16 @@ bool DevChannel::initVideo(const VideoInfo &info) {
 bool DevChannel::initAudio(const AudioInfo &info) {
     _audio = std::make_shared<AudioInfo>(info);
     switch (info.codecId) {
-        case CodecAAC : return addTrack(std::make_shared<AACTrack>());
+        case CodecAAC : 
+            return addTrack(std::make_shared<AACTrack>());
         case CodecG711A :
-        case CodecG711U : return addTrack(std::make_shared<G711Track>(info.codecId, info.iSampleRate, info.iChannel, info.iSampleBit));
-        case CodecOpus : return addTrack(std::make_shared<OpusTrack>());
-        default: WarnL << "不支持该类型的音频编码类型:" << info.codecId; return false;
+        case CodecG711U : 
+            return addTrack(std::make_shared<G711Track>(info.codecId, info.iSampleRate, info.iChannel, info.iSampleBit));
+        case CodecOpus : 
+            return addTrack(std::make_shared<OpusTrack>());
+        default: 
+            WarnL << "不支持该类型的音频编码类型:" << info.codecId; 
+            return false;
     }
 }
 

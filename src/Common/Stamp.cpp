@@ -36,11 +36,12 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp) {
         //在直播情况下，时间戳增量不得大于MAX_DELTA_STAMP
         return  ret < MAX_DELTA_STAMP ? ret : 0;
     }
-
-    //时间戳增量为负，说明时间戳回环了或回退了
-    _last_stamp = stamp;
-    //如果时间戳回退不多，那么返回负值
-    return -ret < MAX_CTS ? ret : 0;
+    else {
+        //时间戳增量为负，说明时间戳回环了或回退了
+        _last_stamp = stamp;
+        //如果时间戳回退不多，那么返回负值
+        return -ret < MAX_CTS ? ret : 0;
+    }
 }
 
 void Stamp::setPlayBack(bool playback) {
@@ -177,7 +178,7 @@ bool DtsGenerator::getDts_l(uint32_t pts, uint32_t &dts){
     if(!_sorter_max_size){
         //尚未计算出pts排序列队长度(也就是P帧间B帧个数)
         if(pts > _last_max_pts){
-            //pts时间戳增加了，那么说明这帧画面不是B帧(说明是P帧或关键帧)
+            //pts时间戳增加了，那么说明这帧画面不是B帧(P帧或关键帧)
             if(_frames_since_last_max_pts && _count_sorter_max_size++ > 0){
                 //已经出现多次非B帧的情况，那么我们就能知道P帧间B帧的个数
                 _sorter_max_size = _frames_since_last_max_pts;

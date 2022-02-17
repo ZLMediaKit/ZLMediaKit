@@ -62,6 +62,7 @@ public:
     public:
         Listener() = default;
         virtual ~Listener() = default;
+
         virtual void onAllTrackReady() = 0;
     };
 
@@ -180,13 +181,14 @@ private:
     std::mutex _rtp_sender_mtx;
     std::unordered_map<std::string, RtpSender::Ptr> _rtp_sender;
 #endif //ENABLE_RTPPROXY
-
+    // 转协议
 #if defined(ENABLE_MP4)
     FMP4MediaSourceMuxer::Ptr _fmp4;
 #endif
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
     TSMediaSourceMuxer::Ptr _ts;
+    // 录制
     MediaSinkInterface::Ptr _mp4;
     HlsRecorder::Ptr _hls;
 

@@ -19,7 +19,6 @@
 #include <unordered_map>
 #include "Common/config.h"
 #include "Common/Parser.h"
-#include "Util/logger.h"
 #include "Util/TimeTicker.h"
 #include "Util/NoticeCenter.h"
 #include "Util/List.h"
@@ -35,7 +34,7 @@ namespace toolkit{
 
 namespace mediakit {
 
-enum class MediaOriginType : uint8_t {
+enum MediaOriginType {
     unknown = 0,
     rtmp_push ,
     rtsp_push,
@@ -53,8 +52,8 @@ class MediaSource;
 class MediaSourceEvent {
 public:
     friend class MediaSource;
-    MediaSourceEvent(){};
-    virtual ~MediaSourceEvent(){};
+    MediaSourceEvent(){}
+    virtual ~MediaSourceEvent(){}
 
     // 获取媒体源类型
     virtual MediaOriginType getOriginType(MediaSource &sender) const { return MediaOriginType::unknown; }
@@ -71,18 +70,25 @@ public:
     virtual bool speed(MediaSource &sender, float speed) { return false; }
     // 通知其停止产生流
     virtual bool close(MediaSource &sender, bool force) { return false; }
+
     // 获取观看总人数
     virtual int totalReaderCount(MediaSource &sender) = 0;
-    // 通知观看人数变化
+    /* 
+    通知观看人数变化
+    当sender没人观看时则启动延时检查，如果继续没人观看，则
+    - mp4录制源，则直接关闭
+    - 否则发送kBroadcastStreamNoneReader通知，由应用层来决定是否要关闭
+    */
     virtual void onReaderChanged(MediaSource &sender, int size);
+
     //流注册或注销事件
-    virtual void onRegist(MediaSource &sender, bool regist) {};
+    virtual void onRegist(MediaSource &sender, bool regist) {}
 
     ////////////////////////仅供MultiMediaSourceMuxer对象继承////////////////////////
     // 开启或关闭录制
     virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) { return false; };
     // 获取录制状态
-    virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
+    virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; }
     // 获取所有track相关信息
     virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
 
@@ -117,7 +123,10 @@ private:
     toolkit::Timer::Ptr _async_close_timer;
 };
 
-//该对象用于拦截感兴趣的MediaSourceEvent事件
+/*
+MediaSourceEvent事件拦截器.
+拦截感兴趣的MediaSourceEvent事件
+*/
 class MediaSourceEventInterceptor : public MediaSourceEvent{
 public:
     MediaSourceEventInterceptor(){}
@@ -152,11 +161,15 @@ private:
  */
 class MediaInfo{
 public:
-    ~MediaInfo() {}
     MediaInfo() {}
     MediaInfo(const std::string &url) { parse(url); }
     void parse(const std::string &url);
-
+    std::string shortUrl() const {
+        return _vhost + "/" + _app + "/" + _streamid;
+    }
+    std::string fullUrl() const {
+        return _schema + "://" + shortUrl();
+    }
 public:
     std::string _full_url;
     std::string _schema;
@@ -168,6 +181,11 @@ public:
     std::string _param_strs;
 };
 
+/*
+@brief 速率计算器.
+
+超过1M字节或1s间隔计算速率
+*/
 class BytesSpeed {
 public:
     BytesSpeed() = default;
@@ -190,7 +208,7 @@ public:
      */
     int getSpeed() {
         if (_ticker.elapsedTime() < 1000) {
-            //获取频率小于1秒，那么返回上次计算结果
+            //获取频率小于1秒，返回上次计算结果
             return _speed;
         }
         return computeSpeed();
@@ -209,6 +227,7 @@ private:
     }
 
 private:
+    // 上次计算的结果
     int _speed = 0;
     size_t _bytes = 0;
     toolkit::Ticker _ticker;
@@ -221,10 +240,6 @@ class MediaSource: public TrackSource, public std::enable_shared_from_this<Media
 public:
     static MediaSource * const NullMediaSource;
     using Ptr = std::shared_ptr<MediaSource>;
-    using StreamMap = std::unordered_map<std::string/*strema_id*/, std::weak_ptr<MediaSource> >;
-    using AppStreamMap = std::unordered_map<std::string/*app*/, StreamMap>;
-    using VhostAppStreamMap = std::unordered_map<std::string/*vhost*/, AppStreamMap>;
-    using SchemaVhostAppStreamMap = std::unordered_map<std::string/*schema*/, VhostAppStreamMap>;
 
     MediaSource(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &stream_id) ;
     virtual ~MediaSource();
@@ -239,7 +254,7 @@ public:
     const std::string& getApp() const;
     // 流id
     const std::string& getId() const;
-
+    std::string getUrl() const;
     //获取对象所有权
     std::shared_ptr<void> getOwnership();
 
@@ -253,8 +268,10 @@ public:
 
     // 获取数据速率，单位bytes/s
     int getBytesSpeed(TrackType type = TrackInvalid);
+
     // 获取流创建GMT unix时间戳，单位秒
-    uint64_t getCreateStamp() const;
+    uint64_t getCreateStamp() const {return _create_stamp;}
+
     // 获取流上线时间，单位秒
     uint64_t getAliveSecond() const;
 
@@ -262,7 +279,6 @@ public:
 
     // 设置监听者
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
-    // 获取监听者
     std::weak_ptr<MediaSourceEvent> getListener(bool next = false) const;
 
     // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
@@ -279,18 +295,20 @@ public:
 
     // 拖动进度条
     bool seekTo(uint32_t stamp);
-    //暂停
+    // 暂停
     bool pause(bool pause);
-    //倍数播放
+    // 倍数播放
     bool speed(float speed);
     // 关闭该流
     bool close(bool force);
     // 该流观看人数变化
     void onReaderChanged(int size);
+
     // 开启或关闭录制
     bool setupRecord(Recorder::type type, bool start, const std::string &custom_path, size_t max_second);
     // 获取录制状态
     bool isRecording(Recorder::type type);
+
     // 开始发送ps-rtp
     void startSendRtp(const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb);
     // 停止发送ps-rtp
@@ -301,7 +319,7 @@ public:
     // 同步查找流
     static Ptr find(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &id, bool from_mp4 = false);
 
-    // 忽略类型，同步查找流，可能返回rtmp/rtsp/hls类型
+    // 忽略schema，同步查找流，可能返回rtmp/rtsp/hls类型
     static Ptr find(const std::string &vhost, const std::string &app, const std::string &stream_id, bool from_mp4 = false);
 
     // 异步查找流
@@ -346,13 +364,17 @@ public:
     bool isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, size_t cache_size);
 
 private:
+    // 音视频的最后时间戳
     uint64_t _last_stamp[2] = {0, 0};
 };
 
-/// 合并写缓存模板
-/// \tparam packet 包类型
-/// \tparam policy 刷新缓存策略
-/// \tparam packet_list 包缓存类型
+/*
+合并写缓存模板
+
+@param packet 包类型
+@param policy 刷新缓存策略
+@param packet_list 包缓存类型
+*/
 template<typename packet, typename policy = FlushPolicy, typename packet_list = toolkit::List<std::shared_ptr<packet> > >
 class PacketCache {
 public:

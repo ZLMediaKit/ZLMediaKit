@@ -19,7 +19,7 @@ using namespace toolkit;
 namespace mediakit{
 
 string FindField(const char* buf, const char* start, const char *end ,size_t bufSize) {
-    if(bufSize <=0 ){
+    if(bufSize <=0){
         bufSize = strlen(buf);
     }
     const char *msg_start = buf, *msg_end = buf + bufSize;
@@ -63,8 +63,9 @@ void Parser::Parse(const char *buf) {
             }
             _strTail = FindField(line.data(), (strFullUrl + " ").data(), NULL);
         } else {
-            auto field = FindField(line.data(), NULL, ": ");
-            auto value = FindField(line.data(), ": ", NULL);
+            auto pos = line.find(':');
+            auto field = trim(line.substr(0, pos));// FindField(line.data(), NULL, ": ");
+            auto value = trim(line.substr(pos +1));// FindField(line.data(), ": ", NULL);
             if (field.size() != 0) {
                 _mapHeaders.emplace_force(field, value);
             }
@@ -122,12 +123,12 @@ const string &Parser::Params() const {
     return _params;
 }
 
-void Parser::setUrl(string url) {
-    this->_strUrl = std::move(url);
+void Parser::setUrl(const string& url) {
+    this->_strUrl = url;
 }
 
-void Parser::setContent(string content) {
-    this->_strContent = std::move(content);
+void Parser::setContent(const string& content) {
+    this->_strContent = content;
 }
 
 StrCaseMap &Parser::getHeader() const {
@@ -177,7 +178,7 @@ void RtspUrl::parse(const string &strUrl) {
     //包含用户名密码
     auto user_pwd = middle_url.substr(0, pos);
     auto suffix = strUrl.substr(schema.size() + 3 + pos + 1);
-    auto url = StrPrinter << "rtsp://" << suffix << endl;
+    auto url = "rtsp://" + suffix;
     if (user_pwd.find(":") == string::npos) {
         return setup(is_ssl, url, user_pwd, "");
     }

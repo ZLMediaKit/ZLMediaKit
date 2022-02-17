@@ -42,6 +42,10 @@ public:
     virtual void resetTracks() {};
 };
 
+/**
+MediaSinkInterface抽象.
+可inputFrame, 可加Track
+*/
 class MediaSinkInterface : public FrameWriterInterface, public TrackListener {
 public:
     typedef std::shared_ptr<MediaSinkInterface> Ptr;
@@ -51,13 +55,16 @@ public:
 };
 
 /**
- * aac静音音频添加器
+ * aac静音生成器
+ * 接收视频帧，根据时间戳，同步伪造aac静音帧
  */
 class MuteAudioMaker : public FrameDispatcher {
 public:
     typedef std::shared_ptr<MuteAudioMaker> Ptr;
+
     MuteAudioMaker() = default;
     ~MuteAudioMaker() override = default;
+
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
@@ -65,8 +72,8 @@ private:
 };
 
 /**
- * 该类的作用是等待Track ready()返回true也就是就绪后再通知派生类进行下一步的操作
- * 目的是输入Frame前由Track截取处理下，以便获取有效的信息（譬如sps pps aa_cfg）
+ * 该类的作用是等待Track就绪后(ready=true)，再通知派生类进行下一步的操作
+ * 目的是在输入Frame前，由Track截取处理下，以便获取配置信息（譬如sps pps aa_cfg）
  */
 class MediaSink : public MediaSinkInterface, public TrackSource{
 public:
@@ -77,6 +84,11 @@ public:
     /**
      * 输入frame
      * @param frame
+     frame -> Track::inputFrame -> delegate 
+       if[_all_track_ready] 
+         onTrackFrame 
+       else
+         cacheFrame
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
@@ -88,7 +100,8 @@ public:
     bool addTrack(const Track::Ptr & track) override;
 
     /**
-     * 添加Track完毕，如果是单Track，会最多等待3秒才会触发onAllTrackReady
+     * 添加Track完毕，更新_max_track_size，然后checkTrackIfReady.
+     * 如果是单Track，会最多等待3秒才会触发onAllTrackReady(_max_track_size=2)
      * 这样会增加生成流的延时，如果添加了音视频双Track，那么可以不调用此方法
      * 否则为了降低流注册延时，请手动调用此方法
      */
@@ -121,6 +134,8 @@ public:
     void enableMuteAudio(bool flag);
 
 protected:
+    // 将TrackListener的事件消化，转换成如下事件
+
     /**
      * 某track已经准备好，其ready()状态返回true，
      * 此时代表可以获取其例如sps pps等相关信息了
@@ -142,6 +157,9 @@ protected:
 private:
     /**
      * 触发onAllTrackReady事件
+     - 删除未准备好的track
+     - 调用onAllTrackReady_l
+     - 回调并清空 cacheFrame
      */
     void emitAllTrackReady();
 
@@ -149,6 +167,10 @@ private:
      * 检查track是否准备完毕
      */
     void checkTrackIfReady();
+    /*
+     - 必要时创建_mute_audio_maker，来伪造静音
+     - 触发onAllTrackReady回调
+    */
     void onAllTrackReady_l();
     /**
      * 添加aac静音轨道
@@ -159,15 +181,61 @@ private:
     bool _enable_audio = true;
     bool _add_mute_audio = true;
     bool _all_track_ready = false;
+    // 默认假设只有音视频track都有，addTrackCompleted中可改此值
     size_t _max_track_size = 2;
+    // trackType -> (TrackPtr, got_frame)
     std::unordered_map<int, std::pair<Track::Ptr, bool/*got frame*/> > _track_map;
+    // 帧缓存  trackType -> FrameList
     std::unordered_map<int, toolkit::List<Frame::Ptr> > _frame_unread;
-    std::unordered_map<int, std::function<void()> > _track_ready_callback;
+    // 等待ready回调的track列表 trackType -> TrackPtr
+    std::unordered_map<int, Track::Ptr> _track_ready_callback;
     toolkit::Ticker _ticker;
+    // 静音伪造器
     MuteAudioMaker::Ptr _mute_audio_maker;
 };
 
+class MediaSinkDelegate : public MediaSink {
+public:
+    MediaSinkDelegate() = default;
+    ~MediaSinkDelegate() override = default;
 
+    /**
+     * 设置track监听器
+     */
+    void setTrackListener(TrackListener *listener);
+
+protected:
+    /*
+    MediaSink将自身的TrackListener转成，如下三回调;
+    此类又将这三回调分装成_listener(TrackListener)回调了
+    */
+    void resetTracks() override;
+    bool onTrackReady(const Track::Ptr & track) override;
+    void onAllTrackReady() override;
+
+private:
+    TrackListener *_listener = nullptr;
+};
+
+class Demuxer : protected TrackListener, public TrackSource {
+public:
+    Demuxer() = default;
+    ~Demuxer() override = default;
+
+    void setTrackListener(TrackListener *listener, bool wait_track_ready = false);
+    std::vector<Track::Ptr> getTracks(bool trackReady = true) const override;
+
+protected:
+    bool addTrack(const Track::Ptr &track) override;
+    void addTrackCompleted() override;
+    void resetTracks() override;
+
+private:
+    // 实际上是MediaSinkDelegate类型的，当wait_track_ready=true时创建
+    MediaSink::Ptr _sink;
+    TrackListener *_listener = nullptr;
+    std::vector<Track::Ptr> _origin_track;
+};
 }//namespace mediakit
 
 #endif //ZLMEDIAKIT_MEDIASINK_H

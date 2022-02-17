@@ -24,8 +24,7 @@ class ProtocolOption;
 
 //加载配置文件，如果配置文件不存在，那么会导出默认配置并生成配置文件
 //加载配置文件成功后会触发kBroadcastUpdateConfig广播
-//如果指定的文件名(ini_path)为空，那么会加载默认配置文件
-//默认配置文件名为 /path/to/your/exe.ini
+//如果指定的文件名(ini_path)为空，则会加载默认配置文件(/path/to/your/exe.ini)
 //加载配置文件成功后返回true，否则返回false
 bool loadIniConfig(const char *ini_path = nullptr);
 
