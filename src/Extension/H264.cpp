@@ -148,7 +148,7 @@ bool H264Track::ready() {
 bool H264Track::inputFrame(const Frame::Ptr &frame) {
     using H264FrameInternal = FrameInternal<H264FrameNoCacheAble>;
     int type = H264_TYPE(frame->data()[frame->prefixSize()]);
-    if (type == H264Frame::NAL_B_P || type == H264Frame::NAL_IDR) {
+    if ((type == H264Frame::NAL_B_P || type == H264Frame::NAL_IDR) && ready()) {
         return inputFrame_l(frame);
     }
 
