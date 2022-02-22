@@ -33,10 +33,10 @@ std::shared_ptr<AVPacket> alloc_av_packet(){
 //////////////////////////////////////////////////////////////////////////////////////////
 
 template<bool decoder = true, typename ...ARGS>
-AVCodec *getCodec(ARGS ...names);
+const AVCodec *getCodec(ARGS ...names);
 
 template<bool decoder = true>
-AVCodec *getCodec(const char *name) {
+const AVCodec *getCodec(const char *name) {
     auto codec = decoder ? avcodec_find_decoder_by_name(name) : avcodec_find_encoder_by_name(name);
     if (codec) {
         InfoL << (decoder ? "got decoder:" : "got encoder:") << name;
@@ -45,7 +45,7 @@ AVCodec *getCodec(const char *name) {
 }
 
 template<bool decoder = true>
-AVCodec *getCodec(enum AVCodecID id) {
+const AVCodec *getCodec(enum AVCodecID id) {
     auto codec = decoder ? avcodec_find_decoder(id) : avcodec_find_encoder(id);
     if (codec) {
         InfoL << (decoder ? "got decoder:" : "got encoder:") << avcodec_get_name(id);
@@ -54,7 +54,7 @@ AVCodec *getCodec(enum AVCodecID id) {
 }
 
 template<bool decoder = true, typename First, typename ...ARGS>
-AVCodec *getCodec(First first, ARGS ...names) {
+const AVCodec *getCodec(First first, ARGS ...names) {
     auto codec = getCodec<decoder>(names...);
     if (codec) {
         return codec;
@@ -139,9 +139,11 @@ FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
 ///////////////////////////////////////////////////////////////////////////
 
 FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track) {
+#if (LIBAVCODEC_VERSION_MAJOR < 58)
     avcodec_register_all();
-    AVCodec *codec = nullptr;
-    AVCodec *codec_default = nullptr;
+#endif
+    const AVCodec *codec = nullptr;
+    const AVCodec *codec_default = nullptr;
     switch (track->getCodecId()) {
         case CodecH264:
             codec_default = getCodec(AV_CODEC_ID_H264);
@@ -181,7 +183,9 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track) {
         }
 
         //保存AVFrame的引用
+#ifdef FF_API_OLD_ENCDEC
         _context->refcounted_frames = 1;
+#endif
         _context->flags |= AV_CODEC_FLAG_LOW_DELAY;
         _context->flags2 |= AV_CODEC_FLAG2_FAST;
 
