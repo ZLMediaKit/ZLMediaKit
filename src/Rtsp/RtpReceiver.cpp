@@ -55,6 +55,13 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
     //比对缓存ssrc
     auto ssrc = ntohl(header->ssrc);
 
+    if (_pt == 0xFF) {
+        _pt = header->pt;
+    } else if (header->pt != _pt) {
+        TraceL << "rtp pt 不匹配:" << (int) header->pt << " !=" << (int) _pt;
+        return nullptr;
+    }
+
     if (!_ssrc) {
         //记录并锁定ssrc
         _ssrc = ssrc;

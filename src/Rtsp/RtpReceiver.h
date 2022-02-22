@@ -182,6 +182,7 @@ protected:
 
 private:
     bool _disable_ntp = false;
+    uint8_t _pt = 0xFF;
     uint32_t _ssrc = 0;
     toolkit::Ticker _ssrc_alive;
     NtpStamp _ntp_stamp;
