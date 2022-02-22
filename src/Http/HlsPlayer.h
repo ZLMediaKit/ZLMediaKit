@@ -19,10 +19,7 @@
 
 namespace mediakit {
 
-class HlsDemuxer
-    : public MediaSinkInterface
-    , public TrackSource
-    , public std::enable_shared_from_this<HlsDemuxer> {
+class HlsDemuxer : public MediaSinkInterface , public TrackSource, public std::enable_shared_from_this<HlsDemuxer> {
 public:
     HlsDemuxer() = default;
     ~HlsDemuxer() override { _timer = nullptr; }
@@ -43,7 +40,6 @@ private:
 private:
     int64_t _ticker_offset = 0;
     toolkit::Ticker _ticker;
-    Stamp _stamp[2];
     toolkit::Timer::Ptr _timer;
     MediaSinkDelegate _delegate;
     std::multimap<int64_t, Frame::Ptr> _frame_cache;
