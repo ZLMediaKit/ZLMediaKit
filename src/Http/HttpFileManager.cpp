@@ -159,18 +159,15 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
             continue;
         }
         //是文件
-        struct stat fileData;
-        if (0 == stat(strAbsolutePath.data(), &fileData)) {
-            auto &fileSize = fileData.st_size;
-            if (fileSize < 1024) {
-                ss << " (" << fileData.st_size << "B)" << endl;
-            } else if (fileSize < 1024 * 1024) {
-                ss << fixed << setprecision(2) << " (" << fileData.st_size / 1024.0 << "KB)";
-            } else if (fileSize < 1024 * 1024 * 1024) {
-                ss << fixed << setprecision(2) << " (" << fileData.st_size / 1024 / 1024.0 << "MB)";
-            } else {
-                ss << fixed << setprecision(2) << " (" << fileData.st_size / 1024 / 1024 / 1024.0 << "GB)";
-            }
+        auto fileSize = File::fileSize(strAbsolutePath.data());
+        if (fileSize < 1024) {
+            ss << " (" << fileSize << "B)" << endl;
+        } else if (fileSize < 1024 * 1024) {
+            ss << fixed << setprecision(2) << " (" << fileSize / 1024.0 << "KB)";
+        } else if (fileSize < 1024 * 1024 * 1024) {
+            ss << fixed << setprecision(2) << " (" << fileSize / 1024 / 1024.0 << "MB)";
+        } else {
+            ss << fixed << setprecision(2) << " (" << fileSize / 1024 / 1024 / 1024.0 << "GB)";
         }
         ss << "</a></li>\r\n";
     }
