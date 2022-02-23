@@ -1253,9 +1253,8 @@ void installWebApi() {
                                   const HttpSession::KeyValue &headerIn,
                                   const HttpSession::HttpResponseInvoker &invoker) {
         StrCaseMap headerOut;
-        struct stat statbuf = {0};
         GET_CONFIG(string, defaultSnap, API::kDefaultSnap);
-        if (!(stat(snap_path.data(), &statbuf) == 0 && statbuf.st_size != 0) && !defaultSnap.empty()) {
+        if (!File::fileSize(snap_path.data()) && !defaultSnap.empty()) {
             //空文件且设置了预设图，则返回预设图片(也就是FFmpeg生成截图中空档期的默认图片)
             const_cast<string&>(snap_path) = File::absolutePath(defaultSnap, "");
             headerOut["Content-Type"] = HttpFileManager::getContentType(snap_path.data());
