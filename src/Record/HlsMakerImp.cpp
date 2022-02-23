@@ -136,9 +136,7 @@ void HlsMakerImp::onFlushLastSegment(uint32_t duration_ms) {
     GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);
     if (broadcastRecordTs) {
         _info.time_len = duration_ms / 1000.0f;
-        struct stat fileData;
-        stat(_info.file_path.data(), &fileData);
-        _info.file_size = fileData.st_size;
+        _info.file_size = File::fileSize(_info.file_path.data());
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordTs, _info);
     }
 }
