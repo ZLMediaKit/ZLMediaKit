@@ -205,7 +205,7 @@ int64_t HttpFileBody::remainSize() {
 }
 
 Buffer::Ptr HttpFileBody::readData(size_t size) {
-    size = MIN((size_t)remainSize(), size);
+    size = (size_t)(MIN(remainSize(), (int64_t)size));
     if (!size) {
         //没有剩余字节了
         return nullptr;
