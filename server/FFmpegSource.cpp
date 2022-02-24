@@ -90,7 +90,7 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
         }
     }
 
-    char cmd[1024] = {0};
+    char cmd[2048] = {0};
     snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(), File::absolutePath("", ffmpeg_bin).data(), src_url.data(), dst_url.data());
     auto log_file = ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log);
     _process.run(cmd, log_file);
