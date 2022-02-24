@@ -25,12 +25,14 @@ namespace FFmpeg {
 
 class FFmpegSnap {
 public:
+    using onSnap = std::function<void(bool success, const std::string &err_msg)>;
     /// 创建截图
     /// \param play_url 播放url地址，只要FFmpeg支持即可
     /// \param save_path 截图jpeg文件保存路径
     /// \param timeout_sec 生成截图超时时间(防止阻塞太久)
     /// \param cb 生成截图成功与否回调
-    static void makeSnap(const std::string &play_url, const std::string &save_path, float timeout_sec, const std::function<void(bool)> &cb);
+    static void makeSnap(const std::string &play_url, const std::string &save_path, float timeout_sec, const onSnap &cb);
+
 private:
     FFmpegSnap() = delete;
     ~FFmpegSnap() = delete;
