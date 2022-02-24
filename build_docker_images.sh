@@ -46,7 +46,7 @@ case $model in
                 ;;
 esac
 
-namespace="tannzh"
+namespace="zlmediakit"
 packagename="zlmediakit"
 
 case $type in
@@ -58,7 +58,7 @@ case $type in
 	'push')
 		echo "push to dst registry"
 		# 以腾讯云账号为例
-		docker login --username=tannzh
+		docker login --username=zlmediakit
 		docker push $namespace/$packagename:$model.$version
 		;;
  	*)
