@@ -47,19 +47,19 @@ case $model in
 esac
 
 namespace="zlmediakit"
-packagename="zlm-mediaserver"
+packagename="zlmediakit"
 
 case $type in
 	'build')
 	rm -rf ./build/CMakeCache.txt
 	# 以腾讯云账号为例
-	docker build --network=host --build-arg MODEL=$model -t ccr.ccs.tencentyun.com/$namespace/$packagename:$model.$version .
+	docker build --network=host --build-arg MODEL=$model -t $namespace/$packagename:$model.$version .
 		;;
 	'push')
 		echo "push to dst registry"
 		# 以腾讯云账号为例
-		docker login --username=default_name ccr.ccs.tencentyun.com
-		docker push ccr.ccs.tencentyun.com/$namespace/$packagename:$model.$version
+		docker login --username=zlmediakit
+		docker push $namespace/$packagename:$model.$version
 		;;
  	*)
                 echo "unkonwn type"
