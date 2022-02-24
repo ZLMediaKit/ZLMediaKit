@@ -91,8 +91,9 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
     }
 
     char cmd[1024] = {0};
-    snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(), ffmpeg_bin.data(), src_url.data(), dst_url.data());
-    _process.run(cmd,ffmpeg_log.empty() ? "" : File::absolutePath("",ffmpeg_log));
+    snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(), File::absolutePath("", ffmpeg_bin).data(), src_url.data(), dst_url.data());
+    auto log_file = ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log);
+    _process.run(cmd, log_file);
     InfoL << cmd;
 
     if (is_local_ip(_media_info._host)) {
@@ -312,7 +313,7 @@ void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
     }
 }
 
-void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float timeout_sec,  const function<void(bool)> &cb) {
+void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float timeout_sec, const onSnap &cb) {
     GET_CONFIG(string,ffmpeg_bin,FFmpeg::kBin);
     GET_CONFIG(string,ffmpeg_snap,FFmpeg::kSnap);
     GET_CONFIG(string,ffmpeg_log,FFmpeg::kLog);
@@ -321,28 +322,33 @@ void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float
         auto elapsed_ms = ticker.elapsedTime();
         if (elapsed_ms > timeout_sec * 1000) {
             //超时，后台线程负载太高，当代太久才启动该任务
-            cb(false);
+            cb(false, "wait work poller schedule snap task timeout");
             return;
         }
-        char cmd[1024] = {0};
-        snprintf(cmd, sizeof(cmd),ffmpeg_snap.data(),ffmpeg_bin.data(),play_url.data(),save_path.data());
+        char cmd[2048] = { 0 };
+        snprintf(cmd, sizeof(cmd), ffmpeg_snap.data(), File::absolutePath("", ffmpeg_bin).data(), play_url.data(), save_path.data());
+
         std::shared_ptr<Process> process = std::make_shared<Process>();
-        process->run(cmd,ffmpeg_log.empty() ? "" : File::absolutePath("",ffmpeg_log));
+        auto log_file = ffmpeg_log.empty() ? ffmpeg_log : File::absolutePath("", ffmpeg_log);
+        process->run(cmd, log_file);
+
         //定时器延时应该减去后台任务启动的延时
-        auto delayTask = EventPollerPool::Instance().getPoller()->doDelayTask((uint64_t)(timeout_sec * 1000 - elapsed_ms),[process,cb](){
-            if(process->wait(false)){
-                //FFmpeg进程还在运行，超时就关闭它
-                process->kill(2000);
-            }
-            return 0;
-        });
+        auto delayTask = EventPollerPool::Instance().getPoller()->doDelayTask(
+            (uint64_t)(timeout_sec * 1000 - elapsed_ms), [process, cb, log_file, save_path]() {
+                if (process->wait(false)) {
+                    // FFmpeg进程还在运行，超时就关闭它
+                    process->kill(2000);
+                }
+                return 0;
+            });
 
         //等待FFmpeg进程退出
         process->wait(true);
-        //FFmpeg进程退出了可以取消定时器了
+        // FFmpeg进程退出了可以取消定时器了
         delayTask->cancel();
         //执行回调函数
-        cb(process->exit_code() == 0);
+        bool success = process->exit_code() == 0 && File::fileSize(save_path.data());
+        cb(success, (!success && !log_file.empty()) ? File::loadFile(log_file.data()) : "");
     });
 }
 
