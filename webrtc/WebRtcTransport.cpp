@@ -766,14 +766,14 @@ void WrappedRtxTrack::inputRtp(const char *buf, size_t len, uint64_t stamp_ms, R
 
 void WebRtcTransportImp::onSendNack(MediaTrack &track, const FCI_NACK &nack, uint32_t ssrc) {
     auto rtcp = RtcpFB::create(RTPFBType::RTCP_RTPFB_NACK, &nack, FCI_NACK::kSize);
-    rtcp->ssrc = htons(track.answer_ssrc_rtp);
+    rtcp->ssrc = htonl(track.answer_ssrc_rtp);
     rtcp->ssrc_media = htonl(ssrc);
     sendRtcpPacket((char *) rtcp.get(), rtcp->getSize(), true);
 }
 
 void WebRtcTransportImp::onSendTwcc(uint32_t ssrc, const string &twcc_fci) {
     auto rtcp = RtcpFB::create(RTPFBType::RTCP_RTPFB_TWCC, twcc_fci.data(), twcc_fci.size());
-    rtcp->ssrc = htons(0);
+    rtcp->ssrc = htonl(0);
     rtcp->ssrc_media = htonl(ssrc);
     sendRtcpPacket((char *) rtcp.get(), rtcp->getSize(), true);
 }
