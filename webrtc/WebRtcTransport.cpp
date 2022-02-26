@@ -704,6 +704,14 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
 }
 
 void WrappedRtpTrack::inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) {
+#if 0
+    auto seq = ntohs(rtp->seq);
+    if (track->media->type == TrackVideo && seq % 100 == 0) {
+        //此处模拟接受丢包
+        return;
+    }
+#endif
+    
     auto ssrc = ntohl(rtp->ssrc);
 
     //修改ext id至统一
@@ -719,14 +727,6 @@ void WrappedRtpTrack::inputRtp(const char *buf, size_t len, uint64_t stamp_ms, R
         _transport.createRtpChannel(rid, ssrc, *track);
     }
 
-    //这是普通的rtp数据
-#if 0
-    auto seq = ntohs(rtp->seq);
-    if (track->media->type == TrackVideo && seq % 100 == 0) {
-        //此处模拟接受丢包
-        return;
-    }
-#endif
     //解析并排序rtp
     ref->inputRtp(track->media->type, track->plan_rtp->sample_rate, (uint8_t *) buf, len, false);
 }
