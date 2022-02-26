@@ -20,13 +20,14 @@ public:
     NackList() = default;
     ~NackList() = default;
 
-    void push_back(mediakit::RtpPacket::Ptr rtp);
-    void for_each_nack(const mediakit::FCI_NACK &nack, const std::function<void(const mediakit::RtpPacket::Ptr &rtp)> &cb);
+    void pushBack(mediakit::RtpPacket::Ptr rtp);
+    void forEach(const mediakit::FCI_NACK &nack, const std::function<void(const mediakit::RtpPacket::Ptr &rtp)> &cb);
 
 private:
-    void pop_front();
-    uint32_t get_cache_ms();
-    mediakit::RtpPacket::Ptr *get_rtp(uint16_t seq);
+    void popFront();
+    uint32_t getCacheMS();
+    int64_t getRtpStamp(uint16_t seq);
+    mediakit::RtpPacket::Ptr *getRtp(uint16_t seq);
 
 private:
     std::deque<uint16_t> _nack_cache_seq;

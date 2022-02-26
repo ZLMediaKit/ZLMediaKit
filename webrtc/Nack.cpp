@@ -16,22 +16,22 @@ using namespace mediakit;
 
 static constexpr uint32_t kMaxNackMS = 10 * 1000;
 
-void NackList::push_back(RtpPacket::Ptr rtp) {
+void NackList::pushBack(RtpPacket::Ptr rtp) {
     auto seq = rtp->getSeq();
     _nack_cache_seq.emplace_back(seq);
     _nack_cache_pkt.emplace(seq, std::move(rtp));
-    while (get_cache_ms() > kMaxNackMS) {
+    while (getCacheMS() > kMaxNackMS) {
         //需要清除部分nack缓存
-        pop_front();
+        popFront();
     }
 }
 
-void NackList::for_each_nack(const FCI_NACK &nack, const function<void(const RtpPacket::Ptr &rtp)> &func) {
+void NackList::forEach(const FCI_NACK &nack, const function<void(const RtpPacket::Ptr &rtp)> &func) {
     auto seq = nack.getPid();
     for (auto bit : nack.getBitArray()) {
         if (bit) {
             //丢包
-            RtpPacket::Ptr *ptr = get_rtp(seq);
+            RtpPacket::Ptr *ptr = getRtp(seq);
             if (ptr) {
                 func(*ptr);
             }
@@ -40,7 +40,7 @@ void NackList::for_each_nack(const FCI_NACK &nack, const function<void(const Rtp
     }
 }
 
-void NackList::pop_front() {
+void NackList::popFront() {
     if (_nack_cache_seq.empty()) {
         return;
     }
@@ -48,7 +48,7 @@ void NackList::pop_front() {
     _nack_cache_seq.pop_front();
 }
 
-RtpPacket::Ptr *NackList::get_rtp(uint16_t seq) {
+RtpPacket::Ptr *NackList::getRtp(uint16_t seq) {
     auto it = _nack_cache_pkt.find(seq);
     if (it == _nack_cache_pkt.end()) {
         return nullptr;
@@ -56,18 +56,34 @@ RtpPacket::Ptr *NackList::get_rtp(uint16_t seq) {
     return &it->second;
 }
 
-uint32_t NackList::get_cache_ms() {
-    if (_nack_cache_seq.size() < 2) {
+uint32_t NackList::getCacheMS() {
+    auto back_stamp = getRtpStamp(_nack_cache_seq.back());
+    if (back_stamp == -1) {
+        _nack_cache_seq.pop_back();
         return 0;
     }
-    uint32_t back = _nack_cache_pkt[_nack_cache_seq.back()]->getStampMS(false);
-    uint32_t front = _nack_cache_pkt[_nack_cache_seq.front()]->getStampMS(false);
-    if (back >= front) {
-        return back - front;
+
+    auto front_stamp = getRtpStamp(_nack_cache_seq.front());
+    if (front_stamp == -1) {
+        _nack_cache_seq.pop_front();
+        return 0;
+    }
+
+    if (back_stamp >= front_stamp) {
+        return back_stamp - front_stamp;
     }
     //很有可能回环了
-    return back + (UINT32_MAX - front);
+    return back_stamp + (UINT32_MAX - front_stamp);
 }
+
+int64_t NackList::getRtpStamp(uint16_t seq) {
+    auto it = _nack_cache_pkt.find(seq);
+    if (it == _nack_cache_pkt.end()) {
+        return -1;
+    }
+    return it->second->getStampMS(false);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
