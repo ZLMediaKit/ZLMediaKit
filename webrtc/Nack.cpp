@@ -60,8 +60,8 @@ uint32_t NackList::get_cache_ms() {
     if (_nack_cache_seq.size() < 2) {
         return 0;
     }
-    uint32_t back = _nack_cache_pkt[_nack_cache_seq.back()]->getStampMS();
-    uint32_t front = _nack_cache_pkt[_nack_cache_seq.front()]->getStampMS();
+    uint32_t back = _nack_cache_pkt[_nack_cache_seq.back()]->getStampMS(false);
+    uint32_t front = _nack_cache_pkt[_nack_cache_seq.front()]->getStampMS(false);
     if (back >= front) {
         return back - front;
     }

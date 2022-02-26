@@ -159,7 +159,7 @@ public:
     uint16_t getSeq() const;
     uint32_t getStamp() const;
     //主机字节序的时间戳，已经转换为毫秒
-    uint32_t getStampMS() const;
+    uint32_t getStampMS(bool ntp = true) const;
     //主机字节序的ssrc
     uint32_t getSSRC() const;
     //有效负载，跳过csrc、ext
