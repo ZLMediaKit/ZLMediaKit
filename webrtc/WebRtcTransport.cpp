@@ -652,7 +652,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                         }
                         auto &track = it->second;
                         auto &fci = fb->getFci<FCI_NACK>();
-                        track->nack_list.for_each_nack(fci, [&](const RtpPacket::Ptr &rtp) {
+                        track->nack_list.forEach(fci, [&](const RtpPacket::Ptr &rtp) {
                             //rtp重传
                             onSendRtp(rtp, true, true);
                         });
@@ -807,7 +807,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
     if (!rtx) {
         //统计rtp发送情况，好做sr汇报
         track->rtcp_context_send->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
-        track->nack_list.push_back(rtp);
+        track->nack_list.pushBack(rtp);
 #if 0
         //此处模拟发送丢包
         if (rtp->type == TrackVideo && rtp->getSeq() % 100 == 0) {
