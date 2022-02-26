@@ -14,7 +14,7 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-static constexpr uint32_t kMaxNackMS = 10 * 1000;
+static constexpr uint32_t kMaxNackMS = 5 * 1000;
 
 void NackList::pushBack(RtpPacket::Ptr rtp) {
     auto seq = rtp->getSeq();
