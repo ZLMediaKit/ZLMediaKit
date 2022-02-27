@@ -30,7 +30,7 @@ private:
     mediakit::RtpPacket::Ptr *getRtp(uint16_t seq);
 
 private:
-    int _cache_ms_check = 0;
+    uint32_t _cache_ms_check = 0;
     std::deque<uint16_t> _nack_cache_seq;
     std::unordered_map<uint16_t, mediakit::RtpPacket::Ptr> _nack_cache_pkt;
 };
