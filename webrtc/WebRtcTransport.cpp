@@ -816,7 +816,7 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
 #endif
     } else {
         //发送rtx重传包
-        TraceL << "send rtx rtp:" << rtp->getSeq();
+        //TraceL << "send rtx rtp:" << rtp->getSeq();
     }
     pair<bool/*rtx*/, MediaTrack *> ctx{rtx, track.get()};
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, &ctx);
@@ -875,6 +875,10 @@ void WebRtcTransportImp::onShutdown(const SockException &ex){
 
 void WebRtcTransportImp::setSession(Session::Ptr session) {
     _history_sessions.emplace(session.get(), session);
+    if (_selected_session) {
+        InfoL << "network exchange: " << _selected_session->get_peer_ip() << ":" << _selected_session->get_peer_port()
+              << " -> " << session->get_peer_ip() << ":" << session->get_peer_port();
+    }
     _selected_session = std::move(session);
     unrefSelf();
 }
