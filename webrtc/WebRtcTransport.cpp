@@ -876,8 +876,8 @@ void WebRtcTransportImp::onShutdown(const SockException &ex){
 void WebRtcTransportImp::setSession(Session::Ptr session) {
     _history_sessions.emplace(session.get(), session);
     if (_selected_session) {
-        InfoL << "network exchange: " << _selected_session->get_peer_ip() << ":" << _selected_session->get_peer_port()
-              << " -> " << session->get_peer_ip() << ":" << session->get_peer_port();
+        InfoL << "rtc network changed: " << _selected_session->get_peer_ip() << ":" << _selected_session->get_peer_port()
+              << " -> " << session->get_peer_ip() << ":" << session->get_peer_port() << ", id:" << getIdentifier();
     }
     _selected_session = std::move(session);
     unrefSelf();
