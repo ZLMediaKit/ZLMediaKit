@@ -170,9 +170,6 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
 void RtspSession::onRtpPacket(const char *data, size_t len) {
     uint8_t interleaved = data[1];
     if (interleaved % 2 == 0) {
-        if (!_push_src) {
-            return;
-        }
         auto track_idx = getTrackIndexByInterleaved(interleaved);
         handleOneRtp(track_idx, _sdp_track[track_idx]->_type, _sdp_track[track_idx]->_samplerate, (uint8_t *) data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     } else {
@@ -950,7 +947,11 @@ void RtspSession::send_NotAcceptable() {
 }
 
 void RtspSession::onRtpSorted(RtpPacket::Ptr rtp, int track_idx) {
-    _push_src->onWrite(std::move(rtp), false);
+    if (_push_src) {
+        _push_src->onWrite(std::move(rtp), false);
+    } else {
+        WarnL << "Not a rtsp push!";
+    }
 }
 
 void RtspSession::onRcvPeerUdpData(int interleaved, const Buffer::Ptr &buf, const struct sockaddr &addr) {
