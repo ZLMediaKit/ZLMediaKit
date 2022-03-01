@@ -9,6 +9,7 @@
  */
 
 #include <stdio.h>
+#include <assert.h>
 #include "Common/config.h"
 #include "Util/util.h"
 #include "Util/logger.h"
