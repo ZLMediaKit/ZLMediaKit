@@ -31,8 +31,7 @@ void HttpClient::sendRequest(const string &url) {
         port = 443;
         is_https = true;
     } else {
-        auto strErr = StrPrinter << "非法的http url:" << url << endl;
-        throw std::invalid_argument(strErr);
+        throw std::invalid_argument("非法的url:" + url);
     }
 
     auto host = FindField(url.data(), "://", "/");
@@ -45,6 +44,7 @@ void HttpClient::sendRequest(const string &url) {
     }
     //重新设置header，防止上次请求的header干扰
     _header = _user_set_header;
+    // find user name
     auto pos = host.find('@');
     if (pos != string::npos) {
         //去除？后面的字符串
@@ -162,12 +162,12 @@ void HttpClient::onConnect_l(const SockException &ex) {
     _StrPrinter printer;
     printer << _method + " " << _path + " HTTP/1.1\r\n";
     for (auto &pr : _header) {
-        printer << pr.first + ": ";
-        printer << pr.second + "\r\n";
+        printer << pr.first + ": " << pr.second + "\r\n";
     }
+    printer << "\r\n";
     _header.clear();
     _path.clear();
-    SockSender::send(printer << "\r\n");
+    SockSender::send(printer);
     onFlush();
 }
 
@@ -225,13 +225,14 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
         onResponseCompleted_l(SockException(Err_success, "success"));
         return 0;
     }
-
-    //当_total_body_size != 0时到达这里，代表后续有content
-    //虽然我们在_total_body_size >0 时知道content的确切大小，
-    //但是由于我们没必要等content接收完毕才回调onRecvContent(因为这样浪费内存并且要多次拷贝数据)
-    //所以返回-1代表我们接下来分段接收content
-    _recved_body_size = 0;
-    return -1;
+    else {
+        //当_total_body_size != 0时到达这里，代表后续有content
+        //虽然我们在_total_body_size >0 时知道content的确切大小，
+        //但没必要等content接收完毕才回调onRecvContent(这样会浪费内存，并需要多次拷贝数据)
+        //这里返回-1，开启分段接收content
+        _recved_body_size = 0;
+        return -1;
+    }
 }
 
 void HttpClient::onRecvContent(const char *data, size_t len) {
@@ -239,30 +240,22 @@ void HttpClient::onRecvContent(const char *data, size_t len) {
         _chunked_splitter->input(data, len);
         return;
     }
+
     _recved_body_size += len;
-    if (_total_body_size < 0) {
-        //不限长度的content
-        onResponseBody(data, len);
-        return;
-    }
-
-    //固定长度的content
-    if (_recved_body_size < (size_t) _total_body_size) {
-        //content还未接收完毕
-        onResponseBody(data, len);
-        return;
-    }
-
-    if (_recved_body_size == (size_t)_total_body_size) {
-        //content接收完毕
-        onResponseBody(data, len);
-        onResponseCompleted_l(SockException(Err_success, "success"));
-        return;
-    }
-
-    //声明的content数据比真实的小，断开链接
     onResponseBody(data, len);
-    throw invalid_argument("http response content size bigger than expected");
+
+    if (_total_body_size < 0) {
+        //content不限长度
+        return;
+    }
+    else if (_recved_body_size == (size_t)_total_body_size) {
+        //content接收完毕
+        onResponseCompleted_l(SockException(Err_success, "success"));
+    }
+    else if (_recved_body_size > (size_t)_total_body_size) {
+        //声明的content数据比真实的小，断开链接
+        throw invalid_argument("http response content size bigger than expected");
+    }
 }
 
 void HttpClient::onFlush() {
@@ -321,16 +314,16 @@ void HttpClient::onResponseCompleted_l(const SockException &ex) {
         onResponseCompleted(ex);
         return;
     }
-    //可疑的失败
 
+    // treat error as success
     if (_total_body_size > 0 && _recved_body_size >= (size_t)_total_body_size) {
-        //回复header中有content-length信息，那么收到的body大于等于声明值则认为成功
+        //响应头部中有content-length信息，那么收到的body大于等于声明值则认为成功
         onResponseCompleted(SockException(Err_success, "success"));
         return;
     }
 
     if (_total_body_size == -1 && _recved_body_size > 0) {
-        //回复header中无content-length信息，那么收到一点body也认为成功
+        //响应头部中无content-length信息，那么有收到body则认为成功
         onResponseCompleted(SockException(Err_success, ex.what()));
         return;
     }

@@ -12,7 +12,7 @@
 #include "Util/File.h"
 #include "Util/MD5.h"
 using namespace toolkit;
-using namespace std;
+using std::string;
 
 namespace mediakit {
 
@@ -27,17 +27,17 @@ void HttpDownloader::startDownload(const string &url, const string &file_path, b
     }
     _save_file = File::create_file(_file_path.data(), append ? "ab" : "wb");
     if (!_save_file) {
-        auto strErr = StrPrinter << "打开文件失败:" << file_path << endl;
-        throw std::runtime_error(strErr);
+        throw std::runtime_error("打开文件失败:" + file_path);
     }
+    _start_pos = 0;
     if (append) {
-        auto currentLen = ftell(_save_file);
-        if (currentLen) {
+        _start_pos = ftell(_save_file);
+        if (_start_pos) {
             //最少续传一个字节，怕遇到http 416的错误
-            currentLen -= 1;
+            _start_pos -= 1;
             fseek(_save_file, -1, SEEK_CUR);
         }
-        addHeader("Range", StrPrinter << "bytes=" << currentLen << "-" << endl);
+        addHeader("Range", StrPrinter << "bytes=" << _start_pos << "-" << std::endl);
     }
     setMethod("GET");
     sendRequest(url);
@@ -45,7 +45,6 @@ void HttpDownloader::startDownload(const string &url, const string &file_path, b
 
 void HttpDownloader::onResponseHeader(const string &status, const HttpHeader &headers) {
     if (status != "200" && status != "206") {
-        //失败
         throw std::invalid_argument("bad http status: " + status);
     }
 }
@@ -54,6 +53,8 @@ void HttpDownloader::onResponseBody(const char *buf, size_t size) {
     if (_save_file) {
         fwrite(buf, size, 1, _save_file);
     }
+    if (_on_progress)
+        _on_progress(responseBodySize() + _start_pos, responseBodyTotalSize() + _start_pos);
 }
 
 void HttpDownloader::onResponseCompleted(const SockException &ex) {

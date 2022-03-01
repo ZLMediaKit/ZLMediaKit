@@ -32,12 +32,12 @@ public:
 
     void setPath(const std::string &path);
     void setHost(const std::string &host);
-    void setExpires(const std::string &expires,const std::string &server_date);
-    void setKeyVal(const std::string &key,const std::string &val);
+    void setExpires(const std::string &expires, const std::string &server_date);
+    void setKeyVal(const std::string &key, const std::string &val);
     operator bool ();
 
-    const std::string &getKey() const ;
-    const std::string &getVal() const ;
+    const std::string &getKey() const;
+    const std::string &getVal() const;
 private:
     std::string _host;
     std::string _path = "/";
@@ -52,13 +52,16 @@ private:
  */
 class HttpCookieStorage{
 public:
-    ~HttpCookieStorage(){}
     static HttpCookieStorage &Instance();
+    // 收到http响应，设置新的cookie项
     void set(const HttpCookie::Ptr &cookie);
-    std::vector<HttpCookie::Ptr> get(const std::string &host,const std::string &path);
+    // 用于填充http请求的cookie字段
+    std::vector<HttpCookie::Ptr> get(const std::string &host, const std::string &path);
 private:
-    HttpCookieStorage(){};
+    HttpCookieStorage() {}
+    ~HttpCookieStorage() {}
 private:
+    // map[host][path][key] = cookie;
     std::unordered_map<std::string/*host*/, std::map<std::string/*cookie path*/,std::map<std::string/*cookie_key*/, HttpCookie::Ptr> > > _all_cookie;
     std::mutex _mtx_cookie;
 };

@@ -10,7 +10,7 @@
 
 #include "HttpRequester.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 
 namespace mediakit {
@@ -32,7 +32,7 @@ void HttpRequester::onResponseCompleted(const SockException &ex) {
 }
 
 void HttpRequester::startRequester(const string &url, const HttpRequesterResult &on_result, float timeout_sec) {
-    _on_result = on_result;
+    setOnResult(on_result);
     setCompleteTimeout(timeout_sec * 1000);
     sendRequest(url);
 }

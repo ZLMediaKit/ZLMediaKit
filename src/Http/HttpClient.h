@@ -31,7 +31,7 @@ class HttpArgs : public std::map<std::string, toolkit::variant, StrCaseCompare> 
 public:
     HttpArgs() = default;
     ~HttpArgs() = default;
-
+    // make http query string
     std::string make() const {
         std::string ret;
         for (auto &pr : *this) {
@@ -47,6 +47,17 @@ public:
     }
 };
 
+/*
+Http请求基类，支持:
+- 设置请求/header、body超时
+- cookie管理：请求时携带cookie，响应自动存储cookie
+- 连接复用: 当地址一样时，复用上次Tcp连接
+- 支持basic auth验证
+- http 301/302 url重定向
+- MultiPart表单请求
+- chunk编码接收
+@note 该类body接收采用多次分段接收, onResponseBody有数据就会回调，而不是等缓存完毕后再一次回调
+*/
 class HttpClient : public toolkit::TcpClient, public HttpRequestSplitter {
 public:
     using HttpHeader = StrCaseMap;
@@ -78,6 +89,14 @@ public:
      */
     void setHeader(HttpHeader header);
 
+    /**
+    @brief 添加Http头部.
+    
+    @param key 头部名
+    @param val 头部值
+    @param force 存在是否覆盖
+    @return this引用，用于链式操作
+    */
     HttpClient &addHeader(std::string key, std::string val, bool force = false);
 
     /**
@@ -87,18 +106,21 @@ public:
     void setBody(std::string body);
 
     /**
-     * 设置http content
-     * @param body http content
-     */
+    @brief 设置http content
+    @param body 支持如下Body
+    - MultiPartFormBody
+    - FileBody
+    - StringBody
+    */
     void setBody(HttpBody::Ptr body);
 
     /**
-     * 获取回复，在收到完整回复后有效
+     * 获取回复，在收到完整回复(_complete=true)后有效
      */
     const Parser &response() const;
 
     /**
-     * 获取回复header声明的body大小
+     * 获取Content-Length返回的body大小
      */
     ssize_t responseBodyTotalSize() const;
 
@@ -136,35 +158,37 @@ public:
     void setBodyTimeout(size_t timeout_ms);
 
     /**
-     * 设置整个链接超时超时时间, 默认0
-     * 该值设置不为0后，HeaderTimeout和BodyTimeout无效
+     * 设置整个连接超时超时时间, 默认0
+     * 当设置该值后(!=0)，HeaderTimeout和BodyTimeout无效
      */
     void setCompleteTimeout(size_t timeout_ms);
 
 protected:
     /**
-     * 收到http回复头
+     * 收到http响应头
      * @param status 状态码，譬如:200 OK
-     * @param headers http头
+     * @param headers http响应头部Map
      */
     virtual void onResponseHeader(const std::string &status, const HttpHeader &headers) = 0;
 
     /**
-     * 收到http conten数据
+     * 收到http content数据
+     * 这里采用分段接收，收到数据后就回调，而不是等Content-Length接收后才回调；
+     * 对于chunk编码，则是收到一个chunk就回调
      * @param buf 数据指针
      * @param size 数据大小
      */
     virtual void onResponseBody(const char *buf, size_t size) = 0;
 
     /**
-     * 接收http回复完毕,
+     * 接收http响应完毕,
      */
     virtual void onResponseCompleted(const toolkit::SockException &ex) = 0;
 
     /**
      * 重定向事件
      * @param url 重定向url
-     * @param temporary 是否为临时重定向
+     * @param temporary 是否为临时重定向 301 or 302
      * @return 是否继续
      */
     virtual bool onRedirectUrl(const std::string &url, bool temporary) { return true; };
@@ -202,6 +226,7 @@ private:
     HttpHeader _user_set_header;
     HttpBody::Ptr _body;
     std::string _method;
+    // 用于连接复用
     std::string _last_host;
 
     //for this request

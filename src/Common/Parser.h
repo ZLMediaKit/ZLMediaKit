@@ -62,13 +62,13 @@ public:
     }
 };
 
-//rtsp/http/sip解析类
+//rtsp/http/sip header解析类
 class Parser {
 public:
     Parser() = default;
     ~Parser() = default;
 
-    //解析信令
+    //解析信令头部\r\n\r\n前内容
     void Parse(const char *buf);
 
     //获取命令字

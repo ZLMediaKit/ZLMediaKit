@@ -19,38 +19,26 @@ using namespace toolkit;
 namespace mediakit {
 
 //////////////////////////////HttpServerCookie////////////////////////////////////
-HttpServerCookie::HttpServerCookie(
-    const std::shared_ptr<HttpCookieManager> &manager, const string &cookie_name, const string &uid,
-    const string &cookie, uint64_t max_elapsed) {
+HttpServerCookie::HttpServerCookie(const std::shared_ptr<HttpCookieManager> &manager, 
+    const string &name, const string &uid,
+    const string &value, uint64_t max_elapsed) {
     _uid = uid;
     _max_elapsed = max_elapsed;
-    _cookie_uuid = cookie;
-    _cookie_name = cookie_name;
+    _value = value;
+    _name = name;
     _manager = manager;
-    manager->onAddCookie(_cookie_name, _uid, _cookie_uuid);
+    manager->onAddCookie(_name, _uid, _value);
 }
 
 HttpServerCookie::~HttpServerCookie() {
     auto strongManager = _manager.lock();
     if (strongManager) {
-        strongManager->onDelCookie(_cookie_name, _uid, _cookie_uuid);
+        strongManager->onDelCookie(_name, _uid, _value);
     }
 }
 
-const string &HttpServerCookie::getUid() const {
-    return _uid;
-}
-
 string HttpServerCookie::getCookie(const string &path) const {
-    return (StrPrinter << _cookie_name << "=" << _cookie_uuid << ";expires=" << cookieExpireTime() << ";path=" << path);
-}
-
-const string &HttpServerCookie::getCookie() const {
-    return _cookie_uuid;
-}
-
-const string &HttpServerCookie::getCookieName() const {
-    return _cookie_name;
+    return (StrPrinter << _name << "=" << _value << ";expires=" << cookieExpireTime() << ";path=" << path);
 }
 
 void HttpServerCookie::updateTime() {
@@ -61,16 +49,13 @@ bool HttpServerCookie::isExpired() {
     return _ticker.elapsedTime() > _max_elapsed * 1000;
 }
 
-void HttpServerCookie::setAttach(std::shared_ptr<void> attach) {
-    _attach = std::move(attach);
-}
-
 string HttpServerCookie::cookieExpireTime() const {
     char buf[64];
     time_t tt = time(NULL) + _max_elapsed;
     strftime(buf, sizeof buf, "%a, %b %d %Y %H:%M:%S GMT", gmtime(&tt));
     return buf;
 }
+
 //////////////////////////////CookieManager////////////////////////////////////
 INSTANCE_IMP(HttpCookieManager);
 
@@ -97,7 +82,7 @@ void HttpCookieManager::onManager() {
         for (auto it_cookie = it_name->second.begin(); it_cookie != it_name->second.end();) {
             if (it_cookie->second->isExpired()) {
                 // cookie过期,移除记录
-                DebugL << it_cookie->second->getUid() << " cookie过期:" << it_cookie->second->getCookie();
+                DebugL << it_cookie->second->getUid() << " cookie过期:" << it_cookie->second->getValue();
                 it_cookie = it_name->second.erase(it_cookie);
                 continue;
             }
@@ -146,7 +131,7 @@ HttpServerCookie::Ptr HttpCookieManager::getCookie(const string &cookie_name, co
     }
     if (it_cookie->second->isExpired()) {
         // cookie过期
-        DebugL << "cookie过期:" << it_cookie->second->getCookie();
+        DebugL << "cookie过期:" << it_cookie->second->getValue();
         it_name->second.erase(it_cookie);
         return nullptr;
     }
@@ -183,7 +168,7 @@ bool HttpCookieManager::delCookie(const HttpServerCookie::Ptr &cookie) {
     if (!cookie) {
         return false;
     }
-    return delCookie(cookie->getCookieName(), cookie->getCookie());
+    return delCookie(cookie->getName(), cookie->getValue());
 }
 
 bool HttpCookieManager::delCookie(const string &cookie_name, const string &cookie) {
@@ -204,7 +189,7 @@ void HttpCookieManager::onAddCookie(const string &cookie_name, const string &uid
 
 void HttpCookieManager::onDelCookie(const string &cookie_name, const string &uid, const string &cookie) {
     lock_guard<recursive_mutex> lck(_mtx_cookie);
-    //回收随机字符串
+    // 回收随机字符串
     _geneator.release(cookie);
 
     auto it_name = _map_uid_to_cookie.find(cookie_name);
@@ -220,26 +205,22 @@ void HttpCookieManager::onDelCookie(const string &cookie_name, const string &uid
 
     //遍历同一名用户下的所有客户端，移除命中的客户端
     for (auto it_cookie = it_uid->second.begin(); it_cookie != it_uid->second.end(); ++it_cookie) {
-        if (it_cookie->second != cookie) {
-            //不是该cookie
-            continue;
-        }
-        //移除该用户名下的某个cookie，这个设备cookie将失效
-        it_uid->second.erase(it_cookie);
+        if (it_cookie->second == cookie) {
+            //移除该用户名下的某个cookie，这个设备cookie将失效
+            it_uid->second.erase(it_cookie);
 
-        if (it_uid->second.size() != 0) {
+            if (it_uid->second.size() == 0) {
+                //该用户名下没有任何设备在线，移除之
+                it_name->second.erase(it_uid);
+
+                if (it_name->second.size() == 0) {
+                    //该类型下未有任何用户在线，移除之
+                    _map_uid_to_cookie.erase(it_name);
+                }
+            }
             break;
         }
 
-        //该用户名下没有任何设备在线，移除之
-        it_name->second.erase(it_uid);
-
-        if (it_name->second.size() != 0) {
-            break;
-        }
-        //该类型下未有任何用户在线，移除之
-        _map_uid_to_cookie.erase(it_name);
-        break;
     }
 }
 
@@ -255,7 +236,8 @@ string HttpCookieManager::getOldestCookie(const string &cookie_name, const strin
         //该用户从未登录过
         return "";
     }
-    if (it_uid->second.size() < MAX(1, max_client)) {
+    if (max_client < 1) max_client = 1;
+    if (it_uid->second.size() < max_client) {
         //同一名用户下，客户端个数还没达到限制个数
         return "";
     }

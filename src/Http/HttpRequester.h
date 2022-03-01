@@ -14,16 +14,19 @@
 #include "HttpClientImp.h"
 
 namespace mediakit {
-
+/*
+主要用于简单的http rest请求.
+将响应的body收集完毕后，通过HttpRequesterResult返回Parser对象
+*/
 class HttpRequester : public HttpClientImp {
 public:
     using Ptr = std::shared_ptr<HttpRequester>;
-    using HttpRequesterResult = std::function<void(const toolkit::SockException &ex, const Parser &response)>;
-
     HttpRequester() = default;
     ~HttpRequester() override = default;
 
+    using HttpRequesterResult = std::function<void(const toolkit::SockException &ex, const Parser &response)>;
     void setOnResult(const HttpRequesterResult &onResult);
+
     void startRequester(const std::string &url, const HttpRequesterResult &on_result, float timeout_sec = 10);
     void clear() override;
 

@@ -141,20 +141,17 @@ HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
 #endif
     if (!_map_addr && _read_to != -1) {
         //mmap失败(且不是由于文件不存在导致的)或未执行mmap时，才进入fread逻辑分支
-        _fp.reset(fopen(file_path.data(), "rb"), [](FILE *fp) {
-            if (fp) {
-                fclose(fp);
-            }
-        });
-        if (!_fp) {
+        FILE* fp = fopen(file_path.data(), "rb");
+        if (!fp) {
             //文件不存在
             _read_to = -1;
             return;
         }
+        _fp.reset(fp, fclose);
         if (!_read_to) {
             //_read_to等于0时，说明还未尝试获取文件大小
             //加上该判断逻辑，在mmap失败时，可以省去一次该操作
-            _read_to = File::fileSize(_fp.get());
+            _read_to = File::fileSize(fp);
         }
     }
 }
@@ -225,16 +222,19 @@ Buffer::Ptr HttpFileBody::readData(size_t size) {
             _file_offset += iRead;
             return std::move(ret);
         }
-        //读取文件异常，文件真实长度小于声明长度
-        _file_offset = _read_to;
-        WarnL << "read file err:" << get_uv_errmsg();
-        return nullptr;
+        else {
+            //读取文件异常，文件真实长度小于声明长度
+        	_file_offset = _read_to;
+            WarnL << "read file err:" << get_uv_errmsg();
+            return nullptr;
+        }
     }
-
-    // mmap模式
-    auto ret = std::make_shared<BufferMmap>(_map_addr, _file_offset, size);
-    _file_offset += size;
-    return ret;
+    else {
+        // mmap模式
+        auto ret = std::make_shared<BufferMmap>(_map_addr, _file_offset, size);
+        _file_offset += size;
+        return ret;
+    }
 }
 
 //////////////////////////////////////////////////////////////////
@@ -242,7 +242,7 @@ Buffer::Ptr HttpFileBody::readData(size_t size) {
 HttpMultiFormBody::HttpMultiFormBody(const HttpArgs &args, const string &filePath, const string &boundary) {
     _fileBody = std::make_shared<HttpFileBody>(filePath);
     if (_fileBody->remainSize() < 0) {
-        throw std::invalid_argument(StrPrinter << "open file failed：" << filePath << " " << get_uv_errmsg());
+        throw std::invalid_argument(StrPrinter << "open file failed:" << filePath << " " << get_uv_errmsg());
     }
 
     auto fileName = filePath;
@@ -290,9 +290,8 @@ Buffer::Ptr HttpMultiFormBody::readData(size_t size) {
 
 string HttpMultiFormBody::multiFormBodySuffix(const string &boundary) {
     string MPboundary = string("--") + boundary;
-    string endMPboundary = MPboundary + "--";
     _StrPrinter body;
-    body << "\r\n" << endMPboundary;
+    body << "\r\n" << MPboundary << "--";
     return std::move(body);
 }
 
@@ -309,23 +308,9 @@ string HttpMultiFormBody::multiFormBodyPrefix(const HttpArgs &args, const string
         body << pr.second << "\r\n";
     }
     body << MPboundary << "\r\n";
-    body << "Content-Disposition: form-data; name=\""
-         << "file"
-         << "\";filename=\"" << fileName << "\"\r\n";
+    body << "Content-Disposition: form-data; name=\"file\";filename=\"" << fileName << "\"\r\n";
     body << "Content-Type: application/octet-stream\r\n\r\n";
     return std::move(body);
-}
-
-HttpBufferBody::HttpBufferBody(Buffer::Ptr buffer) {
-    _buffer = std::move(buffer);
-}
-
-int64_t HttpBufferBody::remainSize() {
-    return _buffer ? _buffer->size() : 0;
-}
-
-Buffer::Ptr HttpBufferBody::readData(size_t size) {
-    return Buffer::Ptr(std::move(_buffer));
 }
 
 } // namespace mediakit

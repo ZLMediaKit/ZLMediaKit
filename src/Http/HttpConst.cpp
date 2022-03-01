@@ -13,7 +13,6 @@
 #include "Common/Parser.h"
 #include "Util/onceToken.h"
 
-using namespace std;
 using namespace toolkit;
 
 namespace mediakit{
@@ -196,24 +195,22 @@ static const char *s_mime_src[][2] = {
         {"avi", "video/x-msvideo"},
 };
 
-const string &getHttpContentType(const char *name) {
-    const char *dot;
-    dot = strrchr(name, '.');
+const std::string &getHttpContentType(const char *name) {
     static StrCaseMap mapType;
     static onceToken token([&]() {
         for (unsigned int i = 0; i < sizeof(s_mime_src) / sizeof(s_mime_src[0]); ++i) {
             mapType.emplace(s_mime_src[i][0], s_mime_src[i][1]);
         }
     });
-    static string defaultType = "text/plain";
-    if (!dot) {
-        return defaultType;
+    static std::string defaultType = "text/plain";
+    const char *dot = strrchr(name, '.');
+    if (dot) {
+        auto it = mapType.find(dot + 1);
+        if (it != mapType.end()) {
+            return it->second;
+        }
     }
-    auto it = mapType.find(dot + 1);
-    if (it == mapType.end()) {
-        return defaultType;
-    }
-    return it->second;
+    return defaultType;
 }
 
 }//namespace mediakit

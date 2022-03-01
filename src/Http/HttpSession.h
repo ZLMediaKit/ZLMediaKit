@@ -37,7 +37,7 @@ public:
      * @param accessPath 运行或禁止访问的根目录
      * @param cookieLifeSecond 鉴权cookie有效期
      **/
-    typedef std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
+    typedef std::function<void(const std::string &errMsg, const std::string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
 
     HttpSession(const toolkit::Socket::Ptr &pSock);
     ~HttpSession() override;
@@ -60,18 +60,14 @@ protected:
     /**
      * 重载之用于处理不定长度的content
      * 这个函数可用于处理大文件上传、http-flv推流
-     * @param header http请求头
-     * @param data content分片数据
-     * @param len content分片数据大小
-     * @param totalSize content总大小,如果为0则是不限长度content
-     * @param recvedSize 已收数据大小
      */
-    virtual void onRecvUnlimitedContent(const Parser &header,
-                                        const char *data,
-                                        size_t len,
-                                        size_t totalSize,
-                                        size_t recvedSize){
-        shutdown(toolkit::SockException(toolkit::Err_shutdown,"http post content is too huge,default closed"));
+    virtual void onRecvUnlimitedContent(const Parser &header, ///< http请求头
+                                        const char *data, ///< content分片数据
+                                        size_t len, ///< 分片数据大小
+                                        size_t totalSize, ///< content总大小,如果为0则是不限长度content
+                                        size_t recvedSize) ///< 已接收大小
+    {
+        shutdown(toolkit::SockException(toolkit::Err_shutdown, "http post content is too huge,default closed"));
     }
 
     /**
@@ -103,7 +99,8 @@ private:
     void Handle_Req_POST(ssize_t &content_len);
     void Handle_Req_HEAD(ssize_t &content_len);
     void Handle_Req_OPTIONS(ssize_t &content_len);
-
+    
+    // 根据url和后缀找流，并通过回调返回流对象
     bool checkLiveStream(const std::string &schema, const std::string  &url_suffix, const std::function<void(const MediaSource::Ptr &src)> &cb);
 
     bool checkLiveStreamFlv(const std::function<void()> &cb = nullptr);
@@ -113,26 +110,38 @@ private:
     bool checkWebSocket();
     bool emitHttpEvent(bool doInvoke);
     void urlDecode(Parser &parser);
+
     void sendNotFound(bool bClose);
-    void sendResponse(int code, bool bClose, const char *pcContentType = nullptr,
-                      const HttpSession::KeyValue &header = HttpSession::KeyValue(),
-                      const HttpBody::Ptr &body = nullptr, bool no_content_length = false);
+    void sendResponse(int code, bool bClose, 
+        const char *pcContentType = nullptr,
+        const HttpSession::KeyValue &header = HttpSession::KeyValue(),
+        const HttpBody::Ptr &body = nullptr, 
+        bool no_content_length = false);
 
     //设置socket标志
     void setSocketFlags();
 
 private:
+    // 承载直播流(http/websocket)
     bool _is_live_stream = false;
+    // 用websocket承载直播流
     bool _live_over_websocket = false;
+
     //消耗的总流量
     uint64_t _total_bytes_usage = 0;
+
     std::string _origin;
+    // 请求上下文
     Parser _parser;
+    // keepalive计时器
     toolkit::Ticker _ticker;
+
     MediaInfo _mediaInfo;
+    // 直播流reader
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
     FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
-    //处理content数据的callback
+
+    //处理content数据的回调; 如函数返回false，则会将自己置空. @see onRecvContent
     std::function<bool (const char *data,size_t len) > _contentCallBack;
 };
 

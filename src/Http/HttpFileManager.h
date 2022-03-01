@@ -18,7 +18,7 @@
 #include "Util/function_traits.h"
 
 namespace mediakit {
-
+// 抽象异步http响应机制 @HttpSession
 class HttpResponseInvokerImp{
 public:
     typedef std::function<void(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body)> HttpResponseInvokerLambda0;
@@ -26,6 +26,7 @@ public:
 
     HttpResponseInvokerImp(){}
     ~HttpResponseInvokerImp(){}
+
     template<typename C>
     HttpResponseInvokerImp(const C &c):HttpResponseInvokerImp(typename toolkit::function_traits<C>::stl_function_type(c)) {}
     HttpResponseInvokerImp(const HttpResponseInvokerLambda0 &lambda);
@@ -34,10 +35,23 @@ public:
     void operator()(int code, const StrCaseMap &headerOut, const toolkit::Buffer::Ptr &body) const;
     void operator()(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const;
     void operator()(int code, const StrCaseMap &headerOut, const std::string &body) const;
-
-    void responseFile(const StrCaseMap &requestHeader,const StrCaseMap &responseHeader,const std::string &file, bool use_mmap = true, bool is_path = true) const;
-    operator bool();
+    void invoke(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const {
+        if (_lambad) {
+            _lambad(code, headerOut, body);
+        }
+    }
+    void responseFile(const StrCaseMap &requestHeader, ///< 请求头部，用户读取Range信息
+        const StrCaseMap &responseHeader, ///< 响应头部，会重新设置Content-Range
+        const std::string &file, ///< 视is_path，可能是路径或文件内容
+        bool use_mmap = true, ///< 是否使用内存映射文件
+        bool is_path = true ///< file是否文件路径，否则是文件内容
+    ) const;
+    
+    operator bool() {
+        return _lambad.operator bool();
+    }
 private:
+
     HttpResponseInvokerLambda0 _lambad;
 };
 

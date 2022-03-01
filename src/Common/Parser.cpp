@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "Network/sockutil.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 
 namespace mediakit{
@@ -51,8 +51,18 @@ void Parser::Parse(const char *buf) {
             break;
         }
         if (start == buf) {
+            string strFullUrl;
+#if 0
+            auto vec = split(line, " ");
+            if (vec.size() < 2) continue;
+            _strMethod = vec[0];
+            strFullUrl = vec[1];
+            if (vec.size() > 2) _strTail = vec[2];
+#else
             _strMethod = FindField(line.data(), NULL, " ");
-            auto strFullUrl = FindField(line.data(), " ", " ");
+            strFullUrl = FindField(line.data(), " ", " ");
+            _strTail = FindField(line.data(), (strFullUrl + " ").data(), NULL);
+#endif
             auto args_pos = strFullUrl.find('?');
             if (args_pos != string::npos) {
                 _strUrl = strFullUrl.substr(0, args_pos);
@@ -61,7 +71,6 @@ void Parser::Parse(const char *buf) {
             } else {
                 _strUrl = strFullUrl;
             }
-            _strTail = FindField(line.data(), (strFullUrl + " ").data(), NULL);
         } else {
             auto pos = line.find(':');
             auto field = trim(line.substr(0, pos));// FindField(line.data(), NULL, ": ");
