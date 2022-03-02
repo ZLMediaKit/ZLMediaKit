@@ -299,7 +299,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     };
 
     //rtsp推流需要鉴权
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtsp_push, _media_info, invoker, static_cast<SockInfo &>(*this));
     if (!flag) {
         //该事件无人监听,默认不鉴权
         GET_CONFIG(bool, toHls, General::kPublishToHls);

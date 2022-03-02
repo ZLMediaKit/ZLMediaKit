@@ -1016,7 +1016,7 @@ void push_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &arg
     };
 
     //rtsp推流需要鉴权
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, info, invoker, static_cast<SockInfo &>(sender));
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtc_push, info, invoker, static_cast<SockInfo &>(sender));
     if (!flag) {
         //该事件无人监听,默认不鉴权
         GET_CONFIG(bool, to_hls, General::kPublishToHls);
