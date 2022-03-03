@@ -178,16 +178,28 @@ bool HttpSession::checkWebSocket(){
 }
 
 bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffix, const function<void(const MediaSource::Ptr &src)> &cb){
-    auto pos = strcasestr(_parser.Url().data(), url_suffix.data());
-    if (!pos || pos + url_suffix.size() != 1 + &_parser.Url().back()) {
-        //未找到后缀
-        return false;
+    std::string url = _parser.Url();
+    auto it = _parser.getUrlArgs().find("schema");
+    if (it != _parser.getUrlArgs().end()) {
+        if (strcasecmp(it->second.c_str(), schema.c_str())) {
+            // unsupported schema
+            return false;
+        }
+    }
+    else {
+        int prefix_len = url_suffix.length();
+        if(url.length() < prefix_len || strcasecmp(url.substr(url.length() - prefix_len).c_str(), url_suffix.c_str())) {
+            //未找到后缀
+            return false;
+        }
+        //url去除特殊后缀
+        url = url.substr(0, url.size() - prefix_len);
     }
 
-    //url去除特殊后缀
-    auto url = _parser.Url().substr(0, _parser.Url().size() - url_suffix.size());
     //带参数的url
-    url = _parser.Params().empty() ? url : (url + "?" + _parser.Params());
+    if(!_parser.Params().empty())
+        url += "?" + _parser.Params();
+
     //解析带上协议+参数完整的url
     _mediaInfo.parse(schema + "://" + _parser["Host"] + url);
 
@@ -223,22 +235,19 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
             if (!src) {
                 //未找到该流
                 strong_self->sendNotFound(close_flag);
-                return;
             }
-            strong_self->_is_live_stream = true;
-            //触发回调
-            cb(src);
+            else {
+                strong_self->_is_live_stream = true;
+                //触发回调
+                cb(src);
+            }
         });
     };
 
     Broadcast::AuthInvoker invoker = [weak_self, onRes](const string &err) {
-        auto strongSelf = weak_self.lock();
-        if (!strongSelf) {
-            return;
+        if (auto strongSelf = weak_self.lock()) {
+            strongSelf->async([onRes, err]() { onRes(err); });
         }
-        strongSelf->async([onRes, err]() {
-            onRes(err);
-        });
     };
 
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _mediaInfo, invoker, static_cast<SockInfo &>(*this));
@@ -732,8 +741,8 @@ void HttpSession::Handle_Req_POST(ssize_t &content_len) {
 }
 
 void HttpSession::sendNotFound(bool bClose) {
-    GET_CONFIG(string,notFound,Http::kNotFound);
-    sendResponse(404, bClose,"text/html",KeyValue(),std::make_shared<HttpStringBody>(notFound));
+    GET_CONFIG(string, notFound, Http::kNotFound);
+    sendResponse(404, bClose, "text/html", KeyValue(), std::make_shared<HttpStringBody>(notFound));
 }
 
 void HttpSession::setSocketFlags(){
