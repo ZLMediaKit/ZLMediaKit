@@ -26,14 +26,6 @@ PusherProxy::~PusherProxy() {
     _timer.reset();
 }
 
-void PusherProxy::setPushCallbackOnce(const function<void(const SockException &ex)> &cb) {
-    _on_publish = cb;
-}
-
-void PusherProxy::setOnClose(const function<void(const SockException &ex)> &cb) {
-    _on_close = cb;
-}
-
 void PusherProxy::publish(const string &dst_url) {
     std::weak_ptr<PusherProxy> weak_self = shared_from_this();
     std::shared_ptr<int> failed_cnt(new int(0));
@@ -87,12 +79,10 @@ void PusherProxy::rePublish(const string &dst_url, int failed_cnt) {
     weak_ptr<PusherProxy> weak_self = shared_from_this();
     _timer = std::make_shared<Timer>(delay / 1000.0f, [weak_self, dst_url, failed_cnt]() {
         //推流失败次数越多，则延时越长
-        auto strong_self = weak_self.lock();
-        if (!strong_self) {
-            return false;
+        if (auto strong_self = weak_self.lock()) {
+            WarnL << "推流重试[" << failed_cnt << "]:" << dst_url;
+            strong_self->MediaPusher::publish(dst_url);
         }
-        WarnL << "推流重试[" << failed_cnt << "]:" << dst_url;
-        strong_self->MediaPusher::publish(dst_url);
         return false;
     }, getPoller());
 }

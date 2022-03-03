@@ -45,7 +45,7 @@ public:
     virtual void teardown() {};
 
     /**
-     * 摄像推流结果回调
+     * 推流结果回调
      */
     virtual void setOnPublished(const Event &cb) = 0;
 
@@ -88,7 +88,7 @@ public:
     }
 
     /**
-     * 摄像推流结果回调
+     * 推流结果回调
      */
     void setOnPublished(const PusherBase::Event &cb) override {
         if (_delegate) {

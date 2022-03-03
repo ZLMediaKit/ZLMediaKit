@@ -26,8 +26,8 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &poller,
         });
         ptr->teardown();
     };
+    
     std::string prefix = FindField(strUrl.data(), NULL, "://");
-
     if (strcasecmp("rtsps",prefix.data()) == 0) {
         return PusherBase::Ptr(new TcpClientWithSSL<RtspPusherImp>(poller, std::dynamic_pointer_cast<RtspMediaSource>(src)), releasePusher);
     }

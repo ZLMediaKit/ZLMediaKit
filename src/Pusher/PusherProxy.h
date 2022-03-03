@@ -15,10 +15,11 @@
 #include "Util/TimeTicker.h"
 
 namespace mediakit {
-
+// 主要实现断开重推，和推送失败重试功能
 class PusherProxy : public MediaPusher, public std::enable_shared_from_this<PusherProxy> {
 public:
     typedef std::shared_ptr<PusherProxy> Ptr;
+    using PusherBase::Event;
 
     // 如果retry_count<0,则一直重试播放；否则重试retry_count次数
     // 默认一直重试，创建此对象时候，需要外部保证MediaSource存在
@@ -29,13 +30,17 @@ public:
      * 设置push结果回调，只触发一次；在publish执行之前有效
      * @param cb 回调对象
      */
-    void setPushCallbackOnce(const std::function<void(const toolkit::SockException &ex)> &cb);
+    void setPushCallbackOnce(const Event& cb) {
+        _on_publish = cb;
+    }
 
     /**
      * 设置主动关闭回调
      * @param cb 回调对象
      */
-    void setOnClose(const std::function<void(const toolkit::SockException &ex)> &cb);
+    void setOnClose(const Event& cb) {
+        _on_close = cb;
+    }
 
     /**
      * 开始拉流播放
@@ -51,8 +56,8 @@ private:
     int _retry_count;
     toolkit::Timer::Ptr _timer;
     std::weak_ptr<MediaSource> _weak_src;
-    std::function<void(const toolkit::SockException &ex)> _on_close;
-    std::function<void(const toolkit::SockException &ex)> _on_publish;
+    Event _on_close;
+    Event _on_publish;
 };
 
 } /* namespace mediakit */

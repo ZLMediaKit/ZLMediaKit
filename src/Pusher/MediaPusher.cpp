@@ -12,7 +12,7 @@
 #include "MediaPusher.h"
 #include "PusherBase.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 
 namespace mediakit {
@@ -35,7 +35,7 @@ MediaPusher::~MediaPusher() {
 }
 
 static void setOnCreateSocket_l(const std::shared_ptr<PusherBase> &delegate, const Socket::onCreateSocket &cb){
-    auto helper = dynamic_pointer_cast<SocketHelper>(delegate);
+    auto helper = std::dynamic_pointer_cast<SocketHelper>(delegate);
     if (helper) {
         helper->setOnCreateSocket(cb);
     }
