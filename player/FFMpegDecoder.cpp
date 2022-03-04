@@ -429,3 +429,165 @@ void TaskManager::onThreadRun(const string &name) {
     }
     InfoL << name << " exited!";
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+FFmpegEncoder::FFmpegEncoder(const mediakit::Track::Ptr &track)
+{
+#if (LIBAVCODEC_VERSION_MAJOR < 58)
+    avcodec_register_all();
+#endif
+    const AVCodec *codec = nullptr;
+    const AVCodec *codec_default = nullptr;
+    switch (track->getCodecId()) {
+    case CodecH264:
+        codec_default = getCodec<false>(AV_CODEC_ID_H264);
+        codec = getCodec<false>("libopenh264", AV_CODEC_ID_H264, "h264_videotoolbox", "h264_cuvid");
+        break;
+    case CodecH265:
+        codec_default = getCodec<false>(AV_CODEC_ID_HEVC);
+        codec = getCodec<false>(AV_CODEC_ID_HEVC, "hevc_videotoolbox", "hevc_cuvid");
+        break;
+    case CodecAAC:
+        codec = getCodec<false>(AV_CODEC_ID_AAC);
+        break;
+    case CodecG711A:
+        codec = getCodec<false>(AV_CODEC_ID_PCM_ALAW);
+        break;
+    case CodecG711U:
+        codec = getCodec<false>(AV_CODEC_ID_PCM_MULAW);
+        break;
+    case CodecOpus:
+        codec = getCodec<false>(AV_CODEC_ID_OPUS);
+        break;
+    default: break;
+    }
+
+    if (!codec) {
+        throw std::runtime_error("未找到编码器");
+    }
+    
+    while (true) {
+        _context.reset(avcodec_alloc_context3(codec), [](AVCodecContext *ctx) {
+            avcodec_close(ctx);
+            avcodec_free_context(&ctx);
+        });
+
+        if (!_context) {
+            throw std::runtime_error("创建编码码器失败");
+        }
+
+        //保存AVFrame的引用
+#ifdef FF_API_OLD_ENCDEC
+        _context->refcounted_frames = 1;
+#endif
+        _context->flags |= AV_CODEC_FLAG_LOW_DELAY;
+        _context->flags2 |= AV_CODEC_FLAG2_FAST;
+		_context->time_base = av_make_q(1, 1000);
+        switch(track->getTrackType())
+        {
+        case TrackAudio:{
+            AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
+            _context->channels = audio->getAudioChannel();
+            _context->sample_rate = audio->getAudioSampleRate();
+            _context->channel_layout = av_get_default_channel_layout(_context->channels);
+            break;
+        }
+        case TrackVideo: {
+            VideoTrack::Ptr video = static_pointer_cast<VideoTrack>(track);
+            _context->width = video->getVideoWidth();
+            _context->height = video->getVideoHeight();
+        }
+        default:
+            break;
+        }
+
+        AVDictionary *dict = nullptr;
+        av_dict_set(&dict, "threads", "auto", 0);
+        av_dict_set(&dict, "zerolatency", "1", 0);
+        av_dict_set(&dict, "strict", "-2", 0);
+
+        if (codec->capabilities & AV_CODEC_CAP_TRUNCATED) {
+            /* we do not send complete frames */
+            _context->flags |= AV_CODEC_FLAG_TRUNCATED;
+        }
+        else {
+        }
+
+        int ret = avcodec_open2(_context.get(), codec, &dict);
+        av_dict_free(&dict);
+        if (ret >= 0) {
+            //成功
+            InfoL << "打开编码器成功:" << codec->name;
+            break;
+        }
+
+        if (codec_default && codec_default != codec) {
+            //硬件编解码器打开失败，尝试软件的
+            WarnL << "打开解码器" << codec->name << "失败，原因是:" << ffmpeg_err(ret) << ", 再尝试打开解码器" << codec_default->name;
+            codec = codec_default;
+            continue;
+        }
+        throw std::runtime_error(StrPrinter << "打开编码器" << codec->name << "失败:" << ffmpeg_err(ret));
+    }
+
+    this->_tracker = track;
+    if (track->getTrackType() == TrackVideo) {
+        // 视频才启动独立解码线程
+        startThread("encoder thread");
+    }
+}
+
+FFmpegEncoder::~FFmpegEncoder()
+{
+    stopThread();
+}
+
+bool FFmpegEncoder::inputFrame(const FFmpegFrame::Ptr &frame)
+{
+    avcodec_send_frame(_context.get(), frame->get());
+    flush();
+    return true;
+}
+
+#include "Extension/H265.h"
+#include "Extension/H264.h"
+#include "Extension/AAC.h"
+#include "Extension/G711.h"
+#include "Extension/Opus.h"
+void FFmpegEncoder::flush() {
+    while (true) {
+        AVPacket packet;
+        auto ret = avcodec_receive_packet(_context.get(), &packet);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            break;
+        }
+        if (ret < 0) {
+            WarnL << "avcodec_receive_packet failed:" << ffmpeg_err(ret);
+            break;
+        }
+        auto codec = _tracker->getCodecId();
+        toolkit::BufferRaw::Ptr buffer = toolkit::BufferRaw::create();
+        buffer->assign((const char*)packet.data, packet.size);
+        Frame::Ptr frame;
+        switch (codec) {
+        case CodecH264:
+            frame = std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, (uint32_t)packet.dts, (uint32_t)packet.pts, 4, 0);
+            break;
+        case CodecH265:
+            frame = std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buffer, (uint32_t)packet.dts, (uint32_t)packet.pts, 4, 0);
+            break;
+        case CodecAAC:
+            frame = std::make_shared<FrameWrapper<FrameFromPtr> >(buffer, (uint32_t)packet.dts, (uint32_t)packet.pts, ADTS_HEADER_LEN, 0, codec);
+            break;
+        case CodecG711A:
+        case CodecG711U:
+        case CodecOpus:
+            frame = std::make_shared<FrameWrapper<FrameFromPtr> >(buffer, (uint32_t)packet.dts, (uint32_t)packet.pts, 0, 0, codec);
+            break;
+        default: break;
+        }
+
+        _tracker->inputFrame(frame);
+    }
+}

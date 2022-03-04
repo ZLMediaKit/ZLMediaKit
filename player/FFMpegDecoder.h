@@ -114,6 +114,16 @@ private:
     mediakit::FrameMerger _merger { mediakit::FrameMerger::h264_prefix };
 };
 
+class FFmpegEncoder : private TaskManager {
+    mediakit::Track::Ptr _tracker;
+    std::shared_ptr<AVCodecContext> _context;
+public:
+    FFmpegEncoder(const mediakit::Track::Ptr &track);
+    ~FFmpegEncoder();
+
+    bool inputFrame(const FFmpegFrame::Ptr &frame);
+    void flush();
+};
 #endif /* FFMpegDecoder_H_ */
 
 
