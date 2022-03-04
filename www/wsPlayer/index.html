@@ -1,0 +1,21 @@
+<html>
+<head>
+</head>
+<body>
+    <script type="text/javascript" src="mp4box.all.min.js"></script>
+    <script type="text/javascript" src="wsPlayer.js"></script>
+    <div>
+    Url:<input type="text" id="edUrl" value="ws://127.0.0.1/live/test.live.mp4" />
+    <button type="button" onclick="PlayUrl()">PlayIt</button>
+    </div>
+    <video muted autoplay id="video"></video>
+    <script>
+        function PlayUrl() {
+            var edUrl = document.getElementById("edUrl").value;
+            // alert(edUrl);
+            var player = new wsPlayer("video", edUrl);
+            player.open();
+        }
+    </script>
+</body>
+</html>
