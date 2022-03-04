@@ -779,7 +779,6 @@ void RtcSession::loadFrom(const string &str) {
         auto mline = media.getItemClass<SdpMedia>('m');
         this->media.emplace_back();
         auto &rtc_media = this->media.back();
-        rtc_media.type = mline.type;
         rtc_media.mid = media.getStringItem('a', "mid");
         rtc_media.proto = mline.proto;
         rtc_media.type = mline.type;
