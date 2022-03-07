@@ -84,21 +84,20 @@ void HlsPlayer::fetchSegment() {
     if (!_http_ts_player) {
         _http_ts_player = std::make_shared<HttpTSPlayer>(getPoller());
         _http_ts_player->setOnCreateSocket([weak_self](const EventPoller::Ptr &poller) {
-            auto strong_self = weak_self.lock();
-            if (strong_self) {
+            if (auto strong_self = weak_self.lock()) {
                 return strong_self->createSocket();
             }
-            return Socket::createSocket(poller, true);
+            else {
+                return Socket::createSocket(poller, true);
+            }
         });
-        auto benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
+
+        int benchmark_mode = (*this)[Client::kBenchmarkMode];
         if (!benchmark_mode) {
             _http_ts_player->setOnPacket([weak_self](const char *data, size_t len) {
-                auto strong_self = weak_self.lock();
-                if (!strong_self) {
-                    return;
+                if (auto strong_self = weak_self.lock()) {
+                    strong_self->onPacket(data, len);
                 }
-                //收到ts包
-                strong_self->onPacket(data, len);
             });
         }
 
@@ -263,15 +262,18 @@ void HlsDemuxer::start(const EventPoller::Ptr &poller, TrackListener *listener) 
     _frame_cache.clear();
     _delegate.setTrackListener(listener);
 
-    //每50毫秒执行一次
+    //启动50ms的定时器来读/消费帧
     weak_ptr<HlsDemuxer> weak_self = shared_from_this();
     _timer = std::make_shared<Timer>(0.05f, [weak_self]() {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
+            // stop timer
             return false;
         }
-        strong_self->onTick();
-        return true;
+        else {
+            strong_self->onTick();
+            return true;
+        }
     }, poller);
 }
 
@@ -284,7 +286,7 @@ void HlsDemuxer::pushTask(std::function<void()> task) {
 }
 
 bool HlsDemuxer::inputFrame(const Frame::Ptr &frame) {
-    //为了避免track准备时间过长, 因此在没准备好之前, 直接消费掉所有的帧
+    //为了避免track准备ready时间过长, 在没准备好之前, 直接消费掉所有的帧
     if (!_delegate.isAllTrackReady()) {
         _delegate.inputFrame(frame);
         return true;
@@ -312,15 +314,15 @@ bool HlsDemuxer::inputFrame(const Frame::Ptr &frame) {
     return true;
 }
 
-int64_t HlsDemuxer::getPlayPosition() {
-    return _ticker.elapsedTime() + _ticker_offset;
-}
-
 int64_t HlsDemuxer::getBufferMS() {
     if (_frame_cache.empty()) {
         return 0;
     }
     return _frame_cache.rbegin()->first - _frame_cache.begin()->first;
+}
+
+int64_t HlsDemuxer::getPlayPosition() {
+    return _ticker.elapsedTime() + _ticker_offset;
 }
 
 void HlsDemuxer::setPlayPosition(int64_t pos) {
@@ -353,13 +355,12 @@ void HlsDemuxer::onTick() {
 HlsPlayerImp::HlsPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<HlsPlayer, PlayerBase>(poller) {}
 
 void HlsPlayerImp::onPacket(const char *data, size_t len) {
-    if (!_decoder && _demuxer) {
+    if (!_demuxer) return;
+    if (!_decoder) {
         _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, _demuxer.get());
+        if (!_decoder) return;
     }
-
-    if (_decoder && _demuxer) {
-        _decoder->input((uint8_t *) data, len);
-    }
+    _decoder->input((uint8_t *) data, len);
 }
 
 void HlsPlayerImp::addTrackCompleted() {

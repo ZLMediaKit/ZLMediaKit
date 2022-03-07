@@ -20,13 +20,14 @@ TsPlayerImp::TsPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<TsPlayer, P
 
 void TsPlayerImp::onResponseBody(const char *data, size_t len) {
     TsPlayer::onResponseBody(data, len);
-    if (!_decoder && _demuxer) {
+    if (!_demuxer) return;
+    if (!_decoder) {
+        // 将ts_segment注入到 MediaSink: _demuxer
         _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, _demuxer.get());
+        if (!_decoder) return;
     }
-
-    if (_decoder && _demuxer) {
-        _decoder->input((uint8_t *) data, len);
-    }
+    // 输入输出，并转成track或 frame 回调
+    _decoder->input((uint8_t *) data, len);
 }
 
 void TsPlayerImp::addTrackCompleted() {

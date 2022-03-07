@@ -14,20 +14,49 @@
 #include "Util/util.h"
 #include "Common/Parser.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 
 namespace mediakit {
+/* @see http://tools.ietf.org/html/draft-pantos-http-live-streaming-06
+https://blog.csdn.net/kl222/article/details/14526031
 
+多码流m3u8:
+#EXTM3U
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1280000
+http://example.com/low.m3u8
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2560000
+http://example.com/mid.m3u8
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=7680000
+http://example.com/hi.m3u8
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=65000,CODECS="mp4a.40.5"
+http://example.com/audio-only.m3u8
+
+单码流m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-ALLOW-CACHE:NO
+#EXT-X-TARGETDURATION:3
+#EXT-X-MEDIA-SEQUENCE:19
+#EXTINF:1.984,
+2022-03-08/09/41-25_19.ts
+#EXTINF:2.048,
+2022-03-08/09/41-27_20.ts
+#EXTINF:1.984,
+2022-03-08/09/41-29_21.ts
+#EXT-X-ENDLIST
+*/
 bool HlsParser::parse(const string &http_url, const string &m3u8) {
     float extinf_dur = 0;
     ts_segment segment;
-    map<int, ts_segment> ts_map;
+    std::map<int, ts_segment> ts_map;
     _total_dur = 0;
     _is_live = true;
     _is_m3u8_inner = false;
     int index = 0;
 
+    string root_url = http_url.substr(0, http_url.find("/", 8));
+    string parent_url = http_url.substr(0, http_url.rfind("/") + 1);
     auto lines = split(m3u8, "\n");
     for (auto &line : lines) {
         trim(line);
@@ -35,15 +64,16 @@ bool HlsParser::parse(const string &http_url, const string &m3u8) {
             continue;
         }
 
-        if ((_is_m3u8_inner || extinf_dur != 0) && line[0] != '#') {
+        if (line[0] != '#' && (_is_m3u8_inner || extinf_dur != 0)) {
             segment.duration = extinf_dur;
-            if (line.find("http://") == 0 || line.find("https://") == 0) {
+            if (line.find("http://") == 0 || line.find("https://") == 0) 
+            {// http绝对路径
                 segment.url = line;
             } else {
-                if (line.find("/") == 0) {
-                    segment.url = http_url.substr(0, http_url.find("/", 8)) + line;
-                } else {
-                    segment.url = http_url.substr(0, http_url.rfind("/") + 1) + line;
+                if (line[0] == '/') { // 根路径
+                    segment.url = root_url + line;
+                } else { // 相对路径
+                    segment.url = parent_url + line;
                 }
             }
             if (!_is_m3u8_inner) {
@@ -103,45 +133,12 @@ bool HlsParser::parse(const string &http_url, const string &m3u8) {
             _is_live = false;
             continue;
         }
-        continue;
     }
 
     if (_is_m3u8) {
         onParsed(_is_m3u8_inner, _sequence, ts_map);
     }
     return _is_m3u8;
-}
-
-bool HlsParser::isM3u8() const {
-    return _is_m3u8;
-}
-
-bool HlsParser::isLive() const{
-    return _is_live;
-}
-
-bool HlsParser::allowCache() const {
-    return _allow_cache;
-}
-
-int HlsParser::getVersion() const {
-    return _version;
-}
-
-int HlsParser::getTargetDur() const {
-    return _target_dur;
-}
-
-int64_t HlsParser::getSequence() const {
-    return _sequence;
-}
-
-bool HlsParser::isM3u8Inner() const {
-    return _is_m3u8_inner;
-}
-
-float HlsParser::getTotalDuration() const {
-    return _total_dur;
 }
 
 }//namespace mediakit

@@ -17,7 +17,7 @@
 
 namespace mediakit {
 
-//http-ts播发器，未实现ts解复用
+/// http-ts播发器，未实现ts解复用
 class HttpTSPlayer : public HttpClientImp {
 public:
     using Ptr = std::shared_ptr<HttpTSPlayer>;
@@ -34,7 +34,8 @@ public:
     /**
      * 设置接收ts包回调
      */
-    void setOnPacket(TSSegment::onSegment cb);
+    typedef std::function<void(const char *data, size_t len)> onSegment;
+    void setOnPacket(onSegment cb);
 
 protected:
     ///HttpClient override///
@@ -47,7 +48,7 @@ private:
 
 private:
     onComplete _on_complete;
-    TSSegment::onSegment _on_segment;
+    onSegment _on_segment;
 };
 
 }//namespace mediakit

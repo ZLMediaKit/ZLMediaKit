@@ -23,13 +23,17 @@
 
 namespace mediakit {
 
-class HlsDemuxer : public MediaSinkInterface , public TrackSource, public std::enable_shared_from_this<HlsDemuxer> {
+class HlsDemuxer : public MediaSinkInterface , public TrackSource, 
+    public std::enable_shared_from_this<HlsDemuxer> {
 public:
     HlsDemuxer() = default;
     ~HlsDemuxer() override { _timer = nullptr; }
 
+    // 开启定时器来读取包
     void start(const toolkit::EventPoller::Ptr &poller, TrackListener *listener);
+    // 收到包后，先入_frame_cache缓存，等定时器来读取
     bool inputFrame(const Frame::Ptr &frame) override;
+
     bool addTrack(const Track::Ptr &track) override { return _delegate.addTrack(track); }
     void addTrackCompleted() override { _delegate.addTrackCompleted(); }
     void resetTracks() override { ((MediaSink &)_delegate).resetTracks(); }
@@ -38,7 +42,9 @@ public:
 
 private:
     void onTick();
+    // _frame_cache duration
     int64_t getBufferMS();
+
     int64_t getPlayPosition();
     void setPlayPosition(int64_t pos);
 
