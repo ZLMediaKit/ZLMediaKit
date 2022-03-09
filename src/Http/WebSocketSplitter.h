@@ -127,8 +127,8 @@ protected:
 
     /**
      * websocket数据编码回调
-     * @param ptr 数据指针
-     * @param len 数据指针长度
+     * 每发一个包会有两个回调，一次头部一次包内容
+     * @param buffer包内容
      */
     virtual void onWebSocketEncodeData(toolkit::Buffer::Ptr buffer){};
 
@@ -140,6 +140,52 @@ private:
     int _mask_offset = 0;
     size_t _payload_offset = 0;
     std::string _remain_data;
+};
+
+/// 拦截基类
+class ISendInterceptor {
+public:
+    using onBeforeSendCB = std::function<ssize_t(const toolkit::Buffer::Ptr &buf)>;
+    /**
+     * 设置发送数据截取回调函数
+     * @param cb 截取回调函数
+     */
+    virtual void setOnBeforeSendCB(const onBeforeSendCB &cb) = 0;
+};
+
+template <typename BaseType>
+class HttpWsClient;
+/**
+ * 发送拦截辅助类.
+ * 重载Send函数, 并拦截到onBeforeSendCB.
+ */
+template <typename BaseType>
+class SendInterceptor : public BaseType, public ISendInterceptor {
+public:
+    friend class HttpWsClient<BaseType>;
+
+
+    template<typename ...ArgsType>
+    SendInterceptor(ArgsType &&...args) : BaseType(std::forward<ArgsType>(args)...) {}
+    ~SendInterceptor() override {};
+
+protected:
+    ssize_t send(toolkit::Buffer::Ptr buf) override {
+        if (_beforeSendCB) {
+            return _beforeSendCB(buf);
+        }
+        else {
+            return BaseType::send(std::move(buf));
+        }
+    }
+
+
+    void setOnBeforeSendCB(const onBeforeSendCB &cb) {
+        _beforeSendCB = cb;
+    }
+
+private:
+    onBeforeSendCB _beforeSendCB;
 };
 
 } /* namespace mediakit */

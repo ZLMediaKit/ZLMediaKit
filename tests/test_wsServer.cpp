@@ -82,11 +82,13 @@ public:
 struct EchoSessionCreator {
     //返回的TcpSession必须派生于SendInterceptor，可以返回null(拒绝连接)
     TcpSession::Ptr operator()(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock) {
-//        return nullptr;
         if (header.Url() == "/") {
             return std::make_shared<TcpSessionTypeImp<EchoSession> >(header, parent, pSock);
         }
-        return std::make_shared<TcpSessionTypeImp<EchoSessionWithUrl> >(header, parent, pSock);
+        else {
+            return std::make_shared<TcpSessionTypeImp<EchoSessionWithUrl> >(header, parent, pSock);
+        }
+        // return nullptr;
     }
 };
 

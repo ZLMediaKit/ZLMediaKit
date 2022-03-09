@@ -18,7 +18,7 @@
 #include "Util/logger.h"
 #include "Util/util.h"
 
-using namespace std;
+//using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
@@ -128,7 +128,7 @@ begin_decode:
 
             if(remain > 0){
                 //剩余数据是下一个包，把它的数据放置在缓存中
-                string str((char *)ptr,remain);
+                std::string str((char *)ptr,remain);
                 _remain_data = str;
 
                 data = ptr = (uint8_t *)_remain_data.data();
@@ -141,17 +141,18 @@ begin_decode:
 }
 
 void WebSocketSplitter::onPayloadData(uint8_t *data, size_t len) {
-    if(_mask_flag){
-        for(size_t i = 0; i < len ; ++i,++data){
-            *(data) ^= _mask[(i + _mask_offset) % 4];
+    if(_mask_flag) {
+        uint8_t* p = data;
+        for(size_t i = 0; i < len ; ++i,++p) {
+            *(p) ^= _mask[(i + _mask_offset) % 4];
         }
         _mask_offset = (_mask_offset + len) % 4;
     }
-    onWebSocketDecodePayload(*this, _mask_flag ? data - len : data, len, _payload_offset);
+    onWebSocketDecodePayload(*this, data, len, _payload_offset);
 }
 
 void WebSocketSplitter::encode(const WebSocketHeader &header,const Buffer::Ptr &buffer) {
-    string ret;
+    std::string ret;
     uint64_t len = buffer ? buffer->size() : 0;
     uint8_t byte = header._fin << 7 | ((header._reserved & 0x07) << 4) | (header._opcode & 0x0F) ;
     ret.push_back(byte);
@@ -162,34 +163,38 @@ void WebSocketSplitter::encode(const WebSocketHeader &header,const Buffer::Ptr &
     if(len < 126){
         byte |= len;
         ret.push_back(byte);
-    }else if(len <= 0xFFFF){
+    }
+    else if(len <= 0xFFFF) {
         byte |= 126;
         ret.push_back(byte);
 
         uint16_t len_low = htons((uint16_t)len);
         ret.append((char *)&len_low,2);
-    }else{
+    }
+    else {
         byte |= 127;
         ret.push_back(byte);
 
         uint32_t len_high = htonl(len >> 32) ;
         uint32_t len_low = htonl(len & 0xFFFFFFFF);
-        ret.append((char *)&len_high,4);
-        ret.append((char *)&len_low,4);
+        ret.append((char *)&len_high, 4);
+        ret.append((char *)&len_low, 4);
     }
-    if(mask_flag){
+
+    if(mask_flag) {
         ret.append((char *)header._mask.data(),4);
     }
-
+    // 回调头部
     onWebSocketEncodeData(std::make_shared<BufferString>(std::move(ret)));
 
-    if(len > 0){
+    if(len > 0) {
         if(mask_flag){
             uint8_t *ptr = (uint8_t*)buffer->data();
             for(size_t i = 0; i < len ; ++i,++ptr){
                 *(ptr) ^= header._mask[i % 4];
             }
         }
+        // 回调body
         onWebSocketEncodeData(buffer);
     }
 
