@@ -176,6 +176,7 @@ public:
     friend class RtmpProtocol;
     using Ptr = std::shared_ptr<RtmpPacket>;
     bool is_abs_stamp;
+    // MSG_*
     uint8_t type_id;
     uint32_t time_stamp;
     uint32_t ts_field;
@@ -208,17 +209,22 @@ public:
 
     bool isCfgFrame() const {
         switch (type_id){
-            case MSG_VIDEO : return buffer[1] == 0;
+            case MSG_VIDEO : 
+                return buffer[1] == 0;
             case MSG_AUDIO : {
                 switch (getMediaType()){
-                    case FLV_CODEC_AAC : return buffer[1] == 0;
-                    default : return false;
+                    case FLV_CODEC_AAC : 
+                        return buffer[1] == 0;
+                    default : 
+                        return false;
                 }
             }
-            default : return false;
+            default : 
+                return false;
         }
     }
 
+    // Rtmp包的首字节包含好多音视频信息 : 编码，采样率，还有通道数等
     int getMediaType() const {
         switch (type_id) {
             case MSG_VIDEO : return (uint8_t) buffer[0] & 0x0F;

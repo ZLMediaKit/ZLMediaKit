@@ -32,8 +32,6 @@ enum AMFType {
     AMF_STRICT_ARRAY,
 };
 
-class AMFValue;
-
 class AMFValue {
 public:
     friend class AMFEncoder;
@@ -52,16 +50,20 @@ public:
     AMFValue &operator = (const AMFValue &from);
 
     void clear();
-    AMFType type() const ;
+    AMFType type() const;
+
     const std::string &as_string() const;
     double as_number() const;
     int as_integer() const;
     bool as_boolean() const;
-    std::string to_string() const;
-    const AMFValue &operator[](const char *str) const;
-    void object_for_each(const std::function<void(const std::string &key, const AMFValue &val)> &fun) const ;
+    // 类型!=AMF_NULL
     operator bool() const;
+    std::string to_string() const;
+    // object
+    const AMFValue &operator[](const char *str) const;
+    void object_for_each(const std::function<void(const std::string &key, const AMFValue &val)> &fun) const;
     void set(const std::string &s, const AMFValue &val);
+    // AMF_STRICT_ARRAY
     void add(const AMFValue &val);
 
 private:
@@ -73,10 +75,10 @@ private:
 private:
     AMFType _type;
     union {
-        std::string *string;
         double number;
         int integer;
         bool boolean;
+        std::string* string;
         mapType *object;
         arrayType *array;
     } _value;

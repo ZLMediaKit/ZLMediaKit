@@ -53,6 +53,9 @@ protected:
     RingType::Ptr _ring;
 };
 
+/*
+RtmpEncoder和RtmpDecoder的基类，负责RtmpPacket与Frame间的转换.
+*/
 class RtmpCodec : public RtmpRing, public FrameDispatcher , public CodecInfo{
 public:
     typedef std::shared_ptr<RtmpCodec> Ptr;

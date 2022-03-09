@@ -17,7 +17,7 @@
 #include "Common/Stamp.h"
 
 namespace mediakit {
-
+// 此类将RtmpMediaSource中的RtmpPacket，串行化到onWrite的二进制toolkit::Buffer
 class FlvMuxer {
 public:
     using Ptr = std::shared_ptr<FlvMuxer>;
@@ -27,15 +27,23 @@ public:
     void stop();
 
 protected:
+    // 不同线程延迟2s，写头部，注册帧回调 RingReader.
     void start(const toolkit::EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, uint32_t start_pts = 0);
+
+    // 子类重载函数.
+    // 写入二进制数据
     virtual void onWrite(const toolkit::Buffer::Ptr &data, bool flush) = 0;
+    // stop或RtmpMediaSource Detach时回调
     virtual void onDetach() = 0;
+    // 为了跨线程投递, 为啥不 enable_shared_from_this?
     virtual std::shared_ptr<FlvMuxer> getSharedPtr() = 0;
 
 private:
+    // 写入Flv 9字节头部，MetaData，config frame
     void onWriteFlvHeader(const RtmpMediaSource::Ptr &src);
+    // 写Rtmp数据包
     void onWriteRtmp(const RtmpPacket::Ptr &pkt, bool flush);
-    void onWriteFlvTag(const RtmpPacket::Ptr &pkt, uint32_t time_stamp, bool flush);
+
     void onWriteFlvTag(uint8_t type, const toolkit::Buffer::Ptr &buffer, uint32_t time_stamp, bool flush);
     toolkit::BufferRaw::Ptr obtainBuffer(const void *data, size_t len);
     toolkit::BufferRaw::Ptr obtainBuffer();

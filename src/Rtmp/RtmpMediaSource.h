@@ -22,7 +22,6 @@
 #include "Common/config.h"
 #include "Common/MediaSource.h"
 #include "Util/util.h"
-#include "Util/logger.h"
 #include "Util/RingBuffer.h"
 #include "Util/TimeTicker.h"
 #include "Util/ResourcePool.h"
@@ -40,7 +39,10 @@ namespace mediakit {
  * 只要生成了这三要素，那么要实现rtmp推流、rtmp服务器就很简单了
  * rtmp推拉流协议中，先传递metadata，然后传递config帧，然后一直传递普通帧
  */
-class RtmpMediaSource : public MediaSource, public toolkit::RingDelegate<RtmpPacket::Ptr>, private PacketCache<RtmpPacket>{
+class RtmpMediaSource : public MediaSource, 
+    public toolkit::RingDelegate<RtmpPacket::Ptr>, // onWrite劫持RtmpRing写入
+    private PacketCache<RtmpPacket> // 合并写缓存
+{
 public:
     using Ptr = std::shared_ptr<RtmpMediaSource>;
     using RingDataType = std::shared_ptr<toolkit::List<RtmpPacket::Ptr> >;
@@ -86,18 +88,8 @@ public:
     }
 
     /**
-     * 获取所有的config帧
-     */
-    template<typename FUNC>
-    void getConfigFrame(const FUNC &f) {
-        std::lock_guard<std::recursive_mutex> lock(_mtx);
-        for (auto &pr : _config_frame_map) {
-            f(pr.second);
-        }
-    }
-
-    /**
-     * 设置metadata
+     * 设置metadata.
+     * 由RtmpMediaSourceMuxer在onAllTrackReady中设入
      */
     virtual void setMetaData(const AMFValue &metadata) {
         _metadata = metadata;
@@ -118,12 +110,22 @@ public:
     }
 
     /**
+     * 获取所有的config帧
+     */
+    template<typename FUNC>
+    void getConfigFrame(const FUNC &f) {
+        std::lock_guard<std::recursive_mutex> lock(_mtx);
+        for (auto &pr : _config_frame_map) {
+            f(pr.second);
+        }
+    }
+
+    /**
      * 输入rtmp包
      * @param pkt rtmp包
      */
     void onWrite(RtmpPacket::Ptr pkt, bool = true) override {
         bool is_video = false;
-        //保存当前时间戳
         switch (pkt->type_id) {
             case MSG_VIDEO : 
                 _track_stamps[TrackVideo] = pkt->time_stamp;
@@ -142,6 +144,7 @@ public:
 
         if (pkt->isCfgFrame()) {
             std::lock_guard<std::recursive_mutex> lock(_mtx);
+            // 保存config_frame
             _config_frame_map[pkt->type_id] = pkt;
             if (!_ring) {
                 //注册后收到config帧更新到各播放器
@@ -163,6 +166,7 @@ public:
                 regist();
             }
         }
+        // rtmp不是已合包了再写了么，怎还再折腾一次?
         bool key = pkt->isVideoKeyFrame();
         auto stamp  = pkt->time_stamp;
         PacketCache<RtmpPacket>::inputPacket(stamp, is_video, std::move(pkt), key);
@@ -216,9 +220,11 @@ private:
     bool _have_video = false;
     bool _have_audio = false;
     int _ring_size;
+    RingType::Ptr _ring;
+
+    // 记录当前时间戳
     uint32_t _track_stamps[TrackMax] = {0};
     AMFValue _metadata;
-    RingType::Ptr _ring;
 
     mutable std::recursive_mutex _mtx;
     std::unordered_map<int, RtmpPacket::Ptr> _config_frame_map;

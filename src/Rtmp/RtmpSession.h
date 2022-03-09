@@ -24,19 +24,33 @@
 #include "Common/Stamp.h"
 
 namespace mediakit {
-
+/// Rtmp服务器会话，负责承载rtmp推流和拉流功能.
 class RtmpSession : public toolkit::TcpSession, public RtmpProtocol, public MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<RtmpSession>;
 
     RtmpSession(const toolkit::Socket::Ptr &sock);
     ~RtmpSession() override;
-
+    /*
+    来数据回调
+    - onParseRtmp
+     - onRtmpChunk
+       - onProcessCmd or
+       - _push_src->onWrite
+    */
     void onRecv(const toolkit::Buffer::Ptr &buf) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
 
 private:
+    void onSendMedia(const RtmpPacket::Ptr &pkt);
+    void onSendRawData(toolkit::Buffer::Ptr buffer) override {
+        _total_bytes += buffer->size();
+        send(std::move(buffer));
+    }
+    
+    void onRtmpChunk(RtmpPacket::Ptr chunk_data) override;
+
     void onProcessCmd(AMFDecoder &dec);
     void onCmd_connect(AMFDecoder &dec);
     void onCmd_createStream(AMFDecoder &dec);
@@ -54,13 +68,6 @@ private:
     void onCmd_pause(AMFDecoder &dec);
     void onCmd_playCtrl(AMFDecoder &dec);
     void setMetaData(AMFDecoder &dec);
-
-    void onSendMedia(const RtmpPacket::Ptr &pkt);
-    void onSendRawData(toolkit::Buffer::Ptr buffer) override{
-        _total_bytes += buffer->size();
-        send(std::move(buffer));
-    }
-    void onRtmpChunk(RtmpPacket::Ptr chunk_data) override;
 
     template<typename first, typename second>
     inline void sendReply(const char *str, const first &reply, const second &status) {

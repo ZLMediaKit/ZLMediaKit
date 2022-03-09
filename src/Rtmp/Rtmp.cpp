@@ -113,7 +113,8 @@ uint8_t getAudioRtmpFlags(const Track::Ptr &track){
             return (flvAudioType << 4) | (flvSampleRate << 2) | (flvSampleBit << 1) | flvStereoOrMono;
         }
 
-        default : return 0;
+        default : 
+            return 0;
     }
 }
 
@@ -121,13 +122,11 @@ uint8_t getAudioRtmpFlags(const Track::Ptr &track){
 void Metadata::addTrack(AMFValue &metadata, const Track::Ptr &track) {
     Metadata::Ptr new_metadata;
     switch (track->getTrackType()) {
-        case TrackVideo: {
+        case TrackVideo:
             new_metadata = std::make_shared<VideoMeta>(std::dynamic_pointer_cast<VideoTrack>(track));
-        }
             break;
-        case TrackAudio: {
+        case TrackAudio:
             new_metadata = std::make_shared<AudioMeta>(std::dynamic_pointer_cast<AudioTrack>(track));
-        }
             break;
         default:
             return;

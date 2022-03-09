@@ -19,7 +19,6 @@
 #include "RtmpProtocol.h"
 #include "Player/PlayerBase.h"
 #include "Util/util.h"
-#include "Util/logger.h"
 #include "Util/TimeTicker.h"
 #include "Network/Socket.h"
 #include "Network/TcpClient.h"
@@ -93,6 +92,7 @@ private:
     uint32_t _fist_stamp[2] = {0, 0};
     uint32_t _now_stamp[2] = {0, 0};
     toolkit::Ticker _now_stamp_ticker[2];
+    // 回调列表
     std::deque<std::function<void(AMFValue &dec)> > _deque_on_status;
     std::unordered_map<int, std::function<void(AMFDecoder &dec)> > _map_on_result;
 

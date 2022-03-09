@@ -17,7 +17,6 @@
 #include <functional>
 #include <unordered_map>
 #include "Util/util.h"
-#include "Util/logger.h"
 #include "amf.h"
 #include "Rtmp.h"
 #include "RtmpMediaSource.h"
@@ -99,7 +98,7 @@ public:
     }
 
     /**
-     * _demuxer触发的添加Track事件
+     * 由_demuxer触发的添加Track事件
      */
     bool addTrack(const Track::Ptr &track) override {
         if (_muxer) {
@@ -112,7 +111,7 @@ public:
     }
 
     /**
-     * _demuxer触发的Track添加完毕事件
+     * 由_demuxer触发的Track添加完毕事件
      */
     void addTrackCompleted() override {
         if (_muxer) {

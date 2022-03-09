@@ -11,6 +11,7 @@
 #include "RtmpProtocol.h"
 #include "Rtmp/utils.h"
 #include "RtmpMediaSource.h"
+#include "Util/logger.h"
 using namespace toolkit;
 using namespace std;
 
@@ -29,7 +30,7 @@ using namespace std;
 #include <openssl/opensslv.h>
 
 static string openssl_HMACsha256(const void *key, size_t key_len, const void *data, size_t data_len){
-    std::shared_ptr<char> out(new char[32], [](char *ptr) { delete[] ptr; });
+    unsigned char out[32];
     unsigned int out_len;
 
 #if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER > 0x10100000L)
@@ -38,7 +39,7 @@ static string openssl_HMACsha256(const void *key, size_t key_len, const void *da
     HMAC_CTX_reset(ctx);
     HMAC_Init_ex(ctx, key, (int)key_len, EVP_sha256(), NULL);
     HMAC_Update(ctx, (unsigned char*)data, data_len);
-    HMAC_Final(ctx, (unsigned char *)out.get(), &out_len);
+    HMAC_Final(ctx, out, &out_len);
     HMAC_CTX_reset(ctx);
     HMAC_CTX_free(ctx);
 #else
@@ -46,10 +47,11 @@ static string openssl_HMACsha256(const void *key, size_t key_len, const void *da
     HMAC_CTX_init(&ctx);
     HMAC_Init_ex(&ctx, key, key_len, EVP_sha256(), NULL);
     HMAC_Update(&ctx, (unsigned char*)data, data_len);
-    HMAC_Final(&ctx, (unsigned char *)out.get(), &out_len);
+    HMAC_Final(&ctx, out, &out_len);
     HMAC_CTX_cleanup(&ctx);
 #endif //defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER > 0x10100000L)
-    return string(out.get(),out_len);
+
+    return string((char*)out,out_len);
 }
 #endif //ENABLE_OPENSSL
 
@@ -206,8 +208,7 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const std::stri
 
 void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::Ptr &buf, uint32_t stamp, int chunk_id){
     if (chunk_id < 2 || chunk_id > 63) {
-        auto strErr = StrPrinter << "不支持发送该类型的块流 ID:" << chunk_id << endl;
-        throw std::runtime_error(strErr);
+        throw std::runtime_error("不支持发送该类型的块流 ID:" + std::to_string(chunk_id));
     }
     //是否有扩展时间戳
     bool ext_stamp = stamp >= 0xFFFFFF;
@@ -286,7 +287,7 @@ const char *RtmpProtocol::onSearchPacketTail(const char *data,size_t len){
 }
 
 ////for client////
-void RtmpProtocol::startClientSession(const function<void()> &func) {
+void RtmpProtocol::startClientSession(const std::function<void()> &func) {
     //发送 C0C1
     char handshake_head = HANDSHAKE_PLAINTEXT;
     onSendRawData(obtainBuffer(&handshake_head, 1));
@@ -299,7 +300,7 @@ void RtmpProtocol::startClientSession(const function<void()> &func) {
     };
 }
 
-const char* RtmpProtocol::handle_S0S1S2(const char *data, size_t len, const function<void()> &func) {
+const char* RtmpProtocol::handle_S0S1S2(const char *data, size_t len, const std::function<void()> &func) {
     if (len < 1 + 2 * C1_HANDSHARK_SIZE) {
         //数据不够
         return nullptr;
@@ -565,7 +566,7 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
         auto header_len = HEADER_LENGTH[header->fmt];
         _now_chunk_id = header->chunk_id;
         switch (_now_chunk_id) {
-            case 0: {
+            case 0:
                 //0 值表示二字节形式，并且 ID 范围 64 - 319
                 //(第二个字节 + 64)。
                 if (len < 2) {
@@ -575,9 +576,8 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
                 _now_chunk_id = 64 + (uint8_t) (ptr[1]);
                 offset = 1;
                 break;
-            }
 
-            case 1: {
+            case 1:
                 //1 值表示三字节形式，并且 ID 范围为 64 - 65599
                 //((第三个字节) * 256 + 第二个字节 + 64)。
                 if (len < 3) {
@@ -587,10 +587,9 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
                 _now_chunk_id = 64 + ((uint8_t) (ptr[2]) << 8) + (uint8_t) (ptr[1]);
                 offset = 2;
                 break;
-            }
-
             //带有 2 值的块流 ID 被保留，用于下层协议控制消息和命令。
-            default : break;
+            default : 
+                break;
         }
 
         if (len < header_len + offset) {
@@ -803,7 +802,8 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
             break;
         }
 
-        default: onRtmpChunk(std::move(packet)); break;
+        default: 
+            onRtmpChunk(std::move(packet)); break;
     }
 }
 

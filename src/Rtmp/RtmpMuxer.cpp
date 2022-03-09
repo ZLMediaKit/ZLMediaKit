@@ -14,11 +14,10 @@
 namespace mediakit {
 
 RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
-    if(!title){
+    if(!title)
         _metadata = std::make_shared<TitleMeta>()->getMetadata();
-    }else{
+    else
         _metadata = title->getMetadata();
-    }
     _rtmp_ring = std::make_shared<RtmpRing::RingType>();
 }
 

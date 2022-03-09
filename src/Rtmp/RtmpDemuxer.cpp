@@ -17,6 +17,7 @@ namespace mediakit {
 
 size_t RtmpDemuxer::trackCount(const AMFValue &metadata) {
     size_t ret = 0;
+    // 根据metadata获取流个数
     metadata.object_for_each([&](const string &key, const AMFValue &val) {
         if (key == "videocodecid") {
             //找到视频
@@ -42,6 +43,7 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
         int audiodatarate = 0;
         const AMFValue *audiocodecid = nullptr;
         const AMFValue *videocodecid = nullptr;
+        // 为啥不使用val["duration"]查找属性，而用枚举?
         val.object_for_each([&](const string &key, const AMFValue &val) {
             if (key == "duration") {
                 _duration = (float)val.as_number();
@@ -93,7 +95,7 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
     }
 
     if (ret) {
-        //metadata中存在track相关的描述，那么我们根据metadata判断有多少个track
+        //metadata中存在track相关的描述，那么根据metadata判断有多少个track
         addTrackCompleted();
     }
     return ret;
@@ -144,7 +146,7 @@ void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec, int bit_rate) {
     //生成rtmpCodec对象以便解码rtmp
     _video_rtmp_decoder = Factory::getRtmpCodecByTrack(_video_track, false);
     if (!_video_rtmp_decoder) {
-        //找不到相应的rtmp解码器，该track无效
+        // 找不到相应的rtmp解码器，该track无效
         _video_track.reset();
         return;
     }

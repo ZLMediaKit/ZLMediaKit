@@ -17,7 +17,7 @@
 #include "Pusher/PusherBase.h"
 
 namespace mediakit {
-
+// rtmp推流类，将本地的RtmpMediaSource推到url指定地址
 class RtmpPusher : public RtmpProtocol, public toolkit::TcpClient, public PusherBase {
 public:
     typedef std::shared_ptr<RtmpPusher> Ptr;
@@ -55,16 +55,19 @@ private:
     void onCmd_onStatus(AMFDecoder &dec);
     void onCmd_onMetaData(AMFDecoder &dec);
 
-    inline void send_connect();
-    inline void send_createStream();
-    inline void send_publish();
-    inline void send_metaData();
+    // 连上后信令交互顺序如下:
+    void send_connect();
+    void send_createStream();
+    void send_publish();
+    void send_metaData();
+
     void setSocketFlags();
 
 private:
     std::string _app;
     std::string _stream_id;
     std::string _tc_url;
+
     std::deque<std::function<void(AMFValue &dec)> > _deque_on_status;
     std::unordered_map<int, std::function<void(AMFDecoder &dec)> > _map_on_result;
 

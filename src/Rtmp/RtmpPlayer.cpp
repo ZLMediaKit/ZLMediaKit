@@ -11,17 +11,18 @@
 #include "RtmpPlayer.h"
 #include "Rtmp/utils.h"
 #include "Util/util.h"
+#include "Util/logger.h"
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
 using namespace toolkit;
-using namespace std;
+using std::string;
 
 namespace mediakit {
 
 RtmpPlayer::RtmpPlayer(const EventPoller::Ptr &poller) : TcpClient(poller) {}
 
 RtmpPlayer::~RtmpPlayer() {
-    DebugL << endl;
+    DebugL << std::endl;
 }
 
 void RtmpPlayer::teardown() {
@@ -46,6 +47,7 @@ void RtmpPlayer::teardown() {
 
 void RtmpPlayer::play(const string &strUrl)  {
     teardown();
+
     string host_url = FindField(strUrl.data(), "://", "/");
     _app = FindField(strUrl.data(), (host_url + "/").data(), "/");
     _stream_id = FindField(strUrl.data(), (host_url + "/" + _app + "/").data(), NULL);
@@ -60,18 +62,17 @@ void RtmpPlayer::play(const string &strUrl)  {
     uint16_t port = 1935;
     splitUrl(host_url, host_url, port);
 
+
     if (!(*this)[Client::kNetAdapter].empty()) {
         setNetAdapter((*this)[Client::kNetAdapter]);
     }
-
-    weak_ptr<RtmpPlayer> weak_self = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+    
+    // 启动连接超时定时器
+    std::weak_ptr<RtmpPlayer> weak_self = std::dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
     float play_timeout_sec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     _play_timer.reset(new Timer(play_timeout_sec, [weak_self]() {
-        auto strong_self = weak_self.lock();
-        if (!strong_self) {
-            return false;
-        }
-        strong_self->onPlayResult_l(SockException(Err_timeout, "play rtmp timeout"), false);
+        if (auto strong_self = weak_self.lock())
+            strong_self->onPlayResult_l(SockException(Err_timeout, "play rtmp timeout"), false);
         return false;
     }, getPoller()));
 
@@ -109,7 +110,7 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         //播放成功，恢复rtmp接收超时定时器
         _rtmp_recv_ticker.resetTime();
         auto timeout_ms = (*this)[Client::kMediaTimeoutMS].as<uint64_t>();
-        weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+        std::weak_ptr<RtmpPlayer> weakSelf = std::dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
         auto lam = [weakSelf, timeout_ms]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
@@ -135,13 +136,10 @@ void RtmpPlayer::onConnect(const SockException &err){
         onPlayResult_l(err, false);
         return;
     }
-    weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+    std::weak_ptr<RtmpPlayer> weakSelf = std::dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
     startClientSession([weakSelf]() {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
-            return;
-        }
-        strongSelf->send_connect();
+        if (auto strongSelf = weakSelf.lock())
+            strongSelf->send_connect();
     });
 }
 
@@ -153,7 +151,7 @@ void RtmpPlayer::onRecv(const Buffer::Ptr &buf){
             return;
         }
         onParseRtmp(buf->data(), buf->size());
-    } catch (exception &e) {
+    } catch (std::exception &e) {
         SockException ex(Err_other, e.what());
         //定时器_pPlayTimer为空后表明握手结束了
         onPlayResult_l(ex, !_play_timer);
@@ -168,7 +166,7 @@ void RtmpPlayer::speed(float speed) {
     //todo
 }
 
-inline void RtmpPlayer::send_connect() {
+void RtmpPlayer::send_connect() {
     AMFValue obj(AMF_OBJECT);
     obj.set("app", _app);
     obj.set("tcUrl", _tc_url);
@@ -190,13 +188,13 @@ inline void RtmpPlayer::send_connect() {
         auto level = val["level"].as_string();
         auto code = val["code"].as_string();
         if (level != "status") {
-            throw std::runtime_error(StrPrinter << "connect 失败:" << level << " " << code << endl);
+            throw std::runtime_error(StrPrinter << "connect 失败:" << level << " " << code);
         }
         send_createStream();
     });
 }
 
-inline void RtmpPlayer::send_createStream() {
+void RtmpPlayer::send_createStream() {
     AMFValue obj(AMF_NULL);
     sendInvoke("createStream", obj);
     addOnResultCB([this](AMFDecoder &dec) {
@@ -207,7 +205,7 @@ inline void RtmpPlayer::send_createStream() {
     });
 }
 
-inline void RtmpPlayer::send_play() {
+void RtmpPlayer::send_play() {
     AMFEncoder enc;
     enc << "play" << ++_send_req_id << nullptr << _stream_id << "-2000";
     sendRequest(MSG_CMD, enc.data());
@@ -216,14 +214,13 @@ inline void RtmpPlayer::send_play() {
         auto level = val["level"].as_string();
         auto code = val["code"].as_string();
         if (level != "status") {
-            throw std::runtime_error(StrPrinter << "play 失败:" << level << " " << code << endl);
+            throw std::runtime_error(StrPrinter << "play 失败:" << level << " " << code);
         }
     };
     addOnStatusCB(fun);
-    addOnStatusCB(fun);
 }
 
-inline void RtmpPlayer::send_pause(bool pause) {
+void RtmpPlayer::send_pause(bool pause) {
     AMFEncoder enc;
     enc << "pause" << ++_send_req_id << nullptr << pause;
     sendRequest(MSG_CMD, enc.data());
@@ -233,12 +230,12 @@ inline void RtmpPlayer::send_pause(bool pause) {
         auto code = val["code"].as_string();
         if (level != "status") {
             if (!pause) {
-                throw std::runtime_error(StrPrinter << "pause 恢复播放失败:" << level << " " << code << endl);
+                throw std::runtime_error(StrPrinter << "pause 恢复播放失败:" << level << " " << code);
             }
         } else {
             _paused = pause;
             if (!pause) {
-                onPlayResult_l(SockException(Err_success, "resum rtmp success"), true);
+                onPlayResult_l(SockException(Err_success, "resume rtmp success"), true);
             } else {
                 //暂停播放
                 _rtmp_recv_timer.reset();
@@ -249,12 +246,13 @@ inline void RtmpPlayer::send_pause(bool pause) {
 
     _beat_timer.reset();
     if (pause) {
-        weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+        std::weak_ptr<RtmpPlayer> weakSelf = std::dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
         _beat_timer.reset(new Timer((*this)[Client::kBeatIntervalMS].as<int>() / 1000.0f, [weakSelf]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return false;
             }
+
             uint32_t timeStamp = (uint32_t)::time(NULL);
             strongSelf->sendUserControl(CONTROL_PING_REQUEST, timeStamp);
             return true;
@@ -294,7 +292,7 @@ void RtmpPlayer::onCmd_onStatus(AMFDecoder &dec) {
         if (level.type() == AMF_STRING) {
             // warning 不应该断开
             if (level.as_string() != "status" && level.as_string() != "warning") {
-                throw std::runtime_error(StrPrinter << "onStatus 失败:" << level.as_string() << " " << code << endl);
+                throw std::runtime_error(StrPrinter << "onStatus 失败:" << level.as_string() << " " << code);
             }
         }
         //WarnL << "unhandled onStatus:" << code;
@@ -337,7 +335,7 @@ void RtmpPlayer::onMediaData_l(RtmpPacket::Ptr chunk_data) {
 void RtmpPlayer::onRtmpChunk(RtmpPacket::Ptr packet) {
     auto &chunk_data = *packet;
     typedef void (RtmpPlayer::*rtmp_func_ptr)(AMFDecoder &dec);
-    static unordered_map<string, rtmp_func_ptr> s_func_map;
+    static std::unordered_map<string, rtmp_func_ptr> s_func_map;
     static onceToken token([]() {
         s_func_map.emplace("_error", &RtmpPlayer::onCmd_result);
         s_func_map.emplace("_result", &RtmpPlayer::onCmd_result);
@@ -349,7 +347,8 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket::Ptr packet) {
         case MSG_CMD:
         case MSG_CMD3:
         case MSG_DATA:
-        case MSG_DATA3: {
+        case MSG_DATA3: 
+        {
             AMFDecoder dec(chunk_data.buffer, 0, (chunk_data.type_id == MSG_DATA3 || chunk_data.type_id == MSG_CMD3) ? 3 : 0);
             std::string type = dec.load<std::string>();
             auto it = s_func_map.find(type);
@@ -363,7 +362,8 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket::Ptr packet) {
         }
 
         case MSG_AUDIO:
-        case MSG_VIDEO: {
+        case MSG_VIDEO: 
+        {
             auto idx = chunk_data.type_id % 2;
             if (_now_stamp_ticker[idx].elapsedTime() > 500) {
                 //计算播放进度时间轴用
@@ -379,7 +379,8 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket::Ptr packet) {
             break;
         }
 
-        default: break;
+        default: 
+            break;
     }
 }
 
