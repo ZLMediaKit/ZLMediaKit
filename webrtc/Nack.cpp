@@ -10,7 +10,7 @@
 
 #include "Nack.h"
 
-using namespace std;
+//using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
@@ -31,7 +31,7 @@ void NackList::pushBack(RtpPacket::Ptr rtp) {
     }
 }
 
-void NackList::forEach(const FCI_NACK &nack, const function<void(const RtpPacket::Ptr &rtp)> &func) {
+void NackList::forEach(const FCI_NACK &nack, const std::function<void(const RtpPacket::Ptr &rtp)> &func) {
     auto seq = nack.getPid();
     for (auto bit : nack.getBitArray()) {
         if (bit) {
@@ -136,7 +136,7 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
         //有丢包，丢包从_last_max_seq开始
         auto nack_rtp_count = FCI_NACK::kBitSize;
         if (max_seq  > nack_rtp_count + _last_max_seq) {
-            vector<bool> vec;
+            std::vector<bool> vec;
             vec.resize(FCI_NACK::kBitSize, false);
             for (size_t i = 0; i < nack_rtp_count; ++i) {
                 vec[i] = _seq.find(_last_max_seq + i + 2) == _seq.end();
@@ -212,7 +212,7 @@ void NackContext::recordNack(const FCI_NACK &nack) {
 }
 
 uint64_t NackContext::reSendNack() {
-    set<uint16_t> nack_rtp;
+    std::set<uint16_t> nack_rtp;
     auto now = getCurrentMillisecond();
     for (auto it = _nack_send_status.begin(); it != _nack_send_status.end();) {
         if (now - it->second.first_stamp > kNackMaxMS) {
@@ -243,7 +243,7 @@ uint64_t NackContext::reSendNack() {
     }
 
     int pid = -1;
-    vector<bool> vec;
+    std::vector<bool> vec;
     for (auto it = nack_rtp.begin(); it != nack_rtp.end();) {
         if (pid == -1) {
             pid = *it;
@@ -267,5 +267,5 @@ uint64_t NackContext::reSendNack() {
     }
 
     //重传间隔不得低于5ms
-    return max(_rtt, 5);
+    return _rtt < 5 ? 5 : _rtt;
 }

@@ -166,10 +166,10 @@ public:
     //padding，固定为0
     uint32_t padding: 1;
     //reception report count
-    uint32_t report_count: 5;
+    uint32_t count: 5;
 #else
     //reception report count
-    uint32_t report_count: 5;
+    uint32_t count: 5;
     //padding，末尾是否有追加填充
     uint32_t padding: 1;
     //版本号，固定为2
@@ -353,13 +353,17 @@ public:
      */
     std::string getNtpStamp() const;
     uint64_t getNtpUnixStampMS() const;
+    void getNtpStamp(struct timeval& tv) const;
 
     /**
      * 获取ReportItem对象指针列表
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
     std::vector<ReportItem*> getItemList();
-
+    ReportItem* getItem(int idx) {
+        if (idx < 0 || idx >= count) return nullptr;
+        return &items + idx;
+    }
 private:
     /**
     * 打印字段详情
@@ -428,6 +432,10 @@ public:
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
     std::vector<ReportItem*> getItemList();
+    ReportItem* getItem(int idx) {
+        if (idx < 0 || idx >= count) return nullptr;
+        return &items + idx;
+    }
 
 private:
     /**
@@ -445,7 +453,12 @@ private:
 } PACKED;
 
 /////////////////////////////////////////////////////////////////////////////
-
+struct RtcpStr {
+    //text长度股，可以为0
+    uint8_t len;
+    //不定长
+    char text[1];
+};
 /*
  *      6.5 SDES: Source Description RTCP Packet
         0                   1                   2                   3
@@ -651,8 +664,7 @@ public:
     /** 中间可能有若干个 ssrc **/
 
     /* 可选 */
-    uint8_t reason_len;
-    char reason[1];
+    // RtcpStr reason
 
 public:
     /**

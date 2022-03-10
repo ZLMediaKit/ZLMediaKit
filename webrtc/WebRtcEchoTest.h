@@ -27,6 +27,7 @@ protected:
     void onRtcp(const char *buf, size_t len) override;
 
     void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) override {};
+    // over write this to fixed ctx nullptr
     void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) override {};
     void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) override {};
 

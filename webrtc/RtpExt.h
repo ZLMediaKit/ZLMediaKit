@@ -43,14 +43,9 @@ enum class RtpExtType : uint8_t {
     reserved = encrypt,
 };
 
-class RtcMedia;
-
-//使用次对象的方法前需保证RtpHeader内存未释放
+//使用此对象方法前，须保证RtpHeader内存未释放
 class RtpExt {
 public:
-    template<typename Type>
-    friend void appendExt(std::map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end);
-    friend class RtpExtContext;
     ~RtpExt() = default;
 
     static std::map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const mediakit::RtpHeader *header);
@@ -94,9 +89,9 @@ public:
     void clearExt();
     operator bool () const;
 
-private:
+public:
     RtpExt() = default;
-    RtpExt(void *ptr, bool one_byte_ext, const char *str, size_t size);
+    RtpExt(void *ptr, bool one_byte_ext, const char *data, size_t size);
     const char *data() const;
     size_t size() const;
     const uint8_t& operator[](size_t pos) const;
@@ -114,19 +109,17 @@ class RtcMedia;
 class RtpExtContext {
 public:
     using Ptr = std::shared_ptr<RtpExtContext>;
-    using OnGetRtp = std::function<void(uint8_t pt, uint32_t ssrc, const std::string &rid)>;
 
     RtpExtContext(const RtcMedia &media);
     ~RtpExtContext() = default;
 
-    void setOnGetRtp(OnGetRtp cb);
     std::string getRid(uint32_t ssrc) const;
     void setRid(uint32_t ssrc, const std::string &rid);
+    
     RtpExt changeRtpExtId(const mediakit::RtpHeader *header, bool is_recv, std::string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
 
-private:
-    void onGetRtp(uint8_t pt, uint32_t ssrc, const std::string &rid);
-
+    using OnGetRtp = std::function<void(uint8_t pt, uint32_t ssrc, const std::string &rid)>;
+    void setOnGetRtp(OnGetRtp cb) {_cb = std::move(cb);}
 private:
     OnGetRtp _cb;
     //发送rtp时需要修改rtp ext id

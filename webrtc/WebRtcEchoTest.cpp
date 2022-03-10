@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "Util/logger.h"
 #include "WebRtcEchoTest.h"
 
 WebRtcEchoTest::Ptr WebRtcEchoTest::create(const EventPoller::Ptr &poller) {
@@ -34,6 +35,12 @@ void WebRtcEchoTest::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
 }
 
 void WebRtcEchoTest::onRtcp(const char *buf, size_t len) {
+#if 0
+    std::vector<mediakit::RtcpHeader*> rtcps = mediakit::RtcpHeader::loadFromBytes(const_cast<char*>(buf), len);
+    for (auto rtcp : rtcps) {
+        InfoL << "recv rtcp:" << rtcp->dumpString();
+    }
+#endif
     sendRtcpPacket(buf, len, true, nullptr);
 }
 

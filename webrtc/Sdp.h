@@ -11,6 +11,8 @@
 #ifndef ZLMEDIAKIT_SDP_H
 #define ZLMEDIAKIT_SDP_H
 
+#include <set>
+#include <map>
 #include <string>
 #include <vector>
 #include "RtpExt.h"
@@ -597,7 +599,7 @@ public:
     std::string getFmtp(const char *key) const;
 };
 
-//rtc 媒体描述
+//rtc 媒体描述(sdp m:line)
 class RtcMedia{
 public:
     mediakit::TrackType type{mediakit::TrackType::TrackInvalid};

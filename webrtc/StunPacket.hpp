@@ -19,8 +19,6 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef MS_RTC_STUN_PACKET_HPP
 #define MS_RTC_STUN_PACKET_HPP
 
-
-#include "logger.h"
 #include "Utils.hpp"
 #include <string>
 
@@ -197,7 +195,6 @@ namespace RTC
 		uint8_t* data{ nullptr };                // Pointer to binary data.
 		size_t size{ 0u };                       // The full message size (including header).
 		// STUN attributes.
-		std::string username;                               // Less than 513 bytes.
 		uint32_t priority{ 0u };                            // 4 bytes unsigned integer.
 		uint64_t iceControlling{ 0u };                      // 8 bytes unsigned integer.
 		uint64_t iceControlled{ 0u };                       // 8 bytes unsigned integer.
@@ -206,6 +203,7 @@ namespace RTC
 		bool hasFingerprint{ false };                       // 4 bytes.
 		const struct sockaddr* xorMappedAddress{ nullptr }; // 8 or 20 bytes.
 		uint16_t errorCode{ 0u };                           // 4 bytes (no reason phrase).
+		std::string username;                               // Less than 513 bytes.
 		std::string password;
 	};
 } // namespace RTC

@@ -30,7 +30,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <cstring> // std::memcpy(), std::strcmp()
 #include "Util/util.h"
 
-using namespace std;
+//using namespace std;
 
 #define LOG_OPENSSL_ERROR(desc)                                                                    \
 	do                                                                                               \
@@ -167,7 +167,7 @@ namespace RTC
 		EC_KEY* ecKey{ nullptr };
 		X509_NAME* certName{ nullptr };
 		std::string subject =
-		  std::string("mediasoup") + to_string(rand() % 999999 + 100000);
+		  std::string("mediasoup") + std::to_string(rand() % 999999 + 100000);
 
 		// Create key with curve.
 		ecKey = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
@@ -1058,7 +1058,7 @@ namespace RTC
 		{
 			MS_DEBUG_DEV("DTLS timer set in %" PRIu64 "ms", timeoutMs);
 
-			weak_ptr<DtlsTransport> weak_self = shared_from_this();
+			std::weak_ptr<DtlsTransport> weak_self = shared_from_this();
 			this->timer = std::make_shared<Timer>(timeoutMs / 1000.0f, [weak_self](){
 			    auto strong_self = weak_self.lock();
 			    if(strong_self){

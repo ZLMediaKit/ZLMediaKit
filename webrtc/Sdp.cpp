@@ -126,9 +126,9 @@ static bool registerAllItem(){
 }
 
 static map<string, DtlsRole, StrCaseCompare> dtls_role_map = {
-        {"active",  DtlsRole::active},
-        {"passive", DtlsRole::passive},
-        {"actpass", DtlsRole::actpass}
+    {"active",  DtlsRole::active},
+    {"passive", DtlsRole::passive},
+    {"actpass", DtlsRole::actpass}
 };
 
 DtlsRole getDtlsRole(const string &str) {
@@ -146,10 +146,10 @@ const char* getDtlsRoleString(DtlsRole role){
 }
 
 static map<string, RtpDirection, StrCaseCompare> direction_map = {
-        {"sendonly", RtpDirection::sendonly},
-        {"recvonly", RtpDirection::recvonly},
-        {"sendrecv", RtpDirection::sendrecv},
-        {"inactive", RtpDirection::inactive}
+    {"sendonly", RtpDirection::sendonly},
+    {"recvonly", RtpDirection::recvonly},
+    {"sendrecv", RtpDirection::sendrecv},
+    {"inactive", RtpDirection::inactive}
 };
 
 RtpDirection getRtpDirection(const string &str) {
@@ -314,7 +314,7 @@ string SdpTime::toString() const {
     if (value.empty()) {
         value = to_string(start) + " " + to_string(stop);
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpOrigin::parse(const string &str) {
@@ -332,7 +332,7 @@ string SdpOrigin::toString() const {
     if (value.empty()) {
         value = username + " " + session_id + " " + session_version + " " + nettype + " " + addrtype + " " + address;
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpConnection::parse(const string &str) {
@@ -347,7 +347,7 @@ string SdpConnection::toString() const {
     if (value.empty()) {
         value = nettype + " " + addrtype + " " + address;
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpBandwidth::parse(const string &str) {
@@ -361,7 +361,7 @@ string SdpBandwidth::toString() const {
     if (value.empty()) {
         value = bwtype + ":" + to_string(bandwidth);
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpMedia::parse(const string &str) {
@@ -384,7 +384,7 @@ string SdpMedia::toString() const {
             value += fmt;
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttr::parse(const string &str) {
@@ -409,7 +409,7 @@ string SdpAttr::toString() const {
             value = string(detail->getKey()) + ":" + detail_value;
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrGroup::parse(const string &str)  {
@@ -428,7 +428,7 @@ string SdpAttrGroup::toString() const  {
             value += mid;
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrMsidSemantic::parse(const string &str)  {
@@ -446,7 +446,7 @@ string SdpAttrMsidSemantic::toString() const  {
             value = string(" ") + msid + " " + token;
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrRtcp::parse(const string &str)  {
@@ -462,7 +462,7 @@ string SdpAttrRtcp::toString() const  {
     if (value.empty()) {
         value = to_string(port) + " " + nettype + " " + addrtype + " " + address;
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrIceOption::parse(const string &str){
@@ -503,7 +503,7 @@ string SdpAttrFingerprint::toString() const  {
     if (value.empty()) {
         value = algorithm + " " + hash;
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrSetup::parse(const string &str)  {
@@ -515,7 +515,7 @@ string SdpAttrSetup::toString() const  {
     if (value.empty()) {
         value = getDtlsRoleString(role);
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrExtmap::parse(const string &str)  {
@@ -538,7 +538,7 @@ string SdpAttrExtmap::toString() const  {
             value = to_string((int)id) + "/" + getRtpDirectionString(direction) +  " " + ext;
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrRtpMap::parse(const string &str)  {
@@ -561,7 +561,7 @@ string SdpAttrRtpMap::toString() const  {
             value += to_string(channel);
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrRtcpFb::parse(const string &str_in)  {
@@ -575,7 +575,7 @@ string SdpAttrRtcpFb::toString() const  {
     if (value.empty()) {
         value = to_string(pt) + " " + rtcp_type;
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrFmtp::parse(const string &str)  {
@@ -604,7 +604,7 @@ string SdpAttrFmtp::toString() const  {
             value += pr.first + "=" + pr.second;
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrSSRC::parse(const string &str_in)  {
@@ -630,7 +630,7 @@ string SdpAttrSSRC::toString() const  {
             value += attribute_value;
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrSSRCGroup::parse(const string &str) {
@@ -654,7 +654,7 @@ string SdpAttrSSRCGroup::toString() const  {
             value += to_string(ssrc);
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrSctpMap::parse(const string &str)  {
@@ -671,7 +671,7 @@ string SdpAttrSctpMap::toString() const  {
         value += ' ';
         value += to_string(streams);
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrCandidate::parse(const string &str)  {
@@ -716,7 +716,7 @@ string SdpAttrCandidate::toString() const  {
             value += pr.second;
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrSimulcast::parse(const string &str) {
@@ -744,7 +744,7 @@ string SdpAttrSimulcast::toString() const {
             value += rid;
         }
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void SdpAttrRid::parse(const string &str) {
@@ -758,7 +758,7 @@ string SdpAttrRid::toString() const {
     if (value.empty()) {
         value = rid + " " + direction;
     }
-    return SdpItem::toString();
+    return value;
 }
 
 void RtcSession::loadFrom(const string &str) {

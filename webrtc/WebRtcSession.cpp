@@ -11,10 +11,10 @@
 #include "WebRtcSession.h"
 #include "Util/util.h"
 
-using namespace std;
+//using namespace std;
 using namespace mediakit;
 
-static string getUserName(const Buffer::Ptr &buffer) {
+static std::string getUserName(const Buffer::Ptr &buffer) {
     auto buf = buffer->data();
     auto len = buffer->size();
     if (!RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
@@ -58,7 +58,7 @@ void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
         //只允许寻找一次transport
         _find_transport = false;
         auto user_name = getUserName(buffer);
-        _identifier = to_string(getSock()->rawFD()) + '-' + user_name;
+        _identifier = std::to_string(getSock()->rawFD()) + '-' + user_name;
         auto transport = WebRtcTransportManager::Instance().getItem(user_name);
         CHECK(transport && transport->getPoller()->isCurrentThread());
         transport->setSession(shared_from_this());

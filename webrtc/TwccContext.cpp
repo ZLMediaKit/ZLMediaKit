@@ -21,10 +21,16 @@ enum class ExtSeqStatus : int {
 
 void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms) {
     switch ((ExtSeqStatus) checkSeqStatus(twcc_ext_seq)) {
-        case ExtSeqStatus::jumped: /*seq异常,过滤掉*/ return;
-        case ExtSeqStatus::looped: /*回环，触发发送twcc rtcp*/ onSendTwcc(ssrc); break;
-        case ExtSeqStatus::normal: break;
-        default: /*不可达*/assert(0); break;
+        case ExtSeqStatus::jumped: /*seq异常,过滤掉*/ 
+            return;
+        case ExtSeqStatus::looped: /*回环，触发发送twcc rtcp*/ 
+            onSendTwcc(ssrc);
+            break;
+        case ExtSeqStatus::normal: 
+            break;
+        default: /*不可达*/
+            assert(0);
+            break;
     }
 
     auto result = _rtp_recv_status.emplace(twcc_ext_seq, stamp_ms);
@@ -48,6 +54,7 @@ bool TwccContext::needSendTwcc() const {
     if (_rtp_recv_status.empty()) {
         return false;
     }
+    // 20个rtp包，或超过256ms
     return (_rtp_recv_status.size() >= kMaxSeqSize) || (_max_stamp - _min_stamp >= kMaxTimeDelta);
 }
 

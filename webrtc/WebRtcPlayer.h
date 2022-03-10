@@ -14,10 +14,11 @@
 #include "WebRtcTransport.h"
 
 class WebRtcPlayer : public WebRtcTransportImp {
+    WebRtcPlayer(const EventPoller::Ptr &poller, const mediakit::RtspMediaSource::Ptr &src, const mediakit::MediaInfo &info);
 public:
     using Ptr = std::shared_ptr<WebRtcPlayer>;
-    ~WebRtcPlayer() override = default;
     static Ptr create(const EventPoller::Ptr &poller, const mediakit::RtspMediaSource::Ptr &src, const mediakit::MediaInfo &info);
+    ~WebRtcPlayer() override = default;
 
 protected:
     ///////WebRtcTransportImp override///////
@@ -25,9 +26,6 @@ protected:
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
     void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) override {};
-
-private:
-    WebRtcPlayer(const EventPoller::Ptr &poller, const mediakit::RtspMediaSource::Ptr &src, const mediakit::MediaInfo &info);
 
 private:
     //媒体相关元数据

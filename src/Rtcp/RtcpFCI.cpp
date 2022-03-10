@@ -95,13 +95,26 @@ string FCI_REMB::create(const vector<uint32_t> &ssrcs, uint32_t bitrate) {
     ret.resize(kSize + ssrcs.size() * 4);
     FCI_REMB *thiz = (FCI_REMB *) ret.data();
     memcpy(thiz->magic, kRembMagic, sizeof(magic));
+    // bitrate
+    thiz->setBitRate(bitrate);
 
+    //Num SSRC (8 bits)
+    thiz->bitrate[0] = ssrcs.size() & 0xFF;
+    uint32_t* pssrc = thiz->ssrc_feedback;
+    //设置ssrc列表
+    for (auto ssrc : ssrcs) {
+        *pssrc++ = htonl(ssrc);
+    }
+    return ret;
+}
+
+void FCI_REMB::setBitRate(uint32_t bitrate) {
     /* bitrate --> BR Exp/BR Mantissa */
     uint8_t b = 0;
     uint8_t exp = 0;
     uint32_t mantissa = 0;
     for (b = 0; b < 32; b++) {
-        if (bitrate <= ((uint32_t) 0x3FFFF << b)) {
+        if (bitrate <= ((uint32_t)0x3FFFF << b)) {
             exp = b;
             break;
         }
@@ -110,21 +123,12 @@ string FCI_REMB::create(const vector<uint32_t> &ssrcs, uint32_t bitrate) {
         b = 31;
     }
     mantissa = bitrate >> b;
-    //Num SSRC (8 bits)
-    thiz->bitrate[0] = ssrcs.size() & 0xFF;
     //BR Exp (6 bits)/BR Mantissa (18 bits)
-    thiz->bitrate[1] = (uint8_t) ((exp << 2) + ((mantissa >> 16) & 0x03));
+    this->bitrate[1] = (uint8_t)((exp << 2) + ((mantissa >> 16) & 0x03));
     //BR Mantissa (18 bits)
-    thiz->bitrate[2] = (uint8_t) (mantissa >> 8);
+    this->bitrate[2] = (uint8_t)(mantissa >> 8);
     //BR Mantissa (18 bits)
-    thiz->bitrate[3] = (uint8_t) (mantissa);
-
-    //设置ssrc列表
-    int i = 0;
-    for (auto ssrc : ssrcs) {
-        thiz->ssrc_feedback[i++] = htonl(ssrc);
-    }
-    return ret;
+    this->bitrate[3] = (uint8_t)(mantissa);
 }
 
 uint32_t FCI_REMB::getBitRate() const {
@@ -138,10 +142,8 @@ uint32_t FCI_REMB::getBitRate() const {
 vector<uint32_t> FCI_REMB::getSSRC() {
     vector<uint32_t> ret;
     auto num_ssrc = bitrate[0];
-    int i = 0;
-    while (num_ssrc--) {
+    for(int i = 0; i < num_ssrc; i++) {
         ret.emplace_back(ntohl(ssrc_feedback[i]));
-        ++i;
     }
     return ret;
 }

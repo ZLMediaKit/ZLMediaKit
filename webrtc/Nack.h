@@ -11,9 +11,12 @@
 #ifndef ZLMEDIAKIT_NACK_H
 #define ZLMEDIAKIT_NACK_H
 
+#include <set>
+#include <map>
+#include <deque>
+#include <unordered_map>
 #include "Rtsp/Rtsp.h"
 #include "Rtcp/RtcpFCI.h"
-
 
 class NackList {
 public:

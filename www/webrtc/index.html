@@ -1,5 +1,4 @@
 <html>
-  <meta charset="utf-8">
   <head>
     <title>ZLM RTC demo</title>
     <script src="./ZLMRTCClient.js"></script>
@@ -113,17 +112,20 @@
           }
         };
       });
-
-      ZLMRTCClient.GetAllScanResolution().forEach((r,i)=>{
+	  
+      var resolutions = ZLMRTCClient.GetAllScanResolution();
+	  var sel = parseInt(resolutions.length / 3);
+	  for(var i=0; i< resolutions.length; i++){
+		  var r = resolutions[i];
           opt = document.createElement('option');
           opt.text = r.label +"("+r.width+"x"+r.height+")";
           opt.value = r;
+		  if(i == sel)
+			opt.selected = true;
           document.getElementById("resilution").add(opt,null)
-
           //console.log(opt.text.match(/\d+/g))
-
-        
-      })
+      }
+	  
       function start_play(){
         let elr = document.getElementById("resilution");
         let res = elr.options[elr.selectedIndex].text.match(/\d+/g);

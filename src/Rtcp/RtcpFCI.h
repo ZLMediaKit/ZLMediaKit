@@ -180,7 +180,13 @@ public:
     }
 
 private:
-    uint8_t data[kSize];
+    uint32_t ssrc;
+    uint8_t seqnr;
+    uint8_t pt;
+    uint16_t length;
+    // var length
+    uint8_t str[3]; 
+    uint8_t pading;
 } PACKED;
 
 //PSFB fmt = 15
@@ -219,6 +225,7 @@ public:
     void check(size_t size);
     std::string dumpString() const;
     uint32_t getBitRate() const;
+    void setBitRate(uint32_t);
     std::vector<uint32_t> getSSRC();
 
 private:
@@ -226,8 +233,7 @@ private:
     char magic[4];
     //Num SSRC (8 bits)/BR Exp (6 bits)/ BR Mantissa (18 bits)
     uint8_t bitrate[4];
-    // SSRC feedback (32 bits)  Consists of one or more SSRC entries which
-    //               this feedback message applies to.
+    // SSRC feedback (32 bits)  Consists of one or more SSRC entries which this feedback message applies to.
     uint32_t ssrc_feedback[1];
 } PACKED;
 
@@ -250,7 +256,7 @@ public:
     void check(size_t size);
     uint16_t getPid() const;
     uint16_t getBlp() const;
-    //返回丢包列表，总长度17，第一个包必丢
+    // 返回丢包列表，总长度17，第一个包必丢
     // TODO: replace std::bitset
     std::vector<bool> getBitArray() const;
     std::string dumpString() const;
@@ -308,7 +314,17 @@ private:
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 class FCI_TMMBN : public FCI_TMMBR{
 public:
-
+    uint32_t ssrc;
+    //     MxTBR Exp (6 bits): The exponential scaling of the mantissa for the
+    //              maximum total media bit rate value.  The value is an
+    //              unsigned integer [0..63].
+    //     MxTBR Mantissa (17 bits): The mantissa of the maximum total media
+    //              bit rate value as an unsigned integer.
+    //     Measured Overhead (9 bits): The measured average packet overhead
+    //              value in bytes.  The measurement SHALL be done according
+    //              to the description in section 4.2.1.2. The value is an
+    //              unsigned integer [0..511].
+    uint32_t max_tbr;
 } PACKED;
 
 enum class SymbolStatus : uint8_t{
@@ -347,13 +363,14 @@ enum class SymbolStatus : uint8_t{
 class FCI_TWCC{
 public:
     static size_t constexpr kSize = 8;
-    using TwccPacketStatus = std::map<uint16_t/*rtp ext seq*/, std::pair<SymbolStatus, int16_t/*recv delta,单位为250us*/> >;
     void check(size_t size);
     std::string dumpString(size_t total_size) const;
     uint16_t getBaseSeq() const;
     //单位64ms
     uint32_t getReferenceTime() const;
     uint16_t getPacketCount() const;
+
+    using TwccPacketStatus = std::map<uint16_t/*rtp ext seq*/, std::pair<SymbolStatus, int16_t/*recv delta,单位为250us*/> >;
     TwccPacketStatus getPacketChunkList(size_t total_size) const;
 
     static std::string create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatus &status);

@@ -23,7 +23,7 @@ public:
     virtual ~RtcpContext() = default;
 
     /**
-     * 输出或输入rtp时调用
+     * 发送或接收rtp包时调用
      * @param seq rtp的seq
      * @param stamp rtp的时间戳，单位采样数(非毫秒)
      * @param ntp_stamp_ms ntp时间戳
@@ -102,13 +102,13 @@ private:
 
 class RtcpContextForRecv : public RtcpContext {
 public:
-    void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes) override;
-    toolkit::Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
     size_t getExpectedPackets() const override;
     size_t getExpectedPacketsInterval() override;
     size_t getLost() override;
     size_t geLostInterval() override;
     void onRtcp(RtcpHeader *rtcp) override;
+    void onRtp(uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes) override;
+    toolkit::Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
 
 private:
     //时间戳抖动值

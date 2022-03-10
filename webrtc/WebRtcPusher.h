@@ -16,9 +16,9 @@
 class WebRtcPusher : public WebRtcTransportImp, public mediakit::MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<WebRtcPusher>;
-    ~WebRtcPusher() override = default;
     static Ptr create(const EventPoller::Ptr &poller, const mediakit::RtspMediaSourceImp::Ptr &src,
                       const std::shared_ptr<void> &ownership, const mediakit::MediaInfo &info);
+    ~WebRtcPusher() override = default;
 
 protected:
     ///////WebRtcTransportImp override///////
