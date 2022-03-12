@@ -40,7 +40,9 @@ void WebRtcEchoTest::onCheckSdp(SdpType type, RtcSession &sdp) {
     if (type == SdpType::answer) {
         for (auto &m : sdp.media) {
             for (auto &ssrc : m.rtp_rtx_ssrc) {
-                ssrc.msid = "zlmediakit msid";
+                if (!ssrc.msid.empty()) {
+                    ssrc.msid = "zlmediakit msid";
+                }
             }
         }
     }
