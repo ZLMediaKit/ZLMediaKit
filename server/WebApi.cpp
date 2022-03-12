@@ -488,7 +488,7 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
 
 template <typename Type>
 static void getArgsValue(const HttpAllArgs<ApiArgsType> &allArgs, const string &key, Type &value) {
-    auto val = allArgs["key"];
+    auto val = allArgs[key];
     if (!val.empty()) {
         value = (Type)val;
     }
