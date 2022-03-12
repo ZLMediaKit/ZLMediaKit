@@ -200,12 +200,6 @@ API_EXPORT int API_CALL mk_media_init_audio(mk_media ctx, int codec_id, int samp
     return (*obj)->getChannel()->initAudio(info);
 }
 
-API_EXPORT void API_CALL mk_media_init_mute_audio(mk_media ctx) {
-    assert(ctx);
-    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    (*obj)->getChannel()->addMuteAudioTrack();
-}
-
 API_EXPORT void API_CALL mk_media_init_complete(mk_media ctx){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
