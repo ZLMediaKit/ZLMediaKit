@@ -21,7 +21,25 @@
 #include "TS/TSMediaSourceMuxer.h"
 #include "FMP4/FMP4MediaSourceMuxer.h"
 
-namespace mediakit{
+namespace mediakit {
+
+class ProtocolOption {
+public:
+    ProtocolOption();
+
+    //是否开启转换为hls
+    bool enable_hls = false;
+    //是否开启MP4录制
+    bool enable_mp4 = false;
+    //是否开启转换为rtsp/webrtc
+    bool enable_rtsp = true;
+    //是否开启转换为rtmp/flv
+    bool enable_rtmp = true;
+    //是否开启转换为http-ts/ws-ts
+    bool enable_ts = true;
+    //是否开启转换为http-fmp4/ws-fmp4
+    bool enable_fmp4 = true;
+};
 
 class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
@@ -34,9 +52,8 @@ public:
         virtual void onAllTrackReady() = 0;
     };
 
+    MultiMediaSourceMuxer(const std::string &vhost, const std::string &app, const std::string &stream, float dur_sec = 0.0,const ProtocolOption &option = ProtocolOption());
     ~MultiMediaSourceMuxer() override = default;
-    MultiMediaSourceMuxer(const std::string &vhost, const std::string &app, const std::string &stream, float dur_sec = 0.0,
-                          bool enable_rtsp = true, bool enable_rtmp = true, bool enable_hls = true, bool enable_mp4 = false);
 
     /**
      * 设置事件监听器

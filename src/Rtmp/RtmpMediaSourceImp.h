@@ -76,21 +76,26 @@ public:
 
     /**
      * 设置协议转换
-     * @param enableHls  是否转换成hls
-     * @param enableMP4  是否mp4录制
      */
-    void setProtocolTranslation(bool enableHls, bool enableMP4) {
+    void setProtocolOption(const ProtocolOption &option) {
         //不重复生成rtmp
-        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), true, false, enableHls, enableMP4);
+        _option = option;
+        //不重复生成rtmp协议
+        _option.enable_rtmp = false;
+        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), _option);
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(std::static_pointer_cast<RtmpMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
         MediaSource::setListener(_muxer);
 
-        for(auto &track : _demuxer->getTracks(false)){
+        for (auto &track : _demuxer->getTracks(false)) {
             _muxer->addTrack(track);
             track->addDelegate(_muxer);
         }
+    }
+
+    const ProtocolOption &getProtocolOption() const {
+        return _option;
     }
 
     /**
@@ -153,6 +158,7 @@ public:
 private:
     bool _all_track_ready = false;
     bool _recreate_metadata = false;
+    ProtocolOption _option;
     AMFValue _metadata;
     RtmpDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;

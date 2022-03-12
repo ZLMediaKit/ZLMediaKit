@@ -400,7 +400,10 @@ API_EXPORT void API_CALL mk_publish_auth_invoker_do(const mk_publish_auth_invoke
                                                     int enable_mp4){
     assert(ctx);
     Broadcast::PublishAuthInvoker *invoker = (Broadcast::PublishAuthInvoker *)ctx;
-    (*invoker)(err_msg ? err_msg : "", enable_hls, enable_mp4);
+    ProtocolOption option;
+    option.enable_hls = enable_hls;
+    option.enable_mp4 = enable_mp4;
+    (*invoker)(err_msg ? err_msg : "", option);
 }
 
 API_EXPORT mk_publish_auth_invoker API_CALL mk_publish_auth_invoker_clone(const mk_publish_auth_invoker ctx){

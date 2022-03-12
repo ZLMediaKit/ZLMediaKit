@@ -135,7 +135,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
     _media_info.parse(_tc_url + "/" + getStreamId(dec.load<std::string>()));
     _media_info._schema = RTMP_SCHEMA;
 
-    auto on_res = [this, pToken](const string &err, bool enableHls, bool enableMP4) {
+    auto on_res = [this, pToken](const string &err, const ProtocolOption &option) {
         if (!err.empty()) {
             sendStatus({ "level", "error",
                          "code", "NetStream.Publish.BadAuth",
@@ -180,7 +180,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             _push_src = std::make_shared<RtmpMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
             //获取所有权
             _push_src_ownership = _push_src->getOwnership();
-            _push_src->setProtocolTranslation(enableHls, enableMP4);
+            _push_src->setProtocolOption(option);
         }
 
         _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
@@ -195,29 +195,27 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
 
     if(_media_info._app.empty() || _media_info._streamid.empty()){
         //不允许莫名其妙的推流url
-        on_res("rtmp推流url非法", false, false);
+        on_res("rtmp推流url非法", ProtocolOption());
         return;
     }
 
-    Broadcast::PublishAuthInvoker invoker = [weak_self, on_res, pToken](const string &err, bool enableHls, bool enableMP4) {
+    Broadcast::PublishAuthInvoker invoker = [weak_self, on_res, pToken](const string &err, const ProtocolOption &option) {
         auto strongSelf = weak_self.lock();
         if (!strongSelf) {
             return;
         }
-        strongSelf->async([weak_self, on_res, err, pToken, enableHls, enableMP4]() {
+        strongSelf->async([weak_self, on_res, err, pToken, option]() {
             auto strongSelf = weak_self.lock();
             if (!strongSelf) {
                 return;
             }
-            on_res(err, enableHls, enableMP4);
+            on_res(err, option);
         });
     };
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtmp_push, _media_info, invoker, static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听，默认鉴权成功
-        GET_CONFIG(bool,to_hls,General::kPublishToHls);
-        GET_CONFIG(bool,to_mp4,General::kPublishToMP4);
-        on_res("", to_hls, to_mp4);
+        on_res("", ProtocolOption());
     }
 }
 

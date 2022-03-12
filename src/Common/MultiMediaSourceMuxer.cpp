@@ -21,6 +21,13 @@ namespace toolkit {
 
 namespace mediakit {
 
+ProtocolOption::ProtocolOption() {
+    GET_CONFIG(bool, toHls, General::kPublishToHls);
+    GET_CONFIG(bool, toMP4, General::kPublishToMP4);
+    enable_hls = toHls;
+    enable_mp4 = toMP4;
+}
+
 static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, size_t max_second){
     auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), custom_path, max_second);
     for (auto &track : tracks) {
@@ -59,8 +66,7 @@ static string getTrackInfoStr(const TrackSource *track_src){
     return std::move(codec_info);
 }
 
-MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec,
-                                             bool enable_rtsp, bool enable_rtmp, bool enable_hls, bool enable_mp4) {
+MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec, const ProtocolOption &option) {
     _get_origin_url = [this, vhost, app, stream]() {
         auto ret = getOriginUrl(*MediaSource::NullMediaSource);
         if (!ret.empty()) {
@@ -69,25 +75,27 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
         return vhost + "/" + app + "/" + stream;
     };
 
-    if (enable_rtmp) {
+    if (option.enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleMeta>(dur_sec));
     }
-    if (enable_rtsp) {
+    if (option.enable_rtsp) {
         _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleSdp>(dur_sec));
     }
 
-    if (enable_hls) {
+    if (option.enable_hls) {
         _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, vhost, app, stream));
     }
 
-    if (enable_mp4) {
+    if (option.enable_mp4) {
         _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream);
     }
-
-    _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
-
+    if (option.enable_ts) {
+        _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
+    }
 #if defined(ENABLE_MP4)
-    _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(vhost, app, stream);
+    if (option.enable_fmp4) {
+        _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(vhost, app, stream);
+    }
 #endif
 }
 
