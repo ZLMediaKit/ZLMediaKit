@@ -185,20 +185,21 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
             // unsupported schema
             return false;
         }
-    }
-    else {
-        int prefix_len = url_suffix.length();
-        if(url.length() < prefix_len || strcasecmp(url.substr(url.length() - prefix_len).c_str(), url_suffix.c_str())) {
+    } else {
+        int prefix_size = url_suffix.size();
+        if (url.size() < prefix_size || strcasecmp(url.data() + (url.size() - prefix_size), url_suffix.data())) {
             //未找到后缀
             return false;
         }
-        //url去除特殊后缀
-        url = url.substr(0, url.size() - prefix_len);
+        // url去除特殊后缀
+        url.resize(url.size() - prefix_size);
     }
 
     //带参数的url
-    if(!_parser.Params().empty())
-        url += "?" + _parser.Params();
+    if (!_parser.Params().empty()) {
+        url += "?";
+        url += _parser.Params();
+    }
 
     //解析带上协议+参数完整的url
     _mediaInfo.parse(schema + "://" + _parser["Host"] + url);
@@ -235,8 +236,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
             if (!src) {
                 //未找到该流
                 strong_self->sendNotFound(close_flag);
-            }
-            else {
+            } else {
                 strong_self->_is_live_stream = true;
                 //触发回调
                 cb(src);
