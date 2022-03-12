@@ -17,6 +17,7 @@
 #include "Common/Parser.h"
 #include "Network/Socket.h"
 #include "Http/HttpSession.h"
+#include "Common/MultiMediaSourceMuxer.h"
 
 //配置文件路径
 extern std::string g_ini_file;
@@ -232,6 +233,6 @@ void unInstallWebApi();
 Json::Value makeMediaSourceJson(mediakit::MediaSource &media);
 void getStatisticJson(const std::function<void(Json::Value &val)> &cb);
 void addStreamProxy(const std::string &vhost, const std::string &app, const std::string &stream, const std::string &url, int retry_count,
-                    bool enable_hls, bool enable_mp4, int rtp_type, float timeout_sec,
+                    const mediakit::ProtocolOption &option, int rtp_type, float timeout_sec,
                     const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
 #endif //ZLMEDIAKIT_WEBAPI_H

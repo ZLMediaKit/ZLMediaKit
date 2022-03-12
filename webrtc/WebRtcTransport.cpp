@@ -971,7 +971,7 @@ void echo_plugin(Session &sender, const string &offer, const WebRtcArgs &args, c
 
 void push_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
     MediaInfo info(args["url"]);
-    Broadcast::PublishAuthInvoker invoker = [cb, offer_sdp, info](const string &err, bool enable_hls, bool enable_mp4) mutable {
+    Broadcast::PublishAuthInvoker invoker = [cb, offer_sdp, info](const string &err, const ProtocolOption &option) mutable {
         if (!err.empty()) {
             cb(WebRtcException(SockException(Err_other, err)));
             return;
@@ -1008,7 +1008,7 @@ void push_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &arg
         if (!push_src) {
             push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
             push_src_ownership = push_src->getOwnership();
-            push_src->setProtocolTranslation(enable_hls, enable_mp4);
+            push_src->setProtocolOption(option);
         }
         auto rtc = WebRtcPusher::create(EventPollerPool::Instance().getPoller(), push_src, push_src_ownership, info);
         push_src->setListener(rtc);
@@ -1019,9 +1019,7 @@ void push_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &arg
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtc_push, info, invoker, static_cast<SockInfo &>(sender));
     if (!flag) {
         //该事件无人监听,默认不鉴权
-        GET_CONFIG(bool, to_hls, General::kPublishToHls);
-        GET_CONFIG(bool, to_mp4, General::kPublishToMP4);
-        invoker("", to_hls, to_mp4);
+        invoker("", ProtocolOption());
     }
 }
 

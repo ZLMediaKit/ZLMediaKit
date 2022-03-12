@@ -17,7 +17,7 @@ class WebRtcPusher : public WebRtcTransportImp, public mediakit::MediaSourceEven
 public:
     using Ptr = std::shared_ptr<WebRtcPusher>;
     ~WebRtcPusher() override = default;
-    static Ptr create(const EventPoller::Ptr &poller, const mediakit::RtspMediaSource::Ptr &src,
+    static Ptr create(const EventPoller::Ptr &poller, const mediakit::RtspMediaSourceImp::Ptr &src,
                       const std::shared_ptr<void> &ownership, const mediakit::MediaInfo &info);
 
 protected:
@@ -41,7 +41,7 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
 
 private:
-    WebRtcPusher(const EventPoller::Ptr &poller, const mediakit::RtspMediaSource::Ptr &src,
+    WebRtcPusher(const EventPoller::Ptr &poller, const mediakit::RtspMediaSourceImp::Ptr &src,
                  const std::shared_ptr<void> &ownership, const mediakit::MediaInfo &info);
 
 private:
@@ -49,7 +49,7 @@ private:
     //媒体相关元数据
     mediakit::MediaInfo _media_info;
     //推流的rtsp源
-    mediakit::RtspMediaSource::Ptr _push_src;
+    mediakit::RtspMediaSourceImp::Ptr _push_src;
     //推流所有权
     std::shared_ptr<void> _push_src_ownership;
     //推流的rtsp源,支持simulcast

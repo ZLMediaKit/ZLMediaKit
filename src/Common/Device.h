@@ -44,12 +44,14 @@ public:
  */
 class DevChannel  : public MultiMediaSourceMuxer{
 public:
-    typedef std::shared_ptr<DevChannel> Ptr;
-    //fDuration<=0为直播，否则为点播
-    DevChannel(const std::string &vhost, const std::string &app, const std::string &stream_id,
-               float duration = 0, bool enable_hls = true, bool enable_mp4 = false);
+    using Ptr = std::shared_ptr<DevChannel>;
 
-    ~DevChannel() override ;
+    //fDuration<=0为直播，否则为点播
+    DevChannel(
+        const std::string &vhost, const std::string &app, const std::string &stream_id, float duration = 0,
+        const ProtocolOption &option = ProtocolOption())
+        : MultiMediaSourceMuxer(vhost, app, stream_id, duration, option) {}
+    ~DevChannel() override = default;
 
     /**
      * 初始化视频Track

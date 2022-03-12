@@ -140,8 +140,12 @@ int main(int argc, char *argv[]) {
     //设置合并写
     mINI::Instance()[General::kMergeWriteMS] = merge_ms;
 
+    ProtocolOption option;
+    option.enable_hls = false;
+    option.enable_mp4 = false;
+
     //添加拉流代理
-    auto proxy = std::make_shared<PlayerProxy>(DEFAULT_VHOST, "app", "test", false, false);
+    auto proxy = std::make_shared<PlayerProxy>(DEFAULT_VHOST, "app", "test", option);
     //rtsp拉流代理方式
     (*proxy)[Client::kRtpType] = rtp_type;
     //开始拉流代理

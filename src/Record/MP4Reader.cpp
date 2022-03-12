@@ -38,7 +38,11 @@ MP4Reader::MP4Reader(const string &vhost, const string &app, const string &strea
     if (stream_id.empty()) {
         return;
     }
-    _muxer = std::make_shared<MultiMediaSourceMuxer>(vhost, app, stream_id, _demuxer->getDurationMS() / 1000.0f, true, true, false, false);
+    ProtocolOption option;
+    //读取mp4文件并流化时，不重复生成mp4/hls文件
+    option.enable_mp4 = false;
+    option.enable_hls = false;
+    _muxer = std::make_shared<MultiMediaSourceMuxer>(vhost, app, stream_id, _demuxer->getDurationMS() / 1000.0f, option);
     auto tracks = _demuxer->getTracks(false);
     if (tracks.empty()) {
         throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << _file_path);

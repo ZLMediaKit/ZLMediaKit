@@ -14,7 +14,7 @@ using namespace std;
 using namespace mediakit;
 
 WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
-                                       const RtspMediaSource::Ptr &src,
+                                       const RtspMediaSourceImp::Ptr &src,
                                        const std::shared_ptr<void> &ownership,
                                        const MediaInfo &info) {
     WebRtcPusher::Ptr ret(new WebRtcPusher(poller, src, ownership, info), [](WebRtcPusher *ptr) {
@@ -26,7 +26,7 @@ WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
 }
 
 WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
-                           const RtspMediaSource::Ptr &src,
+                           const RtspMediaSourceImp::Ptr &src,
                            const std::shared_ptr<void> &ownership,
                            const MediaInfo &info) : WebRtcTransportImp(poller) {
     _media_info = info;
@@ -94,8 +94,7 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
             auto src_imp = std::make_shared<RtspMediaSourceImp>(_push_src->getVhost(), _push_src->getApp(), stream_id);
             _push_src_sim_ownership[rid] = src_imp->getOwnership();
             src_imp->setSdp(_push_src->getSdp());
-            src_imp->setProtocolTranslation(_push_src->isRecording(Recorder::type_hls),
-                                            _push_src->isRecording(Recorder::type_mp4));
+            src_imp->setProtocolOption(_push_src->getProtocolOption());
             src_imp->setListener(static_pointer_cast<WebRtcPusher>(shared_from_this()));
             src = src_imp;
         }

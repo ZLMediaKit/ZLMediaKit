@@ -73,24 +73,30 @@ public:
     }
 
     /**
-     * 设置协议转换
-     * @param enableHls  是否转换成hls
-     * @param enableMP4  是否mp4录制
+     * 设置协议转换选项
      */
-    void setProtocolTranslation(bool enableHls,bool enableMP4){
-        GET_CONFIG(bool, directProxy, Rtsp::kDirectProxy);
+    void setProtocolOption(const ProtocolOption &option) {
+        GET_CONFIG(bool, direct_proxy, Rtsp::kDirectProxy);
         //开启直接代理模式时，rtsp直接代理，不重复产生；但是有些rtsp推流端，由于sdp中已有sps pps，rtp中就不再包括sps pps,
         //导致rtc无法播放，所以在rtsp推流rtc播放时，建议关闭直接代理模式
-        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), !directProxy, true, enableHls, enableMP4);
+        _option = option;
+        if (!direct_proxy) {
+            _option.enable_rtsp = true;
+        }
+        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), _option);
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(std::static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
         MediaSource::setListener(_muxer);
 
-        for(auto &track : _demuxer->getTracks(false)){
+        for (auto &track : _demuxer->getTracks(false)) {
             _muxer->addTrack(track);
             track->addDelegate(_muxer);
         }
+    }
+
+    const ProtocolOption &getProtocolOption() const {
+        return _option;
     }
 
     /**
@@ -143,9 +149,10 @@ public:
     }
 
 private:
+    bool _all_track_ready = false;
+    ProtocolOption _option;
     RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
-    bool _all_track_ready = false;
 };
 } /* namespace mediakit */
 
