@@ -7418,20 +7418,23 @@ var ZLMRTCClient = (function (exports) {
 	          scaleResolutionDownBy: 4
 	        }];
 	      }
+		  if (this.options.audioEnable){
+			if (stream.getAudioTracks().length > 0) {
+				this.pc.addTransceiver(stream.getAudioTracks()[0], AudioTransceiverInit);
+			} else {
+				AudioTransceiverInit.direction = 'recvonly';
+				this.pc.addTransceiver('audio', AudioTransceiverInit);
+			}
+		}
 
-	      if (stream.getAudioTracks().length > 0) {
-	        this.pc.addTransceiver(stream.getAudioTracks()[0], AudioTransceiverInit);
-	      } else {
-	        AudioTransceiverInit.direction = 'recvonly';
-	        this.pc.addTransceiver('audio', AudioTransceiverInit);
-	      }
-
+		if (this.options.videoEnable){
 	      if (stream.getVideoTracks().length > 0) {
 	        this.pc.addTransceiver(stream.getVideoTracks()[0], VideoTransceiverInit);
 	      } else {
 	        VideoTransceiverInit.direction = 'recvonly';
 	        this.pc.addTransceiver('video', VideoTransceiverInit);
 	      }
+		}
 	      /*
 	      stream.getTracks().forEach((track,idx)=>{
 	          debug.log(this.TAG,track);
