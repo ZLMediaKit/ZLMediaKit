@@ -104,18 +104,21 @@ public:
      * @param trackReady 是否获取已经准备好的Track
      */
     std::vector<Track::Ptr> getTracks(bool trackReady = true) const override;
-    
+
     /**
      * 返回是否所有track已经准备完成
      */
-    bool isAllTrackReady() const {
-        return _all_track_ready;
-    }
-    
+    bool isAllTrackReady() const;
+
     /**
-     * 添加aac静音轨道
+     * 设置是否开启音频
      */
-    bool addMuteAudioTrack();
+    void enableAudio(bool flag);
+
+    /**
+     * 设置是否开启添加静音音频
+     */
+    void enableMuteAudio(bool flag);
 
 protected:
     /**
@@ -147,8 +150,14 @@ private:
      */
     void checkTrackIfReady();
     void onAllTrackReady_l();
+    /**
+     * 添加aac静音轨道
+     */
+    bool addMuteAudioTrack();
 
 private:
+    bool _enable_audio = true;
+    bool _add_mute_audio = true;
     bool _all_track_ready = false;
     size_t _max_track_size = 2;
     std::unordered_map<int, std::pair<Track::Ptr, bool/*got frame*/> > _track_map;

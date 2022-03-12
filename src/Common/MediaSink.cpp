@@ -16,8 +16,7 @@ using namespace std;
 namespace mediakit{
 
 bool MediaSink::addTrack(const Track::Ptr &track_in) {
-    GET_CONFIG(bool, enabel_audio, General::kEnableAudio);
-    if (!enabel_audio) {
+    if (!_enable_audio) {
         //关闭音频时，加快单视频流注册速度
         _max_track_size = 1;
         if (track_in->getTrackType() == TrackAudio) {
@@ -169,8 +168,7 @@ void MediaSink::emitAllTrackReady() {
 
 void MediaSink::onAllTrackReady_l() {
     //是否添加静音音频
-    GET_CONFIG(bool, add_mute_audio, General::kAddMuteAudio);
-    if (add_mute_audio) {
+    if (_add_mute_audio) {
         addMuteAudioTrack();
     }
     onAllTrackReady();
@@ -241,8 +239,7 @@ bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
 }
 
 bool MediaSink::addMuteAudioTrack() {
-    GET_CONFIG(bool, enabel_audio, General::kEnableAudio);
-    if (!enabel_audio) {
+    if (!_enable_audio) {
         return false;
     }
     if (_track_map.find(TrackAudio) != _track_map.end()) {
@@ -260,6 +257,18 @@ bool MediaSink::addMuteAudioTrack() {
     onTrackReady(audio);
     TraceL << "mute aac track added";
     return true;
+}
+
+bool MediaSink::isAllTrackReady() const {
+    return _all_track_ready;
+}
+
+void MediaSink::enableAudio(bool flag) {
+    _enable_audio = flag;
+}
+
+void MediaSink::enableMuteAudio(bool flag) {
+    _add_mute_audio = flag;
 }
 
 }//namespace mediakit
