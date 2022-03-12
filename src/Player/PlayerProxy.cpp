@@ -56,6 +56,8 @@ void PlayerProxy::play(const string &strUrlTmp) {
         }
 
         if (!err) {
+            // 取消定时器,避免hls拉流索引文件因为网络波动失败重连成功后出现循环重试的情况
+           strongSelf->_timer.reset();
             // 播放成功
             *piFailedCnt = 0;//连续播放失败次数清0
             strongSelf->onPlaySuccess();
