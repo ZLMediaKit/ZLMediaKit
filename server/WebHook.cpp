@@ -286,7 +286,6 @@ void installWebHook(){
             ProtocolOption option;
             if (err.empty()) {
                 //推流鉴权成功
-                //兼容用户不传递enableHls、enableMP4参数
                 if (obj.isMember("enable_hls")) {
                     option.enable_hls = obj["enable_hls"].asBool();
                 }
@@ -307,6 +306,18 @@ void installWebHook(){
                 }
                 if (obj.isMember("hls_save_path")) {
                     option.hls_save_path = obj["hls_save_path"].asString();
+                }
+                if (obj.isMember("enable_rtsp")) {
+                    option.enable_rtsp = obj["enable_rtsp"].asBool();
+                }
+                if (obj.isMember("enable_rtmp")) {
+                    option.enable_rtmp = obj["enable_rtmp"].asBool();
+                }
+                if (obj.isMember("enable_ts")) {
+                    option.enable_ts = obj["enable_ts"].asBool();
+                }
+                if (obj.isMember("enable_fmp4")) {
+                    option.enable_fmp4 = obj["enable_fmp4"].asBool();
                 }
                 invoker(err, option);
             } else {
