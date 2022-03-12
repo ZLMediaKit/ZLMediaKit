@@ -62,10 +62,10 @@ TSDecoder::TSDecoder() : _ts_segment() {
     });
     _demuxer_ctx = ts_demuxer_create([](void* param, int program, int stream, int codecid, int flags, int64_t pts, int64_t dts, const void* data, size_t bytes){
         TSDecoder *thiz = (TSDecoder*)param;
-        if(thiz->_on_decode){
-            if(flags & MPEG_FLAG_PACKET_CORRUPT) {
+        if (thiz->_on_decode) {
+            if (flags & MPEG_FLAG_PACKET_CORRUPT) {
                 WarnL << "ts packet lost, dts:" << dts << " pts:" << pts << " bytes:" << bytes;
-            }else{
+            } else {
                 thiz->_on_decode(stream, codecid, flags, pts, dts, data, bytes);
             }
         }
