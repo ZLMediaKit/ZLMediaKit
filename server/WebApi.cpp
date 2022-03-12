@@ -487,12 +487,11 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
 };
 
 template <typename Type>
-static Type getArgsValue(const HttpAllArgs<ApiArgsType> &allArgs, const string &key, Type default_value) {
+static void getArgsValue(const HttpAllArgs<ApiArgsType> &allArgs, const string &key, Type &value) {
     auto val = allArgs["key"];
-    if (val.empty()) {
-        return default_value;
+    if (!val.empty()) {
+        value = (Type)val;
     }
-    return (Type)val;
 }
 
 /**
@@ -917,17 +916,17 @@ void installWebApi() {
         CHECK_ARGS("vhost","app","stream","url");
 
         ProtocolOption option;
-        option.enable_hls = getArgsValue(allArgs, "enable_hls", option.enable_hls);
-        option.enable_mp4 = getArgsValue(allArgs, "enable_mp4", option.enable_mp4);
-        option.enable_rtsp = getArgsValue(allArgs, "enable_rtsp", option.enable_rtsp);
-        option.enable_rtmp = getArgsValue(allArgs, "enable_rtmp", option.enable_rtmp);
-        option.enable_ts = getArgsValue(allArgs, "enable_ts", option.enable_ts);
-        option.enable_fmp4 = getArgsValue(allArgs, "enable_fmp4", option.enable_fmp4);
-        option.enable_audio = getArgsValue(allArgs, "enable_audio", option.enable_audio);
-        option.add_mute_audio = getArgsValue(allArgs, "add_mute_audio", option.add_mute_audio);
-        option.mp4_save_path = getArgsValue(allArgs, "mp4_save_path", option.mp4_save_path);
-        option.mp4_max_second = getArgsValue(allArgs, "mp4_max_second", option.mp4_max_second);
-        option.hls_save_path = getArgsValue(allArgs, "hls_save_path", option.hls_save_path);
+        getArgsValue(allArgs, "enable_hls", option.enable_hls);
+        getArgsValue(allArgs, "enable_mp4", option.enable_mp4);
+        getArgsValue(allArgs, "enable_rtsp", option.enable_rtsp);
+        getArgsValue(allArgs, "enable_rtmp", option.enable_rtmp);
+        getArgsValue(allArgs, "enable_ts", option.enable_ts);
+        getArgsValue(allArgs, "enable_fmp4", option.enable_fmp4);
+        getArgsValue(allArgs, "enable_audio", option.enable_audio);
+        getArgsValue(allArgs, "add_mute_audio", option.add_mute_audio);
+        getArgsValue(allArgs, "mp4_save_path", option.mp4_save_path);
+        getArgsValue(allArgs, "mp4_max_second", option.mp4_max_second);
+        getArgsValue(allArgs, "hls_save_path", option.hls_save_path);
 
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
