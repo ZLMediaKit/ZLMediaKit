@@ -287,11 +287,26 @@ void installWebHook(){
             if (err.empty()) {
                 //推流鉴权成功
                 //兼容用户不传递enableHls、enableMP4参数
-                if (obj.isMember("enableHls")) {
-                    option.enable_hls = obj["enableHls"].asBool();
+                if (obj.isMember("enable_hls")) {
+                    option.enable_hls = obj["enable_hls"].asBool();
                 }
-                if (obj.isMember("enableMP4")) {
-                    option.enable_mp4 = obj["enableMP4"].asBool();
+                if (obj.isMember("enable_mp4")) {
+                    option.enable_mp4 = obj["enable_mp4"].asBool();
+                }
+                if (obj.isMember("enable_audio")) {
+                    option.enable_audio = obj["enable_audio"].asBool();
+                }
+                if (obj.isMember("add_mute_audio")) {
+                    option.add_mute_audio = obj["add_mute_audio"].asBool();
+                }
+                if (obj.isMember("mp4_save_path")) {
+                    option.mp4_save_path = obj["mp4_save_path"].asString();
+                }
+                if (obj.isMember("mp4_max_second")) {
+                    option.mp4_max_second = obj["mp4_max_second"].asUInt();
+                }
+                if (obj.isMember("hls_save_path")) {
+                    option.hls_save_path = obj["hls_save_path"].asString();
                 }
                 invoker(err, option);
             } else {

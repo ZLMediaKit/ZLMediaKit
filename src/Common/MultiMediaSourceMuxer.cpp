@@ -22,10 +22,15 @@ namespace toolkit {
 namespace mediakit {
 
 ProtocolOption::ProtocolOption() {
-    GET_CONFIG(bool, toHls, General::kPublishToHls);
-    GET_CONFIG(bool, toMP4, General::kPublishToMP4);
-    enable_hls = toHls;
-    enable_mp4 = toMP4;
+    GET_CONFIG(bool, s_to_hls, General::kPublishToHls);
+    GET_CONFIG(bool, s_to_mp4, General::kPublishToMP4);
+    GET_CONFIG(bool, s_enabel_audio, General::kEnableAudio);
+    GET_CONFIG(bool, s_add_mute_audio, General::kAddMuteAudio);
+
+    enable_hls = s_to_hls;
+    enable_mp4 = s_to_mp4;
+    enable_audio = s_enabel_audio;
+    add_mute_audio = s_add_mute_audio;
 }
 
 static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, size_t max_second){
@@ -81,13 +86,11 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
     if (option.enable_rtsp) {
         _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleSdp>(dur_sec));
     }
-
     if (option.enable_hls) {
-        _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, vhost, app, stream));
+        _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, vhost, app, stream, option.hls_save_path));
     }
-
     if (option.enable_mp4) {
-        _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream);
+        _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream, option.mp4_save_path, option.mp4_max_second);
     }
     if (option.enable_ts) {
         _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
@@ -97,6 +100,10 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
         _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(vhost, app, stream);
     }
 #endif
+
+    //音频相关设置
+    enableAudio(option.enable_audio);
+    enableMuteAudio(option.add_mute_audio);
 }
 
 void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener) {

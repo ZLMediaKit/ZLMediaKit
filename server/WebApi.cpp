@@ -907,8 +907,8 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream","url");
         ProtocolOption option;
-        option.enable_hls =  allArgs["enable_hls"];
-        option.enable_mp4 =  allArgs["enable_mp4"];
+        option.enable_hls = allArgs["enable_hls"];
+        option.enable_mp4 = allArgs["enable_mp4"];
 
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
