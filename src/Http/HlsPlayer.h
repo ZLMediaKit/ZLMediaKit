@@ -17,6 +17,9 @@
 #include "HlsParser.h"
 #include "Rtp/TSDecoder.h"
 
+#define MIN_TIMEOUT_MULTIPLE 2
+#define MAX_TIMEOUT_MULTIPLE 5
+
 namespace mediakit {
 
 class HlsDemuxer : public MediaSinkInterface , public TrackSource, public std::enable_shared_from_this<HlsDemuxer> {
@@ -101,6 +104,7 @@ private:
     std::list<std::string> _ts_url_sort;
     std::set<std::string, UrlComp> _ts_url_cache;
     HttpTSPlayer::Ptr _http_ts_player;
+    int _timeout_multiple = MIN_TIMEOUT_MULTIPLE;
 };
 
 class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {

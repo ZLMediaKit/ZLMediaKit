@@ -104,6 +104,11 @@ void HlsPlayer::fetchSegment() {
         }
         if (err) {
             WarnL << "download ts segment " << url << " failed:" << err.what();
+            if (err.getErrCode() == Err_timeout) {
+                strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple + 1, MAX_TIMEOUT_MULTIPLE);
+            }else{
+                strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple -1 , MIN_TIMEOUT_MULTIPLE);
+            }
         }
         //提前半秒下载好
         auto delay = duration - ticker.elapsedTime() / 1000.0f - 0.5;
@@ -122,8 +127,8 @@ void HlsPlayer::fetchSegment() {
     });
 
     _http_ts_player->setMethod("GET");
-    //ts切片必须在其时长的3倍内下载完毕
-    _http_ts_player->setCompleteTimeout(3 * duration * 1000);
+    //ts切片必须在其时长的2-5倍内下载完毕
+    _http_ts_player->setCompleteTimeout(_timeout_multiple * duration * 1000);
     _http_ts_player->sendRequest(url);
 }
 
