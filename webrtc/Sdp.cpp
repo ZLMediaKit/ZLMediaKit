@@ -1149,10 +1149,8 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                     auto msid = std::make_shared<SdpAttrMsid>();
                     if (!m.rtp_rtx_ssrc[0].msid.empty()) {
                         msid->parse(m.rtp_rtx_ssrc[0].msid);
-                    } else {
-                        msid->parse("mslabel label");
+                        sdp_media.items.emplace_back(wrapSdpAttr(std::move(msid)));
                     }
-                    sdp_media.items.emplace_back(wrapSdpAttr(std::move(msid)));
                 }
             }
 
