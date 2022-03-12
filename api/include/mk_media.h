@@ -100,7 +100,7 @@ API_EXPORT int API_CALL mk_media_input_h265(mk_media ctx, const void *data, int 
 /**
  * 输入单帧AAC音频(单独指定adts头)
  * @param ctx 对象指针
- * @param data 不包含adts头的单帧AAC数据
+ * @param data 不包含adts头的单帧AAC数据，adts头7个字节
  * @param len 单帧AAC数据字节数
  * @param dts 时间戳，毫秒
  * @param adts adts头，可以为null
