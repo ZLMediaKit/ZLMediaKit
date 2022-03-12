@@ -131,7 +131,7 @@ void API_CALL on_mk_play_data_func(void *user_data,int track_type, int codec_id,
         }
         case 2 : {
             //aac, aac头7个字节
-            mk_media_input_aac(ctx->media, data + 7, (int)len, dts, data);
+            mk_media_input_aac(ctx->media, (uint8_t*)data + 7, (int)len, dts, data);
             break;
         }
         case 3 : //g711a
