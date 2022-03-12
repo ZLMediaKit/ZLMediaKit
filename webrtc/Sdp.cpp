@@ -1146,8 +1146,8 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
             {
                 //添加a=msid字段
                 if (!m.rtp_rtx_ssrc.empty()) {
-                    auto msid = std::make_shared<SdpAttrMsid>();
                     if (!m.rtp_rtx_ssrc[0].msid.empty()) {
+                        auto msid = std::make_shared<SdpAttrMsid>();
                         msid->parse(m.rtp_rtx_ssrc[0].msid);
                         sdp_media.items.emplace_back(wrapSdpAttr(std::move(msid)));
                     }
