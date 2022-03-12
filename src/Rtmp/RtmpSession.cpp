@@ -212,7 +212,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             on_res(err, enableHls, enableMP4);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtmp_push, _media_info, invoker, static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听，默认鉴权成功
         GET_CONFIG(bool,to_hls,General::kPublishToHls);

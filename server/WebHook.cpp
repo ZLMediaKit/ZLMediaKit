@@ -277,6 +277,8 @@ void installWebHook(){
         body["ip"] = sender.get_peer_ip();
         body["port"] = sender.get_peer_port();
         body["id"] = sender.getIdentifier();
+        body["originType"] = (int) type;
+        body["originTypeStr"] = getOriginTypeString(type);
         //执行hook
         do_http_hook(hook_publish,body,[invoker](const Value &obj,const string &err){
             if(err.empty()){
