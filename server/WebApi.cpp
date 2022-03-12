@@ -922,7 +922,7 @@ void installWebApi() {
         option.enable_rtsp = getArgsValue(allArgs, "enable_rtsp", option.enable_rtsp);
         option.enable_rtmp = getArgsValue(allArgs, "enable_rtmp", option.enable_rtmp);
         option.enable_ts = getArgsValue(allArgs, "enable_ts", option.enable_ts);
-        option.enable_fmp4 = getArgsValue(allArgs, "enable_mp4", option.enable_fmp4);
+        option.enable_fmp4 = getArgsValue(allArgs, "enable_fmp4", option.enable_fmp4);
         option.enable_audio = getArgsValue(allArgs, "enable_audio", option.enable_audio);
         option.add_mute_audio = getArgsValue(allArgs, "add_mute_audio", option.add_mute_audio);
         option.mp4_save_path = getArgsValue(allArgs, "mp4_save_path", option.mp4_save_path);
