@@ -496,18 +496,6 @@
 							"description": "拉流地址，例如rtmp://live.hkstv.hk.lxdns.com/live/hks2"
 						},
 						{
-							"key": "enable_hls",
-							"value": null,
-							"description": "是否转hls",
-							"disabled": true
-						},
-						{
-							"key": "enable_mp4",
-							"value": null,
-							"description": "是否mp4录制",
-							"disabled": true
-						},
-						{
 							"key": "rtp_type",
 							"value": null,
 							"description": "rtsp拉流时，拉流方式，0：tcp，1：udp，2：组播",
@@ -521,8 +509,74 @@
 						},
 						{
 							"key": "retry_count",
-							"value": null,
+							"value": "",
 							"description": "拉流重试次数,不传此参数或传值<=0时，则无限重试",
+							"disabled": true
+						},
+						{
+							"key": "enable_hls",
+							"value": null,
+							"description": "是否转hls",
+							"disabled": true
+						},
+						{
+							"key": "enable_mp4",
+							"value": null,
+							"description": "是否mp4录制",
+							"disabled": true
+						},
+						{
+							"key": "enable_rtsp",
+							"value": "1",
+							"description": "是否转协议为rtsp/webrtc",
+							"disabled": true
+						},
+						{
+							"key": "enable_rtmp",
+							"value": "1",
+							"description": "是否转协议为rtmp/flv",
+							"disabled": true
+						},
+						{
+							"key": "enable_ts",
+							"value": "1",
+							"description": "是否转协议为http-ts/ws-ts",
+							"disabled": true
+						},
+						{
+							"key": "enable_fmp4",
+							"value": "1",
+							"description": "是否转协议为http-fmp4/ws-fmp4",
+							"disabled": true
+						},
+						{
+							"key": "enable_audio",
+							"value": "1",
+							"description": "转协议是否开启音频",
+							"disabled": true
+						},
+						{
+							"key": "add_mute_audio",
+							"value": "1",
+							"description": "转协议无音频时，是否添加静音aac音频",
+							"disabled": true
+						},
+						{
+							"key": "mp4_save_path",
+							"value": null,
+							"description": "mp4录制保存根目录，置空使用默认目录",
+							"disabled": true
+						},
+						{
+							"key": "mp4_max_second",
+							"value": "1800",
+							"description": "mp4录制切片大小，单位秒",
+							"disabled": true
+						},
+						{
+							"key": "hls_save_path",
+							"value": null,
+							"description": "hls保存根目录，置空使用默认目录",
 							"disabled": true
 						}
 					]
