@@ -80,9 +80,7 @@ public:
         //开启直接代理模式时，rtsp直接代理，不重复产生；但是有些rtsp推流端，由于sdp中已有sps pps，rtp中就不再包括sps pps,
         //导致rtc无法播放，所以在rtsp推流rtc播放时，建议关闭直接代理模式
         _option = option;
-        if (!direct_proxy) {
-            _option.enable_rtsp = true;
-        }
+        _option.enable_rtsp = !direct_proxy;
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), _option);
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(std::static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
