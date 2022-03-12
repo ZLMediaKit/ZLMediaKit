@@ -55,14 +55,19 @@ const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
 
 #if defined(ENABLE_HLS)
 #include "mpeg-ts.h"
+#include "mpeg-ts-proto.h"
 TSDecoder::TSDecoder() : _ts_segment() {
     _ts_segment.setOnSegment([this](const char *data, size_t len){
         ts_demuxer_input(_demuxer_ctx,(uint8_t*)data,len);
     });
     _demuxer_ctx = ts_demuxer_create([](void* param, int program, int stream, int codecid, int flags, int64_t pts, int64_t dts, const void* data, size_t bytes){
         TSDecoder *thiz = (TSDecoder*)param;
-        if(thiz->_on_decode){
-            thiz->_on_decode(stream,codecid,flags,pts,dts,data,bytes);
+        if (thiz->_on_decode) {
+            if (flags & MPEG_FLAG_PACKET_CORRUPT) {
+                WarnL << "ts packet lost, dts:" << dts << " pts:" << pts << " bytes:" << bytes;
+            } else {
+                thiz->_on_decode(stream, codecid, flags, pts, dts, data, bytes);
+            }
         }
         return 0;
     },this);
