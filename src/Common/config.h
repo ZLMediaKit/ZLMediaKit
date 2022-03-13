@@ -313,6 +313,9 @@ namespace RtpProxy {
 extern const std::string kDumpDir;
 //rtp接收超时时间
 extern const std::string kTimeoutSec;
+//随机端口范围，最少确保36个端口
+//该范围同时限制rtsp服务器udp端口范围
+extern const std::string kPortRange;
 } //namespace RtpProxy
 
 /**
