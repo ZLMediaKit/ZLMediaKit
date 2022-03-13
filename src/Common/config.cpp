@@ -82,7 +82,7 @@ const string kWaitAddTrackMS = GENERAL_FIELD"wait_add_track_ms";
 const string kUnreadyFrameCache = GENERAL_FIELD"unready_frame_cache";
 const string kContinuePushMS = GENERAL_FIELD"continue_push_ms";
 
-onceToken token([](){
+static onceToken token([](){
     mINI::Instance()[kFlowThreshold] = 1024;
     mINI::Instance()[kStreamNoneReaderDelayMS] = 20 * 1000;
     mINI::Instance()[kMaxStreamWaitTimeMS] = 15 * 1000;
@@ -104,33 +104,24 @@ onceToken token([](){
     mINI::Instance()[kWaitAddTrackMS] = 3000;
     mINI::Instance()[kUnreadyFrameCache] = 100;
     mINI::Instance()[kContinuePushMS] = 15 * 1000;
-},nullptr);
+});
 
 }//namespace General
 
 ////////////HTTP配置///////////
 namespace Http {
 #define HTTP_FIELD "http."
-//http 文件发送缓存大小
 const string kSendBufSize = HTTP_FIELD"sendBufSize";
-//http 最大请求字节数
 const string kMaxReqSize = HTTP_FIELD"maxReqSize";
-//http keep-alive秒数
 const string kKeepAliveSecond = HTTP_FIELD"keepAliveSecond";
-//http 字符编码
 const string kCharSet = HTTP_FIELD"charSet";
-//http 服务器根目录
 const string kRootPath = HTTP_FIELD"rootPath";
-//http 服务器虚拟目录
 const string kVirtualPath = HTTP_FIELD "virtualPath";
-//http 404错误提示内容
 const string kNotFound = HTTP_FIELD"notFound";
-//是否显示文件夹菜单
 const string kDirMenu = HTTP_FIELD"dirMenu";
-
 const string kForbidCacheSuffix = HTTP_FIELD"forbidCacheSuffix";
 
-onceToken token([](){
+static onceToken token([](){
     mINI::Instance()[kSendBufSize] = 64 * 1024;
     mINI::Instance()[kMaxReqSize] = 4 * 10240;
     mINI::Instance()[kKeepAliveSecond] = 15;
@@ -155,7 +146,7 @@ onceToken token([](){
                                                 "</html>"
                                              << endl;
      mINI::Instance()[kForbidCacheSuffix] = "";
-},nullptr);
+});
 
 }//namespace Http
 
@@ -164,9 +155,9 @@ namespace Shell {
 #define SHELL_FIELD "shell."
 const string kMaxReqSize = SHELL_FIELD"maxReqSize";
 
-onceToken token([](){
+static onceToken token([](){
     mINI::Instance()[kMaxReqSize] = 1024;
-},nullptr);
+});
 } //namespace Shell
 
 ////////////RTSP服务器配置///////////
@@ -177,13 +168,13 @@ const string kHandshakeSecond = RTSP_FIELD"handshakeSecond";
 const string kKeepAliveSecond = RTSP_FIELD"keepAliveSecond";
 const string kDirectProxy = RTSP_FIELD"directProxy";
 
-onceToken token([](){
+static onceToken token([](){
     //默认Md5方式认证
     mINI::Instance()[kAuthBasic] = 0;
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirectProxy] = 1;
-},nullptr);
+});
 } //namespace Rtsp
 
 ////////////RTMP服务器配置///////////
@@ -193,11 +184,11 @@ const string kModifyStamp = RTMP_FIELD"modifyStamp";
 const string kHandshakeSecond = RTMP_FIELD"handshakeSecond";
 const string kKeepAliveSecond = RTMP_FIELD"keepAliveSecond";
 
-onceToken token([](){
+static onceToken token([](){
     mINI::Instance()[kModifyStamp] = false;
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
-},nullptr);
+});
 } //namespace RTMP
 
 
@@ -210,11 +201,11 @@ const string kAudioMtuSize = RTP_FIELD"audioMtuSize";
 //rtp包最大长度限制，单位是KB
 const string kRtpMaxSize = RTP_FIELD"rtpMaxSize";
 
-onceToken token([](){
+static onceToken token([](){
     mINI::Instance()[kVideoMtuSize] = 1400;
     mINI::Instance()[kAudioMtuSize] = 600;
     mINI::Instance()[kRtpMaxSize] = 10;
-},nullptr);
+});
 } //namespace Rtsp
 
 ////////////组播配置///////////
@@ -227,32 +218,25 @@ const string kAddrMax = MULTI_FIELD"addrMax";
 //组播TTL
 const string kUdpTTL = MULTI_FIELD"udpTTL";
 
-onceToken token([](){
+static onceToken token([](){
     mINI::Instance()[kAddrMin] = "239.0.0.0";
     mINI::Instance()[kAddrMax] = "239.255.255.255";
     mINI::Instance()[kUdpTTL] = 64;
-},nullptr);
+});
 } //namespace MultiCast
 
 ////////////录像配置///////////
 namespace Record {
 #define RECORD_FIELD "record."
-//查看录像的应用名称
 const string kAppName = RECORD_FIELD"appName";
-//每次流化MP4文件的时长,单位毫秒
 const string kSampleMS = RECORD_FIELD"sampleMS";
-//MP4文件录制大小,默认一个小时
 const string kFileSecond = RECORD_FIELD"fileSecond";
-//录制文件路径
 const string kFilePath = RECORD_FIELD"filePath";
-//mp4文件写缓存大小
 const string kFileBufSize = RECORD_FIELD"fileBufSize";
-//mp4录制完成后是否进行二次关键帧索引写入头部
 const string kFastStart = RECORD_FIELD"fastStart";
-//mp4文件是否重头循环读取
 const string kFileRepeat = RECORD_FIELD"fileRepeat";
 
-onceToken token([](){
+static onceToken token([](){
     mINI::Instance()[kAppName] = "record";
     mINI::Instance()[kSampleMS] = 500;
     mINI::Instance()[kFileSecond] = 60*60;
@@ -260,28 +244,21 @@ onceToken token([](){
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kFastStart] = false;
     mINI::Instance()[kFileRepeat] = false;
-},nullptr);
+});
 } //namespace Record
 
 ////////////HLS相关配置///////////
 namespace Hls {
 #define HLS_FIELD "hls."
-//HLS切片时长,单位秒
 const string kSegmentDuration = HLS_FIELD"segDur";
-//HLS切片个数
 const string kSegmentNum = HLS_FIELD"segNum";
-//HLS切片从m3u8文件中移除后，继续保留在磁盘上的个数
 const string kSegmentRetain = HLS_FIELD"segRetain";
-//HLS文件写缓存大小
 const string kFileBufSize = HLS_FIELD"fileBufSize";
-//录制文件路径
 const string kFilePath = HLS_FIELD"filePath";
-// 是否广播 ts 切片完成通知
 const string kBroadcastRecordTs = HLS_FIELD"broadcastRecordTs";
-//hls直播文件删除延时，单位秒
 const string kDeleteDelaySec = HLS_FIELD"deleteDelaySec";
 
-onceToken token([](){
+static onceToken token([](){
     mINI::Instance()[kSegmentDuration] = 2;
     mINI::Instance()[kSegmentNum] = 3;
     mINI::Instance()[kSegmentRetain] = 5;
@@ -289,22 +266,22 @@ onceToken token([](){
     mINI::Instance()[kFilePath] = "./www";
     mINI::Instance()[kBroadcastRecordTs] = false;
     mINI::Instance()[kDeleteDelaySec] = 0;
-},nullptr);
+});
 } //namespace Hls
 
 
 ////////////Rtp代理相关配置///////////
 namespace RtpProxy {
 #define RTP_PROXY_FIELD "rtp_proxy."
-//rtp调试数据保存目录
 const string kDumpDir = RTP_PROXY_FIELD"dumpDir";
-//rtp接收超时时间
 const string kTimeoutSec = RTP_PROXY_FIELD"timeoutSec";
+const string kPortRange = RTP_PROXY_FIELD "port_range";
 
-onceToken token([](){
+static onceToken token([](){
     mINI::Instance()[kDumpDir] = "";
     mINI::Instance()[kTimeoutSec] = 15;
-},nullptr);
+    mINI::Instance()[kPortRange] = "30000-35000";
+});
 } //namespace RtpProxy
 
 
