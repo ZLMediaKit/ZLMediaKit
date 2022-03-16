@@ -11,8 +11,9 @@
 #include "mk_recorder.h"
 #include "Rtmp/FlvMuxer.h"
 #include "Record/Recorder.h"
-using namespace toolkit;
-using namespace mediakit;
+//using namespace toolkit;
+using mediakit::FlvRecorder;
+using mediakit::Recorder;
 
 API_EXPORT mk_flv_recorder API_CALL mk_flv_recorder_create(){
     FlvRecorder::Ptr *ret = new FlvRecorder::Ptr(new FlvRecorder);
@@ -23,11 +24,12 @@ API_EXPORT void API_CALL mk_flv_recorder_release(mk_flv_recorder ctx){
     FlvRecorder::Ptr *record = (FlvRecorder::Ptr *)(ctx);
     delete record;
 }
+
 API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *vhost, const char *app, const char *stream, const char *file_path){
     assert(ctx && vhost && app && stream && file_path);
     try {
         FlvRecorder::Ptr *record = (FlvRecorder::Ptr *)(ctx);
-        (*record)->startRecord(EventPollerPool::Instance().getPoller(),vhost,app,stream,file_path);
+        (*record)->startRecord(toolkit::EventPollerPool::Instance().getPoller(),vhost,app,stream,file_path);
         return 0;
     }catch (std::exception &ex){
         WarnL << ex.what();

@@ -20,13 +20,13 @@ using namespace mediakit;
 API_EXPORT const char* API_CALL mk_sock_info_peer_ip(const mk_sock_info ctx, char *buf){
     assert(ctx);
     SockInfo *sock = (SockInfo *)ctx;
-    strcpy(buf,sock->get_peer_ip().c_str());
+    strcpy(buf, sock->get_peer_ip().c_str());
     return buf;
 }
 API_EXPORT const char* API_CALL mk_sock_info_local_ip(const mk_sock_info ctx, char *buf){
     assert(ctx);
     SockInfo *sock = (SockInfo *)ctx;
-    strcpy(buf,sock->get_local_ip().c_str());
+    strcpy(buf, sock->get_local_ip().c_str());
     return buf;
 }
 API_EXPORT uint16_t API_CALL mk_sock_info_peer_port(const mk_sock_info ctx){
@@ -68,13 +68,12 @@ API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const
         len = strlen(data);
     }
     try {
-        std::weak_ptr<TcpSession> weak_session = ((TcpSessionForC *)ctx)->shared_from_this();
+        TcpSessionForC* session = (TcpSessionForC*)ctx;
+        std::weak_ptr<TcpSession> weak_session = session->shared_from_this();
         std::string str = std::string(data,len);
-        ((TcpSessionForC *)ctx)->async([weak_session,str](){
-            auto session_session = weak_session.lock();
-            if(session_session){
+        session->async([weak_session,str](){
+            if(auto session_session = weak_session.lock())
                 session_session->SockSender::send(str);
-            }
         });
     } catch (std::exception &ex) {
         WarnL << "can not got the strong pionter of this mk_tcp_session:" << ex.what();
@@ -255,10 +254,8 @@ API_EXPORT void API_CALL mk_tcp_client_send_safe(mk_tcp_client ctx, const char *
     auto buf = BufferRaw::create();
     buf->assign(data,len);
     (*client)->async([weakClient,buf](){
-        auto strongClient = weakClient.lock();
-        if(strongClient){
+        if(auto strongClient = weakClient.lock())
             strongClient->send(buf);
-        }
     });
 }
 

@@ -13,7 +13,9 @@
 #include "Player/MediaPlayer.h"
 #include "Extension/H264.h"
 
-using namespace std;
+//using namespace std;
+using std::dynamic_pointer_cast;
+
 using namespace toolkit;
 using namespace mediakit;
 
@@ -31,43 +33,37 @@ public:
     }
 
     void setup(){
-        weak_ptr<MediaPlayerForC> weak_self = shared_from_this();
+        std::weak_ptr<MediaPlayerForC> weak_self = shared_from_this();
         _player->setOnPlayResult([weak_self](const SockException &ex){
-            auto strong_self = weak_self.lock();
-            if(strong_self){
-                strong_self->onEvent(false,ex);
-            }
+            if(auto strong_self = weak_self.lock())
+                strong_self->onEvent(false, ex);
         });
 
         _player->setOnShutdown([weak_self](const SockException &ex){
-            auto strong_self = weak_self.lock();
-            if(strong_self){
-                strong_self->onEvent(true,ex);
-            }
+            if (auto strong_self = weak_self.lock())
+                strong_self->onEvent(true, ex);
         });
     }
 
     void unset(){
-        lock_guard<recursive_mutex> lck(_mtx);
+        AutoLock lck(_mtx);
         _on_play = nullptr;
         _on_shutdown = nullptr;
         _on_data = nullptr;
     }
 
     void onEvent(bool is_shutdown, const SockException &ex){
-        lock_guard<recursive_mutex> lck(_mtx);
+        AutoLock lck(_mtx);
         if(is_shutdown){
             //播放中断
-            if(_on_shutdown){
-                _on_shutdown(_on_shutdown_data,ex.getErrCode(),ex.what());
-            }
+            if(_on_shutdown)
+                _on_shutdown(_on_shutdown_data, ex.getErrCode(), ex.what());
             return;
         }
 
         //播放结果
-        if(_on_play){
-            _on_play(_on_play_data,ex.getErrCode(),ex.what());
-        }
+        if(_on_play)
+            _on_play(_on_play_data, ex.getErrCode(), ex.what());
 
         if(ex){
             //播放失败
@@ -75,7 +71,7 @@ public:
         }
 
         //播放成功,添加事件回调
-        weak_ptr<MediaPlayerForC> weak_self = shared_from_this();
+        std::weak_ptr<MediaPlayerForC> weak_self = shared_from_this();
         auto delegate = std::make_shared<FrameWriterInterfaceHelper>([weak_self](const Frame::Ptr &frame) {
             if (auto strong_self = weak_self.lock()) {
                 strong_self->onData(frame);
@@ -89,25 +85,25 @@ public:
     }
 
     void onData(const Frame::Ptr &frame){
-        lock_guard<recursive_mutex> lck(_mtx);
-        if(_on_data){
-            _on_data(_on_data_data,frame->getTrackType(),frame->getCodecId(),frame->data(),frame->size(),frame->dts(),frame->pts());
-        }
+        AutoLock lck(_mtx);
+        if(_on_data)
+            _on_data(_on_data_data, frame->getTrackType(), frame->getCodecId(), frame->data(), frame->size(), frame->dts(), frame->pts());
     }
 
     void setOnEvent(on_mk_play_event cb, void *user_data, int type) {
-        lock_guard<recursive_mutex> lck(_mtx);
+        AutoLock lck(_mtx);
         if(type == 0){
             _on_play_data = user_data;
             _on_play = cb;
-        }else{
+        }
+        else{
             _on_shutdown_data = user_data;
             _on_shutdown = cb;
         }
     }
 
     void setOnData(on_mk_play_data cb, void *user_data) {
-        lock_guard<recursive_mutex> lck(_mtx);
+        AutoLock lck(_mtx);
         _on_data_data = user_data;
         _on_data = cb;
     }
@@ -117,7 +113,8 @@ public:
     }
 private:
     MediaPlayer::Ptr _player;
-    recursive_mutex _mtx;
+    std::recursive_mutex _mtx;
+    using AutoLock = std::lock_guard<std::recursive_mutex>;
     on_mk_play_event _on_play = nullptr;
     on_mk_play_data _on_data = nullptr;
     on_mk_play_event _on_shutdown = nullptr;
@@ -143,17 +140,18 @@ API_EXPORT void API_CALL mk_player_set_option(mk_player ctx,const char* key,cons
     assert(ctx && key && val);
     MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
     auto player = obj.getPlayer();
-    string key_str(key), val_str(val);
+    std::string key_str(key), val_str(val);
     player->getPoller()->async([key_str,val_str,player](){
         //切换线程后再操作
         (*player)[key_str] = val_str;
     });
 }
+
 API_EXPORT void API_CALL mk_player_play(mk_player ctx, const char *url) {
     assert(ctx && url);
     MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
     auto player = obj.getPlayer();
-    string url_str(url);
+    std::string url_str(url);
     player->getPoller()->async([url_str,player](){
         //切换线程后再操作
         player->play(url_str);

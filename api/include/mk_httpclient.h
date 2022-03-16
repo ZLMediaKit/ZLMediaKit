@@ -52,6 +52,8 @@ API_EXPORT void API_CALL mk_http_downloader_release(mk_http_downloader ctx);
  */
 API_EXPORT void API_CALL mk_http_downloader_start(mk_http_downloader ctx, const char *url, const char *file, on_mk_download_complete cb, void *user_data);
 
+typedef void(API_CALL* on_mk_download_progress)(unsigned int cur, unsigned int total, mk_http_downloader ctx, void* user_data);
+API_EXPORT void API_CALL mk_http_downloader_progress_cb(mk_http_downloader ctx, on_mk_download_progress cb, void* user_data);
 
 ///////////////////////////////////////////HttpRequester/////////////////////////////////////////////
 typedef void *mk_http_requester;

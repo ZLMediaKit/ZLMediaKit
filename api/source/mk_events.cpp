@@ -31,8 +31,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
     static onceToken token([]{
         NoticeCenter::Instance().addListener(&s_tag,Broadcast::kBroadcastMediaChanged,[](BroadcastMediaChangedArgs){
             if(s_events.on_mk_media_changed){
-                s_events.on_mk_media_changed(bRegist,
-                                             (mk_media_source)&sender);
+                s_events.on_mk_media_changed(bRegist, (mk_media_source)&sender);
             }
         });
 
@@ -60,7 +59,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                            is_dir,
                                            (mk_http_access_path_invoker)&invoker,
                                            (mk_sock_info)&sender);
-            } else{
+            }else{
                 invoker("","",0);
             }
         });
@@ -68,7 +67,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
         NoticeCenter::Instance().addListener(&s_tag,Broadcast::kBroadcastHttpBeforeAccess,[](BroadcastHttpBeforeAccessArgs){
             if(s_events.on_mk_http_before_access){
                 char path_c[4 * 1024] = {0};
-                strcpy(path_c,path.c_str());
+                strcpy(path_c, path.c_str());
                 s_events.on_mk_http_before_access((mk_parser) &parser,
                                                   path_c,
                                                   (mk_sock_info) &sender);
@@ -103,7 +102,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_media_publish((mk_media_info) &args,
                                              (mk_publish_auth_invoker) &invoker,
                                              (mk_sock_info) &sender);
-            } else {
+            }else{
                 invoker("", ProtocolOption());
             }
         });

@@ -15,7 +15,7 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 
-using namespace std;
+//using namespace std;
 using namespace toolkit;
 
 #ifndef _WIN32
@@ -27,10 +27,10 @@ API_EXPORT char* API_CALL mk_util_get_exe_path(){
 }
 
 API_EXPORT char* API_CALL mk_util_get_exe_dir(const char *relative_path){
-    if(relative_path){
+    if(relative_path)
         return _strdup((exeDir() + relative_path).data());
-    }
-    return _strdup(exeDir().data());
+    else
+        return _strdup(exeDir().data());
 }
 
 API_EXPORT uint64_t API_CALL mk_util_get_current_millisecond(){

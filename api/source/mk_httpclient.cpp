@@ -14,9 +14,11 @@
 #include "Http/HttpDownloader.h"
 #include "Http/HttpRequester.h"
 
-using namespace std;
-using namespace toolkit;
-using namespace mediakit;
+//using namespace std;
+//using namespace toolkit;
+using mediakit::HttpRequester;
+using mediakit::HttpDownloader;
+using mediakit::HttpBody;
 
 API_EXPORT mk_http_downloader API_CALL mk_http_downloader_create() {
     HttpDownloader::Ptr *obj(new HttpDownloader::Ptr(new HttpDownloader()));
@@ -32,7 +34,7 @@ API_EXPORT void API_CALL mk_http_downloader_release(mk_http_downloader ctx) {
 API_EXPORT void API_CALL mk_http_downloader_start(mk_http_downloader ctx, const char *url, const char *file, on_mk_download_complete cb, void *user_data) {
     assert(ctx && url && file);
     HttpDownloader::Ptr *obj = (HttpDownloader::Ptr *) ctx;
-    (*obj)->setOnResult([cb, user_data](const SockException &ex, const string &filePath) {
+    (*obj)->setOnResult([cb, user_data](const toolkit::SockException &ex, const std::string &filePath) {
         if (cb) {
             cb(user_data, ex.getErrCode(), ex.what(), filePath.data());
         }
@@ -40,6 +42,13 @@ API_EXPORT void API_CALL mk_http_downloader_start(mk_http_downloader ctx, const 
     (*obj)->startDownload(url, file, false);
 }
 
+void API_CALL mk_http_downloader_progress_cb(mk_http_downloader ctx, on_mk_download_progress cb, void* user_data) {
+    assert(ctx && cb);
+    HttpDownloader::Ptr* obj = (HttpDownloader::Ptr*)ctx;
+    (*obj)->setOnProgress([ctx, user_data, cb](size_t cur, size_t total) {
+        cb(cur, total, ctx, user_data);
+    });
+}
 
 ///////////////////////////////////////////HttpRequester/////////////////////////////////////////////
 API_EXPORT mk_http_requester API_CALL mk_http_requester_create(){
@@ -65,18 +74,15 @@ API_EXPORT void API_CALL mk_http_requester_set_method(mk_http_requester ctx,cons
     (*obj)->setMethod(method);
 }
 
-template <typename C = StrCaseMap>
+template <typename C = mediakit::StrCaseMap>
 static C get_http_header( const char *response_header[]){
     C header;
-    for (int i = 0; response_header[i] != NULL;) {
+    for (int i = 0; response_header[i] != NULL; i+=2) {
         auto key = response_header[i];
         auto value = response_header[i + 1];
-        if (key && value) {
-            i += 2;
-            header.emplace(key,value);
-            continue;
-        }
-        break;
+        if (!key || !value)
+            break;
+        header.emplace(key,value);
     }
     return header;
 }
@@ -131,7 +137,7 @@ API_EXPORT mk_parser API_CALL mk_http_requester_get_response(mk_http_requester c
 API_EXPORT void API_CALL mk_http_requester_set_cb(mk_http_requester ctx,on_mk_http_requester_complete cb, void *user_data){
     assert(ctx && cb);
     HttpRequester::Ptr *obj = (HttpRequester::Ptr *)ctx;
-    (*obj)->setOnResult([cb, user_data](const SockException &ex, const Parser &res) {
+    (*obj)->setOnResult([cb, user_data](const toolkit::SockException &ex, const mediakit::Parser &res) {
         cb(user_data, ex.getErrCode(), ex.what());
     });
 }

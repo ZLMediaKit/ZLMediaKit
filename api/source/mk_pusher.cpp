@@ -12,8 +12,9 @@
 #include "mk_pusher.h"
 #include "Pusher/MediaPusher.h"
 
-using namespace toolkit;
-using namespace mediakit;
+using toolkit::SockException;
+using mediakit::MediaPusher;
+using mediakit::MediaSource;
 
 API_EXPORT mk_pusher API_CALL mk_pusher_create(const char *schema,const char *vhost,const char *app, const char *stream){
     assert(schema && vhost && app && schema);

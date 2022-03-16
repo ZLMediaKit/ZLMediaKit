@@ -13,7 +13,7 @@
 #include "Util/logger.h"
 #include "Poller/EventPoller.h"
 #include "Thread/WorkThreadPool.h"
-using namespace std;
+//using namespace std;
 using namespace toolkit;
 
 API_EXPORT mk_thread API_CALL mk_thread_from_tcp_session(mk_tcp_session ctx){
@@ -36,7 +36,7 @@ API_EXPORT mk_thread API_CALL mk_thread_from_pool_work(){
     return WorkThreadPool::Instance().getPoller().get();
 }
 
-API_EXPORT void API_CALL mk_async_do(mk_thread ctx,on_mk_async cb, void *user_data){
+API_EXPORT void API_CALL mk_async_do(mk_thread ctx, on_mk_async cb, void *user_data){
     assert(ctx && cb);
     EventPoller *poller = (EventPoller *)ctx;
     poller->async([cb,user_data](){
@@ -44,7 +44,7 @@ API_EXPORT void API_CALL mk_async_do(mk_thread ctx,on_mk_async cb, void *user_da
     });
 }
 
-API_EXPORT void API_CALL mk_sync_do(mk_thread ctx,on_mk_async cb, void *user_data){
+API_EXPORT void API_CALL mk_sync_do(mk_thread ctx, on_mk_async cb, void *user_data){
     assert(ctx && cb);
     EventPoller *poller = (EventPoller *)ctx;
     poller->sync([cb,user_data](){
@@ -64,33 +64,32 @@ public:
     ~TimerForC(){}
 
     uint64_t operator()(){
-        lock_guard<recursive_mutex> lck(_mxt);
-        if(!_cb){
-            return 0;
-        }
-        return _cb(_user_data);
+        uint64_t ret = 0;
+        std::lock_guard<std::recursive_mutex> lck(_mxt);
+        if(_cb)
+            ret = _cb(_user_data);
+        return ret;
     }
 
     void cancel(){
-        lock_guard<recursive_mutex> lck(_mxt);
+        std::lock_guard<std::recursive_mutex> lck(_mxt);
         _cb = nullptr;
         _task->cancel();
     }
 
-    void start(uint64_t ms ,EventPoller &poller){
-        weak_ptr<TimerForC> weak_self = shared_from_this();
+    void start(uint64_t ms, EventPoller &poller){
+        std::weak_ptr<TimerForC> weak_self = shared_from_this();
         _task = poller.doDelayTask(ms, [weak_self]() {
-            auto strong_self = weak_self.lock();
-            if (!strong_self) {
-                return (uint64_t) 0;
-            }
-            return (*strong_self)();
+            uint64_t ret = 0;
+            if (auto strong_self = weak_self.lock())
+                ret = (*strong_self)();
+            return ret;
         });
     }
 private:
     on_mk_timer _cb = nullptr;
     void *_user_data = nullptr;
-    recursive_mutex _mxt;
+    std::recursive_mutex _mxt;
     EventPoller::DelayTask::Ptr _task;
 };
 

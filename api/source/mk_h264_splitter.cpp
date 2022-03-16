@@ -11,7 +11,7 @@
 #include "mk_h264_splitter.h"
 #include "Http/HttpRequestSplitter.h"
 
-using namespace mediakit;
+using mediakit::HttpRequestSplitter;
 
 class H264Splitter : public HttpRequestSplitter {
 public:

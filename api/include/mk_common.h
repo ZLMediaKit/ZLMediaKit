@@ -51,7 +51,7 @@ typedef struct {
 
     // 日志级别,支持0~4
     int log_level;
-    //控制日志输出的掩模，请查看LOG_CONSOLE、LOG_FILE、LOG_CALLBACK等宏
+    //控制日志输出的掩码，请查看LOG_CONSOLE、LOG_FILE、LOG_CALLBACK等宏
     int log_mask;
     //文件日志保存路径,路径可以不存在(内部可以创建文件夹)，设置为NULL关闭日志输出至文件
     const char *log_file_path;

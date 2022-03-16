@@ -25,6 +25,12 @@
 
 using namespace toolkit;
 using namespace mediakit;
+using mediakit::RecordInfo;
+using mediakit::MediaInfo;
+using mediakit::Parser;
+using mediakit::MediaSource;
+using mediakit::HttpBody;
+using mediakit::HttpSession;
 
 ///////////////////////////////////////////RecordInfo/////////////////////////////////////////////
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx){
@@ -103,7 +109,7 @@ API_EXPORT const char* API_CALL mk_parser_get_url_params(const mk_parser ctx){
     Parser *parser = (Parser *)ctx;
     return parser->Params().c_str();
 }
-API_EXPORT const char* API_CALL mk_parser_get_url_param(const mk_parser ctx,const char *key){
+API_EXPORT const char* API_CALL mk_parser_get_url_param(const mk_parser ctx, const char *key){
     assert(ctx && key);
     Parser *parser = (Parser *)ctx;
     return parser->getUrlArgs()[key].c_str();
@@ -113,7 +119,7 @@ API_EXPORT const char* API_CALL mk_parser_get_tail(const mk_parser ctx){
     Parser *parser = (Parser *)ctx;
     return parser->Tail().c_str();
 }
-API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const char *key){
+API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx, const char *key){
     assert(ctx && key);
     Parser *parser = (Parser *)ctx;
     return parser->getHeader()[key].c_str();
@@ -224,7 +230,7 @@ API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ct
     args.ssrc = ssrc;
     args.is_udp = is_udp;
 
-    src->startSendRtp(args, [cb, user_data](uint16_t local_port, const SockException &ex){
+    src->startSendRtp(args, [cb, user_data](uint16_t local_port, const toolkit::SockException &ex){
         if (cb) {
             cb(user_data, local_port, ex.getErrCode(), ex.what());
         }
@@ -271,17 +277,14 @@ API_EXPORT mk_http_body API_CALL mk_http_body_from_file(const char *file_path){
 }
 
 template <typename C = StrCaseMap>
-static C get_http_header( const char *response_header[]){
+static C get_http_header(const char *response_header[]){
     C header;
-    for (int i = 0; response_header[i] != NULL;) {
+    for (int i = 0; response_header[i] != NULL; i+=2) {
         auto key = response_header[i];
         auto value = response_header[i + 1];
-        if (key && value) {
-            i += 2;
-            header.emplace(key,value);
-            continue;
-        }
-        break;
+        if (!key || !value)
+            break;
+        header.emplace(key,value);
     }
     return header;
 }
@@ -423,7 +426,7 @@ API_EXPORT void API_CALL mk_rtsp_get_realm_invoker_do(const mk_rtsp_get_realm_in
 API_EXPORT mk_rtsp_get_realm_invoker API_CALL mk_rtsp_get_realm_invoker_clone(const mk_rtsp_get_realm_invoker ctx){
     assert(ctx);
     RtspSession::onGetRealm *invoker = (RtspSession::onGetRealm *)ctx;
-    return new RtspSession::onGetRealm (*invoker);
+    return new RtspSession::onGetRealm(*invoker);
 }
 
 API_EXPORT void API_CALL mk_rtsp_get_realm_invoker_clone_release(const mk_rtsp_get_realm_invoker ctx){

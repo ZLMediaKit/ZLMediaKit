@@ -12,11 +12,11 @@
 #include "Util/logger.h"
 #include "Common/Device.h"
 
-using namespace std;
+//using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-class MediaHelper : public MediaSourceEvent , public std::enable_shared_from_this<MediaHelper> {
+class MediaHelper : public MediaSourceEvent, public std::enable_shared_from_this<MediaHelper> {
 public:
     typedef std::shared_ptr<MediaHelper> Ptr;
     template<typename ...ArgsType>
@@ -60,7 +60,7 @@ public:
 
 protected:
     // 通知其停止推流
-    bool close(MediaSource &sender,bool force) override{
+    bool close(MediaSource &sender, bool force) override{
         if(!force && _channel->totalReaderCount()){
             //非强制关闭且正有人在观看该视频
             return false;

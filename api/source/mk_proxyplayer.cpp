@@ -11,8 +11,9 @@
 #include "mk_proxyplayer.h"
 #include "Player/PlayerProxy.h"
 
-using namespace toolkit;
-using namespace mediakit;
+using toolkit::SockException;
+using mediakit::PlayerProxy;
+using mediakit::ProtocolOption;
 
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled) {
     assert(vhost && app && stream);

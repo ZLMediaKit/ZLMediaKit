@@ -14,7 +14,7 @@ using namespace toolkit;
 
 #if defined(ENABLE_RTPPROXY)
 #include "Rtp/RtpServer.h"
-using namespace mediakit;
+using mediakit::RtpServer;
 
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int enable_tcp, const char *stream_id){
     RtpServer::Ptr *server = new RtpServer::Ptr(new RtpServer);
