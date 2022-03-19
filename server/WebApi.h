@@ -48,30 +48,30 @@ typedef enum {
 
 class ApiRetException: public std::runtime_error {
 public:
-    ApiRetException(const char *str = "success" ,int code = API::Success):runtime_error(str){
+    ApiRetException(const char *str = "success", int code = API::Success) : runtime_error(str) {
         _code = code;
     }
     ~ApiRetException() = default;
-    int code(){ return _code; }
+    int code() const { return _code; }
 private:
     int _code;
 };
 
 class AuthException : public ApiRetException {
 public:
-    AuthException(const char *str):ApiRetException(str,API::AuthFailed){}
+    AuthException(const char *str) : ApiRetException(str, API::AuthFailed){}
     ~AuthException() = default;
 };
 
 class InvalidArgsException: public ApiRetException {
 public:
-    InvalidArgsException(const char *str):ApiRetException(str,API::InvalidArgs){}
+    InvalidArgsException(const char *str) : ApiRetException(str, API::InvalidArgs){}
     ~InvalidArgsException() = default;
 };
 
 class SuccessException: public ApiRetException {
 public:
-    SuccessException():ApiRetException("success",API::Success){}
+    SuccessException():ApiRetException("success", API::Success){}
     ~SuccessException() = default;
 };
 
@@ -215,7 +215,7 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
 
 //检查http url中或body中或http header参数是否为空的宏
 #define CHECK_ARGS(...)  \
-    if(!checkArgs(allArgs,##__VA_ARGS__)){ \
+    if(!checkArgs(allArgs, ##__VA_ARGS__)){ \
         throw InvalidArgsException("缺少必要参数:" #__VA_ARGS__); \
     }
 

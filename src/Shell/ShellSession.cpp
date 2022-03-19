@@ -35,7 +35,7 @@ ShellSession::~ShellSession() {
 
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
     //DebugL << hexdump(buf->data(), buf->size());
-    GET_CONFIG(uint32_t,maxReqSize,Shell::kMaxReqSize);
+    GET_CONFIG(uint32_t, maxReqSize, Shell::kMaxReqSize);
     if (_strRecvBuf.size() + buf->size() >= maxReqSize) {
         shutdown(SockException(Err_other,"recv buffer overflow"));
         return;
@@ -71,11 +71,10 @@ void ShellSession::onManager() {
     }
 }
 
-inline bool ShellSession::onCommandLine(const string& line) {
+bool ShellSession::onCommandLine(const string& line) {
     auto loginInterceptor = _loginInterceptor;
     if (loginInterceptor) {
-        bool ret = loginInterceptor(line);
-        return ret;
+        return loginInterceptor(line);
     }
     try {
         std::shared_ptr<stringstream> ss(new stringstream);
@@ -91,34 +90,31 @@ inline bool ShellSession::onCommandLine(const string& line) {
     return true;
 }
 
-inline void ShellSession::pleaseInputUser() {
-    SockSender::send("\033[0m");
-    SockSender::send(StrPrinter << kServerName << " login: " << endl);
+void ShellSession::pleaseInputUser() {
+    *this << "\033[0m" << kServerName << " login: ";
     _loginInterceptor = [this](const string &user_name) {
         _strUserName=user_name;
         pleaseInputPasswd();
         return true;
     };
 }
-inline void ShellSession::pleaseInputPasswd() {
+
+void ShellSession::pleaseInputPasswd() {
     SockSender::send("Password: \033[8m");
     _loginInterceptor = [this](const string &passwd) {
         auto onAuth = [this](const string &errMessage){
             if(!errMessage.empty()){
                 //鉴权失败
-                SockSender::send(StrPrinter
-                                 << "\033[0mAuth failed("
-                                 << errMessage
-                                 << "), please try again.\r\n"
-                                 << _strUserName << "@" << kServerName
-                                 << "'s password: \033[8m"
-                                 << endl);
+                *this << "\033[0mAuth failed("
+                    << errMessage
+                    << "), please try again.\r\n"
+                    << _strUserName << "@" << kServerName
+                    << "'s password: \033[8m";
                 return;
             }
-            SockSender::send("\033[0m");
-            SockSender::send("-----------------------------------------\r\n");
-            SockSender::send(StrPrinter<<"欢迎来到"<<kServerName<<", 你可输入\"help\"查看帮助.\r\n"<<endl);
-            SockSender::send("-----------------------------------------\r\n");
+            *this << "\033[0m" << "-----------------------------------------\r\n";
+            *this <<"欢迎来到"<<kServerName<<", 你可输入\"help\"查看帮助.\r\n";
+            *this << "-----------------------------------------\r\n";
             printShellPrefix();
             _loginInterceptor=nullptr;
         };
@@ -138,7 +134,7 @@ inline void ShellSession::pleaseInputPasswd() {
             });
         };
 
-        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastShellLogin,_strUserName,passwd,invoker,static_cast<SockInfo &>(*this));
+        auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastShellLogin, _strUserName, passwd, invoker, static_cast<SockInfo &>(*this));
         if(!flag){
             //如果无人监听shell登录事件，那么默认shell无法登录
             onAuth("please listen kBroadcastShellLogin event");
@@ -147,8 +143,8 @@ inline void ShellSession::pleaseInputPasswd() {
     };
 }
 
-inline void ShellSession::printShellPrefix() {
-    SockSender::send(StrPrinter << _strUserName << "@" << kServerName << "# " << endl);
+void ShellSession::printShellPrefix() {
+    *this << _strUserName << "@" << kServerName << "# ";
 }
 
 }/* namespace mediakit */

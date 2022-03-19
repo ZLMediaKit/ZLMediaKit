@@ -31,6 +31,7 @@
 
 using namespace std;
 using namespace toolkit;
+using std::string;
 
 #ifndef _WIN32
 
@@ -185,14 +186,7 @@ static bool s_wait(pid_t pid, void *handle, int *exit_code_ptr, bool block) {
         return false;
     }
 #ifdef _WIN32
-    DWORD code = 0;
-    if (block) {
-        //一直等待
-        code = WaitForSingleObject(handle, INFINITE);
-    } else {
-        code = WaitForSingleObject(handle, 0);
-    }
-
+    DWORD code = WaitForSingleObject(handle, block ? INFINITE : 0);
     if (code == WAIT_FAILED || code == WAIT_OBJECT_0) {
         //子进程已经退出了,获取子进程退出代码
         DWORD exitCode = 0;

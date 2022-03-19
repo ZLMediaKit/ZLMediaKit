@@ -16,7 +16,7 @@
 #include "Thread/WorkThreadPool.h"
 #include "Network/sockutil.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 using namespace mediakit;
 
@@ -28,7 +28,7 @@ const string kLog = FFmpeg_FIELD"log";
 const string kSnap = FFmpeg_FIELD"snap";
 const string kRestartSec = FFmpeg_FIELD"restart_sec";
 
-onceToken token([]() {
+static onceToken token([]() {
 #ifdef _WIN32
     string ffmpeg_bin = trim(System::execute("where ffmpeg"));
 #else
@@ -66,6 +66,7 @@ static bool is_local_ip(const string &ip){
 }
 
 void FFmpegSource::setupRecordFlag(bool enable_hls, bool enable_mp4){
+    InfoL << "hls=" << enable_hls << ",mp4=" << enable_mp4;
     _enable_hls = enable_hls;
     _enable_mp4 = enable_mp4;
 }
@@ -85,8 +86,8 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
         auto cmd_it = mINI::Instance().find(ffmpeg_cmd_key);
         if (cmd_it != mINI::Instance().end()) {
             ffmpeg_cmd = cmd_it->second;
-        } else{
-            WarnL << "配置文件中,ffmpeg命令模板(" << ffmpeg_cmd_key << ")不存在,已采用默认模板(" << ffmpeg_cmd_default << ")";
+        } else {
+            WarnL << "ffmpeg_cmd_key " << ffmpeg_cmd_key << " no exist in ini,use default templ(" << ffmpeg_cmd_default << ")";
         }
     }
 
@@ -99,13 +100,13 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
     if (is_local_ip(_media_info._host)) {
         //推流给自己的，通过判断流是否注册上来判断是否正常
         if(_media_info._schema != RTSP_SCHEMA && _media_info._schema != RTMP_SCHEMA){
-            cb(SockException(Err_other,"本服务只支持rtmp/rtsp推流"));
+            cb(SockException(Err_other,"only supported rtmp/rtsp pusher"));
             return;
         }
-        weak_ptr<FFmpegSource> weakSelf = shared_from_this();
-        findAsync(timeout_ms,[cb,weakSelf,timeout_ms](const MediaSource::Ptr &src){
+        std::weak_ptr<FFmpegSource> weakSelf = shared_from_this();
+        findAsync(timeout_ms, [cb,weakSelf,timeout_ms](const MediaSource::Ptr &src){
             auto strongSelf = weakSelf.lock();
-            if(!strongSelf){
+            if(!strongSelf) {
                 //自己已经销毁
                 return;
             }
@@ -114,20 +115,20 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
                 cb(SockException());
                 strongSelf->onGetMediaSource(src);
                 strongSelf->startTimer(timeout_ms);
-                return;
             }
             //推流失败
-            if(!strongSelf->_process.wait(false)){
+            else if(!strongSelf->_process.wait(false)) {
                 //ffmpeg进程已经退出
-                cb(SockException(Err_other,StrPrinter << "ffmpeg已经退出,exit code = " << strongSelf->_process.exit_code()));
-                return;
+                cb(SockException(Err_other,StrPrinter << "ffmpeg exit code = " << strongSelf->_process.exit_code()));
+            } else {
+                //ffmpeg进程还在线，但是等待推流超时
+                cb(SockException(Err_other, "等待超时"));
             }
-            //ffmpeg进程还在线，但是等待推流超时
-            cb(SockException(Err_other,"等待超时"));
         });
-    } else{
+    } 
+	else{
         //推流给其他服务器的，通过判断FFmpeg进程是否在线判断是否成功
-        weak_ptr<FFmpegSource> weakSelf = shared_from_this();
+        std::weak_ptr<FFmpegSource> weakSelf = shared_from_this();
         _timer = std::make_shared<Timer>(timeout_ms / 1000.0f,[weakSelf,cb,timeout_ms](){
             auto strongSelf = weakSelf.lock();
             if(!strongSelf){
@@ -138,16 +139,16 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
             if(strongSelf->_process.wait(false)){
                 cb(SockException());
                 strongSelf->startTimer(timeout_ms);
-                return false;
+            } else {
+                //ffmpeg进程已经退出
+                cb(SockException(Err_other, StrPrinter << "ffmpeg exit code = " << strongSelf->_process.exit_code()));
             }
-            //ffmpeg进程已经退出
-            cb(SockException(Err_other,StrPrinter << "ffmpeg已经退出,exit code = " << strongSelf->_process.exit_code()));
             return false;
-        },_poller);
+        }, _poller);
     }
 }
 
-void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSource::Ptr &src)> &cb) {
+void FFmpegSource::findAsync(int maxWaitMS, const std::function<void(const MediaSource::Ptr &src)> &cb) {
     auto src = MediaSource::find(_media_info._schema,
                                  _media_info._vhost,
                                  _media_info._app,
@@ -158,16 +159,18 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
     }
 
     void *listener_tag = this;
-    //若干秒后执行等待媒体注册超时回调
-    auto onRegistTimeout = _poller->doDelayTask(maxWaitMS,[cb,listener_tag](){
+    std::weak_ptr<FFmpegSource> weakSelf = shared_from_this();
+    //注册媒体查找超时回调
+    auto onRegistTimeout = _poller->doDelayTask(maxWaitMS, [cb,listener_tag](){
         //取消监听该事件
-        NoticeCenter::Instance().delListener(listener_tag,Broadcast::kBroadcastMediaChanged);
+        NoticeCenter::Instance().delListener(listener_tag, Broadcast::kBroadcastMediaChanged);
         cb(nullptr);
         return 0;
     });
 
-    weak_ptr<FFmpegSource> weakSelf = shared_from_this();
-    auto onRegist = [listener_tag,weakSelf,cb,onRegistTimeout](BroadcastMediaChangedArgs) {
+    //监听媒体注册事件
+    NoticeCenter::Instance().addListener(listener_tag, Broadcast::kBroadcastMediaChanged,
+        [listener_tag, weakSelf, cb, onRegistTimeout](BroadcastMediaChangedArgs) {
         auto strongSelf = weakSelf.lock();
         if(!strongSelf) {
             //本身已经销毁，取消延时任务
@@ -199,16 +202,14 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
             //再找一遍媒体源，一般能找到
             strongSelf->findAsync(0,cb);
         }, false);
-    };
-    //监听媒体注册事件
-    NoticeCenter::Instance().addListener(listener_tag, Broadcast::kBroadcastMediaChanged, onRegist);
+    });
 }
 
 /**
  * 定时检查媒体是否在线
  */
 void FFmpegSource::startTimer(int timeout_ms) {
-    weak_ptr<FFmpegSource> weakSelf = shared_from_this();
+    std::weak_ptr<FFmpegSource> weakSelf = shared_from_this();
     GET_CONFIG(uint64_t,ffmpeg_restart_sec,FFmpeg::kRestartSec);
     _timer = std::make_shared<Timer>(1.0f, [weakSelf, timeout_ms]() {
         auto strongSelf = weakSelf.lock();
@@ -269,7 +270,7 @@ void FFmpegSource::startTimer(int timeout_ms) {
     }, _poller);
 }
 
-void FFmpegSource::setOnClose(const function<void()> &cb){
+void FFmpegSource::setOnClose(const std::function<void()> &cb){
     _onClose = cb;
 }
 
@@ -321,7 +322,7 @@ void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float
     WorkThreadPool::Instance().getPoller()->async([timeout_sec, play_url,save_path,cb, ticker](){
         auto elapsed_ms = ticker.elapsedTime();
         if (elapsed_ms > timeout_sec * 1000) {
-            //超时，后台线程负载太高，当代太久才启动该任务
+            //超时，后台线程负载太高，等待太久才启动该任务
             cb(false, "wait work poller schedule snap task timeout");
             return;
         }
