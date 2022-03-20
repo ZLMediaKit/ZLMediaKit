@@ -96,19 +96,22 @@ void MP4Recorder::closeFile() {
 }
 
 bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
-    if (_last_dts == 0 || _last_dts > frame->dts()) {
-        //极少情况下dts时间戳可能回退
-        _last_dts = frame->dts();
-    }
+    if (!(_have_video && frame->getTrackType() == TrackAudio)) {
+        //如果有视频且输入的是音频，那么应该忽略切片逻辑
+        if (_last_dts == 0 || _last_dts > frame->dts()) {
+            //极少情况下dts时间戳可能回退
+            _last_dts = frame->dts();
+        }
 
-    auto duration = frame->dts() - _last_dts;
-    if (!_muxer || ((duration > _max_second * 1000) && (!_have_video || (_have_video && frame->keyFrame())))) {
-        //成立条件
-        //1、_muxer为空
-        //2、到了切片时间，并且只有音频
-        //3、到了切片时间，有视频并且遇到视频的关键帧
-        _last_dts = 0;
-        createFile();
+        auto duration = frame->dts() - _last_dts;
+        if (!_muxer || ((duration > _max_second * 1000) && (!_have_video || (_have_video && frame->keyFrame())))) {
+            //成立条件
+            // 1、_muxer为空
+            // 2、到了切片时间，并且只有音频
+            // 3、到了切片时间，有视频并且遇到视频的关键帧
+            _last_dts = 0;
+            createFile();
+        }
     }
 
     if (_muxer) {
