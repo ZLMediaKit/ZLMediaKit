@@ -30,6 +30,64 @@
 using namespace toolkit;
 using namespace std;
 
+
+typedef struct
+{
+    const char *cmd_path;
+    char **cmd_args;
+    const char *log_file;
+} params_t;
+
+
+static int              /* Start function for cloned child */
+childFunc(params_t *params)
+{
+    //取消cpu亲和性设置，防止FFmpeg进程cpu占用率不能超过100%的问题
+    setThreadAffinity(-1);
+    //子进程关闭core文件生成
+    struct rlimit rlim = {0, 0};
+    setrlimit(RLIMIT_CORE, &rlim);
+
+    //在启动子进程时，暂时禁用SIGINT、SIGTERM信号
+//    signal(SIGINT, SIG_IGN);
+//    signal(SIGTERM, SIG_IGN);
+//    signal(SIGSEGV, SIG_IGN);
+//    signal(SIGABRT, SIG_IGN);
+
+    //重定向shell日志至文件
+    char log_path[strlen(params->log_file) + 20];
+    memset(log_path,0,sizeof(log_path));
+    if (strlen(params->log_file) <= 1) {
+        //未指定子进程日志文件时，重定向至/dev/null
+        snprintf(log_path, sizeof(log_path), "%s", "/dev/null");
+    } else {
+        snprintf(log_path, sizeof(log_path), "%s.%d", params->log_file, getpid());
+    }
+    auto fp = File::create_file(params->log_file, "ab");
+    if (!fp) {
+        fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_path, get_uv_error(), get_uv_errmsg());
+    } else {
+        auto log_fd = fileno(fp);
+        // dup to stdout and stderr.
+        if (dup2(log_fd, STDOUT_FILENO) < 0) {
+            fprintf(stderr, "dup2 stdout file %s failed:%d(%s)\r\n", log_path, get_uv_error(), get_uv_errmsg());
+        }
+        if (dup2(log_fd, STDERR_FILENO) < 0) {
+            fprintf(stderr, "dup2 stderr file  %s failed:%d(%s)\r\n", log_path, get_uv_error(), get_uv_errmsg());
+        }
+        // 关闭日志文件
+        ::fclose(fp);
+    }
+    fprintf(stderr, "\r\n\r\n#### pid=%d,cmd=%s%s #####\r\n\r\n", getpid(), params->cmd_path, *params->cmd_args);
+
+    // TODO: execv or execvp
+    auto ret = execv(params->cmd_path, params->cmd_args);
+    if (ret < 0) {
+        fprintf(stderr, "clone process failed:%d(%s)\r\n", get_uv_error(), get_uv_errmsg());
+    }
+    return ret;
+}
+
 void Process::run(const string &cmd, string &log_file_tmp) {
     kill(2000);
 #ifdef _WIN32
@@ -72,87 +130,29 @@ void Process::run(const string &cmd, string &log_file_tmp) {
     }
     fclose(fp);
 #else
-    _pid = fork();
-    if (_pid < 0) {
+    void* pstk = malloc(STACK_SIZE);
+    auto params = split(cmd, " ");
+    // memory leak in child process, it's ok.
+    char **charpv_params = new char *[params.size() + 1];
+    for (int i = 0; i < (int) params.size(); i++) {
+        std::string &p = params[i];
+        charpv_params[i] = (char *) p.data();
+    }
+    // EOF: NULL
+    charpv_params[params.size()] = NULL;
+    params_t cmd_params = {params[0].c_str(), charpv_params, log_file_tmp.c_str()};
+    int clonePid = clone(reinterpret_cast<int (*)(void *)>(&childFunc), (char *)pstk + STACK_SIZE, CLONE_FS | SIGCHLD, (void *) (&cmd_params));
+    if (clonePid == -1) {
+        WarnL << "clone process failed:" << get_uv_errmsg();
+        free(pstk);
         throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
     }
-    if (_pid == 0) {
-        //取消cpu亲和性设置，防止FFmpeg进程cpu占用率不能超过100%的问题
-        setThreadAffinity(-1);
-        string log_file;
-        if (log_file_tmp.empty()) {
-            //未指定子进程日志文件时，重定向至/dev/null
-            log_file = "/dev/null";
-        } else {
-            log_file = StrPrinter << log_file_tmp << "." << getpid();
-        }
-        //子进程关闭core文件生成
-        struct rlimit rlim = {0, 0};
-        setrlimit(RLIMIT_CORE, &rlim);
-
-        //在启动子进程时，暂时禁用SIGINT、SIGTERM信号
-        signal(SIGINT, SIG_IGN);
-        signal(SIGTERM, SIG_IGN);
-        signal(SIGSEGV, SIG_IGN);
-        signal(SIGABRT, SIG_IGN);
-
-        //重定向shell日志至文件
-        auto fp = File::create_file(log_file.data(), "ab");
-        if (!fp) {
-            fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), get_uv_error(), get_uv_errmsg());
-        } else {
-            auto log_fd = fileno(fp);
-            // dup to stdout and stderr.
-            if (dup2(log_fd, STDOUT_FILENO) < 0) {
-                fprintf(stderr, "dup2 stdout file %s failed:%d(%s)\r\n", log_file.data(), get_uv_error(), get_uv_errmsg());
-            }
-            if (dup2(log_fd, STDERR_FILENO) < 0) {
-                fprintf(stderr, "dup2 stderr file  %s failed:%d(%s)\r\n", log_file.data(), get_uv_error(), get_uv_errmsg());
-            }
-            // 关闭日志文件
-            ::fclose(fp);
-        }
-        fprintf(stderr, "\r\n\r\n#### pid=%d,cmd=%s #####\r\n\r\n", getpid(), cmd.data());
-
-#ifndef ANDROID
-        //关闭父进程继承的fd
-        for (int i = 3; i < getdtablesize(); i++) {
-            ::close(i);
-        }
-#else
-        //关闭父进程继承的fd
-        for (int i = 3; i < 1024; i++) {
-            ::close(i);
-        }
-#endif
-
-        auto params = split(cmd, " ");
-        // memory leak in child process, it's ok.
-        char **charpv_params = new char *[params.size() + 1];
-        for (int i = 0; i < (int) params.size(); i++) {
-            std::string &p = params[i];
-            charpv_params[i] = (char *) p.data();
-        }
-        // EOF: NULL
-        charpv_params[params.size()] = NULL;
-
-        // TODO: execv or execvp
-        auto ret = execv(params[0].c_str(), charpv_params);
-        if (ret < 0) {
-            fprintf(stderr, "fork process failed:%d(%s)\r\n", get_uv_error(), get_uv_errmsg());
-        }
-        exit(ret);
+    _pid = clonePid;
+    if(log_file_tmp.empty()) {
+        InfoL << "start child process " << _pid << ", log file:" << "/dev/null";
+    }else {
+        InfoL << "start child process " << _pid << ", log file:" << log_file_tmp.c_str() << "." << _pid;
     }
-
-    string log_file;
-    if (log_file_tmp.empty()) {
-        //未指定子进程日志文件时，重定向至/dev/null
-        log_file = "/dev/null";
-    } else {
-        log_file = StrPrinter << log_file_tmp << "." << _pid;
-    }
-    log_file_tmp = log_file;
-    InfoL << "start child process " << _pid << ", log file:" << log_file;
 #endif // _WIN32
 }
 
