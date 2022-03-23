@@ -27,6 +27,7 @@
 #include "Util/uv_errno.h"
 #include "Poller/EventPoller.h"
 #include "Process.h"
+#define STACK_SIZE (8192*1024)
 using namespace toolkit;
 using namespace std;
 
