@@ -32,6 +32,8 @@ using namespace toolkit;
 using namespace std;
 
 
+
+#ifndef _WIN32
 typedef struct
 {
     const char *cmd_path;
@@ -88,6 +90,7 @@ childFunc(params_t *params)
     }
     return ret;
 }
+#endif
 
 void Process::run(const string &cmd, string &log_file_tmp) {
     kill(2000);
