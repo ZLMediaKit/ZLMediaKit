@@ -8,11 +8,15 @@ var ZLMRTCClient = (function (exports) {
 	  WEBRTC_ON_REMOTE_STREAMS: 'WEBRTC_ON_REMOTE_STREAMS',
 	  WEBRTC_ON_LOCAL_STREAM: 'WEBRTC_ON_LOCAL_STREAM',
 	  WEBRTC_ON_CONNECTION_STATE_CHANGE: 'WEBRTC_ON_CONNECTION_STATE_CHANGE',
+	  WEBRTC_ON_DATA_CHANNEL_OPEN: 'WEBRTC_ON_DATA_CHANNEL_OPEN',
+	  WEBRTC_ON_DATA_CHANNEL_CLOSE: 'WEBRTC_ON_DATA_CHANNEL_CLOSE',
+	  WEBRTC_ON_DATA_CHANNEL_ERR: 'WEBRTC_ON_DATA_CHANNEL_ERR',
+	  WEBRTC_ON_DATA_CHANNEL_MSG: 'WEBRTC_ON_DATA_CHANNEL_MSG',
 	  CAPTURE_STREAM_FAILED: 'CAPTURE_STREAM_FAILED'
 	};
 
 	const VERSION = '1.0.1';
-	const BUILD_DATE = 'Sat Jan 08 2022 15:24:38 GMT+0800 (China Standard Time)';
+	const BUILD_DATE = 'Thu Mar 24 2022 17:42:57 GMT+0800 (China Standard Time)';
 
 	// Copyright (C) <2018> Intel Corporation
 	//
@@ -7294,7 +7298,8 @@ var ZLMRTCClient = (function (exports) {
 	      resolution: {
 	        w: 0,
 	        h: 0
-	      }
+	      },
+	      usedatachannel: false
 	    };
 	    this.options = Object.assign({}, defaults, options);
 
@@ -7306,7 +7311,11 @@ var ZLMRTCClient = (function (exports) {
 	      onicecandidate: this._onIceCandidate.bind(this),
 	      ontrack: this._onTrack.bind(this),
 	      onicecandidateerror: this._onIceCandidateError.bind(this),
-	      onconnectionstatechange: this._onconnectionstatechange.bind(this)
+	      onconnectionstatechange: this._onconnectionstatechange.bind(this),
+	      ondatachannelopen: this._onDataChannelOpen.bind(this),
+	      ondatachannelmsg: this._onDataChannelMsg.bind(this),
+	      ondatachannelerr: this._onDataChannelErr.bind(this),
+	      ondatachannelclose: this._onDataChannelClose.bind(this)
 	    };
 	    this._remoteStream = null;
 	    this._localStream = null;
@@ -7315,6 +7324,16 @@ var ZLMRTCClient = (function (exports) {
 	    this.pc.onicecandidateerror = this.e.onicecandidateerror;
 	    this.pc.ontrack = this.e.ontrack;
 	    this.pc.onconnectionstatechange = this.e.onconnectionstatechange;
+	    this.datachannel = null;
+
+	    if (this.options.usedatachannel) {
+	      this.datachannel = this.pc.createDataChannel('chat');
+	      this.datachannel.onclose = this.e.ondatachannelclose;
+	      this.datachannel.onerror = this.e.ondatachannelerr;
+	      this.datachannel.onmessage = this.e.ondatachannelmsg;
+	      this.datachannel.onopen = this.e.ondatachannelopen;
+	    }
+
 	    if (!this.options.recvOnly && (this.options.audioEnable || this.options.videoEnable)) this.start();else this.receive();
 	  }
 
@@ -7418,23 +7437,24 @@ var ZLMRTCClient = (function (exports) {
 	          scaleResolutionDownBy: 4
 	        }];
 	      }
-		  if (this.options.audioEnable){
-			if (stream.getAudioTracks().length > 0) {
-				this.pc.addTransceiver(stream.getAudioTracks()[0], AudioTransceiverInit);
-			} else {
-				AudioTransceiverInit.direction = 'recvonly';
-				this.pc.addTransceiver('audio', AudioTransceiverInit);
-			}
-		}
 
-		if (this.options.videoEnable){
-	      if (stream.getVideoTracks().length > 0) {
-	        this.pc.addTransceiver(stream.getVideoTracks()[0], VideoTransceiverInit);
-	      } else {
-	        VideoTransceiverInit.direction = 'recvonly';
-	        this.pc.addTransceiver('video', VideoTransceiverInit);
+	      if (this.options.audioEnable) {
+	        if (stream.getAudioTracks().length > 0) {
+	          this.pc.addTransceiver(stream.getAudioTracks()[0], AudioTransceiverInit);
+	        } else {
+	          AudioTransceiverInit.direction = 'recvonly';
+	          this.pc.addTransceiver('audio', AudioTransceiverInit);
+	        }
 	      }
-		}
+
+	      if (this.options.videoEnable) {
+	        if (stream.getVideoTracks().length > 0) {
+	          this.pc.addTransceiver(stream.getVideoTracks()[0], VideoTransceiverInit);
+	        } else {
+	          VideoTransceiverInit.direction = 'recvonly';
+	          this.pc.addTransceiver('video', VideoTransceiverInit);
+	        }
+	      }
 	      /*
 	      stream.getTracks().forEach((track,idx)=>{
 	          debug.log(this.TAG,track);
@@ -7517,7 +7537,44 @@ var ZLMRTCClient = (function (exports) {
 	    this.dispatch(Events$1.WEBRTC_ON_CONNECTION_STATE_CHANGE, this.pc.connectionState);
 	  }
 
+	  _onDataChannelOpen(event) {
+	    log(this.TAG, 'ondatachannel open:', event);
+	    this.dispatch(Events$1.WEBRTC_ON_DATA_CHANNEL_OPEN, event);
+	  }
+
+	  _onDataChannelMsg(event) {
+	    log(this.TAG, 'ondatachannel msg:', event);
+	    this.dispatch(Events$1.WEBRTC_ON_DATA_CHANNEL_MSG, event);
+	  }
+
+	  _onDataChannelErr(event) {
+	    log(this.TAG, 'ondatachannel err:', event);
+	    this.dispatch(Events$1.WEBRTC_ON_DATA_CHANNEL_ERR, event);
+	  }
+
+	  _onDataChannelClose(event) {
+	    log(this.TAG, 'ondatachannel close:', event);
+	    this.dispatch(Events$1.WEBRTC_ON_DATA_CHANNEL_CLOSE, event);
+	  }
+
+	  sendMsg(data) {
+	    if (this.datachannel != null) {
+	      this.datachannel.send(data);
+	    } else {
+	      error(this.TAG, 'data channel is null');
+	    }
+	  }
+
+	  closeDataChannel() {
+	    if (this.datachannel) {
+	      this.datachannel.close();
+	      this.datachannel = null;
+	    }
+	  }
+
 	  close() {
+	    this.closeDataChannel();
+
 	    if (this.pc) {
 	      this.pc.close();
 	      this.pc = null;
