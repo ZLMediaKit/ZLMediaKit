@@ -375,7 +375,7 @@ public:
         };
         GET_CONFIG_FUNC(uint16_t, s_min_port, RtpProxy::kPortRange, [](const string &str) { return func(str, 0); });
         GET_CONFIG_FUNC(uint16_t, s_max_port, RtpProxy::kPortRange, [](const string &str) { return func(str, 1); });
-        assert(s_max_port > s_min_port + 36);
+        assert(s_max_port >= s_min_port + 36 -1);
         setRange((s_min_port + 1) / 2, s_max_port / 2);
     }
 
