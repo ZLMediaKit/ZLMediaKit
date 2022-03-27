@@ -27,8 +27,62 @@
 #include "Util/uv_errno.h"
 #include "Poller/EventPoller.h"
 #include "Process.h"
+
+#define STACK_SIZE (8192*1024)
 using namespace toolkit;
 using namespace std;
+
+#ifndef _WIN32
+typedef struct
+{
+    const char *cmd_path;
+    char **cmd_args;
+    const char *log_file;
+} params_t;
+
+
+static int              /* Start function for cloned child */
+childFunc(params_t *params)
+{
+    //取消cpu亲和性设置，防止FFmpeg进程cpu占用率不能超过100%的问题
+    setThreadAffinity(-1);
+    //子进程关闭core文件生成
+    struct rlimit rlim = {0, 0};
+    setrlimit(RLIMIT_CORE, &rlim);
+    //重定向shell日志至文件
+    char log_path[strlen(params->log_file) + 20];
+    memset(log_path,0,sizeof(log_path));
+    if (strlen(params->log_file) <= 1) {
+        //未指定子进程日志文件时，重定向至/dev/null
+        snprintf(log_path, sizeof(log_path), "%s", "/dev/null");
+    } else {
+        snprintf(log_path, sizeof(log_path), "%s.%d", params->log_file, getpid());
+    }
+    auto fp = File::create_file(params->log_file, "ab");
+    if (!fp) {
+        fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_path, get_uv_error(), get_uv_errmsg());
+    } else {
+        auto log_fd = fileno(fp);
+        // dup to stdout and stderr.
+        if (dup2(log_fd, STDOUT_FILENO) < 0) {
+            fprintf(stderr, "dup2 stdout file %s failed:%d(%s)\r\n", log_path, get_uv_error(), get_uv_errmsg());
+        }
+        if (dup2(log_fd, STDERR_FILENO) < 0) {
+            fprintf(stderr, "dup2 stderr file  %s failed:%d(%s)\r\n", log_path, get_uv_error(), get_uv_errmsg());
+        }
+        // 关闭日志文件
+        ::fclose(fp);
+    }
+    fprintf(stderr, "\r\n\r\n#### pid=%d,cmd=%s%s #####\r\n\r\n", getpid(), params->cmd_path, *params->cmd_args);
+
+    // TODO: execv or execvp
+    auto ret = execv(params->cmd_path, params->cmd_args);
+    if (ret < 0) {
+        fprintf(stderr, "clone process failed:%d(%s)\r\n", get_uv_error(), get_uv_errmsg());
+    }
+    return ret;
+}
+#endif
 
 void Process::run(const string &cmd, string &log_file_tmp) {
     kill(2000);
@@ -71,8 +125,34 @@ void Process::run(const string &cmd, string &log_file_tmp) {
         WarnL << "start child process fail: " << get_uv_errmsg();
     }
     fclose(fp);
+#elif ((defined(__linux) || defined(__linux__)))
+    _process_stack = malloc(STACK_SIZE);
+    auto params = split(cmd, " ");
+    // memory leak in child process, it's ok.
+    char **char_params = new char *[params.size() + 1];
+    for (int i = 0; i < (int) params.size(); i++) {
+        std::string &p = params[i];
+        char_params[i] = (char *) p.data();
+    }
+    // EOF: NULL
+    char_params[params.size()] = NULL;
+    params_t cmd_params = {params[0].c_str(), char_params, log_file_tmp.c_str()};
+    int clonePid = clone(reinterpret_cast<int (*)(void *)>(&childFunc), (char *)_process_stack + STACK_SIZE, CLONE_FS | SIGCHLD, (void *) (&cmd_params));
+    delete[] char_params;
+    if (clonePid == -1) {
+        WarnL << "clone process failed:" << get_uv_errmsg();
+        free(_process_stack);
+        throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
+    }
+    _pid = clonePid;
+    if(log_file_tmp.empty()) {
+        InfoL << "start child process " << _pid << ", log file:" << "/dev/null";
+    }else {
+        InfoL << "start child process " << _pid << ", log file:" << log_file_tmp.c_str() << "." << _pid;
+    }
+
 #else
-    _pid = fork();
+    _pid = vfork();
     if (_pid < 0) {
         throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
     }
@@ -91,10 +171,10 @@ void Process::run(const string &cmd, string &log_file_tmp) {
         setrlimit(RLIMIT_CORE, &rlim);
 
         //在启动子进程时，暂时禁用SIGINT、SIGTERM信号
-        signal(SIGINT, SIG_IGN);
-        signal(SIGTERM, SIG_IGN);
-        signal(SIGSEGV, SIG_IGN);
-        signal(SIGABRT, SIG_IGN);
+        signal(SIGINT, SIG_DFL);
+        signal(SIGTERM, SIG_DFL);
+        signal(SIGSEGV, SIG_DFL);
+        signal(SIGABRT, SIG_DFL);
 
         //重定向shell日志至文件
         auto fp = File::create_file(log_file.data(), "ab");
@@ -113,18 +193,6 @@ void Process::run(const string &cmd, string &log_file_tmp) {
             ::fclose(fp);
         }
         fprintf(stderr, "\r\n\r\n#### pid=%d,cmd=%s #####\r\n\r\n", getpid(), cmd.data());
-
-#ifndef ANDROID
-        //关闭父进程继承的fd
-        for (int i = 3; i < getdtablesize(); i++) {
-            ::close(i);
-        }
-#else
-        //关闭父进程继承的fd
-        for (int i = 3; i < 1024; i++) {
-            ::close(i);
-        }
-#endif
 
         auto params = split(cmd, " ");
         // memory leak in child process, it's ok.
@@ -297,6 +365,11 @@ void Process::kill(int max_delay, bool force) {
     if(_handle){
         CloseHandle(_handle);
         _handle = nullptr;
+    }
+#elif ((defined(__linux) || defined(__linux__)))
+    if(_process_stack){
+        free(_process_stack);
+        _process_stack = nullptr;
     }
 #endif
 }
