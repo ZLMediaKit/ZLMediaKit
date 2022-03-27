@@ -48,15 +48,14 @@ static void setupChildProcess() {
 }
 
 /* Start function for cloned child */
-static int runChildProcess(const string &cmd, string &log_file_tmp) {
+static int runChildProcess(string cmd, string log_file) {
     setupChildProcess();
 
-    string log_file;
-    if (log_file_tmp.empty()) {
+    if (log_file.empty()) {
         //未指定子进程日志文件时，重定向至/dev/null
         log_file = "/dev/null";
     } else {
-        log_file = StrPrinter << log_file_tmp << "." << getpid();
+        log_file = StrPrinter << log_file << "." << getpid();
     }
 
     //重定向shell日志至文件
@@ -103,19 +102,17 @@ static int cloneFunc(void *ptr) {
 
 #endif
 
-void Process::run(const string &cmd, string &log_file_tmp) {
+void Process::run(const string &cmd, string &log_file) {
     kill(2000);
 #ifdef _WIN32
     STARTUPINFO si = { 0 };
     PROCESS_INFORMATION pi = { 0 };
-    string log_file;
-    if (log_file_tmp.empty()) {
+    if (log_file.empty()) {
         //未指定子进程日志文件时，重定向至/dev/null
         log_file = "NUL";
     } else {
-        log_file = StrPrinter << log_file_tmp << "." << getCurrentMillisecond();
+        log_file = StrPrinter << log_file << "." << getCurrentMillisecond();
     }
-    log_file_tmp = log_file;
 
     //重定向shell日志至文件
     auto fp = File::create_file(log_file.data(), "ab");
@@ -144,39 +141,34 @@ void Process::run(const string &cmd, string &log_file_tmp) {
         WarnL << "start child process fail: " << get_uv_errmsg();
     }
     fclose(fp);
-#elif ((defined(__linux) || defined(__linux__)))
+#else
+
+#if (defined(__linux) || defined(__linux__))
     _process_stack = malloc(STACK_SIZE);
-    auto args = std::make_pair(cmd, log_file_tmp);
-    int pid = clone(reinterpret_cast<int (*)(void *)>(&cloneFunc), (char *)_process_stack + STACK_SIZE, CLONE_FS | SIGCHLD, (void *)(&args));
-    if (pid == -1) {
+    auto args = std::make_pair(cmd, log_file);
+    _pid = clone(reinterpret_cast<int (*)(void *)>(&cloneFunc), (char *)_process_stack + STACK_SIZE, CLONE_FS | SIGCHLD, (void *)(&args));
+    if (_pid == -1) {
         WarnL << "clone process failed:" << get_uv_errmsg();
         free(_process_stack);
+        _process_stack = nullptr;
         throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
-    }
-    _pid = pid;
-    if (log_file_tmp.empty()) {
-        InfoL << "start child process " << _pid << ", log file:" << "/dev/null";
-    } else {
-        InfoL << "start child process " << _pid << ", log file:" << log_file_tmp.c_str() << "." << _pid;
     }
 #else
     _pid = fork();
-    if (_pid < 0) {
+    if (_pid == -1) {
         throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
     }
     if (_pid == 0) {
         //子进程
-        exit(runChildProcess(cmd, log_file_tmp));
+        exit(runChildProcess(cmd, log_file));
     }
-
-    string log_file;
-    if (log_file_tmp.empty()) {
+#endif
+    if (log_file.empty()) {
         //未指定子进程日志文件时，重定向至/dev/null
         log_file = "/dev/null";
     } else {
-        log_file = StrPrinter << log_file_tmp << "." << _pid;
+        log_file = StrPrinter << log_file << "." << _pid;
     }
-    log_file_tmp = log_file;
     InfoL << "start child process " << _pid << ", log file:" << log_file;
 #endif // _WIN32
 }
