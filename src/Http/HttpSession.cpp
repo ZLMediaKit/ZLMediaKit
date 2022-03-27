@@ -186,7 +186,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
             return false;
         }
     } else {
-        int prefix_size = url_suffix.size();
+        auto prefix_size = url_suffix.size();
         if (url.size() < prefix_size || strcasecmp(url.data() + (url.size() - prefix_size), url_suffix.data())) {
             //未找到后缀
             return false;
