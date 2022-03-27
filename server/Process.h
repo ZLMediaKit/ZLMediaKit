@@ -31,6 +31,7 @@ public:
 private:
     pid_t _pid = -1;
     void *_handle = nullptr;
+    void* _process_stack = nullptr;
     int _exit_code = 0;
 };
 
