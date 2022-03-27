@@ -1371,7 +1371,9 @@ void installWebApi() {
 #ifdef ENABLE_WEBRTC
     class WebRtcArgsImp : public WebRtcArgs {
     public:
-        WebRtcArgsImp(const HttpAllArgs<string> &args) : _args(args) {}
+        WebRtcArgsImp(const HttpAllArgs<string> &args, std::string session_id)
+            : _args(args)
+            , _session_id(std::move(session_id)) {}
         ~WebRtcArgsImp() override = default;
 
         variant operator[](const string &key) const override {
@@ -1387,11 +1389,12 @@ void installWebApi() {
             CHECK_ARGS("app", "stream");
 
             return StrPrinter << RTC_SCHEMA << "://" << _args["Host"] << "/" << _args["app"] << "/"
-                              << _args["stream"] << "?" << _args.getParser().Params();
+                              << _args["stream"] << "?" << _args.getParser().Params() + "&session=" + _session_id;
         }
 
     private:
         HttpAllArgs<string> _args;
+        std::string _session_id;
     };
 
     api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
@@ -1400,8 +1403,9 @@ void installWebApi() {
         auto offer = allArgs.getArgs();
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        WebRtcPluginManager::Instance().getAnswerSdp(*(static_cast<Session *>(&sender)), type, offer, WebRtcArgsImp(allArgs),
-        [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
+        WebRtcPluginManager::Instance().getAnswerSdp(
+            *(static_cast<Session *>(&sender)), type, offer, WebRtcArgsImp(allArgs, sender.getIdentifier()),
+            [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             //设置返回类型
             headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
             //设置跨域
