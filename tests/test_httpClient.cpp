@@ -19,7 +19,7 @@
 #include "Http/HttpRequester.h"
 #include "Http/HttpDownloader.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 using namespace mediakit;
 
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 
     ///////////////////////////////http downloader///////////////////////
     //下载器map
-    map<string, HttpDownloader::Ptr> downloaderMap;
+    std::map<string, HttpDownloader::Ptr> downloaderMap;
     //下载两个文件，一个是http下载，一个https下载
     auto urlList = {"http://www.baidu.com/img/baidu_resultlogo@2.png",
                     "https://www.baidu.com/img/baidu_resultlogo@2.png"};
@@ -49,6 +49,9 @@ int main(int argc, char *argv[]) {
     for (auto &url : urlList) {
         //创建下载器
         HttpDownloader::Ptr downloader(new HttpDownloader());
+        downloader->setOnProgress([](size_t cur, size_t total) {
+            DebugL << "HttpDownloader Progress cur=" << cur << ",total=" << total;
+        });
         downloader->setOnResult([](const SockException &ex, const string &filePath) {
             DebugL << "=====================HttpDownloader result=======================";
             //下载结果回调
@@ -75,23 +78,22 @@ int main(int argc, char *argv[]) {
     requesterGet->addHeader("Cookie", "SESSIONID=e1aa89b3-f79f-4ac6-8ae2-0cea9ae8e2d7");
     //开启请求，该api会返回当前主机外网ip等信息
     requesterGet->startRequester("http://pv.sohu.com/cityjson?ie=utf-8",//url地址
-                                 [](const SockException &ex,                                 //网络相关的失败信息，如果为空就代表成功
-                                    const Parser &parser) {                              //http回复body
-                                     DebugL << "=====================HttpRequester GET===========================";
-                                     if (ex) {
-                                         //网络相关的错误
-                                         WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
-                                     } else {
-                                         //打印http回复信息
-                                         _StrPrinter printer;
-                                         for (auto &pr: parser.getHeader()) {
-                                             printer << pr.first << ":" << pr.second << "\r\n";
-                                         }
-                                         InfoL << "status:" << parser.Url() << "\r\n"
-                                               << "header:\r\n" << (printer << endl)
-                                               << "\r\nbody:" << parser.Content();
-                                     }
-                                 });
+        [](const SockException &ex, const Parser &parser) {
+            DebugL << "=====================HttpRequester GET===========================";
+            if (ex) {
+                //网络相关的错误
+                WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
+            } else {
+                //打印http回复信息
+                _StrPrinter printer;
+                for (auto &pr: parser.getHeader()) {
+                    printer << pr.first << ":" << pr.second << "\r\n";
+                }
+                InfoL << "status:" << parser.Url() << "\r\n"
+                    << "header:\r\n" << printer << "\r\n"
+                    << "body:" << parser.Content();
+            }
+        });
 
     ///////////////////////////////http post///////////////////////
     //创建一个Http请求器
@@ -111,23 +113,22 @@ int main(int argc, char *argv[]) {
     requesterPost->setBody(args.make());
     //开启请求
     requesterPost->startRequester("http://fanyi.baidu.com/langdetect",//url地址
-                                  [](const SockException &ex,                          //网络相关的失败信息，如果为空就代表成功
-                                     const Parser &parser) {                       //http回复body
-                                      DebugL << "=====================HttpRequester POST==========================";
-                                      if (ex) {
-                                          //网络相关的错误
-                                          WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
-                                      } else {
-                                          //打印http回复信息
-                                          _StrPrinter printer;
-                                          for (auto &pr: parser.getHeader()) {
-                                              printer << pr.first << ":" << pr.second << "\r\n";
-                                          }
-                                          InfoL << "status:" << parser.Url() << "\r\n"
-                                                << "header:\r\n" << (printer << endl)
-                                                << "\r\nbody:" << parser.Content();
-                                      }
-                                  });
+        [](const SockException &ex, const Parser &parser) {
+            DebugL << "=====================HttpRequester POST==========================";
+            if (ex) {
+                //网络相关的错误
+                WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
+            } else {
+                //打印http回复信息
+                _StrPrinter printer;
+                for (auto &pr: parser.getHeader()) {
+                    printer << pr.first << ":" << pr.second << "\r\n";
+                }
+                InfoL << "status:" << parser.Url() << "\r\n"
+                    << "header:\r\n" << printer << "\r\n"
+                    << "body:" << parser.Content();
+            }
+        });
 
     ///////////////////////////////http upload///////////////////////
     //创建一个Http请求器
@@ -148,23 +149,22 @@ int main(int argc, char *argv[]) {
     requesterUploader->addHeader("Content-Type", HttpMultiFormBody::multiFormContentType(boundary));
     //开启请求
     requesterUploader->startRequester("http://fanyi.baidu.com/langdetect",//url地址
-                                      [](const SockException &ex,                          //网络相关的失败信息，如果为空就代表成功
-                                         const Parser &parser) {                       //http回复body
-                                          DebugL << "=====================HttpRequester Uploader==========================";
-                                          if (ex) {
-                                              //网络相关的错误
-                                              WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
-                                          } else {
-                                              //打印http回复信息
-                                              _StrPrinter printer;
-                                              for (auto &pr: parser.getHeader()) {
-                                                  printer << pr.first << ":" << pr.second << "\r\n";
-                                              }
-                                              InfoL << "status:" << parser.Url() << "\r\n"
-                                                    << "header:\r\n" << (printer << endl)
-                                                    << "\r\nbody:" << parser.Content();
-                                          }
-                                      });
+        [](const SockException &ex, const Parser &parser) {
+            DebugL << "=====================HttpRequester Uploader==========================";
+            if (ex) {
+                //网络相关的错误
+                WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
+            } else {
+                //打印http回复信息
+                _StrPrinter printer;
+                for (auto &pr: parser.getHeader()) {
+                    printer << pr.first << ":" << pr.second << "\r\n";
+                }
+                InfoL << "status:" << parser.Url() << "\r\n"
+                    << "header:\r\n" << printer << "\r\n"
+                    << "body:" << parser.Content();
+            }
+        });
 
     sem.wait();
     return 0;

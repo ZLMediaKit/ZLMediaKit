@@ -15,7 +15,7 @@
 #include "Util/logger.h"
 #include "Http/WebSocketSession.h"
 
-using namespace std;
+//using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 

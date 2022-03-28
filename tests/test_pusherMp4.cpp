@@ -19,7 +19,7 @@
 #include "Pusher/MediaPusher.h"
 #include "Record/MP4Reader.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 using namespace mediakit;
 

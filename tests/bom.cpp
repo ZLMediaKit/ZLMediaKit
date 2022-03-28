@@ -20,7 +20,7 @@
 #include "Util/File.h"
 #include "Util/uv_errno.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 
 class CMD_main : public CMD {
@@ -63,22 +63,18 @@ public:
 
 static const char s_bom[] = "\xEF\xBB\xBF";
 
-void add_or_rm_bom(const char *file,bool rm_bom){
+void add_or_rm_bom(const char *file, bool rm_bom){
     auto file_str = File::loadFile(file);
     if(rm_bom){
         file_str.erase(0, sizeof(s_bom) - 1);
     }else{
-        file_str.insert(0,s_bom,sizeof(s_bom) - 1);
+        file_str.insert(0, s_bom, sizeof(s_bom) - 1);
     }
-    File::saveFile(file_str,file);
+    File::saveFile(file_str, file);
 }
 
-void process_file(const char *file,bool rm_bom){
-    std::shared_ptr<FILE> fp(fopen(file, "rb+"), [](FILE *fp) {
-        if (fp) {
-            fclose(fp);
-        }
-    });
+void process_file(const char *file, bool rm_bom) {
+    std::shared_ptr<FILE> fp(fopen(file, "rb+"), fclose);
 
     if (!fp) {
         WarnL << "打开文件失败:" << file << " " << get_uv_errmsg();
@@ -92,7 +88,7 @@ void process_file(const char *file,bool rm_bom){
         have_bom = (memcmp(s_bom, buf, sizeof(s_bom) - 1) == 0);
     }
 
-    if (have_bom == !rm_bom) {
+    if (have_bom != rm_bom) {
 //        DebugL << "无需" << (rm_bom ? "删除" : "添加") << "bom:" << file;
         return;
     }
@@ -108,7 +104,7 @@ int main(int argc, char *argv[]) {
     try {
         cmd_main.operator()(argc, argv);
     } catch (std::exception &ex) {
-        cout << ex.what() << endl;
+        std::cout << ex.what() << std::endl;
         return -1;
     }
 
@@ -117,7 +113,7 @@ int main(int argc, char *argv[]) {
     string filter = cmd_main["filter"];
     auto vec = split(filter,",");
 
-    set<string> filter_set;
+    std::set<string> filter_set;
     for(auto ext : vec){
         filter_set.emplace(ext);
     }
@@ -125,7 +121,7 @@ int main(int argc, char *argv[]) {
     bool no_filter = filter_set.find("*") != filter_set.end();
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
-    File::scanDir(path, [&](const string &path, bool isDir) {
+    File::scanDir(path, [&filter_set, no_filter, rm_bom](const string &path, bool isDir) {
         if (isDir) {
             return true;
         }

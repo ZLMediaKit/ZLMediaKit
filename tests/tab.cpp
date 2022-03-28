@@ -16,7 +16,7 @@
 #include "Util/logger.h"
 #include "Util/File.h"
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 
 class CMD_main : public CMD {
@@ -43,15 +43,16 @@ public:
     virtual ~CMD_main() {}
 };
 
-vector<string> split(const string& s, const char *delim) {
-    vector<string> ret;
+std::vector<string> split(const string& s, const char *delim) {
+    std::vector<string> ret;
     size_t last = 0;
+    int slen = strlen(delim);
     auto index = s.find(delim, last);
     while (index != string::npos) {
         if (index - last >= 0) {
             ret.push_back(s.substr(last, index - last));
         }
-        last = index + strlen(delim);
+        last = index + slen;
         index = s.find(delim, last);
     }
     if (!s.size() || s.size() - last >= 0) {
@@ -66,7 +67,7 @@ void process_file(const char *file) {
         return;
     }
     auto lines = ::split(str, "\n");
-    deque<string> lines_copy;
+    std::deque<string> lines_copy;
     for (auto &line : lines) {
         if(line.empty()){
             lines_copy.push_back("");
@@ -107,13 +108,13 @@ void process_file(const char *file) {
     File::saveFile(str, file);
 }
 
-/// 这个程序是为了统一替换tab为4个空格
+/// 程序统一将tab替换为4个空格
 int main(int argc, char *argv[]) {
     CMD_main cmd_main;
     try {
         cmd_main.operator()(argc, argv);
     } catch (std::exception &ex) {
-        cout << ex.what() << endl;
+        std::cout << ex.what() << std::endl;
         return -1;
     }
 
@@ -121,7 +122,7 @@ int main(int argc, char *argv[]) {
     string filter = cmd_main["filter"];
     auto vec = ::split(filter, ",");
 
-    set<string> filter_set;
+    std::set<string> filter_set;
     for (auto ext : vec) {
         filter_set.emplace(ext);
     }
@@ -129,7 +130,7 @@ int main(int argc, char *argv[]) {
     bool no_filter = filter_set.find("*") != filter_set.end();
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
-    File::scanDir(path, [&](const string &path, bool isDir) {
+    File::scanDir(path, [&filter_set, no_filter](const string &path, bool isDir) {
         if (isDir) {
             return true;
         }

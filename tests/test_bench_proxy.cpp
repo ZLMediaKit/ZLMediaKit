@@ -7,7 +7,7 @@
 #include "Player/PlayerProxy.h"
 #include "Thread/WorkThreadPool.h"
 
-using namespace std;
+using std::to_string;
 using namespace toolkit;
 using namespace mediakit;
 
@@ -28,7 +28,7 @@ public:
         (*_parser) << Option('t',/*该选项简称，如果是\x00则说明无简称*/
                              "threads",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
                              Option::ArgRequired,/*该选项后面必须跟值*/
-                             to_string(thread::hardware_concurrency()).data(),/*该选项默认值*/
+                             to_string(std::thread::hardware_concurrency()).data(),/*该选项默认值*/
                              false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
                              "启动事件触发线程数",/*该选项说明文字*/
                              nullptr);
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
         } catch (ExitException &) {
             return 0;
         } catch (std::exception &ex) {
-            cout << ex.what() << endl;
+            std::cout << ex.what() << std::endl;
             return -1;
         }
 
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
         mINI::Instance()[General::kTSDemand] = demand;
         mINI::Instance()[General::kFMP4Demand] = demand;
 
-        map<string, PlayerProxy::Ptr> proxyMap;
+        std::map<std::string, PlayerProxy::Ptr> proxyMap;
         ProtocolOption option;
         option.enable_hls = false;
         option.enable_mp4 = false;

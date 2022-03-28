@@ -91,20 +91,19 @@ void initEventListener() {
     static onceToken s_token([]() {
         //监听kBroadcastOnGetRtspRealm事件决定rtsp链接是否需要鉴权(传统的rtsp鉴权方案)才能访问
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastOnGetRtspRealm,
-                                             [](BroadcastOnGetRtspRealmArgs) {
-                                                 DebugL << "RTSP是否需要鉴权事件：" << args._schema << " " << args._vhost << " "
-                                                        << args._app << " " << args._streamid << " "
-                                                        << args._param_strs;
-                                                 if (string("1") == args._streamid) {
-                                                     // live/1需要认证
-                                                     //该流需要认证，并且设置realm
-                                                     invoker(REALM);
-                                                 } else {
-                                                     //有时我们要查询redis或数据库来判断该流是否需要认证，通过invoker的方式可以做到完全异步
-                                                     //该流我们不需要认证
-                                                     invoker("");
-                                                 }
-                                             });
+            [](BroadcastOnGetRtspRealmArgs) {
+                DebugL << "RTSP是否需要鉴权事件：" << args._schema << " " << args._vhost << " "
+                    << args._app << " " << args._streamid << " " << args._param_strs;
+                if (string("1") == args._streamid) {
+                    // live/1需要认证
+                    //该流需要认证，并且设置realm
+                    invoker(REALM);
+                } else {
+                    //有时我们要查询redis或数据库来判断该流是否需要认证，通过invoker的方式可以做到完全异步
+                    //该流我们不需要认证
+                    invoker("");
+                }
+            });
 
         //监听kBroadcastOnRtspAuth事件返回正确的rtsp鉴权用户密码
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastOnRtspAuth, [](BroadcastOnRtspAuthArgs) {
@@ -185,15 +184,15 @@ void initEventListener() {
 
         //监听播放失败(未找到特定的流)事件
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastNotFoundStream,
-                                             [](BroadcastNotFoundStreamArgs) {
-                                                 /**
-                                                  * 你可以在这个事件触发时再去拉流，这样就可以实现按需拉流
-                                                  * 拉流成功后，ZLMediaKit会把其立即转发给播放器(最大等待时间约为5秒，如果5秒都未拉流成功，播放器会播放失败)
-                                                  */
-                                                 DebugL << "未找到流事件:" << args._schema << " " << args._vhost << " "
-                                                        << args._app << " " << args._streamid << " "
-                                                        << args._param_strs;
-                                             });
+            [](BroadcastNotFoundStreamArgs) {
+                /**
+                * 你可以在这个事件触发时再去拉流，这样就可以实现按需拉流
+                * 拉流成功后，ZLMediaKit会把其立即转发给播放器(最大等待时间约为5秒，如果5秒都未拉流成功，播放器会播放失败)
+                */
+                DebugL << "未找到流事件:" << args._schema << " " << args._vhost << " "
+                    << args._app << " " << args._streamid << " "
+                    << args._param_strs;
+            });
 
 
         //监听播放或推流结束时消耗流量事件

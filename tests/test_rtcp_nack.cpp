@@ -11,7 +11,7 @@
 #include <iostream>
 #include "Util/logger.h"
 #include "../webrtc/Nack.h"
-using namespace std;
+
 using namespace toolkit;
 using namespace mediakit;
 
@@ -28,7 +28,6 @@ int main() {
             DebugL << "drop:" << i;
         } else {
             ctx.received(i);
-
         }
     }
     sleep(1);

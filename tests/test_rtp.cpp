@@ -22,7 +22,7 @@
 #include "Http/HttpSession.h"
 #include "Rtp/RtpSelector.h"
 
-using namespace std;
+//using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 

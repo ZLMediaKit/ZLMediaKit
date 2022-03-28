@@ -21,7 +21,6 @@
 #include "Common/config.h"
 #include "Http/WebSocketSession.h"
 
-using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
@@ -42,9 +41,9 @@ onceToken token1([](){
 
 void initEventListener(){
     static onceToken s_token([](){
-        NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpRequest,[](BroadcastHttpRequestArgs){
+        NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastHttpRequest, [](BroadcastHttpRequestArgs){
             //const Parser &parser,HttpSession::HttpResponseInvoker &invoker,bool &consumed
-            if(strstr(parser.Url().data(),"/api/") != parser.Url().data()){
+            if(strstr(parser.Url().data(), "/api/") != parser.Url().data()){
                 return;
             }
             //url以"/api/起始，说明是http api"
@@ -69,7 +68,7 @@ void initEventListener(){
             }
             ////////////////content/////////////////
             printer << "\r\ncontent:\r\n" << parser.Content();
-            auto contentOut = printer << endl;
+            std::string contentOut = printer;
 
             ////////////////我们测算异步回复，当然你也可以同步回复/////////////////
             EventPollerPool::Instance().getPoller()->async([invoker,contentOut](){
@@ -79,7 +78,7 @@ void initEventListener(){
                 //请勿覆盖Connection、Content-Length键
                 //键名覆盖时不区分大小写
                 headerOut["TestHeader"] = "HeaderValue";
-                invoker(200,headerOut,contentOut);
+                invoker(200, headerOut, contentOut);
             });
         });
     }, nullptr);
@@ -114,7 +113,7 @@ int main(int argc,char *argv[]){
     TcpServer::Ptr httpsSrv(new TcpServer());
     httpsSrv->start<HttpsSession>(mINI::Instance()[Http::kSSLPort]);//默认443
 
-    InfoL << "你可以在浏览器输入:http://127.0.0.1/api/my_api?key0=val0&key1=参数1" << endl;
+    InfoL << "你可以在浏览器输入:http://127.0.0.1/api/my_api?key0=val0&key1=参数1" << std::endl;
 
     sem.wait();
     return 0;
