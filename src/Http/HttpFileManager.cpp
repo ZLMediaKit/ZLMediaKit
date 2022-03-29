@@ -399,7 +399,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             GET_CONFIG_FUNC(vector<string>, forbidCacheSuffix, Http::kForbidCacheSuffix, [](const string &str) {
                 return split(str, ",");
             });
-            bool is_forbid_cache;
+            bool is_forbid_cache = false;
             for (auto &suffix : forbidCacheSuffix) {
                 if (suffix != "" && end_with(file_path, suffix)) {
                     is_forbid_cache = true;
