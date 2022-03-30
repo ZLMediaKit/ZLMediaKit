@@ -7,7 +7,7 @@
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
-
+#include "Rtmp/RtmpSession.h"
 #include "FFmpegSource.h"
 #include "Common/config.h"
 #include "Common/MediaSource.h"
@@ -95,7 +95,9 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
     auto log_file = ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log);
     _process.run(cmd, log_file);
     InfoL << cmd;
-
+    if (cb == nullptr){
+        return;
+    }
     if (is_local_ip(_media_info._host)) {
         //推流给自己的，通过判断流是否注册上来判断是否正常
         if(_media_info._schema != RTSP_SCHEMA && _media_info._schema != RTMP_SCHEMA){
@@ -237,6 +239,23 @@ void FFmpegSource::startTimer(int timeout_ms) {
                         strongSelf->play(strongSelf->_ffmpeg_cmd_key, strongSelf->_src_url, strongSelf->_dst_url, timeout_ms, [](const SockException &) {});
                     }
                 }
+                else {
+                    if(!strongSelf->_process.wait(false)){
+                        //ffmpeg进程已经退出
+                        WarnL << "ffmpeg已经异常退出,exit code = " << strongSelf->_process.exit_code();
+                        if(strongSelf->_replay_ticker.elapsedTime() > 10 * 1000){
+                            //上次重试时间超过10秒，那么再重试FFmpeg拉流
+                            strongSelf->_replay_ticker.resetTime();
+                            strongSelf->play(strongSelf->_ffmpeg_cmd_key, strongSelf->_src_url, strongSelf->_dst_url, timeout_ms,
+                                             nullptr);
+                        }
+                        return;
+                    }
+                    //再次注册
+                    if(!strongSelf->getDelegate()){
+                        strongSelf->onGetMediaSource(src);
+                    }
+                }
             });
         } else {
             //推流给其他服务器的，我们通过判断FFmpeg进程是否在线，如果FFmpeg推流中断，那么它应该会自动退出
@@ -301,14 +320,24 @@ std::shared_ptr<SockInfo> FFmpegSource::getOriginSock(MediaSource &sender) const
 void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
     auto listener = src->getListener(true);
     if (listener.lock().get() != this) {
-        //防止多次进入onGetMediaSource函数导致无限递归调用的bug
-        setDelegate(listener);
-        src->setListener(shared_from_this());
-        if (_enable_hls) {
-            src->setupRecord(Recorder::type_hls, true, "", 0);
-        }
-        if (_enable_mp4) {
-            src->setupRecord(Recorder::type_mp4, true, "", 0);
+        auto check_listener = dynamic_pointer_cast<RtmpSession>(listener.lock());
+        if (!check_listener) {
+            WarnL << "等待正确的listener";
+            return;
+        } else {
+            // 防止重新注册
+            if(getDelegate()){
+                return;
+            }
+            //防止多次进入onGetMediaSource函数导致无限递归调用的bug
+            setDelegate(listener);
+            src->setListener(shared_from_this());
+            if (_enable_hls) {
+                src->setupRecord(Recorder::type_hls, true, "", 0);
+            }
+            if (_enable_mp4) {
+                src->setupRecord(Recorder::type_mp4, true, "", 0);
+            }
         }
     }
 }
