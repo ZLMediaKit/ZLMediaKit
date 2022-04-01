@@ -243,7 +243,7 @@ void MediaSource::startSendRtp(const string &dst_url, uint16_t dst_port, const s
         cb(0, SockException(Err_other, "尚未设置事件监听器"));
         return;
     }
-    return listener->startSendRtp(*this, dst_url, dst_port, ssrc, is_udp, src_port, cb, use_ps, only_audio);
+    return listener->startSendRtp(*this, dst_url, dst_port, ssrc, is_udp, src_port, cb, pt, use_ps, only_audio);
 }
 
 bool MediaSource::stopSendRtp(const string &ssrc) {
