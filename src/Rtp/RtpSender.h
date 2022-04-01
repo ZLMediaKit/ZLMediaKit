@@ -27,8 +27,10 @@ public:
      * 构造函数，创建GB28181 RTP发送客户端
      * @param ssrc rtp的ssrc
      * @param payload_type 国标中ps-rtp的pt一般为96
+     * @param use_ps 是否打包为PS然后发送
+     * @param only_audio use_ps 为false 时有效，指定发送音频还是视频
      */
-    RtpSender(uint32_t ssrc, uint8_t payload_type = 96);
+    RtpSender(uint32_t ssrc, uint8_t payload_type = 96,bool use_ps = true,bool only_audio = true);
 
     /**
      * 开始发送ps-rtp包

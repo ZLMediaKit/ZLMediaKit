@@ -19,11 +19,15 @@ using namespace toolkit;
 
 namespace mediakit{
 
-RtpSender::RtpSender(uint32_t ssrc, uint8_t payload_type) {
+RtpSender::RtpSender(uint32_t ssrc, uint8_t payload_type,bool use_ps, bool only_audio) {
     _poller = EventPollerPool::Instance().getPoller();
-    _interface = std::make_shared<RtpCachePS>([this](std::shared_ptr<List<Buffer::Ptr> > list) {
-        onFlushRtpList(std::move(list));
-    }, ssrc, payload_type);
+    if (use_ps) {
+        _interface = std::make_shared<RtpCachePS>(
+            [this](std::shared_ptr<List<Buffer::Ptr>> list) { onFlushRtpList(std::move(list)); }, ssrc, payload_type);
+    }else{
+        _interface = std::make_shared<RtpCacheRaw>(
+            [this](std::shared_ptr<List<Buffer::Ptr>> list) { onFlushRtpList(std::move(list)); }, ssrc, payload_type,only_audio);
+    }
 }
 
 RtpSender::~RtpSender() {}
