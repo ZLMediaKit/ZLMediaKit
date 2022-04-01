@@ -1107,7 +1107,7 @@ void installWebApi() {
         uint8_t pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<uint8_t>();
         bool use_ps = allArgs["use_ps"].empty() ? true : allArgs["use_ps"].as<bool>();
         bool only_audio = allArgs["only_audio"].empty() ? true : allArgs["only_audio"].as<bool>();
-      
+        TraceL << "pt "<<int(pt)<<" ps "<<use_ps<<" audio "<<only_audio;
         //src_port为空时，则随机本地端口
         src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable{
             if (ex) {
