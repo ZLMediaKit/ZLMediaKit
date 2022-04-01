@@ -1104,7 +1104,7 @@ void installWebApi() {
         if (!src) {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
-        uint8_t pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<uint8_t>();
+        uint8_t pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
         bool use_ps = allArgs["use_ps"].empty() ? true : allArgs["use_ps"].as<bool>();
         bool only_audio = allArgs["only_audio"].empty() ? true : allArgs["only_audio"].as<bool>();
         TraceL << "pt "<<int(pt)<<" ps "<<use_ps<<" audio "<<only_audio;
