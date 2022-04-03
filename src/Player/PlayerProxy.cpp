@@ -121,6 +121,11 @@ void PlayerProxy::setDirectProxy() {
 
 PlayerProxy::~PlayerProxy() {
     _timer.reset();
+    // 避免析构时, 忘记回调api请求
+     if(_on_play) {
+        _on_play(SockException(Err_shutdown, "player proxy close"));
+        _on_play = nullptr;
+    }
 }
 
 void PlayerProxy::rePlay(const string &strUrl, int iFailedCnt) {
