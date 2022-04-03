@@ -86,7 +86,7 @@ public:
     // 获取所有track相关信息
     virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
     // 开始发送ps-rtp
-    virtual void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb) { cb(0, toolkit::SockException(toolkit::Err_other, "not implemented"));};
+    virtual void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb, uint8_t pt=96, bool use_ps = true,bool only_audio = true) { cb(0, toolkit::SockException(toolkit::Err_other, "not implemented"));};
     // 停止发送ps-rtp
     virtual bool stopSendRtp(MediaSource &sender, const std::string &ssrc) {return false; }
 
@@ -117,7 +117,7 @@ public:
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) override;
     bool isRecording(MediaSource &sender, Recorder::type type) override;
     std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
-    void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb) override;
+    void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb, uint8_t pt=96, bool use_ps = true,bool only_audio = true) override;
     bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
 
 private:
@@ -269,7 +269,7 @@ public:
     // 获取录制状态
     bool isRecording(Recorder::type type);
     // 开始发送ps-rtp
-    void startSendRtp(const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb);
+    void startSendRtp(const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb , uint8_t pt = 96, bool use_ps = true,bool only_audio = true);
     // 停止发送ps-rtp
     bool stopSendRtp(const std::string &ssrc);
 

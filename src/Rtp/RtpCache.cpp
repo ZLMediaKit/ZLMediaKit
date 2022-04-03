@@ -34,6 +34,12 @@ void RtpCachePS::onRTP(Buffer::Ptr buffer) {
     input(stamp, std::move(buffer));
 }
 
+void RtpCacheRaw::onRTP(Buffer::Ptr buffer) {
+    auto rtp = std::static_pointer_cast<RtpPacket>(buffer);
+    auto stamp = rtp->getStampMS();
+    input(stamp, std::move(buffer));
+}
+
 }//namespace mediakit
 
 #endif//#if defined(ENABLE_RTPPROXY)
