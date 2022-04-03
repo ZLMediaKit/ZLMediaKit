@@ -1481,6 +1481,24 @@
 							"value": "0",
 							"description": "是否推送本地MP4录像，该参数非必选参数",
 							"disabled": true
+						},
+						{
+							"key": "use_ps",
+							"value": "1",
+							"description": "rtp打包采用ps还是es模式，默认采用ps模式，该参数非必选参数",
+							"disabled": true
+						},
+						{
+							"key": "pt",
+							"value": "96",
+							"description": "rtp payload type，默认96，该参数非必选参数",
+							"disabled": true
+						},
+						{
+							"key": "only_audio",
+							"value": "1",
+							"description": "rtp es方式打包时，是否只打包音频，该参数非必选参数",
+							"disabled": true
 						}
 					]
 				}
