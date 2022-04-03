@@ -51,7 +51,7 @@ protected:
 
 class RtpCacheRaw : public RtpCache, public RawEncoderImp{
 public:
-    RtpCacheRaw(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96,bool sendAudio = true) : RtpCache(std::move(cb)), RawEncoderImp(ssrc, payload_type,sendAudio) {};
+    RtpCacheRaw(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool sendAudio = true) : RtpCache(std::move(cb)), RawEncoderImp(ssrc, payload_type,sendAudio) {};
     ~RtpCacheRaw() override = default;
 
 protected:
