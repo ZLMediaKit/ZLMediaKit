@@ -196,7 +196,7 @@ public:
     //RTP/AVPF: 应用场景为视频/音频的 RTP 协议，支持 RTCP-based Feedback。参考 RFC 4585
     //RTP/SAVPF: 应用场景为视频/音频的 SRTP 协议，支持 RTCP-based Feedback。参考 RFC 5124
     std::string proto;
-    std::vector<uint32_t> fmts;
+    std::vector<std::string> fmts;
 
     void parse(const std::string &str) override;
     std::string toString() const override;
@@ -426,12 +426,13 @@ public:
     //https://tools.ietf.org/html/draft-ietf-mmusic-sctp-sdp-05
     //a=sctpmap:5000 webrtc-datachannel 1024
     //a=sctpmap: sctpmap-number media-subtypes [streams]
-    uint16_t port;
+    uint16_t port = 0;
     std::string subtypes;
-    uint32_t streams;
+    uint32_t streams = 0;
     void parse(const std::string &str) override;
     std::string toString() const override;
     const char* getKey() const override { return "sctpmap";}
+    bool empty() const { return port == 0 && subtypes.empty() && streams == 0; }
 };
 
 class SdpAttrCandidate : public SdpItem {
