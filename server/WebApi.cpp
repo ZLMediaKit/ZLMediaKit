@@ -1104,7 +1104,10 @@ void installWebApi() {
         if (!src) {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
-
+        uint8_t pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
+        bool use_ps = allArgs["use_ps"].empty() ? true : allArgs["use_ps"].as<bool>();
+        bool only_audio = allArgs["only_audio"].empty() ? true : allArgs["only_audio"].as<bool>();
+        TraceL << "pt "<<int(pt)<<" ps "<<use_ps<<" audio "<<only_audio;
         //src_port为空时，则随机本地端口
         src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable{
             if (ex) {
@@ -1113,7 +1116,7 @@ void installWebApi() {
             }
             val["local_port"] = local_port;
             invoker(200, headerOut, val.toStyledString());
-        });
+        },pt,use_ps,only_audio);
     });
 
     api_regist("/index/api/stopSendRtp",[](API_ARGS_MAP){
