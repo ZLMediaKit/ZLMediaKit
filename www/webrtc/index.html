@@ -51,16 +51,27 @@
               <input type="radio" name="methond" value="push" >push
               <input type="radio" name="methond" value="play" checked = true>play
             </p>
-
             <p>
               <label for="resilution">resolution:</label>
               <select id="resilution">
-
               </select>
             </p>
+            <p>
+              <label for="datachannel">datachannel:</label>
+              <input id='datachannel' name="datachannel" type="checkbox" value="0">
+            </p>
+            <button onclick="start()">开始(start)</button>
+            <button onclick="stop()">停止(stop)</button>
 
-            <button onclick="start()">开始</button>
-            <button onclick="stop()">停止</button>
+            <p>
+              <label for="msg">msg:</label>
+              <input type="text" id='msg' value="hello word !">
+            </p>
+            <button onclick="send()">发送(send by datachannel)</button>
+            <button onclick="close()">关闭(close datachannel)</button>
+            
+
+           
             
         </div>
     </div>
@@ -76,7 +87,7 @@
       
 
       if(!ishttps && !isLocal){
-        alert('本demo需要在https的网站访问 (this demo must access in site of https)')
+        alert('本demo需要在https的网站访问 ,如果你要推流的话(this demo must access in site of https if you want push stream)')
       }
 
       if(isLocal){
@@ -125,7 +136,8 @@
                     audioEnable:document.getElementById('audioEnable').checked,
                     videoEnable:document.getElementById('videoEnable').checked,
                     recvOnly:recvOnly,
-                    resolution:{w:w,h:h}
+                    resolution:{w:w,h:h},
+                    usedatachannel:document.getElementById('datachannel').checked,
                 }
             );
     
@@ -164,6 +176,24 @@
             {// RTC 状态变化 ,详情参考 https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
               console.log('当前状态==>',state)
             });
+
+            player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_OPEN,function(event)
+            {
+              console.log('rtc datachannel 打开 :',event)
+            });
+
+            player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_MSG,function(event)
+            {
+              console.log('rtc datachannel 消息 :',event.data)
+            });
+            player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_ERR,function(event)
+            {
+              console.log('rtc datachannel 错误 :',event)
+            });
+            player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_CLOSE,function(event)
+            {
+              console.log('rtc datachannel 关闭 :',event)
+            });
       }
 
       function start()
@@ -192,10 +222,29 @@
           {
             player.close();
             player = null;
+            var remote = document.getElementById('video');
+            if(remote)
+            {
+                remote.srcObject = null;
+                remote.load();
+            }
             var local = document.getElementById('selfVideo');
             local.srcObject = null;
             local.load();
           }
+      }
+
+      function send(){
+        if(player){
+          //send msg refernece https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send
+          player.sendMsg(document.getElementById('msg').value)
+        }
+      }
+
+      function close(){
+        if(player){
+          player.closeDataChannel()
+        }
       }
 
     </script>
