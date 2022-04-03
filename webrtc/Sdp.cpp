@@ -1498,14 +1498,9 @@ void RtcConfigure::enableTWCC(bool enable, TrackType type){
             video.enableTWCC(enable);
             break;
         }
-        case TrackApplication: {
-            application.enableTWCC(enable);
-            break;
-        }
         default: {
             audio.enableTWCC(enable);
             video.enableTWCC(enable);
-            application.enableTWCC(enable);
             break;
         }
     }
@@ -1521,14 +1516,9 @@ void RtcConfigure::enableREMB(bool enable, TrackType type){
             video.enableREMB(enable);
             break;
         }
-        case TrackApplication: {
-            application.enableREMB(enable);
-            break;
-        }
         default: {
             audio.enableREMB(enable);
             video.enableREMB(enable);
-            application.enableREMB(enable);
             break;
         }
     }
@@ -1583,11 +1573,11 @@ void RtcConfigure::matchMedia(const shared_ptr<RtcSession> &ret, TrackType type,
 
 RETRY:
 
-    for (auto &codec : configure.preferred_codec) {
-        for (auto &offer_media : medias) {
-            if (offer_media.type != type) {
-                continue;
-            }
+    for (auto &offer_media : medias) {
+        if (offer_media.type != type) {
+            continue;
+        }
+        for (auto &codec : configure.preferred_codec) {
             if (offer_media.ice_lite && configure.ice_lite) {
                 WarnL << "answer sdp配置为ice_lite模式，与offer sdp中的ice_lite模式冲突";
                 continue;
