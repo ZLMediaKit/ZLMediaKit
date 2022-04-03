@@ -110,8 +110,8 @@ void System::startDaemon() {
             int status = 0;
             if(waitpid(pid, &status, 0) >= 0) {
                 WarnL << "子进程退出";
-                //休眠1秒再启动子进程
-                sleep(1);
+                //休眠3秒再启动子进程
+                sleep(3);
                 break;
             }
             DebugL << "waitpid被中断:" << get_uv_errmsg();
