@@ -368,6 +368,9 @@ bool WebRtcTransportImp::canRecvRtp() const{
 void WebRtcTransportImp::onStartWebRTC() {
     //获取ssrc和pt相关信息,届时收到rtp和rtcp时分别可以根据pt和ssrc找到相关的信息
     for (auto &m_answer : _answer_sdp->media) {
+        if (m_answer.type == TrackApplication) {
+            continue;
+        }
         auto m_offer = _offer_sdp->getMedia(m_answer.type);
         auto track = std::make_shared<MediaTrack>();
 
@@ -376,7 +379,7 @@ void WebRtcTransportImp::onStartWebRTC() {
         track->answer_ssrc_rtx = m_answer.getRtxSSRC();
         track->offer_ssrc_rtp = m_offer->getRtpSSRC();
         track->offer_ssrc_rtx = m_offer->getRtxSSRC();
-        track->plan_rtp = &m_answer.plan[0];;
+        track->plan_rtp = &m_answer.plan[0];
         track->plan_rtx = m_answer.getRelatedRtxPlan(track->plan_rtp->pt);
         track->rtcp_context_send = std::make_shared<RtcpContextForSend>();
 
@@ -399,28 +402,26 @@ void WebRtcTransportImp::onStartWebRTC() {
             //rtx pt --> MediaTrack
             _pt_to_track.emplace(track->plan_rtx->pt, std::unique_ptr<WrappedMediaTrack>(new WrappedRtxTrack(track)));
         }
-        if (m_offer->type != TrackApplication) {
-            //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
-            track->rtp_ext_ctx = std::make_shared<RtpExtContext>(*m_offer);
-            weak_ptr<MediaTrack> weak_track = track;
-            track->rtp_ext_ctx->setOnGetRtp([this, weak_track](uint8_t pt, uint32_t ssrc, const string &rid) {
-                //ssrc --> MediaTrack
-                auto track = weak_track.lock();
-                assert(track);
-                _ssrc_to_track[ssrc] = std::move(track);
-                InfoL << "get rtp, pt:" << (int) pt << ", ssrc:" << ssrc << ", rid:" << rid;
-            });
+        //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
+        track->rtp_ext_ctx = std::make_shared<RtpExtContext>(*m_offer);
+        weak_ptr<MediaTrack> weak_track = track;
+        track->rtp_ext_ctx->setOnGetRtp([this, weak_track](uint8_t pt, uint32_t ssrc, const string &rid) {
+            //ssrc --> MediaTrack
+            auto track = weak_track.lock();
+            assert(track);
+            _ssrc_to_track[ssrc] = std::move(track);
+            InfoL << "get rtp, pt:" << (int) pt << ", ssrc:" << ssrc << ", rid:" << rid;
+        });
 
-            size_t index = 0;
-            for (auto &ssrc : m_offer->rtp_ssrc_sim) {
-                //记录ssrc对应的MediaTrack
-                _ssrc_to_track[ssrc.ssrc] = track;
-                if (m_offer->rtp_rids.size() > index) {
-                    //支持firefox的simulcast, 提前映射好ssrc和rid的关系
-                    track->rtp_ext_ctx->setRid(ssrc.ssrc, m_offer->rtp_rids[index]);
-                }
-                ++index;
+        size_t index = 0;
+        for (auto &ssrc : m_offer->rtp_ssrc_sim) {
+            //记录ssrc对应的MediaTrack
+            _ssrc_to_track[ssrc.ssrc] = track;
+            if (m_offer->rtp_rids.size() > index) {
+                //支持firefox的simulcast, 提前映射好ssrc和rid的关系
+                track->rtp_ext_ctx->setRid(ssrc.ssrc, m_offer->rtp_rids[index]);
             }
+            ++index;
         }
     }
 }

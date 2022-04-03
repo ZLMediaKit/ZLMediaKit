@@ -372,9 +372,7 @@ void SdpMedia::parse(const string &str) {
     port = atoi(vec[1].data());
     proto = vec[2];
     for (size_t i = 3; i < vec.size(); ++i) {
-        auto pt = atoi(vec[i].data());
-        CHECK_SDP(type == TrackApplication || pt <= 0xFF);
-        fmts.emplace_back(pt);
+        fmts.emplace_back(vec[i]);
     }
 }
 
@@ -383,7 +381,7 @@ string SdpMedia::toString() const {
         value = string(getTrackString(type)) + " " + to_string(port) + " " + proto;
         for (auto fmt : fmts) {
             value += ' ';
-            value += to_string(fmt);
+            value += fmt;
         }
     }
     return SdpItem::toString();
@@ -921,7 +919,9 @@ void RtcSession::loadFrom(const string &str) {
             //添加失败，有多条
             CHECK(fmtp_map.emplace(fmtp.pt, fmtp).second, "该pt存在多条a=fmtp:", (int)fmtp.pt);
         }
-        for (auto &pt : mline.fmts) {
+        for (auto &item : mline.fmts) {
+            auto pt = atoi(item.c_str());
+            CHECK(pt < 0xFF, "invalid payload type: ", item);
             //遍历所有编码方案的pt
             rtc_media.plan.emplace_back();
             auto &plan = rtc_media.plan.back();
@@ -1078,10 +1078,10 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
         mline->port = m.port;
         mline->proto = m.proto;
         for (auto &p : m.plan) {
-            mline->fmts.emplace_back(p.pt);
+            mline->fmts.emplace_back(to_string(p.pt));
         }
         if (m.type == TrackApplication) {
-            mline->fmts.emplace_back(m.sctp_port);
+            mline->fmts.emplace_back("webrtc-datachannel");
         }
         sdp_media.items.emplace_back(std::move(mline));
         sdp_media.items.emplace_back(std::make_shared<SdpConnection>(m.addr));
@@ -1201,7 +1201,9 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
             }
 
         } else {
-            sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSctpMap>(m.sctpmap)));
+            if (!m.sctpmap.empty()) {
+                sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpAttrSctpMap>(m.sctpmap)));
+            }
             sdp_media.items.emplace_back(wrapSdpAttr(std::make_shared<SdpCommon>("sctp-port", to_string(m.sctp_port))));
         }
 
@@ -1567,6 +1569,15 @@ static RtpDirection matchDirection(RtpDirection offer_direction, RtpDirection su
     }
 }
 
+static DtlsRole mathDtlsRole(DtlsRole role){
+    switch (role) {
+        case DtlsRole::actpass:
+        case DtlsRole::active: return DtlsRole::passive;
+        case DtlsRole::passive: return DtlsRole::active;
+        default: CHECK(0, "invalid role:", getDtlsRoleString(role)); return DtlsRole::passive;
+    }
+}
+
 void RtcConfigure::matchMedia(const shared_ptr<RtcSession> &ret, TrackType type, const vector<RtcMedia> &medias, const RtcTrackConfigure &configure){
     bool check_profile = true;
     bool check_codec = true;
@@ -1576,6 +1587,14 @@ RETRY:
     for (auto &offer_media : medias) {
         if (offer_media.type != type) {
             continue;
+        }
+        if (type == TrackApplication) {
+            RtcMedia answer_media = offer_media;
+            answer_media.role = mathDtlsRole(offer_media.role);
+            answer_media.direction = matchDirection(offer_media.direction, configure.direction);
+            answer_media.candidate = configure.candidate;
+            ret->media.emplace_back(answer_media);
+            return;
         }
         for (auto &codec : configure.preferred_codec) {
             if (offer_media.ice_lite && configure.ice_lite) {
@@ -1617,18 +1636,7 @@ RETRY:
             answer_media.ice_lite = configure.ice_lite;
             answer_media.candidate = configure.candidate;
             answer_media.rtp_rids = offer_media.rtp_rids;
-            switch (offer_media.role) {
-                case DtlsRole::actpass :
-                case DtlsRole::active : {
-                    answer_media.role = DtlsRole::passive;
-                    break;
-                }
-                case DtlsRole::passive : {
-                    answer_media.role = DtlsRole::active;
-                    break;
-                }
-                default: continue;
-            }
+            answer_media.role = mathDtlsRole(offer_media.role);
 
             //如果codec匹配失败，那么禁用该track
             answer_media.direction = check_codec ? matchDirection(offer_media.direction, configure.direction)
