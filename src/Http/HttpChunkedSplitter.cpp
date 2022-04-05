@@ -25,6 +25,9 @@ const char *HttpChunkedSplitter::onSearchPacketTail(const char *data, size_t len
 
 void HttpChunkedSplitter::onRecvContent(const char *data, size_t len) {
     onRecvChunk(data,len - 2);
+    if ((len - 2) <= 0) {
+        _onChunkData = nullptr;
+    }
 }
 
 ssize_t HttpChunkedSplitter::onRecvHeader(const char *data, size_t len) {
