@@ -21,12 +21,10 @@ public:
     /**
      * len == 0时代表结束
      */
-    typedef std::function<void (const char *data,size_t len)> onChunkData;
+   using onChunkData = std::function<void(const char *data, size_t len)>;
 
-    HttpChunkedSplitter(const onChunkData &cb){
-        _onChunkData = cb;
-    };
-    ~HttpChunkedSplitter() override {} ;
+    HttpChunkedSplitter(const onChunkData &cb) { _onChunkData = cb; };
+    ~HttpChunkedSplitter() override { _onChunkData = nullptr; };
 
 protected:
     ssize_t onRecvHeader(const char *data,size_t len) override;
