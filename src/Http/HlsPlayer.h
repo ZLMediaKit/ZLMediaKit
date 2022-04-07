@@ -19,6 +19,7 @@
 
 #define MIN_TIMEOUT_MULTIPLE 2
 #define MAX_TIMEOUT_MULTIPLE 5
+#define MAX_TRY_FETCH_INDEX_TIMES 5
 
 namespace mediakit {
 
@@ -105,6 +106,7 @@ private:
     std::set<std::string, UrlComp> _ts_url_cache;
     HttpTSPlayer::Ptr _http_ts_player;
     int _timeout_multiple = MIN_TIMEOUT_MULTIPLE;
+    int _try_fetch_index_times = 0;
 };
 
 class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {
