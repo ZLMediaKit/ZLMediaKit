@@ -137,7 +137,7 @@ void HlsMaker::flushLastSegment(bool eof){
     if (seg_dur <= 0) {
         seg_dur = 100;
     }
-    _seg_dur_list.push_back(std::make_tuple(seg_dur, std::move(_last_file_name)));
+    _seg_dur_list.emplace_back(seg_dur, std::move(_last_file_name));
     delOldSegment();
     //先flush ts切片，否则可能存在ts文件未写入完毕就被访问的情况
     onFlushLastSegment(seg_dur);
