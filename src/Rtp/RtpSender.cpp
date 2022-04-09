@@ -31,7 +31,15 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
     _socket = Socket::createSocket(_poller, false);
     weak_ptr<RtpSender> weak_self = shared_from_this();
     if (args.is_udp) {
-        _socket->bindUdpSock(args.src_port);
+        if (args.src_port) {
+            //指定端口
+            _socket->bindUdpSock(args.src_port);
+        } else {
+            auto pr = std::make_pair(std::move(_socket), Socket::createSocket(_poller, false));
+            //从端口池获取随机端口
+            makeSockPair(pr, "0.0.0.0", true);
+            _socket = std::move(pr.first);
+        }
         auto poller = _poller;
         auto local_port = _socket->get_local_port();
         WorkThreadPool::Instance().getPoller()->async([cb, args, weak_self, poller, local_port]() {
