@@ -84,7 +84,6 @@ static void sig_crash(int sig) {
 void System::startDaemon() {
 #ifndef _WIN32
     static pid_t pid;
-    static bool is_restart = false;
     do{
         pid = fork();
         if(pid == -1){
@@ -101,26 +100,17 @@ void System::startDaemon() {
 
         //父进程,监视子进程是否退出
         DebugL << "启动子进程:"  << pid;
-        signal(SIGUSR1, [](int) {
-            if (!is_restart){
-                DebugL << "子进程启动错误, 即将退出";
-                kill(pid, SIGINT);
-                exit(0);
-            }else{
-                WarnL << "尝试再次重启子进程";
-            }
-        });
         signal(SIGINT, [](int) {
             WarnL << "收到主动退出信号,关闭父进程与子进程";
             kill(pid,SIGINT);
             exit(0);
         });
+
         do{
             int status = 0;
             if(waitpid(pid, &status, 0) >= 0) {
                 WarnL << "子进程退出";
-                //休眠1秒再启动子进程
-                is_restart = true;
+                //休眠3秒再启动子进程
                 sleep(3);
                 break;
             }
