@@ -22,67 +22,6 @@ namespace toolkit {
 
 namespace mediakit{
 
-/**
- * 该对象的功能是把一个不可缓存的帧转换成可缓存的帧
- */
-class FrameCacheAble : public FrameFromPtr {
-public:
-    typedef std::shared_ptr<FrameCacheAble> Ptr;
-
-    FrameCacheAble(const Frame::Ptr &frame){
-        if (frame->cacheAble()) {
-            _frame = frame;
-            _ptr = frame->data();
-        } else {
-            _buffer = FrameImp::create();
-            _buffer->_buffer.assign(frame->data(), frame->size());
-            _ptr = _buffer->data();
-        }
-        _size = frame->size();
-        _dts = frame->dts();
-        _pts = frame->pts();
-        _prefix_size = frame->prefixSize();
-        _codec_id = frame->getCodecId();
-        _key = frame->keyFrame();
-        _config = frame->configFrame();
-        _drop_able = frame->dropAble();
-        _decode_able = frame->decodeAble();
-    }
-
-    ~FrameCacheAble() override = default;
-
-    /**
-     * 可以被缓存
-     */
-    bool cacheAble() const override {
-        return true;
-    }
-
-    bool keyFrame() const override{
-        return _key;
-    }
-
-    bool configFrame() const override{
-        return _config;
-    }
-
-    bool dropAble() const override {
-        return _drop_able;
-    }
-
-    bool decodeAble() const override {
-        return _decode_able;
-    }
-
-private:
-    bool _key;
-    bool _config;
-    bool _drop_able;
-    bool _decode_able;
-    Frame::Ptr _frame;
-    FrameImp::Ptr _buffer;
-};
-
 Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
     if(frame->cacheAble()){
         return frame;
@@ -239,18 +178,6 @@ bool FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb, Buffer
         cb(back->dts(), back->pts(), merged_frame, have_key_frame);
         _frame_cache.clear();
         _have_decode_able_frame = false;
-    }
-
-    switch (_type) {
-        case h264_prefix:
-        case mp4_nal_size: {
-            if (frame->dropAble()) {
-                //h264头和mp4头模式过滤无效的帧
-                return false;
-            }
-            break;
-        }
-        default: break;
     }
 
     if (frame->decodeAble()) {

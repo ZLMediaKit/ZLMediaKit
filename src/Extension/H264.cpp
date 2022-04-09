@@ -184,23 +184,22 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame){
         }
         case H264Frame::NAL_PPS: {
             _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
-            break;
-        }
-        case H264Frame::NAL_AUD: {
-            //忽略AUD帧;
-            ret = false;
+            _insert_config_frame = true;
             break;
         }
 
         default:
-            if (frame->keyFrame()) {
+            if (_insert_config_frame && !frame->dropAble()) {
+                if (!frame->keyFrame()) {
+                    const_cast<Frame::Ptr &>(frame) = std::make_shared<FrameCacheAble>(frame, true);
+                }
                 insertConfigFrame(frame);
+                _insert_config_frame = false;
             }
             ret = VideoTrack::inputFrame(frame);
             break;
     }
 
-    _is_idr = type == H264Frame::NAL_IDR;
     if (_width == 0 && ready()) {
         onReady();
     }
@@ -208,10 +207,6 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame){
 }
 
 void H264Track::insertConfigFrame(const Frame::Ptr &frame){
-    if(_is_idr){
-        return;
-    }
-
     if(!_sps.empty()){
         auto spsFrame = FrameImp::create<H264Frame>();
         spsFrame->_prefix_size = 4;
