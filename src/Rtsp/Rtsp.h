@@ -378,7 +378,7 @@ private:
 //创建rtp over tcp4个字节的头
 toolkit::Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved);
 //创建rtp-rtcp端口对
-void makeSockPair(std::pair<toolkit::Socket::Ptr, toolkit::Socket::Ptr> &pair, const std::string &local_ip);
+void makeSockPair(std::pair<toolkit::Socket::Ptr, toolkit::Socket::Ptr> &pair, const std::string &local_ip, bool re_use_port = false);
 //十六进制方式打印ssrc
 std::string printSSRC(uint32_t ui32Ssrc);
 

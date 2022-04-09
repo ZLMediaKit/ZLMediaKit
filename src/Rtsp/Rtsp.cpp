@@ -384,7 +384,7 @@ public:
         return *instance;
     }
 
-    void bindUdpSock(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip) {
+    void bindUdpSock(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port) {
         auto &sock0 = pair.first;
         auto &sock1 = pair.second;
         auto sock_pair = getPortPair();
@@ -392,12 +392,12 @@ public:
             throw runtime_error("none reserved udp port in pool");
         }
 
-        if (!sock0->bindUdpSock(2 * *sock_pair, local_ip.data(), false)) {
+        if (!sock0->bindUdpSock(2 * *sock_pair, local_ip.data(), re_use_port)) {
             //分配端口失败
             throw runtime_error("open udp socket[0] failed");
         }
 
-        if (!sock1->bindUdpSock(2 * *sock_pair + 1, local_ip.data(), false)) {
+        if (!sock1->bindUdpSock(2 * *sock_pair + 1, local_ip.data(), re_use_port)) {
             //分配端口失败
             throw runtime_error("open udp socket[1] failed");
         }
@@ -445,18 +445,14 @@ private:
     deque<uint16_t> _port_pair_pool;
 };
 
-static void makeSockPair_l(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip) {
-    PortManager::Instance().bindUdpSock(pair, local_ip);
-}
-
-void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip) {
+void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port) {
     //全局互斥锁保护，防止端口重复分配
     static recursive_mutex s_mtx;
     lock_guard<recursive_mutex> lck(s_mtx);
     int try_count = 0;
     while (true) {
         try {
-            makeSockPair_l(pair, local_ip);
+            PortManager::Instance().bindUdpSock(pair, local_ip, re_use_port);
             break;
         } catch (exception &ex) {
             if (++try_count == 3) {
