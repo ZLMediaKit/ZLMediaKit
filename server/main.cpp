@@ -318,7 +318,7 @@ int start_main(int argc,char *argv[]) {
             sleep(1);
 #if !defined(_WIN32)
             if (pid != getpid()) {
-                kill(pid, SIGINT);
+                kill(pid, SIGUSR1);
             }
 #endif
             return -1;
