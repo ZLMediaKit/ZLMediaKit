@@ -445,6 +445,67 @@ protected:
 };
 
 /**
+ * 该对象的功能是把一个不可缓存的帧转换成可缓存的帧
+ */
+class FrameCacheAble : public FrameFromPtr {
+public:
+    typedef std::shared_ptr<FrameCacheAble> Ptr;
+
+    FrameCacheAble(const Frame::Ptr &frame, bool force_key_frame = false) {
+        if (frame->cacheAble()) {
+            _frame = frame;
+            _ptr = frame->data();
+        } else {
+            _buffer = FrameImp::create();
+            _buffer->_buffer.assign(frame->data(), frame->size());
+            _ptr = _buffer->data();
+        }
+        _size = frame->size();
+        _dts = frame->dts();
+        _pts = frame->pts();
+        _prefix_size = frame->prefixSize();
+        _codec_id = frame->getCodecId();
+        _key = force_key_frame ? true : frame->keyFrame();
+        _config = frame->configFrame();
+        _drop_able = frame->dropAble();
+        _decode_able = frame->decodeAble();
+    }
+
+    ~FrameCacheAble() override = default;
+
+    /**
+     * 可以被缓存
+     */
+    bool cacheAble() const override {
+        return true;
+    }
+
+    bool keyFrame() const override{
+        return _key;
+    }
+
+    bool configFrame() const override{
+        return _config;
+    }
+
+    bool dropAble() const override {
+        return _drop_able;
+    }
+
+    bool decodeAble() const override {
+        return _decode_able;
+    }
+
+private:
+    bool _key;
+    bool _config;
+    bool _drop_able;
+    bool _decode_able;
+    Frame::Ptr _frame;
+    FrameImp::Ptr _buffer;
+};
+
+/**
  * 该对象可以把Buffer对象转换成可缓存的Frame对象
  */
 template <typename Parent>
