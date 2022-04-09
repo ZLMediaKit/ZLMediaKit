@@ -1289,6 +1289,11 @@
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id\n"
+						},
+						{
+							"key": "re_use_port",
+							"value": "0",
+							"description": "是否重用端口，默认为0，非必选参数"
 						}
 					]
 				}
