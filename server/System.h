@@ -16,7 +16,7 @@
 class System {
 public:
     static std::string execute(const std::string &cmd);
-    static void startDaemon();
+    static void startDaemon(bool &kill_parent_if_failed);
     static void systemSetup();
 };
 

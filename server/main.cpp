@@ -206,9 +206,10 @@ int start_main(int argc,char *argv[]) {
 
 #if !defined(_WIN32)
         pid_t pid = getpid();
+        bool kill_parent_if_failed = true;
         if (bDaemon) {
             //启动守护进程
-            System::startDaemon();
+            System::startDaemon(kill_parent_if_failed);
         }
         //开启崩溃捕获等
         System::systemSetup();
@@ -317,7 +318,8 @@ int start_main(int argc,char *argv[]) {
             ErrorL << "程序启动失败，请修改配置文件中端口号后重试!" << endl;
             sleep(1);
 #if !defined(_WIN32)
-            if (pid != getpid()) {
+            if (pid != getpid() && kill_parent_if_failed) {
+                //杀掉守护进程
                 kill(pid, SIGINT);
             }
 #endif
