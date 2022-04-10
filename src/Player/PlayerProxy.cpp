@@ -41,6 +41,7 @@ void PlayerProxy::setOnClose(const function<void(const SockException &ex)> &cb) 
 void PlayerProxy::play(const string &strUrlTmp) {
     weak_ptr<PlayerProxy> weakSelf = shared_from_this();
     std::shared_ptr<int> piFailedCnt(new int(0)); //连续播放失败次数
+    _is_replay_ing = false;
     setOnPlayResult([weakSelf, strUrlTmp, piFailedCnt](const SockException &err) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
@@ -59,6 +60,9 @@ void PlayerProxy::play(const string &strUrlTmp) {
             *piFailedCnt = 0;//连续播放失败次数清0
             strongSelf->onPlaySuccess();
         } else if (*piFailedCnt < strongSelf->_retry_count || strongSelf->_retry_count < 0) {
+             if (strongSelf->_is_replay_ing) {
+                return;
+            }
             // 播放失败，延时重试播放
             strongSelf->rePlay(strUrlTmp, (*piFailedCnt)++);
         } else {
@@ -90,6 +94,9 @@ void PlayerProxy::play(const string &strUrlTmp) {
         }
         //播放异常中断，延时重试播放
         if (*piFailedCnt < strongSelf->_retry_count || strongSelf->_retry_count < 0) {
+             if (strongSelf->_is_replay_ing) {
+                return;
+            }
             strongSelf->rePlay(strUrlTmp, (*piFailedCnt)++);
         } else {
             //达到了最大重试次数，回调关闭
@@ -129,6 +136,7 @@ PlayerProxy::~PlayerProxy() {
 }
 
 void PlayerProxy::rePlay(const string &strUrl, int iFailedCnt) {
+     _is_replay_ing = true;
     auto iDelay = MAX(2 * 1000, MIN(iFailedCnt * 3000, 60 * 1000));
     weak_ptr<PlayerProxy> weakSelf = shared_from_this();
     _timer = std::make_shared<Timer>(iDelay / 1000.0f, [weakSelf, strUrl, iFailedCnt]() {
@@ -140,6 +148,7 @@ void PlayerProxy::rePlay(const string &strUrl, int iFailedCnt) {
         WarnL << "重试播放[" << iFailedCnt << "]:" << strUrl;
         strongPlayer->MediaPlayer::play(strUrl);
         strongPlayer->setDirectProxy();
+        strongPlayer->_is_replay_ing = false;
         return false;
     }, getPoller());
 }
