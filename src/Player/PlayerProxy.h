@@ -67,6 +67,7 @@ private:
 private:
     ProtocolOption _option;
     int _retry_count;
+    bool _is_replay_ing = false;
     std::string _vhost;
     std::string _app;
     std::string _stream_id;
