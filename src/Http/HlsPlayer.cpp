@@ -367,8 +367,10 @@ void HlsPlayerImp::onPlayResult(const SockException &ex) {
 }
 
 void HlsPlayerImp::onShutdown(const SockException &ex) {
-    PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
-    _demuxer = nullptr;
+    if (_demuxer) {
+        PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
+        _demuxer = nullptr;
+    }
 }
 
 vector<Track::Ptr> HlsPlayerImp::getTracks(bool ready) const {
