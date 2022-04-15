@@ -134,7 +134,7 @@ public:
      * @param is_udp 是否为udp
      * @param cb 启动成功或失败回调
      */
-    void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb) override;
+    void startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
 
     /**
      * 停止ps-rtp发送

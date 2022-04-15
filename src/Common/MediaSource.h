@@ -50,7 +50,7 @@ enum class MediaOriginType : uint8_t {
 std::string getOriginTypeString(MediaOriginType type);
 
 class MediaSource;
-class MediaSourceEvent{
+class MediaSourceEvent {
 public:
     friend class MediaSource;
     MediaSourceEvent(){};
@@ -85,8 +85,29 @@ public:
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
     // 获取所有track相关信息
     virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
+
+    class SendRtpArgs {
+    public:
+        // 是否采用udp方式发送rtp
+        bool is_udp = true;
+        // rtp采用ps还是es方式
+        bool use_ps = true;
+        //发送es流时指定是否只发送纯音频流
+        bool only_audio = true;
+        // rtp payload type
+        uint8_t pt = 96;
+        // 指定rtp ssrc
+        std::string ssrc;
+        // 指定本地发送端口
+        uint16_t src_port = 0;
+        // 发送目标端口
+        uint16_t dst_port;
+        // 发送目标主机地址，可以是ip或域名
+        std::string dst_url;
+    };
+
     // 开始发送ps-rtp
-    virtual void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb) { cb(0, toolkit::SockException(toolkit::Err_other, "not implemented"));};
+    virtual void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) { cb(0, toolkit::SockException(toolkit::Err_other, "not implemented"));};
     // 停止发送ps-rtp
     virtual bool stopSendRtp(MediaSource &sender, const std::string &ssrc) {return false; }
 
@@ -117,7 +138,7 @@ public:
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) override;
     bool isRecording(MediaSource &sender, Recorder::type type) override;
     std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
-    void startSendRtp(MediaSource &sender, const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb) override;
+    void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
     bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
 
 private:
@@ -269,7 +290,7 @@ public:
     // 获取录制状态
     bool isRecording(Recorder::type type);
     // 开始发送ps-rtp
-    void startSendRtp(const std::string &dst_url, uint16_t dst_port, const std::string &ssrc, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb);
+    void startSendRtp(const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb);
     // 停止发送ps-rtp
     bool stopSendRtp(const std::string &ssrc);
 

@@ -138,7 +138,7 @@ private:
     void insertConfigFrame(const Frame::Ptr &frame);
 
 private:
-    bool _is_idr = false;
+    bool _latest_is_config_frame = false;
     int _width = 0;
     int _height = 0;
     float _fps = 0;

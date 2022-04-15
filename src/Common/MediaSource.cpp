@@ -237,13 +237,13 @@ bool MediaSource::isRecording(Recorder::type type){
     return listener->isRecording(*this, type);
 }
 
-void MediaSource::startSendRtp(const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb){
+void MediaSource::startSendRtp(const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
     auto listener = _listener.lock();
     if (!listener) {
         cb(0, SockException(Err_other, "尚未设置事件监听器"));
         return;
     }
-    return listener->startSendRtp(*this, dst_url, dst_port, ssrc, is_udp, src_port, cb);
+    return listener->startSendRtp(*this, args, cb);
 }
 
 bool MediaSource::stopSendRtp(const string &ssrc) {
@@ -720,12 +720,12 @@ vector<Track::Ptr> MediaSourceEventInterceptor::getMediaTracks(MediaSource &send
     return listener->getMediaTracks(sender, trackReady);
 }
 
-void MediaSourceEventInterceptor::startSendRtp(MediaSource &sender, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb){
+void MediaSourceEventInterceptor::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
     auto listener = _listener.lock();
     if (listener) {
-        listener->startSendRtp(sender, dst_url, dst_port, ssrc, is_udp, src_port, cb);
+        listener->startSendRtp(sender, args, cb);
     } else {
-        MediaSourceEvent::startSendRtp(sender, dst_url, dst_port, ssrc, is_udp, src_port, cb);
+        MediaSourceEvent::startSendRtp(sender, args, cb);
     }
 }
 

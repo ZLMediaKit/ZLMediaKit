@@ -1056,7 +1056,7 @@ void installWebApi() {
         }
 
         RtpServer::Ptr server = std::make_shared<RtpServer>();
-        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "0.0.0.0", false);
+        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "0.0.0.0", allArgs["re_use_port"].as<bool>());
         server->setOnDetach([stream_id]() {
             //设置rtp超时移除事件
             lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
@@ -1105,8 +1105,18 @@ void installWebApi() {
             throw ApiRetException("该媒体流不存在", API::OtherFailed);
         }
 
-        //src_port为空时，则随机本地端口
-        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable{
+        MediaSourceEvent::SendRtpArgs args;
+        args.dst_url = allArgs["dst_url"];
+        args.dst_port = allArgs["dst_port"];
+        args.ssrc = allArgs["ssrc"];
+        args.is_udp = allArgs["is_udp"];
+        args.src_port = allArgs["src_port"];
+        args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
+        args.use_ps = allArgs["use_ps"].empty() ? true : allArgs["use_ps"].as<bool>();
+        args.only_audio = allArgs["only_audio"].empty() ? false : allArgs["only_audio"].as<bool>();
+        TraceL << "pt " << int(args.pt) << " ps " << args.use_ps << " audio " <<  args.only_audio;
+
+        src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
             if (ex) {
                 val["code"] = API::OtherFailed;
                 val["msg"] = ex.what();
@@ -1371,7 +1381,9 @@ void installWebApi() {
 #ifdef ENABLE_WEBRTC
     class WebRtcArgsImp : public WebRtcArgs {
     public:
-        WebRtcArgsImp(const HttpAllArgs<string> &args) : _args(args) {}
+        WebRtcArgsImp(const HttpAllArgs<string> &args, std::string session_id)
+            : _args(args)
+            , _session_id(std::move(session_id)) {}
         ~WebRtcArgsImp() override = default;
 
         variant operator[](const string &key) const override {
@@ -1387,11 +1399,12 @@ void installWebApi() {
             CHECK_ARGS("app", "stream");
 
             return StrPrinter << RTC_SCHEMA << "://" << _args["Host"] << "/" << _args["app"] << "/"
-                              << _args["stream"] << "?" << _args.getParser().Params();
+                              << _args["stream"] << "?" << _args.getParser().Params() + "&session=" + _session_id;
         }
 
     private:
         HttpAllArgs<string> _args;
+        std::string _session_id;
     };
 
     api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
@@ -1400,8 +1413,9 @@ void installWebApi() {
         auto offer = allArgs.getArgs();
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        WebRtcPluginManager::Instance().getAnswerSdp(*(static_cast<Session *>(&sender)), type, offer, WebRtcArgsImp(allArgs),
-        [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
+        WebRtcPluginManager::Instance().getAnswerSdp(
+            *(static_cast<Session *>(&sender)), type, offer, WebRtcArgsImp(allArgs, sender.getIdentifier()),
+            [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             //设置返回类型
             headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
             //设置跨域

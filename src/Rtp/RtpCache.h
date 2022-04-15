@@ -14,6 +14,7 @@
 #if defined(ENABLE_RTPPROXY)
 
 #include "PSEncoder.h"
+#include "RawEncoder.h"
 #include "Extension/CommonRtp.h"
 
 namespace mediakit{
@@ -42,6 +43,16 @@ class RtpCachePS : public RtpCache, public PSEncoderImp{
 public:
     RtpCachePS(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96) : RtpCache(std::move(cb)), PSEncoderImp(ssrc, payload_type) {};
     ~RtpCachePS() override = default;
+
+protected:
+    void onRTP(toolkit::Buffer::Ptr rtp)  override;
+};
+
+
+class RtpCacheRaw : public RtpCache, public RawEncoderImp{
+public:
+    RtpCacheRaw(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool sendAudio = true) : RtpCache(std::move(cb)), RawEncoderImp(ssrc, payload_type,sendAudio) {};
+    ~RtpCacheRaw() override = default;
 
 protected:
     void onRTP(toolkit::Buffer::Ptr rtp)  override;

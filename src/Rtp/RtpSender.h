@@ -21,23 +21,15 @@ class RtpSender : public MediaSinkInterface, public std::enable_shared_from_this
 public:
     typedef std::shared_ptr<RtpSender> Ptr;
 
-    ~RtpSender() override;
-
-    /**
-     * 构造函数，创建GB28181 RTP发送客户端
-     * @param ssrc rtp的ssrc
-     * @param payload_type 国标中ps-rtp的pt一般为96
-     */
-    RtpSender(uint32_t ssrc, uint8_t payload_type = 96);
+    RtpSender() = default;
+    ~RtpSender() override = default;
 
     /**
      * 开始发送ps-rtp包
-     * @param dst_url 目标ip或域名
-     * @param dst_port 目标端口
-     * @param is_udp 是否采用udp方式发送rtp
+     * @param args 发送参数
      * @param cb 连接目标端口是否成功的回调
      */
-    void startSend(const std::string &dst_url, uint16_t dst_port, bool is_udp, uint16_t src_port, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb);
+    void startSend(const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb);
 
     /**
      * 输入帧数据
@@ -70,11 +62,8 @@ private:
     void onErr(const toolkit::SockException &ex, bool is_connect = false);
 
 private:
-    bool _is_udp;
     bool _is_connect = false;
-    std::string _dst_url;
-    uint16_t _dst_port;
-	uint16_t _src_port;
+    MediaSourceEvent::SendRtpArgs _args;
     toolkit::Socket::Ptr _socket;
     toolkit::EventPoller::Ptr _poller;
     toolkit::Timer::Ptr _connect_timer;

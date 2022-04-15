@@ -81,42 +81,45 @@ static void sig_crash(int sig) {
 #endif // !defined(ANDROID) && !defined(_WIN32)
 
 
-void System::startDaemon() {
+void System::startDaemon(bool &kill_parent_if_failed) {
+    kill_parent_if_failed = true;
 #ifndef _WIN32
     static pid_t pid;
-    do{
+    do {
         pid = fork();
-        if(pid == -1){
+        if (pid == -1) {
             WarnL << "fork失败:" << get_uv_errmsg();
             //休眠1秒再试
             sleep(1);
             continue;
         }
 
-        if(pid == 0){
+        if (pid == 0) {
             //子进程
             return;
         }
 
         //父进程,监视子进程是否退出
-        DebugL << "启动子进程:"  << pid;
+        DebugL << "启动子进程:" << pid;
         signal(SIGINT, [](int) {
             WarnL << "收到主动退出信号,关闭父进程与子进程";
-            kill(pid,SIGINT);
+            kill(pid, SIGINT);
             exit(0);
         });
 
-        do{
+        do {
             int status = 0;
-            if(waitpid(pid, &status, 0) >= 0) {
+            if (waitpid(pid, &status, 0) >= 0) {
                 WarnL << "子进程退出";
-                //休眠1秒再启动子进程
-                sleep(1);
+                //休眠3秒再启动子进程
+                sleep(3);
+                //重启子进程，如果子进程重启失败，那么不应该杀掉守护进程，这样守护进程可以一直尝试重启子进程
+                kill_parent_if_failed = false;
                 break;
             }
             DebugL << "waitpid被中断:" << get_uv_errmsg();
-        }while (true);
-    }while (true);
+        } while (true);
+    } while (true);
 #endif // _WIN32
 }
 

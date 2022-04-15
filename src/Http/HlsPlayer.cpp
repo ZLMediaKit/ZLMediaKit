@@ -42,7 +42,22 @@ void HlsPlayer::teardown_l(const SockException &ex) {
         _play_result = true;
         onPlayResult(ex);
     } else {
-        onShutdown(ex);
+        //如果不是主动关闭的，则重新拉取索引文件
+        if (ex.getErrCode() != Err_shutdown) {
+            // 当切片列表已空, 且没有正在下载的切片并且重试次数已经达到最大次数时, 则认为失败关闭播放器
+            if (_ts_list.empty() && !(_http_ts_player && _http_ts_player->waitResponse())
+                && _try_fetch_index_times >= MAX_TRY_FETCH_INDEX_TIMES) {
+                onShutdown(ex);
+            } else {
+                _try_fetch_index_times += 1;
+                shutdown(ex);
+                WarnL << "重新尝试拉取索引文件[" << _try_fetch_index_times << "]:" << _play_url;
+                fetchIndexFile();
+                return;
+            }
+        } else {
+            onShutdown(ex);
+        }
     }
     _timer.reset();
     _timer_ts.reset();
@@ -352,8 +367,10 @@ void HlsPlayerImp::onPlayResult(const SockException &ex) {
 }
 
 void HlsPlayerImp::onShutdown(const SockException &ex) {
-    PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
-    _demuxer = nullptr;
+    if (_demuxer) {
+        PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
+        _demuxer = nullptr;
+    }
 }
 
 vector<Track::Ptr> HlsPlayerImp::getTracks(bool ready) const {
