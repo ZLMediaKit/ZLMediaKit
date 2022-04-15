@@ -1049,6 +1049,13 @@ void installWebApi() {
         CHECK_ARGS("port", "enable_tcp", "stream_id");
         auto stream_id = allArgs["stream_id"];
 
+
+        unsigned long ssrc=0;
+        if(!allArgs["ssrc"].empty()){
+            ssrc = allArgs["ssrc"].as<u_long>();
+        }
+
+
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
         if (s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
             //为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的stream_id
@@ -1056,7 +1063,7 @@ void installWebApi() {
         }
 
         RtpServer::Ptr server = std::make_shared<RtpServer>();
-        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "0.0.0.0", allArgs["re_use_port"].as<bool>());
+        server->start(allArgs["port"], stream_id,ssrc, allArgs["enable_tcp"].as<bool>(), "0.0.0.0", allArgs["re_use_port"].as<bool>());
         server->setOnDetach([stream_id]() {
             //设置rtp超时移除事件
             lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);

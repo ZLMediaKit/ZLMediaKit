@@ -62,6 +62,7 @@ public:
     std::string get_peer_ip() override;
     uint16_t get_peer_port() override;
     std::string getIdentifier() const override;
+    unsigned long _ssrc;
 
     int getTotalReaderCount();
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
