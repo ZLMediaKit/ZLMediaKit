@@ -34,6 +34,11 @@ static TcpServer::Ptr shell_server;
 static std::shared_ptr<RtpServer> rtpServer;
 #endif
 
+#ifdef ENABLE_WEBRTC
+#include "../webrtc/WebRtcSession.h"
+static std::shared_ptr<UdpServer> rtcServer;
+#endif
+
 //////////////////////////environment init///////////////////////////
 
 API_EXPORT void API_CALL mk_env_init(const mk_config *cfg) {
@@ -207,6 +212,36 @@ API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port){
         rtpServer = std::make_shared<RtpServer>();
         rtpServer->start(port);
         return rtpServer->getPort();
+    } catch (std::exception &ex) {
+        rtpServer.reset();
+        WarnL << ex.what();
+        return 0;
+    }
+#else
+    WarnL << "未启用该功能!";
+    return 0;
+#endif
+}
+
+API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
+#ifdef ENABLE_WEBRTC
+    try {
+        //创建rtc服务器
+        rtcServer = std::make_shared<UdpServer>();
+        rtcServer->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
+            if (!buf) {
+                return Socket::createSocket(poller, false);
+            }
+            auto new_poller = WebRtcSession::queryPoller(buf);
+            if (!new_poller) {
+                //该数据对应的webrtc对象未找到，丢弃之
+                return Socket::Ptr();
+            }
+            return Socket::createSocket(new_poller, false);
+        });
+        rtcServer->start<WebRtcSession>(port);
+        return rtcServer->getPort();
+
     } catch (std::exception &ex) {
         rtpServer.reset();
         WarnL << ex.what();
