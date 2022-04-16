@@ -62,7 +62,6 @@ public:
     std::string get_peer_ip() override;
     uint16_t get_peer_port() override;
     std::string getIdentifier() const override;
-    unsigned long _ssrc;
 
     int getTotalReaderCount();
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
@@ -83,6 +82,7 @@ private:
     void doCachedFunc();
 
 private:
+    uint32_t _ssrc;
     uint32_t _dts = 0;
     uint64_t _total_bytes = 0;
     struct sockaddr _addr{0};
