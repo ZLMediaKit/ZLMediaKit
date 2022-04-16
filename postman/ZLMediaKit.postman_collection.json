@@ -1293,7 +1293,14 @@
 						{
 							"key": "re_use_port",
 							"value": "0",
-							"description": "是否重用端口，默认为0，非必选参数"
+							"description": "是否重用端口，默认为0，非必选参数",
+							"disabled": true
+						},
+						{
+							"key": "ssrc",
+							"value": "0",
+							"description": "是否指定收流的rtp ssrc, 十进制数字，不指定或指定0时则不过滤rtp，非必选参数",
+							"disabled": true
 						}
 					]
 				}

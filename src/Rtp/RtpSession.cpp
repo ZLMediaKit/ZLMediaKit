@@ -21,10 +21,12 @@ namespace mediakit{
 
 const string RtpSession::kStreamID = "stream_id";
 const string RtpSession::kIsUDP = "is_udp";
+const string RtpSession::kSSRC = "ssrc";
 
 void RtpSession::attachServer(const Server &server) {
     _stream_id = const_cast<Server &>(server)[kStreamID];
     _is_udp = const_cast<Server &>(server)[kIsUDP];
+    _ssrc = const_cast<Server &>(server)[kSSRC];
 
     if (_is_udp) {
         //设置udp socket读缓存
@@ -89,7 +91,8 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         }
     }
     if (!_process) {
-        if (!RtpSelector::getSSRC(data, len, _ssrc)) {
+        //未设置ssrc时，尝试获取ssrc
+        if (!_ssrc && !RtpSelector::getSSRC(data, len, _ssrc)) {
             return;
         }
         if (_stream_id.empty()) {
@@ -101,6 +104,12 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         _process->setListener(dynamic_pointer_cast<RtpSession>(shared_from_this()));
     }
     try {
+        uint32_t rtp_ssrc = 0;
+        RtpSelector::getSSRC(data, len, rtp_ssrc);
+        if (rtp_ssrc != _ssrc) {
+            WarnP(this) << "ssrc不匹配,rtp已丢弃:" << rtp_ssrc << " != " << _ssrc;
+            return;
+        }
         _process->inputRtp(false, getSock(), data, len, &_addr);
     } catch (RtpTrack::BadRtpException &ex) {
         if (!_is_udp) {
