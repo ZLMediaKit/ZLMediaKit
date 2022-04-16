@@ -116,6 +116,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, uint32_t ssr
         tcp_server = std::make_shared<TcpServer>(rtp_socket->getPoller());
         (*tcp_server)[RtpSession::kStreamID] = stream_id;
         (*tcp_server)[RtpSession::kIsUDP] = 0;
+        (*tcp_server)[RtpSession::kSSRC] = ssrc;
         tcp_server->start<RtpSession>(rtp_socket->get_local_port(), local_ip);
     }
 
