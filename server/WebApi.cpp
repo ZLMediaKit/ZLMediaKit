@@ -1052,7 +1052,7 @@ void installWebApi() {
 
         unsigned long ssrc=0;
         if(!allArgs["ssrc"].empty()){
-            ssrc = allArgs["ssrc"].as<u_long>();
+            ssrc = allArgs["ssrc"].as<uint32_t>();
         }
 
 
