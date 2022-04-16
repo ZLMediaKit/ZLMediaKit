@@ -138,7 +138,7 @@ void AACRtpDecoder::flushData() {
         _frame->_prefix_size = ADTS_HEADER_LEN;
     } else {
         //没有adts头则插入adts头
-        char adts_header[32] = {0};
+        char adts_header[128] = {0};
         auto size = dumpAacConfig(_aac_cfg, _frame->_buffer.size(), (uint8_t *) adts_header, sizeof(adts_header));
         if (size > 0) {
             //插入adts头
