@@ -124,21 +124,18 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, uint32_t ssr
     RtpProcess::Ptr process;
     if (!stream_id.empty()) {
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
-        //由于是一个端口一个流，单线程处理即可
         process = RtpSelector::Instance().getProcess(stream_id, true);
-        process->setSSRC(ssrc);
         RtcpHelper::Ptr helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), 90000);
         helper->startRtcp();
-        rtp_socket->setOnRead([rtp_socket, process, helper](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
-            RtpHeader *header = (RtpHeader *) buf->data();
-            auto ssrc1 = ntohl(header->ssrc);
-            if(ssrc1 == process->_ssrc || process->_ssrc ==0) {
+        rtp_socket->setOnRead([rtp_socket, process, helper, ssrc](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
+            RtpHeader *header = (RtpHeader *)buf->data();
+            auto rtp_ssrc = ntohl(header->ssrc);
+            if (ssrc && rtp_ssrc != ssrc) {
+                WarnL << "ssrc不匹配,rtp已丢弃:" << rtp_ssrc << " != " << ssrc;
+            } else {
                 process->inputRtp(true, rtp_socket, buf->data(), buf->size(), addr);
                 helper->onRecvRtp(buf, addr, addr_len);
-            }else{
-                WarnL << "ssrc不匹配,rtp已丢弃:" << ssrc1 << " != " << process->_ssrc;
             }
-
         });
     } else {
 #if 1

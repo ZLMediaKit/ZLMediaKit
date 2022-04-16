@@ -82,7 +82,6 @@ private:
     void doCachedFunc();
 
 private:
-    uint32_t _ssrc;
     uint32_t _dts = 0;
     uint64_t _total_bytes = 0;
     struct sockaddr _addr{0};
