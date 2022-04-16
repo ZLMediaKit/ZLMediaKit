@@ -336,10 +336,6 @@ endif ()
 execute_process(COMMAND cp -r ${CMAKE_CURRENT_SOURCE_DIR}/www ${EXECUTABLE_OUTPUT_PATH}/)
 execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini ${EXECUTABLE_OUTPUT_PATH}/)
 
-#添加c库
-if (ENABLE_API)
-    add_subdirectory(api)
-endif ()
 
 if (ENABLE_WEBRTC)
     #查找srtp是否安装
@@ -359,6 +355,11 @@ if (ENABLE_WEBRTC)
         set(ENABLE_WEBRTC off)
         message(WARNING "srtp未找到, webrtc相关功能打开失败")
     endif ()
+endif ()
+
+#添加c库
+if (ENABLE_API)
+    add_subdirectory(api)
 endif ()
 
 #ios不编译可执行程序

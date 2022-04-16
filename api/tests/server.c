@@ -160,27 +160,33 @@ void API_CALL on_mk_http_request(const mk_parser parser,
                mk_parser_get_content(parser,NULL));
 
     const char *url = mk_parser_get_url(parser);
-    if(strcmp(url,"/api/test") != 0){
+    *consumed = 1;
+
+    //拦截api: /api/test
+    if(strcmp(url,"/api/test") == 0) {
+        const char *response_header[] = { "Content-Type", "text/html", NULL };
+        const char *content = "<html>"
+                              "<head>"
+                              "<title>hello world</title>"
+                              "</head>"
+                              "<body bgcolor=\"white\">"
+                              "<center><h1>hello world</h1></center><hr>"
+                              "<center>"
+                              "ZLMediaKit-4.0</center>"
+                              "</body>"
+                              "</html>";
+        mk_http_body body = mk_http_body_from_string(content, 0);
+        mk_http_response_invoker_do(invoker, 200, response_header, body);
+        mk_http_body_release(body);
+    }
+    //拦截api: /index/api/webrtc
+    else if(strcmp(url,"/index/api/webrtc") == 0){
+        mk_webrtc_http_response_invoker_do(invoker,parser,sender);
+    }
+    else{
         *consumed = 0;
         return;
     }
-
-    //只拦截api: /api/test
-    *consumed = 1;
-    const char *response_header[] = {"Content-Type","text/html",NULL};
-    const char *content =
-                    "<html>"
-                    "<head>"
-                    "<title>hello world</title>"
-                    "</head>"
-                    "<body bgcolor=\"white\">"
-                    "<center><h1>hello world</h1></center><hr>"
-                    "<center>""ZLMediaKit-4.0</center>"
-                    "</body>"
-                    "</html>";
-    mk_http_body body = mk_http_body_from_string(content,0);
-    mk_http_response_invoker_do(invoker, 200, response_header, body);
-    mk_http_body_release(body);
 }
 
 /**
@@ -420,6 +426,7 @@ int main(int argc, char *argv[]) {
     mk_rtmp_server_start(1935, 0);
     mk_shell_server_start(9000);
     mk_rtp_server_start(10000);
+    mk_rtc_server_start(8000);
 
     mk_events events = {
             .on_mk_media_changed = on_mk_media_changed,
