@@ -1050,7 +1050,7 @@ void installWebApi() {
         auto stream_id = allArgs["stream_id"];
 
 
-        unsigned long ssrc=0;
+        uint32_t ssrc = 0;
         if(!allArgs["ssrc"].empty()){
             ssrc = allArgs["ssrc"].as<uint32_t>();
         }
