@@ -24,6 +24,7 @@ class RtpSession : public toolkit::Session, public RtpSplitter, public MediaSour
 public:
     static const std::string kStreamID;
     static const std::string kIsUDP;
+    static const std::string kSSRC;
 
     RtpSession(const toolkit::Socket::Ptr &sock);
     ~RtpSession() override;

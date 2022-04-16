@@ -88,7 +88,7 @@ private:
     std::shared_ptr<struct sockaddr> _rtcp_addr;
 };
 
-void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable_tcp, const char *local_ip, bool re_use_port) {
+void RtpServer::start(uint16_t local_port, const string &stream_id, uint32_t ssrc,  bool enable_tcp, const char *local_ip, bool re_use_port) {
     //创建udp服务器
     Socket::Ptr rtp_socket = Socket::createSocket(nullptr, true);
     Socket::Ptr rtcp_socket = Socket::createSocket(nullptr, true);
@@ -116,6 +116,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable
         tcp_server = std::make_shared<TcpServer>(rtp_socket->getPoller());
         (*tcp_server)[RtpSession::kStreamID] = stream_id;
         (*tcp_server)[RtpSession::kIsUDP] = 0;
+        (*tcp_server)[RtpSession::kSSRC] = ssrc;
         tcp_server->start<RtpSession>(rtp_socket->get_local_port(), local_ip);
     }
 
@@ -124,13 +125,18 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,  bool enable
     RtpProcess::Ptr process;
     if (!stream_id.empty()) {
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
-        //由于是一个端口一个流，单线程处理即可
         process = RtpSelector::Instance().getProcess(stream_id, true);
         RtcpHelper::Ptr helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), 90000);
         helper->startRtcp();
-        rtp_socket->setOnRead([rtp_socket, process, helper](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
-            process->inputRtp(true, rtp_socket, buf->data(), buf->size(), addr);
-            helper->onRecvRtp(buf, addr, addr_len);
+        rtp_socket->setOnRead([rtp_socket, process, helper, ssrc](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
+            RtpHeader *header = (RtpHeader *)buf->data();
+            auto rtp_ssrc = ntohl(header->ssrc);
+            if (ssrc && rtp_ssrc != ssrc) {
+                WarnL << "ssrc不匹配,rtp已丢弃:" << rtp_ssrc << " != " << ssrc;
+            } else {
+                process->inputRtp(true, rtp_socket, buf->data(), buf->size(), addr);
+                helper->onRecvRtp(buf, addr, addr_len);
+            }
         });
     } else {
 #if 1

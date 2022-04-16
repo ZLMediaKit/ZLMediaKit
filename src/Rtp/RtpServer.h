@@ -39,7 +39,7 @@ public:
      * @param local_ip 绑定的本地网卡ip
      * @param re_use_port 是否设置socket为re_use属性
      */
-    void start(uint16_t local_port, const std::string &stream_id = "", bool enable_tcp = true, const char *local_ip = "0.0.0.0", bool re_use_port = true);
+    void start(uint16_t local_port, const std::string &stream_id = "", uint32_t ssrc = 0, bool enable_tcp = true, const char *local_ip = "0.0.0.0", bool re_use_port = true);
 
     /**
      * 获取绑定的本地端口
