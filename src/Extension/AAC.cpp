@@ -161,6 +161,7 @@ int dumpAacConfig(const string &config, size_t length, uint8_t *out, size_t out_
     if (ret < 0) {
         WarnL << "生成adts头失败:" << ret << ", aac config:" << hexdump(config.data(), config.size());
     }
+    assert((int)out_size >= ret);
     return ret;
 #endif
 }
@@ -279,6 +280,9 @@ bool AACTrack::inputFrame(const Frame::Ptr &frame) {
         auto frame_len = getAacFrameLength((uint8_t *) ptr, end - ptr);
         if (frame_len < ADTS_HEADER_LEN) {
             break;
+        }
+        if (frame_len == frame->size()) {
+            return inputFrame_l(frame);
         }
         auto sub_frame = std::make_shared<FrameInternal<FrameFromPtr> >(frame, (char *) ptr, frame_len, ADTS_HEADER_LEN);
         ptr += frame_len;
