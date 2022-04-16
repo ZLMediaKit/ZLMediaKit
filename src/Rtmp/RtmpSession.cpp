@@ -223,6 +223,7 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
     sendStatus({ "level", "status",
                  "code", "NetStream.Unpublish.Success",
                  "description", "Stop publishing." });
+    _push_src = nullptr;
     throw std::runtime_error(StrPrinter << "Stop publishing" << endl);
 }
 
