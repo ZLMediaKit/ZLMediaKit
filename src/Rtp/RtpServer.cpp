@@ -88,7 +88,7 @@ private:
     std::shared_ptr<struct sockaddr> _rtcp_addr;
 };
 
-void RtpServer::start(uint16_t local_port, const string &stream_id,unsigned long ssrc,  bool enable_tcp, const char *local_ip, bool re_use_port) {
+void RtpServer::start(uint16_t local_port, const string &stream_id, uint32_t ssrc,  bool enable_tcp, const char *local_ip, bool re_use_port) {
     //创建udp服务器
     Socket::Ptr rtp_socket = Socket::createSocket(nullptr, true);
     Socket::Ptr rtcp_socket = Socket::createSocket(nullptr, true);
@@ -126,7 +126,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id,unsigned long
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
         //由于是一个端口一个流，单线程处理即可
         process = RtpSelector::Instance().getProcess(stream_id, true);
-        process->_ssrc=ssrc;
+        process->setSSRC(ssrc);
         RtcpHelper::Ptr helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), 90000);
         helper->startRtcp();
         rtp_socket->setOnRead([rtp_socket, process, helper](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
