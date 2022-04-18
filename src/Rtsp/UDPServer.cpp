@@ -11,9 +11,11 @@
 #include "UDPServer.h"
 #include "Util/TimeTicker.h"
 #include "Util/onceToken.h"
+#include "Util/logger.h"
 
 using namespace toolkit;
-using namespace std;
+using std::string;
+using AutoLock = std::unique_lock<std::mutex>;
 
 namespace mediakit {
 
@@ -27,8 +29,8 @@ UDPServer::~UDPServer() {
 }
 
 Socket::Ptr UDPServer::getSock(SocketHelper &helper, const char* local_ip, int interleaved, uint16_t local_port) {
-    lock_guard<mutex> lck(_mtx_udp_sock);
-    string key = StrPrinter << local_ip << ":" << interleaved << endl;
+    AutoLock lck(_mtx_udp_sock);
+    string key = StrPrinter << local_ip << ":" << interleaved;
     auto it = _udp_sock_map.find(key);
     if (it == _udp_sock_map.end()) {
         Socket::Ptr sock = helper.createSocket();
@@ -37,8 +39,31 @@ Socket::Ptr UDPServer::getSock(SocketHelper &helper, const char* local_ip, int i
             return nullptr;
         }
 
-        sock->setOnErr(bind(&UDPServer::onErr, this, key, placeholders::_1));
-        sock->setOnRead(bind(&UDPServer::onRecv, this, interleaved, placeholders::_1, placeholders::_2));
+        sock->setOnErr([this, key](const SockException &err) {
+            WarnL << err.what();
+            AutoLock lck(_mtx_udp_sock);
+            _udp_sock_map.erase(key);
+        });
+        sock->setOnRead([this, interleaved](const Buffer::Ptr &buf, struct sockaddr* peer_addr, int addr_len) {
+            struct sockaddr_in *in = (struct sockaddr_in *) peer_addr;
+            string peer_ip = SockUtil::inet_ntoa(in->sin_addr);
+            AutoLock lck(_mtx_on_recv);
+            auto it0 = _on_recv_map.find(peer_ip);
+            if (it0 == _on_recv_map.end()) {
+                return;
+            }
+            auto &ref = it0->second;
+            for (auto it1 = ref.begin(); it1 != ref.end(); ++it1) {
+                auto &func = it1->second;
+                if (!func(interleaved, buf, peer_addr)) {
+                    it1 = ref.erase(it1);
+                }
+            }
+            if (ref.size() == 0) {
+                _on_recv_map.erase(it0);
+            }
+        });
+
         _udp_sock_map[key] = sock;
         DebugL << local_ip << " " << sock->get_local_port() << " " << interleaved;
         return sock;
@@ -47,13 +72,13 @@ Socket::Ptr UDPServer::getSock(SocketHelper &helper, const char* local_ip, int i
 }
 
 void UDPServer::listenPeer(const char* peer_ip, void* obj, const onRecvData &cb) {
-    lock_guard<mutex> lck(_mtx_on_recv);
+    AutoLock lck(_mtx_on_recv);
     auto &ref = _on_recv_map[peer_ip];
     ref.emplace(obj, cb);
 }
 
 void UDPServer::stopListenPeer(const char* peer_ip, void* obj) {
-    lock_guard<mutex> lck(_mtx_on_recv);
+    AutoLock lck(_mtx_on_recv);
     auto it0 = _on_recv_map.find(peer_ip);
     if (it0 == _on_recv_map.end()) {
         return;
@@ -62,31 +87,6 @@ void UDPServer::stopListenPeer(const char* peer_ip, void* obj) {
     auto it1 = ref.find(obj);
     if (it1 != ref.end()) {
         ref.erase(it1);
-    }
-    if (ref.size() == 0) {
-        _on_recv_map.erase(it0);
-    }
-}
-
-void UDPServer::onErr(const string &key, const SockException &err) {
-    WarnL << err.what();
-    lock_guard<mutex> lck(_mtx_udp_sock);
-    _udp_sock_map.erase(key);
-}
-
-void UDPServer::onRecv(int interleaved, const Buffer::Ptr &buf, struct sockaddr* peer_addr) {
-    string peer_ip = SockUtil::inet_ntoa(peer_addr);
-    lock_guard<mutex> lck(_mtx_on_recv);
-    auto it0 = _on_recv_map.find(peer_ip);
-    if (it0 == _on_recv_map.end()) {
-        return;
-    }
-    auto &ref = it0->second;
-    for (auto it1 = ref.begin(); it1 != ref.end(); ++it1) {
-        auto &func = it1->second;
-        if (!func(interleaved, buf, peer_addr)) {
-            it1 = ref.erase(it1);
-        }
     }
     if (ref.size() == 0) {
         _on_recv_map.erase(it0);

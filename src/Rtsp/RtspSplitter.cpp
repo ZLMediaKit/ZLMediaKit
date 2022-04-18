@@ -13,7 +13,7 @@
 #include "Util/logger.h"
 #include "Util/util.h"
 
-using namespace std;
+//using namespace std;
 using namespace toolkit;
 
 namespace mediakit{
@@ -36,42 +36,46 @@ const char *RtspSplitter::onSearchPacketTail(const char *data, size_t len) {
 }
 
 const char *RtspSplitter::onSearchPacketTail_l(const char *data, size_t len) {
-    if(!_enableRecvRtp || data[0] != '$'){
+    if(!_enableRecvRtp || data[0] != '$') {
         //这是rtsp包
         _isRtpPacket = false;
         return HttpRequestSplitter::onSearchPacketTail(data, len);
     }
-    //这是rtp包
-    if(len < 4){
-        //数据不够
-        return nullptr;
+    else {
+        //这是rtp包
+        if (len < 4) {
+            //数据不够
+            return nullptr;
+        }
+        uint16_t length = (((uint8_t *)data)[2] << 8) | ((uint8_t *)data)[3];
+        if (len < (size_t)(length + 4)) {
+            //数据不够
+            return nullptr;
+        }
+        //返回rtp包末尾
+        _isRtpPacket = true;
+        return data + 4 + length;
     }
-    uint16_t length = (((uint8_t *)data)[2] << 8) | ((uint8_t *)data)[3];
-    if(len < (size_t)(length + 4)){
-        //数据不够
-        return nullptr;
-    }
-    //返回rtp包末尾
-    _isRtpPacket = true;
-    return data + 4 + length;
 }
 
 ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
-    if(_isRtpPacket){
-        onRtpPacket(data,len);
-        return 0;
+    ssize_t ret = 0;
+    if(_isRtpPacket) {
+        onRtpPacket(data, len);
     }
-    _parser.Parse(data);
-    auto ret = getContentLength(_parser);
-    if(ret == 0){
-        onWholeRtspPacket(_parser);
-        _parser.Clear();
+    else {
+        _parser.Parse(data);
+        ret = getContentLength(_parser);
+        if (ret == 0) {
+            onWholeRtspPacket(_parser);
+            _parser.Clear();
+        }
     }
     return ret;
 }
 
 void RtspSplitter::onRecvContent(const char *data, size_t len) {
-    _parser.setContent(string(data,len));
+    _parser.setContent(std::string(data,len));
     onWholeRtspPacket(_parser);
     _parser.Clear();
 }

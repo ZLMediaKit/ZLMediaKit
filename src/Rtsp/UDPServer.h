@@ -17,29 +17,31 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "Util/util.h"
-#include "Util/logger.h"
 #include "Network/Socket.h"
 
 namespace mediakit {
 
 class UDPServer : public std::enable_shared_from_this<UDPServer> {
+    UDPServer();
 public:
-    using onRecvData = std::function<bool(int intervaled, const toolkit::Buffer::Ptr &buffer, struct sockaddr *peer_addr)> ;
     ~UDPServer();
     static UDPServer &Instance();
+    // 监听udp本地地址和端口，并接收数据
     toolkit::Socket::Ptr getSock(toolkit::SocketHelper &helper, const char *local_ip, int interleaved, uint16_t local_port = 0);
-    void listenPeer(const char *peer_ip, void *obj, const onRecvData &cb);
-    void stopListenPeer(const char *peer_ip, void *obj);
 
-private:
-    UDPServer();
-    void onRecv(int interleaved, const toolkit::Buffer::Ptr &buf, struct sockaddr *peer_addr);
-    void onErr(const std::string &strKey, const toolkit::SockException &err);
+    // 数据回调，当函数返回false时，则自动取消回调的注册
+    using onRecvData = std::function<bool(int intervaled, const toolkit::Buffer::Ptr &buffer, struct sockaddr *peer_addr)>;
+    // 注册某个目的地址的包数据回调
+    void listenPeer(const char *peer_ip, void *obj, const onRecvData &cb);
+    // 取消注册回调
+    void stopListenPeer(const char *peer_ip, void *obj);
 
 private:
     std::mutex _mtx_udp_sock;
     std::mutex _mtx_on_recv;
+    // local_ip:interleaved -> socket
     std::unordered_map<std::string, toolkit::Socket::Ptr> _udp_sock_map;
+    // peer_ip -> obj -> onRecvData
     std::unordered_map<std::string, std::unordered_map<void *, onRecvData> > _on_recv_map;
 };
 

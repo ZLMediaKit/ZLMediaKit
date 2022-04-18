@@ -11,7 +11,7 @@
 #include "RtspMuxer.h"
 #include "Extension/Factory.h"
 
-using namespace std;
+//using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
@@ -39,6 +39,7 @@ void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
 
 RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title) {
     if (!title) {
+        _live = true;
         _sdp = std::make_shared<TitleSdp>()->getSdp();
     } else {
         _live = title->getDuration() == 0;
@@ -86,7 +87,7 @@ bool RtspMuxer::inputFrame(const Frame::Ptr &frame) {
     return encoder ? encoder->inputFrame(frame) : false;
 }
 
-string RtspMuxer::getSdp() {
+std::string RtspMuxer::getSdp() {
     return _sdp;
 }
 

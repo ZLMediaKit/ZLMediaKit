@@ -14,7 +14,7 @@
 #include "Util/base64.h"
 #include "Extension/Factory.h"
 
-using namespace std;
+using std::string;
 
 namespace mediakit {
 
@@ -26,19 +26,17 @@ void RtspDemuxer::loadSdp(const SdpParser &attr) {
     auto tracks = attr.getAvailableTrack();
     for (auto &track : tracks) {
         switch (track->_type) {
-            case TrackVideo: {
+            case TrackVideo:
                 makeVideoTrack(track);
-            }
                 break;
-            case TrackAudio: {
+            case TrackAudio:
                 makeAudioTrack(track);
-            }
                 break;
             default:
                 break;
         }
     }
-    //rtsp能通过sdp立即知道有多少个track
+    //rtsp能通过sdp知道有几个track
     addTrackCompleted();
 
     auto titleTrack = attr.getTrack(TrackTitle);
@@ -66,17 +64,14 @@ bool RtspDemuxer::inputRtp(const RtpPacket::Ptr &rtp) {
             }
             return false;
         }
-        default: return false;
+        default: 
+            return false;
     }
 }
 
 static void setBitRate(const SdpTrack::Ptr &sdp, const Track::Ptr &track) {
     if (!sdp->_b.empty()) {
-        int data_rate = 0;
-        sscanf(sdp->_b.data(), "AS:%d", &data_rate);
-        if (data_rate) {
-            track->setBitRate(data_rate * 1024);
-        }
+        track->setBitRate(sdp->getBitRate());
     }
 }
 
@@ -85,7 +80,7 @@ void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
         return;
     }
     //生成Track对象
-    _audio_track = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio));
+    _audio_track = std::dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio));
     if (!_audio_track) {
         return;
     }
@@ -107,7 +102,7 @@ void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
         return;
     }
     //生成Track对象
-    _video_track = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video));
+    _video_track = std::dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video));
     if (!_video_track) {
         return;
     }

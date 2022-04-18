@@ -19,13 +19,13 @@
 #include "Common/Stamp.h"
 
 namespace mediakit {
-
+// 处理rtp乱序排序，并过滤重复包
 template<typename T, typename SEQ = uint16_t, size_t kMax = 1024, size_t kMin = 32>
 class PacketSortor {
 public:
     PacketSortor() = default;
     ~PacketSortor() = default;
-
+    // 输出排序后的包
     typedef std::function<void(SEQ seq, T& packet)> SortCallback;
     void setOnSort(SortCallback cb) {
         _cb = std::move(cb);
@@ -63,7 +63,7 @@ public:
     void sortPacket(SEQ seq, T packet) {
         if (seq < _next_seq_out) {
             if (_next_seq_out < seq + kMax) {
-                //过滤seq回退包(回环包除外)
+                //过滤seq回退包，比已输出的seq还小的(回环包除外)
                 return;
             }
         } else if (_next_seq_out && seq - _next_seq_out > ((std::numeric_limits<SEQ>::max)() >> 1)) {
@@ -85,6 +85,15 @@ public:
     }
 
 private:
+    // 删除并回调包，然后更新_next_seq_out
+    void popIterator(typename std::map<SEQ, T>::iterator it) {
+        auto seq = it->first;
+        auto data = std::move(it->second);
+        _pkt_cache_map.erase(it);
+        _next_seq_out = seq + 1;
+        _cb(seq, data);
+    }
+
     void popPacket() {
         auto it = _pkt_cache_map.begin();
         if (it->first >= _next_seq_out) {
@@ -116,13 +125,6 @@ private:
         }
     }
 
-    void popIterator(typename std::map<SEQ, T>::iterator it) {
-        auto seq = it->first;
-        auto data = std::move(it->second);
-        _pkt_cache_map.erase(it);
-        _next_seq_out = seq + 1;
-        _cb(seq, data);
-    }
 
     void tryPopPacket() {
         int count = 0;
@@ -161,6 +163,10 @@ private:
     SortCallback _cb;
 };
 
+/* 
+rtp流接收/生成器
+负责接收某个rtp流，并生成排序后的RtpPacket
+*/
 class RtpTrack : private PacketSortor<RtpPacket::Ptr>{
 public:
     class BadRtpException : public std::invalid_argument {
@@ -175,12 +181,18 @@ public:
 
     void clear();
     uint32_t getSSRC() const;
-    // 根据ssrc和pt来过滤和生成单个rtp流的包
+    /*
+    input data.
+    根据ssrc和pt来过滤和生成某个rtp流的包(RtpPacket)，其中
+    - pt 确定后就不会变化
+    - ssrc 若3s没收到该ssrc的包，则可进行切换
+    */
     RtpPacket::Ptr inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
     // rtcp sr用于更新ntp时间戳
     void setNtpStamp(uint32_t rtp_stamp, uint64_t ntp_stamp_ms);
 
 protected:
+    // output callback for subclass
     virtual void onRtpSorted(RtpPacket::Ptr rtp) {}
     virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp) {}
 
@@ -213,6 +225,7 @@ private:
     BeforeSorted _on_before_sorted;
 };
 
+// 多流接收器
 template<int kCount = 2>
 class RtpMultiReceiver {
 public:
@@ -297,6 +310,7 @@ private:
     RtpTrackImp _track[kCount];
 };
 
+// 两流(音频、视频)Rtp接收器
 using RtpReceiver = RtpMultiReceiver<2>;
 
 }//namespace mediakit

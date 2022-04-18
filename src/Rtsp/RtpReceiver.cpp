@@ -48,7 +48,7 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
         throw BadRtpException("only support rtp ver 2");
     }
     if (!header->getPayloadSize(len)) {
-        //略过负载为空的rtp包
+        //略过payload为空的rtp包
         return nullptr;
     }
 
@@ -76,9 +76,11 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
             WarnL << "ssrc dismatch " << ssrc << " != " << _ssrc << ",drop rtp " << ntohs(header->seq);
             return nullptr;
         }
-        InfoL << "rtpstream change ssrc:" << _ssrc << " -> " << ssrc;
-        _ssrc = ssrc;
-        _ssrc_alive.resetTime();
+        else {
+            InfoL << "rtpstream change ssrc:" << _ssrc << " -> " << ssrc;
+            _ssrc = ssrc;
+            _ssrc_alive.resetTime();
+        }
     }
 
     auto rtp = RtpPacket::create();

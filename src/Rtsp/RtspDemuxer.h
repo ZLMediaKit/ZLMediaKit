@@ -12,7 +12,7 @@
 #define SRC_RTP_RTSPDEMUXER_H_
 
 #include <unordered_map>
-#include "Player/PlayerBase.h"
+#include "Common/MediaSink.h"
 #include "Util/TimeTicker.h"
 #include "RtpCodec.h"
 
@@ -48,6 +48,7 @@ private:
     void loadSdp(const SdpParser &parser);
 
 private:
+    // 从TitleSdp中获取duration
     float _duration = 0;
     AudioTrack::Ptr _audio_track;
     VideoTrack::Ptr _video_track;

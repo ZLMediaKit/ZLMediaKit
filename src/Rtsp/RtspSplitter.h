@@ -15,14 +15,14 @@
 #include "Http/HttpRequestSplitter.h"
 
 namespace mediakit{
-
+// rtsp tcp控制通道分包器
 class RtspSplitter : public HttpRequestSplitter{
 public:
     RtspSplitter(){}
     virtual ~RtspSplitter(){}
 
     /**
-    * 是否允许接收rtp包
+    * 是否允许rtp包接收
     * @param enable
     */
     void enableRecvRtp(bool enable);
@@ -38,7 +38,7 @@ protected:
      * @param data
      * @param len
      */
-    virtual void onRtpPacket(const char *data,size_t len) = 0;
+    virtual void onRtpPacket(const char *data, size_t len) = 0;
 
     /**
      * 从rtsp头中获取Content长度

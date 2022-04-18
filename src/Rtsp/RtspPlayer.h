@@ -17,7 +17,6 @@
 #include "RtspMediaSource.h"
 #include "Player/PlayerBase.h"
 #include "Util/util.h"
-#include "Util/logger.h"
 #include "Util/TimeTicker.h"
 #include "Poller/Timer.h"
 #include "Network/Socket.h"
@@ -44,9 +43,10 @@ public:
     float getPacketLossRate(TrackType type) const override;
 
 protected:
-    //派生类回调函数
+    // 派生类回调函数
     virtual bool onCheckSDP(const std::string &sdp) = 0;
     virtual void onRecvRTP(RtpPacket::Ptr rtp, const SdpTrack::Ptr &track) = 0;
+
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
 
@@ -61,7 +61,7 @@ protected:
      * @param data
      * @param len
      */
-    void onRtpPacket(const char *data,size_t len) override ;
+    void onRtpPacket(const char *data,size_t len) override;
 
     /**
      * rtp数据包排序后输出

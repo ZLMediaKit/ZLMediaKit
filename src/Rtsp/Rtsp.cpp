@@ -13,7 +13,10 @@
 #include "Rtsp.h"
 #include "Common/Parser.h"
 #include "Extension/Track.h"
-using namespace std;
+#include "Network/Socket.h"
+
+using std::string;
+using std::runtime_error;
 using namespace toolkit;
 
 namespace mediakit {
@@ -63,8 +66,8 @@ CodecId RtpPayload::getCodecId(int pt) {
     }
 }
 
-static void getAttrSdp(const multimap<string, string> &attr, _StrPrinter &printer) {
-    const map<string, string>::value_type *ptr = nullptr;
+static void getAttrSdp(const std::multimap<string, string> &attr, _StrPrinter &printer) {
+    const std::map<string, string>::value_type *ptr = nullptr;
     for (auto &pr : attr) {
         if (pr.first == "control") {
             ptr = &pr;
@@ -108,7 +111,7 @@ string SdpTrack::toString(uint16_t port) const {
             break;
         }
         case TrackAudio:
-        case TrackVideo: {
+        case TrackVideo:
             if (_type == TrackAudio) {
                 _printer << "m=audio " << port << " RTP/AVP " << _pt << "\r\n";
             } else {
@@ -119,8 +122,8 @@ string SdpTrack::toString(uint16_t port) const {
             }
             getAttrSdp(_attr, _printer);
             break;
-        }
-        default: break;
+        default: 
+            break;
     }
     return std::move(_printer);
 }
@@ -186,7 +189,9 @@ void SdpParser::load(const string &sdp) {
                     }
                     break;
                 }
-                default: track->_other[opt] = opt_val; break;
+                default: 
+                    track->_other[opt] = opt_val; 
+                    break;
             }
         }
     }
@@ -267,8 +272,9 @@ SdpTrack::Ptr SdpParser::getTrack(TrackType type) const {
     return nullptr;
 }
 
-vector<SdpTrack::Ptr> SdpParser::getAvailableTrack() const {
-    vector<SdpTrack::Ptr> ret;
+std::vector<SdpTrack::Ptr> SdpParser::getAvailableTrack() const {
+    std::vector<SdpTrack::Ptr> ret;
+    // 最多只返回一个video_tracker和audio_tracker
     bool audio_added = false;
     bool video_added = false;
     for (auto &track : _track_vec) {
@@ -307,7 +313,8 @@ string SdpParser::toString() const {
                 audio = track->toString();
                 break;
             }
-            default: break;
+            default: 
+                break;
         }
     }
     return title + video + audio;
@@ -338,7 +345,7 @@ public:
         auto &sock1 = pair.second;
         auto sock_pair = getPortPair();
         if (!sock_pair) {
-            throw runtime_error("none reserved port in pool");
+            throw runtime_error("none reserved udp port in pool");
         }
         if (is_udp) {
             if (!sock0->bindUdpSock(2 * *sock_pair, local_ip.data(), re_use_port)) {
@@ -375,14 +382,14 @@ public:
 
 private:
     void setRange(uint16_t start_pos, uint16_t end_pos) {
-        lock_guard<recursive_mutex> lck(_pool_mtx);
+        std::lock_guard<std::recursive_mutex> lck(_pool_mtx);
         while (start_pos < end_pos) {
             _port_pair_pool.emplace_back(start_pos++);
         }
     }
 
     std::shared_ptr<uint16_t> getPortPair() {
-        lock_guard<recursive_mutex> lck(_pool_mtx);
+        std::lock_guard<std::recursive_mutex> lck(_pool_mtx);
         if (_port_pair_pool.empty()) {
             return nullptr;
         }
@@ -390,24 +397,22 @@ private:
         _port_pair_pool.pop_front();
         InfoL << "got port from pool:" << 2 * pos << "-" << 2 * pos + 1;
 
-        weak_ptr<PortManager> weak_self = this->shared_from_this();
+        std::weak_ptr<PortManager> weak_self = this->shared_from_this();
         std::shared_ptr<uint16_t> ret(new uint16_t(pos), [weak_self, pos](uint16_t *ptr) {
             delete ptr;
-            auto strong_self = weak_self.lock();
-            if (!strong_self) {
-                return;
+            if (auto strong_self = weak_self.lock()) {
+                InfoL << "return port to pool:" << 2 * pos << "-" << 2 * pos + 1;
+                //回收端口号
+                std::lock_guard<std::recursive_mutex> lck(strong_self->_pool_mtx);
+                strong_self->_port_pair_pool.emplace_back(pos);
             }
-            InfoL << "return port to pool:" << 2 * pos << "-" << 2 * pos + 1;
-            //回收端口号
-            lock_guard<recursive_mutex> lck(strong_self->_pool_mtx);
-            strong_self->_port_pair_pool.emplace_back(pos);
         });
         return ret;
     }
 
 private:
-    recursive_mutex _pool_mtx;
-    deque<uint16_t> _port_pair_pool;
+    std::recursive_mutex _pool_mtx;
+    std::deque<uint16_t> _port_pair_pool;
 };
 
 void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port, bool is_udp) {
@@ -421,7 +426,7 @@ void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local
                 PortManager<1>::Instance().makeSockPair(pair, local_ip, re_use_port, is_udp);
             }
             break;
-        } catch (exception &ex) {
+        } catch (std::exception &ex) {
             if (++try_count == 3) {
                 throw;
             }
@@ -589,7 +594,7 @@ RtpPacket::Ptr RtpPacket::create() {
 #endif
 }
 
-TitleSdp::TitleSdp(float dur_sec, const map<string, string>& header, int version) : Sdp(0, 0) {
+TitleSdp::TitleSdp(float dur_sec, const std::map<string, string>& header, int version) : Sdp(0, 0) {
     _printer << "v=" << version << "\r\n";
 
     if (!header.empty()) {

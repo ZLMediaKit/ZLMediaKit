@@ -22,7 +22,7 @@
 
 namespace mediakit {
 
-class RtspPlayerImp : public PlayerImp<RtspPlayer, PlayerBase> ,private TrackListener {
+class RtspPlayerImp : public PlayerImp<RtspPlayer, PlayerBase>, private TrackListener {
 public:
     using Ptr = std::shared_ptr<RtspPlayerImp>;
     using Super = PlayerImp<RtspPlayer, PlayerBase>;
