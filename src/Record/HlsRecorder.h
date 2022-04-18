@@ -16,7 +16,8 @@
 
 namespace mediakit {
 
-class HlsRecorder : public MediaSourceEventInterceptor, public MpegMuxer, public std::enable_shared_from_this<HlsRecorder> {
+class HlsRecorder : public MediaSourceEventInterceptor, public MpegMuxer, 
+    public std::enable_shared_from_this<HlsRecorder> {
 public:
     using Ptr = std::shared_ptr<HlsRecorder>;
 
@@ -46,11 +47,13 @@ public:
     void onReaderChanged(MediaSource &sender, int size) override {
         GET_CONFIG(bool, hls_demand, General::kHlsDemand);
         // hls保留切片个数为0时代表为hls录制(不删除切片)，那么不管有无观看者都一直生成hls
-        _enabled = hls_demand ? (_hls->isLive() ? size : true) : true;
         if (!size && _hls->isLive() && hls_demand) {
+            _enabled = false;
             // hls直播时，如果无人观看就删除视频缓存，目的是为了防止视频跳跃
             _clear_cache = true;
         }
+        else
+            _enabled = true;
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
@@ -76,10 +79,10 @@ public:
 
 private:
     void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint32_t timestamp, bool key_pos) override {
-        if (!buffer) {
-            _hls->inputData(nullptr, 0, timestamp, key_pos);
-        } else {
+        if (buffer) {
             _hls->inputData(buffer->data(), buffer->size(), timestamp, key_pos);
+        } else {
+            _hls->inputData(nullptr, 0, timestamp, key_pos);
         }
     }
 

@@ -40,7 +40,6 @@ public:
 
     /**
      * 获取MediaSource
-     * @return
      */
     HlsMediaSource::Ptr getMediaSource() const;
 
@@ -70,6 +69,7 @@ private:
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
     toolkit::EventPoller::Ptr _poller;
+    // 用于记录索引对应文件路径: 直播模式时有用(用于onDelSegment), 点播模式因不需要删除文件，所以为空
     std::map<uint64_t/*index*/,std::string/*file_path*/> _segment_file_paths;
 };
 

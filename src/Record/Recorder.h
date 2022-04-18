@@ -48,7 +48,7 @@ public:
      * @param customized_path 录像文件保存自定义根目录，为空则采用配置文件设置
      * @return  录制文件绝对路径
      */
-    static std::string getRecordPath(type type, const std::string &vhost, const std::string &app, const std::string &stream_id,const std::string &customized_path = "");
+    static std::string getRecordPath(type type, const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &customized_path = "");
 
     /**
      * 创建录制器对象
