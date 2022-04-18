@@ -243,7 +243,7 @@ API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
         return rtcServer->getPort();
 
     } catch (std::exception &ex) {
-        rtpServer.reset();
+        rtcServer.reset();
         WarnL << ex.what();
         return 0;
     }
