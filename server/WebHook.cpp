@@ -245,7 +245,7 @@ static void pullStreamFromOrigin(const vector<string>& urls, size_t index, size_
     InfoL << "pull stream from origin, failed_cnt: " << failed_cnt << ", timeout_sec: " << timeout_sec << ", url: " << url;
 
     ProtocolOption option;
-    option.enable_hls =  args._schema == HLS_SCHEMA;
+    option.enable_hls =  option.enable_hls || (args._schema == HLS_SCHEMA);
     option.enable_mp4 = false;
 
     addStreamProxy(args._vhost, args._app, args._streamid, url, -1, option, Rtsp::RTP_TCP, timeout_sec,
