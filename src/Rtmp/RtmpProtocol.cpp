@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -766,6 +766,9 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
         case MSG_AGGREGATE: {
             auto ptr = (uint8_t *) chunk_data.buffer.data();
             auto ptr_tail = ptr + chunk_data.buffer.size();
+            uint32_t latest_ts, timestamp;
+            timestamp = chunk_data.time_stamp;
+            bool first_message = true;
             while (ptr + 8 + 3 < ptr_tail) {
                 auto type = *ptr;
                 ptr += 1;
@@ -781,12 +784,17 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
                 if (ptr + size > ptr_tail) {
                     break;
                 }
+                if (!first_message) {
+                    timestamp += ts - latest_ts;
+                }
+                first_message = false;
+                latest_ts = ts;
                 auto sub_packet_ptr = RtmpPacket::create();
                 auto &sub_packet = *sub_packet_ptr;
                 sub_packet.buffer.assign((char *)ptr, size);
                 sub_packet.type_id = type;
                 sub_packet.body_size = size;
-                sub_packet.time_stamp = ts;
+                sub_packet.time_stamp = timestamp;
                 sub_packet.stream_index = chunk_data.stream_index;
                 sub_packet.chunk_id = chunk_data.chunk_id;
                 handle_chunk(std::move(sub_packet_ptr));
