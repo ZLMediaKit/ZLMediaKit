@@ -214,7 +214,7 @@ inline void RtmpPlayer::send_createStream() {
 
 inline void RtmpPlayer::send_play() {
     AMFEncoder enc;
-    enc << "play" << ++_send_req_id << nullptr << _stream_id << (double) _stream_index;
+    enc << "play" << ++_send_req_id << nullptr << _stream_id << "-2000";
     sendRequest(MSG_CMD, enc.data());
     auto fun = [](AMFValue &val) {
         //TraceL << "play onStatus";
@@ -297,7 +297,8 @@ void RtmpPlayer::onCmd_onStatus(AMFDecoder &dec) {
         auto level = val["level"];
         auto code = val["code"].as_string();
         if (level.type() == AMF_STRING) {
-            if (level.as_string() != "status") {
+            // warning 不应该断开
+            if (level.as_string() != "status" && level.as_string() != "warning") {
                 throw std::runtime_error(StrPrinter << "onStatus 失败:" << level.as_string() << " " << code << endl);
             }
         }
