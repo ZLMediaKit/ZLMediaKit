@@ -88,7 +88,7 @@ private:
     std::shared_ptr<struct sockaddr> _rtcp_addr;
 };
 
-void RtpServer::start(uint16_t local_port, const string &stream_id, uint32_t ssrc,  bool enable_tcp, const char *local_ip, bool re_use_port) {
+void RtpServer::start(uint16_t local_port, const string &stream_id, bool enable_tcp, const char *local_ip, bool re_use_port, uint32_t ssrc) {
     //创建udp服务器
     Socket::Ptr rtp_socket = Socket::createSocket(nullptr, true);
     Socket::Ptr rtcp_socket = Socket::createSocket(nullptr, true);
