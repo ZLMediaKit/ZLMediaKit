@@ -25,6 +25,7 @@
 #include "Nack.h"
 #include "Network/Session.h"
 #include "TwccContext.h"
+#include "SctpAssociation.hpp"
 
 //RTC配置项目
 namespace RTC {
@@ -56,7 +57,11 @@ private:
     SockException _ex;
 };
 
-class WebRtcTransport : public WebRtcInterface, public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener, public std::enable_shared_from_this<WebRtcTransport> {
+class WebRtcTransport : public WebRtcInterface, public RTC::DtlsTransport::Listener, public RTC::IceServer::Listener, public std::enable_shared_from_this<WebRtcTransport>
+#ifdef ENABLE_SCTP
+    , public RTC::SctpAssociation::Listener
+#endif
+{
 public:
     using Ptr = std::shared_ptr<WebRtcTransport>;
     WebRtcTransport(const EventPoller::Ptr &poller);
@@ -128,6 +133,16 @@ protected:
     void OnIceServerCompleted(const RTC::IceServer *iceServer) override;
     void OnIceServerDisconnected(const RTC::IceServer *iceServer) override;
 
+#ifdef ENABLE_SCTP
+    void OnSctpAssociationConnecting(RTC::SctpAssociation* sctpAssociation) override;
+    void OnSctpAssociationConnected(RTC::SctpAssociation* sctpAssociation) override;
+    void OnSctpAssociationFailed(RTC::SctpAssociation* sctpAssociation) override;
+    void OnSctpAssociationClosed(RTC::SctpAssociation* sctpAssociation) override;
+    void OnSctpAssociationSendData(RTC::SctpAssociation* sctpAssociation, const uint8_t* data, size_t len) override;
+    void OnSctpAssociationMessageReceived(RTC::SctpAssociation *sctpAssociation, uint16_t streamId, uint32_t ppid,
+                                          const uint8_t *msg, size_t len) override;
+#endif
+
 protected:
     virtual void onStartWebRTC() = 0;
     virtual void onRtcConfigure(RtcConfigure &configure) const;
@@ -163,6 +178,10 @@ private:
     Ticker _ticker;
     //循环池
     ResourcePool<BufferRaw> _packet_pool;
+
+#ifdef ENABLE_SCTP
+    RTC::SctpAssociationImp::Ptr _sctp;
+#endif
 };
 
 class RtpChannel;
