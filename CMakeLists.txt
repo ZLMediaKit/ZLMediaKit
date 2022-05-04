@@ -176,13 +176,13 @@ endif ()
 
 set(LINK_LIB_LIST zlmediakit zltoolkit)
 
-#默认链接jemalloc库避免内存碎片
-find_package(JEMALLOC QUIET)
-if (JEMALLOC_FOUND)
-    message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
-    include_directories(${JEMALLOC_INCLUDE_DIR})
-    list(APPEND LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
-endif ()
+##默认链接jemalloc库避免内存碎片
+#find_package(JEMALLOC QUIET)
+#if (JEMALLOC_FOUND)
+#    message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
+#    include_directories(${JEMALLOC_INCLUDE_DIR})
+#    list(APPEND LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
+#endif ()
 
 #查找openssl是否安装
 find_package(OpenSSL QUIET)
@@ -351,6 +351,15 @@ if (ENABLE_WEBRTC)
         add_library(webrtc ${SRC_WEBRTC_LIST})
         list(APPEND LINK_LIB_LIST webrtc)
         message(STATUS "webrtc功能已开启")
+
+        find_package(SCTP QUIET)
+        if (SCTP_FOUND)
+            message(STATUS "found library:${SCTP_INCLUDE_DIRS} ${SCTP_LIBRARIES}")
+            include_directories(${SCTP_INCLUDE_DIRS})
+            list(APPEND LINK_LIB_LIST ${SCTP_LIBRARIES})
+            add_definitions(-DENABLE_SCTP)
+            message(STATUS "webrtc datachannel功能已打开")
+        endif ()
     else ()
         set(ENABLE_WEBRTC off)
         message(WARNING "srtp未找到, webrtc相关功能打开失败")

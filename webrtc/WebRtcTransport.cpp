@@ -60,6 +60,9 @@ void WebRtcTransport::onCreate(){
 }
 
 void WebRtcTransport::onDestory(){
+#ifdef ENABLE_SCTP
+    _sctp = nullptr;
+#endif
     _dtls_transport = nullptr;
     _ice_server = nullptr;
 }
@@ -112,6 +115,10 @@ void WebRtcTransport::OnDtlsTransportConnected(
     InfoL;
     _srtp_session_send = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::OUTBOUND, srtpCryptoSuite, srtpLocalKey, srtpLocalKeyLen);
     _srtp_session_recv = std::make_shared<RTC::SrtpSession>(RTC::SrtpSession::Type::INBOUND, srtpCryptoSuite, srtpRemoteKey, srtpRemoteKeyLen);
+#ifdef ENABLE_SCTP
+    _sctp = std::make_shared<RTC::SctpAssociationImp>(getPoller(), this, 128, 128, 262144, true);
+    _sctp->TransportConnected();
+#endif
     onStartWebRTC();
 }
 
@@ -134,8 +141,44 @@ void WebRtcTransport::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransp
 }
 
 void WebRtcTransport::OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) {
+#ifdef ENABLE_SCTP
+    _sctp->ProcessSctpData(data, len);
+#else
     InfoL << hexdump(data, len);
+#endif
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef ENABLE_SCTP
+void WebRtcTransport::OnSctpAssociationConnecting(RTC::SctpAssociation* sctpAssociation) {
+    TraceL;
+}
+
+void WebRtcTransport::OnSctpAssociationConnected(RTC::SctpAssociation* sctpAssociation) {
+    InfoL << getIdentifier();
+}
+
+void WebRtcTransport::OnSctpAssociationFailed(RTC::SctpAssociation* sctpAssociation) {
+    WarnL << getIdentifier();
+}
+
+void WebRtcTransport::OnSctpAssociationClosed(RTC::SctpAssociation* sctpAssociation) {
+    InfoL << getIdentifier();
+}
+
+void WebRtcTransport::OnSctpAssociationSendData(RTC::SctpAssociation* sctpAssociation, const uint8_t* data, size_t len) {
+    _dtls_transport->SendApplicationData(data, len);
+}
+
+void WebRtcTransport::OnSctpAssociationMessageReceived(RTC::SctpAssociation *sctpAssociation, uint16_t streamId,
+                                                       uint32_t ppid, const uint8_t *msg, size_t len) {
+    InfoL << getIdentifier() << " " << streamId << " " << ppid << " " << len << " " << string((char *)msg, len);
+    RTC::SctpStreamParameters params;
+    params.streamId = streamId;
+    //回显数据
+    _sctp->SendSctpMessage(params, ppid, msg, len);
+}
+#endif
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTuple *tuple){
