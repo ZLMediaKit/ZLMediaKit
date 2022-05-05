@@ -64,8 +64,12 @@
             <button onclick="stop()">停止(stop)</button>
 
             <p>
-              <label for="msg">msg:</label>
-              <input type="text" id='msg' value="hello word !">
+              <label for="msgsend">msgsend:</label>
+              <input type="text" id='msgsend' value="hello word !">
+            </p>
+            <p>
+              <label for="msgrecv">msgrecv:</label>
+              <input type="text" id='msgrecv' disabled>
             </p>
             <button onclick="send()">发送(send by datachannel)</button>
             <button onclick="close()">关闭(close datachannel)</button>
@@ -185,6 +189,7 @@
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_MSG,function(event)
             {
               console.log('rtc datachannel 消息 :',event.data)
+              document.getElementById('msgrecv').value = event.data
             });
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_ERR,function(event)
             {
@@ -237,7 +242,7 @@
       function send(){
         if(player){
           //send msg refernece https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send
-          player.sendMsg(document.getElementById('msg').value)
+          player.sendMsg(document.getElementById('msgsend').value)
         }
       }
 
