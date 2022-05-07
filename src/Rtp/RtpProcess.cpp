@@ -209,7 +209,7 @@ string RtpProcess::get_local_ip() {
     if (_sock) {
         return _sock->get_local_ip();
     }
-    return "0.0.0.0";
+    return "::";
 }
 
 uint16_t RtpProcess::get_local_port() {
