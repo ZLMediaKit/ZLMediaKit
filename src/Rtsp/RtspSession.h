@@ -133,7 +133,7 @@ private:
     int getTrackIndexByControlUrl(const std::string &control_url);
     int getTrackIndexByInterleaved(int interleaved);
     //一般用于接收udp打洞包，也用于rtsp推流
-    void onRcvPeerUdpData(int interleaved, const toolkit::Buffer::Ptr &buf, const struct sockaddr &addr);
+    void onRcvPeerUdpData(int interleaved, const toolkit::Buffer::Ptr &buf, const struct sockaddr_storage &addr);
     //配合onRcvPeerUdpData使用
     void startListenPeerUdpData(int track_idx);
     ////rtsp专有认证相关////

@@ -37,7 +37,7 @@ static bool loadFile(const char *path){
     uint32_t timeStamp_last = 0;
     uint16_t len;
     char rtp[0xFFFF];
-    struct sockaddr addr = {0};
+    struct sockaddr_storage addr = {0};
     auto sock = Socket::createSocket();
     size_t total_size = 0;
     while (true) {
@@ -58,7 +58,7 @@ static bool loadFile(const char *path){
         total_size += len;
         uint32_t timeStamp;
 
-        RtpSelector::Instance().inputRtp(sock, rtp, len, &addr, &timeStamp);
+        RtpSelector::Instance().inputRtp(sock, rtp, len, (struct sockaddr *)&addr, &timeStamp);
         auto diff = timeStamp - timeStamp_last;
         if (diff > 0 && diff < 500) {
             usleep(diff * 1000);

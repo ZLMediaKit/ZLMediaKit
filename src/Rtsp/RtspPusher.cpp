@@ -307,30 +307,25 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
         auto &rtp_sock = _rtp_sock[track_idx];
         auto &rtcp_sock = _rtcp_sock[track_idx];
 
-        struct sockaddr_in rtpto;
+        auto rtpto = SockUtil::make_sockaddr(get_peer_ip().data(), rtp_port);
         //设置rtp发送目标，为后续发送rtp做准备
-        rtpto.sin_port = ntohs(rtp_port);
-        rtpto.sin_family = AF_INET;
-        rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
         rtp_sock->bindPeerAddr((struct sockaddr *) &(rtpto));
 
         //设置rtcp发送目标，为后续发送rtcp做准备
-        rtpto.sin_port = ntohs(rtcp_port);
-        rtpto.sin_family = AF_INET;
-        rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-        rtcp_sock->bindPeerAddr((struct sockaddr *)&(rtpto));
+        auto rtcpto = SockUtil::make_sockaddr(get_peer_ip().data(), rtcp_port);
+        rtcp_sock->bindPeerAddr((struct sockaddr *)&(rtcpto));
 
-        auto srcIP = inet_addr(get_peer_ip().data());
+        auto peer_ip = get_peer_ip();
         weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
         if(rtcp_sock) {
             //设置rtcp over udp接收回调处理函数
-            rtcp_sock->setOnRead([srcIP, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
+            rtcp_sock->setOnRead([peer_ip, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
                     return;
                 }
-                if (((struct sockaddr_in *) addr)->sin_addr.s_addr != srcIP) {
-                    WarnL << "收到其他地址的rtcp数据:" << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
+                if (SockUtil::inet_ntoa(addr) != peer_ip) {
+                    WarnL << "收到其他地址的rtcp数据:" << SockUtil::inet_ntoa(addr);
                     return;
                 }
                 strongSelf->onRtcpPacket(track_idx, strongSelf->_track_vec[track_idx], (uint8_t *) buf->data(), buf->size());

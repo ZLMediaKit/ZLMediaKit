@@ -53,7 +53,7 @@ public:
             }
             if (!strong_self->_rtcp_addr) {
                 //只设置一次rtcp对端端口
-                strong_self->_rtcp_addr = std::make_shared<struct sockaddr>();
+                strong_self->_rtcp_addr = std::make_shared<struct sockaddr_storage>();
                 memcpy(strong_self->_rtcp_addr.get(), addr, addr_len);
             }
             auto rtcps = RtcpHeader::loadFromBytes(buf->data(), buf->size());
@@ -71,10 +71,13 @@ private:
         }
         _ticker.resetTime();
 
-        auto rtcp_addr = _rtcp_addr.get();
+        auto rtcp_addr = (struct sockaddr *)_rtcp_addr.get();
         if (!rtcp_addr) {
             //默认的，rtcp端口为rtp端口+1
-            ((sockaddr_in *) addr)->sin_port = htons(ntohs(((sockaddr_in *) addr)->sin_port) + 1);
+            switch(addr->sa_family){
+                case AF_INET: ((sockaddr_in *) addr)->sin_port = htons(ntohs(((sockaddr_in *) addr)->sin_port) + 1); break;
+                case AF_INET6: ((sockaddr_in6 *) addr)->sin6_port = htons(ntohs(((sockaddr_in6 *) addr)->sin6_port) + 1); break;
+            }
             //未收到rtcp打洞包时，采用默认的rtcp端口
             rtcp_addr = addr;
         }
@@ -85,7 +88,7 @@ private:
     Ticker _ticker;
     Socket::Ptr _rtcp_sock;
     uint32_t _sample_rate;
-    std::shared_ptr<struct sockaddr> _rtcp_addr;
+    std::shared_ptr<struct sockaddr_storage> _rtcp_addr;
 };
 
 void RtpServer::start(uint16_t local_port, const string &stream_id, bool enable_tcp, const char *local_ip, bool re_use_port, uint32_t ssrc) {

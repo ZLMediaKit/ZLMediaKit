@@ -274,7 +274,7 @@ static bool is_rtcp(char *buf) {
 }
 
 static string getPeerAddress(RTC::TransportTuple *tuple){
-    return SockUtil::inet_ntoa(((struct sockaddr_in *)tuple)->sin_addr) + ":" + to_string(ntohs(((struct sockaddr_in *)tuple)->sin_port));
+    return SockUtil::inet_ntoa(tuple);
 }
 
 void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tuple) {

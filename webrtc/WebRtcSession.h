@@ -32,7 +32,7 @@ private:
     std::string _identifier;
     bool _find_transport = true;
     Ticker _ticker;
-    struct sockaddr _peer_addr;
+    struct sockaddr_storage _peer_addr;
     std::shared_ptr<WebRtcTransportImp> _transport;
 };
 
