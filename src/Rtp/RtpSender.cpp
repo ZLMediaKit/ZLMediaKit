@@ -37,13 +37,13 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
         } else {
             auto pr = std::make_pair(std::move(_socket), Socket::createSocket(_poller, false));
             //从端口池获取随机端口
-            makeSockPair(pr, "0.0.0.0", true);
+            makeSockPair(pr, "::", true);
             _socket = std::move(pr.first);
         }
         auto poller = _poller;
         auto local_port = _socket->get_local_port();
         WorkThreadPool::Instance().getPoller()->async([cb, args, weak_self, poller, local_port]() {
-            struct sockaddr addr;
+            struct sockaddr_storage addr;
             //切换线程目的是为了dns解析放在后台线程执行
             if (!SockUtil::getDomainIP(args.dst_url.data(), args.dst_port, addr)) {
                 poller->async([args, cb, local_port]() {
@@ -59,7 +59,7 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
                 cb(local_port, SockException());
                 auto strong_self = weak_self.lock();
                 if (strong_self) {
-                    strong_self->_socket->bindPeerAddr(&addr);
+                    strong_self->_socket->bindPeerAddr((struct sockaddr *)&addr);
                     strong_self->onConnect();
                 }
             });
@@ -76,7 +76,7 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
             } else {
                 cb(0, err);
             }
-        }, 5.0F, "0.0.0.0", args.src_port);
+            }, 5.0F, "::", args.src_port);
     }
 }
 

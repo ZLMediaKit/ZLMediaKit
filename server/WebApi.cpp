@@ -1056,7 +1056,7 @@ void installWebApi() {
         }
 
         RtpServer::Ptr server = std::make_shared<RtpServer>();
-        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "0.0.0.0",
+        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "::",
                       allArgs["re_use_port"].as<bool>(), allArgs["ssrc"].as<uint32_t>());
         server->setOnDetach([stream_id]() {
             //设置rtp超时移除事件
