@@ -292,7 +292,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
             //udp组播
             auto multiAddr =  transport_map["destination"];
             pRtpSockRef = createSocket();
-            if (!pRtpSockRef->bindUdpSock(rtp_port, "::")) {
+            //目前组播仅支持ipv4
+            if (!pRtpSockRef->bindUdpSock(rtp_port, "0.0.0.0")) {
                 pRtpSockRef.reset();
                 throw std::runtime_error("open udp sock err");
             }
@@ -303,45 +304,38 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
 
             //设置rtcp发送端口
             pRtcpSockRef = createSocket();
-            if (!pRtcpSockRef->bindUdpSock(0, "::")) {
+            //目前组播仅支持ipv4
+            if (!pRtcpSockRef->bindUdpSock(0, "0.0.0.0")) {
                 //分配端口失败
                 throw runtime_error("open udp socket failed");
             }
 
             //设置发送地址和发送端口
-            struct sockaddr_in rtpto;
-            rtpto.sin_port = ntohs(rtcp_port);
-            rtpto.sin_family = AF_INET;
-            rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-            pRtcpSockRef->bindPeerAddr((struct sockaddr *)&(rtpto));
+            auto dst = SockUtil::make_sockaddr(get_peer_ip().data(), rtcp_port);
+            pRtcpSockRef->bindPeerAddr((struct sockaddr *)&(dst));
         } else {
             createUdpSockIfNecessary(track_idx);
             //udp单播
-            struct sockaddr_in rtpto;
-            rtpto.sin_port = ntohs(rtp_port);
-            rtpto.sin_family = AF_INET;
-            rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-            pRtpSockRef->bindPeerAddr((struct sockaddr *)&(rtpto));
+            auto dst = SockUtil::make_sockaddr(get_peer_ip().data(), rtp_port);
+            pRtpSockRef->bindPeerAddr((struct sockaddr *)&(dst));
             //发送rtp打洞包
             pRtpSockRef->send("\xce\xfa\xed\xfe", 4);
 
+            dst = SockUtil::make_sockaddr(get_peer_ip().data(), rtcp_port);
             //设置rtcp发送目标，为后续发送rtcp做准备
-            rtpto.sin_port = ntohs(rtcp_port);
-            rtpto.sin_family = AF_INET;
-            rtpto.sin_addr.s_addr = inet_addr(get_peer_ip().data());
-            pRtcpSockRef->bindPeerAddr((struct sockaddr *)&(rtpto));
+            pRtcpSockRef->bindPeerAddr((struct sockaddr *)&(dst));
         }
 
-        auto srcIP = inet_addr(get_peer_ip().data());
+        auto peer_ip = get_peer_ip();
         weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
         //设置rtp over udp接收回调处理函数
-        pRtpSockRef->setOnRead([srcIP, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
+        pRtpSockRef->setOnRead([peer_ip, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return;
             }
-            if (((struct sockaddr_in *) addr)->sin_addr.s_addr != srcIP) {
-                WarnL << "收到其他地址的rtp数据:" << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
+            if (SockUtil::inet_ntoa(addr) != peer_ip) {
+                WarnL << "收到其他地址的rtp数据:" << SockUtil::inet_ntoa(addr);
                 return;
             }
             strongSelf->handleOneRtp(track_idx, strongSelf->_sdp_track[track_idx]->_type,
@@ -350,13 +344,13 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
 
         if(pRtcpSockRef) {
             //设置rtcp over udp接收回调处理函数
-            pRtcpSockRef->setOnRead([srcIP, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
+            pRtcpSockRef->setOnRead([peer_ip, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
                     return;
                 }
-                if (((struct sockaddr_in *) addr)->sin_addr.s_addr != srcIP) {
-                    WarnL << "收到其他地址的rtcp数据:" << SockUtil::inet_ntoa(((struct sockaddr_in *) addr)->sin_addr);
+                if (SockUtil::inet_ntoa(addr) != peer_ip) {
+                    WarnL << "收到其他地址的rtcp数据:" << SockUtil::inet_ntoa(addr);
                     return;
                 }
                 strongSelf->onRtcpPacket(track_idx, strongSelf->_sdp_track[track_idx], (uint8_t *) buf->data(), buf->size());

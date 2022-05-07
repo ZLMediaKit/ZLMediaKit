@@ -50,7 +50,7 @@ private:
     uint32_t _ssrc = 0;
     toolkit::Ticker _ticker;
     std::string _stream_id;
-    struct sockaddr _addr;
+    struct sockaddr_storage _addr;
     RtpProcess::Ptr _process;
     std::shared_ptr<toolkit::ObjectStatistic<toolkit::TcpSession> > _statistic_tcp;
     std::shared_ptr<toolkit::ObjectStatistic<toolkit::UdpSession> > _statistic_udp;

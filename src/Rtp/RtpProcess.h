@@ -84,7 +84,7 @@ private:
 private:
     uint32_t _dts = 0;
     uint64_t _total_bytes = 0;
-    struct sockaddr _addr{0};
+    struct sockaddr_storage _addr{0};
     toolkit::Socket::Ptr _sock;
     MediaInfo _media_info;
     toolkit::Ticker _last_frame_time;

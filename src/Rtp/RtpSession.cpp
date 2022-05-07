@@ -40,7 +40,7 @@ void RtpSession::attachServer(const Server &server) {
 RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
     DebugP(this);
     socklen_t addr_len = sizeof(_addr);
-    getpeername(sock->rawFD(), &_addr, &addr_len);
+    getpeername(sock->rawFD(), (struct sockaddr *)&_addr, &addr_len);
 }
 
 RtpSession::~RtpSession() {
@@ -110,7 +110,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
             WarnP(this) << "ssrc不匹配,rtp已丢弃:" << rtp_ssrc << " != " << _ssrc;
             return;
         }
-        _process->inputRtp(false, getSock(), data, len, &_addr);
+        _process->inputRtp(false, getSock(), data, len, (struct sockaddr *)&_addr);
     } catch (RtpTrack::BadRtpException &ex) {
         if (!_is_udp) {
             WarnL << ex.what() << "，开始搜索ssrc以便恢复上下文";
