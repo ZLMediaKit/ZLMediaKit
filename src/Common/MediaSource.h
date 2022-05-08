@@ -159,7 +159,7 @@ public:
     std::string _full_url;
     std::string _schema;
     std::string _host;
-    std::string _port;
+    uint16_t _port = 0;
     std::string _vhost;
     std::string _app;
     std::string _streamid;

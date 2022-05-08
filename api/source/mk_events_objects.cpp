@@ -155,7 +155,7 @@ API_EXPORT const char* API_CALL mk_media_info_get_host(const mk_media_info ctx){
 API_EXPORT uint16_t API_CALL mk_media_info_get_port(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return std::stoi(info->_port);
+    return info->_port;
 }
 
 API_EXPORT const char* API_CALL mk_media_info_get_app(const mk_media_info ctx){
