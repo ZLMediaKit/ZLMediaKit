@@ -514,7 +514,7 @@ void MediaInfo::parse(const string &url_in){
         } else {
             _host = _vhost = vhost;
         }
-        if (_vhost == "localhost" || INADDR_NONE != inet_addr(_vhost.data())) {
+        if (_vhost == "localhost" || isIP(_vhost.data())) {
             //如果访问的是localhost或ip，那么则为默认虚拟主机
             _vhost = DEFAULT_VHOST;
         }
