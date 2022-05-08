@@ -22,13 +22,13 @@ void HttpClient::sendRequest(const string &url) {
     clearResponse();
     _url = url;
     auto protocol = FindField(url.data(), NULL, "://");
-    uint16_t default_port;
+    uint16_t port;
     bool is_https;
     if (strcasecmp(protocol.data(), "http") == 0) {
-        default_port = 80;
+        port = 80;
         is_https = false;
     } else if (strcasecmp(protocol.data(), "https") == 0) {
-        default_port = 443;
+        port = 443;
         is_https = true;
     } else {
         auto strErr = StrPrinter << "非法的http url:" << url << endl;
@@ -53,14 +53,7 @@ void HttpClient::sendRequest(const string &url) {
         _header.emplace("Authorization", "Basic " + encodeBase64(authStr));
     }
     auto host_header = host;
-    uint16_t port = atoi(FindField(host.data(), ":", NULL).data());
-    if (port <= 0) {
-        //默认端口
-        port = default_port;
-    } else {
-        //服务器域名
-        host = FindField(host.data(), NULL, ":");
-    }
+    splitUrl(host, host, port);
     _header.emplace("Host", host_header);
     _header.emplace("User-Agent", kServerName);
     _header.emplace("Connection", "keep-alive");

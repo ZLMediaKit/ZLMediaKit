@@ -253,27 +253,6 @@ private:
 };
 
 /**
- * 解析rtsp url的工具类
- */
-class RtspUrl{
-public:
-    bool _is_ssl;
-    uint16_t _port;
-    std::string _url;
-    std::string _user;
-    std::string _passwd;
-    std::string _host;
-
-public:
-    RtspUrl() = default;
-    ~RtspUrl() = default;
-    bool parse(const std::string &url);
-
-private:
-    bool setup(bool,const std::string &, const std::string &, const std::string &);
-};
-
-/**
 * rtsp sdp基类
 */
 class Sdp : public CodecInfo{
