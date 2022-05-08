@@ -74,14 +74,8 @@ void RtmpPusher::publish(const string &url)  {
     }
     DebugL << host_url << " " << _app << " " << _stream_id;
 
-    auto iPort = atoi(FindField(host_url.data(), ":", NULL).data());
-    if (iPort <= 0) {
-        //rtmp 默认端口1935
-        iPort = 1935;
-    } else {
-        //服务器域名
-        host_url = FindField(host_url.data(), NULL, ":");
-    }
+    uint16_t port = 1935;
+    splitUrl(host_url, host_url, port);
 
     weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
     float publishTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
@@ -98,7 +92,7 @@ void RtmpPusher::publish(const string &url)  {
         setNetAdapter((*this)[Client::kNetAdapter]);
     }
 
-    startConnect(host_url, iPort);
+    startConnect(host_url, port);
 }
 
 void RtmpPusher::onErr(const SockException &ex){

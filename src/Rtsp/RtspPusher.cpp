@@ -56,8 +56,10 @@ void RtspPusher::teardown() {
 
 void RtspPusher::publish(const string &url_str) {
     RtspUrl url;
-    if (!url.parse(url_str)) {
-        onPublishResult_l(SockException(Err_other, StrPrinter << "illegal rtsp url:" << url_str), false);
+    try {
+        url.parse(url_str);
+    } catch (std::exception &ex) {
+        onPublishResult_l(SockException(Err_other, StrPrinter << "illegal rtsp url:" << ex.what()), false);
         return;
     }
 

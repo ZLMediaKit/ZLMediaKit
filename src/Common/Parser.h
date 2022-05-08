@@ -17,7 +17,10 @@
 
 namespace mediakit {
 
+//从字符串中提取子字符串
 std::string FindField(const char *buf, const char *start, const char *end, size_t bufSize = 0);
+//把url解析为主机地址和端口号,兼容ipv4/ipv6/dns
+void splitUrl(const std::string &url, std::string &host, uint16_t& port);
 
 struct StrCaseCompare {
     bool operator()(const std::string &__x, const std::string &__y) const {
@@ -57,8 +60,8 @@ public:
 //rtsp/http/sip解析类
 class Parser {
 public:
-    Parser();
-    ~Parser();
+    Parser() = default;
+    ~Parser() = default;
 
     //解析信令
     void Parse(const char *buf);
@@ -111,6 +114,25 @@ private:
     std::string _params;
     mutable StrCaseMap _mapHeaders;
     mutable StrCaseMap _mapUrlArgs;
+};
+
+//解析rtsp url的工具类
+class RtspUrl{
+public:
+    bool _is_ssl;
+    uint16_t _port;
+    std::string _url;
+    std::string _user;
+    std::string _passwd;
+    std::string _host;
+
+public:
+    RtspUrl() = default;
+    ~RtspUrl() = default;
+    void parse(const std::string &url);
+
+private:
+    void setup(bool,const std::string &, const std::string &, const std::string &);
 };
 
 }//namespace mediakit

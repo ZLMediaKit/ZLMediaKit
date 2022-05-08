@@ -66,8 +66,10 @@ void RtspPlayer::teardown(){
 
 void RtspPlayer::play(const string &strUrl){
     RtspUrl url;
-    if(!url.parse(strUrl)){
-        onPlayResult_l(SockException(Err_other,StrPrinter << "illegal rtsp url:" << strUrl),false);
+    try {
+        url.parse(strUrl);
+    } catch (std::exception &ex) {
+        onPlayResult_l(SockException(Err_other, StrPrinter << "illegal rtsp url:" << ex.what()), false);
         return;
     }
 

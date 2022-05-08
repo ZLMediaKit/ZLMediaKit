@@ -57,14 +57,9 @@ void RtmpPlayer::play(const string &strUrl)  {
     }
     DebugL << host_url << " " << _app << " " << _stream_id;
 
-    auto iPort = atoi(FindField(host_url.data(), ":", NULL).data());
-    if (iPort <= 0) {
-        //rtmp 默认端口1935
-        iPort = 1935;
-    } else {
-        //服务器域名
-        host_url = FindField(host_url.data(), NULL, ":");
-    }
+    uint16_t port = 1935;
+    splitUrl(host_url, host_url, port);
+
     if (!(*this)[Client::kNetAdapter].empty()) {
         setNetAdapter((*this)[Client::kNetAdapter]);
     }
@@ -81,7 +76,7 @@ void RtmpPlayer::play(const string &strUrl)  {
     }, getPoller()));
 
     _metadata_got = false;
-    startConnect(host_url, iPort, play_timeout_sec);
+    startConnect(host_url, port, play_timeout_sec);
 }
 
 void RtmpPlayer::onErr(const SockException &ex){
