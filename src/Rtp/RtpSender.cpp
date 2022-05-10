@@ -45,7 +45,7 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
         WorkThreadPool::Instance().getPoller()->async([cb, args, weak_self, poller, local_port]() {
             struct sockaddr_storage addr;
             //切换线程目的是为了dns解析放在后台线程执行
-            if (!SockUtil::getDomainIP(args.dst_url.data(), args.dst_port, addr)) {
+            if (!SockUtil::getDomainIP(args.dst_url.data(), args.dst_port, addr, AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
                 poller->async([args, cb, local_port]() {
                     //切回自己的线程
                     cb(local_port, SockException(Err_dns, StrPrinter << "dns解析域名失败:" << args.dst_url));
