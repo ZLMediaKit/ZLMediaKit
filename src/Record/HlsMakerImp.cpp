@@ -23,7 +23,8 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
                          const string &params,
                          uint32_t bufSize,
                          float seg_duration,
-                         uint32_t seg_number) : HlsMaker(seg_duration, seg_number) {
+                         uint32_t seg_number,
+                         bool seg_keep):HlsMaker(seg_duration, seg_number, seg_keep) {
     _poller = EventPollerPool::Instance().getPoller();
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
@@ -47,7 +48,7 @@ void HlsMakerImp::clearCache() {
 void HlsMakerImp::clearCache(bool immediately, bool eof) {
     //录制完了
     flushLastSegment(eof);
-    if (!isLive()) {
+    if (!isLive()||isKeep()) {
         return;
     }
 

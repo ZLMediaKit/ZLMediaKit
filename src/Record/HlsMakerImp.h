@@ -25,7 +25,8 @@ public:
                 const std::string &params,
                 uint32_t bufSize  = 64 * 1024,
                 float seg_duration = 5,
-                uint32_t seg_number = 3);
+                uint32_t seg_number = 3,
+                bool seg_keep = false);
 
     ~HlsMakerImp() override;
 
