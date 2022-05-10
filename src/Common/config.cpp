@@ -252,6 +252,7 @@ namespace Hls {
 #define HLS_FIELD "hls."
 const string kSegmentDuration = HLS_FIELD"segDur";
 const string kSegmentNum = HLS_FIELD"segNum";
+const string kSegmentKeep = HLS_FIELD"segKeep";
 const string kSegmentRetain = HLS_FIELD"segRetain";
 const string kFileBufSize = HLS_FIELD"fileBufSize";
 const string kFilePath = HLS_FIELD"filePath";
@@ -261,6 +262,7 @@ const string kDeleteDelaySec = HLS_FIELD"deleteDelaySec";
 static onceToken token([](){
     mINI::Instance()[kSegmentDuration] = 2;
     mINI::Instance()[kSegmentNum] = 3;
+    mINI::Instance()[kSegmentKeep] = false;
     mINI::Instance()[kSegmentRetain] = 5;
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kFilePath] = "./www";

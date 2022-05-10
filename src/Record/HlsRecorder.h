@@ -22,9 +22,10 @@ public:
 
     HlsRecorder(const std::string &m3u8_file, const std::string &params) : MpegMuxer(false) {
         GET_CONFIG(uint32_t, hlsNum, Hls::kSegmentNum);
+        GET_CONFIG(bool, hlsKeep, Hls::kSegmentKeep);
         GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
         GET_CONFIG(float, hlsDuration, Hls::kSegmentDuration);
-        _hls = std::make_shared<HlsMakerImp>(m3u8_file, params, hlsBufSize, hlsDuration, hlsNum);
+        _hls = std::make_shared<HlsMakerImp>(m3u8_file, params, hlsBufSize, hlsDuration, hlsNum, hlsKeep);
         //清空上次的残余文件
         _hls->clearCache();
     }
