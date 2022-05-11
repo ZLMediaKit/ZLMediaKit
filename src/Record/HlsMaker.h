@@ -26,8 +26,9 @@ public:
     /**
      * @param seg_duration 切片文件长度
      * @param seg_number 切片个数
+     * @param seg_keep 是否保留切片文件
      */
-    HlsMaker(float seg_duration = 5, uint32_t seg_number = 3);
+    HlsMaker(float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false);
     virtual ~HlsMaker();
 
     /**
@@ -43,6 +44,11 @@ public:
      * 是否为直播
      */
     bool isLive();
+
+    /**
+     * 是否保留切片文件
+     */
+    bool isKeep();
 
     /**
      * 清空记录
@@ -108,6 +114,7 @@ private:
 private:
     float _seg_duration = 0;
     uint32_t _seg_number = 0;
+    bool _seg_keep = false;
     uint32_t _last_timestamp = 0;
     uint32_t _last_seg_timestamp = 0;
     uint64_t _file_index = 0;
