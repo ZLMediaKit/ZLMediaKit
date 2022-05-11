@@ -14,10 +14,11 @@ using namespace std;
 
 namespace mediakit {
 
-HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number) {
+HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number, bool seg_keep) {
     //最小允许设置为0，0个切片代表点播
     _seg_number = seg_number;
     _seg_duration = seg_duration;
+    _seg_keep = seg_keep;
 }
 
 HlsMaker::~HlsMaker() {
@@ -105,7 +106,10 @@ void HlsMaker::delOldSegment() {
     if (_file_index > _seg_number) {
         _seg_dur_list.pop_front();
     }
-
+    //如果设置为一直保存，就不删除
+    if (_seg_keep) {
+        return;
+    }
     GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
     //但是实际保存的切片个数比m3u8所述多若干个,这样做的目的是防止播放器在切片删除前能下载完毕
     if (_file_index > _seg_number + segRetain) {
@@ -147,6 +151,10 @@ void HlsMaker::flushLastSegment(bool eof){
 
 bool HlsMaker::isLive() {
     return _seg_number != 0;
+}
+
+bool HlsMaker::isKeep() {
+    return _seg_keep;
 }
 
 void HlsMaker::clear() {
