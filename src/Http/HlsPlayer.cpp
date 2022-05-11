@@ -43,7 +43,7 @@ void HlsPlayer::teardown_l(const SockException &ex) {
         onPlayResult(ex);
     } else {
         //如果不是主动关闭的，则重新拉取索引文件
-        if (ex.getErrCode() != Err_shutdown) {
+        if (ex.getErrCode() != Err_shutdown && HlsParser::isLive()) {
             // 当切片列表已空, 且没有正在下载的切片并且重试次数已经达到最大次数时, 则认为失败关闭播放器
             if (_ts_list.empty() && !(_http_ts_player && _http_ts_player->waitResponse())
                 && _try_fetch_index_times >= MAX_TRY_FETCH_INDEX_TIMES) {
@@ -73,7 +73,12 @@ void HlsPlayer::fetchSegment() {
     if (_ts_list.empty()) {
         //播放列表为空，那么立即重新下载m3u8文件
         _timer.reset();
-        fetchIndexFile();
+        if(HlsParser::isLive()) {
+            fetchIndexFile();
+        }else{
+            // 如果不是直播没必要继续拉取索引文件, 播完就完事了
+            teardown_l(SockException(Err_other, "The playlist has been played"));
+        }
         return;
     }
     if (_http_ts_player && _http_ts_player->waitResponse()) {
@@ -211,6 +216,8 @@ void HlsPlayer::onResponseCompleted(const SockException &ex) {
         teardown_l(SockException(Err_other, "parse m3u8 failed:" + _m3u8));
         return;
     }
+    //重置重试次数
+    _try_fetch_index_times = 0;
     if (!_play_result) {
         _play_result = true;
         onPlayResult(SockException());
