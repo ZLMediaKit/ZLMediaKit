@@ -471,10 +471,15 @@ void WebRtcTransportImp::onStartWebRTC() {
 
 void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
     //修改answer sdp的ip、端口信息
-    GET_CONFIG(string, extern_ip, RTC::kExternIP);
+    GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, RTC::kExternIP, [](string str){
+        std::vector<std::string> ret;
+        if (str.length())
+            ret = split(str, ",");
+        return ret;
+    });
     for (auto &m : sdp.media) {
         m.addr.reset();
-        m.addr.address = extern_ip.empty() ? SockUtil::get_local_ip() : extern_ip;
+        m.addr.address = extern_ips.empty() ? SockUtil::get_local_ip() : extern_ips[0];
         m.rtcp_addr.reset();
         m.rtcp_addr.address = m.addr.address;
 
