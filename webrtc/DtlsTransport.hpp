@@ -135,7 +135,6 @@ namespace RTC
 		static Role StringToRole(const std::string& role)
 		{
 			auto it = DtlsTransport::string2Role.find(role);
-
 			if (it != DtlsTransport::string2Role.end())
 				return it->second;
 			else
@@ -144,7 +143,6 @@ namespace RTC
 		static FingerprintAlgorithm GetFingerprintAlgorithm(const std::string& fingerprint)
 		{
 			auto it = DtlsTransport::string2FingerprintAlgorithm.find(fingerprint);
-
 			if (it != DtlsTransport::string2FingerprintAlgorithm.end())
 				return it->second;
 			else

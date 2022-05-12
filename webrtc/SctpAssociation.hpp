@@ -8,15 +8,15 @@
 
 namespace RTC
 {
-    class SctpEnv;
-    class SctpStreamParameters
-    {
-    public:
-        uint16_t streamId{ 0u };
-        bool ordered{ true };
-        uint16_t maxPacketLifeTime{ 0u };
-        uint16_t maxRetransmits{ 0u };
-    };
+	class SctpEnv;
+	class SctpStreamParameters
+	{
+	public:
+		uint16_t streamId{ 0u };
+		bool ordered{ true };
+		uint16_t maxPacketLifeTime{ 0u };
+		uint16_t maxRetransmits{ 0u };
+	};
 
 	class SctpAssociation
 	{
@@ -94,10 +94,10 @@ namespace RTC
 		void AddOutgoingStreams(bool force = false);
 
 	public:
-        /* Callbacks fired by usrsctp events. */
-        virtual void OnUsrSctpSendSctpData(void* buffer, size_t len);
-        virtual void OnUsrSctpReceiveSctpData(uint16_t streamId, uint16_t ssn, uint32_t ppid, int flags, const uint8_t* data, size_t len);
-        virtual void OnUsrSctpReceiveSctpNotification(union sctp_notification* notification, size_t len);
+		/* Callbacks fired by usrsctp events. */
+		virtual void OnUsrSctpSendSctpData(void* buffer, size_t len);
+		virtual void OnUsrSctpReceiveSctpData(uint16_t streamId, uint16_t ssn, uint32_t ppid, int flags, const uint8_t* data, size_t len);
+		virtual void OnUsrSctpReceiveSctpNotification(union sctp_notification* notification, size_t len);
 
 	private:
 		// Passed by argument.
@@ -114,28 +114,28 @@ namespace RTC
 		uint16_t desiredOs{ 0u };
 		size_t messageBufferLen{ 0u };
 		uint16_t lastSsnReceived{ 0u }; // Valid for us since no SCTP I-DATA support.
-        std::shared_ptr<SctpEnv> _env;
+		std::shared_ptr<SctpEnv> _env;
 	};
 
-    //保证线程安全
-    class SctpAssociationImp : public SctpAssociation, public std::enable_shared_from_this<SctpAssociationImp>{
-    public:
-        using Ptr = std::shared_ptr<SctpAssociationImp>;
-        template<typename ... ARGS>
-        SctpAssociationImp(toolkit::EventPoller::Ptr poller, ARGS &&...args) : SctpAssociation(std::forward<ARGS>(args)...) {
-            _poller = std::move(poller);
-        }
+	//保证线程安全
+	class SctpAssociationImp : public SctpAssociation, public std::enable_shared_from_this<SctpAssociationImp> {
+	public:
+		using Ptr = std::shared_ptr<SctpAssociationImp>;
+		template<typename ... ARGS>
+		SctpAssociationImp(toolkit::EventPoller::Ptr poller, ARGS &&...args) : SctpAssociation(std::forward<ARGS>(args)...) {
+			_poller = std::move(poller);
+		}
 
-        ~SctpAssociationImp() override = default;
+		~SctpAssociationImp() override = default;
 
-    protected:
-        void OnUsrSctpSendSctpData(void* buffer, size_t len) override;
-        void OnUsrSctpReceiveSctpData(uint16_t streamId, uint16_t ssn, uint32_t ppid, int flags, const uint8_t* data, size_t len) override;
-        void OnUsrSctpReceiveSctpNotification(union sctp_notification* notification, size_t len) override;
+	protected:
+		void OnUsrSctpSendSctpData(void* buffer, size_t len) override;
+		void OnUsrSctpReceiveSctpData(uint16_t streamId, uint16_t ssn, uint32_t ppid, int flags, const uint8_t* data, size_t len) override;
+		void OnUsrSctpReceiveSctpNotification(union sctp_notification* notification, size_t len) override;
 
-    private:
-        toolkit::EventPoller::Ptr _poller;
-    };
+	private:
+		toolkit::EventPoller::Ptr _poller;
+	};
 } // namespace RTC
 
 #endif //ENABLE_SCTP
