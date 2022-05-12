@@ -471,10 +471,15 @@ void WebRtcTransportImp::onStartWebRTC() {
 
 void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
     //修改answer sdp的ip、端口信息
-    GET_CONFIG(string, extern_ip, RTC::kExternIP);
+    GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, RTC::kExternIP, [](string str){
+        std::vector<std::string> ret;
+        if (str.length())
+            ret = split(str, ",");
+        return ret;
+    });
     for (auto &m : sdp.media) {
         m.addr.reset();
-        m.addr.address = extern_ip.empty() ? SockUtil::get_local_ip() : extern_ip;
+        m.addr.address = extern_ips.empty() ? SockUtil::get_local_ip() : extern_ips[0];
         m.rtcp_addr.reset();
         m.rtcp_addr.address = m.addr.address;
 
@@ -522,27 +527,47 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) {
     }
 }
 
-void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
-    WebRtcTransport::onRtcConfigure(configure);
-    //添加接收端口candidate信息
-    configure.addCandidate(*getIceCandidate());
-}
-
-SdpAttrCandidate::Ptr WebRtcTransportImp::getIceCandidate() const{
+SdpAttrCandidate::Ptr makeIceCandidate(std::string ip, uint16_t port, 
+    uint32_t priority = 100, std::string proto = "udp") {
     auto candidate = std::make_shared<SdpAttrCandidate>();
-    candidate->foundation = "udpcandidate";
     //rtp端口
     candidate->component = 1;
-    candidate->transport = "udp";
+    candidate->transport = proto;
+    candidate->foundation = proto + "candidate";
     //优先级，单candidate时随便
-    candidate->priority = 100;
-    GET_CONFIG(string, extern_ip, RTC::kExternIP);
-    candidate->address = extern_ip.empty() ? SockUtil::get_local_ip() : extern_ip;
-    GET_CONFIG(uint16_t, local_port, RTC::kPort);
-    candidate->port = local_port;
+    candidate->priority = priority;
+    candidate->address = ip;
+    candidate->port = port;
     candidate->type = "host";
     return candidate;
 }
+
+void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
+    WebRtcTransport::onRtcConfigure(configure);
+    
+    GET_CONFIG(uint16_t, local_port, RTC::kPort);
+    //添加接收端口candidate信息
+    GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, RTC::kExternIP, [](string str){
+        std::vector<std::string> ret;
+        if (str.length())
+            ret = split(str, ",");
+        return ret;
+    });
+    if (extern_ips.empty()) {
+        std::string localIp = SockUtil::get_local_ip();
+        configure.addCandidate(*makeIceCandidate(localIp, local_port, 120, "udp"));
+    }
+    else {
+        const uint32_t delta = 10;
+        uint32_t priority = 100 + delta * extern_ips.size();
+        for (auto ip : extern_ips) {
+            configure.addCandidate(*makeIceCandidate(ip, local_port, priority, "udp"));
+            priority -= delta;
+        }
+    }
+}
+
+
 
 ///////////////////////////////////////////////////////////////////
 
