@@ -13,7 +13,7 @@ endif(CCACHE_FOUND)
 
 #add_compile_options(-D__STDC_FORMAT_MACROS)
 if(CMAKE_COMPILER_IS_GNUCXX)
-	add_compile_options(-D__STDC_FORMAT_MACROS)
+    add_compile_options(-D__STDC_FORMAT_MACROS)
     message(STATUS "-D__STDC_FORMAT_MACROS")
 endif(CMAKE_COMPILER_IS_GNUCXX)
 
