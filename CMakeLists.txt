@@ -11,6 +11,12 @@ if(CCACHE_FOUND)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
+#add_compile_options(-D__STDC_FORMAT_MACROS)
+if(CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-D__STDC_FORMAT_MACROS)
+    message(STATUS "-D__STDC_FORMAT_MACROS")
+endif(CMAKE_COMPILER_IS_GNUCXX)
+
 #set(CMAKE_BUILD_TYPE "Release")
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
     set(CMAKE_BUILD_TYPE "Debug")
