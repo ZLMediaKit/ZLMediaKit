@@ -263,6 +263,16 @@ bash build_docker_images.sh
 [cgm](mailto:2958580318@qq.com)
 [hejilin](mailto:1724010622@qq.com)
 [alexliyu7352](mailto:liyu7352@gmail.com)
+[cgm](mailto:2958580318@qq.com)
+[haorui wang](https://github.com/HaoruiWang)
+[joshuafc](mailto:joshuafc@foxmail.com)
+[JayChen0519](https://github.com/JayChen0519)
+[zx](mailto:zuoxue@qq.com)
+[wangcker](mailto:wangcker@163.com)
+[WuPeng](mailto:wp@zafu.edu.cn)
+[starry](https://github.com/starry)
+[mtdxc](https://github.com/mtdxc)
+[胡刚风](https://github.com/hugangfeng333)
 
 ## 使用案例
 
