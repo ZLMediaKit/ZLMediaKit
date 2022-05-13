@@ -8,7 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <inttypes.h>
+#include <cinttypes>
 #include "Parser.h"
 #include "macros.h"
 #include "Network/sockutil.h"
