@@ -1591,8 +1591,13 @@ RETRY:
         if (type == TrackApplication) {
             RtcMedia answer_media = offer_media;
             answer_media.role = mathDtlsRole(offer_media.role);
+#ifdef ENABLE_SCTP
             answer_media.direction = matchDirection(offer_media.direction, configure.direction);
             answer_media.candidate = configure.candidate;
+
+#else
+            answer_media.direction = RtpDirection::inactive;
+#endif
             ret->media.emplace_back(answer_media);
             return;
         }
