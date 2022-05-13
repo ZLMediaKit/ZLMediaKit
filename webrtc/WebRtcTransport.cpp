@@ -255,7 +255,7 @@ void WebRtcTransport::setRemoteDtlsFingerprint(const RtcSession &remote){
 }
 
 void WebRtcTransport::onRtcConfigure(RtcConfigure &configure) const {
-    //开启remb后关闭twcc，因为开启twcc后remb无效
+    //开启remb后关闭twcc，twcc和remb只能开启一个
     GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
     configure.enableTWCC(!remb_bit_rate);
 }
@@ -267,6 +267,7 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer){
         _offer_sdp->loadFrom(offer);
         onCheckSdp(SdpType::offer, *_offer_sdp);
         _offer_sdp->checkValid();
+
         setRemoteDtlsFingerprint(*_offer_sdp);
 
         //// sdp 配置 ////
@@ -519,9 +520,10 @@ void WebRtcTransportImp::onStartWebRTC() {
             //rtx pt --> MediaTrack
             _pt_to_track[track->plan_rtx->pt].reset(new WrappedRtxTrack(track));
         }
+
+        std::weak_ptr<MediaTrack> weak_track = track;
         //记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
         track->rtp_ext_ctx = std::make_shared<RtpExtContext>(*m_offer);
-        std::weak_ptr<MediaTrack> weak_track = track;
         track->rtp_ext_ctx->setOnGetRtp([this, weak_track](uint8_t pt, uint32_t ssrc, const string &rid) {
             //ssrc --> MediaTrack
             if (auto track = weak_track.lock()) {
@@ -828,12 +830,14 @@ void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, Medi
     InfoL << "create rtp receiver of ssrc:" << ssrc << ", rid:" << rid << ", codec:" << track.plan_rtp->codec;
 }
 
-/*                              +- no't found return
- WebRtcTransportImp::onRtp - _pt_to_track -> WrappedRtpTrack::inputRtp -> RtpChannel::inputRtp -> WebRtcTransportImp::onSortedRtp
-                                                + filter ext                    + nack              + pli/remb on videotrack
-                                                + process twcc                  + rtcp rr           + call WebRtcTransportImp::onRecvRtp
-                                                + auto create RtpChannel        + sort rtp
-                                                + rtx decode in WrappedRtxTrack
+/*
+ WebRtcTransportImp::onRtp -> WrappedRtpTrack::inputRtp -> RtpChannel::inputRtp -> WebRtcTransportImp::onSortedRtp
+     + _pt_to_track             + filter ext                    + nack              + do pli/remb on videotrack
+                                + process twcc                  + rtcp rr           + call WebRtcTransportImp::onRecvRtp
+                                + auto create RtpChannel        + sort rtp
+                            -> WrappedRtxTrack::inputRtp
+                                + filter ext
+                                + do RtxDecode
 */
 void WebRtcTransportImp::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
     _bytes_usage += len;
@@ -941,8 +945,12 @@ void WebRtcTransportImp::onSortedRtp(MediaTrack &track, const string &rid, RtpPa
     onRecvRtp(track, rid, std::move(rtp));
 }
 
-///////////////////////////////////////////////////////////////////
-
+/*
+WebRtcTransportImp::onSendRtp -> WebRtcTransport::sendRtpPacket
+    + update rtcp context          + WebRtcTransport::onBeforeEncryptRtp   ->  WebRtcTransportImp::onBeforeEncryptRtp
+    + save in nack_list            + srtp::EncryptRtp                           + changeRtpExtId
+                                   + WebRtcTransport::onSendSockData            + rtxEncode
+*/
 void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx) {
     auto &track = _type_to_track[rtp->type];
     if (!track) {
@@ -1035,15 +1043,16 @@ void WebRtcTransportManager::addItem(const string &key, const WebRtcTransportImp
 }
 
 WebRtcTransportImp::Ptr WebRtcTransportManager::getItem(const string &key) {
+    WebRtcTransportImp::Ptr ret;
     if (key.empty()) {
-        return nullptr;
+        return ret;
     }
     std::lock_guard<std::mutex> lck(_mtx);
     auto it = _map.find(key);
-    if (it == _map.end()) {
-        return nullptr;
+    if (it != _map.end()) {
+        ret =  it->second.lock();
     }
-    return it->second.lock();
+    return ret;
 }
 
 void WebRtcTransportManager::removeItem(const string &key) {

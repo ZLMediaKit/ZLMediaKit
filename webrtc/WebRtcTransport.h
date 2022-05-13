@@ -172,14 +172,15 @@ protected:
     virtual void onSendSockData(Buffer::Ptr buf, bool flush = true, RTC::TransportTuple *tuple = nullptr) = 0;
 
 protected:
+    // send data to network, internal call onSendSockData
+    void sendSockData(const char *buf, size_t len, RTC::TransportTuple *tuple);
+
     RTC::TransportTuple* getSelectedTuple() const;
+
     void sendRtcpRemb(uint32_t ssrc, size_t bit_rate);
     void sendRtcpPli(uint32_t ssrc);
 
-private:
-    void sendSockData(const char *buf, size_t len, RTC::TransportTuple *tuple);
     void setRemoteDtlsFingerprint(const RtcSession &remote);
-
 protected:
     RtcSession::Ptr _offer_sdp;
     RtcSession::Ptr _answer_sdp;
@@ -211,6 +212,7 @@ public:
     uint32_t offer_ssrc_rtx = 0;
     uint32_t answer_ssrc_rtp = 0;
     uint32_t answer_ssrc_rtx = 0;
+    // sdp m line
     const RtcMedia *media;
     RtpExtContext::Ptr rtp_ext_ctx;
 
@@ -240,9 +242,7 @@ class WebRtcTransportImp;
 
 struct WrappedRtpTrack : public WrappedMediaTrack {
     explicit WrappedRtpTrack(MediaTrack::Ptr ptr, TwccContext& twcc, WebRtcTransportImp& t)
-        : WrappedMediaTrack(std::move(ptr))
-        , _twcc_ctx(twcc)
-        , _transport(t) {}
+        : WrappedMediaTrack(std::move(ptr)), _twcc_ctx(twcc), _transport(t) {}
     TwccContext& _twcc_ctx;
     WebRtcTransportImp& _transport;
     void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, mediakit::RtpHeader *rtp) override;
@@ -267,11 +267,10 @@ public:
     // 发送rtp数据包，带rtcp和nack功能
     void onSendRtp(const mediakit::RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
 protected:
-    // 排序后的rtp数据回调
+    // rtp包经排序和nack后的数据回调
     virtual void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) = 0;
 
     WebRtcTransportImp(const EventPoller::Ptr &poller);
-    void onStartWebRTC() override;
 
     void onSendSockData(Buffer::Ptr buf, bool flush = true, RTC::TransportTuple *tuple = nullptr) override;
 
@@ -286,6 +285,7 @@ protected:
 
     void onCreate() override;
     void onDestory() override;
+    void onStartWebRTC() override;
     void onShutdown(const SockException &ex) override;
 
     void updateTicker();
