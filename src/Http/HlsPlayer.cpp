@@ -386,6 +386,8 @@ void HlsPlayerImp::onShutdown(const SockException &ex) {
                 strong_self->PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
             }
         });
+    } else {
+        PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
     }
 }
 

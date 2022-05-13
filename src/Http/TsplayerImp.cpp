@@ -53,6 +53,8 @@ void TsPlayerImp::onShutdown(const SockException &ex) {
                 strong_self->PlayerImp<TsPlayer, PlayerBase>::onShutdown(ex);
             }
         });
+    } else {
+        PlayerImp<TsPlayer, PlayerBase>::onShutdown(ex);
     }
 }
 
