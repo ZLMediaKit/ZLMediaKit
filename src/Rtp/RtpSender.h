@@ -21,7 +21,7 @@ class RtpSender : public MediaSinkInterface, public std::enable_shared_from_this
 public:
     typedef std::shared_ptr<RtpSender> Ptr;
 
-    RtpSender() = default;
+    RtpSender();
     ~RtpSender() override = default;
 
     /**
