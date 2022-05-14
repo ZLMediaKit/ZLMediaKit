@@ -410,9 +410,6 @@ private:
 };
 
 void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port, bool is_udp) {
-    //全局互斥锁保护，防止端口重复分配
-    static recursive_mutex s_mtx;
-    lock_guard<recursive_mutex> lck(s_mtx);
     int try_count = 0;
     while (true) {
         try {
