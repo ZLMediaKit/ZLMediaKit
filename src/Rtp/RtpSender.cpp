@@ -31,37 +31,43 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
     _socket = Socket::createSocket(_poller, false);
     weak_ptr<RtpSender> weak_self = shared_from_this();
     if (args.is_udp) {
-        if (args.src_port) {
-            //指定端口
-            _socket->bindUdpSock(args.src_port);
-        } else {
-            auto pr = std::make_pair(std::move(_socket), Socket::createSocket(_poller, false));
-            //从端口池获取随机端口
-            makeSockPair(pr, "::", true);
-            _socket = std::move(pr.first);
-        }
         auto poller = _poller;
-        auto local_port = _socket->get_local_port();
-        WorkThreadPool::Instance().getPoller()->async([cb, args, weak_self, poller, local_port]() {
+        WorkThreadPool::Instance().getPoller()->async([cb, args, weak_self, poller]() {
             struct sockaddr_storage addr;
             //切换线程目的是为了dns解析放在后台线程执行
             if (!SockUtil::getDomainIP(args.dst_url.data(), args.dst_port, addr, AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
-                poller->async([args, cb, local_port]() {
+                poller->async([args, cb]() {
                     //切回自己的线程
-                    cb(local_port, SockException(Err_dns, StrPrinter << "dns解析域名失败:" << args.dst_url));
+                    cb(0, SockException(Err_dns, StrPrinter << "dns解析域名失败:" << args.dst_url));
                 });
                 return;
             }
 
             //dns解析成功
-            poller->async([addr, weak_self, cb, local_port]() {
+            poller->async([args, addr, weak_self, cb]() {
                 //切回自己的线程
-                cb(local_port, SockException());
                 auto strong_self = weak_self.lock();
-                if (strong_self) {
-                    strong_self->_socket->bindPeerAddr((struct sockaddr *)&addr);
-                    strong_self->onConnect();
+                if (!strong_self) {
+                    return;
                 }
+                string ifr_ip = addr.ss_family == AF_INET ? "0.0.0.0" : "::";
+                try {
+                    if (args.src_port) {
+                        //指定端口
+                        strong_self->_socket->bindUdpSock(args.src_port, ifr_ip);
+                    } else {
+                        auto pr = std::make_pair(std::move(strong_self->_socket), Socket::createSocket(strong_self->_poller, false));
+                        //从端口池获取随机端口
+                        makeSockPair(pr, ifr_ip, true);
+                        strong_self->_socket = std::move(pr.first);
+                    }
+                } catch (std::exception &ex) {
+                    cb(0, SockException(Err_other, ex.what()));
+                    return;
+                }
+                strong_self->_socket->bindPeerAddr((struct sockaddr *)&addr);
+                strong_self->onConnect();
+                cb(strong_self->_socket->get_local_port(), SockException());
             });
         });
     } else {
