@@ -34,6 +34,7 @@ public:
     void addTrackCompleted() override { _delegate.addTrackCompleted(); }
     void resetTracks() override { ((MediaSink &)_delegate).resetTracks(); }
     std::vector<Track::Ptr> getTracks(bool ready = true) const override { return _delegate.getTracks(ready); }
+    void pushTask(std::function<void()> task);
 
 private:
     void onTick();
@@ -46,7 +47,7 @@ private:
     toolkit::Ticker _ticker;
     toolkit::Timer::Ptr _timer;
     MediaSinkDelegate _delegate;
-    std::multimap<int64_t, Frame::Ptr> _frame_cache;
+    std::deque<std::pair<int64_t, std::function<void()> > > _frame_cache;
 };
 
 class HlsPlayer : public  HttpClientImp , public PlayerBase , public HlsParser{

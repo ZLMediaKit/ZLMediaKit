@@ -94,6 +94,8 @@ public:
         bool use_ps = true;
         //发送es流时指定是否只发送纯音频流
         bool only_audio = true;
+        //tcp被动方式
+        bool passive = false;
         // rtp payload type
         uint8_t pt = 96;
         // 指定rtp ssrc

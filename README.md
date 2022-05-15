@@ -176,6 +176,7 @@ bash build_docker_images.sh
  - 播放器
    - [基于wasm支持H265的播放器](https://github.com/numberwolf/h265web.js)
    - [基于MSE的websocket-fmp4播放器](https://github.com/v354412101/wsPlayer) 
+   - [全国产webrtc sdk(metaRTC)](https://github.com/metartc/metaRTC)
    
 ## 授权协议
 
@@ -263,6 +264,16 @@ bash build_docker_images.sh
 [cgm](mailto:2958580318@qq.com)
 [hejilin](mailto:1724010622@qq.com)
 [alexliyu7352](mailto:liyu7352@gmail.com)
+[cgm](mailto:2958580318@qq.com)
+[haorui wang](https://github.com/HaoruiWang)
+[joshuafc](mailto:joshuafc@foxmail.com)
+[JayChen0519](https://github.com/JayChen0519)
+[zx](mailto:zuoxue@qq.com)
+[wangcker](mailto:wangcker@163.com)
+[WuPeng](mailto:wp@zafu.edu.cn)
+[starry](https://github.com/starry)
+[mtdxc](https://github.com/mtdxc)
+[胡刚风](https://github.com/hugangfeng333)
 
 ## 使用案例
 
