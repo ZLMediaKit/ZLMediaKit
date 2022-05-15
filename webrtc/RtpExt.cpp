@@ -189,7 +189,7 @@ map<uint8_t/*id*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header) 
         appendExt<RtpExtOneByte>(ret, ptr, end);
         return ret;
     }
-    if ((reserved & 0xFFF0) >> 4 == kTwoByteHeader) {
+    if ((reserved & 0xFFF0) == kTwoByteHeader) {
         appendExt<RtpExtTwoByte>(ret, ptr, end);
         return ret;
     }

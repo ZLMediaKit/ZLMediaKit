@@ -312,7 +312,8 @@ string SdpParser::toString() const {
     return title + video + audio;
 }
 
-class PortManager : public std::enable_shared_from_this<PortManager> {
+template<int type>
+class PortManager : public std::enable_shared_from_this<PortManager<type> > {
 public:
     PortManager() {
         static auto func = [](const string &str, int index) {
@@ -331,28 +332,44 @@ public:
         return *instance;
     }
 
-    void bindUdpSock(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port) {
+    void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port, bool is_udp) {
         auto &sock0 = pair.first;
         auto &sock1 = pair.second;
         auto sock_pair = getPortPair();
         if (!sock_pair) {
-            throw runtime_error("none reserved udp port in pool");
+            throw runtime_error("none reserved port in pool");
         }
+        if (is_udp) {
+            if (!sock0->bindUdpSock(2 * *sock_pair, local_ip.data(), re_use_port)) {
+                //分配端口失败
+                throw runtime_error("open udp socket[0] failed");
+            }
 
-        if (!sock0->bindUdpSock(2 * *sock_pair, local_ip.data(), re_use_port)) {
-            //分配端口失败
-            throw runtime_error("open udp socket[0] failed");
+            if (!sock1->bindUdpSock(2 * *sock_pair + 1, local_ip.data(), re_use_port)) {
+                //分配端口失败
+                throw runtime_error("open udp socket[1] failed");
+            }
+
+            auto on_cycle = [sock_pair](Socket::Ptr &, std::shared_ptr<void> &) {};
+            // udp socket没onAccept事件，设置该回调，目的是为了在销毁socket时，回收对象
+            sock0->setOnAccept(on_cycle);
+            sock1->setOnAccept(on_cycle);
+        } else {
+            if (!sock0->listen(2 * *sock_pair, local_ip.data())) {
+                //分配端口失败
+                throw runtime_error("listen tcp socket[0] failed");
+            }
+
+            if (!sock1->listen(2 * *sock_pair + 1, local_ip.data())) {
+                //分配端口失败
+                throw runtime_error("listen tcp socket[1] failed");
+            }
+
+            auto on_cycle = [sock_pair](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {};
+            // udp socket没onAccept事件，设置该回调，目的是为了在销毁socket时，回收对象
+            sock0->setOnRead(on_cycle);
+            sock1->setOnRead(on_cycle);
         }
-
-        if (!sock1->bindUdpSock(2 * *sock_pair + 1, local_ip.data(), re_use_port)) {
-            //分配端口失败
-            throw runtime_error("open udp socket[1] failed");
-        }
-
-        auto on_cycle = [sock_pair](Socket::Ptr &, std::shared_ptr<void> &) {};
-        // udp socket没onAccept事件，设置该回调，目的是为了在销毁socket时，回收对象
-        sock0->setOnAccept(on_cycle);
-        sock1->setOnAccept(on_cycle);
     }
 
 private:
@@ -372,7 +389,7 @@ private:
         _port_pair_pool.pop_front();
         InfoL << "got port from pool:" << 2 * pos << "-" << 2 * pos + 1;
 
-        weak_ptr<PortManager> weak_self = shared_from_this();
+        weak_ptr<PortManager> weak_self = this->shared_from_this();
         std::shared_ptr<uint16_t> ret(new uint16_t(pos), [weak_self, pos](uint16_t *ptr) {
             delete ptr;
             auto strong_self = weak_self.lock();
@@ -392,20 +409,22 @@ private:
     deque<uint16_t> _port_pair_pool;
 };
 
-void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port) {
-    //全局互斥锁保护，防止端口重复分配
-    static recursive_mutex s_mtx;
-    lock_guard<recursive_mutex> lck(s_mtx);
+void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port, bool is_udp) {
     int try_count = 0;
     while (true) {
         try {
-            PortManager::Instance().bindUdpSock(pair, local_ip, re_use_port);
+            //udp和tcp端口池使用相同算法和范围分配，但是互不相干
+            if (is_udp) {
+                PortManager<0>::Instance().makeSockPair(pair, local_ip, re_use_port, is_udp);
+            } else {
+                PortManager<1>::Instance().makeSockPair(pair, local_ip, re_use_port, is_udp);
+            }
             break;
         } catch (exception &ex) {
             if (++try_count == 3) {
                 throw;
             }
-            WarnL << "open udp socket failed:" << ex.what() << ", retry: " << try_count;
+            WarnL << "open socket failed:" << ex.what() << ", retry: " << try_count;
         }
     }
 }

@@ -45,8 +45,17 @@ void TsPlayerImp::onPlayResult(const SockException &ex) {
 }
 
 void TsPlayerImp::onShutdown(const SockException &ex) {
-    PlayerImp<TsPlayer, PlayerBase>::onShutdown(ex);
-    _demuxer = nullptr;
+    if (_demuxer) {
+        std::weak_ptr<TsPlayerImp> weak_self = static_pointer_cast<TsPlayerImp>(shared_from_this());
+        static_pointer_cast<HlsDemuxer>(_demuxer)->pushTask([weak_self, ex]() {
+            auto strong_self = weak_self.lock();
+            if (strong_self) {
+                strong_self->PlayerImp<TsPlayer, PlayerBase>::onShutdown(ex);
+            }
+        });
+    } else {
+        PlayerImp<TsPlayer, PlayerBase>::onShutdown(ex);
+    }
 }
 
 vector<Track::Ptr> TsPlayerImp::getTracks(bool ready) const {

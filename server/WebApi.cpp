@@ -1107,6 +1107,7 @@ void installWebApi() {
         }
 
         MediaSourceEvent::SendRtpArgs args;
+        args.passive = false;
         args.dst_url = allArgs["dst_url"];
         args.dst_port = allArgs["dst_port"];
         args.ssrc = allArgs["ssrc"];
@@ -1115,8 +1116,36 @@ void installWebApi() {
         args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
         args.use_ps = allArgs["use_ps"].empty() ? true : allArgs["use_ps"].as<bool>();
         args.only_audio = allArgs["only_audio"].empty() ? false : allArgs["only_audio"].as<bool>();
-        TraceL << "pt " << int(args.pt) << " ps " << args.use_ps << " audio " <<  args.only_audio;
+        TraceL << "startSendRtp, pt " << int(args.pt) << " ps " << args.use_ps << " audio " <<  args.only_audio;
 
+        src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
+            if (ex) {
+                val["code"] = API::OtherFailed;
+                val["msg"] = ex.what();
+            }
+            val["local_port"] = local_port;
+            invoker(200, headerOut, val.toStyledString());
+        });
+    });
+
+    api_regist("/index/api/startSendRtpPassive",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "ssrc");
+
+        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["from_mp4"].as<int>());
+        if (!src) {
+            throw ApiRetException("该媒体流不存在", API::OtherFailed);
+        }
+
+        MediaSourceEvent::SendRtpArgs args;
+        args.passive = true;
+        args.ssrc = allArgs["ssrc"];
+        args.is_udp = false;
+        args.src_port = allArgs["src_port"];
+        args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
+        args.use_ps = allArgs["use_ps"].empty() ? true : allArgs["use_ps"].as<bool>();
+        args.only_audio = allArgs["only_audio"].empty() ? false : allArgs["only_audio"].as<bool>();
+        TraceL << "startSendRtpPassive, pt " << int(args.pt) << " ps " << args.use_ps << " audio " <<  args.only_audio;
         src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
             if (ex) {
                 val["code"] = API::OtherFailed;
