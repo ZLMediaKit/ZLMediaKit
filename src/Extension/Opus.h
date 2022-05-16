@@ -30,7 +30,7 @@ private:
         return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
     }
     //生成sdp
-    Sdp::Ptr getSdp() override ;
+    Sdp::Ptr getSdp() override;
 };
 
 }//namespace mediakit

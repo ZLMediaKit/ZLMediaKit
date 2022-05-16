@@ -49,7 +49,7 @@ protected:
 /**
  * 265 Rtmp打包类
  */
-class H265RtmpEncoder : public H265RtmpDecoder{
+class H265RtmpEncoder : public RtmpCodec {
 public:
     typedef std::shared_ptr<H265RtmpEncoder> Ptr;
 
@@ -73,6 +73,9 @@ public:
      */
     void makeConfigPacket() override;
 
+    CodecId getCodecId() const override {
+        return CodecH265;
+    }
 private:
     void makeVideoConfigPkt();
 

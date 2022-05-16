@@ -53,7 +53,7 @@ private:
 /**
  * 通用 rtmp编码类
  */
-class CommonRtmpEncoder : public CommonRtmpDecoder {
+class CommonRtmpEncoder : public RtmpCodec {
 public:
     typedef std::shared_ptr<CommonRtmpEncoder> Ptr;
 
@@ -64,9 +64,11 @@ public:
      * 输入帧数据
      */
     bool inputFrame(const Frame::Ptr &frame) override;
-
+    
+    CodecId getCodecId() const override { return _codec;}
 private:
     uint8_t _audio_flv_flags = 0;
+    CodecId _codec;
 };
 
 }//namespace mediakit

@@ -18,10 +18,6 @@ CommonRtpDecoder::CommonRtpDecoder(CodecId codec, size_t max_frame_size ){
     obtainFrame();
 }
 
-CodecId CommonRtpDecoder::getCodecId() const {
-    return _codec;
-}
-
 void CommonRtpDecoder::obtainFrame() {
     _frame = FrameImp::create();
     _frame->_codec_id = _codec;
@@ -67,7 +63,7 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
 
 CommonRtpEncoder::CommonRtpEncoder(CodecId codec, uint32_t ssrc, uint32_t mtu_size,
                                    uint32_t sample_rate,  uint8_t payload_type, uint8_t interleaved)
-        : CommonRtpDecoder(codec), RtpInfo(ssrc, mtu_size, sample_rate, payload_type, interleaved) {
+        : RtpInfo(ssrc, mtu_size, sample_rate, payload_type, interleaved), _codec(codec){
 }
 
 bool CommonRtpEncoder::inputFrame(const Frame::Ptr &frame){

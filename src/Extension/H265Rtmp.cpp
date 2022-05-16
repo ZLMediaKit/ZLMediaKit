@@ -14,7 +14,7 @@
 #include "mpeg4-hevc.h"
 #endif//ENABLE_MP4
 
-using namespace std;
+using std::string;
 using namespace toolkit;
 
 namespace mediakit{
@@ -119,7 +119,7 @@ inline void H265RtmpDecoder::onGetH265(const char* pcData, size_t iLen, uint32_t
 ////////////////////////////////////////////////////////////////////////
 
 H265RtmpEncoder::H265RtmpEncoder(const Track::Ptr &track) {
-    _track = dynamic_pointer_cast<H265Track>(track);
+    _track = std::dynamic_pointer_cast<H265Track>(track);
 }
 
 void H265RtmpEncoder::makeConfigPacket(){

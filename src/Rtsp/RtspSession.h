@@ -31,7 +31,8 @@
 namespace mediakit {
 
 class RtspSession;
-
+typedef toolkit::BufferOffset<toolkit::Buffer::Ptr> BufferRtp;
+/*
 class BufferRtp : public toolkit::Buffer{
 public:
     using Ptr = std::shared_ptr<BufferRtp>;
@@ -51,7 +52,7 @@ private:
     size_t _offset;
     Buffer::Ptr _rtp;
 };
-
+*/
 class RtspSession : public toolkit::TcpSession, public RtspSplitter, public RtpReceiver, public MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<RtspSession>;

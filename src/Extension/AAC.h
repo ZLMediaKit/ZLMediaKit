@@ -44,13 +44,15 @@ public:
     /**
      * 获取aac 配置信息
      */
-    const std::string &getAacCfg() const;
+    const std::string &getAacCfg() const { return _cfg; }
 
-    bool ready() override;
-    CodecId getCodecId() const override;
-    int getAudioChannel() const override;
-    int getAudioSampleRate() const override;
-    int getAudioSampleBit() const override;
+    bool ready() override { return !_cfg.empty(); }
+
+    CodecId getCodecId() const override { return CodecAAC; }
+    int getAudioChannel() const override { return _channel; }
+    int getAudioSampleRate() const override { return _sampleRate; }
+    int getAudioSampleBit() const override { return _sampleBit; }
+
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:

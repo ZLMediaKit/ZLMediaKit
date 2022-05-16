@@ -45,27 +45,30 @@ public:
     }
 
     ~H264FrameHelper() override = default;
-
+    uint8_t nalType() const {
+      return H264_TYPE(this->data()[this->prefixSize()]);
+    }
     bool keyFrame() const override {
-        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
-        return H264_TYPE(*nal_ptr) == NAL_IDR && decodeAble();
+        return nalType() == NAL_IDR && decodeAble();
     }
 
     bool configFrame() const override {
-        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
-        switch (H264_TYPE(*nal_ptr)) {
+        switch (nalType()) {
             case NAL_SPS:
-            case NAL_PPS: return true;
-            default: return false;
+            case NAL_PPS: 
+              return true;
+            default: 
+              return false;
         }
     }
 
     bool dropAble() const override {
-        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
-        switch (H264_TYPE(*nal_ptr)) {
+        switch (nalType()) {
             case NAL_SEI:
-            case NAL_AUD: return true;
-            default: return false;
+            case NAL_AUD: 
+              return true;
+            default:
+              return false;
         }
     }
 

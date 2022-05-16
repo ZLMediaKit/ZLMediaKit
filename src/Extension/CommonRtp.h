@@ -22,6 +22,7 @@ namespace mediakit{
 class CommonRtpDecoder : public RtpCodec {
 public:
     typedef std::shared_ptr <CommonRtpDecoder> Ptr;
+    CodecId getCodecId() const override { return _codec; }
 
     ~CommonRtpDecoder() override {}
 
@@ -31,11 +32,6 @@ public:
      * @param max_frame_size 允许的最大帧大小
      */
     CommonRtpDecoder(CodecId codec, size_t max_frame_size = 2 * 1024);
-
-    /**
-     * 返回编码类型ID
-     */
-    CodecId getCodecId() const override;
 
     /**
      * 输入rtp并解码
@@ -58,10 +54,11 @@ private:
 /**
  * 通用 rtp编码类
  */
-class CommonRtpEncoder : public CommonRtpDecoder, public RtpInfo {
+class CommonRtpEncoder : public RtpCodec, public RtpInfo {
+    CodecId _codec;
 public:
     typedef std::shared_ptr <CommonRtpEncoder> Ptr;
-
+    CodecId getCodecId() const override { return _codec; }
     ~CommonRtpEncoder() override {}
 
     /**

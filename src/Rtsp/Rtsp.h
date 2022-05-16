@@ -19,7 +19,7 @@
 #include "Common/config.h"
 #include "Common/macros.h"
 #include "Extension/Frame.h"
-
+#include "Network/Socket.h"
 namespace mediakit {
 
 namespace Rtsp {
@@ -138,7 +138,7 @@ private:
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-//此rtp为rtp over tcp形式，需要忽略前4个字节
+//此类为rtp over tcp格式，需要忽略前4个字节
 class RtpPacket : public toolkit::BufferRaw{
 public:
     using Ptr = std::shared_ptr<RtpPacket>;
@@ -312,30 +312,7 @@ public:
      */
     TitleSdp(float dur_sec = 0,
              const std::map<std::string, std::string> &header = std::map<std::string, std::string>(),
-             int version = 0) : Sdp(0, 0) {
-        _printer << "v=" << version << "\r\n";
-
-        if (!header.empty()) {
-            for (auto &pr : header) {
-                _printer << pr.first << "=" << pr.second << "\r\n";
-            }
-        } else {
-            _printer << "o=- 0 0 IN IP4 0.0.0.0\r\n";
-            _printer << "s=Streamed by " << kServerName << "\r\n";
-            _printer << "c=IN IP4 0.0.0.0\r\n";
-            _printer << "t=0 0\r\n";
-        }
-
-        if (dur_sec <= 0) {
-            //直播
-            _printer << "a=range:npt=now-\r\n";
-        } else {
-            //点播
-            _dur_sec = dur_sec;
-            _printer << "a=range:npt=0-" << dur_sec << "\r\n";
-        }
-        _printer << "a=control:*\r\n";
-    }
+        int version = 0);
 
     std::string getSdp() const override {
         return _printer;
@@ -352,6 +329,18 @@ public:
 private:
     float _dur_sec = 0;
     toolkit::_StrPrinter _printer;
+};
+
+class AudioTrack;
+class AudioSdp : public Sdp {
+public:
+    AudioSdp(AudioTrack* track, int payload_type = 98);
+
+    CodecId getCodecId() const override { return _codecId; }
+    std::string getSdp() const override;
+protected:
+    toolkit::_StrPrinter _printer;
+    CodecId _codecId;
 };
 
 //创建rtp over tcp4个字节的头

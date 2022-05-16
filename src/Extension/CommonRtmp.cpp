@@ -38,7 +38,8 @@ void CommonRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &rtmp) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-CommonRtmpEncoder::CommonRtmpEncoder(const Track::Ptr &track) : CommonRtmpDecoder(track->getCodecId()) {
+CommonRtmpEncoder::CommonRtmpEncoder(const Track::Ptr &track) {
+    _codec = track->getCodecId();
     _audio_flv_flags = getAudioRtmpFlags(track);
 }
 

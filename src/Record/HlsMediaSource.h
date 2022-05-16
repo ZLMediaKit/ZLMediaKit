@@ -13,6 +13,7 @@
 
 #include "Common/MediaSource.h"
 #include "Util/TimeTicker.h"
+#include "Util/RingBuffer.h"
 #include <atomic>
 
 namespace mediakit {

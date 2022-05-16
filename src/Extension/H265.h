@@ -66,18 +66,18 @@ public:
     }
 
     ~H265FrameHelper() override = default;
-
+    uint8_t nalType() const {
+       return H265_TYPE(this->data()[this->prefixSize()]);
+    }
     bool keyFrame() const override {
-        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
-        auto type = H265_TYPE(*nal_ptr);
+        auto type = nalType();
         // 参考自FFmpeg: IRAP VCL NAL unit types span the range
         // [BLA_W_LP (16), RSV_IRAP_VCL23 (23)].
         return (type >= NAL_BLA_W_LP && type <= NAL_RSV_IRAP_VCL23) && decodeAble() ;
     }
 
     bool configFrame() const override {
-        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
-        switch (H265_TYPE(*nal_ptr)) {
+        switch (nalType()) {
             case NAL_VPS:
             case NAL_SPS:
             case NAL_PPS : return true;
@@ -86,8 +86,7 @@ public:
     }
 
     bool dropAble() const override {
-        auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
-        switch (H265_TYPE(*nal_ptr)) {
+        switch (nalType()) {
             case NAL_AUD:
             case NAL_SEI_SUFFIX:
             case NAL_SEI_PREFIX: return true;

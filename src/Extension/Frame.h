@@ -11,10 +11,10 @@
 #ifndef ZLMEDIAKIT_FRAME_H
 #define ZLMEDIAKIT_FRAME_H
 
+#include <map>
 #include <mutex>
 #include <functional>
-#include "Util/RingBuffer.h"
-#include "Network/Socket.h"
+#include "Network/Buffer.h"
 
 namespace mediakit{
 
@@ -153,12 +153,14 @@ public:
      * sps pps等帧不能解码
      */
     virtual bool decodeAble() const {
-        if (getTrackType() != TrackVideo) {
+        if (getTrackType() == TrackVideo) {
+            //默认非sps pps帧都可以解码
+            return !configFrame();
+        }
+        else {
             //非视频帧都可以解码
             return true;
         }
-        //默认非sps pps帧都可以解码
-        return !configFrame();
     }
 
     /**
@@ -183,10 +185,7 @@ public:
             packet_pool.setSize(1024);
         });
         auto ret = packet_pool.obtain2();
-        ret->_buffer.clear();
-        ret->_prefix_size = 0;
-        ret->_dts = 0;
-        ret->_pts = 0;
+        ret->clear();
         return ret;
 #else
         return std::shared_ptr<C>(new C());
@@ -225,6 +224,12 @@ public:
         return false;
     }
 
+    void clear() {
+        _buffer.clear();
+        _prefix_size = 0;
+        _dts = _pts = 0;
+        // _codec_id = CodecInvalid;
+    }
 public:
     CodecId _codec_id = CodecInvalid;
     uint32_t _dts = 0;
@@ -253,6 +258,8 @@ public:
     typedef std::shared_ptr<FrameInternal> Ptr;
     FrameInternal(const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size)
             : Parent(ptr, size, parent_frame->dts(), parent_frame->pts(), prefix_size) {
+        // auto copy parent frame codec_type..
+        this->_codec_id = parent_frame->getCodecId();
         _parent_frame = parent_frame;
     }
     bool cacheAble() const override {
@@ -263,7 +270,7 @@ private:
 };
 
 /**
- * 写帧接口的抽象接口类
+ * 写帧接口类
  */
 class FrameWriterInterface {
 public:
@@ -292,8 +299,6 @@ public:
         _writeCallback = cb;
     }
 
-    virtual ~FrameWriterInterfaceHelper(){}
-
     /**
      * 写入帧数据
      */
@@ -306,7 +311,7 @@ private:
 };
 
 /**
- * 支持代理转发的帧环形缓存
+ * 帧一对多分发类..
  */
 class FrameDispatcher : public FrameWriterInterface {
 public:
@@ -325,6 +330,14 @@ public:
         _need_update = true;
     }
 
+    typedef std::function<bool(const Frame::Ptr &frame)> onWriteFrame;
+    FrameWriterInterface* addDelegate(onWriteFrame cb) {
+        std::lock_guard<std::mutex> lck(_mtx);
+        auto delegate = std::make_shared<FrameWriterInterfaceHelper>(cb);
+        _delegates_write.emplace(delegate.get(), delegate);
+        _need_update = true;
+        return delegate.get();
+    }
     /**
      * 删除代理
      */
@@ -366,11 +379,13 @@ private:
     std::mutex _mtx;
     std::map<void *,FrameWriterInterface::Ptr>  _delegates_read;
     std::map<void *,FrameWriterInterface::Ptr>  _delegates_write;
-    bool _need_update = false;
+    volatile bool _need_update = false;
 };
 
 /**
  * 通过Frame接口包装指针，方便使用者把自己的数据快速接入ZLMediaKit
+ * cacheAble返回false，只能用于函数调用，不可缓存，
+ * 需要时，可通过 Frame::getCacheAbleFrame 转成可缓存帧.
  */
 class FrameFromPtr : public Frame{
 public:
@@ -418,10 +433,6 @@ public:
             throw std::invalid_argument("FrameFromPtr对象未设置codec类型");
         }
         return _codec_id;
-    }
-
-    void setCodecId(CodecId codec_id) {
-        _codec_id = codec_id;
     }
 
     bool keyFrame() const override {
@@ -534,7 +545,8 @@ public:
      * @param offset buffer有效数据偏移量
      * @param codec 帧类型
      */
-    FrameWrapper(const toolkit::Buffer::Ptr &buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset, CodecId codec) : Parent(codec, buf->data() + offset, buf->size() - offset, dts, pts, prefix){
+    FrameWrapper(const toolkit::Buffer::Ptr &buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset, CodecId codec) : Parent(buf->data() + offset, buf->size() - offset, dts, pts, prefix){
+        this->_codec_id = codec;
         _buf = buf;
     }
 
@@ -550,7 +562,9 @@ private:
 };
 
 /**
- * 合并一些时间戳相同的frame
+ * @brief 合并一些时间戳相同的Frame, 并输出Buffer对象
+ * @note 本类不进行丢帧和乱序判断，得保证inputFrame顺序正确且没出现丢包
+ * 不进行丢帧和乱序判断，得保证inputFrame顺序正确且没丢包
  */
 class FrameMerger {
 public:
@@ -558,8 +572,8 @@ public:
     using Ptr = std::shared_ptr<FrameMerger>;
     enum {
         none = 0,
-        h264_prefix,
-        mp4_nal_size,
+        h264_prefix, // 00 00 00 01
+        mp4_nal_size,// 4 byte size
     };
 
     FrameMerger(int type);

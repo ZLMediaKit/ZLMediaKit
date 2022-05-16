@@ -73,10 +73,10 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
         //ssrc错误
         if (_ssrc_alive.elapsedTime() < 3 * 1000) {
             //接受正确ssrc的rtp在10秒内，那么我们认为存在多路rtp,忽略掉ssrc不匹配的rtp
-            WarnL << "ssrc不匹配,rtp已丢弃:" << ssrc << " != " << _ssrc;
+            WarnL << "ssrc dismatch " << ssrc << " != " << _ssrc << ",drop rtp " << ntohs(header->seq);
             return nullptr;
         }
-        InfoL << "rtp流ssrc切换:" << _ssrc << " -> " << ssrc;
+        InfoL << "rtpstream change ssrc:" << _ssrc << " -> " << ssrc;
         _ssrc = ssrc;
         _ssrc_alive.resetTime();
     }

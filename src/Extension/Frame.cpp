@@ -8,11 +8,18 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+// for htonl
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <netinet/in.h>
+#endif
+//#include "Network/sockutil.h"
+
 #include "Frame.h"
-#include "H264.h"
-#include "H265.h"
 #include "Common/Parser.h"
-using namespace std;
+
+using std::string;
 using namespace toolkit;
 
 namespace toolkit {
@@ -48,7 +55,7 @@ const char *getCodecName(CodecId codec) {
 }
 
 #define XX(name, type, value, str, mpeg_id) {str, name},
-static map<string, CodecId, StrCaseCompare> codec_map = {CODEC_MAP(XX)};
+static std::map<string, CodecId, StrCaseCompare> codec_map = {CODEC_MAP(XX)};
 #undef XX
 
 CodecId getCodecId(const string &str){
@@ -56,7 +63,7 @@ CodecId getCodecId(const string &str){
     return it == codec_map.end() ? CodecInvalid : it->second;
 }
 
-static map<string, TrackType, StrCaseCompare> track_str_map = {
+static std::map<string, TrackType, StrCaseCompare> track_str_map = {
         {"video",       TrackVideo},
         {"audio",       TrackAudio},
         {"application", TrackApplication}
@@ -91,36 +98,40 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
         //缓存为空
         return false;
     }
+    else if (_frame_cache.size() > kMaxFrameCacheSize) {
+        // 缓存太多，防止内存溢出，强制flush输出
+        return true;
+    }
+
     switch (_type) {
         case none : {
             //frame不是完整的帧，我们合并为一帧
             bool new_frame = false;
             switch (frame->getCodecId()) {
                 case CodecH264:
-                case CodecH265: {
+                case CodecH265:
                     //如果是新的一帧，前面的缓存需要输出
                     new_frame = frame->prefixSize();
                     break;
-                }
-                default: break;
+                default: 
+                    break;
             }
-            //遇到新帧、或时间戳变化或缓存太多，防止内存溢出，则flush输出
-            return new_frame || _frame_cache.back()->dts() != frame->dts() || _frame_cache.size() > kMaxFrameCacheSize;
+            //遇到新帧、或时间戳变化或
+            return new_frame || _frame_cache.back()->dts() != frame->dts();
         }
 
         case mp4_nal_size:
         case h264_prefix: {
-            if (!_have_decode_able_frame) {
-                //缓存中没有有效的能解码的帧，所以这次不flush
-                return _frame_cache.size() > kMaxFrameCacheSize;
-            }
-            if (_frame_cache.back()->dts() != frame->dts() || frame->decodeAble() || frame->configFrame()) {
+            if (_have_decode_able_frame) {
                 //时间戳变化了,或新的一帧，或遇到config帧，立即flush
-                return true;
+                return _frame_cache.back()->dts() != frame->dts()
+                    || frame->decodeAble() || frame->configFrame();
             }
-            return _frame_cache.size() > kMaxFrameCacheSize;
+            return false;
         }
-        default: /*不可达*/ assert(0); return true;
+        default: /*不可达*/ 
+            assert(0); 
+            return true;
     }
 }
 
@@ -142,10 +153,10 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
             break;
         }
         case mp4_nal_size: {
-            uint32_t nalu_size = (uint32_t) (frame->size() - frame->prefixSize());
-            nalu_size = htonl(nalu_size);
-            merged.append((char *) &nalu_size, 4);
-            merged.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+            size_t nalu_size = frame->size() - frame->prefixSize();
+            uint32_t network_size = htonl(nalu_size);
+            merged.append((char *) &network_size, 4);
+            merged.append(frame->data() + frame->prefixSize(), nalu_size);
             break;
         }
         default: /*不可达*/ assert(0); break;
@@ -155,29 +166,32 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
 bool FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb, BufferLikeString *buffer) {
     if (willFlush(frame)) {
         Frame::Ptr back = _frame_cache.back();
-        Buffer::Ptr merged_frame = back;
         bool have_key_frame = back->keyFrame();
-
         if (_frame_cache.size() != 1 || _type == mp4_nal_size || buffer) {
             //在MP4模式下，一帧数据也需要在前添加nalu_size
-            BufferLikeString tmp;
-            BufferLikeString &merged = buffer ? *buffer : tmp;
-
-            if (!buffer) {
-                tmp.reserve(back->size() + 1024);
+            Buffer::Ptr merged_frame;
+            if (buffer) {
+                merged_frame = std::make_shared<BufferOffset<BufferLikeString>>(*buffer);
+            }
+            else {
+                auto tmp = std::make_shared<BufferLikeString>();
+                tmp->reserve(back->size() + 1024);
+                buffer = tmp.get();
+                merged_frame = tmp;
             }
 
             _frame_cache.for_each([&](const Frame::Ptr &frame) {
-                doMerge(merged, frame);
+                doMerge(*buffer, frame);
                 if (frame->keyFrame()) {
                     have_key_frame = true;
                 }
             });
-            merged_frame = std::make_shared<BufferOffset<BufferLikeString> >(buffer ? merged : std::move(merged));
+            cb(back->dts(), back->pts(), merged_frame, have_key_frame);
         }
-        cb(back->dts(), back->pts(), merged_frame, have_key_frame);
-        _frame_cache.clear();
-        _have_decode_able_frame = false;
+        else {
+            cb(back->dts(), back->pts(), back, have_key_frame);
+        }
+        clear();
     }
 
     if (frame->decodeAble()) {

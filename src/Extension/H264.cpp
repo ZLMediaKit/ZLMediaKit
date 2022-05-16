@@ -12,7 +12,7 @@
 #include "SPSParser.h"
 #include "Util/logger.h"
 using namespace toolkit;
-using namespace std;
+using std::string;
 
 namespace mediakit {
 
@@ -20,11 +20,9 @@ static bool getAVCInfo(const char *sps, size_t sps_len, int &iVideoWidth, int &i
     if (sps_len < 4) {
         return false;
     }
-    T_GetBitContext tGetBitBuf;
-    T_SPS tH264SpsInfo;
-    memset(&tGetBitBuf, 0, sizeof(tGetBitBuf));
-    memset(&tH264SpsInfo, 0, sizeof(tH264SpsInfo));
-    tGetBitBuf.pu8Buf = (uint8_t *)sps + 1;
+    T_SPS tH264SpsInfo = {0};
+    T_GetBitContext tGetBitBuf = { 0 };
+    tGetBitBuf.pu8Buf = (uint8_t*)sps + 1;
     tGetBitBuf.iBufSize = (int)(sps_len - 1);
     if (0 != h264DecSeqParameterSet((void *)&tGetBitBuf, &tH264SpsInfo)) {
         return false;
@@ -245,23 +243,16 @@ public:
         _printer << "a=rtpmap:" << payload_type << " " << getCodecName() << "/" << 90000 << "\r\n";
         _printer << "a=fmtp:" << payload_type << " packetization-mode=1; profile-level-id=";
 
-        char strTemp[1024];
         uint32_t profile_level_id = 0;
         if (strSPS.length() >= 4) { // sanity check
             profile_level_id = (uint8_t(strSPS[1]) << 16) |
                                (uint8_t(strSPS[2]) << 8) |
                                (uint8_t(strSPS[3])); // profile_idc|constraint_setN_flag|level_idc
         }
-        memset(strTemp, 0, sizeof(strTemp));
+        char strTemp[24];
         snprintf(strTemp, sizeof(strTemp), "%06X", profile_level_id);
         _printer << strTemp;
-        _printer << "; sprop-parameter-sets=";
-        memset(strTemp, 0, sizeof(strTemp));
-        av_base64_encode(strTemp, sizeof(strTemp), (uint8_t *)strSPS.data(), (int)strSPS.size());
-        _printer << strTemp << ",";
-        memset(strTemp, 0, sizeof(strTemp));
-        av_base64_encode(strTemp, sizeof(strTemp), (uint8_t *)strPPS.data(), (int)strPPS.size());
-        _printer << strTemp << "\r\n";
+        _printer << "; sprop-parameter-sets=" << encodeBase64(strSPS) << "," << encodeBase64(strPPS) << "\r\n";
         _printer << "a=control:trackID=" << (int)TrackVideo << "\r\n";
     }
 

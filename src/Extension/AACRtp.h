@@ -52,10 +52,12 @@ private:
 /**
  * aac adts转rtp类
  */
-class AACRtpEncoder : public AACRtpDecoder , public RtpInfo {
+class AACRtpEncoder : public RtpCodec, public RtpInfo {
 public:
     typedef std::shared_ptr<AACRtpEncoder> Ptr;
-
+    CodecId getCodecId() const override {
+        return CodecAAC;
+    }
     /**
      * @param ui32Ssrc ssrc
      * @param ui32MtuSize mtu 大小

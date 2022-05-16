@@ -92,7 +92,7 @@ private:
             return;
         }
 
-        if (_next_seq_out - it->first > (0xFFFF >> 1)) {
+        if (_next_seq_out - it->first > ((std::numeric_limits<SEQ>::max)() >> 1)) {
             //产生回环了
             if (_pkt_sort_cache_map.size() < 2 * kMin) {
                 //等足够多的数据后才处理回环, 因为后面还可能出现大的SEQ
@@ -100,7 +100,7 @@ private:
             }
             ++_seq_cycle_count;
             //找到大的SEQ并清空掉，然后从小的SEQ重新开始排序
-            auto hit = _pkt_sort_cache_map.upper_bound((SEQ) (_next_seq_out - _pkt_sort_cache_map.size()));
+            auto hit = _pkt_sort_cache_map.upper_bound((SEQ)(_next_seq_out - _pkt_sort_cache_map.size()));
             while (hit != _pkt_sort_cache_map.end()) {
                 //回环前，清空剩余的大的SEQ的数据
                 _cb(hit->first, hit->second);
@@ -108,10 +108,11 @@ private:
             }
             //下一个回环的数据
             popIterator(_pkt_sort_cache_map.begin());
-            return;
         }
-        //删除回跳的数据包
-        _pkt_sort_cache_map.erase(it);
+        else {
+            //删除回跳的数据包
+            _pkt_sort_cache_map.erase(it);
+        }
     }
 
     void popIterator(typename std::map<SEQ, T>::iterator it) {

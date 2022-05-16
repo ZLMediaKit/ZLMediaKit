@@ -47,7 +47,7 @@ private:
 /**
  * aac adts转Rtmp类
  */
-class AACRtmpEncoder : public AACRtmpDecoder{
+class AACRtmpEncoder : public RtmpCodec {
 public:
     typedef std::shared_ptr<AACRtmpEncoder> Ptr;
 
@@ -71,6 +71,9 @@ public:
      */
     void makeConfigPacket() override;
 
+    CodecId getCodecId() const override {
+        return CodecAAC;
+    }
 private:
     void makeAudioConfigPkt();
 

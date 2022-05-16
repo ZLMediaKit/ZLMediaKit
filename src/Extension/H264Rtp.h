@@ -26,6 +26,7 @@ namespace mediakit{
 class H264RtpDecoder : public RtpCodec{
 public:
     typedef std::shared_ptr<H264RtpDecoder> Ptr;
+    CodecId getCodecId() const override { return CodecH264; }
 
     H264RtpDecoder();
     ~H264RtpDecoder() {}
@@ -36,10 +37,6 @@ public:
      * @param key_pos 此参数忽略之
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
-
-    CodecId getCodecId() const override{
-        return CodecH264;
-    }
 
 private:
     bool singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp);
@@ -61,10 +58,10 @@ private:
 /**
  * 264 rtp打包类
  */
-class H264RtpEncoder : public H264RtpDecoder ,public RtpInfo{
+class H264RtpEncoder : public RtpCodec, public RtpInfo{
 public:
     typedef std::shared_ptr<H264RtpEncoder> Ptr;
-
+    CodecId getCodecId() const override { return CodecH264; }
     /**
      * @param ssrc ssrc
      * @param mtu mtu大小

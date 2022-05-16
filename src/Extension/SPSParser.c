@@ -2165,10 +2165,8 @@ exit:
 void h264GetWidthHeight(T_SPS *ptSps, int *piWidth, int *piHeight)
 {
     // ¿í¸ß¼ÆËã¹«Ê½
-    int iCodeWidth = 0;
-    int iCodedHeight = 0;
-    iCodeWidth	= 16 * ptSps->iMbWidth;
-    iCodedHeight = 16 * ptSps->iMbHeight;
+    int iCodeWidth	= 16 * ptSps->iMbWidth;
+    int iCodedHeight = 16 * ptSps->iMbHeight;
     *piWidth		 = iCodeWidth  - (ptSps->uiCropRight + ptSps->uiCropLeft);
     *piHeight		 = iCodedHeight - (ptSps->uiCropTop	+ ptSps->uiCropBottom);
      if (*piWidth <= 0 || *piHeight <= 0) {
@@ -2177,11 +2175,9 @@ void h264GetWidthHeight(T_SPS *ptSps, int *piWidth, int *piHeight)
      }
 
     RPT(RPT_DBG, "iCodeWidth:%d, iCodedHeight:%d\n", iCodeWidth, iCodedHeight);
-
     RPT(RPT_DBG, "*piWidth:%d, *piHeight:%d\n", *piWidth, *piHeight);
 
     RPT(RPT_DBG, "ptSps->uiCropRight:%d, ptSps->uiCropLeft:%d\n", ptSps->uiCropRight, ptSps->uiCropLeft);
-
     RPT(RPT_DBG, "ptSps->uiCropTop:%d, ptSps->uiCropBottom:%d\n", ptSps->uiCropTop, ptSps->uiCropBottom);
 
 }
@@ -2257,20 +2253,16 @@ void h264GeFramerate(T_SPS *ptSps, float *pfFramerate)
 void h265GetWidthHeight(T_HEVCSPS *ptSps, int *piWidth, int *piHeight)
 {
 #if 1
-    int iCodeWidth = 0;
-    int iCodedHeight = 0;
-    iCodeWidth	= ptSps->iWidth;
-    iCodedHeight = ptSps->iHeight;
+    int iCodeWidth	= ptSps->iWidth;
+    int iCodedHeight = ptSps->iHeight;
     *piWidth		 = ptSps->iWidth  - ptSps->tOutputWindow.uiLeftOffset - ptSps->tOutputWindow.uiRightOffset;
     *piHeight		 = ptSps->iHeight - ptSps->tOutputWindow.uiTopOffset  - ptSps->tOutputWindow.uiBottomOffset;
 
 
     RPT(RPT_DBG, "iCodeWidth:%d, iCodedHeight:%d\n", iCodeWidth, iCodedHeight);
-
     RPT(RPT_DBG, "*piWidth:%d, *piHeight:%d\n", *piWidth, *piHeight);
 
     RPT(RPT_DBG, "ptSps->tOutputWindow.uiRightOffset:%d, ptSps->tOutputWindow.uiLeftOffset:%d\n", ptSps->tOutputWindow.uiRightOffset, ptSps->tOutputWindow.uiLeftOffset);
-
     RPT(RPT_DBG, "ptSps->tOutputWindow.uiTopOffset:%d, ptSps->tOutputWindow.uiBottomOffset:%d\n", ptSps->tOutputWindow.uiTopOffset, ptSps->tOutputWindow.uiBottomOffset);
 #endif
 

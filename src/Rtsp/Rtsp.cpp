@@ -12,7 +12,7 @@
 #include <cinttypes>
 #include "Rtsp.h"
 #include "Common/Parser.h"
-
+#include "Extension/Track.h"
 using namespace std;
 using namespace toolkit;
 
@@ -76,6 +76,7 @@ static void getAttrSdp(const multimap<string, string> &attr, _StrPrinter &printe
             printer << "a=" << pr.first << ":" << pr.second << "\r\n";
         }
     }
+    // control attr放最后
     if (ptr) {
         printer << "a=" << ptr->first << ":" << ptr->second << "\r\n";
     }
@@ -514,11 +515,11 @@ size_t RtpHeader::getPaddingSize(size_t rtp_size) const {
 }
 
 size_t RtpHeader::getPayloadSize(size_t rtp_size) const {
-    auto invalid_size = getPayloadOffset() + getPaddingSize(rtp_size);
-    if (invalid_size + RtpPacket::kRtpHeaderSize >= rtp_size) {
+    auto invalid_size = RtpPacket::kRtpHeaderSize + getPayloadOffset() + getPaddingSize(rtp_size);
+    if (invalid_size >= rtp_size) {
         return 0;
     }
-    return rtp_size - invalid_size - RtpPacket::kRtpHeaderSize;
+    return rtp_size - invalid_size;
 }
 
 string RtpHeader::dumpString(size_t rtp_size) const {
@@ -550,7 +551,7 @@ const RtpHeader *RtpPacket::getHeader() const {
 }
 
 string RtpPacket::dumpString() const {
-    return ((RtpPacket *) this)->getHeader()->dumpString(size() - RtpPacket::kRtpTcpHeaderSize);
+    return getHeader()->dumpString(size() - RtpPacket::kRtpTcpHeaderSize);
 }
 
 uint16_t RtpPacket::getSeq() const {
@@ -590,6 +591,48 @@ RtpPacket::Ptr RtpPacket::create() {
 #else
     return Ptr(new RtpPacket);
 #endif
+}
+
+TitleSdp::TitleSdp(float dur_sec, const map<string, string>& header, int version) : Sdp(0, 0) {
+    _printer << "v=" << version << "\r\n";
+
+    if (!header.empty()) {
+        for (auto &pr : header) {
+            _printer << pr.first << "=" << pr.second << "\r\n";
+        }
+    }
+    else {
+        _printer << "o=- 0 0 IN IP4 0.0.0.0\r\n";
+        _printer << "s=Streamed by " << kServerName << "\r\n";
+        _printer << "c=IN IP4 0.0.0.0\r\n";
+        _printer << "t=0 0\r\n";
+    }
+
+    if (dur_sec <= 0) {
+        //直播
+        _printer << "a=range:npt=now-\r\n";
+    }
+    else {
+        //点播
+        _dur_sec = dur_sec;
+        _printer << "a=range:npt=0-" << dur_sec << "\r\n";
+    }
+    _printer << "a=control:*\r\n";
+}
+
+AudioSdp::AudioSdp(AudioTrack * track, int payload_type) :Sdp(track->getAudioSampleRate(), payload_type) {
+    _codecId = track->getCodecId();
+    int bitrate = track->getBitRate() / 1024;
+    _printer << "m=audio 0 RTP/AVP " << payload_type << "\r\n";
+    if (bitrate) {
+        _printer << "b=AS:" << bitrate << "\r\n";
+    }
+    _printer << "a=rtpmap:" << payload_type << " " << getCodecName() << "/" << track->getAudioSampleRate() << "/" << track->getAudioChannel() << "\r\n";
+    //_printer << "a=control:trackID=" << (int)TrackAudio << "\r\n";
+}
+
+string AudioSdp::getSdp() const {
+    return _printer + "a=control:trackID=1\r\n";
 }
 
 }//namespace mediakit
