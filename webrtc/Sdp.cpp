@@ -1805,9 +1805,18 @@ bool RtcConfigure::onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec){
 }
 
 void RtcConfigure::onSelectPlan(RtcCodecPlan &plan, CodecId codec){
-    if (_rtsp_video_plan && codec == CodecH264 && getCodecId(_rtsp_video_plan->codec) == CodecH264) {
+    if (_rtsp_video_plan && codec == CodecH264 && getCodecId(_rtsp_video_plan->codec) == codec) {
         //h264时，设置packetization-mod为一致
         auto mode = _rtsp_video_plan->fmtp[kMode];
         plan.fmtp[kMode] = mode.empty() ? "0" : mode;
+    }
+    if (_rtsp_audio_plan && codec == CodecAAC && getCodecId(_rtsp_audio_plan->codec) == codec) {
+        plan.fmtp = _rtsp_audio_plan->fmtp;
+        return ;
+        //aac时，设置config为一致
+        static const string kConfig{"config"};
+        auto config = _rtsp_audio_plan->fmtp[kConfig];
+        if(config.length())
+            plan.fmtp[kConfig] = config;
     }
 }
