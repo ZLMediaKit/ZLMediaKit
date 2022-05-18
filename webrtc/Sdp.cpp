@@ -869,7 +869,7 @@ void RtcSession::loadFrom(const string &str) {
         }
 
         if (!have_rtx_ssrc) {
-            //按照sdp顺序依次添加ssrc
+            //按照sdp的cname出现顺序依次添加ssrc
             for (auto &attr : ssrc_attr) {
                 if (attr.attribute == "cname") {
                     rtc_media.rtp_rtx_ssrc.emplace_back(rtc_ssrc_map[attr.ssrc]);
@@ -903,11 +903,12 @@ void RtcSession::loadFrom(const string &str) {
             for (auto ssrc : ssrc_group_sim->ssrcs) {
                 auto it = rtc_ssrc_map.find(ssrc);
                 CHECK(it != rtc_ssrc_map.end());
-                rtc_media.rtp_ssrc_sim.emplace_back(it->second);
+                rtc_media.rtp_ssrc_sim.emplace_back(ssrc);
             }
         } else if (!rtc_media.rtp_rids.empty()) {
             //未指定a=ssrc-group:SIM, 但是指定了a=simulcast, 那么只能根据ssrc顺序来对应rid顺序
-            rtc_media.rtp_ssrc_sim = rtc_media.rtp_rtx_ssrc;
+            for(auto& ssrc : rtc_media.rtp_rtx_ssrc)
+                rtc_media.rtp_ssrc_sim.push_back(ssrc.ssrc);
         }
 
         if (!rtc_media.supportSimulcast()) {
@@ -1198,17 +1199,6 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
             }
 
             {
-                if (m.rtp_ssrc_sim.size() >= 2) {
-                    //simulcast 要求 2~3路
-                    auto group = std::make_shared<SdpAttrSSRCGroup>();
-                    for (auto &ssrc : m.rtp_ssrc_sim) {
-                        group->ssrcs.emplace_back(ssrc.ssrc);
-                    }
-                    //添加a=ssrc-group:SIM字段
-                    group->type = "SIM";
-                    sdp_media.addAttr(std::move(group));
-                }
-
                 if (m.rtp_rids.size() >= 2) {
                     auto simulcast = std::make_shared<SdpAttrSimulcast>();
                     simulcast->direction = "recv";
@@ -1221,6 +1211,14 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                         attr_rid->direction = "recv";
                         sdp_media.addAttr(std::move(attr_rid));
                     }
+                }
+                else if (m.rtp_ssrc_sim.size() >= 2) {
+                    //simulcast 要求 2~3路
+                    auto group = std::make_shared<SdpAttrSSRCGroup>();
+                    group->ssrcs = m.rtp_ssrc_sim;
+                    //添加a=ssrc-group:SIM字段
+                    group->type = "SIM";
+                    sdp_media.addAttr(std::move(group));
                 }
             }
 
@@ -1283,9 +1281,24 @@ uint32_t RtcMedia::getRtpSSRC() const {
     return 0;
 }
 
-uint32_t RtcMedia::getRtxSSRC() const {
+const RtcSSRC* RtcMedia::getRtpSSRC(uint32_t ssrc) const {
+    for(auto& item : rtp_rtx_ssrc) {
+        if(item.ssrc == ssrc)
+            return &item;
+    }
+    return nullptr;
+}
+
+uint32_t RtcMedia::getRtxSSRC(uint32_t ssrc) const {
     if (rtp_rtx_ssrc.size()) {
-        return rtp_rtx_ssrc[0].rtx_ssrc;
+        if(!ssrc)
+            return rtp_rtx_ssrc[0].rtx_ssrc;
+        else {
+            for(auto& item : rtp_rtx_ssrc) {
+                if(item.ssrc == ssrc)
+                    return item.rtx_ssrc;
+            }
+        }
     }
     return 0;
 }

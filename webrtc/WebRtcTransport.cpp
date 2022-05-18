@@ -533,19 +533,19 @@ void WebRtcTransportImp::onStartWebRTC() {
         });
 
         size_t index = 0;
-        for (auto &ssrc : m_offer->rtp_ssrc_sim) {
+        for (auto ssrc : m_offer->rtp_ssrc_sim) {
             //记录ssrc对应的MediaTrack
-            _ssrc_to_track[ssrc.ssrc] = track;
+            _ssrc_to_track[ssrc] = track;
             if (m_offer->rtp_rids.size() > index) {
                 //支持firefox的simulcast, 提前映射好ssrc和rid的关系
-                track->rtp_ext_ctx->setRid(ssrc.ssrc, m_offer->rtp_rids[index]);
+                track->rtp_ext_ctx->setRid(ssrc, m_offer->rtp_rids[index]);
             } else {
                 // SDP munging没有rid, 它通过group-ssrc:SIM给出ssrc列表;
                 // 系统又要有rid，这里手工生成rid，并为其绑定ssrc
                 std::string rid = "r" + std::to_string(index);
-                track->rtp_ext_ctx->setRid(ssrc.ssrc, rid);
-                if(ssrc.rtx_ssrc)
-                    track->rtp_ext_ctx->setRid(ssrc.rtx_ssrc, rid);
+                track->rtp_ext_ctx->setRid(ssrc, rid);
+                if(uint32_t rtx_ssrc = m_offer->getRtxSSRC(ssrc))
+                    track->rtp_ext_ctx->setRid(rtx_ssrc, rid);
             }
             ++index;
         }

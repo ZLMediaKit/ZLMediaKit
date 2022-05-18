@@ -656,7 +656,7 @@ public:
     std::vector<RtcSSRC> rtp_rtx_ssrc;
 
     //////// simulcast ////////
-    std::vector<RtcSSRC> rtp_ssrc_sim;
+    std::vector<uint32_t> rtp_ssrc_sim;
     std::vector<std::string> rtp_rids;
 
     ////////  rtcp  ////////
@@ -689,7 +689,8 @@ public:
     const RtcCodecPlan *getPlan(const char *codec) const;
     const RtcCodecPlan *getRelatedRtxPlan(uint8_t pt) const;
     uint32_t getRtpSSRC() const;
-    uint32_t getRtxSSRC() const;
+    const RtcSSRC* getRtpSSRC(uint32_t ssrc) const;
+    uint32_t getRtxSSRC(uint32_t ssrc = 0) const;
     bool supportSimulcast() const;
 };
 
