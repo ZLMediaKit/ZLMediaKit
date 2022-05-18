@@ -463,6 +463,13 @@ void WebRtcTransportImp::onStartWebRTC() {
             if (m_offer->rtp_rids.size() > index) {
                 //支持firefox的simulcast, 提前映射好ssrc和rid的关系
                 track->rtp_ext_ctx->setRid(ssrc.ssrc, m_offer->rtp_rids[index]);
+            } else {
+                // SDP munging没有rid, 它通过group-ssrc:SIM给出ssrc列表;
+                // 系统又要有rid，这里手工生成rid，并为其绑定ssrc
+                std::string rid = "r" + std::to_string(index);
+                track->rtp_ext_ctx->setRid(ssrc.ssrc, rid);
+                if(ssrc.rtx_ssrc)
+                    track->rtp_ext_ctx->setRid(ssrc.rtx_ssrc, rid);
             }
             ++index;
         }
