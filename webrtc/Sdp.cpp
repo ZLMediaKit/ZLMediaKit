@@ -895,7 +895,7 @@ void RtcSession::loadFrom(const string &str) {
             CHECK(rtc_media.rtp_rtx_ssrc.size() <= 1);
         } else {
             //simulcast的情况下，要么没有指定ssrc，要么指定的ssrc个数与rid个数一致
-            CHECK(rtc_media.rtp_ssrc_sim.empty() || rtc_media.rtp_ssrc_sim.size() == rtc_media.rtp_rids.size());
+            //CHECK(rtc_media.rtp_ssrc_sim.empty() || rtc_media.rtp_ssrc_sim.size() == rtc_media.rtp_rids.size());
         }
 
         auto rtpmap_arr = media.getAllItem<SdpAttrRtpMap>('a', "rtpmap");
@@ -1290,7 +1290,7 @@ void RtcMedia::checkValid() const{
     CHECK(type == TrackApplication || rtcp_mux, "只支持rtcp-mux模式");
 
     bool send_rtp = (direction == RtpDirection::sendonly || direction == RtpDirection::sendrecv);
-    if (rtp_rids.empty() && rtp_ssrc_sim.empty()) {
+    if (!supportSimulcast()) {
         //非simulcast时，检查有没有指定rtp ssrc
         CHECK(!rtp_rtx_ssrc.empty() || !send_rtp);
     }
@@ -1594,7 +1594,6 @@ RETRY:
 #ifdef ENABLE_SCTP
             answer_media.direction = matchDirection(offer_media.direction, configure.direction);
             answer_media.candidate = configure.candidate;
-
 #else
             answer_media.direction = RtpDirection::inactive;
 #endif
@@ -1640,7 +1639,10 @@ RETRY:
             answer_media.fingerprint = configure.fingerprint;
             answer_media.ice_lite = configure.ice_lite;
             answer_media.candidate = configure.candidate;
+            // copy simulicast setting
             answer_media.rtp_rids = offer_media.rtp_rids;
+            answer_media.rtp_ssrc_sim = offer_media.rtp_ssrc_sim;
+
             answer_media.role = mathDtlsRole(offer_media.role);
 
             //如果codec匹配失败，那么禁用该track
