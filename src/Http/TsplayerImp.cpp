@@ -50,7 +50,8 @@ void TsPlayerImp::onShutdown(const SockException &ex) {
         static_pointer_cast<HlsDemuxer>(_demuxer)->pushTask([weak_self, ex]() {
             auto strong_self = weak_self.lock();
             if (strong_self) {
-                strong_self->PlayerImp<TsPlayer, PlayerBase>::onShutdown(ex);
+                strong_self->_demuxer = nullptr;
+                strong_self->onShutdown(ex);
             }
         });
     } else {
