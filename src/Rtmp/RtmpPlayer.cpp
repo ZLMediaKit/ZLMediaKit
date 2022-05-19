@@ -209,7 +209,7 @@ inline void RtmpPlayer::send_createStream() {
 
 inline void RtmpPlayer::send_play() {
     AMFEncoder enc;
-    enc << "play" << ++_send_req_id << nullptr << _stream_id << "-2000";
+    enc << "play" << ++_send_req_id << nullptr << _stream_id << -2000;
     sendRequest(MSG_CMD, enc.data());
     auto fun = [](AMFValue &val) {
         //TraceL << "play onStatus";
