@@ -139,7 +139,8 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
             break;
     }
 
-    if (finish) {
+    //防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流
+    if (finish && _tracks[TrackVideo] ) {
         _sink->addTrackCompleted();
         InfoL << "add track finished";
     }
