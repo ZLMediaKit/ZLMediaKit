@@ -490,18 +490,16 @@ public:
 
 class RtcSdpBase {
 public:
-    std::vector<SdpItem::Ptr> items;
-    void addItem(SdpItem::Ptr item) { items.push_back(item); }
+    void addItem(SdpItem::Ptr item) { items.push_back(std::move(item)); }
     void addAttr(SdpItem::Ptr attr) {
         auto item = std::make_shared<SdpAttr>();
         item->detail = std::move(attr);
-        items.push_back(item);
+        items.push_back(std::move(item));
     }
-    SdpItem::Ptr findItem(char key) const { return getItem(key);}
-    SdpItem::Ptr findAttr(const char* key) const { return getItem('a', key);}
-public:
+
     virtual ~RtcSdpBase() = default;
     virtual std::string toString() const;
+    void toRtsp();
 
     RtpDirection getDirection() const;
 
@@ -548,6 +546,9 @@ public:
         }
         return ret;
     }
+
+private:
+    std::vector<SdpItem::Ptr> items;
 };
 
 class RtcSessionSdp : public RtcSdpBase{
