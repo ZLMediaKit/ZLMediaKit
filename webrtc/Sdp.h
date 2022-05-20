@@ -491,25 +491,18 @@ public:
 class RtcSdpBase {
 public:
     std::vector<SdpItem::Ptr> items;
-
+    void addItem(SdpItem::Ptr item) { items.push_back(item); }
+    void addAttr(SdpItem::Ptr attr) {
+        auto item = std::make_shared<SdpAttr>();
+        item->detail = std::move(attr);
+        items.push_back(item);
+    }
+    SdpItem::Ptr findItem(char key) const { return getItem(key);}
+    SdpItem::Ptr findAttr(const char* key) const { return getItem('a', key);}
 public:
     virtual ~RtcSdpBase() = default;
     virtual std::string toString() const;
 
-    int getVersion() const;
-    SdpOrigin getOrigin() const;
-    std::string getSessionName() const;
-    std::string getSessionInfo() const;
-    SdpTime getSessionTime() const;
-    SdpConnection getConnection() const;
-    SdpBandwidth getBandwidth() const;
-
-    std::string getUri() const;
-    std::string getEmail() const;
-    std::string getPhone() const;
-    std::string getTimeZone() const;
-    std::string getEncryptKey() const;
-    std::string getRepeatTimes() const;
     RtpDirection getDirection() const;
 
     template<typename cls>
@@ -534,8 +527,8 @@ public:
     template<typename cls>
     std::vector<cls> getAllItem(char key_c, const char *attr_key = nullptr) const {
         std::vector<cls> ret;
+        std::string key(1, key_c);
         for (auto item : items) {
-            std::string key(1, key_c);
             if (strcasecmp(item->getKey(), key.data()) == 0) {
                 if (!attr_key) {
                     auto c = std::dynamic_pointer_cast<cls>(item);
@@ -560,7 +553,21 @@ public:
 class RtcSessionSdp : public RtcSdpBase{
 public:
     using Ptr = std::shared_ptr<RtcSessionSdp>;
+    int getVersion() const;
+    SdpOrigin getOrigin() const;
+    std::string getSessionName() const;
+    std::string getSessionInfo() const;
+    SdpTime getSessionTime() const;
+    SdpConnection getConnection() const;
+    SdpBandwidth getBandwidth() const;
 
+    std::string getUri() const;
+    std::string getEmail() const;
+    std::string getPhone() const;
+    std::string getTimeZone() const;
+    std::string getEncryptKey() const;
+    std::string getRepeatTimes() const;
+    
     std::vector<RtcSdpBase> medias;
     void parse(const std::string &str);
     std::string toString() const override;
