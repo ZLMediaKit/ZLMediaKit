@@ -286,9 +286,9 @@ void RtcSessionSdp::parse(const string &str) {
             item->parse(value);
         }
         if (media) {
-            media->items.push_back(std::move(item));
+            media->addItem(std::move(item));
         } else {
-            items.push_back(std::move(item));
+            addItem(std::move(item));
         }
     }
 }
@@ -953,7 +953,7 @@ void RtcSession::loadFrom(const string &str) {
     group = sdp.getItemClass<SdpAttrGroup>('a', "group");
 }
 
-static void toRtsp(vector <SdpItem::Ptr> &items) {
+void RtcSdpBase::toRtsp() {
     for (auto it = items.begin(); it != items.end();) {
         switch ((*it)->getKey()[0]) {
             case 'v':
@@ -1010,10 +1010,10 @@ string RtcSession::toRtspSdp() const{
 
     CHECK(!copy.media.empty());
     auto sdp = copy.toRtcSessionSdp();
-    toRtsp(sdp->items);
+    sdp->toRtsp();
     int i = 0;
     for (auto &m : sdp->medias) {
-        toRtsp(m.items);
+        m.toRtsp();
         m.addAttr(std::make_shared<SdpCommon>("control", string("trackID=") + to_string(i++)));
     }
     return sdp->toString();
