@@ -1,5 +1,23 @@
 project(ZLMediaKit)
 cmake_minimum_required(VERSION 3.1.3)
+include(CheckStructHasMember)
+include(CheckSymbolExists)
+
+# 检查sendmmsg相关依赖并设置对应的宏
+list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+check_struct_has_member("struct mmsghdr" msg_hdr sys/socket.h HAVE_MMSG_HDR)
+check_symbol_exists(sendmmsg sys/socket.h HAVE_SENDMMSG_API)
+check_symbol_exists(recvmmsg sys/socket.h HAVE_RECVMMSG_API)
+
+if(HAVE_MMSG_HDR)
+    add_definitions(-DHAVE_MMSG_HDR)
+endif()
+if(HAVE_SENDMMSG_API)
+    add_definitions(-DHAVE_SENDMMSG_API)
+endif()
+if(HAVE_RECVMMSG_API)
+    add_definitions(-DHAVE_RECVMMSG_API)
+endif()
 #使能c++11
 set(CMAKE_CXX_STANDARD 11)
 #加载自定义模块
