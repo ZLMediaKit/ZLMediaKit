@@ -310,45 +310,33 @@ private:
  */
 class FrameDispatcher : public FrameWriterInterface {
 public:
-    typedef std::shared_ptr<FrameDispatcher> Ptr;
-
-    FrameDispatcher(){}
-    virtual ~FrameDispatcher(){}
+    using Ptr = std::shared_ptr<FrameDispatcher>;
+    FrameDispatcher() = default;
+    ~FrameDispatcher() override = default;
 
     /**
      * 添加代理
      */
-    void addDelegate(const FrameWriterInterface::Ptr &delegate){
-        //_delegates_write可能多线程同时操作
+    void addDelegate(const FrameWriterInterface::Ptr &delegate) {
         std::lock_guard<std::mutex> lck(_mtx);
-        _delegates_write.emplace(delegate.get(),delegate);
-        _need_update = true;
+        _delegates.emplace(delegate.get(), delegate);
     }
 
     /**
      * 删除代理
      */
-    void delDelegate(FrameWriterInterface *ptr){
-        //_delegates_write可能多线程同时操作
+    void delDelegate(FrameWriterInterface *ptr) {
         std::lock_guard<std::mutex> lck(_mtx);
-        _delegates_write.erase(ptr);
-        _need_update = true;
+        _delegates.erase(ptr);
     }
 
     /**
      * 写入帧并派发
      */
-    bool inputFrame(const Frame::Ptr &frame) override{
-        if(_need_update){
-            //发现代理列表发生变化了，这里同步一次
-            std::lock_guard<std::mutex> lck(_mtx);
-            _delegates_read = _delegates_write;
-            _need_update = false;
-        }
-
-        //_delegates_read能确保是单线程操作的
+    bool inputFrame(const Frame::Ptr &frame) override {
+        std::lock_guard<std::mutex> lck(_mtx);
         bool ret = false;
-        for (auto &pr : _delegates_read) {
+        for (auto &pr : _delegates) {
             if (pr.second->inputFrame(frame)) {
                 ret = true;
             }
@@ -360,13 +348,18 @@ public:
      * 返回代理个数
      */
     size_t size() const {
-        return _delegates_write.size();
+        std::lock_guard<std::mutex> lck(_mtx);
+        return _delegates.size();
     }
+
+    void clear() {
+        std::lock_guard<std::mutex> lck(_mtx);
+        _delegates.clear();
+    }
+
 private:
-    std::mutex _mtx;
-    std::map<void *,FrameWriterInterface::Ptr>  _delegates_read;
-    std::map<void *,FrameWriterInterface::Ptr>  _delegates_write;
-    bool _need_update = false;
+    mutable std::mutex _mtx;
+    std::map<void *, FrameWriterInterface::Ptr> _delegates;
 };
 
 /**

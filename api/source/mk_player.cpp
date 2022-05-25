@@ -47,51 +47,34 @@ public:
         });
     }
 
-    void unset(){
+    void unset() {
+        for (auto &track : _player->getTracks(false)) {
+            track->clear();
+        }
         lock_guard<recursive_mutex> lck(_mtx);
         _on_play = nullptr;
         _on_shutdown = nullptr;
-        _on_data = nullptr;
     }
 
     void onEvent(bool is_shutdown, const SockException &ex){
         lock_guard<recursive_mutex> lck(_mtx);
-        if(is_shutdown){
+        if (is_shutdown) {
             //播放中断
-            if(_on_shutdown){
-                _on_shutdown(_on_shutdown_data,ex.getErrCode(),ex.what());
+            if (_on_shutdown) {
+                _on_shutdown(_on_shutdown_data, ex.getErrCode(), ex.what(), nullptr, 0);
             }
             return;
         }
 
         //播放结果
-        if(_on_play){
-            _on_play(_on_play_data,ex.getErrCode(),ex.what());
-        }
-
-        if(ex){
-            //播放失败
-            return;
-        }
-
-        //播放成功,添加事件回调
-        weak_ptr<MediaPlayerForC> weak_self = shared_from_this();
-        auto delegate = std::make_shared<FrameWriterInterfaceHelper>([weak_self](const Frame::Ptr &frame) {
-            if (auto strong_self = weak_self.lock()) {
-                strong_self->onData(frame);
-                return true;
+        if (_on_play) {
+            auto cpp_tracks = _player->getTracks(false);
+            mk_track tracks[TrackMax] = {nullptr};
+            int track_count = 0;
+            for (auto &track : cpp_tracks) {
+                tracks[track_count++] = (mk_track) &track;
             }
-            return false;
-        });
-        for (auto &track : _player->getTracks(false)) {
-            track->addDelegate(delegate);
-        }
-    }
-
-    void onData(const Frame::Ptr &frame){
-        lock_guard<recursive_mutex> lck(_mtx);
-        if(_on_data){
-            _on_data(_on_data_data,frame->getTrackType(),frame->getCodecId(),frame->data(),frame->size(),frame->dts(),frame->pts());
+            _on_play(_on_play_data, ex.getErrCode(), ex.what(), tracks, track_count);
         }
     }
 
@@ -106,12 +89,6 @@ public:
         }
     }
 
-    void setOnData(on_mk_play_data cb, void *user_data) {
-        lock_guard<recursive_mutex> lck(_mtx);
-        _on_data_data = user_data;
-        _on_data = cb;
-    }
-
     MediaPlayer::Ptr& getPlayer(){
         return _player;
     }
@@ -119,12 +96,10 @@ private:
     MediaPlayer::Ptr _player;
     recursive_mutex _mtx;
     on_mk_play_event _on_play = nullptr;
-    on_mk_play_data _on_data = nullptr;
     on_mk_play_event _on_shutdown = nullptr;
 
     void *_on_play_data = nullptr;
     void *_on_shutdown_data = nullptr;
-    void *_on_data_data = nullptr;
 };
 
 API_EXPORT mk_player API_CALL mk_player_create() {
@@ -212,90 +187,6 @@ API_EXPORT void API_CALL mk_player_set_on_result(mk_player ctx, on_mk_play_event
 
 API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_event cb, void *user_data) {
     mk_player_set_on_event(ctx,cb,user_data,1);
-}
-
-API_EXPORT void API_CALL mk_player_set_on_data(mk_player ctx, on_mk_play_data cb, void *user_data) {
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    obj.setOnData(cb,user_data);
-}
-
-API_EXPORT int API_CALL mk_player_video_codec_id(mk_player ctx){
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    auto track = dynamic_pointer_cast<VideoTrack>(obj->getTrack(TrackVideo));
-    return track ? track->getCodecId() : CodecInvalid;
-}
-
-API_EXPORT int API_CALL mk_player_video_codec_id_vendor_head(mk_player ctx, char *vendor, char *head, int *head_len) {
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *) ctx);
-    auto track = dynamic_pointer_cast<VideoTrack>(obj->getTrack(TrackVideo));
-    int codecId = track ? track->getCodecId() : CodecInvalid;
-    if (codecId == CodecH264) {
-        auto h264Track = dynamic_pointer_cast<H264Track>(obj->getTrack(TrackVideo));
-        auto pps = h264Track->getPps();
-        auto ppsLen = pps.size();
-        if (ppsLen >= (4 + 16)) {
-            std::string temVendor = std::string(pps.c_str() + 4, 16);
-            memcpy(vendor, temVendor.c_str(), temVendor.length());
-            if (ppsLen > (4 + 16)) {
-                std::string temHead = std::string(pps.c_str() + 20, ppsLen - 20);
-                memcpy(head, temHead.c_str(), temHead.length());
-                *head_len = temHead.length();
-            }
-        }
-    }
-    return codecId;
-}
-
-API_EXPORT int API_CALL mk_player_video_width(mk_player ctx) {
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    auto track = dynamic_pointer_cast<VideoTrack>(obj->getTrack(TrackVideo));
-    return track ? track->getVideoWidth() : 0;
-}
-
-API_EXPORT int API_CALL mk_player_video_height(mk_player ctx) {
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    auto track = dynamic_pointer_cast<VideoTrack>(obj->getTrack(TrackVideo));
-    return track ? track->getVideoHeight() : 0;
-}
-
-API_EXPORT float API_CALL mk_player_video_fps(mk_player ctx) {
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    auto track = dynamic_pointer_cast<VideoTrack>(obj->getTrack(TrackVideo));
-    return track ? track->getVideoFps() : 0;
-}
-
-API_EXPORT int API_CALL mk_player_audio_codec_id(mk_player ctx){
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    auto track = dynamic_pointer_cast<AudioTrack>(obj->getTrack(TrackAudio));
-    return track ? track->getCodecId() : CodecInvalid;
-}
-
-API_EXPORT int API_CALL mk_player_audio_samplerate(mk_player ctx) {
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    auto track = dynamic_pointer_cast<AudioTrack>(obj->getTrack(TrackAudio));
-    return track ? track->getAudioSampleRate() : 0;
-}
-
-API_EXPORT int API_CALL mk_player_audio_bit(mk_player ctx) {
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    auto track = dynamic_pointer_cast<AudioTrack>(obj->getTrack(TrackAudio));
-    return track ? track->getAudioSampleBit() : 0;
-}
-
-API_EXPORT int API_CALL mk_player_audio_channel(mk_player ctx) {
-    assert(ctx);
-    MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    auto track = dynamic_pointer_cast<AudioTrack>(obj->getTrack(TrackAudio));
-    return track ? track->getAudioChannel() : 0;
 }
 
 API_EXPORT float API_CALL mk_player_duration(mk_player ctx) {

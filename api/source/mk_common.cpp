@@ -14,6 +14,7 @@
 #include "Util/logger.h"
 #include "Util/SSLBox.h"
 #include "Network/TcpServer.h"
+#include "Network/UdpServer.h"
 #include "Thread/WorkThreadPool.h"
 
 #include "Rtsp/RtspSession.h"

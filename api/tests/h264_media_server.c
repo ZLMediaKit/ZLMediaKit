@@ -22,14 +22,17 @@ static void s_on_exit(int sig) {
     exit_flag = 1;
 }
 
-static void on_h264_frame(void *user_data, mk_h264_splitter splitter, const char *frame, int size) {
+static void on_h264_frame(void *user_data, mk_h264_splitter splitter, const char *data, int size) {
 #ifdef _WIN32
     Sleep(40);
 #else
     usleep(40 * 1000);
 #endif
-    mk_media media = (mk_media) user_data;
-    mk_media_input_h264(media, frame, size, 0, 0);
+    static int dts = 0;
+    mk_frame frame = mk_frame_create(MKCodecH264, dts, dts, data, size, NULL, NULL);
+    dts += 40;
+    mk_media_input_frame((mk_media) user_data, frame);
+    mk_frame_unref(frame);
 }
 
 int main(int argc, char *argv[]) {
@@ -60,7 +63,7 @@ int main(int argc, char *argv[]) {
 
     mk_media media = mk_media_create("__defaultVhost__", "live", "test", 0, 0, 0);
     //h264的codec
-    mk_media_init_video(media, 0, 0, 0, 0);
+    mk_media_init_video(media, 0, 0, 0, 0, 2 * 104 * 1024);
     mk_media_init_complete(media);
 
     //创建h264分帧器

@@ -8,18 +8,8 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <signal.h>
 #include <string.h>
 #include "mk_mediakit.h"
-
-#ifdef _WIN32
-#include "windows.h"
-#else
-
-#include "unistd.h"
-
-#endif
-
 #define LOG_LEV 4
 
 /**
@@ -396,10 +386,6 @@ void API_CALL on_mk_flow_report(const mk_media_info url_info,
               (int)mk_sock_info_peer_port(sender));
 }
 
-static int flag = 1;
-static void s_on_exit(int sig){
-    flag = 0;
-}
 int main(int argc, char *argv[]) {
     char *ini_path = mk_util_get_exe_dir("c_api.ini");
     char *ssl_path = mk_util_get_exe_dir("ssl.p12");
@@ -444,17 +430,11 @@ int main(int argc, char *argv[]) {
             .on_mk_flow_report = on_mk_flow_report
     };
     mk_events_listen(&events);
-
     log_info("media server %s", "stared!");
 
-    signal(SIGINT, s_on_exit );// 设置退出信号
-    while (flag) {
-#ifdef _WIN32
-        Sleep(1000);
-#else
-        sleep(1);
-#endif
-    }
+    log_info("enter any key to exit");
+    getchar();
+
     mk_stop_all_server();
     return 0;
 }

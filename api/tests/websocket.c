@@ -8,25 +8,14 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <signal.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "mk_mediakit.h"
-#ifdef _WIN32
-#include "windows.h"
-#else
-#include "unistd.h"
-#endif
 
 #define LOG_LEV 4
 //修改此宏，可以选择协议类型
 #define TCP_TYPE mk_type_ws
-
-static int flag = 1;
-static void s_on_exit(int sig){
-    flag = 0;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 typedef struct {
@@ -52,11 +41,15 @@ void API_CALL on_mk_tcp_session_create(uint16_t server_port,mk_tcp_session sessi
  * @param data 数据指针
  * @param len 数据长度
  */
-void API_CALL on_mk_tcp_session_data(uint16_t server_port,mk_tcp_session session,const char *data,size_t len){
+void API_CALL on_mk_tcp_session_data(uint16_t server_port,mk_tcp_session session, mk_buffer buffer){
     char ip[64];
-    log_printf(LOG_LEV,"from %s %d, data[%d]: %s",mk_tcp_session_peer_ip(session,ip),(int)mk_tcp_session_peer_port(session), len,data);
+    log_printf(LOG_LEV,"from %s %d, data[%d]: %s",
+               mk_tcp_session_peer_ip(session,ip),
+               (int)mk_tcp_session_peer_port(session),
+               mk_buffer_get_size(buffer),
+               mk_buffer_get_data(buffer));
     mk_tcp_session_send(session,"echo:",0);
-    mk_tcp_session_send(session,data,len);
+    mk_tcp_session_send_buffer(session, buffer);
 }
 
 /**
@@ -129,8 +122,8 @@ void API_CALL on_mk_tcp_client_disconnect(mk_tcp_client client,int code,const ch
  * @param data 数据指针
  * @param len 数据长度
  */
-void API_CALL on_mk_tcp_client_data(mk_tcp_client client,const char *data,size_t len){
-    log_printf(LOG_LEV,"data[%d]:%s",len,data);
+void API_CALL on_mk_tcp_client_data(mk_tcp_client client, mk_buffer buffer){
+    log_printf(LOG_LEV, "data[%d]:%s", mk_buffer_get_size(buffer), mk_buffer_get_data(buffer));
 }
 
 /**
@@ -203,14 +196,9 @@ int main(int argc, char *argv[]) {
     test_server();
     test_client();
 
-    signal(SIGINT, s_on_exit );// 设置退出信号
-    while (flag) {
-#ifdef _WIN32
-        Sleep(1000);
-#else
-        sleep(1);
-#endif
-    }
+    log_info("enter any key to exit");
+    getchar();
+
     mk_stop_all_server();
     return 0;
 }

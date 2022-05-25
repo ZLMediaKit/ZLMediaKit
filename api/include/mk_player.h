@@ -12,6 +12,8 @@
 #define MK_PLAYER_H_
 
 #include "mk_common.h"
+#include "mk_frame.h"
+#include "mk_track.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,20 +26,11 @@ typedef void* mk_player;
  * @param user_data 用户数据指针
  * @param err_code 错误代码，0为成功
  * @param err_msg 错误提示
+ * @param tracks track列表
+ * @param track_count track个数
  */
-typedef void(API_CALL *on_mk_play_event)(void *user_data,int err_code,const char *err_msg);
-
-/**
- * 收到音视频数据回调
- * @param user_data 用户数据指针
- * @param track_type 0：视频，1：音频
- * @param codec_id 0：H264，1：H265，2：AAC 3.G711A 4.G711U 5.OPUS
- * @param data 数据指针
- * @param len 数据长度
- * @param dts 解码时间戳，单位毫秒
- * @param pts 显示时间戳，单位毫秒
- */
-typedef void(API_CALL *on_mk_play_data)(void *user_data,int track_type,int codec_id,void *data,size_t len, uint32_t dts,uint32_t pts);
+typedef void(API_CALL *on_mk_play_event)(void *user_data, int err_code, const char *err_msg, mk_track tracks[],
+                                         int track_count);
 
 /**
  * 创建一个播放器,支持rtmp[s]/rtsp[s]
@@ -54,7 +47,7 @@ API_EXPORT void API_CALL mk_player_release(mk_player ctx);
 /**
  * 设置播放器配置选项
  * @param ctx 播放器指针
- * @param key 配置项键,支持 net_adapter/rtp_type/rtsp_user/rtsp_pwd/protocol_timeout_ms/media_timeout_ms/beat_interval_ms/max_analysis_ms
+ * @param key 配置项键,支持 net_adapter/rtp_type/rtsp_user/rtsp_pwd/protocol_timeout_ms/media_timeout_ms/beat_interval_ms/wait_track_ready
  * @param val 配置项值,如果是整形，需要转换成统一转换成string
  */
 API_EXPORT void API_CALL mk_player_set_option(mk_player ctx, const char *key, const char *val);
@@ -110,66 +103,7 @@ API_EXPORT void API_CALL mk_player_set_on_result(mk_player ctx, on_mk_play_event
  */
 API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_event cb, void *user_data);
 
-/**
- * 设置音视频数据回调函数
- * @param ctx 播放器指针
- * @param cb 回调函数指针,设置null立即取消回调
- * @param user_data 用户数据指针
- */
-API_EXPORT void API_CALL mk_player_set_on_data(mk_player ctx, on_mk_play_data cb, void *user_data);
-
 ///////////////////////////获取音视频相关信息接口在播放成功回调触发后才有效///////////////////////////////
-
-/**
- * 获取视频codec_id -1：不存在 0：H264，1：H265，2：AAC 3.G711A 4.G711U
- * @param ctx 播放器指针
- */
-API_EXPORT int API_CALL mk_player_video_codec_id(mk_player ctx);
-
-/**
- * 获取视频codec_id, vendor类型, 私有头数据  codec_id -1：不存在 0：H264，1：H265，2：AAC 3.G711A 4.G711U
- * @param ctx 播放器指针
- * @param vendor 输出厂家类型 如果是私有流 应该是H264另外还有厂家类型
- * @param head 厂家SDK头数据
- * @param head 厂家SDK头数据长度
- */
-API_EXPORT int API_CALL mk_player_video_codec_id_vendor_head(mk_player ctx, char* vendor, char* head, int* headLen);
-
-/**
- * 获取视频宽度
- */
-API_EXPORT int API_CALL mk_player_video_width(mk_player ctx);
-
-/**
- * 获取视频高度
- */
-API_EXPORT int API_CALL mk_player_video_height(mk_player ctx);
-
-/**
- * 获取视频帧率
- */
-API_EXPORT float API_CALL mk_player_video_fps(mk_player ctx);
-
-/**
- * 获取音频codec_id -1：不存在 0：H264，1：H265，2：AAC 3.G711A 4.G711U
- * @param ctx 播放器指针
- */
-API_EXPORT int API_CALL mk_player_audio_codec_id(mk_player ctx);
-
-/**
- * 获取音频采样率
- */
-API_EXPORT int API_CALL mk_player_audio_samplerate(mk_player ctx);
-
-/**
- * 获取音频采样位数，一般为16
- */
-API_EXPORT int API_CALL mk_player_audio_bit(mk_player ctx);
-
-/**
- * 获取音频通道数
- */
-API_EXPORT int API_CALL mk_player_audio_channel(mk_player ctx);
 
 /**
  * 获取点播节目时长，如果是直播返回0，否则返回秒数
@@ -192,7 +126,6 @@ API_EXPORT int API_CALL mk_player_progress_pos(mk_player ctx);
  * @param track_type 0：视频，1：音频
  */
 API_EXPORT float API_CALL mk_player_loss_rate(mk_player ctx, int track_type);
-
 
 #ifdef __cplusplus
 }
