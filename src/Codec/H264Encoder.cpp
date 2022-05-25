@@ -9,17 +9,14 @@
  */
 
 #ifdef ENABLE_X264
+
 #include "H264Encoder.h"
-
 #include "Util/TimeTicker.h"
-
 using namespace toolkit;
 
 namespace mediakit {
 
-H264Encoder::H264Encoder() {
-
-}
+H264Encoder::H264Encoder() {}
 
 H264Encoder::~H264Encoder() {
     //* 清除图像区域
@@ -38,7 +35,6 @@ H264Encoder::~H264Encoder() {
         _pX264Handle = nullptr;
     }
 }
-
 
 /*typedef struct x264_param_t
 {
@@ -212,7 +208,7 @@ Value的值就是fps。
   void (*param_free)( void* );
 } x264_param_t;*/
 
-bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
+bool H264Encoder::init(int iWidth, int iHeight, int iFps, int iBitRate) {
     if (_pX264Handle) {
         return true;
     }
@@ -222,7 +218,7 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
     x264_param_default_preset(pX264Param, "ultrafast", "zerolatency");
 
     //* cpuFlags
-    pX264Param->i_threads = X264_SYNC_LOOKAHEAD_AUTO;		//* 取空缓冲区继续使用不死锁的保证.
+    pX264Param->i_threads = X264_SYNC_LOOKAHEAD_AUTO;        //* 取空缓冲区继续使用不死锁的保证.
     //* video Properties
     pX264Param->i_width = iWidth; //* 宽度.
     pX264Param->i_height = iHeight; //* 高度
@@ -230,21 +226,21 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
     pX264Param->i_keyint_max = iFps * 3; //ffmpeg:gop_size 关键帧最大间隔
     pX264Param->i_keyint_min = iFps * 1; //ffmpeg:keyint_min 关键帧最小间隔
     //* Rate control Parameters
-    pX264Param->rc.i_bitrate = 5000;		//* 码率(比特率,单位Kbps)
-    pX264Param->rc.i_qp_step = 1;	//最大的在帧与帧之间进行切变的量化因子的变化量。ffmpeg:max_qdiff
-    pX264Param->rc.i_qp_min = 10;	//ffmpeg:qmin;最小的量化因子。取值范围1-51。建议在10-30之间。
-    pX264Param->rc.i_qp_max = 41;	//ffmpeg:qmax;最大的量化因子。取值范围1-51。建议在10-30之间。
+    pX264Param->rc.i_bitrate = iBitRate / 1000;        //* 码率(比特率,单位Kbps)
+    pX264Param->rc.i_qp_step = 1;    //最大的在帧与帧之间进行切变的量化因子的变化量。ffmpeg:max_qdiff
+    pX264Param->rc.i_qp_min = 10;    //ffmpeg:qmin;最小的量化因子。取值范围1-51。建议在10-30之间。
+    pX264Param->rc.i_qp_max = 41;    //ffmpeg:qmax;最大的量化因子。取值范围1-51。建议在10-30之间。
     pX264Param->rc.f_qcompress = 0.6;//ffmpeg:qcompress 量化器压缩比率0-1.越小则比特率越区域固定，但是越高越使量化器参数越固定
-    pX264Param->analyse.i_me_range = 16;		//ffmpeg:me_range 运动侦测的半径
-    pX264Param->i_frame_reference = 3;		//ffmpeg:refsB和P帧向前预测参考的帧数。取值范围1-16。
-                                            //该值不影响解码的速度，但是越大解码
-                                            //所需的内存越大。这个值在一般情况下
-                                            //越大效果越好，但是超过6以后效果就
-                                            //不明显了。
+    pX264Param->analyse.i_me_range = 16;        //ffmpeg:me_range 运动侦测的半径
+    pX264Param->i_frame_reference = 3;        //ffmpeg:refsB和P帧向前预测参考的帧数。取值范围1-16。
+    //该值不影响解码的速度，但是越大解码
+    //所需的内存越大。这个值在一般情况下
+    //越大效果越好，但是超过6以后效果就
+    //不明显了。
 
-    pX264Param->analyse.i_trellis = 1;							//ffmpeg:trellis
+    pX264Param->analyse.i_trellis = 1;                            //ffmpeg:trellis
     //pX264Param->analyse.i_me_method=X264_ME_DIA;//ffmpeg:me_method ME_ZERO 运动侦测的方式
-    pX264Param->rc.f_qblur = 0.5;		//ffmpeg:qblur
+    pX264Param->rc.f_qblur = 0.5;        //ffmpeg:qblur
 
     //* bitstream parameters
     /*open-GOP
@@ -268,7 +264,7 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
      由于B帧压缩性能好于P帧，因此open-GOP在编码性能上稍微优于close-GOP，
      但为了兼容性和少一些麻烦，还是把opne-GOP关闭的好。*/
     pX264Param->b_open_gop = 0;
-    pX264Param->i_bframe = 0;		//最大B帧数.
+    pX264Param->i_bframe = 0;        //最大B帧数.
     pX264Param->i_bframe_pyramid = 0;
     pX264Param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
     //* Log
@@ -304,20 +300,19 @@ bool H264Encoder::init(int iWidth, int iHeight, int iFps) {
     return true;
 }
 
-int H264Encoder::inputData(char* apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H264Frame** ppFrame) {
+int H264Encoder::inputData(char *yuv[3], int linesize[3], int64_t cts, H264Frame **out_frame) {
     //TimeTicker1(5);
-    _pPicIn->img.i_stride[0] = aiYuvLen[0];
-    _pPicIn->img.i_stride[1] = aiYuvLen[1];
-    _pPicIn->img.i_stride[2] = aiYuvLen[2];
-    _pPicIn->img.plane[0] = (uint8_t *) apcYuv[0];
-    _pPicIn->img.plane[1] = (uint8_t *) apcYuv[1];
-    _pPicIn->img.plane[2] = (uint8_t *) apcYuv[2];
-    _pPicIn->i_pts = i64Pts;
+    _pPicIn->img.i_stride[0] = linesize[0];
+    _pPicIn->img.i_stride[1] = linesize[1];
+    _pPicIn->img.i_stride[2] = linesize[2];
+    _pPicIn->img.plane[0] = (uint8_t *) yuv[0];
+    _pPicIn->img.plane[1] = (uint8_t *) yuv[1];
+    _pPicIn->img.plane[2] = (uint8_t *) yuv[2];
+    _pPicIn->i_pts = cts;
     int iNal;
-    x264_nal_t* pNals;
+    x264_nal_t *pNals;
 
-    int iResult = x264_encoder_encode(_pX264Handle, &pNals, &iNal, _pPicIn,
-            _pPicOut);
+    int iResult = x264_encoder_encode(_pX264Handle, &pNals, &iNal, _pPicIn, _pPicOut);
     if (iResult <= 0) {
         return 0;
     }
@@ -327,7 +322,7 @@ int H264Encoder::inputData(char* apcYuv[3], int aiYuvLen[3], int64_t i64Pts, H26
         _aFrames[i].iLength = pNal.i_payload;
         _aFrames[i].pucData = pNal.p_payload;
     }
-    *ppFrame = _aFrames;
+    *out_frame = _aFrames;
     return iNal;
 }
 

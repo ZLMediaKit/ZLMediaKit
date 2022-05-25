@@ -42,7 +42,7 @@ bool loadIniConfig(const char *ini_path){
 namespace Broadcast {
 const string kBroadcastMediaChanged = "kBroadcastMediaChanged";
 const string kBroadcastRecordMP4 = "kBroadcastRecordMP4";
-const string kBroadcastRecordTs = "kBroadcastRecoredTs";
+const string kBroadcastRecordTs = "kBroadcastRecordTs";
 const string kBroadcastHttpRequest = "kBroadcastHttpRequest";
 const string kBroadcastHttpAccess = "kBroadcastHttpAccess";
 const string kBroadcastOnGetRtspRealm = "kBroadcastOnGetRtspRealm";
@@ -77,6 +77,8 @@ const string kRtmpDemand = GENERAL_FIELD"rtmp_demand";
 const string kTSDemand = GENERAL_FIELD"ts_demand";
 const string kFMP4Demand = GENERAL_FIELD"fmp4_demand";
 const string kEnableAudio = GENERAL_FIELD"enable_audio";
+const string kCheckNvidiaDev = GENERAL_FIELD"check_nvidia_dev";
+const string kEnableFFmpegLog = GENERAL_FIELD"enable_ffmpeg_log";
 const string kWaitTrackReadyMS = GENERAL_FIELD"wait_track_ready_ms";
 const string kWaitAddTrackMS = GENERAL_FIELD"wait_add_track_ms";
 const string kUnreadyFrameCache = GENERAL_FIELD"unready_frame_cache";
@@ -100,6 +102,8 @@ static onceToken token([](){
     mINI::Instance()[kTSDemand] = 0;
     mINI::Instance()[kFMP4Demand] = 0;
     mINI::Instance()[kEnableAudio] = 1;
+    mINI::Instance()[kCheckNvidiaDev] = 1;
+    mINI::Instance()[kEnableFFmpegLog] = 0;
     mINI::Instance()[kWaitTrackReadyMS] = 10000;
     mINI::Instance()[kWaitAddTrackMS] = 3000;
     mINI::Instance()[kUnreadyFrameCache] = 100;

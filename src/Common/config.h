@@ -183,6 +183,10 @@ extern const std::string kTSDemand;
 extern const std::string kFMP4Demand;
 //转协议是否全局开启或忽略音频
 extern const std::string kEnableAudio;
+//在docker环境下，不能通过英伟达驱动是否存在来判断是否支持硬件转码
+extern const std::string kCheckNvidiaDev;
+//是否开启ffmpeg日志
+extern const std::string kEnableFFmpegLog;
 //最多等待未初始化的Track 10秒，超时之后会忽略未初始化的Track
 extern const std::string kWaitTrackReadyMS;
 //如果直播流只有单Track，最多等待3秒，超时后未收到其他Track的数据，则认为是单Track

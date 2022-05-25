@@ -29,6 +29,7 @@ public:
     int iWidth;
     int iHeight;
     float iFrameRate;
+    int iBitRate = 2 * 1024 * 1024;
 };
 
 class AudioInfo {
@@ -104,19 +105,19 @@ public:
 
     /**
      * 输入yuv420p视频帧，内部会完成编码并调用inputH264方法
-     * @param apcYuv
-     * @param aiYuvLen
-     * @param uiStamp
+     * @param yuv yuv420p数据指针
+     * @param linesize yuv420p数据linesize
+     * @param cts 采集时间戳，单位毫秒
      */
-    bool inputYUV(char *apcYuv[3], int aiYuvLen[3], uint32_t uiStamp);
+    bool inputYUV(char *yuv[3], int linesize[3], uint32_t cts);
 
     /**
      * 输入pcm数据，内部会完成编码并调用inputAAC方法
-     * @param pcData
-     * @param iDataLen
-     * @param uiStamp
+     * @param data pcm数据指针，int16整形
+     * @param len pcm数据长度
+     * @param cts 采集时间戳，单位毫秒
      */
-    bool inputPCM(char *pcData, int iDataLen, uint32_t uiStamp);
+    bool inputPCM(char *data, int len, uint32_t cts);
 
 private:
     MediaOriginType getOriginType(MediaSource &sender) const override;
