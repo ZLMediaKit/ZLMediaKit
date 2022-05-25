@@ -102,6 +102,7 @@ option(ENABLE_MEM_DEBUG "Enable Memory Debug" false)
 option(ENABLE_ASAN "Enable Address Sanitize" false)
 option(ENABLE_WEBRTC "Enable WebRTC" true)
 option(ENABLE_PLAYER "Enable Player" true)
+option(ENABLE_FFMPEG "Enable FFmpeg" true)
 option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" true)
 option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" false)
 option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
@@ -200,13 +201,108 @@ endif ()
 
 set(LINK_LIB_LIST zlmediakit zltoolkit)
 
-##默认链接jemalloc库避免内存碎片
-#find_package(JEMALLOC QUIET)
-#if (JEMALLOC_FOUND)
-#    message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
-#    include_directories(${JEMALLOC_INCLUDE_DIR})
-#    list(APPEND LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
-#endif ()
+if (ENABLE_FFMPEG)
+    find_package(PkgConfig QUIET)
+    #查找ffmpeg/libutil是否安装
+    if (PKG_CONFIG_FOUND)
+        pkg_check_modules(AVUTIL QUIET IMPORTED_TARGET libavutil)
+        if (AVUTIL_FOUND)
+            include_directories(${AVUTIL_INCLUDE_DIRS})
+            link_directories(${AVUTIL_LIBRARY_DIRS})
+            list(APPEND LINK_LIB_LIST ${AVUTIL_LIBRARIES})
+            message(STATUS "found library:${AVUTIL_LIBRARIES}")
+        endif ()
+    endif ()
+
+    #查找ffmpeg/libavcodec是否安装
+    if (PKG_CONFIG_FOUND)
+        pkg_check_modules(AVCODEC QUIET IMPORTED_TARGET libavcodec)
+        if (AVCODEC_FOUND)
+            include_directories(${AVCODEC_INCLUDE_DIRS})
+            link_directories(${AVCODEC_LIBRARY_DIRS})
+            list(APPEND LINK_LIB_LIST ${AVCODEC_LIBRARIES})
+            message(STATUS "found library:${AVCODEC_LIBRARIES}")
+        endif ()
+    endif ()
+
+    #查找ffmpeg/libswscale是否安装
+    if (PKG_CONFIG_FOUND)
+        pkg_check_modules(SWSCALE QUIET IMPORTED_TARGET libswscale)
+        if (SWSCALE_FOUND)
+            include_directories(${SWSCALE_INCLUDE_DIRS})
+            link_directories(${SWSCALE_LIBRARY_DIRS})
+            list(APPEND LINK_LIB_LIST ${SWSCALE_LIBRARIES})
+            message(STATUS "found library:${SWSCALE_LIBRARIES}")
+        endif ()
+    endif ()
+
+    #查找ffmpeg/libswresample是否安装
+    if (PKG_CONFIG_FOUND)
+        pkg_check_modules(SWRESAMPLE QUIET IMPORTED_TARGET libswresample)
+        if (SWRESAMPLE_FOUND)
+            include_directories(${SWRESAMPLE_INCLUDE_DIRS})
+            link_directories(${SWRESAMPLE_LIBRARY_DIRS})
+            list(APPEND LINK_LIB_LIST ${SWRESAMPLE_LIBRARIES})
+            message(STATUS "found library:${SWRESAMPLE_LIBRARIES}")
+        endif ()
+    endif ()
+
+    #查找ffmpeg/libutil是否安装
+    if (NOT AVUTIL_FOUND)
+        find_package(AVUTIL QUIET)
+        if (AVUTIL_FOUND)
+            include_directories(${AVUTIL_INCLUDE_DIR})
+            list(APPEND LINK_LIB_LIST ${AVUTIL_LIBRARIES})
+            message(STATUS "found library:${AVUTIL_LIBRARIES}")
+        endif ()
+    endif ()
+
+    #查找ffmpeg/libavcodec是否安装
+    if (NOT AVCODEC_FOUND)
+        find_package(AVCODEC QUIET)
+        if (AVCODEC_FOUND)
+            include_directories(${AVCODEC_INCLUDE_DIR})
+            list(APPEND LINK_LIB_LIST ${AVCODEC_LIBRARIES})
+            message(STATUS "found library:${AVCODEC_LIBRARIES}")
+        endif ()
+    endif ()
+
+    #查找ffmpeg/libswscale是否安装
+    if (NOT SWSCALE_FOUND)
+        find_package(SWSCALE QUIET)
+        if (SWSCALE_FOUND)
+            include_directories(${SWSCALE_INCLUDE_DIR})
+            list(APPEND LINK_LIB_LIST ${SWSCALE_LIBRARIES})
+            message(STATUS "found library:${SWSCALE_LIBRARIES}")
+        endif ()
+    endif ()
+
+    #查找ffmpeg/libswresample是否安装
+    if (NOT SWRESAMPLE_FOUND)
+        find_package(SWRESAMPLE QUIET)
+        if (SWRESAMPLE_FOUND)
+            include_directories(${SWRESAMPLE_INCLUDE_DIRS})
+            list(APPEND LINK_LIB_LIST ${SWRESAMPLE_LIBRARIES})
+            message(STATUS "found library:${SWRESAMPLE_LIBRARIES}")
+        endif ()
+    endif ()
+
+    if (AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND)
+        add_definitions(-DENABLE_FFMPEG)
+    else ()
+        set(ENABLE_FFMPEG off)
+        message(WARNING "ffmpeg相关功能未找到")
+    endif ()
+
+endif ()
+
+#默认链接jemalloc库避免内存碎片
+find_package(JEMALLOC QUIET)
+if (JEMALLOC_FOUND)
+    message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
+    include_directories(${JEMALLOC_INCLUDE_DIR})
+    list(APPEND LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
+endif ()
 
 #查找openssl是否安装
 find_package(OpenSSL QUIET)

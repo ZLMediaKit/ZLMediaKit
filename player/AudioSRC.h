@@ -28,7 +28,6 @@ extern "C" {
 
 #include "Network/Buffer.h"
 #include "SDLAudioDevice.h"
-#include "FFMpegDecoder.h"
 
 class AudioSRCDelegate {
 public:
