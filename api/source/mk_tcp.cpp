@@ -13,9 +13,75 @@
 #include "mk_tcp_private.h"
 #include "Http/WebSocketClient.h"
 #include "Http/WebSocketSession.h"
+#include "Network/Buffer.h"
 
 using namespace toolkit;
 using namespace mediakit;
+
+class BufferForC : public Buffer {
+public:
+    BufferForC(const char *data, size_t len, on_mk_buffer_free cb, void *user_data) {
+        if (len <= 0) {
+            len = strlen(data);
+        }
+        if (!cb) {
+            auto ptr = malloc(len);
+            memcpy(ptr, data, len);
+            data = (char *) ptr;
+
+            cb = [](void *user_data, void *data) {
+                free(data);
+            };
+        }
+        _data = (char *) data;
+        _size = len;
+        _cb = cb;
+        _user_data = user_data;
+    }
+
+    ~BufferForC() override {
+        _cb(_user_data, _data);
+    }
+
+    char *data() const override {
+        return _data;
+    }
+
+    size_t size() const override {
+        return _size;
+    }
+
+private:
+    char *_data;
+    size_t _size;
+    on_mk_buffer_free _cb;
+    void *_user_data;
+};
+
+API_EXPORT mk_buffer API_CALL mk_buffer_from_char(const char *data, size_t len, on_mk_buffer_free cb, void *user_data) {
+    assert(data);
+    return new Buffer::Ptr(std::make_shared<BufferForC>(data, len, cb, user_data));
+}
+
+API_EXPORT mk_buffer API_CALL mk_buffer_ref(mk_buffer buffer) {
+    assert(buffer);
+    return new Buffer::Ptr(*((Buffer::Ptr *) buffer));
+}
+
+API_EXPORT void API_CALL mk_buffer_unref(mk_buffer buffer) {
+    assert(buffer);
+    delete (Buffer::Ptr *) buffer;
+}
+
+API_EXPORT const char *API_CALL mk_buffer_get_data(mk_buffer buffer) {
+    assert(buffer);
+    return (*((Buffer::Ptr *) buffer))->data();
+}
+
+API_EXPORT size_t API_CALL mk_buffer_get_size(mk_buffer buffer) {
+    assert(buffer);
+    return (*((Buffer::Ptr *) buffer))->size();
+}
 
 API_EXPORT const char* API_CALL mk_sock_info_peer_ip(const mk_sock_info ctx, char *buf){
     assert(ctx);
@@ -53,32 +119,52 @@ API_EXPORT void API_CALL mk_tcp_session_shutdown(const mk_tcp_session ctx,int er
     session->safeShutdown(SockException((ErrCode)err,err_msg));
 }
 
-API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx,const char *data, size_t len){
-    assert(ctx && data);
-    if(!len){
-        len = strlen(data);
-    }
-    TcpSessionForC *session = (TcpSessionForC *)ctx;
-    session->SockSender::send(data,len);
+API_EXPORT void API_CALL mk_tcp_session_send_buffer(const mk_tcp_session ctx, mk_buffer buffer) {
+    assert(ctx && buffer);
+    TcpSessionForC *session = (TcpSessionForC *) ctx;
+    session->send(*((Buffer::Ptr *) buffer));
 }
 
-API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx,const char *data,size_t len){
-    assert(ctx && data);
-    if (!len) {
-        len = strlen(data);
-    }
+API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx, const char *data, size_t len) {
+    auto buffer = mk_buffer_from_char(data, len, nullptr, nullptr);
+    mk_tcp_session_send_buffer(ctx, buffer);
+    mk_buffer_unref(buffer);
+}
+
+API_EXPORT void API_CALL mk_tcp_session_send_buffer_safe(const mk_tcp_session ctx, mk_buffer buffer) {
+    assert(ctx && buffer);
     try {
-        std::weak_ptr<TcpSession> weak_session = ((TcpSessionForC *)ctx)->shared_from_this();
-        std::string str = std::string(data,len);
-        ((TcpSessionForC *)ctx)->async([weak_session,str](){
+        std::weak_ptr<TcpSession> weak_session = ((TcpSessionForC *) ctx)->shared_from_this();
+        auto ref = mk_buffer_ref(buffer);
+        ((TcpSessionForC *) ctx)->async([weak_session, ref]() {
             auto session_session = weak_session.lock();
-            if(session_session){
-                session_session->SockSender::send(str);
+            if (session_session) {
+                session_session->send(*((Buffer::Ptr *) ref));
             }
+            mk_buffer_unref(ref);
         });
     } catch (std::exception &ex) {
         WarnL << "can not got the strong pionter of this mk_tcp_session:" << ex.what();
     }
+}
+
+API_EXPORT mk_tcp_session_ref API_CALL mk_tcp_session_ref_from(const mk_tcp_session ctx) {
+    auto ref = ((TcpSessionForC *) ctx)->shared_from_this();
+    return new std::shared_ptr<TcpSessionForC>(std::dynamic_pointer_cast<TcpSessionForC>(ref));
+}
+
+API_EXPORT void mk_tcp_session_ref_release(const mk_tcp_session_ref ref) {
+    delete (std::shared_ptr<TcpSessionForC> *) ref;
+}
+
+API_EXPORT mk_tcp_session mk_tcp_session_from_ref(const mk_tcp_session_ref ref) {
+    return ((std::shared_ptr<TcpSessionForC> *) ref)->get();
+}
+
+API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx, const char *data, size_t len) {
+    auto buffer = mk_buffer_from_char(data, len, nullptr, nullptr);
+    mk_tcp_session_send_buffer_safe(ctx, buffer);
+    mk_buffer_unref(buffer);
 }
 
 ////////////////////////////////////////TcpSessionForC////////////////////////////////////////////////
@@ -94,7 +180,7 @@ TcpSessionForC::TcpSessionForC(const Socket::Ptr &pSock) : TcpSession(pSock) {
 
 void TcpSessionForC::onRecv(const Buffer::Ptr &buffer) {
     if (s_events_server.on_mk_tcp_session_data) {
-        s_events_server.on_mk_tcp_session_data(_local_port,this, buffer->data(), buffer->size());
+        s_events_server.on_mk_tcp_session_data(_local_port, this, (mk_buffer)&buffer);
     }
 }
 
@@ -169,10 +255,9 @@ TcpClientForC::TcpClientForC(mk_tcp_client_events *events){
     _events = *events;
 }
 
-
 void TcpClientForC::onRecv(const Buffer::Ptr &pBuf) {
-    if(_events.on_mk_tcp_client_data){
-        _events.on_mk_tcp_client_data(_client,pBuf->data(),pBuf->size());
+    if (_events.on_mk_tcp_client_data) {
+        _events.on_mk_tcp_client_data(_client, (mk_buffer)&pBuf);
     }
 }
 
@@ -246,24 +331,36 @@ API_EXPORT void API_CALL mk_tcp_client_connect(mk_tcp_client ctx, const char *ho
     (*client)->startConnect(host,port);
 }
 
-API_EXPORT void API_CALL mk_tcp_client_send(mk_tcp_client ctx, const char *data, int len){
-    assert(ctx && data);
-    TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
-    (*client)->SockSender::send(data,len);
+API_EXPORT void API_CALL mk_tcp_client_send_buffer(mk_tcp_client ctx, mk_buffer buffer) {
+    assert(ctx && buffer);
+    TcpClientForC::Ptr *client = (TcpClientForC::Ptr *) ctx;
+    (*client)->send(*((Buffer::Ptr *) buffer));
+}
+
+API_EXPORT void API_CALL mk_tcp_client_send(mk_tcp_client ctx, const char *data, int len) {
+    auto buffer = mk_buffer_from_char(data, len, nullptr, nullptr);
+    mk_tcp_client_send_buffer(ctx, buffer);
+    mk_buffer_unref(buffer);
+}
+
+API_EXPORT void API_CALL mk_tcp_client_send_buffer_safe(mk_tcp_client ctx, mk_buffer buffer) {
+    assert(ctx && buffer);
+    TcpClientForC::Ptr *client = (TcpClientForC::Ptr *) ctx;
+    std::weak_ptr<TcpClient> weakClient = *client;
+    auto ref = mk_buffer_ref(buffer);
+    (*client)->async([weakClient, ref]() {
+        auto strongClient = weakClient.lock();
+        if (strongClient) {
+            strongClient->send(*((Buffer::Ptr *) ref));
+        }
+        mk_buffer_unref(ref);
+    });
 }
 
 API_EXPORT void API_CALL mk_tcp_client_send_safe(mk_tcp_client ctx, const char *data, int len){
-    assert(ctx && data);
-    TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
-    std::weak_ptr<TcpClient> weakClient = *client;
-    auto buf = BufferRaw::create();
-    buf->assign(data,len);
-    (*client)->async([weakClient,buf](){
-        auto strongClient = weakClient.lock();
-        if(strongClient){
-            strongClient->send(buf);
-        }
-    });
+    auto buffer = mk_buffer_from_char(data, len, nullptr, nullptr);
+    mk_tcp_client_send_buffer_safe(ctx, buffer);
+    mk_buffer_unref(buffer);
 }
 
 API_EXPORT void API_CALL mk_tcp_client_set_user_data(mk_tcp_client ctx,void *user_data){

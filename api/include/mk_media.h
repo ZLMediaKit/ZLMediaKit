@@ -12,6 +12,8 @@
 #define MK_MEDIA_H_
 
 #include "mk_common.h"
+#include "mk_track.h"
+#include "mk_frame.h"
 #include "mk_events_objects.h"
 
 #ifdef __cplusplus
@@ -40,18 +42,29 @@ API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app,
 API_EXPORT void API_CALL mk_media_release(mk_media ctx);
 
 /**
- * 添加视频轨道
+ * 添加音视频track
+ * @param ctx mk_media对象
+ * @param track mk_track对象，音视频轨道
+ */
+API_EXPORT void API_CALL mk_media_init_track(mk_media ctx, mk_track track);
+
+/**
+ * 添加视频轨道，请改用mk_media_init_track方法
  * @param ctx 对象指针
  * @param codec_id  0:CodecH264/1:CodecH265
+ * @param width 视频宽度; 在编码时才有效
+ * @param height 视频高度; 在编码时才有效
+ * @param fps 视频fps; 在编码时才有效
+ * @param bit_rate 视频比特率,单位bps; 在编码时才有效
  * @param width 视频宽度
  * @param height 视频高度
  * @param fps 视频fps
  * @return 1代表成功，0失败
  */
-API_EXPORT int API_CALL mk_media_init_video(mk_media ctx, int codec_id, int width, int height, float fps);
+API_EXPORT int API_CALL mk_media_init_video(mk_media ctx, int codec_id, int width, int height, float fps, int bit_rate);
 
 /**
- * 添加音频轨道
+ * 添加音频轨道，请改用mk_media_init_track方法
  * @param ctx 对象指针
  * @param codec_id  2:CodecAAC/3:CodecG711A/4:CodecG711U/5:OPUS
  * @param channel 通道数
@@ -70,7 +83,15 @@ API_EXPORT int API_CALL mk_media_init_audio(mk_media ctx, int codec_id, int samp
 API_EXPORT void API_CALL mk_media_init_complete(mk_media ctx);
 
 /**
- * 输入单帧H264视频，帧起始字节00 00 01,00 00 00 01均可
+ * 输入frame对象
+ * @param ctx mk_media对象
+ * @param frame 帧对象
+ * @return 1代表成功，0失败
+ */
+API_EXPORT int API_CALL mk_media_input_frame(mk_media ctx, mk_frame frame);
+
+/**
+ * 输入单帧H264视频，帧起始字节00 00 01,00 00 00 01均可，请改用mk_media_input_frame方法
  * @param ctx 对象指针
  * @param data 单帧H264数据
  * @param len 单帧H264数据字节数
@@ -81,7 +102,7 @@ API_EXPORT void API_CALL mk_media_init_complete(mk_media ctx);
 API_EXPORT int API_CALL mk_media_input_h264(mk_media ctx, const void *data, int len, uint32_t dts, uint32_t pts);
 
 /**
- * 输入单帧H265视频，帧起始字节00 00 01,00 00 00 01均可
+ * 输入单帧H265视频，帧起始字节00 00 01,00 00 00 01均可，请改用mk_media_input_frame方法
  * @param ctx 对象指针
  * @param data 单帧H265数据
  * @param len 单帧H265数据字节数
@@ -92,7 +113,16 @@ API_EXPORT int API_CALL mk_media_input_h264(mk_media ctx, const void *data, int 
 API_EXPORT int API_CALL mk_media_input_h265(mk_media ctx, const void *data, int len, uint32_t dts, uint32_t pts);
 
 /**
- * 输入单帧AAC音频(单独指定adts头)
+ * 输入YUV视频数据
+ * @param ctx 对象指针
+ * @param yuv yuv420p数据
+ * @param linesize yuv420p linesize
+ * @param cts 视频采集时间戳，单位毫秒
+ */
+API_EXPORT void API_CALL mk_media_input_yuv(mk_media ctx, const char *yuv[3], int linesize[3], uint32_t cts);
+
+/**
+ * 输入单帧AAC音频(单独指定adts头)，请改用mk_media_input_frame方法
  * @param ctx 对象指针
  * @param data 不包含adts头的单帧AAC数据，adts头7个字节
  * @param len 单帧AAC数据字节数
@@ -113,7 +143,7 @@ API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int l
 API_EXPORT int API_CALL mk_media_input_pcm(mk_media ctx, void *data, int len, uint32_t pts);
 
 /**
- * 输入单帧OPUS/G711音频帧
+ * 输入单帧OPUS/G711音频帧，请改用mk_media_input_frame方法
  * @param ctx 对象指针
  * @param data 单帧音频数据
  * @param len  单帧音频数据字节数

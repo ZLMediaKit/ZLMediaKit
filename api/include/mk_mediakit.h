@@ -24,5 +24,8 @@
 #include "mk_thread.h"
 #include "mk_rtp_server.h"
 #include "mk_h264_splitter.h"
+#include "mk_frame.h"
+#include "mk_track.h"
+#include "mk_transcode.h"
 
 #endif /* MK_API_H_ */

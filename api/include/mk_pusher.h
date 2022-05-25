@@ -60,7 +60,7 @@ API_EXPORT void API_CALL mk_pusher_release(mk_pusher ctx);
 /**
  * 设置推流器配置选项
  * @param ctx 推流器指针
- * @param key 配置项键,支持 net_adapter/rtp_type/rtsp_user/rtsp_pwd/protocol_timeout_ms/media_timeout_ms/beat_interval_ms/max_analysis_ms
+ * @param key 配置项键,支持 net_adapter/rtp_type/rtsp_user/rtsp_pwd/protocol_timeout_ms/media_timeout_ms/beat_interval_ms
  * @param val 配置项值,如果是整形，需要转换成统一转换成string
  */
 API_EXPORT void API_CALL mk_pusher_set_option(mk_pusher ctx, const char *key, const char *val);

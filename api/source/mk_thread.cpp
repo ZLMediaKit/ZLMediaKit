@@ -44,6 +44,15 @@ API_EXPORT void API_CALL mk_async_do(mk_thread ctx,on_mk_async cb, void *user_da
     });
 }
 
+API_EXPORT void API_CALL mk_async_do_delay(mk_thread ctx, size_t ms, on_mk_async cb, void *user_data) {
+    assert(ctx && cb && ms);
+    EventPoller *poller = (EventPoller *) ctx;
+    poller->doDelayTask(ms, [cb, user_data]() {
+        cb(user_data);
+        return 0;
+    });
+}
+
 API_EXPORT void API_CALL mk_sync_do(mk_thread ctx,on_mk_async cb, void *user_data){
     assert(ctx && cb);
     EventPoller *poller = (EventPoller *)ctx;
@@ -107,4 +116,52 @@ API_EXPORT void API_CALL mk_timer_release(mk_timer ctx){
     TimerForC::Ptr *obj = (TimerForC::Ptr *)ctx;
     (*obj)->cancel();
     delete obj;
+}
+
+class WorkThreadPoolForC : public TaskExecutorGetterImp {
+public:
+    ~WorkThreadPoolForC() override = default;
+
+    WorkThreadPoolForC(const char *name, size_t n_thread, int priority) {
+        //最低优先级
+        addPoller(name, n_thread, (ThreadPool::Priority) priority, false);
+    }
+
+    EventPoller::Ptr getPoller() {
+        return dynamic_pointer_cast<EventPoller>(getExecutor());
+    }
+};
+
+API_EXPORT mk_thread_pool API_CALL mk_thread_pool_create(const char *name, size_t n_thread, int priority) {
+    return new WorkThreadPoolForC(name, n_thread, priority);
+}
+
+API_EXPORT int API_CALL mk_thread_pool_release(mk_thread_pool pool) {
+    assert(pool);
+    delete (WorkThreadPoolForC *) pool;
+    return 0;
+}
+
+API_EXPORT mk_thread API_CALL mk_thread_from_thread_pool(mk_thread_pool pool) {
+    assert(pool);
+    return ((WorkThreadPoolForC *) pool)->getPoller().get();
+}
+
+API_EXPORT mk_sem API_CALL mk_sem_create() {
+    return new toolkit::semaphore;
+}
+
+API_EXPORT void API_CALL mk_sem_release(mk_sem sem) {
+    assert(sem);
+    delete (toolkit::semaphore *) sem;
+}
+
+API_EXPORT void API_CALL mk_sem_post(mk_sem sem, size_t n) {
+    assert(sem);
+    ((toolkit::semaphore *) sem)->post(n);
+}
+
+API_EXPORT void API_CALL mk_sem_wait(mk_sem sem) {
+    assert(sem);
+    ((toolkit::semaphore *) sem)->wait();
 }

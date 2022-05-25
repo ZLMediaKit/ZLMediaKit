@@ -14,24 +14,21 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#if defined(_WIN32)
-
-#ifndef MediaKitApi_STATIC
-#if defined(MediaKitApi_EXPORTS)
-        #define API_EXPORT __declspec(dllexport)
-    #else
-        #define API_EXPORT __declspec(dllimport)
-    #endif
-
-    #define API_CALL __cdecl
+#if defined(_WIN32) && defined(_MSC_VER)
+#   ifndef MediaKitApi_STATIC
+#       if defined(MediaKitApi_EXPORTS)
+#           define API_EXPORT __declspec(dllexport)
+#       else
+#           define API_EXPORT __declspec(dllimport)
+#       endif
+#       define API_CALL __cdecl
+#   else
+#       define API_EXPORT
+#       define API_CALL
+#   endif
 #else
-#define API_EXPORT
-#define API_CALL
-#endif
-
-#else
-#define API_EXPORT
-#define API_CALL
+#   define API_EXPORT
+#   define API_CALL
 #endif
 
 #ifdef __cplusplus

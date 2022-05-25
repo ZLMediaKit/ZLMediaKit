@@ -91,6 +91,9 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
         //缓存为空
         return false;
     }
+    if (!frame) {
+        return true;
+    }
     switch (_type) {
         case none : {
             //frame不是完整的帧，我们合并为一帧
@@ -178,6 +181,10 @@ bool FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb, Buffer
         cb(back->dts(), back->pts(), merged_frame, have_key_frame);
         _frame_cache.clear();
         _have_decode_able_frame = false;
+    }
+
+    if (!frame) {
+        return false;
     }
 
     if (frame->decodeAble()) {

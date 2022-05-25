@@ -178,7 +178,7 @@ API_EXPORT void API_CALL mk_media_release(mk_media ctx) {
     delete obj;
 }
 
-API_EXPORT int API_CALL mk_media_init_video(mk_media ctx, int codec_id, int width, int height, float fps){
+API_EXPORT int API_CALL mk_media_init_video(mk_media ctx, int codec_id, int width, int height, float fps, int bit_rate){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     VideoInfo info;
@@ -186,6 +186,8 @@ API_EXPORT int API_CALL mk_media_init_video(mk_media ctx, int codec_id, int widt
     info.iFrameRate = fps;
     info.iWidth = width;
     info.iHeight = height;
+    info.iBitRate = bit_rate;
+    (*obj)->getChannel()->initVideo(info);
     return (*obj)->getChannel()->initVideo(info);
 }
 
@@ -200,10 +202,22 @@ API_EXPORT int API_CALL mk_media_init_audio(mk_media ctx, int codec_id, int samp
     return (*obj)->getChannel()->initAudio(info);
 }
 
+API_EXPORT void API_CALL mk_media_init_track(mk_media ctx, mk_track track){
+    assert(ctx && track);
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
+    (*obj)->getChannel()->addTrack(*((Track::Ptr *) track));
+}
+
 API_EXPORT void API_CALL mk_media_init_complete(mk_media ctx){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->getChannel()->addTrackCompleted();
+}
+
+API_EXPORT int API_CALL mk_media_input_frame(mk_media ctx, mk_frame frame){
+    assert(ctx && frame);
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
+    return (*obj)->getChannel()->inputFrame(*((Frame::Ptr *) frame));
 }
 
 API_EXPORT int API_CALL mk_media_input_h264(mk_media ctx, const void *data, int len, uint32_t dts, uint32_t pts) {
@@ -216,6 +230,12 @@ API_EXPORT int API_CALL mk_media_input_h265(mk_media ctx, const void *data, int 
     assert(ctx && data && len > 0);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     return (*obj)->getChannel()->inputH265((const char *) data, len, dts, pts);
+}
+
+API_EXPORT void API_CALL mk_media_input_yuv(mk_media ctx, const char *yuv[3], int linesize[3], uint32_t cts) {
+    assert(ctx && yuv && linesize);
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
+    (*obj)->getChannel()->inputYUV((char **) yuv, linesize, cts);
 }
 
 API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int len, uint32_t dts, void *adts) {
