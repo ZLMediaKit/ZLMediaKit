@@ -8,22 +8,28 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef FFMpegDecoder_H_
-#define FFMpegDecoder_H_
+#ifndef ZLMEDIAKIT_TRANSCODE_H
+#define ZLMEDIAKIT_TRANSCODE_H
+
+#if defined(ENABLE_FFMPEG)
 
 #include "Util/TimeTicker.h"
 #include "Common/MediaSink.h"
 
-#if defined(ENABLE_FFMPEG)
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "libswscale/swscale.h"
+#include "libavutil/avutil.h"
+#include "libavutil/pixdesc.h"
 #include "libavcodec/avcodec.h"
 #include "libswresample/swresample.h"
+#include "libavutil/audio_fifo.h"
 #ifdef __cplusplus
 }
 #endif
+
+namespace mediakit {
 
 class FFmpegFrame {
 public:
@@ -33,6 +39,7 @@ public:
     ~FFmpegFrame();
 
     AVFrame *get() const;
+    void fillPicture(AVPixelFormat target_format, int target_width, int target_height);
 
 private:
     char *_data = nullptr;
@@ -45,7 +52,6 @@ public:
 
     FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate);
     ~FFmpegSwr();
-
     FFmpegFrame::Ptr inputFrame(const FFmpegFrame::Ptr &frame);
 
 private:
@@ -59,19 +65,19 @@ private:
 class TaskManager {
 public:
     TaskManager() = default;
-    ~TaskManager();
+    virtual ~TaskManager();
+
+    void setMaxTaskSize(size_t size);
+    void stopThread(bool drop_task);
 
 protected:
     void startThread(const std::string &name);
-    void stopThread();
-
-    void addEncodeTask(std::function<void()> task);
-    void addDecodeTask(bool key_frame, std::function<void()> task);
+    bool addEncodeTask(std::function<void()> task);
+    bool addDecodeTask(bool key_frame, std::function<void()> task);
     bool isEnabled() const;
 
 private:
     void onThreadRun(const std::string &name);
-    void pushExit();
 
 private:
     class ThreadExitException : public std::runtime_error {
@@ -83,39 +89,55 @@ private:
 private:
     bool _decode_drop_start = false;
     bool _exit = false;
+    size_t _max_task = 30;
     std::mutex _task_mtx;
     toolkit::semaphore _sem;
     toolkit::List<std::function<void()> > _task;
     std::shared_ptr<std::thread> _thread;
 };
 
-class FFmpegDecoder : private TaskManager {
+class FFmpegDecoder : public TaskManager {
 public:
     using Ptr = std::shared_ptr<FFmpegDecoder>;
     using onDec = std::function<void(const FFmpegFrame::Ptr &)>;
 
-    FFmpegDecoder(const mediakit::Track::Ptr &track);
-    ~FFmpegDecoder();
+    FFmpegDecoder(const Track::Ptr &track, int thread_num = 2);
+    ~FFmpegDecoder() override;
 
-    bool inputFrame(const mediakit::Frame::Ptr &frame, bool may_async = true);
+    bool inputFrame(const Frame::Ptr &frame, bool live, bool async, bool enable_merge = true);
     void setOnDecode(onDec cb);
     void flush();
     const AVCodecContext *getContext() const;
 
 private:
     void onDecode(const FFmpegFrame::Ptr &frame);
-    bool inputFrame_l(const mediakit::Frame::Ptr &frame);
-    bool decodeFrame(const char *data, size_t size, uint32_t dts, uint32_t pts);
+    bool inputFrame_l(const Frame::Ptr &frame, bool live, bool enable_merge);
+    bool decodeFrame(const char *data, size_t size, uint32_t dts, uint32_t pts, bool live);
 
 private:
     bool _do_merger = false;
     toolkit::Ticker _ticker;
     onDec _cb;
     std::shared_ptr<AVCodecContext> _context;
-    mediakit::FrameMerger _merger { mediakit::FrameMerger::h264_prefix };
+    FrameMerger _merger{FrameMerger::h264_prefix};
 };
 
+class FFmpegSws {
+public:
+    using Ptr = std::shared_ptr<FFmpegSws>;
+
+    FFmpegSws(AVPixelFormat output, int width, int height);
+    ~FFmpegSws();
+    FFmpegFrame::Ptr inputFrame(const FFmpegFrame::Ptr &frame);
+    int inputFrame(const FFmpegFrame::Ptr &frame, uint8_t *data);
+
+private:
+    int _target_width;
+    int _target_height;
+    SwsContext *_ctx = nullptr;
+    AVPixelFormat _target_format;
+};
+
+}//namespace mediakit
 #endif// ENABLE_FFMPEG
-#endif /* FFMpegDecoder_H_ */
-
-
+#endif //ZLMEDIAKIT_TRANSCODE_H

@@ -28,22 +28,22 @@ using namespace std;
 
 namespace mediakit {
 
-bool DevChannel::inputYUV(char* apcYuv[3], int aiYuvLen[3], uint32_t uiStamp) {
+bool DevChannel::inputYUV(char *yuv[3], int linesize[3], uint32_t cts) {
 #ifdef ENABLE_X264
     //TimeTicker1(50);
     if (!_pH264Enc) {
         _pH264Enc.reset(new H264Encoder());
-        if (!_pH264Enc->init(_video->iWidth, _video->iHeight, _video->iFrameRate)) {
+        if (!_pH264Enc->init(_video->iWidth, _video->iHeight, _video->iFrameRate, _video->iBitRate)) {
             _pH264Enc.reset();
             WarnL << "H264Encoder init failed!";
         }
     }
     if (_pH264Enc) {
-        H264Encoder::H264Frame *pOut;
-        int iFrames = _pH264Enc->inputData(apcYuv, aiYuvLen, uiStamp, &pOut);
+        H264Encoder::H264Frame *out_frames;
+        int frames = _pH264Enc->inputData(yuv, linesize, cts, &out_frames);
         bool ret = false;
-        for (int i = 0; i < iFrames; i++) {
-            ret = inputH264((char *) pOut[i].pucData, pOut[i].iLength, uiStamp) ? true : ret;
+        for (int i = 0; i < frames; i++) {
+            ret = inputH264((char *) out_frames[i].pucData, out_frames[i].iLength, cts) ? true : ret;
         }
         return ret;
     }
