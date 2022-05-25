@@ -8,7 +8,9 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "FFMpegDecoder.h"
+#if defined(ENABLE_FFMPEG)
+
+#include "Transcode.h"
 #define MAX_DELAY_SECOND 3
 
 using namespace std;
@@ -425,3 +427,5 @@ void TaskManager::onThreadRun(const string &name) {
     }
     InfoL << name << " exited!";
 }
+
+#endif//ENABLE_FFMPEG
