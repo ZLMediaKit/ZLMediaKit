@@ -14,6 +14,8 @@
 #include "Util/TimeTicker.h"
 #include "Common/MediaSink.h"
 
+#if defined(ENABLE_FFMPEG)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -113,6 +115,7 @@ private:
     mediakit::FrameMerger _merger { mediakit::FrameMerger::h264_prefix };
 };
 
+#endif// ENABLE_FFMPEG
 #endif /* FFMpegDecoder_H_ */
 
 
