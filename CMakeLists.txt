@@ -178,7 +178,7 @@ endif ()
 
 configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/version.h.ini
-        ${CMAKE_BINARY_DIR}/Version.h
+        ${CMAKE_BINARY_DIR}/version.h
         @ONLY
 )
 

@@ -33,7 +33,7 @@
 #endif
 
 #if defined(ENABLE_VERSION)
-#include "Version.h"
+#include "version.h"
 #endif
 
 #if !defined(_WIN32)
