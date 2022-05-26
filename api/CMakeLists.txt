@@ -1,7 +1,9 @@
 ﻿include_directories(include source)
+include(GenerateExportHeader)
 
 file(GLOB api_src_list include/*.h source/*.cpp source/*.h source/*.c)
 
+			
 if (IOS)
     add_library(mk_api STATIC ${api_src_list})
     target_link_libraries(mk_api ${LINK_LIB_LIST} jsoncpp)
@@ -10,10 +12,8 @@ else ()
         add_library(mk_api STATIC ${api_src_list})
     else ()
         add_library(mk_api SHARED ${api_src_list})
-        if (MSVC)
-            generate_export_header(mk_api EXPORT_MACRO_NAME MediaKitApi_EXPORTS)
-        endif ()
     endif()
+
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         target_link_libraries(mk_api -Wl,--start-group jsoncpp ${LINK_LIB_LIST} -Wl,--end-group)
     else ()
@@ -21,7 +21,21 @@ else ()
     endif ()
     add_subdirectory(tests)
 
-    file(GLOB api_header_list include/*.h)
+
+
+endif ()
+
+include_directories(${PROJECT_BINARY_DIR}/api)
+generate_export_header(mk_api
+	EXPORT_MACRO_NAME API_EXPORT
+	BASE_NAME MediaKitApi
+	STATIC_DEFINE MediaKitApi_STATIC
+    EXPORT_FILE_NAME "${PROJECT_BINARY_DIR}/api/mk_export.h"
+)
+
+if (NOT IOS)
+    file(GLOB api_header_list include/*.h ${PROJECT_BINARY_DIR}/api/*.h)
+
     install(FILES ${api_header_list} DESTINATION ${INSTALL_PATH_INCLUDE})
     install(TARGETS mk_api ARCHIVE DESTINATION ${INSTALL_PATH_LIB} LIBRARY DESTINATION ${INSTALL_PATH_LIB})
 endif ()

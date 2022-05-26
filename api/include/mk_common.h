@@ -13,17 +13,12 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "mk_export.h"
 
 #if defined(_WIN32) && defined(_MSC_VER)
-#    define API_CALL __cdecl
-#    if defined(MediaKitApi_EXPORTS)
-#        define API_EXPORT __declspec(dllexport)
-#    else
-#        define API_EXPORT __declspec(dllimport)
-#    endif
+#define API_CALL __cdecl
 #else
-#   define API_EXPORT
-#   define API_CALL
+#define API_CALL
 #endif
 
 #ifdef __cplusplus
