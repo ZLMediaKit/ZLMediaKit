@@ -20,10 +20,11 @@ else ()
     add_subdirectory(tests)
 endif ()
 
+add_definitions(-DGENERATE_EXPORT)
 include_directories(${CMAKE_BINARY_DIR})
 generate_export_header(mk_api
         EXPORT_MACRO_NAME API_EXPORT
-        BASE_NAME MediaKitApi
+        BASE_NAME MK_API
         STATIC_DEFINE MediaKitApi_STATIC
         EXPORT_FILE_NAME "${CMAKE_BINARY_DIR}/mk_export.h"
         )

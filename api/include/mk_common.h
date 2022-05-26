@@ -13,12 +13,27 @@
 
 #include <stdint.h>
 #include <stddef.h>
+
+#if defined(GENERATE_EXPORT)
 #include "mk_export.h"
+#endif
 
 #if defined(_WIN32) && defined(_MSC_VER)
-#define API_CALL __cdecl
+#    define API_CALL __cdecl
 #else
-#define API_CALL
+#    define API_CALL
+#endif
+
+#if defined(_WIN32) && defined(_MSC_VER)
+#    if !defined(GENERATE_EXPORT)
+#        if defined(MediaKitApi_EXPORTS)
+#            define API_EXPORT __declspec(dllexport)
+#        else
+#            define API_EXPORT __declspec(dllimport)
+#        endif
+#    endif
+#elif !defined(GENERATE_EXPORT)
+#   define API_EXPORT
 #endif
 
 #ifdef __cplusplus
