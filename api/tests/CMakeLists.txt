@@ -1,4 +1,6 @@
 ﻿aux_source_directory(. TEST_SRC_LIST)
+include_directories(${PROJECT_BINARY_DIR}/api)
+
 foreach(TEST_SRC ${TEST_SRC_LIST})
     STRING(REGEX REPLACE "^\\./|\\.c[a-zA-Z0-9_]*$" "" TEST_EXE_NAME ${TEST_SRC})
 
