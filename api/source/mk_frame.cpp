@@ -17,7 +17,7 @@
 using namespace mediakit;
 
 extern "C" {
-#define XX(name, type, value, str, mpeg_id) const int MK##name = value;
+#define XX(name, type, value, str, mpeg_id) API_EXPORT const int MK##name = value;
     CODEC_MAP(XX)
 #undef XX
 }
