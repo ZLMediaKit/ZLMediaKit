@@ -1,8 +1,12 @@
 find_path(AVUTIL_INCLUDE_DIR
-  NAMES libavutil/avutil.h)
+        NAMES libavutil/avutil.h
+        HINTS ${FFMPEG_PATH_ROOT}
+        PATH_SUFFIXES include)
 
 find_library(AVUTIL_LIBRARY
-  NAMES avutil)
+        NAMES avutil
+        HINTS ${FFMPEG_PATH_ROOT}
+        PATH_SUFFIXES bin lib)
 
 set(AVUTIL_LIBRARIES ${AVUTIL_LIBRARY})
 set(AVUTIL_INCLUDE_DIRS ${AVUTIL_INCLUDE_DIR})

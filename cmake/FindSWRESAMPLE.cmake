@@ -1,8 +1,12 @@
 find_path(SWRESAMPLE_INCLUDE_DIR
-  NAMES libswresample/swresample.h)
+        NAMES libswresample/swresample.h
+        HINTS ${FFMPEG_PATH_ROOT}
+        PATH_SUFFIXES include)
 
 find_library(SWRESAMPLE_LIBRARY
-  NAMES swresample)
+        NAMES swresample
+        HINTS ${FFMPEG_PATH_ROOT}
+        PATH_SUFFIXES bin lib)
 
 set(SWRESAMPLE_LIBRARIES ${SWRESAMPLE_LIBRARY})
 set(SWRESAMPLE_INCLUDE_DIRS ${SWRESAMPLE_INCLUDE_DIR})
