@@ -75,10 +75,12 @@ namespace Cluster {
 #define CLUSTER_FIELD "cluster."
 const string kOriginUrl = CLUSTER_FIELD "origin_url";
 const string kTimeoutSec = CLUSTER_FIELD "timeout_sec";
+const string kRetryCount = CLUSTER_FIELD "retry_count";
 
 static onceToken token([]() {
     mINI::Instance()[kOriginUrl] = "";
     mINI::Instance()[kTimeoutSec] = 15;
+    mINI::Instance()[kTimeoutSec] = 3;
 });
 
 }//namespace Cluster
@@ -240,6 +242,8 @@ static void pullStreamFromOrigin(const vector<string>& urls, size_t index, size_
                                  const function<void()> &closePlayer) {
 
     GET_CONFIG(float, cluster_timeout_sec, Cluster::kTimeoutSec);
+    GET_CONFIG(int, retry_count, Cluster::kRetryCount);
+
     auto url = getPullUrl(urls[index % urls.size()], args);
     auto timeout_sec = cluster_timeout_sec / urls.size();
     InfoL << "pull stream from origin, failed_cnt: " << failed_cnt << ", timeout_sec: " << timeout_sec << ", url: " << url;
@@ -248,7 +252,7 @@ static void pullStreamFromOrigin(const vector<string>& urls, size_t index, size_
     option.enable_hls =  option.enable_hls || (args._schema == HLS_SCHEMA);
     option.enable_mp4 = false;
 
-    addStreamProxy(args._vhost, args._app, args._streamid, url, -1, option, Rtsp::RTP_TCP, timeout_sec,
+    addStreamProxy(args._vhost, args._app, args._streamid, url, retry_count, option, Rtsp::RTP_TCP, timeout_sec,
                   [=](const SockException &ex, const string &key) mutable {
         if (!ex) {
             return;
